@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: command-processor.lisp,v 1.2 92/01/31 14:57:38 cer Exp $
+;; $fiHeader: command-processor.lisp,v 1.3 92/02/24 13:07:05 cer Exp $
 
 (in-package :clim-internals)
 
@@ -176,9 +176,14 @@
 		  ;; the argument(s) that must follow
 		  (process-delimiter stream :activation-p t :echo-space t))
 		 ((eq args-to-go :end)
-		  ;; Reached after an entire command has been read, to eat the Return
-		  ;;--- I suspect this is unnecessary since ACCEPT itself will eat it
-		  (process-delimiter stream))
+		  ;; Reached after an entire command has been read, to ignore
+		  ;; trailing whitespace and eat the Return
+		  (loop
+		    (let ((char (process-delimiter stream)))
+		      (when (activation-gesture-p char)
+			(return char))
+		      (unless (whitespace-char-p char)
+			(simple-parse-error "Extraneous character seen")))))
 		 ((eq args-to-go :keywords)
 		  ;; Reached before reading the first keyword argument
 		  ;; If this is a command with no positional arguments, the preceding call
@@ -314,14 +319,14 @@
 				 (pop copy-partial-command)
 				 *unsupplied-argument-marker*)))
 	       (with-presentation-type-decoded (type-name parameters) presentation-type
-		 (when (eql type-name 'command-name)
+		 (when (eq type-name 'command-name)
 		   (return-from arg-parser (values command-name presentation-type)))
 		 (cond ((not (unsupplied-argument-p default))
-			(cond ((eql type-name 'keyword-argument-name) default)
+			(cond ((eq type-name 'keyword-argument-name) default)
 			      (t (apply #'parse-normal-arg
 					stream presentation-type
 					:default default args))))
-		       ((eql type-name 'keyword-argument-name)
+		       ((eq type-name 'keyword-argument-name)
 			(intern (symbol-name (caar parameters)) *keyword-package*))
 		       (t (apply #'parse-normal-arg
 				 stream presentation-type
@@ -381,7 +386,7 @@
 						  (accelerator-gesture-numeric-argument c))))))
 				       (let ((*accelerator-gestures* keystrokes))
 					 (read-gesture :stream stream :timeout timeout))))
-				 (when (eql numeric-arg :timeout)
+				 (when (eq numeric-arg :timeout)
 				   (return-from menu-command-parser nil))
 				 (when (characterp keystroke)
 				   (let ((command (lookup-keystroke-command-item
@@ -393,7 +398,7 @@
 					 (values command command-type)))))
 				 (beep)))
 			     (let ((token (read-token stream :click-only t :timeout timeout)))
-			       (if (eql token :timeout)
+			       (if (eq token :timeout)
 				   (return-from menu-command-parser nil)
 				   token)))
 		       (t (values object type)))
@@ -453,7 +458,7 @@
 (define-presentation-method present (symbol (type command-name) stream (view textual-view)
 				     &key for-context-type)
   (setq command-table (find-command-table command-table))
-  (when (eql (presentation-type-name for-context-type) 'command-or-form)
+  (when (eq (presentation-type-name for-context-type) 'command-or-form)
     (write-char (first *command-dispatchers*) stream))
   (let ((name (command-line-name-for-command 
 		symbol command-table 
@@ -477,9 +482,9 @@
 ;; Returns T iff COMMAND-TABLE-1 inherits from COMMAND-TABLE-2
 (defun command-table-presentation-subtypep (command-table-1 command-table-2)
   (values
-    (or (eql command-table-1 command-table-2)	;cheap optimization
+    (or (eq command-table-1 command-table-2)	;cheap optimization
 	(do-command-table-inheritance (comtab command-table-1)
-	  (when (eql comtab command-table-2)
+	  (when (eq comtab command-table-2)
 	    (return-from command-table-presentation-subtypep (values t t)))))
     t))
 
@@ -806,8 +811,8 @@
        ((object event)
 	(let* ((menu-item (third object))
 	       (type (command-menu-item-type menu-item)))
-	  (and (or (eql type ':command)
-		   (eql type ':function))
+	  (and (or (eq type ':command)
+		   (eq type ':function))
 	       (command-enabled
 		 (command-name (extract-command-menu-item-value menu-item event))
 		 *application-frame*))))
@@ -831,7 +836,7 @@
      :tester
        ((object)
 	(let ((menu-item (third object)))
-	  (and (eql (command-menu-item-type menu-item) ':menu)
+	  (and (eq (command-menu-item-type menu-item) ':menu)
 	       (let ((comtab (find-command-table
 			       (command-menu-item-value menu-item)
 			       :errorp nil)))

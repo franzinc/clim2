@@ -1,25 +1,9 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; 
-;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
-;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
-;;
-;; The software, data and information contained herein are proprietary
-;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
-;; given in confidence by Franz, Inc. pursuant to a written license
-;; agreement, and may be stored and used only in accordance with the terms
-;; of such license.
-;;
-;; Restricted Rights Legend
-;; ------------------------
-;; Use, duplication, and disclosure of the software, data and information
-;; contained herein by any agency, department or entity of the U.S.
-;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
-;;
-;; $fiHeader: gadgets.lisp,v 1.7 92/01/31 14:55:39 cer Exp $
+;; $fiHeader: gadgets.lisp,v 1.8 92/02/24 13:04:35 cer Exp $
+
+"Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
+ Portions copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
 
 (in-package :silica)
 
@@ -30,21 +14,32 @@
 (defclass foreground-background-and-text-style-mixin ()
     ((foreground :initform nil :initarg :foreground)
      (background :initform nil :initarg :background)
-     (text-style :initform nil :initarg :text-style)))
+     (text-style :initform *default-text-style* :initarg :text-style)))
+
+(defmethod initialize-instance :after ((pane foreground-background-and-text-style-mixin)
+				       &key &allow-other-keys)
+  (with-slots (text-style) pane
+    ;; Convert the text style if necesary
+    (etypecase text-style
+      (cons (setq text-style (parse-text-style text-style)))
+      (text-style nil))))
+
 
 (defclass gadget (foreground-background-and-text-style-mixin)
     ((id :initarg :id :reader gadget-id :initform nil)
-     (client :initarg :client :initform nil :accessor gadget-client)))
+     (client :initarg :client :initform nil :accessor gadget-client)
+     (armed-callback :initarg :armed-callback :initform nil
+		     :reader gadget-armed-callback)
+     (disarmed-callback :initarg :disarmed-callback :initform nil
+			:reader gadget-disarmed-callback)))
 
-(defclass value-gadget (gadget) 
-    ((value :initarg :value :initform nil
-	    :reader gadget-initial-value)
-     (value-changed-callback :initarg :value-changed-callback :initform nil
-			     :reader gadget-value-changed-callback)))
+(defmethod armed-callback ((gadget gadget) (client t) (id t))
+  (when (gadget-armed-callback gadget)
+    (invoke-callback-function (gadget-armed-callback gadget) gadget)))
 
-(defmethod value-changed-callback ((gadget gadget) (client t) (id t) (value t))
-  (when (gadget-value-changed-callback gadget)
-    (invoke-callback-function (gadget-value-changed-callback gadget) gadget value)))
+(defmethod disarmed-callback ((gadget gadget) (client t) (id t))
+  (when (gadget-disarmed-callback gadget)
+    (invoke-callback-function (gadget-disarmed-callback gadget) gadget)))
 
 (defun invoke-callback-function (function &rest args)
   (declare (dynamic-extent args))
@@ -53,34 +48,46 @@
 	(apply (car function) args))
       (apply function args)))
 
+
+(defclass value-gadget (gadget) 
+    ((value :initarg :value :initform nil
+	    :reader gadget-initial-value)
+     (value-changed-callback :initarg :value-changed-callback :initform nil
+			     :reader gadget-value-changed-callback)))
+
+(defmethod value-changed-callback ((gadget value-gadget) (client t) (id t) value)
+  (when (gadget-value-changed-callback gadget)
+    (invoke-callback-function (gadget-value-changed-callback gadget) gadget value)))
+
 (defgeneric gadget-value (gadget))
 
-(defmethod gadget-value ((gadget gadget))
+(defmethod gadget-value ((gadget value-gadget))
   (with-slots (value) gadget
     value))
 
-(defmethod value-changed-callback :before ((gadget gadget) client id new-value)
+(defmethod value-changed-callback :before ((gadget value-gadget) client id new-value)
   (declare (ignore id client))
   (with-slots (value) gadget
     (setf value new-value)))
 
 (defgeneric (setf gadget-value) (nv gadget))
 
-(defmethod (setf gadget-value) :after (nv (gadget gadget))
+(defmethod (setf gadget-value) (nv (gadget value-gadget))
+  (declare (ignore nv)))
+
+(defmethod (setf gadget-value) :after (nv (gadget value-gadget))
   (with-slots (value) gadget
     (setf value nv)))
 
-;;;;;;;;;;;;;
 
 (defclass action-gadget (gadget) 
-    ((action-callback :initarg :action-callback :initform nil
-		      :reader gadget-action-callback)))  
+    ((activate-callback :initarg :activate-callback :initform nil
+			:reader gadget-activate-callback)))  
 
-(defmethod activate-callback ((gadget gadget) (client t) (id t))
-  (when (gadget-action-callback gadget)
-    (invoke-callback-function
-      (gadget-action-callback gadget)
-      gadget)))
+(defmethod activate-callback ((gadget action-gadget) (client t) (id t))
+  (when (gadget-activate-callback gadget)
+    (invoke-callback-function (gadget-activate-callback gadget) gadget)))
+
 
 ;;; Basic gadgets-mixins
 
@@ -89,68 +96,104 @@
 		  :reader gadget-orientation))
   (:default-initargs :orientation :horizontal))
 
+
 (defclass labelled-gadget ()
     ((label :initarg :label
-	    :reader gadget-label))
+	    :accessor gadget-label)
+     (alignment :initarg :halign ;;--- compat hack
+		:initarg :alignment
+		:accessor gadget-alignment))
   (:default-initargs :label nil))
 
+;;--- Do the right thing
+#---ignore
+(defmethod compute-gadget-label-size ((pane labelled-gadget))
+  (values 50 20))
 
-;;;;;;;;;;;;;;;;;;;; The intent is that the real implementations
-;;;;;;;;;;;;;;;;;;;; inherit from these
+#+++ignore
+(defun compute-gadget-label-size ((pane labelled-gadget))
+  (let ((text (gadget-label pane))
+	(text-style (slot-value pane 'text-style)))
+    (with-sheet-medium (medium pane)
+      (values (+ 4 (stream-string-width text text-style medium))
+	      (+ 4 (text-style-height text-style medium))))))
 
-;; slider
+
+;;; The intent is that the real implementations inherit from these
 
+;;; Slider
 (defclass slider
 	  (value-gadget oriented-gadget labelled-gadget)
-    ())
+    ((drag-callback :initarg :drag-callback :initform nil
+		    :reader slider-drag-callback)))
 
-;; push-button
-
-(defclass push-button 
-	  (action-gadget labelled-gadget) 
-    ())
-
-;; scroll-bar
+(defmethod drag-callback ((gadget slider) (client t) (id t) value)
+  (when (slider-drag-callback gadget)
+    (invoke-callback-function (slider-drag-callback gadget) gadget value)))
 
 
+;; Scroll bar
 (defclass scrollbar
 	  (value-gadget oriented-gadget)
     ((current-value :initform nil)
-     (current-size :initform nil)))
+     (current-size :initform nil)
+     (drag-callback :initarg :drag-callback :initform nil
+		    :reader scrollbar-drag-callback)))
 
-;; Caption
-;; option menu
-;; label
+(defmethod drag-callback ((gadget scrollbar) (client t) (id t) value)
+  (when (scrollbar-drag-callback gadget)
+    (invoke-callback-function (scrollbar-drag-callback gadget) gadget value)))
 
-;; radio-box [exclusive-choice]
-;; .. [inclusive-choice]
 
-(defclass radio-box 
-	  (value-gadget oriented-gadget) 
+;;; Push-button
+(defclass push-button 
+	  (action-gadget labelled-gadget) 
+	  ())
+
+(defclass label-pane 
+	  (labelled-gadget) 
     ())
 
-;; menu-bar
 
-
-;; [cascade]
-
-;; As well as the callback mechanism
-;; a we want to specify a binding to commands
-;; text-field
-
-;; text-edit
-
-(defclass text-field 
-	  (value-gadget action-gadget) 
-    ())
-
-;; toggle buttton
-
+;; Toggle button
 (defclass toggle-button 
 	  (value-gadget labelled-gadget) 
     ((indicator-type :initarg :indicator-type :initform :some-of
 		     :reader gadget-indicator-type)))
 
+
+;; Menu button
+(defclass menu-button 
+	  (value-gadget labelled-gadget) 
+    ((indicator-type :initarg :indicator-type :initform :some-of
+		     :reader gadget-indicator-type)))
+
+
+;;; Caption
+;;; option menu
+;;; label
+
+;;; Radio box [exclusive-choice] .. [inclusive-choice]
+(defclass radio-box 
+	  (value-gadget oriented-gadget) 
+    ((selections :initform nil 
+		 :reader radio-box-selections)
+     (current-selection :initform nil
+			:accessor radio-box-current-selection)))
+
+;;; Menu-bar
+
+
+;;; [cascade]
+
+
+;;; Text edit
+;; As well as the callback mechanism a we want to specify a binding to commands
+(defclass text-field 
+	  (value-gadget action-gadget) 
+    ())
+
+
 ;;; Viewport
 
 ;;--- CLIM 0.9 has this VIEWPORT-LAYOUT-MIXIN -- do we need it?
@@ -176,8 +219,7 @@
   (bounding-rectangle-set-size
     (viewport-viewport-region viewport) width height)
   (update-scrollbars viewport)
-  (clim-internals::viewport-region-changed
-    (silica::sheet-child viewport) viewport))
+  (viewport-region-changed (sheet-child viewport) viewport))
 
 
 ;;; Then there is the layout stuff and scrolling macros
@@ -203,10 +245,8 @@
     ((value :initarg :value :reader event-value)))
 
 (defmethod handle-event ((gadget value-gadget) (event value-changed-gadget-event))
-  (value-changed-callback gadget 
-			  (gadget-client gadget)
-			  (gadget-id gadget)
-			  (slot-value event 'value)))
+  (value-changed-callback
+    gadget (gadget-client gadget) (gadget-id gadget) (slot-value event 'value)))
 
 (defclass activate-gadget-event (gadget-event) ())
 

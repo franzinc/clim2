@@ -22,7 +22,7 @@
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
 ;;;
-;; $fiHeader: db-box.lisp,v 1.7 92/02/05 21:45:11 cer Exp $
+;; $fiHeader: db-box.lisp,v 1.8 92/02/24 13:04:24 cer Exp $
 
 (in-package :silica)
 
@@ -34,7 +34,7 @@
 
 
 (defclass box-pane (layout-pane)
-    ((space :initform 1 :initarg :space)
+    ((space :initform 1 :initarg :spacing)
      contents))
 
 (defmethod initialize-instance :after 

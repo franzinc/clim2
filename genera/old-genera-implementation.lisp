@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: genera-implementation.lisp,v 1.1 92/01/31 14:27:52 cer Exp $
+;; $fiHeader: old-genera-implementation.lisp,v 1.1 92/02/24 13:28:09 cer Exp $
 
 (in-package :clim-internals)
 
@@ -78,19 +78,8 @@
 	    wb (+ wt height))
       (scl:send window :set-edges wl wt wr wb))))
 
-(defmethod stream-force-output ((stream sheet-implementation-mixin))
-  ;; yikes!!  Don't charge the screen-manager overhead to the caller!
-  #+Ignore
-  (with-slots (window) stream
-    (tv:screen-manage-window-area window)))
-
 (defmethod stream-clear-output ((stream sheet-implementation-mixin))
   )
-
-(defmethod redisplay-decorations ((stream sheet-implementation-mixin))
-  (with-slots (window) stream
-    (when (window-drawing-possible stream)
-      (scl:send window :refresh-margins))))
 
 (defmethod window-refresh ((stream sheet-implementation-mixin))
   (with-slots (window) stream
@@ -144,23 +133,6 @@
   (with-slots (window) stream
     (scl:send window :margins)))
 
-
-;; Does this want to be an :after method?  Will the primary method on
-;; window-stream ever want to do anything else?
-(defmethod stream-set-input-focus ((stream sheet-implementation-mixin))
-  (with-slots (window) stream
-    (prog1 (sys:console-selected-window (tv:sheet-console window))
-	   ;; :select-relative ?
-	   (scl:send window :select))))
-
-(defmethod stream-restore-input-focus ((stream sheet-implementation-mixin)
-				       old-focus)
-  (with-slots (window) stream
-    (unless (eq old-focus window)
-      (if (eq (scl:send old-focus :alias-for-selected-windows)
-	      (scl:send window :alias-for-selected-windows))
-	  (scl:send old-focus :select-relative)
-	  (scl:send window :deselect t)))))
 
 (defmethod notify-user-1 ((stream sheet-implementation-mixin)
 			  frame format-string &rest format-args)
@@ -309,25 +281,6 @@
 		       (clim-window-for-host-window scl:self)
 		       nil nil nil nil))))))))
 
-(scl:defmethod (:refresh clim-sheet :after) (&optional (type :complete-redisplay))
-  (declare (ignore type))
-  (let ((window (clim-window-for-host-window scl:self)))
-    (setf (slot-value window 'highlighted-presentation) nil)
-    (unless *sizing-application-frame*		;avoid replaying twice
-      (frame-replay *application-frame* window (window-viewport window)))))
-
-(scl:defwhopper (:change-of-size-or-margins clim-sheet) (&rest args)
-  (let ((old-x tv:x-offset) (old-y tv:y-offset)
-	(old-width tv:width) (old-height tv:height))
-    (multiple-value-prog1 (scl:lexpr-continue-whopper args)
-      (unless (or *synchronous-window-operation-being-processed*
-		  (and (= old-x tv:x-offset) (= old-y tv:y-offset)
-		       (= old-width tv:width) (= old-height tv:height)))
-	(scl:send scl:self :force-kbd-input
-		  (make-window-size-or-position-change-event
-		    (clim-window-for-host-window scl:self)
-		    nil nil nil nil))))))
-
 (scl:defmethod (:convert-mouse-coords clim-sheet) (x y in-or-out)
   (case in-or-out
     (:in (values (- x tv:left-margin-size)
@@ -345,68 +298,6 @@
 (scl:compile-flavor-methods clim-sheet temp-clim-sheet)
 
 
-;;;
-
-(defclass sheet-window-stream
-	  (sheet-implementation-mixin window-stream)
-    ()
-  (:default-initargs :display-device-type nil
-		     :text-cursor (make-instance 'sheet-text-cursor)))
-
-(defmethod initialize-instance :after ((stream sheet-window-stream)
-				       &key parent left top right bottom label
-					    (scroll-bars ':both) (borders t)
-					    window save-under)
-  ;; --- can we do this error checking more generally?
-  (cond ((null parent)
-	 ;; :PARENT NIL means open the root window.
-	 (unless window
-	   (error "You must supply a parent window stream or explicitly initilize the WINDOW slot."))
-	 ;; parent nil means 
-	 (when (or left top right bottom)
-	   (error "You cannot specify the size of the root window (i.e. when :PARENT is NIL)."))
-	 (with-slots (left top right bottom) stream
-	   (multiple-value-bind (w h) (scl:send window :size)
-	     (setf left (tv:sheet-x window)
-		   top (tv:sheet-y window)
-		   right (+ (tv:sheet-x window) w)
-		   bottom (+ (tv:sheet-y window) h))))
-	 (setf (stream-pointers stream)
-	       (list (make-instance 'standard-pointer :root stream))))
-	(t
-	 (with-slots (display-device-type) stream
-	   (unless display-device-type
-	     (setf display-device-type (slot-value parent 'display-device-type))))
-	 ;; When parent is supplied, open an inferior
-	 (unless (and left top right bottom)
-	   (error "You must supply :left :top :right and :bottom when creating a window"))
-	 (let ((parent-window (slot-value parent 'window)))
-	   (when parent-window
-	     (multiple-value-bind (wl wt)
-		 (scl:send parent-window :inside-edges)
-	       (translate-positions wl wt left top right bottom)))
-	   (let ((sheet (tv:make-window (if save-under 'temp-clim-sheet 'clim-sheet)
-					:superior parent-window
-					:left left	;see above
-					:top top
-					:right right
-					:bottom bottom
-					;; :edges (list left top right bottom)
-					:margin-components (clim-sheet-margin-components
-							     label scroll-bars borders))))
-	     (setf (slot-value stream 'window) sheet)
-	     (setf (slot-value stream 'color-p) (color:color-stream-p sheet))
-	     ;; EMBEDDED-P indicates that the screen implementation has fast, specific
-	     ;; methods for implementing the Genera graphics substrate.  I'm not sure
-	     ;; if the use of basic-remote-screen is the right test, but it's quick...
-	     (setf (slot-value stream 'embedded-p)
-		   (typep (tv:sheet-screen sheet) 'tv:basic-remote-screen))
-	     (scl:send sheet :set-char-aluf
-		       (sheet-decode-color (medium-foreground stream) stream nil))
-	     (scl:send sheet :set-erase-aluf
-		       (sheet-decode-color (medium-background stream) stream nil))))))
-  (associate-clim-window-with-host-window (slot-value stream 'window) stream))
-
 ;;; The margin stuff seems to have changed.
 (defmethod initialize-instance :around ((stream sheet-window-stream) &key label)
   (call-next-method)

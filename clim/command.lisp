@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: command.lisp,v 1.2 92/01/31 14:57:41 cer Exp $
+;; $fiHeader: command.lisp,v 1.3 92/02/24 13:07:07 cer Exp $
 
 (in-package :clim-internals)
 
@@ -19,7 +19,7 @@
 (defvar *unsupplied-argument* *unsupplied-argument-marker*)
 
 (defun unsupplied-argument-p (arg)
-  (eql arg *unsupplied-argument-marker*))
+  (eq arg *unsupplied-argument-marker*))
 
 (defun partial-command-p (command)
   (and (listp command)
@@ -198,7 +198,7 @@
 				     &key name menu keystroke (test #'eql) (errorp t))
   (check-type command-name symbol)
   (setq command-table (find-command-table command-table))
-  (when (eql name t)
+  (when (eq name t)
     (setq name (command-name-from-symbol command-name)))
   (check-type name (or string null))
   (check-type keystroke (or character null))	;---gesture spec
@@ -213,7 +213,7 @@
 	(menu-options nil))
     (when menu
       (setq menu-name (if (consp menu) (first menu) menu))
-      (when (eql menu-name t)
+      (when (eq menu-name t)
 	(setq menu-name (or name (command-name-from-symbol command-name))))
       (check-type menu-name string)
       (setq menu-options (if (consp menu) (rest menu) nil)))
@@ -256,8 +256,8 @@
 	(menu-items nil))
     (map nil #'(lambda (entry)
 		 (let ((item (third entry)))
-		   (when (and (eql (command-menu-item-type item) :command)
-			      (eql (command-name (command-menu-item-value item)) command-name))
+		   (when (and (eq (command-menu-item-type item) :command)
+			      (eq (command-name (command-menu-item-value item)) command-name))
 		     (push item menu-items))))
 	 menu)
     (dolist (item menu-items)
@@ -407,7 +407,7 @@
 		:format-string "Menu item ~S already present in ~S"
 		:format-args (list string command-table)))
       (remove-menu-item-from-command-table command-table string)))
-  (when (eql type ':command)
+  (when (eq type ':command)
     ;; Canonicalize command name to a command with the right number of
     ;; unsupplied argument markers.
     (unless (listp value)
@@ -462,7 +462,7 @@
 	    (error "The value for :AFTER is not a string, :START, :END, or :SORT"))))
       ;; Now that the command is accessible via a menu (or keystroke),
       ;; make sure that we've really imported it
-      (when (eql type ':command)
+      (when (eq type ':command)
 	(let ((old-name (gethash (first value) commands)))
 	  (setf (gethash (first value) commands) (or old-name t))))
       entry)))
@@ -520,15 +520,15 @@
 	 (keystroke (pop element))
 	 (item (pop element))
 	 (type (command-menu-item-type item))
-	 (command (and (or (eql type ':command)
-			   (eql type ':function))
+	 (command (and (or (eq type ':command)
+			   (eq type ':function))
 		       (extract-command-menu-item-value item t)))
 	 (text-style (getf (command-menu-item-options item) :text-style)))
     (flet ((body (stream)
 	     (if keystroke
 		 (format stream "~A (~C)" menu keystroke)
 	         (format stream "~A" menu))
-	     (when (eql type ':menu)
+	     (when (eq type ':menu)
 	       (write-string " >" stream))))
       (declare (dynamic-extent #'body))
       (with-text-style (stream text-style)
@@ -565,7 +565,7 @@
 				      :initial-spacing initial-spacing
 				      :move-cursor move-cursor)
 	  (dovector (element menu)
-	    (cond ((eql (command-menu-item-type (third element)) :divider)
+	    (cond ((eq (command-menu-item-type (third element)) :divider)
 		   (typecase (first element)
 		     (string
 		       (let ((text-style 
@@ -638,7 +638,7 @@
 (defun menu-choose-command-drawer (stream items type)
   (formatting-item-list (stream :move-cursor nil)
     (dovector (item items)
-      (cond ((eql (command-menu-item-type (third item)) :divider)
+      (cond ((eq (command-menu-item-type (third item)) :divider)
 	     (typecase (first item)
 	       (string
 		 (let ((text-style 
@@ -662,7 +662,7 @@
 					&optional (numeric-argument *numeric-argument*))
   (let ((type (command-menu-item-type menu-item))
 	(value (command-menu-item-value menu-item)))
-    (if (eql type ':function)
+    (if (eq type ':function)
 	(funcall value gesture numeric-argument)
         value)))
 
@@ -744,7 +744,7 @@
 				       (funcall test character (second entry)))
 			      (return-from lookup-keystroke-item
 				(values item command-table)))
-			    (when (and (eql (command-menu-item-type item) ':menu)
+			    (when (and (eq (command-menu-item-type item) ':menu)
 				       (null (second entry)))
 			      ;; When this entry points to a submenu, and this
 			      ;; entry has no keystroke of its own, then map
@@ -764,8 +764,8 @@
     (when item
       (let* ((type (command-menu-item-type item))
 	     (command 
-	       (and (or (eql type ':command)
-			(eql type ':function))
+	       (and (or (eq type ':command)
+			(eq type ':function))
 		    (extract-command-menu-item-value item t numeric-argument))))
 	(when (command-enabled (command-name command) *application-frame*)
 	  (return-from lookup-keystroke-command-item
@@ -909,10 +909,10 @@
       (setq default nil)
       (cond ((valid-cp-lambda-list-keyword-p argument)
 	     (setq mode argument))
-	    ((and (eql mode '&key)
+	    ((and (eq mode '&key)
 		  (do ((l (cddr argument) (cddr l)))
 		      ((null l) nil)
-		    (when (eql (first l) :default)
+		    (when (eq (first l) :default)
 		      (setq default (second l))
 		      (return t))))
 	     (push `(,(first argument) ,default) keyword-bindings))
@@ -977,7 +977,7 @@
 
 (defun generate-parse-and-assign-clause (argument env)
   (let ((arg-name (first argument))
-	(prompt-p (not (eql (getf (cddr argument) ':prompt 'xyzzy) 'xyzzy)))
+	(prompt-p (not (eq (getf (cddr argument) ':prompt 'xyzzy) 'xyzzy)))
 	;; Documentation is ignored for required arguments, and is
 	;; handled elsewhere for keyword arguments
 	(args (remove-keywords (cddr argument) '(:gesture :documentation))))
@@ -1041,14 +1041,14 @@
       (setq pointer-documentation (command-name-from-symbol command-name)))
     (dolist (argument arguments)
       (cond ((valid-cp-lambda-list-keyword-p argument)
-	     (when (eql argument '&key)
+	     (when (eq argument '&key)
 	       (setq found-key t)))
 	    (t
 	     (incf count)
 	     (let* ((no-gesture '#:no-gesture)
 		    (arg-name (first argument))
 		    (gesture (getf (cddr argument) :gesture no-gesture)))
-	       (unless (eql gesture no-gesture)
+	       (unless (eq gesture no-gesture)
 		 (let ((arg-type (cadr argument))
 		       (translator-options nil))
 		   (when (consp gesture)
@@ -1121,7 +1121,7 @@
 		 (write-command-argument-translators
 		   command-name arguments
 		   :command-table command-table
-		   :pointer-documentation (if (eql command-line-name 't)
+		   :pointer-documentation (if (eq command-line-name 't)
 					      (command-name-from-symbol command-name)
 					      command-line-name)))
 	       (n-required (or (position '&key arguments) (length arguments))))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: (CLIM-LISP :USE LISP :COLON-MODE :EXTERNAL); Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: defpackage.lisp,v 1.2 92/01/31 14:52:29 cer Exp $
+;; $fiHeader: defpackage.lisp,v 1.3 92/02/24 13:05:29 cer Exp $
 
 "Copyright (c) 1989, 1990, 1991 by International Lisp Associates.  All Rights Reserved."
 
@@ -26,17 +26,17 @@
   (flet ((get-option (option-name &optional default)
 	   (dolist (option options default)
 	     (if (atom option)
-		 (when (eql option option-name) 
+		 (when (eq option option-name) 
 		   (warn "Option ~S standing along ignored." option-name))
-		 (when (eql (car option) option-name) (return (cdr option))))))
+		 (when (eq (car option) option-name) (return (cdr option))))))
 	 (stringify (option-arg) (mapcar #'string option-arg))
 	 (map-options (option-name function)
 	   (let ((result nil))
 	     (dolist (option options (nreverse result))
 	       (if (atom option)
-		   (when (eql option option-name)
+		   (when (eq option option-name)
 		     (warn "Option ~S standing alone ignored." option-name))
-		   (when (eql (car option) option-name)
+		   (when (eq (car option) option-name)
 		     (push (funcall function (cdr option)) result)))))))
     (let ((package-name (string name))
 	  (use-list (get-option :use '(:common-lisp)))

@@ -20,15 +20,12 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: dev-load-xm.lisp,v 1.3 92/02/26 10:24:03 cer Exp Locker: cer $
+;; $fiHeader: dev-load-xm.lisp,v 1.3 92/02/26 10:24:03 cer Exp $
 
 (excl::free (excl::malloc 131072))
 
 (setq *ignore-package-name-case* t)
 (set-case-mode :case-insensitive-lower)
-
-;; (warn "Setting excl::*libfasl* to t")
-;; (setq excl::*libfasl* t)
 
 (tenuring
  (let ((*load-source-file-info* t)
@@ -53,4 +50,3 @@
 (load "demo/sysdcl")
 (tenuring
  (defsys::load-system 'clim-demo))
-

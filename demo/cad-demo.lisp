@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: cad-demo.lisp,v 1.1 92/01/31 14:31:58 cer Exp $
+;; $fiHeader: cad-demo.lisp,v 1.2 92/02/24 13:09:20 cer Exp $
 
 (in-package :clim-demo)
 
@@ -555,7 +555,7 @@
 
 (defun cad-demo-partial-command-parser (partial-command command-table stream start-location)
   (let ((name (command-name partial-command)))
-    (if (eql name 'com-create-component)
+    (if (eq name 'com-create-component)
 	(accept-values-command-parser
 	  name command-table (frame-top-level-sheet *application-frame*) partial-command
 	  :own-window t)
@@ -586,7 +586,7 @@
 	    &optional (x-offset 0) (y-offset 0) &rest continuation-args)
   (declare (dynamic-extent continuation-args))
   (dolist (object (slot-value cd 'object-list))
-    (when (or (null region) (eql region +everywhere+)
+    (when (or (null region) (eq region +everywhere+)
 	      (clim-internals::region-intersects-offset-region-p 
 		object region x-offset y-offset))
       (apply function object continuation-args))))
@@ -614,7 +614,7 @@
 
 (defmethod replay-output-record ((record cad-demo) stream
 				 &optional region (x-offset 0) (y-offset 0))
-  (when (eql region +everywhere+)
+  (when (eq region +everywhere+)
     (setq region nil))
   (multiple-value-bind (rl rt rr rb)
       (and region (bounding-rectangle* region))
@@ -623,8 +623,8 @@
 	#'(lambda (element)
 	    (with-bounding-rectangle* (left top right bottom) element
 	      (when (or (null region)
-			(clim-internals::ltrb-overlaps-ltrb-p left top right bottom
-							      rl rt rr rb))
+			(clim-utils:ltrb-overlaps-ltrb-p left top right bottom
+							 rl rt rr rb))
 		(replay-output-record element stream region
 				      (+ x-offset xoff) (+ y-offset yoff)))))
 	record nil x-offset y-offset))))

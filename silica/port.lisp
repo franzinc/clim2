@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: port.lisp,v 1.4 92/01/31 14:55:47 cer Exp $
+;; $fiHeader: port.lisp,v 1.5 92/02/24 13:04:53 cer Exp $
 
 (in-package :silica)
 
@@ -55,7 +55,7 @@
   (restart-port port))
 
 
-(defgeneric sheet-port (x)
+(defgeneric port (x)
   (:method ((port port)) port)
   (:method ((x t)) nil))
 
@@ -63,8 +63,9 @@
 
 (defgeneric (setf port-properties) (properties port))
 
-(defun map-over-ports (fn)
-  (mapc fn *ports*))
+(defun map-over-ports (function)
+  (declare (dynamic-extent function))
+  (mapc function *ports*))
 
 (defgeneric restart-port (port)
   (:method
@@ -95,7 +96,7 @@
 		 mirrored-sheet-mixin
 		 sheet-multiple-child-mixin
 		 sheet-transformation-mixin)
-    ((port :initarg :port :reader sheet-port)
+    ((port :initarg :port :reader port)
      (lock :initform (make-lock "a graft lock") :reader graft-lock)
      (orientation :reader graft-orientation :initarg :orientation)
      (units :reader graft-units :initarg :units)
@@ -181,11 +182,12 @@
 (defgeneric port-graft-class (port)
   (:method ((port port)) 'graft))
 
-(defgeneric sheet-graft (object)
+(defgeneric graft (object)
   (:method ((x graft)) x))
 
-(defun map-over-grafts (fn port)
-  (mapc fn (port-grafts port)))
+(defun map-over-grafts (function port)
+  (declare (dynamic-extent function))
+  (mapc function (port-grafts port)))
 
 (defgeneric graft-orientation (graft))
 (defgeneric graft-units (graft))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept.lisp,v 1.2 92/01/31 14:57:31 cer Exp $
+;; $fiHeader: accept.lisp,v 1.3 92/02/24 13:06:53 cer Exp $
 
 (in-package :clim-internals)
 
@@ -44,7 +44,7 @@
     (when expanded
       (when (eq default-type type)
 	(setq default-type expansion))
-      (when (eql history type)
+      (when (eq history type)
 	(setq history expansion))
       (setq type expansion)))
   (unless (eq default-type type)
@@ -285,7 +285,7 @@
     (let ((char (read-gesture :stream stream)))
       (when (or (not (characterp char))
 		(delimiter-gesture-p char)
-		(not (whitespace-character-p char)))
+		(not (whitespace-char-p char)))
 	;; If we got some kind of mouse gesture or a delimiter or a
 	;; printing character, then put it back and check to see if
 	;; we should insert the default.
@@ -339,9 +339,9 @@
 					  (let ((char (read-char stream nil :eof)))
 					    (when (or (not (characterp char))
 						      (delimiter-gesture-p char)
-						      (not (whitespace-character-p char)))
+						      (not (whitespace-char-p char)))
 					      (unread-char char stream)
-					      (when (or (eql char :eof)
+					      (when (or (eq char :eof)
 							(activation-gesture-p char)
 							(delimiter-gesture-p char))
 						(return-from check-for-default t))
@@ -365,7 +365,7 @@
 				     input-wait-test input-wait-handler
 				     pointer-button-press-handler)
   (declare (ignore input-wait-test input-wait-handler pointer-button-press-handler))
-  (let ((char (if (eql timeout 0)
+  (let ((char (if (eq timeout 0)
 		  (stream-read-char-no-hang stream)
 		  (stream-read-char stream))))
     (when (and char peek-p)

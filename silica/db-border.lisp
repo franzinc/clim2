@@ -5,11 +5,16 @@
 
 (in-package :silica)
 
-;;; $fiHeader$
+;;; $fiHeader: db-border.lisp,v 1.2 92/02/24 13:16:24 cer Exp Locker: cer $
 
 ;;; Border Panes
 (defclass border-pane (layout-pane)
     ((thickness :initform 1 :initarg :thickness)))
+
+(defmacro bordering (options &body contents)
+  `(realize-pane 'border-pane
+		 :contents ,@contents
+		 ,@options))
 
 (defmethod initialize-instance :after ((pane border-pane) &key contents)
   (sheet-adopt-child pane contents))

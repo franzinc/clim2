@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: cursor.lisp,v 1.5 92/02/24 13:07:12 cer Exp Locker: cer $
+;; $fiHeader: cursor.lisp,v 1.6 92/02/26 10:23:35 cer Exp $
 
 (in-package :clim-internals)
 
@@ -69,10 +69,10 @@
   (with-slots (x y visibility) cursor
     (unless (and (= x nx)
 		 (= y ny))
-      (when (eql visibility :on)
+      (when (eq visibility :on)
 	(draw-cursor cursor nil))
       (setf x nx y ny)
-      (when (eql visibility :on)
+      (when (eq visibility :on)
 	(draw-cursor cursor T)))))
 
 #+Silica
@@ -80,25 +80,12 @@
   (with-slots (x y visibility) cursor
     (setf x nx y ny)))
 
-
-
-;;--- What should these really be?
-;(defmethod (setf cursor-visibility) (new-visibility (cursor text-cursor))
-;  (with-slots (visibility) cursor
-;    (cond ((eql visibility new-visibility))
-;	  ((eql visibility ':on) (draw-cursor cursor nil))
-;	  ((eql new-visibility ':on) (draw-cursor cursor T)))
-;    (setf visibility new-visibility)))
-;
-;(defmethod cursor-visibility ((cursor text-cursor))
-;  (slot-value cursor 'visibility))
-
 (defmethod (setf cursor-state) (new-state (cursor text-cursor))
   (multiple-value-bind (active state focus)
       (decode-cursor-flags (slot-value cursor 'flags))
     (declare (ignore active focus))
     (setf (ldb cursor_state (slot-value cursor 'flags)) (if new-state 1 0))
-    (unless (eql state new-state)
+    (unless (eq state new-state)
       (note-cursor-change cursor 'cursor-state state new-state))))
 
 (defmethod cursor-state ((cursor text-cursor))
@@ -109,7 +96,7 @@
       (decode-cursor-flags (slot-value cursor 'flags))
     (declare (ignore state focus))
     (setf (ldb cursor_active (slot-value cursor 'flags)) (if new-active 1 0))
-    (unless (eql active new-active)
+    (unless (eq active new-active)
       (note-cursor-change cursor 'cursor-active active new-active))))
 
 (defmethod cursor-active ((cursor text-cursor))
@@ -120,7 +107,7 @@
       (decode-cursor-flags (slot-value cursor 'flags))
     (declare (ignore active state))
     (setf (ldb cursor_focus (slot-value cursor 'flags)) (if new-focus 1 0))
-    (unless (eql focus new-focus)
+    (unless (eq focus new-focus)
       (note-cursor-change cursor 'cursor-focus focus new-focus))))
 
 (defmethod cursor-focus ((cursor text-cursor))
@@ -136,8 +123,8 @@
 (defmethod note-cursor-change ((cursor text-cursor) type old new)
   ;;; type is currently one of CURSOR-ACTIVE, -FOCUS, or -STATE
   (let ((stream (slot-value cursor 'stream)))
-    (when (and stream (sheet-port stream))
-      (port-note-cursor-change (sheet-port stream) cursor stream type old new))))
+    (when (and stream (port stream))
+      (port-note-cursor-change (port stream) cursor stream type old new))))
 
 ;;; The port needs to know about state transitions.  We originally had one
 ;;; function that simply knew when the cursor was changing from "on" to "off"
@@ -220,13 +207,12 @@
 	;; --- do we really want to do this here??
 	(force-output stream)))))
 
-;;;---- BOGUS
-(defun cursor-visibility (cursor) 
+(defmethod cursor-visibility ((cursor cursor))
   (cursor-active cursor))
-
-(defun (setf cursor-visibility) (nv cursor)
+ 
+(defmethod (setf cursor-visibility) (nv (cursor cursor))
   (setf (cursor-active cursor) 
-    (case nv
-      (:off nil)
-      ((nil) nil)
-      (t t))))
+	(case nv
+	  (:off nil)
+	  ((nil) nil)
+	  ((t :on) t))))

@@ -20,16 +20,16 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-cursor.lisp,v 1.1 92/02/25 16:52:41 cer Exp Locker: cer $
+;; $fiHeader: xm-cursor.lisp,v 1.2 92/02/26 10:23:23 cer Exp $
 
 (in-package :xm-silica)
 
 (defmethod port-note-cursor-change ((port xt-port) cursor stream type
 				    old new)
   (declare (ignore new old type))
-  (let ((active (clim-internals::cursor-active cursor))
-	(state (clim-internals::cursor-state cursor))
-	(focus (clim-internals::cursor-focus cursor)))
+  (let ((active (cursor-active cursor))
+	(state (cursor-state cursor))
+	(focus (cursor-focus cursor)))
     (let* ((mirror (sheet-mirror stream))
 	   (blinker (ensure-blinker-for-cursor stream mirror cursor)))
       (when blinker

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: regions.lisp,v 1.3 92/01/31 14:52:53 cer Exp $
+;; $fiHeader: regions.lisp,v 1.4 92/02/24 13:05:57 cer Exp $
 
 (in-package :clim-utils)
 
@@ -985,9 +985,9 @@
 (defmethod region-contains-region-p ((path path) (area area)) nil)
 (defmethod region-contains-region-p ((line polyline) (arc elliptical-arc)) nil)
 (defmethod region-contains-region-p ((region1 region) (region2 region))
-  (eql region1 region2))
+  (eq region1 region2))
 
 ;; Exclude the general cases of REGION-INTERSECTS-REGION-P
 (defmethod region-intersects-region-p ((region1 region) (region2 region))
-  (eql region1 region2))
+  (eq region1 region2))
 

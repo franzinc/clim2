@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-defs.lisp,v 1.4 92/01/31 14:58:12 cer Exp $
+;; $fiHeader: input-defs.lisp,v 1.5 92/02/24 13:07:51 cer Exp $
 
 (in-package :clim-internals)
 
@@ -65,8 +65,8 @@
 
 (defmethod (setf pointer-window) :before (new-value (pointer standard-pointer))
    (with-slots (window) pointer
-     (unless (eql new-value window)
-       (when (and window (sheet-port window))
+     (unless (eq new-value window)
+       (when (and window (port window))
 	 ;;--- Horrible cross-protocol modularity violation here, but
 	 ;;--- it's hours before AAAI.  Note that this can cause blowouts
 	 ;;--- in multi-processing systems if the function that does the
@@ -76,7 +76,7 @@
 
 (defmethod pointer-decache ((pointer pointer))
   (with-slots (window) pointer
-    (when (and window (sheet-port window))
+    (when (and window (port window))
       (let ((native-x-position (pointer-native-x-position pointer))
 	    (native-y-position (pointer-native-y-position pointer)))
 	(multiple-value-setq (native-x-position native-y-position)
@@ -93,9 +93,9 @@
 (defun pointer-state-changed (pointer old-window old-x old-y)
   (multiple-value-bind (window x-position y-position) (query-pointer pointer)
     (values
-      (or (not (eql window old-window))
+      (or (not (eq window old-window))
 	  ;; compare coordinates with eql, not =, because null values can be passed in
-	  (not (eql old-x x-position))
-	  (not (eql old-y y-position)))
+	  (not (eq old-x x-position))
+	  (not (eq old-y y-position)))
       window x-position y-position)))
 

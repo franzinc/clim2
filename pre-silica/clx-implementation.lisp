@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clx-implementation.lisp,v 1.1 92/01/31 14:27:41 cer Exp $
+;; $fiHeader: clx-implementation.lisp,v 1.2 92/02/24 13:07:02 cer Exp $
 
 (in-package :clim-internals)
 
@@ -85,13 +85,13 @@
 			   display-device `(,(car family) :roman 10))
 		     (return (make-text-style (car family) :roman 10)))))
 	   (setf (text-style-mapping
-		   display-device (display-device-undefined-text-style display-device))
+		   display-device (port-undefined-text-style display-device))
 		 temp))
 	  ;; Perhaps we should look for some other conveniently sized
 	  ;; fonts.
 	  (*clx-fallback-font*
 	   (setf (text-style-mapping
-		   display-device (display-device-undefined-text-style display-device))
+		   display-device (port-undefined-text-style display-device))
 		 (xlib:open-font display
 				 *clx-fallback-font*)))
 	  ;; Perhaps we should just grab the first font we can find.
@@ -154,10 +154,10 @@
        (auth-data (xau-get-auth-by-addr
 		    host display-number xauthority-filename))
        no-error-p display)
-      ((or no-error-p (eql try-count 3))
+      ((or no-error-p (eq try-count 3))
        (and no-error-p display))
     (multiple-value-setq (no-error-p display)
-      (if (eql try-count 2)
+      (if (eq try-count 2)
 	  ;; Let error be signalled last time through.
 	  (xlib:open-display
 	    host :display display-number
@@ -351,20 +351,25 @@
 	    (t (fill array 0)))
       ;; Maybe we can speed this up by special casing :SHIFT and :CONTROL
       ;; somewhere else.
-      (setf (aref array (modifier-key-index :shift)) (xlib:make-state-mask :shift))
-      (setf (aref array (modifier-key-index :control)) (xlib:make-state-mask :control))
+      (setf (aref array (clim-internals::modifier-key-index :shift))
+	    (xlib:make-state-mask :shift))
+      (setf (aref array (clim-internals::modifier-key-index :control))
+	    (xlib:make-state-mask :control))
       (flet ((test-keysym (keysym state-mask)
 	       (cond ((or (= keysym xlib::left-meta-keysym)
 			  (= keysym xlib::left-alt-keysym)
 			  (= keysym xlib::right-meta-keysym)
 			  (= keysym xlib::right-alt-keysym))
-		      (setf (aref array (modifier-key-index :meta)) state-mask))
+		      (setf (aref array (clim-internals::modifier-key-index :meta))
+			    state-mask))
 		     ((or (= keysym xlib::left-super-keysym)
 			  (= keysym xlib::right-super-keysym))
-		      (setf (aref array (modifier-key-index :super)) state-mask))
+		      (setf (aref array (clim-internals::modifier-key-index :super))
+			    state-mask))
 		     ((or (= keysym xlib::left-hyper-keysym)
 			  (= keysym xlib::right-hyper-keysym))
-		      (setf (aref array (modifier-key-index :hyper)) state-mask)))))
+		      (setf (aref array (clim-internals::modifier-key-index :hyper))
+			    state-mask)))))
 	(macrolet ((do-mod (mod)
 		     `(let ((codes ,mod))
 			(dolist (keycode codes)
@@ -389,7 +394,7 @@
 (defun state-mask->modifier-state (state-mask display)
   (let ((mask 0))
     (macrolet ((do-shift (clim-shift)
-		 `(let* ((bit (modifier-key-index ,clim-shift))
+		 `(let* ((bit (clim-internals::modifier-key-index ,clim-shift))
 			 (x-state (clim-modifier-key-index->x-state bit display)))
 		    (unless (zerop (boole boole-and x-state state-mask))
 		      (setf mask (dpb 1 (byte 1 bit) mask))))))
@@ -464,7 +469,7 @@
 		 (setq ws (getf (xlib:window-plist window) 'stream))	;test form
 		 (let ((ch (xlib:keycode->character display code state)))
 		   (cond ((characterp ch)
-			  (when (and ws (eql event-key :key-press))
+			  (when (and ws (eq event-key :key-press))
 			    (when (eql ch #\Return)
 			      ;; Unix boxes have #\Return, not #\Newline.
 			      (setq ch #\Newline))
@@ -490,7 +495,7 @@
 		((:mapping-notify) (request start count)
 		 t				;test form
 		 (xlib:mapping-notify display request start count)
-		 (when (eql request :modifier)
+		 (when (eq request :modifier)
 		   (fill-keycode->modifier-state display)
 		   (fill-clim-modifier-key-index->x-state display))
 		 t)
@@ -501,7 +506,7 @@
 		 ;; the event is about any other windows (e.g. intermediaries inserted
 		 ;; by the window manger), then it's talking about something beyond
 		 ;; our sphere of influence and we ignore it.
-		 (cond ((eql parent (clx-stream-window (window-parent ws)))
+		 (cond ((eq parent (clx-stream-window (window-parent ws)))
 			(with-slots (left top right bottom) ws
 			  (let ((border-width
 				  ;;--- This is technically more correct, but it doesn't
@@ -526,7 +531,7 @@
 		 (let ((reparented-p (slot-value ws 'reparented-p)))
 		   (cond (send-event-p
 			  ;; hack to get around bug in older twm
-			  (when (not (eql border-width 0))
+			  (when (not (eq border-width 0))
 			    (incf x border-width)
 			    (incf y border-width)))
 			 (reparented-p
@@ -541,6 +546,15 @@
 		 (window-note-size-or-position-change
 		   ws (- x border-width) (- y border-width)
 		   (+ x width border-width) (+ y height border-width))
+		 (setf (slot-value ws 'border-width) border-width)
+		 t)
+		((:map-notify) (window)
+		 (setq ws (getf (xlib:drawable-plist window) 'stream))	;test form
+		 (setf (slot-value ws 'mapped-p) t)
+		 t)
+		((:unmap-notify) (window)
+		 (setq ws (getf (xlib:drawable-plist window) 'stream))	;test form
+		 (setf (slot-value ws 'mapped-p) nil)
 		 t)
 		((:graphics-exposure) (drawable width height x y count)
 		 (setq ws (getf (xlib:drawable-plist drawable) 'stream))	;test form
@@ -575,13 +589,13 @@
 		 t)
 		(:client-message (format window type data)
 		 (setq ws (getf (xlib:window-plist window) 'stream))	;test form
-		 (when (and (eql format 32)
-			    (eql type :WM_PROTOCOLS)
-			    (eql (xlib:atom-name
-				   display 
-				   (aref (the (simple-array (unsigned-byte 32) (5)) data)
-					 0))
-				:WM_DELETE_WINDOW))
+		 (when (and (eq format 32)
+			    (eq type :wm_protocols)
+			    (eq (xlib:atom-name
+				  display 
+				  (aref (the (simple-array (unsigned-byte 32) (5)) data)
+					0))
+				:wm_delete_window))
 		   (window-manager-close ws))
 		 t))
 	      ;; If we got a non-input event, just run the loop again, else
@@ -596,6 +610,7 @@
      (window :reader clx-stream-window)
      (root :reader clx-stream-root)
      (color-p :initform nil)
+     (border-width :initform nil :initarg :border-width)
      ;; These two are used on monochrome screens
      (white-pixel)
      (black-pixel)
@@ -609,6 +624,7 @@
      (clip-mask :initform :none)
      (reparented-p :initform nil)	; true when wm reparents us
      (nuked-p :initform nil)		; true when wm nukes us
+     (mapped-p :initform nil :reader window-visibility)
      (points-to-pixels)
      (vertical-scroll-bar :initform nil :reader window-vertical-scroll-bar)
      (horizontal-scroll-bar :initform nil :reader window-horizontal-scroll-bar)))
@@ -641,9 +657,9 @@
 (defmethod initialize-instance :after
 	   ((stream clx-window) &key left top right bottom
 				     (scroll-bars :both) save-under label
-				     (borders t) border-width)
+				     (borders t))
   (with-slots (window root screen copy-gc points-to-pixels
-	       color-p black-pixel white-pixel) stream
+	       color-p border-width black-pixel white-pixel) stream
     (let* ((parent (window-parent stream))
 	   (top-level (null (window-parent parent)))
 	   (x-width 0) (x-height 0))
@@ -654,9 +670,9 @@
 	     (when (not border-width)
 	       (setq border-width *window-manager-border-size*))
 	     #---ignore
-	     (if (and top-level (not border-width))
-		 (setq border-width 0)
-		 (when (not border-width)
+	     (when (not border-width)
+	       (if top-level
+		   (setq border-width 0)
 		   (setq border-width *window-manager-border-size*))))
 	    (t (setq border-width 0)))
       (setq x-width (- right left (* 2 border-width))
@@ -699,7 +715,9 @@
 	     (xlib:set-wm-properties window :input :on
 					    :initial-state :normal
 					    :program-specified-position-p t
-					    :program-specified-size-p t)
+					    :program-specified-size-p t
+					    ;; pre-X11R5 doesn't hack the above
+					    :allow-other-keys t)
 	     ;;--- Not quite sure why JDI chose to do it this way...
 	     #+Allegro (xlib:change-property
 			 window :WM_PROTOCOLS
@@ -826,8 +844,8 @@
 
 (defmacro with-scroll-bar-update (&body body)
   `(unless (and (not force-p)
-		(eql slug-start (scroll-bar-values-1 stream))
-		(eql slug-length (scroll-bar-values-2 stream)))
+		(eq slug-start (scroll-bar-values-1 stream))
+		(eq slug-length (scroll-bar-values-2 stream)))
      (let ((old-slug-start (scroll-bar-values-1 stream))
 	   (old-slug-length (scroll-bar-values-2 stream)))
        (setf  (scroll-bar-values-1 stream) slug-start
@@ -966,9 +984,8 @@
 	   #---ignore
 	   (values 0 0 0 0))
 	  (t
-	   (with-slots (window) stream
-	     (let ((bw (xlib:drawable-border-width window)))
-	       (values bw bw bw bw)))))))
+	   (with-slots (border-width) stream
+	     (values border-width border-width border-width border-width))))))
 
 (defmethod window-margins ((stream clx-window))
   (let ((h (window-horizontal-scroll-bar stream))
@@ -1121,7 +1138,6 @@
       	(with-bounding-rectangle* (left top right bottom) region
 	  (translate-fixnum-positions (- ml x) (- mt y)
 	    left top right bottom)
-	  ;;--- DEVICIZE-POINTS or something...
 	  (fix-points left top right bottom)
 	  ;;--- How not to cons? (this list and the rectangles)
 	  (let ((old-clip-mask clip-mask))
@@ -1157,14 +1173,9 @@
   )
 
 (defmethod window-erase-viewport ((stream clx-window))
-  (when (window-drawing-possible stream)
-    (with-slots (window) stream
-      (xlib:clear-area window))
-    (clx-force-output-if-necessary stream)))
-
-(defmethod window-visibility ((stream clx-window))
   (with-slots (window) stream
-    (not (eql (xlib:window-map-state window) :unmapped))))
+    (xlib:clear-area window))
+  (clx-force-output-if-necessary stream))
 
 (defmethod (setf window-visibility) (visibility (stream clx-window))
   (with-slots (window screen) stream
@@ -1180,19 +1191,16 @@
         (if (fboundp 'xlib::withdraw-window)
 	    (xlib::withdraw-window window screen)
 	    (xlib:unmap-window window))))
-  (clx-force-output-if-necessary stream))
+  (clx-force-output-if-necessary stream)
+  visibility)
 
-(defmethod wait-for-window-exposed ((window clx-window))
-  ;;--- This is expensive if the window manager doesn't map the window "soon"
-  (loop
-    (when (window-visibility window)
-      (return))
-    (process-yield)))
+(defmethod wait-for-window-exposed ((stream clx-window))
+  (unless (window-visibility stream)
+    (stream-event-handler stream :input-wait-test #'window-visibility)))
 
 (defmethod window-drawing-possible ((stream clx-window))
   ;;--- This isn't really right for a window that has backing store.
-  (with-slots (window) stream
-    (not (eql (xlib:window-map-state window) :unmapped))))
+  (window-visibility stream))
 
 (defmethod window-stack-on-top ((stream clx-window))
   (with-slots (window) stream
@@ -1290,7 +1298,8 @@
 (defmethod set-stream-pointer-in-screen-coordinates
 	   ((stream clx-window) pointer x y)
   (declare (ignore pointer))			;Sigh.
-  (xlib:warp-pointer (xlib:drawable-root (clx-stream-window stream)) x y))
+  (xlib:warp-pointer (clx-stream-window (clx-stream-root stream)) x y))
+
 
 (defmethod stream-pointer-input-rectangle*
 	   ((stream clx-window) pointer &key left top right bottom)
@@ -1302,7 +1311,7 @@
 
 (defun make-stipple-image (height width patterns)
   (xlib:create-image :width width :height height
-		     :data (make-stipple-array height width patterns)
+		     :data (clim-internals::make-stipple-array height width patterns)
 		     :bits-per-pixel 1))
 
 (defvar *clx-luminance-stipples*
@@ -1415,13 +1424,14 @@
 (defmethod clx-decode-ink ((ink flipping-ink) stream)
   (multiple-value-bind (design1 design2)
       (decode-flipping-ink ink)
-    (cond ((or (and (eql design1 +foreground-ink+) (eql design2 +background-ink+))
-	       (and (eql design1 +background-ink+) (eql design2 +foreground-ink+)))
+    (cond ((or (and (eq design1 +foreground-ink+) (eq design2 +background-ink+))
+	       (and (eq design1 +background-ink+) (eq design2 +foreground-ink+)))
 	   (slot-value stream 'flipping-gc))
 	  (t (nyi)))))
 
 (defmethod clx-decode-ink ((ink color) stream)
-  (with-slots (window ink-table foreground-gc color-p black-pixel white-pixel root) stream
+  (with-slots (foreground-gc color-p black-pixel white-pixel ink-table
+	       window screen root) stream
     (or (gethash ink ink-table)
 	(let ((gc (xlib:create-gcontext :drawable window)))
 	  (xlib:copy-gcontext foreground-gc gc)
@@ -1432,10 +1442,10 @@
 		 (multiple-value-bind (r g b) (color-rgb ink)
 		   (let* ((luminance (color-luminosity r g b))
 			  (color (clx-decode-luminance luminance t)))
-		     (cond ((eql color 1)
+		     (cond ((eq color 1)
 			    (setf (xlib:gcontext-fill-style gc) :solid
 				  (xlib:gcontext-foreground gc) black-pixel))
-			   ((eql color 0)
+			   ((eq color 0)
 			    (setf (xlib:gcontext-fill-style gc) :solid
 				  (xlib:gcontext-foreground gc) white-pixel))
 			   (t			; color is an image
@@ -1445,7 +1455,7 @@
 					    :width (xlib:image-width color)
 					    :height (xlib:image-height color)
 					    ;;--- is this right?
-					    :depth (xlib:drawable-depth window))))
+					    :depth (xlib:screen-root-depth screen))))
 			      (xlib:put-image pixmap
 					      (slot-value root 'stipple-gc)
 					      color :x 0 :y 0 :bitmap-p t)
@@ -1486,6 +1496,7 @@
   (error "A pattern must be a bounded design, ~S isn't" ink))
 
 (defmethod clx-decode-pattern ((ink pattern) stream &optional width height tiled-p)
+  (declare (optimize (speed 3) (safety 0)))
   (with-slots (foreground-gc foreground-pixel background-gc background-pixel
 	       window ink-table screen) stream
     (or (gethash ink ink-table)
@@ -1501,40 +1512,50 @@
 	    #+++ignore
 	    (do ((i 0 (1+ i))
 		 (design))
-		((eql i (length designs)))
+		((eq i (length designs)))
 	      (setq design (elt designs i))
 	      (when (and (not (colorp design))
-			 (not (eql design +foreground-ink+))
-			 (not (eql design +background-ink+)))
+			 (not (eq design +foreground-ink+))
+			 (not (eq design +background-ink+)))
 		(error "Pattern designs other than colors are not supported yet.")))
-	     (let* ((depth (xlib:screen-root-depth screen))
-		    (image-data (make-array (list height width)
-					    :element-type `(unsigned-byte ,depth))))
-	       (do ((y 0 (1+ y)))
-		   ((eql y (the fixnum height)))
-		 (declare (type xlib::array-index y))
-		 (do ((x 0 (1+ x)))
-		     ((eql x (the fixnum width)))
-		   (declare (type xlib::array-index x))
-		   (setf (aref image-data y x)
-			 (if (or (>= y pattern-height) (>= x pattern-width))
-			     background-pixel
-			     (clx-decode-color stream (elt designs (aref array y x)))))))
-	       (let ((gc (xlib:create-gcontext :drawable window)))
+	    (let* ((design-pixels (make-array (length designs)))
+		   (depth (xlib:screen-root-depth screen))
+		   (image-data (make-array (list height width)
+					   :element-type `(unsigned-byte ,depth))))
+	      (declare #+Genera (sys:array-register design-pixels)
+		       (simple-vector design-pixels))
+	      ;; Cache the decoded designs from the pattern
+	      (do* ((num-designs (length designs))
+		    (n 0 (1+ n))
+		    design)
+		   ((eq n num-designs))
+		(setq design (elt designs n))
+		(setf (svref design-pixels n) (clx-decode-color stream design)))
+	      (do ((y 0 (1+ y)))
+		  ((eq y (the fixnum height)))
+		(declare (type xlib::array-index y))
+		(do ((x 0 (1+ x)))
+		    ((eq x (the fixnum width)))
+		  (declare (type xlib::array-index x))
+		  (setf (aref image-data y x)
+			(if (or (>= y pattern-height) (>= x pattern-width))
+			    background-pixel
+			    (svref design-pixels (aref array y x))))))
+	      (let ((gc (xlib:create-gcontext :drawable window)))
 		(xlib:copy-gcontext foreground-gc gc)
 		(setf (xlib:gcontext-fill-style gc) :tiled)
 		(setf (xlib:gcontext-tile gc)
-		  (let ((image
-			 (xlib:create-image :depth depth
-					    :bits-per-pixel depth
-					    :data image-data
-					    :width width :height height))
-			(pixmap
-			  (xlib:create-pixmap :width width :height height
-					      :drawable window
-					      :depth depth)))
-		    (xlib:put-image pixmap gc image :x 0 :y 0)
-		    pixmap))
+		      (let ((image
+			      (xlib:create-image :depth depth
+						 :bits-per-pixel depth
+						 :data image-data
+						 :width width :height height))
+			    (pixmap
+			      (xlib:create-pixmap :width width :height height
+						  :drawable window
+						  :depth depth)))
+			(xlib:put-image pixmap gc image :x 0 :y 0)
+			pixmap))
 		(when (not tiled-p)
 		  ;;--- This doesn't work because the clip mask is set below.
 		  ;;--- Anyway, the clip-mask applies to the destination, so
@@ -1552,7 +1573,7 @@
       (window-margins stream)
     (let ((s-width (bounding-rectangle-width stream))
 	  (s-height (bounding-rectangle-height stream)))
-      (if (eql clip-mask :none)
+      (if (eq clip-mask :none)
 	  (list left top (- s-width right) (- s-height bottom))
 	(let* ((x (pop clip-mask))
 	       (y (pop clip-mask))
@@ -1584,7 +1605,7 @@
 ;; (graphics contexts).
 (defmethod clx-adjust-ink (ink stream line-style x-origin y-origin)
   (with-slots (points-to-pixels) stream
-    (when (eql (xlib:gcontext-fill-style ink) :tiled)
+    (when (eq (xlib:gcontext-fill-style ink) :tiled)
       #---ignore
       (setf (xlib:gcontext-ts-x ink) x-origin
 	    (xlib:gcontext-ts-y ink) y-origin)
@@ -1756,7 +1777,7 @@
   (with-slots (window display-device-type) stream
     (multiple-value-bind (character-set index)
 	(char-character-set-and-index character)
-      (when (eql character-set *standard-character-set*)
+      (when (eq character-set *standard-character-set*)
 	(setf index (xlib:char->card8 character)))	;A little gross, but right, I think.
       (let* ((x-font (or our-font
 			 (text-style-mapping
@@ -1835,9 +1856,9 @@
 	   (descent (xlib:font-descent font))
 	   (height (+ ascent descent))
 	   (gc (clx-decode-ink ink stream)))
-      (incf x (compute-text-x-adjustment 
+      (incf x (clim-internals::compute-text-x-adjustment 
 		align-x stream string text-style start end))
-      (incf y (compute-text-y-adjustment
+      (incf y (clim-internals::compute-text-y-adjustment
 		align-y descent ascent height))
       (setf (xlib:gcontext-font gc) font)
       (xlib:draw-glyphs window gc x y string :start start :end end)))
@@ -1856,9 +1877,9 @@
 	   (descent (xlib:font-descent font))
 	   (height (+ ascent descent))
 	   (gc (clx-decode-ink ink stream)))
-      (incf x (compute-text-x-adjustment 
+      (incf x (clim-internals::compute-text-x-adjustment 
 		align-x stream character text-style))
-      (incf y (compute-text-y-adjustment
+      (incf y (clim-internals::compute-text-y-adjustment
 		align-y descent ascent height))
       (setf (xlib:gcontext-font gc) font)
       (xlib:draw-glyph window gc x y character)))
@@ -1940,11 +1961,11 @@
     (flet ((grab-the-pointer (window event-mask &key owner-p confine-to cursor)
 	     (do ((done nil))
 		 (done)
-	       (if (eql (xlib:grab-pointer window event-mask
-					   :owner-p owner-p
-					   :confine-to confine-to
-					   :cursor cursor) 
-			:success)
+	       (if (eq (xlib:grab-pointer window event-mask
+					  :owner-p owner-p
+					  :confine-to confine-to
+					  :cursor cursor) 
+		       :success)
 		   (setf done t)
 		   (sleep sleep-time)))))
       (declare (dynamic-extent #'grab-the-pointer))
@@ -1952,7 +1973,7 @@
 	(dotimes (i (floor 10 sleep-time)	;Maximum of 10 seconds to map window
 		    (error "Cannot grab mouse to unmapped window"))
 	  #-(or excl Minima) (declare (ignore i))
-	  (if (eql (xlib:window-map-state window) :unmapped)
+	  (if (eq (xlib:window-map-state window) :unmapped)
 	      (sleep sleep-time)
 	      (return)))
 	(unless mouse-cursor (setq mouse-cursor (default-grab-cursor root)))

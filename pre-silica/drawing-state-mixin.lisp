@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: drawing-state-mixin.lisp,v 1.1 92/01/31 14:27:49 cer Exp $
+;; $fiHeader: drawing-state-mixin.lisp,v 1.2 92/02/24 13:07:26 cer Exp $
 
 (in-package :clim-internals)
 
@@ -52,9 +52,9 @@
 
 (defun-inline make-line-style-1 (unit thickness dashes joint-shape cap-shape)
   #+Genera (declare lt:(side-effects simple reducible))
-  (if (and (eql unit :normal)
-	   (eql joint-shape :miter)
-	   (eql cap-shape :butt)
+  (if (and (eq unit :normal)
+	   (eq joint-shape :miter)
+	   (eq cap-shape :butt)
 	   (integerp thickness) (<= 0 thickness 4)
 	   (or (eq dashes t) (eq dashes nil)))
       ;; Cache the common case when only :DASHES and :THICKNESS are provided

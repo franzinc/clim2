@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-gadgets.lisp,v 1.4 92/02/14 18:57:38 cer Exp $
+;; $fiHeader: ol-gadgets.lisp,v 1.5 92/02/24 13:06:08 cer Exp $
 
 
 (in-package :xm-silica)
@@ -54,13 +54,13 @@
 ;;;;;;;;;;;;;;;;;;;;
 
 (defclass openlook-scrollbar (xt-leaf-pane
-			   silica::scrollbar)
+			      scrollbar)
 	  ())
 
 (defmethod find-widget-class-and-initargs-for-sheet ((port openlook-port)
 						     (parent t)
 						     (sheet openlook-scrollbar))
-  (with-accessors ((orientation silica::gadget-orientation)) sheet
+  (with-accessors ((orientation gadget-orientation)) sheet
 		  (values 'tk::scrollbar
 			  (list :orientation orientation))))
 
@@ -72,8 +72,8 @@
   (tk::set-values (sheet-direct-mirror sb) :slider-value nv)
   nv)
 
-(defmethod silica::change-scrollbar-values ((sb openlook-scrollbar) &rest args 
-					    &key slider-size value)
+(defmethod change-scrollbar-values ((sb openlook-scrollbar) &rest args 
+				    &key slider-size value)
   (declare (ignore args))
   (tk::set-values
    (sheet-direct-mirror sb)
@@ -91,7 +91,7 @@
   (multiple-value-bind
       (value size)
       (tk::get-values widget :slider-value :proportion-length)
-    (silica::scrollbar-value-changed-callback
+    (scrollbar-value-changed-callback
      sheet
      (gadget-client sheet)
      (gadget-id sheet)

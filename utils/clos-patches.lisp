@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clos-patches.lisp,v 1.2 92/01/31 14:52:25 cer Exp $
+;; $fiHeader: clos-patches.lisp,v 1.3 92/02/24 13:05:21 cer Exp $
 
 (in-package :clim-utils)
 
@@ -95,30 +95,6 @@
 	(first args)	;return the class
 	answer)))
 
-#+PCL
-;;; PCL doesn't allow using a class instead of a class-name as a
-;;; parameter specializer name in DEFMETHOD.  Add the feature.
-;;; Lucid CLOS and Symbolics CLOS have this feature.
-(defun pcl::parse-specializers (specializers)
-  (flet ((parse (spec)
-	   (cond ((symbolp spec)
-		  (or (find-class spec nil)
-		      (error
-			"~S used as a specializer,~%~
-                         but is not the name of a class."
-			spec)))
-		 ((and (listp spec)
-		       (eq (car spec) 'eql)
-		       (null (cddr spec)))
-		  (make-instance 'pcl::eql-specializer :object (cadr spec))	;*EQL*
-;		  spec
-		  )
-		 ;;--- This cond clause is added by this patch
-		 ((typep spec 'class)
-		  spec)
-		 (t (error "~S is not a legal specializer." spec)))))
-    (mapcar #'parse specializers)))
-
 #+(and Allegro (not (version>= 4 0)))
 ;;; This is needed to prevent a MAKE-LOAD-FORM form from being evaluated before
 ;;; an earlier top-level form, says Foderaro.  Even the forward reference allowed
@@ -143,8 +119,8 @@
 			(eq (first form) 'declare))))
 	  (values real-body alist))
       (dolist (spec (rest form))
-	(let ((type (if (eql (first spec) 'type) (second spec) (first spec)))
-	      (vars (if (eql (first spec) 'type) (cddr spec) (cdr spec))))
+	(let ((type (if (eq (first spec) 'type) (second spec) (first spec)))
+	      (vars (if (eq (first spec) 'type) (cddr spec) (cdr spec))))
 	  (dolist (var vars)
 	    (push (cons var type) alist)))))))
 

@@ -16,70 +16,6 @@
 ;;; about the suitability of this software for any purpose.  It is
 ;;; provided "as is" without express or implied warranty.
 ;;; 
-;;; $Author: cer $
-;;; $Source: /repo/cvs.copy/clim2/sys/defsystem.lisp,v $
-;;; $Revision: 1.5 $
-;;; $Date: 1992/03/02 18:38:40 $
-;;;
-;;; $Revision: 1.5 $
-;;; Hacked by smL to convert it to lisp from C.
-;;; No, seriously folks.  Lots of changes here.  Added support for multiple
-;;;  source file-types.  Cleaned up a *lot* of code.
-;;; Fixed it to deal with source-less files.
-;;; Added support for compiler-optimization settings.
-;;; Added support for different modules applicable only in certain features.
-;;; -smL 17-April-89
-;;;
-;;; $Revision: 1.5 $
-;;; Added support for sysdcl files.
-;;; -smL
-;;;
-;;; $Revision: 1.5 $
-;;; Cleaned up a lot of syntax.  Made some fields of the defsystem macro be eval'ed.
-;;; -smL
-;;;
-;;; $Revision: 1.5 $
-;;; Added "temporary" hack *load-all-before-compile*.
-;;; -smL
-;;;
-;;; $Revision: 1.5 $
-;;; Incorporated changes from Bill York @ ILA to deal with Genera.
-;;; Added the :default-binary-pathname option to defsystem and :binary-pathname
-;;;  to each module.
-;;; Fixed handling of the :compile-satisfies-load module option.
-;;; Added pathname support ala X3J13.
-;;; Added supprt for IBCL.
-;;; Tried to add support for Harlequin Lispworks.  Kinda.  There is already a DEFSYSTEM
-;;;  package in Harlequin, so the package name gets changed in that lisp.  But
-;;;  it isn't complete yet.
-;;; Fixed the spelling of "propagate".
-;;; -smL
-;;;
-;;; $Revision: 1.5 $
-;;; Fixed a bug that caused many too many calls to file-write-date during a
-;;;  load-system.
-;;; -smL
-;;;
-;;; $Revision: 1.5 $
-;;; Incorporated changes from Bill York <york@ila-west.dialnet.symbolics.com>
-;;;  to make string --> pathname coersion cleaner under Genera.
-;;; Also made some trivial changes to the messages printed out when *tracep*
-;;;  is true.
-;;; Added nice default for :load-before-compile subsystems.
-;;; Reorganized loading and compiling subsystems.  Systems are now loaded &
-;;;  compiled in sequence instead of recursivly.  There are only two visible
-;;;  effects due to this change.  First, messages about loading & compiling
-;;;  systems are no longer nested.  Second, compiling a system will only load
-;;;  its required subsystems if something is actually going to be compiled.
-;;; *sysdcl-pathname-defaults* can now be a list of default pathnames.
-;;; load-system and compile-system now return the system name.
-;;; -smL
-;;;
-;;; $Revision: 1.5 $
-;;; Fixed bug with pretty-pathname-component.  Added message when compiling a
-;;;  file in Genera, since it doesn't print one by default.  Fixed a small bug
-;;;  with handling of *features*.  Fixed a bug with *tracep*.
-;;;
 
 ;;;-----------------------------------------------------------
 ;;; NOTE
@@ -91,7 +27,7 @@
 ;;;
 ;;;-----------------------------------------------------------
 
-;; $fiHeader: defsystem.lisp,v 1.4 92/02/24 13:09:00 cer Exp Locker: cer $
+;; $fiHeader: defsystem.lisp,v 1.6 91/03/26 12:59:59 cer Exp $
 
 ;; Add a feature for ANSI-adhering Lisps.  So far, only Apple's
 ;; version 2.0 tries to do adhere to the ANSI spec instead of CLtL rev 1.
@@ -357,7 +293,7 @@
 	  (do ((start index (1+ end))
 	       (end (position delim directory :start index)
 		    (position delim directory :start (1+ end))))
-	      ((null end) (unless (eql start (length directory))
+	      ((null end) (unless (= start (length directory))
 			    (add-dir (subseq directory start))))
 	    (add-dir (subseq directory start end)))
 	  (cons type (reverse subdirs)))
@@ -412,7 +348,7 @@
 	  (do ((start index (1+ end))
 	       (end (next-delim-position directory index)
 		    (next-delim-position directory (1+ end))))
-	      ((null end) (unless (eql start (length directory))
+	      ((null end) (unless (= start (length directory))
 			    (add-dir (subseq directory start))))
 	    (add-dir (subseq directory start end)))
 	  (cons type (reverse subdirs)))
@@ -1606,7 +1542,7 @@ verify that each already loaded subsystem is up-to-date, reloading it if need be
 				   ;; Only those modules which actually
 				   ;; apply and are Lisp files.
 				   #'(lambda (module)
-				       (and (eql (module-language module) :lisp)
+				       (and (eq (module-language module) :lisp)
 					    (module-applicable-p module)))
 				   (system-module-list system)))
 			 (let ((pfp (system-patch-file-pattern system))

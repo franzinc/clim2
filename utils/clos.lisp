@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clos.lisp,v 1.2 92/01/31 14:52:26 cer Exp $
+;; $fiHeader: clos.lisp,v 1.3 92/02/24 13:05:23 cer Exp $
 
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
@@ -228,8 +228,8 @@
 	      `(,accessor-name foo))
 	  (declare (ignore vars vals store-vars access-form))
 	  (when (or (equal (first store-form) writer)
-		    (and (eql (first store-form) 'funcall)
-			 (eql (first (second store-form)) 'function)
+		    (and (eq (first store-form) 'funcall)
+			 (eq (first (second store-form)) 'function)
 			 (equal (second (second store-form)) writer)))
 	    (setf old-p t))))
       (return-from make-setf*-function-name (values writer old-p)))
@@ -256,7 +256,7 @@
 ;; For example, (DEFGENERIC* (SETF POSITION*) (X Y OBJECT))
 (defmacro defgeneric* (function-spec lambda-list &body options)
   (assert (and (listp function-spec)
-	       (eql (first function-spec) 'setf)
+	       (eq (first function-spec) 'setf)
 	       (null (cddr function-spec)))
 	  ()
 	  "Syntax error in ~S: This only works on ~S generic functions" 'defgeneric* 'setf)
@@ -273,7 +273,7 @@
 (defmacro defmethod* (name &body quals-lambda-list-and-body)
   (declare (arglist name [qualifiers]* lambda-list &body body))
   #+Genera (declare (zwei:indentation . zwei:indent-for-clos-defmethod))
-  (assert (and (listp name) (eql (first name) 'setf) (null (cddr name))) ()
+  (assert (and (listp name) (eq (first name) 'setf) (null (cddr name))) ()
 	  "Syntax error in ~S: This only works on ~S methods" 'defmethod* 'setf)
   (let (qualifiers real-arglist body accessor-arg
 	(accessor-name (second name)))

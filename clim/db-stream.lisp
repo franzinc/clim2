@@ -22,7 +22,7 @@
 ;;;
 ;;; Copyright (c) 1990 by Xerox Corporations.  All rights reserved.
 ;;;
-;; $fiHeader: db-stream.lisp,v 1.7 92/02/14 18:57:59 cer Exp $
+;; $fiHeader: db-stream.lisp,v 1.8 92/02/24 13:07:16 cer Exp $
 
 (in-package :clim-internals)
 
@@ -34,12 +34,12 @@
 ;;--- How to keep PANE-BACKGROUND/FOREGROUND in sync with the medium?
 (defclass clim-stream-sheet 
 	  (window-stream			;includes output recording
-	   silica::pane
+	   pane
 	   sheet-permanently-enabled-mixin
 	   sheet-mute-input-mixin
 	   sheet-multiple-child-mixin
 	   mute-repainting-mixin
-	   silica::space-requirement-mixin)
+	   space-requirement-mixin)
     ()
   (:default-initargs 
     :medium t 
@@ -78,21 +78,18 @@
   (declare (dynamic-extent options))
   (with-sheet-medium (medium sheet)
     ;; Close the current output record if the drawing ink is changing
-    (unless (eql (medium-ink medium) ink)
+    (unless (eq (medium-ink medium) ink)
       (stream-close-text-output-record sheet))
     (apply #'invoke-with-drawing-options medium continuation options)))
 
-(defmethod silica::default-space-requirements ((pane clim-stream-sheet)
-					       &key (width 0 widthp)
-						    (min-width width)
-						    (max-width
-						      (if widthp width +fill+))
-						    (height 0 heightp)
-						    (min-height height)
-						    (max-height
-						      (if heightp height +fill+)))
+(defmethod default-space-requirements ((pane clim-stream-sheet)
+				       &key (width 0 widthp)
+					    (min-width width)
+					    (max-width (if widthp width +fill+))
+					    (height 0 heightp)
+					    (min-height height)
+					    (max-height (if heightp height +fill+)))
   (values width min-width max-width height min-height max-height))
-
 
 (defclass clim-stream-pane (clim-stream-sheet)
     ((incremental-redisplay-p
@@ -112,8 +109,7 @@
 (defmethod compose-space ((pane clim-stream-pane) &key width height)
   (let ((sr (call-next-method)))
     (let ((sr-components
-	    (multiple-value-list
-	      (silica::space-requirement-components sr))))
+	    (multiple-value-list (space-requirement-components sr))))
       (when (member :compute sr-components)
 	(multiple-value-bind (width height)
 	    (let ((record
@@ -128,7 +124,7 @@
 	  ;;--- Yabba dabba doo!
 	  (setq sr-components (nsubstitute width :compute sr-components :end 3))
 	  (setq sr-components (nsubstitute height :compute sr-components :start 3)))
-	(setq sr (silica::make-space-requirement 
+	(setq sr (make-space-requirement 
 		   :width      (pop sr-components)
 		   :min-width  (pop sr-components)
 		   :max-width  (pop sr-components)
@@ -150,7 +146,7 @@
 #+ignore
 (defmethod allocate-space :after ((pane clim-stream-pane) width height)
   (declare (ignore width height))
-  (ecase (graft-origin (sheet-graft pane))
+  (ecase (graft-origin (graft pane))
     (:nw)
     (:sw
      (let ((xform (sheet-transformation pane)))
@@ -165,9 +161,9 @@
        (setf (sheet-transformation pane) xform)))))
 
 (defmethod pane-stream ((pane clim-stream-pane))
-  (unless (sheet-port pane) 
-    (error "Can't call pane-stream on ~a until it's been grafted!"
-	   pane))
+  (unless (port pane) 
+    (error "Can't call ~S on ~S until it's been grafted!"
+	   'pane-stream pane))
   pane)
 
 #+ignore
@@ -191,60 +187,55 @@
 	  (bounding-rectangle-size (stream-current-output-record pane))
 	  (values width height))
     ;; Don't ever shrink down smaller than our contents.
-    (apply #'call-next-method pane :width (max width history-width) :height (max height history-height) keys)))
+    (apply #'call-next-method pane :width (max width history-width)
+				   :height (max height history-height) keys)))
 
 
 (defclass interactor-pane (clim-stream-pane) ())
 (defclass application-pane (clim-stream-pane) ())
+(defclass command-menu-pane (clim-stream-pane) ())
 
+(defmethod compose-space :before ((pane command-menu-pane) &key width height)
+  (declare (ignore width height))
+  (window-clear pane))
 
-#+++ignore
-(defmacro make-clim-pane ((&optional slot-name
-				     &rest parent-options
-				     &key (type ''clim-stream-pane) 
-				     label (scroll-bars ':vertical)
-				     &allow-other-keys)
-			  &rest pane-options)
-  (with-keywords-removed
-      (parent-options parent-options '(:type :label :scroll-bars))
-    (let ((default '#:default)
-	  (pane (gensymbol (symbol-name 'scrollable-pane))))
-      (macrolet ((setf-unless (slot-keyword value)
-		   `(when (eq (getf parent-options ',slot-keyword default) default)
-		      (setf (getf parent-options ',slot-keyword) ,value))))
-	(setf-unless :width 100)
-	(setf-unless :max-width +fill+)
-	(setf-unless :min-width 0)
-	(setf-unless :height 100)
-	(setf-unless :max-height +fill+)
-	(setf-unless :min-height 0))
-      `(bordering (:thickness 1)
-	 (let ((,pane (make-pane ,type ,@pane-options)))
-	   ,@(when slot-name
-	       `((setq ,slot-name ,pane)))
-	   (vertically ()
-	     (,(ecase scroll-bars
-		 (:both 'scrolling)
-		 (:vertical 'vscrolling)
-		 (:horizontal 'hscrolling)
-		 ((nil) 'ws::viewing))
-	      (:subtransformationp t
-	       ,@(unless scroll-bars `(:controller ,pane))
-	       ,@(copy-list parent-options))
-	      ,pane)
-	     ,@(when label
-		 `((make-pane 'ws::label-pane :text ,label
-			      :max-width +fill+)))))))))
-  
-#+ignore
-(defmacro make-clim-interactor ((&optional slot-name &rest clim-pane-options)
-				&rest pane-options)
-  (declare (arglist (&optional slot-name
-		     &key (hs 100) (vs 100) label (scroll-bars ':vertical))
-		    &rest pane-options))
-  `(make-clim-pane (,slot-name :type 'clim-interactor ,@clim-pane-options)
-		   ,@pane-options))
+;; This is a macro because it counts on being expanded inside of a call
+;; to WITH-LOOK-AND-FEEL-REALIZATION
+(defmacro make-clim-stream-pane (&rest options
+				 &key (type ''clim-stream-pane) 
+				      label (scroll-bars ':vertical)
+				 &allow-other-keys)
+  (with-keywords-removed (options options '(:type :label :scroll-bars))
+    (macrolet ((setf-unless (slot-keyword value)
+		 `(when (eq (getf options ',slot-keyword #1='#:default) #1#)
+		    (setf (getf options ',slot-keyword) ,value))))
+      (setf-unless :width 100)
+      (setf-unless :min-width 0)
+      (setf-unless :max-width +fill+)
+      (setf-unless :height 100)
+      (setf-unless :min-height 0)
+      (setf-unless :max-height +fill+))
+    (let ((pane `(realize-pane ,type ,@options))
+	  (hscroll (not (null (member scroll-bars '(t :both :horizontal)))))
+	  (vscroll (not (null (member scroll-bars '(t :both :vertical))))))
+      (when scroll-bars
+	(setq pane `(scrolling (:horizontally ,hscroll
+				:vertically ,vscroll)
+		      ,pane)))
+      (when label
+	(setq pane `(vertically ()
+		      ,pane
+		      (realize-pane 'label-pane 
+				    :text ,label
+				    :max-width +fill+))))
+      `(outlining (:thickness 1)
+	 ,pane))))
 
+(defmacro make-clim-interactor-pane (&rest options)
+  `(make-clim-stream-pane :type 'interactor-pane ,@options))
+
+(defmacro make-clim-application-pane (&rest options)
+  `(make-clim-stream-pane :type 'application-pane ,@options))
 
 
 ;;; "Window protocol"
@@ -313,7 +304,7 @@
 
 (defmethod window-set-inside-size ((stream clim-stream-sheet) width height)
   (change-space-requirement stream :width width :height height)
-  (silica::clear-space-requirement-caching-in-ancestors stream)
+  (clear-space-requirement-caching-in-ancestors stream)
   (layout-frame (pane-frame stream)))
 
 (defun-inline window-parent (window)
@@ -329,10 +320,10 @@
 	(parent (window-parent win) parent-parent)
 	(parent-parent (if parent (window-parent parent) T) (window-parent parent)))
        ((null parent-parent) win)
-    (when (eql parent-parent T) (return nil))))
+    (when (eq parent-parent t) (return nil))))
 
 (defun beep (&optional (stream *standard-output*))
-  (port-beep (sheet-port stream) stream))
+  (port-beep (port stream) stream))
 
 ;; This is called by OUTPUT-RECORDING-MIXIN's whopper on set-viewport-position*.
 ;; It shifts a region of the "host screen" that's visible to some other visible

@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: sheet.lisp,v 1.5 92/01/31 14:55:48 cer Exp $
+;; $fiHeader: sheet.lisp,v 1.6 92/02/24 13:04:55 cer Exp $
 
 (in-package :silica)
 
@@ -54,6 +54,13 @@
 
 (defmethod sheet-shell (sheet) sheet)
 
+(defun map-over-sheets (function sheet)
+  (declare (dynamic-extent function))
+  (funcall function sheet)
+  (when (typep sheet 'sheet-parent-mixin)
+    (dolist (child (sheet-children sheet))
+      (map-over-sheets function child))))
+
 ;;; Genealogy
 
 (defclass sheet-leaf-mixin () ())
@@ -75,8 +82,8 @@
 
 (defmethod sheet-adopt-child :after (sheet child)
   (note-sheet-adopted child)
-  (when (sheet-port sheet)
-    (setf (sheet-port child :graft (sheet-graft sheet)) (sheet-port sheet))))
+  (when (port sheet)
+    (setf (port child :graft (graft sheet)) (port sheet))))
 
 (defmethod sheet-children ((sheet sheet-single-child-mixin))
   (let ((x (sheet-child sheet)))
@@ -90,21 +97,21 @@
   (push child (sheet-children sheet))
   (setf (sheet-parent child) sheet))
 
-(defmethod (setf sheet-port) ((port null) sheet &key graft)
+(defmethod (setf port) ((port null) sheet &key graft)
   (declare (ignore graft))
   (note-sheet-degrafted sheet)
   (setf (slot-value sheet 'port) port)
   (when (typep sheet 'sheet-parent-mixin)
     (dolist (child (sheet-children sheet))
-      (setf (sheet-port child) port))))
+      (setf (port child) port))))
 
-(defmethod (setf sheet-port) ((port port) sheet &key graft)
+(defmethod (setf port) ((port port) sheet &key graft)
   (setf (slot-value sheet 'port)  port
 	(slot-value sheet 'graft) graft)
   (note-sheet-grafted sheet)
   (when (typep sheet 'sheet-parent-mixin)
     (dolist (child (sheet-children sheet))
-      (setf (sheet-port child :graft graft) port))))
+      (setf (port child :graft graft) port))))
 
 (defmethod sheet-disown-child ((parent sheet-multiple-child-mixin) child)
   (unless (eq (sheet-parent child) parent)
@@ -113,8 +120,8 @@
   (setf  (sheet-children parent)
 	 (delete child (sheet-children parent)))
   (note-sheet-disowned child)
-  (when (sheet-port parent)
-    (setf (sheet-port child) nil)))
+  (when (port parent)
+    (setf (port child) nil)))
 
 
 (defmethod sheet-disown-child ((parent sheet-single-child-mixin) child)
@@ -123,8 +130,8 @@
   (setf (sheet-parent child) nil
 	(sheet-child parent) nil)
   (note-sheet-disowned child)
-  (when (sheet-port parent)
-    (setf (sheet-port child) nil)))
+  (when (port parent)
+    (setf (port child) nil)))
 
 
 ;;;;
@@ -297,13 +304,13 @@
 (defmethod note-sheet-grafted :after ((sheet permanent-medium-sheet-output-mixin))
   (when (sheet-medium-type sheet)
     (setf (sheet-medium sheet)
-	  (make-medium (sheet-port sheet) sheet))
-    (when (sheet-port sheet)
-      (engraft-medium (sheet-medium sheet) (sheet-port sheet) sheet))))
+	  (make-medium (port sheet) sheet))
+    (when (port sheet)
+      (engraft-medium (sheet-medium sheet) (port sheet) sheet))))
 
 (defmethod note-sheet-degrafted ((sheet permanent-medium-sheet-output-mixin))
   (when (sheet-medium sheet)
-    (degraft-medium (sheet-medium sheet) (sheet-port sheet) sheet)
+    (degraft-medium (sheet-medium sheet) (port sheet) sheet)
     (setf (sheet-medium sheet) nil)))
 
 

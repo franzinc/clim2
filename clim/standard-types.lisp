@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: standard-types.lisp,v 1.2 92/01/31 14:58:41 cer Exp $
+;; $fiHeader: standard-types.lisp,v 1.3 92/02/24 13:08:26 cer Exp $
 
 (in-package :clim-internals)
 
@@ -56,11 +56,6 @@
 (define-presentation-method accept ((type symbol) stream (view textual-view) &key)
   (simple-lisp-object-parser type stream))
 
-(defun whitespace-character-p (char)
-  (and (characterp char)
-       (or (char-equal char #\Space)
-	   (char= char #\Tab))))
-
 (defun simple-lisp-object-parser (type stream &optional coerce-test coerce-function)
   (loop
     (let ((token (read-token stream)))
@@ -74,7 +69,7 @@
 	;; Too bad read-from-string doesn't take a :junk-allowed argument
 	;; Simulate what it would do
 	(unless (>= index (length token))
-	  (when (find-if-not #'whitespace-character-p token :start index)
+	  (when (find-if-not #'whitespace-char-p token :start index)
 	    (simple-parse-error "Extra junk ~S found after the ~A."
 				(subseq token index)
 				(describe-presentation-type type nil nil))))
@@ -426,7 +421,7 @@
 ;;; for now.  It returns string, success, object, nmatches (first-interesting-index?)
 #+Genera
 (defun pathname-complete (string action &optional (default *default-pathname-defaults*))
-  (if (eql action :possibilities)
+  (if (eq action :possibilities)
       (pathname-complete-1 string action default)
     (multiple-value-bind (string success)
 	(fs:complete-pathname default string nil :newest :read)
@@ -565,7 +560,7 @@
     (return-from describe-presentation-type
       (default-describe-presentation-type (funcall name-key (elt sequence 0))
 					  stream
-					  (unless (eql plural-count 1)	;suppress a/an
+					  (unless (eq plural-count 1)	;suppress a/an
 					    plural-count))))
   (etypecase plural-count
     ((member nil 1)
@@ -737,7 +732,7 @@
 		  (when (and echo-space (not (eql delimiter-character #\space)))
 		    (if (rescanning-p stream)
 			(let ((space (read-gesture :stream stream)))
-			  (unless (whitespace-character-p space)
+			  (unless (whitespace-char-p space)
 			    ;; It wasn't a space so put it back
 			    (unread-gesture space :stream stream)))
 			;; Add a space if the comma was just typed in for the first time
@@ -1344,7 +1339,7 @@
 
 (define-presentation-method presentation-typep (object (type boolean))
   (or (null object)
-      (eql object 't)))
+      (eq object 't)))
 
 
 (define-presentation-type-abbreviation token-or-type (tokens type)
@@ -1381,7 +1376,7 @@
 	;; Too bad READ-FROM-STRING doesn't take a :JUNK-ALLOWED argument.
 	;; Simulate what it would do
 	(unless (>= index (length string))
-	  (when (find-if-not #'whitespace-character-p string :start index)
+	  (when (find-if-not #'whitespace-char-p string :start index)
 	    (simple-parse-error "Extra junk ~S found after the expression."
 				(subseq string index))))
 	expression))))
@@ -1430,7 +1425,7 @@
 		 ((not (ordinary-char-p char))
 		  (beep stream))
 		 ((and (zerop (fill-pointer input-buffer))	;ignore leading space
-		       (whitespace-character-p char)))
+		       (whitespace-char-p char)))
 		 ((char-equal char #\\)			;check for quoting character
 		  (vector-push-extend char input-buffer)
 		  (let ((char (read-char stream)))
@@ -1446,7 +1441,7 @@
 			((setq other-delimiter (cdr (assoc char *char-associations*)))
 			 (read-recursive stream input-buffer other-delimiter)
 			 (unless desired-delimiter (return)))
-			((and (whitespace-character-p char) (not desired-delimiter))
+			((and (whitespace-char-p char) (not desired-delimiter))
 			 (unread-char char stream)
 			 (return))
 			(t nil)))))
@@ -1580,7 +1575,7 @@
 		 (removals (third new))
 		 (coercion (or (fourth new) #'identity)))
 	     (setq object (funcall coercion object))
-	     (if (eql removals 't)
+	     (if (eq removals 't)
 		 (if data-args
 		     (values object `((,new-type ,@data-args)) t)
 		     (values object new-type t))

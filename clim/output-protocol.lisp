@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: output-protocol.lisp,v 1.6 92/02/05 21:45:44 cer Exp $
+;; $fiHeader: output-protocol.lisp,v 1.7 92/02/24 13:08:07 cer Exp $
 
 (in-package :clim-internals)
 
@@ -225,7 +225,7 @@
   (with-slots (cursor-x cursor-y current-line-height baseline) stream
     (when x (setf cursor-x x))
     (when y
-      (unless (eql y cursor-y)
+      (unless (eq y cursor-y)
 	(setf current-line-height 0 baseline 0))	;going to a new line
       (setf cursor-y y)))
   #+Silica
@@ -240,7 +240,7 @@
   (with-slots (cursor-x cursor-y current-line-height baseline) stream
     (when x (setf cursor-x x))
     (when y
-      (unless (eql y cursor-y)
+      (unless (eq y cursor-y)
 	(setf current-line-height 0 baseline 0))	;going to a new line
       (setf cursor-y y)))
   #+Silica
@@ -311,11 +311,11 @@
 
 #+Silica
 (defmethod stream-force-output ((stream output-protocol-mixin))
-  (port-force-output (sheet-port stream)))
+  (port-force-output (port stream)))
 
 #+Silica
 (defmethod stream-finish-output ((stream output-protocol-mixin))
-  (port-finish-output (sheet-port stream)))
+  (port-finish-output (port stream)))
 
 (defmethod stream-fresh-line ((output-stream output-protocol-mixin))
   (unless (zerop (slot-value output-stream 'cursor-x))
@@ -395,7 +395,7 @@
 	  (old-cy cy))
       (with-bounding-rectangle* (vleft vtop vright vbottom) viewport
 	;; Vertical case
-        (unless (eql (stream-end-of-page-action stream) ':allow)
+        (unless (eq (stream-end-of-page-action stream) ':allow)
 	  ;; --- Kludge UNLESS to prevent infinite recursion.  WINDOW-CLEAR clears
 	  ;; the output history then sets the cursorpos to (0,0).  Clearing the
 	  ;; output history does SCROLL-HOME (which scrolls the stream pane to
@@ -409,7 +409,7 @@
 	  (unless (<= vtop cy vbottom)
 	    (setf new-y (max 0 (- cy (- vbottom vtop))))))
 	;; Horizontal case
-	(unless (eql (stream-end-of-line-action stream) ':allow)
+	(unless (eq (stream-end-of-line-action stream) ':allow)
 	  (unless (<= vleft cx vright)
 	    (setf new-x (max 0 (- cx (- vright vleft 
 					(* 4 (stream-character-width stream #\W))))))))
@@ -790,9 +790,6 @@
 				  glyph-buffer start end x-font color x y)
   (stream-write-string-1 (sheet-medium stream) glyph-buffer start end x-font color x y))
 
-#+Silica
-(defmethod implementation-pixels-per-point ((stream output-protocol-mixin))
-  (graft-pixels-per-point (sheet-graft stream)))
 
 ;;; A few utilities for string writing.
 

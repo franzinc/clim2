@@ -3,7 +3,7 @@
 (in-package :genera-clim)
 
 "Copyright (c) 1992 Symbolics, Inc.  All rights reserved."
-;;; $fiHeader$
+;;; $fiHeader: genera-medium.lisp,v 1.1 92/02/24 13:28:05 cer Exp $
 
 (defclass genera-medium (medium)
     ((window :initform nil)
@@ -21,6 +21,11 @@
   (make-instance 'genera-medium
 		 :port port
 		 :sheet sheet))
+
+(defmethod deallocate-medium :after (port (medium genera-medium))
+  (declare (ignore port))
+  (with-slots (window) medium
+    (setf window nil)))
 
 (defmethod engraft-medium :after ((medium genera-medium) (port genera-port) sheet)
   (with-slots (window) medium
@@ -47,9 +52,7 @@
     (scl:send window :refresh)))
 
 
-;;;  Below is stuff from genera-implementation
-
-;;;; Translation between CLIM and Genera graphics model
+;;; Translation between CLIM and Genera graphics model
 
 ;;; We cache the translation of the most recently used inks in a small array,
 ;;; using a property-list masquerade for quick lookup.  When a cache element
@@ -136,7 +139,7 @@
 
 (defmethod genera-decode-color ((ink gray-color) medium &optional (stipple-p t))
   (let ((window (slot-value medium 'window))
-	(color-p (slot-value (sheet-port medium) 'color-p)))
+	(color-p (slot-value (port medium) 'color-p)))
     (let ((luminance (slot-value ink 'clim-utils::luminance))
 	  (invert-p (not (funcall (tv:sheet-screen window) :bow-mode))))
       (cond ((= luminance 0.0) (if invert-p boole-clr boole-set))
@@ -149,7 +152,7 @@
 
 (defmethod genera-decode-color ((ink color) medium &optional (stipple-p t))
   (let ((window (slot-value medium 'window))
-	(color-p (slot-value (sheet-port medium) 'color-p)))
+	(color-p (slot-value (port medium) 'color-p)))
     (multiple-value-bind (r g b)
 	(color-rgb ink)
       (let ((invert-p (not (funcall (tv:sheet-screen window) :bow-mode))))
@@ -162,7 +165,7 @@
 (defmethod genera-decode-color ((ink flipping-ink) medium &optional (stipple-p t))
   (declare (ignore stipple-p))
   (let ((window (slot-value medium 'window))
-	(color-p (slot-value (sheet-port medium) 'color-p)))
+	(color-p (slot-value (port medium) 'color-p)))
     (if (not color-p)
 	(values boole-xor)
       (multiple-value-bind (design1 design2)
@@ -258,7 +261,7 @@
   (genera-decode-color ink medium))
 
 (defmethod genera-decode-ink ((ink contrasting-ink) medium)
-  (if (slot-value (sheet-port medium) 'color-p)
+  (if (slot-value (port medium) 'color-p)
       (genera-decode-color (make-color-for-contrasting-ink ink) medium)
     ;; More efficient than (GENERA-DECODE-COLOR (MAKE-GRAY-COLOR-FOR-CONTRASTING-INK INK))
     (let ((luminance (with-slots (clim-utils::which-one clim-utils::how-many) ink
@@ -379,7 +382,7 @@
 						      thickness dashes line-style raster
 						      hard window)))
 		     (if (and easy
-			      (not (slot-value (sheet-port medium) 'embedded-p))
+			      (not (slot-value (port medium) 'embedded-p))
 			      (null dashes)
 			      (<= thickness 1))
 			 (funcall easy window alu)
@@ -388,12 +391,18 @@
 						  thickness dashes line-style nil
 						  hard window)))))
 	  (with-slots (window) medium
-	    (let ((clipping-region 
-		    (sheet-device-region (medium-sheet medium))))
-	      (if (or (eq clipping-region +everywhere+)
-		      (eq clipping-region +nowhere+))	;---yow! howcum?
+	    (let* ((sheet (medium-sheet medium))
+		   (region (sheet-device-region sheet))
+		   (medium-region (medium-clipping-region medium)))
+	      (unless (eq medium-region +everywhere+)
+		(setq region (region-intersection
+			       region
+			       (transform-region 
+				 (sheet-device-transformation sheet) medium-region))))
+	      (if (or (eq region +everywhere+)
+		      (eq region +nowhere+))	;---yow! howcum?
 		  (kernel window)
-		(with-bounding-rectangle* (left top right bottom) clipping-region
+		(with-bounding-rectangle* (left top right bottom) region
 		  (integerize-coordinates left top right bottom)
 		  (with-stack-list (cr (+ (tv:sheet-left-margin-size window) left)
 				       (+ (tv:sheet-top-margin-size window) top)
@@ -402,7 +411,7 @@
 		    (scl:letf (((tv:sheet-clipping-region window) cr))
 		      (kernel window)))))))))))) 
 
-(defmethod window-drawing-possible ((medium genera-medium))
+(defmethod medium-drawing-possible ((medium genera-medium))
   (let ((window (slot-value medium 'window)))
     ;; TV:SHEET-OUTPUT-HELD-P, except that temp-locking only delays drawing,
     ;; it doesn't make it impossible, so only look at the output-hold flag
@@ -410,7 +419,7 @@
 	(tv:sheet-screen-array window))))
 
 (defmethod port-draw-point* ((port genera-port) sheet medium x y)
-  (when (window-drawing-possible medium)
+  (when (medium-drawing-possible medium)
     (let ((transform (sheet-device-transformation sheet))
 	  (ink (medium-ink medium))
 	  (line-style (medium-line-style medium)))
@@ -424,7 +433,7 @@
 	    (funcall (flavor:generic graphics:draw-point) window x y))))))
 
 (defmethod port-draw-line* ((port genera-port) sheet medium x1 y1 x2 y2)
-  (when (window-drawing-possible medium)
+  (when (medium-drawing-possible medium)
     (let ((transform (sheet-device-transformation sheet))
 	  (ink (medium-ink medium))
 	  (line-style (medium-line-style medium)))
@@ -441,7 +450,7 @@
 
 (defmethod port-draw-rectangle* ((port genera-port) sheet medium 
 				 left top right bottom filled)
-  (when (window-drawing-possible medium)
+  (when (medium-drawing-possible medium)
     (let ((transform (sheet-device-transformation sheet))
 	  (ink (medium-ink medium))
 	  (line-style (medium-line-style medium)))
@@ -485,7 +494,7 @@
 			       :stream window))))))
 
 (defmethod port-draw-polygon* ((port genera-port) sheet medium points closed filled)
-  (when (window-drawing-possible medium)
+  (when (medium-drawing-possible medium)
     (let ((transform (sheet-device-transformation sheet))
 	  (ink (medium-ink medium))
 	  (line-style (medium-line-style medium))
@@ -571,7 +580,7 @@
 			       center-x center-y
 			       radius-1-dx radius-1-dy radius-2-dx radius-2-dy
 			       start-angle end-angle filled)
-  (when (window-drawing-possible medium)
+  (when (medium-drawing-possible medium)
     (let ((transform (sheet-device-transformation sheet))
 	  (ink (medium-ink medium))
 	  (line-style (medium-line-style medium)))
@@ -618,11 +627,13 @@
 
 (defmethod port-draw-string* ((port genera-port) sheet medium
 			      string x y start end align-x align-y)
-  (when (window-drawing-possible medium)
+  (when (medium-drawing-possible medium)
     (let ((transform (sheet-device-transformation sheet))
 	  (ink (medium-ink medium))
 	  (text-style (medium-merged-text-style medium)))
       (convert-to-device-coordinates transform x y)
+      (unless start
+	(setq start 0))
       (unless end
 	(setq end (length string)))
       ;; ---OK to use this in the Genera implementation
@@ -650,7 +661,7 @@
 
 (defmethod port-draw-character* ((port genera-port) sheet medium
 				 character x y align-x align-y)
-  (when (window-drawing-possible medium)
+  (when (medium-drawing-possible medium)
     (let ((transform (sheet-device-transformation sheet))
 	  (ink (medium-ink medium))
 	  (text-style (medium-merged-text-style medium)))
@@ -686,11 +697,12 @@
       (port-draw-string* port sheet medium
 			 string-or-char x y start end align-x align-y)))
 
-(defmethod silica::port-write-char-1 ((port genera-port) medium 
-				      index font color x y)
+;;--- Is this used any more?
+(defmethod port-write-char-1 ((port genera-port) medium 
+			      index font color x y)
   ;;--- Convert X and Y to device coords
   (let ((window (slot-value medium 'window)))
-    (when (window-drawing-possible medium)
+    (when (medium-drawing-possible medium)
       (tv:prepare-sheet (window)
 	(let ((x (+ x (tv:sheet-left-margin-size window)))
 	      (y (+ y (tv:sheet-top-margin-size window))))
@@ -703,13 +715,14 @@
 						     medium nil))
 			       window))))))
 
-(defmethod silica::port-write-string-1 ((port genera-port) medium 
-					glyph-buffer start end 
-					font color x y)
+;;--- Is this used any more?
+(defmethod port-write-string-1 ((port genera-port) medium 
+				glyph-buffer start end 
+				font color x y)
   ;;--- Convert X and Y to device coords
   (unless (<= end start) 
     (let ((window (slot-value medium 'window)))
-      (when (window-drawing-possible medium)
+      (when (medium-drawing-possible medium)
 	(tv:prepare-sheet (window)
 	  (let ((glyph-buffer glyph-buffer)
 		(index start)
@@ -737,11 +750,14 @@
   (scl:beep sheet))
 
 
-(defmethod silica::port-copy-area ((port genera-port)
- 				   from-sheet to-sheet
- 				   from-left from-top from-right from-bottom
- 				   to-left to-top)
-  (assert (eql from-sheet to-sheet))
+;;--- FROM-SHEET and TO-SHEET should be mediums, not sheets
+;;--- This needs to be able to copy to/from pixmaps, too
+;;--- arglist s/b FROM-MEDIUM FROM-X FROM-Y TO-MEDIUM TO-X TO-Y WIDTH HEIGHT
+(defmethod port-copy-area ((port genera-port)
+			   from-sheet to-sheet
+			   from-left from-top from-right from-bottom
+			   to-left to-top)
+  (assert (eq from-sheet to-sheet))
   ;; coords in "host" coordinate system
   (let ((transform (sheet-native-transformation from-sheet)))
     (convert-to-device-coordinates transform
@@ -759,3 +775,70 @@
 			   tv:alu-seta width height
 			   from-left from-top
 			   to-left to-top))))))
+
+
+#||
+;;; Copy from a pixmap into a medium.
+(defmethod copy-area ((medium clg-medium) x y (source pixmap) left bottom width height
+		      &optional (boole boole-1))
+  (with-slots (drawable port device-transformation) medium
+    (multiple-value-bind (min-x min-y max-x max-y)
+	(transform-rectangle* device-transformation x y (+ x width) (+ y height))
+      (scl:send drawable :bitblt boole (- max-x min-x) (- max-y min-y)
+		(realize-pixmap port source) left bottom
+		min-x min-y))))
+
+;;; Copy from a medium into another medium.
+;;; --- Should there be a COPY-AREA from ON-GENERA::CLG-DISPLAY-MEDIUM to ON-X:???
+(defmethod copy-area ((target clg-display-medium) target-x target-y
+		      (source clg-medium) source-x source-y
+		      width height
+		      &optional (boole boole-1))
+  ;; width and height are assumed to be unchanged under the various
+  ;; transformations.  We use them, however, to realize a rectangle and
+  ;; transform the rectangle to get it's anchor, which may be different
+  ;; than transforming the anchor point.
+  (let* ((target-drawable (slot-value target 'drawable))
+	 (source-drawable (slot-value source 'drawable))
+	 (target-device-transformation (insured-device-transformation target))
+	 ;; --- kludge.  Should probably implement a method for 
+	 ;; insured-device-transformation on pixmap mediums.
+	 (source-device-transformation
+	   (if (typep source 'display-medium)
+	       (insured-device-transformation source)
+	       (device-transformation source))))
+    (multiple-value-setq (target-x target-y)
+      (transform-rectangle*
+	target-device-transformation
+	target-x target-y (+ target-x width) (+ target-y height)))
+    (multiple-value-setq (source-x source-y)
+      (transform-rectangle*
+	source-device-transformation
+	source-x source-y (+ source-x width) (+ source-y height)))
+    ;; make width and/or height be negative to interact with BITBLT
+    ;; correctly in the event these are the same drawables.
+    (let ((width  (if (<= target-x source-x) (+ width)  (- width)))
+	  (height (if (<= target-y source-y) (+ height) (- height))))
+      (tv:bitblt-from-sheet-to-sheet
+	boole (round width) (round height)	;--- round???
+	source-drawable (integerize-coordinate source-x) (integerize-coordinate source-y)
+	target-drawable (integerize-coordinate target-x) (integerize-coordinate target-y)))))
+
+;;; X also has a way to copy from a medium into a pixmap.  Should this be allowed here?
+(defmethod copy-area ((pixmap pixmap) dst-x dst-y 
+		      (medium clg-display-medium) src-x src-y width height
+		      &optional (boole boole-1))
+  ;;; This all only works for pixels coordinate systems.
+  (with-slots (drawable gcontext port device-transformation) medium
+    (multiple-value-bind (device-min-x device-min-y device-lim-x device-lim-y)
+	(transform-rectangle* device-transformation
+			      src-x src-y (+ src-x width)
+			      (+ src-y height))
+      (let* ((device-width (- device-lim-x device-min-x))
+	     (device-height (- device-lim-y device-min-y))
+	     (raster (realize-pixmap port pixmap)))
+	(scl:send drawable :bitblt-from-sheet boole
+		  (round device-width) (round device-height)	;--- round???
+		  (integerize-coordinate device-min-x) (integerize-coordinate device-min-y)
+		  raster (integerize-coordinate dst-x) (integerize-coordinate dst-y))))))
+||#

@@ -1,12 +1,12 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: GENERA-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: genera-activities.lisp,v 1.1 92/01/31 14:27:51 cer Exp $
+;; $fiHeader: genera-activities.lisp,v 1.1 92/02/24 13:28:00 cer Exp $
 
 (in-package :genera-clim)
 
 
 "Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved."
-;;; $fiHeader$
+;;; $fiHeader: genera-activities.lisp,v 1.1 92/02/24 13:28:00 cer Exp $
 
 (defvar *sheet-roots* nil)
 (defvar *deactivated-clim-activities* nil)
@@ -68,7 +68,7 @@
        (let* ((window (zl:symeval-in-instance clim-sheet 'sheet))
 	      (frame (and window (window-stream-to-frame window))))
 	 (and frame
-	      (eql (frame-name frame) frame-name)))))
+	      (eq (frame-name frame) frame-name)))))
 
 (flavor:defmethod (x-screen::activity-acceptable-for-x-screen-p clim-activity) () t)
 
@@ -86,7 +86,7 @@
 
 (defun define-genera-application-1 (frame-name pretty-name select-key &optional frame-args)
   (when (null pretty-name)
-    (setq pretty-name (command-name-from-symbol frame-name)))
+    (setq pretty-name (clim-internals::command-name-from-symbol frame-name)))
   (when (cli::define-activity 'clim-activity
 			      :name pretty-name
 			      :description pretty-name

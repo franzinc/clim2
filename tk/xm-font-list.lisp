@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-font-list.lisp,v 1.2 92/01/31 14:55:14 cer Exp $
+;; $fiHeader: xm-font-list.lisp,v 1.3 92/02/24 13:04:00 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -46,7 +46,8 @@
   (let* ((charset xm_string_default_char_set)
 	 (font-list
 	  (xm_font_list_create 
-	   (object-handle (car value)))))
+	   (object-handle (car value))
+	   charset)))
     (dolist (font (cdr value))
       (setq font-list
 	(xm_font_list_add font-list 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: aaai-demo-driver.lisp,v 1.2 92/02/24 13:09:15 cer Exp Locker: cer $
+;; $fiHeader: aaai-demo-driver.lisp,v 1.3 92/02/26 10:23:54 cer Exp $
 
 (in-package :clim-demo)
 
@@ -36,13 +36,13 @@
 	      desired-top (max top (- desired-bottom desired-height))))
       (values desired-left desired-top desired-right desired-bottom))))
 
-#+silica
-(defun size-demo-frame (root desired-left desired-top desired-width
-			desired-height)
-  (values desired-left desired-top  (+ desired-left desired-width)
-	  (+ desired-top desired-height)))
+#+Silica
+(defun size-demo-frame (root desired-left desired-top desired-width desired-height)
+  (values desired-left desired-top  
+	  (+ desired-left desired-width) (+ desired-top desired-height)))
 
 (defun start-demo (&optional (root #-Silica *demo-root*))
+  #-Silica
   (unless root
     (lisp:format t "~&No current value for *DEMO-ROOT*.  Use what value? ")
     (setq root (eval (lisp:read)))
@@ -72,6 +72,6 @@
 (defparameter *color-stream-p* t)
 (defun color-stream-p (stream)
   #-Genera *color-stream-p*		;--- kludge
-  #+Genera (if (typep stream 'clim-internals::sheet-window-stream)
+  #+Genera (if (eql (port-type (port stream)) ':genera)
 	       (slot-value stream 'clim-internals::color-p)
 	       *color-stream-p*))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: interactive-protocol.lisp,v 1.3 92/01/31 14:58:20 cer Exp $
+;; $fiHeader: interactive-protocol.lisp,v 1.4 92/02/24 13:07:57 cer Exp $
 
 (in-package :clim-internals)
 
@@ -334,7 +334,7 @@
 (defmethod rescan-for-activation ((istream input-editing-stream-mixin))
   (with-slots (rescan-queued input-buffer insertion-pointer) istream
     (when rescan-queued
-      (when (eql rescan-queued ':activation)
+      (when (eq rescan-queued ':activation)
 	(setq insertion-pointer (fill-pointer input-buffer)))
       (setf rescan-queued nil)
       (throw 'rescan (values)))))
@@ -464,7 +464,7 @@
 	      :input-wait-test input-wait-test
 	      :input-wait-handler input-wait-handler
 	      :pointer-button-press-handler pointer-button-press-handler))
-	(cond ((eql type ':timeout)
+	(cond ((eq type ':timeout)
 	       (return-from stream-read-gesture
 		 (values thing type)))
 	      (peek-p
@@ -521,15 +521,6 @@
 			   ;; count as real gestures.
 			   (beep istream)))))))))))
 	
-;;; Characters that are ordinary text rather than potential input editor commands
-;;; Note that graphic-char-p is true of #\Space
-(defun ordinary-char-p (char)
-  (and #+Allegro (zerop (char-bits char))
-       (or (graphic-char-p char)
-	   (eql char #\Newline)
-	   (eql char #\Return)
-	   (eql char #\Tab))))
-
 ;; Move the cursor forward or backward in an input buffer until PREDICATE
 ;; returns true.  PREDICATE has to be prepared to interact with ACCEPT-RESULTs
 ;; because to the user they behave as big characters.  NOISE-STRINGs, on the
@@ -553,7 +544,7 @@
 		    (noise-string-p thing))
 	    (multiple-value-bind (ok dont-include-me) (funcall predicate thing)
 	      (when ok
-		(return (if (eql dont-include-me reverse-p)
+		(return (if (eq dont-include-me reverse-p)
 			    (1+ position)
 			    position))))))
 	(when (= position limit)
@@ -568,8 +559,8 @@
 (defun ie-kill (stream input-buffer kill-ring start end &optional reverse)
   (when (< end start) (rotatef start end))
   (when kill-ring
-    (let* ((top (and (eql kill-ring ':merge)
-		     (eql *kill-ring-application* *application-frame*)
+    (let* ((top (and (eq kill-ring ':merge)
+		     (eq *kill-ring-application* *application-frame*)
 		     (history-top-element *kill-ring*)))
 	   (length (if top (length top) 0)))
       (setq *kill-ring-application* *application-frame*)

@@ -1,4 +1,5 @@
-;; -*- mode: common-lisp; package: clim-internals -*-
+;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
+
 ;;
 ;;				-[]-
 ;; 
@@ -20,7 +21,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: excl-presentations.lisp,v 1.4 92/02/26 10:23:36 cer Exp Locker: cer $
+;; $fiHeader: excl-presentations.lisp,v 1.5 92/02/28 09:17:48 cer Exp $
 
 
 (in-package :clim-internals)
@@ -98,7 +99,7 @@
 
 (defvar *font-stack-hack* nil)
 
-#+ignore
+#+++ignore
 ;;; Somehow this does not integrate with the CLIM mechanism
 (defmethod excl::stream-set-font ((stm output-protocol) font-spec)
   (setf (medium-text-style stm)

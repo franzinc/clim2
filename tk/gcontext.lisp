@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: gcontext.lisp,v 1.5 92/02/24 13:03:02 cer Exp Locker: cer $
+;; $fiHeader: gcontext.lisp,v 1.6 92/02/26 10:23:11 cer Exp $
 
 (in-package :tk)
 
@@ -205,7 +205,7 @@
 
 
 (define-gc-accessor line-width  (encode-card16 decode-card16))
-
+  
 (defmethod gcontext-fill-style ((gc gcontext))
   (decode-fill-style
    (x11::_xgc-values-fill-style (object-handle gc))))
@@ -360,7 +360,6 @@
   
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun encode-int16 (x) x)
-
 
 
 (defun encode-font (x) (x11:xfontstruct-fid (object-handle x)))

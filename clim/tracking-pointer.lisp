@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: tracking-pointer.lisp,v 1.3 92/01/31 14:58:57 cer Exp $
+;; $fiHeader: tracking-pointer.lisp,v 1.4 92/02/24 13:08:43 cer Exp $
 
 (in-package :clim-internals)
 
@@ -108,13 +108,15 @@
 	 ;; Genera's sheet window system, do it right here.
 	 (*generate-button-release-events*
 	   (or button-release-function presentation-release-function))
-	 ;;--- This actually needs to check for a Genera port...
+	 ;;--- We shouldn't need to kludge this any more!
 	 #+Genera (generate-release-events
 		    (and *generate-button-release-events*
-			 (typep stream 'sheet-window-stream)))
+			 (eql (port-type (port stream)) ':genera)))
 	 #+Genera (genera-mouse 
 		    (and generate-release-events
-			 (tv:sheet-mouse (scl:send (slot-value stream 'window) :screen))))
+			 (tv:sheet-mouse 
+			   (scl:send (slot-value (sheet-medium stream) 'genera-clim::window)
+				     :screen))))
 	 #+Genera (genera-mouse-buttons 
 		    (and generate-release-events
 			 (tv:mouse-last-buttons genera-mouse)))
@@ -156,7 +158,11 @@
 		     #-Silica
 		     (multiple-value-setq (wx wy)
 		       (viewport-to-drawing-surface-coordinates current-window wx wy))
-		     (let ((event (make-button-release-event window wx wy buttons mask)))
+		     (let ((event (make-instance 'pointer-button-release-event
+				    :sheet window
+				    :button buttons
+				    :modifiers mask
+				    :x wx :y wy)))
 		       (when transformp
 			 (multiple-value-bind (tx ty)
 			     (transform-point* (medium-transformation window)
@@ -203,7 +209,7 @@
 				      current-window wx wy)))
 			      (when presentation
 				(when highlight
-				  (unless (eql presentation highlighted-presentation)
+				  (unless (eq presentation highlighted-presentation)
 				    (unhighlight)
 				    (highlight presentation)))
 				(when presentation-motion-function
@@ -286,7 +292,7 @@
 					    (presentation
 					      (frame-find-innermost-applicable-presentation
 						*application-frame* *input-context*
-						window px py)))
+						window px py :event gesture)))
 				       (when presentation
 					 (funcall presentation-press-function
 						  presentation gesture wx wy)
@@ -300,7 +306,7 @@
 					    (presentation
 					      (frame-find-innermost-applicable-presentation
 						*application-frame* *input-context*
-						window px py)))
+						window px py :event gesture)))
 				       (when presentation
 					 (funcall presentation-release-function
 						  presentation gesture wx wy)
@@ -322,7 +328,7 @@
   (let (start-x start-y end-x end-y)
     (tracking-pointer (stream :pointer pointer :multiple-window multiple-window)
       (:pointer-motion (window x y)
-       (when (and start-x (eql window stream))
+       (when (and start-x (eq window stream))
 	 (with-output-recording-options (window :draw t :record nil)
 	   (when end-x
 	     (draw-line* window start-x start-y end-x end-y
@@ -334,7 +340,7 @@
        (let ((x (pointer-event-x event))
 	     (y (pointer-event-y event))
 	     (window (event-sheet event)))
-	 (when (eql window stream)
+	 (when (eq window stream)
 	   (cond (start-x
 		  (with-output-recording-options (window :draw t :record nil)
 		    (draw-line* window start-x start-y end-x end-y
@@ -379,13 +385,13 @@
 			    :filled nil :ink +flipping-ink+)
 	   (setq rectangle-drawn nil))
 	 (when left
-	   (when (eql window stream)
+	   (when (eq window stream)
 	     (setq right x bottom y)
 	     (draw-rectangle* stream left top right bottom
 			      :filled nil :ink +flipping-ink+)
 	     (setq rectangle-drawn t))))
 	(:pointer-button-press (event)
-	 (if (eql (event-sheet event) stream)
+	 (if (eq (event-sheet event) stream)
 	     (cond ((null left)
 		    (setq left (pointer-event-x event))
 		    (setq top (pointer-event-y event)))

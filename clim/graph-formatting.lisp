@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graph-formatting.lisp,v 1.4 92/01/31 15:07:38 cer Exp $
+;; $fiHeader: graph-formatting.lisp,v 1.6 92/02/24 13:07:40 cer Exp $
 
 (in-package :clim-internals)
 
@@ -549,7 +549,7 @@
 	       (funcall new-node-function parent-object parent-hashval object)))
 	 (setf (gethash (funcall key object) hash-table) object-hashval)
 	 (when max-depth (decf max-depth))
-	 (unless (eql max-depth 0)
+	 (unless (eq max-depth 0)
 	   (flet ((traverse1 (child-object)
 		    (let ((child-key (funcall key child-object)))
 		      (multiple-value-bind (child-hashval found)

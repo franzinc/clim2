@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: define-application.lisp,v 1.1 92/01/31 14:27:46 cer Exp $
+;; $fiHeader: define-application.lisp,v 1.2 92/02/24 13:07:19 cer Exp $
 
 (in-package :clim-internals)
 
@@ -425,10 +425,10 @@
 	(let ((type (pane-descriptor-type desc))
 	      (options (pane-descriptor-options desc)))
 	  (with-keywords-removed (new-options options *non-window-pane-keywords*)
-	    (cond ((and genera-p (eql type ':pointer-documentation))
+	    (cond ((and genera-p (eq type ':pointer-documentation))
 		   ;; On Genera, use the normal mouse-doc line
 		   (push 'dummy-pointer-documentation-pane panes))
-		  ((and (not genera-p) (eql type ':title))
+		  ((and (not genera-p) (eq type ':title))
 		   ;; Most window systems put the title in the window decorations
 		   (push 'dummy-title-pane panes))
 		  (t
@@ -461,7 +461,7 @@
 	(do* ((options options (cddr options))
 	      (keyword (car options) (car options)))
 	     ((null options))
-	  (unless (or (eql keyword ':window-class)
+	  (unless (or (eq keyword ':window-class)
 		      (member keyword non-window-keywords)
 		      (member keyword valid-keywords))
 	    (push keyword invalid-keywords)))
@@ -601,9 +601,9 @@
       (let ((type-or-name (first inf))
 	    (size-spec (second inf))
 	    size)
-	(cond ((eql size-spec :rest)
+	(cond ((eq size-spec :rest)
 	       (setq size ':rest))
-	      ((eql size-spec :compute)
+	      ((eq size-spec :compute)
 	       (setq size (funcall size-helper type-or-name parent-type 
 				   available-x available-y)))
 	      ((and (numberp size-spec)
@@ -632,7 +632,7 @@
       ;; Compute left-over space after explicitly-sized panes are allocated
       (dolist (inf calculated-inferiors)
 	(let ((size (second inf)))
-	  (if (eql size ':rest)
+	  (if (eq size ':rest)
 	      (incf n-rests)
 	      (decf available size))))
       (let ((rest-allocation (and (plusp n-rests) (floor available n-rests)))
@@ -666,7 +666,7 @@
 	    (let* ((name-or-type (first inf))
 		   (size-info (second inf)))
 	      ;; Bite off a chunk for this pane
-	      (setq adjusted-size (if (eql size-info ':rest)
+	      (setq adjusted-size (if (eq size-info ':rest)
 				      rest-allocation
 				      size-info))
 	      (with-real-coords (x y width height)
@@ -797,7 +797,7 @@
       (:row size)
       (:column
 	(if nlines
-	    (if (eql size ':rest)
+	    (if (eq size ':rest)
 		(+ 5 (* nlines (+ (stream-line-height window) vsp)))
 		(max size (+ 5 (* nlines (+ (stream-line-height window) vsp)))))
 	    size)))))
@@ -1196,7 +1196,7 @@
     ;; We're trying to get bits on the screen.
     (cond ((dummy-pane-p pane)
 	   ;; Give everyone a chance to update the title bar
-	   (when (eql (pane-descriptor-type description) :title)
+	   (when (eq (pane-descriptor-type description) :title)
 	     (display-title frame pane)))
 	  (t
 	   (when *frame-layout-changing-p*

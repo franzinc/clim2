@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-frames.lisp,v 1.8 92/02/14 18:57:40 cer Exp $
+;; $fiHeader: xm-frames.lisp,v 1.9 92/02/24 13:06:17 cer Exp $
 
 (in-package :xm-silica)
 
@@ -131,7 +131,7 @@
   ;; We want to queue an "event" somewhere so that we can
   ;; synchronously quit from the frame
   (distribute-event
-   (sheet-port frame)
+   (port frame)
    (make-instance 'window-manager-delete-event
 		  :sheet (frame-top-level-sheet frame))))
 

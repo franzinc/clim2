@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept-values.lisp,v 1.7 92/02/14 18:57:56 cer Exp $
+;; $fiHeader: accept-values.lisp,v 1.8 92/02/24 13:06:51 cer Exp $
 
 (in-package :clim-internals)
 
@@ -333,7 +333,7 @@
 	  exit-button-record
 	  avv avv-record)
       (letf-globally (((stream-default-view stream) 
-		       (port-dialog-view (sheet-port stream))))
+		       (port-dialog-view (port stream))))
 	(flet ((run-continuation (stream avv-record)
 		 (setf (slot-value stream 'avv-record) avv-record)
 		 (setf (slot-value stream 'avv-frame) frame)
@@ -1049,9 +1049,14 @@
 			  :id :exit
 			  :label exit))))))))
 
+;; Callback for exit boxes
+(defmethod activate-callback ((button push-button) (client accept-values) id)
+  (ecase id
+    (:abort (com-abort-avv))
+    (:exit (com-exit-avv))))
 
 ;; It's OK that this is only in the ACCEPT-VALUES command table because
-;; we're going to execute it manually...
+;; we're going to execute it manually in the callbacks below
 (define-command (com-change-query :command-table accept-values)
     ((id t)
      (new-value t))
@@ -1060,23 +1065,19 @@
 	  changed-p t)))
 
 (defmethod value-changed-callback :around ((gadget value-gadget)
-					   (client accept-values-stream)
-					   id
-					   new-value)
+					   (client accept-values-stream) id new-value)
   (declare (ignore new-value))
   (when (accept-values-query-valid-p (accept-values-query-presentation id))
+    ;; Only call the callback if the query is still valid
     (call-next-method)))
 
+;; Callback for value gadgets
 (defmethod value-changed-callback ((gadget value-gadget)
-				   (client accept-values-stream)
-				   id
-				   new-value)
+				   (client accept-values-stream) id new-value)
   (do-avv-command new-value client id))
 
 (defmethod value-changed-callback ((gadget radio-box)
-				   (client accept-values-stream)
-				   id 
-				   new-value)
+				   (client accept-values-stream) id new-value)
   (do-avv-command (gadget-id new-value) client id))
 
 (defun do-avv-command (new-value client id)
@@ -1085,6 +1086,7 @@
 		  :object `(com-change-query ,id ,new-value)
 		  :type 'command)
    *input-context*
+   ;;--- It would be nice if we had the real event...
    (make-instance 'pointer-button-press-event
 		  :sheet (slot-value client 'stream)
 		  :x 0
@@ -1092,8 +1094,7 @@
 		  :modifiers 0
 		  :button 256)))
 
-;;; Another amusing component
-;;; Some how we need so associate an output-record with the button
+;; This is how we associate an output-record with the button
 (defmethod invoke-accept-values-command-button
     	   (stream continuation (view gadget-dialog-view) prompt
 	    &key (documentation (if (stringp prompt)
@@ -1116,25 +1117,18 @@
 					  :documentation documentation
 					  :resynchronize resynchronize)))))
 
-(defmethod activate-callback ((pb push-button)
-			      (client accept-values-command-button)
-			      id)
+(defmethod activate-callback ((button push-button)
+			      (client accept-values-command-button) id)
   (when (accept-values-query-valid-p id)
     (throw-highlighted-presentation
       (make-instance 'standard-presentation
 		     :object `(com-avv-command-button ,client ,id)
 		     :type 'command)
       *input-context*
+      ;;--- It would be nice if we had the real event...
       (make-instance 'pointer-button-press-event
-		     :sheet (sheet-parent pb)
+		     :sheet (sheet-parent button)
 		     :x 0
 		     :y 0
 		     :modifiers 0
 		     :button 256))))
-
-(defmethod activate-callback ((pb push-button)
-			      (client accept-values)
-			      id)
-  (ecase id
-    (:abort (com-abort-avv))
-    (:exit (com-exit-avv))))

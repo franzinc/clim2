@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-protocol.lisp,v 1.6 92/02/24 13:07:54 cer Exp Locker: cer $
+;; $fiHeader: input-protocol.lisp,v 1.7 92/02/28 09:17:49 cer Exp $
 
 (in-package :clim-internals)
 
@@ -67,7 +67,7 @@
   (sheet-event-queue x))
 
 (defmethod stream-primary-pointer ((stream input-protocol-mixin))
-  (let ((port (sheet-port stream)))
+  (let ((port (port stream)))
     (when port
       (or (port-pointer port)
 	  (setf (port-pointer port) (make-instance 'standard-pointer
@@ -157,9 +157,10 @@
   (let ((char (keyboard-event-character event))
 	(keysym (keyboard-event-key-name event)))
     ;; this probably wants to be STRING-CHAR-P, but that will still require some thought.
-    (cond ((and char (characterp char)) (queue-put (stream-input-buffer stream) char))
+    (cond ((and char (characterp char))
+	   (queue-put (stream-input-buffer stream) char))
 	  ((and keysym (not (typep keysym 'modifier-keysym))
-	   (queue-put (stream-input-buffer stream) event)))
+	   (queue-put (stream-input-buffer stream) (copy-event event))))
 	  (keysym
 	   ;; must be a shift keysym
 	   ;; must update the pointer shifts.
@@ -170,31 +171,13 @@
 
 (defmethod queue-event ((stream input-protocol-mixin) (event key-release-event))
   ;;--- key state table?  Not unless all sheets are helping maintain it.
-  (let ((keysym (keyboard-event-key-name  event)))
+  (let ((keysym (keyboard-event-key-name event)))
     (when (and keysym (typep keysym 'modifier-keysym))
       ;; update the pointer shifts.
       (let ((pointer (stream-primary-pointer stream)))
 	(when pointer
-	  (setf (pointer-button-state pointer) (event-input-state event))))))
+	  (setf (pointer-button-state pointer) (event-modifier-state event))))))
   nil)
-
-#-ccl-2
-(defun copy-event (instance)
-  (let* ((class (class-of instance))
-	 (copy (allocate-instance class)))
-    (dolist (slot (clos:class-slots class))
-      (let ((name (clos:slot-definition-name slot)))
-	(setf (slot-value copy name) (slot-value instance name))))
-    copy))
-
-#+ccl-2
-(defun copy-event (instance)
-  (let* ((class (class-of instance))
-	 (copy (allocate-instance class)))
-    (dolist (slot (ccl:class-slots class))
-      (let ((name (ccl:slot-definition-name slot)))
-	(setf (slot-value copy name) (slot-value instance name))))
-    copy))
 
 ;;; --- need to modularize stream implementation into fundamental and extended layers
 ;;; so that we can tell when to queue up non-characters into the stream.
@@ -215,10 +198,11 @@
 (defmethod queue-event ((stream input-protocol-mixin) (event pointer-motion-event))
   (let ((pointer (stream-primary-pointer stream)))
     (pointer-set-position* pointer (pointer-event-x event) (pointer-event-y event))
-    (pointer-set-native-position* pointer 
-				 (pointer-event-native-x event) (pointer-event-native-y event))
+    (pointer-set-native-position*
+      pointer 
+      (pointer-event-native-x event) (pointer-event-native-y event))
     (setf (pointer-button-state pointer) 
-      (event-modifier-state event))
+	  (event-modifier-state event))
     (setf (pointer-window pointer) stream)
     (setf (pointer-motion-pending stream pointer) t)))
 
@@ -286,8 +270,8 @@
 	(abort-p t))
     (unwind-protect
 	(progn (when text-cursor
-		 (cond ((eql old-state state))
-		       #-Silica ((eql visibility ':inactive))
+		 (cond ((eq old-state state))
+		       #-Silica ((eq visibility ':inactive))
 		       (t
 			(setf (cursor-state text-cursor) state)
 			(setf abort-p nil))))
@@ -330,7 +314,7 @@
 				     (event-sheet gesture)))
 			 (new-gesture 
 			   (receive-gesture
-			     (if (or (null sheet) (eql sheet stream))
+			     (if (or (null sheet) (eq sheet stream))
 				 (or *original-stream* stream)
 				 sheet)
 			     gesture)))
@@ -370,12 +354,12 @@
 
 ;; Presentation translators have probably already run...
 (defmethod receive-gesture
-    ((stream input-protocol-mixin) (gesture pointer-button-press-event))
+	   ((stream input-protocol-mixin) (gesture pointer-button-press-event))
   (if *pointer-button-press-handler*
       ;; This may throw or something, but otherwise we will return the gesture
       (progn (funcall *pointer-button-press-handler* stream gesture)
 	     nil)
-    gesture))
+      gesture))
 
 (defmethod receive-gesture
 	   ((stream input-protocol-mixin) (gesture (eql ':resynchronize)))
@@ -540,11 +524,11 @@
       ;;--- Reconcile various error cases.  When CH is NIL then that probably means
       ;; that the caller supplied error-p nil, and we may have to return the eof-val.
       ;; Of course, we aren't dealing with EOF on our window streams at all.
-      (unless (eql ch :eof)
+      (unless (eq ch :eof)
 	(loop
 	  ;; Process the character
 	  (cond ((or (eql ch #\Newline)
-		     (eql ch :eof))
+		     (eq ch :eof))
 		 (return-from stream-read-line
 		   (evacuate-temporary-string result)))
 		(t
@@ -561,7 +545,7 @@
 ;; The eof argument is as for the :tyi message
 (defmethod stream-compatible-read-char ((stream input-protocol-mixin) &optional eof)
   (let ((char (stream-read-char stream)))
-    (cond ((not (eql char ':eof)) char)
+    (cond ((not (eq char ':eof)) char)
 	  (eof (error 'sys:end-of-file :stream stream :format-string eof))
 	  (t nil))))
 
@@ -569,7 +553,7 @@
 ;; The eof argument is as for the :tyi-no-hang message
 (defmethod stream-compatible-read-char-no-hang ((stream input-protocol-mixin) &optional eof)
   (let ((char (stream-read-char-no-hang stream)))
-    (cond ((not (eql char ':eof)) char)
+    (cond ((not (eq char ':eof)) char)
 	  (eof (error 'sys:end-of-file :stream stream :format-string eof))
 	  (t nil))))
 
@@ -577,7 +561,7 @@
 ;; The eof argument is as for the :tyipeek message
 (defmethod stream-compatible-peek-char ((stream input-protocol-mixin) &optional eof)
   (let ((char (stream-peek-char stream)))
-    (cond ((not (eql char ':eof)) char)
+    (cond ((not (eq char ':eof)) char)
 	  (eof (error 'sys:end-of-file :stream stream :format-string eof))
 	  (t nil))))
 
@@ -627,10 +611,10 @@
 		 (setq flag :timeout))
 	       flag))
 	(declare (dynamic-extent #'waiter))
-	(port-event-wait (sheet-port stream) #'waiter :timeout timeout)
+	(port-event-wait (port stream) #'waiter :timeout timeout)
 	(when flag
 	  (return-from stream-input-wait
-	    (values (when (eql flag ':input-buffer) t)
+	    (values (when (eq flag ':input-buffer) t)
 		    flag)))))))
 
 
@@ -757,8 +741,8 @@
 
 #+Silica
 (defmethod stream-set-input-focus ((stream input-protocol-mixin))
-  (setf (port-keyboard-input-focus (sheet-port stream)) stream))
+  (setf (port-keyboard-input-focus (port stream)) stream))
 
 #+Silica
 (defmethod stream-restore-input-focus ((stream input-protocol-mixin) old-focus)
-  (setf (port-keyboard-input-focus (sheet-port stream)) old-focus))
+  (setf (port-keyboard-input-focus (port stream)) old-focus))

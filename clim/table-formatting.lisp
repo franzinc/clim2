@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: table-formatting.lisp,v 1.3 92/01/31 14:58:51 cer Exp $
+;; $fiHeader: table-formatting.lisp,v 1.4 92/02/24 13:08:36 cer Exp $
 
 (in-package :clim-internals)
 
@@ -101,7 +101,7 @@
 (defmethod map-over-table-elements-helper
 	   (function (record standard-cell-output-record) type)
   (declare (dynamic-extent function))
-  (unless (eql type 'cell) 
+  (unless (eq type 'cell) 
     (error "Expected a ~(~S~), but this is a cell.~@
             Your table directives are improperly nested."
 	   type))
@@ -225,7 +225,7 @@
 
 (defmethod row-table-p ((table standard-table-output-record))
   (with-slots (row-table-p) table
-    (cond ((not (eql row-table-p ':unknown))
+    (cond ((not (eq row-table-p ':unknown))
 	   row-table-p)
 	  (t
 	   (setf row-table-p (compute-row-table-p table))))))
@@ -460,7 +460,7 @@
 	 (let ((units (second spacing))
 	       (number (first spacing)))
 	   (case units
-	     (:point (round (* number (implementation-pixels-per-point stream))))
+	     (:point (round (* number (graft-pixels-per-point (graft stream)))))
 	     ((:pixel :device) number)
 	     ;; Which character?  Width or height?
 	     (:character (* number (stream-character-width stream #\W)))
@@ -521,7 +521,7 @@
   ;;--- just call INVOKE-WITH-NEW-OUTPUT-RECORD...
   (let ((stream (or *original-stream* stream)))
     (multiple-value-bind (x y) (stream-cursor-position* stream)
-      (if (eql record-type 'standard-cell-output-record)
+      (if (eq record-type 'standard-cell-output-record)
 	  (with-new-output-record (stream 'standard-cell-output-record nil
 				   :align-x align-x :align-y align-y
 				   :min-width min-width :min-height min-height)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: text-style.lisp,v 1.3 92/01/31 14:55:54 cer Exp $
+;; $fiHeader: text-style.lisp,v 1.4 92/02/24 13:05:00 cer Exp $
 
 (in-package :silica)
 
@@ -11,7 +11,7 @@
 
 (define-protocol-class text-style ())
 
-(defclass standard-text-style ()
+(defclass standard-text-style (text-style)
      ((family :initarg :family :initform nil :reader text-style-family)
       (face   :initarg :face   :initform nil :reader text-style-face-code)
       (size   :initarg :size   :initform nil :reader text-style-size)
@@ -158,12 +158,11 @@
 (defun validate-text-style-components (family face size &optional original-face)
   (when (consp face)				;This is an error in face->face-code.
     (apply #'error face))
-  ;;--- Handle point sizes
   (unless (or (null size)
 	      (numberp size)
 	      (member size *valid-text-style-sizes*)
-	      (eql size :smaller)
-	      (eql size :larger))
+	      (eq size :smaller)
+	      (eq size :larger))
     (error "The size ~S is not valid." size))
   ;; This needs to be fleshed out with error handlers, etc.
   (values family face size nil original-face))
@@ -228,14 +227,14 @@
     (case size1
       (:larger
 	(cond ((numberp size2) (min (+ size2 2) max-larger-size))
-	      ((eql size2 :smaller) nil)	;let a higher level decide...
+	      ((eq size2 :smaller) nil)		;let a higher level decide...
 	      (t (let ((index (position size2 *valid-text-style-sizes*)))
 		   (if (null index)
 		       size1
 		       (or (nth (1+ index) *valid-text-style-sizes*) :huge))))))
       (:smaller
 	(cond ((numberp size2) (max (- size2 2) min-smaller-size))
-	      ((eql size2 :larger) nil)		;let a higher level decide...
+	      ((eq size2 :larger) nil)		;let a higher level decide...
 	      (t (let ((index (position size2 *valid-text-style-sizes*)))
 		   (if (null index)
 		       size1
@@ -342,7 +341,7 @@
 	(value 0)
 	(no-merge 0))
     (flet ((parse-face (face)
-	     (when (eql face :no-merge)
+	     (when (eq face :no-merge)
 	       (setf no-merge 1)
 	       (return-from parse-face 0))
 	     (if class-number
@@ -396,7 +395,7 @@
 	  (when (zerop face-bits)
 	    (return (setf (gethash face-code *face-code->face-cache*) (nreverse result))))
 	  (when (logtest face-bits 1)
-	    (when (eql result t) (return (car class-alist)))
+	    (when (eq result t) (return (car class-alist)))
 	    (push (car class-alist) result))
 	  (pop class-alist)
 	  (setf face-bits (ash face-bits -1))))))
@@ -532,9 +531,9 @@
 
 (defun define-text-style-mappings-1 (device character-set specs)
   (labels ((load-specs (family face size specs)
-	     (when (and (consp specs) (eql (first specs) :style))
+	     (when (and (consp specs) (eq (first specs) :style))
 	       (setf specs (apply #'make-text-style (rest specs))))
-	     (if (and (consp specs) (not (eql (car specs) :style)))
+	     (if (and (consp specs) (not (eq (car specs) :style)))
 		 (do* ((type (first specs))
 		       (my-specs (cdr specs) (cddr my-specs))
 		       (value (first my-specs) (first my-specs))
@@ -557,7 +556,7 @@
 ;(defclass display-device ()
 ;    ((name :initarg :name :reader display-device-name)
 ;     (undefined-text-style :initform *undefined-text-style* 
-;			   :accessor display-device-undefined-text-style)
+;			   :accessor device-undefined-text-style)
 ;     ;; When this is true, the text style -> device font mapping is done
 ;     ;; loosely.  That is, the actual screen size of the font need not be
 ;     ;; exactly what the user has asked for.  Instead the closest fit is
@@ -599,7 +598,7 @@
   (declare (ignore window))
   (setq style (standardize-text-style device style character-set))
   (when (listp mapping)
-    (assert (eql (first mapping) :style) ()
+    (assert (eq (first mapping) :style) ()
 	    "Text style mappings must be atomic font names ~
 	     or (:STYLE . (family face size))")
     (setf mapping (parse-text-style (cdr mapping))))
@@ -637,7 +636,7 @@
   (declare (ignore character-set window))
   ;;--- What about character-set when using device fonts?
   ;;--- EQL? TYPE-EQUAL?  This is too restrictive as it stands
-  (unless (eql device (device-font-display-device style))
+  (unless (eq device (device-font-display-device style))
     (error "An attempt was made to map device font ~S on device ~S, ~@
 	    but it is defined for device ~S"
 	   style device (device-font-display-device style)))
@@ -648,14 +647,13 @@
   (setq style (standardize-text-style device (parse-text-style style) character-set))
   (let* ((loose (slot-value device 'allow-loose-text-style-size-mapping))
 	 (mapping-table (slot-value device 'mapping-table))
-	 (result (or (if loose
-			 (lookup-closest-font style mapping-table)
-		         (gethash style mapping-table))
-		     (if loose
-			 (lookup-closest-font (device-undefined-text-style device)
-					      mapping-table)
-		         (gethash (device-undefined-text-style device)
-				  mapping-table)))))
+	 (result 
+	   (or (if loose
+		   (lookup-closest-font style mapping-table)
+		   (gethash style mapping-table))
+	       (if loose
+		   (lookup-closest-font (port-undefined-text-style device) mapping-table)
+		   (gethash (port-undefined-text-style device) mapping-table)))))
     (when (text-style-p result)			;logical translations
       (setf result (text-style-mapping* device result character-set window)))
     result))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: coordinate-sorted-set.lisp,v 1.1 92/01/31 14:27:43 cer Exp $
+;; $fiHeader: coordinate-sorted-set.lisp,v 1.2 92/02/24 13:07:10 cer Exp $
 
 (in-package :clim-internals)
 
@@ -127,7 +127,7 @@
 	(length (slot-value record 'fill-pointer)))
     (declare (type simple-vector vector) (fixnum length)
 	     #+Genera (sys:array-register vector))
-    (if (or (null region) (eql region +everywhere+))
+    (if (or (null region) (eq region +everywhere+))
 	(dovector ((child index) vector :start 0 :end length :simple-p t)
 	  (apply function child continuation-args))
       (with-bounding-rectangle* (left1 top1 right1 bottom1) region

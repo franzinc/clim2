@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: defs-graphics-generics.lisp,v 1.1 92/01/31 14:27:48 cer Exp $
+;; $fiHeader: defs-graphics-generics.lisp,v 1.2 92/02/24 13:07:23 cer Exp $
 
 (in-package :clim-internals)
 
@@ -344,7 +344,7 @@
 (defun compute-pass-on (arglist)
   (let ((pass-on nil))
     (dolist (arg arglist)
-      (cond ((eql arg '&key)
+      (cond ((eq arg '&key)
 	     (return))
 	    (t (push arg pass-on))))
     (nreverse pass-on)))
@@ -409,7 +409,7 @@
 	   ((null args) nil)
 	(let ((stuff (member arg point-args)))
 	  (cond ((and stuff
-		      (eql (second args) (second stuff)))
+		      (eq (second args) (second stuff)))
 		 (let ((point-varname
 			 (fintern "~A-~D" 'point count)))
 		   (incf count)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: window-protocol.lisp,v 1.2 92/02/05 21:45:52 cer Exp $
+;; $fiHeader: window-protocol.lisp,v 1.3 92/02/24 13:08:54 cer Exp $
 
 (in-package :clim-internals)
 
@@ -389,7 +389,7 @@
 	(parent (window-parent win) parent-parent)
 	(parent-parent (if parent (window-parent parent) T) (window-parent parent)))
        ((null parent-parent) win)
-    (when (eql parent-parent T) (return nil))))
+    (when (eq parent-parent t) (return nil))))
 
 ;;; Make sure cursor is always visible.
 (defmethod stream-advance-cursor-line :after ((stream output-and-window-protocol-intermediary))
@@ -412,13 +412,13 @@
       (let ((new-x nil)
 	    (new-y nil))
 	;; Vertical case
-	(unless (eql (stream-end-of-page-action stream) ':allow)
+	(unless (eq (stream-end-of-page-action stream) ':allow)
 	  (incf cy (min (- vbottom vtop)
 			(* 2 (stream-line-height stream))))
 	  (unless (<= vtop cy vbottom)
 	    (setf new-y (max 0 (- cy (- vbottom vtop))))))
 	;; Horizontal case
-	(unless (eql (stream-end-of-line-action stream) ':allow)
+	(unless (eq (stream-end-of-line-action stream) ':allow)
 	  (unless (<= vleft cx vright)
 	    (setf new-x (max 0 (- cx (- vright vleft 
 					(* 4 (stream-character-width stream #\W))))))))

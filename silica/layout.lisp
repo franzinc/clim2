@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: layout.lisp,v 1.6 92/01/31 14:55:41 cer Exp $
+;; $fiHeader: layout.lisp,v 1.7 92/02/24 13:04:44 cer Exp $
 
 (in-package :silica)
 
@@ -292,7 +292,7 @@
 
 ;;--- CLIM 0.9 has some other methods on top-level sheets -- do we want them?
 (defclass top-level-sheet 
-	  (silica::pane
+	  (pane
 	   wrapping-space-mixin
 	   mirrored-sheet-mixin
 	   sheet-multiple-child-mixin)

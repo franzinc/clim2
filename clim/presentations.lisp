@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: presentations.lisp,v 1.4 92/01/31 14:58:35 cer Exp $
+;; $fiHeader: presentations.lisp,v 1.5 92/02/24 13:08:18 cer Exp $
 
 (in-package :clim-internals)
 
@@ -27,12 +27,14 @@
 (defmethod print-object ((object standard-presentation) stream)
   (print-unreadable-object (object stream :type t :identity t)
     (format stream "~S ~S /x ~A:~A y ~A:~A/"
-	    (safe-slot-value object 'type)
-	    (safe-slot-value object 'object)
-	    (safe-slot-value object 'left)
-	    (safe-slot-value object 'right)
-	    (safe-slot-value object 'top)
-	    (safe-slot-value object 'bottom))))
+      (safe-slot-value object 'type)
+      (if (eq object (safe-slot-value object 'object))
+	  '|circular presentation|
+	  (safe-slot-value object 'object))
+      (safe-slot-value object 'left)
+      (safe-slot-value object 'right)
+      (safe-slot-value object 'top)
+      (safe-slot-value object 'bottom))))
 
 (defmethod shared-initialize :after ((presentation standard-presentation) slots
 				     &key modifier allow-sensitive-inferiors single-box)
@@ -65,7 +67,7 @@
 				 &rest init-args &key object type &allow-other-keys)
   (declare (ignore init-args))
   (and (eql (presentation-object record) object)
-       (eql (presentation-type record) type)))
+       (eq (presentation-type record) type)))
 
 (defmethod highlight-output-record-1 ((record output-record-element-mixin) stream state)
   ;; State is :HIGHLIGHT or :UNHIGHLIGHT
@@ -80,7 +82,8 @@
 
 (defmethod highlight-output-record-1 :around ((record standard-presentation) stream state)
   (let ((single-box (presentation-single-box record)))
-    (if (or (eql single-box t) (eql single-box :highlighting))
+    (if (or (eq single-box t) 
+	    (eq single-box :highlighting))
 	(call-next-method)
       ;; Handles :SINGLE-BOX :POSITION
       (labels ((highlight (child x-offset y-offset)
@@ -98,7 +101,7 @@
 	(highlight record 0 0)))))
 
 (defun highlight-output-record (stream record state &optional presentation-type)
-  (unless (eql record *null-presentation*)
+  (unless (eq record *null-presentation*)
     (unless presentation-type
       (when (presentationp record)
 	(setq presentation-type (presentation-type record))))
@@ -127,13 +130,17 @@
 
 (defun highlight-presentation-of-context-type (stream)
   (highlight-applicable-presentation
-    #-Silica *application-frame* #+Silica (pane-frame stream)
-    stream *input-context*))
+    ;; We really do mean to use *APPLICATION-FRAME*, because using
+    ;; (PANE-FRAME STREAM) will return the wrong value when we have
+    ;; an ACCEPT-VALUES dialog inside some pane in the frame.
+    *application-frame* stream *input-context*))
 
 (defun input-context-button-press-handler (stream button)
   (frame-input-context-button-press-handler 
-    #-Silica *application-frame* #+Silica (pane-frame stream)
-    stream button))
+    ;; We really do mean to use *APPLICATION-FRAME*, because using
+    ;; (PANE-FRAME STREAM) will return the wrong value when we have
+    ;; an ACCEPT-VALUES dialog inside some pane in the frame.
+    *application-frame* stream button))
 
 (defun invoke-with-input-context (type override body-continuation context-continuation)
   (declare (dynamic-extent body-continuation context-continuation))
@@ -207,9 +214,9 @@
 	  (window (event-sheet button-press-event))
 	  (frame *application-frame*)
 	  (preferred-translator nil)
+	  (preferred-presentation nil)
 	  (preferred-context-type nil)
-	  (preferred-tag nil)
-	  (preferred-presentation nil))
+	  (preferred-tag nil))
       (do ((presentation presentation
 			 (parent-presentation-with-shared-box presentation window)))
 	  ((null presentation))
@@ -225,10 +232,10 @@
 			  (> (presentation-translator-priority translator)
 			     (presentation-translator-priority preferred-translator)))
 		  (setq preferred-translator translator
+			preferred-presentation presentation
 			;; Context type is sure to be stack-consed...
 			preferred-context-type (evacuate-list context-type)
-			preferred-tag tag
-			preferred-presentation presentation)))))))
+			preferred-tag tag)))))))
       (when preferred-translator
 	(multiple-value-bind (translated-object translated-type options)
 	    ;; Suppose this is a presentation action that
@@ -255,9 +262,9 @@
       (beep))))
 
 (defun find-innermost-applicable-presentation
-       (input-context window x y
-	&optional (modifier-state (window-modifier-state window))
-		  (frame *application-frame*))
+       (input-context stream x y
+	&key (frame *application-frame*) 
+	     (modifier-state (window-modifier-state stream)) event)
   (declare (type coordinate x y))
   ;; Depth first search for a presentation that is both under the pointer and
   ;; matches the input context.
@@ -333,12 +340,13 @@
 	     (dolist (context input-context)
 	       (let ((context-type (input-context-type context)))
 		 (when (presentation-matches-context-type presentation context-type
-							  frame window x y
+							  frame stream x y
+							  :event event
 							  :modifier-state modifier-state)
 		   (return-from find-innermost-applicable-presentation
 		     presentation))))))
     (declare (dynamic-extent #'mapper #'test))
-    (mapper (stream-output-history window) nil 0 0)))
+    (mapper (stream-output-history stream) nil 0 0)))
 
 (defvar *last-pointer-documentation-modifier-state* 0)
 (defparameter *document-blank-area-translators* t)
@@ -433,6 +441,6 @@
 	 (window (pointer-window pointer)))
     ;; It ain't no good if it doesn't have a history.
     (when (and window
-	       (sheet-port window)
+	       (port window)
 	       (output-recording-stream-p window))
       window)))

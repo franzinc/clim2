@@ -3,20 +3,20 @@
 (in-package :genera-clim)
 
 "Copyright (c) 1992 Symbolics, Inc.  All rights reserved."
-;;; $fiHeader$
+;;; $fiHeader: genera-gadgets.lisp,v 1.1 92/02/24 13:28:04 cer Exp $
 
 (defmethod realize-pane-class ((framem genera-frame-manager) class &rest options)
   (declare (ignore options))
-  (second (assoc class '((scroll-bar genera-scrollbar)
-			 (slider generic-slider)
-			 (push-button generic-push-button)
-			 (text-field generic-text-field)
-			 (toggle-button generic-toggle-button)
-			 (menu-bar generic-menu-bar)
-			 (viewport genera-viewport)
-			 (radio-box generic-radio-box)
-			 (frame-pane generic-frame-pane)
-			 (top-level-sheet genera-top-level-sheet)
+  (second (assoc class '((scroll-bar scroll-bar-pane)
+			 (slider slider-pane)
+			 (push-button push-button-pane)
+			 (text-field text-field-pane)
+			 (toggle-button toggle-button-pane)
+			 (menu-bar menu-bar-pane)
+			 (viewport viewport)
+			 (radio-box radio-box-pane)
+			 (frame-pane frame-pane)
+			 (top-level-sheet top-level-sheet)
 			 ;; One day
 			 (line-editor-pane)
 			 (label-button-pane)
@@ -44,16 +44,4 @@
 (defmethod realize-pane-arglist (realizer type &rest options)
   (declare (ignore realizer type))
   options)
-
-
-
-(defclass genera-top-level-sheet (top-level-sheet) ())
-
-(defclass genera-viewport (viewport) ())
-
-(defclass genera-scrollbar (silica::scroll-bar-pane) ())
-
-
-(defclass generic-menu-bar (clim-stream-pane) 
-    ((command-table :initarg :command-table)))
 

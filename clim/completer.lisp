@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: completer.lisp,v 1.2 92/01/31 14:57:44 cer Exp $
+;; $fiHeader: completer.lisp,v 1.3 92/02/24 13:07:09 cer Exp $
 
 (in-package :clim-internals)
 
@@ -37,8 +37,8 @@
 		stream function stuff-so-far
 		:possibility-printer possibility-printer
 		:display-possibilities
-		  (or (eql action :possibilities)
-		      (and (eql action :help) help-displays-possibilities)))))
+		  (or (eq action :possibilities)
+		      (and (eq action :help) help-displays-possibilities)))))
       (declare (dynamic-extent #'completion-help))
       (with-accept-help ((:subhelp #'completion-help))
        ;; Keep the input editor from handling help and possibilities characters.
@@ -101,8 +101,8 @@
 		(rescan-for-activation stream))
 	      (simple-parse-error "Attempting to complete the null string"))
 
-	    (cond ((or (eql completion-mode ':help)
-		       (eql completion-mode ':possibilities))
+	    (cond ((or (eq completion-mode ':help)
+		       (eq completion-mode ':possibilities))
 		   ;; Since we've asked the input editor not to do this,
 		   ;; we must do it here ourselves
 		   (display-accept-help stream completion-mode "")
@@ -267,7 +267,7 @@
 				    &key (action :complete) predicate
 					 (name-key #'first) (value-key #'second))
   (declare (values string success object nmatches possibilities))
-  (when (and (not (eql action :possibilities))
+  (when (and (not (eq action :possibilities))
 	     (zerop (length string)))
     (return-from complete-from-possibilities 
       (values nil nil nil 0 nil)))
@@ -284,7 +284,7 @@
 		 ;; If we are doing simple completion and the user-supplied string is
 		 ;; exactly equal to this completion, then claim success (even if there
 		 ;; are other completions that have this one as a left substring!).
-		 (when (and (eql action :complete)
+		 (when (and (eq action :complete)
 			    (string-equal string completion))
 		   (return-from complete-from-possibilities
 		     (values completion t object 1)))
@@ -307,7 +307,7 @@
 				&key (action :complete) predicate)
   (declare (values string success object nmatches possibilities))
   (declare (dynamic-extent generator))
-  (when (and (not (eql action :possibilities))
+  (when (and (not (eq action :possibilities))
 	     (zerop (length string)))
     (return-from complete-from-generator 
       (values nil nil nil 0 nil)))
@@ -320,7 +320,7 @@
 	     (declare (ignore presentation-type))	;for now
 	     (when (or (null predicate)
 		       (funcall predicate object))
-	       (when (and (eql action :complete)
+	       (when (and (eq action :complete)
 			  (string-equal string completion))
 		 (return-from complete-from-generator
 		   (values completion t object 1)))
@@ -404,7 +404,8 @@
 	(return))
       (setq char1 (aref string1 i1)
 	    char2 (aref string2 i2))
-      (cond ((or (eql char1 char2) (char-equal char1 char2))
+      (cond ((or (eql char1 char2)
+		 (char-equal char1 char2))
 	     (when merge-p
 	       (setf (aref string1 matched) char1))
 	     (incf matched) (incf i1) (incf i2))

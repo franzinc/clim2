@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.11 92/02/24 13:06:18 cer Exp Locker: cer $
+;; $fiHeader: xm-gadgets.lisp,v 1.12 92/02/26 10:23:24 cer Exp $
 
 (in-package :xm-silica)
 
@@ -27,6 +27,7 @@
   (second (assoc class '((scroll-bar motif-scrollbar)
 			 (slider motif-slider)
 			 (push-button motif-push-button)
+			 (label-pane motif-label-pane)
 			 (text-field motif-text-field)
 			 (toggle-button motif-toggle-button)
 			 (menu-bar motif-menu-bar)
@@ -72,7 +73,7 @@
 (defmethod queue-value-changed-event (widget sheet)
   (declare (ignore widget))
   (distribute-event
-   (sheet-port sheet)
+   (port sheet)
    (make-instance 'value-changed-gadget-event
 		  :gadget sheet
 		  :value (gadget-value sheet))))
@@ -90,9 +91,21 @@
 (defmethod queue-active-event (widget count sheet)
   (declare (ignore widget count))
   (distribute-event
-   (sheet-port sheet)
+   (port sheet)
    (make-instance 'activate-gadget-event
 		  :gadget sheet)))
+
+;;; Label
+
+(defclass motif-label-pane (xt-leaf-pane silica::label-pane) 
+	  ())
+
+(defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
+						     (parent t)
+						     (sheet motif-label-pane))
+  (with-accessors ((label gadget-label)) sheet
+    (values 'tk::xm-label
+	    (and  label (list :label-string)))))
 
 ;;; Push button
 
@@ -109,7 +122,7 @@
   (declare (ignore port))
   (with-accessors ((label gadget-label)) sheet
     (values 'tk::xm-push-button 
-	    (list :label-string label))))
+	    (and label (list :label-string label)))))
 
 (defmethod add-sheet-callbacks ((port motif-port) (sheet t) (widget tk::xm-drawing-area))
   (tk::add-callback widget 
@@ -199,7 +212,7 @@
 
 
 (defclass motif-scrollbar (xt-leaf-pane
-			   silica::scrollbar)
+			   scrollbar)
 	  ())
 
 (defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
@@ -217,8 +230,8 @@
   (tk::set-values (sheet-direct-mirror sb) :value nv)
   nv)
 
-(defmethod silica::change-scrollbar-values ((sb motif-scrollbar) &rest args 
-					    &key slider-size value)
+(defmethod change-scrollbar-values ((sb motif-scrollbar) &rest args 
+				    &key slider-size value)
   (declare (ignore slider-size value))
   (apply #'tk::set-values
 	(sheet-direct-mirror sb)
@@ -235,7 +248,7 @@
   (multiple-value-bind
       (value size)
       (tk::get-values widget :value :slider-size)
-    (silica::scrollbar-value-changed-callback
+    (scrollbar-value-changed-callback
      sheet
      (gadget-client sheet)
      (gadget-id sheet)
@@ -346,7 +359,7 @@
 						     (sheet motif-toggle-button))
   (with-accessors ((set gadget-value)
 		   (label gadget-label)
-		   (indicator-type silica::gadget-indicator-type)) sheet
+		   (indicator-type gadget-indicator-type)) sheet
     (values 'tk::xm-toggle-button 
 	    (append (list :set set)
 		    (and label (list :label-string label))
@@ -364,9 +377,9 @@
   (when (sheet-direct-mirror gadget)
     (tk::set-values (sheet-mirror gadget) :set nv)))
 
-(defmethod xm-silica::add-sheet-callbacks :after ((port motif-port) 
-						  (sheet clim-stream-sheet)
-						  (widget tk::xm-drawing-area))
+(defmethod add-sheet-callbacks :after ((port motif-port) 
+				       (sheet clim-stream-sheet)
+				       (widget tk::xm-drawing-area))
   ;;---- It would suprise me if we needed this.
   (tk::add-callback widget 
 		    :resize-callback 
@@ -375,7 +388,7 @@
 
 
 (defun scrollbar-changed-callback (widget which scroller)
-  (let* ((vp (silica::sheet-child scroller))
+  (let* ((vp (sheet-child scroller))
 	 (viewport (viewport-viewport-region vp))
 	 (extent (stream-output-history (sheet-child vp))))
     (multiple-value-bind
@@ -394,7 +407,7 @@
 			(/ value (- 100 size)))))))
 	(:horizontal
 	  (scroll-extent
-	    (silica::sheet-child vp)
+	    (sheet-child vp)
 	    :x (truncate
 		 (* (max 0 (- (bounding-rectangle-width extent)
 			      (bounding-rectangle-width viewport)))
@@ -419,9 +432,9 @@
 	    :resize-policy :none
 	    :scroll-bar-display-policy :static)))
 
-(defmethod add-sheet-callbacks  :after ((port motif-port) 
-					(sheet xm-viewport)
-					(widget tk::xm-drawing-area))
+(defmethod add-sheet-callbacks :after ((port motif-port) 
+				       (sheet xm-viewport)
+				       (widget tk::xm-drawing-area))
   ;;--- I wonder whether this is needed since it should not be resized by
   ;; the toolkit and only as part of the goe management code that will
   ;; recurse to children anyway
@@ -430,14 +443,14 @@
 		    'sheet-mirror-resized-callback
 		    sheet))
 
-(defclass  motif-radio-box (motif-geometry-manager
-			    mirrored-sheet-mixin
-			    sheet-multiple-child-mixin
-			    sheet-permanently-enabled-mixin
-			    radio-box
-			    silica::pane
-			    ask-widget-for-size-mixin)
-	   ((current-selection :accessor radio-box-current-selection)))
+(defclass motif-radio-box (motif-geometry-manager
+			   mirrored-sheet-mixin
+			   sheet-multiple-child-mixin
+			   sheet-permanently-enabled-mixin
+			   radio-box
+			   pane
+			   ask-widget-for-size-mixin)
+    ())
 
 (defmethod sheet-adopt-child :after ((gadget motif-radio-box) child)
   (setf (gadget-client child) gadget))
@@ -467,7 +480,7 @@
 (defclass motif-frame-pane (mirrored-sheet-mixin
 			    sheet-single-child-mixin
 			    sheet-permanently-enabled-mixin
-			    silica::pane
+			    pane
 			    ask-widget-for-size-mixin)
 	  ())
 
@@ -475,5 +488,4 @@
 						     (parent t)
 						     (sheet motif-frame-pane))
   (values 'tk::xm-frame nil))
-	  
 

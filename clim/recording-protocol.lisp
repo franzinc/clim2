@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: recording-protocol.lisp,v 1.1 92/02/24 13:18:28 cer Exp Locker: cer $
+;; $fiHeader: recording-protocol.lisp,v 1.2 92/02/28 09:17:54 cer Exp $
 
 (in-package :clim-internals)
 
@@ -452,7 +452,7 @@
   (cond ((null output-record)
 	 (values 0 0)) ;;---------------------------- Why?
 	((and stream
-	      (eql output-record (stream-current-output-record stream)))
+	      (eq output-record (stream-current-output-record stream)))
 	 (let ((position (stream-output-history-position stream)))
 	   (values (point-x position) (point-y position))))
 	((null (output-record-parent output-record))
@@ -472,7 +472,7 @@
 ;; relative to OUTPUT-RECORD.
 (defun convert-from-absolute-to-relative-coordinates (stream output-record)
   (declare (values x-offset y-offset))
-  (cond ((eql output-record (stream-current-output-record stream))
+  (cond ((eq output-record (stream-current-output-record stream))
 	 (let ((position (stream-output-history-position stream)))
 	   (values (- (point-x position)) (- (point-y position)))))
 	((null (output-record-parent output-record))
@@ -494,7 +494,7 @@
 ;; DESCENDANT.
 (defun convert-from-ancestor-to-descendant-coordinates (ancestor descendant)
   (declare (values x-offset y-offset))
-  (cond ((eql descendant ancestor)
+  (cond ((eq descendant ancestor)
 	 (values 0 0))
 	((null descendant)
 	 (error "~S was not an ancestor of ~S" ancestor descendant))
@@ -515,7 +515,7 @@
 ;; ANCESTOR.
 (defun convert-from-descendant-to-ancestor-coordinates (descendant ancestor)
   (declare (values x-offset y-offset))
-  (cond ((eql descendant ancestor)
+  (cond ((eq descendant ancestor)
 	 (values 0 0))
 	((null descendant)
 	 (error "~s was not an ancestor of ~s" ancestor descendant))
@@ -970,7 +970,7 @@
 		 (error "The output record ~S was not found in ~S" child record)))))
       ;; It must be an OUTPUT-RECORD or a DISPLAYED-OUTPUT-RECORD
       (otherwise
-	(unless (eql elements child)
+	(unless (eq elements child)
 	  (error "The output record ~S was not found in ~S" child record))
 	(setf elements nil))))
   t)
@@ -985,7 +985,7 @@
     (typecase elements
       (null nil)
       (array
-	(if (or (null region) (eql region +everywhere+))
+	(if (or (null region) (eq region +everywhere+))
 	    (dovector (child elements :start 0 :end fill-pointer :simple-p t)
 	      (apply function child continuation-args))
 	  (with-bounding-rectangle* (left1 top1 right1 bottom1) region
@@ -1000,7 +1000,7 @@
 					    left2 top2 right2 bottom2)
 		  (apply function child continuation-args)))))))
       (otherwise
-	(if (or (null region) (eql region +everywhere+))
+	(if (or (null region) (eq region +everywhere+))
 	    (apply function elements continuation-args)
 	  (multiple-value-bind (xoff yoff)
 	      (output-record-position* record)
@@ -1226,7 +1226,7 @@
   (declare (ignore x))
   (multiple-value-bind (old-x old-y) (stream-cursor-position* stream)
     (declare (ignore old-x))
-    (unless (eql y old-y)
+    (unless (eq y old-y)
       (stream-close-text-output-record stream))))
 
 ;; Copy just the text from the window to the stream.  If REGION is supplied,
@@ -1283,12 +1283,12 @@
   ;; Who should clear the region?
   (with-sheet-medium (medium stream)
     (multiple-value-call #'draw-rectangle*
-	medium
-	(bounding-rectangle* (region-intersection
-			      region 
-			      (or (pane-viewport-region stream)
-				  (bounding-rectangle stream))))
-	:ink +background-ink+)
+      medium
+      (bounding-rectangle* (region-intersection
+			     region 
+			     (or (pane-viewport-region stream)
+				 (bounding-rectangle stream))))
+      :ink +background-ink+)
     (stream-replay stream region)))
 
 

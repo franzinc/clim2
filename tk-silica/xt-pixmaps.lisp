@@ -20,12 +20,12 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-pixmaps.lisp,v 1.2 92/02/16 20:55:19 cer Exp $
+;; $fiHeader: xt-pixmaps.lisp,v 1.3 92/02/24 13:06:28 cer Exp $
 
 
 (in-package :xm-silica)
 
-(defmethod clim-internals::port-allocate-pixmap ((port xt-port) sheet width height)
+(defmethod port-allocate-pixmap ((port xt-port) sheet width height)
   (declare (ignore sheet))
   (assert (integerp width))
   (assert (integerp height))
@@ -39,21 +39,11 @@
 (defmethod fetch-medium-drawable ((sheet clim-internals::pixmap-stream) pixmap)
   pixmap)
 
-(defun test-wotps ()
-  (with-output-to-pixmap-stream (s (find-graft) :width 200 :height 200)
-    (window-clear s)
-    (draw-rectangle* s 0 0 200 200 :ink +background-ink+)
-    (write-line "hello" s)
-    (draw-line* s 0 0 100 100 :ink +red+)))
-
-(defmethod clim-internals::port-copy-from-pixmap ((port xt-port)
-						  pixmap pixmap-x pixmap-y
-						  width height stream
-						  window-x window-y)
-  (multiple-value-setq
-      (window-x window-y)
-    (devicize-point (sheet-native-transformation stream) window-x
-		    window-y))
+(defmethod port-copy-from-pixmap ((port xt-port)
+				  pixmap pixmap-x pixmap-y width height
+				  stream window-x window-y)
+  (convert-to-device-coordinates (sheet-native-transformation stream)
+    window-x window-y)
   ;; We are in a bad situation if the native-transformation is
   ;; anything other than a scaling transformation
   (with-sheet-medium (medium stream)
@@ -64,24 +54,21 @@
        copy-gc pixmap-x pixmap-y width height drawable
        window-x window-y))))
 	   
-(defmethod clim-internals::port-copy-to-pixmap ((port xt-port)
-						stream
-						window-x window-y width height
-						pixmap pixmap-x
-						pixmap-y)
-  (multiple-value-setq
-      (window-x window-y)
-    (devicize-point (sheet-native-transformation stream) window-x window-y))
+(defmethod port-copy-to-pixmap ((port xt-port)
+				stream window-x window-y width height
+				pixmap pixmap-x pixmap-y)
+  (convert-to-device-coordinates (sheet-native-transformation stream)
+    window-x window-y)
   ;; We are in a bad situation if the native-transformation is
   ;; anything other than a scaling transformation
   (with-sheet-medium (medium stream)
     (let* ((drawable (medium-drawable medium))
 	   (copy-gc (make-instance 'tk::gcontext :drawable drawable)))
       (tk::copy-area 
-       drawable
-       copy-gc 
-       window-x window-y width height pixmap
-       pixmap-x pixmap-y))))
+	drawable
+	copy-gc 
+	window-x window-y width height pixmap
+	pixmap-x pixmap-y))))
 
 (defmethod pixmap-height ((pixmap tk::pixmap))
   (tk::pixmap-height pixmap))

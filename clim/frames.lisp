@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: frames.lisp,v 1.7 92/02/05 21:45:39 cer Exp $
+;; $fiHeader: frames.lisp,v 1.8 92/02/24 13:07:30 cer Exp $
 
 (in-package :clim-internals)
 
@@ -21,7 +21,7 @@
 		    :initform (find-command-table 'user-command-table)
 		    :accessor frame-command-table)
      (disabled-commands :initarg :disabled-commands :initform nil)
-     ;;--- One of  T, NIL, or a command-table; used by the menu-bar
+     ;; One of  T, NIL, or a command-table; used by the menu-bar
      (menu-bar :initarg :menu-bar :initform nil)
      (histories :initform nil)
      (frame-manager :reader frame-manager :initarg :frame-manager)
@@ -36,11 +36,12 @@
      (state :initform :disowned :accessor frame-state 
 	    :type (member :disowned :disabled :enabled :shrunk))
      (top-level :initarg :top-level  :accessor frame-top-level)
-     (current-layout :initarg :default-layout :reader frame-current-layout)
+     (current-layout :initarg :default-layout :initform nil
+		     :reader frame-current-layout)
      (default-size :initform nil :initarg :default-size)
      (shell :accessor frame-shell)
-     (port :reader sheet-port :initarg :port)
-     (graft :reader sheet-graft :initarg :graft)
+     (port :reader port :initarg :port)
+     (graft :reader graft :initarg :graft)
      (properties :initform nil :initarg :properties
 		 :accessor frame-properties))
   (:default-initargs :top-level 'default-frame-top-level
@@ -307,7 +308,7 @@
 (defmethod layout-frame ((frame standard-application-frame) &optional width height)
   (let ((panes (frame-panes frame)))
     (when panes
-      (silica::clear-space-requirement-caches-in-tree panes)
+      (clear-space-requirement-caches-in-tree panes)
       (unless (and width height)
 	(let ((sr (compose-space panes)))
 	  (setq width  (space-requirement-width sr)
@@ -331,7 +332,7 @@
     ;; Now we want to give it some new ones
     (generate-panes (frame-manager frame) frame)
     (sheet-adopt-child (frame-top-level-sheet frame) (frame-panes frame))
-    (silica::clear-space-requirement-caches-in-tree (frame-panes frame))
+    (clear-space-requirement-caches-in-tree (frame-panes frame))
     (multiple-value-call #'layout-frame
       frame (bounding-rectangle-size (frame-top-level-sheet frame)))
     (throw 'layout-changed nil)))
@@ -383,17 +384,16 @@
 	 ;; then we should be using that
 	 ;; IF the frame already exists then we probably should be using
 	 ;; the top level sheet size
-	 (multiple-value-call
-	     #'layout-frame 
+	 (multiple-value-call #'layout-frame 
 	   frame
 	   (ecase old
 	     (:disowned 
-	      (if default-size 
-		  (values (first default-size) (second default-size))
-		  (values)))
+	       (if default-size 
+		   (values (first default-size) (second default-size))
+		   (values)))
 	     (:disabled
-	      (bounding-rectangle-size
-	       (frame-top-level-sheet frame)))))
+	       (bounding-rectangle-size
+		 (frame-top-level-sheet frame)))))
 	 (note-frame-enabled (frame-manager frame) frame))))))
 
 (defmethod disable-frame ((frame standard-application-frame))
@@ -429,7 +429,6 @@
 	      (*input-wait-test* nil)
 	      (*input-wait-handler* nil)
 	      (*pointer-button-press-handler* nil)
-	      (*generate-button-release-events* nil)
 	      (*numeric-argument* nil)
 	      (*delimiter-gestures* nil)
 	      (*activation-gestures* nil)
@@ -505,13 +504,13 @@
 		       #'menu-read-remaining-arguments-for-partial-command))))
 	#+Allegro
 	(unless (typep *standard-input* 'excl::bidirectional-terminal-stream)
-	  (assert (sheet-port *standard-input*)))
+	  (assert (port *standard-input*)))
 	#+Allegro
 	(unless (typep *standard-output* 'excl::bidirectional-terminal-stream)
-	  (assert (sheet-port *standard-output*)))
+	  (assert (port *standard-output*)))
 	#+Allegro
 	(unless (typep *query-io* 'excl::bidirectional-terminal-stream)
-	  (assert (sheet-port *query-io*)))
+	  (assert (port *query-io*)))
 	;; The read-eval-print loop for applications...
 	(loop
 	  ;; Redisplay all the panes
@@ -551,44 +550,15 @@
 	  (force-output stream))
 	(values)))))
 
-#-Silica
+;;--- Handle incremental redisplay...
 (defun display-command-menu (frame stream &rest keys
 			     &key command-table &allow-other-keys)
   (declare (dynamic-extent keys))
-  (declare (arglist frame stream &rest keys
-		    &key command-table
-			 ;; Defaults for these provided by DISPLAY-COMMAND-TABLE-MENU
-			 max-width max-height n-rows n-columns
-			 (cell-align-x ':left) (cell-align-y ':top) 
-			 (initial-spacing t)))
-  ;;--- This really wants to get the information from some other place
-  ;;--- than having to find the descriptor each time, which is kludgy at best.
-  (multiple-value-bind (descriptor pane)
-      (do ((panes (frame-panes frame) (cdr panes))
-	   (descriptions (frame-descriptor-pane-descriptions
-			   (find-frame-descriptor frame))
-			 (cdr descriptions)))
-	  ((null panes) nil)
-	(when (eq (first panes) stream)
-	  (return (values (first descriptions) (first panes)))))
-    (when pane
-      (let ((command-table
-	      (find-command-table (or command-table (frame-command-table frame))))
-	    (incremental-redisplay
-	      (getf (pane-descriptor-options descriptor) :incremental-redisplay))
-	    (*application-frame* frame))
-	(with-keywords-removed (keys keys '(:command-table))
-	  (if incremental-redisplay
-	      (apply #'display-command-menu-1 stream command-table keys)
-	      (apply #'display-command-table-menu command-table stream keys)))))))
-
-;; Split out to avoid consing unnecessary closure environments.
-#-Silica
-(defun display-command-menu-1 (stream command-table &rest keys)
-  (declare (dynamic-extent keys))
-  (updating-output (stream :unique-id stream
-			   :cache-value (slot-value command-table 'menu-tick))
-    (apply #'display-command-table-menu command-table stream keys))) 
+  (when (or (null command-table)
+	    (eq command-table t))
+    (setq command-table (frame-command-table frame)))
+  (with-keywords-removed (keys keys '(:command-table))
+    (apply #'display-command-table-menu command-table stream keys)))
 
 ;; The contract of GET-FRAME-PANE is to get a pane upon which we can do normal
 ;; I/O operations, that is, a CLIM stream pane
@@ -709,8 +679,11 @@
 ;;; satisfying the input context specified by TYPE.  Everything that looks for a
 ;;; presentation goes through this so that applications can specialize it.
 (defmethod frame-find-innermost-applicable-presentation
-	   ((frame standard-application-frame) input-context stream x y)
-  (find-innermost-applicable-presentation input-context stream x y))
+	   ((frame standard-application-frame) input-context stream x y &key event)
+  (find-innermost-applicable-presentation
+    input-context stream x y
+    :frame frame
+    :modifier-state (window-modifier-state stream) :event event))
 
 (defmethod frame-input-context-button-press-handler
 	   ((frame standard-application-frame) stream button-press-event)
@@ -732,23 +705,17 @@
     (throw-highlighted-presentation 
       (or (and (output-recording-stream-p window)
 	       (frame-find-innermost-applicable-presentation
-		 frame input-context window x y))
+		 frame input-context window x y
+		 :event button-press-event))
 	  *null-presentation*)
       input-context
       button-press-event)))
 
 (defun find-frame-pane-of-type (frame type)
-  (map-over-sheets 
-   #'(lambda (sheet)
-       (when (typep  sheet type)
-	 (return-from find-frame-pane-of-type sheet)))
-   (frame-top-level-sheet frame)))
-
-(defun map-over-sheets (fn sheet)
-  (funcall fn sheet)
-  (when (typep sheet 'silica::sheet-parent-mixin)
-    (dolist (child (sheet-children sheet))
-      (map-over-sheets fn child))))
+  (map-over-sheets #'(lambda (sheet)
+		       (when (typep  sheet type)
+			 (return-from find-frame-pane-of-type sheet)))
+		   (frame-top-level-sheet frame)))
 
 (defmethod frame-standard-output ((frame standard-application-frame))
   (or (find-frame-pane-of-type frame 'application-pane)
@@ -829,7 +796,9 @@
        (frame presentation input-context window x y stream)
   (let ((modifier-state (window-modifier-state window)))
     (declare (fixnum modifier-state))
-    (multiple-value-bind (left left-context middle middle-context right right-context)
+    (multiple-value-bind (left   left-presentation   left-context
+			  middle middle-presentation middle-context
+			  right  right-presentation  right-context)
 	(find-applicable-translators-for-documentation presentation input-context
 						       frame window x y modifier-state)
       (let* ((*print-length* 3)
@@ -838,7 +807,8 @@
 	     (*print-array* nil)
 	     (*print-readably* nil)
 	     (*print-pretty* nil))
-	(flet ((document-translator (translator context-type button-name separator)
+	(flet ((document-translator (translator presentation context-type
+				     button-name separator)
 		 ;; Assumes 5 modifier keys and the reverse ordering of *MODIFIER-KEYS*
 		 (let ((bit #o20)
 		       (shift-name '("h-" "s-" "m-" "c-" "sh-")))
@@ -857,26 +827,27 @@
 		 (write-string separator stream)))
 	  (declare (dynamic-extent #'document-translator))
 	  (when left
-	    (let ((button-name (cond ((and (eql left middle)
-					   (eql left right))
+	    (let ((button-name (cond ((and (eq left middle)
+					   (eq left right))
 				      (setq middle nil
 					    right nil)
 				      "L,M,R: ")
-				     ((eql left middle) 
+				     ((eq left middle) 
 				      (setq middle nil)
 				      "L,M: ")
 				     (t "L: "))))
-	      (document-translator left left-context button-name
-				   (if (or middle right) "; " "."))))
+	      (document-translator left left-presentation left-context
+				   button-name (if (or middle right) "; " "."))))
 	  (when middle
-	    (let ((button-name (cond ((eql middle right)
+	    (let ((button-name (cond ((eq middle right)
 				      (setq right nil)
 				      "M,R: ")
 				     (t "M: "))))
-	      (document-translator middle middle-context button-name
-				   (if right "; " "."))))
+	      (document-translator middle middle-presentation middle-context
+				   button-name (if right "; " "."))))
 	  (when right
-	    (document-translator right right-context "R: " "."))
+	    (document-translator right right-presentation right-context
+				 "R: " "."))
 	  ;; Return non-NIL if any pointer documentation was produced
 	  (or left middle right))))))
 
@@ -884,12 +855,14 @@
 (defun find-applicable-translators-for-documentation
        (presentation input-context frame window x y modifier-state)
   ;; Assume a maximum of three pointer buttons
-  (let ((left nil)   (left-context nil)
-	(middle nil) (middle-context nil)
-	(right nil)  (right-context nil))
-    (macrolet ((match (translator context-type button)
-		 (let ((button-translator (intern (symbol-name button)))
-		       (button-context (fintern "~A-~A" (symbol-name button) 'context)))
+  (let ((left nil)   (left-presentation nil)   (left-context nil)
+	(middle nil) (middle-presentation nil) (middle-context nil)
+	(right nil)  (right-presentation nil)  (right-context nil))
+    (macrolet ((match (translator presentation context-type button)
+		 (let* ((symbol (symbol-name button))
+			(button-translator (intern symbol))
+			(button-presentation (fintern "~A-~A" symbol 'presentation))
+			(button-context (fintern "~A-~A" symbol 'context)))
 		   `(when (and (or (null ,button-translator)
 				   (> (presentation-translator-priority ,translator)
 				      (presentation-translator-priority ,button-translator)))
@@ -897,6 +870,7 @@
 				 (button-index ,button) modifier-state
 				 (presentation-translator-gesture-name ,translator)))
 		      (setq ,button-translator ,translator
+			    ,button-presentation ,presentation
 			    ,button-context ,context-type)))))
       (do ((presentation presentation
 			 (parent-presentation-with-shared-box presentation window)))
@@ -912,21 +886,26 @@
 							presentation context-type
 							frame window x y
 							:modifier-state modifier-state)
-		      (match translator context-type :left)
-		      (match translator context-type :middle)
-		      (match translator context-type :right)))))
+		      (match translator presentation context-type :left)
+		      (match translator presentation context-type :middle)
+		      (match translator presentation context-type :right)))))
 	      (when (and (or left middle right)
 			 *presentation-menu-translator*
 			 (test-presentation-translator *presentation-menu-translator*
 						       presentation context-type
 						       frame window x y
 						       :modifier-state modifier-state))
-		(match *presentation-menu-translator* context-type :left)
-		(match *presentation-menu-translator* context-type :middle)
-		(match *presentation-menu-translator* context-type :right)))))))
-    (values left   left-context
-	    middle middle-context
-	    right  right-context)))
+		(match *presentation-menu-translator* presentation context-type :left)
+		(match *presentation-menu-translator* presentation context-type :middle)
+		(match *presentation-menu-translator* presentation context-type :right)))))))
+    (values left   left-presentation   left-context
+	    middle middle-presentation middle-context
+	    right  right-presentation  right-context)))
 
 #+Genera
 (defmethod mouse-documentation-window ((window window-stream)) nil)
+
+;;--- What should this do?
+
+(defun notify-user (&rest ignore) 
+  (format excl::*initial-terminal-io* "Notify ~a~%" ignore))

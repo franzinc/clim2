@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: text-formatting.lisp,v 1.3 92/01/31 14:58:56 cer Exp $
+;; $fiHeader: text-formatting.lisp,v 1.4 92/02/24 13:08:40 cer Exp $
 
 (in-package :clim-internals)
 
@@ -35,7 +35,7 @@
 	    (setq fresh-line nil)
 	    ;; Shift the remaining parts of the buffer down, skipping whitespace
 	    (let ((index (and index
-			      (position-if-not #'whitespace-character-p buffer
+			      (position-if-not #'whitespace-char-p buffer
 					       :start index))))
 	      (cond ((null index)
 		     (setf (fill-pointer buffer) 0))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: interactive-defs.lisp,v 1.3 92/01/31 14:58:18 cer Exp $
+;; $fiHeader: interactive-defs.lisp,v 1.4 92/02/24 13:07:56 cer Exp $
 
 (in-package :clim-internals)
 
@@ -133,7 +133,7 @@
 			    (or pointer-button-press-handler
 				*pointer-button-press-handler*)
 			  :timeout (and click-only timeout)))
-	  (cond ((eql gesture-type :timeout)
+	  (cond ((eq gesture-type :timeout)
 		 (return-from read-token :timeout))
 		((and click-only
 		      (not (typep gesture 'pointer-button-event)))
@@ -224,7 +224,7 @@
     (flet ((find-help-clauses-named (help-name)
 	     (let ((clauses nil))
 	       (dolist (clause *accept-help* clauses)
-		 (when (eql (caar clause) help-name)
+		 (when (eq (caar clause) help-name)
 		   (push clause clauses)))))
 	   (display-help-clauses (help-clauses)
 	     (dolist (clause help-clauses)
@@ -277,7 +277,7 @@
       (setq body
 	    `((with-stack-list* (*accept-help*
 				  (list ',option-name-spec ,@option-args) *accept-help*)
-		,@(cond ((eql option-type :override)
+		,@(cond ((eq option-type :override)
 			 `((if (assoc (caar *accept-help*) (rest *accept-help*)
 				      :test #'(lambda (a b)
 						(and (eq (first a) (first b))
@@ -288,9 +288,9 @@
 					   (delete ,option-name (rest *accept-help*)
 						   :test #'(lambda (a b)
 							     (eq (caar b) a))))))))
-			((eql option-type :append)
+			((eq option-type :append)
 			 )
-			((eql option-type :establish-unless-overridden)
+			((eq option-type :establish-unless-overridden)
 			 `((when (assoc (caaar *accept-help*) (rest *accept-help*)
 					:key #'first)
 			     (pop *accept-help*))))

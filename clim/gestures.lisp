@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gestures.lisp,v 1.1 92/01/31 14:28:06 cer Exp $
+;; $fiHeader: gestures.lisp,v 1.3 92/02/24 13:07:39 cer Exp $
 
 (in-package :clim-internals)
 
@@ -125,7 +125,7 @@
 ;; and we need to know if it matches a named gesture
 ;; BUTTON is a button number (0, 1, or 2), and STATE is a mask.
 (defun-inline button-and-modifier-state-matches-gesture-name-p (button state gesture-name)
-  (or (eql gesture-name 't)
+  (or (eq gesture-name 't)
       (member gesture-name (button-and-modifier-state-gesture-names button state))))
 
 (defun modifier-state-matches-gesture-name-p (state gesture-name)

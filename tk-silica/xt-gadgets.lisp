@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-gadgets.lisp,v 1.5 92/02/16 20:55:16 cer Exp $
+;; $fiHeader: xt-gadgets.lisp,v 1.6 92/02/24 13:06:25 cer Exp $
 
 (in-package :xm-silica)
 
@@ -45,7 +45,7 @@
 				width :height height)
     (declare (ignore x y borderwidth care-x care-y care-width
 		     care-height care-borderwidth)) 
-    (make-instance 'silica::space-requirement :width width :height height)))
+    (make-instance 'space-requirement :width width :height height)))
 
 (defmethod realize-pane-arglist (realizer type &rest options)
   (declare (ignore realizer type))
@@ -98,7 +98,7 @@
   (let ((pixel (decode-color medium ink)))
     (list :foreground pixel)))
 
-(defclass xt-pane (silica::pane) ())
+(defclass xt-pane (pane) ())
 
 (defmethod allocate-space ((p xt-pane) width height)
   (when (sheet-mirror p)
@@ -109,7 +109,7 @@
 ;(defclass xt-composite-pane () ())
 
 (defclass xt-leaf-pane (sheet-permanently-enabled-mixin
-			silica::client-overridability
+			client-overridability
 			xt-pane 
 			mirrored-sheet-mixin 
 			ask-widget-for-size-mixin)

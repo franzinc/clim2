@@ -1,4 +1,4 @@
-;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: silica; Base: 10; Lowercase: Yes -*-
+;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 ;;
 ;;				-[]-
 ;; 
@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: simple-test.lisp,v 1.4 92/02/24 13:09:07 cer Exp Locker: cer $
+;; $fiHeader: simple-test.lisp,v 1.5 92/02/26 10:23:47 cer Exp $
 
 
 (in-package :silica)
@@ -49,8 +49,6 @@
 	    (setf (sheet-enabled-p s2) t)))))
     (setf (sheet-enabled-p sheet) t)
     sheet))
-
-
 
 (defmethod handle-event ((sheet simple-sheet) (event pointer-enter-event))
   (outline-sheet sheet)

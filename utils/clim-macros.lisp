@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clim-macros.lisp,v 1.1 92/01/31 14:25:27 cer Exp $
+;; $fiHeader: clim-macros.lisp,v 1.2 92/02/24 13:05:18 cer Exp $
 
 (in-package :clim-utils)
 
@@ -115,9 +115,9 @@
 	   (transform-point* (medium-transformation ,stream) 0 0)
 	 (with-drawing-options
 	     ;; Don't flip the stream over if we already have
-	     (,stream :transformation (if (silica::medium-+Y-upward-p ,stream)
+	     (,stream :transformation (if (silica:medium-+Y-upward-p ,stream)
 					  +identity-transformation+
 					  (make-transformation 1 0 0 -1
 							       (- ,cx ,tx) (- ,cy ,ty))))
-	   (letf-globally (((silica::medium-+Y-upward-p ,stream) t))
+	   (letf-globally (((silica:medium-+Y-upward-p ,stream) t))
 	     ,@body))))))

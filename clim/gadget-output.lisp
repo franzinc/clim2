@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: gadget-output.lisp,v 1.5 92/02/08 14:51:48 cer Exp $
+;; $fiHeader: gadget-output.lisp,v 1.6 92/02/24 13:07:33 cer Exp $
 
 (in-package :clim-internals)
 
@@ -37,7 +37,7 @@
   (sheet-adopt-child stream gadget)
   ;; In order to be able to determine the space the widget has to be
   ;; added to the parent and hopefully grafted
-  (assert (sheet-port stream))
+  (assert (port stream))
   (setf (output-record-gadget rec) gadget)
   (let ((sr (compose-space gadget)))
     (multiple-value-bind (abs-x abs-y)
@@ -120,6 +120,7 @@
 	 ,@args))))
 
 (defmethod invoke-with-output-as-gadget (stream continuation &key)
+  ;;--- (PANE-FRAME STREAM) or *APPLICATION-FRAME*?
   (let* ((frame (pane-frame stream))
 	 (framem (frame-manager frame)))
     (assert frame)
@@ -253,11 +254,11 @@
 (defmethod sheet-medium ((x standard-encapsulating-stream))
   (sheet-medium (slot-value x 'stream)))
 
-(defmethod sheet-port ((x standard-encapsulating-stream))
-  (sheet-port (slot-value x 'stream)))
+(defmethod port ((x standard-encapsulating-stream))
+  (port (slot-value x 'stream)))
 
-(defmethod sheet-graft ((stream standard-encapsulating-stream))
-  (sheet-graft (slot-value stream 'stream)))
+(defmethod graft ((stream standard-encapsulating-stream))
+  (graft (slot-value stream 'stream)))
 
 (defmethod sheet-adopt-child ((stream standard-encapsulating-stream) child)
   (sheet-adopt-child (slot-value stream 'stream) child))

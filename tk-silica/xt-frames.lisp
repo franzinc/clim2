@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-frames.lisp,v 1.3 92/02/14 18:57:45 cer Exp $
+;; $fiHeader: xt-frames.lisp,v 1.4 92/02/24 13:06:24 cer Exp $
 
 
 (in-package :xm-silica)
@@ -65,7 +65,7 @@
 
 (defun command-button-callback (button dunno frame item)
   (distribute-event
-    (sheet-port frame)
+    (port frame)
     (make-instance 'presentation-event
 		   :sheet (frame-top-level-sheet frame)
 		   :value (second item))))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: ptypes2.lisp,v 1.2 92/01/31 14:58:39 cer Exp $
+;; $fiHeader: ptypes2.lisp,v 1.4 92/02/24 13:08:24 cer Exp $
 
 (in-package :clim-internals)
 
@@ -319,7 +319,7 @@
 	    (t
 	     ;; Must resort to inheritance to figure it out
 	     (flet ((psubtypep (ntype-name ntype)
-		      (when (eql ntype-name supertype-name)
+		      (when (eq ntype-name supertype-name)
 			;; Aside from parameters, type is a subtype of putative-supertype
 			(return-from presentation-subtypep
 			  (cond ((null supertype-parameters)
@@ -362,9 +362,6 @@
 ;;; Called when ACCEPT turns into PRESENT
 (defun accept-present-default (presentation-type stream view default default-supplied-p
 			       present-p query-identifier &key (prompt t))
-  ;;--- This is not the correct place to put this, so why did CER do it?
-  (prompt-for-accept-1 stream presentation-type
-		       :prompt prompt)
   (call-presentation-generic-function accept-present-default
     presentation-type stream view default default-supplied-p present-p query-identifier
     :prompt prompt))
@@ -384,7 +381,7 @@
 ;;;; Highlight
 
 (defun highlight-presentation (record presentation-type stream state)
-  (unless (eql record *null-presentation*)
+  (unless (eq record *null-presentation*)
     (with-output-recording-options (stream :record nil)
       (call-presentation-generic-function highlight-presentation
 	presentation-type record stream state)

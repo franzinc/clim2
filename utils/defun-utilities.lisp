@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;;; $fiHeader: defun-utilities.lisp,v 1.4 92/01/31 15:07:23 cer Exp $
+;;; $fiHeader: defun-utilities.lisp,v 1.5 92/02/24 13:05:30 cer Exp $
 
 (in-package :clim-utils)
 
@@ -37,7 +37,7 @@
 		(*declarations-may-be-exposed-by-macro-expansion*
 		 (block expand-macros
 		   (loop
-		     (when (eql (first form) 'declare)
+		     (when (eq (first form) 'declare)
 		       (setf declarations (append declarations (cdr form))
 			     body (cdr body))
 		       (return-from expand-macros))
@@ -45,7 +45,7 @@
 			 (macroexpand-1 form environment)
 		       (unless macro-expanded-p (return-from process-declarations))
 		       (setf form new-form)))))
-		(t (if (eql (first form) 'declare)
+		(t (if (eq (first form) 'declare)
 		       (setf declarations (append declarations (cdr form))
 			     body (cdr body))
 		     (return-from process-declarations)))))))

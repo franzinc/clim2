@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: condpat.lisp,v 1.4 92/01/31 15:07:21 cer Exp $
+;; $fiHeader: condpat.lisp,v 1.5 92/02/24 13:05:25 cer Exp $
 
 (in-package :clim-utils)
 
@@ -29,7 +29,7 @@
 				      (symbol-package name))))
 	      ;; Not likely to be EQL, but can causes an infinite loop
 	      ;; in Lucid if it is...
-	      (unless (eql trampoline reader)
+	      (unless (eq trampoline reader)
 		(push `(eval-when (compile load eval) (proclaim '(inline ,reader))) readers)
 		(push `(defun ,reader (condition) (,trampoline condition)) readers)))))
 	(let ((initarg (getf (rest slot) ':initarg)))

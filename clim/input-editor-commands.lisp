@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-editor-commands.lisp,v 1.2 92/01/31 14:58:14 cer Exp $
+;; $fiHeader: input-editor-commands.lisp,v 1.3 92/02/24 13:07:52 cer Exp $
 
 (in-package :clim-internals)
 
@@ -108,12 +108,12 @@
 	(t
 	 (let ((code (char-code character))
 	       (bits (char-bits character)))
-	   (cond ((and (eql aarray *input-editor-command-aarray*)
+	   (cond ((and (eq aarray *input-editor-command-aarray*)
 		       (not (zerop bits))
 		       (<= (char-code #\0) code (char-code #\9)))
 		  ;; A numeric argument...
 		  (- code (char-code #\0)))
-		 ((and (eql aarray *input-editor-command-aarray*)
+		 ((and (eq aarray *input-editor-command-aarray*)
 		       (not (zerop bits))
 		       (= code (char-code #\-)))
 		  -1)
@@ -253,7 +253,8 @@
 	 (history (and window
 		       (output-recording-stream-p window)
 		       (stream-output-history window))))
-    (when window
+    (when (and window
+	       (pane-viewport window))
       (multiple-value-bind (x y) (window-viewport-position* window)
 	(incf y (* (if (= distance 1)
 		       (bounding-rectangle-height (window-viewport window))
@@ -427,7 +428,7 @@
 	  (setq p2 (min (fill-pointer input-buffer) (1+ p2)))))
     (if (/= p1 p2)
 	(ie-kill stream input-buffer
-		 (cond ((eql (slot-value stream 'last-command-type) 'kill) :merge)
+		 (cond ((eq (slot-value stream 'last-command-type) 'kill) :merge)
 		       ((> (abs numeric-argument) 1) t)
 		       (t nil))
 		 p2 p1 reverse-p)
@@ -452,7 +453,7 @@
 	(if p3 (setq p2 p3) (return))))
     (if (/= p1 p2)
 	(ie-kill stream input-buffer
-		 (if (eql (slot-value stream 'last-command-type) 'kill) :merge t)
+		 (if (eq (slot-value stream 'last-command-type) 'kill) :merge t)
 		 p2 p1 reverse-p)
         (beep stream))))
 
@@ -469,7 +470,7 @@
 			  (ie-line-start input-buffer point)
 			  (ie-line-end input-buffer point))))
     (ie-kill stream input-buffer
-	     (if (eql (slot-value stream 'last-command-type) 'kill) :merge t)
+	     (if (eq (slot-value stream 'last-command-type) 'kill) :merge t)
 	     point
 	     other-point
 	     reverse-p)))

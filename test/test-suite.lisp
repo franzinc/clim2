@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: test-suite.lisp,v 1.10 92/02/24 13:09:09 cer Exp Locker: cer $
+;; $fiHeader: test-suite.lisp,v 1.11 92/02/26 10:23:49 cer Exp $
 
 (in-package :clim-user)
 
@@ -2514,36 +2514,39 @@ Luke Luck licks the lakes Luke's duck likes."))
 (define-benchmark (simple-menu-choose :iterations 10) (stream)
   "Pop up a simple menu of colors"
   (without-clim-input
-   (if #+Allegro (typep (sheet-port stream) 'xm-silica::xt-port)
-     #-Allegro nil
-     (sleep 1) ;; Avoid division by zero!
-    (menu-choose '(("Red" :value +red+)
-		   ("Green" :value +green+)
-		   ("Blue" :value +blue+)
-		   ("Yellow" :value +yellow+)
-		   ("Orange" :value +orange+)
-		   ("White" :value +white+)
-		   ("Black" :value +black+))
-		 :label "Please choose a color"
-		 :printer #'print-menu-item	;no Macintosh menus, please
-		 :cache nil
-		 :associated-window stream))))
+    (if #+Allegro (typep (sheet-port stream) 'xm-silica::xt-port)
+	#-Allegro nil
+	(sleep 1) ;; Avoid division by zero!
+	(menu-choose '(("Red" :value +red+)
+		       ("Green" :value +green+)
+		       ("Blue" :value +blue+)
+		       ("Yellow" :value +yellow+)
+		       ("Orange" :value +orange+)
+		       ("White" :value +white+)
+		       ("Black" :value +black+))
+		     :label "Please choose a color"
+		     :printer #'print-menu-item	;no Macintosh menus, please
+		     :cache nil
+		     :associated-window stream))))
 
 (define-benchmark (cached-menu-choose :iterations 10) (stream)
   "Pop up a cached menu of colors"
   (without-clim-input
-    (menu-choose '(("Red" :value +red+)
-		   ("Green" :value +green+)
-		   ("Blue" :value +blue+)
-		   ("Yellow" :value +yellow+)
-		   ("Orange" :value +orange+)
-		   ("White" :value +white+)
-		   ("Black" :value +black+))
-		 :label "Please choose a color"
-		 :printer #'print-menu-item	;no Macintosh menus, please
-		 :cache t
-		 :unique-id 'test-color-menu
-		 :associated-window stream)))
+    (if #+Allegro (typep (sheet-port stream) 'xm-silica::xt-port)
+	#-Allegro nil
+	(sleep 1) ;; Avoid division by zero!
+	(menu-choose '(("Red" :value +red+)
+		       ("Green" :value +green+)
+		       ("Blue" :value +blue+)
+		       ("Yellow" :value +yellow+)
+		       ("Orange" :value +orange+)
+		       ("White" :value +white+)
+		       ("Black" :value +black+))
+		     :label "Please choose a color"
+		     :printer #'print-menu-item	;no Macintosh menus, please
+		     :cache t
+		     :unique-id 'test-color-menu
+		     :associated-window stream))))
 
 (define-benchmark (simple-dialog) (stream)
   "Present a simple dialog"
@@ -2690,11 +2693,13 @@ Luke Luck licks the lakes Luke's duck likes."))
   (:command-definer nil)
   (:panes 
    (caption-pane
-    (scrolling ()
-      (realize-pane 'application-pane :height 50)))
+    (outlining ()
+      (scrolling ()
+	(realize-pane 'application-pane :height 50))))
    (display-pane 
-    (scrolling ()
-      (realize-pane 'application-pane))))
+     (outlining ()
+       (scrolling ()
+	 (realize-pane 'application-pane)))))
   (:layout
    (:default
      (vertically () caption-pane display-pane))))

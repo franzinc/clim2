@@ -18,14 +18,15 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-silica.lisp,v 1.8 92/02/14 18:57:43 cer Exp $
+;; $fiHeader: xm-silica.lisp,v 1.9 92/02/24 13:06:23 cer Exp $
 
 (in-package :xm-silica)
 
 ;; Motif specific stuff
 
 (defclass motif-port (xt-port) 
-	  ())
+  ((type :allocation :class 
+	 :initform :motif :reader port-type)))
 
 (defmethod find-port-type ((type (eql ':motif)))
   'motif-port)
@@ -97,7 +98,7 @@ about their children"))
 
 (defmethod update-geo-manager-sheet-children (geo-manager)
   (dolist (child (sheet-children geo-manager))
-    (mirror-region-updated (sheet-port geo-manager) child)))
+    (mirror-region-updated (port geo-manager) child)))
 
 (defmethod find-shell-class-and-initargs ((port motif-port) sheet)
   (declare (ignore port))

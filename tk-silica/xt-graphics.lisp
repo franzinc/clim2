@@ -20,7 +20,7 @@ U;; -*- mode: common-lisp; package: xm-silica -*-
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.9 92/02/26 10:23:26 cer Exp Locker: cer $
+;; $fiHeader: xt-graphics.lisp,v 1.10 92/02/28 09:17:27 cer Exp $
 
 (in-package :xm-silica)
 
@@ -42,7 +42,8 @@ U;; -*- mode: common-lisp; package: xm-silica -*-
 			sheet
 			(sheet-mirror sheet))))))
 
-(defmethod silica::deallocate-medium :after (port (medium xt-medium))
+(defmethod deallocate-medium :after (port (medium xt-medium))
+  (declare (ignore port))
   (with-slots (drawable) medium
     (setf drawable nil)))
 
@@ -100,7 +101,7 @@ U;; -*- mode: common-lisp; package: xm-silica -*-
 (defparameter *use-color* t)		; For debugging monochrome
 (defun color-medium-p (medium)
   (and *use-color*
-       (let ((display (port-display (sheet-port (medium-sheet medium)))))
+       (let ((display (port-display (port (medium-sheet medium)))))
 	 (> (x11:xdefaultdepth (tk::display-handle display)
 			       (tk::display-screen-number display)) 2))))
 
@@ -145,57 +146,56 @@ U;; -*- mode: common-lisp; package: xm-silica -*-
 		 :depth 1))
 
 (defvar *luminance-stipples*
-    (mapcar #'(lambda (entry)
-		(cons (first entry)
-		      (apply #'make-stipple-image (second entry))))
-	    '((0.1 (8 16 (#b0111111111111111
-			  #b1111110111111111
-			  #b1111111111110111
-			  #b1101111111111111
-			  #b1111111101111111
-			  #b1111111111111101
-			  #b1111011111111111
-			  #b1111111111011111)))
-	      (0.2 (8 8 (#b01111111
-			 #b11101111
-			 #b11111101
-			 #b10111111
-			 #b11110111
-			 #b11111110
-			 #b11011111
-			 #b11111011)))
-	      (0.3 (4 4 (#b0111
-			 #b1101
-			 #b1011
-			 #b1110)))
-	      (0.4 (3 3 (#b011
-			 #b101
-			 #b110)))
-	      (0.6 (2 2 (#b01
-			 #b10)))
-	      (0.7 (3 3 (#b100
-			 #b010
-			 #b001)))
-	      (0.8 (4 4 (#b1000
-			 #b0010
-			 #b0100
-			 #b0001)))
-	      (0.9 (8 8 (#b10000000
-			 #b00010000
-			 #b00000010
-			 #b01000000
-			 #b00001000
-			 #b00000001
-			 #b00100000
-			 #b00000100)))
-	      (0.95 (8 16 (#b1000000000000000
-			   #b0000001000000000
-			   #b0000000000001000
-			   #b0010000000000000
-			   #b0000000010000000
-			   #b0000000000000010
-			   #b0000100000000000
-			   #b0000000000100000))))))
+	(mapcar #'(lambda (entry)
+		    (cons (first entry) (apply #'make-stipple-image (second entry))))
+		'((0.1 (8 16 (#b0111111111111111
+			      #b1111110111111111
+			      #b1111111111110111
+			      #b1101111111111111
+			      #b1111111101111111
+			      #b1111111111111101
+			      #b1111011111111111
+			      #b1111111111011111)))
+		  (0.2 (8 8 (#b01111111
+			     #b11101111
+			     #b11111101
+			     #b10111111
+			     #b11110111
+			     #b11111110
+			     #b11011111
+			     #b11111011)))
+		  (0.3 (4 4 (#b0111
+			     #b1101
+			     #b1011
+			     #b1110)))
+		  (0.4 (3 3 (#b011
+			     #b101
+			     #b110)))
+		  (0.6 (2 2 (#b01
+			     #b10)))
+		  (0.7 (3 3 (#b100
+			     #b010
+			     #b001)))
+		  (0.8 (4 4 (#b1000
+			     #b0010
+			     #b0100
+			     #b0001)))
+		  (0.9 (8 8 (#b10000000
+			     #b00010000
+			     #b00000010
+			     #b01000000
+			     #b00001000
+			     #b00000001
+			     #b00100000
+			     #b00000100)))
+		  (0.95 (8 16 (#b1000000000000000
+			       #b0000001000000000
+			       #b0000000000001000
+			       #b0010000000000000
+			       #b0000000010000000
+			       #b0000000000000010
+			       #b0000100000000000
+			       #b0000000000100000))))))
 		
 ;; The tk::image objects are created at load time to save startup time.
 ;; Here a '0' means white, '1' black.
@@ -226,7 +226,7 @@ U;; -*- mode: common-lisp; package: xm-silica -*-
 			 color-p)
       medium
     (let ((drawable (or drawable
-			(tk::display-root-window (port-display (sheet-port sheet)))))
+			(tk::display-root-window (port-display (port sheet)))))
 	  (ink-table (slot-value medium 'ink-table)))
       (or (gethash ink ink-table)
 	  (let ((new-gc (make-instance 'tk::gcontext :drawable drawable)))
@@ -238,10 +238,10 @@ U;; -*- mode: common-lisp; package: xm-silica -*-
 		   ;; The luminance formula isn't really right.  XXX
 		   (let* ((luminance (color-luminosity r g b))
 			  (color (decode-luminance luminance t)))
-		     (cond ((eql color 1)
+		     (cond ((eq color 1)
 			    (setf (tk::gcontext-fill-style new-gc) :solid
 				  (tk::gcontext-foreground new-gc) black-pixel))
-			   ((eql color 0)
+			   ((eq color 0)
 			    (setf (tk::gcontext-fill-style new-gc) :solid
 				  (tk::gcontext-foreground new-gc) white-pixel))
 			   (t			; color is an image
@@ -258,8 +258,14 @@ U;; -*- mode: common-lisp; package: xm-silica -*-
 (defmethod decode-ink ((ink contrasting-ink) stream)
   (decode-ink (make-color-for-contrasting-ink ink) stream))
 
-      
+(defmethod decode-ink ((ink rectangular-tile) medium)
+  (multiple-value-bind (pattern width height)
+      (decode-rectangular-tile ink)
+    (xt-decode-pattern pattern medium width height t)))
 
+(defmethod decode-ink ((ink pattern) medium)
+  (xt-decode-pattern ink medium))
+    
 (defmethod decode-color ((medium xt-medium) (x (eql +foreground-ink+)))
   (with-slots (foreground-gcontext) medium
     (tk::gcontext-foreground foreground-gcontext)))
@@ -268,33 +274,31 @@ U;; -*- mode: common-lisp; package: xm-silica -*-
   (with-slots (background-gcontext) medium
     (tk::gcontext-foreground background-gcontext)))
 
-
 (defmethod decode-color ((stream xt-medium) (ink standard-opacity))
   (if (> (slot-value ink 'clim-utils::value) 0.5)
       (decode-color stream +foreground-ink+)
-    (decode-color stream +background-ink+)))
+      (decode-color stream +background-ink+)))
 
 (defmethod decode-color ((medium xt-medium) (ink color))
   (with-slots (color-p white-pixel black-pixel) medium
-    (or (gethash ink (port-color-cache (sheet-port medium)))
-	(setf (gethash ink (port-color-cache (sheet-port medium)))
+    (or (gethash ink (port-color-cache (port medium)))
+	(setf (gethash ink (port-color-cache (port medium)))
 	  (cond (color-p
-		 (multiple-value-bind
-		     (red green blue)
+		 (multiple-value-bind (red green blue)
 		     (color-rgb ink)
 		   (tk::allocate-color
-		    (tk::default-colormap (port-display (sheet-port (medium-sheet medium))))
-		    (make-instance 'tk::color
-		      :red (truncate (* 65356 red))
-		      :green (truncate (* 65356 green))
-		      :blue (truncate (* 65356 blue))))))
+		     (tk::default-colormap (port-display (port (medium-sheet medium))))
+		     (make-instance 'tk::color
+				    :red (truncate (* 65356 red))
+				    :green (truncate (* 65356 green))
+				    :blue (truncate (* 65356 blue))))))
 		(t
 		 (multiple-value-bind (r g b) (color-rgb ink)
 		   ;; The luminance formula isn't really right.  XXX
 		   (let* ((luminance (/ (+ (* r r) (* g g) (* b b)) 3)))
 		     (if (> luminance .5)
 			 white-pixel
-		       black-pixel)))))))))
+			 black-pixel)))))))))
 
 
 (defmethod adjust-ink ((medium xt-medium) gc ink line-style x-origin y-origin)
@@ -304,7 +308,8 @@ U;; -*- mode: common-lisp; package: xm-silica -*-
   (let* ((dashes (line-style-dashes line-style))
 	 (gc-line-style
 	  (etypecase dashes
-	    ((member nil t) :solid) (sequence :dash))))
+	    ((member nil t) :solid)
+	    (sequence :dash))))
 	
     (tk::set-line-attributes 
      gc
@@ -322,10 +327,10 @@ U;; -*- mode: common-lisp; package: xm-silica -*-
        ((:miter :none) :miter)
        (:bevel :bevel)
        (:round :round)))
-  
+    
     (when (eq gc-line-style :dash)
       (setf (tk::gcontext-dashes gc) dashes))
-  
+    
     (let* ((sheet (medium-sheet medium))
 	   (dr (sheet-device-region sheet))
 	   (mcr (medium-clipping-region medium)))
@@ -347,7 +352,7 @@ U;; -*- mode: common-lisp; package: xm-silica -*-
 				   (integerize-coordinate (- c a)) 
 				   (integerize-coordinate (- d b)))
 		   (setf (tk::gcontext-clip-mask gc) x))))))
-  
+    
     (when (eq (tk::gcontext-fill-style gc) :tiled)
       (setf (tk::gcontext-ts-x-origin gc) x-origin
 	    (tk::gcontext-ts-y-origin gc) y-origin))
@@ -360,49 +365,49 @@ U;; -*- mode: common-lisp; package: xm-silica -*-
 	  (compute-gcontext-clip-mask medium))
     gc))
 
-(defmethod decode-ink ((ink rectangular-tile) medium)
-  (multiple-value-bind (pattern width height)
-      (decode-rectangular-tile ink)
-    (xt-decode-pattern pattern medium width height t)))
-
-(defmethod decode-ink ((ink pattern) medium)
-  (xt-decode-pattern ink medium))
-    
 (defmethod xt-decode-pattern ((pattern pattern) medium &optional width height tiled-p)    
   (let* ((ink-table (slot-value medium 'ink-table))
 	 (drawable (or (slot-value medium 'drawable)
 		       (tk::display-root-window
-			(port-display (sheet-port (medium-sheet medium))))))
+			(port-display (port (medium-sheet medium))))))
 	 (depth (tk::drawable-depth drawable)))
-    (or  (gethash pattern ink-table)
-	 (setf (gethash pattern ink-table)
-	   (multiple-value-bind (array designs)
-	       (decode-pattern pattern)
-	     (let ((image-data (make-array (array-dimensions array))))
-	       (dotimes (w (array-dimension array 1))
-		 (dotimes (h (array-dimension array 0))
-		   (setf (aref image-data h w)
-		     (decode-color medium 
-				       (elt designs (aref array h w))))))
-	       (let* ((pattern-height (array-dimension array 0))
-		      (pattern-width (array-dimension array 1))
-		      (image (make-instance 'tk::image
-			       :width pattern-width
-			       :height pattern-height
-			       :data image-data
-			       :depth depth))
-		      (gc 
-		       (make-instance 'tk::gcontext :drawable drawable))
-		      (pixmap 
-		       (make-instance 'tk::pixmap
-			 :drawable drawable
-			 :width pattern-width
-			 :height pattern-height
-			 :depth depth)))
-		 (tk::put-image pixmap gc image)
-		 (setf (tk::gcontext-tile gc) pixmap
-		       (tk::gcontext-fill-style gc) :tiled)
-		 gc)))))))
+    (or (gethash pattern ink-table)
+	(setf (gethash pattern ink-table)
+	      (multiple-value-bind (array designs)
+		  (decode-pattern pattern)
+		(let ((image-data (make-array (array-dimensions array)))
+		      (design-pixels (make-array (length designs))))
+		  (declare (simple-vector design-pixels))
+		  ;; Cache the decoded designs from the pattern
+		  (do* ((num-designs (length designs))
+			(n 0 (1+ n))
+			design)
+		       ((eq n num-designs))
+		    (setq design (elt designs n))
+		    (setf (svref design-pixels n) (decode-color medium design)))
+		  (dotimes (w (array-dimension array 1))
+		    (dotimes (h (array-dimension array 0))
+		      (setf (aref image-data h w)
+			    (svref design-pixels (aref array h w)))))
+		  (let* ((pattern-height (array-dimension array 0))
+			 (pattern-width (array-dimension array 1))
+			 (image (make-instance 'tk::image
+					       :width pattern-width
+					       :height pattern-height
+					       :data image-data
+					       :depth depth))
+			 (gc 
+			   (make-instance 'tk::gcontext :drawable drawable))
+			 (pixmap 
+			   (make-instance 'tk::pixmap
+					  :drawable drawable
+					  :width pattern-width
+					  :height pattern-height
+					  :depth depth)))
+		    (tk::put-image pixmap gc image)
+		    (setf (tk::gcontext-tile gc) pixmap
+			  (tk::gcontext-fill-style gc) :tiled)
+		    gc)))))))
 
 (defmethod compute-gcontext-clip-mask (medium)
   (with-bounding-rectangle* (minx miny maxx maxy)
@@ -480,9 +485,9 @@ U;; -*- mode: common-lisp; package: xm-silica -*-
 
 (ff::def-c-type (xpoint-array :in-foreign-space) 2 x11::xpoint)
   
-(defmethod silica::port-draw-polygon* ((port xt-port) sheet medium
-				       list-of-x-and-ys
-				       closed filled)
+(defmethod port-draw-polygon* ((port xt-port) sheet medium
+			       list-of-x-and-ys
+			       closed filled)
   (let* ((transform (sheet-device-transformation sheet))
 	 (npoints (/ (length list-of-x-and-ys) 2))
 	 (points (excl::malloc ;; BUG BUG BUG
@@ -534,10 +539,10 @@ U;; -*- mode: common-lisp; package: xm-silica -*-
 	  npoints
 	  x11:coordmodeorigin)))))
 
-(defmethod silica::port-draw-ellipse* ((port xt-port) sheet medium
-				       center-x center-y
-				       radius-1-dx radius-1-dy radius-2-dx radius-2-dy 
-				       start-angle end-angle filled)
+(defmethod port-draw-ellipse* ((port xt-port) sheet medium
+			       center-x center-y
+			       radius-1-dx radius-1-dy radius-2-dx radius-2-dy 
+			       start-angle end-angle filled)
   (let ((transform (sheet-device-transformation sheet)))
     (convert-to-device-coordinates transform center-x center-y)
     (convert-to-device-distances transform 
@@ -591,9 +596,10 @@ U;; -*- mode: common-lisp; package: xm-silica -*-
 	  x y
 	  string-or-char start end)))))
 
-(defmethod silica::port-write-string-1 ((port xt-port) medium
-					glyph-buffer start end 
-					x-font color x y)
+;;--- Is this used any more?
+(defmethod port-write-string-1 ((port xt-port) medium
+				glyph-buffer start end 
+				x-font color x y)
   (unless (= start end)
     (let* ((sheet (medium-sheet medium))
 	   (transform (sheet-device-transformation sheet))
@@ -621,10 +627,13 @@ U;; -*- mode: common-lisp; package: xm-silica -*-
 
    
 
-(defmethod silica::port-copy-area ((port xt-port)
- 				   from-sheet to-sheet
- 				   from-left from-top from-right from-bottom
- 				   to-left to-top)
+;;--- FROM-SHEET and TO-SHEET should be mediums, not sheets
+;;--- This needs to be able to copy to/from pixmaps, too
+;;--- arglist s/b FROM-MEDIUM FROM-X FROM-Y TO-MEDIUM TO-X TO-Y WIDTH HEIGHT
+(defmethod port-copy-area ((port xt-port)
+			   from-sheet to-sheet
+			   from-left from-top from-right from-bottom
+			   to-left to-top)
   ;; coords in "host" coordinate system
   (let ((transform (sheet-native-transformation from-sheet)))
     (convert-to-device-coordinates transform

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: basic-translators.lisp,v 1.2 92/01/31 14:57:34 cer Exp $
+;; $fiHeader: basic-translators.lisp,v 1.3 92/02/24 13:06:55 cer Exp $
 
 (in-package :clim-internals)
 
@@ -81,6 +81,7 @@
       (flet ((translator-documentation (translator-stuff stream)
 	       (setq translator-stuff (menu-item-value translator-stuff))
 	       (let* ((translator (pop translator-stuff))
+		      (presentation (pop translator-stuff))
 		      (context-type (pop translator-stuff)))
 		 (document-presentation-translator translator presentation context-type
 						   frame nil window x y
@@ -95,6 +96,7 @@
 	  (when chosen
 	    ;; Anticipate the day when we can move the mouse off the menu
 	    (let* ((translator (pop chosen))
+		   (presentation (pop chosen))
 		   (context-type (pop chosen))
 		   (tag (pop chosen)))
 	      (multiple-value-bind (translated-object translated-type options)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: translators.lisp,v 1.2 92/01/31 14:58:59 cer Exp $
+;; $fiHeader: translators.lisp,v 1.3 92/02/24 13:08:45 cer Exp $
 
 (in-package :clim-internals)
 
@@ -157,7 +157,7 @@
       (warn "~S is not a defined command table name." command-table))
     (unless (and (symbolp gesture)
 		 (or (null gesture)
-		     (eql gesture 't)
+		     (eq gesture 't)
 		     (gesture-name-button-and-modifiers gesture)
 		     (compile-time-property gesture 'gesture-name)))
       (warn "~S is not a defined gesture name." gesture))
@@ -362,7 +362,7 @@
 	      (if (< high1 high2)
 		  (setf (car translators) translator2
 			(car remaining) translator1)
-		  (cond ((eql name1 name2)
+		  (cond ((eq name1 name2)
 			 ;; If the two types are the same, then use the low
 			 ;; order part of the priority to break the tie
 			 (when (< low1 low2)
@@ -377,10 +377,10 @@
 ;; Return a list of all classes that are not provably disjoint from CLASS
 (defun class-nondisjoint-classes (class)
   (let ((class (find-presentation-type-class class)))
-    (when (or (eql class (find-class 't))
-	      (eql class (find-class 'standard-object))
+    (when (or (eq class (find-class 't))
+	      (eq class (find-class 'standard-object))
               #+Symbolics			;Symbolics CLOS, that is
-	      (eql class (find-class 'clos:structure-object)))
+	      (eq class (find-class 'clos:structure-object)))
       (return-from class-nondisjoint-classes t))
     (labels ((transitive-closure (function element set)
 	       (pushnew element set)
@@ -506,7 +506,7 @@
 	      (when translators
 		(dolist (translator translators)
 		  (when (and (or (not for-menu-p)
-				 (eql (presentation-translator-menu translator) for-menu))
+				 (eq (presentation-translator-menu translator) for-menu))
 			     (test-presentation-translator translator
 							   presentation context-type
 							   frame window x y
@@ -517,36 +517,41 @@
 		      (return-from find-applicable-translators translator))
 		    ;; Evacuate the context-type, but don't bother evacuating the
 		    ;; tag since it will get used before its extent expires.
-		    (push `(,translator ,(evacuate-list context-type) ,tag)
+		    (push (list translator presentation
+				(evacuate-list context-type) tag)
 			  applicable-translators))))
 	      ;; If we've accumulated any translators, maybe add on PRESENTATION-MENU.
 	      ;; If FASTP is T, we will have returned before we get here.
 	      (when (and applicable-translators
 			 *presentation-menu-translator*
 			 (or (not for-menu-p)
-			     (eql (presentation-translator-menu *presentation-menu-translator*)
-				  for-menu))
+			     (eq (presentation-translator-menu *presentation-menu-translator*)
+				 for-menu))
 			 (test-presentation-translator *presentation-menu-translator*
 						       presentation context-type
 						       frame window x y
 						       :event event 
 						       :modifier-state modifier-state
 						       :for-menu for-menu))
-		(push `(,*presentation-menu-translator* ,(evacuate-list context-type) ,tag)
+		(push (list *presentation-menu-translator* presentation
+			    (evacuate-list context-type) tag)
 		      applicable-translators)))))))
     ;; Since we pushed translators onto the list, the least specific one
     ;; will be at the beginning of the list.  DELETE-DUPLICATES is defined to
     ;; remove duplicated items which appear earlier in the list, so it will
     ;; remove duplicated less specific translators.  Finally, NREVERSE will
     ;; get the translators in most-specific to least-specific order.
-    (nreverse (delete-duplicates applicable-translators :key #'first))))
+    (nreverse (delete-duplicates applicable-translators
+				 :test #'(lambda (x y)
+					   (and (eq (first x) (first y))
+						(eq (second x) (second y))))))))
 
 (defun document-presentation-translator (translator presentation context-type
 					 frame event window x y
 					 &key (stream *standard-output*)
 					      documentation-type)
   (let ((documentation
-	  (if (eql documentation-type :pointer)
+	  (if (eq documentation-type :pointer)
 	      (or (presentation-translator-pointer-documentation translator)
 		  (presentation-translator-documentation translator))
 	      (presentation-translator-documentation translator))))
@@ -558,7 +563,7 @@
 		    frame event window x y
 		    stream))
 	  (t
-	   (when (eql documentation-type :from-body)
+	   (when (eq documentation-type :from-body)
 	     ;; In general, it is not safe to run the body of a translator to get
 	     ;; its documentation, but sometimes that's the only way.  Command
 	     ;; menus are one such example.  (Beware of side-effects from actions.)
@@ -572,8 +577,8 @@
 	   ;; If we didn't get asked to run the body for the purpose of command
 	   ;; menus, then we might be able to take a different kind of short
 	   ;; cut for to-command translators.
-	   (when (eql (presentation-type-name (presentation-translator-to-type translator))
-		      'command)
+	   (when (eq (presentation-type-name (presentation-translator-to-type translator))
+		     'command)
 	     (return-from document-presentation-translator
 	       (document-presentation-to-command-translator
 		 translator presentation context-type frame event window x y stream)))

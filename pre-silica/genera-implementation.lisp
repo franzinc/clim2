@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: genera-implementation.lisp,v 1.1 92/01/31 14:27:52 cer Exp $
+;; $fiHeader: genera-implementation.lisp,v 1.2 92/02/24 13:07:36 cer Exp $
 
 (in-package :clim-internals)
 
@@ -816,9 +816,9 @@
 	     (height (sys:font-char-height font))
 	     (descent (- height (sys:font-baseline font)))
 	     (ascent (- height descent)))
-	(incf x (compute-text-x-adjustment 
+	(incf x (clim-internals::compute-text-x-adjustment 
 		  align-x stream string text-style start end))
-	(incf y (compute-text-y-adjustment
+	(incf y (clim-internals::compute-text-y-adjustment
 		  align-y descent ascent height))
 	(with-stack-list (style :device-font (tv:font-name font) :normal)
 	  (with-appropriate-drawing-state stream ink nil
@@ -841,9 +841,9 @@
 	   (height (sys:font-char-height font))
 	   (descent (- height (sys:font-baseline font)))
 	   (ascent (- height descent)))
-      (incf x (compute-text-x-adjustment 
+      (incf x (clim-internals::compute-text-x-adjustment 
 		align-x stream character text-style))
-      (incf y (compute-text-y-adjustment
+      (incf y (clim-internals::compute-text-y-adjustment
 		align-y descent ascent height))
       (with-appropriate-drawing-state stream ink nil
 	#'(lambda (window alu)
@@ -1257,7 +1257,7 @@
   (let ((old-reverse-video-p (scl:send scl:self :reverse-video-p)))
     (multiple-value-prog1
       (scl:continue-whopper reverse-video-p)
-      (unless (eql reverse-video-p old-reverse-video-p)
+      (unless (eq reverse-video-p old-reverse-video-p)
 	(labels ((switch-inks (window)
 		   ;; Inhibit refreshing until we're done
 		   (rotatef (slot-value window 'foreground)
@@ -1430,11 +1430,11 @@
   (let ((mask 0))
     (macrolet ((do-shift (shift)
 		 `(when (si:bit-test (si:name-bit ,shift) bits)
-		    (let ((bit (modifier-key-index ,shift)))
+		    (let ((bit (clim-internals::modifier-key-index ,shift)))
 		      (setf mask (dpb 1 (byte 1 bit) mask))))))
       ;; why is SHIFT different from sys:%kbd-shifts-shift
       (when (ldb-test (byte 1 4) bits)
-	(let ((bit (modifier-key-index :shift)))
+	(let ((bit (clim-internals::modifier-key-index :shift)))
 	  (setf mask (dpb 1 (byte 1 bit) mask))))
       (do-shift :control)
       (do-shift :meta)
@@ -1477,9 +1477,9 @@
 		     (/= old-buttons (tv:mouse-last-buttons mouse))
 		     (/= old-x (mouse-x))
 		     (/= old-y (mouse-y))
-		     (not (eql old-window (sheet-for-genera-window
-					    (tv:window-under-mouse-internal mouse)
-					    :error-if-no-match nil)))))
+		     (not (eq old-window (sheet-for-genera-window
+					   (tv:window-under-mouse-internal mouse)
+					   :error-if-no-match nil)))))
 	       (something-pending (sheet)
 		 (cond ((not (tv:sheet-console window)) nil)	;wait for console
 		       ((not (tv:mouse-sheet mouse)) nil)	;..
@@ -1495,7 +1495,7 @@
 	       (mouse-y () (tv:mouse-y mouse)))
 	(declare (dynamic-extent #'mouse-motion-pending #'something-pending
 				 #'mouse-x #'mouse-y))
-	(cond ((eql timeout 0)			;avoid consing bignums
+	(cond ((eq timeout 0)			;avoid consing bignums
 	       (something-pending window))
 	      (timeout
 	       (scl:process-wait-with-timeout si:*whostate-awaiting-user-input* (* timeout 60)

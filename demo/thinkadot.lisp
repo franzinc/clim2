@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: thinkadot.lisp,v 1.1 92/01/31 14:32:12 cer Exp $
+;; $fiHeader: thinkadot.lisp,v 1.2 92/02/24 13:09:34 cer Exp $
 
 (in-package :clim-demo)
 
@@ -101,7 +101,7 @@
 	    (if (td-node-direction node)
 		(draw-line* stream (+ x 10) (- y 10) (- x 10) (+ y 10))
 	        (draw-line* stream (+ x 10) (+ y 10) (- x 10) (- y 10)))
-	    (if (eql (td-node-direction node) (td-node-color-phase node))
+	    (if (eq (td-node-direction node) (td-node-color-phase node))
 		(draw-circle* stream x y *dot-radius* :ink *light-color*)
 	        (draw-circle* stream x y *dot-radius* :ink *dark-color*)))
 	  (when (td-node-entry-p node)

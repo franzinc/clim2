@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: defun.lisp,v 1.2 92/01/31 14:52:33 cer Exp $
+;; $fiHeader: defun.lisp,v 1.3 92/02/24 13:05:32 cer Exp $
 
 (in-package :clim-utils)
 
@@ -72,21 +72,21 @@
 	(cond (where-we-are
 	       (setf lambda-list-state element remaining-lambda-list-keys where-we-are))
 	      ;; Handle obsolete keywords:
-	      ((eql element '&downward-rest)
+	      ((eq element '&downward-rest)
 	       (let ((var (cadr (member element lambda-list))))
 		 (push var dynamic-extent-vars) (push var rests)
 		 (warn "~S is obsolete: use ~S" '&downward-rest
 		       `(declare (dynamic-extent ,var))))
 	       (setf lambda-list-state '&rest element '&rest))
-	      ((eql element '&downward-funarg)
+	      ((eq element '&downward-funarg)
 	       (let ((var (cadr (member element lambda-list))))
 		 (push var dynamic-extent-functions)
 		 (warn "~S is obsolete: use ~S" '&downward-funarg
 		       `(declare (dynamic-extent ,var))))
 	       (setf element '#1#))
 	      ((and (member element lambda-list-keywords)
-		    (not (and (eql element '&allow-other-keys)
-			      (eql lambda-list-state '&key))))
+		    (not (and (eq element '&allow-other-keys)
+			      (eq lambda-list-state '&key))))
 	       (warn "Keyword ~A is invalid in this position in the lambda-list~%~S"
 		     element lambda-list))
 	      (t (let ((var-name (ecase lambda-list-state
@@ -112,7 +112,8 @@
 			 (push ignored-var dynamic-extent-vars))))
 		   (when (eq lambda-list-state '&rest)
 		     (push element rests))))))
-      (unless (eql element '#1#) (push element new-lambda-list)))
+      (unless (eq element '#1#)
+	(push element new-lambda-list)))
     (multiple-value-bind (documentation declarations new-body)
 	(extract-declarations body environment)
       (dolist (declare declarations)
@@ -129,8 +130,8 @@
 		  (typecase de
 		    (symbol (make-dynamic de))
 		    (list (if (and (null (cddr de)) 
-				   (or (eql (first de) 'function)
-				       #+Genera (eql (first de) 'zl:::scl:function)))
+				   (or (eq (first de) 'function)
+				       #+Genera (eq (first de) 'zl:::scl:function)))
 			      (progn
 				(warn "You probably meant ~S intead of ~S"
 				      `(declare (dynamic-extent ,(second de)))
@@ -242,11 +243,11 @@
 	    (let ((result nil))
 	      (dolist (declaration declarations)
 		(dolist (decl-form (cdr declaration))
-		  (when (eql (first decl-form) 'dynamic-extent)
+		  (when (eq (first decl-form) 'dynamic-extent)
 		    (dolist (de (cdr decl-form))
 		      (if (and (listp de) (null (cddr de))
-			       (or (eql (first de) 'function)
-				   #+Genera (eql (first de) 'zl:::scl:function)))
+			       (or (eq (first de) 'function)
+				   #+Genera (eq (first de) 'zl:::scl:function)))
 			  (let ((downward-name (second de)))
 			    (if (assoc downward-name functions)
 				(push downward-name result)
@@ -320,7 +321,7 @@
 		    qualifiers (nreverse qualifiers))
 	      (return))
 	    (push possible-qualifier qualifiers)))
-    (when (eql lambda-list :invalid)
+    (when (eq lambda-list :invalid)
       (warn "No valid lambda-list found in this form: ~S" form)
       ;; Don't blow up; I don't know what else to say.
       (setf lambda-list nil))

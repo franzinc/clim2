@@ -26,7 +26,7 @@
 (room t)
 (sys:resize-areas :global-gc t :old 1000000 :new 500000)
 (room t)
-(dumplisp :name (concatenate 'simple-string "/usr/tmp/clim.temp_"
+(dumplisp :name (concatenate 'simple-string "/tmp/clim.temp_"
 			     (sys:getenv "USER"))
 	  :checkpoint nil)
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: medium.lisp,v 1.6 92/02/24 13:04:48 cer Exp Locker: cer $
+;; $fiHeader: medium.lisp,v 1.7 92/02/26 10:23:19 cer Exp $
 
 (in-package :silica)
 
@@ -27,7 +27,7 @@
 	 (funcall continuation))
 	(medium
 	 (letf-globally (((sheet-medium sheet) medium))
-	   (engraft-medium medium (sheet-port sheet) sheet)
+	   (engraft-medium medium (port sheet) sheet)
 	   (funcall continuation)))
 	(t
 	 (invoke-with-sheet-medium
@@ -84,9 +84,9 @@
 
 (defun-inline make-line-style-1 (unit thickness dashes joint-shape cap-shape)
   #+Genera (declare lt:(side-effects simple reducible))
-  (if (and (eql unit :normal)
-	   (eql joint-shape :miter)
-	   (eql cap-shape :butt)
+  (if (and (eq unit :normal)
+	   (eq joint-shape :miter)
+	   (eq cap-shape :butt)
 	   (integerp thickness) (<= 0 thickness 4)
 	   (or (eq dashes t) (eq dashes nil)))
       ;; Cache the common case when only :DASHES and :THICKNESS are provided
@@ -118,9 +118,20 @@
   (with-sheet-medium (medium sheet)
     (apply #'invoke-with-drawing-options medium continuation options)))
 
+;;--- CLIM 1.0 had this stuff that frobbed the clipping region.  Is it right?
+#+++ignore
+(defmethod medium-clipping-region ((medium medium))
+  (with-slots (transformation transformed-clipping-region) medium
+    (untransform-region transformation transformed-clipping-region)))
+
+#+++ignore
+(defmethod (setf medium-clipping-region) (clipping-region (medium medium))
+  (with-slots (transformation transformed-clipping-region) medium
+    (setf transformed-clipping-region (transform-region transformation clipping-region)))
+  clipping-region)
+
 ;; NOTE: if you change the keyword arguments accepted by this method, you
 ;; also have to change the list of keywords in *ALL-DRAWING-OPTIONS*
-;;--- CLIM 1.0 had some stuff that frobbed the clipping region.  Was it right?
 (defmethod invoke-with-drawing-options
 	   ((medium medium) continuation
 	    &key ink clipping-region transformation
@@ -180,11 +191,11 @@
 
 
 (defmethod allocate-medium (port sheet)
-  (or (pop (port-media-cache port))
+  (or (pop (port-medium-cache port))
       (make-medium port sheet)))
 
 (defmethod deallocate-medium (port medium)
-  (push medium (port-media-cache port)))
+  (push medium (port-medium-cache port)))
 
 
 ;; Make sheets do the medium protocol
@@ -221,8 +232,6 @@
 	  (setf merged-text-style-valid t)))))
 
 (defmacro with-text-style ((stream style) &body body)
-  ;;--- Clean up this forward reference by migrating the crucial parts
-  ;;--- of CLIM-DEFS into the CLIM-UTILS system
   (default-output-stream stream with-text-style)
   `(flet ((with-text-style-body (,stream) ,@body))
      (declare (dynamic-extent #'with-text-style-body))
@@ -243,7 +252,7 @@
 	      
 (defmethod invoke-with-text-style ((stream medium)
 				   continuation style original-stream)
-  (if (or (null style) (eql style *null-text-style*))
+  (if (or (null style) (eq style *null-text-style*))
       (funcall continuation original-stream)
       (letf-globally (((medium-merged-text-style-valid stream) nil)
 		      ((slot-value stream 'merged-text-style)

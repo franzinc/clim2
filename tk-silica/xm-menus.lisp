@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-menus.lisp,v 1.3 92/02/05 21:45:28 cer Exp $
+;; $fiHeader: xm-menus.lisp,v 1.4 92/02/24 13:06:21 cer Exp $
 
 
 (in-package :xm-silica)
@@ -90,11 +90,12 @@
       (multiple-value-bind
 	  (ignore win1 win2 x y root-x root-y)
 	  (tk::query-pointer (tk::display-root-window
-			      (xm-silica::port-display port)))
+			       (port-display port)))
 	(declare (ignore ignore win1 win2 x y))
 	(tk::set-values menu :x root-x :y root-y)
 	(tk::manage-child menu)
 	;; Now we have to wait
+	(port-force-output port)
 	(mp::process-wait "Returned value" #'(lambda () value-returned))
 	;; destroy the menu
 	(tk::unmanage-child menu)

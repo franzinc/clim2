@@ -20,12 +20,13 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-silica.lisp,v 1.4 92/02/14 18:57:39 cer Exp $
+;; $fiHeader: ol-silica.lisp,v 1.5 92/02/24 13:06:12 cer Exp $
 
 (in-package :xm-silica)
 
 (defclass openlook-port (xt-port) 
-	  ())
+  ((type :allocation :class 
+	 :initform :openlook :reader port-type)))
 
 (defmethod find-port-type ((type (eql :openlook)))
   'openlook-port)

@@ -19,14 +19,14 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: classes.lisp,v 1.3 92/01/31 14:55:26 cer Exp $
+;; $fiHeader: framem.lisp,v 1.1 92/02/24 13:26:51 cer Exp $
 
 (in-package :silica)
 
 (define-protocol-class frame-manager ())
 
 (defclass standard-frame-manager (frame-manager) 
-    ((port :reader sheet-port :initarg :port)
+    ((port :reader port :initarg :port)
      (frames :accessor frame-manager-frames :initform nil)))
 
 (defvar *frame-managers* nil)

@@ -22,7 +22,7 @@
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
 ;;;
-;; $fiHeader: db-layout.lisp,v 1.7 92/02/05 21:45:12 cer Exp $
+;; $fiHeader: db-layout.lisp,v 1.8 92/02/24 13:04:26 cer Exp $
 
 (in-package :silica)
 
@@ -367,10 +367,9 @@ provided elsewhere"))
   (clear-space-requirement-cache pane))
 
 (defun clear-space-requirement-caches-in-tree (sheet)
-  (clim-internals::map-over-sheets
-    #'(lambda (sheet) 
-	(clear-space-requirement-cache sheet))
-    sheet))
+  (map-over-sheets #'(lambda (sheet) 
+		       (clear-space-requirement-cache sheet))
+		   sheet))
 
 (defun clear-space-requirement-caching-in-ancestors (menu)
   (do ((parent (sheet-parent menu) (sheet-parent parent)))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sysdcl.lisp,v 1.4 92/02/24 13:09:02 cer Exp Locker: cer $
+;; $fiHeader: sysdcl.lisp,v 1.5 92/02/26 10:23:45 cer Exp $
 
 (in-package #-ANSI-90 "USER" #+ANSI-90 :cl-user)
 
@@ -188,14 +188,19 @@
   ("graphics")
   ("std-sheet")
 
-  ;; "Windshield"
+  ;; "Windshield", aka "DashBoard"
+  ;; First the layout gadgets
   ("layout")
   ("db-layout")
   ("db-box")
   ("db-table")
+
+  ;; Then the "physical" gadgets
   ("gadgets")
+  ("db-border")
   ("db-scroll")
-  ("db-border"))
+  ("db-button")
+  ("db-slider"))
 
 (defsys:defsystem clim-standalone
   (:default-pathname #+Genera "SYS:CLIM;REL-2;CLIM;"
@@ -277,11 +282,11 @@
    :load-before-compile ("presentations"))
   ("ptypes2"
    :load-before-compile ("translators"))
+  (#-Cloe-Runtime "standard-types" #+Cloe-Runtime "std-typs"
+   :load-before-compile ("ptypes2"))
   ("excl-presentations"
    :load-before-compile ("presentations")
    :features Allegro)
-  (#-Cloe-Runtime "standard-types" #+Cloe-Runtime "std-typs"
-   :load-before-compile ("ptypes2"))
 
   ;; Formatted output
   ("table-formatting"
@@ -378,9 +383,9 @@
      :load-before-compile (clim-standalone))
   ("pkgdcl")
   ("genera-port")
+  ("genera-mirror")
   ("genera-medium")
   ("genera-frames")
-  ("genera-mirror")
   ("genera-gadgets")  
   ("genera-activities"))
 
@@ -392,9 +397,9 @@
      :load-before-compile (clim-standalone))
   ("pkgdcl")
   ("clx-port")
+  ("clx-mirror")
   ("clx-medium")
   ("clx-frames")
-  ("clx-mirror")
   ("clx-gadgets"))
 
 
@@ -519,9 +524,9 @@
      :load-before-compile (clim-standalone))
   ("pkgdcl")
   ("ccl-port")
+  ("ccl-mirror")
   ("ccl-medium")
   ("ccl-frames")
-  ("ccl-mirror")
   ("ccl-gadgets")
   ("ccl-menus"))
 
@@ -536,9 +541,9 @@
   ("wheader")
   ("windows")
   ("cloe-port")
+  ("cloe-mirror")
   ("cloe-medium")
   ("cloe-frames")
-  ("cloe-mirror")
   ("cloe-gadgets")
   ("cloe-menus"))
 
@@ -551,9 +556,9 @@
      :load-before-compile (clim-standalone))
   ("pkgdcl")
   ("postscript-port")
+  ("postscript-mirror")
   ("postscript-medium")
   ("postscript-frames")
-  ("postscript-mirror")
   ("postscript-gadgets")
   ("laserwriter-metrics"))
 

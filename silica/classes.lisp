@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: classes.lisp,v 1.4 92/02/24 13:04:22 cer Exp Locker: cer $
+;; $fiHeader: classes.lisp,v 1.5 92/02/26 10:23:16 cer Exp $
 
 (in-package :silica)
 
@@ -29,17 +29,20 @@
      (lock :initform (make-lock "a port lock") :reader port-lock)
      (grafts :initform nil :accessor port-grafts)
      (process :initform nil :accessor port-process)
+     (modifier-state :initform (make-modifier-state)
+		     :reader port-modifier-state)
      (mirror->sheet-table :initform (make-hash-table)
 			  :reader port-mirror->sheet-table)
      (focus :accessor port-keyboard-input-focus :initform nil)
      (trace-thing :initform (make-array 10 :fill-pointer 0 :adjustable t)
 		  :reader port-trace-thing)
-     (media-cache :initform nil :accessor port-media-cache)
+     (medium-cache :initform nil :accessor port-medium-cache)
      (color-cache :initform (make-hash-table) :reader port-color-cache)
-     ;;--- Shouldn't this be POINTER?
-     (port :initform nil :accessor port-pointer)
+     (pointer :initform nil :accessor port-pointer)
+     (cursor :initform nil :accessor port-cursor)
+     (event-resource :initform (make-event-resource) :reader port-event-resource)
      (mapping-table :initform (make-hash-table :test #'equal))
-     (undefined-text-style :initform nil :accessor device-undefined-text-style)
+     (undefined-text-style :initform nil :accessor port-undefined-text-style)
      ;; When this is true, the text style -> device font mapping is done
      ;; loosely.  That is, the actual screen size of the font need not be
      ;; exactly what the user has asked for.  Instead the closest fit is
@@ -53,8 +56,8 @@
        :initform nil :initarg :allow-loose-text-style-size-mapping)))
 
 (defclass sheet ()
-    ((port :initform nil :reader sheet-port)
-     (graft :initform nil :reader sheet-graft)
+    ((port :initform nil :reader port)
+     (graft :initform nil :reader graft)
      (parent :initform nil
 	     :accessor sheet-parent)
      (region :initarg :region
@@ -63,7 +66,7 @@
      (enabledp :initform nil :accessor sheet-enabled-p)))
 
 (defclass medium ()
-    ((port :initarg :port :reader sheet-port)
+    ((port :initarg :port :reader port)
      (sheet :initarg :sheet :initform nil :accessor medium-sheet)
      (foreground :accessor medium-foreground :initform +black+)
      (background :accessor medium-background :initform +white+)

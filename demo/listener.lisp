@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: listener.lisp,v 1.3 92/02/26 10:23:55 cer Exp Locker: cer $
+;; $fiHeader: listener.lisp,v 1.4 92/02/28 09:17:59 cer Exp $
 
 (in-package :clim-demo)
 
@@ -14,10 +14,12 @@
 		     :initial-cursor-visibility :off)
 	   (documentation :pointer-documentation)))
   #+Silica
-  (:pane (scrolling ()
-           (realize-pane 'interactor-pane)))
+  (:pane (outlining ()
+	   (scrolling ()
+	     (realize-pane 'interactor-pane))))
   (:command-table (lisp-listener :inherit-from (user-command-table)))
   (:command-definer t)
+  (:menu-bar nil)
   (:top-level (lisp-listener-top-level)))
 
 (defmethod frame-maintain-presentation-histories ((frame lisp-listener)) t)
@@ -38,21 +40,14 @@
 
 #+Allegro
 (progn
-  (defvar *tpl-current-stack-group* nil
-    ;; The stack-group object corresponding to the stack we are debugging.
-    )
-
-  (defvar *top-top-frame-pointer* nil
-    ;; The newest (possibly invisible) frame at the current break level.
-    )
-
-  (defvar *top-frame-pointer* nil
-    ;; The newest (possibly invisible) frame at the current break level.
-    )
-
-  (defvar *current-frame-pointer* nil
-    ;; Current stack frame pointer.
-    ))
+  ;; The stack-group object corresponding to the stack we are debugging.
+  (defvar *tpl-current-stack-group* nil)
+  ;; The newest (possibly invisible) frame at the current break level.
+  (defvar *top-top-frame-pointer* nil)
+  ;; The newest (possibly invisible) frame at the current break level.
+  (defvar *top-frame-pointer* nil)
+  ;; Current stack frame pointer.
+  (defvar *current-frame-pointer* nil))
 
 (defun lisp-listener-top-level (frame)
   "Run a simple Lisp listener using the window provided."
@@ -73,18 +68,13 @@
 	     (/// nil) (// nil) (/ nil)
 	     (+++ nil) (++ nil) (+ nil)
 	     (- nil)
-	     #+Allegro
-	     (*tpl-current-stack-group* sys::*current-stack-group*)
-	     #+Allegro
-	     (*top-top-frame-pointer*
-	      (debug::newest-frame si::*current-stack-group* :visible-only-p nil))
-	     #+Allegro
-	     (*top-frame-pointer*
-	      (or (db::find-interesting-frame *top-top-frame-pointer*)
-	      *top-top-frame-pointer*))
-	     #+Allegro
-	     (*current-frame-pointer* *top-frame-pointer*)
-	     )
+	     #+Allegro (*tpl-current-stack-group* sys::*current-stack-group*)
+	     #+Allegro (*top-top-frame-pointer*
+			 (debug::newest-frame si::*current-stack-group* :visible-only-p nil))
+	     #+Allegro (*top-frame-pointer*
+			 (or (db::find-interesting-frame *top-top-frame-pointer*)
+			     *top-top-frame-pointer*))
+	     #+Allegro (*current-frame-pointer* *top-frame-pointer*))
 	(with-command-table-keystrokes (keystrokes command-table)
 	  (condition-restart-loop (#+Genera (sys:error sys:abort)
 				   #-Genera (error)
@@ -125,7 +115,7 @@
 		      :stream *standard-input*
 		      :prompt prompt :prompt-mode :raw
 		      :additional-activation-gestures '(#+Genera #\End)))))
-      (when (eql type :keystroke)
+      (when (eq type :keystroke)
 	(let ((command (lookup-keystroke-command-item command-or-form command-table 
 						      :numeric-argument numeric-arg)))
 	  (unless (characterp command)
@@ -135,9 +125,9 @@
 				     :for-accelerator t)))
 	    (setq command-or-form command
 		  type 'command))))
-      (cond ((eql type ':keystroke)
+      (cond ((eq type ':keystroke)
 	     (beep))
-	    ((eql (presentation-type-name type) 'command)
+	    ((eq (presentation-type-name type) 'command)
 	     (terpri)
 	     (let ((*debugger-hook* #'listener-debugger-hook))
 	       (apply (command-name command-or-form)
@@ -171,7 +161,6 @@
     (describe-error *error-output*)
     (lisp-listener-top-level *application-frame*)))
 
-
 (define-presentation-type restart-name ())
 
 (define-presentation-method presentation-typep (object (type restart-name))
@@ -181,35 +170,19 @@
 				     &key)
   (prin1 (restart-name object) stream))
 
-#+nomore
-(define-presentation-translator invoke-restart
-    (restart-name form lisp-listener
-     :documentation ((object stream)
-		     (format stream "Invoke the restart ~S" (restart-name object)))
-     :pointer-documentation "Invoke this restart"
-     :gesture :select)
-    (object)
-  `(invoke-restart ',object))
-
-(define-presentation-to-command-translator
-    invoke-restart
-    (restart com-invoke-restart lisp-listener)
-  (object)
-  (list object))
-
 (define-lisp-listener-command (com-invoke-restart :name t)
-    ((restart 'restart))
+    ((restart 'restart :gesture :select))
   (invoke-restart restart))
 
 (define-lisp-listener-command (com-describe-error :name t)
     ()
-    (describe-error *error-output*))
+  (describe-error *error-output*))
 
 (defun describe-error (stream)
   (when *debugger-condition*
     (with-output-as-presentation (stream *debugger-condition* 'form
-				:single-box t)
-    (format stream "~2&Error: ~A" *debugger-condition*))
+				  :single-box t)
+      (format stream "~2&Error: ~A" *debugger-condition*))
     (let ((restarts *debugger-restarts*))
       (when restarts
 	(let ((actions '(invoke-restart)))
@@ -219,22 +192,22 @@
 	      (when action
 		(pushnew (first action) actions))))
 	  (format stream "~&Use~?to resume~:[~; or abort~] execution:"
-		  "~#[~; ~S~; ~S or ~S~:;~@{~#[~; or~] ~S~^,~}~] "
-		  actions (member 'abort actions)))
+	    "~#[~; ~S~; ~S or ~S~:;~@{~#[~; or~] ~S~^,~}~] "
+	    actions (member 'abort actions)))
 	(fresh-line stream)
 	(let ((i 0))
 	  (formatting-table (stream :x-spacing '(2 :character))
-			    (dolist (restart restarts)
-			      (with-output-as-presentation (stream restart 'restart
-								   :single-box t)
-				(formatting-row (stream)
-						(formatting-cell (stream)
-								 (format stream "~D" i))
-						(formatting-cell (stream)
-								 (format stream "~S" (restart-name restart)))
-						(formatting-cell (stream)
-								 (format stream "~A" restart))))
-			      (incf i)))))))
+	    (dolist (restart restarts)
+	      (with-output-as-presentation (stream restart 'restart
+					    :single-box t)
+		(formatting-row (stream)
+		  (formatting-cell (stream)
+		    (format stream "~D" i))
+		  (formatting-cell (stream)
+		    (format stream "~S" (restart-name restart)))
+		  (formatting-cell (stream)
+		    (format stream "~A" restart))))
+	      (incf i)))))))
   (let ((process (clim-sys:current-process)))
     (when process
       (format stream "~&In process ~A." process)))
@@ -547,8 +520,7 @@
     (when (or (null ll) reinit)
       (setq ll (make-application-frame 'lisp-listener
 				       :parent root
-				       :width 500
-				       :height 500))
+				       :width 500 :height 500))
       (if entry
 	  (setf (cdr entry) ll)
 	  (push (cons root ll) *listeners*)))

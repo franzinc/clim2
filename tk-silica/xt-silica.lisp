@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.7 92/02/24 13:06:30 cer Exp Locker: cer $
+;; $fiHeader: xt-silica.lisp,v 1.8 92/02/26 10:23:28 cer Exp $
 
 (in-package :xm-silica)
 
@@ -28,7 +28,9 @@
     ((application-shell :reader port-application-shell)
      (display :reader port-display)
      (context :reader port-context)     
-     (copy-gc :initform nil))
+     (copy-gc :initform nil)
+     (type :allocation :class 
+	   :initform :xt :reader port-type))
   (:default-initargs :allow-loose-text-style-size-mapping t)
   (:documentation "The port for X intrinsics based ports"))
 
@@ -74,7 +76,7 @@
   "When non NIL and nothing better exists use this as the fallback font")
 
 (defmethod initialize-xlib-port (port display)
-  (setf (device-undefined-text-style port)
+  (setf (port-undefined-text-style port)
 	(standardize-text-style 
 	  port (make-text-style :stand-in-for-undefined-style :roman 10)))
   (flet ((font->text-style (font family)
@@ -106,11 +108,11 @@
 		   (dolist (family *clx-font-families*)
 		     (when (text-style-mapping-exists-p port `(,(car family) :roman 10))
 		       (return (make-text-style (car family) :roman 10)))))
-	     (setf (text-style-mapping port (device-undefined-text-style port)) temp))
+	     (setf (text-style-mapping port (port-undefined-text-style port)) temp))
 	    ;; Perhaps we should look for some other conveniently sized
 	    ;; fonts.
 	    (*clx-fallback-font*
-	     (setf (text-style-mapping port (device-undefined-text-style port))
+	     (setf (text-style-mapping port (port-undefined-text-style port))
 		   (make-instance 'tk::font 
 				  :display display
 				  :name *clx-fallback-font*)))
@@ -239,7 +241,7 @@
 			       :sheet sheet)))))
 	(when clim-event
 	  (distribute-event
-	   (sheet-port sheet)
+	   (port sheet)
 	   clim-event))))))
 
 (defun x-button->silica-button (button)
@@ -255,7 +257,7 @@
   (declare (ignore widget window event))
   (dispatch-event
     sheet
-    (let ((r (mirror-region (sheet-port sheet) sheet)))
+    (let ((r (mirror-region (port sheet) sheet)))
       (make-instance 'window-configuration-event
 		     :native-region r
 		     :region (untransform-region (sheet-native-transformation sheet) r)
@@ -283,7 +285,7 @@
   (ecase (tk::event-type event)
     (:key-press
       (distribute-event
-	(sheet-port sheet)
+	(port sheet)
 	(multiple-value-bind (ignore character keysym)
 	    (tk::lookup-string event)
 	  (declare (ignore ignore))
@@ -295,7 +297,7 @@
 			 :modifiers (x11::xkeyevent-state event)))))
     (:key-release
       (distribute-event
-	(sheet-port sheet)
+	(port sheet)
 	(multiple-value-bind
 	  (ignore character keysym)
 	    (tk::lookup-string event)
@@ -308,7 +310,7 @@
 			 :modifiers (x11::xkeyevent-state event)))))
     (:button-press
       (distribute-event
-	(sheet-port sheet)
+	(port sheet)
 	(make-instance 'pointer-button-press-event
 		       :sheet sheet
 		       :x :??
@@ -320,7 +322,7 @@
 		       :native-y (x11::xbuttonevent-y event))))
     (:button-release
       (distribute-event
-	(sheet-port sheet)
+	(port sheet)
 	(make-instance 'pointer-button-release-event
 		       :sheet sheet
 		       :x :??
@@ -493,7 +495,8 @@
 			 :timeout timeout))
 
 (defmethod port-force-output ((port xt-port))
-  nil)
+  ;;--- move to tk
+  (x11::xflush (tk::display-handle (port-display port))))
 
 (defmethod port-glyph-for-character ((port xt-port)
 				     character text-style 

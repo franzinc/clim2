@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: cl-stream-functions.lisp,v 1.2 92/01/31 15:07:19 cer Exp $
+;; $fiHeader: cl-stream-functions.lisp,v 1.3 92/02/24 13:05:14 cer Exp $
 
 (in-package :clim-utils)
 
@@ -50,7 +50,7 @@
        (eval-when (compile load eval) (proclaim '(inline ,name)))
        (defun ,name (,@required-args &optional stream ,@optional-args)
 	 (cond ((null stream) (setq stream *standard-output*))
-	       ((eql stream t) (setq stream *terminal-io*)))
+	       ((eq stream t) (setq stream *terminal-io*)))
 	 (,method-name stream ,@pass-args))
 
        ;; Define a default method for the generic function that calls back to the
@@ -91,7 +91,7 @@
 				  lambda-list)))
 	 (stream-args (remove 'stream args))
 	 (cleanup `(cond ((null stream) (setq stream *standard-input*))
-			 ((eql stream t) (setq stream *terminal-io*))))
+			 ((eq stream t) (setq stream *terminal-io*))))
 	 (call-method `(,method-name stream ,@stream-args)))
     (when (member (first (last method-lambda-list)) lambda-list-keywords)
       (setf method-lambda-list (butlast method-lambda-list)))
@@ -150,8 +150,7 @@
 		 (return-from peek-char eof-value)))
 	    ((or (null peek-type)
 		 (and (eq peek-type t)
-		      ;; --- Sorry, bad modularity.  Fixed in 2.0 packages
-		      (not (clim-internals::whitespace-char-p ch)))
+		      (not (whitespace-char-p ch)))
 		 (eq peek-type ch))
 	     (return-from peek-char ch))))))
 

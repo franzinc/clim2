@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: dragging-output.lisp,v 1.3 92/01/31 14:57:54 cer Exp $
+;; $fiHeader: dragging-output.lisp,v 1.4 92/02/24 13:07:25 cer Exp $
 
 (in-package :clim-internals)
 
@@ -68,9 +68,9 @@
 	      (setq last-x initial-x last-y initial-y))
 	    (tracking-pointer (stream)
 	      (:pointer-motion (window x y)
-	       (when (eql window stream)
-		 (when (or (not (eql x last-x))
-			   (not (eql y last-y)))
+	       (when (eq window stream)
+		 (when (or (not (eq x last-x))
+			   (not (eq y last-y)))
 		   (when last-x
 		     (if feedback
 			 (funcall feedback output-record stream

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics.lisp,v 1.4 92/02/05 21:45:18 cer Exp $
+;; $fiHeader: graphics.lisp,v 1.5 92/02/24 13:04:38 cer Exp $
 
 (in-package :silica)
 
@@ -203,7 +203,6 @@
 	   (apply #',spread-name 
 		  medium
 		  ,@spread-arguments
-		  ,@keyword-argument-names
 		  args))
 	 (defun ,spread-name (medium ,@spread-argument-names &rest args 
 			      &key ,@drawing-options ,@other-keyword-arguments)
@@ -246,7 +245,7 @@
 			      ((medium-transformation medium)) 
 			      ,seq))
 		       point-sequences-to-transform)
-	     (,port-function-name (sheet-port medium)
+	     (,port-function-name (port medium)
 				  sheet medium
 				  ,@spread-argument-names
 				  ,@keyword-argument-names)))))))
@@ -451,25 +450,25 @@
 
 
 (define-graphics-function draw-text (string-or-char (point point x y)
-				     &key start end
+				     &key (start 0) (end nil)
 					  (align-x :left) (align-y :baseline))
   :points-to-transform (x y)
   :drawing-options :text)
 
 (defmethod stream-glyph-for-character ((medium medium) character text-style
 				       &optional our-font)
-  (port-glyph-for-character (sheet-port medium) character text-style our-font))
+  (port-glyph-for-character (port medium) character text-style our-font))
 
 (defmethod stream-write-string-1 ((medium medium) glyph-buffer 
 				  start end x-font color x y)
-  (port-write-string-1 (sheet-port medium) medium
+  (port-write-string-1 (port medium) medium
 		       glyph-buffer start end x-font color x y))
 
 (defmethod sheet-beep ((x t))
   x)
 
 (defmethod sheet-beep ((x sheet))
-  (port-beep (sheet-port x) x))
+  (port-beep (port x) x))
 
 (defun get-drawing-function-description (name)
   (or (get name 'args)
@@ -523,6 +522,6 @@
 (defmethod copy-area (sheet 
 		      from-left from-top from-right from-bottom
 		      to-left to-top)
-  (port-copy-area (sheet-port sheet) 
+  (port-copy-area (port sheet) 
 		  sheet sheet
 		  from-left from-top from-right from-bottom to-left to-top))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: defresource.lisp,v 1.3 92/01/31 14:57:51 cer Exp $
+;; $fiHeader: defresource.lisp,v 1.4 92/02/24 13:07:22 cer Exp $
 
 (in-package :clim-internals)
 
@@ -183,7 +183,7 @@
       (unless (cdr (os-use-cons object-storage))
 	(error "Can't deallocate object ~S: already deallocated from resource ~S"
 	       object (RD-name RD)))
-      (unless (eql object (os-object object-storage))
+      (unless (eq object (os-object object-storage))
 	(error "Can't deallocate object ~S: not present in resource ~S" object (RD-name RD)))
       (when (RD-deinitializer RD)
 	(funcall (RD-deinitializer RD) (os-object object-storage)))

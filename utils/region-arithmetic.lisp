@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: region-arithmetic.lisp,v 1.2 92/01/31 14:52:51 cer Exp $
+;; $fiHeader: region-arithmetic.lisp,v 1.3 92/02/24 13:05:55 cer Exp $
 
 (in-package :clim-utils)
 
@@ -512,7 +512,7 @@
   (every #'region-empty-p (rectangle-set-rectangles set)))
 
 (defmethod normalize-rectangles ((set standard-rectangle-set) banding)
-  (unless (eql banding :x-banding) (nyi))
+  (unless (eq banding :x-banding) (nyi))
   (labels ((collect-rectangles (region)
 	     (etypecase region
 	       (standard-rectangle-set

@@ -1,25 +1,10 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;;
-;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
-;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
-;;
-;; The software, data and information contained herein are proprietary
-;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
-;; given in confidence by Franz, Inc. pursuant to a written license
-;; agreement, and may be stored and used only in accordance with the terms
-;; of such license.
-;;
-;; Restricted Rights Legend
-;; ------------------------
-;; Use, duplication, and disclosure of the software, data and information
-;; contained herein by any agency, department or entity of the U.S.
-;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
-;;
-;; $fiHeader: db-scroll.lisp,v 1.4 92/02/05 21:45:14 cer Exp $
+;; $fiHeader: db-scroll.lisp,v 1.5 92/02/24 13:04:29 cer Exp $
+
+"Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
+ Portions copyright(c) 1991, 1992 International Lisp Associates.
+ Portions copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
 
 (in-package :silica)
 
@@ -186,9 +171,9 @@
 	    ((ltrb-overlaps-ltrb-p left top right bottom
 				   nleft ntop nright nbottom)
 	     ;; move the old stuff to the new position
-	     (clim-internals::window-shift-visible-region stream 
-							  left top right bottom
-							  nleft ntop nright nbottom)
+	     (window-shift-visible-region stream 
+					  left top right bottom
+					  nleft ntop nright nbottom)
 	     (let ((rectangles (ltrb-difference nleft ntop nright nbottom
 						left top right bottom)))
 	       (dolist (region rectangles)
@@ -246,45 +231,47 @@
       (let ((inferiors
 	      (ecase orientation
 		(:vertical
-		  (vertically ()
-		    (setq min-target-pane
-			  (realize-pane 'scroll-bar-target-pane
-					:scroll-bar pane
-					:end :less-than
-					:width shaft-thickness
-					:height shaft-thickness))
-		    (setq shaft-pane 
-			  (realize-pane 'scroll-bar-shaft-pane 
-					:scroll-bar pane
-					:width shaft-thickness
-					:height 0
-					:max-height +fill+))
-		    (setq max-target-pane
-			  (realize-pane 'scroll-bar-target-pane
-					:scroll-bar pane
-					:end :greater-than
-					:width shaft-thickness
-					:height shaft-thickness))))
+		  (spacing (:thickness 1)
+		    (vertically ()
+		      (setq min-target-pane
+			    (realize-pane 'scroll-bar-target-pane
+					  :scroll-bar pane
+					  :end :less-than
+					  :width shaft-thickness
+					  :height shaft-thickness))
+		      (setq shaft-pane 
+			    (realize-pane 'scroll-bar-shaft-pane 
+					  :scroll-bar pane
+					  :width shaft-thickness
+					  :height 0
+					  :max-height +fill+))
+		      (setq max-target-pane
+			    (realize-pane 'scroll-bar-target-pane
+					  :scroll-bar pane
+					  :end :greater-than
+					  :width shaft-thickness
+					  :height shaft-thickness)))))
 		(:horizontal
-		  (horizontally ()
-		    (setq min-target-pane
-			  (realize-pane 'scroll-bar-target-pane
-					:scroll-bar pane
-					:end :less-than
-					:width shaft-thickness
-					:height shaft-thickness))
-		    (setq shaft-pane 
-			  (realize-pane 'scroll-bar-shaft-pane
-					:scroll-bar pane
-					:width 0
-					:max-width +fill+
-					:height shaft-thickness))
-		    (setq max-target-pane
-			  (realize-pane 'scroll-bar-target-pane
-					:scroll-bar pane
-					:end :greater-than
-					:width shaft-thickness
-					:height shaft-thickness)))))))
+		  (spacing (:thickness 1)
+		    (horizontally ()
+		      (setq min-target-pane
+			    (realize-pane 'scroll-bar-target-pane
+					  :scroll-bar pane
+					  :end :less-than
+					  :width shaft-thickness
+					  :height shaft-thickness))
+		      (setq shaft-pane 
+			    (realize-pane 'scroll-bar-shaft-pane
+					  :scroll-bar pane
+					  :width 0
+					  :max-width +fill+
+					  :height shaft-thickness))
+		      (setq max-target-pane
+			    (realize-pane 'scroll-bar-target-pane
+					  :scroll-bar pane
+					  :end :greater-than
+					  :width shaft-thickness
+					  :height shaft-thickness))))))))
 	(sheet-adopt-child pane inferiors)))))
 
 (defmethod change-scrollbar-values ((scrollbar scroll-bar-pane) &rest args 
@@ -404,7 +391,7 @@
   (let ((needs-erase (slot-value pane 'needs-erase)))
     (setf (slot-value pane 'needs-erase) (not (eq ink +background-ink+)))
     (when (and (not needs-erase)
-	       (eql ink +background-ink+))
+	       (eq ink +background-ink+))
       (return-from draw-thumb (values))))
   (let* ((scroll-bar (slot-value pane 'scroll-bar))
 	 (current-value (gadget-value scroll-bar))
@@ -502,19 +489,30 @@
 	   (:horizontal
 	     (update-scroll-bar-value pane scroll-bar x minx maxx))))))))
 
+(defmethod handle-event ((pane scroll-bar-shaft-pane) (event pointer-enter-event))
+  ;;--- Change the mouse cursor
+  )
+
+(defmethod handle-event ((pane scroll-bar-shaft-pane) (event pointer-exit-event))
+  ;;--- Change the mouse cursor
+  )
+
 (defmethod update-scroll-bar-value ((pane scroll-bar-shaft-pane) scroll-bar coord min max)
   (let* ((max-value #---ignore 100 #+++ignore (slot-value scroll-bar 'max-value))
 	 (min-value #---ignore   0 #+++ignore (slot-value scroll-bar 'min-value))
 	 (value (compute-symmetric-value min max coord min-value max-value)))
     (setf (gadget-value scroll-bar) value)))
 
-;;--- This should really be an :AROUND method...
-(defmethod (setf gadget-value) #+++ignore :around (new-value (pane scroll-bar-pane)
-					#+++ignore &key #+++ignore (call-callbacks t))
-  (declare (ignore new-value call-callbacks))
-  (let ((shaft (slot-value pane 'shaft-pane)))
-    (with-sheet-medium (medium shaft)
-      ;; erase old indicator, draw new
-      (draw-thumb shaft medium :ink +background-ink+)
-      #+++ignore (call-next-method)
-      (draw-thumb shaft medium))))
+(defmethod (setf gadget-value) (nv (pane scroll-bar-pane))
+  (with-slots (value) pane
+    (setf value nv)))
+
+(defmethod (setf gadget-value) :around (nv (pane scroll-bar-pane))
+  (declare (ignore nv))
+  (if (port pane)
+      (let ((shaft (slot-value pane 'shaft-pane)))
+	(with-sheet-medium (medium pane)
+	  (draw-thumb shaft medium :ink +background-ink+)
+	  (call-next-method)
+	  (draw-thumb shaft medium :ink +foreground-ink+)))
+      (call-next-method)))

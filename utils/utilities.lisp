@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: utilities.lisp,v 1.2 92/01/31 14:52:58 cer Exp $
+;; $fiHeader: utilities.lisp,v 1.3 92/02/24 13:06:01 cer Exp $
 
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
@@ -128,8 +128,7 @@
 			   (collect (if (consp var) (car var) var))))))
 	(protocol-var (first (find-if #'(lambda (lambda-var)
 					  (and (consp lambda-var)
-					       (eql (second lambda-var)
-						    protocol-name)))
+					       (eq (second lambda-var) protocol-name)))
 				      lambda-list))))
     `(defmethod ,name ,lambda-list
 		#+Genera (declare 

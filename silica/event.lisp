@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: event.lisp,v 1.5 92/02/24 13:04:33 cer Exp Locker: cer $
+;; $fiHeader: event.lisp,v 1.6 92/02/26 10:23:17 cer Exp $
 
 (in-package :silica)
 
@@ -54,8 +54,8 @@
   '(or shift-keysym control-keysym meta-keysym super-keysym
     hyper-keysym lock-keysym))
 
-(defun-inline state->shift-mask (state)
-  ;; Get just the shift-mask part of state
+(defun-inline state->modifier-state (state)
+  ;; Get just the modifier-state part of state
   (logand state #xFF))
 
 (defconstant +pointer-left-button+   (ash 1 8))
@@ -78,7 +78,7 @@
 	  b m `(and ,@clauses)))))
 
 (defun compile-kbms-clauses (button modifier clause)
-  (if (atomp clause)
+  (if (atom clause)
       (ecase clause
 	(:left `(= ,button +pointer-left-button+))
 	(:right `(= ,button +pointer-right-button+))
@@ -108,7 +108,7 @@
 	  (cerror "Assume :LEFT and go on."
 		  "Gesture spec missing a keysym: ~S" gesture-spec)
 	  (setq button ':left))
-	(cons button (apply #'make-shift-mask (delete button gesture-spec))))))
+	(cons button (apply #'make-modifier-state (delete button gesture-spec))))))
 
 (defvar symbolic->mask `(:left    ,+pointer-left-button+
 			 :right   ,+pointer-right-button+
@@ -313,9 +313,6 @@
 
 ;;; This code does not deal with cases (2) and (3) correctly.
 ;;; It will fail to generate enter/exit events for cases
-
-
-
 (defun generate-crossing-events (port sheet x y modifiers button)
   (macrolet ((generate-enter-event (sheet)
 	       `(let ((sheet ,sheet))
@@ -339,7 +336,6 @@
 				   :modifiers modifiers)))))
     (let ((v (port-trace-thing port)))
       ;; Pop up the stack of sheets
-      ;;(print "going up")
       (unless (zerop (fill-pointer v))
 	(let ((m (if (eq (aref v 0) sheet)
 		     (let ((new-x x)
@@ -347,8 +343,7 @@
 		       (dotimes (i (fill-pointer v) (fill-pointer v))
 			 (unless (zerop i)
 			   (multiple-value-setq (new-x new-y)
-			     (map-sheet-point*-to-child 
-			       (aref v i) new-x new-y)))
+			     (map-sheet-point*-to-child (aref v i) new-x new-y)))
 			 (unless (region-contains-point*-p 
 				   (sheet-region (aref v i)) new-x new-y)
 			   (return i))))
@@ -359,23 +354,14 @@
 	    (unless (zerop i)
 	      (generate-enter-event (aref v (1- i)))))
 	  (setf (fill-pointer v) m)))
-      
       ;; If its empty initialize it
-
-      ;;(print "maybe going deeper")
-      
-      (when (region-contains-point*-p
-	     (sheet-region sheet) x y)
-	;;(print (cons "going deeper" v))
-	
+      (when (region-contains-point*-p (sheet-region sheet) x y)
 	(when (zerop (fill-pointer v))
 	  (vector-push-extend sheet v)
 	  (generate-enter-event sheet))
-	;; We have to get the sheets into the correct coordinate
-	;; space
+	;; We have to get the sheets into the correct coordinate space
 	(loop for i from (1+ (position sheet v)) below (fill-pointer v)
-	    do (multiple-value-setq
-		   (x y)
+	    do (multiple-value-setq (x y)
 		 (map-sheet-point*-to-child (aref v i) x y)))
 	;; Add children
 	(let ((new-x x)
@@ -383,9 +369,11 @@
 	      (sheet (aref v (1- (fill-pointer v))))
 	      child)
 	  (loop
-	    (unless (typep sheet 'sheet-parent-mixin) (return nil))
+	    (unless (typep sheet 'sheet-parent-mixin) 
+	      (return nil))
 	    (setq child (child-containing-point* sheet new-x new-y))
-	    (unless child (return nil))
+	    (unless child
+	      (return nil))
 	    (generate-exit-event sheet)
 	    (generate-enter-event child)
 	    (multiple-value-setq (new-x new-y)
@@ -403,8 +391,7 @@
   (let ((sheet (let ((v (port-trace-thing port)))
 		 (and (not (zerop (fill-pointer v)))
 		      (aref v (1- (fill-pointer v)))))))
-    ;;(print sheet)
-    (when (and sheet (sheet-port sheet))
+    (when (and sheet (port sheet))
       (multiple-value-bind (tx ty)
 	  (untransform-point*
 	    (sheet-device-transformation sheet) x y)
@@ -463,3 +450,90 @@
 			     timeout)
   (process-wait-with-timeout wait-reason timeout waiter) 
   (values))
+
+
+;;; Event resources
+
+(defvar *resourced-events* nil)
+
+#-CCL-2
+(defmacro define-event-initializer (event-type nevents)
+  (let* ((slots (clos:class-slots (find-class event-type)))
+	 (slot-names (mapcar #'clos:slot-definition-name slots)))
+    `(progn
+       (defmethod initialize-event ((event ,event-type) &key ,@slot-names)
+	 ,@(mapcar #'(lambda (slot)
+		       `(setf (slot-value event ',slot) ,slot))
+		   slot-names))
+       (let ((old (assoc ',event-type *resourced-events*)))
+	 (if old
+	     (setf (second old) ,nevents)
+	     (setq *resourced-events* 
+		   (append *resourced-events* (list (list ',event-type ,nevents)))))))))
+
+#+CCL-2
+(defmacro define-event-initializer (event-type nevents)
+  (let* ((slots (ccl:class-slots (find-class event-type)))
+	 (slot-names (mapcar #'ccl:slot-definition-name slots)))
+    `(progn
+       (defmethod initialize-event ((event ,event-type) &key ,@slot-names)
+	 ,@(mapcar #'(lambda (slot)
+		       `(setf (slot-value event ',slot) ,slot))
+		   slot-names))
+       (let ((old (assoc ',event-type *resourced-events*)))
+	 (if old
+	     (setf (second old) ,nevents)
+	     (setq *resourced-events* 
+		   (append *resourced-events* (list (list ',event-type ,nevents)))))))))
+
+(define-event-initializer pointer-motion-event 20)
+(define-event-initializer pointer-enter-event 30)
+(define-event-initializer pointer-exit-event 30)
+(define-event-initializer pointer-button-press-event 10)
+(define-event-initializer pointer-button-release-event 10)
+(define-event-initializer key-press-event 10)
+(define-event-initializer key-release-event 10)
+(define-event-initializer window-configuration-event 10)
+(define-event-initializer window-repaint-event 20)
+
+(defun make-event-resource ()
+  (flet ((make-event-resource-1 (type n)
+	   (let ((resource (make-list n)))
+	     (do ((r resource (cdr r)))
+		 ((null r))
+	       (setf (car r) (make-instance type)))
+	     (setf (cdr (last resource)) resource)
+	     (cons type resource))))
+    (declare (dynamic-extent #'make-event-resource-1))
+    (loop for (type n) in *resourced-events*
+	  collect (make-event-resource-1 type n))))
+
+(defmethod allocate-event ((port port) event-type &rest initargs)
+  (declare (dynamic-extent initargs))
+  (let* ((resource (assoc event-type (port-event-resource port)))
+	 (event (and resource (pop (cdr resource)))))
+    ;;--- It's too bad INITIALIZE-EVENT is so slow, although maybe on
+    ;;--- non-Genera platforms it compares favorably with MAKE-INSTANCE
+    (cond (event
+	   (apply #'initialize-event event initargs)
+	   event)
+	  (t
+	   (apply #'make-instance event-type initargs)))))
+
+#-CCL-2
+(defun copy-event (event)
+  (let* ((class (class-of event))
+	 (copy (allocate-instance class)))
+    (dolist (slot (clos:class-slots class))
+      (let ((name (clos:slot-definition-name slot)))
+	(setf (slot-value copy name) (slot-value event name))))
+    copy))
+
+#+CCL-2
+(defun copy-event (event)
+  (let* ((class (class-of event))
+	 (copy (allocate-instance class)))
+    (dolist (slot (ccl:class-slots class))
+      (let ((name (ccl:slot-definition-name slot)))
+	(setf (slot-value copy name) (slot-value event name))))
+    copy))

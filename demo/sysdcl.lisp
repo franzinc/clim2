@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sysdcl.lisp,v 1.3 92/02/24 13:31:03 cer Exp Locker: cer $
+;; $fiHeader: sysdcl.lisp,v 1.1 92/01/31 14:32:11 cer Exp $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :common-lisp-user)
 
@@ -26,20 +26,25 @@
 
   ("packages")
   ("aaai-demo-driver" :load-before-compile ("packages"))
+  ("listener"       :load-before-compile ("aaai-demo-driver" "packages"))
   ("graphics-demos" :load-before-compile ("aaai-demo-driver" "packages")
 		    :features (not Minima))
-  ("listener"       :load-before-compile ("aaai-demo-driver" "packages"))
-;  ("cad-demo"	    :load-before-compile ("aaai-demo-driver" "packages")
-;		    :features (not Minima))
-;  ("navdata"	    :load-before-compile ("packages")
-;		    :features (not Minima))
-;  ("navfun"         :load-before-compile ("aaai-demo-driver" "navdata" "packages")
-;		    :features (not Minima))
-;  ("puzzle"         :load-before-compile ("aaai-demo-driver" "packages"))
-;  ("address-book"   :load-before-compile ("aaai-demo-driver" "packages"))
-;  ("thinkadot"      :load-before-compile ("aaai-demo-driver" "packages"))
-;  ("demo-prefill" :features (or Genera Cloe-Runtime))
-  )
+  #+++when-converted
+  ("cad-demo"	    :load-before-compile ("aaai-demo-driver" "packages")
+		    :features (not Minima))
+  #+++when-converted
+  ("navdata"	    :load-before-compile ("packages")
+		    :features (not Minima))
+  #+++when-converted
+  ("navfun"         :load-before-compile ("aaai-demo-driver" "navdata" "packages")
+		    :features (not Minima))
+  #+++when-converted
+  ("puzzle"         :load-before-compile ("aaai-demo-driver" "packages"))
+  #+++when-converted
+  ("address-book"   :load-before-compile ("aaai-demo-driver" "packages"))
+  #+++when-converted
+  ("thinkadot"      :load-before-compile ("aaai-demo-driver" "packages"))
+  ("demo-prefill" :features (and (not Silica) (or Genera Cloe-Runtime))))
 
 #+Genera
 (defsys:import-into-sct 'clim-demo 

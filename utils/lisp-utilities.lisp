@@ -1,6 +1,6 @@
  ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: lisp-utilities.lisp,v 1.3 92/02/16 20:55:13 cer Exp $
+;; $fiHeader: lisp-utilities.lisp,v 1.4 92/02/24 13:05:40 cer Exp $
 
 (in-package :clim-utils)
 
@@ -25,10 +25,10 @@
 
 (deftype coordinate () 
   #-Silica 'fixnum
-  ;;--- Turn this into 'SINGLE-FLOAT
+  ;;--- Turn this into 'SINGLE-FLOAT after debugging the type declarations
   #+Silica 't)
 
-;;--- Should this use FLOAT or ROUND
+;;--- Should this use FLOOR, CEILING, or ROUND?
 (defmacro integerize-single-float-coordinate (coord)
   `(the fixnum (values (floor (+ (the single-float ,coord) .5f0)))))
 
@@ -93,6 +93,21 @@
 (deftype extended-char ()
   #+(or Minima CCL-2) 'character
   #-(or Minima CCL-2) 'string-char)
+
+;;; Characters that are ordinary text rather than potential input editor commands.
+;;; Note that GRAPHIC-CHAR-P is true of #\Space
+(defun ordinary-char-p (char)
+  (and #+Allegro (zerop (char-bits char))
+       (or (graphic-char-p char)
+	   ;; For characters, CHAR= and EQL are the same.  Not true of EQ!
+	   (eql char #\Newline)
+	   (eql char #\Return)
+	   (eql char #\Tab))))
+
+(defun whitespace-char-p (char)
+  (and (characterp char)
+       (or (char-equal char #\Space)
+	   (eql char #\Tab))))
 
 ;;; Make sure we don't get screwed by environments like Coral's that
 ;;; have *print-case* set to :downcase by default.
@@ -468,8 +483,8 @@
      ,@body))
 
 (defun evacuate-list (list)
-  ;; --- Dunno if this is the right function to be calling
-  ;; --- but it seems to give the right answers.
+  ;;--- Dunno if this is the right function to be calling
+  ;;--- but it seems to give the right answers.
   (cond ((and (ccl::stack-area-endptr list)
               (listp list))
          (copy-list list))
@@ -931,14 +946,14 @@
 
 #+Genera
 (defmacro defun-property ((property symbol indicator) lambda-list &body body)
-  (unless (eql property :property)
+  (unless (eq property :property)
     (warn "Using ~S to define a function named ~S, which is not a property"
 	  'defun-property (list property symbol indicator)))
   `(zl:::scl:defun (:property ,symbol ,indicator) ,lambda-list ,@body))
 
 #-Genera
 (defmacro defun-property ((property symbol indicator) lambda-list &body body)
-  (unless (eql property :property)
+  (unless (eq property :property)
     (warn "Using ~S to define a function named ~S, which is not a property"
 	  'defun-property (list property symbol indicator)))
   (let ((function-name (make-symbol (lisp:format nil "~A-~A-PROPERTY" symbol indicator))))
@@ -1299,7 +1314,7 @@
 ;;; In Lucid 4.0 this produces spurious wrong number of arguments warnings for the calls
 ;;; to FIND-CLASS.  There is no run-time error, it really does accept three arguments.
 (defun find-class-that-works (name &optional (errorp t) environment)
-  #+ccl-2 (when (eql environment 'compile-file)
+  #+ccl-2 (when (eq environment 'compile-file)
             (setq environment ccl::*fcomp-compilation-environment*))
   #+Allegro (let ((environment (compile-file-environment-p environment)))
 	      (if environment

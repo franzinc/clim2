@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: histories.lisp,v 1.2 92/01/31 14:58:05 cer Exp $
+;; $fiHeader: histories.lisp,v 1.3 92/02/24 13:07:47 cer Exp $
 
 (in-package :clim-internals)
 
@@ -191,7 +191,7 @@
 	(let ((other (history-element history index)))
 	  (when (null other)
 	    (return-from history-note-element-yanked nil))
-	  (when (eql element other)
+	  (when (eq element other)
 	    (return-from history-note-element-yanked (setq yank-position index))))
 	(incf index)))))
 
@@ -206,7 +206,7 @@
       ;; Save space: don't push the new element on top if it is equal
       ;; to the element currently on top
       (unless (history-elements-equal history element (history-top-element history))
-	(cond ((eql current-length maximum-length)
+	(cond ((eq current-length maximum-length)
 	       (let ((cons (last elements)))
 		 (setf (car cons) element)
 		 (setf (cdr cons) (nbutlast elements))
@@ -396,7 +396,7 @@
 
 (defmethod unparse-presentation-history-element ((history presentation-history) element
 						 &key (view +textual-view+))
-  (or (and (eql view (presentation-history-element-view element))
+  (or (and (eq view (presentation-history-element-view element))
 	   (presentation-history-element-string element))
       (let ((string
 	      (present-to-string (presentation-history-element-object element)

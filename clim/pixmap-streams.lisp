@@ -21,7 +21,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: pixmap-streams.lisp,v 1.1 92/02/08 15:00:46 cer Exp $
+;; $fiHeader: pixmap-streams.lisp,v 1.2 92/02/24 13:08:10 cer Exp $
 
 (in-package :clim-internals)
 
@@ -48,7 +48,7 @@
 							      pixmap
 							      width height)
   (setf (sheet-direct-mirror stream) pixmap
-	(sheet-port stream) port
+	(port stream) port
 	(sheet-transformation stream) +identity-transformation+
 	(sheet-region stream) (make-bounding-rectangle 0 0 width
 						       height)))
@@ -71,7 +71,7 @@
 
 
 (defmethod allocate-pixmap (sheet width height)
-  (port-allocate-pixmap (sheet-port sheet) sheet width height))
+  (port-allocate-pixmap (port sheet) sheet width height))
 
 (defmethod allocate-pixmap-stream (sheet pixmap width height)
   (make-instance 'pixmap-stream 
@@ -79,12 +79,12 @@
 		 :pixmap pixmap 
 		 :width width
 		 :height height
-		 :port (sheet-port sheet)))
+		 :port (port sheet)))
 
 (defun copy-from-pixmap (pixmap pixmap-x pixmap-y width height
 			 stream window-x window-y)
   (port-copy-from-pixmap
-   (sheet-port stream)
+   (port stream)
    pixmap pixmap-x pixmap-y width height stream window-x window-y))
 
 (defun copy-to-pixmap (stream
@@ -92,7 +92,7 @@
 		       &optional pixmap (pixmap-x 0) (pixmap-y 0))
   (unless pixmap
     (setf pixmap (allocate-pixmap stream width height)))
-  (port-copy-to-pixmap (sheet-port stream)
+  (port-copy-to-pixmap (port stream)
 		       stream
 		       window-x window-y width height
 		       pixmap pixmap-x pixmap-y)

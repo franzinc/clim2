@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: stream-defprotocols.lisp,v 1.3 92/01/31 14:58:47 cer Exp $
+;; $fiHeader: stream-defprotocols.lisp,v 1.4 92/02/24 13:08:31 cer Exp $
 
 (in-package :clim-internals)
 
@@ -464,12 +464,6 @@
 
 ;;; Graphics protocol is in defs-graphics-generics
 ;;; Input editing stream protocol doesn't need to be encapsulated, for obvious reasons.
-
-;;; "Implementation" protocol
-(define-stream-protocol implementation-protocol)
-
-(defoperation implementation-pixels-per-point implementation-protocol
-  ((stream implementation-protocol)))
 
 
 #+Silica (progn

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: menus.lisp,v 1.11 92/02/24 13:08:05 cer Exp Locker: cer $
+;; $fiHeader: menus.lisp,v 1.12 92/02/26 10:23:38 cer Exp $
 
 (in-package :clim-internals)
 
@@ -14,9 +14,10 @@
   (menu)
   (:pane
     (with-slots (menu) *application-frame*
-      (scrolling ()
-	(setq menu (realize-pane 'clim-stream-pane
-				 :initial-cursor-visibility nil)))))
+      (outlining ()
+	(scrolling ()
+	  (setq menu (realize-pane 'clim-stream-pane
+				   :initial-cursor-visibility nil))))))
   (:menu-bar nil))
 
 (defmethod frame-calling-frame ((frame menu-frame))
@@ -56,11 +57,11 @@
   :deinitializer (progn (setf (window-visibility menu) nil)
 			(window-clear menu)
 			#-Silica (setf (window-label menu) nil))
-  :matcher (eql (window-parent menu) root))
+  :matcher (eq (window-parent menu) root))
 
 #+Silica
 (defresource menu (associated-window root)
-  :constructor (let* ((port (if (null root) (find-port) (sheet-port root)))
+  :constructor (let* ((port (if (null root) (find-port) (port root)))
 		      (server-path (port-server-path port)))
 		 (get-menu :server-path server-path))
   :deinitializer (window-clear menu)
@@ -71,9 +72,9 @@
   ;; Setting the size is also unnecessary.  Any application that's formatting
   ;; into a menu is required to use with-end-of-line-action and with-end-of-page-action
   ;; or set the size first itself.
-  :initializer (initialize-menu (sheet-port menu) menu associated-window)
+  :initializer (initialize-menu (port menu) menu associated-window)
   ;; horrible kludge in the case where no associated window is passed in.
-  :matcher (eql (sheet-port menu) (sheet-port root)))
+  :matcher (eq (port menu) (port root)))
 
 #-Silica 
 ;; no window-mixin
@@ -114,7 +115,7 @@
 (defun size-menu-appropriately (menu &key width height (right-margin 10) (bottom-margin 10))
   (with-slots (output-record) menu
     (with-bounding-rectangle* (minx miny maxx maxy) output-record
-      (let* ((graft (sheet-graft menu))
+      (let* ((graft (graft menu))
 	     (gw (bounding-rectangle-width (sheet-region graft)))
 	     (gh (bounding-rectangle-height (sheet-region graft)))
 	     (width (min gw (+ (- maxx minx) right-margin)))
@@ -153,7 +154,7 @@
 #+Silica
 (defun position-window-near-pointer (window &optional x y)
   (unless (and x y)
-    (multiple-value-setq (x y) #+++ignore (poll-pointer (sheet-graft window))
+    (multiple-value-setq (x y) #+++ignore (poll-pointer (graft window))
 			       #---ignore (values 100 100)))
   (position-window-near-carefully window x y))
 
@@ -196,20 +197,20 @@
 	      (make-hash-table :test #'equal)))
 
 (defun get-from-output-history-cache (unique-id id-test)
-  (let ((table (cond ((or (eql id-test 'eql)
-			  (eql id-test (load-time-value #'eql)))
+  (let ((table (cond ((or (eq id-test 'eql)
+			  (eq id-test (load-time-value #'eql)))
 		      (car *menu-choose-output-history-caches*))
-		     ((or (eql id-test 'equal)
-			  (eql id-test (load-time-value #'equal)))
+		     ((or (eq id-test 'equal)
+			  (eq id-test (load-time-value #'equal)))
 		      (cdr *menu-choose-output-history-caches*)))))
   (gethash unique-id table)))
 
 (defun set-output-history-cache (unique-id id-test new-value)
-  (let ((table (cond ((or (eql id-test 'eql)
-			  (eql id-test (load-time-value #'eql)))
+  (let ((table (cond ((or (eq id-test 'eql)
+			  (eq id-test (load-time-value #'eql)))
 		      (car *menu-choose-output-history-caches*))
-		     ((or (eql id-test 'equal)
-			  (eql id-test (load-time-value #'equal)))
+		     ((or (eq id-test 'equal)
+			  (eq id-test (load-time-value #'equal)))
 		      (cdr *menu-choose-output-history-caches*)))))
     (setf (gethash unique-id table) new-value)))
 
@@ -246,7 +247,7 @@
 						   :single-box T)
 		       (formatting-cell (menu :align-x cell-align-x :align-y cell-align-y)
 			 (funcall item-printer item menu)))))
-	       (when (and default-item (eql item default-item))
+	       (when (and default-item (eq item default-item))
 		 (setf default-presentation presentation)))))
       (declare (dynamic-extent #'format-item))
     (map nil #'format-item items)))
@@ -296,7 +297,7 @@
 		   x-spacing y-spacing cell-align-x cell-align-y
 		   pointer-documentation))
   (declare (dynamic-extent keys))
-  (apply #'port-menu-choose (sheet-port associated-window) items keys))
+  (apply #'port-menu-choose (port associated-window) items keys))
 
 ;; Specific ports can put :AROUND methods on this in order to use their own
 ;; kinds of menus.
@@ -399,7 +400,6 @@
 	 (*input-wait-test* nil)
 	 (*input-wait-handler* nil)
 	 (*pointer-button-press-handler* nil)
-	 (*generate-button-release-events* nil)
 	 (*numeric-argument* nil)
 	 (*delimiter-gestures* nil)
 	 (*activation-gestures* nil)
@@ -628,7 +628,7 @@
   (with-slots (name menu-contents items default-presentation root-window)
 	      static-menu
     (let ((this-root (window-root associated-window)))
-      (when (or (not (eql this-root root-window))
+      (when (or (not (eq this-root root-window))
 		(null menu-contents))
 	;; If the root for the static menu is not the current root or the static
 	;; menu has never been filled in, then we have to recompute its contents.

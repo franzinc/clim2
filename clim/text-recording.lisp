@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: text-recording.lisp,v 1.1 92/01/31 16:22:15 cer Exp $
+;; $fiHeader: text-recording.lisp,v 1.1 92/02/24 13:18:29 cer Exp $
 
 (in-package :clim-internals)
 
@@ -73,7 +73,7 @@
 	 (start 0)
 	 (end (length string))
 	 (text-style (medium-default-text-style stream))
-	 #+Silica (port (sheet-port stream))
+	 #+Silica (port (port stream))
 	 (baseline (- (text-style-height text-style #-Silica stream #+Silica port)
 		      (text-style-descent text-style #-Silica stream #+Silica port)))
 	 (glyph-buffer (stream-output-glyph-buffer stream))
@@ -305,7 +305,7 @@
 	       text-style-changes baseline) record
     (let* ((string (slot-value record 'string))
 	   (fill-pointer (fill-pointer string)))
-      (unless (eql style current-text-style)
+      (unless (eq style current-text-style)
 	(if (null initial-text-style)
 	    (setf initial-text-style style)
 	    (let ((change-record (cons style fill-pointer)))
@@ -335,8 +335,8 @@
 	;; The old extent is a copy of MATCH's bounding rectangle
 	(setf (output-record-old-bounding-rectangle text) (bounding-rectangle match))
 	(when (and (bounding-rectangle-size-equal match text)
-		   (eql wrapped-p (slot-value match 'wrapped-p))
-		   (eql (class-of text) (class-of match)))
+		   (eq wrapped-p (slot-value match 'wrapped-p))
+		   (eq (class-of text) (class-of match)))
 	  (setf (output-record-contents-ok text) t)
 	  ;; make sure that old bounding-rect is the same relative position from
 	  ;; old-start-position as the bounding-rect is from start-position
@@ -368,12 +368,12 @@
 	(setf (output-record-old-bounding-rectangle text) (bounding-rectangle match))
 	;; --- maybe make a method out of this to get efficient slot access?
 	(when (and (bounding-rectangle-size-equal match text)
-		   (eql wrapped-p (slot-value match 'wrapped-p))
-		   (eql (class-of text) (class-of match))
-		   (eql initial-text-style
-			(slot-value match 'initial-text-style))
-		   (eql current-text-style
-			(slot-value match 'current-text-style))
+		   (eq wrapped-p (slot-value match 'wrapped-p))
+		   (eq (class-of text) (class-of match))
+		   (eq initial-text-style
+		       (slot-value match 'initial-text-style))
+		   (eq current-text-style
+		       (slot-value match 'current-text-style))
 		   (equal text-style-changes
 			  (slot-value match 'text-style-changes)))
 	  (setf (output-record-contents-ok text) t)
@@ -399,7 +399,7 @@
   ;; the first baseline but more likely to look good with misaligned things.
   (let ((baseline 0)
 	(style (medium-default-text-style stream))
-	#+Silica (port (sheet-port stream)))
+	#+Silica (port (port stream)))
     (declare (type coordinate baseline))
     (labels ((find-or-recurse (record y-offset)
 	       (declare (type coordinate y-offset))
@@ -427,7 +427,7 @@
 (defmethod stylize-text-output-record ((record standard-text-output-record) style stream)
   (with-slots (ink string wrapped-p left top right bottom
 	       start-x start-y end-x end-y) record
-    (let* (#+Silica (port (sheet-port stream))
+    (let* (#+Silica (port (port stream))
 	   (new-record (make-styled-text-output-record-1
 			 ink string wrapped-p
 			 style (- (text-style-height style #-Silica stream #+Silica port)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: incremental-redisplay.lisp,v 1.2 92/01/31 14:58:08 cer Exp $
+;; $fiHeader: incremental-redisplay.lisp,v 1.3 92/02/24 13:07:49 cer Exp $
 
 (in-package :clim-internals)
 
@@ -134,7 +134,7 @@
    (apply #'find-inferior-output-record
 	  record
 	  (and (not (output-record-contents-ok record))
-	       (= (output-record-generation-tick record) *generation-tick*))
+	       (eql (output-record-generation-tick record) *generation-tick*))
 	  record-type
 	  init-args))
 
@@ -142,14 +142,14 @@
   (decache-inferior-output-record
     record child
     (and (not (output-record-contents-ok record))
-	 (= (output-record-generation-tick record) *generation-tick*))))
+	 (eql (output-record-generation-tick record) *generation-tick*))))
 
 (defun find-cached-output-record-1 (record record-type &rest init-args)
   (declare (dynamic-extent init-args))
    (apply #'find-cached-output-record
 	  record
 	  (and (not (output-record-contents-ok record))
-	       (= (output-record-generation-tick record) *generation-tick*))
+	       (eql (output-record-generation-tick record) *generation-tick*))
 	  record-type
 	  init-args))
 
@@ -159,7 +159,7 @@
   (flet ((robust-test (item1 item2)
 	   ;; Suppose someone has some IDs that are numbers and others
 	   ;; that are strings, and one of the ID tests is STRING-EQUAL?
-	   (and (eql (class-of item1) (class-of item2))
+	   (and (eq (class-of item1) (class-of item2))
 		(funcall test item1 item2))))
     (declare (dynamic-extent #'robust-test))
     #+Allegro
@@ -180,7 +180,7 @@
   ;; the default, stupid one.
   (flet ((do-match (candidate)
 	   ;; (class-name (class-of ...)) should just be type-of, but not in PCL.
-	   (and (eql record-type (class-name (class-of candidate)))
+	   (and (eq record-type (class-name (class-of candidate)))
 		(apply #'match-output-records candidate init-args))))
     (let ((elts-to-find (when use-old-children (output-record-old-children record))))
       (if use-old-children
@@ -393,9 +393,9 @@
 					   stream
 					   &optional erases moves draws
 						     erase-overlapping move-overlapping)
-  (cond ((eql mode :add)
+  (cond ((eq mode :add)
 	 (add-output-record child parent))
-	((eql mode :delete)
+	((eq mode :delete)
 	 (delete-output-record child parent)))
   (cond
     ((propagate-inferior-output-record-changes-p parent child mode 
@@ -667,7 +667,7 @@
   #---ignore
   nil
   #+++ignore ;; until propagate-output-record-changes is implemented.
-  (and (if (or (eql mode :change) (eql mode :move) (eql mode :none))
+  (and (if (or (eq mode :change) (eq mode :move) (eq mode :none))
 	   (or (not (bounding-rectangle-position-equal
 		      old-child-position 
 		      (output-record-start-cursor-position child)))
@@ -724,7 +724,7 @@
   ;; if :change, and shrank the extent, move them, unless output-record-fixed-position
   ;; If the extent shrinks, first move the records on its right, to their left.
   ;; Then, (if nothing from the right took its place), move the records below it, up.
-  (when (eql mode :delete)
+  (when (eq mode :delete)
     (when (null (output-record-children record))
       (values :delete 
 	      (list (list record
@@ -817,7 +817,7 @@
 				  #'output-record-unique-id id-test)
 		  ;; UNIQUE-ID can be NIL when we are coming through
 		  ;; INVOKE-WITH-NEW-OUTPUT-RECORD to create new records
-		  (and (eql record-type (class-name (class-of (first cache-to-check))))
+		  (and (eq record-type (class-name (class-of (first cache-to-check))))
 		       (apply #'match-output-records (first cache-to-check) init-args)
 		       (first cache-to-check)))))
 	(when (and elt use-old-elts)
@@ -848,8 +848,8 @@
 	  ;; moved from somewhere in the hierarchy that was >not< erased.  In that case, we
 	  ;; >could< just bitblt, but we won't detect that anymore.
 	  ((and old-parent
-		(not (eql (output-record-parent record) old-parent))
-		(not (= (output-record-generation-tick old-parent) *generation-tick*)))
+		(not (eq (output-record-parent record) old-parent))
+		(not (eql (output-record-generation-tick old-parent) *generation-tick*)))
 	   (values nil nil
 		   (list (list record
 			       (bounding-rectangle-shift-position
@@ -880,7 +880,7 @@
 	   (or parent-cache (stream-current-redisplay-record stream)))
 	 (output-record
 	   (progn
-	     (when (eql unique-id 'assign-sequential-unique-IDs)
+	     (when (eq unique-id 'assign-sequential-unique-IDs)
 	       (when current-redisplay-cache
 		 (setq unique-id (length (slot-value current-redisplay-cache 'cache))
 		       args `(:unique-id ,unique-id ,@args))))
@@ -899,7 +899,7 @@
 			       args))))))
 	 (output-record-moved-in-hierarchy
 	   (and output-record
-		(not (eql (output-record-parent output-record) current-output-record)))))
+		(not (eq (output-record-parent output-record) current-output-record)))))
     (if output-record
 	;; we've already been through this path once, just update if necessary.
 	(multiple-value-bind (cursor-x cursor-y)
@@ -939,7 +939,7 @@
 		  ;; old-position is cached absolute coordinates
 		  (output-record-old-cursor-position output-record)
 		  current-output-record-position)))
-	    (if (and (not (eql cache-value 'unsupplied-cache-value))
+	    (if (and (not (eq cache-value 'unsupplied-cache-value))
 		     (funcall cache-test
 			      cache-value (output-record-cache-value output-record)))
 		(reposition-output-record output-record stream x y cursor-x cursor-y)
@@ -956,8 +956,8 @@
 		       ;; contents-ok, and therefore lost all of his inferiors (if he
 		       ;; was updated this pass, so check generation-tick).
 		       (or output-record-moved-in-hierarchy
-			   (= (output-record-generation-tick current-output-record)
-			      *generation-tick*)))
+			   (eql (output-record-generation-tick current-output-record)
+				*generation-tick*)))
 	      ;; --- is there some way to detect deletes without clearing the output-record?
 	      ;; --- this current implementation has the potential for gratuitous consing...
 	      ;; --- maybe we should add (yet) one >more< slot to the output-record as part

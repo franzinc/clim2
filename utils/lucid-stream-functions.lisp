@@ -5,7 +5,7 @@
 "Copyright (c) 1990, 1991 Symbolics, Inc.  All rights reserved.
  Portions copyright (c) 1989, 1990 International Lisp Associates."
 
-;;; $fiHeader$
+;;; $fiHeader: lucid-stream-functions.lisp,v 1.3 92/02/24 13:34:13 cer Exp $
 ;;; All of this is taken from the STREAM-DEFINITION-BY-USER proposal to
 ;;; the X3J13 committee, made by David Gray of TI on 22 March 1989.  No
 ;;; Lisp implementation yet supports this proposal, so we implement it
@@ -60,7 +60,7 @@
        ;;(proclaim '(inline ,name))
        (defun ,name (,@required-args &optional stream ,@optional-args)
 	 (cond ((null stream) (setq stream *standard-output*))
-	       ((eql stream t) (setq stream *terminal-io*)))
+	       ((eq stream t) (setq stream *terminal-io*)))
 	 (if (and (system:standard-object-p stream)
 		  (typep stream 'fundamental-stream))
 	     (,method-name stream ,@pass-args)
@@ -107,7 +107,7 @@
 				  lambda-list)))
 	 (method-calling-args (set-difference args '(stream peek-type)))
 	 (cleanup `(cond ((null stream) (setq stream *standard-input*))
-			 ((eql stream t) (setq stream *terminal-io*))))
+			 ((eq stream t) (setq stream *terminal-io*))))
 	 (call-method `(,method-name stream ,@method-calling-args))
 	 (calling-lambda-list (remove '&optional lambda-list)))
     (when (member (first (last method-lambda-list)) lambda-list-keywords)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: packages.lisp,v 1.3 92/01/31 14:52:42 cer Exp $
+;; $fiHeader: packages.lisp,v 1.4 92/02/24 13:05:46 cer Exp $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :common-lisp-user)
 
@@ -1637,6 +1637,7 @@
     child-containing-point*
     children-overlapping-rectangle*
     children-overlapping-region
+    copy-event
     define-sheet-class
     delegate-sheet-delegate
     delegate-sheet-input-mixin
@@ -1697,6 +1698,7 @@
     make-standard-sheet
     map-over-grafts
     map-over-ports
+    map-over-sheets
     map-sheet-bounding-rectangle*-to-child
     map-sheet-bounding-rectangle*-to-parent
     map-sheet-point*-to-child
@@ -1765,6 +1767,7 @@
     sheet-adopt-child
     sheet-allocated-region
     sheet-ancestor-p
+    sheet-child
     sheet-children
     sheet-delta-transformation
     sheet-device-region
@@ -1774,7 +1777,6 @@
     sheet-enabled-children
     sheet-enabled-p
     sheet-event-queue
-    sheet-graft
     sheet-grafted-p
     sheet-identity-transformation-mixin
     sheet-leaf-mixin
@@ -1787,7 +1789,6 @@
     sheet-native-transformation
     sheet-occluding-sheets
     sheet-parent
-    sheet-port
     sheet-region
     sheet-siblings
     sheet-single-child-mixin
@@ -1797,8 +1798,6 @@
     sheet-viewable-p
     sheet-y-inverting-transformation-mixin
     sheetp
-    silica-clipping-region
-    silica-medium-transformation
     standard-event-distributor
     standard-input-contract
     standard-repainting-mixin
@@ -1813,12 +1812,11 @@
     using-display-medium
     window-configuration-event
     window-event
-    window-manager-delete-event
-    window-manager-event
-    
     window-event-mirrored-sheet
     window-event-native-region
     window-event-region
+    window-manager-delete-event
+    window-manager-event
     window-repaint-event
     with-graft-locked
     with-output-protection
@@ -1957,13 +1955,17 @@
     ;; Extended output
     beep
     cursor
+    cursor-active
+    cursor-focus
     cursor-position*
     cursor-sheet
+    cursor-state
     cursor-visibility
     cursorp
     display-cursor
     extended-output-stream
     extended-output-stream-p
+    note-cursor-change
     sheet-buffering-output-p
     standard-extended-output-stream
     standard-output-stream
@@ -2155,6 +2157,7 @@
     extended-input-stream
     extended-input-stream-p
     gesture-processing-handler
+    make-modifier-state
     modifier-state-matches-gesture-name-p
     pointer
     pointer-buttons
@@ -2531,71 +2534,61 @@
     
     ;; Panes
     +fill+
-    bboard-pane
-    border-pane
     bordering
     change-space-requirement
     changing-space-requirements
     clim-stream-pane
     clim-stream-sheet
-    grid-pane
-    hbox-pane
     horizontal-divider
     horizontally
-    hrack-pane
-    label-button-pane
-    label-pane
     labelled
-    line-editor-pane
-    list-pane
     lowering
     make-clim-pane
-    one-of-pane
-    outlined-pane
+    outlining
+    pane
     pane-background
     pane-foreground
-    radio-button-pane
+    pane-text-style
     raising
     realize-pane
     realize-pane-1
     restraining
-    restraining-pane
-    scrollable-pane
     scrolling
-    shadow-pane
-    spacer-pane
     spacing
-    table-pane
     tabling
+    text-field
     text-stream-pane
     top-level-sheet
-    vbox-pane
     vertical-divider
     vertically
     viewport
-    vrack-pane
     with-look-and-feel-realization
     
     ;; Adaptive toolkit
     activate-callback
-    activate-gadget
-    button-label
-    button-text-style
+    armed-callback
     cascade-button-menu-group
     deactivate-gadget
+    disarmed-callback
+    drag-callback
     gadget
     gadget-client
     gadget-id
+    gadget-indicator-type
     gadget-label
     gadget-orientation
     gadget-value
+    label-pane
     menu-bar
+    notify-user
     note-gadget-activated
     note-gadget-deactivated
     push-button
-    push-button-show-as-default-p
+    push-button-show-as-default
     radio-box
     radio-box-current-selection
+    radio-box-selections
+    scrollbar
     scroll-bar
     scroll-bar-max-value
     scroll-bar-min-value
@@ -2606,17 +2599,18 @@
     slider-max-value
     slider-min-value
     slider-orientation
-    slider-show-value-p
+    slider-show-value
     text-field
     toggle-button
-    toggle-button-indicator-type
     value-changed-callback
+    with-radio-box
     
     ;; Pane layout
     allocate-space
     compose-space
     make-space-requirement
     note-space-requirement-changed
+    space-requirement
     space-requirement-height
     space-requirement-max-height
     space-requirement-max-width
@@ -2771,6 +2765,7 @@
   ;; Need to export these since we don't hack SETF* yet
   (:export
     output-record-set-position*
+    cursor-set-position*
     stream-set-cursor-position*
     stream-set-pointer-position*
     window-set-viewport-position*)
@@ -2955,78 +2950,79 @@
     extract-declarations
 
     ;; From UTILITIES
-    boolean
-    with-collection
-    collect
-    with-gensyms
-    with-fast-vector-references
-    ignore-errors
-    def-property-slot-macros
-    def-property-slot-accessors
-    define-unimplemented-protocol-method
-    unimplemented warn-obsolete
     *multiprocessing-p*
-    make-setf-function-name
+    boolean
+    collect
+    def-property-slot-accessors
+    def-property-slot-macros
     #+CLIM-1-compatibility define-compatibility-function
+    define-unimplemented-protocol-method
+    ignore-errors
+    make-setf-function-name
     safe-slot-value
+    unimplemented warn-obsolete
+    with-collection
+    with-fast-vector-references
+    with-gensyms
 
     ;; From LISP-UTILITIES
-    without-interrupts
-    funcallable-p
-    standard-io-environment-vars-and-vals 
-    with-standard-io-environment 
-    follow-synonym-stream
-    fintern
-    gensymbol 
+    bind-to-list
+    canonicalize-and-match-lambda-lists	 
+    clause
+    compile-time-property
     convert-to-device-coordinates
     convert-to-device-distances
     coordinate
-    integerize-coordinate
-    integerize-coordinates
-    extended-char
-    remove-word-from-string
-    push-unique
-    letf-globally
-    letf-globally-if
-    time-elapsed-p
-    ;; ignore
-    with-stack-list
-    with-stack-list*
-    evacuate-list
-    with-stack-array
-    with-keywords-removed
-    remove-keywords
-    with-stack-copy-of-list
-    define-keywords
-    dovector
-    doseq
-    dorest
-    define-group
-    with-warnings-for-definition
-    defun-property
-    defun-inline
-    writing-clauses
-    clause
-    flatten-arglist
-    make-pass-on-arglist
-    ignore-arglist
-    canonicalize-and-match-lambda-lists	 
     define-class-mixture
-    do-delimited-substrings
-    with-compile-time-local-property
-    get-compile-time-local-property
-    compile-time-property
     define-constructor
     define-constructor-using-prototype-instance
-    once-only
-    trap-on-error
-    bind-to-list
-    lambda-list-variables-used-in-body
-    parameter-specifier-keyword
+    define-group
+    define-keywords
+    defun-inline
+    defun-property
+    do-delimited-substrings
+    dorest
+    doseq
+    dovector
+    evacuate-list
+    extended-char
     find-class-that-works
+    fintern
+    flatten-arglist
+    follow-synonym-stream
+    funcallable-p
+    gensymbol 
+    get-compile-time-local-property
+    ignore-arglist
+    integerize-coordinate
+    integerize-coordinates
+    lambda-list-variables-used-in-body
+    letf-globally
+    letf-globally-if
+    make-pass-on-arglist
     minf maxf minf-or maxf-or roundf
-    simple-vector-push-extend
+    once-only
+    ordinary-char-p
+    parameter-specifier-keyword
+    push-unique
+    remove-keywords
+    remove-word-from-string
     simple-vector-insert-element
+    simple-vector-push-extend
+    standard-io-environment-vars-and-vals 
+    time-elapsed-p
+    trap-on-error
+    whitespace-char-p
+    with-compile-time-local-property
+    with-keywords-removed
+    with-stack-array
+    with-stack-copy-of-list
+    with-stack-list
+    with-stack-list*
+    with-standard-io-environment 
+    with-warnings-for-definition
+    without-interrupts
+    writing-clauses
 
     ;; From CLOS
     find-dynamic-class
@@ -3034,9 +3030,9 @@
     ;; From QUEUE
     locking-queue
     make-queue
+    map-over-queue
     queue 
     queue-contents-list
-    map-over-queue
     queue-contents-type
     queue-empty-p
     queue-flush
@@ -3053,24 +3049,35 @@
     with-queue-locked
 
     ;; From PROTOCOLS
-    protocol defprotocol find-protocol
-    protocol-name protocol-roles protocol-operations
-    role defrole find-role 
-    role-slots
-    operation defoperation
-    operation-name operation-required-args operation-specs operation-extra-args
     *outer-self*
-    generate-trampolines
-    define-trampoline-template define-slot-trampoline-template
     define-protocol-class
+    define-slot-trampoline-template
+    define-trampoline-template
+    defoperation
+    defprotocol
+    defrole
+    find-protocol
+    find-role 
+    generate-trampolines
+    operation
+    operation-extra-args
+    operation-name
+    operation-required-args
+    operation-specs
+    protocol
+    protocol-name
+    protocol-operations
+    protocol-roles
+    role
+    role-slots
     stream
 
     ;; From AUTOCONSTRUCTOR
-    make-instance-with-constructor
-    defautoconstructor
     autoconstructor
+    defautoconstructor
     disable-autoconstructors
     enable-autoconstructors
+    make-instance-with-constructor
 
     ;; From CLIM-MACROS
     default-input-stream
@@ -3079,8 +3086,8 @@
     with-identity-transformation
 
     ;; From TRANSFORMATIONS
-    standard-transformation
     identity-transformation
+    standard-transformation
     translation-transformation
 
     ;; From REGIONS
@@ -3094,64 +3101,64 @@
     standard-rectangle-set
 
     ;; Additional bounding rectangle stuff
-    bounding-rectangle-set-edges
-    bounding-rectangle-set-position*
-    bounding-rectangle-shift-position
+    bounding-rectangle-edges-equal
     bounding-rectangle-position-difference
     bounding-rectangle-position-equal
-    bounding-rectangle-edges-equal
+    bounding-rectangle-set-edges
+    bounding-rectangle-set-position*
     bounding-rectangle-set-size
+    bounding-rectangle-shift-position
     bounding-rectangle-size-equal
     position-difference*
 
     ;; LTRBs
-    ltrb-well-formed-p
-    ltrb-equals-ltrb-p
-    ltrb-size-equal
-    ltrb-contains-point*-p
     ltrb-contains-ltrb-p
-    ltrb-overlaps-ltrb-p
-    ltrb-union
-    ltrb-intersection
+    ltrb-contains-point*-p
     ltrb-difference
+    ltrb-equals-ltrb-p
+    ltrb-intersection
+    ltrb-overlaps-ltrb-p
+    ltrb-size-equal
+    ltrb-union
+    ltrb-well-formed-p
 
     ;; Some random geometry
-    pi-single-float
     2pi
-    pi/2
-    radians->degrees
+    2x2-singular-value-decomposition
+    angle-between-angles-p
     degrees->radians
+    elliptical-arc-box
+    pi-single-float
+    pi/2
     point-close-to-line-p
     point-inside-ellipse-p
     point-on-thick-ellipse-p
-    elliptical-arc-box
-    angle-between-angles-p
-    2x2-singular-value-decomposition
+    radians->degrees
 
     ;; From DESIGNS
-    gray-color
-    rgb-color
-    ihs-color
-    flipping-ink
-    contrasting-ink
     color-luminosity
     composite-in
     composite-out
     composite-over
+    contrasting-ink
     contrasting-ink-index
-    make-color-for-contrasting-ink
-    make-gray-color-for-contrasting-ink
     decode-flipping-ink
     decode-pattern
-    pattern-width
-    pattern-height
     decode-rectangular-tile
     decode-tile-as-stipple
     flipping-ink
+    flipping-ink
+    gray-color
+    ihs-color
+    make-color-for-contrasting-ink
     make-design-from-output-record
     make-flipping-ink
+    make-gray-color-for-contrasting-ink
     pattern
+    pattern-height
+    pattern-width
     rectangular-tile
+    rgb-color
     stencil
     stencil-array))
 
@@ -3187,12 +3194,23 @@
     +highlighting-line-style+
     action-gadget
     activate-gadget-event
+    add-sheet-callbacks
     all-drawing-options-lambda-list
+    allocate-medium
+    bboard-pane
+    border-pane
     bury-mirror
     canvas
+    change-scrollbar-values
     char-character-set-and-index
     char-width
+    clear-space-requirement-caching-in-ancestors
+    clear-space-requirement-caches-in-tree
     click-event
+    client-overridability
+    command-menu-pane
+    deallocate-medium
+    default-space-requirements
     define-character-face
     define-character-face-added-mappings
     define-character-face-class
@@ -3201,21 +3219,37 @@
     define-text-style-mappings
     define-text-style-mappings-1 
     degraft-medium
-    device-undefined-text-style
     diacritic-char-p
     display-device 
     engraft-medium
+    event
     event-modifier-key-state
     find-port-type
     fit-region*-in-region*
     frame-manager-frames
     frame-shell
     frame-wrapper
+    gadget-activate-callback
+    gadget-armed-callback
+    gadget-disarmed-callback
+    gadget-value-changed-callback
     get-drawing-function-description
     get-port-canonical-gesture-spec
+    grid-pane
+    hbox-pane
+    hrack-pane
     intern-text-style
+    invoke-callback-function
+    label-button-pane
+    label-pane
+    labelled-gadget
+    line-editor-pane
+    list-pane
     make-frame-manager
     make-medium
+    medium-+y-upward-p
+    medium-merged-text-style-valid
+    menu-bar-pane
     merged-text-style 
     mirror-inside-edges*
     mirror-native-edges*
@@ -3224,10 +3258,13 @@
     mirror-region-updated
     mirrored-sheet-mixin
     modifier-keysym
-    move-sheet*
     move-and-resize-sheet*
+    move-sheet*
     mute-repainting-mixin
     non-drawing-option-keywords
+    oriented-gadget
+    one-of-pane
+    outlined-pane
     pane-scroller
     pane-viewport
     pane-viewport-region
@@ -3235,51 +3272,78 @@
     permanent-medium-sheet-output-mixin
     pointer-press-event
     pointer-release-event
+    port-allocate-pixmap
+    port-beep
+    port-canonical-gesture-spec
+    port-copy-area
     port-color-cache
+    port-copy-from-pixmap
+    port-copy-to-pixmap
+    port-cursor
+    port-display
     port-event-wait
     port-finish-output
     port-force-output
     port-glyph-for-character
+    port-modifier-state
+    port-note-cursor-change
     port-pointer
+    port-server-path
+    port-type
+    port-undefined-text-style
+    port-write-char-1
+    port-write-string-1
     process-event-locally
+    push-button-pane
+    radio-box-pane
+    radio-button-pane
+    restraining-pane
     raise-mirror
     resize-sheet*
+    scrollbar-value-changed-callback
+    scroll-bar-pane
     scroll-extent
+    scrollable-pane
+    scroller-pane
     set-sheet-mirror-edges*
+    shadow-pane
     sheet-actual-native-edges*
     sheet-mute-input-mixin
     sheet-permanently-enabled-mixin
     sheet-shell
     sheet-top-level-mirror
     sheet-with-graphics-state
+    slider-pane
+    space-requirement-components
+    space-requirement-mixin
+    spacing-pane
     standard-sheet
     standard-sheet-input-mixin
     standardize-text-style 
     standardize-text-style-1
     stream-glyph-for-character
     stream-scan-string-for-writing
+    stream-write-string-1
     string-height 
     string-width 
-    text-field
+    table-pane
+    text-field-pane
     text-style-scale 
+    toggle-button-pane
     transform-distances
-    transform-points
     transform-point-sequence
-    value-changed-gadget-event
-    value-gadget
-    window-configuration-event
-    window-repaint-event
-    stream-write-string-1
-    port-note-cursor-change
+    transform-points
     update-region
     update-scrollbars
-    event
-    medium-+y-upward-p
-    scroller-pane
-    medium-merged-text-style-valid
-    port-beep
-    port-server-path
-    viewport-viewport-region))
+    value-changed-gadget-event
+    value-gadget
+    vbox-pane
+    viewport-region-changed
+    viewport-viewport-region
+    vrack-pane
+    window-configuration-event
+    window-repaint-event
+    window-shift-visible-region))
 
 (#-ANSI-90 clim-lisp::defpackage #+ANSI-90 defpackage CLIM-INTERNALS
   (:use	CLIM-LISP CLIM-SYS CLIM CLIM-UTILS CLIM-SILICA)  

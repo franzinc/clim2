@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: default-application.lisp,v 1.1 92/01/31 14:27:45 cer Exp $
+;; $fiHeader: default-application.lisp,v 1.2 92/02/24 13:07:17 cer Exp $
 
 (in-package :clim-internals)
 
@@ -134,19 +134,19 @@
 		 (write-string separator stream)))
 	  (declare (dynamic-extent #'document-translator))
 	  (when left
-	    (let ((button-name (cond ((and (eql left middle)
-					   (eql left right))
+	    (let ((button-name (cond ((and (eq left middle)
+					   (eq left right))
 				      (setq middle nil
 					    right nil)
 				      "L,M,R: ")
-				     ((eql left middle) 
+				     ((eq left middle) 
 				      (setq middle nil)
 				      "L,M: ")
 				     (t "L: "))))
 	      (document-translator left left-context button-name
 				   (if (or middle right) "; " "."))))
 	  (when middle
-	    (let ((button-name (cond ((eql middle right)
+	    (let ((button-name (cond ((eq middle right)
 				      (setq right nil)
 				      "M,R: ")
 				     (t "M: "))))
