@@ -1,0 +1,26 @@
+# $fiHeader: Makefile.dec3100,v 1.2 93/03/01 15:59:08 cer Exp $
+#
+#  Makefile.hp700 for CLIM 2.0
+#
+
+include Makefile.defs
+
+CL=/usr/fi/dcl-devel
+
+# 
+
+MOTIFLIB=/usr/lib/Motif1.2/libXm.a
+MOTIFLIB_d=/usr/lib/Motif1.2/libXm.a
+XTLIB=/usr/lib/X11R5/libXt.a
+XLIB=/usr/lib/X11R5/libX11.a
+XINCLUDES=-I/usr/include/Motif1.2 -I/usr/include/X11R5
+
+# Make motif only. This is like the dec.
+# Perhaps this should be included.
+
+CLIM_FASLS_TO_MAKE = makeclimxmfasls
+CLIMOBJS=$(GENERIC_PUBLIC_OBJS) $(XM_PUBLIC_OBJS) $(XM_LICENSED_OBJS)
+CLIMFASLS= $(CLIM_XM_FASLS) $(CLIM_GENERIC_FASLS)
+INSTALLED_CLIMOBJS=$(GENERIC_PUBLIC_OBJS) $(XM_PUBLIC_OBJS) $(XM_LICENSED_OBJS)
+
+include Makefile.generic

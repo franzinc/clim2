@@ -1,10 +1,10 @@
-/* $fiHeader: xtsupport.c,v 1.3 93/03/04 19:00:49 colin Exp $ */
+/* $fiHeader: xtsupport.c,v 1.4 93/04/02 18:41:04 cer Exp $ */
 
 #ifdef sparc
 #include "IntrinsicI.h"
 #endif
 
-#ifdef ultrix
+#ifndef sparc
 
 unsigned long XtAppIntervalNextTimer(app)
 {
