@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.53 92/10/29 15:02:59 cer Exp Locker: cer $
+;; $fiHeader: xt-silica.lisp,v 1.54 92/10/29 16:55:47 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -420,10 +420,9 @@
 			       :key-name keysym
 			       :character character
 			       :modifier-state
-			       (setf (port-modifier-state port)
-				 (logior
+			       (logior
 				  (state->modifiers (x11::xkeyevent-state event))
-				  keysym-shift-mask))))))
+				  keysym-shift-mask)))))
 	  (:key-release
 	   (multiple-value-bind (character keysym)
 	       (lookup-character-and-keysym sheet widget event)
@@ -442,16 +441,13 @@
 			       :key-name keysym
 			       :character character
 			       :modifier-state 
-			       (setf (port-modifier-state port)
-				 (logandc2
+			       (logandc2
 				  (state->modifiers (x11::xkeyevent-state event))
-				  keysym-shift-mask))))))
+				  keysym-shift-mask)))))
 	  (:button-press
 	   (let ((button (x-button->silica-button 
 			  (x11::xbuttonevent-button event)))
 		 (pointer (port-pointer port)))
-	     (setf (pointer-button-state pointer) 
-	       (logior (pointer-button-state pointer) button))
 	     (allocate-event 'pointer-button-press-event
 			     :sheet sheet
 			     :pointer pointer
@@ -460,15 +456,12 @@
 			     :native-y (x11::xbuttonevent-y event)
 			     :x :?? :y :??
 			     :modifier-state 
-			     (setf (port-modifier-state port)
-			       (state->modifiers
-				(x11::xbuttonevent-state event))))))
+			     (state->modifiers
+				(x11::xbuttonevent-state event)))))
 	  (:button-release
 	   (let ((button (x-button->silica-button 
 			  (x11::xbuttonevent-button event)))
 		 (pointer (port-pointer port)))
-	     (setf (pointer-button-state pointer) 
-	       (logandc2 (pointer-button-state pointer) button))
 	     (allocate-event 'pointer-button-release-event
 			     :sheet sheet
 			     :pointer pointer
@@ -477,9 +470,8 @@
 			     :native-y (x11::xbuttonevent-y event)
 			     :x :?? :y :??
 			     :modifier-state 
-			     (setf (port-modifier-state port)
-			       (state->modifiers
-				(x11::xkeyevent-state event))))))
+			     (state->modifiers
+				(x11::xkeyevent-state event)))))
 	  (:leave-notify
 	   (allocate-event 'pointer-exit-event
 			   :sheet sheet
@@ -489,8 +481,7 @@
 				  (x11:xcrossingevent-detail event))
 			   :pointer (port-pointer port)
 			   :modifier-state 
-			   (setf (port-modifier-state port)
-			     (state->modifiers (x11::xcrossingevent-state event)))))
+			   (state->modifiers (x11::xcrossingevent-state event))))
 	  (:enter-notify
 	   (allocate-event 'pointer-enter-event
 			   :pointer (port-pointer port)
@@ -500,8 +491,7 @@
 			   :kind (boundary-detail->kind
 				  (x11:xcrossingevent-detail event))
 			   :modifier-state
-			   (setf (port-modifier-state port)
-			     (state->modifiers (x11::xcrossingevent-state event)))))
+			   (state->modifiers (x11::xcrossingevent-state event))))
 	  (:motion-notify
 	   (multiple-value-bind (same-p root child root-x root-y
 				 native-x native-y state)
@@ -515,8 +505,7 @@
 			     :native-x native-x
 			     :native-y native-y
 			     :modifier-state 
-			     (setf (port-modifier-state port)
-			       (state->modifiers state))))))))
+			     (state->modifiers state)))))))
     (when clim-event
       (distribute-event port clim-event))))
 
@@ -612,7 +601,6 @@
 					  (make-modifier-state :shift))))
 			      #\Newline)
 			     (t character))))
-	    (setf (port-modifier-state port) modifier-state)
 	    (allocate-event (if (eq event-key :key-press)
 				'key-press-event
 			      'key-release-event)
@@ -624,8 +612,6 @@
        (let ((button (x-button->silica-button 
 		      (x11::xbuttonevent-button event)))
 	     (pointer (port-pointer port)))
-	 (setf (pointer-button-state pointer) 
-	   (logior (pointer-button-state pointer) button))
 	 (distribute-event
 	  port
 	  (allocate-event 'pointer-button-press-event
@@ -634,16 +620,14 @@
 			  :button button
 			  :native-x (x11::xbuttonevent-x event)
 			  :native-y (x11::xbuttonevent-y event)
+			  ;;-- Filled in by distributor
 			  :x :?? :y :??
-			  :modifier-state (setf (port-modifier-state port)
-					    (state->modifiers
-					     (x11::xbuttonevent-state event)))))))
+			  :modifier-state (state->modifiers
+					     (x11::xbuttonevent-state event))))))
       (:button-release
        (let ((button (x-button->silica-button 
 		      (x11::xbuttonevent-button event)))
 	     (pointer (port-pointer port)))
-	 (setf (pointer-button-state pointer) 
-	   (logandc2 (pointer-button-state pointer) button))
 	 (distribute-event
 	  port
 	  (allocate-event 'pointer-button-release-event
@@ -652,10 +636,10 @@
 			  :button button
 			  :native-x (x11::xbuttonevent-x event)
 			  :native-y (x11::xbuttonevent-y event)
+			  ;;-- Filled in by distributor
 			  :x :?? :y :??
-			  :modifier-state (setf (port-modifier-state port)
-					    (state->modifiers
-					     (x11::xbuttonevent-state event)))))))
+			  :modifier-state (state->modifiers
+					     (x11::xbuttonevent-state event))))))
       )))
 
 (defmethod find-widget-class-and-initargs-for-sheet

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: event.lisp,v 1.25 92/10/02 15:18:18 cer Exp $
+;; $fiHeader: event.lisp,v 1.26 92/10/28 11:30:45 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -455,6 +455,25 @@
 
 
 ;;; Event distribution
+
+;;; Methods which maintain the state of the modifiers in the port and
+;;; the buttons in the pointer.
+
+(defmethod distribute-event :before ((port basic-port) (event device-event))
+  (setf (port-modifier-state port) (event-modifier-state event)))
+
+(defmethod distribute-event :before ((port basic-port) (event pointer-button-press-event))
+  (let ((pointer (pointer-event-pointer event)))
+    (setf (pointer-button-state pointer) 
+      (logior (pointer-button-state pointer) (pointer-event-button event)))))
+
+(defmethod distribute-event :before ((port basic-port) (event pointer-button-release-event))
+  (let ((pointer (pointer-event-pointer event)))
+    (setf (pointer-button-state pointer) 
+      (logandc2 (pointer-button-state pointer) (pointer-event-button event)))))
+
+;;;
+
 
 (defmethod distribute-event ((port basic-port) event)
   (distribute-event-1 port event))

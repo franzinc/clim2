@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: GENERA-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: genera-mirror.lisp,v 1.12 92/10/02 15:20:25 cer Exp $
+;; $fiHeader: genera-mirror.lisp,v 1.13 92/10/28 11:32:41 cer Exp Locker: cer $
 
 (in-package :genera-clim)
 
@@ -601,6 +601,9 @@
 				(not (eq old-mouse-y mouse-y))))
 		   (let ((sheet (and mouse-window (genera-window-sheet mouse-window)))
 			 (pointer (port-pointer port)))
+		     ;;----- There should be no need to do this
+		     ;;----- button up/down should have updated the state
+		     #+ignore
 		     (if (zerop mouse-buttons)
 			 (setf (pointer-button-state pointer) 0)
 			 (setf (pointer-button-state pointer)
@@ -615,15 +618,17 @@
 			   :native-x native-x
 			   :native-y native-y
 			   :modifier-state 
-			     (setf (port-modifier-state port)
-				   (current-modifier-state
+			     (current-modifier-state
 				     (make-state-from-buttons mouse-buttons)
-				     (tv:sheet-mouse mouse-window)))
+				     (tv:sheet-mouse mouse-window))
 			   :pointer pointer
 			   :sheet sheet)))))
 		 (when mouse-button-released
 		   (let ((sheet (and mouse-window (genera-window-sheet mouse-window)))
 			 (pointer (port-pointer port)))
+		     ;;-- This looks bogus
+		     ;;-- Are there not multiple buttons??
+		     #+ignore
 		     (setf (pointer-button-state pointer) 0)
 		     (when sheet
 		       (distribute-event
@@ -637,10 +642,9 @@
 			     (genera-button-number->event-button
 			       (ash mouse-button-released -1))
 			   :modifier-state
-			     (setf (port-modifier-state port)
-				   (current-modifier-state
+			     (current-modifier-state
 				     (make-state-from-buttons mouse-buttons)
-				     (tv:sheet-mouse mouse-window)))
+				     (tv:sheet-mouse mouse-window))
 			   :pointer pointer
 			   :sheet sheet)))))))))
 	  ;; Handle shift press and release events
@@ -657,7 +661,7 @@
 			 (allocate-event 'key-release-event
 			   :key-name shift-keysym
 			   :character nil
-			   :modifier-state (setf (port-modifier-state port) state)
+			   :modifier-state state
 			   :sheet sheet))))
 		   (when shifts-down
 		     (map-over-genera-shift-keysyms (shift-keysym shifts-down)
@@ -666,7 +670,7 @@
 			 (allocate-event 'key-press-event
 			   :key-name shift-keysym
 			   :character nil
-			   :modifier-state (setf (port-modifier-state port) state)
+			   :modifier-state state
 			   :sheet sheet)))))))))
 	  ;; Make sure we read from the same window that :LISTEN return T on,
 	  ;; even if the selected window state has changed.
@@ -692,14 +696,14 @@
 			   (allocate-event 'key-press-event
 			     :key-name keysym
 			     :character char
-			     :modifier-state (setf (port-modifier-state port) state)
+			     :modifier-state state
 			     :sheet sheet))
 			 (distribute-event
 			   port
 			   (allocate-event 'key-release-event
 			     :key-name keysym
 			     :character char
-			     :modifier-state (setf (port-modifier-state port) state)
+			     :modifier-state state
 			     :sheet sheet)))))))
 	       ;; See if it's a button-click blip
 	       (list
@@ -716,8 +720,6 @@
 			      (tv:char-mouse-bits (second thing))))
 			  (pointer (port-pointer port)))
 		     (declare (ignore window))
-		     (setf (port-modifier-state port) modifiers
-			   (pointer-button-state pointer) button)
 		     (when sheet
 		       (multiple-value-bind (left top)
 			   (if *mouse-window*

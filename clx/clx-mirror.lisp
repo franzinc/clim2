@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLX-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clx-mirror.lisp,v 1.15 92/10/02 15:19:04 cer Exp $
+;; $fiHeader: clx-mirror.lisp,v 1.16 92/10/28 11:31:15 cer Exp Locker: cer $
 
 (in-package :clx-clim)
 
@@ -223,7 +223,6 @@
 		   (modifier-state (state-mask->modifier-state state display))
 		   (pointer (port-pointer port)))
 	       ;;--- This should probably set the native position of the pointer
-	       (setf (port-modifier-state port) modifier-state)
 	       (when sheet
 		 (distribute-event
 		   port				;(EQ PORT (PORT-SHEET)) ==> T
@@ -242,7 +241,6 @@
 		 (modifier-state (state-mask->modifier-state state display))
 		 (pointer (port-pointer port)))
 	     ;;--- This should probably set the native position of the pointer
-	     (setf (port-modifier-state port) modifier-state)
 	     (when sheet
 	       (distribute-event
 		 port				;(EQ PORT (PORT-SHEET)) ==> T
@@ -262,11 +260,6 @@
 		 (modifier-state (state-mask->modifier-state state display))
 		 (button (x-button-code->event-button code))
 		 (pointer (port-pointer port)))
-	     (setf (port-modifier-state port) modifier-state)
-	     (setf (pointer-button-state pointer)
-		   (if (eq event-key :button-press)
-		       (logior (pointer-button-state pointer) button)
-		       (logandc2 (pointer-button-state pointer) button)))
 	     (when sheet
 	       (distribute-event
 		 port 
@@ -313,7 +306,6 @@
 					(= modifier-state (make-modifier-state :shift))))
 			       #\Newline)
 			      (t (xlib:keycode->character display code state)))))
-	     (setf (port-modifier-state port) modifier-state)
 	     (when sheet
 	       (distribute-event
 		 port

@@ -1,4 +1,4 @@
-# $fiHeader: Makefile,v 1.55 92/10/28 08:20:00 cer Exp Locker: cer $
+# $fiHeader: Makefile,v 1.56 92/10/28 13:17:39 cer Exp Locker: cer $
 # 
 #  Makefile for CLIM 2.0
 #
@@ -12,7 +12,7 @@ CLOPTS	= -qq
 
 TRAIN_TIMES=2
 
-TRAIN_LISP= (load \"tk-silica/test-clim.lisp\") \
+TRAIN_LISP= \
 	(load \"test/test.lisp\") \
 	(clim-user::train-clim-2  $(TRAIN_TIMES)) \
 	(clim-user::do-frame-tests) \
@@ -93,7 +93,7 @@ XLIB= /x11/R4/sun4-lib/libX11$(DEBUGLIB).a
 XTLIB=/x11/R4/sun4-lib/libXt$(DEBUGLIB).a
 XLIBS= $(XTLIB) $(XLIB)
 
-OLCOPYLIB=/usr/tech/cer/stuff/clim-2.0/tk/lib2
+OLCOPYLIB=/usr/tech/cer/stuff/clim-2.0/tk/lib3/sun4
 OLXLIBS=$(OLCOPYLIB)/libXt.a $(OLCOPYLIB)/libX11.a
 LIBXOL=$(OLCOPYLIB)/libXol.a
 LIBXOL_d=$(LIBXOL)
@@ -672,7 +672,7 @@ BENCHMARK_FILE=nil
 
 benchmark:
 	$(ECHO) "\
-	(load \"tk-silica/test-clim.lisp\") \
+	(load \"/vapor/usr/tech/cer/stuff/climtoys/test-clim.lisp\") \
 	(clim-user::benchmark-clim $(BENCHMARK_FILE)) \
 "  | $(CLIM) $(CLOPTS) -batch
 
@@ -681,7 +681,7 @@ PSVIEW=view
 
 testps :
 	$(ECHO) "\
-	(load \"tk-silica/test-clim.lisp\") \
+	(load \"/vapor/usr/tech/cer/stuff/climtoys/test-clim.lisp\") \
 	(load \"test/postscript-tests.lisp\") \
 	(clim-user::run-postscript-tests :output :$(PSVIEW)) \
 "  | $(CLIM) $(CLOPTS) -batch
@@ -763,16 +763,16 @@ dcl	:
 	cd $(CL_SRC) ; /bin/rm -f ucl ;\
 	make dcl	
 
-clim-motif.o	: stub-motif.o
+clim-motif.o	: stub-motif.o $(MOTIFLIB)
 	ld -r -o clim-motif.o stub-motif.o $(MOTIFLIB)
 
-clim-olit.o	: stub-olit.o
+clim-olit.o	: stub-olit.o $(LIBXOL)
 	ld -r -o clim-olit.o stub-olit.o $(LIBXOL)
 
-clim-motif_d.o	: stub-motif.o
+clim-motif_d.o	: stub-motif.o $(MOTIFLIB_d)
 	ld -r -o clim-motif_d.o stub-motif.o $(MOTIFLIB_d)
 
-clim-olit_d.o	: stub-olit.o
+clim-olit_d.o	: stub-olit.o $(LIBXOL_d)
 	ld -r -o clim-olit_d.o stub-olit.o $(LIBXOL_d)
 
 

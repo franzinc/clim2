@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: drag-and-drop.lisp,v 1.3 92/07/01 15:46:18 cer Exp $
+;; $fiHeader: drag-and-drop.lisp,v 1.4 92/07/08 16:30:06 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -221,7 +221,7 @@
 	(when last-x
 	  (feedback last-x last-y :unhighlight)))
       ;; The user has put down the presentation, figure out what to do
-      ;;--- What if there is more than one translator?
+      ;; 
       (let ((translator (find-translator destination)))
 	(when translator
 	  (multiple-value-bind (result-object result-type options)

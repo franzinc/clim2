@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: GENERA-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: genera-port.lisp,v 1.14 92/10/02 15:20:27 cer Exp $
+;; $fiHeader: genera-port.lisp,v 1.15 92/10/28 11:32:43 cer Exp Locker: cer $
 
 (in-package :genera-clim)
 

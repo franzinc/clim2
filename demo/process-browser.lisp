@@ -21,7 +21,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: process-browser.lisp,v 1.4 92/10/07 14:43:48 cer Exp $
+;; $fiHeader: process-browser.lisp,v 1.5 92/10/28 11:33:07 cer Exp Locker: cer $
 
 
 (in-package :clim-demo)
@@ -72,6 +72,9 @@
 
 (define-process-browser-command (com-refresh-process-browser :menu t) ()
   (window-clear *standard-output*))
+
+(define-process-browser-command (com-quit-process-browser :menu t) ()
+  (frame-exit *application-frame*))
 
 #+:composer-v2.0
 (define-process-browser-command com-inspect-process

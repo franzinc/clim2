@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-frames.lisp,v 1.34 92/10/02 15:21:00 cer Exp $
+;; $fiHeader: xm-frames.lisp,v 1.35 92/10/28 11:33:17 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -330,6 +330,7 @@
 				       :sensitive (clim-internals::menu-item-active item)
 				       :parent parent 
 				       :label-type :pixmap
+				       :label-insensitive-pixmap pixmap
 				       :label-pixmap pixmap
 				       options)))
 			  (xt::add-widget-cleanup-function

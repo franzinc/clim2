@@ -20,19 +20,12 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: dev-load-1.lisp,v 1.16 92/10/28 08:20:08 cer Exp Locker: cer $
+;; $fiHeader: dev-load-1.lisp,v 1.17 92/10/29 15:02:55 cer Exp Locker: cer $
 
 ;;;; This should not matter
 ;;;; (setq *ignore-package-name-case* t)
 
 (set-case-mode :case-insensitive-lower)
-
-
-#+ignore
-(progn
-(compile-file "~/stuff/misc/new-slot-opt.cl")
-(load "~/stuff/misc/new-slot-opt.fasl")
-)
 
 (tenuring
    (let ((*load-source-file-info* t)
@@ -42,11 +35,11 @@
      (load "sys/sysdcl")))
 
 (defun load-it (sys)
+  (let ((*load-source-file-info* t)
+	(*load-xref-info* nil)
+	(excl:*global-gc-behavior* nil))
   
-  (tenuring 
-   (let ((*load-source-file-info* t)
-	 (*load-xref-info* nil)
-	 (excl:*global-gc-behavior* nil))
+    (tenuring 
      (ecase sys
        (motif-clim
 	(load "climg.fasl")
@@ -58,41 +51,32 @@
 	(load "climol.fasl")
 	(load "clim-debug.fasl")
 	(load "clim-debugol.fasl")))
-     #+ignore
-     (clim-defsys::load-system sys)))
 
-  ;;-- What would be good is to mark the files in the system as having
-  ;;-- been loaded
 
-  (tenuring
-   (load "postscript/sysdcl"))
+     ;;-- What would be good is to mark the files in the system as having
+     ;;-- been loaded
+
+
+     (load "postscript/sysdcl")
   
+     (load "climps.fasl")
 
-  (tenuring
-   (load "climps.fasl"))
+     (compile-file-if-needed "test/test-suite")
 
-  (compile-file-if-needed "test/test-suite")
+     (load "test/test-suite")
 
-  (let ((*load-source-file-info* t)
-	(*load-xref-info* nil))
+     (load "demo/sysdcl")
 
-    (tenuring
-     (load "test/test-suite"))
+     (clim-defsys::load-system 'clim-demo)
 
-    (load "demo/sysdcl")
-    (tenuring
-     #-ignore
-     (clim-defsys::load-system 'clim-demo)))
-
-  (when (probe-file "/usr/tech/cer/stuff/climtoys/sysdcl.lisp")
-    (load "/usr/tech/cer/stuff/climtoys/sysdcl.lisp")
-    (tenuring (clim-defsys::load-system 'clim-toys)))
+     (when (probe-file "/usr/tech/cer/stuff/climtoys/sysdcl.lisp")
+       (load "/usr/tech/cer/stuff/climtoys/sysdcl.lisp")
+       (tenuring (clim-defsys::load-system 'clim-toys)))
   
-  (ignore-errors (tenuring (require :composer)))
+     (ignore-errors (require :composer))
    
-  (tenuring
-	(ignore-errors
-	 (load (case sys
-		 (motif-clim "misc/clos-preloadxm.fasl")
-		 (openlook-clim "misc/clos-preloadol"))
-	       :if-does-not-exist nil))))
+     (ignore-errors
+      (load (case sys
+	      (motif-clim "misc/clos-preloadxm.fasl")
+	      (openlook-clim "misc/clos-preloadol"))
+	    :if-does-not-exist nil)))))
