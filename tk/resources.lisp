@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: resources.lisp,v 1.34 92/09/30 18:03:07 cer Exp Locker: cer $
+;; $fiHeader: resources.lisp,v 1.35 92/10/04 14:16:04 cer Exp $
 
 (in-package :tk)
 
@@ -532,9 +532,12 @@
   (string-to-char* value))
 
 (defmethod convert-resource-out ((parent t) (type (eql 'font-struct)) value)
-  (make-instance 'font
-    :display (widget-display parent)
-    :name value))
+  (etypecase value
+    (string
+     (make-instance 'font
+		    :display (widget-display parent)
+		    :name value))
+    (font value)))
 
 (defmethod convert-resource-out ((parent t) (type (eql 'pixel)) value)
   (etypecase value
