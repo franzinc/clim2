@@ -17,6 +17,13 @@ Tests for new features:	<`no new features', `no tests for new features', or
 	* <changes go here...>
 
 *******************************************************************************
+<merge from 4.3.2.alpha branch>
+
+Fri Oct 18 13:25:28 1996  Kevin Layer  <layer@freezer>
+
+	* .cvsignore: add stub-wnn.c
+
+*******************************************************************************
 Wed Nov 20 14:51:37 1996  Kevin Layer  <layer@ultra>
 
 	* RelNotes.txt: new file
