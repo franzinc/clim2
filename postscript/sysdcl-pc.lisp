@@ -1,11 +1,12 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/postscript/sysdcl-pc.lisp,v 1.1 1997/02/05 01:49:44 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/postscript/sysdcl-pc.lisp,v 1.2 1997/05/24 03:52:43 tomj Exp $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :cl-user)
 
 "Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved."
 
+#+aclpc
 (clim-defsys:defsystem postscript-clim
     (:default-pathname #+Genera "SYS:CLIM;REL-2;POSTSCRIPT;"
 		       #-Genera (frob-pathname "postscript")

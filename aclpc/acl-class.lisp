@@ -232,13 +232,17 @@
        (or (sheet-pointer-cursor sheet)
 	   (innermost-sheet-pointer-cursor (sheet-parent sheet)))))
 
+(defvar *cursor-cache* nil)
+
 (defun maybe-set-cursor (window)
   (let* ((sheet (mirror->sheet *acl-port* window))
 	 (cursor (or (port-grab-cursor *acl-port*)
 		     (innermost-sheet-pointer-cursor sheet)
 		     (pointer-cursor (port-pointer *acl-port*)))))
     (when (and cursor
-	       (not (eq cursor :default)))
+	       (not (eq cursor :default))
+		   (not (eq cursor *cursor-cache*)))
+	  (setq *cursor-cache* cursor)
       (win::setcursor (realize-cursor *acl-port* cursor))
       t)))
 
@@ -274,7 +278,7 @@
       (break "too deep!"))
     (cond
 	  ((eql msg win:wm_mousemove)
-	   (maybe-set-cursor window)
+	   ;(maybe-set-cursor window)
 	   (let ((mx (pc::loword lparam))
 			 (my (pc::hiword lparam))
 			 (sheet (mirror->sheet *acl-port* window)))

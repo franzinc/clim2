@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/postscript/sysdcl.lisp,v 1.11 1997/02/05 01:49:46 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/postscript/sysdcl.lisp,v 1.12 1997/05/24 03:52:43 tomj Exp $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :cl-user)
 
@@ -11,7 +11,7 @@
   (:serial
    clim-standalone
    ("pkgdcl")
-   #+Allegro ("postscript-s")
+   #+(and Allegro (not acl86win32)) ("postscript-s") ;; why not?
    ("postscript-port")
    ("postscript-medium")
    ("read-afm")

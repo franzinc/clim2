@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/utils/utilities.lisp,v 1.10 1997/02/05 01:55:26 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/utils/utilities.lisp,v 1.11 1997/05/24 03:52:48 tomj Exp $
 
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
@@ -18,7 +18,7 @@
 
 ;; now we have cl:boolean we don't need this (cim 2/24/94)
 ;;mm: except in aclpc  28-Dec-94
-#+(or aclpc acl86win32)
+#+aclpc ;; was #+(or aclpc acl86win32) -tjm 23May97
 (deftype boolean nil '(member nil t))
 
 (defmacro compile-time-warn (warn-string)

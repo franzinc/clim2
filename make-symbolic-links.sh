@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Header: /repo/cvs.copy/clim2/Attic/make-symbolic-links.sh,v 1.4 1997/02/07 00:20:44 tomj Exp $
+# $Header: /repo/cvs.copy/clim2/Attic/make-symbolic-links.sh,v 1.5 1997/05/24 03:52:34 tomj Exp $
 #
 # make a tree of links
 #
@@ -8,7 +8,7 @@
 # 'original' must be changed whenever the source tree is moved
 # It must be a pathname accessible from any machine on the net
 
-original=/net/romeo/home1/tomj/clim2
+original=/net/romeo/home1/tomj/clim2-nt/clim2
 linkdir=$1
 
 if test -z "$linkdir"; then

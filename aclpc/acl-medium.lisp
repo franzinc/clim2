@@ -24,6 +24,12 @@
     (setf background-dc-image (dc-image-for-ink medium (medium-background medium)))
     (setf foreground-dc-image (dc-image-for-ink medium (medium-foreground medium)))))
 
+(defmethod medium-background ((medium t))
+  +white+)
+
+(defmethod medium-foreground ((medium t))
+  +black+)
+
 (defmethod (setf medium-background) :after (new-background (medium acl-medium))
   (with-slots (background-dc-image) medium
     (setf background-dc-image (dc-image-for-ink medium new-background))))

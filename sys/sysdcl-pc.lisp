@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/sys/sysdcl-pc.lisp,v 1.2 1997/04/24 19:51:22 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/sys/sysdcl-pc.lisp,v 1.3 1997/05/24 03:52:47 tomj Exp $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :cl-user)
 
@@ -13,8 +13,10 @@
 ;;;--- Currently they're in EXCL-VERIFICATION but that does not seem the best place.
 (pushnew :clim *features*)
 (pushnew :clim-2 *features*)
-(pushnew :clim-2.0 *features*)
+(pushnew :clim-2.1 *features*)
 (pushnew :silica *features*)
+
+)	;eval-when
 
 #+(or aclpc acl86win32)
 (progn
@@ -22,26 +24,6 @@
   ;;mm: to suppress many compiler warnings.
   (declaim (declaration values arglist))
   )
-
-#+Genera
-(when (eql (sct:get-release-version) 8)
-  (pushnew :Genera-Release-8 *features*)
-  (multiple-value-bind (major minor) (sct:get-system-version)
-    (declare (ignore minor))
-    (cond ((= major 425)
-	   (pushnew :Genera-Release-8-0 *features*))
-	  ((= major 436)
-	   (pushnew :Genera-Release-8-1 *features*))
-	  ((= major 443)
-	   (pushnew :Genera-Release-8-2 *features*))
-	  ((> major 444)
-	   (pushnew :Genera-Release-8-3 *features*)))))
-
-)	;eval-when
-
-#+Genera
-(when (null (find-package :clim-defsys))
-  (load "SYS:CLIM;REL-2;SYS;DEFSYSTEM"))
 
 
 ;;; CLIM is implemented using the "Gray Stream Proposal" (STREAM-DEFINITION-BY-USER)
@@ -77,26 +59,18 @@
 ;;; CLIM-ANSI-Conditions means this lisp truly supports the ANSI CL condition system
 ;;; CLIM-Conditions      means that it has a macro called DEFINE-CONDITION but that it works
 ;;;                      like Allegro 3.1.13 or Lucid.
-(pushnew #+Lucid :CLIM-Conditions
-	 #+(or ANSI-90 Symbolics CMU) :CLIM-ANSI-Conditions
-	 #-(or ANSI-90 Symbolics Lucid CMU)
-	 (error "Figure out what condition system for this Lisp")
-	 *features*)
+(pushnew :CLIM-ANSI-Conditions *features*)
 
 #+Allegro
 (pushnew :allegro-v4.0-constructors *features*)
 
-;; The presentation type system massages presentation type parameters
-;; and options during method inheritance.
-#+(or Genera Cloe-Runtime Minima)
-(pushnew :CLIM-extends-CLOS *features*)
-
 )	;eval-when
 
 
+#+aclpc
 (setq clim-defsys:*load-all-before-compile* t)
 
-#-Genera
+#+aclpc
 (defun frob-pathname (subdir
 		      &optional (dir #+Allegro excl::*source-pathname*
 				     #+Lucid lcl::*source-pathname*
@@ -110,15 +84,8 @@
       :defaults dir
       :directory (append (butlast (pathname-directory dir)) (list subdir)))))
 
-#+Genera
-(defun frob-pathname (subdir &optional (dir sys:fdefine-file-pathname))
-  (namestring
-    (make-pathname
-      :defaults dir
-      :directory (append (butlast (pathname-directory dir)) 
-			 (mapcar #'string-upcase (list subdir))))))
-
 
+#+aclpc
 (clim-defsys:defsystem clim-utils
     (:default-pathname #+Genera "SYS:CLIM;REL-2;UTILS;"
 		       #-Genera (frob-pathname "utils")
@@ -169,6 +136,7 @@
   ("base-designs")
   ("designs"))
 
+#+aclpc
 (clim-defsys:defsystem clim-silica
     (:default-pathname #+Genera "SYS:CLIM;REL-2;SILICA;"
 		       #-Genera (frob-pathname "silica")
@@ -207,6 +175,7 @@
    :load-before-compile ("db-border"))
   ("db-slider"))
 
+#+aclpc
 (clim-defsys:defsystem clim-standalone
     (:default-pathname #+Genera "SYS:CLIM;REL-2;CLIM;"
 		       #-Genera (frob-pathname "clim")
@@ -339,290 +308,3 @@
   ("lucid-after" :features lucid)
   ("prefill" :features (or Genera Cloe-Runtime)))
 
-
-#+(and Allegro (not acl86win32))
-(clim-defsys:defsystem xlib
-    (:default-pathname #+Genera "SYS:CLIM;REL-2;XLIB;"
-		       #-Genera (frob-pathname "xlib")
-     :default-binary-pathname #+Genera "SYS:CLIM;REL-2;XLIB;"
-			      #-Genera (frob-pathname "xlib")
-     :needed-systems (clim-standalone)
-     :load-before-compile (clim-standalone))
-  ("pkg")
-  #+++ignore ("ffi" :eval-after (mapc #'load '("xlib/xlib.lisp" "xlib/x11-keysyms.lisp"
-					       "xlib/last.lisp")))
-  ("ffi")
-  ("xlib-defs" #|:load-before-compile ("ffi") |#) ; Takes forever to ; compile...
-  #-svr4 ("load-xlib")
-  ("xlib-funs" :load-before-compile ("ffi"))
-  ("x11-keysyms" :load-before-compile ("ffi"))
-  #-svr4
-  ("last" :load-before-compile ("load-xlib" "xlib-funs")))
-
-#+(and Allegro (not acl86win32))
-(macrolet ((define-xt-system (name file &rest modules)
-	     `(clim-defsys:defsystem ,name
-	          (:default-pathname #+Genera "SYS:CLIM;REL-2;TK;"
-				     #-Genera (frob-pathname "tk")
-		   :default-binary-pathname #+Genera "SYS:CLIM;REL-2;TK;"
-					    #-Genera (frob-pathname "tk")
-		   :needed-systems (xlib)
-		   :load-before-compile (xlib))
-		(,file)
-		#+svr4
-		("last" :pathname
-			(namestring (merge-pathnames
-				     "last.lisp"
-				     (frob-pathname "xlib")))
-			:binary-pathname
-			(namestring (merge-pathnames
-				     "last.fasl"
-				     (frob-pathname "xlib"))))
-		("pkg")
-		("macros")
-		("xt-defs")			; Used to be 'xtk'.
-		("xt-funs")
-		("foreign-obj")
-		;; Xlib stuff
-		("xlib")
-		("font")
-		("gcontext")
-		("graphics")
-  
-		;; Toolkit stuff
-		("meta-tk")
-		("make-classes")
-		("foreign")
-		("widget")
-		("resources")
-		("event")
-		("callbacks")
-		("xt-classes")
-		("xt-init")
-		,@modules)))
-
-  (define-xt-system xm-tk "load-xm"
-    ("xm-defs")
-    ("xm-funs")
-    ("xm-classes")
-    ("xm-callbacks")
-    ("xm-init")
-    ("xm-widgets")
-    ("xm-font-list")
-    ("xm-protocols")
-    ("convenience")
-    ("make-widget"))
-  
-  (define-xt-system ol-tk "load-ol"
-    ("ol-defs")
-    ("ol-funs")
-    ("ol-classes")
-    ("ol-init")
-    ("ol-widgets")
-    ("ol-callbacks")
-    ("make-widget")))
-
-#+(and Allegro (not acl86win32))
-(clim-defsys:defsystem motif-clim
-    (:default-pathname #+Genera "SYS:CLIM;REL-2;TK-SILICA;"
-		       #-Genera (frob-pathname "tk-silica")
-     :default-binary-pathname #+Genera "SYS:CLIM;REL-2;TK-SILICA;"
-			      #-Genera (frob-pathname "tk-silica")
-     :needed-systems (clim-standalone xm-tk)
-     :load-before-compile (clim-standalone xm-tk))
-  ("pkg")
-  ("xt-silica")
-  ("xt-stipples")
-  ("xm-silica")
-  ("xt-graphics")
-  ("image")
-  ("xt-frames")
-  ("xm-frames")
-  ("xm-dialogs")
-  ("xt-gadgets")
-  ("xm-gadgets")
-  ("xt-pixmaps")
-  ("gc-cursor")
-  ("last"))
-
-#+(and Allegro (not acl86win32))
-(clim-defsys:defsystem openlook-clim
-    (:default-pathname #+Genera "SYS:CLIM;REL-2;TK-SILICA;"
-		       #-Genera (frob-pathname "tk-silica")
-     :default-binary-pathname #+Genera "SYS:CLIM;REL-2;TK-SILICA;"
-			      #-Genera (frob-pathname "tk-silica")
-     :needed-systems (clim-standalone ol-tk)
-     :load-before-compile (clim-standalone ol-tk))
-  ("pkg")
-  ("xt-silica")
-  ("xt-stipples")
-  ("ol-silica")
-  ("xt-graphics")
-  ("image")
-  ("xt-frames")
-  ("ol-frames")
-  ("xt-gadgets")
-  ("ol-gadgets")
-  ("xt-pixmaps")
-  ("gc-cursor")
-  ("last"))
-
-
-#+CCL-2
-(clim-defsys:defsystem ccl-clim
-    (:default-pathname #+Genera "SYS:CLIM;REL-2;CCL;"
-		       #-Genera (frob-pathname "ccl")
-     :default-binary-pathname #+Genera "SYS:CLIM;REL-2;CCL;"
-			      #-Genera (frob-pathname "ccl")
-     :needed-systems (clim-standalone)
-     :load-before-compile (clim-standalone))
-  ("pkgdcl")
-  ("ccl-port")
-  ("ccl-mirror")
-  ("ccl-medium")
-  ("ccl-frames")
-  ("ccl-gadgets")
-  ("ccl-menus"))
-
-
-#+Genera (progn
-
-(clim-defsys:import-into-sct 'clim-utils :subsystem t
-  :pretty-name "CLIM Utilities"
-  :default-pathname "SYS:CLIM;REL-2;UTILS;")
-
-(clim-defsys:import-into-sct 'clim-silica :subsystem t
-  :pretty-name "CLIM Silica"
-  :default-pathname "SYS:CLIM;REL-2;SILICA;")
-
-(clim-defsys:import-into-sct 'clim-standalone :subsystem t
-  :pretty-name "CLIM Standalone"
-  :default-pathname "SYS:CLIM;REL-2;CLIM;")
-
-(sct:defsystem clim
-    (:pretty-name "CLIM"
-     :default-pathname "SYS:CLIM;REL-2;"
-     :journal-directory "SYS:CLIM;REL-2;PATCH;"
-     :default-module-type :system
-     :bug-reports "Bug-CLIM"
-     :patches-reviewed "Bug-CLIM-Doc"
-     :source-category :optional)
-  (:module defsystem "sys:clim;rel-2;sys;defsystem"
-	   (:type :lisp) (:root-module nil))
-  (:serial "clim-utils"
-	   "clim-silica"
-	   "clim-standalone"))
-
-#+++ignore
-(progn
-(clim-defsys:import-into-sct 'motif-clim :subsystem t
-  :pretty-name "Motif CLIM"
-  :default-pathname "SYS:CLIM;REL-2;TK-SILICA;")
-
-(clim-defsys:import-into-sct 'openlook-clim :subsystem t
-  :pretty-name "OpenLook CLIM"
-  :default-pathname "SYS:CLIM;REL-2;TK-SILICA;")
-
-(sct:defsystem clim-tags-table
-    (:pretty-name "CLIM Tags Table"
-     :default-pathname "SYS:CLIM;REL-2;CLIM;"
-     :maintain-journals nil
-     :default-module-type :system)
-  (:serial "clim"
-	   "clim-compatibility"
-	   "genera-clim"
-	   "clx-clim"
-	   "postscript-clim"
-	   "cloe-clim"
-	   "motif-clim"
-	   "openlook-clim"
-	   "clim-demo"))
-)	;#+++ignore
-
-)	;#+Genera
-
-#+Minima-Developer (progn
-
-(clim-defsys:import-into-sct 'clim-utils :subsystem t
-  :sct-name :minima-clim-utils :pretty-name "Minima CLIM Utilities"
-  :default-pathname "SYS:CLIM;REL-2;UTILS;")
-
-(clim-defsys:import-into-sct 'clim-silica :subsystem t
-  :sct-name :minima-clim-silica :pretty-name "Minima CLIM Silica"
-  :default-pathname "SYS:CLIM;REL-2;SILICA;")
-
-(clim-defsys:import-into-sct 'clim-standalone :subsystem t
-  :sct-name :minima-clim-standalone :pretty-name "Minima CLIM Standalone"
-  :default-pathname "SYS:CLIM;REL-2;CLIM;")
-
-(zl:::sct:defsystem minima-clim
-    (:pretty-name "Minima CLIM"
-     :default-pathname "SYS:CLIM;REL-2;"
-     :journal-directory "SYS:CLIM;REL-2;PATCH;"
-     :maintain-journals nil
-     :default-module-type :system
-     :patches-reviewed "Bug-CLIM-Doc"
-     :source-category :optional)
-  (:module defsystem "sys:clim;rel-2;sys;defsystem"
-	   (:type :minima-lisp) (:root-module nil))
-  (:serial "minima-clim-utils"
-	   "minima-clim-silica"
-	   "minima-clim-standalone"))
-
-)	;#+Minima-Developer
-
-
-#||
-()
-
-;; You get the general idea...
-(defun clone-CLIM ()
-  (sct:copy-system 'clim
-    :copy-sources t :copy-binaries nil
-    :destination '((#p"S:>sys>clim>sys>*.*.*" #p"S:>rel-8-0>sys>clim>sys>*.*.*")
-		   (#p"S:>sys>clim>utils>*.*.*" #p"S:>rel-8-0>sys>clim>utils>*.*.*")
-		   (#p"S:>sys>clim>silica>*.*.*" #p"S:>rel-8-0>sys>clim>silica>*.*.*")
-		   (#p"S:>sys>clim>clim>*.*.*" #p"S:>rel-8-0>sys>clim>clim>*.*.*")))
-  (sct:copy-system 'genera-clim
-    :copy-sources t :copy-binaries nil
-    :destination '((#p"S:>sys>clim>genera>*.*.*" #p"S:>rel-8-0>sys>clim>genera>*.*.*")))
-  (sct:copy-system 'clx-clim
-    :copy-sources t :copy-binaries nil
-    :destination '((#p"S:>sys>clim>clx>*.*.*" #p"S:>rel-8-0>sys>clim>clx>*.*.*")))
-  (sct:copy-system 'postscript-clim
-    :copy-sources t :copy-binaries nil
-    :destination '((#p"S:>sys>clim>postscript>*.*.*" #p"S:>rel-8-0>sys>clim>postscript>*.*.*")))
-  (sct:copy-system 'clim-demo
-    :copy-sources t :copy-binaries nil
-    :destination '((#p"S:>sys>clim>demo>*.*.*" #p"S:>rel-8-0>sys>clim>demo>*.*.*"))))
-
-||#
-
-#||
-()
-
-(defun compare-system-files (system dir1 dir2)
-  (setq dir1 (pathname-directory (cl:translate-logical-pathname (pathname dir1))))
-  (setq dir2 (pathname-directory (cl:translate-logical-pathname (pathname dir2))))
-  (let ((files (sct:get-all-system-input-files (sct:find-system-named system)
-					       :version :newest :include-components nil)))
-    (dolist (file files)
-      (let* ((file (cl:translate-logical-pathname file))
-	     (directory (nthcdr (mismatch dir1 (pathname-directory file) :from-end t)
-				(pathname-directory file)))
-	     (file1 (make-pathname :directory (append dir1 directory) 
-				   :version :newest
-				   :defaults file))
-	     (file2 (make-pathname :directory (append dir2 directory)
-				   :version :newest
-				   :defaults file)))
-	(when (y-or-n-p "Do comparison for ~A.~A ? " 
-	        (pathname-name file) (pathname-type file))
-	  (srccom:source-compare file1 file2))
-	(when (y-or-n-p "Copy ~A.~A ? " 
-	        (pathname-name file) (pathname-type file))
-	  (scl:copy-file file1 (make-pathname :version :wild :defaults file2)))))))
-
-(compare-system-files 'clim "sys:clim;rel-2;" "sys:clim;rel-2;shared;")
-
-||#

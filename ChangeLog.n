@@ -12,6 +12,40 @@ Tests for new features:	<`no new features', `no tests for new features', or
 	* <changes go here...>
 
 *******************************************************************************
+Fri May 23 20:28:44 PDT 1997  Tom McClure <tomj@romeo>
+
+	* aclpc/acl-class.lisp
+		- pr changes to fix flickering cursor
+	* aclpc/acl-frames.lisp
+		- pr changes: aclpc compatibility
+	* aclpc/acl-medium.lisp
+		- pr changes: force b/w foreground/background?
+		              looks like a kludgey fix for something but
+		              I'm not sure for what.
+	* aclpc/acl-pixmaps.lisp
+		- pr changes: aclpc compatibility
+	* aclpc/acl-scroll.lisp
+		- pr changes: to fix some native scrolling bugs
+	* aclpc/acl-widget.lisp
+		- pr changes: fix to xlat-newline-return (?)
+	* aclpc/sysdcl.lisp
+	* demo/sysdcl.lisp
+	* demo/sysdcl-pc.lisp
+	* postscript/sysdcl.lisp
+	* postscript/sysdcl-pc.lisp
+	* sys/sysdcl.lisp
+	* sys/sysdcl-pc.lisp
+		- return NT port to using Allegro defsystem
+	* sys/compile.lisp
+	* sys/load.lisp
+	* sys/loadnd.lisp
+	* sys/loaddemo.lisp
+	* sys/recompile.lisp
+		- cleaned up, changed to reflect defsystem switch
+	* utils/utilities.lisp
+		- made addition of boolean type aclpc-only
+
+*******************************************************************************
 Mon May  5 15:33:46 1997  Kevin Layer  <layer@ultra>
 
 	* Makefile.defs: use ../src/lisp -I ... instead of ../src/dcl
@@ -21,7 +55,7 @@ Mon May  5 15:33:46 1997  Kevin Layer  <layer@ultra>
 	* tk/make-classes.lisp: conditionalize for 5.0 ffi
 
 *******************************************************************************
-Thu Apr 24 10:30:00 EST 1997  Paul Robertson <probertson@doll.com>
+Thu Apr 24 10:30:00 EST 1997  Tom McClure <tomj@romeo> for Paul Robertson <probertson@doll.com>
 
 	* aclpc/acl-pixmaps.lisp
 		- changed to support build on new ACL432 Beta

@@ -93,35 +93,46 @@
     (let* ((extent (viewport-contents-extent viewport))
            (region (viewport-viewport-region viewport)))
       (case id
-        (:vertical
-          (scroll-extent
-            contents
-            (bounding-rectangle-min-x region)
-            (+ (bounding-rectangle-min-y extent)
-               (* (bounding-rectangle-height extent)
-                  (if (= size (gadget-range sheet))
-                      0
-                      (/ (- value (gadget-min-value sheet))
-                         (gadget-range sheet)))))))
-        (:horizontal
-          (let ((amount 
-                  (+ (bounding-rectangle-min-x extent)
-                     (* (bounding-rectangle-width extent)
-                        (if (= size (gadget-range sheet))
-                            0
-                            (/ (- value (gadget-min-value sheet))
-                               (gadget-range sheet)))))))
-            #+ignore (cerror "do it" "scroll by ~a min=~a range=~a value=~a brw=~a."
-                    amount (gadget-min-value sheet) (gadget-range sheet) value
-                    (bounding-rectangle-width extent))
-            (scroll-extent
-              contents
-              amount
-              (bounding-rectangle-min-y region)))))
-      ;;-- Yuck
-      (clim-internals::maybe-redraw-input-editor-stream
-        contents
-        (pane-viewport-region contents)))))
+	(:vertical
+	 (let ((amount
+		(+ (bounding-rectangle-min-y extent)
+		   (* (bounding-rectangle-height extent)
+		      (if (= size (gadget-range sheet))
+			  0
+			(/ (- value (gadget-min-value sheet))
+			   (gadget-range sheet)))))))
+	   (if (zerop amount) 
+	       (let ((flag (case id
+			     (:vertical win:sb_vert)
+			     (:horizontal win:sb_horz)))
+		     (window (sheet-mirror client)))
+		 (win::setScrollPos window flag 0 1))
+	     (scroll-extent
+	      contents
+	      (bounding-rectangle-min-x region)
+	      amount))))
+	(:horizontal
+	 (let ((amount 
+		(+ (bounding-rectangle-min-x extent)
+		   (* (bounding-rectangle-width extent)
+		      (if (= size (gadget-range sheet))
+			  0
+			(/ (- value (gadget-min-value sheet))
+			   (gadget-range sheet)))))))
+	   (if (zerop amount) 
+	       (let ((flag (case id
+			     (:vertical win:sb_vert)
+			     (:horizontal win:sb_horz)))
+		     (window (sheet-mirror client)))
+		 (win::setScrollPos window flag 0 1))
+	     (scroll-extent
+	      contents
+	      amount
+	      (bounding-rectangle-min-y region)))))
+	;;-- Yuck
+	(clim-internals::maybe-redraw-input-editor-stream
+	 contents
+	 (pane-viewport-region contents))))))
 
 
 ;;--- In the case where the viewport is bigger than the window this
@@ -321,21 +332,24 @@
 		scroller-pane scroller-pane orientation new-value current-size))))
 
 (defmethod scroll-to-position ((scroller-pane mswin-scroller-pane)
-							   orientation pos)
+			       orientation pos)
   (with-slots (current-vertical-size current-vertical-value
-									 current-horizontal-size current-horizontal-value
-									 viewport contents) scroller-pane
-	(let* ((current-value (case orientation
-							(:horizontal current-horizontal-value)
-							(:vertical  current-vertical-value)))
-		   (current-size (case orientation
-						   (:horizontal current-horizontal-size)
-						   (:vertical  current-vertical-size)))
-		   (contents-range (contents-range scroller-pane orientation))
-		   (viewport-range (bounding-rectangle-max-y viewport))
-		   (new-value (/ pos 100)))
-	  (scroll-bar-value-changed-callback
-		scroller-pane scroller-pane orientation new-value current-size))))
+	       current-horizontal-size current-horizontal-value
+	       viewport contents) scroller-pane
+    (let* ((flag (case orientation
+		   (:vertical win:sb_vert)
+		   (:horizontal win:sb_horz)))
+	   (current-value (case orientation
+			    (:horizontal current-horizontal-value)
+			    (:vertical  current-vertical-value)))
+	   (current-size (case orientation
+			   (:horizontal current-horizontal-size)
+			   (:vertical  current-vertical-size)))
+	   (contents-range (contents-range scroller-pane orientation))
+	   (viewport-range (bounding-rectangle-max-y viewport))
+	   (new-value (/ pos 100)))
+      (scroll-bar-value-changed-callback
+       scroller-pane scroller-pane orientation new-value current-size))))
 
 (defmethod handle-event :after ((pane mswin-scroller-pane) 
 				(event scrollbar-event))

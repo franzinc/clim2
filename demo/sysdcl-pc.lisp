@@ -1,12 +1,13 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/demo/sysdcl-pc.lisp,v 1.1 1997/02/05 01:47:51 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/demo/sysdcl-pc.lisp,v 1.2 1997/05/24 03:52:41 tomj Exp $
 
 (in-package #-ansi-90 :user #+ansi-90 :common-lisp-user)
 
 "Copyright (c) 1990, 1991 Symbolics, Inc.  All rights reserved.
  Portions copyright (c) 1988, 1989, 1990 International Lisp Associates."
 
+#+aclpc
 (clim-defsys:defsystem clim-demo
   (:default-pathname #+Genera "SYS:CLIM;REL-2;DEMO;"
 		     #-Genera (frob-pathname "demo")

@@ -1,3 +1,5 @@
+;; this file is way out of date -- it needs to be recoded using
+;; compile.lisp as a model.  -tjm 23May97
 
 (in-package "USER")
 

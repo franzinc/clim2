@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/demo/sysdcl.lisp,v 1.26 1997/02/05 01:47:53 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/demo/sysdcl.lisp,v 1.27 1997/05/24 03:52:42 tomj Exp $
 
 (in-package #-ansi-90 :user #+ansi-90 :common-lisp-user)
 
@@ -29,10 +29,12 @@
    ;; only compile with non-ICS if no fasl file exist
    ;; always compile with ICS in case it was previously compiled by
    ;; non-ICS
+   #-acl86win32
    ("japanese-graphics-editor" (:module-class #-ics compile-once
 					      #+ics compile-always)
 			       (:load-before-compile "demo-driver" "packages"))
 
+   #-acl86win32
    ("bitmap-editor"   (:load-before-compile "demo-driver" "packages"))
    ("ico"	     (:load-before-compile "demo-driver" "packages"))
    ("browser"	     (:load-before-compile "demo-driver" "packages"))

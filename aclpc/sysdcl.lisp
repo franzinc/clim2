@@ -25,28 +25,24 @@
   ("acl-scroll")
 )
 
-#+aclnt
-(clim-defsys:defsystem aclnt-clim
-    (:default-pathname #+Genera "SYS:CLIM;REL-2;ACLPC;"
-		       #-Genera (frob-pathname "aclpc")
-     :default-binary-pathname #+Genera "SYS:CLIM;REL-2;aclpc;"
-			      #-Genera (frob-pathname "aclpc")
-     :needed-systems (clim-standalone)
-     :load-before-compile (clim-standalone))
-  ("pkgdcl")
-  ("winwidgh")
-  ("climpat")
-  ("acl-prel")
-  ("acl-class")
-  ("acl-dc")
-  ("acl-port")
-  ("acl-mirror")
-  ("acl-medium")
-  ("acl-pixmaps")
-  ("acl-frames")
-  ("acl-widget")
-  ("acl-scroll")
-)
+#+acl86win32
+(defsystem aclnt-clim
+    (:default-pathname "clim2:;aclpc;")
+  (:serial
+   clim-standalone
+   "pkgdcl"
+   "winwidgh"
+   "climpat"
+   "acl-prel"
+   "acl-class"
+   "acl-dc"
+   "acl-port"
+   "acl-mirror"
+   "acl-medium"
+   "acl-pixmaps"
+   "acl-frames"
+   "acl-widget"
+   "acl-scroll"))
 
 #+Genera
 (clim-defsys:import-into-sct 'aclpc-clim

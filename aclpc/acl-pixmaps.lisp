@@ -50,7 +50,7 @@
             (setf (ct::cref win::rect cliprect win::bottom) rbottom)
             (win::scrollDc dc (- to-x from-x) (- to-y from-y)
 		          scrollrect cliprect (ct::null-handle win::hrgn)
-			  null)
+			  #+aclpc ct::null #-aclpc 0)
 		      )))))))
 
 ;; changed bop->winop to return the val let variable rather than the

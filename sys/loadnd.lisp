@@ -1,21 +1,16 @@
+(in-package :user)
 
-;;; LOAD the file PATH.LSP first!
+#+aclpc (load (climpath "sys\\defsyste.fsl"))
+#+acl86win32 (load (climpath "sys\\defsystem.fasl"))
 
-;;; use the following to load clim 2.0 WITHOUT demos
-
-#+aclpc
-(load (climpath "sys\\defsyste.fsl"))
-#+allegro
-(load (climpath "sys\\defsystem.fasl"))
-
-(load (climpath "sys\\sysdcl-pc.lisp"))
+#+aclpc (load (climpath "sys\\sysdcl-pc.lisp"))
+#+acl86win32 (load (climpath "sys\\sysdcl.lisp"))
 
 (load (climpath "aclpc\\sysdcl.lisp"))
 
-;(clim-defsystem:load-system "clim-standalone")
+;#+aclpc (clim-defsystem:load-system "clim-standalone")
+;#+acl86win32 (load-system 'clim-standalone)
 ; uncomment above and comment below to make
 ; a clim standalone
-#+aclpc
-(clim-defsystem:load-system "aclpc-clim")
-#+allegro
-(clim-defsystem:load-system "aclnt-clim")
+#+aclpc (clim-defsystem:load-system "aclpc-clim")
+#+allegro (load-system 'aclnt-clim)

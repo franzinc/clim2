@@ -285,7 +285,7 @@
 	(let ((w (+ x-margin ext-label-width width x-margin))
               (h (+ y-margin (max ext-label-height height) y-margin)))
           (make-space-requirement
-	    :width  (max iwid w) :min-width w
+	    :width  (if (numberp iwid) (max iwid w) w) :min-width w
 	    :height h :min-height h)))
       )))
 
@@ -305,6 +305,7 @@
     (cerror "do it" "about to set value ~a to ~a" (gadget-value pane) pane)
     (setf (gadget-value pane :invoke-callback t) (gadget-value pane))))
 
+#-aclpc
 (defun xlat-newline-return (str)
   (let* ((subsize (length str))
 		 (nnl (let ((nl 0))
@@ -321,7 +322,28 @@
 	  (incf pos))
 	(ct::cset (:char 256) cstr ((fixnum pos)) (char-int #\NULL))
 	cstr))
-  
+
+#+aclpc
+(defun xlat-newline-return (str)
+  (let* ((subsize (length str))
+		 (nnl (let ((nl 0))
+				(dotimes (i subsize)
+				  (if (char= (char str i) #\Newline) (incf nl)))
+				nl))
+		 (cstr (ct::callocate (:char *) :size (+ 1 nnl subsize)))
+		 (pos 0))
+	(dotimes (i subsize)
+	  (cond ((char= (char str i) #\Newline)
+			 (ct::cset (:char *) cstr ((fixnum pos)) 13)
+			 (incf pos)
+			 (ct::cset (:char *) cstr ((fixnum pos)) 10)
+			 (incf pos))
+			(t (ct::cset (:char *) cstr ((fixnum pos)) (char-int (char str i)))
+			   (incf pos))))
+	(ct::cset (:char *) cstr ((fixnum pos)) 0)
+	cstr))
+
+;; added back with mods by pr 1May97 (from whence?) -tjm 23May97
 (defmethod (setf gadget-value) :after (str (pane mswin-text-edit) &key invoke-callback)
   (with-slots (mirror value) pane
     (setq value str)			; Moved outside conditional - smh 26Nov96

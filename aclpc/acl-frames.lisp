@@ -305,7 +305,7 @@
 	    (subsize (length name)))
         (dotimes (i subsize)
           (ct::cset (:char 256) cstr ((fixnum i)) (char-int (char name i))))
-      (ct::cset (:char 256) cstr ((fixnum subsize)) (char-int #\NULL))
+      (ct::cset (:char 256) cstr ((fixnum subsize)) #-aclpc (char-int #\NULL) #+aclpc 0)
       (win::SetWindowText win cstr)))))
 
 ;;; focus setting could be better, and support for exit box choices should

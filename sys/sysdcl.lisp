@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/sys/sysdcl.lisp,v 1.53 1997/02/05 01:51:52 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/sys/sysdcl.lisp,v 1.54 1997/05/24 03:52:47 tomj Exp $
 
 (in-package :cl-user)
 
@@ -8,7 +8,7 @@
 ;; successful compilation of CLIM in a non-ICS lisp (cim 2/26/96)
 #+ignore (require :ics)
 
-#+Allegro
+#+(and Allegro (not acl86win32)) ;; no ics on Windows (yet?)
 (let ((*enable-package-locked-errors* nil))
   (export '(excl::codeset-0 excl::codeset-1 excl::codeset-2 excl::codeset-3
 	    excl::string-to-euc excl::euc-to-string)
@@ -77,7 +77,7 @@
 
 )	;eval-when
 
-#+(or aclpc acl86win32)
+#+aclpc
 (setq clim-defsys:*load-all-before-compile* t)
 
 ;; We extend defsystem to have a new module class compile-always
@@ -223,6 +223,7 @@
    ;; only compile with non-ICS if no fasl file exist
    ;; always compile with ICS in case it was previously compiled by
    ;; non-ICS
+   #-acl86win32
    ("japanese-input-editor" (:module-class #-ics compile-once
 					   #+ics compile-always))
 
@@ -269,6 +270,9 @@
    ("panes" (:load-before-compile "frames"))
    ("default-frame" (:load-before-compile "frames"))
    ("activities" (:load-before-compile "frames"))
+   #+acl86win32 ("db-menu" (:load-before-compile "frames"))
+   #+acl86win32 ("db-list" (:load-before-compile "db-menu"))
+   #+acl86win32 ("db-text" (:load-before-compile "frames"))
    ("noting-progress" (:load-before-compile "frames"))
    ("menus" (:load-before-compile "defresource" "clim-defs"))
    ("accept-values" (:load-before-compile "clim-defs" "incremental-redisplay" "frames"))
@@ -296,7 +300,7 @@
    "last"))
 
 
-#+Allegro
+#+(and Allegro (not acl86win32))
 (defsystem xlib
     (:default-pathname "clim2:;xlib;")
   (:serial
@@ -310,7 +314,7 @@
    ("last" (:load-before-compile "load-xlib" "xlib-funs"))
    ))
 
-#+Allegro
+#+(and Allegro (not acl86win32))
 (defsystem wnn
     (:default-pathname "clim2:;wnn;")
   (:serial
@@ -321,7 +325,7 @@
    "jl-funs"
    "jserver"))
 
-#+Allegro
+#+(and Allegro (not acl86win32))
 (macrolet ((define-xt-system (name file &rest modules)
 	       `(defsystem ,name
 		    (:default-pathname "clim2:;tk;")
@@ -372,7 +376,7 @@
   ("ol-callbacks")
   ("make-widget")))
 
-#+Allegro
+#+(and Allegro (not acl86win32))
 (defsystem motif-clim
     (:default-pathname "clim2:;tk-silica;")
   (:serial
@@ -393,7 +397,7 @@
    ("gc-cursor")
    ("last")))
 
-#+Allegro
+#+(and Allegro (not acl86win32))
 (defsystem openlook-clim
     (:default-pathname "clim2:;tk-silica;")
   (:serial
@@ -414,7 +418,7 @@
    ("gc-cursor")
    ("last")))
 
-#+(or aclpc acl86win32)
+#+aclpc ;; keep in mind that for now, aclpc loads sysdcl-pc, not this file. -tjm 23May97
 (defun frob-pathname (subdir
 		      &optional (dir #+Allegro excl::*source-pathname*
 				     #+Lucid lcl::*source-pathname*
@@ -429,7 +433,7 @@
       :directory (append (butlast (pathname-directory dir)) (list subdir)))))
 
 
-#+(or aclpc acl86win32) (progn
+#+aclpc (progn
 			  
 (clim-defsys:defsystem clim-utils
     (:default-pathname #+Genera "SYS:CLIM;REL-2;UTILS;"
@@ -661,7 +665,7 @@
   ("lucid-after" :features lucid)
   ("prefill" :features (or Genera Cloe-Runtime)))
 
-) ;; progn
+) ;; end #+aclpc progn
 
 #||
 
