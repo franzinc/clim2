@@ -1,4 +1,15 @@
 *************************************************************
+4.3.devel.10 (4.3.beta)
+
+Wed Nov 22 15:30:33 1995  George Jacob  <georgej@lava.franz.com (George Jacob)>
+
+* tk-silica/xt-graphics.lisp: Specialize text-style for text-style-*
+methods.
+
+* clim/output-protocol.lisp: specialize medium arg for
+stream-scan-string-for-writing.
+
+*************************************************************
 4.3.devel.9 (beta preparation)
 
 Tue Nov  7 16:44:25 1995  George Jacob  (georgej@lava)

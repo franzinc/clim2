@@ -52,7 +52,7 @@
 		     :end-of-page-action :scroll
 		     ;;--- Is this really appropriate?
 		     :default-text-margin +largest-coordinate+
-                     :output-glyph-buffer 
+                     :output-glyph-buffer
 		     #-who-needs-it nil
 		     #+who-needs-it (make-array 512 :element-type '(unsigned-byte 16)
 							  :initial-element 0)
@@ -67,7 +67,7 @@
 ;;--- I sure don't like having to do this to make string streams work
 (defmethod stream-default-view ((stream t)) +textual-view+)
 
-(defmethod stream-vertical-spacing ((stream t)) 
+(defmethod stream-vertical-spacing ((stream t))
   (coordinate 0))
 
 ;;; The default text margin, by the way, isn't in user-visible coordinates.
@@ -125,7 +125,7 @@
 
 (defmethod stream-set-cursor-position ((stream output-protocol-mixin) x y)
   (with-slots (cursor-x cursor-y current-line-height baseline) stream
-    (when x 
+    (when x
       (setf cursor-x (coordinate x)))
     (when y
       (unless (eq y cursor-y)
@@ -142,7 +142,7 @@
 (defmethod stream-set-cursor-position-internal ((stream output-protocol-mixin) x y)
   (declare (type coordinate x y))
   (with-slots (cursor-x cursor-y current-line-height baseline) stream
-    (when x 
+    (when x
       (setf cursor-x (coordinate x)))
     (when y
       (unless (eq y cursor-y)
@@ -266,14 +266,14 @@
   (declare (type real amount))
   (with-slots (cursor-x cursor-y) stream
     (declare (type coordinate cursor-x cursor-y))
-    (stream-set-cursor-position 
+    (stream-set-cursor-position
       stream (+ cursor-x amount) cursor-y)))
 
 (defmethod stream-advance-cursor-line ((stream output-protocol-mixin))
   (with-slots (cursor-x cursor-y vertical-space current-line-height baseline) stream
     (declare (type coordinate cursor-x cursor-y
 		              vertical-space current-line-height baseline))
-    (stream-set-cursor-position 
+    (stream-set-cursor-position
       stream 0 (+ cursor-y (stream-line-height stream) vertical-space))))
 
 (defmethod window-clear :before ((stream output-protocol-mixin))
@@ -308,14 +308,14 @@
 	;; Horizontal case
 	(unless (eq (stream-end-of-line-action stream) ':allow)
 	  (unless (<= vleft cx vright)
-	    (setf new-x (max 0 (- cx (- vright vleft 
+	    (setf new-x (max 0 (- cx (- vright vleft
 					(* 4 (stream-character-width stream #\0))))))))
 	;; If the cursor moves outside the current region, expand
 	;; it to include the new cursor position.
 	(when (and viewport
 		   (> cy (bounding-rectangle-height stream)))
 	  (multiple-value-bind (sx sy) (bounding-rectangle-position stream)
-	    (update-region stream 
+	    (update-region stream
 			   sx sy cx cy
 			   :no-repaint t)))
 	(when (or new-x new-y)
@@ -328,7 +328,7 @@
 
 (defun stream-write-char-1 (stream character)
   (with-cursor-state (stream nil)
-    (multiple-value-bind (cursor-x cursor-y baseline height style 
+    (multiple-value-bind (cursor-x cursor-y baseline height style
 			  max-x record-p draw-p)
 	(decode-stream-for-writing stream)
       (declare (type coordinate cursor-x cursor-y baseline height max-x))
@@ -341,7 +341,7 @@
 	       (dotimes (i 2)
 		 (multiple-value-bind (no-wrap new-cursor-x new-baseline new-height
 				       font index)
-		     (stream-scan-character-for-writing 
+		     (stream-scan-character-for-writing
 		       stream medium character style cursor-x max-x)
 		   (declare (type coordinate new-cursor-x new-baseline new-height))
 		   (declare (ignore index font))
@@ -385,7 +385,7 @@
 		   height baseline))
 	       ;; We always want to update the cursor -- it will be put back
 	       ;; if only recording.
-	       (encode-stream-after-writing 
+	       (encode-stream-after-writing
 		 stream new-cursor-x cursor-y baseline height)))
 	    ((or (eql character #\Newline)
 		 (eql character #\Return))
@@ -404,7 +404,7 @@
 (defmethod stream-draw-lozenged-character ((stream output-protocol-mixin) character
 					   cursor-x cursor-y baseline height style
 					   max-x record-p draw-p)
-  (let ((text-style (merge-text-styles '(nil nil :very-small) 
+  (let ((text-style (merge-text-styles '(nil nil :very-small)
 				       *default-text-style*))
 	(ink (medium-ink stream))
 	(name (char-name character)))
@@ -447,7 +447,7 @@
 	  (stream-add-character-output
 	    stream character style
 	    (- new-cursor-x cursor-x) new-line-height new-baseline))
-	(when draw-p 
+	(when draw-p
 	  (when (< baseline new-baseline)
 	    (stream-note-line-height-change stream baseline new-baseline height
 					    cursor-x cursor-y)
@@ -483,7 +483,7 @@
     (terpri stream)
     (when (= start end)
       (return-from stream-write-string string)))
-					    
+
   (multiple-value-bind (cursor-x cursor-y baseline height style
 			max-x record-p draw-p glyph-buffer)
       (decode-stream-for-writing stream)
@@ -495,7 +495,7 @@
 	(loop
 	  (multiple-value-bind (write-char next-char-index
 				new-cursor-x new-baseline new-height font)
-	      (stream-scan-string-for-writing 
+	      (stream-scan-string-for-writing
 		stream medium string start end style cursor-x max-x glyph-buffer)
 	    (declare (type coordinate new-cursor-x new-baseline new-height))
 	    (declare (ignore font))
@@ -522,7 +522,7 @@
 		  height (max height new-height)
 		  cursor-x new-cursor-x)
 	    (when (>= next-char-index end)
-	      ;; Always update the cursor even if only recording.  It will 
+	      ;; Always update the cursor even if only recording.  It will
 	      ;; be restored later.
 	      (encode-stream-after-writing stream cursor-x cursor-y baseline height)
 	      (return-from stream-write-string string))
@@ -618,7 +618,7 @@
 		  ((diacritic-char-p write-char))
 		  (t
 		   (multiple-value-bind (new-cursor-x new-cursor-y new-baseline new-height)
-		       (stream-draw-lozenged-character 
+		       (stream-draw-lozenged-character
 			 stream write-char cursor-x cursor-y baseline height text-style
 			 +largest-coordinate+ nil nil)
 		     (setf cursor-x new-cursor-x cursor-y new-cursor-y
@@ -633,7 +633,7 @@
   (multiple-value-bind (last-x largest-x)
       (stream-string-output-size stream string :start start :end end :text-style text-style)
     (values last-x largest-x)))			;--- Is this right?
-  
+
 (defmethod stream-character-size ((stream output-protocol-mixin) character &optional style)
   (let ((style (or style (medium-merged-text-style stream))))
     (cond ((or (graphic-char-p character) (diacritic-char-p character))
@@ -772,7 +772,8 @@
 ;;; string to start scanning again (which is one past the character
 ;;; which must be WRITE-CHARed).
 
-(defmethod stream-scan-string-for-writing ((stream output-protocol-mixin) medium
+(defmethod stream-scan-string-for-writing ((stream output-protocol-mixin)
+					   (medium medium)
 					   string start end style
 					   cursor-x max-x &optional glyph-buffer)
   (declare (values write-char next-char-index new-cursor-x new-baseline new-height font))
@@ -803,7 +804,7 @@
 				origin-x origin-y bb-x bb-y fixed-width-font-p)
 	      ;;--- For now we are asserting that each string passed to WRITE-STRING
 	      ;;--- will have no character style changes within it.  So, we can
-	      ;;--- eliminate a call to TEXT-STYLE-MAPPING within 
+	      ;;--- eliminate a call to TEXT-STYLE-MAPPING within
 	      ;;--- PORT-GLYPH-FOR-CHARACTER, which saves a lot of time.
 	      (port-glyph-for-character (port medium) character style our-font)
 	    (declare (ignore escapement-y origin-x bb-x))
@@ -813,7 +814,7 @@
 	      (declare (type coordinate origin-y bb-y))
 	      (when fixed-width-font-p
 		(let* ((room-left (- max-x cursor-x *character-wrap-indicator-width*))
-		       (spaces-left (if (zerop escapement-x) 
+		       (spaces-left (if (zerop escapement-x)
 					room-left ;diacritic chars have no width
 				      (floor room-left escapement-x)))
 		       (chars-left (- end start))
@@ -873,7 +874,7 @@
       (port-glyph-for-character (port medium) character style)
     (declare (ignore escapement-y origin-x bb-x))
     (when (> (+ cursor-x escapement-x *character-wrap-indicator-width*) max-x)
-      (return-from stream-scan-character-for-writing 
+      (return-from stream-scan-character-for-writing
 	(values nil cursor-x (coordinate 0) (coordinate 0))))
     (incf cursor-x (coordinate escapement-x))
     (values t cursor-x (coordinate origin-y) (coordinate bb-y) font index)))
@@ -1048,10 +1049,10 @@
       (when (>= start end)
 	(return (values cursor-x cursor-y height baseline)))
       (multiple-value-bind (write-char next-char-index new-cursor-x new-baseline new-height)
-	  (stream-scan-string-for-writing 
+	  (stream-scan-string-for-writing
 	    stream medium string start end style cursor-x max-x)
 	(maxf height new-height)
-	(maxf baseline new-baseline) 
+	(maxf baseline new-baseline)
 	(setf start next-char-index)
 	(unless (= cursor-x new-cursor-x)
 	  (funcall continuation cursor-x cursor-y
@@ -1103,7 +1104,7 @@
       (:horizontal (text-style-width style pane))
       (:vertical (+ (text-style-height style pane)
 		    (if (extended-output-stream-p pane)
-			(stream-vertical-spacing pane) 
+			(stream-vertical-spacing pane)
 		      0))))))
 
 

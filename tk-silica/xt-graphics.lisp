@@ -2056,20 +2056,20 @@
 		 to-left to-top))
 
 
-(defmethod text-style-width ((text-style t) (medium xt-medium))
+(defmethod text-style-width ((text-style text-style) (medium xt-medium))
   (tk::font-width (text-style-mapping (port medium) text-style)))
 
-(defmethod text-style-height ((text-style t) (medium xt-medium))
+(defmethod text-style-height ((text-style text-style) (medium xt-medium))
   ;; Optimization
   (tk::font-height (text-style-mapping (port medium) text-style)))
 
-(defmethod text-style-ascent ((text-style t) (medium xt-medium))
+(defmethod text-style-ascent ((text-style text-style) (medium xt-medium))
   (tk::font-ascent (text-style-mapping (port medium) text-style)))
 
-(defmethod text-style-descent ((text-style t) (medium xt-medium))
+(defmethod text-style-descent ((text-style text-style) (medium xt-medium))
   (tk::font-descent (text-style-mapping (port medium) text-style)))
 
-(defmethod text-style-fixed-width-p ((text-style t) (medium xt-medium))
+(defmethod text-style-fixed-width-p ((text-style text-style) (medium xt-medium))
   (let ((font (text-style-mapping (port medium) text-style)))
     ;;-??
     (= (x11::xfontstruct-min-bounds-width font)
