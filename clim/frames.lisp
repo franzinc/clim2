@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/clim/frames.lisp,v 1.87 1997/10/04 00:56:25 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/frames.lisp,v 1.88 1998/03/21 01:54:59 smh Exp $
 
 (in-package :clim-internals)
 
@@ -501,7 +501,7 @@
 	(when port
 	  (let ((port-trace-thing (silica::port-trace-thing port)))
 	    (when port-trace-thing
-	      (setf (fill-pointer port-trace-thing 0))))))
+	      (setf (fill-pointer port-trace-thing) 0)))))
       ;;--- Don't throw, just recompute stream bindings in a principled way
       (setf (sheet-enabled-p sheets) t))
     (note-frame-layout-changed (frame-manager frame) frame)

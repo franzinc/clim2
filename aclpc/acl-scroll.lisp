@@ -12,53 +12,6 @@
 
 ;; support for variable thumb size
 
-(in-package :windows)
-
-#+acl86win32
-(cl:eval-when (cl:compile cl:load cl:eval)
-  (cl:defconstant SIF_PAGE 2)
-  (cl:defconstant SIF_POS 4)
-  (cl:defconstant SIF_DISABLENOSCROLL 8)
-  (ff:def-foreign-type scrollinfo
-      (:struct (cbSize uint)
-	       (fMask uint)
-	       (nMin int)
-	       (nMax int)
-	       (nPage uint)
-	       (nPos int)
-	       (nTrackPos int)))
-  (defctype lpscrollinfo (scrollinfo *)))
-
-#+acl86win32x ;; won't work, this one not in index
-(defapientry setscrollinfo "SetScrollInfo" (hwnd int lpscrollinfo :boolean)
-	     int ??? %oscall)
-
-#+acl86win32
-(ff:defforeign 'SetScrollInfo 
-    :entry-point "SetScrollInfo"
-    :arguments '(t t t t)
-    :return-type :integer)
-
-#+aclpc ;; the windows package doesn't use cl...
-(cl:eval-when (cl:compile cl:load cl:eval)
-  (cl:defconstant win::SIF_PAGE 2)
-  (cl:defconstant win::SIF_POS 4)
-  (cl:defconstant win::SIF_DISABLENOSCROLL 8)
-  (ct:defcstruct scrollinfo
-    ((cbSize :unsigned-long)
-     (fMask :unsigned-long)
-     (nMin :long)
-     (nMax :long)
-     (nPage :unsigned-long)
-     (nPos :long)
-     (nTrackPos :long))))
-
-#+aclpc
-(ct:defun-dll SetScrollInfo ((hwnd :short-handle) (flags :short) (params (scrollinfo *)) (redraw-p :short-bool))
-   :return-type :short
-   :library-name "user32.dll"
-   :entry-name "SetScrollInfo")
-
 (in-package :silica)
 
 (eval-when (compile load eval)
@@ -69,6 +22,26 @@
    (action :initarg :action :reader scrollbar-event-action)
    (amount :initarg :amount :reader scrollbar-event-amount)))
 ) ;; eval-when
+
+(defmethod handle-event ((pane mswin-scroll-bar) 
+			       (event silica::scrollbar-event))
+  (with-slots (silica::orientation silica::action silica::amount) event
+      (assert (eql silica::orientation (gadget-orientation pane)))
+      (multiple-value-bind (min max) (gadget-range* pane)
+        (setf (gadget-value pane)
+          (max min 
+               (min (- max (scroll-bar-size pane))
+	              (case silica::action
+	                (:relative-jump  ; press arrows
+                        (+ (gadget-value pane) 
+                           (* (scroll-bar-size pane) silica::amount)))
+	                (:screenful   ; click near thumb
+                        (+ (gadget-value pane) 
+                           (* (scroll-bar-size pane) silica::amount)))
+  	                (:percentage  ; drag thumb
+                        (+ min
+                           (* (- max min (scroll-bar-size pane)) 
+                              (/ silica::amount (float *win-scroll-grain*))))))))))))
 
 (define-event-resource scrollbar-event 10)
 

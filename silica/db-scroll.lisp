@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/silica/db-scroll.lisp,v 1.56 1997/09/03 04:03:36 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/silica/db-scroll.lisp,v 1.57 1998/03/21 01:55:04 smh Exp $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright(c) 1991, 1992 International Lisp Associates.
@@ -151,10 +151,6 @@
                                        :horizontal)))
               )))))))
 
-#+(or aclpc acl86win32)
-(defmethod note-sheet-grafted :before ((sheet scroll-bar))
-  (setf (scroll-bar-current-size sheet) nil))
-
 ;;--- In the case where the viewport is bigger than the window this
 ;;--- code gets things wrong.  Check out the thinkadot demo.  It's
 ;;--- because (- (--) (- vmin)) is negative.
@@ -197,8 +193,6 @@
                      current-value
                      (= current-size size)
                      (= current-value pos))
-          #+(or aclpc acl86win32) (setf (scroll-bar-current-value scroll-bar) pos)   ;;mm: ???
-          #+(or aclpc acl86win32) (setf (scroll-bar-current-size scroll-bar) size)   ;;mm: ???
           ;;-- It would be nice if we could do this at the point of scrolling
           (let* ((line-scroll (line-scroll-amount (slot-value scroll-bar 'client)
                                                   orientation

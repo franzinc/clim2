@@ -70,7 +70,36 @@
 
 (defclass acl-top-level-sheet (top-level-sheet)
   ((min-width :accessor acl-top-min-width :initform nil)
-   (min-height :accessor acl-top-min-height :initform nil)))
+   (min-height :accessor acl-top-min-height :initform nil)
+   (accelerator-gestures :initform nil :reader top-level-sheet-accelerator-gestures)
+   ))
+
+(defun record-accelerator (sheet keysym command)
+  (push (cons keysym command)
+	(slot-value sheet 'accelerator-gestures)))
+
+(defun keysymeql (keysyma keysymb)
+  (or (eql keysyma keysymb)
+      (cond ((and (keywordp keysyma) (typep keysymb 'character))
+	     (eql keysyma (char->keysym keysymb))
+	     )
+	    ((and (keywordp keysymb) (typep keysyma 'character))
+	     (eql keysymb (char->keysym keysyma)))
+	    (t nil))))
+
+(defun modstateeql (a b) (eql a b))
+
+(defun lookup-accelerator (frame keysym modstate)
+  (let* ((sheet (frame-top-level-sheet frame))
+	 (gestures (top-level-sheet-accelerator-gestures sheet)))
+    (loop with gkeysym and gmodstate
+	for gesture-and-command in gestures
+	for (gesture) = gesture-and-command
+	do (multiple-value-setq (gkeysym gmodstate)
+	     (parse-gesture-spec gesture))
+	when (and (keysymeql keysym gkeysym)
+		  (modstateeql modstate gmodstate))
+	return (cdr gesture-and-command))))
 
 (defmethod update-frame-settings ((framem acl-frame-manager) 
 				  (frame t))
@@ -153,28 +182,27 @@
 ;(setf (command-enabled command-name frame) enablep)
 ;(win::EnableMenuItem menu menuid (if enablep pc::MF_ENABLED pc::MF_GRAYED))
 
+(defun keysym->char (keysym)
+  (if (typep keysym 'character)
+      keysym
+  (let ((entry (rassoc keysym *keysym-alist*))
+	(code (position keysym *char->keysym*)))
+    (if entry
+	(car entry)
+      (when code
+	(code-char code))))))
+
 (defun gesture-spec-for-mswin (gesture-spec)
   (let* ((alist '((:shift   "SHIFT+")
 		  (:control "CTRL+")
 		  (:meta    "ALT+")))
 	 (keypress (first gesture-spec))
-	 ;; I think this is what pr meant to do -tjm Aug97
-	 (nlist (list (or (and (characterp keypress)
-			       (cond ((char= #\Backspace keypress) "Backspace")
-				     ((char= #\space keypress) "Space")
-				     (t keypress)))
-			  keypress))))
+	 (nlist (list (format nil "~:C" (if (member :shift gesture-spec)
+					    (keysym->char keypress)
+					  (char-downcase (keysym->char keypress)))))))
     (dolist (shift alist)
       (when (member (first shift) (rest gesture-spec))
-	#-ignore (push (second shift) nlist)
-	#+ignore
-	(let ((gesture-mod (second shift)))
-	  (push ;; +++ fix this more generally to deal with all characters
-	        ;; pr Aug97 (what?? -tjm)
-	   (cond ((char= #\Backspace gesture-mod) "Backspace")
-		 ((char= #\space gesture-mod) "Space")
-		 (t gesture-mod))
-	   nlist))))
+	(push (second shift) nlist)))
     (format nil "~A~{~A~}" #\tab nlist)))
 
 (defun make-menu-text (text keystroke item)
@@ -227,6 +255,8 @@
 			 (smflags (pc::ilogior flags pc::MF_POPUP)))
 		    (case type
 		      (:command
+		       (when acckey
+			 (record-accelerator top acckey value))
 		       (let ((menu-item-id (get-command-menu-item-id value frame)))
 			 (win::AppendMenu
 			  menuhand
@@ -333,13 +363,18 @@
        #+aclpc (win::pclhandle-value (sheet-mirror sheet))
 	   #+acl86win32 (sheet-mirror sheet)))))
 
-;; added this to workaround some bugs with new layouts not being
-;; correctly redisplayed - in particular problems with label-panes
-;; - this should be viewed as a temporary fix (cim 10/14/96) 
-
-(defmethod note-frame-layout-changed
-    :after ((framem acl-frame-manager) frame) 
-  (repaint-sheet (frame-top-level-sheet frame) +everywhere+))
+(defmethod note-frame-layout-changed :after ((framem acl-frame-manager) frame)
+  ;; added this to workaround some bugs with new layouts not being
+  ;; correctly redisplayed - in particular problems with label-panes
+  ;; - this should be viewed as a temporary fix (cim 10/14/96) 
+  (repaint-sheet (frame-top-level-sheet frame) +everywhere+)
+  ;; Added this next one to fix problem with distribute-event
+  ;; after changing the layout of the frame.  Need to clear
+  ;; port-trace-thing, otherwise buttons may "go dead" due to a failure
+  ;; in event distribution. What I don't understand is why Motif doesn't
+  ;; have to do this. jpm 12/12/97.
+  (setf (fill-pointer (port-trace-thing (port (frame-manager frame)))) 0)
+  )
 
 (defmethod frame-manager-note-pretty-name-changed
 	   ((framem acl-frame-manager)
@@ -488,11 +523,9 @@
 			 (horizontal-divider-pane)
 			 (vertical-divider-pane)
 			 )))
-    (second (assoc class '((scroll-bar scroll-bar-pane)
-			 ;(scroller-pane generic-scroller-pane)
-			 (scroller-pane mswin-scroller-pane)
+    (second (assoc class '((scroll-bar mswin-scroll-bar)
+			 (scroller-pane silica::mswin-scroller-pane)
 			 (viewport viewport)
-			 ; (menu-bar menu-bar-pane)
 			 (menu-bar mswin-menu-bar-pane)
 			 (menu-bar-button-logic mswin-menu-bar-button)
 			 (pull-down-button-logic mswin-pull-down-menu-button)
@@ -504,12 +537,10 @@
 			 (top-level-sheet acl-clim::acl-top-level-sheet)
 			 (frame-pane frame-pane)
 			 (label-pane generic-label-pane)
-			 ;(text-field text-field-pane) ;raw clim text-pane
                          (text-field mswin-text-field)
                            ;;mm: interpose a pane class to manipulate initargs
 			 (text-editor acl-clim::acl-text-editor-pane)
 			 (list-pane hlist-pane)
-			 ;(option-pane mswin-option-pane)
 			 (option-pane mswin-combo-box-pane)
 			 ;;--- Need to do these
 			 (horizontal-divider-pane)

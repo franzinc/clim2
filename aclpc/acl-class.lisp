@@ -363,12 +363,17 @@
 	    (sheet (mirror->sheet *acl-port* window)))
 	(note-pointer-motion *acl-port* sheet mx my)))
 
+     #+ignore ;; superseded by setting default cursor in register-window-class
      ((eql msg win:wm_setcursor)
+      ;; The MFC doc says DefWindowProc sends a wm_setcursor message
+      ;; to the parent window, which may explain why we are getting 
+      ;; so many of these, and suggests to me that this response to 
+      ;; the message may be misguided. jpm.
       (let ((hit-code (pc::loword lparam)))
 	(unless (and (eql hit-code win::htclient)
 		     (maybe-set-cursor window))
 	  (setq *cursor-cache* nil)
-	  (setf (pointer-cursor (port-pointer *acl-port*)) :button)
+	  (setf (pointer-cursor (port-pointer *acl-port*)) :default)
 	  #+acl86win32
 	  (setq *win-result* (win::defwindowproc window msg wparam lparam))
 	  #+aclpc
@@ -576,14 +581,15 @@
 	*win-result*))
      ((or (eql msg win::wm_hscroll)
 	  (eql msg win::wm_vscroll))
-      (let ((type (pc::loword wparam))
-	    (position (pc::hiword wparam))
-	    (message (cond ((eql msg win::wm_hscroll) :horizontal)
-			   ((eql msg win::wm_vscroll) :vertical)))
-	    (flag (cond ((eql msg win::wm_hscroll) win:sb_horz)
-			((eql msg win::wm_vscroll) win:sb_vert)))
-	    (event nil)
-	    (sheet (mirror->sheet *acl-port* window)))
+      (let* ((type (pc::loword wparam))
+	     (position (pc::hiword wparam))
+	     (hwnd (if (zerop lparam) window lparam)) ; JPM for rfe353
+	     (message (cond ((eql msg win::wm_hscroll) :horizontal)
+			    ((eql msg win::wm_vscroll) :vertical)))
+	     (flag (cond ((eql msg win::wm_hscroll) win:sb_horz)
+			 ((eql msg win::wm_vscroll) win:sb_vert)))
+	     (event nil)
+	     (sheet (mirror->sheet *acl-port* hwnd)))
 	(declare (fixnum action position))
 	(multiple-value-bind (action amount)
 	    (cond ((eql type win::sb_lineup)
@@ -747,6 +753,10 @@
 	      #+aclpc
 	      (ct::%set-long *win-result* 4 0
 			     (win::defwindowproc window msg wparam lparam))
+	;;added this so that port modifier state is always updated, even on passed
+	;;characters. -- KR
+	(setf (port-modifier-state *acl-port*)
+		(modstate->modifier *modstate*))
 	      *win-result*)
 	  (progn
 	    (when (and (or (<= #x30 vk #x5a)(<= #xba vk #xc0)(<= #xdb vk #xdf))
@@ -768,19 +778,40 @@
 		  (when (zerop (ldb (byte 2 9) code))
 		    (setf char keysym))
 		  (setf keysym (char->keysym keysym)))
-		(queue-put event-queue
-			   (allocate-event
-			    (cond ((or (eql msg win:wm_keydown)
-				       (eql msg win:wm_syskeydown))
-				   'key-press-event)
-				  ((or (eql msg win:wm_keyup)
-				       (eql msg win:wm_syskeyup))
-				   'key-release-event))
-			    :key-name keysym
-			    :character char
-			    :modifier-state (setf (port-modifier-state *acl-port*)
-					      modstate)
-			    :sheet sheet))
+		(let ((frame (pane-frame sheet))
+		      (command nil))
+		  (if (and (eql msg win::wm_keydown)
+			   (setq command (lookup-accelerator frame keysym modstate)))
+		      (let ((command-table (frame-command-table frame)))
+			(queue-put event-queue
+				   (allocate-event 'presentation-event
+						   :frame frame
+						   :sheet (frame-top-level-sheet frame)
+						   :presentation-type
+						   `(command :command-table ,command-table)
+						   :value command)
+				   ))
+	       
+		    (queue-put event-queue
+			       (allocate-event
+				(cond ((or (eql msg win:wm_keydown)
+					   (eql msg win:wm_syskeydown))
+				       'key-press-event)
+				      ((or (eql msg win:wm_keyup)
+					   (eql msg win:wm_syskeyup))
+				       'key-release-event))
+				:key-name keysym
+				:character char
+				:modifier-state (setf (port-modifier-state *acl-port*)
+						  modstate)
+				:sheet sheet)))
+		  
+		  	;;added this so that port modifier state is always updated, even on passed
+	;;characters. -- KR
+	(setf (port-modifier-state *acl-port*)
+		(modstate->modifier *modstate*))
+
+					       )
 		))
 	    ;; set return value to 0
 	    (clear-winproc-result *win-result*)
@@ -1057,7 +1088,7 @@
 (defvar *wndclass-registered* nil)
 
 #+aclpc
-(defun acl-clim::register-window-class ()
+(defun acl-clim::register-window-class (hcursor)
   (let ((err1 nil)
         (err2 nil)
 	(reg nil)
@@ -1071,7 +1102,7 @@
 			win::cbwndextra    0
 			win::hinstance     pc::*hinst*
 			win::hicon         (ct::null-handle win::hicon)
-			win::hcursor       (ct::null-handle win::hcursor)
+			win::hcursor       hcursor
 			win::hbrbackground (ct::null-handle win::hbrush)
 					; (win::GetStockObject win::WHITE_BRUSH)
 			win::lpszmenuname *menu-name*
@@ -1218,7 +1249,7 @@
     (setq *clim-initialized* t)))
 
 #+acl86win32
-(defun acl-clim::register-window-class ()
+(defun acl-clim::register-window-class (hcursor)
   ;; initialise window procedure
   (unless *wndclass-registered*
     (init-clim-win-proc clim-window-proc-address #.(cg::make-cstructure 0 16))
@@ -1231,7 +1262,7 @@
                  win::cbWndExtra 0
                  win::hinstance  pc::*hinst*
                  win::hicon (win::LoadIcon pc::*hinst* "ICON_LISP") ;(ct::null-handle win::hicon)
-                 win::hcursor (ct::null-handle win::hcursor)
+                 win::hcursor hcursor
                  win::hbrbackground (ct::null-handle win::hbrush)
                  win::lpszmenuname ct::hnull ;*menu-name*
                  win::lpszclassname *clim-class*
@@ -1419,7 +1450,8 @@
         )
     (when (prog1
             (win::peekMessage wmsg (ct::null-handle win::hwnd) 0 0
-                              (logior win::PM_NOYIELD win::PM_NOREMOVE) wres)
+                              (logior win::PM_NOYIELD win::PM_NOREMOVE)
+			      #+acl86win32x wres)
             (not (and (zerop (cg::hiword wres)) (zerop (cg::loword wres)))))
       t)))
 

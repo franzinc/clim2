@@ -386,10 +386,13 @@
       (let* ((wl (win::SendMessage mirror win::WM_GETTEXTLENGTH 0 0 #-acl86win32 :static))
 	     (teb (make-string wl))
 	     (tlen (win::GetWindowText mirror teb (1+ wl))))
+	(declare (ignorable tlen))
 	(setf teb (unxlat-newline-return teb)) ;; pr Aug97
-        (setf value (length teb))
+        (setf value teb)
         ;; By the way, does anyone know why the second value is returned? -smh
-	(values teb tlen))
+	(values teb (length teb)))
+      ;;this used to be (values value (length value)) which I believe is
+      ;;right -- K. Reti
       (values value (if (listp value) (length value) 0)))))
 
 #+ignore
@@ -1064,6 +1067,157 @@
       (with-sheet-medium (medium pane)
 	(setf armed t)
 	))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; scroll-bar
+
+;; Not to be confused with a scroller-pane, which provides scroll bars
+;; to an application pane.  This is a naked scroll-bar gadget that
+;; acts like a slider gadget.
+
+(defclass mswin-scroll-bar (silica::acl-gadget-id-mixin 
+                            mirrored-sheet-mixin 
+			    scroll-bar
+                            sheet-permanently-enabled-mixin
+                            space-requirement-mixin
+                            basic-pane)
+  ())
+
+(defmethod initialize-instance :after ((object mswin-scroll-bar) &key &allow-other-keys)
+   ;; It is a mystery to me how size is 1.0 at this point.
+   ;; This is in my opinion a poor default value.
+   ;; The slot has NIL as its initform, and (SETF SCROLL-BAR-SIZE) is not called.
+  (setf (scroll-bar-size object) (float (/ (gadget-range object) 10))))
+
+(defmethod realize-mirror ((port acl-clim::acl-port) (sheet mswin-scroll-bar))
+  (multiple-value-bind (left top right bottom)
+      (sheet-native-region* sheet)
+    (fix-coordinates left top right bottom)
+    (let* ((parent (sheet-mirror sheet))
+	   (parent2 (sheet-mirror (sheet-parent sheet)))
+           (window nil)
+           (orientation (gadget-orientation sheet))
+	   (width (- right left))
+	   (height (- bottom top))
+           (gadget-id (silica::allocate-gadget-id sheet)))
+      (assert (eq parent parent2) () "parents don't match!")
+      (setq window
+	(scrollbar-open parent left top width height orientation))
+      (setf (sheet-native-transformation sheet)
+	(sheet-native-transformation (sheet-parent sheet)))
+      (setf (silica::gadget-id->window sheet gadget-id) window)
+      (win::showWindow window win::sw_show)
+      (setf (sheet-direct-mirror sheet) window) ; needed only to initialize
+      (change-scroll-bar-values sheet)	; initialize
+      window)))
+
+(defmethod compose-space ((m mswin-scroll-bar) &key width height)
+  (declare (ignore width height))
+  (let (x)
+    (ecase (gadget-orientation m)
+      (:vertical 
+       (setq x (silica::win-scroll-thick :y))
+       (make-space-requirement :width x
+                               :min-height x
+                               :height (* 2 x)
+                               :max-height +fill+))
+      (:horizontal
+       (setq x (silica::win-scroll-thick :x))
+       (make-space-requirement :height x
+                               :min-width x
+                               :width (* 2 x)
+                               :max-width +fill+)))))
+
+(in-package :windows)
+
+#+acl86win32
+(cl:eval-when (cl:compile cl:load cl:eval)
+  (cl:defconstant SIF_PAGE 2)
+  (cl:defconstant SIF_POS 4)
+  (cl:defconstant SIF_DISABLENOSCROLL 8)
+  (ff:def-foreign-type scrollinfo
+      (:struct (cbSize uint)
+	       (fMask uint)
+	       (nMin int)
+	       (nMax int)
+	       (nPage uint)
+	       (nPos int)
+	       (nTrackPos int)))
+  (defctype lpscrollinfo (scrollinfo *)))
+
+#+aclpc ;; the windows package doesn't use cl...
+(cl:eval-when (cl:compile cl:load cl:eval)
+  (cl:defconstant win::SIF_PAGE 2)
+  (cl:defconstant win::SIF_POS 4)
+  (cl:defconstant win::SIF_DISABLENOSCROLL 8)
+  (ct:defcstruct scrollinfo
+    ((cbSize :unsigned-long)
+     (fMask :unsigned-long)
+     (nMin :long)
+     (nMax :long)
+     (nPage :unsigned-long)
+     (nPos :long)
+     (nTrackPos :long))))
+
+#+acl86win32x ;; won't work, this one not in index
+(defapientry setscrollinfo "SetScrollInfo" (hwnd int lpscrollinfo :boolean)
+	     int ??? %oscall)
+
+#+acl86win32
+(ff:defforeign 'SetScrollInfo 
+    :entry-point "SetScrollInfo"
+    :arguments '(t t t t)
+    :return-type :integer)
+
+#+aclpc
+(ct:defun-dll SetScrollInfo ((hwnd :short-handle) (flags :short) (params (scrollinfo *)) (redraw-p :short-bool))
+   :return-type :short
+   :library-name "user32.dll"
+   :entry-name "SetScrollInfo")
+
+(in-package :silica)
+
+(defmethod change-scroll-bar-values ((sb mswin-scroll-bar) &key
+							   slider-size
+							   value
+							   line-increment
+							   (page-increment slider-size))
+  (let ((mirror (sheet-direct-mirror sb)))
+    (when mirror
+      (unless slider-size (setq slider-size (scroll-bar-size sb)))
+      (unless value (setq value (gadget-value sb)))
+      (multiple-value-bind (min max) (gadget-range* sb)
+      (let* ((scrollinfo-struct (ct:ccallocate win::scrollinfo))
+	 	 (win-id win::SB_CTL)  ; a control (decoupled from other panes)
+             (range (- max min))
+	 	 (win-size (floor (* *win-scroll-grain* (/ slider-size (+ range slider-size)))))
+	 	 (win-pos (floor (* (- *win-scroll-grain* slider-size)
+                                (/ (- value min) (- range slider-size))))))
+	    (ct::csets
+		     win::scrollinfo scrollinfo-struct
+		     win::cbSize (cg::sizeof win::scrollinfo)
+		     win::fMask #.(logior 
+                                win::SIF_PAGE 
+                                win::SIF_POS
+                                1   ;win::SIF_RANGE
+					  win::SIF_DISABLENOSCROLL)
+                 win::nMin 0
+                 win::nMax *win-scroll-grain*
+		     win::nPage win-size
+		     win::nPos win-pos)
+	    (win::SetScrollInfo (sheet-mirror sb) win-id scrollinfo-struct t))))))
+
+(defmethod (setf gadget-value) :after
+	   (nv (gadget mswin-scroll-bar) &key invoke-callback)
+  (declare (ignore invoke-callback))
+  (let ((mirror (sheet-direct-mirror gadget)))
+    (when mirror
+      (change-scroll-bar-values gadget :value nv))))
+
+(defmethod (setf scroll-bar-size) :after (nv (gadget mswin-scroll-bar))
+  (let ((mirror (sheet-direct-mirror gadget)))
+    (when mirror
+       (change-scroll-bar-values gadget :slider-size nv))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; pull-down-menu

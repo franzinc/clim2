@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/silica/scroll-pane.lisp,v 1.7 1997/02/05 01:51:18 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/silica/scroll-pane.lisp,v 1.8 1998/03/21 01:55:06 smh Exp $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright(c) 1991, 1992 International Lisp Associates.
@@ -385,7 +385,7 @@
                                      &key slider-size value line-increment)
   (declare (ignore line-increment))
   (setf (gadget-value scroll-bar :invoke-callback nil) value)
-  (setf (scroll-bar-current-size scroll-bar) slider-size)
+  ;;(setf (scroll-bar-current-size scroll-bar) slider-size)
   (let* ((scroller (gadget-client scroll-bar))
          (contents (pane-contents scroller)))
     ;;--- Hmm, if two "linked" panes have callbacks that cause the other
@@ -507,7 +507,7 @@
          (scroll-value (gadget-value scroll-bar))
          (min-value (gadget-min-value scroll-bar))
          (max-value (gadget-max-value scroll-bar))
-         (gadget-size (or (scroll-bar-current-size scroll-bar) 0))
+         (gadget-size 0 #+broken (or (scroll-bar-current-size scroll-bar) 0))
          (gadget-range (abs (- max-value min-value)))
          (identity (sheet-pointer-cursor pane)))
     (flet ((draw-car (medium left top right bottom which)

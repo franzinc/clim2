@@ -1,6 +1,6 @@
 ;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/silica/gadgets.lisp,v 1.64 1997/09/03 04:03:37 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/silica/gadgets.lisp,v 1.65 1998/03/21 01:55:05 smh Exp $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright (c) 1992 by Symbolics, Inc.	 All rights reserved."
@@ -303,11 +303,6 @@
     ((size :initform nil :initarg :size :accessor scroll-bar-size)
      (drag-callback :initarg :drag-callback :initform nil
 		    :reader scroll-bar-drag-callback)))
-
-#+(or aclpc acl86win32)
-(defmethod destroy-mirror :after  ((port basic-port) (sheet scroll-bar))
-  ;; This invalidates any caching that is going on
-  (setf (scroll-bar-current-size sheet) nil))
 
 (defmethod drag-callback :around ((gadget scroll-bar) (client t) (id t) value)
   (let ((callback (scroll-bar-drag-callback gadget)))

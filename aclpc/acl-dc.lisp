@@ -46,7 +46,8 @@
 (defstruct (dc-image (:predicate nil))
   (bitmap nil)
   solid-1-pen
-  (pen-table (make-hash-table))
+  ;; Hash table doesn't appear to be needed anymore. JPM Jan 98.
+  (pen-table nil #+obsolete (make-hash-table))
   brush
   (rop2 win::r2_copypen)
   text-color

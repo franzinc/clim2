@@ -301,6 +301,34 @@
      hwnd))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Open a scrollbar control
+
+(defun scrollbar-open (parent left top width height orientation)
+  (let* ((hwnd
+	  (win::createWindowEx 
+	   0				; style
+	   "SCROLLBAR"			; classname
+	   (cg::nstringify "")		; windowname
+	   (logior (if (eql orientation :horizontal) win::SBS_HORZ win::SBS_VERT)
+		   win::WS_CHILD
+		   win::WS_BORDER
+		   win::WS_CLIPCHILDREN 
+		   win::WS_CLIPSIBLINGS) ; style
+	   0 0 0 0			; x, y, width, height
+	   parent
+	   (cg::null-handle win::hmenu)
+	   cg::*hinst*
+	   (symbol-name (gensym)))))
+    (if (cg::null-handle-p hwnd hwnd)
+	;; failed
+	(cerror "proceed" "failed")
+      ;; else succeed if we can init the position
+      (win::SetWindowPos hwnd (cg::null-handle hwnd) 
+			 left top width height
+			 #.(logior win::SWP_NOACTIVATE win::SWP_NOZORDER)))
+    hwnd))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Open a botton control
 
 (defun cleanup-button-label (label)

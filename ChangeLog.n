@@ -11,6 +11,52 @@ Tests for new features:	<`no new features', `no tests for new features', or
 	* <changes go here...>
 
 *******************************************************************************
+2.2.1.11
+
+Documentation changes:	none
+Tests for new features:	no new features
+
+
+Fri Mar 20 14:10:22 1998  Steve Haflich  <smh@romeo>
+
+	* Committing the following merged changes from PNC.
+
+
+Mon Feb 9 18:30:00 1998  jmorrill@pointnclick.com and kreti
+
+	* aclpc/acl-medium: optimize color->wincolor
+	* aclpc/acl-dc: remove obsolete hash-table from dc-image
+	* clim/db-stream:
+           1. optimize invoke-with-drawing-options
+           2. change minimum default-space-requirements from 0 to 1
+	* aclpc/acl-frames: 
+           1. make gesture-spec-for-mswin work for nonprinting characters
+           2. add an accelerator table to acl-top-level-sheet
+           3. modify note-frame-layout-changed to clear "port-trace-thing"
+           4. update make-pane-class to use mswin-scroll-bar instead of the generic one
+	* aclpc/acl-class: modify clim-wind-proc to 
+           1. generate presentation-event upon wm_keydown if key is accelerator
+           2. utilize the 'hwnd' part of wm_hscroll and wm_vscroll
+           3. remove method for wm_setcursor (by commenting out for now)
+           4. change register-window-class to take a default cursor
+        * aclpc/acl-port: change call to register-window-class to pass in default cursor
+	* tk-silica/xt-graphics: optimize port-draw-rotated-text, medium-draw-text*,
+          and find-rotated-text-pixmap.
+        * aclpc/acl-widget: 
+           1. add an mswin-scroll-bar class and associated methods
+           2. fix gadget-value of mswin-text-edit to avoid bashing value to integer
+           3. new realize-mirror method for mswin-scroll-bar
+        * aclpc/acl-prel: open a scrollbar control
+        * postscript/postscript-port: don't give postscript double-float exponent markers
+        * Somebody (pr?) put in a lot of calls to scroll-bar-current-size, which does not
+          exist.  Perhaps they meant scroll-bar-size.  Remove references in:
+          silica/db-scroll
+          silica/gadgets 
+          silica/scroll-pane 
+          clim/prefill
+	* utils/packages.lisp: incf version number from 4 to 11
+
+*******************************************************************************
 2.2.1.10
 
 Documentation changes:	none

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: POSTSCRIPT-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/postscript/postscript-port.lisp,v 1.27 1997/10/04 00:56:28 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/postscript/postscript-port.lisp,v 1.28 1998/03/21 01:55:02 smh Exp $
 
 (provide :climps)
 
@@ -358,7 +358,7 @@
   ;; Lifted from definition of LGP:FAST-PRINT-NUM in SYS:HARDCOPY;POSTSCRIPT.LISP
   (if (and (not (zerop n))
 	   (< -1 n 1))
-      (format stream "~F" (float n))
+      (format stream "~F" (COERCE N 'SINGLE-FLOAT)) ; no double-float exponent markers
       (multiple-value-bind (integer frac)
 	  (etypecase n
 	    (integer (values (abs n) 0))

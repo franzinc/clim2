@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/clim/db-stream.lisp,v 1.66 1997/10/20 23:10:58 layer Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/db-stream.lisp,v 1.67 1998/03/21 01:54:57 smh Exp $
 
 (in-package :clim-internals)
 
@@ -91,10 +91,11 @@
 
 
 (defmethod invoke-with-drawing-options ((sheet clim-stream-sheet) continuation
-                                        &rest options
-                                        &key ink &allow-other-keys)
+                                        &rest options)
   (declare (dynamic-extent options))
-  (let* ((medium (sheet-medium sheet))
+  ;; Changed arglist to make dynamic-extent declaration effective. JPM Jan 98.
+  (let* ((ink (second (member :ink options)))
+	 (medium (sheet-medium sheet))
          (ink-changing (and ink (not (eq (medium-ink medium) ink)))))
     (when ink-changing
       ;; Close the current output record if the drawing ink is changing
@@ -108,12 +109,15 @@
         (stream-close-text-output-record sheet)))))
 
 (defmethod default-space-requirements ((pane clim-stream-sheet)
-                                       &key (min-width 0)
+                                       &key (min-width 1)
                                             (width 100)
                                             (max-width +fill+)
-                                            (min-height 0)
+                                            (min-height 1)
                                             (height 100)
                                             (max-height +fill+))
+  ;; It seems to me that if (method resize-sheet (basic-sheet)) is going to 
+  ;; generate an error for min-width or min-height of zero, then compose-space
+  ;; had better not suggest zeros by default.  Gotta have at least one pixel.  JPM
   (values width min-width max-width height min-height max-height))
 
 (defclass clim-stream-pane (clim-stream-sheet)

@@ -180,7 +180,8 @@
   (with-slots (silica::default-palette silica::deep-mirroring vk->keysym) port
     (setf silica::default-palette (make-palette port :color-p t))
     (setf silica::deep-mirroring t)
-    (register-window-class)
+    ;;add default cursor to window class -- K Reti
+    (register-window-class (realize-cursor port :default))
     ;(get-clim-icon) +++
     (let ((res (ct::callocate :long)))
     (loop for (vk . keysym) in *vk->keysym* do

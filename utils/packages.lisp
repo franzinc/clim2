@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/utils/packages.lisp,v 1.82 1998/03/18 20:27:55 layer Exp $
+;; $Header: /repo/cvs.copy/clim2/utils/packages.lisp,v 1.83 1998/03/21 01:55:10 smh Exp $
 
 (in-package :common-lisp-user)
 
@@ -2570,8 +2570,6 @@
     radio-box-pane
     radio-box-selections
     scroll-bar
-    #+(or aclpc acl86win32) scroll-bar-current-size
-    #+(or aclpc acl86win32) scroll-bar-current-value
     scroll-bar-drag-callback
     scroll-bar-pane
     scroll-bar-size
@@ -3301,7 +3299,7 @@
 (cl:defvar *clim-major-version* 2)
 (cl:defvar *clim-minor-version* 2)
 (cl:defvar *clim-generation-version* 1)
-(cl:defvar *clim-build-version* 10)
+(cl:defvar *clim-build-version* 11)
 
 (cl:defparameter *clim-version*
     (cl:format () "CLIM ~d.~d.~d.~a"
@@ -3309,4 +3307,4 @@
 	       *clim-generation-version* *clim-build-version*))
 
 #-aclpc
-(si::rcsnote *clim-version* "$Id: packages.lisp,v 1.82 1998/03/18 20:27:55 layer Exp $")
+(si::rcsnote *clim-version* "$Id: packages.lisp,v 1.83 1998/03/21 01:55:10 smh Exp $")

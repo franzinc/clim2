@@ -120,9 +120,12 @@
 ;; colors avoiding need for windows to stipple. (cim 10/11/96)
 
 (defun color->wincolor (ink)
+  (declare (optimize (speed 3) (safety 0)))
   (flet ((convert (x)
+	   (declare (short-float x))
+	   (setq x (float x))		; needed?
 	   (if (< x 1.0)
-	       (floor (* x #x100))
+	       (values (the fixnum (floor (the short-float (* x #x100)))))
 	     #xff)))
     (multiple-value-bind (red green blue)
 	(color-rgb ink)

@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/tk-silica/xt-graphics.lisp,v 1.94 1997/05/31 01:00:46 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/tk-silica/xt-graphics.lisp,v 1.95 1998/03/21 01:55:08 smh Exp $
 
 (in-package :tk-silica)
 
@@ -1547,9 +1547,21 @@
 
     (let ((y-factor 0)
 	  (x-factor 1))
-      (when (and towards-x towards-y)
-	(let ((alpha (atan (- towards-y y) (- towards-x x))))
-	  (setq y-factor (sin alpha) x-factor (cos alpha))))
+      (WHEN (AND TOWARDS-X TOWARDS-Y)
+	(LET ((XXX (- TOWARDS-X X))
+	      (YYY (- TOWARDS-Y Y)))
+	  (COND ((ZEROP YYY)
+		 (SETQ Y-FACTOR 0)
+		 (SETQ X-FACTOR (IF (MINUSP XXX) -1 1)))
+		((ZEROP XXX)
+		 (SETQ X-FACTOR 0)
+		 (SETQ Y-FACTOR (IF (MINUSP YYY) -1 1)))
+		(T
+		 ;; THIS BRANCH IS RATHER EXPENSIVE.
+		 ;; AVOID THESE CALLS IF THE CALCULATION IS TRIVIAL. JPM.
+		 (LET ((ALPHA (ATAN YYY XXX)))
+		   (SETQ Y-FACTOR (SIN ALPHA))
+		   (SETQ X-FACTOR (COS ALPHA)))))))
 
       (flet ((process-element (codeset start end)
 	       (let ((drawable (medium-drawable medium))
@@ -1636,7 +1648,11 @@
   (flet ((compute-rotation (x y towards-x towards-y)
 	   (decf towards-x x)
 	   (decf towards-y y)
-	   (mod (round (atan towards-y towards-x) (/ pi 2.0)) 4)))
+	   #+OLD ; ARE YOU KIDDING? THIS SURE IS THE LONG WAY AROUND THE BARN...JPM
+	   (MOD (ROUND (ATAN TOWARDS-Y TOWARDS-X) (/ PI 2.0)) 4)
+	   (IF (>= TOWARDS-X 0)
+	       (IF (>= TOWARDS-Y 0) 0 2)
+	     (IF (>= TOWARDS-Y 0) 1 3))))
     (let* ((rotation (compute-rotation x y towards-x towards-y))
 	   (min-char (xt::font-range font))
 	   (ascent (xt::font-ascent font))
@@ -1689,13 +1705,14 @@
 		  (2 (values (- x pixmap-width) (- y descent)))
 		  (3 (values (- x ascent) (- y pixmap-height))))
 
-	      (setf (tk::gcontext-clip-mask gcontext) string-pixmap)
 	      (decf (ink-gcontext-last-clip-region-tick gcontext))
+	      (setf (tk::gcontext-clip-mask gcontext) string-pixmap)
 	      (setf (tk::gcontext-clip-x-origin gcontext) dst-x
 		    (tk::gcontext-clip-y-origin gcontext) dst-y)
 	      (tk::draw-rectangle drawable gcontext
 				  dst-x dst-y pixmap-width
 				  pixmap-height t))))))))
+
 
 #+ignore
 (defun clear-rotation-caches (&optional (port (find-port)))
@@ -1835,8 +1852,12 @@
 	    (values string-pixmap pixmap-width pixmap-height)))))))
 
 (defun find-rotated-text-pixmap (port font rotation)
-  (let ((x (assoc (list font rotation) (port-rotated-font-cache port)
-		  :test #'equal)))
+  (let ((x nil))
+    ;; Don't cons a hash key...JPM.
+    (DOLIST (ITEM (PORT-ROTATED-FONT-CACHE PORT))
+      (LET ((KEY (CAR ITEM)))
+	(WHEN (AND (EQUAL (CAR KEY) FONT) (EQUAL (SECOND KEY) ROTATION))
+	  (SETQ X ITEM))))
     (when x
       (return-from find-rotated-text-pixmap (values-list (cdr x))))
     (multiple-value-bind

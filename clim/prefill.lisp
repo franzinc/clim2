@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/clim/prefill.lisp,v 1.17 1997/02/05 01:44:27 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/prefill.lisp,v 1.18 1998/03/21 01:55:01 smh Exp $
 
 (in-package :clim-internals)
 
@@ -2365,14 +2365,6 @@
     (scroll-bar-shaft-pane t t)
     (application-pane t t)
     (clim-stream-pane t t))
-  (scroll-bar-current-size
-    (scroll-bar-pane))
-  ((setf scroll-bar-current-size)
-    (t scroll-bar-pane))
-  (scroll-bar-current-value
-    (scroll-bar-pane))
-  ((setf scroll-bar-current-value)
-    (t scroll-bar-pane))
   (scroller-pane-horizontal-scroll-bar
     (scroller-pane))
   (silica::scroller-pane-scroll-bar-policy
