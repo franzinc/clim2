@@ -24,3 +24,8 @@ MyDrawingA.o: misc/MyDrawingA.c misc/climgccursor.c
 
 olsupport.o: misc/olsupport.c misc/climgccursor.c
 	$(CC) -c -K pic $(CFLAGS) $(OLINCLUDES) -o olsupport.o misc/olsupport.c
+
+$(MAIN_OBJ):	stub-motif.o stub-xt.o stub-x.o
+	ld -r $(LDFLAGS) -o $(MAIN_OBJ) $(ACL_MAIN_OBJ) \
+		xlibsupport.o xtsupport.o MyDrawingA.o stub-motif.o stub-xt.o \
+		stub-x.o -lXm -lXt -lX11 -lgen

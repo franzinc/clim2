@@ -3628,7 +3628,7 @@
 
 ;; A package for casual use...
 (#-(or ANSI-90 Lucid) clim-lisp::defpackage #+(or ANSI-90 Lucid) defpackage clim-user
-  (:use clim-lisp clim))
+   (:use clim-lisp clim))
 
 ;;; Nasty hack to improve debuggability
 ;;; Dont need it right now.

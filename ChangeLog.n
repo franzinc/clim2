@@ -1,3 +1,31 @@
+Wed Sep 22 10:57:07 1993  Kevin Layer  (layer@sole)
+
+	* clim-2.0/Makefile.cobjs: move .c generation stuff to
+	Makefile.generic because svr4 needs to use it; MAIN_OBJ hack
+
+	* clim-2.0/Makefile.cobjs-svr4: MAIN_OBJ hack
+
+	* clim-2.0/Makefile.defs: TRAIN_BM used by cl's make-dist
+
+	* clim-2.0/Makefile.generic: use -backtrace-on-error; move .c
+	generation to this file
+
+	* clim-2.0/misc/make-stub-file1: workaround weird C compiler
+	(bug?) on solaris 2: don't assign class values to variable,
+	make them an argument to an uncalled function.
+
+	* clim-2.0/misc/train.lisp: use ../src/clos-preload.cl if it
+	exists.
+
+	* clim-2.0/tk/xm-init.lisp: svr4 hack for static loaded case
+
+	* clim-2.0/tk-silica/xt-silica.lisp: fix from cer to define a
+	method for sheet-mirrored-ancestor-of-clim-stream-sheet-p that
+	does nothing in the case of a t argument, and something in the
+	case of a sheet-parent-mixin.
+
+*******************************************************************************
+
 from cer: Fri Sep 17 12:03:17 PDT 1993
 
 Makefile.defs			Replaced /vapor by /net/vapor, Added PRODUCT_SRC_FILES

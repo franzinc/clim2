@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: xm-silica -*-
 ;;
-;;				-[Wed Aug 25 11:15:21 1993 by colin]-
+;;				-[Mon Sep 20 09:29:51 1993 by layer]-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -481,8 +481,11 @@
 ;;-- Perhaps this method should be for any mirrored composite
 ;;-- sheet?
 
+(defmethod sheet-mirrored-ancestor-of-clim-stream-sheet-p ((sheet t))
+  nil)
 
-(defun sheet-mirrored-ancestor-of-clim-stream-sheet-p (sheet)
+(defmethod sheet-mirrored-ancestor-of-clim-stream-sheet-p
+    ((sheet sheet-parent-mixin))
   (labels ((walk-children (sheet)
 	     (dolist (child (sheet-children sheet))
 	       (typecase child

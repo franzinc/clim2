@@ -32,13 +32,16 @@ PSVIEW=:file
 HPGLVIEW=:file
 TRAIN_COMPILE=t
 TRAIN_PROFILEP=t
+TRAIN_BM=t
 
 FRAME_TESTS=t
 
 TRAIN_LISP= \
 	(load \"misc/train.lisp\") \
-	(train-clim :frame-tests $(FRAME_TESTS) :train-times $(TRAIN_TIMES)\
-		:profilep $(TRAIN_PROFILEP) :compile $(TRAIN_COMPILE) :psview $(PSVIEW) :hpglview $(HPGLVIEW))
+	(train-clim :frame-tests $(FRAME_TESTS) :train-times $(TRAIN_TIMES) \
+		:benchmarkp $(TRAIN_BM) :profilep $(TRAIN_PROFILEP) \
+		:compile $(TRAIN_COMPILE) :psview $(PSVIEW) \
+		:hpglview $(HPGLVIEW))
 
 TRAIN_TEXT = \
 	$(ECHO) "\

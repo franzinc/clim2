@@ -4,17 +4,24 @@
 header=$1
 shift;
 echo $header
-echo "{ int i;"
+echo "{"
 
 for file in $*; do
 	cat $file | sed -e 's/^/extern int /' -e 's/$/;/'
 done
 
+# I changed the assignment of the class variables to `i' to be
+# arguments to a function.  The Sun's Solaris 2 C compiler was
+# eliminating most of the assignments!  -dkl, 9/14/93
+
+echo 'lisp_stub_dummy_caller('
 for file in $*; do
-	cat $file | sed -e 's/^/i = /' -e 's/$/;/'
+	cat $file | sed -e 's/$/,/'
 done
+echo '0);'
 
 echo "}"
 
+echo 'lisp_stub_dummy_caller(i) {}'
 
 

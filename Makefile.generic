@@ -34,7 +34,7 @@ compile-xm:	$(MOTIF_OBJS) FORCE
 	 :load-source-file-info $(LOAD_SOURCE_FILE_INFO) \
 	 :load-xref-info $(LOAD_XREF_INFO) \
 	 :compile-print nil :compile-verbose nil \
-	 :redefinition-warnings t :gcprint nil)" | $(CL) $(CLOPTS) -batch
+	 :redefinition-warnings t :gcprint nil)" | $(CL) $(CLOPTS) -batch -backtrace-on-error
 
 compile-ol:	$(OPENLOOK_OBJS) FORCE
 	$(ECHO) "\
@@ -56,7 +56,7 @@ compile-ol:	$(OPENLOOK_OBJS) FORCE
 	 :load-source-file-info $(LOAD_SOURCE_FILE_INFO) \
 	 :load-xref-info $(LOAD_XREF_INFO) \
 	 :compile-print nil :compile-verbose nil \
-	 :redefinition-warnings t :gcprint nil)" | $(CL) $(CLOPTS) -batch
+	 :redefinition-warnings t :gcprint nil)" | $(CL) $(CLOPTS) -batch -backtrace-on-error
 
 # Concatenation
 
@@ -152,7 +152,7 @@ clim-xm:	FORCE $(MOTIF_OBJS)
 		(load \"misc/dev-load-1.lisp\") \
 		(load-it 'motif-clim) \
 		(setq sys::*clim-dump-name* \"$(DUMP-CLIM)\") \
-		(load \"misc/dump.lisp\")" | $(DUMP-CL) $(CLOPTS) -batch
+		(load \"misc/dump.lisp\")" | $(DUMP-CL) $(CLOPTS) -batch -backtrace-on-error
 	$(MV) $(DUMP-CLIM) $(CLIMXM)
 	ls -lLt $(CLIMXM) >> Clim-sizes.n
 	size $(CLIMXM) >> Clim-sizes.n
@@ -168,7 +168,7 @@ clim-ol:	FORCE $(OPENLOOK_OBJS)
 		(load \"misc/dev-load-1.lisp\") \
 		(load-it 'openlook-clim) \
 		(setq sys::*clim-dump-name* \"$(DUMP-CLIM)\") \
-		(load \"misc/dump.lisp\")" | $(DUMP-CL) $(CLOPTS) -batch
+		(load \"misc/dump.lisp\")" | $(DUMP-CL) $(CLOPTS) -batch -backtrace-on-error
 	$(MV) $(DUMP-CLIM) $(CLIMOL)
 	ls -lLt $(CLIMOL) >> Clim-sizes.n
 	size $(CLIMOL) >> Clim-sizes.n
@@ -179,7 +179,7 @@ clim-small:	FORCE
 	$(ECHO) " \
 		(load \"misc/load-xm.lisp\") \
 		(setq sys::*clim-dump-name* \"$(DUMP-CLIM)\") \
-		(load \"misc/dump.lisp\")" | $(DUMP-CL) $(CLOPTS) -batch
+		(load \"misc/dump.lisp\")" | $(DUMP-CL) $(CLOPTS) -batch -backtrace-on-error
 	$(MV) $(DUMP-CLIM) $(CLIM-SMALL)
 	ls -lt $(CLIM-SMALL) >> Clim-sizes.n
 	size $(CLIM-SMALL) >> Clim-sizes.n
@@ -202,7 +202,7 @@ train-xm:	FORCE
 	(load-it 'motif-clim :load-composer nil) \
 	$(TRAIN_LISP) \
 	(clim-user::generate-pretty-test-report :file \"$(REPORT_FILE)\")" | \
-	   $(CL) $(CLOPTS) -batch
+	   $(CL) $(CLOPTS) -batch -backtrace-on-error
 
 train-ol:	FORCE
 	$(ECHO) " \
@@ -213,29 +213,29 @@ train-ol:	FORCE
 	(load-it 'openlook-clim :load-composer nil) \
 	$(TRAIN_LISP) \
 	(clim-user::generate-pretty-test-report :file \"$(REPORT_FILE)\")" | \
-	   $(CL) $(CLOPTS) -batch
+	   $(CL) $(CLOPTS) -batch -backtrace-on-error
 
 generate_test_report:
 	@$(ECHO) "\
 	(clim-user::generate-pretty-test-report :file \"$(REPORT_FILE)\") \
 	 (exit) \
-" | $(CLIM) $(CLOPTS) -batch 
+" | $(CLIM) $(CLOPTS) -batch -backtrace-on-error
 
 profile	:	FORCE
 	$(ECHO) "\
 	(clim-user::run-profile-clim-tests) \
-"       | $(CLIM) $(CLOPTS) -batch
+"       | $(CLIM) $(CLOPTS) -batch -backtrace-on-error
 
 benchmark:
 	$(ECHO) "\
 	(clim-user::benchmark-clim $(BENCHMARK_FILE)) \
-"  | $(CLIM) $(CLOPTS) -batch
+"  | $(CLIM) $(CLOPTS) -batch -backtrace-on-error
 
 testps :
 	$(ECHO) "\
 	(load \"test/postscript-tests.lisp\") \
 	(clim-user::run-postscript-tests :output $(PSVIEW)) \
-"  | $(CLIM) $(CLOPTS) -batch
+"  | $(CLIM) $(CLOPTS) -batch -backtrace-on-error
 
 echo-train:
 	-$(ECHO) "$(TRAIN_LISP)(exit 0)"
@@ -334,6 +334,25 @@ ucl.clim: stub-x.o clim-motif.o xlibsupport.o xtsupport.o  MyDrawingA.o $(MALLOC
 dcl	: 
 	cd $(CL_SRC) ; /bin/rm -f ucl ;\
 	make dcl	
+
+# these were moved here from Makefile.cobjs because SVR4 needs them, too
+# (and I didn't want to duplicate them in Makefile.cobjs-svr4).
+
+stub-motif.c	:  $(XT_UNDEFS)  $(XMC_UNDEFS) $(XM_UNDEFS) misc/make-stub-file misc/make-stub-file1
+	misc/make-stub-file "void ___lisp_load_motif_stub ()"  $(XM_UNDEFS) > /tmp/`whoami`stub-motif.c 
+	misc/make-stub-file1 "void ___lisp_load_motif_stub_vars ()"  $(XMC_UNDEFS) >> /tmp/`whoami`stub-motif.c 
+	$(MV) /tmp/`whoami`stub-motif.c  stub-motif.c 
+
+stub-olit.c	:   $(XT_UNDEFS) $(OLC_UNDEFS) $(OL_UNDEFS) misc/make-stub-file misc/make-stub-file1
+	misc/make-stub-file "void ___lisp_load_olit_stub ()"  $(OL_UNDEFS) > /tmp/`whoami`stub-olit.c 
+	misc/make-stub-file1 "void ___lisp_load_olit_stub_vars ()"  $(OLC_UNDEFS) >> /tmp/`whoami`stub-olit.c 
+	$(MV) /tmp/`whoami`stub-olit.c  stub-olit.c 
+
+stub-x.c	:  $(UNDEFS) misc/make-stub-file
+	misc/make-stub-file "void ___lisp_load_x_stub ()"  $(UNDEFS) > stub-x.c 
+
+stub-xt.c	:  $(XT_UNDEFS) misc/make-stub-file
+	misc/make-stub-file "void ___lisp_load_xt_stub ()"  $(XT_UNDEFS)  > stub-xt.c 
 
 include $(C_OBJECT_MAKEFILE)
 

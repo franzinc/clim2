@@ -1,6 +1,6 @@
 ; -*- mode: common-lisp; package: user -*-
 ;;
-;;				-[Fri Aug 20 07:36:40 1993 by layer]-
+;;				-[Thu Sep  2 10:17:42 1993 by layer]-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1992 Franz Inc, Berkeley, CA  All rights reserved.
@@ -116,7 +116,9 @@
       (handler-case (delete-file (format nil file-format xx))
 	(error () nil))))
 
-  (compile-file "misc/clos-preload.cl" 
+  (compile-file (if* (probe-file "../src/clos-preload.cl")
+		   thenret
+		   else "misc/clos-preload.cl")
 		:output-file 
 		(if (excl::featurep :clim-motif) 
 		    "climxm-preload.fasl" 
