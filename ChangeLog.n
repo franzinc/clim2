@@ -16,6 +16,7 @@ If there are user-visible changes in this commit, then list the
 2001-06-26  Kevin Layer  <layer@crikey>
 
 	* tk/xm-widgets.lisp: bug10894: fix select-file
+	* clim/presentations.lisp: fix for bug10917/spr24231
 
 *******************************************************************************
 2.3.7
