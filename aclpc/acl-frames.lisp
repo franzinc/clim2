@@ -178,7 +178,7 @@
 ;;; always get repainted in their ungrayed state at the end.  pr Aug97
 
 ;(setf (command-enabled command-name frame) enablep)
-;(win::EnableMenuItem menu menuid (if enablep pc::MF_ENABLED pc::MF_GRAYED))
+;(win::EnableMenuItem menu menuid (if enablep win:MF_ENABLED win:MF_GRAYED))
 
 (defun keysym->char (keysym)
   (if (typep keysym 'character)
@@ -203,6 +203,110 @@
 	(push (second shift) nlist)))
     (format nil "~A~{~A~}" #\tab nlist)))
 
+(defun strlen (str)
+  ;; compute length of null terminated string in a big buffer
+  (typecase str
+    (string (dotimes (i (length str) (length str))
+	      (when (eq #\null (aref str i)) (return i))))
+    (otherwise (error "???"))))
+
+(defun set-strlen (stringvar newlen)
+  ;;mm: Add a terminating zero-char for C code.
+  (setf (aref stringvar newlen) #\null)
+  (setf (fill-pointer stringvar) newlen))
+
+(eval-when (compile load eval)
+  (defconstant *nstringify-buffer-default-size* 2048)
+  (defvar nstringify-buffer 
+      (make-array *nstringify-buffer-default-size* :fill-pointer t 
+		  :element-type 'character))
+  (defvar control-text-buffer
+      (make-array 2048 :fill-pointer t :element-type 'character)))
+
+(defun nstringify (x)
+  (typecase x
+    (simple-string x)
+    (string 
+     (let ((new-length 
+	    (min (length x) (length nstringify-buffer))))
+       (ncopy-vector nstringify-buffer x 0 0 new-length)
+       (set-strlen nstringify-buffer new-length)
+       nstringify-buffer))
+    (null "")
+    (t (nprin1-to-string x))))
+
+(defun nstringify-for-control (x)
+  (typecase x
+    ((not symbol)
+     (nstringify x))
+    (null "")
+    (t
+     (let* ((symbol-name (symbol-name x))
+	    (new-length 
+	     (min (length symbol-name) #.(length nstringify-buffer))))
+       (ncopy-vector nstringify-buffer symbol-name 0 0 new-length)
+       (set-strlen nstringify-buffer new-length)
+       (nstring-capitalize nstringify-buffer :end new-length)))))
+
+(defun schar-byte (string index)
+  (if (< index (length string))
+      ;; Use aref so it will work on adjustable arrays
+      (char-int (aref string index))
+    0))
+
+(defun set-schar-byte (string index new)
+  (if (< index (length string))
+      (etypecase string
+	((simple-array character (*))
+	 (setf (schar string index) (cltl1:int-char new)))
+	(array
+	 (setf (aref string index) (cltl1:int-char new)))
+	))
+  new)
+
+(defun make-control-text (x)
+  (let ((string (nstringify-for-control x)))
+    ;;mm: This is not MP-safe ???
+    ;;mm: allow access to the whole buffer 
+    #+aclmerge (setf (fill-pointer control-text-buffer) 2047)
+    (set-strlen 
+     control-text-buffer
+     ;; copy characters across and return final length
+     (block nil				; macroexpanded the FOR loop to get
+					; this... jpm.
+       (let* ((to-index 0) (from-index 0) (char-byte nil) (last-char-byte nil))
+	 (declare (fixnum to-index) (fixnum from-index))
+	 (tagbody
+	  for-loop
+	   (when (or (>= from-index #.(length nstringify-buffer)) 
+		     (>= to-index #.(length control-text-buffer))) 
+	     (go for-exit))
+	   (setq last-char-byte char-byte)
+	   (setq char-byte (schar-byte string from-index))
+	   (set-schar-byte control-text-buffer to-index char-byte)
+	   (case char-byte
+	     (0 (go for-exit))
+	     (#.(char-int #\&)
+		(when (< from-index #.(1- (length nstringify-buffer)))
+		  (set-schar-byte control-text-buffer 
+				  (incf to-index) 
+				  #.(char-int #\&))))
+	     (#.(char-int #\~)
+		(if (eql last-char-byte #.(char-int #\~))
+		    (progn (set-schar-byte control-text-buffer
+					   (decf to-index) 
+					   #.(char-int #\~))
+			   (setf char-byte 0))
+		  (set-schar-byte control-text-buffer to-index 
+				  #.(char-int #\&)))))
+	   (incf to-index 1)
+	   (incf from-index 1)
+	   (go for-loop)
+	  for-exit)
+	 to-index)))
+    ;; return the control text
+    control-text-buffer))
+
 (defun make-menu-text (text keystroke item)
   (let* ((mnemonic (getf (command-menu-item-options item) :mnemonic))
 	 (pos (position mnemonic text))
@@ -211,11 +315,11 @@
 			      (subseq text 0 pos)
 			      (subseq text pos))
 		    text)))
-    (pc::make-control-text (if keystroke
-			       (format nil "~A~A"
-				       newtext
-				       (gesture-spec-for-mswin keystroke))
-			     newtext))))
+    (make-control-text (if keystroke
+			   (format nil "~A~A"
+				   newtext
+				   (gesture-spec-for-mswin keystroke))
+			 newtext))))
 
 (defun compute-msmenu-bar-pane (frame top command-table)
   (let* (#+ignore
@@ -268,7 +372,7 @@
 		       )
 		      (:menu
 		       (let* ((popmenu (win::CreatePopupMenu))
-			      (hmenu (pc::handle-value 'win::hmenu popmenu))
+			      (hmenu (ct:handle-value 'win::hmenu popmenu))
 			      (menutext (make-menu-text menu acckey item)))
 			 (win::AppendMenu menuhand
 					  smflags
@@ -279,7 +383,7 @@
 		      (:divider
 		       (unless top-level
 			 (win::AppendMenu menuhand
-					  pc::MF_SEPARATOR
+					  win:MF_SEPARATOR
 					  0
 					  "x")
 			 )))))
@@ -297,11 +401,12 @@
 	     (menu-handle (win::GetMenu mirror)))
 	(win::EnableMenuItem menu-handle menu-item-id
 			     (if (command-enabled command frame)
-				 pc::MF_ENABLED
-			       pc::MF_GRAYED))))))
+				 win:MF_ENABLED
+			       win:MF_GRAYED))))))
 
 (defmethod redisplay-frame-panes :around ((frame standard-application-frame)
 					  &key force-p)
+  (declare (ignore force-p))
   (call-next-method)
   ;;; ensure that the top-level-sheet is visible, mostly for avp frames
   #-ignore ;;-- thought adding this unless would fix growing pains but it didn't.
@@ -330,7 +435,7 @@ to be run from another."
          (mirror (sheet-mirror top))
          (menu-handle (win::GetMenu mirror))
          (command-id (find-command-menu-item-id command frame))
-         (flag pc::MF_ENABLED))
+         (flag win:MF_ENABLED))
     (when menu-handle
       (win::EnableMenuItem menu-handle command-id flag))))
 
@@ -341,7 +446,7 @@ to be run from another."
          (mirror (sheet-mirror top))
          (menu-handle (win::GetMenu mirror))
          (command-id (find-command-menu-item-id command frame))
-         (flag pc::MF_GRAYED))
+         (flag win:MF_GRAYED))
     (when menu-handle
       (win::EnableMenuItem menu-handle command-id flag))))
 
@@ -691,6 +796,69 @@ to be run from another."
 		  (merge-pathnames filename directory))
 	      (cdr filename-list)))))
 
+(defun delimited-string-to-list (string delimiter-char-or-string)
+  "Returns a list of substrings of STRING, separating it at DELIMETER-CHAR-OR-STRING"
+  (do* ((stringp (stringp delimiter-char-or-string))
+	(delimiter-length (if stringp
+                              (length delimiter-char-or-string)
+			    1))
+	(s string (subseq s (+ index delimiter-length)))
+	(index
+	 (if stringp
+	     (search delimiter-char-or-string s)
+	   (position delimiter-char-or-string s))
+	 (if stringp
+	     (search delimiter-char-or-string s)
+	   (position delimiter-char-or-string s)))
+	(list
+	 (list (subseq s 0 index))
+	 (nconc list (list (subseq s 0 index)))))
+      ((null index)
+       list)))
+
+(defun spaced-string-to-list (string) ;; <27>
+  (delimited-string-to-list string #\space))
+
+(cl:defparameter common-dialog-errors
+ '((#xffff . cderr_dialogfailure)
+   (#x0000 . cderr_generalcodes)
+   (#x0001 . cderr_structsize)
+   (#x0002 . cderr_initialization)
+   (#x0003 . cderr_notemplate)
+   (#x0004 . cderr_nohinstance)
+   (#x0005 . cderr_loadstrfailure)
+   (#x0006 . cderr_findresfailure)
+   (#x0007 . cderr_loadresfailure)
+   (#x0008 . cderr_lockresfailure)
+   (#x0009 . cderr_memallocfailure)
+   (#x000a . cderr_memlockfailure)
+   (#x000b . cderr_nohook)
+   (#x000c . cderr_registermsgfail)
+   (#x1000 . pderr_printercodes)
+   (#x1001 . pderr_setupfailure)
+   (#x1002 . pderr_parsefailure)
+   (#x1003 . pderr_retdeffailure)
+   (#x1004 . pderr_loaddrvfailure)
+   (#x1005 . pderr_getdevmodefail)
+   (#x1006 . pderr_initfailure)
+   (#x1007 . pderr_nodevices)
+   (#x1008 . pderr_nodefaultprn)
+   (#x1009 . pderr_dndmmismatch)
+   (#x100a . pderr_createicfailure)
+   (#x100b . pderr_printernotfound)
+   (#x100c . pderr_defaultdifferent)
+   (#x2000 . cferr_choosefontcodes)
+   (#x2001 . cferr_nofonts)
+   (#x2002 . cferr_maxlessthanmin)
+   (#x3000 . fnerr_filenamecodes)
+   (#x3001 . fnerr_subclassfailure)
+   (#x3002 . fnerr_invalidfilename)
+   (#x3003 . fnerr_buffertoosmall)
+   (#x4000 . frerr_findreplacecodes)
+   (#x4001 . frerr_bufferlengthzero)
+   (#x5000 . ccerr_choosecolorcodes)
+   ))
+
 (defun get-pathname
     (prompt host stream allowed-types initial-name
      save-p multiple-p change-current-directory-p
@@ -712,9 +880,9 @@ to be run from another."
 				(or host (namestring *default-pathname-defaults*))))
 	   (prompt-string (fill-c-string prompt)))
       (ct:csets win:fi-openfilename open-file-struct
-	     struct-size (pc::sizeof win:openfilename)
+	     struct-size (ct:sizeof win:openfilename)
 	     owner (clim::sheet-mirror stream)
-	     hinst pc::*hinst*
+	     hinst *hinst*
 	     file-filter file-filter-string
 	     custom-filter (ct:ccallocate (:void *) :initial-value 0)
 	     max-custom-filter 0 ;; length of custom filter string
@@ -747,7 +915,7 @@ to be run from another."
 	(if error-code ;; t means it worked
 	    (if multiple-p
 		(pathnames-from-directory-and-filenames
-		 (cg::spaced-string-to-list
+		 (spaced-string-to-list
 		  (string-downcase
 		   (scratch-c-string-to-lisp-string))))
 	      (pathname
@@ -758,7 +926,7 @@ to be run from another."
 		 (error (format nil 
 				"Common dialog error ~a."
 				(or (cdr (assoc error-code
-						pc::common-dialog-errors))
+						common-dialog-errors))
 				    error-code))))))))))
 
 (defmethod frame-manager-select-file
@@ -779,6 +947,8 @@ to be run from another."
 	  directory
 	  pattern
      &allow-other-keys)
+  (declare (ignore name exit-boxes file-list-label directory-list-label
+		   file-search-proc documentation default-p))
   (let* ((stream associated-window)
 	 (path-string (or pattern (and default (namestring default))))
 	 (dir (or directory
@@ -990,6 +1160,7 @@ in a second Lisp process.  This frame cannot be reused."
 	))))
 
 (defun clean-frame (frame)
+  (declare (ignore frame))
   ;; (disable-frame frame)
   ;; (enable-frame frame)
   nil)

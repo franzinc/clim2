@@ -11,6 +11,30 @@ Tests for new features:	<`no new features', `no tests for new features', or
 	* <changes go here...>
 
 *******************************************************************************
+2.2.1.14.2 (on acl50pnc branch)
+
+Fri May  8 14:20:32 1998  Kevin Layer  <layer@ultra>
+
+	all changes to remove dependence on aclpc/winapi.lisp and
+	aclpc/cgapi.lisp:
+
+	* Makefile.win32
+	* aclpc/acl-class.lisp
+	* aclpc/acl-frames.lisp
+	* aclpc/acl-medium.lisp
+	* aclpc/acl-mirror.lisp
+	* aclpc/acl-port.lisp
+	* aclpc/acl-prel.lisp
+	* aclpc/acl-scroll.lisp
+	* aclpc/acl-widget.lisp
+	* aclpc/Attic/cgapi.lisp
+	* aclpc/clim.ico
+	* aclpc/pkgdcl.lisp
+	* aclpc/sysdcl.lisp
+	* aclpc/winwidgh.lisp
+	* demo/winlisp.lisp
+
+*******************************************************************************
 2.2.1.14.1 (on acl50pnc branch)
 
 CLIM Port to ACL 5.0

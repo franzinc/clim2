@@ -20,7 +20,7 @@
 (defmethod sheet-shell (sheet) sheet)
 
 (defmethod realize-graft ((port acl-port) graft)
-  (let ((handle (slot-value cg::*screen* 'cg::device-handle1)))
+  (let ((handle (slot-value *screen-device* 'device-handle1)))
    (setq *screen* handle)
    (init-cursors)
    (with-slots (silica::pixels-per-point
@@ -138,20 +138,19 @@
 	     ;;mm: allocate gadget-id per parent
              (setq gadget-id (silica::allocate-gadget-id sheet))
 	     (setf buttonstyle
-		   (logior #+ignore pc::HBS_NOFOCUS
-			   (if (push-button-show-as-default sheet)
-			     pc::BS_DEFPUSHBUTTON
-			     pc::BS_PUSHBUTTON))))
+		   (logior (if (push-button-show-as-default sheet)
+			     win:BS_DEFPUSHBUTTON
+			     win:BS_PUSHBUTTON))))
 	    ((typep sheet 'silica::mswin-text-edit)
 	     (setq control :hedit)
 	     ;;mm: allocate gadget-id per parent
              (setq gadget-id (silica::allocate-gadget-id sheet))
 	     (setq value (slot-value sheet 'silica::value))
 	     (setf editstyle
-	       (logior pc::ES_AUTOHSCROLL pc::ES_LEFT pc::WS_BORDER))
+	       (logior win:ES_AUTOHSCROLL win:ES_LEFT win:WS_BORDER))
 	     (unless (typep sheet 'silica::mswin-text-field)
                (setf editstyle 
-		 (logior editstyle pc::ES_MULTILINE pc::ES_AUTOVSCROLL))))
+		 (logior editstyle win:ES_MULTILINE win:ES_AUTOVSCROLL))))
 	    ((typep sheet 'silica::hbutton-pane)
 	     (setq control :hbutt)
 	     ;;mm: allocate gadget-id per parent
@@ -161,10 +160,10 @@
 	       (setf buttonstyle
 		     (cond
 		          ((typep client 'silica::radio-box-pane)
-			   pc::BS_RADIOBUTTON)
+			   win:BS_RADIOBUTTON)
 		          ((typep client 'silica::check-box-pane)
-		           pc::BS_CHECKBOX)
-		          (t pc::BS_CHECKBOX))))))
+		           win:BS_CHECKBOX)
+		          (t win:BS_CHECKBOX))))))
       (when (or (eq control :hbutt) (eq control :hedit))
 	(multiple-value-bind (cwidth cheight)
               (compute-gadget-label-size sheet)
@@ -189,14 +188,14 @@
 			label))
 		    (setq buttonstyle win:BS_OWNERDRAW ;; pnc Aug97 for clim2bug740
 			  label nil)))
-		 (pc::hbutton-open parent gadget-id
+		 (hbutton-open parent gadget-id
 				   left top width height 
 				   :buttonstyle buttonstyle
 				   :value value
 				   :label label)))
 	      ((eq control :hedit)
 	       (setq childwin t)
-	       (pc::hedit-open parent gadget-id
+	       (hedit-open parent gadget-id
 			       left top width height 
 			       :editstyle editstyle
 			       :value value
@@ -208,7 +207,7 @@
 	       )
 	      ((eq control :hlist)
 	       (setq childwin t)
-	       (pc::hlist-open parent gadget-id
+	       (hlist-open parent gadget-id
 			       0 0 0 0	; resize left top width height 
 					; :label (slot-value sheet 'silica::label)
 			       :items items
@@ -229,7 +228,7 @@
 			       ))
 	      ((eq control :hcombo)
 	       (setq childwin t)
-	       (pc::hcombo-open parent gadget-id
+	       (hcombo-open parent gadget-id
 				0 0 0 0	; resize left top width height 
 					; :label (slot-value sheet 'silica::label)
 				:items items
@@ -536,7 +535,8 @@
 
 (defmethod set-sheet-mirror-edges* :around ((port acl-port)
 					     sheet 
-					     left top right bottom)
+					    left top right bottom)
+  (declare (ignore bottom right top left))
   (let ((*setting-sheet-mirror-edges* sheet))
     (call-next-method)))
 
@@ -546,24 +546,18 @@
 ;;; from silica\mirror.lsp
 (defvar *port-mirror-sheet-alist* nil)
 
-(proclaim '(notinline mirror->sheet))
+(eval-when (compile load eval)
+  (proclaim '(notinline mirror->sheet)))
+
 (defun mirror->sheet (port mirror)
+  (declare (ignore port))
   (cdr (assoc mirror *port-mirror-sheet-alist* 
-	      :test #+aclpc #'equal
-	      #+acl86win32 #'equal
-	      #+acl86win32x 
-	      #'(lambda (x y)
-		  (cond ((and (typep x 'cg::lhandle)
-			      (typep y 'cg::lhandle))
-			 (and		;(eql (cg::lhandle-type-tag x)
-					;(cg::lhandle-type-tag y))
-			  (eql (cg::lhandle-value x)
-			       (cg::lhandle-value y))))
-			(t (equal x y)))))))
+	      :test #'equal)))
 
 (defun (setf mirror->sheet) (sheet port mirror)
+  (declare (ignore port))
   (push (cons mirror sheet) *port-mirror-sheet-alist*)
-    sheet)
+  sheet)
 
 ;;; silica\mirror ; ignored before, but we need it with deep mirroring
 (defmethod sheet-native-transformation ((sheet basic-sheet))

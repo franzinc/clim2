@@ -13,13 +13,13 @@ Makefile=Makefile.win32
 
 CAT = type
 HOST = win32
-LISP = e:\acl50pb\lisp -I e:\acl50pb\lisp.dxl
+LISP = e:\acl50b\lisp -I e:\acl50b\lisp.dxl
 
 all: compile cat
 
 compile: 
 	echo (progn (require :cltl1) (load "sys\\compile") (exit)) > c:\.clinit.cl
-	 $(LISP)
+	$(LISP)
 	erase c:\.clinit.cl
 
 # Concatenation
@@ -87,7 +87,7 @@ POSTSCRIPT_FASLS= \
 	postscript\laserwriter-metrics.fasl
 
 WIN32_FASLS= \
-	aclpc\winapi.fasl aclpc\cgapi.fasl aclpc\pkgdcl.fasl \
+	aclpc\pkgdcl.fasl \
 	aclpc\winwidgh.fasl aclpc\climpat.fasl \
 	aclpc\acl-prel.fasl aclpc\acl-class.fasl aclpc\acl-dc.fasl aclpc\acl-port.fasl \
 	aclpc\acl-mirror.fasl aclpc\acl-medium.fasl aclpc\acl-pixmaps.fasl \

@@ -237,12 +237,10 @@
 	 (setf (aref (the vector designs) i) (medium-background medium)))))      
     (dotimes (i height)
       (dotimes (j width)
-	#+ignore (pc::pixel-map-set into i j (aref array i j))
 	(setf (aref into i j) (aref array i j))))
     (setf *bitmap-array* into)
     (let ((bitmap (acl-clim::get-texture
 		    *the-dc*
-		    ; (pc::null-handle win::hdc)
 		    into designs)))	
       (setf (dc-image-bitmap dc-image) bitmap
 	    *created-bitmap* bitmap)
@@ -350,8 +348,7 @@
 		(logand 1 (lognot (aref array (mod i height)
 			                        (mod j width)))))))
       (let* ((bitmap (note-created 'bitmap (win::createBitmap bmdim bmdim 1 1
-				                      #+acl86win32 into
-                                              #+aclpc (acl::%get-pointer into 4 0))))
+							      into)))
 	       (brush (note-created 'brush (win::createPatternBrush bitmap))))
 	  (setf (dc-image-brush dc-image) brush)
         (setf *created-brush* brush)
@@ -857,6 +854,15 @@
 
 (defun pixel-map-set (pm x y v) (setf (aref pm x y) v))
 
+(defstruct (rgb ;;(:include faslable-structure)   ;; <5>
+	    (:copier nil)
+	    ;;(:constructor make-rgb)
+	    ;;(:constructor build-rgb (red green blue))
+	    )
+  (red  0 :type byte)
+  (green  0 :type byte)
+  (blue  0 :type byte))
+
 (defun read-pixmap (stream &optional (index 0)) ;; <12>
   (let* ((file-type nil)
 	 (number-of-resources 1)
@@ -968,11 +974,11 @@ device-independent bitmap, an icon, nor a cursor."))
          
       (dotimes (j number-of-colors-in-file)
 	(if (setq rgb (aref palette-array j))
-	    (setf (cg::rgb-blue rgb) (read-byte stream)
-		  (cg::rgb-green rgb) (read-byte stream)
-		  (cg::rgb-red rgb) (read-byte stream))
+	    (setf (rgb-blue rgb) (read-byte stream)
+		  (rgb-green rgb) (read-byte stream)
+		  (rgb-red rgb) (read-byte stream))
 	  (setf (aref palette-array j)
-	    (cg::make-rgb :blue (read-byte stream)
+	    (make-rgb :blue (read-byte stream)
 			  :green (read-byte stream)
 			  :red (read-byte stream))))
 	(read-byte stream))	; reserved = 0
@@ -1063,9 +1069,9 @@ device-independent bitmap, an icon, nor a cursor."))
 	  (setf color (aref colors i))
 	  (setf (aref climcolors i)
 		(make-rgb-color
-		  (/ (cg::rgb-red color) 256.0)
-		  (/ (cg::rgb-green color) 256.0)
-		  (/ (cg::rgb-blue color) 256.0)))))
+		  (/ (rgb-red color) 256.0)
+		  (/ (rgb-green color) 256.0)
+		  (/ (rgb-blue color) 256.0)))))
       (make-pattern array (or designs climcolors)))))
 
 (defparameter silica::*clim-icon-pattern* nil)
@@ -1091,7 +1097,7 @@ device-independent bitmap, an icon, nor a cursor."))
    (win:GetSystemMetrics win:SM_CYICON))
 
 (defun create-icon (pixmap texture-info mask-bitmap) ;; <7>
-  (win:CreateIcon cg:*hinst*
+  (win:CreateIcon *hinst*
 		  (icon-width)
 		  (icon-height)
 		  1 ;; planes (texture-info-bits-per-pixel texture-info)

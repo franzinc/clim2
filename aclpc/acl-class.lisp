@@ -73,20 +73,20 @@
 (defparameter application-icon (ct::callocate win::hicon))
 
 ;; window procedure unwinding state
-(cg::defbvar *window-proc-return-reason* nil)
-(cg::defbvar *window-proc-return-tag* nil)
-(cg::defbvar *window-proc-return-value* nil)
-(cg::defbvar *window-proc-return-other-values* nil)
+(defvar *window-proc-return-reason* nil)
+(defvar *window-proc-return-tag* nil)
+(defvar *window-proc-return-value* nil)
+(defvar *window-proc-return-other-values* nil)
 ;; window procedure args, rebound in each call to window proc
-(cg::defbvar *hwnd* (cg::null-handle hwnd))
-(cg::defbvar *msg* win:WM_NULL)
-(cg::defbvar *wparam* 0)
-(cg::defbvar *lparam* (cg::callocate :long))
+(defvar *hwnd* (ct:null-handle hwnd))
+(defvar *msg* win:WM_NULL)
+(defvar *wparam* 0)
+(defvar *lparam* (ct:callocate :long))
 ;; Window procedure result variable, returned to Windows.
 ;; Set to 0 initially in each call to window proc and smashed by anyone.
 (defvar *window-proc-result* 0)
 ;; to avoid garbage we reuse window procedure args from queue
-(cg::defbvar *window-proc-args-queue* nil)
+(defvar *window-proc-args-queue* nil)
 
 (defun init-cursors ()
   ;; put back old cursor mechanism for the moment (cim 9/13/96)
@@ -111,26 +111,41 @@
 ;;; +++ at some point merge this in with the cg mechanism for lisp
 ;;; windows.
 (defun clim-window-proc (x)
+  (declare (ignore x))
   ;; always return *window-proc-result* to the kernel as a cpointer
-  (let ((result #-acl86win32 (cg::ccallocate (:void *)) #+acl86win32 0))
-    (setf #-acl86win32 (pc::cpointer-value result) #+acl86win32 result
-          #-acl86win32 (cg::word-vector-long-ref *window-proc-result* 0)
-          #+acl86win32 *window-proc-result*)
-    ;; release queue vector
-    ;(cg::release-window-proc-args queue-entry)+++seems OK uncomment.
+  (let ((result 0))
+    (setf result *window-proc-result*)
     ;; return result
     result))
 
 (defvar *clim-wproc-arg-struct* nil)
 (defvar *clim-ctrl-arg-struct* nil)
 
+(defstruct (PCCStructure 
+	    (:print-function print-pccstructure)
+	    (:predicate PCCStructurep))
+  (type-tag 0)
+  (data-length 0)
+  (data-pointer 0)
+  )
+
+(defmacro long-ref (p i) 
+  `(sys::memref-int ,p 0 
+		    (the fixnum (* 4 (the fixnum ,i)))
+		    :unsigned-long))
+
+(defmacro signed-long-ref (p i) 
+  `(sys::memref-int ,p 0 
+		    (the fixnum (* 4 (the fixnum ,i)))
+		    :signed-long))
+
 (ff:defun-c-callable wproc-clim-wrapper (hwnd message wparam lparam)
   (let* ((s *clim-wproc-arg-struct*)
-	 (d (cg::pccstructure-data-pointer s)))
-    (setf (cg::long-ref d 0) hwnd
-	  (cg::long-ref d 1) message
-	  (cg::long-ref d 2) wparam
-	  (cg::signed-long-ref d 3) lparam)
+	 (d (pccstructure-data-pointer s)))
+    (setf (long-ref d 0) hwnd
+	  (long-ref d 1) message
+	  (long-ref d 2) wparam
+	  (signed-long-ref d 3) lparam)
     (clim-window-proc s)
     ))
 
@@ -175,13 +190,30 @@
   (declare (ignore res))
   nil)
 
+(defun loword (long)
+  (etypecase long
+    (integer (logand long #xffff))
+    #+broken
+    (word-vector (word-vector-ref long 1)))
+  )
+
+(defun hiword (long)
+  (etypecase long
+    (integer (logand #xffff (ash long -16)))
+    #+broken
+    (word-vector (word-vector-ref long 0)))
+  )
+
 ;; Process WM_MOUSEMOVE
 (defun message-mousemove (window msg wparam lparam)
-  (declare (ignore msg wparam))
-  (let ((mx (pc::loword lparam))
-	(my (pc::hiword lparam))
+  (let ((mx (loword lparam))
+	(my (hiword lparam))
+	(keys wparam)
 	(sheet (mirror->sheet *acl-port* window)))
-    (note-pointer-motion *acl-port* sheet mx my)))
+    (declare (ignore keys))
+    (note-pointer-motion *acl-port* sheet mx my)
+    (setq *win-result* (win::defwindowproc window msg wparam lparam))
+    ))
 
 ;; Process WM_SETCURSOR
 (defun message-setcursor (window msg wparam lparam)
@@ -242,8 +274,8 @@
 	    (hdc (ct::ccallocate win::hdc))
 	    (state itemstate)
 	    (rect rcitem))
-	(setf (pc::handle-value win::hwnd hwnd) hwnditem)
-	(setf (pc::handle-value win::hdc hdc) hdcitem)
+	(setf (ct:handle-value win::hwnd hwnd) hwnditem)
+	(setf (ct:handle-value win::hdc hdc) hdcitem)
 	(let ((sheet (mirror->sheet *acl-port* hwnd)))
 	  (when sheet (incf *buttons-drawn*)
 		(silica::draw-picture-button (mirror->sheet *acl-port* hwnd)
@@ -256,9 +288,9 @@
 	(hdc (ct::ccallocate win::hdc))
 	(state (sys:memref-int lparam 0 16 :unsigned-long))
 	(rect (+ lparam 28)))
-    (setf (pc::handle-value win::hwnd hwnd)
+    (setf (ct:handle-value win::hwnd hwnd)
       (sys:memref-int lparam 0 20 :unsigned-long))
-    (setf (pc::handle-value win::hdc hdc)
+    (setf (ct:handle-value win::hdc hdc)
       (sys:memref-int lparam 0 24 :unsigned-long))
     (let ((sheet (mirror->sheet *acl-port* hwnd)))
       (when sheet
@@ -267,11 +299,11 @@
 
 ;; Process WM_CTLCOLOREDIT
 (defun message-ctlcoloredit (window msg wparam lparam)
-  (declare (ignore window msg))
+  (setq *win-result* (message-default window msg wparam lparam))
   (let ((hwnd (ct::ccallocate win::hwnd))
 	(hdc (ct::ccallocate win::hdc)))
-    (setf (pc::handle-value win::hwnd hwnd) lparam
-	  (pc::handle-value win::hdc hdc) wparam)
+    (setf (ct:handle-value win::hwnd hwnd) lparam
+	  (ct:handle-value win::hdc hdc) wparam)
     (let ((sheet (mirror->sheet *acl-port* hwnd)))
       (when sheet
          (when (and (typep sheet 'silica::hpbutton-pane)
@@ -285,8 +317,8 @@
 ;; Process WM_COMMAND
 (defun message-command (window msg wparam lparam)
   (declare (ignore msg))
-  (let ((wloword (pc::loword wparam))
-	(whiword (pc::hiword wparam))
+  (let ((wloword (loword wparam))
+	(whiword (hiword wparam))
 	(sheet (mirror->sheet *acl-port* window))
 	(pointer (port-pointer *acl-port*))
 	(modifier-state (make-modifier-state))
@@ -313,7 +345,7 @@
 					 `(command :command-table ,command-table)
 					 :value command)))))
       (progn
-	(setf (pc::handle-value win::hwnd hwnd) lparam)
+	(setf (ct:handle-value win::hwnd hwnd) lparam)
 	;;mm: for the moment, the following seems superfluous
 	;;(setf hwndid (silica::gadget-id->window sheet wloword))
 	(setf gadget (mirror->sheet *acl-port* hwnd))
@@ -337,7 +369,7 @@
 	  ;; else
 	  (if (typep gadget 'silica::mswin-text-edit)
 	      (let ((sheet (mirror->sheet *acl-port* window)))
-		(when (and sheet (= whiword pc::en_killfocus))
+		(when (and sheet (= whiword win:en_killfocus))
 
 		  (with-slots (event-queue) *acl-port*
 					;handle-event
@@ -356,7 +388,7 @@
 						 :mswin-control gadget))))))
 	    ;; else
 	    (when (or (not (typep gadget 'silica::hlist-pane))
-		      (= whiword pc::hln_selchange))
+		      (= whiword win:hln_selchange))
 	      (when (typep gadget 'silica::hlist-pane)
 		(win::setfocus window))
 	      (with-slots (event-queue) *acl-port*
@@ -378,8 +410,8 @@
 
 ;; Process WM_VSCROLL
 (defun message-vscroll (window msg wparam lparam)
-  (let* ((type (pc::loword wparam))
-	 (position (pc::hiword wparam))
+  (let* ((type (loword wparam))
+	 (position (hiword wparam))
 	 (hwnd (if (zerop lparam) window lparam)) ; JPM for rfe353
 	 (message (cond ((eql msg win::wm_hscroll) :horizontal)
 			((eql msg win::wm_vscroll) :vertical)))
@@ -458,8 +490,8 @@
 	    (set-measureitemstruct-width-and-height lparam min-width
 						    min-height)
 	    #+ignore
-	    (setf (sys:memref-int lparam 0 24 pc::uint) min-width
-		  (sys:memref-int lparam 0 28 pc::uint) min-height)
+	    (setf (sys:memref-int lparam 0 24 win:uint) min-width
+		  (sys:memref-int lparam 0 28 win:uint) min-height)
 	    (clear-winproc-result *win-result*)))
       #+acl86win32
       (setq *win-result* (win::defwindowproc window msg wparam lparam))
@@ -641,8 +673,8 @@
 	(with-slots (event-queue) *acl-port*
 	  (queue-put event-queue
 		     (allocate-event key
-				     :native-x (pc::loword lparam)
-				     :native-y (pc::hiword lparam)
+				     :native-x (loword lparam)
+				     :native-y (hiword lparam)
 				     :button button
 				     :modifier-state modifier-state
 				     :pointer pointer
@@ -654,7 +686,7 @@
 (defun message-activate (window msg wparam lparam)
   (declare (ignore msg lparam))
   (let ((sheet (mirror->sheet *acl-port* window))
-	(flag (pc::loword wparam)))
+	(flag (loword wparam)))
     (when (and sheet (> flag 0))
       (setf (acl-port-mirror-with-focus *acl-port*) window))
     ;; set return value to 0
@@ -685,6 +717,10 @@
   (update-menu-item-sensitivities wparam)
   *win-result*)
 
+;; Process WM_NCHITTEST
+(defun message-nchittest (window msg wparam lparam)
+  (setq *win-result* (win:defwindowproc window msg wparam lparam)))
+
 ;; Allow Windows to provide default message processing.
 (defun message-default (window msg wparam lparam)
   (clear-winproc-result *win-result*)
@@ -705,82 +741,79 @@
 ;; return value depends on the message.
 (ff:defun-c-callable clim-wind-proc (window msg wparam lparam)
   (declare (:convention :stdcall) (:unwind 0))
-  (handler-case
-      (mp:without-scheduling
-	(setf *hwnd* window)
-	(when *trace-messages*
-	  (format excl:*initial-terminal-io*
-		  "In clim-wind-proc msg=~a sheet=~s lparam=~a~%"
-		  (msg-name msg) 
-		  (mirror->sheet *acl-port* window)
-		  lparam))
-	(let ((result 0)
-	      (*level* (1+ *level*)))
-	  (when (> *level* 40)
-	    (break "too deep!"))
-	  (case msg
-	    (#.win:wm_mousemove
-	     (message-mousemove window msg wparam lparam))
-	    (#.win:wm_setcursor
-	     (message-setcursor window msg wparam lparam))
-	    (#.win:wm_paint
-	     (message-paint window msg wparam lparam))
-	    (#.win:wm_drawitem
-	     (message-drawitem window msg wparam lparam))
-	    ((#.win:wm_ctlcoloredit
-	      #.win:wm_ctlcolorlistbox
-	      #.win:wm_ctlcolorbtn
-	      ;; couldn't get the colors to change for the following
-	      ;; wm_ctlcolorxx messages -  so we're not using them for the
-	      ;; moment (cim 10/11/96)
-	      ;; #.win:wm_ctlcolormsgbox
-	      ;; #.win:wm_ctlcolordlg
-	      ;; #.win:wm_ctlcolorscrollbar
-	      ;; #.win:wm_ctlcolorstatic
-	      )
-	     (message-ctlcoloredit window msg wparam lparam))
-	    (#.win:wm_command
-	     (message-command window msg wparam lparam))
-	    ((#.win:wm_hscroll #.win:wm_vscroll)
-	     (message-vscroll window msg wparam lparam))
-	    ((#.win:wm_move #.win:wm_size)
-	     (message-move window msg wparam lparam))
-	    (#.win:wm_getminmaxinfo
-	     (message-getminmaxinfo window msg wparam lparam))
-	    (#.win:en_update
-	     (message-en-update window msg wparam lparam))
-	    ;; character typed
-	    ((#.win:wm_keydown 
-	      #.win:wm_syskeydown
-	      #.win:wm_keyup
-	      #.win:wm_syskeyup)
-	     (message-keydown window msg wparam lparam))
-	    ((#.win:wm_lbuttondown
-	      #.win:wm_rbuttondown
-	      #.win:wm_mbuttondown
-	      #.win:wm_lbuttonup
-	      #.win:wm_rbuttonup
-	      #.win:wm_mbuttonup)
-	     (message-buttondown window msg wparam lparam))
-	    (#.win:wm_activate
-	     (message-activate window msg wparam lparam))
-	    ((#.win:wm_killfocus
-	      #.win:wm_close)
-	     (message-killfocus window msg wparam lparam))
-	    (#.win:wm_initmenupopup
-	     (message-initmenupopup window msg wparam lparam))
-	    (otherwise
-	     (message-default window msg wparam lparam)))
-	  (setf result *win-result*)
-	  (when *trace-messages*
-	    (format excl:*initial-terminal-io*
-		    "Out clim-wind-proc msg=~a sheet=~s result=~s~%"
-		    (msg-name msg) 
-		    (mirror->sheet *acl-port* window)
-		    result))
-	  result))
-    (error (c)
-      (format *trace-output* "CLIM-WIND-PROC: ~A" c))))
+  (progn ;;mp:without-scheduling
+    (setf *hwnd* window)
+    (mformat excl:*initial-terminal-io*
+	     "In clim-wind-proc msg=~a sheet=~s lparam=~a~%"
+	     (msg-name msg) 
+	     (mirror->sheet *acl-port* window)
+	     lparam)
+    (let ((result 0)
+	  (*level* (1+ *level*)))
+      (when (> *level* 40)
+	(break "too deep!"))
+      (case msg
+	(#.win:wm_mousemove
+	 (message-mousemove window msg wparam lparam))
+	(#.win:wm_setcursor
+	 (message-setcursor window msg wparam lparam))
+	(#.win:wm_paint
+	 (message-paint window msg wparam lparam))
+	(#.win:wm_drawitem
+	 (message-drawitem window msg wparam lparam))
+	((#.win:wm_ctlcoloredit
+	  #.win:wm_ctlcolorlistbox
+	  #.win:wm_ctlcolorbtn
+	  ;; couldn't get the colors to change for the following
+	  ;; wm_ctlcolorxx messages -  so we're not using them for the
+	  ;; moment (cim 10/11/96)
+	  ;; #.win:wm_ctlcolormsgbox
+	  ;; #.win:wm_ctlcolordlg
+	  ;; #.win:wm_ctlcolorscrollbar
+	  ;; #.win:wm_ctlcolorstatic
+	  )
+	 (message-ctlcoloredit window msg wparam lparam))
+	(#.win:wm_command
+	 (message-command window msg wparam lparam))
+	((#.win:wm_hscroll #.win:wm_vscroll)
+	 (message-vscroll window msg wparam lparam))
+	((#.win:wm_move #.win:wm_size)
+	 (message-move window msg wparam lparam))
+	(#.win:wm_getminmaxinfo
+	 (message-getminmaxinfo window msg wparam lparam))
+	(#.win:en_update
+	 (message-en-update window msg wparam lparam))
+	;; character typed
+	((#.win:wm_keydown 
+	  #.win:wm_syskeydown
+	  #.win:wm_keyup
+	  #.win:wm_syskeyup)
+	 (message-keydown window msg wparam lparam))
+	((#.win:wm_lbuttondown
+	  #.win:wm_rbuttondown
+	  #.win:wm_mbuttondown
+	  #.win:wm_lbuttonup
+	  #.win:wm_rbuttonup
+	  #.win:wm_mbuttonup)
+	 (message-buttondown window msg wparam lparam))
+	(#.win:wm_activate
+	 (message-activate window msg wparam lparam))
+	((#.win:wm_killfocus
+	  #.win:wm_close)
+	 (message-killfocus window msg wparam lparam))
+	(#.win:wm_initmenupopup
+	 (message-initmenupopup window msg wparam lparam))
+	(#.win:wm_nchittest
+	 (message-nchittest window msg wparam lparam))
+	(otherwise
+	 (message-default window msg wparam lparam)))
+      (setf result *win-result*)
+      (mformat excl:*initial-terminal-io*
+	       "Out clim-wind-proc msg=~a sheet=~s result=~s~%"
+	       (msg-name msg) 
+	       (mirror->sheet *acl-port* window)
+	       result)
+      result)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Implements the window proc for the subclassed controls (presently
@@ -793,7 +826,7 @@
     (mformat excl:*initial-terminal-io*
 	     "In clim-ctrl-proc msg=~a sheet=~s~%"
 	     (msg-name msg) (mirror->sheet *acl-port* window))
-    (setq *args* (list window msg wparam lparam))
+    ;;(setq *args* (list window msg wparam lparam))
     (let ((result 0))
       (cond
        ;; character typed
@@ -861,11 +894,11 @@
 		  (progn
 		    (setq pass nil)
 		    #+acl86win32
-		    (setq *win-result* (pc::callwindowproc std-ctrl-proc-address
+		    (setq *win-result* (win:callwindowproc std-ctrl-proc-address
 							   window msg wparam lparam))
 		    #+aclpc
 		    (ct::%set-long *win-result* 4 0
-				   (pc::callwindowproc std-ctrl-proc-address
+				   (win:callwindowproc std-ctrl-proc-address
 						       window msg wparam lparam))
 		    *win-result*)
 		(progn
@@ -892,7 +925,7 @@
 	;; This is where we let the control do its own thing.  Most
 	;; messages come through here.
 	(clear-winproc-result *win-result*)
-	(setq *win-result* (pc::callwindowproc std-ctrl-proc-address
+	(setq *win-result* (win:callwindowproc std-ctrl-proc-address
 					       window msg wparam lparam))
         *win-result*))
       (setf result *win-result*)
@@ -928,57 +961,75 @@
 
 (defvar *clim-initialized* nil)
 
-(in-package :pc)
+(defvar lpcmdline "")
+(defvar *hinst* 0) 
+(defvar *hprevinst* 0) 
+(defvar *screen-device* nil)
+
+;; CLIM makes one of these, gets the slot value, and then
+;; throws the rest of it away.
+(defclass windows-screen-device ()
+  ((device-handle1 :initarg :device-handle1
+		   :initform 0)
+   (device-handle2 :initarg :device-handle1
+		   :initform (win:CreateDC "DISPLAY" ct:hnull ct:hnull ct:hnull))))
 
 (defun initialize-cg ()
   (let* ((dataobj (make-array 3 :element-type '(signed-byte 32))))
     (win::GetWinMainArgs dataobj)
-    (setq pc::*hinst*      (aref dataobj 0)
-	  pc::*hprevinst*  (aref dataobj 1)
-	  pc::lpcmdline    (aref dataobj 2)))
-  (setq pc::*command-line* (ff::char*-to-string pc::lpcmdline))
-  (setq *screen*
-    (pc::open-stream 'pc::windows-screen-device
-		     'pc::windows-screen-location :io
-		     :name :screen))
-  )
+    (setq *hinst*      (aref dataobj 0)
+	  *hprevinst*  (aref dataobj 1)
+	  lpcmdline    (aref dataobj 2)))
+  (setq *screen-device*
+    (make-instance 'windows-screen-device)))
 
-(in-package :acl-clim)
+(eval-when (compile load eval)
+  (defun make-cstructure (type length)
+    ;; create and return a region of memory of the
+    ;; given length.
+    ;; 
+    ;; in the mm implementation this was in malloc space, but since
+    ;; it is referenced using #. in files like message.cl, we better
+    ;; us a lisp structure so it will exist when the definition
+    ;; is fasled in.
+    ;;
+    ;; we've got to look into this later
+    ;;
+    ;;
+    (declare (ignore type))
+  
+    (ff:allocate-fobject `(:array :unsigned-char ,length)
+		      #-allegro-v4.3 :lisp)))
 
 (defun ensure-clim-initialized ()
   (unless *clim-initialized*
-    (cg::initialize-cg)
-
-    ;; The following turns off a 330ms timer that cg starts up. This
-    ;; makes debugging of mp event bugs harder and CLIM shouldn't need
-    ;; this anyway. When the CLIM and CG event loops are made to live
-    ;; together in the same image this will have to change (cim 9/16/96)
-    (cg::kill-acl-timer-exit-fn nil)
-
+    (initialize-cg)
     (setf clim-window-proc-address 
-      (init-clim-win-proc clim-window-proc-address #.(cg::make-cstructure 0 16)))
+      (init-clim-win-proc clim-window-proc-address #.(make-cstructure 0 16)))
     (setf clim-ctrl-proc-address 
-      (init-clim-ctrl-proc clim-ctrl-proc-address #.(cg::make-cstructure 0 16)))
+      (init-clim-ctrl-proc clim-ctrl-proc-address #.(make-cstructure 0 16)))
     (setq *clim-initialized* t)))
 
 (defun acl-clim::register-window-class (hcursor)
   ;; This is called by initialize-instance of acl-port.
   ;; It creates a (single) Windows window class for all clim windows.
   (unless *wndclass-registered*
-    (init-clim-win-proc clim-window-proc-address #.(cg::make-cstructure 0 16))
-    (let ((class (cg::ccallocate win::wndclassex))
+    (init-clim-win-proc clim-window-proc-address #.(make-cstructure 0 16))
+    (let ((class (ct:ccallocate win::wndclassex))
 	  (icon (win:LoadIcon 0 win:IDI_APPLICATION)) ; (get-clim-icon)
 	  (reg nil))
       (ct::csets win::wndclassex class
-                 win::cbSize (cg::sizeof win::wndclassex)
-                 win::style win::CS_DBLCLKS
-                 win::lpfnwndproc clim-window-proc-address ;cg::window-proc-address
+                 win::cbSize (ct:sizeof win::wndclassex)
+                 win::style (logior win:CS_DBLCLKS
+				    win:CS_BYTEALIGNCLIENT
+				    win:CS_BYTEALIGNWINDOW)
+                 win::lpfnwndproc clim-window-proc-address 
                  win::cbClsExtra 0
                  win::cbWndExtra 0
-                 win::hinstance  pc::*hinst*
+                 win::hinstance  *hinst*
                  win::hicon icon 
                  win::hcursor hcursor
-                 win::hbrbackground (ct::null-handle win::hbrush)
+                 win::hbrbackground (1+ win:color_window)
                  win::lpszmenuname ct::hnull ;*menu-name*
                  win::lpszclassname (ff:string-to-char* *clim-class*)
                  win::hIconSm icon)
@@ -1050,7 +1101,7 @@
 			  left top width height
 			  parent
 			  menu
-			  pc::*hinst*
+			  *hinst*
 			  *win-x* )) 
     (when (zerop window)
       (error "CreateWindowEx: system error ~s" (win:getlasterror)))
@@ -1083,7 +1134,7 @@
 		   left top width height
 		   parent
 		   (ct::null-handle win::hmenu)
-		   pc::*hinst*
+		   *hinst*
 		   *win-x*)))
       (when (zerop window)
 	(error "CreateWindowEx: system error ~s" (win:getlasterror)))
@@ -1115,7 +1166,7 @@
 		left top width height
 		parent
 		(ct::null-handle win::hmenu)
-		pc::*hinst*
+		*hinst*
 		*win-x*))
     (when (zerop window)
       (error "CreateWindowEx: system error ~s" (win:getlasterror)))
@@ -1129,15 +1180,12 @@
 (defvar wmsg  (ct::ccallocate win::msg))
 
 (defun wait-for-event ()
-  (let (;(msg (ct::ccallocate win::msg))
-        ;(res (cg::callocate :long))
-        )
-    (when (prog1
+  (when (prog1
             (win:peekMessage wmsg (ct::null-handle win::hwnd) 0 0
-                              (logior win:PM_NOYIELD win:PM_NOREMOVE)
-			      #+acl86win32x wres)
-            (not (and (zerop (cg::hiword wres)) (zerop (cg::loword wres)))))
-      t)))
+			     (logior win:PM_NOYIELD win:PM_NOREMOVE)
+			     #+acl86win32x wres)
+	  (not (and (zerop (hiword wres)) (zerop (loword wres)))))
+    t))
 
 (defvar msg (ct::ccallocate win::msg))
 (defvar res (ct::callocate :long))

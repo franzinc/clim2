@@ -203,7 +203,7 @@
     (loop for code from (char-code #\!) to (char-code #\~)
 	  for char = (code-char code)
 	  do
-          (let ((scan (cg::loword (win:VkKeyscan code))))
+          (let ((scan (loword (win:VkKeyscan code))))
             (push char (gethash scan vk->keysym))))
     ))
   nil)
@@ -253,6 +253,7 @@
 (defmethod text-style-mapping
 	   ((port acl-port) (style text-style)
 	    &optional (character-set *standard-character-set*) etc)
+  (declare (ignore character-set etc))
   (with-slots (text-style->acl-font-mapping) port
     (or (gethash style text-style->acl-font-mapping)
 	(setf (gethash style text-style->acl-font-mapping)
@@ -294,6 +295,7 @@
 (defmethod text-style-mapping
 	   ((device acl-port) (style silica::device-font)
 	    &optional (character-set *standard-character-set*) etc)
+  (declare (ignore character-set etc))
   (unless (eql device (silica::device-font-display-device style))
     (error "An attempt was made to map device font ~S on device ~S, ~@
 	    but it is defined for device ~S"
@@ -333,7 +335,7 @@
 			     (if strikeout 1 0) charset
 			     output-precision clip-precision quality
 			     pitch-and-family (or face ""))))
-        (old-font nil)
+        ;;(old-font nil)
 	(cw (and *application-frame*
 		 (frame-top-level-sheet *application-frame*)
 		 (sheet-mirror (frame-top-level-sheet *application-frame*))))
@@ -345,7 +347,8 @@
       #+ignore
       (format *terminal-io* "~%MWF CW: ~S *CW*: ~S Sh: ~S" cw *current-window*
 	      (mirror->sheet *acl-port* *current-window*))
-      (setf old-font (win:selectObject dc win-font))
+      ;;(setf old-font (win:selectObject dc win-font))
+      (win:selectObject dc win-font)
       (win:getTextMetrics dc tmstruct)
       (let ((average-character-width
 	     (ct::cref win::textmetric tmstruct win::tmavecharwidth))
@@ -413,24 +416,29 @@
       (values index acl-font escapement-x escapement-y
 	      origin-x origin-y bb-x bb-y))))
 
-(defparameter *win-cursor-type-alist*
-    `((:default ,win::IDC_ARROW)
+(defvar *win-cursor-type-alist*
+    `((:appstarting ,win:idc_appstarting)
+      (:default ,win::IDC_ARROW)
       (:position ,win::IDC_CROSS)
+      (:ibeam ,win:idc_ibeam)
+      #+ignore
+      (:no ,win:idc_no)
+      (:move ,win::IDC_SIZEALL)
       (:vertical-scroll ,win::IDC_SIZENS)
       (:horizontal-scroll ,win::IDC_SIZEWE)
-      #+aclpc (:move ,win::IDC_SIZE)
-      #+acl86win32 (:move ,win::IDC_SIZEALL)
       (:scroll-up ,win::IDC_UPARROW)
       (:busy ,win::IDC_WAIT)))
 
 (defmethod port-set-pointer-cursor ((port acl-port) pointer cursor)
   (unless (eq (pointer-cursor pointer) cursor)
-    (win:setCursor (realize-cursor port cursor))) ; mouse cursor
+    (win:setCursor (realize-cursor port cursor)) ; mouse cursor
+    )
   cursor)
 
 (defmethod port-set-sheet-pointer-cursor ((port acl-port) sheet cursor)
   (unless (eq (sheet-pointer-cursor sheet) cursor)
-    (win:setCursor (realize-cursor port cursor))) ; mouse cursor
+    (win:setCursor (realize-cursor port cursor)) ; mouse cursor
+    )
   cursor)
 
 (defmethod realize-cursor ((port acl-port) (cursor symbol))
@@ -438,13 +446,16 @@
 		    :default)))
     (realize-cursor port cursor)))
 
+(defvar *loaded-cursors* nil)
+
 (defmethod realize-cursor ((port acl-port) (cursor number))
-  (let* ((hinstance (ct::null-handle win::hinst))
-	 (lpcursorname cursor)
-	 (result 
-	  (win:LoadCursor hinstance lpcursorname)))
-    (when (zerop result)
-      (error "LoadCursor: system error ~s" (win:getlasterror)))
+  (let* ((result (second (assoc cursor *loaded-cursors*))))
+    (unless result
+      (setq result 
+	(win:LoadCursor 0 cursor))
+      (when (zerop result)
+	(error "LoadCursor: system error ~s" (win:getlasterror)))
+      (push (list cursor result) *loaded-cursors*))
     result))
 
 (defmethod realize-cursor ((port acl-port) (cursor t)) 
@@ -467,6 +478,7 @@
 
 ;; X and Y are in native coordinates
 (defmethod port-set-pointer-position ((port acl-port) pointer x y)
+  (declare (ignore pointer))
   (fix-coordinates x y)
   (or (win:setCursorPos x y)
       (error "SetCursorPos: system error ~S" (win:getlasterror))))
@@ -565,6 +577,7 @@
 	  (make-modifier-state))))
 
 (defmethod event-handler ((port acl-port) args)
+  (declare (ignore args))
   (cerror "Go on" "What isn't firing?")
   nil)
 
@@ -578,7 +591,7 @@
     (let ((event (queue-next queue))
           (sheet nil))
       (setf (clim-utils::queue-head queue)
-	(free-cons queue (queue-head queue)))
+	(clim-utils::free-cons queue (clim-utils::queue-head queue)))
       (if (and (or (typep event 'device-event)
 		   (typep event 'window-event))
 	       (or (not (setq sheet (event-sheet event)))
@@ -679,7 +692,7 @@
 (defun get-system-version ()
   "Use win:GetVersion to determine the operating system being used."
   (let* ((v (win:GetVersion))
-         (vh (pc::hiword v)))
+         (vh (hiword v)))
     (if (>= vh 0) :winnt :win31)))
 
 (defun silica::acl-mirror-with-focus ()

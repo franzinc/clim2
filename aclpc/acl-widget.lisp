@@ -62,7 +62,7 @@
   (let ((mirror (sheet-direct-mirror pane))
 	(index 0))
     (when mirror
-      (setf index (win::sendmessage mirror pc::lb_getcursel 0 0))
+      (setf index (win::sendmessage mirror win:lb_getcursel 0 0))
       (with-slots (items value mode value-key name-key) pane
 	;;mm: 11Jan95 - we need to invoke the callback so that list-pane-view 
 	;;              will return a value.
@@ -129,6 +129,7 @@
 	(dolist (item items)
 	  (multiple-value-bind (w h)
 	      (text-size medium (funcall name-key item) :text-style text-style)
+	    (declare (ignore h))
 	    (setq name-width (max name-width w))))))
     (values name-width tsh)))
     
@@ -136,13 +137,14 @@
   (declare (ignore width height))
   (with-slots (items name-key text-style visible-items
 		     initial-space-requirement) pane
-    (let ((name "")
+    (let (;;(name "")
 	  (name-width 0)
 	  (name-height 0)
-	  (index 0)
+	  ;;(index 0)
           (tsh 0)
           (iwid (or (space-requirement-width initial-space-requirement) 0))
           (ihgt (or (space-requirement-height initial-space-requirement) 0))
+	  #+ignore
 	  (vizlimit (and items visible-items (numberp visible-items)
 			 (> (length items) visible-items)))
          )
@@ -194,6 +196,7 @@
 
 
 (defmethod handle-repaint ((pane mswin-text-edit) region)
+  (declare (ignore region))
   nil)
 
 
@@ -212,8 +215,8 @@
       :x-margin 2 :y-margin 0))
 
 
-(defmethod initialize-instance :after ((sheet mswin-text-edit) &key background label) ;+++ background label
-  (setq *te* sheet)
+(defmethod initialize-instance :after ((sheet mswin-text-edit) &key background label) 
+  (declare (ignore background label))
   nil)
 
 (defmethod compute-gadget-label-size ((pane mswin-text-edit))
@@ -270,6 +273,7 @@
     (let* ((ext-label-width 0)
 	   (ext-label-height 0)
            (iwid (or (space-requirement-width initial-space-requirement) 0))
+	   #+ignore
            (ihgt (or (space-requirement-height initial-space-requirement) 0)))
       (when external-label
 	(let ((text-style (slot-value pane 'text-style)))
@@ -297,16 +301,18 @@
 
 (defmethod handle-event ((pane mswin-text-edit) (event key-press-event))
   (let ((mirror (sheet-direct-mirror pane)))
+    (declare (ignore mirror))
     ;; Give up the focus
     (win::setfocus (win::getactivewindow) #-acl86win32 :static)))
 
 (defmethod handle-event ((pane mswin-text-edit) (event window-change-event))
   (let ((mirror (sheet-direct-mirror pane)))
+    (declare (ignore mirror))
     (setf (gadget-value pane :invoke-callback t) (gadget-value pane))))
 
 (defmethod handle-event ((pane mswin-text-edit) (event focus-out-event))
   (let ((mirror (sheet-direct-mirror pane)))
-    #+debugg (cerror "do it" "about to set value ~a to ~a" (gadget-value pane) pane)
+    (declare (ignore mirror))
     (setf (gadget-value pane :invoke-callback t) (gadget-value pane))))
 
 (defmethod handle-event :after ((pane mswin-text-edit) (event window-change-event))
@@ -360,15 +366,12 @@
 
 ;; added back with mods by pr 1May97 (from whence?) -tjm 23May97
 (defmethod (setf gadget-value) :after (str (pane mswin-text-edit) &key invoke-callback)
+  (declare (ignore invoke-callback))
   (with-slots (mirror value) pane
     (setq value str)			; Moved outside conditional - smh 26Nov96
     (when mirror
-      (pc::setWindowText
-       mirror (#+aclpc 
-	       pc::lisp-string-to-scratch-c-string 
-	       #+acl86win32
-	       identity
-	       (xlat-newline-return str)))
+      (win:setWindowText
+       mirror (xlat-newline-return str))
       ;; I wonder whether this avoidance of the callback is really correct,
       ;; or whether it was a quick workaround for bad control structure elsewhere.
       ;; It could be causing some of our ds problems, but I'm not changing it
@@ -393,15 +396,6 @@
       ;;this used to be (values value (length value)) which I believe is
       ;;right -- K. Reti
       (values value (if (listp value) (length value) 0)))))
-
-#+ignore
-(defmethod gadget-value ((pane mswin-text-edit))
-  (with-slots (mirror) pane
-    (when mirror
-      (let* ((wl (win::SendMessage mirror win::WM_GETTEXTLENGTH 0 0 #-acl86win32 :static))
-	     (teb (make-string wl))
-	     (tlen (win::GetWindowText mirror teb (1+ wl))))
-	(values teb tlen)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; buttons
@@ -476,40 +470,6 @@
 	    :height h :min-height h)))
       )))
 
-#+acl86win32
-(eval-when (load compile eval)
-  (load "user32.dll"))
-  
-#+acl86win32
-(ff:def-foreign-call (win::DrawEdge "DrawEdge")
-    ((a :int) (b :int) (c :int) (d :int))
-  :arg-checking nil
-  :release-heap :when-ok
-  :returning :int)
-
-#+aclpc
-(ct:defun-dll drawedge
- ((hdc :long-handle)
-  (box :long) ;; lprect
-  (style :long)
-  (type :long))
- :library-name "user32.dll"
- :return-type :long-bool
- :entry-name "DrawEdge")
-
-#+aclpcxx
-(ct::defun-dll win::DrawEdge ((a :long) (b :long) (c :long) (d :long)) 
-  :return-type :short
-  :library-name "user32.dll"
-  :entry-name "DrawEdge")
-
-;; many more bdr styles - see winuser.h
-
-(defconstant win::BDR_RAISED #x5)
-(defconstant win::BDR_SUNKEN #xa)
-(defconstant win::BF_RECT #xf)
-(defconstant win::BF_MIDDLE #x800)
-
 (defmethod draw-picture-button ((pane hpbutton-pane) state hdc rect)
   (multiple-value-bind (bwidth bheight)
       (bounding-rectangle-size pane)
@@ -523,18 +483,14 @@
       (when selected
 	(incf x)
 	(incf y))
-      #+acl86win32 ;; tjm Aug97 only on 4.3.2 for now
-      (win::DrawEdge #+aclpc (pc::handle-value win::hdc hdc) #+acl86win32 hdc
+      (win::DrawEdge hdc
 		     rect 
 		     (if selected
 			 win::BDR_SUNKEN
 		       win::BDR_RAISED)
 		     (+ win::BF_RECT win::BF_MIDDLE))
       (win::bitblt hdc x y width height (acl-clim::pixmap-cdc pixmap) 0 0
-		   (acl-clim::bop->winop op))
-      #+ignore
-      (with-sheet-medium (medium pane)
-	(draw-pixmap* medium pixmap x y)))))
+		   (acl-clim::bop->winop op)))))
 
 (defmethod draw-picture-button ((pane hbutton-pane) state hdc rect)
   (multiple-value-bind (bwidth bheight)
@@ -549,18 +505,14 @@
       (when selected
 	(incf x)
 	(incf y))
-      #+acl86win32 ;; tjm Aug97 only on 4.3.2 for now
-      (win::DrawEdge #+aclpc (pc::handle-value win::hdc hdc) #+acl86win32 hdc
+      (win::DrawEdge hdc
 		     rect 
 		     (if selected
 			 win::BDR_SUNKEN
 		       win::BDR_RAISED)
 		     (+ win::BF_RECT win::BF_MIDDLE))
       (win::bitblt hdc x y width height (acl-clim::pixmap-cdc pixmap) 0 0
-		   (acl-clim::bop->winop op))
-      #+ignore
-      (with-sheet-medium (medium pane)
-	(draw-pixmap* medium pixmap x y)))))
+		   (acl-clim::bop->winop op)))))
 
 ;; deallocate and pixmap associated with a picture button when it's
 ;; destroyed - this is the only note-sheet-degrafted method in the
@@ -612,9 +564,7 @@
 (defmethod (setf gadget-label) :after (str (pane hpbutton-pane))
   (with-slots (mirror) pane
     (when mirror
-      (pc::setWindowText mirror
-			 (#+aclpc pc::lisp-string-to-scratch-c-string
-				  #+acl86win32 identity str)))))
+      (win:setWindowText mirror str))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -702,11 +652,13 @@
 ;;; made to update its appearance appropriately.
 #+(or aclpc acl86win32)
 (defmethod (setf set-gadget-items) :after (nitems (pane mswin-option-pane))
+  (declare (ignore nitems))
   (with-slots (items name-key value-key test mode) pane
     (let* ((frame (pane-frame pane))
 	   (framem (frame-manager frame))
 	   (buttons nil)
-	   (val (gadget-value pane)))
+	   ;;(val (gadget-value pane))
+	   )
       ;; (break "adding options to pane")
       ;; First of all destroy existing panes! +++
       ;; default is not set
@@ -732,35 +684,24 @@
 	(initialize-pull-down-menu menu buttons)
 	(setf (slot-value pane 'menu) menu)))))
 
-;;; When the label of a button gadget is set, the button should 
-;;; reflect the change.
-
-#+(or aclpc acl86win32)
-(defmethod (setf gadget-label) :after (str (pane hpbutton-pane))
-  (with-slots (mirror) pane
-    (when mirror
-      (pc::setWindowText
-       mirror (#+aclpc pc::lisp-string-to-scratch-c-string
-		       #+acl86win32 identity str)))))
-
 ;;; When items are set in an hlist-pane the  mirror must be
 ;;; made to update its appearance appropriately.
 #+(or aclpc acl86win32)
 (defmethod (setf set-gadget-items) :after (items (pane hlist-pane))
   (with-slots (name-key mirror) pane
     (when mirror
-      (pc::SendMessage mirror pc::LB_RESETCONTENT 0 0 #-acl86win32 :static)
+      (win:SendMessage mirror win:LB_RESETCONTENT 0 0 #-acl86win32 :static)
       (dolist (item items)
-	(let ((str (pc::nstringify (funcall name-key item)))
+	(let ((str (acl-clim::nstringify (funcall name-key item)))
 	      (pos (position item items)))
 	  ;;(break "insert gadget item [~a @ ~a]" str pos)
-	  (pc::SendMessage-with-pointer mirror pc::LB_INSERTSTRING pos str
-					:static :static)))
-      (pc::InvalidateRect mirror ct::hnull pc::true)))) ;; make sure it updates
+	  (win:SendMessage mirror win:LB_INSERTSTRING pos str)))
+      (win:InvalidateRect mirror ct::hnull win:true)))) ;; make sure it updates
 
 ;;--- The idea is the the option pane itself is a pushbutton which, when
 ;;--- pressed, pops up a menu containing the options.
 (defmethod initialize-instance :after ((pane mswin-option-pane) &key visible-items)
+  (declare (ignore visible-items))
   (with-slots (external-label label
 	       items name-key value-key test mode) pane
     ; (shiftf external-label label nil)
@@ -809,12 +750,11 @@
   (with-slots (name-key mirror mode) pane
     (when (and mirror
 	       (eql mode :exclusive))
-      (let ((str (pc::nstringify (funcall name-key value))))
-	(pc::setWindowText mirror str)))))
+      (let ((str (acl-clim::nstringify (funcall name-key value))))
+	(win:setWindowText mirror str)))))
 
 (defmethod value-changed-callback :around 
 	   ((selection toggle-button) (client mswin-option-pane) gadget-id value)
-  (declare (special *selection* *client* *old-selection* *items*))
   #-aclpc (declare (ignore gadget-id))
   (let ((subvert value))
     (with-slots (items value-key mode) client
@@ -835,7 +775,7 @@
                 (when button
                   (with-slots (mirror) button
                     (when mirror
-		      (win:sendmessage mirror pc::bm_setcheck 1 1)))
+		      (win:sendmessage mirror win:bm_setcheck 1 1)))
                   (setf (gadget-value button) t)))
               ;(setf (gadget-value old-selection) t)
               (setq real-value old-selection
@@ -846,8 +786,8 @@
             (if value
                 (pushnew real-value (gadget-value client))
                 (setf (gadget-value client) (delete real-value (gadget-value client))))))
-        (setq *sel* selection)
-        (setq *cl* client)
+        ;;(setq *sel* selection)
+        ;;(setq *cl* client)
         ;(if t ;(eql old-selection (gadget-value client))
              ;    (cerror "do it" "old-selection=~a new=~a" old-selection (gadget-value client)))
         (when old-selection
@@ -857,15 +797,16 @@
                                  (funcall value-key (gadget-id val)))
                         :test #'equal)))
             (when (null button)
-              (let ((*selection* selection)
-                    (*client* client)
-                    (*old-selection* old-selection)
-                    (*items* items))
+              (let (;;(*selection* selection)
+                    ;;(*client* client)
+                    ;;(*old-selection* old-selection)
+                    ;;(*items* items)
+		    )
                 (cerror "never mind" "Button not found in options pane")))
             (when button
               (with-slots (mirror) button
                 (when mirror
-		  (win:sendmessage mirror pc::bm_setcheck 0 0)))
+		  (win:sendmessage mirror win:bm_setcheck 0 0)))
               (setf (gadget-value button :invoke-callback nil) nil))))
         (value-changed-callback
           client (gadget-client client) (gadget-id client) (gadget-value client))))
@@ -888,19 +829,20 @@
 	   basic-pane)
     ())
 
-(defmethod initialize-instance :after ((sheet mswin-combo-box-pane) &key visible-items) ;+++ visible-items label
+(defmethod initialize-instance :after ((sheet mswin-combo-box-pane) &key visible-items) 
+  (declare (ignore visible-items))
   nil)
 
-(defmethod initialize-instance :after ((sheet application-pane) &key foreground) ;+++ foreground
+(defmethod initialize-instance :after ((sheet application-pane) &key foreground) 
+  (declare (ignore foreground))
   nil)
-
 
 (defmethod handle-event ((pane mswin-combo-box-pane) (event window-change-event))
   (let ((mirror (sheet-direct-mirror pane))
 	(index 0))
     (with-slots (items value mode value-key) pane
       (when (and mirror items)
-        (setf index (win::sendmessage mirror pc::cb_getcursel 0 0))
+        (setf index (win::sendmessage mirror win:cb_getcursel 0 0))
         (setf (gadget-value pane :invoke-callback t) (funcall value-key (elt items index)))))))
 
 (defmethod (setf gadget-value) :after
@@ -920,10 +862,10 @@
   (declare (ignore width height))
   (with-slots (items name-key text-style visible-items
 		     space-requirement) pane
-    (let ((name "")
+    (let (;;(name "")
 	  (name-width 0)
 	  (name-height 0)
-	  (index 0)
+	  ;;(index 0)
           (tsh 0))
       (multiple-value-setq (name-width tsh)
 	(compute-set-gadget-dimensions pane))
@@ -932,40 +874,6 @@
       (make-space-requirement
        :width (+ name-width 20)
        :height (+ name-height 7)))))
-
-;;; silica:separator
-
-(in-package :silica)
-
-;; this is defined in silica/db-border.lisp for non-mswin clims, and in
-;; silica/gadgets.lisp for mswin clims -- apparently it needs to inherit
-;; from basic-pane (and not pane) on mswin, and on aclpc the class
-;; definition must come before any method definitions, but
-;; silica/gadgets.lisp gets compiled before this file does, so we no longer
-;; need this one... leaving it here as a reminder that this is a mess and
-;; really ought to be cleaned up.  -tjm 14Feb97
-#+ignore
-(defclass separator (oriented-gadget-mixin basic-pane) 
-  () #||((sheet-parent :accessor sheet-parent :initarg :sheet-parent)
-   (frame :initarg :frame)
-   (frame-manager :initarg :frame-manager))||#)
-
-#+ignore
-(defmethod compute-gadget-label-size ((pane separator))
-  (values 0 0))
-
-#+ignore
-(defmethod note-sheet-adopted ((sep separator)) nil)
-
-#+ignore
-(defmethod compose-space ((pane separator) &key width height)
-  (multiple-value-bind (w h)
-      (compute-gadget-label-size pane)
-    (make-space-requirement :width (max w width 20)  
-			    :min-width (max w width 20)
-			    :height (max h height 10) 
-			    :min-height (max h height 10))))
-
 
 (in-package :acl-clim)
 
@@ -982,8 +890,6 @@
 ;;; acl-mirr). This seems like the wrong thing to use - in particular
 ;;; it was breaking scrolling of combo boxes - changed it to be based
 ;;; on the method for non top-level-sheet (cim 9/25/96) 
-
-(defconstant win::CB_GETITEMHEIGHT #x154)
 
 (defmethod set-sheet-mirror-edges* ((port acl-port) 
 				    (sheet silica::mswin-combo-box-pane)
@@ -1011,15 +917,14 @@
 (defmethod (setf set-gadget-items) :after (items (pane mswin-combo-box-pane))
   (with-slots (name-key mirror) pane
     (when mirror
-      (pc::SendMessage mirror pc::CB_RESETCONTENT 0 0 #-acl86win32 :static)
+      (win:SendMessage mirror win:CB_RESETCONTENT 0 0 #-acl86win32 :static)
       (dolist (item items)
-	(let ((str (pc::nstringify (funcall name-key item)))
+	(let ((str (acl-clim::nstringify (funcall name-key item)))
 	      (pos (position item items)))
 	  ;;(break "insert gadget item [~a @ ~a]" str pos)
-	  (pc::SendMessage-with-pointer mirror pc::CB_INSERTSTRING pos str
-					:static :static)))
+	  (win:SendMessage mirror win:CB_INSERTSTRING pos str)))
       ;; make sure it updates
-      (pc::InvalidateRect mirror ct::hnull pc::true)
+      (win:InvalidateRect mirror ct::hnull win:true)
       (note-sheet-region-changed pane))))
 
 
@@ -1051,9 +956,8 @@
 			 (event pointer-button-press-event))
   (with-slots (armed next-menu) pane
     (with-sheet-medium (medium pane)
-      (when armed
-	(setf armed :active)
-	)
+      (declare (ignore medium))
+      (when armed (setf armed :active))
       (if (typep next-menu 'pull-down-menu)
 	  (choose-from-pull-down-menu next-menu pane)
 	  (activate-callback pane (gadget-client pane) (gadget-id pane)))
@@ -1069,6 +973,7 @@
   (with-slots (armed) pane
     (when (and (eq armed :active))
       (with-sheet-medium (medium pane)
+	(declare (ignore medium))
 	(setf armed t)
 	))))
 
@@ -1106,7 +1011,7 @@
            (gadget-id (silica::allocate-gadget-id sheet)))
       (assert (eq parent parent2) () "parents don't match!")
       (setq window
-	(scrollbar-open parent left top width height orientation))
+	(acl-clim::scrollbar-open parent left top width height orientation))
       (setf (sheet-native-transformation sheet)
 	(sheet-native-transformation (sheet-parent sheet)))
       (setf (silica::gadget-id->window sheet gadget-id) window)
@@ -1132,29 +1037,6 @@
                                :width (* 2 x)
                                :max-width +fill+)))))
 
-(in-package :windows)
-
-#+acl86win32
-(cl:eval-when (cl:compile cl:load cl:eval)
-  (cl:defconstant SIF_PAGE 2)
-  (cl:defconstant SIF_POS 4)
-  (cl:defconstant SIF_DISABLENOSCROLL 8)
-  (ff:def-foreign-type scrollinfo
-      (:struct (cbSize uint)
-	       (fMask uint)
-	       (nMin int)
-	       (nMax int)
-	       (nPage uint)
-	       (nPos int)
-	       (nTrackPos int)))
-  (defctype lpscrollinfo (scrollinfo *)))
-
-(ff:def-foreign-call (SetScrollInfo "SetScrollInfo")
-    ((a :int) (b :int) (c :int) (d :int))
-  :arg-checking nil
-  :release-heap :when-ok
-  :returning :int)
-
 (in-package :silica)
 
 (defmethod change-scroll-bar-values ((sb mswin-scroll-bar) 
@@ -1163,6 +1045,7 @@
 				     value
 				     line-increment
 				     (page-increment slider-size))
+  (declare (ignore page-increment line-increment))
   (let ((mirror (sheet-direct-mirror sb)))
     (when mirror
       (unless slider-size (setq slider-size (scroll-bar-size sb)))
@@ -1171,19 +1054,21 @@
 	(let* ((scrollinfo-struct (ct:ccallocate win::scrollinfo))
 	       (win-id win::SB_CTL)	; a control (decoupled from other panes)
 	       (range (- max min))
-	       (win-size (floor (* *win-scroll-grain* (/ slider-size (+ range slider-size)))))
-	       (win-pos (floor (* (- *win-scroll-grain* slider-size)
+	       (win-size (floor (* acl-clim::*win-scroll-grain* 
+				   (/ slider-size (+ range slider-size)))))
+	       (win-pos (floor (* (- acl-clim::*win-scroll-grain* 
+				     slider-size)
 				  (/ (- value min) (- range slider-size))))))
 	  (ct::csets
 	   win::scrollinfo scrollinfo-struct
-	   win::cbSize (cg::sizeof win::scrollinfo)
+	   win::cbSize (ct:sizeof win::scrollinfo)
 	   win::fMask #.(logior 
 			 win::SIF_PAGE 
 			 win::SIF_POS
 			 1		;win::SIF_RANGE
 			 win::SIF_DISABLENOSCROLL)
 	   win::nMin 0
-	   win::nMax *win-scroll-grain*
+	   win::nMax acl-clim::*win-scroll-grain*
 	   win::nPage win-size
 	   win::nPos win-pos)
 	  (win::SetScrollInfo (sheet-mirror sb) win-id scrollinfo-struct t))))))
@@ -1269,10 +1154,10 @@
 (defun winhandle-equal (x y)
   (cond (#+acl86win32 nil
          #-acl86win32 
-         (and (typep x 'cg::lhandle)
-              (typep y 'cg::lhandle))
-         (eql (cg::lhandle-value x)
-              (cg::lhandle-value y)))
+         (and (typep x 'win:lhandle)
+              (typep y 'win:lhandle))
+         (eql (ct:lhandle-value x)
+              (ct:lhandle-value y)))
         (t (equal x y))))
 
 ;;; +++ needs work for integration: *generic-gadgets*
@@ -1312,11 +1197,14 @@
 			  (+ bbottom ftop 23))))))
     #+(or aclpc acl86win32)
     (when (and (not acl-clim::*generic-gadgets*) button)
-      (let ((mirror (sheet-mirror button))
+      (let (#+ignore
+	    (mirror (sheet-mirror button))
+	    #+ignore
             (tls (sheet-mirror (get-top-level-sheet button))))
         (multiple-value-bind (bleft btop bright bbottom)
             (acl-clim::mirror-native-edges*
-		acl-clim::*acl-port* button)
+	     acl-clim::*acl-port* button)
+	  (declare (ignore bright))
 	  (if cascade-p
 	      (let ((pattern-width (pattern-width (slot-value button 'normal-pattern)))
 		    (button-x-margin (slot-value button 'x-margin)))
@@ -1450,6 +1338,7 @@
 
 (defmethod initialize-instance :after ((x acl-text-editor-pane) 
                                        &key label &allow-other-keys)
+  (declare (ignore label))
    )
 
 ;; new code to deal with resources - ie background foreground and
@@ -1476,6 +1365,7 @@
     new-brush))
 
 (defmethod get-sheet-resources ((port acl-port) sheet)
+  (declare (ignore sheet))
   `(:background 
     ,(wincolor->color (win::getSysColor win::color_window))
     :foreground
