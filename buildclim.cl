@@ -1,19 +1,20 @@
 ;; Load this file to make a clim image.
-;; $Id: buildclim.cl,v 1.2 1998/03/30 16:37:51 layer Exp $
+;; $Id: buildclim.cl,v 1.2.4.1 1998/05/19 01:04:15 layer Exp $
 
 (excl:generate-application
  #+ics "climi" #-ics "clim"
  "./"
  '(
-   :climg
-   :climxm
+   #-mswindows :climxm
+   #+mswindows :climnt
+   :climg ;; ...require'd by the above, but listed for completeness.
 ;;;; The rest of the modules are optional.  Include them or not according
 ;;;; to your needs:
-   :clim-debug
-   :clim-debugxm
-   :climps
-   :climhpgl
-   #+ignore :climdemo
+;;;   #-mswindows :clim-debug
+;;;   #-mswindows :clim-debugxm
+;;;   :climps
+;;;   #-mswindows :climhpgl
+;;;   :climdemo
    )
  :autoload-warning nil
  :image-only t

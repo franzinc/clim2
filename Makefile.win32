@@ -1,0 +1,117 @@
+#
+#  Makefile.win32 for CLIM 2.0
+#
+#  To do a build: nmake /f Makefile.win32
+#  You probably need to edit the LISP variable below.
+#  This builds four fasl files that can be distributed
+#  in the "code" directory of allegro.  Customers 
+#  load them using REQUIRE, as on the UNIX platforms.
+
+# include Makefile.defs
+
+Makefile=Makefile.win32
+
+CAT = type
+HOST = win32
+LISP = ..\src\lisp
+
+all: compile cat
+
+compile: 
+	echo (progn (require :cltl1) (load "sys/compile") (exit)) > build.tmp
+	echo (exit 0) >> build.tmp
+	$(LISP) +s build.tmp -I lisp.dxl -batch
+
+# Concatenation
+
+GENERIC_FASLS_1= \
+	utils\excl-verification.fasl utils\packages.fasl \
+	utils\defun-utilities.fasl utils\reader.fasl \
+	utils\clos-patches.fasl utils\clos.fasl utils\utilities.fasl \
+	utils\lisp-utilities.fasl utils\processes.fasl utils\queue.fasl \
+	utils\timers.fasl utils\protocols.fasl utils\clim-streams.fasl \
+	utils\excl-streams.fasl utils\clim-macros.fasl \
+	utils\transformations.fasl utils\regions.fasl \
+	utils\region-arithmetic.fasl utils\extended-regions.fasl \
+	utils\base-designs.fasl utils\designs.fasl \
+	silica\classes.fasl silica\text-style.fasl silica\macros.fasl \
+	silica\sheet.fasl silica\mirror.fasl silica\event.fasl \
+	silica\port.fasl silica\medium.fasl silica\framem.fasl \
+	silica\graphics.fasl silica\pixmaps.fasl silica\std-sheet.fasl \
+	silica\layout.fasl silica\db-layout.fasl silica\db-box.fasl \
+	silica\db-table.fasl silica\gadgets.fasl silica\db-scroll.fasl \
+	silica\db-border.fasl silica\db-button.fasl silica\db-slider.fasl \
+	silica\db-label.fasl clim\gestures.fasl clim\defprotocol.fasl \
+	clim\stream-defprotocols.fasl clim\defresource.fasl \
+	clim\temp-strings.fasl clim\clim-defs.fasl \
+	clim\stream-class-defs.fasl clim\interactive-defs.fasl
+
+GENERIC_FASLS_2 = \
+	clim\cursor.fasl clim\view-defs.fasl clim\input-defs.fasl \
+	clim\input-protocol.fasl clim\output-protocol.fasl \
+	clim\recording-protocol.fasl clim\recording-defs.fasl \
+	clim\text-recording.fasl clim\graphics-recording.fasl clim\design-recording.fasl \
+	clim\interactive-protocol.fasl clim\input-editor-commands.fasl \
+	clim\formatted-output-defs.fasl clim\incremental-redisplay.fasl \
+	clim\coordinate-sorted-set.fasl clim\r-tree.fasl \
+	clim\window-stream.fasl clim\pixmap-streams.fasl \
+	clim\ptypes1.fasl clim\completer.fasl clim\presentations.fasl \
+	clim\translators.fasl clim\histories.fasl clim\ptypes2.fasl \
+	clim\excl-presentations.fasl clim\standard-types.fasl \
+	clim\table-formatting.fasl clim\graph-formatting.fasl \
+	clim\surround-output.fasl clim\text-formatting.fasl \
+	clim\tracking-pointer.fasl clim\dragging-output.fasl \
+	clim\db-stream.fasl clim\gadget-output.fasl clim\accept.fasl \
+	clim\present.fasl clim\command.fasl clim\command-processor.fasl \
+	clim\basic-translators.fasl clim\frames.fasl clim\panes.fasl \
+	clim\default-frame.fasl clim\activities.fasl \
+	clim\db-menu.fasl clim\db-list.fasl clim\db-text.fasl \
+	clim\noting-progress.fasl clim\menus.fasl clim\accept-values.fasl \
+	clim\drag-and-drop.fasl clim\item-list-manager.fasl \
+	postscript\pkgdcl.fasl \
+	clim\stream-trampolines.fasl
+
+DEMO_FASLS= \
+	demo\packages.fasl demo\demo-driver.fasl demo\listener.fasl \
+	demo\graphics-demos.fasl demo\cad-demo.fasl demo\navdata.fasl \
+	demo\navfun.fasl demo\puzzle.fasl demo\address-book.fasl \
+	demo\thinkadot.fasl demo\plot.fasl demo\color-editor.fasl \
+	demo\graphics-editor.fasl \
+	demo\ico.fasl \
+	demo\browser.fasl demo\peek-frame.fasl demo\process-browser.fasl \
+	demo\custom-records.fasl demo\demo-activity.fasl \
+	test\test-suite.fasl demo\demo-last.fasl
+
+POSTSCRIPT_FASLS= \
+	postscript\postscript-port.fasl postscript\postscript-medium.fasl \
+	postscript\laserwriter-metrics.fasl
+
+WIN32_FASLS= \
+	aclpc\pkgdcl.fasl \
+	aclpc\winwidgh.fasl aclpc\climpat.fasl \
+	aclpc\acl-prel.fasl aclpc\acl-class.fasl aclpc\acl-dc.fasl aclpc\acl-port.fasl \
+	aclpc\acl-mirror.fasl aclpc\acl-medium.fasl aclpc\acl-pixmaps.fasl \
+	aclpc\acl-frames.fasl aclpc\acl-widget.fasl aclpc\acl-scroll.fasl 
+
+PRODUCT_GENERIC_FASLS = \
+	climg.fasl climdemo.fasl climps.fasl 
+
+WIN32_PRODUCT_FASLS = climnt.fasl 
+
+PRODUCT_FASLS=  $(PRODUCT_GENERIC_FASLS) $(PRODUCT_WIN32_FASLS)
+
+cat: $(PRODUCT_FASLS) $(WIN32_PRODUCT_FASLS)
+
+climg.fasl: $(GENERIC_FASLS_1) $(GENERIC_FASLS_2)
+	$(CAT) $(GENERIC_FASLS_1) > climg.fasl
+	$(CAT) $(GENERIC_FASLS_2) >> climg.fasl
+
+climdemo.fasl: $(DEMO_FASLS)
+	$(CAT) $(DEMO_FASLS) > climdemo.fasl
+
+climps.fasl: $(POSTSCRIPT_FASLS)
+	$(CAT) $(POSTSCRIPT_FASLS) > climps.fasl
+
+climnt.fasl: $(WIN32_FASLS)
+	$(CAT) $(WIN32_FASLS) > climnt.fasl
+

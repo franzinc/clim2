@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/clim/ptypes1.lisp,v 1.28 1997/02/05 01:44:37 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/ptypes1.lisp,v 1.28.22.1 1998/05/19 01:04:36 layer Exp $
 
 (in-package :clim-internals)
 
@@ -299,11 +299,11 @@
            ((class presentation-type-class) (meta standard-class))
   t)
 
-#+(or aclpc acl86win32)
-(eval-when (compile load eval)
-   ;;mm: 11Jan95 - this is defined later in  ???
-   (unless (ignore-errors (find-class 'basic-history))
-      (defclass basic-history () ())))
+;;;#+(or aclpc acl86win32)
+;;;(eval-when (compile load eval)
+;;;   ;;mm: 11Jan95 - this is defined later in  ???
+;;;   (unless (ignore-errors (find-class 'basic-history))
+;;;      (defclass basic-history () ())))
 
 ;;; These classes get into compiled files as method parameter specializers
  (defmethod make-load-form ((object presentation-type-class) #-aclpc &optional #-aclpc environment)

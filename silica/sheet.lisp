@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/silica/sheet.lisp,v 1.42 1997/10/04 00:56:30 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/silica/sheet.lisp,v 1.42.22.1 1998/05/19 01:05:04 layer Exp $
 
 (in-package :silica)
 
@@ -488,18 +488,12 @@
   (declare (dynamic-extent options))
   (apply #'port-invoke-with-pointer-grabbed (port sheet) sheet continuation options))
 
-#+(or aclpc acl86win32) ; +++pr unqualified methods first
-(defmethod port-invoke-with-pointer-grabbed 
-           ((port basic-port) (sheet basic-sheet) continuation &key)
-  (funcall continuation))
-
 (defmethod port-invoke-with-pointer-grabbed :around
            ((port basic-port) (sheet basic-sheet) continuation &key)
   #-aclpc (declare (ignore continuation))
   (letf-globally (((port-grabbing-sheet port) sheet))
     (call-next-method)))
 
-#-aclpc 
 (defmethod port-invoke-with-pointer-grabbed 
            ((port basic-port) (sheet basic-sheet) continuation &key)
   (funcall continuation))

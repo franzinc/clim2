@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/silica/db-button.lisp,v 1.22 1997/04/24 19:51:16 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/silica/db-button.lisp,v 1.22.22.1 1998/05/19 01:04:58 layer Exp $
 
 "Copyright (c) 1991, 1992 by Symbolics, Inc.  All rights reserved.
  Portions copyright (c) 1990, 1991 International Lisp Associates."
@@ -1001,13 +1001,15 @@ toggle button base. This way they can share the draw code.
 
 (defmethod value-changed-callback :around
            ((selection toggle-button) (client radio-box-pane) gadget-id value)
-#-aclpc  (declare (ignore gadget-id value))
+  (declare (ignore gadget-id
+		   #-(or aclpc acl86win32)
+		   value))
   (let ((old-selection (radio-box-current-selection client)))
     (when (and old-selection
                (not (eq selection old-selection)))
-    #+(or aclpc acl86win32)
-	(when (eq value t) (setf (radio-box-current-selection client) selection))
-	(setf (gadget-value old-selection :invoke-callback t) nil))
+      #+(or aclpc acl86win32)
+      (when (eq value t) (setf (radio-box-current-selection client) selection))
+      (setf (gadget-value old-selection :invoke-callback t) nil))
     #+(or aclpc acl86win32)
     (when (and old-selection (eq selection old-selection) (null value))
       (setf (gadget-value old-selection :invoke-callback t) t)))

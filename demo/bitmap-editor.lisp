@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
-;; $Header: /repo/cvs.copy/clim2/demo/bitmap-editor.lisp,v 1.19 1997/02/05 01:47:02 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/demo/bitmap-editor.lisp,v 1.19.22.1 1998/05/19 01:04:46 layer Exp $
 
 (in-package :clim-demo)
 

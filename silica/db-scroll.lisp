@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/silica/db-scroll.lisp,v 1.57 1998/03/21 01:55:04 smh Exp $
+;; $Header: /repo/cvs.copy/clim2/silica/db-scroll.lisp,v 1.57.8.1 1998/05/19 01:04:58 layer Exp $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright(c) 1991, 1992 International Lisp Associates.
@@ -84,11 +84,11 @@
        (when viewport
          (update-scroll-bars viewport)))))
 
-#+(or aclpc acl86win32)
-(eval-when (compile load eval)
-   ;;mm: 11Jan95 - this is defined later in  ???
-   (unless (ignore-errors (find-class 'generic-scroller-pane))
-      (defclass generic-scroller-pane () ())))
+;;;#+(or aclpc acl86win32)
+;;;(eval-when (compile load eval)
+;;;   ;;mm: 11Jan95 - this is defined later in  ???
+;;;   (unless (ignore-errors (find-class 'generic-scroller-pane))
+;;;      (defclass generic-scroller-pane () ())))
 
 
 (defun update-scroll-bars (viewport)
@@ -114,14 +114,20 @@
 	  (let ((pending-text (slot-value contents 'clim-internals::text-output-record)))
 	    (when pending-text
 	      (with-bounding-rectangle* (tleft ttop tright tbottom) pending-text
+		(declare (ignore tleft ttop))
 		(maxf right tright)
 		(maxf bottom tbottom)))))
         (with-bounding-rectangle* (vleft vtop vright vbottom)
             (viewport-viewport-region viewport)
           (let* ((vertical-scroll-bar (scroller-pane-vertical-scroll-bar scroller))
                  (horizontal-scroll-bar (scroller-pane-horizontal-scroll-bar scroller)))
-            (if #+(or aclpc acl86win32) (typep scroller 'silica::generic-scroller-pane)
-                #-(or aclpc acl86win32) t
+            (if (progn
+		  #+(or aclpc acl86win32)
+		  ;; Not normally defined, because none of the files in
+		  ;; homegrown are loaded on Windows.
+		  (ignore-errors
+		   (typep scroller 'silica::generic-scroller-pane))
+		  #-(or aclpc acl86win32) t)
                 (progn
                   (minf left vleft)
                   (minf top vtop)
@@ -225,32 +231,33 @@
       (scroll-bar-value-changed-callback sheet client id value
                                      (scroll-bar-size sheet))))
 
+#-acl86win32
 (defmethod scroll-bar-value-changed-callback
-           (sheet (client scroller-pane) id value size)
+    (sheet (client scroller-pane) id value size)
   (with-slots (viewport contents) client
     (let* ((extent (viewport-contents-extent viewport))
            (region (viewport-viewport-region viewport)))
       (case id
         (:vertical
-          (scroll-extent
-            contents
-             (bounding-rectangle-min-x region)
-             (+ (bounding-rectangle-min-y extent)
-                  (* (bounding-rectangle-height extent)
-                     (if (= size (gadget-range sheet))
-                         0
-                         (/ (- value (gadget-min-value sheet))
-                            (gadget-range sheet)))))))
+	 (scroll-extent
+	  contents
+	  (bounding-rectangle-min-x region)
+	  (+ (bounding-rectangle-min-y extent)
+	     (* (bounding-rectangle-height extent)
+		(if (= size (gadget-range sheet))
+		    0
+		  (/ (- value (gadget-min-value sheet))
+		     (gadget-range sheet)))))))
         (:horizontal
-          (scroll-extent
-            contents
-            (+ (bounding-rectangle-min-x extent)
-                  (* (bounding-rectangle-width extent)
-                     (if (= size (gadget-range sheet))
-                         0
-                         (/ (- value (gadget-min-value sheet))
-                            (gadget-range sheet)))))
-            (bounding-rectangle-min-y region))))
+	 (scroll-extent
+	  contents
+	  (+ (bounding-rectangle-min-x extent)
+	     (* (bounding-rectangle-width extent)
+		(if (= size (gadget-range sheet))
+		    0
+		  (/ (- value (gadget-min-value sheet))
+		     (gadget-range sheet)))))
+	  (bounding-rectangle-min-y region))))
       ;;-- Yuck
       (clim-internals::maybe-redraw-input-editor-stream
        contents (pane-viewport-region contents)))))

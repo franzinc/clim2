@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/silica/event.lisp,v 1.42 1997/02/14 23:57:08 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/silica/event.lisp,v 1.42.22.1 1998/05/19 01:05:00 layer Exp $
 
 (in-package :silica)
 
@@ -671,16 +671,17 @@
   (loop
     (process-event-locally sheet (event-read sheet))))
 
-(defun port-event-wait (port waiter
-                        &key (wait-reason #+Genera si:*whostate-awaiting-user-input*
-                                          #-Genera "CLIM Input")
-                             timeout)
+(defmethod port-event-wait (port waiter
+			    &key (wait-reason 
+				  #+Genera si:*whostate-awaiting-user-input*
+				  #-Genera "CLIM Input")
+				 timeout)
   (cond (*multiprocessing-p*
          (assert (and port (port-alive-p port)) () "The port is not alive")
          (process-wait-with-timeout wait-reason timeout waiter)
          (values))
         (t
-         ;; Single process, so run the event processing loop right here
+	 ;; Single process, so run the event processing loop right here
          (process-next-event port
                              :timeout timeout
                              :wait-function waiter

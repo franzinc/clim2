@@ -3,7 +3,7 @@
 ;;; Simple extensible browser
 ;;; Scott McKay
 
-;; $Header: /repo/cvs.copy/clim2/demo/browser.lisp,v 1.25 1997/02/05 01:47:05 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/demo/browser.lisp,v 1.25.22.1 1998/05/19 01:04:46 layer Exp $
 
 (in-package :clim-browser)
 
@@ -1138,9 +1138,10 @@
 	   :documentation "Orientation to use on the paper"))
   (with-slots (browser-subtype root-nodes) *application-frame*
     (with-open-file (file-stream file :direction :output)
-      (with-output-to-postscript-stream (stream file-stream 
-					 :orientation orientation
-					 :multi-page t)
+      (with-output-to-postscript-stream
+	  (stream file-stream 
+		  :orientation orientation
+		  :multi-page t)
 	(with-text-style (stream '(:sans-serif :bold :large))
 	  (display-title-pane *application-frame* stream))
 	(terpri stream)

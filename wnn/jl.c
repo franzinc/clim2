@@ -1,5 +1,5 @@
 /*
- * $Id: jl.c,v 1.1 1996/03/13 09:56:47 colin Exp $
+ * $Id: jl.c,v 1.1.26.1 1998/05/19 01:05:31 layer Exp $
  */
 /*
  * Copyright Kyoto University Research Institute for Mathematical Sciences
@@ -56,6 +56,7 @@
 #include "config.h"
 #include <stdio.h>
 #include <sys/types.h>
+#include <unistd.h>  /* for F_OK */
 #ifdef SYSVR2
 #   include <string.h>
 #endif

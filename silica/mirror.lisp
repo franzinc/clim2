@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
-;; $Header: /repo/cvs.copy/clim2/silica/mirror.lisp,v 1.36 1997/09/03 04:03:37 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/silica/mirror.lisp,v 1.36.22.1 1998/05/19 01:05:03 layer Exp $
 
 (in-package :silica)
 
@@ -217,6 +217,7 @@
 	 (sheet-mirrored-ancestor
 	   (sheet-parent sheet)))))
 
+#-acl86win32
 (defun-inline mirror->sheet (port mirror)
   (gethash mirror (port-mirror->sheet-table port)))
 

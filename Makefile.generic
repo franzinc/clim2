@@ -1,41 +1,48 @@
-# $Header: /repo/cvs.copy/clim2/Makefile.generic,v 1.47.10.3 1998/05/13 15:18:31 layer Exp $
-#
+# $Id: Makefile.generic,v 1.47.10.4 1998/05/19 01:04:14 layer Exp $
 #  Makefile.generic for CLIM 2.0
-#
 
-all: compile cat clim
+ifeq ($(OS_NAME),windows)
+all: compile # $(CLIM)
+makeclimfasls: compile
+else
+all: compile cat # $(CLIM)
+makeclimfasls: compile cat
+endif
 
-trained:
-	(${make} all train ; ${make} clim)
+ifneq ($(OS_NAME),windows)
+compile_depends = wnn.$(SHARED_EXT)
+endif
 
-FORCE:
-
-compile: FORCE $(PRODUCT-OBJS) $(ICS-PRODUCT-OBJS) wnn.$(SHARED_EXT)
-	(eval '$(SET_LIBRARY_PATH)' ; \
-	ALLEGRO_CL_HOME=$(CL_HOME) ; export ALLEGRO_CL_HOME ; \
-	$(ECHO) " \
-	(progn \
-	  (setq sys::*libtk-pathname* \"$(TKLIB)\") \
-	  (setq sys::*libxt-pathname* \"$(XTLIB)\") \
-	  (setq sys::*libx11-pathname* \"$(XLIB)\") \
-	  (setq sys::*libwnn-pathname* \"$(WNNLIB)\") \
-	  (load \"misc/compile-1.lisp\") \
-	  (proclaim '(optimize (speed $(SPEED)) (debug $(DEBUG)) (safety $(SAFETY)))) \
-	  (let ((*compile-print* $(compile_print)) \
-		(*compile-verbose* $(compile_verbose)) \
-		(excl:*redefinition-warnings* $(redef_warning)) \
-		(excl:*record-source-file-info* $(RECORD_SOURCE_FILE_INFO)) \
-		(excl:*load-source-file-info* $(LOAD_SOURCE_FILE_INFO)) \
-		(comp:save-local-names-switch $(SAVE_LOCAL_NAMES)) \
-		(excl:*load-local-names-info* $(LOAD_LOCAL_NAMES_INFO)) \
-		(excl:*record-xref-info* $(RECORD_XREF_INFO)) \
-		(excl:*load-xref-info* $(LOAD_XREF_INFO))) \
-	    (setf (sys:gsgc-switch :print) $(gc_print)) \
-	    (compile-it '$(SYSTEM))))" \
-	| $(CL) $(CLOPTS))
+compile: FORCE $(PRODUCT-OBJS) $(ICS-PRODUCT-OBJS) $(compile_depends)
+	rm -f build.tmp
+	echo '(setq sys::*libtk-pathname* "$(TKLIB)")' >> build.tmp
+	echo '(setq sys::*libxt-pathname* "$(XTLIB)")' >> build.tmp
+	echo '(setq sys::*libx11-pathname* "$(XLIB)")' >> build.tmp
+	echo '(setq sys::*libwnn-pathname* "$(WNNLIB)")' >> build.tmp
+	echo '#-mswindows (load "misc/compile-1.lisp")' >> build.tmp
+	echo '(declaim (optimize (speed $(SPEED)) (debug $(DEBUG)) (safety $(SAFETY))))' >> build.tmp
+	echo '(setq *compile-print* $(compile_print))' >> build.tmp
+	echo '(setq *compile-verbose* $(compile_verbose))' >> build.tmp
+	echo '(setq excl:*redefinition-warnings* $(redef_warning))' >> build.tmp
+	echo '(setq excl:*record-source-file-info* $(RECORD_SOURCE_FILE_INFO))' >> build.tmp
+	echo '(setq comp:save-local-names-switch $(SAVE_LOCAL_NAMES))' >> build.tmp
+	echo '(setq excl:*load-local-names-info* $(LOAD_LOCAL_NAMES_INFO))' >> build.tmp
+	echo '(setq excl:*load-source-file-info* $(LOAD_SOURCE_FILE_INFO))' >> build.tmp
+	echo '(setq excl:*record-xref-info* $(RECORD_XREF_INFO))' >> build.tmp
+	echo '(setq excl:*load-xref-info* $(LOAD_XREF_INFO))' >> build.tmp
+	echo '(setf (sys:gsgc-switch :print) $(gc_print))' >> build.tmp
+	echo '#+mswindows (load "sys/compile")' >> build.tmp
+	echo '#-mswindows (compile-it (quote $(SYSTEM)))' >> build.tmp
+	echo '(exit 0)' >> build.tmp
+	(eval '$(SET_LIBRARY_PATH)'; \
+	 sh ../src/runlisp.sh -f build.tmp -o compile.out $(CL) $(CLOPTS))
+# various programs expect to see the result of the compile on stdout, so
+# cat it now:
+	@cat compile.out
 
 # Concatenation
 
+ifneq ($(OS_NAME),windows)
 cat: $(PRODUCT-FASLS) $(ICS-PRODUCT-FASLS)
 
 climg.fasl: $(GENERIC-FASLS)
@@ -57,6 +64,11 @@ clim-debug.fasl: $(DEBUG-FASLS)
 	$(CAT) $(DEBUG-FASLS) > clim-debug.fasl
 	ls -lt clim-debug.fasl >> Clim-sizes.n
 	ls -lt clim-debug.fasl
+
+climnt.fasl: $(WIN32-FASLS)
+	$(CAT) $(WIN32-FASLS) > climnt.fasl
+	ls -lt climnt.fasl >> Clim-sizes.n
+	ls -lt climnt.fasl
 
 climxm.fasl: $(XM-FASLS)
 	$(CAT) $(XM-FASLS) > climxm.fasl
@@ -98,6 +110,7 @@ clim1compat.fasl: $(CLIM1COMPAT-FASLS)
 	$(CAT) $(CLIM1COMPAT-FASLS) > clim1compat.fasl
 	ls -lt clim1compat.fasl >> Clim-sizes.n
 	ls -lt clim1compat.fasl
+endif
 
 # Building (loading and dumping)
 
@@ -111,7 +124,6 @@ clim1compat.fasl: $(CLIM1COMPAT-FASLS)
 $(CLIM): FORCE $(PRODUCT-OBJS) $(ICS-PRODUCT-OBJS)
 	-$(RM) -f $(CLIM)
 	(eval '$(SET_LIBRARY_PATH)' ; \
-	ALLEGRO_CL_HOME=$(CL_HOME) ; export ALLEGRO_CL_HOME ; \
 	$(ECHO) " \
 	(progn \
 	 (generate-application \
@@ -150,7 +162,6 @@ $(CLIM): FORCE $(PRODUCT-OBJS) $(ICS-PRODUCT-OBJS)
 
 train: FORCE
 	(eval '$(SET_LIBRARY_PATH)' ; \
-	ALLEGRO_CL_HOME=$(CLIM_HOME) ; export ALLEGRO_CL_HOME ; \
 	$(ECHO) " \
 	(progn \
 	  (load \"misc/train.lisp\") \
@@ -166,7 +177,6 @@ train: FORCE
 
 load-train: FORCE
 	(eval '$(SET_LIBRARY_PATH)' ; \
-	ALLEGRO_CL_HOME=$(CL_HOME) ; export ALLEGRO_CL_HOME ; \
 	$(ECHO) " \
 	  (setq sys::*libtk-pathname* \"$(TKLIB)\") \
 	  (setq sys::*libxt-pathname* \"$(XTLIB)\") \
@@ -183,26 +193,22 @@ load-train: FORCE
 	| $(LISP) -I $(CLIM) $(CLOPTS))
 
 generate_test_report: FORCE
-	(ALLEGRO_CL_HOME=$(CLIM_HOME) ; export ALLEGRO_CL_HOME ; \
-	$(ECHO) " \
+	($(ECHO) " \
 	(clim-test::generate-pretty-test-report :file \"$(REPORT_FILE)\")" \
 	| $(LISP) -I $(CLIM) $(CLOPTS))
 
 profile: FORCE
-	(ALLEGRO_CL_HOME=$(CLIM_HOME) ; export ALLEGRO_CL_HOME ; \
-	$(ECHO) " \
+	($(ECHO) " \
 	(clim-user::run-profile-clim-tests)" \
 	| $(LISP) -I $(CLIM) $(CLOPTS))
 
 benchmark: FORCE
-	(ALLEGRO_CL_HOME=$(CLIM_HOME) ; export ALLEGRO_CL_HOME ; \
-	$(ECHO) " \
+	($(ECHO) " \
 	(clim-test::benchmark-clim $(BENCHMARK_FILE))" \
 	| $(LISP) -I $(CLIM) $(CLOPTS))
 
 testps: FORCE
-	(ALLEGRO_CL_HOME=$(CLIM_HOME) ; export ALLEGRO_CL_HOME ; \
-	$(ECHO) " \
+	($(ECHO) " \
 	(load \"test/postscript-tests.lisp\") \
 	(clim-user::run-postscript-tests :output $(PSVIEW))" \
 	| $(LISP) -I $(CLIM) $(CLOPTS))
@@ -219,19 +225,17 @@ clean:
 	find . -name '*.fasl' -print | xargs rm -f
 	rm -f *.o *.$(SHARED_EXT) *.a slim \
 	  	stub-motif.c stub-olit.c stub-xt.c stub-x.c stub-wnn.c
-	rm -f *.z *.Z *.gz *.ilt *.out so_locations
+	rm -f *.z *.Z *.gz *.ilt so_locations
 	rm -f *.pll *.dxl
 
 clean-notes:
-	cd notes ; find . -name '*.lisp' -print | xargs rm -f
+	cd notes; find . -name '*.lisp' -print | xargs rm -f
 
 tags:
 	$(TAGS) $(ALL_SRC)
 
 wc:
 	wc $(ALL_SRC)
-
-################## make-dist stuff
 
 echo_XTLIB:
 	@echo $(XTLIB)
@@ -250,46 +254,14 @@ makeclimobjs: $(PRODUCT-OBJS) $(ICS-PRODUCT-OBJS)
 install_obj:
 	cp $(PRODUCT-OBJS) $(ICS-PRODUCT-OBJS) $(DEST)
 
-makeclimfasls: compile cat
-
 install_clim: install_obj
 	cp $(PRODUCT-FASLS) $(ICS-PRODUCT-FASLS) $(DEST)
 
 echo_src_files:
 	@echo $(PRODUCT_SRC_FILES)
 
-
-################## Lower level make-dist stuff
-
-xm-dcl	: stub-x.o stub-xt.o stub-motif.o \
-		 xlibsupport.o xtsupport.o xmsupport.o
-	cd $(CL_SRC) ; \
-	/bin/mv dcl dcl.climsave ; /bin/mv ucl ucl.climsave ; $(SAVEEXP) ; \
-	make initial_oldspace=$(OLDSPACE) oldspace=$(OLDSPACE) \
-		newspace=$(NEWSPACE) premallocs=$(PREMALLOCS) stubs=$(stubs) \
-		user_objects='$(PWD)/stub-x.o $(PWD)/stub-xt.o $(PWD)/stub-motif.o \
-		$(PWD)/xlibsupport.o $(PWD)/xmsupport.o $(PWD)/xtsupport.o \
-		$(CL_SRC)/code/excldep.o $(CL_SRC)/code/socket.o \
-		$(TKLIB) $(XTLIB) $(XLIB) $(MOTIFXTRAS)' dcl ;\
-	/bin/mv dcl xm-dcl ; /bin/mv ucl ucl.clim ;\
-	/bin/mv dcl.climsave dcl ; /bin/mv ucl.climsave ucl; $(RESTEXP)
-
-xm-dcli	: stub-x.o stub-xt.o stub-motif.o stub-wnn.o \
-		 xlibsupport.o xtsupport.o xmsupport.o $(WNNLIB)
-	cd $(CL_SRC) ; \
-	/bin/mv dcli dcli.climsave ; /bin/mv ucli ucli.climsave ; $(SAVEEXPI) ; \
-	make initial_oldspace=$(OLDSPACE) oldspace=$(OLDSPACE) \
-		newspace=$(NEWSPACE) premallocs=$(PREMALLOCS) stubs=$(stubs) \
-		user_objects='$(PWD)/stub-x.o $(PWD)/stub-xt.o $(PWD)/stub-motif.o \
-		$(PWD)/stub-wnn.o \
-		$(PWD)/xlibsupport.o $(PWD)/xmsupport.o $(PWD)/xtsupport.o \
-		$(CL_SRC)/code/excldep.o $(CL_SRC)/code/socket.o \
-		$(TKLIB) $(XTLIB) $(XLIB) $(PWD)/$(WNNLIB) $(MOTIFXTRAS)' dcli ;\
-	/bin/mv dcli xm-dcli ; /bin/mv ucli ucli.clim ;\
-	/bin/mv dcli.climsave dcli ; /bin/mv ucli.climsave ucli; $(RESTEXPI)
-
-################## End of make-dist stuff
-
 include Makefile.cobjs
 
 include Makefile.wnn
+
+FORCE:

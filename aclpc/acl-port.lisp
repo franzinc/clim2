@@ -93,14 +93,16 @@
 		))
 
 (defparameter *char->keysym*
-	      (let ((array (make-array 256 :initial-element nil)))
-		(dolist (char '(#\newline #\escape #\backspace #\tab #\space #\return))
-		  (setf (svref array (char-code char))
-			(intern (string-upcase (char-name char)) "KEYWORD")))
-		(loop for code from (char-code #\!) to (char-code #\~)
-		      do (setf (svref array code)
-			       (intern (string (char-upcase (code-char code))) "KEYWORD")))
-		array))
+    (let ((array (make-array 256 :initial-element nil)))
+      (dolist (char '(#\newline #\escape #\backspace #\tab #\space #\return))
+	(setf (svref array (char-code char))
+	  (intern (string-upcase (char-name char))
+		  (find-package :keyword))))
+      (loop for code from (char-code #\!) to (char-code #\~)
+	  do (setf (svref array code)
+	       (intern (string (char-upcase (code-char code)))
+		       (find-package :keyword))))
+      array))
 
 (defparameter *keysym-alist*
 	      `((#\Return . :return)
@@ -139,8 +141,28 @@
      (motion-pending :initform nil)
      (cursor-cache :initform nil)
      (grab-cursor :initform nil :accessor port-grab-cursor)
+     (resources :initform nil :accessor port-default-resources)
      pointer-x
      pointer-y))
+
+(defmethod restart-port ((port acl-port))
+  ;; No need to devote a thread to receiving messages
+  ;; if events get delivered directly to the
+  ;; frame's own thread.
+  nil)
+
+(defmethod port-alive-p ((port acl-port))
+  t)
+
+(defmethod port-event-wait ((port acl-port) waiter
+			    &key (wait-reason 
+				  #+Genera si:*whostate-awaiting-user-input*
+				  #-Genera "CLIM Input")
+				 timeout)
+  (process-next-event port
+		      :timeout timeout
+		      :wait-function waiter
+		      :state wait-reason))
 
 (defun silica::find-port-event-queue ()
   (when *acl-port*
@@ -149,14 +171,9 @@
 (defmethod find-port-type ((type (eql ':aclpc)))
   'acl-port)
 
-#+aclpc
-(defmethod port-type ((port acl-port))
-  ':aclpc)
-
 (defmethod find-port-type ((type (eql ':aclnt)))
   'acl-port)
 
-#+acl86win32
 (defmethod port-type ((port acl-port))
   ':aclnt)
 
@@ -170,30 +187,39 @@
     :dynamic-p dynamic-p))
 
 (defmethod initialize-instance :before ((port acl-port) &key)
-  #+(or aclpc acl86win32) (ensure-clim-initialized)
+  (ensure-clim-initialized)
   (unless (null *acl-port*)
     (cerror "do it anyway" "There can only be one acl port."))
   (setf *acl-port* port))
 
-;;;  more work needed???
 (defmethod initialize-instance :after ((port acl-port) &key)
   (with-slots (silica::default-palette silica::deep-mirroring vk->keysym) port
     (setf silica::default-palette (make-palette port :color-p t))
     (setf silica::deep-mirroring t)
     ;;add default cursor to window class -- K Reti
     (register-window-class (realize-cursor port :default))
-    ;(get-clim-icon) +++
-    (let ((res (ct::callocate :long)))
-    (loop for (vk . keysym) in *vk->keysym* do
-      (setf (gethash vk vk->keysym) keysym))
-    (loop for code from (char-code #\!) to (char-code #\~)
+    ;;(get-clim-icon) +++
+    (let ((res (ct:callocate :long)))
+      (loop for (vk . keysym) in *vk->keysym* do
+	    (setf (gethash vk vk->keysym) keysym))
+      (loop for code from (char-code #\!) to (char-code #\~)
 	  for char = (code-char code)
 	  do
-          (let ((scan #+aclpc (win::VkKeyscan code)
-					  #+acl86win32  (cg::loword (win::VkKeyscan code))))
-            (push char (gethash scan vk->keysym))))
+	    (let ((scan (loword (win:VkKeyscan code))))
+	      (push char (gethash scan vk->keysym))))
+      )
+    ;; Panes that have a direct mirror will get initialized from
+    ;; get-sheet-resources:
+    (setf (port-default-resources port)
+      `(:background 
+	,(wincolor->color (win:getSysColor win:color_btnface))
+	:foreground
+	,(wincolor->color (win:getSysColor win:color_windowtext))))
+    ;; Panes that don't have a direct mirror will use this as
+    ;; the default background:
+    (setq silica:*default-pane-background* 
+      (wincolor->color (win:getSysColor win:color_btnface)))
     ))
-  nil)
 
 (defmethod destroy-port :before ((port acl-port))
   (when (eq port *acl-port*)
@@ -238,8 +264,9 @@
 		      character-set etc))
 
 (defmethod text-style-mapping
-	   ((port acl-port) (style text-style)
-	    &optional (character-set *standard-character-set*) etc)
+    ((port acl-port) (style text-style)
+     &optional (character-set *standard-character-set*) etc)
+  (declare (ignore character-set etc))
   (with-slots (text-style->acl-font-mapping) port
     (or (gethash style text-style->acl-font-mapping)
 	(setf (gethash style text-style->acl-font-mapping)
@@ -257,13 +284,10 @@
 		     (otherwise (values 400 nil))))))
 	    (multiple-value-bind (family face-name)
 		(case (text-style-family style)
-		  #-ugly (:fix (values 0 "courier"))
-		  #-ugly (:serif (values 0 "times new roman"))
-		  #-ugly (:sans-serif (values 0 "arial"))
+		  (:fix (values 0 "courier"))
+		  (:serif (values 0 "times new roman"))
+		  (:sans-serif (values 0 "arial"))
 		  ;;--- some of these specify ugly ugly linedrawn fonts
-		  #+ugly (:fix (values #x35 nil)) ;; (logior FF_MODERN FIXED_PITCH 4)
-		  #+ugly (:serif (values #x16 nil)) ;; (logior FF_ROMAN VARIABLE_PITCH 4)
-		  #+ugly (:sans-serif (values #x26 nil)) ;; (logior FF_SWISS VARIABLE_PITCH 4)
 		  (otherwise (values 0 nil)))
 	      (let ((point-size
 		     (let ((size (text-style-size style)))
@@ -279,8 +303,9 @@
 		 :pitch-and-family family :face face-name))))))))
 
 (defmethod text-style-mapping
-	   ((device acl-port) (style silica::device-font)
-	    &optional (character-set *standard-character-set*) etc)
+    ((device acl-port) (style silica::device-font)
+     &optional (character-set *standard-character-set*) etc)
+  (declare (ignore character-set etc))
   (unless (eql device (silica::device-font-display-device style))
     (error "An attempt was made to map device font ~S on device ~S, ~@
 	    but it is defined for device ~S"
@@ -288,132 +313,87 @@
   (with-slots (text-style->acl-font-mapping) device
     (or (gethash style text-style->acl-font-mapping)
 	(setf (gethash style text-style->acl-font-mapping)
+	  #+old
 	  (let ((args (silica::device-font-name style)))
 	    (apply #'make-windows-font
 		   (- (round (* (pop args)
 				(slot-value device 'logpixelsy))
 			     72))
-		   args))))))
+		   args))
+	  #-old
+	  (let ((name (silica::device-font-name style)))
+	    (make-device-font (win:getstockobject name)))))))
 
 (defvar *fwt* nil)
 
 (defun make-font-width-table (dc last-character first-character)
   (let* ((tepsize (ct:ccallocate win::size))
-	 (string #+aclpc (ct:ccallocate win::lpstr :size 1) #+acl86win32 (make-string 1) )
+	 (string (make-string 1) )
 	 (array (make-array (1+ last-character))))
     (loop for i from first-character to last-character do
-      #+aclpc (ct:cset (char *) string 0 i) ;;; (code-char i)
-      #+acl86win32 (setf (char string 0) (code-char i))
-      (win::getTextExtentPoint dc string 1 tepsize)
-      (setf (aref array i)
-	    (ct::cref win::size tepsize win::cx)))
+	  (setf (char string 0) (code-char i))
+	  (win:getTextExtentPoint dc string 1 tepsize)
+	  (setf (aref array i) (ct:cref win::size tepsize win::cx)))
     (setq *fwt* array)))
 
+(defun make-system-font ()
+  (make-device-font (win:getstockobject win:system_font)))
+
 (defun make-windows-font
-       (height &key (width 0) (escapement 0) (orientation 0)
-	       (weight 400) (italic nil) (underline nil) (strikeout nil)
-	       (charset 0) (output-precision 0) (clip-precision 0)
-	       (quality 2) ;; ie PROOF_QUALITY
-	       (pitch-and-family 0) (face nil) win-font) 
+    (height &key (width 0) (escapement 0) (orientation 0)
+		 (weight 400) (italic nil) (underline nil) (strikeout nil)
+		 (charset 0) (output-precision 0) (clip-precision 0)
+		 (quality 2) ;; ie PROOF_QUALITY
+		 (pitch-and-family 0) (face nil) win-font) 
   (let ((win-font 
 	 (or win-font
-	     (win::createFont height width escapement orientation weight
-			      (if italic 1 0) (if underline 1 0)
-			      (if strikeout 1 0) charset
-			      output-precision clip-precision quality
-			      pitch-and-family (or face ""))))
-        (old-font nil)
-	(cw (and *application-frame*
+	     (win:createFont height width escapement orientation weight
+			     (if italic 1 0) (if underline 1 0)
+			     (if strikeout 1 0) charset
+			     output-precision clip-precision quality
+			     pitch-and-family (or face "")))))
+    (when (zerop win-font)
+      (error "CreateFont: system error ~s" (win:getlasterror)))
+    (make-device-font win-font)))
+
+(defun make-device-font (win-font) 
+  (let ((cw (and *application-frame*
 		 (frame-top-level-sheet *application-frame*)
 		 (sheet-mirror (frame-top-level-sheet *application-frame*))))
-	(tmstruct (ct::ccallocate win::textmetric)))
-   (unless cw (setf cw *current-window*))
-   (with-dc (cw dc)
-     #+ignore
-     (format *terminal-io* "~%MWF CW: ~S *CW*: ~S Sh: ~S" cw *current-window*
-		(mirror->sheet *acl-port* *current-window*))
-    (setf old-font (win::selectObject dc win-font))
-    ; (setf *created-font* win-font *original-font* old-font)
-    (win::getTextMetrics dc tmstruct)
-    (let ((average-character-width
-	    (ct::cref win::textmetric tmstruct win::tmavecharwidth))
-	  (maximum-character-width
-            (ct::cref win::textmetric tmstruct win::tmmaxcharwidth))
-	  (last-character (ct::cref win::textmetric tmstruct win::tmlastchar))
-	  (first-character (ct::cref win::textmetric tmstruct win::tmfirstchar))
-	  (font-width-array-or-nil nil))
-      (setq font-width-array-or-nil
-            (and (/= average-character-width maximum-character-width)
-	         (make-font-width-table dc last-character first-character)))
-      (make-acl-font
-        :index win-font 
-	:height (ct::cref win::textmetric tmstruct win::tmheight)
-	:ascent (ct::cref win::textmetric tmstruct win::tmascent)
-	:descent (ct::cref win::textmetric tmstruct win::tmdescent)
-	:internal-leading
-	  (ct::cref win::textmetric tmstruct win::tminternalleading)
-        :external-leading
-	  (ct::cref win::textmetric tmstruct win::tmexternalleading)
-	:average-character-width average-character-width        
-	:maximum-character-width maximum-character-width 
-	:weight (ct::cref win::textmetric tmstruct win::tmweight)
-	:italic (ct::cref win::textmetric tmstruct win::tmitalic)
-	:underlined (ct::cref win::textmetric tmstruct win::tmunderlined)
-	:struckout (ct::cref win::textmetric tmstruct win::tmstruckout)
-	:first-character first-character 
-	:last-character last-character 
-	:default-character (ct::cref win::textmetric tmstruct win::tmdefaultchar)
-	:break-character (ct::cref win::textmetric tmstruct win::tmbreakchar)
-	:overhang (ct::cref win::textmetric tmstruct win::tmoverhang)
-	:font-width-table font-width-array-or-nil)))))
-
-#+ignore ; old version
-(defun make-windows-font
-       (height &key (width 0) (escapement 0) (orientation 0)
-	       (weight 400) (italic nil) (underline nil) (strikeout nil)
-	       (charset 0) (output-precision 0) (clip-precision 0)
-	       (quality 2) (pitch-and-family 0) (face nil))
-  (let ((win-font
-	  (win::createFont height width escapement orientation weight
-			    (if italic 1 0) (if underline 1 0)
-			    (if strikeout 1 0) charset
-			    output-precision clip-precision quality
-			    pitch-and-family (or face "")))
-	(tmstruct (ct:ccallocate win::textmetric)))
-   (with-dc (*current-window* dc) 
-    (win::selectObject dc win-font)
-    (win::getTextMetrics dc tmstruct)
-    (let ((average-character-width
-	    (ct::cref win::textmetric tmstruct win::tmavecharwidth))
-	  (maximum-character-width
-            (ct::cref win::textmetric tmstruct win::tmmaxcharwidth))
-	  (last-character (ct::cref win::textmetric tmstruct win::tmlastchar))
-	  (first-character (ct::cref win::textmetric tmstruct win::tmfirstchar))
-	  (font-width-array-or-nil nil))
-      (setq font-width-array-or-nil
-            (and (/= average-character-width maximum-character-width)
-	         (make-font-width-table dc last-character first-character)))
-      (make-acl-font
-        :index win-font 
-	:height (ct::cref win::textmetric tmstruct win::tmheight)
-	:ascent (ct::cref win::textmetric tmstruct win::tmascent)
-	:descent (ct::cref win::textmetric tmstruct win::tmdescent)
-	:internal-leading
-	  (ct::cref win::textmetric tmstruct win::tminternalleading)
-        :external-leading
-	  (ct::cref win::textmetric tmstruct win::tmexternalleading)
-	:average-character-width average-character-width        
-	:maximum-character-width maximum-character-width 
-	:weight (ct::cref win::textmetric tmstruct win::tmweight)
-	:italic (ct::cref win::textmetric tmstruct win::tmitalic)
-	:underlined (ct::cref win::textmetric tmstruct win::tmunderlined)
-	:struckout (ct::cref win::textmetric tmstruct win::tmstruckout)
-	:first-character first-character 
-	:last-character last-character 
-	:default-character (ct::cref win::textmetric tmstruct win::tmdefaultchar)
-	:break-character (ct::cref win::textmetric tmstruct win::tmbreakchar)
-	:overhang (ct::cref win::textmetric tmstruct win::tmoverhang)
-	:font-width-table font-width-array-or-nil)))))
+	(tmstruct (ct:ccallocate win:textmetric)))
+    (unless cw (setf cw *current-window*))
+    (with-dc (cw dc)
+      (win:selectObject dc win-font)
+      (win:getTextMetrics dc tmstruct)
+      (let ((average-character-width
+	     (ct:cref win:textmetric tmstruct tmavecharwidth))
+	    (maximum-character-width
+	     (ct:cref win:textmetric tmstruct tmmaxcharwidth))
+	    (last-character (ct:cref win:textmetric tmstruct tmlastchar))
+	    (first-character (ct:cref win:textmetric tmstruct tmfirstchar))
+	    (font-width-array-or-nil nil))
+	(setq font-width-array-or-nil
+	  (and (/= average-character-width maximum-character-width)
+	       (make-font-width-table dc last-character first-character)))
+	(make-acl-font
+	 :index win-font 
+	 :height (ct:cref win:textmetric tmstruct tmheight)
+	 :ascent (ct:cref win:textmetric tmstruct tmascent)
+	 :descent (ct:cref win:textmetric tmstruct tmdescent)
+	 :internal-leading (ct:cref win:textmetric tmstruct tminternalleading)
+	 :external-leading (ct:cref win:textmetric tmstruct tmexternalleading)
+	 :average-character-width average-character-width        
+	 :maximum-character-width maximum-character-width 
+	 :weight (ct:cref win:textmetric tmstruct tmweight)
+	 :italic (ct:cref win:textmetric tmstruct tmitalic)
+	 :underlined (ct:cref win:textmetric tmstruct tmunderlined)
+	 :struckout (ct:cref win:textmetric tmstruct tmstruckout)
+	 :first-character first-character 
+	 :last-character last-character 
+	 :default-character (ct:cref win:textmetric tmstruct tmdefaultchar)
+	 :break-character (ct:cref win:textmetric tmstruct tmbreakchar)
+	 :overhang (ct:cref win:textmetric tmstruct tmoverhang)
+	 :font-width-table font-width-array-or-nil)))))
 
 (defmethod port-glyph-for-character ((port acl-port) char style
 				     &optional our-font)
@@ -449,24 +429,29 @@
       (values index acl-font escapement-x escapement-y
 	      origin-x origin-y bb-x bb-y))))
 
-(defparameter *win-cursor-type-alist*
-    `((:default ,win::IDC_ARROW)
-      (:position ,win::IDC_CROSS)
-      (:vertical-scroll ,win::IDC_SIZENS)
-      (:horizontal-scroll ,win::IDC_SIZEWE)
-      #+aclpc (:move ,win::IDC_SIZE)
-      #+acl86win32 (:move ,win::IDC_SIZEALL)
-      (:scroll-up ,win::IDC_UPARROW)
-      (:busy ,win::IDC_WAIT)))
+(defvar *win-cursor-type-alist*
+    `((:appstarting ,win:idc_appstarting)
+      (:default ,win:IDC_ARROW)
+      (:position ,win:IDC_CROSS)
+      (:ibeam ,win:idc_ibeam)
+      #+ignore
+      (:no ,win:idc_no)
+      (:move ,win:IDC_SIZEALL)
+      (:vertical-scroll ,win:IDC_SIZENS)
+      (:horizontal-scroll ,win:IDC_SIZEWE)
+      (:scroll-up ,win:IDC_UPARROW)
+      (:busy ,win:IDC_WAIT)))
 
 (defmethod port-set-pointer-cursor ((port acl-port) pointer cursor)
   (unless (eq (pointer-cursor pointer) cursor)
-    (win::setCursor (realize-cursor port cursor))) ; mouse cursor
+    (win:setCursor (realize-cursor port cursor)) ; mouse cursor
+    )
   cursor)
 
 (defmethod port-set-sheet-pointer-cursor ((port acl-port) sheet cursor)
   (unless (eq (sheet-pointer-cursor sheet) cursor)
-    (win::setCursor (realize-cursor port cursor))) ; mouse cursor
+    (win:setCursor (realize-cursor port cursor)) ; mouse cursor
+    )
   cursor)
 
 (defmethod realize-cursor ((port acl-port) (cursor symbol))
@@ -474,14 +459,19 @@
 		    :default)))
     (realize-cursor port cursor)))
 
-(defmethod realize-cursor ((port acl-port) (cursor number))
-  (let ((hinstance (ct::null-handle win::hinst))
-	    (lpcursorname #+aclpc (ct::ccallocate (char *) :initial-value 0) #+acl86win32 cursor))
-    #+aclpc (setf (pc::cpointer-value lpcursorname) cursor)
-    (win::LoadCursor hinstance lpcursorname)))
+(defvar *loaded-cursors* nil)
 
-(defmethod realize-cursor ((port acl-port) (cursor #+aclpc acl::lhandle
-												   #-aclpc t)) ;+++
+(defmethod realize-cursor ((port acl-port) (cursor number))
+  (let* ((result (second (assoc cursor *loaded-cursors*))))
+    (unless result
+      (setq result 
+	(win:LoadCursor 0 cursor))
+      (when (zerop result)
+	(error "LoadCursor: system error ~s" (win:getlasterror)))
+      (push (list cursor result) *loaded-cursors*))
+    result))
+
+(defmethod realize-cursor ((port acl-port) (cursor t)) 
   cursor)
 
 (defmethod realize-cursor :around ((port acl-port) cursor)
@@ -493,6 +483,9 @@
 ;; pointer-grabbing - how do you do this on windows? - the following
 ;; simply deals with the handling of the cursor keyword (cim 10/14/96)
 
+;; I think you do this on windows by using SetCapture
+;; and ReleaseCapture.  JPM 5/98.
+
 (defmethod port-invoke-with-pointer-grabbed
     ((port acl-port) (sheet basic-sheet) continuation
      &key cursor &allow-other-keys)
@@ -501,15 +494,18 @@
 
 ;; X and Y are in native coordinates
 (defmethod port-set-pointer-position ((port acl-port) pointer x y)
+  (declare (ignore pointer))
   (fix-coordinates x y)
-  (win::setCursorPos x y))
+  (or (win:setCursorPos x y)
+      (error "SetCursorPos: system error ~S" (win:getlasterror))))
 
 (defmethod clim-internals::port-query-pointer ((port acl-port) sheet)
-  (let ((point (ct:ccallocate win::point))
+  (let ((point (ct:ccallocate win:point))
 	(native-x 0)(native-y 0))
-    (win::getCursorPos point)
-    (let ((root-x (ct::cref win::point point win::x))
-	  (root-y (ct::cref win::point point win::y)))
+    (or (win:getCursorPos point)
+	(error "GetCursorPos: system error ~s" (win:getlasterror)))
+    (let ((root-x (ct:cref win:point point x))
+	  (root-y (ct:cref win:point point y)))
       (multiple-value-bind (x y)
 	  (untransform-position (sheet-device-transformation sheet)
 			        native-x native-y)
@@ -588,15 +584,16 @@
 
 ;;; Convert a MS Windows shift mask into a CLIM modifier-state
 (defun windows-mask->modifier-state (mask)
-  (if (logtest win::mk_shift mask)
-      (if (logtest win::mk_control mask)
+  (if (logtest win:mk_shift mask)
+      (if (logtest win:mk_control mask)
 	  (make-modifier-state :shift :control)
 	  (make-modifier-state :shift))
-      (if (logtest win::mk_control mask)
+      (if (logtest win:mk_control mask)
 	  (make-modifier-state :control)
 	  (make-modifier-state))))
 
 (defmethod event-handler ((port acl-port) args)
+  (declare (ignore args))
   (cerror "Go on" "What isn't firing?")
   nil)
 
@@ -610,7 +607,7 @@
     (let ((event (queue-next queue))
           (sheet nil))
       (setf (clim-utils::queue-head queue)
-	(free-cons queue (queue-head queue)))
+	(clim-utils::free-cons queue (clim-utils::queue-head queue)))
       (if (and (or (typep event 'device-event)
 		   (typep event 'window-event))
 	       (or (not (setq sheet (event-sheet event)))
@@ -656,14 +653,19 @@
 
 #+acl86win32
 (defmethod process-next-event ((port acl-port)
-			       &key (timeout nil) (wait-function nil))
+			       &key (timeout nil) 
+				    (wait-function nil)
+				    (state "Windows Event"))
+  (declare (ignore state))
   (with-slots (event-queue motion-pending) port
     (let ((event (queue-get event-queue))
 	  (reason nil))
       (unless event 
 	(flet ((wait-for-event ()
-		 ;;(await-response t);(cg::process-pending-events);
-		 (sys::process-pending-events)
+		 ;;(await-response t)
+		 (sys::process-pending-events 
+		  ;; Arg is "check-pending"; if T, don't block.
+		  t)
 		 (when motion-pending
 		   (flush-pointer-motion port))
 		 (or (setq event (queue-get event-queue))
@@ -695,7 +697,7 @@
     (setf mirror (slot-value sheet 'silica::mirror))
     (if (not mirror)
       (deallocate-event event)
-      (unless (win::isIconic mirror)
+      (unless (win:isIconic mirror)
         (let ((native-region (mirror-region port sheet)))
 	  (setf (slot-value event 'silica::native-region) native-region)
 	  (setf (slot-value event 'silica::region)
@@ -704,9 +706,9 @@
         (call-next-method)))))
 
 (defun get-system-version ()
-  "Use win::GetVersion to determine the operating system being used."
-  (let* ((v (win::GetVersion))
-         (vh (pc::hiword v)))
+  "Use win:GetVersion to determine the operating system being used."
+  (let* ((v (win:GetVersion))
+         (vh (hiword v)))
     (if (>= vh 0) :winnt :win31)))
 
 (defun silica::acl-mirror-with-focus ()

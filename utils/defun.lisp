@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/utils/defun.lisp,v 1.12 1997/05/31 01:00:49 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/utils/defun.lisp,v 1.12.22.1 1998/05/19 01:05:22 layer Exp $
 
 (in-package :clim-utils)
 

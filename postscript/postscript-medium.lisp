@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: POSTSCRIPT-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/postscript/postscript-medium.lisp,v 1.20 1997/02/05 01:49:36 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/postscript/postscript-medium.lisp,v 1.20.22.1 1998/05/19 01:04:53 layer Exp $
 
 (in-package :postscript-clim)
 
@@ -348,6 +348,7 @@
 (defmethod medium-draw-string* ((medium postscript-medium)
 				string x y start end align-x align-y
 				towards-x towards-y transform-glyphs)
+  (declare (ignore transform-glyphs))
   (unless start
     (setq start 0))
   (unless end
@@ -408,7 +409,9 @@
 				     align-y text-style
 				     towards-x towards-y
 				     transform-glyphs transformation)
-  (declare (ignore string start end transform-glyphs transformation))
+  (declare (ignore string start end transform-glyphs transformation
+		   towards-x towards-y text-style
+		   x y align-x align-y))
   (multiple-value-bind
       (left top right bottom cx cy towards-x towards-y) (call-next-method)
     (if (and towards-y towards-x)
@@ -472,29 +475,30 @@
   (let ((printer-stream (slot-value medium 'printer-stream)))
     (format printer-stream "new-page~%")))
 
+(excl::without-package-locks
 (defmacro with-postscript-glyph-for-character (&body body)
   `(macrolet ((port-glyph-for-character (port character style &optional our-font)
-		`(multiple-value-bind (character-set index)
- 		     (char-character-set-and-index ,character)
- 		   (declare (ignore character-set))
-		   ;; For now we are asserting that each string passed to WRITE-STRING will
-		   ;; have no style changes within it.  This is what our-font is all
-		   ;; about.
-		   (let* ((fcs (or ,our-font (get-font-compat-str ,port nil ,style)))
-			  (cwt (psfck-width-table fcs))
-			  (relwidth (if (numberp cwt)
-					cwt
-					(aref cwt index)))
-			  (escapement-x (* (psfck-clim-height fcs) relwidth))
-			  (escapement-y 0)
-			  (origin-x 0)
-			  (origin-y (psfck-clim-ascent fcs))
-			  ;; really ought know real dope, but not avl yet
-			  (bb-x escapement-x)
-			  (bb-y (psfck-clim-height fcs)))
-		     (values index fcs escapement-x escapement-y origin-x origin-y
-			     bb-x bb-y (numberp cwt))))))
-     ,@body))
+		 `(multiple-value-bind (character-set index)
+		      (char-character-set-and-index ,character)
+		    (declare (ignore character-set))
+		    ;; For now we are asserting that each string passed to WRITE-STRING will
+		    ;; have no style changes within it.  This is what our-font is all
+		    ;; about.
+		    (let* ((fcs (or ,our-font (get-font-compat-str ,port nil ,style)))
+			   (cwt (psfck-width-table fcs))
+			   (relwidth (if (numberp cwt)
+					 cwt
+				       (aref cwt index)))
+			   (escapement-x (* (psfck-clim-height fcs) relwidth))
+			   (escapement-y 0)
+			   (origin-x 0)
+			   (origin-y (psfck-clim-ascent fcs))
+			   ;; really ought know real dope, but not avl yet
+			   (bb-x escapement-x)
+			   (bb-y (psfck-clim-height fcs)))
+		      (values index fcs escapement-x escapement-y origin-x origin-y
+			      bb-x bb-y (numberp cwt))))))
+      ,@body))
 
 (defmethod port-glyph-for-character ((port postscript-port)
 				     character style &optional our-font)
@@ -502,6 +506,7 @@
 		   fixed-width-font-p))
   (with-postscript-glyph-for-character
     (port-glyph-for-character port character style our-font)))
+)
 
 ;;-- Is this needed??
 

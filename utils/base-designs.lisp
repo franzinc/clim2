@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/utils/base-designs.lisp,v 1.12 1997/05/31 01:00:47 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/utils/base-designs.lisp,v 1.12.22.1 1998/05/19 01:05:20 layer Exp $
 
 (in-package :clim-utils)
 
@@ -169,16 +169,20 @@
 
 (defconstant +foreground-ink+ (make-instance 'design))
 
-(defmethod make-load-form ((design (eql (symbol-value '+foreground-ink+))) #-aclpc &optional #-aclpc environment)
+(defmethod make-load-form ((design (eql (symbol-value '+foreground-ink+)))
+			   #-aclpc &optional #-aclpc environment)
   #-aclpc (declare (ignore environment))
-  #-aclpc '+foreground-ink+ #+aclpc '(symbol-value '+foreground-ink+))
+  #-aclpc '+foreground-ink+
+  #+aclpc '(symbol-value '+foreground-ink+))
 
 
 (defconstant +background-ink+ (make-instance 'design))
 
-(defmethod make-load-form ((design (eql (symbol-value '+background-ink+))) #-aclpc &optional #-aclpc environment)
+(defmethod make-load-form ((design (eql (symbol-value '+background-ink+)))
+			   #-aclpc &optional #-aclpc environment)
   #-aclpc (declare (ignore environment))
-  #-aclpc '+background-ink+ #+aclpc '(symbol-value '+background-ink+))
+  #-aclpc '+background-ink+
+  #+aclpc '(symbol-value '+background-ink+))
 
 
 ;;; Flipping inks

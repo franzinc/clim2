@@ -59,7 +59,7 @@
 			   ("About Lisp Listener"
 				   :documentation "About Lisp Listener"))
   ()
-  (pc::pop-up-about-climap-dialog *application-frame*))
+  (acl-clim::pop-up-about-climap-dialog *application-frame*))
 
 (define-application-frame wlistener ()
 			  ()

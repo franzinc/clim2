@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/silica/port.lisp,v 1.38 1997/05/31 01:00:36 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/silica/port.lisp,v 1.38.22.1 1998/05/19 01:05:03 layer Exp $
 
 (in-package :silica)
 
@@ -10,12 +10,12 @@
 
 ;; Ports and grafts
 
-(defvar *default-server-path* #+(and Allegro (not acl86win32)) '(:motif)
+(defvar *default-server-path* #+(and Allegro (not Microsoft-32)) '(:motif)
                               #+Lucid '(:clx)
                               #+Genera `(:genera)
                               #+Cloe-Runtime `(:cloe)
-                              #+(or aclpc acl86win32) '(:aclpc)
-                              #-(or Allegro Lucid Genera Cloe-Runtime aclpc aclnt) nil)
+                              #+(and Allegro Microsoft-32) '(:aclpc)
+                              #-(or Allegro Lucid Genera Cloe-Runtime) nil)
 
 
 (defvar *ports* nil)
@@ -112,14 +112,10 @@
     (when (port-process port)
       (destroy-process (port-process port)))
     (setf (port-process port)
-          #-acl86win32 (make-process 
-                   #'(lambda () (port-event-loop port))
-                   :name (format nil "CLIM Event Dispatcher for ~A" (port-server-path port)))
-          #+acl86win32 (mp:process-run-function
-                    `(:quantum 5
-                      :priority 1000
-                      :name ,(format nil "CLIM Event Dispatcher for ~A" (port-server-path port)))
-                    #'(lambda () (port-event-loop port))))))
+      (make-process 
+       #'(lambda () (port-event-loop port))
+       :name (format nil "CLIM Event Dispatcher for ~A" 
+		     (port-server-path port))))))
 
 
 (defgeneric port-event-loop (port))

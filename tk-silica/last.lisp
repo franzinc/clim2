@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: system -*-
 ;;
-;;				-[Mon May  4 17:04:02 1998 by layer]-
+;;				-[Mon May 18 17:59:41 1998 by layer]-
 ;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1992 Franz Inc, Berkeley, CA  All rights reserved.
@@ -19,8 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/tk-silica/Attic/last.lisp,v 1.9.22.1 1998/05/13 15:18:32 layer Exp $
-
+;; $Id: last.lisp,v 1.9.22.2 1998/05/19 01:05:13 layer Exp $
 
 (in-package :system)
 

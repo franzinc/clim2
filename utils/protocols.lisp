@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/utils/protocols.lisp,v 1.8 1997/02/05 01:55:13 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/utils/protocols.lisp,v 1.8.22.1 1998/05/19 01:05:26 layer Exp $
 
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
@@ -27,7 +27,7 @@
 (defsetf find-protocol (name) (value) `(setf (getf *protocols* ,name) ,value))
 
 (defmacro defprotocol (name supers &rest options)
-  (declare (ignore supers options))
+ (declare (ignore supers options))
   `(eval-when (compile eval load)
      (setf (find-protocol ',name)
            (make-instance 'protocol :name ',name))))

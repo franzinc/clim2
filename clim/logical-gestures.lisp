@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/clim/logical-gestures.lisp,v 1.6 1997/02/05 01:44:10 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/logical-gestures.lisp,v 1.6.22.1 1998/05/19 01:04:34 layer Exp $
 
 
 (in-package :clim-internals)
