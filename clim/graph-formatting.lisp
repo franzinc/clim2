@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graph-formatting.lisp,v 1.10 92/05/22 19:27:57 cer Exp $
+;; $fiHeader: graph-formatting.lisp,v 1.11 92/07/01 15:46:25 cer Exp $
 
 (in-package :clim-internals)
 
@@ -203,109 +203,111 @@
   (declare (ignore stream))
   (with-slots (root-nodes orientation center-nodes
 	       generation-separation within-generation-separation) graph
-    (let ((start-x (coordinate 0))
-	  (start-y (coordinate 0))
-	  ;;--- This needs to handle multiple root nodes
-	  (root-node (first root-nodes)))
-      (macrolet
-	((layout-body (driver-function-name 
-		       node-var depth-var breadth-var tallest-sibling-var
-		       generation-separation-var within-generation-separation-var)
-	   `(let ((children (graph-node-children ,node-var))
-		  (start-breadth ,breadth-var)
-		  (node-breadth (node-breadth ,node-var))
-		  (breadth-margin ,within-generation-separation-var)
-		  (depth-margin ,generation-separation-var)
-		  (tallest-child (coordinate 0)))
-	      (declare (type coordinate start-breadth node-breadth
-			     		depth-margin breadth-margin tallest-child))
-	      (dolist (child children)
-		(maxf tallest-child (node-depth child)))
-	      (dolist (child children)
-		(incf start-breadth (round breadth-margin 2))
-		(let ((child-breadth 
-			(,driver-function-name
-			 child
-			 (+ ,depth-var ,tallest-sibling-var depth-margin)
-			 start-breadth
-			 tallest-child)))
-		  (incf start-breadth child-breadth))
-		(incf start-breadth (round breadth-margin 2)))
-	      (let* ((total-child-breadth (- start-breadth ,breadth-var))
-		     (my-breadth
-		       (+ ,breadth-var
-			  (round (max 0 (- total-child-breadth node-breadth)) 2))))
-		(setf (node-depth-start ,node-var) ,depth-var
-		      (node-breadth-start ,node-var) my-breadth)
-		(max total-child-breadth (node-breadth ,node-var))))))
-	(ecase orientation
-	  ((:vertical :down)
-	   (macrolet ((node-breadth (node) `(bounding-rectangle-width ,node))
-		      (node-depth (node) `(bounding-rectangle-height ,node))
-		      (node-breadth-start (node) `(graph-node-x ,node))
-		      (node-depth-start (node) `(graph-node-y ,node)))
-	     (labels ((layout-graph (root start-x start-y tallest-sibling)
-			(layout-body layout-graph root
-				     start-x start-y tallest-sibling
-				     generation-separation
-				     within-generation-separation)))
-	       ;; Yes, this really is "start-y" followed by "start-x"
-	       (layout-graph root-node start-y start-x (node-depth root-node)))))
-	  ((:horizontal :right)
-	   (macrolet ((node-breadth (node) `(bounding-rectangle-height ,node))
-		      (node-depth (node) `(bounding-rectangle-width ,node))
-		      (node-breadth-start (node) `(graph-node-y ,node))
-		      (node-depth-start (node) `(graph-node-x ,node)))
-	     (labels ((layout-graph (root start-x start-y tallest-sibling)
-			(layout-body layout-graph root
-				     start-x start-y tallest-sibling
-				     generation-separation
-				     within-generation-separation)))
-	       (layout-graph root-node start-x start-y (node-depth root-node))))))))))
+    (when root-nodes
+      (let ((start-x (coordinate 0))
+	    (start-y (coordinate 0))
+	    ;;--- This needs to handle multiple root nodes
+	    (root-node (first root-nodes)))
+	(macrolet
+	  ((layout-body (driver-function-name 
+			 node-var depth-var breadth-var tallest-sibling-var
+			 generation-separation-var within-generation-separation-var)
+	     `(let ((children (graph-node-children ,node-var))
+		    (start-breadth ,breadth-var)
+		    (node-breadth (node-breadth ,node-var))
+		    (breadth-margin ,within-generation-separation-var)
+		    (depth-margin ,generation-separation-var)
+		    (tallest-child (coordinate 0)))
+		(declare (type coordinate start-breadth node-breadth
+					  depth-margin breadth-margin tallest-child))
+		(dolist (child children)
+		  (maxf tallest-child (node-depth child)))
+		(dolist (child children)
+		  (incf start-breadth (round breadth-margin 2))
+		  (let ((child-breadth 
+			  (,driver-function-name
+			   child
+			   (+ ,depth-var ,tallest-sibling-var depth-margin)
+			   start-breadth
+			   tallest-child)))
+		    (incf start-breadth child-breadth))
+		  (incf start-breadth (round breadth-margin 2)))
+		(let* ((total-child-breadth (- start-breadth ,breadth-var))
+		       (my-breadth
+			 (+ ,breadth-var
+			    (round (max 0 (- total-child-breadth node-breadth)) 2))))
+		  (setf (node-depth-start ,node-var) ,depth-var
+			(node-breadth-start ,node-var) my-breadth)
+		  (max total-child-breadth (node-breadth ,node-var))))))
+	  (ecase orientation
+	    ((:vertical :down)
+	     (macrolet ((node-breadth (node) `(bounding-rectangle-width ,node))
+			(node-depth (node) `(bounding-rectangle-height ,node))
+			(node-breadth-start (node) `(graph-node-x ,node))
+			(node-depth-start (node) `(graph-node-y ,node)))
+	       (labels ((layout-graph (root start-x start-y tallest-sibling)
+			  (layout-body layout-graph root
+				       start-x start-y tallest-sibling
+				       generation-separation
+				       within-generation-separation)))
+		 ;; Yes, this really is "start-y" followed by "start-x"
+		 (layout-graph root-node start-y start-x (node-depth root-node)))))
+	    ((:horizontal :right)
+	     (macrolet ((node-breadth (node) `(bounding-rectangle-height ,node))
+			(node-depth (node) `(bounding-rectangle-width ,node))
+			(node-breadth-start (node) `(graph-node-y ,node))
+			(node-depth-start (node) `(graph-node-x ,node)))
+	       (labels ((layout-graph (root start-x start-y tallest-sibling)
+			  (layout-body layout-graph root
+				       start-x start-y tallest-sibling
+				       generation-separation
+				       within-generation-separation)))
+		 (layout-graph root-node start-x start-y (node-depth root-node)))))))))))
 
 (defmethod layout-graph-edges ((graph tree-graph-output-record) 
 			       stream arc-drawer arc-drawing-options)
   (with-slots (orientation root-nodes) graph
-    ;;--- This needs to handle multiple root nodes 
-    (let ((root-node (first root-nodes)))
-      (flet ((parent-attachment-position (node)
-	       (with-bounding-rectangle* (left top right bottom) node
-		 (case orientation
-		   ((:horizontal :right)
-		    (values (1+ right) (+ top (floor (- bottom top) 2))))
-		   ((:vertical :down)
-		    (values (+ left (floor (- right left) 2)) (1+ bottom))))))
-	     (child-attachment-position (node)
-	       (with-bounding-rectangle* (left top right bottom) node
-		 (case orientation
-		   ((:horizontal :right)
-		    (values (1- left) (+ top (floor (- bottom top) 2))))
-		   ((:vertical :down)
-		    (values (+ left (floor (- right left) 2)) (1- top)))))))
-	(declare (dynamic-extent #'parent-attachment-position #'child-attachment-position))
-	(multiple-value-bind (xoff yoff)
-	    (convert-from-relative-to-absolute-coordinates
-	      stream (output-record-parent graph))
-	  (with-identity-transformation (stream)
-	    (with-output-recording-options (stream :draw nil :record t)
-	      (with-new-output-record (stream 'standard-sequence-output-record nil
-				       :parent graph)
-		(labels ((draw-edges (parent)
-			   (dolist (child (graph-node-children parent))
-			     (when (graph-node-children child)
-			       (draw-edges child))
-			     (multiple-value-bind (parent-x parent-y)
-				 (parent-attachment-position parent)
-			       (multiple-value-bind (child-x child-y)
-				   (child-attachment-position child)
-				 (translate-coordinates xoff yoff
-				   parent-x parent-y child-x child-y)
-				 ;;--- This really needs to pass the objects, too
-				 (apply arc-drawer stream
-					parent-x parent-y child-x child-y
-					arc-drawing-options))))))
-		  (declare (dynamic-extent #'draw-edges))
-		  (draw-edges root-node))))))))))
+    (when root-nodes
+      ;;--- This needs to handle multiple root nodes 
+      (let ((root-node (first root-nodes)))
+	(flet ((parent-attachment-position (node)
+		 (with-bounding-rectangle* (left top right bottom) node
+		   (case orientation
+		     ((:horizontal :right)
+		      (values (1+ right) (+ top (floor (- bottom top) 2))))
+		     ((:vertical :down)
+		      (values (+ left (floor (- right left) 2)) (1+ bottom))))))
+	       (child-attachment-position (node)
+		 (with-bounding-rectangle* (left top right bottom) node
+		   (case orientation
+		     ((:horizontal :right)
+		      (values (1- left) (+ top (floor (- bottom top) 2))))
+		     ((:vertical :down)
+		      (values (+ left (floor (- right left) 2)) (1- top)))))))
+	  (declare (dynamic-extent #'parent-attachment-position #'child-attachment-position))
+	  (multiple-value-bind (xoff yoff)
+	      (convert-from-relative-to-absolute-coordinates
+		stream (output-record-parent graph))
+	    (with-identity-transformation (stream)
+	      (with-output-recording-options (stream :draw nil :record t)
+		(with-new-output-record (stream 'standard-sequence-output-record nil
+					 :parent graph)
+		  (labels ((draw-edges (parent)
+			     (dolist (child (graph-node-children parent))
+			       (when (graph-node-children child)
+				 (draw-edges child))
+			       (multiple-value-bind (parent-x parent-y)
+				   (parent-attachment-position parent)
+				 (multiple-value-bind (child-x child-y)
+				     (child-attachment-position child)
+				   (translate-coordinates xoff yoff
+				     parent-x parent-y child-x child-y)
+				   ;;--- This really needs to pass the objects, too
+				   (apply arc-drawer stream
+					  parent-x parent-y child-x child-y
+					  arc-drawing-options))))))
+		    (declare (dynamic-extent #'draw-edges))
+		    (draw-edges root-node)))))))))))
 
 
 ;;; Directed graphs, both acyclic and cyclic
@@ -386,139 +388,141 @@
   (with-slots (orientation center-nodes
 	       generation-separation within-generation-separation n-generations
 	       root-nodes hash-table) graph
-    (let ((start-x (coordinate 0))
-	  (start-y (coordinate 0)))
-      (flet ((inferior-mapper (function node)
-	       (map nil function (graph-node-children node)))
-	     (yx-output-record-set-position (record y x)
-	       (output-record-set-position record x y)))
-	(declare (dynamic-extent #'inferior-mapper #'yx-output-record-set-position))
-	(multiple-value-bind (breadthfun depthfun set-positionfun start-breadth start-depth)
-	    (ecase orientation
-	      ((:vertical :down :up)
-	       (values #'bounding-rectangle-width #'bounding-rectangle-height
-		       #'output-record-set-position start-x start-y))
-	      ((:horizontal :right :left)
-	       (values #'bounding-rectangle-height #'bounding-rectangle-width
-		       #'yx-output-record-set-position start-y start-x)))
-	  (macrolet ((traverse (new-node-function &optional (old-node-function '#'false))
-		       `(traverse-graph root-nodes #'inferior-mapper 
-					hash-table #'identity
-					,new-node-function ,old-node-function))
-		     ;; "Breadth" is the width in vertical orientation, otherwise 
-		     ;; it's the height.  "Depth" is vice-versa.
-		     (breadth (node) `(funcall breadthfun ,node))
-		     (depth (node) `(funcall depthfun ,node)))
-	    (let ((generation-descriptors
-		    (loop for generation to n-generations
-			  collect (make-generation-descriptor
-				    :generation generation
-				    :breadth-so-far start-breadth)))
-		  (max-gen-breadth (coordinate 0)) 
-		  broadest-gen-descr)
-	      (when (member orientation '(:up :left))
-		(setq generation-descriptors (nreverse generation-descriptors)))
-	      ;; Determine the breadth and depth of each generation
-	      (flet ((collect-node-size (p ph child-node)
-		       (declare (ignore p ph))
-		       (let ((descr (assoc (node-generation child-node)
-					   generation-descriptors)))
-			 (incf (generation-size descr))
-			 (incf (generation-breadth descr) (breadth child-node))
-			 (maxf (generation-depth descr) (depth child-node)))))
-		(declare (dynamic-extent #'collect-node-size))
-		(traverse #'collect-node-size))
-	      ;; Determine max-breadth and starting-depth
-	      (loop with depth-so-far = start-depth
-		    for descr in generation-descriptors do
-		(let ((gen-breadth (generation-breadth descr)))
-		  (when (> gen-breadth max-gen-breadth)
-		    (setf max-gen-breadth gen-breadth
-			  broadest-gen-descr descr)))
-		(setf (generation-start-depth descr) depth-so-far)
-		(incf depth-so-far (+ generation-separation (generation-depth descr))))
-	      ;; Determine breadth-spacing
-	      (incf max-gen-breadth
-		    (* within-generation-separation (generation-size broadest-gen-descr)))
-	      (loop for descr in generation-descriptors do
-		(let ((excess (floor (- max-gen-breadth (generation-breadth descr))
-				     (max (generation-size descr) 1))))
-		  (setf (generation-inner-breadth-separation descr) excess)
-		  (setf (generation-edge-breadth-separation descr) (floor excess 2))))
-	      ;; Place nodes
-	      (flet ((place-node (p ph child-node)
-		       (declare (ignore p ph))
-		       (let ((descr (assoc (node-generation child-node)
-					   generation-descriptors)))
-			 (incf (generation-breadth-so-far descr)
-			       (if (generation-touched descr)
-				   (generation-inner-breadth-separation descr)
-				   (progn (setf (generation-touched descr) t)
-					  (generation-edge-breadth-separation descr))))
-			 (funcall set-positionfun
-				  child-node
-				  (generation-breadth-so-far descr)
-				  (if center-nodes
-				      (+ (generation-start-depth descr)
-					 (floor (- (generation-depth descr)
-						   (depth child-node)) 2))
-				      (generation-start-depth descr)))
-			 (incf (generation-breadth-so-far descr) (breadth child-node)))))
-		(declare (dynamic-extent #'place-node))
-		(traverse #'place-node)))))))))
+    (when root-nodes
+      (let ((start-x (coordinate 0))
+	    (start-y (coordinate 0)))
+	(flet ((inferior-mapper (function node)
+		 (map nil function (graph-node-children node)))
+	       (yx-output-record-set-position (record y x)
+		 (output-record-set-position record x y)))
+	  (declare (dynamic-extent #'inferior-mapper #'yx-output-record-set-position))
+	  (multiple-value-bind (breadthfun depthfun set-positionfun start-breadth start-depth)
+	      (ecase orientation
+		((:vertical :down :up)
+		 (values #'bounding-rectangle-width #'bounding-rectangle-height
+			 #'output-record-set-position start-x start-y))
+		((:horizontal :right :left)
+		 (values #'bounding-rectangle-height #'bounding-rectangle-width
+			 #'yx-output-record-set-position start-y start-x)))
+	    (macrolet ((traverse (new-node-function &optional (old-node-function '#'false))
+			 `(traverse-graph root-nodes #'inferior-mapper 
+					  hash-table #'identity
+					  ,new-node-function ,old-node-function))
+		       ;; "Breadth" is the width in vertical orientation, otherwise 
+		       ;; it's the height.  "Depth" is vice-versa.
+		       (breadth (node) `(funcall breadthfun ,node))
+		       (depth (node) `(funcall depthfun ,node)))
+	      (let ((generation-descriptors
+		      (loop for generation to n-generations
+			    collect (make-generation-descriptor
+				      :generation generation
+				      :breadth-so-far start-breadth)))
+		    (max-gen-breadth (coordinate 0)) 
+		    broadest-gen-descr)
+		(when (member orientation '(:up :left))
+		  (setq generation-descriptors (nreverse generation-descriptors)))
+		;; Determine the breadth and depth of each generation
+		(flet ((collect-node-size (p ph child-node)
+			 (declare (ignore p ph))
+			 (let ((descr (assoc (node-generation child-node)
+					     generation-descriptors)))
+			   (incf (generation-size descr))
+			   (incf (generation-breadth descr) (breadth child-node))
+			   (maxf (generation-depth descr) (depth child-node)))))
+		  (declare (dynamic-extent #'collect-node-size))
+		  (traverse #'collect-node-size))
+		;; Determine max-breadth and starting-depth
+		(loop with depth-so-far = start-depth
+		      for descr in generation-descriptors do
+		  (let ((gen-breadth (generation-breadth descr)))
+		    (when (> gen-breadth max-gen-breadth)
+		      (setf max-gen-breadth gen-breadth
+			    broadest-gen-descr descr)))
+		  (setf (generation-start-depth descr) depth-so-far)
+		  (incf depth-so-far (+ generation-separation (generation-depth descr))))
+		;; Determine breadth-spacing
+		(incf max-gen-breadth
+		      (* within-generation-separation (generation-size broadest-gen-descr)))
+		(loop for descr in generation-descriptors do
+		  (let ((excess (floor (- max-gen-breadth (generation-breadth descr))
+				       (max (generation-size descr) 1))))
+		    (setf (generation-inner-breadth-separation descr) excess)
+		    (setf (generation-edge-breadth-separation descr) (floor excess 2))))
+		;; Place nodes
+		(flet ((place-node (p ph child-node)
+			 (declare (ignore p ph))
+			 (let ((descr (assoc (node-generation child-node)
+					     generation-descriptors)))
+			   (incf (generation-breadth-so-far descr)
+				 (if (generation-touched descr)
+				     (generation-inner-breadth-separation descr)
+				     (progn (setf (generation-touched descr) t)
+					    (generation-edge-breadth-separation descr))))
+			   (funcall set-positionfun
+				    child-node
+				    (generation-breadth-so-far descr)
+				    (if center-nodes
+					(+ (generation-start-depth descr)
+					   (floor (- (generation-depth descr)
+						     (depth child-node)) 2))
+					(generation-start-depth descr)))
+			   (incf (generation-breadth-so-far descr) (breadth child-node)))))
+		  (declare (dynamic-extent #'place-node))
+		  (traverse #'place-node))))))))))
 
 (defmethod layout-graph-edges ((graph directed-graph-output-record) 
 			       stream arc-drawer arc-drawing-options)
   (with-slots (orientation root-nodes hash-table) graph
-    (flet ((inferior-mapper (function node)
-	     (map nil function (graph-node-children node)))
-	   (north (node)
-	     (with-bounding-rectangle* (left top right bottom) node
-	       (declare (ignore bottom))
-	       (values (floor (+ right left) 2) (1- top))))
-	   (south (node)
-	     (with-bounding-rectangle* (left top right bottom) node
-	       (declare (ignore top))
-	       (values (floor (+ right left) 2) (1+ bottom))))
-	   (west (node)
-	     (with-bounding-rectangle* (left top right bottom) node
-	       (declare (ignore right))
-	       (values (1- left) (floor (+ top bottom) 2))))
-	   (east (node)
-	     (with-bounding-rectangle* (left top right bottom) node
-	       (declare (ignore left))
-	       (values (1+ right) (floor (+ top bottom) 2)))))
-      (declare (dynamic-extent #'inferior-mapper #'north #'south #'west #'east))
-      (multiple-value-bind (parent-attach child-attach)
-	  (ecase orientation
-	    ((:vertical :down) (values #'south #'north))
-	    ((:up) (values #'north #'south))
-	    ((:horizontal :right) (values #'east #'west))
-	    ((:left) (values #'west #'east)))
-	(multiple-value-bind (xoff yoff)
-	    (convert-from-relative-to-absolute-coordinates
-	      stream (output-record-parent graph))
-	  (with-identity-transformation (stream)
-	    (with-output-recording-options (stream :draw nil :record t)
-	      (with-new-output-record (stream 'standard-sequence-output-record nil
-				       :parent graph)
-		(labels ((draw-edge (parent ph child &optional ch)
-			   (declare (ignore ph ch))
-			   (when parent
-			     (multiple-value-bind (parent-x parent-y)
-				 (funcall parent-attach parent)
-			       (multiple-value-bind (child-x child-y)
-				   (funcall child-attach child)
-				 (translate-coordinates xoff yoff
-				   parent-x parent-y child-x child-y)
-				 ;;--- This really needs to pass the objects, too
-				 (apply arc-drawer stream 
-					parent-x parent-y child-x child-y
-					arc-drawing-options))))))
-		  (declare (dynamic-extent #'draw-edge)) 
-		  (traverse-graph root-nodes #'inferior-mapper
-				  hash-table #'identity
-				  #'draw-edge #'draw-edge))))))))))
+    (when root-nodes
+      (flet ((inferior-mapper (function node)
+	       (map nil function (graph-node-children node)))
+	     (north (node)
+	       (with-bounding-rectangle* (left top right bottom) node
+		 (declare (ignore bottom))
+		 (values (floor (+ right left) 2) (1- top))))
+	     (south (node)
+	       (with-bounding-rectangle* (left top right bottom) node
+		 (declare (ignore top))
+		 (values (floor (+ right left) 2) (1+ bottom))))
+	     (west (node)
+	       (with-bounding-rectangle* (left top right bottom) node
+		 (declare (ignore right))
+		 (values (1- left) (floor (+ top bottom) 2))))
+	     (east (node)
+	       (with-bounding-rectangle* (left top right bottom) node
+		 (declare (ignore left))
+		 (values (1+ right) (floor (+ top bottom) 2)))))
+	(declare (dynamic-extent #'inferior-mapper #'north #'south #'west #'east))
+	(multiple-value-bind (parent-attach child-attach)
+	    (ecase orientation
+	      ((:vertical :down) (values #'south #'north))
+	      ((:up) (values #'north #'south))
+	      ((:horizontal :right) (values #'east #'west))
+	      ((:left) (values #'west #'east)))
+	  (multiple-value-bind (xoff yoff)
+	      (convert-from-relative-to-absolute-coordinates
+		stream (output-record-parent graph))
+	    (with-identity-transformation (stream)
+	      (with-output-recording-options (stream :draw nil :record t)
+		(with-new-output-record (stream 'standard-sequence-output-record nil
+					 :parent graph)
+		  (labels ((draw-edge (parent ph child &optional ch)
+			     (declare (ignore ph ch))
+			     (when parent
+			       (multiple-value-bind (parent-x parent-y)
+				   (funcall parent-attach parent)
+				 (multiple-value-bind (child-x child-y)
+				     (funcall child-attach child)
+				   (translate-coordinates xoff yoff
+				     parent-x parent-y child-x child-y)
+				   ;;--- This really needs to pass the objects, too
+				   (apply arc-drawer stream 
+					  parent-x parent-y child-x child-y
+					  arc-drawing-options))))))
+		    (declare (dynamic-extent #'draw-edge)) 
+		    (traverse-graph root-nodes #'inferior-mapper
+				    hash-table #'identity
+				    #'draw-edge #'draw-edge)))))))))))
 
 ;; ROOT-OBJECTS is a sequence of the roots of the graph.  
 ;; INFERIOR-MAPPER is a function of two arguments, a function and an object

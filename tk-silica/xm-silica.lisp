@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-silica.lisp,v 1.21 92/06/29 14:05:16 cer Exp Locker: cer $
+;; $fiHeader: xm-silica.lisp,v 1.22 92/07/01 15:48:09 cer Exp $
 
 (in-package :xm-silica)
 
@@ -116,7 +116,6 @@
 			    (tk::xt-widget-geometry-height intended)
 			    (space-requirement-max-height sr)))))
       (return-from my-drawing-area-query-geometry tk::xt-geometry-no))
-
       
     (when (and (logtest rm x11:cwheight) (logtest rm x11:cwwidth))
       (return-from my-drawing-area-query-geometry tk::xt-geometry-yes))

@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: event.lisp,v 1.15 92/07/01 15:44:57 cer Exp Locker: cer $
+;; $fiHeader: event.lisp,v 1.16 92/07/06 18:51:22 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -316,11 +316,8 @@
       ((or pointer-exit-event pointer-enter-event)
        'pointer-motion-event)
       (t (type-of event)))
-    #-Lucid (pointer-event-native-x event)
-    #-Lucid (pointer-event-native-y event)
-    ;;--- On X at least this appears to want coordinate local to the window
-    #+Lucid (pointer-event-x event)
-    #+Lucid (pointer-event-y event)
+    (pointer-event-native-x event)
+    (pointer-event-native-y event)
     (event-modifier-state event)
     (pointer-event-button event)
     (pointer-event-pointer event)))

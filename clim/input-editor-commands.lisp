@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-editor-commands.lisp,v 1.9 92/05/22 19:28:03 cer Exp $
+;; $fiHeader: input-editor-commands.lisp,v 1.10 92/07/01 15:46:34 cer Exp $
 
 (in-package :clim-internals)
 
@@ -181,6 +181,57 @@
 	     (setq last-command-type 'character
 		   command-state *input-editor-command-aarray*)))))
   (values gesture type))
+
+;;--- This method never gets run because STREAM-READ-CHAR just gives up
+;;--- Maybe it would be better to use a BLANK-AREA translator while in
+;;--- the INPUT-EDITOR context?
+(defmethod stream-process-gesture ((istream input-editing-stream-mixin)
+				   (gesture pointer-button-press-event) type)
+  (when (eq (pointer-event-button gesture) +pointer-left-button+)
+    (let ((position (compute-input-buffer-input-position
+		      istream (pointer-event-x gesture) (pointer-event-y gesture))))
+      (when position
+	(setf (insertion-pointer istream) position)
+	(return-from stream-process-gesture (values nil nil)))))
+  (values gesture type))
+      
+;;--- A work in progress...
+(defmethod compute-input-buffer-input-position ((istream input-editing-stream-mixin) x y)
+  (multiple-value-bind (cursor-x cursor-y baseline height style max-x)
+      (decode-stream-for-writing istream)
+    ;; Cache some slot variables since we will not be writing them.
+    (let* ((input-buffer (slot-value istream 'input-buffer))
+	   (stream (slot-value istream 'stream))
+	   (medium (sheet-medium stream))
+	   (noisy-style (merge-text-styles *noise-string-style* style))
+	   (start 0)
+	   (end (fill-pointer input-buffer)))
+      (setq max-x x)
+      (setf start 0)
+      (setf end (fill-pointer input-buffer))
+      (multiple-value-setq (cursor-x cursor-y)
+	(start-cursor-position istream))
+      (let ((index
+	      (block index
+		(do-input-buffer-pieces (input-buffer :start start :end end)
+					(from to noise-string)
+		  :normal 
+		    (multiple-value-bind (char index new-cursor-x new-baseline new-height)
+			(stream-scan-string-for-writing
+			  stream medium input-buffer from to style cursor-x max-x)
+		      (declare (ignore char new-baseline new-height))
+		      (when (> cursor-x max-x)
+			(return-from index nil))
+		      (when (< index to)
+			(return-from index index))
+		      (setq cursor-x new-cursor-x))
+		  :noise-string
+		    (multiple-value-setq (cursor-x cursor-y height baseline)
+		      (do-text-screen-real-estate
+			stream #'true (noise-string-display-string noise-string) 0 nil
+			cursor-x cursor-y height baseline noisy-style max-x)))
+		nil)))
+	index))))
 
 
 ;;; Help commands, handled by special magic
@@ -631,14 +682,14 @@
 		  ;; hits <End> the rescan is done if necessary.
 		  ;;--- I don't like this, see comment on RESCAN-FOR-ACTIVATION
 		  (queue-rescan istream ':activation))
-		 (t (beep)))))
+		 (t (beep istream)))))
 	(t
 	 (let ((element (funcall function history :index numeric-argument :test test)))
 	   (cond (element
 		  (history-replace-input history istream element
 					 :replace-previous replace-previous)
 		  (queue-rescan istream ':activation))
-		 (t (beep)))))))
+		 (t (beep istream)))))))
 
 (define-input-editor-command (com-ie-kill-ring-yank :history t :type yank :rescan nil)
 			     (stream numeric-argument)
@@ -651,7 +702,7 @@
 	       (presentation-type-history *presentation-type-for-yanking*))))
     (if history
 	(ie-yank-from-history history #'yank-from-history stream numeric-argument)
-        (beep))))
+        (beep stream))))
 
 (define-input-editor-command (com-ie-yank-next :history t :type yank :rescan nil)
 			     (stream numeric-argument)
@@ -659,7 +710,7 @@
     (if history
 	(ie-yank-from-history history #'yank-next-from-history stream numeric-argument
 			      :replace-previous t)
-        (beep))))
+        (beep stream))))
 
 
 ;;; Key bindings

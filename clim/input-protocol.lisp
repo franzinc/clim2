@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-protocol.lisp,v 1.15 92/07/01 15:46:36 cer Exp Locker: cer $
+;; $fiHeader: input-protocol.lisp,v 1.16 92/07/06 18:51:42 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -66,7 +66,7 @@
      (text-cursor :accessor stream-text-cursor
 		  :initarg :text-cursor))
   (:default-initargs
-    :text-cursor (make-instance 'text-cursor)))
+    :text-cursor (make-instance 'standard-text-cursor)))
 
 ;; Use the sheet's event queue as the input buffer.
 ;;--- This may not be right...
@@ -149,8 +149,7 @@
 (defmethod queue-event ((stream input-protocol-mixin) (event key-press-event))
   (let ((char (keyboard-event-character event))
 	(keysym (keyboard-event-key-name event)))
-    ;;--- This probably wants to be STRING-CHAR-P...
-    (cond ((and char (standard-char-p char))
+    (cond ((and (characterp char) (standard-char-p char))
 	   (queue-put (stream-input-buffer stream) char))
 	  ((and keysym (not (typep keysym 'modifier-keysym)))
 	   (queue-put (stream-input-buffer stream) (copy-event event)))
@@ -172,7 +171,7 @@
 	  (setf (pointer-button-state pointer) (event-modifier-state event))))))
   nil)
 
-;;;--- need to modularize stream implementation into fundamental and extended
+;;;--- Need to modularize stream implementation into fundamental and extended
 ;;;--- layers so that we can tell when to queue up non-characters into the
 ;;;--- stream.  These don't need to set pointer-motion-pending because they
 ;;;--- synchronize through the io buffer.
@@ -180,8 +179,6 @@
   (queue-put (stream-input-buffer stream) (copy-event event)))
 
 (defmethod queue-event ((stream input-protocol-mixin) (event pointer-button-release-event))
-  ;; --- What to do such that tracking-pointer can really
-  ;; --- see these.
   (queue-put (stream-input-buffer stream) (copy-event event)))
 
 ;;; --- Handle "clicks" differently than press and release?
@@ -201,12 +198,14 @@
 
 (defmethod queue-event :after ((stream input-protocol-mixin) (event pointer-enter-event))
   (let ((text-cursor (stream-text-cursor stream)))
-    (when text-cursor (setf (cursor-focus text-cursor) t))))
+    (when text-cursor 
+      (setf (cursor-focus text-cursor) t))))
 
 (defmethod queue-event :before ((stream input-protocol-mixin) (event pointer-exit-event))
   ;; what about unhighlighting highlighted presentations?
   (let ((text-cursor (stream-text-cursor stream)))
-    (when text-cursor (setf (cursor-focus text-cursor) nil))))
+    (when text-cursor
+      (setf (cursor-focus text-cursor) nil))))
 
 (defmethod sheet-transformation-changed :after ((stream input-protocol-mixin) &key)
   (let ((pointer (stream-primary-pointer stream)))
@@ -257,7 +256,6 @@
     (unwind-protect
 	(progn (when text-cursor
 		 (cond ((eq old-state state))
-		       #-Silica ((eq visibility ':inactive))
 		       (t
 			(setf (cursor-state text-cursor) state)
 			(setf abort-p nil))))
@@ -316,14 +314,15 @@
 	     nil)
       gesture))
 
-;;--- This is horrible.  --cer
-;;--- A higher level will have to ignore this in some cases, or else we
-;;--- get release events in input buffers (such as after clicking on
-;;--- something to invoke a translator).  --SWM
+;; TRACKING-POINTER binds this to NIL
+(defvar *discard-pointer-release-events* t)
+
 (defmethod receive-gesture
 	   ((stream input-protocol-mixin) (gesture pointer-button-release-event))
-  ;; don't translate it
-  gesture)
+  ;; In the usual case, button release events don't get queued.  However,
+  ;; TRACKING-POINTER arranges to get them, so just pass them through.
+  (unless *discard-pointer-release-events*
+    gesture))
 
 (defmethod receive-gesture
 	   ((stream input-protocol-mixin) (gesture (eql ':resynchronize)))
@@ -338,7 +337,7 @@
 
 (defmethod receive-list-gesture
 	   ((stream input-protocol-mixin) (type (eql 'redisplay-pane)) args)
-  (redisplay-frame-pane (first args)))
+  (redisplay-frame-pane (first args) (second args)))
 
 ;;--- This needs to be looked at carefully!
 (defmethod receive-list-gesture
@@ -446,9 +445,10 @@
       (setq gesture (stream-read-gesture (or *original-stream* stream)))
       (when (characterp gesture)
 	(return-from stream-read-char gesture))
-      ;;--- This is disgusting
-      (unless (typep gesture 'pointer-button-release-event) 
-	(beep stream)))))		;??
+      ;;--- Probably wrong.  It prevents the input editor from ever seeing
+      ;;--- mouse clicks, for example.
+      (beep stream))))
+
 
 (defmethod stream-unread-char ((stream input-protocol-mixin) character)
   (stream-unread-gesture (or *original-stream* stream) character))

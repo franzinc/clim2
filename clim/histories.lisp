@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: histories.lisp,v 1.6 92/05/07 13:12:26 cer Exp $
+;; $fiHeader: histories.lisp,v 1.7 92/07/01 15:46:29 cer Exp $
 
 (in-package :clim-internals)
 
@@ -474,7 +474,7 @@
 		     (reset-history history)))))
 	   *presentation-type-class-table*))
 
-#+Generab
+#+Genera
 (si:define-gc-optimization reset-all-presentation-histories :cleanup
   (:documentation "Reset presentation histories")
   (:before-flip (incremental)

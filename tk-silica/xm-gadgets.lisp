@@ -1,4 +1,4 @@
-; -*- mode: common-lisp; package: xm-silica -*-
+;; -*- mode: common-lisp; package: xm-silica -*-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.35 92/06/29 14:05:13 cer Exp Locker: cer $
+;; $fiHeader: xm-gadgets.lisp,v 1.36 92/07/01 15:48:05 cer Exp $
 
 (in-package :xm-silica)
 
@@ -524,6 +524,7 @@
 	  (space-requirement-max-height sr) +fill+)
     sr))
 
+
 ;;; Toggle button
 
 (defclass motif-toggle-button (motif-labelled-gadget
@@ -701,6 +702,7 @@
 ;  ;;-- Is this what wrapping space mixin should do???
 ;  (move-and-resize-sheet* (sheet-child fr) 0 0 width height))
 
+
 (defclass motif-frame-pane (motif-geometry-manager
 			    mirrored-sheet-mixin
 			    sheet-single-child-mixin
@@ -827,7 +829,7 @@
 		   (mode list-pane-mode)
 		   (name-key set-gadget-name-key)) sheet
     (let ((selected-items
-	   (silica::compute-list-pane-selected-items sheet value)))
+	   (compute-list-pane-selected-items sheet value)))
       (values 'xt::xm-list 
 	      `(
 		,@(and selected-items
@@ -869,12 +871,11 @@
        (tk::add-callback widget :multiple-selection-callback 
 			 'list-pane-multiple-selection-callback sheet))))
 
-
 (defmethod (setf gadget-value) :after (nv (l motif-list-pane) &key invoke-callback)
   (declare (ignore invoke-callback))
   (when (sheet-direct-mirror l)
     (let ((selected-items
-	   (silica::compute-list-pane-selected-items l nv)))
+	   (compute-list-pane-selected-items l nv)))
       (tk::set-values (sheet-direct-mirror l)
 		      :selected-item-count (length selected-items)
 		      :selected-items selected-items))))
@@ -1321,8 +1322,9 @@
 ;; Utilize a motif scrolling window to provide the scrollbars and
 ;; geometry management
 
-(defmethod make-pane-class ((framem motif-frame-manager) (class (eql 'silica::generic-scroller-pane)) 
-							 &rest options) 
+(defmethod make-pane-class ((framem motif-frame-manager) 
+			    (class (eql 'scroller-pane)) 
+			    &rest options) 
   (declare (ignore options))
   'motif-scroller-pane)
 

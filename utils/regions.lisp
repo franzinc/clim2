@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: regions.lisp,v 1.10 92/06/23 08:19:37 cer Exp $
+;; $fiHeader: regions.lisp,v 1.11 92/07/01 15:45:46 cer Exp $
 
 (in-package :clim-utils)
 
@@ -91,6 +91,7 @@
 (define-protocol-class design ())
 
 
+;;--- Watch out, we define methods on this protocol class!
 (define-protocol-class opacity (design))
 
 (defmethod print-object ((design opacity) stream)
@@ -101,6 +102,7 @@
 (defmethod transform-region ((transformation transformation) (opacity opacity)) opacity)
 
 
+;;--- Watch out, we define methods on this protocol class!
 (define-protocol-class color (design))
 
 ;; Colors are unbounded and uniform, so transformations are a no-op
@@ -793,15 +795,18 @@
 (define-bounding-rectangle-setf bottom)
 
 (defgeneric* (setf bounding-rectangle*) (left top right bottom region))
-(defmethod* (setf bounding-rectangle*) (left top right bottom (region bounding-rectangle))
+(defmethod* (setf bounding-rectangle*) 
+	    (left top right bottom (region standard-bounding-rectangle))
   (bounding-rectangle-set-edges region left top right bottom))
 
 (defgeneric* (setf bounding-rectangle-position) (x y region))
-(defmethod* (setf bounding-rectangle-position) (x y (region bounding-rectangle))
+(defmethod* (setf bounding-rectangle-position) 
+	    (x y (region standard-bounding-rectangle))
   (bounding-rectangle-set-position region x y))
 
 (defgeneric* (setf bounding-rectangle-size) (width height region))
-(defmethod* (setf bounding-rectangle-size) (width height (region bounding-rectangle))
+(defmethod* (setf bounding-rectangle-size) 
+	    (width height (region standard-bounding-rectangle))
   (bounding-rectangle-set-size region width height))
 
 

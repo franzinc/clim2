@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: GENERA-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: genera-port.lisp,v 1.6 92/05/22 19:28:58 cer Exp $
+;; $fiHeader: genera-port.lisp,v 1.7 92/07/01 15:47:32 cer Exp $
 
 (in-package :genera-clim)
 
@@ -27,6 +27,12 @@
 
 (defmethod port-type ((port genera-port))
   ':genera)
+
+(defmethod port-name ((port genera-port))
+  (let ((keys (cdr (port-server-path port))))
+    (format nil "~A:~A" 
+      (getf keys :host) (getf keys :screen))))
+
 
 (defparameter *genera-use-color* t)		;for debugging monochrome...
 
@@ -261,11 +267,11 @@
   `(macrolet ((port-glyph-for-character (port character style &optional our-font)
 		`(multiple-value-bind (character-set index)
 		     (char-character-set-and-index ,character)
-		   ;; For now we are asserting that each string passed to WRITE-STRING will
-		   ;; have no style changes within it.  This is what our-font is all
-		   ;; about.
-		   (let* ((font (or our-font 
-				    (text-style-mapping port ,style character-set)))
+		   ;; For now we are asserting that each string passed to
+		   ;; WRITE-STRING will have no style changes within it.
+		   ;; This is what OUR-FONT is all about...
+		   (let* ((font (or ,our-font 
+				    (text-style-mapping ,port ,style character-set)))
 			  (fit (sys:font-indexing-table font))
 			  (lkt (sys:font-left-kern-table font))
 			  (cwt (sys:font-char-width-table font))
@@ -289,13 +295,7 @@
   (declare (values index font escapement-x escapement-y origin-x origin-y bb-x bb-y
 		   fixed-width-font-p))
   (with-genera-glyph-for-character
-    (port-glyph-for-character stream character style our-font)))
-
-(defmethod stream-scan-string-for-writing ((port genera-port) medium 
-					   string start end style cursor-x max-x
-					   &optional glyph-buffer)
-  (with-genera-glyph-for-character 
-    (clim-internals::stream-scan-string-for-writing-body)))
+    (port-glyph-for-character port character style our-font)))
 
 
 (defvar *genera-character->keysym-table* (make-hash-table))
@@ -314,47 +314,46 @@
 (defun-inline keysym->genera-character (keysym)
   (gethash keysym *keysym->genera-character-table*))
 
-(defmethod port-canonical-gesture-spec (gesture-spec (port genera-port))
-  (let* ((console (slot-value port 'console))
-	 (keyboard-table (si:keyboard-keyboard-table (si:console-keyboard console)))
-	 (keysym (if (listp gesture-spec) (first gesture-spec) gesture-spec))
-	 (shifts (and (listp gesture-spec) (rest gesture-spec)))
-	 (genera-char (if (standard-char-p keysym)
-			  keysym
-			  (keysym->genera-character keysym)))
-	 (genera-charcode nil)
-	 (needed-shifts nil)
-	 (genera-keycode nil))
-    (unless genera-char
-      (return-from port-canonical-gesture-spec nil))
-    (setq genera-charcode (char-code genera-char))
-    (multiple-value-setq (needed-shifts genera-keycode)
-      (block find-it
-	(dotimes (i 4)
-	  (dotimes (j 128)
-	    (when (= (aref keyboard-table i j) genera-charcode)
-	      (return-from find-it (values i j)))))))
-    (unless genera-keycode 
-      (return-from port-canonical-gesture-spec nil))
-    (if (and (not (alpha-char-p genera-char))
-	     (ldb-test si:%%kbd-mapping-table-index-shift needed-shifts))
-	(setq needed-shifts (make-modifier-state :shift))
-	(setq needed-shifts 0))
-    (setq shifts (logior shifts needed-shifts))
-    ;; OK, now we've got the genera keycode index into the keyboard table.
-    ;; We find all of the shifts which match SHIFTS and look them up in the table.
-    (let* ((real-charcode (aref keyboard-table
-				;; the only of our modifier keys which can
-				;; actually change the keysym
-				;; in this port is :SHIFT
-				(if (state-match-p shifts :shift)
-				    (make-modifier-state :shift)
-				    0)
-				genera-keycode))
-	   (real-genera-char (and real-charcode (code-char real-charcode)))
-	   (real-genera-keysym (and real-genera-char
-				    (genera-character->keysym real-genera-char))))
-      (cons real-genera-keysym shifts))))
+(defmethod port-canonicalize-gesture-spec ((port genera-port) gesture-spec)
+  (multiple-value-bind (keysym shifts)
+      (parse-gesture-spec gesture-spec)
+    (let* ((console (slot-value port 'console))
+	   (keyboard-table (si:keyboard-keyboard-table (si:console-keyboard console)))
+	   (genera-char (if (and (characterp keysym) (standard-char-p keysym))
+			    keysym
+			    (keysym->genera-character keysym)))
+	   (genera-charcode nil)
+	   needed-shifts genera-keycode)
+      (unless genera-char
+	(return-from port-canonicalize-gesture-spec nil))
+      (setq genera-charcode (char-code genera-char))
+      (multiple-value-setq (needed-shifts genera-keycode)
+	(block find-it
+	  (dotimes (i 4)
+	    (dotimes (j 128)
+	      (when (= (aref keyboard-table i j) genera-charcode)
+		(return-from find-it (values i j)))))))
+      (unless genera-keycode 
+	(return-from port-canonicalize-gesture-spec nil))
+      (if (and (not (alpha-char-p genera-char))
+	       (ldb-test si:%%kbd-mapping-table-index-shift needed-shifts))
+	  (setq needed-shifts (make-modifier-state :shift))
+	  (setq needed-shifts 0))
+      (setq shifts (logior shifts needed-shifts))
+      ;; OK, now we've got the genera keycode index into the keyboard table.
+      ;; We find all of the shifts which match SHIFTS and look them up in the table.
+      (let* ((real-charcode (aref keyboard-table
+				  ;; The only modifier key that can actually
+				  ;; change the keysym in this port is :SHIFT
+				  (if (= (logand shifts (make-modifier-state :shift))
+					 (make-modifier-state :shift))
+				      (make-modifier-state :shift)
+				      0)
+				  genera-keycode))
+	     (real-genera-char (and real-charcode (code-char real-charcode)))
+	     (real-genera-keysym (and real-genera-char
+				      (genera-character->keysym real-genera-char))))
+	(cons real-genera-keysym shifts)))))
 
 ;; The standard characters
 (define-genera-keysym #\Space :space)

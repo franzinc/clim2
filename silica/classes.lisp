@@ -19,11 +19,14 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: classes.lisp,v 1.9 92/05/22 19:26:38 cer Exp $
+;; $fiHeader: classes.lisp,v 1.10 92/07/01 15:44:43 cer Exp $
 
 (in-package :silica)
 
 (define-protocol-class port ())
+
+(locally
+(declare (special *undefined-text-style*))
 
 ;; This is called BASIC-PORT rather than STANDARD-PORT because the class
 ;; cannot be used as-is.  It has to be specialized for each implementation.
@@ -33,6 +36,7 @@
      (lock :initform (make-lock "a port lock") :reader port-lock)
      (grafts :initform nil :accessor port-grafts)
      (process :initform nil :accessor port-process)
+     (framem :initform nil :accessor port-frame-manager)
      (modifier-state :initform (make-modifier-state)
 		     :reader port-modifier-state)
      (mirror->sheet-table :initform (make-hash-table) 
@@ -48,7 +52,7 @@
      (mapping-table :initform (make-hash-table :test #'equal))
      (undefined-text-style :initform *undefined-text-style*
 			   :accessor port-undefined-text-style)
-     ;; When this is true, the text style -> device font mapping is done
+     ;; When this is true, the text style to device font mapping is done
      ;; loosely.  That is, the actual screen size of the font need not be
      ;; exactly what the user has asked for.  Instead the closest fit is
      ;; chosen.  This is necessary in X11 because different screen sizes &
@@ -59,7 +63,10 @@
      ;; but different sizes.  They are kept sorted small to large.
      (allow-loose-text-style-size-mapping 
        :initform nil :initarg :allow-loose-text-style-size-mapping)
-     (framem :initform nil :accessor port-frame-manager)))
+     (canonical-gesture-specs :reader port-canonical-gesture-specs
+			      :initform (make-hash-table :test #'equal))))
+
+)	;locally
 
 
 ;;--- Make a SHEET protocol class, and call this BASIC-SHEET
@@ -74,6 +81,9 @@
 
 
 (define-protocol-class medium ())
+
+(locally
+(declare (special *default-text-style*))
 
 ;; This is called BASIC-MEDIUM rather than STANDARD-MEDIUM because the class
 ;; cannot be used as-is.  It has to be specialized for each implementation.
@@ -97,6 +107,8 @@
      (region :initarg :region :initform +everywhere+
 	     :accessor medium-clipping-region)
      (+y-upward-p :initform nil :accessor medium-+y-upward-p)))
+
+)	;locally
 
 
 ;;; Event types

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-funs.lisp,v 1.6 92/06/16 15:01:10 cer Exp $
+;; $fiHeader: xt-funs.lisp,v 1.7 92/07/01 15:44:40 cer Exp $
 
 ;;
 ;; This file contains compile time only code -- put in clim-debug.fasl.

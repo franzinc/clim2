@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: drag-and-drop.lisp,v 1.2 92/05/22 19:27:51 cer Exp $
+;; $fiHeader: drag-and-drop.lisp,v 1.3 92/07/01 15:46:18 cer Exp $
 
 (in-package :clim-internals)
 
@@ -242,8 +242,9 @@
 			    options)))))))))))
 
 ;; NEW-X and NEW-Y are in stream coordinates.
-(defmethod frame-drag-and-drop-feedback ((frame application-frame) presentation stream
-					 initial-x initial-y new-x new-y state)
+(defmethod frame-drag-and-drop-feedback 
+	   ((frame standard-application-frame) presentation stream
+	    initial-x initial-y new-x new-y state)
   (declare (ignore initial-x initial-y state))	;we'll just use XOR
   (multiple-value-bind (width height) (bounding-rectangle-size presentation)
     (with-output-recording-options (stream :record nil)
@@ -251,8 +252,8 @@
 	(draw-rectangle* stream new-x new-y (+ new-x width) (+ new-y height)
 			 :filled nil :ink +flipping-ink+ :line-dashes #(4 4))))))
 
-(defmethod frame-drag-and-drop-highlighting ((frame application-frame) presentation stream
-					     state)
+(defmethod frame-drag-and-drop-highlighting 
+	   ((frame standard-application-frame) presentation stream state)
   (ecase state
     (:highlight
       (set-highlighted-presentation stream presentation))

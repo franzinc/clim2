@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.28 92/06/23 08:20:18 cer Exp $
+;; $fiHeader: xt-graphics.lisp,v 1.29 92/07/01 15:48:14 cer Exp $
 
 (in-package :tk-silica)
 
@@ -1218,60 +1218,3 @@ and on color servers, unless using white or black")
 (defmethod medium-finish-output ((medium xt-medium))
   (x11:xflush (port-display (port medium))))	;--- is this right?
    
-
-;;--- This needs methods for copying to/from pixmaps, too
-(defmethod medium-copy-area 
-	   ((from-medium xt-medium) from-left from-top from-right from-bottom
-	    (to-medium xt-medium) to-left to-top)
-  ;; coords in "host" coordinate system
-  (let ((transform (sheet-native-transformation (medium-sheet from-medium))))
-    (convert-to-device-coordinates transform
-       from-left from-top from-right from-bottom to-left to-top)
-    (let* ((from-drawable (medium-drawable from-medium))
-	   (to-drawable (medium-drawable to-medium))
-	   (width (- from-right from-left))
-	   (height (- from-bottom from-top))
-	   (port (port from-medium))
-	   (copy-gc (port-copy-gc port)))
-	(when (and from-drawable to-drawable)
-	  (when (port-safe-backing-store port)
-	    ;; Don't bother with no-expose events.
-	    (return-from medium-copy-area
-	      (tk::copy-area from-drawable copy-gc from-left from-top
-			     width height
-			     to-drawable to-left to-top)))
-	  (with-port-event-lock (port)
-	    (let ((seq-no 0))
-	      (clim-sys:without-scheduling
-		(setq seq-no (x11:xnextrequest (port-display port)))
-		(tk::copy-area from-drawable copy-gc from-left from-top
-			       width height to-drawable to-left to-top))
-	      (let ((event
-		     (tk::get-event-matching-sequence-and-types
-		      to-drawable seq-no
-		      '(:graphics-expose :no-expose))))
-		(case (tk::event-type event)
-		  (:no-expose
-		   nil)
-		  (:graphics-expose
-		   (loop
-		     (let* ((minx (x11::xexposeevent-x event))
-			    (miny (x11::xexposeevent-y event))
-			    (width (x11::xexposeevent-width event))
-			    (height (x11::xexposeevent-height event))
-			    (maxx (+ minx width))
-			    (maxy (+ miny height)))
-		       (let ((sheet (medium-sheet to-medium)))
-			 (dispatch-repaint
-			   sheet
-			   (make-instance 'window-repaint-event
-			     :native-region (make-bounding-rectangle minx miny maxx maxy)
-			     :region (untransform-region
-				       (sheet-native-transformation sheet)
-				       (make-bounding-rectangle minx miny maxx maxy))
-			     :sheet sheet))))
-		     (setq event (tk::get-event-matching-sequence-and-types
-				  to-drawable seq-no '(:graphics-expose) 
-				  :block nil))
-		     (unless event
-		       (return))))))))))))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics.lisp,v 1.13 92/06/16 15:01:15 cer Exp $
+;; $fiHeader: graphics.lisp,v 1.14 92/07/01 15:45:04 cer Exp $
 
 (in-package :silica)
 
@@ -281,20 +281,22 @@
 		     forms)))))))
 
 (defun map-position-sequence (function positions)
+  (declare (dynamic-extent function))
   (if (listp positions)
       (loop
 	(when (null positions) (return))
 	(let* ((x (pop positions))
 	       (y (pop positions)))
 	  (funcall function x y)))
-      (let (#+Genera (positions positions))
+      (let ((length (length positions))
+	    #+Genera (positions positions))
 	(declare (type vector positions))
-	(do* ((length (length positions))
-	      (i 0 (+ i 2)))
-	     ((>= i length))
+	(do ((i 0 (+ i 2)))
+	    ((>= i length))
 	  (funcall function (aref positions i) (aref positions (1+ i)))))))
 
 (defun map-endpoint-sequence (function positions)
+  (declare (dynamic-extent function))
   (if (listp positions)
       (loop
 	(when (null positions) (return))
@@ -303,11 +305,11 @@
 	       (x2 (pop positions))
 	       (y2 (pop positions)))
 	  (funcall function x1 y1 x2 y2)))
-      (let (#+Genera (positions positions))
+      (let ((length (length positions))
+	    #+Genera (positions positions))
 	(declare (type vector positions))
-	(do* ((length (length positions))
-	      (i 0 (+ i 4)))
-	     ((>= i length))
+	(do ((i 0 (+ i 4)))
+	    ((>= i length))
 	  (funcall function (aref positions i) (aref positions (1+ i))
 			    (aref positions (+ i 2)) (aref positions (+ i 3)))))))
 
@@ -743,17 +745,3 @@
   :optional-positions-to-transform (towards-x towards-y)
   :keywords-to-spread ((towards-point point towards-x towards-y))
   :drawing-options :text)
-
-
-(defmethod copy-area ((medium basic-medium)
-		      from-left from-top from-right from-bottom
-		      to-left to-top)
-  (medium-copy-area medium from-left from-top from-right from-bottom
-		    medium to-left to-top))
-
-(defmethod copy-area ((sheet sheet)
-		      from-left from-top from-right from-bottom 
-		      to-left to-top)
-  (with-sheet-medium (medium sheet)
-    (medium-copy-area medium from-left from-top from-right from-bottom
-		      medium to-left to-top)))

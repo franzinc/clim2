@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sysdcl.lisp,v 1.17 92/05/22 19:28:42 cer Exp $
+;; $fiHeader: sysdcl.lisp,v 1.18 92/07/01 15:47:16 cer Exp $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :cl-user)
 
@@ -186,6 +186,7 @@
   ("medium")
   ("framem")
   ("graphics")
+  ("pixmaps")
   ("std-sheet")
 
   ;; "Windshield", aka "DashBoard"
@@ -262,6 +263,7 @@
   ;; Windows
   ("coordinate-sorted-set")
   ("window-stream")
+  ("pixmap-streams")
 
   ;; Presentation types
   ("ptypes1"
@@ -314,7 +316,8 @@
    :load-before-compile ("ptypes2" "command"))
   ("frames" 
    :load-before-compile ("clim-defs" "command-processor"))
-  ("default-application" :load-before-compile ("frames"))
+  ("default-frame" 
+   :load-before-compile ("frames"))
   ("noting-progress"
    :load-before-compile ("frames"))
   ("menus"
@@ -323,8 +326,6 @@
    :load-before-compile ("clim-defs" "incremental-redisplay" "frames"))
   ("drag-and-drop" 
    :load-before-compile ("frames"))
-  ("pixmap-streams"
-   :load-before-compile ("clim-defs"))
   ("item-list-manager")
 
   ;; Bootstrap everything
@@ -344,6 +345,7 @@
   ("genera-port")
   ("genera-mirror")
   ("genera-medium")
+  ("genera-pixmaps")
   ("genera-frames")
   ("genera-activities")
   ("genera-prefill"))
@@ -368,6 +370,7 @@
   ("clx-port")
   ("clx-mirror")
   ("clx-medium")
+  ("clx-pixmaps")
   ("clx-frames")
   ("clx-prefill" :features (or Genera Cloe-Runtime)))
 

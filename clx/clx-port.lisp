@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLX-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clx-port.lisp,v 1.8 92/05/22 19:27:33 cer Exp $
+;; $fiHeader: clx-port.lisp,v 1.9 92/07/01 15:45:59 cer Exp $
 
 (in-package :clx-clim)
 
@@ -12,6 +12,7 @@
     ((display :initform nil :reader port-display)
      (screen :initform nil)
      (window :initform nil)
+     (color-p :initform nil)			;--- should be on graft
      (cursor-font)
      (cursor-cache :initform nil)
      (stipple-gc)
@@ -26,6 +27,12 @@
 
 (defmethod port-type ((port clx-port))
   ':clx)
+
+(defmethod port-name ((port clx-port))
+  (let ((keys (cdr (port-server-path port))))
+    (format nil "~A:~D ~D" 
+      (getf keys :host) (getf keys :display) (getf keys :screen))))
+
 
 (defvar *clx-white-color* (xlib:make-color :red 1 :blue 1 :green 1))
 (defvar *clx-black-color* (xlib:make-color :red 0 :blue 0 :green 0))
@@ -42,7 +49,7 @@
     (multiple-value-bind (host display-number nscreen)
 	(disassemble-display-spec host (or display-number 0) (or screen 0))
       (with-slots (display screen window height-pixels width-pixels
-		   stipple-gc default-grab-cursor) port
+		   stipple-gc default-grab-cursor color-p) port
 	(setf display #-Allegro (xlib:open-display host :display display-number)
 		      #+Allegro (open-display-with-auth host :display-number display-number))
 	(fill-keycode->modifier-state display)
@@ -51,6 +58,7 @@
 	(setf window (xlib:screen-root screen))
 	(setf width-pixels (xlib:screen-width screen))
 	(setf height-pixels (xlib:screen-height screen))
+	(setf color-p (> (xlib:screen-root-depth screen) 1)) ; quick and dirty.
 	(setf stipple-gc (xlib:create-gcontext
 			   :drawable window
 			   :foreground (xlib:screen-black-pixel screen)
@@ -322,43 +330,42 @@
 (defun-inline keysym->clx-keysym (keysym)
   (gethash keysym *clim-keysym->clx-keysym-table*))
 
-(defmethod port-canonical-gesture-spec (gesture-spec (port clx-port))
-  ;; here, we must take the gesture spec, turn it back into
-  ;; a keycode, then see what the keysyms are for that keycode
-  (let* ((x-display (slot-value port 'display))
-	 (keysym (if (listp gesture-spec) (first gesture-spec) gesture-spec))
-	 (shifts (and (listp gesture-spec) (rest gesture-spec)))
-	 (x-keysym (if (standard-char-p keysym)
-		       keysym
-		       (keysym->clx-keysym keysym)))
-	 (x-keycode nil))
-    (unless x-keysym 
-      (return-from port-canonical-gesture-spec nil))
-    (setq x-keycode (xlib:keysym->keycodes x-display x-keysym))
-    ;; will this ever happen?
-    (when (listp x-keycode)
-      (setq x-keycode (first x-keycode)))
-    ;; now need to figure out necessary shifts for this character
-    (when x-keycode
-      ;; [for now, just check shift...]
-      ;; This could be written to iterate over all possible shift masks seeing which
-      ;; of them are required to type this particular character.  That could also be
-      ;; cached, I suppose.  We'll just do :SHIFT for now.
-      (when (= (xlib:keycode->keysym 
-		 x-display x-keycode
-		 (xlib:default-keysym-index 
-		   x-display x-keycode (make-modifier-state :shift)))
-	       x-keysym)
-	(setq shifts (logior shifts (make-modifier-state :shift))))
-      ;; Now SHIFTS includes any shift that was necessary to type the original
-      ;; keysym.  Now, we backtranslate the keysym and modifier-state we now
-      ;; have into a new gesture.
-      (cons
-	(clx-keysym->keysym
-	  (xlib:keycode->keysym 
-	    x-display x-keycode
-	    (xlib:default-keysym-index x-display x-keycode shifts)))
-	shifts))))
+(defmethod port-canonicalize-gesture-spec ((port clx-port) gesture-spec)
+  (multiple-value-bind (keysym shifts)
+      (parse-gesture-spec gesture-spec)
+    ;; Here, we must take the gesture spec, turn it back into
+    ;; a keycode, then see what the keysyms are for that keycode
+    (let* ((x-display (slot-value port 'display))
+	   (x-keysym (if (and (characterp keysym) (standard-char-p keysym))
+			 keysym
+			 (keysym->clx-keysym keysym)))
+	   (x-keycode nil))
+      (unless x-keysym 
+	(return-from port-canonicalize-gesture-spec nil))
+      (setq x-keycode (xlib:keysym->keycodes x-display x-keysym))
+      ;; will this ever happen?
+      (when (listp x-keycode)
+	(setq x-keycode (first x-keycode)))
+      ;; now need to figure out necessary shifts for this character
+      (when x-keycode
+	;; [for now, just check shift...]
+	;; This could be written to iterate over all possible shift masks seeing which
+	;; of them are required to type this particular character.  That could also be
+	;; cached, I suppose.  We'll just do :SHIFT for now.
+	(when (= (xlib:keycode->keysym 
+		   x-display x-keycode
+		   (xlib:default-keysym-index 
+		     x-display x-keycode (make-modifier-state :shift)))
+		 x-keysym)
+	  (setq shifts (logior shifts (make-modifier-state :shift))))
+	;; Now SHIFTS includes any shift that was necessary to type the original
+	;; keysym.  Backtranslate the keysym and modifier-state into a new gesture.
+	(cons
+	  (clx-keysym->keysym
+	    (xlib:keycode->keysym 
+	      x-display x-keycode
+	      (xlib:default-keysym-index x-display x-keycode shifts)))
+	  shifts)))))
 
 ;; The standard characters
 (define-clx-keysym 032 :space)

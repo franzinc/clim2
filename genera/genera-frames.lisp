@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: GENERA-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: genera-frames.lisp,v 1.6 92/05/22 19:28:54 cer Exp $
+;; $fiHeader: genera-frames.lisp,v 1.7 92/07/01 15:47:27 cer Exp $
 
 (in-package :genera-clim)
 
@@ -65,7 +65,7 @@
 
 (defmacro with-who-line-stream ((stream-var frame field) &body body)
   `(let ((,stream-var
-	  (let* ((console (tv:sheet-console (sheet-mirror (frame-top-level-sheet ,frame))))
+	  (let* ((console (tv:sheet-console (sheet-mirror (graft ,frame))))
 		 (who-screen (if (eq console sys:*main-console*)
 				 tv:who-line-screen
 				 (tv:console-who-line-screen console))))
@@ -110,7 +110,7 @@
 	    frame presentation input-context window x y stream)
   (declare (ignore stream))
   (let ((stream
-	  (let ((console (tv:sheet-console (sheet-mirror (frame-top-level-sheet frame)))))
+	  (let ((console (tv:sheet-console (sheet-mirror (graft frame)))))
 	    (if (eq console sys:*main-console*)
 		tv:who-line-documentation-window
 		(let ((who-screen (tv:console-who-line-screen console)))

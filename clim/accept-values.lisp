@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept-values.lisp,v 1.23 92/06/23 08:19:43 cer Exp $
+;; $fiHeader: accept-values.lisp,v 1.24 92/07/01 15:46:06 cer Exp $
 
 (in-package :clim-internals)
 
@@ -354,30 +354,30 @@
 			   (execute-frame-command frame command)
 		       (beep stream)))
 		     (with-deferred-gadget-updates
-			 (when (or resynchronize-every-pass
-				   (slot-value avv-record 'resynchronize))
-			   ;; When the user has asked to resynchronize every pass, that
-			   ;; means we should run the continuation an extra time to see
-			   ;; that all visible stuff is up to date.  That's all!
-			   (with-output-recording-options (stream :draw nil)
-			     (redisplay avv stream :check-overlapping check-overlapping)))
-		       (setf (slot-value avv-record 'resynchronize) nil)
-		       (when exit-button-record
-			 (redisplay exit-button-record exit-button-stream))
-		       (redisplay avv stream :check-overlapping check-overlapping)
-		       (when (ecase (frame-resizable frame)
-			       ((nil) nil)
-			       ((t) t)
-			       (:grow
-				(and own-window
-				     (multiple-value-bind (width height)
-					 (bounding-rectangle-size
+		       (when (or resynchronize-every-pass
+				 (slot-value avv-record 'resynchronize))
+			 ;; When the user has asked to resynchronize every pass, that
+			 ;; means we should run the continuation an extra time to see
+			 ;; that all visible stuff is up to date.  That's all!
+			 (with-output-recording-options (stream :draw nil)
+			   (redisplay avv stream :check-overlapping check-overlapping)))
+		     (setf (slot-value avv-record 'resynchronize) nil)
+		     (when exit-button-record
+ 		       (redisplay exit-button-record exit-button-stream))
+		     (redisplay avv stream :check-overlapping check-overlapping)
+		     (when (ecase (frame-resizable frame)
+ 			     ((nil) nil)
+ 			     ((t) t)
+ 			     (:grow
+			       (and own-window
+				    (multiple-value-bind (width height)
+					(bounding-rectangle-size
 					  (stream-output-history own-window))
-				       (multiple-value-bind (vwidth vheight)
-					   (bounding-rectangle-size 
+				      (multiple-value-bind (vwidth vheight)
+					  (bounding-rectangle-size 
 					    (or (pane-viewport own-window) own-window))
-					 (or (> width vwidth) (> height vheight)))))))
-			 (size-panes-appropriately)))))
+					(or (> width vwidth) (> height vheight)))))))
+		       (size-panes-appropriately)))))
 	       (size-panes-appropriately ()
 		 (changing-space-requirements ()
 		   ;; We really want to specify the min/max sizes of
@@ -653,7 +653,7 @@
       (with-slots (selected-item) *application-frame*
 	(if (null selected-item)
 	    (beep)
-	  `(com-edit-avv-choice ,selected-item))))
+	    `(com-edit-avv-choice ,selected-item))))
   :errorp nil)
 
 (define-accept-values-command com-delete-avv-choice
@@ -926,8 +926,7 @@
 				     &key displayer
 					  resynchronize-every-pass
 					  (check-overlapping t)
-					  max-height
-					  max-width)
+					  max-height max-width)
   (declare (ignore max-height max-width))
   (let* ((stream-and-record (and (not *sizing-application-frame*)
 				 (gethash pane *pane-to-avv-stream-table*)))
@@ -935,31 +934,29 @@
 	 (avv-record (cdr stream-and-record)))
     (cond (avv-stream
 	   (with-deferred-gadget-updates
-	       (letf-globally (((stream-default-view avv-stream) 
-				(frame-manager-dialog-view (frame-manager frame))))
-			      (redisplay avv-record avv-stream :check-overlapping check-overlapping)
-			      (when resynchronize-every-pass
-				(redisplay avv-record avv-stream :check-overlapping check-overlapping)))))
+	     (letf-globally (((stream-default-view avv-stream) 
+			      (frame-manager-dialog-view (frame-manager frame))))
+	       (redisplay avv-record avv-stream :check-overlapping check-overlapping)
+	       (when resynchronize-every-pass
+		 (redisplay avv-record avv-stream :check-overlapping check-overlapping)))))
 	  (t
 	   (accept-values-pane-displayer-1 frame pane displayer)))))
 
 (defun accept-values-pane-displayer-1 (frame pane displayer)
   (let ((avv-stream (make-instance 'accept-values-stream :stream pane))
-	(original-view (stream-default-view pane))
 	(avv-record nil))
-    (declare (ignore original-view))
     (setf (slot-value avv-stream 'avv-frame) frame)
     (letf-globally (((stream-default-view pane) 
 		     (frame-manager-dialog-view (frame-manager frame))))
-		   (setq avv-record
-		     (updating-output (avv-stream)
-			 (with-new-output-record 
-			     (avv-stream 'accept-values-output-record avv-record)
-			   (setf (slot-value avv-stream 'avv-record) avv-record)
-			   (funcall displayer frame avv-stream)))))
+      (setq avv-record
+	    (updating-output (avv-stream)
+	      (with-new-output-record 
+		  (avv-stream 'accept-values-output-record avv-record)
+		(setf (slot-value avv-stream 'avv-record) avv-record)
+		(funcall displayer frame avv-stream)))))
     (unless *sizing-application-frame*
       (setf (gethash pane *pane-to-avv-stream-table*)
-	(cons avv-stream avv-record)))))
+	    (cons avv-stream avv-record)))))
 
 (define-command (com-edit-avv-pane-choice :command-table accept-values-pane)
     ((choice 'accept-values-choice)
@@ -1055,33 +1052,6 @@
      :echo nil)
     (object)
   (list object))
-
-(defmethod pane-type-options ((type (eql :accept-values)))
-  `(:display-after-commands :no-clear
-    :default-size :compute
-    :scroll-bars nil
-    :initial-cursor-visibility :off))
-
-#-Silica
-(defmethod size-frame-pane ((window window-mixin)
-			    (frame standard-application-frame)
-			    (type (eql :accept-values))
-			    pane-description
-			    cluster-type
-			    available-width available-height)
-  available-width available-height
-  (let* ((options (pane-descriptor-options pane-description))
-	 (display-function (getf options :display-function)))
-    (if display-function
-	(let ((window-contents
-		(with-output-to-output-record (window)
-		  (call-display-function display-function frame window))))
-	  (multiple-value-bind (width height)
-	      (bounding-rectangle-size window-contents)
-	    (case cluster-type
-	      (:row width)
-	      (:column height))))
-      ':rest)))
 
 
 ;;; Fancy gadget-based dialogs...

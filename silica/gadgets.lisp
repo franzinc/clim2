@@ -1,6 +1,6 @@
 ;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadgets.lisp,v 1.25 92/06/29 14:04:36 cer Exp Locker: cer $
+;; $fiHeader: gadgets.lisp,v 1.26 92/07/01 15:45:02 cer Exp $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
@@ -132,6 +132,7 @@
 
 (defclass oriented-gadget-mixin ()
     ((orientation :initarg :orientation
+		  :type (member :horizontal :vertical)
 		  :accessor gadget-orientation))
   (:default-initargs :orientation :horizontal))
 
@@ -144,17 +145,58 @@
   (:default-initargs :label "" :align-x :center))
 
 (defmethod compute-gadget-label-size ((pane labelled-gadget-mixin))
-  (let ((label (or (gadget-label pane) "Label"))
-	(text-style (slot-value pane 'text-style)))
-    #+++ignore
-    (with-sheet-medium (medium pane)
-      (multiple-value-bind (width height)
-	  (text-size medium label :text-style text-style)
-	(value (+ width 8) (+ height 4))))
-    #---ignore
-    (with-sheet-medium (medium pane)
-      (values (+ 8 (* (length label) (text-style-width text-style medium)))
-	      (+ 4 (text-style-height text-style medium))))))
+  (let ((label (gadget-label pane)))
+    (etypecase label
+      (string
+	(let ((text-style (slot-value pane 'text-style)))
+	  (with-sheet-medium (medium pane)
+	    (multiple-value-bind (width height)
+		(text-size medium label :text-style text-style)
+	      (values (+ width (text-style-width text-style medium))
+		      (+ height (floor (text-style-height text-style medium) 2)))))))
+      (null (values 0 0))
+      (pattern
+	(values (pattern-width label) (pattern-height label)))
+      (pixmap
+	(values (pixmap-width label) (pixmap-height label))))))
+
+(defmethod draw-gadget-label ((pane labelled-gadget-mixin) medium x y
+			      &key (align-x (gadget-alignment pane))
+				   (align-y :baseline))
+  (let ((label (gadget-label pane)))
+    (etypecase label
+      (string
+	(let ((text-style (slot-value pane 'text-style)))
+	  (draw-text* medium label x y
+		      :text-style text-style
+		      :align-x align-x :align-y align-y)))
+      (null)      
+      (pattern
+	(let ((width (pattern-width label))
+	      (height (pattern-height label)))
+	  (ecase align-x
+	    (:left)
+	    (:right (decf x width))
+	    (:center (decf x (floor width 2))))
+	  (ecase align-y
+	    ((:top :baseline))
+	    (:bottom (decf x height))
+	    (:center (decf x (floor height 2))))
+	  (draw-pattern* medium label x y)))
+      (pixmap
+	(let ((width (pixmap-width label))
+	      (height (pixmap-height label)))
+	  (ecase align-x
+	    (:left)
+	    (:right (decf x width))
+	    (:center (decf x (floor width 2))))
+	  (ecase align-y
+	    ((:top :baseline))
+	    (:bottom (decf x height))
+	    (:center (decf x (floor height 2))))
+	  (copy-from-pixmap label 0 0 width height
+			    medium x y))))))
+
 
 ;;--- We might want a way of changing the range and the value together.
 (defclass range-gadget-mixin ()
@@ -173,6 +215,11 @@
 
 ;;; The intent is that the real implementations inherit from these
 
+(defparameter *default-slider-label-text-style* 
+	      (make-text-style :sans-serif :bold :small))
+(defparameter *default-slider-range-label-text-style*
+	      (make-text-style :sans-serif :bold :very-small))
+
 ;;; Slider
 (defclass slider
 	  (value-gadget oriented-gadget-mixin range-gadget-mixin labelled-gadget-mixin)
@@ -181,9 +228,30 @@
      (decimal-places :initarg :decimal-places
 		     :reader slider-decimal-places)
      (show-value-p :initarg :show-value-p 
-		   :accessor gadget-show-value-p))
+		   :accessor gadget-show-value-p)
+     (min-label :initarg :min-label)
+     (max-label :initarg :max-label)
+     (range-label-text-style :initarg :range-label-text-style)
+     (number-of-tick-marks :initarg :number-of-tick-marks)
+     (number-of-quanta :initarg :number-of-quanta))
   (:default-initargs :decimal-places 0
-		     :show-value-p nil))
+		     :show-value-p nil
+		     :min-label nil
+		     :max-label nil
+		     :range-label-text-style *default-slider-range-label-text-style*
+		     :number-of-tick-marks 0
+		     :number-of-quanta nil))
+
+(defmethod initialize-instance :after ((pane slider) 
+				       &key (decimal-places 0 places-p)
+				       &allow-other-keys)
+  (declare (ignore decimal-places))
+  (unless places-p
+    (let ((range (gadget-range pane)))
+      (cond ((<= range 1)
+	     (setf (slot-value pane 'decimal-places) 2))
+	    ((<= range 10)
+	     (setf (slot-value pane 'decimal-places) 1))))))
 
 (defmethod drag-callback :around ((gadget slider) (client t) (id t) value)
   (let ((callback (slider-drag-callback gadget)))
@@ -204,7 +272,7 @@
      (drag-callback :initarg :drag-callback :initform nil
 		    :reader scroll-bar-drag-callback)))
 
-(defmethod destroy-mirror :after  ((port port) (sheet scroll-bar))
+(defmethod destroy-mirror :after  ((port basic-port) (sheet scroll-bar))
   ;; This invalidates any caching that is going on
   (setf (scroll-bar-current-size sheet) nil))
 
@@ -222,7 +290,10 @@
 ;;; Push-button
 (defclass push-button 
 	  (action-gadget labelled-gadget-mixin) 
-    ())
+    ((show-as-default :initform nil :initarg :show-as-default
+		      :accessor push-button-show-as-default)
+     (pattern :initarg :pattern)
+     (icon-pattern :initarg :icon-pattern)))
 
 
 ;;; Toggle button
@@ -264,17 +335,16 @@
     (with-look-and-feel-realization ((frame-manager frame) frame)
       (dolist (choice choices)
 	(if (panep choice)
-	    (sheet-adopt-child rb choice)
-	  ;; Sometimes the user calls MAKE-PANE within a call to
-	  ;; WITH-RADIO-BOX, so don't mess up
-	  (make-pane 'toggle-button 
-		     :value (equal (radio-box-current-selection rb) choice)
-		     :label (if (stringp choice)
-				(string choice)
-			      (gadget-label choice))
-		     :id choice
-		     :parent rb))))))
-
+	    #---ignore nil #+++ignore (sheet-adopt-child rb choice)
+	    ;; Sometimes the user calls MAKE-PANE within a call to
+	    ;; WITH-RADIO-BOX, so don't mess up
+	    (make-pane 'toggle-button 
+		       :value (equal (radio-box-current-selection rb) choice)
+		       :label (if (stringp choice)
+				  (string choice)
+				  (gadget-label choice))
+		       :id choice
+		       :parent rb))))))
 
 
 ;;; Check-box
@@ -293,17 +363,17 @@
     (with-look-and-feel-realization ((frame-manager frame) frame)
       (dolist (choice choices)
 	(if (panep choice)
-	    (sheet-adopt-child cb choice)
-	  ;; Sometimes the user calls MAKE-PANE within a call to
-	  ;; WITH-RADIO-BOX, so don't mess up
-	  (make-pane 'toggle-button 
-		     :value (equal (check-box-current-selection cb) choice)
-		     :label (if (stringp choice)
-				(string choice)
-			      (gadget-label choice))
-		     :indicator-type :some-of
-		     :id choice
-		     :parent cb))))))
+	    #---ignore nil #+++ignore (sheet-adopt-child cb choice)
+	    ;; Sometimes the user calls MAKE-PANE within a call to
+	    ;; WITH-RADIO-BOX, so don't mess up
+	    (make-pane 'toggle-button 
+		       :value (equal (check-box-current-selection cb) choice)
+		       :label (if (stringp choice)
+				  (string choice)
+				  (gadget-label choice))
+		       :indicator-type :some-of
+		       :id choice
+		       :parent cb))))))
 
 
 ;;; Menu-bar
@@ -335,8 +405,8 @@
 	   wrapping-space-mixin
 	   pane)
     ;; This describes the region that we are displaying
-	  ((viewport-region :accessor viewport-viewport-region)
-	   (scroller-pane :initarg :scroller-pane :reader viewport-scroller-pane)))
+    ((viewport-region :accessor viewport-viewport-region)
+     (scroller-pane :initarg :scroller-pane :reader viewport-scroller-pane)))
 
 (defmethod initialize-instance :after ((viewport viewport) &key)
   (multiple-value-bind (width height)
@@ -372,17 +442,19 @@
       ;; but now it is large enough, scroll the window
       (multiple-value-bind (ox oy) (bounding-rectangle-position vr)
 	(with-bounding-rectangle* (cleft ctop cright cbottom)
-	  (viewport-contents-extent viewport)
+	    (viewport-contents-extent viewport)
 	  (let ((cw (- cright cleft))
 		(ch (- cbottom ctop)))
 	    (let ((x ox) (y oy))
-	      (when (and (< owidth cw) (<= cw width)) (setq x cleft))
-	      (when (and (< oheight ch) (<= ch height)) (setq y ctop))
+	      (when (and (< owidth cw) (<= cw width)) 
+		(setq x cleft))
+	      (when (and (< oheight ch) (<= ch height))
+		(setq y ctop))
 	      (if (or (/= x ox) (/= y oy))
 		  (scroll-extent (sheet-child viewport) :x x  :y y)
-		(progn
-		  (update-scroll-bars viewport)
-		  (viewport-region-changed (sheet-child viewport) viewport))))))))))
+		  (progn
+		    (update-scroll-bars viewport)
+		    (viewport-region-changed (sheet-child viewport) viewport))))))))))
 
 ;;--- Work on this
 #+++ignore
@@ -425,9 +497,9 @@
 		vy)))))
     (clear-space-requirement-caches-in-tree scroller)
     (when relayout
-      ;;--- This is kinda bogus. If this was a generic scroller then
-      ;;--- then you want to layout the table. 
-      (let ((table (slot-value scroller	'viewport)))
+      ;;--- This is kinda bogus.  If this was a generic scroller then
+      ;;--- you want to layout the table.
+      (let ((table (slot-value scroller 'viewport)))
  	(multiple-value-bind (width height)
  	    (bounding-rectangle-size table)
  	  (allocate-space table width height))))))
@@ -455,17 +527,15 @@
 		nvenp))))
         (values nil nil nil nil nil))))
 
-
 (defun viewport-contents-extent (viewport)
   (let ((contents (sheet-child viewport)))
     (or (and (output-recording-stream-p contents)
 	     (stream-output-history contents))
         contents)))
 
-;;; Then there is the layout stuff and scrolling macros
 
 (defmacro scrolling (options &body contents)
-  `(make-pane 'generic-scroller-pane
+  `(make-pane 'scroller-pane
 	      :contents ,@contents
 	      ,@options))
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: GENERA-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: genera-medium.lisp,v 1.5 92/05/22 19:28:55 cer Exp $
+;; $fiHeader: genera-medium.lisp,v 1.6 92/07/01 15:47:29 cer Exp $
 
 (in-package :genera-clim)
 
@@ -8,7 +8,7 @@
 
 
 (defclass genera-medium (basic-medium)
-    ((window :initform nil)
+    ((window :initform nil :reader medium-drawable)
      (ink-cache :initform (make-ink-cache 16))))
 
 #||
@@ -44,12 +44,12 @@
   )
 
 (defmethod (setf medium-foreground) :after (ink (medium genera-medium))
-  (let ((window (slot-value medium 'window)))
+  (let ((window (medium-drawable medium)))
     (scl:send window :set-char-aluf (genera-decode-color ink medium nil))
     (scl:send window :refresh)))
 
 (defmethod (setf medium-background) :after (ink (medium genera-medium))
-  (let ((window (slot-value medium 'window)))
+  (let ((window (medium-drawable medium)))
     (scl:send window :set-erase-aluf (genera-decode-color ink medium nil))
     (scl:send window :refresh)))
 
@@ -209,7 +209,7 @@
 	       (setq last-op (cdr op))))))))
 
 (defmethod genera-decode-color ((ink gray-color) medium &optional (stipple-p t))
-  (let ((window (slot-value medium 'window))
+  (let ((window (medium-drawable medium))
 	(color-p (slot-value (port medium) 'color-p)))
     (let ((luminosity (gray-color-luminosity ink))
 	  (invert-p (not (funcall (tv:sheet-screen window) :bow-mode))))
@@ -223,7 +223,7 @@
 		      luminosity luminosity luminosity (not invert-p)))))))
 
 (defmethod genera-decode-color ((ink color) medium &optional (stipple-p t))
-  (let ((window (slot-value medium 'window))
+  (let ((window (medium-drawable medium))
 	(color-p (slot-value (port medium) 'color-p)))
     (multiple-value-bind (r g b)
 	(color-rgb ink)
@@ -237,7 +237,7 @@
 
 (defmethod genera-decode-color ((ink flipping-ink) medium &optional (stipple-p t))
   (declare (ignore stipple-p))
-  (let ((window (slot-value medium 'window))
+  (let ((window (medium-drawable medium))
 	(color-p (slot-value (port medium) 'color-p)))
     (if (not color-p)
 	(values boole-xor)
@@ -338,7 +338,7 @@
     ;; More efficient than (GENERA-DECODE-COLOR (MAKE-GRAY-COLOR-FOR-CONTRASTING-INK INK))
     (let ((luminosity (with-slots (clim-utils::which-one clim-utils::how-many) ink
 			(/ clim-utils::which-one clim-utils::how-many)))
-	  (invert-p (not (funcall (tv:sheet-screen (slot-value medium 'window)) :bow-mode))))
+	  (invert-p (not (funcall (tv:sheet-screen (medium-drawable medium)) :bow-mode))))
       (cond ((= luminosity 0.0) (if invert-p boole-clr boole-set))
 	    ((= luminosity 1.0) (if invert-p boole-set boole-clr))
 	    (t
@@ -463,7 +463,7 @@
 						  alu boole-2
 						  thickness dashes line-style nil
 						  hard window)))))
-	  (let ((window (slot-value medium 'window)))
+	  (let ((window (medium-drawable medium)))
 	    (let* ((sheet (medium-sheet medium))
 		   (region (sheet-device-region sheet))
 		   (medium-region (medium-clipping-region medium)))
@@ -485,14 +485,33 @@
 		      (kernel window)))))))))))) 
 
 (defmethod medium-drawing-possible ((medium genera-medium))
-  (let ((window (slot-value medium 'window)))
+  (let ((window (medium-drawable medium)))
     ;; TV:SHEET-OUTPUT-HELD-P, except that temp-locking only delays drawing,
     ;; it doesn't make it impossible, so only look at the output-hold flag
     (and window				;guard against ungrafted mediums
 	 (or (zerop (tv:sheet-output-hold-flag window))
 	     (tv:sheet-screen-array window)))))
 
+(defmethod stream-scan-string-for-writing 
+	   ((stream clim-internals::output-protocol-mixin) (medium genera-medium)
+	    string start end style cursor-x max-x &optional glyph-buffer)
+  (with-genera-glyph-for-character 
+    (stream-scan-string-for-writing-1
+      stream medium string start end style cursor-x max-x glyph-buffer)))
+
 
+(defparameter *adjust-drawing-model-for-macivory* t)
+(defmacro with-drawing-model-adjustments 
+	  ((window &optional (host-allowed *adjust-drawing-model-for-macivory*))
+	   &body body)
+  #-IMach (declare (ignore window host-allowed))
+  #-IMach `(progn ,@body)
+  #+IMach `(sys:system-case
+	     (:macivory
+	       (graphics:with-scan-conversion-mode (,window :host-allowed ,host-allowed)
+		 (progn ,@body)))
+	     (otherwise ,@body)))
+
 (defmethod medium-draw-point* ((medium genera-medium) x y)
   (when (medium-drawing-possible medium)
     (let* ((sheet (medium-sheet medium))
@@ -508,40 +527,71 @@
 	    (declare (sys:downward-function))
 	    (funcall (flavor:generic graphics:draw-point) window x y))))))
 
-;;--- POSITION-SEQ can be a general sequence!
 (defmethod medium-draw-points* ((medium genera-medium) position-seq)
   (when (medium-drawing-possible medium)
     (let* ((sheet (medium-sheet medium))
 	   (transform (sheet-device-transformation sheet))
 	   (ink (medium-ink medium))
 	   (line-style (medium-line-style medium)))
-      )))
+      (with-appropriate-drawing-state medium ink line-style
+        #'(lambda (window alu)
+	    (declare (sys:downward-function))
+	    (map-position-sequence
+	      #'(lambda (x y)
+		  (convert-to-device-coordinates transform x y)
+		  (funcall window :draw-point x y alu))
+	      position-seq))
+	#'(lambda (window)
+	    (declare (sys:downward-function))
+	    (map-position-sequence
+	      #'(lambda (x y)
+		  (convert-to-device-coordinates transform x y)
+		  (funcall (flavor:generic graphics:draw-point) window x y))
+	      position-seq))))))
+
 
 (defmethod medium-draw-line* ((medium genera-medium) x1 y1 x2 y2)
   (when (medium-drawing-possible medium)
     (let* ((sheet (medium-sheet medium))
 	   (transform (sheet-device-transformation sheet))
 	   (ink (medium-ink medium))
-	   (line-style (medium-line-style medium)))
-      (convert-to-device-coordinates transform
-	x1 y1 x2 y2)
+	   (line-style (medium-line-style medium))) 
+      (convert-to-device-coordinates transform x1 y1 x2 y2)
       (with-appropriate-drawing-state medium ink line-style
         #'(lambda (window alu)
 	    (declare (sys:downward-function))
-	    (funcall window :draw-line x1 y1 x2 y2 alu t))
+	    (with-drawing-model-adjustments (window nil)
+	      (funcall window :draw-line x1 y1 x2 y2 alu t)))
 	#'(lambda (window)
 	    (declare (sys:downward-function))
-	    (funcall (flavor:generic graphics:draw-line)
-		     window x1 y1 x2 y2 ))))))
+	    (with-drawing-model-adjustments (window nil)
+	      (funcall (flavor:generic graphics:draw-line)
+		       window x1 y1 x2 y2 )))))))
 
-;;--- POSITION-SEQ can be a general sequence!
 (defmethod medium-draw-lines* ((medium genera-medium) position-seq)
   (when (medium-drawing-possible medium)
     (let* ((sheet (medium-sheet medium))
 	   (transform (sheet-device-transformation sheet))
 	   (ink (medium-ink medium))
 	   (line-style (medium-line-style medium)))
-      )))
+      (with-appropriate-drawing-state medium ink line-style
+        #'(lambda (window alu)
+	    (declare (sys:downward-function))
+	    (with-drawing-model-adjustments (window nil)
+	      (map-endpoint-sequence
+		#'(lambda (x1 y1 x2 y2)
+		    (convert-to-device-coordinates transform x1 y1 x2 y2)
+		    (funcall window :draw-line x1 y1 x2 y2 alu t))
+		position-seq)))
+	#'(lambda (window)
+	    (declare (sys:downward-function))
+	    (with-drawing-model-adjustments (window nil)
+	      (map-endpoint-sequence
+		#'(lambda (x1 y1 x2 y2)
+		    (convert-to-device-coordinates transform x1 y1 x2 y2)
+		    (funcall (flavor:generic graphics:draw-line)
+			     window x1 y1 x2 y2 ))
+		position-seq)))))))
 
 (defmethod medium-draw-rectangle* ((medium genera-medium) 
 				   left top right bottom filled)
@@ -550,8 +600,9 @@
 	   (transform (sheet-device-transformation sheet))
 	   (ink (medium-ink medium))
 	   (line-style (medium-line-style medium)))
-      (convert-to-device-coordinates transform
-	left top right bottom)
+      (convert-to-device-coordinates transform left top right bottom)
+      (when (< right left) (rotatef right left))
+      (when (< bottom top) (rotatef bottom top))
       (if (and filled
 	       (typep ink 'pattern))
 	  ;; Looks like this is DRAW-ICON*
@@ -560,27 +611,56 @@
 	    #'(lambda (window alu)
 		(declare (sys:downward-function))
 		(if filled
-		    (let ((width (abs (- right left)))
-			  (height (abs (- bottom top))))
-		      (funcall window :draw-rectangle width height left top alu))
+		    (let ((width (- right left))
+			  (height (- bottom top)))
+		      (with-drawing-model-adjustments (window nil)
+			(funcall window :draw-rectangle width height left top alu)))
 		    (scl:stack-let ((lines (vector right top left top
 						   left top left bottom
 						   left bottom right bottom
 						   right bottom right top)))
-		      (funcall window :draw-multiple-lines lines alu nil))))
+		      (with-drawing-model-adjustments (window nil)
+			(funcall window :draw-multiple-lines lines alu nil)))))
 	    #'(lambda (window)
 		(declare (sys:downward-function))
-		(funcall (flavor:generic graphics:draw-rectangle) window left top right bottom
-			 :filled filled)))))))
+		(with-drawing-model-adjustments (window nil)
+		  (funcall (flavor:generic graphics:draw-rectangle) 
+			   window left top right bottom
+			   :filled filled))))))))
 
-;;--- POSITION-SEQ can be a general sequence!
 (defmethod medium-draw-rectangles* ((medium genera-medium) position-seq filled)
   (when (medium-drawing-possible medium)
     (let* ((sheet (medium-sheet medium))
 	   (transform (sheet-device-transformation sheet))
 	   (ink (medium-ink medium))
 	   (line-style (medium-line-style medium)))
-      )))
+      (with-appropriate-drawing-state medium ink line-style
+        #'(lambda (window alu)
+	    (declare (sys:downward-function))
+	    (with-drawing-model-adjustments (window nil)
+	      (map-endpoint-sequence
+		#'(lambda (left top right bottom)
+		    (convert-to-device-coordinates transform left top right bottom)
+		    (if filled
+			(let ((width (abs (- right left)))
+			      (height (abs (- bottom top))))
+			  (funcall window :draw-rectangle width height left top alu))
+			(scl:stack-let ((lines (vector right top left top
+						       left top left bottom
+						       left bottom right bottom
+						       right bottom right top)))
+			  (funcall window :draw-multiple-lines lines alu nil))))
+		position-seq)))
+	#'(lambda (window)
+	    (declare (sys:downward-function))
+	    (with-drawing-model-adjustments (window nil)
+	      (map-endpoint-sequence
+		#'(lambda (left top right bottom)
+		    (convert-to-device-coordinates transform left top right bottom)
+		    (funcall (flavor:generic graphics:draw-rectangle)
+			     window left top right bottom
+			     :filled filled))
+		position-seq)))))))
 
 ;; Fall back to DRAW-IMAGE.  INK will be a pattern.
 ;; We have to resort to this because Genera always tiles.  Sigh.
@@ -598,7 +678,6 @@
 			       :image-right width :image-bottom height
 			       :stream window))))))
 
-;;--- POSITION-SEQ can be a general sequence!
 (defmethod medium-draw-polygon* ((medium genera-medium) position-seq closed filled)
   (when (medium-drawing-possible medium)
     (let* ((sheet (medium-sheet medium))
@@ -607,45 +686,62 @@
 	   (line-style (medium-line-style medium))
 	   (npoints (length position-seq)))
       (with-appropriate-drawing-state medium ink line-style
-	#'(lambda (window alu)
+        #'(lambda (window alu)
 	    (declare (sys:downward-function))
 	    (if filled
 		(case npoints
-		  (6 (let* ((p position-seq)
-			    (x1 (pop p)) (y1 (pop p))
-			    (x2 (pop p)) (y2 (pop p))
-			    (x3 (pop p)) (y3 (pop p)))
+		  (6 (multiple-value-bind (x1 y1 x2 y2 x3 y3)
+			 (if (listp position-seq)
+			     (let ((p position-seq))
+			       (values (pop p) (pop p)
+				       (pop p) (pop p)
+				       (pop p) (pop p)))
+			     (let ((p position-seq))
+			       (declare (sys:array-register p))
+			       (values (aref p 0) (aref p 1)
+				       (aref p 2) (aref p 3)
+				       (aref p 4) (aref p 5))))
 		       (convert-to-device-coordinates transform
 			 x1 y1 x2 y2 x3 y3)
-		       (funcall window :draw-triangle x1 y1 x2 y2 x3 y3 alu)))
-		  (8 (let* ((p position-seq)
-			    (x1 (pop p)) (y1 (pop p))
-			    (x2 (pop p)) (y2 (pop p))
-			    (x3 (pop p)) (y3 (pop p))
-			    (x4 (pop p)) (y4 (pop p)))
+		       (with-drawing-model-adjustments (window nil)
+			 (funcall window :draw-triangle x1 y1 x2 y2 x3 y3 alu))))
+		  (8 (multiple-value-bind (x1 y1 x2 y2 x3 y3 x4 y4)
+			 (if (listp position-seq)
+			     (let ((p position-seq))
+			       (values (pop p) (pop p)
+				       (pop p) (pop p)
+				       (pop p) (pop p)
+				       (pop p) (pop p)))
+			     (let ((p position-seq))
+			       (declare (sys:array-register p))
+			       (values (aref p 0) (aref p 1)
+				       (aref p 2) (aref p 3)
+				       (aref p 4) (aref p 5)
+				       (aref p 6) (aref p 7))))
 		       (convert-to-device-coordinates transform
 			 x1 y1 x2 y2 x3 y3 x4 y4)
-		       (funcall window :draw-triangle x1 y1 x2 y2 x3 y3 alu)
-		       (funcall window :draw-triangle x3 y3 x4 y4 x1 y1 alu)))
+		       (with-drawing-model-adjustments (window nil)
+			 (funcall window :draw-triangle x1 y1 x2 y2 x3 y3 alu)
+			 (funcall window :draw-triangle x3 y3 x4 y4 x1 y1 alu))))
 		  (otherwise
 		    (with-stack-array (points npoints)
-		      (do ((i 0)
-			   (p position-seq))
-			  ((null p))
-			(let* ((x (pop p))
-			       (y (pop p)))
-			  (convert-to-device-coordinates transform x y)
-			  (setf (aref points (shiftf i (1+ i))) x)
-			  (setf (aref points (shiftf i (1+ i))) y)))
-		      (graphics::triangulate-polygon
-			#'(lambda (x1 y1 x2 y2 x3 y3)
-			    (funcall window :draw-triangle x1 y1 x2 y2 x3 y3 alu))
-			points))))
+		      (let ((i 0))
+			(map-position-sequence
+			  #'(lambda (x y)
+			      (convert-to-device-coordinates transform x y)
+			      (setf (aref points (shiftf i (1+ i))) x)
+			      (setf (aref points (shiftf i (1+ i))) y))
+			  position-seq))
+		      (with-drawing-model-adjustments (window nil)
+			(graphics::triangulate-polygon
+			  #'(lambda (x1 y1 x2 y2 x3 y3)
+			      (funcall window :draw-triangle x1 y1 x2 y2 x3 y3 alu))
+			  points)))))
 		(with-stack-array (lines (* (+ npoints (if closed 0 -2)) 2))
-		  (let* ((p position-seq)
-			 (i 0)
-			 (initial-x (pop p))
-			 (initial-y (pop p))
+		  (let* ((i 0)
+			 (j 0)
+			 (initial-x (elt position-seq (shiftf j (1+ j))))
+			 (initial-y (elt position-seq (shiftf j (1+ j))))
 			 (x initial-x)
 			 (y initial-y))
 		    (convert-to-device-coordinates transform 
@@ -653,35 +749,36 @@
 		    (loop
 		      (setf (aref lines (shiftf i (1+ i))) x)
 		      (setf (aref lines (shiftf i (1+ i))) y)
-		      (setq x (pop p)
-			    y (pop p))
+		      (setq x (elt position-seq (shiftf j (1+ j)))
+			    y (elt position-seq (shiftf j (1+ j))))
 		      (convert-to-device-coordinates transform x y)
 		      (setf (aref lines (shiftf i (1+ i))) x)
 		      (setf (aref lines (shiftf i (1+ i))) y)
-		      (when (null p)
+		      (when (= j npoints)
 			(when closed
 			  (setf (aref lines (shiftf i (1+ i))) x)
 			  (setf (aref lines (shiftf i (1+ i))) y)
 			  (setf (aref lines (shiftf i (1+ i))) initial-x)
 			  (setf (aref lines (shiftf i (1+ i))) initial-y))
 			(return))))
-		  (funcall window :draw-multiple-lines lines alu nil))))
+		  (with-drawing-model-adjustments (window nil)
+		    (funcall window :draw-multiple-lines lines alu nil)))))
 	#'(lambda (window)
 	    (declare (sys:downward-function))
 	    (with-stack-array (points npoints)
-	      (do ((i 0)
-		   (p position-seq))
-		  ((null p))
-		(let* ((x (pop p))
-		       (y (pop p)))
-		  (convert-to-device-coordinates transform x y)
-		  (setf (aref points (shiftf i (1+ i))) x)
-		  (setf (aref points (shiftf i (1+ i))) y)))
-	      (if (null line-style)
-		  (funcall (flavor:generic graphics:draw-polygon) window points
-			   :filled t)
-		  (funcall (flavor:generic graphics:draw-lines) window points
-			   :closed closed))))))))
+	      (let ((i 0))
+		(map-position-sequence
+		  #'(lambda (x y)
+		      (convert-to-device-coordinates transform x y)
+		      (setf (aref points (shiftf i (1+ i))) x)
+		      (setf (aref points (shiftf i (1+ i))) y))
+		  position-seq))
+	      (with-drawing-model-adjustments (window nil)
+		(if (null line-style)
+		    (funcall (flavor:generic graphics:draw-polygon) window points
+			     :filled t)
+		    (funcall (flavor:generic graphics:draw-lines) window points
+			     :closed closed)))))))))
 
 (defmethod medium-draw-ellipse* ((medium genera-medium)
 				 center-x center-y 
@@ -711,14 +808,16 @@
 	    (with-appropriate-drawing-state medium ink line-style
 	      #'(lambda (window alu)
 		  (declare (sys:downward-function))
-		  (if filled
-		      (funcall window :draw-filled-in-circle center-x center-y x-radius alu)
-		      (funcall window :draw-circle center-x center-y x-radius alu)))
+		  (with-drawing-model-adjustments (window nil)
+		    (if filled
+			(funcall window :draw-filled-in-circle center-x center-y x-radius alu)
+			(funcall window :draw-circle center-x center-y x-radius alu))))
 	      #'(lambda (window)
 		  (declare (sys:downward-function))
-		  (funcall (flavor:generic graphics:draw-ellipse) window
-			   center-x center-y x-radius y-radius
-			   :filled filled)))
+		  (with-drawing-model-adjustments (window nil)
+		    (funcall (flavor:generic graphics:draw-ellipse) window
+			     center-x center-y x-radius y-radius
+			     :filled filled))))
 	  ;; For general ellipse, let Genera do all the work
 	  (with-appropriate-drawing-state medium ink line-style
 	    nil
@@ -728,11 +827,12 @@
 		  (graphics:graphics-translate center-x center-y :stream window)
 		  (when (/= axis-rotate-angle 0)
 		    (graphics:graphics-rotate axis-rotate-angle :stream window))
-		  (funcall (flavor:generic graphics:draw-ellipse) window
-			   0 0 x-radius y-radius
-			   :start-angle (or start-angle 0)
-			   :end-angle (or end-angle graphics:2pi)
-			   :filled filled)))))))))
+		  (with-drawing-model-adjustments (window nil)
+		    (funcall (flavor:generic graphics:draw-ellipse) window
+			     0 0 x-radius y-radius
+			     :start-angle (or start-angle 0)
+			     :end-angle (or end-angle graphics:2pi)
+			     :filled filled))))))))))
 
 (defmethod medium-draw-string* ((medium genera-medium)
 				string x y start end align-x align-y
@@ -754,14 +854,14 @@
 	(replace substring string :start2 start :end2 end)
 	(let* ((font (text-style-mapping 
 		       (port medium) text-style *standard-character-set*
-		       (slot-value medium 'window)))
+		       (medium-drawable medium)))
 	       (height (sys:font-char-height font))
 	       (descent (- height (sys:font-baseline font)))
 	       (ascent (- height descent)))
-	  (let ((x-adjust (clim-internals::compute-text-x-adjustment 
-			    align-x medium string text-style start end))
-		(y-adjust (clim-internals::compute-text-y-adjustment
-			    align-y descent ascent height)))
+	  (let ((x-adjust 
+		  (compute-text-x-adjustment align-x medium string text-style start end))
+		(y-adjust 
+		  (compute-text-y-adjustment align-y descent ascent height)))
 	    (incf x x-adjust)
 	    (incf y y-adjust)
 	    (when towards-x
@@ -790,15 +890,14 @@
 	(convert-to-device-coordinates transform towards-x towards-y))
       (let* ((font (text-style-mapping 
 		     (port medium) text-style *standard-character-set*
-		     (slot-value medium 'window)))
+		     (medium-drawable medium)))
 	     (height (sys:font-char-height font))
 	     (descent (- height (sys:font-baseline font)))
 	     (ascent (- height descent)))
-	(let ((x-adjust (clim-internals::compute-text-x-adjustment 
-			  align-x medium character text-style))
-	      (y-adjust (- (clim-internals::compute-text-y-adjustment
-			     align-y descent ascent height)
-			   ascent)))
+	(let ((x-adjust 
+		(compute-text-x-adjustment align-x medium character text-style))
+	      (y-adjust 
+		(- (compute-text-y-adjustment align-y descent ascent height) ascent)))
 	  (incf x x-adjust)
 	  (incf y y-adjust)
 	  (when towards-x
@@ -851,101 +950,12 @@
 
 
 (defmethod medium-force-output ((medium genera-medium))
-  (scl:send (slot-value medium 'window) :force-output))
+  (scl:send (medium-drawable medium) :force-output))
 
 (defmethod medium-finish-output ((medium genera-medium))
-  (scl:send (slot-value medium 'window) :finish-output))
+  (scl:send (medium-drawable medium) :finish-output))
 
 (defmethod medium-beep ((medium genera-medium))
-  (scl:beep nil (slot-value medium 'window)))
+  (scl:beep nil (medium-drawable medium)))
 
 
-;;--- This needs methods for copying to/from pixmaps, too
-(defmethod medium-copy-area 
-	   ((from-medium genera-medium) from-left from-top from-right from-bottom
-	    (to-medium genera-medium) to-left to-top)
-  (assert (eq from-medium to-medium))
-  ;; coords in "host" coordinate system
-  (let ((transform (sheet-native-transformation (medium-sheet from-medium))))
-    (convert-to-device-coordinates transform
-       from-left from-top from-right from-bottom to-left to-top)
-    (let ((width (- from-right from-left))
-	  (height (- from-bottom from-top)))
-      (when (>= to-left from-left)
-	;; shifting to the right
-	(setq width (- (abs width))))
-      (when (>= to-top from-top)
-	(setq height (- (abs height))))
-      (let ((window (slot-value from-medium 'window)))
-	(scl:send window :bitblt-within-sheet
-			 tv:alu-seta width height
-			 from-left from-top
-			 to-left to-top)))))
-
-
-#||
-;;; Copy from a pixmap into a medium.
-(defmethod copy-area ((medium clg-medium) x y (source pixmap) left bottom width height
-		      &optional (boole boole-1))
-  (with-slots (drawable port device-transformation) medium
-    (multiple-value-bind (min-x min-y max-x max-y)
-	(transform-rectangle* device-transformation x y (+ x width) (+ y height))
-      (scl:send drawable :bitblt boole (- max-x min-x) (- max-y min-y)
-		(realize-pixmap port source) left bottom
-		min-x min-y))))
-
-;;; Copy from a medium into another medium.
-;;; --- Should there be a COPY-AREA from ON-GENERA::CLG-DISPLAY-MEDIUM to ON-X:???
-(defmethod copy-area ((target clg-display-medium) target-x target-y
-		      (source clg-medium) source-x source-y
-		      width height
-		      &optional (boole boole-1))
-  ;; width and height are assumed to be unchanged under the various
-  ;; transformations.  We use them, however, to realize a rectangle and
-  ;; transform the rectangle to get it's anchor, which may be different
-  ;; than transforming the anchor point.
-  (let* ((target-drawable (slot-value target 'drawable))
-	 (source-drawable (slot-value source 'drawable))
-	 (target-device-transformation (insured-device-transformation target))
-	 ;; --- kludge.  Should probably implement a method for 
-	 ;; insured-device-transformation on pixmap mediums.
-	 (source-device-transformation
-	   (if (typep source 'display-medium)
-	       (insured-device-transformation source)
-	       (device-transformation source))))
-    (multiple-value-setq (target-x target-y)
-      (transform-rectangle*
-	target-device-transformation
-	target-x target-y (+ target-x width) (+ target-y height)))
-    (multiple-value-setq (source-x source-y)
-      (transform-rectangle*
-	source-device-transformation
-	source-x source-y (+ source-x width) (+ source-y height)))
-    ;; make width and/or height be negative to interact with BITBLT
-    ;; correctly in the event these are the same drawables.
-    (let ((width  (if (<= target-x source-x) (+ width)  (- width)))
-	  (height (if (<= target-y source-y) (+ height) (- height))))
-      (tv:bitblt-from-sheet-to-sheet
-	boole (round width) (round height)	;--- round???
-	source-drawable (fix-coordinate source-x) (fix-coordinate source-y)
-	target-drawable (fix-coordinate target-x) (fix-coordinate target-y)))))
-
-;;; X also has a way to copy from a medium into a pixmap.  Should this be allowed here?
-(defmethod copy-area ((pixmap pixmap) dst-x dst-y 
-		      (medium clg-display-medium) src-x src-y width height
-		      &optional (boole boole-1))
-  ;;; This all only works for pixels coordinate systems.
-  (with-slots (drawable gcontext port device-transformation) medium
-    (multiple-value-bind (device-min-x device-min-y device-lim-x device-lim-y)
-	(transform-rectangle* device-transformation
-			      src-x src-y (+ src-x width)
-			      (+ src-y height))
-      (let* ((device-width (- device-lim-x device-min-x))
-	     (device-height (- device-lim-y device-min-y))
-	     (raster (realize-pixmap port pixmap)))
-	(scl:send drawable :bitblt-from-sheet boole
-		  (round device-width) (round device-height)	;--- round???
-		  (fix-coordinate device-min-x) (fix-coordinate device-min-y)
-		  raster 
-		  (fix-coordinate dst-x) (fix-coordinate dst-y))))))
-||#

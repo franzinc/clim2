@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: mirror.lisp,v 1.20 92/06/23 08:19:26 cer Exp $
+;; $fiHeader: mirror.lisp,v 1.21 92/07/01 15:45:11 cer Exp $
 
 (in-package :silica)
 
@@ -155,7 +155,8 @@
 (defun-inline mirror->sheet (port mirror)
   (gethash mirror (port-mirror->sheet-table port)))
 
-(defun  (setf mirror->sheet) (sheet port mirror)
+#-(or Genera Minima)			;inlining the function is enough...
+(defun (setf mirror->sheet) (sheet port mirror)
   (setf (gethash mirror (port-mirror->sheet-table port)) sheet))
 
 (defmethod realize-mirror :around ((port basic-port) (sheet mirrored-sheet-mixin))

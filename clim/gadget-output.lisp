@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: gadget-output.lisp,v 1.18 92/07/01 15:46:24 cer Exp Locker: cer $
+;; $fiHeader: gadget-output.lisp,v 1.19 92/07/06 18:51:40 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -222,8 +222,7 @@
 
 (defvar *with-deferred-gadget-updates* nil)
 
-;;;--- This aint pretty but neither are you.
-
+;;--- This ain't pretty, but neither are you.
 (defmacro with-deferred-gadget-updates (&body body)
   `(flet ((with-deferred-gadget-updates-body ()
 	    ,@body))
@@ -299,14 +298,19 @@
     (let ((buttons
 	    (map 'list
 		 #'(lambda (element)
-		     (let ((button
+		     (let* ((value (funcall value-key element))
+			    (button
 			     (make-pane 'toggle-button 
-			       :label (funcall name-key element)
-			       :indicator-type :some-of
-			       :value (and default-supplied-p
-					   (member (funcall value-key default) sequence
-						   :test test :key value-key))
-			       :id element)))
+					:label (funcall name-key element)
+					:indicator-type :some-of
+					:value (and default-supplied-p
+						    (member (funcall value-key element) default
+							    :test test 
+							    ;;-- Should the
+							    ;;value key be used??
+							    :key value-key) 
+						    t)
+					:id value)))
 		       button))
 		 sequence)))
       (outlining ()

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-defs.lisp,v 1.8 92/05/07 13:12:31 cer Exp $
+;; $fiHeader: input-defs.lisp,v 1.9 92/07/01 15:46:33 cer Exp $
 
 (in-package :clim-internals)
 
@@ -45,7 +45,7 @@
     (values x-position y-position)))
 
 (defgeneric* (setf pointer-position) (x y pointer))
-(defmethod* (setf pointer-position) (x y (pointer pointer))
+(defmethod* (setf pointer-position) (x y (pointer standard-pointer))
   (pointer-set-position pointer x y))
 
 ;;--- This gets called when the user moves the pointer, but what does a
@@ -72,7 +72,7 @@
     (values native-x-position native-y-position)))
 
 (defgeneric* (setf pointer-native-position) (x y pointer))
-(defmethod* (setf pointer-native-position) (x y (pointer pointer))
+(defmethod* (setf pointer-native-position) (x y (pointer standard-pointer))
   (pointer-set-native-position pointer x y))
 
 (defmethod pointer-set-native-position ((pointer standard-pointer) new-x new-y)

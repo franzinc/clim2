@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: transformations.lisp,v 1.6 92/05/07 13:11:46 cer Exp $
+;; $fiHeader: transformations.lisp,v 1.7 92/07/01 15:45:48 cer Exp $
 
 (in-package :clim-utils)
 
@@ -61,6 +61,7 @@
 
 ;;; Transformations
 
+;;--- Watch out, we define methods on this protocol class!
 (define-protocol-class transformation ())
 
 ;;; This class is not part of the advertised interface.

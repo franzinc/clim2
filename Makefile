@@ -1,4 +1,4 @@
-# $fiHeader: Makefile,v 1.36 92/07/06 18:52:20 cer Exp Locker: cer $
+# $fiHeader: Makefile,v 1.37 92/07/06 20:05:43 cer Exp Locker: cer $
 # 
 #  Makefile for CLIM 2.0
 #
@@ -144,6 +144,7 @@ CLIM-SILICA-OBJS = silica/classes.fasl \
                     silica/medium.fasl \
                     silica/framem.fasl \
                     silica/graphics.fasl \
+		    silica/pixmaps.fasl \
                     silica/std-sheet.fasl \
                     silica/layout.fasl \
                     silica/db-layout.fasl \
@@ -177,6 +178,7 @@ CLIM-STANDALONE-OBJS = clim/gestures.fasl \
                         clim/incremental-redisplay.fasl \
                         clim/coordinate-sorted-set.fasl \
                         clim/window-stream.fasl \
+                        clim/pixmap-streams.fasl \
                         clim/ptypes1.fasl \
                         clim/completer.fasl \
                         clim/presentations.fasl \
@@ -199,12 +201,12 @@ CLIM-STANDALONE-OBJS = clim/gestures.fasl \
                         clim/command-processor.fasl \
                         clim/basic-translators.fasl \
                         clim/frames.fasl \
+			clim/default-frame.fasl \
 			clim/noting-progress.fasl \
                         clim/menus.fasl \
                         clim/accept-values.fasl \
 			clim/drag-and-drop.fasl \
                         clim/item-list-manager.fasl \
-                        clim/pixmap-streams.fasl \
                         clim/stream-trampolines.fasl
 
 XLIB-CLIM-OBJS = xlib/pkg.fasl

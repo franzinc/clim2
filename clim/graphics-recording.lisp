@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics-recording.lisp,v 1.8 92/06/16 15:01:47 cer Exp $
+;; $fiHeader: graphics-recording.lisp,v 1.9 92/07/01 15:46:28 cer Exp $
 
 (in-package :clim-internals)
 
@@ -37,6 +37,7 @@
     (let* ((class 
 	     (intern (format nil "~A-~A"
 		       (remove-word-from-string "DRAW-" name) 'output-record)))
+	   (constructor (fintern "~A-~A" 'make class))
 	   (medium-graphics-function*
 	     (intern (format nil "~A~A*" 'medium- name)))
 	   (superclasses '(output-record-element-mixin 
@@ -49,7 +50,11 @@
 			 slots)))
       `(progn
 	 (defclass ,class ,superclasses ,slot-descs)
-	 ;;--- Need to define a speedy constructor
+	 (define-constructor-using-prototype-instance
+	   ,constructor ,class ,slots
+	   ,@(mapcar #'(lambda (arg) 
+			 `(,arg ,(intern (symbol-name arg) *keyword-package*) ,arg)) 
+		     slots))
 	 (defmethod ,medium-graphics-function* :around
 		    ((stream output-recording-mixin) ,@function-args)
 	   (when (stream-recording-p stream)
@@ -89,11 +94,7 @@
 			      ,(first pts) ,(second pts)))
 		       r))
 		 (transform-distances transformation ,@distances-to-transform)
-		 (let ((record
-			 (make-instance ',class
-			   ,@(mapcan #'(lambda (x)
-					 (list (intern (symbol-name x) *keyword-package*) x))
-				     slots))))
+		 (let ((record (,constructor ,@slots)))
 		   (multiple-value-bind (lf tp rt bt)
 		       (progn ,bounding-rectangle)
 		     (declare (type coordinate lf tp rt bt))

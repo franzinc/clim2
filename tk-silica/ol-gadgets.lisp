@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-gadgets.lisp,v 1.17 92/07/06 18:52:23 cer Exp Locker: cer $
+;; $fiHeader: ol-gadgets.lisp,v 1.18 92/07/06 19:56:08 cer Exp Locker: cer $
 
 
 (in-package :xm-silica)
@@ -239,6 +239,31 @@
 						     (sheet openlook-menu-bar))
   (values 'tk::control nil))
 
+(defmethod compose-space ((mb openlook-menu-bar) &key width height)
+  (declare (ignore width height))
+  ;;-- OLIT sucks
+  ;;-- We need to take into account the width and the height and
+  ;;-- compute the right size. We should use a fixed width layout and
+  ;;-- then set the measure. Alternatively, we should ditch the
+  ;;-- control area and do everything at the silica level.
+  (let ((children (tk::widget-children (sheet-direct-mirror mb)))
+	(width 0)
+	(height 0))
+    (dolist (child children)
+      (multiple-value-bind
+	  (ignore-x igore-y w h)
+	  (xt::widget-best-geometry child)
+	(declare (ignore ignore-x igore-y))
+	(maxf height h)
+	(incf width w)))
+    (multiple-value-bind (h-pad v-pad h-space v-space)
+	(tk::get-values (sheet-direct-mirror mb)
+			:h-pad :v-pad :h-space :v-space)
+      (incf width (+ (* 2 h-pad) (* (1- (length children)) h-space)))
+      (incf height (* 2 v-pad)))
+    (make-space-requirement :width width :height height)))
+
+    
 (defmethod realize-mirror :around ((port openlook-port) (sheet openlook-menu-bar))
 
   ;; This code fills the menu-bar. If top level items do not have
@@ -858,7 +883,7 @@
   nil)
 
 (defmethod make-pane-class ((framem openlook-frame-manager) 
-			    (class (eql 'silica::generic-scroller-pane)) 
+			    (class (eql 'scroller-pane)) 
 			    &rest options
 			    &key contents)
   (declare (ignore options))

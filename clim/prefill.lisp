@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: prefill.lisp,v 1.3 92/05/07 13:12:46 cer Exp $
+;; $fiHeader: prefill.lisp,v 1.4 92/07/01 15:46:47 cer Exp $
 
 (in-package :clim-internals)
 
@@ -1187,7 +1187,7 @@
   (adjust-table-cells)
   (augment-draw-set)
   (bounding-rectangle*
-    (text-cursor))
+    (standard-text-cursor))
   (bounding-rectangle-set-edges)
   (bounding-rectangle-set-position)
   (bounding-rectangle-set-size)
@@ -1203,29 +1203,29 @@
   (compute-new-output-records)
   (copy-display-state)
   (cursor-active
-    (text-cursor))
+    (standard-text-cursor))
   ((setf cursor-active)
-    (t text-cursor))
+    (t standard-text-cursor))
   (cursor-focus
-    (text-cursor))
+    (standard-text-cursor))
   ((setf cursor-focus)
-    (t text-cursor))
+    (t standard-text-cursor))
   (cursor-position
-    (text-cursor))
+    (standard-text-cursor))
   (cursor-set-position
-    (text-cursor t t))
+    (standard-text-cursor t t))
   (cursor-state
-    (text-cursor))
+    (standard-text-cursor))
   ((setf cursor-state)
-    (t text-cursor))
+    (t standard-text-cursor))
   ((setf cursor-stream)
-    (t text-cursor))
+    (t standard-text-cursor))
   (cursor-visibility
-    (text-cursor))
+    (standard-text-cursor))
   ((setf cursor-visibility)
-    (t text-cursor))
+    (t standard-text-cursor))
   (cursor-width-and-height-pending-protocol
-    (text-cursor))
+    (standard-text-cursor))
   (decache-child-output-record)
   (decode-pattern
     (pattern))
@@ -1235,7 +1235,7 @@
   (describe-object)
   (displayed-output-record-p)
   (draw-cursor
-    (text-cursor t t t t))
+    (standard-text-cursor t t t t))
   (find-cached-output-record)
   (find-child-output-record)
   (generate-graph-nodes)
@@ -1261,7 +1261,7 @@
   (map-over-table-rows-or-columns)
   (match-output-records)
   (note-cursor-change
-    (text-cursor t t t))
+    (standard-text-cursor t t t))
   (note-output-record-attached)
   (note-output-record-child-changed)
   (note-output-record-detached)

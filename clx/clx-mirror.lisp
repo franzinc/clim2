@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLX-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clx-mirror.lisp,v 1.5 92/05/22 19:27:32 cer Exp $
+;; $fiHeader: clx-mirror.lisp,v 1.6 92/07/01 15:45:58 cer Exp $
 
 (in-package :clx-clim)
 
@@ -161,15 +161,9 @@
 ;; Chords aren't supported yet
 (defmacro x-button-code-to-event-button (x-code)
   `(case ,x-code
-     (1 256)
-     (2 512)
-     (3 1024)))
-
-(defmacro x-button-code-to-event-button (x-code)
-  `(case ,x-code
-     (1 256)
-     (2 512)
-     (3 1024)))
+     (1 +pointer-left-button+)
+     (2 +pointer-middle-button+)
+     (3 +pointer-right-button+)))
 
 (defmethod process-next-event ((port clx-port)
 			       &key (timeout nil) (wait-function nil)
@@ -189,20 +183,20 @@
 	   (multiple-value-bind (x y same-screen-p child state root-x root-y)
 	       (xlib:query-pointer event-window)
 	     (declare (ignore same-screen-p child))
-
 	     (let ((sheet (mirror->sheet port event-window))
 		   (modifier-state (state-mask->modifier-state state display)))
-	       (distribute-event
-		 port				;(EQ PORT (PORT-SHEET)) ==> T
-		 (make-instance 'pointer-motion-event
-		   :x x
-		   :y y
-		   :native-x root-x
-		   :native-y root-y
-		   :button nil			;--- fill this in
-		   :modifiers modifier-state
-		   :pointer (port-pointer port)
-		   :sheet sheet)))
+	       (when sheet
+		 (distribute-event
+		   port				;(EQ PORT (PORT-SHEET)) ==> T
+		   (make-instance 'pointer-motion-event
+		     :x root-x
+		     :y root-y
+		     :native-x x
+		     :native-y y
+		     :button nil		;--- fill this in
+		     :modifiers modifier-state
+		     :pointer (port-pointer port)
+		     :sheet sheet))))
 	     t))
 	  ((:button-press :button-release) 
 	   (event-key event-window code)
@@ -211,28 +205,44 @@
 	     (declare (ignore same-screen-p child))
 	     (let ((sheet (mirror->sheet port event-window))
 		   (modifier-state (state-mask->modifier-state state display)))
-	       (distribute-event
-		 port 
-		 (make-instance (if (eq event-key :button-press)
-				    'pointer-button-press-event
-				    'pointer-button-release-event)
-		   :x x
-		   :y y
-		   :native-x root-x
-		   :native-y root-y
-		   :button (x-button-code-to-event-button code)
-		   :modifiers modifier-state
-		   :pointer (port-pointer port)
-		   :sheet sheet)))
+	       (when sheet
+		 (distribute-event
+		   port 
+		   (make-instance (if (eq event-key :button-press)
+				      'pointer-button-press-event
+				      'pointer-button-release-event)
+		     :x root-x
+		     :y root-y
+		     :native-x x
+		     :native-y y
+		     :button (x-button-code-to-event-button code)
+		     :modifiers modifier-state
+		     :pointer (port-pointer port)
+		     :sheet sheet))))
 	     t))
 	  ((:key-press :key-release)
 	   (event-key event-window x y state code)
-	   (let* ((keysym (clx-keysym->keysym
+	   (let* ((sheet (mirror->sheet port event-window))
+		  (keysym (clx-keysym->keysym
 			    (xlib:keycode->keysym 
 			      display code
 			      (xlib:default-keysym-index display code state))))
-		  (sheet (mirror->sheet port event-window))
-		  (modifier-state (state-mask->modifier-state state display))
+		  (keysym-shift-mask
+		    (if (typep keysym 'silica::modifier-keysym)
+			(make-modifier-state
+			  (case keysym
+			    ((:left-shift :right-shift) :shift)
+			    ((:left-control :right-control) :control)
+			    ((:left-meta :right-meta) :meta)
+			    ((:left-super :right-super) :super)
+			    ((:left-hyper :right-hyper) :hyper)))
+			0))
+		  (modifier-state 
+		    (if (eq event-key :key-press)
+			(logior (state-mask->modifier-state state display)
+				keysym-shift-mask)
+			(logandc2 (state-mask->modifier-state state display)
+				  keysym-shift-mask)))
 		  ;; Canonicalize the only interesting key right here.
 		  ;; If we get a key labelled "Return", we canonicalize it
 		  ;; into #\Newline.
@@ -240,17 +250,17 @@
 		  ;; in the short run.
 		  (char (cond ((and (eq keysym ':return)
 				    (or (zerop modifier-state)
-					(= modifier-state #.(make-modifier-state :shift))))
+					(= modifier-state (make-modifier-state :shift))))
 			       #\Newline)
 			      (t (xlib:keycode->character display code state)))))
-	     (when (characterp char)
+	     (when sheet
 	       (distribute-event
 		 port
 		 (make-instance (if (eq event-key :key-press)
 				    'key-press-event
 				    'key-release-event)
 		   :key-name keysym
-		   :character char
+		   :character (and (characterp char) char)
 		   :modifiers modifier-state
 		   :sheet sheet)))
 	     t))
@@ -297,7 +307,7 @@
 	  (:client-message (type data event-window)
 	   (case type
 	     (:wm_protocols
-	       (let ((atom (xlib:atom-name x-display (aref data 0))))
+	       (let ((atom (xlib:atom-name display (aref data 0))))
 		 (case atom
 		   (:wm_delete_window
 		     (let* ((sheet (mirror->sheet port event-window))

@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: port.lisp,v 1.13 92/05/22 19:26:59 cer Exp $
+;; $fiHeader: port.lisp,v 1.14 92/07/01 15:45:13 cer Exp $
 
 (in-package :silica)
 
@@ -33,13 +33,18 @@
 			      #-(or Allegro Lucid Genera) nil)
 
 (defvar *ports* nil)
-(defvar *port-type-mapping* nil)
 
 (defun find-port (&key (server-path *default-server-path*))
   (map-over-ports #'(lambda (port)
 		      (when (port-match port server-path) 
 			(return-from find-port port))))
   (make-port :server-path server-path))
+
+#+Genera
+(scl:add-initialization "Reset ports"
+  '(progn
+     (setq *ports* nil))
+  '(before-cold))
 
 (defun port-match (port server-path)
   (equal (port-server-path port) server-path))
@@ -62,7 +67,7 @@
 
 (defgeneric port (x))
 
-(defmethod port ((port port)) port)
+(defmethod port ((port basic-port)) port)
 
 (defmethod port ((object t)) nil)
 
@@ -86,7 +91,7 @@
 			      (port-server-path port)))))
 
 (defgeneric port-event-loop (port))
-(defmethod port-event-loop ((port port))
+(defmethod port-event-loop ((port basic-port))
   (loop
     (process-next-event port)))
 
@@ -104,11 +109,11 @@
 (define-protocol-class graft ())
 
 (defclass standard-graft 
-    (mirrored-sheet-mixin
-     sheet-multiple-child-mixin
-     sheet-transformation-mixin
-     sheet
-     graft)
+	  (mirrored-sheet-mixin
+	   sheet-multiple-child-mixin
+	   sheet-transformation-mixin
+	   sheet
+	   graft)
     ((port :initarg :port :reader port)
      (lock :initform (make-lock "a graft lock") :reader graft-lock)
      (orientation :reader graft-orientation :initarg :orientation)
@@ -195,6 +200,10 @@
 
 
 (defgeneric graft (x))
+
+;;--- Not strictly necessary any more, since the graft points to itself
+(defmethod graft ((graft standard-graft)) graft)
+
 (defmethod graft ((object t)) nil)
 
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gestures.lisp,v 1.6 92/04/15 11:46:36 cer Exp $
+;; $fiHeader: gestures.lisp,v 1.7 92/05/22 19:27:56 cer Exp $
 
 (in-package :clim-internals)
 
@@ -14,6 +14,8 @@
 ;;; 1) The set of possible modifier bits is :CONTROL, :SHIFT, :META, :SUPER, and :HYPER,
 ;;;    as per CLtL.
 ;;; 2) The set of possible "mouse buttons" is :LEFT, :MIDDLE, and :RIGHT.
+
+(eval-when (compile load eval)
 
 (defun-inline button-index (name)
   #+Genera (declare lt:(side-effects simple reducible))
@@ -37,6 +39,13 @@
       (let ((bit (modifier-key-index name)))
 	(setf state (dpb 1 (byte 1 bit) state))))
     state))
+
+(define-compiler-macro make-modifier-state (&whole form &rest modifiers)
+  (if (every #'constantp modifiers)
+      (apply #'make-modifier-state modifiers)
+      form))
+
+)	;eval-when
 
 ;; A table indexed by mouse button and modifier state [now (3 x 32)].
 ;; Each bucket in the table contains a sequence of gesture names.
@@ -182,12 +191,12 @@
 	   (equal m1 m2)))))
 
 (defun decode-gesture-spec (gesture-spec &key (errorp t))
-  (declare (values button modifiers))
+  (declare (values keysym modifiers))
   (when (atom gesture-spec)
     (return-from decode-gesture-spec
       (values gesture-spec nil)))
-  (let ((modifiers nil)
-	(button nil))
+  (let ((keysym nil)
+	(modifiers nil))
     (dolist (x gesture-spec)
       (cond ((find x *modifier-keys*)
 	     (if (member x modifiers)
@@ -197,15 +206,45 @@
 			     x gesture-spec)
 		     (return-from decode-gesture-spec nil))
 		 (push x modifiers)))
-	    (button
+	    (keysym
 	     (if errorp
 		 (error "The gesture spec ~S is invalid" gesture-spec)
 		 (return-from decode-gesture-spec nil)))
 	    (t
-	     (setq button x))))
+	     (setq keysym x))))
     ;;--- This should canonicalize #\a into :A, and #\A into :A (:SHIFT),
     ;;--- and so forth.
-    (values button (nreverse modifiers))))
+    (values keysym (nreverse modifiers))))
+
+(defun parse-gesture-spec (gesture-spec)
+  (declare (values keysym modifier-state))
+  (when (atom gesture-spec)
+    (return-from parse-gesture-spec
+      (values gesture-spec 0)))
+  (let ((button nil)
+	(modifier-state 0))
+    (dolist (x gesture-spec)
+      (if (find x *modifier-keys*)
+	  (let ((bit (modifier-key-index x)))
+	    (setf modifier-state (dpb 1 (byte 1 bit) modifier-state)))
+	  (setq button (or button x))))
+    ;;--- This should canonicalize #\a into :A, and #\A into :A (:SHIFT),
+    ;;--- and so forth.
+    (values button modifier-state)))
+
+(defmethod port-canonicalize-gesture-spec :around ((port basic-port) gesture-spec)
+  (multiple-value-bind (button modifier-state) 
+      (parse-gesture-spec gesture-spec)
+    (with-stack-list (key button modifier-state)
+      (let ((table (port-canonical-gesture-specs port)))
+	(multiple-value-bind (value found-p) (gethash key table)
+	  (if found-p
+	      value
+	      (setf (gethash (evacuate-list key) table)
+		    (call-next-method port gesture-spec))))))))
+
+(defmethod port-invalidate-gesture-specs ((port basic-port))
+  (clrhash (port-canonical-gesture-specs port)))
 
 
 (defvar *modifier-state-specifiers* nil)

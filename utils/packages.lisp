@@ -1,10 +1,11 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: packages.lisp,v 1.19 92/06/23 08:19:34 cer Exp $
+;; $fiHeader: packages.lisp,v 1.20 92/07/01 15:45:39 cer Exp $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :common-lisp-user)
 
 "Copyright (c) 1991 Symbolics, Inc.  All rights reserved."
+
 
 ;; Define the CLIM-LISP package, a package designed to mimic ANSI Common Lisp
 ;; as closely as possible (including CLOS).
@@ -1774,6 +1775,7 @@
     medium-background
     medium-clipping-region
     medium-default-text-style
+    medium-drawable
     medium-foreground
     medium-ink
     medium-line-style
@@ -1973,8 +1975,6 @@
     draw-text
     draw-text*
     medium-copy-area
-    medium-copy-from-pixmap
-    medium-copy-to-pixmap
     medium-draw-character*
     medium-draw-ellipse*
     medium-draw-line*
@@ -2102,6 +2102,7 @@
     replay
     replay-output-record
     standard-output-recording-stream
+    standard-sequence-output-history
     standard-sequence-output-record
     standard-tree-output-history
     standard-tree-output-record
@@ -2281,8 +2282,6 @@
     accept-method
     accept-present-default
     accept-present-default-method
-    accept-values-pane
-    accept-values-pane-displayer
     apply-presentation-generic-function
     and
     blank-area
@@ -2459,6 +2458,8 @@
     ;; Dialogs
     accept-values
     accept-values-command-button
+    accept-values-pane
+    accept-values-pane-displayer
     accept-values-resynchronize
     accepting-values
     display-exit-boxes
@@ -2971,7 +2972,8 @@
     window-visibility
     windowp
     window-top-level-window
-    with-temporary-string)
+    with-temporary-string
+    with-temporary-substring)
 
   ;; CLIM 1.0 compatibility stubs
   #+CLIM-1-compatibility
@@ -3275,6 +3277,7 @@
     bounding-rectangle-shift-position
     bounding-rectangle-size-equal
     bounding-rectangle-center
+    bounding-rectangle-center*
     position-difference
 
     ;; LTRBs
@@ -3329,6 +3332,7 @@
     stencil
     stencil-array))
 
+
 (#-(or ANSI-90 Lucid) clim-lisp::defpackage #+(or ANSI-90 Lucid) defpackage clim-silica
   (:nicknames silica pyrex)
   (:use	clim-lisp clim-sys clim clim-utils)
@@ -3364,6 +3368,7 @@
     activate-gadget-event
     add-sheet-callbacks
     all-drawing-options-lambda-list
+    basic-pixmap-medium
     bury-mirror
     canvas
     change-scroll-bar-values
@@ -3379,6 +3384,8 @@
     compute-gadget-label-size
     compute-list-pane-selected-items
     compute-symmetric-value
+    compute-text-x-adjustment
+    compute-text-y-adjustment
     copy-event
     copy-space-requirement
     default-space-requirements
@@ -3393,6 +3400,8 @@
     diacritic-char-p
     display-device 
     distribute-event-1
+    draw-gadget-label
+    fetch-medium-drawable
     find-port-type
     fit-region*-in-region*
     foreground-background-and-text-style-mixin
@@ -3406,8 +3415,8 @@
     gadget-alignment
     gadget-event
     gadget-supplied-scrolling
+    generic-scroller-pane
     get-drawing-function-description
-    get-port-canonical-gesture-spec
     graft-mm-height
     graft-mm-width
     graft-pixel-height
@@ -3415,6 +3424,7 @@
     grid-pane
     intern-text-style
     invoke-callback-function
+    invoke-with-output-to-pixmap
     invoke-with-sheet-medium
     label-button-pane
     layout-mixin
@@ -3424,6 +3434,7 @@
     make-medium
     make-pane-arglist
     make-pane-class
+    make-pixmap-medium
     map-endpoint-sequence
     map-position-sequence
     medium-+y-upward-p
@@ -3451,18 +3462,22 @@
     option-pane
     parse-gesture-spec
     permanent-medium-sheet-output-mixin
+    pixmap-sheet
     pointer-press-event
     pointer-release-event
     port-allocate-pixmap
-    port-canonical-gesture-spec
+    port-canonical-gesture-specs
+    port-canonicalize-gesture-spec
     port-color-cache
     port-cursor
+    port-deallocate-pixmap
     port-display
     port-event-loop
     port-event-wait
     port-glyph-for-character
     port-graft-class
     port-grafts
+    port-invalidate-gesture-specs
     port-mirror->sheet-table
     port-modifier-state
     port-note-cursor-change
@@ -3507,6 +3522,7 @@
     standardize-text-style-1
     stream-scan-character-for-writing
     stream-scan-string-for-writing
+    stream-scan-string-for-writing-1
     string-height 
     string-width 
     text-style-index
@@ -3527,6 +3543,7 @@
     window-shift-visible-region
     with-medium-clipping-region
     wrapping-space-mixin))
+
 
 (#-(or ANSI-90 Lucid) clim-lisp::defpackage #+(or ANSI-90 Lucid) defpackage clim-internals
   (:use	clim-lisp clim-sys clim clim-utils clim-silica)

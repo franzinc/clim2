@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: GENERA-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: genera-mirror.lisp,v 1.5 92/05/22 19:28:56 cer Exp $
+;; $fiHeader: genera-mirror.lisp,v 1.6 92/07/01 15:47:31 cer Exp $
 
 (in-package :genera-clim)
 
@@ -31,8 +31,9 @@
 		 :superior genera-parent
 		 :name name
 		 :sheet sheet
-		 :save-bits t
+		 :save-bits :delayed
 		 :deexposed-typeout-action :permit
+		 ;;--- :blinker-p t
 		 :label nil  ;;name
 		 ;; Want inside/outside coord system to match if possible
 		 :borders nil
@@ -210,6 +211,13 @@
       ;; This is like :SAVE-BITS :DELAYED
       (setf (tv:sheet-save-bits) 1))))
 
+#+++ignore
+(scl:defmethod (:init genera-window :after) (args)
+  (declare (ignore args))
+  (let ((blinker (first (scl:send scl:self :blinker-list))))
+    (when blinker 
+      (scl:send blinker :set-visibility nil))))
+
 (scl:defmethod (:init temporary-genera-window :after) (args)
   (declare (ignore args))
   (setf (tv:sheet-save-bits) 0))
@@ -236,13 +244,13 @@
 	   (scl:lexpr-send selected-inferior :select args))
 	  ((and (null selected-inferior)
 		tv:inferiors
-		(let ((frame (window-stream-to-frame sheet)))
+		(let ((frame (pane-frame sheet)))
 		  (when frame
-		    ;; This is a frame whose input focus has not yet been directed to any pane
-		    ;; Choose the interactor pane by default
+		    ;; This is a frame whose input focus has not yet been directed to
+		    ;; any pane.  Choose the interactor pane by default.
 		    (let ((stream (frame-query-io frame)))
 		      (when stream
-			(scl:lexpr-send (slot-value (sheet-medium stream) 'window)
+			(scl:lexpr-send (medium-drawable (sheet-medium stream))
 					:select args)
 			t))))))
 	  (t
@@ -338,7 +346,8 @@
 ;;--- Problem: we disable the viewport that corresponds to the Genera
 ;;--- window, but that leaves the window stream enabled.  Should en/disable
 ;;--- on the viewport forward to the drawing-surface?
-(scl:defmethod (:deexpose genera-window :after) (&rest ignore)
+(scl:defmethod (:deexpose genera-window :after) (&rest args)
+  (declare (ignore args))
   (unless *port-trigger*
     (let ((*port-trigger* t))
       ;;--- Want to call shrink-sheet, but that doesn't appear to be supported
@@ -356,6 +365,7 @@
 
 ;;; Save this state (rather than using (mouse-x mouse)) 'cause the coords
 ;;; are in window coordinates already.
+;;;--- All of these should be per-console
 (defvar *mouse-moved* nil)
 (defvar *mouse-x* nil)
 (defvar *mouse-y* nil)
@@ -367,11 +377,10 @@
 (defvar *old-mouse-x* nil)
 (defvar *old-mouse-y* nil)
 
-;;; Really should be per console, as with all of these special variables.
 (defvar *old-mouse-chord-shifts* 0)
 
 (defun-inline buttons-up (old-buttons new-buttons)
-  #+Genera (declare (values buttons-up buttons-down))
+  (declare (values buttons-up buttons-down))
   (values (boole boole-andc2 old-buttons new-buttons)
 	  (boole boole-andc2 new-buttons old-buttons)))
 
@@ -507,8 +516,8 @@
 ;;; are then passed back to dispatch.  I use the event-naming keywords used by
 ;;; the QUEUE-INPUT method.
 
-;;; --- What should we do with non-:MOUSE-BUTTON blips?  What we
-;;; --- currently do is just drop them on the floor...
+;;;--- What should we do with non-mouse button blips?  What we
+;;;--- currently do is just drop them on the floor...
 (defmethod process-next-event ((port genera-port) 
 			       &key (timeout nil) (wait-function nil)
 				    ((:state whostate) "Genera Event"))
@@ -539,10 +548,10 @@
     (cond (*mouse-moved*
 	   (let-state ((mouse-moved     (shiftf *mouse-moved* nil))	;capture and reset
 		       (mouse-window	*mouse-window*)
-		       (mouse-x		*mouse-x*)
-		       (mouse-y		*mouse-y*)
 		       (old-mouse-x     *old-mouse-x*)
 		       (old-mouse-y     *old-mouse-y*)
+		       (mouse-x		*mouse-x*)
+		       (mouse-y		*mouse-y*)
 		       (mouse-buttons	*mouse-buttons*)
 		       (mouse-button-released (shiftf *mouse-button-released* nil)))
 	     (multiple-value-bind (left top)
@@ -596,24 +605,26 @@
 		    (sheet (genera-window-sheet genera-window)))
 	       (when sheet
 		 (let ((state (current-modifier-state 0 (tv:sheet-mouse genera-window))))
-		   #+++ignore
 		   (when shifts-up
 		     (map-over-genera-shift-keysyms (shift-keysym shifts-up)
-		       (distribute *mouse-x* *mouse-y*
-				   :event-key ':key-release
-				   :keysym shift-keysym
-				   :char nil
-				   :keyboard-p T
-				   :state state)))
-		   #+++ignore
+		       (distribute-event
+			 port
+			 (make-instance 'key-release-event
+			   :key-name shift-keysym
+			   :character nil
+			   :modifiers (current-modifier-state 
+					0 (tv:sheet-mouse genera-window))
+			   :sheet sheet))))
 		   (when shifts-down
 		     (map-over-genera-shift-keysyms (shift-keysym shifts-down)
-		       (distribute *mouse-x* *mouse-y*
-				   :event-key ':key-press
-				   :keysym shift-keysym
-				   :char nil
-				   :keyboard-p T
-				   :state state))))))))
+		       (distribute-event
+			 port
+			 (make-instance 'key-press-event
+			   :key-name shift-keysym
+			   :character nil
+			   :modifiers (current-modifier-state 
+					0 (tv:sheet-mouse genera-window))
+			   :sheet sheet)))))))))
 	  ;; Make sure we read from the same window that :LISTEN return T on, even
 	  ;; if the selected window state has changed.
 	  ((and genera-window			; must be a genera-window
@@ -657,7 +668,11 @@
 			  (mouse-y (fifth thing))
 			  (code (tv:char-mouse-button (second thing)))
 			  (window (third thing))
-			  (button (genera-button-number->standard-button-name code)))
+			  (button (genera-button-number->standard-button-name code))
+			  (modifiers
+			    (convert-genera-shift-state
+			      (make-state-from-buttons (ash 1 code))
+			      (tv:char-mouse-bits (second thing)))))
 		     (when sheet
 		       (multiple-value-bind (left top)
 			   (if *mouse-window*
@@ -673,8 +688,7 @@
 			       :native-x native-x
 			       :native-y native-y
 			       :button button
-			       :modifiers (current-modifier-state
-					    0 (tv:sheet-mouse window))
+			       :modifiers modifiers
 			       :pointer (port-pointer port)
 			       :sheet sheet))))))))))))))
 
@@ -694,14 +708,16 @@
 (defun current-modifier-state (&optional (state 0) (mouse tv:main-mouse))
   ;; Take only the upper bits of state, compute the lower bits from the current
   ;; shifts.
-  (let ((shifts (tv:mouse-chord-shifts mouse))
-	(state (logand state #xFF00)))
+  (convert-genera-shift-state state (tv:mouse-chord-shifts mouse)))
+
+(defun convert-genera-shift-state (button-state shift-state)
+  (let ((state (logand button-state #xFF00)))
     (macrolet ((do-shift (shift)
-		 `(when (si:bit-test (si:name-bit ,shift) shifts)
+		 `(when (si:bit-test (si:name-bit ,shift) shift-state)
 		    (let ((bit (clim-internals::modifier-key-index ,shift)))
 		      (setf state (dpb 1 (byte 1 bit) state))))))
-      ;; why is SHIFT different from sys:%kbd-shifts-shift
-      (when (ldb-test (byte 1 4) shifts)
+      ;; Why is SHIFT different from sys:%kbd-shifts-shift?
+      (when (ldb-test (byte 1 4) shift-state)
 	(let ((bit (clim-internals::modifier-key-index :shift)))
 	  (setf state (dpb 1 (byte 1 bit) state))))
       (do-shift :control)

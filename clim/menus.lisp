@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: menus.lisp,v 1.25 92/06/23 08:19:50 cer Exp $
+;; $fiHeader: menus.lisp,v 1.26 92/07/01 15:46:41 cer Exp $
 
 (in-package :clim-internals)
 
@@ -258,7 +258,8 @@
 		   x-spacing y-spacing cell-align-x cell-align-y
 		   pointer-documentation))
   (declare (dynamic-extent keys))
-  (apply #'frame-manager-menu-choose (frame-manager *application-frame*) items keys))
+  (unless (zerop (length items))
+    (apply #'frame-manager-menu-choose (frame-manager *application-frame*) items keys)))
 
 ;; Specific ports can put :AROUND methods on this in order to use their own
 ;; kinds of menus.
@@ -441,10 +442,11 @@
 		   (when *abort-menus-when-buried*
 		     #-Silica (wait-for-window-exposed menu))
 		   (with-mouse-grabbed-in-window (menu)
-		     (loop (read-gesture :stream menu
-					 :input-wait-test #'input-wait-test
-					 :input-wait-handler #'input-wait-handler)
-			   (beep))))
+		     (loop
+		       (read-gesture :stream menu
+				     :input-wait-test #'input-wait-test
+				     :input-wait-handler #'input-wait-handler)
+		       (beep menu))))
 	       (t (values object gesture)))))
       (unless leave-menu-visible
 	(setf (window-visibility menu) nil))

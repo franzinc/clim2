@@ -615,11 +615,11 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
 	 (format printer-stream " stroke~%"))))
 
 
-(defclass postscript-port (standard-port)
+(defclass postscript-port (basic-port)
     ;; 72 points per inch on PostScript devices
     ((device-units-per-inch :initform 72 :allocation :class)))
 
-(defmethod standardize-text-style ((device postscript-device) character-set style)
+(defmethod standardize-text-style ((port postscript-port) style &optional character-set)
   (declare (ignore character-set))
   (let ((size (text-style-size style)))
     (if (numberp size)
@@ -640,11 +640,11 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
 	       *undefined-text-style*))))))
 
 ;; Some people need to be able to specialize this
-(defmethod postscript-device-prologue ((device postscript-device) printer-stream)
+(defmethod postscript-device-prologue ((port postscript-port) printer-stream)
   (declare (ignore printer-stream)))
 
 ;; Some people need to be able to specialize this, too
-(defmethod postscript-device-epilogue ((device postscript-device) printer-stream)
+(defmethod postscript-device-epilogue ((port postscript-port) printer-stream)
   (declare (ignore printer-stream)))
 
 
@@ -655,6 +655,7 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
      (page-width  :initform  7.5)
      (page-height :initform 10.5)))
 
+#||
 ;;; allow a display device to do something appropriate for a line thickness in :normal units
 (defgeneric normal-line-thickness (display-device thickness))
   
@@ -666,6 +667,7 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
       0
       (* 0.5 thickness (/ (slot-value postscript-device 'device-units-per-inch)
 			  (slot-value postscript-device 'x-resolution)))))
+||#
 
 (define-display-device *postscript-device* apple-laser-writer
   :font-for-undefined-style "Courier")

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: tracking-pointer.lisp,v 1.8 92/05/22 19:28:35 cer Exp $
+;; $fiHeader: tracking-pointer.lisp,v 1.9 92/07/01 15:47:08 cer Exp $
 
 (in-package :clim-internals)
 
@@ -87,8 +87,8 @@
 				      :highlight ,do-highlighting))))))
 
 (defun tracking-pointer-1 (stream pointer generator
-				  &key multiple-window transformp 
-				       context-type highlight)
+			   &key multiple-window transformp 
+				context-type highlight)
   (unless pointer
     (setq pointer (stream-primary-pointer stream)))
   (let* ((moved-p nil)
@@ -104,22 +104,8 @@
 	 (presentation-press-function (funcall generator :presentation-button-press))
 	 (presentation-release-function (funcall generator :presentation-button-release))
 	 (keyboard-function (funcall generator :keyboard))
-	 ;; Ask the substrate to generate release events for us, or on
-	 ;; Genera's sheet window system, do it right here.
-	 (*generate-button-release-events*
-	   (or button-release-function presentation-release-function))
-	 ;;--- We shouldn't need to kludge this any more!
-	 #+Genera (generate-release-events
-		    (and *generate-button-release-events*
-			 (eql (port-type (port stream)) ':genera)))
-	 #+Genera (genera-mouse 
-		    (and generate-release-events
-			 (tv:sheet-mouse 
-			   (scl:send (slot-value (sheet-medium stream) 'genera-clim::window)
-				     :screen))))
-	 #+Genera (genera-mouse-buttons 
-		    (and generate-release-events
-			 (tv:mouse-last-buttons genera-mouse)))
+	 ;; Tell the input streams not to discard pointer release events
+	 (*discard-pointer-release-events* nil)
 	 (highlighted-presentation nil)
 	 (highlighted-presentation-type nil)
 	 ;; Bind the input context so that presentation searching works
@@ -144,157 +130,118 @@
 		      highlighted-presentation highlighted-presentation-type
 		      stream :unhighlight)
 		    (setq highlighted-presentation nil))))
-      (flet (#+Genera
-	     ;; Genera's ancient window system cannot be easily cajoled into
-	     ;; doing this, so we'll do it by hand right here.
-	     (make-release-event (window pointer buttons)
-	       (multiple-value-bind (px py) (pointer-position pointer)
-		 (let ((event (make-instance 'pointer-button-release-event
-				:sheet window
-				:x px :y py
-				:button buttons
-				:modifiers (tv:mouse-chord-shifts genera-mouse))))
-		   (when transformp
-		     (multiple-value-bind (tx ty)
-			 (transform-position (medium-transformation window) px py)
-		       (setq px (coordinate tx)
-			     py (coordinate ty))))
-		   (values event px py)))))
-	#+Genera (declare (dynamic-extent #'make-release-event))
-	#+Genera (when (and button-release-function
-			    generate-release-events
-			    (zerop genera-mouse-buttons))
-		   ;; Kludge initial release event
-		   (multiple-value-bind (event wx wy)
-		       (make-release-event stream pointer 0)
-		     (funcall button-release-function event wx wy)))
-	(unwind-protect
-	    (loop
-	      ;; Handle pointer motion
-	      (block handle-simple-motion
-		(when (or motion-function presentation-motion-function highlight)
-		  (when multiple-window
-		    (setq current-window (or (pointer-sheet pointer) (graft pointer))))
-		  (multiple-value-bind (x y) (pointer-position pointer)
-		    (when moved-p
-		      (setq moved-p nil)
-		      (setq last-x x last-y y
-			    last-window current-window)
-		      ;; Pointer position is in root (graft) coordinates
-		      (when (or presentation-motion-function highlight)
-			(let ((presentation
-				(frame-find-innermost-applicable-presentation
-				  *application-frame* *input-context*
-				  current-window x y)))
-			  (when presentation
-			    (when highlight
-			      (unless (eq presentation highlighted-presentation)
-				(unhighlight)
-				(highlight presentation)))
-			    (when presentation-motion-function
-			      (funcall presentation-motion-function
-				       presentation current-window x y))
-			    (return-from handle-simple-motion))))
-		      (unhighlight)
-		      (when motion-function
-			(when transformp
-			  (multiple-value-bind (tx ty)
-			      (transform-position
-				(medium-transformation current-window) x y)
-			    (setq x (coordinate tx)
-				  y (coordinate ty))))
-			(funcall motion-function current-window x y))))))
-	      (block input-wait
-		(loop
-		  ;; Handle any clicks or characters, otherwise wait for something
-		  ;; interesting to happen.
-		  (when multiple-window
-		    (setq current-window (or (pointer-sheet pointer) (graft pointer))))
-		  (flet ((pointer-motion-pending (window)
-			   (when (and (or multiple-window
-					  (eq current-window (pointer-sheet pointer)))
-				      (eq (stream-primary-pointer window) pointer))
-			     (multiple-value-setq (moved-p last-window last-x last-y)
-			       (pointer-state-changed pointer last-window last-x last-y))
-			     (or (and moved-p last-window)
-				 #+Genera (and generate-release-events
-					       (not (zerop genera-mouse-buttons))
-					       (zerop (tv:mouse-last-buttons genera-mouse)))))))
-		    (declare (dynamic-extent #'pointer-motion-pending))
-		    (setq input-happened
-			  (stream-input-wait current-window
-					     :input-wait-test #'pointer-motion-pending)))
-		  ;; Don't call READ-GESTURE if there is no gesture to read
-		  ;;--- This has the possibly undesirable side-effect that the
-		  ;;--- "input focus" will follow the mouse, having particularly 
-		  ;;--- weird behavior regarding keystrokes.
-		  (let ((gesture
-			  (cond #+Genera
-				((and generate-release-events
-				      (not (zerop genera-mouse-buttons))
-				      (zerop (tv:mouse-last-buttons genera-mouse)))
-				 (prog1 
-				   (when button-release-function
-				     (make-release-event
-				       current-window pointer genera-mouse-buttons))
-				   (setq genera-mouse-buttons 0)))
-				(input-happened
-				 (read-gesture :stream current-window :timeout 0)))))
-		    (block process-gesture
-		      (cond ((null gesture)
-			     (return-from input-wait))
-			    ((keyboard-event-p gesture)
-			     (when keyboard-function
-			       (funcall keyboard-function gesture)
-			       (return-from process-gesture)))
-			    ((or (typep gesture 'pointer-button-press-event)
-				 (typep gesture 'pointer-button-release-event))
-			     (let* ((px (pointer-event-x gesture))
-				    (py (pointer-event-y gesture))
-				    (wx px)
-				    (wy py))
-			       (when transformp
-				 (multiple-value-bind (tx ty)
-				     (transform-position
-				       (medium-transformation current-window) px py)
-				   (setq wx (coordinate tx)
-					 wy (coordinate ty))))
-			       (typecase gesture
-				 (pointer-button-press-event
-				   #+Genera (when generate-release-events
-					      (setq genera-mouse-buttons
-						    (pointer-event-button gesture)))
-				   (when presentation-press-function
-				     (let* ((window (event-sheet gesture))
-					    (presentation
-					      (frame-find-innermost-applicable-presentation
-						*application-frame* *input-context*
-						window px py :event gesture)))
-				       (when presentation
-					 (funcall presentation-press-function
-						  presentation gesture wx wy)
-					 (return-from process-gesture))))
-				   (when button-press-function
-				     (funcall button-press-function gesture wx wy))
-				   (return-from process-gesture))
-				 (t		;pointer-button-release-event
-				   (when presentation-release-function
-				     (let* ((window (event-sheet gesture))
-					    (presentation
-					      (frame-find-innermost-applicable-presentation
-						*application-frame* *input-context*
-						window px py :event gesture)))
-				       (when presentation
-					 (funcall presentation-release-function
-						  presentation gesture wx wy)
-					 (return-from process-gesture))))
-				   (when button-release-function
-				     (funcall button-release-function gesture wx wy))
-				   (return-from process-gesture))))))
-		      (beep))))))
-	  (unhighlight)
-	  (when last-window
-	    (unhighlight-highlighted-presentation last-window)))))))
+      (unwind-protect
+	  (loop
+	    ;; Handle pointer motion
+	    (block handle-simple-motion
+	      (when (or motion-function presentation-motion-function highlight)
+		(when multiple-window
+		  (setq current-window (or (pointer-sheet pointer) (graft pointer))))
+		(multiple-value-bind (x y) (pointer-position pointer)
+		  (when moved-p
+		    (setq moved-p nil)
+		    (setq last-x x last-y y
+			  last-window current-window)
+		    ;; Pointer position is in root (graft) coordinates
+		    (when (or presentation-motion-function highlight)
+		      (let ((presentation
+			      (frame-find-innermost-applicable-presentation
+				*application-frame* *input-context*
+				current-window x y)))
+			(when presentation
+			  (when highlight
+			    (unless (eq presentation highlighted-presentation)
+			      (unhighlight)
+			      (highlight presentation)))
+			  (when presentation-motion-function
+			    (funcall presentation-motion-function
+				     presentation current-window x y))
+			  (return-from handle-simple-motion))))
+		    (unhighlight)
+		    (when motion-function
+		      (when transformp
+			(multiple-value-bind (tx ty)
+			    (transform-position
+			      (medium-transformation current-window) x y)
+			  (setq x (coordinate tx)
+				y (coordinate ty))))
+		      (funcall motion-function current-window x y))))))
+	    (block input-wait
+	      (loop
+		;; Handle any clicks or characters, otherwise wait for something
+		;; interesting to happen.
+		(when multiple-window
+		  (setq current-window (or (pointer-sheet pointer) (graft pointer))))
+		(flet ((pointer-motion-pending (window)
+			 (when (and (or multiple-window
+					(eq current-window (pointer-sheet pointer)))
+				    (eq (stream-primary-pointer window) pointer))
+			   (multiple-value-setq (moved-p last-window last-x last-y)
+			     (pointer-state-changed pointer last-window last-x last-y))
+			   (and moved-p last-window))))
+		  (declare (dynamic-extent #'pointer-motion-pending))
+		  (setq input-happened
+			(stream-input-wait current-window
+					   :input-wait-test #'pointer-motion-pending)))
+		;; Don't call READ-GESTURE if there is no gesture to read
+		;;--- This has the possibly undesirable side-effect that the
+		;;--- "input focus" will follow the mouse, having particularly 
+		;;--- weird behavior regarding keystrokes.
+		(let ((gesture
+			(and input-happened
+			     (read-gesture :stream current-window :timeout 0))))
+		  (block process-gesture
+		    (cond ((null gesture)
+			   (return-from input-wait))
+			  ((keyboard-event-p gesture)
+			   (when keyboard-function
+			     (funcall keyboard-function gesture)
+			     (return-from process-gesture)))
+			  ((or (typep gesture 'pointer-button-press-event)
+			       (typep gesture 'pointer-button-release-event))
+			   (let* ((px (pointer-event-x gesture))
+				  (py (pointer-event-y gesture))
+				  (wx px)
+				  (wy py))
+			     (when transformp
+			       (multiple-value-bind (tx ty)
+				   (transform-position
+				     (medium-transformation current-window) px py)
+				 (setq wx (coordinate tx)
+				       wy (coordinate ty))))
+			     (typecase gesture
+			       (pointer-button-press-event
+				 (when presentation-press-function
+				   (let* ((window (event-sheet gesture))
+					  (presentation
+					    (frame-find-innermost-applicable-presentation
+					      *application-frame* *input-context*
+					      window px py :event gesture)))
+				     (when presentation
+				       (funcall presentation-press-function
+						presentation gesture wx wy)
+				       (return-from process-gesture))))
+				 (when button-press-function
+				   (funcall button-press-function gesture wx wy))
+				 (return-from process-gesture))
+			       (t		;pointer-button-release-event
+				 (when presentation-release-function
+				   (let* ((window (event-sheet gesture))
+					  (presentation
+					    (frame-find-innermost-applicable-presentation
+					      *application-frame* *input-context*
+					      window px py :event gesture)))
+				     (when presentation
+				       (funcall presentation-release-function
+						presentation gesture wx wy)
+				       (return-from process-gesture))))
+				 (when button-release-function
+				   (funcall button-release-function gesture wx wy))
+				 (return-from process-gesture))))))
+		    (beep stream))))))
+	(unhighlight)
+	(when last-window
+	  (unhighlight-highlighted-presentation last-window))))))
 
 
 ;;; Miscellaneous utilities

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: recording-protocol.lisp,v 1.14 92/06/29 14:04:48 cer Exp Locker: cer $
+;; $fiHeader: recording-protocol.lisp,v 1.15 92/07/01 15:46:56 cer Exp $
 
 (in-package :clim-internals)
 
@@ -1083,6 +1083,10 @@
 ;;; Mix this in for top-level output histories
 (defclass stream-output-history-mixin () ((stream)))
 
+(defclass standard-sequence-output-history
+	  (stream-output-history-mixin standard-sequence-output-record)
+    ())
+
 (defmethod bounding-rectangle-set-edges ((record stream-output-history-mixin)
 					 nleft ntop nright nbottom)
   #+++ignore (assert (<= nleft nright))
@@ -1121,7 +1125,7 @@
 	    (update-scroll-bars viewport))
 	  (update-region stream nleft ntop nright nbottom))))))
 
-;;; Defclass of OUTPUT-RECORDING-MIXIN, etc. is in STREAM-CLASS-DEFS
+;;; DEFCLASS of OUTPUT-RECORDING-MIXIN, etc. is in STREAM-CLASS-DEFS
 (defmethod initialize-instance :after ((stream output-recording-mixin) &rest args)
   (declare (ignore args))
   (with-slots (output-record) stream
@@ -1304,8 +1308,4 @@
 		(apply continuation continuation-args))
 	      (apply continuation continuation-args))))))
 
-;; This looks kinda useful
 
-(defclass standard-sequence-output-history
-    (stream-output-history-mixin standard-sequence-output-record)
-    ())

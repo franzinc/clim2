@@ -1,8 +1,8 @@
-;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-POSTSCRIPT; Base: 10; Lowercase: Yes -*-
+;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: POSTSCRIPT-CLIM; Base: 10; Lowercase: Yes -*-
 
 ;; $fiHeader: laserwriter-metrics.lisp,v 1.2 92/02/24 13:08:01 cer Exp $
 
-(in-package :clim-postscript)
+(in-package :postscript-clim)
 
 "Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved."
 

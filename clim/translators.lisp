@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: translators.lisp,v 1.5 92/03/10 10:13:00 cer Exp $
+;; $fiHeader: translators.lisp,v 1.6 92/07/01 15:47:10 cer Exp $
 
 (in-package :clim-internals)
 
@@ -566,32 +566,39 @@
 	      (or (presentation-translator-pointer-documentation translator)
 		  (presentation-translator-documentation translator))
 	      (presentation-translator-documentation translator))))
-    (cond ((stringp documentation)
-	   (write-string documentation stream))
-	  (documentation
-	   (funcall documentation 
-		    (presentation-object presentation) presentation context-type
-		    frame event window x y
-		    stream))
-	  (t
-	   (when (eq documentation-type :from-body)
-	     ;; In general, it is not safe to run the body of a translator to get
-	     ;; its documentation, but sometimes that's the only way.  Command
-	     ;; menus are one such example.  (Beware of side-effects from actions.)
-	     (catch 'no-translation		;catch simple action errors
-	       (multiple-value-bind (translated-object translated-type)
-		   (call-presentation-translator translator presentation context-type
-						 frame event window x y)
-		 (present translated-object (or translated-type context-type)
-			  :stream stream :view +pointer-documentation-view+)
-		 (return-from document-presentation-translator (values)))))
-	   ;; If we didn't get asked to run the body for the purpose of command
-	   ;; menus, then we might be able to take a different kind of short
-	   ;; cut for to-command translators.
-	   (when (eq (presentation-type-name (presentation-translator-to-type translator))
-		     'command)
-	     (return-from document-presentation-translator
-	       (document-presentation-to-command-translator
-		 translator presentation context-type frame event window x y stream)))
-	   ;; Final fallback, not pretty
-	   (format stream "Translator ~S" (presentation-translator-name translator))))))
+    (handler-bind ((error
+		     ;; Don't blow out if there was an error, just be ugly
+		     #'(lambda (error)
+			 (declare (ignore error))
+			 (format stream "Translator ~S"
+			   (presentation-translator-name translator)))))
+      (cond ((stringp documentation)
+	     (write-string documentation stream))
+	    (documentation
+	     (funcall documentation 
+		      (presentation-object presentation) presentation context-type
+		      frame event window x y
+		      stream))
+	    (t
+	     (when (eq documentation-type :from-body)
+	       ;; In general, it is not safe to run the body of a translator to get
+	       ;; its documentation, but sometimes that's the only way.  Command
+	       ;; menus are one such example.  (Beware of side-effects from actions.)
+	       (catch 'no-translation		;catch simple action errors
+		 (multiple-value-bind (translated-object translated-type)
+		     (call-presentation-translator translator presentation context-type
+						   frame event window x y)
+		   (present translated-object (or translated-type context-type)
+			    :stream stream :view +pointer-documentation-view+)
+		   (return-from document-presentation-translator (values)))))
+	     ;; If we didn't get asked to run the body for the purpose of command
+	     ;; menus, then we might be able to take a different kind of short
+	     ;; cut for to-command translators.
+	     (when (eq (presentation-type-name (presentation-translator-to-type translator))
+		       'command)
+	       (return-from document-presentation-translator
+		 (document-presentation-to-command-translator
+		   translator presentation context-type frame event window x y stream)))
+	     ;; Final fallback, not pretty
+	     (format stream "Translator ~S"
+	       (presentation-translator-name translator)))))))

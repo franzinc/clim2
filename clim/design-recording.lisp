@@ -2,9 +2,9 @@
 
 (in-package :clim-internals)
 
-;;; $fiHeader$
-
+;;; $fiHeader: design-recording.lisp,v 1.1 92/07/01 16:02:26 cer Exp $
 "Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved."
+
 
 ;;; Designs meet output records
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: interactive-protocol.lisp,v 1.10 92/06/23 08:19:48 cer Exp $
+;; $fiHeader: interactive-protocol.lisp,v 1.11 92/07/01 15:46:39 cer Exp $
 
 (in-package :clim-internals)
 
@@ -838,7 +838,7 @@
 	 (with-stack-list (context 'input-editor :stream stream)
 	   (with-input-context (context) ()
 		(funcall continuation stream)
-	      (t (beep)))))
+	      (t (beep stream)))))
 	(t
 	 (letf-using-resource (stream input-editing-stream class stream)
 	   (setf (original-stream-recording-p stream) (stream-recording-p stream))
@@ -869,7 +869,7 @@
 			   (let #+Genera ((sys:rubout-handler :read)) #-Genera ()
 			     (with-input-context (context) ()
 				  (funcall continuation stream)
-				(t (beep))))))))))
+				(t (beep stream))))))))))
 	     ;; Need to put the input buffer into the history, if it would
 	     ;; have gone in anyway.
 	     ;; What about making presentations out of the stuff in the input buffer?

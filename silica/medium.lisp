@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: medium.lisp,v 1.16 92/06/16 15:01:16 cer Exp $
+;; $fiHeader: medium.lisp,v 1.17 92/07/01 15:45:09 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -8,7 +8,8 @@
  Portions copyright (c) 1991, 1992 Franz, Inc.  All rights reserved."
 
 (defmethod engraft-medium ((medium basic-medium) port sheet)
-  (declare (ignore sheet port))
+  (declare (ignore port))
+  (setf (medium-sheet medium) sheet)
   nil)
 
 (defmethod degraft-medium ((medium basic-medium) port sheet)
@@ -129,6 +130,11 @@
   (declare (dynamic-extent options))
   (with-sheet-medium (medium sheet)
     (apply #'invoke-with-drawing-options medium continuation options)))
+
+;; For string streams, sigh
+(defmethod invoke-with-drawing-options ((stream t) continuation &rest options)
+  (declare (ignore options))
+  (funcall continuation))
 
 ;;--- CLIM 1.0 had this stuff that frobbed the clipping region.  Is it right?
 #+++ignore

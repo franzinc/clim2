@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: resources.lisp,v 1.26 92/06/29 14:04:22 cer Exp Locker: cer $
+;; $fiHeader: resources.lisp,v 1.27 92/07/01 15:44:36 cer Exp $
 
 (in-package :tk)
 
@@ -568,7 +568,6 @@
   (declare (ignore parent))
   0)
 
-
 
 
 (defmethod convert-resource-in ((widget t) (type (eql 'widget-list)) x)
@@ -593,7 +592,7 @@
   (and (not (zerop x))
        (intern-widget x :display (widget-display widget))))
 
-;;; Accelerator table stuff
+;; Accelerator table stuff
 (defmethod convert-resource-in (parent (type (eql 'xt::accelerator-table))
 				(value (eql 0)))
   (declare (ignore parent))

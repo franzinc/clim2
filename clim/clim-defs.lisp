@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clim-defs.lisp,v 1.8 92/06/16 15:01:35 cer Exp $
+;; $fiHeader: clim-defs.lisp,v 1.9 92/07/01 15:46:09 cer Exp $
 
 (in-package :clim-internals)
 
@@ -301,6 +301,8 @@
 (defvar *application-frame*)
 (defvar *pointer-documentation-output* nil)
 (defvar *assume-all-commands-enabled* nil)
+
+;; Bound to T when the frame is being layed out
 (defvar *sizing-application-frame* nil)
 
 (defmacro with-application-frame ((frame) &body body)

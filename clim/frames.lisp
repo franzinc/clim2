@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: frames.lisp,v 1.29 92/07/06 18:51:36 cer Exp Locker: cer $
+;; $fiHeader: frames.lisp,v 1.30 92/07/06 19:55:56 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -72,22 +72,22 @@
 (defmethod initialize-instance :after ((frame standard-application-frame) 
 				       &rest args
 				       &key frame-manager
-				       geometry icon
-				       (parent frame-manager parent-p))
+					    geometry icon
+					    (parent frame-manager parent-p))
   (declare (ignore args))
   (destructuring-bind (&key left top width height) geometry
     (declare (ignore left top width height)))
   (destructuring-bind (&key name pixmap clipping-mask) icon
     (declare (ignore name pixmap clipping-mask)))
   (let ((frame-manager
-	 (etypecase parent
-	   (null (unless parent-p (find-frame-manager)))
-	   (list (apply #'find-frame-manager parent))
-	   (frame-manager parent)
-	   (application-frame (frame-manager parent))
-	   (port (find-frame-manager :port parent))
-	   (graft (find-frame-manager :port (port parent)))
-	   (sheet (frame-manager (pane-frame parent))))))
+	  (etypecase parent
+	    (null (unless parent-p (find-frame-manager)))
+	    (list (apply #'find-frame-manager parent))
+	    (frame-manager parent)
+	    (application-frame (frame-manager parent))
+	    (port (find-frame-manager :port parent))
+ 	    (graft (find-frame-manager :port (port parent)))
+	    (sheet (frame-manager (pane-frame parent))))))
     (setf (slot-value frame 'frame-manager) frame-manager)
     (when frame-manager
       (adopt-frame frame-manager frame))))
@@ -404,6 +404,12 @@
   (declare (non-dynamic-extent options))
   `(make-clim-application-pane ,@options))
 
+;;--- :display-after-commands:no-clear
+(define-pane-type :accept-values (&rest options &key (scroll-bars :vertical))
+  (declare (non-dynamic-extent options))
+  `(make-clim-stream-pane :type 'accept-values-pane
+			  :scroll-bars ,scroll-bars ,@options))
+
 ;;--- :default-text-style '(:sans-serif :bold :normal)
 ;;--- :display-after-commands nil
 ;;--- :default-size :compute
@@ -412,15 +418,9 @@
   (declare (non-dynamic-extent options))
   `(make-pane 'pointer-documentation-pane ,@options))
 
-
-(define-pane-type :accept-values (&rest options &key (scroll-bars :both))
-  (declare (non-dynamic-extent options))
-  `(make-clim-stream-pane :type 'accept-values-pane :scroll-bars ,scroll-bars ,@options))
-
 (define-pane-type scroll-bar (&rest options)
   (declare (non-dynamic-extent options))
   `(make-pane 'scroll-bar ,@options))
-
 
 (define-pane-type slider (&rest options)
   (declare (non-dynamic-extent options))
@@ -687,6 +687,10 @@
 		      #+CCL-2
 		      (let ((results (multiple-value-list (call-next-method))))
 			(return-from run-frame-top-level (values-list results))))))))))
+      ;; We disable the frame here, but it is the responsibility of the
+      ;; top-level function to enable the frame.  For example, if we
+      ;; called ENABLE-FRAME here, ACCEPTING-VALUES would disable the
+      ;; wrong frame.  Sigh.
       (disable-frame frame))))
 
 (defmethod run-frame-top-level ((frame standard-application-frame))
@@ -699,6 +703,7 @@
 				    &key command-parser command-unparser
 					 partial-command-parser
 					 (prompt "Command: "))
+  ;; Enable the frame now
   (unless (eq (frame-state frame) :enabled)
     (enable-frame frame))
   (loop
@@ -813,16 +818,18 @@
 	(error "There is no CLIM stream pane named ~S in frame ~S" pane-name frame)))))
 
 (defmethod redisplay-frame-panes (frame &key force-p)
-  (let ((non-av-panes nil))
-    (map-over-sheets #'(lambda (sheet)
-			 (when (typep sheet 'clim-stream-pane)
-			   (if (typep sheet 'accept-values-pane)
-			       (redisplay-frame-pane frame sheet :force-p force-p)
-			     (push sheet non-av-panes))))
-		     (frame-top-level-sheet frame))
-    (dolist (sheet non-av-panes)
-      (redisplay-frame-pane frame sheet :force-p force-p))))
-
+  ;; First display all the :accept-values panes, then display the rest.
+  ;; We do this to ensure that all side-effects from :accept-values panes
+  ;; have taken place.
+  (map-over-sheets #'(lambda (sheet)
+		       (when (typep sheet 'accept-values-pane)
+			 (redisplay-frame-pane frame sheet :force-p force-p)))
+		   (frame-top-level-sheet frame))
+  (map-over-sheets #'(lambda (sheet)
+		       (when (and (typep sheet 'clim-stream-pane)
+				  (not (typep sheet 'accept-values-pane)))
+			 (redisplay-frame-pane frame sheet :force-p force-p)))
+		   (frame-top-level-sheet frame)))
 
 ;;--- What about CLIM 0.9's PANE-NEEDS-REDISPLAY, etc?
 ;;--- What about CLIM 1.0's :DISPLAY-AFTER-COMMANDS :NO-CLEAR?
@@ -1013,14 +1020,6 @@
 	 (if frame (frame-manager frame) (find-frame-manager)) options))
 
 
-(defmethod execute-command-in-frame ((frame standard-application-frame) command)
-  (distribute-event
-    (port frame)
-    (make-instance 'presentation-event
-		   :frame frame
-		   :sheet (frame-top-level-sheet frame)
-		   :value command)))
-
 (define-condition synchronous-command-event ()
   ((command :initarg :command :reader synchronous-command-event-command))
   (:report (lambda (condition stream)
@@ -1073,6 +1072,14 @@
 
 (defun queue-frame-command (frame command)
   (queue-push (frame-command-queue frame) command))
+
+(defmethod execute-command-in-frame ((frame standard-application-frame) command)
+  (distribute-event
+    (port frame)
+    (make-instance 'presentation-event
+      :frame frame
+      :sheet (frame-top-level-sheet frame)
+      :value command)))
 
 
 ;;; Pointer documentation
@@ -1224,4 +1231,3 @@
     (values left   left-presentation   left-context
 	    middle middle-presentation middle-context
 	    right  right-presentation  right-context)))
-

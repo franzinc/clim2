@@ -1,10 +1,11 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
+;; $fiHeader: noting-progress.lisp,v 1.3 92/07/01 15:46:43 cer Exp $
+
 (in-package :clim-internals)
 
-;;; $fiHeader: $
-
 "Copyright (c) 1991, 1992 Symbolics, Inc.  All rights reserved."
+
 
 (defvar *progress-notes* ())
 (defvar *current-progress-note*)

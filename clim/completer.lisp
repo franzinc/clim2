@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: completer.lisp,v 1.6 92/04/15 11:46:17 cer Exp $
+;; $fiHeader: completer.lisp,v 1.7 92/05/07 13:12:04 cer Exp $
 
 (in-package :clim-internals)
 
@@ -77,7 +77,7 @@
 		(progn 
 		  (setq token (read-token stream))
 		  (setq ch (read-gesture :stream stream)))
-	      (t (beep)))
+	      (t (beep stream)))
 	   (extend-vector stuff-so-far token)
 	   (cond ((null ch)
 		  (error "Null ch?"))

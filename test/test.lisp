@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: test.lisp,v 1.32 92/06/29 14:04:56 cer Exp Locker: cer $
+;; $fiHeader: test.lisp,v 1.33 92/07/01 15:47:24 cer Exp $
 
 (in-package :clim-user)
 
@@ -192,7 +192,7 @@
 	      (with-output-as-presentation (stream weird 'some-kinda-gadget)
 		(surrounding-output-with-border (stream)
 		  (with-output-as-gadget (stream)
-		    (make-pane 'slider)))))))
+		    (make-pane 'slider :width 100 :min-height 20)))))))
     (when (member :push-button what)
       (let ((weird (cons nil nil)))
 	(setf (car weird)
@@ -208,7 +208,7 @@
 		(surrounding-output-with-border (stream)
 		  (with-output-as-gadget (stream)
 		    (scrolling ()
-		      (make-pane 'interactor-pane :width 100 :height 40))))))))
+		      (make-pane 'interactor-pane :width 150 :height 60))))))))
     (when (member :radio-box what)
       (let ((weird (cons nil nil)))
 	(setf (car weird)
@@ -782,7 +782,6 @@
 	(output-record-set-position record (+ x dx) (+ y dy))
 	(replay-output-record record stream nil x-offset y-offset)
 	(add-output-record record parent)))))
-
 
 (define-test-frame-command (com-shift-gadget :name t :menu t)
     ((weird 'some-kinda-gadget)

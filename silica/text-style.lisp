@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: text-style.lisp,v 1.7 92/05/07 13:11:33 cer Exp $
+;; $fiHeader: text-style.lisp,v 1.8 92/07/01 15:45:18 cer Exp $
 
 (in-package :silica)
 
@@ -457,14 +457,51 @@
 
 (defmethod text-size ((medium basic-medium) string
 		      &key (text-style (medium-merged-text-style medium)) (start 0) end)
+  (declare (values largest-x total-height last-x last-y baseline))
   (when (characterp string)
-    (setq string (string string)
-	  start 0
-	  end nil))
-  (multiple-value-bind (last-x largest-x last-y total-height baseline)
-      (stream-string-output-size medium string
-				 :text-style text-style :start start :end end)
+    (multiple-value-bind  (index font escapement-x escapement-y
+			   origin-x origin-y bb-x bb-y)
+	(port-glyph-for-character (port medium) string text-style)
+      (declare (ignore index font origin-x))
+      (return-from text-size
+	(values bb-x bb-y escapement-x escapement-y origin-y))))
+  (let ((largest-x 0)
+	(total-height 0)
+	(last-x 0)
+	(last-y 0)
+	(baseline (- (text-style-height text-style medium)
+		     (text-style-descent text-style medium))))
+    (dovector (char string :start start :end end)
+      (cond ((or (eql char #\Newline)
+		 (eql char #\Return))
+	     (incf total-height (text-style-height text-style medium))
+	     (incf last-y (text-style-height text-style medium))
+	     (setq last-x 0))
+	    (t
+	     (multiple-value-bind (index font escapement-x escapement-y
+				   origin-x origin-y bb-x bb-y)
+		 (port-glyph-for-character (port medium) char text-style)
+	       (declare (ignore index font 
+				escapement-y origin-x origin-y bb-x))
+	       (incf last-x escapement-x)
+	       (maxf largest-x last-x)
+	       (maxf total-height bb-y)))))
     (values largest-x total-height last-x last-y baseline)))
+
+(defun compute-text-x-adjustment (align-x stream string text-style &optional start end)
+  (ecase align-x
+    (:left 0)
+    (:right (- (text-size stream string :text-style text-style
+			  :start start :end end)))
+    (:center (- (round (text-size stream string :text-style text-style
+				  :start start :end end) 2)))))
+
+(defun compute-text-y-adjustment (align-y descent ascent height)
+  (ecase align-y
+    (:baseline 0)
+    (:top ascent)
+    (:bottom (- descent))
+    (:center (- ascent (round height 2)))))
 
 
 #-Genera

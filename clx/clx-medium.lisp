@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLX-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clx-medium.lisp,v 1.6 92/05/22 19:27:31 cer Exp $
+;; $fiHeader: clx-medium.lisp,v 1.7 92/07/01 15:45:56 cer Exp $
 
 (in-package :clx-clim)
 
@@ -8,8 +8,7 @@
 
 
 (defclass clx-medium (basic-medium)
-  ((drawable :initform nil)
-   (color-p :initform nil)			;---
+  ((drawable :initform nil :reader medium-drawable)
    (foreground-gcontext :initform nil)
    (foreground-pixel :initform nil)
    (background-gcontext :initform nil)
@@ -50,7 +49,7 @@
   (with-slots (foreground-gcontext foreground-pixel
 	       background-gcontext background-pixel
 	       flipping-gcontext copy-gcontext) medium
-    (let ((drawable (slot-value medium 'drawable)))
+    (let ((drawable (medium-drawable medium)))
       (unless foreground-gcontext
 	(setf foreground-gcontext (xlib:create-gcontext :drawable drawable)))
       (unless background-gcontext
@@ -229,8 +228,9 @@
 
 ;; This should only be called on a color screen.
 (defmethod clx-decode-color ((medium clx-medium) (ink color))
-  (with-slots (port color-p foreground-pixel) medium
-    (let ((screen (slot-value port 'screen)))
+  (with-slots (port foreground-pixel) medium
+    (let ((screen (slot-value port 'screen))
+	  (color-p (slot-value port 'color-p)))
       (multiple-value-bind (red green blue) (color-rgb ink)
 	;;--- Should probably use COLOR-P here.  Otherwise if *CLX-USE-COLOR* is NIL,
 	;;--- colors can still be used for foreground, background, patterns.
@@ -282,10 +282,11 @@
 	  (t (nyi)))))
 
 (defmethod clx-decode-ink ((ink color) medium)
-  (with-slots (foreground-gcontext color-p foreground-pixel background-pixel
+  (with-slots (foreground-gcontext foreground-pixel background-pixel
 	       ink-table port sheet) medium
     (let ((screen (slot-value port 'screen))
-	  (drawable (slot-value medium 'drawable)))
+	  (color-p (slot-value port 'color-p))
+	  (drawable (medium-drawable medium)))
       (or (gethash ink ink-table)
 	  (let ((gc (xlib:create-gcontext :drawable drawable)))
 	    (xlib:copy-gcontext foreground-gcontext gc)
@@ -512,7 +513,7 @@
 	 (transform (sheet-device-transformation sheet))
 	 (ink (medium-ink medium))
 	 (line-style (medium-line-style medium))
-	 (drawable (slot-value medium 'drawable)))
+	 (drawable (medium-drawable medium)))
     (convert-to-device-coordinates transform x y)
     (let ((thickness (line-style-thickness line-style))
 	  (gc (clx-decode-ink ink medium)))
@@ -527,15 +528,38 @@
 	 (transform (sheet-device-transformation sheet))
 	 (ink (medium-ink medium))
 	 (line-style (medium-line-style medium))
-	 (drawable (slot-value medium 'drawable)))
-    ))
+	 (drawable (medium-drawable medium)))
+    ;;well ick, I think we need to loop over the coords.
+    (let ((thickness (line-style-thickness line-style))
+	  (gc (clx-decode-ink ink medium)))
+      (if (< thickness 2)
+	  (let ((points (copy-seq position-seq)))
+	    (loop for index below (length position-seq) by 2
+		  as x = (elt position-seq index) as y = (elt position-seq (1+ index))
+		  do (convert-to-device-coordinates transform x y)
+		     (setf (elt points index) x)
+		     (setf (elt points (1+ index)) y))
+	    (xlib:draw-points drawable gc points))
+	  (let ((thickness (round thickness))
+		(arcs (make-array (* 3 (length position-seq)))))
+	    (loop for index below (length position-seq) by 2 as aindex from 0 by 6
+		  as x = (elt position-seq index) as y = (elt position-seq (1+ index))
+		  do (convert-to-device-coordinates transform x y)
+		     (setf (aref arcs aindex) x)
+		     (setf (aref arcs (+ aindex 1)) y)
+		     (setf (aref arcs (+ aindex 2)) thickness)
+		     (setf (aref arcs (+ aindex 3)) thickness)
+		     (setf (aref arcs (+ aindex 4)) 0)
+		     (setf (aref arcs (+ aindex 5)) 2pi))
+	    (xlib:draw-arcs drawable gc arcs t))))))
+
 
 (defmethod medium-draw-line* ((medium clx-medium) x1 y1 x2 y2)
   (let* ((sheet (medium-sheet medium))
 	 (transform (sheet-device-transformation sheet))
 	 (ink (medium-ink medium))
 	 (line-style (medium-line-style medium))
-	 (drawable (slot-value medium 'drawable)))
+	 (drawable (medium-drawable medium)))
     (convert-to-device-coordinates transform
       x1 y1 x2 y2)
     (xlib:draw-line drawable
@@ -549,8 +573,21 @@
 	 (transform (sheet-device-transformation sheet))
 	 (ink (medium-ink medium))
 	 (line-style (medium-line-style medium))
-	 (drawable (slot-value medium 'drawable)))
-    ))
+	 (drawable (medium-drawable medium))
+	 (points (copy-seq position-seq)) ;should use resource
+	 minx miny)
+    (loop for index below (length position-seq) by 2
+	  as x = (elt position-seq index) as y = (elt position-seq (1+ index))
+	  do (convert-to-device-coordinates transform x y)
+	     (setf (elt points index) x)
+	     (setf (elt points (1+ index)) y)
+	  minimize x into tempminx
+	  minimize y into tempminy
+	  finally (setq minx tempminx miny tempminy)) ;ick
+    (xlib:draw-lines drawable
+		     (clx-adjust-ink (clx-decode-ink ink medium) medium line-style
+				     minx miny)
+		    points)))
 
 (defmethod medium-draw-rectangle* ((medium clx-medium)
 				   left top right bottom filled)
@@ -558,13 +595,16 @@
 	 (transform (sheet-device-transformation sheet))
 	 (ink (medium-ink medium))
 	 (line-style (medium-line-style medium))
-	 (drawable (slot-value medium 'drawable)))
+	 (drawable (medium-drawable medium)))
     (convert-to-device-coordinates transform
       left top right bottom)
+    (when (< right left) (rotatef right left))
+    (when (< bottom top) (rotatef bottom top))
     (xlib:draw-rectangle drawable 
 			 (clx-adjust-ink (clx-decode-ink ink medium) medium line-style
 					 left top)
-			 left top (- right left) (- bottom top) filled)))
+			 left top (- right left) (- bottom top) filled))
+  )
 
 ;;--- POSITION-SEQ can be a general sequence!
 (defmethod medium-draw-rectangles* ((medium clx-medium) position-seq filled)
@@ -572,36 +612,39 @@
 	 (transform (sheet-device-transformation sheet))
 	 (ink (medium-ink medium))
 	 (line-style (medium-line-style medium))
-	 (drawable (slot-value medium 'drawable)))
+	 (drawable (medium-drawable medium)))
     ))
 
-;;--- POSITION-SEQ can be a general sequence!
 (defmethod medium-draw-polygon* ((medium clx-medium) position-seq closed filled)
   (let* ((sheet (medium-sheet medium))
 	 (transform (sheet-device-transformation sheet))
 	 (ink (medium-ink medium))
 	 (line-style (medium-line-style medium))
-	 (drawable (slot-value medium 'drawable)))
-    (let ((minx most-positive-fixnum)
-	  (miny most-positive-fixnum)
-	  (points (copy-seq position-seq)))
-      ;; These really are fixnums, since we're fixing coordinates below
-      (declare (type fixnum minx miny))
-      (do* ((points points (cddr points)))
-	   ((null points))
-	(let ((x (first points))
-	      (y (second points)))
-	  (convert-to-device-coordinates transform x y)
-	  (setf (first points) x)
-	  (setf (second points) y)
-	  (if (< x minx) (setq minx x))
-	  (if (< y miny) (setq miny y))))
-      (when (and closed line-style)		;kludge
-	(setq points (append points `(,(first points) ,(second points)))))
-      (xlib:draw-lines drawable 
-		       (clx-adjust-ink (clx-decode-ink ink medium) medium line-style
-				       minx miny)
-		       points :fill-p filled))))
+	 (drawable (medium-drawable medium))
+	 (minx most-positive-fixnum)
+	 (miny most-positive-fixnum)
+	 (length (length position-seq))
+	 (points (make-array (if (and closed line-style) (+ length 2) length))))
+    ;; These really are fixnums, since we're fixing coordinates below
+    (declare (type fixnum minx miny)
+	     (type simple-vector points))
+    (replace points position-seq)    ; set up the initial contents
+    (do ((i 0 (+ i 2)))
+	((>= i length))
+      (let ((x (svref points i))
+	    (y (svref points (1+ i))))
+	(convert-to-device-coordinates transform x y)
+	(setf (svref points i) x)
+	(setf (svref points (1+ i)) y)
+	(if (< x minx) (setq minx x))
+	(if (< y miny) (setq miny y))))
+    (when (and closed line-style)		;kludge
+      (setf (svref points length) (svref points 0))
+      (setf (svref points (+ length 1)) (svref points 1)))
+    (xlib:draw-lines drawable 
+		     (clx-adjust-ink (clx-decode-ink ink medium) medium line-style
+				     minx miny)
+		     points :fill-p filled)))
 
 (defmethod medium-draw-ellipse* ((medium clx-medium)
 				 center-x center-y
@@ -611,7 +654,7 @@
 	 (transform (sheet-device-transformation sheet))
 	 (ink (medium-ink medium))
 	 (line-style (medium-line-style medium))
-	 (drawable (slot-value medium 'drawable)))
+	 (drawable (medium-drawable medium)))
     (convert-to-device-coordinates transform center-x center-y)
     (convert-to-device-distances transform 
       radius-1-dx radius-1-dy radius-2-dx radius-2-dy)
@@ -666,7 +709,7 @@
 	 (transform (sheet-device-transformation sheet))
 	 (ink (medium-ink medium))
 	 (text-style (medium-merged-text-style medium))
-	 (drawable (slot-value medium 'drawable)))
+	 (drawable (medium-drawable medium)))
     (convert-to-device-coordinates transform x y)
     (when towards-x
       (convert-to-device-coordinates transform towards-x towards-y))
@@ -679,10 +722,10 @@
 	   (descent (xlib:font-descent font))
 	   (height (+ ascent descent))
 	   (gc (clx-decode-ink ink medium)))
-      (let ((x-adjust (clim-internals::compute-text-x-adjustment 
-			align-x medium string text-style start end))
-	    (y-adjust (clim-internals::compute-text-y-adjustment
-			align-y descent ascent height)))
+      (let ((x-adjust 
+	      (compute-text-x-adjustment align-x medium string text-style start end))
+	    (y-adjust
+	      (compute-text-y-adjustment align-y descent ascent height)))
 	(incf x x-adjust)
 	(incf y y-adjust)
 	(when towards-x
@@ -698,7 +741,7 @@
 	 (transform (sheet-device-transformation sheet))
 	 (ink (medium-ink medium))
 	 (text-style (medium-merged-text-style medium))
-	 (drawable (slot-value medium 'drawable)))
+	 (drawable (medium-drawable medium)))
     (convert-to-device-coordinates transform x y)
     (when towards-x
       (convert-to-device-coordinates transform towards-x towards-y))
@@ -709,10 +752,10 @@
 	   (descent (xlib:font-descent font))
 	   (height (+ ascent descent))
 	   (gc (clx-decode-ink ink medium)))
-      (let ((x-adjust (clim-internals::compute-text-x-adjustment 
-			align-x medium character text-style))
-	    (y-adjust (clim-internals::compute-text-y-adjustment
-			align-y descent ascent height)))
+      (let ((x-adjust
+	      (compute-text-x-adjustment align-x medium character text-style))
+	    (y-adjust 
+	      (compute-text-y-adjustment align-y descent ascent height)))
 	(incf x x-adjust)
 	(incf y y-adjust)
 	(when towards-x
@@ -769,83 +812,3 @@
   (xlib:bell (port-display (port medium))))
 
 
-;;--- This needs methods for copying to/from pixmaps, too
-(defmethod medium-copy-area
-	   ((from-medium clx-medium) from-left from-top from-right from-bottom
-	    (to-medium clx-medium) to-left to-top)
-  (assert (eq from-medium to-medium))
-  ;; coords in "host" coordinate system
-  (let ((transform (sheet-native-transformation (medium-sheet from-medium))))
-    (convert-to-device-coordinates transform
-       from-left from-top from-right from-bottom to-left to-top)
-    (let ((width (- from-right from-left))
-	  (height (- from-bottom from-top)))
-      (when (>= to-left from-left)
-	;; shifting to the right
-	(setq width (- (abs width))))
-      (when (>= to-top from-top)
-	(setq height (- (abs height))))
-      (let ((width (- from-right from-left))
-	    (height (- from-bottom from-top))
-	    (drawable (slot-value from-medium 'drawable))
-	    (copy-gc (slot-value from-medium 'copy-gcontext)))
-	(xlib:copy-area drawable copy-gc
-			from-left from-top width height drawable
-			to-left to-top)))))
-
-#||
-(defmethod copy-area
-	   ((medium clg-medium) x y 
-	    (source pixmap) left bottom width height
-	    &optional (boole boole-1))
-  (with-slots (drawable gcontext port device-transformation)
-	      medium
-    (multiple-value-setq (x y) 
-      (transform-rectangle* device-transformation 
-			    x y (+ x width) (+ y height)))
-    (xlib:with-gcontext (gcontext :function boole)
-      (xlib:copy-area (realize-pixmap port source) gcontext
-		      left 
-		      (- (pixmap-height source) (+ bottom height))
-		      (fix-coordinate width) (fix-coordinate height)
-		      drawable 
-		      (fix-coordinate x) (fix-coordinate y)))))
-
-(defmethod copy-area
-	   ((medium clg-display-medium) x y 
-	    (source clg-medium) left bottom width height
-	    &optional (boole boole-1))
-  (with-slots (drawable gcontext port device-transformation)
-	      medium
-    (multiple-value-setq (x y)
-      (transform-rectangle* device-transformation
-			    x y (+ x width) (+ y height)))
-    ;; Adjust the offset into the source by the source's transformation
-    (with-slots ((source-device-transformation device-transformation)) source
-      (multiple-value-setq (left bottom)
-	(transform-rectangle* source-device-transformation
-			      left bottom
-			      (+ left width) (+ bottom height))))
-    (xlib:with-gcontext (gcontext :function boole)
-      (xlib:copy-area (slot-value source 'drawable) gcontext
-		      (fix-coordinate left) (fix-coordinate bottom)
-		      (round width) (round height)	;--- round???
-		      drawable
-		      (fix-coordinate x) (fix-coordinate y)))))
-
-(defmethod copy-area ((pixmap pixmap) dst-x dst-y 
-		      (medium clg-display-medium) src-x src-y src-w src-h
-		      &optional (boole boole-1))
-  ;;; This all only works for pixels coordinate systems.
-  (with-slots (drawable gcontext port device-transformation) medium
-    (multiple-value-setq (src-x src-y)
-      (transform-rectangle* device-transformation
-			    src-x src-y (+ src-x src-w)
-			    (+ src-y src-h)))
-    (let ((xbm (realize-pixmap port pixmap)))
-      (xlib:with-gcontext (gcontext :function boole)
-	(xlib:copy-area drawable gcontext
-			(fix-coordinate src-x) (fix-coordinate src-y)
-			src-w src-h
-			xbm dst-x (- (pixmap-height pixmap) dst-y src-h))))))
-||#

@@ -102,7 +102,7 @@
 	   (:fill `((ps-fill ,stream ,printer-stream ,ink)))
 	   (:stroke `((ps-stroke ,stream ,printer-stream ,ink)))))))
 
-(defmethod medium-draw-point* ((medium clx-medium) x y)
+(defmethod medium-draw-point* ((medium postscript-medium) x y)
   (let* ((transform +identity-transformation+)
 	 (ink (medium-ink medium))
 	 (line-style (medium-line-style medium)))
@@ -124,11 +124,11 @@
     (with-postscript-drawing-options (medium printer-stream
 				      :epilogue :stroke
 				      :ink ink :line-style line-style)
-      (ps-pos-op medium "m" start-x start-y)
-      (ps-pos-op medium "lineto" end-x end-y))
+      (ps-pos-op medium "m" x1 y1)
+      (ps-pos-op medium "lineto" x2 y2))
     (annotating-postscript (medium printer-stream)
       (format printer-stream "        (medium-draw-line* ~D ~D ~D ~D ...)"
-	start-x start-y end-x end-y))))
+	x1 y1 x2 y2))))
 
 (defmethod medium-draw-rectangle* ((medium postscript-medium)
 				   left top right bottom filled)
@@ -149,39 +149,40 @@
       (format printer-stream "        (medium-draw-rectangle* ~D ~D ~D ~D ...)"
 	left top right bottom))))
 
-;;--- POSITION-SEQ can be a general sequence!
 (defmethod medium-draw-polygon* ((medium postscript-medium) position-seq closed filled)
   (let* ((transform +identity-transformation+)
 	 (ink (medium-ink medium))
-	 (line-style (medium-line-style medium)))
-    (let ((minx most-positive-fixnum)
-	  (miny most-positive-fixnum)
-	  (points (copy-list position-seq)))
-      (do* ((points points (cddr points)))
-	   ((null points))
-	(let ((x (first points))
-	      (y (second points)))
-	  (convert-to-postscript-coordinates transform x y)
-	  (setf (first points) x)
-	  (setf (second points) y)
-	  (if (< x minx) (setq minx x))
-	  (if (< y miny) (setq miny y))))
-      (with-postscript-drawing-options (medium printer-stream
-					:epilogue :default
-					:ink ink :line-style line-style)
-        (let ((start-x (first points))
-	      (start-y (second points)))
-	  (ps-pos-op medium "m" start-x start-y)
-	  (do* ((points (cddr points) (cddr points))
-		(ex (first points) (first points))
-		(ey (second points) (second points)))
-	       ((null points)
-		(when closed
-		  (format printer-stream " closepath ")))
-	    (ps-pos-op medium "lineto" ex ey))))
-      (annotating-postscript (medium printer-stream)
-	(format printer-stream "        (medium-draw-polygon* ~A ...)"
-	  position-seq)))))
+	 (line-style (medium-line-style medium))
+	 (minx most-positive-fixnum)
+	 (miny most-positive-fixnum)
+	 (length (length position-seq))
+	 (points (make-array length :initial-contents position-seq)))
+    (declare (type simple-vector points))
+    (do ((i 0 (+ i 2)))
+	((>= i length))
+      (let ((x (svref points i))
+	    (y (svref points (1+ i))))
+	(convert-to-postscript-coordinates transform x y)
+	(setf (svref points i) x)
+	(setf (svref points (1+ i)) y)
+	(if (< x minx) (setq minx x))
+	(if (< y miny) (setq miny y))))
+    (with-postscript-drawing-options (medium printer-stream
+				      :epilogue :default
+				      :ink ink :line-style line-style)
+      (let ((start-x (svref points 0))
+	    (start-y (svref points 1)))
+	(ps-pos-op medium "m" start-x start-y)
+	(do* ((i 2 (+ i 2))
+	      (ex (svref points i) (svref points i))
+	      (ey (svref points (1+ i)) (svref points (1+ i))))
+	     ((>= i length)
+	      (when closed
+		(format printer-stream " closepath ")))
+	  (ps-pos-op medium "lineto" ex ey))))
+    (annotating-postscript (medium printer-stream)
+      (format printer-stream "        (medium-draw-polygon* ~A ...)"
+        position-seq))))
 
 (defmethod medium-draw-ellipse* ((medium postscript-medium)
 				 center-x center-y 
@@ -233,7 +234,7 @@
 ;; These 2 clones of draw-string would be much more modular if there
 ;; were a reasonable way of passing arguments transparently, so that
 ;; we might be able to share code.
-(defmethod medium-draw-string* ((medium genera-medium)
+(defmethod medium-draw-string* ((medium postscript-medium)
 				string x y start end align-x align-y
 				towards-x towards-y transform-glyphs)
   (unless start
@@ -250,10 +251,10 @@
 	   (height (psfck-clim-height fcs))
 	   (descent (psfck-clim-descent fcs))
 	   (ascent (- height descent)))
-      (let ((x-adjust (clim-internals::compute-text-x-adjustment
-			align-x medium character text-style))
-	    (y-adjust (clim-internals::compute-text-y-adjustment
-			align-y descent ascent height)))
+      (let ((x-adjust 
+	      (compute-text-x-adjustment align-x medium character text-style))
+	    (y-adjust 
+	      (compute-text-y-adjustment align-y descent ascent height)))
 	(incf x x-adjust)
 	(incf y y-adjust)
 	(when towards-x
@@ -285,10 +286,10 @@
 	     (height (psfck-clim-height fcs))
 	     (descent (psfck-clim-descent fcs))
 	     (ascent (- height descent)))
-	(let ((x-adjust (clim-internals::compute-text-x-adjustment
-			  align-x medium character text-style))
-	      (y-adjust (clim-internals::compute-text-y-adjustment
-			  align-y descent ascent height)))
+	(let ((x-adjust 
+		(compute-text-x-adjustment align-x medium character text-style))
+	      (y-adjust 
+		(compute-text-y-adjustment align-y descent ascent height)))
 	(incf x x-adjust)
 	(incf y y-adjust)
 	(when towards-x
@@ -329,10 +330,10 @@
 	 (height (psfck-clim-height fcs))
 	 (descent (psfck-clim-descent fcs))
 	 (ascent (- height descent)))
-    (let ((x-adjust (compute-text-x-adjustment
-		      align-x stream string text-style start end))
-	  (y-adjust (compute-text-y-adjustment
-		      align-y descent ascent height)))
+    (let ((x-adjust 
+	    (compute-text-x-adjustment align-x stream string text-style start end))
+	  (y-adjust 
+	    (compute-text-y-adjustment align-y descent ascent height)))
       (set-font-if-needed stream fcs)
       (with-postscript-drawing-options (stream printer-stream
 					:epilogue nil :newpath nil
@@ -388,9 +389,9 @@
   (with-ps-stream-glyph-for-character
     (stream-glyph-for-character stream character style our-font)))
 
-(defmethod stream-scan-string-for-writing ((stream postscript-medium) string
-					   start end style cursor-x max-x
-					   &optional glyph-buffer)
+(defmethod stream-scan-string-for-writing ((stream postscript-medium) medium
+					    string start end style cursor-x max-x
+					    &optional glyph-buffer)
   (declare (type coordinate cursor-x max-x))
   (declare (fixnum start end))
   (with-ps-stream-glyph-for-character 

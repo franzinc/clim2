@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: command-processor.lisp,v 1.8 92/05/22 19:27:44 cer Exp Locker: cer $
+;; $fiHeader: command-processor.lisp,v 1.9 92/07/06 18:51:32 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -398,11 +398,8 @@
 					     :numeric-argument numeric-arg)))
 				     (when (presentation-typep command command-type)
 				       (return-from menu-command-parser
-					 (values command
-						 command-type)))))
-				 ;;--- This is disgusting
-				 (unless (typep keystroke 'pointer-button-release-event) 
-				   (beep))))
+					 (values command command-type)))))
+				 (beep stream)))
 			     (let ((token (read-token stream :click-only t :timeout timeout)))
 			       (if (eq token :timeout)
 				   (return-from menu-command-parser nil)

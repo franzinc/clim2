@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: framem.lisp,v 1.8 92/05/22 19:26:51 cer Exp $
+;; $fiHeader: framem.lisp,v 1.9 92/07/01 15:45:00 cer Exp $
 
 (in-package :silica)
 
@@ -60,6 +60,12 @@
      (or (port-frame-manager port)
 	 (setf (port-frame-manager port)
 	       (make-frame-manager port))))))
+
+#+Genera
+(scl:add-initialization "Reset frame managers"
+  '(progn
+     (setq *default-frame-manager* nil))
+  '(before-cold))
 
 (defmethod frame-manager-matches-options-p
 	   ((framem standard-frame-manager) port options)
@@ -129,24 +135,24 @@
 (defmethod make-pane-class ((framem standard-frame-manager) class &rest options)
   (declare (ignore options))
   (second (assoc class '((scroll-bar scroll-bar-pane)
-			 (slider slider-pane)
-			 (push-button push-button-pane)
-			 (text-field text-field-pane)
-			 (toggle-button toggle-button-pane)
-			 (menu-bar menu-bar-pane)
+			 (scroller-pane generic-scroller-pane)
 			 (viewport viewport)
+			 (menu-bar menu-bar-pane)
+			 (push-button push-button-pane)
+			 (toggle-button toggle-button-pane)
 			 (radio-box radio-box-pane)
 			 (check-box check-box-pane)
-			 (frame-pane frame-pane)
+			 (slider slider-pane)
+			 (text-field text-field-pane)
 			 (top-level-sheet top-level-sheet)
-			 ;; One day
+			 (frame-pane frame-pane)
+			 ;; Someday...
 			 (line-editor-pane)
 			 (label-button-pane)
 			 (radio-button-pane)
 			 (horizontal-divider-pane)
 			 (vertical-divider-pane)
 			 (label-pane)
-			 ;;
 			 (list-pane)
 			 (caption-pane)
 			 (cascade-button)

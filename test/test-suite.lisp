@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: test-suite.lisp,v 1.26 92/07/01 15:47:19 cer Exp Locker: cer $
+;; $fiHeader: test-suite.lisp,v 1.27 92/07/06 18:51:50 cer Exp Locker: cer $
 
 (in-package :clim-user)
 
@@ -625,6 +625,17 @@ people, shall not perish from the earth.
       (dotimes (i 6)
 	(format-graphics-sample stream (format nil "Ink ~D" i) sample
 				:ink (make-contrasting-inks 6 i))))))
+
+(define-test (draw-points-test graphics) (stream)
+  "Test drawing points"
+  (formatting-graphics-samples (stream "Single Point")
+    (format-graphics-sample stream "Single Point" '(draw-point* 0 0)))
+  (formatting-graphics-samples (stream "Single Large Point")
+    (format-graphics-sample stream "Single Large Point" '(draw-point* 0 0 :line-thickness 5)))
+  (formatting-graphics-samples (stream "Many Points")
+    (format-graphics-sample stream "Many Points" '(draw-points* (0 0 10 100 50 50 90 100 100 10))))
+  (formatting-graphics-samples (stream "Many Large Points")
+    (format-graphics-sample stream "Many Large Points" '(draw-points* (0 0 10 100 50 50 90 100 100 10) :line-thickness 5))))
 
 (defparameter *named-colors*
  '(+white+ +black+ +red+ +green+ +blue+ +yellow+ +cyan+ +magenta+
@@ -2723,10 +2734,13 @@ Luke Luck licks the lakes Luke's duck likes."))
 (defvar *test-suite-frame* nil)
 
 (defun do-test-suite ()
-  (let* ((width 600)
-	 (height 420)
+  (let* (
+	 (width 1050)
+	 (height 500)
 	 (test (or *test-suite-frame*
 		   (make-application-frame 'clim-tests
-					   :width width :height height))))
+					   :width width 
+					   :height height
+					   ))))
     (setq *test-suite-frame* test)
     (run-frame-top-level test)))

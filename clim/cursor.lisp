@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: cursor.lisp,v 1.11 92/05/22 19:27:48 cer Exp $
+;; $fiHeader: cursor.lisp,v 1.12 92/07/01 15:46:13 cer Exp $
 
 (in-package :clim-internals)
 
@@ -31,19 +31,20 @@
 ;;; may be manipulated.  Should this be unified with the mouse cursor stuff?
 
 ;;--- The positions here should be a COORDINATE pair, no?
-(defclass text-cursor
+(defclass standard-text-cursor
 	  (cursor region)			;--- why REGION?
     ((x :initarg :x :type coordinate)
      (y :initarg :y :type coordinate)
      (stream :initarg :stream)
      (flags :initform 0 :type fixnum)
      (width :initarg :width :type coordinate)
+     ;;-- [cer] Until I can think of somewhere better
      (plist :initform nil))
   (:default-initargs :x (coordinate 0) :y (coordinate 0)
 		     :width (coordinate 8)
 		     :stream nil))
 
-(defmethod bounding-rectangle* ((cursor text-cursor))
+(defmethod bounding-rectangle* ((cursor standard-text-cursor))
   (with-slots (x y width) cursor
     (values x y (+ x width) (+ y width))))
 
@@ -58,34 +59,30 @@
 	  (ldb-test cursor_focus flags)))
 
 ;;; Required method
-(defmethod (setf cursor-stream) (new-value (cursor text-cursor))
+(defmethod (setf cursor-stream) (new-value (cursor standard-text-cursor))
   (setf (slot-value cursor 'stream) new-value))
 
-(defmethod cursor-position ((cursor text-cursor))
+(defmethod cursor-position ((cursor standard-text-cursor))
   (with-slots (x y) cursor
     (values x y)))
 
 (defgeneric* (setf cursor-position) (x y cursor))
-(defmethod* (setf cursor-position) (x y (cursor cursor))
+(defmethod* (setf cursor-position) (x y (cursor standard-text-cursor))
   (cursor-set-position cursor x y))
 
-#+Silica
-(defmethod cursor-set-position ((cursor text-cursor) nx ny)
-  (with-slots (x y visibility) cursor
-    (setf x (coordinate nx) 
-	  y (coordinate ny))))
-
-#-Silica
-(defmethod cursor-set-position ((cursor text-cursor) nx ny)
-  (with-slots (x y visibility) cursor
+(defmethod cursor-set-position ((cursor standard-text-cursor) nx ny)
+  (with-slots (x y flags) cursor
     (unless (and (= x (coordinate nx))
 		 (= y (coordinate ny)))
-      (when (eq visibility :on)
-	(draw-cursor cursor nil))
-      (setf x (coordinate nx)
-	    y (coordinate ny))
-      (when (eq visibility :on)
-	(draw-cursor cursor T)))))
+      (let ((active (cursor-active cursor)))
+	(unwind-protect
+	    (progn
+	      (when active
+		(setf (cursor-active cursor) nil))
+	      (setf x (coordinate nx)
+		    y (coordinate ny)))
+	  (when active
+	    (setf (cursor-active cursor) active)))))))
 
 #+CLIM-1-compatibility
 (define-compatibility-function (cursor-position* cursor-position)
@@ -97,47 +94,61 @@
 			       (cursor x y)
   (cursor-set-position cursor x y))
 
-(defmethod (setf cursor-state) (new-state (cursor text-cursor))
-  (multiple-value-bind (active state focus)
-      (decode-cursor-flags (slot-value cursor 'flags))
-    (declare (ignore active focus))
-    (setf (ldb cursor_state (slot-value cursor 'flags)) (if new-state 1 0))
-    (unless (eq state new-state)
-      (note-cursor-change cursor 'cursor-state state new-state))))
+(defmethod (setf cursor-state) (new-state (cursor standard-text-cursor))
+  (with-slots (flags) cursor
+    (multiple-value-bind (active state focus)
+	(decode-cursor-flags flags)
+      (declare (ignore active focus))
+      (setf (ldb cursor_state flags) (if new-state 1 0))
+      (unless (eq state new-state)
+	(note-cursor-change cursor 'cursor-state state new-state)))))
 
-(defmethod cursor-state ((cursor text-cursor))
+(defmethod cursor-state ((cursor standard-text-cursor))
   (ldb-test cursor_state (slot-value cursor 'flags)))
 
-(defmethod (setf cursor-active) (new-active (cursor text-cursor))
-  (multiple-value-bind (active state focus)
-      (decode-cursor-flags (slot-value cursor 'flags))
-    (declare (ignore state focus))
-    (setf (ldb cursor_active (slot-value cursor 'flags)) (if new-active 1 0))
-    (unless (eq active new-active)
-      (note-cursor-change cursor 'cursor-active active new-active))))
+(defmethod (setf cursor-active) (new-active (cursor standard-text-cursor))
+  (with-slots (flags) cursor
+    (multiple-value-bind (active state focus)
+	(decode-cursor-flags flags)
+      (declare (ignore state focus))
+      (setf (ldb cursor_active flags) (if new-active 1 0))
+      (unless (eq active new-active)
+	(note-cursor-change cursor 'cursor-active active new-active)))))
 
-(defmethod cursor-active ((cursor text-cursor))
+(defmethod cursor-active ((cursor standard-text-cursor))
   (ldb-test cursor_active (slot-value cursor 'flags)))
 
-(defmethod (setf cursor-focus) (new-focus (cursor text-cursor))
-  (multiple-value-bind (active state focus)
-      (decode-cursor-flags (slot-value cursor 'flags))
-    (declare (ignore active state))
-    (setf (ldb cursor_focus (slot-value cursor 'flags)) (if new-focus 1 0))
-    (unless (eq focus new-focus)
-      (note-cursor-change cursor 'cursor-focus focus new-focus))))
+(defmethod (setf cursor-focus) (new-focus (cursor standard-text-cursor))
+  (with-slots (flags) cursor
+    (multiple-value-bind (active state focus)
+	(decode-cursor-flags flags)
+      (declare (ignore active state))
+      (setf (ldb cursor_focus flags) (if new-focus 1 0))
+      (unless (eq focus new-focus)
+	(note-cursor-change cursor 'cursor-focus focus new-focus)))))
 
-(defmethod cursor-focus ((cursor text-cursor))
+(defmethod cursor-focus ((cursor standard-text-cursor))
   (ldb-test cursor_focus (slot-value cursor 'flags)))
 
+(defmethod cursor-visibility ((cursor standard-text-cursor))
+  (cursor-active cursor))
+ 
+(defmethod (setf cursor-visibility) (visibility (cursor standard-text-cursor))
+  (setf (cursor-active cursor) 
+	(case visibility
+	  (:off nil)
+	  ((nil) nil)
+	  ((t :on) t))))
+
 (defmethod cursor-width-and-height-pending-protocol ((cursor t))
-  (values 1 1))
+  (values 8 12))
 
-(defmethod cursor-width-and-height-pending-protocol ((cursor text-cursor))
+(defmethod cursor-width-and-height-pending-protocol ((cursor standard-text-cursor))
   (values (slot-value cursor 'width)
-	  (stream-line-height (slot-value cursor 'stream))))
+	  (let ((stream (slot-value cursor 'stream)))
+	    (+ (stream-line-height stream) (stream-vertical-spacing stream)))))
 
-(defmethod note-cursor-change ((cursor text-cursor) type old new)
+(defmethod note-cursor-change ((cursor standard-text-cursor) type old new)
   ;;; type is currently one of CURSOR-ACTIVE, -FOCUS, or -STATE
   (let ((stream (slot-value cursor 'stream)))
     (when (and stream (port stream))
@@ -189,8 +200,8 @@
 ;;; DRAW-CURSOR is invoked to draw or erase the cursor.  on-p T = draw it; NIL = erase it
 
 #+Silica
-(defmethod draw-cursor ((cursor text-cursor) stream x y on-p
-			       &optional (focus nil focus-p))
+(defmethod draw-cursor ((cursor standard-text-cursor) stream x y on-p
+			&optional (focus nil focus-p))
   ;; --- protocol violations:  output-recording-options
   ;; ---                       graphics protocol
   ;; ---                       output protocol (line-height)
@@ -205,7 +216,7 @@
     (force-output stream)))
 
 #-Silica
-(defmethod draw-cursor ((cursor text-cursor) on-p)
+(defmethod draw-cursor ((cursor standard-text-cursor) on-p)
   (with-slots (x y stream) cursor
     (when stream
       ;; --- protocol violations:  output-recording-options
@@ -224,13 +235,3 @@
 	    (if on-p +foreground-ink+ +background-ink+) +highlighting-line-style+))
 	;; --- do we really want to do this here??
 	(force-output stream)))))
-
-(defmethod cursor-visibility ((cursor cursor))
-  (cursor-active cursor))
- 
-(defmethod (setf cursor-visibility) (visibility (cursor cursor))
-  (setf (cursor-active cursor) 
-	(case visibility
-	  (:off nil)
-	  ((nil) nil)
-	  ((t :on) t))))

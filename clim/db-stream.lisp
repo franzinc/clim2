@@ -1,5 +1,4 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
@@ -22,11 +21,13 @@
 ;;;
 ;;; Copyright (c) 1990 by Xerox Corporations.  All rights reserved.
 ;;;
-;; $fiHeader: db-stream.lisp,v 1.21 92/07/01 15:46:14 cer Exp Locker: cer $
+;; $fiHeader: db-stream.lisp,v 1.22 92/07/06 18:51:34 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
-"Improvements Copyright (c) 1990 by International Lisp Associates.  All rights reserved."
+"Copyright (c) 1990 by International Lisp Associates.  All rights reserved.
+ Portions copyright (c) 1991, 1992 Franz, Inc.  All rights reserved.
+ Portions copyright (c) 1989, 1990 Symbolics, Inc.  All rights reserved."
 
 
 ;;; CLIM stream sheets and panes
@@ -151,14 +152,14 @@
 			 (eq sr-component :compute))
 		   (multiple-value-bind (width height)
 		       (let ((record
-			      (with-output-to-output-record (pane)
-				(let ((*sizing-application-frame* t))
-				 (invoke-pane-display-function 
-				   (pane-frame pane) pane
-				   ;;--- Are all pane display functions prepared to
-				   ;;--- ignore these arguments?  I think not...
-				   :max-width width
-				   :max-height height)))))
+			       (let ((*sizing-application-frame* t))
+				 (with-output-to-output-record (pane)
+				   (invoke-pane-display-function 
+				     (pane-frame pane) pane
+				     ;;--- Are all pane display functions prepared to
+				     ;;--- ignore these arguments?  I think not...
+				     :max-width width
+				     :max-height height)))))
 			 (bounding-rectangle-size record))
 		     (do-with-space-req-components progn
 		         sr-component (sr-width sr-min-width sr-max-width)
@@ -307,8 +308,8 @@
 (defclass interactor-pane (clim-stream-pane) ())
 (defclass application-pane (clim-stream-pane) ())
 (defclass command-menu-pane (clim-stream-pane) ())
-(defclass pointer-documentation-pane (clim-stream-pane) ())
 (defclass accept-values-pane (clim-stream-pane) ())
+(defclass pointer-documentation-pane (clim-stream-pane) ())
 
 (defmethod compose-space :before ((pane command-menu-pane) &key width height)
   (declare (ignore width height))
@@ -363,6 +364,9 @@
 	;; -ve position then things get really confused since the
 	;; cursor might be visible at (0,0) and the extent is big
 	;; enough but ....
+	;;---- This does a lot of uncessary expensive blitblting
+	;; but how do we avoid it since a lot of what it does we need
+	;; to reset the viewport
 	(scroll-extent stream :x 0 :y 0)
 	(setf (stream-baseline stream) (coordinate 0)
 	      (stream-current-line-height stream) (coordinate 0)))
@@ -443,13 +447,15 @@
     (when (eq parent-parent t) (return nil))))
 
 (defun beep (&optional (stream *standard-output*))
-  (medium-beep (sheet-medium stream)))
+  (when (typep stream 'sheet)
+    (medium-beep (sheet-medium stream))))
 
 ;; This is called by SCROLL-EXTENT.  It shifts a region of the "host screen"
 ;; that's visible to some other visible location.  It does NOT do any cleaning
 ;; up after itself.  It does not side-effect the output history of the window.
 ;; It calls COPY-AREA, whose contract is to do the above, the whole above, and
 ;; nothing but the above.
+
 (defmethod window-shift-visible-region ((window clim-stream-sheet)
 					old-left old-top old-right old-bottom
 					new-left new-top new-right new-bottom)
@@ -480,17 +486,13 @@
 	       (setq from-x (- delta-x)
 		     from-y (- delta-y))))
 	(let ((width (- stream-width (abs delta-x)))
-	      (height (- stream-height (abs delta-y))))
-	  (multiple-value-bind (ml mt) 
-	      (values (coordinate 0) (coordinate 0))
-	    (declare (type coordinate ml mt))
-	    (translate-coordinates ml mt from-x from-y)
-	    (let ((tf (sheet-transformation window)))
- 	      (multiple-value-call #'copy-area 
-		window
-		(untransform-position tf from-x from-y)
-		(untransform-position tf (+ from-x width) (+ from-y height))
-		(untransform-position tf (+ from-x delta-x) (+ from-y delta-y))))))))))
+	      (height (- stream-height (abs delta-y)))
+	      (transform (sheet-transformation window)))
+	  (multiple-value-call #'copy-area 
+	    window
+	    (untransform-position transform from-x from-y)
+	    (untransform-distance transform width height)
+	    (untransform-position transform (+ from-x delta-x) (+ from-y delta-y))))))))
 
 ;;;--- Why do we need this?
 (defmethod window-shift-visible-region ((window t)

@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: sheet.lisp,v 1.19 92/07/01 15:45:15 cer Exp Locker: cer $
+;; $fiHeader: sheet.lisp,v 1.20 92/07/06 18:51:24 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -71,11 +71,11 @@
 
 (defmethod sheet-adopt-child :before ((sheet sheet) (child sheet))
   (when (sheet-parent child)
-    (error "Trying to adopt a child that has a parent: ~S" child)))
+    (error "Sheet ~S trying to adopt child ~S that already has a parent" sheet child)))
 
 (defmethod sheet-adopt-child ((sheet sheet-single-child-mixin) child)
   (when (sheet-child sheet)
-    (error "Single child sheet already has a child: ~S" sheet))
+    (error "Single-child sheet ~S already has a child" sheet))
   (setf (sheet-child sheet) child
 	(sheet-parent child) sheet))
 
@@ -325,7 +325,7 @@
 
 (defclass sheet-with-medium-mixin (standard-sheet-output-mixin)
     ((medium :initform nil :accessor sheet-medium)
-     (medium-type :initarg :medium :initform  t :accessor sheet-medium-type)))
+     (medium-type :initarg :medium :initform t :accessor sheet-medium-type)))
 
 (defmethod invalidate-cached-regions :before ((sheet sheet-with-medium-mixin))
   (let ((medium (sheet-medium sheet)))
@@ -345,11 +345,14 @@
   ;; been realized at this point, if it's a mirrored sheet.  This is pretty
   ;; horrible but it makes sure that things happen in the right order.
   (call-next-method)
-  (when (sheet-medium-type sheet)
-    (setf (sheet-medium sheet)
-	  (make-medium (port sheet) sheet))
-    (when (port sheet)
-      (engraft-medium (sheet-medium sheet) (port sheet) sheet))))
+  (let ((medium-type (sheet-medium-type sheet)))
+    (when medium-type
+      (setf (sheet-medium sheet)
+	    (if (mediump medium-type)
+		medium-type
+		(make-medium (port sheet) sheet)))
+      (when (port sheet)
+	(engraft-medium (sheet-medium sheet) (port sheet) sheet)))))
 
 (defmethod note-sheet-degrafted ((sheet permanent-medium-sheet-output-mixin))
   (when (sheet-medium sheet)
