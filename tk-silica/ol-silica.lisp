@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-silica.lisp,v 1.22 1993/09/17 19:07:04 cer Exp $
+;; $fiHeader: ol-silica.lisp,v 1.23 1993/12/07 05:34:18 colin Exp $
 
 (in-package :xm-silica)
 
@@ -111,7 +111,7 @@
 (defun ol-get-focus-widget (widget)
   (tk::intern-widget (tk::ol_get_current_focus_widget widget)))
 
-(defmethod process-an-event ((port ol-port) mask reason)
+(defmethod process-an-event ((port openlook-port) mask reason)
   (with-slots (context) port
     ;; Because of a feature in the OLIT toolkit we need to
     ;; give preference to events rather than timer events
