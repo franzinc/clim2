@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: resources.lisp,v 1.63.34.2 2000/09/05 19:06:43 layer Exp $
+;; $Id: resources.lisp,v 1.63.34.2.12.1 2001/04/02 20:01:46 layer Exp $
 
 (in-package :tk)
 
@@ -573,6 +573,10 @@
 (defmethod convert-resource-out ((parent t) (type (eql 'prim-foreground-pixmap)) value)
   (convert-pixmap-out parent value))
 
+;;; Basically an alias for 'prim-foreground-pixmap under Motif2.1
+(defmethod convert-resource-out ((parent t) (type (eql 'tk::dynamic-pixmap)) value)
+  (convert-pixmap-out parent value))
+
 (defmethod convert-resource-out ((parent t) (type (eql 'man-foreground-pixmap)) value)
   (convert-pixmap-out parent value))
 
@@ -597,6 +601,18 @@
 
 (defmethod convert-resource-out ((parent t) (type (eql 'bool)) value)
   (if value 1 0))
+
+;;; Basically an alias for 'boolean in Motif2.1
+(defmethod convert-resource-out ((parent t) (type (eql 'set)) value)
+  (if value 1 0))
+(defmethod convert-resource-in ((parent t) (type (eql 'set)) value)
+  (not (zerop value)))
+
+;;; New resource for Motif2.1
+(defmethod convert-resource-out ((parent t) (type (eql 'tk::show-value)) value)
+  (if value 1 0))
+(defmethod convert-resource-in ((parent t) (type (eql 'tk::show-value)) value)
+  (not (zerop value)))
 
 (defmethod convert-resource-out ((parent  t) (type (eql 'string)) value)
   (note-malloced-object

@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xm-gadgets.lisp,v 1.102.6.2 2000/09/05 19:06:45 layer Exp $
+;; $Id: xm-gadgets.lisp,v 1.102.6.2.12.1 2001/04/02 20:01:48 layer Exp $
 
 (in-package :xm-silica)
 
@@ -1833,10 +1833,14 @@
 			:file-search-proc
 			(make-file-search-proc-function dialog
 							file-search-proc))
-	(tk::xm_file_selection_do_search
-	 dialog (xt::xm_string_create_l_to_r
-		 (tk::get-values dialog :dir-mask)
-		 "")))
+	(let ((str-pntr (xt::xm_string_create_l_to_r
+			 (tk::get-values dialog :dir-mask)
+			 "")))
+	  (tk::xm_file_selection_do_search
+	   dialog str-pntr)
+	  (tk::add-widget-cleanup-function dialog
+					   #'tk::destroy-generated-xm-string
+					   str-pntr)))
 
       (process-exit-boxes framem
 			  associated-window
