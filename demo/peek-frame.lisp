@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: peek-frame.lisp,v 1.7.22.2 1998/07/06 23:09:27 layer Exp $
+;; $Id: peek-frame.lisp,v 1.7.22.3 1999/01/14 19:04:11 layer Exp $
 
 
 (in-package :clim-user)
@@ -311,16 +311,11 @@ Revised and stripped down by Scott McKay (SWM@Symbolics.COM) for CLIM 2.0.
 
 (defun check-OS (stream program)
   (fresh-line stream)
-  #+(or lucid allegro)
+  #+unix
   (let ((pipe ()))
     (unwind-protect
 	(progn
 	  (setq pipe
-		#+lucid
-		(lcl::run-program (first program)
-				  :arguments (rest program)
-				  :output :stream :wait nil)
-		#+allegro
 		(excl:run-shell-command (first program)
 					:output :stream :wait nil))
 	  (loop

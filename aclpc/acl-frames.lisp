@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-frames.lisp,v 1.5.8.11 1998/12/17 00:18:55 layer Exp $
+;; $Id: acl-frames.lisp,v 1.5.8.12 1999/01/14 19:04:07 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -267,9 +267,9 @@
   (if (< index (length string))
       (etypecase string
 	((simple-array character (*))
-	 (setf (schar string index) (cltl1:int-char new)))
+	 (setf (schar string index) (code-char new)))
 	(array
-	 (setf (aref string index) (cltl1:int-char new)))
+	 (setf (aref string index) (code-char new)))
 	))
   new)
 
@@ -515,8 +515,8 @@
     (unless (eq thread (current-process))
       ;; Lisp may hang badly if you proceed.
       (cerror "I don't care if the application crashes or hangs" 
-	      "This window was created in thread ~S,
-which is not its creator.
+              "An attempt was made to display a window in thread ~S,
+which is not the thread in which the window was created.
 Windows does not allow a window created in one thread 
 to be run from another."
 	     thread))))

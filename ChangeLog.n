@@ -11,323 +11,43 @@ Tests for new features:	<`no new features', `no tests for new features', or
 	* <changes go here...>
 
 *******************************************************************************
+2.2.1.37
+
+1999-01-14  Jeff Morrill <jmorrill@pointnclick.com>
+
+* Remove dependence on CLTL1
+  utils/defun, utils/clos, tk-silica/xt-silica, tk-silica/xt-graphics,
+  tk/resources, test/chess, aclpc/pkgdcl
+* Enable ":width (4 :character)" style widths on win32 text-editor
+  to be consistent with UNIX and to fix problem in demos.
+  aclpc/acl-widget
+* Reword error message regarding ownership of a window by a thread
+  aclpc/acl-frames
+* Dont run UNIX shell commands on windows
+  demo/browser, demo/peek-frame, demo/plot, demo/printer
+* Reduce warning messages
+  aclpc/acl-medium, tk-silica/xt-silica
+  
+
+*******************************************************************************
 2.2.1.36
 
-Index: clim/completer.lisp
-===================================================================
-RCS file: /cvs/clim2/clim/completer.lisp,v
-retrieving revision 1.17.22.2
-diff -r1.17.22.2 completer.lisp
-56a57,58
-> ;; Note that the usual completion character, Tab, may get filtered out
-> ;; by xm-silica::discard-accelerator-event-p and thus never be seen by the completer.
-Index: clim/standard-types.lisp
-===================================================================
-RCS file: /cvs/clim2/clim/standard-types.lisp,v
-retrieving revision 1.38.22.3
-diff -r1.38.22.3 standard-types.lisp
-496a497
-> 	 (version (pathname-version pathname))
-498c499
-<     (cond ((pathname-version pathname)
----
->     (cond ((and version (not (eq version :unspecific)))
-511c512
-<               #'(lambda (pn)
----
-> 	     #'(lambda (pn)
-520c521
-<                            (let ((s (search name (pathname-name pn)
----
->                            (let ((s (search name pn-name
-Index: tk/event.lisp
-===================================================================
-RCS file: /cvs/clim2/tk/event.lisp,v
-retrieving revision 1.27.22.2
-diff -r1.27.22.2 event.lisp
-118c118,125
-< (defvar *event-matching-event* (x11:make-xevent :in-foreign-space t))
----
-> (defvar *event-matching-event* nil)
-> 
-> (defun make-xevent ()
->   (clim-utils::allocate-cstruct 'x11::xevent :initialize t))
-> 
-> (defun event-matching-event ()
->   (or *event-matching-event*
->       (setq *event-matching-event* (make-xevent))))
-131c138
-< 	 (resulting-event *event-matching-event*)
----
-> 	 (resulting-event (event-matching-event))
-Index: tk/font.lisp
-===================================================================
-RCS file: /cvs/clim2/tk/font.lisp,v
-retrieving revision 1.21.22.4
-diff -r1.21.22.4 font.lisp
-218a219,223
-> (defun make-xrectangle (&key (number 1))
->   (clim-utils::allocate-cstruct 'x11::xrectangle
-> 				:initialize t
-> 				:number number))
-> 
-222,223c227,228
-< 	 (overall-ink-return (x11:make-xrectangle))
-< 	 (overall-logical-return (x11:make-xrectangle)))
----
-> 	 (overall-ink-return (make-xrectangle))
-> 	 (overall-logical-return (make-xrectangle)))
-Index: tk/gcontext.lisp
-===================================================================
-RCS file: /cvs/clim2/tk/gcontext.lisp,v
-retrieving revision 1.32.22.3
-diff -r1.32.22.3 gcontext.lisp
-57c57,58
-< 
----
-> (defun make-xgcvalues ()
->   (clim-utils::allocate-cstruct 'x11::xgcvalues :initialize t))
-84c85
-< 	 (let ((gc-values (x11::make-xgcvalues)))
----
-> 	 (let ((gc-values (make-xgcvalues)))
-365c366
-<   (let ((rs (x11:make-xrectangle-array :number 1)))
----
->   (let ((rs (make-xrectangle-array :number 1)))
-383c384
-< 	 (rs (x11:make-xrectangle-array :number n)))
----
-> 	 (rs (make-xrectangle-array :number n)))
-402c403
-< 	 (rs (x11:make-xrectangle-array :number n)))
----
-> 	 (rs (make-xrectangle-array :number n)))
-Index: tk/xlib.lisp
-===================================================================
-RCS file: /cvs/clim2/tk/xlib.lisp,v
-retrieving revision 1.59.22.6
-diff -r1.59.22.6 xlib.lisp
-58a59,64
-> (defun make-xsetwindowattributes ()
->   (clim-utils::allocate-cstruct 'x11::xsetwindowattributes :initialize t))
-> 
-> (defun make-xwindowattributes ()
->   (clim-utils::allocate-cstruct 'x11::xwindowattributes :initialize t))
-> 
-63c69
-< 	       `(let ((attrs (x11:make-xwindowattributes)))
----
-> 	       `(let ((attrs (make-xwindowattributes)))
-76c82
-< 	 (let ((attrs (x11::make-xsetwindowattributes)))
----
-> 	 (let ((attrs (make-xsetwindowattributes)))
-187a194,196
-> (defun make-xrmvalue ()
->   (clim-utils::allocate-cstruct 'x11::xrmvalue :initialize t))
-> 
-190c199
-<     (let ((xrmvalue (x11:make-xrmvalue)))
----
->     (let ((xrmvalue (make-xrmvalue)))
-208,209c217,218
-<   (let ((from (x11:make-xrmvalue))
-< 	(to-in-out (x11:make-xrmvalue)))
----
->   (let ((from (make-xrmvalue))
-> 	(to-in-out (make-xrmvalue)))
-342a352,356
-> (defun make-xcolor (&key in-foreign-space (number 1))
->   (declare (ignore in-foreign-space))
->   (clim-utils::allocate-cstruct 'x11::xcolor 
-> 				:number number :initialize t))
-> 
-346,348c360
-<     (setq foreign-address (if in-foreign-space
-< 			      (x11::make-xcolor :in-foreign-space t)
-< 			    (x11::make-xcolor :in-foreign-space nil)))
----
->     (setq foreign-address (make-xcolor :in-foreign-space in-foreign-space))
-367,368c379,380
-<   (let ((exact (x11::make-xcolor :in-foreign-space t))
-< 	(closest (x11::make-xcolor :in-foreign-space t)))
----
->   (let ((exact (make-xcolor))
-> 	(closest (make-xcolor)))
-379c391
-<   (let ((exact (x11::make-xcolor :in-foreign-space t)))
----
->   (let ((exact (make-xcolor :in-foreign-space t)))
-388c400
-<   (let ((y (x11::make-xcolor :in-foreign-space t))
----
->   (let ((y (make-xcolor))
-403c415,417
-< 		(make-instance 'color :foreign-address y))))))
----
-> 		(make-instance 'color 
-> 		  :in-foreign-space t
-> 		  :foreign-address y))))))
-416,417c430,431
-<   (let ((exact (x11::make-xcolor :in-foreign-space t))
-< 	(closest (x11::make-xcolor :in-foreign-space t)))
----
->   (let ((exact (make-xcolor))
-> 	(closest (make-xcolor)))
-429c443
-<   (let ((y (x11::make-xcolor)))
----
->   (let ((y (make-xcolor)))
-466,470c480,509
-< (def-foreign-array-resource xcolor-array x11:make-xcolor-array)
-< (def-foreign-array-resource xsegment-array x11:make-xsegment-array)
-< (def-foreign-array-resource xpoint-array x11:make-xpoint-array)
-< (def-foreign-array-resource xrectangle-array x11:make-xrectangle-array)
-< (def-foreign-array-resource xarc-array x11:make-xarc-array)
----
-> (defun make-xcolor-array (&key (number 1) in-foreign-space (initialize t))
->   (declare (ignore in-foreign-space))
->   (clim-utils::allocate-cstruct 'x11::xcolor-array 
-> 				:number number :initialize initialize))
-> 
-> (defun make-xsegment-array (&key (number 1) in-foreign-space (initialize t))
->   (declare (ignore in-foreign-space))
->   (clim-utils::allocate-cstruct 'x11::xsegment-array 
-> 				:number number :initialize initialize))
-> 
-> (defun make-xpoint-array (&key (number 1) in-foreign-space (initialize t))
->   (declare (ignore in-foreign-space))
->   (clim-utils::allocate-cstruct 'x11::xpoint-array 
-> 				:number number :initialize initialize))
-> 
-> (defun make-xrectangle-array (&key (number 1) in-foreign-space (initialize t))
->   (declare (ignore in-foreign-space))
->   (clim-utils::allocate-cstruct 'x11::xrectangle-array 
-> 				:number number :initialize initialize))
-> 
-> (defun make-xarc-array (&key (number 1) in-foreign-space (initialize t))
->   (declare (ignore in-foreign-space))
->   (clim-utils::allocate-cstruct 'x11::xarc-array 
-> 				:number number :initialize initialize))
-> 
-> (def-foreign-array-resource xcolor-array make-xcolor-array)
-> (def-foreign-array-resource xsegment-array make-xsegment-array)
-> (def-foreign-array-resource xpoint-array make-xpoint-array)
-> (def-foreign-array-resource xrectangle-array make-xrectangle-array)
-> (def-foreign-array-resource xarc-array Make-xarc-array)
-Index: tk-silica/ol-silica.lisp
-===================================================================
-RCS file: /cvs/clim2/tk-silica/ol-silica.lisp,v
-retrieving revision 1.26.22.2
-diff -r1.26.22.2 ol-silica.lisp
-108a109,111
-> (defun make-xevent ()
->   (clim-utils::allocate-cstruct 'x11::xevent :initialize t))
-> 
-116c119
-<       (let ((event (x11:make-xevent)))
----
->       (let ((event (make-xevent)))
-Index: tk-silica/xm-gadgets.lisp
-===================================================================
-RCS file: /cvs/clim2/tk-silica/xm-gadgets.lisp,v
-retrieving revision 1.97.8.4
-diff -r1.97.8.4 xm-gadgets.lisp
-1542a1543,1580
-> (defun warp-pointer-to-dialog-box (dialog framem x-position y-position)
->   ;; The purpose of this function is to ensure that the dialog box becomes
->   ;; selected in the case that the selected sheet must be under the pointer.
->   ;; This is simply to make it easy to say "OK" to the dialog box without
->   ;; having to go to a lot of trouble to select the window.
->   (let ((port (port framem)))
->     (when (eq (silica:port-input-focus-selection port) :sheet-under-pointer)
->       (unless (and x-position y-position)
-> 	;; Figure out where the left,top of the dialog box is located.
-> 	(multiple-value-setq (x-position y-position)
-> 	  (tk::get-values (tk::widget-parent dialog) :x :y))
-> 	;; Translate to screen coordinates.
-> 	(tk::with-ref-par ((childreturn 0 :int)
-> 			   (xreturn 0 :int)
-> 			   (yreturn 0 :int))
-> 	  (x11:xtranslatecoordinates (port-display port)
-> 				     (tk::widget-window dialog)
-> 				     (tk::display-root-window (port-display port))
-> 				     x-position y-position
-> 				     &xreturn &yreturn &childreturn)
-> 	  (setq x-position xreturn y-position yreturn)))
->       ;; Decide where to put the pointer.
->       (incf x-position 30)
->       (incf y-position 60)
->       ;; Do it.
->       (x11:xwarppointer
->        (port-display port)
->        0				; src
->        (tk::widget-window dialog)	; dest
->        0				; src-x
->        0				; src-y
->        0				; src-width
->        0				; src-height
->        (fix-coordinate x-position)
->        (fix-coordinate y-position)))))
-> 
-> (defvar *warp-pointer-to-dialogs* nil)
-> 
-1557,1560c1595
-<                                       (exit-boxes
-< 				       '(:exit
-< 					 :abort
-< 					 :help))
----
->                                       (exit-boxes '(:exit :abort :help))
-1563a1599
-> 				      (warp-pointer *warp-pointer-to-dialogs*)
-1614a1651
-> 		
-1615a1653,1656
-> 		
-> 		(when warp-pointer
-> 		  (warp-pointer-to-dialog-box dialog framem x-position y-position))
-> 		
-2068a2110,2111
-> ;;; JPM: Note Tab is considered the completion character, and
-> ;;; this code prevents it from being used as such.
-Index: tk-silica/xt-graphics.lisp
-===================================================================
-RCS file: /cvs/clim2/tk-silica/xt-graphics.lisp,v
-retrieving revision 1.95.8.2
-diff -r1.95.8.2 xt-graphics.lisp
-165,167c165,168
-< 			     :red (truncate (* x red))
-< 			     :green (truncate (* x green))
-< 			     :blue (truncate (* x blue)))))))))
----
-> 		:in-foreign-space t
-> 		:red (truncate (* x red))
-> 		:green (truncate (* x green))
-> 		:blue (truncate (* x blue)))))))))
-Index: tk-silica/xt-silica.lisp
-===================================================================
-RCS file: /cvs/clim2/tk-silica/xt-silica.lisp,v
-retrieving revision 1.108.22.6
-diff -r1.108.22.6 xt-silica.lisp
-42c42
-<      (compose-status :initform (x11:make-xcomposestatus)
----
->      (compose-status :initform (make-xcomposestatus)
-50a51,53
-> (defun make-xcomposestatus ()
->   (clim-utils::allocate-cstruct 'x11::xcomposestatus :initialize t))
-> 
-980c983,988
-<       mapping))))
----
->       mapping)))
-> 
-> (defmethod font-set-from-font-list ((port xt-port) font-list)
->   (error "not yet implemented for non-ics lisp"))
-> 
-> )
+1999-01-11  Jeff Morrill <jmorrill@pointnclick.com>
+
+* Pathname completion fixed and problems noted with the use of
+  Tab as the completion character.  
+  clim/completer
+  clim/standard-types
+* Remaining callers of excl::aclmalloc rewritten
+  tk/event
+  tk/font
+  tk/gcontext
+  tk/xlib
+  tk-silica/ol-silica
+  tk-silica/xt-graphics.lisp
+  tk-silica/xt-silica.lisp
+* Warp mouse pointer to notify-user dialog box via new keyword
+  tk-silica/xm-gadgets.lisp
 
 *******************************************************************************
 2.2.1.35

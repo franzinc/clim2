@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: clos.lisp,v 1.12.22.3 1998/12/17 00:19:56 layer Exp $
+;; $Id: clos.lisp,v 1.12.22.4 1999/01/14 19:04:19 layer Exp $
 
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
@@ -243,9 +243,7 @@
     (when writer
       (ignore-errors
 	(multiple-value-bind (vars vals store-vars store-form access-form)
-	    (#-allegro lisp:get-setf-method-multiple-value
-	     #+allegro cltl1:get-setf-method-multiple-value
-	      `(,accessor-name foo))
+	    (lisp:get-setf-expansion `(,accessor-name foo))
 	  (declare (ignore vars vals store-vars access-form))
 	  (when (or (equal (first store-form) writer)
 		    (and (eq (first store-form) 'funcall)
@@ -263,8 +261,7 @@
 
 (defun expand-defsetf-for-defmethod*
        (accessor-name accessor-arg real-arglist setf-function-name)
-  `(#-allegro lisp:define-setf-method
-    #+allegro cltl1:define-setf-method
+  `(lisp:define-setf-expander
      ,accessor-name (,accessor-arg)	;Only last one is real.
      (flet ((make-temp (name) (gensymbol name 'temp)))
        (let ((temps (list (make-temp ',accessor-arg)))

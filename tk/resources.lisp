@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: resources.lisp,v 1.60.22.3 1998/12/17 00:19:47 layer Exp $
+;; $Id: resources.lisp,v 1.60.22.4 1999/01/14 19:04:14 layer Exp $
 
 (in-package :tk)
 
@@ -705,7 +705,7 @@
   (char-int value))
 
 (defmethod convert-resource-in ((parent t) (typep (eql 'key-sym)) value)
-  (cltl1:int-char value))
+  (code-char value))
 
 (defmethod convert-resource-out ((parent t) (typep (eql 'colormap)) value)
   value)
@@ -719,7 +719,7 @@
   (char-int value))
 
 (defmethod convert-resource-in ((parent t) (typep (eql 'char)) value)
-  (cltl1:int-char (ash value -24)))
+  (code-char (ash value -24)))
 
 (defmethod convert-resource-in ((parent t) (typep (eql 'font-struct)) value)
   (make-instance 'font

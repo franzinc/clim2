@@ -20,7 +20,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: chess.lisp,v 1.13.22.1 1998/07/06 23:10:04 layer Exp $
+;; $Id: chess.lisp,v 1.13.22.2 1999/01/14 19:04:13 layer Exp $
 
 
 (in-package :clim-user)
@@ -120,10 +120,12 @@
 
 (defun encode-position (x)
   (destructuring-bind (row col) x
-    (coerce (list
-	      (cltl1::int-char (+ (char-int #\a) col))
-	      (digit-char (- 8 row)))
-	    'cltl1::string)))
+    (make-array 2
+		:element-type 'character
+		:initial-contents
+		(list
+		 (code-char (+ (char-int #\a) col))
+		 (digit-char (- 8 row))))))
 
 (defun decode-position (position)
   (list (- 8 (digit-char-p (aref position 1))) ;; row

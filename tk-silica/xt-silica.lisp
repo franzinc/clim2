@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xt-silica.lisp,v 1.108.22.7 1999/01/11 17:58:02 layer Exp $
+;; $Id: xt-silica.lisp,v 1.108.22.8 1999/01/14 19:04:18 layer Exp $
 
 (in-package :xm-silica)
 
@@ -983,9 +983,10 @@
       mapping)))
 
 (defmethod font-set-from-font-list ((port xt-port) font-list)
+  (declare (ignore font-list))
   (error "not yet implemented for non-ics lisp"))
 
-)
+) ;; :-ics
 
 ) ;; ics-target-case
 
@@ -1284,9 +1285,6 @@
 			     0))
       (setq character (and (= (length (the simple-string character)) 1)
 			   (aref (the simple-string character) 0)))
-      ;;--- Map the asci control-characters into the common lisp
-      ;;--- control characters except where they are special!
-      ;; Also deal with the modifier bits
       ;; This gets stuff wrong because for example to type-< you have to
       ;; use the shift key and so instead for m-< you aget m-sh-<
       ;; Perhaps there is a way of checking to see whether shifting
@@ -1294,31 +1292,34 @@
       (when character
 	(let ((x (state->modifiers
 		  (x11::xkeyevent-state event))))
-	  (setq character (cltl1:make-char
-			   (if (and (<= (char-int character) 26)
-				    (not (member character
-						 '(#\return
-						   #\tab
-						   #\page
-						   #\backspace
-						   #\linefeed
-						   #\escape)
-						 :test #'eq)))
-			       (cltl1::int-char
-				(+ (cltl1::char-int character)
-				   (1- (if (logtest x +shift-key+)
-					   (char-int #\A)
-					 (char-int #\a)))))
-			     character)
-			   (logior
-			    (if (logtest x +control-key+)
-				cltl1:char-control-bit 0)
-			    (if (logtest x +meta-key+)
-				cltl1:char-meta-bit 0)
-			    (if (logtest x +super-key+)
-				cltl1:char-super-bit 0)
-			    (if (logtest x +hyper-key+)
-				cltl1:char-hyper-bit 0))))))
+	  (setq character 
+	     (if (and (<= (char-int character) 26)
+		      (not (member character
+				   '(#\return
+				     #\tab
+				     #\page
+				     #\backspace
+				     #\linefeed
+				     #\escape)
+				   :test #'eq)))
+		 (code-char
+		  (+ (char-code character)
+		     (1- (if (logtest x +shift-key+)
+			     (char-int #\A)
+			   (char-int #\a)))))
+	       character))
+	  ;; I believe this use of character bit attributes
+	  ;; is unnecessary because all that information is 
+	  ;; in the keysym.  JPM 1/13/99.
+	  #+ignore
+	  (setq character 
+	    (cltl1:make-char
+	     character
+	     (logior
+	      (if (logtest x +control-key+) 1 0)
+	      (if (logtest x +meta-key+)    2 0)
+	      (if (logtest x +super-key+)	  4 0)
+	      (if (logtest x +hyper-key+)	  8 0))))))
       (values character (xt-keysym->keysym keysym)))))
 
 

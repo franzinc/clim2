@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: defun.lisp,v 1.12.22.4 1998/12/17 00:19:56 layer Exp $
+;; $Id: defun.lisp,v 1.12.22.5 1999/01/14 19:04:19 layer Exp $
 
 (in-package :clim-utils)
 
@@ -373,7 +373,7 @@
     #-PCL `(cl:method ,function-name ,specifier-list ,@qualifiers)))
 
 #+(and allegro (not acl86win32) (version>= 4 1))
-(eval-when (compile load eval) (cltl1::require :scm))
+(eval-when (compile load eval) (require :scm))
 #+(and allegro (not acl86win32) (version>= 4 1))
 (excl::define-simple-parser defmethod scm::defmethod-parser)
 

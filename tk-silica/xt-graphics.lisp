@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xt-graphics.lisp,v 1.95.8.3 1999/01/11 17:58:01 layer Exp $
+;; $Id: xt-graphics.lisp,v 1.95.8.4 1999/01/14 19:04:16 layer Exp $
 
 (in-package :tk-silica)
 
@@ -1900,7 +1900,7 @@
 		(when (= col columns)
 		  (setq col 0 row (1+ row)))
 		(setf (schar string 0)
-		  (cltl1:int-char char))
+		  (code-char char))
 		(tk::draw-string pixmap gc
 				 (* col width)
 				 (+ (* row height) ascent)

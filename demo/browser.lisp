@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: browser.lisp,v 1.25.22.3 1998/12/17 00:19:21 layer Exp $
+;; $Id: browser.lisp,v 1.25.22.4 1999/01/14 19:04:11 layer Exp $
 
 ;;; Simple extensible browser
 ;;; Scott McKay
@@ -1172,6 +1172,9 @@
 	  (orientation '(member :landscape :portrait)
 		       :default :portrait
 		       :documentation "Orientation to use on the paper"))
+  #+mswindows
+  (notify-user *application-frame* "Not implemented for this platform")
+  #+unix
   (with-open-stream 
       (pipe (excl:run-shell-command  (format nil "lpr -P~A" printer) :input :stream :wait nil))
     (with-output-to-postscript-stream (stream pipe 

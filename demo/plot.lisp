@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: plot.lisp,v 1.33.22.2 1998/07/06 23:09:28 layer Exp $
+;; $Id: plot.lisp,v 1.33.22.3 1999/01/14 19:04:11 layer Exp $
 
 (in-package :clim-demo)
 
@@ -642,6 +642,9 @@
     ((printer '(member :|lw| :|lw2| :|lw3|)
 	      :display-default t
 	      :default :lw2))
+  #+mswindows
+  (notify-user *application-frame* "Not implemented on this platform")
+  #+unix
   (with-open-stream 
       (pipe (excl:run-shell-command  (format nil "lpr -P~A" printer) :input :stream :wait nil))
     (with-output-to-postscript-stream (stream pipe :multi-page t)

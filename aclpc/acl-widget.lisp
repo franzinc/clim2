@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-widget.lisp,v 1.7.8.10 1998/12/17 00:18:59 layer Exp $
+;; $Id: acl-widget.lisp,v 1.7.8.11 1999/01/14 19:04:08 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -225,34 +225,79 @@
   (declare (ignore region))
   nil)
 
+;; text-editor is one of the few things that you can specify:
+;;    :width '(4 :character)
+(defun process-width-specification (sheet width)
+  (typecase width
+    (cons
+     (assert (eq (second width) :character))
+     (with-sheet-medium (medium sheet)
+       (let* ((nchars (first width))
+	      (style (medium-default-text-style medium))
+	      (style-width (text-style-width style medium))
+	      (margin (slot-value sheet 'x-margin))
+	      (border 2))
+	 (+ border margin (* style-width nchars) margin border))))
+    (string 
+     (with-sheet-medium (medium sheet)
+       (let ((w 
+	      (text-size sheet width
+			 :text-style (medium-default-text-style medium)))
+	     (border 2)
+	     (margin (slot-value sheet 'x-margin)))
+	 (+ border margin w margin border))))
+    (otherwise width)))
+
+;; text-editor is one of the few things that you can specify:
+;;    :height '(4 :line)
+(defun process-height-specification (sheet height)
+  (typecase height
+    (cons
+     (assert (eq (second height) :line))
+     (with-sheet-medium (medium sheet)
+       (let* ((nlines (first height))
+	      (style (medium-default-text-style medium))
+	      (style-height (text-style-height style medium))
+	      (margin (slot-value sheet 'y-margin))
+	      (border 2))
+	 (+ border margin (* style-height nlines) margin border))))
+    (string 
+     (with-sheet-medium (medium sheet)
+       (multiple-value-bind (w h) 
+	   (text-size sheet height
+		      :text-style (medium-default-text-style medium))
+	 (declare (ignore w))
+	 (let ((border 2)
+	       (margin (slot-value sheet 'y-margin)))
+	   (+ border margin h margin border)))))
+    (otherwise height)))
+
 (defmethod compose-space ((pane mswin-text-edit) &key width height)
   (with-slots (x-margin y-margin initial-space-requirement) pane
-    (with-sheet-medium (medium pane)
-      (unless width
-	;; width from text-field-view comes in here
-	(setq width (space-requirement-width initial-space-requirement)))
-      (when (and width (< width 1)) (setq width nil))
-      (unless height
-	;; height from text-field-view comes in here
-	(setq height (space-requirement-height initial-space-requirement)))
-      (when (and height (< height 1)) (setq height nil))
-      (when (or (not width) (not height))
-	(let* ((style (medium-default-text-style medium))
-	       (style-width (text-style-width style medium))
-	       (style-height (text-style-height style medium))
-	       (string (gadget-value pane))
-	       (border 2))		; 3D borders drawn by native control
-	  (multiple-value-bind (twidth theight)
-	      (if string 
-		  (text-size pane string :text-style style)
-		(values (* style-width 20) style-height))
-	    (setq twidth (max 50 (+ border x-margin twidth x-margin border)))
-	    (setq theight (max 25 (+ border y-margin theight y-margin border)))
-	    (setq width (or width twidth))
-	    (setq height (or height theight)))))
-      (make-space-requirement
-       :width  width
-       :height height))))
+    ;; WIDTH
+    (unless width
+      ;; width from text-field-view comes in here
+      (setq width (space-requirement-width initial-space-requirement)))
+    (setq width (process-width-specification pane width))
+    (when (and width (< width 1)) (setq width nil))
+    (unless width
+      (let ((twidth (process-width-specification 
+		     pane (or (gadget-value pane) '(20 :character)))))
+	(setq width (max 50 twidth))))
+    ;; HEIGHT
+    (unless height
+      ;; height from text-field-view comes in here
+      (setq height (space-requirement-height initial-space-requirement)))
+    (setq height (process-height-specification pane height))
+    (when (and height (< height 1)) (setq height nil))
+    (unless height
+      (let ((theight (process-height-specification 
+		      pane (or (gadget-value pane) '(1 :line)))))
+	(setq height (max 25 theight))))
+    ;; FINALLY...
+    (make-space-requirement
+     :width  width
+     :height height)))
 
 (defmethod initialize-instance :after ((sheet mswin-text-edit) 
 				       &key background label) 

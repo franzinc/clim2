@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: lisp-utilities.lisp,v 1.37.22.3 1998/12/17 00:19:56 layer Exp $
+;; $Id: lisp-utilities.lisp,v 1.37.22.4 1999/01/14 19:04:19 layer Exp $
 
 (in-package :clim-utils)
 
@@ -1605,6 +1605,7 @@
 
 ;;; ALLOCATE-CSTRUCT was adapted from ff:make-cstruct.
 ;;; We aren't using ff:make-cstruct because it uses excl:aclmalloc.
+#-mswindows
 (defun allocate-cstruct (name &key 
 			      (number 1)
 			      (initialize

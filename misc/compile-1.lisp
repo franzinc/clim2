@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: compile-1.lisp,v 1.33.22.7 1998/12/17 00:19:25 layer Exp $
+;; $Id: compile-1.lisp,v 1.33.22.8 1999/01/14 19:04:12 layer Exp $
 
 (in-package :user)
 
@@ -48,6 +48,14 @@
 (defun compile-it (sys)
   (with-compilation-unit ()
     (let ((excl::*update-entry-points* nil))
+      (setf (logical-pathname-translations "clim2")
+	(list (list ";**;*.*" 
+		    (format nil "~A/**/*.*" 
+			    #.(directory-namestring 
+			       (make-pathname
+				:directory
+				(butlast (pathname-directory 
+					  *load-pathname*))))))))
       (unless (ignore-errors (excl:find-system 'sys))
 	(load "clim2:;sys;sysdcl"))
       (excl:compile-system sys :include-components t)

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-medium.lisp,v 1.6.8.10 1998/12/17 00:18:56 layer Exp $
+;; $Id: acl-medium.lisp,v 1.6.8.11 1999/01/14 19:04:07 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -1518,3 +1518,7 @@ device-independent bitmap, an icon, nor a cursor."))
 
 (eval-when (load eval)
   (initialize-named-colors))
+
+(defun clim-internals::kana-process-gesture (istream gesture type)
+  (declare (ignore istream gesture type))
+  (error "Not yet implemented for this platform."))
