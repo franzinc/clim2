@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xt-gadgets.lisp,v 1.48.28.1 2000/07/06 16:57:16 cley Exp $
+;; $Id: xt-gadgets.lisp,v 1.48.28.2 2000/07/10 17:00:14 cley Exp $
 
 (in-package :xm-silica)
 
@@ -231,17 +231,30 @@
 	      (compute-symmetric-value
 	       0 *scroll-bar-quantization* value smin smax )))))
 
-(defun compute-new-scroll-bar-values (scroll-bar value slider-size line-increment
+(defun compute-new-scroll-bar-values (scroll-bar value slider-size 
+				      line-increment
 				      &optional (page-increment slider-size))
-  (values
-   (and value
-	(convert-scroll-bar-value-out scroll-bar value))
-   (and slider-size
-	(max 1 (convert-scroll-bar-value-out scroll-bar slider-size)))
-   (and line-increment
-	(max 1 (convert-scroll-bar-value-out scroll-bar line-increment)))
-   (and page-increment
-	(max 1 (convert-scroll-bar-value-out scroll-bar page-increment)))))
+  ;; It needs to be the case that (<= (+ val slider-size) <maximum-sv-value>).
+  ;; This can fail to be true because of rounding errors when
+  ;; converting from float to integer, which cause motif to whine I
+  ;; assume the maximum sv value is *scroll-bar-quantization* (I'm not
+  ;; sure if this is always true), and round the slider size down if
+  ;; the contraint is violated.
+  (let ((val (and value (convert-scroll-bar-value-out scroll-bar value)))
+	(ss (and slider-size
+		 (max 1 
+		      (convert-scroll-bar-value-out scroll-bar slider-size)))))
+    (values val (and ss			;what assumptions about nullness are
+		     (if val		;safe?
+			 (min ss (- *scroll-bar-quantization* val))
+			 ss))
+	    (and line-increment
+		 (max 1 (convert-scroll-bar-value-out scroll-bar 
+						      line-increment)))
+	    (and page-increment
+		 (max 1 (convert-scroll-bar-value-out scroll-bar 
+						      page-increment))))))
+    
 
 
 (defun wait-for-callback-invocation (port predicate &optional (whostate "Waiting for callback"))

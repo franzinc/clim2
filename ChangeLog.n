@@ -11,6 +11,15 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.2.2.15.3 tfb@cley.com (Tim Bradshaw) Mon Jul 10 17:59:16 2000
+
+fix rfe4072-induced motif problems.
+
+	* tk-silica/xt-gadgets.lisp: make compute-new-scroll-bar-values deal 
+	  with rounding errors in float->integer conversion which were
+	  causing motif to whine.
+
+*******************************************************************************
 2.2.2.15.2 tfb@cley.com (Tim Bradshaw) Thu Jul  6 15:04:44 2000
 
 partial changes for rfe4072: motif side is working, windows is not
