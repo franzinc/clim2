@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: font.lisp,v 1.21.22.3 1998/12/17 00:19:45 layer Exp $
+;; $Id: font.lisp,v 1.21.22.4 1999/01/08 06:44:29 layer Exp $
 
 (in-package :tk)
 
@@ -232,7 +232,9 @@
 
 (:-ics
 (defun fonts-of-font-set (font-set)
-   ;; Generate a meaningful error message
-  (error "A non-ICS lisp that uses 7-bit characters does not support this operation.")) 
+  (declare (ignore font-set))
+  ;; Generate a meaningful error message
+  (error "~
+A non-ICS lisp that uses 7-bit characters does not support this operation.")) 
 
 )) ;; ics-target-case

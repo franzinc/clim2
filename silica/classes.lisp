@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: classes.lisp,v 1.39.22.5 1998/12/17 00:19:32 layer Exp $
+;; $Id: classes.lisp,v 1.39.22.6 1999/01/08 06:44:29 layer Exp $
 
 (in-package :silica)
 
@@ -26,8 +26,7 @@
 
 (define-protocol-class port ())
 
-(locally
-(declare (special *default-text-style* *undefined-text-style*))
+(declaim (special *undefined-text-style*))
 
 ;; This is called BASIC-PORT rather than STANDARD-PORT because the class
 ;; cannot be used as-is.  It has to be specialized for each implementation.
@@ -54,28 +53,12 @@
      (default-palette :reader port-default-palette)
      (pointer :initform nil)
      (mapping-table :initform
-#+(or aclpc acl86win32)
-                    (make-hash-table :test #'equal)
-#-(or aclpc acl86win32)
-                    (excl:ics-target-case
-                     (:+ics (let ((v (make-array 4)))
-                              (dotimes (i 4)
-                                (setf (svref v i)
-                                  (make-hash-table :test #'equal)))
-                              v))
-                     (:-ics (make-hash-table :test #'equal))))
+		    #+(or aclpc acl86win32) (make-hash-table :test #'equal)
+		    #-(or aclpc acl86win32) (mapping-table-initform))
      ;; one entry cache
      (mapping-cache :initform
-#+(or aclpc acl86win32)
-                    (cons nil nil)
-#-(or aclpc acl86win32)
-                    (excl:ics-target-case
-                     (:+ics (let ((v (make-array 4)))
-                              (dotimes (i 4)
-                                (setf (svref v i)
-                                  (cons nil nil)))
-                              v))
-                     (:-ics (cons nil nil))))
+		    #+(or aclpc acl86win32) (cons nil nil)
+		    #-(or aclpc acl86win32) (mapping-cache-initform))
 #+(or aclpc acl86win32)
      (undefined-text-style :initform *undefined-text-style*
                            :accessor port-undefined-text-style)
@@ -94,8 +77,28 @@
                               :initform (make-hash-table :test #'equal))
      (grabbing-sheet :initform nil :accessor port-grabbing-sheet)))
 
-)        ;locally
+;;;; NOTE: ics-target-case used in defclass forms causes source file
+;;;; recording warnings.
 
+#-(or aclpc acl86win32) 
+(defun mapping-table-initform ()
+  (excl:ics-target-case
+   (:+ics (let ((v (make-array 4)))
+	    (dotimes (i 4)
+	      (setf (svref v i)
+		(make-hash-table :test #'equal)))
+	    v))
+   (:-ics (make-hash-table :test #'equal))))
+
+#-(or aclpc acl86win32) 
+(defun mapping-cache-initform ()
+  (excl:ics-target-case
+   (:+ics (let ((v (make-array 4)))
+	    (dotimes (i 4)
+	      (setf (svref v i)
+		(cons nil nil)))
+	    v))
+   (:-ics (cons nil nil))))
 
 (define-protocol-class sheet ())
 
