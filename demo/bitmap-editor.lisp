@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: bitmap-editor.lisp,v 1.19.22.2 1998/07/06 23:09:22 layer Exp $
+;; $Id: bitmap-editor.lisp,v 1.19.22.3 1999/01/29 00:41:45 layer Exp $
 
 (in-package :clim-demo)
 
@@ -63,8 +63,7 @@
 		       :name-key ,#'identity
 		       :printer ,#'display-color)
 		     :view '(radio-box-view 
-			     :orientation :vertical
-			     :toggle-button-options (:indicator-type nil))
+			     :orientation :vertical)
 		     :stream stream
 		     :default (nth current-color colors)
 		     :query-identifier 'colors

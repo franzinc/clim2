@@ -11,6 +11,23 @@ Tests for new features:	<`no new features', `no tests for new features', or
 	* <changes go here...>
 
 *******************************************************************************
+change missing from last sources from jeff:
+
+* aclpc/acl-mirror: Try to prevent infinite recursion setting edges of
+   top-level sheet
+
+*******************************************************************************
+2.2.1.42
+
+1999-01-28  Jeff Morrill  <jmorrill@pointnclick.com> 
+
+* aclpc/acl-class: Remove breakpoint to allow for deeper stacks
+* aclpc/acl-scroll: Try to prevent scroll panes from sizing children
+   to have negative width or height
+* demo/bitmap-editor: Make it work on windows
+* demo/sysdcl: activate the bitmap-editor for windows
+
+*******************************************************************************
 2.2.1.41
 
 1999-01-27  Jeff Morrill  <jmorrill@pointnclick.com> 

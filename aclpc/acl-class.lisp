@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-class.lisp,v 1.7.8.12 1999/01/08 07:07:13 layer Exp $
+;; $Id: acl-class.lisp,v 1.7.8.13 1999/01/29 00:41:40 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -866,7 +866,7 @@
 	       window
 	       lparam))
     (when (> *level* 40)
-      (break "too deep!"))
+      (warn "clim-wind-proc: too deep!"))
     (case msg
       (#.win:WM_MOUSEMOVE
        (onmousemove window msg wparam lparam))

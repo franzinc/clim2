@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-scroll.lisp,v 1.4.8.8 1998/12/17 00:18:59 layer Exp $
+;; $Id: acl-scroll.lisp,v 1.4.8.9 1999/01/29 00:41:42 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -458,6 +458,12 @@
 		    (- height
 		       (if hscroll (win-scroll-thick :y) *win-border-thick*))))
 	 (child (sheet-child pane)))
+    (when (< nwidth 1)
+      (warn "Scroller-pane width too small, compensating")
+      (setq nwidth 1))
+    (when (< nheight 1)
+      (warn "Scroller-pane height too small, compensating")
+      (setq nheight 1))
     (resize-sheet child nwidth nheight)	;;; get the viewport sized correctly!
     (allocate-space child nwidth nheight)))
 
