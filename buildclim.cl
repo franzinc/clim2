@@ -1,5 +1,5 @@
 ;; Load this file to make a clim image.
-;; $Id: buildclim.cl,v 2.4 2003/12/15 18:35:11 layer Exp $
+;; $Id: buildclim.cl,v 2.5 2004/03/21 15:59:48 layer Exp $
 
 (excl:build-lisp-image
  #+ics "sys:clim.dxl" #-ics "sys:clim8.dxl"
@@ -29,5 +29,5 @@
        #+(and (not mswindows) ics) "sys:clim"
        #+(and (not mswindows) (not ics)) "sys:clim8"))
   (ignore-errors (delete-file dest))
-  (sys:copy-file (excl::curpgmname) dest))
+  (sys:copy-file (merge-pathnames (excl::curpgmname) "sys:") dest))
 

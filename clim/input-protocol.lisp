@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: input-protocol.lisp,v 2.5 2004/01/16 19:15:41 layer Exp $
+;; $Id: input-protocol.lisp,v 2.6 2004/03/21 15:59:48 layer Exp $
 
 (in-package :clim-internals)
 

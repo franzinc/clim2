@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-class.lisp,v 2.6 2004/03/11 02:13:07 layer Exp $
+;; $Id: acl-class.lisp,v 2.7 2004/03/21 15:59:48 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -1419,6 +1419,7 @@
 ;; a windows message from the windows message queue. 
 ;; Note that TAB will not select the next control in
 ;; a group of controls if we never call IsDialogMessage.
+#+ignore
 (defun process-pending-messages (nonblocking hwnd)
   (declare (optimize (speed 3) (safety 0)))
   ;;(when hwnd (assert (win:IsWindow hwnd)))
@@ -1434,6 +1435,65 @@
 	     (win:DispatchMessage msg)))
       (when nonblocking (return t))
       )))
+
+;; This code below is identical to the default
+;; process-messages-in-interrupt function
+;; in /fi/cl/6.2/src/cl/src/code/threads.cl
+;; so it is only left here as a comment in case we figure out
+;; when and how to call IsDialogMessage correctly.
+
+;;(defvar *pmif* nil)
+;;(defvar *last-pmif* 0)
+#+ignore
+(defun clim-message-interrupt-function (&aux hwnd done)
+  (declare (optimize (speed 3) (safety 0)))
+
+  ;; copied from process-pending-messages
+
+  (ff:with-stack-fobject
+   (lmsg 'win:msg)
+   (prog1
+       (loop
+	(let ((gotmessage (win:PeekMessage lmsg 0 0 0 win:PM_REMOVE)))
+	  (cond ((not gotmessage) (return done))
+
+		;; This looks well intentioned but it does not work.
+		;; It does not work in 6.2 either because PeekMessage
+		;;  always returns false when this function was invoked.
+		;;  The messages had already been removed by the
+		;;  process-messages-in-interrupt function.
+		;; Calling IsDialogMessage throws the thread into a loop
+		;;  of endless GETDLGCODE messages.
+		#+ignore
+		((and (multiple-value-bind (frame boundp)
+			  (mp:symeval-in-process '*application-frame*
+						 sys:*current-process*)
+			(case boundp
+			  ((nil :unbound) (setf hwnd nil))
+			  (otherwise
+			   (let ((sheet (frame-top-level-sheet frame)))
+			     (if sheet
+				 (setf hwnd (sheet-mirror sheet))
+			       (setf hwnd nil))))))
+		      hwnd
+		      (win:IsDialogMessage hwnd lmsg)))
+
+		(t  (win:TranslateMessage lmsg)
+		    (win:DispatchMessage lmsg)))
+	  (setf done t)
+	  ))
+     (when (numberp user::*pmif*)
+       (let* ((now (get-internal-real-time))
+	      (delta (- now *last-pmif*)))
+	 (when (> delta user::*pmif*)
+	   (format excl:*initial-terminal-io* "~&PMIF delta=~S~%" delta))
+	 (setf *last-pmif* now)))
+     )))
+
+;; This can be activated if the above function is ever revived.
+#+ignore
+(setf sys::*default-message-interrupt-function*
+  #'clim-message-interrupt-function)
 
 (defvar *current-window*)
 (defvar *dc-initialized* nil)

@@ -1,3 +1,14 @@
+2004-03-21  Kevin Layer  <layer@gemini>
+
+	* buildclim.cl: rfe5374: make it work from directories other than
+	  sys:
+	* aclpc/acl-class.lisp: bug13994: ignore process-pending-messages
+	* aclpc/acl-port.lisp: bug13994 (and others): fix
+	  clim-utils::process-wait
+	* clim/tracking-pointer.lisp (tracking-pointer-1): adjust
+	  wait function to change state more responsibly bug14162 move an
+	  flet out of a loop
+
 2004-03-10  Kevin Layer  <layer@gemini>
 
 	* Makefile: add amd64
@@ -5,8 +16,8 @@
 	* Makefile.rs6000: use Motif 2.1 instead of 1.2 (on bb1)
 	* Makefile.wnn: for amd64
     from mm/rfr -- THESE CHANGES ARE NOT THE LATEST CHANGES FROM MM
-	* aclpc/acl-class.lisp
-	* aclpc/acl-port.lisp
+	* aclpc/acl-class.lisp: for bug13994
+	* aclpc/acl-port.lisp: for bug13994
 
 *******************************************************************************
 join from acl62 to trunk on 2/12/04
@@ -5917,4 +5928,4 @@ IGNORE JDI SPECIFIC CHANGES TO Makefile
 	Lots of other stuff
 
 *******************************************************************************
-$Revision: 2.8 $
+$Revision: 2.9 $

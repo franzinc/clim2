@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-port.lisp,v 2.6 2004/03/11 02:13:07 layer Exp $
+;; $Id: acl-port.lisp,v 2.7 2004/03/21 15:59:48 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -963,8 +963,9 @@ or (:style . (family face size))")
 
 ;; Redefine function from utils/processes.lisp.
 (defun clim-utils::process-wait (state function &rest args)
-  (declare (dynamic-extent function args)
-	   (optimize (speed 3) (safety 0)))
+  (declare 
+   (dynamic-extent function args)
+   (optimize (speed 3) (safety 0)))
   #+someday
   (apply #'mp:process-wait state function args)
   (let ((result nil))
@@ -1015,30 +1016,30 @@ or (:style . (family face size))")
 ;; assume wait-function is a 'nice' test of state only
 (defmethod process-next-event ((port acl-port)
 			       &key (timeout nil) 
-				    (wait-function nil)
-				    (state "Windows Event"))
-  (with-slots (event-queue motion-pending) port
-    (let (#+ignore (sheet (frame-top-level-sheet *application-frame*))
-	  event)
-	(flet ((wait-for-event ()
-		 (or (not (queue-empty-p event-queue))
-		     (and wait-function (funcall wait-function)))))
-
-	   (loop
-	    (if timeout
-		(mp:with-timeout (timeout
-				  (return-from process-next-event :timeout))
-		    (mp:process-wait state #'wait-for-event))
-	      (process-wait state #'wait-for-event))
-	    (setq event (queue-get event-queue))
-	    (when event
-	      (distribute-event port event)
-	      (return-from process-next-event t))
-	    (when motion-pending
-	      (flush-pointer-motion port))
-	    (when (and wait-function (funcall wait-function))
-	      (return-from process-next-event :wait-function))
-	    )))))
+			       (wait-function nil)
+			       (state "Windows Event"))
+  (with-slots
+   (event-queue motion-pending) port
+   (let* (event)
+     (flet ((wait-for-event ()
+			    (or (not (queue-empty-p event-queue))
+				motion-pending
+				(and wait-function (funcall wait-function)))))
+       (loop
+	(if timeout
+	    (mp:with-timeout (timeout
+			      (return-from process-next-event :timeout))
+			     (mp:process-wait state #'wait-for-event))
+	  (process-wait state #'wait-for-event))
+	(setq event (queue-get event-queue))
+	(when event
+	  (distribute-event port event)
+	  (return-from process-next-event t))
+	(when motion-pending
+	  (flush-pointer-motion port))
+	(when (and wait-function (funcall wait-function))
+	  (return-from process-next-event :wait-function))
+	)))))
 
 
 (defmethod distribute-event :around ((port acl-port) (event device-event))
