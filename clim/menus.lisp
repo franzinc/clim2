@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: menus.lisp,v 1.47 1994/12/04 23:57:57 colin Exp $
+;; $fiHeader: menus.lisp,v 1.48 1995/05/17 19:48:06 colin Exp $
 
 (in-package :clim-internals)
 
@@ -13,9 +13,9 @@
 (defparameter *default-menu-label-text-style* (make-text-style :fix :italic :normal))
 
 (define-application-frame menu-frame ()
-  (menu 
+  (menu
    (label :initarg :label :initform nil :accessor menu-frame-label)
-   (scroll-bars :initarg :scroll-bars 
+   (scroll-bars :initarg :scroll-bars
 		:initform t
 		:reader menu-frame-scroll-bars))
   (:pane
@@ -30,7 +30,7 @@
 				      :initial-cursor-visibility nil)))))
 	 (if label
 	     (vertically ()
-	       (setq label (make-pane 'label-pane 
+	       (setq label (make-pane 'label-pane
 				      :label ""
 				      :text-style *default-menu-label-text-style*))
 	       main)
@@ -58,16 +58,16 @@
     (values (slot-value frame 'menu) frame)))
 
 (defresource menu (associated-window root &key label (scroll-bars t))
-	     :constructor 
+	     :constructor
 	     (let* ((framem (if (null root) (find-frame-manager) (frame-manager root))))
-	       (frame-manager-get-menu framem 
+	       (frame-manager-get-menu framem
 				       :scroll-bars scroll-bars
 				       :label label
 				       :parent-frame (pane-frame root)))
 	     :matcher (and (eq scroll-bars (menu-frame-scroll-bars (pane-frame menu)))
 			   (eq (not label) (not (menu-frame-label (pane-frame menu))))
 			   (eq (frame-manager menu) (frame-manager root)))
-	       
+
 	     :deinitializer (progn
 			      (setf (window-visibility menu) nil)
 			      (window-clear menu))
@@ -77,7 +77,7 @@
   ;;--- Should this flush the menu's event queue?
   (setf (stream-default-text-margin menu) nil)
   (when label
-    (let ((text-style (if (listp label) 
+    (let ((text-style (if (listp label)
 			  (getf (rest label) :text-style *default-menu-label-text-style*)
 			*default-menu-label-text-style*))
 	  (label (if (listp label) (first label) label))
@@ -126,7 +126,7 @@
 
 ;; Perhaps misguided attempt at allowing performance win if you use
 ;; simple unique-ids.
-(defvar *menu-choose-output-history-caches* 
+(defvar *menu-choose-output-history-caches*
 	(cons (make-hash-table :test #'eql)
 	      (make-hash-table :test #'equal)))
 
@@ -181,12 +181,12 @@
     (flet ((format-item (item)
 	     (let ((type (menu-item-type item)))
 	       (flet ((print-item ()
-			(formatting-cell (menu :align-x cell-align-x 
+			(formatting-cell (menu :align-x cell-align-x
 					       :align-y cell-align-y)
 			  (funcall item-printer item menu))))
 		 (declare (dynamic-extent #'print-item))
 		 (ecase type
-		   (:item 
+		   (:item
 		     (if (menu-item-active item)
 			 (let ((presentation
 				 (with-output-as-presentation (menu item presentation-type
@@ -198,7 +198,7 @@
 			 (with-drawing-options (menu :ink *command-table-menu-gray*
 						     :text-face :bold)
 			   (print-item))))
-		   (:label 
+		   (:label
 		     (print-item))
 		   (:divider
 		     (let* ((width (menu-item-getf item :width 50))
@@ -207,7 +207,7 @@
 		       (formatting-cell (menu :align-x cell-align-x
 					      :align-y :center)
 			 (with-local-coordinates (menu)
-			   (draw-line* menu 0 0 width 0 
+			   (draw-line* menu 0 0 width 0
 				       :line-thickness thickness :ink ink))))))))))
       (declare (dynamic-extent #'format-item))
       (map nil #'format-item items)))
@@ -318,12 +318,12 @@
 					       :item-printer item-printer
 					       :max-width max-width :max-height max-height
 					       :n-rows n-rows :n-columns n-columns
-					       :x-spacing x-spacing :y-spacing y-spacing 
+					       :x-spacing x-spacing :y-spacing y-spacing
 					       :row-wise row-wise
 					       :cell-align-x cell-align-x
 					       :cell-align-y cell-align-y)))
 		    (declare (dynamic-extent #'menu-choose-body))
-		    (menu-choose-from-drawer 
+		    (menu-choose-from-drawer
 		      menu 'menu-item #'menu-choose-body
 		      :cache cache
 		      :unique-id unique-id :id-test id-test
@@ -350,7 +350,7 @@
 	 (invoke-with-mouse-grabbed-in-window
 	   (frame-manager ,w) ,w #'with-mouse-grabbed-in-window-body ,@options)))))
 
-(defmethod invoke-with-mouse-grabbed-in-window 
+(defmethod invoke-with-mouse-grabbed-in-window
 	   ((framem standard-frame-manager) (window t) continuation &key)
   (funcall continuation))
 
@@ -359,10 +359,10 @@
     `(flet ((with-menu-as-popup-body () ,@body))
        (declare (dynamic-extent #'with-menu-as-popup-body))
        (let ((,w ,menu))
-	 (invoke-with-menu-as-popup 
+	 (invoke-with-menu-as-popup
 	   (frame-manager ,w) ,w #'with-menu-as-popup-body)))))
 
-(defmethod invoke-with-menu-as-popup 
+(defmethod invoke-with-menu-as-popup
 	   ((framem standard-frame-manager) (sheet basic-sheet) continuation)
   (funcall continuation))
 
@@ -374,7 +374,7 @@
 ;;     that are of different types.  See example below
 (defun menu-choose-from-drawer (menu presentation-type drawer
 				&key x-position y-position
-				     cache unique-id (id-test #'equal) 
+				     cache unique-id (id-test #'equal)
 				     (cache-value t) (cache-test #'eql)
 				     ;; for use by HIERARCHICHAL-MENU-CHOOSE
 				     leave-menu-visible
@@ -382,7 +382,7 @@
 				     pointer-documentation menu-type)
   (declare (ignore menu-type))
   (flet (#+Allegro
-	 (abort-menu-handler () 
+	 (abort-menu-handler ()
 	   (return-from menu-choose-from-drawer nil)))
     #+Allegro (declare (dynamic-extent #'abort-menu-handler))
     (with-clim-state-reset (:all t
@@ -412,7 +412,7 @@
 	       (with-output-recording-options (menu :draw nil :record t)
 		 (let ((menu-contents
 			(with-new-output-record (menu)
-			  (setq default-presentation 
+			  (setq default-presentation
 			    (funcall drawer menu presentation-type)))))
 		   (when cache
 		     (setf (get-from-output-history-cache unique-id id-test)
@@ -443,7 +443,7 @@
 			   ;; is needed.
 			   ;;--- This screws up in Allegro because querying the server
 			   ;;--- in the wait function screws event handling.
-			   (or #-Allegro 
+			   (or #-Allegro
 			       (and *abort-menus-when-buried*
 				    (not (window-visibility menu)))
 			       (pointer-motion-pending menu)))
@@ -455,7 +455,7 @@
 			     (return-from menu-choose-from-drawer nil))
 			   ;; Take care of highlighting
 			   (highlight-presentation-of-context-type menu)))
-		  #-Allegro  
+		  #-Allegro
 		  (declare (dynamic-extent #'input-wait-test #'input-wait-handler))
 		  ;; Await exposure before going any further, since X can get
 		  ;; to the call to READ-GESTURE before the menu is visible.
@@ -502,7 +502,7 @@
 					     :item-printer item-printer
 					     :max-width max-width :max-height max-height
 					     :n-rows n-rows :n-columns n-columns
-					     :x-spacing x-spacing :y-spacing y-spacing 
+					     :x-spacing x-spacing :y-spacing y-spacing
 					     :row-wise row-wise
 					     :cell-align-x cell-align-x
 					     :cell-align-y cell-align-y)))
@@ -615,7 +615,7 @@
 	  (let ((new-menu (define-static-menu-1 name this-root items
 						:default-item default-item
 						:text-style text-style
-						:printer printer 
+						:printer printer
 						:presentation-type presentation-type
 						:drawer-args drawer-args)))
 	    (setq menu-contents (slot-value new-menu 'menu-contents)
@@ -624,7 +624,7 @@
     (with-menu (menu associated-window :label label :scroll-bars scroll-bars)
       (with-text-style (menu text-style)
 	(multiple-value-bind (item gesture)
-	    (menu-choose-from-drawer 
+	    (menu-choose-from-drawer
 	      menu 'menu-item #'false		;the drawer never gets called
 	      :cache static-menu
 	      :unique-id name
@@ -645,7 +645,7 @@
 
 (define-application-frame open-window-stream-frame ()
   ((type :initarg :type)
-   (scroll-bars :initarg :scroll-bars) 
+   (scroll-bars :initarg :scroll-bars)
    (borders :initarg :borders)
    (background :initarg :background)
    (foreground :initarg :foreground)
@@ -667,12 +667,12 @@
 	:borders borders))
      pane)))
 
-(defun open-window-stream (&key (left nil leftp)
-				(top nil topp)
-				(right nil rightp)
-				(bottom nil bottomp) 
+(defun open-window-stream (&key left
+				top
+				right
+				bottom
 				width height
-				foreground 
+				foreground
 				background
 				text-style
 				(vertical-spacing 2)
@@ -708,10 +708,11 @@
 					:text-style text-style
 					:frame-manager
 					(etypecase parent
-					  ((or pane standard-application-frame) 
+					  ((or pane standard-application-frame)
 					   (frame-manager parent))
 					  (frame-manager parent)
-					  (null (find-frame-manager)))))
+					  (null (find-frame-manager)))
+					:left left :top top))
 	 (stream (slot-value frame 'stream)))
     (setf (stream-vertical-spacing stream) vertical-spacing
 	  (stream-end-of-line-action stream) end-of-line-action
@@ -725,6 +726,11 @@
       (stream-output-history stream) (make-instance output-record))
     (window-set-inside-size stream width height)
     (window-set-viewport-position stream 0 0)
+
+    ;; moved this into the :left, :top args to above make-application-frame.
+    ;; The position-sheet-carefully doesn't seem to work because the frame
+    ;;  window isn't realized at this point (cim 9/15/95)
+    #+ignore
     (when (or leftp topp rightp bottomp)
       (position-sheet-carefully
        (frame-top-level-sheet (pane-frame stream)) left top))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: interactive-defs.lisp,v 1.24 1993/07/27 01:40:00 colin Exp $
+;; $fiHeader: interactive-defs.lisp,v 1.25 1995/05/17 19:48:03 colin Exp $
 
 (in-package :clim-internals)
 
@@ -179,6 +179,10 @@
 			;;--- haven't updated WRITE-CHAR yet
 			#+++ignore (write-char gesture stream))
 		       (t (beep stream))))
+		((activation-gesture-p gesture)
+		 (return-token gesture))
+		((delimiter-gesture-p gesture)
+		 (return-token gesture))
 		(t (beep stream))))))))
 
 (defun write-token (token stream &key acceptably)

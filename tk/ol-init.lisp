@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-init.lisp,v 1.20 1994/12/05 00:01:06 colin Exp $
+;; $fiHeader: ol-init.lisp,v 1.21 1995/05/17 19:49:32 colin Exp $
 
 (in-package :tk)
 
@@ -96,4 +96,4 @@
     (setup-error-handlers)
     (install-ol-error-handlers)
     (fixup-class-entry-points))
-  (push '(:eval reinitialize-toolkit) excl::*restart-actions*))
+  (push 'reinitialize-toolkit excl::*restart-actions*))

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-defs.lisp,v 1.9 1994/12/05 00:01:17 colin Exp $
+;; $fiHeader: xm-defs.lisp,v 1.11 1995/06/21 21:24:19 georgej Exp $
 
 ;;
 ;; This file contains compile time only code -- put in clim-debug.fasl.
@@ -40,13 +40,24 @@
   (protocol * :char))
 
 (def-c-typedef xm-string :int)
+(def-c-typedef xm-text-position :long)
+
+(def-c-type (xm-text-block-rec :no-defuns) :struct
+	    (ptr * :char)
+	    (length :int)
+	    (format x11:atom))
+
+(def-c-typedef xm-text-block * xm-text-block-rec)
 
 (def-c-type (xm-text-field-callback-struct :no-defuns) :struct
 	    (reason :int)
 	    (event * x11:xevent)
-	    (doit :int)
-	    ;; and more later
-	    )
+	    (doit boolean)
+	    (curr-insert xm-text-position)
+	    (new-insert xm-text-position)
+	    (start-pos xm-text-position)
+	    (end-pos xm-text-position)
+	    (text xm-text-block))
 
 (def-c-type (xm-file-selection-box-callback-struct :no-defuns) :struct
 	    (reason :int)
@@ -74,4 +85,3 @@
 (def-c-type (xm-selected-position-array :no-defuns) 1 :int)
 
 (def-c-type (xm-string-table :no-defuns) 1 * :char)
-

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: packages.lisp,v 1.64 1994/12/05 00:02:30 colin Exp $
+;; $fiHeader: packages.lisp,v 1.65 1995/05/17 19:50:36 colin Exp $
 
 (in-package :common-lisp-user)
 
@@ -3245,6 +3245,7 @@
     add-sheet-callbacks
     all-drawing-options-lambda-list
     allocate-event
+    armed-gadget-event
     basic-pixmap-medium
     bury-mirror
     canvas
@@ -3274,6 +3275,7 @@
     define-graphics-method
     define-text-style-mappings
     define-text-style-mappings-1
+    disarmed-gadget-event
     distribute-event-1
     drag-gadget-event
     draw-gadget-label
@@ -3379,6 +3381,7 @@
     port-mirror->sheet-table
     port-move-frame
     port-resize-frame
+    port-remove-all-pointer-grabs
     port-note-cursor-change
     port-note-frame-adopted
     port-note-gadget-activated
@@ -3435,6 +3438,7 @@
     stream-scan-string-for-writing-1
     string-height
     string-width
+    text-field-echo-character
     text-style-index
     text-style-mapping*
     text-style-scale

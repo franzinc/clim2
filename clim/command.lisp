@@ -1,6 +1,6 @@
 s;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: command.lisp,v 1.27 1994/12/04 23:57:24 colin Exp $
+;; $fiHeader: command.lisp,v 1.28 1995/05/17 19:47:42 colin Exp $
 
 (in-package :clim-internals)
 
@@ -49,7 +49,7 @@ s;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10
 ;; in the form (MENU-NAME KEYSTROKE COMMAND-MENU-ITEM), where the menu item is of the
 ;; form (TYPE VALUE . OPTIONS).  MENU-TICK is incremented when MENU changes.
 ;; TRANSLATORS is the set of presentation translators for this command table.
-(defclass standard-command-table 
+(defclass standard-command-table
 	  (command-table)
     ((name :reader command-table-name
 	   :initarg :name)
@@ -73,7 +73,7 @@ s;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10
   (print-unreadable-object (command-table stream :type t :identity t)
     (write (command-table-name command-table) :stream stream :escape nil)))
 
-(defmethod (setf command-table-inherit-from) 
+(defmethod (setf command-table-inherit-from)
 	   (new-inherit-from (command-table standard-command-table))
   (with-slots (inherit-from completion-alist translators-cache) command-table
     (unless (eq new-inherit-from inherit-from)
@@ -106,7 +106,7 @@ s;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10
 		nil))))
 	(t
 	 (error "~S is not a symbol or command table"))))
-	
+
 
 (defun make-command-table (name &key inherit-from menu inherit-menu (errorp t))
   (check-type name symbol)
@@ -140,12 +140,12 @@ s;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10
 	  (dovector (element menu)
 	    (destructuring-bind (string keystroke (type value &rest options)) element
 	      (when (case inherit-menu
-		      (:menu (setq keystroke nil) 
+		      (:menu (setq keystroke nil)
 			     t)
-		      (:keystrokes (setq string nil) 
+		      (:keystrokes (setq string nil)
 				   keystroke)
 		      (otherwise t))
-		(apply #'add-menu-item-to-command-table 
+		(apply #'add-menu-item-to-command-table
 		       command-table string type value
 		       :keystroke keystroke :errorp nil
 		       options))))))))
@@ -167,8 +167,8 @@ s;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10
   #+Genera (declare (zwei:indentation 1 1))
   (setf (compile-time-property name 'command-table-name) t)
   `(define-group ,name define-command-table
-     (define-command-table-1 ',name 
-	 :inherit-from ',inherit-from 
+     (define-command-table-1 ',name
+	 :inherit-from ',inherit-from
 	 ,@(and menu-p `(:menu ',menu))
 	 :inherit-menu ,inherit-menu)))
 
@@ -198,7 +198,7 @@ s;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10
 	   (setf (slot-value old-command-table 'keystrokes) nil)
 	   old-command-table)
 	  (t
-	   (make-command-table name :inherit-from inherit-from 
+	   (make-command-table name :inherit-from inherit-from
 				    :menu menu :inherit-menu inherit-menu)))))
 
 ;; CLIM's general "user" command table
@@ -308,7 +308,7 @@ s;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10
   (dolist (comtab (command-table-inherit-from command-table))
     (do-command-table-inheritance-1 function (find-command-table comtab))))
 
-(defmethod command-present-in-command-table-p 
+(defmethod command-present-in-command-table-p
 	   (command-name (command-table standard-command-table))
   (gethash command-name (slot-value command-table 'commands)))
 
@@ -418,8 +418,8 @@ s;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10
   (and s1 s2 (string-equal s1 s2)))
 
 (defun add-menu-item-to-command-table (command-table string type value
-				       &key documentation (after ':end) 
-					    keystroke mnemonic
+				       &key documentation (after ':end)
+					    keystroke mnemonic accelerator-text
 					    text-style button-type (errorp t))
   (check-type string (or string null))
   (check-type type (member :command :function :menu :divider))
@@ -449,16 +449,17 @@ s;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10
       (when (and n-required
 		 (not (zerop n-required))
 		 (< n-supplied n-required))
-	(setq value (append value 
+	(setq value (append value
 			    (make-list (- n-required n-supplied)
 				       :initial-element *unsupplied-argument-marker*))))))
   (with-slots (menu menu-tick commands keystrokes) command-table
     (incf menu-tick)
     (setq keystrokes nil)
-    (let* ((item `(,type ,value 
+    (let* ((item `(,type ,value
 		   ,@(and documentation `(:documentation ,documentation))
 		   ,@(and text-style `(:text-style ,text-style))
 		   ,@(and mnemonic `(:mnemonic ,mnemonic))
+		   ,@(and accelerator-text `(:accelerator-text ,accelerator-text))
 		   ,@(and button-type `(:button-type ,button-type))))
 	   ;; Entries are of the form (MENU-NAME KEYSTROKE MENU-ITEM)
 	   (entry (list string keystroke item)))
@@ -584,7 +585,7 @@ s;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10
 (defun display-command-table-menu (command-table stream
 				   &key max-width max-height
 					n-rows n-columns
-					x-spacing y-spacing 
+					x-spacing y-spacing
 					(cell-align-x ':left) (cell-align-y ':top)
 					(initial-spacing t) (row-wise nil) move-cursor)
   (unless (or max-width max-height)
@@ -605,7 +606,7 @@ s;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10
 	    (cond ((eq (command-menu-item-type (third element)) :divider)
 		   (typecase (first element)
 		     (string
-		       (let ((text-style 
+		       (let ((text-style
 			       (getf (command-menu-item-options (third element)) :text-style)))
 			 (with-text-style (stream text-style)
 			   (formatting-cell (stream :align-x cell-align-x
@@ -619,7 +620,7 @@ s;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10
 			 (formatting-cell (stream :align-x cell-align-x
 						  :align-y :center)
 			   (with-local-coordinates (stream)
-			     (draw-line* stream 0 0 width 0 
+			     (draw-line* stream 0 0 width 0
 					 :line-thickness thickness :ink ink)))))))
 		  ((first element)
 		   (formatting-cell (stream :align-x cell-align-x :align-y cell-align-y)
@@ -683,7 +684,7 @@ s;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10
       (cond ((eq (command-menu-item-type (third item)) :divider)
 	     (typecase (first item)
 	       (string
-		 (let ((text-style 
+		 (let ((text-style
 			 (getf (command-menu-item-options (third item)) :text-style)))
 		   (with-text-style (stream text-style)
 		     (formatting-cell (stream)
@@ -696,7 +697,7 @@ s;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10
 		   (formatting-cell (stream :align-x :left
 					    :align-y :center)
 		     (with-local-coordinates (stream)
-		       (draw-line* stream 0 0 width 0 
+		       (draw-line* stream 0 0 width 0
 				   :line-thickness thickness :ink ink)))))))
 	    ((first item)
 	     (formatting-cell (stream)
@@ -707,7 +708,7 @@ s;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10
 		   (present item 'command-menu-element :stream stream)))))))
   nil)
 
-(defun extract-command-menu-item-value (menu-item gesture 
+(defun extract-command-menu-item-value (menu-item gesture
 					&optional (numeric-argument *numeric-argument*))
   (let ((type (command-menu-item-type menu-item))
 	(value (command-menu-item-value menu-item)))
@@ -767,7 +768,7 @@ s;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10
 		 (apply function entry)))
        (slot-value (find-command-table command-table) 'menu)))
 
-(defun find-keystroke-item (keystroke command-table 
+(defun find-keystroke-item (keystroke command-table
 			    &key (test #'keyboard-event-matches-gesture-name-p) (errorp t))
   (declare (values menu-item command-table))
   (let* ((command-table (find-command-table command-table))
@@ -786,7 +787,7 @@ s;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10
 	   :format-string "Keystroke ~S has no menu item present in ~S"
 	   :format-args (list keystroke command-table))))
 
-(defun lookup-keystroke-item (keystroke command-table 
+(defun lookup-keystroke-item (keystroke command-table
 			      &key (test #'keyboard-event-matches-gesture-name-p))
   (declare (values menu-item command-table))
   (labels ((map-menu (command-table)
@@ -816,7 +817,7 @@ s;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10
   (let ((item (lookup-keystroke-item keystroke command-table :test test)))
     (when item
       (let* ((type (command-menu-item-type item))
-	     (command 
+	     (command
 	       (and (or (eq type ':command)
 			(eq type ':function))
 		    (extract-command-menu-item-value item t numeric-argument))))
@@ -1031,7 +1032,7 @@ s;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10
 	      (push `(and ,(cadr l) '(,keyword)) conditional-keywords))
 	    (:documentation
 	      (push `(,keyword ,(second l)) keyword-documentation))))
-	(when default 
+	(when default
 	  (push default keyword-defaults))
 	(unless when
 	  (push keyword constant-keywords))
@@ -1040,7 +1041,7 @@ s;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10
     `(flet ((read-keyword-value (keyword)
 	      (ecase keyword
 		,@clauses)))
-       (process-keyword-args 
+       (process-keyword-args
 	 parsing-stream ,(if conditional-keywords
 			     `(append ,@conditional-keywords ',constant-keywords)
 			     `',constant-keywords)
@@ -1198,7 +1199,7 @@ s;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10
 					      command-line-name)))
 	       (n-required (or (position '&key arguments) (length arguments))))
 	  (setf (compile-time-property command-name 'command-name) t)
-	  `(define-group ,command-name define-command 
+	  `(define-group ,command-name define-command
 	     ,parser-function
 	     (defun ,command-name ,(deduce-body-arglist arguments)
 	       ,@body)
@@ -1213,7 +1214,7 @@ s;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10
 
 
 (defun ensure-command-in-command-table (command-name command-table &key name menu keystroke)
-  
+
   (when menu
     (let ((menu-options (and (consp menu) (cdr menu)))
 	  (menu-name (if (consp menu) (car menu) menu)))
@@ -1235,10 +1236,10 @@ s;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10
 		  (t
 		   (setf (getf menu-options :after) (first (aref menu-vector (1- position)))
 			 menu (cons menu-name menu-options)))))))))
-    
+
   (remove-command-from-command-table command-name command-table
 				     :errorp nil)
-    
+
   (add-command-to-command-table command-name command-table
 				:name name
 				:menu menu

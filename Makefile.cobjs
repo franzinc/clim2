@@ -1,4 +1,4 @@
-# $fiHeader: Makefile.cobjs,v 1.8 1994/12/04 23:56:22 colin Exp $
+# $fiHeader: Makefile.cobjs,v 1.9 1995/05/17 19:46:58 colin Exp $
 #
 #  Makefile.cobj for CLIM 2.0
 #
@@ -55,7 +55,7 @@ climxm.so: xlibsupport.o xtsupport.o xmsupport.o
 		$(IMPORTS) $(TKLIB) $(XTLIB) $(XLIB) $(MOTIFXTRAS))
 
 climol.so: xlibsupport.o xtsupport.o olsupport.o
-	(eval '$(SET_LIBRARY_PATH)' ;
+	(eval '$(SET_LIBRARY_PATH)' ; \
 	$(MAKE_SHARED) $(SHAREFLAGS) -o climol.so \
 		xlibsupport.o xtsupport.o olsupport.o \
 		$(IMPORTS) $(TKLIB) $(XTLIB) $(XLIB))

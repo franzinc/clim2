@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: designs.lisp,v 1.18 1994/12/05 00:02:24 colin Exp $
+;; $fiHeader: designs.lisp,v 1.19 1995/05/17 19:50:33 colin Exp $
 
 (in-package :clim-utils)
 
@@ -115,7 +115,7 @@
 ;;; Color constants
 
 (defmacro define-primary-color (color-name r g b)
-  `(defconstant ,color-name 
+  `(defconstant ,color-name
 		(make-rgb-color-1 (float ,r 0f0) (float ,g 0f0) (float ,b 0f0))))
 
 ;; The primary colors, constant across all platforms
@@ -323,14 +323,19 @@
 	       (palette-full-palette condition)))))
 )	;eval-when
 
-(defvar *use-closest-color* t)
+(defvar *use-closest-color* :warn)
 
 (defmethod palette-full-error ((palette basic-palette) &optional color)
-  (if (and *use-closest-color*
-	   (find-restart 'use-other-color))
-      (invoke-restart 'use-other-color
-	(find-closest-matching-color palette color))
-    (error 'palette-full :palette palette :color color)))
+  (when (and *use-closest-color*
+	     (find-restart 'use-other-color))
+    (let ((closest-match (find-closest-matching-color palette color)))
+      (when closest-match
+	(when (eq *use-closest-color* :warn)
+	  (let ((*error-output* excl:*initial-terminal-io*))
+	    (warn "Failed to allocate color ~A, using ~A"
+		  color closest-match)))
+	(invoke-restart 'use-other-color closest-match))))
+  (error 'palette-full :palette palette :color color))
 
 (defmethod find-closest-matching-color ((palette basic-palette) (desired-color color))
   (let ((best-color nil)
@@ -435,7 +440,7 @@
 			 (rest-set-layers (cdr set-layers))
 			 (rest-dims (cdr dims)))
 		     (if layer
-			 (progn 
+			 (progn
 			   (setf (car dims) layer)
 			   (iterate rest-layers rest-set-layers rest-dims))
 			 (dotimes (i set-layer)
@@ -459,12 +464,12 @@
 	  (setf (gethash layers cache)
 		(make-layered-color set layers))))))
 
-(defmethod (setf layered-color-color) 
+(defmethod (setf layered-color-color)
 	   ((color color) (layered-color layered-color))
   (with-delayed-recoloring
     (dolist (dynamic-color (layered-color-dynamic-colors layered-color))
       (setf (dynamic-color-color dynamic-color) color))))
-  
+
 ;; LAYERED-COLOR-DYNAMIC-COLORS should not be exported to the user.  It
 ;; is important that these dynamics are not drawn with.  Instead, the
 ;; fully specified layered is used.
@@ -474,7 +479,7 @@
 	(setf dynamic-colors
 	      (let ((dynamic-array (layered-color-set-dynamic-array set))
 		    (dynamics nil))
-		(map-over-layered-colors 
+		(map-over-layered-colors
 		  #'(lambda (dimensions)
 		      (push (apply #'aref dynamic-array dimensions) dynamics))
 		  set layers)
@@ -590,7 +595,7 @@
 	     pattern)))
     (declare (dynamic-extent #'make-dash-pattern))
     (etypecase k
-      (null 
+      (null
 	(let ((patterns (make-array n)))
 	  (dotimes (i n)
 	    (setf (aref patterns i) (make-dash-pattern i)))

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.85 1994/12/05 00:02:06 colin Exp $
+;; $fiHeader: xt-graphics.lisp,v 1.86 1995/05/17 19:50:15 colin Exp $
 
 (in-package :tk-silica)
 
@@ -72,6 +72,7 @@
 
 (defclass xt-medium (basic-medium)
   ((drawable :initform nil)
+   (palette :initform nil)
    ;; alist of (palette . ink-table) for non-current palettes
    (ink-tables :initform nil)
    (ink-table :initform nil)
@@ -90,6 +91,17 @@
 	(setf drawable (fetch-medium-drawable
 			sheet
 			(sheet-mirror sheet))))))
+
+(defmethod medium-palette ((medium xt-medium))
+  (with-slots (palette sheet) medium
+    (or palette
+	(setf palette
+	  (let ((frame (pane-frame sheet)))
+	    (if frame
+		(frame-palette frame)
+	      (port-default-palette (port medium))))))))
+
+
 
 ;;; Palette handling
 
@@ -119,12 +131,6 @@
       :white-pixel (x11:xwhitepixel display screen)
       :black-pixel (x11:xblackpixel display screen))))
 
-(defmethod medium-palette ((medium xt-medium))
-  (let ((frame (pane-frame (medium-sheet medium))))
-    (if frame
-	(frame-palette frame)
-      (port-default-palette (port medium)))))
-
 (defmethod update-medium-ink-table ((medium xt-medium))
   (let ((palette (medium-palette medium)))
     (with-slots (ink-table ink-tables) medium
@@ -147,6 +153,8 @@
 				     'silica::sheet-with-medium-mixin)
 			      (sheet-medium sheet))))
 	     (when medium
+	       ;; invalidate the medium's palette cache
+	       (setf (slot-value medium 'palette) nil)
 	       (update-medium-ink-table medium)
 	       (repaint-sheet sheet +everywhere+))))
        (frame-top-level-sheet frame)))))
@@ -349,8 +357,8 @@
 
 (defmethod deallocate-medium :after (port (medium xt-medium))
   (declare (ignore port))
-  (with-slots (drawable) medium
-    (setf drawable nil)))
+  (with-slots (drawable palette) medium
+    (setf drawable nil palette nil)))
 
 (defmethod fetch-medium-drawable (sheet (mirror tk::xt-root-class))
   (declare (ignore sheet))
@@ -369,9 +377,10 @@
 
 (defmethod degraft-medium :after ((medium xt-medium) (port xt-port) sheet)
   (declare (ignore sheet))
-  (with-slots (ink-table ink-tables indirect-inks drawable)
+  (with-slots (ink-table ink-tables indirect-inks drawable palette)
       medium
     (setf drawable nil
+	  palette nil
 	  indirect-inks nil
 	  (medium-sheet medium) nil)
     (dolist (entry ink-tables)
@@ -610,14 +619,46 @@
 (defmethod decode-ink-1 ((ink standard-opacity) (medium xt-medium))
   (decode-ink-opacity ink medium))
 
-(defmethod decode-ink-opacity (opacity (medium xt-medium))
+(defmethod decode-ink-1 ((ink composite-in) (medium xt-medium))
+  (let ((color +foreground-ink+)
+	(opacity nil)
+	(pattern nil))
+    (map nil
+      #'(lambda (ink)
+	  (typecase ink
+	    (opacity (setq opacity ink))
+	    (pattern (setq pattern ink))
+	    (t (setq color ink))))
+      (slot-value ink 'clim-utils::designs))
+    (cond
+     ;; compose-in of patterns we treat as stencils
+     (pattern
+      (multiple-value-bind (pixmap format pixels)
+	  (pixmap-from-pattern pattern medium :bitmap)
+	(declare (ignore format pixels))
+	(let* ((drawable (or (slot-value medium 'drawable)
+			     (tk::display-root-window
+			      (port-display (port (medium-sheet medium))))))
+	       (gc (make-instance 'ink-gcontext :drawable drawable)))
+	  (setf (tk::gcontext-stipple gc) pixmap
+		(tk::gcontext-fill-style gc) :stippled
+		(tk::gcontext-foreground gc) (decode-color color medium)
+		(tk::gcontext-background gc) 0)
+	  gc)))
+     (opacity
+      (decode-ink-opacity opacity medium color))
+     (t
+      (decode-ink-1 color medium)))))
+
+(defmethod decode-ink-opacity (opacity (medium xt-medium)
+			       &optional (color +foreground-ink+))
   (with-slots (sheet drawable)
       medium
     (let* ((port (port sheet))
 	   (display (port-display port))
 	   (drawable (or drawable (tk::display-root-window display)))
 	   (new-gc (make-instance 'ink-gcontext :drawable drawable)))
-      (setf (tk::gcontext-foreground new-gc) (decode-color +foreground-ink+ medium)
+      (setf (tk::gcontext-foreground new-gc) (decode-color color medium)
 	    (tk::gcontext-stipple new-gc) (decode-stipple (opacity-value opacity) port)
 	    (tk::gcontext-fill-style new-gc) :stippled)
       new-gc)))
@@ -893,7 +934,7 @@
 	layer-nplanes
 	(total-nplanes 0))
     (dolist (layer layers)
-      (let ((nplanes (floor (log layer 2))))
+      (let ((nplanes (ceiling (log layer 2))))
 	(push nplanes layer-nplanes)
 	(incf total-nplanes nplanes)))
     (multiple-value-bind (pixels masks)

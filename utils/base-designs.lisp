@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: base-designs.lisp,v 1.8 1993/08/19 20:10:25 smh Exp $
+;; $fiHeader: base-designs.lisp,v 1.9 1994/12/05 00:02:22 colin Exp $
 
 (in-package :clim-utils)
 
@@ -112,15 +112,15 @@
 (defgeneric deallocate-color (color palette))
 
 
-;;; Dynamic Colors 
+;;; Dynamic Colors
 
 (defclass dynamic-color (color)
     ((color :accessor dynamic-color-color :initarg :color)
-     (palettes :type list 
+     (palettes :type list
 	       :initform nil
 	       :accessor dynamic-color-palettes)))
 
-(define-constructor make-dynamic-color dynamic-color (color) 
+(define-constructor make-dynamic-color dynamic-color (color)
   :color color)
 
 (defmethod make-load-form ((color dynamic-color) &optional environment)
@@ -147,12 +147,12 @@
 (defclass layered-color (design)
     ((set :initarg :set :reader layered-color-set)
      (layers :initarg :layers :initform nil :reader layered-color-layers)
-     (dynamic-colors :initform nil))) 
-   
+     (dynamic-colors :initform nil)))
+
 (define-constructor make-layered-color layered-color (set layers)
   :set set :layers layers)
 
-;;; Device Colors 
+;;; Device Colors
 
 (defclass device-color (color)
     ((palette :reader device-color-palette :initarg :palette)
@@ -213,7 +213,7 @@
 ;;; Patterns
 
 (defclass pattern (design)
-  ((array :type (array * (* *)) :initarg :array 
+  ((array :type (array * (* *)) :initarg :array
 	    :reader pattern-array)
    (designs :type vector :initarg :designs
 	    :reader pattern-designs)))
@@ -221,7 +221,7 @@
 (defun make-pattern (array designs)
   #+Genera (declare lt:(side-effects simple reducible))
   (check-type array (array * (* *)))
-  (make-instance 'pattern :array array :designs (coerce designs 'vector)))
+  (make-instance 'pattern :array array :designs (coerce designs 'simple-vector)))
 
 (defmethod make-load-form ((design pattern) &optional environment)
   (declare (ignore environment))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: port.lisp,v 1.32 1993/09/07 21:46:48 colin Exp $
+;; $fiHeader: port.lisp,v 1.33 1994/12/05 00:00:27 colin Exp $
 
 (in-package :silica)
 
@@ -29,7 +29,7 @@
 (defun find-port (&rest initargs &key (server-path *default-server-path*) &allow-other-keys)
   (declare (dynamic-extent initargs))
   (map-over-ports #'(lambda (port)
-		      (when (port-match port server-path) 
+		      (when (port-match port server-path)
 			(return-from find-port port))))
   (with-keywords-removed (initargs initargs '(:server-path))
     (apply #'make-port :server-path server-path initargs)))
@@ -53,7 +53,7 @@
   (defun reset-ports ()
     ;;--- Should this do more?
     (setq *ports* nil))
-  (push `(:eval reset-ports) excl::*restart-actions*))
+  (push `reset-ports excl::*restart-actions*))
 
 (defun port-match (port server-path)
   (equal (port-server-path port) server-path))
@@ -82,7 +82,7 @@
 (defmethod port-pointer ((port basic-port))
   (with-slots (pointer grafts) port
     (or pointer
-	(setq pointer (make-instance 'standard-pointer 
+	(setq pointer (make-instance 'standard-pointer
 			:graft (find-graft :port port)
 			:port port)))))
 
@@ -135,15 +135,15 @@
   (setq *ports* (delete port *ports*)))
 
 
-(define-event-class port-terminated (window-manager-event) 
+(define-event-class port-terminated (window-manager-event)
   ((condition :initarg :condition :reader port-terminated-condition)))
 
 (defmethod port-terminated ((port basic-port) condition)
-  ;;--- Should mark it as dead 
+  ;;--- Should mark it as dead
   (setq *ports* (delete port *ports*))
   (dolist (graft (port-grafts port))
     (dolist (sheet (sheet-children graft))
-      (queue-event sheet (make-instance 'port-terminated 
+      (queue-event sheet (make-instance 'port-terminated
 			   :condition condition
 			   :sheet sheet)))))
 
@@ -158,7 +158,7 @@
 (defgeneric graft-orientation (graft))
 (defgeneric graft-units (graft))
 
-(defclass standard-graft 
+(defclass standard-graft
 	  (mirrored-sheet-mixin
 	   sheet-multiple-child-mixin
 	   sheet-transformation-mixin
@@ -198,7 +198,7 @@
 		   port)
   (make-instance (port-graft-class port)
     :port port
-    :orientation orientation 
+    :orientation orientation
     :units units))
 
 (defgeneric realize-graft (port graft))

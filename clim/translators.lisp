@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: translators.lisp,v 1.12 93/03/04 19:00:20 colin Exp $
+;; $fiHeader: translators.lisp,v 1.13 1993/07/27 01:41:46 colin Exp $
 
 (in-package :clim-internals)
 
@@ -27,7 +27,7 @@
 (defclass presentation-translator ()
      ((name      :initarg :name
 		 :reader presentation-translator-name)
-      (function  :initform nil :initarg :function 
+      (function  :initform nil :initarg :function
 		 :reader presentation-translator-function)
       (tester    :initform nil :initarg :tester
 		 :reader presentation-translator-tester)
@@ -172,7 +172,7 @@
     (check-type documentation (or string symbol list))
     (check-type pointer-documentation (or string symbol list))
     (check-type menu symbol)
-    (check-type priority (or null (integer 0)))
+    (check-type priority (or null integer))
     (check-type translator-class (or null symbol))
     (let ((defining-forms nil)
 	  (translator-functions nil))
@@ -192,7 +192,7 @@
 							    name ',clause-name ,extra-args)
 			       (emit function)
 			       (push `#',gensym translator-functions))))
-		      (push (intern (symbol-name ',clause-name) *keyword-package*) 
+		      (push (intern (symbol-name ',clause-name) *keyword-package*)
 			    translator-functions))))
 	(do-translator-function tester)
 	(do-translator-function documentation '(stream) t)
@@ -232,13 +232,13 @@
 	     (or translator-class 'presentation-translator))
 	   (translator
 	     (apply #'make-instance
-		    translator-class 
+		    translator-class
 		    :name translator-name
 		    :from-type from-type
 		    :to-type to-type
 		    :gesture-name gesture
 		    :pointer-documentation (or pointer-documentation documentation)
-		    ;; Err on the side of performance: if there's no tester, 
+		    ;; Err on the side of performance: if there's no tester,
 		    ;; assume that it is definitive.
 		    :tester-definitive (or (null tester) tester-definitive)
 		    :priority (or priority 0)
@@ -302,7 +302,7 @@
 		(and cache (gethash key cache))
 	      (cond ((or (null found-p)
 			 (/= (pop translators) *translators-cache-tick*))
-		     (let ((translators (find-presentation-translators-1 
+		     (let ((translators (find-presentation-translators-1
 					  from-key to-key command-table)))
 		       (when (null cache)
 			 (setq translators-cache
@@ -310,7 +310,7 @@
 						:test #'equal))
 			 (setq cache translators-cache))
 		       ;; Need to copy the whole tree, since the from- and to-keys
-		       ;; could themselves be stack-consed. 
+		       ;; could themselves be stack-consed.
 		       (setf (gethash (copy-tree key) cache)
 			     (cons *translators-cache-tick* translators))
 		       translators))
@@ -339,10 +339,10 @@
       (declare (dynamic-extent #'collect-translators))
       (map-over-command-table-translators #'collect-translators command-table))
     ;; The translator ordering is as follows, in this order:
-    ;;  - Translators with higher high-order priority precede ones with lower 
+    ;;  - Translators with higher high-order priority precede ones with lower
     ;;    high-order priority
     ;;  - Translators on more specific types precede ones on less specific types
-    ;;  - Translators with higher low-order priority precede ones with lower 
+    ;;  - Translators with higher low-order priority precede ones with lower
     ;;    low-order priority
     ;;  - Translators from this command table precede inherited translators
     ;; First get the command table ordering correct.
@@ -453,8 +453,8 @@
 					  &key event (modifier-state 0))
   (declare (values translator any-match-p))
   (let ((one-matched nil)
-	(translators 
-	  (find-presentation-translators 
+	(translators
+	  (find-presentation-translators
 	    (presentation-type presentation) context-type (frame-command-table frame))))
     (when translators
       (dolist (translator translators)
@@ -470,7 +470,7 @@
 	  (when by-tester
 	    ;; We matched by the tester, it's OK to try the menu translator
 	    ;; unless the translator is not supposed to be in a menu.
-	    (setq one-matched (or one-matched 
+	    (setq one-matched (or one-matched
 				  (presentation-translator-menu translator))))))
       ;; If EVENT is non-NIL, then we are running on behalf of the user having
       ;; pressed a pointer button, which means that some translator must have
@@ -512,7 +512,7 @@
 			     (test-presentation-translator translator
 							   presentation context-type
 							   frame window x y
-							   :event event 
+							   :event event
 							   :modifier-state modifier-state
 							   :for-menu for-menu))
 		    (when fastp
@@ -532,7 +532,7 @@
 			 (test-presentation-translator *presentation-menu-translator*
 						       presentation context-type
 						       frame window x y
-						       :event event 
+						       :event event
 						       :modifier-state modifier-state
 						       :for-menu for-menu))
 		(push (list *presentation-menu-translator* presentation
@@ -566,7 +566,7 @@
       (cond ((stringp documentation)
 	     (write-string documentation stream))
 	    (documentation
-	     (funcall documentation 
+	     (funcall documentation
 		      (presentation-object presentation) presentation context-type
 		      frame event window x y
 		      stream))

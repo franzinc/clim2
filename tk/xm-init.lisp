@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-init.lisp,v 1.12 1994/12/05 00:01:22 colin Exp $
+;; $fiHeader: xm-init.lisp,v 1.14 1995/06/21 21:24:22 georgej Exp $
 
 (in-package :tk)
 
@@ -43,5 +43,5 @@
 
 #+dlfcn
 (unless sys::*toolkit-static*
-  (push '(:eval reinitialize-toolkit) excl::*restart-actions*))
+  (push 'reinitialize-toolkit excl::*restart-actions*))
 

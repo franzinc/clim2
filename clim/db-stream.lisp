@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-stream.lisp,v 1.60 1994/12/04 23:57:29 colin Exp $
+;; $fiHeader: db-stream.lisp,v 1.61 1995/05/17 19:47:47 colin Exp $
 
 (in-package :clim-internals)
 
@@ -13,7 +13,7 @@
 
 ;;--- How to keep PANE-BACKGROUND/FOREGROUND in sync with the medium?
 ;;--- I'm not convinced that including WINDOW-STREAM here is right...
-(defclass clim-stream-sheet 
+(defclass clim-stream-sheet
 	  (window-stream			;includes output recording
 	   sheet-permanently-enabled-mixin
 	   sheet-mute-input-mixin
@@ -23,18 +23,18 @@
 	   permanent-medium-sheet-output-mixin
 	   basic-pane)
     ((input-editor-stream :initform nil :accessor stream-input-editor-stream))
-  (:default-initargs 
-    :medium t 
+  (:default-initargs
+    :medium t
     :transformation +identity-transformation+))
 
 (defmethod stream-input-editor-stream ((stream sheet)) nil)
 (defmethod (setf stream-input-editor-stream) (value (stream sheet))
   value)
 
-(defmethod stream-input-editor-stream ((stream standard-encapsulating-stream)) 
+(defmethod stream-input-editor-stream ((stream standard-encapsulating-stream))
   (stream-input-editor-stream (encapsulating-stream-stream stream)))
 
-(defmethod (setf stream-input-editor-stream) (value (stream standard-encapsulating-stream)) 
+(defmethod (setf stream-input-editor-stream) (value (stream standard-encapsulating-stream))
   (setf (stream-input-editor-stream (encapsulating-stream-stream stream)) value))
 
 (defun maybe-redraw-input-editor-stream (stream region)
@@ -119,12 +119,12 @@
 (defclass clim-stream-pane (clim-stream-sheet)
     ((incremental-redisplay-p
        :initarg :incremental-redisplay :initform nil)
-     (display-function 
+     (display-function
        :reader pane-display-function
        :initarg :display-function :initform nil)
      (display-time
        :reader pane-display-time
-       :initarg :display-time :initform :command-loop		
+       :initarg :display-time :initform :command-loop
        :type (member nil :command-loop :no-clear t))))
 
 
@@ -137,19 +137,19 @@
   (with-slots (display-time) pane
     (ecase display-time
       ((t)
-       (setq display-time nil) 
+       (setq display-time nil)
        (values t t))
       ((nil)
        (values nil nil))
       (:command-loop
        (values t t))
-      (:no-clear 
+      (:no-clear
        (values t nil)))))
 
-(defmethod pane-needs-redisplay ((pane basic-pane)) 
+(defmethod pane-needs-redisplay ((pane basic-pane))
   (values nil nil))
 
-(defmethod (setf pane-needs-redisplay) (value (pane basic-pane)) 
+(defmethod (setf pane-needs-redisplay) (value (pane basic-pane))
   value)
 
 ;;--- Although the unit options are mostly applicable here I guess
@@ -162,7 +162,7 @@
   (unless vars
     (setq vars '(sr-width sr-min-width sr-max-width sr-height sr-min-height sr-max-height)))
   `(multiple-value-bind ,vars
-       (space-requirement-components ,sr) 
+       (space-requirement-components ,sr)
      (macrolet ((do-with-space-req-components (operator var vars &body body)
 		  `(,operator
 		    ,@(mapcar #'(lambda (a-var)
@@ -180,13 +180,13 @@
   (compute-space-for-clim-stream-pane pane (call-next-method) width height))
 
 (defun compute-space-for-clim-stream-pane (pane sr width height)
-  (labels 
+  (labels
       ((process-compute-space-requirements ()
 	 (with-space-requirement (sr)
 	   (when (do-with-space-req-components or
-		   sr-component 
+		   sr-component
 		   (sr-width sr-min-width sr-max-width
-			     sr-height sr-min-height sr-max-height) 
+			     sr-height sr-min-height sr-max-height)
 		   (eq sr-component :compute))
 	     (multiple-value-bind (width height)
 		 (let ((record
@@ -196,9 +196,9 @@
 			      history
 			    (let ((*sizing-application-frame* t))
 			      (with-output-to-output-record (pane)
-				(funcall 
+				(funcall
 				 (if (slot-value pane 'incremental-redisplay-p)
-				     #'invoke-pane-redisplay-function 
+				     #'invoke-pane-redisplay-function
 				   #'invoke-pane-display-function)
 				 (pane-frame pane) pane
 				 ;;--- Are all pane display functions prepared to
@@ -213,19 +213,19 @@
 
 	       (flet ((process-computes (size preferred min max)
 			(values
-			 (if (eq preferred :compute) 
+			 (if (eq preferred :compute)
 			     (let ((size size))
 			       (when (numberp min) (maxf size min))
 			       (when (numberp max) (minf size max))
 			       size)
-			   preferred) 
+			   preferred)
 			 (if (eq min :compute) size min)
 			 (if (eq max :compute) size max))))
 		 (multiple-value-setq (sr-width sr-min-width sr-max-width)
 		   (process-computes width sr-width sr-min-width sr-max-width))
 		 (multiple-value-setq (sr-height sr-min-height sr-max-height)
 		   (process-computes height sr-height sr-min-height sr-max-height)))
-	       
+
 	       #+ignore
 	       (do-with-space-req-components progn
 		 sr-component (sr-width sr-min-width sr-max-width)
@@ -241,9 +241,9 @@
 	    (with-space-requirement (sr)
 	      (let ((changed nil))
 		(do-with-space-req-components progn
-		  sr-component 
+		  sr-component
 		  (sr-width sr-min-width sr-max-width
-			    sr-height sr-min-height sr-max-height) 
+			    sr-height sr-min-height sr-max-height)
 		  (when (unit-space-requirement-p sr-component)
 		    (setq sr-component (process-unit-space-requirement pane sr-component)
 			  changed t)))
@@ -254,9 +254,9 @@
 	    (unless (and (numberp sr-width)
 			 (numberp sr-height)
 			 (do-with-space-req-components and
-			   sr-component 
+			   sr-component
 			   (sr-min-width sr-max-width
-					 sr-min-height sr-max-height) 
+					 sr-min-height sr-max-height)
 			   (or (numberp sr-component)
 			       (relative-space-requirement-p sr-component))))
 	      (error "Illegal space requirement ~S" sr))
@@ -337,7 +337,7 @@
 	(setf (sheet-transformation pane) xform)))))
 
 (defmethod pane-stream ((pane clim-stream-pane))
-  (unless (port pane) 
+  (unless (port pane)
     (error "Can't call ~S on ~S until it's been grafted!"
 	   'pane-stream pane))
   pane)
@@ -348,8 +348,8 @@
 ;; available viewport space.
 
 ;; well this method breaks accepting-values :own-window t by ignoring
-;; explicit :width/:height so I'm going to ignore it and see what else 
-;; breaks instead. Then perhaps we can make a fix which satisfies both 
+;; explicit :width/:height so I'm going to ignore it and see what else
+;; breaks instead. Then perhaps we can make a fix which satisfies both
 ;; constraints. (cim 2/13/95)
 
 #+ignore
@@ -375,7 +375,7 @@
 
 (defclass pointer-documentation-pane (clim-stream-pane) ())
 
-(defclass title-pane (clim-stream-pane) 
+(defclass title-pane (clim-stream-pane)
     ((display-string :initform nil :initarg :display-string)))
 
 (defclass command-menu-pane (clim-stream-pane) ())
@@ -383,9 +383,9 @@
 (defun make-clim-stream-pane-1 (framem frame
 				&rest options
 				&key (type 'clim-stream-pane)
-				     label 
+				     label
 				     (label-alignment #+Genera :bottom #-Genera :top)
-				     (scroll-bars ':vertical)
+				     (scroll-bars :vertical)
 				     (borders t)
 				     (display-after-commands nil dac-p)
 				     background
@@ -405,30 +405,34 @@
 	   (pane stream))
 
       (when scroll-bars
-	(setq pane (make-pane 'scroller-pane
-			      :scroll-bars scroll-bars
-			      :contents pane
-			      :name name
-			      :background background)))
+	(let ((scroller-pane-options
+	       (if (consp scroll-bars)
+		   `(:scroll-bars ,@scroll-bars)
+		 `(:scroll-bars ,scroll-bars))))
+	  (setq pane (apply #'make-pane 'scroller-pane
+			    :contents pane
+			    :name name
+			    :background background
+			    scroller-pane-options))))
 
       (when label
 	(let ((label (if (stringp label)
-			 (make-pane 'label-pane 
+			 (make-pane 'label-pane
 				    :label label
 				    :max-width +fill+
 				    :background background)
-		       (apply #'make-pane 'label-pane 
+		       (apply #'make-pane 'label-pane
 			      :label (first label)
-			      :max-width +fill+ 
+			      :max-width +fill+
 			      :background background
 			      (rest label)))))
 	  (setq pane (make-pane 'vbox-pane
-				:contents 	  
+				:contents
 				(ecase label-alignment
 				  (:bottom (list pane label))
 				  (:top (list label pane)))
 				:background background))))
-      (when borders 
+      (when borders
 	(setq pane
 	  (make-pane 'outlined-pane
 		     :name name
@@ -490,7 +494,7 @@
     (when text-record (replay text-record stream)))
   (let ((presentation (highlighted-presentation stream nil)))
     (when presentation
-      (highlight-presentation 
+      (highlight-presentation
 	presentation (presentation-type presentation) stream :highlight))))
 
 (defmethod window-refresh :around ((stream clim-stream-sheet))
@@ -520,7 +524,7 @@
 
 (defmethod window-visibility ((stream clim-stream-sheet))
   (let ((frame (pane-frame stream)))
-    (and (if frame 
+    (and (if frame
 	     (eq (frame-state frame) :enabled)
 	   (sheet-enabled-p stream))
 	 (mirror-visible-p (port stream) stream))))
@@ -659,7 +663,7 @@
 	(let ((width (- stream-width (abs delta-x)))
 	      (height (- stream-height (abs delta-y)))
 	      (transform (sheet-transformation window)))
-	  (multiple-value-call #'copy-area 
+	  (multiple-value-call #'copy-area
 	    window
 	    (untransform-position transform from-x from-y)
 	    (untransform-distance transform width height)
@@ -672,7 +676,7 @@
   (multiple-value-bind (valid-p left top right bottom)
       (ltrb-overlaps-ltrb-p old-left old-top old-right old-bottom
 			    new-left new-top new-right new-bottom)
-    (when valid-p 
+    (when valid-p
       (with-sheet-medium (medium window)
 	(medium-clear-area medium left top right bottom)
 	(repaint-sheet window (make-bounding-rectangle left top right bottom))))))
@@ -691,7 +695,7 @@
   (:selector :visible-cursorpos-limits))
 
 #+Genera
-(defmethod stream-compatible-visible-cursorpos-limits 
+(defmethod stream-compatible-visible-cursorpos-limits
 	   ((window clim-stream-sheet) &optional (unit ':pixel))
   (with-bounding-rectangle* (left top right bottom) (window-viewport window)
     (ecase unit

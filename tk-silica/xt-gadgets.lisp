@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-gadgets.lisp,v 1.40 1994/12/05 00:02:03 colin Exp $
+;; $fiHeader: xt-gadgets.lisp,v 1.41 1995/05/17 19:50:11 colin Exp $
 
 (in-package :xm-silica)
 
@@ -65,40 +65,29 @@
     (integer (make-device-color palette c))))
 
 (defmethod find-widget-resource-initargs-for-sheet
-    ((port xt-port) (sheet sheet-with-resources-mixin) &key)
-  (let ((background (pane-background sheet))
-	(foreground (pane-foreground sheet)))
+    ((port xt-port) (sheet sheet-with-resources-mixin)
+     &key background foreground)
+  (let ((bg (or background (pane-background sheet) *default-pane-background*))
+	(fg (or foreground (pane-foreground sheet) *default-pane-foreground*)))
     (with-sheet-medium (medium sheet)
       (let ((palette (medium-palette medium)))
-	`(,@(when background
+	`(,@(when bg
 	      (decode-gadget-background medium sheet
-					(ensure-color background palette)))
-	  ,@(when foreground
+					(ensure-color bg palette)))
+	  ,@(when fg
 	      (decode-gadget-foreground medium sheet
-					(ensure-color foreground palette))))))))
+					(ensure-color fg palette))))))))
 
 (defmethod find-widget-resource-initargs-for-sheet
-    ((port xt-port) (sheet t) &key)
+    ((port xt-port) (sheet t) &key background foreground)
   (let* ((resources (get-application-resources port))
-	 (background (or (getf resources :background) *default-pane-background*))
-	 (foreground (or (getf resources :foreground) *default-pane-foreground*))
+	 (bg (or background (getf resources :background) *default-pane-background*))
+	 (fg (or foreground (getf resources :foreground) *default-pane-foreground*))
 	 (palette (port-default-palette port)))
-    `(:background ,(decode-color-in-palette (ensure-color background palette)
+    `(:background ,(decode-color-in-palette (ensure-color bg palette)
 					    palette)
-      :foreground ,(decode-color-in-palette (ensure-color foreground palette)
+      :foreground ,(decode-color-in-palette (ensure-color fg palette)
 					    palette))))
-
-(defmethod find-widget-resource-initargs-for-sheet :around
-    ((port xt-port) (sheet t) &key foreground background)
-  (let ((initargs (call-next-method))
-	(palette (port-default-palette port)))
-    (when foreground
-      (setf (getf initargs :foreground)
-	(decode-color-in-palette (ensure-color foreground palette) palette)))
-    (when background
-      (setf (getf initargs :background)
-	(decode-color-in-palette (ensure-color background palette) palette)))
-    initargs))
 
 (defmethod decode-gadget-background (medium sheet ink)
   (declare (ignore sheet))
@@ -231,14 +220,17 @@
     (compute-symmetric-value
      0 1000 value smin smax )))
 
-(defun compute-new-scroll-bar-values (scroll-bar value slider-size line-increment)
+(defun compute-new-scroll-bar-values (scroll-bar value slider-size line-increment
+				      &optional (page-increment slider-size))
   (values
    (and value
 	(convert-scroll-bar-value-out scroll-bar value))
    (and slider-size
 	(max 1 (convert-scroll-bar-value-out scroll-bar slider-size)))
    (and line-increment
-	(max 1 (convert-scroll-bar-value-out scroll-bar line-increment)))))
+	(max 1 (convert-scroll-bar-value-out scroll-bar line-increment)))
+   (and page-increment
+	(max 1 (convert-scroll-bar-value-out scroll-bar page-increment)))))
 
 
 (defun wait-for-callback-invocation (port predicate &optional (whostate "Waiting for callback"))
@@ -339,14 +331,9 @@
   (let ((key (car keystroke)))
     (let ((x (assoc key *funny-accelerator-characters*
 		    :test #'member)))
-      (if x
-	  (values (if olit
-		      (format nil "<~A>"  (second x))
-		      (format nil "<Key>~A"  (second x)))
-		  (format nil "~A" key))
-	(values (if olit
-		    (format nil "<~A>" key)
-		  (format nil "<Key>~A" key))
-		(format nil "~A" key))))))
+      (values (format nil
+		      (if olit "<~A>" "<Key>~A")
+		      (if x (second x) key))
+	      (format nil "~:@(~A~)" key)))))
 
 

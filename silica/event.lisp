@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: event.lisp,v 1.38 1993/08/12 16:04:13 cer Exp $
+;; $fiHeader: event.lisp,v 1.39 1994/12/05 00:00:17 colin Exp $
 
 (in-package :silica)
 
@@ -95,7 +95,7 @@
 
 
 
-;;; Standard 
+;;; Standard
 
 (defclass standard-sheet-input-mixin (sheet-with-event-queue-mixin) ())
 
@@ -154,7 +154,7 @@
 	       child (untransform-region (sheet-transformation child) region)))))
     (declare (dynamic-extent #'repaint-sheet-1))
     (map-over-sheets-overlapping-region #'repaint-sheet-1 sheet region)))
-	     
+
 (defgeneric handle-repaint (sheet region))
 
 
@@ -271,9 +271,9 @@
 	      (return))
 	    (multiple-value-setq (new-x new-y)
 	      (map-sheet-position-to-parent sheet new-x new-y)))))
-      
+
       (let* ((v (port-trace-thing port))
-	     (exitted-a-window 
+	     (exitted-a-window
 	       (and (typep event 'pointer-exit-event)
 		    (not (eq (pointer-boundary-event-kind event) :inferior))))
 	     (entered-from-child
@@ -311,7 +311,7 @@
 			     (when (or (and (not mirrored-sheet-in-trace)
 					    (not (member sheet ancestors-of-mirrored-sheet)))
 				       (not (sheet-enabled-p sheet))
-				       (not (region-contains-position-p 
+				       (not (region-contains-position-p
 					      (sheet-region sheet) new-x new-y)))
 			       (return i))))
 			 0)))
@@ -353,7 +353,7 @@
 		(sheet (aref v (1- (fill-pointer v))))
 		child)
 	    (loop
-	      (unless (typep sheet 'sheet-parent-mixin) 
+	      (unless (typep sheet 'sheet-parent-mixin)
 		(return nil))
 	      (setq child (child-containing-position sheet new-x new-y))
 	      (unless child
@@ -402,7 +402,7 @@
 			:kind ,kind
 			:modifier-state modifiers
 			:pointer pointer)))))
-      ;; If we got an event for some mirrored child, go back to the 
+      ;; If we got an event for some mirrored child, go back to the
       ;; top level sheet.
       (unless (graftp (sheet-parent mirrored-sheet))
 	(do* ((sheet mirrored-sheet)
@@ -417,7 +417,7 @@
 	    (map-sheet-position-to-parent sheet new-x new-y))
 	  (setq sheet parent)))
       (let* ((v (port-trace-thing port))
-	     (exitted-a-window 
+	     (exitted-a-window
 	       (and (typep event 'pointer-exit-event)
 		    (not (eq (pointer-boundary-event-kind event) :inferior))))
 	     (entered-from-child
@@ -442,7 +442,7 @@
 				 (map-sheet-position-to-child (aref v i) new-x new-y)))
 			     (unless (or (and pos (<= i pos))
 					 (and (sheet-enabled-p (aref v i))
-					      (region-contains-position-p 
+					      (region-contains-position-p
 						(sheet-region (aref v i)) new-x new-y)))
 			       (return i))))
 			 0)))
@@ -481,7 +481,7 @@
 		(sheet (aref v (1- (fill-pointer v))))
 		child)
 	    (loop
-	      (unless (typep sheet 'sheet-parent-mixin) 
+	      (unless (typep sheet 'sheet-parent-mixin)
 		(return nil))
 	      (setq child (child-containing-position sheet new-x new-y))
 	      (unless child
@@ -504,12 +504,12 @@
 
 (defmethod distribute-event :before ((port basic-port) (event pointer-button-press-event))
   (let ((pointer (pointer-event-pointer event)))
-    (setf (pointer-button-state pointer) 
+    (setf (pointer-button-state pointer)
       (logior (pointer-button-state pointer) (pointer-event-button event)))))
 
 (defmethod distribute-event :before ((port basic-port) (event pointer-button-release-event))
   (let ((pointer (pointer-event-pointer event)))
-    (setf (pointer-button-state pointer) 
+    (setf (pointer-button-state pointer)
 	  (logandc2 (pointer-button-state pointer) (pointer-event-button event)))))
 
 ;;;
@@ -539,7 +539,7 @@
   (setf (port-keyboard-input-focus port) nil))
 
 (defmethod distribute-event-1 ((port basic-port) (event window-event))
-  (dispatch-event 
+  (dispatch-event
     (window-event-mirrored-sheet event)
     event))
 
@@ -547,11 +547,11 @@
   ;; Generate all the correct enter/exit events.
   (if (port-deep-mirroring port)
       (generate-deeply-mirrored-crossing-events port event)
-      (generate-crossing-events port event)))
+    (generate-crossing-events port event)))
 
 (defmethod distribute-event-1 :around ((port basic-port) (event pointer-event))
   (let ((sheet (port-grabbing-sheet port)))
-    (if sheet 
+    (if sheet
 	(let ((event-sheet (event-sheet event))
 	      (grab-sheet (sheet-mirrored-ancestor sheet)))
 	  ;; If the grabbing sheet is different from the sheet the
@@ -584,13 +584,13 @@
 		      (aref v (1- (fill-pointer v)))))))
     (dispatch-pointer-event-to-sheet port event sheet)))
 
-(defmethod dispatch-pointer-event-to-sheet :before 
+(defmethod dispatch-pointer-event-to-sheet :before
 	   ((port basic-port) (event pointer-button-press-event) sheet)
   (let ((button (pointer-event-button event)))
     (when (and (eq (port-input-focus-selection port) :click-to-select)
 	       (eq button +pointer-left-button+))
       (setf (port-keyboard-input-focus port) sheet))))
-  
+
 (defmethod dispatch-pointer-event-to-sheet ((port basic-port) (event event) sheet)
   (let ((event-type (class-name (class-of event)))
 	(x (pointer-event-native-x event))
@@ -668,18 +668,18 @@
   (handle-event (event-sheet event) event))
 
 (defun local-event-loop (sheet)
-  (loop 
+  (loop
     (process-event-locally sheet (event-read sheet))))
 
-(defun port-event-wait (port waiter 
+(defun port-event-wait (port waiter
 			&key (wait-reason #+Genera si:*whostate-awaiting-user-input*
 					  #-Genera "CLIM Input")
 			     timeout)
   (cond (*multiprocessing-p*
 	 (assert (and port (port-alive-p port)) () "The port is not alive")
-	 (process-wait-with-timeout wait-reason timeout waiter) 
+	 (process-wait-with-timeout wait-reason timeout waiter)
 	 (values))
-	(t 
+	(t
 	 ;; Single process, so run the event processing loop right here
 	 (process-next-event port
 			     :timeout timeout
@@ -708,15 +708,15 @@
        (defmethod initialize-event ((event ,event-class) &key ,@slot-names)
 	 ,@(mapcar #'(lambda (slot)
 		       (if (eq slot 'timestamp)
-			   `(setf (slot-value event ',slot) 
+			   `(setf (slot-value event ',slot)
 			      (or ,slot (atomic-incf *event-timestamp*)))
 			 `(setf (slot-value event ',slot) ,slot)))
 		   slot-names))
        (let ((old (assoc ',event-class *resourced-events*)))
 	 (unless old
-	   (setq *resourced-events* 
+	   (setq *resourced-events*
 	     (append *resourced-events*
-		     (list (list ',event-class ',resource-name 
+		     (list (list ',event-class ',resource-name
 				 ;; Allocates, misses, creates, deallocates
 				 #+meter-events ,@(list 0 0 0 0)))))))
        ;; When an event is in the event resource, we use the timestamp

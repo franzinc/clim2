@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept-values.lisp,v 1.75 1994/12/04 23:57:18 colin Exp $
+;; $fiHeader: accept-values.lisp,v 1.76 1995/05/17 19:47:38 colin Exp $
 
 (in-package :clim-internals)
 
@@ -377,6 +377,7 @@
 			:own-window-properties (list x-position y-position
 						     width height
 						     right-margin bottom-margin)
+			:left x-position :right y-position
 			:initially-select-query-identifier
 			  (and initially-select-query-identifier
 			       (cons initially-select-query-identifier modify-initial-query))
@@ -1004,7 +1005,7 @@
 (defmethod display-invalid-queries ((frame standard-application-frame) stream query-info)
   (declare (ignore stream))
   (notify-user frame
-	       (format nil "The following fields are not valid:~{ ~{~A~:[~;~:* : ~A~]~}~}"
+	       (format nil "The following fields are not valid:~:{~%~4T~A~@[: ~A~]~}"
 		       (mapcar #'(lambda (query-stuff)
 				   (destructuring-bind (query id condition) query-stuff
 				     (declare (ignore query))
@@ -1018,8 +1019,8 @@
 				      (and (not (eq condition t)) condition))))
 			       query-info))
 	       :title "Invalid Fields"
-	       :style :error :
-	       exit-boxes '(:exit)))
+	       :style :error
+	       :exit-boxes '(:exit)))
 
 (defmethod display-invalid-queries ((frame accept-values-own-window) stream queries)
   (display-invalid-queries (frame-calling-frame frame) stream queries))

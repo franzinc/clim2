@@ -1,7 +1,7 @@
 ;; -*- mode: common-lisp; package: tk -*-
 ;;
 ;;				-[Fri Jul 30 16:14:28 1993 by colin]-
-;; 
+;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
 ;;
@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: resources.lisp,v 1.50 1993/08/12 16:04:44 cer Exp $
+;; $fiHeader: resources.lisp,v 1.51 1994/12/05 00:01:09 colin Exp $
 
 
 (in-package :tk)
@@ -35,7 +35,7 @@
   `(defmethod convert-resource-in ((parent t) (type (eql ',type)) value)
      ,@body))
 
-  
+
 (defmacro define-enumerated-resource (type elements)
   (if (consp (car elements))
       `(progn
@@ -66,9 +66,9 @@
   (cerror "Try again" "cannot convert-in resource for ~S,~S,~S" class type value)
   (convert-resource-in class type value))
 
-(define-enumerated-resource separator-type (:no-line 
+(define-enumerated-resource separator-type (:no-line
 					    :single-line
-					    :double-line 
+					    :double-line
 					    :single-dashed-line
 					    :double-dashed-line
 					    :shadow-etched-in
@@ -91,14 +91,14 @@
 (define-enumerated-resource delete-response (:destroy :unmap :do-nothing))
 
 (define-enumerated-resource keyboard-focus-policy (:explicit :pointer))
-  
+
 (define-enumerated-resource packing (:no-packing
 				     :tight
 				     :column
 				     :none))
 
-(define-enumerated-resource row-column-type (:work-area 
-					     :menu-bar 
+(define-enumerated-resource row-column-type (:work-area
+					     :menu-bar
 					     :menu-pulldown
 					     :menu-popup
 					     :menu-option))
@@ -109,8 +109,8 @@
 
 (define-enumerated-resource scroll-bar-display-policy (:static :as-needed))
 
-(define-enumerated-resource selection-policy (:single-select 
-					      :multiple-select 
+(define-enumerated-resource selection-policy (:single-select
+					      :multiple-select
 					      :extended-select :browse-select))
 
 
@@ -279,7 +279,7 @@
   (declare (ignore parent))
   (or (second (find value *ol-defines* :key #'first))
       (call-next-method)))
-  
+
 
 
 
@@ -332,7 +332,7 @@
 	    (declare (optimize (safety 0)))
 	    (unless entry
 	      (setf entry (fill-sv-cache parent-class class resources)))
-    
+
 	    (destructuring-bind (arglist length &rest resource-descriptions)
 		entry
 	      (do ((resdess resource-descriptions (cdr resdess))
@@ -396,6 +396,7 @@
     (int nil)
     (short nil)
     (function nil)
+    (top-item-position nil)
     (t t)))
 
 (defmethod resource-type-set-conversion-p (type)
@@ -418,6 +419,7 @@
     (short nil)
     (int nil)
     (function nil)
+    (top-item-position nil)
     (t t)))
 
 (defmethod resource-type-get-memref-type (type)
@@ -447,7 +449,7 @@
 	 (constraint-resource-used nil)
 	 (i 0))
     (dotimes (j len)
-      (setf (xt-arglist-value arglist j) 
+      (setf (xt-arglist-value arglist j)
 	(excl::malloc 8)))	;--- A crock...
     (dolist (r resources)
       (let ((resource (or (find-class-resource class r)
@@ -472,7 +474,7 @@
 	      (note-malloced-object (xt-arglist-value arglist j)))
 	    r)
 	(setf (gethash resources (class-get-values-cache class)) r)))))
-    
+
 (defun get-values (widget &rest resources)
   (declare (optimize (speed 3))
 	   (dynamic-extent resources))
@@ -486,7 +488,7 @@
 	  (declare (optimize (safety 0)))
 	  (unless entry
 	    (setf entry (fill-gv-cache parent-class class resources)))
-    
+
 	  (destructuring-bind (arglist length &rest resource-descriptions)
 	      entry
 	    (xt_get_values widget arglist length)
@@ -608,7 +610,7 @@
 	     (incf *color-counter*)
 	     (color (allocate-color (default-colormap (widget-display parent))
 				    value))))
-			   
+
 (defmethod convert-resource-out ((parent t) (type (eql 'window)) x)
   x)
 
@@ -630,7 +632,7 @@
 (defmethod convert-resource-in ((widget t) (type (eql 'widget-list)) x)
   (let ((r nil))
     (dotimes (i (widget-num-children widget))
-      (push (convert-resource-in 
+      (push (convert-resource-in
 	     widget 'widget (xt-widget-list x i))
 	    r))
     (nreverse r)))
@@ -677,9 +679,9 @@
 
 (defmethod convert-resource-out ((parent t) (typep (eql 'pointer)) value)
   value)
-				 
 
-;;;			 
+
+;;;
 
 (defmethod convert-resource-out ((parent t) (typep (eql 'key-sym)) value)
   (char-int value))
@@ -693,7 +695,7 @@
 (defmethod convert-resource-in ((parent t) (typep (eql 'colormap)) value)
   value)
 
-;; Openlook 
+;; Openlook
 
 (defmethod convert-resource-out ((parent t) (typep (eql 'char)) value)
   (char-int value))
@@ -720,17 +722,17 @@
 
 (define-enumerated-resource list-size-policy (:variable :constant :resize-if-possible))
 
-(define-enumerated-resource shadow-type  ((:etched-in 5) 
-					  (:etched-out 6) 
+(define-enumerated-resource shadow-type  ((:etched-in 5)
+					  (:etched-out 6)
 					  (:in 7)
 					  (:out 8)))
 
-(define-enumerated-resource navigation-type (:none 
+(define-enumerated-resource navigation-type (:none
 					     :tab-group
 					     :sticky-tab-group
 					     :exclusive-tab-group))
 
-(define-enumerated-resource ol-wrap-mode  ((:wrap-off 74) 
+(define-enumerated-resource ol-wrap-mode  ((:wrap-off 74)
 					   (:wrap-any 75)
 					   (:wrap-white-space 76)))
 
@@ -738,7 +740,7 @@
 (defmethod convert-resource-out (parent (type (eql 'xt::translation-table)) value)
   (declare (ignore parent))
   ;;--- Allocate-no-free
-  (xt_parse_translation_table 
+  (xt_parse_translation_table
    (etypecase value
      (string value)
      (null ""))))
@@ -746,7 +748,7 @@
 ;; solaris 2.2 stuff
 
 (defmethod convert-resource-out ((parent  t) (type (eql 'ol-str)) value)
-  (note-malloced-object 
+  (note-malloced-object
    (string-to-char* value)))
 
 (defmethod convert-resource-in ((parent t) (type (eql 'ol-str)) value)

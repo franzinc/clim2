@@ -1,7 +1,7 @@
 ;; -*- mode: common-lisp; package: tk -*-
 ;;
 ;;				-[]-
-;; 
+;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
 ;;
@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: callbacks.lisp,v 1.22 92/12/03 10:29:59 cer Exp $
+;; $fiHeader: callbacks.lisp,v 1.23 1993/07/27 01:52:33 colin Exp $
 
 (in-package :tk)
 
@@ -78,7 +78,7 @@
     (funcall function widget)))
 
 
-(defvar *create-popup-child-proc-function-address* 
+(defvar *create-popup-child-proc-function-address*
     (ff:register-function 'create-popup-child-proc-function))
 
 (defun (setf widget-create-popup-child-proc) (function widget)
@@ -87,7 +87,7 @@
    (widget-callback-data widget))
   (set-values widget :create-popup-child-proc *create-popup-child-proc-function-address*)
   function)
-  
+
 (defun remove-all-callbacks (widget callback-name)
   (xt_remove_all_callbacks widget (convert-callback-name callback-name)))
 
@@ -102,51 +102,50 @@
 	  nil;; malloc cache
 	  type)))
 
-(defparameter *callback-name-alist* 
+(defparameter *callback-name-alist*
     (mapcar #'process-callback-alist-component
 	    '(
 	    ("activateCallback" :activate)
-	    ("armCallback")           
-	    ("disarmCallback")        
-	    ("popupCallback")         
-	    ("popdownCallback")       
-	    ("helpCallback")          
-	    ("decrementCallback")     
-	    ("dragCallback")          
-	    ("incrementCallback")     
-	    ("pageDecrementCallback") 
-	    ("pageIncrementCallback") 
-	    ("toBottomCallback")      
-	    ("toTopCallback")         
-	    ("focusCallback")         
-	    ("losingFocusCallback")   
-	    ("modifyVerifyCallback")  
+	    ("armCallback")
+	    ("disarmCallback")
+	    ("popupCallback")
+	    ("popdownCallback")
+	    ("helpCallback")
+	    ("decrementCallback")
+	    ("dragCallback")
+	    ("incrementCallback")
+	    ("pageDecrementCallback")
+	    ("pageIncrementCallback")
+	    ("toBottomCallback")
+	    ("toTopCallback")
+	    ("focusCallback")
+	    ("losingFocusCallback")
 	    ("modifyVerifyCallback" :modify-verify)
-	    ("valueChangedCallback")  
-	    ("noMatchCallback")       
-	    ("cancelCallback")        
-	    ("applyCallback")         
-	    ("okCallback")            
-	    ("browseSelectionCallback" :single-selection) 
-	    ("singleSelectionCallback" :single-selection) 
-	    ("defaultActionCallback")   
+	    ("valueChangedCallback")
+	    ("noMatchCallback")
+	    ("cancelCallback")
+	    ("applyCallback")
+	    ("okCallback")
+	    ("browseSelectionCallback" :single-selection)
+	    ("singleSelectionCallback" :single-selection)
+	    ("defaultActionCallback")
 	    ("extendedSelectionCallback")
 	    ("multipleSelectionCallback" :multiple-selection)
-	    ("entryCallback")           
-	    ("mapCallback")             
-	    ("unmapCallback")           
-	    ("cascadingCallback")       
-	    ("commandChangedCallback")  
-	    ("commandEnteredCallback")  
-	    ("exposeCallback" drawing-area)          
-	    ("inputCallback" drawing-area)           
-	    ("resizeCallback" drawing-area)          
-	    ("destroyCallback")         
-	    ("gainPrimaryCallback")     
+	    ("entryCallback")
+	    ("mapCallback")
+	    ("unmapCallback")
+	    ("cascadingCallback")
+	    ("commandChangedCallback")
+	    ("commandEnteredCallback")
+	    ("exposeCallback" drawing-area)
+	    ("inputCallback" drawing-area)
+	    ("resizeCallback" drawing-area)
+	    ("destroyCallback")
+	    ("gainPrimaryCallback")
 	    ("losePrimaryCallback")
 
 	    ;; Motif Callbacks
-	      
+
 	    ;; OpenLook Callbacks
 	    ("sliderMoved" slider-moved)
 	    ("select")
@@ -168,7 +167,7 @@
 
 (defmethod spread-callback-data (widget data (type (eql :modify-verify)))
   (declare (ignore widget))
-  (xm-text-field-callback-struct-doit data))
+  data)
 
 (defmethod spread-callback-data (widget call-data (type (eql 'drawing-area)))
   (declare (ignore widget))

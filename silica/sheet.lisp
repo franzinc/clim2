@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sheet.lisp,v 1.38 1993/07/27 01:51:13 colin Exp $
+;; $fiHeader: sheet.lisp,v 1.39 1994/12/05 00:00:29 colin Exp $
 
 (in-package :silica)
 
@@ -82,7 +82,7 @@
     ((children :initform nil :accessor sheet-children)))
 
 (defmethod sheet-adopt-child ((sheet sheet-multiple-child-mixin) child)
-  (setf (sheet-children sheet) 
+  (setf (sheet-children sheet)
 	;; Preserve the order in which the sheets were adopted
 	;;--- This may have unwanted effects if the children overlap...
 	(nconc (sheet-children sheet) (list child)))
@@ -215,7 +215,7 @@
 	      (and (sheet-enabled-p child)
 		   (multiple-value-call #'ltrb-overlaps-ltrb-p
 		     (bounding-rectangle* child)
-		     (untransform-rectangle* 
+		     (untransform-rectangle*
 		       (sheet-transformation child) left top right bottom))))
 	  (sheet-children sheet)))))
 
@@ -244,11 +244,11 @@
 	  (when (and (sheet-enabled-p child)
 		     (multiple-value-call #'ltrb-overlaps-ltrb-p
 		       (bounding-rectangle* child)
-		       (untransform-rectangle* 
+		       (untransform-rectangle*
 			 (sheet-transformation child) left top right bottom)))
 	    (funcall function child))))))
 
-;;;; 
+;;;;
 
 (defclass sheet-identity-transformation-mixin () ())
 
@@ -256,7 +256,7 @@
   +identity-transformation+)
 
 (defclass sheet-transformation-mixin ()
-    ((transformation 
+    ((transformation
        :initarg :transformation :initform +identity-transformation+
        :accessor sheet-transformation)
      (cached-device-transformation :initform nil
@@ -312,14 +312,14 @@
 
 (defgeneric note-sheet-transformation-changed (sheet &key port-did-it))
 (defmethod note-sheet-transformation-changed ((sheet basic-sheet) &key port-did-it)
-  (declare (ignore port-did-it)) 
+  (declare (ignore port-did-it))
   nil)
 
 (defgeneric invalidate-cached-regions (sheet))
 
 (defmethod invalidate-cached-regions ((sheet basic-sheet)) nil)
 
-(defmethod invalidate-cached-regions ((sheet sheet-transformation-mixin)) 
+(defmethod invalidate-cached-regions ((sheet sheet-transformation-mixin))
   (let ((region (sheet-cached-device-region sheet)))
     (when region
       (if (eq region +nowhere+)			;it can happen...
@@ -339,7 +339,7 @@
 
 (defmethod invalidate-cached-transformations ((sheet basic-sheet)) nil)
 
-(defmethod invalidate-cached-transformations ((sheet sheet-transformation-mixin)) 
+(defmethod invalidate-cached-transformations ((sheet sheet-transformation-mixin))
   (let ((region (sheet-cached-device-region sheet)))
     (when region
       (if (eq region +nowhere+)			;it can happen...
@@ -351,7 +351,7 @@
   ;;--- In theory if this sheet has a mirror we don't need to do any more
   (unless (sheet-direct-mirror sheet)
     (mapc #'invalidate-cached-transformations (sheet-children sheet))))
- 
+
 ;;--- Check to see if the call to INVALIDATE-CACHED-REGIONS is really necessary.
 ;;--- CER thinks we do because regions depend on transformations.
 (defmethod note-sheet-transformation-changed :before ((sheet basic-sheet) &key port-did-it)
@@ -415,7 +415,7 @@
 
 (defmethod invalidate-cached-regions :before ((sheet sheet-with-medium-mixin))
   (let ((medium (sheet-medium sheet)))
-    (when medium 
+    (when medium
       (invalidate-cached-regions medium))))
 
 (defmethod invalidate-cached-transformations :before ((sheet sheet-with-medium-mixin))
@@ -463,7 +463,7 @@
 (defclass sheet-permanently-enabled-mixin () ()
   (:default-initargs :enabled t))
 
-(defmethod initialize-instance :after ((sheet sheet-permanently-enabled-mixin) 
+(defmethod initialize-instance :after ((sheet sheet-permanently-enabled-mixin)
 				       &key enabled)
   (setf (sheet-enabled-p sheet) enabled))
 
@@ -493,7 +493,7 @@
   (letf-globally (((port-grabbing-sheet port) sheet))
     (call-next-method)))
 
-(defmethod port-invoke-with-pointer-grabbed 
+(defmethod port-invoke-with-pointer-grabbed
 	   ((port basic-port) (sheet basic-sheet) continuation &key)
   (funcall continuation))
 
@@ -504,4 +504,12 @@
 	   ((port basic-port) (sheet basic-sheet) cursor)
   (declare (ignore cursor))
   nil)
+
+(defmethod port-remove-all-pointer-grabs ((port basic-port))
+  nil)
+
+(defmethod port-remove-all-pointer-grabs :after ((port basic-port))
+  (setf (port-grabbing-sheet port) nil))
+
+
 

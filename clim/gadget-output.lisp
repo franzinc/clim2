@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadget-output.lisp,v 1.57 1994/12/04 23:57:41 colin Exp $
+;; $fiHeader: gadget-output.lisp,v 1.58 1995/05/17 19:47:55 colin Exp $
 
 (in-package :clim-internals)
 
@@ -791,6 +791,9 @@
   (move-cursor-to-view-position stream view)
   (flet ((update-gadget (record gadget list-pane)
 	   (declare (ignore gadget record))
+	   (if active-p
+	       (activate-gadget list-pane)
+	     (deactivate-gadget list-pane))
 	   (setf (gadget-value list-pane) default)
 	   list-pane))
     (with-output-as-gadget (stream :cache-value type :update-gadget #'update-gadget)

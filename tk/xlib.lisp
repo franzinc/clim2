@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xlib.lisp,v 1.52 1994/12/05 00:01:14 colin Exp $
+;; $fiHeader: xlib.lisp,v 1.53 1995/05/17 19:49:36 colin Exp $
 
 (in-package :tk)
 
@@ -674,6 +674,7 @@
    (depth :reader image-depth :initarg :depth)
    (format :reader image-format :initform x11:zpixmap :initarg :format)))
 
+;; I don't believe that this should be hard-wired
 (defconstant bitmap-pad 8)
 
 (defmethod initialize-instance :after
@@ -681,10 +682,11 @@
   (declare (optimize (speed 3) (safety 0)))
   (with-slots (display format depth width height) image
     (unless foreign-address
-      (let* ((bits-per-line (* width depth))
+      (let* ((bits-per-pixel (x11:_xgetbitsperpixel display depth))
+	     (bits-per-line (* width bits-per-pixel))
 	     (padded-bits-per-line (* bitmap-pad
 				      (ceiling bits-per-line bitmap-pad)))
-	     (bytes-per-line (/ padded-bits-per-line bitmap-pad))
+	     (bytes-per-line (/ padded-bits-per-line 8))
 	     (v (excl::malloc (* bytes-per-line height)))
 	     (visual (x11:screen-root-visual
 		      (x11:xdefaultscreenofdisplay display)))

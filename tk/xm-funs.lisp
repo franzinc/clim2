@@ -1,7 +1,7 @@
 ;; -*- mode: common-lisp; package: tk -*-
 ;;
 ;;				-[Thu Jul 22 17:17:07 1993 by colin]-
-;; 
+;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1992 Franz Inc, Berkeley, CA  All rights reserved.
 ;;
@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-funs.lisp,v 1.14 1993/09/17 19:06:51 cer Exp $
+;; $fiHeader: xm-funs.lisp,v 1.15 1994/12/05 00:01:20 colin Exp $
 
 ;;
 ;; This file contains compile time only code -- put in clim-debug.fasl.
@@ -105,7 +105,7 @@
     :arg-checking nil
     :return-type :void)
 
-(defforeign 'xm_intern_atom 
+(defforeign 'xm_intern_atom
     :entry-point (ff:convert-to-lang "XmInternAtom")
     :call-direct t
     :callback nil
@@ -248,9 +248,24 @@
     :entry-point (ff:convert-to-lang "XmTextGetSelection")
     :return-type :integer)
 
+(ff:defforeign 'xm_scale_set_value
+    :call-direct t
+    :arguments '(foreign-address fixnum)
+    :arg-checking nil
+    :entry-point (ff:convert-to-lang "XmScaleSetValue")
+    :return-type :void)
+
 (ff:defforeign 'xm_get_display
     :call-direct t
     :arguments '(foreign-address)
     :arg-checking nil
     :entry-point (ff:convert-to-lang "XmGetXmDisplay")
     :return-type :integer)
+
+(ff:defforeign 'xm_change_color
+    :call-direct t
+    :arguments '(foreign-address fixnum)
+    :arg-checking nil
+    :entry-point (ff:convert-to-lang "XmChangeColor")
+    :return-type :void)
+

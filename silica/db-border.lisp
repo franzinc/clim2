@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-border.lisp,v 1.20 93/04/16 09:45:18 cer Exp $
+;; $fiHeader: db-border.lisp,v 1.21 1993/07/27 01:50:23 colin Exp $
 
 "Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved.
  Portions copyright (c) 1991, 1992 by Symbolics, Inc.  All rights reserved."
@@ -23,7 +23,7 @@
 	(child (sheet-child pane)))
     (space-requirement+
       (compose-space child :width width :height height)
-      (make-space-requirement 
+      (make-space-requirement
 	:width (* 2 thickness)
 	:height (* 2 thickness)))))
 
@@ -34,17 +34,21 @@
       thickness thickness
       (- width (* 2 thickness)) (- height (* 2 thickness)))
     (repaint-border-pane pane)))
-  
+
 (defmethod handle-repaint ((pane border-pane) region)
   (declare (ignore region))		;not worth checking
   (repaint-border-pane pane))
 
 (defun repaint-border-pane (pane)
   (with-sheet-medium (medium pane)
-    (with-bounding-rectangle* (left top right bottom) 
+    (with-bounding-rectangle* (left top right bottom)
       (sheet-region pane)
       (let* ((thickness (slot-value pane 'thickness))
-	     (ht (ceiling thickness 2)))
+	     ;; this used to be ceiling but it sometimes caused
+	     ;; borders to overwrite the child pane - which played
+	     ;; havoc with the flipping-ink mechanism used to draw the
+	     ;; cursor (cim 9/14/95)
+	     (ht (floor thickness 2)))
 	(incf left ht)
 	(incf top ht)
 	(decf right ht)
@@ -94,10 +98,10 @@
 
 ;;; Label panes
 
-(defparameter *default-label-text-style* 
+(defparameter *default-label-text-style*
 	      (make-text-style :sans-serif :italic :small))
 
-(defclass label-pane 
+(defclass label-pane
 	  (sheet-with-resources-mixin
 	   labelled-gadget-mixin
 	   pane)
@@ -107,9 +111,9 @@
 		     ;; mechanism for the Motif/OpenLook ports
 		     :text-style nil))
 
-(defmacro labelling ((&rest options 
-		      &key (label-alignment #+Genera :bottom #-Genera :top) 
-		      &allow-other-keys) 
+(defmacro labelling ((&rest options
+		      &key (label-alignment #+Genera :bottom #-Genera :top)
+		      &allow-other-keys)
 		     &body contents &environment env)
   #-(or Genera Minima) (declare (ignore env))
   (assert (null (cdr contents)) (contents)

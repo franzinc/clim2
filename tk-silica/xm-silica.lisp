@@ -1,5 +1,5 @@
 ;; -*- mode: common-lisp; package: xm-silica -*-
-;; 
+;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
 ;;
@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-silica.lisp,v 1.42 1993/12/07 05:34:27 colin Exp $
+;; $fiHeader: xm-silica.lisp,v 1.43 1994/12/05 00:02:00 colin Exp $
 
 (in-package :xm-silica)
 
@@ -75,7 +75,7 @@
 			       'clim-internals::menu-frame)
 			'(:override-redirect t))))
 	(call-next-method))
-    (values class `(:keyboard-focus-policy 
+    (values class `(:keyboard-focus-policy
 		    ,(ecase (port-input-focus-selection port)
 		       (:click-to-select :explicit)
 		       (:sheet-under-pointer :pointer))
@@ -95,7 +95,7 @@
   (my-drawing-area-query-geometry widget intended desired))
 
 (defun setup-mda ()
-  (tk::initializemydrawingareaquerygeometry 
+  (tk::initializemydrawingareaquerygeometry
    (ff:register-function 'my-drawing-area-query-geometry-stub)))
 
 (setup-mda)
@@ -120,7 +120,7 @@
 
       (when (and (logtest rm x11:cwheight) (logtest rm x11:cwwidth))
 	(return-from my-drawing-area-query-geometry tk::xt-geometry-yes))
-      
+
       (setf (tk::xt-widget-geometry-width desired) (fix-coordinate width)
 	    (tk::xt-widget-geometry-height desired) (fix-coordinate height)
 	    (tk::xt-widget-geometry-request-mode desired) (logior x11:cwwidth x11:cwheight)))
@@ -149,7 +149,7 @@
 	(with-slots (clim-internals::plist) cursor
 	  (setf (getf clim-internals::plist :input-widget) input-widget)
 	  (tk::add-callback input-widget
-			    :input-callback 
+			    :input-callback
 			    'sheet-mirror-input-callback
 			    sheet)
 	  (tk::add-event-handler input-widget
@@ -158,7 +158,15 @@
 				 'sheet-mirror-event-handler
 				 sheet))))))
 
-(defmethod port-note-cursor-change :after 
+(defmethod note-sheet-degrafted :after ((sheet clim-stream-sheet))
+  (let* ((cursor (stream-text-cursor sheet))
+	 (plist (and cursor
+		     (slot-value cursor 'clim-internals::plist)))
+	 (input-widget (getf plist :input-widget)))
+    (when input-widget
+      (tk::destroy-widget input-widget))))
+
+(defmethod port-note-cursor-change :after
 	   ((port motif-port) cursor stream (type (eql 'cursor-active)) old new)
   (declare (ignore stream old))
   (let* ((plist (slot-value cursor 'clim-internals::plist))

@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-frames.lisp,v 1.67 1994/12/05 00:01:53 colin Exp $
+;; $fiHeader: xm-frames.lisp,v 1.68 1995/05/17 19:50:01 colin Exp $
 
 (in-package :xm-silica)
 
@@ -48,16 +48,19 @@
   ;;-- This is because the :resize-width/height are true
   ;;-- ManagedSetChanged allows the widget to be resized.
   ;;-- Conversely querygeoetry will return bogus results otherwise.
-  (frobulate-menubars frame))
+  (frobulate-mirrors frame))
 
 (defmethod note-frame-layout-changed ((frame-manager motif-frame-manager) (frame t))
-  (frobulate-menubars frame))
+  (frobulate-mirrors frame))
 
-(defun frobulate-menubars (frame)
+;; This gets around the problem with gadgets in different layouts
+;; coming up the wrong size when the layout changes (cim 9/28/95)
+
+(defun frobulate-mirrors (frame)
   (flet ((fix-sheet (sheet)
-	   (when (typep sheet 'motif-menu-bar)
-	     (update-mirror-region (port sheet) sheet))))
-    (declare (dynamic-extent #'fix-sheet))
+	   (when (or (typep sheet 'motif-menu-bar)
+		     (typep sheet 'clim-stream-pane))
+	     (invalidate-cached-transformations sheet))))
     (map-over-sheets #'fix-sheet (frame-top-level-sheet frame))))
 
 ;;; Definitions of the individual classes
@@ -165,8 +168,10 @@
 		 (tk::set-values mirror :menu-help-widget button))
 	       (unless flatp
 		 (set-button-mnemonic sheet button (getf options :mnemonic))
-		 (when keystroke
-		   (set-button-accelerator-from-keystroke sheet button keystroke))))
+		 (let ((accelerator-text (getf options :accelerator-text)))
+		   (when (or keystroke accelerator-text)
+		     (set-button-accelerator-from-keystroke
+		      sheet button keystroke accelerator-text)))))
 
 	     (make-command-button (parent menu keystroke item command-table)
 	       (let ((command-name (car (command-menu-item-value item)))
@@ -279,8 +284,10 @@
       (make-menu-for-command-table top-command-table mirror))
     mirror))
 
+;; get rid of get-accelerator-text and clean this function up!
+
 (defmethod set-button-accelerator-from-keystroke
-    ((menubar motif-menu-bar) button keystroke)
+    ((menubar motif-menu-bar) button keystroke accelerator-text)
   (when keystroke
     (let ((modifiers (cdr keystroke)))
       (record-accelerator menubar keystroke)
@@ -289,23 +296,29 @@
 	(dolist (modifier modifiers)
 	  (setq accel-text
 	    (concatenate 'string
-	      (ecase modifier
+	      (case modifier
+		(:shift "Shift+")
 		(:control "Ctrl+")
 		(:meta "Alt+")
 		(:super "Super+")
-		(:hyper "Hyper+"))
+		(:hyper "Hyper+")
+		(t ""))
 	      accel-text))
 	  (setq accel
 	    (concatenate 'string
-	      (ecase modifier
-		(:control "Ctrl")
-		(:meta "Mod1")
-		(:super "Mod2")
-		(:hyper "Mod3"))
+	      (case modifier
+		(:shift "Shift ")
+		(:control "Ctrl ")
+		(:meta "Mod1 ")
+		(:super "Mod2 ")
+		(:hyper "Mod3 ")
+		(t ""))
 	      accel)))
-	(tk::set-values button
-			:accelerator accel
-			:accelerator-text accel-text)))))
+	(tk::set-values button :accelerator accel)
+	(setq accelerator-text (or accelerator-text
+				   accel-text)))))
+  (when accelerator-text
+    (tk::set-values button :accelerator-text accelerator-text)))
 
 (defun display-motif-help (widget framem documentation)
   (frame-manager-notify-user

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-scroll.lisp,v 1.51 1993/11/23 19:58:50 cer Exp $
+;; $fiHeader: db-scroll.lisp,v 1.52 1994/12/05 00:00:14 colin Exp $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright(c) 1991, 1992 International Lisp Associates.
@@ -16,11 +16,11 @@
 			 pane)
     ((scroll-bars :initarg :scroll-bars
 		  :reader scroller-pane-scroll-bar-policy)
-     (drag-scroll :initarg :drag-scroll 
+     (drag-scroll :initarg :drag-scroll
 		  :accessor scroller-pane-drag-scroll)
      viewport
      (contents :initarg :contents :accessor pane-contents)
-     (vertical-scroll-bar :initform nil 
+     (vertical-scroll-bar :initform nil
 			  :accessor scroller-pane-vertical-scroll-bar)
      (horizontal-scroll-bar :initform nil
 			    :accessor scroller-pane-horizontal-scroll-bar)
@@ -30,8 +30,14 @@
      (vertical-line-scroll-amount :initform nil
 				  :initarg
 				  :vertical-line-scroll-amount)
-     (horizontal-line-scroll-amount :initform nil 
-				    :initarg :horizontal-line-scroll-amount))
+     (horizontal-line-scroll-amount :initform nil
+				    :initarg
+				    :horizontal-line-scroll-amount)
+     (vertical-page-scroll-amount :initform nil
+				  :initarg
+				  :vertical-page-scroll-amount)
+     (horizontal-page-scroll-amount :initform nil
+				    :initarg :horizontal-page-scroll-amount))
     (:default-initargs :scroll-bars :both :drag-scroll t))
 
 ;; Returns the viewport of the pane, if there is one
@@ -90,10 +96,10 @@
 	  (compute-dynamic-scroll-bar-values scroller)
 	(update-dynamic-scroll-bars
 	  scroller changedp
-	  hscroll-bar hscroll-bar-enabled-p 
+	  hscroll-bar hscroll-bar-enabled-p
 	  vscroll-bar vscroll-bar-enabled-p t))
-      
-      (with-bounding-rectangle* (left top right bottom) 
+
+      (with-bounding-rectangle* (left top right bottom)
 	  (viewport-contents-extent viewport)
 	(with-bounding-rectangle* (vleft vtop vright vbottom)
 	    (viewport-viewport-region viewport)
@@ -105,12 +111,12 @@
 		 (horizontal-scroll-bar (scroller-pane-horizontal-scroll-bar scroller)))
 	    (when vertical-scroll-bar
 	      (update-scroll-bar vertical-scroll-bar
-				 top bottom 
+				 top bottom
 				 vtop vbottom
 				 :vertical))
 	    (when horizontal-scroll-bar
 	      (update-scroll-bar horizontal-scroll-bar
-				 left right 
+				 left right
 				 vleft vright
 				 :horizontal))))))))
 
@@ -149,7 +155,7 @@
 		       (min 1.0s0 (max 0.0s0
 				       (if (<= contents-range viewport-range)
 					   0.0
-					 (/ (float (- vmin min) 0.0s0) 
+					 (/ (float (- vmin min) 0.0s0)
 					    contents-range))))))))
 	(declare (type single-float pos size))
 	(unless (and current-size
@@ -160,20 +166,29 @@
 	  (let* ((line-scroll (line-scroll-amount (slot-value scroll-bar 'client)
 						  orientation
 						  nil))
-		 (line-scroll (if (zerop contents-range)
-				  0	;-- Who knows
-				(* range (/ line-scroll contents-range)))))
-	    (change-scroll-bar-values scroll-bar 
+		 (page-scroll (page-scroll-amount (slot-value scroll-bar 'client)
+						  orientation
+						  nil)))
+	    (change-scroll-bar-values scroll-bar
 				      :slider-size size
 				      :value pos
-				      :line-increment line-scroll)))))))
+				      :line-increment (if (zerop contents-range)
+							  0 ;-- Who knows
+							(* range (/ line-scroll
+								    contents-range)))
+				      :page-increment (if (> page-scroll 1)
+							  (if (zerop contents-range)
+							      0 ;-- Who knows
+							    (* range (/ page-scroll
+									contents-range)))
+							(* size page-scroll)))))))))
 
-(defmethod value-changed-callback 
+(defmethod value-changed-callback
     ((sheet scroll-bar) (client scroller-pane) id value)
   (scroll-bar-value-changed-callback sheet client id value
 				     (scroll-bar-size sheet)))
 
-(defmethod drag-callback 
+(defmethod drag-callback
     ((sheet scroll-bar) (client scroller-pane) id value)
   (when (scroller-pane-drag-scroll client)
       (scroll-bar-value-changed-callback sheet client id value
@@ -206,7 +221,7 @@
 			    (gadget-range sheet)))))
 	    (bounding-rectangle-min-y region))))
       ;;-- Yuck
-      (clim-internals::maybe-redraw-input-editor-stream 
+      (clim-internals::maybe-redraw-input-editor-stream
        contents (pane-viewport-region contents)))))
 
 (defmethod update-region ((sheet basic-sheet) nleft ntop nright nbottom &key no-repaint)
@@ -221,7 +236,7 @@
   (fix-coordinates x y)
   (let ((viewport (pane-viewport sheet)))
     (when viewport
-      (with-bounding-rectangle* (left top right bottom) 
+      (with-bounding-rectangle* (left top right bottom)
 	  (pane-viewport-region sheet)
 	;; Optimize this case, since the rest of this code can be
 	;; quite expensive, especially on servers that require COPY-AREA
@@ -231,7 +246,7 @@
 	  (setf (sheet-transformation sheet)
 	    (make-translation-transformation (- x) (- y)))
 	  (bounding-rectangle-set-position (viewport-viewport-region viewport) x y)
-	  (with-bounding-rectangle* (nleft ntop nright nbottom) 
+	  (with-bounding-rectangle* (nleft ntop nright nbottom)
 	      (pane-viewport-region sheet)
 	    ;; If we are scrolling programatically then this might
 	    ;; reveal more of the sheet than currently exists
@@ -241,7 +256,7 @@
 	    (if (ltrb-overlaps-ltrb-p left top right bottom nleft ntop nright nbottom)
 		(progn
 		  ;; Move the old stuff to the new position
-		  (window-shift-visible-region sheet 
+		  (window-shift-visible-region sheet
 					       left top right bottom
 					       nleft ntop nright nbottom)
 		  (let ((rectangles (ltrb-difference nleft ntop nright nbottom
@@ -308,5 +323,13 @@
 	 (:vertical (bounding-rectangle-height r))
 	 (:horizontal (bounding-rectangle-width r)))
        10)))
-  
 
+
+(defmethod page-scroll-amount ((pane scroller-pane) orientation direction)
+  (declare (ignore direction))
+  (or (with-slots (vertical-page-scroll-amount
+		   horizontal-page-scroll-amount) pane
+	(ecase orientation
+	  (:horizontal horizontal-page-scroll-amount)
+	  (:vertical vertical-page-scroll-amount)))
+      0.9))

@@ -1,4 +1,4 @@
-# $fiHeader: Makefile.generic,v 1.28 1994/12/18 06:44:37 duane Exp $
+# $fiHeader: Makefile.generic,v 1.30 1995/06/21 21:24:08 georgej Exp $
 #
 #  Makefile.generic for CLIM 2.0
 #
@@ -125,6 +125,7 @@ clim: FORCE $(PRODUCT-GENERIC-OBJS) $(PRODUCT-TK-OBJS)
 # Training
 
 train: FORCE
+	(eval '$(SET_LIBRARY_PATH)' ; \
 	$(ECHO) " \
 	(progn \
 	  (load \"misc/train.lisp\") \
@@ -132,7 +133,7 @@ train: FORCE
 		:benchmarkp $(TRAIN_BM) :profilep $(TRAIN_PROFILEP) \
 		:compile $(TRAIN_COMPILE) :psview $(PSVIEW) \
 		:hpglview $(HPGLVIEW)))" \
-	| $(CLIM) $(CLOPTS)
+	| $(CLIM) $(CLOPTS))
 	echo $(SYSTEM) trained!!!!	
 
 # the following two rules are used by make-dist so that we don't have 
@@ -188,6 +189,9 @@ clean:
 	rm -f *.o *.so slim slim.ol \
 	  	stub-motif.c stub-olit.c stub-xt.c stub-x.c 
 	rm -f *.z *.Z *.gz *.ilt *.out
+
+clean-notes:
+	cd notes ; find . -name '*.lisp' -print | xargs rm -f
 
 tags:
 	$(TAGS) $(ALL_SRC)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-protocol.lisp,v 1.46 1994/12/04 23:57:50 colin Exp $
+;; $fiHeader: input-protocol.lisp,v 1.47 1995/05/17 19:48:00 colin Exp $
 
 (in-package :clim-internals)
 
@@ -114,8 +114,11 @@
 
 (defmethod repaint-sheet :after ((stream input-protocol-mixin) region)
   (let ((cursor (stream-text-cursor stream))
-	(viewport (pane-viewport stream)))
-    (when (and cursor viewport)
+	#+ignore (viewport (pane-viewport stream)))
+    ;; I don't know why the requirement was being made for the stream
+    ;; to have a viewport. This was causing problems for cursor redraw
+    ;; in panes with no scroll-bars.
+    (when (and cursor #+ignore viewport)
       (when (and (cursor-active cursor)
 		 (cursor-state cursor))
 	(multiple-value-bind (x y) (cursor-position cursor)

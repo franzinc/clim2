@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: POSTSCRIPT-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: postscript-medium.lisp,v 1.16 1993/06/21 20:50:48 cer Exp $
+;; $fiHeader: postscript-medium.lisp,v 1.17 1994/12/05 00:00:05 colin Exp $
 
 (in-package :postscript-clim)
 
@@ -35,7 +35,7 @@
 (defun use-line-style (medium line-style)
   (let* ((printer-stream (slot-value medium 'printer-stream))
 	 (thickness (ecase (line-style-unit line-style)
-		      (:normal (normal-line-thickness 
+		      (:normal (normal-line-thickness
 				(port medium) (line-style-thickness line-style)))
 		      (:point (line-style-thickness line-style))))
 	 (dashes (line-style-dashes line-style))
@@ -119,9 +119,16 @@
 	   ((medium postscript-medium) (ink contrasting-ink))
   (maybe-set-color medium (make-color-for-contrasting-ink ink)))
 
+;; a temporary hack
+
+(defmethod maybe-set-color
+    ((medium postscript-medium) (ink composite-in))
+  (maybe-set-color medium
+		   (elt (slot-value ink 'clim-utils::designs) 0)))
+
 (defmacro with-postscript-drawing-options ((medium printer-stream-var
 					    &key ink (filled nil
-						      filled-p) line-style 
+						      filled-p) line-style
 						 clip-region
 						 epilogue (newpath t))
 					   &body body)
@@ -286,7 +293,7 @@
 	  position-seq)))))
 
 (defmethod medium-draw-ellipse* ((medium postscript-medium)
-				 center-x center-y 
+				 center-x center-y
 				 radius-1-dx radius-1-dy radius-2-dx radius-2-dy
 				 start-angle end-angle filled)
   (maybe-send-feature medium 'ellipse *ps-ellipse-code*)
@@ -295,7 +302,7 @@
 	 (line-style (medium-line-style medium))
 	 (clip-region (medium-clipping-region medium)))
     (convert-to-postscript-coordinates transform center-x center-y)
-    (convert-to-postscript-distances transform 
+    (convert-to-postscript-distances transform
       radius-1-dx radius-1-dy radius-2-dx radius-2-dy)
     (when (null start-angle)
       (setq start-angle 0
@@ -356,9 +363,9 @@
 	   (height (psfck-clim-height fcs))
 	   (descent (psfck-clim-descent fcs))
 	   (ascent (- height descent)))
-      (let ((x-adjust 
+      (let ((x-adjust
 	      (compute-text-x-adjustment align-x medium string text-style start end))
-	    (y-adjust 
+	    (y-adjust
 	      (compute-text-y-adjustment align-y descent ascent height)))
 	(incf x x-adjust)
 	(incf y y-adjust)
@@ -367,14 +374,14 @@
 	  (incf towards-y y-adjust)))
       ;; do raster/ink stuff.
       (set-font-if-needed medium fcs)
-      
+
       (ps-pos-op medium "m" x y)
       (with-postscript-drawing-options (medium printer-stream
 					       :epilogue nil :newpath nil
 					       :ink ink
 					       :clip-region clip-region)
 	(if towards-x
-	    (with-postscript-gsave medium 
+	    (with-postscript-gsave medium
 	      (format printer-stream " currentpoint translate ~D rotate "
 		      (- 360 (truncate (* (atan (- towards-y y) (- towards-x x)) (/ 360 (* pi 2))))))
 	      (carefully-output-ps-showstring printer-stream string start end))
@@ -393,7 +400,7 @@
 	    string-or-char ch1buf
 	    start 0
 	    end 1))
-    (medium-draw-string* medium string-or-char x y start end 
+    (medium-draw-string* medium string-or-char x y start end
 			 align-x align-y towards-x towards-y transform-glyphs)))
 
 (defmethod medium-text-bounding-box ((medium postscript-medium)
@@ -406,7 +413,7 @@
       (left top right bottom cx cy towards-x towards-y) (call-next-method)
     (if (and towards-y towards-x)
 	(let ((transformation
-	       (make-rotation-transformation 
+	       (make-rotation-transformation
 		(atan (- towards-y cy) (- towards-x cx))
 		(make-point cx cy))))
 	  (multiple-value-setq (left top)
@@ -431,15 +438,15 @@
 	 (height (psfck-clim-height fcs))
 	 (descent (psfck-clim-descent fcs))
 	 (ascent (- height descent)))
-    (let ((x-adjust 
+    (let ((x-adjust
 	    (compute-text-x-adjustment align-x medium string text-style start end))
-	  (y-adjust 
+	  (y-adjust
 	    (compute-text-y-adjustment align-y descent ascent height)))
       (set-font-if-needed medium fcs)
       (with-postscript-drawing-options (medium printer-stream
 					:epilogue nil :newpath nil
 					:ink ink)
-	(with-postscript-gsave medium 
+	(with-postscript-gsave medium
 	  (ps-pos-op medium "m" x y)
 	  (format printer-stream " currentpoint translate 90 rotate ")
 	  (ps-rel-pos-op medium "rmoveto" x-adjust y-adjust)
@@ -475,7 +482,7 @@
 		   ;; about.
 		   (let* ((fcs (or ,our-font (get-font-compat-str ,port nil ,style)))
 			  (cwt (psfck-width-table fcs))
-			  (relwidth (if (numberp cwt) 
+			  (relwidth (if (numberp cwt)
 					cwt
 					(aref cwt index)))
 			  (escapement-x (* (psfck-clim-height fcs) relwidth))
@@ -499,10 +506,10 @@
 ;;-- Is this needed??
 
 #+ignore
-(defmethod stream-scan-string-for-writing 
+(defmethod stream-scan-string-for-writing
 	   ((stream clim-internals::output-protocol-mixin) (medium postscript-medium)
 	    string start end style cursor-x max-x &optional glyph-buffer)
-  (with-postscript-glyph-for-character 
+  (with-postscript-glyph-for-character
     (stream-scan-string-for-writing-1
       stream medium string start end style cursor-x max-x glyph-buffer)))
 
@@ -545,13 +552,13 @@
 		   (return fcs))
 		 (when (eq styledesc (psfck-style-descriptor fcs))
 		   (return fcs))))))
-      (when (and fcs 
+      (when (and fcs
 		 medium
 		 (let ((stream (medium-sheet medium)))
 		   (or (not (output-recording-stream-p stream))
 		       (stream-drawing-p stream)))
 		 (not (psfck-established fcs)))
-	  (with-slots (printer-stream) medium 
+	  (with-slots (printer-stream) medium
 	    (format printer-stream "~D ~D /~A estfont~%"
 		    (psfck-index fcs) (psfck-points fcs) (get-ps-fam-face-name fcs))
 	    (setf (psfck-established fcs) t)))
@@ -568,7 +575,7 @@
   ;;--- This should consult the real metrics.
   (nth-value 6 (port-glyph-for-character (port medium) #\M text-style)))
 
-(defmethod text-style-height 
+(defmethod text-style-height
 	   ((text-style standard-text-style) (medium postscript-medium))
   (nth-value 7 (port-glyph-for-character (port medium) #\M text-style)))
 
@@ -593,7 +600,7 @@
 		     (point-size-for-size-keyword size famdat))))
     points))
 
-(defmethod text-style-fixed-width-p 
+(defmethod text-style-fixed-width-p
 	   ((text-style standard-text-style) (medium postscript-medium))
   (let* ((family (text-style-family text-style))
 	 (face (text-style-face text-style))

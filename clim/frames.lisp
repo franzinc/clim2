@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: frames.lisp,v 1.77 1994/12/04 23:57:38 colin Exp $
+;; $fiHeader: frames.lisp,v 1.78 1995/05/17 19:47:51 colin Exp $
 
 (in-package :clim-internals)
 
@@ -404,7 +404,11 @@
   `(multiple-value-bind (graft-width graft-height)
        (bounding-rectangle-size ,graft)
      ;;--- This fudge factor stuff looks dubious  --SWM
-     (let ((fudge-factor #+ignore 0.9 #-ignore 1))
+     ;; using 1 works ok by limiting the size of the top level window
+     ;; (not the top level window + frame). As you can't know (I don't
+     ;; think) what the particular wm frame size will be using a hard
+     ;; wired fudge factor of .9 seems ok to me (cim 9/4/95)
+     (let ((fudge-factor #-ignore 0.9 #+ignore 1))
        (minf-or ,width (* graft-width fudge-factor))
        (minf-or ,height (* graft-height fudge-factor)))))
 
@@ -565,7 +569,8 @@
 				   (when (typep frame frame-class)
 				     (return-from find-frame frame)))
 			       :frame-manager frame-manager
-			       :port port)))))
+			       :port port)
+	      nil))))
     (when (and create (null frame))
       (with-keywords-removed (initargs initargs '(:create :activate :own-process))
 	(setq frame (apply #'make-application-frame frame-name initargs))))
@@ -601,7 +606,7 @@
 		 (frame-top-level-sheet frame))))
 	   (layout-frame frame width height)
 	   (when (and left top)
-	     (move-sheet (frame-top-level-sheet frame) left top))
+	     (position-sheet-carefully (frame-top-level-sheet frame) left top))
 	   (note-frame-enabled (frame-manager frame) frame)))
 	(:shrunk
 	 (note-frame-deiconified (frame-manager frame) frame)))))

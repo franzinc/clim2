@@ -1,4 +1,168 @@
 *************************************************************
+Mon Oct 16 21:58:05 PDT 1995	Colin Meldrum (colin@vapor)
+
+Makefile.cobjs		fix library path for ol version
+
+Makefile.generic	added rule clean-notes
+			fixed library path for make train rule
+
+Makefile.sun4-svr4	defs for multiple versions of Motif libraries
+
+clim/accept-values.lisp	fixed bug positioning own-window t dialogs
+			improved appearance of dialogs produced with
+			display-invalid-queries
+			fix typo in display-invalid-queries 
+
+clim/command.lisp	added support for user defined accelerator-text in
+			add-menu-item-to-command-table 
+
+clim/db-stream.lisp	added support for scroller-pane options to
+			make-clim-stream-pane
+
+clim/frames.lisp	reinstated 0.9 fudge factor in limit-size-to-graft
+			to workaround bug in openwindows window managers
+			fixed find-application-frame to create new frame when 
+			no existing frame found
+			changed enable-frame to use position-sheet-carefully
+			rather than move-sheet - allows correct positioning 
+			of non avv popup-frames.
+
+clim/gadget-output.lisp	fixed option-pane to activate/de-activate correctly
+
+clim/input-protocol.lisp
+			changed repaint-sheet to not require a viewport so
+			that cursor redraw works correctly in panes without
+			scroll-bars 
+
+clim/interactive-defs.lisp
+			fixed bug in read-token's handling of activation
+			and delimiter gestures
+
+clim/menus.lisp		fixed bug in open-window-stream by moving :left and 
+			:top args into call to make-application-frame
+
+clim/tracking-pointer.lisp
+			fixed bug with tracking-pointer over multiple panes 
+			when mouse button grabbed
+
+clim/translators.lisp	removed restriction on priorities to be >0 in
+			define-presentation-trasnlator-1
+
+climtoys/calendar.lisp	removed com-print3
+
+demo/color-editor.lisp	include tick-marks on sliders
+
+postscript/postscript-medium.lisp
+			added dummy maybe-set-color method to hack
+			compose-in inks for postscript port
+			fixed prolog to do calculate the correct
+			bounding-rectangle for encapsulted postscript
+
+silica/db-border.lisp	changed region painted in repaint-boder-pane to
+			workaround bug with repaint drawing over cursor
+
+silica/db-layout.lisp	tentative compose-space :around method for 			
+			client-overridability-mixin
+
+silica/db-scroll.lisp	added support for :vertical-page-scroll-amount and
+			:horizontal-page-scroll-amount
+
+silica/gadgets.lisp	added :decimal-places 0 initarg for slider
+			added echo-character initarg to text-fields for
+			password entry support
+			support in compute-list-pane-selected-items for
+			auto scrolling of list-pane to show selected item
+			support for armed/disarmed events
+
+silica/port.lisp, tk/xm-init.lisp tk/ol-init.lisp
+			new *restart-actions* syntax
+
+silica/sheet.lisp	new gf port-remove-all-pointer-grabs (to fix
+			tracking pointer multiple window bug)
+	
+
+test/test-suite.lisp	fixed title of region-intersects-region-p test
+
+tk/callbacks.lisp	support for text-field echo-character
+
+tk/resources.lisp	support for auto-scrolling list-pane
+			added top-item-position resource
+
+tk/xlib.lisp		fix bug with non-standard bits-per-pixel image
+			format in image initialize-instance :after method
+
+tk/xm-defs.lisp		support for text-field echo-character
+
+tk/xm-funs.lisp		support for setting scale value
+			support for changing widget background color and
+			associated shadows
+
+tk/xt-defs.lisp		misc typdef fixes
+
+tk/xt-funs.lisp		added xt_ungrab_button
+			fixed init_clim_gc_cursor_stuff to be :call-direct t
+
+tk-silica/last.lisp	changed patch load pathname to be ";update-clim;"
+
+tk-silica/xm-frames.lisp
+			replaced frobulate-menubars with more general
+			frobulate-mirrors to fix bug with gadgets coming up
+			wrong size
+			support for user-defined accelerator-text
+			fixed bug with shifted accelerators
+
+tk-silica/xm-gadgets.lisp
+			added armed/disarmed callbacks
+			support for quantized slider values
+			support for slider tick marks
+			support for min/max label
+			variable page-increment for scroll-bars
+			support for text-field echo-character 
+			support for auto-scrolling list-pane
+			added motif specific port-set-pane-background to
+			deal with shadow colors
+			handle :default keyword arg frame-manager-select-file
+
+tk-silica/xm-silica.lisp
+			added note-sheet-degrafter method on
+			clim-stream-sheets to destroy any cursor widget
+
+tk-silica/xt-gadgets.lisp
+			redone find-widget-resouce-initargs-for-sheet
+			support for variable page-increment for scroll-bars	
+			simplified get-accelerator-text
+
+tk-silica/xt-graphics.lisp
+			added palette slot to xt-medium
+			medium-palette only goes to the sheet the first time
+			new decode-ink-1 method on composite-in inks
+			decode-ink-opacity now takes an optional color arg
+			fixes bug in decode-layered-color-set for layers
+			which are not exact powers of 2
+
+tk-silica/xt-silica.lisp
+			support to inhibit use of scalable fonts.
+			new queue-armed-event and queue-disarmed-event
+			explicitly switch off program-specified position
+			hints in enable-mirror on top-level-sheet to make
+			OpenWindows cascading work properly
+			added new method port-remove-all-pointer-grabs 
+
+utils/base-designs.lisp	coerce designs in make-pattern to be a
+			simple-vector 
+
+utils/designs.lisp	*use-closest-color* can now be :warn
+			check for recursive errors when no closest color
+			available 
+
+utils/packages.lisp	armed-gadget-event
+			disarmed-gadget-event
+			port-remove-all-pointer-grabs
+			text-field-echo-character
+
+xlib/xlib-funs.lisp	added defforeign for _XGetBitsPerPixel
+
+*************************************************************
 4.3.devel.4 (aka 4.3.alpha.0)
 
 Wed Jun 21 11:10:05 1995  George Jacob  (georgej@lava)

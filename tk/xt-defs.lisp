@@ -1,7 +1,7 @@
 ;; -*- mode: common-lisp; package: tk -*-
 ;;
 ;;				-[]-
-;; 
+;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
 ;;
@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-defs.lisp,v 1.9 1993/07/27 01:54:16 colin Exp $
+;; $fiHeader: xt-defs.lisp,v 1.10 1994/12/05 00:01:26 colin Exp $
 
 ;;
 ;; This file contains compile time only code -- put in clim-debug.fasl.
@@ -35,9 +35,9 @@
 (def-c-typedef resource-list * :char)
 (def-c-typedef xrm-quark :int)
 (def-c-typedef xrm-quark-list * :int)
-(def-c-typedef boolean :unsigned-long)
+(def-c-typedef boolean :char)
 (def-c-typedef xrm-class  xrm-quark)
-(def-c-typedef xt-enum   :long)
+(def-c-typedef xt-enum   :unsigned-char)
 (def-c-typedef xt-version-type :long)
 (def-c-typedef xt-geometry-mask :unsigned-int)
 (def-c-typedef xt-position :short)
@@ -85,7 +85,7 @@
   )
 
 ;; Horrible internal stuff
-    
+
 (def-c-type (xt-offset-rec :no-defuns) :struct
 	    (next * :char)
 	    (name xrm-quark)

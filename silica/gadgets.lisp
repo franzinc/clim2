@@ -1,6 +1,6 @@
 ;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadgets.lisp,v 1.59 1994/12/05 00:00:21 colin Exp $
+;; $fiHeader: gadgets.lisp,v 1.60 1995/05/17 19:49:07 colin Exp $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
@@ -18,8 +18,8 @@
      (disarmed-callback :initarg :disarmed-callback :initform nil
 			:reader gadget-disarmed-callback)
      (active :initarg :active :accessor gadget-active-p)
-     (help-callback :initform nil 
-		    :initarg :help-callback 
+     (help-callback :initform nil
+		    :initarg :help-callback
 		    :accessor gadget-help-callback))
   (:default-initargs :active t))
 
@@ -55,25 +55,25 @@
   (unless (gadget-active-p gadget)
     (setf (gadget-active-p gadget) t)
     (note-gadget-activated (gadget-client gadget) gadget)))
- 
+
 (defmethod note-gadget-activated ((client t) (gadget basic-gadget))
   nil)
- 
+
 (defmethod deactivate-gadget ((gadget basic-gadget))
   (when (gadget-active-p gadget)
     (setf (gadget-active-p gadget) nil)
     (note-gadget-deactivated (gadget-client gadget) gadget)))
- 
+
 (defmethod note-gadget-deactivated ((client t) (gadget basic-gadget))
   nil)
 
 
 ;;; Value Gadgets
 
-(defclass value-gadget (basic-gadget) 
+(defclass value-gadget (basic-gadget)
   ((value
     :initarg :value :initform nil)	; no accessor defined - see below
-   (value-changed-callback 
+   (value-changed-callback
     :initarg :value-changed-callback :initform nil
     :reader gadget-value-changed-callback)))
 
@@ -98,7 +98,7 @@
     (value-changed-callback gadget
 			    (gadget-client gadget) (gadget-id gadget) value)))
 
-(defmethod value-changed-callback :around 
+(defmethod value-changed-callback :around
     ((gadget value-gadget) (client t) (id t) value)
   (setf (slot-value gadget 'value) value)
   (let ((callback (gadget-value-changed-callback gadget)))
@@ -115,7 +115,7 @@
 
 (defclass action-gadget (basic-gadget)
     ((activate-callback :initarg :activate-callback :initform nil
-			:reader gadget-activate-callback)))  
+			:reader gadget-activate-callback)))
 
 (defmethod activate-callback :around
     ((gadget action-gadget) (client t) (id t))
@@ -124,7 +124,7 @@
       (invoke-callback-function callback gadget))
     (call-next-method)))
 
-(defmethod activate-callback 
+(defmethod activate-callback
     ((gadget action-gadget) (client t) (id t))
   nil)
 
@@ -137,7 +137,7 @@
 			:reader gadget-focus-in-callback)))
 
 (defmethod focus-out-callback :around
-    ((gadget focus-gadget) (client t) (id t)) 
+    ((gadget focus-gadget) (client t) (id t))
   (let ((callback (gadget-focus-out-callback gadget)))
     (when callback
       (invoke-callback-function callback gadget))
@@ -148,13 +148,13 @@
   nil)
 
 (defmethod focus-in-callback :around
-    ((gadget focus-gadget) (client t) (id t)) 
+    ((gadget focus-gadget) (client t) (id t))
   (let ((callback (gadget-focus-in-callback gadget)))
     (when callback
       (invoke-callback-function callback gadget))
     (call-next-method)))
 
-(defmethod focus-in-callback 
+(defmethod focus-in-callback
     ((gadget focus-gadget) (client t) (id t))
   nil)
 
@@ -217,7 +217,7 @@
 
 ;;; The intent is that the real implementations inherit from these
 
-(defparameter *default-slider-label-text-style* 
+(defparameter *default-slider-label-text-style*
 	      (make-text-style :sans-serif :bold :small))
 (defparameter *default-slider-range-label-text-style*
 	      (make-text-style :sans-serif :bold :very-small))
@@ -229,7 +229,7 @@
 		    :reader slider-drag-callback)
      (decimal-places :initarg :decimal-places
 		     :reader slider-decimal-places)
-     (show-value-p :initarg :show-value-p 
+     (show-value-p :initarg :show-value-p
 		   :accessor gadget-show-value-p)
      (min-label :initarg :min-label)
      (max-label :initarg :max-label)
@@ -238,15 +238,18 @@
      (number-of-quanta :initarg :number-of-quanta)
      (editable-p :initarg :editable-p :accessor gadget-editable-p))
     (:default-initargs :value 0.0
+                       :decimal-places 0
                        :show-value-p nil
 		       :min-label nil
 		       :max-label nil
-		       :range-label-text-style *default-slider-range-label-text-style*
+		       :range-label-text-style
+		       #+allegro nil
+		       #-allegro *default-slider-range-label-text-style*
 		       :number-of-tick-marks 0
 		       :number-of-quanta nil
 		       :editable-p t))
 
-(defmethod initialize-instance :after ((pane slider) 
+(defmethod initialize-instance :after ((pane slider)
 				       &key (decimal-places 0 places-p)
 				       &allow-other-keys)
   (declare (ignore decimal-places))
@@ -288,30 +291,30 @@
 (defmethod (setf scroll-bar-size) :around (size (gadget scroll-bar))
   (assert (and (<= (+ size (gadget-value gadget))
 		   (gadget-max-value gadget))
-	       (> size 0)) 
+	       (> size 0))
       (size)
     "Scroll bar size ~A out of range" size)
   (call-next-method size gadget))
 
-(defmethod (setf gadget-value) :around 
+(defmethod (setf gadget-value) :around
 	   (value (gadget scroll-bar) &key invoke-callback)
   (declare (ignore invoke-callback))
   (assert (and (<= (+ value (scroll-bar-size gadget))
 		   (gadget-max-value gadget))
-	       (>= value (gadget-min-value gadget))) 
+	       (>= value (gadget-min-value gadget)))
       (value)
     "Scroll bar value ~A out of range" value)
   (call-next-method value gadget))
 
 ;;; Push-button
-(defclass push-button 
-	  (action-gadget labelled-gadget-mixin) 
+(defclass push-button
+	  (action-gadget labelled-gadget-mixin)
     ((show-as-default :initform nil :initarg :show-as-default
 		      :accessor push-button-show-as-default)))
 
 
 ;;; Toggle button
-(defclass toggle-button 
+(defclass toggle-button
 	  (value-gadget labelled-gadget-mixin)
     ((indicator-type :initarg :indicator-type :initform :some-of
 		     :type (member :some-of :one-of)
@@ -319,8 +322,8 @@
 
 
 ;;; Menu button
-(defclass menu-button 
-	  (value-gadget labelled-gadget-mixin) 
+(defclass menu-button
+	  (value-gadget labelled-gadget-mixin)
     ((indicator-type :initarg :indicator-type :initform :some-of
 		     :reader gadget-indicator-type)))
 
@@ -343,9 +346,9 @@
 	   (columns :initarg :columns :initform nil :accessor gadget-columns)))
 
 ;;; Radio box [exclusive-choice] .. [inclusive-choice]
-(defclass radio-box 
-	  (value-gadget row-column-gadget-mixin) 
-    ((selections :initform nil 
+(defclass radio-box
+	  (value-gadget row-column-gadget-mixin)
+    ((selections :initform nil
 		 :reader radio-box-selections)
      ;;--- think about this...
      (value :initform nil
@@ -368,7 +371,7 @@
     (assert (and frame framem) ()
       "There must be both a frame and frame manager active")
     (when current-selection
-      (assert (member current-selection choices :test #'equal) 
+      (assert (member current-selection choices :test #'equal)
 	  ()
 	"Radio box current-selection: ~S must be one of choices: ~S"
 	current-selection choices))
@@ -385,7 +388,7 @@
 	  (string
 	   ;; Create a button if the user supplied an abbreviation
 	   (let* ((value (equal current-selection choice))
-		  (button (make-pane 'toggle-button 
+		  (button (make-pane 'toggle-button
 				     :value value
 				     :label choice
 				     :indicator-type :one-of
@@ -397,7 +400,7 @@
 	       (setf (radio-box-current-selection rb) button)))))))
     (setf (slot-value rb 'selections) (nreverse selections))))
 
-(defmethod value-changed-callback :around 
+(defmethod value-changed-callback :around
 	   ((selection basic-gadget) (client radio-box) gadget-id value)
   (declare (ignore gadget-id))
   ;;--- The following comment is wrong.  Perhaps these should be :BEFORE
@@ -406,16 +409,16 @@
   ;; specified a callback function only :AROUNDs ever get executed.
   (when (eq value t)
     (setf (radio-box-current-selection client) selection)
-    (value-changed-callback 
+    (value-changed-callback
      client (gadget-client client) (gadget-id client) selection))
   (call-next-method))
 
 
 ;;; Check-box
 
-(defclass check-box 
-    (value-gadget row-column-gadget-mixin) 
-    ((selections :initform nil 
+(defclass check-box
+    (value-gadget row-column-gadget-mixin)
+    ((selections :initform nil
 		 :reader check-box-selections)
      ;;--- think about this...
      (value :initform nil
@@ -455,7 +458,7 @@
 	  (string
 	   ;; Create a button if the user supplied an abbreviation
 	   (let* ((value (member choice current-selection :test #'equal))
-		  (button (make-pane 'toggle-button 
+		  (button (make-pane 'toggle-button
 				     :value (and value t)
 				     :label choice
 				     :indicator-type :some-of
@@ -467,7 +470,7 @@
 	       (setf (car value) button)))))))
     (setf (slot-value cb 'selections) (nreverse selections))))
 
-(defmethod value-changed-callback :around 
+(defmethod value-changed-callback :around
 	   ((selection basic-gadget) (client check-box) gadget-id value)
   (declare (ignore gadget-id))
   (if (eq value t)
@@ -501,13 +504,13 @@
 	   (macrolet ((radio-box-current-selection (form)
 			(let ((button (gensym)))
 			  `(let ((,button ,form))
-			     (setq ,',current-selection 
+			     (setq ,',current-selection
 			       (append ,',current-selection (list ,button)))
 			     ,button)))
 		      (check-box-current-selection (form)
 			(let ((button (gensym)))
 			  `(let ((,button ,form))
-			     (setq ,',current-selection 
+			     (setq ,',current-selection
 			       (append ,',current-selection (list ,button)))
 			     ,button))))
 	     (let ((,choices (list ,@body)))
@@ -519,12 +522,14 @@
 
 ;;; Text edit
 ;;--- Do we want to specify a binding to commands?
-(defclass text-field 
-	  (value-gadget focus-gadget action-gadget) 
-    ((editable-p :initarg :editable-p :accessor gadget-editable-p))
+(defclass text-field
+	  (value-gadget focus-gadget action-gadget)
+  ((editable-p :initarg :editable-p :accessor gadget-editable-p)
+   (echo-character :initarg :echo-character :initform nil
+		   :reader text-field-echo-character))
   (:default-initargs :editable-p t))
 
-(defclass text-editor (text-field) 
+(defclass text-editor (text-field)
     ((ncolumns :initarg :ncolumns
 	       :accessor gadget-columns)
      (nlines :initarg :nlines
@@ -587,7 +592,7 @@
 	       (max-height (space-requirement-max-height sr))
 	       (desired-width (space-requirement-width sr))
 	       (desired-height (space-requirement-height sr)))
-	  (resize-sheet child 
+	  (resize-sheet child
 			(if (>= max-width +fill+)
 			    (max width desired-width)
 			  (max desired-width max-width))
@@ -607,7 +612,7 @@
 	  (let ((cw (- cright cleft))
 		(ch (- cbottom ctop)))
 	    (let ((x ox) (y oy))
-	      (when (and (< owidth cw) (<= cw width)) 
+	      (when (and (< owidth cw) (<= cw width))
 		(setq x cleft))
 	      (when (and (< oheight ch) (<= ch height))
 		(setq y ctop))
@@ -635,20 +640,20 @@
 
 (defmethod note-space-requirements-changed ((pane viewport) inner)
   (declare (ignore inner))
-  (allocate-space 
-    pane 
+  (allocate-space
+    pane
     (bounding-rectangle-width pane) (bounding-rectangle-height pane)))
 
 ;;--- Work on this
 #+++ignore
 (defmethod note-sheet-region-changed :around ((viewport viewport) &key port-did-it)
   (declare (ignore port-did-it))
-  (multiple-value-bind (changedp 
+  (multiple-value-bind (changedp
 			hscroll-bar hscroll-bar-enabled-p
 			vscroll-bar vscroll-bar-enabled-p)
       (compute-dynamic-scroll-bar-values viewport)
     (if changedp
- 	(update-dynamic-scroll-bars 
+ 	(update-dynamic-scroll-bars
 	  viewport changedp
 	  hscroll-bar hscroll-bar-enabled-p
 	  vscroll-bar vscroll-bar-enabled-p)
@@ -669,7 +674,7 @@
 ;      (let* ((contents (slot-value scroller 'contents))
 ; 	     (c-extent (viewport-contents-extent
 ;			 (pane-viewport contents))))
-; 	(multiple-value-bind (vx vy) 
+; 	(multiple-value-bind (vx vy)
 ;	    (window-viewport-position contents)
 ; 	  (window-set-viewport-position
 ;	    contents
@@ -693,10 +698,10 @@
 ;	 (vscroll-bar (scroller-pane-vertical-scroll-bar scroller))
 ;	 (scroll-bar-policy (scroller-pane-scroll-bar-policy scroller)))
 ;    (if (eq scroll-bar-policy :dynamic)
-;	(multiple-value-bind (vwidth vheight) 
+;	(multiple-value-bind (vwidth vheight)
 ;	    (bounding-rectangle-size scroller)
-;	  (multiple-value-bind (cwidth cheight) 
-;	      (bounding-rectangle-size 
+;	  (multiple-value-bind (cwidth cheight)
+;	      (bounding-rectangle-size
 ;		(viewport-contents-extent (slot-value scroller 'viewport)))
 ;	    (let ((ohenp (sheet-enabled-p hscroll-bar))
 ;		  (ovenp (sheet-enabled-p vscroll-bar))
@@ -738,7 +743,7 @@
 		     :test #'eql
 		     :value-key #'identity
 		     :name-key #'princ-to-string))
- 
+
 
 (defclass list-pane (set-gadget-mixin value-gadget)
     ;;--- Should this be :ONE-OF/:SOME-OF, as radio boxes are?
@@ -746,22 +751,38 @@
 	   :accessor list-pane-mode)
      (visible-items :initarg :visible-items :reader gadget-visible-items))
   (:default-initargs :mode :exclusive :visible-items nil))
- 
+
 (defun compute-list-pane-selected-items (sheet value)
-  (with-accessors ((items set-gadget-items)
-		   (value-key set-gadget-value-key)
+  (with-accessors ((value-key set-gadget-value-key)
 		   (test set-gadget-test)
 		   (mode list-pane-mode)
 		   (name-key set-gadget-name-key)) sheet
-    (ecase mode
-      (:exclusive
-	(let ((x (find value items :test test :key value-key)))
-	  (and x (list (funcall name-key x)))))
-      (:nonexclusive
-	(mapcar name-key
-		(remove-if-not #'(lambda (item)
-				   (member (funcall value-key item) value :test test))
-			       items))))))
+    (let* ((items (set-gadget-items sheet))
+	   (total-items (length items))
+	   (visible-items (or (gadget-visible-items sheet)
+			      ;; what's the best default to assume here
+			      1)))
+      (multiple-value-bind (selected-items m n)
+	  (ecase mode
+	    (:exclusive
+	     (let ((i (position value items :test test :key value-key)))
+	       (and i
+		    (values (list (elt items i)) i i))))
+	    (:nonexclusive
+	     (let (selected-items m n)
+	       (dotimes (i (length items))
+		 (let ((item (elt items i)))
+		   (when (member (funcall value-key item) value :test test)
+		     (push item selected-items)
+		     (setq m (if m (min m i) i)
+			   n (if n (max n i) i)))))
+	       (when selected-items
+		 (values (nreverse selected-items) m n)))))
+	(when selected-items
+	  (values (mapcar name-key selected-items)
+		  (max 0 (- n (1- visible-items)))
+		  (min m (max 0 (- total-items visible-items)))))))))
+
 
 (defun list-pane-selected-item-p (sheet item)
   (with-accessors ((items set-gadget-items)
@@ -777,7 +798,7 @@
 	(member (funcall value-key item) value :test test)))))
 
 
-(defclass option-pane (set-gadget-mixin 
+(defclass option-pane (set-gadget-mixin
 		       labelled-gadget-mixin
 		       value-gadget)
     ;;--- Should this be :ONE-OF/:SOME-OF, as radio boxes are?
@@ -789,11 +810,11 @@
 
 ;; Callbacks on widgets generate these events
 
-(defclass gadget-event (event) 
+(defclass gadget-event (event)
     ((gadget :initarg :gadget :reader event-sheet)))
 
 
-(defclass value-changed-gadget-event (gadget-event) 
+(defclass value-changed-gadget-event (gadget-event)
     ((value :initarg :value :reader event-value)))
 
 (defmethod handle-event ((gadget value-gadget) (event value-changed-gadget-event))
@@ -807,7 +828,7 @@
   (activate-callback gadget (gadget-client gadget) (gadget-id gadget)))
 
 
-(defclass drag-gadget-event (gadget-event) 
+(defclass drag-gadget-event (gadget-event)
     ((value :initarg :value :reader event-value)))
 
 (defmethod handle-event ((gadget value-gadget) (event drag-gadget-event))
@@ -824,6 +845,19 @@
 
 (defmethod handle-event ((gadget focus-gadget) (event focus-in-gadget-event))
   (focus-in-callback gadget (gadget-client gadget) (gadget-id gadget)))
+
+;; armed/disarmed events
+
+(defclass armed-gadget-event (gadget-event) ())
+
+(defmethod handle-event ((gadget basic-gadget) (event armed-gadget-event))
+  (armed-callback gadget (gadget-client gadget) (gadget-id gadget)))
+
+(defclass disarmed-gadget-event (gadget-event) ())
+
+(defmethod handle-event ((gadget basic-gadget) (event disarmed-gadget-event))
+  (disarmed-callback gadget (gadget-client gadget) (gadget-id gadget)))
+
 
 (defun move-focus-to-gadget (gadget)
   (port-move-focus-to-gadget (port gadget) gadget))

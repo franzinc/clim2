@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: test-suite.lisp,v 1.75 1994/12/05 00:00:46 colin Exp $
+;; $fiHeader: test-suite.lisp,v 1.76 1995/05/17 19:49:18 colin Exp $
 
 (in-package :clim-user)
 
@@ -558,7 +558,7 @@ people, shall not perish from the earth.
 			  (return-from lookup-result (third result))))
 		      (or (equal region1 region2) :none)))))
       (formatting-table (stream :x-spacing "  ")
-	(abbreviated-regions-column-headings regions stream 'region-contains-region-p)
+	(abbreviated-regions-column-headings regions stream 'region-intersects-region-p)
 	(dolist (region1 regions)
 	  (formatting-row (stream)
 	    (formatting-cell (stream :align-x :right)

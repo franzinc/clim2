@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: POSTSCRIPT-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: postscript-port.lisp,v 1.23 1993/11/18 18:44:51 cer Exp $
+;; $fiHeader: postscript-port.lisp,v 1.24 1994/12/05 00:00:07 colin Exp $
 
 (provide :climps)
 
@@ -145,7 +145,7 @@
 ;; The second element is a character size, which is either a number or a
 ;; place to go looking to get the character width table
 (defparameter *ps-font-family-data*
-	      '(("Times" 
+	      '(("Times"
 		 (nil "tir" "Times-Roman")
 		 (:bold "tib" "Times-Bold")
 		 (:italic "tii" "Times-Italic")
@@ -168,13 +168,13 @@
 			    (error "No info for PostScript font family ~A" fam)))))
       (third (or (assoc face famdata)
 		 (error "No info for PostScript family ~A face ~A." fam face))))))
-	
+
 ;; Value is a 3 element list acceptable as a returned value from
 ;; CONVERT-CLIM-TO-PS-FONT-DESCRIPTION:  a postscript family name as
 ;; appears in the CARs of the elements of *PS-FONT-FAMILY-DATA*, a face
 ;; keyword as returned by the function KEYWORDIFY-STYLE-FACE, and a
 ;; size in points.
-(defparameter *ps-font-description-for-undefined-style* '("Courier" nil 4))	      
+(defparameter *ps-font-description-for-undefined-style* '("Courier" nil 4))
 
 (defun convert-clim-to-ps-font-description (style)
   (let ((size (text-style-size style))
@@ -346,7 +346,7 @@
 
 ;;; the software that drives the LGP2 (sys:hardcopy;postscript.lisp)
 ;;; uses LGP:FAST-PRINT-NUM except for writing transformation matrices,
-;;; for which it uses 
+;;; for which it uses
 ;;;       (prin1 (if (fixp elem) elem (float elem)) output-stream)
 ;;; and also some cases of Format ~D.
 (defun ps-optimal-flonize (n stream)
@@ -367,7 +367,7 @@
 		  (negative-p nil))
 	      (when (minusp n)
 		(setq negative-p t))
-	      (with-stack-array (string from :element-type #+ANSI-90 'character 
+	      (with-stack-array (string from :element-type #+ANSI-90 'character
 							   #-ANSI-90 'string-char)
 		(macrolet ((add-char (char)
 			     `(setf (aref string (decf from)) ,char)))
@@ -412,10 +412,10 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
         /str 100 string def
         nbits 0 ne {
           gsave width height scale
-          bitwidth height true [bitwidth 0 0 height neg 0 height] 
-            {   nbits 800 ge {/nbits nbits 800 sub def str} 
+          bitwidth height true [bitwidth 0 0 height neg 0 height]
+            {   nbits 800 ge {/nbits nbits 800 sub def str}
                                {nbits 8 idiv string /nbits 0 def}
-                            ifelse 
+                            ifelse
                   currentfile exch readhexstring pop}
           imagemask grestore
         } if end
@@ -443,7 +443,7 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
         width 0 ne { height 0 ne {
         /scanline -1 def /linebits 0 def
         width height idtransform abs scale scal dup scale
-        width height true [width 0 0 height neg 0 height] 
+        width height true [width 0 0 height neg 0 height]
 % This procedure returns the same row the right number of times
 % I suppose if the pattern does not fit exactly it does not matter
 % since there is a clipping region.
@@ -460,12 +460,12 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
 /patfill1 { initmatrix clippath
 %condition-case for nocurrentpoint, returning empty rectangle
              errordict begin
-               /nocurrentpoint dup dup load exch { pop 0 0 0 0 } def 
+               /nocurrentpoint dup dup load exch { pop 0 0 0 0 } def
                  pathbbox
                6 -2 roll def end
 % pattern scale opaque-p bx1 by1 bx2 by2
              4 2 roll 2 copy translate 4 -2 roll
-% pattern scale opaque-p  bx1 by1 bx2 by2 
+% pattern scale opaque-p  bx1 by1 bx2 by2
              3 -1 roll sub 3 1 roll exch sub exch
 % pattern scale opaque-p dx dy
              3 -1 roll { 2 copy gsave 1 setgray newpath
@@ -482,11 +482,11 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
  [/depth /height /width] {exch def} forall
  gsave
    clip
-% Get the bounding box of the clip path on the stack   
+% Get the bounding box of the clip path on the stack
    initmatrix clippath
    %condition-case for nocurrentpoint, returning empty rectangle
              errordict begin
-               /nocurrentpoint dup dup load exch { pop 0 0 0 0 } def 
+               /nocurrentpoint dup dup load exch { pop 0 0 0 0 } def
                  pathbbox
                6 -2 roll def end
 % Stack is bx1 by1 bx2 by2
@@ -510,36 +510,56 @@ end } def
 ")
 
 (defmethod postscript-prologue ((medium postscript-medium)
-				&key scale-factor (orientation :portrait)
+				&key (scale-factor 1) (orientation :portrait)
 				     header-comments)
   (let ((printer-stream (slot-value medium 'printer-stream))
 	(port (port medium)))
-    (format printer-stream "%!PS-Adobe-2.0 EPSF-2.0~%")
-    (multiple-value-bind (left top right bottom)
-	(postscript-bounding-box-edges (medium-sheet medium))
-      (format printer-stream "%%BoundingBox: ~D ~D ~D ~D~%"
-	(float left) (float top) (float right) (float bottom)))
-    (format printer-stream "%%Creator: CLIM 2.0~%")
-    (let ((title (getf header-comments :title)))
-      (when title
-        (format printer-stream "%%Title: ~A~%" title)))
-    (let ((for (or (getf header-comments :for) #+Genera zl:user-id)))
-      (when for
-        (format printer-stream "%%For: ~A~%" for)))
-    
-    (multiple-value-bind (second minute hour date month year)
-	(decode-universal-time (get-universal-time))
-      (format printer-stream "%%CreationDate: ~D-~A-~D ~2,'0D:~2,'0D:~2,'0D~%"
-	date (svref #("Jan" "Feb" "Mar" "Apr" "May" "Jun"
-		      "Jul" "Aug" "Sep" "Oct" "Nov" "Dec") (1- month)) year
-	hour minute second))
-    (format printer-stream "%%DocumentFonts: (atend)~%")
-    (format printer-stream "%%EndComments~%")
-    (format printer-stream *postscript-prologue* (length (slot-value (port medium) 'font-map)))
-    (with-slots (page-indent page-height page-width device-units-per-inch) 
+    (with-slots (page-indent page-height page-width device-units-per-inch)
 	port
       (flet ((device-units (x)
-	       (float (* x device-units-per-inch))))
+	       (float (* x device-units-per-inch)))
+	     (scale (x)
+	       (* x scale-factor)))
+
+	(format printer-stream "%!PS-Adobe-2.0 EPSF-2.0~%")
+
+	(multiple-value-bind (left top right bottom)
+	    (postscript-bounding-box-edges (medium-sheet medium))
+	  (let (llx lly urx ury)
+	    (ecase orientation
+	      (:portrait
+	       (let ((dx (device-units page-indent))
+		     (dy (device-units (+ page-indent page-height))))
+		 (setq llx (+ dx (scale left)) lly (- dy (scale bottom))
+		       urx (+ dx (scale right)) ury (- dy (scale top)))))
+	      (:landscape
+	       (let ((dx (device-units (+ page-indent page-height)))
+		     (dy (device-units (+ page-indent page-width))))
+		 (setq llx (- dx (scale bottom)) lly (- dy (scale right))
+		       urx (- dx (scale top)) ury (- dy (scale left))))))
+	    (format printer-stream "%%BoundingBox: ~D ~D ~D ~D~%"
+		    llx lly urx ury)
+	    #+debug
+	    (format printer-stream
+		    "newpath ~D ~D moveto ~D ~D lineto stroke~%"
+		    llx lly urx ury)))
+
+	(format printer-stream "%%Creator: CLIM 2.0~%")
+	(let ((title (getf header-comments :title)))
+	  (when title
+	    (format printer-stream "%%Title: ~A~%" title)))
+	(let ((for (or (getf header-comments :for) #+Genera zl:user-id)))
+	  (when for
+	    (format printer-stream "%%For: ~A~%" for)))
+	(multiple-value-bind (second minute hour date month year)
+	    (decode-universal-time (get-universal-time))
+	  (format printer-stream "%%CreationDate: ~D-~A-~D ~2,'0D:~2,'0D:~2,'0D~%"
+		  date (svref #("Jan" "Feb" "Mar" "Apr" "May" "Jun"
+				"Jul" "Aug" "Sep" "Oct" "Nov" "Dec") (1- month)) year
+		  hour minute second))
+	(format printer-stream "%%DocumentFonts: (atend)~%")
+	(format printer-stream "%%EndComments~%")
+	(format printer-stream *postscript-prologue* (length (slot-value (port medium) 'font-map)))
 	(ecase orientation
 	  (:portrait
 	   (format printer-stream
@@ -548,10 +568,10 @@ end } def
 		   (device-units (+ page-indent page-height))))
 	  (:landscape
 	   (format printer-stream
-		   "/format-rotation -90 def ~%/format-translation {~D ~D} def~%" 
+		   "/format-rotation -90 def ~%/format-translation {~D ~D} def~%"
 		   (device-units (+ page-indent page-height))
 		   (device-units (+ page-indent page-width)))))))
-    (format printer-stream "/format-scale ~D def~%" (float (or scale-factor 1)))
+    (format printer-stream "/format-scale ~D def~%" (float scale-factor))
     (format printer-stream
         "/new-matrix {format-translation translate
 		      format-rotation rotate
@@ -593,7 +613,7 @@ end } def
   (assert (= bottom (1+ top)))
   (unless (zerop (rem right 8))
     (error "Sorry, can't hack right /= 0 (mod 8); you have ~D" right))
-  (with-stack-array (arr (array-total-size raster) 
+  (with-stack-array (arr (array-total-size raster)
 			 :element-type #+Genera '(unsigned-byte 8)
 				       #-Genera (array-element-type raster)
 			 :displaced-to raster)
@@ -618,7 +638,7 @@ end } def
 		 ((< index toprow))
 	      (repeat bytes-per-raster
 		(let ((byte (aref arr i)))
-		  (setf (aref buf j) 
+		  (setf (aref buf j)
 			(aref bigend-digit-char (ldb (byte 4 0) byte)))
 		  (setf (aref buf (1+ j))
 			(aref bigend-digit-char (ldb (byte 4 4) byte)))
@@ -637,7 +657,7 @@ end } def
       (error "Sorry, can't hack right - left /= 0 (mod 8); you have ; ~D,~D" right left))
     (let ((i left)
 	  (n-cells (/ 8 bits-per-cell)))
-      (loop 
+      (loop
 	(when (= i right) (return))
 	(let ((value 0))
 	  (dotimes (j n-cells)
@@ -750,7 +770,7 @@ end } def
 
 (defmethod make-palette ((port postscript-port) &key)
   (make-instance 'postscript-palette
-    :port port 
+    :port port
     :color-p t
     :dynamic-p nil))
 
@@ -762,14 +782,14 @@ end } def
   (with-slots (page-width page-height) port
     (with-slots (silica::mm-height silica::mm-width
 				   silica::pixel-height silica::pixel-width
-				   silica::pixels-per-point) 
+				   silica::pixels-per-point)
 	graft
       (setf silica::pixel-width    (* page-width 72)
 	    silica::pixel-height   (* page-height 72)
 	    silica::mm-width	   (* page-width 25.4)
 	    silica::mm-height      (* page-height 25.4)
 	    silica::pixels-per-point 1)
-      
+
       (setf (sheet-region graft)
 	(ecase (graft-units graft)
 	  (:device (make-rectangle* 0 0 silica::pixel-width silica::pixel-height))
@@ -815,7 +835,7 @@ end } def
 (defclass apple-laser-writer (postscript-port)
   ;; x-resolution and y-resolution should *never* appear in any
   ;; calculations - they have no relevance whatsoever as postscript is
-  ;; co-ordinates are given in user space *not* device space. 
+  ;; co-ordinates are given in user space *not* device space.
   ((x-resolution :initform 300)		;pixels per inch
    (y-resolution :initform 300)
    (page-indent :initform  0.5)		;in inches
@@ -848,7 +868,7 @@ end } def
    (device-transformation :accessor sheet-device-transformation
 			  :initform +identity-transformation+)
    (generating-postscript :initform t :accessor stream-generating-postscript))
-  (:default-initargs 
+  (:default-initargs
       :default-text-margin 1000
     :output-record (make-instance 'standard-sequence-output-history)))
 
@@ -943,11 +963,11 @@ end } def
 		      (incf viewport-y page-height))
 		  (setq viewport-x 0 viewport-y 0))))))))))
 
-(defmethod invoke-with-output-recording-options :before 
+(defmethod invoke-with-output-recording-options :before
 	   ((stream postscript-stream) continuation record draw)
   (declare (ignore record continuation))
   ;; See [clim2bug459]
-  (when (and draw 
+  (when (and draw
 	     (not (stream-drawing-p stream))
 	     (not (stream-generating-postscript stream)))
     (error "Cannot turning drawing on for postscript stream ~S" stream)))
@@ -993,7 +1013,7 @@ end } def
 	    (let ((record  (stream-output-history stream)))
 	      (when (or scale-to-fit multi-page)
 		(bounding-rectangle-set-position record 0 0))
-	      (multiple-value-bind (width height) 
+	      (multiple-value-bind (width height)
 		  (bounding-rectangle-size record)
 		(let* ((page-width
 			(floor (* (slot-value port 'page-width)

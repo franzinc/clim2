@@ -12,4 +12,4 @@ test-suite-reportol.lisp
 test-suite-reportxm.lisp
 hpgl.output
 foo.diffs
-update.out
+update.log

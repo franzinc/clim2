@@ -1,7 +1,7 @@
 ;; -*- mode: common-lisp; package: system -*-
 ;;
 ;;				-[Thu Apr 15 18:06:28 1993 by layer]-
-;; 
+;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1992 Franz Inc, Berkeley, CA  All rights reserved.
 ;;
@@ -20,18 +20,18 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: last.lisp,v 1.5 1993/09/17 19:06:58 cer Exp $
+;; $fiHeader: last.lisp,v 1.6 1994/12/05 00:01:46 colin Exp $
 
 
 (in-package :system)
 
 (defvar system::*devel* nil)
 
-(load-application 
+(load-application
  (load-patches
   "patch"
   (namestring
-   (merge-pathnames "update-clim-2.0"
+   (merge-pathnames ";update-clim;"
 		    excl::*library-pathname*)))
  :devel (locally (declare (special system::*devel*)) system::*devel*))
 

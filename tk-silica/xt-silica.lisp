@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.95 1994/12/05 00:02:12 colin Exp $
+;; $fiHeader: xt-silica.lisp,v 1.96 1995/05/17 19:50:21 colin Exp $
 
 (in-package :xm-silica)
 
@@ -196,18 +196,23 @@
        port (make-text-style :stand-in-for-undefined-style :roman 10)))
     (flet ((font->text-style (font family)
 	     (let* ((tokens (disassemble-x-font-name font))
-		    (italic (member (fifth tokens) '("i" "o") :test #'equalp))
-		    (bold (equalp (fourth tokens) "Bold"))
+		    (italic (member (nth 4 tokens) '("i" "o") :test #'equalp))
+		    (bold (equalp (nth 3 tokens) "bold"))
 		    (face (if italic
 			      (if bold '(:bold :italic) :italic)
 			    (if bold :bold :roman)))
-		    (designed-point-size (parse-integer (ninth tokens)))
-		    (designed-y-resolution (parse-integer (nth 10 tokens)))
-		    (point-size (* (float designed-point-size)
-				   (/ designed-y-resolution
-				      screen-pixels-per-inch)))
-		    (size (/ point-size 10)))
-	       (make-text-style family face size))))
+		    (pixel-size (parse-integer (nth 7 tokens)))
+		    (point-size (parse-integer (nth 8 tokens)))
+		    (y-resolution (parse-integer (nth 10 tokens)))
+		    (average-width (parse-integer (nth 12 tokens)))
+		    (corrected-point-size (* (float point-size)
+					     (/ y-resolution
+						screen-pixels-per-inch))))
+	       (unless (and (not *use-scalable-fonts*)
+			    (or (eql pixel-size 0)
+				(eql point-size 0)
+				(eql average-width 0)))
+		 (make-text-style family face (/ corrected-point-size 10))))))
       (dolist (family-stuff *xt-font-families*)
 	(let ((family (car family-stuff)))
 	  (dolist (font-pattern (cdr family-stuff))
@@ -217,9 +222,10 @@
 		(let ((text-style (font->text-style xfont family)))
 		  ;; prefer first font satisfying this text style, so
 		  ;; don't override if we've already defined one.
-		  (unless (text-style-mapping-exists-p
-			   port text-style *standard-character-set* t)
-		    (setf (text-style-mapping port text-style) xfont))))))
+		  (when text-style
+		    (unless (text-style-mapping-exists-p
+			     port text-style *standard-character-set* t)
+		      (setf (text-style-mapping port text-style) xfont)))))))
 	  ;; Now build the logical size alist for the family
 	  ))
       (let (temp)
@@ -1479,6 +1485,22 @@ the geometry of the children. Instead the parent has control. "))
      (allocate-event 'focus-in-gadget-event
 		     :gadget sheet))))
 
+(defmethod queue-armed-event (widget sheet)
+  (declare (ignore widget))
+  (unless *dont-invoke-callbacks*
+    (distribute-event
+     (port sheet)
+     (allocate-event 'armed-gadget-event
+		     :gadget sheet))))
+
+(defmethod queue-disarmed-event (widget sheet)
+  (declare (ignore widget))
+  (unless *dont-invoke-callbacks*
+    (distribute-event
+     (port sheet)
+     (allocate-event 'disarmed-gadget-event
+		     :gadget sheet))))
+
 (defmethod queue-drag-event (widget sheet &optional (value (gadget-value sheet)))
   (declare (ignore widget))
   (distribute-event
@@ -1581,26 +1603,27 @@ the geometry of the children. Instead the parent has control. "))
 					 (or (sheet-pointer-cursor sheet)
 					     :default)))
       (let ((ussp (slot-value sheet 'silica::user-specified-size-p))
-	    (uspp (slot-value sheet 'silica::user-specified-position-p)))
-	(unless (and (eq ussp :unspecified)
-		     (eq uspp :unspecified))
-	  (let ((size-hints (x11::xallocsizehints)))
-	    (tk::with-ref-par ((supplied 0))
-	      (when (zerop
-		     (x11::xgetwmnormalhints display window size-hints supplied))
-		(warn "top-level-sheet had no size hints?!")
-		(return-from enable-mirror))
-	      (let ((flags (x11::xsizehints-flags size-hints)))
-		(if* (and uspp (not (eq uspp :unspecified)))
-		   then (setf flags (logior flags x11::uspositionhint))
-		 elseif (null uspp)
-		   then (setf flags (logandc2 flags x11::uspositionhint)))
-		(if* (and ussp (not (eq ussp :unspecified)))
-		   then (setf flags (logior flags x11::ussizehint))
-		 elseif (null ussp)
-		   then (setf flags (logandc2 flags x11::ussizehint)))
-		(setf (x11::xsizehints-flags size-hints) flags))
-	      (x11::xsetwmnormalhints display window size-hints))))))
+	    (uspp (slot-value sheet 'silica::user-specified-position-p))
+	    (size-hints (x11::xallocsizehints)))
+	(tk::with-ref-par ((supplied 0))
+	  (when (zerop
+		 (x11::xgetwmnormalhints display window size-hints supplied))
+	    (warn "top-level-sheet had no size hints?!")
+	    (return-from enable-mirror))
+	  (let ((flags (x11::xsizehints-flags size-hints)))
+	    (if* (and uspp (not (eq uspp :unspecified)))
+	       then (setf flags (logior flags x11::uspositionhint))
+	     elseif (null uspp)
+	       then (setf flags (logandc2 flags x11::uspositionhint)))
+	    (if* (and ussp (not (eq ussp :unspecified)))
+	       then (setf flags (logior flags x11::ussizehint))
+	     elseif (null ussp)
+	       then (setf flags (logandc2 flags x11::ussizehint)))
+	    ;; always switch off program-specified position hint so
+	    ;; that OpenWindows cascading works
+	    (setf flags (logandc2 flags x11::ppositionhint))
+	    (setf (x11::xsizehints-flags size-hints) flags))
+	  (x11::xsetwmnormalhints display window size-hints))))
     (popup parent)))
 
 ;;; so is this next method ever called???? let's comment it out and
@@ -1742,20 +1765,22 @@ the geometry of the children. Instead the parent has control. "))
 		  (if (eq pixel 0) 0 1))))))
 
 
-	(let* ((drawable (tk::display-root-window
-			  (port-display port)))
+	(let* ((display (port-display port))
+	       (drawable (tk::display-root-window display))
 	       (depth 1)
 	       (pixmap-image (make-instance 'tk::image
-					    :width width
-					    :height height
-					    :data pixmap-data
-					    :depth depth))
+			       :display display
+			       :width width
+			       :height height
+			       :data pixmap-data
+			       :depth depth))
 	       (mask-image (and maskp
 				(make-instance 'tk::image
-					       :width width
-					       :height height
-					       :data mask-data
-					       :depth depth)))
+				  :display display
+				  :width width
+				  :height height
+				  :data mask-data
+				  :depth depth)))
 	       (pixmap
 		(make-instance 'tk::pixmap
 			       :drawable drawable
@@ -1780,7 +1805,7 @@ the geometry of the children. Instead the parent has control. "))
 	    (tk::destroy-image mask-image))
 	  (prog1
 	      (x11:xcreatepixmapcursor
-	       (port-display port)
+	       display
 	       pixmap
 	       (or mask 0)
 	       (multiple-value-bind (red green blue)
@@ -1831,6 +1856,9 @@ the geometry of the children. Instead the parent has control. "))
 	    (let ((*pointer-grabbed* t))
 	      (funcall continuation))))
       (tk::xt_ungrab_pointer widget 0))))
+
+(defmethod port-remove-all-pointer-grabs ((port xt-port))
+  (x11:xungrabpointer (port-display port) x11:currenttime))
 
 (defun xt-grabbed-event-mask ()
   (tk::encode-event-mask '(:enter-window
