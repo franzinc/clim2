@@ -1,3 +1,67 @@
+Wed Nov 23 13:26:58 1994  Steve Haflich  (smh@vapor)
+
+General notes:
+
+ - Converted to use ACL defsystem so CLIM defsystem is no longer loaded.
+ - Converted to use "clim2" logical pathname.  There may be more changes
+   to make to support remote source trees, etc., but this tree will at
+   least build in place.
+ - Until Colin's process-wait vs dynamic-extent changes are merged, this
+   version will run without mp and crash with mp.
+
+	* Makefile.defs:
+	Fix TAGS program and added some missing files to tags rules.
+
+	* Makefile.generic
+	Load logical pathname translations.
+	Add missing set-case-mode.
+
+	* demo/sysdcl.lisp
+	Defsystem and logical pathname conversion.
+
+	* hpgl/sysdcl.lisp
+	Defsystem and logical pathname conversion.
+
+	* misc/climgccursor.c
+	Changed the gc hook to conform to 4.2.devel.27 changes.
+
+	* misc/compile-1.lisp
+	Defsystem and logical pathname conversion.
+
+	* misc/dev-load-1.lisp
+	Defsystem and logical pathname conversion.
+
+	* postscript/sysdcl.lisp
+	Defsystem and logical pathname conversion.
+
+	* sys/defsystem.lisp
+	Added warning in case file is ever loaded -- should never be.
+
+	* sys/sysdcl.lisp
+	Defsystem and logical pathname conversion.
+	Removed bogus pathname frobbing.
+
+	* test/sysdcl.lisp
+	Defsystem and logical pathname conversion.
+
+	* test/testdcl.lisp
+	Defsystem and logical pathname conversion.
+
+	* tk/foreign-obj.lisp
+	* tk/gcontext.lisp
+	* tk/xlib.lisp
+	Clos extension key changed from :fixed-index to clos::fixed-index.
+
+	* tk/xt-funs.lisp
+	Gc-cursor changes.
+
+	* tk-silica/gc-cursor.lisp
+	Gc-cursor changes.
+
+	* tk-silica/xt-graphics.lisp
+	Clos extension key changed from :fixed-index to clos::fixed-index.
+
+
 (for 4.2.devel.26 merge):
 
 Tue Jun  7 23:44:53 1994  Duane Rettig  (duane at clay)

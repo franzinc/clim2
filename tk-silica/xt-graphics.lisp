@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: tk-silica -*-
 ;;
-;;				-[Mon Sep 13 18:25:58 1993 by colin]-
+;;				-[Mon Sep 26 02:04:49 1994 by smh]-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -25,10 +25,10 @@
 (in-package :tk-silica)
 
 (defclass ink-gcontext (tk::gcontext)
-  ((last-clip-region-tick :initform nil :fixed-index 2)
-   (last-line-style :initform nil :fixed-index 3)
-   (shift-tile-origin :initform nil :fixed-index 4)
-   (ink-clip-region :initform nil :fixed-index 5)))
+  ((last-clip-region-tick :initform nil clos::fixed-index 2)
+   (last-line-style :initform nil clos::fixed-index 3)
+   (shift-tile-origin :initform nil clos::fixed-index 4)
+   (ink-clip-region :initform nil clos::fixed-index 5)))
 
 (defmacro ink-gcontext-last-clip-region-tick (gcontext)
   `(locally (declare (optimize (speed 3) (safety 0)))

@@ -7,39 +7,37 @@
 "Copyright (c) 1990, 1991 Symbolics, Inc.  All rights reserved.
  Portions copyright (c) 1988, 1989, 1990 International Lisp Associates."
 
-(clim-defsys:defsystem clim-demo
-  (:default-pathname #+Genera "SYS:CLIM;REL-2;DEMO;"
-		     #-Genera (frob-pathname "demo")
-   :default-binary-pathname #+Genera "SYS:CLIM;REL-2;DEMO;"
-			    #-Genera (frob-pathname "demo"))
-
-  ("packages")
-  ("demo-driver"     :load-before-compile ("packages"))
-  ("listener"        :load-before-compile ("demo-driver" "packages"))
-  ("graphics-demos"  :load-before-compile ("demo-driver" "packages"))
-  ("cad-demo"	     :load-before-compile ("demo-driver" "packages"))
-  ("navdata"	     :load-before-compile ("packages"))
-  ("navfun"          :load-before-compile ("demo-driver" "packages" "navdata"))
-  ("puzzle"          :load-before-compile ("demo-driver" "packages"))
-  ("address-book"    :load-before-compile ("demo-driver" "packages"))
-  ("thinkadot"       :load-before-compile ("demo-driver" "packages"))
-  ("plot"	     :load-before-compile ("demo-driver" "packages"))
-  ("color-editor"    :load-before-compile ("demo-driver" "packages"))
-  ("graphics-editor" :load-before-compile ("demo-driver" "packages"))
-  ("bitmap-editor"   :load-before-compile ("demo-driver" "packages"))
-  ("ico"	     :load-before-compile ("demo-driver" "packages"))
-  ("browser"	     :load-before-compile ("demo-driver" "packages"))
-  ("peek-frame"      :load-before-compile ("demo-driver" "packages"))
-  #+Allegro
-  ("process-browser" :load-before-compile ("demo-driver" "packages"))
-  ("custom-records"  :load-before-compile ("demo-driver" "packages"))
-  ("demo-activity"   :load-before-compile ("demo-driver" "packages"))
-  #+Allegro
-  ("demo-last")
-  ("demo-prefill"    :features (or Genera Cloe-Runtime)))
+(defsystem clim-demo
+    (:default-pathname "clim2:;demo;")
+  (:serial
+   ("packages")
+   ("demo-driver"     (:load-before-compile "packages"))
+   ("listener"        (:load-before-compile "demo-driver" "packages"))
+   ("graphics-demos"  (:load-before-compile "demo-driver" "packages"))
+   ("cad-demo"	     (:load-before-compile "demo-driver" "packages"))
+   ("navdata"	     (:load-before-compile "packages"))
+   ("navfun"          (:load-before-compile "demo-driver" "packages" "navdata"))
+   ("puzzle"          (:load-before-compile "demo-driver" "packages"))
+   ("address-book"    (:load-before-compile "demo-driver" "packages"))
+   ("thinkadot"       (:load-before-compile "demo-driver" "packages"))
+   ("plot"	     (:load-before-compile "demo-driver" "packages"))
+   ("color-editor"    (:load-before-compile "demo-driver" "packages"))
+   ("graphics-editor" (:load-before-compile "demo-driver" "packages"))
+   ("bitmap-editor"   (:load-before-compile "demo-driver" "packages"))
+   ("ico"	     (:load-before-compile "demo-driver" "packages"))
+   ("browser"	     (:load-before-compile "demo-driver" "packages"))
+   ("peek-frame"      (:load-before-compile "demo-driver" "packages"))
+   #+Allegro
+   ("process-browser" (:load-before-compile "demo-driver" "packages"))
+   ("custom-records"  (:load-before-compile "demo-driver" "packages"))
+   ("demo-activity"   (:load-before-compile "demo-driver" "packages"))
+   #+Allegro
+   ("demo-last")
+   #+(or Genera Cloe-Runtime) ("demo-prefill")
+   ))
 
 #+Genera
-(clim-defsys:import-into-sct 'clim-demo 
+(clim-defsys:import-into-sct 'clim-demo
   :pretty-name "CLIM Demo"
   :default-pathname "SYS:CLIM;REL-2;DEMO;"
   :required-systems '(clim))

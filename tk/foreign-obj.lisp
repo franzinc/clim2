@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: tk -*-
 ;;
-;;				-[]-
+;;				-[Mon Sep 26 02:02:28 1994 by smh]-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -29,7 +29,7 @@
 (defclass display (ff:foreign-pointer)
   ((context :initarg :context :reader display-context)
    (xid->object-mapping :initform (make-hash-table :test #'equal)
-			:fixed-index 0)))
+			clos::fixed-index 0)))
 
 (defmacro display-xid->object-mapping (object)
   `(locally (declare (optimize (speed 3) (safety 0)))

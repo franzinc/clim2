@@ -4,18 +4,15 @@
 
 "Copyright (c) 1992 Symbolics, Inc.  All rights reserved."
 
-(clim-defsys:defsystem clim-tests
-   (:default-pathname #+Genera "SYS:CLIM;REL-2;TEST;"
-		      #-Genera (frob-pathname "test")
-    :default-binary-pathname #+Genera "SYS:CLIM;REL-2;TEST;"
-			     #-Genera (frob-pathname "test"))
-
-  ("test-suite")
-  ("test")
-  ("test-buttons")
-  ("test-sliders")
-  ("simple-test")
-  ("postscript-tests"))
+(defsystem clim-tests
+    (:default-pathname "clim2:;test;")
+  (:serial
+   ("test-suite")
+   ("test")
+   ("test-buttons")
+   ("test-sliders")
+   ("simple-test")
+   ("postscript-tests")))
 
 #+Genera
 (clim-defsys:import-into-sct 'clim-tests

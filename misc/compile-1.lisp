@@ -1,7 +1,7 @@
 ;; -*- mode: common-lisp; package: user -*-
 ;;
-;;				-[Wed Sep 15 18:09:45 1993 by duane]-
-;; 
+;;				-[Thu Nov 10 02:16:15 1994 by smh]-
+;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
 ;;
@@ -27,6 +27,9 @@
 ;;;; This should not matter
 ;;;; (setq *ignore-package-name-case* t)
 
+;; Forgive them, lord, for they know not what they do.
+(pushnew :ansi-90 *features*)
+
 (set-case-mode :case-insensitive-lower)
 
 #+ignore
@@ -41,7 +44,7 @@
   (setf (sys:gsgc-switch :stats) t))
 
 (setq comp:generate-call-count-code-switch
-  (named-function |(> debug 1)| 
+  (named-function |(> debug 1)|
 		  (lambda (safety size speed debug)
 		    (declare (ignore safety size speed))
 		    (> debug 1))))
@@ -51,50 +54,48 @@
 		    (declare (ignore safety size debug))
 		    (> speed 2))))
 
-(unless (find-package 'clim-defsystem)
-  (compile-file-if-needed "sys/defsystem")
-  (let ((*enable-package-locked-errors* nil))
-    (load "sys/defsystem")))
-
-
+;(unless (find-package 'clim-defsystem)
+;  (compile-file-if-needed "sys/defsystem")
+;  (let ((*enable-package-locked-errors* nil))
+;    (load "sys/defsystem")))
 
 (defun compile-it (sys)
   (let ((excl::*update-entry-points* nil))
-    (unless (ignore-errors (clim-defsys::find-system sys))
-      (load "sys/sysdcl"))
-    (clim-defsys::compile-system sys :propagate t)
+    (unless (ignore-errors (excl:find-system 'sys))
+      (load "clim2:;sys;sysdcl"))
+    (excl:compile-system sys :include-components t)
     (tenuring
-     (clim-defsys::load-system sys))
+     (excl:load-system sys))
 
-    (load "postscript/sysdcl")
-    (clim-defsys::compile-system 'postscript-clim :propagate t)
-    (clim-defsys::load-system 'postscript-clim)
+    (load "clim2:;postscript;sysdcl")
+    (excl:compile-system 'postscript-clim :include-components t)
+    (excl:load-system 'postscript-clim)
 
-    (compile-file-if-needed "test/test-suite")
+    (compile-file-if-needed "clim2:;test;test-suite")
 
-    (load "test/test-suite")
-  
-    (load "demo/sysdcl")
-    (clim-defsys::compile-system 'clim-demo :propagate t)
-    (clim-defsys::load-system 'clim-demo)
-  
+    (load "clim2:;test;test-suite")
+
+    (load "clim2:;demo;sysdcl")
+    (excl:compile-system 'clim-demo :include-components t)
+    (excl:load-system 'clim-demo)
+
     (progn
-      (load "test/testdcl")
-      (tenuring 
-       (clim-defsys::compile-system 'testing)
-       (clim-defsys::load-system 'testing)))
+      (load "clim2:;test;testdcl")
+      (tenuring
+       (excl:compile-system 'testing)
+       (excl:load-system 'testing)))
 
-    (when (probe-file "climtoys/sysdcl.lisp")
-      (load "climtoys/sysdcl.lisp")
-      (clim-defsys::compile-system 'clim-toys))
-  
+    (when (probe-file "clim2:;climtoys;sysdcl.lisp")
+      (load "clim2:;climtoys;sysdcl.lisp")
+      (excl:compile-system 'clim-toys))
+
     #+ignore (load "compatibility/sysdcl.lisp")
-    #+ignore (clim-defsys::compile-system 'clim-compatibility :propagate t)
+    #+ignore (excl:compile-system 'clim-compatibility :include-components t)
 
-    (load "hpgl/sysdcl")
-    (clim-defsys::compile-system 'hpgl-clim :propagate t)
-    (clim-defsys::load-system 'hpgl-clim)
-  
+    (load "clim2:;hpgl;sysdcl")
+    (excl:compile-system 'hpgl-clim :include-components t)
+    (excl:load-system 'hpgl-clim)
+
     ))
 
 

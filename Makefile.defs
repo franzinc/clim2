@@ -13,7 +13,7 @@ DEVICE	= /dev/null
 RM	= /bin/rm
 CAT	= /bin/cat
 ECHO	= /bin/echo
-TAGS	= /usr/fi/lib/emacs/etc/etags
+TAGS	= /usr/fi/etags
 # /tmp is either on /usr (in which case it points to /usr/tmp) or is on the
 # root filesystem, which is probably really small.  So, use /usr/tmp.
 TMP	= /usr/tmp
@@ -393,7 +393,11 @@ POSTSCRIPT_CLIM= postscript/postscript-port.fasl \
 HPGL_OBJS= hpgl/pkg.fasl hpgl/hpgl-port.fasl hpgl/hpgl-medium.fasl
 
 # Used for tags
-ALL_SRC =	   utils/excl-verification.lisp \
+ALL_SRC =	sys/defsystem.lisp \
+		sys/distribution-script.lisp \
+		sys/load-clim2.lisp \
+		sys/sysdcl.lisp \
+                   utils/excl-verification.lisp \
                    utils/lisp-package-fixups.lisp \
                    utils/defpackage.lisp \
                    utils/packages.lisp \
@@ -546,8 +550,18 @@ ALL_SRC =	   utils/excl-verification.lisp \
               tk/ol-callbacks.lisp \
                       tk-silica/ol-silica.lisp \
                       tk-silica/ol-frames.lisp \
-                      tk-silica/ol-gadgets.lisp
-
+                      tk-silica/ol-gadgets.lisp \
+	misc/MyDrawingA.c \
+	misc/MyDrawingA.h \
+	misc/MyDrawingAP.h \
+	misc/climgccursor.c \
+	misc/olsupport.c \
+	misc/xtsupport.c \
+	xlib/xlibsupport.c \
+	stub-xt.c \
+	stub-x.c \
+	stub-motif.c \
+	misc/clos-preload.cl
 
 GENERIC-OBJS= $(CLIM-UTILS-OBJS) $(CLIM-SILICA-OBJS) $(CLIM-STANDALONE-OBJS)
 MOTIF-OBJS = $(LOAD-XM-OBJS) $(XT-TK-OBJS) $(XM-TK-OBJS) $(MOTIF-CLIM-OBJS) 

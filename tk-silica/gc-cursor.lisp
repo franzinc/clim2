@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: xm-silica -*-
 ;;
-;;				-[]-
+;;				-[Fri Nov 11 15:11:52 1994 by smh]-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1992 Franz Inc, Berkeley, CA  All rights reserved.
@@ -26,13 +26,22 @@
 (in-package :xm-silica)
 
 (defvar *use-clim-gc-cursor* nil)
-(defvar *inited-gc-cursor* nil)
+(defvar *gc-before* nil)
+(defvar *gc-after*  nil)
 
 (defun init-gc-cursor (frame)
   (when *use-clim-gc-cursor*
-    (unless *inited-gc-cursor*
-      (tk::init_clim_gc_cursor_stuff 1)
-      (setq *inited-gc-cursor* t))
+    (unless *gc-before*			; Do just once.
+      (let ((vec (vector nil nil)))
+	(format excl:*initial-terminal-io* "~&Vec before ~s~%" vec)
+	(tk::init_clim_gc_cursor_stuff vec)
+	(format excl:*initial-terminal-io* "~&Vec after  ~s~%" vec)
+	(force-output excl:*initial-terminal-io*)
+	(setq *gc-before* (svref vec 0)
+	      *gc-after*  (svref vec 1))
+	(pushnew *gc-before* (excl::gc-before-hooks))
+	(pushnew *gc-after*  (excl::gc-after-hooks))
+	))
     (let* ((sheet (frame-top-level-sheet frame))
 	   (mirror (and sheet (sheet-direct-mirror sheet))))
       (if mirror

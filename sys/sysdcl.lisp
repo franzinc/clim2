@@ -56,7 +56,7 @@
 
 (eval-when (compile load eval)
 
-#+(or Allegro 
+#+(or Allegro
       Minima)
 (pushnew :clim-uses-lisp-stream-classes *features*)
 
@@ -87,372 +87,320 @@
 )	;eval-when
 
 
-(setq clim-defsys:*load-all-before-compile* t)
-
-#-Genera
-(defun frob-pathname (subdir
-		      &optional (dir #+Allegro excl::*source-pathname*
-				     #+Lucid lcl::*source-pathname*
-				     #+Cloe-Runtime #p"E:\\CLIM2\\SYS\\SYSDCL.LSP"
-				     #-(or Allegro Lucid Cloe-Runtime)
-				     (or *compile-file-pathname*
-					 *load-pathname*)))
-  (namestring
-    (make-pathname
-      :defaults dir
-      :directory (append (butlast (pathname-directory dir)) (list subdir)))))
-
-#+Genera
-(defun frob-pathname (subdir &optional (dir sys:fdefine-file-pathname))
-  (namestring
-    (make-pathname
-      :defaults dir
-      :directory (append (butlast (pathname-directory dir)) 
-			 (mapcar #'string-upcase (list subdir))))))
+;#-Allegro (setq clim-defsys:*load-all-before-compile* t)
+;
+;#-Genera
+;(defun frob-pathname (subdir
+;		      &optional (dir #+Allegro excl::*source-pathname*
+;				     #+Lucid lcl::*source-pathname*
+;				     #+Cloe-Runtime #p"E:\\CLIM2\\SYS\\SYSDCL.LSP"
+;				     #-(or Allegro Lucid Cloe-Runtime)
+;				     (or *compile-file-pathname*
+;					 *load-pathname*)))
+;  (namestring
+;    (make-pathname
+;      :defaults dir
+;      :directory (append (butlast (pathname-directory dir)) (list subdir)))))
+;
+;#+Genera
+;(defun frob-pathname (subdir &optional (dir sys:fdefine-file-pathname))
+;  (namestring
+;    (make-pathname
+;      :defaults dir
+;      :directory (append (butlast (pathname-directory dir))
+;			 (mapcar #'string-upcase (list subdir))))))
 
 
-(clim-defsys:defsystem clim-utils
-    (:default-pathname #+Genera "SYS:CLIM;REL-2;UTILS;"
-		       #-Genera (frob-pathname "utils")
-     :default-binary-pathname #+Genera "SYS:CLIM;REL-2;UTILS;"
-			      #-Genera (frob-pathname "utils"))
+(defsystem clim-utils
+    (:default-pathname "clim2:;utils;")
   ;; These files establish a uniform Lisp environment
-  ("excl-verification" :features Allegro)
-  ("lucid-before" :features lucid)
-  ("lisp-package-fixups")
-  ("defpackage" :features (or Allegro (not ANSI-90)))
-  ("packages")
-  ("coral-char-bits" :features CCL-2)
-  ("defun-utilities") ;; extract-declarations and friends
-  ("defun" :features (or Genera (not ANSI-90)))
-  ("reader")
-  ("clos-patches")
-  ("clos")
-  ("condpat" :features CLIM-conditions)  ;get the define-condition macro
+  (:serial
+   "excl-verification"
+   #+lucid "lucid-before"
+   "lisp-package-fixups"
+   #+(or Allegro (not ANSI-90)) "defpackage"
+   "packages"
+   #+CCL-2 "coral-char-bits"
+   "defun-utilities" ;; extract-declarations and friends
+   #+(or Genera (not ANSI-90)) "defun"
+   "reader"
+   "clos-patches"
+   "clos"
+   #+CLIM-conditions "condpat" ;get the define-condition macro
 
-  ;; General Lisp extensions
-  ("utilities")
-  ("lisp-utilities")
-  ("processes")
-  ("queue")
-  ("timers" :load-before-compile ("queue" "processes"))
-  ("protocols")
+   ;; General Lisp extensions
+   "utilities"
+   "lisp-utilities"
+   "processes"
+   "queue"
+   ("timers" (:load-before-compile "queue" "processes"))
+   "protocols"
 
-  ;; Establish a uniform stream model
-  ("clim-streams")
-  ("cl-stream-classes" :features (not clim-uses-lisp-stream-classes))
-  ("minima-stream-classes" :features Minima)
-  ("cl-stream-functions" :features (and (not clim-uses-lisp-stream-functions) (not Lucid)))
-  ("lucid-stream-functions" :features Lucid)
-  ("genera-streams" :features Genera)
-  ("excl-streams" :features Allegro)
-  ("ccl-streams" :features CCL-2)
+   ;; Establish a uniform stream model
+   "clim-streams"
+   #-clim-uses-lisp-stream-classes "cl-stream-classes"
+   #+Minima "minima-stream-classes"
+   #+(and (not clim-uses-lisp-stream-functions) (not Lucid)) "cl-stream-functions"
+   #+Lucid "lucid-stream-functions"
+   #+Genera "genera-streams"
+   #+Allegro "excl-streams"
+   #+CCL-2 "ccl-streams"
 
-  ;; Basic utilities for Silica and CLIM
-  ("clim-macros")
-  ("transformations" :load-before-compile ("condpat"))
-  ("regions")
-  ("region-arithmetic")
-  ("extended-regions")
-  ("base-designs")
-  ("designs"))
+   ;; Basic utilities for Silica and CLIM
+   "clim-macros"
+   ("transformations" #+CLIM-conditions (:load-before-compile "condpat"))
+   "regions"
+   "region-arithmetic"
+   "extended-regions"
+   "base-designs"
+   "designs"
+   ))
 
-(clim-defsys:defsystem clim-silica
-    (:default-pathname #+Genera "SYS:CLIM;REL-2;SILICA;"
-		       #-Genera (frob-pathname "silica")
-     :default-binary-pathname #+Genera "SYS:CLIM;REL-2;SILICA;"
-			      #-Genera (frob-pathname "silica")
-     :needed-systems (clim-utils)
-     :load-before-compile (clim-utils))
-  ;; "Silica"
-  ("macros")
-  ("classes")
-  ("text-style")
-  ("sheet")
-  ("mirror")
-  ("event")
-  ("port")
-  ("medium")
-  ("framem")
-  ("graphics")
-  ("pixmaps")
-  ("std-sheet")
+(defsystem clim-silica
+    (:default-pathname "clim2:;silica;")
+  (:serial
+   clim-utils
 
-  ;; "Windshield", aka "DashBoard"
+   ;; "Silica"
+   "macros"
+   "classes"
+   "text-style"
+   "sheet"
+   "mirror"
+   "event"
+   "port"
+   "medium"
+   "framem"
+   "graphics"
+   "pixmaps"
+   "std-sheet"
+
+   ;; "Windshield", aka "DashBoard"
   ;; First the layout gadgets
-  ("layout")
-  ("db-layout")
-  ("db-box")
-  ("db-table")
+   "layout"
+   "db-layout"
+   "db-box"
+   "db-table"
 
-  ;; Then the "physical" gadgets
-  ("gadgets")
-  ("db-border")
-  ("db-scroll")
-  ("scroll-pane")
-  ("db-button")
-  ("db-label"
-   :load-before-compile ("db-border"))
-  ("db-slider"))
+   ;; Then the "physical" gadgets
+   "gadgets"
+   "db-border"
+   "db-scroll"
+   "scroll-pane"
+   "db-button"
+   ("db-label" (:load-before-compile "db-border"))
+   "db-slider"
+   ))
 
-(clim-defsys:defsystem clim-standalone
-    (:default-pathname #+Genera "SYS:CLIM;REL-2;CLIM;"
-		       #-Genera (frob-pathname "clim")
-     :default-binary-pathname #+Genera "SYS:CLIM;REL-2;CLIM;"
-			      #-Genera (frob-pathname "clim")
-     :needed-systems (clim-utils clim-silica)
-     :load-before-compile (clim-utils clim-silica))
+(defsystem clim-standalone
+    (:default-pathname "clim2:;clim;")
+  (:serial
+   clim-utils
+   clim-silica
 
-  ;; Basic tools
-  ("gestures")
-  ("defprotocol")
-  ("stream-defprotocols")
-  ("defresource")
-  ("temp-strings")
-  ("coral-defs" :features CCL-2)
-  ("clim-defs")
-  
-  ;; Definitions and protocols
-  ("stream-class-defs")
-  ("interactive-defs")
-  ("cursor")
-  ("view-defs")
-  ("input-defs")
-  ("input-protocol")
-  ("output-protocol")
+   ;; Basic tools
+   "gestures"
+   "defprotocol"
+   "stream-defprotocols"
+   "defresource"
+   "temp-strings"
+   #+CCL-2 "coral-defs"
+   "clim-defs"
 
-  ;; Output recording
-  ("recording-defs"
-   :load-before-compile ("clim-defs"))
-  ("formatted-output-defs")
-  ("recording-protocol"
-   :load-before-compile ("recording-defs"))
-  ("text-recording"
-   :load-before-compile ("recording-protocol"))
-  ("graphics-recording"
-   :load-before-compile ("recording-protocol"))
-  ("design-recording"
-   :load-before-compile ("graphics-recording"))
+   ;; Definitions and protocols
+   "stream-class-defs"
+   "interactive-defs"
+   "cursor"
+   "view-defs"
+   "input-defs"
+   "input-protocol"
+   "output-protocol"
 
-  ;; Input editing
-  ("interactive-protocol"
-   :load-before-compile ("clim-defs"))
-  ("input-editor-commands")
+   ;; Output recording
+   ("recording-defs" (:load-before-compile "clim-defs"))
+   "formatted-output-defs"
+   ("recording-protocol" (:load-before-compile "recording-defs"))
+   ("text-recording" (:load-before-compile "recording-protocol"))
+   ("graphics-recording" (:load-before-compile "recording-protocol"))
+   ("design-recording" (:load-before-compile "graphics-recording"))
 
-  ;; Incremental redisplay
-  ("incremental-redisplay"
-   :load-before-compile ("clim-defs" "recording-protocol"))
+   ;; Input editing
+   ("interactive-protocol" (:load-before-compile "clim-defs"))
+   "input-editor-commands"
 
-  ;; Windows
-  ("coordinate-sorted-set")
-  ("r-tree")
-  ("window-stream")
-  ("pixmap-streams")
+   ;; Incremental redisplay
+   ("incremental-redisplay" (:load-before-compile "clim-defs" "recording-protocol"))
 
-  ;; Presentation types
-  ("ptypes1"
-   :load-before-compile ("clim-defs"))
-  ("completer"
-   :load-before-compile ("ptypes1"))
-  ("presentations"
-   :load-before-compile ("ptypes1"))
-  ("translators"
-   :load-before-compile ("presentations"))
-  ("histories"
-   :load-before-compile ("presentations"))
-  ("ptypes2"
-   :load-before-compile ("translators"))
-  ("standard-types"
-   :load-before-compile ("ptypes2"))
-  ("excl-presentations"
-   :load-before-compile ("presentations")
-   :features Allegro)
+   ;; Windows
+   "coordinate-sorted-set"
+   "r-tree"
+   "window-stream"
+   "pixmap-streams"
 
-  ;; Formatted output
-  ("table-formatting"
-   :load-before-compile ("clim-defs" "incremental-redisplay"))
-  ("graph-formatting"
-   :load-before-compile ("clim-defs" "incremental-redisplay"))
-  ("surround-output" 
-   :load-before-compile ("clim-defs" "incremental-redisplay"))
-  ("text-formatting"
-   :load-before-compile ("clim-defs" "incremental-redisplay"))
+   ;; Presentation types
+   ("ptypes1" (:load-before-compile "clim-defs"))
+   ("completer" (:load-before-compile "ptypes1"))
+   ("presentations" (:load-before-compile "ptypes1"))
+   ("translators" (:load-before-compile "presentations"))
+   ("histories" (:load-before-compile "presentations"))
+   ("ptypes2" (:load-before-compile "translators"))
+   ("standard-types" (:load-before-compile "ptypes2"))
+   #+Allegro ("excl-presentations" (:load-before-compile "presentations"))
 
-  ;; Pointer tracking
-  ("tracking-pointer")
-  ("dragging-output"
-   :load-before-compile ("tracking-pointer"))
+   ;; Formatted output
+   ("table-formatting" (:load-before-compile "clim-defs" "incremental-redisplay"))
+   ("graph-formatting" (:load-before-compile "clim-defs" "incremental-redisplay"))
+   ("surround-output" (:load-before-compile "clim-defs" "incremental-redisplay"))
+   ("text-formatting" (:load-before-compile "clim-defs" "incremental-redisplay"))
 
-  ;; Gadgets
-  ("db-stream")
-  ("gadget-output")
+   ;; Pointer tracking
+   "tracking-pointer"
+   ("dragging-output" (:load-before-compile "tracking-pointer"))
 
-  ;; Application building substrate
-  ("accept"
-   :load-before-compile ("clim-defs" "ptypes2"))
-  ("present"
-   :load-before-compile ("clim-defs" "ptypes2"))
-  ("command"
-   :load-before-compile ("clim-defs" "ptypes2"))
-  ("command-processor"
-   :load-before-compile ("clim-defs" "command"))
-  ("basic-translators"
-   :load-before-compile ("ptypes2" "command"))
-  ("frames" 
-   :load-before-compile ("clim-defs" "command-processor"))
-  ("default-frame" 
-   :load-before-compile ("frames"))
-  ("activities" 
-   :load-before-compile ("frames"))
-  ("db-menu"
-   :load-before-compile ("frames"))
-  ("db-list"
-   :load-before-compile ("db-menu"))
-  ("db-text"
-   :load-before-compile ("frames"))
-  ("noting-progress"
-   :load-before-compile ("frames"))
-  ("menus"
-   :load-before-compile ("defresource" "clim-defs"))
-  ("accept-values"
-   :load-before-compile ("clim-defs" "incremental-redisplay" "frames"))
-  ("drag-and-drop" 
-   :load-before-compile ("frames"))
-  ("item-list-manager")
+   ;; Gadgets
+   "db-stream"
+   "gadget-output"
 
-  ;; Bootstrap everything
-  ("stream-trampolines"
-   :load-before-compile ("defprotocol" "stream-defprotocols"))
-  ("lucid-after" :features lucid)
-  ("prefill" :features (or Genera Cloe-Runtime)))
+   ;; Application building substrate
+   ("accept" (:load-before-compile "clim-defs" "ptypes2"))
+   ("present" (:load-before-compile "clim-defs" "ptypes2"))
+   ("command" (:load-before-compile "clim-defs" "ptypes2"))
+   ("command-processor" (:load-before-compile "clim-defs" "command"))
+   ("basic-translators" (:load-before-compile "ptypes2" "command"))
+   ("frames" (:load-before-compile "clim-defs" "command-processor"))
+   ("default-frame" (:load-before-compile "frames"))
+   ("activities" (:load-before-compile "frames"))
+   ("db-menu" (:load-before-compile "frames"))
+   ("db-list" (:load-before-compile "db-menu"))
+   ("db-text" (:load-before-compile "frames"))
+   ("noting-progress" (:load-before-compile "frames"))
+   ("menus" (:load-before-compile "defresource" "clim-defs"))
+   ("accept-values" (:load-before-compile "clim-defs" "incremental-redisplay" "frames"))
+   ("drag-and-drop" (:load-before-compile "frames"))
+   "item-list-manager"
+
+   ;; Bootstrap everything
+   ("stream-trampolines" (:load-before-compile "defprotocol" "stream-defprotocols"))
+   #+lucid "lucid-after"
+   #+(or Genera Cloe-Runtime) "prefill"
+   ))
 
 
 #+Allegro
-(clim-defsys:defsystem xlib
-    (:default-pathname #+Genera "SYS:CLIM;REL-2;XLIB;"
-		       #-Genera (frob-pathname "xlib")
-     :default-binary-pathname #+Genera "SYS:CLIM;REL-2;XLIB;"
-			      #-Genera (frob-pathname "xlib")
-     :needed-systems (clim-standalone)
-     :load-before-compile (clim-standalone))
-  ("pkg")
-  #+++ignore ("ffi" :eval-after (mapc #'load '("xlib/xlib.lisp" "xlib/x11-keysyms.lisp"
-					       "xlib/last.lisp")))
-  ("ffi")
-  ("xlib-defs" #|:load-before-compile ("ffi") |#) ; Takes forever to ; compile...
-  #-svr4 ("load-xlib")
-  ("xlib-funs" :load-before-compile ("ffi"))
-  ("x11-keysyms" :load-before-compile ("ffi"))
-  #-svr4
-  ("last" :load-before-compile ("load-xlib" "xlib-funs")))
+(defsystem xlib
+    (:default-pathname "clim2:;xlib;")
+  (:serial
+   clim-standalone
+
+   "pkg"
+   #+ignore ("ffi" :eval-after (mapc #'load '("xlib/xlib.lisp" "xlib/x11-keysyms.lisp"
+					      "xlib/last.lisp")))
+   "ffi"
+   ("xlib-defs" #|(:load-before-compile "ffi") |#) ; Takes forever to compile...
+   #-svr4 ("load-xlib")
+   ("xlib-funs" (:load-before-compile "ffi"))
+   ("x11-keysyms" (:load-before-compile "ffi"))
+   #-svr4
+   ("last" (:load-before-compile "load-xlib" "xlib-funs"))
+   ))
 
 #+Allegro
 (macrolet ((define-xt-system (name file &rest modules)
-	     `(clim-defsys:defsystem ,name
-	          (:default-pathname #+Genera "SYS:CLIM;REL-2;TK;"
-				     #-Genera (frob-pathname "tk")
-		   :default-binary-pathname #+Genera "SYS:CLIM;REL-2;TK;"
-					    #-Genera (frob-pathname "tk")
-		   :needed-systems (xlib)
-		   :load-before-compile (xlib))
-		(,file)
-		#+svr4
-		("last" :pathname
-			(namestring (merge-pathnames
-				     "last.lisp"
-				     (frob-pathname "xlib")))
-			:binary-pathname
-			(namestring (merge-pathnames
-				     "last.fasl"
-				     (frob-pathname "xlib"))))
-		("pkg")
-		("macros")
-		("xt-defs")			; Used to be 'xtk'.
-		("xt-funs")
-		("foreign-obj")
-		;; Xlib stuff
-		("xlib")
-		("font")
-		("gcontext")
-		("graphics")
-  
-		;; Toolkit stuff
-		("meta-tk")
-		("make-classes")
-		("foreign")
-		("widget")
-		("resources")
-		("event")
-		("callbacks")
-		("xt-classes")
-		("xt-init")
-		,@modules)))
+	       `(defsystem ,name
+		    (:default-pathname "clim2:;tk;")
+		  (:serial
+		   xlib
+		   (,file)
+		   #+svr4
+		   ("last" :pathname "clim2:;xlib;")
+		   ("pkg")
+		   ("macros")
+		   ("xt-defs")		; Used to be 'xtk'.
+		   ("xt-funs")
+		   ("foreign-obj")
+		   ;; Xlib stuff
+		   ("xlib")
+		   ("font")
+		   ("gcontext")
+		   ("graphics")
 
-  (define-xt-system xm-tk "load-xm"
-    ("xm-defs")
-    ("xm-funs")
-    ("xm-classes")
-    ("xm-callbacks")
-    ("xm-init")
-    ("xm-widgets")
-    ("xm-font-list")
-    ("xm-protocols")
-    ("convenience")
-    ("make-widget"))
-  
-  (define-xt-system ol-tk "load-ol"
-    ("ol-defs")
-    ("ol-funs")
-    ("ol-classes")
-    ("ol-init")
-    ("ol-widgets")
-    ("ol-callbacks")
-    ("make-widget")))
+		   ;; Toolkit stuff
+		   ("meta-tk")
+		   ("make-classes")
+		   ("foreign")
+		   ("widget")
+		   ("resources")
+		   ("event")
+		   ("callbacks")
+		   ("xt-classes")
+		   ("xt-init")
+		   ,@modules))))
+
+(define-xt-system xm-tk "load-xm"
+  ("xm-defs")
+  ("xm-funs")
+  ("xm-classes")
+  ("xm-callbacks")
+  ("xm-init")
+  ("xm-widgets")
+  ("xm-font-list")
+  ("xm-protocols")
+  ("convenience")
+  ("make-widget"))
+
+(define-xt-system ol-tk "load-ol"
+  ("ol-defs")
+  ("ol-funs")
+  ("ol-classes")
+  ("ol-init")
+  ("ol-widgets")
+  ("ol-callbacks")
+  ("make-widget"))
+
+  )					;macrolet
 
 #+Allegro
-(clim-defsys:defsystem motif-clim
-    (:default-pathname #+Genera "SYS:CLIM;REL-2;TK-SILICA;"
-		       #-Genera (frob-pathname "tk-silica")
-     :default-binary-pathname #+Genera "SYS:CLIM;REL-2;TK-SILICA;"
-			      #-Genera (frob-pathname "tk-silica")
-     :needed-systems (clim-standalone xm-tk)
-     :load-before-compile (clim-standalone xm-tk))
-  ("pkg")
-  ("xt-silica")
-  ("xt-stipples")
-  ("xm-silica")
-  ("xt-graphics")
-  ("image")
-  ("xt-frames")
-  ("xm-frames")
-  ("xm-dialogs")
-  ("xt-gadgets")
-  ("xm-gadgets")
-  ("xt-pixmaps")
-  ("gc-cursor")
-  ("last"))
+(defsystem motif-clim
+    (:default-pathname "clim2:;tk-silica;")
+  (:serial
+   clim-standalone
+   xm-tk
+  
+   ("pkg")
+   ("xt-silica")
+   ("xt-stipples")
+   ("xm-silica")
+   ("xt-graphics")
+   ("image")
+   ("xt-frames")
+   ("xm-frames")
+   ("xm-dialogs")
+   ("xt-gadgets")
+   ("xm-gadgets")
+   ("xt-pixmaps")
+   ("gc-cursor")
+   ("last")))
 
 #+Allegro
-(clim-defsys:defsystem openlook-clim
-    (:default-pathname #+Genera "SYS:CLIM;REL-2;TK-SILICA;"
-		       #-Genera (frob-pathname "tk-silica")
-     :default-binary-pathname #+Genera "SYS:CLIM;REL-2;TK-SILICA;"
-			      #-Genera (frob-pathname "tk-silica")
-     :needed-systems (clim-standalone ol-tk)
-     :load-before-compile (clim-standalone ol-tk))
-  ("pkg")
-  ("xt-silica")
-  ("xt-stipples")
-  ("ol-silica")
-  ("xt-graphics")
-  ("image")
-  ("xt-frames")
-  ("ol-frames")
-  ("xt-gadgets")
-  ("ol-gadgets")
-  ("xt-pixmaps")
-  ("gc-cursor")
-  ("last"))
+(defsystem openlook-clim
+    (:default-pathname "clim2:;tk-silica;")
+  (:serial
+   clim-standalone
+   ol-tk
+
+   ("pkg")
+   ("xt-silica")
+   ("xt-stipples")
+   ("ol-silica")
+   ("xt-graphics")
+   ("image")
+   ("xt-frames")
+   ("ol-frames")
+   ("xt-gadgets")
+   ("ol-gadgets")
+   ("xt-pixmaps")
+   ("gc-cursor")
+   ("last")))
 
 
 #+CCL-2
@@ -560,7 +508,6 @@
 
 
 #||
-()
 
 ;; You get the general idea...
 (defun clone-CLIM ()
@@ -597,16 +544,16 @@
       (let* ((file (cl:translate-logical-pathname file))
 	     (directory (nthcdr (mismatch dir1 (pathname-directory file) :from-end t)
 				(pathname-directory file)))
-	     (file1 (make-pathname :directory (append dir1 directory) 
+	     (file1 (make-pathname :directory (append dir1 directory)
 				   :version :newest
 				   :defaults file))
 	     (file2 (make-pathname :directory (append dir2 directory)
 				   :version :newest
 				   :defaults file)))
-	(when (y-or-n-p "Do comparison for ~A.~A ? " 
+	(when (y-or-n-p "Do comparison for ~A.~A ? "
 	        (pathname-name file) (pathname-type file))
 	  (srccom:source-compare file1 file2))
-	(when (y-or-n-p "Copy ~A.~A ? " 
+	(when (y-or-n-p "Copy ~A.~A ? "
 	        (pathname-name file) (pathname-type file))
 	  (scl:copy-file file1 (make-pathname :version :wild :defaults file2)))))))
 

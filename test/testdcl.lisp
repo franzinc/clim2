@@ -5,12 +5,11 @@
 (in-package #-ansi-90 :user #+ansi-90 :common-lisp-user)
 
 
-(clim-defsys:defsystem testing
-    (:default-pathname (frob-pathname "test")
-	:default-binary-pathname (frob-pathname "test"))
+(defsystem testing
+    (:default-pathname "clim2:;test;")
   ("test-pkg")
-  ("test-driver" :load-before-compile ("test-pkg"))
-  ("test-clim-tests" :load-before-compile ("test-driver"))
-  ("test-clim" :load-before-compile ("test-driver"))
-  ("test-demos" :load-before-compile ("test-driver"))
+  ("test-driver" (:load-before-compile "test-pkg"))
+  ("test-clim-tests" (:load-before-compile "test-driver"))
+  ("test-clim" (:load-before-compile "test-driver"))
+  ("test-demos" (:load-before-compile "test-driver"))
   )

@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: tk -*-
 ;;
-;;				-[Mon Jun 21 13:55:59 1993 by colin]-
+;;				-[Mon Sep 26 02:03:59 1994 by smh]-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -42,7 +42,7 @@
 
 (defclass display-object (ff:foreign-pointer)
   ((display :initarg :display
-	    :fixed-index 0)))
+	    clos::fixed-index 0)))
 
 (defclass screen (display-object) ())
 

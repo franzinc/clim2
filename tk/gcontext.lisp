@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: tk -*-
 ;;
-;;				-[]-
+;;				-[Mon Sep 26 02:02:53 1994 by smh]-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -125,7 +125,7 @@
        ',name)))
 
 (defclass gcontext (display-object)
-  ((cached-clip-mask :initform nil :fixed-index 1)))
+  ((cached-clip-mask :initform nil clos::fixed-index 1)))
 
 (defmethod initialize-instance :after ((gcontext gcontext)
 				       &key

@@ -7,8 +7,8 @@
 static Widget gc_widget = (Widget)NULL;
 static Cursor widget_cursor = 0;
 
-extern int (*gc_before)(),(*gc_after)();
-static int (*old_gc_before)(),(*old_gc_after)();
+/* extern int (*gc_before)(),(*gc_after)(); */
+/* static int (*old_gc_before)(),(*old_gc_after)(); */
 
 static find_font_cursor (cursor)
 int cursor;
@@ -54,14 +54,14 @@ Cursor cursor;
 
 clim_starting_gc()
 {
-    if (old_gc_before) (*old_gc_before)();
-    set_the_cursor(find_font_cursor(XC_watch));
+  /* if (old_gc_before) (*old_gc_before)(); */
+  set_the_cursor(find_font_cursor(XC_watch));
 }
 
 clim_stopping_gc()
 {
-    set_the_cursor(widget_cursor);
-    if (old_gc_after) (*old_gc_after)();
+  set_the_cursor(widget_cursor);
+  /* if (old_gc_after) (*old_gc_after)(); */
 }
 		      
 
@@ -75,27 +75,16 @@ int *call_data;
     }
 }
 
-init_clim_gc_cursor_stuff(state)
-int state;
+init_clim_gc_cursor_stuff(vec)
+     int *vec;
 {
-    static int current_state = 0;
-    if (state != current_state) {
-	if (state) {
-	    old_gc_before= old_gc_before;
-	    gc_before = clim_starting_gc;
-	    old_gc_after = gc_after;
-	    gc_after = clim_stopping_gc;
-	    signal(SIGPIPE, SIG_IGN);
-
-	}
-	else {
-	    gc_before = old_gc_before;
-	    gc_after = old_gc_after;
-	}
-    }
-
-    current_state = state;
+  if (vec) {
+    vec[0] = clim_starting_gc;
+    vec[1] = clim_stopping_gc;
+  }
+  /* Currently nothing to do to stop gc cursor. */
 }
+
 
 set_clim_gc_cursor_widget(widget, cursor)
 Widget widget;

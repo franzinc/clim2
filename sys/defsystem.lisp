@@ -34,6 +34,10 @@
 ;; Yes, I know it's not yet an ANSI spec.  That's why this is called
 ;; ANSI-90, corresponding to what we think the spec will be, in late 1990.
 
+(eval-when (compile load eval)
+  (warn "This file is no longer used in the Allegro port. \
+Something is wrong if this warning appears!"))
+
 #+(or CCL-2 Allegro Minima)	;Have to assume this won't blow up anybody's lisp
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (pushnew :ansi-90 *features*))

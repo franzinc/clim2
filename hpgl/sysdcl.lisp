@@ -6,10 +6,10 @@
 
 "Copyright (c) 1993 Franz Inc. All rights reserved"
 
-(clim-defsys:defsystem hpgl-clim
-    (:default-pathname (frob-pathname "hpgl")
-     :default-binary-pathname (frob-pathname "hpgl")
-     :load-before-compile (clim-standalone))
-  ("pkg")
-  ("hpgl-port")
-  ("hpgl-medium"))
+(defsystem hpgl-clim
+    (:default-pathname "clim2:;hpgl;")
+  (:serial
+   clim-standalone
+   ("pkg")
+   ("hpgl-port")
+   ("hpgl-medium")))

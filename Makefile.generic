@@ -22,10 +22,13 @@ compile-xm:	$(MOTIF_OBJS) FORCE
 	(si::system-compile-wrapper \
 	 (function \
 	  (lambda () \
+	    (load-logical-pathname-translations \"clim2\") \
 	    (setq *compile-print* $(COMPILE_PRINT)) \
 	    (setq sys::*libxt-pathname* \"$(XTLIB)\") \
 	    (setq sys::*libx11-pathname* \"$(XLIB)\") \
 	    (setq sys::*clim-motif-pathname* \"clim-motif$(DEBUGLIB).o\") \
+	    (setq *ignore-package-name-case* t) \
+	    (set-case-mode :case-insensitive-lower) \
 	    (load \"misc/compile-1.lisp\") \
 	    (compile-it 'motif-clim))) \
 	 :speed $(SPEED) :debug $(DEBUG) :safety $(SAFETY) \
@@ -41,6 +44,7 @@ compile-ol:	$(OPENLOOK_OBJS) FORCE
 	(si::system-compile-wrapper \
 	 (function \
 	  (lambda () \
+	    (load-logical-pathname-translations \"clim2\") \
 	    (setq *compile-print* $(COMPILE_PRINT)) \
 	    (setf excl:*load-xref-info* $(LOAD_XREF_INFO)) \
 	    (setq sys::*libxt-pathname* \"$(OLXTLIB)\") \
@@ -146,6 +150,7 @@ tk/xm-defs.fasl : tk/xm-defs.lisp
 clim-xm:	FORCE $(MOTIF_OBJS)
 	-$(RM) -f $(CLIMXM)
 	$(ECHO) " \
+		(load-logical-pathname-translations \"clim2\") \
 		(setq sys::*libxt-pathname* \"$(XTLIB)\") \
 		(setq sys::*libx11-pathname* \"$(XLIB)\") \
 	        (setq sys::*clim-motif-pathname* \"clim-motif$(DEBUGLIB).o\") \
@@ -162,6 +167,7 @@ clim-xm:	FORCE $(MOTIF_OBJS)
 clim-ol:	FORCE $(OPENLOOK_OBJS)
 	-$(RM) -f $(CLIMOL)
 	$(ECHO) " \
+		(load-logical-pathname-translations \"clim2\") \
 		(setq sys::*libxt-pathname* \"$(OLXTLIB)\") \
 		(setq sys::*libx11-pathname* \"$(OLXLIB)\") \
 	        (setq sys::*clim-olit-pathname* \"clim-olit$(DEBUGLIB).o\") \
@@ -177,6 +183,7 @@ clim-ol:	FORCE $(OPENLOOK_OBJS)
 
 clim-small:	FORCE
 	$(ECHO) " \
+		(load-logical-pathname-translations \"clim2\") \
 		(load \"misc/load-xm.lisp\") \
 		(setq sys::*clim-dump-name* \"$(TMP)/clim.temp_`whoami`\") \
 		(load \"misc/dump.lisp\")" | $(DUMP-CL) $(CLOPTS) -batch -backtrace-on-error
@@ -195,6 +202,7 @@ train	:	FORCE
 
 train-xm:	FORCE
 	$(ECHO) " \
+	(load-logical-pathname-translations \"clim2\") \
 	(setq sys::*libxt-pathname* \"$(XTLIB)\") \
 	(setq sys::*libx11-pathname* \"$(XLIB)\") \
         (setq sys::*clim-motif-pathname* \"clim-motif$(DEBUGLIB).o\") \
@@ -206,6 +214,7 @@ train-xm:	FORCE
 
 train-ol:	FORCE
 	$(ECHO) " \
+	(load-logical-pathname-translations \"clim2\") \
 	(setq sys::*libxt-pathname* \"$(OLXTLIB)\") \
 	(setq sys::*libx11-pathname* \"$(OLXLIB)\") \
         (setq sys::*clim-olit-pathname* \"clim-olit$(DEBUGLIB).o\") \
