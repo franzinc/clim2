@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-gadgets.lisp,v 1.16 92/07/01 15:47:59 cer Exp Locker: cer $
+;; $fiHeader: ol-gadgets.lisp,v 1.17 92/07/06 18:52:23 cer Exp Locker: cer $
 
 
 (in-package :xm-silica)
@@ -721,18 +721,24 @@
 
 (defmethod text-editor-text ((te openlook-text-editor))
   (let ((widget (sheet-direct-mirror te)))
-    (tk::with-ref-par ((end 0)
-		       (string 0))
-      (assert (not (zerop (tk::ol_text_edit_get_last_position widget end))))
-      (assert (not (zerop (tk::ol_text_edit_read_substring 
-			   widget string 0 (aref end 0)))))
-      (ff::char*-to-string (aref string 0)))))
+    (text-editor-text widget)))
+
+(defmethod text-editor-text ((widget tk::text-edit))
+  (tk::with-ref-par ((end 0)
+		     (string 0))
+    (assert (not (zerop (tk::ol_text_edit_get_last_position widget end))))
+    (assert (not (zerop (tk::ol_text_edit_read_substring 
+			 widget string 0 (aref end 0)))))
+    (ff::char*-to-string (aref string 0))))
 
 
 (defmethod (setf text-editor-text) (nv (te openlook-text-editor))
   (let ((widget (sheet-direct-mirror te)))
-    (assert (not (zerop (tk::ol_text_edit_clear_buffer widget))))
-    (assert (not (zerop (tk::ol_text_edit_insert widget nv (length nv))))))
+    (setf (text-editor-text widget) nv)))
+
+(defmethod (setf text-editor-text) (nv (widget tk::text-edit))
+  (assert (not (zerop (tk::ol_text_edit_clear_buffer widget))))
+  (assert (not (zerop (tk::ol_text_edit_insert widget nv (length nv)))))
   nv)
 
 

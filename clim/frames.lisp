@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: frames.lisp,v 1.28 92/07/01 15:46:20 cer Exp Locker: cer $
+;; $fiHeader: frames.lisp,v 1.29 92/07/06 18:51:36 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -449,6 +449,19 @@
 (define-pane-type radio-box (&rest options)
   (declare (non-dynamic-extent options))
   `(make-pane 'radio-box ,@options))
+
+(define-pane-type check-box (&rest options)
+  (declare (non-dynamic-extent options))
+  `(make-pane 'check-box ,@options))
+
+(define-pane-type list-pane (&rest options)
+  (declare (non-dynamic-extent options))
+  `(make-pane 'list-pane ,@options))
+
+(define-pane-type option-pane (&rest options)
+  (declare (non-dynamic-extent options))
+  `(make-pane 'option-pane ,@options))
+
 
 (define-pane-type menu-bar (&rest options)
   (declare (non-dynamic-extent options))

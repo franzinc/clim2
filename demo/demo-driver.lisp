@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: demo-driver.lisp,v 1.9 92/07/01 15:47:39 cer Exp Locker: cer $
+;; $fiHeader: demo-driver.lisp,v 1.10 92/07/06 18:52:03 cer Exp Locker: cer $
 
 (in-package :clim-demo)
 
@@ -110,8 +110,9 @@
 			    (format stream "CLIM 2.0 demos"))
 			(display-button stream object)))
 		    (get-children (object)
+		      (print object excl::*initial-terminal-io*)
 		      (case object
-			((:root) *demos*)
+			((:root) (copy-list *demos*))
 			(t nil))))
 	       (format-graph-from-root :root
 				       #'print-node
