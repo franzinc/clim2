@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-medium.lisp,v 1.6.8.18 1999/06/18 19:41:40 layer Exp $
+;; $Id: acl-medium.lisp,v 1.6.8.19 1999/06/18 21:27:31 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -767,14 +767,11 @@ draw icons and mouse cursors on the screen.
 (defun set-point (vector i x)
   (declare (optimize (speed 3) (safety 0))
 	   (type (SIMPLE-ARRAY EXCL:FOREIGN (101)) vector)
-	   (fixnum i) 
+	   (fixnum i)
 	   (type excl:foreign x))
-  #+ign
   (setf (ff:fslot-value-typed '(:array :long 1) :foreign-static-gc
-			      vector i) 
-    x)
-  (setf (aref vector (1+ i)) x)
-  )
+			      vector i)
+    x))
 
 (defun fill-point-vector (vector transform position-seq closed)
   (declare (optimize (speed 3) (safety 0)))

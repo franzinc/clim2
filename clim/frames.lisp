@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: frames.lisp,v 1.88.8.10 1999/04/13 18:15:00 layer Exp $
+;; $Id: frames.lisp,v 1.88.8.11 1999/06/18 21:27:31 layer Exp $
 
 (in-package :clim-internals)
 
@@ -1529,8 +1529,10 @@
     (multiple-value-bind (left   left-presentation   left-context
                           middle middle-presentation middle-context
                           right  right-presentation  right-context)
-        (find-applicable-translators-for-documentation presentation input-context
-                                                       frame window x y modifier-state)
+        (find-applicable-translators-for-documentation presentation
+input-context
+                                                       frame window x y
+modifier-state)
       (let* ((*print-length* 3)
              (*print-level* 2)
              (*print-circle* nil)
@@ -1539,21 +1541,25 @@
              (*print-pretty* nil))
         (flet ((document-translator (translator presentation context-type
                                      button-names separator)
-                 ;; Assumes 6 modifier keys and the reverse ordering of *MODIFIER-KEYS*
-                 (let ((bit #o20)
-                       (shift-name '(:double :hyper :super :meta :control :shift)))
+                 ;; Assumes 6 modifier keys and the reverse ordering of
+*MODIFIER-KEYS*
+                 (let ((bit #b100000)
+                       (shift-name '(:double :hyper :super :meta :control
+:shift)))
                    (declare (type fixnum bit))
                    (repeat 6                ;length of shift-name
                            (unless (zerop (logand bit modifier-state))
                              (write-string
                               (frame-modifier-key-documentation frame
-                                                                (car shift-name))
+                                                                (car
+shift-name))
                               stream)
                              (write-string "-" stream))
                            (pop shift-name)
                            (setq bit (the fixnum (ash bit -1)))))
                  (write-string
-                  (frame-pointer-button-documentation frame (car button-names))
+                  (frame-pointer-button-documentation frame (car
+button-names))
                   stream)
                  (dolist (button-name (cdr button-names))
                    (write-string "," stream)
@@ -1561,10 +1567,12 @@
                     (frame-pointer-button-documentation frame button-name)
                     stream))
                  (write-string ": " stream)
-                 (document-presentation-translator translator presentation context-type
+                 (document-presentation-translator translator presentation
+context-type
                                                    frame nil window x y
                                                    :stream stream
-                                                   :documentation-type :pointer)
+                                                   :documentation-type
+:pointer)
                  (write-string separator stream)))
           (declare (dynamic-extent #'document-translator))
           ;;--- The button names should be hard-wired in.  Consider 1-button
@@ -1580,7 +1588,8 @@
                                       '(:left :middle))
                                      (t '(:left)))))
               (document-translator left left-presentation left-context
-                                   button-name (if (or middle right) "; " "."))))
+                                   button-name (if (or middle right) "; "
+"."))))
           (when middle
             (let ((button-name (cond ((eq middle right)
                                       (setq right nil)
