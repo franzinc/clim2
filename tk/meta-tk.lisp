@@ -19,12 +19,12 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $fiHeader: meta-tk.lisp,v 1.10 1993/06/04 16:06:59 cer Exp $
+;; $fiHeader: meta-tk.lisp,v 1.12 1995/11/08 06:14:17 georgej Exp $
 
 (in-package :tk)
 
 
-(defclass xt-class (standard-class ff:foreign-pointer)
+(defclass xt-class (ff:foreign-pointer standard-class)
   ((entry-point :initarg :entry-point
 		:initform nil
 		:reader class-entry-point)

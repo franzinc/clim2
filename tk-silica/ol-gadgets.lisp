@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $fiHeader: ol-gadgets.lisp,v 1.65 1994/12/05 00:01:49 colin Exp $
+;; $fiHeader: ol-gadgets.lisp,v 1.67 1995/11/08 06:15:44 georgej Exp $
 
 
 (in-package :xm-silica)
@@ -1625,7 +1625,7 @@
 					   (sheet openlook-scrolling-window))
   (and (not (gadget-supplies-scrolling-p (pane-contents sheet)))
        (append
-	(let ((scroll-bars (silica::scroller-pane-scroll-bar-policy sheet)))
+	(let ((scroll-bars (scroller-pane-scroll-bar-policy sheet)))
 	  `(:force-vertical-s-b
 	    ,(and (member scroll-bars '(t :both :dynamic :vertical))
 		  t)

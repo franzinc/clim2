@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.89 1995/10/17 05:03:41 colin Exp $
+;; $fiHeader: xm-gadgets.lisp,v 1.91 1995/11/08 06:15:59 georgej Exp $
 
 (in-package :xm-silica)
 
@@ -269,7 +269,7 @@
 				     (sheet motif-push-button)
 				     widget)
   (declare (ignore parent))
-  (when (silica::push-button-show-as-default sheet)
+  (when (push-button-show-as-default sheet)
     (let ((bb (find-bulletin-board parent-widget)))
       (when bb
 	(tk::set-values bb :default-button widget)))))
@@ -909,7 +909,7 @@
     (let ((scroll-mode
 	   (let ((p (sheet-parent sheet)))
 	     (and (typep p 'motif-scroller-pane)
-		  (silica::scroller-pane-scroll-bar-policy p)))))
+		  (scroller-pane-scroll-bar-policy p)))))
       (append `(:scroll-horizontal
 		,(and (member scroll-mode '(t :both :horizontal :dynamic)) t))
 	      `(:scroll-vertical
@@ -1341,7 +1341,7 @@
       (let ((scroll-mode
 	     (let ((p (sheet-parent sheet)))
 	       (and (typep p 'motif-scroller-pane)
-		    (silica::scroller-pane-scroll-bar-policy p)))))
+		    (scroller-pane-scroll-bar-policy p)))))
 	`(:list-size-policy
 	  #-ignore
 	  ,(case scroll-mode
@@ -1457,7 +1457,7 @@
 		    (let* ((name (funcall name-key item))
 			   (pixmap (unless (or (null printer) (eq printer #'write-token))
 				     (pixmap-from-menu-item
-				      sheet name printer nil)))
+				      (sheet-parent sheet) name printer nil)))
 			   (button
 			    (if (null pixmap)
 				(apply #'make-instance 'tk::xm-push-button
@@ -1523,7 +1523,7 @@
           (let* ((name (funcall name-key (nth x items)))
                  (pixmap (unless (or (null printer) (eq printer #'write-token))
                            (pixmap-from-menu-item
-                            gadget name printer nil)))
+                            (sheet-parent gadget) name printer nil)))
                  (widget (tk::intern-widget (tk::xm_option_button_gadget widget))))
             (if pixmap
                 (tk::set-values widget :label-pixmap pixmap :label-type :pixmap)
@@ -2119,26 +2119,39 @@
 	(tk::xm_change_color m (decode-color ink medium))
 	(tk::set-values m :foreground fg)))))
 
-#+ics
+(defmethod silica::port-set-pane-background :after
+	   ((port motif-port) pane (m tk::xm-cascade-button) color)
+  (let ((sub-menu (tk::get-values m :sub-menu-id)))
+    (silica::port-set-pane-background port pane sub-menu color)))
+
+(defmethod silica::port-set-pane-foreground :after
+	   ((port motif-port) pane (m tk::xm-cascade-button) color)
+  (let ((sub-menu (tk::get-values m :sub-menu-id)))
+    (silica::port-set-pane-foreground port pane sub-menu color)))
+
+(excl:ics-target-case
+(:+ics
+
 (defmethod gadget-needs-font-set-p ((sheet t))
   nil)
 
-#+ics
 (defmethod gadget-needs-font-set-p ((sheet motif-text-field))
   t)
 
-#+ics
 (defmethod gadget-needs-font-set-p ((sheet motif-text-editor))
   t)
+
+)) ;; ics-target-case
 
 (defmethod find-widget-resource-initargs-for-sheet :around
     ((port motif-port) (sheet t) &key text-style)
   (let* ((initargs (call-next-method))
 	 (text-style (or text-style
 			 (sheet-text-style port sheet)))
-	 (font-list (text-style-mapping port text-style #+ics nil)))
-    #+ics (when (gadget-needs-font-set-p sheet)
-	    (setq font-list
-	      (font-set-from-font-list port font-list)))
+	 (font-list (text-style-mapping port text-style *all-character-sets*)))
+    (excl:ics-target-case
+     (:ics (when (gadget-needs-font-set-p sheet)
+	     (setq font-list
+	       (font-set-from-font-list port font-list)))))
     `(:font-list ,font-list ,@initargs)))
 

@@ -1,7 +1,7 @@
 
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: classes.lisp,v 1.36 1995/05/17 19:49:04 colin Exp $
+;; $fiHeader: classes.lisp,v 1.37 1995/10/20 17:40:41 colin Exp $
 
 (in-package :silica)
 
@@ -16,7 +16,7 @@
 
 ;; This is called BASIC-PORT rather than STANDARD-PORT because the class
 ;; cannot be used as-is.  It has to be specialized for each implementation.
-(defclass basic-port (port) 
+(defclass basic-port (port)
     ((server-path :reader port-server-path)
      (properties :initform nil :accessor port-properties)
      (lock :initform (make-lock "a port lock") :reader port-lock)
@@ -25,7 +25,7 @@
      (frame-managers :initform nil :accessor port-frame-managers)
      (modifier-state :initform (make-modifier-state)
 		     :accessor port-modifier-state)
-     (mirror->sheet-table :initform (make-hash-table :test #'equal) 
+     (mirror->sheet-table :initform (make-hash-table :test #'equal)
 			  :reader port-mirror->sheet-table)
      (focus :initform nil :accessor port-keyboard-input-focus)
      (focus-selection :initform :click-to-select :initarg :focus-selection
@@ -38,20 +38,23 @@
      (medium-cache :initform nil :accessor port-medium-cache)
      (default-palette :reader port-default-palette)
      (pointer :initform nil)
-     (mapping-table :initform 
-		    #+ics (let ((v (make-array 4)))
-			    (dotimes (i 4)
-			      (setf (svref v i) 
-				(make-hash-table :test #'equal)))
-			    v)
-		    #-ics (make-hash-table :test #'equal))
-     (mapping-cache :initform  
-		    #+ics (let ((v (make-array 4)))
-			    (dotimes (i 4)
-			      (setf (svref v i) 
-				(cons nil nil)))
-			    v)
-		    #-ics (cons nil nil)) ;one entry cache
+     (mapping-table :initform
+		    (excl:ics-target-case
+		     (:+ics (let ((v (make-array 4)))
+			      (dotimes (i 4)
+				(setf (svref v i)
+				  (make-hash-table :test #'equal)))
+			      v))
+		     (:-ics (make-hash-table :test #'equal))))
+     ;; one entry cache
+     (mapping-cache :initform
+		    (excl:ics-target-case
+		     (:+ics (let ((v (make-array 4)))
+			      (dotimes (i 4)
+				(setf (svref v i)
+				  (cons nil nil)))
+			      v))
+		     (:-ics (cons nil nil))))
      ;; When this is true, the text style to device font mapping is done
      ;; loosely.  That is, the actual screen size of the font need not be
      ;; exactly what the user has asked for.  Instead the closest fit is
@@ -61,7 +64,7 @@
      ;; mapping is done by having the mapping table ignore size when hashing.
      ;; Thus each bucket is a list of fonts with the same family and face,
      ;; but different sizes.  They are kept sorted small to large.
-     (allow-loose-text-style-size-mapping 
+     (allow-loose-text-style-size-mapping
        :initform nil :initarg :allow-loose-text-style-size-mapping)
      (canonical-gesture-specs :reader port-canonical-gesture-specs
 			      :initform (make-hash-table :test #'equal))
@@ -75,7 +78,7 @@
 (defclass basic-sheet (sheet)
     ((port :initform nil :reader port)
      (graft :initform nil :reader graft)
-     (parent :initform nil 
+     (parent :initform nil
 	     :accessor sheet-parent)
      (region :initarg :region :initform (make-bounding-rectangle 0 0 100 100)
 	     :accessor sheet-region)
@@ -123,8 +126,8 @@
      ;; We could use a class-allocated slot, but that is very slow
      ;; in some implementations of CLOS
      (defmethod event-type ((event ,name))
-       ,(intern (subseq 
-		  (symbol-name name) 
+       ,(intern (subseq
+		  (symbol-name name)
 		  0 (search (symbol-name '-event) (symbol-name name)
 			    :from-end t))
 		*keyword-package*))))
@@ -132,7 +135,7 @@
 ;; A fixnum, incremented only with ATOMIC-INCF
 (defvar *event-timestamp* 0)
 
-(define-event-class event () 
+(define-event-class event ()
   ((timestamp :reader event-timestamp
 	      :initform (atomic-incf *event-timestamp*) :initarg :timestamp)))
 
@@ -141,7 +144,7 @@
 (defmethod eventp ((object t)) nil)
 (defmethod eventp ((object event)) t)
 
-(define-event-class device-event (event) 
+(define-event-class device-event (event)
   ((sheet :reader event-sheet :initarg :sheet)
    (modifier-state :reader event-modifier-state
 		   :initform 0 :initarg :modifier-state)))
@@ -162,7 +165,7 @@
    (y :reader pointer-event-y :initarg :y)
    (native-x :reader pointer-event-native-x :initarg :native-x)
    (native-y :reader pointer-event-native-y :initarg :native-y)
-   (pointer :reader pointer-event-pointer 
+   (pointer :reader pointer-event-pointer
 	    :initarg :pointer :initform nil)))
 
 (define-event-class pointer-button-event (pointer-event)
@@ -201,7 +204,7 @@
 (define-event-class window-repaint-event (window-event) ())
 
 
-(define-event-class window-manager-event (event) 
+(define-event-class window-manager-event (event)
   ((sheet :reader event-sheet :initarg :sheet)))
 (define-event-class window-manager-delete-event (window-manager-event) ())
 

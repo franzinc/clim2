@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $fiHeader: xlib.lisp,v 1.54 1995/10/17 05:03:10 colin Exp $
+;; $fiHeader: xlib.lisp,v 1.57 1996/01/23 06:47:14 duane Exp $
 
 (in-package :tk)
 
@@ -192,10 +192,8 @@
   (with-ref-par ((type 0 *))
     (let ((xrmvalue (x11:make-xrmvalue)))
       (unless (zerop (x11:xrmgetresource db
-					 #+ics (fat-string-to-string8 name)
-					 #-ics name
-					 #+ics (fat-string-to-string8 class)
-					 #-ics class
+					 (lisp-string-to-string8 name)
+					 (lisp-string-to-string8 class)
 					 &type xrmvalue))
 	(let ((type (char*-to-string type)))
 	  (values
@@ -373,8 +371,7 @@
     (unless (zerop (x11:xlookupcolor
 		    (object-display colormap)
 		    colormap
-		    #+ics (fat-string-to-string8 name)
-		    #-ics name
+		    (lisp-string-to-string8 name)
 		    exact
 		    closest))
       (values (make-instance 'color :foreign-address exact)
@@ -385,8 +382,7 @@
     (unless (zerop (x11:xparsecolor
 		    (object-display colormap)
 		    colormap
-		    #+ics (fat-string-to-string8 name)
-		    #-ics name
+		    (lisp-string-to-string8 name)
 		    exact))
       (values (make-instance 'color :foreign-address exact)))))
 

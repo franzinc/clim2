@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: standard-types.lisp,v 1.32 1994/12/04 23:58:09 colin Exp $
+;; $fiHeader: standard-types.lisp,v 1.34 1995/11/08 06:11:38 georgej Exp $
 
 (in-package :clim-internals)
 
@@ -1092,19 +1092,18 @@
 	    (echo-space t)))
 
 (define-presentation-method presentation-type-specifier-p ((type sequence-enumerated))
-  (every #'presentation-type-specifier-p element-types))
+  ;; must have at least one parameter
+  (and element-types
+       (every #'presentation-type-specifier-p element-types)))
 
 (define-presentation-method describe-presentation-type
 			    ((type sequence-enumerated) stream plural-count)
   (declare (ignore plural-count))		;it's too hard to handle
-  (cond ((null element-types)
-	 (write-string "null sequence" stream))
-	((let ((type (first element-types)))
+  (cond ((let ((type (first element-types)))
 	   (dolist (x (cdr element-types) t)
 	     (unless (equal x type)
 	       (return nil))))
 	 ;; Do this if all the element types are the same
-	 (format stream "~D " (length element-types))
 	 (describe-presentation-type
 	   (car element-types) stream (length element-types)))
 	(t
@@ -1214,7 +1213,8 @@
   :parameters-are-types t)
 
 (define-presentation-method presentation-type-specifier-p ((type or))
-  (and types		;must have at least one parameter
+  ;; must have at least one parameter
+  (and types
        (every #'presentation-type-specifier-p types)))
 
 (define-presentation-method presentation-typep (object (type or))

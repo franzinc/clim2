@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: packages.lisp,v 1.11 1994/06/08 06:56:41 duane Exp $
+;; $fiHeader: packages.lisp,v 1.12 1995/10/20 17:38:00 colin Exp $
 
 (in-package #-ansi-90 :user #+ansi-90 :common-lisp-user)
 
@@ -33,8 +33,17 @@
     #+(and allegro (not (version>= 4 1))) with-slots
     dynamic-extent non-dynamic-extent))
 
-#+ics
-(#-ansi-90 clim-lisp::defpackage #+ansi-90 defpackage japanese-graphics-editor
+;;; this little gem results in the japanese-graphics-editor package
+;;; always being created at compile time (the defpackage is processed
+;;; regardless of whether this is ics or not). At load time either
+;;; the package is created (ics) or an alias to clim-graphics-editor
+;;; is added (non-ics). The unless deals with the situation of
+;;; compiling and then loading in the same non-ICS image! (cim 2/28/96)
+
+(excl:ics-target-case
+(:+ics
+
+(defpackage japanese-graphics-editor
   (:use clim-lisp clim clim-demo)
 
   (:shadowing-import-from clim-utils
@@ -42,9 +51,19 @@
     flet labels
     defgeneric defmethod
     #+(and allegro (not (version>= 4 1))) with-slots
-    dynamic-extent non-dynamic-extent))
+    dynamic-extent non-dynamic-extent)))
 
-(#-ansi-90 clim-lisp::defpackage #+ansi-90 defpackage clim-browser
+(:-ics
+
+(unless (find-package :japanese-graphics-editor)
+  (rename-package (find-package :clim-graphics-editor) :clim-graphics-editor
+		  (cons :japanese-graphics-editor
+			(package-nicknames (find-package :clim-graphics-editor)))))
+
+)) ;; ics-target-case
+
+
+(defpackage clim-browser
 
   (:use clim-lisp clim clim-demo)
 

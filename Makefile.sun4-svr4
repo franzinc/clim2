@@ -1,12 +1,9 @@
-# $fiHeader: Makefile.sun4-svr4,v 1.8 1995/10/17 05:00:59 colin Exp $
+# $fiHeader: Makefile.sun4-svr4,v 1.9 1995/10/20 17:36:18 colin Exp $
 #
 #  Makefile.sun4-svr4 for CLIM 2.0
 #
 
 include Makefile.defs
-
-# temp hack for sole
-TMP=/tmp
 
 Makefile=Makefile.sun4-svr4
 

@@ -1,4 +1,11 @@
 *************************************************************
+
+Thu Feb 29 21:35:08 PST 1996	Colin Meldrum	(colin@vapor)
+
+* IACLIM single source tree merge + misc other changes
+  Full ChangeLog in next commit
+
+*************************************************************
 4.3.devel.12
 
 Mon Jan 22 22:21:03 1996  Duane Rettig  (duane at clay)

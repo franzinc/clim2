@@ -1,8 +1,28 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sysdcl.lisp,v 1.47 1995/05/17 19:49:12 colin Exp $
+;; $fiHeader: sysdcl.lisp,v 1.49 1995/11/08 06:13:01 georgej Exp $
 
-(in-package #-ANSI-90 :user #+ANSI-90 :cl-user)
+(in-package :cl-user)
+
+;; this defines a number of symbols and functions allowing the
+;; successful compilation of CLIM in a non-ICS lisp (cim 2/26/96)
+#+ignore (require :ics)
+
+(let ((*enable-package-locked-errors* nil))
+  (export '(excl::codeset-0 excl::codeset-1 excl::codeset-2 excl::codeset-3
+	    excl::string-to-euc excl::euc-to-string)
+	  (find-package :excl))
+  (export '(ff::euc-to-char* ff::char*-to-euc) (find-package :ff))
+  (export 'excl::ics-target-case (find-package :excl)))
+
+(let ((*enable-package-locked-errors* nil))
+  (defmacro excl::ics-target-case (&rest cases)
+    `(comp::ics-target-ecase
+      ,@cases
+      ,@(unless (assoc :+ics cases)
+	  '((:+ics nil)))
+      ,@(unless (assoc :-ics cases)
+	  '((:-ics nil))))))
 
 "Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved."
 
@@ -16,25 +36,8 @@
 (pushnew :clim-2.1 *features*)
 (pushnew :silica *features*)
 
-#+Genera
-(when (eql (sct:get-release-version) 8)
-  (pushnew :Genera-Release-8 *features*)
-  (multiple-value-bind (major minor) (sct:get-system-version)
-    (declare (ignore minor))
-    (cond ((= major 425)
-	   (pushnew :Genera-Release-8-0 *features*))
-	  ((= major 436)
-	   (pushnew :Genera-Release-8-1 *features*))
-	  ((= major 443)
-	   (pushnew :Genera-Release-8-2 *features*))
-	  ((> major 444)
-	   (pushnew :Genera-Release-8-3 *features*)))))
-
 )	;eval-when
 
-#+Genera
-(when (null (find-package :clim-defsys))
-  (load "SYS:CLIM;REL-2;SYS;DEFSYSTEM"))
 
 
 ;;; CLIM is implemented using the "Gray Stream Proposal" (STREAM-DEFINITION-BY-USER)
@@ -56,59 +59,47 @@
 
 (eval-when (compile load eval)
 
-#+(or Allegro
-      Minima)
 (pushnew :clim-uses-lisp-stream-classes *features*)
-
-#+(or Allegro
-      Genera				;Except for STREAM-ELEMENT-TYPE
-      Minima
-      Cloe-Runtime
-      CCL-2)				;Except for CLOSE (and WITH-OPEN-STREAM)
 (pushnew :clim-uses-lisp-stream-functions *features*)
 
 ;;; CLIM-ANSI-Conditions means this lisp truly supports the ANSI CL condition system
 ;;; CLIM-Conditions      means that it has a macro called DEFINE-CONDITION but that it works
 ;;;                      like Allegro 3.1.13 or Lucid.
-(pushnew #+Lucid :CLIM-Conditions
-	 #+(or ANSI-90 Symbolics CMU) :CLIM-ANSI-Conditions
-	 #-(or ANSI-90 Symbolics Lucid CMU)
-	 (error "Figure out what condition system for this Lisp")
-	 *features*)
+(pushnew :CLIM-ANSI-Conditions *features*)
 
-#+Allegro
 (pushnew :allegro-v4.0-constructors *features*)
 
-;; The presentation type system massages presentation type parameters
-;; and options during method inheritance.
-#+(or Genera Cloe-Runtime Minima)
-(pushnew :CLIM-extends-CLOS *features*)
+)					;eval-when
 
-)	;eval-when
+;; We extend defsystem to have a new module class compile-always
+;; which always recompiles the module even if not required. This
+;; allows us to put defpackage forms within ics-target-case so that at
+;; load time only the one case takes effect while at compile time both
+;; forms are processed. (cim 2/28/96)
+
+(defclass compile-always (defsystem:lisp-module)
+  ())
+
+(defvar *compiled-modules* nil)
+
+(defmethod defsystem:product-newer-than-source ((module compile-always))
+  (member module *compiled-modules*))
+
+(defmethod defsystem:compile-module :after ((module compile-always) &key)
+  (pushnew module *compiled-modules*))
+
+;; This defsystem module class only compiles the module if it's not
+;; ever been compiled - this is used to deal with files that can only
+;; be validly compiled with an ics image - see japanese-input-editor
+;; (cim 2/28/96)
+
+(defclass compile-once (defsystem:lisp-module)
+  ())
+
+(defmethod defsystem:product-newer-than-source ((module compile-once))
+  (probe-file (defsystem:product-pathname module)))
 
 
-;#-Allegro (setq clim-defsys:*load-all-before-compile* t)
-;
-;#-Genera
-;(defun frob-pathname (subdir
-;		      &optional (dir #+Allegro excl::*source-pathname*
-;				     #+Lucid lcl::*source-pathname*
-;				     #+Cloe-Runtime #p"E:\\CLIM2\\SYS\\SYSDCL.LSP"
-;				     #-(or Allegro Lucid Cloe-Runtime)
-;				     (or *compile-file-pathname*
-;					 *load-pathname*)))
-;  (namestring
-;    (make-pathname
-;      :defaults dir
-;      :directory (append (butlast (pathname-directory dir)) (list subdir)))))
-;
-;#+Genera
-;(defun frob-pathname (subdir &optional (dir sys:fdefine-file-pathname))
-;  (namestring
-;    (make-pathname
-;      :defaults dir
-;      :directory (append (butlast (pathname-directory dir))
-;			 (mapcar #'string-upcase (list subdir))))))
 
 
 (defsystem clim-utils
@@ -116,11 +107,7 @@
   ;; These files establish a uniform Lisp environment
   (:serial
    "excl-verification"
-   #+lucid "lucid-before"
-   "lisp-package-fixups"
-   #+(or Allegro (not ANSI-90)) "defpackage"
-   "packages"
-   #+CCL-2 "coral-char-bits"
+   ("packages" (:module-class compile-always))
    "defun-utilities" ;; extract-declarations and friends
    #+(or Genera (not ANSI-90)) "defun"
    "reader"
@@ -223,7 +210,12 @@
    ;; Input editing
    ("interactive-protocol" (:load-before-compile "clim-defs"))
    "input-editor-commands"
-   #+ics "japanese-input-editor"
+
+   ;; only compile with non-ICS if no fasl file exist
+   ;; always compile with ICS in case it was previously compiled by
+   ;; non-ICS
+   ("japanese-input-editor" (:module-class #-ics compile-once
+					   #+ics compile-always))
 
    ;; Incremental redisplay
    ("incremental-redisplay" (:load-before-compile "clim-defs" "recording-protocol"))

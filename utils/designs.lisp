@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: designs.lisp,v 1.19 1995/05/17 19:50:33 colin Exp $
+;; $fiHeader: designs.lisp,v 1.20 1995/10/17 05:04:09 colin Exp $
 
 (in-package :clim-utils)
 
@@ -356,8 +356,9 @@
 			 (setq best-color color
 			       best-distance distance))))
 		 (palette-color-cache palette))))
-    (values best-color
-	    best-distance)))
+    (when best-color
+      (values best-color
+	      best-distance))))
 
 (defmethod add-colors-to-palette ((palette basic-palette) &rest colors)
   (declare (dynamic-extent colors))

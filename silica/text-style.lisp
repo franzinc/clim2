@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: text-style.lisp,v 1.22 1994/12/05 00:00:31 colin Exp $
+;; $fiHeader: text-style.lisp,v 1.23 1995/10/20 17:40:47 colin Exp $
 
 (in-package :silica)
 
@@ -53,6 +53,11 @@
 (defconstant +maximum-text-style-index+ 256)
 
 (defvar *standard-character-set* 0)
+
+(defvar *all-character-sets*
+    (excl:ics-target-case
+     (:+ics nil)
+     (:-ics *standard-character-set*)))
 
 (defvar *null-text-style*)
 (defvar *undefined-text-style*)
@@ -559,16 +564,16 @@
       (load-specs nil nil nil spec))))
 
 (defmethod port-mapping-table ((port basic-port) character-set)
-  #-ics (declare (ignore character-set))
   (with-slots (mapping-table) port
-    #-ics mapping-table
-    #+ics (svref mapping-table character-set)))
+    (excl:ics-target-case
+     (:-ics character-set mapping-table)
+     (:+ics (svref mapping-table character-set)))))
 
 (defmethod port-mapping-cache ((port basic-port) character-set)
-  #-ics (declare (ignore character-set))
   (with-slots (mapping-cache) port
-    #-ics mapping-cache
-    #+ics (svref mapping-cache character-set)))
+    (excl:ics-target-case
+     (:-ics character-set mapping-cache)
+     (:+ics (svref mapping-cache character-set)))))
 
 (defmethod (setf text-style-mapping) (mapping (port basic-port) style
 				      &optional (character-set *standard-character-set*)
@@ -734,6 +739,12 @@
 
 (defun-inline char-character-set-and-index (character)
   (declare (values character-set index))
-  (values #-ics *standard-character-set*
-	  #+ics (excl::char-codeset character) (char-code character)))
+  (values (excl:ics-target-case
+	   (:-ics *standard-character-set*)
+	   (:+ics (typecase character
+		    (excl:codeset-0 0)
+		    (excl:codeset-1 1)
+		    (excl:codeset-2 2)
+		    (excl:codeset-3 3))))
+	  (char-code character)))
 

@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $fiHeader: xm-funs.lisp,v 1.16 1995/10/17 05:03:15 colin Exp $
+;; $fiHeader: xm-funs.lisp,v 1.18 1995/11/08 06:15:00 georgej Exp $
 
 ;;
 ;; This file contains compile time only code -- put in clim-debug.fasl.
@@ -282,3 +282,4 @@
     :entry-point (ff:convert-to-lang "XmChangeColor")
     :return-type :void)
 
+(provide :clim-debugxm)

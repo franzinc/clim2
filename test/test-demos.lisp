@@ -1,6 +1,6 @@
 (in-package :clim-user)
 
-;; $fiHeader: test-demos.lisp,v 1.8 1993/11/18 18:45:07 cer Exp $
+;; $fiHeader: test-demos.lisp,v 1.9 1995/10/20 17:40:57 colin Exp $
 
 
 
@@ -26,33 +26,33 @@
    (clim-demo::com-zoom-out)
    (clim-demo::com-show-map)
    ;; Describe some things
-   (:presentation-click clim-demo::display 
+   (:presentation-click clim-demo::display
 			  clim-demo::concrete-object :gesture :describe)
-   (:presentation-click clim-demo::display 
+   (:presentation-click clim-demo::display
 			  clim-demo::concrete-object :gesture :describe)
-   (:presentation-click clim-demo::display 
+   (:presentation-click clim-demo::display
 			  clim-demo::concrete-object :gesture :describe)
-   (:presentation-click clim-demo::display 
+   (:presentation-click clim-demo::display
 			  clim-demo::concrete-object :gesture :describe)
    ;; Build a route
-   (:presentation-click clim-demo::display 
+   (:presentation-click clim-demo::display
 			clim-demo::named-position
 			:gesture :select)
-   (:presentation-click clim-demo::display 
+   (:presentation-click clim-demo::display
 			clim-demo::named-position
 			:gesture :select)
-   (:presentation-click clim-demo::display 
+   (:presentation-click clim-demo::display
 			clim-demo::named-position
 			:gesture :select)
-   (:presentation-click clim-demo::display 
+   (:presentation-click clim-demo::display
 			clim-demo::named-position
 			:gesture :select)
    #\return
-   ;; 
-   (:presentation-click clim-demo::display 
+   ;;
+   (:presentation-click clim-demo::display
 			clim-demo::route
 			:gesture :delete)
-   (:presentation-click clim-demo::display 
+   (:presentation-click clim-demo::display
 			clim-demo::concrete-object
 			:gesture :delete)
    ;;
@@ -102,7 +102,7 @@
    "(clim:draw-line* *standard-output* -51070 149 -51070 164)
 "
    )
-  (:command clim-demo::interactor clim-demo::com-quit-listener 
+  (:command clim-demo::interactor clim-demo::com-quit-listener
 	    :colon-prefix t)
   )
 
@@ -135,8 +135,8 @@
    (:presentation-click clim-demo::design-area clim-demo::output :gesture :describe)
    (clim-demo::com-refresh)
    (clim-demo::com-clear)
-   #\s 
-   #\r 
+   #\s
+   #\r
    #\l
    (:commands test-cad-demo-1)
    )
@@ -151,7 +151,7 @@
 				  menu-items
 				  (clim-test:select-menu-item frame type)
 				  (clim-test:click-on-window 'clim-demo::design-area x y)))))
-      
+
       (create-gadget 'clim-demo::logic-zero 100 100)
       (create-gadget 'clim-demo::logic-one  100 200)
       (create-gadget 'clim-demo::and-gate  150 150)
@@ -163,7 +163,7 @@
       (clim-test:click-on-presentation 'clim-demo::design-area 'clim-demo::output)
       #+ignore
       (clim-test:click-on-presentation 'clim-demo::design-area 'clim-demo::input))))
-       
+
 
 ;;--- address-book
 
@@ -194,7 +194,7 @@
 
   ;;-- We cannot click on presentations in the above code because of
   ;;-- the single-box problem.
-  
+
   (clim-test:execute-one-command inv '(:edit-avv  clim-demo::options "Graph type" :plot))
 
   (clim-test:click-on-presentation 'clim-demo::graph-window t :press nil :release nil :x-offset 5 :y-offset 5)
@@ -232,8 +232,8 @@
 
 (defun test-color-chooser-1 (inv)
   (let ((frame (clim-test::invocation-frame inv)))
-    (with-slots ((red clim-demo::red) 
-		 (green clim-demo::green) 
+    (with-slots ((red clim-demo::red)
+		 (green clim-demo::green)
 		 (blue clim-demo::blue)
 		 (intensity clim-demo::intensity)
 		 (hue clim-demo::hue)
@@ -256,40 +256,40 @@
   (
    ;;-- These work only because of a timing error.
    ;;-- They should be press, move, release.
-   
+
    (:press clim-graphics-editor::display 30 30)
    (:release clim-graphics-editor::display 70 70)
-   
+
    (clim-graphics-editor::com-clear)
 
    (:press clim-graphics-editor::display 30 30)
    (:release clim-graphics-editor::display 70 70)
 
-   
+
    (:press clim-graphics-editor::display 100 100)
    (:release clim-graphics-editor::display 150 200)
-   
+
    (:press clim-graphics-editor::display 300 100)
    (:release clim-graphics-editor::display 400 200)
-   
+
    (clim-graphics-editor::com-redisplay)
-   
+
    (:presentation-click clim-graphics-editor::display
 			clim-graphics-editor::box)
    (:presentation-click clim-graphics-editor::display
 			clim-graphics-editor::box)
    (:presentation-click clim-graphics-editor::display
 			clim-graphics-editor::box)
-   
+
    ;; try moving one
 
    (:presentation-press clim-graphics-editor::display
 			clim-graphics-editor::box
 			:gesture :describe)
-   
+
    (:release clim-graphics-editor::display 200 200)
    (clim-graphics-editor::com-deselect-object)
-   
+
    (:presentation-click clim-graphics-editor::display
 			clim-graphics-editor::box
 			:gesture :delete)
@@ -297,52 +297,54 @@
    (:presentation-click clim-graphics-editor::display
 			clim-graphics-editor::box
 			:gesture :delete)
-   
+
    )
   (clim-graphics-editor::com-quit)
   )
 
 ;; japanese-graphics-editor
 
-#+ics
+(excl:ics-target-case
+(:+ics
+
 (clim-test:define-frame-test test-japanese-graphics-editor (japanese-graphics-editor::graphics-editor :width 800 :height 600)
   (
    ;;-- These work only because of a timing error.
    ;;-- They should be press, move, release.
-   
+
    (:press japanese-graphics-editor::display 30 30)
    (:release japanese-graphics-editor::display 70 70)
-   
+
    (japanese-graphics-editor::com-clear)
 
    (:press japanese-graphics-editor::display 30 30)
    (:release japanese-graphics-editor::display 70 70)
 
-   
+
    (:press japanese-graphics-editor::display 100 100)
    (:release japanese-graphics-editor::display 150 200)
-   
+
    (:press japanese-graphics-editor::display 300 100)
    (:release japanese-graphics-editor::display 400 200)
-   
+
    (japanese-graphics-editor::com-redisplay)
-   
+
    (:presentation-click japanese-graphics-editor::display
 			japanese-graphics-editor::box)
    (:presentation-click japanese-graphics-editor::display
 			japanese-graphics-editor::box)
    (:presentation-click japanese-graphics-editor::display
 			japanese-graphics-editor::box)
-   
+
    ;; try moving one
 
    (:presentation-press japanese-graphics-editor::display
 			japanese-graphics-editor::box
 			:gesture :describe)
-   
+
    (:release japanese-graphics-editor::display 200 200)
    (japanese-graphics-editor::com-deselect-object)
-   
+
    (:presentation-click japanese-graphics-editor::display
 			japanese-graphics-editor::box
 			:gesture :delete)
@@ -350,11 +352,12 @@
    (:presentation-click japanese-graphics-editor::display
 			japanese-graphics-editor::box
 			:gesture :delete)
-   
+
    )
   (japanese-graphics-editor::com-quit)
   )
 
+)) ;; ics-target-case
 
 
 ;; ico
@@ -368,7 +371,7 @@
    (clim-demo::com-ico-throw-ball)
    (:sleep 15)
    (clim-demo::com-ico-catch-ball)
-   
+
    (:edit-avv clim-demo::options "Buffering" :double)
    (clim-demo::com-ico-throw-ball)
    (:sleep 15)
@@ -389,11 +392,11 @@
   (clim-test:change-query-value 'clim-browser::subtype :subclasses 'clim-browser::control-panel)
   (clim-test:change-query-value 'clim-browser::depth 2 'clim-browser::control-panel)
   (clim-test:execute-one-command inv `(clim-browser::com-show-graph ,(find-class 'sheet)))
-  
+
   ;; Build the graph up
   (labels ((leaf-node-presentation-p (presentation)
 	     (not
-	      (clim-browser::node-inferiors 
+	      (clim-browser::node-inferiors
 	       (presentation-object presentation))))
 	   (root-node-presentation-p (presentation)
 	     (not
@@ -402,11 +405,11 @@
 	   (interior-node-presentation-p (presentation)
 	     (not (or (root-node-presentation-p presentation)
 		      (leaf-node-presentation-p presentation)))))
-    
+
     (dotimes (i 10)
       (clim-test:click-on-presentation 'clim-browser::graph 'clim-browser::call-node
 			     :test #'leaf-node-presentation-p))
-    
+
     (handler-case (dotimes (i 4)
 		    (clim-test:click-on-presentation 'clim-browser::graph
 					   'clim-browser::call-node :gesture :describe
@@ -416,12 +419,12 @@
 
     (handler-case (dotimes (i 4)
 		    (clim-test:click-on-presentation 'clim-browser::graph
-					   'clim-browser::call-node 
+					   'clim-browser::call-node
 					   :test #'interior-node-presentation-p
 					   :gesture :delete))
       (clim-test:cannot-find-presentation-error (c)
 	c))
-    
+
     (clim-test:execute-one-command inv `(clim-browser::com-redisplay))
     (clim-test:execute-one-command inv `(clim-browser::com-redisplay))))
   ;;
@@ -468,7 +471,7 @@
    (:edit-avv clim-demo::palette clim-demo::colors #.+black+)
    (:presentation-click clim-demo::edit-pane
 			clim-demo::bitmap-editor-cell)
-   
+
    )
   (clim-demo::com-bitmap-editor-quit))
 

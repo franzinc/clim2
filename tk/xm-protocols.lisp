@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $fiHeader: xm-protocols.lisp,v 1.11 1994/12/05 00:01:23 colin Exp $
+;; $fiHeader: xm-protocols.lisp,v 1.13 1995/11/08 06:15:05 georgej Exp $
 
 (in-package :tk)
 
@@ -53,6 +53,5 @@
 (defun xm-intern-atom (shell name &optional only-if-exists)
   (xm_intern_atom
    (object-display shell)
-   #+ics (fat-string-to-string8 name)
-   #-ics name
+   (lisp-string-to-string8 name)
    (if only-if-exists 1 0)))

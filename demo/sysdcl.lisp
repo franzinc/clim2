@@ -1,16 +1,18 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sysdcl.lisp,v 1.23 1994/11/23 23:28:39 smh Exp $
+;; $fiHeader: sysdcl.lisp,v 1.24 1995/10/20 17:38:02 colin Exp $
 
 (in-package #-ansi-90 :user #+ansi-90 :common-lisp-user)
 
 "Copyright (c) 1990, 1991 Symbolics, Inc.  All rights reserved.
  Portions copyright (c) 1988, 1989, 1990 International Lisp Associates."
 
+;; see sys/sysdcl.lisp for the package-module defn (cim 2/28/96)
+
 (defsystem clim-demo
     (:default-pathname "clim2:;demo;")
   (:serial
-   ("packages")
+   ("packages" (:module-class compile-always))
    ("demo-driver"     (:load-before-compile "packages"))
    ("listener"        (:load-before-compile "demo-driver" "packages"))
    ("graphics-demos"  (:load-before-compile "demo-driver" "packages"))
@@ -23,7 +25,14 @@
    ("plot"	     (:load-before-compile "demo-driver" "packages"))
    ("color-editor"    (:load-before-compile "demo-driver" "packages"))
    ("graphics-editor" (:load-before-compile "demo-driver" "packages"))
-   #+ics ("japanese-graphics-editor" (:load-before-compile "demo-driver" "packages"))
+
+   ;; only compile with non-ICS if no fasl file exist
+   ;; always compile with ICS in case it was previously compiled by
+   ;; non-ICS
+   ("japanese-graphics-editor" (:module-class #-ics compile-once
+					      #+ics compile-always)
+			       (:load-before-compile "demo-driver" "packages"))
+
    ("bitmap-editor"   (:load-before-compile "demo-driver" "packages"))
    ("ico"	     (:load-before-compile "demo-driver" "packages"))
    ("browser"	     (:load-before-compile "demo-driver" "packages"))

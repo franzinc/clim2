@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $fiHeader: xm-frames.lisp,v 1.69 1995/10/17 05:03:35 colin Exp $
+;; $fiHeader: xm-frames.lisp,v 1.71 1995/11/08 06:15:55 georgej Exp $
 
 (in-package :xm-silica)
 
@@ -158,7 +158,7 @@
 			 (if item-text-style
 			     (merge-text-styles item-text-style menu-text-style)
 			   menu-text-style)
-			 #+ics nil)
+			 *all-character-sets*)
 			initargs)))
 
 	     (set-button-attributes (button options &optional keystroke)
@@ -174,27 +174,35 @@
 		      sheet button keystroke accelerator-text)))))
 
 	     (make-command-button (parent menu keystroke item command-table)
-	       (let ((command-name (car (command-menu-item-value item)))
-		     (options (command-menu-item-options item)))
-		 (let ((button
-			(apply #'make-instance 'xt::xm-push-button
-			       :label-string menu
-			       :managed t
-			       :parent parent
-			       :sensitive (command-enabled command-name frame)
-			       (item-initargs item))))
+	       (let* ((command-name (car (command-menu-item-value item)))
+		      (options (command-menu-item-options item))
+		      (button (apply #'make-instance 'xt::xm-push-button
+				     :label-string menu
+				     :managed t
+				     :parent parent
+				     :sensitive (command-enabled command-name frame)
+				     (item-initargs item))))
 
-		   (push (cons command-name button)
-			 (menu-bar-command-name-to-button-table sheet))
+		 (push (cons command-name button)
+		       (menu-bar-command-name-to-button-table sheet))
 
-		   (set-button-attributes button options keystroke)
+		 (set-button-attributes button options keystroke)
 
-		   (tk::add-callback button
-				     :activate-callback
-				     'command-button-callback
-				     frame
-				     command-table
-				     item))))
+		 (tk::add-callback button
+				   :activate-callback
+				   'command-button-callback
+				   frame
+				   command-table
+				   item)
+		 button))
+
+	     (update-menu-item-sensitivity (commands-and-buttons)
+	       (dolist (cb commands-and-buttons)
+		 (destructuring-bind (item button) cb
+		   (tk::set-sensitive button
+				      (command-enabled
+				       (car (command-menu-item-value item))
+				       frame)))))
 
 	     (make-submenu (parent menu item)
 	       (let* ((options (command-menu-item-options item))
@@ -214,73 +222,82 @@
 
 		 (let* ((sub-command-table (find-command-table
 					    (command-menu-item-value item)))
-			(tick (slot-value sub-command-table 'clim-internals::menu-tick)))
-		   (make-menu-for-command-table sub-command-table submenu)
+			(tick (slot-value sub-command-table 'clim-internals::menu-tick))
+			(commands-and-buttons
+			 (make-menu-for-command-table sub-command-table submenu)))
 		   (xt::add-callback (tk::widget-parent submenu) :popup-callback
 		    #'(lambda (shell)
 			(declare (ignore shell))
-			(let ((children
-			       (tk::widget-children submenu)))
-			  (when (or (null children)
-				    (/= tick
-					(setq tick
-					  (slot-value sub-command-table
-						      'clim-internals::menu-tick))))
-			    (tk::unmanage-children children)
-			    (make-menu-for-command-table
-			     sub-command-table submenu)
-			    ;; it would be nice to do this - the reason we don't
-			    ;; is that it seems to break accelerators on the new
-			    ;; children (cim 5/12/95)
-			    #+ignore (mapc #'tk::destroy-widget children))))))))
+			(cond
+			 ((= tick
+			     (setq tick
+			       (slot-value sub-command-table
+					   'clim-internals::menu-tick)))
+			  ;; nothing changed except possibly the sensitivity
+			  (update-menu-item-sensitivity commands-and-buttons))
+			 (t
+			  ;; no need to update the sensitivity here because
+			  ;; the menu is freshly remade.
+			  (tk::unmanage-children (tk::widget-children submenu))
+			  (setq commands-and-buttons
+			    (make-menu-for-command-table sub-command-table submenu))
+			  ;; not doing this gives a memory leak - the reason
+			  ;; we don't is that it seems to break accelerators
+			  ;; on the new children (cim 5/12/95)
+			  #+ignore (mapc #'tk::destroy-widget children))))))))
 
 	     (make-menu-for-command-table (command-table parent)
-	       (map-over-command-table-menu-items
-		#'(lambda (menu keystroke item)
-		    (let ((initargs (item-initargs item)))
-		      (ecase (command-menu-item-type item)
-			(:divider
-			 (ecase (command-menu-item-value item)
-			   (:label
-			    (apply #'make-instance 'tk::xm-label
-				   :label-string menu
-				   :parent parent
-				   initargs))
-			   ((nil :line)
-			    (apply #'make-instance 'tk::xm-separator
-				   :parent parent
-				   initargs))))
-			(:function
-			 ;;--- Not yet implemented
-			 )
-			(:menu
-			 (make-submenu parent menu item))
-			(:command
-			 (multiple-value-bind (button-parent cb)
-			     (if (and (not flatp)
-				      (eq command-table top-command-table))
-				 (let* ((submenu (apply #'make-instance
-							   'tk::xm-pulldown-menu
-							   :managed nil
-							   :parent parent
-							   initargs))
-					(cb (apply #'make-instance 'xt::xm-cascade-button
-						   :parent parent
-						   :label-string menu
-						   :sub-menu-id submenu
-						   initargs)))
-				   (values submenu cb))
-			       parent)
-			   (make-command-button button-parent
-						menu keystroke item
-						command-table)
-			   ;; this is done after creating the command-button so
-			   ;; that the help widget is set to be the cascade-button
-			   ;; rather than the command button (cim 5/10/95)
-			   (when cb
-			     (set-button-attributes
-			      cb (command-menu-item-options item))))))))
-		command-table)))
+	       (let ((commands-and-buttons nil))
+		 (map-over-command-table-menu-items
+		  #'(lambda (menu keystroke item)
+		      (let ((initargs (item-initargs item)))
+			(ecase (command-menu-item-type item)
+			  (:divider
+			   (ecase (command-menu-item-value item)
+			     (:label
+			      (apply #'make-instance 'tk::xm-label
+				     :label-string menu
+				     :parent parent
+				     initargs))
+			     ((nil :line)
+			      (apply #'make-instance 'tk::xm-separator
+				     :parent parent
+				     initargs))))
+			  (:function
+			   ;;--- Not yet implemented
+			   )
+			  (:menu
+			   (make-submenu parent menu item))
+			  (:command
+			   (multiple-value-bind (button-parent cb)
+			       (if (and (not flatp)
+					(eq command-table top-command-table))
+				   (let* ((submenu (apply #'make-instance
+							  'tk::xm-pulldown-menu
+							  :managed nil
+							  :parent parent
+							  initargs))
+					  (cb (apply #'make-instance 'xt::xm-cascade-button
+						     :parent parent
+						     :label-string menu
+						     :sub-menu-id submenu
+						     initargs)))
+				     (values submenu cb))
+				 parent)
+			     (push (list item
+					 (make-command-button button-parent
+							      menu keystroke item
+							      command-table))
+				   commands-and-buttons)
+			     ;; this is done after creating the command-button so
+			     ;; that the help widget is correctly set to be the
+			     ;; cascade-button rather than the command button
+			     ;; (cim 5/10/95)
+			     (when cb
+			       (set-button-attributes
+				cb (command-menu-item-options item))))))))
+		  command-table)
+		 commands-and-buttons)))
       (make-menu-for-command-table top-command-table mirror))
     mirror))
 
@@ -366,10 +383,11 @@
 						 default-text-style)
 			    default-text-style))
 	 (frame (pane-frame associated-window))
+	 (parent (if associated-window
+		     (sheet-mirror associated-window)
+		   (port-application-shell port)))
 	 (menu (apply #'make-instance  'tk::xm-popup-menu
-		      :parent (or (and associated-window
-				       (sheet-mirror associated-window))
-				  (port-application-shell port))
+		      :parent parent
 		      :menu-post (case (and gesture
 					    (gesture-name-button-and-modifiers gesture))
 				   (#.+pointer-left-button+ "<Btn1Down>")
@@ -389,6 +407,7 @@
 			    1))
 		      :managed nil
 		      initargs)))
+
     (when label
       (let ((title (if (atom label) label (car label))))
 	(check-type title string)
@@ -403,7 +422,7 @@
 			 (if text-style
 			     (merge-text-styles text-style menu-text-style)
 			   menu-text-style)
-			 #+ics nil)
+			 *all-character-sets*)
 			initargs))))
       (apply #'make-instance 'xt::xm-separator
 	     :managed nil
@@ -423,7 +442,9 @@
 				  :managed nil
 				  :label-string (princ-to-string (menu-item-display item))
 				  (list* :font-list
-					 (text-style-mapping port text-style #+ics nil)
+					 (text-style-mapping port
+							     text-style
+							     *all-character-sets*)
 					 options))
 			 (let* ((pixmap (pixmap-from-menu-item
 					 associated-window
@@ -469,7 +490,7 @@
 						    (merge-text-styles item-text-style
 								       menu-text-style)
 						  menu-text-style)
-						#+ics nil)
+						*all-character-sets*)
 					       initargs))))
 			      (:item
 			       (if (clim-internals::menu-item-items item)
@@ -524,7 +545,10 @@
   nil)
 
 (defmethod framem-enable-menu ((framem motif-frame-manager) menu)
-  (tk::manage-child menu))
+  ;; don't try to popup a menu if the mouse is already grabbed
+  ;; (cim 1/3/96)
+  (unless (port-pointer-grabbed-p (port framem))
+    (tk::manage-child menu)))
 
 (defmethod framem-destroy-menu ((framem motif-frame-manager) menu)
   (tk::destroy-widget (tk::widget-parent menu)))

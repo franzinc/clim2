@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $fiHeader: foreign.lisp,v 1.17 1994/12/05 00:00:56 colin Exp $
+;; $fiHeader: foreign.lisp,v 1.20 1996/01/23 06:46:53 duane Exp $
 
 (in-package :tk)
 
@@ -68,13 +68,11 @@
 			  (mp:process-allow-schedule)
 			  (xt_open_display context
 					   (if host
-					       #+ics (fat-string-to-string8 host)
-					       #-ics host
+					       (lisp-string-to-string8 host)
 					     0)
-					   #+ics (fat-string-to-string8 application-name)
-					   #-ics application-name
-					   #+ics (fat-string-to-string8 application-class)
-					   #-ics application-class
+					   (lisp-string-to-string8 application-name)
+
+					   (lisp-string-to-string8 application-class)
 					   options
 					   num-options &argc argv))
 		 (setf (mp:process-quantum mp:*current-process*) temp)

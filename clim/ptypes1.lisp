@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: ptypes1.lisp,v 1.24 1993/07/22 15:38:07 cer Exp $
+;; $fiHeader: ptypes1.lisp,v 1.26 1993/08/19 20:09:57 smh Exp $
 
 (in-package :clim-internals)
 
@@ -67,7 +67,7 @@
     (return-from class-proper-name
       (clos-internals:class-name-for-type-of class)))
   (let ((name (class-name class)))
-    (if (and name (symbolp name) 
+    (if (and name (symbolp name)
 	     (or (eq (find-class-that-works name nil environment) class)
 		 ;; If there is a forward-referenced compile-time class
 		 ;; that corresponds to a class in the current load-time
@@ -244,7 +244,7 @@
 ;;; to NIL, do not create variable bindings, and are not viewspec choices.
 (defparameter *standard-presentation-options* '(:description))
 
-;;; Remove the extra stuff that isn't part of a lambda-list, 
+;;; Remove the extra stuff that isn't part of a lambda-list,
 ;;; and add &KEY and &ALLOW-OTHER-KEYS to make it a lambda-list.
 ;;; Do not add the standard presentation options as there is no need
 ;;; to bind variables to them, and no need to check the option keywords
@@ -378,7 +378,7 @@
 (defmethod class-presentation-type-name ((class presentation-type-class) &optional environment)
   (declare (ignore environment))
   (second (class-name class)))
-  
+
 (defmethod class-presentation-type-name ((class class) &optional environment)
   (class-proper-name class environment))
 
@@ -386,7 +386,7 @@
 #+Allegro (defvar *class-prototype-for-t* (make-class-prototype-for-t))
 
 (defun-inline find-class-prototype (class)
-  (cond #+Allegro 
+  (cond #+Allegro
 	((eq class clos::*the-class-t*)
 	 *class-prototype-for-t*)
 	(t
@@ -560,7 +560,7 @@
     (if parameters
 	(setf (gethash name *presentation-type-parameters-table*) parameters)
 	(remhash name *presentation-type-parameters-table*))
-    (if options 
+    (if options
 	(setf (gethash name *presentation-type-options-table*) options)
 	(remhash name *presentation-type-options-table*))
     ;; If it used to be a presentation type, undefine it
@@ -683,17 +683,17 @@
 			       ((null class) `'standard-object)
 			       ((cdr direct-superclasses) `'(and ,@direct-superclasses))
 			       (t `',(first direct-superclasses)))))
-  
+
       ;; Default the :description option
       (unless description
 	(setq description (substitute #\space #\- (string-downcase
 						    (if (symbolp name) name
 							(class-name name))))))
-  
+
       ;; Convert :inherit-from into what we need to inherit methods and map over supertypes
       (multiple-value-bind (direct-supertypes parameter-massagers options-massagers)
 	  (analyze-inherit-from inherit-from parameters-ll options-ll)
-  
+
 	;; Make sure we have a class adequate to use at macro expansion time.
 	;; It has to have the right class-precedence-list, as well as serving
 	;; as a key for the second position of *presentation-type-being-defined*.
@@ -712,12 +712,12 @@
 						parameters-are-types
 						parameter-massagers options-massagers
 						environment)))
-  
+
 	;; Establish the information needed at macro expansion time
 	(let ((*presentation-type-being-defined*
 		(list name class parameters options
 		      direct-supertypes parameter-massagers options-massagers)))
-  
+
 	  ;; Generate the form that stores all the information and defines the
 	  ;; automatically-defined presentation methods
 	  `(progn
@@ -759,13 +759,13 @@
 	#+Allegro
 	(clos::structure-class
 	  (setq direct-supertypes 'common-lisp:structure-object))
-	#+CCL-2 
+	#+CCL-2
 	(structure-class
 	  (setq direct-supertypes 'structure-object))
 	(t
 	  (setq direct-supertypes 'standard-object)))))
   (with-warnings-for-definition name define-presentation-type
-    (let* ((supertypes-list (if (listp direct-supertypes) 
+    (let* ((supertypes-list (if (listp direct-supertypes)
 				direct-supertypes
 				(list direct-supertypes)))
 	   (direct-superclasses (mapcar #'(lambda (name)
@@ -783,7 +783,7 @@
 	     (let ((keyword-package (find-package :keyword))
 		   (*package* (find-package :lisp)))
 	       (intern (lisp:format nil "~A ~S" 'ptype name) keyword-package))))
-  
+
       ;; If both a regular class and a presentation type class exist,
       ;; get rid of the presentation type class, with a warning
       (when (and (not (compile-file-environment-p environment))
@@ -796,7 +796,7 @@
 	      name clos-class)
 	(remhash name *presentation-type-class-table*)
 	(setq class clos-class))
-  
+
       ;; Create a presentation-type-class if one does not already exist
       (cond ((not class)
 	     (dolist (superclass direct-superclasses)
@@ -856,7 +856,7 @@
 		   (mapcar #'(lambda (class)
 			       (class-proper-name class environment))
 			   (class-direct-superclasses class)))))
-  
+
       ;; This used to be done only in the case where we were creating a class
       ;; "de novo".  However, CCL-2 currently doesn't record anything about
       ;; DEFCLASS at compile time, so we may write the new methods for this
@@ -873,10 +873,10 @@
 	(if (compile-file-environment-p environment)
 	    (setf (compile-time-property name 'presentation-type-class) class)
 	    (setf (gethash name *presentation-type-class-table*) class)))
-  
+
       (setq old-inheritance (gethash class *presentation-type-inheritance-table*)
 	    new-inheritance (list direct-supertypes parameter-massagers options-massagers))
-  
+
       ;; Store the information about the presentation type into the tables
       (cond ((compile-file-environment-p environment)
 	     (setf (compile-time-property class 'presentation-type-parameters) parameters))
@@ -885,7 +885,7 @@
 	    (t (remhash class *presentation-type-parameters-table*)))
       (cond ((compile-file-environment-p environment)
 	     (setf (compile-time-property class 'presentation-type-options) options))
-	    (options 
+	    (options
 	     (setf (gethash class *presentation-type-options-table*) options))
 	    (t (remhash class *presentation-type-options-table*)))
       (if (compile-file-environment-p environment)
@@ -905,20 +905,20 @@
 	     (remhash name *presentation-type-history-table*))
 	    ((eq history 't)
 	     (setf (gethash name *presentation-type-history-table*)
-		   (make-presentation-type-history name)))
+		   (make-presentation-type-history name :history-name description)))
 	    (t
 	     (setf (gethash name *presentation-type-history-table*) history)))
       (if (compile-file-environment-p environment)
 	  (setf (compile-time-property class 'presentation-type-inheritance) new-inheritance)
 	  (setf (gethash class *presentation-type-inheritance-table*) new-inheritance))
-  
+
       ;; If it used to be an abbreviation, undefine the abbreviation
       (cond ((compile-file-environment-p environment)
 	     (setf (compile-time-property name 'presentation-type-abbreviation) nil))
 	    (t
 	     #+Genera (sys:fundefine `(presentation-type-abbreviation ,name))
 	     #-Genera (remhash name *presentation-type-abbreviation-table*)))
-  
+
       ;; If class already existed, make sure its inheritance is up to date.
       ;; This cannot be done until after the information is stored into the tables,
       ;; since this will recompute method combination, which accesses the tables.
@@ -939,7 +939,7 @@
 		  #-CLIM-extends-CLOS		;if not massaging the parameters/options during method inheritance
 		  (equal direct-superclasses old-direct-superclasses)
 	    (reinitialize-instance class :direct-superclasses direct-superclasses))))
-  
+
       class)))
 
 ;;; Called by MAKE-LOAD-FORM forms
@@ -1138,7 +1138,7 @@
 		      (setq direct-supertypes (cdr direct-supertypes)
 			    parameters-massager (cdr parameters-massager)
 			    options-massager (cdr options-massager))))
-  
+
 		  ;; Make the massaging forms that go from from-class to to-class
 		  (setq parameters-massager
 			(cond ((and (not accuratep) (null (presentation-type-parameters
@@ -1318,7 +1318,7 @@
 #-CLIM-extends-CLOS
 (defun generate-presentation-type-inheritance-methods
     (name class parameters-var options-var &optional environment)
-  (let ((superclasses 
+  (let ((superclasses
 	 #-Allegro (cdr (class-precedence-list class))
 	 #+Allegro ;; Work around bug in CLOS compilation environments...
 	 (multiple-value-bind (no-errorp result)
@@ -1365,15 +1365,15 @@
 	    superclasses)))
 
 #-CLIM-extends-CLOS
-(defmethod inherited-presentation-type-parameters-method 
+(defmethod inherited-presentation-type-parameters-method
     ((to-type-name t) (from-type-name t) from-parameters)
   (declare (ignore from-parameters))
   nil)
-  
+
 #-CLIM-extends-CLOS
 (defun inherited-presentation-type-parameters (to-type-name from-type from-parameters)
   (with-presentation-type-decoded (from-type-name) from-type
-    (unless (symbolp from-type-name) 
+    (unless (symbolp from-type-name)
       (setq from-type-name (class-presentation-type-name from-type-name)))
     (if (eq from-type-name to-type-name)
 	from-parameters
@@ -1381,7 +1381,7 @@
 						       from-parameters))))
 
 #-CLIM-extends-CLOS
-(defmethod inherited-presentation-type-options-method 
+(defmethod inherited-presentation-type-options-method
     ((to-type-name t) (from-type-name t) from-options)
   (declare (ignore from-options))
   nil)
@@ -1389,7 +1389,7 @@
 #-CLIM-extends-CLOS
 (defun inherited-presentation-type-options (to-type-name from-type from-options)
   (with-presentation-type-decoded (from-type-name) from-type
-    (unless (symbolp from-type-name) 
+    (unless (symbolp from-type-name)
       (setq from-type-name (class-presentation-type-name from-type-name)))
     (if (eq from-type-name to-type-name)
 	from-options
@@ -1478,7 +1478,7 @@
 #-CCL-2
 (eval-when (eval load compile)
 (defclass presentation-generic-function
-	  (standard-generic-function #+Minima-Developer standard-object) 
+	  (standard-generic-function #+Minima-Developer standard-object)
   ()
   (:metaclass funcallable-standard-class))
 )	;end of (eval-when (eval load compile)
@@ -1494,7 +1494,7 @@
   (let ((*presentation-method-argument-class*
 	  (ecase (first (clos:generic-function-lambda-list generic-function))
 	    (type-key (funcall argument-function
-			       #-Minima-Developer 'class 
+			       #-Minima-Developer 'class
 			       #+Minima-Developer 'zl:::clos-internals::class
 			       0))
 	    (type-class (multiple-value-bind (valid class)
@@ -1509,7 +1509,7 @@
 			      ;; an EQL dispatch.  I think the value we return in this
 			      ;; case never gets used anyway.
 			      (funcall argument-function
-				       #-Minima-Developer 'class 
+				       #-Minima-Developer 'class
 				       #+Minima-Developer 'zl:::clos-internals::class
 				       0)))))))
     (call-next-method)))
@@ -1694,7 +1694,7 @@
 				      &environment environment)
   (declare (arglist presentation-function-name [qualifiers]* specialized-lambda-list &body body))
   (define-presentation-method-1 presentation-function-name body ':massage environment))
-  
+
 ;;; The next level down from define-presentation-method, this doesn't create
 ;;; lexical bindings of the presentation type parameters and options and hence
 ;;; doesn't insert those parameters into the lambda-list.  It still inserts
@@ -1740,7 +1740,7 @@
 	   presentation-type-name class)
       (multiple-value-bind (documentation declarations body)
 	  (extract-declarations body environment)
-  
+
 	(unless (eq kind ':default)
 	  ;; Extract the presentation-type-name from the specialized-lambda-list
 	  ;; and make the type parameter unspecialized, since that argument is just
@@ -1755,16 +1755,16 @@
 	  (setq presentation-type-name (second presentation-type-name))
 	  (setf (nth type-pos specialized-lambda-list) type-var)
 	  (push type-var body)	;specialized parameters don't get unused variable warnings
-    
+
 	  ;; Find the presentation type class, the key to all the information we need
 	  (setq class (find-presentation-type-class presentation-type-name t environment))
-  
+
 	  ;; Wrap the body in lexical bindings of the presentation type parameters and options
 	  (when parameters
 	    (let ((parameters-ll (asterisk-default
 				   (presentation-type-parameters class environment))))
 	      (when (lambda-list-variables-used-in-body parameters-ll body)
-		(setq body `((bind-to-list 
+		(setq body `((bind-to-list
 			       ,parameters-ll
 			       ;; If massaging the parameters during
 			       ;; method inheritance
@@ -1790,7 +1790,7 @@
 						     ,type-var
 						     ,options-var)
 			       ,@body)))))))
-    
+
 	;; Add the "magic" parameters to the front of the lambda list
 	;; and specialize this method to the presentation type class
 	;; It's okay not to use the "magic" parameters so add dummy uses to the body
@@ -1805,7 +1805,7 @@
 			    ,(cond ((eq kind ':default) `t)
 				   ((eq (class-name class) presentation-type-name)
 				    presentation-type-name)
-				   (t 
+				   (t
                                     #+CCL-2 (gethash class *presentation-class-type-table*)
                                     #-CCL-2 class))))
 		(type-class `(,type-class-var
@@ -1815,15 +1815,15 @@
 					      ',presentation-type-name)))
 				     (t `(eql ,class))))))
 	      specialized-lambda-list)
-  
+
 	#+Genera
 	(when (null kind)
 	  (push `(declare (sys:function-parent ,presentation-type-name define-presentation-type))
 		declarations))
-  
+
 	;;--- Note that DEFMETHOD doesn't accept class objects, according to 88-002R.
 	;;--- We will have to do something for that (like give them gensym names?  Ick!)
-	
+
 	;; Expand into a defmethod
 	`(defmethod ,(car info) ,@qualifiers ,specialized-lambda-list
 	   ,@(and documentation (list documentation))
@@ -1834,10 +1834,10 @@
 
 ;;;; Basic Development System Support for Presentation Types and Methods
 
-#+Genera 
+#+Genera
 (scl:defprop define-presentation-type "CLIM Presentation Type" si:definition-type-name)
 
-#+Genera 
+#+Genera
 (scl:defprop define-presentation-type-abbreviation define-presentation-type
 	     zwei:definition-function-spec-type)
 
@@ -1867,30 +1867,30 @@
 	     zwei:definition-function-spec-type)
 
 ;---I think these don't get used, because methods are just functions
-;#+Genera 
+;#+Genera
 ;(scl:defprop define-presentation-method "Presentation Method" si:definition-type-name)
 ;
-;#+Genera 
+;#+Genera
 ;(scl:defprop define-presentation-method-without-massaging define-presentation-method
 ;	     zwei:definition-function-spec-type)
 ;
-;#+Genera 
+;#+Genera
 ;(scl:defprop define-default-presentation-method define-presentation-method
 ;	     zwei:definition-function-spec-type)
 
-#+Genera 
+#+Genera
 (lisp:defun (define-presentation-method zwei:definition-function-spec-parser) (bp)
   (presentation-method-definition-function-spec-parser bp ':massage))
-  
-#+Genera 
+
+#+Genera
 (lisp:defun (define-presentation-method-without-massaging zwei:definition-function-spec-parser) (bp)
   (presentation-method-definition-function-spec-parser bp nil))
-  
-#+Genera 
+
+#+Genera
 (lisp:defun (define-default-presentation-method zwei:definition-function-spec-parser) (bp)
   (presentation-method-definition-function-spec-parser bp ':default))
-  
-#+Genera 
+
+#+Genera
 (defun presentation-method-definition-function-spec-parser (bp kind)
   (multiple-value-bind (fspec type str error-p)
       (funcall (zl:::scl:function

@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.87 1995/10/17 05:03:51 colin Exp $
+;; $fiHeader: xt-graphics.lisp,v 1.91 1996/01/23 06:47:36 duane Exp $
 
 (in-package :tk-silica)
 
@@ -1582,8 +1582,10 @@
 						     font towards-x towards-y transform-glyphs)
 			   (let ((*error-output* excl:*initial-terminal-io*))
 			     (warn "Cannot rotate 16-bit font ~A" font)))
-		       (#+ics tk::draw-string16
-			#-ics tk::draw-string
+		       (funcall
+			(excl:ics-target-case
+			 (:+ics 'tk::draw-string16)
+			 (:-ics 'tk::draw-string))
 			drawable gc
 			x y
 			string start end))))
@@ -1596,81 +1598,6 @@
 	(declare (dynamic-extent #'process-element))
 	(tk::partition-compound-string string #'process-element
 				       :start start :end end)))))
-
-#| pre ICS
-(defmethod medium-draw-text* ((medium xt-medium)
-			      string-or-char x y start end
-			      align-x align-y
-			      towards-x towards-y transform-glyphs)
-  (declare (optimize (speed 3) (safety 0)))
-  (let ((drawable (medium-drawable medium)))
-    (when drawable
-      (let* ((port (port medium))
-	     (sheet (medium-sheet medium))
-	     (transform (sheet-device-transformation sheet))
-	     (text-style (medium-merged-text-style medium))
-	     (font (text-style-mapping port text-style))
-	     (descent (tk::font-descent font))
-	     (ascent (tk::font-ascent font))
-	     (height (+ ascent descent)))
-	;;--rounding errors?
-	(transform-positions transform x y)
-	(when towards-x
-	  (transform-positions transform towards-x towards-y))
-	(when (typep string-or-char 'character)
-	  (setq string-or-char (string string-or-char)))
-	(ecase align-x
-	  (:right
-	   (let ((dx (text-size sheet string-or-char :text-style text-style
-				:start start :end end)))
-	     (when towards-x (decf towards-x dx))
-	     (decf x dx)))
-	  (:center
-	   (let ((dx (floor (text-size sheet string-or-char
-				       :text-style text-style
-				       :start start :end end) 2)))
-	     (when towards-x (decf towards-x dx))
-	     (decf x dx)))
-	  (:left nil))
-	(ecase align-y
-	  (:bottom
-	   (let ((dy descent))
-	     (decf y dy)
-	     (when towards-y (decf towards-y dy))))
-	  (:center
-	   (let ((dy (- descent
-			(floor height 2))))
-	     (decf y dy)
-	     (when towards-y (decf towards-y dy))))
-	  (:baseline nil)
-	  (:top
-	   (when towards-y (incf towards-y ascent))
-	   (incf y ascent)))
-	(fix-coordinates x y)
-	(discard-illegal-coordinates medium-draw-text* x y)
-        (let ((gc (adjust-ink
-		   (decode-ink (medium-ink medium) medium)
-		   medium
-		   x
-		   (- y ascent))))
-	  (setf (tk::gcontext-font gc) font)
-	  (if (and towards-x towards-y)
-	      (port-draw-rotated-text
-	       port
-	       drawable
-	       gc
-	       x y
-	       string-or-char
-	       start
-	       end
-	       font
-	       towards-x towards-y transform-glyphs)
-	    (tk::draw-string
-	     drawable
-	     gc
-	     x y
-	     string-or-char start end)))))))
-|#
 
 (defmethod medium-text-bounding-box ((medium xt-medium)
 				     string x y start end align-x

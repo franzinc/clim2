@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.97 1995/10/17 05:03:56 colin Exp $
+;; $fiHeader: xt-silica.lisp,v 1.100 1996/01/23 06:47:41 duane Exp $
 
 (in-package :xm-silica)
 
@@ -160,24 +160,28 @@
        t))
 
 (defparameter *xt-font-families*
-    '(;; ascii
+    `(
+      ;; ascii
       (0 "fixed"
-       (:fix "-*-courier-*-*-*-*-*-*-*-*-*-*-*-*")
-       (:sans-serif "-*-helvetica-*-*-*-*-*-*-*-*-*-*-*-*")
-       (:serif "-*-new century schoolbook-*-*-*-*-*-*-*-*-*-*-*-*"
-	       "-*-times-*-*-*-*-*-*-*-*-*-*-*-*"))
-      ;; jis-x208 (kanji)
-      #+ics
-      (1 "k14"
-       (:fix "-*-*-*-*-*-*-*-*-*-*-*-*-jisx0208.1983-*")
-       (:sans-serif "-*-*-*-*-*-*-*-*-*-*-*-*-jisx0208.1983-*")
-       (:serif "-*-*-*-*-*-*-*-*-*-*-*-*-jisx0208.1983-*"))
-      ;; jis-x201 (half width katakana)
-      #+ics
-      (2 "rk14"
-       (:fix "-*-*-*-*-*-*-*-*-*-*-*-*-jisx0201.1976-*")
-       (:sans-serif "-*-*-*-*-*-*-*-*-*-*-*-*-jisx0201.1976-*")
-       (:serif "-*-*-*-*-*-*-*-*-*-*-*-*-jisx0201.1976-*"))))
+	 (:fix "-*-courier-*-*-*-*-*-*-*-*-*-*-*-*")
+	 (:sans-serif "-*-helvetica-*-*-*-*-*-*-*-*-*-*-*-*")
+	 (:serif "-*-new century schoolbook-*-*-*-*-*-*-*-*-*-*-*-*"
+		 "-*-times-*-*-*-*-*-*-*-*-*-*-*-*"))
+
+      ,@(excl:ics-target-case
+	 (:+ics
+	  `(
+	    ;; jis-x208 (kanji)
+	    (1 "k14"
+	       (:fix "-*-*-*-*-*-*-*-*-*-*-*-*-jisx0208.1983-*")
+	       (:sans-serif "-*-*-*-*-*-*-*-*-*-*-*-*-jisx0208.1983-*")
+	       (:serif "-*-*-*-*-*-*-*-*-*-*-*-*-jisx0208.1983-*"))
+
+	    ;; jis-x201 (half width katakana)
+	    (2 "rk14"
+	       (:fix "-*-*-*-*-*-*-*-*-*-*-*-*-jisx0201.1976-*")
+	       (:sans-serif "-*-*-*-*-*-*-*-*-*-*-*-*-jisx0201.1976-*")
+	       (:serif "-*-*-*-*-*-*-*-*-*-*-*-*-jisx0201.1976-*")))))))
 
 (defun disassemble-x-font-name (name)
   (let ((cpos 0)
@@ -203,25 +207,28 @@
 	 (screen-pixels-per-inch
 	  (* 25.4 (/ (x11::xdisplayheight display screen)
 		     (x11:xdisplayheightmm display screen)))))
-    (flet ((font->text-style (font family)
-	     (let* ((tokens (disassemble-x-font-name font))
-		    (italic (member (nth 4 tokens) '("i" "o") :test #'equalp))
-		    (bold (equalp (nth 3 tokens) "bold"))
-		    (face (if italic
-			      (if bold '(:bold :italic) :italic)
-			    (if bold :bold :roman)))
-		    (pixel-size (parse-integer (nth 7 tokens)))
-		    (point-size (parse-integer (nth 8 tokens)))
-		    (y-resolution (parse-integer (nth 10 tokens)))
-		    (average-width (parse-integer (nth 12 tokens)))
-		    (corrected-point-size (* (float point-size)
-					     (/ y-resolution
-						screen-pixels-per-inch))))
-	       (unless (and (not *use-scalable-fonts*)
-			    (or (eql pixel-size 0)
-				(eql point-size 0)
-				(eql average-width 0)))
-		 (make-text-style family face (/ corrected-point-size 10))))))
+    (labels ((parse-token (token)
+	       (and token
+		    (parse-integer token)))
+	     (font->text-style (font family)
+	       (let* ((tokens (disassemble-x-font-name font))
+		      (italic (member (nth 4 tokens) '("i" "o") :test #'equalp))
+		      (bold (equalp (nth 3 tokens) "bold"))
+		      (face (if italic
+				(if bold '(:bold :italic) :italic)
+			      (if bold :bold :roman)))
+		      (pixel-size (parse-token (nth 7 tokens)))
+		      (point-size (parse-token (nth 8 tokens)))
+		      (y-resolution (parse-token (nth 10 tokens)))
+		      (average-width (parse-token (nth 12 tokens)))
+		      (corrected-point-size (* (float point-size)
+					       (/ y-resolution
+						  screen-pixels-per-inch))))
+		 (unless (and (not *use-scalable-fonts*)
+			      (or (eql pixel-size 0)
+				  (eql point-size 0)
+				  (eql average-width 0)))
+		   (make-text-style family face (/ corrected-point-size 10))))))
       (dolist (per-charset *xt-font-families*)
 	(destructuring-bind (character-set fallback &rest families) per-charset
 	  (dolist (per-family families)
@@ -713,10 +720,11 @@
 	 (find-shell-of-calling-frame frame))))
 
 (defmethod find-shell-of-calling-frame ((frame application-frame))
-  (let (cf)
-    (and (setq cf (frame-calling-frame frame))
-	 (setq cf (frame-top-level-sheet cf))
-	 (sheet-shell cf))))
+  (let* ((calling-frame (frame-calling-frame frame))
+	 (top-level-sheet (and calling-frame
+			       (frame-top-level-sheet calling-frame))))
+    (and top-level-sheet
+	 (sheet-shell top-level-sheet))))
 
 (defmethod find-shell-parent ((port xt-port) sheet)
   (let ((shell (find-shell-of-calling-frame sheet)))
@@ -874,14 +882,16 @@
 (defmethod port-glyph-for-character ((port xt-port)
 				     character text-style
 				     &optional our-font)
-  #+ics (declare (ignore our-font))
-  (let* ((index #+ics (tk::xchar-code character)
-		#-ics (char-int character))
-	 (x-font (or #-ics our-font	; we don't used cached font
-					; for ics version because of possible
-					; codeset switches in the string
+  (let* ((index (excl:ics-target-case
+		 (:+ics (tk::xchar-code character))
+		 (:-ics (char-int character))))
+	 (x-font (or (excl:ics-target-case
+		      ;; we don't used cached font for ics version
+		      ;; because of possible codeset switches in the string
+		      (:+ics our-font nil)
+		      (:-ics our-font))
 		     (text-style-mapping port text-style
-					 #+ics (excl::char-codeset character))))
+					 (char-character-set-and-index character))))
 	 (escapement-x (tk::char-width x-font index))
 	 (escapement-y 0)
 	 (origin-x 0)
@@ -914,23 +924,15 @@
 		  (text-style-mapping
 		   port *undefined-text-style* character-set)))))))))
 
-#-ics
-(defmethod text-style-mapping :around
-	   ((port xt-port) text-style
-	    &optional (character-set *standard-character-set*) window)
-  (let ((mapping (call-next-method)))
-    (if (stringp mapping)
-	(setf (text-style-mapping port text-style character-set)
-	  (find-named-font port mapping character-set))
-      mapping)))
+(excl:ics-target-case
+(:+ics
 
-#+ics
 (defconstant +codesets+ 4)
 
-#+ics
 (defmethod text-style-mapping :around
 	   ((port xt-port) text-style
 	    &optional (character-set *standard-character-set*) window)
+  (declare (ignore window))
   (if character-set
       (let ((mapping (call-next-method)))
 	(if (stringp mapping)
@@ -939,12 +941,11 @@
 	  mapping))
     (let ((mappings nil))
       (dotimes (c +codesets+)
-	(let ((mapping (text-style-mapping port text-style c window)))
+	(let ((mapping (text-style-mapping port text-style c)))
 	  (when mapping
 	    (push (cons c mapping) mappings))))
-      (reverse mappings))))
+      (reverse mappings)))))
 
-#+ics
 (defmethod font-set-from-font-list ((port xt-port) font-list)
   (let ((name ""))
     (dolist (item font-list)
@@ -958,6 +959,20 @@
 	      (make-instance 'tk::font-set
 		:display (port-display port)
 		:base-names name)))))))
+
+(:-ics
+
+(defmethod text-style-mapping :around
+	   ((port xt-port) text-style
+	    &optional (character-set *standard-character-set*) window)
+  (declare (ignore window))
+  (let ((mapping (call-next-method)))
+    (if (stringp mapping)
+	(setf (text-style-mapping port text-style character-set)
+	  (find-named-font port mapping character-set))
+      mapping))))
+
+) ;; ics-target-case
 
 (defmethod change-widget-geometry (parent child &rest args)
   (declare (ignore parent))
@@ -1640,24 +1655,22 @@ the geometry of the children. Instead the parent has control. "))
 	    (uspp (slot-value sheet 'silica::user-specified-position-p))
 	    (size-hints (x11::xallocsizehints)))
 	(tk::with-ref-par ((supplied 0 :unsigned-long))
-	  (when (zerop
-		 (x11::xgetwmnormalhints display window size-hints &supplied))
-	    (warn "top-level-sheet had no size hints?!")
-	    (return-from enable-mirror))
-	  (let ((flags (x11::xsizehints-flags size-hints)))
-	    (if* (and uspp (not (eq uspp :unspecified)))
-	       then (setf flags (logior flags x11::uspositionhint))
-	     elseif (null uspp)
-	       then (setf flags (logandc2 flags x11::uspositionhint)))
-	    (if* (and ussp (not (eq ussp :unspecified)))
-	       then (setf flags (logior flags x11::ussizehint))
-	     elseif (null ussp)
-	       then (setf flags (logandc2 flags x11::ussizehint)))
-	    ;; always switch off program-specified position hint so
-	    ;; that OpenWindows cascading works
-	    (setf flags (logandc2 flags x11::ppositionhint))
-	    (setf (x11::xsizehints-flags size-hints) flags))
-	  (x11::xsetwmnormalhints display window size-hints))))
+	  (unless (zerop
+		   (x11::xgetwmnormalhints display window size-hints &supplied))
+	    (let ((flags (x11::xsizehints-flags size-hints)))
+	      (if* (and uspp (not (eq uspp :unspecified)))
+		 then (setf flags (logior flags x11::uspositionhint))
+	       elseif (null uspp)
+		 then (setf flags (logandc2 flags x11::uspositionhint)))
+	      (if* (and ussp (not (eq ussp :unspecified)))
+		 then (setf flags (logior flags x11::ussizehint))
+	       elseif (null ussp)
+		 then (setf flags (logandc2 flags x11::ussizehint)))
+	      ;; always switch off program-specified position hint so
+	      ;; that OpenWindows cascading works
+	      (setf flags (logandc2 flags x11::ppositionhint))
+	      (setf (x11::xsizehints-flags size-hints) flags))
+	    (x11::xsetwmnormalhints display window size-hints)))))
     (popup parent)))
 
 ;;; so is this next method ever called???? let's comment it out and
@@ -1890,6 +1903,22 @@ the geometry of the children. Instead the parent has control. "))
 	    (let ((*pointer-grabbed* t))
 	      (funcall continuation))))
       (tk::xt_ungrab_pointer widget 0))))
+
+(defmethod port-pointer-grabbed-p ((port xt-port))
+  (let ((display (port-display port)))
+    (cond
+     ((not (zerop (x11:xgrabpointer
+		     display
+		     (x11:xdefaultrootwindow display)
+		     0
+		     x11:noeventmask
+		     x11:grabmodesync
+		     x11:grabmodesync
+		     0
+		     0
+		     x11:currenttime))))
+     (t (x11:xungrabpointer display x11:currenttime)
+	nil))))
 
 (defmethod port-remove-all-pointer-grabs ((port xt-port))
   (x11:xungrabpointer (port-display port) x11:currenttime))

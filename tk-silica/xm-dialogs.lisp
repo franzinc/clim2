@@ -19,13 +19,14 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $fiHeader: xm-dialogs.lisp,v 1.8 1993/07/27 01:55:17 colin Exp $
+;; $fiHeader: xm-dialogs.lisp,v 1.10 1995/11/08 06:15:52 georgej Exp $
 
 (in-package :clim-internals)
 
 (defmethod frame-manager-construct-avv-panes ((frame accept-values-own-window)
 					      (framem xm-silica::motif-frame-manager))
   (let (exit-button-stream own-window pane)
+    (declare (ignore pane))
     (values
      (with-look-and-feel-realization (framem frame)
        (with-slots (scroll-bars) frame

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: interactive-defs.lisp,v 1.25 1995/05/17 19:48:03 colin Exp $
+;; $fiHeader: interactive-defs.lisp,v 1.26 1995/10/17 05:01:39 colin Exp $
 
 (in-package :clim-internals)
 
@@ -208,9 +208,15 @@
 
 ;; WITH-INPUT-EDITING simply encapsulates the stream and sets up an editing
 ;; context that allows rescanning, etc.
+
+(defvar *default-input-editing-stream-class*
+    (excl:ics-target-case
+     (:+ics 'japanese-input-editing-stream)
+     (:-ics 'standard-input-editing-stream)))
+
 (defmacro with-input-editing ((&optional stream
 			       &key input-sensitizer initial-contents
-				    (class `'standard-input-editing-stream))
+				    (class `*default-input-editing-stream-class*))
 			      &body body)
   (default-input-stream stream with-input-editing)
   `(flet ((with-input-editing-body (,stream) ,@body))

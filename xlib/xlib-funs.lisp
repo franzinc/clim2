@@ -44,7 +44,7 @@
 ;;      OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION
 ;;      WITH THE USE OR PERFORMANCE OF THIS OBJECT CODE.
 
-;;; $fiHeader: xlib-funs.lisp,v 1.16 1995/10/17 05:04:21 colin Exp $
+;;; $fiHeader: xlib-funs.lisp,v 1.18 1995/11/08 06:16:51 georgej Exp $
 
 (in-package :x11)
 
@@ -2009,7 +2009,7 @@
   (keysym-return (:pointer keysym))
   (status-in-out (:pointer xcomposestatus)))
 
-(def-exported-foreign-function (xiconifywindow (:return-type int) (:name "XIconifyWindow"))
+(def-exported-foreign-function (xiconifywindow (:name "XIconifyWindow"))
   (dpy (:pointer display))
   (win window)
   (scr int))
@@ -2027,14 +2027,12 @@
    (dpy (:pointer display))
    (gc gc))
 
-#+ics
 (def-exported-foreign-function (xopenim (:return-type xim) (:name "XOpenIM"))
     (dpy (:pointer display))
     (db xrmdatabase)
     (res-name (:pointer char))
     (res-class (:pointer char)))
 
-#+ics
 (def-exported-foreign-function (xcreatefontset (:return-type xfontset) (:name "XCreateFontSet"))
     (dpy (:pointer display))
     (base-names (:pointer char))
@@ -2042,14 +2040,12 @@
     (missing-count (:pointer int))
     (default-string (:pointer (:pointer char))))
 
-#+ics
 (def-exported-foreign-function (xfontsoffontset (:return-type int) (:name "XFontsOfFontSet"))
     (font-set xfontset)
     (font-struct-list (:pointer (:pointer (:pointer xfontstruct))))
     (font-name-list (:pointer (:pointer (:pointer char)))))
 
 
-#+ics
 (def-exported-foreign-function (xmbtextextents (:return-type int)
 					       (:name "XmbTextExtents"))
     (font-set xfontset)

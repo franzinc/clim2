@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $fiHeader: ol-funs.lisp,v 1.10 93/05/13 16:30:42 colin Exp $
+;; $fiHeader: ol-funs.lisp,v 1.12 1995/11/08 06:14:30 georgej Exp $
 
 ;;
 ;; This file contains compile time only code -- put in clim-debug.fasl.
@@ -182,3 +182,5 @@
     :arguments '(integer foreign-address integer)
     :arg-checking nil
     :return-type :void)
+
+(provide :clim-debugol)

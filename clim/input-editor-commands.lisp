@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-editor-commands.lisp,v 1.29 1993/08/12 16:03:04 cer Exp $
+;; $fiHeader: input-editor-commands.lisp,v 1.30 1995/10/20 17:37:33 colin Exp $
 
 (in-package :clim-internals)
 
@@ -94,7 +94,7 @@ This may confused the input editor" gestures))
 (defun lookup-input-editor-command (gesture aarray)
   ;; Need to handle the help and possibilities commands specially so
   ;; that they work correctly inside of COMPLETE-INPUT
-  (cond ((and *ie-help-enabled* 
+  (cond ((and *ie-help-enabled*
 	      (member gesture *help-gestures*
 		      :test #'keyboard-event-matches-gesture-name-p))
 	 'com-ie-help)
@@ -119,15 +119,15 @@ This may confused the input editor" gestures))
 	   (cond ((and (eq aarray *input-editor-command-aarray*)
 		       bucky-p
 		       ;; If it's a numeric argument, return the digit
-		       (position keysym '#(:|0| :|1| :|2| :|3| :|4| 
+		       (position keysym '#(:|0| :|1| :|2| :|3| :|4|
 					   :|5| :|6| :|7| :|8| :|9|))))
 		 ((and (eq aarray *input-editor-command-aarray*)
 		       bucky-p
 		       (eq keysym ':|-|))
 		  -1)
 		 (t
-		  (second (find gesture aarray 
-				:key #'first 
+		  (second (find gesture aarray
+				:key #'first
 				:test #'keyboard-event-matches-gesture-name-p))))))))
 
 (defmacro define-input-editor-command ((name &key (rescan t) (type 'motion) history)
@@ -163,8 +163,8 @@ This may confused the input editor" gestures))
 				   (gesture character) type)
   (with-slots (numeric-argument last-command-type command-state
 				command-mode) istream
-    (cond #+ics
-	  ((eq command-mode *kana-input-editor-command-aarray*)
+    (cond ((excl:ics-target-case
+	    (:+ics (eq command-mode *kana-input-editor-command-aarray*)))
 	   (setq last-command-type 'character)
 	   (kana-process-gesture istream gesture type))
 	  ((eq command-state command-mode)
@@ -195,7 +195,7 @@ This may confused the input editor" gestures))
 	     (deallocate-event gesture)
 	     nil)))))
 
-(defmethod stream-process-gesture ((istream input-editing-stream-mixin) 
+(defmethod stream-process-gesture ((istream input-editing-stream-mixin)
 				   (gesture key-press-event) type)
   (with-slots (numeric-argument last-command-type command-state
 				command-mode) istream
@@ -246,7 +246,7 @@ This may confused the input editor" gestures))
 	(setf (stream-insertion-pointer istream) position)
 	(return-from stream-process-gesture (values nil nil)))))
   (values gesture type))
-      
+
 ;;--- A work in progress...
 (defmethod compute-input-buffer-input-position ((istream input-editing-stream-mixin) x y)
   (declare (ignore y))
@@ -267,7 +267,7 @@ This may confused the input editor" gestures))
 	      (block index
 		(do-input-buffer-pieces (input-buffer :start start :end end)
 					(from to noise-string)
-		  :normal 
+		  :normal
 		    (multiple-value-bind (char index new-cursor-x new-baseline new-height)
 			(stream-scan-string-for-writing
 			  stream medium input-buffer from to style cursor-x max-x)
@@ -320,10 +320,10 @@ This may confused the input editor" gestures))
 (defun complete-symbol-name (stream input-buffer &aux (colon-string ":"))
   (declare (values string ambiguous word-start))
   (multiple-value-bind (word-start word-end colon)
-      (word-start-and-end input-buffer '(#\space #\( #\) #\") 
+      (word-start-and-end input-buffer '(#\space #\( #\) #\")
 			  (stream-insertion-pointer stream))
     (when word-end
-      (with-temporary-substring 
+      (with-temporary-substring
 	  (package-name input-buffer word-start (or colon word-start))
 	(when (and colon
 		   (< colon word-end)
@@ -346,7 +346,7 @@ This may confused the input editor" gestures))
 
 #+Genera
 (defun complete-symbol-name-1 (string)
-  (complete-from-possibilities 
+  (complete-from-possibilities
     string (scl:g-l-p zwei:*zmacs-completion-aarray*) '(#\-)
     :action :complete-maximal))
 
@@ -404,7 +404,7 @@ This may confused the input editor" gestures))
   "Scroll the display window right"
   (ie-scroll-window numeric-argument :right stream))
 
-;; Scroll the frame's standard output stream in some direction by some amount, 
+;; Scroll the frame's standard output stream in some direction by some amount,
 ;; one screenful being the default.
 (defun ie-scroll-window (distance direction &optional istream)
   (let* ((window (frame-standard-output *application-frame*))
@@ -476,7 +476,7 @@ This may confused the input editor" gestures))
 	  (forward-or-backward buffer start-position reverse-p #'word-character-p))
     (when start-position
       (let ((position
-	      (forward-or-backward buffer start-position reverse-p 
+	      (forward-or-backward buffer start-position reverse-p
 				   #'word-break-character-p)))
 	(and position
 	     (min position (fill-pointer buffer)))))))
@@ -512,7 +512,7 @@ This may confused the input editor" gestures))
 	   (when (eql thing start-char)
 	     (values t nil))))
     (declare (dynamic-extent #'matches-thing))
-    (setq start-position 
+    (setq start-position
 	  (forward-or-backward buffer start-position reverse-p #'true))
     (when start-position
       (let ((position
@@ -550,7 +550,7 @@ This may confused the input editor" gestures))
 	  (forward-or-backward buffer start-position reverse-p #'atom-character-p))
     (when start-position
       (let ((position
-	      (forward-or-backward buffer start-position reverse-p 
+	      (forward-or-backward buffer start-position reverse-p
 				   #'atom-break-character-p)))
 	(and position
 	     (min position (fill-pointer buffer)))))))
@@ -595,7 +595,7 @@ This may confused the input editor" gestures))
 			     (stream input-buffer numeric-argument)
   "Move forward word"
   (repeat (abs numeric-argument)
-    (let ((p (move-over-word input-buffer (stream-insertion-pointer stream) 
+    (let ((p (move-over-word input-buffer (stream-insertion-pointer stream)
 			     (minusp numeric-argument))))
       (if p
 	  (setf (stream-insertion-pointer stream) p)
@@ -606,7 +606,7 @@ This may confused the input editor" gestures))
 			     (stream input-buffer numeric-argument)
   "Move forward sexp"
   (repeat (abs numeric-argument)
-    (let ((p (move-over-sexp input-buffer (stream-insertion-pointer stream) 
+    (let ((p (move-over-sexp input-buffer (stream-insertion-pointer stream)
 			     (minusp numeric-argument))))
       (if p
 	  (setf (stream-insertion-pointer stream) p)
@@ -724,7 +724,7 @@ This may confused the input editor" gestures))
 (defun ie-rub-del (stream input-buffer numeric-argument)
   (let* ((p1 (stream-insertion-pointer stream))
 	 (p2 p1)
-	 (reverse-p (minusp numeric-argument))) 
+	 (reverse-p (minusp numeric-argument)))
     (repeat (abs numeric-argument)
       (let ((p3 (forward-or-backward input-buffer p2 reverse-p #'true)))
 	(if p3 (setq p2 p3) (return))))
@@ -756,7 +756,7 @@ This may confused the input editor" gestures))
 (defun ie-rub-del-word (stream input-buffer numeric-argument)
   (let* ((p1 (stream-insertion-pointer stream))
 	 (p2 p1)
-	 (reverse-p (minusp numeric-argument))) 
+	 (reverse-p (minusp numeric-argument)))
     (repeat (abs numeric-argument)
       (let ((p3 (move-over-word input-buffer p2 reverse-p)))
 	(if p3 (setq p2 p3) (return))))
@@ -781,7 +781,7 @@ This may confused the input editor" gestures))
 (defun ie-rub-del-sexp (stream input-buffer numeric-argument)
   (let* ((p1 (stream-insertion-pointer stream))
 	 (p2 p1)
-	 (reverse-p (minusp numeric-argument))) 
+	 (reverse-p (minusp numeric-argument)))
     (repeat (abs numeric-argument)
       (let ((p3 (move-over-sexp input-buffer p2 reverse-p)))
 	(if p3 (setq p2 p3) (return))))
@@ -893,7 +893,7 @@ This may confused the input editor" gestures))
 
 (define-input-editor-command (com-ie-transpose-words)
 			     (stream input-buffer)
-  "Transpose words" 
+  "Transpose words"
   (let* ((start (stream-insertion-pointer stream))
 	 (next (move-over-word input-buffer start nil))
 	 (this (and next (move-over-word input-buffer next t)))
@@ -912,7 +912,7 @@ This may confused the input editor" gestures))
 
 (define-input-editor-command (com-ie-transpose-sexps)
 			     (stream input-buffer)
-  "Transpose sexps" 
+  "Transpose sexps"
   (let* ((start (stream-insertion-pointer stream))
 	 (next (and start (move-over-sexp input-buffer start nil)))
 	 (this (and next (move-over-sexp input-buffer next t)))
@@ -968,7 +968,7 @@ This may confused the input editor" gestures))
     (let* ((start (stream-insertion-pointer stream))
 	   (end (move-over-word input-buffer start nil))
 	   (state nil))
-      (if end 
+      (if end
 	  (do ((i start (1+ i)))
 	      ((>= i end)
 	       (progn
@@ -992,7 +992,7 @@ This may confused the input editor" gestures))
 (define-input-editor-command (com-ie-set-mark :rescan nil)
 			     (stream numeric-argument)
   "Set the mark"
-  (setf (slot-value stream 'mark) 
+  (setf (slot-value stream 'mark)
 	(if (eq numeric-argument 4)		;control-U
 	    nil
 	    (stream-insertion-pointer stream))))
@@ -1069,7 +1069,7 @@ This may confused the input editor" gestures))
 		  (position #\: string
 			    :start (1+ word-start) :end (1- word-end)))))
       (values (and word-start
-		   (if (atom-break-char-p (aref string word-start)) 
+		   (if (atom-break-char-p (aref string word-start))
 		       (1+ word-start)
 		       word-start))
 	      (and word-end (1- word-end))
@@ -1082,8 +1082,8 @@ This may confused the input editor" gestures))
 			  (stream-insertion-pointer stream))
 
     (when word-end
-      (let ((symbol 
-	     (read-from-string (coerce input-buffer 'string) nil nil 
+      (let ((symbol
+	     (read-from-string (coerce input-buffer 'string) nil nil
 			       :start word-start
 			       :end word-end)))
 	(values
@@ -1169,7 +1169,7 @@ This may confused the input editor" gestures))
 
 ;;--- "Yank matching" (c-sh-Y) would be nice
 (define-input-editor-command (com-ie-kill-ring-yank :history t :type yank :rescan nil)
-			     (stream numeric-argument) 
+			     (stream numeric-argument)
   "Yank from kill ring"
   (ie-yank-from-history *kill-ring* #'yank-from-history stream numeric-argument))
 
@@ -1199,7 +1199,7 @@ This may confused the input editor" gestures))
 
 (defmacro define-input-editor-gestures (&body gestures)
   `(progn
-     ,@(mapcar #'(lambda (gesture) 
+     ,@(mapcar #'(lambda (gesture)
 		   (let ((name (first gesture))
 			 (gesture-spec (rest gesture)))
 		     `(add-gesture-name ,name :keyboard ',gesture-spec :unique nil)))
@@ -1443,7 +1443,7 @@ This may confused the input editor" gestures))
       (:right-arrow :right-arrow)
       (:up-arrow :up-arrow)
       (:down-arrow :down-arrow))
-  
+
   (assign-input-editor-key-bindings
       com-ie-backward-character  :left-arrow
     com-ie-forward-character :right-arrow

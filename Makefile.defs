@@ -1,4 +1,4 @@
-# $fiHeader: Makefile.defs,v 1.33 1995/05/17 19:47:02 colin Exp $
+# $fiHeader: Makefile.defs,v 1.34 1995/10/20 17:36:03 colin Exp $
 #
 #  Makefile.defs for CLIM 2.0
 #
@@ -75,14 +75,19 @@ OL_UNDEFS=misc/undefinedsymbols.olit
 # This has to be kept consistent with tk/ol-classes.lisp
 OLC_UNDEFS=misc/undefinedsymbols.colit
 
+# This has to be kept consistent with wnn/jl-funs.lisp
+WNN_UNDEFS=misc/undefinedsymbols.wnn
+
 # These are the fasls and the .o that form the product
 
-PRODUCT-GENERIC-FASLS= \
+PRODUCT-GENERIC-FASLS = \
 	climg.fasl climdemo.fasl clim-debug.fasl climps.fasl \
 	climgg.fasl climhpgl.fasl
 
-PRODUCT-XM-FASLS= 	climxm.fasl clim-debugxm.fasl
-PRODUCT-OL-FASLS= 	climol.fasl clim-debugol.fasl
+PRODUCT-XM-FASLS = climxm.fasl clim-debugxm.fasl
+PRODUCT-OL-FASLS = climol.fasl clim-debugol.fasl
+
+PRODUCT-WNN-FASLS = climwnn.fasl clim-debugwnn.fasl
 
 PRODUCT-GENERIC-OBJS= \
 	stub-xt.o stub-x.o xtsupport.o xlibsupport.o
@@ -104,8 +109,7 @@ PRODUCT-OBJS=	$(PRODUCT-GENERIC-OBJS) $(STATIC-XM-OBJS)
 #
 
 GENERIC-FASLS= \
-	utils/excl-verification.fasl utils/lisp-package-fixups.fasl \
-	utils/defpackage.fasl utils/packages.fasl \
+	utils/excl-verification.fasl utils/packages.fasl \
 	utils/defun-utilities.fasl utils/reader.fasl \
 	utils/clos-patches.fasl utils/clos.fasl utils/utilities.fasl \
 	utils/lisp-utilities.fasl utils/processes.fasl utils/queue.fasl \
@@ -130,6 +134,7 @@ GENERIC-FASLS= \
 	clim/recording-protocol.fasl clim/recording-defs.fasl \
 	clim/text-recording.fasl clim/graphics-recording.fasl \
 	clim/interactive-protocol.fasl clim/input-editor-commands.fasl \
+        clim/japanese-input-editor.fasl \
 	clim/formatted-output-defs.fasl clim/incremental-redisplay.fasl \
 	clim/coordinate-sorted-set.fasl clim/r-tree.fasl \
 	clim/window-stream.fasl clim/pixmap-streams.fasl \
@@ -154,7 +159,8 @@ DEMO-FASLS= \
 	demo/graphics-demos.fasl demo/cad-demo.fasl demo/navdata.fasl \
 	demo/navfun.fasl demo/puzzle.fasl demo/address-book.fasl \
 	demo/thinkadot.fasl demo/plot.fasl demo/color-editor.fasl \
-	demo/graphics-editor.fasl demo/bitmap-editor.fasl demo/ico.fasl \
+	demo/graphics-editor.fasl demo/japanese-graphics-editor.fasl \
+	demo/bitmap-editor.fasl demo/ico.fasl \
 	demo/browser.fasl demo/peek-frame.fasl demo/process-browser.fasl \
 	demo/custom-records.fasl demo/demo-activity.fasl \
 	test/test-suite.fasl demo/demo-last.fasl
@@ -198,6 +204,10 @@ OL-FASLS= \
 	tk-silica/xt-pixmaps.fasl tk-silica/gc-cursor.fasl \
 	tk-silica/last.fasl
 
+WNN-FASLS= \
+	wnn/load-wnn.fasl wnn/pkg.fasl wnn/jserver.fasl
+
+
 POSTSCRIPT-FASLS= \
 	postscript/postscript-port.fasl postscript/postscript-medium.fasl \
 	postscript/laserwriter-metrics.fasl
@@ -217,6 +227,8 @@ DEBUG-FASLS = \
 
 XM-DEBUG-FASLS = tk/xm-defs.fasl tk/xm-funs.fasl 
 OL-DEBUG-FASLS = tk/ol-defs.fasl tk/ol-funs.fasl
+
+WNN-DEBUG-FASLS = wnn/jl-defs.fasl wnn/jl-funs.fasl
 
 # end of fasls
 

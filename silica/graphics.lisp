@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics.lisp,v 1.29 1993/07/27 01:50:47 colin Exp $
+;; $fiHeader: graphics.lisp,v 1.30 1993/11/18 18:44:57 cer Exp $
 
 (in-package :silica)
 
@@ -9,7 +9,7 @@
 
 
 (eval-when (compile load eval)
-  
+
 ;; NOTE: if you change this list of keywords, you also have to change the keyword arguments
 ;; accepted by (CLOS:METHOD INVOKE-WITH-DRAWING-OPTIONS (DRAWING-STATE-MIXIN T))
 (defparameter *all-drawing-options*
@@ -68,7 +68,7 @@
 
 (eval-when (compile load eval)
 
-(defun write-graphics-function-transformer (name 
+(defun write-graphics-function-transformer (name
 					    medium-graphics-function-name
 					    unspread-argument-names
 					    spread-arguments
@@ -81,10 +81,10 @@
 					    keyword-arguments-to-spread)
   (declare (ignore spread-arguments))
   (list
-    `(define-compiler-macro ,spread-name 
+    `(define-compiler-macro ,spread-name
 			    (&whole form medium-or-stream ,@spread-argument-names
 			     &rest drawing-options-and-keyword-arguments)
-       (or (transform-graphics-function-call 
+       (or (transform-graphics-function-call
 	     medium-or-stream
 	     ',medium-graphics-function-name
 	     ',drawing-options
@@ -92,10 +92,10 @@
 	     (list ,@spread-argument-names)
 	     drawing-options-and-keyword-arguments)
 	   form))
-    `(define-compiler-macro ,name 
-			    (&whole form medium-or-stream ,@unspread-argument-names 
+    `(define-compiler-macro ,name
+			    (&whole form medium-or-stream ,@unspread-argument-names
 			     &rest drawing-options-and-keyword-arguments)
-       (or (transform-graphics-function-call 
+       (or (transform-graphics-function-call
 	     medium-or-stream
 	     ',medium-graphics-function-name
 	     ',drawing-options
@@ -128,7 +128,7 @@
 	 (no-keyword (subseq arguments 0 keyn))
 	 (keyword (and keyn (subseq arguments (1+ keyn))))
 	 unspread-argument-names
-	 spread-arguments 
+	 spread-arguments
 	 spread-argument-names)
     (dolist (x no-keyword)
       (multiple-value-bind (argname spread-args spread-values)
@@ -137,7 +137,7 @@
 	  (dolist (x spread-args) (push x spread-arguments))
  	  (dolist (x spread-values) (push x spread-argument-names))))
     (let ((original-keywords keyword)
-	  (new-keywords 
+	  (new-keywords
 	    (mapcan #'(lambda (x)
 			(let ((y (assoc (if (consp x) (car x) x)
 					keyword-arguments-to-spread)))
@@ -221,14 +221,14 @@
 			       (let ((x (assoc do stuff)))
 				 (and x (list do (second x)))))
 			   drawing-options)))
-	    
+
 	    `(let ((,medium-or-stream-name ,medium-or-stream))
 	       (let ,bindings
 		 (let ,(mapcar #'(lambda (x)
 				   (list (second x) (third x)))
 			       stuff)
 		   ,(if supplied-drawing-options
-			`(with-drawing-options 
+			`(with-drawing-options
 			   (,medium-or-stream-name ,@supplied-drawing-options)
 			   ,call)
 		        call))))))))))
@@ -312,7 +312,7 @@
 ;; is false, otherwise it returns a new vector containing the result.
 (defun transform-position-sequence (transform positions &optional copy-p)
   (if (eq transform +identity-transformation+)
-      (if copy-p 
+      (if copy-p
 	  (make-array (length positions) :initial-contents positions)
 	  positions)
       (let* ((length (length positions))
@@ -338,12 +338,12 @@
 	      (do ((i 0 (+ 2 i)))
 		  ((= i length))
 		(multiple-value-bind (x y)
-		    (transform-position transform 
+		    (transform-position transform
 					(aref positions i) (aref positions (1+ i)))
 		  (setf (svref result i) x
 			(svref result (1+ i)) y)))))
 	result)))
-    
+
 (defun spread-point-sequence (sequence)
   (declare (optimize (speed 3) (safety 0)))
   (let* ((length (length sequence))
@@ -351,12 +351,12 @@
 	 (i -1))
     (declare (type simple-vector new))
     (doseq (point sequence)
-      (setf (svref result (incf i)) (point-x point)) 
+      (setf (svref result (incf i)) (point-x point))
       (setf (svref result (incf i)) (point-y point)))
     result))
 
 
-(defmacro define-graphics-generic (name arguments 
+(defmacro define-graphics-generic (name arguments
 				   &rest args
 				   &key keywords-to-spread
 					drawing-options
@@ -373,45 +373,45 @@
 	   (intern (format nil "~A~A*" 'medium- name))))
     (multiple-value-bind (unspread-argument-names spread-arguments
 			  spread-argument-names keyword-argument-names
-			  unspread-other-keyword-arguments			  
+			  unspread-other-keyword-arguments
 			  other-keyword-arguments keywords)
 	(decode-graphics-function-arguments arguments keywords-to-spread)
       `(progn
 	 (defun ,name (medium ,@unspread-argument-names &rest args
-		       &key ,@drawing-options ,@unspread-other-keyword-arguments) 
+		       &key ,@drawing-options ,@unspread-other-keyword-arguments)
 	   (declare (ignore ,@drawing-options ,@keyword-argument-names)
 		    (dynamic-extent args))
 	   ,(if keywords-to-spread
-		`(with-keywords-removed 
+		`(with-keywords-removed
 		     (args args ',(mapcar #'(lambda (x)
 					      (intern (symbol-name (car x)) :keyword))
 					  keywords-to-spread))
-		   (apply #',spread-name 
+		   (apply #',spread-name
 			  medium
 			  ,@spread-arguments
-			  ,@(mapcan 
-			      #'(lambda (x) 
+			  ,@(mapcan
+			      #'(lambda (x)
 				  (destructuring-bind (name type . rest) x
 				    (ecase type
-				      (point 
+				      (point
 					(list (intern (symbol-name (first rest)) :keyword)
 					      `(and ,name (point-x ,name))
 					      (intern (symbol-name (second rest)) :keyword)
 					      `(and ,name (point-y ,name)))))))
 			      keywords-to-spread)
 			  args))
- 		`(apply #',spread-name 
+ 		`(apply #',spread-name
 			medium
 			,@spread-arguments
 			args)))
-	 (defun ,spread-name (medium ,@spread-argument-names &rest args 
+	 (defun ,spread-name (medium ,@spread-argument-names &rest args
 			      &key ,@drawing-options ,@other-keyword-arguments)
 	   (declare (ignore ,@drawing-options)
 		    (dynamic-extent args))
 	   ,(if keywords
 		`(with-keywords-removed (args args ',keywords)
 		   (flet ((,continuation-name ()
-			   (,medium-graphics-function-name 
+			   (,medium-graphics-function-name
 			      medium
 			      ,@spread-argument-names
 			      ,@keyword-argument-names)))
@@ -419,7 +419,7 @@
 		     (apply #'invoke-with-drawing-options
 			    medium #',continuation-name args)))
 		`(flet ((,continuation-name ()
-			 (,medium-graphics-function-name 
+			 (,medium-graphics-function-name
 			    medium
 			    ,@spread-argument-names
 			    ,@keyword-argument-names)))
@@ -428,19 +428,19 @@
 			  medium #',continuation-name args))))
 	 (setf (get ',name 'args)
 	       '((,@spread-argument-names ,@keyword-argument-names)
-		 ,@args)) 
+		 ,@args))
 	 (defmethod ,medium-graphics-function-name
 		    ((sheet basic-sheet) ,@spread-argument-names ,@keyword-argument-names)
 	   #+Genera (declare (sys:function-parent ,name define-graphics-generic))
 	   (with-sheet-medium (medium sheet)
-	     (,medium-graphics-function-name medium 
+	     (,medium-graphics-function-name medium
 					     ,@spread-argument-names
 					     ,@keyword-argument-names)))
 	 (defmethod ,medium-graphics-function-name
 		    ((sheet permanent-medium-sheet-output-mixin)
 		     ,@spread-argument-names ,@keyword-argument-names)
 	   #+Genera (declare (sys:function-parent ,name define-graphics-generic))
-	   (,medium-graphics-function-name (sheet-medium sheet) 
+	   (,medium-graphics-function-name (sheet-medium sheet)
 					   ,@spread-argument-names
 					   ,@keyword-argument-names))
 	 (defmethod ,medium-graphics-function-name :around
@@ -453,7 +453,7 @@
 			 (do ((pts positions-to-transform (cddr pts))
 			      (tf '#:transform)
 			      (r nil))
-			     ((null pts) 
+			     ((null pts)
 			      `(let ((,tf (medium-transformation medium)))
 				 ,@(nreverse r)))
 			   (let ((b `(transform-positions
@@ -462,7 +462,7 @@
 				 (push `(when ,(car pts) ,b) r)
 				 (push b r)))))
 		   ,@(and distances-to-transform
-			  `((transform-distances 
+			  `((transform-distances
 			      (medium-transformation medium)
 			      ,@distances-to-transform)))
 		   ,@(mapcar #'(lambda (seq)
@@ -472,7 +472,7 @@
 		   (call-next-method medium
 				     ,@spread-argument-names ,@keyword-argument-names))))
 	 ,@(write-graphics-function-transformer
-	     name 
+	     name
 	     medium-graphics-function-name
 	     unspread-argument-names
 	     spread-arguments
@@ -506,13 +506,13 @@
   :drawing-options :line-cap
   :position-sequences-to-transform (position-seq))
 
-(defun draw-arrow* (medium x1 y1 x2 y2 
+(defun draw-arrow* (medium x1 y1 x2 y2
 		    &rest args
 		    &key (from-head nil) (to-head t) (head-length 10) (head-width 5)
 		    &allow-other-keys)
   (declare (dynamic-extent args))
-  (declare (arglist medium x1 y1 x2 y2 
-		    &rest args 
+  (declare (arglist medium x1 y1 x2 y2
+		    &rest args
 		    &key (from-head nil) (to-head t) (head-length 10) (head-width 5)
 		    . #.(all-drawing-options-lambda-list :line-cap)))
   (flet ((draw-arrow ()
@@ -548,7 +548,7 @@
 		       (draw-polygon* medium points :filled t)
 		       (setq x2 xa y2 ya)))))))))
     (declare (dynamic-extent #'draw-arrow))
-    (with-keywords-removed (options args 
+    (with-keywords-removed (options args
 			    '(:from-head :to-head :head-length :head-width))
       (apply #'invoke-with-drawing-options medium #'draw-arrow options))))
 
@@ -558,7 +558,7 @@
 		    &rest args
 		    &key (from-head nil) (to-head t) (head-length 10) (head-width 5)
 		    . #.(all-drawing-options-lambda-list :line-cap)))
-  (apply #'draw-arrow* 
+  (apply #'draw-arrow*
 	 medium (point-x point1) (point-y point1) (point-x point2) (point-y point2) args))
 
 (define-graphics-generic draw-rectangle ((point1 point x1 y1)
@@ -572,7 +572,7 @@
 	     (transform-positions transform x1 y1 x2 y2)
 	     (call-next-method medium x1 y1 x2 y2 filled))
 	    (t
-	     ;;--- Massively inefficient 
+	     ;;--- Massively inefficient
 	     (with-stack-list (list x1 y1 x2 y1 x2 y2 x1 y2)
 	       (medium-draw-polygon* medium list t filled))))))
 
@@ -592,16 +592,16 @@
   (let ((len (length position-seq)))
     (assert (zerop (mod len 4)))
     (macrolet ((draw-one (x1 y1 x2 y2)
-		 `(let ((x1 ,x1) 
-			(y1 ,y1) 
-			(x2 ,x2) 
+		 `(let ((x1 ,x1)
+			(y1 ,y1)
+			(x2 ,x2)
 			(y2 ,y2))
 		    (with-stack-list (list x1 y1 x2 y1 x2 y2 x1 y2)
 		      (medium-draw-polygon* medium list t filled)))))
       (if (listp position-seq)
 	  (do ((position-seq position-seq))
 	      ((null position-seq))
-	    (draw-one (pop position-seq) (pop position-seq) 
+	    (draw-one (pop position-seq) (pop position-seq)
 		      (pop position-seq) (pop position-seq)))
 	  (do ((i 0 (+ i 4)))
 	      ((= i len))
@@ -730,7 +730,7 @@
 	   (,gr ,radius))
        (draw-ellipse* ,gm ,gx ,gy ,gr 0 0 ,gr ,@args))))
 
-(defun draw-oval* (medium center-x center-y x-radius y-radius 
+(defun draw-oval* (medium center-x center-y x-radius y-radius
 		   &rest args &key (filled t) &allow-other-keys)
   (declare (dynamic-extent args))
   (declare (arglist medium center-x center-y x-radius y-radius
@@ -743,7 +743,7 @@
 		   (right (+ center-x x-radius))
 		   (top (- center-y y-radius))
 		   (bottom (+ center-y y-radius)))
-	       (cond ((or (= x-radius y-radius) 
+	       (cond ((or (= x-radius y-radius)
 			  (zerop x-radius))
 		      (draw-ellipse* medium center-x center-y y-radius 0 0 y-radius
 				     :filled filled))
@@ -777,10 +777,10 @@
 			(let ((east 0.0)
 			      (west (float pi 0.0)))
 			  (draw-ellipse* medium center-x rect-top x-radius 0 0 x-radius
-					 :start-angle west :end-angle east
+					 :start-angle east :end-angle west
 					 :filled filled)
 			  (draw-ellipse* medium center-x rect-bottom x-radius 0 0 x-radius
-					 :start-angle east :end-angle west
+					 :start-angle west :end-angle east
 					 :filled filled)))))))))
     (declare (dynamic-extent #'draw-oval))
     (apply #'invoke-with-drawing-options medium #'draw-oval args)))
@@ -790,7 +790,7 @@
   (declare (arglist medium point x-radius y-radius
 	    &rest args
 	    . #.(all-drawing-options-lambda-list :line-cap)))
-  (apply #'draw-oval* 
+  (apply #'draw-oval*
 	 medium (point-x center) (point-y center) x-radius y-radius args))
 
 (define-graphics-generic draw-text (string-or-char (point point x y)
@@ -833,7 +833,7 @@
       (collect (elt position-seq 0) (elt position-seq 1))
       (do ((i 0 (+ i 6)))
 	  ((= i (1- last)))
-	(render-bezier-curve #'collect 
+	(render-bezier-curve #'collect
 	  (elt position-seq i)	     (elt position-seq (+ 1 i))
 	  (elt position-seq (+ 2 i)) (elt position-seq (+ 3 i))
 	  (elt position-seq (+ 4 i)) (elt position-seq (+ 5 i))
@@ -854,7 +854,7 @@
 	     (+ (* x0 1/8) (* x1 3/8) (* x2 3/8) (* x3 1/8))
 	     (+ (* y0 1/8) (* y1 3/8) (* y2 3/8) (* y3 1/8))
 	     ;; The second 1/2
-	     (+ (* x0 1/8) (* x1 3/8) (* x2 3/8) (* x3 1/8)) 
+	     (+ (* x0 1/8) (* x1 3/8) (* x2 3/8) (* x3 1/8))
 	     (+ (* y0 1/8) (* y1 3/8) (* y2 3/8) (* y3 1/8))
 	     (+ (/ x1 4) (/ x2 2) (/ x3 4)) (+ (/ y1 4) (/ y2 2) (/ y3 4))
 	     (+ (/ x2 2) (/ x3 2)) (+ (/ y2 2) (/ y3 2))

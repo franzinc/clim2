@@ -1,7 +1,7 @@
 ;; -*- mode: common-lisp; package: wnn -*-
 ;;
 ;;				-[Thu Nov 10 19:28:13 1994 by smh]-
-;; 
+;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1992 Franz Inc, Berkeley, CA  All rights reserved.
 ;;
@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader:$
+;; $fiHeader: jserver.lisp,v 1.1 1995/10/20 17:42:17 colin Exp $
 
 (in-package :wnn)
 
@@ -42,7 +42,7 @@
 
 (defparameter *jserver-timeout* 5)
 
-(defmethod initialize-instance :after 
+(defmethod initialize-instance :after
 	   ((js jserver) &key server-path)
   (destructuring-bind (&key (login (system:getenv "LOGNAME"))
 			    (host (or (system:getenv "JSERVER")
@@ -55,15 +55,15 @@
     (let* ((buf
 	    (let ((temp (mp:process-quantum mp:*current-process*)))
 	      (unwind-protect
-		  (progn (setf (mp:process-quantum mp:*current-process*) 
+		  (progn (setf (mp:process-quantum mp:*current-process*)
 			   *jserver-timeout*)
 			 (mp:process-allow-schedule)
 			 ;; it's important to specify a timeout of -1
 			 ;; in the call to jl_open_lang otherwise wnn
 			 ;; messes with sigalrm
-			 (jl_open_lang (tk::fat-string-to-string8 login)
-				       (tk::fat-string-to-string8 host)
-				       (tk::fat-string-to-string8 lang)
+			 (jl_open_lang (tk::lisp-string-to-string8 login)
+				       (tk::lisp-string-to-string8 host)
+				       (tk::lisp-string-to-string8 lang)
 				       0 0 0 -1))
 		(setf (mp:process-quantum mp:*current-process*) temp)
 		(mp:process-allow-schedule))))
@@ -97,7 +97,7 @@
 
 (defmacro select-bunsetu (buf bunsetu)
   `(unless (eq ,bunsetu (wnn-buf-zenkouho-bun ,buf))
-     (jl_zenkouho ,buf ,bunsetu wnn_use_mae 
+     (jl_zenkouho ,buf ,bunsetu wnn_use_mae
 		  (case *wnn-unique*
 		    (nil wnn_no_uniq)
 		    (:unique wnn_uniq)
@@ -131,7 +131,7 @@
 
 (defun henkan-begin (js yomi)
   ;; these two hard-wired consants were copied from
-  ;; <mule>/src/wnn4fns.c 
+  ;; <mule>/src/wnn4fns.c
   (with-slots (buf) js
     (jl_ren_conv buf yomi 0 -1 wnn_use_mae)))
 
@@ -154,7 +154,7 @@
   (let ((bunsetu 0)
 	(r ""))
     (dolist (kouho kouhos)
-      (setq r 
+      (setq r
 	(concatenate 'string r (get-kouho-kanji bunsetu kouho t)))
       (incf bunsetu))
     r))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: packages.lisp,v 1.66 1995/10/17 05:04:13 colin Exp $
+;; $fiHeader: packages.lisp,v 1.67 1995/10/20 17:42:09 colin Exp $
 
 (in-package :common-lisp-user)
 
@@ -10,253 +10,12 @@
 ;; Define the CLIM-LISP package, a package designed to mimic ANSI Common Lisp
 ;; as closely as possible (including CLOS).
 (defpackage clim-lisp
-  #+Allegro (:implementation-packages :clim-lisp :clim-utils)
- (:use common-lisp
-       #+Allegro clos
-       #+(and CLIM-uses-lisp-stream-classes Allegro) stream)
+   (:implementation-packages :clim-lisp :clim-utils)
+ (:use common-lisp clos stream)
 
- (:import-from #+PCL pcl #-PCL clos
-   class-direct-subclasses
-   class-direct-superclasses
-   class-precedence-list
-   class-prototype
-   funcallable-standard-class)
-
- #+Lucid (:shadow define-condition)
-
- #+(and Genera (not ANSI-90))
- (:import-from future-common-lisp
-   *print-readably*
-   *read-eval*
-   declaim
-   define-compiler-macro
-   defpackage
-   dynamic-extent
-   print-unreadable-object
-   real
-   with-standard-io-syntax)
-
- #+Genera
- (:import-from future-common-lisp
-   *compile-file-pathname*
-   *compile-print*
-   *compile-verbose*
-   *gensym-counter*
-   *load-pathname*
-   *load-print*
-   *load-truename*
-   *print-lines*
-   *print-miser-width*
-   *print-pprint-dispatch*
-   *print-right-margin*
-   base-string
-   broadcast-stream
-   broadcast-stream-streams
-   compile-file-pathname
-   compiler-macro-function
-   concatenated-stream
-   concatenated-stream-streams
-   copy-pprint-dispatch
-   debug
-   destructuring-bind
-   echo-stream
-   echo-stream-input-stream
-   echo-stream-output-stream
-   fdefinition
-   file-stream
-   file-string-length
-   formatter
-   load-logical-pathname-translations
-   load-time-value
-   logical-pathname
-   logical-pathname-translations
-   loop-finish
-   nth-value
-   pathname-match-p
-   pprint-dispatch
-   pprint-exit-if-list-exhausted
-   pprint-fill
-   pprint-indent
-   pprint-linear
-   pprint-logical-block
-   pprint-newline
-   pprint-pop
-   pprint-tab
-   pprint-tabular
-   readtable-case
-   row-major-aref
-   set-pprint-dispatch
-   simple-base-string
-   stream-external-format
-   string-stream
-   synonym-stream
-   synonym-stream-symbol
-   translate-logical-pathname
-   translate-pathname
-   two-way-stream
-   two-way-stream-input-stream
-   two-way-stream-output-stream
-   upgraded-array-element-type
-   upgraded-complex-part-type
-   wild-pathname-p
-   with-compilation-unit
-   with-condition-restarts
-   with-hash-table-iterator
-   with-package-iterator)
-
- #+Symbolics
- (:import-from clos-internals
-   compile-file-environment-p)
-
- #+Cloe-Runtime
- (:import-from cloe
-   destructuring-bind
-   with-standard-io-syntax)
-
- #+Cloe-Runtime
- (:import-from clos-internals
-   dynamic-extent)
-
- #+Lucid
- (:import-from lucid-common-lisp
-   dynamic-extent)
-
- #+Allegro
- (:import-from excl
-   dynamic-extent)
-
- #+Cloe-Runtime
- (:import-from system
-   stream-advance-to-column
-   stream-clear-input
-   stream-clear-output
-   stream-finish-output
-   stream-force-output
-   stream-fresh-line
-   stream-line-column
-   stream-listen
-   stream-peek-char
-   stream-read-byte
-   stream-read-char
-   stream-read-char-no-hang
-   stream-read-line
-   stream-start-line-p
-   stream-terpri
-   stream-unread-char
-   stream-write-byte
-   stream-write-char
-   stream-write-string)
-
- #+Minima
- (:import-from minima-internals
-   stream-advance-to-column
-   stream-clear-input
-   stream-clear-output
-   stream-finish-output
-   stream-force-output
-   stream-fresh-line
-   stream-line-column
-   stream-listen
-   stream-peek-char
-   stream-read-byte
-   stream-read-char
-   stream-read-char-no-hang
-   stream-read-line
-   stream-start-line-p
-   stream-terpri
-   stream-unread-char
-   stream-write-byte
-   stream-write-char
-   stream-write-string)
-
- ;; Stream Proposal -- Classes and class predicates.
- #-CLIM-uses-Lisp-stream-classes
- (:shadow
-   fundamental-binary-input-stream
-   fundamental-binary-output-stream
-   fundamental-binary-stream
-   fundamental-character-input-stream
-   fundamental-character-output-stream
-   fundamental-character-stream
-   fundamental-input-stream
-   fundamental-output-stream
-   fundamental-stream
-   input-stream-p
-   open-stream-p
-   output-stream-p
-   streamp)
-
- #-(or CLIM-uses-Lisp-stream-functions Lucid)
- (:shadow
-   clear-input
-   clear-output
-   close
-   finish-output
-   force-output
-   format
-   fresh-line
-   listen
-   pathname
-   peek-char
-   read-byte
-   read-char
-   read-char-no-hang
-   read-line
-   stream-element-type
-   terpri
-   truename
-   unread-char
-   with-open-stream
-   write-byte
-   write-char
-   write-string)
-
-  #+Lucid
- (:import-from common-lisp
-   clear-input
-   clear-output
-   finish-output
-   force-output
-   format
-   fresh-line
-   listen
-   peek-char
-   read-byte
-   read-char
-   read-char-no-hang
-   read-line
-   terpri
-   unread-char
-   write-byte
-   write-char
-   write-string)
-
- ;; Import these symbols so that we can define methods for them.
- #+CCL-2
- (:import-from ccl
-   stream-clear-input
-   stream-force-output
-   stream-fresh-line
-   stream-listen)
-
- #+Genera
- (:shadow
-   close
-   pathname
-   stream-element-type
-   truename
-   with-open-stream)
-
- #+Allegro
  (:shadow
    pathname
    truename)
-
- #+Lucid
- (:shadow
-   close
-   stream-element-type
-   with-open-stream)
 
  ;; Shadow this everywhere to make it a generic function
  (:shadow
@@ -494,7 +253,6 @@
    class-of
    class-precedence-list
    class-prototype
-   #+PCL classp
    clear-input
    clear-output
    close
@@ -1276,16 +1034,7 @@
    stream-write-char
    stream-write-string))
 
-;; Get around a CCL-2 bug with DEFPACKAGE
-#+CCL-2
-(eval-when (eval compile load)
-  (export '(()) (find-package :clim-lisp)))
 
-#+(and Genera lock-CLIM-packages) (setf (si:pkg-locked (find-package :clim-lisp)) t)
-
-#+Genera (pushnew (find-package :clim-lisp) si:*reasonable-packages*)
-
-
 ;; Define the CLIM-SYS package
 (defpackage clim-sys
   (:use)				;use nothing
@@ -1332,19 +1081,17 @@
     defmethod*
     setf*))
 
-#+(and Genera lock-CLIM-packages) (setf (si:pkg-locked (find-package :clim-sys)) t)
 
 
 ;; Define the CLIM package
 (defpackage clim
   (:use)				;use nothing
-  #+Allegro (:implementation-packages
-	     :silica
-	     :clim-utils
-	     :clim-silica
-	     :clim-internals
-	     :postscript-clim
-	     :xm-silica)
+  (:implementation-packages :silica
+			    :clim-utils
+			    :clim-silica
+			    :clim-internals
+			    :postscript-clim
+			    :xm-silica)
   (:import-from clim-lisp
     and
     boolean
@@ -1545,7 +1292,6 @@
 
     ;; Windowing substrate
     *default-server-path*
-    #+ics *default-kanji-server-path*
     +control-key+
     +hyper-key+
     +meta-key+
@@ -1559,7 +1305,6 @@
     basic-medium
     basic-pane
     basic-port
-    #+ics basic-kanji-server
     basic-sheet
     bursting-input-queuer
     bury-sheet
@@ -1574,7 +1319,6 @@
     delete-watcher
     destroy-mirror
     destroy-port
-    #+ics destroy-kanji-server
     device-clipping-region
     device-event
     device-transformation
@@ -1603,7 +1347,6 @@
     fetch-clipping-region
     find-graft
     find-port
-    #+ics find-kanji-server
     focus-event
     focus-in-event
     focus-out-event
@@ -1633,7 +1376,6 @@
     make-standard-sheet
     map-over-grafts
     map-over-ports
-    #+ics map-over-kanji-servers
     map-over-sheets
     map-over-sheets-containing-position
     map-over-sheets-overlapping-region
@@ -1693,7 +1435,6 @@
     pointer-motion-event
     poll-pointer
     port
-    #+ics kanji-server
     port-alive-p
     port-keyboard-input-focus
     port-modifier-state
@@ -1701,12 +1442,9 @@
     port-pointer
     port-properties
     port-server-path
-    #+ics kanji-server-path
     port-set-pointer-cursor
     port-type
-    #+ics kanji-server-type
     portp
-    #+ics kanji-server-p
     presentation-event
     primitive-sheet-output-mixin
     process-next-event
@@ -1941,6 +1679,8 @@
     palette-color-p
     palette-dynamic-p
     palette-full
+    palette-full-color
+    palette-full-palette
     palettep
     port-default-palette
     remove-colors-from-palette
@@ -2771,6 +2511,7 @@
     scroll-bar
     scroll-bar-drag-callback
     scroll-bar-pane
+    scroll-bar-size
     set-gadget-items
     set-gadget-name-key
     set-gadget-test
@@ -2801,13 +2542,6 @@
     new-page
     with-output-to-postscript-stream)
 
-  #+ics
-  (:export
-   jie-begin-kanji-conversion
-   jie-get-kanji
-   jie-end-kanji-conversion)
-
-  #+Allegro
   (:export
    read-bitmap-file
    *bitmap-search-path*
@@ -2851,7 +2585,6 @@
     convert-from-descendant-to-ancestor-coordinates
     convert-from-relative-to-absolute-coordinates
     convert-to-stream-coordinates
-    #+Genera define-genera-application
     draw-regular-polygon
     draw-regular-polygon*
     draw-triangle
@@ -2891,73 +2624,43 @@
     windowp
     window-top-level-window))
 
-#+(and Genera lock-CLIM-packages) (setf (si:pkg-locked (find-package :clim)) t)
+(excl:ics-target-case
+(:+ics
+
+(defpackage clim
+  (:use)
+  ;; should these all be exported from the clim package?
+
+  (:export
+   jie-begin-kanji-conversion
+   jie-get-kanji
+   jie-end-kanji-conversion
+   kanji-server-p
+   kanji-server-type
+   kanji-server-path
+   kanji-server
+   map-over-kanji-servers
+   find-kanji-server
+   destroy-kanji-server
+   basic-kanji-server
+   *default-kanji-server-path*))
+
+)) ;; ics-target-case
 
 
 ;; Now define all of the implementation packages
 (defpackage clim-utils
-  #+Allegro (:implementation-packages :clim-utils :clim-silica
-				       :clim-internals :xt-silica)
+  (:implementation-packages :clim-utils :clim-silica
+			    :clim-internals :xt-silica)
   (:use	clim-lisp clim-sys clim)
 
-  #+Genera
-  (:import-from system
-    arglist)
-  #+Genera
-  (:import-from zwei
-    indentation)
-
-  #+Cloe-Runtime
-  (:import-from cloe
-    arglist)
-
-  #+Lucid
-  (:import-from system
-    arglist)
-
-  #+Allegro
   (:import-from excl
     arglist)
 
-  #+(or Genera (not ANSI-90))
-  (:shadow
-    defun
-    flet labels
-    defgeneric defmethod)
-
-  ;; Older versions of Lucid and Allegro don't hack declarations properly
-  ;; for WITH-SLOTS
-  #+(and Allegro (not (version>= 4 1)))
-  (:shadow
-    with-slots)
-  #+(and Allegro (not (version>= 4 1)))
-  (:export
-    with-slots)
-
-  ;; Fix CHAR-BITS and friends as best we can
-  #+CCL-2
-  (:shadow
-    char=
-    standard-char-p
-    graphic-char-p
-    alpha-char-p)
-  #+CCL-2
-  (:export
-    char-bits
-    char=
-    standard-char-p
-    graphic-char-p
-    alpha-char-p)
-
-  #+(or (and ANSI-90 Genera) Cloe-Runtime)
-  (:import-from lisp
-    string-char
-    char-bits)
-  #+Allegro
   (:shadowing-import-from cltl1
     string-char
     char-bits)
-  #+(or Allegro (and ANSI-90 Genera) Cloe-Runtime)
+
   (:export
     string-char
     char-bits)
@@ -3225,27 +2928,14 @@
 
 (defpackage clim-silica
    (:nicknames silica pyrex)
-   #+Allegro (:implementation-packages :clim-silica :clim-internals :xt-silica)
+   (:implementation-packages :clim-silica :clim-internals :xt-silica)
   (:use	clim-lisp clim-sys clim clim-utils)
 
-  #+CCL-2
-  (:shadowing-import-from clim-utils
-    char=
-    standard-char-p
-    graphic-char-p
-    alpha-char-p)
-
-  #-CCL-2
   (:shadowing-import-from clim-utils
     defun
     flet labels
     defgeneric defmethod
-    dynamic-extent
-    #-(or Allegro Lucid) non-dynamic-extent)
-
-  #+(and Allegro (not (version>= 4 1)))
-  (:shadowing-import-from clim-utils
-    with-slots)
+    dynamic-extent)
 
   (:export
     *all-drawing-options*
@@ -3255,8 +2945,8 @@
     *null-text-style*
     *pointer-buttons*
     *ports*
-    #+ics *kanji-servers*
     *standard-character-set*
+    *all-character-sets*
     +highlighting-line-style+
     activate-gadget-event
     add-sheet-callbacks
@@ -3297,7 +2987,6 @@
     drag-gadget-event
     draw-gadget-label
     find-port-type
-    #+ics find-kanji-server-type
     fit-region*-in-region*
     focus-gadget
     focus-in-gadget-event
@@ -3417,16 +3106,15 @@
     pull-down-menu-frame
     radio-button-pane
     raise-mirror
-    scroll-bar-size
     scroll-bar-shaft-pane
     scroll-bar-target-pane
-    scroll-bar-value
     scroll-bar-value-changed-callback
     scrollable-pane
     scroller-pane-gadget-supplies-scrolling-p
     scroller-pane-horizontal-scroll-bar
     scroller-pane-vertical-scroll-bar
     scroller-pane-drag-scroll
+    scroller-pane-scroll-bar-policy
     set-mirror-edges*
     set-mirror-region*
     set-sheet-mirror-edges*
@@ -3481,47 +3169,27 @@
     with-mouse-grabbed-in-window
     wrapping-space-mixin))
 
+(excl:ics-target-case
+(:+ics
+
+(defpackage clim-silica
+  (:use)
+
+  (:export
+   *kanji-servers*
+   find-kanji-server-type))
+
+)) ;; ics-target-case
 
 (defpackage clim-internals
   (:use	:clim-lisp :clim-sys :clim :clim-utils :clim-silica)
-  #+Allegro (:implementation-packages :clim-internals :xt-silica)
-  #+CCL-2
-  (:shadowing-import-from clim-utils
-    char=
-    standard-char-p
-    graphic-char-p
-    alpha-char-p)
-
-  #-CCL-2
-  (:shadowing-import-from clim-utils
-    defun
-    flet labels
-    defgeneric defmethod
-    dynamic-extent
-    #-(or Allegro Lucid) non-dynamic-extent)
-
-  #+(and Allegro (not (version>= 4 1)))
-  (:shadowing-import-from clim-utils
-    with-slots))
-
-#+Genera (pushnew (find-package :clim-internals) si:*reasonable-packages*)
+  (:implementation-packages :clim-internals :xt-silica))
 
 
 ;; A package for casual use...
 (defpackage clim-user
    (:use clim-lisp clim))
 
-;;; Nasty hack to improve debuggability
-;;; Dont need it right now.
-;#+Allegro
-;(let ((package (find-package :compiler))
-;      (symbol (and package (intern :bad-to-tailpos package))))
-;  (when (boundp symbol)
-;    (dolist (sym '(clim:beep))
-;      (push sym (symbol-value symbol)))))
-
-
-#+Allegro
 (flet ((lock-package (package)
 	 (setq package (find-package package))
 	 (setf (package-definition-lock package) t)))

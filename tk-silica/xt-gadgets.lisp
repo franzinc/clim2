@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $fiHeader: xt-gadgets.lisp,v 1.42 1995/10/17 05:03:47 colin Exp $
+;; $fiHeader: xt-gadgets.lisp,v 1.44 1995/11/08 06:16:06 georgej Exp $
 
 (in-package :xm-silica)
 
@@ -108,10 +108,20 @@
     (with-sheet-medium (medium pane)
       (apply #'tk::set-values m (decode-gadget-foreground medium pane ink)))))
 
+(defmethod silica::port-set-pane-foreground :after
+    ((port xt-port) pane (m tk::composite) ink)
+  (dolist (child (tk::widget-children m))
+    (silica::port-set-pane-foreground port pane child ink)))
+
 (defmethod silica::port-set-pane-background ((port xt-port) pane m ink)
   (when (typep m 'xt::xt-root-class)
     (with-sheet-medium (medium pane)
       (apply #'tk::set-values m (decode-gadget-background medium pane ink)))))
+
+(defmethod silica::port-set-pane-background :after
+    ((port xt-port) pane (m tk::composite) ink)
+  (dolist (child (tk::widget-children m))
+    (silica::port-set-pane-background port pane child ink)))
 
 (defmethod sheet-text-style :around ((port xt-port) (sheet t))
    (or (call-next-method)

@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $fiHeader: train.lisp,v 1.19 1995/05/17 19:48:53 colin Exp $
+;; $fiHeader: train.lisp,v 1.21 1995/11/08 06:12:29 georgej Exp $
 
 (defun train-clim (&key (train-times 2)
 			(psview nil)
@@ -119,8 +119,7 @@
 	(error () nil))))
 
 
-  (let ((comp::*new-closure-style* nil)
-	(tpl::*zoom-print-circle* t)
+  (let ((tpl::*zoom-print-circle* t)
 	(tpl::*zoom-print-length* 3)
 	(tpl::*zoom-print-level* 3))
     (compile-file (if* (probe-file "../src/clos-preload.cl")

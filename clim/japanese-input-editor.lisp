@@ -19,13 +19,29 @@
 ;; applicable.
 ;;
 
-;; $fiHeader:$
+;; $fiHeader: japanese-input-editor.lisp,v 1.1 1995/10/20 17:37:40 colin Exp $
 
 (in-package :clim-internals)
 
-#+ics
+#-ics
+(eval-when (compile)
+  (warn "~S contains fat strings but is being compiled with a non-ICS lisp"
+	excl:*source-pathname*))
 
-(progn
+(excl:ics-target-case
+(:+ics
+
+#-ics
+(cerror "Continue with incorrect fat strings"
+	"~S contains fat strings but was compiled with a non-ICS lisp"
+	excl:*source-pathname*)
+
+(defclass japanese-input-editing-stream
+    (standard-input-editing-stream)
+  (;; romaji-kana state transition
+   (kana-state :initform nil)
+   ;; kana->kanji convertor
+   (kanji-server :initform nil :initarg :kanji-server)))
 
 (defun make-kana-state ()
   (make-array 10 :fill-pointer 0 :adjustable t))
@@ -408,4 +424,4 @@
 (add-romaji-kana "xwe" "うぇ" "ウェ")
 (add-romaji-kana "xwo" "うぉ" "ウォ")
 
-) ;; progn
+)) ;; ics-target-case

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: test-suite.lisp,v 1.76 1995/05/17 19:49:18 colin Exp $
+;; $fiHeader: test-suite.lisp,v 1.77 1995/10/17 05:02:53 colin Exp $
 
 (in-package :clim-user)
 
@@ -1698,7 +1698,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 	(fresh-line stream)
 	(terpri stream)
 	(write-string "Type any gesture for the next test" stream)
-	(read-gesture :stream stream :timeout 15))
+	(read-gesture :stream stream :timeout 2))
       (setq initially nil)
       (table-graphics-test-row i)
       (fresh-line stream)
@@ -1972,7 +1972,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 (define-test (more-simple-menus menus-and-dialogs) (stream)
   "Popup a few menus"
   (macrolet ((doit (&body body)
-	       `(mp::with-timeout (5) ,@body)))
+	       `(mp::with-timeout (1) ,@body)))
     (doit
      (menu-choose '("Whistle"
 		    ("Pat head" :items

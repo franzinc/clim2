@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $fiHeader: graphics.lisp,v 1.16 1993/10/25 16:16:28 cer Exp $
+;; $fiHeader: graphics.lisp,v 1.19 1996/01/23 06:46:58 duane Exp $
 
 (in-package :tk)
 
@@ -174,8 +174,7 @@
    drawable
    gc
    x y
-   #+ics (fat-string-to-string8 string)
-   #-ics string
+   (lisp-string-to-string8 string)
    start
    end))
 
@@ -187,8 +186,7 @@
    drawable
    gc
    x y
-   #+ics (fat-string-to-string16 string)
-   #-ics string
+   (lisp-string-to-string16 string)
    start
    end))
 

@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $fiHeader: macros.lisp,v 1.14 1993/07/27 01:53:11 colin Exp $
+;; $fiHeader: macros.lisp,v 1.17 1996/01/23 06:47:01 duane Exp $
 
 (in-package :tk)
 
@@ -87,3 +87,44 @@
 	 (progn ,@body)
        (dolist (entry *malloced-objects*)
 	 (funcall (car entry) (cdr entry))))))
+
+(defmacro lisp-string-to-string8 (string)
+  (clim-utils:with-gensyms (length string8 i)
+    (clim-utils:once-only (string)
+      `(excl:ics-target-case
+	(:+ics
+	 (let* ((,length (length ,string))
+		(,string8 (make-array (1+ ,length) :element-type '(unsigned-byte 8))))
+	   (dotimes (,i ,length)
+	     (setf (aref ,string8 ,i)
+	       (logand (char-code (char ,string ,i)) #xff)))
+	   (setf (aref ,string8 ,length) 0)
+	   ,string8))
+	(:-ics ,string)))))
+
+(defmacro lisp-string-to-string16 (string)
+  (clim-utils:with-gensyms (length string16 i)
+    (clim-utils:once-only (string)
+      `(excl:ics-target-case
+	(:+ics
+	 (let* ((,length (length ,string))
+		(,string16 (make-array (1+ ,length) :element-type '(unsigned-byte 16))))
+	   (dotimes (,i ,length)
+	     (setf (aref ,string16 ,i)
+	       (xchar-code (char ,string ,i))))
+	   (setf (aref ,string16 ,length) 0)
+	   ,string16))
+	(:-ics (error "~S called in non-ICS Lisp"
+		      'lisp-string-to-string16))))))
+
+(defmacro xchar-code (char)
+  (clim-utils:with-gensyms (code)
+    `(let ((,code (char-code ,char)))
+       (excl:ics-target-case
+	(:+ics (logand ,code
+		       (if (logbitp 15 ,code)
+			   ;; jis-x208 and gaiji
+			   #x7f7f
+			 ;; ascii and jis-x201
+			 #xff)))
+	(:-ics ,code)))))

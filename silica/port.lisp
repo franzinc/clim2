@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: port.lisp,v 1.34 1995/10/17 05:02:40 colin Exp $
+;; $fiHeader: port.lisp,v 1.35 1995/10/20 17:40:45 colin Exp $
 
 (in-package :silica)
 
@@ -273,13 +273,14 @@
 (defmethod graft ((object t)) nil)
 
 ;;; ics kanji server support - we put this here for convenience
+;;;--- consider putting in separate file (cim 2/26/96)
 
-#+ics
-(progn
+(excl:ics-target-case
+(:+ics
 
 (define-protocol-class kanji-server ())
 
-(defclass basic-kanji-server (kanji-server) 
+(defclass basic-kanji-server (kanji-server)
   ((server-path :reader kanji-server-path)))
 
 (defvar *default-kanji-server-path* '(:jserver))
@@ -292,11 +293,11 @@
 
 (defun find-kanji-server
     (&rest initargs &key (server-path *default-kanji-server-path*)
-     &allow-other-keys) 
+     &allow-other-keys)
   (declare (dynamic-extent initargs))
   (map-over-kanji-servers #'(lambda (kanji-server)
 			      (when (kanji-server-match kanji-server
-							server-path) 
+							server-path)
 				(return-from find-kanji-server kanji-server))))
   (with-keywords-removed (initargs initargs '(:server-path))
     (apply #'make-kanji-server :server-path server-path initargs)))
@@ -320,5 +321,5 @@
   (call-next-method)
   (setq *kanji-servers* (nconc *kanji-servers* (list kanji-server))))
 
-)					;#+ics
+)) ;; ics-target-case
 

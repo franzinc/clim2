@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $fiHeader: resources.lisp,v 1.52 1995/10/17 05:03:06 colin Exp $
+;; $fiHeader: resources.lisp,v 1.55 1996/01/23 06:47:08 duane Exp $
 
 
 (in-package :tk)
@@ -584,9 +584,10 @@
 
 (defmethod convert-resource-out ((parent  t) (type (eql 'string)) value)
   (note-malloced-object
-   #-ics (string-to-char* value)
-   #+ics (let ((euc (excl:string-to-euc value)))
-	   (ff:euc-to-char* euc))))
+   (excl:ics-target-case
+    (:+ics (let ((euc (excl:string-to-euc value)))
+	     (ff:euc-to-char* euc)))
+    (:-ics (string-to-char* value)))))
 
 (defvar *font-counter* 0)
 (defmethod convert-resource-out ((parent t) (type (eql 'font-struct)) value)
@@ -637,9 +638,10 @@
 
 (defmethod convert-resource-in ((parent t) (type (eql 'string)) value)
   (unless (zerop value)
-    #-ics (char*-to-string value)
-    #+ics (let ((euc (ff:char*-to-euc value)))
-	    (excl:euc-to-string euc))))
+    (excl:ics-target-case
+     (:+ics (let ((euc (ff:char*-to-euc value)))
+	      (excl:euc-to-string euc)))
+     (:-ics (char*-to-string value)))))
 
 (defmethod convert-resource-in ((parent t) (type (eql 'string)) value)
   (unless (zerop value)

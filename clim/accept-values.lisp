@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept-values.lisp,v 1.76 1995/05/17 19:47:38 colin Exp $
+;; $fiHeader: accept-values.lisp,v 1.77 1995/10/17 05:01:12 colin Exp $
 
 (in-package :clim-internals)
 
@@ -531,15 +531,22 @@
 		     ;; We really want to specify the min/max sizes of
 		     ;; the exit-button pane also
 		     (when exit-button-stream
-		     (size-frame-from-contents exit-button-stream
-		       :size-setter
-		         #'(lambda (pane w h)
+		       (size-frame-from-contents exit-button-stream
+ 		         :size-setter
+			 #'(lambda (pane w h)
 			     (change-space-requirements pane
 			       :width w :min-width w :max-width w
 			       :height h :min-height h :max-height h))
-			 :right-margin 0 :bottom-margin 0))
+			 :right-margin 0
+			 :bottom-margin 0))
 		     (when own-window
 		       (size-frame-from-contents own-window
+			 :size-setter
+			 #'(lambda (pane w h)
+			     (change-space-requirements pane
+			       :width w :min-width w :max-width w
+			       :height h :min-height h :max-height h
+			       :resize-frame t))
 			 :width own-window-width
 			 :height own-window-height
 			 :right-margin own-window-right-margin
@@ -593,10 +600,6 @@
 		(deactivate-all-gadgets avv-record)
 		(move-cursor-beyond-output-record
 		  (encapsulating-stream-stream stream) avv)))))))))
-
-
-
-
 
 
 (defun find-query-gadget (query)

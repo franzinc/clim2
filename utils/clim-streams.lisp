@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clim-streams.lisp,v 1.9 1993/07/27 01:56:48 colin Exp $
+;; $fiHeader: clim-streams.lisp,v 1.10 1993/09/17 19:07:30 cer Exp $
 
 (in-package :clim-utils)
 
@@ -15,7 +15,7 @@
 ;; These aren't really "encapsulating" streams, they're "delegating streams."
 ;; What about the delegation ("multiple self", "xstream") problem?
 ;; See *ORIGINAL-STREAM* for some more information.
-(defclass standard-encapsulating-stream 
+(defclass standard-encapsulating-stream
 	  (encapsulating-stream)
     ((stream :initarg :stream
 	     :reader encapsulating-stream-stream))
@@ -25,7 +25,7 @@
 ;; If you change GENERATE-STREAM-PROTOCOL-TRAMPOLINES to maintain a more complex
 ;; mapping than a simple binding of *ORIGINAL-STREAM*, change this too.
 
-(defmethod stream-encapsulates-stream-p 
+(defmethod stream-encapsulates-stream-p
     ((encapsulator standard-encapsulating-stream) stream)
   (let ((encapsulated-stream (encapsulating-stream-stream encapsulator)))
     (or (eq encapsulated-stream stream)
@@ -47,10 +47,7 @@
 (defgeneric interactive-stream-p (stream))
 
 (defmethod interactive-stream-p ((stream t))
-  #+Genera (future-common-lisp:interactive-stream-p stream)
-  #+Lucid (lucid::interactive-input-stream-p stream)
-  #+Cloe-Runtime nil			;--- this can't be right --Hornig
-  #-(or Genera Lucid Cloe-Runtime) (lisp:interactive-stream-p stream))
+  (lisp:interactive-stream-p stream))
 
 (defmethod interactive-stream-p ((stream standard-encapsulating-stream))
   (interactive-stream-p (encapsulating-stream-stream stream)))

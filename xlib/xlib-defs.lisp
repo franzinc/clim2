@@ -18,7 +18,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;;; $fiHeader: xlib-defs.lisp,v 1.8 1994/12/05 00:02:44 colin Exp $
+;;; $fiHeader: xlib-defs.lisp,v 1.11 1996/01/23 06:47:52 duane Exp $
 
 ;;      (c) Copyright 1989, 1990, 1991 Sun Microsystems, Inc. Sun design
 ;;      patents pending in the U.S. and foreign countries. OPEN LOOK is a
@@ -630,7 +630,6 @@
     #-alpha unsigned-long)
 (def-exported-foreign-synonym-type keycode unsigned-char)
 
-#+ics
 (def-exported-foreign-synonym-type xfontset unsigned-long)
 
 (def-exported-foreign-synonym-type fixnum-drawable :fixnum)
@@ -1432,8 +1431,8 @@ typedef union { Display *display;
 
 (def-exported-foreign-synonym-type xrmsearchlist int)
 (def-exported-foreign-synonym-type xrmdatabase int)
-#+ics (def-exported-foreign-synonym-type xim int)
-#+ics (def-exported-foreign-synonym-type xic int)
+(def-exported-foreign-synonym-type xim int)
+(def-exported-foreign-synonym-type xic int)
 
 
 (defconstant XrmoptionNoArg 0)

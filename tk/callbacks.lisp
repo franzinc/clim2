@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $fiHeader: callbacks.lisp,v 1.24 1995/10/17 05:03:01 colin Exp $
+;; $fiHeader: callbacks.lisp,v 1.26 1995/11/08 06:13:36 georgej Exp $
 
 (in-package :tk)
 
@@ -157,9 +157,8 @@
   (let ((z (assoc x *callback-name-alist*)))
     (unless z (error "No such Callback: ~S" x))
     (values (or (third z)
-		(setf (third z) 
-		  #+ics (fat-string-to-string8 (second z))
-		  #-ics (second z)))
+		(setf (third z)
+		  (lisp-string-to-string8 (second z))))
 	    (fourth z))))
 
 (defmethod spread-callback-data (widget data (type (eql :activate)))

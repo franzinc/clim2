@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $fiHeader: font.lisp,v 1.15 1993/07/27 01:52:46 colin Exp $
+;; $fiHeader: font.lisp,v 1.18 1996/01/23 06:46:50 duane Exp $
 
 (in-package :tk)
 
@@ -35,8 +35,7 @@
   (unless foreign-address
     (check-type name string)
     (let ((x (x11:xloadqueryfont display
-				 #+ics (fat-string-to-string8 name)
-				 #-ics name)))
+				 (lisp-string-to-string8 name))))
       (when (zerop x) (error "Cannot find font: ~S" name))
       (setf (foreign-pointer-address f) x)
       (register-address f))))
@@ -126,8 +125,7 @@
 (defun list-font-names (display pattern &key (max-fonts 65535) (result-type 'list))
   (with-ref-par ((n 0 :int))
     (let ((names (x11:xlistfonts display
-				 #+ics (fat-string-to-string8 pattern)
-				 #-ics pattern
+				 (lisp-string-to-string8 pattern)
 				 max-fonts
 				 &n))
 	  (seq (make-sequence result-type n)))
@@ -161,14 +159,12 @@
 
 ;;; fontset support
 
+(excl:ics-target-case
+(:+ics
 
-
-=======
-#+ics
 (defclass font-set (ff:foreign-pointer)
   ((base-names :initarg :base-names :reader font-set-base-names)))
 
-#+ics
 (defun create-font-set (display base-font-names)
   (with-ref-par ((missing-list 0 *)
 		 (missing-count 0 :int)
@@ -188,7 +184,6 @@
 	      (unless (zerop def-string)
 		(ff:char*-to-string def-string))))))
 
-#+ics
 (defmethod initialize-instance :after ((fs font-set) &key
 						     foreign-address display base-names)
   (unless foreign-address
@@ -202,7 +197,6 @@
       (setf (foreign-pointer-address fs) x)
       (register-address fs))))
 
-#+ics
 (defun fonts-of-font-set (font-set)
   (with-ref-par ((font-struct-list-return 0 *)
 		 (font-name-list-return 0 *))
@@ -224,7 +218,6 @@
 		fonts)))
       (nreverse fonts))))
 
-#+ics
 (defun text-extents (font-set string)
   (let* ((euc (excl:string-to-euc string))
 	 (length (1- (length euc)))
@@ -236,3 +229,5 @@
 	     length
 	     overall-ink-return
 	     overall-logical-return))))
+
+)) ;; ics-target-case

@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $fiHeader: widget.lisp,v 1.37 1995/05/17 19:49:34 colin Exp $
+;; $fiHeader: widget.lisp,v 1.40 1996/01/23 06:47:11 duane Exp $
 
 (in-package :tk)
 
@@ -38,10 +38,8 @@
 	   (apply #'make-instance
 		  class
 		  :foreign-address
-		  (xt_app_create_shell #+ics (fat-string-to-string8 application-name)
-				       #-ics application-name
-				       #+ics (fat-string-to-string8 application-class)
-				       #-ics application-class
+		  (xt_app_create_shell (lisp-string-to-string8 application-name)
+				       (lisp-string-to-string8 application-class)
 				       handle
 				       display
 				       arglist
@@ -278,13 +276,22 @@
 (defun set-sensitive (widget value)
   (xt_set_sensitive widget (if value 1 0)))
 
+(excl:ics-target-case
+ (:+ics
+  (defun setlocale (&optional (category 0) locale)
+    (let ((r (setlocale-1 category (or (and locale
+					    (ff:string-to-char* locale))
+				       0))))
+      (unless (zerop r)
+	(ff:char*-to-string r))))))
 
 ;; Could not think of anywhere better!
 
-(defvar *fallback-resources* '("clim*dragInitiatorProtocolStyle: DRAG_NONE"
-			       "clim*dragreceiverprotocolstyle:	DRAG_NONE"
-			       #+ics "clim*xnlLanguage: ja_JP.EUC"
-			       )
+(defvar *fallback-resources*
+    `("clim*dragInitiatorProtocolStyle: DRAG_NONE"
+      "clim*dragreceiverprotocolstyle:	DRAG_NONE"
+      ,@(excl:ics-target-case
+	 (:+ics '("clim*xnlLanguage: japanese"))))
   "A list of resource specification strings")
 
 ;; note that this is different from xt-initialize which calls
@@ -302,7 +309,8 @@
 	       (ff:string-to-char* (nth i *fallback-resources*))))
 	   (setf (*-array v n) 0)
 	   v))))
-    #+ics (xt_set_language_proc context 0 0)
+    (excl:ics-target-case
+     (:+ics (xt_set_language_proc context 0 0)))
     (let* ((display (apply #'make-instance 'display
 			   :context context
 			   args))

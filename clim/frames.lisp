@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: frames.lisp,v 1.79 1995/10/17 05:01:26 colin Exp $
+;; $fiHeader: frames.lisp,v 1.80 1995/10/20 17:37:29 colin Exp $
 
 (in-package :clim-internals)
 
@@ -127,10 +127,9 @@
 (eval-when (compile load eval)
 (defun define-application-frame-1 (name state-variables pane-descriptions
 				   &key top-level layouts
-					command-table disabled-commands)
+					command-table)
   (declare (ignore name state-variables pane-descriptions top-level
-		   layouts
-		   disabled-commands))
+		   layouts))
   ;; If we're going to be defining commands for this application frame,
   ;; make sure there's an command table lying around so that all other
   ;; code doesn't have to be defensive against its absence.
@@ -240,6 +239,8 @@
 	       ,@(and layouts `(:default-layout ',(caar layouts)))
 	       ,@(and icon `(:icon (list ,@icon)))
 	       ,@(and geometry `(:geometry (list ,@geometry)))
+	       ,@(and disabled-commands
+		      `(:disabled-commands (copy-list ',disabled-commands)))
 	       ,@default-initargs))
 	   ,@(when command-definer
 	       `((defmacro ,command-definer (command-name arguments &body body)
@@ -255,13 +256,10 @@
 		 #+Genera (scl:defprop ,command-definer
 				       zwei:defselect-function-spec-finder
 				       zwei:definition-function-spec-finder)))
-	   ;;--- Need to handle DISABLED-COMMANDS properly,
-	   ;;--- which entails doing a COPY-LIST
 	   (define-application-frame-1 ',name ',slots ,pane-constructors
 				       :layouts ,layout-value
 				       :top-level ',top-level
-				       :command-table ',command-table
-				       :disabled-commands ',disabled-commands)
+				       :command-table ',command-table)
 	   #+Cloe-Runtime
 	   (cloe:define-program ,name ()
 	     :main ,name
@@ -399,6 +397,11 @@
 		  ;; Maintain ALL-PANES in the order the panes are created
 		  (setq all-panes (nconc all-panes (list new-pane)))
 		  new-pane)))))
+
+(defmethod make-all-panes ((frame standard-application-frame))
+  (with-slots (pane-constructors) frame
+    (dolist (x pane-constructors)
+      (find-or-make-pane-named frame (car x)))))
 
 (defmacro limit-size-to-graft (width height graft)
   `(multiple-value-bind (graft-width graft-height)

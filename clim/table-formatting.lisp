@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: table-formatting.lisp,v 1.19 1993/07/27 01:41:23 colin Exp $
+;; $fiHeader: table-formatting.lisp,v 1.20 1993/10/26 03:21:40 colin Exp $
 
 (in-package :clim-internals)
 
@@ -11,8 +11,8 @@
 
 (define-protocol-class table-output-record (output-record))
 
-(defclass standard-table-output-record 
-	  (standard-sequence-output-record table-output-record) 
+(defclass standard-table-output-record
+	  (standard-sequence-output-record table-output-record)
     ((row-table-p :initform :unknown)		;t ==> table consists of rows
      (x-spacing :initarg :x-spacing)
      (y-spacing :initarg :y-spacing)
@@ -33,7 +33,7 @@
 
 (define-protocol-class row-output-record (output-record))
 
-(defclass standard-row-output-record 
+(defclass standard-row-output-record
 	  (standard-sequence-output-record row-output-record)
     ()
   (:default-initargs :size 5))
@@ -47,7 +47,7 @@
 
 (define-protocol-class column-output-record (output-record))
 
-(defclass standard-column-output-record 
+(defclass standard-column-output-record
 	  (standard-sequence-output-record column-output-record)
     ()
   (:default-initargs :size 5))
@@ -61,7 +61,7 @@
 
 (define-protocol-class cell-output-record (output-record))
 
-(defclass standard-cell-output-record 
+(defclass standard-cell-output-record
 	  (standard-sequence-output-record cell-output-record)
   ((x-alignment :initform ':left :initarg :align-x)
    (y-alignment :initform ':top :initarg :align-y)
@@ -72,7 +72,7 @@
   (:default-initargs :size 5))
 
 (define-output-record-constructor standard-cell-output-record
-				  (&key x-position y-position 
+				  (&key x-position y-position
 					(align-x ':left) (align-y ':top)
 					(size 5) min-width min-height)
   :x-position x-position :y-position y-position :size size
@@ -83,16 +83,16 @@
 (defmethod map-over-table-elements-helper
 	   (function (record standard-row-output-record) type)
   (declare (dynamic-extent function))
-  (unless (member type '(row row-or-column))
+  (unless (member type '(:row :row-or-column))
     (error "Expected a ~(~S~), but this is a row.~@
             Your table directives are improperly nested."
 	   type))
   (funcall function record))
 
-(defmethod map-over-table-elements-helper 
+(defmethod map-over-table-elements-helper
 	   (function (record standard-column-output-record) type)
   (declare (dynamic-extent function))
-  (unless (member type '(column row-or-column))
+  (unless (member type '(:column :row-or-column))
     (error "Expected a ~(~S~), but this is a column.~@
             Your table directives are improperly nested."
 	   type))
@@ -101,7 +101,7 @@
 (defmethod map-over-table-elements-helper
 	   (function (record standard-cell-output-record) type)
   (declare (dynamic-extent function))
-  (unless (eq type 'cell) 
+  (unless (eq type :cell)
     (error "Expected a ~(~S~), but this is a cell.~@
             Your table directives are improperly nested."
 	   type))
@@ -133,34 +133,34 @@
 #+Genera (zwei:defindentation (map-over-table-rows-or-columns 1 1))
 (defmethod map-over-table-rows-or-columns (function (table standard-table-output-record))
   (declare (dynamic-extent function))
-  (map-over-table-elements function table 'row-or-column))
+  (map-over-table-elements function table :row-or-column))
 
 #+Genera (zwei:defindentation (map-over-table-rows 1 1))
 (defmethod map-over-table-rows (function (table standard-table-output-record))
   (declare (dynamic-extent function))
-  (map-over-table-elements function table 'row))
+  (map-over-table-elements function table :row))
 
 #+Genera (zwei:defindentation (map-over-row-cells 1 1))
 (defmethod map-over-row-cells (function (row standard-row-output-record))
   (declare (dynamic-extent function))
-  (map-over-table-elements function row 'cell))
+  (map-over-table-elements function row :cell))
 
 #+Genera (zwei:defindentation (map-over-table-columns 1 1))
 (defmethod map-over-table-columns (function (table standard-table-output-record))
   (declare (dynamic-extent function))
-  (map-over-table-elements function table 'column))
+  (map-over-table-elements function table :column))
 
 ;; We call it MAP-OVER-ROW-CELLS for convenience sake, since a column is just
 ;; a row tilted on its end.
 (defmethod map-over-row-cells (function (column standard-column-output-record))
   (declare (dynamic-extent function))
-  (map-over-table-elements function column 'cell))
+  (map-over-table-elements function column :cell))
 
 (defmethod tree-recompute-extent-1 ((record output-record-element-mixin))
   (bounding-rectangle* record))
 
 ;; Cells have been positioned manually, probably.
-;; Also, this should probably be an :around method so that we can 
+;; Also, this should probably be an :around method so that we can
 ;; drag the circle inside a cell and have the cell get updated automatically.
 ;; Some extra bit will be needed.
 ;; Until we do this, only table formatting really works (and arbitrary dragging
@@ -450,7 +450,7 @@
   #+++ignore
   (let ((x-spacing (slot-value (output-record-parent column) 'x-spacing))
 	(x-position (coordinate 0)))
-    (map-over-row-cells 
+    (map-over-row-cells
       #'(lambda (cell)
 	  (with-bounding-rectangle* (left top right bottom) cell
 	    (declare (ignore bottom))
@@ -460,7 +460,7 @@
 
 (defun process-spacing-arg (stream spacing form &optional clause)
   (cond ((null spacing) nil)
-	((integerp spacing) 
+	((integerp spacing)
 	 (coordinate spacing))
 	((stringp spacing)
 	 (coordinate (stream-string-width stream spacing)))
@@ -495,7 +495,7 @@
   (with-keywords-removed (initargs initargs '(:record-type :x-spacing :y-spacing
 					      :multiple-columns :multiple-columns-x-spacing
 					      :equalize-column-widths :move-cursor))
-    (let ((table 
+    (let ((table
 	    (with-output-recording-options (stream :draw nil :record t)
 	      (with-end-of-line-action (stream :allow)
 		(with-end-of-page-action (stream :allow)
@@ -503,7 +503,7 @@
 			   (declare (ignore record))
 			   (funcall continuation stream)))
 		    (declare (dynamic-extent #'invoke-formatting-table-1))
-		    (apply #'invoke-with-new-output-record 
+		    (apply #'invoke-with-new-output-record
 			   stream #'invoke-formatting-table-1 record-type nil
 			   :x-spacing
 			     (or (process-spacing-arg stream x-spacing
@@ -529,13 +529,13 @@
 (defmethod invoke-formatting-cell ((stream output-protocol-mixin) continuation
 				   &rest initargs
 				   &key (align-x ':left) (align-y ':top)
-					min-width min-height 
+					min-width min-height
 					(record-type 'standard-cell-output-record)
 				   &allow-other-keys)
   (declare (dynamic-extent initargs))
   (with-keywords-removed (initargs initargs '(:record-type :align-x :align-y
 					      :min-width :min-height))
-    (setq min-width (or (process-spacing-arg 
+    (setq min-width (or (process-spacing-arg
 			  stream min-width 'formatting-cell :min-width)
 			(coordinate 0))
 	  min-height (or (process-spacing-arg
@@ -548,20 +548,20 @@
     ;; INVOKE-WITH-NEW-OUTPUT-RECORD...  Too bad.
     (let ((stream (encapsulating-stream stream)))
       (with-stream-cursor-position-saved (stream)
-	(flet ((invoke-formatting-cell-1 (record) 
+	(flet ((invoke-formatting-cell-1 (record)
 		 (declare (ignore record))
 		 (funcall continuation stream)))
 	  (declare (dynamic-extent #'invoke-formatting-cell-1))
 	  (if (eq record-type 'standard-cell-output-record)
 	      (apply #'invoke-with-new-output-record
-		     stream #'invoke-formatting-cell-1 
+		     stream #'invoke-formatting-cell-1
 		     'standard-cell-output-record 'standard-cell-output-record-constructor
-		     :align-x align-x :align-y align-y 
+		     :align-x align-x :align-y align-y
 		     :min-width min-width :min-height min-height
 		     initargs)
 	      (apply #'invoke-with-new-output-record
 		     stream #'invoke-formatting-cell-1 record-type nil
-		     :align-x align-x :align-y align-y 
+		     :align-x align-x :align-y align-y
 		     :min-width min-width :min-height min-height
 		     initargs)))))))
 
@@ -576,8 +576,8 @@
 
 (define-protocol-class item-list-output-record (output-record))
 
-(defclass standard-item-list-output-record 
-	  (standard-sequence-output-record item-list-output-record) 
+(defclass standard-item-list-output-record
+	  (standard-sequence-output-record item-list-output-record)
      ((x-spacing :initarg :x-spacing)
       (y-spacing :initarg :y-spacing)
       (initial-spacing :initarg :initial-spacing)
@@ -608,7 +608,7 @@
 #+Genera (zwei:defindentation (map-over-item-list-cells 1 1))
 (defmethod map-over-item-list-cells ((menu standard-item-list-output-record) function)
   (declare (dynamic-extent function))
-  (map-over-table-elements function menu 'cell))
+  (map-over-table-elements function menu :cell))
 
 ;; If we had our hands on a stream, we could use twice the width of #\Space
 (defvar *default-minimum-menu-x-spacing* (coordinate 10))
@@ -629,7 +629,7 @@
 	(max-height (slot-value menu 'max-height))	; exceed these bounds
 	(row-wise (slot-value menu 'row-wise))
 	(constrain t)
-	(preferred-geometry 'column)		;vertical menu
+	(preferred-geometry :column)		;vertical menu
 	(golden-ratio 1.6))
     (declare (type fixnum ncells))
     (declare (type coordinate max-cell-width max-cell-height))
@@ -652,8 +652,8 @@
 	  (when (and swidth sheight)
 	    (when (> (/ swidth sheight) golden-ratio)
 	      ;; When the stream is wider than it is high by more than the golden
-	      ;; ratio, make the preferred ordering 'row
-	      (setq preferred-geometry 'row))))))
+	      ;; ratio, make the preferred ordering :row
+	      (setq preferred-geometry :row))))))
     ;; Compute geometry
     (cond (ncolumns
 	   (setq nrows (max 1 (ceiling (/ ncells ncolumns)))))
@@ -661,11 +661,11 @@
 	   (setq ncolumns (max 1 (ceiling (/ ncells nrows)))))
 	  (max-height
 	   ;; Could compute this better
-	   (setq nrows 
+	   (setq nrows
 		 (max 1
 		      (let ((acc-height (coordinate 0))
 			    (count 0))
-			(loop 
+			(loop
 			  (incf acc-height max-cell-height)
 			  (when (> acc-height max-height)
 			    (return count))
@@ -721,14 +721,20 @@
 	    (flet ((size-cells (cell)
 		     (multiple-value-bind (width height) (bounding-rectangle-size cell)
 		       (declare (type coordinate width height))
-		       (maxf (column-width column-count) 
+		       (maxf (column-width column-count)
 			     (max width (cell-min-width cell)))
 		       (maxf (row-height row-count)
 			     (max height (cell-min-height cell))))
-		     (incf column-count)
-		     (when (= column-count ncolumns)
-		       (incf row-count)
-		       (setq column-count 0))))
+		     (cond (row-wise
+			    (incf column-count)
+			    (when (= column-count ncolumns)
+			      (incf row-count)
+			      (setq column-count 0)))
+			   (t
+			    (incf row-count)
+			    (when (= row-count nrows)
+			      (incf column-count)
+			      (setq row-count 0))))))
 	      (declare (dynamic-extent #'size-cells))
 	      (map-over-item-list-cells menu #'size-cells))
 	    ;; Now default the x-spacing to a spacing that spreads the
@@ -747,8 +753,8 @@
 	    (multiple-value-bind (left-margin top-margin) (bounding-rectangle-position menu)
 	      (declare (type coordinate left-margin top-margin))
 	      (let ((accumulated-height (coordinate 0))
-		    (accumulated-width 
-		      (if (or (stream-redisplaying-p stream) 
+		    (accumulated-width
+		      (if (or (stream-redisplaying-p stream)
 			      (not initial-spacing))
 			  (coordinate 0)
 			  (coordinate x-spacing))))
@@ -773,7 +779,7 @@
 			   (ecase (slot-value cell 'y-alignment)
 			     (:top )
 			     (:bottom
-			       (setq y-alignment-adjust 
+			       (setq y-alignment-adjust
 				     (- row-height cell-height)))
 			     (:center
 			       (setq y-alignment-adjust
@@ -791,8 +797,8 @@
 				(incf accumulated-width x-spacing)
 				(incf column-count)
 				(when (= column-count ncolumns)
-				  (setq accumulated-width 
-					(if (or (stream-redisplaying-p stream) 
+				  (setq accumulated-width
+					(if (or (stream-redisplaying-p stream)
 						(not initial-spacing))
 					    (coordinate 0)
 					    (coordinate x-spacing)))
@@ -818,17 +824,17 @@
 (defun invoke-formatting-item-list (stream continuation
 				    &rest initargs
 				    &key x-spacing y-spacing initial-spacing
-					 n-columns n-rows 
+					 n-columns n-rows
 					 max-width max-height stream-width stream-height
-					 (row-wise t) (move-cursor t) 
+					 (row-wise t) (move-cursor t)
 					 (record-type 'standard-item-list-output-record)
 				    &allow-other-keys)
   (declare (dynamic-extent initargs))
   (with-keywords-removed (initargs initargs '(:x-spacing :y-spacing :initial-spacing
-					      :n-columns :n-rows :max-width :max-height 
+					      :n-columns :n-rows :max-width :max-height
 					      :stream-width :stream-height
 					      :row-wise :move-cursor :record-type))
-    (let ((menu 
+    (let ((menu
 	    (with-output-recording-options (stream :draw nil :record t)
 	      (with-end-of-line-action (stream :allow)
 		(with-end-of-page-action (stream :allow)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: interactive-protocol.lisp,v 1.33 1994/12/04 23:57:54 colin Exp $
+;; $fiHeader: interactive-protocol.lisp,v 1.34 1995/10/20 17:37:37 colin Exp $
 
 (in-package :clim-internals)
 
@@ -71,14 +71,7 @@
       ;; For deciding whether to do kill-ring merging, etc.
       (last-command-type :initform nil)
       ;; A mark that we can set
-      (mark :initform nil)
-      ;; State for romaji-kana conversion
-      #+ics
-      ;; romaji-kana state transition
-      (kana-state :initform nil)
-      #+ics
-      ;; kana->kanji convertor
-      (kanji-server :initform nil :initarg :kanji-server)))
+      (mark :initform nil)))
 
 ;; The structure of *INPUT-EDITOR-COMMAND-AARRAY* is an alist that
 ;; associates a gesture with either an input editor command, in the case
@@ -88,7 +81,6 @@
 (defvar *input-editor-command-aarray*
 	(make-array 80 :fill-pointer 0 :adjustable t))
 
-#+ics
 (defvar *kana-input-editor-command-aarray*
     (make-array 80 :fill-pointer 0 :adjustable t))
 

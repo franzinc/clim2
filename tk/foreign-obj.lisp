@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $fiHeader: foreign-obj.lisp,v 1.13 1994/11/23 23:29:13 smh Exp $
+;; $fiHeader: foreign-obj.lisp,v 1.15 1995/11/08 06:13:51 georgej Exp $
 
 (in-package :tk)
 
@@ -107,39 +107,4 @@
 		     initargs))
 	    t)))))
 
-#+ics
-(defun fat-string-to-string8 (string)
-  (let* ((length (length string))
-	 (string8 (make-array (1+ length) :element-type '(unsigned-byte 8))))
-    (dotimes (i length)
-      (setf (aref string8 i)
-	(logand (char-code (char string i)) #xff)))
-    (setf (aref string8 length) 0)
-    string8))
 
-#+ics
-(defun fat-string-to-string16 (string)
-  (let* ((length (length string))
-	 (string16 (make-array (1+ length) :element-type '(unsigned-byte 16))))
-    (dotimes (i length)
-      (setf (aref string16 i)
-	(xchar-code (char string i))))
-    (setf (aref string16 length) 0)
-    string16))
-
-#+ics
-(defun xchar-code (char)
-  (let ((code (char-code char)))
-    (logand code
-	    (if (logbitp 15 code)
-		;; jis-x208 and gaiji
-		#x7f7f
-	      ;; ascii and jis-x201
-	      #xff))))
-
-(defun setlocale (&optional (category 0) locale)
-  (let ((r (setlocale-1 category (or (and locale
-					(ff:string-to-char* locale))
-				   0))))
-    (unless (zerop r)
-      (ff:char*-to-string r))))

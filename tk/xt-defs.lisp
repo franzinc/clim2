@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $fiHeader: xt-defs.lisp,v 1.10 1994/12/05 00:01:26 colin Exp $
+;; $fiHeader: xt-defs.lisp,v 1.13 1996/01/23 06:47:23 duane Exp $
 
 ;;
 ;; This file contains compile time only code -- put in clim-debug.fasl.
@@ -145,4 +145,8 @@
   (sibling xt-widget)
   (stack-mode :int))
 
+
+;; general pointer-array
+
+(def-c-type (pointer-array :no-defuns) 1 * char)
 

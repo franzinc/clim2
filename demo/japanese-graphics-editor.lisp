@@ -1,13 +1,24 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: JAPANESE-GRAPHICS-EDITOR; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: $
+;; $fiHeader: japanese-graphics-editor.lisp,v 1.1 1995/10/20 17:37:59 colin Exp $
 
 (in-package :japanese-graphics-editor)
 
 "Copyright (c) 1992 Symbolics, Inc.  All rights reserved.
  Portions copyright (c) 1991, 1992 Franz, Inc.  All rights reserved."
 
-(progn
+#-ics
+(eval-when (compile)
+  (warn "~S contains fat strings but is being compiled with a non-ICS lisp"
+	excl:*source-pathname*))
+
+(excl:ics-target-case
+(:+ics
+
+#-ics
+(cerror "Continue with incorrect fat strings"
+	"~S contains fat strings but was compiled with a non-ICS lisp"
+	excl:*source-pathname*)
 
 ;;; Define a "mix-in" frame class that manages a selected object
 
@@ -643,4 +654,4 @@
 (define-demo "グラフ編集" graphics-editor
   :left 100 :top 100 :width 800 :height 500)
 
-) ;; progn
+)) ;; ics-target-case

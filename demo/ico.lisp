@@ -1,9 +1,9 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: ico.lisp,v 1.21 1993/11/24 03:56:55 duane Exp $
+;; $fiHeader: ico.lisp,v 1.22 1993/12/07 05:33:55 colin Exp $
 
 ;;;
-;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
+;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved.
 ;;; Portions (c) 1992 Franz Inc.
 ;;; Algorithm pretty much lifted from X11 demo program.
 ;;;
@@ -11,7 +11,7 @@
 (in-package :clim-demo)
 
 ;;;
-;;; Entry 
+;;; Entry
 ;;;
 
 (defvar *ico-mode* :clim)
@@ -43,7 +43,7 @@
     (target :application :width 400 :height 400)
     (options :accept-values
 	     :scroll-bars nil
-	     :min-width :compute 
+	     :min-width :compute
 	     :width :compute :height :compute
 	     :max-height :compute
 	     :display-function `(accept-values-pane-displayer
@@ -58,7 +58,7 @@
   (formatting-item-list (pane :n-rows 1)
     (with-slots (ico-time-p ico-buffers ico-line-style draw-edges draw-faces) frame
       (formatting-cell (pane)
-	(setf ico-time-p (accept 'boolean 
+	(setf ico-time-p (accept 'boolean
 				 :default ico-time-p
 				 :stream pane
 				 :prompt "Time")))
@@ -83,44 +83,48 @@
 	    (declare (ignore ptype))
 	    (when changed
 	      (with-slots (ico-color-set2 ico-color-set3
-			   inks0 inks1 inks2 inks3) frame    
+			   inks0 inks1 inks2 inks3) frame
 		(case buffering
-		  (:single 
+		  (:single
 		    (setf ico-buffers 1
 			  inks0 (vector *background-color*)
 			  inks1 (vector *line-color*)
 			  inks2 (vector *face1-color*)
 			  inks3 (vector *face2-color*)))
 		  (:double
-		    (let ((g (or ico-color-set2
-				 (setf ico-color-set2 
-				       (make-layered-color-set 4 4)))))
-		      (setf ico-buffers 2
-			    inks0 (vector (layered-color g 0 nil)
-					  (layered-color g nil 0))
-			    inks1 (vector (layered-color g 1 nil)
-					  (layered-color g nil 1))
-			    inks2 (vector (layered-color g 2 nil)
-					  (layered-color g nil 2))
-			    inks3 (vector (layered-color g 3 nil)
-					  (layered-color g nil 3)))))
+		   (let ((g (or ico-color-set2
+				(let ((color-set (make-layered-color-set 4 4)))
+				  (add-colors-to-palette (frame-palette frame)
+							 color-set)
+				  (setf ico-color-set2 color-set)))))
+		     (setf ico-buffers 2
+			   inks0 (vector (layered-color g 0 nil)
+					 (layered-color g nil 0))
+			   inks1 (vector (layered-color g 1 nil)
+					 (layered-color g nil 1))
+			   inks2 (vector (layered-color g 2 nil)
+					 (layered-color g nil 2))
+			   inks3 (vector (layered-color g 3 nil)
+					 (layered-color g nil 3)))))
 		  (:triple
-		    (let ((g (or ico-color-set3
-				 (setf ico-color-set3
-				       (make-layered-color-set 4 4 4)))))
-		      (setf ico-buffers 3
-			    inks0 (vector (layered-color g 0 nil nil)
-					  (layered-color g nil 0 nil)
-					  (layered-color g nil nil 0))
-			    inks1 (vector (layered-color g 1 nil nil)
-					  (layered-color g nil 1 nil)
-					  (layered-color g nil nil 1))
-			    inks2 (vector (layered-color g 2 nil nil)
-					  (layered-color g nil 2 nil)
-					  (layered-color g nil nil 2))
-			    inks3 (vector (layered-color g 3 nil nil)
-					  (layered-color g nil 3 nil)
-					  (layered-color g nil nil 3))))))))))))))
+		   (let ((g (or ico-color-set3
+				(let ((color-set (make-layered-color-set 4 4)))
+				  (add-colors-to-palette (frame-palette frame)
+							 color-set)
+				  (setf ico-color-set3 color-set)))))
+		     (setf ico-buffers 3
+			   inks0 (vector (layered-color g 0 nil nil)
+					 (layered-color g nil 0 nil)
+					 (layered-color g nil nil 0))
+			   inks1 (vector (layered-color g 1 nil nil)
+					 (layered-color g nil 1 nil)
+					 (layered-color g nil nil 1))
+			   inks2 (vector (layered-color g 2 nil nil)
+					 (layered-color g nil 2 nil)
+					 (layered-color g nil nil 2))
+			   inks3 (vector (layered-color g 3 nil nil)
+					 (layered-color g nil 3 nil)
+					 (layered-color g nil nil 3))))))))))))))
 
 
 (define-ico-frame-command (com-ico-throw-ball :menu "Throw ball" :keystroke #\t) ()
@@ -151,10 +155,11 @@
   (unless (ico-process frame)
     (setf (ico-process frame)
 	  (clim-sys:make-process #'(lambda ()
-				     (if (slot-value frame 'ico-time-p)
-					 (time (run-ico frame))
-					 (run-ico frame))
-				     (setf (ico-process frame) nil))
+				     (ignore-errors
+				      (if (slot-value frame 'ico-time-p)
+					  (time (run-ico frame))
+					(run-ico frame))
+				      (setf (ico-process frame) nil)))
 				 :name "ICO ball process"))))
 
 (defmethod catch-ball ((frame ico-frame))
@@ -247,7 +252,7 @@
 	      (draw-rectangle* medium 0 0 win-w win-h :ink (svref inks0 buffer) :filled t)
 	      (when draw-edges
 		(draw-lines* medium edges :ink (svref inks1 buffer)
-			     :line-thickness 
+			     :line-thickness
 			     (ecase (slot-value frame 'ico-line-style)
 			       (:thick 5)
 			       (:thin nil))))
@@ -267,17 +272,17 @@
 			(layered-color-color (svref inks2 buffer)) *face1-color*
 			(layered-color-color (svref inks3 buffer)) *face2-color*)))
 	      (medium-force-output medium))
-	    
+
 	    #+xlib-ignore
-	    (:clx 
+	    (:clx
 	      (setf (xlib:gcontext-foreground gcontext) white)
-	      (xlib:draw-rectangle drawable gcontext prev-x prev-y 
+	      (xlib:draw-rectangle drawable gcontext prev-x prev-y
 				   (1+ ico-w) (1+ ico-h) t)
 	      (setf (xlib:gcontext-foreground gcontext) black)
 	      (xlib:draw-segments drawable gcontext
 				  (mapcan
 				    #'(lambda (point)
-					(list (round (ico-point-x point)) 
+					(list (round (ico-point-x point))
 					      (round (ico-point-y point))))
 				    edges))
 	      (xlib:display-force-output display))
@@ -290,7 +295,7 @@
 	      (apply #'scl:send drawable :draw-lines :draw
 				(mapcan
 				  #'(lambda (point)
-				      (list (round (ico-point-x point)) 
+				      (list (round (ico-point-x point))
 					    (round (ico-point-y point))))
 				  edges)))
 	    (:dont))
@@ -314,7 +319,7 @@
 (defconstant nv 12)
 (defconstant nf 20)
 
-(defparameter v3-seq 
+(defparameter v3-seq
 	      (let ((x
 		      '(;; Initial Position
 			(0.0        0.0        -0.9510565)
@@ -329,11 +334,11 @@
 			(-0.809017 -0.26286557  0.42532536)
 			(-0.5       0.68819094  0.42532536)
 			(0.0        0.0         0.9510565))))
-		(make-array (list (length x) 3) 
+		(make-array (list (length x) 3)
 			    :element-type 'single-float
 			    :initial-contents x)))
 
-(defparameter faces '((0 2 1)  (0 3 2)  (0 4 3)  (0 5 4)  
+(defparameter faces '((0 2 1)  (0 3 2)  (0 4 3)  (0 5 4)
 		      (0 1 5)  (1 6 10) (1 2 6)  (2 7 6)
 		      (2 3 7)  (3 8 7)  (3 4 8)  (4 9 8)
 		      (4 5 9)  (5 10 9) (5 1 10) (10 6 11)
@@ -344,10 +349,10 @@
 (defmacro v2-aref (vertex-number field)
   (case field
     ((xy) `(aref v2 ,vertex-number 0))
-    ((z) `(aref v2 ,vertex-number 1))	   
+    ((z) `(aref v2 ,vertex-number 1))
     (t (error "Bad array reference on v2"))))
 
-(defparameter v2 (make-array 
+(defparameter v2 (make-array
 		   (list nv 2)
 		   :initial-contents
 		     (clim-utils:with-collection
@@ -373,11 +378,11 @@
 	     (if $with-collection-tail$
 		 (progn
 		   (setf (car $with-collection-tail$) $collectable$)
-		   (setq $with-collection-tail$ 
+		   (setq $with-collection-tail$
 			 (cdr $with-collection-tail$)))
 		 (push $collectable$ $with-collection-rest$))
 	     $collectable$)))
-       ,@body 
+       ,@body
        (unless (eq (car $with-collection-result$) :hohoho-and-b-of-rum)
 	 (if $with-collection-rest$
 	     (nconc $with-collection-result$ (nreverse $with-collection-rest$))
@@ -392,7 +397,7 @@
 	(drawn drawn)
 	(fp 0)
 	p0 p1 p2)
-    (declare 
+    (declare
       (type (simple-array single-float (12 3)) v3-seq)
       (type (simple-array t (12 2)) v2)
       (type (simple-array t (12 12)) drawn)
@@ -420,7 +425,7 @@
       (setf (aref v2-fill fp) (aref v3-seq i 2))
       (incf fp))
 
-    ;; Accumulate edges, w/o duplicates	    
+    ;; Accumulate edges, w/o duplicates
     (values
       (when do-edges
 	(with-non-consing-collection (edge-point-list)
@@ -563,7 +568,7 @@
 				   (* in-y m12)
 				   (* in-z m22)))))))
 
-(defun create-xform nil 
+(defun create-xform nil
   (let ((r1 (create-transformation-3d))
 	(r2 (create-transformation-3d))
 	(r3 (create-transformation-3d)))
@@ -572,7 +577,7 @@
     (concat-mat r1 r2 r3)
     r3))
 
-(defun create-transformation-3d nil 
+(defun create-transformation-3d nil
   (make-array '(4 4) :element-type 'single-float))
 
 (setq xform (create-xform))

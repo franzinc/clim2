@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: basic-translators.lisp,v 1.18 1993/11/18 18:44:08 cer Exp $
+;; $fiHeader: basic-translators.lisp,v 1.19 1995/10/20 17:37:24 colin Exp $
 
 (in-package :clim-internals)
 
@@ -16,7 +16,7 @@
 		     (let ((*print-length* 3)
 			   (*print-level* 3)
 			   (*print-pretty* nil))
-		       (present object (presentation-type presentation) 
+		       (present object (presentation-type presentation)
 				:stream stream :view +pointer-documentation-view+)))
      :gesture :select)
     (object presentation)
@@ -26,7 +26,7 @@
   (let* ((type (presentation-type presentation))
 	 (type-name (presentation-type-name type))
 	 (object (presentation-object presentation)))
-    (with-presentation-type-decoded (context-name context-parameters) context-type
+    (with-presentation-type-decoded (context-name) context-type
       (if (eq type-name 'blank-area)
 	  (or (eq context-name 'blank-area)
 	      (presentation-subtypep-1 type context-type))
@@ -36,8 +36,12 @@
 	  ;; Either the types definitely match, or the types nominally match
 	  ;; and the object must be validated.
 	  (or (presentation-subtypep-1 type context-type)
-	      (and (not (null context-parameters))
-		   (presentation-typep object context-type))))))))
+	      (and
+	       ;; the new condition is stricter (cim 2/20/96) - see
+	       ;; spr14044
+	       #+ignore (not (null context-parameters))
+	       (presentation-subtypep-1 type-name context-name)
+	       (presentation-typep object context-type))))))))
 
 ;; Only the PRESENTATION-MENU translator lives in this
 (make-command-table 'presentation-menu-command-table :inherit-from nil)
@@ -49,7 +53,7 @@
      ;; are any applicable translators.  That's not necessary because
      ;; FIND-APPLICABLE-TRANSLATORS and PRESENTATION-MATCHES-CONTEXT-TYPE
      ;; treat this translator as a special case.
-       :documentation ((frame stream) 
+       :documentation ((frame stream)
 		       (format stream
 			       (frame-menu-translator-documentation frame)))
      :menu nil				;this doesn't go into any menu
@@ -65,7 +69,7 @@
 
 (defun call-presentation-menu (presentation input-context frame window x y
 			       &key (for-menu t) label (gesture :menu))
-  (let* ((translators (find-applicable-translators presentation input-context 
+  (let* ((translators (find-applicable-translators presentation input-context
 						   frame window x y
 						   :event nil :for-menu for-menu))
 	 ;; Yecch.  The problem is each "translator stuff" is a list, which

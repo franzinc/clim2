@@ -1,4 +1,4 @@
-# $fiHeader: Makefile.generic,v 1.31 1995/10/17 05:00:57 colin Exp $
+# $fiHeader: Makefile.generic,v 1.33 1995/11/08 06:11:13 georgej Exp $
 #
 #  Makefile.generic for CLIM 2.0
 #
@@ -14,9 +14,8 @@ compile: FORCE $(PRODUCT-OBJS)
 	(eval '$(SET_LIBRARY_PATH)' ; \
 	$(ECHO) " \
 	(progn \
-	  (setf (logical-pathname-translations \"clim2\") \
-	    \`((\";**;*.*\" ,(current-directory)))) \
-	  #+ignore (load-logical-pathname-translations \"clim2\") \
+	  (push (merge-pathnames (current-directory) \"hosts.cl\") \
+	    (logical-pathname-translations-database-pathnames)) \
 	  (setq sys::*libtk-pathname* \"$(TKLIB)\") \
 	  (setq sys::*libxt-pathname* \"$(XTLIB)\") \
 	  (setq sys::*libx11-pathname* \"$(XLIB)\") \
@@ -118,9 +117,8 @@ clim: FORCE $(PRODUCT-OBJS)
 	(eval '$(SET_LIBRARY_PATH)' ; \
 	$(ECHO) " \
 	(progn \
-	  (setf (logical-pathname-translations \"clim2\") \
-	    \`((\";**;*.*\" ,(current-directory)))) \
-	  #+ignore (load-logical-pathname-translations \"clim2\") \
+	  (push (merge-pathnames (current-directory) \"hosts.cl\") \
+	    (logical-pathname-translations-database-pathnames)) \
 	  (setq sys::*libtk-pathname* \"$(TKLIB)\") \
 	  (setq sys::*libxt-pathname* \"$(XTLIB)\") \
 	  (setq sys::*libx11-pathname* \"$(XLIB)\") \
@@ -156,9 +154,8 @@ train: FORCE
 load-train: FORCE
 	(eval '$(SET_LIBRARY_PATH)' ; \
 	$(ECHO) " \
-	  (setf (logical-pathname-translations \"clim2\") \
-	    \`((\";**;*.*\" ,(current-directory)))) \
-	  #+ignore (load-logical-pathname-translations \"clim2\") \
+	  (push (merge-pathnames (current-directory) \"hosts.cl\") \
+	    (logical-pathname-translations-database-pathnames)) \
 	  (setq sys::*libtk-pathname* \"$(TKLIB)\") \
 	  (setq sys::*libxt-pathname* \"$(XTLIB)\") \
 	  (setq sys::*libx11-pathname* \"$(XLIB)\") \

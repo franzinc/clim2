@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $fiHeader: xm-defs.lisp,v 1.11 1995/06/21 21:24:19 georgej Exp $
+;; $fiHeader: xm-defs.lisp,v 1.13 1995/11/08 06:14:55 georgej Exp $
 
 ;;
 ;; This file contains compile time only code -- put in clim-debug.fasl.
@@ -29,7 +29,7 @@
 
 (provide :clim-debugxm)
 
-(def-c-type (xm-proto-callback-info :no-defuns :in-foreign-space) :struct
+(def-c-type (xm-proto-callback-info :in-foreign-space :no-defuns) :struct
 	     (handle :int)
 	     (data :int))
 

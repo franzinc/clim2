@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: histories.lisp,v 1.16 93/01/21 14:58:05 cer Exp $
+;; $fiHeader: histories.lisp,v 1.17 1993/07/27 01:39:45 colin Exp $
 
 (in-package :clim-internals)
 
@@ -56,7 +56,7 @@
   (and (consp object)
        (typep (car object) 'basic-history)))
 
-(defmethod history-element-type ((history basic-history)) 
+(defmethod history-element-type ((history basic-history))
   'basic-history-element)
 
 (defmethod display-history-menu-element ((history basic-history) stream number index
@@ -65,7 +65,7 @@
     (setq element-type (history-element-type history)))
   (with-slots (rotation) history
     (let ((element (history-element history index)))
-      (with-output-as-presentation 
+      (with-output-as-presentation
 	  (stream (history-and-element history element) element-type)
 	(cond ((zerop rotation)
 	       (format stream "~3D: " number))
@@ -181,7 +181,7 @@
 	  (unless (history-elements-equal history element old-element)
 	    (setq rotation (setq yank-position idx))
 	    (return-from yank-next-from-history element)))))))
-	   
+
 ;; This allows m-Y to work after doing a "random access" yank from the mouse.
 (defmethod history-note-element-yanked ((history basic-history) element)
   (with-slots (yank-position) history
@@ -322,7 +322,7 @@
   (and (consp object)
        (typep (car object) 'kill-ring-history)))
 
-(defmethod history-element-type ((history kill-ring-history)) 
+(defmethod history-element-type ((history kill-ring-history))
   'kill-ring-element)
 
 (setq *kill-ring* (make-instance 'kill-ring-history :name "Kill ring"))
@@ -374,8 +374,10 @@
 						 history-name)
   (let* ((type-name (presentation-type-name type))
 	 (history-name (or history-name
-			   (with-output-to-string (s)
-			     (describe-presentation-type type-name s nil)))))
+			   ;; check that type-name itself is a valid presentation type
+			   ;; before calling describe-presentation-type (cim 11/17/95)
+			   (and (presentation-type-specifier-p type-name)
+				(describe-presentation-type type-name nil nil)))))
     (make-instance 'presentation-history
       :name history-name :type type-name
       :maximum-length maximum-length)))
@@ -411,7 +413,7 @@
 
 (defmethod print-history-element ((history presentation-history) element stream)
   (handler-case
-      (let ((string (unparse-presentation-history-element 
+      (let ((string (unparse-presentation-history-element
 		      history element :view (stream-default-view stream))))
 	(with-output-as-presentation (stream
 				      (presentation-history-element-object element)
@@ -431,7 +433,7 @@
   (and (consp object)
        (typep (car object) 'presentation-history)))
 
-(defmethod history-element-type ((history presentation-history)) 
+(defmethod history-element-type ((history presentation-history))
   'presentation-history-element)
 
 (defmethod history-and-element ((history presentation-history) element)
