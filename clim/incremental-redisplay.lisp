@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: incremental-redisplay.lisp,v 1.5 92/04/15 11:46:44 cer Exp $
+;; $fiHeader: incremental-redisplay.lisp,v 1.6 92/05/07 13:12:28 cer Exp $
 
 (in-package :clim-internals)
 
@@ -656,7 +656,7 @@
 ;;
 ;; The question is what the default behavior should be.  The current behavior
 ;; is sort of minimalist.
-#+ignore
+#+++ignore
 (defmethod compute-new-output-records ((record output-record-mixin) stream)
   ;; walk over children?
   )
@@ -751,7 +751,7 @@
 					   (bounding-rectangle record)))))))))))
 
 ;; just use default, for now.
-#+ignore
+#+++ignore
 (defmethod find-child-output-record ((record standard-updating-output-record)
 				     use-old-children record-type &rest init-args
 				     &key unique-id id-test &allow-other-keys)

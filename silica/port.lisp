@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: port.lisp,v 1.11 92/05/06 15:37:22 cer Exp Locker: cer $
+;; $fiHeader: port.lisp,v 1.12 92/05/07 13:11:29 cer Exp $
 
 (in-package :silica)
 
@@ -52,7 +52,6 @@
   (:method (x)
    (error "Cannot find port type: ~S" x)))
 
-(defmethod port ((x t)) nil)
 
 (defmethod initialize-instance :around ((port port) &key server-path)
   (setf (slot-value port 'server-path) (copy-list server-path))
@@ -62,12 +61,8 @@
 
 
 (defgeneric port (x)
-  ;;;-- Do we need this???
-  #+ignore
   (:method ((port port)) port)
-  #+ignore
   (:method ((object t)) nil))
-
 
 (defgeneric port-properties (port))
 

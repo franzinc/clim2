@@ -20,16 +20,17 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-silica.lisp,v 1.7 92/03/24 19:37:03 cer Exp Locker: cer $
+;; $fiHeader: ol-silica.lisp,v 1.8 92/04/03 12:04:50 cer Exp $
 
 (in-package :xm-silica)
 
-(defclass openlook-port (xt-port) 
-  ((type :allocation :class 
-	 :initform :openlook :reader port-type)))
+(defclass openlook-port (xt-port) ())
 
 (defmethod find-port-type ((type (eql :openlook)))
   'openlook-port)
+
+(defmethod port-type ((port openlook-port))
+  ':openlook)
 
 (warn "Changing the default server path to ~S"
       (setq *default-server-path* '(:openlook)))
@@ -41,3 +42,47 @@
 		 :height 11
 		 :managed t))
 
+(defmethod port-note-cursor-change :after ((port openlook-port)
+					   cursor stream type old new)
+  (declare (ignore old type cursor))
+  (when new 
+    (let ((mirror (sheet-mirror stream)))
+      (when mirror 
+	(let ((window (tk::widget-window mirror)))
+	  (when (eq  (tk::window-map-state window) :viewable)
+	    ;;--- There could very well be a race condition involving
+	    ;;--- a couple of processes.  Another process could have made
+	    ;;--- this window go away at this point
+	    (tk::ol_set_input_focus 
+	     mirror
+	     2				; RevertToParent
+	     0)))))))
+
+(defmethod change-widget-geometry ((parent tk::draw-area) child
+				   &rest args
+				   &key x y width height)
+  (declare (ignore x y width height))
+  (apply #'tk::configure-widget child args))
+
+;;;--- Why have this class
+
+(defclass openlook-geometry-manager (xt-geometry-manager) ())
+
+(defmethod find-shell-class-and-initargs ((port openlook-port) sheet)
+  (declare (ignore port))
+  (cond ( ;;--- hack alert
+	 (popup-frame-p sheet)
+	 (values 'tk::transient-shell
+		 (append
+		  (let ((x (find-shell-of-calling-frame sheet)))
+		    (and x `(:transient-for ,x)))
+		  '(:keyboard-focus-policy :pointer))))
+	(t
+	 (call-next-method))))
+
+(defmethod enable-xt-widget ((parent tk::transient-shell) (mirror t))
+  (manage-child mirror)
+  (popup parent))
+
+(defmethod disable-xt-mirror ((parent xt::transient-shell) (mirror t))
+  (tk::popdown parent))

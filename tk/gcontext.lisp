@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: gcontext.lisp,v 1.14 92/05/12 18:24:17 cer Exp Locker: cer $
+;; $fiHeader: gcontext.lisp,v 1.15 92/05/13 17:10:17 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -51,13 +51,13 @@
 	(dash-offset :int)
 	(dashes :char)))
 
-
   (defconstant *gcontext-bit-mask*
       '(function plane-mask foreground background
 	line-width line-style cap-style join-style fill-style
 	fill-rule tile stipple ts-x-origin ts-y-origin font subwindow-mode
 	graphics-exposures clip-x-origin clip-y-origin clip-mask dash-offset dashes
 	arc-mode)))
+
 
 
 (eval-when (compile eval)
@@ -177,7 +177,6 @@
   (intern (substitute #\_ #\- (symbol-name (lispify-tk-name name)))))
 
 
-
 ;;; Accessors for the gc
 
 (define-gc-accessor function (encode-function decode-function))
@@ -262,10 +261,10 @@
 
 (define-gc-accessor subwindow-mode (encode-enum decode-enum)
 		  '(:clip-by-children :include-inferiors))
-
 (define-gc-accessor graphics-exposures (encode-enum decode-enum) '(:off :on))
 (define-gc-accessor clip-x-origin (encode-int16 decode-int16))
 (define-gc-accessor clip-y-origin (encode-int16 decode-int16))
+
 
 (define-gc-accessor dash-offset (encode-card16 decode-card16))
 (define-gc-accessor arc-mode (encode-enum decode-enum)  '(:chord :pie-slice))
@@ -313,7 +312,6 @@
    (object-display gc)
    gc
    nv))
-
 
 (defmethod (setf gcontext-clip-mask) ((nv cons) (gc gcontext))
   (let ((r (x11:make-xrectangle)))

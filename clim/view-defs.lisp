@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: view-defs.lisp,v 1.3 92/01/31 14:59:01 cer Exp $
+;; $fiHeader: view-defs.lisp,v 1.4 92/02/24 13:08:50 cer Exp $
 
 (in-package :clim-internals)
 
@@ -44,6 +44,6 @@
 )	;#+CLIM-1-compatibility
 
 
-(defmethod port-dialog-view ((port t))
+(defmethod frame-manager-dialog-view ((framem standard-frame-manager))
   +textual-dialog-view+)
 

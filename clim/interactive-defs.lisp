@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: interactive-defs.lisp,v 1.7 92/03/10 15:40:12 cer Exp $
+;; $fiHeader: interactive-defs.lisp,v 1.8 92/05/07 13:12:36 cer Exp $
 
 (in-package :clim-internals)
 
@@ -51,12 +51,12 @@
      ,@body))
 
 (defun activation-gesture-p (gesture)
-  (and (not (typep gesture 'pointer-button-release-event))
+  (and (not (typep gesture 'pointer-event))	;--- kludge
        (dolist (set *activation-gestures*)
 	 (when (if (listp set)
 		   (member gesture set 
 			   :test #'keyboard-event-matches-gesture-name-p)
-		 (funcall set gesture))
+		   (funcall set gesture))
 	   (return-from activation-gesture-p t)))))
 
 #+CLIM-1-compatibility
@@ -89,12 +89,13 @@
      ,@body))
 
 (defun delimiter-gesture-p (gesture)
-  (dolist (set *delimiter-gestures*)
-    (when (if (listp set)
-	      (member gesture set 
-		      :test #'keyboard-event-matches-gesture-name-p)
-	      (funcall set gesture))
-      (return-from delimiter-gesture-p t))))
+  (and (not (typep gesture 'pointer-event))	;---kludge
+       (dolist (set *delimiter-gestures*)
+	 (when (if (listp set)
+		   (member gesture set 
+			   :test #'keyboard-event-matches-gesture-name-p)
+		   (funcall set gesture))
+	   (return-from delimiter-gesture-p t)))))
 
 #+CLIM-1-compatibility
 (progn
@@ -168,7 +169,7 @@
 		       ((ordinary-char-p gesture)
 			(vector-push-extend gesture string)
 			;;--- haven't updated WRITE-CHAR yet
-			#+ignore (write-char gesture stream))
+			#+++ignore (write-char gesture stream))
 		       (t (beep stream))))
 		(t (return-token gesture))))))))
 

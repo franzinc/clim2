@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: interactive-protocol.lisp,v 1.7 92/04/15 11:46:51 cer Exp $
+;; $fiHeader: interactive-protocol.lisp,v 1.8 92/05/07 13:12:37 cer Exp $
 
 (in-package :clim-internals)
 
@@ -187,7 +187,7 @@
 	       (setq noise-string next-char)	;---so what do we do with NOISE-STRING?
 	       (incf scan-pointer))
 	      (t (when (< scan-pointer insertion-pointer)
-		   #+ignore (error "Trying to make a noise string while rescanning")
+		   #+++ignore (error "Trying to make a noise string while rescanning")
 		   (return-from prompt-for-accept (values)))
 		 (setq noise-string
 		       (make-noise-string 
@@ -761,36 +761,29 @@
 			       &optional (start-position 0))
 
   (with-slots (stream) istream
-    ;; --- should we just require that the encapsulated stream
-    ;; support the graphics protocol??    
-    ;; To avoid different kinds of input editors for the two commonest cases.
-    (cond (#+Silica t
-	   #-Silica (graphics-stream-p stream)
-	   (let (oleft otop oright obottom)
-	     ;; Assumptions: 1. Erasure happens left-to-right, top-to-bottom (just
-	     ;; like text output).  2. Nothing interesting appears on the screen below
-	     ;; and to the right of text from the input editor.  We merge erasures so
-	     ;; as to erase as few rectangles as possible.
-	     (labels ((erase-merged-stuff ()
-			(draw-rectangle-internal stream (coordinate 0) (coordinate 0)
-						 oleft otop oright obottom
-						 +background-ink+ nil))
-		      (erase-screen-piece (left top right bottom extra)
-			(declare (ignore extra))
-			(cond ((null oleft)	;First rectangle
-			       (setf oleft left otop top oright right obottom bottom))
-			      ((= otop top)	;Same line
-			       (maxf oright right) (maxf obottom bottom) (minf oleft left))
-			      ((<= oleft left)	;Further down, same or larger indent
-			       (maxf oright right) (maxf obottom bottom))
-			      (t		;next line is further left than previous
-			       (erase-merged-stuff)
-			       (setf oleft left otop top oright right obottom bottom)))))
-	       (declare (dynamic-extent #'erase-merged-stuff #'erase-screen-piece))
-	       (do-input-buffer-screen-real-estate istream #'erase-screen-piece start-position)
-	       (when oleft (erase-merged-stuff)))))
-	  ;; just reprompt on the next line.
-	  (t (terpri stream)))))
+    (let (oleft otop oright obottom)
+      ;; Assumptions: 1. Erasure happens left-to-right, top-to-bottom (just
+      ;; like text output).  2. Nothing interesting appears on the screen below
+      ;; and to the right of text from the input editor.  We merge erasures so
+      ;; as to erase as few rectangles as possible.
+      (labels ((erase-merged-stuff ()
+		 (draw-rectangle-internal stream (coordinate 0) (coordinate 0)
+					  oleft otop oright obottom
+					  +background-ink+ nil))
+	       (erase-screen-piece (left top right bottom extra)
+		 (declare (ignore extra))
+		 (cond ((null oleft)		;First rectangle
+			(setf oleft left otop top oright right obottom bottom))
+		       ((= otop top)		;Same line
+			(maxf oright right) (maxf obottom bottom) (minf oleft left))
+		       ((<= oleft left)		;Further down, same or larger indent
+			(maxf oright right) (maxf obottom bottom))
+		       (t			;next line is further left than previous
+			(erase-merged-stuff)
+			(setf oleft left otop top oright right obottom bottom)))))
+	(declare (dynamic-extent #'erase-merged-stuff #'erase-screen-piece))
+	(do-input-buffer-screen-real-estate istream #'erase-screen-piece start-position)
+	(when oleft (erase-merged-stuff))))))
 
 ;;--- This mechanism is only partially implemented.  In order to work better,
 ;;--- it requires that the IE maintain its own concept of the prompt.

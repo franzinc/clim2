@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLX-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clx-port.lisp,v 1.6 92/04/15 11:45:56 cer Exp $
+;; $fiHeader: clx-port.lisp,v 1.7 92/05/07 13:11:49 cer Exp $
 
 (in-package :clx-clim)
 
@@ -18,13 +18,14 @@
      (default-grab-cursor :reader default-grab-cursor)
      (context :reader port-context)
      (width-pixels)
-     (height-pixels)
-     (type :allocation :class 
-	   :initform :clx :reader port-type))
+     (height-pixels))
   (:default-initargs :allow-loose-text-style-size-mapping t))
 
 (defmethod find-port-type ((type (eql ':clx)))
   'clx-port)
+
+(defmethod port-type ((port clx-port))
+  ':clx)
 
 (defvar *clx-white-color* (xlib:make-color :red 1 :blue 1 :green 1))
 (defvar *clx-black-color* (xlib:make-color :red 0 :blue 0 :green 0))

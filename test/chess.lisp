@@ -1,4 +1,4 @@
-;; -*- mode: common-lisp; package: clim -*-
+;; -*- mode: common-lisp; package: clim-user -*-
 ;;
 ;;				-[]-
 ;; 
@@ -20,10 +20,10 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: chess.lisp,v 1.4 92/04/10 14:27:15 cer Exp $
+;; $fiHeader: chess.lisp,v 1.5 92/05/07 13:13:16 cer Exp Locker: cer $
 
 
-(in-package :clim)
+(in-package :clim-user)
 
 (define-application-frame chess-board ()
   ((board :initform (make-array '(8 8)
@@ -32,26 +32,44 @@
    (bitmaps :initform nil :allocation :class)
    (subprocess :initform (create-chess-subprocess)))
   (:command-table chess-commands)
-  (:pane
-   (scrolling ()
-     (make-pane 'application-pane
-       :incremental-redisplay t
-       :display-function 'draw-chess-board))))
+  (:panes
+   (board :application
+	  :incremental-redisplay t
+	  :scroll-bars :dynamic
+	  :width :compute :height :compute
+	  :max-width :compute :max-height :compute
+	  :display-function 'draw-chess-board))
+  (:layouts
+   (:default board)))
 
 (define-presentation-type chess-square ())
 
-(define-command (com-do-nothing :command-table chess-commands :menu t) ()
+(define-presentation-method highlight-presentation ((type chess-square) record stream state)
+  state
+  (multiple-value-bind (xoff yoff)
+      (convert-from-relative-to-absolute-coordinates 
+	stream (output-record-parent record))
+    (with-bounding-rectangle* (left top right bottom) record
+      (draw-rectangle* stream
+		       (- (+ left xoff) 2) (- (+ top yoff) 2)
+		       (+ right xoff 2) (+ bottom yoff 2)
+		       :line-thickness 2
+		       :filled nil
+		       :ink +flipping-ink+))))
+
+(define-chess-board-command (com-do-nothing :menu t) ()
   nil)
 
-(define-command (com-reset :command-table chess-commands :menu t) ()
+(define-chess-board-command (com-reset :menu t) ()
   (with-slots (board subprocess) *application-frame*
     (send-command subprocess "new")
     (setf board
       (make-array '(8 8)
 		  :initial-contents
-		  (make-chess-board-initial-state)))))
+		  (make-chess-board-initial-state)))
+    (window-clear *standard-output*)))
 
-(define-command com-move-piece
+(define-chess-board-command com-move-piece
     ((from 'chess-square)
      (to 'chess-square))
   (with-slots (subprocess board) *application-frame*
@@ -93,7 +111,7 @@
   (destructuring-bind
       (row col) x
     (coerce (list 
-	     (int-char (+ (char-int #\a) col))
+	     (cltl1::int-char (+ (char-int #\a) col))
 	     (digit-char (- 8 row)))
 	    'cltl1::string)))
 
@@ -106,36 +124,26 @@
      com-move-piece
      chess-commands)
   (object)
-  (list object *unsupplied-argument*))
+  (list object *unsupplied-argument-marker*))
 
-(defmethod draw-chess-board (frame stream)
-  (stream-set-cursor-position* stream 0 0)
-  (updating-output 
-	 (stream)
-	 (formatting-table 
-	  (stream)
-	  (dotimes (row 8)
-	    (formatting-row 
-	     (stream)
-	     (dotimes (column 8)
-	       (formatting-cell 
-		(stream)
-		(let ((x (aref (slot-value frame 'board) row column)))
-		  (updating-output 
-		   (stream
-		    :unique-id (list row column)
-		    :id-test #'equal
-		    :cache-value x
-		    :cache-test #'equal)
-		   (with-output-as-presentation (
-						 :object (list row column)
-						 :type 'chess-square
-						 :stream stream)
-		     (draw-piece frame
-				 stream 
-				 (second x) 
-				 (car x)
-				 (oddp (+ row column)))))))))))))
+(defmethod draw-chess-board (frame stream &key &allow-other-keys)
+  (formatting-table (stream)
+      (dotimes (row 8)
+	(formatting-row (stream)
+	    (dotimes (column 8)
+	      (formatting-cell (stream)
+		  (let ((x (aref (slot-value frame 'board) row column)))
+		    (updating-output (stream
+				      :unique-id (list row column)
+				      :id-test #'equal
+				      :cache-value x
+				      :cache-test #'equal)
+			(with-output-as-presentation (stream (list row column) 'chess-square)
+			  (draw-piece frame
+				      stream 
+				      (second x) 
+				      (car x)
+				      (oddp (+ row column))))))))))))
 
 (defmethod draw-piece (frame stream (which (eql nil)) color square)
   (draw-rectangle* stream 0 0 80 80 
@@ -161,11 +169,6 @@
     (draw-rectangle* stream 0 0 80 80 
 		     :ink ink)))
 
-
-#+ignore
-(draw-rectangle* stream 0 0 80 80 :ink pattern)
-
-
 (defun make-chess-board-initial-state ()
   (labels ((define-pieces (color)
 	       (ecase color
@@ -186,7 +189,6 @@
     (append (define-pieces :black)
 	    (make-list 4 :initial-element (make-list 8))
 	    (define-pieces :white))))
-
 
 (defun create-chess-subprocess ()
   (multiple-value-bind

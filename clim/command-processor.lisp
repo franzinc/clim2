@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: command-processor.lisp,v 1.6 92/03/24 19:37:45 cer Exp $
+;; $fiHeader: command-processor.lisp,v 1.7 92/04/15 11:46:13 cer Exp $
 
 (in-package :clim-internals)
 
@@ -156,7 +156,7 @@
 	 ;; There must be a value following, no?
 	 (funcall delimiter-parser stream :args)))
 
-#+ignore	;this is slow and useless, don't bother
+#+++ignore	;this is slow and useless, don't bother
 (defun build-command (command-name &rest partial-command-args)
   (declare (dynamic-extent partial-command-args))
   (flet ((arg-parser (&rest args)

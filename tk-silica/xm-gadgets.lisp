@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.29 92/05/12 18:25:22 cer Exp Locker: cer $
+;; $fiHeader: xm-gadgets.lisp,v 1.30 92/05/13 17:11:16 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -38,7 +38,7 @@
 			 (menu-bar motif-menu-bar)
 			 (viewport xm-viewport)
 			 (radio-box motif-radio-box)
-			 (clim-internals::check-box motif-check-box)
+			 (check-box motif-check-box)
 			 (frame-pane motif-frame-pane)
 			 (top-level-sheet motif-top-level-sheet)
 			 (list-pane motif-list-pane)
@@ -65,7 +65,7 @@
 
 (defmethod (setf gadget-value) (nv (gadget motif-value-pane) &key invoke-callback)
   (declare (ignore invoke-callback))
-  (when (sheet-mirror gadget)
+  (when (sheet-direct-mirror gadget)
     (tk::set-values (sheet-mirror gadget) :value nv)))
 
 (defmethod queue-value-changed-event (widget sheet &optional (value (gadget-value sheet)))
@@ -158,7 +158,6 @@
 						     (parent t)
 						     (sheet motif-label-pane))
   (values 'tk::xm-label nil))
-
 
 ;;; Push button
 
@@ -268,7 +267,6 @@
 		   (value gadget-value)) sheet
     (multiple-value-bind
 	(smin smax) (gadget-range* sheet)
-
       (let ((mmin 0) 
 	    (mmax 100)
 	    (decimal-points 0)
@@ -307,6 +305,7 @@
 (defmethod (setf gadget-label) :after (nv (sheet motif-slider))
   (when (sheet-direct-mirror sheet)
     (tk::set-values (sheet-direct-mirror sheet) :title-string (or nv ""))))
+
 
 (defmethod compose-space ((m motif-slider) &key width height)
   (declare (ignore width height))
@@ -355,20 +354,16 @@
 (defmethod change-scroll-bar-values ((sb motif-scroll-bar) &key slider-size value)
   (let ((mirror (sheet-direct-mirror sb)))
     (multiple-value-bind
-	(smin smax) (gadget-range* sb)
+	(mmin mmax) (tk::get-values mirror :minimum :maximum)
       (multiple-value-bind
-	  (mmin mmax) (tk::get-values mirror :minimum :maximum)
+	  (real-value real-size) (compute-new-scroll-bar-values sb mmin mmax value slider-size)
 	(tk::set-values
 	 mirror
-	 :slider-size 
-	 (fix-coordinate
-	  (compute-symmetric-value
-		       smin smax slider-size mmin mmax))
-	 :value (fix-coordinate
-		 (compute-symmetric-value
-		  smin smax value mmin mmax)))))))
+	 :slider-size real-size
+	 :value real-value)))))
 
 
+   
 (defmethod add-sheet-callbacks ((port motif-port) (sheet motif-scroll-bar) (widget t))
   (tk::add-callback widget
 		    :value-changed-callback
@@ -376,9 +371,9 @@
 		    sheet))
 
 
-(defun scroll-bar-changed-callback-1 (widget sheet)
+(defmethod scroll-bar-changed-callback-1 ((widget t) (sheet motif-scroll-bar))
   (multiple-value-bind
-      (smin smax) (silica::gadget-range* sheet)
+      (smin smax) (gadget-range* sheet)
     (multiple-value-bind
 	(value size mmin mmax)
 	(tk::get-values widget :value :slider-size :minimum :maximum)
@@ -386,9 +381,9 @@
        sheet
        (gadget-client sheet)
        (gadget-id sheet)
-       (silica::compute-symmetric-value
+       (compute-symmetric-value
 	mmin mmax value smin smax)
-       (silica::compute-symmetric-value
+       (compute-symmetric-value
 	mmin mmax size smin smax)))))
 
 
@@ -635,8 +630,8 @@
 		    sheet))
 
 (defclass motif-radio-box (motif-geometry-manager
-			   motif-oriented-gadget
 			   mirrored-sheet-mixin
+			   motif-oriented-gadget
 			   sheet-multiple-child-mixin
 			   sheet-permanently-enabled-mixin
 			   radio-box
@@ -650,26 +645,28 @@
 (defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
 						     (parent t)
 						     (sheet motif-radio-box))
-  
   (values 'tk::xm-radio-box nil))
 
-(defmethod value-changed-callback :after ((v gadget)
-					  (client motif-radio-box)
-					  (id t)
-					  (value t))
+(defmethod value-changed-callback :around ((v gadget)
+					   (client motif-radio-box)
+					   (id t)
+					   (value t))
+  ;; This and the one below have to be around because of the user has
+  ;; specified a callback function only arounds ever get executed.
   (when (eq value t)
     (setf (radio-box-current-selection client) v)
     (value-changed-callback client 
 			    (gadget-client client)
 			    (gadget-id client) 
-			    v)))
+			    v))
+  (call-next-method))
 
 (defclass motif-check-box (motif-geometry-manager
-			   motif-oriented-gadget
 			   mirrored-sheet-mixin
+			   motif-oriented-gadget
 			   sheet-multiple-child-mixin
 			   sheet-permanently-enabled-mixin
-			   silica::check-box
+			   check-box
 			   ask-widget-for-size-mixin
 			   pane)
     ())
@@ -683,18 +680,21 @@
   
   (values 'tk::xm-row-column nil))
 
-(defmethod value-changed-callback :after ((v gadget)
-					  (client motif-check-box)
-					  (id t)
-					  (value t))
+(defmethod value-changed-callback :around ((v gadget)
+					   (client motif-check-box)
+					   (id t)
+					   (value t))
+  ;; This and the one below have to be around because of the user has
+  ;; specified a callback function only arounds ever get executed.
   (if (eq value t)
-      (push v (silica::check-box-current-selection client))
-    (setf (silica::check-box-current-selection client)
-      (delete v (silica::check-box-current-selection client))))
+      (push v (check-box-current-selection client))
+    (setf (check-box-current-selection client)
+      (delete v (check-box-current-selection client))))
   (value-changed-callback client 
 			  (gadget-client client)
 			  (gadget-id client) 
-			  (silica::check-box-current-selection client)))
+			  (check-box-current-selection client))
+  (call-next-method))
 
 ;; Frame-viewport that we need because a sheet can have
 
@@ -784,8 +784,7 @@
   (let ((fudge-factor (+ 16
 			 (tk::get-values (sheet-mirror fr)
 					 :spacing)))
-	(sr (copy-space-requirement (compose-space
-					     (sheet-child fr)))))
+	(sr (copy-space-requirement (compose-space (sheet-child fr)))))
     (incf (space-requirement-width sr) fudge-factor)
     (incf (space-requirement-height sr) fudge-factor)
     ;;--- Is this the correct thing to do???
@@ -922,7 +921,6 @@
   (declare (ignore count))
   (queue-value-changed-event widget sheet value))
 
-
 (defmethod (setf gadget-value) :after (nv (gadget motif-option-pane) &key invoke-callback)
   (declare (ignore invoke-callback)) 
   (set-option-menu-value gadget nv))
@@ -944,22 +942,22 @@
 	  (tk::set-values (tk::intern-widget (tk::xm_option_button_gadget widget))
 			  :label-string (funcall name-key (nth x items))))))))
 
-(defmethod port-notify-user ((port motif-port)
-			     message-string 
-			     &key 
-			     (style :inform)
-			     (frame nil frame-p)
-			     (associated-window
-			      (if frame-p
-				  (frame-top-level-sheet frame)
-				(find-graft :port port)))
-			     (title "Notify user")
-			     documentation
-			     (exit-boxes
-			      '(:exit
-				:abort
-				:help))
-			     (name title))
+(defmethod frame-manager-notify-user ((framem motif-frame-manager)
+				      message-string 
+				      &key 
+				      (style :inform)
+				      (frame nil frame-p)
+				      (associated-window
+					(if frame-p
+					    (frame-top-level-sheet frame)
+					    (graft framem)))
+				      (title "Notify user")
+				      documentation
+				      (exit-boxes
+					'(:exit
+					   :abort
+					   :help))
+				      (name title))
   (let ((dialog (make-instance (ecase style
 				 (:inform 'tk::xm-information-dialog)
 				 (:error 'tk::xm-error-dialog)
@@ -983,8 +981,8 @@
 	       (setq result (list r)))
 	     (display-help (widget ignore)
 	       (declare (ignore widget ignore))
-	       (port-notify-user 
-		port
+	       (frame-manager-notify-user 
+		framem
 		documentation
 		:associated-window associated-window)))
 	(tk::add-callback dialog :ok-callback #'set-it t)
@@ -1010,20 +1008,11 @@
 	    (progn
 	      (tk::manage-child dialog)
 	      (wait-for-callback-invocation
-	       port
+	       (port framem)
 	       #'(lambda () (or result (not (tk::is-managed-p dialog))))
 	       "Waiting for dialog"))
 	  (tk::destroy-widget dialog))
 	(car result)))))
-
-
-(defun wait-for-callback-invocation (port predicate &optional (whostate "Waiting for callback"))
-  (if (eq mp:*current-process* (port-process port))
-      (progn
-	(loop 
-	  (when (funcall predicate) (return nil))
-	  (process-next-event port)))
-    (mp:process-wait whostate predicate)))
 
 (defun get-message-box-child (widget &rest children)
   (values-list
@@ -1073,23 +1062,20 @@
 
 ;;; File Selection
 
-(defmethod port-select-file ((port motif-port) &rest options 
-			     &key 
-			     (frame nil frame-p)
-			     (associated-window
-			      (if frame-p
-				  (frame-top-level-sheet frame)
-				(find-graft :port port)))
-			     (title "Select File")
-			     documentation
-			     file-search-proc
-			     directory-list-label
-			     file-list-label
-			     (exit-boxes
-			      '(:exit
-				:abort
-				:help))
-			     (name title))
+(defmethod frame-manager-select-file 
+	   ((framem motif-frame-manager) &rest options 
+	    &key (frame nil frame-p)
+		 (associated-window
+		   (if frame-p
+		       (frame-top-level-sheet frame)
+		       (graft framem)))
+		 (title "Select File")
+		 documentation
+		 file-search-proc
+		 directory-list-label
+		 file-list-label
+		 (exit-boxes '(:exit :abort :help))
+		 (name title))
 				  
   (let ((dialog (make-instance 
 		 'tk::xm-file-selection-dialog
@@ -1171,3 +1157,5 @@
   (push (cons :file-search-proc file-search-proc)
 	(tk::widget-callback-data dialog))
   *file-search-proc-callback-address*)
+
+;;;

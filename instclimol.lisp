@@ -20,13 +20,18 @@
 ;; applicable.
 ;;
 
-;; $fiHeader: instclim-2.0.lisp,v 1.1 92/03/30 22:10:04 cer Exp $
+;; $fiHeader: instclimol.lisp,v 1.1 92/05/20 17:20:42 cer Exp Locker: cer $
 
 ;;
 ;; Load CLIM
 ;;
 
 (in-package :system)
+
+
+(defvar sys::*libx11-pathname* "/x11/R4/src/mit/lib/X/libX_d.a")
+(defvar sys::*libxt-pathname* "/x11/R4/src/mit/lib/Xt/libXt_d.a")
+(defvar sys::*libxol-pathname* "/vapor/usr/tech/cer/stuff/clim-2.0/tk/lib2/libXol.a")
 
 (load-application (progn 
 		    (require :climol)

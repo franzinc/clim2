@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: presentations.lisp,v 1.8 92/04/15 11:47:04 cer Exp $
+;; $fiHeader: presentations.lisp,v 1.9 92/05/07 13:12:50 cer Exp $
 
 (in-package :clim-internals)
 
@@ -383,16 +383,14 @@
 		   (highlight-output-record 
 		     history-window highlighted-presentation :unhighlight)
 		   (setf highlighted-presentation nil)
-		   (when *pointer-documentation-output*
-		     (frame-document-highlighted-presentation
-		       frame highlighted-presentation
-		       input-context history-window px py
-		       *pointer-documentation-output*)))
+		   (frame-document-highlighted-presentation
+		     frame highlighted-presentation
+		     input-context history-window px py
+		     *pointer-documentation-output*))
 		  ((eq presentation highlighted-presentation)
 		   ;; Over the same presentation as before
-		   (when (and *pointer-documentation-output*
-			      (/= (window-modifier-state history-window)
-				  *last-pointer-documentation-modifier-state*))
+		   (when (/= (window-modifier-state history-window)
+			     *last-pointer-documentation-modifier-state*)
 		     (frame-document-highlighted-presentation
 		       frame presentation
 		       input-context history-window px py
@@ -405,11 +403,10 @@
 		       history-window highlighted-presentation :unhighlight))
 		   (highlight-output-record history-window presentation :highlight)
 		   (setf highlighted-presentation presentation)
-		   (when *pointer-documentation-output*
-		     (frame-document-highlighted-presentation
-		       frame presentation
-		       input-context history-window px py
-		       *pointer-documentation-output*))))))))))
+		   (frame-document-highlighted-presentation
+		     frame presentation
+		     input-context history-window px py
+		     *pointer-documentation-output*)))))))))
 
 (defun highlighted-presentation (stream &optional (prefer-pointer-window t))
   (let ((history-window (if prefer-pointer-window (find-appropriate-window stream) stream)))

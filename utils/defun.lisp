@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: defun.lisp,v 1.3 92/02/24 13:05:32 cer Exp $
+;; $fiHeader: defun.lisp,v 1.4 92/03/04 16:20:14 cer Exp $
 
 (in-package :clim-utils)
 
@@ -273,8 +273,8 @@
 	,@documentation ,@new-body))))
 
 (lisp:defun generate-dynamic-function-declarations (functions)
-  #-Ignore (declare (ignore functions))
-  #+Ignore `((declare (dynamic-extent ,@(mapcar #'(lambda (fn) `#',fn) functions)))))
+  #---ignore (declare (ignore functions))
+  #+++ignore `((declare (dynamic-extent ,@(mapcar #'(lambda (fn) `#',fn) functions)))))
 
 (defmacro flet (functions &body body &environment env)
   (construct-local-function-body 'lisp:flet functions body env))

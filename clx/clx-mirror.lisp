@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLX-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clx-mirror.lisp,v 1.3 92/03/04 16:20:54 cer Exp $
+;; $fiHeader: clx-mirror.lisp,v 1.4 92/04/15 11:45:54 cer Exp $
 
 (in-package :clx-clim)
 
@@ -179,9 +179,11 @@
 				:y mouse-y
 				:native-x native-x
 				:native-y native-y
+				:button nil	;--- fill this in
 				:modifiers (current-modifier-state
 					     (make-state-from-buttons mouse-buttons)
 					     (tv:sheet-mouse mouse-window))
+				:pointer (port-pointer port)
 				:sheet sheet)))
 	     t))
 	  ((:button-press :button-release) 
@@ -200,6 +202,7 @@
 			      :button button
 			      :modifiers (current-modifier-state
 					   0 (tv:sheet-mouse window))
+			      :pointer (port-pointer port)
 			      :sheet sheet))
 	     t))
 	  ((:key-press :key-release)
@@ -254,7 +257,7 @@
 	       (setf (sheet-enabled-p sheet) nil))
 	     t))
 	  (:configure-notify (event-window ;x y width height
-			       #+ignore send-event-p)
+			       #+++ignore send-event-p)
 	   (let ((sheet (mirror->sheet port event-window)))
 	     (when sheet
 	       (xlib:with-state (event-window)

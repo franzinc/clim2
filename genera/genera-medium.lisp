@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: GENERA-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: genera-medium.lisp,v 1.3 92/04/15 11:47:57 cer Exp $
+;; $fiHeader: genera-medium.lisp,v 1.4 92/05/07 13:13:26 cer Exp $
 
 (in-package :genera-clim)
 
@@ -86,6 +86,7 @@
 (defun-inline follow-indirect-ink (ink medium)
   (cond ((eq ink +foreground-ink+) (medium-foreground medium))
 	((eq ink +background-ink+) (medium-background medium))
+	((eq ink +everywhere+) (medium-foreground medium))
 	(t ink)))
 
 (defmethod genera-decode-color (ink medium &optional (stipple-p t))
@@ -138,6 +139,74 @@
 			       0000100000000000
 			       0000000000100000)))
 	(otherwise boole-clr)))))
+
+(defvar *genera-opacity-stipples*
+	(mapcar #'(lambda (entry)
+		    (cons (first entry) (apply #'graphics::make-stipple (second entry))))
+		'((+nowhere+ (1 1 (#b0)))
+		  (0.05 (8 16 (#b1000000000000000
+			       #b0000001000000000
+			       #b0000000000001000
+			       #b0010000000000000
+			       #b0000000010000000
+			       #b0000000000000010
+			       #b0000100000000000
+			       #b0000000000100000)))
+		  (0.1 (8 8 (#b10000000
+			     #b00010000
+			     #b00000010
+			     #b01000000
+			     #b00001000
+			     #b00000001
+			     #b00100000
+			     #b00000100)))
+		  (0.2 (4 4 (#b1000
+			     #b0010
+			     #b0100
+			     #b0001)))
+		  (0.3 (3 3 (#b100
+			     #b010
+			     #b001)))
+		  (0.4 (2 2 (#b10
+			     #b01)))
+		  (0.6 (3 3 (#b011
+			     #b101
+			     #b110)))
+		  (0.7 (4 4 (#b0111
+			     #b1101
+			     #b1011
+			     #b1110)))
+		  (0.8 (8 8 (#b01111111
+			     #b11101111
+			     #b11111101
+			     #b10111111
+			     #b11110111
+			     #b11111110
+			     #b11011111
+			     #b11111011)))
+		  (0.9 (8 16 (#b0111111111111111
+			      #b1111110111111111
+			      #b1111111111110111
+			      #b1101111111111111
+			      #b1111111101111111
+			      #b1111111111111101
+			      #b1111011111111111
+			      #b1111111111011111)))
+		  (+everywhere+ (1 1 (#b1))))))
+
+(defun genera-decode-opacity (opacity)
+  (let ((opacities *genera-opacity-stipples*))
+    (cond ((eq opacity +nowhere+)
+	   (cdr (first opacities)))
+	  ((eq opacity +everywhere+)
+	   (cdr (first (last opacities))))
+	  (t
+	   (let ((last-op (cdr (first opacities)))
+		 (value (opacity-value opacity)))
+	     (dolist (op (cdr opacities) last-op)
+	       (when (< value (car op))
+		 (return last-op))
+	       (setq last-op (cdr op))))))))
 
 (defmethod genera-decode-color ((ink gray-color) medium &optional (stipple-p t))
   (let ((window (slot-value medium 'window))
@@ -627,12 +696,15 @@
 			   :filled filled)))))))))
 
 (defmethod port-draw-string* ((port genera-port) sheet medium
-			      string x y start end align-x align-y)
+			      string x y start end align-x align-y
+			      towards-x towards-y transform-glyphs)
   (when (medium-drawing-possible medium)
     (let ((transform (sheet-device-transformation sheet))
 	  (ink (medium-ink medium))
 	  (text-style (medium-merged-text-style medium)))
       (convert-to-device-coordinates transform x y)
+      (when towards-x
+	(convert-to-device-coordinates transform towards-x towards-y))
       (unless start
 	(setq start 0))
       (unless end
@@ -646,10 +718,15 @@
 	       (height (sys:font-char-height font))
 	       (descent (- height (sys:font-baseline font)))
 	       (ascent (- height descent)))
-	  (incf x (clim-internals::compute-text-x-adjustment 
-		    align-x sheet string text-style start end))
-	  (incf y (clim-internals::compute-text-y-adjustment
-		    align-y descent ascent height))
+	  (let ((x-adjust (clim-internals::compute-text-x-adjustment 
+			    align-x medium string text-style start end))
+		(y-adjust (clim-internals::compute-text-y-adjustment
+			    align-y descent ascent height)))
+	    (incf x x-adjust)
+	    (incf y y-adjust)
+	    (when towards-x
+	      (incf towards-x x-adjust)
+	      (incf towards-y y-adjust)))
 	  (with-stack-list (style :device-font (tv:font-name font) :normal)
 	    (with-appropriate-drawing-state medium ink nil
 	      #'(lambda (window alu)
@@ -661,22 +738,31 @@
 			   substring x y :character-style style)))))))))
 
 (defmethod port-draw-character* ((port genera-port) sheet medium
-				 character x y align-x align-y)
+				 character x y align-x align-y
+				 towards-x towards-y transform-glyphs)
   (when (medium-drawing-possible medium)
     (let ((transform (sheet-device-transformation sheet))
 	  (ink (medium-ink medium))
 	  (text-style (medium-merged-text-style medium)))
       (convert-to-device-coordinates transform x y)
+      (when towards-x
+	(convert-to-device-coordinates transform towards-x towards-y))
       (let* ((font (text-style-mapping 
 		     port text-style *standard-character-set*
 		     (slot-value medium 'window)))
 	     (height (sys:font-char-height font))
 	     (descent (- height (sys:font-baseline font)))
 	     (ascent (- height descent)))
-	(incf x (clim-internals::compute-text-x-adjustment 
-		  align-x sheet character text-style))
-	(incf y (- (clim-internals::compute-text-y-adjustment
-		     align-y descent ascent height) ascent))
+	(let ((x-adjust (clim-internals::compute-text-x-adjustment 
+			  align-x medium character text-style))
+	      (y-adjust (- (clim-internals::compute-text-y-adjustment
+			     align-y descent ascent height)
+			   ascent)))
+	  (incf x x-adjust)
+	  (incf y y-adjust)
+	  (when towards-x
+	    (incf towards-x x-adjust)
+	    (incf towards-y y-adjust)))
 	(with-appropriate-drawing-state medium ink nil
 	  #'(lambda (window alu)
 	      (declare (sys:downward-function))
@@ -689,63 +775,14 @@
 (defmethod port-draw-text* ((port genera-port) sheet medium
 			    string-or-char x y start end
 			    align-x align-y
-			    ;; towards-point towards-x towards-y
-			    ;; transform-glyphs
-			    )
+			    towards-x towards-y transform-glyphs)
   (if (characterp string-or-char)
       (port-draw-character* port sheet medium
-			    string-or-char x y align-x align-y)
+			    string-or-char x y align-x align-y
+			    towards-x towards-y transform-glyphs)
       (port-draw-string* port sheet medium
-			 string-or-char x y start end align-x align-y)))
-
-;;--- Is this used any more?
-(defmethod port-write-char-1 ((port genera-port) medium 
-			      index font color x y)
-  ;;--- Convert X and Y to device coords
-  (let ((window (slot-value medium 'window)))
-    (when (medium-drawing-possible medium)
-      (tv:prepare-sheet (window)
-	(let ((x (+ x (tv:sheet-left-margin-size window)))
-	      (y (+ y (tv:sheet-top-margin-size window))))
-	  ;; There is apparently no way to draw a glyph exactly where you want
-	  ;; it on a sheet!  Draw it on the screen instead...
-	  (tv:sheet-draw-glyph index font x y
-			       (if (eq color (medium-foreground medium))
-				   (tv:sheet-char-aluf window)
-				 (genera-decode-color (follow-indirect-ink color medium)
-						     medium nil))
-			       window))))))
-
-;;--- Is this used any more?
-(defmethod port-write-string-1 ((port genera-port) medium 
-				glyph-buffer start end 
-				font color x y)
-  ;;--- Convert X and Y to device coords
-  (unless (<= end start) 
-    (let ((window (slot-value medium 'window)))
-      (when (medium-drawing-possible medium)
-	(tv:prepare-sheet (window)
-	  (let ((glyph-buffer glyph-buffer)
-		(index start)
-		(index8 0)
-		(x (+ x (tv:sheet-left-margin-size window)))
-		(y (+ y (tv:sheet-top-margin-size window))))
-	    (declare (sys:array-register glyph-buffer))
-	    (sys:with-stack-array (glyphs8 (- end start) :element-type 'string-char)
-	      (declare (sys:array-register glyphs8))
-	      (loop
-		(when (= index end) (return))
-		(setf (aref glyphs8 index8) (code-char (aref glyph-buffer index)))
-		(incf index)
-		(incf index8))
-	      (tv:sheet-draw-string window
-				    (if (eq color (medium-foreground medium))
-					(tv:sheet-char-aluf window)
-					(genera-decode-color (follow-indirect-ink color medium)
-							     medium nil))
-				    x y glyphs8 font 0 index8
-				    (tv:sheet-width window)))))))))
-
+			 string-or-char x y start end align-x align-y
+			 towards-x towards-y transform-glyphs)))
 
 (defmethod port-beep ((port genera-port) sheet)
   (scl:beep sheet))

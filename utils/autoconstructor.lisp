@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: autoconstructor.lisp,v 1.2 92/01/31 14:52:23 cer Exp $
+;; $fiHeader: autoconstructor.lisp,v 1.3 92/02/24 13:05:05 cer Exp $
 
 ;;;
 ;;; Copyright (c) 1990 by Xerox Corporation.  All rights reserved.
@@ -96,7 +96,7 @@
        (eval-when (compile load eval)
 	 (proclaim '(notinline ,name))
 	 (proclaim '(function ,name)))
-       #+Ignore ;; See if FUNCTION proclamation is sufficient.
+       #+++ignore ;; See if FUNCTION proclamation is sufficient.
        (defun ,name (&rest args)
 	 (declare (dynamic-extent args)
 		  (ignore args))
@@ -196,7 +196,7 @@
 	      ;; Can't use PCL's iterate tool
 	      (dorest (sublist supplied-initargs cddr)
 		(collect (first sublist)))
-	      #+ignore
+	      #+++ignore
 	      (iterate ((name (pcl::*list-elements supplied-initargs
 						   :by #'cddr)))
 		       (collect name))))))

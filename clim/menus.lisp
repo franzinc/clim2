@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: menus.lisp,v 1.21 92/05/06 15:37:41 cer Exp Locker: cer $
+;; $fiHeader: menus.lisp,v 1.22 92/05/07 13:12:39 cer Exp $
 
 (in-package :clim-internals)
 
@@ -9,9 +9,8 @@
 
 (defvar *abort-menus-when-buried* t)
 
-#+Silica
 (define-application-frame menu-frame ()
-  (menu)
+    (menu)
   (:pane
     (with-slots (menu) *application-frame*
       (outlining ()
@@ -24,101 +23,28 @@
   (and (boundp '*application-frame*)
        *application-frame*))
 
+;; Returns a stream that corresponds to the pane holding the menu
 (defun get-menu (&key port)
   (let ((frame (make-application-frame 'menu-frame
 				       :parent port
 				       :save-under t)))
     (values (slot-value frame 'menu) frame)))
 
-;; This stub is used by implementations to create a new subclass
-;; (of window-stream) for menus if desired
-#-Silica
-(defmethod menu-class-name (root)
-  (class-name (class-of root)))
-
-;;--- This associated-window/root stuff is pretty irksome.
-;;--- Menus should really be application frames.
-#-Silica
-(defresource menu (associated-window root)
-  :constructor (open-window-stream :parent root	;"random" size
-				   :left 100 :top 100 :width 300 :height 200
-				   :scroll-bars ':vertical
-				   :window-class (menu-class-name root)
-				   :save-under T)
-  ;; We used to have an initializer that set RECORD-P, cleared the window,
-  ;; and set the size.  RECORD-P is unnecessary because we explicitly bind it
-  ;; below when drawing the menu contents.  (Also, it should always be T
-  ;; anyway.)  Clearing the window is unnecessary because it's done in the
-  ;; deinitializer.  Setting the size is also unnecessary.  Any application
-  ;; that's formatting into a menu is required to use WITH-END-OF-LINE-ACTION
-  ;; and WITH-END-OF-PAGE-ACTION or set the size first itself.
-  :initializer (initialize-menu menu associated-window)
-  ;; Deexpose the menu, and clear it so that the GC can reclaim any
-  ;; garbage output records.
-  :deinitializer (progn
-		   (setf (window-visibility menu) nil)
-		   (window-clear menu)
-		   (setf (window-label menu) nil))
-  :matcher (eq (window-parent menu) root))
-
-#+Silica
 (defresource menu (associated-window root)
   :constructor (let* ((port (if (null root) (find-port) (port root))))
 		 (get-menu :port port))
   :deinitializer (window-clear menu)
-  ;; We used to have an initializer that set record-p, cleared the window, and set
-  ;; the size.  Record-p is unnecessary because we explicitly bind it below
-  ;; when drawing the menu contents.  (Also, it should always be T anyway.)
-  ;; Clearing the window is unnecessary because it's done in the deinitializer.
-  ;; Setting the size is also unnecessary.  Any application that's formatting
-  ;; into a menu is required to use with-end-of-line-action and with-end-of-page-action
-  ;; or set the size first itself.
   :initializer (initialize-menu (port menu) menu associated-window)
-  ;; horrible kludge in the case where no associated window is passed in.
+  ;; Horrible kludge in the case where no associated window is passed in.
   :matcher (eq (port menu) (port root)))
 
-#-Silica 
-;; no window-mixin
-(defmethod initialize-menu ((menu window-mixin) associated-window)
-  (declare (ignore associated-window))
-  )
-
-#+Silica
 (defmethod initialize-menu ((port port) window associated-window)
   (declare (ignore window associated-window))
   )
 
-#-Silica
-(defun size-menu-appropriately (menu &key width height (right-margin 10) (bottom-margin 10))
-  (with-slots (output-record parent) menu
-    (with-bounding-rectangle* (left top right bottom) output-record
-      (let ((width (or width (- right left)))
-	    (height (or height (- bottom top))))
-	(multiple-value-bind (label-width label-height)
-	    (window-label-size menu)
-	  (multiple-value-bind (parent-width parent-height)
-	      (window-inside-size parent)
-	    (multiple-value-bind (lm tm rm bm)
-		(host-window-margins menu)
-	      (multiple-value-bind (wlm wtm wrm wbm)
-		  (window-margins menu)
-		(bounding-rectangle-set-size 
-		  menu
-		  (min (+ (max label-width width) right-margin wlm wrm lm rm)
-		       parent-width)
-		  (min (+ (max label-height height) bottom-margin wtm wbm tm bm)
-		       parent-height)))))))
-      (window-set-viewport-position menu left top)
-      ;; blech
-      (clear-input menu))))
-
-#+Silica
-(defun size-menu-appropriately (menu &key 
-				     width height
-				     (right-margin 10) 
-				     (bottom-margin 10)
-				     (size-fn 
-				      #'window-set-inside-size))
+(defun size-menu-appropriately (menu &key width height
+					  (right-margin 10) (bottom-margin 10)
+					  (size-setter #'window-set-inside-size))
   (with-slots (output-record) menu
     (with-bounding-rectangle* (left top right bottom) output-record
       (let* ((graft (graft menu))
@@ -126,13 +52,11 @@
 	     (gh (bounding-rectangle-height (sheet-region graft)))
 	     (width (min gw (+ (or width (- right left)) right-margin)))
 	     (height (min gh (+ (or height (- bottom top)) bottom-margin))))
-	(funcall size-fn menu width height)
+	(funcall size-setter menu width height)
 	(window-set-viewport-position menu left top)))))
 
-
-#-Silica
 (defun position-window-near-carefully (window x y)
-  ;; unfortunately, the mouse-position is in window-parent coordinates
+  #-Silica
   (multiple-value-bind (width height) (bounding-rectangle-size window)
     (multiple-value-bind (parent-width parent-height)
 	(window-inside-size (window-parent window))
@@ -147,22 +71,11 @@
 	(bounding-rectangle-set-position window
 					 (max 0 left) (max 0 top))))))
 
-#-Silica
 (defun position-window-near-pointer (window &optional x y)
   (unless (and x y)
     (multiple-value-setq (x y)
-      (stream-pointer-position-in-window-coordinates (window-parent window))))
-  (position-window-near-carefully window x y))
-
-#+Silica
-(defun position-window-near-carefully (window x y)
-  )
-
-#+Silica
-(defun position-window-near-pointer (window &optional x y)
-  (unless (and x y)
-    (multiple-value-setq (x y) #+++ignore (poll-pointer (graft window))
-			       #---ignore (values 100 100)))
+      #+++ignore (pointer-position (port-pointer (port window)))
+      #---ignore (values 100 100)))
   (position-window-near-carefully window x y))
 
 ;; items := (item*)
@@ -335,28 +248,30 @@
 			     (cell-align-x ':left) (cell-align-y ':top)
 			     pointer-documentation)
   (declare (values value chosen-item gesture))
-  (declare (ignore default-item default-style
+  (declare (ignore associated-window
+		   default-item default-style
 		   label printer presentation-type
 		   cache unique-id id-test cache-value cache-test
 		   max-width max-height n-rows n-columns
 		   x-spacing y-spacing cell-align-x cell-align-y
 		   pointer-documentation))
   (declare (dynamic-extent keys))
-  (apply #'port-menu-choose (port associated-window) items keys))
+  (apply #'frame-manager-menu-choose (frame-manager *application-frame*) items keys))
 
 ;; Specific ports can put :AROUND methods on this in order to use their own
 ;; kinds of menus.
-(defmethod port-menu-choose ((port t) items &rest keys
-			     &key (associated-window
-				    (frame-top-level-sheet *application-frame*))
-				  default-item default-style
-				  label printer presentation-type
-				  (cache nil) (unique-id items) (id-test #'equal)
-				  (cache-value items) (cache-test #'equal)
-				  max-width max-height n-rows n-columns
-				  x-spacing y-spacing 
-				  (cell-align-x ':left) (cell-align-y ':top)
-				  pointer-documentation)
+(defmethod frame-manager-menu-choose
+	   ((framem standard-frame-manager) items &rest keys
+	    &key (associated-window
+		   (frame-top-level-sheet *application-frame*))
+		 default-item default-style
+		 label printer presentation-type
+		 (cache nil) (unique-id items) (id-test #'equal)
+		 (cache-value items) (cache-test #'equal)
+		 max-width max-height n-rows n-columns
+		 x-spacing y-spacing 
+		 (cell-align-x ':left) (cell-align-y ':top)
+		 pointer-documentation)
   (declare (values value chosen-item gesture))
   (declare (ignore keys))
   (flet ((present-item (item stream)
@@ -370,7 +285,7 @@
 	  #+Lucid (items items))
       (with-menu (menu associated-window)
 	(setf (window-label menu) label)
-	#+Silica (reset-frame (pane-frame menu) :title label)
+	(reset-frame (pane-frame menu) :title label)
 	(with-text-style (menu default-style)
 	  (with-end-of-line-action (menu :allow)
 	    (loop
@@ -398,7 +313,7 @@
 			     default-item nil
 			     cache nil)
 		       (clear-output-history menu))
-		      (t (return-from port-menu-choose
+		      (t (return-from frame-manager-menu-choose
 			   (values (menu-item-value item) item gesture))))))))))))
 
 
@@ -416,9 +331,6 @@
 
 (defmethod invoke-with-menu-as-popup ((window t) continuation)
   (funcall continuation))
-
-#+Allegro
-(defvar *click-outside-menu-handler* nil)
 
 ;; The drawer gets called with (stream presentation-type &rest drawer-args).
 ;; It can use presentation-type for its own purposes.  The most common uses are:
@@ -452,7 +364,6 @@
 	 (*input-context* nil)
 	 (*accept-help* nil)
 	 (*assume-all-commands-enabled* nil)
-	 #-Silica (*sizing-application-frame* nil)
 	 (*command-parser* 'command-line-command-parser)
 	 (*command-unparser* 'command-line-command-unparser)
 	 (*partial-command-parser*
@@ -649,7 +560,7 @@
 				:presentation-type presentation-type
 				:drawer-args drawer-args)))
 
-;;--- How to get PORT-MENU-CHOOSE into the act here?
+;;--- How to get FRAME-MANAGER-MENU-CHOOSE into the act here?
 (defmethod menu-choose ((static-menu static-menu)
 			&rest keys
 			&key (associated-window (frame-top-level-sheet *application-frame*))

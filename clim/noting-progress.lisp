@@ -2,8 +2,14 @@
 
 (in-package :clim-internals)
 
+;;; $fiHeader$
+
 "Copyright (c) 1991, 1992 Symbolics, Inc.  All rights reserved."
 
+;;;; frame-manager-clear-progress-note: called to make it go away
+;;;; frame-manager-display-progress-note: Called to display it and
+;;;; update it.
+;;;; We probably need a frame-manager-make-progress-note also.
 
 (defvar *progress-notes* ())
 (defvar *current-progress-note*)

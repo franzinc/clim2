@@ -20,13 +20,17 @@
 ;; applicable.
 ;;
 
-;; $fiHeader: instclim.cl,v 1.4 92/03/10 17:24:59 cer Exp $
+;; $fiHeader: instclimxm.lisp,v 1.1 92/03/30 22:10:04 cer Exp Locker: cer $
 
 ;;
 ;; Load CLIM
 ;;
 
 (in-package :system)
+
+(defvar sys::*libx11-pathname* "/x11/R4/src/mit/lib/X/libX_d.a")
+(defvar sys::*libxt-pathname* "/x11/R4/src/mit/lib/Xt/libXt_d.a")
+(defvar sys::*libxm-pathname* "/x11/motif-1.1/lib/Xm/libXm.a")
 
 (load-application (progn 
 		    (require :climxm)

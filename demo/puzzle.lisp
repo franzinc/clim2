@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: puzzle.lisp,v 1.5 92/04/15 11:48:26 cer Exp $
+;; $fiHeader: puzzle.lisp,v 1.6 92/05/07 13:13:38 cer Exp $
 
 (in-package :clim-demo)
 
@@ -21,7 +21,7 @@
 		   :max-height +fill+
 		   :incremental-redisplay T
 		   :display-function 'draw-puzzle))))
-  (:layout
+  (:layouts
     (:default display)))
 
 (defmethod frame-query-io ((puzzle puzzle))

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: widget.lisp,v 1.18 92/04/21 20:27:42 cer Exp $
+;; $fiHeader: widget.lisp,v 1.19 92/05/13 17:10:27 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -89,9 +89,7 @@
   (xt_destroy_widget widget))
 
 (defun popup (shell)
-       (xt_popup shell
-	       0))
-
+       (xt_popup shell 0))
 
 (defun popdown (shell)
        (xt_popdown shell))
@@ -248,15 +246,12 @@
 
 ;; Could not think of anywhere better!
 
-(defun setup (&optional (hostspec "localhost:0"))
+(defun initialize-toolkit (&rest args)
   (let* ((context (create-application-context))
-	 (display (make-instance 'display 
-		    :host hostspec
-		    :context context))
+	 (display (apply #'make-instance 'display 
+			 :context context
+			 args))
 	 (app (app-create-shell :display display
 				:widget-class 'application-shell)))
     (values context display app)))
-
-(defun initialize-motif-toolkit (hostspec)
-  (setup hostspec))
 

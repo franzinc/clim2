@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept-values.lisp,v 1.19 92/05/06 15:37:34 cer Exp Locker: cer $
+;; $fiHeader: accept-values.lisp,v 1.20 92/05/07 13:11:54 cer Exp $
 
 (in-package :clim-internals)
 
@@ -106,10 +106,10 @@
 (defmethod find-or-add-query ((stream accept-values-stream) query-identifier ptype prompt
 			      default default-supplied-p active-p)
   (let ((avv-record
-	  #-ignore (slot-value stream 'avv-record)
-	  #+ignore (find-accept-values-record
-		     (or (stream-current-output-record stream)
-			 (stream-output-history stream)))))
+	  #---ignore (slot-value stream 'avv-record)
+	  #+++ignore (find-accept-values-record
+		       (or (stream-current-output-record stream)
+			   (stream-output-history stream)))))
     (with-slots (query-table) avv-record
       (multiple-value-bind (query found-p)
 	  (gethash query-identifier query-table)
@@ -145,7 +145,8 @@
 				 :history ptype
 				 :present-p `(accept-values-choice ,query)
 				 :query-identifier query))
-		      ((and found-p (presentation-typep (accept-values-query-value query) ptype))
+		      ((and found-p
+			    (presentation-typep (accept-values-query-value query) ptype))
 		       ;; The programmer supplied no default, but a previous edit
 		       ;; has put something in the query that we now must use as
 		       ;; the default.
@@ -168,40 +169,55 @@
 	  (setf (gethash query-identifier query-table) query))
 	query))))
 
+;;--- These frames should be resourced
 (define-application-frame accept-values ()
     ((stream :initarg :stream)
      (exit-button-stream :initarg :exit-button-stream)
      (continuation :initarg :continuation)
-     (own-window :initform nil :initarg :own-window)
-     (own-window-x-position :initform nil :initarg :x-position)
-     (own-window-y-position :initform nil :initarg :y-position)
-     (own-window-width :initform nil :initarg :width)
-     (own-window-height :initform nil :initarg :height)
-     (own-window-right-margin :initform nil :initarg :right-margin)
-     (own-window-bottom-margin :initform nil :initarg :bottom-margin)
      (exit-boxes :initform nil :initarg :exit-boxes)
      (selected-item :initform nil)
      ;;--- Do this through RUN-FRAME-TOP-LEVEL?
      (initially-select-query-identifier :initform nil
 					:initarg :initially-select-query-identifier)
      (resynchronize-every-pass :initform nil :initarg :resynchronize-every-pass)
-     (check-overlapping :initform t :initarg :check-overlapping))
+     (check-overlapping :initform t :initarg :check-overlapping)
+     (own-window :initform nil :initarg :own-window))
   (:top-level (accept-values-top-level))
   (:command-definer t))
 
+;; Ignore extra initargs...
+(defmethod initialize-instance :after ((frame accept-values) 
+				       &key own-window
+					    x-position y-position width height
+					    right-margin bottom-margin)
+  (declare (ignore own-window
+		   x-position y-position width height
+		   right-margin bottom-margin)))
+
+#+what-the-\!
+(defmethod frame-top-level-sheet ((frame accept-values))
+  (frame-top-level-sheet (frame-calling-frame frame)))
+
+;;--- These frames should be resourced
 (define-application-frame accept-values-own-window (accept-values)
-    ()
+    ((own-window :initarg :own-window)
+     (own-window-x-position :initform nil :initarg :x-position)
+     (own-window-y-position :initform nil :initarg :y-position)
+     (own-window-width :initform nil :initarg :width)
+     (own-window-height :initform nil :initarg :height)
+     (own-window-right-margin :initform nil :initarg :right-margin)
+     (own-window-bottom-margin :initform nil :initarg :bottom-margin))
   (:pane 
-    (with-slots (stream own-window  exit-button-stream) *application-frame*
+    (with-slots (stream own-window exit-button-stream) *application-frame*
       (vertically ()
 	(outlining ()
 	  (scrolling (:scroll-bars :dynamic)
 	    (progn
 	      (setq stream
 		    (make-instance 'accept-values-stream
-				   :stream (setf own-window
-						 (make-pane 'clim-stream-pane
-							    :initial-cursor-visibility nil))))
+		      :stream (setf own-window 
+				    (make-pane 'clim-stream-pane
+					       :initial-cursor-visibility nil))))
 	      own-window)))
 	(outlining ()
 	  (setf exit-button-stream
@@ -215,68 +231,15 @@
 ;; So the continuation can run with the proper value of *APPLICATION-FRAME*
 (defvar *avv-calling-frame*)
 
-#-Silica
-(defun invoke-accepting-values (stream continuation
-				&key frame-class own-window exit-boxes
-				     (initially-select-query-identifier nil)
-				     (resynchronize-every-pass nil) (check-overlapping t)
-				     label x-position y-position width height)
-  (incf *accept-values-tick*)
-  (let ((*current-accept-values-tick* *accept-values-tick*)
-	(the-own-window nil)
-	(right-margin 10)
-	(bottom-margin 10))
-    (unwind-protect
-	(progn
-	  (when own-window
-	    (setq the-own-window
-		  (allocate-resource 'menu stream (window-root stream)))
-	    ;;--- make the window big.  We shouldn't have to do this.
-	    (multiple-value-bind (width height)
-		(window-inside-size (slot-value the-own-window 'parent))
-	      (bounding-rectangle-set-size the-own-window width height))
-	    (setf (window-label the-own-window) label)
-	    (when (listp own-window)
-	      (setf right-margin
-		    (process-spacing-arg the-own-window (getf own-window :right-margin 10)
-					 'accepting-values :right-margin))
-	      (setf bottom-margin
-		    (process-spacing-arg the-own-window (getf own-window :bottom-margin 10)
-					 'accepting-values :bottom-margin))))
-	  
-	  (using-resource (avv-stream accept-values-stream (or the-own-window stream))
-	    ;;--- This should resource the AVV application frame, too
-	    (let ((frame 
-		    (make-application-frame 'accept-values
-					    :parent (slot-value avv-stream 'stream)
-					    :frame-class frame-class
-					    :stream avv-stream
-					    :exit-boxes exit-boxes
-					    :continuation continuation
-					    :own-window the-own-window
-					    :x-position x-position
-					    :y-position y-position
-					    :width width :height height
-					    :right-margin right-margin
-					    :bottom-margin bottom-margin
-					    :initially-select-query-identifier
-					      initially-select-query-identifier
-					    :resynchronize-every-pass
-					      resynchronize-every-pass
-					    :check-overlapping check-overlapping)))
-	      (when (frame-top-level-sheet frame)
-		(window-expose (frame-top-level-sheet frame)))
-	      ;; Run the AVV and return its values
-	      (let ((*avv-calling-frame* *application-frame*))
-		(run-frame-top-level frame)))))
-      (when (and the-own-window (windowp the-own-window))
-	;; Deallocate menu resources deexposes them for us
-	(deallocate-resource 'menu the-own-window)))))
+(defmethod frame-manager-default-exit-boxes ((framem standard-frame-manager))
+  '((:abort) (:exit)))
 
-#+Silica
 (defun invoke-accepting-values (stream continuation
-				 &key frame-class own-window
-				      exit-boxes (resize-frame nil)
+				 &key frame-class own-window 
+				      (exit-boxes 
+				       (frame-manager-default-exit-boxes
+					(frame-manager stream)))
+				      (resize-frame t)
 				      (initially-select-query-identifier nil)
 				      (resynchronize-every-pass nil) (check-overlapping t)
 				      label x-position y-position width height)
@@ -288,13 +251,11 @@
      (if own-window
 	 (let ((frame (make-application-frame (or frame-class 'accept-values-own-window)
 					      :calling-frame *application-frame*
-					      :parent
-					      *application-frame*
+					      :parent *application-frame*
 					      :pretty-name label
 					      :continuation continuation
 					      :exit-boxes exit-boxes
 					      :own-window the-own-window
-					      :pretty-name label
 					      :width width :height height
 					      :x-position x-position
 					      :y-position y-position
@@ -303,12 +264,12 @@
 					      :initially-select-query-identifier
 					        initially-select-query-identifier
 					      :resynchronize-every-pass
-					      resynchronize-every-pass
-					      :resize-frame resize-frame 
+					        resynchronize-every-pass
 					      :check-overlapping
-					        check-overlapping)))
-	   ;; What do we do about sizing?????
-	   ;; What do we do about positioning????
+					        check-overlapping
+					      :resize-frame resize-frame)))
+	   ;;--- What do we do about sizing?
+	   ;;--- What do we do about positioning?
 	   (let ((*avv-calling-frame* *application-frame*))
 	     (run-frame-top-level frame)))
        (using-resource (avv-stream accept-values-stream (or the-own-window stream))
@@ -318,11 +279,6 @@
 					      :stream avv-stream
 					      :continuation continuation
 					      :exit-boxes exit-boxes
-					      :own-window the-own-window
-					      :x-position x-position
-					      :y-position y-position
-					      :right-margin right-margin
-					      :bottom-margin bottom-margin
 					      :initially-select-query-identifier
 						initially-select-query-identifier
 					      :resynchronize-every-pass
@@ -344,48 +300,55 @@
 	       own-window-width own-window-height
 	       own-window-right-margin own-window-bottom-margin
 	       exit-button-stream) frame
-    (let ((command-table (frame-command-table frame))
-	  (original-view (stream-default-view stream))
-	  (return-values nil)
-	  (initial-query nil)
-	  exit-button-record
-	  avv avv-record)
+    (let* ((command-table (frame-command-table frame))
+	   (original-view (stream-default-view stream))
+	   (return-values nil)
+	   (initial-query nil)
+	   exit-button-record
+	   avv avv-record
+	   (help-window nil)
+	   (*accept-help-displayer*
+	     (if own-window
+		 #'(lambda (function stream &rest args)
+		     (declare (dynamic-extent args))
+		     (setq help-window (apply #'display-own-window-help
+					      function help-window own-window stream args)))
+		 *accept-help-displayer*)))
       (letf-globally (((stream-default-view stream) 
-		       (port-dialog-view (port stream))))
+		       (frame-manager-dialog-view (frame-manager frame))))
 	(labels ((run-continuation (stream avv-record)
-		 (setf (slot-value stream 'avv-record) avv-record)
-		 (setf (slot-value stream 'avv-frame) frame)
-		 (with-output-recording-options (stream :draw nil :record t)
-		   (setq return-values (multiple-value-list
-					 (let ((*application-frame* *avv-calling-frame*))
-					   (funcall continuation stream))))
-		   (unless own-window
-		     (display-exit-boxes frame stream
-					 (stream-default-view stream)))))
-	       (run-avv ()
-		 (when (and initially-select-query-identifier
-			    (setq initial-query
-				  (find-query avv-record initially-select-query-identifier)))
-		   (com-edit-avv-choice initial-query)
-		   (redisplay avv stream :check-overlapping check-overlapping))
-		 (loop
-		   (when (frame-resizable frame)
-		     (size-panes-appropriately))
-		   (let ((command
-			   (let ((command-stream (slot-value stream 'stream)))
-			     ;; While we're reading commands, restore the view
-			     ;; to what it was before we started.
-			     (letf-globally (((stream-default-view command-stream)
-					      original-view))
-			       (read-command command-table
-					     :stream command-stream
-					     :command-parser 'menu-command-parser
-					     :use-keystrokes t)))))
-		     (if (and command (not (keyboard-event-p command)))
-			 (execute-frame-command frame command)
+		   (setf (slot-value stream 'avv-record) avv-record)
+		   (setf (slot-value stream 'avv-frame) frame)
+		   (with-output-recording-options (stream :draw nil :record t)
+		     (setq return-values (multiple-value-list
+					   (let ((*application-frame* *avv-calling-frame*))
+					     (funcall continuation stream))))
+		     (unless own-window
+		       (display-exit-boxes frame stream
+					   (stream-default-view stream)))))
+		 (run-avv ()
+		   (when (and initially-select-query-identifier
+			      (setq initial-query
+				    (find-query avv-record initially-select-query-identifier)))
+		     (com-edit-avv-choice initial-query)
+		     (redisplay avv stream :check-overlapping check-overlapping))
+		   (loop
+		     (let ((command
+			     (let ((command-stream (slot-value stream 'stream)))
+			       ;; While we're reading commands, restore the view
+			       ;; to what it was before we started.
+			       (letf-globally (((stream-default-view command-stream)
+						original-view))
+				 (read-command command-table
+					       :stream command-stream
+					       :command-parser 'menu-command-parser
+					       :use-keystrokes t)))))
+		       (if (and command (not (keyboard-event-p command)))
+			   (execute-frame-command frame command)
 		       (beep stream)))
-		   (with-defered-gadget-updates
-		       (when (or resynchronize-every-pass (slot-value avv-record 'resynchronize))
+		     (with-deferred-gadget-updates
+		       (when (or resynchronize-every-pass
+				 (slot-value avv-record 'resynchronize))
 			 ;; When the user has asked to resynchronize every pass, that
 			 ;; means we should run the continuation an extra time to see
 			 ;; that all visible stuff is up to date.  That's all!
@@ -393,26 +356,29 @@
 			   (redisplay avv stream :check-overlapping check-overlapping)))
 		     (setf (slot-value avv-record 'resynchronize) nil)
 		     (when exit-button-record
-		       (redisplay exit-button-record exit-button-stream))
+ 		       (redisplay exit-button-record exit-button-stream))
 		     (redisplay avv stream :check-overlapping
-				check-overlapping))))
+				check-overlapping))
+		     (when (frame-resizable frame)
+		       (size-panes-appropriately))))
 	       (size-panes-appropriately ()
 		 (changing-space-requirements ()
-                    ;; We really want to specify the min/max sizes of
-                    ;; the exit-button pane also
-                    (size-menu-appropriately
-		     exit-button-stream
-		     :size-fn
-		     #'(lambda (pane w h)
-			 (change-space-requirements pane 
-			  :width w :min-width w :max-width w
-			  :height h :min-height h :max-height h)))
-		    (size-menu-appropriately own-window
-					     :width own-window-width
-					     :height own-window-height
-					     :right-margin own-window-right-margin
-					     :bottom-margin own-window-bottom-margin))))
-	  (declare (dynamic-extent #'run-continuation #'run-avv))
+		   ;; We really want to specify the min/max sizes of
+		   ;; the exit-button pane also
+		   (size-menu-appropriately exit-button-stream
+ 		     :size-setter
+ 		       #'(lambda (pane w h)
+			   (change-space-requirements pane 
+			     :width w :min-width w :max-width w
+			     :height h :min-height h :max-height h)))
+		   (when own-window
+		     (size-menu-appropriately own-window
+		       :width own-window-width
+		       :height own-window-height
+		       :right-margin own-window-right-margin
+		       :bottom-margin own-window-bottom-margin)))))
+	  (declare (dynamic-extent #'run-continuation #'run-avv
+				   #'size-panes-appropriately))
 	  (with-simple-restart (frame-exit "Exit from the ACCEPT-VALUES dialog")
 	    (setq avv
 		  (updating-output (stream)
@@ -434,11 +400,8 @@
 		(cond (own-window
 		       (size-panes-appropriately)
 		       (multiple-value-bind (x y)
-			   #-Silica
-			   (stream-pointer-position-in-window-coordinates
-			    (window-parent own-window))
-			   #+Silica
-			   (values 500 500)
+			   #+++ignore (pointer-position (port-pointer (port own-window)))
+			   #---ignore (values 100 100)
 			 (when (and own-window-x-position own-window-y-position)
 			   (setq x own-window-x-position
 				 y own-window-y-position))
@@ -455,6 +418,8 @@
 		       (stream-ensure-cursor-visible stream)
 		       (replay avv stream)
 		       (run-avv)))
+	      (when help-window
+		(deallocate-resource 'menu help-window))
 	      (unless own-window
 		(move-cursor-beyond-output-record (slot-value stream 'stream) avv))))
 	  (values-list return-values))))))
@@ -476,36 +441,64 @@
 				     :right-margin own-window-right-margin
 				     :bottom-margin own-window-bottom-margin)))))))
 
+(defun display-own-window-help (function stream near-window original-stream &rest args)
+  (declare (values help-window))
+  (declare (dynamic-extent args))
+  (if stream
+      (setf (window-visibility stream) nil)
+      (setq stream (allocate-resource 'menu original-stream (window-root original-stream))))
+  (let ((*original-stream* nil)			;--- reset *INPUT-CONTEXT*, too?
+	(*accept-help-displayer* 'funcall))
+    (window-clear stream)
+    (with-output-recording-options (stream :draw t :record t)
+      (with-end-of-line-action (stream :allow)
+	(with-end-of-page-action (stream :allow)
+	  (apply function stream args)
+	  (fresh-line stream)
+	  (with-text-face (stream :italic)
+	    (write-line "Press any key to remove this window" stream)))))
+    (size-menu-appropriately stream)
+    (when near-window
+      (multiple-value-bind (x y) (bounding-rectangle-position near-window)
+	(position-window-near-carefully stream x y)))
+    (window-expose stream)
+    (clear-input stream)
+    (unwind-protect
+	(read-gesture :stream stream)
+      (setf (window-visibility stream) nil)))
+  stream)
+
+
 (define-presentation-type accept-values-exit-box ())
 
 ;;; Applications can create their own AVV class and specialize this method in
 ;;; order to get different exit boxes.
+
+(defmethod frame-manager-exit-box-labels ((frame t) (framem standard-frame-manager))
+  '(
+    (:exit  "<End> uses these values")
+    (:abort  "<Abort> aborts")))
+
 (defmethod display-exit-boxes ((frame accept-values) stream (view view))
   ;; Do the fresh-line *outside* of the updating-output so that it
   ;; doesn't get repositioned relatively in the X direction if the
   ;; previous line gets longer.  Maybe there should be some better
   ;; way of ensuring this.
   (fresh-line stream)
-  (with-slots (exit-boxes) frame
-    (let ((exit  (or (second (assoc :exit  exit-boxes)) "<End> uses these values"))
-	  (abort (or (second (assoc :abort exit-boxes)) "<Abort> aborts")))
-      (updating-output (stream :unique-id stream
-			       :cache-value 'exit-boxes)
-	(with-output-as-presentation (stream ':abort 'accept-values-exit-box)
-	  #-CCL-2 (write-string abort stream)
-	  ;; Kludge to print the cloverleaf char in MCL.
-	  ;; Needs an accompanying kludge in STREAM-WRITE-CHAR so that
-	  ;; #\CommandMark doesn't get lozenged.
-	  #+CCL-2 (progn
-		    (with-text-style (stream '(:mac-menu :roman :normal))
-		      (write-char #\CommandMark stream))
-		    (write-string "-. aborts" stream)))
-	(write-string ", " stream)
-	(with-output-as-presentation (stream ':done 'accept-values-exit-box)
-	  (write-string exit stream))))))
+  (let ((labels (frame-manager-exit-box-labels frame (frame-manager frame))))
+    (updating-output (stream :unique-id stream :cache-value 'exit-boxes)
+		     (with-slots (exit-boxes) frame
+		       (dolist (exit-box exit-boxes)
+			 (let* ((name (if (consp exit-box) (car exit-box) exit-box))
+				(label (or (if (consp exit-box) (second exit-box))
+					   (second (assoc name labels)))))
+			   (with-output-as-presentation (stream name 'accept-values-exit-box)
+			     ;;--- :ccl-2 had some code in here
+			     (write-string label stream))))))))
+
 
 ;;--- Get this right
-(defmethod frame-pointer-documentation-output ((frame accept-values))
+(defmethod frame-pointer-documentation-output ((frame accept-values-own-window))
   nil)
 
 
@@ -905,8 +898,7 @@
 (defun accept-values-pane-displayer (frame pane
 				     &key displayer
 					  resynchronize-every-pass (check-overlapping t))
-  (let* ((stream-and-record (and #-Silica (not *frame-layout-changing-p*)
-				 (gethash pane *pane-to-avv-stream-table*)))
+  (let* ((stream-and-record (and (gethash pane *pane-to-avv-stream-table*)))
 	 (avv-stream (car stream-and-record))
 	 (avv-record (cdr stream-and-record)))
     (cond (avv-stream
@@ -981,8 +973,7 @@
      (pane 't))
   (funcall (slot-value button 'continuation))
   (when (slot-value button 'resynchronize)
-    (let* ((stream-and-record (and #-Silica (not *frame-layout-changing-p*)
-				   (gethash pane *pane-to-avv-stream-table*)))
+    (let* ((stream-and-record (and (gethash pane *pane-to-avv-stream-table*)))
 	   (avv-stream (car stream-and-record))
 	   (avv-record (cdr stream-and-record)))
       (when avv-stream
@@ -1033,7 +1024,7 @@
     :scroll-bars nil
     :initial-cursor-visibility :off))
 
-#-silica
+#-Silica
 (defmethod size-frame-pane ((window window-mixin)
 			    (frame standard-application-frame)
 			    (type (eql :accept-values))
@@ -1068,31 +1059,32 @@
 
 (defmethod display-exit-boxes ((frame accept-values) stream (view gadget-dialog-view))
   (fresh-line stream)
-  (with-slots (exit-boxes) frame
-    (let ((exit  (or (second (assoc :exit  exit-boxes)) "<End> uses these values"))
-	  (abort (or (second (assoc :abort exit-boxes)) "<Abort> aborts")))
+  (let ((labels (frame-manager-exit-box-labels frame (frame-manager frame))))
+    (with-slots (exit-boxes) frame
       (updating-output (stream :unique-id stream
 			       :cache-value 'exit-boxes)
-	(formatting-item-list (stream :n-columns 2 :initial-spacing nil)
-	 (formatting-cell (stream)
-	  (with-output-as-gadget (stream)
-	    (make-pane 'push-button
-		       :label abort
-		       :client frame :id :abort
-		       :activate-callback
-		         #'(lambda (gadget)
-			     (declare (ignore gadget))
-			     (com-abort-avv)))))
-	 (formatting-cell (stream)
-	  (with-output-as-gadget (stream)
-	    (make-pane 'push-button
-		       :label exit
-		       :client frame :id :exit
-		       :activate-callback
-		         #'(lambda (gadget)
-			    (declare (ignore gadget))
-			    (com-exit-avv))))))))))
+	  (formatting-item-list (stream :n-columns (length exit-boxes)
+					:initial-spacing nil)
+	      (dolist (exit-box exit-boxes)
+		(let* ((name (if (consp exit-box) (car exit-box) exit-box))
+		       (label (or (if (consp exit-box) (second exit-box))
+				  (second (assoc name labels)))))
+		  (formatting-cell (stream)
+		      (with-output-as-gadget (stream)
+			(make-pane 'push-button
+				   :label label
+				   :client frame :id name
+				   :activate-callback
+				   #'invoke-avv-gadget-action))))))))))
 
+(defun invoke-avv-gadget-action (gadget)
+  (let ((id (gadget-id gadget)))
+    (case id
+      (:exit (com-exit-avv))
+      (:abort (com-abort-avv))
+      (t (funcall id)))))
+	    
+	    
 ;; It's OK that this is only in the ACCEPT-VALUES command table because
 ;; we're going to execute it manually in the callbacks below
 (define-command (com-change-query :command-table accept-values)
@@ -1102,21 +1094,20 @@
     (setf value new-value
 	  changed-p t)))
 
-(defmethod accept-values-value-changed-callback (gadget new-value stream query)
-  (declare (ignore gadget))
+(defmethod accept-values-value-changed-callback ((gadget value-gadget) new-value stream query)
   (when (accept-values-query-valid-p query (accept-values-query-presentation query))
     ;; Only call the callback if the query is still valid
     (do-avv-command new-value stream query)))
 
-(defun make-accept-values-value-changed-callback (stream query)
-  ;; We attach a callback function directly now
-  `(,#'accept-values-value-changed-callback ,stream ,query))
-
 (defmethod accept-values-value-changed-callback ((gadget radio-box) new-value stream query-id)
   (call-next-method gadget (gadget-id new-value) stream query-id))
 
-(defmethod accept-values-value-changed-callback ((gadget silica::check-box) new-value stream query-id)
+(defmethod accept-values-value-changed-callback ((gadget check-box) new-value stream query-id)
   (call-next-method gadget (mapcar #'gadget-id new-value) stream query-id))
+
+(defun make-accept-values-value-changed-callback (stream query)
+  ;; We attach a callback function directly now
+  `(,#'accept-values-value-changed-callback ,stream ,query))
 
 (defun do-avv-command (new-value client query)
   (throw-highlighted-presentation
@@ -1170,3 +1161,4 @@
 				  :y 0
 				  :modifiers 0
 				  :button +pointer-left-button+)))))))))
+

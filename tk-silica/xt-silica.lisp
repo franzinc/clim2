@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.26 92/05/12 18:25:31 cer Exp Locker: cer $
+;; $fiHeader: xt-silica.lisp,v 1.27 92/05/13 17:11:24 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -30,16 +30,14 @@
      (context :reader port-context)     
      (copy-gc :initform nil)
      (opacities :initform nil)
-     (type :allocation :class 
-	   :initform :xt :reader port-type)
      (event-lock :initform (clim-sys:make-lock "port event lock")
 		 :reader port-event-lock)
-     (menu-cache
-      :initform nil
-      :accessor port-menu-cache)
      (rotated-font-cache :initform nil :accessor port-rotated-font-cache))
   (:default-initargs :allow-loose-text-style-size-mapping t)
   (:documentation "The port for X intrinsics based ports"))
+
+(defmethod port-type ((port xt-port))
+  ':xt)
 
 (defmethod port-copy-gc ((port xt-port))
   (with-slots (copy-gc display) port
@@ -49,7 +47,7 @@
 	    :display display
 	    :graphics-exposures :on
 	    :foreign-address (x11:screen-default-gc
-			      (x11:xdefaultscreenofdisplay display)))))))
+ 			      (x11:xdefaultscreenofdisplay display)))))))
 
 
 
@@ -78,14 +76,21 @@
        ,@body)))
        
 (defmethod initialize-instance :after ((port xt-port) &key server-path)
-  (destructure-x-server-path (:display display) server-path
-    (declare (ignore ignore))
-    (multiple-value-bind (context display application-shell)
-	(initialize-motif-toolkit display)
-      (setf (slot-value port 'application-shell) application-shell
-	    (slot-value port 'context) context
-	    (slot-value port 'display) display)
-      (initialize-xlib-port port display))))
+  (destructuring-bind
+      (&key (display nil display-p)
+	    (application-name nil application-name-p)
+	    (application-class nil application-class-p))
+      (cdr server-path)
+    (let ((args nil))
+      (when display-p (setf (getf args :host) display))
+      (when application-name-p (setf (getf args :application-name) application-name))
+      (when application-class-p (setf (getf args :application-class) application-class))
+      (multiple-value-bind (context display application-shell)
+	  (apply #'tk::initialize-toolkit args)
+	(setf (slot-value port 'application-shell) application-shell
+	      (slot-value port 'context) context
+	      (slot-value port 'display) display)
+	(initialize-xlib-port port display)))))
 
 (defvar *xt-font-families* '((:fix "*-*-courier-*-*-*-*-*-*-*-*-*-*-*-*")
 			     (:sans-serif "*-*-helvetica-*-*-*-*-*-*-*-*-*-*-*-*")
@@ -565,29 +570,27 @@
 				  ,@initargs))))
 
 (defmethod enable-mirror ((port xt-port) sheet)
-  (declare (ignore port))
   (let ((mirror (sheet-mirror sheet)))
-    (typecase (widget-parent mirror)
-      (null)
-      ((or top-level-shell tk::xm-dialog-shell)
-	;; this is a nasty hack just to make sure that the child is managed.
-	;; top-level-sheets are created unmanaged because they are
-	;; disabled to we have to do not!
-	(manage-child mirror)
-	(popup (widget-parent mirror)))
-      (t
-	(manage-child mirror)))))
+    (enable-xt-widget (widget-parent mirror) mirror)))
+
+(defmethod enable-xt-widget ((parent t) (mirror t))
+  (manage-child mirror))
+
+(defmethod enable-xt-widget ((parent top-level-shell) (mirror t))
+  (manage-child mirror)
+  (popup (widget-parent mirror)))
 
 (defmethod disable-mirror ((port xt-port) sheet)
   (declare (ignore port))
   (let ((mirror (sheet-mirror sheet)))
     (when mirror
-      (typecase (widget-parent mirror)
-	(null)
-	(top-level-shell
-	  (tk::popdown (widget-parent mirror)))
-	(t
-	  (tk::unmanage-child mirror))))))
+      (disable-xt-mirror (widget-parent mirror) mirror))))
+
+(defmethod disable-xt-mirror ((parent t) (mirror t))
+  (tk::unmanage-child mirror))
+
+(defmethod disable-xt-mirror ((parent top-level-shell) (mirror t))
+  (tk::popdown parent))
 
 (defmethod realize-graft ((port xt-port) graft)
   ;; Set the width etc etc
@@ -606,14 +609,13 @@
 	    silica::pixels-per-point (float (/ silica::pixel-width
 					       (* 72 (/ silica::mm-width 25.4)))))
       ;;--- Mess with the region
-      (warn "Do something about the graft")
       (setf (sheet-region graft)
 	(ecase (graft-units graft)
 	  ((:device :pixel)
 	   (make-bounding-rectangle 0 0
 				    silica::pixel-width silica::pixel-height))))
       ;;-- what about the transformation
-      )))
+      (setf (sheet-native-transformation graft) +identity-transformation+))))
 
 (defmethod mirror-region* ((port xt-port) sheet)
   (when (sheet-mirror sheet)
@@ -699,9 +701,7 @@
 				:timeout timeout))
 	  (tk::process-one-event context mask reason))))))
 
-(defmethod port-force-output ((port xt-port))
-  ;;--- move to tk
-  (x11::xflush (port-display port)))
+
 
 (defmethod port-glyph-for-character ((port xt-port)
 				     character text-style 
@@ -994,6 +994,10 @@
 				   (pane clim-internals::output-protocol-mixin))
   (default-from-mirror-resources port pane))
 
+(defmethod engraft-medium :before ((medium t) (port xt-port) (pane viewport))
+  (default-from-mirror-resources port pane))
+
+
 ;;-- What do we do about pixmap streams. I guess they should inherit
 ;;-- properties from the parent.
 
@@ -1007,29 +1011,30 @@
   (unless (and (medium-foreground pane)
 	       (medium-background pane))
     (let* ((w (sheet-mirror pane))
-	   (dap (typep w 'tk::xm-drawing-area)))
-
-      ;;-- What about the case when there is a pixmap
-      (multiple-value-bind
-	  (foreground background)
-	  (if dap
-	      (tk::get-values w :foreground :background)
-	    (values nil (tk::get-values w :background)))
-	;; Now we have to convert into CLIM colors.
-	(flet ((ccm (x)
-		 (multiple-value-bind
-		     (r g b)
-		     (tk::query-color (tk::default-colormap (port-display port)) x)
-		   (let ((x #.(1- (ash 1 16))))
-		     (make-rgb-color 
-		      (/ r x)
-		      (/ g x)
-		      (/ b x))))))
-	  (when foreground
-	    (unless (medium-foreground pane)
-	      (setf (medium-foreground pane) (ccm foreground))))
-	  (unless (medium-background pane)
-	    (setf (medium-background pane) (ccm background))))))))
+	   (shellp (typep w 'tk::shell)))
+      ;;; Make sure we dont have a pixmp
+      (when (typep w 'xt::xt-root-class)
+	;;-- What about the case when there is a pixmap
+	(multiple-value-bind
+	    (foreground background)
+	    (if shellp
+		(values nil (tk::get-values w :background))
+	      (tk::get-values w :foreground :background))
+	  ;; Now we have to convert into CLIM colors.
+	  (flet ((ccm (x)
+		   (multiple-value-bind
+		       (r g b)
+		       (tk::query-color (tk::default-colormap (port-display port)) x)
+		     (let ((x #.(1- (ash 1 16))))
+		       (make-rgb-color 
+			(/ r x)
+			(/ g x)
+			(/ b x))))))
+	    (when foreground
+	      (unless (medium-foreground pane)
+		(setf (medium-foreground pane) (ccm foreground))))
+	    (unless (medium-background pane)
+	      (setf (medium-background pane) (ccm background)))))))))
 
 ;;;--- Gadget activation deactivate
 
@@ -1040,5 +1045,44 @@
     widget))
 
 
+(defmethod port-force-output ((port xt-port))
+  (x11:xflush (port-display port)))
 
 
+
+;;;
+
+
+(defclass xt-geometry-manager ()
+	  ;; --- This is probably all
+	  ;; composites excepts drawing-area and shell
+	  ()
+  (:documentation "These are all parents that have strong feelings
+about their children"))
+
+
+(defmethod update-mirror-transformation-1 ((port port) sheet 
+					   (parent xt-geometry-manager))
+  nil)
+
+(defmethod update-mirror-region-1 ((port port) sheet 
+				   (parent xt-geometry-manager))
+  nil)
+	    
+
+(defmethod update-mirror-transformation-1 :after ((port port)
+						  (sheet xt-geometry-manager)
+						  (parent t))
+  (update-geo-manager-sheet-children sheet))
+
+
+(defmethod update-mirror-region-1 :after ((port port)
+					  (sheet xt-geometry-manager)
+					  (parent t))
+  (update-geo-manager-sheet-children sheet))
+
+(defmethod update-geo-manager-sheet-children (geo-manager)
+  (dolist (child (sheet-children geo-manager))
+    ;;--- Yuck!
+    (when (typep child 'mirrored-sheet-mixin)
+      (mirror-region-updated (port geo-manager) child))))

@@ -5,7 +5,7 @@
 "Copyright (c) 1990, 1991 Symbolics, Inc.  All rights reserved.
  Portions copyright (c) 1989, 1990 International Lisp Associates."
 
-;;; $fiHeader: lucid-stream-functions.lisp,v 1.3 92/02/24 13:34:13 cer Exp $
+;;; $fiHeader: lucid-stream-functions.lisp,v 1.4 92/03/04 16:20:18 cer Exp $
 ;;; All of this is taken from the STREAM-DEFINITION-BY-USER proposal to
 ;;; the X3J13 committee, made by David Gray of TI on 22 March 1989.  No
 ;;; Lisp implementation yet supports this proposal, so we implement it
@@ -238,8 +238,8 @@
 
 (defmacro %string-stream (stream &body body)
   `(let (result
-	 (new-stream (cond ((typep ,stream 'clim-internals::accept-values-stream)
-			    (slot-value ,stream 'clim-internals::stream))
+	 (new-stream (cond ((encapsulating-stream-p ,stream)
+			    (encapsulating-stream-stream ,stream))
 			   ((typep ,stream 'fundamental-stream)
 			    ,stream)
 			   (t
@@ -263,8 +263,8 @@
 (redefine-lucid-io-function lcl:underlying-stream (stream &optional direction
 							  (recurse t)
 							  exact-same)
-			    (if (typep stream 'clim-internals::accept-values-stream)
-				(slot-value stream 'clim-internals::stream)
+			    (if (encapsulating-stream-p stream)
+				(encapsulating-stream-stream stream)
 				stream))
 
 (redefine-lucid-io-function lisp:prin1 (object &optional (stream *standard-output*))
@@ -359,8 +359,8 @@
 
 (lcl:defadvice (lisp:y-or-n-p stream-wrapper) (&optional format-string &rest args)
   (declare (dynamic-extent args))
-  (if (and (system:standard-object-p *QUERY-IO*)
-	   (typep *QUERY-IO* 'fundamental-stream))
+  (if (and (system:standard-object-p *query-io*)
+	   (typep *query-io* 'fundamental-stream))
       (clim:accept 'clim:boolean :prompt (apply #'lisp::format nil format-string
 					   args))
       (lcl:apply-advice-continue format-string args)))
@@ -381,6 +381,6 @@
   (let ((stream (if (eq stream t) *standard-output* stream)))
     (if (and (system:standard-object-p stream)
 	     (typep stream 'fundamental-stream))
-	(apply #'clim:format   stream control-string args)
+	(apply #'clim:format stream control-string args)
 	(lcl:apply-advice-continue stream control-string args))))
 

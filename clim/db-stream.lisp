@@ -22,7 +22,7 @@
 ;;;
 ;;; Copyright (c) 1990 by Xerox Corporations.  All rights reserved.
 ;;;
-;; $fiHeader: db-stream.lisp,v 1.16 92/05/07 13:12:08 cer Exp Locker: cer $
+;; $fiHeader: db-stream.lisp,v 1.17 92/05/12 18:24:56 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -33,6 +33,8 @@
 
 ;;--- How to keep PANE-BACKGROUND/FOREGROUND in sync with the medium?
 ;;--- I'm not convinced that including WINDOW-STREAM here is right...
+;;--- Note the this allows you to specify default text style, but it
+;;--- doesn't pass it along to the medium, so it has no effect.
 (defclass clim-stream-sheet 
 	  (window-stream			;includes output recording
 	   sheet-permanently-enabled-mixin
@@ -101,6 +103,10 @@
        :reader pane-display-time
        :initarg :display-time :initform :command-loop		
        :type (member nil :command-loop t))))
+	   
+(defmethod initialize-instance :after 
+	   ((pane clim-stream-pane) &key &allow-other-keys)
+  (setf (sheet-transformation pane) +identity-transformation+))
 
 (defmethod pane-needs-redisplay ((pane clim-stream-pane))
   (with-slots (display-time) pane
@@ -111,114 +117,106 @@
 
 (defmethod pane-needs-redisplay ((pane pane)) nil)
 
-(defmethod initialize-instance :after 
-	   ((pane clim-stream-pane) &key &allow-other-keys)
-  (setf (sheet-transformation pane) +identity-transformation+))
-
-;;-- Althought the unit options are mostly applicable here I guess
-;;-- other classes might want to use it also
-;;-- Perhaps we add a compose-space method on pane which does this.
-;;-- Perhaps the class hierarchy needs a big sort out
-
+;;--- Although the unit options are mostly applicable here I guess
+;;--- other classes might want to use it also.
+;;--- Perhaps we add a COMPOSE-SPACE method on pane which does this.
+;;--- Perhaps the class hierarchy needs a big sort out.
 (defmacro with-space-requirement ((sr &rest vars) &body body)
   ;; A handy macro that makes it slightly easy to manipulate space requirements
   (unless vars
     (setq vars '(sr-width sr-min-width sr-max-width sr-height sr-min-height sr-max-height)))
-  `(multiple-value-bind
-       ,vars
+  `(multiple-value-bind ,vars
        (space-requirement-components ,sr) 
      (macrolet ((do-with-space-req-components (operator var vars &body body)
-		 `(,operator
-		   ,@(mapcar #'(lambda (a-var)
-				 `(symbol-macrolet ((,var ,a-var))
-				    ,@body))
-			     vars)))
+		  `(,operator
+		    ,@(mapcar #'(lambda (a-var)
+				  `(symbol-macrolet ((,var ,a-var))
+				     ,@body))
+			      vars)))
 		(make-sr ()
 		  `,'(make-space-requirement
-		    ,@(mapcan #'list '(:width :min-width :max-width
-				       :height :min-height :max-height)
-			      vars))))
+		       ,@(mapcan #'list '(:width :min-width :max-width
+					  :height :min-height :max-height)
+				 vars))))
        ,@body)))
 
 (defmethod compose-space ((pane clim-stream-pane) &key width height)
   (let ((sr (call-next-method)))
     (labels ((process-compute-space-requirements ()
 	       (with-space-requirement (sr)
-		 (when (do-with-space-req-components 
-			or sr-component 
-			(sr-width sr-min-width
-				  sr-max-width sr-height
-				  sr-min-height sr-max-height) 
-			(eq sr-component :compute))
+		 (when (do-with-space-req-components or
+			   sr-component 
+			   (sr-width sr-min-width sr-max-width
+			    sr-height sr-min-height sr-max-height) 
+			 (eq sr-component :compute))
 		   (multiple-value-bind (width height)
 		       (let ((record
-			      (with-output-to-output-record (pane)
-				(invoke-pane-redisplay-function 
-				 (pane-frame pane) pane
-				 ;;--- Are all pane display functions prepared to
-				 ;;--- ignore these arguments?  I think not...
-				 :max-width width
-				 :max-height height))))
+			       (with-output-to-output-record (pane)
+				 (invoke-pane-redisplay-function 
+				   (pane-frame pane) pane
+				   ;;--- Are all pane display functions prepared to
+				   ;;--- ignore these arguments?  I think not...
+				   :max-width width
+				   :max-height height))))
 			 (bounding-rectangle-size record))
-		     (do-with-space-req-components
-		      progn sr-component (sr-width sr-min-width sr-max-width)
-		      (when (eq sr-component :compute) (setq sr-component width)))
-		     (do-with-space-req-components
-		      progn sr-component (sr-height sr-min-height sr-max-height)
-		      (when (eq sr-component :compute) (setq sr-component height))))
+		     (do-with-space-req-components progn
+		         sr-component (sr-width sr-min-width sr-max-width)
+		       (when (eq sr-component :compute)
+			 (setq sr-component width)))
+		     (do-with-space-req-components progn
+		         sr-component (sr-height sr-min-height sr-max-height)
+		       (when (eq sr-component :compute)
+			 (setq sr-component height))))
 		   (setq sr (make-sr)))))
 	     (process-unit-space-requirements ()
 	       (with-space-requirement (sr)
 		 (let ((changed nil))
-		   (do-with-space-req-components 
-		    progn sr-component 
-		    (sr-width sr-min-width
-			      sr-max-width sr-height
-			      sr-min-height sr-max-height) 
-		    (when (unit-space-requirement-p sr-component)
-		      (setq sr-component
-			(process-unit-space-requirement pane sr-component)
-			changed t)))
+		   (do-with-space-req-components progn
+		       sr-component 
+		       (sr-width sr-min-width sr-max-width
+			sr-height sr-min-height sr-max-height) 
+		     (when (unit-space-requirement-p sr-component)
+		       (setq sr-component (process-unit-space-requirement pane sr-component)
+			     changed t)))
 		   (when changed
 		     (setq sr (make-sr))))))
 	     (process-relative-space-requirements ()
 	       (with-space-requirement (sr)
 		 (unless (and (numberp sr-width)
 			      (numberp sr-height)
-			      (do-with-space-req-components 
-			       and sr-component 
-			       ( sr-min-width
-				 sr-max-width
-				 sr-min-height 
-				 sr-max-height) 
-			       (or (numberp sr-component)
-				   (relative-space-requirement-p
-				    sr-component))))
+			      (do-with-space-req-components and
+				  sr-component 
+				  (sr-min-width sr-max-width
+				   sr-min-height sr-max-height) 
+				(or (numberp sr-component)
+				    (relative-space-requirement-p sr-component))))
 		   (error "Illegal space requirement ~S" sr))
 		 (let ((changed nil))
 		   (when (relative-space-requirement-p sr-min-width)
-		     (setq sr-min-width (- sr-width
-					   (process-unit-space-requirement pane (car sr-min-width)))
+		     (setq sr-min-width (- sr-width (process-unit-space-requirement
+						      pane (car sr-min-width)))
 			   changed t))
 		   (when (relative-space-requirement-p sr-max-width)
-		     (setq sr-max-width (+ sr-width
-					   (process-unit-space-requirement pane (car sr-max-width)))
+		     (setq sr-max-width (+ sr-width (process-unit-space-requirement
+						      pane (car sr-max-width)))
 			   changed t))
 		   (when (relative-space-requirement-p sr-min-height)
-		     (setq sr-min-height (- sr-height
-					    (process-unit-space-requirement pane (car sr-min-height)))
+		     (setq sr-min-height (- sr-height (process-unit-space-requirement
+							pane (car sr-min-height)))
 			   changed t))
 		   (when (relative-space-requirement-p sr-max-height)
-		     (setq sr-max-height (+ sr-height
-					    (process-unit-space-requirement pane (car sr-max-height)))
+		     (setq sr-max-height (+ sr-height (process-unit-space-requirement
+							pane (car sr-max-height)))
 			   changed t))
 		   (when changed
 		     (setq sr (make-sr)))))))
+      (declare (dynamic-extent #'process-compute-space-requirements
+			       #'process-unit-space-requirements
+			       #'process-relative-space-requirements))
       (process-compute-space-requirements)
       (process-unit-space-requirements)
       (process-relative-space-requirements)
       sr)))
-
 
 (defun relative-space-requirement-p (sr)
   (and (consp sr)
@@ -226,25 +224,24 @@
        (or (numberp (second sr))
 	   (unit-space-requirement-p (second sr)))))
 
-
 (defun unit-space-requirement-p (sr)
   (and (consp sr)
        (= (length sr) 2)
        (member (second sr) '(:line :character :mm :point :pixel))))
 
 (defun process-unit-space-requirement (pane sr)
-  (destructuring-bind
-      (number unit) sr
+  (destructuring-bind (number unit) sr
     (let ((graft (graft pane)))
       (ecase unit
 	(:pixel number)
-	(:mm (* number (/ (silica::graft-pixel-width graft) (silica::graft-mm-width graft))))
+	(:mm (* number (/ (silica::graft-pixel-width graft)
+			  (silica::graft-mm-width graft))))
 	(:point (* number (silica::graft-pixels-per-point graft)))
 	(:character (* number (stream-string-width pane "M")))
 	(:line (+ (* number (stream-line-height pane))
 		  (* (1- number) (stream-vertical-spacing pane))))))))
 
-#+ignore
+#+++ignore
 (defmethod note-sheet-grafted :after ((pane clim-stream-pane))
   (let ((xform (sheet-transformation pane)))
     (setq xform (make-scaling-transformation 1 -1))
@@ -254,7 +251,7 @@
 ;;; CLIM-STREAM-PANE is a child of the old-style viewport.  It shouldn't
 ;;; get called under the new viewport scheme.
 
-#+ignore
+#+++ignore
 (defmethod allocate-space :after ((pane clim-stream-pane) width height)
   (declare (ignore width height))
   (ecase (graft-origin (graft pane))
@@ -265,10 +262,10 @@
        ;; --- stream-panes ALWAYS have to have a parent to manage the
        ;; viewport clipping, etc.
        (setq xform (compose-transformations
-		    xform
-		    (make-translation-transformation
-		     0 (1- (bounding-rectangle-height
-			    (sheet-parent pane))))))
+		     xform
+		     (make-translation-transformation
+		       0 (1- (bounding-rectangle-height
+			       (sheet-parent pane))))))
        (setf (sheet-transformation pane) xform)))))
 
 (defmethod pane-stream ((pane clim-stream-pane))
@@ -277,7 +274,7 @@
 	   'pane-stream pane))
   pane)
 
-#+ignore
+#+++ignore
 (defmethod update-region ((pane clim-stream-pane) width height
 			  &key no-repaint &allow-other-keys)
   (when (pane-scroller pane)
@@ -296,13 +293,13 @@
   (multiple-value-bind (history-width history-height)
       (if (stream-current-output-record pane)
 	  (bounding-rectangle-size (stream-current-output-record pane))
-	(values width height))
+	  (values width height))
     ;; Don't ever shrink down smaller than our contents.
     (if (and (numberp width)
 	     (numberp height))
 	(apply #'call-next-method pane :width (max width history-width)
-	       :height (max height history-height) keys)
-      (call-next-method))))
+				       :height (max height history-height) keys)
+	(call-next-method))))
 
 
 (defclass interactor-pane (clim-stream-pane) ())
@@ -387,8 +384,7 @@
 (defmethod window-erase-viewport ((stream window-stream))
   (with-sheet-medium (medium stream)
     (multiple-value-call #'draw-rectangle*
-      medium
-      (bounding-rectangle* (or (pane-viewport stream) stream))
+      medium (bounding-rectangle* (or (pane-viewport stream) stream))
       :ink +background-ink+)))
 
 (defmethod window-expose ((stream clim-stream-sheet))
@@ -398,8 +394,8 @@
 (defmethod (setf window-label) (label (stream clim-stream-sheet))
   nil)
 
-(defmethod (setf window-visibility) (nv (stream clim-stream-sheet))
-  (if nv 
+(defmethod (setf window-visibility) (visibility (stream clim-stream-sheet))
+  (if visibility 
       (enable-frame (pane-frame stream))
       (disable-frame (pane-frame stream))))
 
@@ -421,7 +417,6 @@
 
 (defmethod window-set-inside-size ((stream clim-stream-sheet) width height)
   (change-space-requirements stream :width width :height height :resize-frame t))
-
 
 (defun-inline window-parent (window)
   (sheet-parent window))

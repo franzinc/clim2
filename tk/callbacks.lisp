@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: callbacks.lisp,v 1.12 92/05/07 13:10:47 cer Exp Locker: cer $
+;; $fiHeader: callbacks.lisp,v 1.13 92/05/13 17:10:11 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -122,6 +122,7 @@
 	    ;; OpenLook Callbacks
 	    ("sliderMoved" slider-moved)
 	    ("select")
+	    ("unselect")
 	    )))
 
 (defun convert-callback-name (x)

@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: classes.lisp,v 1.7 92/03/10 10:11:33 cer Exp $
+;; $fiHeader: classes.lisp,v 1.8 92/05/07 13:11:07 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -54,7 +54,8 @@
      ;; Thus each bucket is a list of fonts with the same family and face,
      ;; but different sizes.  They are kept sorted small to large.
      (allow-loose-text-style-size-mapping 
-       :initform nil :initarg :allow-loose-text-style-size-mapping)))
+      :initform nil :initarg :allow-loose-text-style-size-mapping)
+     (framems :initform nil :accessor port-frame-manager)))
 
 ;;--- Make a SHEET protocol class, and call this BASIC-SHEET
 (defclass sheet ()

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: ptypes1.lisp,v 1.10 92/04/15 11:47:07 cer Exp $
+;; $fiHeader: ptypes1.lisp,v 1.11 92/05/07 13:12:51 cer Exp $
 
 (in-package :clim-internals)
 
@@ -280,7 +280,7 @@
   ;; The following would be "the right thing," but it doesn't work because some compilers
   ;; evaluate the MAKE-LOAD-FORM forms out of order with the top-level forms, so the
   ;; presentation type class might not be defined yet when this is evaluated.
-  #+ignore `(find-presentation-type-class ',(class-presentation-type-name object))
+  #+++ignore `(find-presentation-type-class ',(class-presentation-type-name object))
   ;; So do this instead
   `(load-reference-to-presentation-type-class
      ',(class-presentation-type-name object #+(or Genera Minima) 'compile-file)
@@ -396,14 +396,6 @@
 #+CCL-2
 (defmethod acceptable-presentation-type-class ((class ccl::compile-time-class))
   nil)
-
-#+Allegro
-(progn
-(warn "~S for ~S should be elsewhere" 'clos::class-prototype 'clos::structure-class)
-
-(defmethod clos::class-prototype ((class clos::structure-class)) 
-  (allocate-instance class))
-)	;#+Allegro
 
 
 ;;;; Retrieving Information about a Presentation Type or P.T. Abbreviation

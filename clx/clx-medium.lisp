@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLX-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clx-medium.lisp,v 1.4 92/03/10 10:12:06 cer Exp $
+;; $fiHeader: clx-medium.lisp,v 1.5 92/04/15 11:45:53 cer Exp $
 
 (in-package :clx-clim)
 
@@ -140,6 +140,60 @@
 			       #b0000000000000010
 			       #b0000100000000000
 			       #b0000000000100000))))))
+
+(defvar *clx-opacity-stipples*
+	(mapcar #'(lambda (entry)
+		    (cons (first entry) (apply #'make-stipple-image (second entry))))
+		'((+nowhere+ (1 1 (#b0)))
+		  (0.05 (8 16 (#b1000000000000000
+			       #b0000001000000000
+			       #b0000000000001000
+			       #b0010000000000000
+			       #b0000000010000000
+			       #b0000000000000010
+			       #b0000100000000000
+			       #b0000000000100000)))
+		  (0.1 (8 8 (#b10000000
+			     #b00010000
+			     #b00000010
+			     #b01000000
+			     #b00001000
+			     #b00000001
+			     #b00100000
+			     #b00000100)))
+		  (0.2 (4 4 (#b1000
+			     #b0010
+			     #b0100
+			     #b0001)))
+		  (0.3 (3 3 (#b100
+			     #b010
+			     #b001)))
+		  (0.4 (2 2 (#b10
+			     #b01)))
+		  (0.6 (3 3 (#b011
+			     #b101
+			     #b110)))
+		  (0.7 (4 4 (#b0111
+			     #b1101
+			     #b1011
+			     #b1110)))
+		  (0.8 (8 8 (#b01111111
+			     #b11101111
+			     #b11111101
+			     #b10111111
+			     #b11110111
+			     #b11111110
+			     #b11011111
+			     #b11111011)))
+		  (0.9 (8 16 (#b0111111111111111
+			      #b1111110111111111
+			      #b1111111111110111
+			      #b1101111111111111
+			      #b1111111101111111
+			      #b1111111111111101
+			      #b1111011111111111
+			      #b1111111111011111)))
+		  (+everywhere+ (1 1 (#b1))))))
 		
 ;; The xlib:image objects are created at load time to save run time & space.
 ;; Here a '0' means white, '1' black.
@@ -153,6 +207,20 @@
 		  (stipple (cdr entry)))
 	      (when (< luminance l)
 		(return-from clx-decode-luminance stipple)))))))
+
+(defun clx-decode-opacity (opacity)
+  (let ((opacities *clx-opacity-stipples*))
+    (cond ((eq opacity +nowhere+)
+	   (cdr (first opacities)))
+	  ((eq opacity +everywhere+)
+	   (cdr (first (last opacities))))
+	  (t
+	   (let ((last-op (cdr (first opacities)))
+		 (value (opacity-value opacity)))
+	     (dolist (op (cdr opacities) last-op)
+	       (when (< value (car op))
+		 (return last-op))
+	       (setq last-op (cdr op))))))))
 
 ;; This should only be called on a color screen.
 (defmethod clx-decode-color ((medium clx-medium) (ink color))
@@ -188,6 +256,9 @@
 (defgeneric clx-decode-ink (ink medium))
 
 (defmethod clx-decode-ink ((ink (eql +foreground-ink+)) medium)
+  (slot-value medium 'foreground-gc))
+
+(defmethod clx-decode-ink ((ink (eql +everywhere+)) medium)
   (slot-value medium 'foreground-gc))
 
 (defmethod clx-decode-ink ((ink (eql +background-ink+)) medium)
@@ -542,12 +613,15 @@
 		       start-angle angle-size filled)))))
 
 (defmethod port-draw-string* ((port clx-port) sheet medium
-			      string x y start end align-x align-y)
+			      string x y start end align-x align-y
+			      towards-x towards-y transform-glyphs)
   (let ((transform (sheet-device-transformation sheet))
 	(ink (medium-ink medium))
 	(text-style (medium-merged-text-style medium))
 	(drawable (slot-value medium 'drawable)))
     (convert-to-device-coordinates transform x y)
+    (when towards-x
+      (convert-to-device-coordinates transform towards-x towards-y))
     (unless end
       (setq end (length string)))
     (let* ((font (if text-style
@@ -557,20 +631,28 @@
 	   (descent (xlib:font-descent font))
 	   (height (+ ascent descent))
 	   (gc (clx-decode-ink ink medium)))
-      (incf x (clim-internals::compute-text-x-adjustment 
-		align-x medium string text-style start end))
-      (incf y (clim-internals::compute-text-y-adjustment
-		align-y descent ascent height))
+      (let ((x-adjust (clim-internals::compute-text-x-adjustment 
+			align-x medium string text-style start end))
+	    (y-adjust (clim-internals::compute-text-y-adjustment
+			align-y descent ascent height)))
+	(incf x x-adjust)
+	(incf y y-adjust)
+	(when towards-x
+	  (incf towards-x x-adjust)
+	  (incf towards-y y-adjust)))
       (setf (xlib:gcontext-font gc) font)
       (xlib:draw-glyphs drawable gc x y string :start start :end end))))
 
 (defmethod port-draw-character* ((port clx-port) sheet medium
-				 character x y align-x align-y)
+				 character x y align-x align-y
+				 towards-x towards-y transform-glyphs)
   (let ((transform (sheet-device-transformation sheet))
 	(ink (medium-ink medium))
 	(text-style (medium-merged-text-style medium))
 	(drawable (slot-value medium 'drawable)))
     (convert-to-device-coordinates transform x y)
+    (when towards-x
+      (convert-to-device-coordinates transform towards-x towards-y))
     (let* ((font (if text-style
 		     (text-style-mapping port text-style)
 		     (clx-get-default-font port medium)))
@@ -578,64 +660,29 @@
 	   (descent (xlib:font-descent font))
 	   (height (+ ascent descent))
 	   (gc (clx-decode-ink ink medium)))
-      (incf x (clim-internals::compute-text-x-adjustment 
-		align-x medium character text-style))
-      (incf y (clim-internals::compute-text-y-adjustment
-		align-y descent ascent height))
+      (let ((x-adjust (clim-internals::compute-text-x-adjustment 
+			align-x medium character text-style))
+	    (y-adjust (clim-internals::compute-text-y-adjustment
+			align-y descent ascent height)))
+	(incf x x-adjust)
+	(incf y y-adjust)
+	(when towards-x
+	  (incf towards-x x-adjust)
+	  (incf towards-y y-adjust)))
       (setf (xlib:gcontext-font gc) font)
       (xlib:draw-glyph drawable gc x y character)))) 
 
 (defmethod port-draw-text* ((port clx-port) sheet medium
 			    string-or-char x y start end
 			    align-x align-y
-			    ;; towards-point towards-x towards-y
-			    ;; transform-glyphs
-			    )
+			    towards-x towards-y transform-glyphs)
   (if (characterp string-or-char)
       (port-draw-character* port sheet medium
-			    string-or-char x y align-x align-y)
+			    string-or-char x y align-x align-y
+			    towards-x towards-y transform-glyphs)
       (port-draw-string* port sheet medium
-			 string-or-char x y start end align-x align-y)))
-
-;;--- Is this used any more?
-(defmethod port-write-char-1 ((port clx-port) medium 
-			      index font color x y)
-  (let ((transform (sheet-device-transformation sheet))
-	(ink (medium-ink medium))
-	(text-style (medium-merged-text-style medium))
-	(drawable (slot-value medium 'drawable))
-	(gc (clx-decode-ink ink medium)))
-    (convert-to-device-coordinates transform x y)
-    (setf (xlib:gcontext-font gc) font)
-    ;; Move line down so that the top of the character (not the baseline) is at Y.
-    (xlib:draw-glyph drawable gc (round x) (+ (round y) (xlib:font-ascent font)) index)))
-
-;;--- Is this used any more?
-(defmethod port-write-string-1 ((port clx-port) medium 
-				glyph-buffer start end 
-				font color x y)
-  (when (> end start)
-    (let ((transform (sheet-device-transformation sheet))
-	  (ink (medium-ink medium))
-	  (text-style (medium-merged-text-style medium))
-	  (drawable (slot-value medium 'drawable))
-	  (gc (clx-decode-ink ink medium))
-	  (size (if (find-if #'(lambda (x) (> x 255.)) glyph-buffer :start start :end end)
-		    16 :default)))
-      (setf (xlib:gcontext-font gc) font)
-      ;; Move line down so that the top of the characters (not the baseline) is at Y.
-      (xlib:draw-glyphs drawable gc (round x) (+ (round y) (xlib:font-ascent font))
-			glyph-buffer
-			:start start :end end :translate #'noop-translate-function
-			:size size))))
-
-;;; Too bad we have to copy the glyphs again, but that's life...
-(defun noop-translate-function (src src-start src-end font dst dst-start)
-  (declare (values ending-index horizontal-motion width))
-  (declare (ignore font))
-  (replace dst src :start1 dst-start :start2 src-start :end2 src-end)
-  (values src-end nil nil))
-
+			 string-or-char x y start end align-x align-y
+			 towards-x towards-y transform-glyphs)))
 
 (defmethod port-beep ((port clx-port) sheet)
   (declare (ignore sheet))

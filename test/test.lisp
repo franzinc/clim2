@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: test.lisp,v 1.25 92/05/07 13:13:22 cer Exp Locker: cer $
+;; $fiHeader: test.lisp,v 1.26 92/05/12 18:25:07 cer Exp Locker: cer $
 
 (in-package :clim-user)
 
@@ -52,12 +52,12 @@
       (make-pane 'interactor-pane)))
   (:icon :name "foo" 
 	 :pixmap (make-pattern 
-		  (let ((x (make-array '(48 48))))
-		    (dotimes (i 48)
-		      (dotimes (j 48)
-			(setf (aref x i j) (random 2))))
-		    x)
-		  (list +red+ +green+)))
+		   (let ((x (make-array '(48 48))))
+		     (dotimes (i 48)
+		       (dotimes (j 48)
+			 (setf (aref x i j) (random 2))))
+		     x)
+		   (list +red+ +green+)))
   (:geometry :width 300 :height 300))
 
 
@@ -113,8 +113,7 @@
     ()
   (window-clear *query-io*))
 
-(define-test-frame-command (com-quit :name t 
-				     :menu ("Quit" :documentation "foo"))
+(define-test-frame-command (com-quit :name t :menu ("Quit" :documentation "Word"))
     ()
   (frame-exit *application-frame*))
 
@@ -162,7 +161,7 @@
     (e :interactor
        :width 300 :max-width +fill+
        :height 300 :max-height +fill+))
-  (:layout
+  (:layouts
     (:default 
       (vertically ()
 	a b c e))
@@ -227,28 +226,47 @@
   (write-string "gadget" stream))
 
 (define-test-frame-command (com-make-one :name t :menu t)
-    ()
+    ((what '(subset :slider :push-button :interactor :radio-box)))
   (let* ((stream *query-io*))
-    (let ((weird (cons nil nil)))
-      (setf (car weird)
-	    (with-output-as-presentation (stream weird 'some-kinda-gadget)
-	      (surrounding-output-with-border (stream)
-		(with-output-as-gadget (stream)
-		  (make-pane 'slider))))))
-    (let ((weird (cons nil nil)))
-      (setf (car weird)
-	    (with-output-as-presentation (stream weird 'some-kinda-gadget)
-	      (surrounding-output-with-border (stream)
-		(with-output-as-gadget (stream)
-		  (make-pane 'push-button
-		    :label "Amazing"))))))
-    (let ((weird (cons nil nil)))
-      (setf (car weird)
-	    (with-output-as-presentation (stream weird 'some-kinda-gadget)
-	      (surrounding-output-with-border (stream)
-		(with-output-as-gadget (stream)
-		  (scrolling ()
-		    (make-pane 'interactor-pane)))))))))
+    (when (member :slider what)
+      (let ((weird (cons nil nil)))
+	(setf (car weird)
+	  (with-output-as-presentation (stream weird 'some-kinda-gadget)
+	    (surrounding-output-with-border (stream)
+					    (with-output-as-gadget (stream)
+					      (make-pane 'slider)))))))
+    
+    (when (member :push-button what)
+      (let ((weird (cons nil nil)))
+	(setf (car weird)
+	  (with-output-as-presentation (stream weird 'some-kinda-gadget)
+	    (surrounding-output-with-border (stream)
+					    (with-output-as-gadget (stream)
+					      (make-pane 'push-button
+							 :label "Amazing")))))))
+    (when (member :interactor what)
+      (let ((weird (cons nil nil)))
+	(setf (car weird)
+	  (with-output-as-presentation (stream weird 'some-kinda-gadget)
+	    (surrounding-output-with-border (stream)
+					    (with-output-as-gadget (stream)
+					      (scrolling ()
+							 (make-pane
+							  'interactor-pane))))))))
+    (when (member :radio-box what)
+      (let ((weird (cons nil nil)))
+	(setf (car weird)
+	  (with-output-as-presentation (stream weird 'some-kinda-gadget)
+	    (surrounding-output-with-border (stream)
+					    (with-output-as-gadget
+						(stream)
+					      (let ((gadget (make-pane 'radio-box)))
+						(dolist (x '(a b c) gadget)
+						  (make-pane
+						   'toggle-button
+						   :parent gadget
+						   :label (string x))))))))))
+    ))
 
 (define-test-frame-command (com-move-gadget :name t :menu t)
     ((weird 'some-kinda-gadget))
@@ -353,15 +371,15 @@
 (defun slider-dragged-callback (slider value)
   (format t "~&Slider ~A dragged to ~S" (gadget-label slider) value))
 
+(defun option-pane-changed-callback (tf value)
+  (format t "~&Option menu ~A changed to ~S"  tf value))
+
+(defun list-pane-changed-callback (tf value)
+  (format t "~&List pane ~A changed to ~S"  tf value))
+
 
 (defun text-field-changed (tf value)
   (format t "~&Text field ~A changed to ~S" tf value))
-
-(defun option-pane-changed-callback (tf value)
-  (format t "~&option menu ~A changed to ~S"  tf value))
-
-(defun list-pane-changed-callback (tf value)
-  (format t "~&list pane ~A changed to ~S"  tf value))
 
 (defclass insect () ())
 
@@ -478,190 +496,166 @@
 	    :value-changed-callback 'slider-changed-callback
 	    :drag-callback 'slider-dragged-callback))))))
  
-
 (define-application-frame tf988 () ()
-			  (:command-table test-frame)
-			  (:pane 
-			   (outlining ()
-				      (horizontally ()
-						    (scrolling ()
-						     (make-pane 'text-editor 
-								:value "lucid "
-								:value-changed-callback 'text-field-changed
-								:ncolumns 30
-								:nlines 10))
-						    (scrolling ()
-							       (make-pane 'text-editor 
-									  :value "harlqn  more"
-									  :value-changed-callback 'text-field-changed
-									  :ncolumns 30
-									  :nlines 10))))))
+  (:command-table test-frame)
+  (:pane 
+    (outlining ()
+      (horizontally ()
+	(scrolling ()
+	  (make-pane 'text-editor 
+		     :value "lucid "
+		     :value-changed-callback 'text-field-changed
+		     :ncolumns 30
+		     :nlines 10))
+	(scrolling ()
+	  (make-pane 'text-editor 
+		     :value "harlqn  more"
+		     :value-changed-callback 'text-field-changed
+		     :ncolumns 30
+		     :nlines 10))))))
 
+(define-application-frame tf97 () ()
+  (:command-table test-frame)
+  (:pane 
+    (vertically ()
+      (horizontally ()
+	(scrolling ()
+	  (make-pane 'list-pane
+	    :value "Franz"
+	    :test 'string=
+	    :value-changed-callback 'list-pane-changed-callback
+	    :items '("Franz" "Lucid" "Harlqn" "Symbolics")))
+	:fill
+	(scrolling ()
+	  (make-pane 'list-pane
+	    :value '("Lisp" "C")
+	    :test 'string=
+	    :mode :nonexclusive
+	    :value-changed-callback 'list-pane-changed-callback
+	    :items '("C" "Cobol" "Lisp" "Ada"))))
+      (make-pane 'option-pane
+		 :items '("eenie" "meanie" "minie")
+		 :value "minie"
+		 :value-changed-callback 'option-pane-changed-callback
+		 :test 'string=
+		 :label "moo")
+      (outlining ()
+	(scrolling ()
+	  (make-pane 'text-editor 
+	    :value "lucid are nice guys "
+	    :value-changed-callback 'text-field-changed
+	    :ncolumns 30
+	    :nlines 10))))))
 
-(define-application-frame tf97 
-    () ()
-    (:command-table test-frame)
-    (:pane 
-     (vertically ()
-		 (horizontally ()
-			       (scrolling ()
-					  (make-pane
-					   'list-pane
-					   :value "Franz"
-					   :test 'string=
-					   :value-changed-callback 
-					   'list-pane-changed-callback
-					   :items '("Franz" "Lucid"
-						    "Harlqn"
-						    "Symbolics")))
-			       :fill
-			       (scrolling ()
-					  (make-pane
-					   'list-pane
-					   :value '("Lisp" "C")
-					   :test 'string=
-					   :mode :nonexclusive
-					   :value-changed-callback 
-					   'list-pane-changed-callback
-					   :items '("C" "Cobol" "Lisp" "Ada"))))
-		 (make-pane 'option-pane
-			    :items '("eenie" "meanie" "minie")
-			    :value "minie"
-			    :value-changed-callback 
-			    'option-pane-changed-callback
-			    :test 'string=
-			    :label "moo")
-		 (outlining ()
-			    (scrolling ()
-			     (make-pane 'text-editor 
-					:value
-					"lucid are nice guys "
-					:value-changed-callback 'text-field-changed
-					:ncolumns 30
-					:nlines 10))))))
+(define-application-frame tf96 () ()
+  (:command-table test-frame)
+  (:panes
+    (a :application :width '(80 :character))
+    (b :application :width '(50 :mm))
+    (c :application :height '(10 :line))
+    (d :application :height '(5 :line))
+    (e :application :height '( 50 :mm)))
+  (:layouts
+    (:default 
+      (vertically ()
+	(horizontally () a b)
+	(vertically () c d e)))))
 
-(define-application-frame tf96
-    () ()
-    (:command-table test-frame)
-    (:panes
-     (a :application :width '(80 :character))
-     (b :application :width '(50 :mm))
-     (c :application :height '(10 :line))
-     (d :application :height '(5 :line))
-     (e :application :height '( 50 :mm)))
-    (:layout
-     (:default (vertically ()
-			   (horizontally () a b)
-			   (vertically () c d e)))))
-
-
-
-(define-test-frame-command (com-frob-sizes :name t :menu t)
-    ()
+(define-test-frame-command (com-frob-sizes :name t :menu t) ()
   (changing-space-requirements ()
-			       (change-space-requirements
-				(get-frame-pane *application-frame* 'a)
-				:resize-frame t
-				:width `(,(random 60) :character))
-			       (change-space-requirements
-				(get-frame-pane *application-frame* 'b)
-				:resize-frame t
-				:width `(,(random 60) :character))
-			       (change-space-requirements
-				(get-frame-pane *application-frame* 'd)
-				:resize-frame t
-				:height `(,(random 10) :line))))
+    (change-space-requirements
+      (get-frame-pane *application-frame* 'a)
+      :resize-frame t
+      :width `(,(random 60) :character))
+    (change-space-requirements
+      (get-frame-pane *application-frame* 'b)
+      :resize-frame t
+      :width `(,(random 60) :character))
+    (change-space-requirements
+      (get-frame-pane *application-frame* 'd)
+      :resize-frame t
+      :height `(,(random 10) :line))))
 
-(define-application-frame tf95
-    () ()
-    (:command-table test-frame)
-    (:panes
-     (a :application :width '(80 :character))
-     (b :application :width '(50 :mm))
-     (c :application :height '(10 :line))
-     (d :application :height '(5 :line))
-     (e :application :height '( 50 :mm)))
-    (:layout
-     (:default (vertically 
-		()
-		(1/3 (horizontally () (1/10 a) (9/10 b)))
-		(2/3 (vertically () (1/4 c) (1/2 d) (1/4 e)))))))
+(define-application-frame tf95 () ()
+  (:command-table test-frame)
+  (:panes
+    (a :application :width '(80 :character))
+    (b :application :width '(50 :mm))
+    (c :application :height '(10 :line))
+    (d :application :height '(5 :line))
+    (e :application :height '( 50 :mm)))
+  (:layouts
+    (:default 
+      (vertically ()
+	(1/3 (horizontally () (1/10 a) (9/10 b)))
+	(2/3 (vertically () (1/4 c) (1/2 d) (1/4 e)))))))
 
+(define-application-frame tf94 () ()
+  (:command-table test-frame)
+  (:panes
+    (a :application :width '(80 :character))
+    (b :application)
+    (c :application :height '(10 :line))
+    (d :application)
+    (e :application :height '( 50 :mm)))
+  (:layouts
+    (:default 
+      (vertically ()
+	(1/3 (horizontally () (1/10 a) (:fill b)))
+	(2/3 (vertically () (1/4 c) (:fill d) (1/4 e)))))))
 
-(define-application-frame tf94
-    () ()
-    (:command-table test-frame)
-    (:panes
-     (a :application :width '(80 :character))
-     (b :application)
-     (c :application :height '(10 :line))
-     (d :application)
-     (e :application :height '( 50 :mm)))
-    (:layout
-     (:default (vertically 
-		()
-		(1/3 (horizontally () (1/10 a) (:fill b)))
-		(2/3 (vertically () (1/4 c) (:fill d) (1/4 e)))))))
+(define-application-frame tf93 () ()
+  (:command-table test-frame)
+  (:panes
+    (a :application)
+    (b :application)
+    (c :application)
+    (d :application)
+    (e :application))
+  (:layouts
+    (:default 
+      (vertically ()
+	(1/3 (horizontally () (1/10 a) (9/10 b)))
+	(2/3 (vertically () (1/4 c) (1/2 d) (1/4 e)))))))
 
-(define-application-frame tf93
-    () ()
-    (:command-table test-frame)
-    (:panes
-     (a :application)
-     (b :application)
-     (c :application)
-     (d :application)
-     (e :application))
-    (:layout
-     (:default (vertically 
-		()
-		(1/3 (horizontally () (1/10 a) (9/10 b)))
-		(2/3 (vertically () (1/4 c) (1/2 d) (1/4 e)))))))
+(define-application-frame tf91 () ()
+  (:command-table test-frame)
+  (:panes
+    (a :application)
+    (b :application)
+    (c :application)
+    (d :application)
+    (e :application))
+  (:layouts
+    (:default
+      (vertically ()
+	(1/3 (horizontally () (1/10 a) (:fill b)))
+	(2/3 (vertically () (1/4 c) (:fill d) (1/4 e)))))))
 
-(define-application-frame tf91
-    () ()
-    (:command-table test-frame)
-    (:panes
-     (a :application)
-     (b :application)
-     (c :application)
-     (d :application)
-     (e :application))
-    (:layout
-     (:default (vertically 
-		()
-		(1/3 (horizontally () (1/10 a) (:fill b)))
-		(2/3 (vertically () (1/4 c) (:fill d) (1/4 e)))))))
-
-(define-application-frame tf92 ()
-  ()
+(define-application-frame tf92 () ()
   (:pane
-     (make-pane 'vbox-pane
-		:contents
-		(mapcar #'(lambda (x)
-			    (destructuring-bind
-				(min max &optional (decimal-places 0))
-				x
-				(make-pane 'slider
-				 :label (format nil "Slider ~D,~D,~D"
-					 min max decimal-places)
-				 :min-value min
-				 :max-value max
-				 :decimal-places decimal-places
-				 :show-value-p t
-				 :value-changed-callback 'slider-changed-callback
-				 :drag-callback
-				 'slider-dragged-callback)))
-			'((0 100)
-			  (50 60)
-			  (50 60 2)
-			  (0.0 1.0 2))))))
+    (make-pane 'vbox-pane
+      :contents 
+        (mapcar #'(lambda (x)
+		    (destructuring-bind (min max &optional (decimal-places 0)) x
+		      (make-pane 'slider
+			:label (format nil "Slider ~D,~D,~D"
+				 min max decimal-places)
+			:min-value min
+			:max-value max
+			:decimal-places decimal-places
+			:show-value-p t
+			:value-changed-callback 'slider-changed-callback
+			:drag-callback 'slider-dragged-callback)))
+		'((0 100)
+		  (50 60)
+		  (50 60 2)
+		  (0.0 1.0 2))))))
 
 (defun test-accepting-values (&optional (own-window t)
-					(gadget-dialog-view t))
+			      (gadget-dialog-view t))
   (let* ((stream *query-io*)
-	 (ptypes-and-prompts `(
-			       (boolean "Finished it yet")
+	 (ptypes-and-prompts `((boolean "Finished it yet")
 			       ((member a b c) "3 Member test")
 			       ((member a b c d e f g h) "8 Member test")
 			       ((member a b c d e f g h i
@@ -676,46 +670,38 @@
 			       ;; A big blob of text
 			       ;; token-or-type??.tim
 			       ;; Funny ones
-			       ((or integer (member :small :large))
-				"Size:")
+			       ((or integer (member :small :large)) "Size:")
 			       ))
 	 (n (length ptypes-and-prompts))
 	 (values (make-array n :initial-element :none)))
 	   
     (accepting-values (stream :own-window own-window :label "foo")
-		      ;; Test of the member stuff
-		      (clim-internals::letf-globally 
-		       (((stream-default-view stream)
-			 (if gadget-dialog-view 
-			     (stream-default-view stream)
-			   +textual-dialog-view+)))
-
-		       (dotimes (i n)
-			 (if (eq (svref values i) :none)
-			     (setf (svref values i)
-			       (accept (first (nth i
-						   ptypes-and-prompts)) 
-				       :stream stream
-				       :prompt (second (nth i
-							    ptypes-and-prompts))))
-			   (setf (svref values i)
-			     (accept (first (nth i ptypes-and-prompts))
-				     :default (svref values i) 
-				     :stream stream
-				     :prompt (second (nth i ptypes-and-prompts)))))
-			 (terpri stream))))
+      ;; Test of the member stuff
+      (clim-internals::letf-globally (((stream-default-view stream)
+				       (if gadget-dialog-view 
+					   (stream-default-view stream)
+					   +textual-dialog-view+)))
+	(dotimes (i n)
+	  (if (eq (svref values i) :none)
+	      (setf (svref values i)
+		    (accept (first (nth i ptypes-and-prompts)) 
+			    :stream stream
+			    :prompt (second (nth i ptypes-and-prompts))))
+	      (setf (svref values i)
+		    (accept (first (nth i ptypes-and-prompts))
+			    :default (svref values i) 
+			    :stream stream
+			    :prompt (second (nth i ptypes-and-prompts)))))
+	  (terpri stream))))
     values))
 
+
 ;; This was from a pkarp mail message
-
 (defun shift-output-record (stream record dx dy)
   (let ((parent (output-record-parent record)))
     (multiple-value-bind (x-offset y-offset)
-	(convert-from-relative-to-absolute-coordinates
-	 stream
-	 parent)
-      (multiple-value-bind
-	  (x y)
+	(convert-from-relative-to-absolute-coordinates stream parent)
+      (multiple-value-bind (x y)
 	  (bounding-rectangle-position record)
 	(erase-output-record record stream)
 	(output-record-set-position record (+ x dx) (+ y dy))

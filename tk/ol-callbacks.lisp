@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-callbacks.lisp,v 1.5 92/03/09 17:40:50 cer Exp $
+;; $fiHeader: ol-callbacks.lisp,v 1.6 92/04/21 20:27:35 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -57,3 +57,18 @@
 (defmethod spread-callback-data (widget data (type (eql 'slider-moved)))
   (values))
 
+
+(defun add-ol-callback (widget name type function &rest args)
+  (ol_add_callback widget name *callback-handler-address*
+		   (caar (push
+			  (list (new-callback-id) (cons function args) type)
+			  (widget-callback-data widget)))))
+
+
+(defmethod spread-callback-data ((widget shell) data (type (eql :wm-protocol)))
+  ;;; I dunno why this works but it does
+  (ecase (logand 15 (ol-wm-protocol-verify-message-type data))
+	    (1 :wm-delete-window)	; 80000001
+	    (2 :wm-save-yourself)	; 80000002
+	    (4 :wm-take-focus)		; 80000004
+	    ))

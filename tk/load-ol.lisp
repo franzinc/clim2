@@ -20,12 +20,12 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: load-ol.lisp,v 1.8 92/04/03 12:03:58 cer Exp $
+;; $fiHeader: load-ol.lisp,v 1.9 92/05/07 13:10:50 cer Exp Locker: cer $
 
 (in-package :tk)
 
-(defvar *libxol-pathname* "/vapor/usr/tech/cer/stuff/clim-2.0/tk/lib2/libXol.a")
-(defvar *libxt-pathname* "/x11/R4/src/mit/lib/Xt/libXt_d.a")
+(defvar sys::*libxol-pathname* "/vapor/usr/tech/cer/stuff/clim-2.0/tk/lib2/libXol.a")
+(defvar sys::*libxt-pathname* "/x11/R4/src/mit/lib/Xt/libXt_d.a")
 
 (defun load-from-ol ()
   (x11::load-undefined-symbols-from-library
@@ -45,9 +45,9 @@
      "_class_extended"
      "__unpack_integer"
      )
-   (list *libxol-pathname*
-	 *libxt-pathname*
-	 x11::*libx11-pathname*)))
+   (list sys::*libxol-pathname*
+	 sys::*libxt-pathname*
+	 sys::*libx11-pathname*)))
 
 (load-from-ol)
 

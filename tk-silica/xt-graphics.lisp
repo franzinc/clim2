@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.21 92/05/13 17:11:23 cer Exp Locker: cer $
+;; $fiHeader: xt-graphics.lisp,v 1.22 92/05/14 11:04:02 cer Exp Locker: cer $
 
 (in-package :tk-silica)
 
@@ -260,7 +260,7 @@
 
 (defmethod decode-ink ((ink color) (medium xt-medium))
   (with-slots (ink-table sheet tile-gcontext white-pixel black-pixel drawable
-			 color-p ink-table)
+			 color-p)
       medium
     (or (gethash ink ink-table)
 	(let ((drawable (or drawable
@@ -271,7 +271,6 @@
 		   (decode-color medium ink)))
 		(t
 		 (multiple-value-bind (r g b) (color-rgb ink)
-		   ;; The luminance formula isn't really right.  XXX
 		   (let* ((luminance (color-luminosity r g b))
 			  (color (decode-luminance luminance t)))
 		     (cond ((eq color 1)
@@ -317,7 +316,7 @@ and on color servers, unless using white or black")
 		  (tk::gcontext-fill-style new-gc) :stippled)
 	    (setf (gethash key ink-table) new-gc))))))
   
-
+ 
 (defmethod decode-ink ((ink contrasting-ink) stream)
   (decode-ink (make-color-for-contrasting-ink ink) stream))
 
@@ -957,34 +956,6 @@ and on color servers, unless using white or black")
 		 to-left to-top))
 
 
-
-;;--- Is this used any more?
-(defmethod port-write-string-1 ((port xt-port) medium
-				glyph-buffer start end 
-				x-font color x y)
-  (break "is this used anymore")
-  (unless (= start end)
-    (let* ((sheet (medium-sheet medium))
-	   (transform (sheet-device-transformation sheet))
-	   (window (medium-drawable medium))
-	   (font x-font))
-      ;; At one point we checked to see whether the widget is unrealized
-      ;; or not.  Can we draw on disabled sheets?
-      (convert-to-device-coordinates transform x y)
-      (incf y (tk::font-ascent font))
-      (when (medium-drawable medium)
-	(let ((gc (decode-ink (medium-ink medium) medium)))
-	  (setf (tk::gcontext-font gc) font)
-	  (etypecase glyph-buffer
-	    ((simple-array (unsigned-byte 16))
-	     (x11::xdrawstring16
-	       (tk::object-display window)
-	       window
-	       gc
-	       x y
-	       glyph-buffer (- end start)))))))))
-
-
 (defmethod port-beep ((port xt-port) (sheet t))
   (x11:xbell (port-display port) 100))
 
@@ -1042,4 +1013,4 @@ and on color servers, unless using white or black")
 				    to-drawable seq-no '(:graphics-expose) 
 				    :block nil))
 		       (unless event
-			 (return))))))))))))))
+ 			 (return))))))))))))))

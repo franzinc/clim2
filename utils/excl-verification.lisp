@@ -20,11 +20,12 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: excl-verification.lisp,v 1.8 92/04/03 12:04:19 cer Exp Locker: cer $
+;; $fiHeader: excl-verification.lisp,v 1.9 92/04/10 14:26:41 cer Exp Locker: cer $
 
 (in-package :sys)
 
-(assert (eq excl::*current-case-mode* :case-insensitive-lower))
+(eval-when (compile)
+  (assert (member excl::*current-case-mode* '(:case-insensitive-lower :case-insensitive-upper))))
 
 (eval-when (compile load eval)
   (pushnew :clim *features*)
@@ -58,4 +59,4 @@ You do not have patches ~{~S ~}"
 
 (si::rcsnote
  "CLIM 2.0.alpha.0"
- "$fiHeader: $")
+ "$fiHeader: excl-verification.lisp,v 1.9 92/04/10 14:26:41 cer Exp Locker: cer $")

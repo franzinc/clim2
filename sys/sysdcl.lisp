@@ -1,8 +1,8 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sysdcl.lisp,v 1.15 92/05/07 13:13:14 cer Exp Locker: cer $
+;; $fiHeader: sysdcl.lisp,v 1.16 92/05/13 17:10:57 cer Exp Locker: cer $
 
-(in-package #-ANSI-90 "USER" #+ANSI-90 :cl-user)
+(in-package #-ANSI-90 :user #+ANSI-90 :cl-user)
 
 "Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved."
 
@@ -10,7 +10,7 @@
 
 ;;; Tell the world that we're here
 ;;;--- These need to be in the CLIM.fasl also.
-;;;--- Currently they're in excl-verification  but that does not seem the best place.
+;;;--- Currently they're in EXCL-VERIFICATION but that does not seem the best place.
 (pushnew :clim *features*)
 (pushnew :clim-2 *features*)
 (pushnew :clim-2.0 *features*)
@@ -143,9 +143,10 @@
 
   ;; Establish a uniform stream model
   ("clim-streams")
-  ("cl-stream-classes" :features (not clim-uses-lisp-stream-classes))
+  (#-Cloe-Runtime "cl-stream-classes" #+Cloe-Runtime "clstrcla"
+   :features (not clim-uses-lisp-stream-classes))
   ("minima-stream-classes" :features Minima)
-  ("cl-stream-functions" 
+  (#-Cloe-Runtime "cl-stream-functions" #+Cloe-Runtime "clstrfun"
    :features (and (not clim-uses-lisp-stream-functions) (not Lucid)))
   ("lucid-stream-functions" :features Lucid)
   ("genera-streams" :features Genera)
@@ -240,8 +241,6 @@
   ("input-defs")
   ("input-protocol")
   ("output-protocol")
-  ("drawing-state-mixin" :features (not Silica))
-  ("window-protocol" :features (not Silica))
 
   ;; Output recording
   ("recording-defs"
@@ -251,24 +250,17 @@
   ("text-recording"
    :load-before-compile ("recording-protocol"))
   ("graphics-recording"
-   :load-before-compile ("recording-protocol") :features Silica)
+   :load-before-compile ("recording-protocol"))
 
   ;; Input editing
   (#-Cloe-Runtime "interactive-protocol" #+Cloe-Runtime "int-prot"
    :load-before-compile ("clim-defs"))
   ("input-editor-commands")
 
-  (#-Cloe-Runtime "protocol-intermediaries" #+Cloe-Runtime "prot-int"
-   :features (not Silica))
-
   ;; Formatted output definitions
   ("formatted-output-defs")
   ("incremental-redisplay"
    :load-before-compile ("clim-defs" "recording-protocol"))
-
-  ;; Graphics
-  ("defs-graphics-generics" :features (not Silica))
-  (#-Cloe-Runtime "graphics-generics" #+Cloe-Runtime "gph-gene" :features (not Silica))
 
   ;; Windows
   ("coordinate-sorted-set")
@@ -277,7 +269,8 @@
   ;; Presentation types
   ("ptypes1"
    :load-before-compile ("clim-defs"))
-  ("completer")
+  ("completer"
+   :load-before-compile ("ptypes1"))
   ("presentations"
    :load-before-compile ("ptypes1"))
   ("translators"
@@ -302,47 +295,14 @@
   ("text-formatting"
    :load-before-compile ("clim-defs" "incremental-redisplay"))
 
-  (#-Cloe-Runtime "graphics-internals" #+Cloe-Runtime "gph-inte" :features (not Silica))
-
   ;; Pointer tracking
   ("tracking-pointer")
   ("dragging-output"
    :load-before-compile ("tracking-pointer"))
 
-  ("vertical-string" :features (not Silica))
-
-  ;; CLX
-  ("clx-implementation" :features (and (not Silica) Xlib))
-
-  ;; Genera
-  ("genera-implementation" :features (and (not Silica) Genera))
-
-  ;; MCL
-  ;("coral-scroll" :features (and (not Silica) CCL-2))
-  ;("coral-implementation" :features (and (not Silica) CCL-2))
-  ;("coral-fonts" :features  (and (not Silica) CCL-2))
-  ;("coral-font-stuff" :features  (and (not Silica) CCL-2))
-  ;("coral-events" :features (and (not Silica) CCL-2))
-  ;("coral-streams" :features (and (not Silica) CCL-2))
-
-  ;; CLOE
-  ;("wheader" :features (and (not Silica) Cloe-Runtime))
-  ;("windows" :features (and (not Silica) Cloe-Runtime)
-  ; :load-before-compile ("wheader"))
-  ;("cloe-implementation" :features (and (not Silica) Cloe-Runtime)
-  ; :load-before-compile ("windows"))
-  ;("cloe-events" :features (and (not Silica) Cloe-Runtime)
-  ; :load-before-compile ("windows" "cloe-implementation"))
-  ;("cloe-applications" :features (and (not Silica) Cloe-Runtime))
-
-  ;; Postscript
-  ;("postscript-implementation" :features (not Silica))
-  ;("laserwriter-metrics" :features (not Silica)
-  ; :load-before-compile ("postscript-implementation"))
-
   ;; Gadgets
-  ("db-stream" :features Silica)
-  ("gadget-output" :features Silica)
+  ("db-stream")
+  ("gadget-output")
 
   ;; Application building substrate
   ("accept"
@@ -355,19 +315,16 @@
    :load-before-compile ("clim-defs" "command"))
   ("basic-translators"
    :load-before-compile ("ptypes2" "command"))
-  ("define-application"
-   :load-before-compile ("clim-defs" "command-processor") :features (not Silica))
-  ("default-application"
-   :load-before-compile ("define-application") :features (not Silica))
   ("frames" 
-   :load-before-compile ("clim-defs" "command-processor") :features Silica)
+   :load-before-compile ("clim-defs" "command-processor"))
+  ("noting-progress"
+   :load-before-compile ("frames"))
   ("menus"
    :load-before-compile ("defresource" "clim-defs"))
-  ;("mac-menus"
-  ; :features (and (not Silica) CCL-2) :load-before-compile ("menus"))
   ("accept-values"
-   :load-before-compile ("clim-defs" "incremental-redisplay"
-			 #-Silica "define-application" #+Silica "frames"))
+   :load-before-compile ("clim-defs" "incremental-redisplay" "frames"))
+  ("drag-and-drop" 
+   :load-before-compile ("frames"))
   ("pixmap-streams"
    :load-before-compile ("clim-defs"))
   ("item-list-manager")
@@ -376,10 +333,10 @@
   ("stream-trampolines"
    :load-before-compile ("defprotocol" "stream-defprotocols"))
   ("lucid-after" :features lucid)
-  ("prefill" :features (and (not Silica) (or Genera Cloe-Runtime))))
+  ("prefill" :features (or Genera Cloe-Runtime)))
 
 
-#+(and Silica Genera)
+#+Genera
 (clim-defsys:defsystem genera-clim
     (:default-pathname "SYS:CLIM;REL-2;GENERA;"
      :default-binary-pathname #+Genera "SYS:CLIM;REL-2;GENERA;"
@@ -393,7 +350,7 @@
   ("genera-gadgets")  
   ("genera-activities"))
 
-#+(and Silica CLX use-CLX)
+#+(and CLX use-CLX)
 (clim-defsys:defsystem clx-clim
     (:default-pathname "SYS:CLIM;REL-2;CLX;"
      :default-binary-pathname #+Genera "SYS:CLIM;REL-2;CLX;"
@@ -407,7 +364,7 @@
   ("clx-gadgets"))
 
 
-#+(and Silica Allegro)
+#+Allegro
 (clim-defsys:defsystem xlib
     (:default-pathname (frob-pathname "xlib")
      :default-binary-pathname (frob-pathname "xlib")
@@ -423,7 +380,7 @@
   ("x11-keysyms" :load-before-compile ("ffi"))
   ("last" :load-before-compile ("load-xlib" "xlib-funs")))
 
-#+(and Silica Allegro)
+#+Allegro
 (clim-defsys:defsystem xt-tk
     (:default-pathname (frob-pathname "tk")
      :default-binary-pathname (frob-pathname "tk")
@@ -451,17 +408,17 @@
   ("xt-classes")
   ("xt-init"))
 
-#+(and Silica Allegro)
+#+Allegro
 (clim-defsys:defsystem xm-tk
     (:default-pathname (frob-pathname "tk")
      :default-binary-pathname (frob-pathname "tk")
      :needed-systems (xt-tk)
      :load-before-compile (xt-tk))
   ;; Motif specific stuff
+  ("load-xm")
   ("xm-defs")
   ("xm-classes")
   ("xm-callbacks")
-  ("load-xm")
   ("xt-funs") ;;--- This is really in tk but because of the loading
   ("xm-funs")
   ("xm-classes")
@@ -470,12 +427,9 @@
   ("xm-font-list")
   ("xm-protocols")
   ("convenience")
-  #+ignore ("examples")
-
-  ;; More General stuff
   ("make-widget"))
 
-#+(and Silica Allegro)
+#+Allegro
 (clim-defsys:defsystem ol-tk
     (:default-pathname (frob-pathname "tk")
      :default-binary-pathname (frob-pathname "tk")
@@ -483,16 +437,16 @@
      :load-before-compile (xt-tk))
   ;; OpenLook specific stuff
   ("ol-defs")
-  ("ol-classes")
   ("load-ol")
   ("xt-funs") ;;--- This is really in tk but because of the loading
   ("ol-funs")
+  ("ol-classes")
   ("ol-init")
+  ("ol-widgets")
   ("ol-callbacks")
-  #+ignore("ol-examples")
   ("make-widget"))
 
-#+(and Silica Allegro)
+#+Allegro
 (clim-defsys:defsystem motif-clim
     (:default-pathname (frob-pathname "tk-silica")
      :default-binary-pathname (frob-pathname "tk-silica")
@@ -512,7 +466,7 @@
   ("xt-cursor")
   ("xt-pixmaps"))
 
-#+(and Silica Allegro)
+#+Allegro
 (clim-defsys:defsystem openlook-clim
     (:default-pathname (frob-pathname "tk-silica")
      :default-binary-pathname (frob-pathname "tk-silica")
@@ -531,7 +485,7 @@
   ("xt-pixmaps"))
 
 
-#+(and Silica CCL-2)
+#+CCL-2
 (clim-defsys:defsystem ccl-clim
     (:default-pathname "SYS:CLIM;REL-2;CCL;"
      :default-binary-pathname #+Genera "SYS:CLIM;REL-2;CCL;"
@@ -546,7 +500,7 @@
   ("ccl-menus"))
 
 
-#+(and Silica Cloe-Runtime)
+#+Cloe-Runtime
 (clim-defsys:defsystem cloe-clim
     (:default-pathname "SYS:CLIM;REL-2;CLOE;"
      :default-binary-pathname #+Genera "SYS:CLIM;REL-2;CLOE;"
@@ -563,7 +517,7 @@
   ("cloe-menus"))
 
 
-#+(and Silica use-PostScript)
+#+use-PostScript
 (clim-defsys:defsystem postscript-clim
     (:default-pathname "SYS:CLIM;REL-2;POSTSCRIPT;"
      :default-binary-pathname #+Genera "SYS:CLIM;REL-2;POSTSCRIPT;"
@@ -592,12 +546,10 @@
 			     :pretty-name "CLIM Standalone"
 			     :default-pathname "SYS:CLIM;REL-2;CLIM;")
 
-#+Silica
 (clim-defsys:import-into-sct 'genera-clim :subsystem t
 			     :pretty-name "Genera CLIM"
 			     :default-pathname "SYS:CLIM;REL-2;GENERA;")
 
-#+Silica
 (clim-defsys:import-into-sct 'clx-clim :subsystem t
 			     :pretty-name "CLX CLIM"
 			     :default-pathname "SYS:CLIM;REL-2;CLX;")
@@ -614,20 +566,20 @@
   (:serial "clim-utils"
 	   "clim-silica"
 	   "clim-standalone"
-	   #+Silica "genera-clim"
-	   #+Silica "clx-clim"))
+	   "genera-clim"
+	   "clx-clim"))
 
-#+(and Silica ignore)
+#+++ignore
 (clim-defsys:import-into-sct 'motif-clim :subsystem t
 			     :pretty-name "Motif CLIM"
 			     :default-pathname "SYS:CLIM;REL-2;TK-SILICA;")
 
-#+(and Silica ignore)
+#+++ignore
 (clim-defsys:import-into-sct 'openlook-clim :subsystem t
 			     :pretty-name "OpenLook CLIM"
 			     :default-pathname "SYS:CLIM;REL-2;TK-SILICA;")
 
-#+(and Silica ignore)
+#+++ignore
 (sct:defsystem clim-tags-table
     (:pretty-name "CLIM Tags Table"
      :default-pathname "SYS:CLIM;REL-2;CLIM;"
@@ -655,7 +607,6 @@
 			     :sct-name :minima-clim-standalone :pretty-name "Minima CLIM Standalone"
 			     :default-pathname "SYS:CLIM;REL-2;CLIM;")
 
-#+Silica
 (clim-defsys:import-into-sct 'clx-clim :subsystem t
 			     :sct-name :minima-clx-clim :pretty-name "CLX CLIM"
 			     :default-pathname "SYS:CLIM;REL-2;CLX;")
@@ -673,7 +624,7 @@
   (:serial "minima-clim-utils"
 	   "minima-clim-silica"
 	   "minima-clim-standalone"
-	   #+Silica "minima-clx-clim"))
+	   "minima-clx-clim"))
 
 )
 

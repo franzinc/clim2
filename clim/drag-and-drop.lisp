@@ -2,6 +2,8 @@
 
 (in-package :clim-internals)
 
+;;; $fiHeader$
+
 "Copyright (c) 1991, 1992 Symbolics, Inc.  All rights reserved."
 
 
@@ -168,7 +170,8 @@
       (declare (dynamic-extent #'find-translator))
       (macrolet ((feedback (x y state)
 		   `(funcall feedback frame from-presentation window 
-				      initial-x initial-y ,x ,y ,state))
+
+			     initial-x initial-y ,x ,y ,state))
 		 (highlight (presentation state)
 		   `(when ,presentation
 		      (funcall highlighting frame ,presentation window 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: cad-demo.lisp,v 1.6 92/04/15 11:48:12 cer Exp $
+;; $fiHeader: cad-demo.lisp,v 1.7 92/05/07 13:13:34 cer Exp $
 
 (in-package :clim-demo)
 
@@ -536,7 +536,7 @@
     (design-area 
       (make-pane 'application-pane)))
   (:pointer-documentation t)
-  (:layout
+  (:layouts
     (default
       (scrolling ()
 	design-area)))

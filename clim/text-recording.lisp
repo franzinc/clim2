@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: text-recording.lisp,v 1.4 92/04/15 11:47:28 cer Exp $
+;; $fiHeader: text-recording.lisp,v 1.5 92/05/07 13:13:08 cer Exp $
 
 (in-package :clim-internals)
 
@@ -74,63 +74,50 @@
 	 (start 0)
 	 (end (length string))
 	 (text-style (medium-default-text-style stream))
-	 #+Silica (port (port stream))
-	 (baseline (- (text-style-height text-style #-Silica stream #+Silica port)
-		      (text-style-descent text-style #-Silica stream #+Silica port)))
+	 (port (port stream))
+	 (baseline (- (text-style-height text-style port)
+		      (text-style-descent text-style port)))
 	 (glyph-buffer (stream-output-glyph-buffer stream))
 	 (color (slot-value record 'ink)))
     (declare (type fixnum start end))
-    (#-Silica progn
-     #+Silica with-sheet-medium #+Silica (medium stream)
-     (macrolet
-      ((do-it (end-position)
-	 `(loop
-	    (when (>= start ,end-position) (return))
-	    (multiple-value-bind (write-char next-char-index
-				  new-cursor-x new-baseline new-height font)
-		(stream-scan-string-for-writing stream #+Silica medium
-						string start ,end-position text-style
-						cursor-x +largest-coordinate+
-						glyph-buffer)
-	      ;; GLYPH-BUFFER NIL => pass the string to the port-specific code.
-	      #-Silica
-	      (if glyph-buffer
-		  (stream-write-string-1
-		    stream glyph-buffer 0 (the fixnum (- next-char-index start))
-		    font color
-		    cursor-x (+ cursor-y (- baseline new-baseline)))
-		  (stream-write-string-1
-		    stream string start next-char-index
-		    font color
-		    cursor-x (+ cursor-y (- baseline new-baseline))))
-	      #+Silica
-	      (with-identity-transformation (medium)
-		(draw-text* medium string
-			    cursor-x (+ cursor-y (- baseline new-baseline))
-			    :start start :end next-char-index 
-			    :align-y :top
-			    :text-style text-style :ink color))
-	      (setf cursor-x new-cursor-x start next-char-index)
-	      (when write-char
-		(cond ((eql write-char #\Tab)	;Only non-lozenged exception char?
-		       (setf cursor-x (stream-next-tab-column stream cursor-x text-style)))
-		      (t 
-		       (multiple-value-bind (new-cursor-x new-cursor-y)
-			   (stream-draw-lozenged-character
-			     stream write-char cursor-x cursor-y new-baseline new-height
-			     text-style +largest-coordinate+ nil t)
-			 (setf cursor-x new-cursor-x
-			       cursor-y new-cursor-y))))
-		(incf start))))))
-      (multiple-value-bind (cursor-x cursor-y) 
-	  (output-record-start-cursor-position record)
-	(declare (type coordinate cursor-x cursor-y))
-	(translate-coordinates x-offset y-offset cursor-x cursor-y)
-	(do-it end)
-	#-Silica
-	(when (slot-value record 'wrapped-p)
-	  (draw-character-wrap-indicator
-	    stream cursor-y (bounding-rectangle-height record) (stream-text-margin stream) nil)))))))
+    (with-sheet-medium (medium stream)
+      (macrolet
+	((do-it (end-position)
+	   `(loop
+	      (when (>= start ,end-position) (return))
+	      (multiple-value-bind (write-char next-char-index
+				    new-cursor-x new-baseline new-height font)
+		  (stream-scan-string-for-writing 
+		    stream medium string start ,end-position text-style
+		    cursor-x +largest-coordinate+ glyph-buffer)
+		(with-identity-transformation (medium)
+		  (draw-text* medium string
+			      cursor-x (+ cursor-y (- baseline new-baseline))
+			      :start start :end next-char-index 
+			      :align-y :top
+			      :text-style text-style :ink color))
+		(setf cursor-x new-cursor-x start next-char-index)
+		(when write-char
+		  (cond ((eql write-char #\Tab)	;Only non-lozenged exception char?
+			 (setf cursor-x (stream-next-tab-column stream cursor-x text-style)))
+			(t 
+			 (multiple-value-bind (new-cursor-x new-cursor-y)
+			     (stream-draw-lozenged-character
+			       stream write-char cursor-x cursor-y new-baseline new-height
+			       text-style +largest-coordinate+ nil t)
+			   (setf cursor-x new-cursor-x
+				 cursor-y new-cursor-y))))
+		  (incf start))))))
+	(multiple-value-bind (cursor-x cursor-y) 
+	    (output-record-start-cursor-position record)
+	  (declare (type coordinate cursor-x cursor-y))
+	  (translate-coordinates x-offset y-offset cursor-x cursor-y)
+	  (do-it end)
+	  #-Silica				;--- what about this?
+	  (when (slot-value record 'wrapped-p)
+	    (draw-character-wrap-indicator
+	      stream cursor-y (bounding-rectangle-height record)
+	      (stream-text-margin stream) nil)))))))
 
 (defmethod replay-output-record ((record styled-text-output-record) stream
 				 &optional region 
@@ -145,63 +132,50 @@
 	 (glyph-buffer (stream-output-glyph-buffer stream))
 	 (color (slot-value record 'ink)))
     (declare (type fixnum start end))
-    (#-Silica progn
-     #+Silica with-sheet-medium #+Silica (medium stream)
-     (macrolet
-      ((do-it (end-position)
-	 `(loop
-	    (when (>= start ,end-position) (return))
-	    (multiple-value-bind (write-char next-char-index
-				  new-cursor-x new-baseline new-height font)
-		(stream-scan-string-for-writing stream #+Silica medium
-						string start ,end-position text-style
-						cursor-x +largest-coordinate+
-						glyph-buffer)
-	      #-Silica
-	      (if glyph-buffer
-		  (stream-write-string-1
-		    stream glyph-buffer 0 (the fixnum (- next-char-index start))
-		    font color
-		    cursor-x (+ cursor-y (- baseline new-baseline)))
-		  (stream-write-string-1
-		    stream string start next-char-index
-		    font color
-		    cursor-x (+ cursor-y (- baseline new-baseline))))
-	      #+Silica
-	      (with-identity-transformation (medium)
-		(draw-text* medium string
-			    cursor-x (+ cursor-y (- baseline new-baseline))
-			    :start start :end next-char-index 
-			    :align-y :top
-			    :text-style text-style :ink color))
-	      (setf cursor-x new-cursor-x start next-char-index)
-	      (when write-char
-		(cond ((eql write-char #\Tab)	;Only non-lozenged exception char?
-		       (setf cursor-x (stream-next-tab-column stream cursor-x text-style)))
-		      (t 
-		       (multiple-value-bind (new-cursor-x new-cursor-y)
-			   (stream-draw-lozenged-character
-			     stream write-char cursor-x cursor-y new-baseline new-height
-			     text-style +largest-coordinate+ nil t)
-			 (setf cursor-x new-cursor-x
-			       cursor-y new-cursor-y))))
-		(incf start))))))
-      (multiple-value-bind (cursor-x cursor-y) 
-	  (output-record-start-cursor-position record)
-	(declare (type coordinate cursor-x cursor-y))
-	(translate-coordinates x-offset y-offset cursor-x cursor-y)
-	(dolist (text-style-change (slot-value record 'text-style-changes))
-	  (let ((new-text-style (car text-style-change))
-		(change-position (cdr text-style-change)))
-	    (do-it change-position)
-	    (setf text-style new-text-style
-		  start change-position)))
-	(do-it end)
-	#-Silica
-	(when (slot-value record 'wrapped-p)
-	  (draw-character-wrap-indicator
-	    stream cursor-y (bounding-rectangle-height record) 
-	    (stream-text-margin stream) nil)))))))
+    (with-sheet-medium (medium stream)
+      (macrolet
+	((do-it (end-position)
+	   `(loop
+	      (when (>= start ,end-position) (return))
+	      (multiple-value-bind (write-char next-char-index
+				    new-cursor-x new-baseline new-height font)
+		  (stream-scan-string-for-writing 
+		    stream medium string start ,end-position text-style
+		    cursor-x +largest-coordinate+ glyph-buffer)
+		(with-identity-transformation (medium)
+		  (draw-text* medium string
+			      cursor-x (+ cursor-y (- baseline new-baseline))
+			      :start start :end next-char-index 
+			      :align-y :top
+			      :text-style text-style :ink color))
+		(setf cursor-x new-cursor-x start next-char-index)
+		(when write-char
+		  (cond ((eql write-char #\Tab)	;Only non-lozenged exception char?
+			 (setf cursor-x (stream-next-tab-column stream cursor-x text-style)))
+			(t 
+			 (multiple-value-bind (new-cursor-x new-cursor-y)
+			     (stream-draw-lozenged-character
+			       stream write-char cursor-x cursor-y new-baseline new-height
+			       text-style +largest-coordinate+ nil t)
+			   (setf cursor-x new-cursor-x
+				 cursor-y new-cursor-y))))
+		  (incf start))))))
+	(multiple-value-bind (cursor-x cursor-y) 
+	    (output-record-start-cursor-position record)
+	  (declare (type coordinate cursor-x cursor-y))
+	  (translate-coordinates x-offset y-offset cursor-x cursor-y)
+	  (dolist (text-style-change (slot-value record 'text-style-changes))
+	    (let ((new-text-style (car text-style-change))
+		  (change-position (cdr text-style-change)))
+	      (do-it change-position)
+	      (setf text-style new-text-style
+		    start change-position)))
+	  (do-it end)
+	  #-Silica				;--- what about this?
+	  (when (slot-value record 'wrapped-p)
+	    (draw-character-wrap-indicator
+	      stream cursor-y (bounding-rectangle-height record) 
+	      (stream-text-margin stream) nil)))))))
 
 (defmethod bounding-rectangle-set-edges :around
 	   ((record standard-text-output-record) new-left new-top new-right new-bottom)
@@ -426,11 +400,11 @@
 (defmethod stylize-text-output-record ((record standard-text-output-record) style stream)
   (with-slots (ink string wrapped-p left top right bottom
 	       start-x start-y end-x end-y) record
-    (let* (#+Silica (port (port stream))
+    (let* ((port (port stream))
 	   (new-record (make-styled-text-output-record-1
 			 ink string wrapped-p
-			 style (- (text-style-height style #-Silica stream #+Silica port)
-				  (text-style-descent style #-Silica stream #+Silica port)))))
+			 style (- (text-style-height style port)
+				  (text-style-descent style port)))))
       (with-slots ((new-left left) (new-top top) (new-right right) (new-bottom bottom)
 		   (new-sx start-x) (new-sy start-y) (new-ex end-x) (new-ey end-y)
 		   (new-wrapped-p wrapped-p)) new-record
@@ -451,7 +425,7 @@
   ;; the first baseline but more likely to look good with misaligned things.
   (let ((baseline (coordinate 0))
 	(style (medium-default-text-style stream))
-	#+Silica (port (port stream)))
+	(port (port stream)))
     (declare (type coordinate baseline))
     (labels ((find-or-recurse (record y-offset)
 	       (declare (type coordinate y-offset))
@@ -461,8 +435,8 @@
 		 (standard-text-output-record
 		   (maxf baseline
 			 (+ y-offset 
-			    (- (text-style-height style #-Silica stream #+Silica port)
-			       (text-style-descent style #-Silica stream #+Silica port)))))
+			    (- (text-style-height style port)
+			       (text-style-descent style port)))))
 		 (t
 		   (multiple-value-bind (xoff yoff) (output-record-position record)
 		     (declare (type coordinate yoff))

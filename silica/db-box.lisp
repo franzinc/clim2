@@ -22,7 +22,7 @@
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
 ;;;
-;; $fiHeader: db-box.lisp,v 1.13 92/04/30 09:09:11 cer Exp Locker: cer $
+;; $fiHeader: db-box.lisp,v 1.14 92/05/06 15:37:14 cer Exp $
 
 (in-package :silica)
 
@@ -45,10 +45,11 @@
       ((member :fill))
       (pane (sheet-adopt-child pane child))
       (cons
-       (unless (and (typep (first child) '(or  (member :fill) (real 0 1)))
-		    (panep (second child)))
-	 (error "Invalid box child: ~S" contents))
-       (sheet-adopt-child pane (second child)))))
+	;; Handle top-down layout syntax
+	(unless (and (typep (first child) '(or (member :fill) (real 0 1)))
+		     (panep (second child)))
+	  (error "Invalid box child: ~S" contents))
+	(sheet-adopt-child pane (second child)))))
   (with-slots ((c contents)) pane
     (setf c contents)))
 
@@ -74,26 +75,23 @@
 		 (if (consp entry)
 		     (psetf entry (second entry) 
 			    scale (let ((n (first entry)))
-				    (if (numberp n)
-					(float n) n)))
-		   (setf scale 1.0))
+				    (if (numberp n) (float n) n)))
+		     (setf scale 1.0))
 		 (let ((space-req (apply #'compose-space entry width-or-height)))
-		   (flet ((scale (x) (if (and (numberp scale) (< x +fill+)) (/ x scale) x)))
-		     (if (eq scale :fill)
-			 (incf major+ +fill+)
-		       (progn
-			 (incf major (+ (scale (funcall fn-major space-req)) space))
-			 (incf major+ (if (eq scale :fill)
-					  +fill+
-					(scale (funcall fn-major+ space-req))))))
+		   (flet ((scale (x) 
+			    (if (and (numberp scale) (< x +fill+)) (/ x scale) x)))
+		     (declare (dynamic-extent #'scale))
+		     (cond ((eq scale :fill)
+			    (incf major+ +fill+))
+			   (t
+			    (incf major (+ (scale (funcall fn-major space-req)) space))
+			    (incf major+ (scale (funcall fn-major+ space-req)))))
 		     (incf major- (scale (funcall fn-major- space-req)))
 		     (setq minor (max minor (funcall fn-minor space-req))) 
-		     (setq minor-min
-		       (max minor-min (funcall fn-minor- space-req)))
-		     (setq minor-max
-		       (min minor-max (funcall fn-minor+ space-req))))))))
+		     (maxf minor-min (funcall fn-minor- space-req))
+		     (minf minor-max (funcall fn-minor+ space-req)))))))
 	(decf major space)
-	;; ?? These calcs lead to weirdness when fills are involved.
+	;;--- These calcs lead to weirdness when fills are involved.
 	;;--- This looks like a leftover from the time when +/- were relative
 	;;(setq minor- (max 0 (- minor minor-min)))
 	;;(setq minor+ (max 0 (- minor-max minor)))
@@ -103,6 +101,7 @@
 	       (mapcan #'list
 		       keys 
 		       (list major major+ major- minor minor+ minor-)))))))
+
 
 (defclass hbox-pane (box-pane) ())
 
@@ -126,26 +125,27 @@
 	     (cond ((atom x) (compose-space x :height height))
 		   ((eq (car x) :fill) :fill)
 		   (t (make-space-requirement :height 0 :width (* (car x) width))))))
-    (let ((sizes 
-	    (allocate-space-to-items
-	      width
-	      space-requirement
-	      contents
-	      #'space-requirement-min-width
-	      #'space-requirement-width
-	      #'space-requirement-max-width
-	      #'compose))
-	  (x 0))
-      (mapc #'(lambda (sheet size)
-		(when (or (panep sheet)
-			  (and (consp sheet)
-			       (panep (second sheet))
-			       (setq sheet (second sheet))))
-		  (move-and-resize-sheet* sheet 
-					  x 0
-					  (frob-size size width x) height))
-		(incf x size))
-	    contents sizes)))))
+      (declare (dynamic-extent #'compose))
+      (let ((sizes 
+	      (allocate-space-to-items
+		width
+		space-requirement
+		contents
+		#'space-requirement-min-width
+		#'space-requirement-width
+		#'space-requirement-max-width
+		#'compose))
+	    (x 0))
+	(mapc #'(lambda (sheet size)
+		  (when (or (panep sheet)
+			    (and (consp sheet)
+				 (panep (second sheet))
+				 (setq sheet (second sheet))))
+		    (move-and-resize-sheet* sheet 
+					    x 0
+					    (frob-size size width x) height))
+		  (incf x size))
+	      contents sizes)))))
 
 
 (defclass vbox-pane (box-pane) ())
@@ -168,19 +168,18 @@
       (compose-space box-pane :width width :height height))
     (flet ((compose (x)
 	     (cond ((atom x) (compose-space x :width width))
-		   ((eq (car x) :fill) 
-		    :fill)
-		   (t
-		    (make-space-requirement :width 0 :height (* (car x) height))))))
+		   ((eq (car x) :fill) :fill)
+		   (t (make-space-requirement :width 0 :height (* (car x) height))))))
+      (declare (dynamic-extent #'compose))
       (let ((sizes 
-	     (allocate-space-to-items
-	      height
-	      space-requirement
-	      contents
-	      #'space-requirement-min-height
-	      #'space-requirement-height
-	      #'space-requirement-max-height
-	      #'compose))
+	      (allocate-space-to-items
+		height
+		space-requirement
+		contents
+		#'space-requirement-min-height
+		#'space-requirement-height
+		#'space-requirement-max-height
+		#'compose))
 	    (y 0))
 	(mapc #'(lambda (sheet size)
 		  (when (or (panep sheet)
@@ -189,7 +188,7 @@
 				 (setq sheet (second sheet))))
 		    (move-and-resize-sheet* sheet 
 					    0 y
-					    width (frob-size size height y)))
+ 					    width (frob-size size height y)))
 		  (incf y size))
 	      contents sizes)))))
 

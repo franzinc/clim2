@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: (CLIM-LISP :USE LISP :COLON-MODE :EXTERNAL); Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: defpackage.lisp,v 1.4 92/03/04 16:20:11 cer Exp $
+;; $fiHeader: defpackage.lisp,v 1.5 92/03/10 10:11:49 cer Exp $
 
 "Copyright (c) 1989, 1990, 1991 by International Lisp Associates.  All Rights Reserved."
 
@@ -83,7 +83,7 @@
 	       :export
 	       #'(lambda (option-arg)
 		   `(export-1 ',option-arg ,package-var)
-		   #+ignore
+		   #+++ignore
 		   `(progn ,@(mapcar #'(lambda (x)
 					 `(export (list (intern ',x ,package-var))
 						  ,package-var))

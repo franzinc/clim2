@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graph-formatting.lisp,v 1.8 92/04/15 11:46:37 cer Exp $
+;; $fiHeader: graph-formatting.lisp,v 1.9 92/05/07 13:12:20 cer Exp $
 
 (in-package :clim-internals)
 
@@ -176,16 +176,13 @@
 				 root-objects object-printer inferior-producer
 				 &key duplicate-key duplicate-test)
   (declare (ignore duplicate-key duplicate-test))
-  (let ((cutoff-depth (slot-value graph 'cutoff-depth))
-	(depth 0))
-    (labels ((format-node (object)
-	       (when cutoff-depth
-		 (incf depth)
-		 (when (> depth cutoff-depth)
-		   (return-from format-node nil)))
+  (let ((cutoff-depth (slot-value graph 'cutoff-depth)))
+    (labels ((format-node (object &optional (depth 1))
+	       (when (and cutoff-depth (> depth cutoff-depth))
+		 (return-from format-node nil))
 	       (let ((children nil))
 		 (dolist (inferior (funcall inferior-producer object))
-		   (let ((node (format-node inferior)))
+		   (let ((node (format-node inferior (1+ depth))))
 		     (when (and node (not (member node children)))
 		       ;; Don't add the same node to the children more than
 		       ;; once, which can come up during redisplay

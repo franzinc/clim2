@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: GENERA-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: genera-port.lisp,v 1.4 92/04/15 11:48:02 cer Exp $
+;; $fiHeader: genera-port.lisp,v 1.5 92/05/07 13:13:29 cer Exp $
 
 (in-package :genera-clim)
 
@@ -10,9 +10,6 @@
 
 (defvar *genera-default-server-path* `(:genera :host ,net:*local-host*
 					       :screen ,tv:main-screen))
-(warn "Changing the default server path to ~S"
-      (setq *default-server-path* *genera-default-server-path*))
-
 
 (defclass genera-port (port)
     ((screen :initform nil :reader port-display)
@@ -22,13 +19,14 @@
      (cursor-font)
      (cursor-cache :initform nil :type nil)
      (height-pixels)
-     (width-pixels)
-     (type :allocation :class 
-	   :initform :genera :reader port-type))
+     (width-pixels))
   (:default-initargs :allow-loose-text-style-size-mapping nil))
 
 (defmethod find-port-type ((type (eql ':genera)))
   'genera-port)
+
+(defmethod port-type ((port genera-port))
+  ':genera)
 
 (defparameter *genera-use-color* t)		;for debugging monochrome...
 
@@ -293,7 +291,7 @@
   (with-genera-glyph-for-character
     (port-glyph-for-character stream character style our-font)))
 
-(defmethod stream-scan-string-for-writing ((port genera-port) #+Silica medium 
+(defmethod stream-scan-string-for-writing ((port genera-port) medium 
 					   string start end style cursor-x max-x
 					   &optional glyph-buffer)
   (with-genera-glyph-for-character 

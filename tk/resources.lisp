@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: resources.lisp,v 1.20 92/05/07 13:10:59 cer Exp Locker: cer $
+;; $fiHeader: resources.lisp,v 1.21 92/05/13 17:10:25 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -606,3 +606,11 @@
     ;;-- Should check to see if its registered
     (integer value)))
 
+
+;;;--- Dont ask this is what OLIT sez the label-image of a oblong
+;;;--- button is. I know why! its because its a f*cking image (rather
+;;;--- than a pixmap
+
+(defmethod convert-resource-out ((parent t) (typep (eql 'pointer)) value)
+  value)
+				 

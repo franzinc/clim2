@@ -20,11 +20,13 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: dev-load-1.lisp,v 1.5 92/05/07 13:13:47 cer Exp Locker: cer $
+;; $fiHeader: dev-load-1.lisp,v 1.6 92/05/13 17:11:09 cer Exp Locker: cer $
 
 (excl::free (excl::malloc 262145))
 
-(setq *ignore-package-name-case* t)
+;;;;  This should not matter
+;;;; (setq *ignore-package-name-case* t)
+
 (set-case-mode :case-insensitive-lower)
 
 (tenuring
@@ -40,7 +42,6 @@
    (let ((*load-source-file-info* t)
 	 (*load-xref-info* nil)
 	 (excl:*global-gc-behavior* nil))
-     #-ignore
      (ecase sys
        (motif-clim
 	(load "climg.fasl")
@@ -69,7 +70,8 @@
 
     (load "demo/sysdcl")
     (tenuring
-      (clim-defsys::load-system 'clim-demo)))
+     #-ignore
+     (clim-defsys::load-system 'clim-demo)))
   
   (when (probe-file "/scm/4.1/sparc/src/code/")
     (let ((sys::*require-search-list*

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-slider.lisp,v 1.6 92/04/15 11:45:05 cer Exp $
+;; $fiHeader: db-slider.lisp,v 1.7 92/05/07 13:11:15 cer Exp $
 
 "Copyright (c) 1990, 1991 International Lisp Associates.
  Portions copyright (c) 1991, 1992 by Symbolics, Inc.  All rights reserved."
@@ -16,6 +16,10 @@
     ((thickness :initarg :thickness :initform 20)
      (show-value :initarg :show-value
 		 :accessor slider-show-value)
+     ;; ARMED has three states:
+     ;;  NIL ==> the slider is not armed
+     ;;  T   ==> the slider is armed, waiting for a pointer button press
+     ;;  :ACTIVE ==> the slider is armed, waiting for a pointer button release
      (armed :initform nil))
   (:default-initargs :value 0
 		     :show-value nil))
@@ -86,11 +90,22 @@
 					(- x dx) mid-y)
 			   :ink ink)))))))
 
-(defmethod handle-event ((pane slider-pane) (event pointer-button-press-event))
+(defmethod handle-event ((pane slider-pane) (event pointer-enter-event))
   (with-slots (armed) pane
     (unless armed
+      (setf armed t)
+      (armed-callback pane (gadget-client pane) (gadget-id pane)))))
+
+(defmethod handle-event ((pane slider-pane) (event pointer-exit-event))
+  (with-slots (armed) pane
+    (when armed
+      (setf armed nil)
+      (disarmed-callback pane (gadget-client pane) (gadget-id pane)))))
+
+(defmethod handle-event ((pane slider-pane) (event pointer-button-press-event))
+  (with-slots (armed) pane
+    (when armed
       (setf armed :active)
-      (armed-callback pane (gadget-client pane) (gadget-id pane))
       (let ((x (pointer-event-x event))
 	    (y (pointer-event-y event)))
 	(with-bounding-rectangle* (left top right bottom) (sheet-region pane)
@@ -102,9 +117,8 @@
 
 (defmethod handle-event ((pane slider-pane) (event pointer-button-release-event))
   (with-slots (armed) pane
-    (when armed
-      (setf armed nil)
-      (disarmed-callback pane (gadget-client pane) (gadget-id pane))
+    (when (eq armed :active)
+      (setf armed t)
       (let ((x (pointer-event-x event))
 	    (y (pointer-event-y event)))
 	(with-bounding-rectangle* (left top right bottom) (sheet-region pane)
@@ -118,7 +132,7 @@
 
 (defmethod handle-event ((pane slider-pane) (event pointer-motion-event))
   (with-slots (armed) pane
-    (when (eql armed :active)
+    (when (eq armed :active)
       (let ((x (pointer-event-x event))
 	    (y (pointer-event-y event)))
 	(with-bounding-rectangle* (left top right bottom) (sheet-region pane)
@@ -128,18 +142,6 @@
 	    (:horizontal
 	      (update-slider-value pane x left right)))))
       (drag-callback pane (gadget-client pane) (gadget-id pane) (gadget-value pane)))))
-
-(defmethod handle-event ((pane slider-pane) (event pointer-enter-event))
-  (with-slots (armed) pane
-    (unless armed
-      (setf armed t)
-      (armed-callback pane (gadget-client pane) (gadget-id pane)))))
-
-(defmethod handle-event ((pane slider-pane) (event pointer-exit-event))
-  (with-slots (armed) pane
-    (when armed
-      (setf armed nil)
-      (disarmed-callback pane (gadget-client pane) (gadget-id pane)))))
 
 (defmethod update-slider-value ((pane slider-pane) coord min max)
   (let* ((min-value (slot-value pane 'min-value))

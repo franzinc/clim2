@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sysdcl.lisp,v 1.8 92/04/15 11:48:28 cer Exp $
+;; $fiHeader: sysdcl.lisp,v 1.9 92/05/07 13:13:39 cer Exp $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :common-lisp-user)
 
@@ -39,7 +39,7 @@
   ("puzzle"         :load-before-compile ("aaai-demo-driver" "packages"))
   ("address-book"   :load-before-compile ("aaai-demo-driver" "packages"))
   ("thinkadot"      :load-before-compile ("aaai-demo-driver" "packages"))
-  ("demo-prefill" :features (and (not Silica) (or Genera Cloe-Runtime))))
+  ("demo-prefill" :features (or Genera Cloe-Runtime)))
 
 #+Genera
 (clim-defsys:import-into-sct 'clim-demo 

@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-frames.lisp,v 1.16 92/05/06 15:37:53 cer Exp Locker: cer $
+;; $fiHeader: xm-frames.lisp,v 1.17 92/05/13 17:11:14 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -43,95 +43,6 @@
       :wm-delete-window
       'frame-wm-protocol-callback
       frame)))
-
-;;; Definitions of the individual classes
-
-;; This looks like garbage??
-
-;(defclass motif-main-window (motif-composite-pane)
-;  (
-;   (contents :accessor main-window-contents :initform nil)
-;   (command-window :initform nil :accessor main-window-command-window)
-;   command-window-location
-;   menu-bar
-;   message-window
-;   ))
-;
-;(defmethod initialize-instance :after ((mw motif-main-window)
-;				       &key
-;				       command-window
-;				       command-window-location
-;				       menu-bar
-;				       message-window
-;				       contents)
-;  (when contents
-;    (setf (main-window-contents mw) contents))
-;  (when command-window
-;    (setf (main-window-command-window mw) command-window))
-;  (when message-window
-;    (setf (main-window-message-window mw) message-window)))
-;
-;(defmethod (setf main-window-contents) :after (nv (mw motif-main-window))
-;  (unless (sheet-parent nv)
-;    (sheet-adopt-child mw nv)))
-;
-;(defmethod (setf main-window-command-window) :after (nv (mw motif-main-window))
-;  (unless (sheet-parent nv)
-;    (sheet-adopt-child mw nv)))
-;
-;#+ignore
-;(defmethod realize-mirror :around (port (motif-main-window))
-;  (let ((m (call-next-method)))
-;    (tk::xm_set_main_window_areas
-;     m
-;     .. 
-;     (and command-window (realize-mirror port command-window))
-;     ..
-;     (and message-window (realize-mirror port message-window))
-;     ...)))
-
-;;;; Drawing area
-;
-;#+ignore
-;(defclass motif-drawing-area (motif-composite-pane) ())
-;
-;;;; Row colum
-;
-;(defclass motif-row-colum (motif-composite-pane) ())
-;
-;;;; Push button
-
-;#+ignore
-;(defclass motif-push-button (motif-leaf-pane) ())
-
-;;; Menu bar
-
-;(defclass motif-menu-bar (motif-composite-pane) ())
-;(defclass motif-pulldown-menu (motif-composite-pane) ())
-;
-;(defclass motif-cascade-button (motif-composite-pane)
-;  ((submenu :accessor cascade-button-submenu :initform nil))
-;  )
-;
-;(defmethod realize-mirror :around ((port motif-port) (sheet motif-cascade-button))
-;  (let ((m (call-next-method)))
-;    (when (cascade-button-submenu sheet)
-;      (tk::set-values m :sub-menu-id 
-;		      (realize-mirror port (cascade-button-submenu sheet))))
-;    m))
-
-(defmethod handle-event (sheet (event window-manager-delete-event))
-  (frame-exit *application-frame*))
-
-(defun frame-wm-protocol-callback (widget frame)
-  ;; Invoked when the Wm close function has been selected
-  ;; We want to queue an "event" somewhere so that we can
-  ;; synchronously quit from the frame
-  (distribute-event
-   (port frame)
-   (make-instance 'window-manager-delete-event
-		  :sheet (frame-top-level-sheet frame))))
-
 
 (defclass motif-menu-bar (xt-leaf-pane) 
 	  ((command-table :initarg :command-table)))
@@ -279,18 +190,18 @@
     mirror))
 
 (defun display-motif-help (widget port documentation)
-  (port-notify-user 
-   port
+  (frame-manager-notify-user 
+   (find-frame-manager :port port)		;--- frame manager should be passed in
    documentation
    :associated-window widget))
 	     
-(defmethod port-dialog-view ((port motif-port))
+(defmethod frame-manager-dialog-view ((framem motif-frame-manager))
   +gadget-dialog-view+)
   
-;;--- Should "ungray" the command button, if there is one
 ;;--- If the command button is visible, right now since everything is
 ;;--- in a menu we do not have a problem with this.
 
+;;--- Should "ungray" the command button, if there is one
 (defmethod note-command-enabled ((framem motif-frame-manager) frame command)
   (declare (ignore frame command)))
 
@@ -338,3 +249,136 @@
 	    (tk::set-values shell :clip-mask (decode-pixmap clipping-mask))))))))
 
 
+;;;
+
+(defmethod frame-manager-construct-menu 
+	   ((framem motif-frame-manager) 
+	    items 
+	    printer 
+	    presentation-type 
+	    associated-window
+	    default-style
+	    label)
+  (declare (ignore default-style))
+  (let* (value-returned 
+	 return-value
+	 (simplep (and (null printer)
+		       (null presentation-type)))
+	 (port (port framem))
+	 (menu (make-instance 'tk::xm-popup-menu 
+			      :parent (or (and associated-window
+					       (sheet-mirror associated-window))
+					  (port-application-shell port))
+			      :managed nil)))
+    (when label
+      (make-instance 'tk::xm-label
+		     :parent menu
+		     :managed nil
+		     :label-string label)
+      (make-instance 'tk::xm-separator
+		     :managed nil
+		     :separator-type :double-line
+		     :parent menu))
+    (labels ((make-menu-button (item class parent &rest options)
+	       (let ((button
+		      (if simplep
+			  (apply #'make-instance
+				 class 
+				 :sensitive (clim-internals::menu-item-active item)
+				 :parent parent 
+				 :managed nil
+				 :label-string (string (menu-item-display item))
+				 options) 
+			(let* ((pixmap (pixmap-from-menu-item
+					associated-window 
+					item
+					printer
+					presentation-type))
+			       (button
+				(apply #'make-instance
+				       class 
+				       :sensitive (clim-internals::menu-item-active item)
+				       :parent parent 
+				       :label-type :pixmap
+				       :label-pixmap pixmap
+				       options)))
+			  (xt::add-widget-cleanup-function
+			   button
+			   #'tk::destroy-pixmap pixmap)
+			  button))))
+		 (when (clim-internals::menu-item-documentation item)
+		   (tk::add-callback button 
+				 :help-callback 
+				 'display-motif-help
+				 port
+				 (clim-internals::menu-item-documentation item)))
+		 button))
+	     (construct-menu-from-items (menu items)
+	       (map nil #'(lambda (item)
+			    (ecase (clim-internals::menu-item-type item)
+			      (:separator
+			       (make-instance 'tk::xm-separator
+					      :managed nil
+					      :parent menu))
+			      (:label
+				  (make-instance 'tk::xm-label
+						 :parent menu
+						 :managed nil
+						 :label-string (string
+								(menu-item-display item))))
+			      (:item
+			       (if (clim-internals::menu-item-item-list item)
+				   (let* ((submenu (make-instance
+						    'tk::xm-pulldown-menu
+						    :managed nil
+						    :parent menu))
+					  (menu-button
+					   (make-menu-button item 
+							     'tk::xm-cascade-button
+							     menu
+							     :sub-menu-id submenu)))
+				     (declare (ignore menu-button))
+				     (construct-menu-from-items 
+				      submenu 
+				      (clim-internals::menu-item-item-list item)))
+				 (let ((menu-button
+					(make-menu-button item 
+							  'tk::xm-push-button
+							  menu))
+				       (value (menu-item-value item)))
+				   (tk::add-callback
+				    menu-button
+				    :activate-callback
+				    #'(lambda (&rest args)
+					(declare (ignore args))
+					(setq return-value (list value item)
+					      value-returned t))))))))
+		    items)
+	       ;;
+	       (tk::manage-children (tk::widget-children menu))))
+	
+      (construct-menu-from-items menu items))
+    (tk::add-callback (widget-parent menu)
+		      :popdown-callback
+		      #'(lambda (&rest ignore) 
+			  (declare (ignore ignore))
+			  (setq value-returned t)))
+    (values menu
+	    #'(lambda (&optional init)
+		(if init
+		    (setf value-returned nil return-value nil)
+		  (values value-returned return-value))))))
+
+(defmethod framem-enable-menu ((framem motif-frame-manager) menu)
+  (tk::manage-child menu))
+
+(defmethod framem-destroy-menu ((framem motif-frame-manager) menu)
+  (tk::destroy-widget (tk::widget-parent menu)))
+
+(defmethod framem-popdown-menu ((framem motif-frame-manager) menu)
+  ;; Should be already popped down
+  nil)
+
+
+(defmethod framem-menu-active-p ((framem motif-frame-manager) menu)
+  (not (tk::is-managed-p menu)))

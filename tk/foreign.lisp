@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: foreign.lisp,v 1.10 92/04/21 20:27:30 cer Exp $
+;; $fiHeader: foreign.lisp,v 1.11 92/05/13 17:10:13 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -54,23 +54,21 @@
 
 (defun open-display (&key (context (create-application-context))
 			  (host nil)
-			  (name "clim")
-			  (class "Clim")
+			  (application-name "clim")
+			  (application-class "Clim")
 			  (options 0)
 			  (num-options 0)
 			  (argc 0)
 			  (argv 0))
   (let ((d (with-ref-par ((argc argc))
 	     (xt_open_display context
-			   (if host 
-			       host
-			     0)
-			   name
-			   class
-			   options 
-			   num-options
-			   argc
-			   argv))))
+			      (or host 0)
+			      application-name
+			      application-class
+			      options 
+			      num-options
+			      argc
+			      argv))))
     (if (zerop d)
 	(error "cannot open the display: ~A" host)
       d)))

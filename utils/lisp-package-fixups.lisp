@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: USER; Base: 10 -*-
 
-;; $fiHeader: lisp-package-fixups.lisp,v 1.3 92/02/16 20:55:12 cer Exp $
+;; $fiHeader: lisp-package-fixups.lisp,v 1.4 92/02/24 13:05:39 cer Exp $
 
 #+ANSI-90 (in-package :cl-user)
 
@@ -63,12 +63,11 @@
 		  (old-name (package-name package))
 		  (old-nicknames (package-nicknames package)))
 	     (let (#+Allegro (excl::*enable-package-locked-errors* nil))
-	       (rename-package 
-		 package primary-name
-		 (remove primary-name
-			 (union (cons old-name old-nicknames) required-nicknames
-				:test #'string-equal)
-			 :test #'string-equal))))))
+	       (rename-package
+		 package old-name
+		 (union (list* primary-name old-nicknames)
+			required-nicknames
+			:test #'string-equal))))))
     (clean-up-package "LISP" "COMMON-LISP" '("CL"))
     (clean-up-package "USER" "COMMON-LISP-USER" '("CL-USER")))
   )	;eval-when

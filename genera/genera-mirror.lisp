@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: GENERA-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: genera-mirror.lisp,v 1.3 92/04/15 11:48:00 cer Exp $
+;; $fiHeader: genera-mirror.lisp,v 1.4 92/05/07 13:13:28 cer Exp $
 
 (in-package :genera-clim)
 
@@ -559,9 +559,13 @@
 					:y mouse-y
 					:native-x native-x
 					:native-y native-y
+					:button (and (not (zerop mouse-buttons))
+						     (genera-button-number->standard-button-name
+						       (ash mouse-buttons -1)))
 					:modifiers (current-modifier-state
 						     (make-state-from-buttons mouse-buttons)
 						     (tv:sheet-mouse mouse-window))
+					:pointer (port-pointer port)
 					:sheet sheet)))))
 		 (when mouse-button-released
 		   (let ((sheet (and mouse-window (genera-window-sheet mouse-window))))
@@ -579,6 +583,7 @@
 					:modifiers (current-modifier-state
 						     (make-state-from-buttons mouse-buttons)
 						     (tv:sheet-mouse mouse-window))
+					:pointer (port-pointer port)
 					:sheet sheet)))))))))
 	  ;; Handle shift press and release events
 	  ((or shifts-up shifts-down)
@@ -666,6 +671,7 @@
 					    :button button
 					    :modifiers (current-modifier-state
 							 0 (tv:sheet-mouse window))
+					    :pointer (port-pointer port)
 					    :sheet sheet))))))))))))))
 
 ;; See general comments about sheet-native-native-region* and

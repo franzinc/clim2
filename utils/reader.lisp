@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: reader.lisp,v 1.5 92/02/24 13:05:53 cer Exp $
+;; $fiHeader: reader.lisp,v 1.6 92/03/10 10:11:58 cer Exp $
 
 (in-package :clim-utils)
 
@@ -44,7 +44,7 @@
       (catch 'stop
 	;; here's where we install #\} as the terminating character
 	;; for #{
-	(with-macro-character (#\} '|READ-}|)
+	(with-macro-character (#\} #'|READ-}|)
 	  (loop
 	    (let ((feature (read stream t nil t)))
 	      (when found-otherwise

@@ -1,27 +1,12 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics-demos.lisp,v 1.3 92/04/10 14:27:31 cer Exp Locker: cer $
+;; $fiHeader: graphics-demos.lisp,v 1.4 92/04/15 11:48:16 cer Exp $
 
 (in-package :clim-demo)
 
 "Copyright (c) 1990, 1991 Symbolics, Inc.  All rights reserved.
  Portions copyright (c) 1989, 1990 International Lisp Associates."
 
-#-Silica
-(define-application-frame graphics-demo 
-			  ()
-    ()
-  (:panes ((commands :command-menu)
-	   (demo :application)
-	   (explanation :application :scroll-bars nil)))
-  (:layout ((default
-	      (:column 1
-	       (:row :rest
-		(demo :rest)
-		(commands :compute))
-	       (explanation 1/6))))))
-
-#+Silica
 (define-application-frame graphics-demo 
     ()
   ()
@@ -30,7 +15,7 @@
 	  (explanation (scrolling ()
 		         (make-pane 'application-pane
 				    :height 100))))
-  (:layout (:default
+  (:layouts (:default
 	      (vertically () demo explanation))))
 
 (define-graphics-demo-command (com-Exit-Graphics-Demo :menu "Exit")

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: stream-defprotocols.lisp,v 1.6 92/04/15 11:47:21 cer Exp $
+;; $fiHeader: stream-defprotocols.lisp,v 1.7 92/05/07 13:13:03 cer Exp $
 
 (in-package :clim-internals)
 
@@ -180,15 +180,12 @@
   #+CLIM-uses-lisp-stream-functions (:no-defgeneric t))
 
 (defoperation stream-scan-string-for-writing fundamental-character-output-stream
-  ((stream fundamental-character-output-stream) #+Silica medium
-   string start end style cursor-x max-x &optional glyph-buffer))
+  ((stream fundamental-character-output-stream) 
+   medium string start end style cursor-x max-x &optional glyph-buffer))
 
 (defoperation stream-scan-character-for-writing fundamental-character-output-stream
-  ((stream fundamental-character-output-stream) #+Silica medium
-   character style cursor-x max-x))
-
-(defoperation stream-write-string-1 fundamental-character-output-stream
-  ((stream fundamental-character-output-stream) glyph-buffer start end font color x y))
+  ((stream fundamental-character-output-stream) 
+   medium character style cursor-x max-x))
 
 #+Allegro
 (defoperation excl::stream-interactive-force-output fundamental-output-stream
@@ -347,20 +344,9 @@
 
 ;;; window protocol
 
-#+Silica
 (define-stream-protocol window-mixin)
 
-#-Silica
-(define-stream-protocol window-mixin
-  window-parent
-  window-children
-  window-console
-  window-name
-  window-depth
-  window-viewport
-  window-update-region
-  window-visibility
-  window-label)
+;;--- What about WINDOW-VISIBILITY, and the other "inside edges" generics?
 
 (defoperation window-clear window-mixin
   ((window window-mixin)))
@@ -387,79 +373,8 @@
 (defoperation window-set-inside-size window-mixin
   ((window window-mixin) new-width new-height))
 
-#-Silica (progn
-(defoperation window-stack-on-top window-mixin
-  ((window window-mixin)))
-
-(defoperation window-stack-on-bottom window-mixin
-  ((window window-mixin)))
-
-(defoperation copy-area window-mixin
-  ((window window-mixin)
-   from-left from-top from-right from-bottom to-left to-top))
-
-(defoperation window-drawing-possible window-mixin
-  ((window window-mixin)))
-
-(defoperation redisplay-decorations window-mixin
-  ((window window-mixin)) )
-
-(defoperation window-to-screen-coordinates window-mixin
-  ((window window-mixin) x y))
-
-(defoperation screen-to-window-coordinates window-mixin
-  ((window window-mixin) x y))
-
-(defoperation window-inside-edges window-mixin
-  ((window window-mixin))
-  (declare (values left top right bottom)))
-
-(defoperation window-set-inside-edges window-mixin
-  ((window window-mixin) new-left new-top new-right new-bottom))
-
-(defoperation window-inside-left window-mixin
-  ((window window-mixin)))
-
-(defoperation window-inside-top window-mixin
-  ((window window-mixin)))
-
-(defoperation window-inside-right window-mixin
-  ((window window-mixin)))
-
-(defoperation window-inside-bottom window-mixin
-  ((window window-mixin)))
-
-(defoperation window-inside-width window-mixin
-  ((window window-mixin)))
-
-(defoperation window-inside-height window-mixin
-  ((window window-mixin)))
-
-(defoperation window-label-size window-mixin
-  ((window-mixin window-mixin) &optional (label (window-label window-mixin))))
-
-(defoperation window-note-size-or-position-change window-mixin
-  ((window window-mixin) new-left new-top new-right new-bottom))
-
-(defoperation window-shift-visible-region window-mixin
-  ((window window-mixin) 
-   old-left old-top old-right old-bottom
-   new-left new-top new-right new-bottom))
-
-(defoperation window-flush-update-region window-mixin
-  ((window window-mixin)))
-
-(defoperation window-process-update-region window-mixin
-  ((window window-mixin)))
-
-(defoperation window-beep window-mixin
-  ((window window-mixin)))
-
-;;; What modifier keys are presently down?
 (defoperation window-modifier-state window-mixin
   ((window window-mixin)))
-
-)	;#-Silica
 
 
 ;;; Output recording.
@@ -494,7 +409,6 @@
 ;;; Input editing stream protocol doesn't need to be encapsulated, for obvious reasons.
 
 
-#+Silica (progn
 (define-stream-protocol pane-protocol)
 
 (defoperation pane-display-function pane-protocol
@@ -508,5 +422,3 @@
 
 (defoperation pane-frame pane-protocol
   ((pane pane-protocol)))
-
-)	;#+Silica

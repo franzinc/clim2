@@ -1,4 +1,4 @@
-;; -*- mode: common-lisp; package: tk -*-
+ ;; -*- mode: common-lisp; package: tk -*-
 ;;
 ;;				-[]-
 ;; 
@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: event.lisp,v 1.8 92/04/15 11:44:40 cer Exp Locker: cer $
+;; $fiHeader: event.lisp,v 1.9 92/04/21 20:27:28 cer Exp $
 
 (in-package :tk)
 
@@ -83,7 +83,6 @@
 		   (return t))))
 	1
       0)))
-
 
 (defparameter *match-event-sequence-and-types-address*
     (register-function 'match-event-sequence-and-types))

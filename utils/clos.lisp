@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clos.lisp,v 1.4 92/03/04 16:20:08 cer Exp $
+;; $fiHeader: clos.lisp,v 1.5 92/04/15 11:45:25 cer Exp $
 
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
@@ -147,7 +147,7 @@
 ;;; DEFGENERIC ... because it isn't there.
 ;;;
 
-#+ignore
+#+++ignore
 (defmacro defgeneric (function-specifier lambda-list &rest options)
   (declare (ignore lambda-list))
   (let ((expansion nil)
@@ -201,7 +201,7 @@
 (defun collect-root-classes (&optional package)
   (w::with-collection
     (let ((classes (mapcar #'find-class (classes-in-package 
-					  (or package 'silica) t))))
+					  (or package :silica) t))))
       (dolist (class classes)
 	(if (not (intersection (pcl::class-local-supers class)
 			       classes))

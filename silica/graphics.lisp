@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics.lisp,v 1.10 92/04/28 09:25:19 cer Exp Locker: cer $
+;; $fiHeader: graphics.lisp,v 1.11 92/05/07 13:11:21 cer Exp $
 
 (in-package :silica)
 
@@ -146,20 +146,20 @@
  	  (dolist (x spread-values) (push x spread-argument-names))))
     (let ((original-keywords keyword)
 	  (new-keywords 
-	   (mapcan #'(lambda (x)
-		       (let ((y (assoc (if (consp x) (car x) x) keyword-arguments-to-spread)))
-			 (if y (copy-list (cddr y)) (list x))))
-		   keyword)))
-    (values (nreverse unspread-argument-names)
-	    (nreverse spread-arguments)
-	    (nreverse spread-argument-names)
-	    (mapcar #'(lambda (x) (if (consp x) (car x) x)) new-keywords)
-	    original-keywords
-	    new-keywords
-	    (mapcar #'(lambda (x)
-			(intern (symbol-name (if (consp x) (car x) x))
-				*keyword-package*))
-		    new-keywords)))))
+	    (mapcan #'(lambda (x)
+			(let ((y (assoc (if (consp x) (car x) x)
+					keyword-arguments-to-spread)))
+			  (if y (copy-list (cddr y)) (list x))))
+		    keyword)))
+      (values (nreverse unspread-argument-names)
+	      (nreverse spread-arguments)
+	      (nreverse spread-argument-names)
+	      (mapcar #'(lambda (x) (if (consp x) (car x) x)) new-keywords)
+	      original-keywords
+	      new-keywords
+	      (mapcar #'(lambda (x)
+			  (intern (symbol-name (if (consp x) (car x) x)) :keyword))
+		      new-keywords)))))
 
 (defun transform-graphics-function-call (medium-or-stream
 					 medium-graphics-function-name
@@ -167,9 +167,7 @@
 					 other-keyword-arguments
 					 required-arguments
 					 rest-argument
-					 &optional 
-					 arguments 
-					 keyword-arguments-to-spread)
+					 &optional arguments keyword-arguments-to-spread)
   (let ((drawing-options
 	  (mapcar #'(lambda (x)
 		      (intern (symbol-name x) :keyword))
@@ -217,16 +215,14 @@
 		     ,medium-or-stream-name
 		     ,@required-arguments
 		     ,@(mapcan #'(lambda (kw-arg)
-				   (let ((v
-					  (or (second (assoc (kw-arg-keyword kw-arg) stuff))
-					      (kw-arg-default-value
-					       kw-arg)))
+				   (let ((v (or (second (assoc (kw-arg-keyword kw-arg) stuff))
+						(kw-arg-default-value kw-arg)))
 					 (ks (assoc kw-arg keyword-arguments-to-spread)))
 				     (if ks
 					 (ecase (second ks)
 					   (point (list `(and ,v (point-x ,v))
 							`(and ,v (point-y ,v)))))
-				       (list v))))
+					 (list v))))
 			       other-keyword-arguments)))
 		 (supplied-drawing-options
 		   (mapcan #'(lambda (do)
@@ -245,8 +241,7 @@
 			   ,call)
 		        call))))))))))
 
-)
-	;eval-when
+)	;eval-when
 
 
 (defmacro transform-positions ((transform) &rest positions)
@@ -319,8 +314,6 @@
 					 points-to-transform
 					 distances-to-transform
 					 point-sequences-to-transform)
-  (flet ((kintern (x)
-	   (intern x :keyword)))
   (let* ((spread-name (intern (format nil "~A*" name)))
 	 (drawing-options
 	   (all-drawing-options-lambda-list drawing-options))
@@ -330,7 +323,7 @@
 	   (intern (format nil "~A~A*" 'port- name))))
     (multiple-value-bind (unspread-argument-names spread-arguments
 			  spread-argument-names keyword-argument-names
-			  unspread-other-keyword-arguments
+			  unspread-other-keyword-arguments			  
 			  other-keyword-arguments keywords)
 	(decode-graphics-function-arguments arguments keywords-to-spread)
       `(progn
@@ -339,42 +332,50 @@
 	   (declare (ignore ,@drawing-options ,@keyword-argument-names)
 		    (dynamic-extent args))
 	   ,(if keywords-to-spread
-		  `(with-keywords-removed 
-		       (args args 
-			     ',(mapcar #'(lambda (x)
-					   (intern (car x) :keyword))
-				       keywords-to-spread))
-		     (apply #',spread-name 
-				medium
-				,@spread-arguments
-				,@(mapcan #'(lambda (x) 
-					      (destructuring-bind
-						  (name type . rest) x
-						  (ecase type
-						    (point (list 
-							    (kintern (first rest))
-							    `(and ,name (point-x ,name))
-							    (kintern (second rest))
-							    `(and ,name (point-y ,name)))))))
-					  keywords-to-spread)
-				args))
-		`(apply #',spread-name 
-				medium
-				,@spread-arguments
-				args)))
+		`(with-keywords-removed 
+		     (args args ',(mapcar #'(lambda (x)
+					      (intern (symbol-name (car x)) :keyword))
+					  keywords-to-spread))
+		   (apply #',spread-name 
+			  medium
+			  ,@spread-arguments
+			  ,@(mapcan 
+			      #'(lambda (x) 
+				  (destructuring-bind (name type . rest) x
+				    (ecase type
+				      (point 
+					(list (intern (symbol-name (first rest)) :keyword)
+					      `(and ,name (point-x ,name))
+					      (intern (symbol-name (second rest)) :keyword)
+					      `(and ,name (point-y ,name)))))))
+			      keywords-to-spread)
+			  args))
+ 		`(apply #',spread-name 
+			medium
+			,@spread-arguments
+			args)))
 	 (defun ,spread-name (medium ,@spread-argument-names &rest args 
 			      &key ,@drawing-options ,@other-keyword-arguments)
 	   (declare (ignore ,@drawing-options)
 		    (dynamic-extent args))
-	   (with-keywords-removed (args args ',keywords)
-	     (apply #'invoke-with-drawing-options
-		    medium
-		    #'(lambda ()
-			(,medium-graphics-function-name 
-			 medium
-			 ,@spread-argument-names
-			 ,@keyword-argument-names))
-		    args)))
+	   ,(if keywords
+		`(with-keywords-removed (args args ',keywords)
+		   (apply #'invoke-with-drawing-options
+			  medium
+			  #'(lambda ()
+			      (,medium-graphics-function-name 
+				 medium
+				 ,@spread-argument-names
+				 ,@keyword-argument-names))
+			  args))
+		`(apply #'invoke-with-drawing-options
+			medium
+			#'(lambda ()
+			    (,medium-graphics-function-name 
+			       medium
+			       ,@spread-argument-names
+			       ,@keyword-argument-names))
+			args)))
 	 (setf (get ',name 'args)
 	       '((,@spread-argument-names ,@keyword-argument-names)
 		 ,@args)) 
@@ -391,20 +392,17 @@
 	   (let* ((sheet (medium-sheet medium)))
 	     ;; want to tranform stuff, set up clipping region etc etc
 	     ,(and points-to-transform
-		    (do ((pts points-to-transform (cddr pts))
-			 (tf '#:transform)
-			 (r nil))
-			((null pts) 
-			 `(let ((,tf (medium-transformation medium)))
-			    ,@(nreverse r)))
-		      (let ((b 		       
-		       `(transform-positions
-			 (,tf)
-			 ,(car pts) ,(cadr pts))))
-			(if (member (car pts)
-				    optional-points-to-transform)
-			    (push `(when ,(car pts) ,b) r)
-			  (push b r)))))
+		   (do ((pts points-to-transform (cddr pts))
+			(tf '#:transform)
+			(r nil))
+		       ((null pts) 
+			`(let ((,tf (medium-transformation medium)))
+			   ,@(nreverse r)))
+		     (let ((b `(transform-positions (,tf)
+				,(first pts) ,(second pts))))
+		       (if (member (car pts) optional-points-to-transform)
+			   (push `(when ,(car pts) ,b) r)
+			   (push b r)))))
 	     ,@(and distances-to-transform
 		    `((transform-distances 
 			((medium-transformation medium))
@@ -429,7 +427,11 @@
 	     unspread-other-keyword-arguments
 	     other-keyword-arguments
 	     arguments
-	     keywords-to-spread))))))
+	     keywords-to-spread)))))
+
+(defun get-drawing-function-description (name)
+  (or (get name 'args)
+      (error "Cannot find description for: ~S" name)))
 
 
 (define-graphics-function draw-point ((point point x y))
@@ -543,11 +545,13 @@
 	(height (pattern-height pattern)))
     (if (or clipping-region transformation)
 	(with-drawing-options (medium :clipping-region clipping-region
-				      :transformation transformation)
+				      :transformation transformation
+				      :ink pattern)
 	  (draw-rectangle* medium x y (+ x width) (+ y height)
-			   :filled t :ink pattern))
-	(draw-rectangle* medium x y (+ x width) (+ y height)
-			 :filled t :ink pattern))))
+			   :filled t))
+	(with-drawing-options (medium :ink pattern)
+	  (draw-rectangle* medium x y (+ x width) (+ y height)
+			   :filled t)))))
 
 
 (define-graphics-function draw-polygon ((points point-sequence list-of-x-and-ys)
@@ -655,25 +659,15 @@
 
 
 (define-graphics-function draw-text (string-or-char (point point x y)
-						    &key (start 0) 
-						    (end nil)
-						    (align-x :left)
-						    (align-y :baseline)
-						    towards-point
-						    transform-glyphs)
+						    &key (start 0) (end nil)
+							 (align-x :left)
+							 (align-y :baseline)
+							 towards-point
+							 transform-glyphs)
   :points-to-transform (x y towards-x towards-y)
   :optional-points-to-transform (towards-x towards-y)
   :keywords-to-spread ((towards-point point towards-x towards-y))
   :drawing-options :text)
-
-(defmethod stream-glyph-for-character ((medium medium) character text-style
-				       &optional our-font)
-  (port-glyph-for-character (port medium) character text-style our-font))
-
-(defmethod stream-write-string-1 ((medium medium) glyph-buffer 
-				  start end x-font color x y)
-  (port-write-string-1 (port medium) medium
-		       glyph-buffer start end x-font color x y))
 
 (defmethod sheet-beep ((x t))
   x)
@@ -681,55 +675,7 @@
 (defmethod sheet-beep ((x sheet))
   (port-beep (port x) x))
 
-(defun get-drawing-function-description (name)
-  (or (get name 'args)
-      (error "Cannot find description for: ~S" name)))
-
-(defmacro define-port-graphics-method ((name port-class) &body body)
-  (destructuring-bind (args &rest ignore)
-      (get-drawing-function-description name)
-    (declare (ignore ignore))
-    `(defmethod ,(intern (format nil "~A~A*" 'port- name))
-		((port ,port-class) ,@args)
-       ,@body)))
-
 
-;;--- Remove this when the time comes...
-(defun clim-internals::draw-line-internal
-       (stream xoff yoff x1 y1 x2 y2 ink style)
-  (letf-globally (((medium-line-style stream)
-		   (or style (medium-line-style stream)))
-		  ((medium-transformation stream) +identity-transformation+))
-    (draw-line* stream
-		(+ x1 xoff) (+ y1 yoff)
-		(+ x2 xoff) (+ y2 yoff)
-		:ink ink)))
-
-;;--- Remove this when the time comes...
-(defun clim-internals::draw-rectangle-internal
-       (stream xoff yoff left top right bottom ink style)
-  (letf-globally (((medium-line-style stream)
-		   (or style (medium-line-style stream)))
-		  ((medium-transformation stream) +identity-transformation+))
-    (draw-rectangle* stream
-		     (+ left xoff) (+ top yoff)
-		     (+ right xoff) (+ bottom yoff)
-		     :filled (not style) :ink ink)))
-
-;;--- Remove this when the time comes...
-(defun clim-internals::draw-ellipse-internal
-       (stream xoff yoff center-x center-y
-	       radius-1-dx radius-1-dy radius-2-dx radius-2-dy
-	       start-angle end-angle ink style)
-  (letf-globally (((medium-line-style stream)
-		   (or style (medium-line-style stream)))
-		  ((medium-transformation stream) +identity-transformation+))
-    (draw-ellipse* stream
-		   (+ center-x xoff) (+ center-y yoff)
-		   radius-1-dx radius-1-dy radius-2-dx radius-2-dy
-		   :start-angle start-angle :end-angle end-angle
-		   :filled (not style) :ink ink)))
-
 (defmethod copy-area (sheet 
 		      from-left from-top from-right from-bottom
 		      to-left to-top)

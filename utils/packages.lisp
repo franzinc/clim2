@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: packages.lisp,v 1.15 92/05/07 13:11:40 cer Exp Locker: cer $
+;; $fiHeader: packages.lisp,v 1.16 92/05/13 17:10:42 cer Exp Locker: cer $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :common-lisp-user)
 
@@ -1485,12 +1485,6 @@
     area
     areap
     coordinate
-
-    check-box
-    check-box-current-selection
-    check-box-pane
-    check-box-selections
-
     ellipse
     ellipse-center-point
     ellipse-center-point*
@@ -1743,7 +1737,6 @@
     note-sheet-grafted
     note-sheet-region-changed
     note-sheet-transformation-changed
-    note-viewport-position-changed
     permanent-medium-sheet-output-mixin
     pointer-button-event
     pointer-button-hold-event
@@ -1765,8 +1758,6 @@
     poll-pointer
     port
     port-keyboard-input-focus
-    port-notify-user
-    port-select-file
     port-properties
     port-server-path
     port-type
@@ -2268,7 +2259,6 @@
     form
     frame-document-highlighted-presentation
     funcall-presentation-generic-function
-    gadget-active-p
     gadget-dialog-view
     gadget-menu-view
     gadget-view
@@ -2290,7 +2280,6 @@
     or
     pathname
     pointer-documentation-view
-    port-dialog-view
     present
     present-method
     present-to-string
@@ -2399,13 +2388,13 @@
     
     ;; Menus
     draw-standard-menu
+    frame-manager-menu-choose
     menu-choose
     menu-choose-from-drawer
     menu-item
     menu-item-display
     menu-item-options
     menu-item-value
-    port-menu-choose
     print-menu-item
     with-menu
     
@@ -2415,6 +2404,7 @@
     accept-values-resynchronize
     accepting-values
     display-exit-boxes
+    frame-manager-dialog-view
     invoke-accept-values-command-button
     
     ;; Command processor
@@ -2487,7 +2477,7 @@
     user-command-table
     with-command-table-keystrokes
     
-    ;; Application frames
+    ;; Application frames and frame managers
     *application-frame*
     *default-frame-manager*
     *pointer-documentation-output*
@@ -2521,6 +2511,8 @@
     frame-maintain-presentation-histories
     frame-manager
     frame-manager-frames
+    frame-manager-notify-user
+    frame-manager-select-file
     frame-name
     frame-named-panes
     frame-pane
@@ -2567,6 +2559,15 @@
     with-application-frame
     with-frame-manager
     
+    ;; Progress notes
+    *current-progress-note*
+    dolist-noting-progress
+    dotimes-noting-progress
+    note-progress
+    note-progress-in-phases
+    noting-progress
+    progress-note-name
+
     ;; Panes
     +fill+
     allocate-space
@@ -2585,11 +2586,12 @@
     label-pane
     labelled
     lowering
-    make-clim-pane
+    make-clim-stream-pane
     make-pane
     make-pane-1
     make-space-requirement
     note-space-requirements-changed
+    note-viewport-position-changed
     outlined-pane
     outlining
     pane
@@ -2632,11 +2634,16 @@
     activate-callback
     activate-gadget
     armed-callback
+    check-box
+    check-box-current-selection
+    check-box-pane
+    check-box-selections
     deactivate-gadget
     disarmed-callback
     drag-callback
     gadget
     gadget-activate-callback
+    gadget-active-p
     gadget-armed-callback
     gadget-client
     gadget-disarmed-callback
@@ -2655,27 +2662,17 @@
     gadget-show-value-p
     gadget-value
     gadget-value-changed-callback
-    gadget-show-value-p
-    
-    ;; this should go somewhere 
-    
-    slider-decimal-places
-    set-gadget-items
-    set-gadget-name-key
-    set-gadget-value-key
-    set-gadget-test
+    label-pane
+    labelled-gadget-mixin
     list-pane
     list-pane-mode
-    option-pane
-
-    label-pane
-    labelled-gadget
     menu-bar
     menu-button
     menu-button-pane
     note-gadget-activated
     note-gadget-deactivated
-    oriented-gadget
+    option-pane
+    oriented-gadget-mixin
     push-button
     push-button-pane
     push-button-show-as-default-p
@@ -2684,9 +2681,16 @@
     radio-box-pane
     radio-box-selections
     scroll-bar
+    scroll-bar-current-size
+    scroll-bar-current-value
     scroll-bar-drag-callback
     scroll-bar-pane
+    set-gadget-items
+    set-gadget-name-key
+    set-gadget-test
+    set-gadget-value-key
     slider
+    slider-decimal-places
     slider-pane
     text-editor
     text-editor-pane
@@ -3320,9 +3324,6 @@
     frame-shell
     frame-wrapper
     gadget-alignment
-    gadget-range
-    gadget-range*
-    gadget-show-value-p
     get-drawing-function-description
     get-port-canonical-gesture-spec
     grid-pane
@@ -3331,7 +3332,6 @@
     label-button-pane
     layout-mixin
     line-editor-pane
-    list-pane
     make-frame-manager
     make-medium
     medium-+y-upward-p
@@ -3350,6 +3350,7 @@
     mute-repainting-mixin
     non-drawing-option-keywords
     one-of-pane
+    option-pane
     parse-gesture-spec
     permanent-medium-sheet-output-mixin
     pointer-press-event
@@ -3374,8 +3375,6 @@
     port-pointer
     port-process
     port-undefined-text-style
-    port-write-char-1
-    port-write-string-1
     process-event-locally
     radio-button-pane
     raise-mirror
@@ -3398,9 +3397,8 @@
     standard-sheet-input-mixin
     standardize-text-style 
     standardize-text-style-1
-    stream-glyph-for-character
+    stream-scan-character-for-writing
     stream-scan-string-for-writing
-    stream-write-string-1
     string-height 
     string-width 
     text-style-scale 

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: font.lisp,v 1.10 92/04/21 20:27:29 cer Exp Locker: cer $
+;; $fiHeader: font.lisp,v 1.11 92/04/28 09:25:00 cer Exp $
 
 (in-package :tk)
 
@@ -50,12 +50,11 @@
 
 (defmethod font-width (font)
   (x11::xfontstruct-max-bounds-width font))
-
+ 
 (defmethod font-height (font)
   (+ (font-ascent font)
      (font-descent font)))
 
- 
 (defmethod font-ascent (font)
   (x11:xfontstruct-ascent font))
 

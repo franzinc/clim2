@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: output-protocol.lisp,v 1.12 92/04/30 09:09:33 cer Exp Locker: cer $
+;; $fiHeader: output-protocol.lisp,v 1.13 92/05/07 13:12:41 cer Exp $
 
 (in-package :clim-internals)
 
@@ -46,35 +46,15 @@
       (text-margin :initarg :text-margin)
       (default-text-margin :accessor stream-default-text-margin
 			   :initarg :default-text-margin)
-      #-Silica
-      (display-device-type :initarg :display-device-type
-			   :accessor stream-display-device-type
-			   :initform (error "You must supply a :DISPLAY-DEVICE-TYPE for ~
-					     character output devices."))
-      #-Silica
-      (default-text-style :initarg :default-text-style
-			  :accessor medium-default-text-style
-			  :initform *default-text-style*)
-      #-Silica
-      (current-text-style :accessor medium-text-style
-			  :initform *null-text-style*)
       (output-glyph-buffer :accessor stream-output-glyph-buffer
                            :initarg :output-glyph-buffer)
-      #-Silica
-      (merged-text-style :initform *default-text-style*)
-      #-Silica
-      (merged-text-style-valid :initform nil
-			       :accessor medium-merged-text-style-valid)
-      #+Silica
-      (user-transformation :initform +identity-transformation+
-			   :accessor stream-user-transformation)
       (default-view :initform +textual-view+
 		    :accessor stream-default-view))
   (:default-initargs :end-of-line-action :wrap
 		     :end-of-page-action :scroll
-		     ;;-- Is this correct
+		     ;;--- Is this really appropriate?
 		     :default-text-margin +largest-coordinate+
-                     ;;--- 16 bit indices into fonts big enough?
+		     ;;--- 16 bit indices into fonts big enough?
                      :output-glyph-buffer (make-array 512 :element-type '(unsigned-byte 16)
 							  :initial-element 0)
 		     :text-margin nil))
@@ -93,19 +73,14 @@
 				       &key text-margin)
   (when text-margin
     (setq text-margin (process-spacing-arg stream text-margin 'stream-text-margin))
-    (setf (slot-value stream 'text-margin) text-margin))
-  #-Silica
-  (setf (slot-value stream 'default-text-style)
-	(parse-text-style (slot-value stream 'default-text-style))))
+    (setf (slot-value stream 'text-margin) text-margin)))
     
-#+Silica
 (defmethod (setf medium-foreground) :after (new-value (stream output-protocol-mixin))
   (let ((medium (sheet-medium stream)))
     ;; Watch out for uninitialized MEDIUM slot.
     (when (and medium (typep medium 'medium))
       (setf (medium-foreground medium) new-value))))
 
-#+Silica
 (defmethod (setf medium-background) :after (new-value (stream output-protocol-mixin))
   (let ((medium (sheet-medium stream)))
     ;; Watch out for uninitialized MEDIUM slot.
@@ -125,16 +100,19 @@
     (setq current-text-style (parse-text-style current-text-style))
     (setq merged-text-style-valid nil)))
 
-(defmethod engraft-medium :after ((medium medium) port
-						  (stream output-protocol-mixin))
+(defmethod engraft-medium :after ((medium medium) port (stream output-protocol-mixin))
   (declare (ignore port))
   ;;--- What about text style stuff, too?
   ;; We set the slots directly in order to avoid running any per-port
   ;; :AFTER methods (or whatever).  That work should be done by similar
   ;; per-port methods on ENGRAFT-MEDIUM.
   (with-slots (silica::foreground silica::background) medium
-    (setf silica::foreground (or (medium-foreground stream) +black+)
-	  silica::background (or (medium-background stream) +white+))))
+    (setf silica::foreground (or (medium-foreground stream)
+				 (setf (medium-foreground stream)
+				   +black+))
+	  silica::background (or (medium-background stream)
+				 (setf (medium-background stream)
+				   +white+)))))
 
 ;;--- I sure don't like having to do this to make string streams work
 (defmethod stream-default-view ((stream t)) +textual-view+)
@@ -150,10 +128,6 @@
 (defmethod (setf stream-text-margin) (new-value (stream output-protocol-mixin))
   (let ((text-margin (process-spacing-arg stream new-value 'stream-text-margin)))
     (setf (slot-value stream 'text-margin) text-margin)))
-
-#+Silica
-(defmethod get-transformation ((stream output-protocol-mixin))
-  (stream-user-transformation stream))
 
 ;;; Genera supports passing an environment to CONSTANTP and EVAL.  Allegro doesn't.
 ;;; Until we test all other candidates, be conservative.
@@ -209,16 +183,6 @@
 		    ,wrapped-body)))
     wrapped-body))
 
-#-Silica
-(defmethod medium-merged-text-style ((stream output-protocol-mixin))
-  (with-slots (current-text-style default-text-style
-	       merged-text-style merged-text-style-valid) stream
-    (if merged-text-style-valid
-	merged-text-style
-	(prog1 (setf merged-text-style (merge-text-styles current-text-style
-							  default-text-style))
-	       (setf merged-text-style-valid t)))))
-
 (defmethod stream-cursor-position ((stream output-protocol-mixin))
   (with-slots (cursor-x cursor-y) stream
     (values cursor-x cursor-y)))
@@ -232,8 +196,6 @@
 	(setf current-line-height (coordinate 0)	;going to a new line
 	      baseline (coordinate 0)))
       (setf cursor-y (coordinate y))))
-  #+Silica
-  ;;--- In the non-Silica case, this happens via an intermediary class
   (stream-ensure-cursor-visible stream x y))
 
 #+CLIM-1-compatibility
@@ -259,8 +221,6 @@
 	(setf current-line-height (coordinate 0)	;going to a new line
 	      baseline (coordinate 0)))
       (setf cursor-y (coordinate y))))
-  #+Silica
-  ;;--- In the non-Silica case, this happens via an intermediary class
   (stream-ensure-cursor-visible stream x y))
 
 #+Genera
@@ -338,11 +298,9 @@
 )	;#+CLIM-1-compatibility
 
 
-#+Silica
 (defmethod stream-force-output ((stream output-protocol-mixin))
   (port-force-output (port stream)))
 
-#+Silica
 (defmethod stream-finish-output ((stream output-protocol-mixin))
   (port-finish-output (port stream)))
 
@@ -355,16 +313,14 @@
 ;stream-finish-output
 ;stream-force-output
 ;stream-clear-output
-;stream-write-string-1
-;stream-write-char-1
 
 (defmethod stream-start-line-p ((output-stream output-protocol-mixin))
   (zerop (slot-value output-stream 'cursor-x)))
 
 (defmethod stream-line-column ((output-stream output-protocol-mixin))
   (multiple-value-bind (origin-x origin-y space-width)
-      (stream-glyph-for-character output-stream #\space
-				  (medium-merged-text-style output-stream))
+      (port-glyph-for-character (port output-stream) #\space
+				(medium-merged-text-style output-stream))
     (declare (ignore origin-x origin-y))
     (multiple-value-bind (column remainder)
 	(floor (slot-value output-stream 'cursor-x) space-width)
@@ -373,8 +329,8 @@
 
 (defmethod stream-advance-to-column ((output-stream output-protocol-mixin) column)
   (multiple-value-bind (origin-x origin-y space-width)
-      (stream-glyph-for-character output-stream #\space
-				  (medium-merged-text-style output-stream))
+      (port-glyph-for-character (port output-stream) #\space
+				(medium-merged-text-style output-stream))
     (declare (ignore origin-x origin-y))
     (let ((new-x (floor (* column space-width))))
       (when (< (slot-value output-stream 'cursor-x) new-x)
@@ -413,12 +369,9 @@
     (setf baseline (coordinate 0)
 	  current-line-height (coordinate 0))))
 
-;;; --- Should probably be on some intermediary class, since it can only
-;;; be run when the stream is part of a WINDSHIELD hierarchy.
-#+Silica
-;; --- See comment on stream-set-cursor-position
-(defmethod stream-ensure-cursor-visible ((stream output-protocol-mixin)
-					 &optional cx cy)
+;;;--- Should probably be on some intermediary class, since it can only
+;;;--- be run when the stream is part of a WINDSHIELD hierarchy.
+(defmethod stream-ensure-cursor-visible ((stream output-protocol-mixin) &optional cx cy)
   (when (and (or (not (output-recording-stream-p stream))
 		 (stream-drawing-p stream))
 	     (pane-scroller stream))
@@ -470,12 +423,12 @@
                ;; Special case so that we don't lozenge this.  It is up to
                ;; the caller to have established the correct text style.
                #+CCL-2 (eql character #\CommandMark))
-	   (let (#+Silica (medium (sheet-medium stream))
+	   (let ((medium (sheet-medium stream))
 		 (ink (medium-ink stream)))
 	     (dotimes (i 2)
 	       (multiple-value-bind (no-wrap new-cursor-x new-baseline new-height font index)
-		   (stream-scan-character-for-writing stream #+Silica medium
-						      character style cursor-x max-x)
+		   (stream-scan-character-for-writing 
+		     stream medium character style cursor-x max-x)
 		 (declare (type coordinate new-cursor-x new-baseline new-height))
 		 (when no-wrap
 		   (when record-p
@@ -489,16 +442,11 @@
 		       (setf baseline new-baseline))
 		     ;;--- need draw-glyphs, which will take a port-specific font object, 
 		     ;;--- as well as the :INK option.
-		     #+Silica
 		     (with-identity-transformation (medium)
 		       (draw-text* medium character ; (code-char index)??
 				   cursor-x (+ cursor-y (- baseline new-baseline))
 				   :text-style style
-				   :align-x :left :align-y :top))
-		     #-Silica
-		     (stream-write-char-1
-		       stream index font ink
-		       cursor-x (+ cursor-y (- baseline new-baseline))))
+				   :align-x :left :align-y :top)))
 		   (encode-stream-after-writing stream new-cursor-x cursor-y
 						(max baseline new-baseline)
 						(max height new-height))
@@ -619,14 +567,13 @@
     (declare (type coordinate cursor-x cursor-y baseline height max-x))
     (unless (or draw-p record-p)
       (return-from stream-write-string string))	;No deeds to do
-    (let (#+Silica (medium (sheet-medium stream))
+    (let ((medium (sheet-medium stream))
 	  (ink (medium-ink stream)))
       (loop
 	(multiple-value-bind (write-char next-char-index
 			      new-cursor-x new-baseline new-height font)
-	    (stream-scan-string-for-writing stream #+Silica medium
-					    string start end style
-					    cursor-x max-x glyph-buffer)
+	    (stream-scan-string-for-writing 
+	      stream medium string start end style cursor-x max-x glyph-buffer)
 	  (declare (type coordinate new-cursor-x new-baseline new-height))
 	  (when record-p
 	    (stream-add-string-output
@@ -643,21 +590,12 @@
 	      (unless (zerop amount)
 		;; --- need draw-glyphs, which will take a port-specific font object,
 		;; as well as the :INK option.
-		#+Silica
 		(with-identity-transformation (medium)
 		  (draw-text* medium string
 			      cursor-x (+ cursor-y (- baseline new-baseline))
 			      :text-style style
 			      :start start :end next-char-index
-			      :align-x :left :align-y :top))
-		#-Silica
-                (if glyph-buffer
-		    (stream-write-string-1
-		      stream glyph-buffer 0 (the fixnum (- next-char-index start)) font
-		      ink cursor-x (+ cursor-y (- baseline new-baseline)))
-                    (stream-write-string-1
-		      stream string start next-char-index font
-		      ink cursor-x (+ cursor-y (- baseline new-baseline)))))))
+			      :align-x :left :align-y :top)))))
 	  (setf baseline (max baseline new-baseline)
 		height (max height new-height)
 		cursor-x new-cursor-x)
@@ -687,13 +625,13 @@
 (defmethod stream-move-for-line-height-change ((stream output-protocol-mixin)
 					       movement old-height cursor-x cursor-y)
   ;;--- This doesn't appear to work yet, and it's "not cheap"
-  #+ignore (copy-area stream
-		      0 cursor-y
-		      cursor-x (+ cursor-y old-height)
-		      0 (+ cursor-y movement))
-  #+ignore (window-clear-area stream
-			      0 cursor-y
-			      cursor-x (+ cursor-y movement)))
+  #+++ignore (copy-area stream
+			0 cursor-y
+			cursor-x (+ cursor-y old-height)
+			0 (+ cursor-y movement))
+  #+++ignore (window-clear-area stream
+				0 cursor-y
+				cursor-x (+ cursor-y movement)))
 
 ;;; Simple version: does no wrapping, assumes we start at leftmost
 ;;; column.  It doesn't do what Genera :STRING-LENGTH message does,
@@ -709,13 +647,12 @@
 	(baseline (coordinate 0))
 	(largest-x (coordinate 0)))
     (declare (type coordinate cursor-x cursor-y height baseline largest-x))
-    (let (#+Silica (medium (sheet-medium stream)))
+    (let ((medium (sheet-medium stream)))
       (loop
 	(when (>= start end) (return))
 	(multiple-value-bind (write-char next-char-index new-cursor-x new-baseline new-height)
-	    (stream-scan-string-for-writing stream #+Silica medium
-					    string start end style
-					    cursor-x +largest-coordinate+)
+	    (stream-scan-string-for-writing
+	      stream medium string start end style cursor-x +largest-coordinate+)
 	  (declare (type coordinate new-cursor-x new-baseline new-height))
 	  (maxf largest-x new-cursor-x)
 	  (maxf baseline new-baseline)
@@ -723,7 +660,7 @@
 	  (setf cursor-x new-cursor-x
 		start next-char-index)
 	  (when write-char
-	    (cond #+Ignore ;; Can't happen at the moment.
+	    (cond #+++ignore ;; Can't happen at the moment.
 		  ((or (graphic-char-p write-char) (diacritic-char-p write-char))
 		   (multiple-value-bind (no-wrap new-cursor-x new-baseline new-height)
 		       (stream-scan-character-for-writing stream character style
@@ -765,7 +702,7 @@
     (cond ((or (graphic-char-p character) (diacritic-char-p character))
 	   (multiple-value-bind  (index font escapement-x escapement-y
 				  origin-x origin-y bb-x bb-y)
-	       (stream-glyph-for-character stream character style)
+	       (port-glyph-for-character (port stream) character style)
 	     (declare (ignore index font escapement-x escapement-y origin-x origin-y))
 	     (values bb-x bb-y)))
 	  ((or (eql character #\Newline)
@@ -786,36 +723,20 @@
   (let ((current-line-height (stream-current-line-height stream)))
     (if (or text-style (zerop current-line-height))
 	(multiple-value-bind (index font escapement-x escapement-y origin-x origin-y bb-x bb-y)
-	    (stream-glyph-for-character stream #\Space
-					(or text-style
-					    (medium-merged-text-style stream)))
+	    (port-glyph-for-character (port stream) #\Space
+				      (or text-style
+					  (medium-merged-text-style stream)))
 	  (declare (ignore index font escapement-x escapement-y origin-x origin-y bb-x))
 	  (coordinate bb-y))
 	current-line-height)))
 
 (defmethod stream-tab-size ((stream output-protocol-mixin) text-style)
   (multiple-value-bind (index font escapement-x escapement-y origin-x origin-y bb-x bb-y)
-      (stream-glyph-for-character stream #\n	;En space
-				  (or text-style
-				      (medium-merged-text-style stream)))
+      (port-glyph-for-character (port stream) #\n	;En space
+				(or text-style
+				    (medium-merged-text-style stream)))
     (declare (ignore index font escapement-y origin-x origin-y bb-y))
     (coordinate (* (max bb-x escapement-x) 8.))))
-
-;;;--- These forwarding methods are for Silica conversion convenience only.
-;;; Their callers should be changed to invoke the method on the medium directly.
-#+Silica
-(defmethod stream-glyph-for-character ((stream output-protocol-mixin) character appearance &optional our-font)
-  (stream-glyph-for-character (sheet-medium stream) character appearance our-font))
-
-#+Silica
-(defmethod stream-write-char-1 ((stream output-protocol-mixin) index x-font color x y)
-  (stream-write-char-1 (sheet-medium stream) index x-font color x y))
-
-;;;--- This forwarding method is for Silica conversion convenience only.
-#+Silica
-(defmethod stream-write-string-1 ((stream output-protocol-mixin)
-				  glyph-buffer start end x-font color x y)
-  (stream-write-string-1 (sheet-medium stream) glyph-buffer start end x-font color x y))
 
 
 ;;; A few utilities for string writing.
@@ -917,13 +838,11 @@
 	     (values character start cursor-x baseline height our-font)))
 	 (multiple-value-bind (index font escapement-x escapement-y
 			       origin-x origin-y bb-x bb-y fixed-width-font-p)
-	     ;; --- For now we are asserting that each string passed to WRITE-STRING
-	     ;; will have no character style changes within it.  So, we can
-	     ;; eliminate a call to TEXT-STYLE-MAPPING within 
-	     ;; STREAM-GLYPH-FOR-CHARACTER, which saves a >lot< of time.
-	     (stream-glyph-for-character
-	       #-Silica stream #+Silica medium 
-	       character style our-font)
+	     ;;--- For now we are asserting that each string passed to WRITE-STRING
+	     ;;--- will have no character style changes within it.  So, we can
+	     ;;--- eliminate a call to TEXT-STYLE-MAPPING within 
+	     ;;--- PORT-GLYPH-FOR-CHARACTER, which saves a lot of time.
+	     (port-glyph-for-character (port medium) character style our-font)
 	   (declare (ignore escapement-y origin-x bb-x))
 	   (declare (type fixnum index))
 	  (let ((origin-y (coordinate origin-y))
@@ -978,7 +897,7 @@
 	   (setf our-font font)
 	   (setq start (the fixnum (+ start 1)))))))))
 
-(defmethod stream-scan-string-for-writing ((stream output-protocol-mixin) #+Silica medium
+(defmethod stream-scan-string-for-writing ((stream output-protocol-mixin) medium
 					   string start end style
 					   cursor-x max-x &optional glyph-buffer)
   (declare (values write-char next-char-index new-cursor-x new-baseline new-height font))
@@ -989,12 +908,12 @@
 ;;; This function returns NIL as its first value if the character won't
 ;;; fit on the current line.  It is never called on non-graphic
 ;;; characters; they are handled in WRITE-CHAR instead.
-(defmethod stream-scan-character-for-writing ((stream output-protocol-mixin) #+Silica medium
+(defmethod stream-scan-character-for-writing ((stream output-protocol-mixin) medium
 					      character style cursor-x max-x)
   (declare (values char-normal new-cursor-x new-baseline new-height font))
   (declare (type coordinate cursor-x max-x))
   (multiple-value-bind (index font escapement-x escapement-y origin-x origin-y bb-x bb-y)
-      (stream-glyph-for-character medium character style)
+      (port-glyph-for-character (port medium) character style)
     (declare (ignore escapement-y origin-x bb-x))
     (when (> (+ cursor-x escapement-x *character-wrap-indicator-width*) max-x)
       (return-from stream-scan-character-for-writing 
@@ -1030,6 +949,46 @@
   (declare (type coordinate cursor-x))
   (let ((tab-size (stream-tab-size stream style)))
     (coordinate (* tab-size (ceiling (1+ cursor-x) tab-size)))))
+
+
+;;; Speedy, bare-bones drawing functions for things like highlighting
+
+(defun draw-line-internal
+       (stream xoff yoff x1 y1 x2 y2 ink style)
+  (let ((medium (sheet-medium stream)))
+    (letf-globally (((medium-line-style medium)
+		     (or style (medium-line-style medium)))
+		    ((medium-transformation medium) +identity-transformation+)
+		    ((medium-ink medium) ink))
+      (medium-draw-line* medium
+			 (+ x1 xoff) (+ y1 yoff)
+			 (+ x2 xoff) (+ y2 yoff)))))
+
+(defun draw-rectangle-internal
+       (stream xoff yoff left top right bottom ink style)
+  (let ((medium (sheet-medium stream)))
+    (letf-globally (((medium-line-style medium)
+		     (or style (medium-line-style medium)))
+		    ((medium-transformation medium) +identity-transformation+)
+		    ((medium-ink medium) ink))
+      (medium-draw-rectangle* medium
+			      (+ left xoff) (+ top yoff)
+			      (+ right xoff) (+ bottom yoff)
+			      (not style)))))
+
+(defun draw-ellipse-internal
+       (stream xoff yoff center-x center-y
+	radius-1-dx radius-1-dy radius-2-dx radius-2-dy
+	start-angle end-angle ink style)
+  (let ((medium (sheet-medium stream)))
+    (letf-globally (((medium-line-style medium)
+		     (or style (medium-line-style medium)))
+		    ((medium-transformation medium) +identity-transformation+)
+		    ((medium-ink medium) ink))
+      (medium-draw-ellipse* medium
+			    (+ center-x xoff) (+ center-y yoff)
+			    radius-1-dx radius-1-dy radius-2-dx radius-2-dy
+			    start-angle end-angle (not style)))))
 
 
 ;;; Genera hooks
@@ -1127,14 +1086,13 @@
   (unless start (setq start 0))
   (unless end (setq end (length string)))
   (let ((vsp (stream-vertical-spacing stream))
-	#+Silica (medium (sheet-medium stream)))
+	(medium (sheet-medium stream)))
     (loop
       (when (>= start end)
 	(return (values cursor-x cursor-y height baseline)))
       (multiple-value-bind (write-char next-char-index new-cursor-x new-baseline new-height)
-	  (stream-scan-string-for-writing stream #+Silica medium
-					  string start end style
-					  cursor-x max-x)
+	  (stream-scan-string-for-writing 
+	    stream medium string start end style cursor-x max-x)
 	(maxf height new-height)
 	(maxf baseline new-baseline) 
 	(setf start next-char-index)

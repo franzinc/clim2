@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: make-classes.lisp,v 1.16 92/05/07 13:10:52 cer Exp Locker: cer $
+;; $fiHeader: make-classes.lisp,v 1.17 92/05/13 17:10:22 cer Exp Locker: cer $
 
 (in-package :tk)
 

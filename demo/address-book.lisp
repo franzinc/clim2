@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: address-book.lisp,v 1.5 92/04/15 11:48:09 cer Exp $
+;; $fiHeader: address-book.lisp,v 1.6 92/05/07 13:13:33 cer Exp $
 
 (in-package :clim-demo)
 
@@ -44,7 +44,7 @@
   (add-address (make-address :name "John Irwin"
 			     :address "Franz, Inc."
 			     :number "510-548-3600"))
-  (add-address (make-address :name "Scott Mckay"
+  (add-address (make-address :name "Scott McKay"
 			     :address "Symbolics, Inc."
 			     :number "617-221-1000"))
   (add-address (make-address :name "Bill York"
@@ -116,7 +116,7 @@
         (make-pane 'application-pane
 		   :incremental-redisplay t
 		   :display-function 'display-names))))
-  (:layout
+  (:layouts
     (default
       (vertically ()
         (horizontally ()
@@ -203,8 +203,8 @@
       (multiple-value-bind (left top right bottom)
 	  (size-demo-frame root 100 100 500 400)
 	(setq book (make-application-frame 'address-book :parent root
-					   :left left :top top
-					   :right right :bottom bottom)))
+					   :width (- right left)
+					   :height (- bottom top))))
       (push (cons root book) *address-books*))
     (run-frame-top-level book)))
 

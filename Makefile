@@ -1,4 +1,4 @@
-# $fiHeader: Makefile,v 1.28 92/05/13 17:11:04 cer Exp Locker: cer $
+# $fiHeader: Makefile,v 1.29 92/05/13 17:16:09 cer Exp Locker: cer $
 # 
 #  Makefile for CLIM 2.0
 #
@@ -7,8 +7,9 @@ DUMP-CL	= $(CL)
 CLOPTS	= -qq
 
 # Training
-TRAIN_LISP= (load \"/net/vapor/usr/tech/cer/stuff/misc/test-clim.lisp\") \
+TRAIN_LISP= (load \"tk-silica/test-clim.lisp\") \
 		(clim-user::train-clim-2) \
+		(compile-file "misc/clos-preload.cl") \
 		(exit 0) 
 
 TRAIN_TEXT = \
@@ -36,7 +37,7 @@ NEWSPACE = 5000000
 CLIM	= ./slim
 CLIM-SMALL	= ./slim-small
 
-PUBDIRS	= sys utils silica clim demo test genera clx
+PUBDIRS	= sys utils silica clim demo test genera clx pre-silica
 DIRS0	=  tk tk-silica misc
 DIRS	= $(PUBDIRS) xlib $(DIRS0)
 CHEAP_CLEAN	= $(PUBDIRS) $(DIRS0)
@@ -98,10 +99,8 @@ FCLIMOBJS= `pwd`/stub-motif.o `pwd`/stub-olit.o `pwd`/stub-x.o `pwd`/stub-xt.o `
 #
 DEBUG-OBJS = xlib/ffi.fasl xlib/xlib-defs.fasl xlib/xlib-funs.fasl \
 	     xlib/x11-keysyms.fasl xlib/load-xlib.fasl xlib/last.fasl \
-	     tk/xt-defs.fasl tk/xm-defs.fasl 
+	     tk/xt-defs.fasl tk/xm-defs.fasl tk/ol-defs.fasl
 
-# This should be in the clim-debug file but it seems a pain to have to compile it up
-# tk/ol-defs.fasl
 
 #
 # "Load time objects" -- these go into clim.fasl
@@ -194,8 +193,10 @@ CLIM-STANDALONE-OBJS = clim/gestures.fasl \
                         clim/command-processor.fasl \
                         clim/basic-translators.fasl \
                         clim/frames.fasl \
+			clim/noting-progress.fasl \
                         clim/menus.fasl \
                         clim/accept-values.fasl \
+			clim/drag-and-drop.fasl \
                         clim/item-list-manager.fasl \
                         clim/pixmap-streams.fasl \
                         clim/stream-trampolines.fasl
@@ -239,6 +240,7 @@ OL-CLIM-OBJS = tk/ol-classes.fasl \
 		tk/xt-funs.fasl \
 		tk/ol-funs.fasl \
                 tk/ol-init.fasl \
+		tk/ol-widgets.fasl \
                 tk/ol-callbacks.fasl \
                 tk/make-widget.fasl
 
@@ -338,6 +340,16 @@ clim-debug.fasl:	$(DEBUG-OBJS)
 	$(MV) $(TMP)/clim-debug.fasl_`whoami` clim-debug.fasl
 	ls -lt clim-debug.fasl >> Clim-sizes.n
 	ls -lt clim-debug.fasl
+
+# We should only run these rules when
+# We do this because we because we might have only compiled one port
+
+tk/xm-defs.fasl : tk/xm-defs.lisp
+	echo Foo
+
+tk/ol-defs.fasl	: tk/ol-defs.lisp
+	echo Bar
+
 
 # Building
 

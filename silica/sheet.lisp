@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: sheet.lisp,v 1.13 92/05/12 18:24:36 cer Exp Locker: cer $
+;; $fiHeader: sheet.lisp,v 1.14 92/05/14 11:03:48 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -29,7 +29,7 @@
 (defgeneric sheet-child (sheet))
 (defgeneric sheet-enabled-children (sheet))
 (defgeneric sheet-siblings (sheet))
-(defgeneric sheet-ancestor-p (sheet))
+(defgeneric sheet-ancestor-p (sheet putative-ancestor))
 
 (defgeneric sheet-adopt-child (sheet child))
 (defgeneric sheet-disown-child (sheet child))
@@ -118,7 +118,7 @@
     (error "~S is not child of ~S" child parent))
   (setf (sheet-parent child) nil)
   (setf  (sheet-children parent)
-	 (delete child (sheet-children parent)))
+	 (remove child (sheet-children parent)))
   (note-sheet-disowned child)
   (when (port parent)
     (setf (port child) nil)))
@@ -265,28 +265,28 @@
    (declare (ignore port-did-it)) 
    nil))
 
-(defgeneric invalidate-cached-transformations (sheet)
-  (:method ((sheet sheet)) 
-	   (setf (sheet-cached-device-region sheet) nil)
-	   (setf (sheet-cached-device-transformation sheet) nil))
-  (:method :after ((sheet sheet-parent-mixin))
-    (mapc #'invalidate-cached-transformations (sheet-children sheet))))
-
 (defgeneric invalidate-cached-regions (sheet)
   (:method ((sheet sheet)) 
 	   (setf (sheet-cached-device-region sheet) nil))
   (:method :after ((sheet sheet-parent-mixin))
-	   (mapc #'invalidate-cached-regions (sheet-children sheet))))
+    (mapc #'invalidate-cached-regions (sheet-children sheet))))
 
 (defmethod note-sheet-region-changed :before ((sheet sheet) &key port-did-it)
   (declare (ignore port-did-it))
   (invalidate-cached-regions sheet))
 
+(defgeneric invalidate-cached-transformations (sheet)
+  (:method ((sheet sheet)) 
+   (setf (sheet-cached-device-region sheet) nil)
+   (setf (sheet-cached-device-transformation sheet) nil))
+  (:method :after ((sheet sheet-parent-mixin))
+    (mapc #'invalidate-cached-transformations (sheet-children sheet))))
+ 
 ;;--- Check to see if the call to invalidate-cached-regions is really necessary.
 ;;--- CER thinks we do because regions depend on transformations.
 
 (defmethod note-sheet-transformation-changed :before ((sheet sheet) &key port-did-it)
- (declare (ignore port-did-it))
+  (declare (ignore port-did-it))
   (invalidate-cached-transformations sheet)
   (invalidate-cached-regions sheet))
 
@@ -328,7 +328,12 @@
 
 (defclass permanent-medium-sheet-output-mixin (sheet-with-medium-mixin) ())
 
-(defmethod note-sheet-grafted :after ((sheet permanent-medium-sheet-output-mixin))
+
+(defmethod note-sheet-grafted :around ((sheet permanent-medium-sheet-output-mixin))
+  ;; By making this an around we make sure that the mirror has been
+  ;; realized at this point, if its a mirror sheet. This is pretty
+  ;; horrible but it makes sure that things happen in the right order.
+  (call-next-method)
   (when (sheet-medium-type sheet)
     (setf (sheet-medium sheet)
 	  (make-medium (port sheet) sheet))

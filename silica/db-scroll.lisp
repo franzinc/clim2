@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-scroll.lisp,v 1.19 92/05/06 15:37:16 cer Exp Locker: cer $
+;; $fiHeader: db-scroll.lisp,v 1.20 92/05/07 13:11:13 cer Exp $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright(c) 1991, 1992 International Lisp Associates.
@@ -14,14 +14,14 @@
 (defclass scroller-pane (client-space-requirement-mixin
 			 wrapping-space-mixin
 			 layout-pane)
-	  ((scroll-bars :initarg :scroll-bars :reader scroller-pane-scroll-bar-policy)
-	   (vertical-scroll-bar :initform nil :accessor scroller-pane-vertical-scroll-bar)
-	   (horizontal-scroll-bar :accessor 
-				  scroller-pane-horizontal-scroll-bar
-				  :initform nil)
-	   (scrolling-supplied-by-gadget :initform nil)
-	   contents
-	   viewport)
+    ((scroll-bars :initarg :scroll-bars :reader scroller-pane-scroll-bar-policy)
+     (vertical-scroll-bar :initform nil 
+			  :accessor scroller-pane-vertical-scroll-bar)
+     (horizontal-scroll-bar :initform nil
+			    :accessor scroller-pane-horizontal-scroll-bar)
+     (scrolling-supplied-by-gadget :initform nil)
+     contents
+     viewport)
   (:default-initargs :scroll-bars :both))
 
 (defmethod pane-viewport ((x sheet))
@@ -44,24 +44,22 @@
   (declare (ignore frame-manager frame ignore contents))
   nil)
 
-(defmethod allocate-space :before ((sp scroller-pane) width height)
+(defmethod allocate-space :before ((scroller scroller-pane) width height)
   (declare (ignore width height))
   ;; Adjust the status of the scrollbars
-  (multiple-value-bind
-      (changedp 
-       hscroll-bar hscroll-bar-enabled-p
-       vscroll-bar vscroll-bar-enabled-p)
-      (compute-dynamic-scroll-bar-values sp)
-    (if changedp
-	(update-dynamic-scroll-bars 
-	 sp
-	 changedp
-	 hscroll-bar hscroll-bar-enabled-p
-	 vscroll-bar vscroll-bar-enabled-p))))
+  (multiple-value-bind (changedp 
+			hscroll-bar hscroll-bar-enabled-p
+			vscroll-bar vscroll-bar-enabled-p)
+      (compute-dynamic-scroll-bar-values scroller)
+    (when changedp
+      (update-dynamic-scroll-bars scroller changedp
+				  hscroll-bar hscroll-bar-enabled-p
+				  vscroll-bar vscroll-bar-enabled-p))))
 
-(defmethod compose-space ((sp scroller-pane) &key width height)
+(defmethod compose-space ((scroller scroller-pane) &key width height)
   (declare (ignore width height))
   (let ((sr (copy-space-requirement (call-next-method))))
+    ;;--- Make sure the scroller pane is big enough to hold something
     (maxf (space-requirement-width sr) 50)
     (maxf (space-requirement-height sr) 50)
     sr))
@@ -69,77 +67,75 @@
 ;;--- Ideally we should use a toolkit scrolling window. This will look
 ;;--- exactly right and will deal with user specified placement of scroll-bars.
 ;;--- However the geometry management problems are quite huge.
-
 (defmethod initialize-instance :after ((pane scroller-pane) 
 				       &key contents frame-manager frame
 				       scroll-bars)
-  (let ((x (gadget-supplied-scrolling frame-manager frame contents :scroll-bars scroll-bars)))
+  (let ((x (gadget-supplied-scrolling frame-manager frame contents
+				      :scroll-bars scroll-bars)))
     (if x
 	(progn
 	  (sheet-adopt-child pane x)
 	  (setf (slot-value pane 'scrolling-supplied-by-gadget) t)
 	  x)
-      (progn
-	(check-type scroll-bars
-	    (member :both :dynamic :vertical :horizontal))
-	(with-slots (vertical-scroll-bar horizontal-scroll-bar (c contents) viewport) pane
-	  (with-look-and-feel-realization (frame-manager frame)
-	    (let ((verticalp
-		   (member scroll-bars '(:both :dynamic :vertical)))
-		  (horizontalp
-		   (member scroll-bars '(:both :dynamic :horizontal))))
-	      (setf vertical-scroll-bar 
-		(and verticalp
-		     (make-pane 'scroll-bar 
-				:orientation :vertical
-				:client pane
-				:id :vertical))
-		horizontal-scroll-bar 	    
-		(and horizontalp
-		     (make-pane 'scroll-bar 
-				:id :horizontal
-				:client pane
-				:orientation :horizontal))
-		c contents
-		viewport (make-pane 'viewport))
-	      (sheet-adopt-child pane
-				 (cond ((and horizontalp verticalp)
-					(tabling ()
-						 (viewport vertical-scroll-bar)
-						 (horizontal-scroll-bar
-						  nil)))
-				       (verticalp
-					(horizontally ()
-						      viewport
-						      vertical-scroll-bar))
-				       (horizontalp
-					(vertically ()
-						    viewport
-						    horizontal-scroll-bar))
-				       (t (error "Should not have got here"))))
+	(progn
+	  (check-type scroll-bars
+		      (member :both :dynamic :vertical :horizontal))
+	  (with-slots (vertical-scroll-bar horizontal-scroll-bar (c contents) viewport) pane
+	    (with-look-and-feel-realization (frame-manager frame)
+	      (let ((verticalp
+		      (member scroll-bars '(:both :dynamic :vertical)))
+		    (horizontalp
+		      (member scroll-bars '(:both :dynamic :horizontal))))
+		(setf vertical-scroll-bar 
+		      (and verticalp
+			   (make-pane 'scroll-bar 
+				      :orientation :vertical
+				      :id :vertical
+				      :client pane))
+		      horizontal-scroll-bar 	    
+		      (and horizontalp
+			   (make-pane 'scroll-bar 
+				      :orientation :horizontal
+				      :id :horizontal
+				      :client pane))
+		      c contents
+		      viewport (make-pane 'viewport))
+		(sheet-adopt-child
+		  pane
+		  (cond ((and horizontalp verticalp)
+			 (tabling ()
+			   (viewport vertical-scroll-bar)
+			   (horizontal-scroll-bar nil)))
+			(verticalp
+			 (horizontally ()
+			   viewport
+			   vertical-scroll-bar))
+			(horizontalp
+			 (vertically ()
+			   viewport
+			   horizontal-scroll-bar))
+			(t (error "Internal error laying out scroll bars"))))
+		(sheet-adopt-child viewport c)
+		;;--- Add callbacks
+		)))))))
 
-	      (sheet-adopt-child viewport c)
-	      ;;-- Add callbacks
-	      )))))))
-
-
-(defun update-scroll-bars (vp)
-  ;;-- This is not the most efficient thing in the world
-  (multiple-value-bind
-      (changedp hscroll-bar hscroll-bar-enabled-p vscroll-bar
-       vscroll-bar-enabled-p)
-      (compute-dynamic-scroll-bar-values (sheet-parent (sheet-parent vp)))
+(defun update-scroll-bars (viewport)
+  ;;--- This is not the most efficient thing in the world
+  (multiple-value-bind (changedp
+			hscroll-bar hscroll-bar-enabled-p
+			vscroll-bar vscroll-bar-enabled-p)
+      (compute-dynamic-scroll-bar-values (sheet-parent (sheet-parent viewport)))
     (update-dynamic-scroll-bars
-     (sheet-parent (sheet-parent vp))
-     changedp hscroll-bar hscroll-bar-enabled-p vscroll-bar
-     vscroll-bar-enabled-p t))
-  (with-bounding-rectangle* (minx miny maxx maxy)
-    (viewport-contents-extent vp)
+      (sheet-parent (sheet-parent viewport)) changedp
+      hscroll-bar hscroll-bar-enabled-p 
+      vscroll-bar vscroll-bar-enabled-p t))
+  (with-bounding-rectangle* (minx miny maxx maxy) 
+      (viewport-contents-extent viewport)
     (with-bounding-rectangle* (vminx vminy vmaxx vmaxy)
-      (viewport-viewport-region vp)
+	(viewport-viewport-region viewport)
       (with-accessors ((horizontal-scroll-bar scroller-pane-horizontal-scroll-bar)
 		       (vertical-scroll-bar scroller-pane-vertical-scroll-bar))
-	  (sheet-parent (sheet-parent vp))
+		      (sheet-parent (sheet-parent viewport))
 	(when vertical-scroll-bar
 	  (update-scroll-bar vertical-scroll-bar
 			     miny maxy vminy vmaxy))
@@ -147,53 +143,53 @@
 	  (update-scroll-bar horizontal-scroll-bar
 			     minx maxx vminx vmaxx))))))
 
-
 ;;--- In the case where the viewport is bigger than the window this
 ;;--- code gets things wrong. Check out the thinkadot demo.  It's
 ;;--- because (- (--) (- vmin)) is negative.
-
 (defun update-scroll-bar (scroll-bar min max vmin vmax)
   (declare (optimize (safety 0) (speed 3)))
     (let ((current-size (scroll-bar-current-size scroll-bar))
 	  (current-value (scroll-bar-current-value scroll-bar)))
-    ;; Kinda bogus benchmark optimization -- if the scroll-bar was full size
+      ;; Kinda bogus benchmark optimization -- if the scroll-bar was full size
+      ;; before, and the viewport is bigger than the extent, don't bother with
+      ;; the fancy math.
       (let* ((gmin (float (gadget-min-value scroll-bar) 0s0))
 	     (gmax (float (gadget-max-value scroll-bar) 0s0))
 	     (range (- gmax gmin)))
-      (declare (type single-float range gmin gmax))
-      (if (and (and current-size (= (the single-float current-size) range))
-	       (> (- vmax vmin) (- max min)))
+	(declare (type single-float range gmin gmax))
+	(when (and (and current-size (= (the single-float current-size) range))
+		 (> (- vmax vmin) (- max min)))
 	  (return-from update-scroll-bar))
-      (let* ((size (the single-float
-		     (* range
-			(the single-float
-			  (if (= max min)
-			      1.0
-			    (min 1.0 (the single-float
-				       (/ (float (- vmax vmin) 0.0s0)
-					  (float (- max min) 0.0s0)))))))))
-	     (pos (the single-float
-		    (min 1.0
-			 (the single-float
-			   (max 0.0
-				(the single-float
-				  (if (zerop (- (- max min) (- vmax vmin)))
-				      0.0
-				    (the single-float 
-				      (/ (float (- vmin min) 0.0s0)
-					 (float (- (- max min) (- vmax vmin)) 0.0s0))))))))))
-	     (value (+ (gadget-min-value scroll-bar)
-		       (* (- range size) pos))))
-	(declare (type single-float pos size))
-	(unless (and current-size
-		     current-value
-		     (= current-size size)
-		     (= current-value value))
-	  (setf (scroll-bar-current-size scroll-bar) size
-		(scroll-bar-current-value scroll-bar) value)
-	  (change-scroll-bar-values scroll-bar 
-				   :slider-size size
-				   :value value))))))
+	(let* ((size (the single-float
+		       (* range
+			  (the single-float
+			    (if (= max min)
+				1.0
+			      (min 1.0 (the single-float
+					 (/ (float (- vmax vmin) 0.0s0)
+					    (float (- max min) 0.0s0)))))))))
+	       (pos (the single-float
+		      (min 1.0
+			   (the single-float
+			     (max 0.0
+				  (the single-float
+				    (if (zerop (- (- max min) (- vmax vmin)))
+					0.0
+				      (the single-float 
+					(/ (float (- vmin min) 0.0s0)
+					   (float (- (- max min) (- vmax vmin)) 0.0s0))))))))))
+	       (value (+ (gadget-min-value scroll-bar)
+			 (* (- range size) pos))))
+	  (declare (type single-float pos size))
+	  (unless (and current-size
+		       current-value
+		       (= current-size size)
+		       (= current-value value))
+	    (setf (scroll-bar-current-size scroll-bar) size
+		  (scroll-bar-current-value scroll-bar) value)
+	    (change-scroll-bar-values scroll-bar 
+				      :slider-size size
+				      :value value))))))
 
 
 (defmethod scroll-bar-value-changed-callback :before
@@ -207,18 +203,16 @@
 (defmethod scroll-bar-value-changed-callback
 	   (sheet (client scroller-pane) id value size)
   (with-slots (viewport contents) client
-    ;;--- This TYPEP stuff is a major kludge
     (let* ((extent (viewport-contents-extent viewport))
-	   (vp viewport)
-	   (viewport (viewport-viewport-region vp)))
+	   (region (viewport-viewport-region viewport)))
       (case id
 	(:vertical
 	  (scroll-extent
 	    contents
-	    :x (bounding-rectangle-min-x viewport)
+	    :x (bounding-rectangle-min-x region)
 	    :y (+ (bounding-rectangle-min-y extent)
 		  (* (max 0 (- (bounding-rectangle-height extent)
-			       (bounding-rectangle-height viewport)))
+			       (bounding-rectangle-height region)))
 		     (if (= size (gadget-range sheet))
 			 0
 		       (/ (- value (gadget-min-value sheet))
@@ -227,12 +221,12 @@
 	  (scroll-extent
 	    contents
 	    :x (* (max 0 (- (bounding-rectangle-width extent)
-			    (bounding-rectangle-width viewport)))
+			    (bounding-rectangle-width region)))
 		  (if (= size (gadget-range sheet))
 		      0
 		    (/ (- value (gadget-min-value sheet))
  		       (- (gadget-range sheet) size))))
-	    :y (bounding-rectangle-min-y viewport)))))))
+	    :y (bounding-rectangle-min-y region)))))))
 
 (defun update-region (stream nleft ntop nright nbottom &key no-repaint)
   ;;--- I suspect that we should pass in mins and maxs since this does
@@ -261,56 +255,52 @@
 				     (max (bounding-rectangle-height stream) height))))))
 
 (defun scroll-extent (stream &key (x 0) (y 0))
-  (let ((vp (pane-viewport stream)))
-    (when vp
+  (let ((viewport (pane-viewport stream)))
+    (when viewport
       (with-bounding-rectangle* (left top right bottom) 
-	(pane-viewport-region stream)
+	  (pane-viewport-region stream)
 	;;;---- This should actually bash the sheet-transformation
 	(setf (sheet-transformation stream)
-	  (make-translation-transformation (- x) (- y)))
-	(bounding-rectangle-set-position (viewport-viewport-region vp) x y)
+	      (make-translation-transformation (- x) (- y)))
+	(bounding-rectangle-set-position (viewport-viewport-region viewport) x y)
 	;;--- Is this the correct place?
-	(update-scroll-bars vp)
+	(update-scroll-bars viewport)
 	(with-bounding-rectangle* (nleft ntop nright nbottom) 
-	  (pane-viewport-region stream)
+	    (pane-viewport-region stream)
 	  ;;--- Do we really want to do this here??
 	  (update-region stream nleft ntop nright nbottom)
 	  (cond
-	   ;; if some of the stuff that was previously on display is still on display
-	   ;; bitblt it into the proper place and redraw the rest.
-	   ((ltrb-overlaps-ltrb-p left top right bottom
-				  nleft ntop nright nbottom)
-	    ;; move the old stuff to the new position
-	    (window-shift-visible-region stream 
-					 left top right bottom
-					 nleft ntop nright nbottom)
-	    (let ((rectangles (ltrb-difference nleft ntop nright nbottom
-					       left top right bottom)))
-	      (with-sheet-medium (medium stream)
-		(dolist (region rectangles)
-		  (multiple-value-call #'draw-rectangle*
-		    medium
-		    (bounding-rectangle* region)
-		    :ink +background-ink+ :filled t)
-		  (when (typep stream 'clim-internals::output-recording-mixin)
-		    (replay (stream-output-history stream) stream region))))))
-	   ;; otherwise, just redraw the whole visible viewport
-	   ;; adjust for the left and top margins by hand so clear-area doesn't erase
-	   ;; the margin components.
-	   ((typep stream 'clim-internals::output-recording-mixin)
-	    (let ((region (viewport-viewport-region vp)))
-	      ;;---- we should make the sheet-region bigger at this point
-	      ;; perhaps we do a union of the sheet-region and the viewport
-	      (with-sheet-medium (medium stream)
-		(multiple-value-call #'draw-rectangle* 
-		  medium
-		  (bounding-rectangle* region)
-		  :ink +background-ink+ :filled t))
-	      (replay (stream-output-history stream) stream region)))))
+	    ;; If some of the stuff that was previously on display is still on
+	    ;; display, BITBLT it into the proper place and redraw the rest.
+	    ((ltrb-overlaps-ltrb-p left top right bottom
+				   nleft ntop nright nbottom)
+	     ;; move the old stuff to the new position
+	     (window-shift-visible-region stream 
+					  left top right bottom
+					  nleft ntop nright nbottom)
+	     (let ((rectangles (ltrb-difference nleft ntop nright nbottom
+						left top right bottom)))
+	       (with-sheet-medium (medium stream)
+		 (dolist (region rectangles)
+		   (multiple-value-call #'draw-rectangle*
+		     medium (bounding-rectangle* region)
+		     :ink +background-ink+ :filled t)
+		   (when (output-recording-stream-p stream)
+		     (replay (stream-output-history stream) stream region))))))
+	    ;; Otherwise, just redraw the whole visible viewport
+	    ;; adjust for the left and top margins by hand so clear-area doesn't erase
+	    ;; the margin components.
+	    ((output-recording-stream-p stream)
+	     (let ((region (viewport-viewport-region viewport)))
+	       ;;---- we should make the sheet-region bigger at this point
+	       ;; perhaps we do a union of the sheet-region and the viewport
+	       (with-sheet-medium (medium stream)
+		 (multiple-value-call #'draw-rectangle* 
+		   medium (bounding-rectangle* region)
+		   :ink +background-ink+ :filled t))
+	       (replay (stream-output-history stream) stream region)))))
 	(when (and (/= left x) (/= top y))
-	  (note-viewport-position-changed
-	   (pane-frame stream)
-	   stream))))))
+	  (note-viewport-position-changed (pane-frame stream) stream))))))
 
 (defmethod note-viewport-position-changed (frame pane)
   nil)
@@ -389,10 +379,9 @@
 				       :height shaft-thickness))))))))
 	(sheet-adopt-child pane inferiors)))))
 
-(defmethod change-scroll-bar-values ((scroll-bar scroll-bar-pane) &rest args 
+(defmethod change-scroll-bar-values ((scroll-bar scroll-bar-pane)
 				     &key slider-size value)
-  (declare (dynamic-extent args))
-  (declare (ignore slider-size value))
+  ;;--- Set the indicator to the proper size and location
   )
 
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gestures.lisp,v 1.5 92/03/10 10:12:36 cer Exp $
+;; $fiHeader: gestures.lisp,v 1.6 92/04/15 11:46:36 cer Exp $
 
 (in-package :clim-internals)
 
@@ -37,23 +37,6 @@
       (let ((bit (modifier-key-index name)))
 	(setf state (dpb 1 (byte 1 bit) state))))
     state))
-
-#+ignore
-(defun print-modifier-state (state stream &optional brief-p)
-  (let ((n (length *modifier-keys*)))
-    (dotimes (i n)
-      (let ((bit (- n i 1)))
-        (let ((name (modifier-key-index-name bit)))
-          (when (ldb-test (byte 1 bit) state)
-            (if brief-p
-		(format stream "~A-"
-		  (ecase name
-		    (:shift "sh")
-		    (:control "c")
-		    (:meta "m")
-		    (:super "s")
-		    (:hyper "h")))
-              (format stream "~:(~A-~)" name))))))))
 
 ;; A table indexed by mouse button and modifier state [now (3 x 32)].
 ;; Each bucket in the table contains a sequence of gesture names.
@@ -109,15 +92,6 @@
   nil)
 
 #||
-(defun modifier-state-keys (state)
-  ;; This could be table-driven, also, if it's called frequently
-  (let ((shifts nil))
-    (dotimes (bit (length *modifier-keys*))
-      (let ((name (modifier-key-index-name bit)))
-	(when (ldb-test (byte 1 bit) state)
-	  (push name shifts))))
-    (nreverse shifts)))
-
 ;;; Returns an alist of (button . gestures)
 (defun gestures-for-modifier-state (state)
   ;; Eventually, cache this result because it's a common question
@@ -133,12 +107,10 @@
   (declare (dynamic-extent shift-names))
   (let ((state (apply #'make-modifier-state shift-name)))
     (gestures-for-modifier-state state)))
-
 ||#
 
 ;; We typically have our hands on a button index and a modifier key state,
 ;; and we need to know if it matches a named gesture
-
 (defun-inline button-and-modifier-state-matches-gesture-name-p (button state gesture-name)
   (or (eq gesture-name 't)
       (member gesture-name (button-and-modifier-state-gesture-names button state))))
@@ -165,6 +137,7 @@
       modifier-state gesture-name)))
 
 ;; GESTURE-NAME either names a gesture, or is a canonicalized gesture spec
+;;--- Control-? doesn't match (:? :control), but does match (:? :control :shift)
 (defun keyboard-event-matches-gesture-name-p (event gesture-name)
   (when (and (characterp event)
 	     (characterp gesture-name)
@@ -233,6 +206,79 @@
     ;;--- This should canonicalize #\a into :A, and #\A into :A (:SHIFT),
     ;;--- and so forth.
     (values button (nreverse modifiers))))
+
+
+(defvar *modifier-state-specifiers* nil)
+
+(defun modifier-state-keys (state)
+  (when (null *modifier-state-specifiers*)
+    ;; Fill the cache if it hasn't been done yet
+    (setq *modifier-state-specifiers* (make-array (ash 1 (length *modifier-keys*))))
+    (dotimes (state (ash 1 (length *modifier-keys*)))
+      (let ((shifts nil))
+	(dotimes (bit (length *modifier-keys*))
+	  (let ((name (modifier-key-index-name bit)))
+	    (when (ldb-test (byte 1 bit) state)
+	      (push name shifts))))
+	(setf (aref *modifier-state-specifiers* state) shifts))))
+  (aref *modifier-state-specifiers* state))
+
+(defun gesture-specs-from-gesture-name (gesture-name)
+  (let ((gesture-specs nil))
+    (do-button-and-modifier-state (button modifier-state bucket)
+      (when (member gesture-name bucket)
+	(push (list* (button-index-name button) (modifier-state-keys modifier-state))
+	      gesture-specs)))
+    (dotimes (modifier-state (ash 1 (length *modifier-keys*)))
+      (let ((bucket (aref *keysym-and-modifier-key->gesture* modifier-state)))
+	(dolist (entry bucket)
+	  (when (member gesture-name (cdr entry))
+	    (push (list* (car entry) (modifier-state-keys modifier-state))
+		  gesture-specs)))))
+    (nreverse gesture-specs)))
+
+(defun describe-gesture-spec (gesture-spec
+			      &key (stream *standard-output*) (brief t))
+  (let ((alist (if brief 
+		   '((:hyper   "h-")
+		     (:super   "s-")
+		     (:meta    "m-")
+		     (:control "c-")
+		     (:shift   "sh-"))
+		   '((:hyper   "hyper-")
+		     (:super   "super-")
+		     (:meta    "meta-")
+		     (:control "control-")
+		     (:shift   "shift-")))))
+    (dolist (shift alist)
+      (when (member (first shift) (rest gesture-spec))
+	(princ (second shift) stream)))
+    (let ((keysym (first gesture-spec)))
+      (when (and (characterp keysym)
+		 (char<= #\A keysym #\A)
+		 (not (member :shift (rest gesture-spec))))
+	(princ (second (assoc :shift alist)) stream))
+      (when (and (not brief)
+		 (find keysym *pointer-buttons*))
+	(princ "Mouse-" stream))
+      (format stream "~:(~A~)" keysym))))
+
+#+++ignore
+(defun print-modifier-state (state stream &optional brief-p)
+  (let ((n (length *modifier-keys*)))
+    (dotimes (i n)
+      (let ((bit (- n i 1)))
+        (let ((name (modifier-key-index-name bit)))
+          (when (ldb-test (byte 1 bit) state)
+            (if brief-p
+		(format stream "~A-"
+		  (ecase name
+		    (:shift "sh")
+		    (:control "c")
+		    (:meta "m")
+		    (:super "s")
+		    (:hyper "h")))
+              (format stream "~:(~A-~)" name))))))))
 
 
 (defun add-gesture-name (name type gesture-spec &key (unique t))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-button.lisp,v 1.6 92/04/15 11:45:01 cer Exp $
+;; $fiHeader: db-button.lisp,v 1.7 92/05/07 13:11:10 cer Exp $
 
 "Copyright (c) 1990, 1991 International Lisp Associates.
  Portions copyright (c) 1991, 1992 by Symbolics, Inc.  All rights reserved."
@@ -11,6 +11,10 @@
 (defclass button-pane-mixin 
 	  (space-requirement-mixin
 	   leaf-pane)
+    ;; ARMED has three states:
+    ;;  NIL ==> the button is not armed
+    ;;  T   ==> the button is armed, waiting for a pointer button press
+    ;;  :ACTIVE ==> the button is armed, waiting for a pointer button release
     ((armed :initform nil)))
 
 ;; General highlight-by-inverting method
@@ -19,7 +23,42 @@
     (draw-rectangle* medium left top right bottom
 		     :ink +flipping-ink+ :filled t)))
 
+(defmethod handle-event ((pane button-pane-mixin) (event pointer-enter-event))
+  (with-slots (armed) pane
+    (unless armed
+      (cond ((and (pointer-event-button event)
+		  (not (zerop (pointer-event-button event))))
+	     (setf armed :active)
+	     (with-sheet-medium (medium pane)
+	       (highlight-button pane medium)))
+	    (t (setf armed t)))
+      (armed-callback pane (gadget-client pane) (gadget-id pane)))))
 
+(defmethod handle-event ((pane button-pane-mixin) (event pointer-exit-event))
+  (with-slots (armed) pane
+    (when armed
+      (when (eq armed :active)
+	(with-sheet-medium (medium pane)
+	  (highlight-button pane medium)))
+      (setf armed nil)
+      (disarmed-callback pane (gadget-client pane) (gadget-id pane)))))
+
+(defmethod handle-event ((pane button-pane-mixin) (event pointer-button-press-event))
+  (with-slots (armed) pane
+    (when armed
+      (setf armed :active)
+      (with-sheet-medium (medium pane)
+	(highlight-button pane medium)))))
+
+(defmethod handle-event ((pane button-pane-mixin) (event pointer-button-release-event))
+  (with-slots (armed) pane
+    (when (eq armed :active)
+      (setf armed t)
+      (with-sheet-medium (medium pane)
+	(highlight-button pane medium))
+      (activate-callback pane (gadget-client pane) (gadget-id pane)))))
+
+
 ;;; Push buttons
 (defclass push-button-pane (push-button button-pane-mixin)
     ((show-as-default :initarg :show-as-default
@@ -33,7 +72,7 @@
       (compute-gadget-label-size pane)
     (make-space-requirement :width width :height height)))
 
-;; Draw the text, invert the whole button when armed.
+;; Draw the text, invert the whole button when actively armed
 (defmethod repaint-sheet ((pane push-button-pane) region)
   (declare (ignore region))
   (with-sheet-medium (medium pane)
@@ -48,40 +87,7 @@
 		 :text-style text-style
 		 ;;--- :align-x ':center :align-y ':center
 		 :align-x ':left :align-y ':center)
-      (when armed
-	(highlight-button pane medium)))))
-
-(defmethod handle-event ((pane push-button-pane) (event pointer-button-press-event))
-  (with-slots (armed) pane
-    (unless armed
-      (setf armed t)
-      (armed-callback pane (gadget-client pane) (gadget-id pane))
-      (with-sheet-medium (medium pane)
-	(highlight-button pane medium)))))
-
-(defmethod handle-event ((pane push-button-pane) (event pointer-button-release-event))
-  (with-slots (armed) pane
-    (when armed
-      (activate-callback pane (gadget-client pane) (gadget-id pane))
-      (setf armed nil)
-      (disarmed-callback pane (gadget-client pane) (gadget-id pane))
-      (with-sheet-medium (medium pane)
-	(highlight-button pane medium)))))
-
-(defmethod handle-event ((pane push-button-pane) (event pointer-enter-event))
-  (with-slots (armed) pane
-    (unless armed
-      (setf armed t)
-      (armed-callback pane (gadget-client pane) (gadget-id pane))
-      (with-sheet-medium (medium pane)
-	(highlight-button pane medium)))))
-
-(defmethod handle-event ((pane push-button-pane) (event pointer-exit-event))
-  (with-slots (armed) pane
-    (when armed
-      (setf armed nil)
-      (disarmed-callback pane (gadget-client pane) (gadget-id pane))
-      (with-sheet-medium (medium pane)
+      (when (eq armed :active)
 	(highlight-button pane medium)))))
 
 
@@ -99,7 +105,6 @@
       (make-space-requirement :width (+ width (* radius 2) 5)
 			      :height (max height (* radius 2))))))
 
-;; Draw the text, invert the whole button when armed.
 (defmethod repaint-sheet ((pane toggle-button-pane) region)
   (declare (ignore region))
   (with-sheet-medium (medium pane)
@@ -133,30 +138,17 @@
 	  (draw-circle* medium cx cy (round radius 2)
 			:ink (if (gadget-value pane) +foreground-ink+ +background-ink+)))))))
 
-(defmethod handle-event ((pane toggle-button-pane) (event pointer-button-press-event))
-  (with-slots (armed) pane
-    (unless armed
-      (setf armed t)
-      (armed-callback pane (gadget-client pane) (gadget-id pane)))))
+;; Highlighting is a no-op
+(defmethod highlight-button ((pane toggle-button-pane) medium)
+  (declare (ignore medium)))
 
 (defmethod handle-event ((pane toggle-button-pane) (event pointer-button-release-event))
   (with-slots (armed) pane
-    (when armed
-      (setf (gadget-value pane :invoke-callback t) (not (gadget-value pane)))
-      (setf armed nil)
-      (disarmed-callback pane (gadget-client pane) (gadget-id pane)))))
-
-(defmethod handle-event ((pane toggle-button-pane) (event pointer-enter-event))
-  (with-slots (armed) pane
-    (unless armed
+    (when (eq armed :active)
       (setf armed t)
-      (armed-callback pane (gadget-client pane) (gadget-id pane)))))
-
-(defmethod handle-event ((pane toggle-button-pane) (event pointer-exit-event))
-  (with-slots (armed) pane
-    (when armed
-      (setf armed nil)
-      (disarmed-callback pane (gadget-client pane) (gadget-id pane)))))
+      (with-sheet-medium (medium pane)
+	(highlight-button pane medium))
+      (setf (gadget-value pane :invoke-callback t) (not (gadget-value pane))))))
 
 
 ;;; Menu buttons

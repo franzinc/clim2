@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: listener.lisp,v 1.9 92/04/15 11:48:19 cer Exp Locker: cer $
+;; $fiHeader: listener.lisp,v 1.10 92/04/30 09:09:46 cer Exp $
 
 (in-package :clim-demo)
 
@@ -9,17 +9,12 @@
 (define-application-frame lisp-listener
 			  ()
     ()
-  #-Silica
-  (:panes ((listener :application
-		     :initial-cursor-visibility :off)
-	   (documentation :pointer-documentation)))
-  #+Silica
-  (:panes (listener :application
-		     :initial-cursor-visibility :off))
-  (:layout (:default listener))
+  (:pane (outlining ()
+	   (scrolling ()
+	     (make-pane 'interactor-pane))))
   (:command-table (lisp-listener :inherit-from (user-command-table)))
   (:command-definer t)
-  (:menu-bar nil) 
+  (:menu-bar nil)
   (:top-level (lisp-listener-top-level)))
 
 (defmethod frame-maintain-presentation-histories ((frame lisp-listener)) t)
@@ -49,11 +44,11 @@
   ;; Current stack frame pointer.
   (defvar *current-frame-pointer* nil))
 
-(defvar *lisp-listener-frame* nil)
+(defvar *lisp-listener-frame*)
 
 (defun lisp-listener-top-level (frame)
   "Run a simple Lisp listener using the window provided."
-  #+Silica (enable-frame frame)
+  (enable-frame frame)
   (let* ((*lisp-listener-frame* frame)
 	 (window (frame-query-io frame))
 	 (command-table (frame-command-table frame))
@@ -158,13 +153,13 @@
 
 (defun listener-debugger-hook (condition hook)
   (declare (ignore hook))
-  (let ((*application-frame* *lisp-listener-frame*))
-    (let ((*debug-io* (frame-query-io *application-frame*))
-	  (*error-output* (frame-query-io *application-frame*))
-	  (*debugger-condition* condition)
-	  (*debugger-restarts* (compute-restarts)))
-      (describe-error *error-output*)
-      (lisp-listener-top-level *application-frame*))))
+  (let* ((*application-frame* *lisp-listener-frame*)
+	 (*debug-io* (frame-query-io *application-frame*))
+	 (*error-output* (frame-query-io *application-frame*))
+	 (*debugger-condition* condition)
+	 (*debugger-restarts* (compute-restarts)))
+    (describe-error *error-output*)
+    (lisp-listener-top-level *application-frame*)))
 
 (define-presentation-type restart-name ())
 

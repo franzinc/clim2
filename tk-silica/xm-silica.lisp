@@ -18,19 +18,19 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-silica.lisp,v 1.17 92/04/30 09:09:53 cer Exp Locker: cer $
+;; $fiHeader: xm-silica.lisp,v 1.18 92/05/13 17:11:20 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
 ;; Motif specific stuff
 
-(defclass motif-port (xt-port) 
-  ((type :allocation :class 
-	 :initform :motif :reader port-type)))
+(defclass motif-port (xt-port) ())
 
 (defmethod find-port-type ((type (eql ':motif)))
   'motif-port)
 
+(defmethod port-type ((port motif-port))
+  ':motif)
 
 (defmethod change-widget-geometry ((parent tk::xm-my-drawing-area) child
 				   &rest args
@@ -51,39 +51,8 @@
   ;;-- shells decide where windows are positioned!
   (tk::set-values child :width width :height height))
 
-(defclass motif-geometry-manager ()
-	  ;; --- This is probably all
-	  ;; composites excepts drawing-area and shell
-	  ()
-  (:documentation "These are all parents that have strong feelings
-about their children"))
+(defclass motif-geometry-manager (xt-geometry-manager) ())
 
-
-(defmethod update-mirror-transformation-1 ((port port) sheet 
-					   (parent motif-geometry-manager))
-  nil)
-
-(defmethod update-mirror-region-1 ((port port) sheet 
-				   (parent motif-geometry-manager))
-  nil)
-	    
-
-(defmethod update-mirror-transformation-1 :after ((port port)
-						  (sheet motif-geometry-manager)
-						  (parent t))
-  (update-geo-manager-sheet-children sheet))
-
-
-(defmethod update-mirror-region-1 :after ((port port)
-					  (sheet motif-geometry-manager)
-					  (parent t))
-  (update-geo-manager-sheet-children sheet))
-
-(defmethod update-geo-manager-sheet-children (geo-manager)
-  (dolist (child (sheet-children geo-manager))
-    ;;--- Yuck!
-    (when (typep child 'mirrored-sheet-mixin)
-      (mirror-region-updated (port geo-manager) child))))
 
 (defmethod find-shell-class-and-initargs ((port motif-port) sheet)
   (declare (ignore port))
@@ -112,3 +81,10 @@ about their children"))
 ;  (declare (ignore old type cursor))
 ;  (when new
 ;    (xmprocesstraversal (sheet-mirror stream) 0)))
+
+(defmethod enable-xt-widget ((parent tk::xm-dialog-shell) (mirror t))
+  ;; this is a nasty hack just to make sure that the child is managed.
+  ;; top-level-sheets are created unmanaged because they are
+  ;; disabled to we have to do not!
+  (manage-child mirror)
+  (popup (widget-parent mirror)))

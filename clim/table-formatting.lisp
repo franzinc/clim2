@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: table-formatting.lisp,v 1.6 92/04/15 11:47:25 cer Exp $
+;; $fiHeader: table-formatting.lisp,v 1.7 92/05/07 13:13:05 cer Exp $
 
 (in-package :clim-internals)
 
@@ -201,7 +201,7 @@
 	      min-y (coordinate 0)
 	      max-x (coordinate 0)
 	      max-y (coordinate 0)))
-      #+ignore (assert (ltrb-well-formed-p min-x min-y max-x max-y))
+      #+++ignore (assert (ltrb-well-formed-p min-x min-y max-x max-y))
       (translate-coordinates x-offset y-offset min-x min-y max-x max-y)
       (bounding-rectangle-set-edges record min-x min-y max-x max-y)
       (values min-x min-y max-x max-y))))
@@ -391,8 +391,7 @@
       (when (> row-count 5)
 	(with-bounding-rectangle* (tleft ttop tright tbottom) table
 	  (multiple-value-bind (stream-width stream-height)
-	      #-Silica (window-inside-size stream)
-	      #+Silica (bounding-rectangle-size stream)
+	      (bounding-rectangle-size stream)
 	    (declare (type coordinate stream-width)
 		     (ignore stream-height)) ;for now
 	    (let* ((table-width (- tright tleft))
@@ -435,7 +434,7 @@
 
 (defmethod adjust-table-cells ((row standard-row-output-record) stream)
   (declare (ignore stream))
-  #+ignore
+  #+++ignore
   (let ((x-spacing (slot-value (output-record-parent row) 'x-spacing))
 	(x-position (coordinate 0)))
     (map-over-row-cells
@@ -448,7 +447,7 @@
 
 (defmethod adjust-table-cells ((column standard-column-output-record) stream)
   (declare (ignore stream))
-  #+ignore
+  #+++ignore
   (let ((x-spacing (slot-value (output-record-parent column) 'x-spacing))
 	(x-position (coordinate 0)))
     (map-over-row-cells 

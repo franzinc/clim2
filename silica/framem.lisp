@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: framem.lisp,v 1.6 92/04/21 16:12:39 cer Exp Locker: cer $
+;; $fiHeader: framem.lisp,v 1.7 92/05/06 15:37:18 cer Exp $
 
 (in-package :silica)
 
@@ -29,20 +29,42 @@
     ((port :reader port :initarg :port)
      (frames :accessor frame-manager-frames :initform nil)))
 
-;;-- This is most likely wrong.
-
+;;--- This is most likely wrong
 (defmethod graft ((framem standard-frame-manager))
   (car (port-grafts (port framem))))
 
-(defvar *frame-managers* nil)
+(defvar *default-frame-manager* nil)
+
+(defmacro with-frame-manager ((framem) &body body)
+  `(let ((*default-frame-manager* ,framem))
+     ,@body))
 
 (defun find-frame-manager (&rest options 
-			   &key (port (apply #'find-port options))
+			   &key port
 			   &allow-other-keys)
   (declare (dynamic-extent options))
-  (second (or (assoc port *frame-managers*)
-	      (car (push (list port (make-frame-manager port))
-			 *frame-managers*)))))
+  (unless port 
+    (with-keywords-removed (options options '(:port))
+      (setq port (apply #'find-port options))))
+  (cond 
+   ;; (find-frame-manager) -> default  one
+   ((and (null options) *default-frame-manager*))
+   ;; We specified a port we have to make sure the default on
+   ;; matches it
+   ((and *default-frame-manager*
+	 (framem-matches-options-p
+	  *default-frame-manager*
+	  port options))
+    *default-frame-manager*)
+   ;; Failing that we make one
+   (t
+    (or (port-frame-manager port)
+	(setf (port-frame-manager port)
+	  (make-frame-manager port))))))
+
+(defmethod framem-matches-options-p ((framem standard-frame-manager) port options)
+  (declare (ignore options))
+  (eq (port framem) port))
 
 (defmethod make-frame-manager (port)
   (cerror "Make a default frame manager"
@@ -75,7 +97,6 @@
 (defmethod adopt-frame :after ((framem standard-frame-manager) frame)
   (pushnew frame (frame-manager-frames framem)))
 
-
 (defmethod disown-frame ((framem standard-frame-manager) frame)
   (let ((top (frame-top-level-sheet frame)))
     (when top
@@ -84,9 +105,8 @@
 	    (frame-state frame) :disowned))))
 
 (defmethod disown-frame :after ((framem standard-frame-manager) frame)
-  (setf (frame-manager-frames framem)
-    (delete frame (frame-manager-frames framem))
-    (slot-value frame 'frame-manager) nil))
+  (setf (frame-manager-frames framem) (delete frame (frame-manager-frames framem))
+	(slot-value frame 'frame-manager) nil))
 
 (defmethod note-frame-enabled :after ((framem standard-frame-manager) frame)
   (update-frame-settings framem frame)
@@ -94,9 +114,8 @@
   (when (frame-top-level-sheet frame)
     (setf (sheet-enabled-p (frame-top-level-sheet frame)) t)))
 
-(defmethod update-frame-settings ((framem standard-frame-manager) (frame t))
-  nil)
-
 (defmethod note-frame-disabled :after ((framem standard-frame-manager) frame)
   (setf (sheet-enabled-p (frame-top-level-sheet frame)) nil))
 
+(defmethod update-frame-settings ((framem standard-frame-manager) frame)
+  nil)

@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: layout.lisp,v 1.16 92/05/07 13:11:22 cer Exp Locker: cer $
+;; $fiHeader: layout.lisp,v 1.17 92/05/12 18:24:30 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -92,13 +92,13 @@
 ;(defmethod allocate-space (sheet width height)
 ;  (declare (ignore sheet width height)))
 
-
 (defun parse-box-contents (contents)
   (mapcar #'(lambda (x)
+	      ;; Handle top-down layout syntax
 	      (if (and (consp x)
-		       (typep (car x) '(or (member :fill) number)))
-		  `(list ,(car x) ,(second x))
-		x))
+		       (typep (first x) '(or (member :fill) number)))
+		  `(list ,(first x) ,(second x))
+		  x))
 	  contents))
 
 (defmacro vertically (options &body contents)
@@ -112,9 +112,10 @@
 	      :contents (list ,@(parse-box-contents contents))
 	      ,@options))
 
+
 (defmethod resize-sheet* ((sheet sheet) width height)
   (unless (and (> width 0) (> height 0))
-    (error "Trying to resize sheet to zero ~S,~S,~S"
+    (error "Trying to resize sheet ~S to be too small (~D x ~D)"
 	   sheet width height))
   (when (or width height)
     (with-bounding-rectangle* (minx miny maxx maxy) sheet
@@ -131,10 +132,6 @@
 	  ;;-- I guess we do not want to do this always but ...
 	  (allocate-space sheet owidth oheight))))))
 
-(defmethod move-and-resize-sheet* ((sheet sheet) minx miny width height)
-  (resize-sheet* sheet width height)
-  (move-sheet* sheet minx miny))
-
 (defmethod move-sheet* ((sheet sheet) minx miny)
   (let ((trans (sheet-transformation sheet)))
     (multiple-value-bind (x y)
@@ -146,6 +143,10 @@
 		trans
 		(if minx (- minx x) 0)
 		(if miny (- miny y) 0)))))))
+
+(defmethod move-and-resize-sheet* ((sheet sheet) minx miny width height)
+  (resize-sheet* sheet width height)
+  (move-sheet* sheet minx miny))
 
 
 ;; Various
@@ -318,14 +319,14 @@
 
 (defmethod note-layout-mixin-region-changed ((pane top-level-sheet) &key port)
   (if port
-      ;; We do this because if the wm has resized us then we want to
-      ;; do the complete layout-frame thing including clearing caches
+      ;; We do this because if the WM has resized us then we want to
+      ;; do the complete LAYOUT-FRAME thing including clearing caches
       ;; etc etc.
       (multiple-value-call #'layout-frame
 	(pane-frame pane) 
 	(bounding-rectangle-size pane))
-    ;; Otherwise just call allocate-space etc
-    (call-next-method)))
+      ;; Otherwise just call ALLOCATE-SPACE etc
+      (call-next-method)))
 
 #+++ignore
 (defmethod allocate-space ((sheet top-level-sheet) width height)

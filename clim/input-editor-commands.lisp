@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-editor-commands.lisp,v 1.7 92/04/15 11:46:47 cer Exp $
+;; $fiHeader: input-editor-commands.lisp,v 1.8 92/05/07 13:12:32 cer Exp $
 
 (in-package :clim-internals)
 
@@ -64,7 +64,10 @@
 (define-gesture-name :complete :keyboard (:tab))
 (define-gesture-name :complete :keyboard (:complete))
 (define-gesture-name :help     :keyboard (:help))
+;;--- Both of these because of a bug in KEYBOARD-EVENT-MATCHES-GESTURE-NAME-P
+;;--- that causes control-? not to match sometimes
 (define-gesture-name :possibilities :keyboard (:? :control))
+(define-gesture-name :possibilities :keyboard (:? :control :shift))
 
 ;; These need to be on a per-implementation basis, naturally
 ;;--- If you change these, change *MAGIC-COMPLETION-GESTURES* too
@@ -95,19 +98,19 @@
 			   #.(logior +control-key+ +meta-key+ +super-key+ +hyper-key+))))
 	   (cond ((and (eq aarray *input-editor-command-aarray*)
 		       bucky-p
-		       (member keysym '(:0 :1 :2 :3 :4 :5 :6 :7 :8 :9)))
-		  ;; A numeric argument...
-		  (position keysym '(:0 :1 :2 :3 :4 :5 :6 :7 :8 :9)))
+		       ;; If a numeric argument, return the digit
+		       (position keysym '#(:|0| :|1| :|2| :|3| :|4| 
+					   :|5| :|6| :|7| :|8| :|9|))))
 		 ((and (eq aarray *input-editor-command-aarray*)
 		       bucky-p
-		       (eq keysym ':-))		;a smiley face indeed!
+		       (eq keysym ':|-|))
 		  -1)
 		 (t
 		  (second (find gesture aarray 
 				:key #'first 
 				:test #'keyboard-event-matches-gesture-name-p))))))))
 
-(defmacro define-input-editor-command ((name &key (rescan T) (type 'motion) history)
+(defmacro define-input-editor-command ((name &key (rescan t) (type 'motion) history)
 				       arglist &body body)
   (multiple-value-bind (arglist ignores)
       (canonicalize-and-match-lambda-lists *ie-command-arglist* arglist)
@@ -309,32 +312,36 @@
 
 (define-input-editor-command (com-ie-forward-character :rescan nil)
 			     (stream input-buffer numeric-argument)
-  (repeat numeric-argument 
-    (let ((p (forward-or-backward input-buffer (insertion-pointer stream) nil #'true)))
+  (repeat (abs numeric-argument)
+    (let ((p (forward-or-backward input-buffer (insertion-pointer stream)
+				  (minusp numeric-argument) #'true)))
       (if p
 	  (setf (insertion-pointer stream) p)
 	  (return (beep stream))))))
 
 (define-input-editor-command (com-ie-forward-word :rescan nil)
 			     (stream input-buffer numeric-argument)
-  (repeat numeric-argument
-    (let ((p (move-over-word input-buffer (insertion-pointer stream) nil)))
+  (repeat (abs numeric-argument)
+    (let ((p (move-over-word input-buffer (insertion-pointer stream) 
+			     (minusp numeric-argument))))
       (if p
 	  (setf (insertion-pointer stream) p)
 	  (return (beep stream))))))
 
 (define-input-editor-command (com-ie-backward-character :rescan nil)
 			     (stream input-buffer numeric-argument)
-  (repeat numeric-argument
-    (let ((p (forward-or-backward input-buffer (insertion-pointer stream) t #'true)))
+  (repeat (abs numeric-argument)
+    (let ((p (forward-or-backward input-buffer (insertion-pointer stream)
+				  (plusp numeric-argument) #'true)))
       (if p
 	  (setf (insertion-pointer stream) p)
 	  (return (beep stream))))))
 
 (define-input-editor-command (com-ie-backward-word :rescan nil)
 			     (stream input-buffer numeric-argument)
-  (repeat numeric-argument
-    (let ((p (move-over-word input-buffer (insertion-pointer stream) t)))
+  (repeat (abs numeric-argument)
+    (let ((p (move-over-word input-buffer (insertion-pointer stream)
+			     (plusp numeric-argument))))
       (if p
 	  (setf (insertion-pointer stream) p)
 	  (return (beep stream))))))

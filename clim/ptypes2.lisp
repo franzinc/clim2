@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: ptypes2.lisp,v 1.6 92/04/15 11:47:10 cer Exp $
+;; $fiHeader: ptypes2.lisp,v 1.7 92/05/07 13:12:54 cer Exp $
 
 (in-package :clim-internals)
 
@@ -96,11 +96,7 @@
 	(describe-presentation-type presentation-type stream plural-count))
       (let ((type (expand-presentation-type-abbreviation presentation-type)))
 	(with-presentation-type-decoded (nil nil options) type
-	  (let ((description 
-		  (or (getf options :description)
-		      (with-presentation-type-decoded (name) presentation-type
-			(gethash (find-presentation-type-class name)
-				 *presentation-type-description-table* name)))))
+	  (let ((description (getf options :description)))
 	    (if description
 		(default-describe-presentation-type description stream plural-count)
 		(funcall-presentation-generic-function describe-presentation-type

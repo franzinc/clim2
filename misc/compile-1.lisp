@@ -20,14 +20,18 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: compile-1.lisp,v 1.5 92/05/07 13:13:46 cer Exp Locker: cer $
+;; $fiHeader: compile-1.lisp,v 1.6 92/05/13 17:11:07 cer Exp Locker: cer $
 
 (in-package :user)
 
-(setq *ignore-package-name-case* t)
+;;This should not matter
+;;;; (setq *ignore-package-name-case* t)
+
 (set-case-mode :case-insensitive-lower)
 (setf (sys:gsgc-switch :print) t)
 (setf (sys:gsgc-switch :stats) t)
+
+(setq *compile-print* nil)
 
 (setq comp:generate-call-count-code-switch
   (named-function |(> debug 1)| 
@@ -39,8 +43,6 @@
 		  (lambda (safety size speed debug)
 		    (declare (ignore safety size debug))
 		    (> speed 2))))
-
-(setq *compile-print* nil)
 
 (unless (find-package 'clim-defsystem)
   (compile-file-if-needed "sys/defsystem")

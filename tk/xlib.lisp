@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xlib.lisp,v 1.16 92/04/21 20:27:43 cer Exp $
+;; $fiHeader: xlib.lisp,v 1.17 92/05/13 17:10:28 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -120,6 +120,18 @@
 			      window
 			      attrs)
     (x11:xwindowattributes-depth attrs)))
+
+
+(defmethod window-map-state ((window window))
+  (let ((attrs (x11:make-xwindowattributes)))
+    (x11:xgetwindowattributes (object-display window)
+			      window
+			      attrs)
+    (ecase (x11:xwindowattributes-map-state attrs)
+      (0 :unmapped)
+      (1 :unviewable)
+      (2 :viewable))))
+
 
 (defmethod drawable-width ((window window))
   (window-width window))
@@ -488,3 +500,17 @@
      dest-y
      (image-width image)
      (image-height image))))
+
+(defun image-from-pixmap (pixmap)
+  (x11:xgetimage
+   (object-display pixmap)
+   pixmap
+   0 
+   0 
+   (pixmap-width pixmap)
+   (pixmap-height pixmap)
+   #xff					; plane-mask
+   x11:xypixmap))
+
+(defun destroy-image (image)
+  (x11:xdestroyimage image))

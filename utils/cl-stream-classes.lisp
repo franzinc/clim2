@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: cl-stream-classes.lisp,v 1.2 92/01/31 15:07:17 cer Exp $
+;; $fiHeader: cl-stream-classes.lisp,v 1.3 92/02/24 13:05:09 cer Exp $
 
 (in-package :clim-utils)
 
@@ -74,6 +74,7 @@
 (define-class-and-predicate fundamental-binary-output-stream nil
   (fundamental-output-stream fundamental-binary-stream))
 
+#-Cloe-Runtime					;not there yet
 (define-stream-predicate-trampoline open-stream-p nil
   ;;--- For now.  PW will dig up the right predicate
   :lucid-kludge (lambda (stream) (streamp stream)))

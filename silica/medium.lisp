@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: medium.lisp,v 1.11 92/05/13 17:10:37 cer Exp Locker: cer $
+;; $fiHeader: medium.lisp,v 1.12 92/05/14 11:03:46 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -236,7 +236,8 @@
 	       merged-text-style merged-text-style-valid) medium
     (if merged-text-style-valid
 	merged-text-style
-	(prog1 (setf merged-text-style (merge-text-styles text-style default-text-style))
+	(prog1 
+	  (setf merged-text-style (merge-text-styles text-style default-text-style))
 	  (setf merged-text-style-valid t)))))
 
 (defmacro with-text-style ((stream style) &body body)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: command.lisp,v 1.7 92/04/15 11:46:15 cer Exp $
+;; $fiHeader: command.lisp,v 1.8 92/05/07 13:12:02 cer Exp $
 
 (in-package :clim-internals)
 
@@ -532,9 +532,11 @@
 		       (extract-command-menu-item-value item t)))
 	 (text-style (getf (command-menu-item-options item) :text-style)))
     (flet ((body (stream)
-	     (if keystroke
-		 (format stream "~A (~C)" menu keystroke)
-	         (format stream "~A" menu))
+	     (format stream "~A" menu)
+	     (when keystroke
+	       (write-string "(" stream)
+	       (describe-gesture-spec keystroke :stream stream)
+	       (write-string ")" stream))
 	     (when (eq type ':menu)
 	       (write-string " >" stream))))
       (declare (dynamic-extent #'body))
@@ -556,10 +558,9 @@
 					(initial-spacing t) move-cursor)
   (unless (or max-width max-height)
     (multiple-value-bind (width height)
-	#+Silica (bounding-rectangle-size (sheet-region stream))
-	#-Silica (window-inside-size stream)
-	(unless max-width (setf max-width width))
-	(unless max-height (setf max-height height))))
+	(bounding-rectangle-size (sheet-region stream))
+      (unless max-width (setf max-width width))
+      (unless max-height (setf max-height height))))
   (let ((menu (slot-value (find-command-table command-table) 'menu)))
     (if (zerop (count-if #'(lambda (x) (not (null (first x)))) menu))
 	(with-text-face (stream :italic)

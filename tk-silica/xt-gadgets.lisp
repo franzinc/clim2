@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-gadgets.lisp,v 1.12 92/05/07 13:13:57 cer Exp Locker: cer $
+;; $fiHeader: xt-gadgets.lisp,v 1.13 92/05/12 18:25:28 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -136,7 +136,27 @@
 
 ;;--- This isn't really right.  Genera and CLX ports have kludges
 ;;--- for the time being, too.
+
 (defmethod sheet-shell (sheet)
   (do ((w (sheet-mirror sheet) (tk::widget-parent w)))
       ((typep w '(or tk::shell null))
        w)))
+
+(defun compute-new-scroll-bar-values (scroll-bar mmin mmax value slider-size)
+  (multiple-value-bind
+      (smin smax) (gadget-range* scroll-bar)
+    (values 
+     (fix-coordinate
+      (compute-symmetric-value
+       smin smax value mmin mmax))
+     (fix-coordinate
+      (compute-symmetric-value
+       smin smax slider-size mmin mmax)))))
+
+(defun wait-for-callback-invocation (port predicate &optional (whostate "Waiting for callback"))
+  (if (eq mp:*current-process* (port-process port))
+      (progn
+	(loop 
+	  (when (funcall predicate) (return nil))
+	  (process-next-event port)))
+    (mp:process-wait whostate predicate)))

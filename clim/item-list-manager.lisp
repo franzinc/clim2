@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: item-list-manager.lisp,v 1.1 92/01/31 14:27:57 cer Exp $
+;; $fiHeader: item-list-manager.lisp,v 1.2 92/02/24 13:08:00 cer Exp $
 
 (in-package :clim-internals)
 
@@ -31,7 +31,7 @@
 	(error "Could not find :after-item ~S in item-list" after-item)))
     (cond (before-index
 	   ;; Check bounds, but allow for empty list (add first item either :before- or :after-index 0
-	   #+Ignore
+	   #+++ignore
 	   (assert (< -1 before-index (max 1 (length item-list))) ()
 		   "The :before-index was ~D which is outside the bounds of the item-list"
 		   before-index)
@@ -40,7 +40,7 @@
 	       (push new-item (cdr (nthcdr (1- before-index) item-list)))))
 	  (after-index
 	   ;; Check bounds, but allow for empty list (add first item either :before- or :after-index 0
-	   #+Ignore
+	   #+++ignore
 	   (assert (< -1 after-index (max 1 (length item-list))) ()
 		   "The :after-index was ~D which is outside the bounds of the item-list"
 		   after-index)

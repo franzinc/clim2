@@ -21,9 +21,9 @@
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
 ;;;
-;; $fiHeader$
+;; $fiHeader: protocols.lisp,v 1.2 92/01/02 15:09:22 cer Exp Locker: cer $
 
-(in-package "CLIM-UTILS")
+(in-package :clim-utils)
 
 ;;;
 ;;; Protocol Stuff (should be moved to a utils package)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: basic-translators.lisp,v 1.4 92/03/04 16:21:08 cer Exp $
+;; $fiHeader: basic-translators.lisp,v 1.5 92/04/15 11:46:06 cer Exp $
 
 (in-package :clim-internals)
 
@@ -185,7 +185,7 @@
 			     (print-possibility possibility stream)))))))
 	    (declare (dynamic-extent #'print-possibility #'menu-choose-body))
 	    (with-menu (menu window)
-	      #-Silica (setf (window-label menu) "Menu of completions")
+	      (setf (window-label menu) "Menu of completions")
 	      (with-end-of-line-action (menu :allow)
 		(let ((object
 			(menu-choose-from-drawer menu type #'menu-choose-body)))

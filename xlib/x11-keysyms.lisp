@@ -18,11 +18,11 @@
 ;; Commercial Software developed at private expense as specified in FAR
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
+;;
 
 ;;      (c) Copyright 1989, 1990, 1991 Sun Microsystems, Inc. Sun design
 ;;      patents pending in the U.S. and foreign countries. OPEN LOOK is a
 ;;      registered trademark of USL. Used by written permission of the owners.
-;;
 ;;      (c) Copyright Bigelow & Holmes 1986, 1985. Lucida is a registered
 ;;      trademark of Bigelow & Holmes. Permission to use the Lucida
 ;;      trademark is hereby granted only in association with the images
@@ -44,8 +44,10 @@
 ;;      OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION
 ;;      WITH THE USE OR PERFORMANCE OF THIS OBJECT CODE.
 
+;;; $fiHeader: x11-keysyms.lisp,v 1.7 92/04/21 20:34:41 cer Exp $
+
 ;;;@(#)x11-keysym.lisp	1.3 11/29/90
-;;; $fiHeader$
+
 
 (in-package :x11)
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: test-suite.lisp,v 1.19 92/05/07 13:13:18 cer Exp Locker: cer $
+;; $fiHeader: test-suite.lisp,v 1.20 92/05/13 17:10:59 cer Exp Locker: cer $
 
 (in-package :clim-user)
 
@@ -1246,7 +1246,6 @@ Luke Luck licks the lakes Luke's duck likes."))
 	(decf top yoff)
 	(decf bottom yoff))
       (draw-rectangle* stream left top right bottom :filled nil :ink +cyan+))))
-
 
 (define-table-cell-test set-cursor-position "move the cursor, output some text"
   (stream-set-cursor-position stream 50 50)
@@ -2696,17 +2695,17 @@ Luke Luck licks the lakes Luke's duck likes."))
 			  ("Exit" :command (exit-clim-tests)))))
   (:command-definer nil)
   (:panes 
-   (caption-pane
-    (outlining ()
-      (scrolling ()
-	(make-pane 'application-pane :height 50))))
-   (display-pane 
-     (outlining ()
-       (scrolling ()
-	 (make-pane 'application-pane)))))
-  (:layout
-   (:default
-     (vertically () caption-pane display-pane))))
+    (caption-pane
+      (outlining ()
+	(scrolling ()
+	  (make-pane 'application-pane :height 50))))
+    (display-pane 
+      (outlining ()
+	(scrolling ()
+	  (make-pane 'application-pane)))))
+  (:layouts
+    (:default
+      (vertically () caption-pane display-pane))))
 
 (defmethod frame-standard-output ((frame clim-tests))
   (get-frame-pane frame 'display-pane))

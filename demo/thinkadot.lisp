@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: thinkadot.lisp,v 1.5 92/04/10 14:27:38 cer Exp Locker: cer $
+;; $fiHeader: thinkadot.lisp,v 1.6 92/04/15 11:48:29 cer Exp $
 
 (in-package :clim-demo)
 
@@ -55,7 +55,7 @@
       (make-pane 'application-pane
 		 :display-function 'draw-the-display
 		 :incremental-redisplay t)))
-  (:layout
+  (:layouts
     (:default (scrolling () display))))
 
 (defmethod initialize-instance :after ((frame thinkadot) &key)

@@ -21,7 +21,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: pixmap-streams.lisp,v 1.4 92/04/21 16:13:12 cer Exp Locker: cer $
+;; $fiHeader: pixmap-streams.lisp,v 1.5 92/05/07 13:12:43 cer Exp $
 
 (in-package :clim-internals)
 
@@ -43,20 +43,16 @@
 (defmethod update-mirror-region ((port port) (sheet pixmap-stream))
   nil)
 
-(defmethod initialize-instance :after ((stream pixmap-stream) &key 
-							      port
-							      pixmap
-							      width
-							      height
-							      sheet)
+(defmethod initialize-instance :after ((stream pixmap-stream) 
+				       &key port sheet pixmap
+				       width height)
   (setf (sheet-direct-mirror stream) pixmap
 	(port stream) port
 	(sheet-transformation stream) +identity-transformation+
 	(sheet-region stream) (make-bounding-rectangle 0 0 width height)
-	;;-- What about text style
-	(medium-foreground stream) (medium-foreground sheet)
-	(medium-background stream) (medium-background sheet)))
-
+	;;--- What about text style?
+	(medium-foreground stream) (or (medium-foreground sheet) +black+)
+	(medium-background stream) (or (medium-background sheet) +white+)))
 
 ;; Interface to this stuff
 
@@ -80,12 +76,12 @@
 
 (defmethod allocate-pixmap-stream (sheet pixmap width height)
   (make-instance 'pixmap-stream 
-		 :sheet sheet
 		 :default-text-margin width
 		 :pixmap pixmap 
 		 :width width
 		 :height height
-		 :port (port sheet)))
+		 :port (port sheet)
+		 :sheet sheet))
 
 (defun copy-from-pixmap (pixmap pixmap-x pixmap-y width height
 			 stream window-x window-y)

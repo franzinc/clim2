@@ -1,6 +1,6 @@
 ;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadgets.lisp,v 1.21 92/05/07 13:11:19 cer Exp Locker: cer $
+;; $fiHeader: gadgets.lisp,v 1.22 92/05/12 18:24:27 cer Exp Locker: cer $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
@@ -32,14 +32,16 @@
 
 
 (defclass gadget (foreground-background-and-text-style-mixin)
-	  ((id :initarg :id :reader gadget-id :initform nil)
-	   (client :initarg :client :initform nil :accessor gadget-client)
-	   (armed-callback :initarg :armed-callback :initform nil
-			   :reader gadget-armed-callback)
-	   (disarmed-callback :initarg :disarmed-callback :initform nil
-			      :reader gadget-disarmed-callback)
-	   (active :initarg :active :accessor gadget-active-p))
+    ((id :initarg :id :reader gadget-id :initform nil)
+     (client :initarg :client :initform nil :accessor gadget-client)
+     (armed-callback :initarg :armed-callback :initform nil
+		     :reader gadget-armed-callback)
+     (disarmed-callback :initarg :disarmed-callback :initform nil
+			:reader gadget-disarmed-callback)
+     (active :initarg :active :accessor gadget-active-p))
   (:default-initargs :active t))
+
+;;; Arming and disarming
 
 (defmethod armed-callback :around ((gadget gadget) (client t) (id t))
   (let ((callback (gadget-armed-callback gadget)))
@@ -57,6 +59,24 @@
         (call-next-method))))
 
 (defmethod disarmed-callback ((gadget gadget) (client t) (id t))
+  nil)
+
+;;; Activation and deactivation, not intended to be like callbacks
+
+(defmethod activate-gadget ((gadget gadget))
+  (unless (gadget-active-p gadget)
+    (setf (gadget-active-p gadget) t)
+    (note-gadget-activated (gadget-client gadget) gadget)))
+ 
+(defmethod note-gadget-activated ((client t) (gadget gadget))
+  nil)
+ 
+(defmethod deactivate-gadget ((gadget gadget))
+  (when (gadget-active-p gadget)
+    (setf (gadget-active-p gadget) nil)
+    (note-gadget-deactivated (gadget-client gadget) gadget)))
+ 
+(defmethod note-gadget-deactivated ((client t) (gadget gadget))
   nil)
 
 
@@ -110,13 +130,13 @@
 
 ;;; Basic gadgets-mixins
 
-(defclass oriented-gadget ()
+(defclass oriented-gadget-mixin ()
     ((orientation :initarg :orientation
 		  :accessor gadget-orientation))
   (:default-initargs :orientation :horizontal))
 
 
-(defclass labelled-gadget ()
+(defclass labelled-gadget-mixin ()
     ((label :initarg :label
 	    :accessor gadget-label)
      (alignment :initarg :align-x
@@ -125,11 +145,11 @@
 
 ;;--- Do the right thing
 #---ignore
-(defmethod compute-gadget-label-size ((pane labelled-gadget))
+(defmethod compute-gadget-label-size ((pane labelled-gadget-mixin))
   (values 50 20))
 
 #+++ignore
-(defun compute-gadget-label-size ((pane labelled-gadget))
+(defun compute-gadget-label-size ((pane labelled-gadget-mixin))
   (let ((text (gadget-label pane))
 	(text-style (slot-value pane 'text-style)))
     (with-sheet-medium (medium pane)
@@ -154,18 +174,16 @@
 ;;; The intent is that the real implementations inherit from these
 
 ;;; Slider
-
 (defclass slider
-	  (value-gadget oriented-gadget range-gadget-mixin labelled-gadget)
+	  (value-gadget oriented-gadget-mixin range-gadget-mixin labelled-gadget-mixin)
     ((drag-callback :initarg :drag-callback :initform nil
 		    :reader slider-drag-callback)
      (decimal-places :initarg :decimal-places
 		     :reader slider-decimal-places)
      (show-value-p :initarg :show-value-p 
 		   :accessor gadget-show-value-p))
-  (:default-initargs
-      :decimal-places 0
-      :show-value-p nil))
+  (:default-initargs :decimal-places 0
+		     :show-value-p nil))
 
 (defmethod drag-callback :around ((gadget slider) (client t) (id t) value)
   (let ((callback (slider-drag-callback gadget)))
@@ -179,9 +197,8 @@
 
 
 ;;; Scroll bar
-
 (defclass scroll-bar
-	  (value-gadget range-gadget-mixin oriented-gadget)
+	  (value-gadget range-gadget-mixin oriented-gadget-mixin)
     ((current-value :initform nil :accessor scroll-bar-current-value)
      (current-size :initform nil :accessor scroll-bar-current-size)
      (drag-callback :initarg :drag-callback :initform nil
@@ -205,27 +222,27 @@
 
 ;;; Push-button
 (defclass push-button 
-	  (action-gadget labelled-gadget) 
+	  (action-gadget labelled-gadget-mixin) 
     ())
 
 
-
-(defclass toggle-button (value-gadget labelled-gadget) 
-	  ((indicator-type :initarg :indicator-type :initform :some-of
-			   :type (member :some-of :one-of)
-			   :reader gadget-indicator-type)))
-
+;;; Toggle button
+(defclass toggle-button 
+	  (value-gadget labelled-gadget-mixin)
+    ((indicator-type :initarg :indicator-type :initform :some-of
+		     :type (member :some-of :one-of)
+		     :reader gadget-indicator-type)))
 
 
 ;;; Menu button
 (defclass menu-button 
-	  (value-gadget labelled-gadget) 
+	  (value-gadget labelled-gadget-mixin) 
     ((indicator-type :initarg :indicator-type :initform :some-of
 		     :reader gadget-indicator-type)))
 
 
 (defclass label-pane
-	  (gadget labelled-gadget)
+	  (gadget labelled-gadget-mixin)
     ())
 
 
@@ -235,7 +252,7 @@
 
 ;;; Radio box [exclusive-choice] .. [inclusive-choice]
 (defclass radio-box 
-	  (value-gadget oriented-gadget) 
+	  (value-gadget oriented-gadget-mixin) 
     ((selections :initform nil 
 		 :reader radio-box-selections)
      ;;--- think about this...
@@ -254,13 +271,12 @@
 		     :value (equal (radio-box-current-selection rb) choice)
 		     :label (if (stringp choice)
 				(string choice)
-			      (gadget-label choice))
+				(gadget-label choice))
 		     :id choice
 		     :parent rb))))))
 
 
-
-;; Check-box
+;;; Check-box
 
 (defclass check-box 
 	  (value-gadget oriented-gadget) 
@@ -271,18 +287,21 @@
  	    :initarg :current-selection
  	    :accessor check-box-current-selection)))
 
-(defmethod initialize-instance :after ((rb check-box) &key choices)
-  (let ((frame (pane-frame rb)))
+(defmethod initialize-instance :after ((cb check-box) &key choices)
+  (let ((frame (pane-frame cb)))
     (with-look-and-feel-realization ((frame-manager frame) frame)
       (dolist (choice choices)
-	(make-pane 'toggle-button 
-		   :value (equal (check-box-current-selection rb) choice)
-		   :label (if (stringp choice)
-			      (string choice)
-			    (gadget-label choice))
-		   :indicator-type :some-of
-		   :id choice
-		   :parent rb)))))
+	(unless (panep choice)
+	  ;; Sometimes the user calls MAKE-PANE within a call to
+	  ;; WITH-RADIO-BOX, so don't mess up
+	  (make-pane 'toggle-button 
+		     :value (equal (check-box-current-selection cb) choice)
+		     :label (if (stringp choice)
+				(string choice)
+				(gadget-label choice))
+		     :indicator-type :some-of
+		     :id choice
+		     :parent cb))))))
 
 
 ;;; Menu-bar
@@ -351,7 +370,7 @@
   (viewport-region-changed (sheet-child viewport) viewport))
 
 ;;--- Work on this
-#+ignore
+#+++ignore
 (defmethod note-sheet-region-changed :around ((viewport viewport) &key port-did-it)
   (declare (ignore port-did-it))
   (multiple-value-bind (changedp 
@@ -365,8 +384,7 @@
 	  vscroll-bar vscroll-bar-enabled-p)
         (call-next-method))))
 
-(defun update-dynamic-scroll-bars (sp 
-				   changedp
+(defun update-dynamic-scroll-bars (scroller changedp
 				   hscroll-bar hscroll-bar-enabled-p
 				   vscroll-bar vscroll-bar-enabled-p
 				   &optional relayout)
@@ -376,38 +394,37 @@
     (when vscroll-bar
       (setf (sheet-enabled-p vscroll-bar) vscroll-bar-enabled-p))
     (when (or (and hscroll-bar (not hscroll-bar-enabled-p))
-	      (and vscroll-bar (not vscroll-bar-enabled-p)))
-      (let* ((contents (slot-value sp 'contents))
-	     (c-extent (viewport-contents-extent
-			(pane-viewport contents))))
-	(multiple-value-bind
-	    (vx vy) (window-viewport-position contents)
-	  
-	  (window-set-viewport-position
-	   contents
-	   (if (and hscroll-bar (not hscroll-bar-enabled-p))
-	       (bounding-rectangle-min-x c-extent)
-	     vx)
-	   (if (and vscroll-bar (not vscroll-bar-enabled-p))
-	       (bounding-rectangle-min-y c-extent)
-	     vy)))))
-    (clear-space-requirement-caches-in-tree sp)
+ 	      (and vscroll-bar (not vscroll-bar-enabled-p)))
+      (let* ((contents (slot-value scroller 'contents))
+ 	     (c-extent (viewport-contents-extent
+			 (pane-viewport contents))))
+ 	(multiple-value-bind (vx vy) 
+	    (window-viewport-position contents)
+ 	  (window-set-viewport-position
+	    contents
+	    (if (and hscroll-bar (not hscroll-bar-enabled-p))
+		(bounding-rectangle-min-x c-extent)
+		vx)
+	    (if (and vscroll-bar (not vscroll-bar-enabled-p))
+		(bounding-rectangle-min-y c-extent)
+		vy)))))
+    (clear-space-requirement-caches-in-tree scroller)
     (when relayout
-      (let ((table (sheet-child sp)))
-	(multiple-value-bind
-	    (w h)
-	    (bounding-rectangle-size table)
-	  (allocate-space table w h))))))
+      (let ((table (sheet-child scroller)))
+ 	(multiple-value-bind (width height)
+ 	    (bounding-rectangle-size table)
+ 	  (allocate-space table width height))))))
 
-(defun compute-dynamic-scroll-bar-values (sp)
-  (let* ((hscroll-bar (scroller-pane-horizontal-scroll-bar sp))
-	 (vscroll-bar (scroller-pane-vertical-scroll-bar sp))
-	 (scroll-bar-policy (scroller-pane-scroll-bar-policy sp)))
+(defun compute-dynamic-scroll-bar-values (scroller)
+  (let* ((hscroll-bar (scroller-pane-horizontal-scroll-bar scroller))
+	 (vscroll-bar (scroller-pane-vertical-scroll-bar scroller))
+	 (scroll-bar-policy (scroller-pane-scroll-bar-policy scroller)))
     (if (eq scroll-bar-policy :dynamic)
-	(multiple-value-bind (vwidth vheight) (bounding-rectangle-size sp)
+	(multiple-value-bind (vwidth vheight) 
+	    (bounding-rectangle-size scroller)
 	  (multiple-value-bind (cwidth cheight) 
 	      (bounding-rectangle-size 
-	       (viewport-contents-extent (slot-value sp 'viewport)))
+		(viewport-contents-extent (slot-value scroller 'viewport)))
 	    (let ((ohenp (sheet-enabled-p hscroll-bar))
 		  (ovenp (sheet-enabled-p vscroll-bar))
 		  (nhenp (> cwidth vwidth))
@@ -422,10 +439,10 @@
         (values nil nil nil nil nil))))
 
 (defun viewport-contents-extent (viewport)
-  (let ((c (sheet-child viewport)))
-    (stream-output-history c)))
-
-
+  (let ((contents (sheet-child viewport)))
+    (if (output-recording-stream-p contents)
+	(stream-output-history contents)
+        contents)))
 
 ;;; Then there is the layout stuff and scrolling macros
 
@@ -440,6 +457,29 @@
 	 name
 	 :frame frame :frame-manager framem
 	 options))
+
+
+;;; List panes and option menus
+
+(defclass set-gadget-mixin ()
+    ((items :initarg :items :accessor set-gadget-items)
+     (name-key :initarg :name-key :accessor set-gadget-name-key)
+     (value-key :initarg :value-key :accessor set-gadget-value-key)
+     (test :initarg :test :accessor set-gadget-test))
+  (:default-initargs :items nil
+		     :test #'eql
+		     :value-key #'identity
+		     :name-key #'princ-to-string))
+ 
+(defclass list-pane (set-gadget-mixin value-gadget)
+    ((mode :initarg :mode :type (member :exclusive :nonexclusive)
+	   :accessor list-pane-mode))
+  (:default-initargs :mode :exclusive))
+ 
+(defclass option-pane (set-gadget-mixin 
+		       value-gadget 
+		       labelled-gadget)
+    ())
 
 
 ;; Callbacks on widgets generate these events
@@ -458,48 +498,3 @@
 
 (defmethod handle-event ((gadget  action-gadget) (event activate-gadget-event))
   (activate-callback gadget (gadget-client gadget) (gadget-id gadget)))
-
-
-;;; Do these have readers and writers?
-
-;;; Activation/Deactivation protocol
-
-(defmethod activate-gadget ((gadget gadget))
-  (unless (gadget-active-p gadget)
-    (setf (gadget-active-p gadget) t)
-    (note-gadget-activated (gadget-client gadget) gadget)))
-
-(defmethod note-gadget-activated ((client t) (gadget gadget))
-  nil)
-
-(defmethod deactivate-gadget ((gadget gadget))
-  (when (gadget-active-p gadget)
-    (setf (gadget-active-p gadget) nil)
-    (note-gadget-deactivated (gadget-client gadget) gadget)))
-
-(defmethod note-gadget-deactivated ((client t) (gadget gadget))
-  nil)
-
-;;; List panes and option menus
-
-(defclass set-gadget-mixin ()
-	  ((items :initarg :items :accessor set-gadget-items)
-	   (name-key :initarg :name-key :accessor set-gadget-name-key)
-	   (value-key :initarg :value-key :accessor set-gadget-value-key)
-	   (test :initarg :test :accessor set-gadget-test))
-  (:default-initargs 
-    :items nil
-    :test #'eql
-    :value-key #'identity
-    :name-key #'princ-to-string))
-
-(defclass list-pane (set-gadget-mixin value-gadget)
-	  ((mode :initarg :mode :type (member :exclusive :nonexclusive)
-		 :accessor list-pane-mode))
-  (:default-initargs :mode :exclusive))
-
-(defclass option-pane (set-gadget-mixin 
-		       value-gadget 
-		       labelled-gadget)
-	  ())
-

@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: event.lisp,v 1.10 92/05/07 13:11:17 cer Exp Locker: cer $
+;; $fiHeader: event.lisp,v 1.11 92/05/13 17:10:35 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -203,27 +203,27 @@
 
 ;;; This code does not deal with cases (2) and (3) correctly.
 ;;; It will fail to generate enter/exit events for cases
-(defun generate-crossing-events (port sheet x y modifiers button)
+(defun generate-crossing-events (port sheet x y modifiers button pointer)
   (macrolet ((generate-enter-event (sheet)
 	       `(let ((sheet ,sheet))
 		  (dispatch-event
 		    sheet
 		    (make-instance 'pointer-enter-event
-				   :x x
-				   :y y
-				   :button button
 				   :sheet sheet
-				   :modifiers modifiers))))
+				   :x x :y y
+				   :button button
+				   :modifiers modifiers
+				   :pointer pointer))))
 	     (generate-exit-event (sheet)
 	       `(let ((sheet ,sheet))
 		  (dispatch-event
 		    sheet
 		    (make-instance 'pointer-exit-event
-				   :x x
-				   :y y
-				   :button button
 				   :sheet sheet
-				   :modifiers modifiers)))))
+				   :x x :y y
+				   :button button
+				   :modifiers modifiers
+				   :pointer pointer)))))
     (let ((v (port-trace-thing port)))
       ;; Pop up the stack of sheets
       (unless (zerop (fill-pointer v))
@@ -270,13 +270,10 @@
 	      (map-sheet-position-to-child child new-x new-y))
 	    (setq sheet child)
 	    (vector-push-extend child v)))))))
-      
-      
-(warn "Checking for port")
 
-(defun distribute-pointer-event (port mirrored-sheet event-type x y modifiers button)
+(defun distribute-pointer-event (port mirrored-sheet event-type x y modifiers button pointer)
   ;; Generate all the correct enter/exit events
-  (generate-crossing-events port mirrored-sheet x y modifiers button)
+  (generate-crossing-events port mirrored-sheet x y modifiers button pointer)
   ;; dispatch event to the innermost sheet
   (let ((sheet (let ((v (port-trace-thing port)))
 		 (and (not (zerop (fill-pointer v)))
@@ -289,41 +286,45 @@
 	  sheet
 	  (make-instance event-type
 			 :sheet sheet
-			 :native-x x
-			 :native-y y
-			 :x tx
-			 :y ty
+			 :native-x x :native-y y
+			 :x tx :y ty
 			 :modifiers modifiers
-			 :button button))))))
+			 :button button
+			 :pointer pointer))))))
 
 (defmethod distribute-event ((port port) event)
   (distribute-event-1 port event))
 
-(defgeneric distribute-event-1 (port event)
-  (:method ((port port) (event event))
-   (dispatch-event (event-sheet event) event))
-  (:method ((port port) (event keyboard-event))
-   (let ((focus (or (port-keyboard-input-focus port)
-		    (event-sheet event))))
-     ;;--- Is this correct???
-     (setf (slot-value event 'sheet) focus)
-     (dispatch-event focus event)))
-  (:method ((port port) (event window-event))
-   (dispatch-event 
-     (window-event-mirrored-sheet event)
-     event))
-  (:method ((port port) (event pointer-event))
-   (distribute-pointer-event
-     port
-     (event-sheet event)
-     (typecase event
-       ((or pointer-exit-event pointer-enter-event)
-	'pointer-motion-event)
-       (t (type-of event)))
-     (pointer-event-native-x event)
-     (pointer-event-native-y event)
-     (event-modifier-state event)
-     (pointer-event-button event))))
+(defgeneric distribute-event-1 (port event))
+
+(defmethod distribute-event-1 ((port port) (event event))
+  (dispatch-event (event-sheet event) event))
+
+(defmethod distribute-event-1 ((port port) (event keyboard-event))
+  (let ((focus (or (port-keyboard-input-focus port)
+		   (event-sheet event))))
+    ;;--- Is this correct???
+    (setf (slot-value event 'sheet) focus)
+    (dispatch-event focus event)))
+
+(defmethod distribute-event-1 ((port port) (event window-event))
+  (dispatch-event 
+    (window-event-mirrored-sheet event)
+    event))
+
+(defmethod distribute-event-1 ((port port) (event pointer-event))
+  (distribute-pointer-event
+    port
+    (event-sheet event)
+    (typecase event
+      ((or pointer-exit-event pointer-enter-event)
+       'pointer-motion-event)
+      (t (type-of event)))
+    (pointer-event-native-x event)
+    (pointer-event-native-y event)
+    (event-modifier-state event)
+    (pointer-event-button event)
+    (pointer-event-pointer event)))
 	    
 
 ;;; Local event processing

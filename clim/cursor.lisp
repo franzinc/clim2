@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: cursor.lisp,v 1.9 92/04/15 11:46:20 cer Exp $
+;; $fiHeader: cursor.lisp,v 1.10 92/05/07 13:12:07 cer Exp $
 
 (in-package :clim-internals)
 
@@ -32,7 +32,7 @@
 
 ;;--- The positions here should be a COORDINATE pair, no?
 (defclass text-cursor
-	  (cursor #+Silica region)
+	  (cursor region)			;--- why REGION?
     ((x :initarg :x :type coordinate)
      (y :initarg :y :type coordinate)
      (stream :initarg :stream)
@@ -224,9 +224,9 @@
 (defmethod cursor-visibility ((cursor cursor))
   (cursor-active cursor))
  
-(defmethod (setf cursor-visibility) (nv (cursor cursor))
+(defmethod (setf cursor-visibility) (visibility (cursor cursor))
   (setf (cursor-active cursor) 
-	(case nv
+	(case visibility
 	  (:off nil)
 	  ((nil) nil)
 	  ((t :on) t))))

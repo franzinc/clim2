@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ffi.lisp,v 1.10 92/04/15 11:45:43 cer Exp Locker: cer $
+;; $fiHeader: ffi.lisp,v 1.11 92/04/21 20:28:01 cer Exp $
 
 (in-package :x11)
 
@@ -89,6 +89,7 @@
 						 (foo-slot slot))
 					     slots))
 		(error ":overlays used in a way we cannot handle"))))))))
+
 	  
 
 (defun trans-slot-type (type)

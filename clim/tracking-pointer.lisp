@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: tracking-pointer.lisp,v 1.6 92/03/10 10:12:59 cer Exp $
+;; $fiHeader: tracking-pointer.lisp,v 1.7 92/04/15 11:47:30 cer Exp $
 
 (in-package :clim-internals)
 
@@ -149,27 +149,17 @@
 	     ;; doing this, so we'll do it by hand right here.
 	     (make-release-event (window pointer buttons)
 	       (multiple-value-bind (px py) (pointer-position pointer)
-		 (multiple-value-bind (ox oy)
-		     #+Silica (values (coordinate 0) (coordinate 0))
-		     #-Silica (window-offset window)
-		   (let ((wx (- px ox))
-			 (wy (- py oy))
-			 (mask (tv:mouse-chord-shifts genera-mouse)))
-		     #-Silica
-		     (multiple-value-setq (wx wy)
-		       (viewport-to-drawing-surface-coordinates current-window wx wy))
-		     (let ((event (make-instance 'pointer-button-release-event
-				    :sheet window
-				    :button buttons
-				    :modifiers mask
-				    :x wx :y wy)))
-		       (when transformp
-			 (multiple-value-bind (tx ty)
-			     (transform-position (medium-transformation window)
-						 wx wy)
-			   (setq wx (floor tx)
-				 wy (floor ty))))
-		       (values event wx wy)))))))
+		 (let ((event (make-instance 'pointer-button-release-event
+				:sheet window
+				:button buttons
+				:modifiers (tv:mouse-chord-shifts genera-mouse)
+				:x px :y py)))
+		   (when transformp
+		     (multiple-value-bind (tx ty)
+			 (transform-position (medium-transformation window) px py)
+		       (setq px (coordinate tx)
+			     py (coordinate ty))))
+		   (values event px py)))))
 	#+Genera (declare (dynamic-extent #'make-release-event))
 	#+Genera (when (and button-release-function
 			    generate-release-events
@@ -191,41 +181,29 @@
 		      (setq last-x x last-y y
 			    last-window current-window)
 		      ;; Pointer position is in root coordinates
-		      ;;--- What to do about window offset and drawing-to-surface-coordinates?
-		      (multiple-value-bind (ox oy) 
-			  #+Silica (values (coordinate 0) (coordinate 0))
-			  #-Silica (window-offset current-window)
-			(declare (type coordinate ox oy))
-			(let ((wx (- x ox))
-			      (wy (- y oy)))
-			  (declare (type coordinate wx wy))
-			  #-Silica
-			  (multiple-value-setq (wx wy)
-			    (viewport-to-drawing-surface-coordinates current-window wx wy))
-			  (when (or presentation-motion-function highlight)
-			    (let ((presentation
-				    (frame-find-innermost-applicable-presentation
-				      *application-frame* *input-context*
-				      current-window wx wy)))
-			      (when presentation
-				(when highlight
-				  (unless (eq presentation highlighted-presentation)
-				    (unhighlight)
-				    (highlight presentation)))
-				(when presentation-motion-function
-				  (funcall presentation-motion-function
-					   presentation current-window wx wy))
-				(return-from handle-simple-motion))))
-			  (unhighlight)
-			  (when motion-function
-			    (when transformp
-			      (multiple-value-bind (tx ty)
-				  (transform-position (medium-transformation current-window)
-						      wx wy)
-				(setq wx (floor tx)
-				      wy (floor ty))))
-			    (funcall motion-function
-				     current-window wx wy))))))))
+		      (when (or presentation-motion-function highlight)
+			(let ((presentation
+				(frame-find-innermost-applicable-presentation
+				  *application-frame* *input-context*
+				  current-window x y)))
+			  (when presentation
+			    (when highlight
+			      (unless (eq presentation highlighted-presentation)
+				(unhighlight)
+				(highlight presentation)))
+			    (when presentation-motion-function
+			      (funcall presentation-motion-function
+				       presentation current-window x y))
+			    (return-from handle-simple-motion))))
+		      (unhighlight)
+		      (when motion-function
+			(when transformp
+			  (multiple-value-bind (tx ty)
+			      (transform-position (medium-transformation current-window)
+						  x y)
+			    (setq x (coordinate tx)
+				  y (coordinate ty))))
+			(funcall motion-function current-window x y))))))
 	      (block input-wait
 		(loop
 		  ;; Handle any clicks or characters, otherwise wait for something
@@ -280,8 +258,8 @@
 				 (multiple-value-bind (tx ty)
 				     (transform-position (medium-transformation current-window)
 							 px py)
-				   (setq wx (floor tx)
-					 wy (floor ty))))
+				   (setq wx (coordinate tx)
+					 wy (coordinate ty))))
 			       (typecase gesture
 				 (pointer-button-press-event
 				   #+Genera (when generate-release-events
@@ -365,8 +343,7 @@
     (when rectangle
       (multiple-value-setq (left top right bottom)
 	(bounding-rectangle* rectangle)))
-    (multiple-value-call
-      #'make-bounding-rectangle
+    (multiple-value-call #'make-bounding-rectangle
       (pointer-input-rectangle* :left left :top top
 				:right right :bottom bottom
 				:stream stream

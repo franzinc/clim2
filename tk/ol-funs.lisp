@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-funs.lisp,v 1.1 92/04/21 16:40:06 cer Exp Locker: cer $
+;; $fiHeader: ol-funs.lisp,v 1.2 92/04/21 20:27:37 cer Exp Locker: cer $
 
 ;;
 ;; This file contains compile time only code -- put in clim-debug.fasl.
@@ -42,3 +42,9 @@
 (defforeign 'ol_set_va_display_warning_msg_handler
     :entry-point "_OlSetVaDisplayWarningMsgHandler")
 
+(defforeign 'ol_add_callback :entry-point "_OlAddCallback")
+
+(defforeign 'ol_set_input_focus :entry-point "_OlSetInputFocus")
+
+(defforeign 'ol_menu_post :entry-point "_OlMenuPost")
+(defforeign 'ol_menu_popdown :entry-point "_OlMenuPopdown")

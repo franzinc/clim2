@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-protocol.lisp,v 1.12 92/04/21 16:13:08 cer Exp Locker: cer $
+;; $fiHeader: input-protocol.lisp,v 1.13 92/05/07 13:12:34 cer Exp $
 
 (in-package :clim-internals)
 
@@ -76,29 +76,20 @@
 						   :root (window-root stream)))))))
 
 (defmethod initialize-instance :after ((stream input-protocol-mixin)
-				       &key 
-				       #+Silica (initial-cursor-visibility t)
-				       #-Silica (initial-cursor-visibility ':inactive))
+				       &key (initial-cursor-visibility t))
   (with-slots (text-cursor) stream
-    #+Silica
     (when text-cursor
       (setf (cursor-active text-cursor) initial-cursor-visibility)
-      (setf (cursor-stream text-cursor) stream))
-    #-Silica
-    (when text-cursor
-      (setf (cursor-stream text-cursor) stream)
-      (setf (cursor-visibility text-cursor) initial-cursor-visibility))))
+      (setf (cursor-stream text-cursor) stream))))
 
-;;; --- Cross-protocol violation here because CURSOR-POSITION is a method on
-;;; --- extended-OUTPUT-protocol right now.  Secondly, this should probably be a
-;;; --- method on the abstract class, anyway.
-#+Silica
+;;--- Cross-protocol violation here because CURSOR-POSITION is a method on
+;;--- extended-OUTPUT-protocol right now.  Secondly, this should probably be a
+;;--- method on the abstract class, anyway.
 (defmethod stream-set-cursor-position :after ((stream input-protocol-mixin) x y)
   (let ((cursor (stream-text-cursor stream)))
     (when cursor
       (cursor-set-position cursor x y))))
 
-#+Silica
 (defmethod stream-set-cursor-position-internal :after ((stream input-protocol-mixin) x y)
   (let ((cursor (stream-text-cursor stream)))
     (when cursor
@@ -111,7 +102,6 @@
     (when cursor
       (setf (cursor-active cursor) nil))))
 
-#+Silica
 (defmethod handle-repaint :after ((stream input-protocol-mixin) medium (region nowhere))
   (declare (ignore medium))
   ;; Repainting nowhere, don't repaint the cursor
@@ -136,25 +126,19 @@
 
 (defmethod pointer-motion-pending ((stream input-protocol-mixin)
 				   &optional
-				   (pointer #+Ignore (stream-primary-pointer stream)))
+				   (pointer #+++ignore (stream-primary-pointer stream)))
   (declare (ignore pointer))					;---
   (with-slots (pointer-motion-pending) stream
     (prog1 pointer-motion-pending
 	   (setf pointer-motion-pending nil))))
 
-(defmethod (setf pointer-motion-pending) (new-value
-					   (stream input-protocol-mixin)
-					   &optional (pointer 
-						       #+Ignore (stream-primary-pointer stream)))
+(defmethod (setf pointer-motion-pending) (new-value (stream input-protocol-mixin)
+					  &optional (pointer #+++ignore (stream-primary-pointer stream)))
   (declare (ignore pointer))					;---
   (with-slots (pointer-motion-pending) stream
     (setf pointer-motion-pending new-value)))
 
-#+Silica
-(progn 
 
-;;; --- assumes that input-protocol-mixin will be mixed in with a sheet that
-;;; has standard-input-contract
 (defmethod queue-event ((stream input-protocol-mixin) (event key-press-event))
   (let ((char (keyboard-event-character event))
 	(keysym (keyboard-event-key-name event)))
@@ -224,16 +208,9 @@
 (defmethod queue-event ((stream input-protocol-mixin) (event window-repaint-event))
   (queue-put (stream-input-buffer stream) (copy-event event)))
 
-)	;#+Silica
 
 (defmethod (setf window-visibility) :after (visibility (stream input-protocol-mixin))
   (declare (ignore visibility))
-  (ensure-pointer-window stream))
-
-(defmethod window-stack-on-top :after ((stream input-protocol-mixin))
-  (ensure-pointer-window stream))
-
-(defmethod window-stack-on-bottom :after ((stream input-protocol-mixin))
   (ensure-pointer-window stream))
 
 (defun ensure-pointer-window (window)
@@ -304,7 +281,6 @@
 	      (funcall input-wait-handler stream)))
 	  (otherwise 
 	    (when input-happened
-	      #+Silica
 	      (let ((gesture (queue-get (stream-input-buffer stream))))
 		(when gesture
 		  ;;--- What we *should* do is to reinstate a separate input
@@ -322,33 +298,7 @@
 			     gesture)))
 		    (when new-gesture
 		      (when peek-p (queue-unget (stream-input-buffer stream) gesture))
-		      (return-from stream-read-gesture new-gesture)))))
-	      #-Silica
-	      (with-slots (input-buffer) stream
-		(let ((gesture (queue-get input-buffer)))
-		  (when gesture
-		    (when peek-p
-		      (queue-unget input-buffer gesture))
-		    ;; --- Foo.  I can't find a general way to communicate from the outside
-		    ;; (i.e. the global event process) that something has happened that the
-		    ;; application should care about.
-		    ;; Add this kludge until BSG's gesture preprocessor (or something) gets
-		    ;; installed.  This could throw when there is no catch tag, but I don't
-		    ;; know how to tell if we are within run-frame-top-level.
-		    (cond ((and (characterp gesture)
-				(member gesture *accelerator-gestures*))
-			   (signal 'accelerator-gesture
-				   :event gesture
-				   :numeric-argument (or *accelerator-numeric-argument* 1)))
-			  ((and (characterp gesture)
-				(member gesture *abort-gestures*))
-			   (let ((cursor (slot-value stream 'text-cursor)))
-			     (when (and cursor
-					(cursor-active-p cursor))
-			       (write-string "[Abort]" stream)
-			       (force-output stream)))
-			   (error 'abort-gesture :event gesture))
-			  (t (return-from stream-read-gesture gesture)))))))))))))
+		      (return-from stream-read-gesture new-gesture))))))))))))
 
 ;; Presentation translators have probably already run...
 (defmethod receive-gesture
@@ -358,6 +308,15 @@
       (progn (funcall *pointer-button-press-handler* stream gesture)
 	     nil)
       gesture))
+
+;;--- This is horrible.  --cer
+;;--- A higher level will have to ignore this in some cases, or else we
+;;--- get release events in input buffers (such as after clicking on
+;;--- something to invoke a translator).  --SWM
+(defmethod receive-gesture
+	   ((stream input-protocol-mixin) (gesture pointer-button-release-event))
+  ;; don't translate it
+  gesture)
 
 (defmethod receive-gesture
 	   ((stream input-protocol-mixin) (gesture (eql ':resynchronize)))
@@ -420,14 +379,7 @@
 (defmethod receive-gesture ((stream input-protocol-mixin) (gesture event))
   (process-event-locally stream gesture)
   nil)
-
-;;;--- This is horrible
-
-(defmethod receive-gesture
-	   ((stream input-protocol-mixin) (gesture pointer-button-release-event))
-  ;; don't translate it
-  gesture)
-
+  
 (defmethod receive-gesture
 	   ((stream input-protocol-mixin) gesture)
   ;; don't translate it
@@ -582,7 +534,7 @@
   (with-slots (input-buffer) stream
     (unless (queue-empty-p input-buffer)
       (return-from stream-input-wait t))
-    ;; Non-silica version is always one-process
+    ;; Non-Silica version is always one-process
     (loop
       (let ((flag (stream-event-handler stream :timeout timeout
 					       :input-wait-test input-wait-test)))
@@ -604,8 +556,8 @@
     ;; Will go blocked if there are no pending events, which unfortunately puts
     ;; the input-wait-test function out of commission.  Need to get the "process-wait"
     ;; story straight.
-    ;; Non-silica version is always one-process
-
+    ;; Silica version is always multi-process
+    ;;--- This won't work on Cloe, what can we steal from the #-Silica stuff?
     (let* ((flag nil)
 	   (start-time (get-internal-real-time))
 	   (end-time (and timeout
@@ -710,61 +662,19 @@
   (stream-set-pointer-position stream x y))
 
 ;;; The primitive we are interested in.  The pointer is in inside-host-window coords.
-#+Silica
 (defun stream-pointer-position-in-window-coordinates (stream &key (timeout 0) pointer)
   (declare (ignore timeout))
   (let ((pointer (or pointer (stream-primary-pointer stream))))
     (pointer-position pointer)))
 
-#-Silica
-(defun stream-pointer-position-in-window-coordinates (stream &key (timeout 0) pointer)
-  ;; Process any pending pointer motion events.
-  (stream-event-handler stream :timeout timeout)
-  (let ((pointer (or pointer (stream-primary-pointer stream))))
-    (multiple-value-bind (left top) (window-offset stream)
-      (declare (type coordinate left top))
-      (if pointer
-	  (multiple-value-bind (x y) (pointer-position pointer)
-	    (declare (type coordinate x y))
-	    (values (- x left) (- y top)))
-	  (values (coordinate 0) (coordinate 0))))))
-
 (defun set-stream-pointer-position-in-window-coordinates (stream x y &key pointer)
   (declare (type real x y))
   (unless pointer (setf pointer (stream-primary-pointer stream)))
   (setf (pointer-position-changed pointer) t)
-  #+Silica
-  (pointer-set-position pointer x y)
-  #-Silica
-  (multiple-value-bind (left top) (window-offset stream)
-    (declare (type coordinate left top))
-    (set-stream-pointer-in-screen-coordinates
-      stream pointer (+ x left) (+ y top))))
+  (pointer-set-position pointer x y))
 
-#-Silica
-(defmethod stream-note-pointer-button-press ((stream input-protocol-mixin)
-					     pointer button modifier-state x y)
-  (declare (ignore pointer))
-  (with-slots (input-buffer) stream
-    (queue-put input-buffer
-	       (make-button-press-event stream 
-					(coordinate x) (coordinate y)
-					button modifier-state))))
-
-#-Silica
-(defmethod stream-note-pointer-button-release ((stream input-protocol-mixin)
-					       pointer button modifier-state x y)
-  (declare (ignore pointer))
-  (with-slots (input-buffer) stream
-    (queue-put input-buffer
-	       (make-button-release-event stream
-					  (coordinate x) (coordinate y)
-					  button modifier-state))))
-
-#+Silica
 (defmethod stream-set-input-focus ((stream input-protocol-mixin))
   (setf (port-keyboard-input-focus (port stream)) stream))
 
-#+Silica
 (defmethod stream-restore-input-focus ((stream input-protocol-mixin) old-focus)
   (setf (port-keyboard-input-focus (port stream)) old-focus))

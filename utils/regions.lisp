@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: regions.lisp,v 1.7 92/04/21 16:12:47 cer Exp Locker: cer $
+;; $fiHeader: regions.lisp,v 1.8 92/05/07 13:11:44 cer Exp $
 
 (in-package :clim-utils)
 
@@ -584,8 +584,8 @@
 (defmethod bounding-rectangle-set-edges ((rectangle standard-bounding-rectangle)
 					 left top right bottom)
   (declare (type real left top right bottom))
-  #+ignore (assert (<= left right))
-  #+ignore (assert (<= top bottom))
+  #+++ignore (assert (<= left right))
+  #+++ignore (assert (<= top bottom))
   (with-slots ((bl left) (bt top) (br right) (bb bottom)) rectangle
     (setq bl (coordinate left)
 	  bt (coordinate top)

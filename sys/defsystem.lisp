@@ -27,7 +27,7 @@
 ;;;
 ;;;-----------------------------------------------------------
 
-;; $fiHeader: defsystem.lisp,v 1.9 92/04/15 11:47:35 cer Exp $
+;; $fiHeader: defsystem.lisp,v 1.10 92/05/07 13:13:12 cer Exp $
 
 ;; Add a feature for ANSI-adhering Lisps.  So far, only Apple's
 ;; version 2.0 tries to do adhere to the ANSI spec instead of CLtL rev 1.
@@ -46,9 +46,9 @@
       (pushnew :ansi-90 *features*))))
 
 #+ANSI-90
-(defpackage "CLIM-DEFSYSTEM"
-  (:use "COMMON-LISP")
-  (:nicknames "CLIM-DEFSYS" "CLIM-DS")
+(defpackage :clim-defsystem
+  (:use :common-lisp)
+  (:nicknames :clim-defsys :clim-ds)
   (:export
     *current-system*
     *defsystem-version*
@@ -70,16 +70,16 @@
 (in-package :clim-defsystem)
 
 #+(or Genera-Release-8-0 Genera-Release-8-1)
-(lisp:in-package "CLIM-DEFSYSTEM"
-		 :use '("LISP")
-		 :nicknames '("CLIM-DEFSYS"))
+(lisp:in-package :clim-defsystem
+		 :use '(:lisp)
+		 :nicknames '(:clim-defsys))
 
 #-(or ANSI-90 Genera-Release-8-0 Genera-Release-8-1)
-(lisp:in-package #-(or lispworks ANSI-90) "CLIM-DEFSYSTEM" 
-            #+lispworks "PDEFSYS"
-            #+ANSI-90 "CLIM-DEFSYSTEM"
-            #-ANSI-90 :use #-ANSI-90 '("LISP")
-            #-ANSI-90 :nicknames #-ANSI-90 '("CLIM-DEFSYS"))
+(lisp:in-package #-(or lispworks ANSI-90) :clim-defsystem 
+            #+lispworks :pdefsys
+            #+ANSI-90 :clim-defsystem
+            #-ANSI-90 :use #-ANSI-90 '(:lisp)
+            #-ANSI-90 :nicknames #-ANSI-90 '(:clim-defsys))
 
 #-ANSI-90
 (export '(*current-system*
@@ -97,7 +97,7 @@
 	  undefsystem
 	  with-compiler-options
 	  with-delayed-compiler-warnings)
-	"CLIM-DEFSYSTEM")
+	:clim-defsystem)
 
 ;;; *** A temporary workaround, easier than fixing all references to
 ;;; *** LISP:<foo>.  --RWK 20.Nov.90
@@ -109,13 +109,15 @@
 	     (assert (not (null pack)) ()
 		     "Attempting to add the name ~S to package ~S, which doesn't exist")
 	     (when (null (find-package add-name))
-	       (rename-package pack (package-name pack)
-			       (list* add-name (package-nicknames pack)))))))
-    (fix-package "COMMON-LISP" "LISP")
-    (fix-package "COMMON-LISP" "CL") ;; ??
-    (fix-package "COMMON-LISP-USER" "USER")
-    (fix-package "COMMON-LISP-USER" "CL-USER")) ;; ??
-  (when (null (find-package "SYSTEM"))
+	       (let (#+Allegro (excl::*enable-package-locked-errors* nil))
+		 (rename-package 
+		   pack (package-name pack)
+		   (list* add-name (package-nicknames pack))))))))
+    (fix-package :common-lisp :lisp)
+    (fix-package :common-lisp :cl) ;; ??
+    (fix-package :common-lisp-user :user)
+    (fix-package :common-lisp-user :cl-user)) ;; ??
+  (when (null (find-package :system))
     (defpackage system)))
 
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: recording-protocol.lisp,v 1.10 92/05/06 15:37:43 cer Exp Locker: cer $
+;; $fiHeader: recording-protocol.lisp,v 1.11 92/05/07 13:12:55 cer Exp $
 
 (in-package :clim-internals)
 
@@ -104,20 +104,19 @@
 	(setf right  (+ nx width)
 	      bottom (+ ny height))))))
 
-#+ignore
+#+++ignore
 (defmethod bounding-rectangle-set-position :around ((record output-record-element-mixin) nx ny)
   (with-bounding-rectangle* (x1 y1 x2 y2) record
     (call-next-method)
     (note-output-record-moved record (- nx x1) (- ny y1) (- nx x2) (- ny y2))))
 
-#+ignore
+#+++ignore
 (defmethod bounding-rectangle-set-edges :around ((record output-record-element-mixin) 
 						 left top right bottom)
   (with-bounding-rectangle* (x1 y1 x2 y2) record
     (call-next-method)
     (note-output-record-moved record (- left x1) (- top y1) (- right x2) (- bottom y2))))
 
-#+Silica
 (defmethod note-output-record-moved ((record output-record-element-mixin) dx1 dy1 dx2 dy2)
   (declare (ignore dx1 dy1 dx2 dy2))
   nil)
@@ -414,7 +413,6 @@
 
 (defmethod children-never-overlap-p ((record output-record-mixin)) nil)
 
-#+Silica
 (defmethod note-output-record-moved :after ((record output-record-mixin) dx1 dy1 dx2 dy2)
   (unless (and (zerop dx1)
 	       (zerop dy1)
@@ -425,7 +423,6 @@
       (declare (dynamic-extent #'note-moved))
       (map-over-output-records #'note-moved record))))
 
-#+Silica
 (defmethod bounding-rectangle-set-position :around ((record output-record-mixin) nx ny)
   (multiple-value-bind (ox oy)
       (output-record-position record)
@@ -435,7 +432,6 @@
 				(coordinate 1) (coordinate 1)
 				(coordinate 1) (coordinate 1)))))
 
-#+Silica
 (defmethod bounding-rectangle-set-edges :around ((record output-record-mixin) 
 						 left top right bottom)
   (declare (ignore  left top right bottom))
@@ -689,12 +685,15 @@
 		     #'replay-1 record region 
 		     (- x-offset) (- y-offset)
 		     (+ x-offset xoff) (+ y-offset yoff))
-		   ;;--- Nasty hack to get around nasty bug
+		   ;;--- Nasty hack to get around nasty bug caused by
+		   ;;--- doing things this way
+		   #+++ignore
 		   (note-output-record-replayed record stream region x-offset y-offset))
 		 (replay-output-record record stream region x-offset y-offset))))
     (declare (dynamic-extent #'replay-1))
     (replay-1 record x-offset y-offset)))
 
+#+++ignore
 (defmethod note-output-record-replayed ((record output-record-mixin) stream
 					&optional region x-offset y-offset)
   (declare (ignore stream region x-offset y-offset))
@@ -1074,8 +1073,8 @@
 
 (defmethod bounding-rectangle-set-edges ((record stream-output-history-mixin)
 					 nleft ntop nright nbottom)
-  #+ignore (assert (<= nleft nright))
-  #+ignore (assert (<= ntop  nbottom))
+  #+++ignore (assert (<= nleft nright))
+  #+++ignore (assert (<= ntop  nbottom))
   (with-slots (left top right bottom parent stream) record
     ;; Top-level output records must not have their upper left corner any
     ;; "later" than (0,0), or else scroll bars and scrolling will not do
@@ -1091,7 +1090,6 @@
 	    bottom (coordinate nbottom))))
   record)
 
-#+Silica
 (defmethod bounding-rectangle-set-edges :around ((record stream-output-history-mixin) 
 						 nleft ntop nright nbottom)
   (let ((nleft (coordinate nleft))
@@ -1238,7 +1236,6 @@
       (stream-close-text-output-record stream))))
 
 ;;; This method should cover a multitude of sins.
-#+Silica
 (defmethod repaint-sheet :after ((stream output-recording-mixin) region)
   ;;--- Who should establish the clipping region?
   ;;--- Is it here or in the handle-repaint method
@@ -1249,92 +1246,10 @@
 		     (bounding-rectangle stream)))))
     (unless (eq clear +nowhere+)
       (with-sheet-medium (medium stream)
-	(with-bounding-rectangle* (a b c d) clear
-				  (draw-rectangle*
-				   medium
-				   a b c d
-				   :ink +background-ink+)))
+	(with-bounding-rectangle* (left top right bottom) clear
+	  (draw-rectangle* medium left top right bottom
+			   :ink +background-ink+)))
       (stream-replay stream region))))
-
-
-;;; For Silica
-;;;--- Consider these old methods on a case-by-case basis to see if the
-;;; general handle-repaint method subsumes them.
-
-;;; --- should merge our process-update-region with handle-repaint
-;;; Do we use it anywhere where Silica isn't generating handle-repaint?
-
-;;; Mix in window-output-recording when you have mixed together
-;;; something supporting the window protocol and something supporting
-;;; the output recording protocol.
-#-Silica
-(progn
-
-(defmethod window-process-update-region :around ((stream window-output-recording))
-  (let ((update-region (slot-value stream 'update-region)))
-    (when update-region
-      (with-output-recording-options (stream :draw t :record nil)
-	(let ((highlighted-presentation (slot-value stream 'highlighted-presentation)))
-	  (when highlighted-presentation
-	    (highlight-output-record stream highlighted-presentation :unhighlight))
-	  (call-next-method)
-	  (dolist (region update-region)
-	    (with-clipping-region (stream region)
-	      (frame-replay *application-frame* stream region)))
-	  (when highlighted-presentation
-	    (highlight-output-record stream highlighted-presentation :highlight))))
-      (window-flush-update-region stream))))
-
-;;;--- We need some version of this code to do the area copying.
-(defmethod window-set-viewport-position :around ((stream window-output-recording)
-						  new-x new-y)
-  (declare (ignore new-x new-y))
-  (with-bounding-rectangle* (left top right bottom) (window-viewport stream)
-    (call-next-method)
-    ;; now replay
-    (with-bounding-rectangle* (nl nt nr nb) (window-viewport stream)
-      (cond
-	;; if some of the stuff that was previously on display is still on display
-	;; bitblt it into the proper place and redraw the rest.
-	((ltrb-overlaps-ltrb-p left top right bottom
-			       nl nt nr nb)
-	 ;; move the old stuff to the new position
-	 (window-shift-visible-region stream left top right bottom
-				      nl nt nr nb)
-	 (window-process-update-region stream))
-	;; otherwise, just redraw the whole visible viewport
-	;; Adjust for the left and top margins by hand so clear-area doesn't erase
-	;; the margin components.
-	(t (multiple-value-bind (ml mt) (window-margins stream)
-	     (declare (type coordinate ml mt))
-	     (multiple-value-bind (vw vh) (window-inside-size stream)
-	       (declare (type coordinate vw vh))
-	       (window-clear-area stream
-				  ml mt (+ ml vw) (+ mt vh))))
-	   (frame-replay *application-frame* stream (window-viewport stream)))))))
-
-(defmethod window-refresh :after ((stream window-output-recording))
-  ;; don't bother me, it takes too long and is useless since
-  ;; we'll refresh this again when it eventually becomes visible
-  (when (window-drawing-possible stream)
-    (frame-replay *application-frame* stream (window-viewport stream))
-    (let ((text-record (stream-text-output-record stream)))
-      (when text-record (replay text-record stream)))
-    (redisplay-decorations stream)))
-
-;;; I don't think that this is needed.
-(defmethod window-note-size-or-position-change :after ((stream window-output-recording)
-						       left top right bottom)
-  (declare (ignore left top right bottom))
-  #+Ignore
-  (when (window-visibility stream)
-    (window-refresh stream)))
-
-;;; --- Define Silica version of this.
-(defmethod window-clear :before ((stream window-output-recording))
-  (clear-output-history stream))
-
-) ; end of #-Silica PROGN
 
 
 ;;; Genera compatibility
