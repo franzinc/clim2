@@ -1,4 +1,4 @@
-%%  $fiHeader: clim.todo,v 1.9 92/03/06 14:17:40 cer Exp Locker: cer $
+%%  $fiHeader: clim.todo,v 1.10 92/03/09 17:41:38 cer Exp Locker: cer $
 
 %% ****************************************** SWM things
 
@@ -265,7 +265,7 @@
   * silica::shift-code is undefined in the gesture code.
 
 % Final spec conformance checking
-
+% Beefing up the test suites.
 % Final testing and bug fixing
 
 % Performance
