@@ -1,4 +1,4 @@
-# $Header: /repo/cvs.copy/clim2/Makefile.generic,v 1.40 1997/05/05 22:35:16 layer Exp $
+# $Header: /repo/cvs.copy/clim2/Makefile.generic,v 1.41 1997/05/30 17:56:31 layer Exp $
 #
 #  Makefile.generic for CLIM 2.0
 #
@@ -264,7 +264,7 @@ xm-dcl	: stub-x.o stub-xt.o stub-motif.o \
 	/bin/mv dcl.climsave dcl ; /bin/mv ucl.climsave ucl; $(RESTEXP)
 
 xm-dcli	: stub-x.o stub-xt.o stub-motif.o stub-wnn.o \
-		 xlibsupport.o xtsupport.o xmsupport.o libwnn.a
+		 xlibsupport.o xtsupport.o xmsupport.o $(WNNLIB)
 	cd $(CL_SRC) ; \
 	/bin/mv dcli dcli.climsave ; /bin/mv ucli ucli.climsave ; $(SAVEEXPI) ; \
 	make initial_oldspace=$(OLDSPACE) oldspace=$(OLDSPACE) \
@@ -273,7 +273,7 @@ xm-dcli	: stub-x.o stub-xt.o stub-motif.o stub-wnn.o \
 		$(PWD)/stub-wnn.o \
 		$(PWD)/xlibsupport.o $(PWD)/xmsupport.o $(PWD)/xtsupport.o \
 		$(CL_SRC)/code/excldep.o $(CL_SRC)/code/socket.o \
-		$(TKLIB) $(XTLIB) $(XLIB) $(PWD)/libwnn.a $(MOTIFXTRAS)' dcli ;\
+		$(TKLIB) $(XTLIB) $(XLIB) $(PWD)/$(WNNLIB) $(MOTIFXTRAS)' dcli ;\
 	/bin/mv dcli xm-dcli ; /bin/mv ucli ucli.clim ;\
 	/bin/mv dcli.climsave dcli ; /bin/mv ucli.climsave ucli; $(RESTEXPI)
 

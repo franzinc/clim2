@@ -1,9 +1,10 @@
-# $Header: /repo/cvs.copy/clim2/Makefile.defs,v 1.40 1997/05/05 22:35:16 layer Exp $
+# $Header: /repo/cvs.copy/clim2/Makefile.defs,v 1.41 1997/05/30 17:56:31 layer Exp $
 #
 #  Makefile.defs for CLIM 2.0
 #
 
-CL	= ../src/lisp -I ../src/dcl.dxl
+#CL	= ../src/lisp -I ../src/dcl.dxl
+CL	= ../src/lispi -I ../src/dcli.dxl
 CLOPTS	= -qq -batch -backtrace-on-error
 
 DEVICE	= /dev/null

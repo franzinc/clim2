@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/wnn/load-wnn.lisp,v 1.5 1997/02/05 01:55:45 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/wnn/load-wnn.lisp,v 1.6 1997/05/30 17:56:33 layer Exp $
 
 (in-package :user)
 
@@ -39,8 +39,7 @@
 
 #+dlfcn
 (unless (ff:get-entry-point (ff:convert-to-lang "jl_open_lang"))
-  (cerror "Continue without wnn"
-	  "Can't load Wnn/jlib dynamically - need to rebuild Lisp"))
+  (load "clim2:;wnn.so"))
 
 (provide :wnn)
 (pushnew :wnn *features*)

@@ -4,12 +4,22 @@ For more detailed instructions on filling in the ChangeLog form, see
 <version for this commit, if applicable>
 
 Documentation changes:	<`none' or give pointer to them>
-Bootstrapping needed:	<`none' or give pointer to instructions>
 Tests for new features:	<`no new features', `no tests for new features', or
 			 give pointer to test files>
 
 <standard changelog date stamp>
 	* <changes go here...>
+
+*******************************************************************************
+Documentation changes:	none
+Tests for new features:	no new features
+
+Fri May 30 10:54:31 1997  Kevin Layer  <layer@ultra>
+
+	* Makefile.defs: use lispi and dcli.dxl, by default
+	* Makefile.generic: parameterize libwnn.a
+	* Makefile.wnn: add rule for wnn.so
+	* wnn/load-wnn.lisp: allow dynamic loading of wnn.so
 
 *******************************************************************************
 Fri May 23 20:28:44 PDT 1997  Tom McClure <tomj@romeo>
