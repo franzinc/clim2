@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: completer.lisp,v 1.17.22.2 1998/07/06 23:08:55 layer Exp $
+;; $Id: completer.lisp,v 1.17.22.3 1999/01/11 17:57:55 layer Exp $
 
 (in-package :clim-internals)
 
@@ -54,6 +54,8 @@
 (define-condition simple-completion-error (simple-parse-error) ())
 (define-condition empty-completion-error (simple-completion-error) ())
 
+;; Note that the usual completion character, Tab, may get filtered out
+;; by xm-silica::discard-accelerator-event-p and thus never be seen by the completer.
 (defun complete-input (stream function
                        &key partial-completers allow-any-input possibility-printer
                             (help-displays-possibilities t))

@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xm-gadgets.lisp,v 1.97.8.4 1998/12/17 00:19:52 layer Exp $
+;; $Id: xm-gadgets.lisp,v 1.97.8.5 1999/01/11 17:58:00 layer Exp $
 
 (in-package :xm-silica)
 
@@ -1540,6 +1540,44 @@
                 (tk::set-values widget :label-pixmap pixmap :label-type :pixmap)
               (tk::set-values widget :label-string name))))))))
 
+(defun warp-pointer-to-dialog-box (dialog framem x-position y-position)
+  ;; The purpose of this function is to ensure that the dialog box becomes
+  ;; selected in the case that the selected sheet must be under the pointer.
+  ;; This is simply to make it easy to say "OK" to the dialog box without
+  ;; having to go to a lot of trouble to select the window.
+  (let ((port (port framem)))
+    (when (eq (silica:port-input-focus-selection port) :sheet-under-pointer)
+      (unless (and x-position y-position)
+	;; Figure out where the left,top of the dialog box is located.
+	(multiple-value-setq (x-position y-position)
+	  (tk::get-values (tk::widget-parent dialog) :x :y))
+	;; Translate to screen coordinates.
+	(tk::with-ref-par ((childreturn 0 :int)
+			   (xreturn 0 :int)
+			   (yreturn 0 :int))
+	  (x11:xtranslatecoordinates (port-display port)
+				     (tk::widget-window dialog)
+				     (tk::display-root-window (port-display port))
+				     x-position y-position
+				     &xreturn &yreturn &childreturn)
+	  (setq x-position xreturn y-position yreturn)))
+      ;; Decide where to put the pointer.
+      (incf x-position 30)
+      (incf y-position 60)
+      ;; Do it.
+      (x11:xwarppointer
+       (port-display port)
+       0				; src
+       (tk::widget-window dialog)	; dest
+       0				; src-x
+       0				; src-y
+       0				; src-width
+       0				; src-height
+       (fix-coordinate x-position)
+       (fix-coordinate y-position)))))
+
+(defvar *warp-pointer-to-dialogs* nil)
+
 (defmethod frame-manager-notify-user ((framem motif-frame-manager)
                                       message-string
                                       &key
@@ -1554,13 +1592,11 @@
 					 (graft framem)))
                                       (title "Notify user")
                                       documentation
-                                      (exit-boxes
-				       '(:exit
-					 :abort
-					 :help))
+                                      (exit-boxes '(:exit :abort :help))
                                       (name :notify-user)
 				      x-position
 				      y-position
+				      (warp-pointer *warp-pointer-to-dialogs*)
 				      (abort-on-cancel-p nil))
   (let* ((initargs (find-widget-resource-initargs-for-sheet
 		    (port framem) associated-window
@@ -1612,7 +1648,12 @@
 		(tk::manage-child dialog)
 		(when (and x-position y-position)
 		  (tk::set-values dialog :x x-position :y y-position))
+		
 		(tk::set-values (tk::widget-parent dialog) :mapped-when-managed t)
+		
+		(when warp-pointer
+		  (warp-pointer-to-dialog-box dialog framem x-position y-position))
+		
 		(with-toolkit-dialog-component (notify-user (list message-string :style))
 		  (wait-for-callback-invocation
 		   (port framem)
@@ -2066,6 +2107,8 @@
                             'sheet-mirror-event-handler
                             sheet))))
 
+;;; JPM: Note Tab is considered the completion character, and
+;;; this code prevents it from being used as such.
 (defmethod discard-accelerator-event-p ((port motif-port) event)
   (or (call-next-method)
       ;;-- There are a whole bunch of other keysyms that need to be

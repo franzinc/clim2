@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xt-silica.lisp,v 1.108.22.6 1998/07/21 02:54:52 layer Exp $
+;; $Id: xt-silica.lisp,v 1.108.22.7 1999/01/11 17:58:02 layer Exp $
 
 (in-package :xm-silica)
 
@@ -39,7 +39,7 @@
      (cursor-font :initform nil)
      (cursor-cache :initform nil)
      (font-cache :initform (make-hash-table :test #'equal))
-     (compose-status :initform (x11:make-xcomposestatus)
+     (compose-status :initform (make-xcomposestatus)
 		     :reader port-compose-status)
      #+ignore ;; figure out how to get this translation
      (fm-ornamentation-offset :initform nil
@@ -47,6 +47,9 @@
   (:default-initargs :allow-loose-text-style-size-mapping t
 		     :deep-mirroring t)
   (:documentation "The port for X intrinsics based ports"))
+
+(defun make-xcomposestatus ()
+  (clim-utils::allocate-cstruct 'x11::xcomposestatus :initialize t))
 
 (defmethod port-type ((port xt-port))
   ':xt)
@@ -977,7 +980,12 @@
     (if (stringp mapping)
 	(setf (text-style-mapping port text-style character-set)
 	  (find-named-font port mapping character-set))
-      mapping))))
+      mapping)))
+
+(defmethod font-set-from-font-list ((port xt-port) font-list)
+  (error "not yet implemented for non-ics lisp"))
+
+)
 
 ) ;; ics-target-case
 

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: standard-types.lisp,v 1.38.22.3 1998/12/17 00:19:13 layer Exp $
+;; $Id: standard-types.lisp,v 1.38.22.4 1999/01/11 17:57:56 layer Exp $
 
 (in-package :clim-internals)
 
@@ -494,8 +494,9 @@
   ;; Slow but accurate
   (let* ((pathname (pathname string))
          (merged-pathname (merge-pathnames pathname default))
+	 (version (pathname-version pathname))
          completions)
-    (cond ((pathname-version pathname)
+    (cond ((and version (not (eq version :unspecific)))
            ;; Get around file-system braino I don't know how to resolve
            (setq completions (directory pathname)))
           (t
@@ -508,7 +509,7 @@
           (type (pathname-type pathname)))
       (setq completions
             (delete-if-not
-              #'(lambda (pn)
+	     #'(lambda (pn)
                   (let* ((pn-name (pathname-name pn))
                          (pn-type (pathname-type pn)))
                     (cond (type
@@ -517,7 +518,7 @@
                              (let ((s (search type pn-type :test #'char-equal)))
                                (and s (zerop s)))))
                           (t
-                           (let ((s (search name (pathname-name pn)
+                           (let ((s (search name pn-name
                                             :test #'char-equal)))
                              (if (eq action :apropos-possibilities)
                                  (not (null s))

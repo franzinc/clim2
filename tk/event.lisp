@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: event.lisp,v 1.27.22.2 1998/07/06 23:10:09 layer Exp $
+;; $Id: event.lisp,v 1.27.22.3 1999/01/11 17:57:56 layer Exp $
 
 (in-package :tk)
 
@@ -115,7 +115,14 @@
 
 (defparameter *match-event-sequence-and-types-address* nil)
 
-(defvar *event-matching-event* (x11:make-xevent :in-foreign-space t))
+(defvar *event-matching-event* nil)
+
+(defun make-xevent ()
+  (clim-utils::allocate-cstruct 'x11::xevent :initialize t))
+
+(defun event-matching-event ()
+  (or *event-matching-event*
+      (setq *event-matching-event* (make-xevent))))
 
 (defun get-event-matching-sequence-and-types (display-object seq-no types
 					      &key (block t))
@@ -128,7 +135,7 @@
 	 (data (make-array (+ 3 (length types))
 			   :element-type '(unsigned-byte 32)))
 	 (i 2)
-	 (resulting-event *event-matching-event*)
+	 (resulting-event (event-matching-event))
 	 (addr (or *match-event-sequence-and-types-address*
 		   (setq *match-event-sequence-and-types-address*
 		     (register-function 'match-event-sequence-and-types))))

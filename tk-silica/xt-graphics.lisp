@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xt-graphics.lisp,v 1.95.8.2 1998/07/06 23:10:22 layer Exp $
+;; $Id: xt-graphics.lisp,v 1.95.8.3 1999/01/11 17:58:01 layer Exp $
 
 (in-package :tk-silica)
 
@@ -162,9 +162,10 @@
 	      (color-rgb color)
 	    (let* ((x #.(1- (ash 1 16))))
 	      (make-instance 'tk::color
-			     :red (truncate (* x red))
-			     :green (truncate (* x green))
-			     :blue (truncate (* x blue)))))))))
+		:in-foreign-space t
+		:red (truncate (* x red))
+		:green (truncate (* x green))
+		:blue (truncate (* x blue)))))))))
 
 (defmethod find-named-color (name (palette xt-palette) &key (errorp t))
   (let ((named-color-cache (palette-named-color-cache palette)))
