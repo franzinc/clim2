@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-frames.lisp,v 2.5 2004/01/16 19:15:39 layer Exp $
+;; $Id: acl-frames.lisp,v 2.5.26.1 2004/09/28 23:34:53 mm Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -1991,28 +1991,34 @@ in a second Lisp process.  This frame cannot be reused."
 ;;; it relative to the main-screen.  So, here we just
 ;;; do it all by hand.
 (defmethod clim-internals::frame-manager-position-dialog 
-    ((framem acl-clim::acl-frame-manager)
-     frame
-     own-window-x-position own-window-y-position)
+  ((framem acl-clim::acl-frame-manager)
+   frame
+   own-window-x-position
+   own-window-y-position)
   ;; This definition overrides the more general method in clim/accept-values.lisp
-  (let ((calling-frame nil))
+  (let ((calling-frame nil) calling-frame-top-level-sheet frame-top-level-sheet)
     (multiple-value-bind (x y) 
 	(cond ((and own-window-x-position own-window-y-position)
 	       ;; If value is specified, use that.
 	       (values own-window-x-position own-window-y-position))
 	      ((and (setq calling-frame (frame-calling-frame frame))
-		    (popup-frame-p frame))
+		    (popup-frame-p frame)
+		    ;; Make sure these values exist before using them [bug14769]
+	            (setq calling-frame-top-level-sheet
+			  (frame-top-level-sheet calling-frame))
+                    (setq frame-top-level-sheet (frame-top-level-sheet frame))
+		    )
 	       ;; If frame is a designated pop-up, 
 	       ;; try to center over the calling frame.
-	       (let ((calling-frame-top-level-sheet (frame-top-level-sheet calling-frame))
-		     (frame-top-level-sheet (frame-top-level-sheet frame)))
-		 (multiple-value-bind (calling-frame-left calling-frame-top calling-frame-width)
+	       (let ()
+		 (multiple-value-bind (calling-frame-left calling-frame-top
+							  calling-frame-width)
 		     (bounding-rectangle* calling-frame-top-level-sheet)
 		   (let ((frame-width (bounding-rectangle-size frame-top-level-sheet)))
 		     (let ((offset (/ (- calling-frame-width frame-width) 2))) 
 		       (multiple-value-bind (new-x new-y) 
-			   (transform-position 
-			    (sheet-delta-transformation calling-frame-top-level-sheet nil) 
+			   (transform-position (sheet-delta-transformation
+                                                calling-frame-top-level-sheet nil) 
 					       calling-frame-left calling-frame-top) 
 			 (values (+ new-x offset)
 				 (+ new-y 10))))))))
@@ -2022,5 +2028,6 @@ in a second Lisp process.  This frame cannot be reused."
 		       clim-internals::+frame-manager-position-dialog-default-y+)))
       (position-sheet-carefully
        (frame-top-level-sheet frame) x y))))
+
 
 

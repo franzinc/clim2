@@ -1,3 +1,8 @@
+2004-09-28    <mm@KETCHTOO>
+
+	* acl-frames.lisp (clim-internals::frame-manager-position-dialog): 
+	                 Make sure values exist before using them [bug14769]
+
 2004-08-16    <layer@HOBART>
 
 	* aclpc/acl-port.lisp: win:size -> win:win-size
@@ -5946,4 +5951,4 @@ IGNORE JDI SPECIFIC CHANGES TO Makefile
 	Lots of other stuff
 
 *******************************************************************************
-$Revision: 2.10.4.3 $
+$Revision: 2.10.4.4 $
