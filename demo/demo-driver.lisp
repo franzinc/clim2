@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: demo-driver.lisp,v 1.24 1993/07/27 01:45:21 colin Exp $
+;; $fiHeader: demo-driver.lisp,v 1.25 1993/09/17 00:20:30 colin Exp $
 
 (in-package :clim-demo)
 
@@ -16,10 +16,10 @@
 
 (defmacro define-demo (name class &rest initargs)
   (let ((do-name (clim-utils:fintern "~A-~A" 'do class)))
-    `(let ((demo (make-instance 'demo :name ,name 
-				:class ',class :initargs ',initargs)))
+    `(let ((demo (make-instance 'demo 
+		   :name ,name :class ',class :initargs ',initargs)))
        (clim-utils:push-unique demo
-			       *demos* :test #'string-equal :key #'demo-name)
+	 *demos* :test #'string-equal :key #'demo-name)
        (defun ,do-name (&rest args)
 	 (apply #'run-demo demo args)))))
 
@@ -66,25 +66,27 @@
 
 (defun run-demo (demo &key (port (find-port)) force)
   (let* ((entry (assoc port (demo-frames demo)))
-	 (frame (cdr entry)))
+	 (frame (cdr entry))
+	 (activity-p (subtypep (demo-class demo) 'activity)))
     (when (or force (null frame))
-      (setq frame (apply #'make-application-frame
+      (setq frame (apply (if activity-p
+			     #'make-instance
+			   #'make-application-frame)
 			 (demo-class demo)
 			 :frame-manager (find-frame-manager :port port)
 			 (demo-initargs demo))))
     (if entry
 	(setf (cdr entry) frame)
       (push (cons port frame) (demo-frames demo)))
-    (case (frame-state frame)
-      ((:enabled :shrunk)
-       (note-frame-deiconified (frame-manager frame) frame)
-       (raise-frame frame))
-      (t
-       (run-frame-top-level frame)))))
+    (if (slot-value frame 'clim-internals::top-level-process)
+	(unless activity-p
+	  (note-frame-deiconified (frame-manager frame) frame)
+	  (raise-frame frame))
+      (run-frame-top-level frame))))
 
-(let ((demo (make-instance 'demo :name "Demo Driver"
-			   :class 'demo-driver
-			   :initargs '(:left 0 :top 0))))
+(let ((demo (make-instance 'demo
+	      :name "Demo Driver" :class 'demo-driver
+	      :initargs '(:left 0 :top 0))))
   (defun start-demo (&rest args)
     (apply #'run-demo demo args)))
 
