@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-frames.lisp,v 1.42 92/12/03 10:30:17 cer Exp $
+;; $fiHeader: xm-frames.lisp,v 1.43 92/12/07 12:15:56 cer Exp $
 
 (in-package :xm-silica)
 
@@ -145,9 +145,7 @@
 		 (let* ((ct (find-command-table (second item)))
 			(tick (slot-value ct 'clim-internals::menu-tick)))
 		   (make-menu-for-command-table ct submenu nil)
-		   ;;-- This is what we wanted to do but looses
-		   ;;-- because of the shared shell
-		  (setf (tk::widget-create-popup-child-proc shell)
+		   (xt::add-callback shell :popup-callback
 		    #'(lambda (shell)
 			(declare (ignore shell))
 			(let ((children
@@ -155,12 +153,12 @@
 			  (when (or (null children)
 				    (/= tick
 					(setq tick
-					  (slot-value ct 'clim-internals::menu-tick))))
-			    (mapc #'tk::destroy-widget children)
+					  (slot-value ct
+						      'clim-internals::menu-tick))))
+			    (tk::unmanage-children children)
 			    (make-menu-for-command-table
-			     ct
-			     submenu
-			     nil))))))))
+			     ct submenu nil)
+			    (mapc #'tk::destroy-widget children))))))))
 	     (make-menu-for-command-table-1 (command-table parent top)
 	       ;; Unless we are at the top level we want to have a
 	       ;; map-before callback that sets the sensitivity of

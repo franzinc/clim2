@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: port.lisp,v 1.26 92/12/01 09:46:29 cer Exp $
+;; $fiHeader: port.lisp,v 1.27 92/12/07 12:15:18 cer Exp $
 
 (in-package :silica)
 
@@ -114,11 +114,12 @@
 
 (defgeneric port-event-loop (port))
 (defmethod port-event-loop ((port basic-port))
-  (with-simple-restart (nil "Exit event loop for ~A" port)
-    (loop
-      (with-simple-restart (nil "Restart event loop for ~A" port)
-	(loop
-	  (process-next-event port))))))
+  (letf-globally (((port-alive-p port) t))
+    (with-simple-restart (nil "Exit event loop for ~A" port)
+      (loop
+	(with-simple-restart (nil "Restart event loop for ~A" port)
+	  (loop
+	    (process-next-event port)))))))
 
 
 (defgeneric destroy-port (port))
@@ -142,6 +143,7 @@
 (defmethod port-terminated ((port basic-port) condition)
   ;;--- Should mark it as dead 
   (setq *ports* (delete port *ports*))
+  (setf (port-alive-p port) nil)
   (dolist (graft (port-grafts port))
     (dolist (sheet (sheet-children graft))
       (queue-event sheet (make-instance 'port-terminated 

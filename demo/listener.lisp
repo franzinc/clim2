@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: listener.lisp,v 1.25 92/11/20 08:45:25 cer Exp $
+;; $fiHeader: listener.lisp,v 1.26 92/12/03 10:28:45 cer Exp $
 
 (in-package :clim-demo)
 
@@ -245,7 +245,25 @@
     ((restart 'restart-name :gesture :select))
   (if (eql restart *enter-debugger*)
       (enter-debugger *standard-input*)
-      (invoke-restart restart)))
+    (let (values)
+      #+Allegro
+      (case (restart-name (find-restart restart))
+	(excl::return-value
+	 (setq values
+	   (list (eval
+		  (accept 'form :stream *standard-input*
+			  :prompt "Enter value to return")))))
+	(excl::try-a-different-function
+	 (setq values
+	   (list (eval
+		  (accept 'form :stream *standard-input*
+			  :prompt "enter expression which will evaluate to the function to call")))))
+	(excl::try-a-different-function-setf
+	 (setq values
+	   (list (eval
+		  (accept 'form :stream *standard-input*
+			  :prompt "enter expression which will evaluate to the function to call"))))))
+      (apply #'invoke-restart restart values))))
 
 (define-lisp-listener-command (com-describe-error :name t) ()
   (describe-error *error-output*))

@@ -20,13 +20,13 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: train.lisp,v 1.1 92/12/01 09:46:08 cer Exp $
+;; $fiHeader: train.lisp,v 1.2 92/12/07 12:15:06 cer Exp $
 
-(defun train-clim (&key (train-times 2) (psview nil) (frame-tests t))
+(defun train-clim (&key (train-times 2) (psview nil) (frame-tests t) (errorp t))
   (load "test/test.lisp") 
   (when frame-tests
     (clim-user::train-clim-2 train-times) 
-    (clim-user::do-frame-tests))
+    (clim-user::do-frame-tests errorp))
   (when psview
     (load "test/postscript-tests.lisp")
     (clim-user::run-postscript-tests :output psview))

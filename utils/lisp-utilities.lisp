@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: lisp-utilities.lisp,v 1.25 92/11/20 08:47:09 cer Exp $
+;; $fiHeader: lisp-utilities.lisp,v 1.26 92/12/03 10:30:41 cer Exp $
 
 (in-package :clim-utils)
 
@@ -567,12 +567,19 @@
      (declare (dynamic-extent ,var))
      ,@body))
 
-#+(and (target-class r t) (version>= 4 1))
+#+(and (target-class h r t) (version>= 4 1))
 ;; Hack to allow compiling CLIM without a dcl.
 (eval-when (eval compile)
   comp::(def-qc-ll-fcn qc-ll_<u :<u
 	  (with-u-computed
 	    (qc-boolean-compare :ltu u target cc))))
+
+#+(and (target-class h) (version>= 4 1))
+(defun-inline evacuate-list (list)
+  ;; the HP's stack grows toward higher memory
+  (if (comp::ll :<u (comp::ll :glob-c-value 'sys::c_stackmax) list)
+      (copy-list list)
+    list))
 
 #+(and (target-class r t) (version>= 4 1))
 (defun-inline evacuate-list (list)
@@ -580,7 +587,7 @@
       (copy-list list)
     list))
 
-#-(and (target-class r t) (version>= 4 1))
+#-(and (target-class h r t) (version>= 4 1))
 (defmacro evacuate-list (list) `,list)
 
 )	;#+Allegro

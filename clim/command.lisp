@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: command.lisp,v 1.17 92/09/24 09:38:32 cer Exp $
+;; $fiHeader: command.lisp,v 1.18 92/11/06 18:59:12 cer Exp $
 
 (in-package :clim-internals)
 
@@ -159,10 +159,11 @@
 (defmacro define-command-table (name &key inherit-from (menu nil menu-p) inherit-menu)
   #+Genera (declare (zwei:indentation 1 1))
   (setf (compile-time-property name 'command-table-name) t)
-  `(define-command-table-1 ',name 
-			   :inherit-from ',inherit-from 
-			   ,@(and menu-p `(:menu ',menu))
-			   :inherit-menu ,inherit-menu))
+  `(define-group ,name define-command-table
+     (define-command-table-1 ',name 
+	 :inherit-from ',inherit-from 
+	 ,@(and menu-p `(:menu ',menu))
+	 :inherit-menu ,inherit-menu)))
 
 (defun remove-command-table (name)
   ;; This could hack inheritance, too...

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: frames.lisp,v 1.53 92/12/03 10:26:35 cer Exp $
+;; $fiHeader: frames.lisp,v 1.54 92/12/07 12:14:15 cer Exp $
 
 (in-package :clim-internals)
 
@@ -248,7 +248,8 @@
 	   (cloe:define-program ,name ()
 	     :main ,name
 	     :debugger-hook cloe-debugger-hook)
-	   ,@(compute-generate-panes-code name pane panes layouts)))))))
+	   ,@(compute-generate-panes-code name pane panes layouts)
+	   ',name))))))
 
 #+Genera
 (scl:defprop define-application-frame "CLIM Application Frame" si:definition-type-name)
@@ -333,6 +334,7 @@
 			 ,code)))))))))
 
 (defun compute-complex-generate-panes-code (name panes layouts)
+  (check-type layouts list)
   (let ((frame '#:frame)
 	(framem '#:framem))
     `((defmethod generate-panes ((,framem standard-frame-manager) (,frame ,name))
@@ -355,6 +357,7 @@
 			    layouts)))))))))))
 
 (defun compute-pane-constructor-code (panes)
+  (check-type panes list)
   `(list ,@(mapcar #'(lambda (pane-spec)
 		       (destructuring-bind (name code &rest options) pane-spec
 			 (setq code (canonicalize-pane-spec name code options))

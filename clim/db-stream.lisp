@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-stream.lisp,v 1.39 92/12/03 10:26:23 cer Exp $
+;; $fiHeader: db-stream.lisp,v 1.40 92/12/07 12:14:11 cer Exp $
 
 (in-package :clim-internals)
 
@@ -69,12 +69,12 @@
 	(stream-close-text-output-record sheet)))))
 
 (defmethod default-space-requirements ((pane clim-stream-sheet)
-				       &key (width 0 widthp)
-					    (min-width width)
-					    (max-width (if widthp width +fill+))
-					    (height 0 heightp)
-					    (min-height height)
-					    (max-height (if heightp height +fill+)))
+				       &key (min-width 0)
+					    (width 100)
+					    (max-width +fill+)
+					    (min-height 0)
+					    (height 100)
+					    (max-height +fill+))
   (values width min-width max-width height min-height max-height))
 
 (defclass clim-stream-pane (clim-stream-sheet)
@@ -158,6 +158,8 @@
 				     :max-width width
 				     :max-height height)))))))
 		   (bounding-rectangle-size record))
+	       (when (zerop width) (setq width 100))
+	       (when (zerop height) (setq height 100))
 	       (do-with-space-req-components progn
 		   sr-component (sr-width sr-min-width sr-max-width)
 		 (when (eq sr-component :compute)
@@ -319,15 +321,7 @@
 				 &allow-other-keys)
   (setq options (remove-keywords options '(:type :scroll-bars :borders :label
 					   :label-alignment :display-after-commands)))
-  (macrolet ((setf-unless (slot-keyword value)
-	       `(when (eq (getf options ',slot-keyword #1='#:default) #1#)
-		  (setf (getf options ',slot-keyword) ,value))))
-    (setf-unless :width 100)
-    (setf-unless :min-width 0)
-    (setf-unless :max-width +fill+)
-    (setf-unless :height 100)
-    (setf-unless :min-height 0)
-    (setf-unless :max-height +fill+))
+  
   (let* ((stream '#:clim-stream)
 	 (display-time
 	   (and dac-p

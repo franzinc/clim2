@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: packages.lisp,v 1.42 92/12/03 10:30:45 cer Exp $
+;; $fiHeader: packages.lisp,v 1.43 92/12/07 12:16:09 cer Exp $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :common-lisp-user)
 
@@ -1841,6 +1841,7 @@
     pointer-motion-event
     poll-pointer
     port
+    port-alive-p
     port-keyboard-input-focus
     port-modifier-state
     port-pointer
@@ -2499,6 +2500,7 @@
     *possibilities-gestures*
     *standard-activation-gestures*
     activation-gesture-p
+    add-input-editor-command
     complete-from-generator
     complete-from-possibilities
     complete-input
@@ -2900,6 +2902,12 @@
     ;; PostScript
     new-page
     with-output-to-postscript-stream)
+  
+  #+Allegro
+  (:export
+   read-bitmap-file
+   *bitmap-search-path*
+   make-pattern-from-bitmap-file)
 
   ;; Primary colors
   (:export

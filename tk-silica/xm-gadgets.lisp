@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.58 92/11/18 15:55:18 colin Exp $
+;; $fiHeader: xm-gadgets.lisp,v 1.59 92/11/20 08:46:44 cer Exp $
 
 (in-package :xm-silica)
 
@@ -543,14 +543,20 @@
                    (editable gadget-editable-p)
                    (ncolumns gadget-columns)
                    (nlines gadget-lines)) sheet
-    (values 'tk::xm-text
-            (append
-	     (and (not editable) '(:cursor-position-visible nil))
-             (list :edit-mode :multi-line)
-             (list :editable editable)
-             (and ncolumns (list :columns ncolumns))
-             (and nlines (list :rows nlines))
-             (and value `(:value ,value))))))
+    (let ((scroll-mode
+	   (let ((p (sheet-parent sheet)))
+	     (and (typep p 'motif-scroller-pane)
+		  (silica::scroller-pane-scroll-bar-policy p)))))
+      (values 'tk::xm-text
+	      (append
+	       `(:scroll-horizontal ,(and (member scroll-mode '(:both :horizonal :dynamic)) t))
+	       `(:scroll-vertical ,(and (member scroll-mode '(:both :vertical :dynamic)) t))
+	       (and (not editable) '(:cursor-position-visible nil))
+	       (list :edit-mode :multi-line)
+	       (list :editable editable)
+	       (and ncolumns (list :columns ncolumns))
+	       (and nlines (list :rows nlines))
+	       (and value `(:value ,value)))))))
 
 (defmethod (setf gadget-editable-p) :after (nv (te motif-text-editor))
   (let ((m (sheet-direct-mirror te)))
@@ -892,9 +898,17 @@
                    (visible-items gadget-visible-items)
                    (name-key set-gadget-name-key)) sheet
     (let ((selected-items
-           (compute-list-pane-selected-items sheet value)))
+           (compute-list-pane-selected-items sheet value))
+	  (scroll-mode
+	   (let ((p (sheet-parent sheet)))
+	     (and (typep p 'motif-scroller-pane)
+		  (silica::scroller-pane-scroll-bar-policy p)))))
       (values 'xt::xm-list 
               `(
+		:scroll-bar-display-policy 
+		,(case scroll-mode
+		   ((:vertical :both) :static)
+		   (t :dynamic))
                 ,@(and selected-items
                        `(:selected-item-count ,(length selected-items)
                          :selected-items ,selected-items))
@@ -1036,20 +1050,22 @@
                                            :abort
                                            :help))
                                       (name title))
-  (let ((dialog (make-instance (ecase style
-                                 (:inform 'tk::xm-information-dialog)
-                                 (:error 'tk::xm-error-dialog)
-                                 (:question 'tk::xm-question-dialog)
-                                 (:warning 'tk::xm-warning-dialog))
-                               :dialog-style :primary-application-modal
-                               :managed nil
-                               :parent (if (typep associated-window 'xt::xt-root-class)
-                                           associated-window
-                                           (sheet-mirror associated-window))
-                               :name name
-                               :dialog-title title
-                               :message-string message-string
-                               ))
+  (let ((dialog (apply #'make-instance (ecase style
+					 (:inform 'tk::xm-information-dialog)
+					 (:error 'tk::xm-error-dialog)
+					 (:question 'tk::xm-question-dialog)
+					 (:warning 'tk::xm-warning-dialog))
+		       :dialog-style :primary-application-modal
+		       :managed nil
+		       :parent (if (typep associated-window 'xt::xt-root-class)
+				   associated-window
+				 (sheet-mirror associated-window))
+		       :name name
+		       :dialog-title title
+		       :message-string message-string
+		       (and text-style
+			    (let ((fonts (list (text-style-mapping (port framem) text-style))))
+			      `(:label-font-list ,fonts :button-font-list ,fonts :text-font-list ,fonts)))))
         (result nil))
     (multiple-value-bind
         (ok-button cancel-button help-button)

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: convenience.lisp,v 1.11 92/07/27 19:28:54 cer Exp $
+;; $fiHeader: convenience.lisp,v 1.12 92/08/18 17:53:30 cer Exp $
 
 (in-package :tk)
 
@@ -32,7 +32,7 @@
       `(progn
 	 (eval-when (eval compile)
 	   (defforeign ',c-function-name
-	       :entry-point ,entry-point
+	       :entry-point (ff:convert-to-lang ,entry-point)
 	       :call-direct t
 	       :arguments '(foreign-address foreign-address foreign-address fixnum)
 	       :arg-checking nil
@@ -60,18 +60,18 @@
 	       (xt_manage_child o))
 	     o))))))
 
-(define-convenience-class xm-menu-bar (xm-row-column) "_XmCreateMenuBar")
-(define-convenience-class xm-pulldown-menu (xm-row-column) "_XmCreatePulldownMenu")
-(define-convenience-class xm-radio-box (xm-row-column) "_XmCreateRadioBox")
-(define-convenience-class xm-popup-menu (xm-row-column) "_XmCreatePopupMenu")
+(define-convenience-class xm-menu-bar (xm-row-column) "XmCreateMenuBar")
+(define-convenience-class xm-pulldown-menu (xm-row-column) "XmCreatePulldownMenu")
+(define-convenience-class xm-radio-box (xm-row-column) "XmCreateRadioBox")
+(define-convenience-class xm-popup-menu (xm-row-column) "XmCreatePopupMenu")
 
-(define-convenience-class xm-option-menu (xm-row-column) "_XmCreateOptionMenu")
+(define-convenience-class xm-option-menu (xm-row-column) "XmCreateOptionMenu")
 
-(define-convenience-class xm-question-dialog (xm-message-box) "_XmCreateQuestionDialog")
-(define-convenience-class xm-warning-dialog (xm-message-box) "_XmCreateWarningDialog")
-(define-convenience-class xm-information-dialog (xm-message-box) "_XmCreateInformationDialog")
-(define-convenience-class xm-error-dialog (xm-message-box) "_XmCreateErrorDialog")
+(define-convenience-class xm-question-dialog (xm-message-box) "XmCreateQuestionDialog")
+(define-convenience-class xm-warning-dialog (xm-message-box) "XmCreateWarningDialog")
+(define-convenience-class xm-information-dialog (xm-message-box) "XmCreateInformationDialog")
+(define-convenience-class xm-error-dialog (xm-message-box) "XmCreateErrorDialog")
 
 (define-convenience-class xm-file-selection-dialog
     (xm-file-selection-box) 
-  "_XmCreateFileSelectionDialog")
+  "XmCreateFileSelectionDialog")

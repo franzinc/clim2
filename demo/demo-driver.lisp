@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: demo-driver.lisp,v 1.19 92/11/19 14:24:08 cer Exp $
+;; $fiHeader: demo-driver.lisp,v 1.20 92/12/03 10:28:38 cer Exp $
 
 (in-package :clim-demo)
 
@@ -70,79 +70,3 @@
 		     :provide-output-destination-keyword nil)
     ()
   (start-demo))
-
-
-#-Symbolics
-(progn
-
-(define-application-frame demo-frame ()
-    ((style :initform :graph))
-  (:command-table (demo-frame :inherit-from (accept-values-pane)))
-  (:panes
-    (display :application
-	     :width :compute :height :compute
-	     :display-function 'graph-demos
-	     :incremental-redisplay t
-	     :scroll-bars :both)
-    (options :accept-values
-	     :width :compute :height :compute
-	     :display-function '(accept-values-pane-displayer :displayer display-options)))
-  (:menu-bar nil)
-  (:layouts
-    (default (vertically () display options))))
-
-(defmethod display-options ((frame demo-frame) pane &key &allow-other-keys)
-  (with-slots (style) frame
-    (setf style (accept '(member :list :graph)
-			:default style
-			:stream pane
-			:prompt "Style"))))
-
-(defmethod graph-demos ((frame demo-frame) pane &key &allow-other-keys)
-  (flet ((display-button (stream object)
-	   (write-string (car object) excl::*initial-terminal-io*)
-	   (write-string (car object) stream)
-	   #+ignore
-	   (with-output-as-gadget (stream)
-	     (flet ((do-callback (gadget) 
-		      (declare (ignore gadget))
-		      (if (string= (car object) "Exit")
-			  (frame-exit frame)
-			  (clim-sys:make-process
-			    (if (functionp (cdr object))
-				(cdr object)
-				#'(lambda () (funcall (cdr object))))
-			    :name (car object)))))
-	       (make-pane 'push-button 
-		 :activate-callback #'do-callback
-		 :label (car object))))))
-    (with-slots (style) frame
-      (updating-output (pane :unique-id 'foo :cache-value style)
-	(ecase style
-	  (:graph
-	    (flet ((print-node (object stream)
-		     (if (eq object :root)
-			 (with-text-style (stream '(nil :bold :large))
-			   (format stream "CLIM 2.0 demos"))
-			 (display-button stream object)))
-		   (get-children (object)
-		     #+allegro (print object excl::*initial-terminal-io*)
-		     (case object
-		       ((:root) (copy-list *demos*))
-		       (t nil))))
-	      (format-graph-from-root :root #'print-node #'get-children
-				      :stream pane)))
-	  (:list
-	    (formatting-item-list (pane :n-columns 1)
-	      (dolist (demo *demos*)
-		(formatting-cell (pane)
-		  (write-string (car demo) pane)
-		  #+ignore
-		  (display-button pane demo))))))))))
-
-(defun do-demos (&key (port (find-port)))
-  (run-frame-top-level 
-    (make-application-frame 'demo-frame
-			    :frame-manager (find-frame-manager :port port))))
-
-)	;#-Symbolics

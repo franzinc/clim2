@@ -20,18 +20,15 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: make-classes.lisp,v 1.25 92/08/18 17:53:38 cer Exp Locker: cer $
+;; $fiHeader: make-classes.lisp,v 1.26 92/09/30 11:44:34 cer Exp $
 
 (in-package :tk)
 
-(defun get-entry-point-value (x)  
-  (let ((xx (make-array 1 :element-type '(unsigned-byte 32))))
-    (unless (zerop (get-entry-points (vector x) xx))
-      (error "Cannot find the entry-point for: ~S" x))
-    (aref xx 0)))
-
 (defun get-foreign-variable-value (x)
-  (class-array (get-entry-point-value x) 0))
+  (let ((ep #+:hpprism (ff:get-extern-data-address x)
+	    #-:hpprism (ff:get-entry-point x)))
+    (unless ep (error "Entry point ~S not found" x))
+    (class-array ep 0)))
 
 ;; This is only called to fill in the cache, so it can be (real) slow.
 (defun get-resource-internal (class fn resource-class resource-name)
@@ -220,9 +217,11 @@
 
 
 (defun define-toolkit-classes (&rest classes)
-  (make-classes (remove-duplicates 
-		 (apply #'append classes)
-		 :test #'string=)))
+  (make-classes 
+   (mapcar #'ff:convert-to-lang
+	   (remove-duplicates 
+	    (apply #'append classes)
+	    :test #'string=))))
 	
 (defun widget-class-name (h)
   (char*-to-string (xt-class-name h)))

@@ -21,7 +21,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: plot.lisp,v 1.19 92/11/20 08:45:33 cer Exp $
+;; $fiHeader: plot.lisp,v 1.20 92/12/03 10:28:48 cer Exp $
 
 (in-package :clim-demo)
 
@@ -177,21 +177,21 @@
 		       (make-translation-transformation (- ox) (- oy))
 		       scaling-transform))))))
       (with-output-as-presentation (stream nil 'graph-plot :single-box :position)
-	(formatting-item-list (stream :n-columns 2)
-	  (formatting-cell (stream)
-	    (with-room-for-graphics (stream)
-	      (draw-axis stream type
-			 width height
-			 x-min y-min x-max y-max
-			 x-labels y-labels
-			 points transform
-			 y-labelling)
-	      (draw-data stream type
-			 width height x-min y-min x-max
-			 y-max points transform)))
-	  (formatting-cell (stream)
-	    (draw-caption stream type y-labels)))))))
-
+	  (formatting-item-list (stream :n-columns 2)
+	      (formatting-cell (stream)
+		  (with-room-for-graphics (stream)
+		    (draw-axis stream type
+			       width height
+			       x-min y-min x-max y-max
+			       x-labels y-labels
+			       points transform
+			       y-labelling)
+		    (draw-data stream type
+			       width height x-min y-min x-max
+			       y-max points transform)))
+	    (formatting-cell (stream)
+		(draw-caption stream type y-labels)))))))
+   
 (defun draw-caption (stream type y-labels)
   (updating-output (stream :unique-id 'captions
 			   :cache-value (cons type (copy-list y-labels))
@@ -401,16 +401,17 @@
 	(y-max supplied-y-max))
     (unless (and x-min y-min x-max y-max)
       (destructuring-bind (rows columns) (array-dimensions points)
-	(setq x-min (aref points 0 0) x-max x-min)
-	(setq y-min (aref points 0 1) y-max y-min)
-	(dotimes (i rows)
-	  (let ((x (aref points i 0)))
-	    (clim-utils:minf x-min x)
-	    (clim-utils:maxf x-max x)
-	    (dotimes (j (1- columns))
-	      (let ((y (aref points i (1+ j))))
-		(clim-utils:minf y-min y)
-		(clim-utils:maxf y-max y)))))))
+	(when (and (> rows 0) (> columns 0))
+	  (setq x-min (aref points 0 0) x-max x-min)
+	  (setq y-min (aref points 0 1) y-max y-min)
+	  (dotimes (i rows)
+	    (let ((x (aref points i 0)))
+	      (clim-utils:minf x-min x)
+	      (clim-utils:maxf x-max x)
+	      (dotimes (j (1- columns))
+		(let ((y (aref points i (1+ j))))
+		  (clim-utils:minf y-min y)
+		  (clim-utils:maxf y-max y))))))))
     (values (or supplied-x-min x-min)
 	    (or supplied-y-min y-min)
 	    (or supplied-x-max x-max) 
@@ -503,7 +504,11 @@
     (command :interactor :height '(5 :line)))
   (:pointer-documentation t)
   (:layouts
-    (:default (vertically () graph-window options data-window command))))
+   (:default (vertically () 
+	       graph-window
+	       options
+	       data-window
+	       command))))
 
 (defmethod display-options ((frame plot-demo) stream &key &allow-other-keys)
   (with-slots (x-min y-min x-max y-max graph-type) frame
@@ -543,10 +548,24 @@
 (define-presentation-type data-point ()
   :inherit-from 'plot-point)
 
-(define-presentation-type x-label ()
-  :inherit-from 'integer)
-(define-presentation-type y-label ()
-  :inherit-from 'integer)
+(define-presentation-type x-label ())
+
+(define-presentation-method present (object (typep x-label) stream (view t) &key acceptably)
+  (when acceptably (error "foo"))
+  (format stream "Label for row  ~D" object))
+
+(define-presentation-type y-label ())
+
+(define-presentation-method present (object (typep y-label) stream (view t) &key acceptably)
+  (when acceptably (error "foo"))
+  (format stream "Label for column ~D" object))
+
+(define-presentation-method presentation-typep (object (type x-label))
+    (typep object 'integer))
+
+
+(define-presentation-method presentation-typep (object (type y-label))
+    (typep object 'integer))
 
 (defmethod display-data ((frame plot-demo) stream &key &allow-other-keys)
   (updating-output (stream)
@@ -650,17 +669,17 @@
     ((printer '(member :|lw| :|lw2| :|lw3|)
 	      :display-default t
 	      :default :lw2))
-  (with-open-stream (pipe (excl:run-shell-command  (format nil "lpr -P~A" printer)
-						   :input :stream :wait nil))
+  (with-open-stream 
+      (pipe (excl:run-shell-command  (format nil "lpr -P~A" printer) :input :stream :wait nil))
     (with-output-to-postscript-stream (stream pipe :multi-page t)
       (display-graph *application-frame* stream))))
-
+      
 (define-plot-demo-command (com-edit-x-label :name t :menu t)
     ((i 'x-label :gesture :select))
   (with-application-frame (frame)
     (setf (nth i (slot-value frame 'x-labels))
-	  (accept 'string
-		  :default (nth i (slot-value frame 'x-labels))))))
+      (accept 'string
+	      :default (nth i (slot-value frame 'x-labels))))))
 
 (define-plot-demo-command (com-edit-y-label :name t :menu t)
     ((i 'y-label :gesture :select))

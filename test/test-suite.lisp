@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: test-suite.lisp,v 1.48 92/12/03 10:29:48 cer Exp $
+;; $fiHeader: test-suite.lisp,v 1.49 92/12/07 12:15:37 cer Exp $
 
 (in-package :clim-user)
 
@@ -761,8 +761,9 @@ people, shall not perish from the earth.
 	  (formatting-cell (stream)
 	      (let ((filename (format nil "/usr/include/X11/bitmaps/~A" name)))
 		(if (probe-file filename)
-		    (let ((pattern (xm-silica::make-pattern-from-file
+		    (let ((pattern (make-pattern-from-bitmap-file
 				    filename 
+				    :designs
 				    (list +background-ink+ +foreground-ink+))))
 		      (draw-rectangle* stream 0 0 (pattern-width pattern) (pattern-height pattern) :ink pattern))
 		  (write-string "not found" stream))))))))
@@ -3151,16 +3152,13 @@ Luke Luck licks the lakes Luke's duck likes."))
 			  ("Exit" :command (exit-clim-tests)))))
   (:command-definer nil)
   (:panes 
-   (caption-pane
-      (outlining ()
-	(scrolling (:scroll-bars :vertical)
-		   (make-pane 'application-pane 
-			      :height 50
-			      :output-record
-			      (make-instance (clim-tests-history-class *application-frame*))))))
-    (display-pane :application
-		  :output-record
-		  (make-instance (clim-tests-history-class *application-frame*))))
+   (caption-pane :application
+		 :height 50
+		 :output-record
+		 (make-instance (clim-tests-history-class *application-frame*)))
+   (display-pane :application
+		 :output-record
+		 (make-instance (clim-tests-history-class *application-frame*))))
   (:layouts
     (:default
 	(vertically () caption-pane display-pane))))

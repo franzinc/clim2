@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.56 92/12/02 13:31:30 colin Exp $
+;; $fiHeader: xt-graphics.lisp,v 1.57 92/12/03 10:30:22 cer Exp $
 
 (in-package :tk-silica)
 
@@ -1552,9 +1552,9 @@ and on color servers, unless using white or black")
 		      medium
 		      (medium-line-style medium)
 		      (- center-x 
-			 (if (zerop radius-1-dx) radius-2-dx radius-1-dx))
+			 (abs (if (zerop radius-1-dx) radius-2-dx radius-1-dx)))
 		      (- center-y 
-			 (if (zerop radius-1-dy) radius-2-dy radius-1-dy)))
+			 (abs (if (zerop radius-1-dy) radius-2-dy radius-1-dy))))
 	  center-x center-y
 	  radius-1-dx radius-1-dy radius-2-dx radius-2-dy 
 	  start-angle end-angle 

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-funs.lisp,v 1.13 92/10/02 15:18:02 cer Exp $
+;; $fiHeader: xt-funs.lisp,v 1.14 92/11/13 14:47:04 cer Exp $
 
 ;;
 ;; This file contains compile time only code -- put in clim-debug.fasl.
@@ -29,28 +29,28 @@
 (in-package :xt)
 
 (defforeign 'xt_get_resource_list
-    :entry-point "_XtGetResourceList"
+    :entry-point (ff:convert-to-lang "XtGetResourceList")
     :call-direct t
     :arguments '(foreign-address foreign-address foreign-address)
     :arg-checking nil
     :return-type :void)
     
 (defforeign 'xt_get_constraint_resource_list
-    :entry-point "_XtGetConstraintResourceList"
+    :entry-point (ff:convert-to-lang "XtGetConstraintResourceList")
     :call-direct t
     :arguments '(foreign-address foreign-address foreign-address)
     :arg-checking nil
     :return-type :void)
 
 (defforeign 'xt_initialize_widget_class
-    :entry-point "_XtInitializeWidgetClass"
+    :entry-point (ff:convert-to-lang "XtInitializeWidgetClass")
     :call-direct t
     :arguments '(foreign-address)
     :arg-checking nil
     :return-type :void)
 
 (defforeign 'xt_free
-    :entry-point "_XtFree"
+    :entry-point (ff:convert-to-lang "XtFree")
     :arguments '(foreign-address)
     :call-direct t
     :callback nil
@@ -58,14 +58,14 @@
     :return-type :void)
 
 (defforeign 'xt_toolkit_initialize
-    :entry-point "_XtToolkitInitialize"
+    :entry-point (ff:convert-to-lang "XtToolkitInitialize")
     :call-direct t
     :arguments nil
     :arg-checking nil
     :return-type :void)
 
 (defforeign 'xt_create_application_context
-    :entry-point "_XtCreateApplicationContext"
+    :entry-point (ff:convert-to-lang "XtCreateApplicationContext")
     :call-direct t
     :arguments nil
     :arg-checking nil
@@ -73,21 +73,21 @@
 
 
 (defforeign 'xt_app_set_error_handler
-    :entry-point "_XtAppSetErrorHandler"
+    :entry-point (ff:convert-to-lang "XtAppSetErrorHandler")
     :call-direct t
     :arguments '(foreign-address integer)
     :arg-checking nil
     :return-type :integer)
 
 (defforeign 'xt_app_set_warning_handler
-    :entry-point "_XtAppSetWarningHandler"
+    :entry-point (ff:convert-to-lang "XtAppSetWarningHandler")
     :call-direct t
     :arguments '(foreign-address integer)
     :arg-checking nil
     :return-type :integer)
 
 (defforeign 'xt_open_display
-    :entry-point "_XtOpenDisplay"
+    :entry-point (ff:convert-to-lang "XtOpenDisplay")
     :call-direct t
     :arguments '(foreign-address foreign-address foreign-address foreign-address
 		 foreign-address fixnum foreign-address foreign-address)
@@ -95,7 +95,7 @@
     :return-type :unsigned-integer)
 
 (defforeign 'xt_app_create_shell 
-    :entry-point "_XtAppCreateShell"
+    :entry-point (ff:convert-to-lang "XtAppCreateShell")
     :call-direct t
     :arguments '(foreign-address foreign-address foreign-address foreign-address
 		 foreign-address fixnum)
@@ -105,7 +105,7 @@
 ;;;; 
 
 (defforeign 'xt_create_widget
-    :entry-point "_XtCreateWidget"
+    :entry-point (ff:convert-to-lang "XtCreateWidget")
     :call-direct t
     :arguments '(foreign-address foreign-address foreign-address
 		 foreign-address fixnum)
@@ -114,7 +114,7 @@
     
     
 (defforeign 'xt_create_managed_widget
-    :entry-point "_XtCreateManagedWidget"
+    :entry-point (ff:convert-to-lang "XtCreateManagedWidget")
     :call-direct t
     :arguments '(foreign-address foreign-address foreign-address
 		 foreign-address fixnum)
@@ -122,91 +122,99 @@
     :return-type :unsigned-integer)
 
 (defforeign 'xt_realize_widget
-    :entry-point "_XtRealizeWidget"
+    :entry-point (ff:convert-to-lang "XtRealizeWidget")
     :call-direct t
     :arguments '(foreign-address)
     :arg-checking nil
     :return-type :void)
     
 (defforeign 'xt_destroy_widget
-    :entry-point "_XtDestroyWidget"
+    :entry-point (ff:convert-to-lang "XtDestroyWidget")
     :call-direct t
     :arguments '(foreign-address)
     :arg-checking nil
     :return-type :void)
 
 (defforeign 'xt_manage_child
-    :entry-point "_XtManageChild"
+    :entry-point (ff:convert-to-lang "XtManageChild")
     :call-direct t
     :arguments '(foreign-address)
     :arg-checking nil
     :return-type :void)
 
 (defforeign 'xt_is_managed
-    :entry-point "_XtIsManaged"
+    :entry-point (ff:convert-to-lang "XtIsManaged")
     :call-direct t
     :arguments '(foreign-address)
     :arg-checking nil
     :return-type :fixnum)
     
 (defforeign 'xt_unmanage_child
-    :entry-point "_XtUnmanageChild"
+    :entry-point (ff:convert-to-lang "XtUnmanageChild")
     :call-direct t
     :arguments '(foreign-address)
     :arg-checking nil
     :return-type :void)
 
 (defforeign 'xt_manage_children
-    :entry-point "_XtManageChildren"
+    :entry-point (ff:convert-to-lang "XtManageChildren")
     :call-direct t
     :arguments '(foreign-address fixnum)
     :arg-checking nil
     :return-type :void)
 
+(defforeign 'xt_unmanage_children
+    :entry-point (ff:convert-to-lang "XtUnmanageChildren")
+    :call-direct t
+    :arguments '(foreign-address fixnum)
+    :arg-checking nil
+    :return-type :void)
+
+
 (defforeign 'xt_create_popup_shell
-    :entry-point "_XtCreatePopupShell"
+    :entry-point (ff:convert-to-lang "XtCreatePopupShell")
     :call-direct t
     :arguments '(foreign-address foreign-address foreign-address foreign-address fixnum)
     :arg-checking nil
     :return-type :unsigned-integer)
     
 (defforeign 'xt_popup
-    :entry-point "_XtPopup"
+    :entry-point (ff:convert-to-lang "XtPopup")
     :call-direct t
     :arguments '(foreign-address integer)
     :arg-checking nil
     :return-type :void)
 
 (defforeign 'xt_popdown
-    :entry-point "_XtPopdown"
+    :entry-point (ff:convert-to-lang "XtPopdown")
     :call-direct t
     :arguments '(foreign-address)
     :arg-checking nil
     :return-type :void)
     
 (defforeign 'xt_window
-    :entry-point "_XtWindow"
+    :entry-point (ff:convert-to-lang "XtWindow")
     :call-direct t
     :arguments '(foreign-address)
     :arg-checking nil
     :return-type :unsigned-integer)
     
 (defforeign 'xt_parent
-    :entry-point "_XtParent"
+    :entry-point (ff:convert-to-lang "XtParent")
     :call-direct t
     :arguments '(foreign-address)
     :arg-checking nil
     :return-type :unsigned-integer)
 	    
 (defforeign 'xt_query_geometry
-    :entry-point "_XtQueryGeometry"
+    :entry-point (ff:convert-to-lang "XtQueryGeometry")
     :call-direct t
     :arguments '(foreign-address foreign-address foreign-address)
     :arg-checking nil
     :return-type :unsigned-integer)
 
 (defforeign 'xt_configure_widget
-    :entry-point "_XtConfigureWidget"
+    :entry-point (ff:convert-to-lang "XtConfigureWidget")
     :call-direct t
     :arguments '(foreign-address fixnum fixnum fixnum fixnum fixnum)
     :arg-checking nil
@@ -217,13 +225,13 @@
     :call-direct t
     :arg-checking nil
     :return-type :void
-    :entry-point "_XtSetValues")
+    :entry-point (ff:convert-to-lang "XtSetValues"))
 (defforeign 'xt_get_values
     :arguments '(foreign-address foreign-address fixnum)
     :call-direct t
     :arg-checking nil
     :return-type :void
-    :entry-point "_XtGetValues")
+    :entry-point (ff:convert-to-lang "XtGetValues"))
 
 
 (defforeign 'xt_app_pending
@@ -231,13 +239,13 @@
     :call-direct t
     :arg-checking nil
     :return-type :fixnum
-    :entry-point "_XtAppPending")
+    :entry-point (ff:convert-to-lang "XtAppPending"))
 (defforeign 'xt_app_process_event
     :arguments '(foreign-address fixnum)
     :call-direct t
     :arg-checking nil
     :return-type :void
-    :entry-point "_XtAppProcessEvent")
+    :entry-point (ff:convert-to-lang "XtAppProcessEvent"))
 
 
 (defforeign 'xt_app_interval_next_timer
@@ -247,52 +255,52 @@
     :callback t
     :arg-checking nil
     :return-type :unsigned-integer
-    :entry-point "_XtAppIntervalNextTimer")
+    :entry-point (ff:convert-to-lang "XtAppIntervalNextTimer"))
 
 (defforeign 'xt_add_event_handler
-    :entry-point "_XtAddEventHandler"
+    :entry-point (ff:convert-to-lang "XtAddEventHandler")
     :call-direct t
     :arguments '(foreign-address integer fixnum foreign-address foreign-address)
     :arg-checking nil
     :return-type :void)
     
 (defforeign 'xt_build_event_mask
-    :entry-point "_XtBuildEventMask"
+    :entry-point (ff:convert-to-lang "XtBuildEventMask")
     :call-direct t
     :arguments '(foreign-address)
     :arg-checking nil
     :return-type :unsigned-integer)
 
 (defforeign 'xt_add_callback
-    :entry-point "_XtAddCallback"
+    :entry-point (ff:convert-to-lang "XtAddCallback")
     :call-direct t
     :arguments '(foreign-address foreign-address foreign-address foreign-address)
     :arg-checking nil
     :return-type :void)
     
 (defforeign 'xt_has_callbacks
-    :entry-point "_XtHasCallbacks"
+    :entry-point (ff:convert-to-lang "XtHasCallbacks")
     :call-direct t
     :arguments '(foreign-address foreign-address)
     :arg-checking nil
     :return-type :unsigned-integer)
     
 (defforeign 'xt_remove_all_callbacks
-    :entry-point "_XtRemoveAllCallbacks"
+    :entry-point (ff:convert-to-lang "XtRemoveAllCallbacks")
     :call-direct t
     :arguments '(foreign-address foreign-address)
     :arg-checking nil
     :return-type :void)
     
 (defforeign 'xt_set_sensitive
-    :entry-point "_XtSetSensitive"
+    :entry-point (ff:convert-to-lang "XtSetSensitive")
     :call-direct t
     :arguments '(foreign-address fixnum)
     :arg-checking nil
     :return-type :void)
     
 (defforeign 'xt_grab_pointer
-    :entry-point "_XtGrabPointer"
+    :entry-point (ff:convert-to-lang "XtGrabPointer")
     :call-direct t
     :arguments '(foreign-address	; display
 		 foreign-address	; widget
@@ -307,7 +315,7 @@
     :return-type :fixnum)
 
 (defforeign 'xt_ungrab_pointer
-    :entry-point "_XtUngrabPointer"
+    :entry-point (ff:convert-to-lang "XtUngrabPointer")
     :call-direct t
     :arguments '(foreign-address	; display
 		 fixnum			; time
@@ -317,7 +325,7 @@
 
 
 (defforeign 'xt-last-timestamp-processed
-    :entry-point "_XtLastTimestampProcessed"
+    :entry-point (ff:convert-to-lang "XtLastTimestampProcessed")
     :call-direct t
     :arguments '(foreign-address	; display
 		 )

@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-silica.lisp,v 1.28 92/11/20 08:46:48 cer Exp $
+;; $fiHeader: xm-silica.lisp,v 1.29 92/12/01 09:47:09 cer Exp $
 
 (in-package :xm-silica)
 
@@ -55,13 +55,6 @@
   ;;-- shells decide where windows are positioned!
   (tk::set-values child :width width :height height))
 
-(defmethod change-widget-geometry ((parent tk::xm-dialog-shell) child
-				   &rest args
-				   &key x y width height)
-  (declare (ignore x y args))
-  (tk::set-values child :width width :height height :x x :y y))
-
-
 (defclass motif-geometry-manager (xt-geometry-manager) ())
 
 
@@ -97,7 +90,7 @@
 
 #+ignore 
 (ff:defforeign 'xmprocesstraversal
-    :entry-point "_XmProcessTraversal")
+    :entry-point (ff:convert-to-lang "_XmProcessTraversal"))
 
 #+ignore 
 (defmethod port-note-cursor-change :after ((port motif-port)

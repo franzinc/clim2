@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: widget.lisp,v 1.25 92/09/08 10:34:07 cer Exp $
+;; $fiHeader: widget.lisp,v 1.26 92/12/01 09:46:53 cer Exp $
 
 (in-package :tk)
 
@@ -90,7 +90,13 @@
   (xt_manage_children (map '(simple-array (signed-byte 32))
 		     #'ff:foreign-pointer-address 
 		     children)
-		   (length children)))
+		      (length children)))
+
+(defun unmanage-children (children)
+  (xt_unmanage_children (map '(simple-array (signed-byte 32))
+			  #'ff:foreign-pointer-address 
+			  children)
+			(length children)))
 		     
 (defun destroy-widget (widget)
   (xt_destroy_widget widget))

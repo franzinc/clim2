@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-gadgets.lisp,v 1.33 92/12/03 10:30:13 cer Exp $
+;; $fiHeader: ol-gadgets.lisp,v 1.34 92/12/07 12:15:53 cer Exp $
 
 
 (in-package :xm-silica)
@@ -305,17 +305,18 @@
 				     widget)
 				  (assert widget))))
 		     
-		     (setf (tk::widget-create-popup-child-proc shell)
-		       #'(lambda (shell)
-			   (declare (ignore shell))
-			   (let ((children
-				  (tk::widget-children menu-pane)))
-			     (when (or (null children)
-				       (/= tick
-					   (setq tick
-					     (slot-value ct 'clim-internals::menu-tick))))
-			       (mapc #'tk::destroy-widget children)
-			       (make-command-for-command-table-1 mb item)))))
+		     (xt::add-callback 
+		      shell :popup-callback
+		      #'(lambda (shell)
+			  (declare (ignore shell))
+			  (let ((children
+				 (tk::widget-children menu-pane)))
+			    (when (or (null children)
+				      (/= tick
+					  (setq tick
+					    (slot-value ct 'clim-internals::menu-tick))))
+			      (mapc #'tk::destroy-widget children)
+			      (make-command-for-command-table-1 mb item)))))
 		     
 		     (tk::remove-all-callbacks shell :popup-callback)
 		     (tk::add-callback shell :popup-callback

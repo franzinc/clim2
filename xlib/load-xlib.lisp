@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: load-xlib.lisp,v 1.7 92/07/27 19:29:30 cer Exp $
+;; $fiHeader: load-xlib.lisp,v 1.8 92/08/18 17:54:03 cer Exp $
 
 (in-package :x11)
 
@@ -30,7 +30,7 @@
       (with-open-file (s file :direction :input)
 	(do ((l (read-line s nil nil) (read-line s nil nil)))
 	    ((null l))
-	  (push l r))))))
+	  (push (ff:convert-to-lang l) r))))))
 
 
 (defun load-undefined-symbols-from-library (file what libraries)

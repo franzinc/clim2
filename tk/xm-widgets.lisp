@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-widgets.lisp,v 1.10 92/09/24 09:37:19 cer Exp $
+;; $fiHeader: xm-widgets.lisp,v 1.11 92/12/01 09:46:56 cer Exp $
 
 (in-package :tk)
 
@@ -115,3 +115,19 @@
   (etypecase value
     (pixmap
      (encode-pixmap nil value))))
+
+(tk::add-resource-to-class (find-class 'xm-text)
+			   (make-instance 'resource
+					  :name :scroll-horizontal
+					  :type 'tk::boolean
+					  :original-name 
+					  (string-to-char*
+					   "scrollHorizontal")))
+
+(tk::add-resource-to-class (find-class 'xm-text)
+			   (make-instance 'resource
+					  :name :scroll-vertical
+					  :type 'tk::boolean
+					  :original-name 
+					  (string-to-char*
+					   "scrollVertical")))

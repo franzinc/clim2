@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: standard-types.lisp,v 1.22 92/12/03 10:27:49 cer Exp $
+;; $fiHeader: standard-types.lisp,v 1.23 92/12/07 12:14:34 cer Exp $
 
 (in-package :clim-internals)
 
@@ -14,11 +14,11 @@
 (define-presentation-type t () :description "object")
 
 (define-presentation-method present (object (type t) stream (view textual-view)
-				     &key acceptably)
+					    &key acceptably)
   ;; Kludge!
   (write-token (with-output-to-string (s)
 		 (write object :escape nil :stream s))
-		stream :acceptably acceptably))
+	       stream :acceptably acceptably))
 
 (define-presentation-method accept ((type t) stream (view textual-view) &key)
   ;; Allow the user to only click on things if he did not supply any
@@ -570,13 +570,13 @@
     (declare (dynamic-extent #'possibility-printer))
     (values
       (completing-from-suggestions 
-	  (stream :partial-completers partial-completers
-		  :possibility-printer #'possibility-printer
-		  :help-displays-possibilities (<= (length sequence) 10))
-	(flet ((suggest-item (item)
-		 (suggest (funcall name-key item) (funcall value-key item))))
-	  (declare (dynamic-extent #'suggest-item))
-	  (map nil #'suggest-item sequence))))))
+       (stream :partial-completers partial-completers
+	       :possibility-printer #'possibility-printer
+	       :help-displays-possibilities (<= (length sequence) 10))
+       (flet ((suggest-item (item)
+		(suggest (funcall name-key item) (funcall value-key item))))
+	 (declare (dynamic-extent #'suggest-item))
+	 (map nil #'suggest-item sequence))))))
 
 (define-presentation-method accept-present-default ((type completion) stream
 						    (view dialog-view-mixin)

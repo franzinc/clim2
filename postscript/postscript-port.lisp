@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: POSTSCRIPT-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: postscript-port.lisp,v 1.10 92/11/06 19:03:34 cer Exp $
+;; $fiHeader: postscript-port.lisp,v 1.11 92/11/19 14:24:43 cer Exp $
 
 (in-package :postscript-clim)
 
@@ -718,6 +718,12 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
 (defmethod window-inside-width ((stream postscript-stream))
   (let ((port (port stream)))
     (float (/ (* (slot-value port 'page-width)
+		 (slot-value port 'device-units-per-inch))
+	      *1-pixel=points*) 0f0)))
+
+(defmethod window-inside-height ((stream postscript-stream))
+  (let ((port (port stream)))
+    (float (/ (* (slot-value port 'page-height)
 		 (slot-value port 'device-units-per-inch))
 	      *1-pixel=points*) 0f0)))
 

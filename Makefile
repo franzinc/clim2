@@ -1,4 +1,4 @@
-# $fiHeader: Makefile,v 1.69 92/12/01 09:44:55 cer Exp $
+# $fiHeader: Makefile,v 1.70 92/12/07 12:13:43 cer Exp $
 #
 #  Makefile for CLIM 2.0
 #
@@ -53,8 +53,10 @@ make = make SPEED=${SPEED} SAFETY=${SAFETY} DEBUG=${DEBUG} \
 	CLIM=${CLIM} CLIMOL=${CLIMOL} CLIMXM=${CLIMXM} \
 	COMPILE_PRINT=${COMPILE_PRINT}
 
-CFLAGS	= -O -D_NO_PROTO -DSTRINGS_ALIGNED -DNO_REGEX -DNO_ISDIR -DUSE_RE_COMP -DUSER_GETWD -I/x11/motif-1.1/lib
+XINCLUDES=-I/x11/motif-1.1/lib
 
+CFLAGS	= -O -D_NO_PROTO -DSTRINGS_ALIGNED -DNO_REGEX -DNO_ISDIR -DUSE_RE_COMP -DUSER_GETWD $(XINCLUDES)
+LDFLAGS=
 OLDSPACE = 15000000
 NEWSPACE = 5000000
 PREMALLOCS = '-m 401408'
@@ -62,7 +64,7 @@ PREMALLOCS = '-m 401408'
 CLIM-SMALL	= ./slim-small
 
 PUBDIRS	= sys utils silica clim demo test genera clx pre-silica postscript compatibility
-DIRS0	=  tk tk-silica misc cloe
+DIRS0	=  tk tk-silica misc cloe climtoys
 DIRS	= $(PUBDIRS) xlib $(DIRS0)
 CHEAP_CLEAN	= $(PUBDIRS) $(DIRS0)
 
@@ -72,11 +74,11 @@ CAT	= /bin/cat
 ECHO	= /bin/echo
 MV	= /usr/fi/mv-nfs
 TAGS	= /usr/fi/lib/emacs/etc/etags
-TMP	= /usr/tmp
+TMP	= /tmp
 
 SRC_FILES = */*.lisp *.lisp Makefile misc/make-stub-file \
-	    misc/undefinedsymbols misc/undefinedsymbols.olit \
-	    misc/undefinedsymbols.motif misc/undefinedsymbols.xt \
+	    misc/undefinedsymbols misc/undefinedsymbols.olit misc/undefinedsymbols.colit \
+	    misc/undefinedsymbols.motif misc/undefinedsymbols.cmotif misc/undefinedsymbols.xt \
 	    xlib/xlibsupport.c misc/MyDrawingA*.[hc] misc/olsupport.c \
 	    misc/clos-preload.cl misc/xtsupport.c
 
@@ -106,9 +108,11 @@ XT_UNDEFS=misc/undefinedsymbols.xt
 
 # This should be the same as load-xm
 XM_UNDEFS=misc/undefinedsymbols.motif
+XMC_UNDEFS=misc/undefinedsymbols.cmotif
 
 # This should be the same as load-ol
 OL_UNDEFS=misc/undefinedsymbols.olit
+OLC_UNDEFS=misc/undefinedsymbols.colit
 
 # These are the fasls and the .o that form the product
 
@@ -121,6 +125,9 @@ PUBLIC_OBJS=  stub-xt.o stub-x.o stub-olit.o stub-motif.o \
 
 OL_LICENSED_OBJS = clim-olit.o clim-olit_d.o
 XM_LICENSED_OBJS = clim-motif_d.o clim-motif.o 
+
+MOTIF_OBJS= clim-motif_d.o clim-motif.o xtsupport.o stub-xt.o stub-x.o stub-x.o
+OPENLOOK_OBJS= clim-olit_d.o clim-olit.o xtsupport.o stub-xt.o stub-x.o stub-x.o 
 
 CLIMOBJS=$(PUBLIC_OBJS) $(XM_LICENSED_OBJS) $(OL_LICENSED_OBJS)
 
@@ -518,7 +525,7 @@ trained-clim-ol:
 all-xm:	compile-xm cat-xm clim-xm
 all-ol:	compile-ol cat-ol clim-ol
 
-compile-xm:	$(CLIMOBJS) FORCE
+compile-xm:	$(MOTIF_OBJS) FORCE
 	$(ECHO) "\
 	(si::system-compile-wrapper \
 	 (function \
@@ -535,7 +542,7 @@ compile-xm:	$(CLIMOBJS) FORCE
 	 :compile-print nil :compile-verbose nil \
 	 :redefinition-warnings t :gcprint nil)" | $(CL) $(CLOPTS) -batch
 
-compile-ol:	$(CLIMOBJS) FORCE
+compile-ol:	$(OPENLOOK_OBJS) FORCE
 	$(ECHO) "\
 	(si::system-compile-wrapper \
 	 (function \
@@ -629,7 +636,7 @@ tk/xm-defs.fasl : tk/xm-defs.lisp
 
 # Building
 
-clim-xm:	FORCE $(CLIMOBJS)
+clim-xm:	FORCE $(MOTIF_OBJS)
 	-$(RM) -f $(CLIM)
 	$(ECHO) " \
 		(setq sys::*libxt-pathname* \"$(XTLIB)\") \
@@ -644,7 +651,7 @@ clim-xm:	FORCE $(CLIMOBJS)
 	ls -lLt $(CLIMXM)
 	echo CLIM-XM built!!!!	
 
-clim-ol:	FORCE $(CLIMOBJS)
+clim-ol:	FORCE $(OPENLOOK_OBJS)
 	-$(RM) -f $(CLIMOL)
 	$(ECHO) " \
 		(setq sys::*libxt-pathname* \"$(XTLIB)\") \
@@ -759,30 +766,34 @@ ol-dcl	:  stub-x.o stub-xt.o clim-olit.o xlibsupport.o olsupport.o xtsupport.o  
 
 xm-dcl	: stub-x.o stub-xt.o clim-motif.o xlibsupport.o xtsupport.o  MyDrawingA.o $(MALLOCOBJS)
 	cd $(CL_SRC) ; /bin/rm -f ucl ;\
-	make initial_oldspace=$(OLDSPACE) oldspace=$(OLDSPACE) newspace=$(NEWSPACE) premallocs=$(PREMALLOCS) ucl_xtras='$(PWD)/stub-x.o $(PWD)/stub-xt.o $(PWD)/clim-motif.o $(PWD)/xlibsupport.o $(PWD)/MyDrawingA.o $(PWD)/xtsupport.o $(COMPOSEROBJS) $(MALLOCOBJS) $(XTLIB) $(XLIB)' dcl	
+	make initial_oldspace=$(OLDSPACE) oldspace=$(OLDSPACE) newspace=$(NEWSPACE) premallocs=$(PREMALLOCS) ucl_xtras='$(PWD)/stub-x.o $(PWD)/stub-xt.o $(PWD)/clim-motif.o $(PWD)/xlibsupport.o $(PWD)/MyDrawingA.o $(PWD)/xtsupport.o $(COMPOSEROBJS) $(MOTIFLIB) $(MALLOCOBJS) $(XTLIB) $(XLIB) $(XMDCLXTRAS)' dcl	
 
 dcl	: 
 	cd $(CL_SRC) ; /bin/rm -f ucl ;\
 	make dcl	
 
 clim-motif.o	: stub-motif.o $(MOTIFLIB)
-	ld -r -o clim-motif.o stub-motif.o $(MOTIFLIB)
+	ld -r $(LDFLAGS) -o clim-motif.o stub-motif.o $(MOTIFLIB)
 
 clim-olit.o	: stub-olit.o $(LIBXOL)
-	ld -r -o clim-olit.o stub-olit.o $(LIBXOL)
+	ld -r $(LDFLAGS) -o clim-olit.o stub-olit.o $(LIBXOL)
 
 clim-motif_d.o	: stub-motif.o $(MOTIFLIB_d)
-	ld -r -o clim-motif_d.o stub-motif.o $(MOTIFLIB_d)
+	ld -r  $(LDFLAGS) -o clim-motif_d.o stub-motif.o $(MOTIFLIB_d)
 
 clim-olit_d.o	: stub-olit.o $(LIBXOL_d)
-	ld -r -o clim-olit_d.o stub-olit.o $(LIBXOL_d)
+	ld -r $(LDFLAGS) -o clim-olit_d.o stub-olit.o $(LIBXOL_d)
 
 
-stub-motif.c	:  $(XT_UNDEFS) $(XM_UNDEFS) misc/make-stub-file
-	misc/make-stub-file "void ___lisp_load_motif_stub ()"  $(XT_UNDEFS) $(XM_UNDEFS) > stub-motif.c 
+stub-motif.c	:  $(XT_UNDEFS)  $(XMC_UNDEFS) $(XM_UNDEFS) misc/make-stub-file misc/make-stub-file1
+	misc/make-stub-file "void ___lisp_load_motif_stub ()"  $(XT_UNDEFS) $(XM_UNDEFS) > /tmp/`whoami`stub-motif.c 
+	misc/make-stub-file1 "void ___lisp_load_motif_stub_vars ()"  $(XMC_UNDEFS) >> /tmp/`whoami`stub-motif.c 
+	$(MV) /tmp/`whoami`stub-motif.c  stub-motif.c 
 
-stub-olit.c	:   $(XT_UNDEFS) $(OL_UNDEFS) misc/make-stub-file
-	misc/make-stub-file "void ___lisp_load_olit_stub ()"   $(OL_UNDEFS) > stub-olit.c 
+stub-olit.c	:   $(XT_UNDEFS) $(OL_UNDEFS) misc/make-stub-file misc/make-stub-file1
+	misc/make-stub-file "void ___lisp_load_olit_stub ()"   $(OL_UNDEFS) > /tmp/`whoami`stub-olit.c 
+	misc/make-stub-file1 "void ___lisp_load_olit_stub_vars ()"   $(OLC_UNDEFS) >> /tmp/`whoami`stub-olit.c 
+	$(MV) /tmp/`whoami`stub-olit.c  stub-olit.c 
 
 stub-x.c	:  $(UNDEFS) $(OL_UNDEFS) misc/make-stub-file
 	misc/make-stub-file "void ___lisp_load_x_stub ()"  $(UNDEFS) > stub-x.c 
