@@ -1,6 +1,6 @@
 ;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: ACL-CLIM; Base: 10; Lowercase: Yes -*-
 ;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
-;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
+;; copyright (c) 1986-2002 Franz Inc, Berkeley, CA  - All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-dc.lisp,v 1.11 2000/05/01 21:43:20 layer Exp $
+;; $Id: acl-dc.lisp,v 1.12 2002/07/09 20:57:14 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -29,21 +29,6 @@
 
 
 (in-package :acl-clim)
-
-(defvar *current-window*)
-(defvar *dc-initialized* nil)
-
-;;; Stock objects
-(defvar *null-pen*)
-(defvar *black-pen*)
-(defvar *ltgray-pen*)
-(defvar *null-brush*)
-(defvar *black-brush*)
-(defvar *ltgray-brush*)
-(defvar *blank-image*)
-(defvar *ltgray-image*)
-
-(defvar *background-brush* nil)
 
 ;; This is not just any 75% gray.  There are
 ;; methods to treat this object specially and

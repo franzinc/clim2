@@ -1,5 +1,5 @@
 ;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
-;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
+;; copyright (c) 1986-2002 Franz Inc, Berkeley, CA  - All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xt-gadgets.lisp,v 1.49 2000/07/06 20:46:02 layer Exp $
+;; $Id: xt-gadgets.lisp,v 1.50 2002/07/09 20:57:18 layer Exp $
 
 (in-package :xm-silica)
 
@@ -212,7 +212,10 @@
 
 ;;; scroll bar utilities
 
-(defvar *scroll-bar-quantization* most-positive-fixnum)
+(defvar *scroll-bar-quantization* 
+    ;; must be a 32-bit quantity.
+    (min most-positive-fixnum 
+	 (1- (expt 2 31))))
 
 (defun convert-scroll-bar-value-out (scroll-bar value)
   (multiple-value-bind
@@ -231,17 +234,30 @@
 	      (compute-symmetric-value
 	       0 *scroll-bar-quantization* value smin smax )))))
 
-(defun compute-new-scroll-bar-values (scroll-bar value slider-size line-increment
+(defun compute-new-scroll-bar-values (scroll-bar value slider-size 
+				      line-increment
 				      &optional (page-increment slider-size))
-  (values
-   (and value
-	(convert-scroll-bar-value-out scroll-bar value))
-   (and slider-size
-	(max 1 (convert-scroll-bar-value-out scroll-bar slider-size)))
-   (and line-increment
-	(max 1 (convert-scroll-bar-value-out scroll-bar line-increment)))
-   (and page-increment
-	(max 1 (convert-scroll-bar-value-out scroll-bar page-increment)))))
+  ;; It needs to be the case that (<= (+ val slider-size) <maximum-sv-value>).
+  ;; This can fail to be true because of rounding errors when
+  ;; converting from float to integer, which cause motif to whine I
+  ;; assume the maximum sv value is *scroll-bar-quantization* (I'm not
+  ;; sure if this is always true), and round the slider size down if
+  ;; the contraint is violated.
+  (let ((val (and value (convert-scroll-bar-value-out scroll-bar value)))
+	(ss (and slider-size
+		 (max 1 
+		      (convert-scroll-bar-value-out scroll-bar slider-size)))))
+    (values val (and ss			;what assumptions about nullness are
+		     (if val		;safe?
+			 (min ss (- *scroll-bar-quantization* val))
+			 ss))
+	    (and line-increment
+		 (max 1 (convert-scroll-bar-value-out scroll-bar 
+						      line-increment)))
+	    (and page-increment
+		 (max 1 (convert-scroll-bar-value-out scroll-bar 
+						      page-increment))))))
+    
 
 
 (defun wait-for-callback-invocation (port predicate &optional (whostate "Waiting for callback"))

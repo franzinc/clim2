@@ -1,5 +1,5 @@
 ;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
-;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
+;; copyright (c) 1986-2002 Franz Inc, Berkeley, CA  - All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: recompile.lisp,v 1.4 1998/08/06 23:17:06 layer Exp $
+;; $Id: recompile.lisp,v 1.5 2002/07/09 20:57:18 layer Exp $
 
 ;; this file is way out of date -- it needs to be recoded using
 ;; compile.lisp as a model.  -tjm 23May97

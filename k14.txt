@@ -1,0 +1,6 @@
+
+1. copy k14.pcf to c:\program files\starnet\x-win32\lib\fonts\misc
+
+2. run xutil and run Fonts -> Make FONTS.DIR
+
+3. restart xserver on pc

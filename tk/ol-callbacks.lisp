@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: tk -*-
 ;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
-;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
+;; copyright (c) 1986-2002 Franz Inc, Berkeley, CA  - All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: ol-callbacks.lisp,v 1.15 1998/08/06 23:17:16 layer Exp $
+;; $Id: ol-callbacks.lisp,v 1.16 2002/07/09 20:57:18 layer Exp $
 
 (in-package :tk)
 
@@ -54,9 +54,9 @@
   (values (ol-scroll-bar-verify-new-location data)))
 
 (defun add-ol-callback (widget name type function &rest args)
-  (ol_add_callback widget name 
+  (ol_add_callback widget name
 		   (or *callback-handler-address*
-		       (setq *callback-handler-address* (register-function 'callback-handler)))
+		       (setq *callback-handler-address* (register-foreign-callable 'callback-handler)))
 		   (caar (push
 			  (list (new-callback-id) (cons function args) type)
 			  (widget-callback-data widget)))))

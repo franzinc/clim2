@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Package: CL-USER -*-
 ;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
-;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
+;; copyright (c) 1986-2002 Franz Inc, Berkeley, CA  - All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: pkgdcl.lisp,v 1.6 2000/05/01 21:43:20 layer Exp $
+;; $Id: pkgdcl.lisp,v 1.7 2002/07/09 20:57:14 layer Exp $
 
 (in-package :common-lisp-user)
 
@@ -25,7 +25,8 @@
 ;; Invite everybody to the party.
 (eval-when (compile load eval)
   (require :climg)
-  (require :ffcompat)
+  ;; [rfe4951]: not needed anymore:
+  ;; (require :ffcompat)
   (require :aclwffi)			; for ctypes (CT) package
   ;;(require :for)			; for FOR macro
   (require :winapi)
@@ -46,7 +47,14 @@
     defgeneric defmethod
     dynamic-extent
     non-dynamic-extent)
-  (:export *generic-gadgets*))
+  (:export #:*generic-gadgets*)
+  ;; These exports are things that might want to be semi-documented.
+  ;; No packages use acl-clim, but it's pretty bad to tell users about
+  ;; acl-clim::foo-bar.  Really this stuff should probably be in a
+  ;; different package.
+  (:export
+   #:make-windows-font-named		;make a windows font from a name
+   ))
  
 (eval-when (compile load eval)
   (pushnew :aclmerge *features*)

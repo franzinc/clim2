@@ -1,5 +1,5 @@
 ;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
-;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
+;; copyright (c) 1986-2002 Franz Inc, Berkeley, CA  - All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -15,37 +15,37 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: ol-init.lisp,v 1.26 1999/02/25 08:23:42 layer Exp $
+;; $Id: ol-init.lisp,v 1.27 2002/07/09 20:57:18 layer Exp $
 
 (in-package :tk)
 
 (defun ol-initialize ()
   (ol_toolkit_initialize))
 
-(defun-c-callable ol-error-handler ((message :unsigned-long))
+(defun-c-callable ol-error-handler ((message :unsigned-natural))
   (let ((*error-output* excl:*initial-terminal-io*))
-    (error "OLit: ~A" (char*-to-string message))))
+    (error "OLit: ~A" (excl:native-to-string message))))
 
 
-(defun-c-callable ol-warning-handler ((message :unsigned-long))
+(defun-c-callable ol-warning-handler ((message :unsigned-natural))
   (let ((*error-output* excl:*initial-terminal-io*))
-    (warn "OLit: ~A" (char*-to-string message))))
+    (warn "OLit: ~A" (excl:native-to-string message))))
 
-(defun-c-callable ol-error-va-handler ((message :unsigned-long))
+(defun-c-callable ol-error-va-handler ((message :unsigned-natural))
   (let ((*error-output* excl:*initial-terminal-io*))
-    (error "OLit: ~A" (char*-to-string message))))
+    (error "OLit: ~A" (excl:native-to-string message))))
 
 
-(defun-c-callable ol-warning-va-handler ((message :unsigned-long))
+(defun-c-callable ol-warning-va-handler ((message :unsigned-natural))
   (let ((*error-output* excl:*initial-terminal-io*))
-    (warn "OLit: ~A" (char*-to-string message))))
+    (warn "OLit: ~A" (excl:native-to-string message))))
 
 
 (defun install-ol-error-handlers ()
-  (ol_set_warning_handler (register-function 'ol-warning-handler))
-  (ol_set_va_display_warning_msg_handler (register-function 'ol-warning-va-handler))
-  (ol_set_error_handler (register-function 'ol-error-handler))
-  (ol_set_va_display_error_msg_handler (register-function 'ol-error-va-handler)))
+  (ol_set_warning_handler (register-foreign-callable 'ol-warning-handler))
+  (ol_set_va_display_warning_msg_handler (register-foreign-callable 'ol-warning-va-handler))
+  (ol_set_error_handler (register-foreign-callable 'ol-error-handler))
+  (ol_set_va_display_error_msg_handler (register-foreign-callable 'ol-error-va-handler)))
 
 (install-ol-error-handlers)
 

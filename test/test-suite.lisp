@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $Id: test-suite.lisp,v 1.87 1999/07/19 22:25:17 layer Exp $
+;; $Id: test-suite.lisp,v 1.88 2002/07/09 20:57:18 layer Exp $
 
 (in-package :clim-user)
 
@@ -2492,8 +2492,11 @@ Luke Luck licks the lakes Luke's duck likes."))
 
 (define-test (select-file-test menus-and-dialogs) (stream)
   "A simple test of SELECT-FILE."
-  (write-string
-   (namestring (select-file (pane-frame stream)))))
+  (let ((sel-file (select-file (pane-frame stream))))
+    (cond (sel-file 
+	   (write-string (namestring sel-file)))
+	  (t
+	   (write-string "[cancel]")))))
 
 
 ;;;; Benchmarks
@@ -2506,8 +2509,10 @@ Luke Luck licks the lakes Luke's duck likes."))
                             &body body)
   #+genera (declare (zwei:indentation 2 1))
   (check-type caption (or null string))
-  (let ((function-name (intern (format nil "~A-~A" 'benchmark name)
-                               (symbol-package 'define-benchmark))))
+  (let ((function-name #+IGNORE (intern (format nil "~A-~A" 'benchmark name)
+					(symbol-package 'define-benchmark))
+		       (clim-utils::package-fintern (symbol-package 'define-benchmark)
+						    "~A-~A" 'benchmark name)))
     `(progn
        (defun ,function-name (&key (careful nil))
          (labels ((body (,stream) ,@body))
@@ -2661,8 +2666,11 @@ Luke Luck licks the lakes Luke's duck likes."))
 (defun run-benchmarks-internal (pathname comment)
   (let ((data nil))
     (dolist (benchmark (reverse *benchmarks*))
-      (let ((function (intern (format nil "~A-~A" 'benchmark (first benchmark))
-                              (symbol-package 'run-benchmarks-internal))))
+      (let ((function #+IGNORE (intern (format nil "~A-~A" 'benchmark (first benchmark))
+				       (symbol-package 'run-benchmarks-internal))
+		      (clim-utils::package-fintern
+		       (symbol-package 'run-benchmarks-internal)
+		       "~A-~A" 'benchmark (first benchmark))))
         (let ((time (funcall function :careful t)))
           (push (list (first benchmark) time) data))))
     (setq data (reverse data))
@@ -3409,17 +3417,25 @@ Luke Luck licks the lakes Luke's duck likes."))
 ;;; Menu and dialog benchmarks
 
 (defmacro without-clim-input (&body body)
-  `(let ((old (symbol-function 'read-gesture)))
-     (unwind-protect
-         (progn
-           (setf (symbol-function 'read-gesture) #'ignore-clim-gesture)
-           (catch 'ignore-gesture ,@body))
-       (setf (symbol-function 'read-gesture) old))))
-
-(defun ignore-clim-gesture (&rest ignore)
-  (declare (ignore ignore))
-  #-aclpc (mp:process-sleep 4) #+aclpc (sleep 4)
-  (throw 'ignore-gesture nil))
+  ;; It might be better just to have a global special.  This is meant
+  ;; to be safe in the presence of other processes.
+  (let ((specn (make-symbol "*WITHOUT-CLIM-INPUT-FLAG*"))
+	(oldn (make-symbol "OLD"))
+	(tagn (make-symbol "IGNORE-CLIM-GESTURE")))
+    `(let ((,oldn (symbol-function 'read-gesture))
+	   (,specn t))
+       (declare (special ,specn))
+       (unwind-protect
+	   (catch ',tagn
+	     (setf (symbol-function 'read-gesture)
+	       #'(lambda (&rest args)
+		   (if (boundp ',specn)
+		       (progn
+			 #-aclpc (mp:process-sleep 4) #+aclpc (sleep 4)
+			 (throw ',tagn nil))
+		       (apply ,oldn args))))
+	     ,@body)
+	 (setf (symbol-function 'read-gesture) ,oldn)))))
 
 (define-benchmark (simple-menu-choose :iterations 10) (stream)
   "Pop up a simple menu of colors"

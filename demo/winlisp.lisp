@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 ;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
-;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
+;; copyright (c) 1986-2002 Franz Inc, Berkeley, CA  - All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -16,14 +16,14 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: winlisp.lisp,v 1.6 2000/05/01 21:43:26 layer Exp $
+;; $Id: winlisp.lisp,v 1.7 2002/07/09 20:57:16 layer Exp $
 
 (in-package :clim-demo)
 
 ;;"Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved."
 
 (define-command-table mswin-file-commands
-  :menu (("Exit" :command (com-exit))))
+  :menu (("Exit" :command (com-wlisp-exit))))
 
 (define-command-table mswin-edit-commands
   :menu (("Copy" :command (com-copy-object))
@@ -32,16 +32,16 @@
 (define-command-table mswin-help-commands
   :menu (("About" :command (com-about))))
 
-(define-command (com-exit :name "Exit"
-			  :command-table mswin-file-commands
-			  :menu ("Exit" :documentation "Quit application"))
+(define-command (com-wlisp-exit :name "Exit"
+				:command-table mswin-file-commands
+				:menu ("Exit" :documentation "Quit application"))
   ()
   #+ignore
   (format *terminal-io* "~%Quitting ~S" clim:*application-frame*)
   (clim:frame-exit clim:*application-frame*))
 
 (define-command-table wlistener-file
-  :inherit-from (acl-clim::mswin-file-commands)
+  :inherit-from (mswin-file-commands)
   :inherit-menu t)
 
 (define-command-table wlistener-edit)
@@ -140,23 +140,12 @@
 
 (defvar *wlistener-depth* -1)
 
-#+allegro
-(progn
-  ;; The stack-group object corresponding to the stack we are debugging.
-  (defvar *tpl-current-stack-group* nil)
-  ;; The newest (possibly invisible) frame at the current break level.
-  (defvar *top-top-frame-pointer* nil)
-  ;; The newest (possibly invisible) frame at the current break level.
-  (defvar *top-frame-pointer* nil)
-  ;; Current stack frame pointer.
-  (defvar *current-frame-pointer* nil))
-
 (defvar *wlistener-frame*)
 (defvar *wlistener-io*)
 
-(defvar *use-native-debugger* #+aclpc nil #+acl86win32 t)
+(defvar *wlisp-use-native-debugger* #+aclpc nil #+acl86win32 t)
 
-(defvar *prompt-arrow-1* 
+(defvar *wlisp-prompt-arrow-1* 
 	(make-pattern #2A((0 0 0 0 0 0 0 0 0 0 0 0)
 			  (0 0 0 0 0 1 0 0 0 0 0 0)
 			  (0 0 0 0 0 1 1 0 0 0 0 0)
@@ -171,7 +160,7 @@
 			  (0 0 0 0 0 1 0 0 0 0 0 0))
 		      (list +background-ink+ +foreground-ink+)))
 
-(defvar *prompt-arrow-2* 
+(defvar *wlisp-prompt-arrow-2* 
 	(make-pattern #2A((0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0)
 			  (0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0)
 			  (0 0 0 0 0 0 0 0 0 1 1 0 0 0 0 0)
@@ -225,8 +214,8 @@
 	      :keystrokes keystrokes
 	      :listener-depth *wlistener-depth*
 	      :prompt (case *wlistener-depth*
-			(0 *prompt-arrow-1*)
-			(1 *prompt-arrow-2*)
+			(0 *wlisp-prompt-arrow-1*)
+			(1 *wlisp-prompt-arrow-2*)
 			(otherwise 
 			  (concatenate 'string 
 			    (make-string (1+ *wlistener-depth*) :initial-element #\=)
@@ -305,7 +294,7 @@
 	    ((eq (presentation-type-name type) 'command)
 	     (terpri)
 	     (let ((*debugger-hook* 
-		     (unless *use-native-debugger*
+		     (unless *wlisp-use-native-debugger*
 		       (and (zerop listener-depth) #'wlistener-debugger-hook))))
 	       (apply (command-name command-or-form)
 		      (command-arguments command-or-form)))
@@ -315,7 +304,7 @@
 	     (let ((values 
 		     (multiple-value-list
 		       (let ((*debugger-hook* 
-			       (unless *use-native-debugger*
+			       (unless *wlisp-use-native-debugger*
 				 (and (zerop listener-depth) #'wlistener-debugger-hook))))
 			 (eval command-or-form)))))
 	       (fresh-line)
@@ -329,42 +318,42 @@
 		 (shiftf /// // / values)
 		 (shiftf *** ** * (first values)))))))))
 
-(defvar *debugger-condition* nil)
-(defvar *debugger-restarts* nil)
+(defvar *wlisp-debugger-condition* nil)
+(defvar *wlisp-debugger-restarts* nil)
 
 (defun wlistener-debugger-hook (condition hook)
   (declare (ignore hook))
   (let* ((*application-frame* *wlistener-frame*)
 	 #+Minima (*debug-io* (frame-query-io *application-frame*))
 	 (*error-output* (frame-standard-output *application-frame*))
-	 (*debugger-condition* condition)
-	 (*debugger-restarts* (compute-restarts)))
+	 (*wlisp-debugger-condition* condition)
+	 (*wlisp-debugger-restarts* (compute-restarts)))
     (describe-error *error-output*)
     (with-output-recording-options (*wlistener-io* :draw t :record t)
       (wlistener-top-level *application-frame*))))
 
-(defvar *enter-debugger* '#:enter-debugger)
-(defun enter-debugger (stream)
+(defvar *wlisp-enter-debugger* '#:wlisp-enter-debugger)
+(defun wlisp-enter-debugger (stream)
   #-Genera stream
   #+Genera
   (clim-internals::with-debug-io-selected (stream)
     (cl:break "Debugger break for ~A" (frame-pretty-name (pane-frame stream)))))
 
-(define-presentation-type restart-name ())
+(define-presentation-type wlisp-restart-name ())
 
-(define-presentation-method presentation-typep (object (type restart-name))
-  (or (eql object *enter-debugger*)
+(define-presentation-method presentation-typep (object (type wlisp-restart-name))
+  (or (eql object *wlisp-enter-debugger*)
       (typep object 'restart)))
 
-(define-presentation-method present (object (type restart-name) stream (view textual-view)
+(define-presentation-method present (object (type wlisp-restart-name) stream (view textual-view)
 				     &key)
-  (if (eql object *enter-debugger*)
+  (if (eql object *wlisp-enter-debugger*)
       (princ "Enter the debugger" stream)
       (prin1 (restart-name object) stream)))
 
-(define-command (com-invoke-restart :name t :command-table wlistener)
-    ((restart 'restart-name :gesture :select))
-  (if (eql restart *enter-debugger*)
+(define-command (com-wlisp-invoke-restart :name t :command-table wlistener)
+    ((restart 'wlisp-restart-name :gesture :select))
+  (if (eql restart *wlisp-enter-debugger*)
       (enter-debugger *standard-input*)
     (let (values)
       #+allegro
@@ -386,15 +375,15 @@
 			  :prompt "enter expression which will evaluate to the function to call"))))))
       (apply #'invoke-restart restart values))))
 
-(define-command (com-describe-error :name t :command-table wlistener) ()
-  (describe-error *error-output*))
+(define-command (com-wlisp-describe-error :name t :command-table wlistener) ()
+  (wlisp-describe-error *error-output*))
 
-(defun describe-error (stream)
-  (when *debugger-condition*
-    (with-output-as-presentation (stream *debugger-condition* 'form
+(defun wlisp-describe-error (stream)
+  (when *wlisp-debugger-condition*
+    (with-output-as-presentation (stream *wlisp-debugger-condition* 'form
 				  :single-box t)
-      (format stream "~2&Error: ~A" *debugger-condition*))
-    (let ((restarts *debugger-restarts*))
+      (format stream "~2&Error: ~A" *wlisp-debugger-condition*))
+    (let ((restarts *wlisp-debugger-restarts*))
       (when restarts
 	(let ((actions '(invoke-restart)))
 	  (dolist (restart (reverse restarts))
@@ -408,7 +397,7 @@
 	(fresh-line stream)
 	(formatting-table (stream :x-spacing '(2 :character))
 	  (dolist (restart restarts)
-	    (with-output-as-presentation (stream restart 'restart-name
+	    (with-output-as-presentation (stream restart 'wlisp-restart-name
 					  :single-box t :allow-sensitive-inferiors nil)
 	      (formatting-row (stream)
 		(formatting-cell (stream) stream)
@@ -418,7 +407,7 @@
 		(formatting-cell (stream)
 		  (format stream "~A" restart)))))
 	  #+Genera
-	  (with-output-as-presentation (stream *enter-debugger* 'restart-name
+	  (with-output-as-presentation (stream *wlisp-enter-debugger* 'wlisp-restart-name
 					:single-box t :allow-sensitive-inferiors nil)
 	    (formatting-row (stream)
 	      (formatting-cell (stream) stream)
@@ -430,16 +419,16 @@
 	(format stream "~&In process ~A." process))))
   (force-output stream))
 
-(define-command (com-use-native-debugger :name t :command-table wlistener)
+(define-command (com-wlisp-use-native-debugger :name t :command-table wlistener)
     ((boolean 'boolean
 	      :prompt "yes or no"
-	      :default (not *use-native-debugger*)))
-  (setq *use-native-debugger* boolean))
+	      :default (not *wlisp-use-native-debugger*)))
+  (setq *wlisp-use-native-debugger* boolean))
 
 
 ;;; Lisp-y stuff
 
-(defun quotify-object-if-necessary (object)
+(defun wlisp-quotify-object-if-necessary (object)
   (if (or (consp object)
 	  (and (symbolp object)
 	       (not (keywordp object))
@@ -455,11 +444,11 @@
 	(let ((*print-length* 3)
 	      (*print-level* 3)
 	      (*print-pretty* nil))
-	  (present `(describe ,(quotify-object-if-necessary object)) 'expression
+	  (present `(describe ,(wlisp-quotify-object-if-necessary object)) 'expression
 		   :stream stream :view +pointer-documentation-view+)))
      :gesture :describe)
     (object)
-  `(describe ,(quotify-object-if-necessary object)))
+  `(describe ,(wlisp-quotify-object-if-necessary object)))
 
 (define-presentation-translator expression-identity
     (expression nil wlistener
@@ -469,10 +458,10 @@
 		 (or (listp object)
 		     (vectorp object)))
 	    (clim-utils:with-stack-list
-	      (type 'sequence (reasonable-presentation-type (elt object 0)))
+	      (type 'sequence (wlisp-reasonable-presentation-type (elt object 0)))
 	      (clim-internals::presentation-subtypep-1 type context-type))
 	    (clim-internals::presentation-subtypep-1
-	      (reasonable-presentation-type object) context-type)))
+	      (wlisp-reasonable-presentation-type object) context-type)))
      :tester-definitive t
      :documentation ((object stream)
 		     (let ((*print-length* 3)
@@ -484,15 +473,15 @@
     (object)
   object)
 
-(defun reasonable-presentation-type (object)
+(defun wlisp-reasonable-presentation-type (object)
   (let* ((class (class-of object))
 	 (class-name (class-name class)))
     (when (presentation-type-specifier-p class-name)
       ;; Don't compute precedence list if we don't need it
-      (return-from reasonable-presentation-type class-name))
+      (return-from wlisp-reasonable-presentation-type class-name))
     (dolist (class (class-precedence-list class))
       (when (presentation-type-specifier-p (class-name class))
-	(return-from reasonable-presentation-type (class-name class))))
+	(return-from wlisp-reasonable-presentation-type (class-name class))))
     nil))
 
 (define-gesture-name :describe-presentation :pointer-button (:middle :super))
@@ -504,14 +493,14 @@
 	(let ((*print-length* 3)
 	      (*print-level* 3)
 	      (*print-pretty* nil))
-	  (present `(describe ,(quotify-object-if-necessary presentation)) 'expression
+	  (present `(describe ,(wlisp-quotify-object-if-necessary presentation)) 'expression
 		   :stream stream :view +pointer-documentation-view+)))
      :gesture :describe-presentation)
     (object presentation)
   (declare (ignore object))
-  `(describe ,(quotify-object-if-necessary presentation)))
+  `(describe ,(wlisp-quotify-object-if-necessary presentation)))
 
-(define-command (com-edit-function :name t
+(define-command (com-wlisp-edit-function :name t
 				   :command-table wlistener-edit
 				   :menu ("Edit Function"
 					:documentation "Edit a function."))
@@ -520,7 +509,7 @@
   (ed function))
 
 (define-presentation-to-command-translator edit-function
-    (expression com-edit-function wlistener
+    (expression com-wlisp-edit-function wlistener
      :tester ((object)
 	      (functionp object))
      :gesture :edit)
@@ -530,35 +519,38 @@
 
 ;;; Useful commands
 
-(define-command (com-clear-output-history :name t :command-table wlistener) ()
+(define-command (com-wlisp-clear-output-history :name t
+						:command-table wlistener)
+    ()
   (window-clear (frame-standard-output *application-frame*)))
 
 #+Genera
 (add-keystroke-to-command-table 
-  'wlistener '(:l :control :meta) :command 'com-clear-output-history)
+  'wlistener '(:l :control :meta) :command 'com-wlisp-clear-output-history)
 
-#-Minima (progn
-
-(define-command (com-copy-output-history :name t :command-table wlistener)
+#-Minima
+(progn
+(define-command (com-wlisp-copy-output-history :name t
+					       :command-table wlistener)
     ((pathname 'pathname :prompt "file"))
   (with-open-file (stream pathname :direction :output)
     (copy-textual-output-history *standard-output* stream)))
 
-(define-command (com-show-homedir :name t :command-table wlistener) ()
-  (show-directory (make-pathname :defaults (user-homedir-pathname)
+(define-command (com-wlisp-show-homedir :name t :command-table wlistener) ()
+  (wlisp-show-directory (make-pathname :defaults (user-homedir-pathname)
 				 :name :wild
 				 :type :wild
 				 :version :newest)))
 
-(define-command (com-show-directory :name t
+(define-command (com-wlisp-show-directory :name t
 				    :command-table
 				    wlistener-file
 				    :menu t)
     ((directory '((pathname) :default-type :wild)
 		:provide-default t :prompt "file"))
-  (show-directory directory))
+  (wlisp-show-directory directory))
 
-(defun show-directory (directory-pathname)
+(defun wlisp-show-directory (directory-pathname)
   (let ((stream *standard-output*)
 	(pathnames #+Genera (rest (fs:directory-list directory-pathname))
 		   #-Genera (directory directory-pathname)))
@@ -604,17 +596,17 @@
 	      (formatting-cell (stream)
 		(write-string author stream)))))))))
 
-(define-command (com-show-file :name t
+(define-command (com-wlisp-show-file :name t
 			       :command-table
 			       wlistener-file
 			       :menu t)
     ((pathname 'pathname 
 	       :provide-default t :prompt "file"
 	       :gesture :select))
-  (show-file pathname *standard-output*))
+  (wlisp-show-file pathname *standard-output*))
 
 ;;; I can't believe CL doesn't have this
-(defun show-file (pathname stream)
+(defun wlisp-show-file (pathname stream)
   (clim-utils:with-temporary-string (line-buffer :length 100)
     (with-open-file (file pathname :if-does-not-exist nil)
       (when file
@@ -622,7 +614,7 @@
 	  (let ((ch (read-char file nil 'eof)))
 	    (case ch
 	      (eof
-		(return-from show-file))
+		(return-from wlisp-show-file))
 	      (#\linefeed nil)
 	      ((#\Newline #-Genera #\Return)
 	       (write-string line-buffer stream)
@@ -631,7 +623,7 @@
 	      (otherwise
 		(vector-push-extend ch line-buffer)))))))))
 
-(define-command (com-edit-file :name t
+(define-command (com-wlisp-edit-file :name t
 			       :command-table wlistener-file
 			       :menu t)
     ((pathname 'pathname
@@ -639,7 +631,7 @@
 	       :gesture :edit))
   (ed pathname))
 
-(define-command (com-delete-file
+(define-command (com-wlisp-delete-file
 				:name t
 				:command-table wlistener-file
 				:menu t)
@@ -647,7 +639,7 @@
   (map nil #'delete-file pathnames))
 
 (define-presentation-to-command-translator delete-file
-    (pathname com-delete-file wlistener
+    (pathname com-wlisp-delete-file wlistener
      :gesture nil)
     (object)
   (list `(,object)))
@@ -659,7 +651,7 @@
   (fs:expunge-directory directory))
 
 ;;--- We can do better than this
-(define-command (com-copy-file :name t
+(define-command (com-wlisp-copy-file :name t
 			       :command-table wlistener-file
 			       :menu t)
     ((from-file 'pathname 
@@ -671,7 +663,7 @@
   (present to-file 'pathname)
   (write-string "."))
 
-(define-command (com-compile-file
+(define-command (com-wlisp-compile-file
 				:name t
 				:command-table wlistener-file
 			       :menu t)
@@ -680,12 +672,12 @@
   (map nil #'compile-file pathnames))
 
 (define-presentation-to-command-translator compile-file
-    (pathname com-compile-file wlistener
+    (pathname com-wlisp-compile-file wlistener
      :gesture nil)
     (object)
   (list `(,object)))
 
-(define-command (com-load-file
+(define-command (com-wlisp-load-file
 				:name t
 				:command-table wlistener-file
 				:menu t)
@@ -694,7 +686,7 @@
   (map nil #'load pathnames))
 
 (define-presentation-to-command-translator load-file
-    (pathname com-load-file wlistener
+    (pathname com-wlisp-load-file wlistener
      :gesture nil)
     (object)
   (list `(,object)))
@@ -708,35 +700,35 @@
 
 ;;; Just for demonstration...
 
-(define-presentation-type printer ())
+(define-presentation-type wlisp-printer ())
 
-(defparameter *printer-names*
+(defparameter *wlisp-printer-names*
 	      '(("The Next Thing" tnt)
 		("Asahi Shimbun" asahi)
 		("Santa Cruz Comic News" comic-news)
 		("Le Figaro" figaro)
 		("LautScribner" lautscribner)))
 		
-(define-presentation-method accept ((type printer) stream (view textual-view) &key)
+(define-presentation-method accept ((type wlisp-printer) stream (view textual-view) &key)
   (completing-from-suggestions (stream :partial-completers '(#\space))
-    (dolist (printer *printer-names*)
+    (dolist (printer *wlisp-printer-names*)
       (suggest (first printer) (second printer)))))
 
-(define-presentation-method present (printer (type printer) stream (view textual-view)
+(define-presentation-method present (printer (type wlisp-printer) stream (view textual-view)
 				     &key acceptably)
-  (let ((name (or (first (find printer *printer-names* :key #'second))
+  (let ((name (or (first (find printer *wlisp-printer-names* :key #'second))
 		  (string printer))))
     (write-token name stream :acceptably acceptably)))
 
-(define-presentation-method presentation-typep (object (type printer))
+(define-presentation-method presentation-typep (object (type wlisp-printer))
   (symbolp object))
 
 #-Minima
-(define-command (com-hardcopy-file :name t :command-table wlistener)
+(define-command (com-wlisp-hardcopy-file :name t :command-table wlistener)
     ((file 'pathname 
 	   :provide-default t :prompt "file"
 	   :gesture :describe)
-     (printer 'printer 
+     (printer 'wlisp-printer 
 	      :prompt "printer"
 	      :gesture :select)
      &key
@@ -750,7 +742,7 @@
   (format t "Would hardcopy ")
   (present file 'pathname)
   (format t " on ")
-  (present printer 'printer)
+  (present printer 'wlisp-printer)
   (format t " in ~A orientation." orientation)
   (when query
     (format t "~%With querying."))
@@ -758,29 +750,29 @@
     (format t "~%Reflected.")))
 
 ;;--- Just for demonstration...
-(define-command (com-show-some-commands :name t :command-table wlistener) ()
+(define-command (com-wlisp-show-some-commands :name t :command-table wlistener) ()
   (let ((ptype `(command :command-table user-command-table)))
     (formatting-table ()
       #-Minima
       (formatting-row ()
 	(formatting-cell ()
-	  (present `(com-show-file ,(merge-pathnames "foo" (user-homedir-pathname)))
+	  (present `(com-wlisp-show-file ,(merge-pathnames "foo" (user-homedir-pathname)))
 		   ptype)))
       #-Minima
       (formatting-row ()
 	(formatting-cell ()
-	  (present `(com-show-directory ,(merge-pathnames "*" (user-homedir-pathname)))
+	  (present `(com-wlisp-show-directory ,(merge-pathnames "*" (user-homedir-pathname)))
 		   ptype)))
       #-Minima
       (formatting-row ()
 	(formatting-cell ()
-	  (present `(com-copy-file ,(merge-pathnames "source" (user-homedir-pathname))
+	  (present `(com-wlisp-copy-file ,(merge-pathnames "source" (user-homedir-pathname))
 				   ,(merge-pathnames "dest" (user-homedir-pathname)))
 		   ptype)))
       #-Minima
       (formatting-row ()
 	(formatting-cell ()
-	  (present `(com-hardcopy-file ,(merge-pathnames "quux" (user-homedir-pathname))
+	  (present `(com-wlisp-hardcopy-file ,(merge-pathnames "quux" (user-homedir-pathname))
 				       asahi)
 		   ptype)))
       (formatting-row ()

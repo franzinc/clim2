@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: tk -*-
 ;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
-;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
+;; copyright (c) 1986-2002 Franz Inc, Berkeley, CA  - All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: macros.lisp,v 1.25 2000/05/01 21:43:35 layer Exp $
+;; $Id: macros.lisp,v 1.26 2002/07/09 20:57:18 layer Exp $
 
 (in-package :tk)
 

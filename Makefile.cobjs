@@ -1,4 +1,4 @@
-# $Header: /repo/cvs.copy/clim2/Makefile.cobjs,v 1.19 1998/03/18 20:27:52 layer Exp $
+# $Header: /repo/cvs.copy/clim2/Makefile.cobjs,v 1.20 2002/07/09 20:57:14 layer Exp $
 #
 #  Makefile.cobj for CLIM 2.0
 #
@@ -6,27 +6,27 @@
 # stub files - identify the required definitions from Xm,Ol,Xt,X11
 
 stub-motif.c: $(XMC_UNDEFS) $(XM_UNDEFS) misc/make-stub-file misc/make-stub-file1
-	misc/make-stub-file "void ___lisp_load_motif_stub ()"  \
+	sh misc/make-stub-file "void ___lisp_load_motif_stub ()"  \
 		$(XM_UNDEFS) > stub-motif.c
-	misc/make-stub-file1 "void ___lisp_load_motif_stub_vars ()" \
+	sh misc/make-stub-file1 "void ___lisp_load_motif_stub_vars ()" \
 		$(XMC_UNDEFS) >> stub-motif.c
 
 stub-olit.c: $(OLC_UNDEFS) $(OL_UNDEFS) misc/make-stub-file misc/make-stub-file1
-	misc/make-stub-file "void ___lisp_load_olit_stub ()"  \
+	sh misc/make-stub-file "void ___lisp_load_olit_stub ()"  \
 		$(OL_UNDEFS) > stub-olit.c 
-	misc/make-stub-file1 "void ___lisp_load_olit_stub_vars ()" \
+	sh misc/make-stub-file1 "void ___lisp_load_olit_stub_vars ()" \
 		$(OLC_UNDEFS) >> stub-olit.c 
 
 stub-xt.c: $(XT_UNDEFS) misc/make-stub-file
-	misc/make-stub-file "void ___lisp_load_xt_stub ()" \
+	sh misc/make-stub-file "void ___lisp_load_xt_stub ()" \
 		$(XT_UNDEFS) > stub-xt.c 
 
 stub-x.c: $(UNDEFS) misc/make-stub-file
-	misc/make-stub-file "void ___lisp_load_x_stub ()"  \
+	sh misc/make-stub-file "void ___lisp_load_x_stub ()"  \
 		$(UNDEFS) > stub-x.c 
 
 stub-wnn.c: $(WNN_UNDEFS) misc/make-stub-file
-	misc/make-stub-file "void ___lisp_load_wnn_stub ()" \
+	sh misc/make-stub-file "void ___lisp_load_wnn_stub ()" \
 		$(WNN_UNDEFS) > stub-wnn.c
 
 # support files - CLIM's C source files

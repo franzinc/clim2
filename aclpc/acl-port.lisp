@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: ACL-CLIM; Base: 10; Lowercase: Yes -*-
 ;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
-;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
+;; copyright (c) 1986-2002 Franz Inc, Berkeley, CA  - All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-port.lisp,v 1.12 2000/05/01 21:43:20 layer Exp $
+;; $Id: acl-port.lisp,v 1.13 2002/07/09 20:57:14 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -322,6 +322,13 @@
       (setq *port-mirror-sheet-alist* nil)
       (setf *acl-port* nil))))
 
+(defmethod destroy-port :after ((port acl-port))
+  ;; spr25546
+  ;; See documentation for the :before method above.
+  ;; Do this as an :after method to avoid collisions during 
+  ;; other clean-up operations.
+  (reset-aclpc-clim))
+
 (defstruct (acl-font)
   index
   height
@@ -511,6 +518,61 @@
 	(setf (gethash style text-style->acl-font-mapping)
 	  (let ((name (silica::device-font-name style)))
 	    (make-device-font (win:GetStockObject name)))))))
+
+(defmethod (setf text-style-mapping) (mapping (port acl-port) (style list)
+				      &optional charset etc)
+  (setf (text-style-mapping port (apply #'make-text-style style)
+			    charset etc) mapping))
+
+(defmethod (setf text-style-mapping) (mapping (port acl-port)
+				      (style text-style)
+				      &optional charset etc)
+  (declare (ignore charset etc))
+  (when (listp mapping)
+    (assert (eq (first mapping) :style) ()
+      "Text style mappings must be atomic font names ~
+or (:style . (family face size))")
+    (setf mapping (parse-text-style (cdr mapping))))
+  ;; I wonder if this is right
+  (setf (gethash style (slot-value port 'text-style->acl-font-mapping))
+    (typecase mapping
+      (string
+       (make-windows-font-named mapping
+			:size (text-style-size style)
+			:face (text-style-face style)
+			:port port))
+      (t mapping))))
+
+(defun make-windows-font-named (name &key (size ':normal)
+				  (face ':roman)
+				  (port (find-port)))
+  ;; This is a simplified user wrapper around MAKE-WINDOWS-FONT
+  (let ((point-size (or (etypecase size
+			  (real size)
+			  (symbol (second (assoc (or size ':normal)
+						 *acl-logical-size-alist*))))
+			(progn
+			  (warn "~S does not specify a size, using :normal"
+				size)
+			  (second (assoc ':normal 
+					 *acl-logical-size-alist*))))))
+    (multiple-value-bind (weight italic)
+	(etypecase face
+	  (cons 
+	   (values (if (member ':bold face) win:FW_BOLD win:FW_NORMAL)
+		   (member ':italic face)))
+	  (symbol
+	   (case face
+	     (:roman (values win:FW_NORMAL nil))
+	     (:bold (values win:FW_BOLD nil))
+	     (:italic (values win:FW_NORMAL t))
+	     ;; ?? this default, but see text-style-mapping-1
+	     (otherwise (values win:FW_BOLD nil)))))
+      (make-windows-font
+       (- (round (* point-size (slot-value port 'logpixelsy)) 72))
+       :weight weight
+       :italic italic
+       :face name))))
 
 (defun make-font-width-table (dc last-character first-character default-width)
   (let* ((tepsize (ct:ccallocate win:size))
@@ -849,6 +911,19 @@
     (if double 
 	(logior state (make-modifier-state :double))
       state)))
+
+;;; SPR25900 --pnc
+;;; Windows handles the meta/alt key differently from the
+;;; other modifier keys.  In particular, on mouse-keys, only
+;;; information about the control and shift keys is included.
+;;; So, we get the information about the meta/alt key from
+;;; the variable *modstate*, set in onkeydown (in aclpc/acl-class.lisp)
+(defun windows-mask->modifier-state+ (mask &optional double)
+  (let ((state (windows-mask->modifier-state mask double)))
+    (when (and *modstate*
+               (modstate-meta *modstate*))
+      (setq state (logior state (make-modifier-state :meta))))
+    state))
 
 (defmethod event-handler ((port acl-port) args)
   (declare (ignore args))

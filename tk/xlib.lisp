@@ -1,5 +1,5 @@
 ;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
-;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
+;; copyright (c) 1986-2002 Franz Inc, Berkeley, CA  - All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xlib.lisp,v 1.65 2000/05/01 21:43:35 layer Exp $
+;; $Id: xlib.lisp,v 1.66 2002/07/09 20:57:18 layer Exp $
 
 (in-package :tk)
 
@@ -201,11 +201,11 @@
 					 (lisp-string-to-string8 name)
 					 (lisp-string-to-string8 class)
 					 &type xrmvalue))
-	(let ((type (char*-to-string type)))
+	(let ((type (excl:native-to-string type)))
 	  (values
 	   (cond
 	    ((equal type "String")
-	     (char*-to-string (x11:xrmvalue-addr xrmvalue)))
+	     (excl:native-to-string (x11:xrmvalue-addr xrmvalue)))
 	    ((equal type "Pixel")
 	     (sys::memref-int (x11:xrmvalue-addr xrmvalue) 0 0
 			      :unsigned-natural))
@@ -258,11 +258,12 @@
 		(x11:xgeterrordatabasetext display "XRequest" request-cstring
 					   0 s 1000)
 		(prog1
-		    (ff:char*-to-string s)
+		    (excl:native-to-string s)
 		  (clim-utils::system-free s))))
 	    resourceid)))
 
-(defun-c-callable x-error-handler ((display :unsigned-long) (event :unsigned-long))
+(defun-foreign-callable x-error-handler ((display :foreign-address)
+					 (event :foreign-address))
   (error 'x-error
 	 :display display
 	 :error-code (x11:xerrorevent-error-code event)
@@ -279,11 +280,11 @@
 (defun report-x-connection-lost (condition stream)
     (let ((display (x-error-display condition)))
       (format stream "Xlib: Connection to X11 server '~a' lost"
-	      (ff:char*-to-string (x11:display-display-name display)))))
+	      (excl:native-to-string (x11:display-display-name display)))))
 
 (defvar *x-io-error-hook* nil)
 
-(defun-c-callable x-io-error-handler ((display :unsigned-long))
+(defun-foreign-callable x-io-error-handler ((display :foreign-address))
   (when *x-io-error-hook*
     (funcall *x-io-error-hook* display))
   (error 'x-connection-lost :display display))
@@ -292,7 +293,7 @@
   (let ((s (excl::malloc 1000)))
     (x11::xgeterrortext display-handle code s 1000)
     (prog1
-	(ff:char*-to-string s)
+	(excl:native-to-string s)
       (clim-utils::system-free s))))
 
 (defvar *x-error-handler-address* nil)
@@ -301,10 +302,10 @@
 (defun setup-error-handlers ()
   (x11:xseterrorhandler (or *x-error-handler-address*
 			    (setq *x-error-handler-address*
-			      (register-function 'x-error-handler))))
+			      (register-foreign-callable 'x-error-handler))))
   (x11:xsetioerrorhandler (or *x-io-error-handler-address*
 			      (setq *x-io-error-handler-address*
-				(register-function 'x-io-error-handler)))))
+				(register-foreign-callable 'x-io-error-handler)))))
 
 (eval-when (load)
   (setup-error-handlers))
@@ -857,4 +858,4 @@
        &nitems
        &bytes-after
        &prop)
-      (char*-to-string prop))))
+      (values (excl:native-to-string prop)))))

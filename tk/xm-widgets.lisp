@@ -1,5 +1,5 @@
 ;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
-;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
+;; copyright (c) 1986-2002 Franz Inc, Berkeley, CA  - All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xm-widgets.lisp,v 1.30 1999/02/25 08:23:42 layer Exp $
+;; $Id: xm-widgets.lisp,v 1.31 2002/07/09 20:57:18 layer Exp $
 
 (in-package :tk)
 
@@ -42,7 +42,7 @@
 					  :name :delete-response
 					  :type 'tk::delete-response
 					  :original-name
-					  (ff:string-to-char*
+					  (excl:string-to-native
 					   "deleteResponse")))
 
 (tk::add-resource-to-class (find-class 'xm-text)
@@ -50,7 +50,7 @@
 					  :name :font-list
 					  :type 'font-list
 					  :original-name
-					  (ff:string-to-char*
+					  (excl:string-to-native
 					   "fontList")))
 
 (tk::add-resource-to-class (find-class 'vendor-shell)
@@ -58,7 +58,7 @@
 					  :name :keyboard-focus-policy
 					  :type 'tk::keyboard-focus-policy
 					  :original-name
-					  (ff:string-to-char*
+					  (excl:string-to-native
 					   "keyboardFocusPolicy")))
 
 
@@ -67,7 +67,7 @@
 					  :name :label-type
 					  :type 'tk::label-type
 					  :original-name
-					  (ff:string-to-char*
+					  (excl:string-to-native
 					   "labelType")))
 
 
@@ -75,18 +75,43 @@
 
 ;;-- This is a problem cos we dont know the number of items
 
-(defconstant xm-font-list-default-tag "FONTLIST_DEFAULT_TAG_STRING")
+(defconstant xm-font-list-default-tag 
+    ;; This must be converted to a native string before being passed
+    ;; to any of the XmString functions.
+    "FONTLIST_DEFAULT_TAG_STRING")
+
+;;; Specialized function to destroy xm-strings, to support Motif2.1.
+(defun destroy-generated-xm-string (string-pointer)
+  (xm_string_free string-pointer)
+  nil)
+
+(defun destroy-generated-string (string-pointer)
+  (clim-utils::system-free string-pointer)
+  nil)
 
 ;; this needs to be made to deal with compound strings for ics.
 
 (defmethod convert-resource-in ((parent t) (type (eql 'xm-string)) value)
-  (and (not (zerop value))
-       (with-ref-par ((string 0 *))
-	 ;;--- I think we need to read the book about
-	 ;;--- xm_string_get_l_to_r and make sure it works with multiple
-	 ;;-- segment strings
-	 (xm_string_get_l_to_r value xm-font-list-default-tag &string)
-	 (char*-to-string string))))
+  (when (not (zerop value))
+    (multiple-value-prog1
+	(with-ref-par ((string 0 *))
+	  ;;--- I think we need to read the book about
+	  ;;--- xm_string_get_l_to_r and make sure it works with multiple
+	  ;;-- segment strings
+	  (let ((result-flag (xm_string_get_l_to_r 
+			      value
+			      (clim-utils:string-to-foreign 
+			       xm-font-list-default-tag) 
+			      &string)))
+	    (cond ((= result-flag 1) 
+		   (char*-to-string string))
+		  (t
+		   ;; If the string isn't found (see the docs
+		   ;; for XmStringGetLtoR) signal an error.
+		   (error "xm_string_get_l_to_r failed while converting xm-string resource")))))
+      (tk::add-widget-cleanup-function parent
+				       #'destroy-generated-xm-string
+				       value))))
 
 (defmethod convert-resource-in ((parent t) (type (eql 'xm-string-table)) value)
   value)
@@ -120,6 +145,7 @@
     ;;(declare (ignore s))
     (funcall f nil start end))))
 
+
 (excl:ics-target-case
  (:+ics
 
@@ -131,30 +157,50 @@
     (let ((result nil))
       (flet ((extract-element (codeset start end)
 	       (let* ((substring (subseq value start end))
-		      (element (note-malloced-object
-				(xm_string_create_l_to_r
-				 (ecase codeset
-				   ((0 2) (lisp-string-to-string8 substring))
-				   ((1 3) (lisp-string-to-string16 substring)))
-				 (svref *font-list-tags* codeset)))))
-		 (setq result (note-malloced-object
-			       (if result
-				   (xm_string_concat result element)
-				 (xm_string_copy element)))))))
+		      (element (xm_string_create_l_to_r
+				(ecase codeset
+				  ((0 2) (lisp-string-to-string8 substring))
+				  ((1 3) (lisp-string-to-string16 substring)))
+				(svref *font-list-tags* codeset))))
+		 (tk::add-widget-cleanup-function parent
+						  #'destroy-generated-xm-string
+						  element)
+		 (let ((temp (if result
+				 (xm_string_concat result element)
+			       (xm_string_copy element))))
+		   (tk::add-widget-cleanup-function parent
+						    #'destroy-generated-xm-string
+						    temp)
+		   (setq result temp)))))
 	(declare (dynamic-extent #'extract))
 	(partition-compound-string value #'extract-element)
 	(or result
 	    *empty-compound-string*
 	    (setq *empty-compound-string*
 	      (xm_string_create_l_to_r (clim-utils:string-to-foreign "")
-				       (clim-utils:string-to-foreign xm-font-list-default-tag))))))))
+				       (clim-utils:string-to-foreign 
+					xm-font-list-default-tag))))))
+    ))
 
  (:-ics
   (defmethod convert-resource-out ((parent t) (type (eql 'xm-string)) value)
-    (note-malloced-object
-     (xm_string_create_l_to_r
-      (note-malloced-object (clim-utils:string-to-foreign value))
-      (note-malloced-object (clim-utils:string-to-foreign "")))))))
+    (let ((s1 (clim-utils:string-to-foreign value))
+	  (s2 (clim-utils:string-to-foreign "")))
+      (tk::add-widget-cleanup-function parent
+				       #'destroy-generated-string
+				       s1)
+      (tk::add-widget-cleanup-function parent
+				       #'destroy-generated-string
+				       s2)
+      (let ((temp (xm_string_create_l_to_r
+		   s1
+		   s2)))
+	(tk::add-widget-cleanup-function parent
+					 #'destroy-generated-xm-string
+					 temp) 
+	temp))
+    ))
+ )
 
 (defmethod convert-resource-out ((parent t) (type (eql 'xm-background-pixmap)) value)
   (etypecase value
@@ -197,7 +243,7 @@
 (defmethod convert-resource-out ((parent t) (type (eql 'default-button-type)) value)
   (encode-box-child value))
 
-;; JPM: Use FF:string-to-char* at compile time for strings that will
+;; JPM: Use excl:string-to-native at compile time for strings that will
 ;; never get freed, use string-to-foreign at run time for strings
 ;; that will get freed.
 
@@ -206,7 +252,7 @@
 					  :name :scroll-horizontal
 					  :type 'tk::boolean
 					  :original-name
-					  (ff:string-to-char*
+					  (excl:string-to-native
 					   "scrollHorizontal")))
 
 (tk::add-resource-to-class (find-class 'xm-text)
@@ -214,7 +260,7 @@
 					  :name :scroll-vertical
 					  :type 'tk::boolean
 					  :original-name
-					  (ff:string-to-char*
+					  (excl:string-to-native
 					   "scrollVertical")))
 
 (tk::add-resource-to-class (find-class 'xm-text)
@@ -222,7 +268,7 @@
 					  :name :word-wrap
 					  :type 'tk::boolean
 					  :original-name
-					  (ff:string-to-char*
+					  (excl:string-to-native
 					   "wordWrap")))
 
 (defun make-xm-string-table (&key (number 1))

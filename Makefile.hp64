@@ -1,0 +1,33 @@
+# $Header: /repo/cvs.copy/clim2/Makefile.hp64,v 1.2 2002/07/09 20:57:14 layer Exp $
+#
+#  Makefile.hpprism for CLIM 2.0
+#
+
+include Makefile.defs
+
+Makefile=Makefile.hp64
+
+SET_LIBRARY_PATH = \
+ LD_LIBRARY_PATH=/usr/lib/pa20_64:/lib:/usr/lib:$(LD_LIBRARY_PATH); export LD_LIBRARY_PATH
+
+
+STD_DEFINES = -DSYSV
+AR = ar clq
+
+#TKLIB=-lXm
+TKLIB=/usr/lib/pa20_64/libXm.4 /usr/lib/pa20_64/libXp.2 /usr/lib/pa20_64/libXext.3
+XTLIB=/usr/lib/pa20_64/libXt.3 /usr/lib/pa20_64/libSM.2 /usr/lib/pa20_64/libICE.2
+XLIB=/usr/lib/pa20_64/libX11.3
+
+XINCLUDES= 
+
+CC= /usr/bin/cc
+CFLAGS= -O -Ae +DA2.0W -DAcl64Bit
+MOTIFXTRAS=-lc
+PICFLAGS = +Z
+SHAREFLAGS = 
+MAKE_SHARED = ld -b +s
+
+PRODUCT-OBJS= $(PRODUCT-GENERIC-OBJS) $(STATIC-XM-OBJS) $(SHARED-XM-OBJS)
+
+include Makefile.generic

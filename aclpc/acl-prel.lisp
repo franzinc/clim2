@@ -1,5 +1,5 @@
 ;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
-;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
+;; copyright (c) 1986-2002 Franz Inc, Berkeley, CA  - All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-prel.lisp,v 1.12 2000/06/08 19:16:51 layer Exp $
+;; $Id: acl-prel.lisp,v 1.13 2002/07/09 20:57:14 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -170,7 +170,9 @@
 			     :key value-key :test test)))
 	    (when i 
 	      (win:SendMessage 
-	       hwnd win:LB_SETCURSEL i 0))))
+	       hwnd win:LB_SETCURSEL i 0)
+	      (win:SendMessage 
+	       hwnd win:LB_SETTOPINDEX i 0))))
 	;; we put in the 20% hack because
 	;; compute-set-gadget-dimensions in acl-widg is
 	;; inherently wrong - see the comment (cim 9/25/96)
@@ -379,46 +381,29 @@
 	  bitmapinfo 
 	  win:DIB_RGB_COLORS)))
     (when (zerop texture-handle)
-      ;;Below is Charley Cox's May 6 message from bug5991 (common graphics)
+      ;; This code comes from Ken Cheetham's mail attached to
+      ;; spr21608.  This should finally fix this problem as I think he
+      ;; and/or microsoft understand why it is occuring now. The
+      ;; underlying answer seems to be that you need to use space
+      ;; which is really got from the C library malloc, not from any
+      ;; lisp-runtime approximation to it.
       ;;
-      ;;The workaround I have installed to open-texture (the only place that
-      ;;calls CreateDIBitmap) occurs when an initial call to CreateDIBitmap
-      ;;fails.  If a failure occurs, open-texture does an on-the-spot copy of
-      ;;the pixmap array into a malloc'd block and then tries calling
-      ;;CreateDIBitmap again.  Afterwards, it frees the malloc'd block.
-      ;;
-      ;;This workaround has fixed all the failure cases I was able to
-      ;;reproduce, and I have not seen any failures since its installation.  I
-      ;;have also since not seen any StretchDIBits failures.
-      ;;
-      ;;I'm not really happy not knowing what was causing CreateDIBitmap's
-      ;;failure.  The GetLastError code was not being set, and single stepping
-      ;;all the way through did not reveal anything.  It's possible we may
-      ;;revisit this in the future.
-      (let (width height bits-per-pixel)
-	(let ((d (array-dimensions pixel-map)))
-	  (setq width (first d) height (second d)))
-	(setq bits-per-pixel 8)		; kludge
-	(let* ((image-size
-		;; Formula from msdn document: SAMPLE: DIBs and Their Uses
-		(* (ash
-		    (logand (+ (* width bits-per-pixel) 31)
-			    #.(lognot 31))
-		    -3)
-		   height))
-	       (malloc-texture-array
-		(ff:allocate-fobject `(:array :char ,image-size) :c)))
-	  (unless (zerop malloc-texture-array)
-	    (memcpy malloc-texture-array pixel-map image-size)
-	    (setq texture-handle
-	      (win:CreateDIBitmap
-	       device-context
-	       bitmapinfo 
-	       win:CBM_INIT		; initialize bitmap bits
-	       malloc-texture-array
-	       bitmapinfo 
-	       win:DIB_RGB_COLORS))
-	    (ff:free-fobject malloc-texture-array)))))
+      ;; This is hugely simpler than the previous code, which had a
+      ;; very hairy computation of the buffer size, which I've just
+      ;; not done here.  I think this means that bitmaps may be
+      ;; assumed 8bits deep, if they were deeper you'd need a suitable
+      ;; factor in the computation of image-size.
+      (let ((image-size (array-total-size pixel-map)))
+	(with-malloced-space (buffer-address image-size)
+	  (memcpy buffer-address pixel-map image-size)
+	  (setq texture-handle
+	    (win:CreateDIBitmap
+	     device-context
+	     bitmapinfo 
+	     win:CBM_INIT		; initialize bitmap bits
+	     buffer-address
+	     bitmapinfo 
+	     win:DIB_RGB_COLORS)))))
     (when (zerop texture-handle)
       (check-last-error "CreateDIBitmap"))
     texture-handle))
@@ -449,7 +434,8 @@
 			       0 errno 0 
 			       pointer 0 0)))
     (values (if (plusp chars)
-		(nsubstitute #\space #\return (ff:char*-to-string (aref pointer 0)))
+		(nsubstitute #\space #\return 
+			     (excl:native-to-string (aref pointer 0)))
 	      "unidentified system error")
 	    chars)))
 
@@ -522,7 +508,7 @@
 	    (cond ((zerop string) (values nil nil))
 		  (t
 		   (when (integerp string)
-		     (setq string (ff:char*-to-string string)))
+		     (setq string (excl:native-to-string string)))
 		   (values (funcall parser string) string))))
 	(win:CloseClipboard))
     (check-last-error "OpenClipboard")))

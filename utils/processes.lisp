@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 ;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
-;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
+;; copyright (c) 1986-2002 Franz Inc, Berkeley, CA  - All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: processes.lisp,v 1.24 2000/05/01 21:43:40 layer Exp $
+;; $Id: processes.lisp,v 1.25 2002/07/09 20:57:19 layer Exp $
 
 (in-package :clim-utils)
 
@@ -38,6 +38,21 @@
     }
     )
 
+;;; This is to keep it quiet: On ACL it's safe to declare the
+;;; predicate & args dynamic-extent on platforms with native threads
+;;; *only*, which at present (6.0beta) is Windows platforms.
+;;;
+;;; the real definition of process-wait is in
+;;; clim2:;aclpc;acl-clim.lisp.  That definition is almost certainly
+;;; bogus because it misunderstands the whole way multithreading
+;;; works: the definition above should be used instead.  But the
+;;; Windows event-loop depends on this misunderstanding, and I don't
+;;; want to change that.
+;;;
+#+(and allegro mswindows)
+(excl:defun-proto process-wait (wait-reason predicate &rest args)
+  (declare (dynamic-extent predicate args)))
+  
 ;;-- I dont think we need this
 ;#+Allegro
 ;(unless (excl::scheduler-running-p)

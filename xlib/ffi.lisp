@@ -1,5 +1,5 @@
 ;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
-;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
+;; copyright (c) 1986-2002 Franz Inc, Berkeley, CA  - All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: ffi.lisp,v 1.22 2000/05/01 21:43:41 layer Exp $
+;; $Id: ffi.lisp,v 1.23 2002/07/09 20:57:19 layer Exp $
 
 (in-package :x11)
 
@@ -125,7 +125,7 @@
 		 'ff:foreign-address
 	       't)))))
 
-#+(version>= 5 0)
+#+(and (version>= 5 0) (not (version>= 6 1)))
 (defun trans-arg-type (type)
   (excl:if* (consp type)
      then (ecase (car type)
@@ -141,6 +141,7 @@
 		 :foreign-address
 	       't)))))
 
+#-(version>= 6 1)
 (defun trans-return-type (type)
   (excl:if* (consp type)
      then (ecase (car type)
@@ -155,12 +156,14 @@
 	    (:signed-32bit :integer)
 	    (t :unsigned-integer))))
 
+
+#-(version>= 6 1)
 (defmacro def-exported-foreign-function ((name &rest options) &rest args)
   `(progn
      (eval-when (eval load compile)
        (export ',name))
      (eval-when (compile eval load)
-       ,(let ((c-name (ff:convert-to-lang (second (assoc :name options))))
+       ,(let ((c-name (ff:convert-foreign-name (second (assoc :name options))))
 	      (return-type (or (second (assoc :return-type options))
 			       'void)))
 	  `(delayed-defforeign
@@ -172,14 +175,66 @@
 	    :return-type ,(trans-return-type return-type)
 	    :entry-point ,c-name)))))
 
+
+#+(version>= 6 1)
+(defun trans-arg-type (type)
+  (cons (car type)
+	(excl:if* (consp (cadr type))
+	   then (ecase (caadr type)
+		  (:pointer '(:foreign-address))
+		  (:array '(:foreign-address)))
+	   else (case (cadr type)
+		  (void (error "void not allowed here"))
+		  ((int :signed-32bit) '(:int))
+		  ((unsigned-int :unsigned-32bit) '(:unsigned-int))
+		  ((fixnum-int fixnum-unsigned-int) '(:int fixnum))
+		  (fixnum-drawable '(:foreign-address))
+		  (t
+		   (if (get (cadr type) 'ff::cstruct)
+		       '(:foreign-address)
+		     '(:lisp)))))))
+
+#+(version>= 6 1)
+(defun trans-return-type (type)
+  (excl:if* (consp type)
+     then (ecase (car type)
+	    (:pointer :foreign-address)
+	    (:array :foreign-address))
+     else (case type
+	    (void :void)
+	    ((integer int) :int)
+	    ((fixnum-int :fixnum) '(:int fixnum))
+	    (:unsigned-32bit :unsigned-int)
+	    (:signed-32bit :int)
+	    (t :unsigned-int))))
+
+#+(version>= 6 1)
+(defmacro def-exported-foreign-function ((name &rest options) &rest args)
+  `(progn
+     (eval-when (eval load compile)
+       (export ',name))
+     (eval-when (compile eval load)
+       ,(let ((c-name (second (assoc :name options)))
+	      (return-type (or (second (assoc :return-type options))
+			       'void)))
+	  `(ff:def-foreign-call (,name ,c-name)
+	       ,(or (mapcar #'trans-arg-type args) '(:void))
+	     :returning ,(trans-return-type return-type)
+	     :call-direct t
+	     :arg-checking nil)))))
+
+
+#-(version>= 6 1)
 (defparameter *defforeigned-functions* nil
   "A list of name and defforeign arguments")
 
+#-(version>= 6 1)
 (defun delayed-defforeign (name &rest arguments)
   (setf *defforeigned-functions*
     (delete name *defforeigned-functions* :key #'car))
   (push (cons name arguments) *defforeigned-functions*))
 
+#-(version>= 6 1)
 (defun defforeign-functions-now ()
   (ff:defforeign-list *defforeigned-functions*))
 

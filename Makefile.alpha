@@ -1,4 +1,4 @@
-# $Header: /repo/cvs.copy/clim2/Makefile.alpha,v 1.9 2000/03/04 05:13:48 duane Exp $
+# $Header: /repo/cvs.copy/clim2/Makefile.alpha,v 1.10 2002/07/09 20:57:14 layer Exp $
 #
 #  Makefile.alpha for CLIM 2.0
 
@@ -27,9 +27,9 @@ PICFLAGS =
 SHAREFLAGS =
 
 ifeq ($(SIXTYFOURBIT),yes)
-MAKE_SHARED = ../src/bin/make_shared.dec64
+MAKE_SHARED = sh ../src/bin/make_shared.dec64
 else
-MAKE_SHARED = ../src/bin/make_shared.dec
+MAKE_SHARED = sh ../src/bin/make_shared.dec
 endif
 
 include Makefile.generic

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 ;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
-;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
+;; copyright (c) 1986-2002 Franz Inc, Berkeley, CA  - All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: text-style.lisp,v 1.30 2000/05/01 21:43:33 layer Exp $
+;; $Id: text-style.lisp,v 1.31 2002/07/09 20:57:17 layer Exp $
 
 (in-package :silica)
 
@@ -104,7 +104,7 @@
 (defun initialize-text-style-tables ()
   (setf *null-text-style* (make-text-style-1 nil nil nil 0)
 	#+(or aclpc acl86win32)
-        *undefined-text-style* 
+        *undefined-text-style*
 	#+(or aclpc acl86win32)
           (make-text-style-1 (make-symbol (symbol-name 'undefined)) nil nil 1)
         *next-text-style-index* 2
@@ -508,7 +508,7 @@
   (text-style-fixed-width-p (parse-text-style style) medium))
 
 (defmethod text-size ((medium basic-medium) string
-                      &key (text-style (medium-merged-text-style medium)) 
+                      &key (text-style (medium-merged-text-style medium))
                            (start 0) end)
   (declare (values largest-x total-height last-x last-y baseline))
   ;; this shouldn't be necessary because of trampolines directly above
@@ -705,7 +705,7 @@
 	      (cdr mapping-cache) font))
       font)))
 
-(defmethod text-style-mapping ((port basic-port) (style device-font) 
+(defmethod text-style-mapping ((port basic-port) (style device-font)
                                &optional (character-set *standard-character-set*) window)
   ;;--- What about the character set when using device fonts?
   #-aclpc (declare (ignore character-set window))
@@ -776,7 +776,7 @@
 ;; This method allows the device to convert logical sizes into point
 ;; sizes, etc.  The default method doesn't do much of anything.
 #-(or aclpc acl86win32)
-(defmethod standardize-text-style ((port basic-port) style 
+(defmethod standardize-text-style ((port basic-port) style
                                    &optional (character-set *standard-character-set*))
   (declare (ignore character-set))
   (unless (numberp (text-style-size style))
@@ -824,10 +824,10 @@
 	  (excl:ics-target-case
            (:-ics *standard-character-set*)
            (:+ics (typecase character
-                    (excl:codeset-0 0)
-                    (excl:codeset-1 1)
-                    (excl:codeset-2 2)
-                    (excl:codeset-3 3))))
+                    (excl::codeset-0 0)
+                    (excl::codeset-1 1)
+                    (excl::codeset-2 2)
+                    (excl::codeset-3 3))))
           #-allegro *standard-character-set*
           (char-code character)))
 

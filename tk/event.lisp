@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: tk -*-
 ;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
-;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
+;; copyright (c) 1986-2002 Franz Inc, Berkeley, CA  - All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: event.lisp,v 1.30 1999/02/25 08:23:42 layer Exp $
+;; $Id: event.lisp,v 1.31 2002/07/09 20:57:18 layer Exp $
 
 (in-package :tk)
 
@@ -90,9 +90,9 @@
 
 (defvar *sequence-matching-data*)
 
-(defun-c-callable match-event-sequence-and-types ((display :unsigned-long)
-						  (event :unsigned-long)
-						  (arg :unsigned-long))
+(defun-foreign-callable match-event-sequence-and-types ((display :foreign-address)
+							(event :foreign-address)
+							(arg :foreign-address))
   (declare (ignore arg))
   ;; Arg points to a n element (unsigned-byte 32) vector, where the first
   ;; element is the display, the second is the sequence number, and
@@ -101,7 +101,9 @@
 	 (desired-display (aref arg 0))
 	 (desired-sequence (aref arg 1))
 	 (event-type (x11:xevent-type event)))
-    (declare (type (simple-array (unsigned-byte 32) (*)) arg))
+    ;; Preparedfor rfe4722, worrying avout 64bit, big-endian machines
+    #-(and big-endian 64bit) (declare (type (simple-array (unsigned-byte 32) (*)) arg))
+    #+(and big-endian 64bit) (declare (type (simple-array bignum (*)) arg))
 
     (if (and (eql desired-display display)
 	     (eql desired-sequence (x11:xanyevent-serial event))
@@ -124,6 +126,7 @@
   (or *event-matching-event*
       (setq *event-matching-event* (make-xevent))))
 
+;;; Preparedfor rfe4722, worrying avout 64bit, big-endian machines
 (defun get-event-matching-sequence-and-types (display-object seq-no types
 					      &key (block t))
   (unless (consp types)
@@ -132,25 +135,29 @@
 	 ;;-- This is pretty scarey. Heap allocated objects are passed
 	 ;;-- to C which then passes them to lisp. If a GC happens we
 	 ;;-- could be hosed
-	 (data (make-array (+ 3 (length types))
-			   :element-type '(unsigned-byte 32)))
+	 (data  (make-array (+ 3 (length types))
+			    :element-type
+			    #-(and big-endian 64bit) '(unsigned-byte 32) 
+			    #+(and big-endian 64bit) 'bignum))
 	 (i 2)
 	 (resulting-event (event-matching-event))
 	 (addr (or *match-event-sequence-and-types-address*
 		   (setq *match-event-sequence-and-types-address*
-		     (register-function 'match-event-sequence-and-types))))
+		     (register-foreign-callable 'match-event-sequence-and-types))))
 	 (*sequence-matching-data* data))
-    (declare (type (simple-array (unsigned-byte 32) (*)) data)
+    (declare #-(and big-endian 64bit) (type (simple-array (unsigned-byte 32) (*)) data)
+	     #+(and big-endian 64bit) (type (simple-array bignum (*)) data)
 	     (fixnum i))
-    (setf (aref data 0) (ff:foreign-pointer-address display))
+    (let ((temp (ff:foreign-pointer-address display)))
+      (setf (aref data 0) temp))
     (setf (aref data 1) seq-no)
     (dolist (type types)
       (setf (aref data i) (position type tk::*event-types*))
       (incf i))
     (setf (aref data i) 0)
     (cond (block
-	   (x11:xifevent display resulting-event addr 0)
-	   resulting-event)
+	      (x11:xifevent display resulting-event addr 0)
+	    resulting-event)
 	  ((zerop (x11:xcheckifevent display resulting-event addr 0))
 	   nil)
 	  (t
@@ -159,11 +166,10 @@
 
 (defvar *event* nil)
 
-(defun-c-callable event-handler ((widget :unsigned-long)
-				 (client-data :unsigned-long)
-				 (event :unsigned-long)
-				 (continue-to-dispatch
-				  :unsigned-long))
+(defun-foreign-callable event-handler ((widget :foreign-address)
+				       (client-data :foreign-address)
+				       (event :foreign-address)
+				       (continue-to-dispatch :foreign-address))
   (declare (ignore continue-to-dispatch))
 
   #+ignore (print (event-type event) excl:*initial-terminal-io*)
@@ -186,7 +192,7 @@
    (encode-event-mask events)
    maskable
    (or *event-handler-address*
-       (setq *event-handler-address* (register-function 'event-handler)))
+       (setq *event-handler-address* (register-foreign-callable 'event-handler)))
    (caar (push
 	  (list (new-callback-id) (cons function args))
 	  (widget-event-handler-data widget)))))

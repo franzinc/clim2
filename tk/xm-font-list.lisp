@@ -1,5 +1,5 @@
 ;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
-;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
+;; copyright (c) 1986-2002 Franz Inc, Berkeley, CA  - All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xm-font-list.lisp,v 1.22 1999/02/25 08:23:42 layer Exp $
+;; $Id: xm-font-list.lisp,v 1.23 2002/07/09 20:57:18 layer Exp $
 
 (in-package :tk)
 
@@ -28,6 +28,31 @@
 
 (defun free-font-list (font-list)
   (xm_font_list_free font-list))
+
+;;; Bascially an alias for 'font-list in Motif2.1
+(defmethod convert-resource-out (parent (type (eql 'tk::label-font-list)) value)
+  (declare (ignore parent))
+  (export-font-list value))
+(defmethod convert-resource-in (class (type (eql 'tk::label-font-list)) value)
+  (declare (ignore class))
+  (import-font-list value))
+
+;;; Bascially an alias for 'font-list in Motif2.1
+(defmethod convert-resource-out (parent (type (eql 'tk::button-font-list)) value)
+  (declare (ignore parent))
+  (export-font-list value))
+(defmethod convert-resource-in (class (type (eql 'tk::button-font-list)) value)
+  (declare (ignore class))
+  (import-font-list value))
+
+;;; Bascially an alias for 'font-list in Motif2.1
+(defmethod convert-resource-out (parent (type (eql 'tk::text-font-list)) value)
+  (declare (ignore parent))
+  (export-font-list value))
+(defmethod convert-resource-in (class (type (eql 'tk::text-font-list)) value)
+  (declare (ignore class))
+  (import-font-list value))
+
 
 
 

@@ -2,7 +2,7 @@
 
 ;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
-;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
+;; copyright (c) 1986-2002 Franz Inc, Berkeley, Ca.  All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -18,7 +18,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: test.lisp,v 1.57 1998/08/06 23:17:11 layer Exp $
+;; $Id: test.lisp,v 1.58 2002/07/09 20:57:18 layer Exp $
 
 (in-package :clim-user)
 

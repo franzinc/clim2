@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 ;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
-;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
+;; copyright (c) 1986-2002 Franz Inc, Berkeley, CA  - All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: frames.lisp,v 1.96 2000/06/26 17:42:07 layer Exp $
+;; $Id: frames.lisp,v 1.97 2002/07/09 20:57:15 layer Exp $
 
 (in-package :clim-internals)
 
@@ -1001,19 +1001,31 @@
 ;; Sizes an application frame based on the size of the contents of the
 ;; output recording stream STREAM.
 (defun size-frame-from-contents (stream
-                                  &key width height
-                                       (right-margin 10) (bottom-margin 10)
-                                       (size-setter #'window-set-inside-size))
+				 &key width height
+				      (right-margin 10) (bottom-margin 10)
+				      (size-setter #'window-set-inside-size))
   (with-slots (output-record) stream
     (with-bounding-rectangle* (left top right bottom) output-record
+      ;; spr25783
+      ;; According to the clim-documentation, the :right-margin and
+      ;; :bottom-margin args should take the same forms as the 
+      ;; :x-spacing and :y-spacing args in formatting-table.
+      (setq right-margin (or (process-spacing-arg stream right-margin 
+						  'size-frame-from-contents
+						  :right-margin)
+			     (stream-string-width stream " ")))
+      (setq bottom-margin (or (process-spacing-arg stream bottom-margin 
+						   'size-frame-from-contents
+						   :bottom-margin) 
+			      (stream-vertical-spacing stream)))
       (let* ((graft (or (graft stream)
-                        (find-graft)))                ;--- is this right?
+                        (find-graft)))	;--- is this right?
              (gw (bounding-rectangle-width (sheet-region graft)))
              (gh (bounding-rectangle-height (sheet-region graft)))
-             ;;--- Does this need to account for the size of window decorations?
+	     ;;--- Does this need to account for the size of window decorations?
              (width (min gw (+ (or width (- right left)) right-margin)))
              (height (min gh (+ (or height (- bottom top)) bottom-margin))))
-        ;; The size-setter will typically resize the entire frame
+	;; The size-setter will typically resize the entire frame
         (funcall size-setter stream width height)
         (window-set-viewport-position stream left top)))))
 
@@ -1039,11 +1051,15 @@
 
 ;; Moves the sheet to be near where the pointer is.  It's safest to use this
 ;; on a top-level sheet.
+;;; spr24597
+;;; Change pointer-position to pointer-native-position to reflect
+;;; the new (corrected) meaning of those methods.
 (defun position-sheet-near-pointer (sheet &optional x y)
   (unless (and x y)
     (multiple-value-setq (x y)
-      (pointer-position (port-pointer (port sheet)))))
+      (pointer-native-position (port-pointer (port sheet)))))
   (position-sheet-carefully sheet x y))
+
 
 
 (defun display-title (frame stream &key max-width max-height)

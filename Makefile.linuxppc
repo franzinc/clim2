@@ -1,4 +1,4 @@
-# $Id: Makefile.linuxppc,v 1.2 1999/02/25 08:23:21 layer Exp $
+# $Id: Makefile.linuxppc,v 1.3 2002/07/09 20:57:14 layer Exp $
 
 include Makefile.defs
 
@@ -6,7 +6,7 @@ Makefile=Makefile.linuxppc
 
 XINCLUDES=-I/usr/X11R6/include
 
-TKLIB=-lXm -lXpm -lXext
+TKLIB=-lXm -lXpm -lXext -lXp
 XTLIB=-lXt -lSM -lICE
 XLIB=-lX11
 

@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: tk -*-
 ;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
-;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
+;; copyright (c) 1986-2002 Franz Inc, Berkeley, CA  - All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: foreign.lisp,v 1.24 1998/08/06 23:17:15 layer Exp $
+;; $Id: foreign.lisp,v 1.25 2002/07/09 20:57:18 layer Exp $
 
 (in-package :tk)
 
@@ -34,13 +34,13 @@
     (xt_app_set_error_handler
      context
      (or *error-handler-function-address*
-	 (setq *error-handler-function-address* 
-	   (register-function 'toolkit-error-handler))))
+	 (setq *error-handler-function-address*
+	   (register-foreign-callable 'toolkit-error-handler))))
     (xt_app_set_warning_handler
      context
      (or *warning-handler-function-address*
 	 (setq *warning-handler-function-address*
-	   (register-function 'toolkit-warning-handler))))))
+	   (register-foreign-callable 'toolkit-warning-handler))))))
 
 (defun create-application-context ()
   (make-instance 'application-context))
@@ -96,6 +96,6 @@
   (with-ref-par ((name 0 *)
 		 (class 0 *))
     (xt_get_application_name_and_class display &name &class)
-    (values (char*-to-string name)
-	    (char*-to-string class))))
+    (values (excl:native-to-string name)
+	    (excl:native-to-string class))))
 

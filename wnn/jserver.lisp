@@ -1,9 +1,7 @@
 ;; -*- mode: common-lisp; package: wnn -*-
 ;;
-;;				-[Mon Jul  6 15:35:40 1998 by layer]-
-;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
-;; copyright (c) 1986-1992 Franz Inc, Berkeley, CA  All rights reserved.
+;; copyright (c) 1986-2002 Franz Inc, Berkeley, CA  All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -20,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $Id: jserver.lisp,v 1.5 1998/08/06 23:17:41 layer Exp $
+;; $Id: jserver.lisp,v 1.6 2002/07/09 20:57:19 layer Exp $
 
 (in-package :wnn)
 
@@ -61,9 +59,9 @@
 			 ;; it's important to specify a timeout of -1
 			 ;; in the call to jl_open_lang otherwise wnn
 			 ;; messes with sigalrm
-			 (jl_open_lang (ff:string-to-char* login)
-				       (ff:string-to-char* host)
-				       (ff:string-to-char* lang)
+			 (jl_open_lang (excl:string-to-native login)
+				       (excl:string-to-native host)
+				       (excl:string-to-native lang)
 				       0 0 0 -1))
 		(setf (mp:process-quantum mp:*current-process*) temp)
 		(mp:process-allow-schedule))))
@@ -85,13 +83,13 @@
   (with-slots (buf area) js
     (unless (zerop (wnn_get_area buf bunsetu bunsetu-end
 				 area wnn_kanji))
-      (ff:wchar*-to-string area))))
+      (excl:native-to-string area :external-format :16-bit))))
 
 (defun get-yomi (js bunsetu &optional (bunsetu-end (1+ bunsetu)))
   (with-slots (buf area) js
     (unless (zerop (wnn_get_area buf bunsetu bunsetu-end
 				 area wnn_yomi))
-      (ff:wchar*-to-string area))))
+      (excl:native-to-string area :external-format :16-bit))))
 
 (defparameter *wnn-unique* :unique-kanji)
 
@@ -121,7 +119,7 @@
 	(when set-jikouho
 	  (jl_set_jikouho buf kouho))
 	(jl_get_zenkouho_kanji buf kouho area)
-	(ff:wchar*-to-string area)))))
+	(excl:native-to-string area :external-format :16-bit)))))
 
 (defun get-zenkouho-kanji (js bunsetu)
   (let ((zen nil))

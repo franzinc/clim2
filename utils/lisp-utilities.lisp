@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 ;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
-;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
+;; copyright (c) 1986-2002 Franz Inc, Berkeley, CA  - All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: lisp-utilities.lisp,v 1.45 2000/07/08 04:56:33 duane Exp $
+;; $Id: lisp-utilities.lisp,v 1.46 2002/07/09 20:57:19 layer Exp $
 
 (in-package :clim-utils)
 
@@ -393,13 +393,20 @@
 ;;;
 ;;; I am not sure if this stuff is really worth the cost, but...
 
+;;; spr24505, carefully extract symbol-names, so
+;;; case-sensitity works better.
 (defun package-fintern (package format-string &rest format-args)
   ;; this argument order is unfortunate.
   (declare (dynamic-extent format-args))
   (intern (let ((pkg *package*))
 	    (with-standard-io-environment
-	      (let ((*package* pkg))
-		(apply #'lisp:format () format-string format-args))))
+		(let ((*package* pkg))
+		  (apply #'lisp:format () format-string
+			 (mapcar #'(lambda (x)
+				     (excl::if* (symbolp x)
+					then (symbol-name x)
+					else x))
+				 format-args)))))
 	  package))
 
 (defun fintern (format-string &rest format-args)

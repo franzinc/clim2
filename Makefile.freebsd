@@ -1,4 +1,4 @@
-# $Id: Makefile.freebsd,v 1.3 1999/05/04 01:20:59 layer Exp $
+# $Id: Makefile.freebsd,v 1.4 2002/07/09 20:57:14 layer Exp $
 
 include Makefile.defs
 
@@ -6,7 +6,7 @@ Makefile=Makefile.freebsd
 
 XINCLUDES=-I/usr/X11R6/include -I /usr/local/include
 
-TKLIB=-lXm -lXpm -lXext
+TKLIB=-lXm -lXpm -lXext -lXp
 XTLIB=-lXt -lSM -lICE
 XLIB=-lX11
 

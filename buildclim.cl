@@ -1,9 +1,9 @@
 ;; Load this file to make a clim image.
-;; $Id: buildclim.cl,v 1.5 2000/03/13 00:30:11 layer Exp $
+;; $Id: buildclim.cl,v 1.6 2002/07/09 20:57:14 layer Exp $
 
-(excl:generate-application
- #+ics "climi" #-ics "clim"
- "./"
+(excl:build-lisp-image
+ #+ics "sys:clim.dxl" #-ics "sys:clim8.dxl"
+ :lisp-files
  '(
    #-mswindows :climxm
    #+mswindows :climnt
@@ -17,23 +17,16 @@
 ;;;   :climdemo
    )
  :autoload-warning nil
- :image-only t
- :purify t
- :debug-on-error t
- :internal-debug "buildclim.out"
- :shlib-warning nil
- :libfasl-warning nil
+ :runtime nil
+ :build-input (namestring (translate-logical-pathname "sys:buildclim.out"))
  :discard-local-name-info t
  :discard-source-file-info t
  :discard-xref-info t)
 
 (sys:copy-file
- #+(and mswindows ics) "lispi.exe"
- #+(and mswindows (not ics)) "lisp.exe"
- #+(and (not mswindows) ics) "lispi"
- #+(and (not mswindows) (not ics)) "lisp"
+ (excl::curpgmname)
 
- #+(and mswindows ics) "climi.exe"
- #+(and mswindows (not ics)) "clim.exe"
- #+(and (not mswindows) ics) "climi"
- #+(and (not mswindows) (not ics)) "clim")
+ #+(and mswindows ics) "sys:clim.exe"
+ #+(and mswindows (not ics)) "sys:clim8.exe"
+ #+(and (not mswindows) ics) "sys:clim"
+ #+(and (not mswindows) (not ics)) "sys:clim8")

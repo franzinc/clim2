@@ -1,5 +1,5 @@
 ;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
-;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
+;; copyright (c) 1986-2002 Franz Inc, Berkeley, CA  - All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xm-silica.lisp,v 1.50 1998/08/06 23:17:26 layer Exp $
+;; $Id: xm-silica.lisp,v 1.51 2002/07/09 20:57:18 layer Exp $
 
 (in-package :xm-silica)
 
@@ -86,14 +86,15 @@
   (popup (widget-parent mirror)))
 
 
-(ff:defun-c-callable my-drawing-area-query-geometry-stub ((widget :unsigned-long)
-							  (intended :unsigned-long)
-							  (desired :unsigned-long))
+(ff:defun-foreign-callable my-drawing-area-query-geometry-stub
+    ((widget :foreign-address)
+     (intended :foreign-address)
+     (desired :foreign-address))
   (my-drawing-area-query-geometry widget intended desired))
 
 (defun setup-mda ()
   (tk::initializemydrawingareaquerygeometry
-   (ff:register-function 'my-drawing-area-query-geometry-stub)))
+   (ff:register-foreign-callable 'my-drawing-area-query-geometry-stub)))
 
 (setup-mda)
 
@@ -163,7 +164,7 @@
     (when (and input-widget
 	       ;; JPM 7/98: Don't destroy something already destroyed.
 	       ;; spr17831 and spr17939.  Apparently the motif-top-level-sheet
-	       ;; may have already destroyed it.  
+	       ;; may have already destroyed it.
 	       (tk::find-object-from-address (ff:foreign-pointer-address input-widget) nil))
       (tk::destroy-widget input-widget))))
 

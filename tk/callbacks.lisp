@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: tk -*-
 ;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
-;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
+;; copyright (c) 1986-2002 Franz Inc, Berkeley, CA  - All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -16,16 +16,16 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: callbacks.lisp,v 1.30 1998/08/06 23:17:14 layer Exp $
+;; $Id: callbacks.lisp,v 1.31 2002/07/09 20:57:18 layer Exp $
 
 (in-package :tk)
 
 (defun has-callbacks-p (w name)
   (> (xt_has_callbacks w name) 1))
 
-(defun-c-callable callback-handler ((widget :unsigned-long)
-				    (client-data :unsigned-long)
-				    (call-data :unsigned-long))
+(defun-foreign-callable callback-handler ((widget :foreign-address)
+					  (client-data :foreign-address)
+					  (call-data :foreign-address))
   (callback-handler-1 widget client-data call-data))
 
 (defun callback-handler-1 (address client-data call-data)
@@ -58,13 +58,13 @@
      widget
      name
      (or *callback-handler-address*
-	 (setq *callback-handler-address* (register-function 'callback-handler)))
+	 (setq *callback-handler-address* (register-foreign-callable 'callback-handler)))
      (caar (push
 	    (list (new-callback-id) (cons function args) type)
 	    (widget-callback-data widget))))))
 
 
-(defun-c-callable create-popup-child-proc-function  ((widget :unsigned-long))
+(defun-foreign-callable create-popup-child-proc-function ((widget :foreign-address))
   (create-popup-child-proc-function-1 widget))
 
 (defun create-popup-child-proc-function-1 (widget)
@@ -80,10 +80,10 @@
   (push
    (cons :create-popup-child-proc function)
    (widget-callback-data widget))
-  (set-values widget :create-popup-child-proc 
+  (set-values widget :create-popup-child-proc
 	      (or *create-popup-child-proc-function-address*
 		  (setq *create-popup-child-proc-function-address*
-		    (ff:register-function 'create-popup-child-proc-function))))
+		    (ff:register-foreign-callable 'create-popup-child-proc-function))))
   function)
 
 (defun remove-all-callbacks (widget callback-name)

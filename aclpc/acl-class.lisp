@@ -1,6 +1,6 @@
 ;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: ACL-CLIM; Base: 10; Lowercase: Yes -*-
 ;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
-;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
+;; copyright (c) 1986-2002 Franz Inc, Berkeley, CA  - All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-class.lisp,v 1.14 2000/05/01 21:43:18 layer Exp $
+;; $Id: acl-class.lisp,v 1.15 2002/07/09 20:57:14 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -59,7 +59,7 @@
 (defun init-msg-names ()
   (setq *msg-names* (make-array 4096))
   (dolist (x (remove-duplicates
-	      (apropos-list 'wm_ (find-package :win))))
+	      (apropos-list "WM_" (find-package :win))))
     (push x (svref *msg-names* (symbol-value x)))))
 
 (defun msg-name (msg)
@@ -157,7 +157,8 @@
 		    (the fixnum (* 4 (the fixnum ,i)))
 		    :signed-long))
 
-(ff:defun-c-callable wproc-clim-wrapper (hwnd message wparam lparam)
+;; [rfe4951]:
+(ff:defun-foreign-callable wproc-clim-wrapper (hwnd message wparam lparam)
   (let* ((s *clim-wproc-arg-struct*)
 	 (d (pccstructure-data-pointer s)))
     (setf (long-ref d 0) hwnd
@@ -170,17 +171,20 @@
 (defun init-clim-win-proc (wproc-address arg-struct)
   (declare (ignore wproc-address))
   (setf *clim-wproc-arg-struct* arg-struct)
-  (ff:register-function 'clim-wind-proc :reuse :return-value))
+  ;; [rfe4951]:
+  (ff:register-foreign-callable 'clim-wind-proc :reuse :return-value))
 
 (defun init-tooltip-relay (wproc-address arg-struct)
   (declare (ignore wproc-address))
   (setf *tooltip-relay-struct* arg-struct)
-  (ff:register-function 'tooltip-relay :reuse :return-value))
+  ;; [rfe4951]:
+  (ff:register-foreign-callable 'tooltip-relay :reuse :return-value))
 
 (defun init-clim-ctrl-proc (wproc-address arg-struct)
   (declare (ignore wproc-address))
   (setf *clim-ctrl-arg-struct* arg-struct)
-  (ff:register-function 'clim-ctrl-proc :reuse :return-value))
+  ;; [rfe4951]:
+  (ff:register-foreign-callable 'clim-ctrl-proc :reuse :return-value))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; callback for the windowproc for all CLIM windows.
@@ -389,15 +393,35 @@
 ;; This message is sent when the user selects something in
 ;; the window menu like minimize or restore.
 (defun onsyscommand (window msg wparam lparam)
+  ;; spr24753
+  ;; Call note-frame-iconified and note-frame-deiconified
+  ;; rather than simply setting the frame-state to :shrunk
+  ;; and :enabled respectively.  (This happens on the
+  ;; respective :after methods in silica/framem.lisp.)
+  ;; Note that according to the documentation, calling
+  ;; these methods also directly iconify/deiconify the
+  ;; frame (by calling the functions win:CloseWindow
+  ;; and win:OpenIcon --see aclpc/acl-frames.lisp)
+  ;; We are depending on the fact that the windows-system
+  ;; won't try to re-iconify an already iconified window, etc.
   (case wparam
     (#.win:SC_MINIMIZE			; iconify
      (let* ((sheet (mirror->sheet *acl-port* window))
 	    (frame (when sheet (pane-frame sheet))))
-       (when frame (setf (frame-state frame) :shrunk))))
+       (when frame 
+	 (let ((framem (clim::frame-manager frame)))
+	   (note-frame-iconified framem frame)) 
+	 #+old (when frame (setf (frame-state frame) :shrunk))
+	 )))
     (#.win:SC_RESTORE			; deiconify
      (let* ((sheet (mirror->sheet *acl-port* window))
 	    (frame (when sheet (pane-frame sheet))))
-       (when frame (setf (frame-state frame) :enabled)))))
+       (when frame
+	 (let ((framem (clim::frame-manager frame)))
+	   (note-frame-deiconified framem frame))
+	 #+old (when frame (setf (frame-state frame) :enabled))
+	 )))
+    )
   (message-default window msg wparam lparam))
 
 ;; Process WM_VSCROLL
@@ -536,6 +560,10 @@
     *win-result*))
 
 ;; Process WM_KEYDOWN
+;;; SPR25900 --pnc
+;;; The variable *modstate* is used to specify the alt/meta
+;;; key on mouse-gestures.  See the functions onbuttondown
+;;; and windows-mask->modifier-state+ (in aclpc/acl-port.lisp).
 (defun onkeydown (window msg wparam lparam)
   (flush-pointer-motion *acl-port*)
   (let* ((code wparam)
@@ -679,7 +707,9 @@
   (win:SetFocus (win:GetActiveWindow))
   (let* ((pointer (port-pointer *acl-port*))
 	 (sheet (mirror->sheet *acl-port* window))
-	 (modifier-state (windows-mask->modifier-state wparam)))
+	 ;; SPR25900--
+	 ;; Make modifier deal with windows Alt key.
+	 (modifier-state (windows-mask->modifier-state+ wparam)))
     (when pointer
       (flush-pointer-motion *acl-port*)
       (setf (port-modifier-state *acl-port*) modifier-state)
@@ -722,7 +752,9 @@
   (win:SetFocus (win:GetActiveWindow))
   (let* ((pointer (port-pointer *acl-port*))
 	 (sheet (mirror->sheet *acl-port* window))
-	 (modifier-state (windows-mask->modifier-state wparam t)))
+	 ;; SPR25900--
+	 ;; Make modifier deal with windows Alt key.
+	 (modifier-state (windows-mask->modifier-state+ wparam t)))
     (when pointer
       (flush-pointer-motion *acl-port*)
       (setf (port-modifier-state *acl-port*) modifier-state)
@@ -817,7 +849,8 @@
 ;; Refer to the windows documentation on Tooltip controls.
 ;; The message stream needs to be relayed to the tooltip 
 ;; control for it to know when and where to display tool tips.
-(ff:defun-c-callable tooltip-relay (window msg wparam lparam)
+;; [rfe4951]:
+(ff:defun-foreign-callable tooltip-relay (window msg wparam lparam)
   (declare (:convention :stdcall) (:unwind 0)
 	   (optimize (safety 0) (speed 3)))
   (case msg
@@ -843,7 +876,9 @@
   #+optional
   (callnexthookex *next-windows-hook* msg wparam lparam))
 
-(defvar *trace-messages* nil)
+;;; Windows messages get printed to the value of this, if
+;;; *maybe-format* is non-NIL
+(defvar *windows-message-trace-output* excl:*initial-terminal-io*)
 
 ;; CLIM-WIND-PROC
 ;; is the function called by the Windows operating system when
@@ -855,7 +890,8 @@
 ;; the message immediately.  This function is supposed to return
 ;; a 32-bit "LRESULT" value to the caller.  The nature of the
 ;; return value depends on the message.
-(ff:defun-c-callable clim-wind-proc (window msg wparam lparam)
+;; [rfe4951]:
+(ff:defun-foreign-callable clim-wind-proc (window msg wparam lparam)
   (declare (:convention :stdcall) (:unwind 0)
 	   (optimize (safety 0) (speed 3)))
   (let ((result 0)
@@ -863,13 +899,12 @@
     (setf *hwnd* window)
     ;; FYI: Spy++ does a better job of tracing messages,
     ;; though it doesn't report everything.
-    (when *maybe-format*
-      (mformat excl:*initial-terminal-io*
-	       "~A In clim-wind-proc msg=~a sheet=~s lparam=~a~%"
-	       *level*
-	       (msg-name msg) 
-	       window
-	       lparam))
+    (mformat *windows-message-trace-output*
+	     "~A In clim-wind-proc msg=~a sheet=~s lparam=~a~%"
+	     *level*
+	     (msg-name msg) 
+	     window
+	     lparam)
     (when (> *level* 40)
       (warn "clim-wind-proc: too deep!"))
     (case msg
@@ -938,20 +973,20 @@
       (otherwise
        (message-default window msg wparam lparam)))
     (setf result *win-result*)
-    (when *maybe-format*
-      (mformat excl:*initial-terminal-io*
-	       "~A Out clim-wind-proc msg=~a sheet=~s result=~s~%"
+    (mformat *windows-message-trace-output*
+	     "~A Out clim-wind-proc msg=~a sheet=~s result=~s~%"
 	       *level*
 	       (msg-name msg) 
 	       window
-	       result))
+	       result)
     result))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Implements the window proc for the subclassed controls (presently
 ;;; only the edit control).
 
-(ff:defun-c-callable clim-ctrl-proc (window msg wparam lparam)
+;; [rfe4951]
+(ff:defun-foreign-callable clim-ctrl-proc (window msg wparam lparam)
   (declare (:convention :stdcall) (:unwind 0))
   (mp:without-scheduling
     (setf *hwnd* window)
@@ -1364,3 +1399,106 @@
 	     (win:DispatchMessage msg)))
       (when nonblocking (return t))
       )))
+
+(defvar *current-window*)
+(defvar *dc-initialized* nil)
+
+;;; Stock objects
+(defvar *null-pen*)
+(defvar *black-pen*)
+(defvar *ltgray-pen*)
+(defvar *null-brush*)
+(defvar *black-brush*)
+(defvar *ltgray-brush*)
+(defvar *blank-image*)
+(defvar *ltgray-image*)
+
+(defvar *background-brush* nil)
+
+;;; spr25546
+;;; Re-initialize a number of state-variables/pointers associated
+;;; with the acl-port.
+;;; In short, this is a collection of all the defvars and defparameters
+;;; defined in the file aclpc/acl-class.lisp.
+;;; This is here mainly to be called by (destroy-port :after) on acl-port.
+(defun reset-aclpc-clim (&key (destroy-frames t) (destroy-port t))
+  
+  (when (and destroy-frames acl-clim::*acl-port*)
+    (clim:map-over-frames #'(lambda (x) (clim:destroy-frame x))))
+  (when (and destroy-port acl-clim::*acl-port*)
+    (clim:destroy-port acl-clim::*acl-port*))
+
+
+  (setq *acl-port* nil)
+  (setq *menu-id->command-table*
+    (make-array 256 
+                :element-type t :adjustable t 
+                :fill-pointer 0 :initial-element nil))
+  (setq *popup-menu->menu-item-ids* (make-hash-table))
+  (setq *popup-menu->command-table* (make-hash-table))
+  (setq *maybe-format* nil)
+  (setq *msg-names* nil)
+  (setq *modstate* (make-modstate))
+  (setq *ctlmodstate* (make-modstate))
+  (setq *win-result* 0)
+  (setq *window-proc-return-reason* nil)
+  (setq *window-proc-return-tag* nil)
+  (setq *window-proc-return-value* nil)
+  (setq *window-proc-return-other-values* nil)
+  (setq *hwnd* 0)
+  (setq *msg* win:WM_NULL)
+  (setq *wparam* 0)
+  (setq *lparam* (ct:callocate :long))
+  (setq *window-proc-result* 0)
+  (setq *window-proc-args-queue* nil)
+  (setq *clim-wproc-arg-struct* nil)
+  (setq *clim-ctrl-arg-struct* nil)
+  (setq *tooltip-relay-struct* nil)
+  (setq *level* 0)
+  (setq *realtime-scrollbar-tracking* t)
+  (setq *win-scroll-grain* 1000)
+  (setq wres  (ct:callocate :long))
+  (setq wmsg  (ct:ccallocate win:msg))
+  (setq *windows-message-trace-output* excl:*initial-terminal-io*)
+  (setq *clim-class* "ClimClass")
+  (setq *win-name* "CLIM")
+  (setq *menu-name* "ClimMenu")
+  (setq *win-x* "x")
+  (setq *wndclass-registered* nil)
+  (setq clim-window-proc-address nil)
+  (setq clim-ctrl-proc-address nil)
+  (setq std-ctrl-proc-address nil)
+  (setq tooltip-relay-address nil)
+  (setq *next-windows-hook* nil)
+  (setq *clim-initialized* nil)
+  (setq lpcmdline "")
+  (setq *hinst* 0)
+  (setq *hprevinst* 0)
+  (setq *screen-device* nil)
+  (setq msg (ct:ccallocate win:msg))
+  (setq res (ct:callocate :long))
+
+
+  (setq arrow-cursor 
+    (ff:allocate-fobject 'win:hcursor :foreign-static-gc nil))
+  (setq application-icon 
+    (ff:allocate-fobject 'win:hicon  :foreign-static-gc nil))
+
+
+  (setq *current-window* nil)
+  (setq *dc-initialized* nil)
+
+
+  (setq *null-pen* nil)
+  (setq *black-pen* nil)
+  (setq *ltgray-pen* nil)
+  (setq *null-brush* nil)
+  (setq *black-brush* nil)
+  (setq *ltgray-brush* nil)
+  (setq *blank-image* nil)
+  (setq *ltgray-image* nil)
+
+
+  (setq *background-brush* nil)
+  )
+

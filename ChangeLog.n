@@ -1,7 +1,7 @@
 For more detailed instructions on filling in the ChangeLog form, see 
 `/fi/doc/procedures/changelogs.txt'.
 *******************************************************************************
-<version for this commit> (incf *clim-build-version* in utils/packages.lisp)
+<version for this commit> (change *clim-build-version* in utils/packages.lisp)
 
 If there are user-visible changes in this commit, then list the
   new ../RELNOTES entries, which include bug and/or RFE references:
@@ -11,12 +11,672 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
-2.2.2.21
+join from acl62 to trunk on 7/9/02
+
+*******************************************************************************
+<no version change>
+
+2002-06-08  Kevin Layer  <layer@crikey>
+
+	* Makefile.macosx: work in progress
+
+*******************************************************************************
+2.3.17
+
+2002-05-22  Nichael Cramer <ncramer@pointnclick.com>
+    from pnc 
+        * clim/command.lisp
+	  spr25469/bug11650 - Add missing error-format arg in
+                   find-command-table.
+        * tk-silica/xm-gadgets.lisp
+	  spr25487/bug11666 - Force label-less toggle-switch widget to
+                   have a simple (blank) label to ensure correct sizing
+                   under Motif2.1
+        * clim/input-defs.lisp
+	  spr25911/bug11991 - Modify the behavior of stream-set-pointer-position
+                   so that the position is set relative to the stream's
+                   co-ordinate system, as per the methods documentation.
+                   (The actual modification occurs in the method
+                   set-sheet-pointer-position.)
+        * tk-silica/xt-silica.lisp
+	  spr25913/bug11992 - On Motif, fix bug where the special
+                   scrollable-menus always came up in the same place.
+                   Now they come up at the pointer.
+        * aclpc/acl-frames.lisp
+	  spr25894/bug11993 - On Window: Fix menu-choose so that second
+                   returned value is the menu-item itself.
+        * aclpc/acl-class.lisp
+	  aclpc/acl-port.lisp
+	  spr25546/bug11687 - In Windows, ensure Clim is properly reset after
+                   a acl-port is destroyed.
+        * clim/accept.lisp
+          spr26071/bug12082 - Fix bug where stream-read-gesture attempts to
+                   unread :eof in certain cases.
+        * clim/accept.lisp
+          spr25912/bug12083 - Fix bug on windows where selecting commands
+                   from completion menu sometimes goes into infinite loop.
+        * aclpc/acl-port.lisp
+	  aclpc/acl-class.lisp
+	  spr25900/bug12116 - Correct behavior of meta-key for
+                   mouse-gestures on Windows.
+        * clim/input-editor-commands.lisp
+	  spr25914/bug12120 - Do rescan-immediate after input-editor
+                   delete/rubout commands in order to ensure the correct input-context.
+        * clim/stream-defprotocols.lisp
+	  spr26133/bug12119 - Add the defoperation form for
+                   medium-draw-bezier-curve*.
+
+*******************************************************************************
+2.3.16
+
+2002-03-20  Nichael Cramer <ncramer@pointnclick.com>
+    from pnc for bug11886:
+        * clim/frames.lisp
+          spr25783 - Make accepting-values handle documented values for
+                     :right-margin and :bottom-margin.
+
+*******************************************************************************
+2.3.15
+
+2002-01-03  Nichael Cramer <ncramer@pointnclick.com>
+    from pnc for bug11562/spr25133:
+        * tk-silica/xm-frames.lisp
+          spr25133 - Correct X race-condition causing 
+          'XtGrabPoint failed' message when a menu pops-up.
+
+*******************************************************************************
+<no version change>
+
+2002-02-08  Kevin Layer  <layer@crikey>
+
+	* Makefile.alpha,
+	* Makefile.cobjs,
+	* Makefile.macosx,
+	* Makefile.rs6000: don't assume shell scripts are executable
+
+*******************************************************************************
+<no version change>
+
+2002-01-28  Kevin Layer  <layer@crikey>
+
+	* buildclim.cl: b-l-i keyword arg changes
+
+*******************************************************************************
+2.3.14
+
+2001-12-11  Kevin Layer  <layer@crikey>
+
+	* tk-silica/xt-silica.lisp: remove du of port-set-pointer-position
+	* utils/lisp-utilities.lisp: remove dup of package-fintern
+
+*******************************************************************************
+merge from acl61 to acl6 branch
+cmd: ../../join.sh acl61 acl61 acl61_to_acl6_merge1 clim2
+
+*******************************************************************************
+2.3.13
+<post-release patches>
+
+2002-01-03  Nichael Cramer <ncramer@pointnclick.com>
+    from pnc for bug11562/spr25133:
+        * tk-silica/xm-frames.lisp
+          spr25133 - Correct X race-condition causing 
+          'XtGrabPoint failed' message when a menu pops-up.
+
+2001-10-02  Nichael Cramer  <ncramer@pointnclick.com>
+
+    from pnc:
+        * tk/widget.lisp
+          bug11282: Race-condition on Irix platform
+                    Replace error with cerror in widget-window-with-retry.
+
+2001-09-21  Nichael Cramer  <ncramer@pointnclick.com>
+
+    from pnc:
+        * tk/widget.lisp
+          tk-silica/xt-silica.lisp
+          bug11288: Correct bug (in clim-demo) where raise-frame
+          is called before the X-resources are ready.
+
+2001-09-19  Nichael Cramer  <ncramer@pointnclick.com>
+
+    from pnc:
+        * test/test-suite.lisp:
+          bug10987: Correct bug where selecting "Cancel" in
+          the file-chooser in the test-suite caused an error.
+
+*******************************************************************************
+2.3.10
+
+2001-09-18  Kevin Layer  <layer@crikey>
+
+    from duane:
+	* aclpc/acl-class.cl: rfe4951: remove ffcompat dependencies
+	* aclpc/pkgdcl.lisp: rfe4951: remove require of ffcompat module
+
+    from pnc:
+        * aclpc/acl-class.lisp,
+        * tk-silica/xt-silica.lisp:
+          note-frame-iconified and note-frame-deiconified called
+          when frame is de/iconified by window-manager."
+
+*******************************************************************************
+2.3.9
+
+2001-08-23 Nichael Cramer <ncramer@pointnclick.com>
+        
+	* tk/resources.lisp
+          tk/event.lisp
+          rfe4722 - Get Clim working of 64bit HPUX and Sparc
+
+	* tk-silica/xm-frames.lisp
+          spr24205 - "Changing an item on the menu-bar on a motif frame caused a seg-fault."
+          [Rewrite method realize-mirror :around (motif-port motif-menu-bar)
+          to remove use of labels.]
+
+        * silica/layout.lisp
+          spr24242 - "Add several documented methods to top-level-sheet."
+          window-expose
+          (setf window-visibility)
+          window-visibility
+          window-stack-on-top
+          window-stack-on-bottom
+          window-inside-edges
+          window-inside-size
+
+        * utils/lisp-utilities.lisp
+          demo/graphics-demos.lisp
+          test/test-suite.lisp
+          spr24505 - "Better support for running in case modes. Ensure symbols are interned properly."
+          [Modify package-fintern to better handle symbol vs strings.]
+
+        * utils/input-defs.lisp
+          clim/frames.lisp
+          tk-silica/xt-silica.lisp [Motif only.]
+          spr24597  "Make pointer-position, pointer-set-position,
+                     pointer-native-position, and pointer-set-native-position
+                     behave as specified in their documentation."
+
+
+*******************************************************************************
+2.3.8
+
+2001-06-26  Kevin Layer  <layer@crikey>
+
+	* tk/xm-widgets.lisp: bug10894: fix select-file
+	* clim/presentations.lisp: fix for bug10917/spr24231
+
+*******************************************************************************
+2.3.7
+
+2001-06-07  Kevin Layer  <layer@crikey>
+
+    from duane for rfe4797:
+	* Makefile.macosx: Fix to build clim on MacOSX under XonX
+	* Makefile.wnn: Don't use libcrypt on MacOSX
+	* silica/text-style.lisp: Don' assume codeset-* are exported.
+	* sys/sysdcl.lisp: Don't add exports
+	* tk/callbacks.lisp: defun-c-callable -> defun-foreign-callable
+	* tk/convenience.lisp: defforeign -> def-foreign-call
+	* tk/event.lisp: defun-c-callable -> defun-foreign-callable
+	* tk/font.lisp: Remove commented code
+	* tk/make-classes.lisp: defun-c-callable -> defun-foreign-callable
+	* tk/resources.lisp: Fix 6-bit allocation bug; remove euc
+	dependencies
+	* tk/xlib.lisp: defun-c-callable -> defun-foreign-callable
+	* tk/xm-funs.lisp: defforeign -> def-foreign-call
+	* tk/xt-funs.lisp: defforeign -> def-foreign-call
+	* tk-silica/xm-gadgets.lisp: defun-c-callable ->
+	defun-foreign-callable
+	* tk-silica/xm-silica.lisp: defun-c-callable ->
+	defun-foreign-callable
+	* utils/last.lisp: Don't force euc loading
+	* wnn/jl-funs.lisp: defforeign -> def-foreign-call
+	* wnn/jserver.lisp: Remove wchar*-to-string refs
+	* xlib/ffi.lisp: defforeign -> def-foreign-call; Remove
+	foreign-function definer list and utilities
+	* xlib/last.lisp: No need to run a foreign-function definer
+	because def-foreign-call does "the right thing"
+
+*******************************************************************************
+2.3.6
+
+2001-05-31  Kevin Layer  <layer@crikey>
+
+	* Makefile.freebsd: add -lXp
+	* utils/clim-streams.lisp: bug10667/bug10666
+
+*******************************************************************************
+2.2.2.21.19
+
+2001-05-29  Kevin Layer  <layer@crikey>
+
+    new files:
+	* k14.pcf
+	* k14.txt
+    changed files:
+	* Makefile.hp64,
+	* Makefile.hpprism: use abs path on CC so PATH doesn't matter
+	* demo/winlisp.lisp: get rid of warnings
+
+*******************************************************************************
+2.2.2.21.18
+
+Wed May 22 12:41:21 PDT 2001  Duane Rettig  <duane@beta>
+
+Added files:
+
+	* Makefile.macosx: Add for MacOSX port
+
+Modified files:
+
+	* Makefile: Add MacOSX port
+	* tk/callbacks.lisp: 
+	* tk/convenience.lisp:
+	* tk/event.lisp:
+	* tk/foreign.lisp:
+	* tk/load-ol.lisp:
+	* tk/load-xm.lisp:
+	* tk/make-classes.lisp:
+	* tk/ol-callbacks.lisp:
+	* tk/ol-funs.lisp:
+	* tk/ol-init.lisp:
+	* tk/xlib.lisp:
+	* tk/xm-funs.lisp:
+	* tk/xm-protocols.lisp:
+	* tk/xt-funs.lisp:
+	* tk-silica/ol-gadgets.lisp:
+	* tk-silica/xm-gadgets.lisp:
+	* tk-silica/xm-silica.lisp:
+	* tk-silica/xt-silica.lisp:
+	* wnn/load-wnn.lisp:
+	* xlib/ffi.lisp:
+	* xlib/load-xlib.lisp: Start moving away from ffcompat package - two
+	transformations for now: register-function -> register-foreign-callable,
+	convert-to-lang -> convert-foreign-name
+
+	* utils/packages.lisp: Incf version
+
+*******************************************************************************
+2.2.2.21.17
+
+16May2000 Nichael Cramer <ncramer@pointnclick.com>
+          -Fix package problem preparing for merge.
+        * demo/winlisp.lisp
+
+
+15May2000 Nichael Cramer <ncramer@pointnclick.com>
+        * clim/gadget-output.lisp
+        * aclpc/acl-widget.lisp
+          - (spr23788, spr23859, spr24046, spr24232)
+        On Windows, properly handle loss and gain of focus in mswin-text-edit,
+        (which affects accepting-values completion).
+        Attempt to preserver caret-position after setting the gadget-value.
+
+15May2000 Nichael Cramer <ncramer@pointnclick.com>
+          -(spr23763)
+       * tk-silica/xt-silica.lisp
+       Throw a more meaningful error message when an x-font isn't found.
+
+       * demo/demo-driver.lisp
+       Attempt to gracefully recover from any error
+       which occurs while printing the demo's name.
+       In particular, this can occur when listing
+       the Japanese graphics-editor when the correct
+       Japanese fonts are not accessible.
+
+       * demo/japanese-graphics-editor.lisp
+       Make sure the japanese-graphics-editor is compiled
+       with the proper external-format (i.e. so the japanese
+       characters are correct).
+
+Fri Feb 23 8:00:00 2001 Nichael Cramer <ncramer@pointnclick.com>
+
+        * postscript/postscript-port.lisp
+          - (spr23353) Correct error when postscript output becomes
+          too large.  (The problem was caused because the postscript
+          built the output to file by playing all o the text into a
+          single, large string-output-stream.  Because there is a
+          limit on array/string sizes, the would break.  The fix here
+          involves playing the output directly to the output file-stream.)
+
+
+Fri Feb 23 8:00:00 2001 Nichael Cramer <ncramer@pointnclick.com>
+
+        * aclpc/acl-widget.lisp
+          -(Windows) Correct string-label display following
+           deactivation/activation of push-buttons.
+          -(spr22454) (Windows) Allow graying-out of deactivated pixmap-labels
+           on push-buttons.
+
+Fri Feb 23 8:00:00 2001 Nichael Cramer <ncramer@pointnclick.com>
+
+        * aclpc/acl-prel.lisp
+          - (Spr22341) (Windows) Menu show initially selected items.
+
+
+Fri Feb 23 8:00:00 2001 Nichael Cramer <ncramer@pointnclick.com>
+
+        * aclpc/acl-widget.lisp
+          - (spr23114) Correct appearance of owner-drawn buttons and
+          setting value of mswin-text-edit gadgets.
+        * clim/menus.lisp
+          - (spr23114) Proeper spacing of items in menu-panes.
+
+*******************************************************************************
+2.2.2.21.16
+
+Tue May  1 15:25:21 PDT 2001  Duane Rettig  <duane@beta>
+
+	* Makefile.sun4-svr4: Add 64-bit conditionalizations
+	* utils/packages.cl: increment version
+
+*******************************************************************************
+2.2.2.21.15
+
+2001-04-24  Kevin Layer  <layer@crikey>
+
+	* buildclim.cl: bug10113: use build-lisp-image
+
+    from PNC, integration of Motif 2.1 patch:
+	* tk/resources.lisp
+	* tk/xm-font-list.lisp
+	* tk/xm-funs.lisp
+	* tk/xm-widgets.lisp
+	* tk-silica/xm-gadgets.lisp
+	* Makefile.linux
+	* Makefile.linuxppc
+
+*******************************************************************************
+2.2.2.21.14
+merge from cley7 branch
+next merge tag: cley7_to_acl6_merge1
+
+*******************************************************************************
+<no version change>
+
+2000-10-03  Kevin Layer  <layer@ultra>
+
+	* move RELNOTES entries to RELNOTES.60, since I filed an rfe on
+	them
+
+*******************************************************************************
+<no version change>
+
+2000-09-26  Kevin Layer  <layer@ultra>
+
+	* Makefile: make `clean' clean more
+
+*******************************************************************************
+2.2.2.21.13
+
+Added file:
+
+	* Makefile.hp64: New for hp 64-bit
+
+Changed files:
+
+	* Makefile: Add hp64
+	* Makefile.rs6000: add comments from previous versions
+	* utils/packages.lisp: Incf version
+	
+*******************************************************************************
+2.2.2.21.12
+merge from layer6 to acl6 branches
+next merge tag: layer6_to_acl6_merge1
+
+*******************************************************************************
+2.2.2.21.11
+merge from cley6 to layer6 branches
+next merge tag: cley6_to_layer6_merge3
+
+*******************************************************************************
+2.2.2.21.10
+merge from cley6 to layer6 branches
+next merge tag: cley6_to_layer6_merge2
+
+*******************************************************************************
+2.2.2.21.9
+merge from cley6 branch (started from base cley6 tag -- again)
+next merge tag: cley6_to_layer6_merge1
+
+*******************************************************************************
+merge from cley6 branch (tag cley6_merge1)
+(should have been version 2.2.2.21.4)
+next merge tag: cley6_to_acl60beta_merge2
+
+*******************************************************************************
+2.2.2.21.5.8
+
+2000-10-03 tfb@cley.com (Tim Bradshaw)
+
+	* tk/silica/xt-silica.lisp: added a default event case which warns,
+	  rather than throwing an error.  This should allow CLIM to carry on
+	  if it gets completely unrecognised X events.
+
+*******************************************************************************
+2.2.2.21.5.7
+
+2000-09-12 tfb@cley.com (Tim Bradshaw)
+
+	* aclpc/acl-widget.lisp: added support for word-wrap.
+
+*******************************************************************************
+2.2.2.21.5.6
+
+2000-09-20 tfb@cley.com (Tim Bradshaw)
+
+	* aclpc/acl-port.lisp: provide SETF methods for text-style-mapping, 
+	  and the semi-documented function make-windows-font-named.
+	* aclpc/pkgdcl.lisp: export make-windows-font-named from the acl-clim
+	  package
+
+*******************************************************************************
+2.2.2.21.5.1
+
+2000-08-17 tfb@cley.com (Tim Bradshaw)
+
+	* tk/xm-widgets.lisp: made the change to XM-FONT-LIST-DEFAULT-TAG
+	  work: defining a constant as a native string doesn't work, so
+	  define it as a string and then use with-native-string in the
+	  code.
+
+	* utils/packages.lisp: made *clim-build-version* be a string,
+          so we can have stuff like 21.5.1.
+
+*******************************************************************************
+merge from cley6 branch
+(should have been version 2.2.2.21.3)
+next merge tag: cley6_merge1
+
+*******************************************************************************
+2.2.2.23.2
+
+2000-08-16 tfb@cley.com (Tim Bradshaw)
+
+	* tk/xm-widgets.lisp: changed XM-FONT-LIST-DEFAULT-TAG to be a
+	  native string which is what Motif is expecting.  I am not
+	  sure how this worked without this change.  In due course it
+	  would perhaps be better to change the definitions of the
+          XM_STRING_* functions to know that some of their arguments
+	  are strings.  The whole Motif compound string stuff probably needs 
+	  attention actually.
+
+*******************************************************************************
+2.2.2.23.1
+
+2000-08-15 tfb@cley.com (Tim Bradshaw)
+
+	* tk-silica/xt-silica.lisp: Change initialize-xlib-port to better
+	  cope with X servers with missing or messed-up fonts.  In particular
+	  warn if the fallback font for a character set that has other
+	  mappings is not loadable, as things will likely go wrong
+	  later in this case.  If the fallback is not loadable, but the
+	  character set has no other mappings, then just ignore it.  This
+	  may still not be right, but it is better, I think.
+
+*******************************************************************************
+2.2.2.21.5.5
+
+2000-08-28 tfb@cley.com (Tim Bradshaw)
+
+	* utils/processes.lisp: added a defun-proto for process-wait for 
+	  Windows (the definition of process-wait in
+	  clim2:;aclpc;acl-port.lisp needs to be fixed at some point)
+
+*******************************************************************************
+2.2.2.21.5.4
+
+2000-08-23 tfb@cley.com (Tim Bradshaw)
+
+	* utils/last.lisp: put the require of :euc inside an eval-when
+	  to keep the compiler happy (no need to load it at compile
+	  time anyway).
+	* clim/clim-defs.lisp, clim/standard-types.lisp,
+	  clim/translators.lisp: added excl:defun-protos and changed
+	  order of definitions to stop warnings about
+	  dynamic-extent-ness of arguments changing.
+
+*******************************************************************************
+2.2.2.21.5.3
+
+2000-08-17 tfb@cley.com (Tim Bradshaw)
+
+	* tk/callbacks.lisp, tk/event.lisp, tk/make-classes.lisp, 
+	  tk/ol-init.lisp, tk/xlib.lisp, tk-silica/ol-gadgets.lisp, 
+	  tk-silica/xm-gadgets.lisp, tk-silica/xm-silica.lisp,
+  	  tk-silica/xt-gadgets.lisp: Change :unsigned-long to 
+	  :unsigned-natural in defun-c-callable to make it work on 64-bit Lisp.
+	  Also change definition of scrollbar quantization to ensure it is
+  	  stil a 32-bit quantity on 64-bit Lisp.
+
+*******************************************************************************
+2.2.2.21.5.2
+
+2000-08-17 tfb@cley.com (Tim Bradshaw)
+
+	* tk-silica/xt-silica.lisp: added a roman8-encoded font-family
+	  to *xt-font-families*, which should make CLIM on HP work
+          better when displaying on HP X servers.  I am not sure if 
+	  this is the right way to do this.
+
+	* RELNOTES: documented how to get around lack of HP-ROMAN8 encoded 
+          fonts when running on HP and displaying on non-HP X servers.
+
+*******************************************************************************
+2.2.2.21.5.1
+
+2000-08-16 tfb@cley.com (Tim Bradshaw)
+
+	* tk/xm-widgets.lisp: made the change to XM-FONT-LIST-DEFAULT-TAG
+	  work: defining a constant as a native string doesn't work, so
+	  define it as a string and then use with-native-string in the
+	  code.
+
+	* utils/packages.lisp: made *clim-build-version* be a string,
+          so we can have stuff like 21.5.1.
+
+*******************************************************************************
+2.2.2.23.2
+
+2000-08-16 tfb@cley.com (Tim Bradshaw)
+
+	* tk/xm-widgets.lisp: changed XM-FONT-LIST-DEFAULT-TAG to be a
+	  native string which is what Motif is expecting.  I am not
+	  sure how this worked without this change.  In due course it
+	  would perhaps be better to change the definitions of the
+          XM_STRING_* functions to know that some of their arguments
+	  are strings.  The whole Motif compound string stuff probably needs 
+	  attention actually.
+
+*******************************************************************************
+2.2.2.23.1
+
+2000-08-15 tfb@cley.com (Tim Bradshaw)
+
+	* tk-silica/xt-silica.lisp: Change initialize-xlib-port to better
+	  cope with X servers with missing or messed-up fonts.  In particular
+	  warn if the fallback font for a character set that has other
+	  mappings is not loadable, as things will likely go wrong
+	  later in this case.  If the fallback is not loadable, but the
+	  character set has no other mappings, then just ignore it.  This
+	  may still not be right, but it is better, I think.
+
+*******************************************************************************
+<no version change--patch made to 6.0.beta.1(rc2)>
+
+2000-08-06  Kevin Layer  <layer@ultra>
+
+	* Makefile.rs6000: from duane: cleanup and make ready for AIX 4.3.2
+
+*******************************************************************************
+2.2.2.23 (should have been version 2.2.2.21.2)
+
+2000-07-27  Kevin Layer  <layer@ultra>
+
+	* Makefile.rs6000: work in progress to get it to work on loveshaq
+
+*******************************************************************************
+2.2.2.22 -- join from cley4 branch
+(should have been version 2.2.2.21.1)
+next merge tag: cley4_merge1
+
+*******************************************************************************
+2.2.2.21 (acl6 branch taken here)
 
 2000-07-17  Kevin Layer  <layer@ultra>
 
 	* Makefile: remove SIXTYFOURBIT variable
 	* Makefile.hpprism: attempt to force clim to use motif 1.2
+
+*******************************************************************************
+2.2.2.20.5
+
+2000-08-08 tfb@cley.com (Tim Bradshaw)
+
+	* aclpc/acl-prel.lisp, aclpc/winwidgh.lisp: changes to cope
+	  with failure of CreateDIBitmap, this time hopefully really
+	  fixing the problem.  This is spr21068, still.
+
+*******************************************************************************
+2.2.2.20.4 
+
+2000-07-17 tfb@cley.com (Tim Bradshaw)
+
+	* utils/last.lisp: make it preload the EUC support to stop the
+	  autoloading happening at messages from happening at a really
+	  bad time.
+
+*******************************************************************************
+2.2.2.20.3
+
+2000-07-13 tfb@cley.com (Tim Bradshaw)
+
+	* aclpc/acl-class.lisp: make it easier to trace windows messages,
+	  and fix a case bug in the stuff that mapped from numbers to
+	  names.  New variable
+	  acl-clim::*windows-message-trace-output* determined where
+	  traced messages go, defaultly it is excl:*initial-terminal-io*.
+
+*******************************************************************************
+2.2.2.20.2
+
+2000-07-12 tfb@cley.com (Tim Bradshaw)
+
+	* clim/interactive-protocol.lisp: tell it that
+	  simple-streams don't support input editing.  This is
+	  obviously wrong, but as far as CLIM is concerned right now,
+	  it's true.
+
+*******************************************************************************
+2.2.2.20.1 
+
+2000-07-11 tfb@cley.com (Tim Bradshaw)
+
+fixes for bug9204, bug9194.
+
+	* test/test-suite.lisp: made without-clim-input work in the presence of 	  multiple processes.
+
 
 *******************************************************************************
 2.2.2.20
@@ -55,6 +715,28 @@ next merge tag: cley3_merge1
 
 	* Makefile.generic: use different output files for build and
 	concat of fasls
+
+*******************************************************************************
+2.2.2.15.4 tfb@cley.com (Tim Bradshaw) Mon Jul 10 18:03:30 2000
+
+change char*-to-string and string-to-char* to native-to-string and
+string-to-native pervasively as recommended by Charley.
+
+	* aclpc/acl-frames.lisp, aclpc/acl-prel.lisp,
+	  tk-silica/ol-gadgets.lisp, tk-silica/xm-gadgets.lisp,
+	  tk-silica/xt-silica.lisp, tk/font.lisp, tk/foreign.lisp,
+	  tk/make-classes.lisp, tk/ol-init.lisp, tk/resources.lisp,
+	  tk/widget.lisp, tk/xlib.lisp, tk/xm-widgets.lisp,
+	  wnn/jserver.lisp: as above.
+
+*******************************************************************************
+2.2.2.15.3 tfb@cley.com (Tim Bradshaw) Mon Jul 10 17:59:16 2000
+
+fix rfe4072-induced motif problems.
+
+	* tk-silica/xt-gadgets.lisp: make compute-new-scroll-bar-values deal 
+	  with rounding errors in float->integer conversion which were
+	  causing motif to whine.
 
 *******************************************************************************
 2.2.2.15.2 tfb@cley.com (Tim Bradshaw) Thu Jul  6 15:04:44 2000

@@ -1,9 +1,8 @@
 ; -*- mode: common-lisp; package: user -*-
 ;;
-;;				-[Mon Jul  6 15:36:39 1998 by layer]-
 ;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
-;; copyright (c) 1986-1992 Franz Inc, Berkeley, CA  All rights reserved.
+;; copyright (c) 1986-2002 Franz Inc, Berkeley, CA  All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -19,7 +18,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: train.lisp,v 1.24 1998/08/06 23:16:44 layer Exp $
+;; $Id: train.lisp,v 1.25 2002/07/09 20:57:16 layer Exp $
 
 (defun train-clim (&key (train-times 2)
 			(psview nil)

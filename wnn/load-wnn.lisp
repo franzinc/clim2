@@ -1,7 +1,7 @@
 ;; -*- mode: common-lisp; package: user -*-
 ;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
-;; copyright (c) 1986-1993 Franz Inc, Berkeley, CA  All rights reserved.
+;; copyright (c) 1986-2002 Franz Inc, Berkeley, CA  All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $Id: load-wnn.lisp,v 1.8 1998/08/06 23:17:41 layer Exp $
+;; $Id: load-wnn.lisp,v 1.9 2002/07/09 20:57:19 layer Exp $
 
 (in-package :user)
 
@@ -28,14 +28,14 @@
 (:+ics
 
 #+(version>= 5 0)
-(unless (ff:get-entry-point (ff:convert-to-lang "jl_open_lang"))
+(unless (ff:get-entry-point (ff:convert-foreign-name "jl_open_lang"))
   (load (merge-pathnames (make-pathname
 			  :type (or (car excl::*load-foreign-types*)
 				    (error "Don't know foreign extension.")))
 			 "clim2:;wnn")))
 
 #+(and (not (version>= 5 0)) dlfcn)
-(unless (ff:get-entry-point (ff:convert-to-lang "jl_open_lang")
+(unless (ff:get-entry-point (ff:convert-foreign-name "jl_open_lang")
 			    :note-shared-library-references
 			    nil)
   (load "clim2:;wnn.so"))
@@ -44,7 +44,7 @@
 (progn
   (defvar sys::*libwnn-pathname* "wnn")
 
-  (unless (ff:get-entry-point (ff:convert-to-lang "jl_open_lang"))
+  (unless (ff:get-entry-point (ff:convert-foreign-name "jl_open_lang"))
     (load "stub-wnn.o"
 	  :system-libraries (list sys::*libwnn-pathname*)
 	  :print t)))

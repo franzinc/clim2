@@ -1,5 +1,5 @@
 ;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
-;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
+;; copyright (c) 1986-2002 Franz Inc, Berkeley, CA  - All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xt-silica.lisp,v 1.112 1999/05/04 01:21:10 layer Exp $
+;; $Id: xt-silica.lisp,v 1.113 2002/07/09 20:57:18 layer Exp $
 
 (in-package :xm-silica)
 
@@ -55,8 +55,8 @@
   ':xt)
 
 (defmethod port-name ((port xt-port))
-  (ff:char*-to-string
-   (x11:display-display-name (port-display port))))
+  (values (excl:native-to-string
+	   (x11:display-display-name (port-display port)))))
 
 ;; access to port-copy-gc should be within a without-scheduling
 
@@ -130,7 +130,7 @@
 	(let* ((screen (x11:xdefaultscreenofdisplay display))
 	       (bs-p (not (zerop (x11::screen-backing-store screen))))
 	       (su-p (not (zerop (x11::screen-save-unders screen))))
-	       (vendor (ff:char*-to-string (x11::display-vendor display))))
+	       (vendor (excl:native-to-string (x11::display-vendor display))))
 	  (if (and bs-p su-p
 		   ;; An amazing crock.  XXX
 		   (notany #'(lambda (x) (search x vendor)) *unreliable-server-vendors*))
@@ -179,7 +179,14 @@
 	    (2 "rk14"
 	       (:fix "-*-*-*-*-*-*-*-*-*-*-*-*-jisx0201.1976-*")
 	       (:sans-serif "-*-*-*-*-*-*-*-*-*-*-*-*-jisx0201.1976-*")
-	       (:serif "-*-*-*-*-*-*-*-*-*-*-*-*-jisx0201.1976-*")))))))
+	       (:serif "-*-*-*-*-*-*-*-*-*-*-*-*-jisx0201.1976-*")))))
+      #+hpux
+      ;; hp-roman8 encoding as used by HP (only!).
+      (3 "fixed"
+	 (:fix "-*-courier-*-*-*-*-*-*-*-*-*-*-hp-roman8")
+	 (:sans-serif "-*-helvetica-*-*-*-*-*-*-*-*-*-*-hp-roman8")
+	 (:serif "-*-new century schoolbook-*-*-*-*-*-*-*-*-*-*-hp-roman8"
+		 "-*-times-*-*-*-*-*-*-*-*-*-*-hp-roman8"))))
 
 (defun disassemble-x-font-name (name)
   (let ((cpos 0)
@@ -228,24 +235,67 @@
 				  (eql point-size 0)
 				  (eql average-width 0)))
 		   (make-text-style family face (/ corrected-point-size 10)))))))
+      ;; Setup font mappings.  This is made hairy by trying to deal
+      ;; elegantly with possibly missing mappings and messed-up X font
+      ;; setups.  It seems to be the case that XListFonts can return
+      ;; things even when XLoadFont will fail to load the font: I
+      ;; think XListFonts only probes the fonts.alias file (or
+      ;; equivalent).  There seems to be no way to tell if a font is
+      ;; loadable other than by loading it, which is far too expensive
+      ;; to do for every font.  So what this does is check the
+      ;; fallback font carefully, and complain if something is wrong
+      ;; with it, but otherwise don't check.  This should mean that if
+      ;; this doesn't warn then things will basically run, as the
+      ;; fallback exists for each character set, at least.
       (dolist (per-charset *xt-font-families*)
 	(destructuring-bind (character-set fallback &rest families) per-charset
-	  (dolist (per-family families)
-	    (destructuring-bind (family &rest patterns) per-family
-	      (dolist (font-pattern patterns)
-		(dolist (xfont (tk::list-font-names display font-pattern))
-		  ;; this hack overcomes a bug with hp's scalable fonts
-		  (unless (find #\* xfont)
-		    (let ((text-style (font->text-style xfont family)))
-		      ;; prefer first font satisfying this text style, so
-		      ;; don't override if we've already defined one.
-		      (when text-style
-			(unless (text-style-mapping-exists-p
-				 port text-style character-set t)
-			  (setf (text-style-mapping port text-style character-set)
-			    xfont)))))))))
-	  (setf (text-style-mapping port *undefined-text-style* character-set)
-	    fallback)))))
+	  (let* ((matchesp nil)		;do any non-fallback fonts match?
+		 (fallback-matches-p	;any fallback matches?
+		  (not (null (tk::list-font-names display fallback))))
+		 (fallback-loadable-p	;fallback actually loadable?
+		  (and fallback-matches-p
+		       (excl:with-native-string (nfn fallback)
+			 (let ((x (x11:xloadqueryfont display nfn)))
+			   (if (not (zerop x))
+			       (progn
+				 (x11:xfreefont display x)
+				 t)
+			       nil))))))
+	    (dolist (per-family families)
+	      (destructuring-bind (family &rest patterns) per-family
+		(dolist (font-pattern patterns)
+		  (dolist (xfont (tk::list-font-names display font-pattern))
+		    ;; this hack overcomes a bug with hp's scalable fonts
+		    (unless (find #\* xfont)
+		      (setf matchesp t) ;there was at least one match
+		      (let ((text-style (font->text-style xfont family)))
+			;; prefer first font satisfying this text style, so
+			;; don't override if we've already defined one.
+			(when text-style
+			  (unless (text-style-mapping-exists-p
+				   port text-style character-set t)
+			    (setf (text-style-mapping port text-style
+						      character-set)
+			      xfont)))))))))
+	    ;; Set up the fallback if it looks like there is one, and
+	    ;; complain if things look bad.  Things look bad if there were
+	    ;; matches but the fallback is not loadable.  If there were
+	    ;; no matches then don't complain even if there appears to be
+	    ;; something wrong with the fallback, just silently don't load it
+	    ;; (and thus define no mappings for the character set).
+	    (cond
+	     (fallback-loadable-p	;all is well
+	      (setf (text-style-mapping port *undefined-text-style*
+					character-set)
+		fallback))
+	     ((and matchesp fallback-matches-p)
+	      (warn "Fallback font ~A, for character set ~A, matches with XListFonts,
+but is not loadable by XLoadQueryFont.  Something may be wrong with the X font
+setup."
+		    fallback character-set))
+	     (matchesp
+	      (warn "Fallback font ~A not loadable for character set ~A."
+		    fallback character-set))))))))
   (setup-stipples port display))
 
 (defparameter *xt-logical-size-alist*
@@ -337,7 +387,7 @@
 	(clim-event nil))
     (when port
       (setq clim-event
-	(ecase (tk::event-type event)
+	(case (tk::event-type event)
 	  ((:reparent-notify :selection-clear :selection-request
 	    :selection-notify :client-message :mapping-notify :no-expose)
 	   nil)
@@ -473,7 +523,13 @@
 	  (:focus-in
 	   (allocate-event 'focus-in-event :sheet sheet))
 	  (:focus-out
-	   (allocate-event 'focus-out-event :sheet sheet)))))
+	   (allocate-event 'focus-out-event :sheet sheet))
+	  (otherwise
+	   ;; it seems better to warn about this rather than just dying,
+	   ;; at least there might be some chance of continuing!
+	   (warn "Unhandled X event ~S, type ~A"
+		 event (tk::event-type event))
+	   nil))))
     (when clim-event
       (distribute-event port clim-event))))
 
@@ -662,10 +718,22 @@
 	    ;; Inform lisp but don't feed event back to X.
 	    (*suppress-xevents* t))
 	(declare (special *suppress-xevents*))
+	;; spr24753
+	;; Call note-frame-iconified and note-frame-deiconifed
+	;; rather than simply setting the frame-state to :shrunk
+	;; and :enabled respectively.  (This happens on the
+	;; respective :after methods in silica/framem.lisp.)
+	;; Note that according to the documenation, calling 
+	;; these methods also directly iconify/deiconify the
+	;; frame (by calling the functions x11:xmapwindow
+	;; and x11:xiconifywindow and  --see tk-silica/xt-frames.lisp.)
+	;; We are depending on the fact that the windows-system
+	;; won't try to re-iconify an already iconfied window, etc.
 	(case (tk::event-type event)
 	  (:map-notify
 	   (when (eq state :shrunk)
-	     (setf (frame-state frame) :enabled)))
+	     (note-frame-deiconified (frame-manager frame) frame) 
+	     ))
 	  (:unmap-notify
 	   ;; spr17465
 	   ;; On Sparc in CDE (common desktop environment),
@@ -676,7 +744,8 @@
 	   ;; response, since it is not only unnecessary, it is detrimental.
 	   ;; That is the purpose of *suppress-xevents*.
 	   (when (eq state :enabled)
-	     (setf (frame-state frame) :shrunk))))))))
+	     (note-frame-iconified (frame-manager frame) frame) 
+	     )))))))
 
 (defmethod find-widget-class-and-name-for-sheet
     ((port xt-port) (parent t) (sheet basic-sheet))
@@ -925,17 +994,29 @@
 		      (:+ics our-font nil)
 		      (:-ics our-font))
 		     (text-style-mapping port text-style
-					 (char-character-set-and-index character))))
-	 (escapement-x (tk::char-width x-font index))
-	 (escapement-y 0)
-	 (origin-x 0)
-	 (origin-y (tk::font-ascent x-font))
-	 (bb-x escapement-x)
-	 (bb-y (+ origin-y (tk::font-descent x-font))))
-    (when (zerop escapement-x)
-      (setq escapement-x (tk::font-width x-font)))
-    (values index x-font escapement-x escapement-y
-	    origin-x origin-y bb-x bb-y)))
+					 (char-character-set-and-index character)))))
+    (when (null x-font)
+      ;; Throw a more meaningful error-message
+      ;; when the x-font is not found.
+      ;; This will happen, for example, when
+      ;; a Japanese/foreign is not set up correctly.
+      (let ((character-set (char-character-set-and-index character)))
+	(error "X-Font not found for text-style: ~S on port:~S~% (character-set: ~A, character:~C, char-index:~S)"
+	       text-style
+	       port
+	       character-set
+	       character
+	       index)))
+    (let* ((escapement-x (tk::char-width x-font index))
+	   (escapement-y 0)
+	   (origin-x 0)
+	   (origin-y (tk::font-ascent x-font))
+	   (bb-x escapement-x)
+	   (bb-y (+ origin-y (tk::font-descent x-font))))
+      (when (zerop escapement-x)
+	(setq escapement-x (tk::font-width x-font)))
+      (values index x-font escapement-x escapement-y
+	      origin-x origin-y bb-x bb-y))))
 
 (defvar *trying-fallback* nil)
 
@@ -1316,7 +1397,7 @@
       (when character
 	(let ((x (state->modifiers
 		  (x11::xkeyevent-state event))))
-	  (setq character 
+	  (setq character
 	     (if (and (<= (char-int character) 26)
 		      (not (member character
 				   '(#\return
@@ -1332,7 +1413,7 @@
 			     (char-int #\A)
 			   (char-int #\a)))))
 	       character))
-	  (setq character 
+	  (setq character
 	    (clim-make-char
 	     character
 	     (logior
@@ -1648,10 +1729,38 @@ the geometry of the children. Instead the parent has control. "))
 	(return-from port-canonicalize-gesture-spec nil))
       (cons (xt-keysym->keysym x-keysym) shifts))))
 
+;;; spr24597
+;;; Change call from port-set-pointer-position-1
+;;; to port-set-pointer-position-root so that we don't
+;;; worry about which sheet we are over.
 
 (defmethod port-set-pointer-position ((port xt-port) pointer x y)
   (let* ((sheet (pointer-sheet pointer)))
-    (port-set-pointer-position-1 port sheet x y)))
+    (port-set-pointer-position-root port sheet x y)))
+
+;;; New function.  Put near port-set-pointer-position-1 in tk-silica/xt-silica.lisp
+;;; On motif, port-set-pointer-position used to
+;;; call port-set-pointer-position-1, which sets the pointer
+;;; based on the underlying sheet.  
+;;; We need a function which sets it explicitly relatibe
+;;; to the root.
+(defun port-set-pointer-position-root (port sheet x y)
+  (let ((m (and
+	    sheet
+	    (port sheet)
+	    (sheet-mirror sheet))))
+    (when m
+      (let ((display (port-display port)))
+	(x11:xwarppointer
+	 display
+	 0				; src
+	 (tk::display-root-window display) ; dest
+	 0				; src-x
+	 0				; src-y
+	 0				; src-width
+	 0				; src-height
+	 (fix-coordinate x)
+	 (fix-coordinate y))))))
 
 (defun port-set-pointer-position-1 (port sheet x y)
   (let ((m (and (port sheet) (sheet-mirror sheet))))
@@ -1674,10 +1783,20 @@ the geometry of the children. Instead the parent has control. "))
 (defmethod raise-mirror ((port xt-port) sheet)
   (x11:xraisewindow (port-display port) (tk::widget-window (sheet-mirror sheet))))
 
+;;; From: /net/beast/within/home/pnc/clim-sparc/acl6.0/clim2/tk-silica/xt-silica.lisp
+;;; bug11288
+;;; There is an X-related race-condition here.  Specifically
+;;; if raise-frame is called immediately after the frame is
+;;; created, then the X-side might not be ready yet.
+;;; In particular, the call to widget-window will fail.
+;;; So, if the call fails, we now re-try a few times.
+;;; Eventually we time-out so that we don't risk an 
+;;; infinite-loop.
 (defmethod raise-mirror ((port xt-port) (sheet top-level-sheet))
   ;; Compensate for the top-level-sheet's mirror not being the right window.
   (x11:xraisewindow (port-display port)
-		    (tk::widget-window (tk::widget-parent (sheet-mirror sheet)))))
+		    (tk::widget-window-with-retry
+		     (tk::widget-parent (sheet-mirror sheet)))))
 
 (defmethod bury-mirror ((port xt-port) sheet)
   (x11:xlowerwindow (port-display port) (tk::widget-window (sheet-mirror sheet))))
@@ -2000,9 +2119,17 @@ the geometry of the children. Instead the parent has control. "))
    ;; this is to make sure that position-sheet-carefully works
    ;; correctly on Motif for _both_ dialogs and regular frames
    ;; (cim 12/13/94)
-   (if (popup-frame-p frame)
-       (sheet-direct-mirror (frame-top-level-sheet frame))
-     (frame-shell frame))
+   (cond ((typep frame 'tk-silica::motif-menu-frame)
+	  ;; spr25913
+	  ;; For this type of frame, calling set-values on the 
+	  ;; sheet-direct-mirror does not cause the frame to move.
+	  ;; For now, be paranoid and specialize only on the 
+	  ;; specific class.
+	  (frame-shell frame))
+	 ((popup-frame-p frame)
+	  (sheet-direct-mirror (frame-top-level-sheet frame)))
+	 (t 
+	  (frame-shell frame)))
    :x x :y y))
 
 (defmethod port-resize-frame ((port xt-port) frame width height)

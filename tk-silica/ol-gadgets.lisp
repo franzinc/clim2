@@ -1,5 +1,5 @@
 ;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
-;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
+;; copyright (c) 1986-2002 Franz Inc, Berkeley, CA  - All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: ol-gadgets.lisp,v 1.72 1999/02/25 08:23:44 layer Exp $
+;; $Id: ol-gadgets.lisp,v 1.73 2002/07/09 20:57:18 layer Exp $
 
 (in-package :xm-silica)
 
@@ -141,7 +141,7 @@
   (declare (ignore id-type id src-x src-y))
   nil)
 
-(defvar *ol-ignore-help-function-address* (ff:register-function 'ol-ignore-help-function))
+(defvar *ol-ignore-help-function-address* (ff:register-foreign-callable 'ol-ignore-help-function))
 
 (defmethod add-sheet-callbacks :after  ((port openlook-port) (sheet t) (widget tk::draw-area))
   (tk::add-callback widget
@@ -1312,7 +1312,7 @@
 			   widget string 0 end))))
       (let ((string (aref string 0)))
 	(prog1
-	    (subseq (ff::char*-to-string string) 0 end)
+	    (subseq (excl:native-to-string string) 0 end)
 	  (xt::xt_free string))))))
 
 
@@ -1328,7 +1328,7 @@
 				widget string start end))))
 	   (let ((string (aref string 0)))
 	     (prog1
-		 (ff::char*-to-string string)
+		 (excl:native-to-string string)
 	       (xt::xt_free string)))))))
 
 (defmethod gadget-current-selection ((tf openlook-text-editor))
@@ -1579,8 +1579,9 @@
 	:width width :min-width min-width :max-width max-width
 	:height height :min-height min-height :max-height max-height))))
 
-(ff:defun-c-callable scrolling-window-geometry-function ((content :unsigned-long)
-							 (geometries :unsigned-long))
+(ff:defun-c-callable scrolling-window-geometry-function
+    ((content :unsigned-natural)
+     (geometries :unsigned-natural))
   (let* ((viewport (find-sheet-from-widget-address content))
 	 (scrolling-window (sheet-parent viewport)))
     (multiple-value-bind
@@ -1608,7 +1609,7 @@
 		(tk::ol-sw-geometries-bbc-real-height geometries) extent-height))))))
 
 (defvar *scrolling-window-geometry-function-address*
-    (ff::register-function 'scrolling-window-geometry-function))
+    (ff::register-foreign-callable 'scrolling-window-geometry-function))
 
 (defmethod find-widget-class-and-name-for-sheet ((port openlook-port)
 						 (parent t)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: POSTSCRIPT-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $Id: postscript-port.lisp,v 1.31 2000/05/01 21:43:31 layer Exp $
+;; $Id: postscript-port.lisp,v 1.32 2002/07/09 20:57:16 layer Exp $
 
 (provide :climps)
 
@@ -1031,20 +1031,42 @@ end } def
 	(close stream :abort abort-p)
 	(destroy-port port)))))
 
-;;; Encapsulate the second pass (collect PostScript-ish textual output)
-;;; and third pass (write text to file-stream) of PostScript operation,
-;;; so that it can be called separately.
+;;;**********************************************************************
+;;;
+;;; The original mechanism for generating postscript-output was:
+;;; 1] "Draw" the user output to the postscript-stream.
+;;;    (i.e. fill the output-record of the postscript-stream)
+;;; 2] Replay the output-record of the postscript-stream into
+;;;    a string-stream (thereby generating a single stream
+;;;    containing the postscript-output).
+;;; 3] Write this string to the file-stream.
+;;;
+;;; (Note:  Step #1 occurs in the function invoke-with-output-to-postscript-stream.
+;;; Steps #2 and #3 were combined in this function below.)
+;;;
+;;; This cause a problem if the output was too large, the
+;;; maximum string-size (of the string that serves as the
+;;; buffer in the string-stream) could be reached causing an error.
+;;;
+;;; The new mechanism is to combine step #2 and #3 in that the
+;;; stream-replay is replayed directly into the file-stream.
+;;;
+;;; Note:  This works primarily because various medium-draw-* and other
+;;; operations on the postscript-stream write to the printer-stream
+;;; slot on the postscript-stream/medium.
+;;;
+;;;**********************************************************************
 (defun invoke-with-output-to-postscript-stream-helper (stream port medium
-						       multi-page 
+						       multi-page
 						       scale-to-fit
-						       header-comments 
+						       header-comments
 						       orientation)
   (force-output stream)
   (let ((record  (stream-output-history stream)))
     (when (or scale-to-fit multi-page)
       (bounding-rectangle-set-position record 0 0))
     (multiple-value-bind (width height)
-	(bounding-rectangle-size record)
+        (bounding-rectangle-size record)
       (let* ((page-width
 	      (floor (* (slot-value port 'page-width)
 			(slot-value port 'device-units-per-inch))
@@ -1060,23 +1082,24 @@ end } def
 		  1
 		(min (/ page-width width)
 		     (/ page-height height)))))
-	;; Now do the output to the printer, breaking up the output into
-	;; multiple pages if that was requested
-	(let ((string
-	       (with-output-to-string (string-stream)
-		 (letf-globally (((slot-value medium 'printer-stream) string-stream))
-		   (with-output-recording-options (stream :record nil :draw t)
-		     (stream-replay stream nil))))))
-	  ;; Only print the prologue once.
-	  (when +output-to-postscript-stream-helper-first+
-	    (postscript-prologue medium
-				 :scale-factor scale-factor
-				 :orientation orientation
-				 :header-comments header-comments))
-	  (setq +output-to-postscript-stream-helper-first+ nil)
 
-	  (write-string string (slot-value medium 'printer-stream))))))
-  )
+	;; Now do the output to the printer, breaking up the output into
+	;; multiple pages if that was requested.
+
+	;; Only print the prologue once.
+	(when +output-to-postscript-stream-helper-first+
+	  (postscript-prologue medium
+			       :scale-factor scale-factor
+			       :orientation orientation
+			       :header-comments header-comments))
+	(setq +output-to-postscript-stream-helper-first+ nil)
+
+	;; Note:  This works primarily because various medium-draw-* and other
+	;; operations on the postscript-stream write to the printer-stream
+	;; slot on the postscript-stream/medium.
+	(with-output-recording-options (stream :record nil :draw t)
+	  (stream-replay stream nil))
+	))))
 
 
 ;;;**********************************************************************

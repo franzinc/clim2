@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: user -*-
 ;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
-;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
+;; copyright (c) 1986-2002 Franz Inc, Berkeley, CA  - All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: load-ol.lisp,v 1.31 1998/08/06 23:17:16 layer Exp $
+;; $Id: load-ol.lisp,v 1.32 2002/07/09 20:57:18 layer Exp $
 
 (in-package :user)
 
@@ -26,7 +26,7 @@
 (progn
   (defvar sys::*toolkit-shared* nil)
 
-  (unless (ff:get-entry-point (ff:convert-to-lang "ol_appl_add_item")
+  (unless (ff:get-entry-point (ff:convert-foreign-name "ol_appl_add_item")
 			      #-(version>= 5 0) :note-shared-library-references
 			      #-(version>= 5 0) nil)
     (load "clim2:;climol.so")
@@ -37,7 +37,7 @@
   (defvar sys::*libtk-pathname* "Ol")
   (defvar sys::*libxt-pathname* "Xt")
 
-  (unless (ff:get-entry-point (ff:convert-to-lang "XtToolkitInitialize"))
+  (unless (ff:get-entry-point (ff:convert-foreign-name "XtToolkitInitialize"))
     (load "stub-olit.o"
 	  :system-libraries (list sys::*libtk-pathname*
 				  sys::*libxt-pathname*
@@ -48,14 +48,14 @@
 				  sys::*libx11-pathname*)
 	  :print t))
 
-  (unless (ff:get-entry-point (ff:convert-to-lang "ol_appl_add_item"))
+  (unless (ff:get-entry-point (ff:convert-foreign-name "ol_appl_add_item"))
     (load "olsupport.o"
 	  :system-libraries (list sys::*libtk-pathname*
 				  sys::*libxt-pathname*
 				  sys::*libx11-pathname*)
 	  :print t))
 
-  (unless (ff:get-entry-point (ff:convert-to-lang "XtAppIntervalNextTimer"))
+  (unless (ff:get-entry-point (ff:convert-foreign-name "XtAppIntervalNextTimer"))
     (load "xtsupport.o"
 	  :system-libraries (list sys::*libxt-pathname*
 				  sys::*libx11-pathname*)

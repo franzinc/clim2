@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 ;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
-;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
+;; copyright (c) 1986-2002 Franz Inc, Berkeley, CA  - All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: clim-defs.lisp,v 1.29 1999/07/19 22:25:10 layer Exp $
+;; $Id: clim-defs.lisp,v 1.30 2002/07/09 20:57:15 layer Exp $
 
 (in-package :clim-internals)
 
@@ -221,6 +221,12 @@
         (push `((presentation-subtypep-1 ,pt-var ',type)
                 ,@body)
               new-clauses)))))        ;eval-when
+
+#+allegro
+(excl:defun-proto invoke-with-input-context (type override body-continuation 
+				  context-continuation)
+  (declare (dynamic-extent body-continuation context-continuation)))
+
 
 (defmacro with-input-context ((type &key override) 
                               (&optional object-var type-var event-var options-var)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: ACL-CLIM; Base: 10; Lowercase: Yes -*-
 ;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
-;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
+;; copyright (c) 1986-2002 Franz Inc, Berkeley, CA  - All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-frames.lisp,v 1.12 2000/05/01 21:43:20 layer Exp $
+;; $Id: acl-frames.lisp,v 1.13 2002/07/09 20:57:14 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -900,7 +900,8 @@ to be run from another."
 					 tick alist submenus)))
 		 (clim-internals::menu-item-items item)))
 	   (progn
-	     (push (list tick (menu-item-value item))
+	     (push (list tick (menu-item-value item) 
+			 item) ;; spr25894 -- Third item is the menu-item itself
 		   alist)
 	     
 	     (excl:with-native-string (p-i (print-item item))
@@ -1031,7 +1032,7 @@ to be run from another."
     *scratch-c-string*))
 
 (defun scratch-c-string-to-lisp-string ()
-  (ff:char*-to-string *scratch-c-string*))
+  (values (excl:native-to-string *scratch-c-string*)))
 
 (defun pathnames-from-directory-and-filenames (filename-list)
   ;; Takes a list consisting of a directory namestring followed
@@ -1631,7 +1632,7 @@ in a second Lisp process.  This frame cannot be reused."
     (excl:with-native-string (cstr filename)
       (setf (ct:cref win:docinfo docinfo lpszDocName) cstr))
     (setf (ct:cref win:docinfo docinfo lpszDocName) 
-      (ff:string-to-char* filename))
+      (excl:string-to-native filename))
     (setf (ct:cref win:docinfo docinfo lpszOutput) 0)
     (setf (ct:cref win:docinfo docinfo lpszDatatype) 0)
     (setf (ct:cref win:docinfo docinfo fwType) 0)
@@ -1685,7 +1686,7 @@ in a second Lisp process.  This frame cannot be reused."
     (excl:with-native-string (cstr filename)
       (setf (ct:cref win:docinfo docinfo lpszDocName) cstr))
     (setf (ct:cref win:docinfo docinfo lpszDocName) 
-      (ff:string-to-char* filename))
+      (excl:string-to-native filename))
     (setf (ct:cref win:docinfo docinfo lpszOutput) 0)
     (setf (ct:cref win:docinfo docinfo lpszDatatype) 0)
     (setf (ct:cref win:docinfo docinfo fwType) 0)

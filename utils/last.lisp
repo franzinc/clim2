@@ -1,5 +1,5 @@
 ;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
-;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
+;; copyright (c) 1986-2002 Franz Inc, Berkeley, CA  - All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -15,9 +15,22 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: last.lisp,v 1.4 2000/05/01 21:43:39 layer Exp $
+;; $Id: last.lisp,v 1.5 2002/07/09 20:57:19 layer Exp $
+
+;;; All this is allegro-sepcific.
 
 (in-package :system)
+
+;;; This is, perhaps, a temporary hack to get the EUC stuff loaded at
+;;; a non-bad time.
+;;
+;; This is no longer needed, since we're using native-to-* interface now
+;; The euc module may be autoloaded due to process-code usage, but the
+;; autoload no longer produces a mesage at inopportune times.
+#+ignore
+(eval-when (:load-toplevel :execute)
+  (require :euc)
+  (find-external-format :euc))
 
 #-(version>= 5 0 pre-final 16)
 (load-patches "patch" "sys:;update-clim;*.fasl")

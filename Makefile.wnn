@@ -1,4 +1,4 @@
-# $Header: /repo/cvs.copy/clim2/Makefile.wnn,v 1.7 2000/06/13 14:26:04 layer Exp $
+# $Header: /repo/cvs.copy/clim2/Makefile.wnn,v 1.8 2002/07/09 20:57:14 layer Exp $
 #
 #  Makefile.wnn for CLIM 2.0
 #
@@ -79,8 +79,10 @@ ifeq ($(REDHAT),6)
 REDHATLIBS = -lcrypt
 endif
 
+ifeq ($(OS_NAME),linux)
 ifeq ($(MACHINE),ppc)
 REDHATLIBS = -lcrypt
+endif
 endif
 
 ifeq ($(OS_NAME),freebsd)

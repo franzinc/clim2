@@ -1,5 +1,5 @@
 ;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
-;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
+;; copyright (c) 1986-2002 Franz Inc, Berkeley, CA  - All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xm-gadgets.lisp,v 1.102 2000/07/06 20:46:02 layer Exp $
+;; $Id: xm-gadgets.lisp,v 1.103 2002/07/09 20:57:18 layer Exp $
 
 (in-package :xm-silica)
 
@@ -98,7 +98,21 @@
       (etypecase label
 	((or null string)
 	 (unless (getf initargs :label-string)
-	   (setf (getf initargs :label-string) (or label ""))))
+	   (setf (getf initargs :label-string) (or label "")))
+	 (when (typep sheet 'tk-silica::motif-toggle-button)
+	   ;; SPR25487 -- P&C
+	   ;; Under Motif2.1  a toggle-button, with an empty 
+	   ;; label is drawn too small (Motif1.2 had a 
+	   ;; more reasonable size for the label-less toggle.)
+	   ;; Since Clim  can draw its own prompts (especially in
+	   ;; accepting-values) this can cause display-misalignments.
+	   ;; I can find no direct way to over-ride this, 
+	   ;; so the work-around is to given the label-less
+	   ;; toggle-button a blank-space as a label.
+	   (let ((old-label-string (getf initargs :label-string)))
+	     (when (or (null old-label-string)
+		       (< (length old-label-string) 1))
+	       (setf (getf initargs :label-string) " ")))))
 	((or tk::pixmap pattern)
 	 (unless (getf initargs :label-pixmap)
 	   (when (typep label 'pattern)
@@ -661,7 +675,7 @@
 (defmethod (setf scroll-bar-size) :after (value (object motif-scroll-bar))
   (let ((mirror (sheet-direct-mirror object)))
     (when mirror
-      ;; Set the XmNsliderSize and XmNpageIncrement resources so the correct 
+      ;; Set the XmNsliderSize and XmNpageIncrement resources so the correct
       ;; thing happens when the user presses the up-page/down-page buttons.
       ;; Apparently it is not sufficient just to set slider-size.  JPM.
       (let ((v (convert-scroll-bar-value-out object value)))
@@ -683,7 +697,7 @@
                                :width (* 2 x)
                                :max-width +fill+)))))
 
-(defmethod (setf silica::scroll-bar-line-increment) :after 
+(defmethod (setf silica::scroll-bar-line-increment) :after
 	   (value (object motif-scroll-bar))
   (let ((mirror (sheet-direct-mirror object)))
     (when mirror
@@ -812,7 +826,7 @@
     (and m
 	 (let  ((x (tk::xm_text_field_get_selection m)))
 	   (and (not (zerop x))
-		(ff:char*-to-string x))))))
+		(values (excl:native-to-string x)))))))
 
 (defmethod (setf gadget-value) :after
     (nv (gadget motif-text-field) &key invoke-callback)
@@ -839,7 +853,7 @@
 	   (ptr (tk::xm-text-block-rec-ptr text-block))
 	   (text (if (zerop length)
 		     ""
-		   (ff:char*-to-string ptr)))
+		   (excl:native-to-string ptr)))
 	   (start-pos (tk::xm-text-field-callback-struct-start-pos callback-struct))
 	   (end-pos (tk::xm-text-field-callback-struct-end-pos callback-struct)))
       (with-slots (silica::value) sheet
@@ -974,7 +988,7 @@
     (and m
 	 (let  ((x (tk::xm_text_get_selection m)))
 	   (and (not (zerop x))
-		(ff:char*-to-string x))))))
+		(values (excl:native-to-string x)))))))
 
 (defmethod compose-space ((te motif-text-editor) &key width height)
   (declare (ignore width height))
@@ -1696,12 +1710,12 @@
 		(tk::manage-child dialog)
 		(when (and x-position y-position)
 		  (tk::set-values dialog :x x-position :y y-position))
-		
+
 		(tk::set-values (tk::widget-parent dialog) :mapped-when-managed t)
-		
+
 		(when warp-pointer
 		  (warp-pointer-to-dialog-box dialog framem x-position y-position))
-		
+
 		(with-toolkit-dialog-component (notify-user (list message-string :style))
 		  (wait-for-callback-invocation
 		   (port framem)
@@ -1833,10 +1847,14 @@
 			:file-search-proc
 			(make-file-search-proc-function dialog
 							file-search-proc))
-	(tk::xm_file_selection_do_search
-	 dialog (xt::xm_string_create_l_to_r
-		 (tk::get-values dialog :dir-mask)
-		 "")))
+	(let ((str-pntr (xt::xm_string_create_l_to_r
+			 (tk::get-values dialog :dir-mask)
+			 "")))
+	  (tk::xm_file_selection_do_search
+	   dialog str-pntr)
+	  (tk::add-widget-cleanup-function dialog
+					   #'tk::destroy-generated-xm-string
+					   str-pntr)))
 
       (process-exit-boxes framem
 			  associated-window
@@ -1864,8 +1882,8 @@
 		  (tk::get-values dialog :dir-spec :directory)))
 	  (tk::destroy-widget dialog))))))
 
-(ff::defun-c-callable file-search-proc-callback ((widget :unsigned-long)
-                                                 (cb :unsigned-long))
+(ff::defun-foreign-callable file-search-proc-callback ((widget :foreign-address)
+						       (cb :foreign-address))
   (setq widget (xt::find-object-from-address widget))
   (file-search-proc-callback-1
    widget cb
@@ -1895,7 +1913,7 @@
                       :file-list-item-count (length new)
                       :list-updated t))))
 
-(defvar *file-search-proc-callback-address* (ff:register-function 'file-search-proc-callback))
+(defvar *file-search-proc-callback-address* (ff:register-foreign-callable 'file-search-proc-callback))
 
 (defun make-file-search-proc-function (dialog file-search-proc)
   (push (cons :file-search-proc file-search-proc)
@@ -2262,7 +2280,7 @@
 
 (defmethod frame-manager-print-file
     ((framem motif-frame-manager) filename
-     &key 	  
+     &key
      (frame nil frame-p)
      (associated-window
       (if frame-p

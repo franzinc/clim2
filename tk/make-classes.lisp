@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: tk -*-
 ;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
-;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
+;; copyright (c) 1986-2002 Franz Inc, Berkeley, CA  - All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: make-classes.lisp,v 1.48 1998/09/29 21:02:35 duane Exp $
+;; $Id: make-classes.lisp,v 1.49 2002/07/09 20:57:18 layer Exp $
 
 (in-package :tk)
 
@@ -45,7 +45,7 @@
 	  (dotimes (i n)
 	    (let* ((res (xt-resource-list resources i))
 		   (original-name (xt-resource-name res)))
-	      (when (string-equal (char*-to-string original-name)
+	      (when (string-equal (excl:native-to-string original-name)
 				  tk-resource-name)
 		(let ((*package* (find-package :tk)))
 		  (return
@@ -53,9 +53,9 @@
 		      :original-name original-name
 		      :name resource-name
 		      :class (lispify-resource-class
-			      (char*-to-string (xt-resource-class res)))
+			      (excl:native-to-string (xt-resource-class res)))
 		      :type (lispify-resource-type
-			     (char*-to-string (xt-resource-type res))))))))))
+			     (excl:native-to-string (xt-resource-type res))))))))))
 	(xt_free resources))
       result)))
 
@@ -117,11 +117,11 @@
 	(push (make-instance
 		  resource-class
 		:original-name (xt-resource-name (xt-resource-list resources i))
-		:name (lispify-resource-name (char*-to-string (xt-resource-name (xt-resource-list resources i))))
+		:name (lispify-resource-name (excl:native-to-string (xt-resource-name (xt-resource-list resources i))))
 		:class (lispify-resource-class
-			(char*-to-string (xt-resource-class (xt-resource-list resources i))))
+			(excl:native-to-string (xt-resource-class (xt-resource-list resources i))))
 		:type (lispify-resource-type
-		       (char*-to-string (xt-resource-type (xt-resource-list resources i)))))
+		       (excl:native-to-string (xt-resource-type (xt-resource-list resources i)))))
 	      r))
       (xt_free resources)
       r)))
@@ -215,14 +215,14 @@
 
 (defun define-toolkit-classes (&rest classes)
   (make-classes
-   (mapcar #-rs6000 #'ff:convert-to-lang
+   (mapcar #-rs6000 #'ff:convert-foreign-name
 	   #+rs6000 #'identity
 	   (remove-duplicates
 	    (apply #'append classes)
 	    :test #'string=))))
 
 (defun widget-class-name (h)
-  (char*-to-string (xt-class-name h)))
+  (values (excl:native-to-string (xt-class-name h))))
 
 (defvar *widget-name-to-class-name-mapping*
     '(((list scrolling-list) ol-list)
@@ -329,13 +329,13 @@
       new)))
 
 
-(defun-c-callable toolkit-error-handler ((message :unsigned-long))
+(defun-foreign-callable toolkit-error-handler ((message :foreign-address))
   (let ((*error-output* excl:*initial-terminal-io*))
-    (error "Xt: ~a" (char*-to-string message))))
+    (error "Xt: ~a" (excl:native-to-string message))))
 
-(defun-c-callable toolkit-warning-handler ((message :unsigned-long))
+(defun-foreign-callable toolkit-warning-handler ((message :foreign-address))
   (let ((*error-output* excl:*initial-terminal-io*))
-    (warn "Xt: ~a" (char*-to-string message))))
+    (warn "Xt: ~a" (excl:native-to-string message))))
 
 
 ;; This is a terrible hack used to compensate for bugs/inconsistencies
