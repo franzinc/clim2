@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: odrawpat.lisp,v 1.1.22.1 1998/07/06 23:10:02 layer Exp $
+;; $Id: odrawpat.lisp,v 1.1.22.2 1999/04/08 21:25:45 cox Exp $
 
 (in-package :acl-clim)
 
@@ -63,29 +63,31 @@
 			  (nobutton nil)
 			  (label ""))
    (let* ((hwnd
-	   (CreateWindowEx
+	   (excl:with-native-string (classname "BUTTON")
+	     (excl:with-native-string (windowname (nstringify label))
+	       (CreateWindowEx
 		0			; extended-style
-		"BUTTON"		; classname
-		(nstringify label)	; windowname
+		classname		; classname
+		windowname		; windowname
 		(logior buttonstyle
-		    ;HBS_DOWNPICS	; special picture while pressed
-		    ;HBS_AUTOADVANCE
-		    ;HBS_TEXTINDENT
-			; (if (not active) win:bn_disable 0)
-		    (if (typep label 'acl-clim::acl-pixmap) win:bs_ownerdraw 0) 
-		    (if nobutton HBS_NOBUTTON 0)
-		    WS_CHILD
-		    WS_BORDER
-		    WS_CLIPCHILDREN 
-		    WS_CLIPSIBLINGS)	; style
+					;HBS_DOWNPICS	; special picture while pressed
+					;HBS_AUTOADVANCE
+					;HBS_TEXTINDENT
+					; (if (not active) win:bn_disable 0)
+			(if (typep label 'acl-clim::acl-pixmap) win:bs_ownerdraw 0) 
+			(if nobutton HBS_NOBUTTON 0)
+			WS_CHILD
+			WS_BORDER
+			WS_CLIPCHILDREN 
+			WS_CLIPSIBLINGS) ; style
 		0 0 0 0
 		parent
 		(let ((hmenu (ccallocate hmenu)))
 		  (setf (handle-value hmenu hmenu) id)
-		  ; (or id (next-child-id parent))
+					; (or id (next-child-id parent))
 		  hmenu)
 		*hinst*
-		"x")))
+		"x")))))
     (format *terminal-io* "~%use ownerdraw label ~S" label)
 
      (if (null-handle-p hwnd hwnd)

@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-prel.lisp,v 1.4.8.11 1999/03/31 19:12:42 layer Exp $
+;; $Id: acl-prel.lisp,v 1.4.8.12 1999/04/08 21:25:43 cox Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -46,23 +46,25 @@
 			 (scroll-mode (combobox-scroll-bars items)))
   (declare (ignore id))
   (let* ((hwnd
-	  (win:CreateWindowEx 
-	   0				; extended-style
-	   "COMBOBOX"			; classname
-	   (nstringify label)		; windowname
-	   (logior
-	    (if (member scroll-mode '(:vertical :both t :dynamic)) 
-		win:WS_VSCROLL
-	      0)
-	    (if (member scroll-mode '(:horizontal :both t :dynamic)) 
-		win:WS_HSCROLL
-	      0)
-	    win:WS_CHILD
-	    win:WS_TABSTOP
-	    win:CBS_DROPDOWNLIST)
-	   0 0 0 0
-	   parent (ct::null-handle win::hmenu)
-	   *hinst* (symbol-name (gensym)))))
+	  (excl:with-native-string (x "COMBOBOX")
+	    (excl:with-native-string (label (nstringify label))
+	      (win:CreateWindowEx 
+	       0			; extended-style
+	       x			; classname
+	       label			; windowname
+	       (logior
+		(if (member scroll-mode '(:vertical :both t :dynamic)) 
+		    win:WS_VSCROLL
+		  0)
+		(if (member scroll-mode '(:horizontal :both t :dynamic)) 
+		    win:WS_HSCROLL
+		  0)
+		win:WS_CHILD
+		win:WS_TABSTOP
+		win:CBS_DROPDOWNLIST)
+	       0 0 0 0
+	       parent (ct::null-handle win::hmenu)
+	       *hinst* (symbol-name (gensym)))))))
     (if (ct:null-handle-p hwnd hwnd)
 	;; failed
 	(cerror "proceed" "failed")
@@ -78,7 +80,8 @@
 	  (dolist (item items)
 	    (setf item-name (funcall name-key item))
 	    (incf index)
-	    (win:SendMessage hwnd win:CB_INSERTSTRING index item-name)
+	    (excl:with-native-string (item-name item-name)
+	      (win:SendMessage hwnd win:CB_INSERTSTRING index item-name))
 	    ))
 	(win:SendMessage hwnd win:CB_SETCURSEL (or value 0) 0)
 	(win:SendMessage hwnd CB_SETTOPINDEX (or value 0) 0)))
@@ -121,15 +124,17 @@
 	   win:WS_CLIPSIBLINGS))
 	 (exstyle win:WS_EX_CLIENTEDGE)
 	 (hwnd
-	  (win:CreateWindowEx exstyle
-			      "LISTBOX"	; classname
-			      (nstringify label) ; windowname
-			      style
-			      0 0 0 0
-			      parent
-			      (ct::null-handle win::hmenu)
-			      *hinst*
-			      (symbol-name (gensym)))))
+	  (excl:with-native-string (classname "LISTBOX")
+	    (excl:with-native-string (windowname (nstringify label))
+	      (win:CreateWindowEx exstyle
+				  classname ; classname
+				  windowname ; windowname
+				  style
+				  0 0 0 0
+				  parent
+				  (ct::null-handle win::hmenu)
+				  *hinst*
+				  (symbol-name (gensym)))))))
     (if (ct:null-handle-p hwnd hwnd)
 	;; failed
 	(cerror "proceed" "failed")
@@ -152,7 +157,8 @@
 	      (ct:cset (:char 256) cstr ((fixnum i))
 		       (char-int (char item-name i))))
 	    (incf index)
-	    (win:SendMessage hwnd win:LB_INSERTSTRING index item-name)
+	    (excl:with-native-string (item-name item-name)
+	      (win:SendMessage hwnd win:LB_INSERTSTRING index item-name))
 	    ))
 	(if (eq mode :nonexclusive)
 	    (let ((i 0))
@@ -186,21 +192,23 @@
 
 (defun scrollbar-open (parent left top width height orientation)
   (let* ((hwnd
-	  (win:CreateWindowEx 
-	   0				; style
-	   "SCROLLBAR"			; classname
-	   (nstringify "")		; windowname
-	   (logior (if (eql orientation :horizontal) 
-		       win::SBS_HORZ win::SBS_VERT)
-		   win::WS_CHILD
-		   win::WS_BORDER
-		   win::WS_CLIPCHILDREN 
-		   win::WS_CLIPSIBLINGS) ; style
-	   0 0 0 0			; x, y, width, height
-	   parent
-	   (ct:null-handle win::hmenu)
-	   *hinst*
-	   (symbol-name (gensym)))))
+	  (excl:with-native-string (classname "SCROLLBAR")
+	    (excl:with-native-string (windowname (nstringify ""))
+	      (win:CreateWindowEx 
+	       0			; style
+	       classname		; classname
+	       windowname		; windowname
+	       (logior (if (eql orientation :horizontal) 
+			   win::SBS_HORZ win::SBS_VERT)
+		       win::WS_CHILD
+		       win::WS_BORDER
+		       win::WS_CLIPCHILDREN 
+		       win::WS_CLIPSIBLINGS) ; style
+	       0 0 0 0			; x, y, width, height
+	       parent
+	       (ct:null-handle win::hmenu)
+	       *hinst*
+	       (symbol-name (gensym)))))))
     (if (ct:null-handle-p hwnd hwnd)
 	;; failed
 	(cerror "proceed" "failed")
@@ -230,19 +238,21 @@
   ;; Both push buttons and radio buttons are created here.
   (let* ((nlabel (cleanup-button-label label))
 	 (hwnd
-	  (win:CreateWindowEx 0
-			       "BUTTON"	; classname
-			       (nstringify nlabel) ; windowname
-			       (logior buttonstyle
-				       win:WS_TABSTOP
-				       win:WS_CHILD
-				       win:WS_CLIPCHILDREN 
-				       win:WS_CLIPSIBLINGS) ; style
-			       0 0 0 0
-			       parent
-			       (ct::null-handle win::hmenu)
-			       *hinst*
-			       (symbol-name (gensym)))))
+	  (excl:with-native-string (classname "BUTTON")
+	    (excl:with-native-string (windowname (nstringify nlabel) )
+	      (win:CreateWindowEx 0
+				  classname ; classname
+				  windowname ; windowname
+				  (logior buttonstyle
+					  win:WS_TABSTOP
+					  win:WS_CHILD
+					  win:WS_CLIPCHILDREN 
+					  win:WS_CLIPSIBLINGS) ; style
+				  0 0 0 0
+				  parent
+				  (ct::null-handle win::hmenu)
+				  *hinst*
+				  (symbol-name (gensym)))))))
     (if (ct:null-handle-p hwnd hwnd)
 	;; failed
 	(cerror "proceed" "failed")
@@ -266,37 +276,40 @@
 			(scroll-mode nil))
   (declare (ignore id))
   (let* ((hwnd
-	  (win:CreateWindowEx 
-	   win:WS_EX_CLIENTEDGE
-	   "EDIT"			; classname
-	   (nstringify label)		; windowname
-	   (logior editstyle
-		   win:WS_CHILD
-		   win:WS_BORDER
-		   win:WS_TABSTOP
-		   (if (member scroll-mode '(:horizontal :both t :dynamic))
-		       win:WS_HSCROLL
-		     0)
-		   (if (member scroll-mode '(:vertical :both t :dynamic))
-		       win:WS_VSCROLL
-		     0)
+	  (excl:with-native-string (classname "EDIT")
+	    (excl:with-native-string (windowname (nstringify label))
+	      (win:CreateWindowEx 
+	       win:WS_EX_CLIENTEDGE
+	       classname		; classname
+	       windowname		; windowname
+	       (logior editstyle
+		       win:WS_CHILD
+		       win:WS_BORDER
+		       win:WS_TABSTOP
+		       (if (member scroll-mode '(:horizontal :both t :dynamic))
+			   win:WS_HSCROLL
+			 0)
+		       (if (member scroll-mode '(:vertical :both t :dynamic))
+			   win:WS_VSCROLL
+			 0)
 					   
-		   win:WS_CLIPCHILDREN 
-		   win:WS_CLIPSIBLINGS)	; style
-	   0 0 0 0
-	   parent
-	   (ct::null-handle win::hmenu)
-	   *hinst*
-	   (symbol-name (gensym)))))
+		       win:WS_CLIPCHILDREN 
+		       win:WS_CLIPSIBLINGS) ; style
+	       0 0 0 0
+	       parent
+	       (ct::null-handle win::hmenu)
+	       *hinst*
+	       (symbol-name (gensym)))))))
     (if (ct:null-handle-p hwnd hwnd)
 	;; failed
 	(cerror "proceed" "failed")
       ;; else succeed if we can init the DC
       (progn
 	(if (stringp value)
-	    (win:SetWindowText 
-	     hwnd 
-	     (silica::xlat-newline-return value)))
+	    (excl:with-native-string (s1 (silica::xlat-newline-return value))
+	      (win:SetWindowText 
+	       hwnd 
+	       s1)))
 	;; Override the default window proc.
 	(progn				;+++
 	  (setf std-ctrl-proc-address

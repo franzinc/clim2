@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-frames.lisp,v 1.5.8.14 1999/03/31 18:49:26 layer Exp $
+;; $Id: acl-frames.lisp,v 1.5.8.15 1999/04/08 21:25:40 cox Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -432,16 +432,20 @@
 	    (when acckey
 	      (record-accelerator frame acckey value top-level-sheet))
 	    (let ((menu-item-id (assign-command-menu-item-id value frame)))
-	      (win:AppendMenu
-	       menuhand
-	       flags
-	       menu-item-id
-	       (make-menu-text menu 
-			       ;; Don't display the accelerator key if
-			       ;; the command is going to land on the menu bar itself,
-			       ;; Windows will not correctly display such text.
-			       (if top-level-p nil acckey)
-			       item))
+	      (excl:with-native-string (m (make-menu-text
+				      menu 
+				      ;; Don't display the accelerator key if
+				      ;; the command is going to land on the
+				      ;; menu bar itself,
+				      ;; Windows will not correctly display
+				      ;; such text.
+				      (if top-level-p nil acckey)
+				      item))
+		(win:AppendMenu
+		 menuhand
+		 flags
+		 menu-item-id
+		 m))
 	      (push menu-item-id (gethash menuhand *popup-menu->menu-item-ids*))))
 	   (:function
 	    (warn ":function not yet implemented in menu bars")
@@ -450,16 +454,18 @@
 	    (let* ((submenu (win:CreatePopupMenu))
 		   (submenu-handle (ct:handle-value 'win:hmenu submenu))
 		   (menutext (make-menu-text menu acckey item)))
-	      (win:AppendMenu menuhand
-			       smflags
-			       submenu-handle
-			       menutext)
+	      (excl:with-native-string (menutext menutext)
+		(win:AppendMenu menuhand
+				smflags
+				submenu-handle
+				menutext))
 	      (make-menu-for-command-table value submenu-handle frame top-level-sheet)))
 	   (:divider
-	    (win:AppendMenu menuhand
-			     win:MF_SEPARATOR
-			     0
-			     "x")
+	    (excl:with-native-string (x "x")
+	      (win:AppendMenu menuhand
+			      win:MF_SEPARATOR
+			      0
+			      x))
 	    ))))
    command-table))
 
@@ -674,7 +680,9 @@ to be run from another."
         (dotimes (i subsize)
           (ct:cset (:char 256) cstr ((fixnum i)) (char-int (char name i))))
 	(ct:cset (:char 256) cstr ((fixnum subsize)) (char-int #\NULL))
-	(or (win:SetWindowText win cstr)
+	(or #+removed (win:SetWindowText win cstr)
+	    (excl:with-native-string (cstr name)
+	      (win:SetWindowText win cstr))
 	    (check-last-error "SetWindowText"))))))
 
 (defun select-messagebox-icon (style)
@@ -781,347 +789,357 @@ to be run from another."
 		 ((= code win:idignore) (or (find-label "Ignore") :exit)))))))
 
 (defun message-box (hwnd message-string name &optional icon)
-  (win:messagebox hwnd
-		  (coerce message-string 'simple-string)
-		  (coerce name 'simple-string)
-		  (or icon 
-		      (logior win:MB_ICONSTOP 
-			      win:MB_TASKMODAL))))
- 
-(defmethod frame-manager-notify-user
-    ((framem acl-frame-manager) message-string
-     &key (style :inform)
-	  (frame nil frame-p)
-	  (associated-window
-	   (if frame-p
-	       (frame-top-level-sheet frame)
-	     (graft framem)))
-	  (title "Notification") 
-	  documentation
-	  (exit-boxes '(:exit :abort))
-	  (name title)
-	  text-style
-     &allow-other-keys)
-  (declare (ignore documentation))	; FIXME
-  ;; Uses MessageBox() to put up a simple dialog box,
-  ;; unless the user has specified some fancy options, in
-  ;; which case accepting-values will have to suffice.
-  (let ((icon (select-messagebox-icon style))
-	(buttons (select-messagebox-buttons exit-boxes)))
-    (if (and icon buttons (not text-style))
-	(let* ((hwnd (sheet-mirror associated-window))
-	       (code (message-box
-		      hwnd
-		      (coerce message-string 'simple-string) 
-		      (coerce name 'simple-string)
-		      (logior win:MB_TASKMODAL icon buttons)))
-	       (symbol (select-messagebox-result code buttons exit-boxes)))
-	  ;; Notify-user is supposed to return T or NIL:
-	  (case symbol
-	    (:exit t)
-	    (:abort nil)
-	    (otherwise symbol)))
-      (let ((stream associated-window))
-	(accepting-values (stream :exit-boxes exit-boxes
-				  :scroll-bars :both
-				  :label name
-				  :own-window t)
-	  (with-text-style (stream text-style)
-	    (write-string message-string stream)))))))
+  (excl:with-native-string (m (coerce message-string 'simple-string))
+    (excl:with-native-string (n (coerce name 'simple-string))
+       (win:messagebox hwnd
+		       m
+		       n
+		       (or icon 
+			   (logior win:MB_ICONSTOP 
+				   win:MB_TASKMODAL))))))
 
-(defun do-one-menu-item (popmenu item printer tick alist submenus)
-  (let ((*print-circle* nil))
-    (flet ((print-item (item)
-	     (silica::xlat-newline-return 
-	      (with-output-to-string (stream)
-		;; The click-right menu uses PRESENT at this point to
-		;; get the menu text, using the stream-default-view, which needs to be
-		;; set to textual-menu-view.
-		(letf-globally (((stream-default-view stream) +textual-menu-view+))
-		  (funcall (or printer #'print-menu-item) item stream))))))
-      (declare (dynamic-extent #'print-item))
-      (incf tick)
-      (ecase (clim-internals::menu-item-type item)
-	(:divider
-	 (win:appendmenu popmenu win:MF_SEPARATOR tick 0))
-	(:label
-	 (win:appendmenu popmenu win:MF_DISABLED tick 
-			 (print-item item)))
-	(:item
-	 (if (clim-internals::menu-item-items item)
-	     (let ((submenu (win:createpopupmenu)))
-	       (push submenu submenus)
-	       ;; submenu
-	       (win:appendmenu popmenu win:MF_POPUP submenu
-			       (print-item item))
-	       (map nil
-		 #'(lambda (it)
-		     (multiple-value-setq (tick alist submenus)
-		       (do-one-menu-item submenu it printer
-					 tick alist submenus)))
-		 (clim-internals::menu-item-items item)))
-	   (progn
-	     (push (list tick (menu-item-value item))
-		   alist)
-	     
-	     (if (clim-internals::menu-item-active item)
-		 (win:appendmenu popmenu win:MF_ENABLED tick 
-				 (print-item item))
-	       ;;; Use win:MF_GRAYED rather than win:MF_DISABLED.
-	       ;;; The latter will also disable the command, but
-	       ;;; doesn't seem to affect the appearance.	       
-	       (win:appendmenu popmenu win:MF_GRAYED tick 
-			       (print-item item)))))))
-      (values tick alist submenus))))
+ (defmethod frame-manager-notify-user
+     ((framem acl-frame-manager) message-string
+      &key (style :inform)
+	   (frame nil frame-p)
+	   (associated-window
+	    (if frame-p
+		(frame-top-level-sheet frame)
+	      (graft framem)))
+	   (title "Notification") 
+	   documentation
+	   (exit-boxes '(:exit :abort))
+	   (name title)
+	   text-style
+      &allow-other-keys)
+   (declare (ignore documentation))	; FIXME
+   ;; Uses MessageBox() to put up a simple dialog box,
+   ;; unless the user has specified some fancy options, in
+   ;; which case accepting-values will have to suffice.
+   (let ((icon (select-messagebox-icon style))
+	 (buttons (select-messagebox-buttons exit-boxes)))
+     (if (and icon buttons (not text-style))
+	 (let* ((hwnd (sheet-mirror associated-window))
+		(code (message-box
+		       hwnd
+		       (coerce message-string 'simple-string) 
+		       (coerce name 'simple-string)
+		       (logior win:MB_TASKMODAL icon buttons)))
+		(symbol (select-messagebox-result code buttons exit-boxes)))
+	   ;; Notify-user is supposed to return T or NIL:
+	   (case symbol
+	     (:exit t)
+	     (:abort nil)
+	     (otherwise symbol)))
+       (let ((stream associated-window))
+	 (accepting-values (stream :exit-boxes exit-boxes
+				   :scroll-bars :both
+				   :label name
+				   :own-window t)
+	   (with-text-style (stream text-style)
+	     (write-string message-string stream)))))))
 
-;; Gets rid of scroll bars if possible.
-(defmethod frame-manager-menu-choose
-    ((framem acl-frame-manager) items &rest keys
-     &key printer
-	  presentation-type
-	  (associated-window (frame-top-level-sheet *application-frame*))
-	  text-style label
-	  foreground background
-	  cache
-	  (unique-id items)
-	  (id-test 'equal)
-	  (cache-value items)
-	  (cache-test #'equal)
-	  (gesture :select)
-	  row-wise
-	  n-columns
-	  n-rows
-	  x-position
-	  y-position
-	  scroll-bars)
-  ;; The basic theory of ignoring is that we ignore arguments
-  ;; that don't contribute functionality and just bring up
-  ;; the native menu without any fluff.
-  (declare (ignore text-style cache
-		   cache-test cache-value
-		   id-test unique-id label
-		   foreground background))
-  (if (or presentation-type ;; foreground background  
-	  row-wise n-columns n-rows scroll-bars)
-      (call-next-method)
-    #+simple-but-sure
-    (apply #'call-next-method framem items :scroll-bars nil keys)
-    (let ((popmenu (win:CreatePopupMenu))
-	  (submenus nil)
-	  (flags (logior win:tpm_returncmd ; return the selection
-			 win:tpm_nonotify ; don't notify clim
-			 (if (eq gesture :menu) 
-			     win:tpm_rightbutton
-			   win:tpm_leftbutton)))
-	  (rect 0)
-	  (tick 0)
-	  (alist nil)
-	  (code 0))
-      (when (zerop popmenu)
-	(check-last-error "CreatePopupMenu"))
-      (unless (and x-position y-position)
-	;; Get screen coordinates of pointer.
-	(let ((point (ct:ccallocate win:point)))
-	  (or (win:getCursorPos point)
-	      (check-last-error "GetCursorPos"))
-	  (setq x-position (ct:cref win:point point x))
-	  (setq y-position (ct:cref win:point point y))))
-      (setq x-position (truncate x-position))
-      (setq y-position (truncate y-position))
-      (map nil #'(lambda (item)
-		   (multiple-value-setq (tick alist submenus)
-		     (do-one-menu-item popmenu item printer 
-				       tick alist submenus)))
-	   items)
-      ;; Bug here, exhibited by CAD Demo Create, that menu
-      ;; is sometimes never exposed.  TrackPopupMenu returns 0.  
-      ;; But most of the time this seems to work... 5/98 JPM.
-      (setq code
-	(win:trackpopupmenu
-	 popmenu flags x-position y-position 
-	 0				; reserved, must be zero
-	 (sheet-mirror associated-window) rect))
-      (win:destroymenu popmenu)
-      (dolist (submenu submenus) (win:destroymenu submenu))
-      (cond ((zerop code)		; no item is selected
-	     nil)
-	    (t
-	     (let ((x (assoc code alist)))
-	       (values (second x) (third x) :unknown-gesture))
-	     )))))
+ (defun do-one-menu-item (popmenu item printer tick alist submenus)
+   (let ((*print-circle* nil))
+     (flet ((print-item (item)
+	      (silica::xlat-newline-return 
+	       (with-output-to-string (stream)
+		 ;; The click-right menu uses PRESENT at this point to
+		 ;; get the menu text, using the stream-default-view, which needs to be
+		 ;; set to textual-menu-view.
+		 (letf-globally (((stream-default-view stream) +textual-menu-view+))
+		   (funcall (or printer #'print-menu-item) item stream))))))
+       (declare (dynamic-extent #'print-item))
+       (incf tick)
+       (ecase (clim-internals::menu-item-type item)
+	 (:divider
+	  (win:appendmenu popmenu win:MF_SEPARATOR tick 0))
+	 (:label
+	  (excl:with-native-string (p-i (print-item item))
+	    (win:appendmenu popmenu win:MF_DISABLED tick 
+			    p-i)))
+	 (:item
+	  (if (clim-internals::menu-item-items item)
+	      (let ((submenu (win:createpopupmenu)))
+		(push submenu submenus)
+		;; submenu
+		(excl:with-native-string (p-i (print-item item))
+		  (win:appendmenu popmenu win:MF_POPUP submenu
+				  p-i))
+		(map nil
+		  #'(lambda (it)
+		      (multiple-value-setq (tick alist submenus)
+			(do-one-menu-item submenu it printer
+					  tick alist submenus)))
+		  (clim-internals::menu-item-items item)))
+	    (progn
+	      (push (list tick (menu-item-value item))
+		    alist)
 
-(defun make-filter-string (dotted-pair)
-  (let ((*print-circle* nil))
-    (format nil "~a (~a)~a~a~a"
-	    (car dotted-pair) (cdr dotted-pair) (code-char 0)
-	    (cdr dotted-pair) (code-char 0))))
+	      (excl:with-native-string (p-i (print-item item))
+		(if (clim-internals::menu-item-active item)
+		    (win:appendmenu popmenu win:MF_ENABLED tick 
+				    p-i)
+		;;; Use win:MF_GRAYED rather than win:MF_DISABLED.
+		;;; The latter will also disable the command, but
+		;;; doesn't seem to affect the appearance.	       
+		  (win:appendmenu popmenu win:MF_GRAYED tick 
+				  p-i)))))))
+       (values tick alist submenus))))
 
-(eval-when (compile load eval) 
-  ;; All pathnames returned by SELECT-FILE must fit in the scratch string,
-  ;; so make it pretty big.
-  (defconstant *scratch-string-length* 2048)
-  )
+ ;; Gets rid of scroll bars if possible.
+ (defmethod frame-manager-menu-choose
+     ((framem acl-frame-manager) items &rest keys
+      &key printer
+	   presentation-type
+	   (associated-window (frame-top-level-sheet *application-frame*))
+	   text-style label
+	   foreground background
+	   cache
+	   (unique-id items)
+	   (id-test 'equal)
+	   (cache-value items)
+	   (cache-test #'equal)
+	   (gesture :select)
+	   row-wise
+	   n-columns
+	   n-rows
+	   x-position
+	   y-position
+	   scroll-bars)
+   ;; The basic theory of ignoring is that we ignore arguments
+   ;; that don't contribute functionality and just bring up
+   ;; the native menu without any fluff.
+   (declare (ignore text-style cache
+		    cache-test cache-value
+		    id-test unique-id label
+		    foreground background))
+   (if (or presentation-type ;; foreground background  
+	   row-wise n-columns n-rows scroll-bars)
+       (call-next-method)
+     #+simple-but-sure
+     (apply #'call-next-method framem items :scroll-bars nil keys)
+     (let ((popmenu (win:CreatePopupMenu))
+	   (submenus nil)
+	   (flags (logior win:tpm_returncmd ; return the selection
+			  win:tpm_nonotify ; don't notify clim
+			  (if (eq gesture :menu) 
+			      win:tpm_rightbutton
+			    win:tpm_leftbutton)))
+	   (rect 0)
+	   (tick 0)
+	   (alist nil)
+	   (code 0))
+       (when (zerop popmenu)
+	 (check-last-error "CreatePopupMenu"))
+       (unless (and x-position y-position)
+	 ;; Get screen coordinates of pointer.
+	 (let ((point (ct:ccallocate win:point)))
+	   (or (win:getCursorPos point)
+	       (check-last-error "GetCursorPos"))
+	   (setq x-position (ct:cref win:point point x))
+	   (setq y-position (ct:cref win:point point y))))
+       (setq x-position (truncate x-position))
+       (setq y-position (truncate y-position))
+       (map nil #'(lambda (item)
+		    (multiple-value-setq (tick alist submenus)
+		      (do-one-menu-item popmenu item printer 
+					tick alist submenus)))
+	    items)
+       ;; Bug here, exhibited by CAD Demo Create, that menu
+       ;; is sometimes never exposed.  TrackPopupMenu returns 0.  
+       ;; But most of the time this seems to work... 5/98 JPM.
+       (setq code
+	 (win:trackpopupmenu
+	  popmenu flags x-position y-position 
+	  0				; reserved, must be zero
+	  (sheet-mirror associated-window) rect))
+       (win:destroymenu popmenu)
+       (dolist (submenu submenus) (win:destroymenu submenu))
+       (cond ((zerop code)		; no item is selected
+	      nil)
+	     (t
+	      (let ((x (assoc code alist)))
+		(values (second x) (third x) :unknown-gesture))
+	      )))))
 
-(defparameter *scratch-lisp-string*
-    (make-string *scratch-string-length*))
+ (defun make-filter-string (dotted-pair)
+   (let ((*print-circle* nil))
+     (format nil "~a (~a)~a~a~a"
+	     (car dotted-pair) (cdr dotted-pair) (code-char 0)
+	     (cdr dotted-pair) (code-char 0))))
 
-(defparameter *scratch-c-string*
-  (ff:allocate-fobject-c `(:array :char ,*scratch-string-length*)))
+ (eval-when (compile load eval) 
+   ;; All pathnames returned by SELECT-FILE must fit in the scratch string,
+   ;; so make it pretty big.
+   (defconstant *scratch-string-length* 2048)
+   )
 
-(defun lisp-string-to-scratch-c-string (lisp-string)
-  (let ((length (min (length lisp-string)
-		     (1- *scratch-string-length*))))
-    (dotimes (i length 
-	       ;; null term
-	       (setf (ff:fslot-value-c '(:array :char 1)
-					*scratch-c-string*
-					length) 0))
-      (setf (ff:fslot-value-c '(:array char 1) *scratch-c-string*
-			       i)
-	(char-int (aref lisp-string i))))
-    *scratch-c-string*
+ (defparameter *scratch-lisp-string*
+     (make-string *scratch-string-length*))
+
+ (defparameter *scratch-c-string*
+   (ff:allocate-fobject-c `(:array :char ,*scratch-string-length*)))
+
+ (defun lisp-string-to-scratch-c-string (lisp-string)
+   (let ((length (min (length lisp-string)
+		      (1- *scratch-string-length*))))
+     (dotimes (i length 
+		;; null term
+		(setf (ff:fslot-value-c '(:array :char 1)
+					 *scratch-c-string*
+					 length) 0))
+       (setf (ff:fslot-value-c '(:array char 1) *scratch-c-string*
+				i)
+	 (char-int (aref lisp-string i))))
+     *scratch-c-string*
+     ))
+
+ (defun scratch-c-string-to-lisp-string ()
+   (ff:char*-to-string *scratch-c-string*))
+
+ (defun pathnames-from-directory-and-filenames (filename-list)
+   ;; Takes a list consisting of a directory namestring followed
+   ;; by a set of filenames relative to that directory.
+   ;; This is the sort of list returned by the common dialog
+   ;; when multiple choices are allowed.
+   ;; Returns a list of complete pathnames.
+   (if (eq (length filename-list) 1)
+       ;; If only one choice, no separate directory is returned
+       ;; by the GetOpenFileName call.
+       filename-list
+     (let ((directory (car filename-list)))
+       ;; Windows doesn't stick a backslash on the end of the dir.
+       (unless (eql (aref directory (1- (length directory))) #\\)
+	 (setf directory (concatenate 'string directory "\\")))
+       (mapcar #'(lambda (filename)
+		   ;; cac removed call to namestring to have this function
+		   ;; return pathnames instead of strings.
+		   ;; 5-apr-94
+		   (merge-pathnames filename directory))
+	       (cdr filename-list)))))
+
+ (defun delimited-string-to-list (string delimiter-char-or-string)
+   "Returns a list of substrings of STRING, separating it at DELIMETER-CHAR-OR-STRING"
+   (do* ((stringp (stringp delimiter-char-or-string))
+	 (delimiter-length (if stringp
+			       (length delimiter-char-or-string)
+			     1))
+	 (s string (subseq s (+ index delimiter-length)))
+	 (index
+	  (if stringp
+	      (search delimiter-char-or-string s)
+	    (position delimiter-char-or-string s))
+	  (if stringp
+	      (search delimiter-char-or-string s)
+	    (position delimiter-char-or-string s)))
+	 (list
+	  (list (subseq s 0 index))
+	  (nconc list (list (subseq s 0 index)))))
+       ((null index)
+	list)))
+
+ (defun spaced-string-to-list (string) ;; <27>
+   (delimited-string-to-list string #\space))
+
+ (cl:defparameter common-dialog-errors
+  '((#xffff . cderr_dialogfailure)
+    (#x0000 . cderr_generalcodes)
+    (#x0001 . cderr_structsize)
+    (#x0002 . cderr_initialization)
+    (#x0003 . cderr_notemplate)
+    (#x0004 . cderr_nohinstance)
+    (#x0005 . cderr_loadstrfailure)
+    (#x0006 . cderr_findresfailure)
+    (#x0007 . cderr_loadresfailure)
+    (#x0008 . cderr_lockresfailure)
+    (#x0009 . cderr_memallocfailure)
+    (#x000a . cderr_memlockfailure)
+    (#x000b . cderr_nohook)
+    (#x000c . cderr_registermsgfail)
+    (#x1000 . pderr_printercodes)
+    (#x1001 . pderr_setupfailure)
+    (#x1002 . pderr_parsefailure)
+    (#x1003 . pderr_retdeffailure)
+    (#x1004 . pderr_loaddrvfailure)
+    (#x1005 . pderr_getdevmodefail)
+    (#x1006 . pderr_initfailure)
+    (#x1007 . pderr_nodevices)
+    (#x1008 . pderr_nodefaultprn)
+    (#x1009 . pderr_dndmmismatch)
+    (#x100a . pderr_createicfailure)
+    (#x100b . pderr_printernotfound)
+    (#x100c . pderr_defaultdifferent)
+    (#x2000 . cferr_choosefontcodes)
+    (#x2001 . cferr_nofonts)
+    (#x2002 . cferr_maxlessthanmin)
+    (#x3000 . fnerr_filenamecodes)
+    (#x3001 . fnerr_subclassfailure)
+    (#x3002 . fnerr_invalidfilename)
+    (#x3003 . fnerr_buffertoosmall)
+    (#x4000 . frerr_findreplacecodes)
+    (#x4001 . frerr_bufferlengthzero)
+    (#x5000 . ccerr_choosecolorcodes)
     ))
 
-(defun scratch-c-string-to-lisp-string ()
-  (ff:char*-to-string *scratch-c-string*))
+ (defun get-pathname-flags (save-p multiple-p warn-if-exists-p)
+   (logior
+    (if multiple-p win:OFN_ALLOWMULTISELECT 0)
+    (if save-p 0 win:OFN_FILEMUSTEXIST)
+    ;; This is only relevant if save-p:
+    (if warn-if-exists-p win:OFN_OVERWRITEPROMPT 0)
+    win:OFN_NOCHANGEDIR
+    win:OFN_HIDEREADONLY))
 
-(defun pathnames-from-directory-and-filenames (filename-list)
-  ;; Takes a list consisting of a directory namestring followed
-  ;; by a set of filenames relative to that directory.
-  ;; This is the sort of list returned by the common dialog
-  ;; when multiple choices are allowed.
-  ;; Returns a list of complete pathnames.
-  (if (eq (length filename-list) 1)
-      ;; If only one choice, no separate directory is returned
-      ;; by the GetOpenFileName call.
-      filename-list
-    (let ((directory (car filename-list)))
-      ;; Windows doesn't stick a backslash on the end of the dir.
-      (unless (eql (aref directory (1- (length directory))) #\\)
-	(setf directory (concatenate 'string directory "\\")))
-      (mapcar #'(lambda (filename)
-		  ;; cac removed call to namestring to have this function
-		  ;; return pathnames instead of strings.
-		  ;; 5-apr-94
-		  (merge-pathnames filename directory))
-	      (cdr filename-list)))))
+ (defun get-pathname (prompt directory stream allowed-types initial-name
+		      save-p multiple-p warn-if-exists-p)
+   (flet ((fill-c-string (string)
+	    (let ((c-string (ff:allocate-fobject-c '(:array :char 256)))
+		  (length (length string)))
+	      (assert (< length 255))
+	      (dotimes (i length)
+		(setf (ff:fslot-value-c '(:array char 1) c-string i)
+		  (char-int (aref string i))))
+	      (setf (ff:fslot-value-c '(:array :char 1) c-string length)
+		0)
+	      c-string)))
+     (let* ((open-file-struct (ct:ccallocate win:openfilename))
+	    (file-filter-string 
+	     (fill-c-string
+	      (apply #'concatenate 'string
+		     (mapcar #'make-filter-string allowed-types))))
+	    (initial-dir-string (fill-c-string (string directory)))
+	    (prompt-string (fill-c-string (string prompt))))
+       (excl:with-native-string (file-filter-string file-filter-string)
+	 (excl:with-native-string (s1 (lisp-string-to-scratch-c-string (or initial-name "")))
+	   (excl:with-native-string (initial-dir-string initial-dir-string)
+	     (excl:with-native-string (prompt-string prompt-string)
 
-(defun delimited-string-to-list (string delimiter-char-or-string)
-  "Returns a list of substrings of STRING, separating it at DELIMETER-CHAR-OR-STRING"
-  (do* ((stringp (stringp delimiter-char-or-string))
-	(delimiter-length (if stringp
-                              (length delimiter-char-or-string)
-			    1))
-	(s string (subseq s (+ index delimiter-length)))
-	(index
-	 (if stringp
-	     (search delimiter-char-or-string s)
-	   (position delimiter-char-or-string s))
-	 (if stringp
-	     (search delimiter-char-or-string s)
-	   (position delimiter-char-or-string s)))
-	(list
-	 (list (subseq s 0 index))
-	 (nconc list (list (subseq s 0 index)))))
-      ((null index)
-       list)))
-
-(defun spaced-string-to-list (string) ;; <27>
-  (delimited-string-to-list string #\space))
-
-(cl:defparameter common-dialog-errors
- '((#xffff . cderr_dialogfailure)
-   (#x0000 . cderr_generalcodes)
-   (#x0001 . cderr_structsize)
-   (#x0002 . cderr_initialization)
-   (#x0003 . cderr_notemplate)
-   (#x0004 . cderr_nohinstance)
-   (#x0005 . cderr_loadstrfailure)
-   (#x0006 . cderr_findresfailure)
-   (#x0007 . cderr_loadresfailure)
-   (#x0008 . cderr_lockresfailure)
-   (#x0009 . cderr_memallocfailure)
-   (#x000a . cderr_memlockfailure)
-   (#x000b . cderr_nohook)
-   (#x000c . cderr_registermsgfail)
-   (#x1000 . pderr_printercodes)
-   (#x1001 . pderr_setupfailure)
-   (#x1002 . pderr_parsefailure)
-   (#x1003 . pderr_retdeffailure)
-   (#x1004 . pderr_loaddrvfailure)
-   (#x1005 . pderr_getdevmodefail)
-   (#x1006 . pderr_initfailure)
-   (#x1007 . pderr_nodevices)
-   (#x1008 . pderr_nodefaultprn)
-   (#x1009 . pderr_dndmmismatch)
-   (#x100a . pderr_createicfailure)
-   (#x100b . pderr_printernotfound)
-   (#x100c . pderr_defaultdifferent)
-   (#x2000 . cferr_choosefontcodes)
-   (#x2001 . cferr_nofonts)
-   (#x2002 . cferr_maxlessthanmin)
-   (#x3000 . fnerr_filenamecodes)
-   (#x3001 . fnerr_subclassfailure)
-   (#x3002 . fnerr_invalidfilename)
-   (#x3003 . fnerr_buffertoosmall)
-   (#x4000 . frerr_findreplacecodes)
-   (#x4001 . frerr_bufferlengthzero)
-   (#x5000 . ccerr_choosecolorcodes)
-   ))
-
-(defun get-pathname-flags (save-p multiple-p warn-if-exists-p)
-  (logior
-   (if multiple-p win:OFN_ALLOWMULTISELECT 0)
-   (if save-p 0 win:OFN_FILEMUSTEXIST)
-   ;; This is only relevant if save-p:
-   (if warn-if-exists-p win:OFN_OVERWRITEPROMPT 0)
-   win:OFN_NOCHANGEDIR
-   win:OFN_HIDEREADONLY))
-
-(defun get-pathname (prompt directory stream allowed-types initial-name
-		     save-p multiple-p warn-if-exists-p)
-  (flet ((fill-c-string (string)
-	   (let ((c-string (ff:allocate-fobject-c '(:array :char 256)))
-		 (length (length string)))
-	     (assert (< length 255))
-	     (dotimes (i length)
-	       (setf (ff:fslot-value-c '(:array char 1) c-string i)
-		 (char-int (aref string i))))
-	     (setf (ff:fslot-value-c '(:array :char 1) c-string length)
-	       0)
-	     c-string)))
-    (let* ((open-file-struct (ct:ccallocate win:openfilename))
-	   (file-filter-string 
-	    (fill-c-string
-	     (apply #'concatenate 'string
-		    (mapcar #'make-filter-string allowed-types))))
-	   (initial-dir-string (fill-c-string (string directory)))
-	   (prompt-string (fill-c-string (string prompt))))
-      (ct:csets win:openfilename open-file-struct
-		lstructsize (ct:sizeof win:openfilename)
-		hwndowner (or (and stream (sheet-mirror stream))
-			      0)
-		hinstance 0		; no custom dialog
-		lpstrfilter file-filter-string
-		lpstrcustomfilter 0 
-		nmaxcustfilter 0 ;; length of custom filter string
-		nfilterindex 0		; zero means use custom-filter if supplied
-					; otherwise the first filter in the list
-		lpstrfile (lisp-string-to-scratch-c-string (or initial-name ""))
-		nmaxfile *scratch-string-length*
-		lpstrfiletitle 0 
-		nmaxfiletitle 0
-		lpstrinitialdir initial-dir-string
-		lpstrtitle prompt-string
-		flags (get-pathname-flags save-p multiple-p warn-if-exists-p)
-		nfileoffset 0
-		nfileextension 0 
-		lpstrdefext 0
-		lcustdata 0
-		lpfnhook 0
-		lptemplatename 0
-		)
-      (let* ((result 
+	       (ct:csets win:openfilename open-file-struct
+			 lstructsize (ct:sizeof win:openfilename)
+			 hwndowner (or (and stream (sheet-mirror stream))
+				       0)
+			 hinstance 0	; no custom dialog
+			 lpstrfilter file-filter-string
+			 lpstrcustomfilter 0 
+			 nmaxcustfilter 0 ;; length of custom filter string
+			 nfilterindex 0	; zero means use custom-filter if supplied
+					 ; otherwise the first filter in the list
+			 lpstrfile s1
+			 nmaxfile *scratch-string-length*
+			 lpstrfiletitle 0 
+			 nmaxfiletitle 0
+			 lpstrinitialdir initial-dir-string
+			 lpstrtitle prompt-string
+			 flags (get-pathname-flags save-p multiple-p warn-if-exists-p)
+			 nfileoffset 0
+			 nfileextension 0 
+			 lpstrdefext 0
+			 lcustdata 0
+			 lpfnhook 0
+			 lptemplatename 0
+			 )))))
+             (let* ((result 
 	      (if save-p
 		  (win:GetSaveFileName open-file-struct)
 		(win:GetOpenFileName open-file-struct))))

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-port.lisp,v 1.5.8.11 1999/03/31 18:49:29 layer Exp $
+;; $Id: acl-port.lisp,v 1.5.8.12 1999/04/08 21:25:42 cox Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -465,7 +465,8 @@
 	 (array (make-array (1+ last-character))))
     (loop for i from first-character to last-character do
 	  (setf (char string 0) (code-char i))
-	  (cond ((win:getTextExtentPoint dc string 1 tepsize)
+	  (cond ((excl:with-native-string (string string)
+		   (win:getTextExtentPoint dc string 1 tepsize))
 		 (setf (aref array i) (ct:cref win:size tepsize cx)))
 		(t
 		 ;; Why does this clause ever run?  getlasterror=10035.
@@ -497,21 +498,22 @@
 		 win-font) 
   (unless win-font
     (setq win-font
-      (win:createFont height		; logical height
-		      width		; logical average width
-		      escapement	; angle of escapement (tenths of degrees)
-		      orientation	; normally the same as escapement
-		      weight		; font weight (FW_NORMAL=400, FW_BOLD=700)
-		      (if italic 1 0) 
-		      (if underline 1 0)
-		      (if strikeout 1 0) 
-		      charset		; if you want chinese or greek
-		      output-precision
-		      clip-precision
-		      quality
-		      pitch-and-family 
-		      (or face "")
-		      )))
+      (excl:with-native-string (vface (or face ""))
+	(win:createFont height		; logical height
+			width		; logical average width
+			escapement	; angle of escapement (tenths of degrees)
+			orientation	; normally the same as escapement
+			weight		; font weight (FW_NORMAL=400, FW_BOLD=700)
+			(if italic 1 0) 
+			(if underline 1 0)
+			(if strikeout 1 0) 
+			charset		; if you want chinese or greek
+			output-precision
+			clip-precision
+			quality
+			pitch-and-family 
+			vface
+			))))
   (when (zerop win-font)
     (check-last-error "CreateFont"))
   (make-device-font win-font))

@@ -11,6 +11,29 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.2.1.51
+  
+Thu Apr 08 11:41:57 1999  Charles A. Cox  <cox@FOX>
+
+  Overall change:  Add calls to string-convertors for ffi calls to winapi.
+  This allows clim2 to run under windows iacl, but the japanese-input-stream,
+  which is unix specific, is disabled under windows.  Thus, other than being
+  able to run in iacl under Japanese Windows, there is no new or changed
+  functionality with this commit.
+
+  Furthermore, presumably due to font deficiencies, Japanese characters do not
+  display.  Finally, presumably due to "non-standard" windows input, clim
+  windows appear unable to accept Japanese character input via the Windows
+  Japanese Input Method Editor.
+	
+  NOTE: For this commit, on Windows, it is not possible to compile
+  clim2 with iacl.  One can load, however, already built fasl files
+  (eg, climnt.fasl, etc.) into iacl.
+
+	* [many files]: use with-native-string, string-to-native, etc. for
+	foreign calls to winapi.
+
+*******************************************************************************
 2.2.1.50
 
 1999-03-31  Jeff Morrill  <jmorrill@pointnclick.com> 

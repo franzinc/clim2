@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-medium.lisp,v 1.6.8.13 1999/03/31 18:49:26 layer Exp $
+;; $Id: acl-medium.lisp,v 1.6.8.14 1999/04/08 21:25:40 cox Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -742,8 +742,10 @@ draw icons and mouse cursors on the screen.
 	    (set-dc-for-text dc medium ink (acl-font-index font))
 	    (multiple-value-bind (cstr len)
 		(silica::xlat-newline-return substring)
-	      (or (win:TextOut dc x y cstr len)
-		  (check-last-error "TextOut" :action :warn))))
+	      (or
+	       (excl:with-native-string (cstr cstr)
+		 (win:TextOut dc x y cstr len))
+	       (check-last-error "TextOut" :action :warn))))
 	  (selectobject dc old))))))
 
 (defmethod medium-draw-inverted-string* ((medium acl-medium)
@@ -774,8 +776,10 @@ draw icons and mouse cursors on the screen.
 	    (set-dc-for-text cdc medium +white+ (acl-font-index font))
 	    (multiple-value-bind (cstr len)
 		(silica::xlat-newline-return substring)
-	      (or (win:TextOut cdc 0 0 cstr len)
-		  (check-last-error "TextOut" :action :warn))
+	      (or
+	       (excl:with-native-string (cstr cstr)
+		 (win:TextOut cdc 0 0 cstr len))
+	       (check-last-error "TextOut" :action :warn))
 	      )
 	    ;; Copy bitmap from memory dc to screen dc
 	    (win:BitBlt dc x y width height
@@ -866,7 +870,11 @@ draw icons and mouse cursors on the screen.
 	    (set-dc-for-text dc medium ink (acl-font-index font))
 	    (let ((cstr (ct:callocate (:char *) :size 2)))
 	      (ct:cset (:char 2) cstr 0 (char-int char))
-	      (or (win:textOut dc x y cstr 1)
+	      (or #+removed (win:textOut dc x y cstr 1)
+		  (excl:with-native-string (cstr (make-string
+					     1
+					     :initial-element char))
+		    (win:TextOut dc x y cstr 1))
 		  (check-last-error "TextOut" :action :warn)))))
 	(selectobject dc old)))))
 
