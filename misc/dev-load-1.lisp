@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: dev-load-1.lisp,v 1.25 93/04/02 13:36:31 cer Exp $
+;; $fiHeader: dev-load-1.lisp,v 1.26 93/04/23 09:18:01 cer Exp $
 
 ;;;; This should not matter
 ;;;; (setq *ignore-package-name-case* t)
@@ -72,17 +72,21 @@
 
      (ignore-errors (tenuring (require :composer)))
 
+     (dolist (file '("test/test-driver"
+		     "test/test-clim"
+		     "test/test-demos"))
+       (load file))
+
      (when (probe-file "climtoys/sysdcl.lisp")
        (load "climtoys/sysdcl.lisp")
        (tenuring 
 	(clim-defsys::compile-system 'clim-toys)
 	(clim-defsys::load-system 'clim-toys)))
 
-     (dolist (file '("test/test-driver"
-		     "test/test-clim"
-		     "test/test-demos"))
-       (load file))
-
+     (clim-defsys::fake-load-system (cons sys '(postscript-clim 
+				 clim-toys
+				 clim-demo)) :recurse t)
+				 
      (ignore-errors
       (load (case sys
 	      (motif-clim "misc/clos-preloadxm.fasl")

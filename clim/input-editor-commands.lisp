@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-editor-commands.lisp,v 1.24 92/12/03 10:26:54 cer Exp $
+;; $fiHeader: input-editor-commands.lisp,v 1.25 93/04/23 09:17:32 cer Exp $
 
 (in-package :clim-internals)
 
@@ -369,6 +369,7 @@ This may confused the input editor" gestures))
 			     (stream)
   "Refresh the interactor window"
   (window-refresh stream)
+  ;;-- This is being done twice now
   (redraw-input-buffer stream))
 
 ;;--- It would be nice to have save/restore scroll position, and scroll searching

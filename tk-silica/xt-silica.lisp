@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.79 93/04/16 09:51:52 cer Exp $
+;; $fiHeader: xt-silica.lisp,v 1.80 93/04/23 09:18:53 cer Exp $
 
 (in-package :xm-silica)
 
@@ -1422,16 +1422,19 @@ the geometry of the children. Instead the parent has control. "))
   (let* ((sheet (pointer-sheet pointer))
 	 (m (and (port sheet) (sheet-mirror sheet))))
     (when m
-      (x11:xwarppointer
-       (port-display port)
-       0				; src
-       (tk::widget-window m)		; dest
-       0				; src-x
-       0				; src-y
-       0				; src-width
-       0				; src-height
-       (fix-coordinate x)
-       (fix-coordinate y)))))
+      (let ((display (port-display port)))
+	(x11:xwarppointer
+	 display
+	 0			; src
+	 (if (graftp sheet)
+	     (tk::display-root-window display)
+	   (tk::widget-window m)) ; dest
+	 0			; src-x
+	 0			; src-y
+	 0			; src-width
+	 0			; src-height
+	 (fix-coordinate x)
+	 (fix-coordinate y))))))
 
 
 (defmethod raise-mirror ((port xt-port) sheet)
@@ -1634,3 +1637,21 @@ the geometry of the children. Instead the parent has control. "))
   (when (port-process port)
     (clim-sys:destroy-process (port-process port)))
   (port-terminated port (make-condition 'error)))
+
+(defmethod clim-internals::port-query-pointer ((port xt-port) sheet)
+  (multiple-value-bind (same-p root child root-x root-y
+			native-x native-y state)
+      (tk::query-pointer (tk::widget-window (sheet-mirror sheet)))
+    (declare (ignore state child root same-p))
+    (multiple-value-bind (x y)
+	(untransform-position (sheet-device-transformation sheet) native-x native-y)
+      (values x y native-x native-y root-x root-y))))
+
+
+(defmethod clim-internals::port-query-pointer ((port xt-port) (sheet graft))
+  (multiple-value-bind (same-p root child root-x root-y
+			native-x native-y state)
+      (tk::query-pointer (tk::display-root-window (port-display port)))
+    (declare (ignore state child root same-p))
+    (values native-x native-y native-x native-y root-x root-y)))
+

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: test-clim.lisp,v 1.3 93/04/02 13:37:00 cer Exp $
+;; $fiHeader: test-clim.lisp,v 1.4 93/04/23 09:18:12 cer Exp $
 
 
 (in-package :clim-user)
@@ -381,11 +381,16 @@
     ()
   (mp::with-timeout (3) (select-file *application-frame*))
   (dolist (style '(:inform :error :question :warning))
-    (mp::with-timeout (3)
+    (mp:with-timeout (3)
       (notify-user *application-frame* 
 		   "Just say no to sega games"
 		   :title (format nil "The style is ~A" style)
-		   :style style))))
+		   :style style)))
+  (mp:with-timeout (3)
+    (select-file *application-frame*
+		 :pattern "Makefile*"
+		 :documentation "Find Makefiles"
+		 :text-style '(:fix :roman :huge))))
 
 (define-frame-test-command com-frame-test-bye
     ()

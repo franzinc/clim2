@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.71 93/04/07 09:07:22 cer Exp $
+;; $fiHeader: xm-gadgets.lisp,v 1.72 93/04/16 09:45:59 cer Exp $
 
 (in-package :xm-silica)
 
@@ -306,7 +306,7 @@
     (multiple-value-bind
         (smin smax) (gadget-range* sheet)
       (let ((mmin 0) 
-            (mmax 100)
+            (mmax 1000)
             (decimal-points 0)
             (decimal-places (slider-decimal-places sheet)))
         (cond ((and (zerop decimal-places)
@@ -375,7 +375,7 @@
 (defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
                                                      (parent t)
                                                      (sheet motif-scroll-bar))
-  (values 'tk::xm-scroll-bar nil))
+  (values 'tk::xm-scroll-bar '(:minimum 0 :maximum 1000 )))
 
 
 (defmethod (setf scroll-bar-size) (nv (sb motif-scroll-bar))
@@ -389,15 +389,22 @@
 ;;;--- We should use the motif functions for getting and changing the
 ;;;--- values
 
-(defmethod change-scroll-bar-values ((sb motif-scroll-bar) &key slider-size value)
+(defmethod change-scroll-bar-values ((sb motif-scroll-bar) &key
+							   slider-size
+							   value line-increment)
   (let ((mirror (sheet-direct-mirror sb)))
     (when mirror
       (multiple-value-bind
           (mmin mmax) (tk::get-values mirror :minimum :maximum)
         (multiple-value-bind
-            (real-value real-size) (compute-new-scroll-bar-values sb mmin mmax value slider-size)
+            (real-value real-size line-increment) (compute-new-scroll-bar-values sb
+								  mmin
+								  mmax
+								  value slider-size
+								  line-increment)
           (tk::set-values
            mirror
+	   :increment line-increment
 	   :page-increment real-size
            :slider-size real-size
            :value real-value))))))
@@ -420,10 +427,21 @@
        (gadget-client sheet)
        (gadget-id sheet)
        (compute-symmetric-value
-        mmin mmax value smin smax)
+        mmin (- mmax size) value smin smax)
        (compute-symmetric-value
         mmin mmax size smin smax)))))
 
+(defmethod gadget-value ((gadget motif-scroll-bar))
+  (let ((mirror (sheet-direct-mirror gadget)))
+    (if mirror 
+        (multiple-value-bind
+            (smin smax) (gadget-range* gadget)
+          (multiple-value-bind
+              (value mmin mmax size)
+	      (tk::get-values mirror :value :minimum :maximum  :slider-size)
+            (compute-symmetric-value
+             mmin (- mmax size) value smin smax)))
+      (call-next-method))))
 
 (defmethod compose-space ((m motif-scroll-bar) &key width height)
   (declare (ignore width height))
@@ -1115,7 +1133,7 @@
   (let ((pdm (make-instance 'xt::xm-pulldown-menu :managed nil :parent parent)))
     (update-option-menu-buttons sheet pdm)
     (values 'xt::xm-option-menu
-	    `(:sub-menu-id ,pdm))))
+	    `(:sub-menu-id ,pdm :margin-height 0))))
 
 (defun update-option-menu-buttons (sheet pdm)
   (with-accessors ((items set-gadget-items)
@@ -1228,31 +1246,15 @@
         (get-message-box-child dialog :ok :cancel :help)
       (flet ((set-it (widget r)
                (declare (ignore widget))
-               (setq result (list r)))
-             (display-help (widget ignore)
-               (declare (ignore widget ignore))
-               (frame-manager-notify-user 
-                framem
-                documentation
-                :associated-window associated-window)))
+               (setq result (list r))))
         (tk::add-callback dialog :ok-callback #'set-it t)
         (tk::add-callback dialog :cancel-callback #'set-it nil)
 
-        (flet ((set-button-state (name button)
-                 (unless (dolist (x exit-boxes nil)
-                           (cond ((eq x name) (return t))
-                                 ((atom x))
-                                 ((eq (car x) name)
-                                  (tk::set-values button :label-string (second x))
-                                  (return t))))
-                   (tk::unmanage-child button))))
-          (set-button-state :exit ok-button)
-          (set-button-state :abort cancel-button)
-          (set-button-state :help help-button)
-          
-          (if documentation
-              (tk::add-callback help-button :activate-callback #'display-help)
-            (xt::set-sensitive help-button nil)))
+        
+	(process-exit-boxes framem 
+			   associated-window
+			   documentation exit-boxes ok-button cancel-button
+			   help-button)
         
         (unwind-protect
             (progn
@@ -1264,6 +1266,33 @@
           (tk::destroy-widget dialog))
         (car result)))))
 
+(defun process-exit-boxes (framem 
+			   associated-window
+			   documentation exit-boxes ok-button cancel-button
+			   help-button)
+  
+  (flet ((display-help (widget ignore)
+	   (declare (ignore widget ignore))
+	   (frame-manager-notify-user 
+	    framem
+	    documentation
+	    :associated-window associated-window))
+	 (set-button-state (name button)
+	   (unless (dolist (x exit-boxes nil)
+		     (cond ((eq x name) (return t))
+			   ((atom x))
+			   ((eq (car x) name)
+			    (tk::set-values button :label-string (second x))
+			    (return t))))
+	     (tk::unmanage-child button))))
+    (set-button-state :exit ok-button)
+    (set-button-state :abort cancel-button)
+    (set-button-state :help help-button)
+          
+    (if documentation
+	(tk::add-callback help-button :activate-callback #'display-help)
+      (xt::set-sensitive help-button nil))))
+  
 (defun get-message-box-child (widget &rest children)
   (values-list
    (mapcar #'(lambda (child)
@@ -1271,6 +1300,17 @@
                 widget
                 'tk::widget
                 (tk::xm-message-box-get-child 
+                 widget
+                 (encode-box-child child))))
+           children)))
+
+(defun get-selection-box-child (widget &rest children)
+  (values-list
+   (mapcar #'(lambda (child)
+               (tk::convert-resource-in
+                widget
+                'tk::widget
+                (tk::xm-selection-box-get-child 
                  widget
                  (encode-box-child child))))
            children)))
@@ -1313,62 +1353,81 @@
 ;;; File Selection
 
 (defmethod frame-manager-select-file 
-           ((framem motif-frame-manager) &rest options 
-            &key (frame nil frame-p)
-                 (associated-window
-                   (if frame-p
-                       (frame-top-level-sheet frame)
-                       (graft framem)))
-                 (title "Select File")
-                 documentation
-                 file-search-proc
-                 directory-list-label
-                 file-list-label
-                 (exit-boxes '(:exit :abort :help))
-                 (name title))
+    ((framem motif-frame-manager) &key (frame nil frame-p)
+				  (associated-window
+				   (if frame-p
+				       (frame-top-level-sheet frame)
+				     (graft framem)))
+				  (title "Select File")
+				  documentation
+				  file-search-proc
+				  directory-list-label
+				  file-list-label
+				  (exit-boxes '(:exit :abort :help))
+				  (name title)
+				  directory
+				  pattern
+				  text-style)
                                   
-  (let ((dialog (make-instance 
-                 'tk::xm-file-selection-dialog
-                 :dialog-style :primary-application-modal
-                 :managed nil
-                 :parent (sheet-mirror associated-window)
-                 :name name
-                 :dialog-title title))
+  (let ((dialog (apply #'make-instance 
+		       'tk::xm-file-selection-dialog
+		       :dialog-style :primary-application-modal
+		       :managed nil
+		       :parent (sheet-mirror associated-window)
+		       :name name
+		       :dialog-title title
+		       (and text-style
+			    (let ((fonts (list (text-style-mapping (port framem) text-style))))
+			      `(:label-font-list ,fonts :button-font-list ,fonts :text-font-list ,fonts)))))
         (result nil))
-    
-    (when directory-list-label
-      (tk::set-values dialog :dir-list-label-string
-                      directory-list-label))
-    
-    (when file-list-label
-      (tk::set-values dialog :file-list-label-string file-list-label))
-    
-    (when file-search-proc
-      (tk::set-values dialog 
-                      :file-search-proc
-                      (make-file-search-proc-function dialog
-                                                      file-search-proc))
-      (tk::xm_file_selection_do_search 
-       dialog (xt::xm_string_create_l_to_r 
-               (tk::get-values dialog :dir-mask)
-               "")))
-      
-    (flet ((set-it (widget r)
-             (declare (ignore widget))
-             (setq result (list r))))
-      (tk::add-callback dialog :ok-callback #'set-it t)
-      (tk::add-callback dialog :cancel-callback #'set-it nil)
 
-      (unwind-protect
-          (progn
-            (tk::manage-child dialog)
-            (wait-for-callback-invocation
-             (port associated-window)
-             #'(lambda () (or result (not (tk::is-managed-p dialog))))
-             "Waiting for dialog")
-            (if (car result)
-                (tk::get-values dialog :dir-spec :directory)))
-        (tk::destroy-widget dialog)))))
+    (multiple-value-bind
+        (ok-button cancel-button help-button)
+        (get-selection-box-child dialog :ok :cancel :help)
+      (when directory
+	(tk::set-values dialog :directory directory))
+    
+      (when pattern
+	(tk::set-values dialog :pattern pattern))
+    
+      (when directory-list-label
+	(tk::set-values dialog :dir-list-label-string
+			directory-list-label))
+    
+      (when file-list-label
+	(tk::set-values dialog :file-list-label-string file-list-label))
+    
+      (when file-search-proc
+	(tk::set-values dialog 
+			:file-search-proc
+			(make-file-search-proc-function dialog
+							file-search-proc))
+	(tk::xm_file_selection_do_search 
+	 dialog (xt::xm_string_create_l_to_r 
+		 (tk::get-values dialog :dir-mask)
+		 "")))
+    
+      (process-exit-boxes framem 
+			  associated-window
+			  documentation exit-boxes ok-button cancel-button
+			  help-button)
+    
+      (flet ((set-it (widget r)
+	       (declare (ignore widget))
+	       (setq result (list r))))
+	(tk::add-callback dialog :ok-callback #'set-it t)
+	(tk::add-callback dialog :cancel-callback #'set-it nil)
+
+	(unwind-protect
+	    (progn
+	      (tk::manage-child dialog)
+	      (wait-for-callback-invocation
+	       (port associated-window)
+	       #'(lambda () (or result (not (tk::is-managed-p dialog))))
+	       "Waiting for dialog")
+	      (if (car result)
+		  (tk::get-values dialog :dir-spec :directory)))
+	  (tk::destroy-widget dialog))))))
 
 (ff::defun-c-callable file-search-proc-callback ((widget :unsigned-long)
                                                  (cb :unsigned-long))

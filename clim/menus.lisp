@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: menus.lisp,v 1.42 93/03/31 10:38:45 cer Exp $
+;; $fiHeader: menus.lisp,v 1.43 93/04/16 09:44:55 cer Exp $
 
 (in-package :clim-internals)
 
@@ -67,6 +67,7 @@
 
 (defmethod initialize-menu ((port basic-port) menu &key label)
   ;;--- Should this flush the menu's event queue?
+  (setf (stream-default-text-margin menu) nil)
   (when label
     (let ((text-style (if (listp label) 
 			  (getf (rest label) :text-style *default-menu-label-text-style*)

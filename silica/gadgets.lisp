@@ -1,6 +1,6 @@
 ;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadgets.lisp,v 1.49 93/04/08 13:18:00 colin Exp $
+;; $fiHeader: gadgets.lisp,v 1.50 93/04/16 09:45:24 cer Exp $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
@@ -397,22 +397,36 @@
   (call-next-method))
 
 
-(defmacro with-radio-box ((&rest options &key (type :one-of) &allow-other-keys) &body body)
-  (with-keywords-removed (options options '(:type))
-    (let ((current-selection (gensym))
-	  (choices (gensym)))
-      `(let ((,current-selection nil))
-	 (macrolet ((radio-box-current-selection (form)
-		      `(setq ,',current-selection ,form)))
-	   (let ((,choices (list ,@body)))
-	     ;; this wants to be realize-pane as soon as I add the translations to
-	     ;; the various frame managers.
-	     (make-pane ',(ecase type
-			    (:one-of 'radio-box)
-			    (:some-of 'check-box))
-			:choices ,choices
-			:current-selection ,current-selection
-			,@options)))))))
+;; This macro is just an example of one possible syntax.  The obvious "core"
+;; syntax is (MAKE-PANE 'RADIO-BOX :CHOICES (LIST ...) :SELECTION ...)
+(defmacro with-radio-box ((&rest options &key (type ':one-of) &allow-other-keys)
+			  &body body)
+  (setq options (remove-keywords options '(:type)))
+  (let ((current-selection (gensym))
+	(choices (gensym)))
+    (ecase type
+      (:one-of
+	`(let ((,current-selection nil))
+	   (macrolet ((radio-box-current-selection (form)
+			`(setq ,',current-selection ,form)))
+	     (let ((,choices (list ,@body)))
+	       (make-pane 'radio-box
+		 :choices ,choices
+		 :selection ,current-selection
+		 ,@options)))))
+      (:some-of
+	`(let ((,current-selection nil))
+	   (macrolet ((radio-box-current-selection (form)
+			`(setq ,',current-selection 
+			       (append ,',current-selection ,form)))
+		      (check-box-current-selection (form)
+			`(setq ,',current-selection 
+			       (append ,',current-selection ,form))))
+	     (let ((,choices (list ,@body)))
+	       (make-pane 'check-box
+		 :choices ,choices
+		 :selection ,current-selection
+		 ,@options))))))))
 
 
 ;;; Text edit

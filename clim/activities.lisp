@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: activities.lisp,v 1.10 92/12/16 16:45:59 cer Exp $
+;; $fiHeader: activities.lisp,v 1.11 93/03/19 09:43:12 cer Exp $
 
 (in-package :clim-internals)
 
@@ -257,17 +257,18 @@
   (let ((activity (frame-activity frame)))
     (dolist (frame (frame-manager-frames activity))
       (map-over-sheets #'(lambda (sheet)
-			   (when (typep sheet 'accept-values-pane)
-			     (redisplay-frame-pane frame sheet :force-p force-p)))
-		       (frame-top-level-sheet frame)))
+			     (when (typep sheet 'accept-values-pane)
+			       (redisplay-frame-pane frame sheet :force-p force-p)))
+			 (frame-top-level-sheet frame)))
     (dolist (frame (frame-manager-frames activity))
       (map-over-sheets #'(lambda (sheet)
-			   (when (and (typep sheet 'clim-stream-pane)
-				      (not (typep sheet 'accept-values-pane)))
-			     (redisplay-frame-pane frame sheet :force-p force-p)))
-		       (frame-top-level-sheet frame))))
+			     (when (and (typep sheet 'clim-stream-pane)
+					(not (typep sheet 'accept-values-pane)))
+			       (redisplay-frame-pane frame sheet :force-p force-p)))
+			 (frame-top-level-sheet frame))))
   ;; Once we've redisplayed everything, the layout is done changing
   (setq *frame-layout-changing-p* nil))
+
 
 (defmethod disable-frame :after ((frame activity-frame))
   (let ((activity (frame-activity frame)))

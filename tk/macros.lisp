@@ -20,26 +20,35 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: macros.lisp,v 1.11 92/07/01 15:44:32 cer Exp $
+;; $fiHeader: macros.lisp,v 1.12 92/11/20 08:46:11 cer Exp $
 
 (in-package :tk)
 
 (defvar *temp-with-ref-par* nil)
+(defvar *temp-with-signed-ref-par* nil)
 
 (defmacro with-ref-par (bindings &body body)
   (if (null bindings)
       `(progn ,@body)
     (destructuring-bind
-	((var value) &rest more-bindings) bindings
+	((var value &optional signed) &rest more-bindings) bindings
       (let ((val (gensym)))
 	`(let ((,val ,value)
-	       (,var (or (pop *temp-with-ref-par*)
-			 (make-array 1 :element-type '(unsigned-byte 32)))))
-	   (declare (type (simple-array (unsigned-byte 32) (1)) ,var))
+	       (,var ,(if signed
+			  `(or (pop *temp-with-signed-ref-par*)
+			       (make-array 1 :element-type '(signed-byte 32)))
+			`(or (pop *temp-with-ref-par*)
+			  (make-array 1 :element-type '(unsigned-byte 32))))))
+	   ,(if signed
+		`(declare (type (simple-array (signed-byte 32) (1)) ,var))
+	      `(declare (type (simple-array (unsigned-byte 32) (1)) ,var)))
 	   (setf (aref ,var 0) ,val)
 	   (multiple-value-prog1
 	       (with-ref-par ,more-bindings ,@body)
-	     (push ,var *temp-with-ref-par*)))))))
+	     ,(if signed
+		  `(push ,var *temp-with-signed-ref-par*)
+		`(push ,var *temp-with-ref-par*))))))))
+
 
 
 (defmacro object-display (object)
@@ -47,3 +56,4 @@
      (excl::slot-value-using-class-name 'display-object ,object
 					'display)))
   
+

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-scroll.lisp,v 1.42 93/03/18 14:37:54 colin Exp $
+;; $fiHeader: db-scroll.lisp,v 1.43 93/03/19 09:44:39 cer Exp $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright(c) 1991, 1992 International Lisp Associates.
@@ -11,8 +11,8 @@
 
 ;; The abstract scroller pane class
 ;;--- Need to be able to specify horizontal and vertical separately
-(defclass scroller-pane (client-overridability-mixin
-			 sheet-with-resources-mixin
+(defclass scroller-pane (sheet-with-resources-mixin
+			 client-overridability-mixin
 			 pane)
     ((scroll-bars :initarg :scroll-bars
 		  :reader scroller-pane-scroll-bar-policy)
@@ -23,7 +23,13 @@
      (horizontal-scroll-bar :initform nil
 			    :accessor scroller-pane-horizontal-scroll-bar)
      (scrolling-supplied-by-gadget :initform nil
-				   :accessor scroller-pane-gadget-supplies-scrolling-p))
+				   :accessor
+				   scroller-pane-gadget-supplies-scrolling-p)
+     (vertical-line-scroll-amount :initform nil
+				  :initarg
+				  :vertical-line-scroll-amount)
+     (horizontal-line-scroll-amount :initform nil 
+				    :initarg :horizontal-line-scroll-amount))
   (:default-initargs :scroll-bars :both))
 
 
@@ -89,10 +95,14 @@
 		 (horizontal-scroll-bar (scroller-pane-horizontal-scroll-bar scroller)))
 	    (when vertical-scroll-bar
 	      (update-scroll-bar vertical-scroll-bar
-				 top bottom vtop vbottom))
+				 top bottom 
+				 vtop vbottom
+				 (line-scroll-amount scroller :vertical nil)))
 	    (when horizontal-scroll-bar
 	      (update-scroll-bar horizontal-scroll-bar
-				 left right vleft vright))))))))
+				 left right 
+				 vleft vright
+				 (line-scroll-amount scroller :horizontal  nil)))))))))
 
 (defmethod note-sheet-grafted :before ((sheet scroll-bar))
   (setf (scroll-bar-current-size sheet) nil))
@@ -100,8 +110,13 @@
 ;;--- In the case where the viewport is bigger than the window this
 ;;--- code gets things wrong.  Check out the thinkadot demo.  It's
 ;;--- because (- (--) (- vmin)) is negative.
-(defun update-scroll-bar (scroll-bar min max vmin vmax)
+(defun update-scroll-bar (scroll-bar min max vmin vmax line-scroll)
   (declare (optimize (safety 0) (speed 3)))
+  ;;-- Is this really the right thing to do?
+  ;;-- If in an interactor some draws at -ve coordinates but the
+  ;;window is large enough no one changes the viewport but we cannot scroll-either
+  (maxf max vmax)
+  (minf min vmin)
   (let ((current-size (scroll-bar-current-size scroll-bar))
 	(current-value (scroll-bar-current-value scroll-bar)))
     ;; Kinda bogus benchmark optimization -- if the scroll-bar was full size
@@ -124,6 +139,7 @@
 			      1.0
 			      (min 1.0 (the single-float
 					 (/ viewport-range contents-range))))))))
+	     ;;-- This does not scale by the range
 	     (pos (the single-float
 		    (min 1.0s0 (max 0.0s0
 				    (if (<= contents-range viewport-range)
@@ -133,7 +149,16 @@
 					   ;;--- seem to have a different contract
 					   ;;--- from Motif/OpenLook.  Fix them!
 					   #+Allegro (- contents-range viewport-range)
-					   #-Allegro contents-range)))))))
+					   #-Allegro contents-range))))))
+	     (line-scroll #+ignore
+			  (* range (/ line-scroll viewport-range))
+			  (if (zerop contents-range)
+			      0 ;-- Who knows
+			    (* range (/ line-scroll contents-range)))
+			  #+ignore
+			  (if (< contents-range viewport-range)
+			      0 ;-- Who knows
+			    (* range (/ line-scroll (- contents-range viewport-range))))))
 	(declare (type single-float pos size))
 	(unless (and current-size
 		     current-value
@@ -143,7 +168,8 @@
 	  (setf (scroll-bar-current-size scroll-bar) size)
 	  (change-scroll-bar-values scroll-bar 
 				    :slider-size size
-				    :value pos))))))
+				    :value pos
+				    :line-increment line-scroll))))))
 
 (defmethod scroll-bar-value-changed-callback
 	   (sheet (client scroller-pane) id value size)
@@ -161,7 +187,7 @@
 		     (if (= size (gadget-range sheet))
 			 0
 			 (/ (- value (gadget-min-value sheet))
-			    (- (gadget-range sheet) size)))))))
+			    (gadget-range sheet)))))))
 	(:horizontal
 	  (scroll-extent
 	    contents
@@ -171,8 +197,10 @@
 		     (if (= size (gadget-range sheet))
 			 0
 			 (/ (- value (gadget-min-value sheet))
-			    (- (gadget-range sheet) size)))))
-	    (bounding-rectangle-min-y region)))))))
+			    (gadget-range sheet)))))
+	    (bounding-rectangle-min-y region))))
+      ;;-- Yuck
+      (clim-internals::maybe-redraw-input-editor-stream contents (pane-viewport-region contents)))))
 
 (defmethod update-region ((sheet basic-sheet) nleft ntop nright nbottom &key no-repaint)
   (declare (ignore nleft ntop nright nbottom no-repaint))
@@ -245,3 +273,31 @@
 	 (fraction1 (if (zerop distance1) 0 (/ (- value1 min1) distance1))))
     (let ((x (+ min2 (* (- max2 min2) fraction1))))
       (if (integerp x) x (float x)))))
+
+(defmethod line-scroll-amount ((pane scroller-pane) orientation direction)
+  ;; --- These are the stubs for user specified line scroll amounts
+  ;; req by graphic panes. I haven't enabled them because I want to
+  ;; check with SWM for the MAKE-PANE protocol for these. Davo 6/30/92
+  ;; Is this right?? - cer
+  (or (with-slots (vertical-line-scroll-amount
+		   horizontal-line-scroll-amount) pane
+	(ecase orientation
+	  (:horizontal horizontal-line-scroll-amount)
+	  (:vertical vertical-line-scroll-amount)))
+      (scrolled-pane-line-scroll-amount
+       (pane-contents pane)
+       orientation
+       direction)))
+
+
+(defmethod scrolled-pane-line-scroll-amount ((pane sheet)
+					     orientation
+					     direction)
+  (declare (ignore direction))
+  (let ((r (pane-viewport-region pane)))
+    (/ (ecase orientation
+	 (:vertical (bounding-rectangle-height r))
+	 (:horizontal (bounding-rectangle-width r)))
+       10)))
+  
+

@@ -2,18 +2,57 @@
 
 (defvar *catch-errors-in-tests* t)
 
-(defclass invocation ()
+(defclass basic-invocation ()
 	  ((process :initform nil :accessor invocation-process)
-	   (frame :initform nil :accessor invocation-frame)
 	   (condition :initform nil :accessor invocation-condition)
 	   (state :initform nil :accessor invocation-state)
 	   (avv-frame :initform nil :accessor invocation-avv-frame)
 	   ))
 
+
+(defclass frame-invocation (basic-invocation)
+  ((frame :initform nil :accessor invocation-frame)))
+
+
+(defmethod get-invocation-pane ((inv frame-invocation) name)
+  (get-frame-pane (invocation-frame inv) name))
+
+(defclass activity-invocation (basic-invocation)
+  ((activity :initform nil :accessor invocation-activity)))
+
+(defmethod get-invocation-pane ((inv activity-invocation) (name symbol))
+  (get-frame-pane (invocation-frame inv) name))
+
+(defmethod invocation-frame ((inv activity-invocation))
+  (clim-internals::activity-active-frame (invocation-activity inv)))
+
+(defmethod get-invocation-pane ((inv activity-invocation) (name cons))
+  (destructuring-bind (frame-type pane-name) name
+    (dolist (frame (frame-manager-frames (invocation-activity inv))
+	      (error "Cannot find frame type ~S in activity"))
+      (when (typep frame frame-type)
+	(return (get-frame-pane frame pane-name))))))
+
 (defun invocation-active-p (invocation)
   (not (eq (invocation-state invocation) :dead)))
 
-(defmethod initialize-instance :after ((inv invocation) &key class initargs)
+(defmethod initialize-instance :after ((inv frame-invocation) &key class initargs)
+  (let ((frame (apply #'make-application-frame class initargs)))
+    (setf (invocation-frame inv) frame)
+    (initialize-invocation inv frame)))
+
+(defmethod initialize-instance :after ((inv activity-invocation) &key class initargs)
+  (let ((activity (apply #'make-instance class initargs)))
+    (setf (invocation-activity inv) activity)
+    (initialize-invocation inv activity)))
+
+(defmethod destroy-invocation ((inv frame-invocation))
+  (destroy-frame (invocation-frame inv)))
+
+(defmethod destroy-invocation ((inv activity-invocation))
+  (destroy-activity (invocation-activity inv)))
+
+(defun initialize-invocation (inv frame)
   (labels ((do-it (frame)
 	     (unwind-protect
 		 (loop
@@ -32,14 +71,13 @@
 		   (error (condition)
 		     (handler-invocation-debugger-hook inv condition)))
 	       (do-it frame))))
-    (let* ((frame (apply #'make-application-frame class initargs))
-	   (process (mp:process-run-function
-		     (format nil "~A Test process for" class)
+    (let* ((process (mp:process-run-function
+		     (format nil "~A Test process for" frame)
 		     #'run-frame-top-level-almost 
 		     frame)))
-      (setf (invocation-process inv) process
-	    (invocation-frame inv) frame)
+      (setf (invocation-process inv) process)
       (wait-for-clim-input-state inv))))
+
 
 (defun handler-invocation-debugger-hook (invocation condition)
   (format excl:*initial-terminal-io* "The following error occurred: ~A~%" condition))
@@ -68,7 +106,7 @@
 (defvar *death-timeout* 30)
 
 (defun terminate-invocation (invocation exit-command)
-  (with-slots (frame process) invocation
+  (with-slots (process) invocation
     (write-line "Terminating frame")
     (execute-one-command invocation exit-command)
     (unless (mp::process-stack-group process) (error "Frame terminated abnormally"))
@@ -94,15 +132,15 @@
 (defvar *command-sequence-table* (make-hash-table))
 
 (defun execute-one-command (invocation command)
-  (with-slots (frame process avv-frame) invocation
-    (let ((sheet (frame-top-level-sheet (or avv-frame frame))))
+  (with-slots (process avv-frame) invocation
+    (let ((sheet (frame-top-level-sheet (or avv-frame (invocation-frame invocation)))))
       (unless (characterp command)
 	(format t "Executing command ~S~%" command))
       (etypecase command
 	(character
-	 (let ((x (clim-internals::port-canonicalize-gesture-spec (port frame) command)))
+	 (let ((x (clim-internals::port-canonicalize-gesture-spec (port sheet) command)))
 	   (when x
-	     (distribute-event (port frame)
+	     (distribute-event (port sheet)
 			       (make-instance 'key-press-event
 					      :sheet sheet
 					      :character command
@@ -112,7 +150,7 @@
 	 (dotimes (i (length command))
 	   (execute-one-command invocation (char command i))))
 	(keyword
-	 (distribute-event (port frame)
+	 (distribute-event (port sheet)
 			   (multiple-value-bind (keysym modifiers)
 			       (clim-internals::gesture-name-keysym-and-modifiers command)
 			     (make-instance 'key-press-event
@@ -146,14 +184,16 @@
 	   (t
 	    (if (and (consp command) (consp (car command)))
 		(destructuring-bind (command &key timeout) command
-		  (execute-command-in-frame (or avv-frame frame) command)
+		  (execute-command-in-frame (or avv-frame (invocation-frame invocation)) command)
 		  (when timeout
 		    (wait-for-clim-input-state invocation timeout)))
-	      (execute-command-in-frame (or avv-frame frame) command)))))))))
+	      (execute-command-in-frame (or avv-frame (invocation-frame invocation)) command)))))))))
 
-(defun exercise-frame (test-name class initargs commands exit-command &optional (error *catch-errors-in-tests*))
+(defun exercise-frame (test-name class initargs commands exit-command 
+		       &key (error *catch-errors-in-tests*)
+			    (invocation-class 'frame-invocation))
   (flet ((doit ()
-	   (let ((invocation (make-instance 'invocation :class class :initargs initargs)))
+	   (let ((invocation (make-instance invocation-class :class class :initargs initargs)))
 	     (unwind-protect
 		 (if commands
 		     (execute-commands-in-invocation invocation commands)
@@ -162,7 +202,7 @@
 	       (mp::process-kill (invocation-process invocation))
 	       (unless (wait-for-death (invocation-process invocation))
 		 (warn "Process would not die when killed"))
-	       (destroy-frame (invocation-frame invocation))))))
+	       (destroy-invocation invocation)))))
     (if error
 	(handler-case (doit)
 	  (error (condition)
@@ -171,6 +211,8 @@
 	    (declare (ignore ignore))
 	    (note-test-succeeded test-name)))
       (doit))))
+
+
 
 (defvar *test-successes* nil)
 (defvar *test-failures* nil)
@@ -270,13 +312,16 @@
 			      presentation-type 
 			      &key gesture 
 				   (release t)
-				   (modifier 0) (button +pointer-left-button+))
-  (with-slots (frame process) invocation
+				   (modifier 0)
+				   (button +pointer-left-button+)
+				   (x-offset 0)
+				   (y-offset 0))
+  (with-slots (process) invocation
     (when gesture
       (multiple-value-setq (button modifier)
 	(clim-internals::gesture-name-button-and-modifiers gesture))
       (assert button () "Not a valid gesture"))
-    (let ((pane (get-frame-pane frame pane-name))
+    (let ((pane (get-invocation-pane invocation pane-name))
 	  (presentations nil)
 	  (expanded-presentation-type
 	   (expand-presentation-type-abbreviation presentation-type)))
@@ -284,7 +329,8 @@
 	       (when (presentation-subtypep 
 		      (presentation-type record)
 		      expanded-presentation-type)
-		 (stream-set-pointer-position pane left top)
+		 (stream-set-pointer-position pane (+ left x-offset)
+					      (+ top y-offset))
 		 ;; At this point it would be nice to specify that a
 		 ;; modifier key was pressed.
 		 (wait-for-clim-input-state invocation)
@@ -292,7 +338,13 @@
 			    pane) record)
 		   (push (list record left top right bottom)
 			 presentations)))))
-	(walk-over-presentations #'doit (stream-output-history pane)))
+	;;-- There is a race condition where moving the pointer
+	;;-- generates an exit event which unhighlights the presentation
+	;;-- so we loose
+	(dotimes (i 2)
+	  (walk-over-presentations #'doit (stream-output-history pane))
+	  (when presentations (return nil))
+	  (sleep 1)))
       #+ignore
       (format excl:*initial-terminal-io* "~d presentations~%" (length presentations))
       (assert presentations ()
@@ -308,7 +360,8 @@
 	      (format excl:*initial-terminal-io*
 		      "selecting ~d of ~d = ~s @ ~d,~d~%"
 		      i len record left top)
-	      (stream-set-pointer-position pane left top)
+	      (stream-set-pointer-position pane (+ left x-offset)
+					      (+ top y-offset))
 	      (wait-for-clim-input-state invocation)
 	      (assert (clim-internals::stream-highlighted-presentation pane))
 	      ;;-- this is bypassing the distribution mechanism
@@ -318,7 +371,9 @@
 	      ;;-- In order to get the modifiers to work I think we need
 	      ;;-- to send Keypress/release events
 	      (multiple-value-bind
-		  (x y) (untransform-position (sheet-device-transformation pane) left top)
+		  (x y) (untransform-position
+			 (sheet-device-transformation pane) (+ left
+							       x-offset) (+ top y-offset))
 		(let ((ma (sheet-mirrored-ancestor pane))
 		      (port (port pane)))
 		  (distribute-event port
@@ -360,12 +415,12 @@
 (defun button-event-on-window (invocation pane-name left top 
 			       &key gesture (modifier 0) (button +pointer-left-button+)
 				    up down)
-  (with-slots (frame process) invocation
+  (with-slots (process) invocation
     (when gesture
       (multiple-value-setq (button modifier)
 	(clim-internals::gesture-name-button-and-modifiers gesture))
       (assert button () "Not a valid gesture"))
-    (let ((pane (get-frame-pane frame pane-name)))
+    (let ((pane (get-invocation-pane invocation pane-name)))
       (stream-set-pointer-position pane left top)
       (wait-for-clim-input-state invocation)
       (multiple-value-bind
@@ -401,11 +456,15 @@
 
 (defun simulate-accept (invocation pane-name presentation-type &key
 								  stream 
-								  default provide-default &allow-other-keys)
+								  default provide-default 
+								  x-offset y-offset &allow-other-keys)
   ;; We a choice.
   ;; 1. Send the characters or
   ;; 2. Click on a presentation
-  (assert (click-on-presentation invocation pane-name presentation-type)
+  (assert (click-on-presentation invocation pane-name
+				 presentation-type 
+				 :x-offset x-offset
+				 :y-offset y-offset)
       () "Clicking failed"))
 
 (defun send-it (invocation x &key (delim t))
@@ -413,19 +472,22 @@
   (when delim
     (execute-one-command invocation " ")))
 
-(defun test-a-command (invocation pane-name command &key colon-prefix)
-  (with-slots (process frame) invocation
-    (let ((stream (get-frame-pane frame pane-name)))
+(defun test-a-command (invocation pane-name command &key colon-prefix 
+							 (x-offset 0)
+							 (y-offset 0))
+  (print (cons x-offset y-offset))
+  (with-slots (process) invocation
+    (let ((stream (get-invocation-pane invocation pane-name)))
       (flet ((accept-function (stream presentation-type &rest args)
-	       (apply #'simulate-accept invocation pane-name stream
-		      presentation-type args))
+	       (apply #'simulate-accept invocation pane-name 
+		      presentation-type :stream stream :x-offset x-offset :y-offset y-offset args))
 	     (send-it-function (x)
 	       (send-it invocation x)))
 	(when colon-prefix
 	  (send-it invocation ":" :delim nil))
 	(fill-in-partial-command-1
 	 (if (atom command) command (car command))
-	 (frame-command-table frame)
+	 (frame-command-table (invocation-frame invocation))
 	 stream
 	 command
 	 #'accept-function
@@ -445,7 +507,15 @@
   `(progn
      (pushnew ',name *frame-tests*)
      (defun ,name ()
-       (exercise-frame ',name ',class ',initargs ',commands ',exit-command))))
+       (exercise-frame ',name ',class ',initargs ',commands
+		       ',exit-command))))
+
+(defmacro define-activity-test (name (class &rest initargs) commands exit-command)
+  `(progn
+     (pushnew ',name *frame-tests*)
+     (defun ,name ()
+       (exercise-frame ',name ',class ',initargs ',commands ',exit-command
+		       :invocation-class 'activity-invocation))))
 
 (defmacro define-command-sequence (name &rest commands)
   `(defun ,name (invocation)
@@ -483,7 +553,7 @@
 		    '(:width 600 :height 400 :left 0 :top 0)
 		    `(((run-benchmarks-to-dummy-file :file ,file) :timeout 1800))
 		    `(exit-clim-tests)
-		    errorp)
+		    :error errorp)
     (unless filename 
       (when (probe-file file)
 	(delete-file file)))))
@@ -527,7 +597,7 @@
 	     (parse-normal-arg (stream arg-type &rest options)
 	       (declare (dynamic-extent options))
 	       (with-delimiter-gestures (*command-argument-delimiters*)
-		 (apply accept-function arg-type :stream stream options)))
+		 (apply accept-function stream arg-type options)))
 	     (separate-args (stream args-to-go)
 	       (declare (ignore stream args-to-go))
 	       #+ignore
@@ -545,13 +615,13 @@
 ;;; Testing avv
 
 (defun get-avv-frame (invocation)
-  (with-slots (process frame) invocation
+  (with-slots (process) invocation
     (let ((avv-frame nil))
       (loop
 	(setf avv-frame nil)
 	(mp::process-interrupt process #'(lambda () (setq avv-frame (list *application-frame*))))
 	(mp:process-wait "Waiting for frame" #'(lambda () avv-frame))
-	(unless (eq (car avv-frame) frame)
+	(when (typep  (car avv-frame) 'clim-internals::accept-values)
 	  (return-from get-avv-frame (car avv-frame)))
 	(sleep 1)))))
 
@@ -565,10 +635,11 @@
 	   (slot-value (slot-value avv-stream 'clim-internals::avv-record) 'clim-internals::query-table)))
 
 (defun change-query-value (invocation prompt new-value &optional pane-name)
-  (with-slots (process frame avv-frame) invocation
+  (with-slots (process avv-frame) invocation
     (let ((query (find-avv-query (if pane-name
-				     (car (gethash (get-frame-pane frame pane-name) 
-						   (clim-internals::frame-pane-to-avv-stream-table frame)))
+				     (car (gethash (get-invocation-pane invocation pane-name)
+						   (clim-internals::frame-pane-to-avv-stream-table 
+						    (invocation-frame invocation))))
 				   (slot-value avv-frame 'stream))
 				 prompt)))
       (assert query () "Could not find the query")

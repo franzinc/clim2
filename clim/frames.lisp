@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: frames.lisp,v 1.64 93/04/08 13:17:34 colin Exp $
+;; $fiHeader: frames.lisp,v 1.65 93/04/23 09:17:23 cer Exp $
 
 (in-package :clim-internals)
 
@@ -1219,7 +1219,8 @@
 ;;--- DEFMETHOD with a CALL-NEXT-METHOD.  See to incorporate this patch.
 (eval-when (#-Allegro compile load eval)
 (define-condition synchronous-command-event ()
-  ((command :initarg :command :reader synchronous-command-event-command))
+  ((command :initarg :command :reader synchronous-command-event-command)
+   (echo :initarg :echo :reader synchronous-command-event-echo-p))
   (:report (lambda (condition stream)
 	     (format stream "Command event condition signalled for ~S"
 	       (synchronous-command-event-command condition)))))
@@ -1228,14 +1229,26 @@
 (defvar *reading-frame-command* nil)
 
 (defmethod read-frame-command :around ((frame standard-application-frame) &key)
-  (let* ((command (queue-pop (frame-command-queue frame))))
-    (or command 
+  (flet ((maybe-echo-command (command)
+	   (let ((ptype `(command :command-table ,(frame-command-table frame))))
+	     (when (eq *command-parser* #'command-line-command-parser)
+	       (present command ptype :stream *standard-input* :allow-sensitive-inferiors nil))
+	     (when (frame-maintain-presentation-histories frame)
+	       (push-history-element (presentation-type-history ptype)
+				     (make-presentation-history-element :object command :type ptype))))))
+    (let* ((command-and-options (queue-pop (frame-command-queue frame))))
+      (if command-and-options
+	  (destructuring-bind (command &key echo) command-and-options
+	    (when echo (maybe-echo-command command))
+	    command)
 	(handler-bind ((synchronous-command-event
-			 #'(lambda (c)
-			     (return-from read-frame-command
-			       (synchronous-command-event-command c)))))
+			#'(lambda (c)
+			    (let ((command (synchronous-command-event-command c)))
+			      (when (synchronous-command-event-echo-p c)
+				(maybe-echo-command command))
+			      (return-from read-frame-command command)))))
 	  (let ((*reading-frame-command* t))
-	    (call-next-method))))))
+	    (call-next-method)))))))
 	
 ;;--- Actually this should be named COMMAND-EVENT
 (defclass presentation-event (event)
@@ -1243,6 +1256,7 @@
      (sheet :initarg :sheet :reader event-sheet)
      (frame :initarg :frame :reader event-frame)
      (queuep :initarg :queuep :initform nil)
+     (echo :initarg :echo :initform t :reader presentation-event-echo-p)
      (presentation-type :initarg :presentation-type :reader event-presentation-type))
   (:default-initargs :presentation-type 'command))
 
@@ -1271,13 +1285,15 @@
 			      (eq (frame-activity frame) *activity*)
 			      (setq activity *activity*))))
 	    (signal 'synchronous-command-event
+		    :echo (presentation-event-echo-p event)
 		    :command command))
 	  ;; Perhaps if this results directly from a user action then either
 	  ;; we should do it right away, ie. lose the input buffer or beep if
 	  ;; it has to be deferred,
 	  (if (slot-value event 'queuep)
 	      (queue-frame-command (if activity (activity-active-frame activity) frame)
-				   (presentation-event-value event))
+				   (presentation-event-value event)
+				   (presentation-event-echo-p event))
 	      (beep sheet))))))
 
 (defun command-callback (function &rest arguments)
@@ -1292,8 +1308,8 @@
 		    :value (list* function sheet arguments)
 		    :presentation-type `(command :command-table ,(frame-command-table frame))))))
 		  
-(defun queue-frame-command (frame command)
-  (queue-push (frame-command-queue frame) command))
+(defun queue-frame-command (frame command &optional (echo t))
+  (queue-push (frame-command-queue frame) (list command :echo echo)))
 
 (defmethod execute-command-in-frame 
 	   ((frame standard-application-frame) command &rest initargs)
@@ -1312,9 +1328,10 @@
   (flet ((queue-command-event (timer)
 	   (declare (ignore timer))
 	   (execute-command-in-frame 
-	     frame command
-	     :queuep t
-	     :presentation-type `(command :command-table ,command-table))))
+	    frame command
+	    :echo  nil
+	    :queuep t
+	    :presentation-type `(command :command-table ,command-table))))
     (let ((timer (make-timer
 		   :function #'queue-command-event
 		   :delay delay :interval interval)))

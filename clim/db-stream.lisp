@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-stream.lisp,v 1.48 93/03/25 15:39:31 colin Exp $
+;; $fiHeader: db-stream.lisp,v 1.49 93/04/23 09:17:20 cer Exp $
 
 (in-package :clim-internals)
 
@@ -22,10 +22,32 @@
 	   space-requirement-cache-mixin
 	   permanent-medium-sheet-output-mixin
 	   basic-pane)
-    ()
+    ((input-editor-stream :initform nil :accessor stream-input-editor-stream))
   (:default-initargs 
     :medium t 
     :transformation +identity-transformation+))
+
+(defmethod stream-input-editor-stream ((stream sheet)) nil)
+(defmethod (setf stream-input-editor-stream) (value (stream sheet))
+  value)
+
+(defmethod stream-input-editor-stream ((stream standard-encapsulating-stream)) 
+  (stream-input-editor-stream (encapsulating-stream-stream stream)))
+
+(defmethod (setf stream-input-editor-stream) (value (stream standard-encapsulating-stream)) 
+  (setf (stream-input-editor-stream (encapsulating-stream-stream stream)) value))
+
+(defun maybe-redraw-input-editor-stream (stream region)
+  (let ((input-editor-stream (stream-input-editor-stream stream)))
+    (when input-editor-stream
+      (multiple-value-bind (x-pos y-pos)
+	(input-buffer-input-position->cursor-position input-editor-stream 0)
+	(when (region-contains-position-p (or region +everywhere+) x-pos y-pos)
+	  (with-end-of-page-action (input-editor-stream :allow)
+	    (redraw-input-buffer input-editor-stream)))))))
+
+(defmethod handle-repaint :after ((sheet clim-stream-sheet) region)
+  (maybe-redraw-input-editor-stream sheet region))
 
 ;;--- Do we still need this?
 (defmethod pane-stream ((pane clim-stream-sheet))
@@ -49,7 +71,8 @@
 					   (bounding-rectangle-height viewport)))
     (note-sheet-region-changed pane))
   (setf (stream-default-text-margin pane)
-	(bounding-rectangle-width (sheet-region viewport))))
+    (bounding-rectangle-width (sheet-region viewport))))
+
 
 (defmethod update-region ((sheet clim-stream-sheet) nleft ntop nright nbottom &key no-repaint)
   (declare (ignore no-repaint))
@@ -173,7 +196,9 @@
 				     ;;--- ignore these arguments?  I think not...
 				     :max-width width
 				     :max-height height)))))))
-		   (bounding-rectangle-size record))
+		   (with-bounding-rectangle* (left top right bottom) record
+		     (values (- right (min 0 left))
+			     (- bottom (min 0 top)))))
 	       (when (zerop width) (setq width 100))
 	       (when (zerop height) (setq height 100))
 	       (do-with-space-req-components progn

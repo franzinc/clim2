@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: tracking-pointer.lisp,v 1.15 92/12/03 10:28:03 cer Exp $
+;; $fiHeader: tracking-pointer.lisp,v 1.16 93/03/19 09:43:50 cer Exp $
 
 (in-package :clim-internals)
 
@@ -153,7 +153,8 @@
 	      (when (or motion-function presentation-motion-function highlight)
 		(when multiple-window
 		  (setq current-window (or (pointer-sheet pointer) (graft pointer))))
-		(multiple-value-bind (x y) (pointer-position pointer)
+		(multiple-value-bind (x y) (sheet-pointer-position
+					    current-window pointer)
 		  (when moved-p
 		    (setq moved-p nil)
 		    (setq last-x x last-y y

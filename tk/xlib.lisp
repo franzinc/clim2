@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xlib.lisp,v 1.42 93/04/02 13:37:10 cer Exp $
+;; $fiHeader: xlib.lisp,v 1.43 93/04/07 09:07:17 cer Exp $
 
 (in-package :tk)
 
@@ -493,10 +493,10 @@
   (with-ref-par 
       ((root 0)
        (child 0)
-       (root-x 0)
-       (root-y 0)
-       (x 0)
-       (y 0)
+       (root-x 0 t)
+       (root-y 0 t)
+       (x 0 t)
+       (y 0 t)
        (mask 0))
     (let ((display (object-display window)))
       (if (x11:xquerypointer

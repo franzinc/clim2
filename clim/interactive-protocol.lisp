@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: interactive-protocol.lisp,v 1.23 92/12/16 16:46:40 cer Exp $
+;; $fiHeader: interactive-protocol.lisp,v 1.24 93/04/07 09:06:47 cer Exp $
 
 (in-package :clim-internals)
 
@@ -847,14 +847,14 @@
 	      (with-bounding-rectangle* (left top right bottom) record
 		(multiple-value-bind (xoff yoff)
 		    (convert-from-relative-to-absolute-coordinates
-		      istream (output-record-parent record))
+		     istream (output-record-parent record))
 		  (draw-rectangle-internal
-		    istream xoff yoff
-		    left top right (+ bottom (stream-line-height istream))
-		    +background-ink+ nil)))
+		   istream xoff yoff
+		   left top right (+ bottom (stream-line-height istream))
+		   +background-ink+ nil)))
 	      (replay record istream))
-	    (with-output-recording-options (istream :record original-stream-recording-p)
-	      (funcall continuation istream)))
+	  (with-output-recording-options (istream :record original-stream-recording-p)
+	    (funcall continuation istream)))
       (fresh-line istream)
       (terpri istream)
       (initialize-position istream)
@@ -900,40 +900,42 @@
 		(funcall continuation stream)
 	      (t (beep stream)))))
 	(t
-	 (letf-using-resource (stream input-editing-stream class stream)
-	   (setf (original-stream-recording-p stream) (stream-recording-p stream))
-	   (unwind-protect
-	       (with-output-recording-options (stream :record nil)
-		 (initialize-position stream)
-		 (cond ((stringp initial-contents)
-			(replace-input stream initial-contents))
-		       ((consp initial-contents)
-			(presentation-replace-input
-			  stream (first initial-contents) (second initial-contents)
-			  +textual-view+)))
-		 (with-stack-list (context 'input-editor :stream stream)
-		   (loop
-		     (catch 'rescan
-		       (reset-scan-pointer stream)
-		       (handler-bind 
-			   ((parse-error
-			      #'(lambda (error)
-				  (display-input-editor-error stream error))))
-			 (return
-			   (let #+Genera ((sys:rubout-handler :read)) #-Genera ()
-			     (with-input-context (context) ()
-				  (funcall continuation stream)
-				(t (beep stream))))))))))
-	     ;; Need to put the input buffer into the history, if it would
-	     ;; have gone in anyway.
-	     ;; What about making presentations out of the stuff in the input buffer?
-	     ;; The only guy that has *that* level of information is ACCEPT.
-	     ;; Don't bother to redraw if the buffer is empty.
-	     (unless (zerop (fill-pointer (input-editor-buffer stream)))
-	       (with-output-recording-options (stream :draw nil)
-		 (if input-sensitizer
-		     (funcall input-sensitizer #'redraw-input-buffer stream)
-		     (redraw-input-buffer stream)))))))))
+	 (let ((original-stream stream))
+	   (letf-using-resource (stream input-editing-stream class stream)
+	     (setf (original-stream-recording-p stream) (stream-recording-p stream))
+	     (unwind-protect
+		 (letf-globally (((stream-input-editor-stream original-stream) stream))
+		   (with-output-recording-options (stream :record nil)
+		     (initialize-position stream)
+		     (cond ((stringp initial-contents)
+			    (replace-input stream initial-contents))
+			   ((consp initial-contents)
+			    (presentation-replace-input
+			     stream (first initial-contents) (second initial-contents)
+			     +textual-view+)))
+		     (with-stack-list (context 'input-editor :stream stream)
+		       (loop
+			 (catch 'rescan
+			   (reset-scan-pointer stream)
+			   (handler-bind 
+			       ((parse-error
+				 #'(lambda (error)
+				     (display-input-editor-error stream error))))
+			     (return
+			       (let #+Genera ((sys:rubout-handler :read)) #-Genera ()
+				    (with-input-context (context) ()
+							(funcall continuation stream)
+							(t (beep stream)))))))))))
+	       ;; Need to put the input buffer into the history, if it would
+	       ;; have gone in anyway.
+	       ;; What about making presentations out of the stuff in the input buffer?
+	       ;; The only guy that has *that* level of information is ACCEPT.
+	       ;; Don't bother to redraw if the buffer is empty.
+	       (unless (zerop (fill-pointer (input-editor-buffer stream)))
+		 (with-output-recording-options (stream :draw nil)
+		   (if input-sensitizer
+		       (funcall input-sensitizer #'redraw-input-buffer stream)
+		     (redraw-input-buffer stream))))))))))
 
 (defmethod stream-supports-input-editing ((stream fundamental-stream)) t)
 

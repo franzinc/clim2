@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: text-recording.lisp,v 1.15 92/11/06 19:00:44 cer Exp $
+;; $fiHeader: text-recording.lisp,v 1.16 92/12/03 10:28:00 cer Exp $
 
 (in-package :clim-internals)
 
@@ -334,9 +334,11 @@
       (when match
 	;; The old extent is a copy of MATCH's bounding rectangle
 	(setf (output-record-old-bounding-rectangle text) (bounding-rectangle match))
+
 	(when (and (bounding-rectangle-size-equal match text)
 		   (eq wrapped-p (slot-value match 'wrapped-p))
-		   (eq (class-of text) (class-of match)))
+		   (eq (class-of text) (class-of match))
+		   (eq (displayed-output-record-ink text) (displayed-output-record-ink match)))
 	  (setf (output-record-contents-ok text) t)
 	  ;; make sure that old bounding-rect is the same relative position from
 	  ;; old-start-position as the bounding-rect is from start-position
@@ -374,7 +376,8 @@
 		   (eq current-text-style
 		       (slot-value match 'current-text-style))
 		   (equal text-style-changes
-			  (slot-value match 'text-style-changes)))
+			  (slot-value match 'text-style-changes))
+		   (eq (displayed-output-record-ink text) (displayed-output-record-ink match)))
 	  (setf (output-record-contents-ok text) t)
 	  ;; make sure that old bounding-rect is the same relative position from
 	  ;; old-start-position as the bounding-rect is from start-position

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-gadgets.lisp,v 1.31 93/03/31 10:40:27 cer Exp $
+;; $fiHeader: xt-gadgets.lisp,v 1.32 93/04/23 09:18:50 cer Exp $
 
 (in-package :xm-silica)
 
@@ -141,6 +141,15 @@
 (defclass xt-top-level-sheet (top-level-sheet) 
 	  ((accelerator-gestures :initform nil :reader top-level-sheet-accelerator-gestures)))
 
+;;-- Is this safe?
+
+(defmethod sheet-transformation ((sheet xm-silica::xt-top-level-sheet))
+  (let (m)
+    (if (setq m (sheet-direct-mirror sheet))
+	(multiple-value-bind (x y) (tk::get-values (tk::widget-parent m) :x :y)
+	  (make-translation-transformation  x y))
+      +identity-transformation+)))
+
 (defmethod top-level-sheet-accelerator-gestures ((sheet top-level-sheet)) nil)
 
 (defmethod sheet-disown-child :after ((sheet xt-top-level-sheet) (child basic-sheet))
@@ -154,7 +163,8 @@
        w)))
 
 
-(defun compute-new-scroll-bar-values (scroll-bar mmin mmax value slider-size)
+(defun compute-new-scroll-bar-values (scroll-bar mmin mmax value
+				      slider-size line-increment)
   (multiple-value-bind
       (smin smax) (gadget-range* scroll-bar)
     (let ((value
@@ -166,9 +176,14 @@
 		(fix-coordinate
 		 (compute-symmetric-value
 		  smin smax slider-size mmin mmax)))))
-    (values 
-     (min value (- mmax size))
-     size))))
+      (values 
+       (min value (- mmax size))
+       size
+       (min (- mmax mmin)
+	    (max 1
+		 (fix-coordinate
+		  (compute-symmetric-value
+		   smin smax line-increment mmin mmax))))))))
 
 (defun wait-for-callback-invocation (port predicate &optional (whostate "Waiting for callback"))
   (if (eq mp:*current-process* (port-process port))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: event.lisp,v 1.33 93/01/21 14:59:00 cer Exp $
+;; $fiHeader: event.lisp,v 1.34 93/03/31 10:39:34 cer Exp $
 
 (in-package :silica)
 
@@ -211,6 +211,7 @@
 		      sheet
 		      (allocate-event 'pointer-enter-event
 			:sheet sheet
+			:native-x x :native-y y
 			:x x :y y
 			:kind ,kind
 			:modifier-state modifiers
@@ -220,7 +221,8 @@
 		    (dispatch-event
 		      sheet
 		      (allocate-event 'pointer-exit-event
-			:sheet sheet
+		        :sheet sheet
+		        :native-x x :native-y y
 			:x x :y y
 			:kind ,kind
 			:modifier-state modifiers
@@ -347,7 +349,8 @@
 		    (dispatch-event
 		      sheet
 		      (allocate-event 'pointer-enter-event
-			:sheet sheet
+		        :sheet sheet
+			:native-x x :native-y y
 			:x x :y y
 			:kind ,kind
 			:modifier-state modifiers
@@ -358,6 +361,7 @@
 		      sheet
 		      (allocate-event 'pointer-exit-event
 			:sheet sheet
+			:native-x x :native-y y
 			:x x :y y
 			:kind ,kind
 			:modifier-state modifiers
@@ -526,18 +530,6 @@
     (when (and sheet (port sheet))
       (multiple-value-bind (tx ty)
 	  (untransform-position (sheet-device-transformation sheet) x y)
-	;; Update the pointer object
-	;;--- It might make a lot more sense for methods on
-	;;--- dispatch-event to update the pointer
-	;;--- This would enable exit events to do the right thing
-	;;--- Hence if we exit then we set the sheet to NIL??
-	(setf (pointer-sheet pointer) sheet
-	      (pointer-x-position pointer) tx
-	      (pointer-y-position pointer) ty
-	      (pointer-native-x-position pointer) x
-	      (pointer-native-y-position pointer) y)
-	(setf (pointer-cursor pointer)
-	  (or (sheet-pointer-cursor sheet) :default))
 	(typecase event
 	  (pointer-button-event
 	   (dispatch-event
@@ -561,7 +553,42 @@
 	  ;; Pointer exit and enter events are handled by GENERATE-CROSSING-EVENTS
 	  ))))
   (deallocate-event event))
-	    
+
+(defmethod dispatch-event :before ((sheet t) (event pointer-motion-event))
+  (update-pointer event))
+
+(defmethod dispatch-event :before ((sheet t) (event pointer-button-event))
+  (update-pointer event))
+
+(defmethod dispatch-event :before ((sheet t) (event pointer-enter-event))
+  ;;-- We should just wait for mouse movements
+  #+ignore (update-pointer event))
+
+(defmethod dispatch-event :before ((sheet t) (event pointer-exit-event))
+  ;;-- This should mark the pointer state as invalid
+  (with-slots (pointer) event
+    (setf (clim-internals::pointer-valid-p pointer) nil)))
+
+;; pointer-exit-event
+;; These events dont have the correct native-x,y coordinates
+;; but perhaps all we need to do is for the pointer-exit-event to mark
+;; things as invalid.
+
+(defun update-pointer (event)
+  (with-slots (x y native-x native-y pointer sheet) event
+    ;; Update the pointer object
+    ;;--- It might make a lot more sense for methods on
+    ;;--- dispatch-event to update the pointer
+    ;;--- This would enable exit events to do the right thing
+    ;;--- Hence if we exit then we set the sheet to NIL??
+    (setf (clim-internals::pointer-valid-p pointer) t
+	  (pointer-sheet pointer) sheet
+	  (pointer-x-position pointer) x
+	  (pointer-y-position pointer) y
+	  (pointer-native-x-position pointer) native-x
+	  (pointer-native-y-position pointer) native-y)
+    (setf (pointer-cursor pointer)
+      (or (sheet-pointer-cursor sheet) :default))))
 
 ;;; Local event processing
 

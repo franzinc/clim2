@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-protocol.lisp,v 1.38 93/01/21 14:58:09 cer Exp $
+;; $fiHeader: input-protocol.lisp,v 1.39 93/03/19 09:43:38 cer Exp $
 
 (in-package :clim-internals)
 
@@ -649,16 +649,14 @@
 (defmethod stream-pointer-position ((stream input-protocol-mixin) &key (timeout 0) pointer)
   (declare (ignore timeout))
   (let ((pointer (or pointer (stream-primary-pointer stream))))
-    (pointer-position pointer)))
+    (sheet-pointer-position stream pointer)))
 
 (defmethod stream-set-pointer-position ((stream input-protocol-mixin) x y &key pointer)
   (declare (type real x y))
   (unless pointer
     (setf pointer (stream-primary-pointer stream)))
   ;; Make sure the pointer is on the right sheet
-  (setf (pointer-sheet pointer) stream)
-  (setf (pointer-position-changed pointer) t)
-  (pointer-set-position pointer x y))
+  (set-sheet-pointer-position stream pointer x y))
 
 (defgeneric* (setf stream-pointer-position) (x y stream))
 (defmethod* (setf stream-pointer-position) (x y (stream t))

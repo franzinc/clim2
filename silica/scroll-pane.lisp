@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: scroll-pane.lisp,v 1.3 93/03/18 14:38:16 colin Exp $
+;; $fiHeader: scroll-pane.lisp,v 1.4 93/03/19 09:44:47 cer Exp $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright(c) 1991, 1992 International Lisp Associates.
@@ -10,12 +10,12 @@
 
 
 ;; An implementation of a scroller pane
-(defclass generic-scroller-pane (scroller-pane 
-				 client-overridability-mixin
+(defclass generic-scroller-pane ( 
 				 wrapping-space-mixin
 				 permanent-medium-sheet-output-mixin
 				 pane-repaint-background-mixin
-				 layout-pane)
+				 layout-pane
+				 scroller-pane)
     ())
 
 (defmethod handle-event :after ((pane generic-scroller-pane) (event pointer-motion-event))
@@ -224,26 +224,6 @@
 	(:horizontal (- right left))
 	(:vertical (- bottom top))))))
 
-(defmethod line-scroll-amount ((pane scroller-pane) orientation direction)
-  (declare (ignore direction))
-  (with-slots (contents) pane
-    (let ((style (medium-text-style contents)))
-      ;; --- These are the stubs for user specified line scroll amounts
-      ;; req by graphic panes. I haven't enabled them because I want to
-      ;; check with SWM for the MAKE-PANE protocol for these. Davo 6/30/92
-      (ecase orientation
-	(:horizontal (or #+++ignore horizontal-line-scroll-amount
-			 (text-style-width style contents)))
-	(:vertical (or #+++ignore vertical-line-scroll-amount
-		       ;; --- This should check the top or bottom line
-		       ;; of the viewport for its line height to
-		       ;; determine the scroll amount - this is the
-		       ;; reason for the direction arg. Davo 6/30/92
-		       (+ (text-style-height style contents)
-			  (if (extended-output-stream-p contents)
-			      (stream-vertical-spacing contents) 
-			      0))))))))
-
 (defmethod scroll-up-line-callback ((scroll-bar scroll-bar-pane) scroller-pane orientation)
   (with-slots (current-size current-value port) scroll-bar
     (with-slots (viewport contents) scroller-pane
@@ -266,7 +246,7 @@
 			     (the single-float
 			       (/ (line-scroll-amount scroller-pane orientation :down)
 				  (float contents-range  0.0s0)))))
-	     (new-value (min (- 1.0 current-size) (+ current-value line-value))))
+	     (new-value (+ current-value line-value)))
 	(scroll-bar-value-changed-callback
 	  scroll-bar scroller-pane orientation new-value current-size)))))
 
@@ -294,7 +274,7 @@
 	  (setq new-value current-value)
 	  (let ((page-value (the single-float 
 			      (/ viewport-range (float contents-range 0.0s0)))))
-	    (setq new-value (min (- 1.0 current-size) (+ current-value page-value)))))
+	    (setq new-value (+ current-value page-value))))
       (scroll-bar-value-changed-callback
 	scroll-bar scroller-pane orientation new-value current-size)))))
 
@@ -305,7 +285,7 @@
 (defmethod scroll-to-bottom-callback ((scroll-bar scroll-bar-pane) client id)
   (with-slots (current-size current-value) scroll-bar
     (scroll-bar-value-changed-callback
-      scroll-bar client id (- 1.0 current-size) current-size)))
+      scroll-bar client id 1.0 current-size)))
 
 (defmethod scroll-line-to-top-callback ((scroll-bar scroll-bar-pane)
 					scroller-pane id orientation x y)
@@ -337,7 +317,7 @@
 			       contents-range)))
 		  (scroll-bar-value-changed-callback
 		    scroll-bar scroller-pane id
-		    (min (- 1.0 current-size) pos) current-size))))))))))
+		    pos current-size))))))))))
 
 (defmethod scroll-line-to-bottom-callback ((scroll-bar scroll-bar-pane)
 					   scroller-pane id orientation x y)
@@ -388,7 +368,8 @@
 
 ;;; Set the indicator to the proper size and location (size and value are between 0 and 1)
 (defmethod change-scroll-bar-values ((scroll-bar scroll-bar-pane)
-				     &key slider-size value)
+				     &key slider-size value line-increment)
+  (declare (ignore line-increment))
   (setf (gadget-value scroll-bar :invoke-callback nil) value)
   (setf (scroll-bar-current-size scroll-bar) slider-size)
   (let* ((scroller (gadget-client scroll-bar))
@@ -409,6 +390,7 @@
     ((end :initarg :end)
      (scroll-bar :initarg :scroll-bar)
      (coord-cache :initform nil)))
+
 
 (defmethod initialize-instance :after ((pane scroll-bar-target-pane) &key end)
   (let* ((scroll-bar (slot-value pane 'scroll-bar))
@@ -479,6 +461,8 @@
 	   leaf-pane)
     ((scroll-bar :initarg :scroll-bar)
      (needs-erase :initform nil)))
+
+
 
 (defmethod initialize-instance :after ((pane scroll-bar-shaft-pane) &key)
   (let* ((scroll-bar (slot-value pane 'scroll-bar))

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-gadgets.lisp,v 1.46 93/04/26 20:18:30 colin Exp $
+;; $fiHeader: ol-gadgets.lisp,v 1.47 93/04/27 14:36:04 cer Exp $
 
 
 (in-package :xm-silica)
@@ -58,7 +58,7 @@
 (defmethod find-widget-class-and-initargs-for-sheet ((port openlook-port)
 						     (parent t)
 						     (sheet openlook-scroll-bar))
-  (values 'tk::scrollbar nil))
+  (values 'tk::scrollbar '(:slider-max 0 :slider-max 1000)))
 
 (defmethod (setf scroll-bar-size) (nv (sb openlook-scroll-bar))
   ;; (tk::set-values (sheet-direct-mirror sb) :slider-size nv)
@@ -68,14 +68,18 @@
   (tk::set-values (sheet-direct-mirror sb) :slider-value nv)
   nv)
 
-(defmethod change-scroll-bar-values ((sb openlook-scroll-bar) &key slider-size value)
+(defmethod change-scroll-bar-values ((sb openlook-scroll-bar) &key
+							      slider-size value line-increment)
   (let ((mirror (sheet-direct-mirror sb)))
     (multiple-value-bind
 	(mmin mmax) (tk::get-values mirror :slider-min :slider-max)
       (multiple-value-bind
-	  (real-value real-size) (compute-new-scroll-bar-values sb mmin mmax value slider-size)
+	  (real-value real-size line-increment)
+	  (compute-new-scroll-bar-values sb mmin mmax value
+					 slider-size line-increment)
 	(tk::set-values
 	 mirror
+	 :granularity line-increment
 	 :proportion-length  real-size
 	 :slider-value real-value)))))
 
@@ -921,7 +925,7 @@
     (multiple-value-bind
 	(smin smax) (gadget-range* sheet)
       (let ((mmin 0) 
-	    (mmax 100))
+	    (mmax 1000))
 	(values 
 	 'tk::control
 	 (append
@@ -988,10 +992,10 @@
     (multiple-value-bind
 	(smin smax) (gadget-range* sheet)
       (multiple-value-bind
-	  (current-value mmin mmax)
-	  (tk::get-values widget :slider-value :slider-min :slider-max)
+	  (current-value mmin mmax size)
+	  (tk::get-values widget :slider-value :slider-min :slider-max :proportion-length)
 	(compute-symmetric-value
-			 mmin mmax (or current-value value) smin smax)))))
+			 mmin (- mmax size) (or current-value value) smin smax)))))
 
 
 (defun set-slider-value (sheet nv)
@@ -1752,15 +1756,19 @@
 				     directory-list-label
 				     file-list-label
 				     (exit-boxes '(:exit :abort :help))
-				     (name title))
+				     (name title)
+				     directory
+				     pattern
+				     text-style)
+  (declare (ignore directory pattern text-style))
   (let ((pathname nil)
 	(stream (frame-top-level-sheet frame)))
     (accepting-values (stream :own-window t :label title :exit-boxes exit-boxes)
 	(setf pathname 
 	  (if pathname
-	      (accept 'pathname :prompt "Pathname" :default pathname
+	      (accept 'pathname :prompt "File" :default pathname
 		      :stream stream)
-	    (accept 'pathname :prompt "Pathname"
+	    (accept 'pathname :prompt "File"
 		    :stream stream))))))
 
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept-values.lisp,v 1.59 93/04/07 09:06:31 cer Exp $
+;; $fiHeader: accept-values.lisp,v 1.60 93/04/16 09:44:46 cer Exp $
 
 (in-package :clim-internals)
 
@@ -1325,6 +1325,7 @@
       sheet
       (allocate-event 'presentation-event
 	:sheet sheet
+	:echo nil
 	:presentation-type 'command
 	:value `(com-change-query ,query ,new-value)
 	:frame (slot-value client 'avv-frame)))))
@@ -1370,6 +1371,7 @@
 			    sheet
 			    (allocate-event 'presentation-event
 					    :sheet sheet
+					    :echo nil
 					    :presentation-type 'command
 					    :value `(com-avv-command-button ,client ,record)
 					    :frame *application-frame*)))))

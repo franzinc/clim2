@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-layout.lisp,v 1.31 93/03/31 10:39:31 cer Exp $
+;; $fiHeader: db-layout.lisp,v 1.32 93/04/16 09:45:22 cer Exp $
 
 (in-package :silica)
 
@@ -275,13 +275,19 @@
 	(space-requirement-components (normalize-space-requirement pane space-requirement))
       (multiple-value-bind (width2 min-width2 max-width2 height2 min-height2 max-height2)
 	  (space-requirement-components (call-next-method))
-	(make-space-requirement
-	 :min-width (or min-width1 (if width1 (min width1 min-width2) min-width2))
-	 :max-width (or max-width1 (if width1 (max width1 max-width2) max-width2))
-	 :width (or width1 width2)
-	 :min-height (or min-height1 (if height1 (min height1 min-height2) min-height2))
-	 :max-height (or max-height1 (if height1 (max height1 max-height2) max-height2))
-	 :height (or height1 height2))))))
+	(flet ((mmin (x y z)
+		 (or x (and y z (min y z)) y z))
+	       (mmax (x y z)
+		 (or x (and y z (max y z)) y z)))
+	  (let ((height (or height1 height2))
+		(width (or width1 width2)))
+	    (make-space-requirement
+	     :width width
+	     :min-width (or (mmin min-width1 width1 min-width2) width)
+	     :max-width (or (mmax max-width1 width1 max-width2) width)
+	     :height height
+	     :min-height (or (mmin min-height1 height1 min-height2) height)
+	     :max-height (or (mmax max-height1 height1 max-height2) height))))))))
 ;;;
 ;;; Space Req Cache
 ;;;

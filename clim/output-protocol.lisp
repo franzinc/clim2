@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: output-protocol.lisp,v 1.35 93/03/18 14:36:56 colin Exp $
+;; $fiHeader: output-protocol.lisp,v 1.36 93/03/25 15:39:51 colin Exp $
 
 (in-package :clim-internals)
 
@@ -1085,3 +1085,24 @@
 	       (incf start))
 	      (t (error "~S found char ~A, and doesn't know what to do."	; ??
 			'do-text-screen-real-estate write-char)))))))
+
+;;-- Make :horizontal-line-scroll-amount :vertical-line-scroll-amount
+;;-- initargs to something. Perhaps :pane???
+
+(defmethod silica::scrolled-pane-line-scroll-amount ((pane output-protocol-mixin)
+						     orientation
+						     direction)
+  (declare (ignore direction))
+  (let ((style (medium-text-style pane)))
+    (ecase orientation
+      (:horizontal (text-style-width style pane))
+      (:vertical (+ (text-style-height style pane)
+		    (if (extended-output-stream-p pane)
+			(stream-vertical-spacing pane) 
+		      0))))))
+
+
+
+
+
+

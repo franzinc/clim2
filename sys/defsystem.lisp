@@ -1,4 +1,4 @@
-;;; -*-Mode: Lisp; Syntax: ANSI-Common-lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
+;;; -*-Mode: Lisp; Syntax: ANSI-Common-lisp; Package: CLIM-DEFSYSTEM; Base: 10; Lowercase: Yes -*-
 
 ;;;
 ;;; DEFSYSTEM Utility
@@ -27,7 +27,7 @@
 ;;;
 ;;;-----------------------------------------------------------
 
-;; $fiHeader: defsystem.lisp,v 1.16 92/10/02 15:20:11 cer Exp $
+;; $fiHeader: defsystem.lisp,v 1.17 92/10/28 11:32:11 cer Exp $
 
 ;; Add a feature for ANSI-adhering Lisps.  So far, only Apple's
 ;; version 2.0 tries to do adhere to the ANSI spec instead of CLtL rev 1.
@@ -65,7 +65,8 @@
     system-source-file 
     undefsystem
     with-compiler-options
-    with-delayed-compiler-warnings))
+    with-delayed-compiler-warnings
+    fake-load-system))
 
 #+ANSI-90
 (in-package :clim-defsystem)
@@ -866,6 +867,38 @@
 	     (if file
 		 (eql (module-load-date module) (file-write-date file))
 		 (error "The module ~S has disappeared." (module-name module)))))))
+
+(defun fake-load-module (module)
+  (when (and (module-applicable-p module)
+	     (nth-value 1 (gethash (module-src-path module)
+				   excl::*pathname->fspecs*)))
+    (let ((file-date (file-write-date (clim-defsys::module-bin-path module))))
+      (when (not (equal file-date (module-load-date module)))
+	(setf (module-load-date module) file-date
+	  (module-loaded-p module) t
+	  (module-loaded-from-file module) (clim-defsys::module-bin-path module))))))
+
+
+(defvar *fake-loaded-systems* nil)
+
+(defun fake-load-system (names &key recurse)
+  (let ((*fake-loaded-systems* nil))
+    (dolist (name (if (listp names)  names (list names)))
+      (fake-load-system-1 name recurse))))
+
+(defun fake-load-system-1 (name recurse)
+  (unless (member name *fake-loaded-systems*)
+    (let ((system (lookup-system name)))
+      (assert system)
+      (format t "; Faking load of system ~A~%" name)
+      (dolist (module (system-module-list system))
+	(fake-load-module module))
+      (push name *fake-loaded-systems*)
+      (when recurse
+	(dolist (system (system-needed-systems system))
+	  (fake-load-system-1 system recurse))
+	(dolist (system (system-load-before-compile system))
+	  (fake-load-system-1 system recurse))))))
 
 
 ;;;

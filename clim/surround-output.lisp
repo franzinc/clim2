@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: surround-output.lisp,v 1.8 92/11/19 14:18:29 cer Exp $
+;; $fiHeader: surround-output.lisp,v 1.9 92/12/14 15:02:23 cer Exp $
 
 (in-package :clim-internals)
 
@@ -59,10 +59,19 @@
 (define-border-type :oval (stream left top right bottom
 			   &rest drawing-options &key (filled nil) &allow-other-keys)
   (declare (dynamic-extent drawing-options))
-  (let ((offset 2))
+  (let* ((offset 2)
+	 (center-x  (floor (+ left right) 2))
+	 (center-y (floor (+ top bottom) 2))
+	 (radius-x (+ (floor (+ (- right left) offset) 2) 2))
+	 (radius-y (floor (+ (- bottom top) offset) 2)))
+    (cond ((> radius-x radius-y)
+	   (incf radius-x radius-y))
+	  ((> radius-y radius-x)
+	   (incf radius-y radius-x)))
     (apply #'draw-oval* stream
-	   (floor (+ left right) 2) (floor (+ top bottom) 2)
-	   (+ (floor (+ (- right left) offset) 2) 2) (floor (+ (- bottom top) offset) 2)
+	   center-x center-y 
+	   radius-x
+	   radius-y
 	   :filled filled drawing-options))
   ;; Y offset for text cursor is 3
   3)

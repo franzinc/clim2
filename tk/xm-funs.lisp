@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-funs.lisp,v 1.7 92/12/14 15:04:09 cer Exp $
+;; $fiHeader: xm-funs.lisp,v 1.8 93/04/27 14:36:00 cer Exp $
 
 ;;
 ;; This file contains compile time only code -- put in clim-debug.fasl.
@@ -114,6 +114,13 @@
 
 (defforeign 'xm-message-box-get-child
     :entry-point (ff:convert-to-lang "XmMessageBoxGetChild")
+    :call-direct t
+    :arguments '(foreign-address fixnum)
+    :arg-checking nil
+    :return-type :unsigned-integer)
+
+(defforeign 'xm-selection-box-get-child
+    :entry-point (ff:convert-to-lang "XmSelectionBoxGetChild")
     :call-direct t
     :arguments '(foreign-address fixnum)
     :arg-checking nil

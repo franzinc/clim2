@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadget-output.lisp,v 1.46 93/03/25 15:39:40 colin Exp $
+;; $fiHeader: gadget-output.lisp,v 1.47 93/04/26 20:17:32 colin Exp $
 
 (in-package :clim-internals)
 

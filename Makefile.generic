@@ -1,4 +1,4 @@
-# $fiHeader: Makefile.generic,v 1.8 93/04/08 13:17:13 colin Exp $
+# $fiHeader: Makefile.generic,v 1.10 93/04/16 09:26:15 layer Exp $
 #
 #  Makefile.generic for CLIM 2.0
 #
@@ -277,3 +277,5 @@ ol-composer : ol-dcl
 	cd /usr/composer2 ; make CL=$(CL) rebuild-c2
 
 
+lsxmfasls:
+	@ls -s $(MOTIF-OBJS) | sort -nr
