@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $Id: pkgdcl.lisp,v 1.11 2000/05/01 21:43:30 layer Exp $
+;; $Id: pkgdcl.lisp,v 1.11.82.1 2003/08/19 23:54:36 mm Exp $
 
 (in-package #-ansi-90 :user #+ansi-90 :common-lisp-user)
 
@@ -22,3 +22,5 @@
 
 #+allegro
 (setf (package-lock (find-package :postscript-clim)) t)
+
+(defparameter postscript-clim::*clim-postscript-version* 20030800)

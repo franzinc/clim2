@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-class.lisp,v 1.14.24.4.6.1 2002/06/03 15:51:33 layer Exp $
+;; $Id: acl-class.lisp,v 1.14.24.4.6.2 2003/08/19 23:54:36 mm Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -344,6 +344,7 @@
 ;; This message is sent when the user selects a command item
 ;; from a menu, when a control sends a notification message to
 ;; its parent window, or when an accelerator key is translated.
+
 (defun oncommand (window msg wparam lparam)
   (declare (ignore msg))
   (let* ((port *acl-port*)
@@ -355,6 +356,18 @@
 	   (let* ((frame (pane-frame parent))
 		  (ID (loword wparam))
 		  (command (cdr (aref *menu-id->command-table* ID))))
+	     
+	     ;;mm bug12977
+	     (handler-case
+		 ;; set the focus to make sure mswin-text-field instances get updated
+		 (win:SetFocus window)
+	       (clim-internals::synchronous-command-event
+		   (c)
+		 (let ((command (clim-internals::synchronous-command-event-command c)))
+		   ;; must do the command right now to do commands in
+		   ;; the right order
+		   (execute-command-in-frame frame command))))
+	     
 	     (when command
 	       (with-slots (clim-internals::disabled-commands) frame
 		 (if (member (car command) clim-internals::disabled-commands)
@@ -366,7 +379,8 @@
 	     (when gadget
 	       (command-event gadget port parent wparam lparam)))))
     (clear-winproc-result *win-result*)
-    0))
+        0))
+
 
 (defmethod command-event ((gadget t) port sheet wparam lparam)
   "Gadget just issued a WM_COMMAND event."
@@ -981,6 +995,11 @@
 	       result)
     result))
 
+
+;;; [bug13094]   Set this var to nil if this hack seems to be interfering
+;;;   with normal dialog accelarator keystrokes.
+(defvar *ignore-getdlgcode-in-acl-text-editor-pane* t)   
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Implements the window proc for the subclassed controls (presently
 ;;; only the edit control).
@@ -1083,6 +1102,20 @@
 		  ;; set return value to 0
 		  (clear-winproc-result *win-result*)
 		  *win-result*))))))
+
+       ;; 17-Mar-03  mm [bug13094]      
+       ((and *ignore-getdlgcode-in-acl-text-editor-pane*
+	     (eql msg win:WM_GETDLGCODE)
+	     (typep (mirror->sheet *acl-port* window)
+		    'acl-text-editor-pane))
+	;; When this message arrives for an acl-text-editor-pane
+	;; it seems to be coming because of the IsDialogMessage call.
+	;; We return 0 to pervent special (dialog accelerator) handling
+	;; for any of the keys that should be translated to WM_CHAR messages.
+	(clear-winproc-result *win-result*) 
+	(setf *win-result* 0)
+	*win-result*)
+
        (t
 	;; This is where we let the control do its own thing.  Most
 	;; messages come through here.

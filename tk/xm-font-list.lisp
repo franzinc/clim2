@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xm-font-list.lisp,v 1.22.34.2 2002/02/08 19:11:25 layer Exp $
+;; $Id: xm-font-list.lisp,v 1.22.34.2.6.1 2003/08/19 23:54:36 mm Exp $
 
 (in-package :tk)
 
@@ -59,10 +59,17 @@
 (excl:ics-target-case
  (:+ics
   (defvar *font-list-tags*
-      (vector (clim-utils:string-to-foreign "ascii")
-	      (clim-utils:string-to-foreign "kanji")
-	      (clim-utils:string-to-foreign "katakana")
-	      (clim-utils:string-to-foreign "gaiji")))))
+      (vector 
+       
+       ;; bug13059/spr27144 - we want these strings to survive a dumplisp
+       
+       (excl:string-to-native "ascii")
+       (excl:string-to-native "kanji")
+       (excl:string-to-native "katakana")
+       (excl:string-to-native "gaiji")
+       
+       ))))
+
 
 (defun export-font-list (value)
   (when (atom value)

@@ -11,6 +11,28 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.3.19
+
+2003-08-19  Martin Mikelsons  <mm@gemini>
+
+	* utils/packages.lisp (*clim-version*): 2.3.19 
+	* postscript/postscript-port.lisp
+	     (postscript-prologue): [bug13470] emit integers for %%BoundingBox:
+	* postscript/postscript-medium.lisp
+	     (use-line-style): [bug13511] allow any line thickness
+	* postscript/pkgdcl.lisp: 
+	     (*clim-postscript-version*): new variable to track climps module version
+	* aclpc/acl-class.lisp
+	     (oncommand): [bug12977] set the focus to make sure mswin-text-field
+	                             instances get updated  
+	     (clim-ctrl-proc): [bug13094] ignore WM_GETDLGCODE in acl-text-editor-pane
+	     (*ignore-getdlgcode-in-acl-text-editor-pane*): [bug13094] new var
+	* utils/lisp-utilities.lisp
+	     (dovector): [rfe5546] evalueate from-end arguemnt at run-time
+	* tk/xm-font-list.lisp
+	     (*font-list-tags*):  [bug13059] use string-to-native 
+	                          instead of string-to-foreign
+
 2.3.18
 
 2003-07-15  Martin Mikelsons  <mm@gemini>

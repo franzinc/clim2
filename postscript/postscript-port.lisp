@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: POSTSCRIPT-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $Id: postscript-port.lisp,v 1.31.24.1 2001/05/17 17:32:25 layer Exp $
+;; $Id: postscript-port.lisp,v 1.31.24.1.26.1 2003/08/19 23:54:36 mm Exp $
 
 (provide :climps)
 
@@ -541,7 +541,12 @@ end } def
 		 (setq llx (- dx (scale bottom)) lly (- dy (scale right))
 		       urx (- dx (scale top)) ury (- dy (scale left))))))
 	    (format printer-stream "%%BoundingBox: ~D ~D ~D ~D~%"
-		    llx lly urx ury)
+		    
+		    ;; bug13470 emit integers
+		    (truncate llx) (truncate lly)
+		    (truncate urx) (truncate ury)
+		    
+		    )
 	    #+debug
 	    (format printer-stream
 		    "newpath ~D ~D moveto ~D ~D lineto stroke~%"
