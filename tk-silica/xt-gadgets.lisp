@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: xm-silica -*-
 ;;
-;;				-[Mon Jul 26 14:32:51 1993 by colin]-
+;;				-[Fri Jul 30 15:12:38 1993 by colin]-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-gadgets.lisp,v 1.35 1993/06/23 00:13:56 cer Exp $
+;; $fiHeader: xt-gadgets.lisp,v 1.36 1993/07/27 01:55:40 colin Exp $
 
 (in-package :xm-silica)
 
@@ -78,10 +78,12 @@
 	 (background (or (getf resources :background) *default-pane-background*))
 	 (foreground (or (getf resources :foreground) *default-pane-foreground*))
 	 (palette (port-default-palette port)))
-    `(:background ,(decode-color-in-palette 
-		    (find-named-color background palette) palette)
-      :foreground ,(decode-color-in-palette 
-		    (find-named-color foreground palette) palette))))
+    (macrolet ((ensure-color (c)
+		 `(etypecase ,c
+		    (color ,c)
+		    (string (find-named-color ,c palette)))))
+      `(:background ,(decode-color-in-palette (ensure-color background) palette)
+        :foreground ,(decode-color-in-palette (ensure-color foreground) palette)))))
     
 (defmethod decode-gadget-background (medium sheet ink)
   (declare (ignore sheet))

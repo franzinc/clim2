@@ -1,3 +1,26 @@
+from colin: Fri Jul 30 16:18:10 PDT 1993
+
+clim/pixmap-streams.lisp
+- fixed bug text-style of pixmap-streams being nil
+
+test/test-suite.lisp
+- added tests for general designs which aren't yet implemented
+- improved error catching during rendering
+
+tk/ol-widgets.lisp
+- added resource class fontColor to text-field
+
+tk/resources.lisp
+- convert-resource-out/in methods for ol
+
+tk-silica/ol-gadgets.lisp
+- made text-field and text-editor set font color
+
+tk-silica/xt-gadgets.lisp
+- fixed bug with color resources in find-application-resource-initargs
+
+-------------------------------------------------------------------------------
+
 Thu Jul 29 13:44:54 1993  Kevin Layer  (layer at sole)
 
 * Makefile.cobjs-svr4: make sure LD_LIBRARY_PATH is setup properly

@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: xt -*-
 ;;
-;;				-[]-
+;;				-[Wed Jul 28 14:04:19 1993 by colin]-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1992 Franz Inc, Berkeley, CA  All rights reserved.
@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-widgets.lisp,v 1.4 1993/05/25 20:42:20 cer Exp $
+;; $fiHeader: ol-widgets.lisp,v 1.5 1993/06/02 18:42:15 cer Exp $
 
 (in-package :xt)
 
@@ -98,3 +98,10 @@
 					  :type 'boolean
 					  :original-name 
 					  (string-to-char* "busy")))
+
+(tk::add-resource-to-class (find-class 'text-field)
+			   (make-instance 'resource
+					  :name :font-color
+					  :type 'pixel
+					  :original-name 
+					  (string-to-char* "fontColor")))

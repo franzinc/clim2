@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: tk -*-
 ;;
-;;				-[Thu Jul  8 15:33:25 1993 by layer]-
+;;				-[Fri Jul 30 16:14:28 1993 by colin]-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: resources.lisp,v 1.45 1993/05/13 16:24:38 cer Exp $
+;; $fiHeader: resources.lisp,v 1.48 1993/07/29 20:51:59 layer Exp $
 
 
 (in-package :tk)

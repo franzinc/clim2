@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: test-suite.lisp,v 1.68 1993/07/22 15:39:13 cer Exp $
+;; $fiHeader: test-suite.lisp,v 1.69 1993/07/27 22:29:27 colin Exp $
 
 (in-package :clim-user)
 
@@ -585,14 +585,23 @@ people, shall not perish from the earth.
 
 ;;; Hairy graphics drawing tests
 
+(defmacro format-graphics-cell (stream function arguments)
+  `(formatting-cell (,stream :align-x :center :align-y :center)
+     (handler-case
+	 (progn
+	   (with-output-to-pixmap (pixmap-stream ,stream)
+	     (apply ,function pixmap-stream ,arguments))
+	   (with-room-for-graphics (,stream)
+	     (apply ,function ,stream ,arguments)))
+       (error ()
+	 (write-string "ERROR" ,stream)))))
+    
 (defmacro formatting-graphics-samples ((stream title &optional (columns 4)) &body body)
   `(labels ((format-graphics-sample (stream label sample &rest keywords)
 	      (let ((arguments (append (cdr sample) keywords)))
 		(formatting-cell (stream)
 		  (formatting-item-list (stream :n-columns 1)
-		    (formatting-cell (stream :align-x :center)
-		      (with-room-for-graphics (stream)
-			(apply (car sample) stream arguments)))
+		    (format-graphics-cell stream (car sample) arguments)
 		    (formatting-cell (stream :align-x :center)
 		      (with-text-family (stream :sans-serif)
 			(write-string label stream))))))))
@@ -983,6 +992,112 @@ people, shall not perish from the earth.
 			      '(draw-line* 0 0 100 90)
 			      :line-thickness 5
 			      :line-cap-shape cap))))
+
+(defparameter *basic-regions*
+  `(("Rectangle" ,(make-rectangle* 0 0 90 100))
+    ("Triangle" ,(make-polygon* '(0 0 45 100 100 0)))
+    ("Circle" ,(make-ellipse* 50 50 50 0 0 50))
+    ("Polygon" ,(make-polygon* '(0 0 10 100 50 50 90 100 100 10)))))
+
+
+(defparameter *designs-to-compose-with*
+  `(("Foreground" ,+foreground-ink+)
+    ("Red" ,+red+)
+    ("Nowhere" ,+nowhere+)
+    ("50% Opacity" ,(make-opacity .5))
+    ("Circle" ,(make-ellipse* 50 50 50 0 0 50))
+    ("Stencil" ,(make-stencil #2A((0 0 0 1 1 0 0 0)
+				  (0 0 1 1 1 1 0 0)
+				  (0 1 1 1 1 1 1 0)
+				  (1 1 1 1 1 1 1 1)
+				  (1 1 1 1 1 1 1 1)
+				  (0 1 1 1 1 1 1 0)
+				  (0 0 1 1 1 1 0 0)
+				  (0 0 0 1 1 0 0 0))))))
+
+(defun format-compose-table (stream table-name composition)
+  (with-text-style (stream '(:sans-serif :italic :normal))
+    (format stream "~&~%~A~%" table-name))
+  (formatting-table (stream)
+
+    (formatting-row (stream)
+      (formatting-cell (stream)
+	(declare (ignore stream)))
+      (dolist (design *designs-to-compose-with*)
+	(format-graphics-cell stream 
+		       #'draw-rectangle* `(0 0 50 50 :ink ,(cadr design)))))
+
+    (formatting-row (stream)
+      (formatting-cell (stream)
+	(declare (ignore stream)))
+      (dolist (design *designs-to-compose-with*)
+	(formatting-cell (stream :align-x :center)
+	  (with-text-family (stream :sans-serif)
+	    (write-string (car design) stream)))))
+      
+    (dolist (design1 *designs-to-compose-with*)
+      (formatting-row (stream)
+	(formatting-cell (stream :align-x :right :align-y :center)
+	  (with-text-family (stream :sans-serif)
+	    (write-string (car design1) stream)))
+	(dolist (design2 *designs-to-compose-with*)
+	  (let ((ink (funcall composition (cadr design1) (cadr design2))))
+	    (format-graphics-cell stream 
+			   #'draw-rectangle* `(0 0 50 50 :ink ,ink))))))))
+
+(define-test (complex-designs graphics) (stream)
+  "Test some of the complex designs"
+
+  (formatting-graphics-samples (stream "Opacities" 11)
+    (let ((sample '(draw-rectangle* 0 0 50 100)))
+      (dotimes (i 11)
+	(let ((opacity (/ i 10.0)))
+	  (format-graphics-sample stream
+				  (format nil "~D%" (round (* opacity 100)))
+				  sample :ink (make-opacity
+					       opacity))))))
+
+  (formatting-graphics-samples (stream "Regions as Designs")
+    (let ((sample '(draw-rectangle* 0 0 100 100)))
+      (dolist (region *basic-regions*)
+	(let ((label (first region))
+	      (design (second region)))
+	  (format-graphics-sample stream label sample :ink design)))))
+
+  (formatting-graphics-samples (stream "Stencils")
+    (let ((sample '(draw-rectangle* 0 0 100 100))
+	  (opaque (make-stencil #2A((0 0 0 1 1 0 0 0)
+				    (0 0 1 1 1 1 0 0)
+				    (0 1 1 1 1 1 1 0)
+				    (1 1 1 1 1 1 1 1)
+				    (1 1 1 1 1 1 1 1)
+				    (0 1 1 1 1 1 1 0)
+				    (0 0 1 1 1 1 0 0)
+				    (0 0 0 1 1 0 0 0))))
+	  (translucent (make-stencil #2A((0 0 0 .5 .5 0 0 0)
+					 (0 0 .5 .5 .5 .5 0 0)
+					 (0 .5 .5 .5 .5 .5 .5 0)
+					 (.5 .5 .5 .5 .5 .5 .5 .5)
+					 (.5 .5 .5 .5 .5 .5 .5 .5)
+					 (0 .5 .5 .5 .5 .5 .5 0)
+					 (0 0 .5 .5 .5 .5 0 0)
+					 (0 0 0 .5 .5 0 0 0)))))
+      (format-graphics-sample stream "opaque" sample :ink opaque)
+      (format-graphics-sample stream "opaque-tile" sample 
+			      :ink (make-rectangular-tile opaque 8 8))
+      (format-graphics-sample stream "translucent" sample :ink translucent)
+      (format-graphics-sample stream "translucent-tile" sample 
+			      :ink (make-rectangular-tile translucent 8 8))))
+
+
+  (format-compose-table stream "Compose Over" #'compose-over)
+  (format-compose-table stream "Compose In" #'compose-in)
+  (format-compose-table stream "Compose Out" #'compose-out)
+  )
+
+
+
+
 
 ;;--- ellipses
 

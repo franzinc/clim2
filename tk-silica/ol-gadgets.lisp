@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: xm-silica -*-
 ;;
-;;				-[Tue Jul 27 14:03:48 1993 by colin]-
+;;				-[Fri Jul 30 16:12:45 1993 by colin]-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-gadgets.lisp,v 1.56 1993/07/27 01:55:04 colin Exp $
+;; $fiHeader: ol-gadgets.lisp,v 1.57 1993/07/27 22:29:50 colin Exp $
 
 
 (in-package :xm-silica)
@@ -584,14 +584,21 @@
 						     (parent t)
 						     (sheet openlook-text-field))
   (with-accessors ((value gadget-value)
-		   (editable gadget-editable-p)) sheet
-    (if editable
-	(values 'tk::text-field
-		(append
-		 `(:chars-visible ,(max (length value) 10))
-		 (and value `(:string ,value))))
-      (values 'tk::static-text
-	      `(:string ,value)))))
+		   (editable gadget-editable-p)
+		   (foreground pane-foreground)) sheet
+    (multiple-value-bind (class initargs)
+	(if editable
+	    (values 'tk::text-field
+		    `(:chars-visible ,(max (length value) 10)))
+	  (values 'tk::static-text nil))
+      (values class
+	      (append 
+	       (and foreground
+		    (with-sheet-medium (medium sheet)
+		      `(:font-color
+			,(cadr (decode-gadget-foreground medium sheet foreground)))))
+	       (and value `(:string ,value))
+	       initargs)))))
 
 (defun openlook-text-field-edit-widget (tf &optional (mirror (sheet-direct-mirror tf)))
   (tk::get-values mirror :text-edit-widget))
@@ -1265,14 +1272,25 @@
 		   (ncolumns gadget-columns)
 		   (nlines gadget-lines)
 		   (editable gadget-editable-p)
-		   (word-wrap gadget-word-wrap)) sheet
-    (values 'tk::text-edit
-	    (append
-	     (and (not editable) `(:edit-type :text-read))
-	     (and ncolumns (list :chars-visible ncolumns))
-	     (and nlines (list :lines-visible nlines))
-	     (and value `(:source ,value))
-	     (list :wrap-mode (if word-wrap :wrap-white-space :wrap-off))))))
+		   (word-wrap gadget-word-wrap)
+		   (foreground pane-foreground)) sheet
+    (multiple-value-bind (class initargs)
+	(values 'tk::text-edit
+		(append
+		 (and (not editable) `(:edit-type :text-read))
+		 (and ncolumns (list :chars-visible ncolumns))
+		 (and nlines (list :lines-visible nlines))
+		 (and value `(:source ,value))
+		 (list :wrap-mode (if word-wrap :wrap-white-space :wrap-off))))
+      (values class
+	      (append 
+	       (and foreground
+		    (with-sheet-medium (medium sheet)
+		      `(:font-color
+			,(cadr (decode-gadget-foreground medium
+							 sheet
+							 foreground)))))
+	       initargs)))))
 
 (defmethod process-width-specification ((sheet openlook-text-editor) width)
   (when (numberp width) (return-from process-width-specification width))
