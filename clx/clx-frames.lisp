@@ -3,7 +3,7 @@
 (in-package :clx-clim)
 
 "Copyright (c) 1992 Symbolics, Inc.  All rights reserved."
-;;; $fiHeader$
+;;; $fiHeader: clx-frames.lisp,v 1.1 92/02/24 13:21:54 cer Exp Locker: cer $
 
 
 (defclass clx-frame-manager (standard-frame-manager) 

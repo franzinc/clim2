@@ -3,7 +3,7 @@
 (in-package :clx-clim)
 
 "Copyright (c) 1992 Symbolics, Inc.  All rights reserved."
-;;; $fiHeader$
+;;; $fiHeader: clx-gadgets.lisp,v 1.1 92/02/24 13:21:55 cer Exp Locker: cer $
 
 (defclass ask-widget-for-size-mixin () ())
 
