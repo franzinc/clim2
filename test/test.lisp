@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: test.lisp,v 1.24 92/05/06 15:37:46 cer Exp Locker: cer $
+;; $fiHeader: test.lisp,v 1.25 92/05/07 13:13:22 cer Exp Locker: cer $
 
 (in-package :clim-user)
 
@@ -58,7 +58,7 @@
 			(setf (aref x i j) (random 2))))
 		    x)
 		  (list +red+ +green+)))
-  (:geometry :width 100 :height 200))
+  (:geometry :width 300 :height 300))
 
 
 (define-application-frame test-frame01 () ()
@@ -165,10 +165,10 @@
   (:layout
     (:default 
       (vertically ()
-	a b c (scrolling () e)))
+	a b c e))
     (:more
       (vertically ()
-	a (scrolling () e) b  d))))
+	a e b  d))))
 
 
 (define-test-frame-command (com-switch :name t :menu t)
@@ -727,5 +727,27 @@
      (dx 'integer)
      (dy 'integer))
   (shift-output-record *query-io* (car weird) dx dy))
-  
 
+;; This seems to work ok
+
+(define-test-frame-command (com-test-nested-accept :name t :menu t)
+    ()
+  (let ((stream *query-io*))
+    (let (a b c d)
+      (accepting-values (stream)
+			(setq a (accept 'integer :stream stream :prompt "a" :default a))
+			(terpri stream)
+			(setq b (accept 'integer :stream stream :prompt "b" :default b))
+			(terpri stream)
+			(accept-values-command-button 
+			 (stream)
+			 "Press me"
+			 (restart-case 
+			     (accepting-values (stream  :own-window t :label "inner accept")
+					       (setq c (accept 'integer :stream stream :prompt "c" :default c))
+					       (terpri stream)
+					       (setq d (accept 'integer :stream stream :prompt "d" :default d))
+					       (terpri stream))
+			   (abort)
+			   (frame-exit )))))))
+						     

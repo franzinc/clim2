@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-cursor.lisp,v 1.6 92/04/28 09:26:31 cer Exp Locker: cer $
+;; $fiHeader: xt-cursor.lisp,v 1.7 92/04/30 09:09:54 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -66,6 +66,7 @@
 	  (let ((gadget 
 		 (make-cursor-widget-for-port
 		  port mirror)))
+	    (tk::add-widget-cleanup-function gadget #'(lambda () (setf (getf clim-internals::plist 'gadget) nil)))
 	    (xt::realize-widget gadget)
 	    (let ((window (tk::widget-window gadget)))
 	      (setf (tk::drawable-save-under window) t))

@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: sheet.lisp,v 1.11 92/04/21 16:12:44 cer Exp Locker: cer $
+;; $fiHeader: sheet.lisp,v 1.12 92/05/07 13:11:30 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -274,8 +274,7 @@
 
 (defgeneric invalidate-cached-regions (sheet)
   (:method ((sheet sheet)) 
-	   (setf (sheet-cached-device-region sheet) nil)
-	   (setf (sheet-cached-device-transformation sheet) nil))
+	   (setf (sheet-cached-device-region sheet) nil))
   (:method :after ((sheet sheet-parent-mixin))
 	   (mapc #'invalidate-cached-regions (sheet-children sheet))))
 
@@ -284,6 +283,8 @@
   (invalidate-cached-regions sheet))
 
 ;;--- Check to see if the call to invalidate-cached-regions is really necessary.
+;;--- CER thinks we do because regions depend on transformations.
+
 (defmethod note-sheet-transformation-changed :before ((sheet sheet) &key port-did-it)
  (declare (ignore port-did-it))
   (invalidate-cached-transformations sheet)

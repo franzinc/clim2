@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.27 92/05/06 15:37:54 cer Exp Locker: cer $
+;; $fiHeader: xm-gadgets.lisp,v 1.28 92/05/07 13:13:52 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -249,8 +249,9 @@
 	    (mmin mmax)
 	    (tk::get-values gadget :minimum :maximum)
 	  (tk::set-values gadget
-			  :value (compute-symmetric-value
-				  smin smax nv mmin mmax)))))))
+			  :value (fix-coordinate 
+				  (compute-symmetric-value
+				   smin smax nv mmin mmax))))))))
 
 ;;; Slider
 
@@ -296,8 +297,9 @@
 		       :maximum mmax
 		       :decimal-points decimal-points)
 		 (and value 
-		      (list :value (compute-symmetric-value
-				    smin smax value mmin mmax)))))))))
+		      (list :value (fix-coordinate 
+				    (compute-symmetric-value
+				     smin smax value mmin mmax))))))))))
 
 (defmethod (setf gadget-show-value-p) :after (nv (sheet motif-slider)) 
   (when (sheet-direct-mirror sheet)
@@ -338,6 +340,7 @@
 						     (parent t)
 						     (sheet motif-scroll-bar))
   (values 'tk::xm-scroll-bar nil))
+	  
 
 (defmethod (setf silica::scroll-bar-size) (nv (sb motif-scroll-bar))
   (tk::set-values (sheet-direct-mirror sb) :slider-size (floor nv))

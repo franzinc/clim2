@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: frames.lisp,v 1.18 92/05/06 15:37:38 cer Exp Locker: cer $
+;; $fiHeader: frames.lisp,v 1.19 92/05/07 13:12:14 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -14,45 +14,47 @@
 ;;--- processes can queue up requests.  This queue should be managed
 ;;--- like other event queues.  It can contains "command" events, too.
 (defclass standard-application-frame (application-frame)
-    ;;--- Is it right for these to be SHEET accessors??
-    ((name :initarg :name :accessor frame-name)
-     (pretty-name :initarg :pretty-name :accessor frame-pretty-name)
-     (command-table :initarg :command-table 
-		    :initform (find-command-table 'user-command-table)
-		    :accessor frame-command-table)
-     (disabled-commands :initarg :disabled-commands :initform nil)
-     ;; One of  T, NIL, or a command-table; used by the menu-bar
-     (menu-bar :initarg :menu-bar :initform nil)
-     (histories :initform nil)
-     (frame-manager :reader frame-manager)
-     (calling-frame :reader frame-calling-frame :initarg :calling-frame)
-     ;; PANES is the description of all of the named panes,
-     ;; ALL-PANES is an alist that stores all of the named panes that
-     ;; have actually been realized so far
-     (panes :initarg :panes :accessor frame-panes)
-     (all-panes :initform nil)
-     (current-panes :initform nil :accessor frame-current-panes)
-     (initialized-panes :initform nil)
-     (pane-constructors :initarg :pane-constructors)
-     (top-level-sheet :accessor frame-top-level-sheet :initform nil)
-     (state :initform :disowned :accessor frame-state 
-	    :type (member :disowned :disabled :enabled :shrunk))
-     (top-level :initarg :top-level  :accessor frame-top-level)
-     (current-layout :initarg :default-layout :initform nil
-		     :reader frame-current-layout)
-     (geometry :initform nil :initarg :geometry :reader frame-geometry)
-     (icon :initform nil :initarg :icon :reader frame-icon)
-     (shell :accessor frame-shell)
-     (pointer-documentation-p :initarg :pointer-documentation
-			      :reader frame-pointer-documentation-p)
-     (pointer-documentation-pane :initform nil)
-     (properties :initform nil :initarg :properties
-		 :accessor frame-properties)
-     (resizable :initarg :resize-frame
-		:reader frame-resizable))
-     (:default-initargs :pointer-documentation nil
-       :resize-frame nil
-       :top-level 'default-frame-top-level))
+	  ;;--- Is it right for these to be SHEET accessors??
+	  ((name :initarg :name :accessor frame-name)
+	   (pretty-name :initarg :pretty-name :accessor frame-pretty-name)
+	   (command-table :initarg :command-table 
+			  :initform (find-command-table 'user-command-table)
+			  :accessor frame-command-table)
+	   (disabled-commands :initarg :disabled-commands :initform nil)
+	   ;; One of  T, NIL, or a command-table; used by the menu-bar
+	   (menu-bar :initarg :menu-bar :initform nil)
+	   (histories :initform nil)
+	   (frame-manager :reader frame-manager)
+	   (calling-frame :reader frame-calling-frame :initarg :calling-frame)
+	   ;; PANES is the description of all of the named panes,
+	   ;; ALL-PANES is an alist that stores all of the named panes that
+	   ;; have actually been realized so far
+	   (panes :initarg :panes :accessor frame-panes)
+	   (all-panes :initform nil)
+	   (current-panes :initform nil :accessor frame-current-panes)
+	   (initialized-panes :initform nil)
+	   (pane-constructors :initarg :pane-constructors)
+	   (top-level-sheet :accessor frame-top-level-sheet :initform nil)
+	   (state :initform :disowned :accessor frame-state 
+		  :type (member :disowned :disabled :enabled :shrunk))
+	   (top-level :initarg :top-level  :accessor frame-top-level)
+	   (current-layout :initarg :default-layout :initform nil
+			   :reader frame-current-layout)
+	   (geometry :initform nil :initarg :geometry :reader frame-geometry)
+	   (icon :initform nil :initarg :icon :reader frame-icon)
+	   (shell :accessor frame-shell)
+	   (pointer-documentation-p :initarg :pointer-documentation
+				    :reader frame-pointer-documentation-p)
+	   (pointer-documentation-pane :initform nil)
+	   (properties :initform nil :initarg :properties
+		       :accessor frame-properties)
+	   (resizable :initarg :resize-frame
+		      :reader frame-resizable)
+	   (layout :initarg :layout :reader frame-layouts))
+  (:default-initargs :pointer-documentation nil
+    :layout nil
+    :resize-frame nil
+    :top-level 'default-frame-top-level))
 
 (defmethod port ((frame standard-application-frame))
   (port (frame-manager frame)))
@@ -183,6 +185,7 @@
 	   (defclass ,name ,superclasses ,slots
 	     ,@options
 	     (:default-initargs
+		:layout ',layout
 	       :menu-bar ',menu-bar
 	       :pointer-documentation ',pointer-documentation
 	       ,@(and command-table `(:command-table ',(car command-table)))
@@ -415,7 +418,6 @@
 					  frame (frame-manager frame)))
 			   all-panes))))))
 
->>>>>>> 1.18
 (defmethod layout-frame ((frame standard-application-frame) &optional width height)
   (let ((panes (frame-panes frame)))
     (when panes
@@ -438,11 +440,7 @@
 	      (bounding-rectangle-size top))
 	  (resize-sheet* 
 	   top
-	   width height
-	   ;; We need to do this because if the WM has changed the sheet
-	   ;; then this will not change its size but we need it to start
-	   ;; the layout stuff
-	   :force t))))))
+	   width height))))))
 
 (defmethod (setf frame-current-layout) (nv (frame standard-application-frame))
   (unless (eq (frame-current-layout frame) nv)
@@ -456,7 +454,23 @@
       (sheet-disown-child (frame-top-level-sheet frame) child))
     ;; Now we want to give it some new ones
     (generate-panes (frame-manager frame) frame)
+
     (sheet-adopt-child (frame-top-level-sheet frame) (frame-panes frame))
+    
+    (let ((layout-space-requirements 
+	   (cddr (assoc nv (frame-layouts frame)))))
+      (changing-space-requirements (:layout nil)
+          (flet ((adjust-layout (sheet)
+		   (when (typep sheet 'space-requirement-mixin)
+		     (silica::change-space-requirements-to
+		      sheet (silica::pane-initial-space-requirements sheet)))
+		   (let ((x (and 
+			     (panep sheet)
+			     (assoc (pane-name sheet) layout-space-requirements))))
+		     (when x (apply #'change-space-requirements sheet (cdr x))))))
+	    (declare (dynamic-extent #'adjust-layout))
+	    (map-over-sheets #'adjust-layout (frame-top-level-sheet frame)))))
+    
     (multiple-value-call #'layout-frame
       frame (bounding-rectangle-size (frame-top-level-sheet frame)))
     (throw 'layout-changed nil)))

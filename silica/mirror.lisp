@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: mirror.lisp,v 1.16 92/04/21 16:12:43 cer Exp Locker: cer $
+;; $fiHeader: mirror.lisp,v 1.17 92/05/07 13:11:26 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -194,26 +194,19 @@
     (disable-mirror (port sheet) sheet)))
 
 
-;;--- What sucks big?
-(warn "This sucks big")
+;;; We need this method becuase if we change a transformation this
+;;; moves the sheet
 
 (defmethod invalidate-cached-transformations :after ((sheet mirrored-sheet-mixin))
   (when (sheet-direct-mirror sheet)
     (update-mirror-region (port sheet) sheet)))
 
+;;; There is not an invalidate-cached-region method because the only
+;;; time the region changes is when we change it directly.
+;;; But we do need this method
+
 (defmethod note-sheet-region-changed :after ((sheet mirrored-sheet-mixin) 
 					     &key port-did-it)
-  (when (sheet-direct-mirror sheet)
-    (unless port-did-it
-      (update-mirror-region (port sheet) sheet))))
-
-
-;; I do not think we need to do this because
-;; invalidate-cached-transformations does it anyway.
-
-#+ignore
-(defmethod note-sheet-transformation-changed :after ((sheet mirrored-sheet-mixin) 
-						     &key port-did-it)
   (when (sheet-direct-mirror sheet)
     (unless port-did-it
       (update-mirror-region (port sheet) sheet))))

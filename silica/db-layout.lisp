@@ -22,7 +22,7 @@
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
 ;;;
-;; $fiHeader: db-layout.lisp,v 1.15 92/05/06 15:37:15 cer Exp Locker: cer $
+;; $fiHeader: db-layout.lisp,v 1.16 92/05/07 13:11:11 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -65,11 +65,21 @@
 
 (defclass layout-mixin () ())
 
+
 (defmethod change-space-requirements ((pane layout-mixin) &key &allow-other-keys)
   nil)
 
 
-(defmacro changing-space-requirements ((&rest options &key resize-frame) &body body)
+(defmethod change-space-requirements-to ((pane layout-mixin) space-requirement)
+  (multiple-value-bind
+      (width min-width max-width
+       height min-height max-height)
+      (space-requirement-components space-requirement)
+      (change-space-requirements
+       pane :width width :min-width min-width :max-width max-width 
+       :height height :min-height min-height :max-height max-height)))
+
+(defmacro changing-space-requirements ((&rest options &key resize-frame layout) &body body)
   `(flet ((changing-space-requirements-body ()
 	    ,@body))
      (declare (dynamic-extent #'changing-space-requirements-body))
@@ -79,14 +89,14 @@
 
 (defvar *inside-changing-space-requirements* nil)
 
-(defun invoke-with-changing-space-requirements (continuation &key resize-frame)
+(defun invoke-with-changing-space-requirements (continuation &key resize-frame (layout t))
   (let ((old-inside-changing-space-requirements 
 	 *inside-changing-space-requirements*)
 	(*inside-changing-space-requirements* 
 	 (cons nil *inside-changing-space-requirements*)))
     (multiple-value-prog1
 	(funcall continuation)
-      (unless old-inside-changing-space-requirements
+      (unless (or (not layout) old-inside-changing-space-requirements)
 	;; Layout that frames that need to be laid out
 	;; and relayout the minimal subtrees that need to be laid out
 	(let* ((frames (remove-duplicates
@@ -192,7 +202,7 @@
 ;;; 
 
 (defclass space-requirement-mixin (layout-mixin)
-    ((initial-space-requirement :reader pane-initial-space-requirement)
+    ((initial-space-requirement :reader pane-initial-space-requirements)
      (space-requirement :reader pane-space-requirement)))
 
 (defmethod initialize-instance :after ((pane space-requirement-mixin) 

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.24 92/05/06 15:38:00 cer Exp Locker: cer $
+;; $fiHeader: xt-silica.lisp,v 1.25 92/05/07 13:14:02 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -270,7 +270,6 @@
 
 
 (defmethod destroy-mirror ((port xt-port) sheet)
-  ;;-- I dont think that we should do this.
   (tk::destroy-widget (sheet-direct-mirror sheet)))
 
 (defmethod realize-mirror ((port xt-port) sheet)
@@ -642,11 +641,14 @@
     (values (coordinate 0) (coordinate 0)
 	    (- c a) (- d b))))
 
+(defparameter  *compare-widget-geometry-with-intention* nil)
+
 (defmethod set-sheet-mirror-edges* ((port xt-port) sheet 
-				    target-left target-top
-				    target-right target-bottom)
+						   target-left target-top
+						   target-right target-bottom)
   (let ((w (- target-right  target-left))
-	(h (- target-bottom target-top)))
+	(h (- target-bottom target-top))
+	(mirror (sheet-direct-mirror sheet)))
     (setf target-left (fix-coordinate target-left)
 	  target-top  (fix-coordinate target-top)
 	  w (fix-coordinate w)
@@ -654,25 +656,25 @@
     (change-widget-geometry
      ;;--- For top level sheets the sheet-parent is the graft whose
      ;; mirror is the application shell
-     (sheet-mirror (sheet-parent sheet))
-     (sheet-direct-mirror sheet)
+     (tk::widget-parent mirror)
+     mirror
      :x target-left
      :y target-top
      :width w
      :height h)
-    (multiple-value-bind
-	(nx ny nw nh)
-	(tk::get-values (sheet-direct-mirror sheet)
-			:x :y :width :height)
-      (when (or (/= target-left nx)
-		(/= target-top ny)
-		(/= w nw)
-		(/= h nh))
-	(let ((*error-output* excl:*initial-terminal-io*))
-	  (warn "Geo set fail, ~S, ~S,~S"
-		sheet
-		(list  target-left  target-top w h)
-		(list nx ny nw nh)))))))
+    (when *compare-widget-geometry-with-intention*
+      (multiple-value-bind
+	  (nx ny nw nh)
+	  (tk::get-values mirror :x :y :width :height)
+	(when (or (/= target-left nx)
+		  (/= target-top ny)
+		  (/= w nw)
+		  (/= h nh))
+	  (let ((*error-output* excl:*initial-terminal-io*))
+	    (warn "Geo set fail, ~S, ~S,~S"
+		  sheet
+		  (list  target-left  target-top w h)
+		  (list nx ny nw nh))))))))
 
 (defmacro with-port-event-lock ((port) &body body)
   `(clim-sys:with-lock-held ((port-event-lock ,port))
@@ -680,17 +682,18 @@
 
 (defmethod process-next-event ((port xt-port) &key wait-function timeout)
   (with-slots (context event-lock) port
-    (multiple-value-bind (mask reason)
-	(tk::wait-for-event context
-			    :wait-function wait-function
-			    :timeout timeout)
-      (clim-sys:with-lock-held (event-lock)
-	;; Make sure there is still an event ready, so we don't block in C.
-	(multiple-value-setq (mask reason)
+    (let ((context context))
+      (multiple-value-bind (mask reason)
 	  (tk::wait-for-event context
 			      :wait-function wait-function
-			      :timeout timeout))
-	(tk::process-one-event context mask reason)))))
+			      :timeout timeout)
+	(clim-sys:with-lock-held (event-lock)
+	  ;; Make sure there is still an event ready, so we don't block in C.
+	  (multiple-value-setq (mask reason)
+	    (tk::wait-for-event context
+				:wait-function wait-function
+				:timeout timeout))
+	  (tk::process-one-event context mask reason))))))
 
 (defmethod port-force-output ((port xt-port))
   ;;--- move to tk

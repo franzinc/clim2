@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: layout.lisp,v 1.15 92/05/06 15:37:21 cer Exp Locker: cer $
+;; $fiHeader: layout.lisp,v 1.16 92/05/07 13:11:22 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -112,23 +112,24 @@
 	      :contents (list ,@(parse-box-contents contents))
 	      ,@options))
 
-;;;--- If force is not T then changing-space-requirements tends not to
-;;;have any effect
-
-(defmethod resize-sheet* ((sheet sheet) width height &key (force t))
+(defmethod resize-sheet* ((sheet sheet) width height)
   (unless (and (> width 0) (> height 0))
     (error "Trying to resize sheet to zero ~S,~S,~S"
 	   sheet width height))
   (when (or width height)
     (with-bounding-rectangle* (minx miny maxx maxy) sheet
-      (when (or force
-		(and width (/= (- maxx minx) width))
-		(and height (/= (- maxy miny) height)))
-	(setf (sheet-region sheet)
+      (let ((owidth (- maxx minx))
+	    (oheight (- maxy miny)))
+	(if (or (and width (/= owidth width))
+		(and height (/= oheight height)))
+	    (setf (sheet-region sheet)
 	      (make-bounding-rectangle
-		minx miny
-		(if width (+ width minx) maxx)
-		(if height (+ height miny) maxy)))))))
+	       minx miny
+	       (if width (+ width minx) maxx)
+	       (if height (+ height miny) maxy)))
+	  ;;-- Do this so that we relayout the rest of tree
+	  ;;-- I guess we do not want to do this always but ...
+	  (allocate-space sheet owidth oheight))))))
 
 (defmethod move-and-resize-sheet* ((sheet sheet) minx miny width height)
   (resize-sheet* sheet width height)
@@ -152,14 +153,14 @@
 ;;--- What about PANE-FOREGROUND/BACKGROUND vs. MEDIUM-FOREGROUND/BACKGROUND?
 ;;--- Make a PANE protocol class, and call this BASIC-PANE
 (defclass pane 
-	  (sheet-transformation-mixin
-	   standard-sheet-input-mixin
-	   standard-repainting-mixin
-	   permanent-medium-sheet-output-mixin
-	   sheet)
+    (sheet-transformation-mixin
+     standard-sheet-input-mixin
+     standard-repainting-mixin
+     permanent-medium-sheet-output-mixin
+     sheet)
     ((frame :reader pane-frame :initarg :frame)
      (framem :reader frame-manager :initarg :frame-manager)
-     (name :initform nil :reader pane-name)))
+     (name :initform nil :initarg :name :accessor  pane-name)))
 
 (defmethod panep ((x pane)) t)
 (defmethod panep ((x t)) nil)

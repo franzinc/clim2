@@ -22,7 +22,7 @@
 ;;;
 ;;; Copyright (c) 1990 by Xerox Corporations.  All rights reserved.
 ;;;
-;; $fiHeader: db-stream.lisp,v 1.15 92/05/06 15:37:36 cer Exp Locker: cer $
+;; $fiHeader: db-stream.lisp,v 1.16 92/05/07 13:12:08 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -364,10 +364,15 @@
       ;; Flush the old mouse position relative to this window
       ;; so that we don't get bogus highlighted presentations
       ;; when menus first pop up.
+      #+ignore
       (let ((pointer (stream-primary-pointer stream)))
 	(when pointer
 	  (setf (pointer-window pointer) nil)))
       ;; Doesn't really need to do force-output.
+      ;; This actually makes an incredible difference. Since on X
+      ;; everything is buffered the window ends up being cleared only
+      ;; a moment before being draw upon
+      #+then-dont
       (force-output stream))))
 
 ;;; Basically a hook for other mixins.

@@ -19,14 +19,13 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: gadget-output.lisp,v 1.14 92/05/06 15:37:40 cer Exp Locker: cer $
+;; $fiHeader: gadget-output.lisp,v 1.15 92/05/07 13:12:16 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
 
 ;;; Implementation of output-records that are tied to gadgets.
-
-;;--- Need to use the commented out version of this code.
+;;; Why are they output-record-mixins.
 
 (defclass gadget-output-record 
     	  (output-record-mixin output-record-element-mixin output-record)
@@ -74,13 +73,18 @@
   (declare (ignore dx1 dy1 dx2 dy2))
   (update-gadget-position record))
 
+;;; Since this class is an output-record-mixin we do not need this.
+
+;(defmethod bounding-rectangle-set-position :after ((rec gadget-output-record) x y)
+;  (declare (ignore x y))
+;  (update-gadget-position rec))
+
+;;;--- We should not need this one either except that the one on
+;;;--- recording protocol seems weird
+
 (defmethod bounding-rectangle-set-edges :after ((rec gadget-output-record) 
 						left top right bottom)
   (declare (ignore left top right bottom))
-  (update-gadget-position rec))
-
-(defmethod bounding-rectangle-set-position :after ((rec gadget-output-record) x y)
-  (declare (ignore x y))
   (update-gadget-position rec))
 
 (defmethod bounding-rectangle-set-size :after ((rec gadget-output-record) a b)
