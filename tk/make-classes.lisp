@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: make-classes.lisp,v 1.48 1998/09/29 21:02:35 duane Exp $
+;; $Id: make-classes.lisp,v 1.48.36.1 2000/07/19 18:53:11 layer Exp $
 
 (in-package :tk)
 
@@ -45,7 +45,7 @@
 	  (dotimes (i n)
 	    (let* ((res (xt-resource-list resources i))
 		   (original-name (xt-resource-name res)))
-	      (when (string-equal (char*-to-string original-name)
+	      (when (string-equal (excl:native-to-string original-name)
 				  tk-resource-name)
 		(let ((*package* (find-package :tk)))
 		  (return
@@ -53,9 +53,9 @@
 		      :original-name original-name
 		      :name resource-name
 		      :class (lispify-resource-class
-			      (char*-to-string (xt-resource-class res)))
+			      (excl:native-to-string (xt-resource-class res)))
 		      :type (lispify-resource-type
-			     (char*-to-string (xt-resource-type res))))))))))
+			     (excl:native-to-string (xt-resource-type res))))))))))
 	(xt_free resources))
       result)))
 
@@ -117,11 +117,11 @@
 	(push (make-instance
 		  resource-class
 		:original-name (xt-resource-name (xt-resource-list resources i))
-		:name (lispify-resource-name (char*-to-string (xt-resource-name (xt-resource-list resources i))))
+		:name (lispify-resource-name (excl:native-to-string (xt-resource-name (xt-resource-list resources i))))
 		:class (lispify-resource-class
-			(char*-to-string (xt-resource-class (xt-resource-list resources i))))
+			(excl:native-to-string (xt-resource-class (xt-resource-list resources i))))
 		:type (lispify-resource-type
-		       (char*-to-string (xt-resource-type (xt-resource-list resources i)))))
+		       (excl:native-to-string (xt-resource-type (xt-resource-list resources i)))))
 	      r))
       (xt_free resources)
       r)))
@@ -222,7 +222,7 @@
 	    :test #'string=))))
 
 (defun widget-class-name (h)
-  (char*-to-string (xt-class-name h)))
+  (values (excl:native-to-string (xt-class-name h))))
 
 (defvar *widget-name-to-class-name-mapping*
     '(((list scrolling-list) ol-list)
@@ -331,11 +331,11 @@
 
 (defun-c-callable toolkit-error-handler ((message :unsigned-long))
   (let ((*error-output* excl:*initial-terminal-io*))
-    (error "Xt: ~a" (char*-to-string message))))
+    (error "Xt: ~a" (excl:native-to-string message))))
 
 (defun-c-callable toolkit-warning-handler ((message :unsigned-long))
   (let ((*error-output* excl:*initial-terminal-io*))
-    (warn "Xt: ~a" (char*-to-string message))))
+    (warn "Xt: ~a" (excl:native-to-string message))))
 
 
 ;; This is a terrible hack used to compensate for bugs/inconsistencies

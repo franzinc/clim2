@@ -15,9 +15,17 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: last.lisp,v 1.4 2000/05/01 21:43:39 layer Exp $
+;; $Id: last.lisp,v 1.4.24.1 2000/07/19 18:53:14 layer Exp $
+
+;;; All this is allegro-sepcific.
 
 (in-package :system)
+
+;;; This is, perhaps, a temporary hack to get the EUC stuff loaded at
+;;; a non-bad time.
+;;;
+(require :euc)
+(find-external-format :euc)
 
 #-(version>= 5 0 pre-final 16)
 (load-patches "patch" "sys:;update-clim;*.fasl")

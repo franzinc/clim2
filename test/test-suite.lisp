@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $Id: test-suite.lisp,v 1.87 1999/07/19 22:25:17 layer Exp $
+;; $Id: test-suite.lisp,v 1.87.34.1 2000/07/19 18:53:10 layer Exp $
 
 (in-package :clim-user)
 
@@ -3409,17 +3409,25 @@ Luke Luck licks the lakes Luke's duck likes."))
 ;;; Menu and dialog benchmarks
 
 (defmacro without-clim-input (&body body)
-  `(let ((old (symbol-function 'read-gesture)))
-     (unwind-protect
-         (progn
-           (setf (symbol-function 'read-gesture) #'ignore-clim-gesture)
-           (catch 'ignore-gesture ,@body))
-       (setf (symbol-function 'read-gesture) old))))
-
-(defun ignore-clim-gesture (&rest ignore)
-  (declare (ignore ignore))
-  #-aclpc (mp:process-sleep 4) #+aclpc (sleep 4)
-  (throw 'ignore-gesture nil))
+  ;; It might be better just to have a global special.  This is meant
+  ;; to be safe in the presence of other processes.
+  (let ((specn (make-symbol "*WITHOUT-CLIM-INPUT-FLAG*"))
+	(oldn (make-symbol "OLD"))
+	(tagn (make-symbol "IGNORE-CLIM-GESTURE")))
+    `(let ((,oldn (symbol-function 'read-gesture))
+	   (,specn t))
+       (declare (special ,specn))
+       (unwind-protect
+	   (catch ',tagn
+	     (setf (symbol-function 'read-gesture)
+	       #'(lambda (&rest args)
+		   (if (boundp ',specn)
+		       (progn
+			 #-aclpc (mp:process-sleep 4) #+aclpc (sleep 4)
+			 (throw ',tagn nil))
+		       (apply ,oldn args))))
+	     ,@body)
+	 (setf (symbol-function 'read-gesture) ,oldn)))))
 
 (define-benchmark (simple-menu-choose :iterations 10) (stream)
   "Pop up a simple menu of colors"

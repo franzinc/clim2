@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: foreign.lisp,v 1.24 1998/08/06 23:17:15 layer Exp $
+;; $Id: foreign.lisp,v 1.24.36.1 2000/07/19 18:53:11 layer Exp $
 
 (in-package :tk)
 
@@ -96,6 +96,6 @@
   (with-ref-par ((name 0 *)
 		 (class 0 *))
     (xt_get_application_name_and_class display &name &class)
-    (values (char*-to-string name)
-	    (char*-to-string class))))
+    (values (excl:native-to-string name)
+	    (excl:native-to-string class))))
 

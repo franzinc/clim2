@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xm-widgets.lisp,v 1.30 1999/02/25 08:23:42 layer Exp $
+;; $Id: xm-widgets.lisp,v 1.30.34.1 2000/07/19 18:53:12 layer Exp $
 
 (in-package :tk)
 
@@ -42,7 +42,7 @@
 					  :name :delete-response
 					  :type 'tk::delete-response
 					  :original-name
-					  (ff:string-to-char*
+					  (excl:string-to-native
 					   "deleteResponse")))
 
 (tk::add-resource-to-class (find-class 'xm-text)
@@ -50,7 +50,7 @@
 					  :name :font-list
 					  :type 'font-list
 					  :original-name
-					  (ff:string-to-char*
+					  (excl:string-to-native
 					   "fontList")))
 
 (tk::add-resource-to-class (find-class 'vendor-shell)
@@ -58,7 +58,7 @@
 					  :name :keyboard-focus-policy
 					  :type 'tk::keyboard-focus-policy
 					  :original-name
-					  (ff:string-to-char*
+					  (excl:string-to-native
 					   "keyboardFocusPolicy")))
 
 
@@ -67,7 +67,7 @@
 					  :name :label-type
 					  :type 'tk::label-type
 					  :original-name
-					  (ff:string-to-char*
+					  (excl:string-to-native
 					   "labelType")))
 
 
@@ -86,7 +86,7 @@
 	 ;;--- xm_string_get_l_to_r and make sure it works with multiple
 	 ;;-- segment strings
 	 (xm_string_get_l_to_r value xm-font-list-default-tag &string)
-	 (char*-to-string string))))
+	 (values (excl:native-to-string string)))))
 
 (defmethod convert-resource-in ((parent t) (type (eql 'xm-string-table)) value)
   value)
@@ -197,7 +197,7 @@
 (defmethod convert-resource-out ((parent t) (type (eql 'default-button-type)) value)
   (encode-box-child value))
 
-;; JPM: Use FF:string-to-char* at compile time for strings that will
+;; JPM: Use excl:string-to-native at compile time for strings that will
 ;; never get freed, use string-to-foreign at run time for strings
 ;; that will get freed.
 
@@ -206,7 +206,7 @@
 					  :name :scroll-horizontal
 					  :type 'tk::boolean
 					  :original-name
-					  (ff:string-to-char*
+					  (excl:string-to-native
 					   "scrollHorizontal")))
 
 (tk::add-resource-to-class (find-class 'xm-text)
@@ -214,7 +214,7 @@
 					  :name :scroll-vertical
 					  :type 'tk::boolean
 					  :original-name
-					  (ff:string-to-char*
+					  (excl:string-to-native
 					   "scrollVertical")))
 
 (tk::add-resource-to-class (find-class 'xm-text)
@@ -222,7 +222,7 @@
 					  :name :word-wrap
 					  :type 'tk::boolean
 					  :original-name
-					  (ff:string-to-char*
+					  (excl:string-to-native
 					   "wordWrap")))
 
 (defun make-xm-string-table (&key (number 1))

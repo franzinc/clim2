@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xt-silica.lisp,v 1.112 1999/05/04 01:21:10 layer Exp $
+;; $Id: xt-silica.lisp,v 1.112.34.1 2000/07/19 18:53:14 layer Exp $
 
 (in-package :xm-silica)
 
@@ -55,8 +55,8 @@
   ':xt)
 
 (defmethod port-name ((port xt-port))
-  (ff:char*-to-string
-   (x11:display-display-name (port-display port))))
+  (values (excl:native-to-string
+	   (x11:display-display-name (port-display port)))))
 
 ;; access to port-copy-gc should be within a without-scheduling
 
@@ -130,7 +130,7 @@
 	(let* ((screen (x11:xdefaultscreenofdisplay display))
 	       (bs-p (not (zerop (x11::screen-backing-store screen))))
 	       (su-p (not (zerop (x11::screen-save-unders screen))))
-	       (vendor (ff:char*-to-string (x11::display-vendor display))))
+	       (vendor (excl:native-to-string (x11::display-vendor display))))
 	  (if (and bs-p su-p
 		   ;; An amazing crock.  XXX
 		   (notany #'(lambda (x) (search x vendor)) *unreliable-server-vendors*))

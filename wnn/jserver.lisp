@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $Id: jserver.lisp,v 1.5 1998/08/06 23:17:41 layer Exp $
+;; $Id: jserver.lisp,v 1.5.36.1 2000/07/19 18:53:15 layer Exp $
 
 (in-package :wnn)
 
@@ -61,9 +61,9 @@
 			 ;; it's important to specify a timeout of -1
 			 ;; in the call to jl_open_lang otherwise wnn
 			 ;; messes with sigalrm
-			 (jl_open_lang (ff:string-to-char* login)
-				       (ff:string-to-char* host)
-				       (ff:string-to-char* lang)
+			 (jl_open_lang (excl:string-to-native login)
+				       (excl:string-to-native host)
+				       (excl:string-to-native lang)
 				       0 0 0 -1))
 		(setf (mp:process-quantum mp:*current-process*) temp)
 		(mp:process-allow-schedule))))

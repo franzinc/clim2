@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: ol-gadgets.lisp,v 1.72 1999/02/25 08:23:44 layer Exp $
+;; $Id: ol-gadgets.lisp,v 1.72.34.1 2000/07/19 18:53:13 layer Exp $
 
 (in-package :xm-silica)
 
@@ -1312,7 +1312,7 @@
 			   widget string 0 end))))
       (let ((string (aref string 0)))
 	(prog1
-	    (subseq (ff::char*-to-string string) 0 end)
+	    (subseq (excl:native-to-string string) 0 end)
 	  (xt::xt_free string))))))
 
 
@@ -1328,7 +1328,7 @@
 				widget string start end))))
 	   (let ((string (aref string 0)))
 	     (prog1
-		 (ff::char*-to-string string)
+		 (excl:native-to-string string)
 	       (xt::xt_free string)))))))
 
 (defmethod gadget-current-selection ((tf openlook-text-editor))
