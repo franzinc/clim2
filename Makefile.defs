@@ -1,4 +1,4 @@
-# $fiHeader: Makefile.defs,v 1.1 93/03/01 14:26:08 cer Exp $
+# $fiHeader: Makefile.defs,v 1.2 93/03/01 15:59:11 cer Exp $
 #
 #  Makefile.defs for CLIM 2.0
 #
@@ -217,7 +217,6 @@ CLIM-STANDALONE-OBJS = clim/gestures.fasl \
                         clim/defresource.fasl \
                         clim/temp-strings.fasl \
                         clim/clim-defs.fasl \
-                        clim/stipples.fasl \
                         clim/stream-class-defs.fasl \
                         clim/interactive-defs.fasl \
                         clim/cursor.fasl \
@@ -313,6 +312,7 @@ OL-CLIM-OBJS = tk/ol-classes.fasl \
 
 MOTIF-CLIM-OBJS = tk-silica/pkg.fasl \
                    tk-silica/xt-silica.fasl \
+                   tk-silica/xt-stipples.fasl \
                    tk-silica/xm-silica.fasl \
                    tk-silica/xt-graphics.fasl \
                    tk-silica/xm-graphics.fasl \
@@ -330,6 +330,7 @@ MOTIF-CLIM-OBJS = tk-silica/pkg.fasl \
 
 OPENLOOK-CLIM-OBJS = tk-silica/pkg.fasl \
                       tk-silica/xt-silica.fasl \
+                      tk-silica/xt-stipples.fasl \
                       tk-silica/ol-silica.fasl \
                       tk-silica/xt-graphics.fasl \
                       tk-silica/ol-graphics.fasl \
@@ -395,7 +396,6 @@ ALL_SRC =	   utils/excl-verification.lisp \
                         clim/defresource.lisp \
                         clim/temp-strings.lisp \
                         clim/clim-defs.lisp \
-                        clim/stipples.lisp \
                         clim/stream-class-defs.lisp \
                         clim/interactive-defs.lisp \
                         clim/cursor.lisp \
@@ -483,6 +483,7 @@ ALL_SRC =	   utils/excl-verification.lisp \
               tk/make-widget.lisp \
 		   tk-silica/pkg.lisp \
                    tk-silica/xt-silica.lisp \
+                   tk-silica/xt-stipples.lisp \
                    tk-silica/xm-silica.lisp \
                    tk-silica/xt-graphics.lisp \
                    tk-silica/xm-graphics.lisp \

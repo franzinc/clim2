@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.63 93/02/08 15:58:10 cer Exp $
+;; $fiHeader: xm-gadgets.lisp,v 1.64 93/03/01 14:26:36 cer Exp $
 
 (in-package :xm-silica)
 
@@ -114,7 +114,8 @@
           (ecase alignment
             ((:left nil) :beginning)
             (:center :center)
-            (:right :end)))))
+            (:right :end))))
+      (setf (getf initargs :recompute-size) nil))
     (values class initargs)))
 
 (defmethod (setf gadget-label) :after (nv (sheet motif-labelled-gadget))
@@ -530,6 +531,7 @@
 ;;; 
 
 (defclass motif-text-editor (motif-losing-focus-callback-pane
+			     motif-value-changed-callback-pane
                              motif-action-pane
                              text-editor
                              xt-leaf-pane)

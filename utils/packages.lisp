@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: packages.lisp,v 1.46 93/01/21 14:59:44 cer Exp $
+;; $fiHeader: packages.lisp,v 1.47 93/02/08 15:58:29 cer Exp $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :common-lisp-user)
 
@@ -3494,6 +3494,7 @@
     port-invoke-with-pointer-grabbed
     port-mirror->sheet-table
     port-move-frame
+    port-resize-frame
     port-note-cursor-change
     port-note-frame-adopted
     port-note-gadget-activated

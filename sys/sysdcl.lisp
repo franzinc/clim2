@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sysdcl.lisp,v 1.34 92/12/16 16:50:03 cer Exp $
+;; $fiHeader: sysdcl.lisp,v 1.35 92/12/17 15:33:24 cer Exp $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :cl-user)
 
@@ -209,7 +209,6 @@
   ("temp-strings")
   ("coral-defs" :features CCL-2)
   ("clim-defs")
-  ("stipples")
   
   ;; Definitions and protocols
   ("stream-class-defs")
@@ -408,6 +407,7 @@
      :load-before-compile (clim-standalone xm-tk))
   ("pkg")
   ("xt-silica")
+  ("xt-stipples")
   ("xm-silica")
   ("xt-graphics")
   ("xm-graphics")
@@ -432,6 +432,7 @@
      :load-before-compile (clim-standalone ol-tk))
   ("pkg")
   ("xt-silica")
+  ("xt-stipples")
   ("ol-silica")
   ("xt-graphics")
   ("ol-graphics")

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadget-output.lisp,v 1.43 93/01/18 13:54:32 cer Exp $
+;; $fiHeader: gadget-output.lisp,v 1.44 93/02/08 15:56:49 cer Exp $
 
 (in-package :clim-internals)
 
@@ -670,21 +670,21 @@
   (declare (ignore new-value))
   (setf (accept-values-query-changed-p query) t))
 
-;;--- This is mostly nonsense.  If we enter something that is an error then
-;;--- the field value is unchanged.  What is the right thing to do?
 (defmethod accept-values-string-field-changed-callback
 	   ((gadget text-field) stream query)
   (let ((new-value (gadget-value gadget)))
     ;; Only do the accept when the field has changed
+    ;; Only call the callback if the query is still valid
     (when (and (accept-values-query-changed-p query)
 	       (accept-values-query-valid-p 
 		 query (accept-values-query-presentation query)))
-      ;; Only call the callback if the query is still valid
       (handler-case
 	(multiple-value-bind (object type index)
 	    (accept-from-string (accept-values-query-type query) new-value)
 	  (declare (ignore type))
-	  (assert (= index (length new-value)))
+	  ;; we can put this back in when we handle ol text-fields
+	  ;; correctly (see tk-silica/ol-gadgets)
+	  #+ignore (assert (= index (length new-value)))
 	  object)
 	(error () 
 	 (setf (accept-values-query-error-p query) t))

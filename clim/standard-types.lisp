@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: standard-types.lisp,v 1.24 92/12/14 15:02:19 cer Exp $
+;; $fiHeader: standard-types.lisp,v 1.25 92/12/16 16:46:58 cer Exp $
 
 (in-package :clim-internals)
 
@@ -1484,11 +1484,14 @@
 (define-presentation-type form ()
   :options ((auto-activate nil boolean))
   ;; Handling of AUTO-ACTIVATE is done below...
-  :inherit-from `expression)
+  :inherit-from `((expression) :auto-activate ,auto-activate))
 
 (define-presentation-method presentation-type-history ((type form))
   ;; Share history with EXPRESSION
   (presentation-type-history-for-frame 'expression *application-frame*))
+
+;;; this overwrites the method defined by the above
+;;; define-presentation-type form. This doesn't seem very satisfactory
 
 (define-presentation-method map-over-presentation-type-supertypes ((type form) function)
   (with-presentation-type-decoded (name) type

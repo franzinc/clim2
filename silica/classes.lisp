@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: classes.lisp,v 1.29 92/12/16 16:48:28 cer Exp $
+;; $fiHeader: classes.lisp,v 1.30 93/01/11 15:45:14 colin Exp $
 
 (in-package :silica)
 
@@ -90,8 +90,7 @@
      (foreground :initform +black+ :accessor medium-foreground)
      (background :initform +white+ :accessor medium-background)
      (ink :initform +foreground-ink+ :accessor medium-ink)
-     (text-style :initform *default-text-style* 
-		 :accessor medium-text-style)
+     (text-style :initform nil :accessor medium-text-style)
      (default-text-style :initform *default-text-style*
 			 :accessor medium-default-text-style)
      (merged-text-style :initform *default-text-style*

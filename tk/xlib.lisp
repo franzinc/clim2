@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xlib.lisp,v 1.38 93/01/11 15:45:55 colin Exp $
+;; $fiHeader: xlib.lisp,v 1.39 93/02/08 15:57:57 cer Exp $
 
 (in-package :tk)
 
@@ -634,53 +634,49 @@
    (height :reader image-height :initarg :height)
    (data :reader image-data :initarg :data)
    (depth :reader image-depth :initarg :depth)
+   (format :reader image-format :initform x11:zpixmap :initarg :format)
    (realized-displays :initform nil :accessor realized-displays)))
   
 
+(defconstant bitmap-pad 8)
+
 (defmethod realize-image (image display)
   (when (not (member display (realized-displays image)))
-    (let ((width (image-width image))
-	  (height (image-height image))
-	  (data (image-data image))
-	  (depth (image-depth image))
-	  v
-	  format
-	  (bytes-per-line 0)
-	  (bitmap-pad 8))		; Why is this 8 - if 0 get signal 8!
-					;  -- RTFM, dude.  (jdi)
-      (ecase depth
+    (let* ((width (image-width image))
+	   (height (image-height image))
+	   (data (image-data image))
+	   (depth (image-depth image))
+	   (format (image-format image))
+	   (bits-per-line (* width depth))
+	   (padded-bits-per-line (* bitmap-pad 
+				    (ceiling bits-per-line bitmap-pad)))
+	   (bytes-per-line (/ padded-bits-per-line 8))
+	   (v (excl::malloc (* bytes-per-line height)))
+	   (visual (x11:screen-root-visual
+		    (x11:xdefaultscreenofdisplay display)))
+	   (offset 0)
+	   (x (x11:xcreateimage display
+				visual
+				depth
+				format
+				offset
+				v
+				width
+				height
+				bitmap-pad
+				bytes-per-line)))
+      (case depth
 	(8 
-	 (setq format x11:zpixmap)
-	 (setq v (excl::malloc (* width height)))
 	 (dotimes (h height)
 	   (dotimes (w width)
-	     (setf (sys::memref-int v (+ (* h width) w) 0 :unsigned-byte)
+	     (setf (sys::memref-int v (+ (* h bytes-per-line) w) 0 :unsigned-byte)
 	       (aref data h w)))))
-	(1
-	 (setq format x11:zpixmap)
-	 (setq bytes-per-line (ceiling (/ width bitmap-pad)))
-	 (setq v (excl::malloc (* bytes-per-line height)))))
-      (let* ((visual (x11:screen-root-visual
-		      (x11:xdefaultscreenofdisplay display)))
-	     (offset 0)
-	     (x (x11:xcreateimage
-		 display
-		 visual
-		 depth
-		 format
-		 offset
-		 v
-		 width
-		 height
-		 bitmap-pad
-		 bytes-per-line)))
-	(case depth
-	  (1
-	   (dotimes (h height)
-	     (dotimes (w width)
-	       (x11:xputpixel x w h (aref data h w))))))
-	(setf (foreign-pointer-address image) x)))
-    (pushnew display (realized-displays image))))
+	(t
+	 (dotimes (h height)
+	   (dotimes (w width)
+	     (x11:xputpixel x w h (aref data h w))))))
+      (setf (foreign-pointer-address image) x))
+    (push display (realized-displays image))))
 
 (defmethod put-image (pixmap gc image
 		      &key (src-x 0) (src-y 0) (dest-x 0) (dest-y 0))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept-values.lisp,v 1.52 93/01/21 14:57:35 cer Exp $
+;; $fiHeader: accept-values.lisp,v 1.53 93/02/08 15:56:36 cer Exp $
 
 (in-package :clim-internals)
 
@@ -156,10 +156,11 @@
 	      (updating-output
 		  (stream :unique-id query-identifier
 			  :id-test #'equal
-			  :cache-value (cons active-p
-					     (if (accept-values-query-changed-p query)
+			  :cache-value (list (if (accept-values-query-changed-p query)
 						 (accept-values-query-value query)
-						 default))
+					       default) 
+					     ptype
+					     active-p)
 			  :cache-test #'(lambda (x y)
 					  (unless (accept-values-query-changed-p query)
 					    (equal x y))))

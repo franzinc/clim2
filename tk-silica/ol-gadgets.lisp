@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-gadgets.lisp,v 1.37 93/01/18 13:58:07 cer Exp $
+;; $fiHeader: ol-gadgets.lisp,v 1.38 93/02/08 15:58:04 cer Exp $
 
 
 (in-package :xm-silica)
@@ -502,6 +502,11 @@
 (defun openlook-text-field-edit-widget (tf &optional (mirror (sheet-direct-mirror tf)))
   (tk::get-values mirror :text-edit-widget))
 
+;;; --we need to define an event handler to deal with the losing focus
+;;; correcly. At the moment this function is simply incorrect.
+;;; when this is fixed put back assert in clim/gadget-output
+;;; accept-values-string-field-changed-callback 
+
 (defmethod add-sheet-callbacks :after ((port openlook-port) 
 				       (sheet openlook-text-field) 
 				       (widget t))
@@ -509,6 +514,10 @@
     (tk::add-callback (openlook-text-field-edit-widget sheet widget)
 		      :post-modify-notification
 		      'queue-value-changed-event
+		      sheet)
+    (tk::add-callback (openlook-text-field-edit-widget sheet widget)
+		      :post-modify-notification
+		      'queue-losing-focus-event
 		      sheet)))
 
 (defmethod gadget-value ((gadget openlook-text-field))

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.68 93/01/21 14:59:36 cer Exp $
+;; $fiHeader: xt-silica.lisp,v 1.69 93/02/08 15:58:19 cer Exp $
 
 (in-package :xm-silica)
 
@@ -30,7 +30,7 @@
      (context :reader port-context)     
      (copy-gc :initform nil)
      (copy-gc-depth-1 :initform nil)
-     (opacities :initform nil)
+     (stipples :initform nil :accessor port-stipples)
      ;; This next is true for servers like Suns, which (pretty much) always
      ;; can safely copy-area without generating graphics-exposures.
      (safe-backing-store :initform nil :accessor port-safe-backing-store)
@@ -220,7 +220,7 @@
 	      ;;; Perhaps we should just grab the first font we can find.
 	      (t
 	       (error "Unable to determine default font"))))))
-  (setup-opacities port display))
+  (setup-stipples port display))
 
 (defparameter *xt-logical-size-alist*
 	      '((:tiny       6)
@@ -235,103 +235,6 @@
 				   &optional (character-set *standard-character-set*))
   (standardize-text-style-1
     port style character-set *xt-logical-size-alist*))
-
-(defun make-stipple-image (height width patterns)
-  (make-instance 'tk::image :width width :height height
-		 :data (clim-internals::make-stipple-array height width patterns)
-		 :depth 1))
-
-(defvar *opacity-stipples*
-	(mapcar #'(lambda (entry)
-		    (cons (first entry)
-			  (apply #'make-stipple-image (second entry))))
-		'((+nowhere+ (1 1 (#b0)))
-		  (0.05 (8 16 (#b1000000000000000
-			       #b0000001000000000
-			       #b0000000000001000
-			       #b0010000000000000
-			       #b0000000010000000
-			       #b0000000000000010
-			       #b0000100000000000
-			       #b0000000000100000)))
-		  (0.1 (8 8 (#b10000000
-			     #b00010000
-			     #b00000010
-			     #b01000000
-			     #b00001000
-			     #b00000001
-			     #b00100000
-			     #b00000100)))
-		  (0.2 (4 4 (#b1000
-			     #b0010
-			     #b0100
-			     #b0001)))
-		  (0.3 (3 3 (#b100
-			     #b010
-			     #b001)))
-		  (0.4 (2 2 (#b10
-			     #b01)))
-		  (0.6 (3 3 (#b011
-			     #b101
-			     #b110)))
-		  (0.7 (4 4 (#b0111
-			     #b1101
-			     #b1011
-			     #b1110)))
-		  (0.8 (8 8 (#b01111111
-			     #b11101111
-			     #b11111101
-			     #b10111111
-			     #b11110111
-			     #b11111110
-			     #b11011111
-			     #b11111011)))
-		  (0.9 (8 16 (#b0111111111111111
-			      #b1111110111111111
-			      #b1111111111110111
-			      #b1101111111111111
-			      #b1111111101111111
-			      #b1111111111111101
-			      #b1111011111111111
-			      #b1111111111011111)))
-		  (+everywhere+ (1 1 (#b1))))))
-
-
-(defun setup-opacities (port display)
-  (let ((opacities nil)
-	(root (tk::display-root-window display))
-	gc)
-    (dolist (ls *opacity-stipples*)
-      (let ((pixmap (make-instance 'tk::pixmap
-		      :drawable root
-		      :width (tk::image-width (cdr ls))
-		      :height (tk::image-height (cdr ls))
-		      :depth 1)))
-	(unless gc
-	  (setq gc (make-instance 'tk::gcontext :drawable pixmap
-				  :foreground 1 :background 0)))
-	 (tk::put-image pixmap gc (cdr ls))
-	(push (cons (car ls) pixmap) opacities)))
-    (when gc
-      (tk::free-gcontext gc))
-    (setf (slot-value port 'opacities) (nreverse opacities))))
-
-;;
-;; Takes an opacity, and returns a clip mask (pixmap) for that opacity.
-;;
-(defun decode-opacity (opacity port)
-  (let ((pops (slot-value port 'opacities)))
-    (cond ((eq opacity +nowhere+)
-	   (cdar pops))
-	  ((eq opacity +everywhere+)
-	   (cdar (last pops)))
-	  (t
-	   (let ((lastpop (cdar pops))
-		 (value (opacity-value opacity)))
-	     (dolist (pop (cdr pops) lastpop)
-	       (if (< value (car pop))
-		   (return lastpop))
-	       (setq lastpop (cdr pop))))))))
 
 
 
@@ -1723,8 +1626,12 @@ the geometry of the children. Instead the parent has control. "))
   (check-type y (signed-byte 16))
   (tk::set-values (frame-shell frame) :x x :y y))
 
+(defmethod port-resize-frame ((port xt-port) frame width height)
+  (check-type width (signed-byte 16))
+  (check-type height (signed-byte 16))
+  (tk::set-values (frame-shell frame) :width width :height height))
+
 (defmethod destroy-port ((port xt-port))
   (when (port-process port)
     (clim-sys:destroy-process (port-process port)))
   (port-terminated port (make-condition 'error)))
-

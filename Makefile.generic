@@ -1,4 +1,4 @@
-# $fiHeader: Makefile.generic,v 1.1 93/03/01 14:26:10 cer Exp $
+# $fiHeader: Makefile.generic,v 1.2 93/03/01 15:59:14 cer Exp $
 #
 #  Makefile.generic for CLIM 2.0
 #
@@ -124,7 +124,7 @@ tk/xm-defs.fasl : tk/xm-defs.lisp
 # Building
 
 clim-xm:	FORCE $(MOTIF_OBJS)
-	-$(RM) -f $(CLIM)
+	-$(RM) -f $(CLIMXM)
 	$(ECHO) " \
 		(setq sys::*libxt-pathname* \"$(XTLIB)\") \
 		(setq sys::*libx11-pathname* \"$(XLIB)\") \

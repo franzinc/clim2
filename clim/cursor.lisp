@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: cursor.lisp,v 1.21 92/12/03 10:26:15 cer Exp $
+;; $fiHeader: cursor.lisp,v 1.22 93/01/21 14:57:42 cer Exp $
 
 (in-package :clim-internals)
 
@@ -174,7 +174,7 @@
 ;;; start blinking).
 (defmethod port-note-cursor-change :after ((port basic-port) 
 					   cursor stream (type (eql 'cursor-focus)) old new)
-  (declare (ignore old type cursor))
+  (declare (ignore old cursor))
   ;;--- This should really only do this when PORT-INPUT-FOCUS-SELECTION
   ;;--- is :SHEET-UNDER-POINTER, since this causes the "wrong" thing to
   ;;--- happen from the perspective of Genera users.  But where do we

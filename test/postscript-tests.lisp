@@ -1,6 +1,6 @@
 ;;; -*- Mode: LISP; Syntax: Common-lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: postscript-tests.lisp,v 1.3 92/12/01 09:46:38 cer Exp $
+;; $fiHeader: postscript-tests.lisp,v 1.4 92/12/16 16:50:10 cer Exp $
 
 (in-package :clim-user)
 
@@ -238,14 +238,27 @@
 ;      (draw-text* stream "Quid fecit Dominus!?!" 200 200
 ;		    :text-style '(:sans-serif :italic :large)))))
 
+(defvar *hearts-tile*
+    (make-rectangular-tile
+     (make-pattern #2A((0 1 1 0 1 1 0 0)
+		       (1 0 0 1 0 0 1 0)
+		       (1 0 0 1 0 0 1 0)
+		       (0 1 0 0 0 1 0 0)
+		       (0 0 1 0 1 0 0 0)
+		       (0 0 0 1 0 0 0 0)
+		       (0 0 0 0 0 0 0 0)
+		       (0 0 0 0 0 0 0 0))
+		   (list +foreground-ink+ +background-ink+))
+     8 8))
+
 ;(defun pat-ps (&optional file)
 ;  (ps-test
-;    (draw-rectangle* stream 100 100 200 200 :ink *hearts-stipple*)))
+;    (draw-rectangle* stream 100 100 200 200 :ink *hearts-tile*)))
 
 (define-postscript-test (pattern-test "Draws a heart patterned rectangle"
 				      clim-user::graphics)
 			()
-  (draw-rectangle* *standard-output* 100 100 200 200 :ink clim-internals::*hearts-stipple*))
+  (draw-rectangle* *standard-output* 100 100 200 200 :ink *hearts-tile*))
 
 ;(defun test-l-ps (&optional file)
 ;  (ps-test
@@ -294,7 +307,7 @@
 ;  (ps-test
 ;    (flet ((draw (stream)
 ;		 (draw-rectangle* stream 0 0 50 50
-;				  :ink *hearts-stipple*)
+;				  :ink *hearts-tile*)
 ;		 #+Ignore
 ;		 (draw-triangle* stream 50 50 50 75 75 50 :ink +cyan+)
 ;		 (draw-circle* stream 70 30 20)))
