@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xm-frames.lisp,v 1.79.24.2 2002/02/08 19:11:25 layer Exp $
+;; $Id: xm-frames.lisp,v 1.79.24.3 2002/02/24 02:28:06 layer Exp $
 
 (in-package :xm-silica)
 
@@ -911,10 +911,26 @@
   ;; Deal with the problem of motif installing passive grabs
   nil)
 
+;;; spr25133 --pnc
+;;; Running the following (at least since Motif2.1) causes an
+;;; "XtGrabPointer failed" warning to be reported.  (This seems
+;;; particularly true on Linux platforms.)
+;;; What appears to be happening is a race-condition.
+;;; 1] (port-pointer-grabbed-p xt-port) works by first trying to
+;;; grab the pointer (using XGrabPointer)  If the grab succeeds
+;;; (meaning it is not already grabed) it ungrabs the pointer 
+;;; and returns nil.
+;;; 2] It apears that XtManageChild also tries to grab the pointer
+;;; (by using XtGrabPointer).  If the ungrab (in port-pointer-grabbed-p)
+;;; hasn't completed yet, the second grab (in tk::manage-child)
+;;; prints out a warning.
+;;; The (present) solution is to sleep briefly (and, consequently
+;;; delay the menu pop-up by a small amount).
 (defmethod framem-enable-menu ((framem motif-frame-manager) menu)
   ;; don't try to popup a menu if the mouse is already grabbed
   ;; (cim 1/3/96)
-  (unless (port-pointer-grabbed-p (port framem))
+  (unless (port-pointer-grabbed-p (port framem)) 
+    (sleep 0.1)
     (tk::manage-child menu)))
 
 (defmethod framem-destroy-menu ((framem motif-frame-manager) menu)
