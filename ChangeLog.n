@@ -11,6 +11,19 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.2.2.21.13
+
+Added file:
+
+	* Makefile.hp64: New for hp 64-bit
+
+Changed files:
+
+	* Makefile: Add hp64
+	* Makefile.rs6000: add comments from previous versions
+	* utils/packages.lisp: Incf version
+	
+*******************************************************************************
 2.2.2.21.12
 merge from layer6 to acl6 branches
 next merge tag: layer6_to_acl6_merge1

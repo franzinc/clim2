@@ -1,4 +1,4 @@
-# $Header: /repo/cvs.copy/clim2/Makefile.rs6000,v 1.12.34.2 2000/08/06 23:53:37 layer Exp $
+# $Header: /repo/cvs.copy/clim2/Makefile.rs6000,v 1.12.34.3 2000/09/23 21:40:03 duane Exp $
 #
 #  Makefile.rs6000 for CLIM 2.0
 #
@@ -19,6 +19,20 @@ SET_LIBRARY_PATH= \
   LIBPATH=/usr/lpp/X11/lib/R5:/lib:/usr/lib; export LIBPATH; env
 
 TKLIB=-L/usr/lpp/X11/lib/R5 -lXm
+
+## removed: -D_NO_PROTO -D_NONSTD_TYPES -D_MBI=void
+#CFLAGS	= -O -D_BSD
+#	-I/usr/include/Motif1.2
+#        /usr/lpp/X11/lib/R6/Motif1.2/Xm12.imp
+#        /usr/lpp/X11/lib/R6/Motif1.2/Mrm12.imp
+
+### the R5 directory contains Motif 1.2 on loveshaq
+### -- what a botch.  Can't use the latest X11 just because we want
+###    to use an older Motif!  How I love AIX.... not!
+#SET_LIBRARY_PATH= \
+#  LIBPATH=/usr/lpp/X11/lib/R5:/lib:/usr/lib; export LIBPATH; env
+
+#TKLIB=-L/usr/lpp/X11/lib/R5 -lXm
 
 XTLIB=-lXt
 XLIB=-lX11
