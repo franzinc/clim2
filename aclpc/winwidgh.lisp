@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: winwidgh.lisp,v 1.6 1999/05/04 01:21:03 layer Exp $
+;; $Id: winwidgh.lisp,v 1.7 1999/07/19 22:25:10 layer Exp $
 
 (in-package :acl-clim)
 
@@ -27,6 +27,13 @@
 (defconstant TTN_NEEDTEXTA TTN_FIRST)	; ascii
 (defconstant TTN_NEEDTEXTW (- TTN_FIRST 10)); unicode
 (defconstant TTN_NEEDTEXT TTN_NEEDTEXTA)
+
+(defconstant EM_SETMARGINS #xD3)
+(defconstant EC_LEFTMARGIN 1)
+(defconstant EC_RIGHTMARGIN 2)
+(defconstant EC_USEFONTINFO #xffff)
+
+(defvar SRCOR #xee0086)
 
 (ff:def-foreign-type browseinfo
     (:struct (hwndOwner win:hwnd)
@@ -77,6 +84,37 @@
 ;; This should be equivalent to win:getdc but not cons.
 (ff:def-foreign-call (GetDC "GetDC")
     ((window :int))
+  :arg-checking nil
+  :call-direct t
+  :returning :int)
+
+;; This should be equivalent to win:getdc but not cons.
+(ff:def-foreign-call (ReleaseDC "ReleaseDC")
+    ((window :int) (dc :int))
+  :arg-checking nil
+  :call-direct t
+  :returning :int)
+
+(ff:def-foreign-call (SetBkMode "SetBkMode")
+    ((dc :int) (mode :int))
+  :arg-checking nil
+  :call-direct t
+  :returning :int)
+
+(ff:def-foreign-call (SetBkColor "SetBkColor")
+    ((dc :int) (color :int))
+  :arg-checking nil
+  :call-direct t
+  :returning :int)
+
+(ff:def-foreign-call (SetTextColor "SetTextColor")
+    ((dc :int) (color :int))
+  :arg-checking nil
+  :call-direct t
+  :returning :int)
+
+(ff:def-foreign-call (SetROP2 "SetROP2")
+    ((dc :int) (rop2 :int))
   :arg-checking nil
   :call-direct t
   :returning :int)

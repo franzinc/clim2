@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: browser.lisp,v 1.28 1999/02/25 08:23:31 layer Exp $
+;; $Id: browser.lisp,v 1.29 1999/07/19 22:25:14 layer Exp $
 
 ;;; Simple extensible browser
 ;;; Scott McKay
@@ -1380,26 +1380,27 @@
     ((snapshot (with-slots (snapshots) *application-frame*
 		 `(snapshot ,snapshots))
 	       :prompt "snapshot to recover"))
-  (with-slots (browser-type browser-subtype root-nodes graph-type
-	       browser-ptype browser-options node-maker
-	       root-node-maker grapher-args tree-depth
-	       merge-duplicate-nodes all-nodes) *application-frame*
-    (unless (and (eql browser-type (snapshot-browser-type snapshot))
-		 (eql browser-subtype (snapshot-browser-subtype snapshot))
-		 (equal root-nodes (snapshot-root-nodes snapshot)))
-      (setq graph-type (snapshot-graph-type snapshot)
-	    browser-type (snapshot-browser-type snapshot)
-	    browser-subtype (snapshot-browser-subtype snapshot)
-	    browser-ptype (snapshot-browser-ptype snapshot)
-	    browser-options (copy-list (snapshot-browser-options snapshot))
-	    node-maker (snapshot-node-maker snapshot)
-	    root-node-maker (snapshot-root-node-maker snapshot)
-	    grapher-args (snapshot-grapher-args snapshot)
-	    tree-depth (snapshot-tree-depth snapshot)
-	    merge-duplicate-nodes (snapshot-merge-duplicate-nodes snapshot)
-	    root-nodes (copy-list (snapshot-root-nodes snapshot))
-	    all-nodes (copy-list (snapshot-all-nodes snapshot)))
-      (redisplay-frame-pane *application-frame* 'graph :force-p t))))
+  (when snapshot
+    (with-slots (browser-type browser-subtype root-nodes graph-type
+		 browser-ptype browser-options node-maker
+		 root-node-maker grapher-args tree-depth
+		 merge-duplicate-nodes all-nodes) *application-frame*
+      (unless (and (eql browser-type (snapshot-browser-type snapshot))
+		   (eql browser-subtype (snapshot-browser-subtype snapshot))
+		   (equal root-nodes (snapshot-root-nodes snapshot)))
+	(setq graph-type (snapshot-graph-type snapshot)
+	      browser-type (snapshot-browser-type snapshot)
+	      browser-subtype (snapshot-browser-subtype snapshot)
+	      browser-ptype (snapshot-browser-ptype snapshot)
+	      browser-options (copy-list (snapshot-browser-options snapshot))
+	      node-maker (snapshot-node-maker snapshot)
+	      root-node-maker (snapshot-root-node-maker snapshot)
+	      grapher-args (snapshot-grapher-args snapshot)
+	      tree-depth (snapshot-tree-depth snapshot)
+	      merge-duplicate-nodes (snapshot-merge-duplicate-nodes snapshot)
+	      root-nodes (copy-list (snapshot-root-nodes snapshot))
+	      all-nodes (copy-list (snapshot-all-nodes snapshot)))
+	(redisplay-frame-pane *application-frame* 'graph :force-p t)))))
 
 (define-presentation-to-command-translator recover-snapshot
     (snapshot com-recover-snapshot browser

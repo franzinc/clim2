@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-prel.lisp,v 1.9 1999/05/04 01:21:00 layer Exp $
+;; $Id: acl-prel.lisp,v 1.10 1999/07/19 22:25:10 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -47,7 +47,7 @@
   (declare (ignore id))
   (let* ((hwnd
 	  (excl:with-native-string (x "COMBOBOX")
-	    (excl:with-native-string (label (nstringify label))
+	    (excl:with-native-string (label label)
 	      (win:CreateWindowEx 
 	       0			; extended-style
 	       x			; classname
@@ -125,7 +125,7 @@
 	 (exstyle win:WS_EX_CLIENTEDGE)
 	 (hwnd
 	  (excl:with-native-string (classname "LISTBOX")
-	    (excl:with-native-string (windowname (nstringify label))
+	    (excl:with-native-string (windowname label)
 	      (win:CreateWindowEx exstyle
 				  classname ; classname
 				  windowname ; windowname
@@ -150,12 +150,6 @@
 	       )
 	  (dolist (item items)
 	    (setf item-name (funcall name-key item))
-	    #+ignore
-	    (setf subsize (length item-name))
-	    #+ignore
-	    (dotimes (i subsize)
-	      (ct:cset (:char 256) cstr ((fixnum i))
-		       (char-int (char item-name i))))
 	    (incf index)
 	    (excl:with-native-string (item-name item-name)
 	      (win:SendMessage hwnd win:LB_INSERTSTRING index item-name))
@@ -179,7 +173,6 @@
 	    (when i 
 	      (win:SendMessage 
 	       hwnd win:LB_SETCURSEL i 0))))
-
 	;; we put in the 20% hack because
 	;; compute-set-gadget-dimensions in acl-widg is
 	;; inherently wrong - see the comment (cim 9/25/96)
@@ -193,7 +186,7 @@
 (defun scrollbar-open (parent left top width height orientation)
   (let* ((hwnd
 	  (excl:with-native-string (classname "SCROLLBAR")
-	    (excl:with-native-string (windowname (nstringify ""))
+	    (excl:with-native-string (windowname "")
 	      (win:CreateWindowEx 
 	       0			; style
 	       classname		; classname
@@ -239,7 +232,7 @@
   (let* ((nlabel (cleanup-button-label label))
 	 (hwnd
 	  (excl:with-native-string (classname "BUTTON")
-	    (excl:with-native-string (windowname (nstringify nlabel) )
+	    (excl:with-native-string (windowname nlabel)
 	      (win:CreateWindowEx 0
 				  classname ; classname
 				  windowname ; windowname
@@ -277,7 +270,7 @@
   (declare (ignore id))
   (let* ((hwnd
 	  (excl:with-native-string (classname "EDIT")
-	    (excl:with-native-string (windowname (nstringify label))
+	    (excl:with-native-string (windowname label)
 	      (win:CreateWindowEx 
 	       win:WS_EX_CLIENTEDGE
 	       classname		; classname
@@ -329,15 +322,11 @@
 (defconstant +bitmapinfosize+ (+ (ct:sizeof win:bitmapinfoheader)
 				 (* +maxcolors+ (ct:sizeof win:rgbquad))))
 
-;; The use of this prevents bitmap drawing from being reentrant.  JPM 5/98.
-(defconstant +rgb-bitmapinfo+
-    (ct:callocate win:bitmapinfo :size +bitmapinfosize+))
-
 (defun acl-bitmapinfo (colors width height medium)
   (assert (<= (length colors) +maxcolors+))
   ;; returns the appropriate bitmapinfo and DIB_XXX_COLORS constant
   (let ((bitcount +bits-per-pixel+)
-	(bmi +rgb-bitmapinfo+))
+	(bmi (ct:callocate win:bitmapinfo :size +bitmapinfosize+)))
     (ct:csets win:bitmapinfoheader bmi
 	      biSize (ct:sizeof win:bitmapinfoheader)
 	      biWidth width
@@ -392,6 +381,9 @@
 	   pixel-map
 	   bitmapinfo 
 	   win:DIB_RGB_COLORS)))
+    ;; I guess we don't want to release the device context
+    ;; until we destroy the DIBitmap.
+    ;;(unless (zerop dc) (win:ReleaseDC 0 dc))
     (when (zerop texture-handle)
       ;;Below is Charley Cox's May 6 message from bug5991 (common graphics)
       ;;

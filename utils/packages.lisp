@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: packages.lisp,v 1.91 1999/05/04 01:21:12 layer Exp $
+;; $Id: packages.lisp,v 1.92 1999/07/19 22:25:21 layer Exp $
 
 (in-package :common-lisp-user)
 
@@ -1146,7 +1146,8 @@
     setf*))
 
 
-
+
+
 ;; Define the CLIM package
 (defpackage clim
   (:use)                                ;use nothing
@@ -2370,6 +2371,7 @@
     frame-manager-frames
     frame-manager-notify-user
     frame-manager-pointer-documentation-stream
+    frame-manager-print-file  ; jpm 
     frame-manager-select-file
     frame-name
     frame-named-panes
@@ -2409,6 +2411,7 @@
     pointer-documentation-pane
     position-sheet-carefully
     position-sheet-near-pointer
+    print-file				; jpm
     raise-frame
     read-frame-command
     reconfigure-frame
@@ -2720,7 +2723,8 @@
 
 )) ;; ics-target-case
 
-
+
+
 ;; Now define all of the implementation packages
 (defpackage clim-utils
   #+Allegro (:implementation-packages :clim-utils :clim-silica
@@ -3266,7 +3270,8 @@
   #+Allegro
   (:import-from :excl #:non-dynamic-extent))
 
-
+
+
 ;; A package for casual use...
 (defpackage clim-user
   (:use clim-lisp clim))
@@ -3289,7 +3294,7 @@
 (cl:defvar *clim-major-version* 2)
 (cl:defvar *clim-minor-version* 2)
 (cl:defvar *clim-generation-version* 2)
-(cl:defvar *clim-build-version* 6)
+(cl:defvar *clim-build-version* 7)
 
 (cl:defparameter *clim-version*
     (cl:format () "~d.~d.~d.~a"

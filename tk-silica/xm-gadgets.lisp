@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xm-gadgets.lisp,v 1.100 1999/02/25 08:23:44 layer Exp $
+;; $Id: xm-gadgets.lisp,v 1.101 1999/07/19 22:25:19 layer Exp $
 
 (in-package :xm-silica)
 
@@ -2115,7 +2115,7 @@
       ;;-- ignored too but there does not appear to be an easy way
       ;;-- of going from the osf name to the keysym that we need to ignore
       ;;--  osfMenuBar
-      (member (keyboard-event-key-name event) '(:f10 :tab))))
+      (member (keyboard-event-key-name event) '(:f10 #+ignore :tab))))
 
 
 ;; Support for help
@@ -2211,6 +2211,18 @@
 	     (setq font-list
 	       (font-set-from-font-list port font-list)))))
     `(:font-list ,font-list ,@initargs)))
+
+(defmethod frame-manager-print-file
+    ((framem motif-frame-manager) filename
+     &key 	  
+     (frame nil frame-p)
+     (associated-window
+      (if frame-p
+	  (frame-top-level-sheet frame)
+	(graft framem)))
+     &allow-other-keys)
+  (declare (ignore filename associated-window))
+  (error "not yet implemented for UNIX"))
 
 #+(version>= 5 0)
 (in-package :tk)

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-class.lisp,v 1.12 1999/05/04 01:21:00 layer Exp $
+;; $Id: acl-class.lisp,v 1.13 1999/07/19 22:25:06 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -197,20 +197,23 @@
     (win:SetCursor wincursor)
     t))
 
-(defun maybe-set-cursor (sheet)
+(defmethod sheet-wants-default-pointer ((object t)) nil)
+
+(defmethod maybe-set-cursor (sheet)
   ;; This has a bug that it doesn't call defwindowproc
   ;; when the sheet is a text field.  This should get you the ibeam
   ;; cursor because that's the cursor for that class
   (let* ((cursor (or (port-grab-cursor *acl-port*)
 		     (sheet-pointer-cursor sheet)
-		     ;;(pointer-cursor (port-pointer *acl-port*))
-		     )))
-    (if cursor
-	(set-cursor sheet cursor)
-      (let ((parent (sheet-parent sheet)))
-	(or (and parent (maybe-set-cursor parent))
-	    (and (setq cursor (pointer-cursor (port-pointer (port sheet))))
-		 (set-cursor sheet cursor)))))))
+		     ))
+	 (parent (sheet-parent sheet)))
+    (cond (cursor
+	   (set-cursor sheet cursor))
+	  ((sheet-wants-default-pointer sheet) nil)
+	  ((and parent (maybe-set-cursor parent)))
+	  (t
+	   (and (setq cursor (pointer-cursor (port-pointer (port sheet))))
+		(set-cursor sheet cursor))))))
 
 (defvar *level* 0)
 
@@ -222,18 +225,12 @@
   nil)
 
 (defun loword (long)
-  (etypecase long
-    (integer (logand long #xffff))
-    #+broken
-    (word-vector (word-vector-ref long 1)))
-  )
+  (declare (optimize (speed 3) (safety 0)))
+  (ldb (byte 16 0) long))
 
 (defun hiword (long)
-  (etypecase long
-    (integer (logand #xffff (ash long -16)))
-    #+broken
-    (word-vector (word-vector-ref long 0)))
-  )
+  (declare (optimize (speed 3) (safety 0)))
+  (ldb (byte 16 16) long))
 
 ;; Process WM_MOUSEMOVE
 (defun onmousemove (window msg wparam lparam)
@@ -243,7 +240,8 @@
 	(sheet (mirror->sheet *acl-port* window)))
     (declare (ignore keys))
     (setq *win-result*
-      (if (or (not sheet) (note-pointer-motion *acl-port* sheet mx my))
+      (if (or (not sheet) 
+	      (note-pointer-motion *acl-port* sheet mx my))
 	  (win:DefWindowProc window msg wparam lparam)
 	win:FALSE))))
 
@@ -253,8 +251,9 @@
   ;; when the cursor is not moving.  JPM 5/98.
   (let* ((hit-code (loword lparam)))
     (cond ((eql hit-code win:HTCLIENT)
-	   (maybe-set-cursor (mirror->sheet *acl-port* window))
-	   (setq *win-result* win:TRUE))
+	   (setq *win-result* 
+	     (if (maybe-set-cursor (mirror->sheet *acl-port* window))
+		 win:TRUE win:FALSE)))
 	  (t 
 	   (setf (pointer-cursor (port-pointer *acl-port*)) :default)
 	   ;; If the hit-code is not HTCLIENT, then its not CLIM's problem.
@@ -317,16 +316,19 @@
 	(silica::draw-picture-button (mirror->sheet *acl-port* hwnd)
 				     state hdc rect)))))
 
+(defmethod isa-pushbutton ((object t)) nil)
+(defmethod isa-pushbutton ((object push-button)) t)
+
 ;; Process WM_CTLCOLOREDIT
 (defun onctlcoloredit (window msg wparam lparam)
-  (setq *win-result* (message-default window msg wparam lparam))
+  (declare (ignore msg window))
   (let ((hwnd (ct:ccallocate win:hwnd))
 	(hdc (ct:ccallocate win:hdc)))
     (setf (ct:handle-value win:hwnd hwnd) lparam
 	  (ct:handle-value win:hdc hdc) wparam)
     (let ((sheet (mirror->sheet *acl-port* hwnd)))
       (when sheet
-         (when (and (typep sheet 'silica::hpbutton-pane)
+         (when (and (isa-pushbutton sheet)
                     (slot-value sheet 'silica::pixmap))
            (let ((rect (ct:ccallocate win:rect)))
 	     (win:GetClientRect hwnd rect)
@@ -505,7 +507,7 @@
 ;; Process WM_GETMINMAXINFO
 (defun ongetminmaxinfo (window msg wparam lparam)
   (let ((sheet (mirror->sheet *acl-port* window)))
-    (if (typep sheet 'acl-top-level-sheet)
+    (if (istoplevel sheet)
 	(let ((min-width (acl-top-min-width sheet))
 	      (min-height (acl-top-min-height sheet)))
 	  ;; someone who knows how to use the pc ff interface should get
@@ -639,7 +641,7 @@
     (when (and (consp context-type)
 	       (eq (first context-type) 'command-name))
       (flet ((look (s)
-	       (when (and (typep s 'push-button)
+	       (when (and (isa-pushbutton s)
 			  (push-button-show-as-default s))
 		 (setq gadget s))))
 	(declare (dynamic-extent #'look))
@@ -1014,7 +1016,7 @@
 	      (format *standard-output* "keysym=~a char=~a modstate=~a~%"
 		      keysym char modstate)
 	      (if (and (or (eql keysym :end)
-			   (and (typep sheet 'silica::mswin-text-field)
+			   (and (silica::isa-textfield sheet)
 				(eql keysym :newline)))
 		       (eql modstate 0))
 		  (setq pass nil)) ;;; pass along the end character.
@@ -1083,7 +1085,7 @@
   ((device-handle1 :initarg :device-handle1
 		   :initform 0)
    (device-handle2 :initarg :device-handle1
-		   :initform (excl:with-native-string (d "DISPLAY")
+		   :initform  (excl:with-native-string (d "DISPLAY")
 			       (win:CreateDC d ct:hnull ct:hnull ct:hnull)))))
 
 (defun initialize-cg ()
@@ -1095,40 +1097,29 @@
   (setq *screen-device*
     (make-instance 'windows-screen-device)))
 
-(eval-when (compile load eval)
-  (defun make-cstructure (type length)
-    ;; create and return a region of memory of the
-    ;; given length.
-    ;; 
-    ;; in the mm implementation this was in malloc space, but since
-    ;; it is referenced using #. in files like message.cl, we better
-    ;; us a lisp structure so it will exist when the definition
-    ;; is fasled in.
-    ;;
-    ;; we've got to look into this later
-    ;;
-    ;;
-    (declare (ignore type))
-  
-    (ff:allocate-fobject `(:array :unsigned-char ,length) :lisp)))
+(defun make-cstructure (type length)
+  ;; create and return a region of memory of the
+  ;; given length.
+  (declare (ignore type))
+  (ff:allocate-fobject `(:array :unsigned-char ,length) :foreign-static-gc))
 
 (defun ensure-clim-initialized ()
   (unless *clim-initialized*
     (initialize-cg)
     (setf clim-window-proc-address 
-      (init-clim-win-proc clim-window-proc-address #.(make-cstructure 0 16)))
+      (init-clim-win-proc clim-window-proc-address (make-cstructure 0 16)))
     (setf clim-ctrl-proc-address 
-      (init-clim-ctrl-proc clim-ctrl-proc-address #.(make-cstructure 0 16)))
+      (init-clim-ctrl-proc clim-ctrl-proc-address (make-cstructure 0 16)))
     #+not-yet
     (setf tooltip-relay-address 
-      (init-tooltip-relay tooltip-relay-address #.(make-cstructure 0 16)))
+      (init-tooltip-relay tooltip-relay-address (make-cstructure 0 16)))
     (setq *clim-initialized* t)))
 
 (defun acl-clim::register-window-class (hcursor)
   ;; This is called by initialize-instance of acl-port.
   ;; It creates a (single) Windows window class for all clim windows.
   (unless *wndclass-registered*
-    (init-clim-win-proc clim-window-proc-address #.(make-cstructure 0 16))
+    (init-clim-win-proc clim-window-proc-address (make-cstructure 0 16))
     (let ((class (ff:allocate-fobject 'win:wndclassex 
 				      :foreign-static-gc nil))
 	  (icon (win:LoadIcon 0 win:IDI_APPLICATION)) ; (get-clim-icon)
@@ -1253,7 +1244,7 @@
 			      (or parent 0)
 			      menu
 			      *hinst*
-			      *win-x* ))))
+			      *win-x* )))) 
     (when (zerop window)
       (or (check-last-error "CreateWindowEx")
 	  (error "CreateWindowEx: unknown error")))
@@ -1369,4 +1360,6 @@
 	    ((and hwnd (win:IsDialogMessage hwnd msg)))
 	    (t 
 	     (win:TranslateMessage msg)
-	     (win:DispatchMessage msg))))))
+	     (win:DispatchMessage msg)))
+      (when nonblocking (return t))
+      )))

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-port.lisp,v 1.10 1999/05/04 01:21:00 layer Exp $
+;; $Id: acl-port.lisp,v 1.11 1999/07/19 22:25:10 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -138,7 +138,8 @@
 (define-constructor make-acl-event-queue queue () )
 
 (defclass acl-port (basic-port)
-  (;; Cache used by dc-image-for-ink for mapping inks to device contexts:
+  ((screen :initform nil :accessor port-screen)
+   ;; Cache used by dc-image-for-ink for mapping inks to device contexts:
    (dc-cache :initform (make-hash-table) :accessor port-dc-cache)
    ;; Virtual key to keysym:
    (vk->keysym :initform (make-hash-table))
@@ -224,17 +225,22 @@
 (defmethod silica::port-set-pane-background ((port acl-port) pane medium ink)
   (declare (ignore pane))
   ;; Invoked :after (setf pane-background)
-  (setf (medium-background medium) ink))
+  (when (not (numberp MEDIUM))
+    ;;; On acl a medium is a number.
+    (setf (medium-background medium) ink)))
 
 (defmethod silica::port-set-pane-foreground ((port acl-port) pane medium ink)
   (declare (ignore pane))
   ;; Invoked :after (setf pane-foreground)
-  (setf (medium-foreground medium) ink))
+  (when (not (numberp MEDIUM))
+    ;;; On acl a medium is a number.
+    (setf (medium-foreground medium) ink)))
 
 (defmethod silica::port-set-pane-text-style ((port acl-port) pane medium style)
   (declare (ignore pane))
-  ;; Invoked :after (setf pane-text-style)
-  (setf (medium-text-style medium) style))
+  (when (not (numberp MEDIUM))
+    ;;; On acl a medium is a number.
+    (setf (medium-text-style medium) style)))
 
 (defmethod initialize-instance :before ((port acl-port) &key)
   (ensure-clim-initialized)
@@ -457,16 +463,16 @@
     (or (gethash style text-style->acl-font-mapping)
 	(setf (gethash style text-style->acl-font-mapping)
 	  (let ((name (silica::device-font-name style)))
-	    (make-device-font (win:getstockobject name)))))))
+	    (make-device-font (win:GetStockObject name)))))))
 
 (defun make-font-width-table (dc last-character first-character default-width)
-  (let* ((tepsize (ct:ccallocate win::size))
+  (let* ((tepsize (ct:ccallocate win:size))
 	 (string (make-string 1) )
 	 (array (make-array (1+ last-character))))
     (loop for i from first-character to last-character do
 	  (setf (char string 0) (code-char i))
 	  (cond ((excl:with-native-string (string string)
-		   (win:getTextExtentPoint dc string 1 tepsize))
+		   (win:GetTextExtentPoint dc string 1 tepsize))
 		 (setf (aref array i) (ct:cref win:size tepsize cx)))
 		(t
 		 ;; Why does this clause ever run?  getlasterror=10035.
@@ -475,7 +481,7 @@
     array))
 
 (defun make-system-font ()
-  (make-device-font (win:getstockobject win:system_font)))
+  (make-device-font (win:GetStockObject win:SYSTEM_FONT)))
 
 ;; This should be in the WIN package but isn't.
 ;; We use it to specify how Windows matches font requests to a
@@ -499,7 +505,7 @@
   (unless win-font
     (setq win-font
       (excl:with-native-string (vface (or face ""))
-	(win:createFont height		; logical height
+	(win:CreateFont height		; logical height
 			width		; logical average width
 			escapement	; angle of escapement (tenths of degrees)
 			orientation	; normally the same as escapement
@@ -524,13 +530,13 @@
 		 (sheet-mirror (frame-top-level-sheet *application-frame*))))
 	(tmstruct (ct:ccallocate win:textmetric)))
     (unless cw (setf cw *current-window*))
-    (unless (win:iswindow cw) 
+    (unless (win:IsWindow cw) 
       ;; This clause is for the rare case that you are doing drawing
       ;; from a background process the first time you attempt to use
       ;; this font.  It doesn't really matter which frame you pick.
       (let* ((framem (find-frame-manager))
 	     (frame (some #'(lambda (f)
-			      (when (win:iswindow
+			      (when (win:IsWindow
 				     (sheet-mirror (frame-top-level-sheet
 						    f)))
 				f))
@@ -538,12 +544,13 @@
 			    (frame-manager-frames framem)))))
 	(when frame
 	  (setq cw (sheet-mirror (frame-top-level-sheet frame))))))
-    (unless (win:iswindow cw) 
+    (unless (win:IsWindow cw) 
       (error "No window found for calculating text font metrics."))
     (with-dc (cw dc)
-      (win:setmapmode dc win:MM_TEXT)
-      (selectobject dc win-font)
-      (or (win:getTextMetrics dc tmstruct)
+      (win:SetMapMode dc win:MM_TEXT)
+      (assert (valid-handle dc))
+      (when (valid-handle win-font) (selectobject dc win-font))
+      (or (win:GetTextMetrics dc tmstruct)
 	  (check-last-error "GetTextMetrics"))
       (let ((average-character-width
 	     (ct:cref win:textmetric tmstruct tmavecharwidth))
@@ -613,12 +620,12 @@
 ;; The second element of each item is passed to
 ;; LoadCursor and SetCursor.
 (defvar *win-cursor-type-alist*
-    `((:appstarting ,win:idc_appstarting)
+    `((:appstarting ,win:IDC_APPSTARTING)
       (:default ,win:IDC_ARROW)
       (:position ,win:IDC_CROSS)
-      (:ibeam ,win:idc_ibeam)
+      (:ibeam ,win:IDC_IBEAM)
       #+ignore
-      (:no ,win:idc_no)
+      (:no ,win:IDC_NO)
       (:move ,win:IDC_SIZEALL)
       (:vertical-scroll ,win:IDC_SIZENS)
       (:horizontal-scroll ,win:IDC_SIZEWE)
@@ -627,22 +634,12 @@
 
 (defmethod port-set-pointer-cursor ((port acl-port) pointer cursor)
   (unless (eq (pointer-cursor pointer) cursor)
-    (win:setCursor (realize-cursor port cursor)) ; mouse cursor
+    (win:SetCursor (realize-cursor port cursor)) ; mouse cursor
     )
   cursor)
 
 (defmethod port-set-sheet-pointer-cursor ((port acl-port) sheet cursor)
-  (unless (eq (sheet-pointer-cursor sheet) cursor)
-    #+ignore
-    (win:setCursor (realize-cursor port cursor)) ; mouse cursor
-    ;; SetCursor doesn't seem to be the right thing.
-    ;; Each time the mouse moves, Windows sets the cursor back
-    ;; to the default for the class and then sends a WM_SETCURSOR
-    ;; message where we get a chance to SetCursor again.  
-    (win:setClassLong (sheet-mirror sheet) 
-		      -12		; GCL_HCURSOR
-		      (realize-cursor port cursor))
-    )
+  (unless (eq (sheet-pointer-cursor sheet) cursor) (set-cursor sheet cursor))
   cursor)
 
 (defmethod realize-cursor ((port acl-port) (cursor symbol))
@@ -674,29 +671,28 @@
 	(setf (getf cursor-cache cursor)
 	  (call-next-method)))))
 
-;; pointer-grabbing - how do you do this on windows? - the following
-;; simply deals with the handling of the cursor keyword (cim 10/14/96)
-
-;; I think you do this on windows by using SetCapture
-;; and ReleaseCapture.  JPM 5/98.
-
 (defmethod port-invoke-with-pointer-grabbed
     ((port acl-port) (sheet basic-sheet) continuation
      &key cursor &allow-other-keys)
   (clim-utils:letf-globally (((port-grab-cursor port) cursor))
-    (funcall continuation)))
+    (unwind-protect
+	(with-sheet-medium (medium sheet)
+	  (win:SetCapture (medium-drawable medium))
+	  (set-cursor sheet cursor)
+	  (funcall continuation))
+      (win:ReleaseCapture))))
 
 ;; X and Y are in native coordinates
 (defmethod port-set-pointer-position ((port acl-port) pointer x y)
   (declare (ignore pointer))
   (fix-coordinates x y)
-  (or (win:setCursorPos x y)
+  (or (win:SetCursorPos x y)
       (check-last-error "SetCursorPos")))
 
 (defmethod clim-internals::port-query-pointer ((port acl-port) sheet)
   (let ((point (ct:ccallocate win:point))
 	(native-x 0)(native-y 0))
-    (or (win:getCursorPos point)
+    (or (win:GetCursorPos point)
 	(check-last-error "GetCursorPos"))
     (let ((root-x (ct:cref win:point point x))
 	  (root-y (ct:cref win:point point y)))
@@ -761,7 +757,7 @@
 		(eq y pointer-y))
 	   nil)
 	  (t
-	   #+debug
+	  #+debug
 	   (format *trace-output* 
 		   "~% Was ~A ~A ~A IS ~A ~A ~A~%"
 		   pointer-sheet pointer-x pointer-y
@@ -775,9 +771,13 @@
 (defmethod flush-pointer-motion ((port acl-port))
   (with-slots (event-queue motion-pending pointer-sheet pointer-x pointer-y)
       port
-    (when pointer-sheet
+    (when (and pointer-sheet motion-pending)
       (let ((pointer (port-pointer port)))
 	(when pointer
+	  #+debug
+	  (format *trace-output* 
+		  "~% IS ~A ~A ~A~%"
+		  pointer-x pointer-y pointer-sheet)
 	  (queue-put event-queue
 		     (allocate-event 'pointer-motion-event
 				     :native-x pointer-x
@@ -821,27 +821,6 @@
   (let ((sheet (or (silica::event-mswin-control event) (event-sheet event))))
     (silica::dispatch-pointer-event-to-sheet port event sheet)))
 
-;; what's with this hacked queue-get?? (cim 9/16/96)
-
-#+obsolete
-(defmethod queue-get ((queue acl-event-queue) &optional default)
-  "return the element at the head of the queue
-   deleteing it from the queue"
-  (if (queue-empty-p queue)
-    default
-    (let ((event (queue-next queue))
-          (sheet nil))
-      (setf (clim-utils::queue-head queue)
-	(clim-utils::free-cons queue (clim-utils::queue-head queue)))
-      (if (and (or (typep event 'device-event)
-		   (typep event 'window-event))
-	       (or (not (setq sheet (event-sheet event)))
-		   (not (slot-value sheet 'silica::mirror))))
-	  (progn
-	    (deallocate-event event)
-	    (queue-get queue))
-	event))))
-
 (defvar *l-counter* 0)
 (defvar *nowait* nil)
 
@@ -849,7 +828,8 @@
 
 ;; Redefine function from utils/processes.lisp.
 (defun clim-utils::process-wait (state function &rest args)
-  (declare (dynamic-extent function args))
+  (declare (dynamic-extent function args)
+	   (optimize (speed 3) (safety 0)))
   #+someday
   (apply #'mp:process-wait state function args)
   (let ((result nil))
@@ -911,7 +891,7 @@
     (setf mirror (slot-value sheet 'silica::mirror))
     (if (not mirror)
       (deallocate-event event)
-      (unless (win:isIconic mirror)
+      (unless (win:IsIconic mirror)
         (let ((native-region (mirror-region port sheet)))
 	  (setf (slot-value event 'silica::native-region) native-region)
 	  (setf (slot-value event 'silica::region)
@@ -919,11 +899,20 @@
 				    native-region)))
         (call-next-method)))))
 
+(defvar *system-version* nil)
+
 (defun get-system-version ()
-  "Use win:GetVersion to determine the operating system being used."
-  (let* ((v (win:GetVersion))
-         (vh (hiword v)))
-    (if (>= vh 0) :winnt :win31)))
+  "Use win:GetVersionEx to determine the operating system being used."
+  (or *system-version*
+      (setq *system-version*
+	(let ((v (ff:allocate-fobject 'win::osversioninfo)))
+	  (setf (ct:cref win::osversioninfo v dwOSVersionInfoSize) 
+	    (ct:sizeof win::osversioninfo))
+	  (win::GetVersionEx v)
+	  (case (ct:cref win::osversioninfo v dwPlatformID)
+	    (#.WIN::VER_PLATFORM_WIN32_WINDOWS :win9598)
+	    (#.WIN::VER_PLATFORM_WIN32S :win31)
+	    (#.WIN::VER_PLATFORM_WIN32_NT :winnt))))))
 
 (defun silica::acl-mirror-with-focus ()
   (acl-port-mirror-with-focus *acl-port*))

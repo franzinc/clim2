@@ -11,6 +11,13 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.2.2.7 -- join from acl50 branch
+
+- changes from 2.2.1.55 to 2.2.1.68
+- cvs command: cvs update -d -j acl50_merge6 -j acl50
+- next merge tag: acl50_merge7
+
+*******************************************************************************
 2.2.2.6 -- join from acl50 branch
 
 - changes from 2.2.1.45 to 2.2.1.54
@@ -64,6 +71,155 @@ next merge tag: acl50_merge2
 2.2.1.17 -- join from acl50 branch (versions 2.2.1.13 to 2.2.1.16)
 (this should have been version 2.2.2.0, but was 2.2.1.17 instead)
 next merge tag: acl50_merge1
+
+*******************************************************************************
+2.2.1.68
+
+1999-06-24  Jeff
+
+	* aclpc/acl-medium.lisp,
+	* aclpc/acl-widget.lisp,
+	* clim/surround-output.lisp: fixes from Jeff (bug8171 and others)
+
+*******************************************************************************
+2.2.1.67
+
+1999-06-23    <layer@HOBART>
+
+	* aclpc/acl-frames.lisp: make select-file work: the binding of s1
+	using with-native-string was wrong, since that macro takes a lisp
+	string and lisp-string-to-scratch-c-string was returning a C
+	string (ie, a number); use :c not :foreign accessor in
+	lisp-string-to-scratch-c-string.
+	* aclpc/acl-medium.lisp: use (fslot-value-typed ... :foreign ...)
+	instead of (fslot-value-typed ... :foreign-static-gc ...) in
+	set-point, since the latter is an allocation type.
+	* aclpc/acl-widget.lisp: fix compile-time warning
+	* test/test-suite.lisp: select-file returns a pathname, so
+	namestring it before calling write-string
+
+*******************************************************************************
+2.2.1.66
+
+1999-06-23  Jeff Morrill  <jmorrill@pointnclick.com> 
+
+* demo/ico: limit number of cycles to 1000 to make timing more meaningful
+* silica/medium: optimization
+* sys/compile: set optimization levels for clim on Windows
+* test/test-suite: add test for select-file
+* aclpc/acl-class: fix bug in message processor
+* aclpc/acl-medium: optimization
+* aclpc/acl-port: optimization
+* aclpc/acl-widget: fix sizing of text editor, list panes; fix
+  redisplay problem of text fields
+
+*******************************************************************************
+2.2.1.65
+
+1999-06-22    <layer@HOBART>
+
+	* aclpc/acl-medium.lisp,
+	* aclpc/acl-frames.lisp: speed up ico demo by removing use of
+	anonymous foreign types.
+
+*******************************************************************************
+2.2.1.64
+
+1999-06-21  Kevin Layer  <layer@ultra>
+
+	* clim/input-protocol.lisp: bug8147: remove bogus dynamic-extent
+	for unix
+
+*******************************************************************************
+2.2.1.63
+
+1999-06-18  Kevin Layer  <layer@ultra>
+
+	* acl-medium.lisp: fix from Jeff
+	* clim/frames.lisp: fix from Jeff
+
+*******************************************************************************
+2.2.1.62
+
+1999-06-18  Kevin Layer  <layer@ultra>
+
+	* tk-silica/xm-gadgets.lisp: make it compile on unix
+
+*******************************************************************************
+2.2.1.61
+
+1999-06-18  Jeff Morrill  <jmorrill@pointnclick.com> 
+* aclpc/*.lisp: numerous changes that affect performance;
+  added PRINT-FILE function for windows (postscript still doesnt work).
+* clim/clim-defs: Change the treatment of input focus; a frame
+  no longer grabs the input focus away from another frame when
+  it goes through the command loop.  This means that you have
+  to click on an interactor pane before you can type into it.
+* clim/input-protocol: added dynamic-extent declaration
+* demo/ico: turn off output recording and get rid of some junk
+* tk-silica/xm-gadgets: added default print-file function
+  that does nothing for unix
+
+*******************************************************************************
+2.2.1.60
+
+1999-06-11  Kevin Layer  <layer@ultra>
+
+	* tk-silica/xm-gadgets.lisp: fix to method
+	discard-accelerator-event-p (for spr20230) from Jeff
+
+*******************************************************************************
+2.2.1.59
+
+1999-06-09    <layer@HOBART>
+
+	* aclpc/acl-frames.lisp: defun-c-callable -> defun-foreign-callable
+
+*******************************************************************************
+2.2.1.58
+
+1999-06-09  Jeff Morrill  <jmorrill@pointnclick.com> 
+
+* aclpc/*.lisp: Fix some recently introduced device context bugs.
+  Improve performance of drawing operations.  Add initial version
+  of PRINT-FILE enhancement.
+* demo/*.lisp: Fix a variety of minor bugs in the demos so that
+  testing can be more successful.
+* clim/cursor.lisp: don't erase the cursor on a destroyed window.
+* clim/db-stream: default view of accepting-values-pane should
+  be +gadget-dialog-view+
+
+*******************************************************************************
+2.2.1.57
+
+1999-06-07  Jeff Morrill  <jmorrill@pointnclick.com> 
+
+* aclpc/*.lisp: Numerous changes to avoid operations on invalid handles.
+  Also, CLIM will now avoid using SendMessage unless the window is in the 
+  same thread, avoiding a possible deadlock situation.
+
+*******************************************************************************
+2.2.1.56
+
+1999-06-02  Jeff Morrill  <jmorrill@pointnclick.com> 
+
+* aclpc/acl-widget, aclpc/winwidgh, clim/gadget-output: work on sizing
+  of text-fields yet again
+* utils/defun-utilities: fix up mb-to-string compatibility function
+
+*******************************************************************************
+2.2.1.55
+
+1999-05-21  Jeff Morrill  <jmorrill@pointnclick.com> 
+
+* aclpc/acl-class: Fix for gadgets w/ color backgrounds
+* aclpc/acl-frames: Cleanup
+* aclpc/acl-medium: Implement bitmaps with transparent background
+* aclpc/acl-mirror: Modularize realize-mirror some more
+* aclpc/acl-port: fixes for pointer cursor, gadget color, cleanup
+* aclpc/acl-widget: fixes for text gadget size, color, editability
+                    implement color buttons, button armed callbacks
+* aclpc/winwidgh: win:SRCOR seems to be missing, lets add our own.
 
 *******************************************************************************
 2.2.1.54

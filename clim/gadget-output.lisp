@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: gadget-output.lisp,v 1.64 1998/08/06 23:15:56 layer Exp $
+;; $Id: gadget-output.lisp,v 1.65 1999/07/19 22:25:13 layer Exp $
 
 (in-package :clim-internals)
 
@@ -725,44 +725,42 @@
                                         default-supplied-p type
                                         prompt query-identifier
                                         &key (editable-p t))
-  #-(or aclpc acl86win32) (declare (ignore prompt))
+  (declare (ignore prompt))
   (move-cursor-to-view-position stream view)
   (flet ((update-gadget (record gadget text-field)
-            (declare (ignore record gadget))             ;;-- This sucks
+	   (declare (ignore record gadget))             ;;-- This sucks
            (if active-p
                (activate-gadget text-field)
-               (deactivate-gadget text-field))
-            (setf (gadget-value text-field)
+	     (deactivate-gadget text-field))
+	   (setf (gadget-value text-field)
              (if default-supplied-p
                  (present-to-string default type)
                ""))))
     (with-output-as-gadget (stream :cache-value type :update-gadget #'update-gadget)
       (let ((text-field (make-pane-from-view 
-                          'text-field view ()
-                          #+(or aclpc acl86win32) :label
-			  #+(or aclpc acl86win32) (and (stringp prompt) prompt)
-                          :value (if default-supplied-p
-                                     (present-to-string default type)
-                                   "")
-                          :client stream :id query-identifier
-                          :editable-p editable-p
-                          :value-changed-callback
-                            `(accept-values-note-text-field-changed-callback
-                               ,query-identifier)
-                          :focus-out-callback
-                            ;;--- Why do we check for editable-p?  If it
-                            ;;--- is read-only, won't this callback never be
-                            ;;--- called? (cim)
-                            (and editable-p
-                                 `(accept-values-string-field-changed-callback
-                                   ,stream ,query-identifier))
-                            :activate-callback
-                            (and editable-p
-                                 `(accept-values-string-field-changed-callback
-                                    ,stream ,query-identifier))
-                            :active active-p
-                            :help-callback (make-gadget-help type))))
-         (values text-field text-field)))))
+			 'text-field view ()
+			 :value (if default-supplied-p
+				    (present-to-string default type)
+				  "")
+			 :client stream :id query-identifier
+			 :editable-p editable-p
+			 :value-changed-callback
+			 `(accept-values-note-text-field-changed-callback
+			   ,query-identifier)
+			 :focus-out-callback
+			 ;;--- Why do we check for editable-p?  If it
+			 ;;--- is read-only, won't this callback never be
+			 ;;--- called? (cim)
+			 (and editable-p
+			      `(accept-values-string-field-changed-callback
+				,stream ,query-identifier))
+			 :activate-callback
+			 (and editable-p
+			      `(accept-values-string-field-changed-callback
+				,stream ,query-identifier))
+			 :active active-p
+			 :help-callback (make-gadget-help type))))
+	(values text-field text-field)))))
 
 (defmethod accept-values-note-text-field-changed-callback
            ((gadget text-field) new-value query)
@@ -831,42 +829,42 @@
                                     default-supplied-p type
                                     prompt query-identifier
                                     &key (editable-p t))
-  #-(or aclpc acl86win32) (declare (ignore prompt))
+  (declare (ignore prompt))
   (move-cursor-to-view-position stream view)
   (flet ((update-gadget (record gadget button)
-            (declare (ignore record gadget))
+	   (declare (ignore record gadget))
            (if active-p
                (activate-gadget button)
-               (deactivate-gadget button))
-            (setf (gadget-value button)
+	     (deactivate-gadget button))
+	   (setf (gadget-value button)
              (if default-supplied-p
                  (present-to-string default type)
                ""))))
     (with-output-as-gadget (stream :cache-value type :update-gadget #'update-gadget)
-      (let ((text-field (make-pane-from-view 'text-editor view '(:scroll-bars)
-                          #+(or aclpc acl86win32):label #+(or aclpc acl86win32) (and (stringp prompt) prompt)
-                          :value (if default-supplied-p
-                                     (present-to-string default type)
-                                   "")
-                          :client stream :id query-identifier
-                          :editable-p editable-p
-                          :value-changed-callback
-                            `(accept-values-note-text-field-changed-callback
-                               ,query-identifier)
-                          :focus-out-callback
-                            ;;--- Why do we check for editable-p?  If it
-                            ;;--- is read-only, won't this callback never be
-                            ;;--- called? (cim)
-                            (and editable-p
-                                 `(accept-values-string-field-changed-callback
-                                    ,stream ,query-identifier))
-                            :activate-callback
-                            (and editable-p
-                                 `(accept-values-string-field-changed-callback
-                                    ,stream ,query-identifier))
-                            :active active-p
-                            :help-callback (make-gadget-help type))))
-         (values (scrolling (:scroll-bars (getf (view-gadget-initargs view) :scroll-bars :both))
+      (let ((text-field (make-pane-from-view 
+			 'text-editor view '(:scroll-bars)
+			 :value (if default-supplied-p
+				    (present-to-string default type)
+				  "")
+			 :client stream :id query-identifier
+			 :editable-p editable-p
+			 :value-changed-callback
+			 `(accept-values-note-text-field-changed-callback
+			   ,query-identifier)
+			 :focus-out-callback
+			 ;;--- Why do we check for editable-p?  If it
+			 ;;--- is read-only, won't this callback never be
+			 ;;--- called? (cim)
+			 (and editable-p
+			      `(accept-values-string-field-changed-callback
+				,stream ,query-identifier))
+			 :activate-callback
+			 (and editable-p
+			      `(accept-values-string-field-changed-callback
+				,stream ,query-identifier))
+			 :active active-p
+			 :help-callback (make-gadget-help type))))
+	(values (scrolling (:scroll-bars (getf (view-gadget-initargs view) :scroll-bars :both))
                   text-field)
                 text-field)))))
 

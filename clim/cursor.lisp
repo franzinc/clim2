@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: cursor.lisp,v 1.31 1998/08/06 23:15:51 layer Exp $
+;; $Id: cursor.lisp,v 1.32 1999/07/19 22:25:10 layer Exp $
 
 (in-package :clim-internals)
 
@@ -223,7 +223,9 @@
   ;;; type is currently one of CURSOR-ACTIVE, -FOCUS, or -STATE
   (let ((stream (slot-value cursor 'stream)))
     (when (and stream (port stream))
-      (port-note-cursor-change (port stream) cursor stream type old new))))
+      (let ((frame (pane-frame stream)))
+	(when (and frame (eq (frame-state frame) :enabled))
+	  (port-note-cursor-change (port stream) cursor stream type old new))))))
 
 ;;; The port needs to know about state transitions.  We originally had one
 ;;; function that simply knew when the cursor was changing from "on" to "off"

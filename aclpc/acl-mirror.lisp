@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-mirror.lisp,v 1.9 1999/05/04 01:21:00 layer Exp $
+;; $Id: acl-mirror.lisp,v 1.10 1999/07/19 22:25:10 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -32,14 +32,12 @@
 
 (in-package :acl-clim)
 
-(defvar *screen* nil)
-
 ;;--- This isn't really right, all ports only have kludges for this
 (defmethod sheet-shell (sheet) sheet)
 
 (defmethod realize-graft ((port acl-port) graft)
-  (let ((handle (slot-value *screen-device* 'device-handle1)))
-   (setq *screen* handle)
+  (let ((screen (slot-value *screen-device* 'device-handle1)))
+   (setf (port-screen port) screen)
    (init-cursors)
    (with-slots (silica::pixels-per-point
 	        silica::pixel-width
@@ -47,7 +45,7 @@
 	        silica::mm-width
 	        silica::mm-height
 	        silica::units) graft
-   (with-dc (*screen* dc) 
+   (with-dc (screen dc) 
     (let ((screen-width (win:GetSystemMetrics win:SM_CXSCREEN)) 
 	  (screen-height (win:GetSystemMetrics win:SM_CYSCREEN))
 	  (logpixelsx (win:GetDeviceCaps dc win:LOGPIXELSX))
@@ -67,12 +65,21 @@
 		   0 0 
 		   silica::pixel-width silica::pixel-height))))
 	(setf (sheet-native-transformation graft) +identity-transformation+)
-	(setf (sheet-direct-mirror graft) handle)
+	(setf (sheet-direct-mirror graft) screen)
 	(update-mirror-transformation port graft))))))
 
 (defmethod modal-frame-p ((frame t)) nil)
 (defmethod modal-frame-p ((frame clim-internals::accept-values-own-window)) t)
 (defmethod modal-frame-p ((frame clim-internals::menu-frame)) t)
+
+(defmethod scroller-pane-p ((pane t)) nil)
+(defmethod scroller-pane-p ((pane silica::scroller-pane)) t)
+
+(defmethod list-pane-p ((pane t)) nil)
+(defmethod list-pane-p ((pane list-pane)) t)
+
+(defmethod combo-box-p ((pane t)) nil)
+(defmethod combo-box-p ((pane option-pane)) t)
 
 (defmethod realize-mirror ((port acl-port) sheet)
   (multiple-value-bind (left top right bottom)
@@ -90,22 +97,19 @@
 	   (msscrollwin nil)
 	   (childwin nil)
 	   (control nil)
-           (buttonstyle nil)
 	   (value nil)
 	   (items nil)
 	   (width (- right left))
 	   (height (- bottom top))
 	   gadget-id)
-      ;;mm: defined in acl-widg.lsp later
-      (declare (special silica::*hbutton-width* silica::*hbutton-height*))
       (assert (eq parent parent2) () "parents don't match!")
       ;; Wouldn't this COND work better as a pile of methods, or at least a
       ;; typecase? JPM 14Aug97
-      (cond ((typep sheet 'silica::scroller-pane)
+      (cond ((scroller-pane-p sheet)
 	     (setq msscrollwin t)
 	     (setq scroll (and (not (scroller-pane-gadget-supplies-scrolling-p sheet))
 			       (silica::scroller-pane-scroll-bar-policy sheet))))
-	    ((typep sheet 'silica::hlist-pane)
+	    ((list-pane-p sheet)
       	     (setq control :hlist)
 	     ;;mm: allocate gadget-id per parent
              (setq gadget-id (silica::allocate-gadget-id sheet))
@@ -119,7 +123,7 @@
 	       (setf value 
 		 (position value items :test #'equal
 			   :key (slot-value sheet 'silica::value-key)))))
-            ((typep sheet 'silica::mswin-combo-box-pane)
+            ((combo-box-p sheet)
       	     (setq control :hcombo)
 	     ;;mm: allocate gadget-id per parent
              (setq gadget-id (silica::allocate-gadget-id sheet))
@@ -132,55 +136,9 @@
 	     (setf value 
 	       (position value items 
 			 :key (set-gadget-value-key sheet)
-			 :test (set-gadget-test sheet))))
-	    ((typep sheet 'silica::hpbutton-pane)
-	     
-	     (setq control :hbutt)
-	     ;;mm: allocate gadget-id per parent
-             (setq gadget-id (silica::allocate-gadget-id sheet))
-	     (setf buttonstyle
-	       (if (push-button-show-as-default sheet)
-			     win:BS_DEFPUSHBUTTON
-			     win:BS_PUSHBUTTON)))
-	    ((typep sheet 'silica::hbutton-pane)
-	     (setq control :hbutt)
-	     ;;mm: allocate gadget-id per parent
-             (setq gadget-id (silica::allocate-gadget-id sheet))
-	     (setq value (slot-value sheet 'silica::value))
-	     (setq buttonstyle
-	       (ecase (gadget-indicator-type sheet)
-		 (:one-of win:BS_RADIOBUTTON)
-		 (:some-of win:BS_CHECKBOX)))))
-      (when (eq control :hbutt)
-	(multiple-value-bind (cwidth cheight)
-              (compute-gadget-label-size sheet)
-	  (setq top (+ top (* gadget-id 25)))
-	  (setq left (+ left 50))
-          (setq width (+ cwidth (* 2 silica::*hbutton-width*)))
-	  (setq height (max cheight (* 1 silica::*hbutton-height*)))))
+			 :test (set-gadget-test sheet)))))
       (setq window
-	(cond ((eq control :hbutt)
-	       (setq childwin t)
-	       (let ((label (slot-value sheet 'silica::label)))
-		 (typecase label
-		   ((or acl-pixmap pattern)
-		    (setf (slot-value sheet 'silica::pixmap)
-		      (if (typep label 'pattern)
-			  (with-sheet-medium (medium sheet)
-			    (with-output-to-pixmap 
-				(stream medium
-					:width (pattern-width label)
-					:height (pattern-height label))
-			      (draw-pattern* stream label 0 0)))
-			label))
-		    (setq buttonstyle win:BS_OWNERDRAW ;; pnc Aug97 for clim2bug740
-			  label nil)))
-		 (hbutton-open parent gadget-id
-				   left top width height 
-				   :buttonstyle buttonstyle
-				   :value value
-				   :label label)))
-	      ((eq control :hlist)
+	(cond ((eq control :hlist)
 	       (setq childwin t)
 	       (hlist-open parent gadget-id
 			       0 0 0 0	; resize left top width height 
@@ -196,7 +154,7 @@
 			       :mode (slot-value sheet 'silica::mode)
 			       :scroll-mode 
 			       (let ((p (sheet-parent sheet)))
-				 (and (typep p 'silica::scroller-pane)
+				 (and (scroller-pane-p p)
 				      (silica::scroller-pane-scroll-bar-policy p)))
 			       :horizontal-extent
 			       (silica::compute-set-gadget-dimensions sheet)
@@ -212,7 +170,7 @@
 			    :scroll-mode :vertical
 			    :name-key
 			    (slot-value sheet 'silica::name-key)))
-	      ((not (eql parent *screen*))
+	      ((not (eql parent (port-screen port)))
 	       (setq childwin t)
 	       (create-child-window
 		parent pretty-name scroll left top width height))
@@ -258,7 +216,9 @@
 	(let ((text-style (pane-text-style sheet)))
 	  (when text-style
 	    (let ((font (text-style-mapping port text-style)))
-	      (win:SendMessage window win:WM_SETFONT 
+	      (frame-send-message
+	       (pane-frame sheet)
+	       window win:WM_SETFONT 
 			       (acl-font-index font) 0)))))
       (when (and childwin (sheet-enabled-p sheet))
 	;; It's too soon for this.  Need to do this later, 
@@ -420,6 +380,9 @@
    (tooltip-control :initform nil :accessor tooltip-control)
    ))
 
+(defmethod istoplevel ((object t)) nil)
+(defmethod istoplevel ((object acl-top-level-sheet)) t)
+
 (defmethod initialize-instance :after ((sheet acl-top-level-sheet) &key background)
   ;; to cause make-instance to accept :background initializer
   (declare (ignore background))
@@ -447,8 +410,9 @@
 	    (mirror-native-edges* *acl-port* sheet)
 	  (declare (special *clim-icon*))
 	  (let ((dc (GetDc mirror)))
-	    (win:DrawIcon dc 0 0 *clim-icon*)
-	    (win:ReleaseDC mirror dc)))
+	    (unless (zerop dc)
+	      (win:DrawIcon dc 0 0 *clim-icon*)
+	      (win:ReleaseDC mirror dc))))
 	))))
 
 (defmethod realize-mirror :around ((port acl-port) 

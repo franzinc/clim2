@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: surround-output.lisp,v 1.16 1998/08/06 23:16:05 layer Exp $
+;; $Id: surround-output.lisp,v 1.17 1999/07/19 22:25:13 layer Exp $
 
 (in-package :clim-internals)
 
@@ -153,9 +153,7 @@
 			  (with-keywords-removed 
 			      (drawing-options drawing-options '(:move-cursor))
 			    (flet ((draw-surrounding-border ()
-				     (apply function stream body left top right bottom
-					    ;; probably should still pass drawing-options
-					    drawing-options)))
+				     (funcall function stream body left top right bottom)))
 			      (declare (dynamic-extent #'draw-surrounding-border))
 			      (apply #'invoke-with-drawing-options stream
 				     #'draw-surrounding-border drawing-options))))))))))

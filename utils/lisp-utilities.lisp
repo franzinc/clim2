@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: lisp-utilities.lisp,v 1.40 1999/02/25 08:23:46 layer Exp $
+;; $Id: lisp-utilities.lisp,v 1.41 1999/07/19 22:25:21 layer Exp $
 
 (in-package :clim-utils)
 
@@ -176,11 +176,11 @@
 
 #+allegro
 (defmacro fix-coordinate (coord)
-  `(the fixnum (fixit ,coord)))
+  `(the fixnum (if (excl:fixnump ,coord) ,coord (fixit ,coord))))
 
 #+allegro
 (defun fixit (coord)
-  (declare (optimize speed))
+  (declare (optimize (speed 3) (safety 0)))
   (typecase coord
     (fixnum
      coord)
