@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: hpgl-clim; Base: 10; Lowercase: Yes -*-
 
-;;; $Id: hpgl-port.lisp,v 1.6.22.1 1998/07/06 23:09:38 layer Exp $
+;;; $Id: hpgl-port.lisp,v 1.6.22.2 1998/07/21 02:54:48 layer Exp $
 
 "Copyright (c) 1991 by International Lisp Associates.  All rights reserved."
 "Portions copyright (c) 1992 Franz Inc. All rights reserved"
@@ -462,6 +462,10 @@
     (when (null (pface-width-table (pfd-face pfd)))
       (read-hpgl-font-width-table (pfd-face pfd)))
     pfd))
+
+(defun read-hpgl-font-width-table (x)
+  (declare (ignore x))
+  (nyi))
 
 (defmethod text-style-mapping-exists-p :around ((device hpgl-port) text-style &optional 
 								   (character-set *standard-character-set*)

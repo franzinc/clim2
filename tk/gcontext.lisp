@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: gcontext.lisp,v 1.32.22.2 1998/07/20 21:57:29 layer Exp $
+;; $Id: gcontext.lisp,v 1.32.22.3 1998/07/21 02:54:50 layer Exp $
 
 (in-package :tk)
 
@@ -130,7 +130,9 @@
 				       function plane-mask foreground background
 				       line-width line-style
 				       cap-style join-style fill-style fill-rule
-				       arc-mode tile stipple ts-x ts-y
+				       arc-mode tile stipple
+				       #+broken ts-x
+				       #+broken ts-y
 				       font subwindow-mode
 				       graphics-exposures clip-x-origin clip-y-origin
 				       clip-mask clip-ordering

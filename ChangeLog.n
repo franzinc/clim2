@@ -11,6 +11,19 @@ Tests for new features:	<`no new features', `no tests for new features', or
 	* <changes go here...>
 
 *******************************************************************************
+2.2.1.29
+
+Mon Jul 20 15:00:38 1998  Kevin Layer  <layer@ultra>
+
+	* tk-silica/xt-silica.lisp: remove :survive-dumplisp reference
+	* Makefile.defs: remove climgg.fasl from depends
+	* Makefile.generic: remove climgg.fasl rule
+	* hpgl/hpgl-medium.lisp: fix compile time warnings
+	* hpgl/hpgl-port.lisp: fix compile time warnings
+	* misc/compile-1.lisp: add back wnn and hpgl module compilation
+	* tk/gcontext.lisp: fix compile time warnings
+
+*******************************************************************************
 2.2.1.28
 
 Mon Jul 20 12:00:00 1998  Jeff Morrill <jmorrill@pointnclick.com>

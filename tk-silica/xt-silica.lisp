@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xt-silica.lisp,v 1.108.22.5 1998/07/06 23:10:23 layer Exp $
+;; $Id: xt-silica.lisp,v 1.108.22.6 1998/07/21 02:54:52 layer Exp $
 
 (in-package :xm-silica)
 
@@ -85,21 +85,17 @@
 
 
 (defmethod restart-port ((port xt-port))
-  (flet ((cleanup-port-after-dumplisp (process)
-	   (mp::process-kill process)))
-    (let ((process (port-process port)))
-      (when process
-	(clim-sys:destroy-process process))
-      (setq process
-	(mp:process-run-function
-	 (list :name (format nil "CLIM Event Dispatcher for ~A"
-			     (port-server-path port))
-	       :priority 1000)
-	 #'port-event-loop port))
-      (setf (getf (mp:process-property-list process) :survive-dumplisp)
-	#'cleanup-port-after-dumplisp)
-      (setf (getf (mp:process-property-list process) :no-interrupts) t)
-      (setf (port-process port) process))))
+  (let ((process (port-process port)))
+    (when process
+      (clim-sys:destroy-process process))
+    (setq process
+      (mp:process-run-function
+       (list :name (format nil "CLIM Event Dispatcher for ~A"
+			   (port-server-path port))
+	     :priority 1000)
+       #'port-event-loop port))
+    (setf (getf (mp:process-property-list process) :no-interrupts) t)
+    (setf (port-process port) process)))
 
 (defparameter *use-color* t)		; For debugging monochrome
 

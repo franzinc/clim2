@@ -1,4 +1,4 @@
-# $Id: Makefile.generic,v 1.47.10.6 1998/07/06 21:44:50 layer Exp $
+# $Id: Makefile.generic,v 1.47.10.7 1998/07/21 02:54:45 layer Exp $
 #  Makefile.generic for CLIM 2.0
 
 ifeq ($(OS_NAME),windows)
@@ -61,10 +61,11 @@ climdemo.fasl: $(DEMO-FASLS)
 	ls -lt climdemo.fasl >> Clim-sizes.n
 	ls -lt climdemo.fasl
 
-climgg.fasl: $(HOMEGROWN-GADGET-FASLS)
-	$(CAT) $(HOMEGROWN-GADGET-FASLS) > climgg.fasl
-	ls -lt climgg.fasl >> Clim-sizes.n
-	ls -lt climgg.fasl
+# not used anymore:
+#climgg.fasl: $(HOMEGROWN-GADGET-FASLS)
+#	$(CAT) $(HOMEGROWN-GADGET-FASLS) > climgg.fasl
+#	ls -lt climgg.fasl >> Clim-sizes.n
+#	ls -lt climgg.fasl
 
 clim-debug.fasl: $(DEBUG-FASLS)
 	$(CAT) $(DEBUG-FASLS) > clim-debug.fasl

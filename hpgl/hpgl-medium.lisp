@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: hpgl-clim; Base: 10; Lowercase: Yes -*-
 
-;;; $Id: hpgl-medium.lisp,v 1.4.22.2 1998/07/06 23:09:38 layer Exp $
+;;; $Id: hpgl-medium.lisp,v 1.4.22.3 1998/07/21 02:54:46 layer Exp $
 
 "Copyright (c) 1991 by International Lisp Associates.  All rights reserved."
 "Portions copyright (c) 1992 Franz Inc. All rights reserved"
@@ -621,6 +621,9 @@ a point. Hence we have 72dpi resolution printer.
 	  (convert-to-hpgl-coordinates transform x y)
 	  (lineto printer-stream x y))))))
 
+(defun nyi ()
+  (error "This HPGL CLIM operation is NYI (Not Yet Implemented)."))
+
 (defmethod medium-draw-ellipse* ((medium hpgl-medium)
 				 center-x center-y 
 				 radius-1-dx radius-1-dy radius-2-dx radius-2-dy
@@ -716,6 +719,7 @@ a point. Hence we have 72dpi resolution printer.
 ;;; methods from the code; we could get rid of all the CLIM-xxx-STUFF
 ;;; files that way.
 
+#+ignore ;; stream-scan-string-for-writing-1 is undefined!
 (defmethod stream-scan-string-for-writing  (stream
 					    (medium hpgl-medium)
 					    string start end

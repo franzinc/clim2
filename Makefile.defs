@@ -1,4 +1,4 @@
-# $Id: Makefile.defs,v 1.45.10.3 1998/07/20 21:57:14 layer Exp $
+# $Id: Makefile.defs,v 1.45.10.4 1998/07/21 02:54:45 layer Exp $
 #
 #  Makefile.defs for CLIM 2.0
 
@@ -78,7 +78,7 @@ WNN_UNDEFS=misc/undefinedsymbols.wnn
 
 PRODUCT-GENERIC-FASLS = \
 	climg.fasl climdemo.fasl clim-debug.fasl climps.fasl \
-	climgg.fasl climhpgl.fasl
+	climhpgl.fasl # climgg.fasl
 
 PRODUCT-XM-FASLS = climxm.fasl clim-debugxm.fasl
 PRODUCT-OL-FASLS = climol.fasl clim-debugol.fasl
@@ -162,12 +162,12 @@ DEMO-FASLS= \
 	demo/custom-records.fasl demo/demo-activity.fasl \
 	test/test-suite.fasl demo/demo-last.fasl
 
-
-HOMEGROWN-GADGET-FASLS= \
-	homegrown/db-menu.fasl homegrown/db-list.fasl \
-	homegrown/db-text.fasl homegrown/db-button.fasl \
-	homegrown/db-slider.fasl homegrown/scroll-pane.fasl \
-	homegrown/db-label.fasl homegrown/last.fasl
+# not used anymore
+#HOMEGROWN-GADGET-FASLS= \
+#	homegrown/db-menu.fasl homegrown/db-list.fasl \
+#	homegrown/db-text.fasl homegrown/db-button.fasl \
+#	homegrown/db-slider.fasl homegrown/scroll-pane.fasl \
+#	homegrown/db-label.fasl homegrown/last.fasl
 
 GENERIC-XT-FASLS= \
 	tk/pkg.fasl tk/foreign-obj.fasl tk/macros.fasl tk/xlib.fasl \
