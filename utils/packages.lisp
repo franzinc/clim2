@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/utils/packages.lisp,v 1.74 1997/10/20 23:11:11 layer Exp $
+;; $Header: /repo/cvs.copy/clim2/utils/packages.lisp,v 1.75 1997/10/30 20:21:55 smh Exp $
 
 (in-package :common-lisp-user)
 
@@ -20,7 +20,7 @@
 
  ;; Shadow this everywhere to make it a generic function
  (:shadow interactive-stream-p)
- 
+
  #+Allegro
  (:import-from :excl #:non-dynamic-extent)
 
@@ -1040,7 +1040,7 @@
    format
    fresh-line
    listen
-   pathname 
+   pathname
    peek-char
    read-byte
    read-char
@@ -1143,10 +1143,10 @@
   (:use)                                ;use nothing
   #+Allegro
   (:import-from :excl #:non-dynamic-extent)
-  #+Allegro (:implementation-packages 
-             :silica 
-             :clim-utils 
-             :clim-silica 
+  #+Allegro (:implementation-packages
+             :silica
+             :clim-utils
+             :clim-silica
              :clim-internals
              :postscript-clim
              :xm-silica)
@@ -3026,7 +3026,7 @@
     *ports*
     *standard-character-set*
     *all-character-sets*
-    #+(or aclpc acl86win32) *undefined-text-style* 
+    #+(or aclpc acl86win32) *undefined-text-style*
     +highlighting-line-style+
     activate-gadget-event
     add-sheet-callbacks
@@ -3301,12 +3301,12 @@
 (cl:defvar *clim-major-version* 2)
 (cl:defvar *clim-minor-version* 2)
 (cl:defvar *clim-generation-version* 1)
-(cl:defvar *clim-build-version* 2)
+(cl:defvar *clim-build-version* 3)
 
 (cl:defparameter *clim-version*
-    (cl:format () "CLIM ~d.~d.~d.~d" 
+    (cl:format () "CLIM ~d.~d.~d.~d"
 	       *clim-major-version* *clim-minor-version*
 	       *clim-generation-version* *clim-build-version*))
 
 #-aclpc
-(si::rcsnote *clim-version* "$Id: packages.lisp,v 1.74 1997/10/20 23:11:11 layer Exp $")
+(si::rcsnote *clim-version* "$Id: packages.lisp,v 1.75 1997/10/30 20:21:55 smh Exp $")

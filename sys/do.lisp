@@ -4,7 +4,7 @@
 ;;; file names must be made in this file to reflect the actual drive and directory
 ;;; portions of pathnames.
 
-(defvar *clim-root* (make-pathname 
+(defvar *clim-root* (make-pathname
                        :device (pathname-device *load-pathname*)
                        :directory (butlast (pathname-directory *load-pathname*))))
 
@@ -17,15 +17,15 @@
 (defun driball (&optional path)
    (if path
       (let* ((dn (concatenate 'string "clim" path ".txt"))
-             (drib (ask-user-for-new-pathname 
+             (drib (ask-user-for-new-pathname
                     (format nil "Pick dribble file for ~A" path)
                     :initial-name dn
-                    :allowed-types 
+                    :allowed-types
                     '(("Dribble files" . "*.txt") ("All files" . "*.*"))
                     :host *driball-dir*
                     ))
              )
-         (when *driball-err-out* 
+         (when *driball-err-out*
             ;; flush interrupted operation
             (driball))
          (when drib
@@ -34,19 +34,19 @@
             (setq *error-output* *standard-output*)
             (setq *trace-output* *standard-output*)
             (gc t) (gc t) (gc t)
-            (room t)
+            #-runtime-system (room t)
             )
-         (if drib 
+         (if drib
             t
-            (case (pop-up-message-dialog *lisp-main-window* 
+            (case (pop-up-message-dialog *lisp-main-window*
                      (format nil "CLIM op ~A" path)
-                     "CANCEL CLIM Operation or CONTINUE with no dribble output?" 
+                     "CANCEL CLIM Operation or CONTINUE with no dribble output?"
                      question-icon "CANCEL" "CONTINUE")
                (2 t)))
              )
       (when *driball-err-out*
          (gc t) (gc t) (gc t)
-         (room t)
+         #-runtime-system (room t)
          (setq *error-output* (first *driball-err-out*))
          (setq *trace-output* (second *driball-err-out*))
          (setq *driball-err-out* nil)
@@ -62,12 +62,12 @@
        (*default-pathname-defaults* *load-pathname*))
   (case file
     (2 (when (driball "comp")
-	 (time (load "compile.lisp"))
+	 (#-runtime-system time #+runtime-system progn (load "compile.lisp"))
 	 (driball)))
     (3 (when (driball "load")
-	 (time (load "load.lisp"))
+	 (#-runtime-system time #+runtime-system progn (load "load.lisp"))
 	 (driball)))
     (4 (when (driball "ldnd")
 	 (setf user::*no-clim-demos* t)
-	 (time (load "load.lisp")))
+	 (#-runtime-system time #+runtime-system progn (load "load.lisp")))
 	 (driball))))

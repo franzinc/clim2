@@ -11,7 +11,7 @@
 (setq comp:trust-dynamic-extent-declarations-switch nil)
 
 #+acl86win32
-(defvar *clim-root* (make-pathname 
+(defvar *clim-root* (make-pathname
                        :device (pathname-device *load-pathname*)
                        :directory (butlast (pathname-directory *load-pathname*))))
 
@@ -25,7 +25,7 @@
 			  (file-write-date defsys-fsl-path))))
   (when (probe-file defsys-source-path)
     (unless (and fsl-file-date
-		 (>= fsl-file-date (file-write-date defsys-path)))
+		 (>= fsl-file-date (file-write-date defsys-source-path)))
       (compile-file defsys-source-path)))
   (load (climpath "sys\\defsystem.fsl")))
 

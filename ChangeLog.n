@@ -11,6 +11,27 @@ Tests for new features:	<`no new features', `no tests for new features', or
 	* <changes go here...>
 
 *******************************************************************************
+2.2.1.3
+	
+Documentation changes:	none
+Tests for new features:	no new features
+
+This commit coule be the second release candidate for ACL WIN CLIM
+2.2.1 if there is one.  It is now possible to build a standalone
+ACLWIN runtime application with CLIM.
+
+Thu Oct 30 11:59:43 1997  Steve Haflich  <smh@romeo>
+
+	* utils/packages.lisp: bump build number
+	* sys/do.lisp: Conditionalize some of the calls that won't work
+	  in ACLWIN runtime, e.g. room.
+	* sys/load.lisp: Fix a symbol typo recently introduced by Tom.
+	  This file is only used by ACLWin.
+	* aclpc/acl-class.lisp: Remove symbolic msg-name debugging stuff in
+	  aclwin since it depends on aprops-list which doesn't exist in a
+	  runtime.
+	
+*******************************************************************************	
 2.2.1.2
 
 Documentation changes:	none

@@ -12,7 +12,7 @@
 (in-package :windows)
 
 #|| ;; this is no longer how it is done
-#+acl86win32 (eval-when (compile load eval) 
+#+acl86win32 (eval-when (compile load eval)
  	     (if* (equal (short-site-name) "ultra")
  		then (warn "not doing defapi without mainsoft")
 		else (setf *defapientry-allowed* t)))
@@ -60,14 +60,20 @@
 (defun mformat (&rest args)
   (if *maybe-format* (apply #'format args)))
 
+;; In ACL Win we won't do this because apropos-list doesn't exist in a runtime.
+;; smh 30Oct97
+
+#-aclpc
 (defvar *msg-names* nil)
 
+#-aclpc
 (defun init-msg-names ()
   (setq *msg-names* (make-array 4096))
   (dolist (x (remove-duplicates
 	      (apropos-list 'wm_ (find-package :win))))
     (push x (svref *msg-names* (symbol-value x)))))
 
+#-aclpc
 (defun msg-name (msg)
   (unless *msg-names* (init-msg-names))
   (let ((x (and (< msg 4096) ;; pr Aug97
@@ -75,6 +81,9 @@
     (unless (cdr x)
       (setq x (car x)))
     (or x msg)))
+
+#+aclpc
+(defun msg-name (msg) msg)
 
 (defun modstate->modifier (state)
   (if (modstate-shift state)
@@ -129,13 +138,13 @@
 (defun init-cursors ()
   ;; put back old cursor mechanism for the moment (cim 9/13/96)
   (setf arrow-cursor
-        (win::LoadCursor 
+        (win::LoadCursor
 	  (ct::null-handle win::hinst)
 	  (ct::ccallocate (char *) :initial-value win::IDC_ARROW)))
   ;; this just does the icon now - the cursor stuff is all handled in
   ;; realize-cursor methods in acl-port (cim 9/12/96)
   (setf application-icon
-	(win::LoadIcon 
+	(win::LoadIcon
 	  (ct::null-handle win::hinst)
 	  (ct::ccallocate (char *) :initial-value win:IDI_APPLICATION))))
 
@@ -151,7 +160,7 @@
 #+acl86win32
 (defun clim-window-proc (x)
   #||
-  ;; bind message variables 
+  ;; bind message variables
   (multiple-value-bind
     (queue-entry *window-proc-result* *hwnd* *msg* *wparam* *lparam*)
       (cg::get-window-proc-args)
@@ -160,22 +169,22 @@
     (setf *msg* (cg::long-ref d 1))
     (setf *wparam* (cg::long-ref d 2))
     (setf *lparam* (cg::signed-long-ref d 3)))
-   
-  ;; set return value to 0 
+
+  ;; set return value to 0
   (setf (cg::be *window-proc-result* 0) 0)
   (setf (cg::be *window-proc-result* 1) 0)
-  ;; dispatch 
-   
+  ;; dispatch
+
   (clim-wind-proc *hwnd* *msg* *wparam* *lparam*))
   ||#
-  ;; always return *window-proc-result* to the kernel as a cpointer 
+  ;; always return *window-proc-result* to the kernel as a cpointer
   (let ((result #-acl86win32 (cg::ccallocate (:void *)) #+acl86win32 0))
     (setf #-acl86win32 (pc::cpointer-value result) #+acl86win32 result
           #-acl86win32 (cg::word-vector-long-ref *window-proc-result* 0)
           #+acl86win32 *window-proc-result*)
-    ;; release queue vector 
+    ;; release queue vector
     ;(cg::release-window-proc-args queue-entry)+++seems OK uncomment.
-    ;; return result 
+    ;; return result
     result))
 
 #+acl86win32
@@ -199,7 +208,7 @@
 #+acl86win32
 (defun init-clim-win-proc (wproc-address arg-struct)
   ;(setf (pc::cpointer-value wproc-address)
-        ;(cg::wprocinit2 
+        ;(cg::wprocinit2
             ;(ff:register-function 'clim-wind-proc))
   ;)
   (setf *clim-wproc-arg-struct* arg-struct)
@@ -208,7 +217,7 @@
 #+acl86win32
 (defun init-clim-ctrl-proc (wproc-address arg-struct)
   ;(setf (pc::cpointer-value wproc-address)
-        ;(cg::wprocinit3 
+        ;(cg::wprocinit3
           ;(ff:register-function 'clim-ctrl-proc);)
         ;)
   (setf *clim-ctrl-arg-struct* arg-struct)
@@ -283,11 +292,11 @@
      (rcItem pc::uint)
      (itemData pc::dword)))
   (ct::defcstruct MeasureItemStruct
-    ((CtlType pc::uint)		; type of control 
-     (CtlID pc::uint)		; combo box, list box, or button identifier 
-     (itemID pc::uint)		; menu item, variable-height list box, or combobox identifier 
-     (itemWidth pc::uint)	; width of menu item, in pixels 
-     (itemHeight pc::uint)	; height of single item in list box menu, in pixels 
+    ((CtlType pc::uint)		; type of control
+     (CtlID pc::uint)		; combo box, list box, or button identifier
+     (itemID pc::uint)		; menu item, variable-height list box, or combobox identifier
+     (itemWidth pc::uint)	; width of menu item, in pixels
+     (itemHeight pc::uint)	; height of single item in list box menu, in pixels
      (itemData pc::dword))))	; application-defined 32-bit value
 
 #+aclpc
@@ -338,7 +347,7 @@
  (#+acl86win32 mp:without-scheduling
   #-acl86win32 progn
   #+acl86win32 (setf *hwnd* window)
-  (mformat #+acl86win32 excl:*initial-terminal-io* 
+  (mformat #+acl86win32 excl:*initial-terminal-io*
 	   #+aclpc *standard-output*
 	   "In clim-wind-proc msg=~a sheet=~s lparam=~a~%"
 	   (msg-name msg) (mirror->sheet *acl-port* window) lparam)
@@ -353,18 +362,18 @@
 	    (my (pc::hiword lparam))
 	    (sheet (mirror->sheet *acl-port* window)))
 	(note-pointer-motion *acl-port* sheet mx my)))
-     
+
      ((eql msg win:wm_setcursor)
       (let ((hit-code (pc::loword lparam)))
 	(unless (and (eql hit-code win::htclient)
 		     (maybe-set-cursor window))
 	  (setq *cursor-cache* nil)
-	  (setf (pointer-cursor (port-pointer *acl-port*)) :button) 
+	  (setf (pointer-cursor (port-pointer *acl-port*)) :button)
 	  #+acl86win32
 	  (setq *win-result* (win::defwindowproc window msg wparam lparam))
 	  #+aclpc
 	  (ct::%set-long *win-result* 4 0 (win::defwindowproc window msg wparam lparam)))))
-     
+
      ((eql msg win:wm_paint)
       (let* ((udrect (ct::ccallocate win:rect))
 	     (berase 0)			;  (ct::ccallocate win:bool)
@@ -377,11 +386,11 @@
 	(win::getClientRect window vdrect)
 	(if update
 	    (let ((ilef (ct::cref win::rect udrect win::left))
-		  (itop (ct::cref win::rect udrect win::top)) 
+		  (itop (ct::cref win::rect udrect win::top))
 		  (irig (ct::cref win::rect udrect win::right))
 		  (ibot (ct::cref win::rect udrect win::bottom))
 		  (done-val (win::validateRect window vdrect)))
-	      
+
 	      (unless (or (= ilef irig) (= itop ibot)) ;does this happen alot?
 		(when sheet
 		  #-ignore
@@ -393,7 +402,7 @@
 				   :sheet sheet))
 		  #+ignore
 		  (with-slots (event-queue) *acl-port*
-		    (queue-put 
+		    (queue-put
 		     event-queue
 		     (allocate-event
 		      'window-repaint-event
@@ -401,9 +410,9 @@
 		      :region (make-bounding-rectangle ilef itop irig ibot)
 		      :sheet sheet)))))))))
      #+aclpc ;; pnc Aug97 for clim2bug740
-     ((eql msg win::wm_drawitem) 
+     ((eql msg win::wm_drawitem)
       (incf *drawitem-started*)
-      (multiple-value-bind (ctltype ctlid itemid itemaction itemstate 
+      (multiple-value-bind (ctltype ctlid itemid itemaction itemstate
 			    hwnditem hdcitem rcitem itemdata)
 	  (drawitemstruct-info lparam)
 	(let ((hwnd (ct::ccallocate win::hwnd))
@@ -433,7 +442,7 @@
 	  (when sheet
 	    (silica::draw-picture-button (mirror->sheet *acl-port* hwnd)
 					 state hdc rect)))))
-     
+
      ((or (eql msg win::wm_ctlcoloredit)
 	  (eql msg win::wm_ctlcolorlistbox)
 	  (eql msg win::wm_ctlcolorbtn)
@@ -452,7 +461,7 @@
 	  (when sheet
 	    #+acl86win32		;+++ aclpc
 	    (setf *win-result* (adjust-gadget-colors sheet hdc))))))
-     
+
      ((eql msg win::wm_command)
       (let ((wloword (pc::loword wparam))
 	    (whiword (pc::hiword wparam))
@@ -468,7 +477,7 @@
 	(declare (special *gadget-id->window*))
 	(when pointer
 	  (flush-pointer-motion *acl-port*))
-	
+
 	(if (and (= lparam 0)		; menu item
 		 (= whiword 0))		; otherwise control (or accelerator)
 	    (let* ((frame (pane-frame sheet))
@@ -485,7 +494,7 @@
 					     :presentation-type
 					     `(command :command-table ,command-table)
 					     :value command)))))
-	  (progn 
+	  (progn
 	    (setf (pc::handle-value win::hwnd hwnd) lparam)
 	    ;;mm: for the moment, the following seems superfluous
 	    ;;(setf hwndid (silica::gadget-id->window sheet wloword))
@@ -511,7 +520,7 @@
 	      (if (typep gadget 'silica::mswin-text-edit)
 		  (let ((sheet (mirror->sheet *acl-port* window)))
 		    (when (and sheet (= whiword pc::en_killfocus))
-		      
+
 		      (with-slots (event-queue) *acl-port*
 					;handle-event
 					;  gadget
@@ -533,7 +542,7 @@
 		  (when (typep gadget 'silica::hlist-pane)
 		    (win::setfocus window))
 		  (with-slots (event-queue) *acl-port*
-		    
+
 		    (multiple-value-bind (left top right bottom)
 			(mirror-client-region-internal* *acl-port* hwnd window)
 		      #+ignore
@@ -636,7 +645,7 @@
 		(queue-put event-queue
 			   (allocate-event 'window-configuration-event
 					   :sheet sheet)))
-	      ;; set return value to 0 
+	      ;; set return value to 0
 	      (clear-winproc-result *win-result*))
 	  #+acl86win32
 	  (setq *win-result* (win::defwindowproc window msg wparam lparam))
@@ -653,7 +662,7 @@
 	      ;; someone who knows how to use the pc ff interface should get
 	      ;; rid of all these memrefs! (cim 10/4/96)
 	      (when (and min-width min-height)
-		(set-measureitemstruct-width-and-height lparam min-width 
+		(set-measureitemstruct-width-and-height lparam min-width
 							min-height)
 		#+ignore
 		(setf (sys:memref-int lparam 0 24 pc::uint) min-width
@@ -717,7 +726,7 @@
 	  #+debugg
 	  (format *standard-output* "caps=~a num=~a shift=~a ctrl=~a meta=~a code=~a~%"
 		  capstate numstate shiftstate controlstate metastate code)
-	  
+
 	  (setf (modstate-control *modstate*)
 	    (or (minusp controlstate) (not (zerop (ash controlstate -15)))))
 	  (setf (modstate-meta *modstate*)
@@ -760,7 +769,7 @@
 		    (setf char keysym))
 		  (setf keysym (char->keysym keysym)))
 		(queue-put event-queue
-			   (allocate-event 
+			   (allocate-event
 			    (cond ((or (eql msg win:wm_keydown)
 				       (eql msg win:wm_syskeydown))
 				   'key-press-event)
@@ -773,7 +782,7 @@
 					      modstate)
 			    :sheet sheet))
 		))
-	    ;; set return value to 0 
+	    ;; set return value to 0
 	    (clear-winproc-result *win-result*)
 	    *win-result*))))
      ((or (eql msg win:wm_lbuttondown)
@@ -782,14 +791,14 @@
 	  (eql msg win:wm_lbuttonup)
 	  (eql msg win:wm_rbuttonup)
 	  (eql msg win:wm_mbuttonup))
-      
+
       ;; added the following so that clicking on a blank area will
       ;; move the focus away from any text-fields and cause their
       ;; value to be correctly updated  - this was copied from the
       ;; handle-event on key-press-event for mswin-text-edit in
       ;; acl-widg (cim 9/17/96)
       (win::setfocus (win::getactivewindow) #-acl86win32 :static)
-      
+
       (let ((modifier-state
 	     (windows-mask->modifier-state wparam))
 	    (pointer (port-pointer *acl-port*)))
@@ -831,7 +840,7 @@
 	    (flag (pc::loword wparam)))
 	(when (and sheet (> flag 0))
 	  (setf (acl-port-mirror-with-focus *acl-port*) window))
-	;; set return value to 0 
+	;; set return value to 0
 	(clear-winproc-result *win-result*)
 	*win-result*))
      ((or (eql msg win:wm_killfocus)
@@ -847,7 +856,7 @@
 	      (queue-put event-queue
 			 (allocate-event 'silica::window-close-event
 					 :sheet sheet)))))
-	;; set return value to 0 
+	;; set return value to 0
 	(clear-winproc-result *win-result*)
 	*win-result*))
      ;; the following has been moved into above clause with
@@ -861,7 +870,7 @@
 	  (queue-put event-queue
 		     (allocate-event 'silica::window-close-event
 				     :sheet sheet)))
-	;; set return value to 0 
+	;; set return value to 0
 	(clear-winproc-result *win-result*)
 	*win-result*))
      #|| We can't do it this way because the frame-event gets run in the scheduler
@@ -873,11 +882,11 @@
 	(when frame
 	  (frame-exit frame))
 	(destroy-mirror *acl-port* sheet)
-	;; set return value to 0 
+	;; set return value to 0
 	(clear-winproc-result *win-result*)
 	*win-result*))
      ||#
-     
+
      ((eql msg win:wm_initmenupopup)
       (update-menu-item-sensitivities wparam)
       *win-result*)
@@ -950,7 +959,7 @@
 					 (and (not (or (minusp shiftstate) (not (zerop (ash shiftstate -15)))))
 						  (and (plusp capstate) (zerop (ash capstate -15))))))
 		   )
-		 
+
 		 (when (and (or (<= #x30 vk #x5a)(<= #xba vk #xc0)(<= #xdb vk #xdf))
 					(modstate-shift *ctlmodstate*))
 		   (setf code (logior #x100 code)))
@@ -993,7 +1002,7 @@
 				   ;; We have decided to handle this character ourselves!
 				   (handle-event
 					 sheet
-					 (allocate-event 
+					 (allocate-event
 					   (cond ((or (eql msg win:wm_keydown)
 								  (eql msg win:wm_syskeydown)
 								  (eql msg win:wm_char))
@@ -1006,7 +1015,7 @@
 					   :modifier-state (setf (port-modifier-state *acl-port*)
 											 modstate)
 					   :sheet sheet))
-				   ;; set return value to 0 
+				   ;; set return value to 0
 				   (clear-winproc-result *win-result*)
 				   *win-result*))))))
       (t
@@ -1099,12 +1108,12 @@
 (defun initialize-clim (&optional (mp t))
   (declare (ignore mp))
   (warn "~s deprecated - CLIM is automatically initialized"
-	'initialize-clim)) 
+	'initialize-clim))
 
 #+acl86win32
 (defvar *clim-initialized* nil)
 
-#+aclpc 
+#+aclpc
 (defvar *clim-initialized* nil)
 
 (in-package :pc)
@@ -1133,16 +1142,16 @@
 	   lpszmenuname ct::hnull
 	   lpszclassname lisp-window-class-name
 	   ;; until we get a small icon in acl5
-	   
+
 	   hIconSm
 	   #+aclmerge 0
 	   #+aclpc (if (pre-windows4-p) ;; <13>
 		       (ccallocate ct::lhandle :initial-value 0) ;; <13>
-		     (loadimage *hinst* "ICON_LISP" 
+		     (loadimage *hinst* "ICON_LISP"
 				1	; image_icon
 				16 16 0)) ; <11>
 	   )
-    (if*  (zerop (str_RegisterClassEx class 
+    (if*  (zerop (str_RegisterClassEx class
 				    lisp-window-class-name
 				    0
 				    )) ; <11>
@@ -1164,15 +1173,15 @@
 	    lpszclassname lisp-resizing-window-class-name
 	    hIconSm
 	    #+aclmerge 0
-	    
-	    #+aclpc 
+
+	    #+aclpc
 	    (if (pre-windows4-p) ;; <13>
 		(ccallocate ct::lhandle :initial-value 0) ;; <13>
 	      (loadimage *hinst* "ICON_LISP"
 			 1 ; image_icon
 			 16 16 0)) ; <11>
 	    )
-    (if* (zerop (str_RegisterClassEx class 
+    (if* (zerop (str_RegisterClassEx class
 				   lisp-resizing-window-class-name
 				   0
 				   )) ; <11>
@@ -1194,9 +1203,9 @@
   ;; The following turns off a 330ms timer that cg starts up. This
   ;; makes debugging of mp event bugs harder and CLIM shouldn't need
   ;; this anyway. When the CLIM and CG event loops are made to live
-  ;; together in the same image this will have to change (cim 9/16/96) 
+  ;; together in the same image this will have to change (cim 9/16/96)
     (cg::kill-acl-timer-exit-fn nil)
-    
+
     (setf clim-window-proc-address (init-clim-win-proc clim-window-proc-address #.(cg::make-cstructure 0 16)))
     (setf clim-ctrl-proc-address (init-clim-ctrl-proc clim-ctrl-proc-address #.(cg::make-cstructure 0 16)))
     (setq *clim-initialized* t)))
@@ -1232,7 +1241,7 @@
       (if (zerop (setq reg (win::str_registerclassex class *clim-class* 0)))
         (error "CLIM window class could not be registered."))
       (setq err2 (win::getLastError))
-      (setq *wndclass-registered* t))    
+      (setq *wndclass-registered* t))
     ))
 
 ;;; "CreateWindowEx"
@@ -1279,7 +1288,7 @@
 		parent
 		menu
 		pc::*hinst*
-        #+acl86win32			 
+        #+acl86win32
 		*win-x* ;(setq *win-x* (symbol-name (gensym)))
 		#+aclpc *win-arg*)) ;*win-x*
     #+acl86win32
@@ -1402,7 +1411,7 @@
     window))
 
 (defvar wres  (ct::callocate :long))
-(defvar wmsg  (ct::ccallocate win::msg)) 
+(defvar wmsg  (ct::ccallocate win::msg))
 
 (defun wait-for-event ()
   (let (;(msg (ct::ccallocate win::msg))
@@ -1440,7 +1449,7 @@
 (defun await-response (waitp)
   (let ((msg (ct::ccallocate win::msg)))
     (if waitp
-	(progn 
+	(progn
 	  (win::getMessage msg (ct::null-handle win::hwnd) 0 0)
 	  (win::TranslateMessage msg)
 	  (win::dispatchMessage msg)
