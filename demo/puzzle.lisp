@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: puzzle.lisp,v 1.10 92/07/06 18:52:13 cer Exp $
+;; $fiHeader: puzzle.lisp,v 1.11 92/07/20 16:01:38 cer Exp Locker: cer $
 
 (in-package :clim-demo)
 
@@ -16,6 +16,9 @@
 	     :max-width +fill+
 	     :height :compute
 	     :max-height +fill+
+	     :end-of-page-action :allow
+	     :end-of-line-action :allow
+	     :text-style '(:fix :bold :very-large)
 	     :incremental-redisplay t
 	     :display-function 'draw-puzzle))
   (:layouts
@@ -68,26 +71,23 @@
 
 (defmethod draw-puzzle ((puzzle puzzle) stream &key max-width max-height)
   (declare (ignore max-width max-height))
-  (with-text-style (stream '(:fix :bold :very-large))
-    (with-end-of-page-action (stream :allow)
-      (with-end-of-line-action (stream :allow)
-	(let ((puzzle-array (puzzle-puzzle puzzle)))
-	  ;; I'm not sure why the table sometimes draws in the wrong place if I don't do this
-	  (stream-set-cursor-position stream 0 0)
-	  (updating-output (stream)
-	    (formatting-table (stream)
-	      (dotimes (row 4)
-		(formatting-row (stream)
+  (let ((puzzle-array (puzzle-puzzle puzzle)))
+    ;; I'm not sure why the table sometimes draws in the wrong place if I don't do this
+    (stream-set-cursor-position stream 0 0)
+    (updating-output (stream)
+	(formatting-table (stream)
+	    (dotimes (row 4)
+	      (formatting-row (stream)
 		  (dotimes (column 4)
 		    (let ((value (aref puzzle-array row column)))
 		      (updating-output (stream
-					 :unique-id (encode-puzzle-cell row column)
-					 :cache-value value)
-			(formatting-cell (stream :align-x :right)
-			  (unless (zerop value)
-			    (with-output-as-presentation 
-				(stream (encode-puzzle-cell row column) 'puzzle-cell)
-			      (format stream "~2D" value))))))))))))))))
+					:unique-id (encode-puzzle-cell row column)
+					:cache-value value)
+			  (formatting-cell (stream :align-x :right)
+			      (unless (zerop value)
+				(with-output-as-presentation 
+				    (stream (encode-puzzle-cell row column) 'puzzle-cell)
+				  (format stream "~2D" value)))))))))))))
 
 (defun find-open-cell (puzzle)
   (dotimes (row 4)

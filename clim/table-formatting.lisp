@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: table-formatting.lisp,v 1.8 92/05/22 19:28:31 cer Exp $
+;; $fiHeader: table-formatting.lisp,v 1.9 92/08/18 17:25:39 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -476,7 +476,7 @@
 	       (:point (round (* number (graft-pixels-per-point (graft stream)))))
 	       ((:pixel :device) number)
 	       ;; Which character?  Width or height?
-	       (:character (* number (stream-character-width stream #\W)))
+	       (:character (* number (stream-character-width stream #\0)))
 	       (:line (+ (* number (stream-line-height stream))
 			 (* (1- number) (stream-vertical-spacing stream))))))))
 	(t (error "The ~:[~;~S ~]spacing specification, ~S, to ~S was invalid"

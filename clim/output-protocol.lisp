@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: output-protocol.lisp,v 1.17 92/07/27 11:02:42 cer Exp $
+;; $fiHeader: output-protocol.lisp,v 1.18 92/08/18 17:25:17 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -212,7 +212,7 @@
 (defmethod stream-compatible-cursor-position ((stream output-protocol-mixin) &optional unit)
   (with-slots (cursor-x cursor-y) stream
     (if (eq unit :character)
-	(values (floor cursor-x (stream-character-width stream #\m))
+	(values (floor cursor-x (stream-character-width stream #\0))
 		(floor cursor-y (stream-line-height stream)))
 	(values cursor-x cursor-y))))
 
@@ -220,7 +220,7 @@
 (defmethod stream-compatible-set-cursor-position ((stream output-protocol-mixin) x y
 						  &optional unit)
   (when (eq unit :character)
-    (setq x (* x (stream-character-width stream #\m))
+    (setq x (* x (stream-character-width stream #\0))
 	  y (* y (stream-line-height stream))))
   (stream-set-cursor-position stream x y))
 
@@ -229,7 +229,7 @@
 							&optional unit)
   (when (eq unit :character)
     (when x
-      (setq x (* x (stream-character-width stream #\m))))
+      (setq x (* x (stream-character-width stream #\0))))
     (when y
       (setq y (* y (stream-line-height stream)))))
   (stream-increment-cursor-position stream x y))
@@ -370,7 +370,7 @@
 	(unless (eq (stream-end-of-line-action stream) ':allow)
 	  (unless (<= vleft cx vright)
 	    (setf new-x (max 0 (- cx (- vright vleft 
-					(* 4 (stream-character-width stream #\W))))))))
+					(* 4 (stream-character-width stream #\0))))))))
 	;; If the cursor moves outside the current region, expand
 	;; it to include the new cursor position.
 	(when (> cy (bounding-rectangle-height stream))
@@ -383,23 +383,8 @@
 
 (defparameter *character-wrap-indicator-width* 3)
 
-(defmacro with-text-cursor-off ((stream) &body body)
-  (assert (symbolp stream))
-  (let ((cursor '#:cursor)
-	(cursor-active '#:cursor-active))
-    `(let* ((,cursor (and (extended-input-stream-p ,stream)
-			  (stream-text-cursor ,stream)))
-	    (,cursor-active (and ,cursor (cursor-active ,cursor))))
-       (unwind-protect
-	   (progn
-	     (when ,cursor-active
-	       (setf (cursor-active ,cursor) nil))
-	     ,@body)
-	 (when ,cursor-active
-	   (setf (cursor-active ,cursor) ,cursor-active))))))
-
 (defmethod stream-write-char ((stream output-protocol-mixin) character)
-  (with-text-cursor-off (stream)
+  (with-cursor-state (nil stream)
     (multiple-value-bind (cursor-x cursor-y baseline height style 
 			  max-x record-p draw-p)
 	(decode-stream-for-writing stream)
@@ -559,7 +544,7 @@
       (return-from stream-write-string string))	;No deeds to do
     (let* ((medium (sheet-medium stream))
 	   (ink (medium-ink stream)))
-      (with-text-cursor-off (stream)
+      (with-cursor-state (nil stream)
 	(loop
 	  (multiple-value-bind (write-char next-char-index
 				new-cursor-x new-baseline new-height font)
@@ -733,7 +718,7 @@
 
 (defmethod stream-tab-size ((stream output-protocol-mixin) text-style)
   (multiple-value-bind (index font escapement-x escapement-y origin-x origin-y bb-x bb-y)
-      (port-glyph-for-character (port stream) #\n	;En space
+      (port-glyph-for-character (port stream) #\0	;En space
 				(or text-style
 				    (medium-merged-text-style stream)))
     (declare (ignore index font escapement-y origin-x origin-y bb-y))

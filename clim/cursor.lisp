@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: cursor.lisp,v 1.14 92/07/20 16:00:09 cer Exp $
+;; $fiHeader: cursor.lisp,v 1.15 92/08/18 17:24:47 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -15,18 +15,13 @@
 ;;; cursor-visibility, setf
 
 ;;; A CLIM stream either has a cursor or it doesn't.
-;;;
-;;; The cursor is "active" or "inactive," meaning it moves around or doesn't.
-;;; This is the only exported interface.  Some programs temporarily turn off the cursor
-;;; while at top-level (such as AVV) but turn the cursor back on when actually reading
-;;; input.
-;;;
-;;; The cursor is either "On" or "Off" (STATE of T or NIL), meaning it's visible or not.
-;;; CLIM turns the cursor on during input wait, and off otherwise.
-;;;
-;;; The cursor "has focus" or not (actually, this means that the stream has focus).
-;;; CLIM sets the focus while the mouse is in the window.
-;;;
+;;; CURSOR-ACTIVE says whether the cursor moves around.
+;;; CURSOR-STATE says whether or not the cursor is currently visible.
+;;; CURSOR-FOCUS says whether the cursor has the input focus (actually, this means
+;;; that the stream has focus).  CLIM sets the focus while the mouse is in the window.
+;;; CURSOR-VISIBILITY is CLIM 1.1 shorthand for hacking both the active and state flags
+;;; at the same time.
+
 ;;; Turning a cursor on requires drawing it on the stream, somehow.  That needs
 ;;; to go through to the port level, where an appropriate host-window-system thing
 ;;; may be manipulated.  Should this be unified with the mouse cursor stuff?
@@ -128,11 +123,33 @@
   (cursor-active cursor))
  
 (defmethod (setf cursor-visibility) (visibility (cursor standard-text-cursor))
-  (setf (cursor-active cursor) 
-	(case visibility
+  (setf (cursor-state cursor) 
+        (case visibility
 	  (:off nil)
 	  ((nil) nil)
+	  ((t :on) t)))
+  (setf (cursor-active cursor) 
+        (case visibility
+	  (:off t)
+	  ((nil) nil)
 	  ((t :on) t))))
+
+(defmacro with-cursor-state ((state &optional stream) &body body)
+  (default-input-stream stream)
+  `(let* ((cursor (and (extended-input-stream-p ,stream)
+		       (stream-text-cursor ,stream)))
+	  (old-state (and cursor (cursor-state cursor)))
+	  (abort-p t))
+     (unwind-protect
+	 (progn (when cursor
+		  (cond ((eq old-state ,state))
+			(t
+			 (setf (cursor-state cursor) ,state)
+			 (setf abort-p nil))))
+		,@body)
+       (when cursor
+	 (unless abort-p
+	   (setf (cursor-state cursor) old-state))))))
 
 (defmethod cursor-width-and-height-pending-protocol ((cursor t))
   (values 8 12))

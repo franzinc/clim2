@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: text-style.lisp,v 1.9 92/07/08 16:29:25 cer Exp $
+;; $fiHeader: text-style.lisp,v 1.10 92/08/18 17:23:58 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -331,6 +331,7 @@
 	    (setf (cdr mapping-pair) underlying)
 	    (push (cons logical underlying) (cdr pair)))))))
 
+
 (defconstant %%face-code-no-merge (byte 1 28))
 (defconstant %%face-code-class (byte 4 24))
 (defconstant %%face-code-faces (byte 24 0))
@@ -577,7 +578,10 @@
 	    "Text style mappings must be atomic font names ~
 	     or (:STYLE . (family face size))")
     (setf mapping (parse-text-style (cdr mapping))))
-  (with-slots (mapping-table allow-loose-text-style-size-mapping) port
+  (with-slots (mapping-table allow-loose-text-style-size-mapping mapping-cache) port
+    (without-scheduling
+      (setf (car mapping-cache) nil
+	    (cdr mapping-cache) nil))
     (if allow-loose-text-style-size-mapping
 	(multiple-value-bind (family face size) (text-style-components style)
 	  (declare (ignore size))
@@ -599,7 +603,14 @@
 ;;; be called on the outermost recursion.
 (defmethod text-style-mapping ((port basic-port) style
 			       &optional (character-set *standard-character-set*) window)
-  (text-style-mapping* port style character-set window))
+  (let ((mapping-cache (slot-value port 'mapping-cache)))
+    (when (eq style (car mapping-cache))
+      (return-from text-style-mapping (cdr mapping-cache)))
+    (let ((font (text-style-mapping* port style character-set window)))
+      (without-scheduling
+	(setf (car mapping-cache) style
+	      (cdr mapping-cache) font))
+      font)))
 
 (defmethod text-style-mapping ((port basic-port) (style device-font) 
 			       &optional (character-set *standard-character-set*) window)

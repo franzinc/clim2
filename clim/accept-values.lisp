@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept-values.lisp,v 1.28 92/08/18 17:24:35 cer Exp Locker: cer $
+;; $fiHeader: accept-values.lisp,v 1.29 92/08/19 10:23:51 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -221,7 +221,7 @@
 		    (make-instance 'accept-values-stream
 		      :stream (setf own-window 
 				    (make-pane 'clim-stream-pane
-				      :initial-cursor-visibility nil))))
+				      :initial-cursor-visibility :off))))
 	      own-window)))
 	(outlining ()
 	  (setf exit-button-stream
@@ -322,7 +322,7 @@
 	   avv avv-record)
       (letf-globally (((stream-default-view stream) 
 		       (frame-manager-dialog-view (frame-manager frame)))
-		      ((cursor-visibility (stream-text-cursor stream)) :off))
+		      ((cursor-state (stream-text-cursor stream)) nil))
 	(labels ((run-continuation (stream avv-record)
 		   (setf (slot-value stream 'avv-record) avv-record)
 		   (setf (slot-value stream 'avv-frame) frame)
@@ -545,6 +545,12 @@
 
 (define-presentation-type accept-values-choice ())
 
+;;--- It would have been nice to have defined these in terms of the
+;;--- other gestures
+(define-gesture-name :edit-field :pointer-button (:left))
+(define-gesture-name :modify-field :pointer-button (:middle))
+(define-gesture-name :delete-field :pointer-button (:middle :shift))
+
 (defun-inline accept-values-query-valid-p (query query-record)
   (and (or (null query) (accept-values-query-active-p query))
        (let ((avv-record (find-accept-values-record query-record)))
@@ -563,7 +569,7 @@
      :pointer-documentation "Edit this field"
      :tester ((object presentation)
 	      (accept-values-query-valid-p object presentation))
-     :gesture :select)
+     :gesture :edit-field)
     (object)
   (list object))
 
@@ -579,7 +585,7 @@
      :pointer-documentation "Modify this field"
      :tester ((object presentation)
 	      (accept-values-query-valid-p object presentation))
-     :gesture :describe)
+     :gesture :modify-field)
     (object)
   (list object))
 
@@ -600,7 +606,7 @@
 		  (setq new-value
 			;; The text cursor should be visible while this ACCEPT is
 			;; waiting for input to be typed into this field
-			(letf-globally (((cursor-visibility (stream-text-cursor stream)) :on))
+		        (with-cursor-state (t stream)
 			  (accept presentation-type
 				  :stream stream :prompt nil :default value
 				  :insert-default modify)))))
@@ -685,7 +691,7 @@
      :pointer-documentation "Remove this field"
      :tester ((object presentation)
 	      (accept-values-query-valid-p object presentation))
-     :gesture :delete)
+     :gesture :delete-field)
     (object)
   (list object))
 
@@ -1001,7 +1007,7 @@
     (accept-values-choice com-edit-avv-pane-choice accept-values-pane
      :documentation "Edit this field"
      :pointer-documentation "Edit this field"
-     :gesture :select
+     :gesture :edit-field
      :priority 1	;prefer this to IDENTITY when in COMMAND-OR-FORM context
      :echo nil)
     (object window)
@@ -1017,7 +1023,7 @@
     (accept-values-choice com-modify-avv-pane-choice accept-values-pane
      :documentation "Modify this field"
      :pointer-documentation "Modify this field"
-     :gesture :describe
+     :gesture :modify-field
      :priority 1	;prefer this to IDENTITY when in COMMAND-OR-FORM context
      :echo nil)
     (object window)
@@ -1031,7 +1037,7 @@
     (accept-values-choice com-delete-avv-pane-choice accept-values-pane
      :documentation "Remove this field"
      :pointer-documentation "Remove this field"
-     :gesture :delete
+     :gesture :delete-field
      :priority 1	;prefer this to IDENTITY when in COMMAND-OR-FORM context
      :echo nil)
     (object)

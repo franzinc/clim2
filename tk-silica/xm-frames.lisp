@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-frames.lisp,v 1.24 92/07/24 10:54:52 cer Exp $
+;; $fiHeader: xm-frames.lisp,v 1.25 92/08/18 17:26:33 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -313,7 +313,7 @@
 	     (construct-menu-from-items (menu items)
 	       (map nil #'(lambda (item)
 			    (ecase (clim-internals::menu-item-type item)
-			      (:separator
+			      (:divider
 			       (make-instance 'xt::xm-separator
 					      :managed nil
 					      :parent menu))

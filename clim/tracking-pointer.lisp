@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: tracking-pointer.lisp,v 1.10 92/07/08 16:31:01 cer Exp $
+;; $fiHeader: tracking-pointer.lisp,v 1.11 92/07/27 11:03:03 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -121,14 +121,16 @@
 		 `(progn
 		    (setq highlighted-presentation ,presentation
 			  highlighted-presentation-type (presentation-type ,presentation))
-		    (highlight-presentation 
-		      highlighted-presentation highlighted-presentation-type
-		      stream :highlight)))
+		    (when (output-recording-stream-p current-window)
+		      (highlight-presentation 
+		        highlighted-presentation highlighted-presentation-type
+		        current-window :highlight))))
 	       (unhighlight ()
 		 `(when highlighted-presentation
-		    (highlight-presentation
-		      highlighted-presentation highlighted-presentation-type
-		      stream :unhighlight)
+		    (when (output-recording-stream-p current-window)
+		      (highlight-presentation
+		        highlighted-presentation highlighted-presentation-type
+		        current-window :unhighlight))
 		    (setq highlighted-presentation nil))))
       (unwind-protect
 	  (loop
@@ -145,9 +147,10 @@
 		    ;; Pointer position is in root (graft) coordinates
 		    (when (or presentation-motion-function highlight)
 		      (let ((presentation
-			      (frame-find-innermost-applicable-presentation
-				*application-frame* *input-context*
-				current-window x y)))
+			      (and (output-recording-stream-p current-window)
+				   (frame-find-innermost-applicable-presentation
+				     *application-frame* *input-context*
+				     current-window x y))))
 			(when presentation
 			  (when highlight
 			    (unless (eq presentation highlighted-presentation)
@@ -180,16 +183,22 @@
 			     (pointer-state-changed pointer last-window last-x last-y))
 			   (and moved-p last-window))))
 		  (declare (dynamic-extent #'pointer-motion-pending))
+		  ;; It's OK to do the input wait on STREAM instead of on
+		  ;; CURRENT-WINDOW, because multiple-window mode only works
+		  ;; when all the windows share the same I/O buffer.  Same
+		  ;; deal with the READ-GESTURE below, too.
+		  ;;--- It's a bug that multiple-window has that restriction...
 		  (setq input-happened
-			(stream-input-wait current-window
+			(stream-input-wait stream
 					   :input-wait-test #'pointer-motion-pending)))
 		;; Don't call READ-GESTURE if there is no gesture to read
-		;;--- This has the possibly undesirable side-effect that the
+		;;--- If we called READ-GESTURE on CURRENT-WINDOW, we would
+		;;--- get the (possibly undesirable) side-effect that the
 		;;--- "input focus" will follow the mouse, having particularly 
 		;;--- weird behavior regarding keystrokes.
 		(let ((gesture
 			(and input-happened
-			     (read-gesture :stream current-window :timeout 0))))
+			     (read-gesture :stream stream :timeout 0))))
 		  (block process-gesture
 		    (cond ((null gesture)
 			   (return-from input-wait))
@@ -214,9 +223,10 @@
 				 (when presentation-press-function
 				   (let* ((window (event-sheet gesture))
 					  (presentation
-					    (frame-find-innermost-applicable-presentation
-					      *application-frame* *input-context*
-					      window px py :event gesture)))
+					    (and (output-recording-stream-p window)
+						 (frame-find-innermost-applicable-presentation
+						   *application-frame* *input-context*
+						   window px py :event gesture))))
 				     (when presentation
 				       (funcall presentation-press-function
 						presentation gesture wx wy)
@@ -228,9 +238,10 @@
 				 (when presentation-release-function
 				   (let* ((window (event-sheet gesture))
 					  (presentation
-					    (frame-find-innermost-applicable-presentation
-					      *application-frame* *input-context*
-					      window px py :event gesture)))
+					    (and (output-recording-stream-p window)
+						 (frame-find-innermost-applicable-presentation
+						   *application-frame* *input-context*
+						   window px py :event gesture))))
 				     (when presentation
 				       (funcall presentation-release-function
 						presentation gesture wx wy)

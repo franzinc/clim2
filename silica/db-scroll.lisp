@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-scroll.lisp,v 1.27 92/07/27 11:01:32 cer Exp $
+;; $fiHeader: db-scroll.lisp,v 1.28 92/08/18 17:23:31 cer Exp Locker: cer $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright(c) 1991, 1992 International Lisp Associates.
@@ -35,17 +35,16 @@
   (deallocate-event event))
 
 (defmethod pane-viewport ((sheet sheet))
-  (and (typep (sheet-parent sheet) 'viewport)
-       (sheet-parent sheet)))
+  (let ((parent (sheet-parent sheet)))
+    (and (viewportp parent) parent)))
 
 (defmethod pane-viewport-region ((sheet sheet))
   (let ((vp (pane-viewport sheet)))
-    (and vp
-	 (viewport-viewport-region vp))))
+    (and vp (viewport-viewport-region vp))))
 
 (defmethod pane-scroller ((sheet sheet))
-  (and (pane-viewport sheet)
-       (viewport-scroller-pane (pane-viewport sheet))))
+  (let ((viewport (pane-viewport sheet)))
+    (and viewport (viewport-scroller-pane viewport))))
 
 (defmethod gadget-supplied-scrolling (frame-manager frame contents &rest ignore)
   (declare (ignore frame-manager frame ignore contents))

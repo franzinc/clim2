@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-protocol.lisp,v 1.21 92/07/27 19:29:51 cer Exp $
+;; $fiHeader: input-protocol.lisp,v 1.22 92/08/18 17:25:09 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -77,10 +77,10 @@
     (and port (port-pointer port))))
 
 (defmethod initialize-instance :after ((stream input-protocol-mixin)
-				       &key (initial-cursor-visibility t))
+				       &key (initial-cursor-visibility :off))
   (let ((cursor (slot-value stream 'text-cursor)))
     (when cursor
-      (setf (cursor-active cursor) initial-cursor-visibility)
+      (setf (cursor-visibility cursor) initial-cursor-visibility)
       (setf (cursor-stream cursor) stream))))
 
 ;;--- Cross-protocol violation here because CURSOR-POSITION is a method on
@@ -222,40 +222,13 @@
 	(call-next-method))))
 
 
-;;--- Inline this?  It's called for every call to STREAM-READ-GESTURE
-(defmacro with-cursor-state ((state &optional stream) &body body)
-  (default-input-stream stream)
-  `(flet ((with-cursor-state-body () ,@body))
-     (declare (dynamic-extent #'with-cursor-state-body))
-     (invoke-with-cursor-state ,stream #'with-cursor-state-body
-			       ,state (stream-text-cursor ,stream))))
-
-;;--- This might want to be a method and extract the cursor.
-(defun invoke-with-cursor-state (stream continuation state text-cursor)
-  (declare (dynamic-extent continuation)
-	   ;; why does this take stream as an arg?  I guess
-	   ;; because it might want to be a method one day.
-	   (ignore stream))
-  (let ((old-state (and text-cursor (cursor-state text-cursor)))
-	(abort-p t))
-    (unwind-protect
-	(progn (when text-cursor
-		 (cond ((eq old-state state))
-		       (t
-			(setf (cursor-state text-cursor) state)
-			(setf abort-p nil))))
-	       (funcall continuation))
-      (when text-cursor
-	(unless abort-p
-	  (setf (cursor-state text-cursor) old-state))))))
-
 (defmethod stream-read-gesture ((stream input-protocol-mixin)
 				&key timeout peek-p
 				     (input-wait-test *input-wait-test*)
 				     (input-wait-handler *input-wait-handler*)
 				     pointer-button-press-handler)
   (declare (ignore pointer-button-press-handler))
-  (with-cursor-state (:on stream)
+  (with-cursor-state (t stream)
     (loop
       (multiple-value-bind (input-happened flag)
 	  (stream-input-wait

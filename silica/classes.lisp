@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: classes.lisp,v 1.14 92/08/18 17:23:23 cer Exp Locker: cer $
+;; $fiHeader: classes.lisp,v 1.15 92/08/18 17:53:58 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -34,6 +34,7 @@
      (pointer :initform nil)
      (cursor :initform nil :accessor port-cursor)
      (mapping-table :initform (make-hash-table :test #'equal))
+     (mapping-cache :initform (cons nil nil))
      (undefined-text-style :initform *undefined-text-style*
 			   :accessor port-undefined-text-style)
      ;; When this is true, the text style to device font mapping is done

@@ -1,6 +1,6 @@
 ;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadgets.lisp,v 1.30 92/07/27 11:01:40 cer Exp $
+;; $fiHeader: gadgets.lisp,v 1.31 92/08/18 17:23:42 cer Exp Locker: cer $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
@@ -433,6 +433,10 @@
     ;; This describes the region that we are displaying
     ((viewport-region :accessor viewport-viewport-region)
      (scroller-pane :initarg :scroller-pane :reader viewport-scroller-pane)))
+
+
+(defmethod viewportp ((x t)) nil)
+(defmethod viewportp ((x viewport)) t)
 
 (defmethod initialize-instance :after ((viewport viewport) &key)
   (multiple-value-bind (width height)

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-cursor.lisp,v 1.12 92/07/24 10:54:59 cer Exp $
+;; $fiHeader: xt-cursor.lisp,v 1.13 92/08/19 10:24:24 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -43,11 +43,11 @@
 		(convert-to-device-coordinates transformation x y)
 		(cond ((and active state focus)
 		       (tk::set-values blinker :x x :y y)
-		       ;;--- This should indicate that we do not have focus
+		       ;;--- This should indicate that we do have focus
 		       (tk::manage-child blinker))
 		      ((and active state)
 		       (tk::set-values blinker :x x :y y)
-		       ;;--- This should indicate that we do have focus
+		       ;;--- This should indicate that we do not have focus
 		       (tk::manage-child blinker))
 		      (t 
 		       (tk::unmanage-child blinker)))))))))))
