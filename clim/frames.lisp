@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: frames.lisp,v 1.95 2000/05/01 21:43:23 layer Exp $
+;; $Id: frames.lisp,v 1.95.14.1 2000/06/21 20:54:21 cley Exp $
 
 (in-package :clim-internals)
 
@@ -926,7 +926,14 @@
 	      (typecase si
 		(output-protocol-mixin si)
 		(t (frame-top-level-sheet frame)))))
-	   (*avv-refreshed* nil))
+	   (*avv-refreshed* nil)
+	   #+allegro
+	   ;; stop autoload messages getting splattered all over CLIM
+	   ;; windows.
+	   (excl::*print-autoload* nil)
+	   #+allegro
+	   ;; ... same
+	   (*load-verbose* nil))
       ;; The read-eval-print loop for applications...
       (letf-globally (((frame-actual-pointer-documentation-pane frame)
 		       *pointer-documentation-output*))

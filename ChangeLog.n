@@ -11,6 +11,14 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.2.2.13 Tim Bradshaw <tfb@cley.com>
+
+	* clim/frames.lisp, demo/default-frame-top-level.lisp: partly
+	  work around the problem that ACL will print autoload
+	  messages into CLIM windows.  This change can be taken out
+	  if/when ACL prints these messages to *initial-terminal-io*.
+
+*******************************************************************************
 2.2.2.12 Tim Bradshaw <tfb@cley.com>
 
 	* clim/accept.lisp: try and work around Gray stream dependence 
