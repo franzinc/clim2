@@ -5,17 +5,17 @@
 
 include Makefile.defs
 
-MOTIFLIB=/3rd/motif-1.2.1/usr/lib/libXm$(DEBUGLIB).a
-#MOTIFLIB_d=/3rd/motif-1.2.1/usr/lib/libXm_d.a
-MOTIFLIB_d=/3rd/motif-1.2.1/usr/lib/libXm.a
-XLIB= /3rd/motif-1.2.1/usr/lib/libX11$(DEBUGLIB).a 
-XTLIB=/3rd/motif-1.2.1/usr/lib/libXt$(DEBUGLIB).a
-XINCLUDES=-I/3rd/motif-1.2.1/usr/include
-XTSUPPORTINCLUDES=-I/x11/R5/src/mit/lib/Xt
+MOTIFLIB=/net/vapor/3rd/motif-1.2.1/usr/lib/libXm$(DEBUGLIB).a
+#MOTIFLIB_d=/net/vapor/3rd/motif-1.2.1/usr/lib/libXm_d.a
+MOTIFLIB_d=/net/vapor/3rd/motif-1.2.1/usr/lib/libXm.a
+XLIB= /net/vapor/3rd/motif-1.2.1/usr/lib/libX11$(DEBUGLIB).a 
+XTLIB=/net/vapor/3rd/motif-1.2.1/usr/lib/libXt$(DEBUGLIB).a
+XINCLUDES=-I/net/vapor/3rd/motif-1.2.1/usr/include
+XTSUPPORTINCLUDES=-I/net/vapor/x11/R5/src/mit/lib/Xt
 # Do we really need this. Why is it referenced?
-MOTIFXTRAOS=/3rd/motif-1.2.1/usr/lib/Motif/Sun/dlsym.o
+MOTIFXTRAOS=/net/vapor/3rd/motif-1.2.1/usr/lib/Motif/Sun/dlsym.o
 
-OLXLIB= /vapor/x11/olit-3.0/lib/libX11.a
-OLXTLIB=/vapor/x11/olit-3.0/lib/libXt.a
+OLXLIB= /net/vapor/x11/olit-3.0/lib/libX11.a
+OLXTLIB=/net/vapor/x11/olit-3.0/lib/libXt.a
 
 include Makefile.generic
