@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader$
+;; $fiHeader: xt-graphics.cl,v 1.1 92/01/15 16:16:14 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -62,17 +62,18 @@
 
 (defun recompute-gcs (medium)
   (with-slots 
-   (foreground-gcontext background-gcontext flipping-gcontext)
-   medium
-   (let ((foreground-pixel
-	  (clx-decode-color medium (medium-foreground medium)))
-	 (background-pixel
-	  (clx-decode-color medium (medium-background medium))))
-     (setf (tk::gcontext-foreground foreground-gcontext) foreground-pixel
-	   (tk::gcontext-background foreground-gcontext) background-pixel
-	   (tk::gcontext-foreground background-gcontext) background-pixel
-	   (tk::gcontext-foreground flipping-gcontext)
-	   (logxor foreground-pixel background-pixel)))))
+      (foreground-gcontext background-gcontext flipping-gcontext)
+      medium
+    (when (and foreground-gcontext background-gcontext flipping-gcontext)
+      (let ((foreground-pixel
+	     (clx-decode-color medium (medium-foreground medium)))
+	    (background-pixel
+	     (clx-decode-color medium (medium-background medium))))
+	(setf (tk::gcontext-foreground foreground-gcontext) foreground-pixel
+	      (tk::gcontext-background foreground-gcontext) background-pixel
+	      (tk::gcontext-foreground background-gcontext) background-pixel
+	      (tk::gcontext-foreground flipping-gcontext)
+	      (logxor foreground-pixel background-pixel))))))
       
 (defmethod (setf medium-background) :after (ink (medium xt-medium))
   (recompute-gcs medium))
