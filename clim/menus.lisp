@@ -1,58 +1,31 @@
-;;; -*- Mode: LISP; Syntax: Common-lisp; Package: CLIM-INTERNALS; Base: 10 -*-
 
-(in-package "CLIM-INTERNALS")
+(in-package :clim-internals)
 
 "Copyright (c) 1988, 1989, 1990 International Lisp Associates.  All rights reserved."
 
 (defparameter *default-menu-margin-components* '((margin-borders :thickness 2)
 						 (margin-white-borders :thickness 2)))
 
-#-Silica
-(defresource menu (associated-window root)
-  :constructor (open-window-stream :parent root	;"random" size
-				   :left 100 :top 100 :width 1000 :height 500
-				   ;; :margin-components *default-menu-margin-components*
-				   :scroll-bars ':vertical
-				   :save-under T
-				   )
-  :deinitializer (window-clear menu)
-  ;; We used to have an initializer that set record-p, cleared the window, and set
-  ;; the size.  Record-p is unnecessary because we explicitly bind it below
-  ;; when drawing the menu contents.  (Also, it should always be T anyway.)
-  ;; Clearing the window is unnecessary because it's done in the deinitializer.
-  ;; Setting the size is also unnecessary.  Any application that's formatting
-  ;; into a menu is required to use with-end-of-line-action and with-end-of-page-action
-  ;; or set the size first itself.
-  :initializer (initialize-menu menu associated-window)
-  :matcher (eql (window-parent menu) root)
-  )
+(define-application-frame menu-frame ()
+  (menu)
+  (:pane
+   (with-slots (menu) *application-frame*
+     (silica::scrolling ()
+			(setq menu (silica::realize-pane 'extended-stream-pane
+							 :initial-cursor-visibility nil
+							 ))))))
 
-#+Silica
 (defun get-menu (&key server-path)
-  (let ((framem (find-frame-manager :server-path server-path))
-	(frame (make-frame 'frame :plain t :no-message t :save-under T))
-	(menu nil))
-    (ws:with-look-and-feel-realization (framem frame)
-      (setf (frame-pane frame)
-	    (bordering ()
-	     (spacing (:space  2)
-		 (vscrolling (:hs+
-			      +fill+ :vs+ +fill+ :hs 400 :vs 300
-			      :subtransformationp t )
-		   (setq menu (make-pane 'extended-stream-pane
-					 :initial-cursor-visibility nil
-					 )))))))
-    (adopt-frame framem frame)
-    ;; (enable-frame frame)
-    menu))
+  (let ((frame (make-application-frame 'menu-frame)))
+    (slot-value frame 'menu)))
 
 ;;; Still requires some thought, but at least this works in an environment
 ;;; with multiple ports.
-#+Silica
-(defresource menu (associated-window root)
+
+(clim-utils::defresource menu (associated-window root)
 	     :constructor (let* ((port (if (null root) (find-port) ; Horrible kluge #2.
 					 (port root)))
-		      (server-path (port-server-path port)))
+		      (server-path (silica::port-server-path port)))
 		 (get-menu :server-path server-path))
   :deinitializer (window-clear menu)
   ;; We used to have an initializer that set record-p, cleared the window, and set
@@ -72,106 +45,49 @@
 ;;; needs to be set to an X window, either one associated with the associated window
 ;;; or to one associated with window.  In other implementations, this can do nothing.
 ;;; --- What class for this default method?
-#+Silica
-(defmethod initialize-menu ((port w::basic-port) window associated-window)
-  (declare (ignore window associated-window))
-  )
 
-#-Silica 
-;; no window-mixin
-(defmethod initialize-menu ((menu window-mixin) associated-window)
-  (declare (ignore associated-window))
+(defmethod initialize-menu ((port port) window associated-window)
+  (declare (ignore window associated-window))
   )
 
 ;;; For now, MENU-CHOOSE requires that you pass in a parent.
 (defmacro with-menu ((menu associated-window) &body body)
   (let ((ass-win (gensymbol 'associated-window)))
     `(let ((,ass-win ,associated-window))			;once-only
-       (using-resource (,menu menu (window-top-level-window ,ass-win) (window-root ,ass-win))
+       (clim-utils::using-resource (,menu menu (window-top-level-window ,ass-win) (window-root ,ass-win))
 	 ,@body))))
 
-#-Silica
-(defun size-menu-appropriately (menu
-				 &key (right-margin 10) (bottom-margin 10))
-  (with-slots (output-record parent) menu
-    (multiple-value-bind (left top right bottom)
-	(entity-edges output-record)
-      (multiple-value-bind (label-width label-height)
-	  (window-label-size menu)
-	(multiple-value-bind (parent-width parent-height)
-	    (window-inside-size parent)
-	  (multiple-value-bind (lm tm rm bm)
-	      (host-window-margins menu)
-	    (entity-set-size 
-	      menu
-	      (min (+ (max label-width (- right left)) right-margin lm rm) parent-width)
-	      (min (+ (max label-height (- bottom top)) bottom-margin tm bm) parent-height)))))
-      (window-set-viewport-position menu left top)
-      ;; blech
-      (stream-clear-input menu))))
 
-#+Silica
+
+
 (defun size-menu-appropriately (menu &key (right-margin 10) (bottom-margin 10))
   (with-slots (output-record) menu
     (with-bounding-rectangle* (minx miny maxx maxy) output-record
       (let* ((graft (graft menu))
 	     (gw (bounding-rectangle-width (sheet-region graft)))
 	     (gh (bounding-rectangle-height (sheet-region graft)))
-	     ;; (vw (ws::pane-viewport menu))
+	     ;; (vw (pane-viewport menu))
 	     (width (min gw (+ (- maxx minx) right-margin)))
 	     (height (min gh (+ (- maxy miny) bottom-margin))))
 
-	(ws::change-space-req menu :hs width :vs height)
+	(silica::change-space-req menu :width width :height height)
 	;; --- Damn.  How do we get this to propagate the size change up
 	;; the tree so that the whole frame gets re-size to the pane?
 	;; For now, kludge it by setting the frame size directly.
 	;; Allow for scroll bar width
-	(ws::relayout-frame (pane-frame menu) (+ width 20) height)
-	;;(when vw (ws::change-space-req vw :hs width :vs height))
-	;;(resize-sheet* menu width height)
+	;; (layout-frame (silica::pane-frame menu) (+ width 20) (+ 20 height))
+	;; (when vw (change-space-req vw :hs width :vs height))
+	;; (resize-sheet* menu width height)
 
+	(silica::clear-space-req-caching-in-ancestors menu)
+	
 	;; --- RR needs to fix this at some point.
 	;; --- It has to do with the viewport having a bad scrolling transform
 	;; after a resize.
+	#+ignore
 	(setf (sheet-transformation (sheet-parent menu))
 	      (make-translation-transformation 
-	       0 0 :reuse (sheet-transformation (sheet-parent menu))))))))
-
-#+Silica
-(defun position-window-near-carefully (menu x y)
-  (let* ((frame (pane-frame menu))
-	 (frame-manager (frame-manager frame))
-	 (graft (graft frame-manager)))
-    ;; Make sure the menu will fit inside the graft.
-    (with-bounding-rectangle* (min-x min-y max-x max-y) (sheet-region graft)
-      (multiple-value-bind (width height) (bounding-rectangle-size (sheet-region menu))
-	(setf x (max min-x (min x (- max-x width))))
-	(setf y (max min-y (min y (- max-y height))))))
-    (move-frame frame x y)))
-
-#+Ignore ;; Old version
-(defun position-window-near-carefully (menu x y)
-  ;; --- no "carefully" for now
-  (let ((frame (pane-frame menu)))
-    (ws::move-frame frame x y)))
-
-#-Silica
-(defun position-window-near-carefully (window x y)
-  ;; unfortunately, the mouse-position is in window-parent coordinates
-  (multiple-value-bind (width height) (entity-size window)
-    (multiple-value-bind (parent-width parent-height)
-	(window-inside-size (window-parent window))
-      (let* ((left x)
-	     (top y)
-	     (right (+ left width))
-	     (bottom (+ top height)))
-	(when (> right parent-width)
-	  (setq left (- parent-width width)))
-	(when (> bottom parent-height)
-	  (setq top (- parent-height height)))
-	(entity-set-position 
-	  window
-	  (max 0 left) (max 0 top))))))
+	       0 0))))))
 
 ;;; item-list := (item*)
 ;;; item := object | (name :value object) | (object . value)
@@ -243,12 +159,12 @@
 ;;; What are reasonable defaults for CACHE, UNIQUE-ID, CACHE-VALUE, UNIQUE-ID-TEST, and
 ;;; CACHE-VALUE-TEST?
 (defun menu-choose (item-list
-		     &key associated-window default-item default-style
-		     (cache nil) (unique-id item-list) (cache-value item-list)
-		     (unique-id-test #'equal) (cache-value-test #'equal)
-		     label
-		     printer
-		     presentation-type)
+		    &key associated-window default-item default-style
+			 (cache nil) (unique-id item-list) (cache-value item-list)
+			 (unique-id-test #'equal) (cache-value-test #'equal)
+			 label
+			 printer
+			 presentation-type)
   #+Genera (declare (values value chosen-item gesture))
   (labels ((menu-choose (stream presentation-type)
 	     (draw-standard-menu stream presentation-type
@@ -263,26 +179,25 @@
 		   (t (print-menu-item item stream)))))
     (declare (dynamic-extent #'item-printer #'menu-choose))
     (with-menu (menu associated-window)
-      #-Silica (setf (window-label menu) label)
-      #+Silica (reset-frame (pane-frame menu) :title label)
+      (reset-frame (silica::pane-frame menu) :title label)
       (with-text-style (default-style menu)
 	(loop
 	  (multiple-value-bind (item gesture)
 	      (menu-choose-from-drawer 
-		menu 'menu-item
-		#'menu-choose
-		:unique-id unique-id
-		:unique-id-test unique-id-test
-		:cache-value cache-value
-		:cache-value-test cache-value-test
-		:cache cache))
-	  (cond ((menu-item-item-list item)
-		 ;; set the new item list then go back through the loop
-		 (setq item-list (menu-item-item-list item) default-item nil)
-		 (clear-output-history menu))
-		(t (return-from menu-choose (values (menu-item-value item)
-						    item
-						    gesture)))))))))
+	       menu 'menu-item
+	       #'menu-choose
+	       :unique-id unique-id
+	       :unique-id-test unique-id-test
+	       :cache-value cache-value
+	       :cache-value-test cache-value-test
+	       :cache cache)
+	    (cond ((menu-item-item-list item)
+		   ;; set the new item list then go back through the loop
+		   (setq item-list (menu-item-item-list item) default-item nil)
+		   (clear-output-history menu))
+		  (t (return-from menu-choose (values (menu-item-value item)
+						      item
+						      gesture))))))))))
 
 ;(defun draw-standard-menu (menu presentation-type item-list)
 ;  (dolist (item item-list)
@@ -302,7 +217,7 @@
       (let ((pres (with-output-as-presentation (:stream menu
 					    :object item
 					    :type presentation-type
-					    :single-box T)
+					    :single-box t)
 		(formatting-cell (menu)
 		  (funcall item-printer item menu)))))
 	(when (eql item default-item) (setf default-pres pres)))))
@@ -311,9 +226,7 @@
 (defun position-window-at-pointer (window &optional x y)
   (unless (and x y)
     (multiple-value-setq (x y)
-      #-Silica 
-      (stream-pointer-position-in-window-coordinates (window-parent window))
-      #+Silica
+
       (poll-pointer (graft window))))
   (position-window-near-carefully window x y))
   
@@ -329,7 +242,7 @@
 				     x-position y-position
 				     ;; for use by hierarchichal-menu-choose
 				     leave-menu-visible
-				     unique-id (cache-value T) cache
+				     unique-id (cache-value t) cache
 				     (unique-id-test #'equal) (cache-value-test #'eql)
 				     &aux default-presentation)
   ;; We could make the drawer a lexical closure, but that would then
@@ -356,19 +269,19 @@
   (size-menu-appropriately menu)
   (position-window-at-pointer menu x-position y-position)
   (unwind-protect
-      (with-simple-abort-restart ("Exit the menu")
+      (clim-utils::with-simple-abort-restart ("Exit the menu")
 	;;; --- Figure out later why this is necessary...
 	;;; it isn't now, 'cause we set the viewport in size-menu-appropriately
 	;;(window-set-viewport-position menu 0 0)
 	(window-expose menu)
 	(when default-presentation
 	  (multiple-value-bind (left top right bottom)
-	      (entity-edges default-presentation)
+	      (bounding-rectangle* default-presentation)
 	    (stream-set-pointer-position*
 	      menu (floor (+ left right) 2) (floor (+ top bottom) 2))))
 	;; Menus DON'T want a blinking cursor...
 	(with-cursor-visibility (nil menu)
-	  (with-input-context (type :override T)
+	  (with-input-context (type :override t)
 			      (object presentation-type gesture)
 	       (loop (read-gesture :stream menu)
 		     (beep))
@@ -486,8 +399,7 @@
 		   (t (print-menu-item item stream)))))
     (declare (dynamic-extent #'menu-choose #'item-printer))
     (with-menu (menu associated-window)
-      #-Silica (setf (window-label menu) label)
-      #+Silica (reset-frame (pane-frame menu) :title label)
+      (reset-frame (silica::pane-frame menu) :title label)
       (with-text-style (default-style menu)
 	(unwind-protect
 	    (multiple-value-bind (item gesture)
@@ -518,3 +430,45 @@
 				 item
 				 gesture)))))
 	  (window-set-visibility menu nil))))))
+
+;;; Weird shit
+
+(defun window-top-level-window (win) win)
+(defun window-root (win) win)
+
+
+(defun reset-frame (frame &rest ignore) nil)
+(defun poll-pointer (x) (values 500 500))
+
+(defmethod window-expose ((stream extended-stream-pane))
+  (setf (window-visibility stream) t))
+
+(defun window-set-visibility (window visibility)
+  (setf (window-visibility window) visibility))
+
+
+(defmethod (setf window-visibility) (nv (stream extended-stream-pane))
+  (if nv 
+      (enable-frame (silica::pane-frame stream))
+      (disable-frame (silica::pane-frame stream))))
+
+(defun entity-edges (x)
+  (bounding-rectangle* x))
+
+
+
+
+(defun position-window-near-carefully (menu x y)
+  #+ignore
+  (let* ((frame (silica::pane-frame menu))
+	 (frame-manager (frame-manager frame))
+	 (graft (graft frame-manager)))
+    ;; Make sure the menu will fit inside the graft.
+    (with-bounding-rectangle* (min-x min-y max-x max-y) (sheet-region graft)
+      (multiple-value-bind (width height) (bounding-rectangle-size (sheet-region menu))
+	(setf x (max min-x (min x (- max-x width))))
+	(setf y (max min-y (min y (- max-y height))))))
+    (move-frame frame x y)))
+
+(defmethod clim-internals::window-refresh (window)
+  (warn "What does this do???"))

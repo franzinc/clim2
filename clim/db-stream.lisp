@@ -82,7 +82,7 @@
 				 )
 	  ()
   (:default-initargs :medium t 
-		     :max-width +fill+ :min-width +fill+ :max-height +fill+ :min-height +fill+))
+		     :max-width +fill+ :min-width 0 :max-height +fill+ :min-height 0))
 
 
 
@@ -142,13 +142,13 @@
 ;;; to represent the size of the contents, but may be stretched to fill the
 ;;; available viewport space.
 
-(defmethod change-space-req :around ((pane extended-stream-pane) &rest keys &key hs vs)
+(defmethod silica::change-space-req :around ((pane extended-stream-pane) &rest keys &key width height)
   (declare (dynamic-extent keys))
-  ;; Assume always called with hs vs
+  ;; Assume always called with width height
   (multiple-value-bind (history-width history-height)
       (bounding-rectangle-size (output-recording-stream-output-record pane))
     ;; Don't ever shrink down smaller than our contents.
-    (apply #'call-next-method pane :hs (max hs history-width) :vs (max vs history-height) keys)))
+    (apply #'call-next-method pane :width (max width history-width) :height (max height history-height) keys)))
 
 (defclass basic-clim-interactor (extended-stream-pane) 
 	  ((display-function :initarg :display-function

@@ -178,7 +178,19 @@
 	   (mapc #'invalidate-cached-regions (sheet-children sheet))))
 
 
+(warn "This sucks big")
+
+(defmethod invalidate-cached-transformations :after ((sheet mirrored-sheet-mixin))
+  (when (sheet-direct-mirror sheet)
+    (update-mirror-region (port sheet) sheet)))
+
 (defmethod note-sheet-region-changed :after ((sheet mirrored-sheet-mixin) &key port)
+  (when (sheet-direct-mirror sheet)
+    (unless port
+      (update-mirror-region (port sheet) sheet))))
+
+
+(defmethod note-sheet-transformation-changed :after ((sheet mirrored-sheet-mixin) &key port)
   (when (sheet-direct-mirror sheet)
     (unless port
       (update-mirror-region (port sheet) sheet))))
@@ -190,6 +202,7 @@
 ;;; rather than
 
 (defmethod update-mirror-region ((port port) (sheet mirrored-sheet-mixin))
+  ;; If the sheet-region is changed this updates the mirrors region accordingly
   (multiple-value-bind
       ;; Coordinates in parent space
       (target-left target-top target-right target-bottom)
@@ -204,6 +217,8 @@
   (update-mirror-transformation port sheet))
 
 (defmethod update-mirror-transformation ((port port) (sheet mirrored-sheet-mixin))
+  ;; Compute transformation from sheet-region to mirror cordinates. I
+  ;; would imagine that a lot of the time this would be identity
   (multiple-value-bind
       (mirror-left mirror-top mirror-right mirror-bottom)
       (mirror-inside-edges* port sheet)
@@ -217,9 +232,7 @@
 		    (- bottom top))))
        (when (or (/= sc-x 1.0)
 		 (/= sc-y 1.0))
-	 (print (list tr-x tr-y sc-x sc-y) 
-		excl:*initial-terminal-io*)
-	 (warn "mirror scalling ~S" sheet))
+	 (warn "mirror scalling ~S, ~S" (list tr-x tr-y sc-x sc-y) sheet))
        (setf (sheet-native-transformation sheet)
 	     (compose-transformations
 	      (make-translation-transformation tr-x tr-y)

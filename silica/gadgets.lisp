@@ -61,9 +61,6 @@
 
 ;;; Then there is the layout stuff and scrolling macros
 
-
-(defmacro horizontally () ())
-(defmacro tabling () ())
 (defmacro form () ())
 
 (defmacro scrolling (options contents)
@@ -73,13 +70,13 @@
 
 (defmethod realize-pane-internal ((framem frame-manager) (frame application-frame)
 				  name &rest options)
-  (apply #'make-instance name options))
+  (apply #'make-instance 
+	 name
+	 :frame frame
+	 :frame-manager framem
+	 options))
 
-(defmethod note-sheet-region-changed :after ((sheet gadget) &key port)
-  (declare (ignore port))
-  (allocate-space sheet
-		  (sheet-width sheet) 
-		  (sheet-height sheet)))
+
 
 ;;;;;;;; Whats the interface to different types of window: main, dialog,..
 

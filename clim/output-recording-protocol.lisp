@@ -154,7 +154,7 @@
 (defmethod output-record-set-position* ((r output-record) new-x new-y)
   
  ;; (when (and (zerop new-x)(zerop new-y)) (break "zerop"))
-  (when (minusp new-x) (break))
+  (when (minusp new-x) (warn "Zerop new-x ~S,~S" new-x new-y))
   (multiple-value-bind
       (old-x old-y)
       (output-record-position* r)
@@ -190,7 +190,9 @@
 ;  nil)
 
 (defun replay (record stream &optional (region +everywhere+))
-  (replay-output-record record stream region))
+  ;; Why did the spec not suggest this? or did I misread it.
+  (when (stream-draw-p stream)
+    (replay-output-record record stream region)))
 
 (defmethod replay-output-record (record stream &optional (region +everywhere+))
   (map-over-output-record-children

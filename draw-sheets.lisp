@@ -13,7 +13,9 @@
 
 (defun graph-sheet (sheet &rest args)
   (apply #'graph-descendants
-	 sheet
+	 (etypecase sheet
+	   (silica::application-frame (clim-internals::frame-top-level-sheet sheet))
+	   (silica::sheet sheet))
 	 :display 'gr-sheet-display
 	 :gnode-class 'sheet-gnode
 	 :title "Sheet hierarchy"

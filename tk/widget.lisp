@@ -92,10 +92,11 @@
 
 (defforeign 'xt_window :entry-point "_XtWindow")
 
-(defun widget-window (widget)
+(defun widget-window (widget &optional (errorp t))
   (let ((id (xt_window (object-handle widget))))
     (if (zerop id)
-	(error "Invalid window id ~D for ~S" id widget)
+	(and errorp
+	     (error "Invalid window id ~D for ~S" id widget))
       (intern-object-xid
        id
        'window 

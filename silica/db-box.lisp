@@ -30,16 +30,23 @@
 
 (defclass box-pane (mute-input-mixin
 		    pane-background-mixin
-	
 		    composite-pane 
-		    list-contents-mixin
+		    #+ignore list-contents-mixin
 		    space-req-cache-mixin)
-    ((space :initform 1 :initarg :space)))
+	  ((space :initform 1 :initarg :space)
+	   contents))
 
 (defmethod initialize-instance :after 
 	   ((pane box-pane) &key contents &allow-other-keys)
-  (insert-panes pane contents))
+  (dolist (child contents)
+    (etypecase child
+      (number)
+      (pane
+       (adopt-child pane child))))
+  (with-slots ((c contents)) pane
+    (setf c contents)))
 
+#+ignore
 (defmethod insert-pane ((lcm box-pane) pane
 			&key position batch-p &allow-other-keys)
 
@@ -150,6 +157,28 @@
 			 space-req-min-height)
 	       (:width :max-width :min-width :height :max-height :min-height)))
 
+
+(defmethod allocate-space ((contract hbox-pane) width height)
+  (with-slots (contents space space-req) contract
+    (unless space-req (compose-space contract))
+    (let ((sizes 
+	   (allocate-space-to-items
+	    width
+	    space-req
+	    contents
+	    #'space-req-min-width
+	    #'space-req-width
+	    #'space-req-max-width
+	    #'compose-space))
+	  (x 0))
+      (mapc #'(lambda (sheet size)
+		(move-and-resize-sheet* 
+		 sheet x 0 (frob-size size width x) height)
+		(incf x size))
+	    contents
+	    sizes))))
+
+
 (defmethod allocate-space ((contract hbox-pane) width height)
   (flet ((move-and-resize-entry (entry min-x width height)
 	   (move-and-resize-sheet* entry min-x 0 width height)))
@@ -163,7 +192,7 @@
 
 (defclass vbox-pane (box-pane)
     ()
-  (:default-initargs :reverse-p t))
+  )
 
 (defmethod compose-space ((contract vbox-pane))
   (compose-box contract (space-req-height
@@ -174,21 +203,31 @@
 			 space-req-min-width)
 	       (:height :max-height :min-height :width :max-width :min-width)))
 
-(defmethod allocate-space ((contract vbox-pane) width height &aux (oheight height))
-  (flet ((move-and-resize-entry (entry min-y height width)
-	   (move-and-resize-sheet* entry 0 min-y 
-				   width ; DREADful kludge to make
-					 ; sure that we do not
-					 ; make the sheet to big and
-					 ; cause the request to fail
-				   (min (1- (- oheight min-y)) height))))
-    (allocate-box contract height width move-and-resize-entry
-		  (space-req-height
-		   space-req-max-height
-		   space-req-min-height
-		   #+ignore space-req-width 
-		   #+ignore space-req-max-width
-		   #+ignore space-req-min-width))))
+(defmethod allocate-space ((contract vbox-pane) width height)
+  (with-slots (contents space space-req) contract
+    (unless space-req (compose-space contract))
+    (let ((sizes 
+	   (allocate-space-to-items
+	    height
+	    space-req
+	    contents
+	    #'space-req-min-height
+	    #'space-req-height
+	    #'space-req-max-height
+	    #'compose-space))
+	  (y 0))
+      (mapc #'(lambda (sheet size)
+		(move-and-resize-sheet* sheet 
+					0 
+					y
+					width 
+					(frob-size size height y))
+		(incf y size))
+	    contents
+	    sizes))))
+
+(defun frob-size (wanted-size available where-we-are-now)
+  (min wanted-size (1- (- available where-we-are-now))))
 		   
 
 

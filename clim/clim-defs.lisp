@@ -379,3 +379,21 @@
 	     (push `(setf ,(first pts)  (the fixnum (+ ,(first pts)  ,x-delta))) forms)
 	     (push `(setf ,(second pts) (the fixnum (+ ,(second pts) ,y-delta))) forms))
 	   (nreverse forms)))))
+
+(defmacro with-scaling ((medium sx &optional (sy nil sy-p)) &body body)
+  `(with-drawing-options (,medium
+			  :transformation (let* ((scale-x ,sx)
+						 (scale-y ,(if sy-p sy 'scale-x)))
+					    (make-scaling-transformation scale-x scale-y)))
+     ,@body))
+
+(defmacro with-translation ((medium dx dy) &body body)
+  `(with-drawing-options (,medium
+			  :transformation (make-translation-transformation ,dx ,dy))
+     ,@body))
+
+(defmacro with-rotation ((medium angle &optional (origin nil origin-p)) &body body)
+  `(with-drawing-options (,medium
+			  :transformation (make-rotation-transformation ,angle
+									,@(if origin-p `(,origin) nil)))
+     ,@body))

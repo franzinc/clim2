@@ -1,8 +1,8 @@
-;;; -*- Syntax: Common-Lisp; Base: 10; Package: CLIM-USER; Mode: LISP; Lowercase: T -*-
+;;; -*- Syntax: Common-Lisp; Base: 10; Package: CLIM; Mode: LISP; Lowercase: T -*-
 
-;; $fiHeader: test-suite.lisp,v 1.21 91/09/24 21:07:06 cer Exp $
+;; $fiHeader: test-suite.cl,v 1.1 91/12/10 16:57:32 cer Exp Locker: cer $
 
-(in-package :clim-user)
+(in-package :clim)
 
 #|
 To do:
@@ -32,6 +32,8 @@ What about environment issue?
     `(dotimes (,i ,n)
        #-excl (declare (ignore ,i))
        ,@body)))
+
+(defun get-frame-pane (x y) (slot-value x y))
 
 (defun find-pane-named (pane-name)
   #-Silica (get-frame-pane *application-frame* pane-name)
@@ -171,8 +173,7 @@ What about environment issue?
 
 ;; Try to get millimeters
 (defun window-mm-transformation (window)
-  (with-bounding-rectangle* (wl wt wr wb) #-Silica (window-viewport window)
-					  #+Silica (sheet-region window)
+  (with-bounding-rectangle* (wl wt wr wb) (sheet-region window)
     (make-transformation 3.4 0 0 -3.4 (floor (- wr wl) 2) (floor (- wb wt) 2))))
 
 (defmacro with-mm-transformation ((window -x -y +x +y) &body body)
@@ -180,8 +181,7 @@ What about environment issue?
      (with-drawing-options (,window :transformation transform)
        (with-bounding-rectangle* (,-x ,-y ,+x ,+y)
 				 (untransform-region transform
-						     #-Silica (window-viewport ,window)
-						     #+Silica (bounding-rectangle
+						     (bounding-rectangle
 								(sheet-region ,window)))
 	 ,@body))))
 
@@ -2830,6 +2830,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 
 
 #-Silica
+#+ignore
 (define-application-frame clim-tests ()
     ()
   (:command-table (clim-tests
@@ -2861,6 +2862,40 @@ Luke Luck licks the lakes Luke's duck likes."))
 	       (command-pane :compute)
 	       (caption-pane 1/10)
 	       (display-pane :rest))))))
+
+
+(define-application-frame clim-tests ()
+  (caption-pane display-pane)
+  (:command-table (clim-tests
+		   :inherit-from (graphics
+				  output-recording
+				  formatted-output
+				  redisplay
+				  presentations
+				  menus-and-dialogs
+				  benchmarks)
+		   :menu (("Graphics" :menu graphics)
+			  ("Output Recording" :menu output-recording)
+			  ("Formatted Output" :menu formatted-output)
+			  ("Redisplay" :menu redisplay)
+			  ("Presentations" :menu presentations)
+			  ("Menus and Dialogs" :menu menus-and-dialogs)
+			  ("Benchmarks" :menu benchmarks)
+			  ("Exit" :command (exit-clim-tests)))))
+  (:command-definer nil)
+  (:pane (with-slots (caption-pane display-pane) *application-frame*
+	     (silica::vertically ()
+				 (silica::scrolling
+				  ()
+				  (setf caption-pane
+				    (silica::realize-pane
+				     'application-pane)))
+				 (silica::scrolling
+				  ()
+				  (setf display-pane
+				    (silica::realize-pane
+				     'application-pane)))))))
+
 
 #-Silica
 (defmethod frame-standard-output ((frame clim-tests))

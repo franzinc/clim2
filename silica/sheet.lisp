@@ -31,6 +31,11 @@
 (defgeneric sheet-child (sheet)
   )
 
+(defmethod sheet-child (sheet)
+  (let ((x (sheet-children sheet)))
+    (unless (and x (null (cdr x)))
+      (error "Not one child:~S" sheet))
+    (car x)))
 (defgeneric adopt-child (sheet child)
   )
 
@@ -269,13 +274,17 @@
 		 (sheet-engrafted-p parent)))))
 
 
+(warn "Is this right?")
+
 (defmethod note-sheet-region-changed :after (sheet &key port)
   (declare (ignore port))
-  (invalidate-cached-regions sheet))
+  (unless port
+    (invalidate-cached-regions sheet)))
 
 (defmethod note-sheet-transformation-changed :after (sheet &key port)
   (declare (ignore port))
-  (invalidate-cached-transformations sheet))
+  (unless port
+    (invalidate-cached-transformations sheet)))
 
 
 

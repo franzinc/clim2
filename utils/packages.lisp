@@ -19,7 +19,7 @@
 ;; applicable.
 ;;
 
-;; $fiHeader: packages.lisp,v 1.1 91/08/30 13:57:48 cer Exp Locker: cer $
+;; $fiHeader: packages.lisp,v 1.1 91/11/25 10:01:42 cer Exp Locker: cer $
 
 (in-package #-ansi-90 :user #+ansi-90 :common-lisp-user)
 
@@ -774,6 +774,7 @@ Copyright (c) 1991, Franz Inc. All rights reserved
    exp
    export
    expt
+   extended-char
    fboundp
    fceiling
    ffloor

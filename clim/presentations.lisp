@@ -19,7 +19,7 @@
 ;; applicable.
 ;;
 
-;; $fiHeader: presentations.lisp,v 1.1 91/09/09 14:53:12 cer Exp Locker: cer $
+;; $fiHeader: presentations.lisp,v 1.1 91/11/25 10:01:12 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -400,7 +400,8 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 
 (defun highlighted-presentation (stream &optional (prefer-pointer-window t))
   (let ((history-window (if prefer-pointer-window (find-appropriate-window stream) stream)))
-    (when history-window
+    (when (and history-window
+	       (slot-exists-p history-window 'highlighted-presentation))
       (slot-value history-window 'highlighted-presentation))))
 
 (defun set-highlighted-presentation (stream presentation &optional (prefer-pointer-window t))

@@ -236,6 +236,8 @@
    #:medium-merged-text-style-valid
    #:beep
    #:port-beep
+   #:port-server-path
+   #:change-space-req
    ))
 
 

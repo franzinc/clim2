@@ -97,7 +97,7 @@
 
 (defun convert-callback-name (x)
   (let ((z (assoc x *callback-name-alist*)))
-    (unless z (error "No such Callback: ~S" z))
+    (unless z (error "No such Callback: ~S" x))
     (values (or (third z)
 		(setf (third z) (string-to-char* (second z))))
 	    (fourth z))))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: LISP; Syntax: Common-lisp; Package: CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: text-formatting.lisp,v 1.8 91/08/05 14:35:42 cer Exp $
+;; $fiHeader: text-formatting.cl,v 1.1 91/12/10 18:50:29 cer Exp Locker: cer $
 
 (in-package :clim)
 
@@ -60,7 +60,7 @@
     ;; but it does contribute to the width of the line
     (when prefix
       (stream-write-string stream prefix))
-    (setq current-width (+ prefix-width (text-size stream buffer)))))
+    (setq current-width (+ prefix-width (silica::text-size stream buffer)))))
 
 (defmethod stream-terpri ((filling-stream filling-stream))
   (with-slots (stream current-width) filling-stream
@@ -76,7 +76,7 @@
 	   (setq current-width 0))
 	  (t
 	   (vector-push-extend char buffer)
-	   (incf current-width (text-size stream char))
+	   (incf current-width (silica::text-size stream char))
 	   ;; We need to do the FILLING-STREAM-WRITE-BUFFER for every
 	   ;; character since it needs to know as soon as output crosses
 	   ;; the fill width.
@@ -135,7 +135,7 @@
   (write-buffer-and-continue filling-stream
 			     #'close-current-text-output-record wrapped))
 
-(defresource filling-stream (stream fill-width break-characters prefix prefix-width)
+(clim-utils::defresource filling-stream (stream fill-width break-characters prefix prefix-width)
   :constructor (make-instance 'filling-stream
 			      :buffer (make-array 100 :element-type 'extended-char
 						      :fill-pointer 0
@@ -159,10 +159,10 @@
   (check-type break-characters list)
   (check-type after-line-break (or null string))
   (let ((fill-width (process-spacing-arg stream fill-width 'filling-output ':fill-width))
-	(prefix-width (if after-line-break (text-size stream after-line-break) 0)))
+	(prefix-width (if after-line-break (silica::text-size stream after-line-break) 0)))
     (assert (< prefix-width fill-width) ()
 	    "The prefix string ~S is wider than the fill width" after-line-break)
-    (using-resource (filling-stream filling-stream
+    (clim-utils::using-resource (filling-stream filling-stream
 		     stream fill-width break-characters after-line-break prefix-width)
       (unwind-protect
 	  (progn

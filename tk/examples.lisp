@@ -23,13 +23,15 @@
   (add-callback da :input-callback 'da-button-press-handler :input)
   (popup app4))
 
-(defun setup ()
+(defun setup (hostspec)
   (setq context (create-application-context))
-  (setq display (make-instance 'display :context context))
+  (setq display (make-instance 'display 
+			       :host hostspec
+			       :context context))
   (setq app (app-create-shell :display display :widget-class 'application-shell)))
 
-(defun initialize-motif-toolkit (&rest ignore)
-  (setup)
+(defun initialize-motif-toolkit (hostspec)
+  (setup hostspec)
   (values context display app))
 
 (defvar *bitmaps* (quote ("background" "25_foreground" "50_foreground" "75_foreground" 

@@ -47,6 +47,11 @@
 (defmethod allocate-space ((pane leaf-mixin) width height)
   (declare (ignore width height)))
 
+(warn "boug")
+
+(defmethod allocate-space (pane width height)
+  (declare (ignore width height)))
+
 (defmethod space-req-changed ((composite composite-pane) child)
   (declare (ignore child))
   (space-req-changed (sheet-parent composite) composite))
@@ -74,7 +79,10 @@
 	   ((pane layout-mixin) &key resize-frame &allow-other-keys)
   (if resize-frame
       (relayout-frame (pane-frame pane))
-      (space-req-changed (sheet-parent pane) pane)))
+    (space-req-changed (sheet-parent pane) pane)))
+
+(defmethod space-req-changed (parent child)
+  nil)
 
 #||
 
@@ -177,9 +185,9 @@
   (when (or width max-width min-width height max-height min-height)
     (setf (slot-value pane 'client-space-req)
       (make-space-req :width (or width 0) :height (or height 0) 
-		      :max-width (or max-width width 0) 
+		      :max-width (or max-width width +fill+)
 		      :min-width (or min-width width 0)
-		      :max-height (or max-height height 0)
+		      :max-height (or max-height height +fill+)
 		      :min-height (or min-height height 0)))))
 
 (defmethod compose-space ((pane client-space-req-mixin))
@@ -286,6 +294,9 @@
 (defmethod clear-space-req-cache ((pane layout-mixin))
   nil)
 
+(defmethod clear-space-req-cache ((pane t))
+  nil)
+
 (defmethod clear-space-req-cache ((pane space-req-cache-mixin))
   (with-slots (space-req) pane
     (setf space-req nil)))
@@ -299,6 +310,11 @@
 		 (declare (ignore depth nth))
 		 (clear-space-req-cache sheet))
 	     sheet))
+
+(defun clear-space-req-caching-in-ancestors (menu)
+  (do ((parent (sheet-parent menu) (sheet-parent parent)))
+      ((null parent))
+    (clear-space-req-cache parent)))
 
 ;;;
 ;;; Wrapping Space Mixin
@@ -368,3 +384,46 @@
 		  (bounding-rectangle-height pane)))
 
 
+
+;;; Generally useful layout function
+;;; Used all over to satisfy constraints
+
+(defun allocate-space-to-items (given wanted items min-size
+				desired-size max-size item-size)
+  (flet ((desired-size (x) (funcall desired-size x))
+	 (min-size (x) (funcall min-size x))
+	 (max-size (x) (funcall max-size x))
+	 (item-size (x) (funcall item-size x)))
+    (let ((stretch-p (>= given (desired-size wanted)))
+	  extra give used sizes)
+      
+      (if stretch-p
+	  (setq give (- (max-size wanted) (desired-size wanted))
+		extra (min (- given (desired-size wanted)) give))
+	(setq give (- (desired-size wanted) (min-size wanted))
+	      extra (min (- (desired-size wanted) given) give)))
+      
+      (dolist (item items)
+	(let* ((item-size (item-size item))
+	       (alloc (desired-size item-size)))
+	  (when (> give 0)
+	    (if stretch-p
+		(progn
+		  (setq used (/ (* (- (max-size item-size)
+				      (desired-size item-size))
+				   extra)
+				give))
+		  (incf alloc used)
+		  (decf give (- (max-size item-size)
+				(desired-size item-size))))
+	      (progn
+		(setq used (/ (* (- (desired-size item-size)
+				    (min-size item-size))
+				 extra)
+			      give))
+		(decf alloc used)
+		(decf give (- (desired-size item-size)
+			      (min-size item-size)))))
+	    (decf extra used))
+	    (push alloc sizes)))
+      (nreverse sizes))))

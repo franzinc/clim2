@@ -18,6 +18,9 @@
 ;; applicable.
 ;;
 
+(setq excl::*record-source-file-info* t
+      excl::*load-source-file-info* t)
+
 (without-package-locks
  (load "sys/defsystem")
  (load "sys/sysdcl"))
@@ -60,4 +63,4 @@
   (load "draw-sheets.cl")
   )
 
-(load "clim/test")
+(load "test/test")

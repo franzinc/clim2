@@ -69,6 +69,7 @@
 
 (defmethod invoke-with-drawing-options ((medium medium) function 
 					&key 
+					(line-thickness nil line-thickness-p)
 					(ink nil ink-p)
 					(text-style nil text-style-p)
 					(transformation nil trans-p)
@@ -79,7 +80,7 @@
 					(text-size nil text-size-p))
   (when (or text-size-p text-face-p text-family-p line-style-p
 	    clipping-region-p)
-    (error "unhandled option to invoke-with-drawing-options"))
+    (warn "unhandled option to invoke-with-drawing-options"))
   
   (let ((old-ink (if ink-p (medium-ink medium)))
 	(old-trans (if trans-p (medium-transformation medium)))

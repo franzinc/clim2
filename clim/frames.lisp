@@ -38,8 +38,8 @@
    (panes :initarg :panes :accessor frame-panes)
    (top-level-sheet :accessor frame-top-level-sheet :initform nil)
    (shell :accessor frame-shell)
-   (state :initform :disowned :accessor frame-state 
-	  :type (member :disowned :enable :disabled :shrunk))
+   (state :initform :disabled :accessor frame-state 
+	  :type (member :disabled :enable :disabled :shrunk))
    (command-table :initarg :command-table 
 		  :initform (find-command-table 'user-command-table)
 		  :accessor frame-command-table)
@@ -53,6 +53,9 @@
 
 (defmethod frame-name ((frame application-frame))
   (format nil "~A" (type-of frame)))
+
+(defmethod frame-pretty-name ((frame application-frame))
+  (frame-name frame))
 
 (defvar *frame-managers* nil)
 
@@ -104,10 +107,8 @@
 	  ,@(and command-table
 		 `(:command-table (clim-internals::find-command-table ',(car command-table))))))
        ,@(when command-table
-	   `((define-command-table ,(first
-					  command-table)
-					 ,@(and (cdr command-table) 
-						`(:inherit-from ,(cdr command-table))))))
+	   `((define-command-table ,(first command-table)
+					 ,@(cdr command-table))))
        ,@(when command-definer
 	   (compute-command-definer-code name command-table))
        ,@(compute-generate-panes-code name pane))))
@@ -134,9 +135,14 @@
 	 `((defmethod generate-panes ((,f ,name) (,fm frame-manager))
 	     (let ((*application-frame* ,f))
 	       (setf (frame-panes ,f)
-		 (with-look-and-feel-realization 
-		     (,fm ,f)
-		   ,code))))))))
+		 (frame-wrapper
+		  ,f ,fm
+		  (with-look-and-feel-realization 
+		      (,fm ,f)
+		    ,code)))))))))
+
+(defmethod frame-wrapper ((frame t) (framem t) pane)
+  pane)
 
 (defmacro with-look-and-feel-realization ((realizer frame) &rest forms)
   `(macrolet ((silica::realize-pane (&rest foo)
@@ -164,7 +170,11 @@
     (let ((sr (compose-space (frame-panes frame))))
       (setq width (silica::space-req-width sr)
 	    height (silica::space-req-height sr))))
-  (allocate-space (frame-panes frame) width height))
+  (allocate-space (frame-panes frame) width height)
+  #+shouldwebedoingthiskindofthing?
+  (when (frame-top-level-sheet frame)
+    (silica::resize-sheet* (frame-top-level-sheet frame)
+			   width height)))
 
 (defun make-application-frame (class &rest options &key enable &allow-other-keys)
   (with-rem-keywords (options options '(:enable))

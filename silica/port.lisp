@@ -21,7 +21,7 @@
 
 ;; Ports and grafts
 
-(defvar *default-server-path* '(:motif :display "localhost"))
+(defvar *default-server-path* '(:motif :display "localhost:0"))
 (defvar *ports* nil)
 (defvar *port-type-mapping* nil)
 

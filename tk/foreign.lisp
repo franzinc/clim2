@@ -30,22 +30,27 @@
   (make-instance 'application-context))
 
 (defun open-display (&key (context (create-application-context))
-			  (display 0)
+			  (host nil)
 			  (name "foo")
 			  (class "Foo")
 			  (options 0)
 			  (num-options 0)
 			  (argc 0)
 			  (argv 0))
-  (with-ref-par ((argc argc))
-		(open_display (object-handle context)
-			      display 
-			      (string-to-char* name)
-			      (string-to-char* class)
-			      options 
-			      num-options
-			      argc
-			      argv)))
+  (let ((d (with-ref-par ((argc argc))
+	     (open_display (object-handle context)
+			   (if host 
+			       (string-to-char* host)
+			     0)
+			   (string-to-char* name)
+			   (string-to-char* class)
+			   options 
+			   num-options
+			   argc
+			   argv))))
+    (if (zerop d)
+	(error "cannot open the display: ~A" host)
+      d)))
 
 (defclass display ()
   ((handle :reader display-handle)
@@ -53,7 +58,8 @@
   
 
 
-(defmethod initialize-instance :after ((d display) &rest args &key display)
+(defmethod initialize-instance :after ((d display) &rest args &key
+							      host display)
   (push d (application-context-displays (slot-value d 'context)))
   (setf (slot-value d 'handle)
 	(or display

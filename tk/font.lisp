@@ -26,6 +26,9 @@
 
 (def-c-type (xcharstruct-vector :in-foreign-space) 1 x11:xcharstruct)
 
+(defmethod font-width (font)
+  (x11::xfontstruct-max-bounds-width (object-handle font)))
+ 
 (defmethod font-ascent (font)
   (x11:xfontstruct-ascent (object-handle font)))
 

@@ -78,10 +78,11 @@
   ("db-layout")
   ("db-box")
   ("db-table")
-
+  
   ;; db-border?????
 
   ("gadgets")
+  ("db-scroll")
   
   ("db-stream")
   
@@ -95,7 +96,9 @@
   
   ("accept-values"
    :load-before-compile ("clim-defs" "incremental-redisplay"))
-  
+
+  ("menus")
+  ("text-formatting")
   ("stream-trampolines"
    :load-before-compile ("defprotocol" "stream-defprotocols")
    ))

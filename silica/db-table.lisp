@@ -28,198 +28,143 @@
 ;;; Table
 ;;;
 
-(defclass table-pane (pane-background-mixin
-			      mute-input-mixin
-			      composite-pane 
-			      space-req-cache-mixin)
-    ((contents :accessor table-contents)
-     (rows)
-     (columns)
-     (row-h :initform nil)
-     (column-w :initform nil)
-     ;; ??? order of space, h and heightpace initarg matters with autoconstructors
-     (widthpace :initform 0 :initarg :space :initarg :widthpace)
-     (heightpace :initform 0 :initarg :space :initarg :heightpace)))
 
 
-(defmethod initialize-instance :after 
-	   ((pane table-pane) &key contents &allow-other-keys)
+(defclass table-pane (mute-input-mixin
+		      pane-background-mixin
+		      composite-pane 
+		      space-req-cache-mixin)
+	  (row-space-reqs column-space-reqs contents))
 
-;;; The space composition and allocation for tables depends on there being
-;;; no empty rows or columns in the data structure; otherwise, the space
-;;; request comes back with MOST-POSITIVE-FIXNUM size requirements in the
-;;; direction of the empty row/column.  The following two forms delete the
-;;; empty rows and columns.  The row deletion is easy: the data structure is
-;;; set up for that purpose.  The column deletetion is more complex.
-;;;  -- rsl 13 November 1990
 
-  ;; Delete empty rows.
-  (setf contents (delete-if #'(lambda (row) (every #'null row)) 
-			    contents))
+(defmethod initialize-instance :after ((pane table-pane) &key contents)
+  ;; The contents should be a list of lists
+  (with-slots ((c contents)) pane
+    (setf c (make-array (list (length contents)
+			      (length (car contents)))
+			:initial-contents contents)))
+  (dolist (c contents)
+    (dolist (d c)
+      (when d (adopt-child pane d)))))
 
-  ;; Delete empty columns when there are any; this CONSes too much otherwise.
-  (when (block there-is-an-empty-column
-	  (flet ((check-for-empty-column (&rest column)
-		   (declare (dynamic-extent column))
-		   (when (every #'null column)
-		     (return-from there-is-an-empty-column t))))
-	    (declare (dynamic-extent #'check-for-empty-column))
-	    (apply #'mapc #'check-for-empty-column contents))
-	  nil)  ;; -> No empty columns
-    ;; Yes, there is at least one empty column
-    (setf contents
-	    (flet ((delete-column-if-empty (&rest column)
-		     (declare (clim-utils::non-dynamic-extent column))
-		     (if (every #'null column)
-			 nil			;Delete this column entirely
-			 (list column))))
-		     (declare (dynamic-extent #'delete-column-if-empty))
-		     (apply #'mapcan #'delete-column-if-empty contents))))
 
-  (with-slots ((table-contents contents)
-	       rows columns) pane
-    (setf rows (length contents))
-    (setf columns (apply #'max (mapcar #'length contents)))
-    (let* (i j)
+(defmacro tabling (options &rest contents)
+  `(realize-pane 'table-pane
+		 :contents (list ,@(mapcar #'(lambda (x) `(list ,@x)) contents))
+		 ,@options))
 
-      (setf table-contents (make-array (list rows columns) 
-				       :initial-element nil))
-      (setq i 0)
-      (dolist (row
-		;; Vertical list are easier to specify top to bottom, but
-		;; easier to deal with bottom to top.  
-		(reverse contents))
-	(setq j 0)
-	(dolist (item row)
-	  (cond ((null item) nil)
-		((panep item) (adopt-child 
-			       pane
-			       (setf (aref table-contents i j) item)))
-		((eq item :give-left) (warn "Give left not supported"))
-		((eq item :give-down) (warn "Give down not supported"))
-		(t (error "Illegal element in table contents")))
-	  (incf j))
-	(incf i)))))
+#+ignore
+(tabling (:space space)
+		 (vscrollbar viewport)
+		 (nil        hscrollbar))
 
-(defmethod compose-space ((pane table-pane))
-  (with-slots (rows columns contents widthpace heightpace row-h column-w) pane
-    (let (size 
-	  max-size
-	  min-size
-	  (width 0) (max-width 0) (min-width 0)
-	  (height 0) (max-height 0) (min-height 0))
-      (setf row-h (or row-h (make-array rows :initial-element 0)))
-      (setf column-w (or column-w (make-array columns :initial-element 0)))
-      (dotimes (i rows)
-	(setq size 0)
-	(setq max-size most-positive-fixnum)
-	(setq min-size 0)
-	(dotimes (j columns)
-	  (when (aref contents i j)
-	    (let ((space-req (compose-space (aref contents i j))))
-	      (setq size  (max size (space-req-height space-req)))
-	      (setq max-size (min max-size (+ (space-req-height space-req)
-					      (space-req-max-height space-req))))
-	      (setq min-size (max min-size (- (space-req-height space-req)
-					      (space-req-min-height space-req)))))))
-	(setf (aref row-h i) (list size 
-				   (max (- max-size size) 0)
-				   (max (- size min-size) 0)
-				   nil)))
-      (dotimes (i rows)
-	(let ((req (aref row-h i)))
-	  (incf height  (first req))
-	  (incf max-height (second req))
-	  (incf min-height (third req))))
-      (incf height (* (1- rows) heightpace))
+(defmethod compose-space ((x table-pane))
+  (with-slots (contents) x
+    (let ((omin-w 0)
+	  (omin-h 0)
+	  (oh 0)
+	  (ow 0)
+	  (omax-h 0)
+	  (omax-w 0)
+	  row-srs
+	  column-srs)
+
+      ;; Iterate over the rows, determining the height of each
       
-      (dotimes (j columns)
-	(setq size 0)
-	(setq max-size most-positive-fixnum)
-	(setq min-size 0)
-	(dotimes (i rows)
-	  (when (aref contents i j)
-	    (let ((space-req (compose-space (aref contents i j))))
-	      (setq size  (max size (space-req-width space-req)))
-	      (setq max-size (min max-size (+ (space-req-width space-req)
-					      (space-req-max-width space-req))))
-	      (setq min-size (max min-size (- (space-req-width space-req)
-					      (space-req-min-width space-req)))))))
-	(setf (aref column-w j) (list size 
-				      (max (- max-size size) 0)
-				      (max (- size min-size) 0)
-				      nil)))
-      (dotimes (j columns)
-	(let ((req (aref column-w j)))
-	  (incf width  (first req))
-	  (incf max-width (second req))
-	  (incf min-width (third req))))
-      (incf width (* (1- columns) widthpace))
-      (make-space-req :width width :max-width max-width :min-width min-width :height height :max-height max-height :min-height min-height))))
+      (dotimes (row (array-dimension contents 0))
+	(let ((min-h 0)
+	      (h 0)
+	      (max-h 0))
+	  (dotimes (column (array-dimension contents 1))
+	    (let ((item (aref contents row column)))
+	      (when item
+		(let ((isr (compose-space item)))
+		  ;; Max the heights
+		  (maxf h (space-req-height isr))
+		  (maxf min-h (space-req-min-height isr))
+		  (maxf max-h (space-req-max-height isr))))))
 
-(defmacro allocate-to-rows (contract alloc-major rows row-h accessors)
-  (let ((major  (first accessors))
-	(major+ (second accessors))
-	(major- (third accessors))
-	(row-major  'first)
-	(row-major+ 'second)
-	(row-major- 'third)
-	(row-alloc  'fourth))
-    `(with-slots (space-req) ,contract
-       (let ((stretch-p (> ,alloc-major (,major space-req)))
-	     give extra used)
-	 (if stretch-p
-	     (progn (setq give (,major+ space-req))
-		    (setq extra (min (- ,alloc-major (,major space-req))
-				     give)))
-	     (progn (setq give (,major- space-req))
-		    (setq extra (min (- (,major space-req) ,alloc-major)
-				     give))))
-	 (dotimes (i ,rows)
-	   (let* ((row-space-req (aref ,row-h i))
-		  (alloc (,row-major row-space-req)))
-	     (when (> give 0)
-	       (if stretch-p
-		   (progn (setq used (/ (* (,row-major+ row-space-req) extra)
-					give))
-			  (incf alloc used)
-			  (decf give (,row-major+ row-space-req)))
-		   (progn (setq used (/ (* (,row-major- row-space-req)
-					   extra)
-					give))
-			  (decf alloc used)
-			  (decf give (,row-major+ row-space-req))))
-	       (decf extra used))
-	     (setf (,row-alloc row-space-req) alloc)))))))
-
-(defmethod allocate-space ((pane table-pane) width height)
-  ;; assuming that pane has been composed previously.
-  (with-slots (rows columns contents widthpace heightpace row-h column-w space-req)
-      pane
-    
-    (unless space-req (compose-space pane)) ;; ?? Depends on it being here
-    
-    (allocate-to-rows pane height rows row-h
-		      (space-req-height
-		       space-req-max-height space-req-min-height
-		       space-req-width space-req-max-width space-req-min-width))
-    (allocate-to-rows pane width columns column-w
-		      (space-req-width 
-		       space-req-max-width space-req-min-width
-		       space-req-height space-req-max-height space-req-min-height))
-
-    ;; Now we should know what to do, so let's do it.
-    (let (min-x min-y width height) 
-      (setq min-y 0)
-      (dotimes (i rows)
-	(setq min-x 0)
-	(setq height (fourth (aref row-h i)))
-	(dotimes (j columns)
+	  (push
+	   (make-space-req
+	    :width 0
+	    :min-height min-h :height h :max-height max-h)
+	   row-srs)
 	  
-	  (setq width (fourth (aref column-w j)))
-	  (when (aref contents i j)
-	    (move-and-resize-sheet* (aref contents i j) 
-				    min-x min-y width height))
-	  (incf min-x (+ width widthpace)))
-	(incf min-y (+ height heightpace))))))
+	  ;; Add the heights
+	  (incf oh h)
+	  (incf omin-h min-h)
+	  (incf omax-h max-h)))
+      
+      (setf (slot-value x 'row-space-reqs) (nreverse row-srs))
+      
+      ;; Iterate over the columns determing the widths of each
+            
+      (dotimes (column (array-dimension contents 1))
+	(let ((min-w 0)
+	      (w 0)
+	      (max-w 0))
+	
+	  (dotimes (row (array-dimension contents 0))
+	    (let ((item (aref contents row column)))
+	      (when item
+		(let ((isr (compose-space item)))
+		  ;; Max the widths
+		  (maxf w (space-req-width isr))
+		  (maxf min-w (space-req-min-width isr))
+		  (maxf max-w (space-req-max-width isr))))))
 
+	  (push
+	   (make-space-req
+	    :min-width min-w :width w :max-width max-w
+	    :height 0)
+	   column-srs)
+	
+	  (incf ow w)
+	  (incf omin-w min-w)
+	  (incf omax-w max-w)))
+      
+      
+      (setf (slot-value x 'column-space-reqs) (nreverse column-srs))
+      
+      (make-space-req
+       :min-width omin-w :width ow :max-width omax-w
+       :min-height omin-h :height oh :max-height omax-h))))
+
+(defmethod allocate-space ((x table-pane) width height)
+  (with-slots (contents column-space-reqs 
+			row-space-reqs space-req) x
+    (unless space-req (compose-space x))
+    
+    (let ((row-heights
+	   (allocate-space-to-items
+	    height
+	    space-req
+	    row-space-reqs
+	    #'space-req-min-height
+	    #'space-req-height
+	    #'space-req-max-height
+	    #'identity))
+	  (column-widths
+	   (allocate-space-to-items
+	    width
+	    space-req
+	    column-space-reqs
+	    #'space-req-min-width
+	    #'space-req-width
+	    #'space-req-max-width
+	    #'identity))
+	  (y 0))
+      (dotimes (row (array-dimension contents 0))
+	(let ((row-height (pop row-heights))
+	      (column-widths column-widths)
+	      (x 0))
+	  (dotimes (column (array-dimension contents 1))
+	    (let ((column-width (pop column-widths))
+		  (item (aref contents row column)))
+	      (when item
+		(move-and-resize-sheet*
+		 item x y 
+		 (min column-width (1- (- width x)))
+		 (min row-height (1- (- height y)))))
+	      (incf x column-width)))
+	  (incf y row-height))))))
