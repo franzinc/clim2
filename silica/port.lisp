@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: port.lisp,v 1.9 92/03/24 19:36:49 cer Exp $
+;; $fiHeader: port.lisp,v 1.10 92/04/15 11:45:18 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -61,7 +61,10 @@
 
 
 (defgeneric port (x)
+  ;;;-- Do we need this???
+  #+ignore
   (:method ((port port)) port)
+  #+ignore
   (:method ((x t)) nil))
 
 (defgeneric port-properties (port))

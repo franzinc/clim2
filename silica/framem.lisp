@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: framem.lisp,v 1.5 92/04/15 11:45:09 cer Exp Locker: cer $
+;; $fiHeader: framem.lisp,v 1.6 92/04/21 16:12:39 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -28,6 +28,11 @@
 (defclass standard-frame-manager (frame-manager) 
     ((port :reader port :initarg :port)
      (frames :accessor frame-manager-frames :initform nil)))
+
+;;-- This is most likely wrong.
+
+(defmethod graft ((framem standard-frame-manager))
+  (car (port-grafts (port framem))))
 
 (defvar *frame-managers* nil)
 
@@ -70,9 +75,18 @@
 (defmethod adopt-frame :after ((framem standard-frame-manager) frame)
   (pushnew frame (frame-manager-frames framem)))
 
+
+(defmethod disown-frame ((framem standard-frame-manager) frame)
+  (let ((top (frame-top-level-sheet frame)))
+    (when top
+      (sheet-disown-child (sheet-parent top) top)
+      (setf (frame-top-level-sheet frame) nil
+	    (frame-state frame) :disowned))))
+
 (defmethod disown-frame :after ((framem standard-frame-manager) frame)
   (setf (frame-manager-frames framem)
-	(delete frame (frame-manager-frames framem))))
+    (delete frame (frame-manager-frames framem))
+    (slot-value frame 'frame-manager) nil))
 
 (defmethod note-frame-enabled :after ((framem standard-frame-manager) frame)
   (update-frame-settings framem frame)

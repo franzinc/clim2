@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: recording-protocol.lisp,v 1.8 92/04/15 11:47:13 cer Exp Locker: cer $
+;; $fiHeader: recording-protocol.lisp,v 1.9 92/04/21 16:13:14 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -1219,10 +1219,11 @@
 		    (bounding-rectangle stream)))))
     (unless (eq clear +nowhere+)
       (with-sheet-medium (medium stream)
-	(multiple-value-call #'draw-rectangle*
-	  medium
-	  (bounding-rectangle* clear)
-	  :ink +background-ink+))
+	(with-bounding-rectangle* (a b c d) clear
+				  (draw-rectangle*
+				   medium
+				   a b c d
+				   :ink +background-ink+)))
       (stream-replay stream region))))
 
 

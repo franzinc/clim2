@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-defs.lisp,v 1.2 92/04/21 20:27:45 cer Exp Locker: cer $
+;; $fiHeader: xm-defs.lisp,v 1.3 92/04/28 09:25:07 cer Exp Locker: cer $
 
 ;;
 ;; This file contains compile time only code -- put in clim-debug.fasl.
@@ -50,3 +50,17 @@
 	    (dir-length :int)
 	    (pattern xm-string)
 	    (pattern-length xm-string))
+
+(def-c-type (xm-list-callback-struct :no-defuns) :struct
+	    (reason :int)
+	    (event * x11:xevent)
+	    (item xm-string)
+	    (item-length :int)
+	    (item-position :int)
+	    (selection-items * xm-string)
+	    (selected-item-count :int)
+	    (selected-item-positions * :int)
+	    (selection-type :int))
+	    
+(def-c-type (xm-selected-position-array :no-defuns) 1 :int)
+

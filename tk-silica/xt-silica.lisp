@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.22 92/04/28 09:26:38 cer Exp Locker: cer $
+;; $fiHeader: xt-silica.lisp,v 1.23 92/04/30 09:09:55 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -547,11 +547,19 @@
        (find-shell-of-calling-frame sheet))
       (port-application-shell port)))
 
-(defmethod find-shell-class-and-initargs ((port xt-port) sheet)
+(defmethod find-shell-class-and-initargs ((port xt-port) (sheet t))
   (values 'top-level-shell 
 	  ;; Need this so that an interactive pane can have children
 	  ;; but still accept the focus
-	  '(:keyboard-focus-policy :pointer)))
+	  `(:keyboard-focus-policy :pointer)))
+
+(defmethod find-shell-class-and-initargs :around ((port xt-port) (sheet pane))
+  (multiple-value-bind
+      (class initargs)
+      (call-next-method)
+    (values class
+	    `(:allow-shell-resize ,(clim-internals::frame-resizable (pane-frame sheet))
+				  ,@initargs))))
 
 (defmethod enable-mirror ((port xt-port) sheet)
   (declare (ignore port))
@@ -1016,10 +1024,6 @@
       (xt::set-sensitive widget nil))
     widget))
 
-(defmethod port-note-gadget-activated ((port xt-port) gadget)
-  (when (sheet-mirror gadget)
-    (xt::set-sensitive (sheet-mirror gadget) t)))
 
-(defmethod port-note-gadget-deactivated ((port xt-port) gadget)
-  (when (sheet-mirror gadget)
-    (xt::set-sensitive (sheet-mirror gadget) nil)))
+
+

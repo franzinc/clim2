@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept-values.lisp,v 1.17 92/04/28 09:25:37 cer Exp Locker: cer $
+;; $fiHeader: accept-values.lisp,v 1.18 92/04/30 09:09:26 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -267,7 +267,8 @@
 
 #+Silica
 (defun invoke-accepting-values (stream continuation
-				 &key frame-class own-window exit-boxes
+				 &key frame-class own-window
+				      exit-boxes (resize-frame nil)
 				      (initially-select-query-identifier nil)
 				      (resynchronize-every-pass nil) (check-overlapping t)
 				      label x-position y-position width height)
@@ -292,7 +293,8 @@
 					      :initially-select-query-identifier
 					        initially-select-query-identifier
 					      :resynchronize-every-pass
-					        resynchronize-every-pass
+					      resynchronize-every-pass
+					      :resize-frame resize-frame 
 					      :check-overlapping
 					      check-overlapping)))
 	   ;; What do we do about sizing?????
@@ -340,7 +342,7 @@
 	  avv avv-record)
       (letf-globally (((stream-default-view stream) 
 		       (port-dialog-view (port stream))))
-	(flet ((run-continuation (stream avv-record)
+	(labels ((run-continuation (stream avv-record)
 		 (setf (slot-value stream 'avv-record) avv-record)
 		 (setf (slot-value stream 'avv-frame) frame)
 		 (with-output-recording-options (stream :draw nil :record t)
@@ -357,6 +359,8 @@
 		   (com-edit-avv-choice initial-query)
 		   (redisplay avv stream :check-overlapping check-overlapping))
 		 (loop
+		   (when (frame-resizable frame)
+		     (size-panes-appropriately))
 		   (let ((command
 			   (let ((command-stream (slot-value stream 'stream)))
 			     ;; While we're reading commands, restore the view
@@ -380,7 +384,24 @@
 		     (setf (slot-value avv-record 'resynchronize) nil)
 		     (when exit-button-record
 		       (redisplay exit-button-record exit-button-stream))
-		     (redisplay avv stream :check-overlapping check-overlapping)))))
+		     (redisplay avv stream :check-overlapping
+				check-overlapping))))
+	       (size-panes-appropriately ()
+		 (changing-space-requirements ()
+                    ;; We really want to specify the min/max sizes of
+                    ;; the exit-button pane also
+                    (size-menu-appropriately
+		     exit-button-stream
+		     :size-fn
+		     #'(lambda (pane w h)
+			 (change-space-requirement pane 
+			  :width w :min-width w :max-width w
+			  :height h :min-height h :max-height h)))
+		    (size-menu-appropriately own-window
+					     :width own-window-width
+					     :height own-window-height
+					     :right-margin own-window-right-margin
+					     :bottom-margin own-window-bottom-margin))))
 	  (declare (dynamic-extent #'run-continuation #'run-avv))
 	  (with-simple-restart (frame-exit "Exit from the ACCEPT-VALUES dialog")
 	    (setq avv
@@ -401,12 +422,7 @@
 					      (stream-default-view stream)))))))
 	    (unwind-protect
 		(cond (own-window
-		       (size-menu-appropriately exit-button-stream)
-		       (size-menu-appropriately own-window
-						:width own-window-width
-						:height own-window-height
-						:right-margin own-window-right-margin
-						:bottom-margin own-window-bottom-margin)
+		       (size-panes-appropriately)
 		       (multiple-value-bind (x y)
 			   #-Silica
 			   (stream-pointer-position-in-window-coordinates

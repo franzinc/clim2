@@ -1,10 +1,21 @@
-# $fiHeader: Makefile,v 1.24 92/04/28 09:26:11 cer Exp Locker: cer $
+# $fiHeader: Makefile,v 1.25 92/04/30 09:09:48 cer Exp Locker: cer $
 # 
 #  Makefile for CLIM 2.0
 #
 CL	= /vapor/usr/tech/cer/cl/src/dcl
 DUMP-CL	= $(CL)
 CLOPTS	= -qq
+
+# Training
+TRAIN_LISP= (load \"/net/vapor/usr/tech/cer/stuff/misc/test-clim.lisp\") \
+		(clim-user::train-clim-2) \
+		(exit 0) 
+
+TRAIN_TEXT = \
+	$(ECHO) "\
+	$(TRAIN_LISP) \
+" | $(CLIM) $(CLOPTS) -batch \
+	; echo CLIM trained!!!!	
 
 # Info
 LOAD_SOURCE_FILE_INFO=t
@@ -258,6 +269,9 @@ OPENLOOK-OBJS = $(OL-CLIM-OBJS) $(OPENLOOK-CLIM-OBJS)
 
 default: all-xm
 
+train-clim-xm:	
+	(make all-xm train ; make clim-xm) |& mail cer
+
 all-xm:	compile-xm cat-xm clim-xm
 all-ol:	compile-ol cat-ol clim-ol
 
@@ -355,11 +369,8 @@ clim-small:	FORCE
 # Training
 
 train	:	FORCE
-	$(ECHO) "\
-		(load \"/net/vapor/usr/tech/cer/stuff/misc/test-clim.lisp\") \
-		(clim-user::train-clim-2) \
-		(exit 0) " | $(CLIM) $(CLOPTS) -batch
-	echo CLIM trained!!!!	
+	$(TRAIN_TEXT)
+
 # Misc
 
 

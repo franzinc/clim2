@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadgets.lisp,v 1.18 92/04/21 16:12:40 cer Exp Locker: cer $
+;; $fiHeader: gadgets.lisp,v 1.19 92/04/30 09:09:14 cer Exp Locker: cer $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
@@ -94,7 +94,7 @@
 
 (defclass oriented-gadget ()
     ((orientation :initarg :orientation
-		  :reader gadget-orientation))
+		  :accessor gadget-orientation))
   (:default-initargs :orientation :horizontal))
 
 
@@ -136,13 +136,18 @@
 ;;; The intent is that the real implementations inherit from these
 
 ;;; Slider
+
 (defclass slider
 	  (value-gadget oriented-gadget range-gadget-mixin labelled-gadget)
     ((drag-callback :initarg :drag-callback :initform nil
 		    :reader slider-drag-callback)
+     (decimal-places :initarg :decimal-places
+		     :reader slider-decimal-places)
      (show-value-p :initarg :show-value-p 
 		   :accessor gadget-show-value-p))
-  (:default-initargs :show-value-p nil))
+  (:default-initargs
+      :decimal-places 0
+      :show-value-p nil))
 
 
 (defmethod drag-callback ((gadget slider) (client t) (id t) value)
@@ -413,7 +418,7 @@ l
     (note-gadget-activated (gadget-client gadget) gadget)))
 
 (defmethod note-gadget-activated ((client t) (gadget gadget))
-  (port-note-gadget-activated (port gadget) gadget))
+  nil)
 
 (defmethod deactivate-gadget ((gadget gadget))
   (when (gadget-active-p gadget)
@@ -421,4 +426,27 @@ l
     (note-gadget-deactivated (gadget-client gadget) gadget)))
 
 (defmethod note-gadget-deactivated ((client t) (gadget gadget))
-  (port-note-gadget-deactivated (port gadget) gadget))
+  nil)
+
+;;; List panes and option menus
+
+(defclass set-gadget-mixin ()
+	  ((items :initarg :items :accessor set-gadget-items)
+	   (name-key :initarg :name-key :accessor set-gadget-name-key)
+	   (value-key :initarg :value-key :accessor set-gadget-value-key)
+	   (test :initarg :test :accessor set-gadget-test))
+  (:default-initargs 
+    :items nil
+    :test #'eql
+    :value-key #'identity
+    :name-key #'princ-to-string))
+
+(defclass list-pane (set-gadget-mixin value-gadget)
+	  ((mode :initarg :mode :type (member :exclusive :nonexclusive)
+		 :accessor list-pane-mode))
+  (:default-initargs :mode :exclusive))
+
+(defclass option-pane (set-gadget-mixin 
+			     value-gadget 
+			     labelled-gadget)
+	  ())

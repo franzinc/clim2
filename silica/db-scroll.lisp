@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-scroll.lisp,v 1.17 92/04/28 09:25:17 cer Exp Locker: cer $
+;; $fiHeader: db-scroll.lisp,v 1.18 92/04/30 09:09:13 cer Exp Locker: cer $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright(c) 1991, 1992 International Lisp Associates.
@@ -554,7 +554,8 @@
   (declare (values value2))
   (let* ((distance1 (- max1 min1))
 	 (fraction1 (if (zerop distance1) 0 (/ (- value1 min1) distance1))))
-    (+ min2 (* (- max2 min2) fraction1))))
+    (let ((x (+ min2 (* (- max2 min2) fraction1))))
+      (if (integerp x) x (float x)))))
 
 (defmethod handle-event :around ((pane scroll-bar-target-pane) 
 				 (event pointer-button-press-event))

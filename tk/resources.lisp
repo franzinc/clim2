@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: resources.lisp,v 1.17 92/04/21 20:27:41 cer Exp Locker: cer $
+;; $fiHeader: resources.lisp,v 1.18 92/04/28 09:25:04 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -125,6 +125,7 @@
 	(resource-type (car rs))
 	(x-arglist (aref arglist i) 0))
        values))))
+
 
 (defmethod convert-resource-in (class type value)
   (cerror "Try again" "cannot convert-in resource for ~S,~S,~S" class type value)
@@ -560,6 +561,7 @@
 
 (define-enumerated-resource visual-policy (:variable :constant))
 (define-enumerated-resource scroll-bar-display-policy (:static :as-needed))
+(define-enumerated-resource selection-policy (:single-select :multiple-select :extended-select :browse-select))
 
 (defmethod convert-resource-out (parent (type (eql 'xm-string-table)) value)
   (if value

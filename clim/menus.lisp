@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: menus.lisp,v 1.19 92/04/15 11:46:54 cer Exp Locker: cer $
+;; $fiHeader: menus.lisp,v 1.20 92/04/21 16:13:11 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -113,16 +113,21 @@
       (clear-input menu))))
 
 #+Silica
-(defun size-menu-appropriately (menu &key width height (right-margin 10) (bottom-margin 10))
+(defun size-menu-appropriately (menu &key 
+				     width height
+				     (right-margin 10) 
+				     (bottom-margin 10)
+				     (size-fn 
+				      #'window-set-inside-size))
   (with-slots (output-record) menu
     (with-bounding-rectangle* (minx miny maxx maxy) output-record
-      (let* ((graft (graft menu))
-	     (gw (bounding-rectangle-width (sheet-region graft)))
-	     (gh (bounding-rectangle-height (sheet-region graft)))
-	     (width (min gw (+ (- maxx minx) right-margin)))
-	     (height (min gh (+ (- maxy miny) bottom-margin))))
-	(window-set-inside-size menu width height)
-	(window-set-viewport-position menu minx miny)))))
+	(let* ((graft (graft menu))
+	       (gw (bounding-rectangle-width (sheet-region graft)))
+	       (gh (bounding-rectangle-height (sheet-region graft)))
+	       (width (min gw (+ (- maxx minx) right-margin)))
+	       (height (min gh (+ (- maxy miny) bottom-margin))))
+	  (funcall size-fn menu width height)
+	  (window-set-viewport-position menu minx miny)))))
 
 #-Silica
 (defun position-window-near-carefully (window x y)

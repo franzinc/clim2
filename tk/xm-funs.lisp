@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-funs.lisp,v 1.3 92/04/21 20:27:47 cer Exp Locker: cer $
+;; $fiHeader: xm-funs.lisp,v 1.4 92/04/28 09:25:09 cer Exp Locker: cer $
 
 ;;
 ;; This file contains compile time only code -- put in clim-debug.fasl.
@@ -69,3 +69,9 @@
 
 (defforeign 'xm_file_selection_do_search
     :entry-point "_XmFileSelectionDoSearch")
+
+(defforeign 'xm_option_label_gadget
+    :entry-point "_XmOptionLabelGadget")
+
+(defforeign 'xm_option_button_gadget
+    :entry-point "_XmOptionButtonGadget")

@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-menus.lisp,v 1.9 92/04/10 14:27:51 cer Exp Locker: cer $
+;; $fiHeader: xm-menus.lisp,v 1.10 92/04/21 16:13:29 cer Exp Locker: cer $
 
 
 (in-package :xm-silica)
@@ -125,31 +125,39 @@
 		     :separator-type :double-line
 		     :parent menu))
     (labels ((make-menu-button (item class parent &rest options)
-	       (if simplep
-		   (apply #'make-instance
-			  class 
-			  :sensitive (clim-internals::menu-item-active item)
-			  :parent parent 
-			  :managed nil
-			  :label-string (string (menu-item-display item))
-			  options) 
-		 (let* ((pixmap (pixmap-from-menu-item
-				 associated-window 
-				 item
-				 printer
-				 presentation-type))
-			(button
-			 (apply #'make-instance
-				class 
-				:sensitive (clim-internals::menu-item-active item)
-				:parent parent 
-				:label-type :pixmap
-				:label-pixmap pixmap
-				options)))
-		   (xt::add-widget-cleanup-function
-		    button
-		    #'tk::destroy-pixmap pixmap)
-		   button)))
+	       (let ((button
+		      (if simplep
+			  (apply #'make-instance
+				 class 
+				 :sensitive (clim-internals::menu-item-active item)
+				 :parent parent 
+				 :managed nil
+				 :label-string (string (menu-item-display item))
+				 options) 
+			(let* ((pixmap (pixmap-from-menu-item
+					associated-window 
+					item
+					printer
+					presentation-type))
+			       (button
+				(apply #'make-instance
+				       class 
+				       :sensitive (clim-internals::menu-item-active item)
+				       :parent parent 
+				       :label-type :pixmap
+				       :label-pixmap pixmap
+				       options)))
+			  (xt::add-widget-cleanup-function
+			   button
+			   #'tk::destroy-pixmap pixmap)
+			  button))))
+		 (when (clim-internals::menu-item-documentation item)
+		   (tk::add-callback button 
+				 :help-callback 
+				 'display-motif-help
+				 port
+				 (clim-internals::menu-item-documentation item)))
+		 button))
 	     (construct-menu-from-items (menu items)
 	       (map nil #'(lambda (item)
 			    (ecase (clim-internals::menu-item-type item)

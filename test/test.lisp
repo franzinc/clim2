@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: test.lisp,v 1.22 92/04/28 09:26:05 cer Exp Locker: cer $
+;; $fiHeader: test.lisp,v 1.23 92/04/30 09:09:43 cer Exp Locker: cer $
 
 (in-package :clim-user)
 
@@ -114,7 +114,8 @@
     ()
   (window-clear *query-io*))
 
-(define-test-frame-command (com-quit :name t :menu t)
+(define-test-frame-command (com-quit :name t 
+				     :menu ("Quit" :documentation "foo"))
     ()
   (frame-exit *application-frame*))
 
@@ -358,6 +359,12 @@
 (defun text-field-changed (tf value)
   (format t "~&Text field ~A changed to ~S"  tf value))
 
+(defun option-pane-changed-callback (tf value)
+  (format t "~&option menu ~A changed to ~S"  tf value))
+
+(defun list-pane-changed-callback (tf value)
+  (format t "~&list pane ~A changed to ~S"  tf value))
+
 (defclass insect () ())
 
 (define-test-frame-command (com-make-insect :name t :menu t)
@@ -451,17 +458,14 @@
 			  (:pane 
 			   (outlining ()
 				      (horizontally ()
-						    (make-pane
-						     'xm-silica::motif-scrolling-window
-						     :contents
+						    (scrolling ()
 						     (make-pane 'text-editor 
 								:value "lucid "
 								:value-changed-callback 'text-field-changed
 								:ncolumns 30
 								:nlines 10))
-						    (make-pane
-						     'xm-silica::motif-scrolling-window
-						     :contents (make-pane 'text-editor 
+						    (scrolling ()
+							       (make-pane 'text-editor 
 									  :value "harlqn  more"
 									  :value-changed-callback 'text-field-changed
 									  :ncolumns 30
@@ -473,24 +477,158 @@
     (:command-table test-frame)
     (:pane 
      (vertically ()
-		 (scrolling ()
-			    (make-pane
-			     'xm-silica::motif-list-pane
-			     :items '("Franz" "Lucid"
-				      "Harlqn" "Symbolics")))
-		 (make-pane 'xm-silica::motif-option-pane
+		 (horizontally ()
+			       (scrolling ()
+					  (make-pane
+					   'list-pane
+					   :value "Franz"
+					   :test 'string=
+					   :value-changed-callback 
+					   'list-pane-changed-callback
+					   :items '("Franz" "Lucid"
+						    "Harlqn" "Symbolics")))
+			       (scrolling ()
+					  (make-pane
+					   'list-pane
+					   :value '("Lisp" "C")
+					   :test 'string=
+					   :mode :nonexclusive
+					   :value-changed-callback 
+					   'list-pane-changed-callback
+					   :items '("C" "Cobol" "Lisp" "Ada"))))
+		 (make-pane 'option-pane
 			    :items '("eenie" "meanie" "minie")
+			    :value "minie"
+			    :value-changed-callback 
+			    'option-pane-changed-callback
+			    :test 'string=
 			    :label "moo")
 		 (outlining ()
-			    (make-pane
-			     'xm-silica::motif-scrolling-window
-			     :contents
+			    (scrolling ()
 			     (make-pane 'text-editor 
 					:value
 					"lucid are nice guys "
 					:value-changed-callback 'text-field-changed
 					:ncolumns 30
 					:nlines 10))))))
+
+(define-application-frame tf96
+    () ()
+    (:command-table test-frame)
+    (:panes
+     (a :application :width '(80 :character))
+     (b :application :width '(50 :mm))
+     (c :application :height '(10 :line))
+     (d :application :height '(5 :line))
+     (e :application :height '( 50 :mm)))
+    (:layout
+     (:default (vertically ()
+			   (horizontally () a b)
+			   (vertically () c d e)))))
+
+
+
+(define-test-frame-command (com-frob-sizes :name t :menu t)
+    ()
+  (changing-space-requirements ()
+			       (change-space-requirement 
+				(get-frame-pane *application-frame* 'a)
+				:resize-frame t
+				:width `(,(random 60) :character))
+			       (change-space-requirement 
+				(get-frame-pane *application-frame* 'b)
+				:resize-frame t
+				:width `(,(random 60) :character))
+			       (change-space-requirement 
+				(get-frame-pane *application-frame* 'd)
+				:resize-frame t
+				:height `(,(random 10) :line))))
+
+(define-application-frame tf95
+    () ()
+    (:command-table test-frame)
+    (:panes
+     (a :application :width '(80 :character))
+     (b :application :width '(50 :mm))
+     (c :application :height '(10 :line))
+     (d :application :height '(5 :line))
+     (e :application :height '( 50 :mm)))
+    (:layout
+     (:default (vertically 
+		()
+		(1/3 (horizontally () (1/10 a) (9/10 b)))
+		(2/3 (vertically () (1/4 c) (1/2 d) (1/4 e)))))))
+
+
+(define-application-frame tf94
+    () ()
+    (:command-table test-frame)
+    (:panes
+     (a :application :width '(80 :character))
+     (b :application)
+     (c :application :height '(10 :line))
+     (d :application)
+     (e :application :height '( 50 :mm)))
+    (:layout
+     (:default (vertically 
+		()
+		(1/3 (horizontally () (1/10 a) (:fill b)))
+		(2/3 (vertically () (1/4 c) (:fill d) (1/4 e)))))))
+
+(define-application-frame tf93
+    () ()
+    (:command-table test-frame)
+    (:panes
+     (a :application)
+     (b :application)
+     (c :application)
+     (d :application)
+     (e :application))
+    (:layout
+     (:default (vertically 
+		()
+		(1/3 (horizontally () (1/10 a) (9/10 b)))
+		(2/3 (vertically () (1/4 c) (1/2 d) (1/4 e)))))))
+
+(define-application-frame tf91
+    () ()
+    (:command-table test-frame)
+    (:panes
+     (a :application)
+     (b :application)
+     (c :application)
+     (d :application)
+     (e :application))
+    (:layout
+     (:default (vertically 
+		()
+		(1/3 (horizontally () (1/10 a) (:fill b)))
+		(2/3 (vertically () (1/4 c) (:fill d) (1/4 e)))))))
+
+(define-application-frame tf92 ()
+  ()
+  (:pane
+     (make-pane 'vbox-pane
+		:contents
+		(mapcar #'(lambda (x)
+			    (destructuring-bind
+				(min max &optional (decimal-places 0))
+				x
+				(make-pane 'slider
+				 :label (format nil "Slider ~D,~D,~D"
+					 min max decimal-places)
+				 :min-value min
+				 :max-value max
+				 :decimal-places decimal-places
+				 :show-value-p t
+				 :value-changed-callback 'slider-changed-callback
+				 :drag-callback
+				 'slider-dragged-callback)))
+			'((0 100)
+			  (50 60)
+			  (50 60 2)
+			  (0.0 1.0 2))))))
+
 (defun test-accepting-values (&optional (own-window t)
 					(gadget-dialog-view t))
   (let* ((stream *query-io*)
@@ -539,3 +677,26 @@
 				     :prompt (second (nth i ptypes-and-prompts)))))
 			 (terpri stream))))
     values))
+
+;; This was from a pkarp mail message
+
+(defun shift-output-record (stream record dx dy)
+  (let ((parent (output-record-parent record)))
+    (multiple-value-bind (x-offset y-offset)
+	(convert-from-relative-to-absolute-coordinates
+	 stream
+	 parent)
+      (multiple-value-bind
+	  (x y)
+	  (bounding-rectangle-position record)
+	(erase-output-record record stream)
+	(output-record-set-position record (+ x dx) (+ y dy))
+	(replay-output-record record stream nil x-offset y-offset)
+	(add-output-record record parent)))))
+
+(define-test-frame-command (com-shift-gadget :name t :menu t)
+    ((weird 'some-kinda-gadget)
+     (dx 'integer)
+     (dy 'integer))
+  (shift-output-record *query-io* (car weird) dx dy))
+  

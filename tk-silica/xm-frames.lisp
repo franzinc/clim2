@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-frames.lisp,v 1.14 92/04/21 20:28:30 cer Exp Locker: cer $
+;; $fiHeader: xm-frames.lisp,v 1.15 92/04/28 09:26:24 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -254,7 +254,19 @@
 						   :label-string menu
 						   :managed t
 						   :parent parent)))
-			       (push (list item button) commands-and-buttons)
+			       (push (list item button)
+				     commands-and-buttons)
+			       
+			       (when (getf (command-menu-item-options
+					    item) :documentation)
+				 (tk::add-callback
+				  button
+				  :help-callback
+				  'display-motif-help
+				  port
+				  (getf (command-menu-item-options
+					 item) :documentation)))
+			       
 			       (tk::add-callback
 				button
 				:activate-callback
@@ -269,6 +281,12 @@
 	 ct mirror (not (flat-command-table-menu-p ct)))))
     mirror))
 
+(defun display-motif-help (widget port documentation)
+  (port-notify-user 
+   port
+   documentation
+   :associated-window widget))
+	     
 (defmethod port-dialog-view ((port motif-port))
   +gadget-dialog-view+)
   

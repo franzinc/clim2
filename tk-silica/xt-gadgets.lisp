@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-gadgets.lisp,v 1.9 92/04/10 14:27:57 cer Exp Locker: cer $
+;; $fiHeader: xt-gadgets.lisp,v 1.10 92/04/15 11:48:52 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -115,11 +115,15 @@
 
 (defclass xt-pane (pane) ())
 
-(defmethod allocate-space ((p xt-pane) width height)
-  (when (sheet-mirror p)
-    (tk::set-values (sheet-mirror p) 
-		    :width (floor width)
-		    :height (floor height))))
+(defmethod port-note-gadget-activated :after ((client t) (gadget xt-pane))
+  (let (m)
+    (when (setq m (sheet-direct-mirror gadget))
+      (xt::set-sensitive m t))))
+
+(defmethod note-gadget-deactivated :after ((client t) (gadget xt-pane))
+  (let (m)
+    (when (setq m (sheet-direct-mirror gadget))
+      (xt::set-sensitive m nil))))
 
 ;(defclass xt-composite-pane () ())
 

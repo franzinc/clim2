@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: packages.lisp,v 1.12 92/04/28 09:25:23 cer Exp Locker: cer $
+;; $fiHeader: packages.lisp,v 1.13 92/04/30 09:09:18 cer Exp Locker: cer $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :common-lisp-user)
 
@@ -2651,6 +2651,18 @@
     gadget-value
     gadget-value-changed-callback
     gadget-show-value-p
+    
+    ;; this should go somewhere 
+    
+    slider-decimal-places
+    set-gadget-items
+    set-gadget-name-key
+    set-gadget-value-key
+    set-gadget-test
+    list-pane
+    list-pane-mode
+    option-pane
+    
     label-pane
     labelled-gadget
     menu-bar

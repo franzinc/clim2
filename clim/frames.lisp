@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: frames.lisp,v 1.16 92/04/28 09:25:40 cer Exp Locker: cer $
+;; $fiHeader: frames.lisp,v 1.17 92/04/30 09:09:29 cer Exp Locker: cer $
 
 
 (in-package :clim-internals)
@@ -46,9 +46,12 @@
 			      :reader frame-pointer-documentation-p)
      (pointer-documentation-pane :initform nil)
      (properties :initform nil :initarg :properties
-		 :accessor frame-properties))
-  (:default-initargs :pointer-documentation nil
-		     :top-level 'default-frame-top-level))
+		 :accessor frame-properties)
+     (resizable :initarg :resize-frame
+		:reader frame-resizable))
+     (:default-initargs :pointer-documentation nil
+       :resize-frame nil
+       :top-level 'default-frame-top-level))
 
 (defmethod port ((frame standard-application-frame))
   (port (frame-manager frame)))
@@ -72,7 +75,7 @@
   (destructuring-bind (&key x y width height) geometry
     (declare (ignore x y width height)))
   (destructuring-bind (&key name pixmap clipping-mask) icon
-    (declare (ignore name pixmap clip-mask)))
+    (declare (ignore name pixmap clipping-mask)))
   
   (let ((frame-manager
 	  (etypecase parent
@@ -406,15 +409,26 @@
       (unless (and width height)
 	(let ((sr (compose-space panes)))
 	  (setq width  (space-requirement-width sr)
-		height (space-requirement-height sr))))
+		height (space-requirement-height sr))
+	  (multiple-value-bind
+	      (gw gh) (bounding-rectangle-size (graft frame))
+	    (minf width (* 0.9 gw))
+	    (minf height (* 0.9 gh)))))
       ;;--- Don't bother with this if the size didn't change?
-      (resize-sheet* 
-	(or (frame-top-level-sheet frame) panes)
-	width height
-	;; We need to do this because if the WM has changed the sheet
-	;; then this will not change its size but we need it to start
-	;; the layout stuff
-	:force t))))
+      (let ((top (or (frame-top-level-sheet frame) panes)))
+	(if (and (sheet-enabled-p top)
+		 (not (frame-resizable frame)))
+	    (multiple-value-call 
+		#'allocate-space 
+	      top
+	      (bounding-rectangle-size top))
+	  (resize-sheet* 
+	   top
+	   width height
+	   ;; We need to do this because if the WM has changed the sheet
+	   ;; then this will not change its size but we need it to start
+	   ;; the layout stuff
+	   :force t))))))
 
 (defmethod (setf frame-current-layout) (nv (frame standard-application-frame))
   (unless (eq (frame-current-layout frame) nv)
@@ -478,6 +492,8 @@ the same time " options))
     (nstring-capitalize new-string)))
 
 (defmethod enable-frame ((frame standard-application-frame))
+  (unless (frame-manager frame)
+    (error "Cannot enabled :disowned frame ~S" frame))
   (destructuring-bind
       (&key width height &allow-other-keys) (frame-geometry frame)
     (ecase (frame-state frame)
@@ -500,6 +516,11 @@ the same time " options))
 	       (bounding-rectangle-size
 		 (frame-top-level-sheet frame)))))
 	 (note-frame-enabled (frame-manager frame) frame))))))
+
+(defmethod destroy-frame ((frame standard-application-frame))
+  (when (eq (frame-state frame) :enabled)
+    (disable-frame frame))
+  (disown-frame (frame-manager frame) frame))
 
 (defmethod disable-frame ((frame standard-application-frame))
   (ecase (frame-state frame)

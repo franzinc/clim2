@@ -19,12 +19,14 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: gadget-output.lisp,v 1.12 92/04/28 09:25:44 cer Exp Locker: cer $
+;; $fiHeader: gadget-output.lisp,v 1.13 92/04/30 09:09:31 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
 
 ;;; Implementation of output-records that are tied to gadgets.
+
+;;--- Need to use the commented out version of this code.
 
 (defclass gadget-output-record 
     	  (output-record-mixin output-record-element-mixin output-record)
@@ -45,9 +47,23 @@
 	 (stream-output-history-position stream))
       (decf x abs-x)
       (decf y abs-y)
+
+      #-ignore
+      (multiple-value-bind (cx cy)
+	  (stream-cursor-position stream)
+	(declare (type coordinate cx cy))
+	(with-slots (start-x start-y) rec
+	  (setq start-x (- cx abs-x) start-y (- cy abs-y))))
+      
       (bounding-rectangle-set-edges
        rec
-       x y (+ x (space-requirement-width sr)) (+ y (space-requirement-height sr))))
+       x y (+ x (space-requirement-width sr)) 
+       (+ y (space-requirement-height sr)))
+      
+      #-ignore
+      (when (output-record-parent rec)
+	(tree-recompute-extent rec)))
+    
     (when (output-record-stream rec)
       (update-gadget-position rec)
       (setf (sheet-enabled-p gadget) t))))
@@ -66,23 +82,28 @@
   (declare (ignore  a b))
   (update-gadget-position rec))
 
+(defmethod bounding-rectangle-set-size :after ((rec gadget-output-record) a b)
+  (declare (ignore  a b))
+  (update-gadget-position rec))
+
+#+ignore
 (defmethod update-gadget-position (record) 
   (let ((gadget (output-record-gadget record)))
     (when gadget
-      (with-bounding-rectangle* (left top right bottom) record
-        (let ((xoff 0)
-	      (yoff 0))
-	  (do ((parent record (output-record-parent parent)))
-	      ((null parent))
-	    (multiple-value-bind (x y)
-		(output-record-position parent)
-	      (incf xoff x)
-	      (incf yoff y)))
-	  (move-and-resize-sheet* gadget
-				  (+ left xoff) (+ top yoff)
-				  (- right left) (- bottom top)))))))
+      (with-bounding-rectangle* 
+	  (left top right bottom) record
+	  (let ((xoff 0)
+		(yoff 0))
+	    (multiple-value-setq
+		(xoff yoff)
+	      (convert-from-relative-to-absolute-coordinates 
+	       (sheet-parent gadget) 
+	       record))
+	    (move-and-resize-sheet* gadget
+				    (+ left xoff) (+ top yoff)
+				    (- right left) (- bottom top)))))))
 
-#+This-almost-works-with-the-other-definition
+#-ignore
 (defmethod update-gadget-position (record) 
   (let ((gadget (output-record-gadget record)))
     (when gadget
@@ -119,6 +140,7 @@
 	     (with-look-and-feel-realization (,fm ,f) ,@body)) 
 	 ,@args))))
 
+#+ignore
 (defmethod invoke-with-output-as-gadget (stream continuation &key)
   ;;--- (PANE-FRAME STREAM) or *APPLICATION-FRAME*?
   (let* ((frame (pane-frame stream))
@@ -141,7 +163,7 @@
 	(move-cursor-beyond-output-record stream record)
 	(values gadget record)))))
 	    
-#+This-almost-works-with-the-other-definition
+#-ignore
 (defmethod invoke-with-output-as-gadget (stream continuation &key)
   (let* ((frame (pane-frame stream))
 	 (framem (frame-manager frame)))
@@ -149,15 +171,18 @@
     (assert framem)
     (multiple-value-bind (x y)
 	(stream-cursor-position stream)
-      (let* (gadget
+      (let* (new
+	     gadget
 	     (record
 	      (with-new-output-record (stream 'gadget-output-record record)
 		(unless (setq gadget (output-record-gadget record))
-		  (setq gadget (funcall continuation framem frame))))))
-	(associate-record-and-gadget
-		   record
-		   gadget
-		   stream x y)
+		  (setq new t 
+			gadget (funcall continuation framem frame))))))
+	(when new
+	  (associate-record-and-gadget
+	   record
+	   gadget
+	   stream x y))
 	(move-cursor-beyond-output-record stream record)
 	(values gadget record)))))
 
@@ -334,11 +359,15 @@
     #+ignore
     (setf (gadget-value gadget) default)))
 
-;;; Integer gadget
+;;;;-------------- Integer gadget
+;;;; I general there should be a way of using a slider to input a real
+;;;; number but I do not think it should be the default
 
+#+ignore
 (define-presentation-method gadget-includes-prompt-p ((type integer) (stream t) (view gadget-view) &key)
   t)
 
+#+ignore
 (define-presentation-method accept-present-default ((type integer)
 						    stream
 						    (view gadget-dialog-view)

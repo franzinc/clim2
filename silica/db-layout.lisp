@@ -22,7 +22,7 @@
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
 ;;;
-;; $fiHeader: db-layout.lisp,v 1.13 92/04/21 16:12:36 cer Exp Locker: cer $
+;; $fiHeader: db-layout.lisp,v 1.14 92/04/28 09:25:14 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -72,12 +72,78 @@
 (defmethod change-space-requirement ((pane layout-mixin) &key &allow-other-keys)
   nil)
 
-(defmethod change-space-requirement :after
-	   ((pane layout-mixin) &key resize-frame &allow-other-keys)
+
+;;#|
+
+(defmacro changing-space-requirements ((&rest options &key resize-frame) &body body)
+  `(flet ((changing-space-requirements-body ()
+	    ,@body))
+     (declare (dynamic-extent #'changing-space-requirements-body))
+     (invoke-with-changing-space-requirements 
+      #'changing-space-requirements-body 
+      ,@options)))
+
+(defvar *inside-changing-space-requirements* nil)
+
+(defun invoke-with-changing-space-requirements (continuation &key resize-frame)
+  (let ((old-inside-changing-space-requirements 
+	 *inside-changing-space-requirements*)
+	(*inside-changing-space-requirements* 
+	 (cons nil *inside-changing-space-requirements*)))
+    (multiple-value-prog1
+	(funcall continuation)
+      (unless old-inside-changing-space-requirements
+	;; Layout that frames that need to be laid out
+	;; and relayout the minimal subtrees that need to be laid out
+	(let* ((frames (remove-duplicates
+			(remove-if-not 
+			#'(lambda (x) (typep x 'application-frame))
+			*inside-changing-space-requirements*)))
+	       (panes (remove-if #'(lambda (x)
+				     (or (not (panep x))
+					 (member (pane-frame x) frames)))
+				 *inside-changing-space-requirements*)))
+	  (mapc #'layout-frame frames)
+	  (dolist (pane panes)
+	    (unless (some #'(lambda (p) 
+			      (and (not (eq p pane))
+				   (sheet-ancestor-p pane p)))
+			  panes)
+	      ;; do this because the change has occurred somewhere in
+	      ;; the tree
+	      (clear-space-requirement-caches-in-tree pane) 
+	      (multiple-value-call #'allocate-space 
+		pane (bounding-rectangle-size pane)))))))))
+
+(defmethod note-space-requirement-changed (parent child)
+  (multiple-value-call #'allocate-space 
+    parent (bounding-rectangle-size parent)))
+
+(defmethod change-space-requirement :before ((pane space-requirement-cache-mixin) &key)
+  (clear-space-requirement-cache pane))
+
+(defmethod change-space-requirement :around ((pane layout-mixin) &key
+								 resize-frame 
+								 &allow-other-keys)
+  (call-next-method)
+  (if *inside-changing-space-requirements*
+      (push (if resize-frame (pane-frame pane) (sheet-parent pane))
+	    (cdr *inside-changing-space-requirements*))
+    (if resize-frame
+	(layout-frame (pane-frame pane))
+      (note-space-requirement-changed (sheet-parent pane) pane))))
+
+;;|#
+
+
+
+#+ignore
+(defmethod change-space-requirement :after ((pane layout-mixin) &key resize-frame &allow-other-keys)
   (if resize-frame
       (layout-frame (pane-frame pane))
       (note-space-requirement-changed (sheet-parent pane) pane)))
 
+#+ignore
 (defmethod note-space-requirement-changed (parent child)
   nil)
 
@@ -88,18 +154,6 @@
   (declare (ignore port))
   (multiple-value-bind (width height) (bounding-rectangle-size pane)
     (allocate-space pane width height)))
-
-
-#||
-
-(defmacro changing-space-requirements ((pane &key resize-frame) &body body)
- `(progn
-    ,@body {translate "change-space-req" to %set-space-req}
-    (if resize-frame
-        (layout-frame frame)
-        (note-space-requirement-changed (sheet-parent pane) pane))))
-
-||#
 
 (defun map-space-requirement (fn req)
   (setf (space-requirement-width req) (funcall fn (space-requirement-width req))
@@ -467,6 +521,7 @@ provided elsewhere"))
 ;;---- along the way, calling fix-coor on alloc helps a little but we
 ;;---- still end up with a gap along the bottom-right edges.
 
+#+ignore
 (defun allocate-space-to-items (given wanted items min-size
 				desired-size max-size item-size)
   (flet ((desired-size (x) (funcall desired-size x))
@@ -493,29 +548,100 @@ provided elsewhere"))
 	       (setq alloc 0)))
 	    (t
 	     (let* ((item-size (item-size item)))
-	       (setq alloc (desired-size item-size))
-	       (when (> give 0)
-		 (if stretch-p
-		     (progn
-		       (setq used (/ (* (- (max-size item-size)
-					   (desired-size item-size))
-					extra)
-				     give))
-		       (incf alloc used)
-		       (fix-coordinates alloc)
-		       (decf give (- (max-size item-size)
-				     (desired-size item-size))))
-		   (progn
-		     (setq used (/ (* (- (desired-size item-size)
-					 (min-size item-size))
-				      extra)
-				   give))
-		     (decf alloc used)
-		     (fix-coordinates alloc)
-		     (decf give (- (desired-size item-size)
-				   (min-size item-size)))))
-		 (decf extra used)))))
+	       (if (eq item-size :fill)
+		   (if stretch-p
+		       (progn
+			 (setq alloc (/ (* +fill+ extra) give))
+			 (setq alloc (ceiling alloc))
+			 (fix-coordinates alloc)
+			 (decf give +fill+))
+		     (setq alloc 0))
+		 (progn
+		   (setq alloc (desired-size item-size))
+		   (when (> give 0)
+		     (if stretch-p
+			 (progn
+			   (setq used (/ (* (- (max-size item-size)
+					       (desired-size item-size))
+					    extra)
+					 give))
+			   (incf alloc used)
+			   (fix-coordinates alloc)
+			   (decf give (- (max-size item-size)
+					 (desired-size item-size))))
+		       (progn
+			 (setq used (/ (* (- (desired-size item-size)
+					     (min-size item-size))
+					  extra)
+				       give))
+			 (decf alloc used)
+			 (fix-coordinates alloc)
+			 (decf give (- (desired-size item-size)
+				       (min-size item-size)))))
+		     (decf extra used)))))))
 	  (push alloc sizes)))
+      (nreverse sizes))))
+
+;;-- This new supa dupa version saves up all the fills to the end and
+;;-- then divides up any leftover space equally amongst them and it
+;;-- seems to work!
+
+(defun allocate-space-to-items (given wanted items min-size
+				desired-size max-size item-size)
+  (flet ((desired-size (x) (funcall desired-size x))
+	 (min-size (x) (funcall min-size x))
+	 (max-size (x) (funcall max-size x))
+	 (item-size (x) (funcall item-size x)))
+    (let ((stretch-p (>= given (desired-size wanted)))
+	  (allocated 0)
+	  extra give used sizes)
+      (if stretch-p
+	  (setq give (- (max-size wanted) (desired-size wanted))
+		extra (min (- given (desired-size wanted)) give))
+	(setq give (- (desired-size wanted) (min-size wanted))
+	      extra (min (- (desired-size wanted) given) give)))
+      (dolist (item items)
+	(let (alloc)
+	  (typecase item
+	    ((member :fill)
+	     (setq alloc :fill))
+	    (t
+	     (let* ((item-size (item-size item)))
+	       (if (eq item-size :fill)
+		   (setq alloc :fill)
+		 (progn
+		   (setq alloc (desired-size item-size))
+		   (when (> give 0)
+		     (if stretch-p
+			 (progn
+			   (setq used (/ (* (- (max-size item-size)
+					       (desired-size item-size))
+					    extra)
+					 give))
+			   (incf alloc used)
+			   (fix-coordinates alloc)
+			   (decf give (- (max-size item-size)
+					 (desired-size item-size))))
+		       (progn
+			 (setq used (/ (* (- (desired-size item-size)
+					     (min-size item-size))
+					  extra)
+				       give))
+			 (decf alloc used)
+			 (fix-coordinates alloc)
+			 (decf give (- (desired-size item-size)
+				       (min-size item-size)))))
+		     (decf extra used)))))))
+	  (when (numberp alloc)
+	    (incf allocated alloc))
+	  (push alloc sizes)))
+      (let ((fills (count :fill sizes))
+	    (leftover (- given allocated)))
+	(when (> fills 0)
+	  (let ((x (if (> leftover 0) 
+		       (fix-coordinate (/ leftover fills)) 
+		     0)))
+	    (setf sizes (nsubstitute x :fill sizes)))))
       (nreverse sizes))))
 	
 ;;; Most of the layout panes should inherit from this
