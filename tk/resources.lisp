@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: resources.lisp,v 1.27 92/07/01 15:44:36 cer Exp $
+;; $fiHeader: resources.lisp,v 1.28 92/07/08 16:28:50 cer Exp $
 
 (in-package :tk)
 
@@ -41,17 +41,6 @@
   (declare (ignore class))
   (cerror "Try again" "cannot convert-in resource for ~S,~S,~S" class type value)
   (convert-resource-in class type value))
-
-(defconstant xm_string_default_char_set "")
-
-(defmethod convert-resource-in (class (type (eql 'xm-string)) value)
-  (and (not (zerop value))
-       (with-ref-par ((string 0))
-	 ;;--- I think we need to read the book about
-	 ;;--- xm_string_get_l_to_r and make sure it works with multiple
-	 ;;-- segment strings
-	 (xm_string_get_l_to_r value xm_string_default_char_set string)
-	 (char*-to-string (aref string 0)))))
 
 (define-enumerated-resource separator-type (:no-line 
 					    :single-line
@@ -489,9 +478,6 @@
 	result
       (ff:foreign-pointer-address result))))
 
-(defmethod convert-resource-out ((parent t) (type (eql 'xm-string)) value)
-  (xm_string_create_l_to_r (string-to-char* value) (string-to-char* "")))
-
 (defmethod convert-resource-out ((parent t) (type (eql 'orientation)) value)
   (ecase value
     (:vertical 1)
@@ -553,11 +539,6 @@
 (defmethod convert-resource-out ((parent t) (type (eql 'window)) x)
   x)
 
-(defmethod convert-resource-out ((parent t) (type (eql 'xm-background-pixmap)) value)
-  (etypecase value
-    (pixmap
-     (encode-pixmap nil value))))
-
 (defmethod convert-resource-out ((widget t) (type (eql 'widget)) x)
   x)
 
@@ -599,17 +580,6 @@
   nil)
 
 
-
-;;-- This is a problem cos we dont know the number of items
-
-(defmethod convert-resource-in ((parent t) (type (eql 'xm-string-table)) value)
-  value)
-
-(defun convert-xm-string-table-in (parent table n)
-  (let ((r nil))
-    (dotimes (i n (nreverse r))
-      (push (convert-resource-in parent 'xm-string (x-arglist table i))
-	    r))))
 
 (defmethod convert-resource-out ((parent t) (type (eql 'proc)) value)
   (etypecase value

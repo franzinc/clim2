@@ -1,4 +1,4 @@
-# $fiHeader: Makefile,v 1.40 92/07/27 19:30:11 cer Exp Locker: cer $
+# $fiHeader: Makefile,v 1.41 92/08/18 17:26:27 cer Exp Locker: cer $
 # 
 #  Makefile for CLIM 2.0
 #
@@ -33,11 +33,14 @@ LOAD_XREF_INFO=nil
 # Lisp optimization for compiling
 SPEED	= 3
 SAFETY	= 1
+# This next should be set to 1 for distribution
+DEBUG   = 2
 
 CFLAGS	= -O -D_NO_PROTO -DSTRINGS_ALIGNED -DNO_REGEX -DNO_ISDIR -DUSE_RE_COMP -DUSER_GETWD -I/x11/motif-1.1/lib
 
 OLDSPACE = 15000000
 NEWSPACE = 5000000
+PREMALLOCS = '-m 401408'
 
 # Name of dumped lisp
 CLIM	= ./slim
@@ -59,7 +62,8 @@ TMP	= /usr/tmp
 SRC_FILES = */*.lisp *.lisp Makefile misc/make-stub-file \
 	    misc/undefinedsymbols misc/undefinedsymbols.olit \
 	    misc/undefinedsymbols.motif misc/undefinedsymbols.xt \
-	    xlib/xlibsupport.c misc/MyDrawingA*.[hc] misc/olsupport.c
+	    xlib/xlibsupport.c misc/MyDrawingA*.[hc] misc/olsupport.c \
+	    misc/clos-preload.cl
 
 DEST=/dev/null
 
@@ -73,29 +77,36 @@ XLIB= /x11/R4/sun4-lib/libX11$(DEBUGLIB).a
 XTLIB=/x11/R4/sun4-lib/libXt$(DEBUGLIB).a
 XLIBS= $(XTLIB) $(XLIB)
 
-OLCOPYLIB=/usr/tech/cer/stuff/clim-2.0/tk/lib2/
+OLCOPYLIB=/usr/tech/cer/stuff/clim-2.0/tk/lib2
 OLXLIBS=$(OLCOPYLIB)/libXt.a $(OLCOPYLIB)/libX11.a
 LIBXOL=$(OLCOPYLIB)/libXol.a
 
 # This has to be kept consistent with xlib.lisp
-
 UNDEFS=misc/undefinedsymbols
 
+# This should be the same as load-xt
 XT_UNDEFS=misc/undefinedsymbols.xt
 
 # This should be the same as load-xm
-
 XM_UNDEFS=misc/undefinedsymbols.motif
 
 # This should be the same as load-ol
-
 OL_UNDEFS=misc/undefinedsymbols.olit
 
 CLIMFASLS= climg.fasl climol.fasl climxm.fasl clim-debug.fasl
-CLIMOBJS= stub-x.o stub-xt.o stub-motif.o stub-olit.o xlibsupport.o MyDrawingA.o \
-	olsupport.o
+CLIMOBJS= clim-motif.o clim-olit.o stub-xt.o stub-x.o xlibsupport.o MyDrawingA.o \
+	  olsupport.o
 
-FCLIMOBJS= `pwd`/stub-motif.o `pwd`/stub-olit.o `pwd`/stub-x.o `pwd`/stub-xt.o `pwd`/xlibsupport.o `pwd`/MyDrawingA.o `pwd`/olsupport.o
+# These are linked into the distribution
+FCLIMOBJS= `pwd`/clim-motif.o `pwd`/clim-olit.o `pwd`/stub-xt.o `pwd`/stub-x.o \
+	   `pwd`/xlibsupport.o `pwd`/MyDrawingA.o `pwd`/olsupport.o
+
+# These are built into xm-dcl and ol-dcl.
+COMPOSEROBJS= /scm/4.1/sparc/src/code/excldep.o /scm/4.1/sparc/src/code/socket.o \
+	      /scm/4.1/sparc/src/code/gc_cursor.o \
+	      /scm/4.1/sparc/src/code/unixsocket.o \
+	      /scm/4.1/sparc/src/code/io.o /scm/4.1/sparc/src/code/exclio.o \
+	      /scm/4.1/sparc/src/code/RunStatus.o
 
 MALLOCOBJS =
 # Uncomment to enable malloc debugging.
@@ -111,11 +122,10 @@ MALLOCOBJS =
 # "Compile time objects" -- these go into clim-debug.fasl
 #
 DEBUG-OBJS = xlib/ffi.fasl xlib/xlib-defs.fasl xlib/xlib-funs.fasl \
-	     xlib/x11-keysyms.fasl xlib/load-xlib.fasl xlib/last.fasl \
-	     tk/xt-defs.fasl tk/xm-defs.fasl 
-
-# This should be there also
-# tk/ol-defs.fasl
+	     xlib/x11-keysyms.fasl xlib/last.fasl \
+	     tk/xt-defs.fasl tk/xm-defs.fasl tk/xt-funs.fasl tk/xm-funs.fasl
+# These should be there also
+# tk/ol-defs.fasl tk/ol-funs.fasl
 
 
 #
@@ -219,12 +229,13 @@ CLIM-STANDALONE-OBJS = clim/gestures.fasl \
                         clim/item-list-manager.fasl \
                         clim/stream-trampolines.fasl
 
-XLIB-CLIM-OBJS = xlib/pkg.fasl
+XLIB-CLIM-OBJS = xlib/pkg.fasl xlib/load-xlib.fasl
 
-# Is this the correct place to put this load-xm??
 
-XT-TK-OBJS =  xlib/load-xlib.fasl \
-		tk/pkg.fasl \
+LOAD-XM-OBJS=	tk/load-xm.fasl
+LOAD-OL-OBJS=	tk/load-ol.fasl
+
+XT-TK-OBJS =  	tk/pkg.fasl \
                 tk/foreign-obj.fasl \
                 tk/macros.fasl \
                 tk/xlib.fasl \
@@ -242,9 +253,6 @@ XT-TK-OBJS =  xlib/load-xlib.fasl \
                 tk/xt-init.fasl
 
 XM-TK-OBJS = tk/xm-classes.fasl \
-	     tk/load-xm.fasl \
-		tk/xt-funs.fasl \
-		tk/xm-funs.fasl \
 		tk/xm-callbacks.fasl \
                 tk/xm-init.fasl \
                 tk/xm-widgets.fasl \
@@ -254,9 +262,6 @@ XM-TK-OBJS = tk/xm-classes.fasl \
                 tk/make-widget.fasl
 
 OL-CLIM-OBJS = tk/ol-classes.fasl \
-	     tk/load-ol.fasl \
-		tk/xt-funs.fasl \
-		tk/ol-funs.fasl \
                 tk/ol-init.fasl \
 		tk/ol-widgets.fasl \
                 tk/ol-callbacks.fasl \
@@ -323,6 +328,7 @@ ALL_SRC =	   utils/excl-verification.lisp \
                     silica/medium.lisp \
                     silica/framem.lisp \
                     silica/graphics.lisp \
+                    silica/pixmaps.lisp \
                     silica/std-sheet.lisp \
                     silica/layout.lisp \
                     silica/db-layout.lisp \
@@ -357,6 +363,7 @@ ALL_SRC =	   utils/excl-verification.lisp \
                         clim/incremental-redisplay.lisp \
                         clim/coordinate-sorted-set.lisp \
                         clim/window-stream.lisp \
+                        clim/pixmap-streams.lisp \
                         clim/ptypes1.lisp \
                         clim/completer.lisp \
                         clim/presentations.lisp \
@@ -379,11 +386,11 @@ ALL_SRC =	   utils/excl-verification.lisp \
                         clim/command-processor.lisp \
                         clim/basic-translators.lisp \
                         clim/frames.lisp \
+                        clim/default-frame.lisp \
                         clim/noting-progress.lisp \
                         clim/menus.lisp \
                         clim/accept-values.lisp \
                         clim/drag-and-drop.lisp \
-                        clim/pixmap-streams.lisp \
                         clim/item-list-manager.lisp \
                         clim/stream-trampolines.lisp \
 	     xlib/pkg.lisp \
@@ -393,6 +400,8 @@ ALL_SRC =	   utils/excl-verification.lisp \
              xlib/xlib-funs.lisp \
              xlib/x11-keysyms.lisp \
              xlib/last.lisp \
+	      tk/load-xm.lisp \
+              tk/load-ol.lisp \
 	      tk/pkg.lisp \
               tk/macros.lisp \
               tk/xt-defs.lisp \
@@ -410,7 +419,6 @@ ALL_SRC =	   utils/excl-verification.lisp \
               tk/callbacks.lisp \
               tk/xt-classes.lisp \
               tk/xt-init.lisp \
-	      tk/load-xm.lisp \
               tk/xm-defs.lisp \
               tk/xm-classes.lisp \
               tk/xm-callbacks.lisp \
@@ -437,7 +445,6 @@ ALL_SRC =	   utils/excl-verification.lisp \
                    tk-silica/xt-cursor.lisp \
                    tk-silica/xt-pixmaps.lisp \
 	      tk/ol-defs.lisp \
-              tk/load-ol.lisp \
               tk/ol-funs.lisp \
               tk/ol-classes.lisp \
               tk/ol-init.lisp \
@@ -450,9 +457,8 @@ ALL_SRC =	   utils/excl-verification.lisp \
 
 
 GENERIC-OBJS= $(CLIM-UTILS-OBJS) $(CLIM-SILICA-OBJS) $(CLIM-STANDALONE-OBJS)
-XT-OBJS= $(XLIB-CLIM-OBJS) $(XT-TK-OBJS)
-MOTIF-OBJS =  $(XM-TK-OBJS) $(MOTIF-CLIM-OBJS) 
-OPENLOOK-OBJS = $(OL-CLIM-OBJS) $(OPENLOOK-CLIM-OBJS)
+MOTIF-OBJS = $(LOAD-XM-OBJS) $(XT-TK-OBJS) $(XM-TK-OBJS) $(MOTIF-CLIM-OBJS) 
+OPENLOOK-OBJS = $(LOAD-OL-OBJS) $(XT-TK-OBJS) $(OL-CLIM-OBJS) $(OPENLOOK-CLIM-OBJS)
 
 default: all-xm
 
@@ -471,7 +477,7 @@ compile-xm:	$(CLIMOBJS) FORCE
 		(setf excl:*record-source-file-info* $(RECORD_SOURCE_FILE_INFO)) \
 		(setf excl:*record-xref-info* $(RECORD_XREF_INFO)) \
 		(setf excl:*load-xref-info* $(LOAD_XREF_INFO)) \
-		(proclaim '(optimize (speed $(SPEED)) (safety $(SAFETY)))) \
+		(proclaim '(optimize (speed $(SPEED)) (safety $(SAFETY)) (debug $(DEBUG)))) \
 		(load \"misc/compile-xm.lisp\")" | $(CL) $(CLOPTS) -batch
 		echo CLIM-XM compiled!!!!
 
@@ -483,7 +489,7 @@ compile-ol:	$(CLIMOBJS) FORCE
 		(setf excl:*load-xref-info* $(LOAD_XREF_INFO)) \
 		(setq *ignore-package-name-case* t) \
 		(set-case-mode :case-insensitive-lower) \
-		(proclaim '(optimize (speed $(SPEED)) (safety $(SAFETY)))) \
+		(proclaim '(optimize (speed $(SPEED)) (safety $(SAFETY)) (debug $(DEBUG)))) \
 		(load \"misc/compile-ol.lisp\")" | $(CL) $(CLOPTS) -batch
 		echo CLIM-OL compiled!!!!
 
@@ -494,20 +500,20 @@ cat-g:	climg.fasl clim-debug.fasl
 cat-xm:	cat-g climxm.fasl
 cat-ol:	cat-g climol.fasl
 
-climg.fasl	: $(GENERIC-OBJS) $(XT-OBJS)
-	$(CAT)  $(GENERIC-OBJS) $(XT-OBJS) > $(TMP)/clim.fasl_`whoami`
+climg.fasl	: $(GENERIC-OBJS) $(XLIB-CLIM-OBJS)
+	$(CAT) $(GENERIC-OBJS) $(XLIB-CLIM-OBJS) > $(TMP)/clim.fasl_`whoami`
 	$(MV) $(TMP)/clim.fasl_`whoami` climg.fasl
 	ls -lt climg.fasl >> Clim-sizes.n
 	ls -lt climg.fasl
 
-climxm.fasl	: $(MOTIF-OBJS)
-	$(CAT)  $(MOTIF-OBJS) > $(TMP)/clim.fasl_`whoami`
+climxm.fasl	: $(MOTIF-OBJS) $(XLIB-CLIM-OBJS)
+	$(CAT) $(MOTIF-OBJS) > $(TMP)/clim.fasl_`whoami`
 	$(MV) $(TMP)/clim.fasl_`whoami` climxm.fasl
 	ls -lt climxm.fasl >> Clim-sizes.n
 	ls -lt climxm.fasl
 
 climol.fasl	: $(OPENLOOK-OBJS)
-	$(CAT)  $(OPENLOOK-OBJS) > $(TMP)/clim.fasl_`whoami`
+	$(CAT) $(OPENLOOK-OBJS) > $(TMP)/clim.fasl_`whoami`
 	$(MV) $(TMP)/clim.fasl_`whoami` climol.fasl
 	ls -lt climol.fasl >> Clim-sizes.n
 	ls -lt climol.fasl
@@ -536,22 +542,20 @@ clim-xm:	FORCE
 		(load \"misc/dev-load-xm.lisp\") \
 		(load \"misc/dump.lisp\")" | $(DUMP-CL) $(CLOPTS) -batch
 	$(MV) $(TMP)/clim.temp_`whoami` $(CLIM)
-	ls -lt $(CLIM) >> Clim-sizes.n
+	ls -lLt $(CLIM) >> Clim-sizes.n
 	size $(CLIM) >> Clim-sizes.n
-	ls -lt $(CLIM)
+	ls -lLt $(CLIM)
 	echo CLIM-XM built!!!!	
 
 clim-ol:	FORCE
-	-$(RM) $(CLIM)
+#	-$(RM) $(CLIM)
 	$(ECHO) " \
-		(setq *ignore-package-name-case* t) \
-		(set-case-mode :case-insensitive-lower) \
 		(load \"misc/dev-load-ol.lisp\") \
 		(load \"misc/dump.lisp\")" | $(DUMP-CL) $(CLOPTS) -batch
 	$(MV) $(TMP)/clim.temp_`whoami` $(CLIM)
-	ls -lt $(CLIM) >> Clim-sizes.n
+	ls -lLt $(CLIM) >> Clim-sizes.n
 	size $(CLIM) >> Clim-sizes.n
-	ls -lt $(CLIM)
+	ls -lLt $(CLIM)
 	echo CLIM-OL built!!!!		
 
 clim-small:	FORCE
@@ -586,10 +590,13 @@ cheapclean:
 tags:
 	$(TAGS) $(ALL_SRC)
 
+wc:
+	wc $(ALL_SRC)
+
 swm-tape:
 	tar cf $(DEVICE) `find $(PUBDIRS) '(' -name "*.cl" -o -name "*.lisp" ')' -print`
 
-dist:
+dist:	FORCE
 	tar -cf -  $(SRC_FILES) | compress >  Dist/src.tar.Z
 
 rcscheck:
@@ -607,14 +614,15 @@ makeclimolfasls	: compile-ol cat-ol
 install_clim	:
 	cp $(CLIMOBJS) $(CLIMFASLS) $(DEST)
 
-# Link in the libraries with standard names
+# Link in the libraries & distribution object files with standard names
 
-link-motif-libraries	:
-	ln -s  $(MOTIFLIB) $(DEST)/libXm.a
+link-objects	:
 	ln -s $(XTLIB) $(DEST)/libXt.a
 	ln -s $(XLIB) $(DEST)/libX11.a
 	ln -s $(FCLIMOBJS) $(DEST)
-	ln -s $(LIBXOL) $(DEST)
+
+# Backwards compatibility...
+link-motif-libraries:	link-objects
 
 echo_src_files:
 	@ls $(SRC_FILES) | cat
@@ -624,18 +632,23 @@ makeclimobjs	: $(CLIMOBJS)
 ################## Lower level Makefile stuff
 
 
-ol-dcl	:  stub-x.o stub-xt.o stub-olit.o xlibsupport.o olsupport.o $(MALLOCOBJS)
+ol-dcl	:  stub-x.o stub-xt.o clim-olit.o xlibsupport.o olsupport.o $(MALLOCOBJS)
 	cd $(CL_SRC) ; /bin/rm -f ucl ;\
-	make initial_oldspace=$(OLDSPACE) oldspace=$(OLDSPACE) newspace=$(NEWSPACE) premallocs='-m 401408' ucl_xtras='$(PWD)/stub-x.o $(PWD)/stub-xt.o $(PWD)/stub-olit.o $(PWD)/xlibsupport.o $(PWD)/olsupport.o $(MALLOCOBJS) $(LIBXOL) $(OLXLIBS)' dcl
+	make initial_oldspace=$(OLDSPACE) oldspace=$(OLDSPACE) newspace=$(NEWSPACE) premallocs=$(PREMALLOCS) ucl_xtras='$(PWD)/stub-x.o $(PWD)/stub-xt.o $(PWD)/clim-olit.o $(PWD)/xlibsupport.o $(PWD)/olsupport.o $(COMPOSEROBJS) $(MALLOCOBJS) $(OLXLIBS)' dcl
 
-xm-dcl	: stub-x.o stub-xt.o stub-motif.o xlibsupport.o MyDrawingA.o $(MALLOCOBJS)
+xm-dcl	: stub-x.o stub-xt.o clim-motif.o xlibsupport.o MyDrawingA.o $(MALLOCOBJS)
 	cd $(CL_SRC) ; /bin/rm -f ucl ;\
-	make initial_oldspace=$(OLDSPACE) oldspace=$(OLDSPACE) newspace=$(NEWSPACE) premallocs='-m 401408' ucl_xtras='$(PWD)/stub-x.o $(PWD)/stub-xt.o $(PWD)/stub-motif.o $(PWD)/xlibsupport.o $(PWD)/MyDrawingA.o $(MALLOCOBJS) $(MOTIFLIB) $(XTLIB) $(XLIB)' dcl	
+	make initial_oldspace=$(OLDSPACE) oldspace=$(OLDSPACE) newspace=$(NEWSPACE) premallocs=$(PREMALLOCS) ucl_xtras='$(PWD)/stub-x.o $(PWD)/stub-xt.o $(PWD)/clim-motif.o $(PWD)/xlibsupport.o $(PWD)/MyDrawingA.o $(COMPOSEROBJS) $(MALLOCOBJS) $(XTLIB) $(XLIB)' dcl	
 
 dcl	: 
 	cd $(CL_SRC) ; /bin/rm -f ucl ;\
 	make dcl	
 
+clim-motif.o	: stub-motif.o
+	ld -r -o clim-motif.o stub-motif.o $(MOTIFLIB)
+
+clim-olit.o	: stub-olit.o
+	ld -r -o clim-olit.o stub-olit.o $(LIBXOL)
 
 stub-motif.c	:  $(XT_UNDEFS) $(XM_UNDEFS) misc/make-stub-file
 	misc/make-stub-file "void ___lisp_load_motif_stub ()"  $(XT_UNDEFS) $(XM_UNDEFS) > stub-motif.c 
@@ -658,7 +671,7 @@ MyDrawingA.o: misc/MyDrawingA.c
 olsupport.o: misc/olsupport.c
 	$(CC) -c $(CFLAGS) -o olsupport.o misc/olsupport.c
 
-FRC	: 
+FORCE	: 
 
 xm-composer : xm-dcl
 	cd /usr/composer2 ; make CL=$(CL) rebuild-c2

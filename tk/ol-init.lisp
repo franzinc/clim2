@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-init.lisp,v 1.14 92/06/02 13:30:39 cer Exp $
+;; $fiHeader: ol-init.lisp,v 1.15 92/07/27 19:29:11 cer Exp $
 
 
 (in-package :tk)
@@ -29,35 +29,23 @@
   (ol_toolkit_initialize))
 
 (defun-c-callable ol-error-handler ((message :unsigned-long))
-  (error "toolkit error: ~A"
-	 (char*-to-string message)))
+  (let ((*error-output* excl:*initial-terminal-io*))
+    (error "OLit: ~A" (char*-to-string message))))
 
 
 (defun-c-callable ol-warning-handler ((message :unsigned-long))
-  (warn "toolkit error: ~A"
-	(char*-to-string message)))
+  (let ((*error-output* excl:*initial-terminal-io*))
+    (warn "OLit: ~A" (char*-to-string message))))
 
 (defun-c-callable ol-error-va-handler ((message :unsigned-long))
-  (error "toolkit error: ~A"
-	 (char*-to-string message)))
+  (let ((*error-output* excl:*initial-terminal-io*))
+    (error "OLit: ~A" (char*-to-string message))))
 
 
 (defun-c-callable ol-warning-va-handler ((message :unsigned-long))
-  (warn "toolkit error: ~A"
-	(char*-to-string message)))
+  (let ((*error-output* excl:*initial-terminal-io*))
+    (warn "OLit: ~A" (char*-to-string message))))
 
-
-(defforeign 'ol_set_warning_handler 
-    :entry-point "_OlSetWarningHandler")
-
-(defforeign 'ol_set_error_handler 
-  :entry-point "_OlSetErrorHandler")
-
-(defforeign 'ol_set_va_display_error_msg_handler
-    :entry-point "_OlSetVaDisplayErrorMsgHandler")
-
-(defforeign 'ol_set_va_display_warning_msg_handler
-    :entry-point "_OlSetVaDisplayWarningMsgHandler")
 
 (ol_set_warning_handler (register-function 'ol-warning-handler))
 (ol_set_va_display_warning_msg_handler (register-function 'ol-warning-va-handler))

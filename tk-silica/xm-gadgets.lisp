@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.40 92/07/27 11:03:46 cer Exp $
+;; $fiHeader: xm-gadgets.lisp,v 1.41 92/08/18 17:26:35 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -728,6 +728,15 @@
   ;;-- the pane should resize its child
   )
 
+(defmethod add-sheet-callbacks
+    ((port motif-port) (sheet t) (widget tk::xm-frame))
+  (tk::add-event-handler widget
+			 '(:enter-window 
+			   :leave-window)
+			 0
+			 'sheet-mirror-event-handler
+			 sheet))
+ 
 ;;; Scrolling Window
 
 (defclass basic-motif-scrolling-window (motif-geometry-manager

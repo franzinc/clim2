@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: foreign.lisp,v 1.11 92/05/13 17:10:13 cer Exp Locker: cer $
+;; $fiHeader: foreign.lisp,v 1.12 92/05/22 19:26:19 cer Exp $
 
 (in-package :tk)
 
@@ -70,8 +70,11 @@
 			      argc
 			      argv))))
     (if (zerop d)
-	(error "cannot open the display: ~A" host)
-      d)))
+	(error "cannot open the display: ~A" host))
+    ;; Used for debugging:
+    #+ignore
+    (x11:xsynchronize d 1)
+    d))
 
 (defmethod initialize-instance :after ((d display) &rest args
 				       &key display

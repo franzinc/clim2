@@ -1,4 +1,4 @@
-;; -*- mode: common-lisp; package: tk -*-
+;; -*- mode: common-lisp; package: user -*-
 ;;
 ;;				-[]-
 ;; 
@@ -20,51 +20,25 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: load-xm.lisp,v 1.16 92/07/06 18:51:19 cer Exp $
+;; $fiHeader: load-xm.lisp,v 1.17 92/07/27 19:28:57 cer Exp $
 
-(in-package :tk)
+(in-package :user)
+
+(provide :climxm)
+(require :climg)
 
 ;;;; 
-(defvar sys::*libxt-pathname* "/x11/R4/sun4-lib/libXt_d.a")
-(defvar sys::*libxm-pathname* "/x11/R4/sun4-lib/libXm_d.a")
+(defvar sys::*libxt-pathname* "/x11/R4/sun4-lib/libXt.a")
 
-(defun load-from-xm ()
-  (unless (ff:get-entry-point (ff:convert-to-lang "XmCreateMyDrawingArea"))
-    #+ignore (mapc #'ff::remove-entry-point
-		   '("__unpack_quadruple" 
-		     "__prod_b10000" 
-		     "__carry_out_b10000" 
-		     "__prod_65536_b10000"
-		     ;; got these when compiling on ox
-		     "__pack_integer"
-		     "_class_double"
-		     "_class_single"
-		     "_class_extended"
-		     "__unpack_integer"))
-    (load "MyDrawingA.o"
-	  :system-libraries (list sys::*libxm-pathname* 
-				  sys::*libxt-pathname*
-				  sys::*libx11-pathname*)
-	  :print t))
-  (x11::load-undefined-symbols-from-library
-   "stub-motif.o"
-   (x11::symbols-from-file 
-    "misc/undefinedsymbols.xt"
-    "misc/undefinedsymbols.motif")
-   #+ignore '("__unpack_quadruple" 
-	      "__prod_b10000" 
-	      "__carry_out_b10000" 
-	      "__prod_65536_b10000"
-	      ;; got these when compiling on ox
-	      "__pack_integer"
-	      "_class_double"
-	      "_class_single"
-	      "_class_extended"
-	      "__unpack_integer")
-   #-ignore nil
-   (list sys::*libxm-pathname*
-	 sys::*libxt-pathname*
-	 sys::*libx11-pathname*)))
+(x11::load-undefined-symbols-from-library
+ "clim-motif.o"
+ (x11::symbols-from-file "misc/undefinedsymbols.motif")
+ (list sys::*libxt-pathname* sys::*libx11-pathname*))
 
-(load-from-xm)
+(unless (ff:get-entry-point (ff:convert-to-lang "XmCreateMyDrawingArea"))
+  (load "MyDrawingA.o"
+	:system-libraries (list sys::*libxt-pathname*
+				sys::*libx11-pathname*)
+	:print t))
 
+(pushnew :clim-motif *features*)

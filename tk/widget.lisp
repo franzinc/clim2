@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: widget.lisp,v 1.22 92/06/29 14:04:24 cer Exp $
+;; $fiHeader: widget.lisp,v 1.23 92/07/27 19:29:18 cer Exp $
 
 (in-package :tk)
 
@@ -46,14 +46,20 @@
 	    :display display
 	    args))))
 
+;; These are so we don't need the foreign functions at run time.
+(defun xt-create-widget (name class parent args num-args)
+  (xt_create_widget name class parent args num-args))
+(defun xt-create-managed-widget (name class parent args num-args)
+  (xt_create_managed_widget name class parent args num-args))
+
 (defun create-widget (name widget-class parent &rest args)
   (apply #'create-widget-1 
-	 #'xt_create_widget name widget-class parent 
+	 #'xt-create-widget name widget-class parent 
 	 args))
 
 (defun create-managed-widget (name widget-class parent &rest args)
   (apply #'create-widget-1 
-	 #'xt_create_managed_widget name widget-class parent 
+	 #'xt-create-managed-widget name widget-class parent 
 	 args))
 
 
@@ -242,7 +248,7 @@
 	      (error (c) c "Get-values failed!")))))
 
 (defun set-sensitive (widget value)
-  (xtsetsensitive widget (if value 1 0)))
+  (xt_set_sensitive widget (if value 1 0)))
 
 
 ;; Could not think of anywhere better!

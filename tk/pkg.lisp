@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: pkg.lisp,v 1.10 92/06/16 19:10:53 cer Exp $
+;; $fiHeader: pkg.lisp,v 1.11 92/07/27 19:29:16 cer Exp $
 
 (defpackage :tk
   ;;-- No we really need
@@ -45,5 +45,6 @@
    #:int32
    #:int16
    #:int8
+   #:with-server-grabbed
    ))
 

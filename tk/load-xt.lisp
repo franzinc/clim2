@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: load-xt.lisp,v 1.2 92/06/02 13:30:38 cer Exp $
+;; $fiHeader: load-xt.lisp,v 1.3 92/07/27 19:28:59 cer Exp $
 
 (in-package :tk)
 
@@ -28,19 +28,14 @@
 
 ;;;; 
 
-(defvar *libxt-pathname* "/x11/R4/sun4-lib/libXt_d.a")
+(defvar sys::*libxt-pathname* "/x11/R4/sun4-lib/libXt.a")
 
 
 (defun load-from-xt ()
   (x11::load-undefined-symbols-from-library
    "stub-xt.o"
    (x11::symbols-from-file "misc/undefinedsymbols.xt")
-   #+ignore '("__unpack_quadruple" 
-	      "__prod_b10000" 
-	      "__carry_out_b10000" 
-	      "__prod_65536_b10000")
-   #-ignore nil
-   (list *libxt-pathname* x11::*libx11-pathname*)))
+   (list sys::*libxt-pathname* sys::*libx11-pathname*)))
 
 (load-from-xt)
 

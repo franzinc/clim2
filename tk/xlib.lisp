@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xlib.lisp,v 1.22 92/07/01 15:44:38 cer Exp Locker: cer $
+;; $fiHeader: xlib.lisp,v 1.23 92/07/24 10:53:40 cer Exp $
 
 (in-package :tk)
 
@@ -132,6 +132,7 @@
 (define-window-reader map-state decode-window-map-state)
 
 (defun decode-window-map-state (x)
+  (declare (optimize (speed 3) (safety 0)))
   (ecase x
     (0 :unmapped)
     (1 :unviewable)
@@ -176,13 +177,57 @@
 	 depth))
       (register-xid p display))))
 
-(defun-c-callable x-error-handler ((display :unsigned-long) (x :unsigned-long))
-  (error "x-error:~S" 
-	 (get-error-text (x11:xerrorevent-error-code x) display)))
+;; --
+;; Error handling
 
-(defun-c-callable x-io-error-handler (x)
-  (error "x-io-error:~S" x))
+(define-condition x-error (error)
+  ((display :reader x-error-display :initarg :display)
+   (error-code :reader x-error-error-code :initarg :error-code)
+   (request-code :reader x-error-request-code :initarg :request-code)
+   (minor-code :reader x-error-minor-code :initarg :minor-code)
+   (serial :reader x-error-serial :initarg :serial)
+   (resourceid :reader x-error-resourceid :initarg :resourceid)
+   (current-serial :reader x-error-current-serial :initarg :current-serial)
+   (asynchronous :reader x-error-asynchronous :initarg :asynchronous))
+  (:report report-x-error))
 
+(defun report-x-error (condition stream)
+  (let ((display (x-error-display condition))
+	(error-code (x-error-error-code condition))
+	(request-code (x-error-request-code condition))
+	(minor-code (x-error-minor-code condition))
+	(serial (x-error-serial condition))
+	(resourceid (x-error-resourceid condition))
+	(current-serial (x-error-current-serial condition)))
+    (format stream "~@<Xlib: ~;~a ~:_in ~:[request ~d (last request was ~d)~;current request~2*~], ~:_Code: ~d.~d~@[ [~a]~], ~:_ResourceID: ~d~:>"
+	    (get-error-text error-code display)
+	    (= serial current-serial)
+	    serial current-serial request-code minor-code
+	    (when (< 1 request-code 128)
+	      (let ((request-cstring (princ-to-string request-code))
+		    (s (make-string 1000)))
+		(x11:xgeterrordatabasetext display "XRequest" request-cstring
+					   0 s 1000)
+		(let ((n (position (cltl1::int-char 0) s)))
+		  (when n (setq s (subseq s 0 n))))
+		s))
+	    resourceid)))
+
+(defun-c-callable x-error-handler ((display :unsigned-long) (event :unsigned-long))
+  (let ((*error-output* excl:*initial-terminal-io*))
+    (error 'x-error
+	   :display display
+	   :error-code (x11:xerrorevent-error-code event)
+	   :request-code (x11:xerrorevent-request-code event)
+	   :minor-code (x11:xerrorevent-minor-code event)
+	   :resourceid (x11:xerrorevent-resourceid event)
+	   :serial (x11:xerrorevent-serial event)
+	   :current-serial (x11:display-request display))))
+
+(defun-c-callable x-io-error-handler ((display :unsigned-long))
+  (let ((*error-output* excl:*initial-terminal-io*))
+    (error "Xlib: Connection to X11 server '~a' lost"
+	   (ff:char*-to-string (x11:display-display-name display)))))
 
 
 (defun get-error-text (code display-handle)
@@ -199,6 +244,7 @@
 (eval-when (load)
   (setup-error-handlers))
 
+;;--
 
 (defmethod display-root-window (display)
   (intern-object-xid
@@ -521,3 +567,15 @@
 (defun destroy-image (image)
   (x11:xdestroyimage image))
 
+;;
+
+(defmacro with-server-grabbed ((display) &body body)
+  `(let ((.display. ,display))
+     (unwind-protect
+	 (let ((result nil))
+	  (x11:xgrabserver .display.)
+	  (x11:xflush .display.)
+	  (excl:errorset (setq result (multiple-value-list (progn ,@body))) t)
+	  (values-list (cdr result)))
+       (x11:xungrabserver .display.)
+       (x11:xflush .display.))))

@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-silica.lisp,v 1.23 92/07/08 16:31:56 cer Exp $
+;; $fiHeader: xm-silica.lisp,v 1.24 92/08/18 17:26:37 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -96,11 +96,11 @@
 							  (desired :unsigned-long))
   (my-drawing-area-query-geometry widget intended desired))
 
-(ff::defforeign 'initializemydrawingareaquerygeometry
-    :entry-point "_InitializeMyDrawingAreaQueryGeometry")
+(defun setup-mda ()
+  (tk::initializemydrawingareaquerygeometry 
+   (ff:register-function 'my-drawing-area-query-geometry-stub)))
 
-(initializemydrawingareaquerygeometry 
- (ff:register-function 'my-drawing-area-query-geometry-stub))
+(setup-mda)
 
 (defun my-drawing-area-query-geometry (widget intended desired)
   (let* ((sheet (find-sheet-from-widget-address widget))

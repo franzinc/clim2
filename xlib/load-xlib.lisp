@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: load-xlib.lisp,v 1.6 92/06/16 15:01:26 cer Exp $
+;; $fiHeader: load-xlib.lisp,v 1.7 92/07/27 19:29:30 cer Exp $
 
 (in-package :x11)
 
@@ -33,7 +33,7 @@
 	  (push l r))))))
 
 
-(defun load-undefined-symbols-from-library (file what kludges libraries)
+(defun load-undefined-symbols-from-library (file what libraries)
   (let* ((n (length what))
 	 (names (coerce what 'vector))
 	 (entry-points (make-array n :element-type '(unsigned-byte 32))))
@@ -44,12 +44,11 @@
 	    (when (= (aref entry-points i)
 			sys::*impossible-load-address*)
 	      (format t ";; ~A is undefined~%" (aref names i))))
-      (mapc #'foreign-functions:remove-entry-point kludges)
       (load file
 	    :system-libraries libraries
 	    :print t))))
 
-(defvar sys::*libx11-pathname* "/x11/R4/sun4-lib/libX_d.a")
+(defvar sys::*libx11-pathname* "/x11/R4/sun4-lib/libX11.a")
 
 (unless (ff:get-entry-point (ff:convert-to-lang "lisp_XDrawString"))
   (load "xlibsupport.o" :system-libraries (list sys::*libx11-pathname*) :print t))
@@ -57,11 +56,5 @@
 (x11::load-undefined-symbols-from-library
  "stub-x.o"
  (x11::symbols-from-file "misc/undefinedsymbols")
- ;; This was only needed when bogus removesyms was done.
- #+ignore '("__unpack_quadruple" 
-	    "__prod_b10000" 
-	    "__carry_out_b10000" 
-	    "__prod_65536_b10000")
- #-ignore nil
  (list sys::*libx11-pathname*))
 

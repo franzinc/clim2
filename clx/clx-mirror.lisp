@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLX-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clx-mirror.lisp,v 1.9 92/07/27 11:01:59 cer Exp $
+;; $fiHeader: clx-mirror.lisp,v 1.10 92/08/18 17:24:24 cer Exp Locker: cer $
 
 (in-package :clx-clim)
 
@@ -206,7 +206,7 @@
 				  :discard-p t
 				  :timeout nil)
 	  ;; Device Events
-	  ((:motion-notify :enter-notify :leave-notify)
+	  (:motion-notify
 	   (event-window) 
 	   (multiple-value-bind (x y same-screen-p child state root-x root-y)
 	       (xlib:query-pointer event-window)
@@ -220,14 +220,34 @@
 		 (distribute-event
 		   port				;(EQ PORT (PORT-SHEET)) ==> T
 		   (allocate-event 'pointer-motion-event
-		     :x root-x
-		     :y root-y
 		     :native-x x
 		     :native-y y
 		     :modifier-state modifier-state
 		     :pointer pointer
 		     :sheet sheet))))
 	     t))
+	  ((:enter-notify :leave-notify)
+	   (event-window event-key state kind)
+	   (let ((sheet (mirror->sheet port event-window))
+		 (modifier-state (state-mask->modifier-state state display))
+		 (pointer (port-pointer port)))
+	     ;;--- This should probably set the native position of the pointer
+	     (setf (port-modifier-state port) modifier-state)
+	     (when sheet
+	       (distribute-event
+		port			;(EQ PORT (PORT-SHEET)) ==> T
+		(allocate-event (case event-key
+				  (:enter-notify 'pointer-enter-event)
+				  (:leave-notify 'pointer-exit-event))
+				:x root-x
+				:y root-y
+				:native-x x
+				:native-y y
+				:kind kind
+				:modifier-state modifier-state
+				:pointer pointer
+				:sheet sheet))))
+	   t)
 	  ((:button-press :button-release) 
 	   (event-key event-window code)
 	   (multiple-value-bind (x y same-screen-p child state root-x root-y)

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: font.lisp,v 1.11 92/04/28 09:25:00 cer Exp $
+;; $fiHeader: font.lisp,v 1.12 92/05/22 19:26:18 cer Exp $
 
 (in-package :tk)
 
@@ -48,23 +48,23 @@
 		    :display display
 		    :foreign-address h)))
 
-(defmethod font-width (font)
+(defun font-width (font)
   (x11::xfontstruct-max-bounds-width font))
  
-(defmethod font-height (font)
-  (+ (font-ascent font)
-     (font-descent font)))
+(defun font-height (font)
+  (+ (x11:xfontstruct-ascent font)
+     (x11:xfontstruct-descent font)))
 
-(defmethod font-ascent (font)
+(defun font-ascent (font)
   (x11:xfontstruct-ascent font))
 
-(defmethod font-descent (font)
+(defun font-descent (font)
   (x11:xfontstruct-descent font))
 
-(defmethod font-all-chars-exist-p (font)
+(defun font-all-chars-exist-p (font)
   (x11:xfontstruct-all-chars-exist font))
 
-(defmethod font-range (font)
+(defun font-range (font)
   (let* ((h font)
 	 (min-byte-1 (x11:xfontstruct-min-byte1 h))
 	 (max-byte-1 (x11:xfontstruct-max-byte1 h)))
@@ -73,7 +73,7 @@
 	   (values (x11:xfontstruct-min-char-or-byte2 h)
 		   (x11:xfontstruct-max-char-or-byte2 h))))))
 
-(defmethod char-width (font index)
+(defun char-width (font index)
   (multiple-value-bind
       (min max) (font-range font)
     (if (and (<= min index)
@@ -82,7 +82,7 @@
 	 (x11:xfontstruct-per-char font)
 	 (- index min)))))
 
-(defmethod char-dimensions (font index)
+(defun char-dimensions (font index)
   (multiple-value-bind
       (min max) (font-range font)
     (if (and (<= min index)

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: convenience.lisp,v 1.10 92/06/16 19:10:47 cer Exp $
+;; $fiHeader: convenience.lisp,v 1.11 92/07/27 19:28:54 cer Exp $
 
 (in-package :tk)
 
@@ -30,7 +30,13 @@
 	   (intern (substitute #\_ #\- 
 			       (lispify-tk-name entry-point :package nil)))))
       `(progn
-	 (defforeign ',c-function-name :entry-point ,entry-point)
+	 (eval-when (eval compile)
+	   (defforeign ',c-function-name
+	       :entry-point ,entry-point
+	       :call-direct t
+	       :arguments '(foreign-address foreign-address foreign-address fixnum)
+	       :arg-checking nil
+	       :return-type :unsigned-integer))
 	 (defclass ,class ,superclasses
 	   ()
 	   (:metaclass xt-class))

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: make-classes.lisp,v 1.23 92/07/27 19:29:00 cer Exp $
+;; $fiHeader: make-classes.lisp,v 1.24 92/08/18 17:23:20 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -62,6 +62,11 @@
       (error "No resource named ~s found for class ~s" resource-name class))
     result))
 
+;; These are so we don't need the foreign functions at run time.
+(defun xt-get-resource-list (class res-return num-res-return)
+  (xt_get_resource_list class res-return num-res-return))
+(defun xt-get-constraint-resource-list (class res-return num-res-return)
+  (xt_get_constraint_resource_list class res-return num-res-return))
 
 (defmethod find-class-resource ((class xt-class) resource-name)
   (declare (optimize (speed 3) (safety 0)))
@@ -76,7 +81,7 @@
 		     :key #'resource-name)
 	     thenret
 	     else (get-resource-internal class
-					 #'xt_get_resource_list
+					 #'xt-get-resource-list
 					 'resource
 					 resource-name)))))))
 
@@ -90,7 +95,7 @@
 	  value				; Never had it, never will
 	(setf (gethash resource-name cached-constraint-resources)
 	  (get-resource-internal class
-				 #'xt_get_constraint_resource_list
+				 #'xt-get-constraint-resource-list
 				 'constraint-resource
 				 resource-name))))))
 
@@ -126,10 +131,10 @@
       r)))
       
 (defun get-resource-list (class) 
-  (get-resource-list-internal class #'xt_get_resource_list 'resource))
+  (get-resource-list-internal class #'xt-get-resource-list 'resource))
 
 (defun get-constraint-resource-list (class) 
-  (get-resource-list-internal class #'xt_get_constraint_resource_list
+  (get-resource-list-internal class #'xt-get-constraint-resource-list
 			      'constraint-resource))
 
 
@@ -183,6 +188,7 @@
   (let ((clist nil))
     
     (dolist (class-ep classes)
+      #+ignore
       (format excl:*initial-terminal-io* ";; Initializing class ~s~%" class-ep)
       (let ((h (get-foreign-variable-value class-ep)))
 	(push (list h class-ep) clist)
@@ -257,11 +263,12 @@
 
 
 (defun-c-callable toolkit-error-handler ((message :unsigned-long))
-  (error "toolkit error: ~a" (char*-to-string message)))
+  (let ((*error-output* excl:*initial-terminal-io*))
+    (error "Xt: ~a" (char*-to-string message))))
 
 (defun-c-callable toolkit-warning-handler ((message :unsigned-long))
   (let ((*error-output* excl:*initial-terminal-io*))
-    (warn "toolkit warning: ~a" (char*-to-string message))))
+    (warn "Xt: ~a" (char*-to-string message))))
 
 
 ;; This is a terrible hack used to compensate for bugs/inconsistencies

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-widgets.lisp,v 1.6 92/04/21 20:27:49 cer Exp $
+;; $fiHeader: xm-widgets.lisp,v 1.7 92/07/27 19:29:20 cer Exp $
 
 (in-package :tk)
 
@@ -62,3 +62,34 @@
 					   "keyboardFocusPolicy")))
 
 
+;; Moved here as to be after loading xm-funs.
+
+;;-- This is a problem cos we dont know the number of items
+
+(defconstant xm_string_default_char_set "")
+
+(defmethod convert-resource-in (class (type (eql 'xm-string)) value)
+  (and (not (zerop value))
+       (with-ref-par ((string 0))
+	 ;;--- I think we need to read the book about
+	 ;;--- xm_string_get_l_to_r and make sure it works with multiple
+	 ;;-- segment strings
+	 (xm_string_get_l_to_r value xm_string_default_char_set string)
+	 (char*-to-string (aref string 0)))))
+
+(defmethod convert-resource-in ((parent t) (type (eql 'xm-string-table)) value)
+  value)
+
+(defun convert-xm-string-table-in (parent table n)
+  (let ((r nil))
+    (dotimes (i n (nreverse r))
+      (push (convert-resource-in parent 'xm-string (x-arglist table i))
+	    r))))
+
+(defmethod convert-resource-out ((parent t) (type (eql 'xm-string)) value)
+  (xm_string_create_l_to_r (string-to-char* value) (string-to-char* "")))
+
+(defmethod convert-resource-out ((parent t) (type (eql 'xm-background-pixmap)) value)
+  (etypecase value
+    (pixmap
+     (encode-pixmap nil value))))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: classes.lisp,v 1.13 92/07/27 11:01:28 cer Exp $
+;; $fiHeader: classes.lisp,v 1.14 92/08/18 17:23:23 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -141,6 +141,11 @@
    (pointer :reader pointer-event-pointer 
 	    :initarg :pointer :initform nil)))
 
+#+CLIM-1-compatibility
+(define-compatibility-function (pointer-event-shift-mask event-modifier-state)
+			       (pointer-event)
+  (event-modifier-state pointer-event))
+
 (define-event-class pointer-button-event (pointer-event)
   ((button :reader pointer-event-button
 	   :initarg :button :initform nil)))
@@ -152,10 +157,14 @@
 (define-event-class pointer-click-hold-event (pointer-click-event) ())
 (define-event-class pointer-double-click-event (pointer-click-event) ())
 
-(define-event-class pointer-motion-or-boundary-event (pointer-event) ())
-(define-event-class pointer-motion-event (pointer-motion-or-boundary-event) ())
-(define-event-class pointer-exit-event (pointer-motion-or-boundary-event) ())
-(define-event-class pointer-enter-event (pointer-motion-or-boundary-event) ())
+(define-event-class pointer-motion-event (pointer-event) ())
+
+(define-event-class pointer-boundary-event (pointer-event)
+  ((kind :reader pointer-boundary-event-kind :initarg :kind
+	 :type (member :ancestor :virtual :inferior :nonlinear :nonlinear-virtual
+		       nil))))
+(define-event-class pointer-exit-event (pointer-boundary-event) ())
+(define-event-class pointer-enter-event (pointer-boundary-event) ())
 
 
 (define-event-class window-event (event)

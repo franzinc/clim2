@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: frames.lisp,v 1.35 92/07/27 19:29:46 cer Exp $
+;; $fiHeader: frames.lisp,v 1.36 92/08/18 17:24:53 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -564,18 +564,18 @@
 	     :geometry :left :top :right :bottom :width :height))
     (macrolet ((check-conflict (edge1 edge2 size)
 		 `(cond 
-		    ((and ,edge1 ,size)
-		     (if ,edge2
-			 (error "Cannot specify ~S, ~S, and ~S together" ,edge1 ,size ,edge2)
-			 (setq ,edge2 (+ ,edge1 ,size))))
-		    ((and ,edge2 ,size)
-		     (if ,edge1
-			 (error "Cannot specify ~S, ~S, and ~S together" ,edge2 ,size ,edge1)
-			 (setq ,edge1 (+ ,edge2 ,size))))
-		    ((and ,edge2 ,edge1)
-		     (if ,size
-			 (error "Cannot specify ~S, ~S, and ~S together" ,edge2 ,edge1 ,size)
-			 (setq ,size (- ,edge2 ,edge1)))))))
+		   ((and ,edge1 ,size)
+		    (if ,edge2
+			(error "Cannot specify ~S, ~S, and ~S together" ,edge1 ,size ,edge2)
+		      (setq ,edge2 (+ ,edge1 ,size))))
+		   ((and ,edge2 ,size)
+		    (if ,edge1
+			(error "Cannot specify ~S, ~S, and ~S together" ,edge2 ,size ,edge1)
+		      (setq ,edge1 (+ ,edge2 ,size))))
+		   ((and ,edge2 ,edge1)
+		    (if ,size
+			(error "Cannot specify ~S, ~S, and ~S together" ,edge2 ,edge1 ,size)
+		      (setq ,size (- ,edge2 ,edge1)))))))
       (check-conflict left right width)
       (check-conflict top bottom height))
     (setf (getf options :geometry)
@@ -583,15 +583,19 @@
 		  (and top `(:top ,top))
 		  (and width `(:width ,width))
 		  (and height `(:height ,height)))))
+
   (let ((geometry (getf options :geometry)))
-    (when (and (eq user-specified-position-p :unspecified)
-	       (getf geometry :left)
-	       (getf geometry :top))
-      (setf user-specified-position-p t))
-    (when (and (eq user-specified-size-p :unspecified)
-	       (getf geometry :width)
-	       (getf geometry :height))
-      (setf user-specified-size-p t)))
+    (when (eq user-specified-position-p :unspecified)
+      (if (or (and (getf  :left)
+		   (getf geometry :top))
+	      (and left top))
+	  (setf user-specified-position-p t)))
+    (when (eq user-specified-size-p :unspecified)
+      (if (or (and (getf geometry :width)
+		   (getf geometry :height))
+	      (and width height))
+	  (setf user-specified-size-p t))))
+
   (with-keywords-removed (options options 
 			  '(:frame-class :pretty-name :enable :save-under
 			    :left :top :right :bottom :width :height

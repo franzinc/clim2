@@ -20,13 +20,34 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.32 92/07/27 19:30:25 cer Exp $
+;; $fiHeader: xt-graphics.lisp,v 1.33 92/08/18 17:26:40 cer Exp Locker: cer $
 
 (in-package :tk-silica)
 
 (defclass fast-gcontext (tk::gcontext)
-  ((last-medium-clip-mask :initform nil)
-   (last-line-style :initform nil)))
+  ((last-medium-clip-mask :initform nil :fixed-index 1)
+   (last-line-style :initform nil :fixed-index 2)))
+
+(defmacro fast-gcontext-last-line-style (gcontext)
+  `(locally (declare (optimize (speed 3) (safety 0)))
+     (excl::slot-value-using-class-name 'fast-gcontext ,gcontext
+					'last-line-style)))
+(defsetf fast-gcontext-last-line-style (gcontext) (value)
+  `(locally (declare (optimize (speed 3) (safety 0)))
+     (setf (excl::slot-value-using-class-name 'fast-gcontext ,gcontext
+					      'last-line-style)
+       ,value)))
+
+(defmacro fast-gcontext-last-medium-clip-mask (gcontext)
+  `(locally (declare (optimize (speed 3) (safety 0)))
+     (excl::slot-value-using-class-name 'fast-gcontext ,gcontext
+					'last-medium-clip-mask)))
+(defsetf fast-gcontext-last-medium-clip-mask (gcontext) (value)
+  `(locally (declare (optimize (speed 3) (safety 0)))
+     (setf (excl::slot-value-using-class-name 'fast-gcontext ,gcontext
+					      'last-medium-clip-mask)
+       ,value)))
+
 
 (defclass xt-medium (basic-medium)
   ((foreground-gcontext :reader medium-foreground-gcontext :initform nil)
@@ -270,7 +291,7 @@
 (defmethod decode-ink ((ink (eql +flipping-ink+)) stream)
   (slot-value stream 'flipping-gcontext))
 
-(defmethod decode-ink ((ink color) (medium xt-medium))
+(defmethod decode-ink ((ink color) medium)
   (with-slots (ink-table sheet tile-gcontext white-pixel black-pixel drawable
 			 color-p)
       medium
@@ -378,50 +399,49 @@ and on color servers, unless using white or black")
 (defvar *default-dashes* '(4 4))
 
 (defun adjust-ink (gc medium line-style x-origin y-origin)
-  (with-slots (last-medium-clip-mask last-line-style) gc
-    (unless (eq last-line-style line-style)
-      (let* ((dashes (line-style-dashes line-style))
-	     (gc-line-style (if dashes :dash :solid)))
+  (unless (eq (fast-gcontext-last-line-style gc) line-style)
+    (let* ((dashes (line-style-dashes line-style))
+	   (gc-line-style (if dashes :dash :solid)))
 	
-	(tk::set-line-attributes 
-	 gc
-	 (let ((thickness (line-style-thickness line-style)))
-	   (ecase (line-style-unit line-style)
-	     (:normal)
-	     (:point
-	      (setq thickness (* (graft-pixels-per-point (graft medium))
-				 thickness))))
-	   (when (< thickness 2)
-	     (setq thickness 0))
-	   (setq thickness (the fixnum (round thickness)))
-	   thickness)
-	 gc-line-style
-	 (ecase (line-style-cap-shape line-style)
-	   (:butt :butt)
-	   (:square :projecting)
-	   (:round :round)
-	   (:no-end-point :not-last))
-	 (ecase (line-style-joint-shape line-style)
-	   ((:miter :none) :miter)
-	   (:bevel :bevel)
-	   (:round :round)))
+      (tk::set-line-attributes 
+       gc
+       (let ((thickness (line-style-thickness line-style)))
+	 (ecase (line-style-unit line-style)
+	   (:normal)
+	   (:point
+	    (setq thickness (* (graft-pixels-per-point (graft medium))
+			       thickness))))
+	 (when (< thickness 2)
+	   (setq thickness 0))
+	 (setq thickness (the fixnum (round thickness)))
+	 thickness)
+       gc-line-style
+       (ecase (line-style-cap-shape line-style)
+	 (:butt :butt)
+	 (:square :projecting)
+	 (:round :round)
+	 (:no-end-point :not-last))
+       (ecase (line-style-joint-shape line-style)
+	 ((:miter :none) :miter)
+	 (:bevel :bevel)
+	 (:round :round)))
     
-	(when (eq gc-line-style :dash)
-	  (setf (tk::gcontext-dashes gc)
-	    (if (excl::sequencep dashes) dashes *default-dashes*))
-	  ;; The following isn't really right, but it's better than nothing.
-	  (setf (tk::gcontext-dash-offset gc) (1- y-origin))))
-      (setf last-line-style line-style))
+      (when (eq gc-line-style :dash)
+	(setf (tk::gcontext-dashes gc)
+	  (if (excl::sequencep dashes) dashes *default-dashes*))
+	;; The following isn't really right, but it's better than nothing.
+	(setf (tk::gcontext-dash-offset gc) (1- y-origin))))
+    (setf (fast-gcontext-last-line-style gc) line-style))
 
-    (let ((mcm (medium-clip-mask medium)))
-      (unless (eq last-medium-clip-mask mcm)
-	(setf (tk::gcontext-clip-mask gc) (medium-clip-mask medium))
-	(setf last-medium-clip-mask mcm)))
+  (let ((mcm (medium-clip-mask medium)))
+    (unless (eq (fast-gcontext-last-medium-clip-mask gc) mcm)
+      (setf (tk::gcontext-clip-mask gc) (medium-clip-mask medium))
+      (setf (fast-gcontext-last-medium-clip-mask gc) mcm)))
     
-    (when (member (tk::gcontext-fill-style gc) '(:tiled :stippled) :test #'eq)
-      (setf (tk::gcontext-ts-x-origin gc) x-origin
-	    (tk::gcontext-ts-y-origin gc) y-origin))
-    gc))
+  (when (member (tk::gcontext-fill-style gc) '(:tiled :stippled) :test #'eq)
+    (setf (tk::gcontext-ts-x-origin gc) x-origin
+	  (tk::gcontext-ts-y-origin gc) y-origin))
+  gc)
 
 #+ignore
 (defmethod decode-ink :around ((ink t) (medium xt-medium))
@@ -759,7 +779,7 @@ and on color servers, unless using white or black")
 		  filled)))
 	      (t
 	       (port-draw-transformed-rectangle*
-		port sheet medium x1 y1 x2 y2 filled)))))))
+		(port sheet) sheet medium x1 y1 x2 y2 filled)))))))
 
 (defmethod medium-draw-polygon* ((medium xt-medium) position-seq closed filled)
   (let ((drawable (medium-drawable medium)))
@@ -1027,7 +1047,7 @@ and on color servers, unless using white or black")
 	  (declare (ignore oy)
 		   (ignore ox))
 	  (setf (tk::gcontext-clip-mask gcontext) pixmap)
-	  (setf (slot-value gcontext 'last-medium-clip-mask) nil)
+	  (setf (fast-gcontext-last-medium-clip-mask gcontext) nil)
 	  (unless start (setq start 0))
 	  (unless end (setq end (length string)))
 	  (dotimes (i (- end start))
@@ -1204,8 +1224,8 @@ and on color servers, unless using white or black")
   (tk::font-width (text-style-mapping (port medium) text-style)))
 
 (defmethod text-style-height ((text-style standard-text-style) (medium xt-medium))
-  (+ (text-style-ascent text-style medium)
-     (text-style-descent text-style medium)))
+  ;; Optimization
+  (tk::font-height (text-style-mapping (port medium) text-style)))
 
 (defmethod text-style-ascent ((text-style standard-text-style) (medium xt-medium))
   (tk::font-ascent (text-style-mapping (port medium) text-style)))
@@ -1221,5 +1241,6 @@ and on color servers, unless using white or black")
   (x11:xflush (port-display (port medium))))
 
 (defmethod medium-finish-output ((medium xt-medium))
-  (x11:xsync (port-display (port medium))))	;--- is this right?
+  (x11:xsync (port-display (port medium)) 0))
+
    

@@ -1,4 +1,4 @@
-;; -*- mode: common-lisp; package: tk -*-
+;; -*- mode: common-lisp; package: user -*-
 ;;
 ;;				-[]-
 ;; 
@@ -20,52 +20,23 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: load-ol.lisp,v 1.12 92/06/23 08:19:07 cer Exp $
+;; $fiHeader: load-ol.lisp,v 1.13 92/07/27 19:28:56 cer Exp $
 
-(in-package :tk)
+(in-package :user)
 
-(defvar sys::*libxol-pathname* "/vapor/usr/tech/cer/stuff/clim-2.0/tk/lib2/libXol.a")
-(defvar sys::*libxt-pathname* "/x11/R4/sun4-lib/libXt_d.a")
+(provide :climxm)
+(require :climg)
 
-(defun load-from-ol ()
-  (unless (ff:get-entry-point (ff:convert-to-lang "ol_appl_add_item"))
-    #+ignore (mapc #'ff::remove-entry-point
-		   '("__unpack_quadruple" 
-		     "__prod_b10000" 
-		     "__carry_out_b10000" 
-		     "__prod_65536_b10000"
-		     "__unpacked_to_decimal"
-		     ;; got these when compiling on ox
-		     "__pack_integer"
-		     "_class_double"
-		     "_class_single"
-		     "_class_extended"
-		     "__unpack_integer"))
-    (load "olsupport.o"
-	  :system-libraries (list sys::*libxol-pathname*
-				  sys::*libxt-pathname*
-				  sys::*libx11-pathname*)
-	  :print t))
-  (x11::load-undefined-symbols-from-library
-   "stub-olit.o"
-   (x11::symbols-from-file 
-    "misc/undefinedsymbols.xt"
-    "misc/undefinedsymbols.olit")
-   #+ignore '("__unpack_quadruple" 
-	      "__unpacked_to_decimal"
-	      "__prod_b10000" 
-	      "__carry_out_b10000" 
-	      "__prod_65536_b10000"
-	      ;; got these when compiling on ox
-	      "__pack_integer"
-	      "_class_double"
-	      "_class_single"
-	      "_class_extended"
-	      "__unpack_integer")
-   #-ignore nil
-   (list sys::*libxol-pathname*
-	 sys::*libxt-pathname*
-	 sys::*libx11-pathname*)))
+(defvar sys::*libxt-pathname* "/x11/R4/sun4-lib/libXt.a")
 
-(load-from-ol)
+(x11::load-undefined-symbols-from-library
+ "clim-olit"
+ (x11::symbols-from-file "misc/undefinedsymbols.olit")
+ (list sys::*libxt-pathname* sys::*libx11-pathname*))
+(unless (ff:get-entry-point (ff:convert-to-lang "ol_appl_add_item"))
+  (load "olsupport.o"
+	:system-libraries (list sys::*libxt-pathname*
+				sys::*libx11-pathname*)
+	:print t))
 
+(pushnew :clim-openlook *features*)

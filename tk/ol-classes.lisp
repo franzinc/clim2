@@ -20,10 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-classes.lisp,v 1.5 92/05/07 13:10:54 cer Exp Locker: cer $
-
-(provide :climol)
-(require :climg)
+;; $fiHeader: ol-classes.lisp,v 1.6 92/06/23 08:19:12 cer Exp $
 
 (in-package :tk)
 

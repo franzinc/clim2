@@ -20,7 +20,7 @@
 ;; applicable.
 ;;
 
-;; $fiHeader: instclimol.lisp,v 1.2 92/05/22 19:29:17 cer Exp $
+;; $fiHeader: instclimol.lisp,v 1.3 92/06/02 13:31:19 cer Exp $
 
 ;;
 ;; Load CLIM
@@ -29,9 +29,8 @@
 (in-package :system)
 
 
-(defvar sys::*libx11-pathname* "/x11/R4/sun4-lib/libX_d.a")
-(defvar sys::*libxt-pathname* "/x11/R4/sun4-lib/libXt_d.a")
-(defvar sys::*libxol-pathname* "/vapor/usr/tech/cer/stuff/clim-2.0/tk/lib2/libXol.a")
+(defvar sys::*libx11-pathname* "/x11/R4/sun4-lib/libX11.a")
+(defvar sys::*libxt-pathname* "/x11/R4/sun4-lib/libXt.a")
 
 (load-application (progn 
 		    (require :climol)

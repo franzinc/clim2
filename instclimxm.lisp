@@ -20,7 +20,7 @@
 ;; applicable.
 ;;
 
-;; $fiHeader: instclimxm.lisp,v 1.2 92/05/22 19:29:18 cer Exp $
+;; $fiHeader: instclimxm.lisp,v 1.3 92/06/02 13:31:20 cer Exp $
 
 ;;
 ;; Load CLIM
@@ -28,9 +28,8 @@
 
 (in-package :system)
 
-(defvar sys::*libx11-pathname* "/x11/R4/sun4-lib/libX_d.a")
-(defvar sys::*libxt-pathname* "/x11/R4/sun4-lib/libXt_d.a")
-(defvar sys::*libxm-pathname* "/x11/motif-1.1/lib/Xm/libXm.a")
+(defvar sys::*libx11-pathname* "/x11/R4/sun4-lib/libX11.a")
+(defvar sys::*libxt-pathname* "/x11/R4/sun4-lib/libXt.a")
 
 (load-application (progn 
 		    (require :climxm)
