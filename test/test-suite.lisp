@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: test-suite.lisp,v 1.57 93/03/31 10:39:51 cer Exp $
+;; $fiHeader: test-suite.lisp,v 1.58 93/04/07 09:07:12 cer Exp $
 
 (in-package :clim-user)
 
@@ -2090,7 +2090,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 	(accepts (a (member :red :blue :green))
 		 (b (subset :red :blue :green))
 		 (c boolean)
-		 (d (float 0 1) :view '(slider-view :decimal-places 2))
+		 (d (float 0 1) :view '(slider-view  :decimal-places 2))
 		 (e (integer 0 10) :view +slider-view+)
 		 (f (member :red :blue :green) :view +text-field-view+)
 		 (g (integer 0 10) :view +text-field-view+)
