@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/clim/command.lisp,v 1.30 1997/02/05 01:42:55 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/command.lisp,v 1.31 1997/04/24 19:51:10 tomj Exp $
 
 (in-package :clim-internals)
 
@@ -345,7 +345,15 @@
     ;;--- Use binary insertion on COMMAND-LINE-NAMES (completion aarrays)
     (remove-command-line-name-from-command-table command-table name)
     (vector-push-extend (list name command-name) command-line-names)
+    #-acl86win32
     (setq command-line-names (sort command-line-names #'string-lessp :key #'first))
+    #+acl86win32
+    (let ((newcts (sort command-line-names #'string-lessp :key #'first)))
+      (setq command-line-names 
+        (make-array (length newcts) 
+                    :fill-pointer (fill-pointer command-line-names)
+                    :adjustable t
+                    :initial-contents newcts)))
     (incf *completion-cache-tick*)))
 
 (defun remove-command-line-name-from-command-table (command-table name)
@@ -479,7 +487,15 @@
                   (cond ((null x) t)
                         ((null y) nil)
                         (t (string-lessp x y)))))
-           (setq menu (sort menu #'menu-name-lessp :key #'first))))
+		   #-acl86win32
+           (setq menu (sort menu #'menu-name-lessp :key #'first))
+           #+acl86win32
+		   (let ((newcts (sort menu #'menu-name-lessp :key #'first)))
+			 (setq menu
+				   (make-array (length newcts) 
+							   :fill-pointer (fill-pointer menu)
+							   :adjustable t
+							   :initial-contents newcts)))))
         (otherwise
           (if (stringp after)
               (let ((index (position after menu

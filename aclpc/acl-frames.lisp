@@ -195,7 +195,7 @@
 		       )
 		      (:menu
 		       (let* ((popmenu (win::CreatePopupMenu))
-			      (hmenu (pc::handle-value 'win:hmenu popmenu))
+			      (hmenu (pc::handle-value 'win::hmenu popmenu))
 			      (menutext (make-menu-text menu acckey item)))
 			 (win::AppendMenu menuhand
 					  smflags
@@ -283,7 +283,8 @@
       (setf *in-layout-avp* avp)
       (setf (sheet-enabled-p (frame-top-level-sheet frame)) t)
       (win::setforegroundwindow 
-       (win::pclhandle-value (sheet-mirror sheet))))))
+       #+aclpc (win::pclhandle-value (sheet-mirror sheet))
+	   #+acl86win32 (sheet-mirror sheet)))))
 
 ;; added this to workaround some bugs with new layouts not being
 ;; correctly redisplayed - in particular problems with label-panes
@@ -300,11 +301,12 @@
         (sheet (frame-top-level-sheet frame)))
     (when name
       (let ((win (sheet-mirror sheet))
-            (cstr (ct:callocate (:char *) :size 256))
+            (cstr (ct::callocate (:char *) :size 256))
 	    (subsize (length name)))
         (dotimes (i subsize)
-          (ct:cset (:char 256) cstr ((fixnum i)) (char-int (char name i))))
-      (win:SetWindowText win cstr)))))
+          (ct::cset (:char 256) cstr ((fixnum i)) (char-int (char name i))))
+      (ct::cset (:char 256) cstr ((fixnum subsize)) (char-int #\NULL))
+      (win::SetWindowText win cstr)))))
 
 ;;; focus setting could be better, and support for exit box choices should
 ;;; be added
@@ -328,16 +330,16 @@
 		(:inform cg::information-icon)
 		((:warn :warning) cg:warning-icon)
 		(:error cg:error-icon))))
-    #+(or aclpc acl86win32)
+    #+(or aclpc acl86win32x)
     (progn
       (setq message-string (pc::cleanup-button-label message-string))
       (cg:pop-up-message-dialog cg::*screen* title message-string
 				icon "OK")
       (pc::clear-focus (pc::get-focus cg::*screen*))
-      (win::setFocus (sheet-direct-mirror stream) :static)
+      (win::setFocus (sheet-direct-mirror stream) #-acl86win32 :static)
       (clim-internals::stream-set-input-focus stream)
       (enable-mirror *acl-port* stream))
-    #-(or aclpc acl86win32)
+    #-(or aclpc acl86win32x)
     (accepting-values (stream :exit-boxes exit-boxes :label title
 			      :own-window t)
       (with-text-style (stream text-style)
@@ -498,11 +500,11 @@
   (let ((sheet (frame-top-level-sheet frame)))
     (fix-coordinates x y)
     (win::setWindowPos (sheet-mirror sheet)
-		       (ct::null-handle win:hwnd) ; we really want win:HWND_TOP
+		       (ct::null-handle win::hwnd) ; we really want win::HWND_TOP
 		       x y 0 0
-		    (logior win:swp_noactivate
-			    win:swp_nozorder
-			    win:swp_nosize))))
+		    (logior win::swp_noactivate
+			    win::swp_nozorder
+			    win::swp_nosize))))
 
 (in-package :clim-internals)
 
@@ -541,12 +543,12 @@
 	  (when width (maxf width min-width))
 	  (when height (maxf height min-height))))
       (call-next-method frame width height)
-      (let ((wrect (ct:ccallocate win:rect))
+      (let ((wrect (ct::ccallocate win::rect))
 	    (handle (sheet-direct-mirror (frame-top-level-sheet frame))))
 	;;; +++rl don't show the window here
 	;;; the code below makes sure that the frame grows or shrinks
 	;;; when the user resizes the frame window
-	#+ignore (win:showWindow handle win:sw_show)
+	#+ignore (win::showWindow handle win::sw_show)
 	(win::getClientRect handle wrect)
 	(win::InvalidateRect handle wrect 1)
 	(win::UpdateWindow handle)

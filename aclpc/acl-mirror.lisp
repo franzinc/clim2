@@ -20,7 +20,8 @@
 (defmethod sheet-shell (sheet) sheet)
 
 (defmethod realize-graft ((port acl-port) graft)
-  (let* ((handle (pc::window-handle cg:*screen*)))
+  (let* ((handle #+aclpc (pc::window-handle cg:*screen*) 
+                 #+acl86win32 (with-slots (cg::device-handle1) cg::*screen* cg::device-handle1)))
    (setq *screen* handle)
    (init-cursors)
    (with-slots (silica::pixels-per-point
@@ -30,10 +31,10 @@
 	        silica::mm-height
 	        silica::units) graft
    (with-dc (*screen* dc) 
-    (let ((screen-width (win:GetSystemMetrics win:SM_CXSCREEN)) 
-	  (screen-height (win:GetSystemMetrics win:SM_CYSCREEN))
-	  (logpixelsx (win::getDeviceCaps dc win:logpixelsx))
-	  (logpixelsy (win::getDeviceCaps dc win:logpixelsy)))
+    (let ((screen-width (win::GetSystemMetrics win::SM_CXSCREEN)) 
+	  (screen-height (win::GetSystemMetrics win::SM_CYSCREEN))
+	  (logpixelsx (win::getDeviceCaps dc win::logpixelsx))
+	  (logpixelsy (win::getDeviceCaps dc win::logpixelsy)))
 	(setf silica::pixel-width  screen-width
 	      silica::pixel-height screen-height
 	      silica::mm-width     (round (* screen-width 25.4s0) logpixelsx)
@@ -72,7 +73,7 @@
     (fix-coordinates left top right bottom)
     (let* ((parent (sheet-mirror sheet))
 	   (parent2 (sheet-mirror (sheet-parent sheet)))
-           (nullparent (ct::null-handle win:hwnd))
+           (nullparent (ct::null-handle win::hwnd))
 	   (frame (pane-frame sheet))
 	   (pretty-name (frame-pretty-name frame))
 	   (save-under (and frame
@@ -239,9 +240,9 @@
 		     (if (typep frame 'pull-down-menu-frame) nil t)))
 		  (t (create-overlapped-window
 		       nullparent pretty-name scroll
-		       #+acl86win32 win:cw_usedefault
+		       #+acl86win32 win::cw_usedefault
 			   #+aclpc left
-		       #+acl86win32 win:cw_usedefault
+		       #+acl86win32 win::cw_usedefault
 			   #+aclpc top
 		       width height
 		       (and (getf (frame-properties frame) :native-menu)
@@ -259,7 +260,7 @@
 	(unless *dc-initialized* (initialize-dc))
 	(with-dc (window dc)
           (with-slots (logpixelsy) port
-            (setf logpixelsy (win::getDeviceCaps dc win:logpixelsy)))))
+            (setf logpixelsy (win::getDeviceCaps dc win::logpixelsy)))))
 
       ;; added (cim 10/11/96)
       (when control
@@ -267,11 +268,11 @@
 	  (when text-style
 	    (let ((font (text-style-mapping port text-style)))
 		  #+acl86win32 ;+++ fixme
-	      (win:sendmessage window win:wm_setfont 
+	      (win::sendmessage window win::wm_setfont 
 			       (acl-font-index font) 0)))))
       (sheet-region sheet) ;;+++ debug only
       (when (and childwin (sheet-enabled-p sheet))
-	(win::showWindow window win:sw_show))
+	(win::showWindow window win::sw_show))
       window)))
 
 ;; added this method so that the default positioning of frames works
@@ -289,7 +290,7 @@
 (defmethod realize-mirror :around ((port acl-port) (sheet basic-gadget))
   (let ((window (call-next-method)))
     (unless (gadget-active-p sheet)
-      (win::enablewindow window nil))
+      (win::enablewindow window #+acl86win32 0 #-acl86win32 nil))
     window))
 
 (defmethod destroy-mirror ((port acl-port) sheet)
@@ -309,57 +310,57 @@
 (defmethod enable-mirror ((port acl-port) sheet)
   (let ((window (sheet-mirror sheet)))
     (unless *in-layout-avp*
-      (win::showWindow window win:sw_show)
+      (win::showWindow window win::sw_show)
       (win:updateWindow window))))
 
 (defmethod disable-mirror ((port acl-port) sheet)
-  (win::showWindow (sheet-mirror sheet) win:sw_hide))
+  (win::showWindow (sheet-mirror sheet) win::sw_hide))
 
 (defmethod raise-mirror ((port acl-port) (sheet mirrored-sheet-mixin))
-  (win::setWindowPos (sheet-mirror sheet) (ct::null-handle win:hwnd) 0 0 0 0
-			    (logior win:swp_noactivate
-				    win:swp_nomove
-				    win:swp_nosize)))
+  (win::setWindowPos (sheet-mirror sheet) (ct::null-handle win::hwnd) 0 0 0 0
+			    (logior win::swp_noactivate
+				    win::swp_nomove
+				    win::swp_nosize)))
 
 (defmethod bury-mirror ((port acl-port) (sheet mirrored-sheet-mixin))
   (win::setWindowPos (sheet-mirror sheet) 1 0 0 0 0
-			    (logior win:swp_noactivate
-				    win:swp_nomove
-				    win:swp_nosize)))
+			    (logior win::swp_noactivate
+				    win::swp_nomove
+				    win::swp_nosize)))
 
 (defmethod mirror-visible-p ((port acl-port) sheet)
   (win::isWindowVisible (sheet-mirror sheet)))
 
 ;; specialized Returns left,top,right,bottom
 (defmethod mirror-region* ((port acl-port) (sheet silica::top-level-sheet))
-   (let ((wrect (ct:ccallocate win:rect))
-         #+acl86win32 (topleft (ct:ccallocate win:point))
-         #+acl86win32 (botright (ct:ccallocate win:point))
+   (let ((wrect (ct::ccallocate win::rect))
+         #+acl86win32 (topleft (ct::ccallocate win::point))
+         #+acl86win32 (botright (ct::ccallocate win::point))
          (handle (sheet-direct-mirror sheet))
          )
      ;;mm: Use the CLient values and map to screen coordinates
       (win::getClientRect handle wrect)
 #+acl86win32
       (progn
-        (setf (ct::cref win:point topleft win:x) (ct::cref win:rect wrect win:left))
-        (setf (ct::cref win:point topleft win:y) (ct::cref win:rect wrect win:top))
-        (setf (ct::cref win:point botright win:x) (ct::cref win:rect wrect win:right))
-        (setf (ct::cref win:point botright win:y) (ct::cref win:rect wrect win:bottom)))
+        (setf (ct::cref win::point topleft win::x) (ct::cref win::rect wrect win::left))
+        (setf (ct::cref win::point topleft win::y) (ct::cref win::rect wrect win::top))
+        (setf (ct::cref win::point botright win::x) (ct::cref win::rect wrect win::right))
+        (setf (ct::cref win::point botright win::y) (ct::cref win::rect wrect win::bottom)))
 #+aclpc
-      (win:mapWindowPoints handle (ct::null-handle win:hwnd) wrect 2)
+      (win::mapWindowPoints handle (ct::null-handle win::hwnd) wrect 2)
 #+acl86win32
-      (cg::clientToScreen handle topleft)
+      (win::clientToScreen handle topleft)
 #+acl86win32
-      (cg::clientToScreen handle botright)
+      (win::clientToScreen handle botright)
 
-      (let ((wleft #+aclpc (ct:cref win:rect wrect win:left) 
-                   #+acl86win32 (ct:cref win:point topleft win:x))
-            (wtop #+aclpc (ct:cref win:rect wrect win:top)
-                  #+acl86win32 (ct:cref win:point topleft win:y))
-            (wright #+aclpc (ct:cref win:rect wrect win:right)
-                    #+acl86win32 (ct:cref win:point botright win:x)) 
-            (wbottom #+aclpc (ct:cref win:rect wrect win:bottom)
-                     #+acl86win32 (ct:cref win:point botright win:y)))      
+      (let ((wleft #+aclpc (ct::cref win::rect wrect win::left) 
+                   #+acl86win32 (ct::cref win::point topleft win::x))
+            (wtop #+aclpc (ct::cref win::rect wrect win::top)
+                  #+acl86win32 (ct::cref win::point topleft win::y))
+            (wright #+aclpc (ct::cref win::rect wrect win::right)
+                    #+acl86win32 (ct::cref win::point botright win::x)) 
+            (wbottom #+aclpc (ct::cref win::rect wrect win::bottom)
+                     #+acl86win32 (ct::cref win::point botright win::y)))      
          (values (coordinate wleft) (coordinate wtop)
             (coordinate wright) (coordinate wbottom)))))
 
@@ -373,69 +374,69 @@
 
 ;; Returns x,y,width,height
 (defmethod mirror-inside-region* ((port acl-port) sheet)
-  (let ((crect (ct:ccallocate win:rect)))
+  (let ((crect (ct::ccallocate win::rect)))
     (win::getClientRect (sheet-mirror sheet) crect) ; 0 0 width height
-    (let ((cwidth (ct:cref win:rect crect win:right)) 
-	  (cheight (ct:cref win:rect crect win:bottom)))      
+    (let ((cwidth (ct::cref win::rect crect win::right)) 
+	  (cheight (ct::cref win::rect crect win::bottom)))      
       (values (coordinate 0) (coordinate 0)
 	      (coordinate cwidth)
 	      (coordinate cheight)))))
 
 ;;--- Shouldn't this be the same as MIRROR-REGION*?
 (defmethod mirror-native-edges* ((port acl-port) sheet)
-  (let ((wrect (ct:ccallocate win:rect)))
+  (let ((wrect (ct::ccallocate win::rect)))
     (win::getWindowRect (sheet-direct-mirror sheet) wrect)
-    (let ((wleft (ct:cref win:rect wrect win:left))
-          (wtop (ct:cref win:rect wrect win:top))
-	  (wright (ct:cref win:rect wrect win:right)) 
-	  (wbottom (ct:cref win:rect wrect win:bottom)))      
+    (let ((wleft (ct::cref win::rect wrect win::left))
+          (wtop (ct::cref win::rect wrect win::top))
+	  (wright (ct::cref win::rect wrect win::right)) 
+	  (wbottom (ct::cref win::rect wrect win::bottom)))      
       (values (coordinate wleft) (coordinate wtop)
 	      (coordinate wright) (coordinate wbottom)))))
 
 (defmethod mirror-inside-edges* ((port acl-port) sheet)
-  (let ((crect (ct:ccallocate win:rect)))
+  (let ((crect (ct::ccallocate win::rect)))
     (win::getClientRect (sheet-mirror sheet) crect) ; 0 0 width height
-    (let ((cwidth (ct:cref win:rect crect win:right)) 
-	  (cheight (ct:cref win:rect crect win:bottom)))      
+    (let ((cwidth (ct::cref win::rect crect win::right)) 
+	  (cheight (ct::cref win::rect crect win::bottom)))      
       (values (coordinate 0) (coordinate 0)
 	      (coordinate cwidth)
 	      (coordinate cheight)))))
 
 ;;mm: compute the offset and size deltas between frame and client area.
 (defun get-nonclient-deltas (sheet)
-  (let ((wrect (ct:ccallocate win:rect))
-	(crect (ct:ccallocate win:rect))
-        #+acl86win32 (topleft (ct:ccallocate win:point))
-        #+acl86win32 (botright (ct:ccallocate win:point))
+  (let ((wrect (ct::ccallocate win::rect))
+	(crect (ct::ccallocate win::rect))
+        #+acl86win32 (topleft (ct::ccallocate win::point))
+        #+acl86win32 (botright (ct::ccallocate win::point))
         (handle (sheet-direct-mirror sheet))
         )
      (win::getWindowRect handle wrect)
      (win::getClientRect handle crect) ; 0 0 width height
 #+acl86win32
       (progn
-        (setf (ct::cref win:point topleft win:x) (ct::cref win:rect crect win:left))
-        (setf (ct::cref win:point topleft win:y) (ct::cref win:rect crect win:top))
-        (setf (ct::cref win:point botright win:x) (ct::cref win:rect crect win:right))
-        (setf (ct::cref win:point botright win:y) (ct::cref win:rect crect win:bottom)))
+        (setf (ct::cref win::point topleft win::x) (ct::cref win::rect crect win::left))
+        (setf (ct::cref win::point topleft win::y) (ct::cref win::rect crect win::top))
+        (setf (ct::cref win::point botright win::x) (ct::cref win::rect crect win::right))
+        (setf (ct::cref win::point botright win::y) (ct::cref win::rect crect win::bottom)))
 #+aclpc
-     (win:mapWindowPoints handle (ct::null-handle win:hwnd) crect 2) 
+     (win::mapWindowPoints handle (ct::null-handle win::hwnd) crect 2) 
 #+acl86win32
-     (cg::clientToScreen handle topleft)
+     (win::clientToScreen handle topleft)
 #+acl86win32
-     (cg::clientToScreen handle botright)
+     (win::clientToScreen handle botright)
 
-    (let ((ctop #+aclpc (ct:cref win:rect crect win:top)
-                #+acl86win32 (ct:cref win:point topleft win:y)) 
-	  (cleft #+aclpc (ct:cref win:rect crect win:left)
-                 #+acl86win32 (ct:cref win:point topleft win:x))
-          (cright #+aclpc (ct:cref win:rect crect win:right)
-                  #+acl86win32 (ct:cref win:point botright win:x)) 
-	  (cbottom #+aclpc (ct:cref win:rect crect win:bottom)
-                   #+acl86win32 (ct:cref win:point botright win:y)) 
-	  (wleft (ct:cref win:rect wrect win:left))
-          (wtop (ct:cref win:rect wrect win:top))
-	  (wright (ct:cref win:rect wrect win:right)) 
-	  (wbottom (ct:cref win:rect wrect win:bottom)))
+    (let ((ctop #+aclpc (ct::cref win::rect crect win::top)
+                #+acl86win32 (ct::cref win::point topleft win::y)) 
+	  (cleft #+aclpc (ct::cref win::rect crect win::left)
+                 #+acl86win32 (ct::cref win::point topleft win::x))
+          (cright #+aclpc (ct::cref win::rect crect win::right)
+                  #+acl86win32 (ct::cref win::point botright win::x)) 
+	  (cbottom #+aclpc (ct::cref win::rect crect win::bottom)
+                   #+acl86win32 (ct::cref win::point botright win::y)) 
+	  (wleft (ct::cref win::rect wrect win::left))
+          (wtop (ct::cref win::rect wrect win::top))
+	  (wright (ct::cref win::rect wrect win::right)) 
+	  (wbottom (ct::cref win::rect wrect win::bottom)))
       (values 
          (- wleft cleft) (- wtop ctop)
          (- (- wright wleft) (- cright cleft))
@@ -444,40 +445,40 @@
 
 
 (defun clim-internals::bounding-rectangle-inside-size (top-sheet)
-  (let ((crect (ct:ccallocate win:rect)))
+  (let ((crect (ct::ccallocate win::rect)))
     (win::getClientRect (sheet-mirror top-sheet) crect) ; 0 0 width height
-    (let ((cwidth (ct:cref win:rect crect win:right)) 
-	  (cheight (ct:cref win:rect crect win:bottom)))      
+    (let ((cwidth (ct::cref win::rect crect win::right)) 
+	  (cheight (ct::cref win::rect crect win::bottom)))      
       (values (coordinate cwidth)
 	      (coordinate cheight)))))
 
 
 (defmethod mirror-client-region-internal* ((port acl-port) mirror target)
-  (let ((wrect (ct:ccallocate win:rect))
-         #+acl86win32 (topleft (ct:ccallocate win:point))
-         #+acl86win32 (botright (ct:ccallocate win:point))
+  (let ((wrect (ct::ccallocate win::rect))
+         #+acl86win32 (topleft (ct::ccallocate win::point))
+         #+acl86win32 (botright (ct::ccallocate win::point))
        )
     (win::getWindowRect mirror wrect)
 #+acl86win32
       (progn
-        (setf (ct::cref win:point topleft win:x) (ct::cref win:rect wrect win:left))
-        (setf (ct::cref win:point topleft win:y) (ct::cref win:rect wrect win:top))
-        (setf (ct::cref win:point botright win:x) (ct::cref win:rect wrect win:right))
-        (setf (ct::cref win:point botright win:y) (ct::cref win:rect wrect win:bottom)))
+        (setf (ct::cref win::point topleft win::x) (ct::cref win::rect wrect win::left))
+        (setf (ct::cref win::point topleft win::y) (ct::cref win::rect wrect win::top))
+        (setf (ct::cref win::point botright win::x) (ct::cref win::rect wrect win::right))
+        (setf (ct::cref win::point botright win::y) (ct::cref win::rect wrect win::bottom)))
 #+aclpc
-    (win:mapWindowPoints (ct::null-handle win:hwnd) target wrect 2) 
+    (win::mapWindowPoints (ct::null-handle win::hwnd) target wrect 2) 
 #+acl86win32
-    (cg::screenToClient target topleft)
+    (win::screenToClient target topleft)
 #+acl86win32
-    (cg::screenToClient target botright)
-      (let ((wleft #+aclpc (ct:cref win:rect wrect win:left) 
-                   #+acl86win32 (ct:cref win:point topleft win:x))
-            (wtop #+aclpc (ct:cref win:rect wrect win:top)
-                  #+acl86win32 (ct:cref win:point topleft win:y))
-            (wright #+aclpc (ct:cref win:rect wrect win:right)
-                    #+acl86win32 (ct:cref win:point botright win:x)) 
-            (wbottom #+aclpc (ct:cref win:rect wrect win:bottom)
-                     #+acl86win32 (ct:cref win:point botright win:y)))      
+    (win::screenToClient target botright)
+      (let ((wleft #+aclpc (ct::cref win::rect wrect win::left) 
+                   #+acl86win32 (ct::cref win::point topleft win::x))
+            (wtop #+aclpc (ct::cref win::rect wrect win::top)
+                  #+acl86win32 (ct::cref win::point topleft win::y))
+            (wright #+aclpc (ct::cref win::rect wrect win::right)
+                    #+acl86win32 (ct::cref win::point botright win::x)) 
+            (wbottom #+aclpc (ct::cref win::rect wrect win::bottom)
+                     #+acl86win32 (ct::cref win::point botright win::y)))      
          (values (coordinate wleft) (coordinate wtop)
             (coordinate wright) (coordinate wbottom)))))
 
@@ -497,7 +498,7 @@
       ;; rl: +++kludge, why doesn't it know the size of the menu bar
       ;;     in the first pass?, so add 19 for now
       (win::setWindowPos (sheet-mirror sheet)
-		      (ct::null-handle win:hwnd) ; we really want win:HWND_TOP
+		      (ct::null-handle win::hwnd) ; we really want win::HWND_TOP
 		      pldl
 		      ptdt
 		      (+ (- right left) dw)
@@ -509,20 +510,20 @@
 			 #+ignore 
 			 (if (and (minusp ptdt) (> ptdt -30)) 19 0))
 		      (logior
-		       win:swp_noactivate
-		       win:swp_nozorder)))))
+		       win::swp_noactivate
+		       win::swp_nozorder)))))
 
 ;;; unspecialized (not top)
 (defmethod set-sheet-mirror-edges* ((port acl-port) sheet
 				    left top right bottom)
   (fix-coordinates left top right bottom)
   (win::setWindowPos (sheet-mirror sheet)
-		    (ct::null-handle win:hwnd) ; we really want win:HWND_TOP
+		    (ct::null-handle win::hwnd) ; we really want win::HWND_TOP
 		    left top
 		    (- right left)
 		    (- bottom top)
-		    (logior win:swp_noactivate
-			    win:swp_nozorder)))
+		    (logior win::swp_noactivate
+			    win::swp_nozorder)))
 
 (defmethod set-sheet-mirror-edges* :around ((port acl-port)
 					     sheet 
@@ -540,7 +541,8 @@
 (defun mirror->sheet (port mirror)
   (cdr (assoc mirror *port-mirror-sheet-alist* 
              :test #+aclpc #'equal
-                   #+acl86win32 #'(lambda (x y)
+				   #+acl86win32 #'equal
+                   #+acl86win32x #'(lambda (x y)
                               #||(format t "comparing x=~a y=~a same=~a~%"
                                 x y (and (and (typep x 'cg::lhandle)
                                               (typep y 'cg::lhandle))
@@ -599,7 +601,7 @@
 	  #+ignore
 	  (multiple-value-bind (left top right bottom)
 	      (mirror-native-edges* acl-clim::*acl-port* sheet)
-	    (let ((dc (win:GetDc mirror)))
+	    (let ((dc (win::GetDc mirror)))
 	      (win::DrawIcon dc 0 0 *clim-icon*)
-	      (win:releaseDC mirror dc)))
+	      (win::releaseDC mirror dc)))
 	  )))))

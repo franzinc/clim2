@@ -1,4 +1,4 @@
-#+acl86win32
+#+(and :allegro :microsoft-32)
 (eval-when (compile load eval) (push :acl86win32 *features*))
 
 #+acl86win32
@@ -12,7 +12,7 @@
 
 ;;;+++
 #+acl86win32
-(setq *climpath* "u:\\customer\\franz\\clim22m\\clim2\\")
+(setq *climpath* "u:\\customer\\franz\\clim22f\\clim2\\")
 #+acl86win32
 (defun climpath (sub) (merge-pathnames sub *climpath*))
 ;;;+++
@@ -70,11 +70,12 @@
 
 (in-package "CLIM-USER")
 
-#+acl86win32
+#+acl86win32x
 (setq mp::*default-process-quantum* 0.6)
 
 (defun run-tests ()
   (let ((frame (make-application-frame 'clim-tests)))
     (raise-frame frame)
     (run-frame-top-level frame)))
+
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/silica/db-button.lisp,v 1.21 1997/02/05 01:50:43 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/silica/db-button.lisp,v 1.22 1997/04/24 19:51:16 tomj Exp $
 
 "Copyright (c) 1991, 1992 by Symbolics, Inc.  All rights reserved.
  Portions copyright (c) 1990, 1991 International Lisp Associates."
@@ -1005,7 +1005,12 @@ toggle button base. This way they can share the draw code.
   (let ((old-selection (radio-box-current-selection client)))
     (when (and old-selection
                (not (eq selection old-selection)))
-      (setf (gadget-value old-selection :invoke-callback t) nil)))
+    #+(or aclpc acl86win32)
+	(when (eq value t) (setf (radio-box-current-selection client) selection))
+	(setf (gadget-value old-selection :invoke-callback t) nil))
+    #+(or aclpc acl86win32)
+    (when (and old-selection (eq selection old-selection) (null value))
+      (setf (gadget-value old-selection :invoke-callback t) t)))
   (call-next-method))
 
 (defmethod handle-event :after ((pane radio-box-pane) (event pointer-event))

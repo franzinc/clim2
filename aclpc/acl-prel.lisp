@@ -148,7 +148,8 @@
                 )	; style
 	     0 0 0 0
 	     parent
-	     (let ((hmenu (ccallocate hmenu)))
+	     #+acl86win32 (ct::null-handle win::hmenu)
+         #-acl86win32 (let ((hmenu (ccallocate hmenu)))
 	       (setf (handle-value hmenu hmenu) id)
 	       ; (or id (next-child-id parent))
 	       hmenu)
@@ -163,10 +164,10 @@
            (SetWindowPos hwnd (null-handle hwnd) 
                          left top width 250 ;height
                          0 ;#.(ilogior SWP_NOACTIVATE SWP_NOZORDER)
-                         :static)
+                         #-acl86win32 :static)
            (let* ((index -1)
                   (item-name "")
-                  (cstr (ct:callocate (:char *) :size 256))
+                  (cstr (ct::callocate (:char *) :size 256))
                   (subsize 0))
              (dolist (item items)
                (setf item-name
@@ -225,7 +226,8 @@
 		  WS_CLIPSIBLINGS)	; style
 	     0 0 0 0
 	     parent
-	     (let ((hmenu (ccallocate hmenu)))
+	     #+acl86win32 (ct::null-handle win::hmenu)
+         #-acl86win32 (let ((hmenu (ccallocate hmenu)))
 	       (setf (handle-value hmenu hmenu) id)
 	       ; (or id (next-child-id parent))
 	       hmenu)
@@ -240,10 +242,10 @@
 		    (SetWindowPos hwnd (null-handle hwnd) 
 		       left top width height
 		       #.(ilogior SWP_NOACTIVATE SWP_NOZORDER)
-		       :static)
+		       #-acl86win32 :static)
 		    (let* ((index -1)
 			   (item-name "")
-			   (cstr (ct:callocate (:char *) :size 256))
+			   (cstr (ct::callocate (:char *) :size 256))
 			   (subsize 0))
 		      (dolist (item items)
 		        (setf item-name
@@ -332,7 +334,8 @@
 		   WS_CLIPSIBLINGS)	; style
 	   0 0 0 0
 	   parent
-	   (let ((hmenu (ccallocate hmenu)))
+	   #+acl86win32 (ct::null-handle win::hmenu)
+       #-acl86win32 (let ((hmenu (ccallocate hmenu)))
 	     (setf (handle-value hmenu hmenu) id)
 					; (or id (next-child-id parent))
 	     hmenu)
@@ -347,7 +350,7 @@
 	(SetWindowPos hwnd (null-handle hwnd) 
 		      left top width height
 		      #.(ilogior SWP_NOACTIVATE SWP_NOZORDER)
-		      :static)
+		      #-acl86win32 :static)
 	#+ignore (showWindow hwnd SW_SHOW)
 	(when value
 	  (win:sendmessage hwnd
@@ -383,7 +386,7 @@
 					   WS_CLIPSIBLINGS)	; style
 			   0 0 0 0
 			   parent
-			   (ct::null-handle win:hmenu)
+			   (ct::null-handle win::hmenu)
 			   *hinst*
 			   (symbol-name (gensym)))))
 	 (if (null-handle-p hwnd hwnd)
@@ -393,18 +396,26 @@
 		 (progn
 		   (if (stringp value)
 			   (pc::setWindowText hwnd (#+aclpc pc::lisp-string-to-scratch-c-string 
-										#+acl86win32 identity value)))
+										#+acl86win32 identity (silica::xlat-newline-return value))))
 		   ;; Override the default window proc.
-		   (progn
+		   (progn ;+++
+			 #+aclpc
 			 (setf (pc::cpointer-value acl-clim::std-ctrl-proc-address)
 				   (pc::GETWINDOWLONG hwnd WINDOWS::GWL_WNDPROC))
+			 #+acl86win32
+			 (setf acl-clim::std-ctrl-proc-address
+				   (pc::GETWINDOWLONG hwnd WINDOWS::GWL_WNDPROC))
+		     #+aclpc
 			 (pc::SETWINDOWLONG hwnd
 								WINDOWS::GWL_WNDPROC (pc::cpointer-value
-													   acl-clim::clim-ctrl-proc-address)))
+													   acl-clim::clim-ctrl-proc-address))
+             #+acl86win32
+			 (pc::SETWINDOWLONG hwnd
+								WINDOWS::GWL_WNDPROC acl-clim::clim-ctrl-proc-address))
 		   (SetWindowPos hwnd (null-handle hwnd) 
 						 left top width height
 						 #.(ilogior SWP_NOACTIVATE SWP_NOZORDER)
-						 :static)))
+						 #-acl86win32 :static)))
 	 hwnd))
 
 ;;; modestly doctored from pc package
@@ -531,7 +542,7 @@
 
 
 ;;; clipboard support
-
+#|| +++ broken (ct::callocate handle)
 (defconstant clphdata (ct::callocate handle))
 (defconstant clppdata (ct::callocate (:void *)))
 
@@ -562,6 +573,7 @@
 	      (shorten-vector string (strlen string))
 	      string))))
       (CloseClipboard))))
+||#
 
 ;;; about box support
 

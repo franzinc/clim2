@@ -12,6 +12,40 @@ Tests for new features:	<`no new features', `no tests for new features', or
 	* <changes go here...>
 
 *******************************************************************************
+Thu Apr 24 10:30:00 EST 1997  Paul Robertson <probertson@doll.com>
+
+	* aclpc/acl-pixmaps.lisp
+		- changed to support build on new ACL432 Beta
+	* aclpc/acl-frames.lisp
+		- changed to support build on new ACL432 Beta
+	* aclpc/acl-prel.lisp
+		- changed to support build on new ACL432 Beta
+	* aclpc/acl-widget.lisp
+		- changed to support build on new ACL432 Beta
+	* aclpc/acl-mirror.lisp
+		- changed to support build on new ACL432 Beta
+	* aclpc/acl-dc.lisp
+		- changed to support build on new ACL432 Beta
+	* aclpc/acl-medium.lisp
+		- changed to support build on new ACL432 Beta
+	* aclpc/acl-class.lisp
+		- changed to support build on new ACL432 Beta
+	* aclpc/acl-port.lisp
+		- changed to support build on new ACL432 Beta
+	* clim/command.lisp
+		- changed to support build on new ACL432 Beta
+	* silica/db-button.lisp
+		- changed to support build on new ACL432 Beta
+	* sys/sysdcl-pc.lisp
+		- changed to support build on new ACL432 Beta
+	* sys/recompile.lisp
+		- changed to support build on new ACL432 Beta
+	* sys/compile.lisp
+		- changed to support build on new ACL432 Beta
+	* sys/load.lisp
+		- changed to support build on new ACL432 Beta
+
+*******************************************************************************
 Fri Feb 14 15:27:21 PST 1997  Tom McClure  <tomj@romeo>
 
 	* aclpc/acl-widget.lisp

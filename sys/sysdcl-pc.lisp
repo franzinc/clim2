@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/sys/sysdcl-pc.lisp,v 1.1 1997/02/05 01:51:51 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/sys/sysdcl-pc.lisp,v 1.2 1997/04/24 19:51:22 tomj Exp $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :cl-user)
 
@@ -132,7 +132,7 @@
   ("packages")
   ("coral-char-bits" :features CCL-2)
   ("defun-utilities") ;; extract-declarations and friends
-  ("defun" :features (or Genera aclpc acl86win32 (not ANSI-90)))
+  ("defun" :features (or Genera aclpc #||acl86win32||# (not ANSI-90)))
   ("reader")
   ("clos-patches")
   ("clos")

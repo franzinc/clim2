@@ -48,7 +48,7 @@
   solid-1-pen
   (pen-table (make-hash-table))
   brush
-  (rop2 win:r2_copypen)
+  (rop2 win::r2_copypen)
   text-color
   background-color)
 
@@ -57,13 +57,13 @@
   (unless (win::iswindow *current-window*)
     (error "No Window: ~S" *current-window*))
   ;; Stock objects
-  (setf *null-pen* (win::getStockObject win:null_pen))
-  (setf *black-pen* (win::getStockObject win:black_pen))
-  (setf *white-pen* (win::getStockObject win:white_pen))
+  (setf *null-pen* (win::getStockObject win::null_pen))
+  (setf *black-pen* (win::getStockObject win::black_pen))
+  (setf *white-pen* (win::getStockObject win::white_pen))
   
-  (setf *null-brush* (win::getStockObject win:null_brush))
-  (setf *black-brush* (win::getStockObject win:black_brush))
-  (setf *white-brush* (win::getStockObject win:white_brush))
+  (setf *null-brush* (win::getStockObject win::null_brush))
+  (setf *black-brush* (win::getStockObject win::black_brush))
+  (setf *white-brush* (win::getStockObject win::white_brush))
 
 ;  (clrhash *color-to-image*)
 ;  (clrhash *ink-to-image*)
@@ -79,7 +79,7 @@
   (setf *blank-image*
 	(make-dc-image :solid-1-pen *black-pen* :brush *black-brush*
 		       :text-color #x000000 :background-color nil
-		       :rop2 win:r2_nop ))
+		       :rop2 win::r2_nop ))
   (setq *dc-initialized* t)
   )
 
@@ -98,14 +98,36 @@
     (win::deleteObject *created-tile*)
     (setq *created-tile* nil))
   (when *created-region*
-    (win::selectObject dc (ct::null-handle win:hrgn))
+    (win::selectObject dc (ct::null-handle win::hrgn))
     (win::deleteObject *created-region*)
     (setq *created-region* nil))
   (when (and *created-font* *original-font*)
     (win::selectObject dc *original-font*)
     (win::deleteObject *created-font*)
     (setq *created-font* nil))     
+  (when (and *created-bitmap* *original-bitmap*)
+    (win::selectObject dc *original-bitmap*)
+	(note-destroyed *created-bitmap*)
+    (win::deleteObject *created-bitmap*)
+    (setq *created-bitmap* nil))
+  (dolist (xtra *extra-objects*)
+	(note-destroyed xtra)
+	(win::deleteObject xtra))
+  (setq *extra-objects* nil)
   (win::releaseDc window dc))
+
+(defvar *note-created* ())
+
+(defvar *extra-objects* nil)
+
+(defun note-created (kind obj)
+  #+ignore (push (cons obj kind)  *note-created*)
+  obj)
+
+(defun note-destroyed (obj)
+  #+ignore (setf *note-created* (delete obj *note-created* :key #'car))
+  obj)
+
 
 (defclass acl-pixmap (pixmap)
     ((bitmap :initarg :bitmap)
@@ -170,7 +192,7 @@
        ,@body)
      (win::selectObject ,cdc *original-bitmap*)
      (when (and *created-bitmap*
-		(not (ct::null-handle-p win:hbitmap *created-bitmap*)))
+		(not (ct::null-handle-p win::hbitmap *created-bitmap*)))
        (win::deleteObject *created-bitmap*)
        )
      (setf *created-bitmap* nil)
@@ -185,11 +207,13 @@
 	 (pen (when (= code 1) (dc-image-solid-1-pen image))))
     (declare (fixnum thickness code))
     (unless pen
+	  (when *created-pen*
+		(push *created-pen* *extra-objects*))
       (setq pen
 	    (setq *created-pen*
-	          (win::createPen (if dashes win:ps_dash win:ps_solid)
+	          (note-created 'pen (win::createPen (if dashes win::ps_dash win::ps_solid)
 			         thickness
-			         (dc-image-text-color image)))))
+			         (dc-image-text-color image))))))
     (win::selectObject dc pen)
     ; (when dashes (win::setBkColor dc ???)) 
     ; might want to setBkColor to textcolor of background-DC-image
@@ -214,36 +238,38 @@
 
 (defun set-cdc-for-pattern (dc medium ink line-style)
   (let ((image (dc-image-for-ink medium ink))
-	size)
-    (when (typep ink 'pattern)
-      (multiple-value-bind (array designs)
-	(decode-pattern ink)
-	(setf size (length designs)))
-      (setf *created-bitmap* (dc-image-bitmap image))
-      (if (or (not *created-bitmap*)
-	      (ct::null-handle-p win:hbitmap *created-bitmap*)
-	      (ct::null-handle-p win:hdc dc))
-        (cerror "Continue" "No Bitmap or no DC!!")
-        (progn
-	  (setf *original-bitmap* (win::selectObject dc *created-bitmap*))
-	  ))
-      (unless (> size 2)
-	(let ((background-color (dc-image-background-color image))
-	      (text-color (dc-image-text-color image)))
-	  (when background-color
-	    (win::setBkColor dc background-color))
-	  (when text-color
-	    (win::setTextColor dc text-color)))
-	(win::setRop2 dc (dc-image-rop2 image))))
-    #+ignore
-    (format *terminal-io* "~%Size: ~S ~S" size designs)
-    (if (> size 2) win:srccopy win:notsrccopy)))
+		size)
+	(when (typep ink 'pattern)
+	  (multiple-value-bind (array designs)
+						   (decode-pattern ink)
+						   (setf size (length designs)))
+	  (setf *created-bitmap* (dc-image-bitmap image))
+	  (cond
+		((or (not *created-bitmap*)
+			 (ct::null-handle-p win::hbitmap *created-bitmap*))
+		 (format *terminal-io* "No bitmap (~s) ~%" *created-bitmap*))
+		
+		((ct::null-handle-p win::hdc dc)
+		 (format *terminal-io* "No DC (~s) ~%" dc))
+		(t
+		  (setf *original-bitmap* (win::selectObject dc *created-bitmap*))))
+	  (unless (> size 2)
+		(let ((background-color (dc-image-background-color image))
+			  (text-color (dc-image-text-color image)))
+		  (when background-color
+			(win::setBkColor dc background-color))
+		  (when text-color
+			(win::setTextColor dc text-color)))
+		(win::setRop2 dc (dc-image-rop2 image))))
+	#+ignore
+	(format *terminal-io* "~%Size: ~S ~S" size designs)
+	(if (> size 2) win::srccopy win::notsrccopy)))
 
 (defun set-dc-for-text (dc medium ink font)
   (let* ((image (dc-image-for-ink medium ink))
 	 (background-color (dc-image-background-color image))
 	 (oldfont (win::selectObject dc font)))
-    (win::setBkMode dc win:transparent)
+    (win::setBkMode dc win::transparent)
     (win::setTextColor dc (dc-image-text-color image))
     (when background-color
       (win::setBkColor dc background-color))

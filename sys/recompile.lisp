@@ -8,7 +8,7 @@
 ;;; sys\sysdcl.lisp file.
 
 ;;;+++
-(setq *climpath* "u:/customer/franz/clim22m/clim2/")
+(setq *climpath* "i:/customer/franz/clim22f/clim2/")
 (defun climpath (sub) (merge-pathnames sub *climpath*))
 ;;;+++
 

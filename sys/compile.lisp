@@ -17,7 +17,7 @@
 
 ;;;+++
 #+acl86win32
-(setq *climpath* "u:\\customer\\franz\\clim22m\\clim2\\")
+(setq *climpath* "u:\\customer\\franz\\clim22f\\clim2\\")
 #+acl86win32
 (defun climpath (sub) (merge-pathnames sub *climpath*))
 ;;;+++
@@ -32,7 +32,6 @@
   (unless (and fsl-file-date
 	       (>= fsl-file-date (file-write-date defsys-path)))
     (compile-file defsys-path)))
-
 #+aclpc
 (load (climpath "sys\\defsystem.fsl"))
 #+acl86win32
@@ -103,4 +102,13 @@
 
 (clim-defsystem:load-system "postscript-clim")
 
+(in-package "CLIM-USER")
+
+#+acl86win32x
+(setq mp::*default-process-quantum* 0.6)
+
+(defun run-tests ()
+  (let ((frame (make-application-frame 'clim-tests)))
+    (raise-frame frame)
+    (run-frame-top-level frame)))
 

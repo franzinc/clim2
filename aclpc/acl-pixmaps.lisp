@@ -28,16 +28,28 @@
 	      (rtop (min from-y to-y))
 	      (rright (+ (max from-x to-x) width))
 	      (rbottom (+ (max from-y to-y) height)))
-          (let ((scrollrect (ct:callocate win:rect win:left rleft
-                                                   win:top rtop 
-				                   win:right rright
-						   win:bottom rbottom))
-                (cliprect (ct:callocate win:rect win:left rleft
-                                                 win:top rtop 
-						 win:right rright
-						 win:bottom rbottom)))
+          (let ((scrollrect (ct::callocate win::rect
+                              ; win::left rleft 
+                              ; win::top rtop 
+                              ; win::right rright
+						      ; win::bottom rbottom
+                             ))
+                (cliprect (ct::callocate win::rect 
+                              ; win::left rleft
+                              ; win::top rtop 
+						      ; win::right rright
+						      ; win::bottom rbottom
+                             )))
+            (setf (ct::cref win::rect scrollrect win::left) rleft)
+            (setf (ct::cref win::rect cliprect win::left) rleft)
+            (setf (ct::cref win::rect scrollrect win::top) rtop)
+            (setf (ct::cref win::rect cliprect win::top) rtop)
+            (setf (ct::cref win::rect scrollrect win::right) rright)
+            (setf (ct::cref win::rect cliprect win::right) rright)
+            (setf (ct::cref win::rect scrollrect win::bottom) rbottom)
+            (setf (ct::cref win::rect cliprect win::bottom) rbottom)
             (win::scrollDc dc (- to-x from-x) (- to-y from-y)
-		          scrollrect cliprect (ct::null-handle win:hrgn)
+		          scrollrect cliprect (ct::null-handle win::hrgn)
 			  null)
 		      )))))))
 
@@ -64,9 +76,9 @@
 	   ((eq bop boole-andc2) #x440328) ; srcerase
 	   ((eq bop boole-orc1)  #xbb0226) ; mergepaint 
 	   ((eq bop boole-orc2)  #xdd0228) ;
-	   (t win:srccopy)
+	   (t win::srccopy)
 	   ))
-        (winop (ct:ccallocate :long)))
+        (winop (ct::ccallocate :long)))
      #+aclpcx (ct::%set-long winop 4 0 val)
      #+aclntx (setf (cg::word-vector-long-ref *win-result* 0) val)
      #+ignore

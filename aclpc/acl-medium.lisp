@@ -12,6 +12,8 @@
 
 (in-package :acl-clim)
 
+#+acl86win32 (defvar null 0)
+
 (defclass acl-medium (basic-medium)
     ((background-dc-image)
      (foreground-dc-image)))
@@ -146,8 +148,13 @@
 	((#x000000) *black-image*)
 	((#xffffff) *white-image*)
 	(otherwise
-	  (let ((pen (win::createPen win:ps_solid 1 color))
-		(brush (win::createSolidBrush color)))
+	  (let ((pen (note-created 'pen (win::createPen win::ps_solid 1 color)))
+		(brush (note-created 'brush (win::createSolidBrush color))))
+		  (when *created-pen*
+			;(note-destroyed *created-pen*)
+			;(win::selectObject dc *white-pen*)
+			;(win::deleteObject dc *created-pen*)
+			(push *created-pen* *extra-objects*))
 	    (setf *created-pen* pen *created-brush* brush)
 	    (make-dc-image :solid-1-pen pen
 			   :brush brush
@@ -214,7 +221,7 @@
     (setf *bitmap-array* into)
     (let ((bitmap (acl-clim::get-texture
 		    *the-dc*
-		    ; (pc::null-handle win:hdc)
+		    ; (pc::null-handle win::hdc)
 		    into designs)))	
       (setf (dc-image-bitmap dc-image) bitmap
 	    *created-bitmap* bitmap)
@@ -257,54 +264,54 @@
 
 (defmethod dc-image-for-ink (medium (ink pattern))
   (multiple-value-bind (array designs)
-					   (decode-pattern ink)
-					   (setq array (re-order-hack array))
-					   (unless (= (length designs) 2)
-						 (return-from dc-image-for-ink
-									  (dc-image-for-multi-color-pattern
-										medium array designs)))
-					   (let* ((dc-image (copy-dc-image
-										  (slot-value medium 'foreground-dc-image)))
-							  ;; let's no try and use the color stuff yet because it
-							  ;; shows up bugs requiring hacks in the bbn code (cim 9/13/96)
-							  (nocolor t
-									   #+notyet
-									   (and (eq (aref designs 0) +background-ink+)
-											(eq (aref designs 1) +foreground-ink+)))
-							  (tcolor (unless nocolor
-										(color->wincolor (aref designs 1))))
-							  (bcolor (unless nocolor 
-										(color->wincolor (aref designs 0))))
-							  (width (array-dimension array 1))
-							  (height (array-dimension array 0))
-							  (dim1 (* (ceiling width 32) 32)) 
-							  (into
-								(make-array (list height dim1)
-											:element-type 'bit
-											:initial-element 0)))
-						 (dotimes (i height)
-						   (dotimes (j width)
-							 (setf (aref into i j)  ;;; vector: (+ (* i dim1) j)
-								   (if (zerop (aref array i j))
-									   0
-									   1))))
-						 (setf *bitmap-array* into)
-						 (let ((bitmap
-								 (win::createBitmap dim1 height 1 1
-													#+aclpc (acl::%get-pointer into 4 0)
-													#+acl86win32 into
-													;;;  %kernel-arhvec = 4
-													)))	
-						   (setf (dc-image-bitmap dc-image) bitmap
-								 *created-bitmap* bitmap)
-						   (setf (dc-image-background-color dc-image)
-								 (if nocolor
-									 (dc-image-text-color
-									   (slot-value medium 'background-dc-image))
-									 bcolor))
-						   (if tcolor (setf (dc-image-text-color dc-image) tcolor))
-						   )
-						 dc-image)))
+    (decode-pattern ink)
+	(setq array (re-order-hack array))
+	(unless (= (length designs) 2)
+	  (return-from dc-image-for-ink
+				   (dc-image-for-multi-color-pattern
+					 medium array designs)))
+	(let* ((dc-image (copy-dc-image
+					   (slot-value medium 'foreground-dc-image)))
+		   ;; let's no try and use the color stuff yet because it
+		   ;; shows up bugs requiring hacks in the bbn code (cim 9/13/96)
+		   (nocolor t
+					#+notyet
+					(and (eq (aref designs 0) +background-ink+)
+						 (eq (aref designs 1) +foreground-ink+)))
+		   (tcolor (unless nocolor
+					 (color->wincolor (aref designs 1))))
+		   (bcolor (unless nocolor 
+					 (color->wincolor (aref designs 0))))
+		   (width (array-dimension array 1))
+		   (height (array-dimension array 0))
+		   (dim1 (* (ceiling width 32) 32)) 
+		   (into
+			 (make-array (list height dim1)
+						 :element-type 'bit
+						 :initial-element 0)))
+	  (dotimes (i height)
+		(dotimes (j width)
+		  (setf (aref into i j)  ;;; vector: (+ (* i dim1) j)
+				(if (zerop (aref array i j))
+					0
+					1))))
+	  (setf *bitmap-array* into)
+	  (let ((bitmap
+			  (note-created 'bitmap (win::createBitmap dim1 height 1 1
+								 #+aclpc (acl::%get-pointer into 4 0)
+								 #+acl86win32 into
+								 ;;;  %kernel-arhvec = 4
+								 ))))	
+		(setf (dc-image-bitmap dc-image) bitmap
+			  *created-bitmap* bitmap)
+		(setf (dc-image-background-color dc-image)
+			  (if nocolor
+				  (dc-image-text-color
+					(slot-value medium 'background-dc-image))
+				  bcolor))
+		(if tcolor (setf (dc-image-text-color dc-image) tcolor))
+		)
+	  dc-image)))
 
 (defmethod dc-image-for-ink (medium (ink rectangular-tile))
   ;; The only case we handle right now is stipples
@@ -324,10 +331,10 @@ stipples are not supported yet."))
 	  (setf (aref into i j)
 		(logand 1 (lognot (aref array (mod i height)
 			      (mod j width)))))))
-      (let* ((bitmap (win::createBitmap bmdim bmdim 1 1
+      (let* ((bitmap (note-created 'bitmap (win::createBitmap bmdim bmdim 1 1
 				       #+acl86win32 into
-                                       #+aclpc (acl::%get-pointer into 4 0)))
-	     (brush (win::createPatternBrush bitmap)))
+                                       #+aclpc (acl::%get-pointer into 4 0))))
+	     (brush (note-created 'brush (win::createPatternBrush bitmap))))
 	(setf (dc-image-brush dc-image) brush
 	      *created-brush* brush)
 	(setf *created-tile* bitmap)
@@ -343,17 +350,22 @@ stipples are not supported yet."))
 	   (image2 (dc-image-for-ink medium ink2))
 	   (color (logxor (dc-image-text-color image1)
 			  (dc-image-text-color image2))))
-      (unless (and (eql (dc-image-rop2 image1) win:r2_copypen)
-		   (eql (dc-image-rop2 image2) win:r2_copypen)
+      (unless (and (eql (dc-image-rop2 image1) win::r2_copypen)
+		   (eql (dc-image-rop2 image2) win::r2_copypen)
 		   (null (dc-image-bitmap image1))
 		   (null (dc-image-bitmap image2)))
 	(nyi))
-      (let ((pen (win::createPen win:ps_solid 1 color))
-	    (brush (win::createSolidBrush color)))
+      (let ((pen (note-created 'pen (win::createPen win::ps_solid 1 color)))
+	    (brush (note-created 'brush (win::createSolidBrush color))))
+	   (when *created-pen*
+		 ;(note-destroyed *created-pen*)
+		 ;(win::selectObject dc *white-pen*)
+		 ;(win::deleteObject dc *created-pen*)
+		 (push *created-pen* *extra-objects*))
 	(setf *created-pen* pen *created-brush* brush)
 	(make-dc-image :solid-1-pen pen
 		       :brush brush
-		       :rop2 win:r2_xorpen
+		       :rop2 win::r2_xorpen
 		       :text-color color :background-color nil)))))
 
 (defmethod dc-image-for-ink (medium (ink contrasting-ink))
@@ -498,7 +510,8 @@ stipples are not supported yet."))
 	       (length (length position-seq))
 	       (numpoints (floor length 2))
 	       (extra (and closed line-style))
-	       (point-vector (ct:ccallocate (win:point 256)))) ;  limit?
+	       #-acl86win32 (point-vector (ct::ccallocate (win::point 256)))
+           #+acl86win32 (point-vector (ct::callocate (:long *) :size 512))) ;  limit?
 	  ;; These really are fixnums, since we're fixing coordinates below
 	  ; (declare (type fixnum minx miny))
 	  (with-stack-array (points (if extra (+ length 2) length))
@@ -509,14 +522,23 @@ stipples are not supported yet."))
 		((>= i length))
 	      (let ((x (svref points i))
 		    (y (svref points (1+ i)))
-		    (pstruct (ct:callocate win:point)))
+		    #-acl86win32 (pstruct (ct::callocate win::point)))
 		(convert-to-device-coordinates transform x y)
-		(ct::csets win:point pstruct win:x x win:y y)
-		(ct:cset (win:point 256)
+		#-acl86win32 (ct::csets win::point pstruct win::x x win::y y)
+		#-acl86win32 (ct::cset (win::point 256)
 			 point-vector ((fixnum j)) pstruct)
-		(if (and (= j 0) extra)
-		  (ct:cset (win:point 256) 
-			   point-vector ((fixnum numpoints)) pstruct)))))
+        #+acl86win32 
+        (ct::cset (:long 512) point-vector ((fixnum (* j 2))) x)
+        #+acl86win32 
+        (ct::cset (:long 512) point-vector ((fixnum (+ 1 (* j 2)))) y)
+		(when (and (= j 0) extra)
+		  #-acl86win32 (ct::cset (win::point 256) 
+			   point-vector ((fixnum numpoints)) pstruct)
+          #+acl86win32 
+          (ct::cset (:long 512) point-vector ((fixnum (* numpoints 2))) x)
+          #+acl86win32 
+          (ct::cset (:long 512) point-vector ((fixnum (+ 1 (* numpoints 2)))) y)
+        ))))
 	  (if (or (typep ink 'pattern) (typep ink 'rectangular-tile))
 	    (if (null line-style)
 	      (let ((*the-dc* dc)
@@ -529,8 +551,8 @@ stipples are not supported yet."))
 	      (set-dc-for-ink dc medium +foreground-ink+ line-style))	    
 	    (set-dc-for-ink dc medium ink line-style))
 	  (if (null line-style)
-	    (win:polygon dc point-vector numpoints)
-	    (win:polyline dc
+	    (win::polygon dc point-vector numpoints)
+	    (win::polyline dc
 			  point-vector
 			  (if (and closed line-style)
 			    (+ numpoints 1)
@@ -592,7 +614,7 @@ stipples are not supported yet."))
 		     (and (= start-angle 0)
 			  (= end-angle 2pi))
 		     ;; drawing a full ellipse
-		     (win:ellipse dc left top right bottom))
+		     (win::ellipse dc left top right bottom))
 		    ((null line-style)
 		     ;; drawing a pie slice
 		     (win::pie
@@ -642,10 +664,10 @@ stipples are not supported yet."))
 	      (incf towards-y y-adjust)))
 	  (decf y ascent)	;text is positioned by its top left on acl
 	  (set-dc-for-text dc medium ink (acl-font-index font))
-          (let ((cstr (ct:callocate (:char *) :size 256))
+          (let ((cstr (ct::callocate (:char *) :size 256))
 		(subsize (length substring)))
 	    (dotimes (i subsize)
-	      (ct:cset (:char 256) cstr ((fixnum i))
+	      (ct::cset (:char 256) cstr ((fixnum i))
 		       (char-int (char substring i))))
 	    (win::textOut dc x y cstr (length substring))))))))))
 
@@ -677,8 +699,8 @@ stipples are not supported yet."))
 	    (incf towards-y y-adjust)))
 	(decf y ascent)				;text is positioned by its top left on acl
 	(set-dc-for-text dc medium ink (acl-font-index font))
-        (let ((cstr (ct:callocate (:char *) :size 2)))
-	  (ct:cset (:char 2) cstr 0 (char-int char))
+        (let ((cstr (ct::callocate (:char *) :size 2)))
+	  (ct::cset (:char 2) cstr 0 (char-int char))
 	  (win::textOut dc x y cstr 1))))))))
 
 (defmethod medium-draw-text* ((medium acl-medium)
@@ -752,7 +774,7 @@ stipples are not supported yet."))
        (acl-font-maximum-character-width font))))
 
 (defmethod medium-beep ((medium acl-medium))
-  (win::messageBeep win:MB_OK))
+  (win::messageBeep win::MB_OK))
 
 (defmethod medium-force-output ((medium acl-medium))
   )

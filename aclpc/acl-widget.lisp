@@ -26,17 +26,17 @@
 					 (gadget acl-gadget-id-mixin))
   (let (m)
     (when (setq m (sheet-direct-mirror gadget))
-      (win::enablewindow m t))))
+      (win::enablewindow m #+acl86win32 1 #-acl86win32 t))))
 
 (defmethod note-gadget-deactivated :after ((client t)
 					   (gadget acl-gadget-id-mixin))
   (let (m)
     (when (setq m (sheet-direct-mirror gadget))
-      (win::enablewindow m nil))))
+      (win::enablewindow m #+acl86win32 0 #-acl86win32 nil))))
 
 
 
-acl-gadget-id-mixin   
+;;;acl-gadget-id-mixin   
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; list panes
@@ -294,7 +294,7 @@ acl-gadget-id-mixin
 (defmethod handle-event ((pane mswin-text-edit) (event key-press-event))
   (let ((mirror (sheet-direct-mirror pane)))
     ;; Give up the focus
-    (win::setfocus (win::getactivewindow) :static)))
+    (win::setfocus (win::getactivewindow) #-acl86win32 :static)))
 
 (defmethod handle-event ((pane mswin-text-edit) (event window-change-event))
   (let ((mirror (sheet-direct-mirror pane)))
@@ -305,12 +305,29 @@ acl-gadget-id-mixin
     (cerror "do it" "about to set value ~a to ~a" (gadget-value pane) pane)
     (setf (gadget-value pane :invoke-callback t) (gadget-value pane))))
 
+(defun xlat-newline-return (str)
+  (let* ((subsize (length str))
+		 (nnl (let ((nl 0))
+				(dotimes (i subsize)
+				  (if (char= (char str i) #\Newline) (incf nl)))
+				nl))
+		 (cstr (ct::callocate (:char *) :size (+ 1 nnl subsize)))
+		 (pos 0))
+	(dotimes (i subsize)
+	  (when (char= (char str i) #\Newline)
+		(ct::cset (:char 256) cstr ((fixnum pos)) (char-int #\Return))
+		(incf pos))
+	  (ct::cset (:char 256) cstr ((fixnum pos)) (char-int (char str i)))
+	  (incf pos))
+	(ct::cset (:char 256) cstr ((fixnum pos)) (char-int #\NULL))
+	cstr))
+  
 (defmethod (setf gadget-value) :after (str (pane mswin-text-edit) &key invoke-callback)
   (with-slots (mirror value) pane
     (setq value str)			; Moved outside conditional - smh 26Nov96
     (when mirror
       (pc::setWindowText mirror (#+aclpc pc::lisp-string-to-scratch-c-string 
-                                 #+acl86win32 identity str))
+                                 #+acl86win32 identity (xlat-newline-return str)))
       ;; I wonder whether this avoidance of the callback is really correct,
       ;; or whether it was a quick workaround for bad control structure elsewhere.
       ;; It could be causing some of our ds problems, but I'm not changing it
@@ -333,7 +350,7 @@ acl-gadget-id-mixin
 (defmethod gadget-value ((pane mswin-text-edit))
   (with-slots (mirror value) pane
     (if mirror				; else clause added - smh 26Nov96
-      (let* ((wl (win::SendMessage mirror win::WM_GETTEXTLENGTH 0 0 :static))
+      (let* ((wl (win::SendMessage mirror win::WM_GETTEXTLENGTH 0 0 #-acl86win32 :static))
 	     (teb (make-string wl))
 	     (tlen (win::GetWindowText mirror teb (1+ wl))))
         (setf value teb)
@@ -345,7 +362,7 @@ acl-gadget-id-mixin
 (defmethod gadget-value ((pane mswin-text-edit))
   (with-slots (mirror) pane
     (when mirror
-      (let* ((wl (win::SendMessage mirror win::WM_GETTEXTLENGTH 0 0 :static))
+      (let* ((wl (win::SendMessage mirror win::WM_GETTEXTLENGTH 0 0 #-acl86win32 :static))
 	     (teb (make-string wl))
 	     (tlen (win::GetWindowText mirror teb (1+ wl))))
 	(values teb tlen)))))
@@ -451,7 +468,32 @@ acl-gadget-id-mixin
       (when selected
 	(incf x)
 	(incf y))
-      (win::DrawEdge (pc::handle-value win::hdc hdc)
+      (win::DrawEdge #+aclpc (pc::handle-value win::hdc hdc) #+acl86win32 hdc
+		     rect 
+		     (if selected
+			 win::BDR_SUNKEN
+		       win::BDR_RAISED)
+		     (+ win::BF_RECT win::BF_MIDDLE))
+      (win::bitblt hdc x y width height (acl-clim::pixmap-cdc pixmap) 0 0
+		   (acl-clim::bop->winop op))
+      #+ignore
+      (with-sheet-medium (medium pane)
+	(draw-pixmap* medium pixmap x y)))))
+
+(defmethod draw-picture-button ((pane hbutton-pane) state hdc rect)
+  (multiple-value-bind (bwidth bheight)
+      (bounding-rectangle-size pane)
+    (let* ((pixmap (slot-value pane 'pixmap))
+	   (op (slot-value pane 'raster-op))
+	   (width (pixmap-width pixmap))
+	   (height (pixmap-height pixmap))
+	   (x (floor (- bwidth width) 2))
+	   (y (floor (- bheight height) 2))
+	   (selected (logtest state win::ods_selected)))
+      (when selected
+	(incf x)
+	(incf y))
+      (win::DrawEdge #+aclpc (pc::handle-value win::hdc hdc) #+acl86win32 hdc
 		     rect 
 		     (if selected
 			 win::BDR_SUNKEN
@@ -524,7 +566,8 @@ acl-gadget-id-mixin
 			mirrored-sheet-mixin 
 			toggle-button 
 			button-pane-mixin)
-    ((pixmap :initform nil))
+    ((pixmap :initform nil)
+     (raster-op :initform *default-picture-button-op* :initarg :raster-op))
   (:default-initargs :label nil
 		     :indicator-type ':one-of
 		     ;; We no longer want this as it overrides the the
@@ -595,7 +638,7 @@ acl-gadget-id-mixin
   (with-slots (mirror) pane
     (when mirror
       ;;(break "About to set value of ~a to ~a." pane value)
-      (win::sendmessage mirror win::BM_SETCHECK (if value 1 0) 0 :static))))
+      (win::sendmessage mirror win::BM_SETCHECK (if value 1 0) 0 #-acl86win32 :static))))
 
 ;;; When items are set in an option-pane, the option-pane mirror must be
 ;;; made to update its appearance appropriately.
@@ -647,14 +690,14 @@ acl-gadget-id-mixin
 (defmethod (setf set-gadget-items) :after (items (pane hlist-pane))
   (with-slots (name-key mirror) pane
     (when mirror
-      (pc::SendMessage mirror pc::LB_RESETCONTENT 0 0 :static)
+      (pc::SendMessage mirror pc::LB_RESETCONTENT 0 0 #-acl86win32 :static)
       (dolist (item items)
 	(let ((str (pc::nstringify (funcall name-key item)))
 	      (pos (position item items)))
 	  ;;(break "insert gadget item [~a @ ~a]" str pos)
 	  (pc::SendMessage-with-pointer mirror pc::LB_INSERTSTRING pos str
 					:static :static)))
-      (pc::InvalidateRect mirror ct:hnull pc::true)))) ;; make sure it updates
+      (pc::InvalidateRect mirror ct::hnull pc::true)))) ;; make sure it updates
 
 
 ;;--- The idea is the the option pane itself is a pushbutton which, when
@@ -907,14 +950,14 @@ acl-gadget-id-mixin
 (defmethod (setf set-gadget-items) :after (items (pane mswin-combo-box-pane))
   (with-slots (name-key mirror) pane
     (when mirror
-      (pc::SendMessage mirror pc::CB_RESETCONTENT 0 0 :static)
+      (pc::SendMessage mirror pc::CB_RESETCONTENT 0 0 #-acl86win32 :static)
       (dolist (item items)
 	(let ((str (pc::nstringify (funcall name-key item)))
 	      (pos (position item items)))
 	  ;;(break "insert gadget item [~a @ ~a]" str pos)
 	  (pc::SendMessage-with-pointer mirror pc::CB_INSERTSTRING pos str
 					:static :static)))
-      (pc::InvalidateRect mirror ct:hnull pc::true)))) ;; make sure it updates
+      (pc::InvalidateRect mirror ct::hnull pc::true)))) ;; make sure it updates
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1033,7 +1076,9 @@ acl-gadget-id-mixin
       (throw 'exit-pull-down-menu (values)))))
 
 (defun winhandle-equal (x y)
-  (cond ((and (typep x 'cg::lhandle)
+  (cond (#+acl86win32 nil
+         #-acl86win32 
+         (and (typep x 'cg::lhandle)
               (typep y 'cg::lhandle))
          (eql (cg::lhandle-value x)
               (cg::lhandle-value y)))
@@ -1099,7 +1144,7 @@ acl-gadget-id-mixin
     ;; Wait for an event and then handle it
 
     ;; make sure that the pulldown has the focus
-    (win::setFocus mirror :static)
+    (win::setFocus mirror #-acl86win32 :static)
     (setf (acl-clim::acl-port-mirror-with-focus
             acl-clim::*acl-port*) mirror)
     
@@ -1125,7 +1170,7 @@ acl-gadget-id-mixin
 		    (handle-event (event-sheet event) event)))))))
       (disable-frame menu-frame))))
 
-;;;(win::setFocus (sheet-direct-mirror stream) :static)
+;;;(win::setFocus (sheet-direct-mirror stream) #-acl86win32 :static)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; slider fixes
