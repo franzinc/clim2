@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xm-gadgets.lisp,v 1.97.8.5 1999/01/11 17:58:00 layer Exp $
+;; $Id: xm-gadgets.lisp,v 1.97.8.6 1999/06/11 18:11:56 layer Exp $
 
 (in-package :xm-silica)
 
@@ -2115,7 +2115,7 @@
       ;;-- ignored too but there does not appear to be an easy way
       ;;-- of going from the osf name to the keysym that we need to ignore
       ;;--  osfMenuBar
-      (member (keyboard-event-key-name event) '(:f10 :tab))))
+      (member (keyboard-event-key-name event) '(:f10 #+ignore :tab))))
 
 
 ;; Support for help
