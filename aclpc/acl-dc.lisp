@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-dc.lisp,v 1.6 1998/08/06 23:15:41 layer Exp $
+;; $Id: acl-dc.lisp,v 1.7 1998/10/08 18:36:21 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -72,15 +72,18 @@
 (defvar *created-font* nil)
 (defvar *created-region* nil)
 
+;; Device context information
 (defstruct (dc-image (:predicate nil))
-  (bitmap nil)
-  solid-1-pen
-  ;; Hash table doesn't appear to be needed anymore. JPM Jan 98.
-  (pen-table nil #+obsolete (make-hash-table))
-  brush
-  (rop2 win:r2_copypen)
-  text-color
-  background-color)
+  (bitmapinfo nil)			; colors of unmasked bitmap
+  (bitmap nil)				; bits of unmasked bitmap
+  solid-1-pen				; style, width, and color of lines
+  brush					; color/stipple used to fill polygons
+  (rop2 win:r2_copypen)			; set the foreground mix mode
+  text-color				; foreground color
+  background-color			; background color
+  and-bitmap				; AND part of masked bitmap (monochrome)
+  and-brush                             ; AND part of masked brush (monochrome)
+  )
 
 (defun initialize-dc ()
   (unless (win:iswindow *current-window*)
@@ -223,21 +226,32 @@
        (win:deleteDc ,cdc))))
 
 (defun set-dc-for-drawing (dc image line-style)
+  ;; Note: DASHES may be a list, i.e. (5 2).  CreatePen
+  ;; only supports four dash types, and here we only use
+  ;; one of them.  Complex dash patterns cannot be supported
+  ;; using CreatePen.
   (let* ((dashes (line-style-dashes line-style))
 	 (thickness (max 1 (round (line-style-thickness line-style))))
 	 (code (if dashes (- thickness) thickness))
 	 (brush *null-brush*)
 	 (pen (when (= code 1) (dc-image-solid-1-pen image)))
-	 (rop2 (dc-image-rop2 image)))
+	 (rop2 (dc-image-rop2 image))
+	 (color (dc-image-text-color image)))
     (declare (fixnum thickness code))
     (unless pen
       (when *created-pen*
 	(push *created-pen* *extra-objects*))
+      (when (and dashes (> thickness 1))
+	;; CreatePen does not support this combination.
+	;; So render dashes with thickness=1.
+	(setq thickness 1))
+      (when (= rop2 win:r2_xorpen)
+	(setq color #xffffff))		; black
       (setq pen
 	(setq *created-pen*
 	  (createPen (if dashes win:ps_dash win:ps_solid)
 		     thickness
-		     (dc-image-text-color image)))))
+		     color))))
     (selectobject dc pen)
     (if dashes
 	(win:setBkMode dc win:TRANSPARENT)
@@ -246,7 +260,7 @@
     (when rop2 (win:setRop2 dc rop2))
     t))
 
-(defun set-dc-for-filling (dc image)
+(defun set-dc-for-filling (dc image &optional xorg yorg)
   (let ((background-color (dc-image-background-color image))
         (text-color (dc-image-text-color image))
 	(brush (dc-image-brush image))
@@ -255,20 +269,25 @@
     (selectobject dc pen)
     (when background-color
       (cond ((minusp background-color)
+	     ;; This affects brushes created with CreateHatchBrush.
 	     (win:setBkMode dc win:TRANSPARENT))
 	    (t
 	     (win:setBkMode dc win:OPAQUE)
 	     (win:setBkColor dc background-color))))
     (when text-color (win:setTextColor dc text-color))
-    (when brush (selectobject dc brush))
+    (when brush 
+      (when (and xorg yorg)
+	;; Is this working?  JPM.
+	(win:setbrushorgex dc xorg yorg 0))
+      (selectobject dc brush))
     (when rop2  (win:setRop2 dc rop2))
     t))
 
-(defun set-dc-for-ink (dc medium ink line-style)
+(defun set-dc-for-ink (dc medium ink line-style &optional xorg yorg)
   (let ((image (dc-image-for-ink medium ink)))
     (if line-style
       (set-dc-for-drawing dc image line-style)
-      (set-dc-for-filling dc image))))
+      (set-dc-for-filling dc image xorg yorg))))
 
 (defun set-cdc-for-pattern (dc medium ink line-style)
   (declare (ignore line-style))
@@ -310,6 +329,7 @@
 	 (brush (dc-image-brush image))
 	 (pen (dc-image-solid-1-pen image))
 	 (rop2 (dc-image-rop2 image)))
+    (win:setmapmode dc win:MM_TEXT)
     (when font (selectobject dc font))
     (cond ((not background-color)
 	   (win:setBkMode dc win:transparent))

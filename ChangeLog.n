@@ -11,6 +11,10 @@ Tests for new features:	<`no new features', `no tests for new features', or
 	* <changes go here...>
 
 *******************************************************************************
+2.2.2.3 -- join from acl50 branch
+next merge tag: acl50_merge3
+
+*******************************************************************************
 Tue Sep 29 22:55:00 1998  Duane Rettig  <duane@beta>
 
 	* utils/clos.lisp: fix require
@@ -42,6 +46,51 @@ next merge tag: acl50_merge2
 2.2.1.17 -- join from acl50 branch (versions 2.2.1.13 to 2.2.1.16)
 (this should have been version 2.2.2.0, but was 2.2.1.17 instead)
 next merge tag: acl50_merge1
+
+*******************************************************************************
+2.2.1.32
+
+Sat Sept 19 12:00:00 1998  Jeff Morrill <jmorrill@pointnclick.com>
+
+	* clim/frames, clim/gestures, silica/classes, tk-silica/xm-frames: 
+           enhancement to support double-click gesture
+      * clim/output-protocol: add (setf stream-default-view) 
+           for string-output-stream (resolve missing method error)
+      * aclpc/winwidgh, aclpc/acl-frames, aclpc/acl-class: 
+           partial solution to support tooltips
+      * aclpc/acl-widget: fixes for checkbox, fix (setf gadget-value)
+           to anticipate the callback might do a throw, cleanups
+      * aclpc/acl-port: fix problem mapping text styles to the right font
+      * aclpc/acl-mirror: fix for checkbox
+      * aclpc/acl-medium: partial solution to transparent rectangular tile
+      * aclpc/acl-frames: bulletproofing for select-file, fix menubar to
+           see command name only, cleanup
+      * aclpc/acl-class: handle dblclick events correctly, cleanup
+
+*******************************************************************************
+2.2.1.31
+
+Wed Aug 12 12:00:00 1998  Jeff Morrill <jmorrill@pointnclick.com>
+
+	* silica/db-label: fix handle-repaint of generic-label-pane
+        * aclpc/acl-class: scroll correctly in scroll-bars, update menu bars
+        * aclpc/acl-dc: fixes for flipping-ink, dashed lines, stipples
+        * aclpc/acl-frames: update menu bars, fix select-file segv,
+            keep noting-progress from hanging
+        * aclpc/acl-medium: make color->wincolor more accurate, fix
+            stipples and draw-pattern*
+        * aclpc/acl-port: keep the event processor from hanging lisp
+        * aclpc/acl-prel: fixes for stipples and draw-pattern*
+        * aclpc/acl-scroll: scroll correctly in scroll-bars
+        * aclpc/acl-widget: scroll correctly in scroll-bars
+
+*******************************************************************************
+2.2.1.30
+
+Wed Aug 12 09:22:38 1998  Kevin Layer  <layer@ultra>
+
+	* utils/last.lisp: bug7227: add version specification to
+	load-patches
 
 *******************************************************************************
 2.2.1.29

@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-prel.lisp,v 1.6 1998/08/06 23:15:45 layer Exp $
+;; $Id: acl-prel.lisp,v 1.7 1998/10/08 18:36:21 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -233,6 +233,7 @@
 			       "BUTTON"	; classname
 			       (nstringify nlabel) ; windowname
 			       (logior buttonstyle
+				       win:WS_TABSTOP
 				       win:WS_CHILD
 				       win:WS_CLIPCHILDREN 
 				       win:WS_CLIPSIBLINGS) ; style
@@ -363,23 +364,25 @@
     ;; return values
     (values bmi win:DIB_RGB_COLORS)))
 
-(defmethod get-texture (device-context pixel-map colors medium)
-  (let* ((width (array-dimension pixel-map 1))
-	 (height (array-dimension pixel-map 0))
-	 texture-handle)
-    (multiple-value-bind (bitmapinfo dib-mode)
-	(acl-bitmapinfo colors width height medium)
-      (setq texture-handle
-	(win:CreateDIBitmap
-	 device-context
-	 bitmapinfo 
-	 win:CBM_INIT			; initialize bitmap bits
-	 pixel-map
-	 bitmapinfo 
-	 dib-mode))
-      (when (zerop texture-handle)
-	(check-last-error "CreateDIBitmap"))
-      texture-handle)))
+(defmethod get-texture (device-context pixel-map bitmapinfo)
+  ;; The value of this function becomes the dc-image-bitmap.
+  ;; It gets applied to the device context using SELECT-OBJECT.
+  (unless (and device-context (not (zerop device-context)))
+    (error "Device context not valid"))
+  (let* (texture-handle)
+    ;; Create nondiscardable Device Dependent Bitmap.
+    ;; The Windows docs suggest we should be using device independent bitmaps.
+    (setq texture-handle
+      (win:CreateDIBitmap
+       device-context
+       bitmapinfo 
+       win:CBM_INIT			; initialize bitmap bits
+       pixel-map
+       bitmapinfo 
+       win:DIB_RGB_COLORS))
+    (when (zerop texture-handle)
+      (check-last-error "CreateDIBitmap"))
+    texture-handle))
 
 ;;; about box support
 

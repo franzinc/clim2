@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: gestures.lisp,v 1.27 1998/08/06 23:15:56 layer Exp $
+;; $Id: gestures.lisp,v 1.28 1998/10/08 18:36:22 layer Exp $
 
 (in-package :clim-internals)
 
@@ -27,7 +27,7 @@
 ;;; pointer gesture, e.g., Shift-Left.
 
 ;;; For now, we are making a few assumptions.
-;;; 1) The set of possible modifier bits is :CONTROL, :SHIFT, :META, :SUPER, and :HYPER,
+;;; 1) The set of possible modifier bits is :CONTROL, :SHIFT, :META, :SUPER, :HYPER, :DOUBLE
 ;;;    as per CLtL.
 ;;; 2) The set of possible "mouse buttons" is :LEFT, :MIDDLE, and :RIGHT.
 
@@ -51,7 +51,7 @@
 (defun make-modifier-state (&rest modifiers)
   (declare (dynamic-extent modifiers))
   (assert (every #'(lambda (x) (find x *modifier-keys*)) modifiers) (modifiers)
-          "~S is not a subset of ~S" modifiers '(:shift :control :meta :super :hyper))
+          "~S is not a subset of ~S" modifiers '(:shift :control :meta :super :hyper :double))
   (let ((state 0))
     (dolist (name modifiers)
       (let ((bit (modifier-key-index name)))
@@ -417,12 +417,14 @@
                      (:super   "s-")
                      (:meta    "m-")
                      (:control "c-")
-                     (:shift   "sh-"))
+                     (:shift   "sh-")
+		     (:double  "dbl-"))
                    '((:hyper   "hyper-")
                      (:super   "super-")
                      (:meta    "meta-")
                      (:control "control-")
-                     (:shift   "shift-")))))
+                     (:shift   "shift-")
+		     (:double "double-")))))
     (dolist (shift alist)
       (when (member (first shift) (rest gesture-spec))
         (princ (second shift) stream)))
@@ -450,7 +452,8 @@
                     (:control "c")
                     (:meta "m")
                     (:super "s")
-                    (:hyper "h")))
+                    (:hyper "h")
+		    (:double "dbl")))
               (format stream "~:(~A-~)" name))))))))
 
 

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-port.lisp,v 1.7 1998/08/06 23:15:45 layer Exp $
+;; $Id: acl-port.lisp,v 1.8 1998/10/08 18:36:21 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -298,7 +298,8 @@
 		(:small	     8)
 		(:normal     10)
 		(:large	     12)
-		(:very-large 18)))
+		(:very-large 18)
+		(:huge       24)))
 
 ;;--- hacked to allow text-styles to be specified as lists
 ;;--- there's probably a more efficient way...
@@ -329,6 +330,7 @@
 	    (multiple-value-bind (family face-name)
 		(case (text-style-family style)
 		  (:fix (values (logior win:FIXED_PITCH win:FF_MODERN) 
+				#+ignore
 				"courier"))
 		  (:serif (values (logior win:VARIABLE_PITCH win:FF_ROMAN)
 				  "times new roman"))
@@ -337,13 +339,17 @@
 		  ;;--- some of these specify ugly ugly linedrawn fonts
 		  (otherwise (values (logior win:DEFAULT_PITCH win:FF_DONTCARE)
 				     (string (text-style-family style)))))
-	      (let ((point-size
-		     (let ((size (text-style-size style)))
-		       (typecase size
-			 (number size)
-			 (otherwise
-			  (or (second (assoc size *acl-logical-size-alist*)) 
-			      12))))))
+	      (let ((size (text-style-size style))
+		    (point-size nil))
+		(when (numberp size)
+		  (setq point-size size))
+		(unless point-size
+		  (setq point-size
+		    (second (assoc size *acl-logical-size-alist*))))
+		(unless point-size
+		  (format *trace-output*
+			  "~& Warning: ~S is not a known size, using 12" size)
+		  (setq point-size 12))
 		(make-windows-font 
 		 (- (round (* point-size (slot-value port 'logpixelsy)) 72))
 		 :weight weight 
@@ -362,14 +368,6 @@
   (with-slots (text-style->acl-font-mapping) device
     (or (gethash style text-style->acl-font-mapping)
 	(setf (gethash style text-style->acl-font-mapping)
-	  #+old
-	  (let ((args (silica::device-font-name style)))
-	    (apply #'make-windows-font
-		   (- (round (* (pop args)
-				(slot-value device 'logpixelsy))
-			     72))
-		   args))
-	  #-old
 	  (let ((name (silica::device-font-name style)))
 	    (make-device-font (win:getstockobject name)))))))
 
@@ -390,37 +388,45 @@
 (defun make-system-font ()
   (make-device-font (win:getstockobject win:system_font)))
 
+;; This should be in the WIN package but isn't.
+;; We use it to specify how Windows matches font requests to a
+;; font currently installed on the user's system.  CLIM uses a
+;; TrueType font when the user's system contains multiple fonts of
+;; the same name.  With OUT_DEFAULT_PRECIS, :FIX fonts
+;; were not always mapping to required sizes.  JPM 8/98.
+(defconstant OUT_TT_PRECIS 4)
+
 (defun make-windows-font
     (height &key (width 0) (escapement 0) (orientation 0)
 		 (weight win:FW_NORMAL) 
 		 (italic nil) (underline nil) (strikeout nil)
 		 (charset win:ANSI_CHARSET) 
-		 (output-precision WIN:OUT_DEFAULT_PRECIS) 
+		 (output-precision OUT_TT_PRECIS)
 		 (clip-precision WIN:CLIP_DEFAULT_PRECIS)
 		 (quality win:PROOF_QUALITY) 
 		 (pitch-and-family (logior win:DEFAULT_PITCH win:FF_DONTCARE)) 
 		 (face nil) 
 		 win-font) 
-  (let ((win-font 
-	 (or win-font
-	     (win:createFont height	; logical height
-			     width	; logical average width
-			     escapement ; angle of escapement (tenths of degrees)
-			     orientation; normally the same as escapement
-			     weight	; font weight (FW_NORMAL=400, FW_BOLD=700)
-			     (if italic 1 0) 
-			     (if underline 1 0)
-			     (if strikeout 1 0) 
-			     charset	; if you want chinese or greek
-			     output-precision
-			     clip-precision
-			     quality
-			     pitch-and-family 
-			     (or face "")
-			     ))))
-    (when (zerop win-font)
-      (check-last-error "CreateFont"))
-    (make-device-font win-font)))
+  (unless win-font
+    (setq win-font
+      (win:createFont height		; logical height
+		      width		; logical average width
+		      escapement	; angle of escapement (tenths of degrees)
+		      orientation	; normally the same as escapement
+		      weight		; font weight (FW_NORMAL=400, FW_BOLD=700)
+		      (if italic 1 0) 
+		      (if underline 1 0)
+		      (if strikeout 1 0) 
+		      charset		; if you want chinese or greek
+		      output-precision
+		      clip-precision
+		      quality
+		      pitch-and-family 
+		      (or face "")
+		      )))
+  (when (zerop win-font)
+    (check-last-error "CreateFont"))
+  (make-device-font win-font))
 
 (defun make-device-font (win-font) 
   (let ((cw (and *application-frame*
@@ -445,6 +451,7 @@
     (unless (win:iswindow cw) 
       (error "No window found for calculating text font metrics."))
     (with-dc (cw dc)
+      (win:setmapmode dc win:MM_TEXT)
       (selectobject dc win-font)
       (or (win:getTextMetrics dc tmstruct)
 	  (check-last-error "GetTextMetrics"))
@@ -608,7 +615,6 @@
 			        native-x native-y)
         (values x y native-x native-y root-x root-y)))))
 
-
 (defun char->keysym (char)
   (let ((entry (assoc char *keysym-alist*))
         (keysym nil))
@@ -693,14 +699,18 @@
 	    motion-pending nil))))
 
 ;;; Convert a MS Windows shift mask into a CLIM modifier-state
-(defun windows-mask->modifier-state (mask)
-  (if (logtest win:mk_shift mask)
-      (if (logtest win:mk_control mask)
-	  (make-modifier-state :shift :control)
-	  (make-modifier-state :shift))
-      (if (logtest win:mk_control mask)
-	  (make-modifier-state :control)
-	  (make-modifier-state))))
+(defun windows-mask->modifier-state (mask &optional double)
+  (let ((state 
+	 (if (logtest win:mk_shift mask)
+	     (if (logtest win:mk_control mask)
+		 #.(make-modifier-state :shift :control)
+	       #.(make-modifier-state :shift))
+	   (if (logtest win:mk_control mask)
+	       #.(make-modifier-state :control)
+	     #.(make-modifier-state)))))
+    (if double 
+	(logior state #.(make-modifier-state :double))
+      state)))
 
 (defmethod event-handler ((port acl-port) args)
   (declare (ignore args))
@@ -732,6 +742,26 @@
 
 (defvar *clim-pulse-rate* 1.0)		; seconds.
 
+;; Redefine function from utils/processes.lisp.
+(defun clim-utils::process-wait (state function &rest args)
+  (declare (dynamic-extent function args))
+  #+someday
+  (apply #'mp:process-wait state function args)
+  (let ((result nil))
+    (loop
+      ;; 5/28/98 JPM ACL 5.0.beta
+      ;; There seems to be a bug in process-wait (on NT) that
+      ;; it does not run the test function often enough.
+      ;; Lisp will appear to hang until it receives some Windows
+      ;; events, which apparently wake up the scheduler.
+      ;; The workaround is to wake up every so often and
+      ;; run the test function.
+      (when (setq result (apply #'mp:process-wait-with-timeout 
+				state *clim-pulse-rate* 
+				function args))
+	(return result)))))
+  
+
 (defmethod process-next-event ((port acl-port)
 			       &key (timeout nil) 
 				    (wait-function nil)
@@ -754,17 +784,7 @@
 	  (if timeout
 	      (mp:process-wait-with-timeout state timeout
 					    #'wait-for-event)
-	    (loop
-	      ;; 5/28/98 JPM ACL 5.0.beta
-	      ;; There seems to be a bug in process-wait that
-	      ;; it does not run the test function often enough.
-	      ;; The workaround is to wake up every so often and
-	      ;; run the test function.
-	      (when (mp:process-wait-with-timeout 
-		     state *clim-pulse-rate* #'wait-for-event)
-		(return)))
-	    #+someday
-	    (mp:process-wait state #'wait-for-event))))
+	    (process-wait state #'wait-for-event))))
       (cond (event
 	     (distribute-event port event)
 	     t)

@@ -15,14 +15,15 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: last.lisp,v 1.2 1998/08/06 23:17:34 layer Exp $
+;; $Id: last.lisp,v 1.3 1998/10/08 18:36:26 layer Exp $
 
 (in-package :system)
 
 #-(version>= 5 0 pre-final 16)
 (load-patches "patch" "sys:;update-clim;*.fasl")
 #+(version>= 5 0 pre-final 16)
-(load-patches :product #.*patch-product-code-clim*)
+(load-patches :product #.*patch-product-code-clim*
+	      :version #.excl::*cl-patch-version-char*)
 
 (provide
  #+mswindows :climnt

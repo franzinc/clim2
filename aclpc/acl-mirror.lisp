@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-mirror.lisp,v 1.6 1998/08/06 23:15:44 layer Exp $
+;; $Id: acl-mirror.lisp,v 1.7 1998/10/08 18:36:21 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -158,14 +158,10 @@
 	     ;;mm: allocate gadget-id per parent
              (setq gadget-id (silica::allocate-gadget-id sheet))
 	     (setq value (slot-value sheet 'silica::value))
-	     (let ((client (gadget-client sheet)))
-	       (setf buttonstyle
-		     (cond
-		          ((typep client 'silica::radio-box-pane)
-			   win:BS_RADIOBUTTON)
-		          ((typep client 'silica::check-box-pane)
-		           win:BS_CHECKBOX)
-		          (t win:BS_CHECKBOX))))))
+	     (setq buttonstyle
+	       (ecase (gadget-indicator-type sheet)
+		 (:one-of win:BS_RADIOBUTTON)
+		 (:some-of win:BS_CHECKBOX)))))
       (when (or (eq control :hbutt) (eq control :hedit))
 	(multiple-value-bind (cwidth cheight)
               (compute-gadget-label-size sheet)

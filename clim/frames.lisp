@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: frames.lisp,v 1.90 1998/08/06 23:15:56 layer Exp $
+;; $Id: frames.lisp,v 1.91 1998/10/08 18:36:22 layer Exp $
 
 (in-package :clim-internals)
 
@@ -1550,7 +1550,8 @@
     (:control "c")
     (:meta "m")
     (:super "s")
-    (:hyper "h")))
+    (:hyper "h")
+    (:double "dbl")))
 
 (defun frame-document-highlighted-presentation-1
        (frame presentation input-context window x y stream)
@@ -1569,11 +1570,11 @@
              (*print-pretty* nil))
         (flet ((document-translator (translator presentation context-type
                                      button-names separator)
-                 ;; Assumes 5 modifier keys and the reverse ordering of *MODIFIER-KEYS*
+                 ;; Assumes 6 modifier keys and the reverse ordering of *MODIFIER-KEYS*
                  (let ((bit #o20)
-                       (shift-name '(:hyper :super :meta :control :shift)))
+                       (shift-name '(:double :hyper :super :meta :control :shift)))
                    (declare (type fixnum bit))
-                   (repeat 5                ;length of shift-name
+                   (repeat 6                ;length of shift-name
                            (unless (zerop (logand bit modifier-state))
                              (write-string
                               (frame-modifier-key-documentation frame
