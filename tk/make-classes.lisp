@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: tk -*-
 ;;
-;;				-[Fri May 14 20:23:57 1993 by layer]-
+;;				-[Fri May 21 08:43:00 1993 by layer]-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -235,8 +235,8 @@
 
 (defun lispify-class-name (x) 
   (let ((name (lispify-tk-name x)))
-    (or (cdr (assoc name *widget-name-to-class-name-mapping*
-		    :test #'member))
+    (or (cadr (assoc name *widget-name-to-class-name-mapping*
+		     :test #'member))
 	name)))
   
 (defun lispify-tk-name (string &key 
