@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: packages.lisp,v 2.6 2004/01/16 19:15:45 layer Exp $
+;; $Id: packages.lisp,v 2.6.26.1 2004/10/12 22:36:04 layer Exp $
 
 (in-package :common-lisp-user)
 
@@ -3314,4 +3314,4 @@
     (cl:push (cl:cons "CLIM" *clim-version*) excl::*version-info*)))
 
 #+(version>= 6 0 pre-final 0)
-(excl::lb1215005) ;; license check
+(excl::lb1215005) ;; rfe4046
