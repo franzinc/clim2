@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: frames.lisp,v 1.88.8.8 1999/03/31 18:49:31 layer Exp $
+;; $Id: frames.lisp,v 1.88.8.9 1999/04/09 03:42:40 layer Exp $
 
 (in-package :clim-internals)
 
@@ -1180,6 +1180,8 @@
      (re-enable-menu-items ,frame)))
 
 (defmethod execute-frame-command ((frame standard-application-frame) command)
+  (apply (command-name command) (command-arguments command))
+  #+ignore ;; from jeff on 4/8/99
   (with-menu-disabled frame
     (apply (command-name command) (command-arguments command))))
 
