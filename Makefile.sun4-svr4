@@ -1,4 +1,4 @@
-# $Header: /repo/cvs.copy/clim2/Makefile.sun4-svr4,v 1.17 1998/05/19 18:50:20 layer Exp $
+# $Header: /repo/cvs.copy/clim2/Makefile.sun4-svr4,v 1.17.26.1 2000/06/22 18:06:11 cley Exp $
 #
 #  Makefile.sun4-svr4 for CLIM 2.0
 #
@@ -13,7 +13,9 @@ Makefile=Makefile.sun4-svr4
 
 XINCLUDES=-I/usr/openwin/include -I/usr/dt/include
 
-TKLIB=-lXm
+# on sol7 and later -lXm is motif 2, and we need 1.x.
+#TKLIB=-lXm
+TKLIB=/usr/dt/lib/libXm.so.3
 XTLIB=-lXt
 XLIB=-lX11
 
