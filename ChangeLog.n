@@ -11,6 +11,16 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.2.2.20.2
+
+2000-07-12 tfb@cley.com (Tim Bradshaw)
+
+	* clim/interactive-protocol.lisp: tell it that
+	  simple-streams don't support input editing.  This is
+	  obviously wrong, but as far as CLIM is concerned right now,
+	  it's true.
+
+*******************************************************************************
 2.2.2.20.1 
 
 2000-07-11 tfb@cley.com (Tim Bradshaw)

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: interactive-protocol.lisp,v 1.40 2000/05/01 21:43:24 layer Exp $
+;; $Id: interactive-protocol.lisp,v 1.40.22.1 2000/07/12 18:39:49 cley Exp $
 
 (in-package :clim-internals)
 
@@ -1008,7 +1008,16 @@
 #-allegro
 (defmethod stream-supports-input-editing ((stream t)) nil)
 #+allegro
-(defmethod stream-supports-input-editing ((stream excl::string-input-stream)) nil)
+(progn
+  (defmethod stream-supports-input-editing 
+      ((stream excl::string-input-stream))
+    nil)
+  (defmethod stream-supports-input-editing 
+      ((stream excl:simple-stream))
+    ;; this is obviously wrong, but as far as CLIM is concerned, they
+    ;; don't, or not yet.
+    nil)
+  )
 
 #+Genera
 (defmethod si:stream-compatible-input-editing
