@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: medium.lisp,v 1.21 92/08/19 10:23:41 cer Exp $
+;; $fiHeader: medium.lisp,v 1.22 92/09/08 15:16:46 cer Exp $
 
 (in-package :silica)
 
@@ -25,7 +25,7 @@
   (declare (ignore sheet port))
   nil)
 
-(defmethod invoke-with-sheet-medium ((sheet sheet) continuation)
+(defmethod invoke-with-sheet-medium ((sheet basic-sheet) continuation)
   (declare (dynamic-extent continuation))
   (let ((medium (sheet-medium sheet)))
     (if medium
@@ -159,7 +159,7 @@
 		      ,@(unless (eq dashes nil) `(:dashes ,dashes)))))
 
 
-(defmethod invoke-with-drawing-options ((sheet sheet) continuation &rest options)
+(defmethod invoke-with-drawing-options ((sheet basic-sheet) continuation &rest options)
   (declare (dynamic-extent options))
   (with-sheet-medium (medium sheet)
     (apply #'invoke-with-drawing-options medium continuation options)))

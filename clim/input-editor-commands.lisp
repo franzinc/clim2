@@ -1,6 +1,6 @@
 ;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-editor-commands.lisp,v 1.16 92/08/21 16:33:52 cer Exp $
+;; $fiHeader: input-editor-commands.lisp,v 1.17 92/09/08 15:17:53 cer Exp $
 
 (in-package :clim-internals)
 
@@ -68,6 +68,7 @@
 (defvar *completion-gestures* '(:complete))
 (defvar *help-gestures* '(:help))
 (defvar *possibilities-gestures* '(:possibilities))
+(defvar *apropos-possibilities-gestures* '(:apropos-possibilities))
 
 (defun lookup-input-editor-command (gesture aarray)
   ;; Need to handle the help and possibilities commands specially so
@@ -81,6 +82,10 @@
 		      :test #'keyboard-event-matches-gesture-name-p))
 	 'com-ie-possibilities)
 	((and *ie-help-enabled*
+	      (member gesture *apropos-possibilities-gestures*
+		      :test #'keyboard-event-matches-gesture-name-p))
+	 'com-ie-apropos-possibilities)
+	((and *ie-help-enabled*
 	      (member gesture *completion-gestures*
 		      :test #'keyboard-event-matches-gesture-name-p))
 	 'com-ie-complete)
@@ -92,7 +97,7 @@
 			   (make-modifier-state :control :meta :super :hyper))))
 	   (cond ((and (eq aarray *input-editor-command-aarray*)
 		       bucky-p
-		       ;; If a numeric argument, return the digit
+		       ;; If it's a numeric argument, return the digit
 		       (position keysym '#(:|0| :|1| :|2| :|3| :|4| 
 					   :|5| :|6| :|7| :|8| :|9|))))
 		 ((and (eq aarray *input-editor-command-aarray*)
@@ -257,14 +262,22 @@
 
 (define-input-editor-command (com-ie-help :rescan nil)
 			     (stream)
+  "Display completion help"
   (display-accept-help stream :help ""))
 
 (define-input-editor-command (com-ie-possibilities :rescan nil)
 			     (stream)
+  "Display completion possibilities"
   (display-accept-help stream :possibilities ""))
+
+(define-input-editor-command (com-ie-apropos-possibilities :rescan nil)
+			     (stream)
+  "Display completion apropos possibilities"
+  (display-accept-help stream :apropos-possibilities ""))
 
 (define-input-editor-command (com-ie-complete :rescan nil)
 			     (stream input-buffer)
+  "Complete the current symbol"
   (multiple-value-bind (string ambiguous word-start)
       (complete-symbol-name stream input-buffer)
     (when string
@@ -311,25 +324,52 @@
 (defun complete-symbol-name-1 (string)
   nil)
 
+
+(define-input-editor-command (com-ie-input-editor-help :rescan nil)
+			     (stream)
+  "Display input editor help"
+  (with-input-editor-typeout (stream)
+    (formatting-table (stream :x-spacing "  "
+			      :multiple-columns t
+			      :multiple-columns-x-spacing "    ")
+      (dovector (entry *input-editor-command-aarray*)
+	(let ((gesture-name (first entry))
+	      (command (second entry)))
+	  (when (symbolp command)
+	    (dolist (gesture (gesture-specs-from-gesture-name gesture-name))
+	      (formatting-row (stream)
+		(formatting-cell (stream)
+		  (describe-gesture-spec gesture :stream stream :brief t))
+		(formatting-cell (stream)
+		  (format stream "~A" (or (documentation command 'function)
+					  command)))))))))))
+
+
 (define-input-editor-command (com-ie-refresh :rescan nil)
 			     (stream)
+  "Refresh the interactor window"
   (stream-replay stream)
   (redraw-input-buffer stream))
 
+;;--- It would be nice to have save/restore scroll position, and scroll searching
 (define-input-editor-command (com-ie-scroll-forward :rescan nil)
 			     (stream numeric-argument)
+  "Scroll the display window forward"
   (ie-scroll-window numeric-argument :up))
 
 (define-input-editor-command (com-ie-scroll-backward :rescan nil)
 			     (stream numeric-argument)
+  "Scroll the display window backward"
   (ie-scroll-window numeric-argument :down))
 
 (define-input-editor-command (com-ie-scroll-left :rescan nil)
 			     (stream numeric-argument)
+  "Scroll the display window left"
   (ie-scroll-window numeric-argument :left))
 
 (define-input-editor-command (com-ie-scroll-right :rescan nil)
 			     (stream numeric-argument)
+  "Scroll the display window right"
   (ie-scroll-window numeric-argument :right))
 
 ;; Scroll the frame's standard output stream in some direction by some amount, 
@@ -396,6 +436,61 @@
 	     (min position (fill-pointer buffer)))))))
 
 (defun move-over-sexp (buffer start-position reverse-p)
+  (setq start-position (move-over-whitespace buffer start-position reverse-p))
+  (when start-position
+    (let ((start-char (if reverse-p
+			  (aref buffer (max 0 (1- start-position)))
+			  (aref buffer start-position))))
+      (unless reverse-p
+	(case start-char
+	  (#\#
+	   (setq start-position (forward-or-backward buffer start-position nil #'true))
+	   (when start-position
+	     (setq start-position (forward-or-backward buffer start-position nil #'true)))
+	   (when start-position
+	     (setq start-char (aref buffer start-position))))
+	  ((#\' #\,)
+	   (setq start-position (forward-or-backward buffer start-position nil #'true))
+	   (when start-position
+	     (setq start-char (aref buffer start-position))))))
+      (cond ((or (eql start-char #\")
+		 (eql start-char #\|))
+	     (move-over-matching-thing buffer start-position reverse-p start-char))
+	    ((or (and reverse-p (eql start-char #\) ))
+		 (and (not reverse-p) (eql start-char #\( )))
+	     (move-over-cons buffer start-position reverse-p start-char))
+	    (t (move-over-atom buffer start-position reverse-p))))))
+
+(defun move-over-matching-thing (buffer start-position reverse-p start-char)
+  (flet ((matches-thing (thing)
+	   (when (eql thing start-char)
+	     (values t nil))))
+    (declare (dynamic-extent #'matches-thing))
+    (setq start-position 
+	  (forward-or-backward buffer start-position reverse-p #'true))
+    (when start-position
+      (let ((position
+	      (forward-or-backward buffer start-position reverse-p #'matches-thing)))
+	(and position
+	     (min position (fill-pointer buffer)))))))
+
+(defun move-over-cons (buffer start-position reverse-p start-char)
+  (let ((end-char (if (eql start-char #\( ) #\) #\( ))
+	(count 0))
+    (flet ((matches-thing (thing)
+	     (cond ((eql thing start-char)
+		    (incf count))
+		   ((eql thing end-char)
+		    (decf count)))
+	     (when (zerop count)
+	       (values t nil))))
+      (declare (dynamic-extent #'matches-thing))
+      (let ((position
+	      (forward-or-backward buffer start-position reverse-p #'matches-thing)))
+	(and position
+	     (min position (fill-pointer buffer)))))))
+
+(defun move-over-atom (buffer start-position reverse-p)
   (labels ((atom-character-p (thing)
 	     (when (and (characterp thing)
 			(or (alphanumericp thing)
@@ -414,24 +509,35 @@
 	(and position
 	     (min position (fill-pointer buffer)))))))
 
+(defun move-over-whitespace (buffer start-position reverse-p)
+  (flet ((non-whitespace (thing)
+	   (unless (whitespace-char-p thing)
+	     (values t t))))
+    (forward-or-backward buffer start-position reverse-p #'non-whitespace)))
+
 
 ;;; The basic input editing commands...
 
 ;; Don't do anything
 (define-input-editor-command (com-ie-ctrl-g :rescan nil)
 			     (stream)
+  "Abort the command"
   (with-slots (numeric-argument command-state) stream
     (setq numeric-argument nil
 	  command-state *input-editor-command-aarray*))
   (beep stream))
 
+
 (define-input-editor-command (com-ie-universal-argument :rescan nil :type nil)
 			     (stream numeric-argument)
+  "Universal argument (* 4)"
   (setf (slot-value stream 'numeric-argument)
 	(* (or numeric-argument 1) 4)))
 
+
 (define-input-editor-command (com-ie-forward-character :rescan nil)
 			     (stream input-buffer numeric-argument)
+  "Move forward character"
   (repeat (abs numeric-argument)
     (let ((p (forward-or-backward input-buffer (stream-insertion-pointer stream)
 				  (minusp numeric-argument) #'true)))
@@ -441,6 +547,7 @@
 
 (define-input-editor-command (com-ie-forward-word :rescan nil)
 			     (stream input-buffer numeric-argument)
+  "Move forward word"
   (repeat (abs numeric-argument)
     (let ((p (move-over-word input-buffer (stream-insertion-pointer stream) 
 			     (minusp numeric-argument))))
@@ -448,8 +555,10 @@
 	  (setf (stream-insertion-pointer stream) p)
 	  (return (beep stream))))))
 
+;;--- Moving up and down lists (c-m-U and c-m-D) would be nice
 (define-input-editor-command (com-ie-forward-sexp :rescan nil)
 			     (stream input-buffer numeric-argument)
+  "Move forward sexp"
   (repeat (abs numeric-argument)
     (let ((p (move-over-sexp input-buffer (stream-insertion-pointer stream) 
 			     (minusp numeric-argument))))
@@ -457,8 +566,10 @@
 	  (setf (stream-insertion-pointer stream) p)
 	  (return (beep stream))))))
 
+
 (define-input-editor-command (com-ie-backward-character :rescan nil)
 			     (stream input-buffer numeric-argument)
+  "Move backward character"
   (repeat (abs numeric-argument)
     (let ((p (forward-or-backward input-buffer (stream-insertion-pointer stream)
 				  (plusp numeric-argument) #'true)))
@@ -468,6 +579,7 @@
 
 (define-input-editor-command (com-ie-backward-word :rescan nil)
 			     (stream input-buffer numeric-argument)
+  "Move backward word"
   (repeat (abs numeric-argument)
     (let ((p (move-over-word input-buffer (stream-insertion-pointer stream)
 			     (plusp numeric-argument))))
@@ -477,6 +589,7 @@
 
 (define-input-editor-command (com-ie-backward-sexp :rescan nil)
 			     (stream input-buffer numeric-argument)
+  "Move backward sexp"
   (repeat (abs numeric-argument)
     (let ((p (move-over-sexp input-buffer (stream-insertion-pointer stream)
 			     (plusp numeric-argument))))
@@ -484,32 +597,41 @@
 	  (setf (stream-insertion-pointer stream) p)
 	  (return (beep stream))))))
 
+
 (define-input-editor-command (com-ie-beginning-of-buffer :rescan nil :type nil)
 			     (stream)
+  "Beginning of buffer"
   (setf (stream-insertion-pointer stream) 0))
 
 (define-input-editor-command (com-ie-end-of-buffer :rescan nil)
 			     (stream input-buffer)
+  "End of buffer"
   (setf (stream-insertion-pointer stream) (fill-pointer input-buffer)))
+
 
 (define-input-editor-command (com-ie-beginning-of-line :rescan nil)
 			     (stream input-buffer)
+  "Beginning of line"
   (setf (stream-insertion-pointer stream)
 	(ie-line-start input-buffer (stream-insertion-pointer stream))))
 
 (define-input-editor-command (com-ie-end-of-line :rescan nil)
 			     (stream input-buffer)
+  "End of line"
   (setf (stream-insertion-pointer stream)
 	(ie-line-end input-buffer (stream-insertion-pointer stream))))
+
 
 ;; Positions to the nearest column in the next line
 (define-input-editor-command (com-ie-next-line :rescan nil)
 			     (stream input-buffer numeric-argument)
+  "Move to next line"
   (unless (= (stream-insertion-pointer stream) (fill-pointer input-buffer))
     (ie-next-previous stream input-buffer numeric-argument)))
 
 (define-input-editor-command (com-ie-previous-line :rescan nil)
 			     (stream input-buffer numeric-argument)
+  "Move to previous line"
   (unless (zerop (stream-insertion-pointer stream))
     (ie-next-previous stream input-buffer (- numeric-argument))))
 
@@ -541,12 +663,15 @@
 			    position-in-line)
 			 (ie-line-end input-buffer target-line)))))))))
 
+
 (define-input-editor-command (com-ie-rubout :type delete)
 			     (stream input-buffer numeric-argument)
+  "Rubout character"
   (ie-rub-del stream input-buffer (- numeric-argument)))
 
 (define-input-editor-command (com-ie-delete-character :type delete)
 			     (stream input-buffer numeric-argument)
+  "Delete character"
   (ie-rub-del stream input-buffer numeric-argument))
 
 ;; positive = delete, negative = rubout
@@ -570,12 +695,15 @@
 		 p2 p1 reverse-p)
         (beep stream))))
 
+
 (define-input-editor-command (com-ie-rubout-word :type kill)
 			     (stream input-buffer numeric-argument)
+  "Rubout word"
   (ie-rub-del-word stream input-buffer (- numeric-argument)))
 
 (define-input-editor-command (com-ie-delete-word :type kill)
 			     (stream input-buffer numeric-argument)
+  "Delete word"
   (ie-rub-del-word stream input-buffer numeric-argument))
 
 ;; positive = next, negative = previous
@@ -592,12 +720,15 @@
 		 p2 p1 reverse-p)
         (beep stream))))
 
+
 (define-input-editor-command (com-ie-rubout-sexp :type kill)
 			     (stream input-buffer numeric-argument)
+  "Rubout sexp"
   (ie-rub-del-sexp stream input-buffer (- numeric-argument)))
 
 (define-input-editor-command (com-ie-delete-sexp :type kill)
 			     (stream input-buffer numeric-argument)
+  "Delete sexp"
   (ie-rub-del-sexp stream input-buffer numeric-argument))
 
 ;; positive = next, negative = previous
@@ -614,13 +745,17 @@
 		 p2 p1 reverse-p)
         (beep stream))))
 
+
 (define-input-editor-command (com-ie-clear-input :type kill)
 			     (stream input-buffer)
+  "Clear input buffer"
   ;; Just push a copy of the input buffer onto the kill ring, no merging
   (ie-kill stream input-buffer t 0 (fill-pointer input-buffer)))
 
+;;--- Kill backwards up list (c-sh-K) would be nice
 (define-input-editor-command (com-ie-kill-line :type kill)
 			     (stream input-buffer numeric-argument)
+  "Kill to end of line"
   (let* ((reverse-p (minusp numeric-argument))
 	 (point (stream-insertion-pointer stream))
 	 (other-point (if reverse-p
@@ -632,8 +767,41 @@
 	     other-point
 	     reverse-p)))
 
+
+(define-input-editor-command (com-ie-delete-whitespace :type kill)
+			     (stream input-buffer)
+  "Delete surrounding whitespace"
+  (unless (delete-surrounding-whitespace stream input-buffer)
+    (beep stream)))
+
+(define-input-editor-command (com-ie-just-one-space :type kill)
+			     (stream input-buffer)
+  "Leave a single space"
+  (unless (delete-surrounding-whitespace stream input-buffer t)
+    (beep stream)))
+
+(defun delete-surrounding-whitespace (stream input-buffer &optional leave-one)
+  (let* ((start (let ((ip (stream-insertion-pointer stream)))
+		  (if (whitespace-char-p (aref input-buffer ip))
+		      ip
+		      (max (1- ip) 0))))
+	 (next (and (whitespace-char-p (aref input-buffer start))
+		    (move-over-whitespace input-buffer start nil)))
+	 (prev (and next (move-over-whitespace input-buffer next t))))
+    (when (and prev next)
+      (when leave-one
+	(when (eql (aref input-buffer prev) #\Tab)
+	  (setf (aref input-buffer prev) #\Space))
+	(incf prev))
+      (ie-kill stream input-buffer
+	       (if (eq (slot-value stream 'last-command-type) 'kill) :merge t)
+	       prev next nil)
+      t)))
+
+
 (define-input-editor-command (com-ie-make-room)
 			     (stream input-buffer)
+  "Insert a new line"
   (let ((point (stream-insertion-pointer stream))
 	(end (fill-pointer input-buffer)))
     (cond ((= point end)
@@ -644,20 +812,180 @@
     (setf (aref input-buffer point) #\Newline)
     (redraw-input-buffer stream point)))
 
+(define-input-editor-command (com-ie-make-|()|)
+			     (stream input-buffer)
+  "Insert a \(\) pair"
+  (let ((point (stream-insertion-pointer stream))
+	(end (fill-pointer input-buffer)))
+    (cond ((= point end)
+	   (incf (fill-pointer input-buffer) 2))
+	  (t
+	   (erase-input-buffer stream point)
+	   (shift-buffer-portion input-buffer point (+ point 2))))
+    (setf (aref input-buffer (+ point 0)) #\( )
+    (setf (aref input-buffer (+ point 1)) #\) )
+    (incf (stream-insertion-pointer stream))
+    (redraw-input-buffer stream point)))
+
+
 (define-input-editor-command (com-ie-transpose-characters)
 			     (stream input-buffer)
-  (let* ((start-position (min (1+ (stream-insertion-pointer stream))
-			      (fill-pointer input-buffer)))
-	 (this-position (forward-or-backward input-buffer start-position t #'true))
-	 (prev-position (forward-or-backward input-buffer this-position t #'true)))
-    (cond ((and this-position prev-position (/= this-position prev-position))
-	   (let ((this-char (aref input-buffer this-position))
-		 (prev-char (aref input-buffer prev-position)))
-	     (erase-input-buffer stream prev-position)
-	     (setf (aref input-buffer prev-position) this-char)
-	     (setf (aref input-buffer this-position) prev-char)
-	     (redraw-input-buffer stream prev-position)))
+  "Transpose characters"
+  (let* ((start (min (1+ (stream-insertion-pointer stream))
+		     (fill-pointer input-buffer)))
+	 (this (forward-or-backward input-buffer start t #'true))
+	 (prev (and this (forward-or-backward input-buffer this t #'true))))
+    (cond ((and this prev (/= this prev))
+	   (let ((this-char (aref input-buffer this))
+		 (prev-char (aref input-buffer prev)))
+	     (erase-input-buffer stream prev)
+	     (setf (aref input-buffer prev) this-char)
+	     (setf (aref input-buffer this) prev-char)
+	     (setf (stream-insertion-pointer stream) start)
+	     (redraw-input-buffer stream prev)))
 	  (t (beep stream)))))
+
+(define-input-editor-command (com-ie-transpose-words)
+			     (stream input-buffer)
+  "Transpose words" 
+  (let* ((start (stream-insertion-pointer stream))
+	 (next (move-over-word input-buffer start nil))
+	 (this (and next (move-over-word input-buffer next t)))
+	 (prev (and this (move-over-word input-buffer this t))))
+    (cond ((and next prev (/= next prev))
+	   (with-temporary-substring (s1 input-buffer prev (- this 1))
+	     (with-temporary-substring (s2 input-buffer (- this 1) this)
+	       (with-temporary-substring (s3 input-buffer this next)
+		 (replace input-buffer s3 :start1 prev)
+		 (replace input-buffer s2 :start1 (+ prev (length s3)))
+		 (replace input-buffer s1 :start1 (+ prev (length s3) 1)))))
+	   (erase-input-buffer stream prev)
+	   (setf (stream-insertion-pointer stream) next)
+	   (redraw-input-buffer stream prev))
+	  (t (beep stream)))))
+
+(define-input-editor-command (com-ie-transpose-sexps)
+			     (stream input-buffer)
+  "Transpose sexps" 
+  (let* ((start (stream-insertion-pointer stream))
+	 (next (and start (move-over-sexp input-buffer start nil)))
+	 (this (and next (move-over-sexp input-buffer next t)))
+	 (prev (and this (move-over-sexp input-buffer this t))))
+    (cond ((and next prev (/= next prev))
+	   (with-temporary-substring (s1 input-buffer prev (- this 1))
+	     (with-temporary-substring (s2 input-buffer (- this 1) this)
+	       (with-temporary-substring (s3 input-buffer this next)
+		 (replace input-buffer s3 :start1 prev)
+		 (replace input-buffer s2 :start1 (+ prev (length s3)))
+		 (replace input-buffer s1 :start1 (+ prev (length s3) 1)))))
+	   (erase-input-buffer stream prev)
+	   (setf (stream-insertion-pointer stream) next)
+	   (redraw-input-buffer stream prev))
+	  (t (beep stream)))))
+
+
+(define-input-editor-command (com-ie-upcase-word)
+			     (stream input-buffer numeric-argument)
+  "Upcase word"
+  (change-word-case stream input-buffer numeric-argument #'char-upcase))
+
+(define-input-editor-command (com-ie-downcase-word)
+			     (stream input-buffer numeric-argument)
+  "Downcase word"
+  (change-word-case stream input-buffer numeric-argument #'char-downcase))
+
+(defun change-word-case (stream input-buffer numeric-argument function)
+  (declare (dynamic-extent function))
+  (let* ((start (stream-insertion-pointer stream))
+	 (end (let ((p start))
+		(repeat (abs numeric-argument)
+		  (when p
+		    (setq p (move-over-word input-buffer p (minusp numeric-argument)))))
+		p)))
+    (cond (end
+	   (when (< end start) (rotatef start end))
+	   (do ((i start (1+ i)))
+	       ((>= i end)
+		(progn
+		  (erase-input-buffer stream start)
+		  (setf (stream-insertion-pointer stream) end)
+		  (redraw-input-buffer stream start)))
+	     (let ((char (aref input-buffer i)))
+	       (when (characterp char)
+		 (setf (aref input-buffer i) (funcall function char))))))
+	  (t (beep stream)))))
+
+(define-input-editor-command (com-ie-capitalize-word)
+			     (stream input-buffer numeric-argument)
+  "Capitalize word"
+  (repeat (abs numeric-argument)
+    (let* ((start (stream-insertion-pointer stream))
+	   (end (move-over-word input-buffer start nil))
+	   (state nil))
+      (if end 
+	  (do ((i start (1+ i)))
+	      ((>= i end)
+	       (progn
+		 (erase-input-buffer stream start)
+		 (setf (stream-insertion-pointer stream) end)
+		 (redraw-input-buffer stream start)))
+	    (let ((char (aref input-buffer i)))
+	      (when (characterp char)
+		(if (null state)
+		    (when (alphanumericp char)
+		      (setf (aref input-buffer i) (char-upcase char))
+		      (setq state t))
+		    (if (alphanumericp char)
+			(setf (aref input-buffer i) (char-downcase char))
+			(setq state nil))))))
+	  (beep stream)))))
+
+
+;;; Mark setting, etc.
+
+(define-input-editor-command (com-ie-set-mark :rescan nil)
+			     (stream numeric-argument)
+  "Set the mark"
+  (setf (slot-value stream 'mark) 
+	(if (eq numeric-argument 4)		;control-U
+	    nil
+	    (stream-insertion-pointer stream))))
+
+(define-input-editor-command (com-ie-mark-beginning :rescan nil)
+			     (stream)
+  "Mark beginning of buffer"
+  (setf (slot-value stream 'mark) 0))
+
+(define-input-editor-command (com-ie-mark-end :rescan nil)
+			     (stream input-buffer)
+  "Mark end of buffer"
+  (setf (slot-value stream 'mark) (fill-pointer input-buffer)))
+
+(define-input-editor-command (com-ie-swap-point-and-mark :rescan nil)
+			     (stream)
+  "Swap point and mark"
+  (if (slot-value stream 'mark)
+      (rotatef (slot-value stream 'mark) (stream-insertion-pointer stream))
+      (beep stream)))
+
+(define-input-editor-command (com-ie-kill-region :type kill)
+			     (stream input-buffer)
+  "Kill marked region"
+  (if (slot-value stream 'mark)
+      (ie-kill stream input-buffer
+	       (if (eq (slot-value stream 'last-command-type) 'kill) :merge t)
+	       (stream-insertion-pointer stream) (slot-value stream 'mark))
+      (beep stream)))
+
+(define-input-editor-command (com-ie-save-region :rescan nil)
+			     (stream input-buffer)
+  "Save marked region"
+  (if (slot-value stream 'mark)
+      (ie-kill stream input-buffer
+	       (if (eq (slot-value stream 'last-command-type) 'kill) :merge t)
+	       (stream-insertion-pointer stream) (slot-value stream 'mark)
+	       nil t)				;don't kill anything
+      (beep stream)))
 
 
 ;;; Lispy input editing commands
@@ -701,63 +1029,71 @@
 	      (and word-end (1- word-end))
 	      colon))))
 
+(defun symbol-at-position (stream input-buffer delimiters)
+  (declare (values symbol package start end))
+  (multiple-value-bind (word-start word-end colon)
+      (word-start-and-end input-buffer delimiters
+			  (stream-insertion-pointer stream))
+    (when word-end
+      (with-temporary-substring
+	  (package-name input-buffer word-start (or colon word-start))
+	(when (and colon
+		   (< colon word-end)
+		   (char-equal (aref input-buffer (1+ colon)) #\:))
+	  (incf colon))
+	(with-temporary-substring
+	    (symbol-name input-buffer (if colon (1+ colon) word-start) word-end)
+	  (let* ((package (if colon (find-package package-name) *package*))
+		 (symbol (and package
+			      (find-symbol (string-upcase symbol-name) package))))
+	    (values symbol package word-start word-end)))))))
+
 (define-input-editor-command (com-ie-show-arglist :rescan nil)
 			     (stream input-buffer)
-  (multiple-value-bind (word-start word-end colon)
-      (word-start-and-end input-buffer '(#\( ) 
-			  (stream-insertion-pointer stream))
-    (block doit
-      (when word-end
-	(with-temporary-substring
-	    (package-name input-buffer word-start (or colon word-start))
-	  (when (and colon
-		     (< colon word-end)
-		     (char-equal (aref input-buffer (1+ colon)) #\:))
-	    (incf colon))
-	  (with-temporary-substring
-	      (symbol-name input-buffer (if colon (1+ colon) word-start) word-end)
-	    (let* ((package (if colon (find-package package-name) *package*))
-		   (symbol (and package
-				(find-symbol (string-upcase symbol-name) package)))
-		   (function (and symbol (fboundp symbol) (symbol-function symbol))))
-	      (when function
-		(multiple-value-bind (arglist found-p)
-		    (function-arglist function)
-		  (when found-p
-		    (return-from doit
-		      (with-input-editor-typeout (stream)
-			#-Cloe-Runtime
-			(format stream "~S: (~{~A~^ ~})"
-			  symbol arglist)
-			#+Cloe-Runtime
-			(format stream "~S (~A): (~{~:A~^ ~})"
-			  symbol found-p arglist))))))))))
-      (beep stream))))
+  "Show function arglist"
+  (let* ((symbol (symbol-at-position stream input-buffer '(#\( )))
+	 (function (and symbol (fboundp symbol) (symbol-function symbol))))
+    (if function
+	(multiple-value-bind (arglist found-p)
+	    (function-arglist function)
+	  (when found-p
+	    (with-input-editor-typeout (stream)
+	      #-Cloe-Runtime
+	      (format stream "~S: (~{~A~^ ~})"
+		symbol arglist)
+	      #+Cloe-Runtime
+	      (format stream "~S (~A): (~{~:A~^ ~})"
+		symbol found-p arglist))))
+	(beep stream))))
 
 (define-input-editor-command (com-ie-show-value :rescan nil)
 			     (stream input-buffer)
-  (multiple-value-bind (word-start word-end colon)
-      (word-start-and-end input-buffer '(#\space #\( #\) #\") 
-			  (stream-insertion-pointer stream))
-    (block doit
-      (when word-end
-	(with-temporary-substring
-	    (package-name input-buffer word-start (or colon word-start))
-	  (when (and colon
-		     (< colon word-end)
-		     (char-equal (aref input-buffer (1+ colon)) #\:))
-	    (incf colon))
-	  (with-temporary-substring
-	      (symbol-name input-buffer (if colon (1+ colon) word-start) word-end)
-	    (let* ((package (if colon (find-package package-name) *package*))
-		   (symbol (and package
-				(find-symbol (string-upcase symbol-name) package)))
-		   (value (and symbol (boundp symbol) (symbol-value symbol))))
-	      (when value
-		(return-from doit
-		  (with-input-editor-typeout (stream)
-		    (format stream "~S: ~S" symbol value))))))))
-      (beep stream))))
+  "Show symbol value"
+  (let* ((symbol (symbol-at-position stream input-buffer '(#\space #\( #\) #\")))
+	 (value (and symbol (boundp symbol) (symbol-value symbol))))
+    (if value
+	(with-input-editor-typeout (stream)
+	  (format stream "~S: ~S" symbol value))
+	(beep stream))))
+
+(define-input-editor-command (com-ie-show-documentation :rescan nil)
+			     (stream input-buffer)
+  "Show symbol documentation"
+  (multiple-value-bind (symbol package start end)
+      (symbol-at-position stream input-buffer '(#\space #\( #\) #\"))
+    (when (null symbol)
+      ;; If we can't find a variable, try for a function
+      (multiple-value-setq (symbol package start end)
+	(symbol-at-position stream input-buffer '(#\( ))))
+    (if symbol
+	(let* ((type (if (char-equal (aref input-buffer (max (1- start) 0)) #\( )
+			 'function
+			 'variable))
+	       (documentation (documentation symbol type)))
+	  (when documentation
+	    (with-input-editor-typeout (stream)
+	      (format stream "~S: ~A" symbol documentation))))
+	(beep stream))))
 
 
 ;;; Yanking commands
@@ -786,12 +1122,16 @@
 		  (queue-rescan istream ':activation))
 		 (t (beep istream)))))))
 
+;;--- "Yank matching" (c-sh-Y) would be nice
 (define-input-editor-command (com-ie-kill-ring-yank :history t :type yank :rescan nil)
-			     (stream numeric-argument)
+			     (stream numeric-argument) 
+  "Yank from kill ring"
   (ie-yank-from-history *kill-ring* #'yank-from-history stream numeric-argument))
 
+;;--- "History yank matching" (c-m-sh-Y) would be nice
 (define-input-editor-command (com-ie-history-yank :history t :type yank :rescan nil)
 			     (stream numeric-argument)
+  "Yank from history"
   (let ((history
 	  (and *presentation-type-for-yanking*
 	       (presentation-type-history *presentation-type-for-yanking*))))
@@ -799,8 +1139,10 @@
 	(ie-yank-from-history history #'yank-from-history stream numeric-argument)
         (beep stream))))
 
+;;--- "Yank next matching" (m-sh-Y) would be nice
 (define-input-editor-command (com-ie-yank-next :history t :type yank :rescan nil)
 			     (stream numeric-argument)
+  "Yank next item"
   (let ((history (slot-value stream 'previous-history)))
     (if history
 	(ie-yank-from-history history #'yank-next-from-history stream numeric-argument
@@ -829,6 +1171,8 @@
   (:ie-backward-sexp	    :b   :control :meta)
   (:ie-beginning-of-buffer  :\<  :meta)
   (:ie-end-of-buffer	    :\>  :meta)
+  (:ie-beginning-of-buffer  :\<  :meta :shift)
+  (:ie-end-of-buffer	    :\>  :meta :shift)
   (:ie-beginning-of-line    :a   :control)
   (:ie-end-of-line	    :e   :control)
   (:ie-next-line	    :n   :control)
@@ -841,13 +1185,28 @@
   (:ie-rubout-sexp	    :rubout :control :meta)
   (:ie-kill-line	    :k   :control)
   (:ie-clear-input	    :clear-input)
+  (:ie-delete-whitespace    :\\  :meta)
+  (:ie-just-one-space	    :\|  :meta)
   (:ie-make-room	    :o   :control)
+  (:ie-make-|()|	    :\(  :meta)
+  (:ie-make-|()|	    :\(  :meta :shift)
   (:ie-transpose-characters :t   :control)
-  (:ie-show-arglist	    :a   :control :shift)
-  (:ie-show-value	    :v   :control :shift)
+  (:ie-transpose-words	    :t   :meta)
+  (:ie-transpose-sexps	    :t   :control :meta)
+  (:ie-upcase-word	    :u   :meta)
+  (:ie-downcase-word	    :l   :meta)
+  (:ie-capitalize-word      :c   :meta)
   (:ie-kill-ring-yank	    :y   :control)
   (:ie-history-yank	    :y   :control :meta)
   (:ie-yank-next	    :y   :meta)
+  (:ie-set-mark		    :space :control)
+  (:ie-mark-beginning	    :< :control)
+  (:ie-mark-end		    :> :control)
+  (:ie-mark-beginning	    :< :control :shift)
+  (:ie-mark-end		    :> :control :shift)
+  (:ie-swap-point-and-mark  :space :control :meta)
+  (:ie-kill-region	    :w :control)
+  (:ie-save-region	    :w :meta)
   (:ie-refresh		    :l   :control)
   (:ie-refresh		    :refresh)
   (:ie-scroll-forward	    :v   :control)
@@ -857,12 +1216,20 @@
   (:ie-scroll-forward	    :scroll)
   (:ie-scroll-backward	    :scroll :meta)
   (:ie-scroll-left	    :scroll :super)
-  (:ie-scroll-right	    :scroll :super :meta))
+  (:ie-scroll-right	    :scroll :super :meta)
+  (:ie-input-editor-help    :help :control))
 
-#+Allegro
+#-(or Allegro Lucid)
+(define-input-editor-gestures
+  (:ie-show-arglist	    :a   :control :shift)
+  (:ie-show-value	    :v   :control :shift)
+  (:ie-show-documentation   :d   :control :shift))
+
+#+(or Allegro Lucid)
 (define-input-editor-gestures
   (:ie-show-arglist	    :a   :meta :shift)
-  (:ie-show-value	    :v   :meta :shift))
+  (:ie-show-value	    :v   :meta :shift)
+  (:ie-show-documentation   :d   :meta :shift))
 
 
 (defmacro assign-input-editor-key-bindings (&body functions-and-gestures)
@@ -897,20 +1264,36 @@
   com-ie-rubout		       :ie-rubout-character
   com-ie-rubout-word	       :ie-rubout-word
   com-ie-rubout-sexp	       :ie-rubout-sexp
-  com-ie-clear-input	       :ie-clear-input
   com-ie-kill-line	       :ie-kill-line
+  com-ie-clear-input	       :ie-clear-input
+  com-ie-delete-whitespace     :ie-delete-whitespace
+  com-ie-just-one-space	       :ie-just-one-space
   com-ie-make-room	       :ie-make-room
+  com-ie-make-|()|	       :ie-make-|()|
   com-ie-transpose-characters  :ie-transpose-characters
+  com-ie-transpose-words       :ie-transpose-words
+  com-ie-transpose-sexps       :ie-transpose-sexps
+  com-ie-upcase-word 	       :ie-upcase-word
+  com-ie-downcase-word	       :ie-downcase-word
+  com-ie-capitalize-word       :ie-capitalize-word
   com-ie-show-arglist	       :ie-show-arglist
   com-ie-show-value	       :ie-show-value
+  com-ie-show-documentation    :ie-show-documentation
   com-ie-kill-ring-yank	       :ie-kill-ring-yank
   com-ie-history-yank	       :ie-history-yank
   com-ie-yank-next	       :ie-yank-next
+  com-ie-set-mark	       :ie-set-mark
+  com-ie-mark-beginning	       :ie-mark-beginning
+  com-ie-mark-end	       :ie-mark-end
+  com-ie-swap-point-and-mark   :ie-swap-point-and-mark
+  com-ie-kill-region	       :ie-kill-region
+  com-ie-save-region	       :ie-save-region
   com-ie-refresh	       :ie-refresh
   com-ie-scroll-forward	       :ie-scroll-forward
   com-ie-scroll-backward       :ie-scroll-backward
   com-ie-scroll-left	       :ie-scroll-left
-  com-ie-scroll-right          :ie-scroll-right)
+  com-ie-scroll-right          :ie-scroll-right
+  com-ie-input-editor-help     :ie-input-editor-help)
 
 #+(or Allegro Lucid)
 (define-input-editor-gestures
@@ -948,11 +1331,13 @@
 
 (define-input-editor-command (com-ie-break :rescan nil)
 			     (stream)
+  "Enter a BREAK loop"
   (with-debug-io-selected (stream)
     (zl:break (format nil "Break for ~A" (frame-pretty-name (pane-frame stream))))))
 
 (define-input-editor-command (com-ie-debugger-break :rescan nil)
 			     (stream)
+  "Enter the debugger"
   (with-debug-io-selected (stream)
     (cl:break "Debugger break for ~A" (frame-pretty-name (pane-frame stream)))))
 

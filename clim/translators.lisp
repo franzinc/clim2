@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: translators.lisp,v 1.7 92/07/08 16:31:04 cer Exp $
+;; $fiHeader: translators.lisp,v 1.8 92/08/18 17:25:45 cer Exp $
 
 (in-package :clim-internals)
 
@@ -213,13 +213,13 @@
 		   :documentation :pointer-documentation :translator-class))))))))
 
 (defun define-presentation-translator-2 (translator-name from-type to-type command-table
-					 &rest init-keywords
+					 &rest initargs
 					 &key translator-class gesture
 					      documentation pointer-documentation
 					      tester tester-definitive priority
 					 &allow-other-keys)
-  (declare (dynamic-extent init-keywords))
-  (with-keywords-removed (init-keywords init-keywords
+  (declare (dynamic-extent initargs))
+  (with-keywords-removed (initargs initargs
 			  '(:translator-class :gesture
 			    :pointer-documentation :tester-definitive :priority))
     (let* ((translator-class
@@ -236,7 +236,7 @@
 		    ;; assume that it is definitive.
 		    :tester-definitive (or (null tester) tester-definitive)
 		    :priority (or priority 0)
-		    init-keywords)))
+		    initargs)))
       ;; You're allowed to explicitly supply NIL for the command table...
       (when command-table
 	(add-presentation-translator-to-command-table command-table translator

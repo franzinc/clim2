@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-protocol.lisp,v 1.24 92/09/08 15:17:57 cer Exp Locker: cer $
+;; $fiHeader: input-protocol.lisp,v 1.25 92/09/22 19:37:18 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -104,14 +104,14 @@
     (when cursor
       (setf (cursor-active cursor) nil))))
 
-(defmethod handle-repaint :after ((stream input-protocol-mixin) medium (region nowhere))
+(defmethod repaint-sheet :after ((stream input-protocol-mixin) medium (region nowhere))
   (declare (ignore medium))
   ;; Repainting nowhere, don't repaint the cursor
   )
 
 (defvar *cursor-repaint-rectangle* (make-bounding-rectangle 0 0 0 0))
 
-(defmethod handle-repaint :after ((stream input-protocol-mixin) medium region)
+(defmethod repaint-sheet :after ((stream input-protocol-mixin) medium region)
   (declare (ignore medium))
   (let ((cursor (stream-text-cursor stream))
 	(viewport (pane-viewport stream)))
@@ -323,7 +323,7 @@
 (defmethod receive-gesture
 	   ((stream input-protocol-mixin) (gesture window-repaint-event))
   ;; Handle synchronous repaint request
-  (handle-repaint (event-sheet gesture) nil (window-event-region gesture))
+  (repaint-sheet (event-sheet gesture) nil (window-event-region gesture))
   ;; don't return.
   nil)
 
@@ -370,12 +370,15 @@
 	((member gesture *abort-gestures*
 		 :test #'keyboard-event-matches-gesture-name-p)
 	 (let* ((frame (pane-frame stream))
-		(stream (if (typep stream 'interactor-pane)
-			    stream
-			  (and frame
+		(stream (cond ((typep stream 'interactor-pane)
+			       stream)
+			      ((typep *standard-input* 'interactor-pane)
+			       *standard-input*)
+			      (t
 			       (find-frame-pane-of-type frame 'interactor-pane))))
 		(cursor (and stream (stream-text-cursor stream))))
-	   (when (and cursor (cursor-active cursor))
+	   (when (and cursor
+		      (cursor-active cursor))
 	     (write-string "[Abort]" stream)
 	     (force-output stream)))
 	 (error 'abort-gesture :event gesture))))
@@ -407,7 +410,7 @@
       ;; Don't pass off a pointer-button-press-handler that ignores clicks,
       ;; we want this to be runnable inside a WITH-INPUT-CONTEXT.
       (setq gesture (stream-read-gesture (or *original-stream* stream)))
-      (when (characterp gesture)
+      (when (and (characterp gesture) (ordinary-char-p gesture))
 	(return-from stream-read-char gesture))
       ;;--- Probably wrong.  It prevents the input editor from ever seeing
       ;;--- mouse clicks, for example.
@@ -427,7 +430,8 @@
       ;; Don't pass off a pointer-button-press-handler that ignores clicks,
       ;; we want this to be runnable inside a WITH-INPUT-CONTEXT.
       (setq gesture (stream-read-gesture (or *original-stream* stream) :timeout 0))
-      (when (or (null gesture) (characterp gesture))
+      (when (or (null gesture) 
+		(and (characterp gesture) (ordinary-char-p gesture)))
 	(return-from stream-read-char-no-hang gesture)))))
 
 (defmethod stream-peek-char ((stream input-protocol-mixin))
@@ -447,8 +451,8 @@
     ;; map over the input buffer looking for characters.  
     ;; If we find one, return true
     (flet ((find-char (gesture)
-	     (when (characterp gesture)
-	       (return-from stream-listen T))))
+	     (when (and (characterp gesture) (ordinary-char-p gesture))
+	       (return-from stream-listen t))))
       (declare (dynamic-extent #'find-char))
       (map-over-queue #'find-char input-buffer))
     nil))

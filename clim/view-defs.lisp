@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: view-defs.lisp,v 1.9 92/08/18 17:25:47 cer Exp Locker: cer $
+;; $fiHeader: view-defs.lisp,v 1.10 92/09/08 10:34:57 cer Exp $
 
 (in-package :clim-internals)
 
@@ -40,7 +40,8 @@
 (defclass actual-gadget-view (gadget-view)
     ((initargs :initform nil :reader view-gadget-initargs)))
 
-(defmethod initialize-instance :after ((view actual-gadget-view) &rest initargs)
+(defmethod initialize-instance :after ((view actual-gadget-view) 
+				       &rest initargs &key &allow-other-keys)
   (declare (non-dynamic-extent initargs))
   (setf (slot-value view 'initargs) initargs))
 
@@ -62,13 +63,17 @@
        ',name)))
 
 (define-gadget-view toggle-button)
+
 (define-gadget-view radio-box)
 (define-gadget-view check-box)
+
 (define-gadget-view slider)
+
 (define-gadget-view text-field)
+(define-gadget-view text-editor)
 (define-gadget-view list-pane)
 (define-gadget-view option-pane)
-(define-gadget-view text-editor)
+
 
 ;;--- These three methods are the result of not including the
 ;;--- gadget class as a superclass of view class...

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: output-protocol.lisp,v 1.22 92/09/09 11:44:44 cer Exp Locker: cer $
+;; $fiHeader: output-protocol.lisp,v 1.23 92/09/22 19:37:19 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -788,14 +788,11 @@
 			   (fill-pointer ,glyph-buffer)
 			   0))
 	   (max-glyph (and ,glyph-buffer (array-dimension ,glyph-buffer 0)))
-	   #+(or Genera Minima)
-	   (,string ,string)
-	   #+(or Genera Minima)				;For array-register binding only.
-	   (,glyph-buffer (or ,glyph-buffer #())))	;Array-register declaration requires array.
+	   (,glyph-buffer (or ,glyph-buffer #()))
+	   #+(or Genera Minima) (,string ,string))
       (declare (type coordinate baseline height))
-      (declare (type fixnum next-glyph))
-       #+Genera (declare (sys:array-register ,string ,glyph-buffer))
-       #+Minima (declare (type vector ,string ,glyph-buffer))
+      (declare (type vector ,string ,glyph-buffer)
+	       (type fixnum next-glyph))
        (loop
 	 (when (>= ,start ,end)
 	   (return-from stream-scan-string-for-writing
@@ -1020,7 +1017,7 @@
   (unless (and (> outer-end outer-start) (scl:string-fat-p string))
     (return-from stream-write-string (call-next-method)))
   (let ((string string))
-      (declare (sys:array-register string))
+      (declare (type vector string))
       (loop for start = outer-start then end
 	    while start
 	    as char = (char string start)

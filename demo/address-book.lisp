@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: address-book.lisp,v 1.11 92/07/20 16:01:12 cer Exp $
+;; $fiHeader: address-book.lisp,v 1.12 92/08/18 17:26:10 cer Exp $
 
 (in-package :clim-demo)
 
@@ -148,7 +148,7 @@
    (let ((name nil)
 	 (address nil)
 	 (number nil))
-     (let ((stream (frame-query-io *application-frame*)))
+     (let ((stream (frame-standard-input *application-frame*)))
        (window-clear stream)
        ;; ACCEPTING-VALUES collects all calls to ACCEPT within its body
        ;; into dialog entries and allows parallel, random editing of the fields.
@@ -172,20 +172,20 @@
 
 (define-address-book-command com-change-address-name
     ((address 'address-name :gesture :select))
-  (let ((new-name (accept 'string :stream (frame-query-io *application-frame*)
+  (let ((new-name (accept 'string :stream (frame-standard-input *application-frame*)
 			  :prompt "New name" :default (address-name address))))
     (setf (address-name address) new-name)
     (setq *addresses* (sort *addresses* #'string-lessp :key #'address-last-name))))
 
 (define-address-book-command com-change-address-address
     ((address 'address-address :gesture :select))
-  (let ((new-address (accept 'string :stream (frame-query-io *application-frame*)
+  (let ((new-address (accept 'string :stream (frame-standard-input *application-frame*)
 			     :prompt "New address" :default (address-address address))))
     (setf (address-address address) new-address)))
 
 (define-address-book-command com-change-address-number
     ((address 'address-number :gesture :select))
-  (let ((new-number (accept 'string :stream (frame-query-io *application-frame*)
+  (let ((new-number (accept 'string :stream (frame-standard-input *application-frame*)
 			    :prompt "New number" :default (address-number address))))
     (setf (address-number address) new-number)))
 

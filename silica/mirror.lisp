@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: mirror.lisp,v 1.25 92/09/08 15:16:47 cer Exp Locker: cer $
+;; $fiHeader: mirror.lisp,v 1.26 92/09/22 19:36:48 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -28,7 +28,11 @@
 (defgeneric enable-mirror  (port sheet))
 (defgeneric disable-mirror (port sheet))
 
-(defmethod sheet-direct-mirror ((sheet sheet)) nil)
+(defgeneric raise-mirror (port sheet))
+(defgeneric bury-mirror (port sheet))
+(defgeneric mirror-visible-p (port sheet))
+
+(defmethod sheet-direct-mirror ((sheet basic-sheet)) nil)
 
 
 (defclass mirrored-sheet-mixin ()
@@ -39,7 +43,7 @@
 ;;; Native transformation
 
 ;;--- This should be cached so that it doesn't cons...
-(defmethod sheet-native-transformation ((sheet sheet))
+(defmethod sheet-native-transformation ((sheet basic-sheet))
   (compose-transformations 
     (sheet-transformation sheet)
     (sheet-native-transformation (sheet-parent sheet))))
@@ -50,7 +54,7 @@
 
 (defgeneric sheet-device-transformation (sheet))
 
-(defmethod sheet-device-transformation ((sheet sheet))
+(defmethod sheet-device-transformation ((sheet basic-sheet))
   (compose-transformations
     (sheet-transformation sheet)
     (sheet-device-transformation (sheet-parent sheet))))
@@ -86,7 +90,7 @@
 (defmethod sheet-device-region ((sheet mirrored-sheet-mixin))
   (sheet-native-region sheet))
 
-(defmethod sheet-device-region ((sheet sheet))
+(defmethod sheet-device-region ((sheet basic-sheet))
   (region-intersection
     (transform-region 
       (sheet-device-transformation sheet)
@@ -135,7 +139,7 @@
 ;;;; Mirror region stuff
 
 
-(defmethod sheet-actual-native-edges* ((sheet sheet))
+(defmethod sheet-actual-native-edges* ((sheet basic-sheet))
   ;; Returns the sheet-region in the parents native coordinate space
   (let* ((region (sheet-region sheet))
 	 (sheet-to-parent (sheet-transformation sheet))
@@ -147,8 +151,23 @@
 	  (transform-region sheet-to-parent region))
       (values left top right bottom))))
 
-;; Returns the regions mirror in the mirror coordinate space
+;; Returns the region's mirror in the mirror coordinate space
 (defgeneric mirror-region (port sheet))
+
+
+;; Returns the coordinates of sheet's mirror in the coordinates of the
+;; parent of the mirror
+(defgeneric mirror-region* (port sheet)
+  (declare (values left top right bottom)))
+
+(defgeneric set-mirror-region* (port sheet minx miny maxx maxy))
+
+;; Returns the coordinates of sheet's mirror in the coordinates of the
+;; mirror itself.  That is, it will return 0,0,WIDTH,HEIGHT for most
+;; known window systems
+(defgeneric mirror-inside-region* (port sheet)
+  (declare (values left top right bottom)))
+
 (defgeneric mirror-native-edges* (port sheet))
 (defgeneric mirror-inside-edges* (port sheet))
 (defgeneric set-sheet-mirror-edges* (port sheet left top right bottom))
@@ -163,19 +182,19 @@
 ;; Sets the mirror's region in its parents coordinate space
 (defgeneric set-mirror-edges* (port sheet minx miny maxx maxy))
 
-(defmethod mirror-origin ((port basic-port) (sheet sheet))
+(defmethod mirror-origin ((port basic-port) (sheet basic-sheet))
   :nw)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
 
-(defmethod sheet-mirror ((sheet sheet))
+(defmethod sheet-mirror ((sheet basic-sheet))
   (sheet-direct-mirror
     (sheet-mirrored-ancestor sheet)))
 
 (defgeneric sheet-mirrored-ancestor (sheet))
-(defmethod sheet-mirrored-ancestor ((sheet sheet))
+(defmethod sheet-mirrored-ancestor ((sheet basic-sheet))
   (cond ((sheet-direct-mirror sheet)
 	 sheet)
 	((null (sheet-parent sheet))
@@ -348,24 +367,8 @@
 		(make-translation-transformation tr-x tr-y)
 		(make-scaling-transformation sc-x sc-y)))))))
 
+
 ;;; Mirror region protocol
-
-;; Returns the coordinates of sheet's mirror in the coordinates of the
-;; parent of the mirror
-(defgeneric mirror-region* (port sheet)
-  (declare (values left top right bottom)))
-
-;; Returns the coordinates of sheet's mirror in the coordinates of the
-;; mirror itself.  That is, it will return 0,0,WIDTH,HEIGHT for most
-;; known window systems
-(defgeneric mirror-inside-region* (port sheet)
-  (declare (values left top right bottom)))
-
-;; There also seems to be a need for a mirrors region in the
-;; (sheet-mirror (sheet-parent sheet)) coordinate system
-;; ie. the mirors parent is something not known to CLIM
-
-(defgeneric set-mirror-region* (port sheet minx miny maxx maxy))
 
 (defmethod mirror-region-updated ((port basic-port) (sheet mirrored-sheet-mixin))
   (let* ((region (sheet-region sheet))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-button.lisp,v 1.14 92/08/18 17:23:27 cer Exp $
+;; $fiHeader: db-button.lisp,v 1.15 92/09/08 15:16:33 cer Exp $
 
 "Copyright (c) 1991, 1992 by Symbolics, Inc.  All rights reserved.
  Portions copyright (c) 1990, 1991 International Lisp Associates."
@@ -42,6 +42,11 @@ toggle button base. This way they can share the draw code.
     (call-next-method))
   (deallocate-event event))
 
+(defmethod handle-event :around ((pane button-pane-mixin) (event pointer-enter-event))
+  (when (gadget-active-p pane)
+    (setf (pointer-cursor (port-pointer (port pane))) :button))
+  (call-next-method))
+
 (defmethod handle-event ((pane button-pane-mixin) (event pointer-enter-event))
   (with-slots (armed) pane
     (unless armed
@@ -53,6 +58,12 @@ toggle button base. This way they can share the draw code.
 	       (highlight-button pane medium)))
 	    (t (setf armed t)))
       (armed-callback pane (gadget-client pane) (gadget-id pane)))))
+
+(defmethod handle-event :around ((pane button-pane-mixin) (event pointer-exit-event))
+  (when (gadget-active-p pane)
+    ;;--- Should really restore the previous cursor...
+    (setf (pointer-cursor (port-pointer (port pane))) :default))
+  (call-next-method))
 
 (defmethod handle-event ((pane button-pane-mixin) (event pointer-exit-event))
   (with-slots (armed) pane
@@ -272,7 +283,7 @@ toggle button base. This way they can share the draw code.
       ;; So you can see it even if you let go quickly...
       (sleep 0.25))))
 
-(defmethod repaint-sheet ((pane push-button-pane) region)
+(defmethod handle-repaint ((pane push-button-pane) region)
   (declare (ignore region))
   (with-sheet-medium (medium pane)
     (draw-button-pattern pane medium :draw-external-label-p t)))
@@ -871,7 +882,7 @@ toggle button base. This way they can share the draw code.
 	(make-space-requirement :width (+ width (* pattern-width 2))
 				:height (max height (* pattern-height 2)))))))
 
-(defmethod repaint-sheet ((pane toggle-button-pane) region)
+(defmethod handle-repaint ((pane toggle-button-pane) region)
   (declare (ignore region))
   (with-sheet-medium (medium pane)
     ;;--- This is pretty gross: toggle buttons and check boxes should
@@ -966,23 +977,29 @@ toggle button base. This way they can share the draw code.
 	   sheet-mute-input-mixin
 	   sheet-multiple-child-mixin
 	   space-requirement-mixin
-	   pane)
+	   basic-pane)
     ())
 
 (defmethod initialize-instance :after ((pane radio-box-pane) 
 				       &key choices selection frame-manager frame)
-  ;;--- This really needs to be more robust
-  (dolist (choice choices)
-    (setf (gadget-client choice) pane))
-  (let ((inferiors
-	  (with-look-and-feel-realization (frame-manager frame)
-	    (make-pane 'hbox-pane
-	      :spacing 5
-	      :contents choices))))
-    (sheet-adopt-child pane inferiors)
-    (when selection
-      (setf (gadget-value pane) selection)
-      (setf (gadget-value selection) t))))
+  (declare (ignore choices))
+  ;; Set the button's client and disown it from the radio box so
+  ;; that we can do layout, below.
+  (let ((buttons (copy-list (sheet-children pane))))
+    (dolist (button buttons)
+      (setf (gadget-client button) pane)
+      (sheet-disown-child pane button))
+    (let ((inferiors
+	    (with-look-and-feel-realization (frame-manager frame)
+	      (make-pane (ecase (gadget-orientation pane)
+			   (:horizontal 'hbox-pane)
+			   (:vertical 'vbox-pane))
+		:spacing 5
+		:contents buttons))))
+      (sheet-adopt-child pane inferiors)))
+  (when selection
+    (setf (gadget-value pane) selection)
+    (setf (gadget-value selection) t)))
 
 (defmethod value-changed-callback :around
 	   ((selection toggle-button) (client radio-box-pane) gadget-id value)
@@ -1004,23 +1021,27 @@ toggle button base. This way they can share the draw code.
 	   sheet-mute-input-mixin
 	   sheet-multiple-child-mixin
 	   space-requirement-mixin
-	   pane)
+	   basic-pane)
     ())
 
 (defmethod initialize-instance :after ((pane check-box-pane) 
 				       &key choices selection frame-manager frame)
-  ;;--- This really needs to be more robust
-  (dolist (choice choices)
-    (setf (gadget-client choice) pane))
-  (let ((inferiors
-	  (with-look-and-feel-realization (frame-manager frame)
-	    (make-pane 'hbox-pane
-	      :spacing 5
-	      :contents choices))))
-    (sheet-adopt-child pane inferiors)
-    (when selection
-      (setf (gadget-value pane) (list selection))
-      (setf (gadget-value selection) t))))
+  (declare (ignore choices))
+  (let ((buttons (copy-list (sheet-children pane))))
+    (dolist (button buttons)
+      (setf (gadget-client button) pane)
+      (sheet-disown-child pane button))
+    (let ((inferiors
+	    (with-look-and-feel-realization (frame-manager frame)
+	      (make-pane (ecase (gadget-orientation pane)
+			   (:horizontal 'hbox-pane)
+			   (:vertical 'vbox-pane))
+		:spacing 5
+		:contents buttons))))
+      (sheet-adopt-child pane inferiors)))
+  (when selection
+    (setf (gadget-value pane) (list selection))
+    (setf (gadget-value selection) t)))
 
 (defmethod handle-event :after ((pane check-box-pane) (event pointer-event))
   (deallocate-event event))
@@ -1054,4 +1075,5 @@ toggle button base. This way they can share the draw code.
 		 (make-pane 'check-box
 		   :choices ,choices
 		   :selection ,current-selection
-		   ,@options)))))))))
+		   ,@(evacuate-list options))))))))))
+

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-slider.lisp,v 1.13 92/08/18 17:23:33 cer Exp $
+;; $fiHeader: db-slider.lisp,v 1.14 92/09/08 15:16:37 cer Exp $
 
 "Copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
 
@@ -158,7 +158,7 @@
 		  :height (+ margin (max pattern-height rail-height lheight) margin))))))))))
 
 
-(defmethod repaint-sheet ((pane slider-pane) region)
+(defmethod handle-repaint ((pane slider-pane) region)
   (declare (ignore region))
   (with-sheet-medium (medium pane)
     (draw-slider-rail pane medium)
@@ -360,11 +360,25 @@
     (call-next-method))
   (deallocate-event event))
 
+(defmethod handle-event :around ((pane slider-pane) (event pointer-enter-event))
+  (when (gadget-active-p pane)
+    (setf (pointer-cursor (port-pointer (port pane)))
+	  (if (eq (gadget-orientation pane) :vertical) 
+	      :vertical-thumb
+	      :horizontal-thumb)))
+  (call-next-method))
+
 (defmethod handle-event ((pane slider-pane) (event pointer-enter-event))
   (with-slots (armed) pane
     (unless armed
       (setf armed t)
       (armed-callback pane (gadget-client pane) (gadget-id pane)))))
+
+(defmethod handle-event :around ((pane slider-pane) (event pointer-exit-event))
+  (when (gadget-active-p pane)
+    ;;--- Should really restore the previous cursor...
+    (setf (pointer-cursor (port-pointer (port pane))) :default))
+  (call-next-method))
 
 (defmethod handle-event ((pane slider-pane) (event pointer-exit-event))
   (with-slots (armed) pane

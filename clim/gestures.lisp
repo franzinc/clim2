@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gestures.lisp,v 1.12 92/09/08 15:17:48 cer Exp Locker: cer $
+;; $fiHeader: gestures.lisp,v 1.13 92/09/22 19:37:15 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -473,6 +473,7 @@
 ;;--- that causes control-? not to match sometimes
 (define-gesture-name :possibilities :keyboard (:? :control))
 (define-gesture-name :possibilities :keyboard (:? :control :shift) :unique nil)
+(define-gesture-name :apropos-possibilities :keyboard (:/ :control))
 
 #+Genera (define-gesture-name :suspend :keyboard (:suspend))
 #+Genera (define-gesture-name :resume  :keyboard (:resume))

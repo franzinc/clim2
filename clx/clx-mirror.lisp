@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLX-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clx-mirror.lisp,v 1.12 92/09/08 15:17:14 cer Exp Locker: cer $
+;; $fiHeader: clx-mirror.lisp,v 1.13 92/09/22 19:36:58 cer Exp Locker: cer $
 
 (in-package :clx-clim)
 
@@ -97,6 +97,13 @@
   (let ((window (sheet-mirror sheet)))
     (setf (xlib:window-priority window) :below)
     (xlib:display-force-output (port-display port))))
+
+(defmethod mirror-visible-p ((port clx-port) sheet)
+  (let ((mirror (sheet-mirror sheet)))
+    ;;--- This costs a round trip to the display server.  A better
+    ;;--- scheme would be to have the map/unmap-notify set a flag
+    ;;--- that we could simply read here, as in CLIM 1.1
+    (not (eq (xlib:window-map-state mirror) :unmapped))))
 
 (defmethod realize-graft ((port clx-port) graft)
   (with-slots (silica::pixels-per-point silica::pixel-width silica::pixel-height

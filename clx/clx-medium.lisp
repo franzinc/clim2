@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLX-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clx-medium.lisp,v 1.10 92/08/18 17:24:23 cer Exp $
+;; $fiHeader: clx-medium.lisp,v 1.11 92/09/08 15:17:11 cer Exp $
 
 (in-package :clx-clim)
 
@@ -16,7 +16,7 @@
    (background-pixel :initform nil)
    (flipping-gcontext :initform nil)
    (copy-gcontext :initform nil)
-   (clip-mask :initform :none)			;always :NONE at the moment
+   (clip-mask :initform nil)			;cache for clip mask
    (ink-table :initform (make-hash-table :test #'equal))))
 
 (defmethod make-medium ((port clx-port) sheet)
@@ -395,7 +395,7 @@
 					   ((<= depth 16) 'xlib::pixarray-16-element-type)
 					   ((<= depth 24) 'xlib::pixarray-24-element-type)
 					   (t 'xlib::pixarray-32-element-type)))))
-		(declare #+Genera (sys:array-register design-pixels)
+		(declare (type vector design-pixels)
 			 (simple-vector design-pixels))
 		;; Cache the decoded designs from the pattern
 		(do* ((num-designs (length designs))
@@ -436,40 +436,48 @@
 			  (list 0 0 pattern-width pattern-height)))
 		  (setf (gethash ink ink-table) gc)))))))))
 
-;;--- It would be nice if we did not have to cons up a new list each
-;;--- time.  Perhaps we could test if it had changed.  Perhaps the global
-;;--- value of the clipping rectangle could be determined in advance.
-(defun compute-gcontext-clip-mask (medium clip-mask)
-  (multiple-value-bind (left top right bottom)
-      (window-margins medium)
-    (let ((s-width (bounding-rectangle-width medium))
-	  (s-height (bounding-rectangle-height medium)))
-      (if (eq clip-mask :none)
-	  (list left top (- s-width right) (- s-height bottom))
- 	  (let* ((x (pop clip-mask))
- 		 (y (pop clip-mask))
- 		 (width  (pop clip-mask))
- 		 (height (pop clip-mask)))
- 	    (let ((new-clip-left (max left x))
- 		  (new-clip-top (max top y)))
- 	      (list new-clip-left new-clip-top
- 		    (- (min (+ left (- s-width right))	;clip-right
- 			    (+ x width))		;another clip-right
- 		       new-clip-left)
- 		    (- (min (+ top (- s-height bottom))	;clip-bottom
- 			    (+ y height))		;another clip-bottom
- 		       new-clip-top))))))))
+(defmethod compute-gcontext-clip-mask ((medium clx-medium))
+  (or (slot-value medium 'clip-mask)
+      (setf (slot-value medium 'clip-mask)
+	    (let* ((sheet (medium-sheet medium))
+		   (region (sheet-device-region sheet))
+		   (medium-region (medium-clipping-region medium))
+		   (valid t))
+	      (if (eq region +nowhere+)
+		  :none
+		  (with-bounding-rectangle* (cleft ctop cright cbottom) region
+		    (unless (eq medium-region +everywhere+)
+		      (with-bounding-rectangle* (mleft mtop mright mbottom) medium-region
+			(multiple-value-setq (valid cleft ctop cright cbottom)
+			  (multiple-value-call #'ltrb-overlaps-ltrb-p
+			    cleft ctop cright cbottom
+			    (transform-rectangle* 
+			      (sheet-device-transformation sheet)
+			      mleft mtop mright mbottom)))))
+		    (cond (valid
+			   (fix-coordinates cleft ctop cright cbottom)
+			   (list cleft ctop (- cright cleft) (- cbottom ctop)))
+			  (t :none))))))))
+
+(defmethod (setf medium-clipping-region) :after (region (medium clx-medium))
+  (declare (ignore region))
+  (setf (slot-value medium 'clip-mask) nil))
+
+(defmethod invalidate-cached-regions :after ((medium clx-medium))
+  (setf (slot-value medium 'clip-mask) nil))
+
+(defmethod invalidate-cached-transformations :after ((medium clx-medium))
+  (setf (slot-value medium 'clip-mask) nil))
 
 ;; This is necessary because the GC used for drawing doesn't depend only
 ;; on the ink used, unfortunately.  We have to adjust the clip-mask for
 ;; the medium it's used on.
-(defmethod clx-decode-ink :around (ink medium)
-  (setq ink (call-next-method))
-  (with-slots (clip-mask) medium
+(defmethod clx-decode-ink :around (ink (medium clx-medium))
+  (declare (ignore ink))
+  (let ((ink (call-next-method)))
     (setf (xlib:gcontext-clip-mask ink)
-      #---ignore clip-mask
-      #+++ignore (compute-gcontext-clip-mask medium clip-mask)))
-  ink)
+	  (compute-gcontext-clip-mask medium))
+    ink))
     
 ;; This only needs to be called for shapes, not points or characters.
 ;; Basically, we want to do things in here that operate on cached inks

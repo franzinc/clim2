@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: std-sheet.lisp,v 1.7 92/07/20 15:59:33 cer Exp $
+;; $fiHeader: std-sheet.lisp,v 1.8 92/08/18 17:23:57 cer Exp $
 
 (in-package :silica)
 
@@ -15,7 +15,7 @@
 	   sheet-transformation-mixin
 	   standard-repainting-mixin
 	   standard-sheet-input-mixin
-	   sheet)
+	   basic-sheet)
     ())
 
 
@@ -26,7 +26,7 @@
 	   standard-repainting-mixin
 	   standard-sheet-input-mixin
 	   temporary-medium-sheet-output-mixin
-	   sheet)
+	   basic-sheet)
     ())
 
 

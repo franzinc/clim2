@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sheet.lisp,v 1.25 92/09/08 15:16:51 cer Exp Locker: cer $
+;; $fiHeader: sheet.lisp,v 1.26 92/09/22 19:36:50 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -29,10 +29,10 @@
 
 (defgeneric sheet-shell (sheet))
 
-(defmethod bounding-rectangle* ((sheet sheet))
+(defmethod bounding-rectangle* ((sheet basic-sheet))
   (bounding-rectangle* (sheet-region sheet)))
 
-(defmethod sheet-child ((sheet sheet))
+(defmethod sheet-child ((sheet basic-sheet))
   (let ((children (sheet-children sheet)))
     (unless (and children (null (cdr children)))
       (error "The sheet ~S has more than one child" sheet))
@@ -55,7 +55,7 @@
     (dolist (child (sheet-children sheet))
       (map-over-sheets function child))))
 
-(defmethod sheet-adopt-child :before ((sheet sheet) (child sheet))
+(defmethod sheet-adopt-child :before ((sheet basic-sheet) (child basic-sheet))
   (when (sheet-parent child)
     (error "Sheet ~S trying to adopt child ~S that already has a parent" sheet child)))
 
@@ -68,7 +68,7 @@
 (defmethod sheet-child ((sheet sheet-single-child-mixin))
   (car (sheet-children sheet)))
 
-(defmethod sheet-adopt-child :after ((sheet sheet) child)
+(defmethod sheet-adopt-child :after ((sheet basic-sheet) child)
   (note-sheet-adopted child)
   (when (port sheet)
     (setf (port child :graft (graft sheet)) (port sheet))))
@@ -102,7 +102,7 @@
       (setf (port child :graft graft) port)))
   (note-sheet-tree-grafted port sheet))
 
-(defmethod note-sheet-tree-grafted ((port port) (sheet sheet))
+(defmethod note-sheet-tree-grafted ((port port) (sheet basic-sheet))
   ;; This method is invoked when the sheet and its descendents have
   ;; been mirrored
   nil)
@@ -129,7 +129,7 @@
 
 ;;; Raising and lowering
 
-(defmethod raise-sheet ((sheet sheet))
+(defmethod raise-sheet ((sheet basic-sheet))
   (let ((parent (sheet-parent sheet)))
     (when parent
       (setf (sheet-children parent)
@@ -137,7 +137,7 @@
   (when (sheet-direct-mirror sheet)
     (raise-mirror (port sheet) sheet)))
 
-(defmethod bury-sheet ((sheet sheet))
+(defmethod bury-sheet ((sheet basic-sheet))
   (let ((parent (sheet-parent sheet)))
     (when parent
       (setf (sheet-children parent)
@@ -146,11 +146,15 @@
   (when (sheet-direct-mirror sheet)
     (bury-mirror (port sheet) sheet)))
 
-;; This could be optimized if we can guarantee that the ordering of
-;; sheet-children is always kept up to date wrt the actual stacking
-;; order.  Unfortunately this is quite hard under X11 for top level windows.
-(defmethod reorder-sheets ((parent sheet) new-ordering)
+
+
+
+
+(defmethod reorder-sheets ((parent basic-sheet) new-ordering)
   ;; Errorcheck new-ordering.
+  ;; This could be optimized if we can guarantee that the ordering of
+  ;; sheet-children is always kept up to date wrt the actual stacking
+  ;; order.  Unfortunately this is quite hard under X11 for top level windows.
   (assert (null (set-exclusive-or new-ordering (sheet-children parent)))
       (new-ordering)
     "Specified ordering ~S does not contain children of sheet ~S"
@@ -165,27 +169,27 @@
 ;;; Geometry
 
 (defgeneric map-sheet-position-to-parent (sheet x y))
-(defmethod map-sheet-position-to-parent ((sheet sheet) x y)
+(defmethod map-sheet-position-to-parent ((sheet basic-sheet) x y)
   (transform-position (sheet-transformation sheet) x y))
 
 (defgeneric map-sheet-position-to-child (sheet x y))
-(defmethod map-sheet-position-to-child ((sheet sheet) x y)
+(defmethod map-sheet-position-to-child ((sheet basic-sheet) x y)
   (untransform-position (sheet-transformation sheet) x y))
 
-(defgeneric map-sheet-rectangle*-to-parent (sheet min-x min-y max-x max-y))
-(defmethod map-sheet-rectangle*-to-parent ((sheet sheet) min-x min-y max-x max-y)
+(defgeneric map-sheet-rectangle*-to-parent (sheet left top right bottom))
+(defmethod map-sheet-rectangle*-to-parent ((sheet basic-sheet) left top right bottom)
   (transform-rectangle*
     (sheet-transformation sheet)
-    min-x min-y max-x max-y))
+    left top right bottom))
 
-(defgeneric map-sheet-rectangle*-to-child (sheet min-x min-y max-x max-y))
-(defmethod map-sheet-rectangle*-to-child ((sheet sheet) min-x min-y max-x max-y)
+(defgeneric map-sheet-rectangle*-to-child (sheet left top right bottom))
+(defmethod map-sheet-rectangle*-to-child ((sheet basic-sheet) left top right bottom)
   (untransform-rectangle*
     (sheet-transformation sheet)
-    min-x min-y max-x max-y))
+    left top right bottom))
 
 (defgeneric child-containing-position (sheet x y))
-(defmethod child-containing-position ((sheet sheet) x y)
+(defmethod child-containing-position ((sheet basic-sheet) x y)
   (find-if #'(lambda (child)
 	       (and (sheet-enabled-p child)
 		    (multiple-value-bind (x y)
@@ -194,7 +198,7 @@
 	   (sheet-children sheet)))
 
 (defgeneric children-overlapping-region (sheet region))
-(defmethod children-overlapping-region ((sheet sheet) region)
+(defmethod children-overlapping-region ((sheet basic-sheet) region)
   (if (or (null region)				;--- kludge
 	  (eq region +everywhere+))
       (remove-if-not #'sheet-enabled-p (sheet-children sheet))
@@ -210,7 +214,7 @@
 
 (defgeneric map-over-sheets-containing-position (function sheet x y)
   (declare (dynamic-extent function)))
-(defmethod map-over-sheets-containing-position (function (sheet sheet) x y)
+(defmethod map-over-sheets-containing-position (function (sheet basic-sheet) x y)
   (declare (dynamic-extent function))
   (dolist (child (sheet-children sheet))
     (when (and (sheet-enabled-p child)
@@ -221,7 +225,7 @@
 
 (defgeneric map-over-sheets-overlapping-region (function sheet region)
   (declare (dynamic-extent function)))
-(defmethod map-over-sheets-overlapping-region (function (sheet sheet) region)
+(defmethod map-over-sheets-overlapping-region (function (sheet basic-sheet) region)
   (declare (dynamic-extent function))
   (if (or (null region)				;--- kludge
 	  (eq region +everywhere+))
@@ -240,7 +244,7 @@
 (defgeneric children-overlapping-rectangle* (sheet min-x min-y max-x max-y))
 
 (defgeneric delta-transformation (sheet ancestor))
-(defmethod delta-transformation ((sheet sheet) ancestor)
+(defmethod delta-transformation ((sheet basic-sheet) ancestor)
   (let ((parent (sheet-parent sheet)))
     (cond
       ((eq parent ancestor)
@@ -281,50 +285,50 @@
 ;;; Notification
 
 (defgeneric note-sheet-adopted (sheet))
-(defmethod note-sheet-adopted ((sheet sheet)) nil)
+(defmethod note-sheet-adopted ((sheet basic-sheet)) nil)
 
 (defgeneric note-sheet-disowned (sheet))
-(defmethod note-sheet-disowned ((sheet sheet)) nil)
+(defmethod note-sheet-disowned ((sheet basic-sheet)) nil)
 
 (defgeneric note-sheet-grafted (sheet))
-(defmethod note-sheet-grafted ((sheet sheet)) nil)
+(defmethod note-sheet-grafted ((sheet basic-sheet)) nil)
 
 (defgeneric note-sheet-degrafted (sheet))
-(defmethod note-sheet-degrafted ((sheet sheet)) nil)
+(defmethod note-sheet-degrafted ((sheet basic-sheet)) nil)
 
 (defgeneric note-sheet-enabled (sheet))
-(defmethod note-sheet-enabled ((sheet sheet)) nil)
+(defmethod note-sheet-enabled ((sheet basic-sheet)) nil)
 
 (defgeneric note-sheet-disabled (sheet))
-(defmethod note-sheet-disabled ((sheet sheet)) nil)
+(defmethod note-sheet-disabled ((sheet basic-sheet)) nil)
 
 (defgeneric sheet-engrafted-p (sheet))
-(defmethod sheet-engrafted-p ((sheet sheet))
+(defmethod sheet-engrafted-p ((sheet basic-sheet))
   (let ((parent (sheet-parent sheet)))
     (or (graftp parent)
 	(sheet-engrafted-p parent))))
 
-(defmethod (setf sheet-region) :after (region (sheet sheet))
+(defmethod (setf sheet-region) :after (region (sheet basic-sheet))
   (declare (ignore region))
   (note-sheet-region-changed sheet))
 
 (defgeneric note-sheet-region-changed (sheet &key port-did-it))
-(defmethod note-sheet-region-changed ((sheet sheet) &key port-did-it)
+(defmethod note-sheet-region-changed ((sheet basic-sheet) &key port-did-it)
   (declare (ignore port-did-it))
   nil)
 
-(defmethod (setf sheet-transformation) :after (transformation (sheet sheet))
+(defmethod (setf sheet-transformation) :after (transformation (sheet basic-sheet))
   (declare (ignore transformation))
   (note-sheet-transformation-changed sheet))
 
 (defgeneric note-sheet-transformation-changed (sheet &key port-did-it))
-(defmethod note-sheet-transformation-changed ((sheet sheet) &key port-did-it)
+(defmethod note-sheet-transformation-changed ((sheet basic-sheet) &key port-did-it)
   (declare (ignore port-did-it)) 
   nil)
 
 (defgeneric invalidate-cached-regions (sheet))
 
-(defmethod invalidate-cached-regions ((sheet sheet)) nil)
+(defmethod invalidate-cached-regions ((sheet basic-sheet)) nil)
 
 (defmethod invalidate-cached-regions ((sheet sheet-transformation-mixin)) 
   (let ((region (sheet-cached-device-region sheet)))
@@ -338,13 +342,13 @@
   (unless (sheet-direct-mirror sheet)
     (mapc #'invalidate-cached-regions (sheet-children sheet))))
 
-(defmethod note-sheet-region-changed :before ((sheet sheet) &key port-did-it)
+(defmethod note-sheet-region-changed :before ((sheet basic-sheet) &key port-did-it)
   (declare (ignore port-did-it))
   (invalidate-cached-regions sheet))
 
 (defgeneric invalidate-cached-transformations (sheet))
 
-(defmethod invalidate-cached-transformations ((sheet sheet)) nil)
+(defmethod invalidate-cached-transformations ((sheet basic-sheet)) nil)
 
 (defmethod invalidate-cached-transformations ((sheet sheet-transformation-mixin)) 
   (let ((region (sheet-cached-device-region sheet)))
@@ -361,14 +365,14 @@
  
 ;;--- Check to see if the call to INVALIDATE-CACHED-REGIONS is really necessary.
 ;;--- CER thinks we do because regions depend on transformations.
-(defmethod note-sheet-transformation-changed :before ((sheet sheet) &key port-did-it)
+(defmethod note-sheet-transformation-changed :before ((sheet basic-sheet) &key port-did-it)
   (declare (ignore port-did-it))
   (invalidate-cached-transformations sheet)
   (invalidate-cached-regions sheet))
 
 (defgeneric update-native-transformation (port sheet))
 
-(defmethod (setf sheet-enabled-p) :after (enabled (sheet sheet))
+(defmethod (setf sheet-enabled-p) :after (enabled (sheet basic-sheet))
   (if enabled
       (note-sheet-enabled sheet)
       (note-sheet-disabled sheet)))
@@ -379,7 +383,7 @@
 
 ;;; Making sheets
 
-(defmethod initialize-instance :after ((sheet sheet) &key parent children)
+(defmethod initialize-instance :after ((sheet basic-sheet) &key parent children)
   (when parent
     (sheet-adopt-child parent sheet))
   (dolist (child children)
@@ -460,7 +464,7 @@
 
 
 
-(defmethod (setf sheet-pointer-cursor) (cursor (sheet sheet))
+(defmethod (setf sheet-pointer-cursor) (cursor (sheet basic-sheet))
   (port-set-sheet-pointer-cursor (port sheet) sheet cursor)
   (setf (slot-value sheet 'cursor) cursor))
 
@@ -472,15 +476,15 @@
 (defun invoke-with-pointer-grabbed (sheet continuation &rest options)
   (apply #'port-invoke-with-pointer-grabbed (port sheet) sheet continuation options))
 
-(defmethod port-invoke-with-pointer-grabbed ((port port) (sheet sheet) continuation &key)
+(defmethod port-invoke-with-pointer-grabbed ((port port) (sheet basic-sheet) continuation &key)
   (declare (ignore options))
   (funcall continuation))
 
-(defmethod (setf sheet-grabbed-pointer-cursor) (cursor (sheet sheet))
+(defmethod (setf sheet-grabbed-pointer-cursor) (cursor (sheet basic-sheet))
   (port-set-sheet-grabbed-pointer-cursor (port sheet)
 					 sheet
 					 cursor))
 
-(defmethod port-set-sheet-grabbed-pointer-cursor ((port port) (sheet sheet) cursor)
+(defmethod port-set-sheet-grabbed-pointer-cursor ((port port) (sheet basic-sheet) cursor)
   (declare (ignore cursor))
   nil)

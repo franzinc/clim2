@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-gadgets.lisp,v 1.24 92/09/08 15:19:13 cer Exp Locker: cer $
+;; $fiHeader: ol-gadgets.lisp,v 1.25 92/09/22 19:38:04 cer Exp Locker: cer $
 
 
 (in-package :xm-silica)
@@ -184,7 +184,7 @@
 (defclass openlook-frame-pane (sheet-single-child-mixin
 			       sheet-permanently-enabled-mixin
 			       wrapping-space-mixin
-			       pane)
+			       basic-pane)
 	  ())
 
 (defmethod initialize-instance :after ((fr openlook-frame-pane) &key frame frame-manager contents thickness)
@@ -622,7 +622,7 @@
 			      sheet-permanently-enabled-mixin
 			      radio-box
 			      ask-widget-for-size-mixin
-			      pane)
+			      basic-pane)
 	  ())
 
 (defmethod sheet-adopt-child :after ((gadget openlook-radio-box) child)
@@ -685,7 +685,7 @@
 			      sheet-permanently-enabled-mixin
 			      check-box
 			      ask-widget-for-size-mixin
-			      pane)
+			      basic-pane)
 	  ())
 
 (defmethod sheet-adopt-child :after ((gadget openlook-check-box) child)
@@ -914,7 +914,7 @@
 				     mirrored-sheet-mixin
 				     sheet-multiple-child-mixin
 				     sheet-permanently-enabled-mixin
-				     pane)
+				     basic-pane)
 	  ;;-- probably one of the options is whether to have vertical
 	  ;;-- and/or horizontal scrollbars
 	  ())
@@ -1320,3 +1320,76 @@
   ;;-- Perhaps in OLIT there is a way of getting the actual keysym.
   ;;-- Perhaps we need a way of representing them in the clim world
   (call-next-method))
+
+(defmethod frame-manager-notify-user ((framem motif-frame-manager)
+				      message-string 
+				      &key 
+				      (style :inform)
+				      text-style
+				      (frame nil frame-p)
+				      (associated-window
+					(if frame-p
+					    (frame-top-level-sheet frame)
+					    (graft framem)))
+				      (title "Notify user")
+				      documentation
+				      (exit-boxes
+					'(:exit
+					   :abort
+					   :help))
+				      (name title))
+  (let ((dialog (make-instance (ecase style
+				 (:inform 'tk::xm-information-dialog)
+				 (:error 'tk::xm-error-dialog)
+				 (:question 'tk::xm-question-dialog)
+				 (:warning 'tk::xm-warning-dialog))
+			       :dialog-style :primary-application-modal
+			       :managed nil
+			       :parent (if (typep associated-window 'xt::xt-root-class)
+					   associated-window
+					   (sheet-mirror associated-window))
+			       :name name
+			       :dialog-title title
+			       :message-string message-string
+			       ))
+	(result nil))
+    (multiple-value-bind
+	(ok-button cancel-button help-button)
+	(get-message-box-child dialog :ok :cancel :help)
+      (flet ((set-it (widget r)
+	       (declare (ignore widget))
+	       (setq result (list r)))
+	     (display-help (widget ignore)
+	       (declare (ignore widget ignore))
+	       (frame-manager-notify-user 
+		framem
+		documentation
+		:associated-window associated-window)))
+	(tk::add-callback dialog :ok-callback #'set-it t)
+	(tk::add-callback dialog :cancel-callback #'set-it nil)
+
+	(flet ((set-button-state (name button)
+		 (unless (dolist (x exit-boxes nil)
+			   (cond ((eq x name) (return t))
+				 ((atom x))
+				 ((eq (car x) name)
+				  (tk::set-values button :label-string (second x))
+				  (return t))))
+		   (tk::unmanage-child button))))
+	  (set-button-state :exit ok-button)
+	  (set-button-state :abort cancel-button)
+	  (set-button-state :help help-button)
+	  
+	  (if documentation
+	      (tk::add-callback help-button :activate-callback #'display-help)
+	    (xt::set-sensitive help-button nil)))
+	
+	(unwind-protect
+	    (progn
+	      (tk::manage-child dialog)
+	      (wait-for-callback-invocation
+	       (port framem)
+	       #'(lambda () (or result (not (tk::is-managed-p dialog))))
+	       "Waiting for dialog"))
+	  (tk::destroy-widget dialog))
+	(car result)))))

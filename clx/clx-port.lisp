@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLX-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clx-port.lisp,v 1.13 92/08/18 17:24:27 cer Exp Locker: cer $
+;; $fiHeader: clx-port.lisp,v 1.14 92/09/22 19:36:59 cer Exp Locker: cer $
 
 (in-package :clx-clim)
 
@@ -10,7 +10,7 @@
 
 (defclass clx-port (basic-port)
     ((display :initform nil :reader port-display)
-     (screen :initform nil)
+     (screen :initform nil)			;--- should be on the medium
      (window :initform nil)
      (color-p :initform nil)			;--- should be on graft
      (cursor-font)
@@ -19,7 +19,8 @@
      (default-grab-cursor :reader default-grab-cursor)
      (context :reader port-context)
      (width-pixels)
-     (height-pixels))
+     (height-pixels)
+     (port-name))
   (:default-initargs :allow-loose-text-style-size-mapping t))
 
 (defmethod find-port-type ((type (eql ':clx)))
@@ -29,14 +30,19 @@
   ':clx)
 
 (defmethod port-name ((port clx-port))
-  (let ((keys (cdr (port-server-path port))))
+  (let ((keys (cdr (port-server-path port)))
+	(port-name (slot-value port 'port-name)))
     (format nil "~A:~D ~D" 
-      (getf keys :host) (getf keys :display) (getf keys :screen))))
+      (or (getf keys :host) (first port-name))
+      (or (getf keys :display) (second port-name))
+      (or (getf keys :screen) (third port-name)))))
 
 
 (defvar *clx-white-color* (xlib:make-color :red 1 :blue 1 :green 1))
 (defvar *clx-black-color* (xlib:make-color :red 0 :blue 0 :green 0))
 (defvar *cursor-font* nil)
+
+(defparameter *clx-use-color-p* t)
 
 (defmethod initialize-instance :after ((port clx-port) &key server-path)
   (destructuring-bind (type &key host screen display-number) server-path
@@ -49,7 +55,8 @@
     (multiple-value-bind (host display-number nscreen)
 	(disassemble-display-spec host (or display-number 0) (or screen 0))
       (with-slots (display screen window height-pixels width-pixels
-		   stipple-gc default-grab-cursor color-p) port
+		   stipple-gc default-grab-cursor color-p port-name) port
+	(setf port-name (list host display-number nscreen))
 	(setf display #-Allegro (xlib:open-display host :display display-number)
 		      #+Allegro (open-display-with-auth host :display-number display-number))
 	(fill-keycode->modifier-state display)
@@ -58,8 +65,11 @@
 	(setf window (xlib:screen-root screen))
 	(setf width-pixels (xlib:screen-width screen))
 	(setf height-pixels (xlib:screen-height screen))
-	;;--- Are 2-bit grayscale monitors handled specially?
-	(setf color-p (> (xlib:screen-root-depth screen) 2))
+	(setf color-p (and *clx-use-color-p*
+			   (ecase (xlib:visual-info-class 
+				    (xlib:window-visual-info (xlib:screen-root screen)))
+			     ((:static-gray :gray-scale) nil)
+			     ((:static-color :true-color :pseudo-color :direct-color) t))))
 	(setf stipple-gc (xlib:create-gcontext
 			   :drawable window
 			   :foreground (xlib:screen-black-pixel screen)
@@ -520,7 +530,7 @@
 	  (:vertical-thumb 112)
 	  (:horizontal-thumb 114)
 	  (:button 132)
-	  (:prompt 92)
+	  (:prompt 132)
 	  (:move 52)
 	  (:position 34)))
 

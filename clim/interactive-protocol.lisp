@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: interactive-protocol.lisp,v 1.16 92/09/08 10:34:50 cer Exp Locker: cer $
+;; $fiHeader: interactive-protocol.lisp,v 1.17 92/09/08 15:18:04 cer Exp $
 
 (in-package :clim-internals)
 
@@ -73,7 +73,9 @@
       (previous-history :initform nil)
       (previous-insertion-pointer :initform nil)
       ;; For deciding whether to do kill-ring merging, etc.
-      (last-command-type :initform nil)))
+      (last-command-type :initform nil)
+      ;; A mark that we can set
+      (mark :initform nil)))
 
 ;; The structure of *INPUT-EDITOR-COMMAND-AARRAY* is an alist that associates
 ;; a gesture with either an input editor command, in the case of a "prefix",
@@ -82,12 +84,12 @@
 ;; Perhaps the input-editor command table [or alist] should be a conceptual
 ;; "slot" in the so that specific implementations can add commands.  More
 ;; thought may be needed.
-(defvar *input-editor-command-aarray* (make-array 50 :fill-pointer 0))
+(defvar *input-editor-command-aarray* (make-array 60 :fill-pointer 0))
 
 (defmethod initialize-input-editing-stream ((istream input-editing-stream-mixin))
   (with-slots (input-buffer scan-pointer insertion-pointer
 	       activation-gesture rescanning-p rescan-queued
-	       command-state numeric-argument last-command-type
+	       command-state numeric-argument mark last-command-type
 	       previous-history previous-insertion-pointer)
 	      istream
     (setf (fill-pointer input-buffer) 0
@@ -98,6 +100,7 @@
 	  activation-gesture nil
 	  command-state *input-editor-command-aarray*
 	  numeric-argument nil
+	  mark nil
 	  last-command-type nil
 	  previous-history nil
 	  previous-insertion-pointer nil)))
@@ -349,9 +352,7 @@
   (declare (type fixnum from-index to-index))
   (let (#+(or Genera Minima) (buffer buffer)
 	(length (fill-pointer buffer)))
-    (declare (type fixnum length))
-    #+Genera (declare (sys:array-register buffer))
-    #+Minima (declare (type vector buffer))
+    (declare (type vector buffer) (type fixnum length))
     (cond ((< from-index to-index)
 	   ;; Extending the buffer to the right
 	   (let* ((n-places (the fixnum (- to-index from-index)))
@@ -575,7 +576,7 @@
 	(incf position adjustment)))))
 
 ;; KILL-RING should be NIL, T, or :MERGE
-(defun ie-kill (stream input-buffer kill-ring start end &optional reverse)
+(defun ie-kill (stream input-buffer kill-ring start end &optional reverse no-kill)
   (when (< end start) (rotatef start end))
   (when kill-ring
     (let* ((top (and (eq kill-ring ':merge)
@@ -613,18 +614,23 @@
 	      (t
 	       (push-history-element *kill-ring* new-top)
 	       #+Genera (genera-kill-ring-save new-top nil))))))
-  ;; Erase what used to be there, side effect the input buffer, then redraw it
-  (erase-input-buffer stream start)
-  (if end
-      (shift-buffer-portion input-buffer end start)
-      (setf (fill-pointer input-buffer) start))
-  ;; The insertion pointer started out at either start or end, they're the same now
-  (setf (stream-insertion-pointer stream) start)
-  ;; Make sure the scan pointer doesn't point past the insertion pointer
-  (minf (stream-scan-pointer stream) (stream-insertion-pointer stream))
-  (redraw-input-buffer stream)
-  ;; This can be called in a loop, so reflect the kill operation now
-  (setf (slot-value stream 'last-command-type) 'kill))
+  (unless no-kill				;skip if kill ring only
+    ;; Erase what used to be there, side effect the input buffer, then redraw it
+    (erase-input-buffer stream start)
+    (if end
+	(shift-buffer-portion input-buffer end start)
+	(setf (fill-pointer input-buffer) start))
+    ;; The insertion pointer started out at either start or end, they're the same now
+    (setf (stream-insertion-pointer stream) start)
+    ;; Make sure the scan pointer doesn't point past the insertion pointer
+    (minf (stream-scan-pointer stream) (stream-insertion-pointer stream))
+    (redraw-input-buffer stream)
+    ;; This can be called in a loop, so reflect the kill operation now
+    (setf (slot-value stream 'last-command-type) 'kill)
+    ;; If the buffer is now empty, rescan immediately so that the state
+    ;; of the input editor gets reinitialized
+    (when (zerop (fill-pointer input-buffer))
+      (immediate-rescan stream))))
 
 (defmethod remove-activation-gesture ((istream input-editing-stream-mixin))
   (with-slots (stream input-buffer insertion-pointer activation-gesture) istream
@@ -900,8 +906,8 @@
 		       (reset-scan-pointer stream)
 		       (handler-bind 
 			   ((parse-error
-			     #'(lambda (error)
-				 (display-input-editor-error stream error))))
+			      #'(lambda (error)
+				  (display-input-editor-error stream error))))
 			 (return
 			   (let #+Genera ((sys:rubout-handler :read)) #-Genera ()
 			     (with-input-context (context) ()
@@ -939,15 +945,7 @@
 	(multiple-value-prog1
 	  (handler-bind ((sys:parse-error
 			   #'(lambda (error)
-			       ;;--- Resignal the error so the user can handle it
-			       ;;--- (in lieu of HANDLER-BIND-DEFAULT)
-			       (beep stream)
-			       (remove-activation-gesture stream)
-			       (with-input-editor-typeout (stream :erase t)
-				 (format stream "~A~%Please edit your input." error))
-			       ;; Now wait until the user forces a rescan by typing
-			       ;; an input editing command
-			       (loop (read-gesture :stream stream)))))
+			       (display-input-editor-error stream error))))
 	    (let ((sys:rubout-handler :read))
 	      (funcall continuation stream)))
 	  ;; On the way out, swallow the unread delimiter, since the Genera input
@@ -968,15 +966,7 @@
     (with-delimiter-gestures (delimiter-gesture-p)
       (handler-bind ((sys:parse-error
 		       #'(lambda (error)
-			   ;;--- Resignal the error so the user can handle it
-			   ;;--- (in lieu of HANDLER-BIND-DEFAULT)
-			   (beep stream)
-			   (remove-activation-gesture stream)
-			   (with-input-editor-typeout (stream :erase t)
-			     (format stream "~A~%Please edit your input." error))
-			   ;; Now wait until the user forces a rescan by typing
-			   ;; an input editing command
-			   (loop (read-gesture :stream stream)))))
+			   (display-input-editor-error stream error))))
 	(let ((sys:rubout-handler :read))
 	  (funcall continuation stream))))))
 

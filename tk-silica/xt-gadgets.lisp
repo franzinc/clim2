@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-gadgets.lisp,v 1.19 92/09/08 10:35:33 cer Exp Locker: cer $
+;; $fiHeader: xt-gadgets.lisp,v 1.20 92/09/22 19:38:16 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -100,7 +100,7 @@
   (let ((pixel (decode-color medium ink)))
     (list :foreground pixel)))
 
-(defclass xt-pane (pane) 
+(defclass xt-pane (basic-pane) 
 	  ;;--- Is this useful a hack enabling things to be passed through
 	  ;;--- to the mirror
 	  ((silica::mirror-initargs  :initarg :mirror-initargs))
@@ -136,9 +136,8 @@
 (defclass xt-top-level-sheet (top-level-sheet) 
 	  ((accelerator-gestures :initform nil)))
 
-(defmethod sheet-disown-child :after ((sheet xt-top-level-sheet) (child sheet))
+(defmethod sheet-disown-child :after ((sheet xt-top-level-sheet) (child basic-sheet))
   (setf (slot-value sheet 'accelerator-gestures) nil))
-
 
 ;;--- This isn't really right.  Genera and CLX ports have kludges
 ;;--- for the time being, too.
@@ -173,6 +172,7 @@
     (record-accelerator menubar (list mnem :meta))
     (tk::set-values button :mnemonic mnem)))
 
+
 (defun record-accelerator (menubar gesture)
   (let ((sheet (frame-top-level-sheet (pane-frame menubar))))
     (push gesture (slot-value sheet 'accelerator-gestures))))
@@ -187,10 +187,3 @@
 	 (some #'(lambda (gesture)
 		   (clim-internals::keyboard-event-matches-gesture-name-p event gesture port))
 	       (slot-value (frame-top-level-sheet frame) 'accelerator-gestures)))))
-
-
-
-
-
-
-

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: frames.lisp,v 1.40 92/09/08 15:17:44 cer Exp Locker: cer $
+;; $fiHeader: frames.lisp,v 1.41 92/09/22 19:37:10 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -73,7 +73,8 @@
   (frame-manager (encapsulating-stream-stream stream)))
 
 (defmethod frame-manager ((stream t))
-  (cond (*application-frame* (frame-manager *application-frame*))
+  (cond (*application-frame* (or (frame-manager *application-frame*)
+				 (find-frame-manager)))
 	(t (find-frame-manager))))
 
 (defmethod initialize-instance :after ((frame standard-application-frame) 
@@ -273,7 +274,6 @@
 	       (value (second options) (second options)))
 	      ((null options))
 	   (case keyword
-	     (:inherit-menu)
 	     (:inherit-from
 	       (if (listp value)
 		   (dolist (item value)
@@ -302,6 +302,7 @@
 		   (warn "The ~S keyword in the ~S option for frame ~S~@
 			  is followed by ~S, which is not a list of menu clauses."
 			 :menu :command-table frame-name value)))
+	     (:inherit-menu)
 	     (otherwise
 	       (warn "The keyword ~S in the ~S option for frame ~S is invalid.~@
 		      The valid keywords are ~S and ~S."
@@ -414,17 +415,16 @@
      ,@options
      :scroll-bars ,scroll-bars))
 
-;;--- :display-after-commands :no-clear
 (define-pane-type :accept-values (&rest options &key (scroll-bars :vertical))
   (declare (non-dynamic-extent options))
   `(make-clim-stream-pane 
      :type 'accept-values-pane
      ,@options
+     :display-after-commands :no-clear
      :scroll-bars ,scroll-bars
      :end-of-page-action :allow
      :end-of-line-action :allow))
 
-;;--- :default-size :compute
 (define-pane-type :pointer-documentation (&rest options)
   (declare (non-dynamic-extent options))
   `(make-clim-stream-pane
@@ -522,9 +522,12 @@
 	      top-sheet (bounding-rectangle-size top-sheet)) 
 	    (resize-sheet top-sheet width height))))))
 
+(defvar *frame-layout-changing-p* nil)
+
 (defmethod (setf frame-current-layout) (layout (frame standard-application-frame))
   (unless (or (eq (frame-current-layout frame) layout)
 	      (null (frame-top-level-sheet frame)))
+    (setq *frame-layout-changing-p* t)
     (setf (slot-value frame 'current-layout) layout)
     ;; First disown all the children
     (dolist (name-and-pane (slot-value frame 'all-panes))
@@ -539,17 +542,18 @@
     (multiple-value-call #'layout-frame
       frame (bounding-rectangle-size (frame-top-level-sheet frame)))
     (let ((layout-space-requirements 
-	   (cddr (assoc layout (frame-layouts frame)))))
+	    (cddr (assoc layout (frame-layouts frame)))))
       (changing-space-requirements (:layout nil)
-	  (flet ((adjust-layout (sheet)
-		   (change-space-requirements-to-default sheet)
-		   (let ((x (and (panep sheet)
-				 (assoc (pane-name sheet) layout-space-requirements))))
-		     (when x (apply #'change-space-requirements sheet (cdr x))))))
-	    (declare (dynamic-extent #'adjust-layout))
-	    (map-over-sheets #'adjust-layout (frame-top-level-sheet frame)))))
+	(flet ((adjust-layout (sheet)
+		 (change-space-requirements-to-default sheet)
+		 (let ((x (and (panep sheet)
+			       (assoc (pane-name sheet) layout-space-requirements))))
+		   (when x (apply #'change-space-requirements sheet (cdr x))))))
+	  (declare (dynamic-extent #'adjust-layout))
+	  (map-over-sheets #'adjust-layout (frame-top-level-sheet frame)))))
     ;;--- Don't throw, just recompute stream bindings in a principled way
-    (handler-case (throw 'layout-changed nil)
+    (handler-case
+        (throw 'layout-changed nil)
       (error () nil))))
 
 (defmethod frame-all-layouts ((frame standard-application-frame))
@@ -631,22 +635,22 @@
        (note-frame-deiconified (frame-manager frame) frame))
       (:enabled)
       ((:disabled :disowned)
-       (let ((old (frame-state frame)))
+       (let ((old-state (frame-state frame)))
 	 (setf (frame-state frame) :enabled)
 	 ;; If this is a new frame then if the user specified a width
 	 ;; then we should be using that
 	 ;; If the frame already exists then we probably should be using
 	 ;; the top level sheet size
-	 (multiple-value-bind (w h)
-	     (ecase old
+	 (multiple-value-bind (width height)
+	     (ecase old-state
 	       (:disowned 
-		(if (and width height)
-		    (values width height)
-		  (values)))
+		 (if (and width height)
+		     (values width height)
+		     (values)))
 	       (:disabled
-		(bounding-rectangle-size
-		 (frame-top-level-sheet frame))))  
-	   (layout-frame frame w h)
+		 (bounding-rectangle-size
+		   (frame-top-level-sheet frame))))  
+	   (layout-frame frame width height)
 	   (when (and left top)
 	     (move-sheet (frame-top-level-sheet frame) left top))
 	   (note-frame-enabled (frame-manager frame) frame)))))))
@@ -700,6 +704,8 @@
 	      (*input-context* nil)
 	      (*accept-help* nil)
 	      (*assume-all-commands-enabled* nil)
+	      (*sizing-application-frame* nil)
+	      (*frame-layout-changing-p* *frame-layout-changing-p*)
 	      (*command-parser* 'command-line-command-parser)
 	      (*command-unparser* 'command-line-command-unparser)
 	      (*partial-command-parser*
@@ -884,7 +890,6 @@
       (setq new-string (copy-seq new-string)))
     (nstring-capitalize new-string)))
 
-;;--- Handle incremental redisplay...
 (defun display-command-menu (frame stream &rest keys
 			     &key command-table max-width max-height &allow-other-keys)
   (declare (dynamic-extent keys)
@@ -892,7 +897,17 @@
   (when (or (null command-table)
 	    (eq command-table t))
     (setq command-table (frame-command-table frame)))
+  (setq command-table (find-command-table command-table))
   (with-keywords-removed (keys keys '(:command-table))
+    (if (slot-value stream 'incremental-redisplay-p)
+	(apply #'display-command-menu-1 stream command-table keys)
+	(apply #'display-command-table-menu command-table stream keys))))
+
+;; Split out to avoid consing unnecessary closure environments.
+(defun display-command-menu-1 (stream command-table &rest keys)
+  (declare (dynamic-extent keys))
+  (updating-output (stream :unique-id stream
+			   :cache-value (slot-value command-table 'menu-tick))
     (apply #'display-command-table-menu command-table stream keys)))
 
 (defmethod find-pane-named ((frame standard-application-frame) pane-name &optional (errorp t))
@@ -913,7 +928,7 @@
       (when errorp
 	(error "There is no CLIM stream pane named ~S in frame ~S" pane-name frame)))))
 
-(defmethod redisplay-frame-panes (frame &key force-p)
+(defmethod redisplay-frame-panes ((frame standard-application-frame) &key force-p)
   ;; First display all the :accept-values panes, then display the rest.
   ;; We do this to ensure that all side-effects from :accept-values panes
   ;; have taken place.
@@ -925,48 +940,64 @@
 		       (when (and (typep sheet 'clim-stream-pane)
 				  (not (typep sheet 'accept-values-pane)))
 			 (redisplay-frame-pane frame sheet :force-p force-p)))
-		   (frame-top-level-sheet frame)))
+		   (frame-top-level-sheet frame))
+  ;; Once we've redisplayed everything, the layout is done changing
+  (setq *frame-layout-changing-p* nil))
 
-;;--- What about CLIM 0.9's PANE-NEEDS-REDISPLAY, etc?
-;;--- What about CLIM 1.0's :DISPLAY-AFTER-COMMANDS :NO-CLEAR?
-(defun redisplay-frame-pane (frame pane &key force-p)
+(defmethod redisplay-frame-pane ((frame standard-application-frame) pane &key force-p)
   (when (symbolp pane)
     (setq pane (get-frame-pane frame pane)))
-  (cond ((pane-display-function pane)
-	 (let* ((ir (slot-value pane 'incremental-redisplay-p))
-		(redisplay-p (if (listp ir) (first ir) ir))
-		(check-overlapping (or (atom ir)	;default is T
-				       (getf (rest ir) :check-overlapping t))))
-	   (with-simple-restart (nil "Skip redisplaying pane ~S" pane)
-	     (loop
-	       (with-simple-restart (nil "Retry displaying pane ~S" pane)
-		 (return
-		   (let ((redisplay-record
-			   (and redisplay-p
-				(let ((history (stream-output-history pane)))
-				  (when history
-				    #+compulsive-redisplay
-				    (when (> (output-record-count history) 1)
-				      (cerror "Clear the output history and proceed"
-					      "There is more than one element in this redisplay pane")
-				      (window-clear pane))
-				    (unless (zerop (output-record-count history))
-				      (output-record-element history 0)))))))
-		     ;;--- This needs to be more like CLIM 1.0
-		     (cond ((and redisplay-p
-				 (or force-p (null redisplay-record)))
-			    (when force-p
-			      (window-clear pane))
-			    (invoke-pane-redisplay-function frame pane))
-			   (redisplay-p
-			    (redisplay redisplay-record pane 
-				       :check-overlapping check-overlapping))
-			   ((or force-p (pane-needs-redisplay pane))
-			    (invoke-pane-display-function frame pane))))))))))
-	(force-p
-	 ;;--- Is there anything else we need to do?
-	 (stream-replay pane))))
+  (let* ((display-function (pane-display-function pane))
+	 (ir (slot-value pane 'incremental-redisplay-p))
+	 (redisplay-p (if (listp ir) (first ir) ir))
+	 (check-overlapping (or (atom ir)	;default is T
+				(getf (rest ir) :check-overlapping t))))
+    (with-simple-restart (nil "Skip redisplaying pane ~S" pane)
+      (loop
+	(with-simple-restart (nil "Retry displaying pane ~S" pane)
+	  (when *frame-layout-changing-p*
+	    (setq force-p t))
+	  (unless *sizing-application-frame*
+	    (unless (member pane (slot-value frame 'initialized-panes))
+	      (setq force-p t)
+	      (push pane (slot-value frame 'initialized-panes))))
+	  (return
+	    (cond (display-function
+		   (cond (redisplay-p
+			  (let ((redisplay-record
+				  (let ((history (stream-output-history pane)))
+				    (when history
+				      #+compulsive-redisplay
+				      (when (> (output-record-count history :fastp t) 1)
+					(cerror "Clear the output history and proceed"
+						"There is more than one element in this redisplay pane")
+					(window-clear pane))
+				      (unless (zerop (output-record-count history :fastp t))
+					(output-record-element history 0))))))
+			    (cond ((or (null redisplay-record) force-p)
+				   (when force-p
+				     (window-clear pane))
+				   (invoke-pane-redisplay-function frame pane))
+				  (t 
+				   (redisplay redisplay-record pane 
+					      :check-overlapping check-overlapping)))))
+			 ((or force-p (pane-needs-redisplay pane))
+			  (multiple-value-bind (needs-display clear)
+			      (pane-needs-redisplay pane)
+			    (declare (ignore needs-display))
+			    (when (or force-p clear)
+			      (window-clear pane)))
+			  (invoke-pane-display-function frame pane)))
+		   (force-output pane))
+		  (force-p
+		   ;; If refilling from scratch, give the application a chance
+		   ;; to draw stuff
+		   (frame-replay frame pane))
+		  ;; Otherwise do nothing, the bits will still be on display
+		  ;; and will be refreshed properly if there's a damage event.
+		  )))))))
 
+;; Factored out of the above to avoid consing closures
 (defun invoke-pane-redisplay-function (frame pane &rest args)
   (declare (dynamic-extent args))
   (updating-output (pane)
@@ -994,7 +1025,7 @@
 
 
 (defmethod read-frame-command ((frame standard-application-frame) 
-			       &key (stream *query-io*)		;frame-query-io?
+			       &key (stream *standard-input*)	;--- FRAME-STANDARD-INPUT?
 			       ;; should the rest of the *command-parser*
 			       ;; etc. variables be passed as keywords or bound?
 			       )
@@ -1054,14 +1085,13 @@
 	  (let ((*reading-frame-command* t))
 	    (call-next-method))))))
 	
-;;--- Actually this should be named command-event
-
+;;--- Actually this should be named COMMAND-EVENT
 (defclass presentation-event (event)
-	  ((value :initarg :value :reader presentation-event-value)
-	   (sheet :initarg :sheet :reader event-sheet)
-	   (frame :initarg :frame :reader event-frame)
-	   (queuep :initarg :queuep :initform nil)
-	   (presentation-type :initarg :presentation-type :reader event-presentation-type))
+    ((value :initarg :value :reader presentation-event-value)
+     (sheet :initarg :sheet :reader event-sheet)
+     (frame :initarg :frame :reader event-frame)
+     (queuep :initarg :queuep :initform nil)
+     (presentation-type :initarg :presentation-type :reader event-presentation-type))
   (:default-initargs :presentation-type 'command))
 
 (defmethod handle-event (sheet (event presentation-event))
@@ -1072,57 +1102,54 @@
   (let ((command (presentation-event-value event)))
     (if (partial-command-p command)
 	(throw-highlighted-presentation
-	 (make-instance 'standard-presentation
-			:object command
-			:type (event-presentation-type event))
-	 *input-context*
-	 (allocate-event 'pointer-button-press-event
-			 :sheet sheet
-			 :x 0 :y 0
-			 :modifier-state 0
-			 :button +pointer-left-button+))
-      (progn
-	(when (and *input-buffer-empty*
-		   (eq *application-frame* (event-frame event)))
-	  (signal 'synchronous-command-event
-		  :command command))
-	;; Perhaps if this results directly from a user action then either
-	;; we should do it right away, ie. loose the input buffer or beep if
-	;; it has to be deffered,
-	(if (slot-value event 'queuep)
-	    (queue-frame-command (event-frame event) (presentation-event-value event))
-	  (beep sheet))))))
+	  (make-instance 'standard-presentation
+	    :object command
+	    :type (event-presentation-type event))
+	  *input-context*
+	  (allocate-event 'pointer-button-press-event
+	    :sheet sheet
+	    :x 0 :y 0
+	    :modifier-state 0
+	    :button +pointer-left-button+))
+	(progn
+	  (when (and *input-buffer-empty*
+		     (eq *application-frame* (event-frame event)))
+	    (signal 'synchronous-command-event
+		    :command command))
+	  ;; Perhaps if this results directly from a user action then either
+	  ;; we should do it right away, ie. lose the input buffer or beep if
+	  ;; it has to be deferred,
+	  (if (slot-value event 'queuep)
+	      (queue-frame-command (event-frame event) (presentation-event-value event))
+	      (beep sheet))))))
 
 (defun queue-frame-command (frame command)
   (queue-push (frame-command-queue frame) command))
 
-(defmethod execute-command-in-frame ((frame standard-application-frame) 
-				     command &rest initargs)
+(defmethod execute-command-in-frame 
+	   ((frame standard-application-frame) command &rest initargs)
+  (declare (dynamic-extent initargs))
   (distribute-event
     (port frame)
-    (apply #'allocate-event 
-	   'presentation-event 
-	   :frame frame
-	   :sheet (frame-top-level-sheet frame) 
-	   :value command 
-	   initargs)))
+    (apply #'allocate-event 'presentation-event 
+ 	   :frame frame
+ 	   :sheet (frame-top-level-sheet frame) 
+ 	   :value command 
+ 	   initargs)))
 
-(defun make-command-timer (frame 
-			   command arguments delay 
-			   &key repeat
+(defun make-command-timer (frame command 
+			   &key (delay 0) interval
 				(command-table (frame-command-table frame)))
   (flet ((queue-command-event (timer)
 	   (declare (ignore timer))
-	   (execute-command-in-frame
-	    frame
-	    (cons command arguments)
-	    :queuep t
-	    :presentation-type `(command :command-table ,command-table))))
-    (let ((timer 
-	   (make-instance 'clim-utils::timer 
-			  :function #'queue-command-event
-			  :delay delay :repeat repeat)))
-      (clim-utils::add-timer timer)
+	   (execute-command-in-frame 
+	     frame command
+	     :queuep t
+	     :presentation-type `(command :command-table ,command-table))))
+    (let ((timer (make-timer
+		   :function #'queue-command-event
+		   :delay delay :interval interval)))
+      (add-timer timer)
       timer)))
 
 
@@ -1356,11 +1383,8 @@
 	    middle middle-presentation middle-context
 	    right  right-presentation  right-context)))
 
-
 (defmethod raise-frame ((frame standard-application-frame))
   (raise-sheet (frame-top-level-sheet frame)))
 
 (defmethod bury-frame ((frame standard-application-frame))
   (bury-sheet (frame-top-level-sheet frame)))
-
-

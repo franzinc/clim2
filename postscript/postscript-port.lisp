@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: POSTSCRIPT-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: postscript-port.lisp,v 1.5 92/08/21 16:34:35 cer Exp $
+;; $fiHeader: postscript-port.lisp,v 1.6 92/09/08 15:19:26 cer Exp $
 
 (in-package :postscript-clim)
 
@@ -565,9 +565,9 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
 	      (botrow (* bottom bytes-per-row))
 	      (bigend-digit-char "084c2a6e195d3b7f")
 	      (j 0)
-	      #+Genera (buf buf)
-	      #+Genera (arr arr))
-	  #+Genera (declare (sys:array-register bigend-digit-char buf arr))
+	      #+(or Genera Minima) (buf buf)
+	      #+(or Genera Minima) (arr arr))
+	  (declare (type vector bigend-digit-char buf arr))
 	  (flet ((force-buf ()
 		   (setf (fill-pointer buf) j)
 		   (with-temporary-substring (subbuf buf 0 j)
@@ -690,7 +690,7 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
 	   clim-internals::graphics-output-recording
 	   clim-internals::output-recording-mixin
 	   clim-internals::output-protocol-mixin
-	   sheet)
+	   basic-sheet)
 	  ((multi-page :initform nil :initarg :multi-page)
 	   ;; Need this for hacking "scrolling" of multi-page output
 	   (device-transformation :accessor sheet-device-transformation

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clim-defs.lisp,v 1.13 92/08/18 17:24:42 cer Exp $
+;; $fiHeader: clim-defs.lisp,v 1.14 92/09/08 15:17:27 cer Exp $
 
 (in-package :clim-internals)
 
@@ -83,12 +83,13 @@
 (eval-when (compile eval load)
 (defvar *output-record-constructor-cache* (make-hash-table))
 
-(defmacro construct-output-record (type &rest init-args &environment env)
+(defmacro construct-output-record (type &rest initargs &environment env)
   (let ((constructor nil))
     (cond ((and (constantp type #+(or Genera Minima) env)
-		(setq constructor (gethash (eval type) *output-record-constructor-cache*)))
-	   `(,constructor ,@init-args))
-	  (t `(construct-output-record-1 ,type ,@init-args)))))
+		(setq constructor (gethash (eval type #+(or Genera Minima-Developer) env)
+					   *output-record-constructor-cache*)))
+	   `(,constructor ,@initargs))
+	  (t `(construct-output-record-1 ,type ,@initargs)))))
 
 (defmacro define-output-record-constructor (record-type arglist &rest initialization-arguments)
   (let ((constructor-name (fintern "~A-~A" record-type 'constructor)))
@@ -98,7 +99,7 @@
 	     ',constructor-name))))
 )	;eval-when
 
-(defmacro with-new-output-record ((stream &optional record-type record &rest init-args)
+(defmacro with-new-output-record ((stream &optional record-type record &rest initargs)
 				  &body body &environment env)
   #+Genera (declare (zwei:indentation 0 3 1 1))
   (unless record-type
@@ -106,8 +107,8 @@
   (let ((constructor nil)
 	(ignore-record nil))
     (when (and (constantp record-type #+(or Genera Minima) env)
-	       (setq constructor
-		     (gethash (eval record-type) *output-record-constructor-cache*))))
+	       (setq constructor (gethash (eval record-type #+(or Genera Minima-Developer) env)
+					  *output-record-constructor-cache*))))
     (unless record
       (setq record '#:record
 	    ignore-record t))
@@ -117,9 +118,9 @@
        (declare (dynamic-extent #'with-new-output-record-body))
        (invoke-with-new-output-record
 	 ,stream #'with-new-output-record-body
-	 ,record-type ',constructor ,@init-args))))
+	 ,record-type ',constructor ,@initargs))))
 
-(defmacro with-output-to-output-record ((stream &optional record-type record &rest init-args)
+(defmacro with-output-to-output-record ((stream &optional record-type record &rest initargs)
 					&body body)
   #+Genera (declare (zwei:indentation 0 3 1 1))
   (default-output-stream stream)
@@ -130,7 +131,7 @@
      (letf-globally (((stream-current-output-record ,stream) nil)
 		     ((stream-output-history ,stream) nil)
 		     ((stream-text-output-record ,stream) nil))
-       (with-new-output-record (,stream ,record-type ,record ,@init-args)
+       (with-new-output-record (,stream ,record-type ,record ,@initargs)
 	 (with-stream-cursor-position-saved (,stream)
 	   ,@body)))))
 
@@ -290,7 +291,7 @@
 			  label x-position y-position width height)
 		    &body body))
   #+Genera (declare (zwei:indentation 0 3 1 1))
-  (default-query-stream stream accepting-values)
+  (default-input-stream stream accepting-values)
   `(flet ((accepting-values-body (,stream) ,@body))
      (declare (dynamic-extent #'accepting-values-body))
      (invoke-accepting-values ,stream #'accepting-values-body ,@args)))
@@ -301,7 +302,9 @@
 ;; the cursor was.  Finally, leave the cursor at the end of the output.
 ;; HEIGHT is useful when you are doing this inside of incremental redisplay,
 ;; and the graphics are going to change size from pass to pass.
-(defmacro with-room-for-graphics ((&optional stream &key record-type height (move-cursor t))
+(defmacro with-room-for-graphics ((&optional stream 
+				   &key height (first-quadrant t fq-p) (move-cursor t)
+					record-type)
 				  &body body)
   (default-output-stream stream with-room-for-graphics)
   (unless record-type
@@ -310,7 +313,8 @@
      (declare (dynamic-extent #'with-room-for-graphics-body))
      (invoke-with-room-for-graphics ,stream #'with-room-for-graphics-body
 				    ,record-type ,move-cursor
-				    ,@(and height `(:height ,height)))))
+				    ,@(and height `(:height ,height))
+				    ,@(and fq-p `(:first-quadrant ,first-quadrant)))))
 
 
 ;;; Application frame variables

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: GENERA-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: genera-frames.lisp,v 1.9 92/07/20 16:00:58 cer Exp $
+;; $fiHeader: genera-frames.lisp,v 1.10 92/08/18 17:25:59 cer Exp $
 
 (in-package :genera-clim)
 
@@ -59,7 +59,6 @@
   '((:exit   "Exit")
     (:abort  "Cancel")))
 
-;;--- We can do better than this at some point
 (defmethod frame-manager-notify-user
 	   ((framem genera-frame-manager) message-string 
 	    &key (style :inform)
@@ -71,12 +70,20 @@
 		 (title "Notify user")
 		 documentation
 		 (exit-boxes '(:exit :abort :help))
-		 (name title))
-  (tv:notify nil message-string))
+		 (name title)
+		 text-style)
+  (declare (ignore style documentation name))
+  (let ((stream associated-window))
+    (accepting-values (stream :exit-boxes exit-boxes :label title
+			      :own-window t)
+      (with-text-style (stream text-style)
+	(write-string message-string stream)))))
 
+;;--- We can do better than this
 (defmethod frame-manager-select-file 
-	   ((framem genera-frame-manager) &rest options 
-	    &key (frame nil frame-p)
+	   ((framem genera-frame-manager)
+	    &key (default nil default-p)
+		 (frame nil frame-p)
 		 (associated-window
 		   (if frame-p
 		       (frame-top-level-sheet frame)
@@ -88,7 +95,16 @@
 		 file-list-label
 		 (exit-boxes '(:exit :abort :help))
 		 (name title))
-  )
+  (declare (ignore style documentation name
+		   file-search-proc directory-list-label file-list-label))
+  (let ((stream associated-window))
+    (accepting-values (stream :exit-boxes exit-boxes :label title
+			      :own-window t)
+      (values
+	(accept 'pathname :prompt "Enter a pathname"
+		:stream stream
+		:default default 
+		:provide-default (not default-p))))))
 
 
 ;;; Pointer documentation and progress notes for Genera

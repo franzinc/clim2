@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: puzzle.lisp,v 1.14 92/09/08 15:19:06 cer Exp Locker: cer $
+;; $fiHeader: puzzle.lisp,v 1.15 92/09/22 19:37:50 cer Exp Locker: cer $
 
 (in-package :clim-demo)
 
@@ -24,7 +24,7 @@
   (:layouts
     (:default display)))
 
-(defmethod frame-query-io ((puzzle puzzle))
+(defmethod frame-standard-input ((puzzle puzzle))
   (get-frame-pane puzzle 'display))
 
 (defmethod frame-standard-output ((puzzle puzzle))
@@ -33,7 +33,7 @@
 (defmethod run-frame-top-level :before ((puzzle puzzle))
   (initialize-puzzle puzzle))
 
-(defmethod read-frame-command ((puzzle puzzle) &key (stream *query-io*))
+(defmethod read-frame-command ((puzzle puzzle) &key (stream *standard-input*))
   (let ((abort-chars #+Genera '(#\Abort #\End)
 		     #-Genera nil))
     (let ((command (read-command-using-keystrokes

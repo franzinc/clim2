@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-menu.lisp,v 1.1 92/08/19 10:26:04 cer Exp $
+;; $fiHeader: db-menu.lisp,v 1.2 92/09/08 15:17:38 cer Exp $
 
 "Copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
 
@@ -144,7 +144,7 @@
 	   sheet-single-child-mixin
 	   wrapping-space-mixin
 	   space-requirement-mixin
-	   pane)
+	   basic-pane)
     ()
   (:default-initargs :medium t))
 
@@ -154,9 +154,9 @@
      (entered :initarg nil :accessor pull-down-menu-entered))
   (:default-initargs :buttons nil))
 
-(defmethod repaint-sheet :after ((pane pull-down-menu) region)
+(defmethod handle-repaint :after ((pane pull-down-menu) region)
   (dolist (button (slot-value pane 'buttons))
-    (repaint-sheet button region)))
+    (handle-repaint button region)))
 
 (defmethod handle-event ((pane pull-down-menu) (event pointer-motion-event))
   (when (and (plusp (pointer-event-x event))

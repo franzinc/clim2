@@ -27,7 +27,7 @@
 ;;;
 ;;;-----------------------------------------------------------
 
-;; $fiHeader: defsystem.lisp,v 1.13 92/08/18 17:25:50 cer Exp Locker: cer $
+;; $fiHeader: defsystem.lisp,v 1.14 92/09/22 19:37:30 cer Exp Locker: cer $
 
 ;; Add a feature for ANSI-adhering Lisps.  So far, only Apple's
 ;; version 2.0 tries to do adhere to the ANSI spec instead of CLtL rev 1.
@@ -608,6 +608,7 @@
 
 (pushnew '(:c "c" "o" compile-c-file load-c-file)
 	 *language-descriptions* :test #'equal)
+
 
 ;;;
 ;;; Systems and modules
@@ -807,6 +808,7 @@
 	     (if file
 		 (eql (module-load-date module) (file-write-date file))
 		 (error "The module ~S has disappeared." (module-name module)))))))
+
 
 ;;;
 ;;; Database of systems, indexed by name
@@ -978,6 +980,7 @@ unless RELOAD is true.  Returns NIL if the system definition can't be found."
 					      (cons system pending)
 					      result))))))
     (reverse (merge-subsystems systems nil nil))))
+
 
 ;;;
 ;;; Defining systems
@@ -1066,9 +1069,9 @@ pathname fields are evaluated."
   "Undefine the system with the specified name"
   (unintern-system (find-system system-name)))
 
-
 (defun recursive-system-error (system)
   (error "System ~a recursivly depends on itself!" (system-name system)))
+
 
 ;;;
 ;;; Load-system
@@ -1078,8 +1081,9 @@ pathname fields are evaluated."
 ;; The following are used to prevent multiple compilations/loads from occuring
 ;; during a single call to LOAD-SYSTEM or COMPILE-SYSTEM.
 (eval-when (eval compile)
-  (proclaim '(special *loaded-systems* *loaded-modules* *compiled-systems*
-	      *compiled-modules* *tracep*)))
+  (proclaim '(special *loaded-systems* *loaded-modules* 
+		      *compiled-systems* *compiled-modules*
+		      *tracep*)))
 
 #+(or (not ANSI-90) (and Allegro (not (version>= 4 2))) Cloe)
 (#+Allegro excl::without-package-locks #-Allegro progn
@@ -1200,6 +1204,7 @@ verify that each already loaded subsystem is up-to-date, reloading it if need be
 	  (format t "~&;;; -- Would eval ~S"
 		  (module-eval-after module))
 	  (eval (module-eval-after module))))))
+
 
 ;;;
 ;;; compile-system
@@ -1315,6 +1320,7 @@ verify that each already loaded subsystem is up-to-date, reloading it if need be
 	  (push module *compiled-modules*)
 	  ;; return file-write-date for binary
 	  (file-write-date-or-nil b-pathname))))))
+
 
 ;;; Describe and show
 

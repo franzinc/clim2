@@ -1,13 +1,12 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: processes.lisp,v 1.8 92/08/18 17:24:14 cer Exp Locker: cer $
+;; $fiHeader: processes.lisp,v 1.9 92/09/08 10:34:30 cer Exp $
 
 (in-package :clim-utils)
 
 "Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved.
  Portions copyright (c) 1988, 1989, 1990 International Lisp Associates.
- Portions copyright (c) 1992, Franz Inc"
-
+ Portions copyright (c) 1992 Franz, Inc."
 
 ;;; Locks
 
@@ -314,4 +313,3 @@
 		     'process-interrupt process closure))
   }
   )
-

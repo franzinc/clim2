@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: text-style.lisp,v 1.11 92/08/19 18:04:26 cer Exp $
+;; $fiHeader: text-style.lisp,v 1.12 92/09/08 15:16:53 cer Exp $
 
 (in-package :silica)
 
@@ -275,7 +275,7 @@
 	     `(setf ,datum
 		    (logand ,datum
 			    (lognot (,',face-code-mask-macro-name ,@face-codes))))))
-	 (defun-property (:property ,class face-class-merging-function) ,lambda-list
+	 (defun-property (,class face-class-merging-function) ,lambda-list
 	   ,@declarations
 	   ,@(when documentation (list documentation))
 	   (macrolet ((,face-code-mask-macro-name (&rest face-codes)

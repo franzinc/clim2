@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: coordinate-sorted-set.lisp,v 1.4 92/04/15 11:46:19 cer Exp $
+;; $fiHeader: coordinate-sorted-set.lisp,v 1.5 92/05/07 13:12:05 cer Exp $
 
 (in-package :clim-internals)
 
@@ -52,7 +52,8 @@
   (with-slots (coordinate-sorted-set) record
     (svref coordinate-sorted-set index)))
 
-(defmethod output-record-count ((record standard-tree-output-record))
+(defmethod output-record-count ((record standard-tree-output-record) &key fastp)
+  (declare (ignore fastp))
   (slot-value record 'fill-pointer))
 
 (defmethod clear-output-record ((record standard-tree-output-record))
@@ -66,8 +67,7 @@
   (with-slots (coordinate-sorted-set fill-pointer tallest-box-height) record
     (let ((vector coordinate-sorted-set)
 	  (fp fill-pointer))
-      (declare (type simple-vector vector) #+Genera (sys:array-register vector))
-      (declare (type fixnum fp))
+      (declare (type simple-vector vector) (type fixnum fp))
       (maxf tallest-box-height (bounding-rectangle-height child))
       (with-bounding-rectangle* (left top right bottom) child
         (declare (ignore left top))
@@ -104,8 +104,7 @@
       (cond (index
 	     (let ((new-fp (the fixnum (1- fill-pointer)))
 		   (vector coordinate-sorted-set))
-	       (declare (type simple-vector vector) (fixnum new-fp)
-			#+Genera (sys:array-register vector))
+	       (declare (type simple-vector vector) (fixnum new-fp))
 	       (unless (= (the fixnum index) new-fp)
 		 ;; Shift the whole vector downward
 		 (do ((i (the fixnum index) (1+ i)))
@@ -126,8 +125,7 @@
   (declare (optimize (safety 0)))
   (let ((vector (slot-value record 'coordinate-sorted-set))
 	(length (slot-value record 'fill-pointer)))
-    (declare (type simple-vector vector) (fixnum length)
-	     #+Genera (sys:array-register vector))
+    (declare (type simple-vector vector) (fixnum length))
     (if (or (null region) (eq region +everywhere+))
 	(dovector ((child index) vector :start 0 :end length :simple-p t)
 	  (apply function child continuation-args))
@@ -167,8 +165,7 @@
 	(bound (slot-value record 'tallest-box-height)))
     (declare (type simple-vector vector)
 	     (type fixnum length)
-	     (type coordinate bound)
-	     #+Genera (sys:array-register vector))
+	     (type coordinate bound))
     (let ((end (coordinate-sorted-set-index-for-position
 		 vector (coordinate 0) (+ y bound 1) 0 length))
 	  (limit (- y bound)))
@@ -227,8 +224,7 @@
     (declare (type fixnum below above))
     (assert (<= below above))			;Binary search will loop otherwise.
     (let (#+(or Genera Minima) (vector vector))
-      #+Genera (declare (sys:array-register vector))
-      #+Minima (declare (type vector vector))
+      #+(or Genera Minima) (declare (type simple-vector vector))
       (loop
 	(when (= above below)
 	  (return above))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-table.lisp,v 1.14 92/08/18 17:23:35 cer Exp Locker: cer $
+;; $fiHeader: db-table.lisp,v 1.15 92/09/08 10:34:22 cer Exp $
 
 (in-package :silica)
 
@@ -106,26 +106,26 @@
 (defmethod allocate-space ((table table-pane) width height)
   (with-slots (column-space-requirements row-space-requirements) table
     (let* ((space-requirement 
-	    (compose-space table :width width :height height))
+	     (compose-space table :width width :height height))
 	   (contents (slot-value table 'contents))
 	   (row-heights
-	    (allocate-space-to-items
-	     height
-	     space-requirement
-	     row-space-requirements
-	     #'space-requirement-min-height
-	     #'space-requirement-height
-	     #'space-requirement-max-height
-	     #'identity))
+	     (allocate-space-to-items
+	       height
+	       space-requirement
+	       row-space-requirements
+	       #'space-requirement-min-height
+	       #'space-requirement-height
+	       #'space-requirement-max-height
+	       #'identity))
 	   (column-widths
-	    (allocate-space-to-items
-	     width
-	     space-requirement
-	     column-space-requirements
-	     #'space-requirement-min-width
-	     #'space-requirement-width
-	     #'space-requirement-max-width
-	     #'identity))
+	     (allocate-space-to-items
+	       width
+	       space-requirement
+	       column-space-requirements
+	       #'space-requirement-min-width
+	       #'space-requirement-width
+	       #'space-requirement-max-width
+	       #'identity))
 	   (y 0))
       (dotimes (row (array-dimension contents 0))
 	(let ((row-height (pop row-heights))
@@ -137,8 +137,8 @@
 	      (when (and item
 			 (sheet-enabled-p item))
 		(move-and-resize-sheet
-		 item x y 
-		 (min column-width (1- (- width x)))
-		 (min row-height (1- (- height y)))))
+		  item x y 
+		  (min column-width (1- (- width x)))
+		  (min row-height (1- (- height y)))))
 	      (incf x column-width)))
 	  (incf y row-height))))))

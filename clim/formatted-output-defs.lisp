@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: formatted-output-defs.lisp,v 1.3 92/02/24 13:07:28 cer Exp $
+;; $fiHeader: formatted-output-defs.lisp,v 1.4 92/08/18 17:24:51 cer Exp $
 
 (in-package :clim-internals)
 
@@ -119,6 +119,6 @@
 			     ,cache-value ,cache-test
 			     ,copy-cache-value ,parent-cache ,output-record 
 			     ,@(remove-keywords args
-				 ;; remove all args that aren't init-args to the record.
+				 ;; Remove all args that aren't initargs to the record.
 				 '(:record-type :id-test :cache-test :copy-cache-value
 				   :parent-cache :output-record)))))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-scroll.lisp,v 1.30 92/09/08 10:34:20 cer Exp Locker: cer $
+;; $fiHeader: db-scroll.lisp,v 1.31 92/09/08 15:16:35 cer Exp $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright(c) 1991, 1992 International Lisp Associates.
@@ -36,16 +36,16 @@
   (deallocate-event event))
 
 ;; Returns the viewport of the pane, if there is one
-(defmethod pane-viewport ((sheet sheet))
+(defmethod pane-viewport ((sheet basic-sheet))
   (let ((parent (sheet-parent sheet)))
     (and (viewportp parent) parent)))
 
-(defmethod pane-viewport-region ((sheet sheet))
+(defmethod pane-viewport-region ((sheet basic-sheet))
   (let ((viewport (pane-viewport sheet)))
     (and viewport
 	 (viewport-viewport-region viewport))))
 
-(defmethod pane-scroller ((sheet sheet))
+(defmethod pane-scroller ((sheet basic-sheet))
   (let ((viewport (pane-viewport sheet)))
     (and viewport (viewport-scroller-pane viewport))))
 
@@ -163,13 +163,12 @@
 	    (update-scroll-bar horizontal-scroll-bar
 			       left right vleft vright)))))))
 
-;;--- In the case where the viewport is bigger than the window this
-;;--- code gets things wrong. Check out the thinkadot demo.  It's
-;;--- because (- (--) (- vmin)) is negative.
-
 (defmethod note-sheet-grafted :before ((sheet scroll-bar))
   (setf (scroll-bar-current-size sheet) nil))
 
+;;--- In the case where the viewport is bigger than the window this
+;;--- code gets things wrong. Check out the thinkadot demo.  It's
+;;--- because (- (--) (- vmin)) is negative.
 (defun update-scroll-bar (scroll-bar min max vmin vmax)
   (declare (optimize (safety 0) (speed 3)))
   (let ((current-size (scroll-bar-current-size scroll-bar))
@@ -345,7 +344,7 @@
 	   sheet-multiple-child-mixin
 	   space-requirement-mixin
 	   shared-medium-sheet-output-mixin
-	   pane)
+	   basic-pane)
     ((shaft-thickness :initarg :shaft-thickness)
      (min-target-pane :initform nil)
      (max-target-pane :initform nil)
@@ -644,7 +643,7 @@
 						:reuse xform))
 	  (setf (sheet-transformation pane) xform))))))
 
-(defmethod repaint-sheet ((pane scroll-bar-target-pane) region)
+(defmethod handle-repaint ((pane scroll-bar-target-pane) region)
   (declare (ignore region))
   (with-sheet-medium (medium pane)
     (with-bounding-rectangle* (left top right bottom) (sheet-region pane)
@@ -701,7 +700,7 @@
 	    (:horizontal ':horizontal-scroll)
 	    (:vertical ':vertical-scroll)))))
 
-(defmethod repaint-sheet ((pane scroll-bar-shaft-pane) region)
+(defmethod handle-repaint ((pane scroll-bar-shaft-pane) region)
   (declare (ignore region))
   (with-sheet-medium (medium pane)
     (with-bounding-rectangle* (left top right bottom) (sheet-region pane)
@@ -831,20 +830,24 @@
 	 scroll-bar client id orientation x y)))))
 
 (defmethod handle-event ((pane scroll-bar-shaft-pane) (event pointer-enter-event))
-  ;;--- Change the mouse cursor and set the mouse string
-  )
+  (setf (pointer-cursor (port-pointer (port pane)))
+	(if (eq (gadget-orientation (slot-value pane 'scroll-bar)) :vertical)
+	    :vertical-scroll
+	    :horizontal-scroll)))
 
 (defmethod handle-event ((pane scroll-bar-shaft-pane) (event pointer-exit-event))
-  ;;--- Change the mouse cursor and set the mouse string
-  )
+  ;;--- Should really restore the previous cursor...
+  (setf (pointer-cursor (port-pointer (port pane))) :default))
 
 (defmethod handle-event ((pane scroll-bar-target-pane) (event pointer-enter-event))
-  ;;--- Change the mouse cursor and set the mouse string
-  )
+  (setf (pointer-cursor (port-pointer (port pane)))
+	(if (eq (gadget-orientation (slot-value pane 'scroll-bar)) :vertical)
+	    (if (eq (slot-value pane 'end) :less-than) :scroll-up :scroll-down)
+	    (if (eq (slot-value pane 'end) :less-than) :scroll-left :scroll-right))))
 
 (defmethod handle-event ((pane scroll-bar-target-pane) (event pointer-exit-event))
-  ;;--- Change the mouse cursor and set the mouse string
-  )
+  ;;--- Should really restore the previous cursor...
+  (setf (pointer-cursor (port-pointer (port pane))) :default))
 
 (defmethod handle-event :after ((pane scroll-bar-shaft-pane) (event pointer-event))
   (deallocate-event event))

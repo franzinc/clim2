@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: incremental-redisplay.lisp,v 1.11 92/08/18 17:25:03 cer Exp Locker: cer $
+;; $fiHeader: incremental-redisplay.lisp,v 1.12 92/08/21 16:33:49 cer Exp $
 
 (in-package :clim-internals)
 
@@ -84,10 +84,10 @@
     (setf (slot-value record 'cache) nil)))
 
 (defmethod match-output-records ((record1 output-record-element-mixin)
-				 &rest init-args)
-  (declare (ignore init-args))
+				 &rest initargs)
+  (declare (ignore initargs))
   ;; this is questionable default behavior.  What I really want is to
-  ;; find the original init-args, and make sure they are equal to the
+  ;; find the original initargs and make sure they are equal to the
   ;; new ones.
   ;; If I can't do that, I'd better return nil.
   ;;
@@ -122,14 +122,14 @@
 ;; the arguments, and then passes it on to the real (and generic)
 ;; FIND-CHILD-OUTPUT-RECORD.  FIND-CHILD-OUTPUT-RECORD is the exported
 ;; interface, and is defined in the protocol.
-(defun find-child-output-record-1 (record record-type &rest init-args)
-  (declare (dynamic-extent init-args))
+(defun find-child-output-record-1 (record record-type &rest initargs)
+  (declare (dynamic-extent initargs))
    (apply #'find-child-output-record
 	  record
 	  (and (not (output-record-contents-ok record))
 	       (eq (output-record-generation-tick record) *generation-tick*))
 	  record-type
-	  init-args))
+	  initargs))
 
 (defun decache-child-output-record-1 (record child)
   (decache-child-output-record
@@ -137,14 +137,14 @@
     (and (not (output-record-contents-ok record))
 	 (eq (output-record-generation-tick record) *generation-tick*))))
 
-(defun find-cached-output-record-1 (record record-type &rest init-args)
-  (declare (dynamic-extent init-args))
+(defun find-cached-output-record-1 (record record-type &rest initargs)
+  (declare (dynamic-extent initargs))
    (apply #'find-cached-output-record
 	  record
 	  (and (not (output-record-contents-ok record))
 	       (eq (output-record-generation-tick record) *generation-tick*))
 	  record-type
-	  init-args))
+	  initargs))
 
 (defun find-with-test (item sequence key test)
   (flet ((robust-test (item1 item2)
@@ -159,14 +159,14 @@
 
 (defmethod find-child-output-record
 	   ((record output-record-mixin) use-old-children record-type
-	    &rest init-args &key unique-id id-test &allow-other-keys)
-  (declare (dynamic-extent init-args))
+	    &rest initargs &key unique-id id-test &allow-other-keys)
+  (declare (dynamic-extent initargs))
   ;; Other types can write their own FIND-CHILD-OUTPUT-RECORD.  This is 
   ;; the default, stupid one.
   (flet ((do-match (candidate)
 	   ;; (class-name (class-of ...)) should just be type-of, but not in PCL.
 	   (and (eq record-type (class-name (class-of candidate)))
-		(apply #'match-output-records candidate init-args))))
+		(apply #'match-output-records candidate initargs))))
     (let ((elts-to-find (when use-old-children (output-record-old-children record))))
       (if use-old-children
 	  (let ((found-record
@@ -740,10 +740,10 @@
 ;; just use default, for now.
 #+++ignore
 (defmethod find-child-output-record ((record standard-updating-output-record)
-				     use-old-children record-type &rest init-args
+				     use-old-children record-type &rest initargs
 				     &key unique-id id-test &allow-other-keys)
   ;;; need to explicitly define what happens here.
-  (declare (dynamic-extent init-args))
+  (declare (dynamic-extent initargs))
   )
 
 
@@ -808,9 +808,9 @@
 
 (defmethod find-cached-output-record ((record standard-updating-output-record)
 				      use-old-elts record-type
-				      &rest init-args
+				      &rest initargs
 				      &key unique-id id-test &allow-other-keys)
-  (declare (dynamic-extent init-args))
+  (declare (dynamic-extent initargs))
   (with-slots (cache old-cache generation-tick) record
     (let ((cache-to-check (if use-old-elts old-cache cache)))
       (let ((elt
@@ -820,7 +820,7 @@
 		  ;; UNIQUE-ID can be NIL when we are coming through
 		  ;; INVOKE-WITH-NEW-OUTPUT-RECORD to create new records
 		  (and (eq record-type (class-name (class-of (first cache-to-check))))
-		       (apply #'match-output-records (first cache-to-check) init-args)
+		       (apply #'match-output-records (first cache-to-check) initargs)
 		       (first cache-to-check)))))
 	(when (and elt use-old-elts)
 	  (setf old-cache (delete elt old-cache)))

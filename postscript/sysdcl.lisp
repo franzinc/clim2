@@ -1,5 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: USER; Base: 10; Lowercase: Yes -*-
-;; $fiHeader: sysdcl.lisp,v 1.2 92/09/08 10:35:40 cer Exp Locker: cer $
+
+;; $fiHeader: sysdcl.lisp,v 1.3 92/09/08 15:19:28 cer Exp $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :cl-user)
 
@@ -10,7 +11,6 @@
 		       #-Genera (frob-pathname "postscript")
      :default-binary-pathname #+Genera "SYS:CLIM;REL-2;POSTSCRIPT;"
 			      #-Genera (frob-pathname "postscript")
-     #+ignore :needed-systems #+ignore (clim-standalone)
      :load-before-compile (clim-standalone))
   ("pkgdcl")
   ("postscript-port")

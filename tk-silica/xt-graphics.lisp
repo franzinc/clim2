@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.38 92/09/09 11:45:00 cer Exp Locker: cer $
+;; $fiHeader: xt-graphics.lisp,v 1.39 92/09/22 19:38:17 cer Exp Locker: cer $
 
 (in-package :tk-silica)
 
@@ -201,14 +201,14 @@
 (defmethod (setf medium-background) :after (ink (medium xt-medium))
   (declare (ignore ink))
   (recompute-gcs medium)
-  ;;--- Some things are missing handle-repaint methods...
-  #+ignore (handle-repaint (medium-sheet medium) medium +everywhere+))
+  ;;--- Some things are missing REPAINT-SHEET methods...
+  #+ignore (repaint-sheet (medium-sheet medium) medium +everywhere+))
 
 (defmethod (setf medium-foreground) :after (ink (medium xt-medium))
   (declare (ignore ink))
   (recompute-gcs medium)
-  ;;--- Some things are missing handle-repaint methods...
-  #+ignore (handle-repaint (medium-sheet medium) medium +everywhere+))
+  ;;--- Some things are missing REPAINT-SHEET methods...
+  #+ignore (repaint-sheet (medium-sheet medium) medium +everywhere+))
 
 (defmethod (setf medium-ink) :after (ink (medium xt-medium))
   (declare (ignore ink))

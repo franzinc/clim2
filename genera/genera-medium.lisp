@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: GENERA-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: genera-medium.lisp,v 1.10 92/08/18 17:26:00 cer Exp $
+;; $fiHeader: genera-medium.lisp,v 1.11 92/09/08 15:18:51 cer Exp $
 
 (in-package :genera-clim)
 
@@ -46,6 +46,9 @@
     (scl:send window :set-erase-aluf (genera-decode-color ink medium nil))
     (when (medium-drawing-possible medium)
       (scl:send window :refresh))))
+
+(defmethod medium-real-screen ((medium genera-medium))
+  (tv:sheet-screen (medium-drawable medium)))
 
 
 ;;; Translation between CLIM and Genera graphics model
@@ -203,12 +206,12 @@
 	       (setq last-op (cdr op))))))))
 
 (defmethod genera-decode-color ((ink gray-color) medium &optional (stipple-p t))
-  (let ((window (medium-drawable medium))
+  (let ((screen (medium-real-screen medium))
 	(color-p (slot-value (port medium) 'color-p)))
     (let ((luminosity (gray-color-luminosity ink))
-	  (invert-p (not (scl:send (tv:sheet-screen window) :bow-mode))))
+	  (invert-p (not (scl:send screen :bow-mode))))
       (cond (color-p
-	     (scl:send (tv:sheet-screen window) :compute-rgb-alu boole-1
+	     (scl:send screen :compute-rgb-alu boole-1
 		       luminosity luminosity luminosity (not invert-p)))
 	    ((= luminosity 0.0) (if invert-p boole-clr boole-set))
 	    ((= luminosity 1.0) (if invert-p boole-set boole-clr))
@@ -217,21 +220,21 @@
 	       (if invert-p (- 1.0 luminosity) luminosity) stipple-p))))))
 
 (defmethod genera-decode-color ((ink color) medium &optional (stipple-p t))
-  (let ((window (medium-drawable medium))
+  (let ((screen (medium-real-screen medium))
 	(color-p (slot-value (port medium) 'color-p)))
     (multiple-value-bind (r g b)
 	(color-rgb ink)
-      (let ((invert-p (not (scl:send (tv:sheet-screen window) :bow-mode))))
+      (let ((invert-p (not (scl:send screen :bow-mode))))
 	(if (not color-p)
 	    (let ((luminosity (color-luminosity r g b)))
 	      (genera-decode-luminosity
 		(if invert-p (- 1.0 luminosity) luminosity) stipple-p))
-	    (scl:send (tv:sheet-screen window) :compute-rgb-alu boole-1
+	    (scl:send screen :compute-rgb-alu boole-1
 		      r g b (not invert-p)))))))
 
 (defmethod genera-decode-color ((ink flipping-ink) medium &optional (stipple-p t))
   (declare (ignore stipple-p))
-  (let ((window (medium-drawable medium))
+  (let ((screen (medium-real-screen medium))
 	(color-p (slot-value (port medium) 'color-p)))
     (if (not color-p)
 	(values boole-xor)
@@ -244,7 +247,7 @@
 		  (and (eq ink1 +white+) (eq ink2 +black+)))
 	      (values boole-xor)
 	    (values
-	      (scl:send (tv:sheet-screen window) :exchange-two-colors-aluf
+	      (scl:send screen :exchange-two-colors-aluf
 			(genera-decode-color (follow-indirect-ink design1 medium) medium)
 			(genera-decode-color (follow-indirect-ink design2 medium) medium)))))))))
 
@@ -332,7 +335,7 @@
     ;; More efficient than (GENERA-DECODE-COLOR (MAKE-GRAY-COLOR-FOR-CONTRASTING-INK INK))
     (let ((luminosity (with-slots (clim-utils::which-one clim-utils::how-many) ink
 			(/ clim-utils::which-one clim-utils::how-many)))
-	  (invert-p (not (scl:send (tv:sheet-screen (medium-drawable medium)) :bow-mode))))
+	  (invert-p (not (scl:send (medium-real-screen medium) :bow-mode))))
       (cond ((= luminosity 0.0) (if invert-p boole-clr boole-set))
 	    ((= luminosity 1.0) (if invert-p boole-set boole-clr))
 	    (t
@@ -758,7 +761,7 @@
 				       (pop p) (pop p)
 				       (pop p) (pop p)))
 			     (let ((p position-seq))
-			       (declare (sys:array-register p))
+			       (declare (type vector p))
 			       (values (aref p 0) (aref p 1)
 				       (aref p 2) (aref p 3)
 				       (aref p 4) (aref p 5))))
@@ -774,7 +777,7 @@
 				       (pop p) (pop p)
 				       (pop p) (pop p)))
 			     (let ((p position-seq))
-			       (declare (sys:array-register p))
+			       (declare (type vector p))
 			       (values (aref p 0) (aref p 1)
 				       (aref p 2) (aref p 3)
 				       (aref p 4) (aref p 5)

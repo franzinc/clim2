@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: queue.lisp,v 1.3 92/02/24 13:05:52 cer Exp $
+;; $fiHeader: queue.lisp,v 1.4 92/07/01 15:45:44 cer Exp $
 
 ;;;
 ;;; Copyright (c) 1989 by Xerox Corporations.  All rights reserved.
@@ -42,13 +42,13 @@
 (defmacro get-free-cons (queue)
   ;; get the first cons off the free list or a new cons if none
   `(rplacd
-    (prog1
-	(or
-	 (slot-value ,queue 'free-list)
-	 (cons nil nil))
-      (setf (slot-value ,queue 'free-list) 
-	    (cdr (slot-value ,queue 'free-list))))
-    nil))
+     (prog1
+         (or
+	   (slot-value ,queue 'free-list)
+	   (cons nil nil))
+       (setf (slot-value ,queue 'free-list) 
+	     (cdr (slot-value ,queue 'free-list))))
+     nil))
 	  
 (defmacro free-cons (queue cons)
   ;; add a cons cell to the list of free cons cells

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: ptypes2.lisp,v 1.10 92/08/18 17:25:30 cer Exp $
+;; $fiHeader: ptypes2.lisp,v 1.11 92/09/08 15:18:26 cer Exp $
 
 (in-package :clim-internals)
 
@@ -412,13 +412,13 @@
 
 ;;;; Refined position test and highlighting
 
-(defun presentation-refined-position-test (record presention-type x y)
+(defun presentation-refined-position-test (record presentation-type x y)
   (or (eq record *null-presentation*)
       (funcall-presentation-generic-function presentation-refined-position-test
-	presention-type record x y)))
+	presentation-type record x y)))
 
 (define-default-presentation-method presentation-refined-position-test
-				    (presention-type record x y)
+				    (presentation-type record x y)
   (declare (ignore presentation-type))
   (output-record-refined-position-test record x y))
 

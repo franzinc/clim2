@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader$
+;; $fiHeader: db-text.lisp,v 1.1 92/09/08 15:16:02 cer Exp $
 
 "Copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
 
@@ -35,3 +35,83 @@
 	  (read-token stream)
 	;; Eat the activation character
 	(read-gesture :stream stream :timeout 0)))))
+
+
+;;; Text field and text editor gadgets
+
+;; Requires TEXT-FIELD-PANE or TEXT-EDITOR-PANE
+(defclass text-editor-mixin 
+	  ;;--- It's awful that we need these to be CLIM streams
+	  (clim-stream-pane) 
+    ()
+  (:default-initargs :draw-p t :record-p nil))
+
+(defmethod handle-repaint :around ((pane text-editor-mixin) region)
+  (declare (ignore region))
+  (call-next-method)
+  (stream-set-cursor-position pane 0 0)
+  (write-string (gadget-value pane) pane))
+
+;;--- Grotesque kludge to subvert RECEIVE-GESTURE mechanism
+(defmethod clim-internals::receive-gesture :around ((pane text-editor-mixin) (event event))
+  (process-event-locally pane event)
+  nil)
+
+(defmethod handle-event :around ((pane text-editor-mixin) (event pointer-event))
+  (when (gadget-active-p pane)
+    (call-next-method))
+  (deallocate-event event))
+
+(defmethod handle-event :around ((pane text-editor-mixin) (event pointer-enter-event))
+  (when (gadget-active-p pane)
+    (setf (pointer-cursor (port-pointer (port pane))) :prompt))
+  (call-next-method))
+
+(defmethod handle-event ((pane text-editor-mixin) (event pointer-enter-event))
+  (with-slots (armed) pane
+    (unless armed
+      (setf armed t)
+      (armed-callback pane (gadget-client pane) (gadget-id pane)))))
+
+(defmethod handle-event :around ((pane text-editor-mixin) (event pointer-exit-event))
+  (when (gadget-active-p pane)
+    ;;--- Should really restore the previous cursor...
+    (setf (pointer-cursor (port-pointer (port pane))) :default))
+  (call-next-method))
+
+(defmethod handle-event ((pane text-editor-mixin) (event pointer-exit-event))
+  (with-slots (armed) pane
+    (when armed
+      (setf armed nil)
+      (disarmed-callback pane (gadget-client pane) (gadget-id pane)))))
+
+
+(defclass text-field-pane (text-field
+			   text-editor-mixin)
+    ())
+
+(defmethod handle-event ((pane text-field-pane) (event pointer-button-press-event))
+  (let ((string
+	  (do-text-editing pane :initial-contents (gadget-value pane))))
+    (setf (gadget-value pane) string)))
+
+
+(defclass text-editor-pane (text-editor
+			    text-editor-mixin)
+    ())
+
+(defmethod compose-space ((pane text-editor-pane) &key width height)
+  (declare (ignore width height))
+  (with-sheet-medium (medium pane)
+    (let* ((style (medium-default-text-style medium))
+	   (style-width (text-style-width style medium))
+	   (style-height (text-style-height style medium)))
+      (make-space-requirement
+	:width (* style-width (silica::gadget-columns pane))
+	:height (* style-height (silica::gadget-lines pane))))))
+
+(defmethod handle-event ((pane text-editor-pane) (event pointer-button-press-event))
+  (when (silica::gadget-editable-p pane)
+    (let ((string
+	    (do-text-editing pane :initial-contents (gadget-value pane))))
+      (setf (gadget-value pane) string))))

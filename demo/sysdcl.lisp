@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sysdcl.lisp,v 1.16 92/09/08 10:35:18 cer Exp Locker: cer $
+;; $fiHeader: sysdcl.lisp,v 1.17 92/09/22 19:37:52 cer Exp Locker: cer $
 
 (in-package #-ansi-90 :user #+ansi-90 :common-lisp-user)
 
@@ -11,8 +11,7 @@
   (:default-pathname #+Genera "SYS:CLIM;REL-2;DEMO;"
 		     #-Genera (frob-pathname "demo")
    :default-binary-pathname #+Genera "SYS:CLIM;REL-2;DEMO;"
-			    #-Genera (frob-pathname "demo")
-   #+ignore :needed-systems #+ignore (clim-standalone))
+			    #-Genera (frob-pathname "demo"))
 
   ("packages")
   ("demo-driver"     :load-before-compile ("packages"))
@@ -31,14 +30,15 @@
   ("plot"	     :load-before-compile ("demo-driver" "packages"))
   ("color-editor"    :load-before-compile ("demo-driver" "packages"))
   ("graphics-editor" :load-before-compile ("demo-driver" "packages"))
+  ("bitmap-editor"   :load-before-compile ("demo-driver" "packages"))
   ("ico"	     :load-before-compile ("demo-driver" "packages"))
   ("browser"	     :load-before-compile ("demo-driver" "packages"))
   #+Allegro
   ("process-browser" :load-before-compile ("demo-driver" "packages"))
   ("demo-activity" :load-before-compile ("demo-driver" "packages"))
   ("bitmap-editor"    :load-before-compile ("demo-driver" "packages"))
- 
- ("demo-prefill"    :features (or Genera Cloe-Runtime)))
+  ("demo-prefill"    :features (or Genera Cloe-Runtime)))
+
 
 #+Genera
 (clim-defsys:import-into-sct 'clim-demo 

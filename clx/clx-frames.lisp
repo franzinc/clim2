@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLX-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clx-frames.lisp,v 1.8 92/07/20 15:59:49 cer Exp $
+;; $fiHeader: clx-frames.lisp,v 1.9 92/08/18 17:24:21 cer Exp $
 
 (in-package :clx-clim)
 
@@ -38,12 +38,20 @@
 		 (title "Notify user")
 		 documentation
 		 (exit-boxes '(:exit :abort :help))
-		 (name title))
-  )
+		 (name title)
+		 text-style)
+  (declare (ignore style documentation name))
+  (let ((stream associated-window))
+    (accepting-values (stream :exit-boxes exit-boxes :label title
+			      :own-window t)
+      (with-text-style (stream text-style)
+	(write-string message-string stream)))))
 
+;;--- We can do better than this
 (defmethod frame-manager-select-file 
-	   ((framem clx-frame-manager) &rest options 
-	    &key (frame nil frame-p)
+	   ((framem clx-frame-manager)
+	    &key (default nil default-p)
+		 (frame nil frame-p)
 		 (associated-window
 		   (if frame-p
 		       (frame-top-level-sheet frame)
@@ -55,4 +63,13 @@
 		 file-list-label
 		 (exit-boxes '(:exit :abort :help))
 		 (name title))
-  )
+  (declare (ignore style documentation name
+		   file-search-proc directory-list-label file-list-label))
+  (let ((stream associated-window))
+    (accepting-values (stream :exit-boxes exit-boxes :label title
+			      :own-window t)
+      (values
+	(accept 'pathname :prompt "Enter a pathname"
+		:stream stream
+		:default default 
+		:provide-default (not default-p))))))

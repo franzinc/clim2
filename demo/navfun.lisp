@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: navfun.lisp,v 1.13 92/07/06 18:52:09 cer Exp $
+;; $fiHeader: navfun.lisp,v 1.14 92/07/20 16:01:28 cer Exp $
 
 (in-package :clim-demo)
 
@@ -615,35 +615,36 @@
 (defvar *last-plane* nil "The last plane referred to")
 
 (defun edit-aircraft (aircraft)
-  (let ((identification (aircraft-identification aircraft))
+  (let ((stream (frame-standard-output *application-frame*))
+	(identification (aircraft-identification aircraft))
 	(type (aircraft-type aircraft))
 	(preferred-altitude (aircraft-preferred-cruising-altitude aircraft))
 	(cruise-speed (aircraft-normal-cruise-speed aircraft))
 	(fuel-consumption (aircraft-fuel-consumption-at-normal-cruise aircraft))
 	(maximum-usable-fuel (aircraft-maximum-usable-fuel aircraft))
 	(cost-per-hour (aircraft-cost-per-hour aircraft)))
-    (accepting-values (*query-io* :own-window t)
+    (accepting-values (stream :own-window t)
       (setq identification (accept 'string :prompt "Identification" 
-				   :default identification))
-      (terpri *query-io*)
+				   :default identification :stream stream))
+      (terpri stream)
       (setq type (accept 'string :prompt "Type" 
-			 :default type))
-      (terpri *query-io*)
+			 :default type :stream stream))
+      (terpri stream)
       (setq preferred-altitude (accept 'integer :prompt "Preferred cruising altitude" 
-				       :default preferred-altitude))
-      (terpri *query-io*)
+				       :default preferred-altitude :stream stream))
+      (terpri stream)
       (setq cruise-speed (accept 'integer :prompt "Normal cruise speed" 
-				 :default cruise-speed))
-      (terpri *query-io*)
+				 :default cruise-speed :stream stream))
+      (terpri stream)
       (setq fuel-consumption (accept 'float :prompt "Fuel consumption at normal cruise" 
-				     :default fuel-consumption))
-      (terpri *query-io*)
+				     :default fuel-consumption :stream stream))
+      (terpri stream)
       (setq maximum-usable-fuel (accept 'float :prompt "Maximum usable fuel" 
-					:default maximum-usable-fuel))
-      (terpri *query-io*)
+					:default maximum-usable-fuel :stream stream))
+      (terpri stream)
       (accept 'float :prompt "Cost per hour" 
-	      :default cost-per-hour)
-      (terpri *query-io*))
+	      :default cost-per-hour :stream stream)
+      (terpri stream))
     (setf (aircraft-identification aircraft) identification)
     (setf (aircraft-type aircraft) type)
     (setf (aircraft-taxi-fuel aircraft) 0)
@@ -1062,7 +1063,7 @@
 (defmethod frame-standard-output ((p flight-planner))
   (get-frame-pane p 'display))
 
-(defmethod frame-query-io ((p flight-planner))
+(defmethod frame-standard-input ((p flight-planner))
   (get-frame-pane p 'interactor))
 
 (define-flight-planner-command (com-exit-flight-planner :name t :menu "Exit")
@@ -1141,24 +1142,28 @@
   (list 'route object))
 
 (defun query-new-position ()
-  (let (name
+  (let ((stream (frame-standard-output *application-frame*))
+	name
 	long-name
 	kind
 	lat-and-long
 	(altitude 0))
-    (accepting-values (*query-io* :own-window t)
-      (setq name (accept 'string :prompt "Name"))
-      (terpri *query-io*)
-      (setq long-name (accept 'string :prompt "Long name"))
-      (terpri *query-io*)
+    (accepting-values (stream :own-window t)
+      (setq name (accept 'string 
+			 :prompt "Name" :stream stream))
+      (terpri stream)
+      (setq long-name (accept 'string 
+			      :prompt "Long name" :stream stream))
+      (terpri stream)
       (setq kind (accept '(member airport vor named-intersection visual-checkpoint)
-			 :prompt "Kind of position"))
-      (terpri *query-io*)
-      (setq lat-and-long (accept 'latitude-and-longitude :prompt "Latitude, Longitude"))
-      (terpri *query-io*)
+			 :prompt "Kind of position" :stream stream))
+      (terpri stream)
+      (setq lat-and-long (accept 'latitude-and-longitude
+				 :prompt "Latitude, Longitude" :stream stream))
+      (terpri stream)
       (setq altitude (accept '(integer 0 60000) :prompt "Altitude" 
-			     :default altitude))
-      (terpri *query-io*))
+			     :default altitude :stream stream))
+      (terpri stream))
     (make-instance kind
 		   :name name
 		   :longname long-name
@@ -1199,33 +1204,41 @@
     (push (make-instance 'victor-airway-segment :at point) overfly)))
 
 (defun query-new-aircraft ()
-  (let (identification
+  (let ((stream (frame-standard-output *application-frame*))
+	identification
 	type
 	(preferred-altitude 3500)
 	(cruise-speed 110)
 	(fuel-consumption 6)
 	(maximum-usable-fuel 0)
 	(cost-per-hour 50))
-    (accepting-values (*query-io* :own-window t)
-      (setq identification (accept 'string :prompt "Identification"))
-      (terpri *query-io*)
-      (setq type (accept 'string :prompt "Type"))
-      (terpri *query-io*)
-      (setq preferred-altitude (accept 'integer :prompt "Preferred cruising altitude"
-				       :default preferred-altitude))
-      (terpri *query-io*)
-      (setq cruise-speed (accept 'integer :prompt "Normal cruise speed"
-				 :default cruise-speed))
-      (terpri *query-io*)
-      (setq fuel-consumption (accept 'float :prompt "Fuel consumption at normal cruise"
-				     :default fuel-consumption))
-      (terpri *query-io*)
-      (setq maximum-usable-fuel (accept 'float :prompt "Maximum usable fuel"
-					:default maximum-usable-fuel))
-      (terpri *query-io*)
-      (setq cost-per-hour (accept 'float :prompt "Cost per hour"
-				  :default cost-per-hour))
-      (terpri *query-io*))
+    (accepting-values (stream :own-window t)
+      (setq identification (accept 'string 
+				   :prompt "Identification" :stream stream))
+      (terpri stream)
+      (setq type (accept 'string 
+			 :prompt "Type" :stream stream))
+      (terpri stream)
+      (setq preferred-altitude (accept 'integer 
+				       :prompt "Preferred cruising altitude"
+				       :default preferred-altitude :stream stream))
+      (terpri stream)
+      (setq cruise-speed (accept 'integer 
+				 :prompt "Normal cruise speed"
+				 :default cruise-speed :stream stream))
+      (terpri stream)
+      (setq fuel-consumption (accept 'float 
+				     :prompt "Fuel consumption at normal cruise"
+				     :default fuel-consumption :stream stream))
+      (terpri stream)
+      (setq maximum-usable-fuel (accept 'float 
+					:prompt "Maximum usable fuel"
+					:default maximum-usable-fuel :stream stream))
+      (terpri stream)
+      (setq cost-per-hour (accept 'float
+				  :prompt "Cost per hour"
+				  :default cost-per-hour :stream stream))
+      (terpri stream))
     (make-instance 'aircraft
 		   :identification identification
 		   :type type
@@ -1251,19 +1264,20 @@
      &key
      (presentation 't :default nil)
      (window 't :default nil))
-  (etypecase object
-    (ground-position
-      (format *query-io* "~&Deleting position ~a.~%" object)
-      (setq *position-list* (delete object *position-list*)))
-    (route
-      (format *query-io* "~&Deleting route ~a.~%" object)
-      (setq *route-list* (delete object *route-list*)))
-    (victor-airway
-      (format *query-io* "~&Deleting victor-airway ~a.~%" object)
-      (setq *victor-airway-list* (delete object *victor-airway-list*)))
-    (aircraft
-      (format *query-io* "~&Deleting aircraft ~a.~%" object)
-      (setq *aircraft-list* (delete object *aircraft-list*))))
+  (let ((stream (frame-error-output *application-frame*)))
+    (etypecase object
+      (ground-position
+	(format stream "~&Deleting position ~a.~%" object)
+	(setq *position-list* (delete object *position-list*)))
+      (route
+	(format stream "~&Deleting route ~a.~%" object)
+	(setq *route-list* (delete object *route-list*)))
+      (victor-airway
+	(format stream "~&Deleting victor-airway ~a.~%" object)
+	(setq *victor-airway-list* (delete object *victor-airway-list*)))
+      (aircraft
+	(format stream "~&Deleting aircraft ~a.~%" object)
+	(setq *aircraft-list* (delete object *aircraft-list*)))))
   (when presentation
     (clim:erase-output-record presentation window)))
 
@@ -1281,7 +1295,7 @@
 ;;; Describe <object>
 (define-flight-planner-command (com-describe-object :name t :menu "Describe")
     ((object 'concrete-object :prompt "Object"))
-  (let ((stream *query-io*))
+  (let ((stream (frame-standard-input *application-frame*)))
     (fresh-line stream)
     (describe-position-object object stream)))
 
@@ -1307,7 +1321,8 @@
 
 (define-flight-planner-command (com-flight-plan :name t :menu "Plan Flight")
     ((route 'route :prompt "Route"))
-  (let* (plan
+  (let* ((stream (frame-standard-output *application-frame*))
+	 plan
 	 (plane (or *last-plane* (first *aircraft-list*)))
 	 (type 'vfr)
 	 (equip (or (and plane (aircraft-type plane)) "C172/U"))
@@ -1322,13 +1337,13 @@
 	 pilot
 	 (souls 1)
 	 color)
-    (accepting-values (*query-io* :own-window t)
+    (accepting-values (stream :own-window t)
       (setq type (accept '(member vfr ifr dvfr) :prompt "Type"
 			 :default type))
-      (terpri *query-io*)
+      (terpri stream)
       (multiple-value-bind (new-plane ptype changed)
 	  (accept 'aircraft :prompt "Aircraft Identification"
-		  :default plane)
+		  :default plane :stream stream)
 	(declare (ignore ptype))
 	(setq plane new-plane)
 	(when (and changed plane)
@@ -1338,36 +1353,37 @@
 		airsp (or (aircraft-normal-cruise-speed plane) 110)
 		alt   (or (aircraft-preferred-cruising-altitude plane) 3000)
 		fuel  (or (aircraft-maximum-usable-fuel plane) 0))))
-      (terpri *query-io*)
+      (terpri stream)
       (setq equip (accept 'string :prompt "Aircraft Type/Special Equipment" 
-			  :default equip))
-      (terpri *query-io*)
+			  :default equip :stream stream))
+      (terpri stream)
       (setq airsp (accept 'integer :prompt "True Airspeed (kts)" 
-			  :default airsp))
-      (terpri *query-io*)
+			  :default airsp :stream stream))
+      (terpri stream)
       (setq deptm (accept 'time :prompt "Proposed Departure Time"
-			  :default deptm))
-      (terpri *query-io*)
+			  :default deptm :stream stream))
+      (terpri stream)
       (setq alt (accept 'integer :prompt "Cruising Altitude" 
-			:default alt))
-      (terpri *query-io*)
-      (setq remks (accept '(null-or-type string) :prompt "Remarks"))
-      (terpri *query-io*)
+			:default alt :stream stream))
+      (terpri stream)
+      (setq remks (accept '(null-or-type string) :prompt "Remarks" :stream stream))
+      (terpri stream)
       (setq fuel (accept 'integer :prompt "Fuel on Board" 
-			 :default fuel))
-      (terpri *query-io*)
+			 :default fuel :stream stream))
+      (terpri stream)
       (setq alts  (accept '(null-or-type airport) :prompt "Alternate Airport"
-			  :default alts))
-      (terpri *query-io*)
+			  :default alts :stream stream))
+      (terpri stream)
       (setq pilot (accept '(null-or-type string)
-			  :prompt "Pilot's Name, Address, Phone number & Home Base"))
-      (terpri *query-io*)
+			  :prompt "Pilot's Name, Address, Phone number & Home Base"
+			   :stream stream))
+      (terpri stream)
       (setq souls (accept '(integer 1 500) :prompt "Number Aboard"
-			  :default souls))
-      (terpri *query-io*)
+			  :default souls :stream stream))
+      (terpri stream)
       (accept '(null-or-type string) :prompt "Color of Aircraft"
-	      :default color)
-      (terpri *query-io*))
+	      :default color :stream stream)
+      (terpri stream))
     (setq *last-plane* plane)
     (setq plan (make-instance 'flight-plan
 			      :type type
@@ -1385,10 +1401,10 @@
 			      :pilot pilot
 			      :souls souls
 			      :color color))
-    (accepting-values (*query-io*
+    (accepting-values (stream
 			:own-window t
 			:exit-boxes '((:exit "Click here to remove this display")))
-      (let ((fp-window *query-io*))
+      (let ((fp-window stream))
  	(window-clear fp-window)
  	(compute-flight-plan fp-window plan)))))
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: completer.lisp,v 1.9 92/07/27 11:02:18 cer Exp $
+;; $fiHeader: completer.lisp,v 1.10 92/09/08 15:17:35 cer Exp $
 
 (in-package :clim-internals)
 
@@ -21,7 +21,8 @@
 
 ;; This is just to prevent extraneous consing in COMPLETE-INPUT
 (defvar *magic-completion-gestures*
-	(append *completion-gestures* *help-gestures* *possibilities-gestures*))
+	(append *completion-gestures* *help-gestures*
+		*possibilities-gestures* *apropos-possibilities-gestures*))
 
 (define-presentation-type completer (&key stream function possibility-printer
 					  prefix location))
@@ -47,9 +48,10 @@
 	      (display-completion-possibilities
 		stream function stuff-so-far
 		:possibility-printer possibility-printer
-		:display-possibilities
-		  (or (eq action :possibilities)
-		      (and (eq action :help) help-displays-possibilities)))))
+		:possibility-type
+		  (if (eq action :help) 
+		      (and help-displays-possibilities :possibilities)
+		      action))))
       (declare (dynamic-extent #'completion-help))
       (with-accept-help ((:subhelp #'completion-help))
        ;; Keep the input editor from handling help and possibilities gestures.
@@ -87,6 +89,9 @@
 			((member ch *possibilities-gestures* 
 				 :test #'keyboard-event-matches-gesture-name-p)
 			 (setq completion-mode ':possibilities))
+			((member ch *apropos-possibilities-gestures* 
+				 :test #'keyboard-event-matches-gesture-name-p)
+			 (setq completion-mode ':apropos-possibilities))
 			((member ch *completion-gestures*
 				 :test #'keyboard-event-matches-gesture-name-p)
 			 (setq completion-mode ':complete-maximal
@@ -127,8 +132,7 @@
 	       (rescan-if-necessary stream))
 	     (simple-parse-error "Attempting to complete the null string"))
 
-	   (cond ((or (eq completion-mode ':help)
-		      (eq completion-mode ':possibilities))
+	   (cond ((member completion-mode '(:help :possibilities :apropos-possibilities))
 		  ;; Since we've asked the input editor not to do this,
 		  ;; we must do it here ourselves
 		  (display-accept-help stream completion-mode "")
@@ -196,12 +200,14 @@
 	   (unless (stream-rescanning-p stream)
 	     (replace-input stream stuff-so-far :buffer-start location)))))))))))
 
+;; DISPLAY-POSSIBILITIES
 (defun display-completion-possibilities (stream function stuff-so-far
-					 &key possibility-printer (display-possibilities t))
-  (when display-possibilities
+					 &key possibility-printer 
+					      (possibility-type :possibilities))
+  (when possibility-type
     (fresh-line stream)
     (multiple-value-bind (string success object nmatches possibilities)
-	(funcall function stuff-so-far :possibilities)
+	(funcall function stuff-so-far possibility-type)
       (declare (ignore string object success))
       (if (or (= nmatches 0) (null possibilities))
 	  (write-string "There are no possible completions" stream)
@@ -250,12 +256,14 @@
 ;; When ACTION is :COMPLETE-LIMITED, this completes the input up to the next
 ;; partial delimiter.
 ;; When ACTION is :COMPLETE-MAXIMAL, this completes the input as much as possible.
-;; When ACTION is :POSSIBILITIES, this returns a list of the possible completions.
+;; When ACTION is :POSSIBILITIES or :APROPOS-POSSIBILITIES, this returns a list
+;; of the possible completions.
 (defun complete-from-possibilities (string completions delimiters
 				    &key (action :complete) predicate
 					 (name-key #'first) (value-key #'second))
   (declare (values string success object nmatches possibilities))
   (when (and (not (eq action :possibilities))
+	     (not (eq action :apropos-possibilities))
 	     (zerop (length string)))
     (return-from complete-from-possibilities 
       (values nil nil nil 0 nil)))
@@ -296,6 +304,7 @@
   (declare (values string success object nmatches possibilities))
   (declare (dynamic-extent generator))
   (when (and (not (eq action :possibilities))
+	     (not (eq action :apropos-possibilities))
 	     (zerop (length string)))
     (return-from complete-from-generator 
       (values nil nil nil 0 nil)))
@@ -331,12 +340,14 @@
 				  best-completion best-length best-object
 				  nmatches possibilities)
   (declare (values best-completion best-length best-object nmatches possibilities))
-  (let ((length (length string))
-	(matches (chunkwise-string-compare string completion delimiters)))
+  (let* ((length (length string))
+	 (matches (if (eq action :apropos-possibilities)
+		      (if (search string completion :test #'char-equal) length 0)
+		      (chunkwise-string-compare string completion delimiters))))
     (when (= matches length)
       (incf nmatches)
       (case action
-	(:possibilities
+	((:possibilities :apropos-possibilities)
 	 (push (list completion object) possibilities))
 	((:complete :complete-maximal)
 	 nil)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: standard-types.lisp,v 1.13 92/09/08 15:18:32 cer Exp Locker: cer $
+;; $fiHeader: standard-types.lisp,v 1.14 92/09/22 19:37:23 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -419,7 +419,8 @@
 ;;; for now.  It returns string, success, object, nmatches (first-interesting-index?)
 #+Genera
 (defun pathname-complete (string action &optional (default *default-pathname-defaults*))
-  (if (eq action :possibilities)
+  (if (or (eq action :possibilities)
+	  (eq action :apropos-possibilities))
       (pathname-complete-1 string action default)
     (multiple-value-bind (string success)
 	(fs:complete-pathname default string nil :newest :read)
@@ -472,7 +473,9 @@
 			  (t
 			   (let ((s (search name (pathname-name pn) 
 					    :test #'char-equal)))
-			     (and s (zerop s)))))))
+			     (if (eq action :apropos-possibilities)
+				 (not (null s))
+				 (and s (zerop s))))))))
 	      completions))
       (when (null type)
 	;; If the user didn't supply a file type, don't burden him with all
@@ -1628,7 +1631,7 @@
 		     (values object new-type t))
 	         (with-keywords-removed (pr-args pr-args removals)
 		   (if pr-args
-		       (values object `((,new-type ,@data-args) ,@pr-args))
+		       (values object `((,new-type ,@data-args) ,@(evacuate-list pr-args)))
 		       (if data-args
 			   (values object `((,new-type ,@data-args)) t)
 			   (values object new-type t))))))

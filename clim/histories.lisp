@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: histories.lisp,v 1.10 92/07/27 11:02:28 cer Exp $
+;; $fiHeader: histories.lisp,v 1.11 92/08/18 17:25:02 cer Exp $
 
 (in-package :clim-internals)
 
@@ -266,7 +266,9 @@
 	    &key replace-previous)
   (declare (ignore element))
   (with-slots (insertion-pointer previous-insertion-pointer
-	       scan-pointer input-buffer) istream
+	       scan-pointer input-buffer mark) istream
+    (unless replace-previous
+      (setq mark insertion-pointer))
     ;; If we are m-Y'ing, remove the previously yanked quantity from the buffer.
     ;; PREVIOUS-INSERTION-POINTER is guaranteed to be valid when REPLACE-PREVIOUS
     ;; is T, because of how the input editor calls c-Y/c-m-Y and m-Y.
@@ -345,7 +347,7 @@
 	(push-history-element *kill-ring* string))))
 
 #+Genera
-(setq zwei:*clim-kill-ring-save* #'clim-kill-ring-save)
+(setq zwei:*clim-kill-ring-save* 'clim-kill-ring-save)
 
 
 ;;; Presentation histories

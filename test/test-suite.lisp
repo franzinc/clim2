@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: test-suite.lisp,v 1.34 92/09/09 11:44:49 cer Exp Locker: cer $
+;; $fiHeader: test-suite.lisp,v 1.35 92/09/22 19:37:36 cer Exp Locker: cer $
 
 (in-package :clim-user)
 
@@ -345,19 +345,19 @@ people, shall not perish from the earth.
 		(format stream "~A" region1)))
 	(dolist (region2 *test-regions-for-region-equal*)
 	  (formatting-cell (stream :align-x :center)
-	      (with-output-as-presentation 
-		  (stream `(region-equal ,region1 ,region2) 'form
-			  :single-box t)
-		(handler-case
-		    (let ((result (region-equal (eval region1) (eval region2)))
-			  (correct-result (equal region1 region2)))
-		      (if (eq result correct-result)
-			  (format stream "~A" result)
+	    (handler-case			;guard against unimplemented cases
+	        (let ((result (region-equal (eval region1) (eval region2)))
+		      (correct-result (equal region1 region2)))
+		  (with-output-as-presentation 
+		      (stream `(region-equal ,region1 ,region2) 'form
+		       :single-box t)
+		    (if (eq result correct-result)
+			(format stream "~A" result)
 			(with-text-face (stream :bold)
-			  (format stream "~A" result))))
-		  (error ()
-		    (with-text-face (stream :bold)
-		      (write-string "Error signalled"))))))))))
+			  (format stream "~A" result)))))
+	      (error ()
+		(with-text-face (stream :bold)
+		  (write-string "Error signalled" stream)))))))))
   (region-test-comment stream))
 
 (defparameter *test-regions-for-region-contains-position-p*
@@ -412,16 +412,15 @@ people, shall not perish from the earth.
 		  (stream `(region-contains-position-p ,region ,x ,y) 'form
 			  :single-box t)
 		(formatting-cell (stream :align-x :center)
-		    (when res
-		      (handler-case 
-			  (let* ((correct-result (third res))
-				 (result (region-contains-position-p (eval region) x y)))
-			    (with-text-face (stream
-					     (if (eq correct-result result) nil :bold))
-			      (format stream "~A" result)))
-			(error ()
-			  (with-text-face (stream :bold)
-			    (write-string "Error signalled"))))))))))))
+		  (when res
+		    (handler-case		;guard against unimplemented cases
+		        (let* ((correct-result (third res))
+			       (result (region-contains-position-p (eval region) x y)))
+			  (with-text-face (stream (if (eq correct-result result) nil :bold))
+			    (format stream "~A" result)))
+		      (error ()
+		        (with-text-face (stream :bold)
+			  (write-string "Error signalled" stream))))))))))))
     (region-test-comment stream)))
 
 (defparameter *test-regions-for-region-contains-region-p*
@@ -472,17 +471,17 @@ people, shall not perish from the earth.
 		  (stream `(region-contains-region-p ,region1 ,region2) 'form
 			  :single-box t)
 		(formatting-cell (stream :align-x :center)
-		    (handler-case
-			(let ((res (lookup-result region1 region2))
-			      (result (region-contains-region-p (eval region1) (eval region2))))
-			  (if (eq res :none)
-			      (write-char #\space stream) ;the presentation demands some ink
-			    (with-text-face (stream
-					     (if (eq res result) nil :bold))
+		  (handler-case			;guard against unimplemented cases
+		      (let ((res (lookup-result region1 region2))
+			    (result (region-contains-region-p
+				      (eval region1) (eval region2))))
+			(if (eq res :none)
+			    (write-char #\space stream)	;the presentation demands some ink
+			    (with-text-face (stream (if (eq res result) nil :bold))
 			      (format stream "~A" result))))
-		      (error ()
-			(with-text-face (stream :bold)
-			  (write-string "Error signalled")))))))))))
+		    (error ()
+		      (with-text-face (stream :bold)
+			(write-string "Error signalled" stream)))))))))))
     (region-test-comment stream)))
 
 (defparameter *test-regions-for-region-intersects-region-p*
@@ -535,17 +534,17 @@ people, shall not perish from the earth.
 		  (stream `(region-intersects-region-p ,region1 ,region2) 'form
 		   :single-box t)
 		(formatting-cell (stream :align-x :center)
-		    (handler-case 
-			(let ((res (lookup-result region1 region2))
-			      (result (region-intersects-region-p (eval region1) (eval region2))))
-			  (if (eq res :none)
-			      (write-char #\space stream) ;the presentation demands some ink
-			    (with-text-face (stream
-					     (if (eq res result) nil :bold))
+		  (handler-case			;guard against unimplemented cases
+		      (let ((res (lookup-result region1 region2))
+			    (result (region-intersects-region-p
+				      (eval region1) (eval region2))))
+			(if (eq res :none)
+			    (write-char #\space stream)	;the presentation demands some ink
+			    (with-text-face (stream (if (eq res result) nil :bold))
 			      (format stream "~A" result))))
-		      (error ()
-			(with-text-face (stream :bold)
-			  (write-string "Error signalled")))))))))))
+		    (error ()
+		      (with-text-face (stream :bold)
+			(write-string "Error signalled" stream)))))))))))
     (region-test-comment stream)))
 
 
@@ -1676,72 +1675,62 @@ Luke Luck licks the lakes Luke's duck likes."))
 	(line-thickness 1)
 	(line-thickness-units :normal))
     (accepting-values (stream :own-window own-window)
-	(formatting-item-list (stream :n-columns 2)
-	    (formatting-cell (stream)
-		(setq square-dimension
-		  (accept 'number :stream stream
-			  :prompt "Size of square" :default square-dimension))
-	      (terpri stream)
-	      (setq draw-circle
-		(accept 'boolean :stream stream
-			:prompt "Draw the circle" :default draw-circle))
-	      (terpri stream)
-	      (setq draw-square
-		(accept 'boolean :stream stream
-			:prompt "Draw the square" :default draw-square))
-	      (terpri stream)
-	      (setq draw-point
-		(accept 'boolean :stream stream
-			:prompt "Draw point" :default draw-point))
-	      (terpri stream)
-	      (setq draw-/-diagonal
-		(accept 'boolean :stream stream
-			:prompt "Draw / diagonal" :default draw-/-diagonal))
-	      (terpri stream)
-	      (setq draw-\\-diagonal
-		(accept 'boolean :stream stream
-			:prompt "Draw \\ diagonal" :default draw-\\-diagonal))
-	      (terpri stream)
-	      (setq line-thickness
-		(accept 'number :stream stream
-			:prompt "Line thickness" :default line-thickness))
-	      (terpri stream)
-	      (setq line-thickness-units
-		(accept '(member :normal :point) :stream stream
-			:prompt "Line style units" :default line-thickness-units))
-	      (terpri stream))
-	  (formatting-cell (stream)
-	      (let (s)
-		(with-output-as-gadget (stream)
-		  (multiple-value-bind (sheets stream)
-		      (make-clim-application-pane :scroll-bars :both :width 150 :height 150)
-		    (setq s stream)
-		    sheets))
-		(let ((stream s))
-		  (with-room-for-graphics (stream :move-cursor nil)
-		    (let ((radius (/ square-dimension 2)))
-		      (with-drawing-options (stream :line-unit line-thickness-units
-						    :line-thickness line-thickness)
-			(when draw-square
-			  (draw-polygon* stream (list 0 0
-						      0 square-dimension
-						      square-dimension square-dimension
-						      square-dimension 0)
-					 :line-joint-shape :miter
-					 :filled nil))
-			(when draw-circle
-			  (draw-circle* stream radius radius radius
-					:filled nil))
-			(when draw-point
-			  (draw-point* stream 
-				       (/ square-dimension 4)
-				       (/ square-dimension 2)))
-			(when draw-/-diagonal
-			  (draw-line* stream 0 square-dimension square-dimension 0
-				      :line-cap-shape :round))
-			(when draw-\\-diagonal
-			  (draw-line* stream 0 0 square-dimension square-dimension
-				      :line-cap-shape :round))))))))))))
+      (setq square-dimension
+	    (accept 'number :stream stream
+		    :prompt "Size of square" :default square-dimension))
+      (terpri stream)
+      (setq draw-circle
+	    (accept 'boolean :stream stream
+		    :prompt "Draw the circle" :default draw-circle))
+      (terpri stream)
+      (setq draw-square
+	    (accept 'boolean :stream stream
+		    :prompt "Draw the square" :default draw-square))
+      (terpri stream)
+      (setq draw-point
+	    (accept 'boolean :stream stream
+		    :prompt "Draw point" :default draw-point))
+      (terpri stream)
+      (setq draw-/-diagonal
+	    (accept 'boolean :stream stream
+		    :prompt "Draw / diagonal" :default draw-/-diagonal))
+      (terpri stream)
+      (setq draw-\\-diagonal
+	    (accept 'boolean :stream stream
+		    :prompt "Draw \\ diagonal" :default draw-\\-diagonal))
+      (terpri stream)
+      (setq line-thickness
+	    (accept 'number :stream stream
+		    :prompt "Line thickness" :default line-thickness))
+      (terpri stream)
+      (setq line-thickness-units
+	    (accept '(member :normal :point) :stream stream
+		    :prompt "Line style units" :default line-thickness-units))
+      (terpri stream)
+      (with-room-for-graphics (stream)
+	(let ((radius (/ square-dimension 2)))
+	  (with-drawing-options (stream :line-unit line-thickness-units
+					:line-thickness line-thickness)
+	    (when draw-square
+	      (draw-polygon* stream (list 0 0
+					  0 square-dimension
+					  square-dimension square-dimension
+					  square-dimension 0)
+			     :line-joint-shape :miter
+			     :filled nil))
+	    (when draw-circle
+	      (draw-circle* stream radius radius radius
+			    :filled nil))
+	    (when draw-point
+	      (draw-point* stream 
+			   (/ square-dimension 4)
+			   (/ square-dimension 2)))
+	    (when draw-/-diagonal
+	      (draw-line* stream 0 square-dimension square-dimension 0
+			  :line-cap-shape :round))
+	    (when draw-\\-diagonal
+	      (draw-line* stream 0 0 square-dimension square-dimension
+			  :line-cap-shape :round))))))))
 
 
 ;;;; Benchmarks
@@ -1926,10 +1915,8 @@ Luke Luck licks the lakes Luke's duck likes."))
 	      (dolist (name-and-pathname specs)
 		(let* ((short-name (pop name-and-pathname))
 		       (pathname (pop name-and-pathname)))
-		  (with-open-file (file (pathname (string-trim
-						   '(#\space)
-						   (namestring
-						    pathname)))
+		  (with-open-file (file (pathname 
+					  (string-trim '(#\space) (namestring pathname)))
 				   :direction :input)
 		    (let ((comments
 			    (with-output-to-string (s)
@@ -1972,10 +1959,8 @@ Luke Luck licks the lakes Luke's duck likes."))
 			 (format s "~%  "))
 		       (if number
 			   (format s "~22@<~A ~2$ (~2$)~>" 
-				   short-name
-				   number
-				   (float (/ number min)))
-		         (format s "~22@T"))))))))
+			     short-name number (float (/ number min)))
+			   (format s "~22@T"))))))))
 	;; Print out the summaries
 	(format s "~&~%Summary results (geometric means of a number of relevant tests):~%~%Category~28T")
 	(dolist (short-name data)
@@ -2791,7 +2776,7 @@ Luke Luck licks the lakes Luke's duck likes."))
   (:panes 
     (caption-pane
       (outlining ()
-	(scrolling ()
+	(scrolling (:scroll-bars :vertical)
 	  (make-pane 'application-pane :height 50))))
     (display-pane 
       (outlining ()

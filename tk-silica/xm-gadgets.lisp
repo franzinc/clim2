@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.46 92/09/08 15:19:16 cer Exp Locker: cer $
+;; $fiHeader: xm-gadgets.lisp,v 1.47 92/09/22 19:38:12 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -502,13 +502,13 @@
 						     (sheet
 						      motif-text-editor))
   (with-accessors ((value gadget-value)
-		   (ncolumns silica::gadget-columns)
 		   (editable silica::gadget-editable-p)
+		   (ncolumns silica::gadget-columns)
 		   (nlines silica::gadget-lines)) sheet
     (values 'tk::xm-text
 	    (append
-	     (list :editable editable)
 	     (list :edit-mode :multi-line)
+	     (list :editable editable)
 	     (and ncolumns (list :columns ncolumns))
 	     (and nlines (list :rows nlines))
 	     (and value `(:value ,value))))))
@@ -558,6 +558,7 @@
 	  (maxf max-width (tk::font-width font))))
       (make-space-requirement :width (+ (* 2 margin-width) (* max-width (silica::gadget-columns te)))
 			      :height (+ (* 2 margin-height) (* max-height (silica::gadget-lines te)))))))
+
 ;;; Toggle button
 
 (defclass motif-toggle-button (motif-labelled-gadget
@@ -693,7 +694,7 @@
 				   sheet-permanently-enabled-mixin
 				   wrapping-space-mixin
 				   mirrored-sheet-mixin
-				   pane)
+				   basic-pane)
 	  ())
 
 (defclass xm-frame-viewport (xm-frame-viewport-mixin) ())
@@ -716,7 +717,7 @@
 			    sheet-single-child-mixin
 			    sheet-permanently-enabled-mixin
 			    layout-mixin
-			    pane)
+			    basic-pane)
 	  ((thickness :initform nil :initarg :thickness)))
 
 (defmethod initialize-instance :after ((pane motif-frame-pane) &key
@@ -762,7 +763,7 @@
 					mirrored-sheet-mixin
 					sheet-multiple-child-mixin
 					sheet-permanently-enabled-mixin
-					pane)
+					basic-pane)
 	  ;;-- probably one of the options is whether to have vertical
 	  ;;-- and/or horizontal scrollbars
 	  ())
@@ -913,15 +914,15 @@
 						     (parent t)
 						     (sheet motif-option-pane))
   (with-accessors ((items set-gadget-items)
-		   (name-key set-gadget-name-key)
 		   (printer silica::option-pane-printer)
+		   (name-key set-gadget-name-key)
 		   (value-key set-gadget-value-key)) sheet
     (let ((pdm (make-instance 'xt::xm-pulldown-menu :managed nil :parent parent)))
       (setf (motif-option-menu-buttons sheet)
 	(mapcar #'(lambda (item)
 		    (let* ((name (funcall name-key item))
 			   (pixmap (unless (or (null printer) (eq printer #'write-token))
-				     (clim-internals::pixmap-from-menu-item 
+				     (pixmap-from-menu-item 
 				      sheet name printer nil)))
 			   (button 
 			    (if (null pixmap)
@@ -969,7 +970,7 @@
 	  (tk::set-values widget :menu-history (nth x (motif-option-menu-buttons gadget)))
 	  (let* ((name (funcall name-key (nth x items)))
 		 (pixmap (unless (or (null printer) (eq printer #'write-token))
-			   (clim-internals::pixmap-from-menu-item 
+			   (pixmap-from-menu-item 
 			    gadget name printer nil)))
 		 (widget (tk::intern-widget (tk::xm_option_button_gadget widget))))
 	    (if pixmap
@@ -980,6 +981,7 @@
 				      message-string 
 				      &key 
 				      (style :inform)
+				      text-style
 				      (frame nil frame-p)
 				      (associated-window
 					(if frame-p
@@ -1200,7 +1202,7 @@
 			    sheet-multiple-child-mixin
 			    sheet-permanently-enabled-mixin
 			    layout-mixin
-			    pane)
+			    basic-pane)
 	  ((thickness :initform nil :initarg :thickness)))
 
 (defmethod initialize-instance :after ((pane motif-paned-pane) &key
@@ -1285,7 +1287,7 @@
 			 sheet-multiple-child-mixin
 			 sheet-permanently-enabled-mixin
 			 layout-mixin
-			 pane)
+			 basic-pane)
 	  ((thickness :initform nil :initarg :thickness)))
 
 (defmethod initialize-instance :after ((pane motif-rc-pane) &key
@@ -1314,7 +1316,7 @@
 			   sheet-multiple-child-mixin
 			   sheet-permanently-enabled-mixin
 			   layout-mixin
-			   pane)
+			   basic-pane)
 	  ((attachments :initform nil :initarg :attachments)
 	   (fraction-base :initform nil :initarg :fraction-base)))
 

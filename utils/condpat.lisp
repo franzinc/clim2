@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: condpat.lisp,v 1.6 92/03/04 16:20:10 cer Exp $
+;; $fiHeader: condpat.lisp,v 1.7 92/07/20 15:59:36 cer Exp $
 
 (in-package :clim-utils)
 
@@ -20,6 +20,8 @@
 		  (find-package #+Lucid :lucid-common-lisp
 				#-Lucid :conditions)))
 	(conc-name (format nil "~A-~A-" name 'accessor-for)))
+    (unless parent-types
+      (setq parent-types '(condition)))
     (unless (keywordp (first slots))
       (setq real-slots nil)
       (dolist (slot slots)

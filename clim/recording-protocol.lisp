@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: recording-protocol.lisp,v 1.20 92/09/08 10:34:55 cer Exp Locker: cer $
+;; $fiHeader: recording-protocol.lisp,v 1.21 92/09/08 15:18:29 cer Exp $
 
 (in-package :clim-internals)
 
@@ -482,12 +482,12 @@
 
 
 ;;; Rest of stuff started in clim-defs...
-(defun construct-output-record-1 (type &rest init-args)
-  (declare (dynamic-extent init-args))
+(defun construct-output-record-1 (type &rest initargs)
+  (declare (dynamic-extent initargs))
   (let ((constructor (gethash type *output-record-constructor-cache*)))
     (if constructor
-	(apply constructor init-args)
-	(apply #'make-instance type init-args))))
+	(apply constructor initargs)
+	(apply #'make-instance type initargs))))
 
 #||
 ;;; A hash table associating vectors holding free output records.
@@ -520,14 +520,14 @@
 
 (defmethod invoke-with-new-output-record
 	   ((stream output-recording-mixin) continuation record-type constructor
-	    &rest init-args &key parent &allow-other-keys)
-  (declare (dynamic-extent init-args))
-  (with-keywords-removed (init-args init-args '(:parent))
+	    &rest initargs &key parent &allow-other-keys)
+  (declare (dynamic-extent initargs))
+  (with-keywords-removed (initargs initargs '(:parent))
     (let* ((current-output-record (stream-current-output-record stream))
 	   (new-output-record (and (stream-redisplaying-p stream)
 				   current-output-record
 				   (apply #'find-child-output-record-1
-					  current-output-record record-type init-args))))
+					  current-output-record record-type initargs))))
       (multiple-value-bind (cursor-x cursor-y)
 	  (stream-cursor-position stream)
 	(declare (type coordinate cursor-x cursor-y))
@@ -543,9 +543,9 @@
 	      (setq new-output-record
 		    (if constructor
 			(apply constructor
-			       :x-position x :y-position y init-args)
+			       :x-position x :y-position y initargs)
 			(apply #'construct-output-record-1 record-type
-			       :x-position x :y-position y init-args))))
+			       :x-position x :y-position y initargs))))
 	  (output-record-set-start-cursor-position new-output-record x y)
 	  (with-output-record-1 continuation 
 				stream new-output-record cursor-x cursor-y)
@@ -563,9 +563,9 @@
 
 (defmethod invoke-with-new-output-record
 	   ((stream t) continuation record-type constructor
-	    &rest init-args &key parent &allow-other-keys)
-  (declare (dynamic-extent init-args))
-  (declare (ignore record-type constructor init-args parent))
+	    &rest initargs &key parent &allow-other-keys)
+  (declare (dynamic-extent initargs))
+  (declare (ignore record-type constructor initargs parent))
   (funcall continuation stream))
 
 (defun with-output-record-1 (continuation stream record &optional abs-x abs-y)
@@ -587,12 +587,17 @@
 	  record (- end-x abs-x) (- end-y abs-y)))
       (stream-close-text-output-record (or *original-stream* stream)))))
 
-(defun invoke-with-room-for-graphics (stream continuation record-type move-cursor &key height)
+(defun invoke-with-room-for-graphics (stream continuation record-type move-cursor 
+				      &key height (first-quadrant t))
   (let ((record
-	  (with-output-recording-options (stream :draw nil :record t)
-	    (with-first-quadrant-coordinates (stream)
-	      (with-new-output-record (stream record-type)
-		(funcall continuation stream))))))
+	  (if first-quadrant
+	      (with-output-recording-options (stream :draw nil :record t)
+		(with-first-quadrant-coordinates (stream)
+		  (with-new-output-record (stream record-type)
+		    (funcall continuation stream))))
+	      (with-output-recording-options (stream :draw nil :record t)
+		(with-new-output-record (stream record-type)
+		  (funcall continuation stream))))))
     (multiple-value-bind (x y) (output-record-position record)
       (declare (type coordinate x y))
       ;;--- Hey, there is something wierd going on here.  The problem is that
@@ -736,7 +741,7 @@
 	      eleft etop eright ebottom
 	      ;; pass these coordinates in parent's coordinate system.
 	      old-left old-top old-right old-bottom))
-	  (cond ((= (output-record-count record) 1)
+	  (cond ((= (output-record-count record :fastp t) 1)
 		 (bounding-rectangle-set-edges record eleft etop eright ebottom))
 		(t (bounding-rectangle-set-edges record
 						 (min left eleft) (min top etop)
@@ -873,7 +878,8 @@
       (otherwise
 	(if (zerop index) elements nil)))))
 
-(defmethod output-record-count ((record standard-sequence-output-record))
+(defmethod output-record-count ((record standard-sequence-output-record) &key fastp)
+  (declare (ignore fastp))
   (with-slots (elements fill-pointer) record
     (typecase elements
       (null 0)
@@ -915,8 +921,7 @@
 	  (cond (index
 		 (let ((new-fp (the fixnum (1- fill-pointer)))
 		       (vector elements))
-		   (declare (type simple-vector vector) (fixnum new-fp)
-			    #+Genera (sys:array-register vector))
+		   (declare (type simple-vector vector) (fixnum new-fp))
 		   (unless (= (the fixnum index) new-fp)
 		     ;; Shift the whole vector downward
 		     (do ((i (the fixnum index) (1+ i)))
@@ -1167,9 +1172,9 @@
       (stream-close-text-output-record stream))))
 
 ;;; This method should cover a multitude of sins.
-(defmethod repaint-sheet :after ((stream output-recording-mixin) region)
+(defmethod handle-repaint :after ((stream output-recording-mixin) region)
   ;;--- Who should establish the clipping region?
-  ;;--- Is it here or in the handle-repaint method
+  ;;--- Is it here or in the REPAINT-SHEET method
   ;; Who should clear the region?
   (let ((clear (region-intersection 
 		 region

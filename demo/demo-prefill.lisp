@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: demo-prefill.lisp,v 1.5 92/07/20 16:01:19 cer Exp $
+;; $fiHeader: demo-prefill.lisp,v 1.6 92/08/18 17:26:17 cer Exp $
 
 (in-package :clim-internals)
 
@@ -131,8 +131,6 @@
   (frame-pretty-name
     (clim-demo::cad-demo))
   (frame-properties
-    (clim-demo::cad-demo))
-  (frame-query-io
     (clim-demo::cad-demo))
   (frame-replay
     (clim-demo::cad-demo t))
@@ -500,6 +498,7 @@
     (clim-demo::lisp-listener)
     (clim-demo::flight-planner))
   (frame-query-io
+    (clim-demo::cad-demo)
     (clim-graphics-editor::graphics-editor)
     (clim-demo::ico-frame)
     (clim-demo::plot-demo)
@@ -697,13 +696,10 @@
 (prefill-dispatch-caches
   (accept-method
     (clim-demo::airport t t t t textual-view))
-  (accept-present-default-method
-    ((presentation-type clim-graphics-editor::line-thickness) t t t t gadget-dialog-view t t t t))
+  (accept-present-default-method)
   (display-exit-boxes)
   (frame-manager-exit-box-labels)
-  (gadget-includes-prompt-p-method
-    ((presentation-type clim-graphics-editor::line-thickness) t t t t textual-dialog-view)
-    ((presentation-type clim-graphics-editor::line-thickness) t t t t gadget-dialog-view))
+  (gadget-includes-prompt-p-method)
   (initialize-instance)
   (invoke-accept-values-command-button)
   (present-method

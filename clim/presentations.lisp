@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: presentations.lisp,v 1.15 92/09/08 15:18:19 cer Exp Locker: cer $
+;; $fiHeader: presentations.lisp,v 1.16 92/09/22 19:37:22 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -79,8 +79,8 @@
 ;;;         CELL 3.2
 
 (defmethod match-output-records ((record standard-presentation)
-				 &rest init-args &key object type &allow-other-keys)
-  (declare (ignore init-args))
+				 &rest initargs &key object type &allow-other-keys)
+  (declare (ignore initargs))
   (and (eql (presentation-object record) object)
        (eq (presentation-type record) type)))
 

@@ -1,4 +1,5 @@
-;; -*- mode: common-lisp; package: clim-demo -*-
+;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
+
 ;;
 ;;				-[]-
 ;; 
@@ -20,27 +21,41 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: bitmap-editor.lisp,v 1.1 92/09/08 10:39:09 cer Exp Locker: cer $
+;; $fiHeader: bitmap-editor.lisp,v 1.2 92/09/22 19:37:43 cer Exp Locker: cer $
 
 
 (in-package :clim-demo)
 
 (define-application-frame bitmap-editor ()
-			  ((rows :initarg :rows :initform 8)
-			   (cell-size :initarg :cell-size :initform 10)
-			   (columns :initarg :columns :initform 8)
-			   (array :initarg :array :initform nil)
-			   (current-color :initarg :current-color :initform 0)
-			   (colors :initarg :colors :initform 
-				   (list +background-ink+ +foreground-ink+)))
+    ((rows :initarg :rows :initform 8)
+     (cell-size :initarg :cell-size :initform 10)
+     (columns :initarg :columns :initform 8)
+     (array :initarg :array :initform nil)
+     (current-color :initarg :current-color :initform 0)
+     (colors :initarg :colors :initform 
+	     (list +background-ink+ +foreground-ink+)))
   (:panes
-   (palette :accept-values :scroll-bars  :vertical :width :compute :height :compute
-	    :display-function '(accept-values-pane-displayer 
-				:displayer display-palette))
-   (edit-pane :application :scroll-bars  :both :width :compute :height :compute)
-   (pattern-pane :application  :scroll-bars nil :width :compute :height :compute))
-  (:layouts (default (horizontally () palette edit-pane pattern-pane))))
+    (palette :accept-values
+	     :width :compute :height :compute
+	     :scroll-bars :vertical
+	     :display-function '(accept-values-pane-displayer 
+				  :displayer display-palette))
+    (edit-pane :application
+	       :scroll-bars :both
+	       :width :compute :height :compute
+	       :initial-cursor-visibility nil)
+    (pattern-pane :application
+		  :scroll-bars nil
+		  :width :compute :height :compute
+		  :initial-cursor-visibility nil))
+  (:layouts 
+    (default (horizontally ()
+	       palette edit-pane pattern-pane))))
 
+(defmethod initialize-instance :after ((frame bitmap-editor) &key)
+  (with-slots (rows columns array) frame
+    (setf array (make-array (list rows columns) :initial-element 0))))
+    
 (defun display-palette (frame stream)
   (with-slots (colors current-color) frame
     (flet ((display-color (object stream)
@@ -75,6 +90,8 @@
 		    "Delete Color"
 		    (delete-current-color frame)))))))))
 
+
+
 (defun replace-current-color (frame)
   ;;--- Exercise for the reader
   )
@@ -90,32 +107,33 @@
       (setq colors (append colors (list (color fr)))))))
 
 
-(define-bitmap-editor-command (com-display-options :menu t)
+(define-bitmap-editor-command (com-choose-options :menu t)
     ()
-  (let* ((frame *application-frame*)
+  (let* ((stream (frame-standard-input *application-frame*))
+	 (frame *application-frame*)
 	 (rows (slot-value frame 'rows))
 	 (columns (slot-value frame 'columns))
 	 (cell-size (slot-value frame 'cell-size))
 	 (view '(clim-internals::slider-view :show-value-p t)))
-    (accepting-values (*query-io* :own-window t :label "Editor options")
-	(setq rows (accept '(integer 1 256) 
-			   :view view
-			   :default rows
-			   :prompt "Rows"
-			   :stream *query-io*))
-      (terpri *query-io*)
+    (accepting-values (stream :own-window t :label "Editor options")
+      (setq rows (accept '(integer 1 256) 
+			 :view view
+			 :default rows
+			 :prompt "Rows"
+			 :stream stream))
+      (terpri stream)
       (setq columns (accept '(integer 1 256) 
-			   :view view
+			    :view view
 			    :default columns
 			    :prompt "Columns"
-			    :stream *query-io*))
-      (terpri *query-io*)
+			    :stream stream))
+      (terpri stream)
       (setq cell-size (accept '(integer 10 100) 
-			   :view view
+			      :view view
 			      :default cell-size
 			      :prompt "Cell Size"
-			      :stream *query-io*))
-      (terpri *query-io*))
+			      :stream stream))
+      (terpri stream))
     (setf (slot-value frame 'rows) rows
 	  (slot-value frame 'columns) columns
 	  (slot-value frame 'cell-size) cell-size
@@ -124,9 +142,8 @@
 			:initial-element 0))
     (display-everything frame)))
     
-(defmethod initialize-instance :after ((frame bitmap-editor) &key)
-  (with-slots (rows columns array) frame
-    (setf array (make-array (list rows columns) :initial-element 0))))
+(define-bitmap-editor-command (com-bitmap-editor-quit :menu "Quit") ()
+  (frame-exit *application-frame*))
     
 (defmethod display-grid (frame pane)
   (with-slots (rows columns cell-size) frame
@@ -140,8 +157,8 @@
 (defmethod display-cells (frame pane)
   (with-slots (rows columns cell-size) frame
     (dotimes (i rows)
-	(dotimes (j columns)
-	  (display-cell frame pane i j)))))
+      (dotimes (j columns)
+	(display-cell frame pane i j)))))
 
 (define-presentation-type bitmap-editor-cell ())
 
@@ -165,9 +182,9 @@
     (with-slots (array rows columns colors) frame
       (window-clear stream)
       (surrounding-output-with-border (stream)
-	  (draw-rectangle* stream 10 10 (+ 10 rows) (+ 10 columns)
-			   :ink 
-			   (make-pattern array colors))))))
+	(draw-rectangle* stream 10 10 (+ 10 rows) (+ 10 columns)
+			 :ink 
+			 (make-pattern array colors))))))
 
 (defmethod run-frame-top-level :before ((frame bitmap-editor))
   (display-everything frame))
@@ -178,11 +195,6 @@
     (display-grid frame stream)
     (display-cells frame stream)
     (display-pattern frame)))
-
-(define-presentation-to-command-translator toggle-cell
-    (bitmap-editor-cell com-toggle-cell bitmap-editor :gesture :select)
-  (presentation object)
-  (list presentation object))
 
 (define-bitmap-editor-command com-toggle-cell
     ((presentation 'presentation)
@@ -195,6 +207,35 @@
 	(erase-output-record presentation stream)
 	(display-cell frame stream i j)
 	(display-pattern frame)))))
+<<<<<<< bitmap-editor.lisp
+
+(define-presentation-to-command-translator toggle-cell
+    (bitmap-editor-cell com-toggle-cell bitmap-editor 
+     :gesture :select)
+    (presentation object)
+  (list presentation object))
+
+
+(defvar *bitmap-editors* nil)
+
+(defun do-bitmap-editor (&key (port (find-port)) (force nil))
+  (let* ((framem (find-frame-manager :port port))
+	 (frame 
+	   (let* ((entry (assoc port *bitmap-editors*))
+		  (frame (cdr entry)))
+	     (when (or force (null frame))
+	       (setq frame (make-application-frame 'bitmap-editor
+						   :frame-manager framem
+						   :left 100 :top 100
+						   :width 700 :height 500)))
+	     (if entry 
+		 (setf (cdr entry) frame)
+		 (push (cons port frame) *bitmap-editors*))
+	     frame)))
+    (run-frame-top-level frame)))
+
+(define-demo "Bitmap Editor" do-bitmap-editor)
+=======
 
 
 (defvar *bitmap-editors* nil)
@@ -220,3 +261,4 @@
 
 
   
+>>>>>>> 1.2

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: stream-defprotocols.lisp,v 1.10 92/07/27 11:02:58 cer Exp $
+;; $fiHeader: stream-defprotocols.lisp,v 1.11 92/08/18 17:25:38 cer Exp $
 
 (in-package :clim-internals)
 
@@ -431,7 +431,7 @@
 
 (defoperation invoke-with-new-output-record output-recording-mixin
   ((stream output-recording-mixin) continuation record-type constructor
-   &rest init-args &key parent &allow-other-keys))
+   &rest initargs &key parent &allow-other-keys))
 
 (defoperation stream-close-text-output-record output-recording-mixin
   ((stream output-recording-mixin) &optional wrapped))

@@ -1,6 +1,6 @@
 ;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadgets.lisp,v 1.33 92/09/08 10:34:23 cer Exp Locker: cer $
+;; $fiHeader: gadgets.lisp,v 1.34 92/09/08 15:16:41 cer Exp $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
@@ -23,9 +23,9 @@
   (with-slots (text-style) pane
     ;; Convert the text style if necesary
     (etypecase text-style
-      (null)
       (cons (setq text-style (parse-text-style text-style)))
-      (text-style nil))))
+      (text-style nil)
+      (null))))
 
 (defun-inline invoke-callback-function (function &rest args)
   (declare (dynamic-extent args))
@@ -230,10 +230,6 @@
 (defparameter *default-slider-range-label-text-style*
 	      (make-text-style :sans-serif :bold :very-small))
 
-;;; Separator
-
-(defclass separator (oriented-gadget-mixin) ())
-
 ;;; Slider
 (defclass slider
 	  (value-gadget oriented-gadget-mixin range-gadget-mixin labelled-gadget-mixin)
@@ -350,19 +346,19 @@
 (defmethod initialize-instance :after ((rb radio-box) &key choices)
   (let ((frame (pane-frame rb)))
     (with-look-and-feel-realization ((frame-manager frame) frame)
-      (dolist (choice choices)
-	(if (panep choice)
-	    ;;--- Why do we have to resort to this?
-	    #-Allegro nil
-	    #+Allegro (sheet-adopt-child rb choice)
-	    ;; Sometimes the user calls MAKE-PANE within a call to
-	    ;; WITH-RADIO-BOX, so don't mess up
+      (dolist (button choices)
+	(if (panep button)
+	    ;; Adopt the button.  Some framems will disown the button
+	    ;; in order to do layout, but that will happen later.
+	    (unless (sheet-parent button)
+	      (sheet-adopt-child rb button))
+	    ;; Create a button if the user supplied an abbreviation
 	    (make-pane 'toggle-button 
-	      :value (equal (radio-box-current-selection rb) choice)
-	      :label (if (stringp choice)
-			 (string choice)
-			 (gadget-label choice))
-	      :id choice
+	      :value (equal (radio-box-current-selection rb) button)
+	      :label (if (stringp button)
+			 (string button)
+			 (gadget-label button))
+	      :id button
 	      :parent rb))))))
 
 (defmethod value-changed-callback :around 
@@ -391,20 +387,20 @@
 (defmethod initialize-instance :after ((cb check-box) &key choices)
   (let ((frame (pane-frame cb)))
     (with-look-and-feel-realization ((frame-manager frame) frame)
-      (dolist (choice choices)
-	(if (panep choice)
-	    ;;--- Why do we have to resort to this?
-	    #-Allegro nil
-	    #+Allegro (sheet-adopt-child cb choice)
-	    ;; Sometimes the user calls MAKE-PANE within a call to
-	    ;; WITH-RADIO-BOX, so don't mess up
+      (dolist (button choices)
+	(if (panep button)
+	    ;; Adopt the button.  Some framems will disown the button
+	    ;; in order to do layout, but that will happen later.
+	    (unless (sheet-parent button)
+	      (sheet-adopt-child cb button))
+	    ;; Create a button if the user supplied an abbreviation
 	    (make-pane 'toggle-button 
-	      :value (equal (check-box-current-selection cb) choice)
-	      :label (if (stringp choice)
-			 (string choice)
-			 (gadget-label choice))
+	      :value (equal (check-box-current-selection cb) button)
+	      :label (if (stringp button)
+			 (string button)
+			 (gadget-label button))
 	      :indicator-type :some-of
-	      :id choice
+	      :id button
 	      :parent cb))))))
 
 (defmethod value-changed-callback :around 
@@ -426,11 +422,11 @@
     ())
 
 (defclass text-editor (text-field) 
-	  ((ncolumns :initarg :ncolumns
-		     :accessor gadget-columns)
-	   (nlines :initarg :nlines
-		   :accessor gadget-lines)
-	   (editable-p :initarg :editable-p :accessor silica::gadget-editable-p))
+    ((ncolumns :initarg :ncolumns
+	       :accessor gadget-columns)
+     (nlines :initarg :nlines
+	     :accessor gadget-lines)
+     (editable-p :initarg :editable-p :accessor gadget-editable-p))
   (:default-initargs :ncolumns 1 :nlines 1 :editable-p t))
 
 
@@ -441,7 +437,7 @@
 	  (sheet-single-child-mixin
 	   sheet-permanently-enabled-mixin
 	   wrapping-space-mixin
-	   pane)
+	   basic-pane)
     ;; This describes the region that we are displaying
     ((viewport-region :accessor viewport-viewport-region)
      (scroller-pane :initarg :scroller-pane :reader viewport-scroller-pane)))
@@ -636,7 +632,7 @@
 (defclass option-pane (set-gadget-mixin 
 		       labelled-gadget-mixin
 		       value-gadget)
-	  ((printer :initarg :printer :reader option-pane-printer))
+    ((printer :initarg :printer :reader option-pane-printer))
   (:default-initargs :printer nil))
 
 
@@ -666,4 +662,9 @@
 (defmethod handle-event ((gadget value-gadget) (event drag-gadget-event))
   (drag-callback
    gadget (gadget-client gadget) (gadget-id gadget) (slot-value event 'value)))
+
+
+;;; Separator panes
+
+(defclass separator (oriented-gadget-mixin) ())
 

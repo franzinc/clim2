@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes; Patch-File: Yes -*-
 
-;; $fiHeader: clim1-compatibility.lisp,v 1.1 92/08/19 10:28:35 cer Exp $
+;; $fiHeader: clim1-compatibility.lisp,v 1.2 92/09/08 15:19:30 cer Exp $
 
 (in-package :clim-internals)
 
@@ -15,11 +15,19 @@
 
 (defmacro define-compatibility-function ((old-name new-name) arglist &body body)
   `(progn
+     #-Genera
      (define-compiler-macro ,old-name (&whole form)
        (warn "The function ~S is now obsolete, use ~S instead.~%~
 	      Compatibility code is being generated for the time being."
 	     ',old-name ',new-name)
        form)
+     #+Genera
+     (defun-property (,old-name compiler:style-checker) (form)
+       (declare (ignore form))
+       (scl:warn '(:obsolete t)
+		 "The function ~S is now obsolete, use ~S instead.~%~
+		  Compatibility code is being generated for the time being."
+		 ',old-name ',new-name))
      (defun-inline ,old-name ,arglist
        ,@body)))
 
@@ -36,13 +44,26 @@
 (defmacro with-bounding-rectangle* ((left top &optional right bottom) region &body body)
   #+Genera (declare (zwei:indentation 1 3 2 1))
   (when (or (null right) (null bottom))
-    (warn "The ~A and ~A arguments to ~S are now required.~%~
-	   Compatibility code is being generated for the time being."
-	  'right 'bottom 'with-bounding-rectangle*))
-  `(multiple-value-bind (,left ,top ,@(when right (list right bottom)))
+    (setq right '#:right
+	  bottom '#:bottom)
+    #-Genera (warn "The ~A and ~A arguments to ~S are now required.~%~
+		    Compatibility code is being generated for the time being."
+		   'right 'bottom 'with-bounding-rectangle*))
+  `(multiple-value-bind (,left ,top ,right ,bottom)
        (bounding-rectangle* ,region) 
-     (declare (type coordinate ,left ,top ,@(when right (list right bottom))))
+     (declare (type coordinate ,left ,top ,right ,bottom))
+     ,right ,bottom
      ,@body))
+
+#+Genera
+(defun-property (with-bounding-rectangle* compiler:style-checker) (form)
+  (destructuring-bind ((left top &optional right bottom) region &rest body) (cdr form)
+    (declare (ignore left top region body))
+    (when (or (null right) (null bottom))
+      (scl:warn '(:obsolete t) 
+		"The ~A and ~A arguments to ~S are now required.~%~
+		 Compatibility code is being generated for the time being."
+		'right 'bottom 'with-bounding-rectangle*))))
 
 (define-compatibility-function (bounding-rectangle-position*
 				bounding-rectangle-position)
@@ -55,17 +76,35 @@
   (bounding-rectangle-set-position region x y))
 
 
+#-Genera
 (define-compiler-macro make-3-point-transformation (&whole form)
   (warn "The function ~S has a different arglist than it did in CLIM 1.1.~%~
 	 Please check your code."
 	'make-3-point-transformation)
   form)
 
+#+Genera
+(defun-property (make-3-point-transformation compiler:style-checker) (form)
+  (declare (ignore form))
+  (scl:warn '(:obsolete t) 
+	    "The function ~S has a different arglist than it did in CLIM 1.1.~%~
+	     Please check your code."
+	    'make-3-point-transformation))
+
+#-Genera
 (define-compiler-macro make-3-point-transformation* (&whole form)
   (warn "The function ~S has a different arglist than it did in CLIM 1.1.~%~
 	 Please check your code."
 	'make-3-point-transformation*)
   form)
+
+#+Genera
+(defun-property (make-3-point-transformation* compiler:style-checker) (form)
+  (declare (ignore form))
+  (scl:warn '(:obsolete t) 
+	    "The function ~S has a different arglist than it did in CLIM 1.1.~%~
+	     Please check your code."
+	    'make-3-point-transformation*))
 
 (define-compatibility-function (compose-rotation-transformation
 				compose-rotation-with-transformation)
@@ -105,8 +144,8 @@
 		 (listp (eval medium))
 		 (= (length (eval medium)) 3))
 	    (probably-stream-or-medium-p style))
-    (warn "Converting old style call to ~S to the new style.~%~
-	   Please update your code." 'with-text-style)
+    #-Genera (warn "Converting old style call to ~S to the new style.~%~
+		    Please update your code." 'with-text-style)
     (rotatef medium style))
   (default-output-stream medium with-text-style)
   `(flet ((with-text-style-body (,medium) ,@body))
@@ -114,25 +153,62 @@
      (invoke-with-text-style 
        ,medium #'with-text-style-body ,style ,medium)))
 
+#+Genera
+(defun-property (with-text-style compiler:style-checker) (form)
+  (destructuring-bind ((medium &optional style) &rest body) (cdr form)
+    (declare (ignore body))
+    (when (or (member style '(t nil *standard-input* *standard-output* *query-io*))
+	      (and (constantp medium)
+		   (listp (eval medium))
+		   (= (length (eval medium)) 3))
+	      (probably-stream-or-medium-p style))
+      (scl:warn '(:obsolete t) 
+		"Converting old style call to ~S to the new style.~%~
+		 Please update your code." 'with-text-style))))
+
 (defmacro with-text-family ((medium &optional family) &body body)
   (when (or (member family '(t nil *standard-input* *standard-output* *query-io*))
 	    (and (constantp medium)
 		 (keywordp (eval medium)))
 	    (probably-stream-or-medium-p family))
-    (warn "Converting old style call to ~S to the new style.~%~
-	   Please update your code." 'with-text-family)
+    #-Genera (warn "Converting old style call to ~S to the new style.~%~
+		    Please update your code." 'with-text-family)
     (rotatef medium family))
   `(with-text-style (,medium (make-text-style ,family nil nil)) ,@body))
+
+#+Genera
+(defun-property (with-text-family compiler:style-checker) (form)
+  (destructuring-bind ((medium &optional family) &rest body) (cdr form)
+    (declare (ignore body))
+    (when (or (member family '(t nil *standard-input* *standard-output* *query-io*))
+	      (and (constantp medium)
+		   (keywordp (eval medium)))
+	      (probably-stream-or-medium-p family))
+      (scl:warn '(:obsolete t) 
+		"Converting old style call to ~S to the new style.~%~
+		 Please update your code." 'with-text-family))))
 
 (defmacro with-text-face ((medium &optional face) &body body)
   (when (or (member face '(t nil *standard-input* *standard-output* *query-io*))
 	    (and (constantp medium)
 		 (keywordp (eval medium)))
 	    (probably-stream-or-medium-p face))
-    (warn "Converting old style call to ~S to the new style.~%~
-	   Please update your code." 'with-text-face)
+    #-Genera (warn "Converting old style call to ~S to the new style.~%~
+		    Please update your code." 'with-text-face)
     (rotatef medium face))
   `(with-text-style (,medium (make-text-style nil ,face nil)) ,@body))
+
+#+Genera
+(defun-property (with-text-face compiler:style-checker) (form)
+  (destructuring-bind ((medium &optional face) &rest body) (cdr form)
+    (declare (ignore body))
+    (when (or (member face '(t nil *standard-input* *standard-output* *query-io*))
+	      (and (constantp medium)
+		   (keywordp (eval medium)))
+	      (probably-stream-or-medium-p face))
+      (scl:warn '(:obsolete t) 
+		"Converting old style call to ~S to the new style.~%~
+		 Please update your code." 'with-text-face))))
 
 (defmacro with-text-size ((medium &optional size) &body body)
   (when (or (member size '(t nil *standard-input* *standard-output* *query-io*))
@@ -140,10 +216,23 @@
 		 (or (keywordp (eval medium))
 		     (realp (eval medium))))
 	    (probably-stream-or-medium-p size))
-    (warn "Converting old style call to ~S to the new style.~%~
-	   Please update your code." 'with-text-size)
+    #-Genera (warn "Converting old style call to ~S to the new style.~%~
+		    Please update your code." 'with-text-size)
     (rotatef medium size))
   `(with-text-style (,medium (make-text-style nil nil ,size)) ,@body))
+
+#+Genera
+(defun-property (with-text-size compiler:style-checker) (form)
+  (destructuring-bind ((medium &optional size) &rest body) (cdr form)
+    (declare (ignore body))
+    (when (or (member size '(t nil *standard-input* *standard-output* *query-io*))
+	      (and (constantp medium)
+		   (or (keywordp (eval medium))
+		       (realp (eval medium))))
+	      (probably-stream-or-medium-p size))
+      (scl:warn '(:obsolete t) 
+		"Converting old style call to ~S to the new style.~%~
+		 Please update your code." 'with-text-size))))
 
 
 (define-compatibility-function (add-text-style-mapping (setf text-style-mapping))
@@ -186,6 +275,8 @@
 (defvar +foreground+ +foreground-ink+)
 (defvar +background+ +background-ink+)
 
+#+Genera (compiler:make-obsolete +foreground+ "Use +FOREGROUND-INK+ instead" defvar)
+#+Genera (compiler:make-obsolete +background+ "Use +BACKGROUND-INK+ instead" defvar)
 
 (define-compatibility-function (make-color-rgb make-rgb-color)
 			       (red green blue)
@@ -232,8 +323,8 @@
   (when (or (keywordp stream)
 	    (null action))
     (rotatef stream action)
-    (warn "Converting old style call to ~S to the new style.~%~
-	   Please update your code." 'with-end-of-page-action))
+    #-Genera (warn "Converting old style call to ~S to the new style.~%~
+		    Please update your code." 'with-end-of-page-action))
   (default-output-stream stream)
   (let ((actions '(:wrap :scroll :allow))
 	(assert-required t)
@@ -251,6 +342,16 @@
 		    ,wrapped-body)))
     wrapped-body))
 
+#+Genera
+(defun-property (with-end-of-page-action compiler:style-checker) (form)
+  (destructuring-bind ((stream &optional action) &rest body) (cdr form)
+    (declare (ignore body))
+    (when (or (keywordp stream)
+	      (null action))
+      (scl:warn '(:obsolete t) 
+		"Converting old style call to ~S to the new style.~%~
+		 Please update your code." 'with-end-of-page-action))))
+
 (defmacro with-end-of-line-action (#-CLIM-1-compatibility (stream action)
 				   #+CLIM-1-compatibility (stream &optional action)
 				   &body body &environment env)
@@ -258,8 +359,8 @@
   (when (or (keywordp stream)
 	    (null action))
     (rotatef stream action)
-    (warn "Converting old style call to ~S to the new style.~%~
-	   Please update your code." 'with-end-of-line-action))
+    #-Genera (warn "Converting old style call to ~S to the new style.~%~
+		    Please update your code." 'with-end-of-line-action))
   (default-output-stream stream)
   (let ((actions '(:wrap :scroll :allow))
 	(assert-required t)
@@ -276,6 +377,16 @@
 	    `(progn (assert (member ,action ',actions))
 		    ,wrapped-body)))
     wrapped-body))
+
+#+Genera
+(defun-property (with-end-of-line-action compiler:style-checker) (form)
+  (destructuring-bind ((stream &optional action) &rest body) (cdr form)
+    (declare (ignore body))
+    (when (or (keywordp stream)
+	      (null action))
+      (scl:warn '(:obsolete t) 
+		"Converting old style call to ~S to the new style.~%~
+		 Please update your code." 'with-end-of-line-action))))
 
 
 (define-compatibility-function (output-record-position* output-record-position)
@@ -346,11 +457,20 @@
 			       (stream &optional region)
   (stream-replay stream region))
 
+#-Genera
 (define-compiler-macro add-output-record (&whole form)
   (warn "The function ~S has a different contract than it did in CLIM 1.1.~%~
 	 Please check your code."
 	'add-output-record)
   form)
+
+#+Genera
+(defun-property (add-output-record compiler:style-checker) (form)
+  (declare (ignore form))
+  (scl:warn '(:obsolete t) 
+	    "The function ~S has a different contract than it did in CLIM 1.1.~%~
+	     Please check your code."
+	    'add-output-record))
 
 (defmacro with-output-recording-options 
 	  ((stream &key (draw nil draw-supplied)
@@ -364,8 +484,8 @@
 	  draw-supplied draw-p-supplied
 	  record record-p
 	  record-supplied record-p-supplied)
-    (warn "Converting old style call to ~S to the new style.~%~
-	   Please update your code." 'with-output-recording-options))
+    #-Genera (warn "Converting old style call to ~S to the new style.~%~
+		    Please update your code." 'with-output-recording-options))
   (let ((new-stream (gensymbol 'stream)))
     `(let ((,new-stream ,stream))
        (flet ((with-output-recording-options-body () ,@body))
@@ -374,6 +494,19 @@
 	   ,new-stream #'with-output-recording-options-body
 	   ,(if record-supplied record `(stream-recording-p ,new-stream))
 	   ,(if draw-supplied draw `(stream-drawing-p ,new-stream)))))))
+
+#+Genera
+(defun-property (with-output-recording-options compiler:style-checker) (form)
+  (destructuring-bind ((stream 
+			&key (draw-p nil draw-p-supplied)
+			     (record-p nil record-p-supplied)
+			&allow-other-keys)
+		       &rest body) (cdr form)
+    (declare (ignore draw-p record-p body))
+    (when (or draw-p-supplied record-p-supplied)
+      (scl:warn '(:obsolete t) 
+		"Converting old style call to ~S to the new style.~%~
+		 Please update your code." 'with-output-recording-options))))
 
 (define-compatibility-function (stream-draw-p stream-drawing-p)
 			       (stream)
@@ -436,12 +569,26 @@
     (setf (getf options :x-spacing) inter-column-spacing)
     (setf (getf options :y-spacing) inter-row-spacing)
     (setf (getf options :multiple-columns-x-spacing) multiple-columns-inter-column-spacing)
-    (warn "Converting old style call to ~S to the new style.~%~
-	   Please update your code." 'formatting-table))
+    #-Genera (warn "Converting old style call to ~S to the new style.~%~
+		    Please update your code." 'formatting-table))
   (default-output-stream stream formatting-table)
   `(flet ((formatting-table-body (,stream) ,@body))
      (declare (dynamic-extent #'formatting-table-body))
      (invoke-formatting-table ,stream #'formatting-table-body ,@options)))
+
+#+Genera
+(defun-property (formatting-table compiler:style-checker) (form)
+  (destructuring-bind ((&optional stream
+			&key inter-row-spacing inter-column-spacing
+			     multiple-columns-inter-column-spacing
+			&allow-other-keys)
+		       &rest body) (cdr form)
+    (declare (ignore stream body))
+    (when (or inter-row-spacing inter-column-spacing
+	      multiple-columns-inter-column-spacing)
+      (scl:warn '(:obsolete t) 
+		"Converting old style call to ~S to the new style.~%~
+		 Please update your code." 'formatting-table))))
 
 (defmacro formatting-cell ((&optional stream
 			    &rest options
@@ -456,12 +603,24 @@
   (when (or minimum-width minimum-height)
     (setf (getf options :min-width) minimum-width)
     (setf (getf options :min-height) minimum-height)
-    (warn "Converting old style call to ~S to the new style.~%~
-	   Please update your code." 'formatting-cell))
+    #-Genera (warn "Converting old style call to ~S to the new style.~%~
+		    Please update your code." 'formatting-cell))
   (default-output-stream stream formatting-cell)
   `(flet ((formatting-cell-body (,stream) ,@body))
      (declare (dynamic-extent #'formatting-cell-body))
      (invoke-formatting-cell ,stream #'formatting-cell-body ,@options)))
+
+#+Genera
+(defun-property (formatting-cell compiler:style-checker) (form)
+  (destructuring-bind ((&optional stream
+			&key minimum-width minimum-height
+			&allow-other-keys)
+		       &rest body) (cdr form)
+    (declare (ignore stream body))
+    (when (or minimum-width minimum-height)
+      (scl:warn '(:obsolete t) 
+		"Converting old style call to ~S to the new style.~%~
+		 Please update your code." 'formatting-cell))))
 
 (defmacro formatting-item-list ((&optional stream
 				 &rest options
@@ -482,12 +641,24 @@
   (when (or inter-row-spacing inter-column-spacing)
     (setf (getf options :x-spacing) inter-column-spacing)
     (setf (getf options :y-spacing) inter-row-spacing)
-    (warn "Converting old style call to ~S to the new style.~%~
-	   Please update your code." 'formatting-item-list))
+    #-Genera (warn "Converting old style call to ~S to the new style.~%~
+		    Please update your code." 'formatting-item-list))
   (default-output-stream stream formatting-item-list)
   `(flet ((formatting-item-list-body (,stream) ,@body))
      (declare (dynamic-extent #'formatting-item-list-body))
      (invoke-formatting-item-list ,stream #'formatting-item-list-body ,@options)))
+
+#+Genera
+(defun-property (formatting-item-list compiler:style-checker) (form)
+  (destructuring-bind ((&optional stream
+			&key inter-row-spacing inter-column-spacing
+			&allow-other-keys)
+		       &rest body) (cdr form)
+    (declare (ignore stream body))
+    (when (or inter-row-spacing inter-column-spacing)
+      (scl:warn '(:obsolete t) 
+		"Converting old style call to ~S to the new style.~%~
+		 Please update your code." 'formatting-item-list))))
 
 (defun format-items (items &key (stream *standard-output*) printer presentation-type
 				x-spacing y-spacing initial-spacing
@@ -518,6 +689,7 @@
       (declare (dynamic-extent #'format-item))
       (map nil #'format-item items))))
 
+#-Genera
 (define-compiler-macro format-items
 		       (&whole form
 			items 
@@ -535,6 +707,15 @@
 	      ,@(and inter-column-spacing `(:x-spacing ,inter-column-spacing))
 	      ,@keys)))
 	(t form)))
+
+#+Genera
+(defun-property (format-items compiler:style-checker) (form)
+  (when (or (getf (cddr form) :inter-row-spacing)
+	    (getf (cddr form) :inter-column-spacing))
+    (scl:warn '(:obsolete t) 
+	      "Converting old style call to ~S to the new style.~%~
+	       Please update your code."
+	      'format-items)))
 
 
 (define-compatibility-function (redisplay-1 redisplay-output-record)
@@ -598,8 +779,8 @@
 	   (setq parent (getf options :parent nil))
 	   (setq record-type (getf options :record-type `'standard-presentation)))
 	  (t
-	   (warn "Converting old style call to ~S to the new style.~%~
-		  Please update your code." 'with-output-as-presentation)
+	   #-Genera (warn "Converting old style call to ~S to the new style.~%~
+			   Please update your code." 'with-output-as-presentation)
 	   (setq stream (getf options :stream))
 	   (setq object (getf options :object))
 	   (setq type (getf options :type))
@@ -630,9 +811,17 @@
 	     (let ((*allow-sensitive-inferiors* ,allow-sensitive-inferiors))
 	       ,@body)))))))
 
+#+Genera
+(defun-property (with-output-as-presentation compiler:style-checker) (form)
+  (when (evenp (second form))
+    (scl:warn '(:obsolete t) 
+	      "Converting old style call to ~S to the new style.~%~
+	       Please update your code."
+	      'with-output-as-presentation)))
+
 
 (defun accept (type &rest accept-args
-	       &key (stream *query-io*)
+	       &key (stream *standard-input*)
 		    (view (stream-default-view stream))
 		    (default nil default-supplied-p)
 		    (default-type type)
@@ -735,8 +924,8 @@
 			&allow-other-keys)
   (cond ((or activation-chars-p additional-activation-characters
 	     blip-chars-p additional-blip-characters)
-	 (warn "Converting old style call to ~S to the new style.~%~
-	        Please update your code." 'accept)
+	 #-Genera (warn "Converting old style call to ~S to the new style.~%~
+			 Please update your code." 'accept)
 	 (with-keywords-removed (keys keys
 				 '(:activation-characters :additional-activation-characters
 				   :blip-characters :additional-blip-characters
@@ -754,6 +943,18 @@
 		     `(:additional-delimiter-gestures ,additional-blip-characters))
 	      ,@keys)))
 	(t form)))
+
+#+Genera
+(defun-property (accept compiler:style-checker) (form)
+  (when (let ((options (cddr form)))
+	  (or (getf options :activation-characters)
+	      (getf options :additional-activation-characters)
+	      (getf options :blip-characters)
+	      (getf options :additional-blip-characters)))
+    (scl:warn '(:obsolete t) 
+	      "Converting old style call to ~S to the new style.~%~
+	       Please update your code."
+	      'accept)))
 
 (defun accept-1 (stream type
 		 &key (view (stream-default-view stream))
@@ -920,6 +1121,10 @@
 (defvar +menu-view+ (make-instance 'menu-view))
 (defvar +iconic-view+ (make-instance 'iconic-view))
 
+#+Genera (compiler:make-obsolete +dialog-view+ "Use +TEXTUAL-DIALOG-VIEW+ instead" defvar)
+#+Genera (compiler:make-obsolete +menu-view+ "Use +TEXTUAL-MENU-VIEW+ instead" defvar)
+#+Genera (compiler:make-obsolete +iconic-view+ "Use +GADGET-VIEW+ instead" defvar)
+
 
 #+++ignore	;this is needed internally by CLIM, so no can do...
 (defmacro call-presentation-generic-function (&rest name-and-args)
@@ -955,14 +1160,22 @@
 			&key event (modifier-state 0) for-menu (shift-mask 0 shift-mask-p))
   (declare (ignore modifier-state))
   (cond (shift-mask-p
-	 (warn "Converting old style call to ~S to the new style.~%~
-	        Please update your code." 'test-presentation-translator)
+	 #-Genera (warn "Converting old style call to ~S to the new style.~%~
+			 Please update your code." 'test-presentation-translator)
 	 `(test-presentation-translator
 	    ,translator ,presentation ,context-type ,frame ,window ,x ,y
 	    ,@(and event `(:event ,event))
 	    :modifier-state ,shift-mask
 	    ,@(and for-menu `(:for-menu ,for-menu))))
 	(t form)))
+
+#+Genera
+(defun-property (test-presentation-translator compiler:style-checker) (form)
+  (when (getf (nthcdr 9 form) :shift-mask)
+    (scl:warn '(:obsolete t) 
+	      "Converting old style call to ~S to the new style.~%~
+	       Please update your code."
+	      'test-presentation-translator)))
 
 
 (defun presentation-matches-context-type (presentation context-type
@@ -1018,13 +1231,21 @@
 			&key event (modifier-state 0) (shift-mask 0 shift-mask-p))
   (declare (ignore modifier-state))
   (cond (shift-mask-p
-	 (warn "Converting old style call to ~S to the new style.~%~
-	        Please update your code." 'presentation-matches-context-type)
+	 #-Genera (warn "Converting old style call to ~S to the new style.~%~
+			 Please update your code." 'presentation-matches-context-type)
 	 `(presentation-matches-context-type
 	    ,presentation ,context-type ,frame ,window ,x ,y
 	    ,@(and event `(:event ,event))
 	    :modifier-state ,shift-mask))
 	(t form)))
+
+#+Genera
+(defun-property (presentation-matches-context-type compiler:style-checker) (form)
+  (when (getf (nthcdr 8 form) :shift-mask)
+    (scl:warn '(:obsolete t) 
+	      "Converting old style call to ~S to the new style.~%~
+	       Please update your code."
+	      'presentation-matches-context-type)))
 
 
 (defun find-applicable-translators (presentation input-context frame window x y
@@ -1094,8 +1315,8 @@
 			     (shift-mask 0 shift-mask-p))
   (declare (ignore modifier-state))
   (cond (shift-mask-p
-	 (warn "Converting old style call to ~S to the new style.~%~
-	        Please update your code." 'find-applicable-translators)
+	 #-Genera (warn "Converting old style call to ~S to the new style.~%~
+			 Please update your code." 'find-applicable-translators)
 	 `(find-applicable-translators
 	    ,presentation ,input-context ,frame ,window ,x ,y
 	    ,@(and event `(:event ,event))
@@ -1103,6 +1324,14 @@
 	    ,@(and for-menu-p `(:for-menu ,for-menu))
 	    ,@(and fastp `(:fastp ,fastp))))
 	(t form)))
+
+#+Genera
+(defun-property (find-applicable-translators compiler:style-checker) (form)
+  (when (getf (nthcdr 8 form) :shift-mask)
+    (scl:warn '(:obsolete t) 
+	      "Converting old style call to ~S to the new style.~%~
+	       Please update your code."
+	      'find-applicable-translators)))
 
 
 (defun find-presentation-translators (from-type to-type command-table)
@@ -1241,14 +1470,22 @@
 			&key frame event (modifier-state 0) (shift-mask 0 shift-mask-p))
   (declare (ignore modifier-state))
   (cond (shift-mask-p
-	 (warn "Converting old style call to ~S to the new style.~%~
-	        Please update your code." 'find-innermost-applicable-presentation)
+	 #-Genera (warn "Converting old style call to ~S to the new style.~%~
+			 Please update your code." 'find-innermost-applicable-presentation)
 	 `(find-innermost-applicable-presentation
 	    ,input-context ,window ,x ,y
 	    ,@(and frame `(:frame ,frame))
 	    ,@(and event `(:event ,event))
 	    :modifier-state ,shift-mask))
 	(t form)))
+
+#+Genera
+(defun-property (find-innermost-applicable-presentation compiler:style-checker) (form)
+  (when (getf (nthcdr 6 form) :shift-mask)
+    (scl:warn '(:obsolete t) 
+	      "Converting old style call to ~S to the new style.~%~
+	       Please update your code."
+	      'find-innermost-applicable-presentation)))
 
 
 (defmacro define-gesture-name (name &rest options)
@@ -1258,14 +1495,21 @@
 		 gesture-spec (pop options)
 		 unique (getf options :unique t)))
 	  (t
-	   (warn "Converting old style call to ~S to the new style.~%~
-		  Please update your code." 'define-gesture-name)
+	   #-Genera (warn "Converting old style call to ~S to the new style.~%~
+			   Please update your code." 'define-gesture-name)
 	   (setq type :pointer-button
 		 gesture-spec (cons (getf options :button :left)
 				    (getf options :shifts))
 		 unique t)))
   (setf (compile-time-property name 'gesture-name) t)
   `(add-gesture-name ',name ',type ',gesture-spec :unique ',unique)))
+
+#+Genera
+(defun-property (define-gesture-name compiler:style-checker) (form)
+  (unless (member (third form) '(:keyboard :pointer-button))
+    (scl:warn '(:obsolete t) 
+	      "Converting old style call to ~S to the new style.~%~
+	       Please update your code." 'define-gesture-name)))
 
 (define-compatibility-function (add-pointer-gesture-name add-gesture-name)
 			       (name button modifiers &key (action :click) (unique t))
@@ -1277,20 +1521,36 @@
 
 
 (defmacro with-activation-characters ((additional-characters &key override) &body body)
-  (warn "The function ~S is now obsolete, use ~S instead.~%~
-	 Compatibility code is being generated for the time being."
-	'with-activation-characters 'with-activation-gestures)
+  #-Genera (warn "The function ~S is now obsolete, use ~S instead.~%~
+		  Compatibility code is being generated for the time being."
+		 'with-activation-characters 'with-activation-gestures)
   `(with-activation-gestures (,additional-characters :override ,override) ,@body))
+
+#+Genera
+(defun-property (with-activation-characters compiler:style-checker) (form)
+  (declare (ignore form))
+  (scl:warn '(:obsolete t) 
+	     "The function ~S is now obsolete, use ~S instead.~%~
+	      Compatibility code is being generated for the time being."
+	     'with-activation-characters 'with-activation-gestures))
 
 (define-compatibility-function (activation-character-p activation-gesture-p)
 			       (character)
   (activation-gesture-p character))
 
 (defmacro with-blip-characters ((additional-characters &key override) &body body)
-  (warn "The function ~S is now obsolete, use ~S instead.~%~
-	 Compatibility code is being generated for the time being."
-	'with-blip-characters 'with-delimiter-gestures)
+  #-Genera (warn "The function ~S is now obsolete, use ~S instead.~%~
+		  Compatibility code is being generated for the time being."
+		 'with-blip-characters 'with-delimiter-gestures)
   `(with-delimiter-gestures (,additional-characters :override ,override) ,@body))
+
+#+Genera
+(defun-property (with-blip-characters compiler:style-checker) (form)
+  (declare (ignore form))
+  (scl:warn '(:obsolete t) 
+	     "The function ~S is now obsolete, use ~S instead.~%~
+	      Compatibility code is being generated for the time being."
+	     'with-blip-characters 'with-delimiter-gestures))
 
 (define-compatibility-function (blip-character-p delimiter-gesture-p)
 			       (character)
@@ -1355,8 +1615,8 @@
 			&key inter-row-spacing inter-column-spacing
 			&allow-other-keys)
   (cond ((or inter-row-spacing inter-column-spacing)
-	 (warn "Converting old style call to ~S to the new style.~%~
-	        Please update your code." 'menu-choose)
+	 #-Genera (warn "Converting old style call to ~S to the new style.~%~
+			 Please update your code." 'menu-choose)
 	 (with-keywords-removed (keys keys '(:x-spacing :y-spacing
 					     :inter-row-spacing :inter-column-spacing))
 	   `(menu-choose
@@ -1365,6 +1625,15 @@
 	      ,@(and inter-column-spacing `(:x-spacing ,inter-column-spacing))
 	      ,@keys)))
 	(t form)))
+
+#+Genera
+(defun-property (menu-choose compiler:style-checker) (form)
+  (when (or (getf (cddr form) :inter-row-spacing)
+	    (getf (cddr form) :inter-column-spacing))
+    (scl:warn '(:obsolete t) 
+	      "Converting old style call to ~S to the new style.~%~
+	       Please update your code."
+	      'menu-choose)))
 
 (defmethod frame-manager-menu-choose
 	   ((framem standard-frame-manager) items &rest keys
@@ -1506,6 +1775,15 @@
 	      ,@keys)))
 	(t form)))
 
+#+Genera
+(defun-property (hierarchical-menu-choose compiler:style-checker) (form)
+  (when (or (getf (cddr form) :inter-row-spacing)
+	    (getf (cddr form) :inter-column-spacing))
+    (scl:warn '(:obsolete t) 
+	      "Converting old style call to ~S to the new style.~%~
+	       Please update your code."
+	      'hierarchical-menu-choose)))
+
 (defun draw-standard-menu (menu presentation-type items default-item
 			   &key (item-printer #'print-menu-item)
 				max-width max-height n-rows n-columns
@@ -1574,6 +1852,16 @@
 	      ,@(and inter-column-spacing `(:x-spacing ,inter-column-spacing))
 	      ,@keys)))
 	(t form)))
+
+#+Genera
+(defun-property (draw-standard-menu compiler:style-checker) (form)
+  (when (let ((options (nthcdr 5 form)))
+	  (or (getf options :inter-row-spacing)
+	      (getf options :inter-column-spacing)))
+    (scl:warn '(:obsolete t) 
+	      "Converting old style call to ~S to the new style.~%~
+	       Please update your code."
+	      'draw-standard-menu)))
 
 (defmacro define-static-menu (name root-window items
 			      &rest keys
@@ -1658,8 +1946,8 @@
 			&key inter-row-spacing inter-column-spacing
 			&allow-other-keys)
   (cond ((or inter-row-spacing inter-column-spacing)
-	 (warn "Converting old style call to ~S to the new style.~%~
-	        Please update your code." 'display-command-table-menu)
+	 #-Genera (warn "Converting old style call to ~S to the new style.~%~
+			 Please update your code." 'display-command-table-menu)
 	 (with-keywords-removed (keys keys '(:x-spacing :y-spacing
 					     :inter-row-spacing :inter-column-spacing))
 	   `(display-command-table-menu
@@ -1668,6 +1956,15 @@
 	      ,@(and inter-column-spacing `(:x-spacing ,inter-column-spacing))
 	      ,@keys)))
 	(t form)))
+
+(defun-property (display-command-table-menu compiler:style-checker) (form)
+  (when (let ((options (nthcdr 3 form)))
+	  (or (getf options :inter-row-spacing)
+	      (getf options :inter-column-spacing)))
+    (scl:warn '(:obsolete t) 
+	      "Converting old style call to ~S to the new style.~%~
+	       Please update your code."
+	      'display-command-table-menu)))
 
 
 (defun add-command-to-command-table (command-name command-table
@@ -1716,12 +2013,19 @@
 			command-name command-table
 			&rest keys &key test &allow-other-keys)
   (cond (test
-	 (warn "Converting old style call to ~S to the new style.~%~
-	        Please update your code." 'add-command-to-command-table)
+	 #-Genera (warn "Converting old style call to ~S to the new style.~%~
+			 Please update your code." 'add-command-to-command-table)
 	 (with-keywords-removed (keys keys '(:test))
 	   `(add-command-to-command-table
 	      ,command-name ,command-table ,@keys)))
 	(t form)))
+
+(defun-property (add-command-to-command-table compiler:style-checker) (form)
+  (when (getf (nthcdr 3 form) :test)
+    (scl:warn '(:obsolete t) 
+	      "Converting old style call to ~S to the new style.~%~
+	       Please update your code."
+	      'add-command-to-command-table)))
 
 
 (defun add-keystroke-to-command-table (command-table keystroke type value
@@ -1751,12 +2055,19 @@
 			command-table keystroke type value
 			&rest keys &key test &allow-other-keys)
   (cond (test
-	 (warn "Converting old style call to ~S to the new style.~%~
-	        Please update your code." 'add-keystroke-to-command-table)
+	 #-Genera (warn "Converting old style call to ~S to the new style.~%~
+			 Please update your code." 'add-keystroke-to-command-table)
 	 (with-keywords-removed (keys keys '(:test))
 	   `(add-keystroke-to-command-table
 	      ,command-table ,keystroke ,type ,value ,@keys)))
 	(t form)))
+
+(defun-property (add-keystroke-to-command-table compiler:style-checker) (form)
+  (when (getf (nthcdr 5 form) :test)
+    (scl:warn '(:obsolete t) 
+	      "Converting old style call to ~S to the new style.~%~
+	       Please update your code."
+	      'add-keystroke-to-command-table)))
 
 
 (defun remove-keystroke-from-command-table (command-table keystroke
@@ -1788,16 +2099,23 @@
 			command-table keystroke
 			&rest keys &key test &allow-other-keys)
   (cond (test
-	 (warn "Converting old style call to ~S to the new style.~%~
-	        Please update your code." 'remove-keystroke-from-command-table)
+	 #-Genera (warn "Converting old style call to ~S to the new style.~%~
+			 Please update your code." 'remove-keystroke-from-command-table)
 	 (with-keywords-removed (keys keys '(:test))
 	   `(remove-keystroke-from-command-table
 	      ,command-table ,keystroke ,@keys)))
 	(t form)))
 
+(defun-property (remove-keystroke-from-command-table compiler:style-checker) (form)
+  (when (getf (nthcdr 3 form) :test)
+    (scl:warn '(:obsolete t) 
+	      "Converting old style call to ~S to the new style.~%~
+	       Please update your code."
+	      'remove-keystroke-from-command-table)))
+
 
 (defun read-command (command-table
-		     &key (stream *query-io*)
+		     &key (stream *standard-input*)
 			  (command-parser *command-parser*)
 			  (command-unparser *command-unparser*)
 			  (partial-command-parser *partial-command-parser*)
@@ -1822,15 +2140,21 @@
 			command-table
 			&rest keys &key keystroke-test &allow-other-keys)
   (cond (keystroke-test
-	 (warn "Converting old style call to ~S to the new style.~%~
-	        Please update your code." 'read-command)
+	 #-Genera (warn "Converting old style call to ~S to the new style.~%~
+			 Please update your code." 'read-command)
 	 (with-keywords-removed (keys keys '(:keystroke-test))
 	   `(read-command ,command-table ,@keys)))
 	(t form)))
 
+(defun-property (read-command compiler:style-checker) (form)
+  (when (getf (nthcdr 2 form) :keystroke-test)
+    (scl:warn '(:obsolete t) 
+	      "Converting old style call to ~S to the new style.~%~
+	       Please update your code." 'read-command)))
+
 
 (defun read-command-using-keystrokes (command-table keystrokes
-				      &key (stream *query-io*)
+				      &key (stream *standard-input*)
 					   (command-parser *command-parser*)
 					   (command-unparser *command-unparser*)
 					   (partial-command-parser *partial-command-parser*)
@@ -1865,11 +2189,17 @@
 			command-table keystrokes
 			&rest keys &key keystroke-test &allow-other-keys)
   (cond (keystroke-test
-	 (warn "Converting old style call to ~S to the new style.~%~
-	        Please update your code." 'read-command-using-keystrokes)
+	 #-Genera (warn "Converting old style call to ~S to the new style.~%~
+			 Please update your code." 'read-command-using-keystrokes)
 	 (with-keywords-removed (keys keys '(:keystroke-test))
 	   `(read-command-using-keystrokes ,command-table ,keystrokes ,@keys)))
 	(t form)))
+
+(defun-property (read-command-using-keystrokes compiler:style-checker) (form)
+  (when (getf (nthcdr 3 form) :keystroke-test)
+    (scl:warn '(:obsolete t) 
+	      "Converting old style call to ~S to the new style.~%~
+	       Please update your code." 'read-command-using-keystrokes)))
 
 
 (define-compatibility-function (set-frame-layout (setf frame-current-layout))
@@ -1895,11 +2225,17 @@
 
 (defmacro with-frame-state-variables
 	  ((frame-name &optional (frame '*application-frame*)) &body body)
-  (warn "The macro ~S is obsolete, use ~S instead."
-	'with-frame-state-variables 'with-slots)
+  #-Genera (warn "The macro ~S is obsolete, use ~S instead."
+		 'with-frame-state-variables 'with-slots)
   (let* ((slots (clos:class-slots (clos:find-class frame-name)))
 	 (slot-names (mapcar #'clos:slot-definition-name slots)))
     `(with-slots ,slot-names ,frame ,@body)))
+
+#+Genera
+(defun-property (with-frame-state-variables compiler:style-checker) (form)
+  (scl:warn '(:obsolete t) 
+	    "The macro ~S is obsolete, use ~S instead." 
+	    'with-frame-state-variables 'with-slots))
 
 
 (define-compatibility-function (window-viewport-position*

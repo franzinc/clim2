@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: macros.lisp,v 1.12 92/07/20 15:59:23 cer Exp $
+;; $fiHeader: macros.lisp,v 1.13 92/08/18 17:23:48 cer Exp $
 
 (in-package :silica)
 
@@ -46,6 +46,7 @@
 	    (apply #'make-pane-1 
 		   ,frame-manager ,frame pane-class pane-options)))
      (declare (dynamic-extent #'make-pane))
+     #'make-pane			;prevent spurious compiler warnings
      ,@forms))
 
 #+Genera (zwei:defindentation (make-pane 1 1))

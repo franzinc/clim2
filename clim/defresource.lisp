@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: defresource.lisp,v 1.8 92/07/01 15:46:17 cer Exp $
+;; $fiHeader: defresource.lisp,v 1.9 92/07/20 16:00:13 cer Exp $
 
 (in-package :clim-internals)
 
@@ -149,8 +149,7 @@
       (let* ((array (rd-objects rd))
 	     (matcher (rd-matcher rd))
 	     (fill-pointer (fill-pointer array)))
-	#+Genera (declare (sys:array-register array))
-	#+Minima (declare (type vector array))
+	(declare (type vector array))
 	(dotimes (i fill-pointer)
 	  (setf object-storage (aref array i))
 	  (when (and (null (cdr (os-use-cons object-storage)))

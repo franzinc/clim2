@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-layout.lisp,v 1.23 92/08/18 17:23:30 cer Exp Locker: cer $
+;; $fiHeader: db-layout.lisp,v 1.24 92/09/08 10:34:18 cer Exp $
 
 (in-package :silica)
 
@@ -27,7 +27,7 @@
 ;;;
 
 ;;--- This seems dubious...
-(defmethod allocate-space ((pane sheet) width height)
+(defmethod allocate-space ((pane basic-sheet) width height)
   (declare (ignore width height)))
 
 (defmethod note-space-requirements-changed ((composite composite-pane) child)
@@ -77,7 +77,7 @@
 
 
 ;;--- Do we need this?
-(defmethod change-space-requirements-to-default ((pane pane))
+(defmethod change-space-requirements-to-default ((pane basic-pane))
   nil)
 
 (defmethod change-space-requirements-to-default ((pane layout-mixin))
@@ -254,16 +254,19 @@
     ((client-space-requirement :initform nil))
   (:documentation "User can specify a value for the client-space-requirement slot that defaults to NIL"))
 
-;;--- Bug: what do we do if the value is NIL?
 (defmethod change-space-requirements ((pane basic-client-space-requirement-mixin) 
 				      &key width min-width max-width 
 					   height min-height max-height
 					   resize-frame)
   (declare (ignore resize-frame))
   (with-slots (client-space-requirement) pane
-    (multiple-value-bind (srwidth  srmin-width  srmax-width 
-			  srheight srmin-height srmax-height)
-	(space-requirement-components client-space-requirement)
+    ;;--- This doesn't look very convincing!
+    (let ((srwidth 100)  (srmin-width 0)  (srmax-width +fill+) 
+	  (srheight 100) (srmin-height 0) (srmax-height +fill+))
+      (when client-space-requirement
+	(multiple-value-setq (srwidth  srmin-width  srmax-width 
+			      srheight srmin-height srmax-height)
+	  (space-requirement-components client-space-requirement)))
       (setq client-space-requirement (make-space-requirement 
 				       :width (or width srwidth)
 				       :min-width (or min-width srmin-width)
@@ -650,8 +653,8 @@
 
 (defclass layout-pane (sheet-mute-input-mixin
 		       pane-background-mixin
-		       space-requirement-cache-mixin
 		       space-requirement-mixin
+		       space-requirement-cache-mixin
 		       sheet-permanently-enabled-mixin
 		       composite-pane)
     ())

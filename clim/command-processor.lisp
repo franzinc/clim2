@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: command-processor.lisp,v 1.13 92/08/18 17:24:43 cer Exp $
+;; $fiHeader: command-processor.lisp,v 1.14 92/09/08 15:17:29 cer Exp $
 
 (in-package :clim-internals)
 
@@ -95,7 +95,17 @@
 	    ;; that we get information about this argument instead of
 	    ;; "You are being asked to enter a command or form."
 	    #'command-arg-help))
-	(apply #'accept arg-type :stream stream options)))))
+	(multiple-value-prog1
+	  (apply #'accept arg-type :stream stream options)
+	  ;; Check this out.  If we're not rescanning and there is
+	  ;; nothing else in the buffer, that means the call to ACCEPT
+	  ;; must have been satisfied by clicking on something with
+	  ;; the mouse.  So insert an argument delimiter so that the
+	  ;; user can get to the next field without typing anything.
+	  (unless (or (stream-rescanning-p stream)
+		      (read-gesture :stream stream :timeout 0 :peek-p t))
+	    (replace-input stream (string (first *command-argument-delimiters*))
+			   :rescan t)))))))
 
 (defun process-delimiter (stream &key activation-p echo-space)
   (let ((delimiter (read-gesture :stream stream)))
@@ -333,31 +343,35 @@
 				     &key own-window)
   (let ((*original-stream* nil)
 	(copy-partial-command nil))
-    (flet ((arg-parser (stream presentation-type &rest args)
-	     (declare (dynamic-extent args))
-	     ;; This code is to handle the case where a partial command has been
-	     ;; passed in.  PARSE-NORMAL-ARG needs to be called with a :DEFAULT of
-	     ;; the appropriate element of the partial command structure.  
-	     (let* ((default (if copy-partial-command
-				 (pop copy-partial-command)
-				 *unsupplied-argument-marker*)))
-	       (with-presentation-type-decoded (type-name parameters) presentation-type
-		 (when (eq type-name 'command-name)
-		   (return-from arg-parser (values command-name presentation-type)))
-		 (cond ((not (unsupplied-argument-p default))
-			(cond ((eq type-name 'keyword-argument-name) default)
-			      (t (apply #'parse-normal-arg
-					stream presentation-type
-					:default default args))))
-		       ((eq type-name 'keyword-argument-name)
-			(intern (symbol-name (caar parameters)) *keyword-package*))
-		       (t (apply #'parse-normal-arg
-				 stream presentation-type
-				 :provide-default nil args))))))
-	   (separate-args (stream args-to-go)
-	     (when (and args-to-go (not (member args-to-go '(:end :keywords))))
-	       (fresh-line stream))))
-      (declare (dynamic-extent #'arg-parser #'separate-args))
+    (labels ((arg-parser (stream presentation-type &rest args)
+	       (declare (dynamic-extent args))
+	       ;; This code is to handle the case where a partial command has been
+	       ;; passed in.  PARSE-NORMAL-ARG needs to be called with a :DEFAULT of
+	       ;; the appropriate element of the partial command structure.  
+	       (let* ((default (if copy-partial-command
+				   (pop copy-partial-command)
+				   *unsupplied-argument-marker*)))
+		 (with-presentation-type-decoded (type-name parameters) presentation-type
+		   (when (eq type-name 'command-name)
+		     (return-from arg-parser (values command-name presentation-type)))
+		   (cond ((not (unsupplied-argument-p default))
+			  (cond ((eq type-name 'keyword-argument-name) default)
+				(t (apply #'parse-normal-arg
+					  stream presentation-type
+					  :default default args))))
+			 ((eq type-name 'keyword-argument-name)
+			  (intern (symbol-name (caar parameters)) *keyword-package*))
+			 (t (apply #'parse-normal-arg
+				   stream presentation-type
+				   :provide-default nil args))))))
+	     (parse-normal-arg (stream arg-type &rest options)
+	       (declare (dynamic-extent options))
+	       (with-delimiter-gestures (*command-argument-delimiters*)
+		 (apply #'accept arg-type :stream stream options)))
+	     (separate-args (stream args-to-go)
+	       (when (and args-to-go (not (member args-to-go '(:end :keywords))))
+		 (fresh-line stream))))
+      (declare (dynamic-extent #'arg-parser #'parse-normal-arg #'separate-args))
       (let ((command
 	      (accepting-values (stream :own-window own-window)
 		(fresh-line stream)
@@ -682,7 +696,7 @@
 ;; Read a command.
 ;; If USE-KEYSTROKES is T, allow the command to be input via keystroke accelerators.
 (defun read-command (command-table
-		     &key (stream *query-io*)
+		     &key (stream *standard-input*)
 			  (command-parser *command-parser*)
 			  (command-unparser *command-unparser*)
 			  (partial-command-parser *partial-command-parser*)
@@ -703,7 +717,7 @@
 ;; Read a command, allowing keystroke accelerators.  If we get a keystroke
 ;; with no corresponding command, just return the keystroke itself.
 (defun read-command-using-keystrokes (command-table keystrokes
-				      &key (stream *query-io*)
+				      &key (stream *standard-input*)
 					   (command-parser *command-parser*)
 					   (command-unparser *command-unparser*)
 					   (partial-command-parser *partial-command-parser*))

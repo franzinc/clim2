@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: pixmaps.lisp,v 1.8 92/09/08 10:34:25 cer Exp Locker: cer $
+;; $fiHeader: pixmaps.lisp,v 1.9 92/09/08 15:16:49 cer Exp $
 
 (in-package :silica)
 
@@ -35,7 +35,7 @@
 		    medium to-x to-y))
 
 ;;--- Need encapsulating stream method, too
-(defmethod copy-area ((sheet sheet) from-x from-y width height to-x to-y)
+(defmethod copy-area ((sheet basic-sheet) from-x from-y width height to-x to-y)
   (with-sheet-medium (medium sheet)
     (medium-copy-area medium from-x from-y width height
 		      medium to-x to-y)))
@@ -61,7 +61,7 @@
 	   sheet-permanently-enabled-mixin
 	   permanent-medium-sheet-output-mixin
 	   sheet-transformation-mixin
-	   sheet)
+	   basic-sheet)
     ())
 
 (defmethod initialize-instance :after ((sheet pixmap-sheet)
@@ -105,7 +105,7 @@
   (invoke-with-output-to-pixmap (medium-sheet medium) continuation
 				:width width :height height))
 
-(defmethod invoke-with-output-to-pixmap ((sheet sheet) continuation 
+(defmethod invoke-with-output-to-pixmap ((sheet basic-sheet) continuation 
 					 &key width height)
   (let* ((pixmap-medium (make-pixmap-medium (port sheet) sheet
 					    :width width :height height))
@@ -113,7 +113,7 @@
 			 :port (port sheet)
 			 :medium pixmap-medium
 			 :width width :height height)))
-    ;;-- Is this a waste of time if this does not have a medium?
+    ;;--- Is this a waste of time if this does not have a medium?
     (with-sheet-medium (medium sheet)
       (setf (medium-foreground pixmap-medium) (medium-foreground medium)
 	    (medium-background pixmap-medium) (medium-background medium)))

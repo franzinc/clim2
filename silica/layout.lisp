@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: layout.lisp,v 1.24 92/08/19 10:23:40 cer Exp Locker: cer $
+;; $fiHeader: layout.lisp,v 1.25 92/09/08 15:16:44 cer Exp $
 
 (in-package :silica)
 
@@ -141,7 +141,7 @@
 
 
 
-(defmethod resize-sheet ((sheet sheet) width height)
+(defmethod resize-sheet ((sheet basic-sheet) width height)
   (unless (and (> width 0) (> height 0))
     (error "Trying to resize sheet ~S to be too small (~D x ~D)"
 	   sheet width height))
@@ -163,7 +163,7 @@
 	    ;;--- I guess we do not want to do this always but ...
 	    (allocate-space sheet owidth oheight))))))
 
-(defmethod move-sheet ((sheet sheet) x y)
+(defmethod move-sheet ((sheet basic-sheet) x y)
   (let ((transform (sheet-transformation sheet)))
     (multiple-value-bind (old-x old-y)
 	(transform-position transform 0 0)
@@ -177,50 +177,47 @@
 		transform
 		(if x (- x old-x) 0) (if y (- y old-y) 0)))))))
 
-(defmethod move-and-resize-sheet ((sheet sheet) x y width height)
+(defmethod move-and-resize-sheet ((sheet basic-sheet) x y width height)
   (resize-sheet sheet width height)
   (move-sheet sheet x y))
 
 
 ;;; Various
 
+(define-protocol-class pane (sheet))
+
 ;;--- What about PANE-FOREGROUND/BACKGROUND vs. MEDIUM-FOREGROUND/BACKGROUND?
-;;--- Make a PANE protocol class, and call this BASIC-PANE
-(defclass pane 
+(defclass basic-pane 
 	  (sheet-transformation-mixin
 	   standard-sheet-input-mixin
 	   standard-repainting-mixin
-	   ;;-- What does this break?
-	   ;;-- permanent-medium-sheet-output-mixin
 	   temporary-medium-sheet-output-mixin
-	   sheet)
+	   basic-sheet
+	   pane)
     ((frame :reader pane-frame :initarg :frame)
      (framem :reader frame-manager :initarg :frame-manager)
      (name :accessor pane-name :initform nil :initarg :name)))
 
-(defmethod print-object ((object pane) stream)
+(defmethod print-object ((object basic-pane) stream)
   (if (and (slot-boundp object 'name)
 	   (stringp (slot-value object 'name)))
       (print-unreadable-object (object stream :type t :identity t)
 	(format stream "~A" (slot-value object 'name)))
       (call-next-method)))
 
-(defmethod panep ((x pane)) t)
-(defmethod panep ((x t)) nil)
-
-(defmethod repaint-sheet ((pane pane) region)
+(defmethod handle-repaint ((pane basic-pane) region)
   (declare (ignore region))
   nil)
 
 ;;--- This is suspicious - it should either be on a composite-pane or
 ;;--- on a top-level sheet
 #+++ignore
-(defmethod note-sheet-region-changed :after ((sheet pane) &key port)
+(defmethod note-sheet-region-changed :after ((sheet basic-pane) &key port)
   (declare (ignore port))
   (multiple-value-bind (width height) (bounding-rectangle-size sheet)
     (allocate-space sheet width height)))
 
-(defmethod pane-frame ((x sheet)) nil)
+(defmethod pane-frame ((sheet basic-sheet)) nil)
 
 (defclass pane-background-mixin () 
     ((background :initform +white+ :accessor pane-background)))
@@ -228,7 +225,7 @@
 ;;--- This is conceptually what we need, but it hasn't been tested.
 ;;--- Look carefully at who uses PANE-BACKGROUND-MIXIN first...
 #+++ignore
-(defmethod repaint-sheet ((pane pane-background-mixin) region)
+(defmethod handle-repaint ((pane pane-background-mixin) region)
   (with-sheet-medium (medium pane)
     (multiple-value-call #'draw-rectangle*
       medium (bounding-rectangle* (sheet-region pane))
@@ -305,7 +302,7 @@
 ;      (unless reverse-p (incf position)))
 ;    (note-space-requirements-changed (sheet-parent lcm) lcm)))
 ;
-;(defmethod insert-pane ((lcm list-contents-mixin) (pane pane) 
+;(defmethod insert-pane ((lcm list-contents-mixin) (pane basic-pane) 
 ;			&key position batch-p &allow-other-keys)
 ;  (with-slots (contents reverse-p) lcm
 ;    (unless batch-p
@@ -326,7 +323,7 @@
 ;      (sheet-disown-child lcm pane)))
 ;  (note-space-requirements-changed (sheet-parent lcm) lcm))
 ;
-;(defmethod remove-pane ((lcm list-contents-mixin) (pane pane)
+;(defmethod remove-pane ((lcm list-contents-mixin) (pane basic-pane)
 ;			&key batch-p &allow-other-keys)
 ;  (with-slots (contents) lcm
 ;    (setf contents (delete pane contents :test #'eq))
@@ -350,7 +347,7 @@
 	   sheet-multiple-child-mixin
 	   mirrored-sheet-mixin
 	   permanent-medium-sheet-output-mixin
-	   pane)
+	   basic-pane)
     ((user-specified-size-p :initform :unspecified :initarg :user-specified-size-p)
      (user-specified-position-p :initform :unspecified  :initarg :user-specified-position-p))
   ;;--- More of same...
@@ -382,14 +379,14 @@
 
 
 (defclass composite-pane
-    (sheet-multiple-child-mixin 
-     pane)
+	  (sheet-multiple-child-mixin 
+	   basic-pane)
     ())
 
 (defclass leaf-pane 
 	  (sheet-permanently-enabled-mixin
 	   client-overridability-mixin
-	   pane)
+	   basic-pane)
     ((cursor :initarg :cursor :initform nil
 	     :accessor sheet-cursor)))
 

@@ -1,13 +1,13 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept.lisp,v 1.11 92/08/18 17:24:37 cer Exp $
+;; $fiHeader: accept.lisp,v 1.12 92/09/08 15:17:26 cer Exp $
 
 (in-package :clim-internals)
 
 "Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved."
 
 (defun accept (type &rest accept-args
-	       &key (stream *query-io*)
+	       &key (stream *standard-input*)
 		    (view (stream-default-view stream))
 		    (default nil default-supplied-p)
 		    (default-type type)

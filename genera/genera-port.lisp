@@ -1,15 +1,12 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: GENERA-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: genera-port.lisp,v 1.11 92/08/18 17:26:05 cer Exp $
+;; $fiHeader: genera-port.lisp,v 1.12 92/09/08 15:18:55 cer Exp $
 
 (in-package :genera-clim)
 
 "Copyright (c) 1992 Symbolics, Inc.  All rights reserved.
  Portions copyright (c) 1991, 1992 International Lisp Associates."
 
-
-(defvar *genera-default-server-path* `(:genera :host ,net:*local-host*
-					       :screen ,tv:main-screen))
 
 (defclass genera-port (basic-port)
     ((screen :initform nil :reader port-display)
@@ -20,7 +17,8 @@
      (cursor-cache :initform nil :type nil)
      (height-pixels)
      (width-pixels))
-  (:default-initargs :allow-loose-text-style-size-mapping nil))
+  (:default-initargs :allow-loose-text-style-size-mapping nil
+		     :focus-selection :click-to-select))
 
 (defmethod find-port-type ((type (eql ':genera)))
   'genera-port)
@@ -31,13 +29,13 @@
 (defmethod port-name ((port genera-port))
   (let ((keys (cdr (port-server-path port))))
     (format nil "~A:~A" 
-      (getf keys :host) (getf keys :screen))))
+      (or (getf keys :host) net:*local-host*)
+      (or (getf keys :screen) (sheet-mirror (find-graft :port port))))))
 
 
 (defparameter *genera-use-color* t)		;for debugging monochrome...
 
-(defmethod initialize-instance :after ((port genera-port)
-				       &key (server-path *genera-default-server-path*))
+(defmethod initialize-instance :after ((port genera-port) &key server-path)
   (destructuring-bind (type &key (host net:*local-host*)
 				 (screen tv:main-screen)) server-path
     (declare (ignore type host))
@@ -479,10 +477,6 @@
 (define-genera-keysym #\Resume	:resume)
 
 
-(defmethod genera-mouse-char-for-cursor ((cursor t))
-  ;; any other cursor we don't know about yet
-  #\mouse:ne-arrow)
-
 (defvar *genera-cursor-type-alist*
 	'((:default #\mouse:nw-arrow)
 	  (:vertical-scroll #\mouse:vertical-double-arrow)
@@ -493,27 +487,37 @@
 	  (:scroll-right #\mouse:right-arrow)
 	  (:busy #\mouse:hourglass)
 	  (:upper-left #\mouse:nw-corner)
-	  (:lower-right #\mouse:se-corner)))
+	  (:upper-right nil)			;---
+	  (:lower-left nil)			;---
+	  (:lower-right #\mouse:se-corner)
+	  (:vertical-thumb #\mouse:right-arrow)
+	  (:horizontal-thumb #\mouse:up-arrow)
+	  (:button #\mouse:up-arrow)
+	  (:prompt #\mouse:up-arrow)
+	  (:move #\mouse:times)
+	  (:position #\mouse:plus)))
 
-(defmethod install-port-cursor ((port genera-port) sheet cursor)
-  (declare (ignore sheet))
-  (let ((char (or (second (assoc cursor *genera-cursor-type-alist*))
-		  #\mouse:ne-arrow)))
-    ;; Note that this means that CLIM requires DW for the nonce...
-    ;; It would be trivial to encode this information in the above methods, though
-    (let ((entry (assoc char dw::*mouse-blinker-characters*))
-	  (x 0) (y 0))
-      (when entry
-	(scl:destructuring-bind (nil xx yy &optional nil) entry
-	  (setq x xx y yy)))
-      (tv:mouse-set-blinker-definition ':character x y ':on ':set-character char))))
+(defmethod port-set-pointer-cursor ((port genera-port) pointer cursor)
+  (unless (eq (pointer-cursor pointer) cursor)
+    (let ((char (or (second (assoc cursor *genera-cursor-type-alist*))
+		    #\mouse:ne-arrow)))
+      ;; Note that this means that CLIM requires DW for the nonce...
+      ;; It would be trivial to encode this information in the above methods, though
+      (let ((entry (assoc char dw::*mouse-blinker-characters*))
+	    (x 0) (y 0))
+	(when entry
+	  (scl:destructuring-bind (nil xx yy &optional nil) entry
+	    (setq x xx y yy)))
+	(tv:mouse-set-blinker-definition ':character x y ':on ':set-character char))))
+  cursor)
 
 ;;--- We need something like PORT-SET-POINTER-POSITION
 (defmethod set-cursor-location ((port genera-port) sheet x y)
   ;; we don't do anything about this yet.
   )
 
-(defun ensure-blinker-matches-cursor (cursor stream)
+(defmethod port-note-cursor-change :after ((port genera-port) cursor stream type old new)
+  (declare (ignore type old new))
   (let ((active (cursor-active cursor))
 	(state (cursor-state cursor))
 	(focus (cursor-focus cursor)))
@@ -535,24 +539,6 @@
 		     (scl:send blinker :set-visibility t)))
 		  (t (unless (tv:sheet-output-held-p mirror)
 		       (scl:send blinker :set-visibility nil))))))))))
-
-(defmethod (setf port-keyboard-input-focus) :around (focus (port genera-port))
-  (let ((old-focus (port-keyboard-input-focus port)))
-    (call-next-method)
-    (let ((mirror (and focus (sheet-mirror focus)))
-	  (old-mirror (and old-focus (sheet-mirror old-focus))))
-      (when (and mirror 
-		 old-mirror
-		 (not (eq focus old-focus)))
-	(if (eq (scl:send mirror :alias-for-selected-windows)
-		(scl:send old-mirror :alias-for-selected-windows))
-	    (scl:send old-mirror :select-relative)
-	    (scl:send mirror :deselect t)))))
-  focus)
-
-(defmethod port-note-cursor-change :after ((port genera-port) cursor stream type old new)
-  (declare (ignore type old))
-  (ensure-blinker-matches-cursor cursor stream))
 
 ;; Genera's window system does the work for us, so don't do anything
 (defmethod port-draw-cursor

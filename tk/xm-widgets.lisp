@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-widgets.lisp,v 1.8 92/08/18 17:53:51 cer Exp Locker: cer $
+;; $fiHeader: xm-widgets.lisp,v 1.9 92/09/08 10:34:10 cer Exp $
 
 (in-package :tk)
 
@@ -60,7 +60,6 @@
 					  (string-to-char*
 					   "fontList")))
 
-
 (tk::add-resource-to-class (find-class 'vendor-shell)
 			   (make-instance 'resource
 					  :name :keyboard-focus-policy
@@ -68,6 +67,7 @@
 					  :original-name 
 					  (string-to-char*
 					   "keyboardFocusPolicy")))
+
 
 (tk::add-resource-to-class (find-class 'xm-cascade-button-gadget)
 			   (make-instance 'resource

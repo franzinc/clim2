@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graph-formatting.lisp,v 1.13 92/07/27 11:02:26 cer Exp $
+;; $fiHeader: graph-formatting.lisp,v 1.14 92/08/18 17:24:58 cer Exp $
 
 (in-package :clim-internals)
 
@@ -122,7 +122,7 @@
      (node-parents :accessor graph-node-parents :initform nil))
   (:default-initargs :size 5))
 
-(define-output-record-constructor graph-node-output-record
+(define-output-record-constructor standard-graph-node-output-record
 				  (&key x-position y-position (size 25))
   :x-position x-position :y-position y-position :size size)
 
@@ -397,11 +397,19 @@
 		 (old-node-function parent-object parent-record child-object child-record)))
 	     (old-node-function (parent-object parent-record child-object child-record)
 	       (declare (ignore parent-object child-object))
-	       (maxf n-generations
-		     (maxf (node-generation child-record)
-			   (if parent-record
-			       (1+ (node-generation parent-record))
-			       0)))
+	       (let ((old-generation (node-generation child-record)))
+		 ;; Set the generation of this node to 1 greater than the parent,
+		 ;; and keep track of the highest generation encountered.
+		 (maxf n-generations
+		       (maxf (node-generation child-record)
+			     (if parent-record
+				 (1+ (node-generation parent-record))
+				 0)))
+		 ;; If the child-record got its generation adjusted, then we must
+		 ;; adjust the generation-number of already-processed children,
+		 ;; and their children, etc.
+		 (unless (eql (node-generation child-record) old-generation)
+		   (increment-generation child-record)))
 	       ;; Preserve the ordering of the nodes
 	       (when parent-record
 		 (unless (member parent-record (graph-node-parents child-record))
@@ -412,8 +420,20 @@
 		   (setf (graph-node-children parent-record)
 			 (nconc (graph-node-children parent-record)
 				(list child-record)))))
-	       child-record))
-      (declare (dynamic-extent #'inferior-mapper #'new-node-function #'old-node-function))
+	       child-record)
+	     (increment-generation (record)
+	       (let ((new-generation (1+ (node-generation record))))
+		 (dolist (child (graph-node-children record))
+		   ;; Remember which generation the child belonged to.
+		   (let ((old-generation (node-generation child)))
+		     (maxf n-generations
+			   (maxf (node-generation child)
+				 new-generation))
+		     ;; If it has changed, fix up the next generation recursively.
+		     (unless (eql (node-generation child) old-generation)
+		       (increment-generation child)))))))
+      (declare (dynamic-extent #'inferior-mapper #'increment-generation
+			       #'new-node-function #'old-node-function))
       (traverse-graph root-objects #'inferior-mapper
 		      hash-table duplicate-key
 		      #'new-node-function #'old-node-function

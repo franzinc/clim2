@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept-values.lisp,v 1.33 92/09/08 15:17:23 cer Exp Locker: cer $
+;; $fiHeader: accept-values.lisp,v 1.34 92/09/22 19:37:04 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -34,8 +34,8 @@
 ;; under it's parent UPDATING-OUTPUT record.  Therefore we make it match.
 ;; (There's a separate issue, having nothing to do with incremental-redisplay
 ;; of making nested, hierarchical AVV's work.)
-(defmethod match-output-records ((record accept-values-output-record) &rest init-args)
-  (declare (ignore init-args))
+(defmethod match-output-records ((record accept-values-output-record) &rest initargs)
+  (declare (ignore initargs))
   t)
 
 (defclass accept-values-query ()
@@ -232,6 +232,9 @@
   (:command-table accept-values)
   (:command-definer nil))
 
+(defmethod frame-manager-accepting-values-frame-class ((framem standard-frame-manager))
+  'accept-values-own-window)
+
 (defmethod frame-manager-default-exit-boxes ((framem standard-frame-manager))
   '((:abort) (:exit)))
 
@@ -244,9 +247,6 @@
 ;; So the continuation can run with the proper value of *APPLICATION-FRAME*
 (defvar *avv-calling-frame*)
 
-(defmethod frame-manager-accepting-values-frame-class ((framem standard-frame-manager))
-  'accept-values-own-window)
-
 (defun invoke-accepting-values (stream continuation
 				 &key frame-class command-table own-window 
 				      (exit-boxes 
@@ -258,16 +258,18 @@
 				      (resynchronize-every-pass nil) (check-overlapping t)
 				      label x-position y-position width height)
    (incf *accept-values-tick*)
-   (let ((*current-accept-values-tick* *accept-values-tick*)
+   (let ((frame-manager (frame-manager stream))
+	 (*current-accept-values-tick* *accept-values-tick*)
 	 (the-own-window nil)
 	 (right-margin 10)
 	 (bottom-margin 10))
      (if own-window
-	 (let ((frame (make-application-frame (or frame-class 
-						  (frame-manager-accepting-values-frame-class
-						   (frame-manager *application-frame*)))
+	 (let ((frame (make-application-frame 
+			(or frame-class 
+			    (frame-manager-accepting-values-frame-class
+			      frame-manager))
 			:calling-frame *application-frame*
-			:parent *application-frame*
+			:parent frame-manager
 			:pretty-name label
 			:continuation continuation
 			:exit-boxes exit-boxes
@@ -366,7 +368,6 @@
 			 ;; that all visible stuff is up to date.  That's all!
 			 (with-output-recording-options (stream :draw nil)
 			   (redisplay avv stream :check-overlapping check-overlapping)))
-
 		       (setf (slot-value avv-record 'resynchronize) nil)
 		       (when exit-button-record
 			 (redisplay exit-button-record exit-button-stream))
@@ -451,6 +452,18 @@
 		  (encapsulating-stream-stream stream) avv))))
 	  (values-list return-values))))))
 
+(defmethod frame-manager-display-input-editor-error
+	   ((framem standard-frame-manager) (frame accept-values) stream error)
+  ;;--- Resignal the error so the user can handle it
+  ;;--- (in lieu of HANDLER-BIND-DEFAULT)
+  (notify-user frame (princ-to-string error)
+	       :title "Input error"
+	       :style :error :exit-boxes '(:exit))
+  (remove-activation-gesture stream)
+  ;; Now wait until the user forces a rescan by typing
+  ;; an input editing command
+  (loop (read-gesture :stream stream)))
+
 (defmethod frame-manager-display-help 
 	   ((framem standard-frame-manager) (frame accept-values-own-window) stream continuation)
   (declare (dynamic-extent continuation))
@@ -483,22 +496,6 @@
 	    (read-gesture :stream help-window))
 	(setf (window-visibility help-window) nil)))))
 
-(defmethod frame-manager-display-input-editor-error ((framem standard-frame-manager)
-						     (frame accept-values) stream error)
-  ;;--- Resignal the error so the user can handle it
-  ;;--- (in lieu of HANDLER-BIND-DEFAULT)
-  (notify-user frame (princ-to-string error) 
-	       :title "Input error"
-	       :style :error :exit-boxes '(:exit))
-  ;;  (beep stream)
-  (remove-activation-gesture stream)
-  ;;  (with-input-editor-typeout (stream :erase t)
-  ;;    (format stream "~A~%Please edit your input." error))
-  ;; Now wait until the user forces a rescan by typing
-  ;; an input editing command
-  (loop (read-gesture :stream stream)))
-
-
 (defmethod accept-values-top-level :around ((frame accept-values-own-window) &rest args)
   (declare (ignore args))
   (unwind-protect
@@ -508,7 +505,7 @@
 	(deallocate-resource 'menu help-window)
 	(setq help-window nil)))))
 
-(defmethod read-frame-command ((frame accept-values) &key (stream *query-io*))
+(defmethod read-frame-command ((frame accept-values) &key (stream *standard-input*))
   (read-command (frame-command-table frame)
 		:stream stream
 		:command-parser 'menu-command-parser
@@ -549,20 +546,21 @@
 	  (let* ((value (if (consp exit-box) (car exit-box) exit-box))
 		 (label (or (and (consp exit-box) (second exit-box))
 			    (second (assoc value labels)))))
-	    (with-output-as-presentation (stream value 'accept-values-exit-box)
-	      #-CCL-2
-	      (write-string label stream)
-	      #+CCL-2
-	      (if (eq value ':abort)
-		  ;; Kludge to print the cloverleaf char in MCL.
-		  ;; Needs an accompanying kludge in STREAM-WRITE-CHAR so that
-		  ;; #\CommandMark doesn't get lozenged.
-		  (progn
-		    (with-text-style (stream '(:mac-menu :roman :normal))
-		      (write-char #\CommandMark stream))
-		    (write-string "-. aborts" stream))
-		  (write-string label stream)))
-	    (write-string " " stream)))))))
+	    (when label
+	      (with-output-as-presentation (stream value 'accept-values-exit-box)
+		#-CCL-2
+		(write-string label stream)
+		#+CCL-2
+		(if (eq value ':abort)
+		    ;; Kludge to print the cloverleaf char in MCL.
+		    ;; Needs an accompanying kludge in STREAM-WRITE-CHAR so that
+		    ;; #\CommandMark doesn't get lozenged.
+		    (progn
+		      (with-text-style (stream '(:mac-menu :roman :normal))
+			(write-char #\CommandMark stream))
+		      (write-string "-. aborts" stream))
+		    (write-string label stream)))
+	      (write-string " " stream))))))))
 
 ;;--- Get this right
 (defmethod frame-pointer-documentation-output ((frame accept-values-own-window))
@@ -769,24 +767,30 @@
 
 (define-presentation-type accept-values-command-button ())
 
-(defmacro accept-values-command-button ((&optional stream &rest options) prompt &body body)
+(defmacro accept-values-command-button ((&optional stream &rest options) prompt 
+					&body body &environment env)
   #+Genera (declare (zwei:indentation 1 3 2 1))
   (declare (arglist ((&optional stream 
 		      &key documentation query-identifier
 			   (cache-value t) (cache-test #'eql)
 			   view resynchronize)
 		     prompt &body body)))
-  (default-query-stream stream accept-values-command-button)
-  `(flet ((avv-command-button-body () ,@body)
-	  ,@(unless (stringp prompt)
-	      `((avv-command-button-prompt (,stream) ,prompt))))
-     ,@(unless (stringp prompt)
-	 `((declare (dynamic-extent #'avv-command-button-prompt))))
-     (invoke-accept-values-command-button
-       ,stream
-       #'avv-command-button-body ,(getf options :view `(stream-default-view ,stream))
-       ,(if (stringp prompt) prompt '#'avv-command-button-prompt)
-       ,@options)))
+  (default-input-stream stream accept-values-command-button)
+  (let ((constant-prompt-p
+	  (and (constantp prompt #+(or Genera Minima) env)
+	       (stringp (eval prompt #+(or Genera Minima-Developer) env)))))
+    `(flet ((avv-command-button-body () ,@body)
+	    ,@(unless constant-prompt-p
+		`((avv-command-button-prompt (,stream) ,prompt))))
+       ,@(unless constant-prompt-p
+	   `((declare (dynamic-extent #'avv-command-button-prompt))))
+       (invoke-accept-values-command-button
+	 ,stream
+	 #'avv-command-button-body ,(getf options :view `(stream-default-view ,stream))
+	 ,(if constant-prompt-p
+	      (eval prompt #+(or Genera Minima-Developer) env)
+	      '#'avv-command-button-prompt)
+	 ,@options))))
 
 (defmethod invoke-accept-values-command-button
 	   (stream continuation (view t) prompt
@@ -990,7 +994,7 @@
 					  (check-overlapping t)
 					  max-height max-width)
   (declare (ignore max-height max-width))
-  (let* ((stream-and-record (and (not *sizing-application-frame*)
+  (let* ((stream-and-record (and (not *frame-layout-changing-p*)
 				 (gethash pane *pane-to-avv-stream-table*)))
 	 (avv-stream (car stream-and-record))
 	 (avv-record (cdr stream-and-record)))
@@ -1070,7 +1074,8 @@
      (pane 't))
   (funcall (slot-value button 'continuation))
   (when (slot-value button 'resynchronize)
-    (let* ((stream-and-record (and (gethash pane *pane-to-avv-stream-table*)))
+    (let* ((stream-and-record (and (not *frame-layout-changing-p*)
+				   (gethash pane *pane-to-avv-stream-table*)))
 	   (avv-stream (car stream-and-record))
 	   (avv-record (cdr stream-and-record)))
       (when avv-stream
@@ -1124,18 +1129,19 @@
     (with-slots (exit-boxes) frame
       (updating-output (stream :unique-id stream
 			       :cache-value 'exit-boxes)
-	  (formatting-table (stream :equalize-column-widths nil)
-	      (dolist (exit-box exit-boxes)
+	(formatting-table (stream :equalize-column-widths nil)
+	  (dolist (exit-box exit-boxes)
+	    (let* ((value (if (consp exit-box) (car exit-box) exit-box))
+		   (label (or (and (consp exit-box) (second exit-box))
+			      (second (assoc value labels)))))
+	      (when label
 		(formatting-column (stream)
-		    (let* ((value (if (consp exit-box) (car exit-box) exit-box))
-			   (label (or (if (consp exit-box) (second exit-box))
-				      (second (assoc value labels)))))
-		      (formatting-cell (stream)
-			  (with-output-as-gadget (stream)
-			    (make-pane 'push-button
-				       :label label
-				       :client frame :id value
-				       :activate-callback #'handle-exit-box-callback)))))))))))
+		  (formatting-cell (stream)
+		    (with-output-as-gadget (stream)
+		      (make-pane 'push-button
+			:label label
+			:client frame :id value
+			:activate-callback #'handle-exit-box-callback))))))))))))
 
 (defun handle-exit-box-callback (gadget)
   (let ((id (gadget-id gadget)))

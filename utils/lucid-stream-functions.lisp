@@ -1,11 +1,12 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
+;; $fiHeader: lucid-stream-functions.lisp,v 1.8 92/09/08 15:17:05 cer Exp $
+
 (in-package :clim-utils)
 
 "Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved.
  Portions copyright (c) 1989, 1990 International Lisp Associates."
 
-;;; $fiHeader: lucid-stream-functions.lisp,v 1.7 92/08/18 17:24:09 cer Exp $
 ;;; All of this is taken from the STREAM-DEFINITION-BY-USER proposal to
 ;;; the X3J13 committee, made by David Gray of TI on 22 March 1989.  No
 ;;; Lisp implementation yet supports this proposal, so we implement it
@@ -328,7 +329,7 @@
 ;; this hack is necessary in order to allow (ACCEPT 'T ...) and
 ;; (ACCEPT 'EXPRESSION ...) to function (sort of) correctly ....
 
-(defmethod MAKE-INSTANCE ((t-class (eql (find-class t))) &rest args)
+(defmethod make-instance ((t-class (eql (find-class t))) &rest args)
   (declare (ignore args) (dynamic-extent args))
   t)
 
@@ -378,7 +379,7 @@
       (lcl:apply-advice-continue format-string args)))
 
 #+nope
-(lcl:defadvice (LISP:FORMAT stream-wrapper) (stream control-string &rest args)
+(lcl:defadvice (lisp:format stream-wrapper) (stream control-string &rest args)
   (let ((stream (if (eq stream t) *standard-output* stream)))
     (if (and (system:standard-object-p stream)
 	     (typep stream 'fundamental-stream))

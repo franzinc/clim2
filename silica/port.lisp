@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: port.lisp,v 1.18 92/08/18 17:23:54 cer Exp $
+;; $fiHeader: port.lisp,v 1.19 92/09/08 15:16:50 cer Exp $
 
 (in-package :silica)
 
@@ -31,6 +31,13 @@
 			(return-from find-port port))))
   (make-port :server-path server-path))
 
+#+Allegro
+(progn
+  (defun reset-ports ()
+    ;;--
+    (setq *ports* nil))
+  (push `(:eval reset-ports) excl::*restart-actions*))
+  
 #+Genera
 (scl:add-initialization "Reset ports"
   '(progn
@@ -68,7 +75,7 @@
   (setf (slot-value port 'pointer) pointer))
 
 (defgeneric port-set-pointer-position (port pointer x y))
-
+(defgeneric port-set-pointer-cursor (port pointer cursor))
 
 (defgeneric port (x))
 
@@ -119,13 +126,13 @@
 
 ;;;;;;;;;;;;;;;;
 
-(define-protocol-class graft ())
+(define-protocol-class graft (sheet))
 
 (defclass standard-graft 
 	  (mirrored-sheet-mixin
 	   sheet-multiple-child-mixin
 	   sheet-transformation-mixin
-	   sheet
+	   basic-sheet
 	   graft)
     ((port :initarg :port :reader port)
      (lock :initform (make-lock "a graft lock") :reader graft-lock)

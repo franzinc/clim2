@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: lisp-utilities.lisp,v 1.16 92/09/08 15:17:03 cer Exp Locker: cer $
+;; $fiHeader: lisp-utilities.lisp,v 1.17 92/09/09 11:44:36 cer Exp Locker: cer $
 
 (in-package :clim-utils)
 
@@ -22,35 +22,91 @@
 ;;; lifted it from there but I am honest.  Not only that but this one is
 ;;; written in Common Lisp.  I feel a lot like bootstrapping, or maybe more
 ;;; like rebuilding Rome.
-(defmacro once-only (vars &body body)
+;; Variables can have &ENVIRONMENT ENV in it
+(defmacro once-only (variables &body body)
   (let ((gensym-var (gensym))
         (run-time-vars (gensym))
         (run-time-vals (gensym))
         (expand-time-val-forms ()))
-    (dolist (var vars)
-      (push `(if (or (symbolp ,var)
-                     (numberp ,var)
-                     (and (listp ,var)
-			  (member (car ,var) '(quote function))))
-                 ,var
-                 (let ((,gensym-var (gensym)))
-                   (push ,gensym-var ,run-time-vars)
-                   (push ,var ,run-time-vals)
-                   ,gensym-var))
-            expand-time-val-forms))    
-    `(let* (,run-time-vars
-            ,run-time-vals
-            (wrapped-body
-	      (let ,(mapcar #'list vars (reverse expand-time-val-forms))
-		,@body)))
-       `(let ,(mapcar #'list (reverse ,run-time-vars)
-			     (reverse ,run-time-vals))
-	  ,wrapped-body))))
+    (multiple-value-bind (variables environment-var)
+	(decode-once-only-arguments variables)
+      (dolist (var variables)
+	(push `(if (or (constantp ,var #+(or Genera Minima) ,environment-var)
+		       (symbolp ,var))
+		   ,var
+		   (let ((,gensym-var (gensym)))
+		     (push ,gensym-var ,run-time-vars)
+		     (push ,var ,run-time-vals)
+		     ,gensym-var))
+	      expand-time-val-forms))
+      `(let* (,run-time-vars
+	      ,run-time-vals
+	      (wrapped-body
+		(let ,(mapcar #'list variables (reverse expand-time-val-forms))
+		  ,@body)))
+	 `(let ,(mapcar #'list (reverse ,run-time-vars)
+			       (reverse ,run-time-vals))
+	    ,wrapped-body)))))
+
+(eval-when (compile load eval)
+(defun decode-once-only-arguments (variables)
+  (let ((vars nil)
+	(env nil)
+	(vl variables))
+    (loop
+      (when (null vl) 
+	(return-from decode-once-only-arguments
+	  (values (nreverse vars) env)))
+      (let ((var (pop vl)))
+	(if (eq var '&environment)
+	    (setq env (pop vl))
+	    (push var vars))))))
+)	;eval-when
+
 
 (defmacro dorest ((var list &optional (by 'cdr)) &body body)
   `(do ((,var ,list (,by ,var)))
        ((null ,var) nil)
      ,@body))
+
+;; Why is there DOLIST in CL but no DOVECTOR or DOSEQ{uence}
+(defmacro dovector ((var vector &key (start 0) end from-end simple-p) &body body)
+  (unless (constantp simple-p)
+    (setq simple-p nil)
+    (warn "SIMPLE-P should be a constant, ignoring it"))
+  (when (and simple-p (null end))
+    (warn "When SIMPLE-P is T, you must supply :END"))
+  (let ((fvector '#:vector)
+	(startd  '#:start)
+	(endd    '#:end)
+	(limit   '#:limit)
+	(variable (if (atom var) var (first var)))
+	(index    (if (atom var) '#:index (second var)))
+	(aref (if simple-p 'svref 'aref)))
+    `(block nil
+       (let* ((,fvector ,vector)
+	      (,startd ,start)
+	      (,endd ,(if simple-p `,end `(or ,end (length ,fvector))))
+	      (,index (if ,from-end (1- ,endd) ,startd))
+	      (,limit (if ,from-end (1- ,startd) ,endd)))
+	 (declare (type fixnum ,endd ,index ,limit)
+		  ;; Turn on the afterburners...
+		  (optimize (speed 3) (safety 0))
+		  ,(if simple-p
+		       `(type simple-vector ,fvector)
+		       `(type vector ,fvector)))
+	 (loop
+	   (when (= ,index ,limit) (return))
+	   (let ((,variable (,aref ,fvector ,index)))
+	     ,@body)
+	   (,(if from-end 'decf 'incf) ,index))))))
+
+(defmacro doseq ((var sequence) &body body)
+  (let ((fcn (gensymbol 'doseq)))
+    `(flet ((,fcn (,var) ,@body))
+       (etypecase ,sequence
+	 (list (dolist (thing ,sequence) (,fcn thing)))
+	 (vector (dovector (thing ,sequence) (,fcn thing)))))))
 
 
 ;;; Stuff for dealing with CLIM coordinates
@@ -525,7 +581,7 @@
     list))
 
 #-(and (target-class r t) (version>= 4 1))
-(defun-inline evacuate-list (list) `,list)
+(defmacro evacuate-list (list) `,list)
 
 )	;#+Allegro
 
@@ -582,6 +638,7 @@
 
 #+(or Genera Cloe-Runtime)
 (defmacro with-keywords-removed ((new-list list keywords-to-remove) &body body)
+  (declare (zwei:indentation 0 3 1 1))
   `(si::with-rem-keywords (,new-list ,list ,keywords-to-remove)
      ,@body))
 
@@ -661,45 +718,6 @@
 			      `(setf (get ',(third k) ',type) ,(funcall incrementor)))
 			  keyword-stuff))))))
 
-;; Why is there DOLIST in CL but no DOVECTOR or DOSEQ{uence}
-(defmacro dovector ((var vector &key (start 0) end from-end simple-p) &body body)
-  (unless (constantp simple-p)
-    (setq simple-p nil)
-    (warn "SIMPLE-P should be a constant, ignoring it"))
-  (when (and simple-p (null end))
-    (warn "When SIMPLE-P is T, you must supply :END"))
-  (let ((fvector '#:vector)
-	(startd  '#:start)
-	(endd    '#:end)
-	(limit   '#:limit)
-	(variable (if (atom var) var (first var)))
-	(index    (if (atom var) '#:index (second var)))
-	(aref (if simple-p 'svref 'aref)))
-    `(block nil
-       (let* ((,fvector ,vector)
-	      (,startd ,start)
-	      (,endd ,(if simple-p `,end `(or ,end (length ,fvector))))
-	      (,index (if ,from-end (1- ,endd) ,startd))
-	      (,limit (if ,from-end (1- ,startd) ,endd)))
-	 (declare (type fixnum ,endd ,index ,limit)
-		  ;; Turn on the afterburners...
-		  (optimize (speed 3) (safety 0))
-		  ,@(and simple-p `((type simple-vector ,fvector)))
-		  #+ANSI-90 ,@(and (not simple-p)
-				   `((type vector ,fvector)))
-		  #+Genera (sys:array-register ,fvector))
-	 (loop
-	   (when (= ,index ,limit) (return))
-	   (let ((,variable (,aref ,fvector ,index)))
-	     ,@body)
-	   (,(if from-end 'decf 'incf) ,index))))))
-
-(defmacro doseq ((var sequence) &body body)
-  (let ((fcn (gensymbol 'doseq)))
-    `(flet ((,fcn (,var) ,@body))
-       (etypecase ,sequence
-	 (list (dolist (thing ,sequence) (,fcn thing)))
-	 (vector (dovector (thing ,sequence) (,fcn thing)))))))
 
 (defmacro writing-clauses (&body body)
   (let ((clauses-var (gensymbol 'clauses)))
@@ -995,23 +1013,17 @@
 					    ,variable-name ,keyword ',name
 					    ',(mapcar #'first rest)))))))))
       (let ((result (process-specs specs nil)))
-	(compile `(defun-property (:property ,name mixture-class-name)
+	(compile `(defun-property (,name mixture-class-name)
 				  (&key ,@keywords &allow-other-keys)
 		    ,result))))
     (nreverse forms)))
 
 #+Genera
-(defmacro defun-property ((property symbol indicator) lambda-list &body body)
-  (unless (eq property :property)
-    (warn "Using ~S to define a function named ~S, which is not a property"
-	  'defun-property (list property symbol indicator)))
+(defmacro defun-property ((symbol indicator) lambda-list &body body)
   `(zl:::scl:defun (:property ,symbol ,indicator) ,lambda-list ,@body))
 
 #-Genera
-(defmacro defun-property ((property symbol indicator) lambda-list &body body)
-  (unless (eq property :property)
-    (warn "Using ~S to define a function named ~S, which is not a property"
-	  'defun-property (list property symbol indicator)))
+(defmacro defun-property ((symbol indicator) lambda-list &body body)
   (let ((function-name 
 	  (make-symbol (lisp:format nil "~A-~A-~A" symbol indicator 'property))))
     `(progn (defun ,function-name ,lambda-list ,@body)
@@ -1384,9 +1396,9 @@
 	   (type simple-vector from-vector to-vector))
   (declare (optimize (speed 3) (safety 0)))
   (cond (#+Genera (< length 8) #-Genera t
-	 (let (#+Genera (from-vector from-vector)
-	       #+Genera (to-vector to-vector))
-	   (declare #+Genera (sys:array-register from-vector to-vector))
+	 (let (#+(or Genera Minima) (from-vector from-vector)
+	       #+(or Genera Minima) (to-vector to-vector))
+	   #+(or Genera Minima) (declare (type simple-vector from-vector to-vector))
 	   (repeat length
 	     (setf (svref to-vector to-start) (svref from-vector from-start))
 	     (incf from-start)
@@ -1433,8 +1445,7 @@
 	  (t
 	   ;; Leave a hole for the new element
 	   (let (#+(or Genera Minima) (vector vector))
-	     #+Genera (declare (sys:array-register vector))
-	     #+Minima (declare (type vector vector))
+	     #+(or Genera Minima) (declare (type simple-vector vector))
 	     (do ((i fill-pointer (1- i)))
 		 ((= i index))
 	       (declare (type fixnum i)

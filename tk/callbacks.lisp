@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: callbacks.lisp,v 1.16 92/06/23 08:19:06 cer Exp Locker: cer $
+;; $fiHeader: callbacks.lisp,v 1.17 92/09/08 10:34:01 cer Exp $
 
 (in-package :tk)
 
@@ -165,5 +165,3 @@
   (values (x-drawing-area-callback-window call-data)
 	  (x-drawing-area-callback-event call-data)))
 
-
-  

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: GENERA-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: genera-mirror.lisp,v 1.9 92/07/27 11:03:22 cer Exp $
+;; $fiHeader: genera-mirror.lisp,v 1.10 92/08/18 17:26:02 cer Exp $
 
 (in-package :genera-clim)
 
@@ -85,6 +85,10 @@
 (defmethod bury-mirror ((port genera-port) (sheet mirrored-sheet-mixin))
   (let ((window (sheet-mirror sheet)))
     (scl:send window :bury)))
+
+(defmethod mirror-visible-p ((port genera-port) sheet)
+  (let ((mirror (sheet-mirror sheet)))
+    (scl:send mirror :exposed-p)))
 
 (defmethod realize-graft ((port genera-port) graft)
   (with-slots (silica::pixels-per-point silica::pixel-width silica::pixel-height
@@ -239,8 +243,8 @@
 		  (when frame
 		    ;; This is a frame whose input focus has not yet been directed to
 		    ;; any pane.  Choose the interactor pane by default.
-		    (let ((stream (frame-query-io frame)))
-		      (when stream
+		    (let ((stream (frame-standard-input frame)))
+		      (when (and stream (windowp stream))
 			(scl:lexpr-send (medium-drawable (sheet-medium stream))
 					:select args)
 			t))))))
@@ -313,13 +317,14 @@
     (unless *port-trigger*
       (let ((*port-trigger* t))
 	(with-sheet-medium (medium sheet)
-	  (handle-repaint sheet medium (sheet-region sheet)))))))
+	  (repaint-sheet sheet medium (sheet-region sheet)))))))
 
 (scl:defmethod (tv:refresh-rectangle genera-window) (left top right bottom)
   (when (typep sheet 'clim-stream-sheet)
     (setf (clim-internals::stream-highlighted-presentation sheet) nil))
-  ;;--- This is surely the wrong rectangle
-  (repaint-sheet sheet (make-bounding-rectangle left top right bottom)))
+  (with-sheet-medium (medium sheet)
+    ;;--- This is surely the wrong rectangle
+    (repaint-sheet sheet medium (make-bounding-rectangle left top right bottom))))
 
 ;;; Called on position changes as well as size?
 (scl:defmethod (:change-of-size-or-margins genera-window :after) (&rest options)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sysdcl.lisp,v 1.25 92/09/08 15:18:42 cer Exp Locker: cer $
+;; $fiHeader: sysdcl.lisp,v 1.26 92/09/22 19:37:32 cer Exp Locker: cer $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :cl-user)
 
@@ -219,6 +219,7 @@
   ;; Output recording
   ("recording-defs"
    :load-before-compile ("clim-defs"))
+  ("formatted-output-defs")
   ("recording-protocol"
    :load-before-compile ("recording-defs"))
   ("text-recording"
@@ -233,13 +234,13 @@
    :load-before-compile ("clim-defs"))
   ("input-editor-commands")
 
-  ;; Formatted output definitions
-  ("formatted-output-defs")
+  ;; Incremental redisplay
   ("incremental-redisplay"
    :load-before-compile ("clim-defs" "recording-protocol"))
 
   ;; Windows
   ("coordinate-sorted-set")
+  ("r-tree")
   ("window-stream")
   ("pixmap-streams")
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sysdcl.lisp,v 1.1 92/08/19 10:27:53 cer Exp $
+;; $fiHeader: sysdcl.lisp,v 1.2 92/09/08 15:17:18 cer Exp $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :cl-user)
 
@@ -11,7 +11,6 @@
 		       #-Genera (frob-pathname "clx")
      :default-binary-pathname #+Genera "SYS:CLIM;REL-2;CLX;"
 			      #-Genera (frob-pathname "clx")
-     :needed-systems (clim-standalone)
      :load-before-compile (clim-standalone))
   ("pkgdcl")
   ("clx-port")

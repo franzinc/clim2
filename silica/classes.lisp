@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: classes.lisp,v 1.17 92/09/08 15:16:29 cer Exp Locker: cer $
+;; $fiHeader: classes.lisp,v 1.18 92/09/22 19:36:44 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -27,6 +27,9 @@
      (mirror->sheet-table :initform (make-hash-table) 
 			  :reader port-mirror->sheet-table)
      (focus :initform nil :accessor port-keyboard-input-focus)
+     (focus-selection :initform :sheet-under-pointer :initarg :focus-selection
+		      :accessor port-input-focus-selection
+		      :type (member :sheet-under-pointer :click-to-select))
      (trace-thing :initform (make-array 10 :fill-pointer 0 :adjustable t)
 		  :reader port-trace-thing)
      (medium-cache :initform nil :accessor port-medium-cache)
@@ -53,8 +56,10 @@
 )	;locally
 
 
-;;--- Make a SHEET protocol class, and call this BASIC-SHEET
-(defclass sheet ()
+
+(define-protocol-class sheet ())
+
+(defclass basic-sheet (sheet)
 	  ((port :initform nil :reader port)
 	   (graft :initform nil :reader graft)
 	   (parent :initform nil 

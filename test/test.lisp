@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: test.lisp,v 1.37 92/08/18 17:25:55 cer Exp Locker: cer $
+;; $fiHeader: test.lisp,v 1.38 92/09/08 10:35:06 cer Exp $
 
 (in-package :clim-user)
 
@@ -96,7 +96,8 @@
       (make-pane 'push-button :label "Press me")
       (make-pane 'toggle-button)
       (make-pane 'slider)
-      (make-pane 'text-field)
+      (outlining ()
+	(make-pane 'text-field))
       (make-clim-interactor-pane
 	:width 300 :max-width +fill+
 	:height 300 :max-height +fill+))))
@@ -368,14 +369,16 @@
   (:command-table test-frame)
   (:pane
     (vertically ()
-      (scrolling ()
-	(make-pane 'text-editor 
-	  :value "c sucks"
-	  :ncolumns 30 :nlines 10))
-      (scrolling ()
-        (make-pane 'text-editor 
-	  :value "unix sucks more"
-	  :ncolumns 30 :nlines 10)))))
+      (outlining ()
+	(scrolling ()
+	  (make-pane 'text-editor 
+	    :value "c sucks"
+	    :ncolumns 30 :nlines 10)))
+      (outlining ()
+	(scrolling ()
+	  (make-pane 'text-editor 
+	    :value "unix sucks more"
+	    :ncolumns 30 :nlines 10))))))
 
 (define-application-frame tf99 () ()
   (:command-table test-frame)
@@ -405,16 +408,18 @@
 	      :label "T2"
 	      :value-changed-callback 'toggle-button-callback)))
 	(horizontally ()
-	  (scrolling ()
-	    (make-pane 'text-editor 
-	      :value "c sucks"
-	      :value-changed-callback 'text-field-changed
-	      :ncolumns 30 :nlines 10))
-	  (scrolling ()
-	    (make-pane 'text-editor 
-	      :value "unix sucks more"
-	      :value-changed-callback 'text-field-changed
-	      :ncolumns 30 :nlines 10)))
+	  (outlining ()
+	    (scrolling ()
+	      (make-pane 'text-editor 
+		:value "c sucks"
+		:value-changed-callback 'text-field-changed
+		:ncolumns 30 :nlines 10)))
+	  (outlining ()
+	    (scrolling ()
+	      (make-pane 'text-editor 
+		:value "unix sucks more"
+		:value-changed-callback 'text-field-changed
+		:ncolumns 30 :nlines 10))))
 	(outlining ()
 	  (spacing ()
 	    (make-pane 'slider
@@ -446,16 +451,18 @@
 	    :value-changed-callback 'toggle-button-callback)))
       (outlining ()
 	(horizontally ()
-	  (scrolling ()
-	    (make-pane 'text-editor 
-	      :value "c sucks"
-	      :value-changed-callback 'text-field-changed
-	      :ncolumns 30 :nlines 10))
-	  (scrolling ()
-	    (make-pane 'text-editor 
-	      :value "unix sucks more"
-	      :value-changed-callback 'text-field-changed
-	      :ncolumns 30 :nlines 10))))
+	  (outlining ()
+	    (scrolling ()
+	      (make-pane 'text-editor 
+		:value "c sucks"
+		:value-changed-callback 'text-field-changed
+		:ncolumns 30 :nlines 10)))
+	  (outlining ()
+	    (scrolling ()
+	      (make-pane 'text-editor 
+		:value "unix sucks more"
+		:value-changed-callback 'text-field-changed
+		:ncolumns 30 :nlines 10)))))
       (outlining ()
  	(spacing ()
  	  (make-pane 'slider
@@ -468,19 +475,21 @@
   (:command-table test-frame)
   (:pane 
     (outlining ()
-      (horizontally ()
-	(scrolling ()
-	  (make-pane 'text-editor 
-		     :value "lucid "
-		     :value-changed-callback 'text-field-changed
-		     :ncolumns 30
-		     :nlines 10))
-	(scrolling ()
-	  (make-pane 'text-editor 
-		     :value "harlqn  more"
-		     :value-changed-callback 'text-field-changed
-		     :ncolumns 30
-		     :nlines 10))))))
+      (outlining ()
+	(horizontally ()
+	  (outlining ()
+	    (scrolling ()
+	      (make-pane 'text-editor 
+		:value "lucid "
+		:value-changed-callback 'text-field-changed
+		:ncolumns 30
+		:nlines 10)))
+	  (scrolling ()
+	    (make-pane 'text-editor 
+	      :value "harlqn  more"
+	      :value-changed-callback 'text-field-changed
+	      :ncolumns 30
+	      :nlines 10)))))))
 
 (define-application-frame tf97 () ()
   (:command-table test-frame)
@@ -508,12 +517,13 @@
 		 :test 'string=
 		 :label "moo")
       (outlining ()
-	(scrolling ()
-	  (make-pane 'text-editor 
-	    :value "lucid are nice guys "
-	    :value-changed-callback 'text-field-changed
-	    :ncolumns 30
-	    :nlines 10))))))
+	(outlining ()
+	  (scrolling ()
+	    (make-pane 'text-editor 
+	      :value "lucid are nice guys "
+	      :value-changed-callback 'text-field-changed
+	      :ncolumns 30
+	      :nlines 10)))))))
 
 (define-application-frame tf96 () ()
   (:command-table test-frame)
@@ -823,9 +833,9 @@
   (:layouts
    (:default c)))
 
+
 (define-application-frame tf106 () 
-			  (
-			   (s :initform "hello")
+			  ((s :initform "hello")
 			   (r :initform "hello")
 			   (w :initform :oval)
 			   (v :initform nil)
@@ -922,7 +932,6 @@
 	      :prompt "Line style units" :default line-thickness-units))
     (terpri stream)))
 
-
 (defun display-frame-e (frame stream)
   (with-slots (s r w v u) frame
     (setq s (accept 'string :stream stream
@@ -952,4 +961,4 @@
 		    :view clim-internals::+list-pane-view+
 		    :stream stream
 		    :prompt "barf"
-		    :default v))))
+ 		    :default v))))

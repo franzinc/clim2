@@ -21,7 +21,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: plot.lisp,v 1.7 92/09/08 10:35:16 cer Exp $
+;; $fiHeader: plot.lisp,v 1.8 92/09/22 19:37:49 cer Exp Locker: cer $
 
 (in-package :clim-demo)
 
@@ -615,6 +615,7 @@
 		  :default (nth i (slot-value frame 'x-labels))))))
 
 
+
 (define-presentation-action drag-it-translator
     (blank-area command plot-command-table 
 		:documentation "Drag"
@@ -645,7 +646,10 @@
 				      (min maxy (max miny (+ vy (- y oy))))))
 				   (return nil))))))))
 
+;;-- Perhaps this should be in clim.
+
 (defun viewport-range (window)
+  ;; Return the range of value that make sense as arguments to window-set-viewport-position
   (multiple-value-bind (vwidth vheight)
       (bounding-rectangle-size (pane-viewport-region window))
     (with-bounding-rectangle* (left top right bottom) 
@@ -656,9 +660,6 @@
 		top
 		(+ left (max 0 (- cwidth vwidth)))
 		(+ top (max 0 (- cheight vheight))))))))
-	      
-	      
-      
 
 (define-plot-demo-command (com-edit-y-label :name t :menu t)
     ((i 'y-label :gesture :select))
@@ -749,7 +750,41 @@
 		  (max (+ (aref plot-data i j) (- (random 10) 5)) 0))))
 	(redisplay-frame-pane frame (get-frame-pane frame 'graph-window))
 	(silica:medium-force-output (sheet-medium (get-frame-pane frame 'graph-window)))))))
-	
+
+(define-plot-demo-command (com-save-as-data :name t) ()
+  ;;-- It would be nice to be able to specify a default
+  ;;-- For the file and the directory
+  (let ((file (select-file *application-frame* :title "Save Data")))
+    (when file
+      (when (and (probe-file file)
+		 (not (notify-user *application-frame* (format nil "Overwrite ~A" file)
+				   :style :warning)))
+	(return-from com-save-as-data))
+      (with-open-file (s file :direction :output :if-exists :supersede :if-does-not-exist :create)
+	(with-standard-io-syntax
+	  (with-slots (x-labels y-labels plot-data) *application-frame*
+	    (write x-labels :stream s)
+	    (terpri s)
+	    (write y-labels :stream s)
+	    (terpri s)
+	    (write plot-data :stream s)
+	    (terpri s)))))))
+	  
+(define-plot-demo-command (com-load-data :name t) ()
+  ;;-- It would be nice to ensure that user could only specify a file
+  ;;-- that exists
+  (let ((file (select-file *application-frame* :title "Load Data")))
+    (when file
+      (unless (probe-file file)
+	(notify-user *application-frame* (format nil "File ~A does not exist" file) :style :error)
+	(return-from com-load-data))
+      (with-open-file (s file :direction :input)
+	(with-standard-io-syntax
+	  (with-slots (x-labels y-labels plot-data) *application-frame*
+	    (setf x-labels (read s))
+	    (setf y-labels (read s))
+	    (setf plot-data (read s))))))))
+
 
 (defvar *plot-demos* nil)
 

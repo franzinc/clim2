@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: listener.lisp,v 1.18 92/08/19 10:24:15 cer Exp $
+;; $fiHeader: listener.lisp,v 1.19 92/09/08 15:19:04 cer Exp $
 
 (in-package :clim-demo)
 
@@ -47,6 +47,8 @@
 (defvar *lisp-listener-frame*)
 (defvar *lisp-listener-io*)
 
+(defvar *use-native-debugger* nil)
+
 (defvar *prompt-arrow-1* 
 	(make-pattern #2A((0 0 0 0 0 0 0 0 0 0 0 0)
 			  (0 0 0 0 0 1 0 0 0 0 0 0)
@@ -81,7 +83,7 @@
   "Run a simple Lisp listener using the window provided."
   (enable-frame frame)
   (let* ((*lisp-listener-frame* frame)
-	 (window (frame-query-io frame))
+	 (window (frame-standard-input frame))
 	 (command-table (frame-command-table frame))
 	 (presentation-type `(command-or-form :command-table ,command-table)))
     (with-input-focus (window)
@@ -171,16 +173,19 @@
 	    ((eq (presentation-type-name type) 'command)
 	     (terpri)
 	     (let ((*debugger-hook* 
-		     (and (zerop listener-depth) #'listener-debugger-hook)))
+		     (unless *use-native-debugger*
+		       (and (zerop listener-depth) #'listener-debugger-hook))))
 	       (apply (command-name command-or-form)
 		      (command-arguments command-or-form)))
 	     (terpri))
 	    (t
 	     (terpri)
-	     (let ((values (multiple-value-list
-			     (let ((*debugger-hook* 
-				     (and (zerop listener-depth) #'listener-debugger-hook)))
-			       (eval command-or-form)))))
+	     (let ((values 
+		     (multiple-value-list
+		       (let ((*debugger-hook* 
+			       (unless *use-native-debugger*
+				 (and (zerop listener-depth) #'listener-debugger-hook))))
+			 (eval command-or-form)))))
 	       (fresh-line)
 	       (dolist (value values)
 		 (present value 'expression :single-box :highlighting)
@@ -199,7 +204,7 @@
   (declare (ignore hook))
   (let* ((*application-frame* *lisp-listener-frame*)
 	 #+Minima (*debug-io* (frame-query-io *application-frame*))
-	 (*error-output* (frame-query-io *application-frame*))
+	 (*error-output* (frame-standard-output *application-frame*))
 	 (*debugger-condition* condition)
 	 (*debugger-restarts* (compute-restarts)))
     (describe-error *error-output*)
@@ -208,16 +213,27 @@
 
 (define-presentation-type restart-name ())
 
+(defvar *enter-debugger* '#:enter-debugger)
+(defun enter-debugger (stream)
+  #+Genera
+  (clim-internals::with-debug-io-selected (stream)
+    (cl:break "Debugger break for ~A" (frame-pretty-name (pane-frame stream)))))
+
 (define-presentation-method presentation-typep (object (type restart-name))
-  (typep object 'restart))
+  (or (eql object *enter-debugger*)
+      (typep object 'restart)))
 
 (define-presentation-method present (object (type restart-name) stream (view textual-view)
 				     &key)
-  (prin1 (restart-name object) stream))
+  (if (eql object *enter-debugger*)
+      (princ "Enter the debugger" stream)
+      (prin1 (restart-name object) stream)))
 
 (define-lisp-listener-command (com-invoke-restart :name t)
     ((restart 'restart :gesture :select))
-  (invoke-restart restart))
+  (if (eql restart *enter-debugger*)
+      (enter-debugger *standard-input*)
+      (invoke-restart restart)))
 
 (define-lisp-listener-command (com-describe-error :name t) ()
   (describe-error *error-output*))
@@ -239,23 +255,35 @@
 	    "~#[~; ~S~; ~S or ~S~:;~@{~#[~; or~] ~S~^,~}~] "
 	    actions (member 'abort actions)))
 	(fresh-line stream)
-	(let ((i 0))
-	  (formatting-table (stream :x-spacing '(2 :character))
-	    (dolist (restart restarts)
-	      (with-output-as-presentation (stream restart 'restart
-					    :single-box t :allow-sensitive-inferiors nil)
-		(formatting-row (stream)
-		  (formatting-cell (stream)
-		    (format stream "~D" i))
-		  (formatting-cell (stream)
-		    (format stream "~S" (restart-name restart)))
-		  (formatting-cell (stream)
-		    (format stream "~A" restart))))
-	      (incf i)))))))
-  (let ((process (clim-sys:current-process)))
-    (when process
-      (format stream "~&In process ~A." process)))
+	(formatting-table (stream :x-spacing '(2 :character))
+	  (dolist (restart restarts)
+	    (with-output-as-presentation (stream restart 'restart
+					  :single-box t :allow-sensitive-inferiors nil)
+	      (formatting-row (stream)
+		(formatting-cell (stream) stream)
+		(formatting-cell (stream)
+		  (when (restart-name restart)
+		    (format stream "~S:" (restart-name restart))))
+		(formatting-cell (stream)
+		  (format stream "~A" restart)))))
+	  #+Genera
+	  (with-output-as-presentation (stream *enter-debugger* 'restart
+					:single-box t :allow-sensitive-inferiors nil)
+	    (formatting-row (stream)
+	      (formatting-cell (stream) stream)
+	      (formatting-cell (stream) stream)
+	      (formatting-cell (stream)
+		(write-string "Enter the debugger" stream)))))))
+    (let ((process (clim-sys:current-process)))
+      (when process
+	(format stream "~&In process ~A." process))))
   (force-output stream))
+
+(define-lisp-listener-command (com-use-native-debugger :name t)
+    ((boolean 'boolean
+	      :prompt "yes or no"
+	      :default (not *use-native-debugger*)))
+  (setq *use-native-debugger* boolean))
 
 
 ;;; Lisp-y stuff
@@ -448,14 +476,14 @@
   (ed pathname))
 
 (define-lisp-listener-command (com-delete-file :name t)
-    ((pathname 'pathname :prompt "file"))
-  (delete-file pathname))
+    ((pathnames '(sequence pathname) :prompt "files"))
+  (map nil #'delete-file pathnames))
 
 (define-presentation-to-command-translator delete-file
     (pathname com-delete-file lisp-listener
      :gesture nil)
     (object)
-  (list object))
+  (list `(,object)))
 
 #+Genera
 (define-lisp-listener-command (com-expunge-directory :name t)
@@ -475,28 +503,28 @@
   (write-string "."))
 
 (define-lisp-listener-command (com-compile-file :name t)
-    ((pathname 'pathname 
-	       :provide-default t :prompt "file"))
-  (compile-file pathname))
+    ((pathnames '(sequence pathname)
+		:provide-default t :prompt "files"))
+  (map nil #'compile-file pathnames))
 
 (define-presentation-to-command-translator compile-file
     (pathname com-compile-file lisp-listener
      :gesture nil)
     (object)
-  (list object))
+  (list `(,object)))
 
 (define-lisp-listener-command (com-load-file :name t)
-    ((pathname 'pathname 
-	       :provide-default t :prompt "file"))
-  (load pathname))
+    ((pathnames '(sequence pathname) 
+		:provide-default t :prompt "file"))
+  (map nil #'load pathnames))
 
 (define-presentation-to-command-translator load-file
     (pathname com-load-file lisp-listener
      :gesture nil)
     (object)
-  (list object))
+  (list `(,object)))
 
-)
+)	;#-Minima
 
 (define-lisp-listener-command (com-quit-listener :name "Quit") ()
   (frame-exit *application-frame*))

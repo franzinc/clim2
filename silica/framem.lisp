@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: framem.lisp,v 1.14 92/09/08 15:16:40 cer Exp Locker: cer $
+;; $fiHeader: framem.lisp,v 1.15 92/09/22 19:36:47 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -62,6 +62,23 @@
 (defmethod frame-manager-matches-options-p
 	   ((framem standard-frame-manager) port &key)
   (eq (port framem) port))
+
+
+(defun map-over-frames (function &key port frame-manager)
+  (cond (frame-manager
+	 ;; Frame manager specified, so map over all the frames for
+	 ;; just this frame manager.
+	 (mapc function (frame-manager-frames frame-manager)))
+	(port
+	 ;; Port specified, map over all of the frames for all of the
+	 ;; frame managers on the port.
+	 (dolist (frame-manager (port-frame-managers port))
+	   (mapc function (frame-manager-frames frame-manager))))
+	(t
+	 ;; Map over all frames for every frame manager on every port.
+	 (dolist (port *ports*)
+	   (dolist (frame-manager (port-frame-managers port))
+	     (mapc function (frame-manager-frames frame-manager)))))))
 
 
 ;; Things like the Genera and CLX frame managers create a CLIM stream pane
@@ -129,7 +146,8 @@
 
 (defgeneric frame-manager-notify-user
 	    (framem message-string &rest options
-	     &key frame associated-window title documentation exit-boxes name style))
+	     &key frame associated-window title documentation
+		  exit-boxes name style text-style))
 
 (defgeneric frame-manager-select-file 
 	    (framem &rest options 
@@ -151,16 +169,13 @@
 			 (top-level-sheet top-level-sheet)
 			 (frame-pane frame-pane)
 			 (label-pane generic-label-pane)
-			 ;;--- Some day...
-			 (list-pane)
-			 (cascade-button)
 			 (text-field text-field-pane)
 			 (text-editor text-editor-pane)
+			 ;;--- Need to do these
+			 (list-pane)
+			 (option-pane)
 			 (horizontal-divider-pane)
 			 (vertical-divider-pane)
-			 (label-button-pane)
-			 (radio-button-pane)
-			 (caption-pane)
 			 ))))
 
 (defmethod make-pane-1 ((framem standard-frame-manager)

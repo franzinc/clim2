@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: menus.lisp,v 1.30 92/07/27 19:29:54 cer Exp $
+;; $fiHeader: menus.lisp,v 1.31 92/08/18 17:25:15 cer Exp $
 
 (in-package :clim-internals)
 
@@ -295,16 +295,19 @@
 
 
 (defmacro with-mouse-grabbed-in-window ((window &rest options) &body body)
-  `(invoke-with-mouse-grabbed-in-window
-     ,window #'(lambda () ,@body)
-     ,@options))
+  `(flet ((with-mouse-grabbed-in-window-body () ,@body))
+     (declare (dynamic-extent #'with-mouse-grabbed-in-window-body))
+     (invoke-with-mouse-grabbed-in-window
+       ,window #'with-mouse-grabbed-in-window-body ,@options)))
 
 (defmethod invoke-with-mouse-grabbed-in-window ((window t) continuation &key)
   (funcall continuation))
 
 (defmacro with-menu-as-popup ((menu) &body body)
-  `(invoke-with-menu-as-popup
-     ,menu #'(lambda () ,@body)))
+  `(flet ((with-menu-as-popup-body () ,@body))
+     (declare (dynamic-extent #'with-menu-as-popup-body))
+     (invoke-with-menu-as-popup
+       ,menu #'with-menu-as-popup-body)))
 
 (defmethod invoke-with-menu-as-popup ((window t) continuation)
   (funcall continuation))
@@ -342,6 +345,7 @@
 	 (*input-context* nil)
 	 (*accept-help* nil)
 	 (*assume-all-commands-enabled* nil)
+	 (*sizing-application-frame* nil)
 	 (*command-parser* 'command-line-command-parser)
 	 (*command-unparser* 'command-line-command-unparser)
 	 (*partial-command-parser*
@@ -383,7 +387,7 @@
  	  ;;--- If we have windows with backing store then we dont get
  	  ;;--- exposure event and so nothing appears
  	  #+Allegro (replay (stream-output-history menu) menu)
-	  #+Cloe-Runtime (stream-set-input-focus menu)
+	  (stream-set-input-focus menu)
 	  (when default-presentation
 	    (with-bounding-rectangle* (left top right bottom) default-presentation
 	      (stream-set-pointer-position

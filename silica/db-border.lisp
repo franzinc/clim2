@@ -1,11 +1,11 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
+;; $fiHeader: db-border.lisp,v 1.11 92/09/08 10:34:16 cer Exp $
+
 "Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved.
  Portions copyright (c) 1991, 1992 by Symbolics, Inc.  All rights reserved."
 
 (in-package :silica)
-
-;; $fiHeader: db-border.lisp,v 1.10 92/08/18 17:23:25 cer Exp Locker: cer $
 
 ;;; Border Panes
 
@@ -34,7 +34,7 @@
       thickness thickness
       (- width (* 2 thickness)) (- height (* 2 thickness)))))
   
-(defmethod repaint-sheet ((pane border-pane) region)
+(defmethod handle-repaint ((pane border-pane) region)
   (declare (ignore region))			;not worth checking
   (with-sheet-medium (medium pane)
     (with-bounding-rectangle* (left top right bottom) (sheet-region pane)
@@ -77,20 +77,22 @@
 ;;; Label panes
 
 (defparameter *default-label-text-style* 
-    ;;--- This defeats the resource mechanism
-    #-ignore nil
-    #+ignore (make-text-style :sans-serif :italic :small))
+	      (make-text-style :sans-serif :italic :small))
 
 (defclass label-pane (foreground-background-and-text-style-mixin labelled-gadget-mixin)
     ()
   (:default-initargs :align-x :left
-		     :text-style *default-label-text-style*))
+		     ;; Supplying a text style here defeats the resource
+		     ;; mechanism for the Motif/OpenLook ports
+		     :text-style nil))
 
 (defclass generic-label-pane 
 	  (label-pane
 	   space-requirement-mixin
 	   leaf-pane)
-    ())
+    ()
+  (:default-initargs :align-x :left
+		     :text-style *default-label-text-style*))
 
 (defmethod compose-space ((pane generic-label-pane) &key width height)
   (declare (ignore width height))
@@ -98,10 +100,12 @@
       (compute-gadget-label-size pane)
     (make-space-requirement :width width :height height)))
   
-(defmethod repaint-sheet ((pane generic-label-pane) region)
+(defmethod handle-repaint ((pane generic-label-pane) region)
   (declare (ignore region))			;not worth checking
   (with-sheet-medium (medium pane)
     (with-bounding-rectangle* (left top right bottom) (sheet-region pane)
       (declare (ignore right bottom))
       (draw-gadget-label pane medium left top
 			 :align-x (gadget-alignment pane) :align-y :top))))
+
+

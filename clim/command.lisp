@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: command.lisp,v 1.15 92/09/08 10:34:39 cer Exp Locker: cer $
+;; $fiHeader: command.lisp,v 1.16 92/09/08 15:17:31 cer Exp $
 
 (in-package :clim-internals)
 
@@ -410,8 +410,8 @@
   (and s1 s2 (string-equal s1 s2)))
 
 (defun add-menu-item-to-command-table (command-table string type value
-				       &key documentation (after ':end) keystroke
-					    mnemonic
+				       &key documentation (after ':end) 
+					    keystroke mnemonic
 					    text-style (errorp t))
   (check-type string (or string null))
   (check-type type (member :command :function :menu :divider))
@@ -448,9 +448,9 @@
     (incf menu-tick)
     (setq keystrokes nil)
     (let* ((item `(,type ,value 
-		   ,@(and mnemonic `(:mnemonic ,mnemonic))
 		   ,@(and documentation `(:documentation ,documentation))
-		   ,@(and text-style `(:text-style ,text-style))))
+		   ,@(and text-style `(:text-style ,text-style))
+		   ,@(and mnemonic `(:mnemonic ,mnemonic))))
 	   ;; Entries are of the form (MENU-NAME KEYSTROKE MENU-ITEM)
 	   (entry (list string keystroke item)))
       (when (null menu)

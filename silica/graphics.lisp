@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics.lisp,v 1.18 92/08/18 17:23:44 cer Exp $
+;; $fiHeader: graphics.lisp,v 1.19 92/09/08 15:16:43 cer Exp $
 
 (in-package :silica)
 
@@ -427,7 +427,7 @@
 	       '((,@spread-argument-names ,@keyword-argument-names)
 		 ,@args)) 
 	 (defmethod ,medium-graphics-function-name
-		    ((sheet sheet) ,@spread-argument-names ,@keyword-argument-names)
+		    ((sheet basic-sheet) ,@spread-argument-names ,@keyword-argument-names)
 	   (with-sheet-medium (medium sheet)
 	     (,medium-graphics-function-name medium 
 					     ,@spread-argument-names

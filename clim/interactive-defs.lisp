@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: interactive-defs.lisp,v 1.14 92/09/08 10:34:49 cer Exp Locker: cer $
+;; $fiHeader: interactive-defs.lisp,v 1.15 92/09/08 15:17:59 cer Exp $
 
 (in-package :clim-internals)
 
@@ -41,15 +41,19 @@
 
 (defvar *standard-activation-gestures* '(:newline :return :end))
 
-(defmacro with-activation-gestures ((additional-gestures &key override) &body body)
+(defmacro with-activation-gestures ((additional-gestures &key override) 
+				    &body body &environment env)
   (when (characterp additional-gestures)	;yes, we mean CHARACTERP
     (setq additional-gestures `'(,additional-gestures)))
-  `(with-stack-list* (*activation-gestures*
-		       ,additional-gestures
-		       ,(cond ((constantp override)
-			       (if (null override) '*activation-gestures* nil))
-			      (t
-			       `(unless ,override *activation-gestures*))))
+  `(with-stack-list* 
+       (*activation-gestures*
+	 ,additional-gestures
+	 ,(cond ((constantp override #+(or Genera Minima) env)
+		 (if (null (eval override #+(or Genera Minima-Developer) env))
+		     '*activation-gestures*
+		     nil))
+		(t
+		 `(unless ,override *activation-gestures*))))
      ,@body))
 
 (defun activation-gesture-p (gesture)
@@ -66,15 +70,19 @@
 ;; printing characters such as #\Space or #\Tab
 (defvar *delimiter-gestures* nil)
 
-(defmacro with-delimiter-gestures ((additional-gestures &key override) &body body)
+(defmacro with-delimiter-gestures ((additional-gestures &key override)
+				   &body body &environment env)
   (when (characterp additional-gestures)	;yes, we mean CHARACTERP
     (setq additional-gestures `'(,additional-gestures)))
-  `(with-stack-list* (*delimiter-gestures*
-		       ,additional-gestures
-		       ,(cond ((constantp override)
-			       (if (null override) '*delimiter-gestures* nil))
-			      (t
-			       `(unless ,override *delimiter-gestures*))))
+  `(with-stack-list* 
+       (*delimiter-gestures*
+	 ,additional-gestures
+	 ,(cond ((constantp override #+(or Genera Minima) env)
+		 (if (null (eval override #+(or Genera Minima-Developer) env)) 
+		     '*delimiter-gestures*
+		     nil))
+		(t
+		 `(unless ,override *delimiter-gestures*))))
      ,@body))
 
 (defun delimiter-gesture-p (gesture)
@@ -176,21 +184,42 @@
 			       &key input-sensitizer initial-contents
 				    (class `'standard-input-editing-stream))
 			      &body body)
-  (default-query-stream stream with-input-editing)
+  (default-input-stream stream with-input-editing)
   `(flet ((with-input-editing-body (,stream) ,@body))
      (declare (dynamic-extent #'with-input-editing-body))
      (invoke-with-input-editing ,stream #'with-input-editing-body
 				,class ,input-sensitizer ,initial-contents)))
 
 (defmacro with-input-editor-typeout ((&optional stream &key erase) &body body)
-  (default-query-stream stream with-input-editor-typeout)
+  (default-input-stream stream with-input-editor-typeout)
   `(flet ((with-ie-typeout-body (,stream) ,@body))
      (declare (dynamic-extent #'with-ie-typeout-body))
      (invoke-with-input-editor-typeout 
        ,stream #'with-ie-typeout-body :erase ,erase)))
 
 
-;;; Support for the Help key while inside ACCEPT
+;;; Support for the errors and the Help key while inside ACCEPT
+
+(defun display-input-editor-error (stream error)
+  ;; Use *APPLICATION-FRAME* instead of (PANE-FRAME STREAM) because
+  ;; when in non-own-window AVVs, (PANE-FRAME STREAM) points to the
+  ;; calling frame rather than the AVV frame.
+  (frame-manager-display-input-editor-error
+    (frame-manager *application-frame*) 
+    *application-frame* stream error))
+
+(defmethod frame-manager-display-input-editor-error 
+	   ((framem standard-frame-manager) frame stream error)
+  (declare (ignore frame))
+  ;;--- Resignal the error so the user can handle it
+  ;;--- (in lieu of HANDLER-BIND-DEFAULT)
+  (beep stream)
+  (remove-activation-gesture stream)
+  (with-input-editor-typeout (stream :erase t)
+    (format stream "~A~%Please edit your input." error))
+  ;; Wait until the user forces a rescan by typing an input editing command
+  (loop (read-gesture :stream stream)))
+
 
 (defvar *accept-help* nil)
 
@@ -209,7 +238,7 @@
        (frame-manager-display-help
 	 framem frame stream #'with-input-editor-help-body))))
 
-;; ACTION is either :HELP or :POSSIBILITIES
+;; ACTION is either :HELP, :POSSIBILITIES, or :APROPOS-POSSIBILITIES
 (defun display-accept-help (stream action string-so-far)
   (with-input-editor-help stream
     (flet ((find-help-clauses-named (help-name)
@@ -238,27 +267,6 @@
 	      (t (display-help-clauses top-level-help-clauses)))
 	(when subhelp-clauses
 	  (display-help-clauses subhelp-clauses))))))
-
-(defun display-input-editor-error (stream error)
-  ;;-- The reason for using *application-frame* instead of (pane-frame
-  ;;stream) is because for own-window nil avv the pane-frame is the
-  ;;calling frame rather than the accept-values frame
-  (frame-manager-display-input-editor-error
-   (frame-manager *application-frame*) 
-   *application-frame* stream error))
-
-(defmethod frame-manager-display-input-editor-error ((framem standard-frame-manager)
-						     (frame t) stream error)
-  ;;--- Resignal the error so the user can handle it
-  ;;--- (in lieu of HANDLER-BIND-DEFAULT)
-  (beep stream)
-  (remove-activation-gesture stream)
-  (with-input-editor-typeout (stream :erase t)
-    (format stream "~A~%Please edit your input." error))
-  ;; Now wait until the user forces a rescan by typing
-  ;; an input editing command
-  (loop (read-gesture :stream stream)))
-
 
 ;; OPTIONS is a list of a help type followed by a help string (or a function
 ;; of two arguments, a stream and the help string so far) A "help type" is

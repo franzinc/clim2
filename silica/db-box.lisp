@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-box.lisp,v 1.20 92/08/18 17:23:26 cer Exp Locker: cer $
+;; $fiHeader: db-box.lisp,v 1.21 92/09/08 10:34:17 cer Exp $
 
 (in-package :silica)
 
@@ -104,21 +104,21 @@
 (defmethod allocate-space ((box-pane hbox-pane) width height)
   (with-slots (contents space) box-pane
     (let ((space-requirement
-	   (compose-space box-pane :width width :height height)))
+	    (compose-space box-pane :width width :height height)))
       (flet ((compose (x)
 	       (cond ((atom x) (compose-space x :height height))
 		     ((eq (car x) :fill) :fill)
 		     (t (make-space-requirement :height 0 :width (* (car x) width))))))
 	(declare (dynamic-extent #'compose))
 	(let ((sizes 
-	       (allocate-space-to-items
-		width
-		space-requirement
-		contents
-		#'space-requirement-min-width
-		#'space-requirement-width
-		#'space-requirement-max-width
-		#'compose))
+		(allocate-space-to-items
+		  width
+		  space-requirement
+		  contents
+		  #'space-requirement-min-width
+		  #'space-requirement-width
+		  #'space-requirement-max-width
+		  #'compose))
 	      (x 0))
 	  (mapc #'(lambda (sheet size)
 		    (when (or (panep sheet)
@@ -126,7 +126,7 @@
 				   (panep (second sheet))
 				   (setq sheet (second sheet))))
 		      (move-and-resize-sheet 
-		       sheet x 0 (frob-size size width x) height))
+			sheet x 0 (frob-size size width x) height))
 		    (incf x size))
 		contents sizes))))))
 
@@ -148,21 +148,21 @@
 (defmethod allocate-space ((box-pane vbox-pane) width height)
   (with-slots (contents space) box-pane
     (let ((space-requirement
-	   (compose-space box-pane :width width :height height)))
+	    (compose-space box-pane :width width :height height)))
       (flet ((compose (x)
 	       (cond ((atom x) (compose-space x :width width))
 		     ((eq (car x) :fill) :fill)
 		     (t (make-space-requirement :width 0 :height (* (car x) height))))))
 	(declare (dynamic-extent #'compose))
 	(let ((sizes 
-	       (allocate-space-to-items
-		height
-		space-requirement
-		contents
-		#'space-requirement-min-height
-		#'space-requirement-height
-		#'space-requirement-max-height
-		#'compose))
+		(allocate-space-to-items
+		  height
+		  space-requirement
+		  contents
+		  #'space-requirement-min-height
+		  #'space-requirement-height
+		  #'space-requirement-max-height
+		  #'compose))
 	      (y 0))
 	  (mapc #'(lambda (sheet size)
 		    (when (or (panep sheet)
@@ -170,7 +170,7 @@
 				   (panep (second sheet))
 				   (setq sheet (second sheet))))
 		      (move-and-resize-sheet
-		       sheet 0 y width (frob-size size height y)))
+			sheet 0 y width (frob-size size height y)))
 		    (incf y size))
 		contents sizes))))))
 

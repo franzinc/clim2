@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: tracking-pointer.lisp,v 1.11 92/07/27 11:03:03 cer Exp Locker: cer $
+;; $fiHeader: tracking-pointer.lisp,v 1.12 92/08/19 18:05:12 cer Exp $
 
 (in-package :clim-internals)
 
@@ -108,6 +108,7 @@
 	 (*discard-pointer-release-events* nil)
 	 (highlighted-presentation nil)
 	 (highlighted-presentation-type nil)
+	 (highlighted-presentation-window nil)
 	 ;; Bind the input context so that presentation searching works
 	 (*input-context*
 	   (with-presentation-type-decoded (name parameters) context-type
@@ -120,17 +121,18 @@
     (macrolet ((highlight (presentation)
 		 `(progn
 		    (setq highlighted-presentation ,presentation
-			  highlighted-presentation-type (presentation-type ,presentation))
+			  highlighted-presentation-type (presentation-type ,presentation)
+			  highlighted-presentation-window current-window)
 		    (when (output-recording-stream-p current-window)
 		      (highlight-presentation 
 		        highlighted-presentation highlighted-presentation-type
-		        current-window :highlight))))
+		        highlighted-presentation-window :highlight))))
 	       (unhighlight ()
 		 `(when highlighted-presentation
 		    (when (output-recording-stream-p current-window)
 		      (highlight-presentation
 		        highlighted-presentation highlighted-presentation-type
-		        current-window :unhighlight))
+		        highlighted-presentation-window :unhighlight))
 		    (setq highlighted-presentation nil))))
       (unwind-protect
 	  (loop
@@ -319,7 +321,7 @@
 			      (pointer-event-x event) (pointer-event-y event)))))
 	     (beep stream)))))))
 
-(Defun pointer-input-rectangle (&key rectangle
+(defun pointer-input-rectangle (&key rectangle
 				     (stream *standard-input*)
 				     (pointer (stream-primary-pointer stream)))
   (let (left top right bottom)

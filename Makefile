@@ -1,4 +1,4 @@
-# $fiHeader: Makefile,v 1.45 92/09/08 10:35:20 cer Exp Locker: cer $
+# $fiHeader: Makefile,v 1.46 92/09/22 19:37:54 cer Exp Locker: cer $
 # 
 #  Makefile for CLIM 2.0
 #
@@ -204,6 +204,7 @@ CLIM-STANDALONE-OBJS = clim/gestures.fasl \
                         clim/formatted-output-defs.fasl \
                         clim/incremental-redisplay.fasl \
                         clim/coordinate-sorted-set.fasl \
+			clim/r-tree.fasl \
                         clim/window-stream.fasl \
                         clim/pixmap-streams.fasl \
                         clim/ptypes1.fasl \

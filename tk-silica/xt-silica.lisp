@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.44 92/09/09 11:45:06 cer Exp Locker: cer $
+;; $fiHeader: xt-silica.lisp,v 1.45 92/09/22 19:38:19 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -59,15 +59,19 @@
 
 
 (defmethod restart-port ((port xt-port))
-  (let ((process (port-process port)))
-    (when process
-      (clim-sys:destroy-process process)))
-  (setf (port-process port)
-    (mp:process-run-restartable-function
-     (list :name (format nil "CLIM Event Dispatcher for ~A"
-			 (port-server-path port))
-	   :priority 1000)
-     #'port-event-loop port)))
+  (flet ((cleanup-port-after-dumplisp (process)
+	   (mp::process-kill process)))
+    (let ((process (port-process port)))
+      (when process
+	(clim-sys:destroy-process process))
+      (setq process
+	(mp:process-run-restartable-function
+	 (list :name (format nil "CLIM Event Dispatcher for ~A"
+			     (port-server-path port))
+	       :priority 1000)
+	 #'port-event-loop port))
+      (setf (getf (mp:process-property-list process) ':survive-dumplisp) #'cleanup-port-after-dumplisp)
+      (setf (port-process port) process))))
 
 (defmacro destructure-x-server-path ((&key display) path &body body)
   ;;-- Of course the port ends up with an unspecified server-path.
@@ -340,7 +344,7 @@
 ;; not been established nor has the rest of tree been mirrored.
 ;; So it seems to work out really well to do this bottom up.
 
-(defmethod sheet-and-ancestors-enabled-p ((sheet sheet))
+(defmethod sheet-and-ancestors-enabled-p ((sheet basic-sheet))
   ;; If we have an non-mirrored ancestor that is between us and our
   ;; mirrored-ancestor that is disabled then we should not manage this gadget.
   ;; This should happen
@@ -360,7 +364,8 @@
 						  ; by a widget
       (tk::manage-child mirror))))
 
-(defmethod initialize-mirror ((port xt-port) (parent sheet) (parent-widget t) (sheet sheet) widget)
+(defmethod initialize-mirror ((port xt-port) (parent basic-sheet) (parent-widget t)
+			      (sheet basic-sheet) widget)
   (add-sheet-callbacks port sheet widget))
 
 (defmethod add-sheet-callbacks ((port xt-port) sheet (widget t))
@@ -652,11 +657,11 @@
       )))
 
 (defmethod find-widget-class-and-initargs-for-sheet
-    ((port xt-port) (parent t) (sheet sheet))
+    ((port xt-port) (parent t) (sheet basic-sheet))
   (error "we should not be here"))
 
 (defmethod find-widget-class-and-initargs-for-sheet :around 
-	   ((port xt-port) (parent t) (sheet sheet))
+	   ((port xt-port) (parent t) (sheet basic-sheet))
   (multiple-value-bind (class initargs)
       (call-next-method)
     (setq initargs (compute-initial-mirror-geometry parent sheet initargs))
@@ -693,11 +698,11 @@
 	  (apply #'make-instance class :parent (find-shell-parent port sheet) initargs))
         (sheet-mirror-for-parenting ma))))
 
-(defmethod sheet-mirror-for-parenting ((sheet sheet))
+(defmethod sheet-mirror-for-parenting ((sheet basic-sheet))
   ;; There might be a situation where a sheet is mirrored by a whil
   (sheet-mirror sheet))
 
-(defmethod find-shell-of-calling-frame ((sheet sheet))
+(defmethod find-shell-of-calling-frame ((sheet basic-sheet))
   (find-shell-of-calling-frame (pane-frame sheet)))
 
 (defmethod find-shell-of-calling-frame ((frame application-frame))
@@ -932,7 +937,7 @@
 (defmethod popup-frame-p ((frame application-frame))
   (typep frame '(or clim-internals::menu-frame clim-internals::accept-values-own-window)))
 
-(defmethod popup-frame-p ((sheet sheet))
+(defmethod popup-frame-p ((sheet basic-sheet))
   (let ((frame  (pane-frame sheet)))
     (and frame
 	 (popup-frame-p frame))))
@@ -1093,6 +1098,27 @@
 (define-xt-keysym (keysym 255 #xc6) :f9)
 (define-xt-keysym (keysym 255 #xc7) :f10)
 
+(define-xt-keysym (keysym 255 #xc8) :l1)
+(define-xt-keysym (keysym 255 #xc9) :l2)
+(define-xt-keysym (keysym 255 #xca) :l3)
+(define-xt-keysym (keysym 255 #xcb) :l4)
+(define-xt-keysym (keysym 255 #xcc) :l5)
+(define-xt-keysym (keysym 255 #xcd) :l6)
+(define-xt-keysym (keysym 255 #xce) :l7)
+(define-xt-keysym (keysym 255 #xcf) :l8)
+(define-xt-keysym (keysym 255 #xd0) :l9)
+(define-xt-keysym (keysym 255 #xd1) :l10)
+
+(define-xt-keysym (keysym 255 #xd2) :r1)
+(define-xt-keysym (keysym 255 #xd3) :r2)
+(define-xt-keysym (keysym 255 #xd4) :r3)
+(define-xt-keysym (keysym 255 #xd5) :r4)
+(define-xt-keysym (keysym 255 #xd6) :r5)
+(define-xt-keysym (keysym 255 #xd7) :r6)
+(define-xt-keysym (keysym 255 #xd8) :r7)
+(define-xt-keysym (keysym 255 #xd9) :r8)
+(define-xt-keysym (keysym 255 #xda) :r9)
+(define-xt-keysym (keysym 255 #xdb) :r10)
 
 ;; Finally, the shifts
 ;; snarfed from translate.cl
@@ -1390,7 +1416,7 @@ the geometry of the children. Instead the parent has control. "))
   (multiple-value-bind (keysym shifts)
       (if modifier-state
 	  (values gesture-spec modifier-state)
-	(parse-gesture-spec gesture-spec))
+	  (parse-gesture-spec gesture-spec))
     ;; Here, we must take the gesture spec, turn it back into
     ;; a keycode, then see what the keysyms are for that keycode
     (let ((x-keysym 
@@ -1407,7 +1433,6 @@ the geometry of the children. Instead the parent has control. "))
       (unless x-keysym 
 	(return-from port-canonicalize-gesture-spec nil))
       (cons (xt-keysym->keysym x-keysym) shifts))))
-
 
 
 (defmethod port-set-pointer-position ((port xt-port) pointer x y)
@@ -1560,7 +1585,7 @@ the geometry of the children. Instead the parent has control. "))
 (defvar *pointer-grabbed* nil)
 
 
-(defmethod port-invoke-with-pointer-grabbed ((port xt-port) (sheet sheet) continuation 
+(defmethod port-invoke-with-pointer-grabbed ((port xt-port) (sheet basic-sheet) continuation 
 								    &key
 								    confine-to cursor
 								    (ungrab-on-error t))

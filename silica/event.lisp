@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: event.lisp,v 1.21 92/09/08 15:16:38 cer Exp Locker: cer $
+;; $fiHeader: event.lisp,v 1.22 92/09/22 19:36:45 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -17,7 +17,7 @@
 (defgeneric port-keyboard-input-focus (port))
 
 (defmethod handle-event (sheet (event window-repaint-event))
-  (handle-repaint sheet nil (window-event-region event))
+  (repaint-sheet sheet nil (window-event-region event))
   (deallocate-event event))
 
 (defclass sheet-with-event-queue-mixin ()
@@ -116,22 +116,22 @@
 (defmethod queue-repaint (sheet region)
   (queue-event sheet region))
 
-(defgeneric handle-repaint (sheet medium region))
-(defmethod handle-repaint ((sheet sheet) medium region)
+(defgeneric repaint-sheet (sheet medium region))
+(defmethod repaint-sheet ((sheet basic-sheet) medium region)
   (when (null region)				;--- kludge
     (setq region +everywhere+))
   (with-sheet-medium-bound (sheet medium)
-    (repaint-sheet sheet region))
+    (handle-repaint sheet region))
   (when (typep sheet 'sheet-parent-mixin)
-    (flet ((do-handle-repaint (child)
+    (flet ((repaint-sheet-1 (child)
 	     (unless (sheet-direct-mirror child)
-	       (handle-repaint
+	       (repaint-sheet
 		 child medium
 		 (untransform-region (sheet-transformation child) region)))))
-      (declare (dynamic-extent #'do-handle-repaint))
-      (map-over-sheets-overlapping-region #'do-handle-repaint sheet region))))
+      (declare (dynamic-extent #'repaint-sheet-1))
+      (map-over-sheets-overlapping-region #'repaint-sheet-1 sheet region))))
 	     
-(defgeneric repaint-sheet (sheet region))
+(defgeneric handle-repaint (sheet region))
 
 
 (defclass standard-repainting-mixin () ())
@@ -142,14 +142,14 @@
 (defclass immediate-repainting-mixin () ())
 
 (defmethod dispatch-repaint ((sheet immediate-repainting-mixin) region)
-  (handle-repaint sheet region))
+  (repaint-sheet sheet region))
 
 (defclass mute-repainting-mixin () ())
 
 (defmethod dispatch-repaint ((sheet mute-repainting-mixin) region)
   (queue-repaint sheet region))
 
-(defmethod repaint-sheet ((sheet mute-repainting-mixin) region)
+(defmethod handle-repaint ((sheet mute-repainting-mixin) region)
   (declare (ignore region))
   nil)
 
@@ -405,7 +405,7 @@
 	     (exitted-top-level-window
 	       (and exitted-a-window
 		    (eq toplevel-sheet mirrored-sheet))))
-	#+Genera (declare (sys:array-register v))
+	(declare (type vector v))
 	(when (or (not exitted-a-window)
 		  exitted-top-level-window)
 	  ;; Pop up the stack of sheets
