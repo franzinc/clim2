@@ -1,4 +1,4 @@
-# $Header: /repo/cvs.copy/clim2/Makefile.rs6000,v 1.12.34.1 2000/07/27 21:09:22 layer Exp $
+# $Header: /repo/cvs.copy/clim2/Makefile.rs6000,v 1.12.34.2 2000/08/06 23:53:37 layer Exp $
 #
 #  Makefile.rs6000 for CLIM 2.0
 #
@@ -7,28 +7,27 @@ include Makefile.defs
 
 Makefile=Makefile.rs6000
 
-## removed: -D_NO_PROTO -D_NONSTD_TYPES -D_MBI=void
-CFLAGS	= -O -D_BSD
-#	-I/usr/include/Motif1.2
-#        /usr/lpp/X11/lib/R6/Motif1.2/Xm12.imp
-#        /usr/lpp/X11/lib/R6/Motif1.2/Mrm12.imp
+## For info on Motif1.2 vs Motif 2.1, see /usr/lpp/X11/README
+##
+
+CFLAGS	= -O -D_BSD -I/usr/include/Motif1.2 /usr/lpp/X11/lib/R6/Motif1.2/Xm12.imp /usr/lpp/X11/lib/R6/Motif1.2/Mrm12.imp
 
 ### the R5 directory contains Motif 1.2 on loveshaq
 ### -- what a botch.  Can't use the latest X11 just because we want
 ###    to use an older Motif!  How I love AIX.... not!
-#SET_LIBRARY_PATH= \
-#  LIBPATH=/usr/lpp/X11/lib/R5:/lib:/usr/lib; export LIBPATH; env
+SET_LIBRARY_PATH= \
+  LIBPATH=/usr/lpp/X11/lib/R5:/lib:/usr/lib; export LIBPATH; env
 
-#TKLIB=-L/usr/lpp/X11/lib/R5 -lXm
+TKLIB=-L/usr/lpp/X11/lib/R5 -lXm
 
 XTLIB=-lXt
 XLIB=-lX11
 
-XINCLUDES= -I/usr/include
+XINCLUDES= -I/usr/include/Motif1.2 /usr/lpp/X11/lib/R6/Motif1.2/Xm12.imp
 
 PRODUCT-OBJS= $(PRODUCT-GENERIC-OBJS) $(STATIC-XM-OBJS) $(SHARED-XM-OBJS)
 MAKE_SHARED = ../src/bin/make_shared.ibm -make_exp ../src/bin/make_exp
-STD_DEFINES = -DSYSV -DAIXV3
+STD_DEFINES =
 AR = ar clq
 
 # This should be defined in make-dist. For CLIM devel (ie making

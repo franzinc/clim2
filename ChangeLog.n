@@ -11,6 +11,13 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+<no version change--patch made to 6.0.beta.1(rc2)>
+
+2000-08-06  Kevin Layer  <layer@ultra>
+
+	* Makefile.rs6000: cleanup and make ready for AIX 4.3.2
+
+*******************************************************************************
 2.2.2.23
 
 2000-07-27  Kevin Layer  <layer@ultra>
