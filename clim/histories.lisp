@@ -1,30 +1,10 @@
-;;; -*- Mode: LISP; Syntax: Common-lisp; Package: CLIM; Base: 10; Lowercase: Yes -*-
-;; 
-;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
-;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
-;;
-;; The software, data and information contained herein are proprietary
-;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
-;; given in confidence by Franz, Inc. pursuant to a written license
-;; agreement, and may be stored and used only in accordance with the terms
-;; of such license.
-;;
-;; Restricted Rights Legend
-;; ------------------------
-;; Use, duplication, and disclosure of the software, data and information
-;; contained herein by any agency, department or entity of the U.S.
-;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
-;;
+;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: histories.lisp,v 1.13 91/08/05 14:29:35 cer Exp $
+;; $fiHeader: histories.lisp,v 1.8 91/03/29 18:21:39 cer Exp $
 
-(in-package :clim)
+(in-package :clim-internals)
 
-"Copyright (c) 1990, 1991 Symbolics, Inc.  All rights reserved."
-"Copyright (c) 1991, Franz Inc. All rights reserved"
+"Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved."
 
 ;;; Basic histories
 
@@ -76,12 +56,17 @@
   (and (consp object)
        (typep (car object) 'basic-history)))
 
-(defmethod display-history-menu-element ((history basic-history) stream number index)
+(defmethod history-element-type ((history basic-history)) 
+  'basic-history-element)
+
+(defmethod display-history-menu-element ((history basic-history) stream number index
+					 &optional element-type)
+  (when (null element-type)
+    (setq element-type (history-element-type history)))
   (with-slots (rotation) history
     (let ((element (history-element history index)))
-      (with-output-as-presentation (:stream stream
-				    :object (history-and-element history element)
-				    :type 'basic-history-element)
+      (with-output-as-presentation 
+	  (stream (history-and-element history element) element-type)
 	(cond ((zerop rotation)
 	       (format stream "~3D: " number))
 	      ((= index rotation)
@@ -104,7 +89,7 @@
 	      (let ((new nil)
 		    (elts elements))
 		(dotimes (i length)
-		  #-excl (declare (ignore i))
+		  #-(or Allegro Minima) (declare (ignore i))
 		  (push (pop elts) new))
 		(nreverse new))))
 	 (setq elements new-elements
@@ -151,7 +136,7 @@
     (let ((index (+ (or index rotation) (or offset 0)))
 	  (length (history-length history)))
       (dotimes (n (if cutoff-length (min length cutoff-length) length))
-	#-excl (declare (ignore n))
+	#-(or Allegro Minima) (declare (ignore n))
 	(unless (< -1 index length)
 	  (setq index (mod index length)))
 	(let ((element (history-element history index)))
@@ -256,10 +241,10 @@
 (defmacro with-default-bound-in-history (history default-element &body body)
   `(flet ((with-default-bound-in-history-body () ,@body))
      (declare (dynamic-extent #'with-default-bound-in-history-body))
-     (with-default-bound-in-history-1 ,history ,default-element
-				      #'with-default-bound-in-history-body)))
+     (invoke-with-default-bound-in-history ,history ,default-element
+					   #'with-default-bound-in-history-body)))
 
-(defmethod with-default-bound-in-history-1
+(defmethod invoke-with-default-bound-in-history
 	   ((history basic-history) default-element continuation)
   (with-slots (yank-position rotation temporary-element) history
     ;; Reset both pieces of state so that multiple calls to ACCEPT start fresh
@@ -270,7 +255,7 @@
 
 ;; Hook it up to the input editor
 (defmethod history-replace-input
-	   ((history basic-history) (istream interactive-stream-mixin) element
+	   ((history basic-history) (istream input-editing-stream-mixin) element
 	    &key replace-previous)
   (declare (ignore replace-previous))
   (with-slots (scan-pointer insertion-pointer) istream
@@ -278,7 +263,7 @@
     (replace-input istream element :buffer-start insertion-pointer)))
 
 (defmethod history-replace-input :around
-	   ((history basic-history) (istream interactive-stream-mixin) element
+	   ((history basic-history) (istream input-editing-stream-mixin) element
 	    &key replace-previous)
   (declare (ignore element))
   (with-slots (insertion-pointer previous-insertion-pointer scan-pointer input-buffer) istream
@@ -327,6 +312,16 @@
 		    (write-string "..." stream)
 		    (write-string element stream :start (- length half-length))))))
 	  (t (write-string element stream)))))
+
+(define-presentation-type kill-ring-element ()
+  :inherit-from 'basic-history-element)
+
+(define-presentation-method presentation-typep (object (type kill-ring-element))
+  (and (consp object)
+       (typep (car object) 'kill-ring-history)))
+
+(defmethod history-element-type ((history kill-ring-history)) 
+  'kill-ring-element)
 
 (setq *kill-ring* (make-instance 'kill-ring-history :name "Kill ring"))
 
@@ -407,17 +402,31 @@
 (defmethod print-history-element ((history presentation-history) element stream)
   (let ((string (unparse-presentation-history-element history element
 						      :view (stream-default-view stream))))
-    (with-output-as-presentation (:stream stream
-				  :object (presentation-history-element-object element)
-				  :type (presentation-history-element-type element))
+    (with-output-as-presentation (stream
+				  (presentation-history-element-object element)
+				  (presentation-history-element-type element))
       (write-string string stream))))
+
+
+(define-presentation-type presentation-history-element ()
+  :inherit-from 'basic-history-element)
+
+(define-presentation-method presentation-typep (object (type presentation-history-element))
+  (and (consp object)
+       (typep (car object) 'presentation-history)))
+
+(defmethod history-element-type ((history presentation-history)) 
+  'presentation-history-element)
 
 (defmethod history-and-element ((history presentation-history) element)
   (cons history (unparse-presentation-history-element history element)))
 
 (defmethod presentation-type-for-yanking ((history presentation-history))
   (with-slots (type) history
-    (or *presentation-type-for-yanking*
+    (or (and (presentation-subtypep
+	       *presentation-type-for-yanking*
+	       (presentation-history-type history))
+	     *presentation-type-for-yanking*)
 	(dolist (context *input-context*)
 	  ;; If there is an input context that is more specific than the type
 	  ;; provided by the history, use it.
@@ -430,7 +439,7 @@
   (unparse-presentation-history-element history element))
 
 (defmethod history-replace-input
-	   ((history presentation-history) (istream interactive-stream-mixin) element
+	   ((history presentation-history) (istream input-editing-stream-mixin) element
 	    &key replace-previous)
   (declare (ignore replace-previous))
   (presentation-replace-input istream
@@ -449,7 +458,7 @@
 		     (reset-history history)))))
 	   *presentation-type-class-table*))
 
-#+Genera
+#+Generab
 (si:define-gc-optimization reset-all-presentation-histories :cleanup
   (:documentation "Reset presentation histories")
   (:before-flip (incremental)
@@ -468,6 +477,16 @@
 ;;; Display the contents of a history
 
 (defparameter *history-menu-length* 20.)
+
+(define-presentation-type input-editor (&key stream))
+
+(define-presentation-method presentation-typep (object (type input-editor))
+  (declare (ignore object))
+  nil)
+
+(define-presentation-method presentation-subtypep ((subtype input-editor) supertype)
+  (declare (ignore supertype))
+  t)
 
 (define-presentation-type display-rest-of-history ())
 
@@ -489,7 +508,8 @@
 	  (when (< (- lines 3) maximum-length)
 	    (setq maximum-length (- lines 3))))
 	(let ((elts-displayed 0)
-	      (max-displayed-index 0))
+	      (max-displayed-index 0)
+	      (element-type (history-element-type history)))
 	  ;; Print elements with negative rotated positions.
 	  (block display-them
 	    (let ((previous nil))
@@ -503,7 +523,8 @@
 			       (not (history-elements-equal history element previous))))
 		  (incf elts-displayed)
 		  (maxf max-displayed-index index)
-		  (display-history-menu-element history stream (1+ index) index))
+		  (display-history-menu-element history stream (1+ index) index
+						element-type))
 		(when (>= elts-displayed maximum-length)
 		  (return-from display-them (values)))
 		(setq previous element))))
@@ -515,20 +536,18 @@
 		      ((= scanned-length current-length)
 		       (write-string "(End of matching items in history.)" stream))
 		      (t
-		       (with-output-as-presentation
-			   (:stream stream
-			    :object (list history max-displayed-index string)
-			    :type 'display-rest-of-history)
+		       (with-output-as-presentation (stream
+						     (list history max-displayed-index string)
+						     'display-rest-of-history)
 			 (write-string "Display rest of history." stream))))
 	        (cond ((zerop elts-displayed)
 		       (write-string "(No items of history displayed.)" stream))
 		      ((= scanned-length current-length)
 		       (write-string "(End of history.)" stream))
 		      (t
-		       (with-output-as-presentation
-			   (:stream stream
-			    :object (list history max-displayed-index nil)
-			    :type 'display-rest-of-history)
+		       (with-output-as-presentation (stream
+						     (list history max-displayed-index nil)
+						     'display-rest-of-history)
 			 (format stream "(~D more item~:P in history.)"
 			   (- current-length max-displayed-index)))))))
 	  (terpri stream))))))

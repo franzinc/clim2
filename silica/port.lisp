@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader$
+;; $fiHeader: port.cl,v 1.3 92/01/02 15:09:20 cer Exp $
 
 (in-package :silica)
 
@@ -53,7 +53,7 @@
   (restart-port port))
 
 
-(defgeneric port (x)
+(defgeneric sheet-port (x)
   (:method ((port port)) port)
   (:method ((x t)) nil))
 
@@ -99,7 +99,7 @@
 		 mirrored-sheet-mixin
 		 sheet-multiple-child-mixin
 		 sheet-transformation-mixin)
-  ((port :initarg :port :reader port)
+  ((port :initarg :port :reader sheet-port)
    (lock :initform (mp::make-process-lock) :reader graft-lock)
    
    (orientation :reader graft-orientation :initarg :orientation)
@@ -116,9 +116,7 @@
 			(units :device))
   (unless port (setq port (find-port :server-paths server-path)))
   (map-over-grafts #'(lambda (graft)
-		       (when (graft-matches-spec graft
-						 orientation
-						 units)
+		       (when (graft-matches-spec graft orientation units)
 			 (return-from find-graft graft)))
 		   port)
   (make-instance (port-graft-class port)
@@ -132,17 +130,25 @@
   (push graft (port-grafts port))
   (realize-graft port graft))
 
+(defmethod update-mirror-region ((port port) (sheet graft))
+  ;;--- I don't think we ever change the region of a graft...
+  )
+
+(defmethod update-mirror-transformation ((port port) (sheet graft))
+  ;;--- I don't think we ever change the transformation of a graft...
+  )
+
 (defgeneric port-graft-class (port)
   (:method ((port port)) 'graft))
 
-(defgeneric graft (object)
+(defgeneric sheet-graft (object)
   (:method ((x graft)) x)
   )
 
 (defun map-over-grafts (fn port)
   (mapc fn (port-grafts port)))
 
-(defgeneric graft-orrientation (graft)
+(defgeneric graft-orientation (graft)
   )
 
 (defgeneric graft-units (graft)

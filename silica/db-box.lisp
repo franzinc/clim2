@@ -21,7 +21,7 @@
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
 ;;;
-;; $fiHeader: db-box.lisp,v 1.4 92/01/02 15:33:04 cer Exp Locker: cer $
+;; $fiHeader: db-box.lisp,v 1.5 92/01/06 20:44:15 cer Exp $
 
 
 (in-package :silica)
@@ -42,7 +42,7 @@
     (etypecase child
       (number)
       (pane
-       (adopt-child pane child))))
+       (sheet-adopt-child pane child))))
   (with-slots ((c contents)) pane
     (setf c contents)))
 
@@ -65,12 +65,12 @@
 		(setf (cdr tail) 
 		      (cons pane (cdr tail)))))
 	  (unless batch-p
-	    (space-req-changed (sheet-parent lcm) lcm))))))
+	    (note-space-requirement-changed (sheet-parent lcm) lcm))))))
 
 
 (defmacro compose-box (contract (major major+ major- minor minor+ minor-) keys)
   `(with-slots (contents space) ,contract
-     (if (null contents) (make-space-req)
+     (if (null contents) (make-space-requirement)
 	 (let ((major 0)
 	       (major+ 0)
 	       (major- 0)
@@ -78,6 +78,7 @@
 	       (minor 0)  
 	       minor+ minor-
 	       (minor-min 0)
+	       ;;--- is this safe?
 	       (minor-max most-positive-fixnum))
 	   (dolist (entry contents)
 	     (cond ((eq entry :fill) (incf major+ +fill+))
@@ -98,23 +99,23 @@
 	   ;; ?? These calcs lead to weirdness when fills are involved.
 	   (setq minor- (max 0 (- minor minor-min)))
 	   (setq minor+ (max 0 (- minor-max minor)))
-	   (make-space-req
+	   (make-space-requirement
 	    ,@(mapcan #'(lambda (key val) (list key val))
 		      keys '(major major+ major- minor minor+ minor-)))))))
 
 (defmacro allocate-box (contract alloc-major alloc-minor move-and-resize-entry
-				 (major major+ major-))
-  `(with-slots (contents space space-req) ,contract
-     (unless space-req (compose-space ,contract))
-     (let ((stretch-p (> ,alloc-major (,major space-req)))
+			(major major+ major-))
+  `(with-slots (contents space space-requirement) ,contract
+     (unless space-requirement (compose-space ,contract))
+     (let ((stretch-p (> ,alloc-major (,major space-requirement)))
 	   (pos 0)
 	   give extra used)
        (if stretch-p
-	   (progn (setq give (,major+ space-req))
-		  (setq extra (min (- ,alloc-major (,major space-req))
+	   (progn (setq give (,major+ space-requirement))
+		  (setq extra (min (- ,alloc-major (,major space-requirement))
 				   give)))
-	   (progn (setq give (,major- space-req))
-		  (setq extra (min (- (,major space-req) ,alloc-major)
+	   (progn (setq give (,major- space-requirement))
+		  (setq extra (min (- (,major space-requirement) ,alloc-major)
 				   give))))
 	     
        ;; Allocate Space to the Children
@@ -149,49 +150,49 @@
     ())
 
 (defmethod compose-space ((contract hbox-pane))
-  (compose-box contract (space-req-width 
-			 space-req-max-width
-			 space-req-min-width
-			 space-req-height
-			 space-req-max-height
-			 space-req-min-height)
+  (compose-box contract (space-requirement-width 
+			 space-requirement-max-width
+			 space-requirement-min-width
+			 space-requirement-height
+			 space-requirement-max-height
+			 space-requirement-min-height)
 	       (:width :max-width :min-width :height :max-height :min-height)))
 
 (defmethod allocate-space ((contract hbox-pane) width height)
   (flet ((move-and-resize-entry (entry min-x width height)
 	   (move-and-resize-sheet* entry min-x 0 width height)))
     (allocate-box contract width height move-and-resize-entry
-		  (space-req-width 
-		   space-req-max-width
-		   space-req-min-width
-		   #+ignore space-req-height
-		   #+ignore space-req-max-height
-		   #+ignore space-req-min-height))))
+		  (space-requirement-width 
+		   space-requirement-max-width
+		   space-requirement-min-width
+		   #+ignore space-requirement-height
+		   #+ignore space-requirement-max-height
+		   #+ignore space-requirement-min-height))))
 
 (defclass vbox-pane (box-pane)
     ()
   )
 
 (defmethod compose-space ((contract vbox-pane))
-  (compose-box contract (space-req-height
-			 space-req-max-height
-			 space-req-min-height
-			 space-req-width 
-			 space-req-max-width
-			 space-req-min-width)
+  (compose-box contract (space-requirement-height
+			 space-requirement-max-height
+			 space-requirement-min-height
+			 space-requirement-width 
+			 space-requirement-max-width
+			 space-requirement-min-width)
 	       (:height :max-height :min-height :width :max-width :min-width)))
 
 (defmethod allocate-space ((contract vbox-pane) width height)
-  (with-slots (contents space space-req) contract
-    (unless space-req (compose-space contract))
+  (with-slots (contents space space-requirement) contract
+    (unless space-requirement (compose-space contract))
     (let ((sizes 
 	   (allocate-space-to-items
 	    height
-	    space-req
+	    space-requirement
 	    contents
-	    #'space-req-min-height
-	    #'space-req-height
-	    #'space-req-max-height
+	    #'space-requirement-min-height
+	    #'space-requirement-height
+	    #'space-requirement-max-height
 	    #'compose-space))
 	  (y 0))
       (mapc #'(lambda (sheet size)

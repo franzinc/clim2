@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: load-xm.cl,v 1.2 92/01/02 15:08:49 cer Exp Locker: cer $
+;; $fiHeader: load-xm.cl,v 1.3 92/01/17 17:49:13 cer Exp $
 
 (in-package :tk)
 

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader$
+;; $fiHeader: xt-frames.cl,v 1.1 92/01/17 17:48:17 cer Exp $
 
 
 (in-package :xm-silica)
@@ -38,18 +38,16 @@
 (defmethod note-frame-disabled :after ((framem xt-frame-manager) frame)
   (setf (sheet-enabled-p (frame-top-level-sheet frame)) nil))
 
-(defmethod adopt-frame ((framem xt-frame-manager) (frame application-frame))
+(defmethod adopt-frame ((framem xt-frame-manager) (frame standard-application-frame))
   (call-next-method)
   (when (frame-panes frame)
     (let* ((top-pane (frame-panes frame))
-	   (sheet (clim::with-look-and-feel-realization
-		      (framem frame)
+	   (sheet (with-look-and-feel-realization (framem frame)
 		    (realize-pane 'silica::top-level-sheet 
 				  :region (make-bounding-rectangle
-					   0 0 (sheet-width
-						top-pane) 
+					   0 0 (sheet-width top-pane) 
 					   (sheet-height top-pane))
 				  :parent (find-graft)))))
       (setf (frame-top-level-sheet frame) sheet
 	    (frame-shell frame) (sheet-shell sheet))
-      (adopt-child sheet (frame-panes frame)))))
+      (sheet-adopt-child sheet (frame-panes frame)))))

@@ -1,33 +1,13 @@
-;;; -*- Mode: LISP; Syntax: Common-lisp; Package: CLIM; Base: 10; Lowercase: Yes -*-
-;; 
-;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
-;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
-;;
-;; The software, data and information contained herein are proprietary
-;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
-;; given in confidence by Franz, Inc. pursuant to a written license
-;; agreement, and may be stored and used only in accordance with the terms
-;; of such license.
-;;
-;; Restricted Rights Legend
-;; ------------------------
-;; Use, duplication, and disclosure of the software, data and information
-;; contained herein by any agency, department or entity of the U.S.
-;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
-;;
+;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-editor-commands.lisp,v 1.1 91/09/09 12:43:33 cer Exp Locker: cer $
+;; $fiHeader: input-editor-commands.lisp,v 1.7 91/03/29 18:00:55 cer Exp $
 
 (in-package :clim-internals)
 
-"Copyright (c) 1990, 1991 Symbolics, Inc.  All rights reserved."
-"Copyright (c) 1991, Franz Inc. All rights reserved"
+"Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved."
 
 ;;; Define some useful input editor commands.  For now, all these are defined
-;;; on INTERACTIVE-STREAM-MIXIN rather than on our specific implementation of
+;;; on INPUT-EDITING-STREAM-MIXIN rather than on our specific implementation of
 ;;; an input editor.  This may prove to be a foolish decision down the pike.
 
 (eval-when (compile load eval)
@@ -75,9 +55,30 @@
 		forms))))
     `(progn ,@(nreverse forms))))
 
-
+;; These need to be defined before being used, otherwise they would
+;; live in CLOE-IMPLMENTATION
 #+Cloe-Runtime
-(sys::define-character-name "Help" 128)
+(eval-when (compile load)
+	   
+;; Define the new key chars for Cloe CLIM.  Regular Cloe defines 0-127, we define
+;; 128-139 as the F-keys (F1 thru F12), 140 for c-sh-A, and 141 as c-sh-V
+(sys::define-character-name "F1" 128)
+(sys::define-character-name "F2" 129)
+(sys::define-character-name "F3" 130)
+(sys::define-character-name "F4" 131)
+(sys::define-character-name "F5" 132)
+(sys::define-character-name "F6" 133)
+(sys::define-character-name "F7" 134)
+(sys::define-character-name "F8" 135)
+(sys::define-character-name "F9" 136)
+;; Note windows traps F10 as alt-space. Why?
+(sys::define-character-name "F10" 137)
+(sys::define-character-name "F11" 138)
+(sys::define-character-name "F12" 139)
+(sys::define-character-name "Arglist" 140)
+(sys::define-character-name "ShowValue" 141)
+
+)	;eval-when
 
 ;; When T, the input editor should handle help and completion.  Otherwise,
 ;; something like COMPLETE-INPUT will do it for us.
@@ -85,22 +86,24 @@
 
 ;; These need to be on a per-implementation basis, naturally
 ;;--- If you change these, change *MAGIC-COMPLETION-CHARACTERS* too
-(defvar *complete-characters* #+Genera '(#\Complete #\Tab)
+(defvar *completion-gestures* #+Genera '(#\Complete #\Tab)
 			      #-Genera '(#\Tab))
-(defvar *help-characters* '(#+Symbolics #\Help))
-(defvar *possibilities-characters* #+Genera '(#\c-?)
-				   #+Lucid  '(#\control-\?)
-				   #+excl   '(#\c-?)
-				   #+ccl-2  (list (extended-char #\? :control :shift)))
+(defvar *help-gestures* '(#+Genera #\Help
+			  #+Cloe-Runtime #\F1
+			  #+CCL-2 #\^E))
+(defvar *possibilities-gestures* `(#+Genera  #\c-?
+				   #+Lucid   #\control-\?
+				   #+Allegro #\c-?
+				   #+CCL-2   ,(extended-char #\? :control :shift)))
 
 (defun lookup-input-editor-command (character aarray)
   ;; Need to handle the help and possibilities commands specially so
   ;; that they work correctly inside of COMPLETE-INPUT
-  (cond ((and *ie-help-enabled* (member character *help-characters*))
+  (cond ((and *ie-help-enabled* (member character *help-gestures*))
 	 'com-ie-help)
-	((and *ie-help-enabled* (member character *possibilities-characters*))
+	((and *ie-help-enabled* (member character *possibilities-gestures*))
 	 'com-ie-possibilities)
-	((and *ie-help-enabled* (member character *complete-characters*))
+	((and *ie-help-enabled* (member character *completion-gestures*))
 	 'com-ie-complete)
 	(t
 	 (let ((code (char-code character))
@@ -117,7 +120,7 @@
 		 (t
 		  (second (find character aarray :key #'first))))))))
 
-(defmacro define-input-editor-command ((name &key (rescan t) (type 'motion) history)
+(defmacro define-input-editor-command ((name &key (rescan T) (type 'motion) history)
 				       arglist &body body)
   (multiple-value-bind (arglist ignores)
       (canonicalize-and-match-lambda-lists *ie-command-arglist* arglist)
@@ -137,7 +140,7 @@
 (scl:defprop define-input-editor-command zwei:defselect-function-spec-finder
 	     zwei:definition-function-spec-finder)
 
-(defmethod interactive-stream-process-gesture ((istream interactive-stream-mixin) gesture type)
+(defmethod stream-process-gesture ((istream input-editing-stream-mixin) gesture type)
   (with-slots (numeric-argument last-command-type command-state) istream
     (cond ((characterp gesture)
 	   ;; The COMMAND-STATE slot holds the current IE command aarray,
@@ -151,23 +154,23 @@
 			  (t
 			   (setq numeric-argument (+ (* numeric-argument 10) command))))
 		    ;; Numeric arguments don't affect LAST-COMMAND-TYPE
-		    (return-from interactive-stream-process-gesture nil))
+		    (return-from stream-process-gesture nil))
 		   ((arrayp command)
 		    ;; A prefix character, update the state and return
 		    (setq command-state command)
-		    (return-from interactive-stream-process-gesture nil))
+		    (return-from stream-process-gesture nil))
 		   (command
 		    (let ((argument (or numeric-argument 1)))
 		      (setq numeric-argument nil
 			    command-state *input-editor-command-aarray*)
 		      (funcall command
 			       istream (slot-value istream 'input-buffer) gesture argument))
-		    (return-from interactive-stream-process-gesture nil))
+		    (return-from stream-process-gesture nil))
 		   ((not (eq command-state *input-editor-command-aarray*))
 		    (beep istream)
 		    (setq numeric-argument nil
 			  command-state *input-editor-command-aarray*)
-		    (return-from interactive-stream-process-gesture nil))
+		    (return-from stream-process-gesture nil))
 		   (t
 		    (setq last-command-type 'character
 			  command-state *input-editor-command-aarray*)))))
@@ -195,30 +198,35 @@
     (when string
       (replace-input stream string :buffer-start word-start))
     (when (or ambiguous (null string))
-      (beep stream))))
+      (beep stream))
+    (when string
+      (queue-rescan stream ':activation))))
 
 (defun complete-symbol-name (stream input-buffer &aux (colon-string ":"))
   (declare (values string ambiguous word-start))
-  (multiple-value-bind (word-beginning word-end colon)
+  (multiple-value-bind (word-start word-end colon)
       (word-start-and-end input-buffer '(#\space #\( #\) #\") (insertion-pointer stream))
     (when word-end
-      (with-temp-substring (package-name input-buffer (min colon (1+ word-beginning)) colon)
-	(when (and (< colon (1- word-end))
+      (with-temporary-substring 
+	  (package-name input-buffer word-start (or colon word-start))
+	(when (and colon
+		   (< colon word-end)
 		   (char-equal (aref input-buffer (1+ colon)) #\:))
 	  (incf colon)
 	  (setq colon-string "::"))
-	(with-temp-substring (symbol-name input-buffer (1+ colon) (1- word-end))
+	(with-temporary-substring
+	    (symbol-name input-buffer (if colon (1+ colon) word-start) word-end)
 	  (multiple-value-bind (new-symbol-name success object nmatches)
 	      (complete-symbol-name-1 symbol-name)
 	    (declare (ignore success object))
 	    (when (and new-symbol-name (not (zerop nmatches)))
 	      (return-from complete-symbol-name
 		(values
-		  (if (and colon (> colon word-beginning))
+		  (if (and colon (> colon word-start))
 		      (format nil "~A~A~A" package-name colon-string new-symbol-name)
 		      new-symbol-name)
 		  (/= nmatches 1)
-		  (1+ word-beginning))))))))))
+		  word-start)))))))))
 
 #+Genera
 (defun complete-symbol-name-1 (string)
@@ -243,7 +251,7 @@
   (let* ((window (frame-standard-output *application-frame*))
 	 (history (and window
 		       (output-recording-stream-p window)
-		       (output-recording-stream-output-record window))))
+		       (stream-output-history window))))
     (when window
       (multiple-value-bind (x y) (window-viewport-position* window)
 	(incf y (* (if (= distance 1)
@@ -258,34 +266,33 @@
 
 ;;; Some macrology for talking about the input-buffer
 
-(defmacro ie-line-start (buffer pointer)
-  `(1+ (or (position #\Newline ,buffer :end ,pointer :from-end t)
-	   -1)))
+(defun-inline ie-line-start (buffer pointer)
+  (1+ (or (position #\Newline buffer :end pointer :from-end t)
+	  -1)))
 
-(defmacro ie-line-end (buffer pointer)
-  `(or (position #\Newline ,buffer :start ,pointer)
-       (fill-pointer ,buffer)))
+(defun-inline ie-line-end (buffer pointer)
+  (or (position #\Newline buffer :start pointer)
+      (fill-pointer buffer)))
 
 ;; Things which move over words must move over whitespace until they see
 ;; alphanumerics, then alphanumerics until they see whitespace.
-(defun word-break-character-p (thing)
-  (when (and (characterp thing)
-	     (not (alphanumericp thing)))
-    (values t t)))
-
-(defun word-character-p (thing)
-  (when (and (characterp thing)
-	     (alphanumericp thing))
-    (values t t)))
-
 (defun move-over-word (buffer start-position reverse-p)
-  (setq start-position
-	(forward-or-backward buffer start-position reverse-p #'word-character-p))
-  (when start-position
-    (forward-or-backward buffer start-position reverse-p #'word-break-character-p)))
+  (flet ((word-break-character-p (thing)
+	   (when (and (characterp thing)
+		      (not (alphanumericp thing)))
+	     (values t t)))
+	 (word-character-p (thing)
+	   (when (and (characterp thing)
+		      (alphanumericp thing))
+	     (values t t))))
+    (declare (dynamic-extent #'word-break-character-p #'word-character-p))
+    (setq start-position
+	  (forward-or-backward buffer start-position reverse-p #'word-character-p))
+    (when start-position
+      (forward-or-backward buffer start-position reverse-p #'word-break-character-p))))
 
 
-;;; The input editing commands...
+;;; The basic input editing commands...
 
 ;; Don't do anything
 (define-input-editor-command (com-ie-ctrl-g :rescan nil)
@@ -303,7 +310,7 @@
 (define-input-editor-command (com-ie-forward-character :rescan nil)
 			     (stream input-buffer numeric-argument)
   (dotimes (i numeric-argument) 
-    #-excl (declare (ignore i))
+    #-(or Allegro Minima) (declare (ignore i))
     (let ((p (forward-or-backward input-buffer (insertion-pointer stream) nil #'true)))
       (if p
 	  (setf (insertion-pointer stream) p)
@@ -312,7 +319,7 @@
 (define-input-editor-command (com-ie-forward-word :rescan nil)
 			     (stream input-buffer numeric-argument)
   (dotimes (i numeric-argument)
-    #-excl (declare (ignore i))
+    #-(or Allegro Minima) (declare (ignore i))
     (let ((p (move-over-word input-buffer (insertion-pointer stream) nil)))
       (if p
 	  (setf (insertion-pointer stream) p)
@@ -321,7 +328,7 @@
 (define-input-editor-command (com-ie-backward-character :rescan nil)
 			     (stream input-buffer numeric-argument)
   (dotimes (i numeric-argument)
-    #-excl (declare (ignore i))
+    #-(or Allegro Minima) (declare (ignore i))
     (let ((p (forward-or-backward input-buffer (insertion-pointer stream) t #'true)))
       (if p
 	  (setf (insertion-pointer stream) p)
@@ -330,7 +337,7 @@
 (define-input-editor-command (com-ie-backward-word :rescan nil)
 			     (stream input-buffer numeric-argument)
   (dotimes (i numeric-argument)
-    #-excl (declare (ignore i))
+    #-(or Allegro Minima) (declare (ignore i))
     (let ((p (move-over-word input-buffer (insertion-pointer stream) t)))
       (if p
 	  (setf (insertion-pointer stream) p)
@@ -374,7 +381,7 @@
       (if (plusp numeric-argument)
 	  (let (next-line-1)
 	    (dotimes (i numeric-argument)
-	      #-excl (declare (ignore i))
+	      #-(or Allegro Minima) (declare (ignore i))
 	      (setq next-line-1 (position #\Newline input-buffer :start target-line))
 	      (unless next-line-1 (return))
 	      (setq target-line (1+ next-line-1)))
@@ -384,7 +391,7 @@
 			 (ie-line-end input-buffer target-line)))))
 	  (let (prev-line-end)
 	    (dotimes (i (- numeric-argument))
-	      #-excl (declare (ignore i))
+	      #-(or Allegro Minima) (declare (ignore i))
 	      (setq prev-line-end (position #\Newline input-buffer
 					    :end target-line :from-end t))
 	      (unless prev-line-end (return))
@@ -409,9 +416,14 @@
 	 (p2 p1)
 	 (reverse-p (minusp numeric-argument))) 
     (dotimes (i (abs numeric-argument))
-      #-excl (declare (ignore i))
+      #-(or Allegro Minima) (declare (ignore i))
       (let ((p3 (forward-or-backward input-buffer p2 reverse-p #'true)))
 	(if p3 (setq p2 p3) (return))))
+    (when (noise-string-p (aref input-buffer p2))
+      ;; If we are pointing right at a noise string, delete it too
+      (if reverse-p
+	  (setq p2 (max 0 (1- p2)))
+	  (setq p2 (min (fill-pointer input-buffer) (1+ p2)))))
     (if (/= p1 p2)
 	(ie-kill stream input-buffer
 		 (cond ((eql (slot-value stream 'last-command-type) 'kill) :merge)
@@ -434,7 +446,7 @@
 	 (p2 p1)
 	 (reverse-p (minusp numeric-argument))) 
     (dotimes (i (abs numeric-argument))
-      #-excl (declare (ignore i))
+      #-(or Allegro Minima) (declare (ignore i))
       (let ((p3 (move-over-word input-buffer p2 reverse-p)))
 	(if p3 (setq p2 p3) (return))))
     (if (/= p1 p2)
@@ -488,55 +500,75 @@
 	     (redraw-input-buffer stream prev-position)))
 	  (t (beep stream)))))
 
+
+;;; Lispy input editing commands
+
 (defun function-arglist (function)
   (declare (values arglist found-p))
   #+Genera (values (sys:arglist function) T)
-  #+excl (values (excl::arglist function) t)
+  #+Cloe-Runtime (values (sys::arglist function) t)
+  #+Allegro (values (excl::arglist function) t)
   #+Lucid (values (lucid-common-lisp:arglist function) t))
 
+#+Cloe-Runtime
+(defun sys::arglist (symbol)
+  (let ((fsanda (si::sys%get symbol 'arglist))
+	(argl nil)
+	(fun nil))
+    (unless fsanda (setq fsanda (get symbol 'arglist)))
+    (if fsanda
+	(progn
+	  (setq fun (car fsanda) argl (cadr fsanda))
+	  (return-from sys::arglist (values argl fun)))
+	(return-from  sys::arglist (values nil nil)))))
+
 (defun word-start-and-end (string start-chars &optional (start 0))
-  (declare (values word-beginning word-end colon))
+  (declare (values word-start word-end colon))
   (flet ((open-paren-p (thing)
-	   (and (characterp thing)
-		(member thing start-chars)))
+	   (or (not (characterp thing))		;noise strings and blips are delimiters
+	       (member thing start-chars)))
 	 (atom-break-char-p (thing)
-	   (and (characterp thing)
-		(or (not (graphic-char-p thing))
-		    (multiple-value-bind (mac nt)
-			(get-macro-character thing)
-		      (and mac (not nt)))
-		    (member thing '(#\space #\( #\) #\"))))))
+	   (or (not (characterp thing))		;ditto
+	       (not (graphic-char-p thing))
+	       (multiple-value-bind (mac nt)
+		   (get-macro-character thing)
+		 (and mac (not nt)))
+	       (member thing '(#\space #\( #\) #\")))))
     (declare (dynamic-extent #'open-paren-p #'atom-break-char-p))
-    (let* ((word-beginning
+    (let* ((word-start
 	     (forward-or-backward string start t #'open-paren-p))
 	   (word-end
-	     (and word-beginning
-		  (or (forward-or-backward string (1+ word-beginning) nil
+	     (and word-start
+		  (or (forward-or-backward string (1+ word-start) nil
 					   #'atom-break-char-p)
 		      (fill-pointer string))))
 	   (colon
-	     (and word-beginning word-beginning
-		  (or (position #\: string
-				:start word-beginning :end (1- word-end))
-		      word-beginning))))
-      (values word-beginning word-end colon))))
+	     (and word-start word-end
+		  (position #\: string
+			    :start (1+ word-start) :end (1- word-end)))))
+      (values (and word-start
+		   (if (atom-break-char-p (aref string word-start)) 
+		       (1+ word-start)
+		       word-start))
+	      (and word-end (1- word-end))
+	      colon))))
 
 (define-input-editor-command (com-ie-show-arglist :rescan nil)
 			     (stream input-buffer)
-  (multiple-value-bind (word-beginning word-end colon)
+  (multiple-value-bind (word-start word-end colon)
       (word-start-and-end input-buffer '(#\( ) (insertion-pointer stream))
     (block doit
       (when word-end
-	(with-temp-substring (package-name input-buffer
-					   (min colon (1+ word-beginning)) colon)
-	  (when (and (< colon (1- word-end))
+	(with-temporary-substring
+	    (package-name input-buffer word-start (or colon word-start))
+	  (when (and colon
+		     (< colon word-end)
 		     (char-equal (aref input-buffer (1+ colon)) #\:))
 	    (incf colon))
-	  (with-temp-substring (symbol-name input-buffer (1+ colon) (1- word-end))
+	  (with-temporary-substring
+	      (symbol-name input-buffer (if colon (1+ colon) word-start) word-end)
 	    (let* ((symbol (find-symbol (string-upcase symbol-name)
-					(if (= colon word-beginning)
-					    *package*
-					    (find-package package-name))))
+					(if colon (find-package package-name) *package*)))
 		   (function (and symbol (fboundp symbol) (symbol-function symbol))))
 	      (when function
 		(multiple-value-bind (arglist found-p)
@@ -544,24 +576,28 @@
 		  (when found-p
 		    (return-from doit
 		      (with-input-editor-typeout (stream)
-			(format stream "~S: ~A" symbol arglist))))))))))
+			#-Cloe-Runtime
+			(format stream "~S: ~A" symbol arglist)
+			#+Cloe-Runtime
+			(format stream "~S (~A): ~:A" symbol found-p arglist))))))))))
       (beep stream))))
 
 (define-input-editor-command (com-ie-show-value :rescan nil)
 			     (stream input-buffer)
-  (multiple-value-bind (word-beginning word-end colon)
+  (multiple-value-bind (word-start word-end colon)
       (word-start-and-end input-buffer '(#\space #\( #\) #\") (insertion-pointer stream))
     (block doit
       (when word-end
-	(with-temp-substring (package-name input-buffer (min colon (1+ word-beginning)) colon)
-	  (when (and (< colon (1- word-end))
+	(with-temporary-substring
+	    (package-name input-buffer word-start (or colon word-start))
+	  (when (and colon
+		     (< colon word-end)
 		     (char-equal (aref input-buffer (1+ colon)) #\:))
 	    (incf colon))
-	  (with-temp-substring (symbol-name input-buffer (1+ colon) (1- word-end))
+	  (with-temporary-substring
+	      (symbol-name input-buffer (if colon (1+ colon) word-start) word-end)
 	    (let* ((symbol (find-symbol (string-upcase symbol-name)
-					(if (= colon word-beginning)
-					    *package*
-					    (find-package package-name))))
+					(if colon (find-package package-name) *package*)))
 		   (value (and symbol (boundp symbol) (symbol-value symbol))))
 	      (when value
 		(return-from doit
@@ -675,13 +711,17 @@
   com-ie-kill-line	       #\Vt
   com-ie-make-room	       nil
   com-ie-transpose-characters  #\DC4
-  com-ie-show-arglist	       #\c-sh-A
-  com-ie-show-value	       #\c-sh-V
+  com-ie-show-arglist	       #\Arglist
+  com-ie-show-value	       #\ShowValue
   com-ie-kill-ring-yank	       #\EM
-  com-ie-history-yank	       #\c-m-Y
+  com-ie-history-yank	       #\F3
   com-ie-yank-next	       #\m-Y
   com-ie-scroll-forward        #\Syn
   com-ie-scroll-backward       #\m-V)
+
+#+Minima-Runtime
+(assign-input-editor-key-bindings
+  com-ie-rubout		       #\Rubout)
 
 #+Lucid
 (assign-input-editor-key-bindings
@@ -713,47 +753,69 @@
   com-ie-scroll-forward	       #\Control-\v
   com-ie-scroll-backward       #\Meta-\v)
 
-#+excl
-;; Like about but lowercase characters
+#+Allegro
+;; Like above but lowercase characters
 (assign-input-editor-key-bindings
- com-ie-ctrl-g		       #\c-\g
- com-ie-universal-argument    nil
- com-ie-forward-character     #\c-\f
- com-ie-forward-word	       (#\escape #\f)
- com-ie-forward-word	       #\meta-\f
- com-ie-backward-character    #\c-\b
- com-ie-backward-word	       (#\escape #\b)
- com-ie-backward-word	       #\meta-\b
- com-ie-beginning-of-buffer   (#\escape #\<)
- com-ie-beginning-of-buffer   #\meta-<
- com-ie-end-of-buffer	       (#\escape #\>)
- com-ie-end-of-buffer	       #\meta->
- com-ie-beginning-of-line     #\c-\a
- com-ie-end-of-line	       #\c-\e
- com-ie-next-line	       #\c-\n
- com-ie-previous-line	       #\c-\p
- com-ie-rubout		       #\rubout
- com-ie-delete-character      #\c-\d
- com-ie-rubout-word	       (#\escape #\rubout)
- com-ie-rubout-word	       #\meta-rubout
- com-ie-delete-word	       (#\escape #\d)
- com-ie-delete-word	       #\meta-\d
- com-ie-clear-input	       #\c-\u
- com-ie-kill-line	       #\c-\k
- com-ie-make-room	       #\c-\o
- com-ie-transpose-characters  #\c-\t
- com-ie-show-arglist	       (#\c-\x #\c-\a)
- com-ie-show-value	       (#\c-\x #\c-\v)
- com-ie-kill-ring-yank	       #\c-\y
- com-ie-history-yank	       (#\escape #\c-\y)
- com-ie-history-yank	       #\meta-c-\y
- com-ie-yank-next	       (#\escape #\y)
- com-ie-yank-next	       #\meta-\y
- com-ie-scroll-forward	       #\c-\v
- com-ie-scroll-backward       (#\escape #\v)
- com-ie-scroll-backward       #\meta-\v)
+  com-ie-ctrl-g		       #\c-\g
+  com-ie-universal-argument    nil
+  com-ie-forward-character     #\c-\f
+  com-ie-forward-word	       #\meta-\f
+  com-ie-backward-character    #\c-\b
+  com-ie-backward-word	       #\meta-\b
+  com-ie-beginning-of-buffer   #\meta-\<
+  com-ie-end-of-buffer	       #\meta-\>
+  com-ie-beginning-of-line     #\c-\a
+  com-ie-end-of-line	       #\c-\e
+  com-ie-next-line	       #\c-\n
+  com-ie-previous-line	       #\c-\p
+  com-ie-rubout		       #\rubout
+  com-ie-delete-character      #\c-\d
+  com-ie-rubout-word	       #\meta-rubout
+  com-ie-delete-word	       #\meta-d
+  com-ie-clear-input	       #\c-\u
+  com-ie-kill-line	       #\c-\k
+  com-ie-make-room	       #\c-\o
+  com-ie-transpose-characters  #\c-\t
+  com-ie-show-arglist	       (#\c-\x #\c-\a)
+  com-ie-show-value	       (#\c-\x #\c-\v)
+  com-ie-kill-ring-yank	       #\c-\y
+  com-ie-history-yank	       #\control-meta-\y
+  com-ie-yank-next	       #\meta-\y
+  com-ie-scroll-forward	       #\c-\v
+  com-ie-scroll-backward       #\meta-\v)
 
-#+ccl-2
+;;--- Until the keyboard event processor works...
+#+(and Allegro Silica)
+(assign-input-editor-key-bindings
+  com-ie-ctrl-g		       #\^g
+  com-ie-universal-argument    nil
+  com-ie-forward-character     #\^f
+  com-ie-forward-word	       #\meta-\f
+  com-ie-backward-character    #\^b
+  com-ie-backward-word	       #\meta-\b
+  com-ie-beginning-of-buffer   #\meta-\<
+  com-ie-end-of-buffer	       #\meta-\>
+  com-ie-beginning-of-line     #\^a
+  com-ie-end-of-line	       #\^e
+  com-ie-next-line	       #\^n
+  com-ie-previous-line	       #\^p
+  com-ie-rubout		       #\rubout
+  com-ie-delete-character      #\^d
+  com-ie-rubout-word	       #\meta-rubout
+  com-ie-delete-word	       #\meta-d
+  com-ie-clear-input	       #\^u
+  com-ie-kill-line	       #\^k
+  com-ie-make-room	       #\^o
+  com-ie-transpose-characters  #\^t
+  com-ie-show-arglist	       (#\^x #\^a)
+  com-ie-show-value	       (#\^x #\^v)
+  com-ie-kill-ring-yank	       #\^y
+  com-ie-history-yank	       #\control-meta-\y
+  com-ie-yank-next	       #\meta-\y
+  com-ie-scroll-forward	       #\^v
+  com-ie-scroll-backward       #\meta-\v)
+
+#+CCL-2
 (defmacro assign-input-editor-key-bindings-ccl (&body functions-and-keystrokes)
   (let ((forms nil))
     (loop
@@ -765,7 +827,7 @@
                 forms))))
     `(progn ,@(nreverse forms))))
 
-#+ccl-2
+#+CCL-2
 (assign-input-editor-key-bindings-ccl
   com-ie-ctrl-g		       (extended-char #\g :control)
   com-ie-universal-argument    (extended-char #\u :control)
@@ -794,32 +856,3 @@
   com-ie-yank-next	       (extended-char #\y :meta)
   com-ie-scroll-forward	       (extended-char #\v :control)
   com-ie-scroll-backward       (extended-char #\v :meta))
-
-;#+KCL
-;(assign-input-editor-key-bindings
-;  com-ie-ctrl-g nil
-;  com-ie-frob-numeric-arg nil
-;  com-ie-beginning-of-buffer nil
-;  com-ie-end-of-buffer nil
-;  com-ie-forward-character #\^F
-;  com-ie-forward-word nil
-;  com-ie-backward-character #\^B 
-;  com-ie-backward-word nil
-;  com-ie-beginning-of-line #\^A
-;  com-ie-end-of-line #\^E
-;  com-ie-next-line nil
-;  com-ie-previous-line nil
-;  com-ie-rubout #\Rubout
-;  com-ie-delete-character #\^D
-;  com-ie-rubout-word nil
-;  com-ie-delete-word nil
-;  com-ie-clear-input nil
-;  com-ie-kill-line #\^K
-;  com-ie-make-room nil
-;  com-ie-transpose-characters #\^T
-;  com-ie-show-arglist nil
-;  com-ie-show-value nil
-;  com-ie-kill-ring-yank nil 
-;  com-ie-history-yank nil
-;  com-ie-yank-next nil
-;  )

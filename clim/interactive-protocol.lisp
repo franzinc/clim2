@@ -1,52 +1,25 @@
-;;; -*- Mode: LISP; Syntax: Common-lisp; Package: CLIM; Base: 10; Lowercase: Yes -*-
-;; 
-;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
-;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
-;;
-;; The software, data and information contained herein are proprietary
-;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
-;; given in confidence by Franz, Inc. pursuant to a written license
-;; agreement, and may be stored and used only in accordance with the terms
-;; of such license.
-;;
-;; Restricted Rights Legend
-;; ------------------------
-;; Use, duplication, and disclosure of the software, data and information
-;; contained herein by any agency, department or entity of the U.S.
-;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
-;;
+;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: interactive-protocol.lisp,v 1.1 91/11/25 10:01:09 cer Exp Locker: cer $
+;; $fiHeader: interactive-protocol.lisp,v 1.6 91/03/26 12:48:09 cer Exp $
 
 (in-package :clim-internals)
 
-"Copyright (c) 1990, 1991 Symbolics, Inc.  All rights reserved.
-Copyright (c) 1991, Franz Inc. All rights reserved
+"Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved.
  Portions copyright (c) 1989, 1990 International Lisp Associates."
 
-;;; This file implements our interactive stream protocol on top of the
-;;; proposed "standard" protocol defined in cl-streams.lisp.
+;;; This file implements our input editing stream protocol on top of the
+;;; proposed "standard" protocol defined in CL-STREAMS.LISP.
 
-;;; An interactive stream is what is used to implement input editing.
+(define-protocol-class input-editing-stream ())
 
-;;; This is the class that you mix in to any interactive stream
-;;; implementation that you define.  It exists only to provide the
-;;; interactive-stream-p method and to hang implementation-independent code.
-(defclass basic-interactive-protocol () ())
-
-(define-protocol-p-method interactive-stream-p basic-interactive-protocol)
-
-(defgeneric input-position (interactive-stream)
+(defgeneric input-position (stream)
   #+Genera (:selector :read-location))
 
-(defgeneric rescanning-p (interactive-stream)
+(defgeneric rescanning-p (stream)
   #+Genera (:selector :rescanning-p))
 
 ;;; Fake methods to keep things like COMPLETE-INPUT from blowing up on
-;;; non-interactive streams like string streams.
+;;; non-input-editing streams like string streams.
 (defmethod input-position ((stream t)) 0)
 
 (defmethod rescanning-p ((object t)) nil)
@@ -55,9 +28,9 @@ Copyright (c) 1991, Franz Inc. All rights reserved
   (declare (ignore new-input start end buffer-start rescan))
   nil)
 
-;;; Specific implementation of interactive protocol mixin
-(defclass interactive-stream-mixin
-	  (basic-interactive-protocol encapsulating-stream-mixin)
+;;; Specific implementation of input editing protocol mixin
+(defclass input-editing-stream-mixin
+	  (standard-encapsulating-stream input-editing-stream)
       ;; The fill-pointer of INPUT-BUFFER is the "high water" mark,
       ;; that is, it points past the last character in the buffer.
      ((input-buffer :initform (make-array 100 :fill-pointer 0 :adjustable t)
@@ -69,14 +42,14 @@ Copyright (c) 1991, Franz Inc. All rights reserved
       ;; that is, input-editing commands and insertions take place
       ;; at INSERTION-POINTER.
       (insertion-pointer :initform 0 :accessor insertion-pointer)
-      ;; RESCANNING-P is now part of the interactive stream protocol.
+      ;; RESCANNING-P is now part of the input editing stream protocol.
       ;; If T, it means that the input editor is "rescanning," that is, re-processing
       ;; input that was already typed in response to some editing command.
       (rescanning-p :accessor rescanning-p :initform nil)
       (rescan-queued :initform nil)
       ;; A buffer for an activation character to process.  Conceptually,
       ;; the activation character lives at the end of the input buffer.
-      (activation-character :initform nil)
+      (activation-gesture :initform nil)
       ;; State for prefixed commands, holds a command aarray
       (command-state :initform nil)
       ;; Numeric argument for input editing commands
@@ -96,9 +69,9 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 ;; thought may be needed.
 (defvar *input-editor-command-aarray* (make-array 40 :fill-pointer 0))
 
-(defmethod initialize-interactive-stream ((istream interactive-stream-mixin))
+(defmethod initialize-input-editing-stream ((istream input-editing-stream-mixin))
   (with-slots (input-buffer scan-pointer insertion-pointer
-	       activation-character rescanning-p rescan-queued
+	       activation-gesture rescanning-p rescan-queued
 	       command-state numeric-argument last-command-type
 	       previous-history previous-insertion-pointer)
 	      istream
@@ -107,7 +80,7 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 	  insertion-pointer 0
 	  rescanning-p nil
 	  rescan-queued nil
-	  activation-character nil
+	  activation-gesture nil
 	  command-state *input-editor-command-aarray*
 	  numeric-argument nil
 	  last-command-type nil
@@ -116,11 +89,11 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 
 #+Genera
 ;; This is needed because CLOS setf methods take the new value as the first argument
-(defgeneric compatible-set-input-position (interactive-stream position)
+(defgeneric compatible-set-input-position (stream position)
   (:selector :set-location))
 
 #+Genera
-(defmethod compatible-set-input-position ((stream interactive-stream-mixin) position)
+(defmethod compatible-set-input-position ((stream input-editing-stream-mixin) position)
   (setf (input-position stream) position))
 
 (defstruct noise-string
@@ -131,7 +104,7 @@ Copyright (c) 1991, Franz Inc. All rights reserved
   presentation-type
   presentation-object)
 
-(defvar *noise-string-style* (silica::make-text-style nil nil nil))
+(defvar *noise-string-style* (make-text-style nil nil nil))
 
 (defmacro do-input-buffer-pieces ((input-buffer &key (start 0) end)
 				  (start-index-var end-index-var noise-string-var)
@@ -160,7 +133,7 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 ;;; This assumes that the cursor has been set correctly???
 ;;; --- Right now, it can't make too many assumptions about where the cursor
 ;;; --- actually is.  Too bad.
-(defmethod do-input-buffer-screen-real-estate ((istream interactive-stream-mixin)
+(defmethod do-input-buffer-screen-real-estate ((istream input-editing-stream-mixin)
 					       continuation
 					       &optional start-position end-position)
   (declare (dynamic-extent continuation))
@@ -196,10 +169,10 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 			  cursor-x cursor-y height baseline noisy-style max-x)))
       (values cursor-x cursor-y start-x start-y height baseline))))
 
-(defmethod prompt-for-accept ((istream interactive-stream-mixin) presentation-type
+(defmethod prompt-for-accept ((istream input-editing-stream-mixin) type (view view)
 			      &key (prompt t) (prompt-mode ':normal) (display-default prompt)
 				   (default nil default-supplied-p)
-				   (default-type presentation-type)
+				   (default-type type)
 				   query-identifier
 			      &allow-other-keys)
   (unless default-supplied-p
@@ -222,7 +195,7 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 			   (concatenate 'string
 			     (if (eq prompt-mode ':normal) "(" "")
 			     (cond ((eq prompt t)
-				    (describe-presentation-type presentation-type nil nil))
+				    (describe-presentation-type type nil nil))
 				   ((not (eq prompt nil))
 				    prompt))
 			     (if (and display-default prompt) " [" "")
@@ -234,10 +207,10 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 		 (vector-push-extend noise-string input-buffer)
 		 (incf scan-pointer)
 		 (incf insertion-pointer)
-		 (with-text-style (*noise-string-style* istream)
+		 (with-text-style (istream *noise-string-style*)
 		   (write-string (noise-string-display-string noise-string) istream))))))))
 
-(defmethod accept-1 ((istream interactive-stream-mixin)
+(defmethod accept-1 ((istream input-editing-stream-mixin)
 		     type &rest args &key query-identifier &allow-other-keys)
   (declare (dynamic-extent args))
   (with-slots (input-buffer scan-pointer insertion-pointer
@@ -256,7 +229,7 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 		     (accept-result-presentation-type next-char)))
 	    (t (apply #'accept-2 (or *original-stream* istream) type args))))))
 
-(defmethod input-buffer-input-position->cursor-position* ((istream interactive-stream-mixin)
+(defmethod input-buffer-input-position->cursor-position* ((istream input-editing-stream-mixin)
 							  &optional position)
     (multiple-value-bind (cursor-x cursor-y)
 	(flet ((ignore (&rest args)
@@ -266,7 +239,7 @@ Copyright (c) 1991, Franz Inc. All rights reserved
       ;; Return only the first two values.
       (values cursor-x cursor-y)))
 
-(defmethod redraw-input-buffer ((istream interactive-stream-mixin)
+(defmethod redraw-input-buffer ((istream input-editing-stream-mixin)
 				&optional (start-position 0))
   (with-slots (input-buffer stream insertion-pointer) istream
     (multiple-value-bind (x-pos y-pos)
@@ -275,10 +248,10 @@ Copyright (c) 1991, Franz Inc. All rights reserved
     (macrolet ((do-part (from &optional to)
 		 `(do-input-buffer-pieces (input-buffer :start ,from :end ,to)
 					  (start-index end-index noise-string)
-		   :normal (with-temp-substring (buf input-buffer start-index end-index)
+		   :normal (with-temporary-substring (buf input-buffer start-index end-index)
 			     (replace buf input-buffer :start2 start-index :end2 end-index)
 			     (write-string buf stream))
-		   :noise-string (with-text-style (*noise-string-style* stream)
+		   :noise-string (with-text-style (stream *noise-string-style*)
 				   (write-string (noise-string-display-string noise-string)
 						 stream)))))
       ;;--- If I were smart, I'd probably be able to figure out how to
@@ -298,18 +271,18 @@ Copyright (c) 1991, Franz Inc. All rights reserved
     (force-output stream)))
 
 ;;--- Too bad this never gets called...
-(defmethod window-refresh :after ((istream interactive-stream-mixin))
+(defmethod window-refresh :after ((istream input-editing-stream-mixin))
   (redraw-input-buffer istream))
 
 #||
-(defmethod push-input-buffer ((istream interactive-stream-mixin))
+(defmethod push-input-buffer ((istream input-editing-stream-mixin))
   (with-slots (input-buffer scan-pointer insertion-pointer) istream
     (multiple-value-prog1 (values input-buffer scan-pointer insertion-pointer)
 			  (setf input-buffer (make-array 100 :fill-pointer 0 :adjustable t)
 				scan-pointer 0
 				insertion-pointer 0))))
 
-(defmethod pop-input-buffer ((istream interactive-stream-mixin) old-ib old-scan old-ip)
+(defmethod pop-input-buffer ((istream input-editing-stream-mixin) old-ib old-scan old-ip)
   (with-slots (input-buffer scan-pointer insertion-pointer) istream
     (setf input-buffer old-ib
 	  scan-pointer old-scan
@@ -319,9 +292,9 @@ Copyright (c) 1991, Franz Inc. All rights reserved
   (default-output-stream stream)
   `(flet ((saving-input-buffer-body (,stream) ,@body))
      (declare (dynamic-extent #'saving-input-buffer))
-     (saving-input-buffer-1 ,stream #'saving-input-buffer-body)))
+     (invoke-saving-input-buffer ,stream #'saving-input-buffer-body)))
 
-(defmethod saving-input-buffer-1 ((istream interactive-stream-mixin) continuation)
+(defmethod invoke-saving-input-buffer ((istream input-editing-stream-mixin) continuation)
   (let (ib sp ip)
     (unwind-protect
 	(progn
@@ -331,21 +304,21 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 	(pop-input-buffer istream ib sp ip)))))
 ||#
 
-(defmethod reset-scan-pointer ((istream interactive-stream-mixin) &optional (sp 0))
+(defmethod reset-scan-pointer ((istream input-editing-stream-mixin) &optional (sp 0))
   (with-slots (scan-pointer rescanning-p) istream
-    (setf rescanning-p t)
+    (setf rescanning-p T)
     (setf scan-pointer sp))
   (values))
 
-(defun immediate-rescan (stream)
-  (declare (ignore stream))
+(defun immediate-rescan (istream)
+  (declare (ignore istream))
   (throw 'rescan (values)))
 
-(defmethod queue-rescan ((istream interactive-stream-mixin) &optional (rescan-type t))
+(defmethod queue-rescan ((istream input-editing-stream-mixin) &optional (rescan-type t))
   (with-slots (rescan-queued) istream
     (setf rescan-queued rescan-type)))
 
-(defmethod rescan-if-necessary ((istream interactive-stream-mixin))
+(defmethod rescan-if-necessary ((istream input-editing-stream-mixin))
   (with-slots (rescan-queued) istream
     (when rescan-queued
       (setf rescan-queued nil)
@@ -358,7 +331,7 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 ;; pending which we can take care of now.
 ;;--- This is a pretty crappy solution, since people need to know magically
 ;;--- when to call RESCAN-FOR-ACTIVATION!
-(defmethod rescan-for-activation ((istream interactive-stream-mixin))
+(defmethod rescan-for-activation ((istream input-editing-stream-mixin))
   (with-slots (rescan-queued input-buffer insertion-pointer) istream
     (when rescan-queued
       (when (eql rescan-queued ':activation)
@@ -368,10 +341,11 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 
 (defun shift-buffer-portion (buffer from-index to-index)
   (declare (fixnum from-index to-index))
-  (let (#+Genera (buffer buffer)
+  (let (#+(or Genera Minima) (buffer buffer)
 	(length (fill-pointer buffer)))
     (declare (fixnum length))
     #+Genera (declare (sys:array-register buffer))
+    #+Minima (declare (type vector buffer))
     (cond ((< from-index to-index)
 	   ;; Extending the buffer to the right
 	   (let* ((n-places (the fixnum (- to-index from-index)))
@@ -384,7 +358,7 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 		    (to (the fixnum (+ to-index n-words)))
 		    (from (the fixnum (+ from-index n-words))))
 	       (dotimes (i n-words)
-		 #-excl (declare (ignore i))
+		 #-(or Allegro Minima) (declare (ignore i))
 		 (decf to)
 		 (decf from)
 		 (setf (aref buffer to) (aref buffer from))))))
@@ -394,23 +368,23 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 	     (decf (fill-pointer buffer) n-places)
 	     (let ((n-words (the fixnum (- length from-index))))
 	       (dotimes (i n-words)
-		 #-excl (declare (ignore i))
+		 #-(or Allegro Minima) (declare (ignore i))
 		 (setf (aref buffer to-index) (aref buffer from-index))
 		 (incf to-index)
 		 (incf from-index))))))
     buffer))
 
-(defmethod stream-unread-gesture ((istream interactive-stream-mixin) gesture)
-  (with-slots (input-buffer scan-pointer activation-character stream) istream
+(defmethod stream-unread-gesture ((istream input-editing-stream-mixin) gesture)
+  (with-slots (input-buffer scan-pointer activation-gesture stream) istream
     (when (characterp gesture)
       ;; If it's an activation character, store it in the input editor's
       ;; slot rather than sending it back to the underlying stream.
-      (when (activation-character-p gesture)
-	(when activation-character
+      (when (activation-gesture-p gesture)
+	(when activation-gesture
 	  (cerror "Proceed anyway"
-		  "Unexpected activation character ~S found in the input editor"
-		  activation-character))
-	(setq activation-character gesture)
+		  "Unexpected activation gesture ~S found in the input editor"
+		  activation-gesture))
+	(setq activation-gesture gesture)
 	(return-from stream-unread-gesture nil))
       (let ((tsp scan-pointer))
 	(loop
@@ -427,15 +401,14 @@ Copyright (c) 1991, Franz Inc. All rights reserved
     ;; from the underlying stream, which can complain if it wants to.
     (stream-unread-gesture stream gesture)))
 
-(defmethod stream-read-gesture
-	   ((istream interactive-stream-mixin)
-	    &key timeout peek-p
-		 (input-wait-test *input-wait-test*)
-		 (input-wait-handler *input-wait-handler*)
-		 (pointer-button-press-handler *pointer-button-press-handler*))
+(defmethod stream-read-gesture ((istream input-editing-stream-mixin)
+				&key timeout peek-p
+				     (input-wait-test *input-wait-test*)
+				     (input-wait-handler *input-wait-handler*)
+				     (pointer-button-press-handler *pointer-button-press-handler*))
   (rescan-if-necessary istream)
   (with-slots (stream input-buffer scan-pointer insertion-pointer
-	       activation-character rescanning-p
+	       activation-gesture rescanning-p
 	       numeric-argument previous-history) istream
     (declare (fixnum scan-pointer insertion-pointer))
     (loop	;until a real gesture is read or we throw out
@@ -458,20 +431,20 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 
       ;; If we're about to go to the stream but there's an activation 
       ;; character buffered, return it instead.
-      (when activation-character
+      (when activation-gesture
 	(return-from stream-read-gesture
-	  (prog1 activation-character
+	  (prog1 activation-gesture
 		 (unless peek-p
-		   (setf activation-character nil)))))
+		   (setf activation-gesture nil)))))
 
       ;;--- This is presumably much slower than necessary.
       ;;--- Perhaps there is a better way to keep track of where the cursor should be.
       (multiple-value-bind (x-pos y-pos)
 	  (input-buffer-input-position->cursor-position* istream insertion-pointer)
-	(declare (fixnum x-pos y-pos))
+	(declare (type coordinate x-pos y-pos))
 	(multiple-value-bind (cx cy)
 	    (stream-cursor-position* stream)
-	  (declare (fixnum cx cy))
+	  (declare (type coordinate cx cy))
 	  ;; Don't set the cursor position if it's already right.
 	  ;; This prevents the input editor from scrolling the window after
 	  ;; the user has scrolled it back until the cursor position actually changes.
@@ -480,19 +453,16 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 
       (setf rescanning-p nil)
       (multiple-value-bind (thing type)
-	  (if (zerop (fill-pointer input-buffer))
-	      (stream-read-gesture stream
-	        :timeout timeout :peek-p peek-p
-		:input-wait-test input-wait-test
-		:input-wait-handler input-wait-handler
-		:pointer-button-press-handler pointer-button-press-handler)
-	      ;; If there's anything in the input buffer, disallow accelerators
-	      (let ((*accelerator-characters* nil))
-		(stream-read-gesture stream
-		  :timeout timeout :peek-p peek-p
-		  :input-wait-test input-wait-test
-		  :input-wait-handler input-wait-handler
-		  :pointer-button-press-handler pointer-button-press-handler)))
+	  (let ((*accelerator-numeric-argument*
+		  (or numeric-argument 1))
+		(*accelerator-gestures*
+		  ;; If there's anything in the input buffer, disallow accelerators
+		  (and (zerop (fill-pointer input-buffer)) *accelerator-gestures*)))
+	    (stream-read-gesture stream
+	      :timeout timeout :peek-p peek-p
+	      :input-wait-test input-wait-test
+	      :input-wait-handler input-wait-handler
+	      :pointer-button-press-handler pointer-button-press-handler))
 	(cond ((eql type ':timeout)
 	       (return-from stream-read-gesture
 		 (values thing type)))
@@ -503,13 +473,13 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 	       (multiple-value-bind (new-thing new-type)
 		   ;; This can throw out in order to do rescans.
 		   ;; NEW-THING is a character, a presentation "blip", or NIL
-		   (interactive-stream-process-gesture istream thing type)
+		   (stream-process-gesture istream thing type)
 		 (when (and (characterp new-thing)
 			    ;; Don't put things in the buffer that we can't echo later
 			    (ordinary-char-p new-thing)
-			    (not (activation-character-p new-thing)))
+			    (not (activation-gesture-p new-thing)))
 		   (dotimes (i (or numeric-argument 1))
-		     #-excl (declare (ignore i))
+		     #-(or Allegro Minima) (declare (ignore i))
 		     (cond ((< insertion-pointer (fill-pointer input-buffer))
 			    (erase-input-buffer istream insertion-pointer)
 			    (setq input-buffer (shift-buffer-portion
@@ -534,7 +504,7 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 			      (ordinary-char-p new-thing))
 			  (return-from stream-read-gesture
 			    (values new-thing new-type)))
-			 ((activation-character-p new-thing)
+			 ((activation-gesture-p new-thing)
 			  ;; If we got an activation character, we must first finish
 			  ;; scanning the input line, moving the insertion-pointer
 			  ;; to the end and finishing rescanning.  Only then can we
@@ -543,7 +513,7 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 				 (return-from stream-read-gesture
 				   (values new-thing new-type)))
 				(t (setf insertion-pointer (fill-pointer input-buffer))
-				   (setf activation-character new-thing))))
+				   (setf activation-gesture new-thing))))
 			 (t
 			   ;; Some input editing doesn't throw, and should not
 			   ;; cause us to return just yet, since IE commands don't
@@ -553,15 +523,17 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 ;;; Characters that are ordinary text rather than potential input editor commands
 ;;; Note that graphic-char-p is true of #\Space
 (defun ordinary-char-p (char)
-  (and #+excl (zerop (char-bits char))
-       (or (graphic-char-p char) (char= char #\Newline) (char= char #\Tab))))
+  (and #+Allegro (zerop (char-bits char))
+       (or (graphic-char-p char)
+	   (char= char #\Newline)
+	   (char= char #\Tab))))
 
-;; Move the cursor forward or backward in an input buffer.
-;; PREDICATE has to be prepared to interact with accept-results because to 
-;; the user they behave as big characters.  Noise-strings, on the other hand,
-;; are invisible.
+;; Move the cursor forward or backward in an input buffer until PREDICATE
+;; returns true.  PREDICATE has to be prepared to interact with ACCEPT-RESULTs
+;; because to the user they behave as big characters.  NOISE-STRINGs, on the
+;; other hand, are invisible.
 ;; The second value returned from the predicate controls whether the last
-;; character seen (that is the character for which the predicate returns t)
+;; character seen (that is the character for which the predicate returns T)
 ;; is included in the region.  For instance, rubout-s-expression will use a
 ;; predicate which succeeds for whitespace if no parens have been seen and
 ;; the result does not want to include the space, but which succeeds on a
@@ -576,7 +548,7 @@ Copyright (c) 1991, Franz Inc. All rights reserved
       (loop
 	(let ((thing (aref input-buffer position)))
 	  (when (or (characterp thing)
-		    (typep thing 'accept-result))
+		    (noise-string-p thing))
 	    (multiple-value-bind (ok dont-include-me) (funcall predicate thing)
 	      (when ok
 		(return (if (eql dont-include-me reverse-p)
@@ -636,27 +608,27 @@ Copyright (c) 1991, Franz Inc. All rights reserved
   ;; This can be called in a loop, so reflect the kill operation now
   (setf (slot-value stream 'last-command-type) 'kill))
 
-(defmethod remove-activation-character ((istream interactive-stream-mixin))
-  (with-slots (stream input-buffer insertion-pointer activation-character) istream
-    (when activation-character
-      (setf activation-character nil)
-      (return-from remove-activation-character))
+(defmethod remove-activation-gesture ((istream input-editing-stream-mixin))
+  (with-slots (stream input-buffer insertion-pointer activation-gesture) istream
+    (when activation-gesture
+      (setf activation-gesture nil)
+      (return-from remove-activation-gesture))
     (let ((pointer (fill-pointer input-buffer)))
       (when (plusp pointer)
 	(decf pointer)
 	(let ((character (aref input-buffer pointer)))
-	  (when (activation-character-p character)
+	  (when (activation-gesture-p character)
 	    (setf (fill-pointer input-buffer) pointer)
 	    (minf insertion-pointer (fill-pointer input-buffer))
-	    (return-from remove-activation-character)))))
+	    (return-from remove-activation-gesture)))))
     (let ((char (stream-read-gesture stream :timeout 0 :peek-p t)))
-      (when (and char (activation-character-p char))
+      (when (and char (activation-gesture-p char))
 	;; throw it away
 	(stream-read-gesture stream)))))
 
 ;; Replace from buffer-start below scan-pointer with new-input[start..end]
 ;; Returns the new insertion-pointer as its value.
-(defmethod replace-input ((istream interactive-stream-mixin) new-input
+(defmethod replace-input ((istream input-editing-stream-mixin) new-input
 			  &key (start 0) end rescan
 			       (buffer-start (input-position istream)))
   (declare (fixnum start buffer-start))
@@ -713,7 +685,7 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 
 ;;--- What does it mean when VIEW is not a textual view?
 ;; Returns the new insertion-pointer as its value.
-(defmethod presentation-replace-input ((istream interactive-stream-mixin) object type view
+(defmethod presentation-replace-input ((istream input-editing-stream-mixin) object type view
 				       &key (buffer-start (input-position istream))
 					    rescan query-identifier for-context-type)
   (setq for-context-type (or for-context-type type))
@@ -741,7 +713,7 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 		  (vector-push-extend blip input-buffer)
 		  (incf insertion-pointer)
 		  (incf scan-pointer)
-		  (with-text-style (*noise-string-style* istream)
+		  (with-text-style (istream *noise-string-style*)
 		    (write-string (accept-result-display-string blip) istream))
 		  (return-from presentation-replace-input insertion-pointer)))))))
     (replace-input istream input-string
@@ -758,21 +730,21 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 ;;; the stream protocol.  In particular, we need to decide whether each stream
 ;;; must support stream-output-record and (setf stream-output-record) methods, etc.
 ;;; (This so that we can do normal formatted output to the encapsulated stream.)
-;;; If not, we must require that each stream support with-xxx-internal methods
-;;; that take an xstream and pass the requests along.
-(defclass input-editing-stream
-	  (interactive-stream-mixin)
+;;; If not, we must require that each stream support ancillary methods that take
+;;; an xstream and pass the requests along.
+(defclass standard-input-editing-stream
+	  (input-editing-stream-mixin)
      ((start-x-position)
       (start-y-position)
       ;; all I want is :writer, but PCL barfs
-      (original-stream-record-p :accessor original-stream-record-p)))
+      (original-stream-recording-p :accessor original-stream-recording-p)))
 
 ;;; Required methods:
-(defmethod start-cursor-position* ((istream input-editing-stream))
+(defmethod start-cursor-position* ((istream standard-input-editing-stream))
   (with-slots (start-x-position start-y-position) istream
     (values start-x-position start-y-position)))
 
-(defmethod initialize-position ((istream input-editing-stream))
+(defmethod initialize-position ((istream standard-input-editing-stream))
   (with-slots (stream start-x-position start-y-position) istream
     (multiple-value-bind (x y)
 	;; in this specific implementation it's ok for
@@ -782,27 +754,28 @@ Copyright (c) 1991, Franz Inc. All rights reserved
       (setf start-x-position x
 	    start-y-position y))))
 
-(defmethod reset-cursor-position ((istream input-editing-stream))
+(defmethod reset-cursor-position ((istream standard-input-editing-stream))
   (with-slots (stream start-x-position start-y-position) istream
     (stream-set-cursor-position* stream start-x-position start-y-position)))
 
-(defmethod erase-input-buffer ((istream input-editing-stream)
+(defmethod erase-input-buffer ((istream standard-input-editing-stream)
 			       &optional (start-position 0))
 
   (with-slots (stream) istream
     ;; --- should we just require that the encapsulated stream
     ;; support the graphics protocol??    
     ;; To avoid different kinds of input editors for the two commonest cases.
-    (cond ( t
-	   
+    (cond (#+Silica t
+	   #-Silica (graphics-stream-p stream)
 	   (let (oleft otop oright obottom)
 	     ;; Assumptions: 1. Erasure happens left-to-right, top-to-bottom (just
 	     ;; like text output).  2. Nothing interesting appears on the screen below
 	     ;; and to the right of text from the input editor.  We merge erasures so
 	     ;; as to erase as few rectangles as possible.
 	     (labels ((erase-merged-stuff ()
-			(draw-rectangle* stream oleft otop oright obottom
-					 :ink +background+ :filled t))
+			(draw-rectangle-internal stream 0 0
+						 oleft otop oright obottom
+						 +background-ink+ nil))
 		      (erase-screen-piece (left top right bottom extra)
 			(declare (ignore extra))
 			(cond ((null oleft)	;First rectangle
@@ -822,96 +795,108 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 
 ;;--- This mechanism is only partially implemented.  In order to work better,
 ;;--- it requires that the IE maintain its own concept of the prompt.
-(defmethod with-ie-typeout-internal ((istream input-editing-stream) continuation)
+(defmethod invoke-with-input-editor-typeout ((istream standard-input-editing-stream)
+					     continuation)
   ;; I don't know why someone made this reset the cursor position to the original
   ;; start position, but that's wrong.  The output should come out *above* the input,
   ;; and the input's start position has to move down.
-  (with-slots (original-stream-record-p) istream
+  (with-slots (original-stream-recording-p) istream
     (erase-input-buffer istream)
     (reset-cursor-position istream)
     (fresh-line istream)
     (unwind-protect
-	(with-output-recording-options (istream :record-p original-stream-record-p)
+	(with-output-recording-options (istream :record original-stream-recording-p)
 	  (funcall continuation istream))
       (fresh-line istream)
       (terpri istream)
       (initialize-position istream)
       (redraw-input-buffer istream))))
 
-(defmethod with-ie-typeout-internal ((stream t) continuation)
+(defmethod invoke-with-input-editor-typeout ((stream t) continuation)
   (fresh-line stream)
   (unwind-protect
       (funcall continuation stream)
     (fresh-line stream)
     (terpri stream)))
 
-(clim-utils::defresource input-editing-stream (class stream)
+(defresource input-editing-stream (class stream)
   :constructor (make-instance class :stream stream)
-  :initializer (initialize-interactive-stream input-editing-stream))
+  :initializer (initialize-input-editing-stream input-editing-stream))
 
-(defun with-input-editing-internal (stream class continuation input-sensitizer)
-  (if (or (interactive-stream-p stream)
-	  (not (stream-supports-input-editing stream)))
-      ;; --- do we actually want to verify that it's of the proper class?
-      (funcall continuation stream)
-      (clim-utils::letf-using-resource (stream input-editing-stream class stream)
-	(setf (original-stream-record-p stream) (stream-record-p stream))
-	(unwind-protect
-	    (with-output-recording-options (stream :record-p nil)
-	      (initialize-position stream)
-	      (loop
-		(catch 'rescan
-		  (reset-scan-pointer stream)
-		  (handler-bind ((parse-error
-				   #'(lambda (error)
-				       (beep stream)
-				       (remove-activation-character stream)
-				       (with-input-editor-typeout (stream)
-					 (format stream "~A~%Please edit your input." error))
-				       ;; Now wait until the user forces a rescan by typing
-				       ;; an input editing command
-				       (loop (read-gesture :stream stream)))))
-		    (return
-		      (let #+Genera ((sys:rubout-handler :read)) #-Genera ()
-		        (funcall continuation stream)))))))
-	  ;; Need to put the input buffer into the history, if it would
-	  ;; have gone in anyway.
-	  ;; What about making presentations out of the stuff in the input buffer?
-	  ;; The only guy that has *that* level of information is ACCEPT.
-	  ;; Don't bother to redraw if the buffer is empty.
-	  (unless (zerop (fill-pointer (input-editor-buffer stream)))
-	    (with-output-recording-options (stream :draw-p nil)
-	      (if input-sensitizer
-		  (funcall input-sensitizer #'redraw-input-buffer stream)
-		  (redraw-input-buffer stream))))))))
+(defun invoke-with-input-editing (stream continuation class input-sensitizer
+				  &optional initial-contents)
+  (cond ((not (stream-supports-input-editing stream))
+	 (funcall continuation stream))
+	((input-editing-stream-p stream)
+	 (with-stack-list (context 'input-editor :stream stream)
+	   (with-input-context (context) ()
+		(funcall continuation stream)
+	      (t (beep)))))
+	(t
+	 (letf-using-resource (stream input-editing-stream class stream)
+	   (setf (original-stream-recording-p stream) (stream-recording-p stream))
+	   (unwind-protect
+	       (with-output-recording-options (stream :record nil)
+		 (initialize-position stream)
+		 (cond ((stringp initial-contents)
+			(replace-input stream initial-contents))
+		       ((consp initial-contents)
+			(presentation-replace-input
+			  stream (first initial-contents) (second initial-contents)
+			  +textual-view+)))
+		 (with-stack-list (context 'input-editor :stream stream)
+		   (loop
+		     (catch 'rescan
+		       (reset-scan-pointer stream)
+		       (handler-bind 
+			   ((parse-error
+			      #'(lambda (error)
+				  (beep stream)
+				  (remove-activation-gesture stream)
+				  (with-input-editor-typeout (stream)
+				    (format stream "~A~%Please edit your input." error))
+				  ;; Now wait until the user forces a rescan by typing
+				  ;; an input editing command
+				  (loop (read-gesture :stream stream)))))
+			 (return
+			   (let #+Genera ((sys:rubout-handler :read)) #-Genera ()
+			     (with-input-context (context) ()
+				  (funcall continuation stream)
+				(t (beep))))))))))
+	     ;; Need to put the input buffer into the history, if it would
+	     ;; have gone in anyway.
+	     ;; What about making presentations out of the stuff in the input buffer?
+	     ;; The only guy that has *that* level of information is ACCEPT.
+	     ;; Don't bother to redraw if the buffer is empty.
+	     (unless (zerop (fill-pointer (input-editor-buffer stream)))
+	       (with-output-recording-options (stream :draw nil)
+		 (if input-sensitizer
+		     (funcall input-sensitizer #'redraw-input-buffer stream)
+		     (redraw-input-buffer stream)))))))))
 
 (defmethod stream-supports-input-editing ((stream fundamental-stream)) t)
 
 ;; It really sucks that we have to write T when we mean STRING-INPUT-STREAM
-#-excl
+#-Allegro
 (defmethod stream-supports-input-editing ((stream t)) nil)
-#+excl
-(defmethod stream-supports-input-editing ((stream
-					   excl::string-input-stream))
-  nil)
-#+excl
-(defmethod stream-supports-input-editing ((stream excl::bidirectional-terminal-stream)) nil)
+#+Allegro
+(defmethod stream-supports-input-editing ((stream excl::string-input-stream)) nil)
 
 #+Genera
 (defmethod si:stream-compatible-input-editing
 	   ((stream input-protocol-mixin)
-	    continuation activation-character-p blip-character-p)
+	    continuation activation-gesture-p blip-gesture-p)
   ;; If there's a prompt, for now just print it once before entering the input editor
   (si:display-prompt-option stream (si:input-editor-option :prompt) nil :prompt)
   ;; Enter the CLIM input editor in a way compatible with the Genera input editor
   (with-input-editing (stream)
-    (with-activation-characters (activation-character-p)
-      (with-blip-characters (blip-character-p)
+    (with-activation-gestures (activation-gesture-p)
+      (with-blip-gestures (blip-gesture-p)
 	(multiple-value-prog1
 	  (handler-bind ((sys:parse-error
 			   #'(lambda (error)
 			       (beep stream)
-			       (remove-activation-character stream)
+			       (remove-activation-gesture stream)
 			       (with-input-editor-typeout (stream)
 				 (format stream "~A~%Please edit your input." error))
 			       ;;--- Using with-input-editor-typeout doesn't behave as
@@ -931,16 +916,16 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 
 #+Genera
 (defmethod si:stream-compatible-input-editing
-	   ((stream basic-interactive-protocol)
-	    continuation activation-character-p blip-character-p)
+	   ((stream input-editing-stream-mixin)
+	    continuation activation-gesture-p blip-gesture-p)
   ;; We are already in the CLIM input editor, but still need to establish compatibility
   ;; with the Genera input editor
-  (with-activation-characters (activation-character-p)
-    (with-blip-characters (blip-character-p)
+  (with-activation-gestures (activation-gesture-p)
+    (with-blip-gestures (blip-gesture-p)
       (handler-bind ((sys:parse-error
 		       #'(lambda (error)
 			   (beep stream)
-			   (remove-activation-character stream)
+			   (remove-activation-gesture stream)
 			   (with-input-editor-typeout (stream)
 			     (format stream "~A~%Please edit your input." error))
 			   ;;--- Using with-input-editor-typeout doesn't behave as
@@ -958,7 +943,7 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 
 #+Genera
 (defmethod stream-compatible-replace-input-since
-	   ((stream interactive-stream-mixin) location string
+	   ((stream input-editing-stream-mixin) location string
 	    &optional (begin 0) (end nil) (rescan-mode :ignore))
   (when (rescanning-p stream)
     (case rescan-mode

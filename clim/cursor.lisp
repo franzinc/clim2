@@ -1,48 +1,17 @@
-;;; -*- Mode: LISP; Syntax: Common-lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
-;; 
-;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
-;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
-;;
-;; The software, data and information contained herein are proprietary
-;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
-;; given in confidence by Franz, Inc. pursuant to a written license
-;; agreement, and may be stored and used only in accordance with the terms
-;; of such license.
-;;
-;; Restricted Rights Legend
-;; ------------------------
-;; Use, duplication, and disclosure of the software, data and information
-;; contained herein by any agency, department or entity of the U.S.
-;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
-;;
-;; $fiHeader: cursor.lisp,v 1.2 92/01/02 15:33:02 cer Exp Locker: cer $
+;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
+;; $fiHeader: cursor.lisp,v 1.5 91/03/26 12:47:49 cer Exp $
 
 (in-package :clim-internals)
 
 "Copyright (c) 1988, 1989, 1990 International Lisp Associates.  All rights reserved."
 
 ;;; This is the for the abstract cursor protocol
-(defclass fundamental-cursor
-	  ()
-    ()
-  )
-
-
+(define-protocol-class cursor ())
 
 ;;; Required methods for this protocol:
 ;;; (setf cursor-stream)
-
-;;; Not clear whether we need this -p method.
-(defmethod cursor-p (thing)
-  (declare (ignore thing))
-  nil)
-
-(defmethod cursor-p ((thing fundamental-cursor))
-  t)
+;;; cursor-visibility, setf
 
 ;;; A CLIM stream either has a cursor or it doesn't.
 ;;;
@@ -62,33 +31,26 @@
 ;;; may be manipulated.  Should this be unified with the mouse cursor stuff?
 
 (defclass text-cursor
-	  (fundamental-cursor region)
+	  (cursor #+Silica region)
     ((x :initarg :x)
      (y :initarg :y)
      (stream :initarg :stream)
      (flags :initform 0)
-     (width :initarg :width)
-     )
+     (width :initarg :width))
   (:default-initargs :x 0 :y 0
 		     :width 8
-		     :stream nil)
-  )
+		     :stream nil))
 
-(defmethod bounding-rectangle* ((x text-cursor))
-  (with-slots (x y width) x
+(defmethod bounding-rectangle* ((cursor text-cursor))
+  (with-slots (x y width) cursor
     (values x y (+ x width) (+ y width))))
 
-(defmethod entity-set-position ((c text-cursor) x y)
-  (setf (slot-value c 'x) x
-	(slot-value c 'y) y))
-	
 (defconstant cursor_active (byte 1 0))
-(defconstant cursor_state (byte 1 1))
-(defconstant cursor_focus (byte 1 2))
+(defconstant cursor_state  (byte 1 1))
+(defconstant cursor_focus  (byte 1 2))
 
 (defun decode-cursor-flags (flags)
-  #+Genera
-  (declare (values active state focus))
+  #+Genera (declare (values active state focus))
   (values (ldb-test cursor_active flags)
 	  (ldb-test cursor_state flags)
 	  (ldb-test cursor_focus flags)))
@@ -97,25 +59,38 @@
 (defmethod (setf cursor-stream) (new-value (cursor text-cursor))
   (setf (slot-value cursor 'stream) new-value))
 
-#+Silica
-(defmethod bounding-rectangle* ((cursor text-cursor))
-  (values (slot-value cursor 'x) (slot-value cursor 'y)
-	  (slot-value cursor 'x) (slot-value cursor 'y)))
+(defmethod cursor-position* ((cursor text-cursor))
+  (with-slots (x y) cursor
+    (values x y)))
+
+#-Silica
+(defmethod cursor-set-position* ((cursor text-cursor) nx ny)
+  (with-slots (x y visibility) cursor
+    (unless (and (= x nx)
+		 (= y ny))
+      (when (eql visibility :on)
+	(draw-cursor cursor nil))
+      (setf x nx y ny)
+      (when (eql visibility :on)
+	(draw-cursor cursor T)))))
 
 #+Silica
-(defmethod* (setf bounding-rectangle*) (left top right bottom (cursor text-cursor))
-  (assert (and (= left right) (= bottom top)))
-  (let ((active (cursor-active cursor)))
-    (with-slots (x y) cursor
-      (unless (and (= x left)
-		   (= y top))
-	(unwind-protect
-	    (progn
-	      (when active
-		(setf (cursor-active cursor) nil))
-	      (setf x left y top))
-	  (when active
-	    (setf (cursor-active cursor) active)))))))
+(defmethod cursor-set-position* ((cursor text-cursor) nx ny)
+  (with-slots (x y visibility) cursor
+    (setf x nx y ny)))
+
+
+
+;;--- What should these really be?
+;(defmethod (setf cursor-visibility) (new-visibility (cursor text-cursor))
+;  (with-slots (visibility) cursor
+;    (cond ((eql visibility new-visibility))
+;	  ((eql visibility ':on) (draw-cursor cursor nil))
+;	  ((eql new-visibility ':on) (draw-cursor cursor T)))
+;    (setf visibility new-visibility)))
+;
+;(defmethod cursor-visibility ((cursor text-cursor))
+;  (slot-value cursor 'visibility))
 
 (defmethod (setf cursor-state) (new-state (cursor text-cursor))
   (multiple-value-bind (active state focus)
@@ -157,13 +132,11 @@
   (values (slot-value cursor 'width)
 	  (stream-line-height (slot-value cursor 'stream))))
 
-(warn "Checking for port")
-
 (defmethod note-cursor-change ((cursor text-cursor) type old new)
   ;;; type is currently one of CURSOR-ACTIVE, -FOCUS, or -STATE
   (let ((stream (slot-value cursor 'stream)))
-    (when (and stream (port stream))
-      (port-note-cursor-change (port stream) cursor stream type old new))))
+    (when (and stream (sheet-port stream))
+      (port-note-cursor-change (sheet-port stream) cursor stream type old new))))
 
 ;;; The port needs to know about state transitions.  We originally had one
 ;;; function that simply knew when the cursor was changing from "on" to "off"
@@ -178,8 +151,8 @@
     (when active
       (multiple-value-bind (x y) (bounding-rectangle* cursor)
 	(if new
-	    (cursor-draw-cursor cursor stream x y t)
-	    (cursor-draw-cursor cursor stream x y nil))))))
+	    (draw-cursor cursor stream x y t)
+	    (draw-cursor cursor stream x y nil))))))
 
 (defmethod port-note-cursor-change ((port port) 
 				    cursor stream (type (eql 'cursor-active)) old new)
@@ -188,8 +161,8 @@
     (when state
       (multiple-value-bind (x y) (bounding-rectangle* cursor)
 	(if new
-	    (cursor-draw-cursor cursor stream x y t)
-	    (cursor-draw-cursor cursor stream x y nil))))))
+	    (draw-cursor cursor stream x y t)
+	    (draw-cursor cursor stream x y nil))))))
 
 (defmethod port-note-cursor-change ((port port) 
 				    cursor stream (type (eql 'cursor-focus)) old new)
@@ -199,11 +172,14 @@
     (when (and active state)
       (multiple-value-bind (x y) (bounding-rectangle* cursor)
 	;; erase it with old-focus
-	(cursor-draw-cursor cursor stream x y nil old)
+	(draw-cursor cursor stream x y nil old)
 	;; draw it with new-focus
-	(cursor-draw-cursor cursor stream x y t new)))))
+	(draw-cursor cursor stream x y t new)))))
 
-(defmethod cursor-draw-cursor ((cursor text-cursor) stream x y on-p
+;;; DRAW-CURSOR is invoked to draw or erase the cursor.  on-p T = draw it; NIL = erase it
+
+#+Silica
+(defmethod draw-cursor ((cursor text-cursor) stream x y on-p
 			       &optional (focus nil focus-p))
   ;; --- protocol violations:  output-recording-options
   ;; ---                       graphics protocol
@@ -212,35 +188,37 @@
   (let ((height (stream-line-height stream))
 	(width (slot-value cursor 'width)))
     (unless focus-p (setq focus (cursor-focus cursor)))
-    (with-output-recording-options (stream :record-p nil)
+    (with-output-recording-options (stream :record nil)
       (draw-rectangle* stream x y (+ x width) (+ y height) :filled focus
-		       :ink +flipping-ink+ #+Ignore (if on-p +foreground+ +background+)))
+		       :ink +flipping-ink+ #+Ignore (if on-p +foreground-ink+ +background-ink+)))
     ;; --- do we really want to do this here??
     (force-output stream)))
 
-
-#||
-;;; Move this stuff to the bottom where it hopefully won't be in the way...
 #-Silica
-(defmethod entity-position ((cursor text-cursor))
-  (values (slot-value cursor 'x) (slot-value cursor 'y)))
+(defmethod draw-cursor ((cursor text-cursor) on-p)
+  (with-slots (x y stream) cursor
+    (declare (type coordinate x y))
+    (when stream
+      ;; --- protocol violations:  output-recording-options
+      ;; ---                       graphics protocol
+      ;; ---                       output protocol (line-height)
+      (let ((height (stream-line-height stream)))
+	(declare (type coordinate height))
+	(with-output-recording-options (stream :record nil)
+	  (draw-line-internal
+	    stream 0 0
+	    ;;--- gack
+	    (the fixnum x) (the fixnum (+ y height))
+	    (the fixnum (+ x 2)) (the fixnum (+ y height 2))
+	    (if on-p +foreground-ink+ +background-ink+) +highlighting-line-style+)
+	  (draw-line-internal
+	    stream 0 0
+	    (the fixnum x) (the fixnum (+ y height))
+	    (the fixnum (- x 2)) (the fixnum (+ y height 2))
+	    (if on-p +foreground-ink+ +background-ink+) +highlighting-line-style+))
+	;; --- do we really want to do this here??
+	(force-output stream)))))
 
-#-Silica
-(defmethod entity-set-position ((cursor text-cursor) nx ny)
-  (multiple-value-bind (active state focus)
-      (decode-cursor-flags (slot-value cursor 'flags))
-    (with-slots (x y) cursor
-      (unless (and (= x nx)
-		   (= y ny))
-	(when (and state active focus)
-	  (set-cursor-visibility cursor nil))
-	(setf x nx y ny)
-	(when (and state active focus)
-	  (set-cursor-visibility cursor T))))))
-
-||#
-
-
-
+;;;---- BOGUS
 (defun cursor-visibility (x) nil)
 (defun (setf cursor-visibility) (nv x) nil)

@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: mirror.cl,v 1.4 92/01/06 20:43:56 cer Exp Locker: cer $
+;; $fiHeader: mirror.cl,v 1.5 92/01/08 14:58:32 cer Exp $
 
 (in-package :silica)
 
@@ -98,7 +98,7 @@
 
 (defmethod sheet-actual-native-edges (sheet)
   ;; Returns the sheet-region in the parents native coordinate space
-  (let* ((port (port sheet))
+  (let* ((port (sheet-port sheet))
 	 (region (sheet-region sheet))
 	 (sheet-to-parent (sheet-transformation sheet))
 	 (parent (sheet-parent sheet))
@@ -161,21 +161,21 @@
   (setf (sheet-direct-mirror sheet) nil))
 
 (defmethod note-sheet-grafted :after ((sheet mirrored-sheet-mixin))
-  (realize-mirror (port sheet) sheet))
+  (realize-mirror (sheet-port sheet) sheet))
 
 (defmethod note-sheet-degrafted :after ((sheet mirrored-sheet-mixin))
   (when (sheet-direct-mirror sheet)
-    (destroy-mirror (port sheet) sheet)))
+    (destroy-mirror (sheet-port sheet) sheet)))
 
 (defmethod note-sheet-enabled ((sheet mirrored-sheet-mixin))
   (call-next-method)
   (when (sheet-direct-mirror sheet)
-    (enable-mirror (port sheet) sheet)))
+    (enable-mirror (sheet-port sheet) sheet)))
 
 (defmethod note-sheet-disabled ((sheet mirrored-sheet-mixin))
   (call-next-method)
   (when (sheet-direct-mirror sheet)
-    (disable-mirror (port sheet) sheet)))
+    (disable-mirror (sheet-port sheet) sheet)))
 
 
 (defgeneric invalidate-cached-transformations (sheet)
@@ -194,12 +194,12 @@
 
 (defmethod invalidate-cached-transformations :after ((sheet mirrored-sheet-mixin))
   (when (sheet-direct-mirror sheet)
-    (update-mirror-region (port sheet) sheet)))
+    (update-mirror-region (sheet-port sheet) sheet)))
 
 (defmethod note-sheet-region-changed :after ((sheet mirrored-sheet-mixin) &key port)
   (when (sheet-direct-mirror sheet)
     (unless port
-      (update-mirror-region (port sheet) sheet))))
+      (update-mirror-region (sheet-port sheet) sheet))))
 
 
 ;; I do not think we need to do this because
@@ -209,7 +209,7 @@
 (defmethod note-sheet-transformation-changed :after ((sheet mirrored-sheet-mixin) &key port)
   (when (sheet-direct-mirror sheet)
     (unless port
-      (update-mirror-region (port sheet) sheet))))
+      (update-mirror-region (sheet-port sheet) sheet))))
 
 
 
@@ -225,10 +225,10 @@
       (sheet-actual-native-edges sheet)
     (multiple-value-bind
 	(actual-left actual-top actual-right actual-bottom)
-	(mirror-native-edges* (port sheet) sheet)
+	(mirror-native-edges* (sheet-port sheet) sheet)
       (unless nil
 	(set-sheet-mirror-edges*
-	 (port sheet) sheet
+	 (sheet-port sheet) sheet
 	 target-left target-top target-right target-bottom))))
   (update-mirror-transformation port sheet))
 
@@ -313,7 +313,7 @@
 	  
 	  (unless (and (zerop dx)
 		       (zerop dy))
-	    (setq sheet-to-parent (compose-translation-transformation
+	    (setq sheet-to-parent (compose-translation-with-transformation
 				   sheet-to-parent dx dy)
 		  transformation-changed-p t)))
 	
@@ -365,7 +365,7 @@
 	  (note-sheet-transformation-changed sheet :port t)))))))
 
 (defmethod handle-event ((sheet mirrored-sheet-mixin) (event window-configuration-event))
-  (mirror-region-updated (port sheet) sheet))
+  (mirror-region-updated (sheet-port sheet) sheet))
 
 
 

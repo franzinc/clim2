@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: make-classes.cl,v 1.4 92/01/08 14:58:18 cer Exp Locker: cer $
+;; $fiHeader: make-classes.cl,v 1.5 92/01/17 17:49:15 cer Exp $
 
 (in-package :tk)
 
@@ -73,9 +73,9 @@
 (defclass xt-root-class (handle-class display-object)
 	  ((display :initarg :display :reader widget-display)
 	   (events :initform nil :accessor widget-event-handler-data)
-	   (callbacks :initform nil :accessor widget-callback-data))
-  (:metaclass xt-class)
-  )
+	   (callbacks :initform nil :accessor widget-callback-data)
+	   (window-cache :initform nil))
+  (:metaclass xt-class))
 
 (defclass rect (xt-root-class) ())
 (defclass un-named-obj (rect) ())

@@ -21,7 +21,7 @@
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved.
 ;;;
-;; $fiHeader$
+;; $fiHeader: db-table.lisp,v 1.4 92/01/02 15:33:10 cer Exp $
 
 
 (in-package :silica)
@@ -33,7 +33,7 @@
 
 
 (defclass table-pane (layout-pane)
-	  (row-space-reqs column-space-reqs contents))
+	  (row-space-requirements column-space-requirements contents))
 
 
 (defmethod initialize-instance :after ((pane table-pane) &key contents)
@@ -44,7 +44,7 @@
 			:initial-contents contents)))
   (dolist (c contents)
     (dolist (d c)
-      (when d (adopt-child pane d)))))
+      (when d (sheet-adopt-child pane d)))))
 
 
 (defmacro tabling (options &rest contents)
@@ -79,15 +79,15 @@
 	      (when item
 		(let ((isr (compose-space item)))
 		  ;; Max the heights
-		  (maxf h (space-req-height isr))
-		  (maxf min-h (space-req-min-height isr))
+		  (maxf h (space-requirement-height isr))
+		  (maxf min-h (space-requirement-min-height isr))
 		  ;; should this be min or max
 		  (if max-h
-		      (minf max-h (space-req-max-height isr))
-		    (setf max-h (space-req-max-height isr)))))))
+		      (minf max-h (space-requirement-max-height isr))
+		    (setf max-h (space-requirement-max-height isr)))))))
 
 	  (push
-	   (make-space-req
+	   (make-space-requirement
 	    :width 0
 	    :min-height min-h :height h :max-height max-h)
 	   row-srs)
@@ -97,7 +97,7 @@
 	  (incf omin-h min-h)
 	  (incf omax-h max-h)))
       
-      (setf (slot-value x 'row-space-reqs) (nreverse row-srs))
+      (setf (slot-value x 'row-space-requirements) (nreverse row-srs))
       
       ;; Iterate over the columns determing the widths of each
             
@@ -111,15 +111,15 @@
 	      (when item
 		(let ((isr (compose-space item)))
 		  ;; Max the widths
-		  (maxf w (space-req-width isr))
-		  (maxf min-w (space-req-min-width isr))
+		  (maxf w (space-requirement-width isr))
+		  (maxf min-w (space-requirement-min-width isr))
 		  ;; Should this be min or max???
 		  (if max-w
-		      (minf max-w (space-req-max-width isr))
-		    (setf max-w (space-req-max-width isr)))))))
+		      (minf max-w (space-requirement-max-width isr))
+		    (setf max-w (space-requirement-max-width isr)))))))
 
 	  (push
-	   (make-space-req
+	   (make-space-requirement
 	    :min-width min-w :width w :max-width max-w
 	    :height 0)
 	   column-srs)
@@ -129,34 +129,34 @@
 	  (incf omax-w max-w)))
       
       
-      (setf (slot-value x 'column-space-reqs) (nreverse column-srs))
+      (setf (slot-value x 'column-space-requirements) (nreverse column-srs))
       
-      (make-space-req
+      (make-space-requirement
        :min-width omin-w :width ow :max-width omax-w
        :min-height omin-h :height oh :max-height omax-h))))
 
 (defmethod allocate-space ((x table-pane) width height)
-  (with-slots (contents column-space-reqs 
-			row-space-reqs space-req) x
-    (unless space-req (compose-space x))
+  (with-slots (contents space-requirement
+	       column-space-requirements row-space-requirements) x
+    (unless space-requirement (compose-space x))
     
     (let ((row-heights
 	   (allocate-space-to-items
 	    height
-	    space-req
-	    row-space-reqs
-	    #'space-req-min-height
-	    #'space-req-height
-	    #'space-req-max-height
+	    space-requirement
+	    row-space-requirements
+	    #'space-requirement-min-height
+	    #'space-requirement-height
+	    #'space-requirement-max-height
 	    #'identity))
 	  (column-widths
 	   (allocate-space-to-items
 	    width
-	    space-req
-	    column-space-reqs
-	    #'space-req-min-width
-	    #'space-req-width
-	    #'space-req-max-width
+	    space-requirement
+	    column-space-requirements
+	    #'space-requirement-min-width
+	    #'space-requirement-width
+	    #'space-requirement-max-width
 	    #'identity))
 	  (y 0))
       (dotimes (row (array-dimension contents 0))

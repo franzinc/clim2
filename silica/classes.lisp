@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader$
+;; $fiHeader: classes.cl,v 1.2 92/01/02 15:09:07 cer Exp $
 
 (in-package :silica)
 
@@ -31,60 +31,49 @@
    (mirror->sheet-table :initform (make-hash-table)
 			:reader port-mirror->sheet-table)
    (focus :accessor port-keyboard-focus :initform nil)
-   (trace-thing :initform (make-array 10 :fill-pointer 0 :adjustable
-				      t)
+   (trace-thing :initform (make-array 10 :fill-pointer 0 :adjustable t)
 		:reader port-trace-thing)
    (media-cache :initform nil :accessor port-media-cache)
    (color-cache :initform (make-hash-table) :reader port-color-cache)
    (port :initform nil :accessor port-pointer)
-   
    (mapping-table :initform (make-hash-table :test #'equal))
    (undefined-text-style :initform nil :accessor device-undefined-text-style)
    ))
 
 (defclass sheet ()
-  ((port :initform nil :reader port)
-   (graft :initform nil :reader graft)
+  ((port :initform nil :reader sheet-port)
+   (graft :initform nil :reader sheet-graft)
    (parent :initform nil
 	   :accessor sheet-parent)
    (region :initarg :region
 	   :accessor sheet-region
 	   :initform (make-bounding-rectangle 0 0 100 100))
-   
    (enabledp :initform nil :accessor sheet-enabled-p)))
 
-
 (defclass medium ()
-  ((port :initarg :port :reader port)
-	   
-   (ink :accessor medium-ink :initform +foreground+)
-   
-   
+  ((port :initarg :port :reader sheet-port)
+   (sheet :initarg :sheet :initform nil :accessor medium-sheet)
+   (foreground :accessor medium-foreground :initform +black+)
+   (background :accessor medium-background :initform +white+)
+   (ink :accessor medium-ink :initform +foreground-ink+)
    (text-style :accessor medium-text-style 
 	       :initform *default-text-style*)
-
    (default-text-style :accessor medium-default-text-style 
 		       :initform *default-text-style*)
    (merged-text-style :initform *default-text-style*
 		      :writer (setf medium-merged-text-style))
    (merged-text-style-valid :initform nil
 			    :accessor medium-merged-text-style-valid)
-   
-      
-   (line-style :accessor medium-line-style :initform (%make-line-style))
-	   
-   (foreground :accessor medium-foreground :initform +black+)
-   (background :accessor medium-background :initform +white+)
+   (line-style :accessor medium-line-style :initform (make-line-style))
    (transformation :accessor medium-transformation 
 		   :initarg :transformation
 		   :initform +identity-transformation+)
    (region :accessor medium-clipping-region
 	   :initarg :region
 	   :initform +everywhere+)
-   (sheet :initarg :sheet :initform nil :accessor medium-sheet)
    (+y-upward-p :initform nil :accessor medium-+y-upward-p)))
 
-
+
 ;;; Event types
 
 (defmacro define-event-class (name supers slots &rest rest)
@@ -98,8 +87,6 @@
 	,@slots)
        ,@rest)))
 
-
-
 (define-event-class event () 
   ((timestamp :reader event-timestamp
 	      :initform 0
@@ -111,8 +98,8 @@
 
 (define-event-class device-event (event) 
   ((sheet :reader event-sheet :initarg :sheet)
-   (modifier-key-state :reader event-modifier-key-state
-		       :initarg :modifiers)))
+   (modifier-state :reader event-modifier-state
+		   :initarg :modifiers)))
 
 
 (define-event-class keyboard-event (device-event)
@@ -120,9 +107,7 @@
    (character :reader keyboard-event-character :initarg :character)))
 
 
-(define-event-class key-press-event (keyboard-event) 
-		    ())
-
+(define-event-class key-press-event (keyboard-event) ())
 (define-event-class key-release-event (keyboard-event) ())
 
 (define-event-class pointer-event (device-event)
@@ -134,12 +119,18 @@
 	    :initform nil)
    (button :reader pointer-event-button :initarg :button)))
 
+#+CLIM-1-compatibility
+(define-compatibility-function (pointer-event-shift-mask event-modifier-state)
+			       (pointer-event)
+  (event-modifier-state pointer-event))
+
 (define-event-class pointer-button-event (pointer-event) ())
-(define-event-class pointer-press-event (pointer-button-event) ())
-(define-event-class pointer-release-event (pointer-button-event) ())
-(define-event-class click-event (pointer-event) ())
-(define-event-class click-hold-event (click-event) ())
-(define-event-class click-click-event (click-event) ())
+(define-event-class pointer-button-press-event (pointer-button-event) ())
+(define-event-class pointer-button-release-event (pointer-button-event) ())
+(define-event-class pointer-click-event (pointer-event) ())
+(define-event-class pointer-click-hold-event (click-event) ())
+(define-event-class pointer-double-click-event (click-event) ())
+
 (define-event-class pointer-motion-or-boundary-event (pointer-event) ())
 (define-event-class pointer-motion-event (pointer-motion-or-boundary-event) ())
 (define-event-class pointer-exit-event (pointer-motion-or-boundary-event) ())
@@ -154,5 +145,8 @@
 
 (define-event-class window-configuration-event (window-event) ())
 (define-event-class window-repaint-event (window-event) ())
+
 (define-event-class timer-event (event) ())
 
+(defclass frame-manager () 
+  ((port :reader sheet-port :initarg :port)))

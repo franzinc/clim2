@@ -1,14 +1,18 @@
-# $fiHeader: Makefile,v 1.5 92/01/06 20:44:36 cer Exp Locker: cer $
+# $fiHeader: Makefile,v 1.6 92/01/30 10:09:16 cer Exp $
 
-SOMEDIRS=utils silica clim ws 
+SOMEDIRS=utils silica clim
 DIRS=$(SOMEDIRS) xlib tk xm-silica
 DEVICE=/dev/null
-CL=/usr/composer2/composer2
+CL=/net/vapor/usr/composer2/composer2
+CLOPTS	= -qq
+ECHO	= /bin/echo
+
 
 default: compile
 
 compile : FRC
-	$(CL) < misc/go.cl
+	$(ECHO) " \
+		(load \"misc/go-xm.cl\")" | $(CL) $(CLOPTS) -batch
 
 clean : FRC
 	find $(DIRS)  -name "*.fasl" -exec $(RM) "{}" \;
@@ -29,6 +33,9 @@ dist	:
 	gtar -z -cf - \
 	*/*.lisp */*.cl Makefile \
 	> Dist/src.tar.Z
+
+rcscheck:
+	rcscheck $(DIRS) | grep -v .fasl
 
 # For the day the make dist happens.
 

@@ -1,4 +1,4 @@
-;; -*- mode: common-lisp; package: clim -*-
+;; -*- mode: common-lisp; package: clim-internals -*-
 ;;
 ;;				-[]-
 ;; 
@@ -20,49 +20,70 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: gadget-output.cl,v 1.2 92/01/08 14:58:58 cer Exp Locker: cer $
+;; $fiHeader: gadget-output.cl,v 1.3 92/01/17 17:49:44 cer Exp $
 
-(in-package :clim)
+(in-package :clim-internals)
 
 
 ;;; Implementation of output-records that are tied to gadgets.
 
-(defclass gadget-output-record (displayed-output-record)
-	  ((gadget :initform nil
-		   :accessor output-record-gadget)))
+(defclass gadget-output-record 
+    	  (output-record-mixin output-record-element-mixin output-record)
+    ((gadget :initform nil
+	     :accessor output-record-gadget)))
 
 (defmethod associate-record-and-gadget (rec gadget stream x y)
   ;; Just in case
   (setf (sheet-enabled-p gadget) nil)
-  (adopt-child stream gadget)
+  (sheet-adopt-child stream gadget)
   ;; In order to be able to determine the space the widget has to be
   ;; added to the parent and hopefully grafted
-  (assert (port stream))
+  (assert (sheet-port stream))
   (setf (output-record-gadget rec) gadget)
   (let ((sr (compose-space gadget)))
-    (bounding-rectangle-set-edges
-     rec
-     x 
-     y
-     (+ x (space-req-width sr))
-     (+ y (space-req-height sr))))
-  (when (output-record-stream rec)
-    (setf (sheet-enabled-p gadget) t)))
+    (multiple-value-bind (abs-x abs-y)
+	(point-position*
+	 (stream-output-history-position stream))
+      (decf x abs-x)
+      (decf y abs-y)
+      (bounding-rectangle-set-edges
+       rec
+       x y (+ x (space-requirement-width sr)) (+ y (space-requirement-height sr))))
+    (when (output-record-stream rec)
+      (setf (sheet-enabled-p gadget) t))))
 
-(defmethod bounding-rectangle-set-edges	:after ((rec gadget-output-record)
-						minx miny maxx maxy)
-  (when (output-record-gadget rec)
-    (silica::move-and-resize-sheet*
-     (output-record-gadget rec)
-     minx miny (- maxx minx) (- maxy miny))))
+;; Three ways
 
-;; cover wagon fullsome - 7th . 9.30. cw saloon
+(defmethod note-output-record-moved ((record gadget-output-record) dx1 dy1 dx2 dy2)
+  (declare (ignore dx1 dy1 dx2 dy2))
+  (update-gadget-position record))
+
+(defmethod bounding-rectangle-set-edges :after ((rec gadget-output-record) a b c d)
+  (declare (ignore  a b c d))
+  (update-gadget-position rec))
+
+(defmethod bounding-rectangle-set-position* :after ((rec gadget-output-record) a b)
+  (declare (ignore  a b))
+  (update-gadget-position rec))
+
+(defmethod update-gadget-position (record) 
+  (let ((gadget (output-record-gadget record)))
+    (when gadget
+      (with-bounding-rectangle* (left top right bottom) record
+        (let ((xoff 0)
+	      (yoff 0))
+	  (do ((parent record (output-record-parent parent)))
+	      ((null parent))
+	    (multiple-value-bind (x y)
+		(output-record-position* parent)
+	      (incf xoff x)
+	      (incf yoff y)))
+	  (silica::move-and-resize-sheet* 
+	   gadget
+	   (+ left xoff) (+ top yoff)
+	   (- right left) (- bottom top)))))))
+
 ;; Need to add the gadget to the stream
-
-(defmethod bounding-rectangle-set-position*  :after 
-	   ((r gadget-output-record) new-x new-y)
-  (when (output-record-gadget r)
-    (silica::move-sheet* (output-record-gadget r) new-x new-y)))
 
 ;; One problem we have is that when we scroll we will end up with
 ;; geometry requests being refused.
@@ -71,146 +92,38 @@
 
 (defmethod window-clear :after ((window extended-stream-sheet))
   (dolist (child (sheet-children window))
-    (silica::disown-child window child)))
+    (sheet-disown-child window child)))
   
 
-(defmacro with-output-as-gadget ((&rest args &key stream
-				  &allow-other-keys) 
+(defmacro with-output-as-gadget ((stream &rest args) 
 				 &body body)
   (default-output-stream stream)
   (let ((fm (gensym))
 	(f (gensym)))
-    (with-rem-keywords (args args '(:stream))
-      `(with-output-as-gadget-internal
-	   ,stream
+    (with-keywords-removed (args args '(:stream))
+      `(invoke-with-output-as-gadget ,stream
 	 #'(lambda (,fm ,f)
 	     (with-look-and-feel-realization (,fm ,f) ,@body)) 
 	 ,@args))))
 
-(defmethod with-output-as-gadget-internal (stream continuation &key)
-  (let* ((frame (silica::pane-frame stream))
+(defmethod invoke-with-output-as-gadget (stream continuation &key)
+  (let* ((frame (pane-frame stream))
 	 (framem (frame-manager frame)))
     (assert frame)
     (assert framem)
-    (multiple-value-bind
-	(x y)
+    (multiple-value-bind (x y)
 	(stream-cursor-position* stream)
       (let* (gadget
-	     (rec 
-	      (with-new-output-record (stream 
-				       'gadget-output-record
-				       rec)
-		(unless (setq gadget (output-record-gadget rec))
+	     (record
+	      (with-new-output-record (stream 'gadget-output-record record)
+		(unless (setq gadget (output-record-gadget record))
 		  (associate-record-and-gadget
-		   rec
+		   record
 		   (setq gadget (funcall continuation framem frame))
 		   stream x y)))))
-	(move-cursor-beyond-output-record stream rec)
-	(values gadget rec)))))
+	(move-cursor-beyond-output-record stream record)
+	(values gadget record)))))
 	    
-
-
-(define-presentation-method accept-present-default ((type boolean) 
-						    stream
-						    (view gadget-dialog-view)
-						    default default-supplied-p
-						    present-p query-identifier)
-  (declare (ignore default-supplied-p present-p))
-  (with-output-as-gadget (:stream stream)
-    (realize-pane 'silica::toggle-button
-		  :client stream
-		  :id query-identifier
-		  :value default)))
-
-
-(define-presentation-method accept-present-default ((type integer)
-						    stream
-						    (view gadget-dialog-view)
-						    default default-supplied-p
-						    present-p query-identifier)
-  (declare (ignore default-supplied-p present-p))
-  (with-output-as-gadget (:stream stream)
-    (realize-pane 'silica::slider
-		  :client stream
-		  :width 100
-		  :value (if default-supplied-p default 0)
-		  :id query-identifier)))
-
-
-
-(defmethod display-exit-boxes ((frame accept-values) stream)
-  ;; Do the fresh-line *outside* of the updating-output so that it
-  ;; doesn't get repositioned relatively in the X direction if the
-  ;; previous line gets longer.  Maybe there should be some better
-  ;; way of ensuring this.
-  (fresh-line stream)
-  (with-slots (exit-boxes) frame
-    (let ((exit  (or (second (assoc :exit  exit-boxes)) "<End> uses these values"))
-	  (abort (or (second (assoc :abort exit-boxes)) "<Abort> aborts")))
-      (updating-output (stream :unique-id stream
-			       :cache-value 'exit-boxes)
-		       (formatting-item-list 
-			(stream :n-columns 2)
-			(formatting-cell 
-			 (stream)
-			 (with-output-as-gadget (:stream stream)
-			   (assert frame)
-			   (realize-pane 'silica::push-button
-					 :client frame
-					 :id :abort
-					 :label abort)))
-			(formatting-cell 
-			 (stream)
-			 (with-output-as-gadget (:stream stream)
-			   (realize-pane 'silica::push-button
-					 :client frame
-					 :id :exit
-					 :label exit))))))))
-
-(defmethod silica::pane-frame ((stream encapsulating-stream-mixin))
-  (silica::pane-frame (slot-value stream 'stream)))
-
-(defmethod graft ((stream encapsulating-stream-mixin))
-  (graft (slot-value stream 'stream)))
-
-(defmethod adopt-child ((stream encapsulating-stream-mixin) child)
-  (adopt-child (slot-value stream 'stream) child))
-
-(defmethod silica::activate-callback ((pb silica::push-button)
-				      (client accept-values)
-				      id)
-  (ecase id
-    (:abort (com-abort-avv))
-    (:exit (com-exit-avv))))
-
-
-(define-command (com-change-query :command-table accept-values-pane)
-    ((id t)
-     (new-value t))
-  (with-slots (value changed-p) id
-    (setf value new-value changed-p t)))
-  
-
-(defmethod silica::value-changed-callback ((gadget value-gadget)
-					   (client avv-stream)
-					   id
-					   new-value)
-  (do-avv-command
-      new-value
-    client id))
-
-(defun do-avv-command (new-value client id)
-  (throw-highlighted-presentation
-   (make-instance 'standard-presentation
-		  :object `(com-change-query ,id ,new-value)
-		  :type 'command)
-   *input-context*
-   (make-instance 'silica::pointer-event
-		  :sheet (slot-value client 'stream)
-		  :x 0
-		  :y 0
-		  :modifiers 0
-		  :button 256)))
 
 ;; incf redisplay wanted this!
 
@@ -239,7 +152,8 @@
 
 (defmethod note-output-record-attached :after ((rec gadget-output-record) stream)
   (declare (ignore stream))
-  (setf (sheet-enabled-p (output-record-gadget rec)) t))
+  (setf (sheet-enabled-p (output-record-gadget rec)) t)
+  (update-gadget-position rec))
 
 (defmethod note-output-record-detached :after ((rec gadget-output-record))
   (setf (sheet-enabled-p (output-record-gadget rec)) nil))
@@ -249,16 +163,17 @@
 						    stream
 						    (view gadget-dialog-view)
 						    default default-supplied-p
-						    present-p query-identifier)
+						    present-p query-identifier
+						    &key (prompt t))
   (declare (ignore present-p))
   ;; value-key, test, sequence
-  (with-output-as-gadget (:stream stream)
+  (with-output-as-gadget (stream)
     (let* (
 	   #+ignore
 	   (frame-pane
-	    (realize-pane 'silica::frame-pane))
+	    (realize-pane 'frame-pane))
 	   (gadget
-	    (realize-pane 'silica::radio-box 
+	    (realize-pane 'radio-box 
 			  :client stream
 			  :id query-identifier
 			  #+ignore :parent 
@@ -275,58 +190,51 @@
       gadget
       #+ignore frame-pane)))
 
-(defmethod silica::value-changed-callback ((gadget silica::radio-box)
-					   (client avv-stream)
-					   id 
-					   new-value)
-  (do-avv-command
-      (silica::gadget-id new-value)
-    client 
-    id))
+(define-presentation-method accept-present-default ((type boolean) 
+						    stream
+						    (view gadget-dialog-view)
+						    default default-supplied-p
+						    present-p query-identifier
+						    &key (prompt t))
+  (declare (ignore default-supplied-p present-p))
+  (with-output-as-gadget (stream)
+    (realize-pane 'toggle-button
+		  :client stream
+		  :id query-identifier
+		  :value default
+		  :label (and (stringp prompt) prompt))))
 
 
+(define-presentation-method accept-present-default ((type integer)
+						    stream
+						    (view gadget-dialog-view)
+						    default default-supplied-p
+						    present-p query-identifier
+						    &key (prompt t))
+  (declare (ignore present-p))
+  (with-output-as-gadget (stream)
+    (realize-pane 'slider
+		  :client stream
+		  :width 100
+		  :value (if default-supplied-p default 0)
+		  :id query-identifier
+		  :label (and (stringp prompt) prompt))))
 
 
-;;; Another amusing component
-;;; Some how we need so associate an output-record with the button
+;;--- These should be defined in the standard DEFOPERATION way...
 
-(defun accept-values-command-button-1
-    (stream prompt continuation
-     &key (documentation (if (stringp prompt)
-			     prompt
-			   (with-output-to-string (stream)
-			     (funcall prompt stream))))
-	  (query-identifier (list ':button documentation))
-	  (cache-value t) (cache-test #'eql)
-	  resynchronize)
-  (declare (dynamic-extent prompt))
-  (updating-output 
-   (stream :unique-id query-identifier :id-test #'equal
-	   :cache-value cache-value :cache-test
-	   cache-test)
-   (with-output-as-gadget (:stream stream)
-     (realize-pane 
-      'silica::push-button
-      :label prompt
-      :id (output-recording-stream-current-output-record-stack 
-	   (slot-value stream 'stream))
-      :client (make-instance 'accept-values-command-button
-			     :continuation continuation
-			     :documentation documentation
-			     :resynchronize resynchronize)))))
+(defmethod sheet-medium ((x standard-encapsulating-stream))
+  (sheet-medium (slot-value x 'stream)))
 
+(defmethod sheet-port ((x standard-encapsulating-stream))
+  (clim::sheet-port (slot-value x 'stream)))
 
-(defmethod silica::activate-callback ((pb silica::push-button)
-				      (client accept-values-command-button)
-				      id)
-  (throw-highlighted-presentation
-   (make-instance 'standard-presentation
-		  :object `(com-avv-command-button ,client ,id)
-		  :type 'command)
-   *input-context*
-   (make-instance 'silica::pointer-event
-		  :sheet (sheet-parent pb)
-		  :x 0
-		  :y 0
-		  :modifiers 0
-		  :button 256)))
+(defmethod sheet-graft ((stream standard-encapsulating-stream))
+  (sheet-graft (slot-value stream 'stream)))
+
+(defmethod sheet-adopt-child ((stream standard-encapsulating-stream) child)
+  (sheet-adopt-child (slot-value stream 'stream) child))
+
+(defmethod sheet-disown-child ((stream standard-encapsulating-stream) child)
+  (sheet-adopt-child (slot-value stream 'stream) child))
+

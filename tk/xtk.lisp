@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xtk.cl,v 1.3 92/01/06 20:43:51 cer Exp Locker: cer $
+;; $fiHeader: xtk.cl,v 1.4 92/01/17 17:49:25 cer Exp $
 
 (in-package :tk)
 

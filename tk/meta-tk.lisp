@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader$
+;; $fiHeader: meta-tk.cl,v 1.3 92/01/02 15:34:03 cer Exp $
 
 
 (in-package :tk)

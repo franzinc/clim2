@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader$
+;; $fiHeader: convenience.cl,v 1.2 92/01/02 15:08:36 cer Exp $
 
 (in-package :tk)
 
@@ -98,3 +98,4 @@
 (define-convenience-class xm-menu-bar (xm-row-column) "_XmCreateMenuBar")
 (define-convenience-class xm-pulldown-menu (xm-row-column) "_XmCreatePulldownMenu")
 (define-convenience-class xm-radio-box (xm-row-column) "_XmCreateRadioBox")
+(define-convenience-class xm-popup-menu (xm-row-column) "_XmCreatePopupMenu")

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.cl,v 1.1 92/01/15 16:16:15 cer Exp Locker: cer $
+;; $fiHeader: xt-silica.cl,v 1.2 92/01/17 17:49:35 cer Exp $
 
 (in-package :xm-silica)
 
@@ -99,9 +99,11 @@
 		;; prefer first font satisfying this text style, so
 		;; don't override if we've already defined one.
 		(unless (silica::text-style-mapping-exists-p
-			 display-device *standard-character-set* text-style t)
-		  (silica::add-text-style-mapping display-device *standard-character-set*
-					  text-style xfont)))))
+			 display-device *standard-character-set*
+			 text-style t)
+		  (setf (text-style-mapping  display-device *standard-character-set*
+					     text-style)
+		    xfont)))))
 	  ;; Now build the logical size alist for the family
 	  
 	  
@@ -113,9 +115,10 @@
 		   (when (silica::text-style-mapping-exists-p display-device 
 						      *standard-character-set*
 						      `(,(car family) :roman 10))
-		     (return (make-text-style (car family) :roman 10)))))
-	       (silica::add-text-style-mapping display-device *standard-character-set*
-				       (silica::device-undefined-text-style display-device)
+		     (return (make-text-style (car family) :roman
+					      10)))))
+		  (setf (text-style-mapping display-device *standard-character-set*
+				       (silica::device-undefined-text-style display-device))
 				       #+ignore *undefined-text-style*
 				       temp))
 
@@ -123,9 +126,9 @@
 	      ;; fonts.
 	
 	      (*clx-fallback-font*
-	       (silica::add-text-style-mapping display-device 
+	       (setf (text-style-mapping display-device 
 				       *standard-character-set*
-				       (silica::device-undefined-text-style display-device)
+				       (silica::device-undefined-text-style display-device))
 				       #+ignore *undefined-text-style*
 				       (make-instance 'tk::font 
 						      :display display
@@ -176,7 +179,7 @@
     (let ((modifiers (logand #16rff mask))
 	  (button (ash mask -8)))
       (distribute-event
-       (port sheet)
+       (sheet-port sheet)
        (ecase (tk::event-type event)
 	 (:leave-notify
 	  (make-instance 'pointer-exit-event
@@ -206,15 +209,15 @@
     (4 
      (warn "got an event 4")
      silica::+pointer-right-button+)
-    (#.x11::button3 silica::+pointer-right-button+)
-    (#.x11::button2 silica::+pointer-middle-button+)
-    (#.x11::button1 silica::+pointer-left-button+)))
+    (#.x11::button3 +pointer-right-button+)
+    (#.x11::button2 +pointer-middle-button+)
+    (#.x11::button1 +pointer-left-button+)))
 
 (defmethod sheet-mirror-resized-callback (widget window event sheet)
   (declare (ignore widget window event))
   (dispatch-event
    sheet
-   (let ((r (mirror-region (port sheet) sheet)))
+   (let ((r (mirror-region (sheet-port sheet) sheet)))
      (make-instance 'window-configuration-event
 		    :native-region r
 		    :region (untransform-region
@@ -222,9 +225,6 @@
 			      sheet)
 			     r)
 		    :sheet sheet))))
-
-#+ignore
-(mirror-region-updated (port sheet) sheet)
 
 (defmethod sheet-mirror-exposed-callback (widget window event sheet)
   (declare (ignore widget window))
@@ -234,14 +234,13 @@
 	 (height (x11::xexposeevent-height event))
 	 (maxx (+ minx width))
 	 (maxy (+ miny height)))
-
     (dispatch-repaint
      sheet
      (make-instance 'window-repaint-event
-		    :native-region (make-rectangle* minx miny maxx maxy)
+		    :native-region (make-bounding-rectangle minx miny maxx maxy)
 		    :region (untransform-region
 			     (sheet-native-transformation sheet)
-			     (make-rectangle* minx miny maxx maxy))
+			     (make-bounding-rectangle minx miny maxx maxy))
 		    :sheet sheet))))
 
 (defmethod sheet-mirror-input-callback (widget window event sheet)
@@ -250,7 +249,7 @@
   (ecase (tk::event-type event)
     (:key-press
      (distribute-event
-      (port sheet)
+      (sheet-port sheet)
       (multiple-value-bind
 	  (ignore character keysym)
 	  (tk::lookup-string event)
@@ -264,7 +263,7 @@
     
     (:key-release
      (distribute-event
-      (port sheet)
+      (sheet-port sheet)
       (multiple-value-bind
 	  (ignore character keysym)
 	  (tk::lookup-string event)
@@ -278,8 +277,8 @@
     
     (:button-press
      (distribute-event
-      (port sheet)
-      (make-instance 'pointer-press-event
+      (sheet-port sheet)
+      (make-instance 'pointer-button-press-event
 		     :sheet sheet
 		     :x :??
 		     :y :??
@@ -290,8 +289,8 @@
 		     :native-y (x11::xbuttonevent-y event))))
     (:button-release
      (distribute-event
-      (port sheet)
-      (make-instance 'pointer-release-event
+      (sheet-port sheet)
+      (make-instance 'pointer-button-release-event
 		     :sheet sheet
 		     :x :??
 		     :y :??
@@ -319,10 +318,10 @@
     (multiple-value-bind
 	(left top right bottom)
 	(sheet-actual-native-edges sheet)
-      (setf (getf initargs :x) left
-	    (getf initargs :y) top
-	    (getf initargs :width) (- right left)
-	    (getf initargs :height) (- bottom top))))
+      (setf (getf initargs :x) (floor left)
+	    (getf initargs :y) (floor top)
+	    (getf initargs :width) (floor (- right left))
+	    (getf initargs :height) (floor (- bottom top)))))
   initargs)
 
 ;; If we are creating a top level sheet then we have to create a shell
@@ -374,6 +373,9 @@
   ;; Set the width etc etc
   (setf (sheet-direct-mirror graft) (port-application-shell port))
   ;; Mess with the region
+  (warn "Do something about the graft")
+  (setf (sheet-region graft)
+    (make-bounding-rectangle 0 0 1100 850))
   ;; Mess with the native transformation
   )
 
@@ -387,7 +389,7 @@
 	      (+ y height)))))
 
 (defmethod mirror-region ((port xt-port) sheet)
-  (multiple-value-call #'make-rectangle*
+  (multiple-value-call #'make-bounding-rectangle
     (mirror-region* port sheet)))
 
 (defmethod mirror-inside-region* ((port xt-port) sheet)
@@ -415,14 +417,14 @@
   (let ((w (- target-right  target-left))
 	(h (- target-bottom target-top)))
     (tk::set-values (sheet-direct-mirror sheet)
-		    :x target-left  
-		    :y target-top
-		    :width w
-		    :height h)
+		    :x (floor target-left)
+		    :y (floor target-top)
+		    :width (floor w)
+		    :height (floor h))
     (multiple-value-bind
 	(nx ny nw nh)
-	(tk::get-values (sheet-direct-mirror sheet) :x :y :width
-			:height)
+	(tk::get-values (sheet-direct-mirror sheet)
+			:x :y :width :height)
       (when (or (/= target-left nx)
 		(/= target-top ny)
 		(/= w nw)
@@ -460,27 +462,26 @@
     (values index x-font escapement-x escapement-y
 	    origin-x origin-y bb-x bb-y)))
 
-(defmethod silica::text-size (medium string &key text-style start end)
+(defmethod text-size (medium string &key text-style start end)
   (when (characterp string)
     (setq string (string string)
 	  start 0
 	  end nil))
   (unless start (setq start 0))
   (unless end (setq end (length string)))
-  (clim::stream-string-output-size medium string
+  (clim-internals::stream-string-output-size medium string
 			     :start start :end end :text-style text-style))
   
 
   
 (defmethod realize-text-style (port font)
-  (silica::text-style-mapping port nil font nil))
+  (text-style-mapping port nil font nil))
 
 
 
 (defmethod text-style-mapping :around ((device xt-port)
 				       character-set 
-				       text-style 
-				       etc)
+				       text-style &optional etc)
   (declare (ignore etc))
   (let ((font (call-next-method)))
     (when (or (stringp font) (symbolp font))
@@ -488,21 +489,22 @@
 	(setf font (make-instance 'tk::font 
 				    :display (port-display device)
 				    :name font-name))
-	(add-text-style-mapping
-	  device character-set (parse-text-style text-style) font)))
+	(setf (text-style-mapping
+	       device character-set (parse-text-style text-style))
+	  font)))
     font))
 
 
 ;; This seem specific to the type of the medium
 
-(defmethod silica::text-style-width ((text-style text-style) medium)
-  (tk::font-width (realize-text-style (port medium) text-style)))
+(defmethod text-style-width ((text-style text-style) medium)
+  (tk::font-width (realize-text-style (sheet-port medium) text-style)))
 
 (defmethod text-style-ascent ((text-style text-style) medium)
-  (tk::font-ascent (realize-text-style (port medium) text-style)))
+  (tk::font-ascent (realize-text-style (sheet-port medium) text-style)))
 					
 (defmethod text-style-descent ((text-style text-style) medium)
-  (tk::font-descent (realize-text-style (port medium) text-style)))
+  (tk::font-descent (realize-text-style (sheet-port medium) text-style)))
 					
 (defmethod text-style-height ((text-style text-style) medium)
   (+ (text-style-ascent text-style medium)
@@ -520,6 +522,9 @@
 	(setq last-mirror stream))
       (setq stream (sheet-parent stream)))))
 
-(defmethod clim::stream-set-input-focus (stream)
+(defmethod stream-set-input-focus (stream)
   nil)
 
+
+(defmethod clim-internals::port-finish-output ((port xt-port))
+  nil)

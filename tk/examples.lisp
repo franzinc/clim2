@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: examples.cl,v 1.3 92/01/02 15:08:39 cer Exp Locker: cer $
+;; $fiHeader: examples.cl,v 1.4 92/01/17 17:49:08 cer Exp $
 
 (in-package :tk)
 
@@ -292,7 +292,7 @@
   (apply #'wt::find-menu-group args))
 
 (defun create-top-level-menu (menu-bar)
-  "Create the contents of the menubar"
+  "Create the contents of the menu-bar"
   (create-menu-contents-from-menu-group menu-bar (find-menu-group :main-menu)))
 
 (defun sub-menu-spec-p (spec)

@@ -1,31 +1,13 @@
-;;; -*- Mode: LISP; Syntax: Common-lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
-;; 
-;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
-;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
-;;
-;; The software, data and information contained herein are proprietary
-;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
-;; given in confidence by Franz, Inc. pursuant to a written license
-;; agreement, and may be stored and used only in accordance with the terms
-;; of such license.
-;;
-;; Restricted Rights Legend
-;; ------------------------
-;; Use, duplication, and disclosure of the software, data and information
-;; contained herein by any agency, department or entity of the U.S.
-;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
-;;
-;; $fiHeader$
+;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
+;; $fiHeader: defresource.lisp,v 1.6 91/03/26 12:47:53 cer Exp $
 
-(in-package :clim-utils)
+(in-package :clim-internals)
 
 "Copyright (c) 1988, 1989, 1990 International Lisp Associates.  All rights reserved."
 
-(defstruct (resource-descriptor (:conc-name rd-)
+(defstruct (resource-descriptor (:conc-name RD-)
+				#+Allegro (:print-function print-resource)
 				(:constructor make-resource-descriptor (name)))
   name
   (objects nil)
@@ -33,9 +15,14 @@
   initializer
   deinitializer
   matcher
-  (lock (initial-lock-value)))
+  (lock (make-lock "a resource lock")))
 
-(defstruct (object-storage (:conc-name os-))
+#+Allegro
+(defun print-resource (o s d)
+  (declare (ignore d))
+  (format s "#<~S ~S>" (type-of o) (RD-name o)))
+
+(defstruct (object-storage (:conc-name OS-))
   object
   use-cons
   parameters)
@@ -52,37 +39,25 @@
        ,@body)))
 
 (defun describe-resource (resource)
-  ;; jump through a hoop to allow for useful debugging in Genera.
-  (let ((format
-	  #+Genera
-	  (if (typep (follow-synonym-stream *standard-output*) 'dw:dynamic-window)
-	      #'lisp:format
-	      #'format)))
-    #-Genera (declare (ignore format))
-    (macrolet ((my-format (&rest stuff)
-		 #{Genera    `(funcall format ,@stuff)
-  		   otherwise `(format ,@stuff)
-		  }
-		 ))
-      (with-resource-rd (resource RD)
-	(my-format t "~&Resource ~S:" (rd-name RD))
-	(when (rd-constructor RD)
-	  (my-format t "~%Constructor: ~S" (rd-constructor RD)))
-	(when (rd-initializer RD)
-	  (my-format t "~%Initializer: ~S" (rd-initializer RD)))
-	(when (rd-matcher RD)
-	  (my-format t "~%Matcher: ~S" (rd-matcher RD)))
-	(let ((objects (rd-objects RD)))
-	  (when (> (fill-pointer objects) 0)
-	    (my-format t "~%~D Object~:P:" (fill-pointer objects)))
-	  (doseq (object-storage objects)
-	    (my-format t "~%~S, ~:[Not in~;In~] use"
-		       (os-object object-storage)
-		       (os-use-cons object-storage))))))))
+  (with-resource-rd (resource RD)
+    (format t "~&Resource ~S:" (RD-name RD))
+    (when (RD-constructor RD)
+      (format t "~%Constructor: ~S" (RD-constructor RD)))
+    (when (RD-initializer RD)
+      (format t "~%Initializer: ~S" (RD-initializer RD)))
+    (when (RD-matcher RD)
+      (format t "~%Matcher: ~S" (RD-matcher RD)))
+    (let ((objects (RD-objects RD)))
+      (when (> (fill-pointer objects) 0)
+	(format t "~%~D Object~:P:" (fill-pointer objects)))
+      (doseq (object-storage objects)
+	(format t "~%~S, ~:[Not in~;In~] use"
+		(os-object object-storage)
+		(os-use-cons object-storage))))))
 
 (defun clear-resource (resource)
   (with-resource-rd (resource RD)
-    (setf (fill-pointer (rd-objects RD)) 0))
+    (setf (fill-pointer (RD-objects RD)) 0))
   nil)
 
 (defun lookup-resource-descriptor (name)
@@ -140,75 +115,79 @@
     (cerror "Continue to overwrite old definition of resource ~S"
 	    "Attempt to redefine resource ~S" name))
   (let ((RD (or (lookup-resource-descriptor name) (make-resource-descriptor name))))
-    (with-lockf ((rd-lock RD) "Resource lock")
-      (unless (rd-objects RD)
-	(setf (rd-objects RD) (make-array (* 2 (or initial-copies 10))
+    (with-lock-held ((RD-lock RD) "Resource lock")
+      (unless (RD-objects RD)
+	(setf (RD-objects RD) (make-array (* 2 (or initial-copies 10))
 					  :fill-pointer 0))
 	(when initial-copies
 	  (dotimes (i initial-copies)
-	    #+Genera-release-8 (declare (ignore i))
-	    (vector-push (cons nil (funcall constructor RD)) (rd-objects RD)))))
-      (setf (rd-constructor RD) constructor)
-      (setf (rd-initializer RD) initializer)
-      (setf (rd-deinitializer RD) deinitializer)
-      (setf (rd-matcher RD) matcher)
+	    #-(or Allegro Minima) (declare (ignore i))
+	    (vector-push (cons nil (funcall constructor RD)) (RD-objects RD)))))
+      (setf (RD-constructor RD) constructor)
+      (setf (RD-initializer RD) initializer)
+      (setf (RD-deinitializer RD) deinitializer)
+      (setf (RD-matcher RD) matcher)
       (setf (lookup-resource-descriptor name) RD))))
 
 (defun allocate-resource (name &rest parameters &aux RD object-storage)
-  (declare (non-dynamic-extent parameters))
+  (declare (dynamic-extent parameters))
   (block allocate
     (setf RD (lookup-resource-descriptor name))
     (unless RD (error "Can't allocate nonexistent resource ~S" name))
-    (with-lockf ((rd-lock RD) "Resource lock")
-      (let* ((array (rd-objects RD))
-	     (matcher (rd-matcher RD))
+    (with-lock-held ((RD-lock RD) "Resource lock")
+      (let* ((array (RD-objects RD))
+	     (matcher (RD-matcher RD))
 	     (fill-pointer (fill-pointer array)))
-	#+genera (declare (sys:array-register array))
+	#+Genera (declare (sys:array-register array))
+	#+Minima (declare (type vector array))
 	(dotimes (i fill-pointer)
 	  (setf object-storage (aref array i))
-	  (when (and (null (os-use-cons object-storage))
-		     (or (null matcher)
+	  (when (and (null (cdr (os-use-cons object-storage)))
+		     (if (null matcher)
+			 (equal (os-parameters object-storage) parameters)
 			 (apply matcher (os-object object-storage) object-storage parameters)))
-	    (setf (os-use-cons object-storage) (cons RD i))
-	    (setf (os-parameters object-storage) parameters)
+	    (if (os-use-cons object-storage)
+		(setf (car (os-use-cons object-storage)) RD
+		      (cdr (os-use-cons object-storage)) i)
+		(setf (os-use-cons object-storage) (cons RD i)))
 	    (return-from allocate)))
-	(let* ((new-object (apply (rd-constructor RD) RD parameters))
+	(let* ((new-object (apply (RD-constructor RD) RD parameters))
 	       (array-size (array-dimension array 0)))
 	  (setf object-storage (make-object-storage
 				 :object new-object
 				 :use-cons (cons RD fill-pointer)
-				 :parameters parameters))
+				 :parameters (copy-list parameters)))
 	  (when (<= array-size fill-pointer)
 	    (let ((new-array (make-array (* 2 array-size)
 					 :fill-pointer fill-pointer)))
 	      (replace new-array array)
-	      (setf array (setf (rd-objects RD) new-array))))
+	      (setf array (setf (RD-objects RD) new-array))))
 	  (vector-push object-storage array)))))
-  (when (rd-initializer RD) (apply (rd-initializer RD) (os-object object-storage) parameters))
+  (when (RD-initializer RD) (apply (RD-initializer RD) (os-object object-storage) parameters))
   (values (os-object object-storage) object-storage))
 
 (defun deallocate-resource (name object &optional allocation-key
 			    &aux RD object-array object-index object-storage)
     (if allocation-key
-	(setf RD (car (os-use-cons allocation-key)) object-array (rd-objects RD)
+	(setf RD (car (os-use-cons allocation-key)) object-array (RD-objects RD)
 	      object-index (cdr (os-use-cons allocation-key)))
 	(setf RD (or (lookup-resource-descriptor name)
 		     (error "Can't deallocate nonexistent resource ~S" name))
-	      object-array (rd-objects RD)
+	      object-array (RD-objects RD)
 	      object-index (position object object-array
 				     :key #'os-object)))
     (unless object-index
-      (error "Can't deallocate object ~S: not present in resource ~S" object (rd-name RD)))
-    (with-lockf ((rd-lock RD) "Resource lock")
+      (error "Can't deallocate object ~S: not present in resource ~S" object (RD-name RD)))
+    (with-lock-held ((RD-lock RD) "Resource lock")
       (setf object-storage (aref object-array object-index))
-      (unless (os-use-cons object-storage)
+      (unless (cdr (os-use-cons object-storage))
 	(error "Can't deallocate object ~S: already deallocated from resource ~S"
-	       object (rd-name RD)))
+	       object (RD-name RD)))
       (unless (eql object (os-object object-storage))
-	(error "Can't deallocate object ~S: not present in resource ~S" object (rd-name RD)))
-      (when (rd-deinitializer RD)
-	(funcall (rd-deinitializer RD) (os-object object-storage)))
-      (setf (os-use-cons object-storage) nil)))
+	(error "Can't deallocate object ~S: not present in resource ~S" object (RD-name RD)))
+      (when (RD-deinitializer RD)
+	(funcall (RD-deinitializer RD) (os-object object-storage)))
+      (setf (cdr (os-use-cons object-storage)) nil)))
 
 (defmacro using-resource ((variable resource &rest parameters) &body body)
   (let ((allocation-key (make-symbol "ALLOCATION-KEY")))
@@ -227,7 +206,7 @@
 (defmacro letf-using-resource ((place resource &rest parameters) &body body)
   (let ((old-place (gensymbol 'letf-globally-temp))
 	(resource-variable (gensymbol resource 'temp))
-	(allocation-key (gensymbol "ALLOCATION-KEY")))
+	(allocation-key (gensymbol 'allocation-key)))
     `(let ((,resource-variable nil)
 	   (,allocation-key nil)
 	   (,old-place ,place))
@@ -239,35 +218,3 @@
 	 (setf ,place ,old-place)
 	 (when ,allocation-key (deallocate-resource ',resource ,resource-variable
 						    ,allocation-key))))))
-
-#|| ;;; Tests
-
-(defresource test (&optional (n 10))
-  :constructor (make-array n :fill-pointer 0)
-  :matcher (>= (array-dimension test 0) n)
-  :initializer (setf (fill-pointer test) 0)	;etc.
-  )
-
-(defresource test1 (x)
-  :constructor (make-array 10)
-  )
-
-(defresource drawing-state (&optional old-drawing-state)
-  :constructor (make-drawing-state)
-  :initializer (when old-drawing-state (replace drawing-state old-drawing-state)))
-
-(defmethod stream-drawing-state ((stream drawing-state-mixin))
-  (slot-value stream 'drawing-state))
-
-(defmethod (setf stream-drawing-state) (new-drawing-state (stream drawing-state-mixin))
-  (setf (slot-value stream 'drawing-state) new-drawing-state))
-
-(defmacro with-saved-drawing-state ((stream) &body body)
-  `(letf-using-resource ((stream-drawing-state ,stream) drawing-state
-			 (stream-drawing-state ,stream))
-     ,@body))
-
-(with-saved-drawing-state (*y-window*)
-  (apply-translation translation))
-
-||#

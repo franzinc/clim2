@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader$
+;; $fiHeader: clim.cl,v 1.2 92/01/02 15:09:08 cer Exp $
 
 (in-package :silica)
 

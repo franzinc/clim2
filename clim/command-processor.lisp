@@ -1,30 +1,10 @@
-;;; -*- Mode: LISP; Syntax: Common-lisp; Package: CLIM; Base: 10; Lowercase: Yes -*-
-;; 
-;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
-;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
-;;
-;; The software, data and information contained herein are proprietary
-;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
-;; given in confidence by Franz, Inc. pursuant to a written license
-;; agreement, and may be stored and used only in accordance with the terms
-;; of such license.
-;;
-;; Restricted Rights Legend
-;; ------------------------
-;; Use, duplication, and disclosure of the software, data and information
-;; contained herein by any agency, department or entity of the U.S.
-;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
-;;
+;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: command-processor.lisp,v 1.1 91/09/09 18:35:54 cer Exp Locker: cer $
+;; $fiHeader: command-processor.lisp,v 1.4 91/03/26 12:47:44 cer Exp $
 
-(in-package :clim)
+(in-package :clim-internals)
 
-"Copyright (c) 1990, 1991 Symbolics, Inc.  All rights reserved.
-Copyright (c) 1991, Franz Inc. All rights reserved
+"Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved.
  Portions copyright (c) 1989, 1990 International Lisp Associates."
 
 (defparameter *command-dispatchers* '(#\:))
@@ -64,7 +44,7 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 	   (declare (dynamic-extent #'command-help))
 	   (with-accept-help ((:top-level-help #'command-help))
 	     (multiple-value-bind (command final-delimiter)
-		 (invoke-command-name-parser-and-collect-internal 
+		 (invoke-command-name-parser-and-collect-1 
 		   command-name arg-parser delimiter-parser stream)
 	       (if (member final-delimiter *command-previewers*)
 		   (with-input-editor-typeout (stream)
@@ -77,7 +57,7 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 	           command))))
        (t (error "You can't get here from there")))))
 
-(defun invoke-command-name-parser-and-collect-internal
+(defun invoke-command-name-parser-and-collect-1
        (command-name arg-parser delimiter-parser stream)
   (declare (dynamic-extent arg-parser delimiter-parser))
   (let ((parser-function (get command-name 'command-parser))
@@ -97,7 +77,7 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 
 (defun parse-normal-arg (stream arg-type &rest options)
   (declare (dynamic-extent options))
-  (with-blip-characters (*command-argument-delimiters*)
+  (with-blip-gestures (*command-argument-delimiters*)
     (flet ((command-arg-help (stream action string-so-far)
 	     (declare (ignore action string-so-far))
 	     (write-string "You are being asked to enter " stream)
@@ -114,7 +94,7 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 
 (defun process-delimiter (stream &key activation-p echo-space)
   (let ((delimiter (read-gesture :stream stream)))
-    (when (and activation-p (activation-character-p delimiter))
+    (when (and activation-p (activation-gesture-p delimiter))
       (unread-gesture delimiter :stream stream)
       (when echo-space
 	;; If we're not finished yet, leave the activation character for later,
@@ -122,7 +102,7 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 	;; the echo of a default will come after the space.
 	;; Must REPLACE-INPUT after UNREAD-GESTURE so the delimiter is unread
 	;; into the input editor's buffer, not the underlying stream's buffer.
-	(when (interactive-stream-p stream)
+	(when (input-editing-stream-p stream)
 	  (unless (rescanning-p stream)
 	    (replace-input stream (string (first *command-argument-delimiters*)))))))
     delimiter))
@@ -137,9 +117,7 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 (define-presentation-method accept ((type keyword-argument-name) stream
 				    (view textual-view) &key)
   (flet ((print-keyword (possibility type stream)
-	   (with-output-as-presentation (:object (second possibility)
-					 :type type
-					 :stream stream
+	   (with-output-as-presentation (stream (second possibility) type
 					 :single-box t)
 	     (write-string (first possibility) stream)
 	     (let ((documentation (assoc (second possibility) keyword-documentation)))
@@ -181,11 +159,11 @@ Copyright (c) 1991, Franz Inc. All rights reserved
   (flet ((arg-parser (&rest args)
 	   (declare (ignore args))
 	   (cond (partial-command-args (pop partial-command-args))
-		 (t *unsupplied-argument*)))
+		 (t *unsupplied-argument-marker*)))
 	 (delimiter-parser (&rest args)
 	   (declare (ignore args))))
     (declare (dynamic-extent #'arg-parser #'delimiter-parser))
-    (invoke-command-name-parser-and-collect-internal 
+    (invoke-command-name-parser-and-collect-1 
       command-name #'arg-parser #'delimiter-parser 'ignore)))
 
 
@@ -209,9 +187,9 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 		  (let ((char (read-gesture :stream stream :timeout 0)))
 		    (when char
 		      (unread-gesture char :stream stream)
-		      (when (activation-character-p char)
+		      (when (activation-gesture-p char)
 			(throw 'stop-reading-command-arguments nil))))
-		  (prompt-for-accept stream 'keyword
+		  (prompt-for-accept stream 'keyword +textual-view+
 				     :prompt "keywords" :query-identifier '#:keywords))
 		 ((or (eq args-to-go :optional)
 		      (eq (first args-to-go) '&key))
@@ -220,7 +198,7 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 		  ;; Otherwise args-to-go is a list of the remaining argument specifiers
 		  ;; after reading the value of a positional argument
 		  (let ((char (process-delimiter stream :activation-p t)))
-		    (when (activation-character-p char)
+		    (when (activation-gesture-p char)
 		      (throw 'stop-reading-command-arguments nil))
 		    char))
 		 (t
@@ -228,7 +206,7 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 		  ;; other than the first positional argument
 		  (process-delimiter stream :activation-p t :echo-space t)))))
     (declare (dynamic-extent #'delimiter-parser))
-    (with-activation-characters (*command-previewers*)
+    (with-activation-gestures (*command-previewers*)
       (invoke-command-parser-and-collect
 	command-table #'parse-normal-arg #'delimiter-parser stream))))
 
@@ -247,7 +225,7 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 		      command-name))
 		   (t (let ((thing (pop args-to-go)))
 			(if (unsupplied-argument-p thing)
-			    (with-text-face (:italic stream)
+			    (with-text-face (stream :italic)
 			      (write-string "<Unsupplied>" stream))
 			    (present thing presentation-type :stream stream
 				     :acceptably acceptably
@@ -257,11 +235,11 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 	     (if args-to-go			;only if there are still arguments remaining
 		 (unless (member delimiter-args-to-go '(:end :keywords))
 		   (write-string " " stream))
-	       ;; If there are no more args to go, we're done.  Stopping this
-	       ;; way allows us to gracefully stop unparsing when there are 
-	       ;; keyword arguments in the command template that are unsupplied
-	       ;; in the command object.
-	       (return-from command-line-command-unparser nil))))
+		 ;; If there are no more args to go, we're done.  Stopping this
+		 ;; way allows us to gracefully stop unparsing when there are 
+		 ;; keyword arguments in the command template that are unsupplied
+		 ;; in the command object.
+		 (return-from command-line-command-unparser nil))))
       (declare (dynamic-extent #'reverse-parser #'delimiter-parser))
       (invoke-command-parser-and-collect
 	command-table #'reverse-parser #'delimiter-parser stream))))
@@ -280,16 +258,16 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 
 (defun command-line-read-remaining-arguments-for-partial-command
        (partial-command command-table stream start-location &key for-accelerator)
-  (let* ((last-supplied (position *unsupplied-argument* partial-command
+  (let* ((last-supplied (position *unsupplied-argument-marker* partial-command
 				  :from-end t :test-not #'eql))
 	 (unsupplied-before-that (and last-supplied
-				      (position *unsupplied-argument* partial-command
+				      (position *unsupplied-argument-marker* partial-command
 						:end last-supplied :from-end t)))
 	 (command-type `(command :command-table ,command-table))
 	 (for-context-type (least-specific-matching-context-type command-type)))
     (cond ((or unsupplied-before-that for-accelerator)
 	   ;; If the unsupplied argument is not the last argument in the
-	   ;; command line, we go through the AVV command parser.
+	   ;; command line, we go through the ACCEPTING-VALUES command parser.
 	   (let ((command
 		   (with-input-editor-typeout (stream)
 		     (accept-values-command-parser
@@ -334,7 +312,7 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 	     ;; the appropriate element of the partial command structure.  
 	     (let* ((default (if copy-partial-command
 				 (pop copy-partial-command)
-				 *unsupplied-argument*)))
+				 *unsupplied-argument-marker*)))
 	       (with-presentation-type-decoded (type-name parameters) presentation-type
 		 (when (eql type-name 'command-name)
 		   (return-from arg-parser (values command-name presentation-type)))
@@ -355,9 +333,9 @@ Copyright (c) 1991, Franz Inc. All rights reserved
       (let ((command
 	      (accepting-values (stream :own-window own-window)
 		(fresh-line stream)
-		(with-output-recording-options (stream :record-p t)
+		(with-output-recording-options (stream :record t)
 		  (updating-output (stream :unique-id '#:header :cache-value t)
-		    (with-text-face (:italic stream)
+		    (with-text-face (stream :italic)
 		      (format stream "Specify arguments for ")
 		      (present command-name `(command-name :command-table ,command-table)
 			       :stream stream)
@@ -375,7 +353,7 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 
 ;;; Menu-only interaction style
 
-(defun menu-only-command-parser (command-table stream)
+(defun menu-command-parser (command-table stream &key timeout)
   (with-stack-list (command-type 'command ':command-table command-table)
     (with-command-table-keystrokes (keystrokes command-table)
       (with-input-context (command-type :override t)
@@ -386,32 +364,38 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 		  (declare (dynamic-extent args) (ignore args))
 		  (multiple-value-prog1
 		    ;; For subsequent command args it makes no sense to still be "within"
-		    ;; the superior context because you can't "back up" to edit things.
+		    ;; the inherited context because you can't "back up" to edit things.
 		    ;; The only interesting context is the current argument.
-		    ;; --- This one requires some thought, though.  What about 
-		    ;; contexts superior to COMMAND?
 		    (with-input-context (presentation-type :override (not first-arg))
 					(object type)
 			 (if keystrokes
 			     (loop
-			       (let ((keystroke
-				       (block keystroke
-					 (handler-bind
-					     ((accelerator-gesture
-						#'(lambda (c)
-						    (return-from keystroke
-						      (accelerator-gesture-event c)))))
-					   (let ((*accelerator-characters* keystrokes))
-					     (read-gesture :stream stream))))))
+			       (multiple-value-bind (keystroke numeric-arg)
+				   (block keystroke
+				     (handler-bind
+				       ((accelerator-gesture
+					  #'(lambda (c)
+					      (return-from keystroke
+						(values
+						  (accelerator-gesture-event c)
+						  (accelerator-gesture-numeric-argument c))))))
+				       (let ((*accelerator-gestures* keystrokes))
+					 (read-gesture :stream stream :timeout timeout))))
+				 (when (eql numeric-arg :timeout)
+				   (return-from menu-command-parser nil))
 				 (when (characterp keystroke)
 				   (let ((command (lookup-keystroke-command-item
 						    keystroke command-table
-						    :test #'char-equal)))
+						    :test #'char-equal
+						    :numeric-argument numeric-arg)))
 				     (when (presentation-typep command command-type)
-				       (return-from menu-only-command-parser
+				       (return-from menu-command-parser
 					 (values command command-type)))))
 				 (beep)))
-			     (read-token stream :click-only t))
+			     (let ((token (read-token stream :click-only t :timeout timeout)))
+			       (if (eql token :timeout)
+				   (return-from menu-command-parser nil)
+				   token)))
 		       (t (values object type)))
 		    (setq first-arg nil)))
 		(menu-delimiter (stream args-to-go)
@@ -423,7 +407,7 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 		 command-table #'menu-parser #'menu-delimiter stream)))
 	 (t (values command type))))))
 
-(defun menu-only-read-remaining-arguments-for-partial-command
+(defun menu-read-remaining-arguments-for-partial-command
        (partial-command command-table stream start-location &key for-accelerator)
   (declare (ignore start-location for-accelerator))
   (flet ((reverse-parser (stream presentation-type &rest args)
@@ -432,10 +416,13 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 		 (arg (pop partial-command)))
 	     (cond ((and arg-p (not (unsupplied-argument-p arg)))
 		    (return-from reverse-parser (values arg presentation-type)))
-		   (t (with-input-context (presentation-type :override t)
-					  (object type)
-			   (read-token stream :click-only t)
-			 (t (values object type)))))))
+		   (t 
+		    ;; Override the command context so that only objects
+		    ;; have this exact presentation type are sensitive
+		    (let ((*input-context* nil))
+		      ;;--- We really don't want to allow keyboard input...
+		      (accept presentation-type :stream stream 
+						:prompt nil :replace-input nil))))))
 	 (menu-delimiter (stream args-to-go)
 	   (declare (ignore stream))
 	   (when (only-keyword-args-remain args-to-go)
@@ -515,7 +502,7 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 	    completion-alist-tick *completion-cache-tick*))
     (flet ((enabled-p (command)
 	     (or (null frame)
-		 (command-enabled-p command frame))))
+		 (command-enabled command frame))))
       (declare (dynamic-extent #'enabled-p))
       (complete-from-possibilities string completion-alist '(#\space)
 				   :action action :predicate #'enabled-p))))
@@ -528,7 +515,7 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 
 (define-presentation-method accept ((type command) stream (view textual-view) &key)
   (setq command-table (find-command-table command-table))
-  (let ((start-position (and (interactive-stream-p stream)
+  (let ((start-position (and (input-editing-stream-p stream)
 			     (input-position stream)))
 	;; this also requires some thought, but I suspect that
 	;; we can just kludge it this way in this presentation type,
@@ -602,13 +589,13 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 				    &rest args)
   (declare (dynamic-extent args))
   (let ((p-t `(command :command-table ,command-table))
-	(start-position (and (interactive-stream-p stream)
+	(start-position (and (input-editing-stream-p stream)
 			     (input-position stream)))
 	(replace-input-p nil))
     (multiple-value-bind (object type)
 	(with-input-context (p-t) (command command-presentation-type nil options)
 	     (with-input-context ('form) (form form-presentation-type nil options)
-		  (let ((gesture (read-gesture :stream stream :peek-p t)))
+		  (let ((gesture (read-gesture :stream stream :peek-p T)))
 		    (cond ((and (characterp gesture)
 				(find gesture *command-dispatchers* :test #'char-equal))
 			   (read-gesture :stream stream)	;get out the colon
@@ -699,18 +686,22 @@ Copyright (c) 1991, Franz Inc. All rights reserved
   (let ((*command-parser* command-parser)
 	(*command-unparser* command-unparser)
 	(*partial-command-parser* partial-command-parser))
-    (let ((command
-	    (block keystroke
-	      (handler-bind ((accelerator-gesture
-			       #'(lambda (c)
-				   (return-from keystroke
-				     (accelerator-gesture-event c)))))
-		(let ((*accelerator-characters* keystrokes))
-		  (accept `(command :command-table ,command-table)
-			  :stream stream :prompt nil))))))
+    ;; NUMERIC-ARG only applies when we read a keystroke accelerator
+    (multiple-value-bind (command numeric-arg)
+	(block keystroke
+	  (handler-bind ((accelerator-gesture
+			   #'(lambda (c)
+			       (return-from keystroke
+				(values
+				  (accelerator-gesture-event c)
+				  (accelerator-gesture-numeric-argument c))))))
+	    (let ((*accelerator-gestures* keystrokes))
+	      (accept `(command :command-table ,command-table)
+		      :stream stream :prompt nil))))
       (if (characterp command)
 	  (let ((command (lookup-keystroke-command-item command command-table
-							:test keystroke-test)))
+							:test keystroke-test
+							:numeric-argument numeric-arg)))
 	    (if (partial-command-p command)
 		(funcall *partial-command-parser*
 			 command command-table stream nil :for-accelerator t)
@@ -750,8 +741,8 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 	(setq tester `(,tester-args
 		       ,@declarations
 		       ,doc-string
-		       (and (command-enabled-p ',command-name
-					       ,(find 'frame tester-args :test #'string=))
+		       (and (command-enabled ',command-name
+					     ,(find 'frame tester-args :test #'string=))
 			    ,@body))))
       (multiple-value-bind (doc-string declarations body)
 	  (extract-declarations body env)
@@ -770,7 +761,9 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 	      ;; The pointer documentation defaults to the name of the command,
 	      ;; not the documentation.  This is a speed bum.
 	      :pointer-documentation ,(or pointer-documentation
-					  (command-name-from-symbol command-name))
+					  (if (stringp documentation)
+					      documentation
+					      (command-name-from-symbol command-name)))
 	      :menu ,menu
 	      :priority ,priority
 	      :tester-definitive t
@@ -815,14 +808,14 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 	       (type (command-menu-item-type menu-item)))
 	  (and (or (eql type ':command)
 		   (eql type ':function))
-	       (command-enabled-p
+	       (command-enabled
 		 (command-name (extract-command-menu-item-value menu-item event))
 		 *application-frame*))))
      :tester-definitive t
      ;; The pointer-documentation uses this, too
      :documentation
        ((object presentation context-type frame event window x y stream)
-	(let ((documentation (getf (third object) :documentation)))
+	(let ((documentation (getf (command-menu-item-options (third object)) :documentation)))
 	  (if documentation
 	      (write-string documentation stream)
 	      (document-presentation-to-command-translator
@@ -865,6 +858,6 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 	(write-string "Menu" stream)))
     (object window)
   (values
-    (menu-choose-command-from-command-table
+    (menu-execute-command-from-command-table
       (command-menu-item-value (third object))
       :associated-window window :cache t)))

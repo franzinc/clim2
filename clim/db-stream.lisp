@@ -21,7 +21,7 @@
 ;;;
 ;;; Copyright (c) 1990 by Xerox Corporations.  All rights reserved.
 ;;;
-;; $fiHeader: db-stream.lisp,v 1.4 92/01/02 15:33:09 cer Exp Locker: cer $
+;; $fiHeader: db-stream.lisp,v 1.5 92/01/06 20:44:18 cer Exp $
 
 
 (in-package :clim-internals)
@@ -32,7 +32,7 @@
 ;;; New Stream Pane
 ;;;
 
-(defclass clim-pane-stream-mixin (basic-output-recording window-stream)
+(defclass clim-pane-stream-mixin (#+ignore output-recording-mixin window-stream)
     ()
   (:default-initargs :medium t))
 
@@ -71,17 +71,13 @@
 				 sheet-permanently-enabled-mixin
 				 sheet-mute-input-mixin
 				 sheet-multiple-child-mixin
-				 
-					;sheet
-					
-					;sheet-transformation-mixin
-					;standard-repainting-medium
-					;standard-sheet-input-mixin
-					;permanent-medium-sheet-output-mixin
-				 
+				 ;;sheet
+				 ;;sheet-transformation-mixin
+				 ;;standard-repainting-medium
+				 ;;standard-sheet-input-mixin
+				 ;;permanent-medium-sheet-output-mixin
 				 mute-repainting-mixin
-				 
-				 silica::space-req-mixin
+				 silica::space-requirement-mixin
 				 )
 	  ()
   (:default-initargs :medium t 
@@ -126,7 +122,7 @@
 #+ignore
 (defmethod allocate-space :after ((pane extended-stream-pane) width height)
   (declare (ignore width height))
-  (ecase (graft-origin (graft pane))
+  (ecase (graft-origin (sheet-graft pane))
     (:nw)
     (:sw
      (let ((xform (sheet-transformation pane)))
@@ -141,7 +137,7 @@
        (setf (sheet-transformation pane) xform)))))
 
 (defmethod pane-stream ((pane extended-stream-pane))
-  (unless (port pane) 
+  (unless (sheet-port pane) 
     (error "Can't call pane-stream on ~a until it's been grafted!"
 	   pane))
   pane)
@@ -158,11 +154,14 @@
 ;;; to represent the size of the contents, but may be stretched to fill the
 ;;; available viewport space.
 
-(defmethod silica::change-space-req :around ((pane extended-stream-pane) &rest keys &key width height)
+(defmethod change-space-requirement :around
+	   ((pane extended-stream-pane) &rest keys &key width height)
   (declare (dynamic-extent keys))
   ;; Assume always called with width height
   (multiple-value-bind (history-width history-height)
-      (bounding-rectangle-size (output-recording-stream-output-record pane))
+      (if (stream-current-output-record pane)
+	  (bounding-rectangle-size (stream-current-output-record pane))
+	  (values width height))
     ;; Don't ever shrink down smaller than our contents.
     (apply #'call-next-method pane :width (max width history-width) :height (max height history-height) keys)))
 
@@ -206,19 +205,18 @@
 		    ,@(when slot-name
 			`((setq ,slot-name ,pane)))
 		    (vertically ()
-				(,(ecase scroll-bars
-				    (:both 'scrolling)
-				    (:vertical 'vscrolling)
-				    (:horizontal 'hscrolling)
-				    ((nil) 'ws::viewing))
-				 (:subtransformationp t
-				  ,@(unless scroll-bars
-				      `(:controller ,pane))
-				  ,@(copy-list parent-options))
-				 ,pane)
-				,@(when label
-				    `((make-pane 'ws::label-pane :text ,label
-						 :hs+ +fill+)))))))))
+		      (,(ecase scroll-bars
+			  (:both 'scrolling)
+			  (:vertical 'vscrolling)
+			  (:horizontal 'hscrolling)
+			  ((nil) 'ws::viewing))
+			  (:subtransformationp t
+			    ,@(unless scroll-bars `(:controller ,pane))
+			    ,@(copy-list parent-options))
+			,pane)
+		      ,@(when label
+			  `((make-pane 'ws::label-pane :text ,label
+				       :hs+ +fill+)))))))))
   
 (defmacro make-clim-interactor ((&optional slot-name &rest clim-pane-options)
 				&rest pane-options)
@@ -229,3 +227,14 @@
   `(make-clim-pane (,slot-name :type 'clim-interactor ,@clim-pane-options)
 		   ,@pane-options))
 
+
+#+Silica
+(defmethod (setf window-visibility) (nv (stream extended-stream-pane))
+  (if nv 
+      (enable-frame (pane-frame stream))
+    (disable-frame (pane-frame stream))))
+
+#+Silica
+;;--- This is wrong
+(defmethod window-visibility ((stream extended-stream-pane))
+  t)

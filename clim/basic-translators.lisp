@@ -1,30 +1,10 @@
-;;; -*- Mode: LISP; Syntax: Common-lisp; Package: CLIM; Base: 10; Lowercase: Yes -*-
-;; 
-;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
-;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
-;;
-;; The software, data and information contained herein are proprietary
-;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
-;; given in confidence by Franz, Inc. pursuant to a written license
-;; agreement, and may be stored and used only in accordance with the terms
-;; of such license.
-;;
-;; Restricted Rights Legend
-;; ------------------------
-;; Use, duplication, and disclosure of the software, data and information
-;; contained herein by any agency, department or entity of the U.S.
-;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
-;;
+;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: basic-translators.lisp,v 1.1 91/09/09 18:42:21 cer Exp Locker: cer $
+;; $fiHeader: basic-translators.lisp,v 1.4 91/03/26 12:47:05 cer Exp $
 
-(in-package :clim)
+(in-package :clim-internals)
 
-"Copyright (c) 1990, 1991 Symbolics, Inc.  All rights reserved."
-"Copyright (c) 1991, Franz Inc. All rights reserved"
+"Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved."
 
 ;; The translator that normally runs.
 (define-presentation-translator identity
@@ -36,7 +16,8 @@
 		     (let ((*print-length* 3)
 			   (*print-level* 3)
 			   (*print-pretty* nil))
-		       (present object (presentation-type presentation) :stream stream)))
+		       (present object (presentation-type presentation) 
+				:stream stream :view +pointer-documentation-view+)))
      :gesture :select)
     (object presentation)
   (values object (presentation-type presentation)))
@@ -48,32 +29,18 @@
     (with-presentation-type-decoded (context-name context-parameters) context-type
       (if (eq type-name 'blank-area)
 	  (eq context-name 'blank-area)
-	;; Let MENU-ITEM-IDENTITY take care of pure menu items
+	;; Let MENU-ITEM-IDENTITY (defined later) take care of pure menu items
 	(unless (and (eq type-name 'menu-item)
 		     (eq context-name 'menu-item))
 	  ;; Either the types definitely match, or the types nominally match
 	  ;; and the object must be validated.
 	  (or (presentation-subtypep type context-type)
 	      (and (not (null context-parameters))
-		   (presentation-subtypep type-name context-name)
-		   (presentation-typep object context-type))))))))
-
-(eval-when (compile load eval)
-  (warn "You really want to remove this"))
-(define-presentation-type menu-item ())
-
-;; This translator is here to compute menu item documentation
-(define-presentation-translator menu-item-identity
-    (menu-item menu-item global-command-table
-     :priority 1		;prefer this to IDENTITY
-     :tester-definitive t
-     :documentation ((object stream)
-		     (let ((documentation (or (menu-item-documentation object)
-					      (menu-item-display object))))
-		       (write documentation :stream stream :escape nil)))
-     :gesture :select)
-    (object presentation)
-  (values object (presentation-type presentation)))
+		   ;; Can't blithely call PRESENTATION-SUBTYPEP on the type name
+		   ;; when that type requires parameters
+		   (not (member type-name *presentation-type-parameters-are-types*))
+		   (or (presentation-subtypep type-name context-name)
+		       (presentation-typep object context-type)))))))))
 
 ;; Only the PRESENTATION-MENU translator lives in this
 (make-command-table 'presentation-menu-command-table :inherit-from nil)
@@ -164,6 +131,7 @@
     (object presentation)
   (quote-expression-if-necessary object (presentation-type presentation)))
 
+
 ;; Display some more of a history display
 (define-presentation-action display-rest-of-history
     (display-rest-of-history nil global-command-table
@@ -172,3 +140,14 @@
     (object window)
   (display-history-contents (first object) window
 			    :start-index (second object) :string (third object)))
+
+(define-presentation-action yank-kill-ring-element
+    (kill-ring-element input-editor global-command-table
+     :gesture :select
+     :documentation "Yank this item from the kill ring")
+    (object context-type)
+  (let ((history (first object))
+	(element (cdr object)))
+    (with-presentation-type-parameters (input-editor context-type)
+      (history-replace-input history stream element)
+      (queue-rescan stream ':activation))))

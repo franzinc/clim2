@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: gadgets.cl,v 1.5 92/01/08 14:59:00 cer Exp Locker: cer $
+;; $fiHeader: gadgets.cl,v 1.6 92/01/17 17:49:45 cer Exp $
 
 (in-package :silica)
 
@@ -43,8 +43,7 @@
 	    :initform nil
 	    :reader gadget-value-changed-callback)))
 
-(defmethod value-changed-callback ((gadget gadget) (client t) (id t) (value
-								 t))
+(defmethod value-changed-callback ((gadget gadget) (client t) (id t) (value t))
   (when (gadget-value-changed-callback gadget)
     (invoke-callback-function
      (gadget-value-changed-callback gadget)
@@ -98,7 +97,7 @@
 (defclass labelled-gadget ()
 	  ((label :initarg :label
 		  :reader gadget-label))
-  (:default-initargs :label ""))
+  (:default-initargs :label nil))
 
 
 ;;;;;;;;;;;;;;;;;;;; The intent is that the real implementations
@@ -106,12 +105,12 @@
 
 ;; slider
 
-(defclass slider (value-gadget oriented-gadget)
+(defclass slider (value-gadget oriented-gadget labelled-gadget)
 	  ())
 
 ;; push-button
 
-(defclass silica::push-button (action-gadget labelled-gadget) 
+(defclass push-button (action-gadget labelled-gadget) 
 	  ())
 
 ;; scroll-bar
@@ -128,7 +127,7 @@
 ;; radio-box [exclusive-choice]
 ;; .. [inclusive-choice]
 
-(defclass silica::radio-box (value-gadget oriented-gadget) 
+(defclass radio-box (value-gadget oriented-gadget) 
 	  ())
 
 ;; menu-bar
@@ -162,8 +161,7 @@
 		 :contents ,contents
 		 ,@options))
 
-(defmethod realize-pane-internal ((framem frame-manager) (frame application-frame)
-				  name &rest options)
+(defmethod realize-pane-1 ((framem frame-manager) frame name &rest options)
   (apply #'make-instance 
 	 name
 	 :frame frame

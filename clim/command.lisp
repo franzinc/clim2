@@ -1,30 +1,10 @@
-;;; -*- Mode: LISP; Syntax: Common-lisp; Package: CLIM; Base: 10; Lowercase: Yes -*-
-;; 
-;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
-;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
-;;
-;; The software, data and information contained herein are proprietary
-;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
-;; given in confidence by Franz, Inc. pursuant to a written license
-;; agreement, and may be stored and used only in accordance with the terms
-;; of such license.
-;;
-;; Restricted Rights Legend
-;; ------------------------
-;; Use, duplication, and disclosure of the software, data and information
-;; contained herein by any agency, department or entity of the U.S.
-;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
-;;
+;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: command.lisp,v 1.10 91/08/05 14:29:06 cer Exp $
+;; $fiHeader: command.lisp,v 1.4 91/03/26 12:47:45 cer Exp $
 
-(in-package :clim)
+(in-package :clim-internals)
 
-"Copyright (c) 1990, 1991 Symbolics, Inc.  All rights reserved."
-"Copyright (c) 1991, Franz Inc. All rights reserved"
+"Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved."
 
 ;;; Command objects
 
@@ -32,14 +12,23 @@
 
 (defun-inline command-arguments (command) (rest command))
 
-(defvar *unsupplied-argument* '#:unsupplied-argument)
+(defvar *unsupplied-argument-marker* '#:unsupplied-argument)
+(defvar *numeric-argument-marker*    '#:numeric-argument)
+
+#+CLIM-1-compatibility
+(defvar *unsupplied-argument* *unsupplied-argument-marker*)
 
 (defun unsupplied-argument-p (arg)
-  (eql arg *unsupplied-argument*))
+  (eql arg *unsupplied-argument-marker*))
 
 (defun partial-command-p (command)
   (and (listp command)
-       (member *unsupplied-argument* (command-arguments command))))
+       (member *unsupplied-argument-marker* (command-arguments command))))
+
+(defun substitute-numeric-argument-marker (command numeric-arg)
+  (if (member *numeric-argument-marker* command)
+      (substitute numeric-arg *numeric-argument-marker* command)
+      command))
 
 
 ;;; Command tables
@@ -51,6 +40,8 @@
 
 (defvar *completion-cache-tick* 0)
 
+(define-protocol-class command-table ())
+
 ;; NAME is a symbol that names the command table.
 ;; INHERIT-FROM is a list of command tables from which this one inherits.
 ;; COMMANDS is a table of all the commands in this command table, which maps from the
@@ -60,8 +51,8 @@
 ;; in the form (MENU-NAME KEYSTROKE COMMAND-MENU-ITEM), where the menu item is of the
 ;; form (TYPE VALUE . OPTIONS).  MENU-TICK is incremented when MENU changes.
 ;; TRANSLATORS is the set of presentation translators for this command table.
-(defclass command-table
-	  ()
+(defclass standard-command-table 
+	  (command-table)
     ((name :reader command-table-name
 	   :initarg :name)
      (inherit-from :reader command-table-inherit-from
@@ -84,7 +75,8 @@
   (print-unreadable-object (command-table stream :type t :identity t)
     (write (command-table-name command-table) :stream stream :escape nil)))
 
-(defmethod (setf command-table-inherit-from) (new-inherit-from (command-table command-table))
+(defmethod (setf command-table-inherit-from) 
+	   (new-inherit-from (command-table standard-command-table))
   (with-slots (inherit-from completion-alist translators-cache) command-table
     (unless (eq new-inherit-from inherit-from)
       (setq inherit-from new-inherit-from)
@@ -104,7 +96,7 @@
 
 (defun find-command-table (name &key (errorp t))
   (check-type name (or command-table symbol))
-  (when (typep name 'command-table)
+  (when (command-table-p name)
     (return-from find-command-table name))
   (or (gethash name *all-command-tables*)
       (ecase errorp
@@ -122,12 +114,14 @@
     (when command-table
       (ecase errorp
 	((t)
-	 (error 'command-table-already-exists
-		:format-string "Command table ~S already exists"
-		:format-args (list name)))
+	 (cerror "Remove the command table and proceed"
+		 'command-table-already-exists
+		 :format-string "Command table ~S already exists"
+		 :format-args (list name))
+	 (remhash name *all-command-tables*))
 	((nil)
 	 (remhash name *all-command-tables*))))
-    (setq command-table (make-instance 'command-table
+    (setq command-table (make-instance 'standard-command-table
 				       :name name
 				       :inherit-from inherit-from))
     (process-command-table-menu command-table menu)
@@ -209,23 +203,24 @@
   (check-type name (or string null))
   (check-type keystroke (or character null))
   (when (command-present-in-command-table-p command-name command-table)
-    (if errorp
-	(error 'command-already-present
-	       :format-string "Command ~S already present in ~S"
-	       :format-args (list command-name command-table))
-      (remove-command-from-command-table command-name command-table)))
+    (when errorp
+      (cerror "Remove the command and proceed"
+	      'command-already-present
+	      :format-string "Command ~S already present in ~S"
+	      :format-args (list command-name command-table)))
+    (remove-command-from-command-table command-name command-table))
   (let ((menu-name nil)
 	(menu-options nil))
     (when menu
       (setq menu-name (if (consp menu) (first menu) menu))
       (when (eql menu-name t)
-	(setq menu-name (command-name-from-symbol command-name)))
+	(setq menu-name (or name (command-name-from-symbol command-name))))
       (check-type menu-name string)
       (setq menu-options (if (consp menu) (rest menu) nil)))
     (with-slots (commands) command-table
-      (setf (gethash command-name commands) (or name t))
-      (when name
-	(add-command-line-name-to-command-table command-table name command-name)))
+      (if name
+	  (add-command-line-name-to-command-table command-table name command-name)
+	  (setf (gethash command-name commands) t))
       (cond (menu
 	     (apply #'add-menu-item-to-command-table
 		    command-table menu-name ':command command-name
@@ -233,7 +228,7 @@
 		    menu-options))
 	    (keystroke
 	     (add-keystroke-to-command-table command-table keystroke ':command command-name
-					     :test test :errorp errorp))))
+					     :test test :errorp errorp)))))
   command-name)
 
 (defun remove-command-from-command-table (command-name command-table &key (errorp t))
@@ -241,13 +236,22 @@
   (setq command-table (find-command-table command-table))
   (unless (command-present-in-command-table-p command-name command-table)
     (when errorp
-      (error 'command-not-present
-	     :format-string "Command ~S not present in ~S"
-	     :format-args (list command-name command-table))))
-  (let ((name (command-line-name-for-command command-name command-table :errorp nil)))
-    (when name
-      (remove-command-line-name-from-command-table command-table name)))
-  ;; This knows too much about what the menu looks like, but what the heck
+      (cerror "Proceed without any special action"
+	      'command-not-present
+	      :format-string "Command ~S not present in ~S"
+	      :format-args (list command-name command-table))
+      (return-from remove-command-from-command-table)))
+  ;; This knows too much about what COMMAND-LINE-NAMES looks like
+  (let ((names (slot-value command-table 'command-line-names)))
+    (loop
+      (let ((index (position command-name names :key #'second)))
+	(cond (index
+	       (unless (= (1+ index) (fill-pointer names))
+		 (replace names names :start1 index :start2 (1+ index)))
+	       (decf (fill-pointer names))
+	       (incf *completion-cache-tick*))
+	      (t (return))))))
+  ;; And this knows too much about what MENU looks like, but what the heck
   (let ((menu (slot-value command-table 'menu))
 	(menu-items nil))
     (map nil #'(lambda (entry)
@@ -278,7 +282,8 @@
   (dolist (comtab (command-table-inherit-from command-table))
     (do-command-table-inheritance-1 function (find-command-table comtab))))
 
-(defmethod command-present-in-command-table-p (command-name (command-table command-table))
+(defmethod command-present-in-command-table-p 
+	   (command-name (command-table standard-command-table))
   (gethash command-name (slot-value command-table 'commands)))
 
 (defun command-accessible-in-command-table-p (command-name command-table)
@@ -302,12 +307,15 @@
 	     (slot-value (find-command-table command-table) 'commands))))
 
 (defun add-command-line-name-to-command-table (command-table name command-name)
+  (setq command-table (find-command-table command-table))
   (with-slots (command-line-names commands) command-table
     (when (null command-line-names)
       (setq command-line-names (make-array *command-table-size*
 					   :fill-pointer 0 :adjustable t)))
-    ;; Make the command directly accessible in the command table
-    (setf (gethash command-name commands) name)
+    ;; Make the command directly accessible in the command table, but
+    ;; don't change the primary name if there already is one
+    (unless (stringp (gethash command-name commands))
+      (setf (gethash command-name commands) name))
     ;;--- Use binary insertion on COMMAND-LINE-NAMES (completion aarrays)
     (remove-command-line-name-from-command-table command-table name)
     (vector-push-extend (list name command-name) command-line-names)
@@ -315,14 +323,17 @@
     (incf *completion-cache-tick*)))
 
 (defun remove-command-line-name-from-command-table (command-table name)
+  (setq command-table (find-command-table command-table))
   (with-slots (command-line-names commands) command-table
     ;;--- Use binary deletion on COMMAND-LINE-NAMES (completion aarrays)
     (let ((index (position name command-line-names
 			   :test #'string-equal :key #'first)))
       (when index
 	(let ((command-name (second (aref command-line-names index))))
-	  ;; No more command-line name for this command
-	  (setf (gethash command-name commands) t))
+	  (when (string-equal name (gethash command-name commands))
+	    ;; Remove the primary command-line name for this command,
+	    ;; but don't claim that the command does not exist
+	    (setf (gethash command-name commands) t)))
 	(unless (= (1+ index) (fill-pointer command-line-names))
 	  (replace command-line-names command-line-names :start1 index :start2 (1+ index)))
 	(decf (fill-pointer command-line-names))
@@ -382,7 +393,7 @@
 
 (defun add-menu-item-to-command-table (command-table string type value
 				       &key documentation (after ':end) keystroke
-					    (errorp t))
+					    text-style (errorp t))
   (check-type string (or string null))
   (check-type type (member :command :function :menu :divider))
   (check-type keystroke (or character null))
@@ -390,11 +401,12 @@
   (setq command-table (find-command-table command-table))
   (let ((old-item (and string (find-menu-item string command-table :errorp nil))))
     (when old-item
-      (if errorp
-	  (error 'command-already-present
-		 :format-string "Menu item ~S already present in ~S"
-		 :format-args (list string command-table))
-	(remove-menu-item-from-command-table command-table string))))
+      (when errorp
+	(cerror "Remove the menu item and proceed"
+		'command-already-present
+		:format-string "Menu item ~S already present in ~S"
+		:format-args (list string command-table)))
+      (remove-menu-item-from-command-table command-table string)))
   (when (eql type ':command)
     ;; Canonicalize command name to a command with the right number of
     ;; unsupplied argument markers.
@@ -405,14 +417,15 @@
       (when (and n-required
 		 (not (zerop n-required))
 		 (< n-supplied n-required))
-	(setq value (append value (make-list (- n-required n-supplied)
-					     :initial-element *unsupplied-argument*))))))
+	(setq value (append value 
+			    (make-list (- n-required n-supplied)
+				       :initial-element *unsupplied-argument-marker*))))))
   (with-slots (menu menu-tick commands keystrokes) command-table
     (incf menu-tick)
     (setq keystrokes nil)
-    (let* ((item (if documentation
-		     (list type value :documentation documentation)
-		     (list type value)))
+    (let* ((item `(,type ,value 
+		   ,@(and documentation `(:documentation ,documentation))
+		   ,@(and text-style `(:text-style ,text-style))))
 	   ;; Entries are of the form (MENU-NAME KEYSTROKE MENU-ITEM)
 	   (entry (list string keystroke item)))
       (when (null menu)
@@ -420,7 +433,7 @@
 			       :fill-pointer 0 :adjustable t)))
       (case after
 	((:start)
-	 (incf (fill-pointer menu))
+	 (vector-push-extend nil menu)		;extend the vector by 1
 	 (replace menu menu :start1 1 :start2 0)
 	 (setf (aref menu 0) entry))
 	((:end nil)
@@ -440,7 +453,7 @@
 		    (cond ((= index (1- (fill-pointer menu)))
 			   ;; Just add at end
 			   (vector-push-extend entry menu))
-			  (t (incf (fill-pointer menu))
+			  (t (vector-push-extend nil menu)
 			     (replace menu menu :start1 (+ index 2) :start2 (+ index 1))
 			     (setf (aref menu (+ index 1)) entry)))
 		  (error 'command-not-present
@@ -470,9 +483,10 @@
 	     (setq keystrokes nil))
 	    (t
 	     (when errorp
-	       (error 'command-not-present
-		      :format-string "Menu item ~S not present in ~S"
-		      :format-args (list string command-table))))))))
+	       (cerror "Proceed without any special action"
+		       'command-not-present
+		       :format-string "Menu item ~S not present in ~S"
+		       :format-args (list string command-table))))))))
 
 (defun map-over-command-table-menu-items (function command-table)
   (declare (dynamic-extent function))
@@ -485,7 +499,7 @@
   (declare (values menu-item command-table))
   (let* ((command-table (find-command-table command-table))
 	 (item (find menu-name (slot-value command-table 'menu)
-		     :test #'menu-name-equal :key 'first)))
+		     :test #'menu-name-equal :key #'first)))
     (when item
       (return-from find-menu-item
 	(values (third item) command-table))))
@@ -496,19 +510,20 @@
 
 (define-presentation-type command-menu-element ())
 
-;; This should never be called with acceptably T
+;; This should never be called with :ACCEPTABLY T
 (define-presentation-method present
 			    (element (type command-menu-element) stream (view textual-view)
 			     &key acceptably)
   (when acceptably
-    (error "We don't know how to print command-menu elements acceptably."))
+    (error "There is no way to print command-menu elements acceptably."))
   (let* ((menu (pop element))
 	 (keystroke (pop element))
 	 (item (pop element))
 	 (type (command-menu-item-type item))
 	 (command (and (or (eql type ':command)
 			   (eql type ':function))
-		       (extract-command-menu-item-value item t))))
+		       (extract-command-menu-item-value item t)))
+	 (text-style (getf (command-menu-item-options item) :text-style)))
     (flet ((body (stream)
 	     (if keystroke
 		 (format stream "~A (~C)" menu keystroke)
@@ -516,10 +531,12 @@
 	     (when (eql type ':menu)
 	       (write-string " >" stream))))
       (declare (dynamic-extent #'body))
-      (if (and command
-	       (not (command-enabled-p (command-name command) *application-frame*)))
-	  (with-text-style ('(nil :italic :smaller) stream) (body stream))
-	  (body stream)))))
+      (with-text-style (stream text-style)
+	(if (and command
+		 (not (command-enabled (command-name command) *application-frame*)))
+	    (with-text-style (stream '(nil :italic :smaller))
+	      (body stream))
+	    (body stream))))))
 
 (defparameter *command-table-menu-text-style*
 	      (parse-text-style '(:sans-serif :roman :large)))
@@ -527,37 +544,52 @@
 (defun display-command-table-menu (command-table stream
 				   &key max-width max-height
 					n-rows n-columns
-					inter-column-spacing inter-row-spacing 
+					x-spacing y-spacing 
 					(cell-align-x ':left) (cell-align-y ':top)
-					move-cursor)
+					(initial-spacing t) move-cursor)
   (unless (or max-width max-height)
     (multiple-value-bind (width height)
-	(let ((region (sheet-region stream)))
+	#+Silica (let ((region (sheet-region stream)))
 		   (values (bounding-rectangle-width region)
 			   (bounding-rectangle-height region)))
+	#-Silica (window-inside-size stream)
 	(unless max-width (setf max-width width))
 	(unless max-height (setf max-height height))))
   (let ((menu (slot-value (find-command-table command-table) 'menu)))
     (if (zerop (count-if #'(lambda (x) (not (null (first x)))) menu))
-	(with-text-face (:italic stream)
+	(with-text-face (stream :italic)
 	  (write-string "[No menu items]" stream))
         (formatting-item-list (stream :max-width max-width :max-height max-height
 				      :n-rows n-rows :n-columns n-columns
-				      :inter-column-spacing inter-column-spacing
-				      :inter-row-spacing inter-row-spacing
-				      :no-initial-spacing nil :move-cursor move-cursor)
+				      :x-spacing x-spacing :y-spacing y-spacing
+				      :initial-spacing initial-spacing
+				      :move-cursor move-cursor)
 	  (dovector (element menu)
 	    (cond ((eql (command-menu-item-type (third element)) :divider)
-		   ;;--- Draw a dividing line
-		   )
+		   (typecase (first element)
+		     (string
+		       (let ((text-style 
+			       (getf (command-menu-item-options (third element)) :text-style)))
+			 (with-text-style (stream text-style)
+			   (formatting-cell (stream :align-x cell-align-x
+						    :align-y cell-align-y)
+			     (write-string (first element) stream)))))
+		     (null
+		       ;;--- Draw a dividing line
+		       )))
 		  ((first element)
 		   (formatting-cell (stream :align-x cell-align-x :align-y cell-align-y)
 		     (present element 'command-menu-element
 			      :stream stream :single-box t)))))))))
 
-(defun menu-choose-command-from-command-table
+;; This doesn't actually need to execute the command itself, because it
+;; presents each of the menu items as COMMAND-MENU-ELEMENTs and establish
+;; an input context of COMMAND.  Thus the COMMAND-MENU-ELEMENT-TO-COMMAND
+;; and COMMAND-MENU-ELEMENT-TO-SUB-MENU translators will take care of
+;; executing the command.
+(defun menu-execute-command-from-command-table
        (command-table
-	&key (associated-window (frame-top-level-window *application-frame*))
+	&key (associated-window (frame-top-level-sheet *application-frame*))
 	     (default-style *command-table-menu-text-style*) label
 	     cache (unique-id command-table) (id-test #'eql) cache-value (cache-test #'eql))
   (setq command-table (find-command-table command-table))
@@ -566,35 +598,72 @@
   (let ((menu-items (slot-value command-table 'menu)))
     (with-menu (menu associated-window)
       #-silica (setf (window-label menu) label)
-      (with-text-style (default-style menu)
-	(flet ((menu-drawer (stream items)
-		 (formatting-item-list (stream :move-cursor nil)
-		   (dovector (item items)
-		     (cond ((eql (command-menu-item-type (third item)) :divider)
-			    ;;--- Draw a dividing line
-			    )
-			   ((first item)
-			    (formatting-cell (stream)
-			      (present item 'command-menu-element :stream stream))))))
-		 nil))
-	  (declare (dynamic-extent #'menu-drawer))
-	  ;; The translators below will ensure that we get only
+      (with-text-style (menu default-style)
+	(flet ((menu-choose-body (stream type)
+		 (declare (ignore type))
+		 (menu-choose-command-drawer stream menu-items nil)))
+	  (declare (dynamic-extent #'menu-choose-body))
+	  ;; The translators referred to above will ensure that we get only
 	  ;; valid, enabled commands
-	  (flet ((menu-choose-body (stream type)
-		   (declare (ignore type))
-		   (menu-drawer stream menu-items)))
-	    (declare (dynamic-extent #'menu-choose-body))
-	    (menu-choose-from-drawer
-	      menu `(command :command-table ,command-table) #'menu-choose-body
-	      :cache cache
-	      :unique-id unique-id :id-test id-test
-	      :cache-value cache-value :cache-test cache-test)))))))
+	  (menu-choose-from-drawer
+	    menu `(command :command-table ,command-table) #'menu-choose-body
+	    :cache cache
+	    :unique-id unique-id :id-test id-test
+	    :cache-value cache-value :cache-test cache-test))))))
 
-(defun extract-command-menu-item-value (menu-item gesture)
+(defun menu-choose-command-from-command-table
+       (command-table
+	&key (associated-window (frame-top-level-sheet *application-frame*))
+	     (default-style *command-table-menu-text-style*) label
+	     cache (unique-id command-table) (id-test #'eql) cache-value (cache-test #'eql))
+  (setq command-table (find-command-table command-table))
+  (unless cache-value
+    (setq cache-value (slot-value command-table 'menu-tick)))
+  (let ((menu-items (slot-value command-table 'menu)))
+    (with-menu (menu associated-window)
+      #-silica (setf (window-label menu) label)
+      (with-text-style (menu default-style)
+	(flet ((menu-choose-body (stream type)
+		 (menu-choose-command-drawer stream menu-items type)))
+	  (declare (dynamic-extent #'menu-choose-body))
+	  (multiple-value-bind (item gesture)
+	      (menu-choose-from-drawer
+		menu 'menu-item #'menu-choose-body
+		:cache cache
+		:unique-id unique-id :id-test id-test
+		:cache-value cache-value :cache-test cache-test)
+	    (when item
+	      (extract-command-menu-item-value (third item) gesture))))))))
+
+(defun menu-choose-command-drawer (stream items type)
+  (formatting-item-list (stream :move-cursor nil)
+    (dovector (item items)
+      (cond ((eql (command-menu-item-type (third item)) :divider)
+	     (typecase (first item)
+	       (string
+		 (let ((text-style 
+			 (getf (command-menu-item-options (third item)) :text-style)))
+		   (with-text-style (stream text-style)
+		     (formatting-cell (stream)
+		       (write-string (first item) stream)))))
+	       (null
+		 ;;--- Draw a dividing line
+		 )))
+	    ((first item)
+	     (formatting-cell (stream)
+	       (if type
+		   (with-output-as-presentation (stream item type
+						 :single-box T)
+		     (present item 'command-menu-element :stream stream))
+		   (present item 'command-menu-element :stream stream)))))))
+  nil)
+
+(defun extract-command-menu-item-value (menu-item gesture 
+					&optional (numeric-argument *numeric-argument*))
   (let ((type (command-menu-item-type menu-item))
 	(value (command-menu-item-value menu-item)))
     (if (eql type ':function)
-	(funcall value gesture *numeric-argument*)
+	(funcall value gesture numeric-argument)
         value)))
 
 
@@ -609,11 +678,12 @@
   (let ((old-item (find-keystroke-item character command-table
 				       :test test :errorp nil)))
     (when old-item
-      (if errorp
-	  (error 'command-already-present
-		 :format-string "Keystroke item ~S already present in ~S"
-		 :format-args (list character command-table))
-	(remove-keystroke-from-command-table command-table character :test test))))
+      (when errorp
+	(cerror "Remove the keystroke item and proceed"
+		'command-already-present
+		:format-string "Keystroke item ~S already present in ~S"
+		:format-args (list character command-table)))
+	(remove-keystroke-from-command-table command-table character :test test)))
   (add-menu-item-to-command-table command-table nil type value
 				  :documentation documentation
 				  :keystroke character :errorp nil))
@@ -661,7 +731,7 @@
       (return-from find-keystroke-item
 	(values (third entry) command-table))))
   (when errorp
-    (error 'command-not-accessible
+    (error 'command-not-present
 	   :format-string "Keystroke ~S has no menu item present in ~S"
 	   :format-args (list character command-table))))
 
@@ -688,15 +758,18 @@
 
 ;; Return a command associated with a keystroke iff it is enabled.
 ;; Otherwise, return the keystroke character.
-(defun lookup-keystroke-command-item (character command-table &key (test #'eql))
+(defun lookup-keystroke-command-item (character command-table
+				      &key (test #'eql) (numeric-argument 1))
   (let ((item (lookup-keystroke-item character command-table :test test)))
     (when item
       (let* ((type (command-menu-item-type item))
-	     (command (and (or (eql type ':command)
-			       (eql type ':function))
-			   (extract-command-menu-item-value item t))))
-	(when (command-enabled-p (command-name command) *application-frame*)
-	  (return-from lookup-keystroke-command-item command)))))
+	     (command 
+	       (and (or (eql type ':command)
+			(eql type ':function))
+		    (extract-command-menu-item-value item t numeric-argument))))
+	(when (command-enabled (command-name command) *application-frame*)
+	  (return-from lookup-keystroke-command-item
+	    (substitute-numeric-argument-marker command numeric-argument))))))
   character)
 
 (defmacro with-command-table-keystrokes ((keystrokes-var command-table) &body body)
@@ -727,10 +800,11 @@
 			    :key #'presentation-translator-name)))
       (cond (place
 	     (when errorp
-	       (error 'command-already-present
-		      :format-string "Translator ~S already present in ~S"
-		      :format-args (list (presentation-translator-name translator)
-					 command-table)))
+	       (cerror "Remove the translator and proceed"
+		       'command-already-present
+		       :format-string "Translator ~S already present in ~S"
+		       :format-args (list (presentation-translator-name translator)
+					  command-table)))
 	     (setf (aref translators place) translator))
 	    (t
 	     (when (null translators)
@@ -754,9 +828,10 @@
 	     (incf *translators-cache-tick*))
 	    (t
 	     (when errorp
-	       (error 'command-not-present
-		      :format-string "Translator ~S not present in ~S"
-		      :format-args (list translator-name command-table))))))))
+	       (cerror "Proceed without any special action"
+		       'command-not-present
+		       :format-string "Translator ~S not present in ~S"
+		       :format-args (list translator-name command-table))))))))
 
 (defun map-over-command-table-translators (function command-table &key (inherited t))
   (declare (dynamic-extent function))
@@ -773,7 +848,7 @@
 
 (defun find-presentation-translator (translator-name command-table &key (errorp t))
   (declare (values command command-table))
-  (when (typep translator-name 'presentation-translator)
+  (when (presentation-translator-p translator-name)
     (setq translator-name (presentation-translator-name translator-name)))
   (do-command-table-inheritance (comtab command-table)
     (let ((translator (find translator-name (slot-value comtab 'translators)
@@ -826,22 +901,24 @@
 	 nil)))
 
 (defun deduce-parser-let-bindings (arguments)
-  (let ((stuff nil)
+  (let ((required-bindings nil)
+	(keyword-bindings nil)
 	(mode nil)
 	default)
     (dolist (argument arguments)
+      (setq default nil)
       (cond ((valid-cp-lambda-list-keyword-p argument)
 	     (setq mode argument))
 	    ((and (eql mode '&key)
 		  (do ((l (cddr argument) (cddr l)))
 		      ((null l) nil)
-		    (when (eql (car l) :default)
-		      (setq default (cadr l))
+		    (when (eql (first l) :default)
+		      (setq default (second l))
 		      (return t))))
-	     (push `(,(first argument) ,default) stuff))
+	     (push `(,(first argument) ,default) keyword-bindings))
 	    (t
-	     (push `(,(first argument) ',*unsupplied-argument*) stuff))))
-    (nreverse stuff)))
+	     (push `(,(first argument) ',*unsupplied-argument-marker*) required-bindings))))
+    (values (nreverse required-bindings) (nreverse keyword-bindings))))
 
 (defun deduce-body-arglist (arguments)
   (let ((args nil)
@@ -875,11 +952,11 @@
 	    (:mentioned-default
 	      (setq keyword-clause `(,(first keyword-clause) ,(second keyword-clause)
 				     :default ,(cadr l)
-				     ,@(rem-keywords (cddr keyword-clause)
-						     '(:default :mentioned-default)))))
+				     ,@(remove-keywords (cddr keyword-clause)
+					 '(:default :mentioned-default)))))
 	    (:when
 	      (setq keyword-clause `(,(first keyword-clause) ,(second keyword-clause)
-				     ,@(rem-keywords (cddr keyword-clause) '(:when))))
+				     ,@(remove-keywords (cddr keyword-clause) '(:when))))
 	      (setq when t)
 	      (push `(and ,(cadr l) '(,keyword)) conditional-keywords))
 	    (:documentation
@@ -903,15 +980,15 @@
 	(prompt-p (not (eql (getf (cddr argument) ':prompt 'xyzzy) 'xyzzy)))
 	;; Documentation is ignored for required arguments, and is
 	;; handled elsewhere for keyword arguments
-	(args (rem-keywords (cddr argument) '(:gesture :documentation))))
+	(args (remove-keywords (cddr argument) '(:gesture :documentation))))
     (warn-if-presentation-type-specifier-invalid `(define-command) (second argument) env)
     (do* ((args args (cddr args))
 	  (keyword (car args) (car args)))
 	 ((null args))
       (unless (member keyword '(:view :default :default-type :history :provide-default
 				:prompt :prompt-mode :display-default
-				:activation-characters :additional-activation-characters
-				:blip-characters :additional-blip-characters))
+				:activation-gestures :additional-activation-gestures
+				:blip-gestures :additional-blip-gestures))
 	(warn "The option ~S in the argument description for ~S is unrecognized."
 	      keyword arg-name)))
     `(assign-argument-value ,arg-name
@@ -924,31 +1001,35 @@
 
 (defun write-command-parser (body-name arguments env)
   (let ((parser-name (gensymbol body-name 'command-parser))
-	(clauses nil)
-	(parser-bindings (deduce-parser-let-bindings arguments)))
-    (flet ((emit (form)
-	     (push form clauses)))
+	(required-clauses nil)
+	(keyword-clauses nil))
+    (multiple-value-bind (required-bindings keyword-bindings)
+	(deduce-parser-let-bindings arguments)
       (dorest (arguments-to-go arguments)
 	(let* ((argument (first arguments-to-go)))
 	  (when (valid-cp-lambda-list-keyword-p argument)
-	    ;; emit keyword parser and (return)
-	    (emit (process-keyword-args-expander (cdr arguments-to-go) env))
+	    ;; Emit keyword parser and (return)
+	    (push (process-keyword-args-expander (cdr arguments-to-go) env)
+		  keyword-clauses)
 	    (return))
-	  (emit
-	    (generate-parse-and-assign-clause argument env))
-	  (emit `(funcall delimiter-parser stream ',(rest arguments-to-go))))))
-    (if clauses
-	(values `(defun ,parser-name (arg-parser delimiter-parser stream)
-		   arg-parser delimiter-parser stream
-		   (macrolet ((assign-argument-value (arg-name to-what)
-				;; we use this prog1 to avoid useless
-				;; "unused variable" warnings under Genera 7.4
-				;; for (let ((x nil)) (setq x ...)).
-				`(setq ,arg-name (prog1 ,to-what ,arg-name))))
-		     (let ,parser-bindings
-		       ,@(nreverse clauses))))
-		parser-name)
-      (values nil 'do-nothing-parser))))
+	  (push (generate-parse-and-assign-clause argument env)
+		required-clauses)
+	  (push `(funcall delimiter-parser stream ',(rest arguments-to-go))
+		required-clauses)))
+      (if (or required-clauses keyword-clauses)
+	  (values `(defun ,parser-name (arg-parser delimiter-parser stream)
+		     arg-parser delimiter-parser stream
+		     (macrolet ((assign-argument-value (arg-name to-what)
+				  ;; we use this PROG1 to avoid useless
+				  ;; "unused variable" warnings under Genera 7.4
+				  ;; for (let ((x nil)) (setq x ...)).
+				  `(setq ,arg-name (prog1 ,to-what ,arg-name))))
+		       (let* ,required-bindings
+			 ,@(nreverse required-clauses)
+			 (let* ,keyword-bindings
+			   ,@(nreverse keyword-clauses)))))
+		  parser-name)
+	  (values nil 'do-nothing-parser)))))
 
 (defun write-command-argument-translators (command-name arguments
 					   &key command-table pointer-documentation)
@@ -964,29 +1045,40 @@
 	       (setq found-key t)))
 	    (t
 	     (incf count)
-	     (let ((arg-name (first argument))
-		   (gesture (getf (cddr argument) :gesture)))
-	       (when gesture
-		 (let ((arg-type (cadr argument)))
+	     (let* ((no-gesture '#:no-gesture)
+		    (arg-name (first argument))
+		    (gesture (getf (cddr argument) :gesture no-gesture)))
+	       (unless (eql gesture no-gesture)
+		 (let ((arg-type (cadr argument))
+		       (translator-options nil))
+		   (when (consp gesture)
+		     (dolist (indicator '(:tester :menu :priority :echo
+					  :documentation :pointer-documentation))
+		       (let ((option (getf (rest gesture) indicator)))
+			 (when option
+			   (setq translator-options
+				 (append translator-options `(,indicator ,option))))))
+		     (setq gesture (first gesture)))
 		   (unless (constantp arg-type)
 		     (error "It is illegal to define a translator on a non-constant presentation type"))
 		   (setq arg-type (eval arg-type))
 		   (let ((translator-name (fintern "~A-~A-~A-~A"
 						   arg-type 'to command-name 'translator)))
 		     (flet ((unsupplied (n)
-			      (make-list n :initial-element '*unsupplied-argument*)))
+			      (make-list n :initial-element '*unsupplied-argument-marker*)))
 		       (push `(define-presentation-to-command-translator ,translator-name
 				  (,arg-type ,command-name ,command-table
 				   :gesture ,gesture
-				   :pointer-documentation ,pointer-documentation)
+				   :pointer-documentation ,pointer-documentation
+				   ,@translator-options)
 				  (object)
 				,(if found-key
 				     `(list ,@(unsupplied n-required)
 					    ,(intern (string arg-name) *keyword-package*)
 					    object)
-				   `(list ,@(unsupplied count)
-					  object
-					  ,@(unsupplied (- n-required count 1)))))
+				     `(list ,@(unsupplied count)
+					    object
+					    ,@(unsupplied (- n-required count 1)))))
 			     definitions)))))))))
     definitions))
 
@@ -1041,11 +1133,14 @@
 	     (setf (get ',command-name 'n-required) ,n-required)
 	     (define-command-1 #',parser-name ',command-name)
 	     ,(when command-table
-		`(add-command-to-command-table ',command-name ',command-table
-					       :name ',command-line-name
-					       :menu ',menu-item
-					       :keystroke ',keystroke
-					       :errorp nil))
+		`(progn
+		   (remove-command-from-command-table ',command-name ',command-table
+						      :errorp nil)
+		   (add-command-to-command-table ',command-name ',command-table
+						 :name ',command-line-name
+						 :menu ',menu-item
+						 :keystroke ',keystroke
+						 :errorp nil)))
 	     ,@translators))))))
 
 

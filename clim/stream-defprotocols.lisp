@@ -1,30 +1,10 @@
-;;; -*- Mode: LISP; Syntax: Common-lisp; Package: CLIM; Base: 10; Lowercase: Yes -*-
-;; 
-;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
-;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
-;;
-;; The software, data and information contained herein are proprietary
-;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
-;; given in confidence by Franz, Inc. pursuant to a written license
-;; agreement, and may be stored and used only in accordance with the terms
-;; of such license.
-;;
-;; Restricted Rights Legend
-;; ------------------------
-;; Use, duplication, and disclosure of the software, data and information
-;; contained herein by any agency, department or entity of the U.S.
-;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
-;;
+;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: stream-defprotocols.lisp,v 1.1 91/11/25 10:01:16 cer Exp Locker: cer $
+;; $fiHeader: stream-defprotocols.lisp,v 1.4 91/03/26 12:48:55 cer Exp $
 
-(in-package :clim)
+(in-package :clim-internals)
 
-"Copyright (c) 1990, 1991 Symbolics, Inc.  All rights reserved.
-Copyright (c) 1991, Franz Inc. All rights reserved
+"Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved.
  Portions copyright (c) 1988, 1989, 1990 International Lisp Associates."
 
 ;;--- What about the "original self" (delegation) problem??
@@ -33,29 +13,32 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 (define-stream-protocol fundamental-input-stream)
 
 (defoperation stream-read-char fundamental-input-stream
-  ((stream fundamental-input-stream)))
+  ((stream fundamental-input-stream))
+  #+CLIM-uses-lisp-stream-functions (:no-defgeneric t))
 
 (defoperation stream-unread-char fundamental-input-stream
   ((stream fundamental-input-stream) character)
-  #+Genera (:selector :untyi))
+  #+CLIM-uses-lisp-stream-functions (:no-defgeneric t))
 
 (defoperation stream-read-char-no-hang fundamental-input-stream
-  ((stream fundamental-input-stream)))
+  ((stream fundamental-input-stream))
+  #+CLIM-uses-lisp-stream-functions (:no-defgeneric t))
 
 (defoperation stream-peek-char fundamental-input-stream
-  ((stream fundamental-input-stream)))
+  ((stream fundamental-input-stream))  
+  #+CLIM-uses-lisp-stream-functions (:no-defgeneric t))
 
 (defoperation stream-listen fundamental-input-stream
   ((stream fundamental-input-stream))
-  #+Genera (:selector :listen))
+  #+CLIM-uses-lisp-stream-functions (:no-defgeneric t))
 
 (defoperation stream-read-line fundamental-input-stream
   ((stream fundamental-input-stream))
-  #+Genera (:selector :line-in))		;the optional leader argument is not supported
+  #+CLIM-uses-lisp-stream-functions (:no-defgeneric t))
 
 (defoperation stream-clear-input fundamental-input-stream
   ((stream fundamental-input-stream))
-  #+Genera (:selector :clear-input))
+  #+CLIM-uses-lisp-stream-functions (:no-defgeneric t))
 
 ;;; The next three Genera-only generic functions allow CLIM streams to accept these
 ;;; Genera messages that do not have arguments compatible with the Gray functions.
@@ -79,7 +62,7 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 ;; Called from si:with-clim-compatible-input-editing
 (defoperation si:stream-compatible-input-editing fundamental-input-stream
   ((stream fundamental-input-stream)
-   continuation activation-character-p blip-character-p))
+   continuation activation-gesture-p blip-gesture-p))
 
 #+Genera
 ;; READ calls this directly
@@ -132,7 +115,7 @@ Copyright (c) 1991, Franz Inc. All rights reserved
   ((stream basic-extended-input-protocol) x y &key pointer))
 
 (defoperation stream-note-pointer-button-press basic-extended-input-protocol
-  ((stream basic-extended-input-protocol) pointer button shift-mask x y))
+  ((stream basic-extended-input-protocol) pointer button modifier-state x y))
 
 (defoperation stream-pointer-input-rectangle* basic-extended-input-protocol
   ((stream basic-extended-input-protocol) pointer &key left top right bottom)
@@ -143,7 +126,7 @@ Copyright (c) 1991, Franz Inc. All rights reserved
   (declare (values object type)))
 
 (defoperation prompt-for-accept basic-extended-input-protocol
-  ((stream basic-extended-input-protocol) type &rest accept-args))
+  ((stream basic-extended-input-protocol) type view &rest accept-args))
 
 
 ;;; Output
@@ -155,48 +138,55 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 ;;; This is not responsible for wrapping text.
 (defoperation stream-write-char fundamental-character-output-stream 
   ((stream fundamental-character-output-stream) char)
-  #+Genera (:selector :tyo))
-
-(defoperation stream-line-column fundamental-character-output-stream 
-	      ((stream fundamental-character-output-stream)))
-
-#+excl
-(defoperation excl::stream-interactive-force-output fundamental-character-output-stream 
-	      ((stream fundamental-character-output-stream)))
-
+  #+CLIM-uses-lisp-stream-functions (:no-defgeneric t))
 
 (defoperation stream-write-string fundamental-character-output-stream
   ((stream fundamental-character-output-stream) string &optional (start 0) end)
-  #+Genera (:selector :string-out))
+  #+CLIM-uses-lisp-stream-functions (:no-defgeneric t))
+
+(defoperation stream-terpri fundamental-character-output-stream
+  ((stream fundamental-character-output-stream))
+  #+CLIM-uses-lisp-stream-functions (:no-defgeneric t))
+
+(defoperation stream-fresh-line fundamental-character-output-stream
+  ((stream fundamental-character-output-stream))
+  #+CLIM-uses-lisp-stream-functions (:no-defgeneric t))
+
+(defoperation stream-force-output fundamental-output-stream
+  ((stream fundamental-output-stream))
+  #+CLIM-uses-lisp-stream-functions (:no-defgeneric t))
+
+(defoperation stream-finish-output fundamental-output-stream
+  ((stream fundamental-output-stream))
+  #+CLIM-uses-lisp-stream-functions (:no-defgeneric t))
+
+(defoperation stream-clear-output fundamental-output-stream
+  ((stream fundamental-output-stream))
+  #+CLIM-uses-lisp-stream-functions (:no-defgeneric t))
+
+(defoperation stream-line-column fundamental-output-stream
+  ((stream fundamental-output-stream))
+  #+CLIM-uses-lisp-stream-functions (:no-defgeneric t))
+
+(defoperation stream-start-line-p fundamental-output-stream
+  ((stream fundamental-output-stream))
+  #+CLIM-uses-lisp-stream-functions (:no-defgeneric t))
 
 (defoperation stream-scan-string-for-writing fundamental-character-output-stream
   ((stream fundamental-character-output-stream)
-   string medium start end style cursor-x max-x &optional glyph-buffer))
+   #+Silica medium
+   string start end style cursor-x max-x &optional glyph-buffer))
 
 (defoperation stream-scan-character-for-writing fundamental-character-output-stream
   ((stream fundamental-character-output-stream) character style cursor-x max-x))
 
-(defoperation stream-write-string-internal fundamental-character-output-stream
+(defoperation stream-write-string-1 fundamental-character-output-stream
   ((stream fundamental-character-output-stream) glyph-buffer start end font color x y))
 
-(defoperation stream-terpri fundamental-character-output-stream
-  ((stream fundamental-character-output-stream)))
-
-(defoperation stream-fresh-line fundamental-character-output-stream
-  ((stream fundamental-character-output-stream))
-  #+Genera (:selector :fresh-line))
-
-(defoperation stream-force-output fundamental-output-stream
+#+Allegro
+(defoperation excl::stream-interactive-force-output fundamental-output-stream
   ((stream fundamental-output-stream))
-  #+Genera (:selector :force-output))
-
-(defoperation stream-finish-output fundamental-output-stream
-  ((stream fundamental-output-stream))
-  #+Genera (:selector :finish))
-
-(defoperation stream-clear-output fundamental-output-stream
-  ((stream fundamental-output-stream))
-  #+Genera (:selector :clear-output))
+    #+CLIM-uses-lisp-stream-functions (:no-defgeneric t))
 
 #+Genera
 ;; FORMAT calls this directly
@@ -226,20 +216,22 @@ Copyright (c) 1991, Franz Inc. All rights reserved
   medium-foreground
   medium-background
   medium-text-style
-  medium-merged-text-style-valid
-  medium-merged-text-style
   medium-default-text-style
-  
   stream-merged-text-style
   stream-baseline
   stream-current-line-height
-  stream-vsp
+  stream-vertical-spacing
   stream-end-of-line-action
   stream-end-of-page-action
   stream-text-margin
   stream-default-view
   stream-display-device-type
   stream-output-glyph-buffer)
+
+#+CLIM-1-compatibility
+(define-compatibility-function (stream-vsp stream-vertical-spacing)
+			       (stream)
+  (stream-vertical-spacing stream))
 
 (defoperation stream-cursor-position* basic-extended-output-protocol
   ((stream basic-extended-output-protocol))
@@ -252,6 +244,9 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 ;; the current text output record.
 (defoperation stream-set-cursor-position*-internal basic-extended-output-protocol
   ((stream basic-extended-output-protocol) x y))
+
+(defoperation stream-increment-cursor-position* basic-extended-output-protocol
+  ((stream basic-extended-output-protocol) dx dy))
 
 (defoperation stream-ensure-cursor-visible basic-extended-output-protocol
   ((stream basic-extended-output-protocol) &optional x y))
@@ -271,10 +266,10 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 (defoperation stream-line-height basic-extended-output-protocol
   ((stream basic-extended-output-protocol) &optional text-style))
 
-(defoperation formatting-cell-internal basic-extended-output-protocol
+(defoperation invoke-formatting-cell basic-extended-output-protocol
   ((stream basic-extended-output-protocol) continuation
-   &key (align-x :left) (align-y :top) (record-type 'cell-output-record)
-	minimum-width minimum-height))
+   &key (align-x :left) (align-y :top) min-width min-height
+	(record-type 'standard-cell-output-record)))
 
 ;; not sure this is the right place...
 (defoperation incremental-redisplay basic-extended-output-protocol
@@ -287,52 +282,44 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 #+Genera
 (defoperation stream-compatible-cursor-position* basic-extended-output-protocol
   ((stream basic-extended-output-protocol) &optional unit)
-  #+Genera (:selector :read-cursorpos))
+  (:selector :read-cursorpos))
 
 #+Genera
 (defoperation stream-compatible-set-cursor-position* basic-extended-output-protocol
   ((stream basic-extended-output-protocol) x y &optional unit)
-  #+Genera (:selector :set-cursorpos))
+  (:selector :set-cursorpos))
 
 #+Genera
 (defoperation stream-compatible-increment-cursor-position* basic-extended-output-protocol
   ((stream basic-extended-output-protocol) x y &optional unit)
-  #+Genera (:selector :increment-cursorpos))
+  (:selector :increment-cursorpos))
 
 (define-stream-protocol drawing-state-mixin
   medium-ink
   medium-transformation
   medium-line-style
-  medium-+y-upward-p)
+  medium-+Y-upward-p)
 
-(defoperation silica::invoke-with-drawing-options drawing-state-mixin
-	      ((stream drawing-state-mixin) function &rest x))
+(defoperation invoke-with-drawing-options drawing-state-mixin
+  ((stream drawing-state-mixin) function &rest options))
 
-(defoperation silica::medium-draw-line* drawing-state-mixin
+;;--- This should get done by define-graphics-operation!
+(defoperation medium-draw-line* drawing-state-mixin
   ((stream drawing-state-mixin) from-x from-y to-x to-y))
 
-(defoperation silica::medium-draw-polygon* drawing-state-mixin
+(defoperation medium-draw-polygon* drawing-state-mixin
   ((stream drawing-state-mixin) list-of-x-and-ys closed filled))
 
-(defoperation silica::medium-draw-ellipse* drawing-state-mixin
+(defoperation medium-draw-ellipse* drawing-state-mixin
   ((stream drawing-state-mixin)  center-x center-y 
-				       radius-1-dx 
-				       radius-1-dy 
-				       radius-2-dx
-				       radius-2-dy 
-				       start-angle 
-				       end-angle 
-				       filled))
+				 radius-1-dx radius-1-dy radius-2-dx radius-2-dy 
+				 start-angle end-angle filled))
 
-(defoperation silica::medium-draw-rectangle* drawing-state-mixin
-  ((stream drawing-state-mixin)   from-x from-y to-x to-y filled))
-
-
-
-
+(defoperation medium-draw-rectangle* drawing-state-mixin
+  ((stream drawing-state-mixin)  from-x from-y to-x to-y filled))
 
 
-;;; Window protocol
+;;; window protocol
 
 #+Silica
 (define-stream-protocol window-mixin)
@@ -365,7 +352,7 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 (defoperation window-stack-on-bottom window-mixin
   ((window window-mixin)))
 
-(defoperation copy-area-internal window-mixin
+(defoperation copy-area window-mixin
   ((window window-mixin)
    from-left from-top from-right from-bottom to-left to-top))
 
@@ -445,39 +432,39 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 (defoperation window-beep window-mixin
   ((window window-mixin)))
 
-;;; What shift keys are presently down?
-(defoperation window-shift-mask window-mixin
+;;; What modifier keys are presently down?
+(defoperation window-modifier-state window-mixin
   ((window window-mixin)))
 
 )	;#-Silica
 
 
 ;;; Output recording.
-(define-stream-protocol basic-output-recording
-  stream-draw-p
-  stream-record-p
+(define-stream-protocol output-recording-mixin
+  stream-drawing-p
+  stream-recording-p
   stream-redisplaying-p
-  output-recording-stream-output-record
-  output-recording-stream-text-output-record
-  output-recording-stream-highlighted-presentation
-  output-recording-stream-current-output-record-stack
-  output-recording-stream-output-record-absolute-position
-  output-recording-stream-redisplay-output-record)
+  stream-output-history
+  stream-output-history-position
+  stream-current-output-record
+  stream-text-output-record
+  stream-current-redisplay-record
+  stream-highlighted-presentation)
 
-(defoperation add-output-record basic-output-recording
-  ((stream basic-output-recording) element))
+(defoperation stream-add-output-record output-recording-mixin
+  ((stream output-recording-mixin) record))
 
-(defoperation output-recording-stream-replay basic-output-recording
-  ((stream basic-output-recording) &optional region))
+(defoperation stream-replay output-recording-mixin
+  ((stream output-recording-mixin) &optional region))
 
-(defoperation with-output-recording-options-internal basic-output-recording
-  ((stream basic-output-recording) draw-p record-p continuation))
+(defoperation invoke-with-output-recording-options output-recording-mixin
+  ((stream output-recording-mixin) continuation record draw))
 
-(defoperation close-current-text-output-record basic-output-recording
-  ((stream basic-output-recording) &optional wrapped))
+(defoperation stream-close-text-output-record output-recording-mixin
+  ((stream output-recording-mixin) &optional wrapped))
 
 ;;; Graphics protocol is in defs-graphics-generics
-;;; Interactive protocol doesn't need to be encapsulated, for obvious reasons.
+;;; Input editing stream protocol doesn't need to be encapsulated, for obvious reasons.
 
 ;;; "Implementation" protocol
 (define-stream-protocol implementation-protocol)
@@ -502,23 +489,3 @@ Copyright (c) 1991, Franz Inc. All rights reserved
   ((pane pane-protocol)))
 
 )	;#+Silica
-
-
-;; Some silica stuff
-
-(define-stream-protocol port-etc-protocol
-			sheet-medium)
-
-(defoperation port port-etc-protocol
-	      ((stream port-etc-protocol)))
-
-#+ignore
-(generate-trampolines drawing-state-mixin drawing-state-mixin  
-		      encapsulating-stream-mixin
-		      `(slot-value ,encapsulating-stream-mixin
-				   'stream)
-		      *original-stream*)
-
-
-
-

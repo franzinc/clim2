@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: make-widget.cl,v 1.1 92/01/14 20:37:55 cer Exp Locker: cer $
+;; $fiHeader: make-widget.cl,v 1.2 92/01/17 17:49:16 cer Exp $
 
 (in-package :tk)
 

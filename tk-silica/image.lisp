@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader$
+;; $fiHeader: image.cl,v 1.2 92/01/02 15:09:40 cer Exp $
 
 
 (in-package :xm-silica)
@@ -57,9 +57,8 @@
 		   (kintern
 		    (substitute
 		     #\- #\_
-		     (#-excl string-upcase
-			     #+excl correct-case
-			     (subseq line start end))
+		     (#-Allegro string-upcase #+Allegro correct-case
+		       (subseq line start end))
 		     :test #'char=))))
 	    (when (null name)
 	      (setq name-end (position #\_ line :test #'char= :from-end t)

@@ -1,30 +1,10 @@
-;;; -*- Mode: LISP; Syntax: Common-lisp; Package: CLIM; Base: 10; Lowercase: Yes -*-
-;; 
-;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
-;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
-;;
-;; The software, data and information contained herein are proprietary
-;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
-;; given in confidence by Franz, Inc. pursuant to a written license
-;; agreement, and may be stored and used only in accordance with the terms
-;; of such license.
-;;
-;; Restricted Rights Legend
-;; ------------------------
-;; Use, duplication, and disclosure of the software, data and information
-;; contained herein by any agency, department or entity of the U.S.
-;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
-;;
+;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: translators.lisp,v 1.8 91/08/05 14:35:47 cer Exp $
+;; $fiHeader: translators.lisp,v 1.4 91/03/26 12:49:03 cer Exp $
 
-(in-package :clim)
+(in-package :clim-internals)
 
-"Copyright (c) 1990, 1991 Symbolics, Inc.  All rights reserved."
-"Copyright (c) 1991, Franz Inc. All rights reserved"
+"Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved."
 
 ;;; Presentation Translators.
 
@@ -68,13 +48,20 @@
       (tester-definitive :initform t :initarg :tester-definitive
 			 :reader presentation-translator-tester-definitive)))
 
+(defun-inline presentation-translator-p (object)
+  (typep object 'presentation-translator))
+
 (defmethod presentation-translator-command-name ((translator presentation-translator))
   nil)
 
 (defmethod print-object ((object presentation-translator) stream)
-  (print-unreadable-object (object stream :type t :identity t)
-    (with-slots (name from-type to-type) object
-      (format stream "~S (~S -> ~S)" name from-type to-type))))
+  (if *print-escape*
+      (print-unreadable-object (object stream :type t :identity t)
+	(with-slots (name from-type to-type) object
+	  (format stream "~S (~S -> ~S)" name from-type to-type)))
+      (print-unreadable-object (object stream :type t :identity t)
+	(with-slots (name from-type to-type) object
+	  (format stream "~S" name)))))
 
 ;; The :GESTURE in the list of options might better be called :GESTURE-NAME,
 ;; but that seems a bit compulsive.  The EVENT argument in the arglist is
@@ -163,14 +150,15 @@
         #'(lambda (thing string)
 	    (warn "~S is ~A in the to-type~:[ ~S~;~]."
 		  thing string (eq thing to-type) to-type))))
-    (unless (or (typep command-table 'command-table)  ;---is this possible?
+    (unless (or (command-table-p command-table)  ;---is this possible?
 		(and (symbolp command-table)
 		     (or (find-command-table command-table :errorp nil)
 			 (compile-time-property command-table 'command-table-name))))
       (warn "~S is not a defined command table name." command-table))
     (unless (and (symbolp gesture)
 		 (or (null gesture)
-		     (gesture-name-button-and-shifts gesture)
+		     (eql gesture 't)
+		     (gesture-name-button-and-modifiers gesture)
 		     (compile-time-property gesture 'gesture-name)))
       (warn "~S is not a defined gesture name." gesture))
     (check-type tester (or symbol list))
@@ -219,11 +207,10 @@
 	     :tester-definitive ',tester-definitive
 	     :translator-class ',translator-class
 	     ,@translator-functions
-	     ;; WITH-REM-KEYWORDS probably stack-conses...
-	     ,@(rem-keywords translator-keys
-			     '(:gesture :tester :tester-definitive
-			       :documentation :pointer-documentation
-			       :menu :priority :translator-class))))))))
+	     ;; WITH-KEYWORDS-REMOVED probably stack-conses...
+	     ,@(remove-keywords translator-keys
+		 '(:gesture :tester :tester-definitive :menu :priority
+		   :documentation :pointer-documentation :translator-class))))))))
 
 (defun define-presentation-translator-2 (translator-name from-type to-type command-table
 					 &rest init-keywords
@@ -232,9 +219,9 @@
 					      tester tester-definitive priority
 					 &allow-other-keys)
   (declare (dynamic-extent init-keywords))
-  (with-rem-keywords (init-keywords init-keywords
-				    '(:translator-class :gesture
-				      :pointer-documentation :tester-definitive :priority))
+  (with-keywords-removed (init-keywords init-keywords
+			  '(:translator-class :gesture
+			    :pointer-documentation :tester-definitive :priority))
     (let* ((translator-class
 	     (or translator-class 'presentation-translator))
 	   (translator
@@ -295,32 +282,39 @@
 	   (setq ,key ,name))
 	 ,@body))))
 
-(defun find-presentation-translators (from-type to-type frame)
-  (let ((command-table (find-command-table (frame-command-table frame))))
-    (with-slots (translators-cache) command-table
-      (let ((cache translators-cache))		;for speed...
-	(with-presentation-type-translator-key (from-key from-type)
-	  (with-presentation-type-translator-key (to-key to-type)
-	    (with-stack-list (key from-key to-key)
-	      (multiple-value-bind (translators found-p)
-		  (and cache (gethash key cache))
-		(cond ((or (null found-p)
-			   (/= (pop translators) *translators-cache-tick*))
-		       (let ((translators (find-presentation-translators-1 
-					    from-key to-key command-table)))
-			 (when (null cache)
-			   (setq translators-cache
-				 (make-hash-table :size *translators-cache-size*
-						  :test #'equal))
-			   (setq cache translators-cache))
-			 ;; Need to copy the whole tree, since the from- and to-keys
-			 ;; could themselves be stack-consed. 
-			 (setf (gethash (copy-tree key) cache)
-			       (cons *translators-cache-tick* translators))
-			 translators))
-		      (t
-		       ;; Already popped above
-		       translators))))))))))
+;; Returns a list of all translators that could possibly apply given
+;; FROM-TYPE and TO-TYPE, in priority order (where the first element
+;; is the highest priority translator).
+(defun find-presentation-translators (from-type to-type command-table)
+  #+CLIM-1-compatibility
+  (when (application-frame-p command-table)
+    (setq command-table (frame-command-table command-table)))
+  (setq command-table (find-command-table command-table))
+  (with-slots (translators-cache) command-table
+    (let ((cache translators-cache))		;for speed...
+      (with-presentation-type-translator-key (from-key from-type)
+	(with-presentation-type-translator-key (to-key to-type)
+	  (with-stack-list (key from-key to-key)
+	    (multiple-value-bind (translators found-p)
+		(and cache (gethash key cache))
+	      (cond ((or (null found-p)
+			 (/= (pop translators) *translators-cache-tick*))
+		     (let ((translators (find-presentation-translators-1 
+					  from-key to-key command-table)))
+		       (when (null cache)
+			 (setq translators-cache
+			       (make-hash-table :size *translators-cache-size*
+						:test #'equal))
+			 (setq cache translators-cache))
+		       ;; Need to copy the whole tree, since the from- and to-keys
+		       ;; could themselves be stack-consed. 
+		       (setf (gethash (copy-tree key) cache)
+			     (cons *translators-cache-tick* translators))
+		       translators))
+		    (t
+		     ;; Already popped above
+		     translators)))))))))
+
 
 ;;--- This traverses a lot of very non-local data structures (presentation types,
 ;;--- translators, command tables, etc).  What can we do to localize them?
@@ -338,16 +332,46 @@
 			    (presentation-subtypep translator-to-key to-key))
 		   ;; If we're looking for a translator from LMFS-PATHNAME to COMMAND
 		   ;; a PATHNAME->FOO-COMMAND translator should apply.
-		   (push translator translators))))))
+		   (pushnew translator translators))))))
       (declare (dynamic-extent #'collect-translators))
       (map-over-command-table-translators #'collect-translators command-table))
-    ;; Inherited translators should come after the ones in this command table
+    ;; The translator ordering is as follows, in this order:
+    ;;  - Translators with higher high-order priority precede ones with lower 
+    ;;    high-order priority
+    ;;  - Translators on more specific types precede ones on less specific types
+    ;;  - Translators with higher low-order priority precede ones with lower 
+    ;;    low-order priority
+    ;;  - Translators from this command table precede inherited translators
+    ;; First get the command table ordering correct.
     (setq translators (nreverse translators))
-    ;; Now sort by priority
-    ;;--- This is not a complete enough way to handle priorities.
-    ;;--- Should this also sort based on CLOS class precedence?
-    (setq translators (stable-sort translators #'>
-				   :key #'presentation-translator-priority))
+    ;; Then stable-sort by high-order priority, class precedence, and low-order
+    ;; priority.  The list of translators is usually short, so using a bubble
+    ;; sort will suffice.
+    (dorest (translators translators)
+      (dorest (remaining (cdr translators))
+	(let* ((translator1 (car translators))
+	       (type1 (presentation-translator-from-type translator1))
+	       (name1 (presentation-type-name type1))
+	       (translator2 (car remaining))
+	       (type2 (presentation-translator-from-type translator2))
+	       (name2 (presentation-type-name type2)))
+	  (multiple-value-bind (high1 low1)
+	      (floor (presentation-translator-priority translator1) 10)
+	    (multiple-value-bind (high2 low2)
+		(floor (presentation-translator-priority translator2) 10)
+	      (if (< high1 high2)
+		  (setf (car translators) translator2
+			(car remaining) translator1)
+		  (cond ((eql name1 name2)
+			 ;; If the two types are the same, then use the low
+			 ;; order part of the priority to break the tie
+			 (when (< low1 low2)
+			   (setf (car translators) translator2
+				 (car remaining) translator1)))
+			((presentation-subtypep type2 type1)
+			 ;; The second type is more specific than the first, swap.
+			 (setf (car translators) translator2
+			       (car remaining) translator1)))))))))
     translators))
 
 ;; Return a list of all classes that are not provably disjoint from CLASS
@@ -355,7 +379,7 @@
   (let ((class (find-presentation-type-class class)))
     (when (or (eql class (find-class 't))
 	      (eql class (find-class 'standard-object))
-              #+(or Genera Cloe-Runtime)
+              #+Symbolics			;Symbolics CLOS, that is
 	      (eql class (find-class 'clos:structure-object)))
       (return-from class-nondisjoint-classes t))
     (labels ((transitive-closure (function element set)
@@ -371,8 +395,12 @@
 
 (defun test-presentation-translator (translator presentation context-type
 				     frame window x y
-				     &key event (shift-mask 0) for-menu)
-  (and (presentation-translator-matches-event translator event shift-mask for-menu)
+				     &key event (modifier-state 0) for-menu
+					  #+CLIM-1-compatibility (shift-mask 0 shift-mask-p))
+  #+CLIM-1-compatibility
+  (when shift-mask-p
+    (setq modifier-state shift-mask))
+  (and (presentation-translator-matches-event translator event modifier-state for-menu)
        (test-presentation-translator-1 translator presentation context-type
 				       frame event window x y)))
 
@@ -402,39 +430,46 @@
 	  (declare (ignore translated-type))
 	  (presentation-typep translated-object context-type)))))
 
-;; EVENT is a button press event.  If it is NIL, then SHIFT-MASK should
-;; be the current shift mask.
-(defun presentation-translator-matches-event (translator event shift-mask
+;; EVENT is a button press event.  If it is NIL, then MODIFIER-STATE should
+;; be the current modifier state.
+(defun presentation-translator-matches-event (translator event modifier-state
 					      &optional for-menu)
   (let ((gesture-name (presentation-translator-gesture-name translator)))
     (or (eq gesture-name t)
 	for-menu
 	(if (null event)
-	    (shift-mask-matches-gesture-name shift-mask gesture-name)
+	    (modifier-state-matches-gesture-name modifier-state gesture-name)
 	    (button-press-event-matches-gesture-name event gesture-name)))))
 
 (defun button-press-event-matches-gesture-name (event gesture-name)
   (let ((button (pointer-event-button event))
-	(shift-mask (silica::event-modifier-key-state event)))
-    (declare (fixnum button shift-mask))
-    (button-and-shifts-matches-gesture-name
-     button shift-mask gesture-name)))
+	(modifier-state (event-modifier-state event)))
+    (declare (fixnum button modifier-state))
+    (button-and-modifier-state-matches-gesture-name
+      (- (integer-length button) #.(integer-length +pointer-left-button+))
+      modifier-state gesture-name)))
 
 (defvar *presentation-menu-translator* nil)
 
-;; Returns the first translator that matches the presentation in this context.
+;; Returns the higherst priority translator that matches the presentation
+;; in this context, or NIL if there is no matching translator.
 (defun presentation-matches-context-type (presentation context-type
 					  frame window x y
-					  &key event (shift-mask 0))
+					  &key event (modifier-state 0)
+					       #+CLIM-1-compatibility
+					       (shift-mask 0 shift-mask-p))
   (declare (values translator))
+  #+CLIM-1-compatibility
+  (when shift-mask-p
+    (setq modifier-state shift-mask))
   (let ((one-matched nil)
-	(translators
-	  (find-presentation-translators (presentation-type presentation)
-					 context-type frame)))
+	(translators 
+	  (find-presentation-translators 
+	    (presentation-type presentation) context-type (frame-command-table frame))))
     (when translators
       (dolist (translator translators)
 	(let ((by-gesture
-		(presentation-translator-matches-event translator event shift-mask))
+		(presentation-translator-matches-event translator event modifier-state))
 	      (by-tester
 		(test-presentation-translator-1 translator presentation context-type
 						frame event window x y)))
@@ -458,45 +493,55 @@
   nil)
 
 ;; When FASTP is T, that means "as soon as you find a matching translator, return
-;; that translator".  Otherwise, return a list of applicable translators.
+;; that translator".  Otherwise, return a list of all applicable translators.
 (defun find-applicable-translators (presentation input-context frame window x y
-				    &key event shift-mask (for-menu nil for-menu-p) fastp)
-  (let ((applicable-translators nil)
-	(from-type (presentation-type presentation)))
-    ;; Loop over the contexts, from the most specific to the least specific
-    (dolist (context input-context)
-      (let ((context-type (pop context))	;input-context-type = first
-	    (tag (pop context)))		;input-context-tag = second
-	(let ((translators (find-presentation-translators from-type context-type frame)))
-	  (when translators
-	    (dolist (translator translators)
-	      (when (and (or (not for-menu-p)
-			     (eql (presentation-translator-menu translator) for-menu))
-			 (test-presentation-translator translator
+				    &key event modifier-state (for-menu nil for-menu-p) fastp
+					 #+CLIM-1-compatibility (shift-mask nil shift-mask-p))
+  #+CLIM-1-compatibility
+  (when shift-mask-p
+    (setq modifier-state shift-mask))
+  (let ((applicable-translators nil))
+    (do ((presentation presentation
+		       (parent-presentation-with-shared-box presentation window)))
+	((null presentation))
+      (let ((from-type (presentation-type presentation)))
+	;; Loop over the contexts, from the most specific to the least specific
+	(dolist (context input-context)
+	  (let ((context-type (pop context))	;input-context-type = first
+		(tag (pop context)))		;input-context-tag = second
+	    (let ((translators (find-presentation-translators
+				 from-type context-type (frame-command-table frame))))
+	      (when translators
+		(dolist (translator translators)
+		  (when (and (or (not for-menu-p)
+				 (eql (presentation-translator-menu translator) for-menu))
+			     (test-presentation-translator translator
+							   presentation context-type
+							   frame window x y
+							   :event event 
+							   :modifier-state modifier-state
+							   :for-menu for-menu))
+		    (when fastp
+		      (return-from find-applicable-translators translator))
+		    ;; Evacuate the context-type, but don't bother evacuating the
+		    ;; tag since it will get used before its extent expires.
+		    (push `(,translator ,(evacuate-list context-type) ,tag)
+			  applicable-translators))))
+	      ;; If we've accumulated any translators, maybe add on PRESENTATION-MENU.
+	      ;; If FASTP is T, we will have returned before we get here.
+	      (when (and applicable-translators
+			 *presentation-menu-translator*
+			 (or (not for-menu-p)
+			     (eql (presentation-translator-menu *presentation-menu-translator*)
+				  for-menu))
+			 (test-presentation-translator *presentation-menu-translator*
 						       presentation context-type
 						       frame window x y
-						       :event event :shift-mask shift-mask
+						       :event event 
+						       :modifier-state modifier-state
 						       :for-menu for-menu))
-		(when fastp
-		  (return-from find-applicable-translators translator))
-		;; Evacuate the context-type, but don't bother evacuating the
-		;; tag since it will get used before its extent expires.
-		(push `(,translator ,(evacuate-list context-type) ,tag)
-		      applicable-translators))))
-	  ;; If we've accumulated any translators, maybe add on PRESENTATION-MENU.
-	  ;; If FASTP is T, we will have returned before we get here.
-	  (when (and applicable-translators
-		     *presentation-menu-translator*
-		     (or (not for-menu-p)
-			 (eql (presentation-translator-menu *presentation-menu-translator*)
-			      for-menu))
-		     (test-presentation-translator *presentation-menu-translator*
-						   presentation context-type
-						   frame window x y
-						   :event event :shift-mask shift-mask
-						   :for-menu for-menu))
-	    (push `(,*presentation-menu-translator* ,(evacuate-list context-type) ,tag)
-		  applicable-translators)))))
+		(push `(,*presentation-menu-translator* ,(evacuate-list context-type) ,tag)
+		      applicable-translators)))))))
     ;; Since we pushed translators onto the list, the least specific one
     ;; will be at the beginning of the list.  DELETE-DUPLICATES is defined to
     ;; remove duplicated items which appear earlier in the list, so it will
@@ -530,7 +575,7 @@
 		   (call-presentation-translator translator presentation context-type
 						 frame event window x y)
 		 (present translated-object (or translated-type context-type)
-			  :stream stream)
+			  :stream stream :view +pointer-documentation-view+)
 		 (return-from document-presentation-translator (values)))))
 	   ;; If we didn't get asked to run the body for the purpose of command
 	   ;; menus, then we might be able to take a different kind of short

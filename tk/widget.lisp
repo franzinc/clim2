@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: widget.cl,v 1.6 92/01/08 14:58:23 cer Exp Locker: cer $
+;; $fiHeader: widget.cl,v 1.7 92/01/17 17:49:22 cer Exp $
 
 (in-package :tk)
 
@@ -89,6 +89,15 @@
 (defun unmanage-child (child)
   (unmanage_child (object-handle child)))
 
+(defforeign 'manage_children
+    :entry-point "_XtManageChildren")
+
+(defun manage-children (children)
+  (manage_children (map '(simple-array (signed-byte 32))
+		     #'object-handle 
+		     children)
+		   (length children)))
+		     
 
 (defforeign 'destroy_widget
     :entry-point "_XtDestroyWidget")
@@ -129,15 +138,18 @@
 
 (defforeign 'xt_window :entry-point "_XtWindow")
 
-(defun widget-window (widget &optional (errorp t))
-  (let ((id (xt_window (object-handle widget))))
-    (if (zerop id)
-	(and errorp
-	     (error "Invalid window id ~D for ~S" id widget))
-      (intern-object-xid
-       id
-       'window 
-       :display (widget-display widget)))))
+(defmethod widget-window (widget &optional (errorp t))
+  (with-slots (window-cache) widget
+    (or window-cache
+	(setf window-cache
+	  (let ((id (xt_window (object-handle widget))))
+	    (if (zerop id)
+		(and errorp
+		     (error "Invalid window id ~D for ~S" id widget))
+	      (intern-object-xid
+	       id
+	       'window 
+	       :display (widget-display widget))))))))
 
 (defun make-clx-window (display widget)
   (let* ((window-id (xt_window (object-handle widget))))

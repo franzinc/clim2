@@ -1,30 +1,10 @@
-;;; -*- Mode: LISP; Syntax: Common-lisp; Package: CLIM; Base: 10; Lowercase: Yes -*-
-;; 
-;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
-;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
-;;
-;; The software, data and information contained herein are proprietary
-;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
-;; given in confidence by Franz, Inc. pursuant to a written license
-;; agreement, and may be stored and used only in accordance with the terms
-;; of such license.
-;;
-;; Restricted Rights Legend
-;; ------------------------
-;; Use, duplication, and disclosure of the software, data and information
-;; contained herein by any agency, department or entity of the U.S.
-;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
-;;
+;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: completer.lisp,v 1.1 91/09/09 12:41:32 cer Exp Locker: cer $
+;; $fiHeader: completer.lisp,v 1.4 91/03/26 12:47:47 cer Exp $
 
 (in-package :clim-internals)
 
-"Copyright (c) 1990, 1991 Symbolics, Inc.  All rights reserved.
-Copyright (c) 1991, Franz Inc. All rights reserved
+"Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved.
  Portions copyright (c) 1988, 1989, 1990 International Lisp Associates."
 
 ;; VECTOR must be adjustable...
@@ -40,8 +20,8 @@ Copyright (c) 1991, Franz Inc. All rights reserved
   vector)
 
 ;; This is just to prevent extraneous consing in COMPLETE-INPUT
-(defvar *magic-completion-characters*
-	(append *complete-characters* *help-characters* *possibilities-characters*))
+(defvar *magic-completion-gestures*
+	(append *completion-gestures* *help-gestures* *possibilities-gestures*))
 
 (defun complete-input (stream function
 		       &key partial-completers allow-any-input possibility-printer
@@ -49,8 +29,8 @@ Copyright (c) 1991, Franz Inc. All rights reserved
   (declare (dynamic-extent function))
   (declare (values answer-object success string))
   (with-temporary-string (stuff-so-far :length 100 :adjustable t)
-   (with-blip-characters (partial-completers)
-    (with-activation-characters (*magic-completion-characters*)
+   (with-blip-gestures (partial-completers)
+    (with-activation-gestures (*magic-completion-gestures*)
      (flet ((completion-help (stream action string-so-far)
 	      (declare (ignore string-so-far))
 	      (display-completion-possibilities
@@ -84,20 +64,20 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 	    (cond ((null ch)
 		   (error "Null ch?"))
 		  ((characterp ch)
-		   (cond ((member ch *help-characters*)
+		   (cond ((member ch *help-gestures*)
 			  (setq completion-mode ':help))
-			 ((member ch *possibilities-characters*)
+			 ((member ch *possibilities-gestures*)
 			  (setq completion-mode ':possibilities))
-			 ((member ch *complete-characters*)
+			 ((member ch *completion-gestures*)
 			  (setq completion-mode ':complete-maximal))
 			 ((member ch partial-completers :test #'char-equal)
 			  (setq completion-mode ':complete-limited
 				unread t extend t return 'if-completed))
 			 ;; What about "overloaded" partial completers??
-			 ((blip-character-p ch)
+			 ((blip-gesture-p ch)
 			  (setq completion-mode (if allow-any-input nil ':complete)
 				unread t extend t return t))
-			 ((activation-character-p ch)
+			 ((activation-gesture-p ch)
 			  (setq completion-mode (if allow-any-input nil ':complete) 
 				unread t return t))))
 		  ((eq ch ':eof)
@@ -117,7 +97,7 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 	    (when (and return (zerop (fill-pointer stuff-so-far)))
 	      (when unread
 		(unread-gesture ch :stream stream))
-	      (when (interactive-stream-p stream)
+	      (when (input-editing-stream-p stream)
 		(rescan-for-activation stream))
 	      (simple-parse-error "Attempting to complete the null string"))
 
@@ -232,7 +212,7 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 	(action '#:action))
     `(flet ((completing-from-suggestions-body (,string ,action)
 	      (suggestion-completer (,string :action ,action
-				     ,@(rem-keywords options '(:allow-any-input
+				     ,@(remove-keywords options '(:allow-any-input
 							       :possibility-printer)))
 		,@body)))
        (declare (dynamic-extent #'completing-from-suggestions-body))
@@ -254,15 +234,6 @@ Copyright (c) 1991, Franz Inc. All rights reserved
        (declare (dynamic-extent #'suggestion-completer-body))
        (complete-from-generator ,string #'suggestion-completer-body
 				,partial-completers :action ,action))))
-
-;;--- For compatibility with old binary files, remove it someday
-(defun suggestion-completer-internal (string generator
-				      &key (action :complete)
-					   partial-completers
-					   allow-any-input possibility-printer)
-  (declare (ignore allow-any-input possibility-printer))
-  (declare (dynamic-extent generator))
-  (complete-from-generator string generator partial-completers :action action))
 
 ;; Very few lisp compilers seem to be able to handle the case where this top-level
 ;; macro is shadowed by the FLET in the continuation above.
@@ -296,27 +267,34 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 				    &key (action :complete) predicate
 					 (name-key #'first) (value-key #'second))
   (declare (values string success object nmatches possibilities))
+  (when (and (not (eql action :possibilities))
+	     (zerop (length string)))
+    (return-from complete-from-possibilities 
+      (values nil nil nil 0 nil)))
   (let* ((best-completion nil)
 	 (best-length nil)
 	 (best-object *null-object*)
 	 (nmatches 0)
 	 (possibilities nil))
-    (dolist (possibility completions)
-      (let ((completion (funcall name-key possibility))
-	    (object (funcall value-key possibility)))
-	(when (or (null predicate)
-		  (funcall predicate object))
-	  ;; If we are doing simple completion and the user-supplied string is
-	  ;; exactly equal to this completion, then claim success (even if there
-	  ;; are other completions that have this one as a left substring!).
-	  (when (and (eql action :complete)
-		     (string-equal string completion))
-	    (return-from complete-from-possibilities
-	      (values completion t object 1)))
-	  (multiple-value-setq (best-completion best-length best-object nmatches possibilities)
-	    (chunkwise-complete-string string completion object action delimiters
-				       best-completion best-length best-object
-				       nmatches possibilities)))))
+    (flet ((complete-1 (possibility)
+	     (let ((completion (funcall name-key possibility))
+		   (object (funcall value-key possibility)))
+	       (when (or (null predicate)
+			 (funcall predicate object))
+		 ;; If we are doing simple completion and the user-supplied string is
+		 ;; exactly equal to this completion, then claim success (even if there
+		 ;; are other completions that have this one as a left substring!).
+		 (when (and (eql action :complete)
+			    (string-equal string completion))
+		   (return-from complete-from-possibilities
+		     (values completion t object 1)))
+		 (multiple-value-setq (best-completion best-length best-object
+				       nmatches possibilities)
+		   (chunkwise-complete-string string completion object action delimiters
+					      best-completion best-length best-object
+					      nmatches possibilities))))))
+      (declare (dynamic-extent #'complete-1))
+      (map nil #'complete-1 completions))
     (values (if best-completion (subseq best-completion 0 best-length) string)
 	    (not (eq best-object *null-object*))
 	    (if (eq best-object *null-object*) nil best-object)
@@ -329,6 +307,10 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 				&key (action :complete) predicate)
   (declare (values string success object nmatches possibilities))
   (declare (dynamic-extent generator))
+  (when (and (not (eql action :possibilities))
+	     (zerop (length string)))
+    (return-from complete-from-generator 
+      (values nil nil nil 0 nil)))
   (let* ((best-completion nil)
 	 (best-length nil)
 	 (best-object *null-object*)
@@ -378,7 +360,7 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 		  (cutoff (let ((start 0)
 				(cutoff nil))
 			    (dotimes (i nchunks cutoff)
-			      #-excl (declare (ignore i))
+			      #-(or Allegro Minima) (declare (ignore i))
 			      (let ((new (position-if #'delimiter-p completion :start start)))
 				(unless new (return nil))
 				(setq cutoff new

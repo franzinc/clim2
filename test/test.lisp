@@ -1,4 +1,4 @@
-;; -*- mode: common-lisp; package: clim -*-
+;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
@@ -19,47 +19,43 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-(in-package :clim)
-;; $fiHeader$
-
+(in-package :clim-internals)
 
 (define-application-frame test-frame ()
   (a b c)
   (:pane 
    (vertically ()
-	       (silica::scrolling
-		()
-		(setq aaa
-		  (silica::realize-pane
-		   'interactor-pane
-		   :foreground +green+
-		   :background +red+)))
-	       (realize-pane
-		'silica::push-button
-		:label "press me"
-		:background (make-pattern #2A((0 0 0 1 1 0 0 0)
-					      (0 0 1 1 1 1 0 0)
-					      (0 1 1 1 1 1 1 0)
-					      (1 1 1 1 1 1 1 1)
-					      (1 1 1 1 1 1 1 1)
-					      (0 1 1 1 1 1 1 0)
-					      (0 0 1 1 1 1 0 0)
-					      (0 0 0 1 1 0 0 0))
-					  (list +red+ +green+))
-		:foreground +purple+
-		:text-style
+     (scrolling
+      ()
+      (setq aaa
+	(realize-pane
+	 'interactor-pane
+	 :foreground +green+
+	 :background +red+)))
+     (realize-pane 'push-button
+      :label "press me"
+      :background (make-pattern #2A((0 0 0 1 1 0 0 0)
+				    (0 0 1 1 1 1 0 0)
+				    (0 1 1 1 1 1 1 0)
+				    (1 1 1 1 1 1 1 1)
+				    (1 1 1 1 1 1 1 1)
+				    (0 1 1 1 1 1 1 0)
+				    (0 0 1 1 1 1 0 0)
+				    (0 0 0 1 1 0 0 0))
+				(list +red+ +green+))
+      :foreground +purple+
+      :text-style
 
-		(make-text-style
-		 :serif :roman 20)))))
+      (make-text-style
+       :serif :roman 20)))))
 
 
 (define-application-frame test-frame0 ()
   (a b c)
   (:command-table test-frame)
   (:pane 
-   (silica::scrolling
-    ()
-    (silica::realize-pane
+   (scrolling ()
+    (realize-pane
      'interactor-pane))))
 
 (define-application-frame test-frame2 ()
@@ -67,29 +63,22 @@
   (:command-table test-frame)
   (:pane 
    (vertically ()
-	       (silica::tabling ()
-				(
-				 (silica::horizontally
-				  ()
-				  (realize-pane 'silica::toggle-button)
-				  (realize-pane 'silica::toggle-button)
-				  (realize-pane 'silica::toggle-button))
-		     
-				 (realize-pane 'silica::text-field))
-				(
-				 (realize-pane 'silica::push-button :label "hello")
-				 (realize-pane 'slider)))
-	       (silica::scrolling
-		()
-		(silica::realize-pane
-		   'interactor-pane
-		   :display-function 'moby-display-function))
-	       (silica::scrolling
-		()
-		(setq aaa
-		  (silica::realize-pane
-		   'interactor-pane
-		   :width 100))))))
+     (tabling ()
+       ((horizontally ()
+	 (realize-pane 'toggle-button)
+	 (realize-pane 'toggle-button)
+	 (realize-pane 'toggle-button))
+	(realize-pane 'text-field))
+       ((realize-pane 'push-button :label "hello")
+	(realize-pane 'slider)))
+     (scrolling ()
+      (realize-pane
+       'interactor-pane
+       :display-function 'moby-display-function))
+     (scrolling ()
+      (setq aaa
+	(realize-pane
+	 'interactor-pane))))))
 
 (defun moby-display-function (frame stream)
   (window-clear stream)
@@ -102,13 +91,12 @@
   (a b c)
   (:command-table test-frame)
   (:pane 
-   (silica::scrolling
-		      ()
-		      (setq aaa
-			(silica::realize-pane
-			 'interactor-pane
-			 :width 300
-			 :height 300)))))
+   (scrolling ()
+    (setq aaa
+      (realize-pane
+       'interactor-pane
+       :width 300
+       :height 300)))))
 
 
 
@@ -172,32 +160,30 @@
   (:command-table test-frame)
   (:pane 
    (vertically ()
-	       (realize-pane 'silica::push-button :label "Press me")
-	       (realize-pane 'silica::toggle-button)
-	       (realize-pane 'silica::slider)
-	       (realize-pane 'silica::text-field)
-	       (silica::scrolling
-		()
-		(silica::realize-pane
-		 'interactor-pane
-		 :width 300
-		 :max-width +fill+
-		 :height 300
-		 :max-height +fill+)))))
+    (realize-pane 'push-button :label "Press me")
+    (realize-pane 'toggle-button)
+    (realize-pane 'slider)
+    (realize-pane 'text-field)
+    (scrolling ()
+     (realize-pane
+      'interactor-pane
+      :width 300
+      :max-width +fill+
+      :height 300
+      :max-height +fill+)))))
 
 
 (define-application-frame test-frame5 ()
   ()
   (:command-table test-frame)
   (:panes
-   (a (silica::horizontally
-	 ()
-	 (realize-pane 'silica::push-button :label "Press me")
-	 (realize-pane 'silica::push-button :label "Squeeze me")))
-   (b (realize-pane 'silica::toggle-button))
-   (c (realize-pane 'silica::slider))
-   (d (realize-pane 'silica::text-field))
-   (e (silica::realize-pane
+   (a (horizontally ()
+	(realize-pane 'push-button :label "Press me")
+	(realize-pane 'push-button :label "Squeeze me")))
+   (b (realize-pane 'toggle-button))
+   (c (realize-pane 'slider))
+   (d (realize-pane 'text-field))
+   (e (realize-pane
        'interactor-pane
        :width 300
        :max-width +fill+
@@ -205,13 +191,11 @@
        :max-height +fill+)))
   (:layout
    (:default 
-       (vertically
-	()
-	a b c (silica::scrolling () e)))
+     (vertically ()
+       a b c (scrolling () e)))
    (:more
-    (vertically
-     ()
-     a  (silica::scrolling () e) b  d))))
+     (vertically ()
+       a (scrolling () e) b  d))))
 
 
 
@@ -222,15 +206,25 @@
       (:default :more)
       (:more :default))))
 
+
+(define-test-frame-command (com-number-please :name t) 
+    ((num 'integer :provide-default t))
+  (print num *query-io*))
+
 (define-test-frame-command (com-accept :name t :menu t)
-    ()
+    (&key 
+     (own-window 'boolean :default nil)
+     (textual-view 'boolean :default nil))
   (let ((stream *query-io*)
 	(a t)
 	(b nil)
 	(c :normal)
 	(d 10))
-    (accepting-values 
-     (stream)
+    (accepting-values (stream :own-window own-window)
+     (letf-globally (((stream-default-view stream)
+		      (if textual-view 
+			  +textual-dialog-view+
+			+gadget-dialog-view+)))
      (setq a (accept 'boolean  
 		     :stream stream
 		     :default a
@@ -249,15 +243,14 @@
        (terpri stream))
      (setq d (accept '(integer 0 100) 
 		     :stream stream
-		     :prompt "length"
+		     :prompt "d"
 		     :default d))
      (terpri stream)
      (accept-values-command-button (stream)
 				   "Press me"
-				   (setq a t b nil c :normal)))))
+				   (setq a t b nil c :normal))))
+    (format *query-io* "~&Values are ~S ~S ~S ~D" a b c d)))
 
-
-	 
 
 (define-presentation-type some-kinda-gadget ())
 
@@ -272,29 +265,31 @@
     
     (let ((weird (cons nil nil)))
       (setf (car weird)
-	(with-output-as-presentation (:object weird :type 'some-kinda-gadget :stream stream)
+	(with-output-as-presentation (stream weird 'some-kinda-gadget)
 	  (surrounding-output-with-border (stream)
-					  (with-output-as-gadget (:stream stream)
+					  (with-output-as-gadget (stream)
 					    (realize-pane 
-					     'silica::slider))))))
+					     'slider))))))
     (let ((weird (cons nil nil)))
       (setf (car weird)
-	(with-output-as-presentation (:object weird :type 'some-kinda-gadget :stream stream)
+	(with-output-as-presentation (stream weird 'some-kinda-gadget)
 	  (surrounding-output-with-border (stream)
-					  (with-output-as-gadget (:stream stream)
+					  (with-output-as-gadget (stream)
 					    (realize-pane 
-					     'silica::push-button
-					     :label "Amazing"))))))))
-
-(define-presentation-to-command-translator
-    move-gadget-translator
-    (some-kinda-gadget com-move-gadget test-frame)
-  (object)
-  (list object))
+					     'push-button
+					     :label "Amazing"))))))
+    (let ((weird (cons nil nil)))
+      (setf (car weird)
+	(with-output-as-presentation (stream weird 'some-kinda-gadget)
+	  (surrounding-output-with-border (stream)
+					  (with-output-as-gadget (stream)
+					    (scrolling ()
+						       (realize-pane
+							'interactor-pane)))))))))
 
 (define-test-frame-command (com-move-gadget :name t :menu t)
     ((weird 'some-kinda-gadget))
-  (dragging-output-record 
+  (drag-output-record 
    *query-io*
    (car weird)
    :repaint nil
@@ -305,8 +300,14 @@
 		   s
 		   (1- f) (1- g)
 		   (1+ h) (1+ j)
-		   :ink +background+)))))
-    
+		   :ink +background-ink+)))))
+
+(define-presentation-to-command-translator
+    move-gadget-translator
+    (some-kinda-gadget com-move-gadget test-frame)
+  (object)
+  (list object))
+
 (define-test-frame-command (com-track :name t :menu t)
     ()
   (let* ((stream *query-io*))
@@ -317,9 +318,9 @@
     ()
   (let* ((stream *query-io*))
     (flet ((make-it (i)
-	     (with-output-as-gadget (:stream stream)
+	     (with-output-as-gadget (stream)
 	       (realize-pane 
-		'silica::push-button
+		'push-button
 		:label (format nil "Amazing ~D" i)))))
       (format-graph-from-root
        '(a (c (x) (y)))
@@ -346,11 +347,11 @@
 (define-test-frame-command (com-make-radio-box :name t :menu t)
     ()
   (let* ((stream *query-io*))
-    (with-output-as-gadget (:stream stream)
+    (with-output-as-gadget (stream)
       (let* ((frame-pane
-	     (realize-pane 'silica::frame-pane))
+	     (realize-pane 'frame-pane))
 	    (gadget
-	     (realize-pane 'silica::radio-box :parent frame-pane)))
+	     (realize-pane 'radio-box :parent frame-pane)))
 	(realize-pane 'toggle-button :label "a" :parent gadget)
 	(realize-pane 'toggle-button :label "b" :parent gadget)
 	(realize-pane 'toggle-button :label "c" :parent gadget)

@@ -1,25 +1,20 @@
-;;; -*- Mode: LISP; Syntax: Common-lisp; Package: CLIM; Base: 10; Lowercase: Yes -*-
+;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: text-formatting.cl,v 1.1 91/12/10 18:50:29 cer Exp Locker: cer $
+;; $fiHeader: text-formatting.lisp,v 1.5 91/03/26 12:48:59 cer Exp $
 
-(in-package :clim)
+(in-package :clim-internals)
 
 "Copyright (c) 1990, 1991 Symbolics, Inc.  All rights reserved."
-"Copyright (c) 1991, Franz Inc. All rights reserved"
 
 ;;; Filling output
 
-(defclass filling-stream (encapsulating-stream-mixin)
+(defclass filling-stream (standard-encapsulating-stream)
     (fill-width
      break-characters
      prefix
      prefix-width
      current-width
      (buffer :initarg :buffer)))
-
-(defun whitespace-char-p (char)
-  (or (char-equal char #\Space)
-      (char= char #\Tab)))
 
 (defmethod filling-stream-write-buffer ((filling-stream filling-stream) &optional force-p)
   (with-slots (stream fill-width break-characters current-width buffer) filling-stream
@@ -40,7 +35,8 @@
 	    (setq fresh-line nil)
 	    ;; Shift the remaining parts of the buffer down, skipping whitespace
 	    (let ((index (and index
-			      (position-if-not #'whitespace-char-p buffer :start index))))
+			      (position-if-not #'whitespace-character-p buffer
+					       :start index))))
 	      (cond ((null index)
 		     (setf (fill-pointer buffer) 0))
 		    (t
@@ -60,7 +56,7 @@
     ;; but it does contribute to the width of the line
     (when prefix
       (stream-write-string stream prefix))
-    (setq current-width (+ prefix-width (silica::text-size stream buffer)))))
+    (setq current-width (+ prefix-width (text-size stream buffer)))))
 
 (defmethod stream-terpri ((filling-stream filling-stream))
   (with-slots (stream current-width) filling-stream
@@ -76,7 +72,7 @@
 	   (setq current-width 0))
 	  (t
 	   (vector-push-extend char buffer)
-	   (incf current-width (silica::text-size stream char))
+	   (incf current-width (text-size stream char))
 	   ;; We need to do the FILLING-STREAM-WRITE-BUFFER for every
 	   ;; character since it needs to know as soon as output crosses
 	   ;; the fill width.
@@ -113,29 +109,29 @@
     (let ((*original-stream* (or *original-stream* filling-stream)))
       (apply continuation stream continuation-args))))
 
-(defmethod with-text-style-internal ((filling-stream filling-stream)
-				     style continuation original-stream)
+(defmethod invoke-with-text-style ((filling-stream filling-stream)
+				   continuation style original-stream)
   (labels ((filling-continuation (stream)
 	     (multiple-value-prog1
 	       (funcall continuation stream)
-	       (close-current-text-output-record stream))))
+	       (stream-close-text-output-record stream))))
     (declare (dynamic-extent #'filling-continuation))
     (write-buffer-and-continue filling-stream
-			       #'with-text-style-internal
-			       style #'filling-continuation original-stream)))
+			       #'invoke-with-text-style
+			       #'filling-continuation style original-stream)))
 
-(defmethod with-output-recording-options-internal ((filling-stream filling-stream)
-						   draw-p record-p continuation)
+(defmethod invoke-with-output-recording-options ((filling-stream filling-stream)
+						 continuation record draw)
   (write-buffer-and-continue filling-stream
-			     #'with-output-recording-options-internal
-			     draw-p record-p continuation))
+			     #'invoke-with-output-recording-options
+			     continuation record draw))
 
-(defmethod close-current-text-output-record ((filling-stream filling-stream)
-					     &optional wrapped)
+(defmethod stream-close-text-output-record ((filling-stream filling-stream)
+					    &optional wrapped)
   (write-buffer-and-continue filling-stream
-			     #'close-current-text-output-record wrapped))
+			     #'stream-close-text-output-record wrapped))
 
-(clim-utils::defresource filling-stream (stream fill-width break-characters prefix prefix-width)
+(defresource filling-stream (stream fill-width break-characters prefix prefix-width)
   :constructor (make-instance 'filling-stream
 			      :buffer (make-array 100 :element-type 'extended-char
 						      :fill-pointer 0
@@ -151,18 +147,18 @@
       (setf (fill-pointer (slot-value filling-stream 'buffer)) 0)
       (setf (slot-value filling-stream 'current-width) 0)))
 
-(defun filling-output-1 (stream continuation
-			 &key (fill-width '(80 :character))
-			      (break-characters '(#\space))
-			      after-line-break after-line-break-initially)
+(defun invoke-filling-output (stream continuation
+			      &key (fill-width '(80 :character))
+				   (break-characters '(#\space))
+				   after-line-break after-line-break-initially)
   (declare (dynamic-extent continuation))
   (check-type break-characters list)
   (check-type after-line-break (or null string))
   (let ((fill-width (process-spacing-arg stream fill-width 'filling-output ':fill-width))
-	(prefix-width (if after-line-break (silica::text-size stream after-line-break) 0)))
+	(prefix-width (if after-line-break (text-size stream after-line-break) 0)))
     (assert (< prefix-width fill-width) ()
 	    "The prefix string ~S is wider than the fill width" after-line-break)
-    (clim-utils::using-resource (filling-stream filling-stream
+    (using-resource (filling-stream filling-stream
 		     stream fill-width break-characters after-line-break prefix-width)
       (unwind-protect
 	  (progn
@@ -174,21 +170,23 @@
 
 ;;; Indenting output
 
-(defclass indenting-output-record (linear-output-record)
+(defclass indenting-output-record 
+	  (standard-sequence-output-record)
     ((indentation :initarg :indentation)))
 
 (define-output-record-constructor indenting-output-record
 				  (&key x-position y-position size indentation)
   :x-position x-position :y-position y-position :size size :indentation indentation)
 
-(defun indenting-output-1 (stream indentation continuation &key (move-cursor t))
+(defun invoke-indenting-output (stream continuation indentation &key (move-cursor t))
   (let* ((indentation (process-spacing-arg stream indentation
 					   'indenting-output))
 	 (indenting-record
-	   (with-new-output-record (stream 'indenting-output-record nil
-				    :indentation indentation)
-	     (with-output-to-output-record (stream)
-	       (funcall continuation stream)))))
+	   (with-output-recording-options (stream :draw nil :record t)
+	     (with-new-output-record (stream 'indenting-output-record nil
+				      :indentation indentation)
+	       (with-new-output-record (stream)
+		 (funcall continuation stream))))))
     (multiple-value-bind (x y) (output-record-position* indenting-record)
       (output-record-set-position* indenting-record (+ x indentation) y))
     (tree-recompute-extent indenting-record)

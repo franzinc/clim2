@@ -1,32 +1,12 @@
-;;; -*- Mode: LISP; Syntax: Common-lisp; Package: CLIM-INTERNALS; Base: 10 -*-
-;; 
-;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
-;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
-;;
-;; The software, data and information contained herein are proprietary
-;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
-;; given in confidence by Franz, Inc. pursuant to a written license
-;; agreement, and may be stored and used only in accordance with the terms
-;; of such license.
-;;
-;; Restricted Rights Legend
-;; ------------------------
-;; Use, duplication, and disclosure of the software, data and information
-;; contained herein by any agency, department or entity of the U.S.
-;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
-;;
-;; $fiHeader$
+;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
+;; $fiHeader: window-stream.lisp,v 1.6 91/03/26 12:49:08 cer Exp $
 
 (in-package :clim-internals)
 
-"Copyright (c) 1988, 1989, 1990 International Lisp Associates.  All rights reserved."
+"Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved.
+ Portions copyright (c) 1988, 1989, 1990 International Lisp Associates."
 
-;;;--- better term than console?
-;;; --- not used yet
 (defclass console
 	  ()
      ((key-table :accessor console-key-table)
@@ -48,28 +28,30 @@
 	clim-window)))
 
 ;;; Anything to be gained by the CLX drawable/window distinction?
-
 (defclass window-stream
 	  ;; The ordering of these two groups of classes matters if the
 	  ;; method combinations are going to come out right.  However
 	  ;; the ordering of the classes withing the two levels should not
 	  ;; matter as each class defines its own stand-alone protocol.
 	  (graphics-output-recording
-	   
-	   ;; sheet-output-recording
-	   ;; basic-output-recording	;better name?
-	   
-	   input-protocol-mixin 
-	   output-protocol-mixin
-	   )
-     ()
-  )
+	   #-Silica window-output-recording
+	   #-Silica input-and-window-protocol-intermediary
+	   #-Silica output-and-window-protocol-intermediary
+	   #-Silica output-and-recording-protocol-intermediary
+	   #-Silica window-mixin
+	   ;; This part still stands, but we need better layering so that you can
+	   ;; have a window stream with no output recording mixed in.
+	   output-recording-mixin
+	   #-Silica graphics-mixin
+	   input-protocol-mixin
+	   output-protocol-mixin)
+     ())
 
 (defmethod window-stream-class-name ((window-stream window-stream))
   (class-name (class-of window-stream)))
 
 ;;; --- maybe move this somewhere?
-
+#+Silica
 (defun erase-viewport (stream)
   ;; Just repaint the viewport, which has been set up with a
   ;; background color.
@@ -78,68 +60,120 @@
     ;; there has to be a viewport to insulate the ancestors from the
     ;; size changes of the stream pane's output history.
     (when viewport
-      (repaint-sheet viewport (sheet-region viewport))))
-  ;; It is bogus to just draw a rectangle in some random color.  Where
-  ;; did we expect the medium's background to get set?
-  #+ignore
-  (with-output-recording-options (stream :record-p nil)
-    (with-bounding-rectangle* (minx miny maxx maxy) stream
-      (draw-rectangle* stream minx miny maxx maxy
-		       :filled t :ink +background+))))
+      (repaint-sheet viewport (sheet-region viewport)))))
 
 ;;; Temporary replacement for "window-clear".
-
+#+Silica
 (defmethod window-clear ((stream window-stream))
   (with-sheet-medium (medium stream)
     (letf-globally (((medium-transformation medium) +identity-transformation+))
-		   (clear-output-history stream)
-		   (repaint-sheet stream +everywhere+)
-		   ;;(erase-viewport stream)
-		   (stream-set-cursor-position* stream 0 0)
-		   ;; Flush the old mouse position relative to this window
-		   ;; so that we don't get bogus highlighted presentations
-		   ;; when menus first pop up.
-		   (let ((pointer (stream-primary-pointer stream)))
-		     (when pointer
-		       (setf (pointer-window pointer) nil)))
-      ;;; doesn't really need to do force-output.
-		   (force-output stream)
-		   (values))))
+      (clear-output-history stream)
+      (repaint-sheet stream +everywhere+)
+      (stream-set-cursor-position* stream 0 0)
+      ;; Flush the old mouse position relative to this window
+      ;; so that we don't get bogus highlighted presentations
+      ;; when menus first pop up.
+      (let ((pointer (stream-primary-pointer stream)))
+	(when pointer
+	  (setf (pointer-window pointer) nil)))
+      ;; doesn't really need to do force-output.
+      (force-output stream)
+      (values))))
 
+#+Silica
+(defmethod window-refresh :after ((stream window-stream))
+  (frame-replay *application-frame* stream)
+  (let ((text-record (stream-text-output-record stream)))
+    (when text-record (replay text-record stream))))
 
-(defmethod window-shift-mask ((window window-stream))
+#+Silica
+(defmethod window-erase-viewport ((stream window-stream))
+  (with-output-recording-options (stream :record nil)
+    (multiple-value-call
+	#'draw-rectangle*
+      stream
+      (bounding-rectangle* (pane-viewport-region stream))
+      :ink +background-ink+)))
+
+#+Silica
+(defmethod window-modifier-state ((window window-stream))
   (let ((pointer (stream-primary-pointer window)))
     (pointer-button-state pointer)))
+
 
 ;;; Creation functions
 
+#-Silica
+(defun open-root-window (window-type &rest creation-args)
+  (declare (dynamic-extent creation-args))
+  (assert (member window-type *implementations*) (window-type)
+	  "The implementation type supplied, ~S, is not one of~{ ~S~}"
+	  window-type *implementations*)
+  (apply (window-type-creation-function window-type) creation-args))
 
-
-
-
-#||
-;;;--- Move this into the various port-defining files, revamp define-implementation
-
-(defvar *port-types*
-	`(,@(when (member :xlib *features*)
-	      `((:clx ,(intern "X-PORT" "ON-X"))))
-	  ,@(when (find-package "ON-GENERA")
-	      `((:genera ,(intern "GENERA-PORT" "ON-GENERA"))))))
+#-Silica
+(defun open-window-stream (&rest args
+			   &key parent left top right bottom width height window-class
+			   &allow-other-keys)
+  (declare (dynamic-extent args))
+  (declare (arglist &key parent left top right bottom width height
+		    ;; Initialization arguments to window-stream
+		    ;; that are not supplied below
+		    borders console default-text-margin default-text-style depth
+		    display-device-type draw-p end-of-line-action end-of-page-action
+		    initial-cursor-visibility input-buffer label name output-record
+		    ;((clim-internals::primary-pointer))	;I think we don't want to mention this
+		    record-p save-under scroll-bars window-class
+		    stream-background stream-foreground
+		    text-cursor text-margin viewport vertical-spacing))
+  (assert (not (null parent)) (parent)
+	  "You must supply the ~S option to ~S" ':parent 'open-window-stream)
+  (assert (typep parent 'window-stream) (parent)
+	  "The value of the ~S option to ~S must be a window-stream"
+	  ':parent 'open-window-stream)
+  (let ((p-left 0) (p-top 0) (p-right nil) (p-bottom nil))
+    (multiple-value-setq (p-right p-bottom)
+      (window-inside-size parent))
+    (macrolet ((rationalize-dimensions (low high delta direction)
+		 (flet ((parent-name (name) (fintern "~A-~A" 'p name)))
+		   (let ((p-low (parent-name low))
+			 (p-high (parent-name high)))
+		     `(progn 
+			(assert (not (and ,low ,high ,delta
+					  (/= ,delta (- ,high ,low))))
+				(,low ,high ,delta)
+				,(format
+				   nil
+				   "The ~A dimensions of this window are overconstrained."
+				   direction))
+			(when ,low (setf ,p-low ,low))
+			(when ,high (setf ,p-high ,high))
+			(when ,delta (if ,high
+					 (setf ,p-low (- ,p-high ,delta))
+					 (setf ,p-high (+ ,p-low ,delta))))
+			(setf ,low ,p-low ,high ,p-high ,delta (- ,p-high ,p-low)))))))
+      (rationalize-dimensions left right width "horizontal")
+      (rationalize-dimensions top bottom height "vertical")))
+  (with-keywords-removed (window-args args
+			  '(:parent :left :top :right :bottom :width :height :window-class))
+    (let ((class-name (or window-class (window-stream-class-name parent))))
+      (apply #'make-instance class-name
+	     :parent parent :left left :top top :right right :bottom bottom
+	     :pointers (and parent (stream-pointers parent))
+	     window-args))))
 
 ;;; These aren't really tested since they aren't the primary way to create sheets.
-
 #+Silica
 (defun open-root-window (port-type &rest creation-args)
   (assert (member port-type *port-types* :key #'car) (port-type)
 	  "The implementation type supplied, ~S, is not one of~{ ~S~}"
 	  port-type *port-types*)
   (let ((port-type (second (assoc port-type *port-types*))))
-    ;;; This will break but I don't think it is used -- RR
-    (let ((port (apply #'find-port :port-type port-type creation-args)))
-      (values (find-graft :port port :origin :nw) port))))
+    (let ((port (apply #'silica:find-port :port-type port-type creation-args)))
+      (values (silica:find-graft :port port :origin :nw) port))))
 
 #+Silica
-(defun open-window-stream (&key parent left top right bottom width height
+(defun open-window-stream (&rest args &key parent left top right bottom width height
 			   &allow-other-keys)
   ;; --- incorporate size-hacking stuff from old definition below
   (assert (not (null parent)) (parent)
@@ -153,76 +187,37 @@
       (error "Can't supply both :BOTTOM and :HEIGHT."))
     (setq bottom (+ top height)))
   (make-instance 'window-stream :parent parent :min-x left :min-y top :max-x right :max-y bottom))
-||#
 
 
+;;; For hooking up with host window decorations.
+#-Silica
+(defmethod window-set-viewport-position* :after ((window window-stream) new-x new-y)
+  (declare (ignore new-x new-y))
+  (redisplay-decorations window))
 
-;;; Text output methods.
+#-Silica
+(defmethod bounding-rectangle-set-edges :after ((window window-stream) left top right bottom)
+  (declare (ignore left top right bottom))
+  (redisplay-decorations window))
 
-;;; Must everything come in both string and char versions?
-;;; Or should we put the char in a length 1 string buffer?
+#-Silica
+(defmethod bounding-rectangle-set-position* :after ((window window-stream) left top)
+  (declare (ignore left top))
+  (redisplay-decorations window))
 
-;(defmethod write-char-method ((stream window-stream) char)
-;  (with-slots (cursor-x cursor-y) stream
-;    ;;--- kludge Return specially for now
-;    (case char
-;      (#\newline
-;       (stream-advance-cursor-line stream))
-;      (otherwise
-;	(let ((width (window-stream-character-width stream char))
-;	      (right (window-stream-inside-width stream)))
-;	  (when (> (+ cursor-x width 2) right)
-;	    (window-stream-end-of-line-wrap stream right cursor-y))
-;	  (draw-character char cursor-x cursor-y :stream stream
-;			  ;; we want (set-cursorpos 0 0) (write-string "foo") to be visible
-;			  :attachment-y :top))
-;	(window-stream-advance-cursor-x
-;	  stream (window-stream-character-width stream char))))))
-;
-;(defmethod window-stream-end-of-line-wrap ((stream window-stream) right top)
-;  (break)
-;  (with-output-recording-options (stream :draw-p t :record-p nil)
-;    (draw-rectangle-method stream (- right 3) top right (+ top 10)))
-;  (window-stream-advance-line stream))
-;    
-;;;; Try to be more efficient than a loop of WRITE-CHARs
-;(defmethod write-string-method ((stream window-stream) string &key start end)
-;  (with-slots (cursor-x cursor-y) stream
-;    (multiple-value-bind (right) (window-stream-inside-width stream)
-;      (labels ((write-substring (string start end)
-;		 ;; no Returns
-;		 (let ((width (window-stream-string-width stream string :start start :end end)))
-;		   (cond ((or ;; end-of-line-action not wrap
-;			    (<= (+ cursor-x width) right))
-;			  (draw-string string cursor-x cursor-y :stream stream :start start :end end
-;				       ;; we want (set-cursorpos 0 0) (write-string "foo") to be visible
-;				       :attachment-y :top)
-;			  ;; we know that this won't advance the cursor past the "right" edge
-;			  (setf cursor-x (+ cursor-x width)))
-;			 (t (slow-write-substring string start end)))))
-;	       (slow-write-substring (string start end)
-;		 (do ((i start (1+ i)))
-;		     ((>= i end) nil)
-;		   (let ((ch (aref string i)))
-;		     (write-char-method stream ch)))))
-;	;; Need do-delimited-substrings
-;	(when (null end)
-;	  (setq end (length string)))
-;	(let ((start-pos start)
-;	      (finished nil))
-;	  ;; Loop over #\Return-separated substrings
-;	  (loop
-;	    (let ((end-pos (position #\newline string :start start-pos)))
-;	      (cond ((null end-pos)
-;		     (setq end-pos end)
-;		     (setq finished t))
-;		    ((> end-pos end)
-;		     (setq end-pos end)
-;		     (setq finished t)))
-;	      (write-substring string start-pos end-pos)
-;	      (when finished
-;		(return))
-;	      ;; advance cursor and write next chunk
-;	      (setq start-pos (1+ end-pos))
-;	      (window-stream-advance-line stream))))))))
+#-Silica
+(defmethod bounding-rectangle-set-size :after ((window window-stream) width height)
+  (declare (ignore width height))
+  (redisplay-decorations window))
 
+#-Silica
+(defmethod window-clear :after ((window window-stream))
+  (redisplay-decorations window))
+
+#-Silica
+(defmethod window-refresh :after ((window window-stream))
+  (redisplay-decorations window))
+
+#-Silica
+(defmethod redisplay-decorations ((window window-stream))
+  )

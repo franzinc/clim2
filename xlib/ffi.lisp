@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader$
+;; $fiHeader: ffi.cl,v 1.3 92/01/08 15:22:08 cer Exp $
 
 (in-package :x11)
 

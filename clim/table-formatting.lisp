@@ -1,86 +1,87 @@
-;;; -*- Mode: LISP; Syntax: Common-lisp; Package: CLIM; Base: 10; Lowercase: Yes -*-
-;; 
-;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
-;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
-;;
-;; The software, data and information contained herein are proprietary
-;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
-;; given in confidence by Franz, Inc. pursuant to a written license
-;; agreement, and may be stored and used only in accordance with the terms
-;; of such license.
-;;
-;; Restricted Rights Legend
-;; ------------------------
-;; Use, duplication, and disclosure of the software, data and information
-;; contained herein by any agency, department or entity of the U.S.
-;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
-;;
+;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: table-formatting.lisp,v 1.1 91/11/25 10:01:17 cer Exp Locker: cer $
+;; $fiHeader: table-formatting.lisp,v 1.5 91/03/26 12:48:57 cer Exp $
 
-(in-package :clim)
+(in-package :clim-internals)
 
-"Copyright (c) 1990, 1991 Symbolics, Inc.  All rights reserved.
-Copyright (c) 1991, Franz Inc. All rights reserved
+"Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved.
  Portions copyright (c) 1988, 1989, 1990 International Lisp Associates."
 
-(defclass table-output-record (standard-sequence-output-record) 
-     ((row-table-p :initform :unknown)		;t ==> table consists of rows
-      (inter-row-spacing :initarg :inter-row-spacing)
-      (inter-column-spacing :initarg :inter-column-spacing)
-      (equalize-column-widths :initarg :equalize-column-widths))
+;;; Tables
+
+(define-protocol-class table-output-record (output-record))
+
+(defclass standard-table-output-record 
+	  (standard-sequence-output-record table-output-record) 
+    ((row-table-p :initform :unknown)		;t ==> table consists of rows
+     (x-spacing :initarg :x-spacing)
+     (y-spacing :initarg :y-spacing)
+     (equalize-column-widths :initarg :equalize-column-widths))
   (:default-initargs :size 25))
 
-(define-output-record-constructor table-output-record
-				  (&key inter-row-spacing inter-column-spacing
+(define-output-record-constructor standard-table-output-record
+				  (&key x-position y-position
+					x-spacing y-spacing
 					equalize-column-widths (size 25))
-				  :inter-row-spacing inter-row-spacing
-				  :inter-column-spacing inter-column-spacing
-				  :equalize-column-widths equalize-column-widths
-				  :size size)
+  :x-position x-position :y-position y-position
+  :x-spacing x-spacing :y-spacing y-spacing
+  :equalize-column-widths equalize-column-widths
+  :size size)
 
-(defmethod elements-never-overlap-p ((record table-output-record)) t)
+(defmethod inferiors-never-overlap-p ((record standard-table-output-record)) t)
 
-(defclass row-output-record (standard-sequence-output-record) ()
+
+(define-protocol-class row-output-record (output-record))
+
+(defclass standard-row-output-record 
+	  (standard-sequence-output-record row-output-record)
+    ()
   (:default-initargs :size 5))
 
-(define-output-record-constructor row-output-record
-				  (&key  (size 5))
- :size size)
+(define-output-record-constructor standard-row-output-record
+				  (&key x-position y-position (size 5))
+  :x-position x-position :y-position y-position :size size)
 
-(defmethod elements-never-overlap-p ((record row-output-record)) t)
+(defmethod inferiors-never-overlap-p ((record standard-row-output-record)) t)
 
-(defclass column-output-record (standard-sequence-output-record) ()
+
+(define-protocol-class column-output-record (output-record))
+
+(defclass standard-column-output-record 
+	  (standard-sequence-output-record column-output-record)
+    ()
   (:default-initargs :size 5))
 
-(define-output-record-constructor column-output-record (&key (size 5))
-				  :size size)
+(define-output-record-constructor standard-column-output-record
+				  (&key x-position y-position (size 5))
+  :x-position x-position :y-position y-position :size size)
 
-(defmethod elements-never-overlap-p ((record column-output-record)) t)
+(defmethod inferiors-never-overlap-p ((record standard-column-output-record)) t)
 
-(defclass cell-output-record (standard-sequence-output-record)
-     ((x-alignment :initform ':left :initarg :align-x)
-      (y-alignment :initform ':top :initarg :align-y)
-      (minimum-width :initform 0 :initarg :minimum-width
-		     :accessor cell-minimum-width)
-      (minimum-height :initform 0 :initarg :minimum-height
-		      :accessor cell-minimum-height))
+
+(define-protocol-class cell-output-record (output-record))
+
+(defclass standard-cell-output-record 
+	  (standard-sequence-output-record cell-output-record)
+  ((x-alignment :initform ':left :initarg :align-x)
+   (y-alignment :initform ':top :initarg :align-y)
+   (min-width :initform 0 :initarg :min-width
+	      :accessor cell-min-width)
+   (min-height :initform 0 :initarg :min-height
+	       :accessor cell-min-height))
   (:default-initargs :size 5))
 
-(define-output-record-constructor cell-output-record
-				  (&key  
+(define-output-record-constructor standard-cell-output-record
+				  (&key x-position y-position 
 					(align-x ':left) (align-y ':top)
-					(size 5) minimum-width minimum-height)
-				  :size size
+					(size 5) min-width min-height)
+  :x-position x-position :y-position y-position :size size
   :align-x align-x :align-y align-y
-  :minimum-width minimum-width
-  :minimum-height minimum-height)
+  :min-width min-width :min-height min-height)
 
 #+Genera (zwei:defindentation (map-over-table-elements-helper 2 1))
-(defmethod map-over-table-elements-helper ((record row-output-record) type function)
+(defmethod map-over-table-elements-helper
+	   (function (record standard-row-output-record) type)
   (declare (dynamic-extent function))
   (unless (member type '(row row-or-column))
     (error "Expected a ~(~S~), but this is a row.~@
@@ -88,7 +89,8 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 	   type))
   (funcall function record))
 
-(defmethod map-over-table-elements-helper ((record column-output-record) type function)
+(defmethod map-over-table-elements-helper 
+	   (function (record standard-column-output-record) type)
   (declare (dynamic-extent function))
   (unless (member type '(column row-or-column))
     (error "Expected a ~(~S~), but this is a column.~@
@@ -96,7 +98,8 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 	   type))
   (funcall function record))
 
-(defmethod map-over-table-elements-helper ((record cell-output-record) type function)
+(defmethod map-over-table-elements-helper
+	   (function (record standard-cell-output-record) type)
   (declare (dynamic-extent function))
   (unless (eql type 'cell) 
     (error "Expected a ~(~S~), but this is a cell.~@
@@ -104,54 +107,56 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 	   type))
   (funcall function record))
 
-(defmethod map-over-table-elements-helper ((record output-record-mixin) type function)
+(defmethod map-over-table-elements-helper
+	   (function (record output-record-mixin) type)
   (declare (dynamic-extent function))
   ;; recurse into this guy
-  (map-over-table-elements record type function))
+  (map-over-table-elements function record type))
 
-(defmethod map-over-table-elements-helper ((record displayed-output-record) type function)
+(defmethod map-over-table-elements-helper
+	   (function (record output-record-element-mixin) type)
   (declare (ignore function)
 	   (dynamic-extent function))
   (error "Expected a ~(~S~), but this is not a table cell at all.~@
           You are probably missing some table directives." type))
 
 #+Genera (zwei:defindentation (map-over-table-elements 2 1))
-(defmethod map-over-table-elements ((record output-record-mixin) element-type function)
-  ;; function is applied to each inferior of type element-type.  Error checking is
+(defmethod map-over-table-elements (function (record output-record-mixin) element-type)
+  ;; Function is applied to each inferior of type element-type.  Error checking is
   ;; done to verify that the inferiors are, in fact, of type element-type.
   (declare (dynamic-extent function))
-  (map-over-output-record-children #'(lambda (rec)
-				       (map-over-table-elements-helper rec element-type function))
-				   record
-				   +everywhere+))
+  (flet ((map-table-1 (child)
+	   (map-over-table-elements-helper function child element-type)))
+    (declare (dynamic-extent #'map-table-1))
+    (map-over-output-records #'map-table-1 record)))
 
 #+Genera (zwei:defindentation (map-over-table-rows-or-columns 1 1))
-(defmethod map-over-table-rows-or-columns ((table table-output-record) function)
+(defmethod map-over-table-rows-or-columns (function (table standard-table-output-record))
   (declare (dynamic-extent function))
-  (map-over-table-elements table 'row-or-column function))
+  (map-over-table-elements function table 'row-or-column))
 
 #+Genera (zwei:defindentation (map-over-table-rows 1 1))
-(defmethod map-over-table-rows ((table table-output-record) function)
+(defmethod map-over-table-rows (function (table standard-table-output-record))
   (declare (dynamic-extent function))
-  (map-over-table-elements table 'row function))
+  (map-over-table-elements function table 'row))
 
 #+Genera (zwei:defindentation (map-over-row-cells 1 1))
-(defmethod map-over-row-cells ((row row-output-record) function)
+(defmethod map-over-row-cells (function (row standard-row-output-record))
   (declare (dynamic-extent function))
-  (map-over-table-elements row 'cell function))
+  (map-over-table-elements function row 'cell))
 
 #+Genera (zwei:defindentation (map-over-table-columns 1 1))
-(defmethod map-over-table-columns ((table table-output-record) function)
+(defmethod map-over-table-columns (function (table standard-table-output-record))
   (declare (dynamic-extent function))
-  (map-over-table-elements table 'column function))
+  (map-over-table-elements function table 'column))
 
 ;; We call it MAP-OVER-ROW-CELLS for convenience sake, since a column is just
 ;; a row tilted on its end.
-(defmethod map-over-row-cells ((column column-output-record) function)
+(defmethod map-over-row-cells (function (column standard-column-output-record))
   (declare (dynamic-extent function))
-  (map-over-table-elements column 'cell function))
+  (map-over-table-elements function column 'cell))
 
-(defmethod tree-recompute-extent-1 ((record displayed-output-record))
+(defmethod tree-recompute-extent-1 ((record output-record-element-mixin))
   (bounding-rectangle* record))
 
 ;;; Cells have been positioned manually, probably.
@@ -160,21 +165,21 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 ;;; Some extra bit will be needed.
 ;;; Until we do this, only table formatting really works (and arbitrary dragging
 ;;; of things above cells.
-(defmethod tree-recompute-extent-1 ((record cell-output-record))
+(defmethod tree-recompute-extent-1 ((record standard-cell-output-record))
   (bounding-rectangle* record))
 
 (defmethod tree-recompute-extent-1 ((record output-record-mixin))
   (let ((once nil)
 	(min-x 0) (min-y 0) (max-x 0) (max-y 0))
-    (declare (fixnum min-x min-y max-x max-y))
+    (declare (type coordinate min-x min-y max-x max-y))
     (multiple-value-bind (x-offset y-offset)
 	(convert-from-descendant-to-ancestor-coordinates
 	  record (output-record-parent record))
-      (declare (fixnum x-offset y-offset))
-      (flet ((recompute-extent-of-element (element)
+      (declare (type coordinate x-offset y-offset))
+      (flet ((recompute-extent-of-child (child)
 	       (multiple-value-bind (left top right bottom)
-		   (tree-recompute-extent-1 element)
-		 (declare (fixnum left top right bottom))
+		   (tree-recompute-extent-1 child)
+		 (declare (type coordinate left top right bottom))
 		 (cond (once
 			(minf min-x left)
 			(minf min-y top)
@@ -186,10 +191,8 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 			      max-x right
 			      max-y bottom
 			      once  t))))))
-	(declare (dynamic-extent #'recompute-extent-of-element))
-	(map-over-output-record-children #'recompute-extent-of-element
-					 record 
-					 +everywhere+))
+	(declare (dynamic-extent #'recompute-extent-of-child))
+	(map-over-output-records #'recompute-extent-of-child record))
       (when (null min-x)
 	(setq min-x 0 min-y 0 max-x 0 max-y 0))
       #+ignore (assert (ltrb-well-formed-p min-x min-y max-x max-y))
@@ -200,27 +203,27 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 ;;--- These are here 'cause the Lucid Sun 4 compiler can't find
 ;;--- the MACROLETted versions in the functions below.
 ;;--- The MCL compiler gets it even worse!
-#+(or lucid ccl-2)
+#+(or Lucid CCL-2)
 (progn
 (defmacro row-max-height (row-number)
-  `(the fixnum (svref row-array ,row-number)))
+  `(svref row-array ,row-number))
 (defmacro column-max-width (column-number)
-  `(the fixnum (svref column-array ,column-number)))
+  `(svref column-array ,column-number))
 (defmacro row-height (row-number)
-  `(the fixnum (svref row-array ,row-number)))
+  `(svref row-array ,row-number))
 (defmacro column-width (column-number)
-  `(the fixnum (svref column-array ,column-number)))
+  `(svref column-array ,column-number))
 )
 
 (defun compute-row-table-p (table)
   ;; find the first thing.
   (flet ((find-row-or-column (row-or-column)
 	   (return-from compute-row-table-p
-	     (values (typep row-or-column 'row-output-record)))))
+	     (values (row-output-record-p row-or-column)))))
     (declare (dynamic-extent #'find-row-or-column))
-    (map-over-table-rows-or-columns table #'find-row-or-column)))
+    (map-over-table-rows-or-columns #'find-row-or-column table)))
 
-(defmethod row-table-p ((table table-output-record))
+(defmethod row-table-p ((table standard-table-output-record))
   (with-slots (row-table-p) table
     (cond ((not (eql row-table-p ':unknown))
 	   row-table-p)
@@ -230,31 +233,31 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 ;; How can we make compute-output-size work without saving both an ink-rectangle
 ;; and a whitespace rectangle for each output record?
 ;; If we did that, table formatting would work much better as well.
-
-(defmethod adjust-table-cells ((table table-output-record))
+(defmethod adjust-table-cells ((table standard-table-output-record) stream)
   (let* ((nrows 0)
 	 (ncells nil)
 	 (cells 0)
 	 (row-table-p (row-table-p table))
 	 (table-mapper (if row-table-p #'map-over-table-rows #'map-over-table-columns))
-	 (inter-row-spacing (slot-value table 'inter-row-spacing))
-	 (inter-column-spacing (slot-value table 'inter-column-spacing))
+	 (x-spacing (slot-value table 'x-spacing))
+	 (y-spacing (slot-value table 'y-spacing))
 	 (equalize-column-widths (slot-value table 'equalize-column-widths)))
-    (declare (fixnum nrows cells inter-row-spacing inter-column-spacing))
+    (declare (fixnum nrows cells))
+    (declare (type coordinate x-spacing y-spacing))
     (labels ((count-rows (row)
 	       (incf nrows)
 	       (setq cells 0)
-	       (map-over-row-cells row #'count-cells)
+	       (map-over-row-cells #'count-cells row)
 	       (cond ((null ncells)
 		      (setq ncells cells))
 		     (t
 		      (maxf ncells cells))))
 	     (count-cells (cell)
-	       (assert (typep cell 'cell-output-record))
+	       (assert (cell-output-record-p cell))
 	       (incf cells)))
       (declare (dynamic-extent #'count-rows #'count-cells))
       ;; calculate nrows & ncells (= ncells per row)
-      (funcall table-mapper table #'count-rows))
+      (funcall table-mapper #'count-rows table))
     ;; If there are no rows, COUNT-ROWS won't get invoked and NCELLS will be
     ;; NIL.  This will give MAKE-ARRAY fits.
     (when (null ncells) (setq ncells 0))
@@ -264,13 +267,14 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 	      (y-pos nil)
 	      (row-count 0) (column-count 0)
 	      (total-width 0) (total-height 0))
-	  (declare (fixnum row-count column-count total-width total-height))
+	  (declare (fixnum row-count column-count))
+	  (declare (type coordinate total-width total-height))
 	  ;; We always want the table to start at its START-X and START-Y positions.
 	  (multiple-value-setq (x-pos y-pos) (output-record-position* table))
-	  (macrolet (#-ccl-2 (row-max-height (row-number)
-			       `(the fixnum (svref row-array ,row-number)))
-		     #-ccl-2 (column-max-width (column-number)
-			       `(the fixnum (svref column-array ,column-number))))
+	  (macrolet (#-CCL-2 (row-max-height (row-number)
+			       `(svref row-array ,row-number))
+		     #-CCL-2 (column-max-width (column-number)
+			       `(svref column-array ,column-number)))
 	    ;; Figure out max height for each row,
 	    ;;            max width for each column.
 	    ;; Collect row heights and column widths into temp arrays.
@@ -286,24 +290,25 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 	    (flet ((row-mapper (row)
 		     (if row-table-p (incf row-count) (incf column-count))
 		     (if row-table-p (setq column-count -1) (setq row-count -1))
-		     (adjust-table-cells row)
+		     (adjust-table-cells row stream)
 		     (flet ((cell-mapper (cell)
 			      (if row-table-p (incf column-count) (incf row-count))
 			      (multiple-value-bind (width height)
 				  (bounding-rectangle-size cell)
-				(declare (fixnum width height))
+				(declare (type coordinate width height))
 				(maxf-or (row-max-height row-count)
-					 (max height (cell-minimum-height cell)))
+					 (max height (cell-min-height cell)))
 				(maxf-or (column-max-width column-count)
-					 (max width (cell-minimum-width cell))))))
+					 (max width (cell-min-width cell))))))
 		       (declare (dynamic-extent #'cell-mapper))
-		       (map-over-row-cells row #'cell-mapper))))
+		       (map-over-row-cells #'cell-mapper row))))
 	      (declare (dynamic-extent #'row-mapper))
-	      (funcall table-mapper table #'row-mapper))
+	      (funcall table-mapper #'row-mapper table))
 	    (when equalize-column-widths
 	      (let ((column-width 0)
 		    (n-columns (1+ column-count)))
-		(declare (fixnum column-width n-columns))
+		(declare (fixnum n-columns))
+		(declare (type coordinate column-width))
 		(dotimes (i n-columns)
 		  (maxf column-width (column-max-width i)))
 		(dotimes (i n-columns)
@@ -313,7 +318,7 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 		     (if row-table-p (incf row-count) (incf column-count))
 		     (let ((this-row-height (row-max-height row-count))
 			   (this-column-width (column-max-width column-count)))
-		       (declare (fixnum this-row-height this-column-width))
+		       (declare (type coordinate this-row-height this-column-width))
 		       ;; all numbers are in (output-record-parent table) coordinates
 		       (if row-table-p (setq column-count -1) (setq row-count -1))
 		       (setq total-width x-pos
@@ -326,52 +331,47 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 				      (cell-height (bounding-rectangle-height cell))
 				      (x-alignment-adjust 0)
 				      (y-alignment-adjust 0))
-				  (declare (fixnum column-width row-height
-						   cell-width cell-height
-						   x-alignment-adjust y-alignment-adjust))
+				  (declare (type coordinate column-width row-height
+						            cell-width cell-height
+							    x-alignment-adjust
+							    y-alignment-adjust))
 				  (ecase (slot-value cell 'x-alignment)
 				    (:left )
 				    (:right
-				      (setq x-alignment-adjust
-					    (the fixnum (- column-width cell-width))))
+				      (setq x-alignment-adjust (- column-width cell-width)))
 				    (:center
-				      (setq x-alignment-adjust
-					    (the fixnum (floor (- column-width cell-width) 2)))))
+				      (setq x-alignment-adjust (floor (- column-width cell-width) 2))))
 				  (ecase (slot-value cell 'y-alignment)
 				    (:top )
 				    (:bottom
 				      (setq y-alignment-adjust
-					    (the fixnum (- row-height cell-height))))
+					    (- row-height cell-height)))
 				    (:center
 				      (setq y-alignment-adjust
-					    (the fixnum (floor (- row-height cell-height) 2)))))
-				  (multiple-value-bind (x-offset
-							y-offset)
-				      (values 0 0)
-				    (declare (fixnum x-offset y-offset))
+					    (floor (- row-height cell-height) 2))))
+				  (multiple-value-bind (x-offset y-offset)
+				      (convert-from-ancestor-to-descendant-coordinates
+					(output-record-parent table) (output-record-parent cell))
+				    (declare (type coordinate x-offset y-offset))
 				    (output-record-set-position*
 				      cell
-				      (the fixnum (+ x-offset total-width  x-alignment-adjust))
-				      (the fixnum (+ y-offset total-height y-alignment-adjust))))
+				      (+ x-offset total-width  x-alignment-adjust)
+				      (+ y-offset total-height y-alignment-adjust)))
 				  (if row-table-p
-				      (incf total-width
-					    (the fixnum (+ column-width inter-column-spacing)))
-				    (incf total-height
-					  (the fixnum (+ row-height inter-row-spacing)))))))
+				      (incf total-width (+ column-width x-spacing))
+				    (incf total-height (+ row-height y-spacing))))))
 			 (declare (dynamic-extent #'cell-mapper))
-			 (map-over-row-cells row #'cell-mapper))
+			 (map-over-row-cells #'cell-mapper row))
 		       (if row-table-p
-			   (incf y-pos
-				 (the fixnum (+ this-row-height inter-row-spacing)))
-			   (incf x-pos
-				 (the fixnum (+ this-column-width inter-column-spacing)))))))
+			   (incf y-pos (+ this-row-height y-spacing))
+			   (incf x-pos (+ this-column-width x-spacing))))))
 	      (declare (dynamic-extent #'row-mapper))
-	      (funcall table-mapper table #'row-mapper)))))))
+	      (funcall table-mapper #'row-mapper table)))))))
   (tree-recompute-extent table))
 
 ;;; Table has already been laid out.
-(defmethod adjust-multiple-columns ((table table-output-record) stream
-				    &optional n-columns inter-column-spacing)
+(defmethod adjust-multiple-columns ((table standard-table-output-record) stream
+				    &optional n-columns x-spacing)
   (let ((row-count 0))
     (declare (fixnum row-count))
     (when (slot-value table 'row-table-p)
@@ -379,70 +379,76 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 	       (declare (ignore row))
 	       (incf row-count)))
 	(declare (dynamic-extent #'row-counter))
-	(map-over-table-rows table #'row-counter))
+	(map-over-table-rows #'row-counter table))
       (when (> row-count 5)
 	(with-bounding-rectangle* (tleft ttop tright tbottom) table
 	  (multiple-value-bind (stream-width stream-height)
 	      #-Silica (window-inside-size stream)
 	      #+Silica (bounding-rectangle-size stream)
-	    (declare (fixnum stream-width) (ignore stream-height))	;for now
+	    (declare (type coordinate stream-width)
+		     (ignore stream-height)) ;for now
 	    (let* ((table-width (- tright tleft))
 		   (between-column-margin
-		     (if inter-column-spacing
-			 (process-spacing-arg stream inter-column-spacing
+		     (if x-spacing
+			 (process-spacing-arg stream x-spacing
 					      'formatting-table
-					      ':multiple-columns-inter-column-spacing)
+					      ':multiple-columns-x-spacing)
 		         (stream-string-width stream " ")))
 		   (column-width (+ table-width between-column-margin))
 		   (possible-columns (or n-columns (floor stream-width column-width)))
-		   (inter-row-spacing (slot-value table 'inter-row-spacing))
+		   (y-spacing (slot-value table 'y-spacing))
 		   (rows-per-column (max 3 (ceiling row-count possible-columns)))
 		   (row-number 0)
 		   (row-x 0)
 		   (row-y 0))
-	      (declare (fixnum table-width between-column-margin
-			       column-width possible-columns rows-per-column
-			       row-number row-x row-y))
+	      (declare (type coordinate table-width between-column-margin
+				        column-width row-x row-y))
+	      (declare (type fixnum possible-columns rows-per-column row-number))
 	      (flet ((layout-multiple-columns (row)
 		       (multiple-value-bind (rl rt) (bounding-rectangle-position* row)
 			 (multiple-value-bind (xoff yoff)
-			     (values 0 0)
-			   (declare (fixnum xoff yoff))
+			     (convert-from-descendant-to-ancestor-coordinates
+			       row (output-record-parent table))
+			   (declare (type coordinate xoff yoff))
 			   (translate-fixnum-positions xoff yoff rl rt))
 			 ;; Position the row so that the X position relative to the
 			 ;; original table is preserved, so that :ALIGN-X :RIGHT works
 			 ;;--- ROW-Y needs the same treatment for :ALIGN-Y
 			 (output-record-set-position* row (+ row-x (- rl tleft)) row-y)
 			 (incf row-number)
-			 (incf row-y (+ (bounding-rectangle-height row) inter-row-spacing))
+			 (incf row-y (+ (bounding-rectangle-height row) y-spacing))
 			 (when (zerop (mod row-number rows-per-column))
 			   (setq row-x (+ row-x column-width)
 				 row-y 0)))))
 		(declare (dynamic-extent #'layout-multiple-columns))
-		(map-over-table-rows table #'layout-multiple-columns)))))
+		(map-over-table-rows #'layout-multiple-columns table)))))
 	(tree-recompute-extent table)))))
 
-(defmethod adjust-table-cells ((row row-output-record))
+(defmethod adjust-table-cells ((row standard-row-output-record) stream)
+  (declare (ignore stream))
   #+ignore
-  (let ((inter-column-spacing (slot-value (output-record-parent row) 'inter-column-spacing))
+  (let ((x-spacing (slot-value (output-record-parent row) 'x-spacing))
 	(x-position 0))
-    (map-over-row-cells row
+    (map-over-row-cells
       #'(lambda (cell)
 	  (with-bounding-rectangle* (left top right bottom) cell
 	    (declare (ignore bottom))
 	    (output-record-set-position* cell x-position top)
-	    (incf x-position (+ (- right left) inter-column-spacing)))))))
+	    (incf x-position (+ (- right left) x-spacing))))
+      row)))
 
-(defmethod adjust-table-cells ((column column-output-record))
+(defmethod adjust-table-cells ((column standard-column-output-record) stream)
+  (declare (ignore stream))
   #+ignore
-  (let ((inter-column-spacing (slot-value (output-record-parent column) 'inter-column-spacing))
+  (let ((x-spacing (slot-value (output-record-parent column) 'x-spacing))
 	(x-position 0))
-    (map-over-row-cells column
+    (map-over-row-cells 
       #'(lambda (cell)
 	  (with-bounding-rectangle* (left top right bottom) cell
 	    (declare (ignore bottom))
 	    (output-record-set-position* cell x-position top)
-	    (incf x-position (+ (- right left) inter-column-spacing)))))))
+	    (incf x-position (+ (- right left) x-spacing))))
+      column)))
 
 (defun process-spacing-arg (stream spacing form &optional clause)
   (cond ((null spacing) nil)
@@ -456,90 +462,92 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 	   (case units
 	     (:point (round (* number (implementation-pixels-per-point stream))))
 	     (:pixel number)
-	     ;; which character?  Width or height?
-	     (:character (* number (stream-character-width stream #\W))))))
+	     ;; Which character?  Width or height?
+	     (:character (* number (stream-character-width stream #\W)))
+	     (:line (+ (* number (stream-line-height stream))
+		       (* (1- number) (stream-vertical-spacing stream)))))))
 	(t (error "The ~:[~;~S ~]spacing specification, ~S, to ~S was invalid"
 		  clause clause spacing form))))
 
 ;; FORMATTING-TABLE macro in FORMATTED-OUTPUT-DEFS
-(defun formatting-table-internal (stream continuation
-				  &key inter-row-spacing inter-column-spacing
-				       (record-type 'table-output-record)
-				       multiple-columns multiple-columns-inter-column-spacing
-				       equalize-column-widths
-				       (move-cursor t))
-  (multiple-value-bind
-      (x y)
-      (stream-cursor-position* stream)
-    (let ((table (with-new-output-record (stream record-type nil
-						 :inter-row-spacing
-						 (or (process-spacing-arg stream inter-row-spacing
-									  'formatting-table
-									  ':inter-row-spacing)
-						     (stream-vsp stream))
-						 :inter-column-spacing
-						 (or (process-spacing-arg stream inter-column-spacing
-									  'formatting-table
-									  ':inter-column-spacing)
-						     (stream-string-width stream " "))
-						 :equalize-column-widths equalize-column-widths)
-		   (with-output-recording-options (stream :draw-p nil :record-p t)
-		     (with-end-of-line-action (:allow stream)
-		       (with-end-of-page-action (:allow stream)
-			 (funcall continuation stream)))))))
-      (adjust-table-cells table)
-      (when multiple-columns
-	(adjust-multiple-columns table stream
-				 (and (numberp multiple-columns) multiple-columns)
-				 (and multiple-columns
-				      multiple-columns-inter-column-spacing)))
-      ;; Added ??
-      (output-record-set-position* table x y)
-      (replay table stream)
-      (when move-cursor
-	(move-cursor-beyond-output-record stream table))
-      table)))
+(defun invoke-formatting-table (stream continuation
+				&key x-spacing y-spacing
+				     (record-type 'standard-table-output-record)
+				     multiple-columns multiple-columns-x-spacing
+				     equalize-column-widths
+				     (move-cursor t))
+  (let ((table 
+	  (with-output-recording-options (stream :draw nil :record t)
+	    (with-end-of-line-action (stream :allow)
+	      (with-end-of-page-action (stream :allow)
+		(with-new-output-record (stream record-type nil
+					 :x-spacing
+					   (or (process-spacing-arg stream x-spacing
+								    'formatting-table
+								    ':x-spacing)
+					       (stream-string-width stream " "))
+					 :y-spacing
+					   (or (process-spacing-arg stream y-spacing
+								    'formatting-table
+								    ':y-spacing)
+					       (stream-vertical-spacing stream))
+					 :equalize-column-widths equalize-column-widths)
+		  (funcall continuation stream)))))))
+    (adjust-table-cells table stream)
+    (when multiple-columns
+      (adjust-multiple-columns table stream
+			       (and (numberp multiple-columns) multiple-columns)
+			       (and multiple-columns multiple-columns-x-spacing)))
+    (replay table stream)
+    (when move-cursor
+      (move-cursor-beyond-output-record stream table))
+    table))
 
 ;; FORMATTING-CELL macro in FORMATTED-OUTPUT-DEFS
-(defmethod formatting-cell-internal ((stream output-protocol-mixin) continuation
-				     &key (record-type 'cell-output-record)
-					  (align-x ':left) (align-y ':top)
-					  minimum-width minimum-height)
-  (setq minimum-width (or (process-spacing-arg stream minimum-width
-					       'formatting-cell :minimum-width)
-			  0)
-	minimum-height (or (process-spacing-arg stream minimum-height
-					       'formatting-cell :minimum-height)
-			  0))
-  ;; --- jump through a hoop to get a constant record-type symbol into the 
-  ;; WITH-NEW-OUTPUT-RECORD macro so we invoke a PCL instance-constructor function
-  ;; instead of slow make-instance.  If this body was just expanded in-line in formatting-cell
-  ;; it would just work.  We could skip the IF and just call with-new-output-record-internal...
+(defmethod invoke-formatting-cell ((stream output-protocol-mixin) continuation
+				   &key (align-x ':left) (align-y ':top)
+					min-width min-height 
+					(record-type 'standard-cell-output-record))
+  (setq min-width (or (process-spacing-arg 
+			stream min-width 'formatting-cell :min-width)
+		      0)
+	min-height (or (process-spacing-arg
+			 stream min-height 'formatting-cell :min-height)
+		       0))
+  ;;--- Jump through a hoop to get a constant record-type symbol into the
+  ;;--- WITH-NEW-OUTPUT-RECORD macro so we invoke a PCL instance-constructor
+  ;;--- function instead of slow MAKE-INSTANCE.  If this body was just expanded
+  ;;--- inline in FORMATTING-CELL it would just work.  We could skip the IF and
+  ;;--- just call INVOKE-WITH-NEW-OUTPUT-RECORD...
   (let ((stream (or *original-stream* stream)))
     (multiple-value-bind (x y) (stream-cursor-position* stream)
-      (if (eql record-type 'cell-output-record)
-	  (with-new-output-record (stream 'cell-output-record nil
+      (if (eql record-type 'standard-cell-output-record)
+	  (with-new-output-record (stream 'standard-cell-output-record nil
 				   :align-x align-x :align-y align-y
-				   :minimum-width minimum-width
-				   :minimum-height minimum-height)
+				   :min-width min-width :min-height min-height)
 	    (funcall continuation stream))
           (with-new-output-record (stream record-type nil
 				   :align-x align-x :align-y align-y
-				   :minimum-width minimum-width
-				   :minimum-height minimum-height)
+				   :min-width min-width :min-height min-height)
 	    (funcall continuation stream)))
       (stream-set-cursor-position* stream x y))))
 
-(defmethod formatting-cell-internal :around ((stream basic-output-recording) continuation
-					     &rest options)
+(defmethod invoke-formatting-cell :around ((stream output-recording-mixin) continuation
+					   &rest options)
   (declare (ignore continuation options))
-  (letf-globally (((output-recording-stream-text-output-record stream) nil))
+  (letf-globally (((stream-text-output-record stream) nil))
     (call-next-method)))
 
-(defclass item-list-output-record (standard-sequence-output-record) 
-     ((inter-row-spacing :initarg :inter-row-spacing)
-      (inter-column-spacing :initarg :inter-column-spacing)
-      (no-initial-spacing :initarg :no-initial-spacing)
+
+;;; Item lists
+
+(define-protocol-class item-list-output-record (output-record))
+
+(defclass standard-item-list-output-record 
+	  (standard-sequence-output-record item-list-output-record) 
+     ((x-spacing :initarg :x-spacing)
+      (y-spacing :initarg :y-spacing)
+      (initial-spacing :initarg :initial-spacing)
       (n-columns :initarg :n-columns)
       (n-rows :initarg :n-rows)
       (max-width :initarg :max-width)
@@ -550,46 +558,49 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 		     :max-width nil :max-height nil
 		     :stream-width nil :stream-height nil))
 
-(define-output-record-constructor item-list-output-record
-				  (&key inter-row-spacing inter-column-spacing
-					no-initial-spacing
-					n-columns n-rows
+(define-output-record-constructor standard-item-list-output-record
+				  (&key x-position y-position x-spacing y-spacing
+					initial-spacing n-columns n-rows
 					max-width max-height stream-width stream-height
 					(size 25))
-  :inter-row-spacing inter-row-spacing :inter-column-spacing inter-column-spacing
-  :no-initial-spacing no-initial-spacing
+  :x-position x-position :y-position y-position
+  :x-spacing x-spacing :y-spacing y-spacing :initial-spacing initial-spacing
   :n-columns n-columns :n-rows n-rows :max-width max-width :max-height max-height
   :stream-width stream-width :stream-height stream-height :size size)
 
-(defmethod elements-never-overlap-p ((record item-list-output-record)) t)
+(defmethod inferiors-never-overlap-p ((record standard-item-list-output-record)) t)
 
 ;;; map-over-TABLE-cells??
 #+Genera (zwei:defindentation (map-over-menu-cells 1 1))
-(defmethod map-over-menu-cells ((menu item-list-output-record) function)
+(defmethod map-over-menu-cells ((menu standard-item-list-output-record) function)
   (declare (dynamic-extent function))
-  (map-over-table-elements menu 'cell function))
+  (map-over-table-elements function menu 'cell))
 
 ;; If we had our hands on a stream, we could use twice the width of #\Space
-(defvar *default-minimum-menu-column-spacing* 10)
+(defvar *default-minimum-menu-x-spacing* 10)
 
-(defmethod adjust-table-cells ((menu item-list-output-record))
+(defmethod adjust-table-cells ((menu standard-item-list-output-record) stream)
+  ;; We will set the local variables NROWS and NCOLUMNS below, but we never
+  ;; change the slot values themselves, because that will break redisplay.
+  ;; Ditto, X-SPACING and Y-SPACING.
   (let ((ncolumns (slot-value menu 'n-columns))
 	(nrows (slot-value menu 'n-rows))
 	(ncells 0)
 	(max-cell-width 0)
 	(max-cell-height 0)
-	(inter-row-spacing (slot-value menu 'inter-row-spacing))
-	(inter-column-spacing (slot-value menu 'inter-column-spacing))
-	(no-initial-spacing (slot-value menu 'no-initial-spacing))
+	(x-spacing (slot-value menu 'x-spacing))
+	(y-spacing (slot-value menu 'y-spacing))
+	(initial-spacing (slot-value menu 'initial-spacing))
 	(max-width (slot-value menu 'max-width))	;don't make menu
 	(max-height (slot-value menu 'max-height))	;exceed these bounds
 	(constrain t)
 	(preferred-geometry 'column)		;vertical menu
 	(golden-ratio 1.6))
-    (declare (fixnum ncells max-cell-width max-cell-height))
+    (declare (type fixnum ncells))
+    (declare (type coordinate max-cell-width max-cell-height))
     (flet ((count-cells (cell)
 	     (multiple-value-bind (width height) (bounding-rectangle-size cell)
-	       (declare (fixnum width height))
+	       (declare (type coordinate width height))
 	       (maxf max-cell-width width)
 	       (maxf max-cell-height height)
 	       (incf ncells))))
@@ -625,10 +636,10 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 			  (when (> acc-height max-height)
 			    (return count))
 			  (incf count)
-			  (incf acc-height inter-row-spacing)))))
+			  (incf acc-height y-spacing)))))
 	   (setq ncolumns (max 1 (ceiling (/ ncells nrows)))))
 	  (max-width
-	   (let ((spacing (or inter-column-spacing *default-minimum-menu-column-spacing*)))
+	   (let ((spacing (or x-spacing *default-minimum-menu-x-spacing*)))
 	     (setq ncolumns (or (block try-one-row
 				  (let ((acc-width spacing))	;left margin
 				    (flet ((sum-width (cell)
@@ -659,18 +670,15 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 						 1.6))
 					(max max-cell-width 1))))
 	   (setq nrows (max 1 (ceiling (/ ncells ncolumns))))))
-    ;; remember geometry for later debuggability
-    (setf (slot-value menu 'n-columns) ncolumns)
-    (setf (slot-value menu 'n-rows) nrows)
     (with-stack-array (row-array nrows :initial-element nil)
       (with-stack-array (column-array ncolumns :initial-element nil)
 	(let ((row-count 0)
 	      (column-count 0))
 	  (declare (fixnum row-count column-count))
-	  (macrolet (#-ccl-2 (row-height (row-number)
-			       `(the fixnum (svref row-array ,row-number)))
-		     #-ccl-2 (column-width (column-number)
-			       `(the fixnum (svref column-array ,column-number))))
+	  (macrolet (#-CCL-2 (row-height (row-number)
+			       `(svref row-array ,row-number))
+		     #-CCL-2 (column-width (column-number)
+			       `(svref column-array ,column-number)))
 	    ;; Collect row heights and column widths into temp arrays.
 	    ;; We need to remember for each row its total height and
 	    ;; the difference between the smallest top and the largest top.
@@ -678,7 +686,7 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 	    ;; difference between the row top and the y-position of the row.
 	    (flet ((size-cells (cell)
 		     (multiple-value-bind (width height) (bounding-rectangle-size cell)
-		       (declare (fixnum width height))
+		       (declare (type coordinate width height))
 		       (maxf-or (column-width column-count) width)
 		       (maxf-or (row-height row-count) height))
 		     (incf column-count)
@@ -687,28 +695,27 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 		       (setf column-count 0))))
 	      (declare (dynamic-extent #'size-cells))
 	      (map-over-menu-cells menu #'size-cells))
-	    ;; Now default the inter-column-spacing to a spacing that spreads the
+	    ;; Now default the x-spacing to a spacing that spreads the
 	    ;; columns evenly over the entire width of the menu
-	    (unless inter-column-spacing
-	      (setf (slot-value menu 'inter-column-spacing)
-		    (setq inter-column-spacing
-			  (if max-width
-			      (let ((accumulated-width 0))
-				(declare (fixnum accumulated-width))
-				(dotimes (column ncolumns)
-				  (incf accumulated-width (column-width column)))
-				(floor (- max-width accumulated-width) (1+ ncolumns)))
-			      *default-minimum-menu-column-spacing*))))
+	    (unless x-spacing
+	      (setq x-spacing
+		    (if max-width
+			(let ((accumulated-width 0))
+			  (declare (type coordinate accumulated-width))
+			  (dotimes (column ncolumns)
+			    (incf accumulated-width (column-width column)))
+			  (floor (- max-width accumulated-width) (1+ ncolumns)))
+			*default-minimum-menu-x-spacing*)))
 	    (setq row-count 0
 		  column-count 0)
 	    (multiple-value-bind (left-margin top-margin) (bounding-rectangle-position* menu)
-	      (declare (fixnum left-margin top-margin))
+	      (declare (type coordinate left-margin top-margin))
 	      (let ((accumulated-height 0)
-		    (accumulated-width (if no-initial-spacing 0
-					 inter-column-spacing)))
-		(declare (fixnum accumulated-height
-				 accumulated-width))
-		
+		    (accumulated-width 
+		      (if (or (stream-redisplaying-p stream) initial-spacing)
+			  0
+			  x-spacing)))
+		(declare (type coordinate accumulated-height accumulated-width))
 		(flet ((adjust-cells (cell)
 			 (let ((column-width (column-width column-count))
 			       (row-height (row-height row-count))
@@ -716,40 +723,39 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 			       (cell-height (bounding-rectangle-height cell))
 			       (x-alignment-adjust 0)
 			       (y-alignment-adjust 0))
-			   (declare (fixnum column-width row-height cell-width cell-height
-					    x-alignment-adjust y-alignment-adjust))
+			   (declare (type coordinate column-width row-height
+					  cell-width cell-height
+					  x-alignment-adjust y-alignment-adjust))
 			   (ecase (slot-value cell 'x-alignment)
 			     (:left )
 			     (:right
-			       (setq x-alignment-adjust
-				     (the fixnum (- column-width cell-width))))
+			       (setq x-alignment-adjust (- column-width cell-width)))
 			     (:center
-			       (setq x-alignment-adjust
-				     (the fixnum (floor (- column-width cell-width) 2)))))
+			       (setq x-alignment-adjust (floor (- column-width cell-width) 2))))
 			   (ecase (slot-value cell 'y-alignment)
 			     (:top )
 			     (:bottom
-			       (setq y-alignment-adjust
-				     (the fixnum (- row-height cell-height))))
+			       (setq y-alignment-adjust (- row-height cell-height)))
 			     (:center
-			       (setq y-alignment-adjust
-				     (the fixnum (floor (- row-height cell-height) 2)))))
+			       (setq y-alignment-adjust (floor (- row-height cell-height) 2))))
 			   (multiple-value-bind (x-offset y-offset)
-			       (values 0 0)
-			     (declare (fixnum x-offset y-offset))
-
-				    
+			       (convert-from-ancestor-to-descendant-coordinates
+				 (output-record-parent menu) (output-record-parent cell))
+			     (declare (type coordinate x-offset y-offset))
 			     (output-record-set-position*
 			       cell
-			       (the fixnum (+ x-offset left-margin accumulated-width x-alignment-adjust))
-			       (the fixnum (+ y-offset top-margin accumulated-height y-alignment-adjust)))))
+			       (+ x-offset left-margin accumulated-width x-alignment-adjust)
+			       (+ y-offset top-margin accumulated-height y-alignment-adjust))))
 			 (incf accumulated-width (column-width column-count))
-			 (incf accumulated-width inter-column-spacing)
+			 (incf accumulated-width x-spacing)
 			 (incf column-count)
 			 (when (= column-count ncolumns)
-			   (setf accumulated-width (if no-initial-spacing 0 inter-column-spacing))
+			   (setf accumulated-width 
+				 (if (or (stream-redisplaying-p stream) initial-spacing)
+				     0
+				     x-spacing))
 			   (incf accumulated-height (row-height row-count))
-			   (incf accumulated-height inter-row-spacing)
+			   (incf accumulated-height y-spacing)
 			   (setf column-count 0)
 			   (incf row-count))))
 		  (declare (dynamic-extent #'adjust-cells))
@@ -757,63 +763,63 @@ Copyright (c) 1991, Franz Inc. All rights reserved
   (tree-recompute-extent menu))
 
 ;; FORMATTING-ITEM-LIST macro in FORMATTED-OUTPUT-DEFS
-(defun formatting-item-list-internal (stream continuation
-				      &key (record-type 'item-list-output-record)
-					   inter-row-spacing inter-column-spacing
-					   (no-initial-spacing t)
-					   n-columns n-rows
-					   max-width max-height
-					   stream-width stream-height
-					   (move-cursor t))
-  (multiple-value-bind
-      (x y)
-      (stream-cursor-position* stream)
-    (let ((menu (with-new-output-record (stream record-type nil
-						:n-columns n-columns :n-rows n-rows
-						:max-width max-width :max-height max-height
-						:stream-width stream-width :stream-height stream-height
-						:inter-row-spacing
-						(or (process-spacing-arg stream inter-row-spacing
-									 'formatting-item-list
-									 ':inter-row-spacing)
-						    (stream-vsp stream))
-						:inter-column-spacing
-						(process-spacing-arg stream inter-column-spacing
-								     'formatting-item-list
-								     ':inter-column-spacing)
-						:no-initial-spacing no-initial-spacing)
-		  (with-output-recording-options (stream :draw-p nil :record-p t)
-		    (with-end-of-line-action (:allow stream)
-		      (with-end-of-page-action (:allow stream)
-			(funcall continuation stream)))))))
-      (adjust-table-cells menu)
-      #+ignoremaybe(output-record-set-position* menu x y)
-      (replay menu stream)
-      (when move-cursor
-	(move-cursor-beyond-output-record stream menu))
-      menu)))
+(defun invoke-formatting-item-list (stream continuation
+				    &key x-spacing y-spacing initial-spacing
+					 n-columns n-rows 
+					 max-width max-height stream-width stream-height
+					 (move-cursor T) 
+					 (record-type 'standard-item-list-output-record))
+  (let ((menu 
+	  (with-output-recording-options (stream :draw nil :record t)
+	    (with-end-of-line-action (stream :allow)
+	      (with-end-of-page-action (stream :allow)
+		(with-new-output-record (stream record-type nil
+					 :n-columns n-columns :n-rows n-rows
+					 :max-width max-width :max-height max-height
+					 :stream-width stream-width
+					 :stream-height stream-height
+					 :x-spacing
+					   (process-spacing-arg stream x-spacing
+								'formatting-item-list
+								':x-spacing)
+					 :y-spacing
+					   (or (process-spacing-arg stream y-spacing
+								    'formatting-item-list
+								    ':y-spacing)
+					       (stream-vertical-spacing stream))
+					 :initial-spacing initial-spacing)
+		  (funcall continuation stream)))))))
+    (adjust-table-cells menu stream)
+    (replay menu stream)
+    (when move-cursor
+      (move-cursor-beyond-output-record stream menu))
+    menu))
 
-(defun format-items (item-list &key (stream *standard-output*) printer presentation-type
-				    inter-row-spacing inter-column-spacing
-				    (no-initial-spacing t)
-				    n-rows n-columns max-width max-height
-				    (record-type 'item-list-output-record)
-				    (cell-align-x ':left) (cell-align-y ':top))
+(defun format-items (items &key (stream *standard-output*) printer presentation-type
+				x-spacing y-spacing initial-spacing
+				n-rows n-columns max-width max-height
+				(record-type 'standard-item-list-output-record)
+				(cell-align-x ':left) (cell-align-y ':top)
+				#+CLIM-1-compatibility inter-row-spacing
+				#+CLIM-1-compatibility inter-column-spacing)
+  #+CLIM-1-compatibility
+  (when (or inter-row-spacing inter-column-spacing)
+    (setq x-spacing inter-column-spacing
+	  y-spacing inter-row-spacing))
   (when (and printer presentation-type)
     (error "Only one of ~S or ~S can be specified." ':printer ':presentation-type))
   (when (and (null printer) (null presentation-type))
     (error "One of ~S or ~S must be specified." ':printer ':presentation-type))
-  (formatting-item-list (stream
-			  :record-type record-type
-			  :n-rows n-rows :n-columns n-columns
-			  :max-width max-width :max-height max-height
-			  :inter-row-spacing inter-row-spacing
-			  :inter-column-spacing inter-column-spacing
-			  :no-initial-spacing no-initial-spacing)
-    ;;--- Lists?  Sequences?
-    (dolist (item item-list)
-      (formatting-cell (stream :align-x cell-align-x :align-y cell-align-y)
-	(cond (printer
-	       (funcall printer item stream))
-	      (presentation-type
-	       (present item presentation-type :stream stream)))))))
+  (formatting-item-list (stream :record-type record-type
+				:n-rows n-rows :n-columns n-columns
+				:max-width max-width :max-height max-height
+				:x-spacing x-spacing :y-spacing y-spacing
+				:initial-spacing initial-spacing)
+    (flet ((format-item (item)
+	     (formatting-cell (stream :align-x cell-align-x :align-y cell-align-y)
+	       (cond (printer
+		      (funcall printer item stream))
+		     (presentation-type
+		      (present item presentation-type :stream stream))))))
+      (declare (dynamic-extent #'format-item))
+      (map nil #'format-item items))))

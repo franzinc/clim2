@@ -1,30 +1,10 @@
-;;; -*- Mode: LISP; Syntax: Common-Lisp; Base: 10; Package: silica ; Lowercase: Yes -*-
-;; 
-;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
-;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
-;;
-;; The software, data and information contained herein are proprietary
-;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
-;; given in confidence by Franz, Inc. pursuant to a written license
-;; agreement, and may be stored and used only in accordance with the terms
-;; of such license.
-;;
-;; Restricted Rights Legend
-;; ------------------------
-;; Use, duplication, and disclosure of the software, data and information
-;; contained herein by any agency, department or entity of the U.S.
-;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
-;;
+;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: text-style.cl,v 1.1 91/11/25 10:01:59 cer Exp Locker: cer $
+;; $fiHeader: text-style.lisp,v 1.4 91/03/26 12:49:00 cer Exp $
 
 (in-package :silica)
 
-"Copyright (c) 1990, 1991 Symbolics, Inc.  All rights reserved.
-Copyright (c) 1991, Franz Inc. All rights reserved
+"Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved.
  Portions copyright (c) 1989, 1990 International Lisp Associates."
 
 ;;; To consider: how to merge Genera styles with styles.
@@ -40,28 +20,30 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 ;; face, but different sizes.  They are kept sorted small to large.
 (defvar *allow-loose-text-style-size-mapping* #+xlib t #-xlib nil)
 
-(defclass text-style ()
+(define-protocol-class text-style ())
+
+(defclass standard-text-style (text-style)
      ((family :initarg :family :initform nil :reader text-style-family)
       (face   :initarg :face   :initform nil :reader text-style-face)
       (size   :initarg :size   :initform nil :reader text-style-size)
       (index  :initarg :index  :initform nil)))
 
-(define-constructor make-text-style-internal text-style (family face size index)
+(define-constructor make-text-style-1 standard-text-style (family face size index)
   :family family :face face :size size :index index)
 
-(defmethod text-style-components ((style text-style))
+(defmethod text-style-components ((style standard-text-style))
   (with-slots (family face size) style
     (values family face size)))
 
-(defmethod fully-merged-text-style-p ((style text-style))
+(defmethod fully-merged-text-style-p ((style standard-text-style))
   (with-slots (family face size) style
     (and family face size)))
 
-(defmethod make-load-form ((object text-style))
+(defmethod make-load-form ((object standard-text-style))
   (with-slots (family face size) object
     `(make-text-style ,family ,face ,size)))
 
-(defmethod print-object ((style text-style) stream)
+(defmethod print-object ((style standard-text-style) stream)
   (with-slots (family face size) style
     (let ((true-face (face-code->face face)))
       #+Genera
@@ -100,8 +82,8 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 (defvar *default-text-style*)
 
 (defun initialize-text-style-tables ()
-  (setf *null-text-style* (make-text-style-internal nil nil nil 0)
-	*undefined-text-style* (make-text-style-internal (make-symbol "UNDEFINED") nil nil 1)
+  (setf *null-text-style* (make-text-style-1 nil nil nil 0)
+	*undefined-text-style* (make-text-style-1 (make-symbol "UNDEFINED") nil nil 1)
 	*next-text-style-index* 2
 	*text-style-index-table*
 	  (make-array maximum-text-style-index 
@@ -119,7 +101,7 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 	  (make-text-style :stand-in-for-undefined-style :roman :normal))
   *null-text-style*)
 
-(defmethod parse-text-style ((text-style text-style))
+(defmethod parse-text-style ((text-style standard-text-style))
   text-style)
 
 (defmethod parse-text-style ((text-style device-font))
@@ -130,12 +112,12 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 
 (defmethod parse-text-style ((style list))
   (assert (= (length style) 3) (style)
-	  "A text style is a three-element list (face family size), not ~S"
+	  "A text style is a three element list (face family size), not ~S"
 	  style)
   (apply #'make-text-style style))
 
 
-(defvar *text-style-lock* (initial-lock-value))
+(defvar *text-style-lock* (make-lock "text style lock"))
 
 ;;; The text-style table is an alist-structured database; the
 ;;; first key is family, then face, then size.  This might or might not
@@ -156,19 +138,19 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 	(macrolet ((ensure-stuff (stuff thing from-stuff)
 		     `(unless ,stuff
 			(setf ,stuff (cons ,thing nil))
-			(with-lockf (*text-style-lock* "Text style lock")
+			(with-lock-held (*text-style-lock* "Text style lock")
 			  (setf ,from-stuff (nconc ,from-stuff (cons ,stuff nil)))))))
 	  (ensure-stuff family-stuff family *text-style-intern-table*)
 	  (ensure-stuff face-stuff face family-stuff)
 	  (ensure-stuff size-stuff size face-stuff))
-	(let* ((new-style (make-text-style-internal family face size nil)))
+	(let* ((new-style (make-text-style-1 family face size nil)))
 	  (setf (cdr size-stuff) new-style)
 	  (return-from make-text-style new-style))))))
 
-(defmethod text-style-index ((text-style text-style))
+(defmethod text-style-index ((text-style standard-text-style))
   (with-slots (index) text-style
     (when index (return-from text-style-index index))
-    (let* ((new-index (with-lockf (*text-style-lock* "Text style lock")
+    (let* ((new-index (with-lock-held (*text-style-lock* "Text style lock")
 			(prog1 *next-text-style-index*
 			       (incf *next-text-style-index*)))))
       (when (> new-index maximum-text-style-index)
@@ -282,7 +264,7 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 	 (define-text-face-class-load-time ',class)
 
 	 ;; Cloe doesn't appear able to find the MACROLETted versions below.
-	 #+Cloe-Runtime				;CLOE bug?
+	 #+Cloe-Runtime				;Cloe bug?
 	 (progn
 	   (defmacro ,face-code-mask-macro-name (&rest face-codes)
 	     (let ((result 0))
@@ -482,24 +464,29 @@ Copyright (c) 1991, Franz Inc. All rights reserved
   (declare (values width height final-x final-y baseline)))
 
 
-;(defmethod text-style-height ((text-style text-style) (stream encapsulating-stream-mixin))
-;  (text-style-height text-style (slot-value stream 'stream)))
-;
-;(defmethod text-style-width ((text-style text-style) (stream encapsulating-stream-mixin))
-;  (text-style-width text-style (slot-value stream 'stream)))
-;
-;(defmethod text-style-ascent ((text-style text-style) (stream encapsulating-stream-mixin))
-;  (text-style-ascent text-style (slot-value stream 'stream)))
-;
-;(defmethod text-style-descent ((text-style text-style) (stream encapsulating-stream-mixin))
-;  (text-style-descent text-style (slot-value stream 'stream)))
-;
-;(defmethod text-style-fixed-width-p ((text-style text-style) (stream encapsulating-stream-mixin))
-;  (text-style-fixed-width-p text-style (slot-value stream 'stream)))
-;
-;(defmethod text-size ((stream encapsulating-stream-mixin) string
-;		      &key (text-style (stream-merged-text-style stream)) (start 0) end)
-;  (text-size stream string :text-style text-style :start start :end end))
+(defmethod text-style-height ((text-style standard-text-style)
+			      (stream standard-encapsulating-stream))
+  (text-style-height text-style (slot-value stream 'stream)))
+
+(defmethod text-style-width ((text-style standard-text-style)
+			     (stream standard-encapsulating-stream))
+  (text-style-width text-style (slot-value stream 'stream)))
+
+(defmethod text-style-ascent ((text-style standard-text-style)
+			      (stream standard-encapsulating-stream))
+  (text-style-ascent text-style (slot-value stream 'stream)))
+
+(defmethod text-style-descent ((text-style standard-text-style) 
+			       (stream standard-encapsulating-stream))
+  (text-style-descent text-style (slot-value stream 'stream)))
+
+(defmethod text-style-fixed-width-p ((text-style standard-text-style) 
+				     (stream standard-encapsulating-stream))
+  (text-style-fixed-width-p text-style (slot-value stream 'stream)))
+
+(defmethod text-size ((stream standard-encapsulating-stream) string
+		      &key (text-style (stream-merged-text-style stream)) (start 0) end)
+  (text-size stream string :text-style text-style :start start :end end))
 
 
 #-Genera
@@ -509,17 +496,17 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 #+Genera
 (progn
 
-(defvar *Genera-style-to-style-table* (make-array 256))
+(defvar *genera-style-to-style-table* (make-array 256 :initial-element nil))
 
-(defun Genera-style->style (character-style)
+(defun genera-style->style (character-style)
   (let ((index (si:style-index character-style)))
-    (or (aref *Genera-style-to-style-table* index)
-	(setf (aref *Genera-style-to-style-table* index)
+    (or (aref *genera-style-to-style-table* index)
+	(setf (aref *genera-style-to-style-table* index)
 	      (parse-text-style (si:unparse-character-style character-style))))))
 
 (defun merged-text-style (character style)
   (let* ((char-style (si:char-style character))
-	 (char-style (Genera-style->style char-style))
+	 (char-style (genera-style->style char-style))
 	 (merged-style (merge-text-styles style char-style)))
     (values (sys:make-character character :style nil) merged-style)))
 ) ;;; End of #+Genera
@@ -527,9 +514,9 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 
 ;; See SHEET-GRAPHICS-IMPLEMENTATION for an example of its use...
 (defmacro define-display-device (name class &key font-for-undefined-style)
-  `(defvar ,name (make-instance
-		   ',class :name ',name
-		   :font-for-undefined-style ',font-for-undefined-style)))
+  `(defvar ,name (make-instance ',class 
+				:name ',name
+				:font-for-undefined-style ',font-for-undefined-style)))
 
 ;;; [ 1/4/90 naha -- determined by reading DEFINE-TEXT-STYLE-MAPPINGS-LOAD-TIME ]
 ;;; each element of SPECS can be one of
@@ -551,61 +538,83 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 		       (my-specs (cdr specs) (cddr my-specs))
 		       (value (first my-specs) (first my-specs))
 		       (rest (second my-specs) (second my-specs)))
-		     ((null my-specs))
+		      ((null my-specs))
 		   (case type
 		     (:family (setf family value))
 		     (:face (setf face value))
 		     (:size (setf size value))
 		     (otherwise (warn "Ill-formed mapping contains ~S" specs)))
 		   (load-specs family face size rest))
-	       (if (and family face size)
-		   (add-text-style-mapping
-		    device character-set
-		    (make-text-style family face size) specs)
-		 (error "Can't do [~A.~A.~A]" family face size)))))
+		 (if (and family face size)
+		     (setf (text-style-mapping 
+			     device character-set (make-text-style family face size))
+			   specs)
+		     (error "Can't do [~A.~A.~A]" family face size)))))
     (dolist (spec specs)
       (load-specs nil nil nil spec))))
 
-(defmethod add-text-style-mapping
-    ((device port) character-set style result)
+;(defclass display-device ()
+;     ((name :initarg :name :reader display-device-name)
+;      (mapping-table :initform (make-hash-table))))
+;
+;(defvar *display-devices* nil)
+;
+;(defmethod initialize-instance :after
+;    ((device display-device) &key font-for-undefined-style)
+;  ;; Keep track of all of the display devices
+;  (push-unique device *display-devices* :key #'display-device-name)
+;  (when font-for-undefined-style
+;    (setf (text-style-mapping
+;	    device *standard-character-set* *undefined-text-style*)
+;	  font-for-undefined-style)))
+;
+;(defmethod print-object ((device display-device) stream)
+;  (print-unreadable-object (device stream :type t :identity t)
+;    (format stream "~A" (slot-value device 'name))))
+
+(defmethod (setf text-style-mapping)
+	   (mapping (device port) character-set style &optional window)
+  (declare (ignore window))
   (setq style (standardize-text-style device character-set style))
-  (when (listp result)
-    (assert (eql (first result) :style) ()
+  (when (listp mapping)
+    (assert (eql (first mapping) :style) ()
 	    "Text style mappings must be atomic font names ~
 	     or (:STYLE . (family face size))")
-    (setf result (parse-text-style (cdr result))))
+    (setf mapping (parse-text-style (cdr mapping))))
   (with-slots (mapping-table) device
     (with-slots (family face size) style
       (if *allow-loose-text-style-size-mapping*
 	  (let ((fonts (gethash (list family face) mapping-table)))
 	    (setf (gethash (list family face) mapping-table)
 	      (merge 'list 
-		     (list (list style result))
-		     (multiple-value-bind
-			 (a b c)
-			 (text-style-components style)
-			 (delete-if #'(lambda (old)
-					(multiple-value-bind
-					    (x y z)
-					    (text-style-components
-					     (car old))
-					  (and (equal x a)
-					       (equal y b)
-					       (= z c))))
-				    fonts))
-		     #'(lambda (one two)
-			 (< (slot-value (car one) 'size)
-			    (slot-value (car two) 'size))))))
-	(setf (gethash style mapping-table) result)))))
+		(list (list style mapping))
+		(multiple-value-bind (family face size)
+		    (text-style-components style)
+		  (delete-if #'(lambda (old)
+				 (multiple-value-bind (fam fc sz)
+				     (text-style-components (first old))
+				   (and (equal fam family)
+					(equal fc face)
+					(= sz size))))
+			     fonts))
+		#'(lambda (one two)
+		    (< (text-style-size (first one))
+		       (text-style-size (first two)))))))
+	(setf (gethash style mapping-table) mapping)))))
+
+#+CLIM-1-compatibility
+(define-compatibility-function (add-text-style-mapping (setf text-style-mapping))
+			       (device character-set style mapping)
+  (setf (text-style-mapping device character-set style) mapping))
 
 ;;; This is broken up into two methods so any :AROUND method will only
 ;;; be called on the outermost recursion.
 (defmethod text-style-mapping
-	   ((device port) character-set style window)
+	   ((device port) character-set style &optional window)
   (text-style-mapping* device character-set style window))
 
 (defmethod text-style-mapping
-	   ((device port) character-set (style device-font) window)
+	   ((device port) character-set (style device-font) &optional window)
   (declare (ignore character-set window))
   ;;--- What about character-set when using device fonts?
   ;;--- EQL? TYPE-EQUAL?  This is too restrictive as it stands
@@ -621,7 +630,7 @@ Copyright (c) 1991, Franz Inc. All rights reserved
     (let ((tuples (gethash (list family face) mapping-table))
 	  last-tuple last-size)
       (dolist (tuple tuples (if tuples (cadr (last tuples))))
-	(let ((font-size (slot-value (car tuple) 'size)))
+	(let ((font-size (text-style-size (car tuple))))
 	  (if exact-size-required
 	      (if (= size font-size)
 		  (return (cdr tuple)))
@@ -635,21 +644,20 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 		     (return (cadr last-tuple))))))
 	  (setq last-tuple tuple)
 	  (setq last-size font-size))))))
-	
-(defmethod text-style-mapping* ((device port) character-set style window)
+
+(defmethod text-style-mapping* ((device port) character-set style &optional window)
   (setq style (standardize-text-style device character-set (parse-text-style style)))
   (let* ((mapping-table (slot-value device 'mapping-table))
 	 (result (or (if *allow-loose-text-style-size-mapping*
 			 (lookup-closest-font style mapping-table)
-		       (gethash style mapping-table))
+		         (gethash style mapping-table))
 		     (if *allow-loose-text-style-size-mapping*
 			 (lookup-closest-font (device-undefined-text-style device)
 					      mapping-table)
-		       (gethash 
-			(device-undefined-text-style device)
-			#+ignore *undefined-text-style*
-			mapping-table)))))
-    (when (typep result 'text-style)	;Logical translations
+		         (gethash #-ignore (device-undefined-text-style device)
+				  #+ignore *undefined-text-style*
+				  mapping-table)))))
+    (when (text-style-p result)			;logical translations
       (setf result (text-style-mapping* device character-set result window)))
     result))
 
@@ -659,7 +667,7 @@ Copyright (c) 1991, Franz Inc. All rights reserved
   (let* ((mapping-table (slot-value device 'mapping-table))
 	 (result (if *allow-loose-text-style-size-mapping*
 		     (lookup-closest-font style mapping-table exact-size-required)
-		   (gethash style mapping-table))))
+		     (gethash style mapping-table))))
     (cond ((null result) nil)
 	  ((typep result 'text-style)	; logical translations
 	   (text-style-mapping-exists-p device character-set style))

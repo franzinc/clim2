@@ -1,30 +1,10 @@
-;;; -*- Mode: LISP; Syntax: Common-lisp; Package: CLIM; Base: 10; Lowercase: Yes -*-
-;; 
-;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
-;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
-;;
-;; The software, data and information contained herein are proprietary
-;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
-;; given in confidence by Franz, Inc. pursuant to a written license
-;; agreement, and may be stored and used only in accordance with the terms
-;; of such license.
-;;
-;; Restricted Rights Legend
-;; ------------------------
-;; Use, duplication, and disclosure of the software, data and information
-;; contained herein by any agency, department or entity of the U.S.
-;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
-;;
+;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: standard-types.lisp,v 1.8 91/08/05 14:35:28 cer Exp $
+;; $fiHeader: standard-types.lisp,v 1.4 91/03/26 12:48:51 cer Exp $
 
-(in-package :clim)
+(in-package :clim-internals)
 
-"Copyright (c) 1990, 1991 Symbolics, Inc.  All rights reserved."
-"Copyright (c) 1991, Franz Inc. All rights reserved"
+"Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved."
 
 ;;; This file contains the standard, canned presentation types
 
@@ -44,7 +24,7 @@
   ;; Only allow the user to click on things if he did not supply any
   ;; ACCEPT method for the type.  This is a perfectly reasonable thing
   ;; to do in direct-manipulation user interfaces.
-  (with-blip-characters (() :override t)
+  (with-blip-gestures (() :override t)
     (read-token stream :click-only t)))
 
 
@@ -76,10 +56,15 @@
 (define-presentation-method accept ((type symbol) stream (view textual-view) &key)
   (simple-lisp-object-parser type stream))
 
+(defun whitespace-character-p (char)
+  (and (characterp char)
+       (or (char-equal char #\Space)
+	   (char= char #\Tab))))
+
 (defun simple-lisp-object-parser (type stream &optional coerce-test coerce-function)
   (loop
     (let ((token (read-token stream)))
-      (when (interactive-stream-p stream)
+      (when (input-editing-stream-p stream)
 	(rescan-for-activation stream))
       (multiple-value-bind (object index)
 	  (let ((*read-eval* nil))		;disable "#."
@@ -89,7 +74,7 @@
 	;; Too bad read-from-string doesn't take a :junk-allowed argument
 	;; Simulate what it would do
 	(unless (>= index (length token))
-	  (when (find-if-not #'whitespace-char-p token :start index)
+	  (when (find-if-not #'whitespace-character-p token :start index)
 	    (simple-parse-error "Extra junk ~S found after the ~A."
 				(subseq token index)
 				(describe-presentation-type type nil nil))))
@@ -108,7 +93,7 @@
   :history symbol)
 
 (define-presentation-method accept ((type keyword) stream (view textual-view) &key)
-  (values (intern (read-token stream) :keyword)))
+  (values (intern (read-token stream) "KEYWORD")))
 
 ;;; This is needed because KEYWORD is not a built-in-class
 (define-presentation-method presentation-typep (object (type keyword))
@@ -354,7 +339,7 @@
 	(write object :stream stream :escape t))
       (write-string object stream)))
 
-(define-presentation-method present (object (type string) stream (view dialog-view)
+(define-presentation-method present (object (type string) stream (view textual-dialog-view)
 				     &key acceptably)
   (if (or acceptably (zerop (length object)))
       (with-standard-io-syntax
@@ -369,6 +354,8 @@
 
 
 ;;;; Pathname Presentation Type
+
+#-Minima (progn
 
 ;; :INHERIT-FROM T in order to avoid inheriting from any structure classes
 (define-presentation-type pathname ()
@@ -445,7 +432,7 @@
 	(fs:complete-pathname default string nil :newest :read)
       (values string success (and success (pathname string)) 1))))
 
-#-:Coral
+#-CCL-2
 (defun pathname-complete-1 (string action &optional (default *default-pathname-defaults*))
   (declare (ignore default))			;--- for now
   ;; Slow but accurate
@@ -493,7 +480,7 @@
 				 :action action
 				 :name-key #'namestring :value-key #'identity)))
 
-#+:Coral
+#+CCL-2
 (defun pathname-complete (string action &optional (default *default-pathname-defaults*))
   (declare (ignore default))			;--- for now
   ;; Slow but accurate
@@ -506,9 +493,11 @@
     (complete-from-possibilities string completions '(#\space)
 				 :action action :name-key #'namestring :value-key #'identity)))
 
-#-(or Genera :Coral)
+#-(or Genera CCL-2)
 (defun pathname-complete (string action &optional (default *default-pathname-defaults*))
   (pathname-complete-1 string action default))
+
+)	;#-Minima
 
 
 ;;;; "One-of" Presentation Types
@@ -556,9 +545,9 @@
 	(map nil #'suggest-item sequence)))))
 
 (define-presentation-method accept-present-default ((type completion) stream
-						    (view dialog-view)
+						    (view textual-dialog-view)
 						    default default-supplied-p
-						    present-p query-identifier)
+						    present-p query-identifier &key)
   (declare (ignore default-supplied-p present-p))
   (accept-values-choose-from-sequence stream sequence
 				      value-key default test
@@ -567,7 +556,7 @@
 					  (declare (ignore query-value))
 					  choice-value)
 				      #'(lambda (continuation object stream)
-					  (with-text-face (:bold stream)
+					  (with-text-face (stream :bold)
 					    (funcall continuation object stream)))))
 
 ;;--- Limit output if length is too long?
@@ -704,7 +693,7 @@
 	      (make-array 2 :initial-contents (list separator #\space)))))
     (loop
       (let ((element
-	      (with-blip-characters (separators)
+	      (with-blip-gestures (separators)
 		(completing-from-suggestions
 		    (stream :partial-completers partial-completers
 			    :possibility-printer
@@ -765,9 +754,9 @@
        (values :accepted object type))))
 
 (define-presentation-method accept-present-default ((type subset-completion)
-						    stream (view dialog-view)
+						    stream (view textual-dialog-view)
 						    default default-supplied-p
-						    present-p query-identifier)
+						    present-p query-identifier &key)
   (declare (ignore default-supplied-p present-p))
   (accept-values-choose-from-subset stream sequence
 				    value-key default test
@@ -776,7 +765,7 @@
 					(declare (ignore query-value))
 					choice-value)
 				    #'(lambda (continuation object stream)
-					(with-text-face (:bold stream)
+					(with-text-face (stream :bold)
 					  (funcall continuation object stream)))))
 
 ;;--- Limit output if length is too long?
@@ -890,16 +879,32 @@
 (define-presentation-method present (sequence (type sequence) stream (view textual-view)
 				     &rest options)
   (declare (dynamic-extent options))
-  (let ((position 0)
-	(last (1- (length sequence))))
-    (map nil #'(lambda (item)
-		 (apply #'present item element-type :stream stream :view view options)
-		 (unless (= position last)
-		   (write-char separator stream)
-		   (when (and echo-space (not (eql separator #\space)))
-		     (write-char #\space stream)))
-		 (incf position))
-	 sequence)))
+  (apply #'present-sequence sequence type stream view options))
+
+(define-presentation-method present (sequence (type sequence) stream (view textual-dialog-view)
+				     &rest options)
+  (declare (dynamic-extent options))
+  ;; Give the user a target to click on when the sequence is empty
+  (if (null sequence)
+      (with-text-face (stream :italic)
+	(describe-presentation-type type stream 1))
+      (apply #'present-sequence sequence type stream view options)))
+
+;;--- Is it right that an empty sequence prints nothing at all?
+(defun present-sequence (sequence type stream view &rest options)
+  (declare (dynamic-extent options))
+  (with-presentation-type-parameters (sequence type)
+    (with-presentation-type-options (sequence type)
+      (let ((position 0)
+	    (last (1- (length sequence))))
+	(map nil #'(lambda (item)
+		     (apply #'present item element-type :stream stream :view view options)
+		     (unless (= position last)
+		       (write-char separator stream)
+		       (when (and echo-space (not (eql separator #\space)))
+			 (write-char #\space stream)))
+		     (incf position))
+	     sequence)))))
 
 (define-presentation-method presentation-default-preprocessor
 			    (default (type sequence) &key default-type)
@@ -969,7 +974,7 @@
   (declare (values object object-type))
   (multiple-value-bind (object object-type)
       (with-input-context (element-type) (object object-type)
-	   (with-blip-characters (separators)
+	   (with-blip-gestures (separators)
 	     (let* ((history (presentation-type-history element-default-type))
 		    (*presentation-type-for-yanking*
 		      (if history element-default-type *presentation-type-for-yanking*))
@@ -1323,9 +1328,9 @@
 
 ;; Supplying this gives us a nice "pushbutton" effect for booleans, too
 (define-presentation-method accept-present-default ((type boolean) stream
-						    (view dialog-view)
+						    (view textual-dialog-view)
 						    default default-supplied-p
-						    present-p query-identifier)
+						    present-p query-identifier &key)
   (declare (ignore default-supplied-p present-p))
   (accept-values-choose-from-sequence stream *boolean-member-alist*
 				      #'second default #'eql
@@ -1334,7 +1339,7 @@
 					  (declare (ignore query-value))
 					  choice-value)
 				      #'(lambda (continuation object stream)
-					  (with-text-face (:bold stream)
+					  (with-text-face (stream :bold)
 					    (funcall continuation object stream)))))
 
 (define-presentation-method presentation-typep (object (type boolean))
@@ -1366,17 +1371,17 @@
   (let ((*read-recursive-objects* nil))
     (with-temporary-string (string)
       (read-recursive stream string nil)
-      (when (interactive-stream-p stream)
+      (when (input-editing-stream-p stream)
 	(rescan-for-activation stream))
       (multiple-value-bind (expression index)
 	  (read-from-string string nil string)
 	(when (eq expression string)
 	  (simple-parse-error "The input ~S is not a complete Lisp expression."
 			      (evacuate-temporary-string string)))
-	;; Too bad READ-FROM-STRING doesn't take a :junk-allowed argument
+	;; Too bad READ-FROM-STRING doesn't take a :JUNK-ALLOWED argument.
 	;; Simulate what it would do
 	(unless (>= index (length string))
-	  (when (find-if-not #'whitespace-char-p string :start index)
+	  (when (find-if-not #'whitespace-character-p string :start index)
 	    (simple-parse-error "Extra junk ~S found after the expression."
 				(subseq string index))))
 	expression))))
@@ -1410,12 +1415,6 @@
 			      (#\" . #\")
 			      (#\| . #\|)))
 
-;;; These defs might want to be in clim-defs...
-(defvar *whitespace* (coerce '(#\Space #\Tab) 'string))
-
-(defun whitespace-character-p (character)
-  (find character *whitespace* :test #'char-equal))
-
 ;;; Ignore issues like comments for now.
 (defun read-recursive (stream input-buffer desired-delimiter)
   (loop
@@ -1423,17 +1422,21 @@
 			(object type)
 	 (let ((char (read-char stream))
 	       (other-delimiter nil))
-	   (cond ((and (activation-character-p char) (not desired-delimiter))
-		  (unread-char char)
+	   (cond ((and (activation-gesture-p char) (not desired-delimiter))
+		  (unread-char char stream)
 		  (return))
-		 ((and (blip-character-p char) (not desired-delimiter))
+		 ((and (blip-gesture-p char) (not desired-delimiter))
 		  (beep stream))
 		 ((not (ordinary-char-p char))
 		  (beep stream))
 		 ((and (zerop (fill-pointer input-buffer))	;ignore leading space
 		       (whitespace-character-p char)))
+		 ((char-equal char #\\)			;check for quoting character
+		  (vector-push-extend char input-buffer)
+		  (let ((char (read-char stream)))
+		    (vector-push-extend char input-buffer)))
 		 (t
-		  (when (activation-character-p char)	;wasn't really an activation char
+		  (when (activation-gesture-p char)	;wasn't really an activation char
 		    (unless (rescanning-p stream)
 		      (replace-input stream (string char))))
 		  (vector-push-extend char input-buffer)
@@ -1444,17 +1447,17 @@
 			 (read-recursive stream input-buffer other-delimiter)
 			 (unless desired-delimiter (return)))
 			((and (whitespace-character-p char) (not desired-delimiter))
-			 (unread-char char)
+			 (unread-char char stream)
 			 (return))
 			(t nil)))))
        (t
 	 ;; Put this thing into the input editor's buffer
-	 (when (interactive-stream-p stream)
+	 (when (input-editing-stream-p stream)
 	   (presentation-replace-input stream object type +textual-view+))
 	 ;; And into the buffer we ourselves are maintaining
 	 (let ((n (length *read-recursive-objects*)))
 	   (setq *read-recursive-objects* (nconc *read-recursive-objects* (list object)))
-	   (doseq (char (format nil " #.(LISP:NTH ~D CLIM::*READ-RECURSIVE-OBJECTS*) " n))
+	   (doseq (char (format nil " #.(LISP:NTH ~D CLIM-INTERNALS::*READ-RECURSIVE-OBJECTS*) " n))
 	     (vector-push-extend char input-buffer)))
 	 (unless desired-delimiter (return))))))
 
@@ -1483,9 +1486,7 @@
 (defun print-recursive-1 (object stream length level make-presentation)
   (flet ((body (object stream)
 	   (cond ((atom object)
-		  (write-string (with-output-to-string (s)
-				  (write object :escape t :stream s))
-				stream))
+		  (write object :escape t :stream stream))
 		 ((eq (first object) 'quote)
 		  (write-string "'" stream)
 		  (print-recursive-1 (second object) stream length level t))
@@ -1514,9 +1515,7 @@
 		  (write-string ")" stream)))))
     ;;; --- WITH-OUTPUT-AS-PRESENTATION should actually do this for us!
     (if (and (output-recording-stream-p stream) make-presentation)
-	(with-output-as-presentation (:stream stream
-				      :object object
-				      :type 'expression
+	(with-output-as-presentation (stream object 'expression
 				      ;; Better highlighting performance!
 				      :single-box :highlighting)
 	  (body object stream))
@@ -1584,7 +1583,7 @@
 		 (if data-args
 		     (values object `((,new-type ,@data-args)) t)
 		     (values object new-type t))
-	         (with-rem-keywords (pr-args pr-args removals)
+	         (with-keywords-removed (pr-args pr-args removals)
 		   (if pr-args
 		       (values object `((,new-type ,@data-args) ,@pr-args))
 		       (if data-args

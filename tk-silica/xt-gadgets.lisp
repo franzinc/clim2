@@ -20,16 +20,14 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader$
+;; $fiHeader: xt-gadgets.cl,v 1.1 92/01/17 17:48:37 cer Exp $
 
 (in-package :xm-silica)
 
 (defclass ask-widget-for-size-mixin () ())
 
-(defmethod realize-pane-internal ((realizer xt-frame-manager)
-				  frame
-				  abstract-type
-				  &rest options)
+(defmethod realize-pane-1 ((realizer xt-frame-manager)
+			   frame abstract-type &rest options)
   (let ((type (apply #'realize-pane-class realizer abstract-type options)))
     (if type
 	(apply #'make-instance
@@ -48,7 +46,7 @@
       (tk::widget-best-geometry (sheet-direct-mirror pane))
     (declare (ignore x y borderwidth care-x care-y care-width
 		     care-height care-borderwidth)) 
-    (make-instance 'silica::space-req :width width :height height)))
+    (make-instance 'silica::space-requirement :width width :height height)))
 
 (defmethod realize-pane-arglist (realizer type &rest options)
   (declare (ignore realizer type))
@@ -110,22 +108,22 @@
 ;; This needs to be somewhere.
 ;; It looks like general CLIM code
 
-(defmethod clim::pane-viewport-sheet (x)
-  (and (typep (silica::sheet-parent x) 'silica::viewport)
-       (silica::sheet-parent x)))
+(defmethod clim-internals::pane-viewport-sheet (x)
+  (and (typep (sheet-parent x) 'silica::viewport)
+       (sheet-parent x)))
 
-(defmethod clim::pane-viewport (x)
-  (clim::pane-viewport-sheet x))
+(defmethod clim-internals::pane-viewport (x)
+  (clim-internals::pane-viewport-sheet x))
 
-(defmethod clim::pane-viewport-region (x)
-  (let ((vp (clim::pane-viewport-sheet x)))
+(defmethod clim-internals::pane-viewport-region (x)
+  (let ((vp (clim-internals::pane-viewport-sheet x)))
     (and vp
 	 (silica::xm-viewport-viewport vp))))
 
-(defun clim::pane-scroller (x)
-  (clim::pane-scroller-sheet x))
+(defun clim-internals::pane-scroller (x)
+  (clim-internals::pane-scroller-sheet x))
 
-(defun clim::update-region (stream width height &key no-repaint)
+(defun clim-internals::update-region (stream width height &key no-repaint)
   (when (or (> width (bounding-rectangle-width stream))
 	    (> height (bounding-rectangle-height stream)))
     (setf (sheet-region stream)
@@ -134,39 +132,62 @@
 				(max (bounding-rectangle-height
 				      stream) height)))))
 
-(defun clim::scroll-extent (stream &key (x 0) (y 0))
-
-  ;; This should copy-area and then do a repaint of the new stuff.
-  ;; Perhaps for the time being we can just clear the current area and
-  ;; then repaint the whole thing
-  #+ignore-why-is-this-here
-  (setq y (min y (max (- (bounding-rectangle-height stream)
-			 (bounding-rectangle-height
-			  (clim::pane-viewport stream)))
-		      0)))
-  (let ((vp (clim::pane-viewport stream)))
-    (setf (sheet-transformation stream)
-      (make-translation-transformation (- x) (- y)))
-    (bounding-rectangle-set-position*
-     (silica::xm-viewport-viewport vp) x y)
-    (with-sheet-medium (medium vp)
-      (draw-rectangle*
-	medium
-	0 0 
-	(bounding-rectangle-width (silica::xm-viewport-viewport vp))
-	(bounding-rectangle-height (silica::xm-viewport-viewport vp))
-	:ink +background+
-	:filled t))
-    (clim::replay
-     (clim-internals::output-recording-stream-output-record stream)
-     stream
-     (silica::xm-viewport-viewport vp))))
+(defun clim-internals::scroll-extent (stream &key (x 0) (y 0))
+  (let ((vp (clim-internals::pane-viewport stream)))
+    (with-bounding-rectangle* (left top right bottom) 
+                              (clim-internals::pane-viewport-region stream)
+      ;;;---- This should actually bash the sheet-transformation
+      (setf (sheet-transformation stream)
+	    (make-translation-transformation (- x) (- y)))
+      (bounding-rectangle-set-position* (silica::xm-viewport-viewport vp) x y)
+      (with-bounding-rectangle* (nleft ntop nright nbottom) 
+                         	(clim-internals::pane-viewport-region stream)
+        (cond
+	 ;; if some of the stuff that was previously on display is still on display
+	 ;; bitblt it into the proper place and redraw the rest.
+	 ((ltrb-overlaps-ltrb-p left top right bottom
+				nleft ntop nright nbottom)
+	  ;; move the old stuff to the new position
+	  (clim-internals::window-shift-visible-region stream 
+				       left top right bottom
+				       nleft ntop nright nbottom)
+	  (let ((rectangles (ltrb-difference nleft ntop nright nbottom
+					     left top right bottom)))
+	    (dolist (region rectangles)
+	      (with-sheet-medium (medium stream)
+		(multiple-value-call
+		    #'draw-rectangle*
+		  medium
+		  (bounding-rectangle* region)
+		  :ink +background-ink+
+		  :filled t))
+	      (replay (stream-output-history stream) stream region))))
+	 ;; otherwise, just redraw the whole visible viewport
+	 ;; Adjust for the left and top margins by hand so clear-area doesn't erase
+	 ;; the margin components.
+	 (t 
+	  ;;---- We should make the sheet-region bigger at this point
+	  ;; Perhaps we do a union of the sheet-region and the viewport
+	  (with-sheet-medium (medium vp)
+	    (draw-rectangle*
+	     medium
+	     0 0 
+	     (bounding-rectangle-width (silica::xm-viewport-viewport vp))
+	     (bounding-rectangle-height (silica::xm-viewport-viewport vp))
+	     :ink +background-ink+
+	     :filled t))
+	  (replay
+	   (stream-output-history stream)
+	   stream
+	   (silica::xm-viewport-viewport vp))))))))
 
 (defclass xt-pane (silica::pane) ())
 
 (defmethod allocate-space ((p xt-pane) width height)
   (when (sheet-mirror p)
-    (tk::set-values (sheet-mirror p) :width width :height height)))
+    (tk::set-values (sheet-mirror p) 
+		    :width (floor width)
+		    :height (floor height))))
 
 ;(defclass xt-composite-pane () ())
 

@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: event.cl,v 1.2 92/01/02 15:09:11 cer Exp Locker: cer $
+;; $fiHeader: event.cl,v 1.3 92/01/06 20:43:53 cer Exp $
 
 (in-package :silica)
 
@@ -64,15 +64,15 @@
   ;; Get just the shift-mask part of state
 	      (logand state #xFF))
 
-(defconstant +pointer-left-button+ (ash 1 8))
-(defconstant +pointer-right-button+ (ash 1 9))
-(defconstant +pointer-middle-button+ (ash 1 10))
+(defconstant +pointer-left-button+   (ash 1 8))
+(defconstant +pointer-middle-button+ (ash 1 9))
+(defconstant +pointer-right-button+  (ash 1 10))
 
-(defconstant +shift-key+ (ash 1 0))
+(defconstant +shift-key+   (ash 1 0))
 (defconstant +control-key+ (ash 1 2))
-(defconstant +meta-key+ (ash 1 3))
-(defconstant +super-key+ (ash 1 4))
-(defconstant +hyper-key+ (ash 1 5))
+(defconstant +meta-key+    (ash 1 3))
+(defconstant +super-key+   (ash 1 4))
+(defconstant +hyper-key+   (ash 1 5))
 
 (defmacro keyboard-modifier-state-match-p (button modifier-state &body clauses)
   (let ((b (gensym))
@@ -118,8 +118,7 @@
 	(cons button (apply #'make-shift-mask (delete button
 						      gesture-spec))))))
 
-(defvar symbolic->mask `(
-			 :left    ,+pointer-left-button+
+(defvar symbolic->mask `(:left    ,+pointer-left-button+
 			 :right   ,+pointer-right-button+
 			 :middle  ,+pointer-middle-button+
 			 :hyper   ,+hyper-key+
@@ -438,7 +437,7 @@
   (let ((sheet (let ((v (port-trace-thing port)))
 		 (and (not (zerop (fill-pointer v)))
 		      (aref v (1- (fill-pointer v)))))))
-    (when (and sheet (port sheet))
+    (when (and sheet (sheet-port sheet))
       (multiple-value-bind
 	  (tx ty)
 	  (untransform-point*
@@ -479,7 +478,7 @@
 		      (t (type-of event)))
 	    (pointer-event-native-x event)
 	    (pointer-event-native-y event)
-	    (event-modifier-key-state event)
+	    (event-modifier-state event)
 	    (pointer-event-button event))))
 	    
 ;;; Local event processing

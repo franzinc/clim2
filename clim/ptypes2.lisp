@@ -1,30 +1,10 @@
-;;; -*- Mode: LISP; Syntax: Common-lisp; Package: CLIM; Base: 10; Lowercase: Yes -*-
-;; 
-;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
-;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
-;;
-;; The software, data and information contained herein are proprietary
-;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
-;; given in confidence by Franz, Inc. pursuant to a written license
-;; agreement, and may be stored and used only in accordance with the terms
-;; of such license.
-;;
-;; Restricted Rights Legend
-;; ------------------------
-;; Use, duplication, and disclosure of the software, data and information
-;; contained herein by any agency, department or entity of the U.S.
-;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
-;;
+;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: ptypes2.lisp,v 1.7 91/08/05 14:35:23 cer Exp $
+;; $fiHeader: ptypes2.lisp,v 1.4 91/03/26 12:48:47 cer Exp $
 
-(in-package :clim)
+(in-package :clim-internals)
 
-"Copyright (c) 1990, 1991 Symbolics, Inc.  All rights reserved."
-"Copyright (c) 1991, Franz Inc. All rights reserved"
+"Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved."
 
 ;;; This file contains portions of the presentation type implementation that
 ;;; cannot be compiled until PTYPES1.LISP is loaded
@@ -41,7 +21,6 @@
 	    (let ((parameters-allowed parameters-allowed)
 		  (options-allowed options-allowed)
 		  (parameters-given parameters-given))
-
 	      (do ((item (car parameters-allowed) (car parameters-allowed))
 		   (optional nil))
 		  ((null parameters-allowed)
@@ -68,16 +47,12 @@
 		       ;; Too few parameters
 		       (return-from presentation-type-specifier-p nil)))
 		(pop parameters-allowed))
-	      
-
-	      
 	      (do* ((l options-given (cddr l))
 		    (kwd (car l) (car l)))
 		   ((null l))
 		(or (member kwd *standard-presentation-options*)
 		    (member kwd options-allowed :key #'parameter-specifier-keyword)
 		    (return-from presentation-type-specifier-p nil))))
-
 	    (if (and (or parameters-allowed options-allowed)
 		     ;; If the class exists but we can't get its prototype, which tends to
 		     ;; happen during compile-file, then we can't call its method so we have
@@ -89,17 +64,15 @@
 		;; Do any additional user-defined validation
 		;; Must trap errors because wrong number of parameters might signal
 		;; an error inside bind-to-list
-		;; Must use class rather than type-name so the right
-		;; environment gets used
+		;; Must use class rather than type-name so the right environment gets used
 		(handler-case
 		    (with-stack-list* (class-and-parameters class parameters-given)
 		      (with-stack-list* (type-specifier class-and-parameters options-given)
 			(call-presentation-generic-function presentation-type-specifier-p
 							    type-specifier)))
 		  (error () nil))
-	      ;; If no parameters nor options, no need for
-	      ;; user-defined validation
-	      t)))))))
+	        ;; If no parameters nor options, no need for user-defined validation
+	        t)))))))
 
 ;;; The default is that any parameters or options are okay
 (define-default-presentation-method presentation-type-specifier-p (type)
@@ -236,9 +209,9 @@
   (map-over-presentation-type-supertypes-augmented presentation-type function))
 
 
-;;;; Typep
+;;;; TYPEP
 
-;;; Is OBJECT of type TYPE
+;;; Is OBJECT of type TYPE?
 (defun presentation-typep (object type)
   (with-presentation-type-decoded (type-name parameters) type
     (case type-name
@@ -253,7 +226,8 @@
 	(let ((class (if (symbolp type-name) (find-class type-name nil) type-name)))
 	  (unless (or (null class) (presentation-type-class-p class))
 	    (unless #+Genera (clos-internals:typep-class object class)
-		    #-Genera (typep object class)
+		    #+CCL-2  (ccl::class-typep object class)
+		    #-(or Genera CCL-2) (typep object class)
 	      (return-from presentation-typep nil))
 	    (unless parameters
 	      (return-from presentation-typep t))))
@@ -264,7 +238,7 @@
 	(call-presentation-generic-function presentation-typep object type)))))
 
 
-;;; Subtypep
+;;; SUBTYPEP
 
 ;; SWM wanted this to have a cache, but let's hold off since it looks
 ;; like MAP-OVER-PRESENTATION-TYPE-SUPERTYPES is faster than caching.
@@ -370,34 +344,48 @@
 	     (values nil t))))))
 
 
+;;;; TYPE-OF
+
+(defun presentation-type-of (object)
+  (dolist (class (class-precedence-list (class-of object)) 'expression)
+    (let ((name (class-proper-name class)))
+      (unless (eq name 't)	;prefer EXPRESSION over T
+	(when (or (acceptable-presentation-type-class class)
+		  (and (symbolp name)
+		       (find-presentation-type-class name nil)
+		       (presentation-type-specifier-p name)))
+	  (return name))))))
+
+
 ;;;; accept-present-default
 
 ;;; Called when ACCEPT turns into PRESENT
 (defun accept-present-default (presentation-type stream view default default-supplied-p
-			       present-p query-identifier)
+			       present-p query-identifier &key (prompt t))
   (call-presentation-generic-function accept-present-default
-    presentation-type stream view default default-supplied-p present-p query-identifier))
+    presentation-type stream view default default-supplied-p present-p query-identifier
+    :prompt prompt))
 
 (define-default-presentation-method accept-present-default (presentation-type stream view
 							    default default-supplied-p
-							    present-p query-identifier)
-  (declare (ignore query-identifier))
-  (with-output-as-presentation (:stream stream
-				:type (first present-p)
-				:object (second present-p))
+							    present-p query-identifier
+							    &key prompt &allow-other-keys)
+  (declare (ignore query-identifier prompt))
+  (with-output-as-presentation (stream (second present-p) (first present-p))
     (if default-supplied-p
 	(present default presentation-type :stream stream :view view)
-	(with-text-face (:italic stream)
+	(with-text-face (stream :italic)
 	  (describe-presentation-type presentation-type stream 1)))))
 
 
 ;;;; Highlight
 
 (defun highlight-presentation (record presentation-type stream state)
-  (with-output-recording-options (stream :record-p nil)
-    (call-presentation-generic-function highlight-presentation
-      presentation-type record stream state)
-    (force-output stream)))
+  (unless (eql record *null-presentation*)
+    (with-output-recording-options (stream :record nil)
+      (call-presentation-generic-function highlight-presentation
+	presentation-type record stream state)
+      (force-output stream))))
 
 (define-default-presentation-method highlight-presentation
 				    (presentation-type record stream state)
@@ -423,7 +411,7 @@
     (declare (dynamic-extent #'check #'complain))
     (if constant
 	(check form)
-	(when (constantp form #+Genera env)
+	(when (constantp form #+(or Genera Minima) env)
 	  (check (eval form #+Genera env))))))
 
 (defun warn-if-presentation-type-specifier-invalid-1 (type env complain)
@@ -497,7 +485,7 @@
 #+Genera
 (defun (compiler:style-checker warn-if-presentation-type-specifier-invalid
 			       with-output-as-presentation) (form)
-  (let ((type (getf (second form) :type)))
+  (let ((type (third (second form))))
     (when type
       (warn-if-presentation-type-specifier-invalid form type
 						   compiler:*optimizer-environment*))))

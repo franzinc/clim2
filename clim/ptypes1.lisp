@@ -1,30 +1,10 @@
-;;; -*- Mode: LISP; Syntax: Common-lisp; Package: CLIM; Base: 10; Lowercase: Yes -*-
-;; 
-;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
-;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
-;;
-;; The software, data and information contained herein are proprietary
-;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
-;; given in confidence by Franz, Inc. pursuant to a written license
-;; agreement, and may be stored and used only in accordance with the terms
-;; of such license.
-;;
-;; Restricted Rights Legend
-;; ------------------------
-;; Use, duplication, and disclosure of the software, data and information
-;; contained herein by any agency, department or entity of the U.S.
-;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
-;;
+;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: ptypes1.lisp,v 1.12 91/08/05 14:35:20 cer Exp $
+;; $fiHeader: ptypes1.lisp,v 1.6 91/03/29 18:21:40 cer Exp $
 
-(in-package :clim)
+(in-package :clim-internals)
 
-"Copyright (c) 1990, 1991 Symbolics, Inc.  All rights reserved."
-"Copyright (c) 1991, Franz Inc. All rights reserved"
+"Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved."
 
 ;;; This file contains the substrate for presentation types
 
@@ -87,14 +67,17 @@
     (return-from class-proper-name
       (clos-internals:class-name-for-type-of class)))
   (let ((name (class-name class)))
-    (if (and name (symbolp name) (eq (find-class-that-works name nil environment) class))
+    (if (and name (symbolp name) 
+	     (eq (find-class-that-works name nil environment) class))
 	name
-	class)))
+	#-Minima class
+	;; Just let the name stand in for the clsas when cross-compiling
+	#+Minima (if (and name (symbolp name)) name class))))
 
 
 ;;;; Conditions for Parsing Exceptions
 
-#+(or (not ansi-90) (not (or genera (and excl (version>= 4 1)))))
+#-(or (and ANSI-90 Genera) Allegro Minima)
 (define-condition parse-error (error) ())
 
 (define-condition simple-parse-error (parse-error)
@@ -277,13 +260,18 @@
 ;;; The metaclass for classes created by DEFINE-PRESENTATION-TYPE.
 ;;; They have their own metaclass just for CLASS-PRESENTATION-TYPE-NAME,
 ;;; ACCEPTABLE-PRESENTATION-TYPE-CLASS, and PRESENTATION-TYPE-CLASS-P.
-(defclass presentation-type-class (standard-class) ())
+(defclass presentation-type-class (standard-class #+Minima-Developer standard-object) ())
 
 ;;; JonL says that the latest CLOS spec says that you aren't allowed to mix
 ;;; objects of different metaclasses unless there is a VALIDATE-SUPERTYPE
 ;;; method that says that you can.
 #+Lucid
 (defmethod clos-system::validate-superclass
+	   ((class presentation-type-class) (meta standard-class))
+  t)
+
+#+(and ANSI-90 Symbolics)
+(defmethod clos-internals::validate-superclass
 	   ((class presentation-type-class) (meta standard-class))
   t)
 
@@ -295,19 +283,24 @@
   #+ignore `(find-presentation-type-class ',(class-presentation-type-name object))
   ;; So do this instead
   `(load-reference-to-presentation-type-class
-     ',(class-presentation-type-name object)
+     ',(class-presentation-type-name object #+(or Genera Minima) 'compile-file)
      ',(presentation-type-parameters object)
      ',(presentation-type-options object)
      ',(let ((superclasses (class-direct-superclasses object)))
 	 (if (cdr superclasses)
-	     (mapcar #'class-presentation-type-name (class-direct-superclasses object))
+	     (mapcar #'(lambda (class)
+			 (class-presentation-type-name class
+						       #+(or Genera Minima) 'compile-file))
+		     (class-direct-superclasses object))
 	     ;; Use an atom instead of a one-element list to work around a Lucid bug
 	     ;; where it blows up if anything here is a list that gets consed freshly
 	     ;; each time make-load-form is called, because make-load-form gets called
 	     ;; twice and the results of evaluating the subforms have to be EQ.  Jeez!
-	     (class-presentation-type-name (first superclasses))))
+	     (class-presentation-type-name (first superclasses)
+					   #+(or Genera Minima) 'compile-file)))
      nil			;description doesn't matter
-     ',(let* ((type-name (class-presentation-type-name object))
+     ',(let* ((type-name (class-presentation-type-name object
+						       #+(or Genera Minima) 'compile-file))
 	      (history (gethash type-name *presentation-type-history-table*)))
  	 ;; The (AND HISTORY ...) is here to get around a compile/load
  	 ;; bootstrapping problem in HISTORIES.LISP
@@ -331,7 +324,7 @@
 ;;; This hash table is keyed by the presentation type name and yields the class.
 (defvar *presentation-type-class-table* (make-hash-table))
 
-#+ccl-2
+#+CCL-2
 (defvar *presentation-class-type-table* (make-hash-table))
 
 ;;; Find the class corresponding to the presentation type named name
@@ -343,13 +336,13 @@
 	  (if (compile-file-environment-p environment)
 	      (compile-time-property name 'presentation-type-class)
 	      (gethash name *presentation-type-class-table*))
-	  (let ((class (find-class name nil #-excl environment)))
+	  (let ((class (find-class name nil #-Allegro environment)))
 	    (and (acceptable-presentation-type-class class)
 		 class))
 	  (when (compile-file-environment-p environment)
 	    ;; compile-file environment inherits from the run-time environment
 	    (or (gethash name *presentation-type-class-table*)
-		(let ((class (find-class name nil #-excl nil)))
+		(let ((class (find-class name nil #-Allegro nil)))
 		  (and (acceptable-presentation-type-class class)
 		       class))))
 	  (and errorp (error "~S is not the name of a presentation type" name))))
@@ -395,6 +388,13 @@
 #+Genera
 (defmethod acceptable-presentation-type-class ((class clos-internals::flavor-class))
   (not (flavor:flavor-is-abstract (clos-internals::class-instance-information class))))
+
+;;; COMPILE-TIME-CLASSes, while the right place to hang all this information,
+;;; unfortunately do NOT have CLASS-PRECEDENCE-LISTS, or any information of
+;;; value other than name.
+#+CCL-2
+(defmethod acceptable-presentation-type-class ((class ccl::compile-time-class))
+  nil)
 
 
 ;;;; Retrieving Information about a Presentation Type or P.T. Abbreviation
@@ -489,17 +489,17 @@
 			 expansion))))))
     ;; If it's both an abbreviation and a class, warn
     (when (and (compile-file-environment-p env)	;Avoid duplicate warning
-	       (find-class name nil #-excl env))
+	       (find-class name nil #-Allegro env))
       (with-warnings-for-definition name define-presentation-type
 	(warn "It is not valid to define a presentation type abbreviation with~@
 	       the same name as a CLOS class.")))
     ;; Generate the expander function and pass it to load-presentation-type-abbreviation
     `(progn
        (eval-when (compile)
-	 #+(or Genera Cloe-Runtime ccl-2)
+	 #+(or Genera Cloe-Runtime Minima CCL-2)
 	   (setf (compile-time-property ',name 'presentation-type-abbreviation)
 		 ,function)
-	 #+(or Lucid excl)
+	 #+(or Lucid Allegro)
 	   ;; In these Lisps, compile-file-environment-p is always false, so
 	   ;; expand-presentation-type-abbreviation-1 is not going to look for
 	   ;; a compile-time-property.
@@ -692,7 +692,7 @@
 					 ',parameter-massagers ',options-massagers)
 	       ,@(generate-map-over-presentation-type-supertypes-method-if-needed
 		    name class function-var parameters-var options-var type-var environment)
-	       #-(or Genera Cloe-Runtime)  ;if not massaging the parameters/options during method inheritance
+	       #-CLIM-extends-CLOS
 	       ,@(generate-presentation-type-inheritance-methods
 		   name class parameters-var options-var environment)
 	       ',name)))))))
@@ -707,9 +707,18 @@
   (when (or (eq direct-supertypes 't)		;In CLOS there's an intervening class
 	    (null direct-supertypes))		;If the :inherit-from was erroneous
     (unless (eq name 't)			;Don't create a bootstrapping problem
-      (setq direct-supertypes 'standard-object)))
+      (typecase (find-class-that-works name nil environment)
+	#+(or Symbolics LispWorks)		;Symbolics CLOS, that is
+	(clos:structure-class
+	  (setq direct-supertypes 'clos:structure-object))
+	#+CCL-2 
+	(structure-class
+	  (setq direct-supertypes 'structure-object))
+	(t
+	  (setq direct-supertypes 'standard-object)))))
   (with-warnings-for-definition name define-presentation-type
-    (let* ((supertypes-list (if (listp direct-supertypes) direct-supertypes
+    (let* ((supertypes-list (if (listp direct-supertypes) 
+				direct-supertypes
 				(list direct-supertypes)))
 	   (direct-superclasses (mapcar #'(lambda (name)
 					    (find-presentation-type-class name t environment))
@@ -717,9 +726,15 @@
 	   old-inheritance new-inheritance
 	   (clos-class (find-class-that-works name nil environment))
 	   (class (find-presentation-type-class name nil environment))
-	   #-(or Genera Cloe-Runtime)  ;if not massaging the parameters/options during method inheritance
-	   (old-direct-superclasses (if class (class-direct-superclasses class)
-					      direct-superclasses)))
+	   #-CLIM-extends-CLOS
+	   (old-direct-superclasses (if class
+					(class-direct-superclasses class)
+					direct-superclasses))
+	   #+CCL-2
+	   (registered-class-name
+	     (let ((keyword-package (find-package "KEYWORD"))
+		   (*package* (find-package "LISP")))
+	       (intern (lisp:format nil "~A ~S" 'ptype name) keyword-package))))
   
       ;; If both a regular class and a presentation type class exist,
       ;; get rid of the presentation type class, with a warning
@@ -751,23 +766,19 @@
 			(typecase superclass
 			  (funcallable-standard-class 'defgeneric)
 			  (standard-class 'defclass)
-			  #+(or Genera Cloe-Runtime)
+			  #+Symbolics		;Symbolics CLOS, that is
 			  (clos:structure-class 'defstruct)
-			  #+coral (structure-class 'defstruct))
+			  #+CCL-2 (structure-class 'defstruct))
 			name)))
-	     (let ((class-name `(presentation-type ,name))
-		   #+ccl-2
-		   (registered-class-name
-		     (let ((keyword-package (find-package :keyword))
-			   (*package* (find-package :lisp)))
-		       (intern (lisp:format nil "~A ~S" 'ptype name) keyword-package))))
+	     (let ((class-name `(presentation-type ,name)))
 	       (setq class #-Lucid (make-instance 'presentation-type-class
 				     :direct-superclasses direct-superclasses
+				     ;; Symbolics CLOS, that is
 				     #+(or Genera Cloe-Runtime) 'clos-internals::name
-				       #+(or Genera Cloe-Runtime) class-name
-				     #+ccl-2 :name #+ccl-2 class-name
-				     #-(or PCL ccl-2 excl) :slots
-				     #+(or PCL ccl-2 excl) :direct-slots
+				     #+(or Genera Cloe-Runtime) class-name
+				     #+CCL-2 :name #+CCL-2 class-name
+				     #-(or PCL CCL-2 Allegro) :slots
+				     #+(or PCL CCL-2 Allegro) :direct-slots
 				       nil)
 			   ;; The above does not work in Lucid 4.0, so do it this way
 			   ;; instead, on JonL's advice.  We can't set the name here
@@ -780,12 +791,9 @@
 				     ()))			;options
                ;;--- Workaround for apparent MCL bug that otherwise causes
 	       ;;--- BAD things to happen
-               #+ccl-2 (setf (slot-value class 'ccl::slots) (cons nil (vector)))
+               #+CCL-2 (setf (slot-value class 'ccl::slots) (cons nil (vector)))
 	       ;; If the class name couldn't be set while making the class, set it now
-	       #-(or Genera Cloe-Runtime ccl-2) (setf (class-name class) class-name)
-               #+ccl-2 (setf (gethash class *presentation-class-type-table*)
-			     registered-class-name)
-               #+ccl-2 (setf (find-class registered-class-name) class)))
+	       #-(or Genera Cloe-Runtime CCL-2) (setf (class-name class) class-name)))
 	    ((not (or (equal (class-direct-superclasses class) direct-superclasses)
 		      ;; The above equal would suffice if it were not for the fact that when
 		      ;; a CLOS class in the compile-file environment has a superclass in the
@@ -806,6 +814,16 @@
 			       (class-proper-name class environment))
 			   (class-direct-superclasses class)))))
   
+      ;;--- This used to be done only in the case where we were creating a class
+      ;;--- "de novo".  However, CCL-2 currently doesn't record anything about
+      ;;--- DEFCLASS at compile time, so we may write the new methods for this
+      ;;--- presentation class on this "registered" name instead of on the
+      ;;--- official class name.  The following line hooks up the class and the
+      ;;--- registered name at load time.  -- rsl & York, 4 June 1991
+      #+CCL-2 (setf (gethash class *presentation-class-type-table*) registered-class-name
+		    ;;--- Should the following be done at compile time?  It's unclear.
+		    (find-class registered-class-name) class)
+
       ;; Always put the class into the table, even if FIND-CLASS could find it, for better
       ;; virtual memory locality in systems where FIND-CLASS uses the property list.
       (when (symbolp name)
@@ -834,10 +852,10 @@
       ;; translator lookup
       (if (compile-file-environment-p environment)
 	  (setf (compile-time-property name 'parameters-are-types) parameters-are-types)
-	(if parameters-are-types
-	    (pushnew name *presentation-type-parameters-are-types*)
-	    (setq *presentation-type-parameters-are-types*
-		  (delete name *presentation-type-parameters-are-types*))))
+	  (if parameters-are-types
+	      (pushnew name *presentation-type-parameters-are-types*)
+	      (setq *presentation-type-parameters-are-types*
+		    (delete name *presentation-type-parameters-are-types*))))
       (cond ((compile-file-environment-p environment)
 	     (setf (compile-time-property name 'presentation-type-history) history))
 	    ((null history)
@@ -874,8 +892,8 @@
       ;; reinitialize-instance.  This gets around a bug in some CLOS implementations.
       (unless (compile-file-environment-p environment)
 	(unless (equal new-inheritance old-inheritance)
-	  (unless #+(or Genera Cloe-Runtime) nil	;always recompute method combination
-		  #-(or Genera Cloe-Runtime) ;if not massaging the parameters/options during method inheritance
+	  (unless #+CLIM-extends-CLOS nil	;always recompute method combination
+		  #-CLIM-extends-CLOS		;if not massaging the parameters/options during method inheritance
 		  (equal direct-superclasses old-direct-superclasses)
 	    #-Lucid (reinitialize-instance class :direct-superclasses direct-superclasses)
 	    #+Lucid (clos-sys:update-class class :direct-superclasses direct-superclasses))))
@@ -893,6 +911,17 @@
 				parameters-are-types
 				parameters-massagers options-massagers)))
 
+;; We need this during Minima cross-compilation, when the "local" class
+;; precedence list and the "remote" class precedence list are not the same.
+;; For example, there will be two different STANDARD-OBJECT classes, plus a
+;; host of other Genera-specific junk that makes no sense for Minima.
+#+Minima
+(defun elide-nonessential-superclasses (class-list)
+  (let ((tail (cdr (member (find-class 'standard-object) class-list))))
+    (if tail
+	(append (ldiff class-list tail) (last class-list))
+	class-list)))
+
 ;;; Generate a map-over-presentation-type-supertypes method if there is any
 ;;; parameterized inheritance.  Otherwise the default method will work.
 ;;; If there is parameterized inheritance, compile code to do it efficiently
@@ -901,6 +930,7 @@
        (name class function-var parameters-var options-var type-var
 	&optional environment)
   (let ((superclasses (cdr (class-precedence-list class))))
+    #+Minima (setq superclasses (elide-nonessential-superclasses superclasses))
     (multiple-value-bind (bindings alist)
 	(generate-type-massagers class superclasses parameters-var options-var t environment)
       (unless (every #'(lambda (class)
@@ -1231,12 +1261,13 @@
 ;;--- Also sometimes bindings are generated that are not used.
 ;;--- I didn't bother figuring out how to optimize further.
 
-#-(or Genera Cloe-Runtime)  ;if not massaging the parameters/options during method inheritance
+#-CLIM-extends-CLOS
 (defun generate-presentation-type-inheritance-methods
        (name class parameters-var options-var &optional environment)
   (let ((superclasses (cdr (class-precedence-list class)))
 	(to-type-name-var '#:to-type-name)
 	(from-type-name-var '#:from-type-name))
+    #+Minima (setq superclasses (elide-nonessential-superclasses superclasses))
     (mapcan #'(lambda (superclass)
 		(multiple-value-bind (bindings alist)
 		    (generate-type-massagers class (list superclass)
@@ -1267,7 +1298,7 @@
 			      ,(third (assoc superclass alist)))))))))
 	    superclasses)))
 
-#-(or Genera Cloe-Runtime)  ;if not massaging the parameters/options during method inheritance
+#-CLIM-extends-CLOS
 (defun inherited-presentation-type-parameters (to-type-name from-type from-parameters)
   (with-presentation-type-decoded (from-type-name) from-type
     (unless (symbolp from-type-name) 
@@ -1277,7 +1308,7 @@
 	(inherited-presentation-type-parameters-method to-type-name from-type-name
 						       from-parameters))))
 
-#-(or Genera Cloe-Runtime)  ;if not massaging the parameters/options during method inheritance
+#-CLIM-extends-CLOS
 (defun inherited-presentation-type-options (to-type-name from-type from-options)
   (with-presentation-type-decoded (from-type-name) from-type
     (unless (symbolp from-type-name) 
@@ -1321,9 +1352,9 @@
      (setf (gethash ',presentation-function-name *presentation-generic-function-table*)
 	   `(,',generic-function-name ,@',lambda-list))
      (defgeneric ,generic-function-name ,lambda-list
-       #-ccl-2
+       #-CCL-2
        (:generic-function-class presentation-generic-function)
-       #+(or Genera Cloe-Runtime)  ;only if massaging the parameters/options during method inheritance
+       #+CLIM-extends-CLOS
        (:method-combination presentation-method-combination)
        ,@options)))
 
@@ -1360,34 +1391,46 @@
 
 ;;; Presentation generic functions have their own class just so we can define
 ;;; one method that aids in implementing presentation-method-combination
-#-ccl-2
+#-CCL-2
 (eval-when (eval load compile)
-(defclass presentation-generic-function (standard-generic-function) ()
+(defclass presentation-generic-function
+	  (standard-generic-function #+Minima-Developer standard-object) 
+  ()
   (:metaclass funcallable-standard-class))
 )	;end of (eval-when (eval load compile)
 
-#+(or Genera Cloe-Runtime)  ;only if massaging the parameters/options during method inheritance
+#+CLIM-extends-CLOS
 (defvar *presentation-method-argument-class*)
 
-#+(or Genera Cloe-Runtime)  ;only if massaging the parameters/options during method inheritance
+#+CLIM-extends-CLOS
 (defmethod clos-internals::compute-effective-method-1 :around
 	   ((generic-function presentation-generic-function)
 	    methods argument-function)
   (declare (ignore methods))
   (let ((*presentation-method-argument-class*
 	  (ecase (first (clos:generic-function-lambda-list generic-function))
-	    (type-key (funcall argument-function 'class 0))
+	    (type-key (funcall argument-function
+			       #-Minima-Developer 'class 
+			       #+Minima-Developer 'zl:::clos-internals::class
+			       0))
 	    (type-class (multiple-value-bind (valid class)
-			    (funcall argument-function 'eql 0)
-			  (if valid class
+			    (funcall argument-function
+				     #-Minima-Developer 'eql
+				     #+Minima-Developer 'zl:::clos-internals::eql
+				     0)
+			  (if valid
+			      class
 			      ;; I don't know why control sometimes gets here, but it does.
 			      ;; Something to do with the class dispatch that precedes
 			      ;; an EQL dispatch.  I think the value we return in this
 			      ;; case never gets used anyway.
-			      (funcall argument-function 'class 0)))))))
+			      (funcall argument-function
+				       #-Minima-Developer 'class 
+				       #+Minima-Developer 'zl:::clos-internals::class
+				       0)))))))
     (call-next-method)))
 
-#+(or Genera Cloe-Runtime)  ;only if massaging the parameters/options during method inheritance
+#+CLIM-extends-CLOS
 ;;; A lot like standard method combination, except for massaging of the
 ;;; presentation-type-parameters and -options arguments, using an
 ;;; extension to call-method
@@ -1473,7 +1516,7 @@
 	    ;; &key &allow-other-keys allows methods to receive only the keyword arguments
 	    ;; that they are interested in.  We know the caller will never supply
 	    ;; misspelled keywords since only the CLIM system calls this.
-  #-ccl-2
+  #-CCL-2
   (declare (arglist type-key parameters options object type stream view
 		    &key acceptably for-context-type)))
 
@@ -1484,9 +1527,9 @@
 	    ;; &key &allow-other-keys allows methods to receive only the keyword arguments
 	    ;; that they are interested in.  We know the caller will never supply
 	    ;; misspelled keywords since only the CLIM system calls this.
-  #-ccl-2
+  #-CCL-2
   (declare (arglist type-key parameters options type stream view
-		    &key acceptably for-context-type)
+		    &key default default-type)
 	   (values object type)))
 
 (define-presentation-generic-function describe-presentation-type-method
@@ -1500,7 +1543,7 @@
 (define-presentation-generic-function presentation-subtypep-method
 				      presentation-subtypep
   (type-key type putative-supertype)
-  #-ccl-2
+  #-CCL-2
   (declare (values subtype-p known-p)))
 
 (define-presentation-generic-function presentation-type-history-method
@@ -1513,7 +1556,7 @@
 	    ;; &key &allow-other-keys allows methods to receive only the keyword arguments
 	    ;; that they are interested in.  We know the caller will never supply
 	    ;; misspelled keywords since only the CLIM system calls this.
-  #-ccl-2
+  #-CCL-2
   (declare (arglist type-key default type &key default-type)
 	   (values default default-type)))
 
@@ -1525,7 +1568,13 @@
 				      accept-present-default
   (type-key parameters options type
 	    stream view default default-supplied-p
-	    present-p query-identifier))
+	    present-p query-identifier
+	    &key &allow-other-keys)
+  #-CCL-2
+  (declare (arglist type-key parameters options type
+		    stream view default default-supplied-p
+		    present-p query-identifier
+		    &key (prompt t))))
 
 (define-presentation-generic-function highlight-presentation-method
 				      highlight-presentation
@@ -1612,29 +1661,31 @@
 	    (let ((parameters-ll (asterisk-default
 				   (presentation-type-parameters class environment))))
 	      (when (lambda-list-variables-used-in-body parameters-ll body)
-		(setq body `((bind-to-list ,parameters-ll
-					   ;; If massaging the parameters during
-					   ;; method inheritance
-					   #+(or Genera Cloe-Runtime) ,parameters-var
-					   ;; If doing it the slow way
-					   #-(or Genera Cloe-Runtime) (inherited-presentation-type-parameters
-							 ',presentation-type-name
-							 ,type-var
-							 ,parameters-var)
+		(setq body `((bind-to-list 
+			       ,parameters-ll
+			       ;; If massaging the parameters during
+			       ;; method inheritance
+			       #+CLIM-extends-CLOS ,parameters-var
+			       ;; If doing it the slow way
+			       #-CLIM-extends-CLOS (inherited-presentation-type-parameters
+						     ',presentation-type-name
+						     ,type-var
+						     ,parameters-var)
 			       ,@body))))))
 	  (when options
 	    (let ((options-ll (lambda-list-from-options
 				(presentation-type-options class environment))))
 	      (when (lambda-list-variables-used-in-body options-ll body)
-		(setq body `((bind-to-list ,options-ll
-					   ;; If massaging the options during
-					   ;; method inheritance
-					   #+(or Genera Cloe-Runtime) ,options-var
-					   ;; If doing it the slow way
-					   #-(or Genera Cloe-Runtime) (inherited-presentation-type-options
-							 ',presentation-type-name
-							 ,type-var
-							 ,options-var)
+		(setq body `((bind-to-list
+			       ,options-ll
+			       ;; If massaging the options during
+			       ;; method inheritance
+			       #+CLIM-extends-CLOS ,options-var
+			       ;; If doing it the slow way
+			       #-CLIM-extends-CLOS (inherited-presentation-type-options
+						     ',presentation-type-name
+						     ,type-var
+						     ,options-var)
 			       ,@body)))))))
     
 	;; Add the "magic" parameters to the front of the lambda list
@@ -1652,8 +1703,8 @@
 				   ((eq (class-name class) presentation-type-name)
 				    presentation-type-name)
 				   (t 
-                                    #+ccl-2 (gethash class *presentation-class-type-table*)
-                                    #-ccl-2 class))))
+                                    #+CCL-2 (gethash class *presentation-class-type-table*)
+                                    #-CCL-2 class))))
 		(type-class `(,type-class-var
 			      ,(cond ((eq kind ':default) `t)
 				     ((symbolp presentation-type-name)
@@ -1709,7 +1760,7 @@
 (scl:defprop define-presentation-type remove-presentation-type zwei:kill-definition)
 
 #+Genera
-(scl:defprop define-presentation-generic-function scl:defun
+(scl:defprop define-presentation-generic-function zl:::scl:defun
 	     zwei:definition-function-spec-type)
 
 ;---I think these don't get used, because methods are just functions
@@ -1739,7 +1790,8 @@
 #+Genera 
 (defun presentation-method-definition-function-spec-parser (bp kind)
   (multiple-value-bind (fspec type str error-p)
-      (funcall #'(:property clos:defmethod zwei:definition-function-spec-parser) bp)
+      (funcall (zl:::scl:function
+		 (:property clos:defmethod zwei:definition-function-spec-parser)) bp)
     (unless error-p
       (let* ((info (or (gethash (second fspec) *presentation-generic-function-table*)
 		       (return-from presentation-method-definition-function-spec-parser
@@ -1784,8 +1836,8 @@
 #+Genera
 (progn
 (dolist (x '(define-presentation-method
-	      define-presentation-method-without-massaging
-	      define-default-presentation-method))
+	     define-presentation-method-without-massaging
+	     define-default-presentation-method))
   (pushnew x zwei:*irrelevant-functions*)
   (pushnew x zwei:*irrelevant-defining-forms*)
   (pushnew x zwei:*forms-that-define-things-with-names-that-are-symbols*)
@@ -1801,7 +1853,7 @@
 		 (if (eq (third info) 'parameters)
 		     (progn (pop info) 1) 0)
 		 (if (eq (third info) 'options) 1 0))))))
-);progn #+Genera
+)	;#+Genera
 
 ;;; Warn about doing defclass and define-presentation-type in the wrong order
 ;;; This is not valid portable code, but I happen to know that in Genera

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: resources.cl,v 1.4 92/01/08 14:58:20 cer Exp Locker: cer $
+;; $fiHeader: resources.cl,v 1.5 92/01/17 17:49:21 cer Exp $
 
 (in-package :tk)
 
@@ -122,9 +122,10 @@
 (defconstant xm_string_default_char_set "")
 
 (defmethod convert-resource-in (class (type (eql 'xm-string)) value)
-  (with-ref-par ((string 0))
-		(string_get_l_to_r value xm_string_default_char_set string)
-		(char*-to-string (aref string 0))))
+  (and (not (zerop value))
+       (with-ref-par ((string 0))
+	 (string_get_l_to_r value xm_string_default_char_set string)
+	 (char*-to-string (aref string 0)))))
 
 (defmethod convert-resource-out ((parent t) (type (eql 'separator-type)) value)
   (ecase value

@@ -1,8 +1,8 @@
-;;; -*- Syntax: Common-Lisp; Base: 10; Package: CLIM; Mode: LISP; Lowercase: T -*-
+;;; -*- Syntax: Common-Lisp; Base: 10; Package: CLIM-USER; Mode: LISP; Lowercase: T -*-
 
-;; $fiHeader: test-suite.cl,v 1.5 92/01/08 14:59:16 cer Exp Locker: cer $
+;; $fiHeader: test-suite.lisp,v 1.21 91/09/24 21:07:06 cer Exp $
 
-(in-package :clim)
+(in-package :clim-user)
 
 #|
 To do:
@@ -33,91 +33,14 @@ What about environment issue?
        #-excl (declare (ignore ,i))
        ,@body)))
 
-(defun get-frame-pane (x y) (slot-value x y))
-
 (defun find-pane-named (pane-name)
-  #-Silica (get-frame-pane *application-frame* pane-name)
-  #+Silica (slot-value *frame* pane-name))
+  #-old-Silica (get-frame-pane *application-frame* pane-name)
+  #+old-Silica (slot-value *frame* pane-name))
 
 (defmacro with-display-pane ((stream) &body body)
   `(let ((,stream (find-pane-named 'display-pane)))
      (window-clear ,stream)
      ,@body))
-
-#+Silica
-(defmacro filling-output ((stream &rest args) &body body)
-  (declare (ignore stream args))
-  `(progn ,@body))
-
-#+Silica
-(defmacro with-local-coordinates ((&optional stream) &body body)
-  (let (( x '#:x)  ( y '#:y)
-	(tx '#:tx) (ty '#:ty))
-    `(multiple-value-bind (,x ,y)
-	 (stream-cursor-position* ,stream)
-       (multiple-value-bind (,tx ,ty)
-	   (transform-point* (medium-transformation ,stream) 0 0)
-	 (with-drawing-options
-	     (,stream :transformation (make-translation-transformation
-					(- ,x ,tx) (- ,y ,ty)))
-	   ,@body)))))
-
-#+Silica
-(defmacro with-first-quadrant-coordinates ((&optional stream) &body body)
-  (let (( x '#:x)  ( y '#:y)
-	(tx '#:tx) (ty '#:ty))
-    `(multiple-value-bind (,x ,y)
-	 (stream-cursor-position* ,stream)
-       (multiple-value-bind (,tx ,ty)
-	   (transform-point* (medium-transformation ,stream) 0 0)
-	 (with-drawing-options
-	     (,stream :transformation (make-transformation 1 0 0 -1
-							   (- ,x ,tx) (- ,y ,ty)))
-	   ,@body)))))
-
-#+Silica
-(defmacro with-room-for-graphics ((&optional stream &key record-type (move-cursor t))
-				  &body body)
-  (unless record-type
-    (setq record-type `'clim::linear-output-record))
-  `(with-room-for-graphics-1 ,stream ,record-type ,move-cursor
-     #'(lambda (,stream) ,@body)))
-
-#+Silica
-(defun output-record-position* (record)
-  (ci::output-record-start-position* record))
-
-#+Silica
-(defun output-record-set-position* (record nx ny)
-  (ci::output-record-set-start-position* record nx ny))
-
-#+Silica
-(defun with-room-for-graphics-1 (stream record-type move-cursor continuation)
-  (let ((record
-	  (with-output-recording-options (stream :draw-p nil :record-p t)
-	    (with-first-quadrant-coordinates (stream)
-	      (with-new-output-record (stream record-type)
-		(funcall continuation stream))))))
-    (multiple-value-bind (width height) (bounding-rectangle-size record)
-      (declare (ignore width) (fixnum height))
-      (multiple-value-bind (x y) (output-record-position* record)
-	(declare (fixnum x y))
-	(setq x (the fixnum (+ x height)))
-	(output-record-set-position* record x y)))
-    (multiple-value-bind (x-offset y-offset)
-	(ci::convert-from-relative-to-absolute-coordinates
-	  stream (output-record-parent record))
-      (when (stream-draw-p stream)
-	(with-output-recording-options (stream :draw-p t :record-p nil)
-	  (replay record stream nil x-offset y-offset)))
-      (when move-cursor
-	(with-bounding-rectangle* (left top right bottom) record
-	  (declare (ignore left top))
-	  (with-end-of-page-action (:allow stream)
-	    (stream-set-cursor-position*
-	      stream
-	      (+ right x-offset) (- (+ bottom y-offset) (stream-line-height stream)))))))
-    record))
 
 (defvar *all-the-tests* nil)
 
@@ -126,20 +49,20 @@ What about environment issue?
   (check-type caption (or null string))
   `(progn
     (pushnew ',name *all-the-tests*)
-    #-Silica
+    #-Old-Silica
     (define-command (,name :command-table ,command-table :menu t) ()
        (write-test-caption ,caption)
        (with-display-pane (,stream)
 	 ,@body))
-    #+Silica
+    #+Old-Silica
     (define-command ,name ()
       (write-test-caption ,caption)
       (with-display-pane (,stream)
 	,@body))
-    #+Silica
+    #+Old-Silica
     (add-command-to-command-table
       (string ',name) ',name ',command-table)
-    #+Silica
+    #+Old-Silica
     (add-menu-group-entry
       (ws::find-menu-group-prototype ',command-table :if-does-not-exist :create)
       (string ',name) :command '(,name) :if-exists :supersede)))
@@ -166,14 +89,15 @@ What about environment issue?
 	(let ((grays (let ((grays nil))
 		       (dotimes (i 7)
 			 (let ((x (/ (mod (* i 4) 7) 7.0)))
-			   (push (make-color-rgb x x x) grays)))
+			   (push (make-rgb-color x x x) grays)))
 		       (nreverse grays))))
 	  (nconc grays grays)			;circular
 	  grays))
 
 ;; Try to get millimeters
 (defun window-mm-transformation (window)
-  (with-bounding-rectangle* (wl wt wr wb) (sheet-region window)
+  (with-bounding-rectangle* (wl wt wr wb) #-Silica (window-viewport window)
+					  #+Silica (sheet-region window)
     (make-transformation 3.4 0 0 -3.4 (floor (- wr wl) 2) (floor (- wb wt) 2))))
 
 (defmacro with-mm-transformation ((window -x -y +x +y) &body body)
@@ -181,7 +105,8 @@ What about environment issue?
      (with-drawing-options (,window :transformation transform)
        (with-bounding-rectangle* (,-x ,-y ,+x ,+y)
 				 (untransform-region transform
-						     (bounding-rectangle
+						     #-Silica (window-viewport ,window)
+						     #+Silica (bounding-rectangle
 								(sheet-region ,window)))
 	 ,@body))))
 
@@ -220,11 +145,7 @@ What about environment issue?
 	(setq x sx)
 	(incf y (+ size 10))))))
 
-#+Silica
-(defun window-refresh (window)
-  ;; This is generating a damage event which triggers a subsequent refresh.
-  ;; Is this right?  Can it possibly be?
-  (ci::erase-viewport window))
+
 
 (define-test (draw-rectangles graphics) (stream)
   "Draw some rectangles, wait a few seconds, and refresh the window."
@@ -337,10 +258,10 @@ people, shall not perish from the earth.
     (multiple-value-bind (p1 p2) (limits "Fourscore and seven years ago")
       (multiple-value-bind (p3 p4) (limits "Abraham Lincoln")
 	(write-string *gettysburg-address* stream :start 0 :end p1)
-	(with-text-face (':bold stream)
+	(with-text-face (stream ':bold)
 	  (write-string *gettysburg-address* stream :start p1 :end p2))
 	(write-string *gettysburg-address* stream :start p2 :end p3)
-	(with-text-face (':italic stream)
+	(with-text-face (stream ':italic)
 	  (write-string *gettysburg-address* stream :start p3 :end p4))
 	(write-string *gettysburg-address* stream :start p4)))))
 
@@ -360,13 +281,13 @@ people, shall not perish from the earth.
 	(families '(nil :fix :serif :sans-serif))
 	(faces '(nil :bold :italic (:bold :italic)))
 	(sizes '(nil :normal :tiny :very-small :very-large :huge :small :large :smaller :larger)))
-    (with-end-of-line-action (:allow stream)
+    (with-end-of-line-action (stream :allow)
       (dolist (size sizes)
 	(dolist (face faces)
 	  (dolist (family families)
 	    (let ((style (parse-text-style (list family face size))))
 	      (fresh-line stream)
-	      (with-text-style (style stream)
+	      (with-text-style (stream style)
 		(write-string text stream))
 	      (format stream "  (~A)" style))))))))
 
@@ -375,11 +296,11 @@ people, shall not perish from the earth.
   (formatting-row (stream)
     (formatting-cell (stream :align-x :right)
       (when title-p
-	(with-text-face (:bold stream)
+	(with-text-face (stream :bold)
 	  (write-string (string title) stream))))
     (dolist (r regions)
       (formatting-cell (stream :align-x :center)
-	(with-text-face (:italic stream)
+	(with-text-face (stream :italic)
 	  (if (listp r)
 	      (format stream
 		      (case (first r)
@@ -394,7 +315,7 @@ people, shall not perish from the earth.
   (terpri stream)
   (filling-output (stream :fill-width '(60 :character))
     (write-string "Erroneous results are shown in " stream)
-    (with-text-face (:bold stream)
+    (with-text-face (stream :bold)
       (write-string "boldface" stream))
     (write-string ".  Select an element of the table with the mouse " stream)
     (write-string "to evaluate the corresponding test manually." stream)))
@@ -411,25 +332,25 @@ people, shall not perish from the earth.
 
 (define-test (region-equal-tests graphics) (stream)
   "Exercise REGION-EQUAL."
-  (formatting-table (stream :inter-column-spacing "  ")
+  (formatting-table (stream :x-spacing "  ")
     (abbreviated-regions-column-headings
       *test-regions-for-region-equal* stream 'region-equal)
     (dolist (region1 *test-regions-for-region-equal*)
       (formatting-row (stream)
 	(formatting-cell (stream :align-x :right)
-	  (with-text-face (:italic stream)
+	  (with-text-face (stream :italic)
 	    (format stream "~A" region1)))
 	(dolist (region2 *test-regions-for-region-equal*)
 	  (formatting-cell (stream :align-x :center)
 	    (let ((result (region-equal (eval region1) (eval region2)))
 		  (correct-result (equal region1 region2)))
-	      (with-output-as-presentation (:stream stream
-					    :type 'form
-					    :object `(region-equal ,region1 ,region2)
+	      (with-output-as-presentation (stream
+					    `(region-equal ,region1 ,region2)
+					     'form
 					    :single-box t)
 		(if (eq result correct-result)
 		    (format stream "~A" result)
-		  (with-text-face (:bold stream)
+		  (with-text-face (stream :bold)
 		    (format stream "~A" result))))))))))
    (region-test-comment stream))
 
@@ -461,18 +382,18 @@ people, shall not perish from the earth.
       (pushnew (second result) point*s :test #'equal))
     (setq regions (nreverse regions)
 	  point*s (nreverse point*s))
-    (formatting-table (stream :inter-column-spacing "  ")
+    (formatting-table (stream :x-spacing "  ")
       (formatting-row (stream)
 	(formatting-cell (stream)
 	  (declare (ignore stream)))		;make a column for the row headings
 	(dolist (point* point*s)
 	  (formatting-cell (stream) 
-	    (with-text-face (:italic stream)
+	    (with-text-face (stream :italic)
 	      (format stream "(~D,~D)" (first point*) (second point*))))))
       (dolist (region regions)
 	(formatting-row (stream)
 	  (formatting-cell (stream :align-x :right)
-	    (with-text-face (:italic stream)
+	    (with-text-face (stream :italic)
 	      (format stream "~A" region)))
 	  (dolist (point* point*s)
 	    (let ((res (find-if #'(lambda (result-entry)
@@ -481,16 +402,16 @@ people, shall not perish from the earth.
 				*test-regions-for-region-contains-point*-p*))
 		  (x (first point*))
 		  (y (second point*)))
-	      (with-output-as-presentation (:stream stream
-					    :type 'form
-					    :object `(region-contains-point*-p ,region ,x ,y)
+	      (with-output-as-presentation ( stream
+					     `(region-contains-point*-p ,region ,x ,y)
+					     'form
 					    :single-box t)
 		(formatting-cell (stream :align-x :center)
 		  (when res
 		    (let* ((correct-result (third res))
 			   (result (region-contains-point*-p (eval region) x y)))
-		      (with-text-face ((if (eq correct-result result) nil :bold)
-				       stream)
+		      (with-text-face (stream
+				       (if (eq correct-result result) nil :bold))
 			(format stream "~A" result)))))))))))
     (region-test-comment stream)))
 
@@ -530,25 +451,25 @@ people, shall not perish from the earth.
 			  (equal region2 (first result)))
 		 (return-from lookup-result (fourth result))))
 	     (or (equal region1 region2) :none)))
-      (formatting-table (stream :inter-column-spacing "  ")
+      (formatting-table (stream :x-spacing "  ")
 	(abbreviated-regions-column-headings regions stream 'region-contains-region-p)
 	(dolist (region1 regions)
 	  (formatting-row (stream)
 	    (formatting-cell (stream :align-x :right)
-	      (with-text-face (:italic stream)
+	      (with-text-face (stream :italic)
 		(format stream "~A" region1)))
 	    (dolist (region2 regions)
-	      (with-output-as-presentation (:stream stream
-					    :type 'form
-					    :object `(region-contains-region-p ,region1 ,region2)
+	      (with-output-as-presentation ( stream
+					     `(region-contains-region-p ,region1 ,region2) 
+					     'form
 					    :single-box t)
 		(formatting-cell (stream :align-x :center)
 		  (let ((res (lookup-result region1 region2))
 			(result (region-contains-region-p (eval region1) (eval region2))))
 		    (if (eq res :none)
 			(write-char #\space stream)	;the presentation demands some ink
-		      (with-text-face ((if (eq res result) nil :bold)
-				       stream)
+		      (with-text-face (stream
+				       (if (eq res result) nil :bold))
 			(format stream "~A" result)))))))))))
     (region-test-comment stream)))
 
@@ -590,25 +511,25 @@ people, shall not perish from the earth.
 				   (equal region2 (first result)))
 			  (return-from lookup-result (third result))))
 		      (or (equal region1 region2) :none)))))
-      (formatting-table (stream :inter-column-spacing "  ")
+      (formatting-table (stream :x-spacing "  ")
 	(abbreviated-regions-column-headings regions stream 'region-contains-region-p)
 	(dolist (region1 regions)
 	  (formatting-row (stream)
 	    (formatting-cell (stream :align-x :right)
-	      (with-text-face (:italic stream)
+	      (with-text-face (stream :italic)
 		(format stream "~A" region1)))
 	    (dolist (region2 regions)
-	      (with-output-as-presentation (:stream stream
-					    :type 'form
-					    :object `(region-intersects-region-p ,region1 ,region2)
+	      (with-output-as-presentation ( stream
+					     `(region-intersects-region-p ,region1 ,region2)
+					     'form
 					    :single-box t)
 		(formatting-cell (stream :align-x :center)
 		  (let ((res (lookup-result region1 region2))
 			(result (region-intersects-region-p (eval region1) (eval region2))))
 		    (if (eq res :none)
 			(write-char #\space stream)	;the presentation demands some ink
-		      (with-text-face ((if (eq res result) nil :bold)
-				       stream)
+		      (with-text-face (stream
+				       (if (eq res result) nil :bold))
 			(format stream "~A" result)))))))))))
     (region-test-comment stream)))
 
@@ -624,41 +545,19 @@ people, shall not perish from the earth.
 		      (with-room-for-graphics (stream)
 			(apply (car sample) stream arguments)))
 		    (formatting-cell (stream :align-x :center)
-		      (with-text-family (:sans-serif stream)
+		      (with-text-family (stream :sans-serif)
 			(write-string label stream))))))))
-     (with-text-style ('(:sans-serif :italic :normal) ,stream)
+     (with-text-style (,stream '(:sans-serif :italic :normal))
        (format ,stream "~&~%~A~%" ,title))
      (with-scaling (,stream 0.5 0.5)
-       (formatting-item-list (,stream :n-columns ,columns :inter-column-spacing 10)
+       (formatting-item-list (,stream :n-columns ,columns :x-spacing 10)
 	 ,@body))))
 
 (defparameter *basic-shapes* `(
- ("Rectangle" draw-rectangle* 0 0 90 100)
+  ("Rectangle" draw-rectangle* 0 0 90 100)
   ("Triangle" draw-polygon* (0 0 45 100 100 0))
   ("Circle" draw-circle* 50 50 50)
-  ("Polygon" draw-polygon* (0 0 10 100 50 50 90 100 100 10))
-  ))
-
-#+ignore(define-test (basic-graphics-shapes graphics) (stream)
-  "Test basic graphics shapes"
-  (formatting-table 
-   (stream)
-   (formatting-row (stream)
-		   (formatting-cell (stream)
-				    (draw-polygon* stream '(0 0 45 100
-							    100 0) :ink +red+)))
-   (formatting-row (stream)
-		   (formatting-cell (stream)
-				    (draw-rectangle* stream 0 0 90 100)
-				    ))
-   (formatting-row (stream)
-		   (formatting-cell (stream)
-				    (draw-circle* stream 50 50 50)))
-   (formatting-row (stream)
-		   (formatting-cell (stream)
-				    (draw-polygon* stream '(0 0 10 100 50 50 90 100 100 10))
-				    ))
-   ))
+  ("Polygon" draw-polygon* (0 0 10 100 50 50 90 100 100 10))))
 
 (define-test (basic-graphics-shapes graphics) (stream)
   "Test basic graphics shapes"
@@ -755,7 +654,7 @@ people, shall not perish from the earth.
 
 (define-test (colored-inks graphics) (stream)
   "Test colors"
-  (with-text-style ('(:sans-serif :italic :normal) stream)
+  (with-text-style (stream '(:sans-serif :italic :normal))
     (format stream "~&~%~A~%" "Named Colors")
     (formatting-table (stream)
       (dolist (name *named-colors*)
@@ -778,7 +677,7 @@ people, shall not perish from the earth.
 						      (0 1 1 1 1 1 1 0)
 						      (0 0 1 1 1 1 0 0)
 						      (0 0 0 1 1 0 0 0))
-						  (list +background+ +foreground+))
+						  (list +background-ink+ +foreground-ink+))
 				    offset offset))
 	   (generate-image (a b c d)
 	     (make-pattern #2A((0 0 0 1 1 0 0 0)
@@ -810,7 +709,7 @@ people, shall not perish from the earth.
     (let ((sample '(draw-polygon* (0 0 10 100 100 100 90 0))))
       (formatting-graphics-samples (stream "Colored stipples" 5)
 	(format-graphics-sample stream "Fore/Background" sample
-				:ink (generate-stipple +foreground+ +background+))
+				:ink (generate-stipple +foreground-ink+ +background-ink+))
 	(format-graphics-sample stream "White/Black" sample
 				:ink (generate-stipple +white+ +black+))
 	(format-graphics-sample stream "Blue/White" sample
@@ -881,10 +780,7 @@ people, shall not perish from the earth.
 
 (define-command-table output-recording)
 
-#+Silica
-;;--- This is part of the spec, and Silica should implement it
-(defun make-contrasting-inks (n i)
-  (make-gray-color (/ i n)))
+
 
 (define-test (draw-bullseye output-recording) (stream)
   "Draw a bullseye, wait, then refresh the window.  The display should look the same after the refresh."
@@ -896,7 +792,7 @@ people, shall not perish from the earth.
 (define-test (ordering-test-1 output-recording) (stream)
   "The three overlapping circles should have the correct sensitivity."
   (flet ((circle (x y r n)
-	   (with-output-as-presentation (:object n :type 'integer :stream stream)
+	   (with-output-as-presentation (stream  n 'integer)
 	     (draw-circle* stream x y r :ink (make-contrasting-inks 4 n)))))
     (circle 100  50 40 1)
     (circle  75 100 40 2)
@@ -907,7 +803,7 @@ people, shall not perish from the earth.
 (define-test (ordering-test-2a output-recording) (stream)
   "The three overlapping rectangles should have the correct sensitivity."
   (flet ((rect (ll tt rr bb n)
-	   (with-output-as-presentation (:object n :type 'integer :stream stream)
+	   (with-output-as-presentation (stream  n 'integer)
 	     (draw-rectangle* stream ll tt rr bb :ink (make-contrasting-inks 4 n)))))
     (rect  50  50 150 150 1)
     (rect   0   0 100 100 2)
@@ -918,7 +814,7 @@ people, shall not perish from the earth.
 (define-test (ordering-test-2b output-recording) (stream)
   "The three overlapping rectangles should have the correct sensitivity."
   (flet ((rect (ll tt rr bb n)
-	   (with-output-as-presentation (:object n :type 'integer :stream stream)
+	   (with-output-as-presentation (stream  n 'integer)
 	     (draw-rectangle* stream ll tt rr bb :ink (make-contrasting-inks 4 n)))))
     (rect 125 125 225 225 1)
     (rect   0   0 100 100 2)
@@ -950,49 +846,49 @@ people, shall not perish from the earth.
 
 (define-test (row-table formatted-output) (stream)
   "A simple row-wise table."
-  (formatting-table (stream :inter-column-spacing '(2 :character))
+  (formatting-table (stream :x-spacing '(2 :character))
     (dotimes (i 11)
       (formatting-row (stream)
 	(dotimes (j 11)
 	  (if (zerop i)				;first row
 	      (if (zerop j)			;first cell
 		  (formatting-cell (stream :align-x :right)
-		    (with-text-face (:bold stream)
+		    (with-text-face (stream :bold)
 		      (write-string "*" stream)))
 		  (formatting-cell (stream :align-x :right)
-		    (with-text-face (:bold stream)
+		    (with-text-face (stream :bold)
 		      (format stream "~D" (1- j)))))
 	    (if (zerop j)			;first column
 		(formatting-cell (stream :align-x :right)
-		  (with-text-face (:bold stream)
+		  (with-text-face (stream :bold)
 		    (format stream "~D" (1- i))))
 	        (formatting-cell (stream :align-x :right)
 		  (format stream "~D" (* (1- i) (1- j)))))))))))
 
 (define-test (column-table formatted-output) (stream)
   "A simple column-wise table."
-  (formatting-table (stream :inter-column-spacing '(2 :character))
+  (formatting-table (stream :x-spacing '(2 :character))
     (dotimes (j 11)
       (formatting-column (stream)
 	(dotimes (i 11)
 	  (if (zerop i)				;first row
 	      (if (zerop j)			;first cell
 		  (formatting-cell (stream :align-x :right)
-		    (with-text-face (:bold stream)
+		    (with-text-face (stream :bold)
 		      (write-string "*" stream)))
 		  (formatting-cell (stream :align-x :right)
-		    (with-text-face (:bold stream)
+		    (with-text-face (stream :bold)
 		      (format stream "~D" (1- j)))))
 	    (if (zerop j)			;first column
 		(formatting-cell (stream :align-x :right)
-		  (with-text-face (:bold stream)
+		  (with-text-face (stream :bold)
 		    (format stream "~D" (1- i))))
 	        (formatting-cell (stream :align-x :right)
 		  (format stream "~D" (* (1- i) (1- j)))))))))))
 
 (define-test (equal-width-table formatted-output) (stream)
   "A table whose columns have equalized width."
-  (formatting-table (stream :inter-column-spacing '(2 :character) :equalize-column-widths t)
+  (formatting-table (stream :x-spacing '(2 :character) :equalize-column-widths t)
     (dotimes (i 10)
       (formatting-row (stream)
 	(formatting-cell (stream :align-x :right)
@@ -1005,7 +901,7 @@ people, shall not perish from the earth.
 (define-test (multiple-columns-table formatted-output) (stream)
   "A table that has multiple columns."
   (formatting-table (stream :multiple-columns 2
-			    :multiple-columns-inter-column-spacing 25)
+			    :multiple-columns-x-spacing 25)
     (dotimes (i 10)
       (formatting-row (stream)
 	(formatting-cell (stream :align-x :right)
@@ -1018,7 +914,7 @@ people, shall not perish from the earth.
 (define-test (equalized-multiple-columns-table formatted-output) (stream)
   "A table that has multiple equal-width columns."
   (formatting-table (stream :multiple-columns 2
-			    :multiple-columns-inter-column-spacing 25
+			    :multiple-columns-x-spacing 25
 			    :equalize-column-widths t)
     (dotimes (i 10)
       (formatting-row (stream)
@@ -1041,8 +937,8 @@ people, shall not perish from the earth.
 		   (formatting-cell (stream :align-x :right)
 		     (format stream "~D" (* start start))))
 		 (incf start))))))
-    (formatting-table (stream :inter-row-spacing 10
-			      :inter-column-spacing 10)
+    (formatting-table (stream :y-spacing 10
+			      :x-spacing 10)
       (dotimes (start 3)
 	(formatting-row (stream)
 	  (formatting-cell (stream :align-x :center)
@@ -1052,8 +948,8 @@ people, shall not perish from the earth.
 
 (define-test (cell-coordinates formatted-output) (stream)
   "This should produce a 3x3 table consisting of nine identical squares."
-  (formatting-table (stream :inter-row-spacing 10
-			    :inter-column-spacing 10)
+  (formatting-table (stream :y-spacing 10
+			    :x-spacing 10)
     (repeat 3
       (formatting-row (stream)
 	(repeat 3
@@ -1064,7 +960,7 @@ people, shall not perish from the earth.
   "This should produce a checkerboard pattern."
   (stream-set-cursor-position* stream 10 10)
   (surrounding-output-with-border (stream)
-    (formatting-table (stream :inter-row-spacing 0 :inter-column-spacing 0)
+    (formatting-table (stream :y-spacing 0 :x-spacing 0)
       (dotimes (i 8)
 	(formatting-row (stream)
 	  (dotimes (j 8)
@@ -1242,7 +1138,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 	     (name (first entry))
 	     (doc-string (third entry)))
 	(window-clear documentation)
-	(with-text-face (:bold documentation)
+	(with-text-face (documentation :bold)
 	  (write-string "Table tests" documentation))
 	(fresh-line documentation)
 	(format documentation "Test ~D (~A):  " case name)
@@ -1344,10 +1240,8 @@ Luke Luck licks the lakes Luke's duck likes."))
       (multiple-value-bind (xoff yoff)
 	  ;; damn, we have to convert because we want to draw in table-cell relative
 	  ;; coordinates.
-	  (values 0 0)
-	#+ignore
-	  (#-Silica clim::convert-from-absolute-to-relative-coordinates
-	   #+Silica ci::convert-from-absolute-to-relative-coordinates 
+	  (#-Old-Silica clim::convert-from-absolute-to-relative-coordinates
+	   #+Old-Silica ci::convert-from-absolute-to-relative-coordinates 
 	    stream (output-record-parent record))
 	(decf left xoff)
 	(decf right xoff)
@@ -1363,10 +1257,8 @@ Luke Luck licks the lakes Luke's duck likes."))
       (multiple-value-bind (xoff yoff)
 	  ;; damn, we have to convert because we want to draw in table-cell relative
 	  ;; coordinates.
-	  (values 0 0)
-	#+ignore
-	  (#-Silica clim::convert-from-absolute-to-relative-coordinates
-	   #+Silica ci::convert-from-absolute-to-relative-coordinates
+	  (#-Old-Silica clim::convert-from-absolute-to-relative-coordinates
+	   #+Old-Silica ci::convert-from-absolute-to-relative-coordinates
 	    stream (output-record-parent record))
 	(decf left xoff)
 	(decf right xoff)
@@ -1410,9 +1302,9 @@ Luke Luck licks the lakes Luke's duck likes."))
 			 (formatting-cell (stream)
 			   (updating-output (stream :unique-id (+ 10 i)
 						    :cache-value (aref array i))
-			     (with-output-as-presentation (:stream stream
-							   :object i
-							   :type 'integer)
+			     (with-output-as-presentation ( stream
+							    i
+							    'integer)
 			       (format stream "[~D] = ~D" i (aref array i)))))))))))
     (catch 'abort-gesture-seen			;for the benefit of Silica
       (loop
@@ -1568,9 +1460,9 @@ Luke Luck licks the lakes Luke's duck likes."))
 (define-test (highlighting-tests presentations) (stream)
   "Highlighting tests of various graphics.  Wave the mouse around to see if everything looks OK."
   (macrolet ((as-integer (x single-box &body body)
-	       `(with-output-as-presentation (:stream stream
-					      :object ,x
-					      :type 'integer
+	       `(with-output-as-presentation ( stream
+					       ,x
+					       'integer
 					      :single-box ,single-box)
 		  ,@body)))
     (let ((delta-y 30)
@@ -1628,9 +1520,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 		 :associated-window stream
 		 :label "Select an activity")))
 
-#+Silica
-(defmacro with-menu ((menu associated-window) &body body)
-  `(ci::with-menu (,menu ,associated-window) ,@body))
+
 
 (define-test (graphical-menu menus-and-dialogs) (stream)
   "A menu that contains graphics."
@@ -1646,11 +1536,11 @@ Luke Luck licks the lakes Luke's duck likes."))
 		   (draw-polygon* stream '(0 0 20 0 10 20)))))
 	     (draw-icon-menu (menu presentation-type)
 	       #+Genera (declare (sys:downward-function))
-	       (formatting-table (menu :inter-row-spacing 5)
+	       (formatting-table (menu :y-spacing 5)
 		 (dolist (icon icon-list)
-		   (with-output-as-presentation (:stream menu
-						 :object icon
-						 :type presentation-type)
+		   (with-output-as-presentation ( menu
+						  icon
+						  presentation-type)
 		     (formatting-row (menu)
 		       (formatting-cell (menu)
 			 (with-first-quadrant-coordinates (menu)
@@ -1664,9 +1554,9 @@ Luke Luck licks the lakes Luke's duck likes."))
   "A more complicated graphical menu.  Try pointing at one of the compass points."
   (labels ((draw-compass-point (stream ptype symbol x y)
 	     #+Genera (declare (sys:downward-function))
-	     (with-output-as-presentation (:stream stream
-					   :object symbol
-					   :type ptype)
+	     (with-output-as-presentation ( stream
+					    symbol
+					    ptype)
 	       (draw-text* stream (symbol-name symbol) x y
 			   :align-x :center :align-y :center
 			   :text-style '(:sans-serif :roman :large))))
@@ -1688,7 +1578,7 @@ Luke Luck licks the lakes Luke's duck likes."))
   "A spreadsheet implemented using ACCEPT inside FORMATTING-TABLE inside ACCEPTING-VALUES."
   (let ((result (make-array '(3 3))))
     (accepting-values (stream)
-      (formatting-table (stream :inter-row-spacing (stream-line-height stream))
+      (formatting-table (stream :y-spacing (stream-line-height stream))
 	(dotimes (row 3)
 	  (formatting-row (stream)
 	    (dotimes (cell 3)
@@ -1704,13 +1594,6 @@ Luke Luck licks the lakes Luke's duck likes."))
 
 (define-test (graphics-dialog menus-and-dialogs) (stream)
   "An ACCEPTING-VALUES dialog that has graphics inside of it."
-  (graphics-dialog-common stream))
-
-(define-test (graphics-dialog-own-window menus-and-dialogs) (stream)
-  "An ACCEPTING-VALUES dialog that has graphics inside of it."
-  (graphics-dialog-common stream t))
-
-(defun graphics-dialog-common (stream &optional own-window)
   (let ((square-dimension 100)
 	(draw-circle t)
 	(draw-square t)
@@ -1718,55 +1601,55 @@ Luke Luck licks the lakes Luke's duck likes."))
 	(draw-\\-diagonal t)
 	(line-thickness 1)
 	(line-thickness-units :normal))
-    (accepting-values (stream :own-window own-window)
-		      (setq square-dimension
-			(accept 'number :stream stream
-				:prompt "Size of square" :default square-dimension))
-		      (terpri stream)
-		      (setq draw-circle
-			(accept 'boolean :stream stream
-				:prompt "Draw the circle" :default draw-circle))
-		      (terpri stream)
-		      (setq draw-square
-			(accept 'boolean :stream stream
-				:prompt "Draw the square" :default draw-square))
-		      (terpri stream)
-		      (setq draw-/-diagonal
-			(accept 'boolean :stream stream
-				:prompt "Draw / diagonal" :default draw-/-diagonal))
-		      (terpri stream)
-		      (setq draw-\\-diagonal
-			(accept 'boolean :stream stream
-				:prompt "Draw \\ diagonal" :default draw-\\-diagonal))
-		      (terpri stream)
-		      (setq line-thickness
-			(accept '(integer 0 100) :stream stream
-				:prompt "Line thickness" :default line-thickness))
-		      (terpri stream)
-		      (setq line-thickness-units
-			(accept '(member :normal :point) :stream stream
-				:prompt "Line style units" :default line-thickness-units))
-		      (terpri stream)
-		      (with-room-for-graphics (stream)
-			(let ((radius (/ square-dimension 2)))
-			  (with-drawing-options (stream #-Silica :line-unit #-Silica line-thickness-units
-							:line-thickness line-thickness)
-			    (when draw-square
-			      (draw-polygon* stream (list 0 0
-							  0 square-dimension
-							  square-dimension square-dimension
-							  square-dimension 0)
-					     :line-joint-shape :miter
-					     :filled nil))
-			    (when draw-circle
-			      (draw-circle* stream radius radius radius
-					    :filled nil))
-			    (when draw-/-diagonal
-			      (draw-line* stream 0 square-dimension square-dimension 0
-					  :line-cap-shape :round))
-			    (when draw-\\-diagonal
-			      (draw-line* stream 0 0 square-dimension square-dimension
-					  :line-cap-shape :round))))))))
+    (accepting-values (stream)
+      (setq square-dimension
+	    (accept 'number :stream stream
+		    :prompt "Size of square" :default square-dimension))
+      (terpri stream)
+      (setq draw-circle
+	    (accept 'boolean :stream stream
+		    :prompt "Draw the circle" :default draw-circle))
+      (terpri stream)
+      (setq draw-square
+	    (accept 'boolean :stream stream
+		    :prompt "Draw the square" :default draw-square))
+      (terpri stream)
+      (setq draw-/-diagonal
+	    (accept 'boolean :stream stream
+		    :prompt "Draw / diagonal" :default draw-/-diagonal))
+      (terpri stream)
+      (setq draw-\\-diagonal
+	    (accept 'boolean :stream stream
+		    :prompt "Draw \\ diagonal" :default draw-\\-diagonal))
+      (terpri stream)
+      (setq line-thickness
+	    (accept 'number :stream stream
+		    :prompt "Line thickness" :default line-thickness))
+      (terpri stream)
+      (setq line-thickness-units
+	    (accept '(member :normal :point) :stream stream
+		    :prompt "Line style units" :default line-thickness-units))
+      (terpri stream)
+      (with-room-for-graphics (stream)
+	(let ((radius (/ square-dimension 2)))
+	  (with-drawing-options (stream #-Old-Silica :line-unit #-Old-Silica line-thickness-units
+					:line-thickness line-thickness)
+	    (when draw-square
+	      (draw-polygon* stream (list 0 0
+					  0 square-dimension
+					  square-dimension square-dimension
+					  square-dimension 0)
+			     :line-joint-shape :miter
+			     :filled nil))
+	    (when draw-circle
+	      (draw-circle* stream radius radius radius
+			    :filled nil))
+	    (when draw-/-diagonal
+	      (draw-line* stream 0 square-dimension square-dimension 0
+			  :line-cap-shape :round))
+	    (when draw-\\-diagonal
+	      (draw-line* stream 0 0 square-dimension square-dimension
+			  :line-cap-shape :round))))))))
 
 
 ;;;; Benchmarks
@@ -1785,18 +1668,18 @@ Luke Luck licks the lakes Luke's duck likes."))
        (defun ,function-name (&key (careful nil))
 	 (labels ((body (,stream) ,@body))
 	   (time-continuation ',name ,iterations #'body :careful careful)))
-       #-Silica
+       #-Old-Silica
        (define-command (,name :command-table benchmarks :menu t) ()
 	 (write-test-caption ,caption)
 	 (,function-name :careful nil))
-       #+Silica
+       #+Old-Silica
        (define-command ,name ()
 	  (write-test-caption ,caption)
 	  (,function-name :careful nil))
-       #+Silica
+       #+Old-Silica
        (add-command-to-command-table
 	 (string ',name) ',name 'benchmarks)
-       #+Silica
+       #+Old-Silica
        (add-menu-group-entry
 	 (ws::find-menu-group-prototype 'benchmarks :if-does-not-exist :create)
 	 (string ',name) :command '(,name) :if-exists :supersede)     
@@ -1896,8 +1779,8 @@ Luke Luck licks the lakes Luke's duck likes."))
    window-dialog
    compound-dialog)))
 
-(define-command #-Silica (run-benchmarks :command-table benchmarks :menu t)
-		#+Silica run-benchmarks
+(define-command #-Old-Silica (run-benchmarks :command-table benchmarks :menu t)
+		#+Old-Silica run-benchmarks
     ()
   (multiple-value-bind (pathname comment)
       (let ((stream (find-pane-named 'display-pane)))
@@ -1911,8 +1794,8 @@ Luke Luck licks the lakes Luke's duck likes."))
 		    (accept 'string :prompt "Comment describing this run" :stream stream)))))
     (run-benchmarks-internal pathname comment)))
 
-#+Silica (add-command-to-command-table "Run Benchmarks" 'run-benchmarks 'benchmarks)
-#+Silica (add-menu-group-entry
+#+Old-Silica (add-command-to-command-table "Run Benchmarks" 'run-benchmarks 'benchmarks)
+#+Old-Silica (add-menu-group-entry
 	   (ws::find-menu-group-prototype 'benchmarks :if-does-not-exist :create)
 	   "Run Benchmarks" :command '(run-benchmarks) :if-exists :supersede)
 
@@ -1930,14 +1813,14 @@ Luke Luck licks the lakes Luke's duck likes."))
       (when comment (format s ";~A~%" comment))
       (print data s))))
 
-(define-command #-Silica (generate-report :command-table benchmarks :menu t)
-		#+Silica generate-report
+(define-command #-Old-Silica (generate-report :command-table benchmarks :menu t)
+		#+Old-Silica generate-report
     ()
   (let ((pathname nil)
 	(specs nil))
     (let ((stream (find-pane-named 'display-pane)))
       (window-clear stream)
-      (accepting-values (stream #-Silica :resynchronize-every-pass #-Silica t)
+      (accepting-values (stream #-Old-Silica :resynchronize-every-pass #-Old-Silica t)
 	(terpri stream)
 	(setq pathname (accept 'pathname :prompt "Pathname for report" :stream stream))
 	(dolist (s specs)
@@ -1952,8 +1835,8 @@ Luke Luck licks the lakes Luke's duck likes."))
 	    (setq specs (nconc specs (list (coerce spec 'list))))))))
     (generate-report-internal specs pathname)))
 
-#+Silica (add-command-to-command-table "Generate Report" 'generate-report 'benchmarks)
-#+Silica (add-menu-group-entry
+#+Old-Silica (add-command-to-command-table "Generate Report" 'generate-report 'benchmarks)
+#+Old-Silica (add-menu-group-entry
 	   (ws::find-menu-group-prototype 'benchmarks :if-does-not-exist :create)
 	   "Generate Report" :command '(generate-report) :if-exists :supersede)
 
@@ -1963,7 +1846,7 @@ Luke Luck licks the lakes Luke's duck likes."))
   (let ((data
 	  (clim-utils:with-standard-io-environment
 	    (let ((data nil)
-		  (*package* (or (find-package :common-lisp-user)
+		  (*package* (or (find-package "COMMON-LISP-USER")
 				 (error "Package COMMON-LISP-USER not found"))))
 	      (dolist (name-and-pathname specs)
 		(let* ((short-name (pop name-and-pathname))
@@ -2071,7 +1954,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 
 (define-benchmark (unrecorded-line-drawing :iterations 10) (stream)
   "Draw lines without output recording"
-  (with-output-recording-options (stream :record-p nil)
+  (with-output-recording-options (stream :record nil)
     (line-drawing-kernel stream 50)))
 
 (define-benchmark (transformed-line-drawing :iterations 10) (stream)
@@ -2125,7 +2008,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 
 (define-benchmark (unrecorded-shape-drawing :iterations 5) (stream)
   "Draw unfilled shapes, output recording disabled"
-  (with-output-recording-options (stream :record-p nil)
+  (with-output-recording-options (stream :record nil)
     (shape-drawing-kernel stream 10 nil)))
 
 (define-benchmark (transformed-shape-drawing :iterations 5) (stream)
@@ -2147,11 +2030,11 @@ Luke Luck licks the lakes Luke's duck likes."))
 (define-benchmark (stippled-shape-drawing :iterations 5) (stream)
   "Draw stippled shapes"
   (with-drawing-options (stream
-			  :ink #-Silica (make-rectangular-tile
+			  :ink #-Old-Silica (make-rectangular-tile
 					  (make-pattern #2a((0 1) (1 0))
-							(list +background+ +foreground+))
+							(list +background-ink+ +foreground-ink+))
 					  2 2)
-			       #+Silica (ci::make-stipple 2 2 '(#2r01 #2r10)))
+			       #+Old-Silica (ci::make-stipple 2 2 '(#2r01 #2r10)))
     (shape-drawing-kernel stream 10 t)))
 
 (define-benchmark (clipped-shape-drawing :iterations 5) (stream)
@@ -2172,7 +2055,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 
 (define-benchmark (unrecorded-text-output :iterations 5) (stream)
   "Write strings, with output recording disabled"
-  (with-output-recording-options (stream :record-p nil)
+  (with-output-recording-options (stream :record nil)
     (repeat 10
       (write-string "Four" stream)
       (write-string " score and " stream)
@@ -2183,29 +2066,19 @@ Luke Luck licks the lakes Luke's duck likes."))
 (define-benchmark (stylish-text-output :iterations 5) (stream)
   "Write stylish strings"
   (repeat 10
-    (with-text-family (:sans-serif stream)
-      (with-text-size (:large stream)
+    (with-text-family (stream :sans-serif)
+      (with-text-size (stream :large)
 	(write-string "Four" stream))
-      (with-text-face (:italic stream)
+      (with-text-face (stream :italic)
 	(write-string " score and " stream))
-      (with-text-size (:large stream)
-	(with-text-face (:bold)
+      (with-text-size (stream :large)
+	(with-text-face (stream :bold)
 	  (write-string "seven" stream)))
-      (with-text-face (:italic stream)
+      (with-text-face (stream :italic)
 	(write-string " years ago, our fathers..." stream))
       (terpri stream))))
 
 ;;; Scrolling and refreshing benchmarks
-
-#+Silica
-(defun window-viewport-position* (stream)
-  (values 0 0))
-
-#+Silica
-(defun window-set-viewport-position* (stream x y)
-  (multiple-value-bind (width height)
-      (bounding-rectangle-size (sheet-region (pane-viewport stream)))
-    (w::scroll-extent stream :x (+ x width) :y (+ y height))))
 
 (defun scroll-kernel (stream start-x start-y x-excursion y-excursion delta)
   (do ((x start-x)
@@ -2278,17 +2151,17 @@ Luke Luck licks the lakes Luke's duck likes."))
 
 ;;; Mouse sensitivity benchmarks
 
-#-Silica
+#-Old-Silica
 (progn
 (define-presentation-type shape ())
 (define-presentation-type rect () :inherit-from 'shape)
 (define-presentation-type square () :inherit-from 'rect)
 (define-presentation-type circle () :inherit-from 'shape)
 (define-presentation-type triangle () :inherit-from 'shape)
-)	;#-Silica
+)	;#-Old-Silica
 
 
-#+Silica
+#+Old-Silica
 ;;--- Silica does not conform to the specification here
 (progn
 (define-presentation-type shape ())
@@ -2296,7 +2169,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 (define-presentation-type square () :expander 'rect)
 (define-presentation-type circle () :expander 'shape)
 (define-presentation-type triangle () :expander 'shape)
-)	;#+Silica
+)	;#+Old-Silica
 
 (defun shape-presenting-kernel (stream n-shapes)
   (let ((delta (floor 400 n-shapes)))
@@ -2304,17 +2177,13 @@ Luke Luck licks the lakes Luke's duck likes."))
 	 (x 0 (+ x delta)))
 	((>= x 400))
       (let ((object (list 'line x y (+ x delta) (+ y 50))))
-	(with-output-as-presentation (:object object
-				      :type 'shape
-				      :stream stream)
+	(with-output-as-presentation (stream  object 'shape)
 	  (draw-line* stream x y (+ x delta) (+ y 50)))))
     (do ((y 75)
 	 (x 0 (+ x delta)))
 	((>= x 400))
       (let ((object (list 'rectangle x y (+ x delta) (+ y delta))))
-	(with-output-as-presentation (:object object
-				      :type 'square
-				      :stream stream)
+	(with-output-as-presentation (stream  object 'square)
 	  (draw-rectangle* stream x y (+ x delta) (+ y delta) :filled nil))))
     (do ((y 150)
 	 (x 0 (+ x delta))
@@ -2325,40 +2194,30 @@ Luke Luck licks the lakes Luke's duck likes."))
 				(+ x delta (- offset)) (+ y delta)
 				(+ x delta) y))
 	     (object (cons 'polygon* coordinates)))
-	(with-output-as-presentation (:object object
-				      :type 'shape
-				      :stream stream)
+	(with-output-as-presentation (stream  object 'shape)
 	  (draw-polygon* stream coordinates :filled nil))))
     (do ((y 225)
 	 (x 0 (+ x delta))
 	 (radius (floor delta 2)))
 	((>= x 400))
       (let ((object (list 'circle (+ x radius) (+ y radius) radius)))
-	(with-output-as-presentation (:object object
-				      :type 'circle
-				      :stream stream)
+	(with-output-as-presentation (stream  object 'circle)
 	  (draw-circle* stream (+ x radius) (+ y radius) radius :filled nil))))))
 
 (defun text-presenting-kernel (stream)
-  (with-text-family (:sans-serif stream)
+  (with-text-family (stream :sans-serif)
     (repeat 15
-      (with-output-as-presentation (:object '(square 10)
-				    :type 'square
-				    :stream stream)
+      (with-output-as-presentation (stream  '(square 10) 'square)
 	(write-string "This represents a square" stream))
       (write-string "  " stream)
-      (with-output-as-presentation (:object '(rectangle 30 20)
-				    :type 'rect
-				    :stream stream)
+      (with-output-as-presentation (stream  '(rectangle 30 20) 'rect)
 	(write-string "This represents a rectangle" stream))
       (write-string "  " stream)
-      (with-output-as-presentation (:object '(circle 50)
-				    :type 'circle
-				    :stream stream)
+      (with-output-as-presentation (stream '(circle 50) 'circle)
 	(write-string "This represents a circle" stream))
       (write-string "  " stream))))
 
-#+Silica
+#+Old-Silica
 (defun find-innermost-applicable-presentation (input-context stream x y)
   (flet ((predicate (presentation)
 	   #+Genera (declare (sys:downward-function))
@@ -2394,7 +2253,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 	  ((>= x 450))
 	(find-innermost-applicable-presentation input-context stream x y)))))
 
-#+Silica
+#+Old-Silica
 (defun set-highlighted-presentation (stream presentation &optional (prefer t))
   (ci::set-highlighted-presentation stream presentation prefer))
 
@@ -2424,15 +2283,15 @@ Luke Luck licks the lakes Luke's duck likes."))
   "Highlight textual presentations"
   (text-presenting-kernel stream)
   (let ((input-context (make-fake-input-context 'shape))
-	#-Silica (clim::*pointer-documentation-output* nil))
+	#-Old-Silica (clim::*pointer-documentation-output* nil))
     (do ((y 0 (+ y 15)))
 	((>= y 200))
       (do ((x 0 (+ x 15)))
 	  ((>= x 450))
 	(stream-set-pointer-position* stream x y)
-	#-Silica (highlight-applicable-presentation
+	#-Old-Silica (highlight-applicable-presentation
 		   *application-frame* stream input-context nil)
-	#+Silica (ci::highlight-presentation-of-type stream input-context nil)))))
+	#+Old-Silica (ci::highlight-presentation-of-type stream input-context nil)))))
 
 (define-presentation-type benchmark-menu-item ())
 
@@ -2449,13 +2308,13 @@ Luke Luck licks the lakes Luke's duck likes."))
 		      ("Orange" :value +orange+)
 		      ("White" :value +white+)
 		      ("Black" :value +black+)))
-	(with-output-as-presentation (:stream stream
-				      :object item
-				      :type 'benchmark-menu-item
+	(with-output-as-presentation ( stream
+				       item
+				       'benchmark-menu-item
 				      :single-box t)
 	  (formatting-cell (stream)
-	    #-Silica (print-menu-item item stream)
-	    #+Silica (ci::print-menu-item item stream)))))
+	    #-Old-Silica (print-menu-item item stream)
+	    #+Old-Silica (ci::print-menu-item item stream)))))
     (fresh-line stream)
     (force-output stream)
     (multiple-value-bind (x1 y1)
@@ -2468,14 +2327,14 @@ Luke Luck licks the lakes Luke's duck likes."))
   (multiple-value-bind (y0 y1)
       (draw-menu-benchmark stream)
     (let ((input-context (make-fake-input-context 'benchmark-menu-item))
-	  #-Silica (clim::*pointer-documentation-output* nil))
+	  #-Old-Silica (clim::*pointer-documentation-output* nil))
       (repeat 10
 	(do ((y y0 (+ y 3)))
 	    ((>= y y1))
 	  (stream-set-pointer-position* stream 20 y)
-	  #-Silica (highlight-applicable-presentation
+	  #-Old-Silica (highlight-applicable-presentation
 		     *application-frame* stream input-context nil)
-	  #+Silica (ci::highlight-presentation-of-type stream input-context nil))))))
+	  #+Old-Silica (ci::highlight-presentation-of-type stream input-context nil))))))
 
 
 ;;; Formatting benchmarks
@@ -2483,21 +2342,21 @@ Luke Luck licks the lakes Luke's duck likes."))
 (define-benchmark (simple-table-formatting) (stream)
   "Format a simple table of numbers"
   (fresh-line stream)
-  (formatting-table (stream :inter-column-spacing '(2 :character))
+  (formatting-table (stream :x-spacing '(2 :character))
     (dotimes (i 11)
       (formatting-row (stream)
 	(dotimes (j 15)
 	  (if (zerop i)				;first row
 	      (if (zerop j)			;first cell
 		  (formatting-cell (stream :align-x :right)
-		    (with-text-face (:bold stream)
+		    (with-text-face (stream :bold)
 		      (write-string "*" stream)))
 		  (formatting-cell (stream :align-x :right)
-		    (with-text-face (:bold stream)
+		    (with-text-face (stream :bold)
 		      (format stream "~D" (1- j)))))
 	    (if (zerop j)			;first column
 		(formatting-cell (stream :align-x :right)
-		  (with-text-face (:bold stream)
+		  (with-text-face (stream :bold)
 		    (format stream "~D" (1- i))))
 	        (formatting-cell (stream :align-x :right)
 		  (format stream "~D" (* (1- i) (1- j)))))))))))
@@ -2517,7 +2376,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 		     (format stream "~D" (* start start start))))
 		 (incf start))))))
     (fresh-line stream)
-    (formatting-table (stream :inter-row-spacing 10 :inter-column-spacing 10)
+    (formatting-table (stream :y-spacing 10 :x-spacing 10)
       (dotimes (start 5)
 	(formatting-row (stream)
 	  (formatting-cell (stream :align-x :center)
@@ -2595,7 +2454,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 	(setf (aref table i j) (* i j))))
     (let ((record
 	    (updating-output (stream)
-	      (formatting-table (stream :inter-column-spacing '(2 :character))
+	      (formatting-table (stream :x-spacing '(2 :character))
 		(dotimes (i 8)
 		  (formatting-row (stream)
 		    (dotimes (j 8)
@@ -2683,9 +2542,9 @@ Luke Luck licks the lakes Luke's duck likes."))
   (let ((table (copy-tree *fake-process-data*)))
     (labels ((display-table (table stream)
 	       (updating-output (stream)
-		 (with-text-size (:small stream)
+		 (with-text-size (stream :small)
 		   (formatting-table (stream)
-		     (with-text-face (:italic stream)
+		     (with-text-face (stream :italic)
 		       (formatting-row (stream)
 			 (formatting-cell (stream :align-x :left)
 			   (write-string "Process" stream))
@@ -2703,7 +2562,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 				 (utilization (third entry)))
 			     (formatting-row (stream)
 			       (formatting-cell (stream :align-x :left)
-				 (with-text-family (:sans-serif stream)
+				 (with-text-family (stream :sans-serif)
 				   (write-string name stream)))
 			       (updating-output (stream :unique-id (+ counter 1)
 							:cache-value state
@@ -2793,7 +2652,7 @@ Luke Luck licks the lakes Luke's duck likes."))
       (setf (aref table i) (* i 123)))
     (without-clim-input
       (accepting-values (stream :own-window t
-				#-Silica :label #-Silica "Enter some numbers")
+				#-Old-Silica :label #-Old-Silica "Enter some numbers")
 	(dotimes (i 20)
 	  (setf (aref table i) (accept 'integer :stream stream
 				       :query-identifier i
@@ -2842,7 +2701,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 	(terpri stream)
 	(with-room-for-graphics (stream)
 	  (let ((radius (/ square-dimension 2)))
-	    (with-drawing-options (stream #-Silica :line-unit #-Silica line-thickness-units
+	    (with-drawing-options (stream #-Old-Silica :line-unit #-Old-Silica line-thickness-units
 					  :line-thickness line-thickness)
 	      (when draw-square
 		(draw-polygon* stream (list 0 0
@@ -2863,7 +2722,6 @@ Luke Luck licks the lakes Luke's duck likes."))
 
 
 #-Silica
-#+ignore
 (define-application-frame clim-tests ()
     ()
   (:command-table (clim-tests
@@ -2896,7 +2754,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 	       (caption-pane 1/10)
 	       (display-pane :rest))))))
 
-
+#+Silica
 (define-application-frame clim-tests ()
   (caption-pane display-pane)
   (:command-table (clim-tests
@@ -2916,31 +2774,32 @@ Luke Luck licks the lakes Luke's duck likes."))
 			  ("Benchmarks" :menu benchmarks)
 			  ("Exit" :command (exit-clim-tests)))))
   (:command-definer nil)
-  (:pane (with-slots (caption-pane display-pane) *application-frame*
-	   (silica::vertically ()
-			       (silica::scrolling
-				  ()
-				 (setf caption-pane
-				    (silica::realize-pane
-				     'application-pane
-				     :height 50
-				     )))
-				 (silica::scrolling
-				  ()
-				  (setf display-pane
-				    (silica::realize-pane
-				     'application-pane)))))))
+  (:panes 
+   (caption-pane
+    (silica::scrolling
+     ()
+     (silica::realize-pane
+      'clim-internals::application-pane
+      :height 50
+      )))
+   (display-pane 
+    (silica::scrolling
+     ()
+     (silica::realize-pane
+      'clim-internals::application-pane))))
+  (:layout
+   (:default
+       (vertically () caption-pane display-pane))))
 
-
-#-Silica
+#-Old-Silica
 (defmethod frame-standard-output ((frame clim-tests))
   (get-frame-pane frame 'display-pane))
     
-#+(and Genera (not Silica))
+#+(and Genera (not Old-Silica))
 (define-genera-application clim-tests :select-key #\Circle
 			   :width 600 :height 420)
 
-#+Silica
+#+Old-Silica
 (define-application-frame clim-tests ()
     ((caption-pane)
      (display-pane))
@@ -2955,7 +2814,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 	(make-clim-pane (display-pane)))))
   (:top-level (clim-top-level)))
 
-#+Silica
+#+Old-Silica
 (define-menu-group clim-tests-menu
   (("Graphics" :menu-group 'graphics)
    ("Output Recording" :menu-group 'output-recording)
@@ -2966,23 +2825,23 @@ Luke Luck licks the lakes Luke's duck likes."))
    ("Benchmarks" :menu-group 'benchmarks)
    ("Exit" :command '(exit-clim-tests))))
 
-(define-command #-Silica (exit-clim-tests :command-table clim-tests)
-		#+Silica exit-clim-tests
+(define-command #-Old-Silica (exit-clim-tests :command-table clim-tests)
+		#+Old-Silica exit-clim-tests
     ()
-  #+(and Genera (not Silica)) (setf (window-visibility
+  #+(and Genera (not Old-Silica)) (setf (window-visibility
 				      (frame-top-level-window *application-frame*)) nil)
-  #-(or Genera Silica) (frame-exit *application-frame*)
-  #+Silica (with-frame (frame) (stop-frame frame)))
+  #-(or Genera Old-Silica) (frame-exit *application-frame*)
+  #+Old-Silica (with-frame (frame) (stop-frame frame)))
 
-#+Silica (add-command-to-command-table "Exit" 'exit-clim-tests 'clim-tests)
+#+Old-Silica (add-command-to-command-table "Exit" 'exit-clim-tests 'clim-tests)
 
-#-(or Genera Silica)
+#-(or Genera Old-Silica)
 (defvar *test-suite-frames* nil)
 
-#-(or Genera Silica)
+#-(or Genera Old-Silica)
 (defvar *test-root* nil)
 
-#-(or Genera Silica)
+#-(or Genera Old-Silica)
 (defun do-test-suite (&optional (root *test-root*))
   (unless root
     (lisp:format t "~&No current value for *TEST-ROOT*.  Use what value? ")
@@ -3002,6 +2861,6 @@ Luke Luck licks the lakes Luke's duck likes."))
         (push (cons root test) *test-suite-frames*))
     (run-frame-top-level test)))
 
-#+Silica
+#+Old-Silica
 (defun do-test-suite ()
   (launch-frame 'clim-tests :wait-until-done T :width 600 :height 420 :create t))

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader$
+;; $fiHeader: ol-gadgets.cl,v 1.1 92/01/17 17:46:54 cer Exp $
 
 
 (in-package :xm-silica)
@@ -28,16 +28,16 @@
 (defmethod realize-pane-class ((realizer openlook-frame-manager) class &rest options) 
   (declare (ignore options))
   (second (assoc class '(
-			 (silica::scroll-bar openlook-scrollbar)
+			 (scroll-bar openlook-scrollbar)
 			 (slider openlook-slider)
 			 (push-button openlook-push-button)
 			 (canvas openlook-drawing-area)
 			 (text-field openlook-text-field)
 			 (toggle-button openlook-toggle-button)
-			 (silica::menubar openlook-menubar)
+			 (menu-bar openlook-menu-bar)
 			 (silica::viewport ol-viewport)
-			 (silica::radio-box openlook-radio-box)
-			 (silica::frame-pane openlook-frame-pane)
+			 (radio-box openlook-radio-box)
+			 (frame-pane openlook-frame-pane)
 			 (silica::top-level-sheet openlook-top-level-sheet)
 			 ;; One day
 			 (line-editor-pane)
@@ -46,12 +46,9 @@
 			 (horizontal-divider-pane)
 			 (vertical-divider-pane)
 			 (label-pane)
-				   ;;;
+			 ;;
 			 (list-pane)
-			 (menu-bar)
 			 (caption-pane)
-			 (scroll-bar)
-			 (radio-box)
 			 (cascade-button)
 			 ))))
 
@@ -94,12 +91,12 @@
   (let ((x 16))
     (ecase (silica::gadget-orientation m)
       (:vertical
-       (silica::make-space-req :width x
+       (make-space-requirement :width x
 			       :min-height x
 			       :height (* 2 x)
 			       :max-height +fill+))
       (:horizontal
-       (silica::make-space-req :height x
+       (make-space-requirement :height x
 			       :min-width x
 			       :width (* 2 x)
 			       :max-width +fill+)))))
@@ -194,7 +191,7 @@
    width height)
   (update-scrollbars vp)
   (clim-internals::viewport-region-changed 
-   (silica::sheet-child vp)
+   (sheet-child vp)
    vp))
 
 

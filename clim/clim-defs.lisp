@@ -1,53 +1,11 @@
-;;; -*- Mode: LISP; Syntax: Common-lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
-;; 
-;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
-;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
-;;
-;; The software, data and information contained herein are proprietary
-;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
-;; given in confidence by Franz, Inc. pursuant to a written license
-;; agreement, and may be stored and used only in accordance with the terms
-;; of such license.
-;;
-;; Restricted Rights Legend
-;; ------------------------
-;; Use, duplication, and disclosure of the software, data and information
-;; contained herein by any agency, department or entity of the U.S.
-;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
-;;
-;; $fiHeader$
+;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
+;; $fiHeader: clim-defs.lisp,v 1.4 91/03/26 12:47:12 cer Exp $
 
 (in-package :clim-internals)
 
-"Copyright (c) 1988, 1989, 1990 International Lisp Associates.  All rights reserved."
-
-(defmacro default-output-stream (stream &optional must-be-variable-macro-name)
-  `(cond ((member ,stream '(t nil))
-	  (setq ,stream '*standard-output*))
-	 ,@(when must-be-variable-macro-name
-	     `(((not (and (symbolp ,stream)
-			  (not (keywordp ,stream))))
-		(warn "The stream argument to ~S, ~S, is invalid.~@
-		       This argument must be a variable that can be bound to a new stream."
-		      ',must-be-variable-macro-name ,stream)
-		(setq ,stream '*standard-output*))))))
-
-(defmacro default-query-stream (stream &optional must-be-variable-macro-name)
-  `(cond ((member ,stream '(t nil))
-	  (setq ,stream '*query-io*))
-	 ,@(when must-be-variable-macro-name
-	     `(((not (and (symbolp ,stream)
-			  (not (keywordp ,stream))))
-		(warn "The stream argument to ~S, ~S, is invalid.~@
-		       This argument must be a variable that can be bound to a new stream."
-		      ',must-be-variable-macro-name ,stream)
-		(setq ,stream '*query-io*))))))
-
-
+"Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved.
+ Portions copyright (c) 1988, 1989, 1990 International Lisp Associates."
 
 (defun-inline position-translate (point dx dy)
   (values (+ (point-x point) dx)
@@ -57,25 +15,54 @@
   (values (+ x dx)
 	  (+ y dy)))
 
-(defmacro translate-positions (x-delta y-delta &rest points)
-  `(progn
-     ,@(let ((forms nil))
-	 (dorest (pts points cddr)
-	   (push `(incf ,(first pts) ,x-delta) forms)
-	   (push `(incf ,(second pts) ,y-delta) forms))
-	 (nreverse forms))))
+(defmacro translate-positions (x-delta y-delta &body points)
+  (once-only (x-delta y-delta)
+    `(progn
+       ,@(let ((forms nil))
+	   (dorest (pts points cddr)
+	     (push `(incf ,(first pts)  ,x-delta) forms)
+	     (push `(incf ,(second pts) ,y-delta) forms))
+	   (nreverse forms)))))
+
+#-Silica
+;;--- Use COORDINATEs here...
+(defmacro translate-fixnum-positions (x-delta y-delta &body points)
+  (once-only (x-delta y-delta)
+    `(progn
+       ,@(let ((forms nil))
+	   (dorest (pts points cddr)
+	     (push `(setf ,(first pts)  (the fixnum (+ ,(first pts)  ,x-delta))) forms)
+	     (push `(setf ,(second pts) (the fixnum (+ ,(second pts) ,y-delta))) forms))
+	   (nreverse forms)))))
+
+#+Silica
+(defmacro translate-fixnum-positions (x-delta y-delta &body points)
+  (once-only (x-delta y-delta)
+    `(progn
+       ,@(let ((forms nil))
+	   (dorest (pts points cddr)
+	     (push `(setf ,(first pts)  (+ ,(first pts)  ,x-delta)) forms)
+	     (push `(setf ,(second pts) (+ ,(second pts) ,y-delta)) forms))
+	   (nreverse forms)))))
 
 (defun translate-point-sequence (x-delta y-delta points)
-  (let ((new-points (make-list (length points)))
-	(i 0))
-    (dorest (stuff points cddr)
-      (let ((x (first stuff))
-	    (y (second stuff)))
+  (let ((new-points (make-list (length points))))
+    (do ((coords points (cddr coords))
+	 (new-coords new-points (cddr new-coords)))
+	((null coords))
+      (let ((x (first coords))
+	    (y (second coords)))
 	(translate-positions x-delta y-delta x y)
-	(setf (elt new-points i) x)
-	(setf (elt new-points (1+ i)) y))
-      (incf i 2))
+	(setf (first new-coords) x)
+	(setf (second new-coords) y)))
     new-points))
+
+;; Destructive version of the above
+(defun ntranslate-point-sequence (x-delta y-delta points)
+  (do ((coords points (cddr coords)))
+      ((null coords))
+    (translate-positions x-delta y-delta (first coords) (second coords)))
+  points)
 
 (defclass io-buffer
 	  ()
@@ -83,8 +70,6 @@
       (buffer :accessor io-buffer-buffer)
       (input-pointer :accessor io-buffer-input-pointer)
       (output-pointer :accessor io-buffer-output-pointer)))
-
-(defvar +string-array-element-type+ 'cltl1::string-char)
 
 (defmacro define-accessors (flavor &body instance-variables)
   (let ((forms nil))
@@ -112,78 +97,65 @@
     (unless cf
       (error "No window creation function is defined for type ~S" window-stream-type))
     cf))
-
-;;; Utilities
-
 
 
-;;; Action definitions
+(defmacro with-stream-cursor-position-saved ((stream) &body body)
+  (let ((x '#:x)
+	(y '#:y))
+    `(multiple-value-bind (,x ,y) (stream-cursor-position* ,stream)
+       (unwind-protect
+	   (progn ,@body)
+	 (stream-set-cursor-position* ,stream ,x ,y)))))
 
-;;; Kludge for now, support multiple pointers per console and window-stream later
-;;; Removed 23 January 1988 by rsl -- window-streams have pointers of their own now.
-;;; (defvar *the-pointer* (make-instance 'pointer))
-
-(defstruct (action (:copier nil))	 ; a "blip" -- COPIER NIL so Genera doesn't barf.
-  )
-
-(defstruct (pointer-button-press-action (:include action))
-  button
-  x
-  y
-  pointer
-  window
-  shift-mask)
-
-(defstruct (window-action (:include action))
-  window)
-
-(defstruct (window-size-or-position-change-action (:include window-action))
-  left
-  top
-  right
-  bottom)
-
-;;;  There really should be a file full of these macro definitions someplace.
-(defmacro with-output-recording-options ((stream &key
-						 (draw-p nil draw-p-supplied)
-						 (record-p nil record-p-supplied))
-					 &body body)
-  (let ((new-stream (gensymbol "STREAM")))
+(defmacro with-output-recording-options 
+	  ((stream &key (draw nil draw-supplied)
+			(record nil record-supplied)
+			#+CLIM-1-compatibility (draw-p nil draw-p-supplied)
+			#+CLIM-1-compatibility (record-p nil record-p-supplied))
+	   &body body)
+  #+CLIM-1-compatibility
+  (when (or draw-p-supplied record-p-supplied)
+    (setq draw draw-p
+	  draw-supplied draw-p-supplied
+	  record record-p
+	  record-supplied record-p-supplied)
+    (warn "Converting old style call to ~S to the new style.~%~
+	   Please update your code." 'with-output-recording-options))
+  (let ((new-stream (gensymbol 'stream)))
     `(let ((,new-stream ,stream))
-       (flet ((with-output-recording-options () ,@body))
-	 (declare (dynamic-extent #'with-output-recording-options))
-	 (with-output-recording-options-internal
-	   ,new-stream
-	   ,(if draw-p-supplied draw-p `(stream-draw-p ,new-stream))
-	   ,(if record-p-supplied record-p `(stream-record-p ,new-stream))
-	   #'with-output-recording-options)))))
+       (flet ((with-output-recording-options-body () ,@body))
+	 (declare (dynamic-extent #'with-output-recording-options-body))
+	 (invoke-with-output-recording-options
+	   ,new-stream #'with-output-recording-options-body
+	   ,(if record-supplied record `(stream-recording-p ,new-stream))
+	   ,(if draw-supplied draw `(stream-drawing-p ,new-stream)))))))
 
 (eval-when (compile eval load)
 (defvar *output-record-constructor-cache* (make-hash-table))
 
-(defmacro construct-output-record (type &rest init-args #+Genera &environment #+Genera env)
+(defmacro construct-output-record (type &rest init-args &environment env)
   (let ((constructor nil))
-    (cond ((and (constantp type #+Genera env)
+    (cond ((and (constantp type #+(or Genera Minima) env)
 		(setq constructor (gethash (eval type) *output-record-constructor-cache*)))
 	   `(,constructor ,@init-args))
 	  (t `(construct-output-record-1 ,type ,@init-args)))))
 
 (defmacro define-output-record-constructor (record-type arglist &rest initialization-arguments)
-  (let ((constructor-name (fintern "~S-CONSTRUCTOR" record-type)))
+  (let ((constructor-name (fintern "~A-~A" record-type 'constructor)))
     `(progn
        (define-constructor ,constructor-name ,record-type ,arglist ,@initialization-arguments)
        (setf (gethash ',record-type *output-record-constructor-cache*)
 	     ',constructor-name))))
-)
+)	;eval-when
 
 (defmacro with-new-output-record ((stream &optional record-type record &rest init-args)
-				  &body body #+Genera &environment #+Genera env)
+				  &body body &environment env)
   #+Genera (declare (zwei:indentation 0 3 1 1))
   (unless record-type
     (setq record-type `'standard-sequence-output-record))
   (let ((constructor nil)
 	(ignore-record nil))
-    (when (and (constantp record-type #+Genera env)
+    (when (and (constantp record-type #+(or Genera Minima) env)
 	       (setq constructor
 		     (gethash (eval record-type) *output-record-constructor-cache*))))
     (unless record
@@ -193,27 +165,101 @@
 	      ,@(when ignore-record `((declare (ignore ,record))))
 	      ,@body))
        (declare (dynamic-extent #'with-new-output-record-body))
-       (with-new-output-record-internal
-	 #'with-new-output-record-body
-	 ,stream ,record-type ',constructor ,@init-args))))
-
+       (invoke-with-new-output-record
+	 ,stream #'with-new-output-record-body
+	 ,record-type ',constructor ,@init-args))))
 
 (defmacro with-output-to-output-record ((stream &optional record-type record &rest init-args)
 					&body body)
   #+Genera (declare (zwei:indentation 0 3 1 1))
   (default-output-stream stream)
   ;; --- validate protocol here.
-  `(with-output-recording-options (,stream :draw-p nil :record-p t)
-     (letf-globally (((output-recording-stream-output-record ,stream) nil)
-		     ((output-recording-stream-text-output-record ,stream) nil))
+  `(with-output-recording-options (,stream :draw nil :record t)
+     (letf-globally (((stream-current-output-record ,stream) nil)
+		     ((stream-output-history ,stream) nil)
+		     ((stream-text-output-record ,stream) nil))
        (with-new-output-record (,stream ,record-type ,record ,@init-args)
 	 (with-stream-cursor-position-saved (,stream)
 	   ,@body)))))
 
+(defmacro with-output-as-presentation ((stream object type 
+					&key modifier single-box
+					     (allow-sensitive-inferiors t) parent
+					     (record-type `'standard-presentation))
+				       &body body)
+  #+Genera (declare (zwei:indentation 0 3 1 1))
+  (default-output-stream stream)
+  ;; Maybe with-new-output-record should turn record-p on?
+  (let ((nobject '#:object)			;(once-only (object type) ...)
+	(ntype '#:type))
+    `(with-output-recording-options (,stream :record t)
+       (let ((,nobject ,object)
+	     (,ntype ,type))
+	 (with-new-output-record (,stream ,record-type nil
+				  :object ,nobject
+				  :type (if ,ntype
+					    (expand-presentation-type-abbreviation ,ntype)
+					    (presentation-type-of ,nobject))
+				  :single-box ,single-box
+				  :allow-sensitive-inferiors ,allow-sensitive-inferiors
+				  ,@(when modifier `(:modifier ,modifier))
+				  ,@(when parent `(:parent ,parent)))
+	   ,@body)))))
 
-;;; Ditto.  From window-stream
+
+;;; Presentation type stuff
+
+;; The current input context consists of a list of context entries.  Each entry
+;; is a list of the form (CONTEXT-TYPE CATCH-TAG)
+(defvar *input-context* nil)
+
+(defun-inline input-context-type (context-entry)
+  (first context-entry))
+
+(defun-inline input-context-tag (context-entry)
+  (second context-entry))
+
+;; This is the presentation you get if you click while not over anything...
+(defvar *null-presentation*)
+
+(defun make-input-context-clauses (pt-var clauses)
+  (let ((new-clauses nil))
+    (dolist (clause clauses (nreverse new-clauses))
+      (let ((type (first clause))
+	    (body (rest clause)))
+	(push `((presentation-subtypep ,pt-var ',type)
+		,@body)
+	      new-clauses)))))	;eval-when
+
+(defmacro with-input-context ((type &key override) 
+			      (&optional object-var type-var event-var options-var)
+			      form
+			      &body clauses)
+  #+Genera (declare (zwei:indentation 0 2 2 4 3 2))
+  (let ((ignores nil))
+    (when (null object-var)
+      (setq object-var '#:object)
+      (push object-var ignores))
+    (when (null type-var)
+      (setq type-var '#:presentation-type)
+      (unless clauses (push type-var ignores)))
+    (when (null event-var)
+      (setq event-var '#:event)
+      (push event-var ignores))
+    (when (null options-var)
+      (setq options-var '#:options)
+      (push options-var ignores))
+    `(flet ((body-continuation () ,form)
+	    (context-continuation (,object-var ,type-var ,event-var ,options-var)
+	      ,@(and ignores `((declare (ignore ,@ignores))))
+	      (cond ,@(make-input-context-clauses type-var clauses))))
+       (declare (dynamic-extent #'body-continuation #'context-continuation))
+       (invoke-with-input-context
+	 (expand-presentation-type-abbreviation ,type) ,override
+	 #'body-continuation #'context-continuation))))
+
 (defmacro with-input-focus ((stream) &body body)
-  (let ((old-input-focus (gensymbol 'old-input-focus)))
+  (let ((old-input-focus '#:old-input-focus))
     `(let ((,old-input-focus nil))
        (unwind-protect
 	   (progn (setq ,old-input-focus (stream-set-input-focus ,stream))
@@ -221,94 +267,38 @@
 	 (when ,old-input-focus
 	   (stream-restore-input-focus ,stream ,old-input-focus))))))
 
-;;; Ditto.  From accepting-values 
+
+;;; From MENUS.LISP
+;;; For now, MENU-CHOOSE requires that you pass in a parent.
+(defmacro with-menu ((menu &optional (associated-window nil aw-p)) &body body)
+  (let ((window '#:associated-window))
+    `(let ((,window ,(if aw-p
+			 associated-window
+			 `(frame-top-level-sheet *application-frame*))))	;once-only
+       (using-resource (,menu menu (window-top-level-window ,window) (window-root ,window))
+	 (letf-globally (((stream-default-view ,menu) +textual-menu-view+))
+	   ,@body)))))
+
+;;; From ACCEPTING-VALUES.LISP
 (defmacro accepting-values ((&optional stream &rest args) &body body)
-  #+Genera (declare (arglist (&optional stream &key application-class own-window
-					initially-select-query-identifier) &body body))
-  (default-output-stream stream)
-  `(flet ((accepting-values (,stream) ,@body))
-     (declare (dynamic-extent #'accepting-values))
-     (accept-values-1 ,stream #'accepting-values
-		      ,@args)))
-
-(defmacro with-clipping-region ((stream region) &body body)
-  (default-output-stream stream)
-  `(with-clipping-region-1 ,stream ,region (named-continuation with-clipping-region
-							       (,stream) ,@body)))
-
-
-;;; Trivial Ink support
-
-
-
-;;; Presentation type variables
-(defvar *input-context* nil)
-
-(defun-inline input-context-type (context-entry)
-  (first context-entry))
-
-(defun-inline input-context-tag (context-entry)
-	      (second context-entry))
-
-;;; This is the presentation you get if you click while not over anything...
-(defvar *null-presentation*)
-
-;;; Application variables.
-(defvar *application*)
-(defvar *default-application*)
-
-(defvar *whitespace* (coerce '(#\Space #\Tab) 'string))
-
-(defun whitespace-character-p (character)
-  (find character *whitespace* :test #'char-equal))
-
-(defun word-break-character-p (thing)
-  (and (characterp thing)
-       (not (alpha-char-p thing))))
-
-(defun newline-p (thing)
-  (and (characterp thing)
-       (char-equal thing #\Newline)))
-
-(defun writable-character-p (character)
-  ;; do we need this extra level of safety?
-  (and (characterp character)
-       (or (graphic-char-p character)
-	   (not (null (find character '#(#\Newline #\Return #\Tab) :test #'char-equal))))))
-
-
-#+(and pcl genera)
-(progn
-
-(walker:define-walker-template scl:letf walker::walk-let)
-(walker:define-walker-template scl:letf* walker::walk-let*)
-)
-
-(defmacro with-output-as-presentation ((&key object type stream modifier
-					     single-box (allow-sensitive-inferiors t)
-					     (record-type `'standard-presentation)
-					     parent)
-				       &body body)
+  (declare (arglist (&optional stream
+		     &key frame-class own-window exit-boxes
+			  initially-select-query-identifier
+			  resynchronize-every-pass
+			  label x-position y-position width height)
+		    &body body))
   #+Genera (declare (zwei:indentation 0 3 1 1))
-  (default-output-stream stream)
-  ;;--- keep a separate coordinate-sorted set of just presentations (for
-  ;;faster sensitivity searching)?
-  ;; Maybe with-new-output-record should turn record-p on?
-  `(with-output-recording-options (,stream :record-p t)
-     (with-new-output-record (,stream ,record-type nil
-			      :object ,object
-			      :type (expand-presentation-type-abbreviation ,type)
-			      :single-box ,single-box
-			      :allow-sensitive-inferiors ,allow-sensitive-inferiors
-			      ,@(when modifier `(:modifier ,modifier))
-			      ,@(when parent `(:parent ,parent)))
-       ,@body)))
+  (default-query-stream stream accepting-values)
+  `(flet ((accepting-values-body (,stream) ,@body))
+     (declare (dynamic-extent #'accepting-values-body))
+     (invoke-accepting-values ,stream #'accepting-values-body ,@args)))
 
-
-
-(defun true (&rest ignore) (declare (ignore ignore)) t)
-
-
+
+;; Establish a first quadrant coordinate system, execute the body, and then
+;; place the output in such a way that the upper left corner of it is where
+;; the cursor was.  Finally, leave the cursor at the end of the output.
+;; HEIGHT is useful when you are doing this inside of incremental redisplay,
+;; and the graphics are going to change size from pass to pass.
 (defmacro with-room-for-graphics ((&optional stream &key record-type height (move-cursor t))
 				  &body body)
   (default-output-stream stream with-room-for-graphics)
@@ -316,47 +306,26 @@
     (setq record-type `'standard-sequence-output-record))
   `(flet ((with-room-for-graphics-body (,stream) ,@body))
      (declare (dynamic-extent #'with-room-for-graphics-body))
-     (with-room-for-graphics-1 ,stream ,record-type ,move-cursor
-			       #'with-room-for-graphics-body
-			       ,@(and height `(:height ,height)))))
+     (invoke-with-room-for-graphics ,stream #'with-room-for-graphics-body
+				    ,record-type ,move-cursor
+				    ,@(and height `(:height ,height)))))
+
+
+;;; Application frame variables
+(defvar *application-frame*)
+(defvar *default-application*)
+(defvar *pointer-documentation-output* nil)
+(defvar *assume-all-commands-enabled* nil)
+(defvar *sizing-application-frame* nil)
 
 
-(defmacro with-first-quadrant-coordinates ((&optional stream) &body body)
-  (default-output-stream stream with-first-quadrant-coordinates)
-  (let (( x '#:x)  ( y '#:y)
-	(tx '#:tx) (ty '#:ty))
-    `(multiple-value-bind (,x ,y)
-	 (stream-cursor-position* ,stream)
-       (multiple-value-bind (,tx ,ty)
-	   (transform-point* (medium-transformation ,stream) 0 0)
-	 (with-drawing-options
-	     ;; Don't flip the stream over if we already have
-	     (,stream :transformation (if (medium-+y-upward-p ,stream)
-					  +identity-transformation+
-					  (make-transformation 1 0 0 -1
-							       (- ,x ,tx) (- ,y ,ty))))
-	   (letf-globally (((medium-+y-upward-p ,stream) t))
-			  ,@body))))))
+;;; Command processor variables
+(defvar *command-parser* 'command-line-command-parser)
+(defvar *command-unparser* 'command-line-command-unparser)
+(defvar *partial-command-parser* 'command-line-read-remaining-arguments-for-partial-command)
 
-
-(defmacro catch-abort-gestures ((format-string &rest format-args) &body body)
-  `(with-simple-restart (abort ,format-string ,@format-args)
-     (handler-bind ((abort-gesture #'handle-abort-gesture))
-       ,@body)))
-
-(defun handle-abort-gesture (&rest x)
-  (print (list :handle-abort-gesture x)))
-
-(defvar  *command-unparser* nil)
-
-(defvar *command-parser* nil)
-(defvar *partial-command-parser* nil)
-
-(define-condition accelerator-gesture (error)
-  ((event :initform nil :initarg :event :reader accelerator-gesture-event))
-  (:report
-    (lambda (condition stream)
-      (format stream "Accelerator event ~S seen" (accelerator-gesture-event condition)))))
+
+;;; Conditions
 
 (define-condition abort-gesture (error)
   ((event :initform nil :initarg :event :reader abort-gesture-event))
@@ -364,51 +333,39 @@
     (lambda (condition stream)
       (format stream "Abort event ~S seen" (abort-gesture-event condition)))))
 
+(defun handle-abort-gesture (condition)
+  (declare (ignore condition))
+  (abort))
 
-(defmacro with-stream-cursor-position-saved ((stream) &body body)
-  (let ((x '#:x)
-	(y '#:y))
-    `(multiple-value-bind (,x ,y) (stream-cursor-position* ,stream)
-       (unwind-protect
-	   (progn ,@body)
-	 (stream-set-cursor-position* ,stream ,x ,y)))))
+(defmacro catch-abort-gestures ((format-string &rest format-args) &body body)
+  `(with-simple-restart (abort ,format-string ,@format-args)
+     (handler-bind ((abort-gesture #'handle-abort-gesture))
+       ,@body)))
 
-(defmacro translate-fixnum-positions (x-delta y-delta &body points)
-  (once-only (x-delta y-delta)
-    `(progn
-       ,@(let ((forms nil))
-	   (dorest (pts points cddr)
-	     (push `(setf ,(first pts)  (the fixnum (+ ,(first pts)  ,x-delta))) forms)
-	     (push `(setf ,(second pts) (the fixnum (+ ,(second pts) ,y-delta))) forms))
-	   (nreverse forms)))))
+(define-condition accelerator-gesture (error)
+  ((event :initform nil :initarg :event
+	  :reader accelerator-gesture-event)
+   (numeric-argument :initform 1 :initarg :numeric-argument
+		     :reader accelerator-gesture-numeric-argument))
+  (:report
+    (lambda (condition stream)
+      (format stream "Accelerator event ~S seen" (accelerator-gesture-event condition)))))
 
-(defmacro with-scaling ((medium sx &optional (sy nil sy-p)) &body body)
-  `(with-drawing-options (,medium
-			  :transformation (let* ((scale-x ,sx)
-						 (scale-y ,(if sy-p sy 'scale-x)))
-					    (make-scaling-transformation scale-x scale-y)))
-     ,@body))
+
+;;; Useful functions for a few things
 
-(defmacro with-translation ((medium dx dy) &body body)
-  `(with-drawing-options (,medium
-			  :transformation (make-translation-transformation ,dx ,dy))
-     ,@body))
+(defun true (&rest args)
+  (declare (ignore args))
+  t)
 
-(defmacro with-rotation ((medium angle &optional (origin nil origin-p)) &body body)
-  `(with-drawing-options (,medium
-			  :transformation (make-rotation-transformation ,angle
-									,@(if origin-p `(,origin) nil)))
-     ,@body))
+(defun false (&rest args)
+  (declare (ignore args))
+  nil)
 
-(defmacro with-local-coordinates ((&optional stream) &body body)
-  (default-output-stream stream with-local-coordinates)
-  (let (( x '#:x)  ( y '#:y)
-	(tx '#:tx) (ty '#:ty))
-    `(multiple-value-bind (,x ,y)
-	 (stream-cursor-position* ,stream)
-       (multiple-value-bind (,tx ,ty)
-	   (transform-point* (medium-transformation ,stream) 0 0)
-	 (with-drawing-options
-	     (,stream :transformation (make-translation-transformation
-					(- ,x ,tx) (- ,y ,ty)))
-	   ,@body)))))
+
+#+(and PCL Genera)
+(progn
+
+(walker:define-walker-template scl:letf walker::walk-let)
+(walker:define-walker-template scl:letf* walker::walk-let*)
+)

@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-frames.cl,v 1.4 92/01/17 17:49:30 cer Exp Locker: cer $
+;; $fiHeader: xm-frames.cl,v 1.5 92/01/20 09:58:28 cer Exp $
 
 (in-package :xm-silica)
 
@@ -30,7 +30,7 @@
 (defmethod make-frame-manager ((port motif-port))
   (make-instance ' motif-frame-manager :port port))
 
-(defmethod adopt-frame :after ((framem motif-frame-manager) (frame application-frame))
+(defmethod adopt-frame :after ((framem motif-frame-manager) (frame standard-application-frame))
   (when (frame-panes frame)
     (establish-wm-protocol-callbacks framem frame)))
 
@@ -76,11 +76,11 @@
 ;
 ;(defmethod (setf main-window-contents) :after (nv (mw motif-main-window))
 ;  (unless (sheet-parent nv)
-;    (adopt-child mw nv)))
+;    (sheet-adopt-child mw nv)))
 ;
 ;(defmethod (setf main-window-command-window) :after (nv (mw motif-main-window))
 ;  (unless (sheet-parent nv)
-;    (adopt-child mw nv)))
+;    (sheet-adopt-child mw nv)))
 ;
 ;#+ignore
 ;(defmethod realize-mirror :around (port (motif-main-window))
@@ -127,52 +127,52 @@
 	  ())
 
 (defclass wm-delete-window-event (window-manager-event)
-	  ((sheet :initarg :sheet :reader silica::event-sheet))
+	  ((sheet :initarg :sheet :reader event-sheet))
   )
 
-(defmethod silica::handle-event (sheet (event wm-delete-window-event))
-  (clim::frame-exit clim::*application-frame*))
+(defmethod handle-event (sheet (event wm-delete-window-event))
+  (frame-exit *application-frame*))
 
 (defun frame-wm-protocol-callback (widget frame)
   ;; Invoked when the Wm close function has been selected
   ;; We want to queue an "event" somewhere so that we can
   ;; synchronously quit from the frame
   (distribute-event
-   (port frame)
+   (sheet-port frame)
    (make-instance 'wm-delete-window-event
 		  :sheet (frame-top-level-sheet frame))))
 
 
 
-(defmethod clim::frame-wrapper ((frame t) (framem motif-frame-manager) pane)
-  (clim-internals::with-look-and-feel-realization
-      (framem frame)
-    (silica::vertically ()
-			(silica::realize-pane 'silica::menubar
-					      :command-table
-					      (clim-internals::frame-command-table frame))
-			pane)))
+(defmethod clim-internals::frame-wrapper ((frame t) (framem motif-frame-manager) pane)
+  (with-look-and-feel-realization (framem frame)
+    (vertically ()
+      (realize-pane 'menu-bar
+		    :command-table (frame-command-table frame))
+      pane)))
 
-(defclass motif-menubar (xt-leaf-pane) 
+(defclass motif-menu-bar (xt-leaf-pane) 
 	  ((command-table :initarg :command-table)))
 
-(defmethod find-widget-class-and-initargs-for-sheet (port (sheet motif-menubar))
+(defmethod find-widget-class-and-initargs-for-sheet (port (sheet motif-menu-bar))
   (values 'tk::xm-menu-bar nil))
 
-(defmethod realize-mirror :around ((port motif-port) (sheet
-						      motif-menubar))
+(defmethod realize-mirror :around ((port motif-port) (sheet motif-menu-bar))
 
-  ;; This code fills the menubar. If top level items do not have
+  ;; This code fills the menu-bar. If top level items do not have
   ;; submenus then it creates one with a menu of its own
   
   (let ((mirror (call-next-method)))
     (labels ((make-menu-for-command-table (command-table parent top)
-	     (clim::map-over-command-table-menu-items
+	     (map-over-command-table-menu-items
 	      #'(lambda (menu keystroke item)
 		  (declare (ignore keystroke))
-		  (let ((type (clim::command-menu-item-type item)))
+		  (let ((type (command-menu-item-type item)))
 		    (case type
 		      (:divider)
+		      (:function
+		       ;;--- Do this sometime
+		       )
 		      (:menu
 		       (let* ((submenu (make-instance
 					'tk::xm-pulldown-menu
@@ -184,8 +184,7 @@
 						 :sub-menu-id submenu)))
 			 (declare (ignore cb))
 			 (make-menu-for-command-table
-			  (clim-internals::find-command-table
-			   (second item))
+			  (find-command-table (second item))
 			  submenu
 			  nil)))
 		      (t
@@ -223,15 +222,15 @@
 
 (defclass presentation-event (event)
 	  ((value :initarg :value :reader presentation-event-value)
-	   (sheet :initarg :sheet :reader silica::event-sheet)))
+	   (sheet :initarg :sheet :reader event-sheet)))
 
-(defmethod silica::handle-event (sheet (event presentation-event))
-  (clim-internals::throw-highlighted-presentation
-   (make-instance 'clim-internals::standard-presentation
+(defmethod handle-event (sheet (event presentation-event))
+  (throw-highlighted-presentation
+   (make-instance 'standard-presentation
 		  :object (presentation-event-value event)
-		  :type 'clim::command)
-   clim::*input-context*
-   (make-instance 'silica::pointer-event
+		  :type 'command)
+   *input-context*
+   (make-instance 'pointer-button-press-event
 		  :sheet sheet
 		  :x 0
 		  :y 0
@@ -240,11 +239,18 @@
 
 (defun command-button-callback (button dunno frame item)
   (distribute-event
-   (port frame)
+   (sheet-port frame)
    (make-instance 'presentation-event
 		  :sheet (frame-top-level-sheet frame)
 		  :value (second item))))
 
-(defmethod clim-internals::port-dialog-view ((port motif-port))
-  clim::+gadget-dialog-view+)
+(defmethod port-dialog-view ((port motif-port))
+  +gadget-dialog-view+)
   
+;;--- Should "ungray" the command button, if there is one
+(defmethod note-command-enabled ((framem motif-frame-manager) frame command)
+  (declare (ignore frame command)))
+
+;;--- Should "gray" the command button, if there is one
+(defmethod note-command-disabled ((framem motif-frame-manager) frame command)
+  (declare (ignore frame command)))

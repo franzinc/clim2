@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.cl,v 1.1 92/01/15 16:16:14 cer Exp Locker: cer $
+;; $fiHeader: xt-graphics.cl,v 1.2 92/01/17 17:48:18 cer Exp $
 
 (in-package :xm-silica)
 
@@ -88,10 +88,10 @@
 
 (defgeneric clx-decode-ink (ink medium))
 
-(defmethod clx-decode-ink ((ink (eql +foreground+)) medium)
+(defmethod clx-decode-ink ((ink (eql +foreground-ink+)) medium)
   (slot-value medium 'foreground-gcontext))
 
-(defmethod clx-decode-ink ((ink (eql +background+)) medium)
+(defmethod clx-decode-ink ((ink (eql +background-ink+)) medium)
   (slot-value medium 'background-gcontext))
 
 (defmethod clx-decode-ink ((ink (eql +flipping-ink+)) stream)
@@ -104,7 +104,7 @@
 	      (let ((new-gc 
 		     (make-instance 'tk::gcontext
 				    :drawable (tk::display-root-window 
-					       (port-display (port medium))))))
+					       (port-display (sheet-port medium))))))
 		(setf (tk::gcontext-foreground new-gc)
 		      (clx-decode-color medium ink))
 		new-gc)))))
@@ -114,28 +114,28 @@
 
       
 
-(defmethod clx-decode-color ((medium xt-medium) (x (eql +foreground+)))
+(defmethod clx-decode-color ((medium xt-medium) (x (eql +foreground-ink+)))
   (with-slots (foreground-gcontext) medium
     (tk::gcontext-foreground foreground-gcontext)))
 
-(defmethod clx-decode-color ((medium xt-medium) (x (eql +background+)))
+(defmethod clx-decode-color ((medium xt-medium) (x (eql +background-ink+)))
   (with-slots (background-gcontext) medium
     (tk::gcontext-foreground background-gcontext)))
 
 
 (defmethod clx-decode-color ((stream xt-medium) (ink standard-opacity))
   (if (> (slot-value ink 'clim-utils::value) 0.5)
-      (clx-decode-color stream +foreground+)
-    (clx-decode-color stream +background+)))
+      (clx-decode-color stream +foreground-ink+)
+    (clx-decode-color stream +background-ink+)))
 
 (defmethod clx-decode-color ((medium xt-medium) (ink color))
-  (or (gethash ink (port-color-cache (port medium)))
-      (setf (gethash ink (port-color-cache (port medium)))
+  (or (gethash ink (port-color-cache (sheet-port medium)))
+      (setf (gethash ink (port-color-cache (sheet-port medium)))
 	(multiple-value-bind
 	    (red green blue)
 	    (color-rgb ink)
 	  (tk::allocate-color
-	   (tk::default-colormap (port-display (port medium)))
+	   (tk::default-colormap (port-display (sheet-port medium)))
 	   (make-instance 'tk::color
 			  :red (truncate (* 65356 red))
 			  :green (truncate (* 65356 green))
@@ -146,24 +146,31 @@
   ;; This is used to adjust for the line-style
   (declare (ignore ink))
 
-  (let ((thickness (silica::line-style-thickness line-style)))
-    (if (< thickness 2)
-	(setq thickness 0))
+  (let ((thickness (line-style-thickness line-style)))
+    (when (< thickness 2)
+      (setq thickness 0))
     (setf (tk::gcontext-line-width gc) (round thickness)))
   
+  #+++ignore	;---do this...
+  (let ((dashes (line-style-dashes line-style)))
+    (when dashes
+      (setf (tk::gcontext-dashes gc) 
+	(cond ((eq dashes t) '(4 4))
+	      ((vectorp dashes) (coerce dashes 'list))
+	      (t dashes)))))
+
   (setf (tk::gcontext-cap-style gc)
-    (ecase (silica::line-style-cap-shape line-style)
+    (ecase (line-style-cap-shape line-style)
       (:butt :butt)
       (:square :projecting)
       (:round :round)
       (:no-end-point :not-last)))
   
   (setf (tk::gcontext-join-style gc)
-    (ecase (silica::line-style-joint-shape line-style)
+    (ecase (line-style-joint-shape line-style)
       ((:miter :none) :miter)
       (:bevel :bevel)
       (:round :round)))
-  
   
   (when (eq (tk::gcontext-fill-style gc) :tiled)
     (setf (tk::gcontext-ts-x-origin gc) x-origin
@@ -204,9 +211,7 @@
 			    sheet
 			    medium
 			    x1 y1 x2 y2)
-  (let ((transform (compose-transformations
-		    (medium-transformation medium)
-		    (sheet-device-transformation sheet))))
+  (let ((transform (sheet-device-transformation sheet)))
     (multiple-value-setq (x1 y1) (devicize-point transform x1 y1))
     (multiple-value-setq (x2 y2) (devicize-point transform x2 y2)))
   (tk::draw-line
@@ -227,9 +232,7 @@
 				 sheet
 				 medium
 				 x1 y1 x2 y2 filled)
-  (let ((transform (compose-transformations
-		    (medium-transformation medium)
-		    (sheet-device-transformation sheet))))
+  (let ((transform (sheet-device-transformation sheet)))
     (if (rectilinear-transformation-p transform)
 	(progn
 	  (multiple-value-setq (x1 y1) (devicize-point transform x1 y1))
@@ -252,15 +255,12 @@
       
 
 
-
 (defmethod port-draw-text* ((port xt-port)
 			    sheet medium string-or-char x y start end align-x align-y
-			    towards-point towards-x towards-y
-			    transform-glyphs)
-  
-  (let ((transform (compose-transformations
-		    (medium-transformation medium)
-		    (sheet-device-transformation sheet)))
+			    ;;towards-point towards-x towards-y
+			    ;;transform-glyphs
+			    )
+  (let ((transform (sheet-device-transformation sheet))
 	(font (realize-text-style port (medium-text-style medium))))
     
     (multiple-value-setq (x y) (devicize-point transform x y))
@@ -268,7 +268,7 @@
       (setq string-or-char (string string-or-char)))
     
     (ecase align-x
-      (:center (decf x (floor (silica::text-size 
+      (:center (decf x (floor (text-size 
 			       sheet
 			       string-or-char
 			       :text-style
@@ -282,7 +282,7 @@
       (:center (decf y (- (text-style-descent  (medium-text-style medium) medium)
 			  (floor (text-style-height  (medium-text-style medium) medium)
 				 2))))
-      (:base-line nil)
+      (:baseline nil)
       (:top 
        (incf y (tk::font-ascent font))))
 
@@ -307,9 +307,7 @@
 					       y)
   (unless (= start end)
     (let* ((sheet (medium-sheet medium))
-	   (transform (compose-transformations
-		       (medium-transformation medium)
-		       (sheet-device-transformation sheet)))
+	   (transform (sheet-device-transformation sheet))
 	   (window (tk::widget-window (sheet-mirror sheet) nil))
 	   (font x-font))
     
@@ -350,9 +348,7 @@
 				       start-angle 
 				       end-angle 
 				       filled)
-  (let ((transform (compose-transformations
-		    (medium-transformation medium)
-		    (sheet-device-transformation sheet))))
+  (let ((transform (sheet-device-transformation sheet)))
     (multiple-value-setq (center-x center-y) 
       (devicize-point transform center-x center-y))
     
@@ -397,9 +393,7 @@
 				       list-of-x-and-ys
 				       closed
 				       filled)
-  (let* ((transform (compose-transformations
-		     (medium-transformation medium)
-		     (sheet-device-transformation sheet)))
+  (let* ((transform (sheet-device-transformation sheet))
 	 (npoints (/ (length list-of-x-and-ys) 2))
 	 (points (excl::malloc ;; BUG BUG BUG
 		  (* 4 (cond 
@@ -407,6 +401,7 @@
 			 (incf npoints))
 			(t npoints)))))
 	 (window (tk::widget-window (sheet-mirror sheet)))
+	 ;;--- is this right
 	 (minx most-positive-fixnum)
 	 (miny most-positive-fixnum))
 		 
@@ -488,13 +483,11 @@
 		      (gc 
 		       (make-instance 'tk::gcontext
 				      :drawable (tk::display-root-window 
-						 (port-display (port
-								medium)))))
+						 (port-display (sheet-port medium)))))
 		      (pixmap 
 		       (make-instance 'tk::pixmap
 				      :drawable (tk::display-root-window 
-						 (port-display (port
-								medium)))
+						 (port-display (sheet-port medium)))
 				    
 				      :width pattern-width
 				      :height pattern-height
@@ -504,3 +497,36 @@
 		       (tk::gcontext-fill-style gc) :tiled)
 		 gc)))))))
 		
+
+(defmethod silica::port-copy-area ((port xt-port)
+					   medium
+					   from-left
+					   from-top 
+					   from-right 
+					   from-bottom
+					   to-left
+					   to-top)
+  ;; coords in "host" coordinate system
+  (let ((transform +identity-transformation+
+		   ;; This is really horrible cos sheet-transformation
+		   ;; are used to implement scrolling but the
+		   ;; coordinates are in the coordinates of the
+		   ;; viewport rather than the sheet so we are screwed.
+		   #+oh-no(sheet-native-transformation medium)))
+    (multiple-value-setq
+	(from-left from-top)
+      (devicize-point transform from-left from-top))
+    (multiple-value-setq
+	(from-right from-bottom)
+      (devicize-point transform from-right from-bottom))
+    (multiple-value-setq
+	(to-left to-top)
+      (devicize-point transform to-left to-top))
+    (let ((window (tk::widget-window (sheet-mirror medium))))
+      (let ((width (- from-right from-left))
+	    (height (- from-bottom from-top))
+	    ;;;-------------------!
+	    (copy-gc (make-instance 'tk::gcontext
+				    :drawable window)))
+	(tk::copy-area 
+	 window copy-gc from-left from-top width height window to-left to-top)))))

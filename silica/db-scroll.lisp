@@ -20,12 +20,12 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: db-scroll.cl,v 1.1 92/01/02 15:31:50 cer Exp Locker: cer $
+;; $fiHeader: db-scroll.cl,v 1.2 92/01/06 20:44:17 cer Exp $
 
 (in-package :silica)
 
 
-(defclass scroller-pane (client-space-req-mixin
+(defclass scroller-pane (client-space-requirement-mixin
 			 layout-pane)
 	  (vertical-scrollbar
 	   horizontal-scrollbar
@@ -38,8 +38,7 @@
       (vertical-scrollbar horizontal-scrollbar (c contents)
 			  viewport)
       pane
-    (clim-internals::with-look-and-feel-realization
-	(frame-manager frame)
+    (with-look-and-feel-realization (frame-manager frame)
       (setf vertical-scrollbar (realize-pane 
 				'scroll-bar 
 				:orientation :vertical
@@ -51,20 +50,20 @@
 					       :orientation :horizontal)
 	    c contents
 	    viewport (realize-pane 'viewport))
-      (adopt-child pane
-		   (tabling ()
-			    (viewport vertical-scrollbar)
-			    (horizontal-scrollbar nil))))
-    (adopt-child viewport c)
+      (sheet-adopt-child pane
+			 (tabling ()
+				  (viewport vertical-scrollbar)
+				  (horizontal-scrollbar nil))))
+    (sheet-adopt-child viewport c)
     ;; Add callbacks
     ))
 
-(defmethod clim::pane-scroller-sheet (x)
-  (and (clim::pane-viewport-sheet x)
-       (silica::sheet-parent (silica::sheet-parent x))
-       (typep (silica::sheet-parent (silica::sheet-parent (sheet-parent x)))
+(defmethod clim-internals::pane-scroller-sheet (x)
+  (and (clim-internals::pane-viewport-sheet x)
+       (sheet-parent (sheet-parent x))
+       (typep (sheet-parent (sheet-parent (sheet-parent x)))
 	      'scroller-pane)
-       (silica::sheet-parent (silica::sheet-parent (sheet-parent x)))))
+       (sheet-parent (sheet-parent (sheet-parent x)))))
 
 (defmethod allocate-space ((pane scroller-pane) width height)
   ;; decide how much space the scrollbars want and give the rest of
@@ -77,8 +76,8 @@
 
 (defun update-scrollbars (vp)
   (with-bounding-rectangle* (minx miny maxx maxy)
-    (clim-internals::output-recording-stream-output-record
-     (silica::sheet-child vp))
+    (stream-output-history
+     (sheet-child vp))
     (with-bounding-rectangle* (vminx vminy vmaxx vmaxy)
       (xm-viewport-viewport vp)
       (with-slots (horizontal-scrollbar vertical-scrollbar)
@@ -96,24 +95,33 @@
 	 vminx
 	 vmaxx)))))
 
-(defun update-scrollbar (scrollbar minx maxx vminx vmaxx)
+(defun  update-scrollbar (scrollbar minx maxx vminx vmaxx)
+  (declare (optimize (safety 0) (speed 3)))
   (let*  ((size (truncate (* 100 
-			     (if (zerop (- maxx minx))
+			     (the single-float
+			       (if (zerop (- maxx minx))
 				 1.0
-			       (min 1.0 (/ (- vmaxx vminx) (- maxx minx)))))))
+			       (min 1.0  (the single-float
+					   (/ (float (- vmaxx vminx))
+					    (float (- maxx minx))))))))))
 	  (pos (min 1.0
 		    (max 0.0
 			 (if (zerop (- (- maxx minx) (- vmaxx vminx)))
 			     0.0
-			   (/ (- vminx minx) 
-			      (- (- maxx minx) (- vmaxx vminx)))))))
+			   (the single-float 
+			     (/ (float (- vminx minx))
+			      (float (- (- maxx minx) (- vmaxx vminx)))))))))
 	  (value (min (- 100 size) 
 		      (truncate (* 100 pos)))))
+    ;;--- is this safe
+    (declare (type fixnum size value)
+	     (type single-float pos))
+	     
     (with-slots (current-size current-value) scrollbar
       (unless (and current-size
 		   current-value
-		   (= current-size size)
-		   (= current-value value))
+		   (eq current-size size)
+		   (eq current-value value))
 	(setf current-size size
 	      current-value value)
 	(change-scrollbar-values scrollbar 
@@ -129,7 +137,8 @@
 	    size)
   (declare (ignore id))
   (with-slots (current-size current-value) sheet
-    (setf current-size size  current-value value)))
+    (setf current-size (truncate size)
+	  current-value (truncate value))))
   
 
 (defmethod scrollbar-value-changed-callback (sheet 
@@ -138,13 +147,13 @@
 					     size)
   (declare (ignore sheet))
   (with-slots (viewport contents) client
-    (let* ((extent (clim-internals::output-recording-stream-output-record
+    (let* ((extent (stream-output-history
 		   contents))
 	  (vp viewport)
 	  (viewport (silica::xm-viewport-viewport vp)))
       (case id
 	(:vertical
-	 (clim::scroll-extent
+	 (clim-internals::scroll-extent
 	  contents
 	  :x (bounding-rectangle-min-x viewport)
 	  :y (truncate
@@ -155,7 +164,7 @@
 			0
 		      (/ value (- 100 size))))))))
 	(:horizontal
-	 (clim::scroll-extent
+	 (clim-internals::scroll-extent
 	  contents
 	  :x (truncate
 	      (* (max 0 (- (bounding-rectangle-width extent)

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader$
+;; $fiHeader: graphics.cl,v 1.2 92/01/02 15:08:44 cer Exp $
 
 (in-package :tk)
 
@@ -204,3 +204,16 @@
    (object-handle gc)
    x y string length))
 
+
+(defun copy-area (src gcontext src-x src-y width height dst dst-x dst-y)
+  (x11:xcopyarea
+   (display-handle (object-display src))
+   (object-handle src)
+   (object-handle dst)
+   (object-handle gcontext)
+   src-x
+   src-y
+   width
+   height
+   dst-x
+   dst-y))

@@ -1,30 +1,10 @@
-;;; -*- Mode: LISP; Syntax: Common-lisp; Package: CLIM; Base: 10; Lowercase: Yes -*-
-;; 
-;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
-;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
-;;
-;; The software, data and information contained herein are proprietary
-;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
-;; given in confidence by Franz, Inc. pursuant to a written license
-;; agreement, and may be stored and used only in accordance with the terms
-;; of such license.
-;;
-;; Restricted Rights Legend
-;; ------------------------
-;; Use, duplication, and disclosure of the software, data and information
-;; contained herein by any agency, department or entity of the U.S.
-;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
-;;
+;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept.lisp,v 1.7 91/08/05 13:25:19 cer Exp $
+;; $fiHeader: accept.lisp,v 1.4 91/03/26 12:47:04 cer Exp $
 
-(in-package :clim)
+(in-package :clim-internals)
 
-"Copyright (c) 1990, 1991 Symbolics, Inc.  All rights reserved."
-"Copyright (c) 1991, Franz Inc. All rights reserved"
+"Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved."
 
 (defun accept (type &rest accept-args
 	       &key (stream *query-io*)
@@ -37,16 +17,26 @@
 		    (prompt-mode ':normal)
 		    (display-default prompt)
 		    (query-identifier nil)
-		    (activation-characters nil)
-		    (additional-activation-characters nil)
-		    (blip-characters nil)
-		    (additional-blip-characters nil)
+		    (activation-gestures nil)
+		    (additional-activation-gestures nil)
+		    (blip-gestures nil)
+		    (additional-blip-gestures nil)
+		    #+CLIM-1-compatibility (activation-characters nil)
+		    #+CLIM-1-compatibility (additional-activation-characters nil)
+		    #+CLIM-1-compatibility (blip-characters nil)
+		    #+CLIM-1-compatibility (additional-blip-characters nil)
+		    (insert-default nil) (replace-input t)
 		    (present-p nil))
   (declare (dynamic-extent accept-args))
   (declare (values object type))
-  (declare (ignore view prompt prompt-mode display-default query-identifier
-		   activation-characters additional-activation-characters
-		   blip-characters additional-blip-characters present-p))
+  (declare (ignore prompt-mode display-default query-identifier
+		   activation-gestures additional-activation-gestures
+		   blip-gestures additional-blip-gestures 
+		   #+CLIM-1-compatibility activation-characters
+		   #+CLIM-1-compatibility additional-activation-characters
+		   #+CLIM-1-compatibility blip-characters
+		   #+CLIM-1-compatibility additional-blip-characters
+		   insert-default replace-input present-p))
 
   ;; Allow the arguments to be presentation type abbreviations
   (multiple-value-bind (expansion expanded)
@@ -95,28 +85,30 @@
       (setq accept-args `(:default ,default :default-type ,default-type ,@accept-args))))
 
   ;; Call methods to do the work
-  (with-rem-keywords (accept-args accept-args '(:stream))
+  (with-keywords-removed (accept-args accept-args '(:stream))
     (let ((query-identifier
-	    (apply #'prompt-for-accept (or *original-stream* stream) type accept-args)))
+	   (apply #'prompt-for-accept
+		  (or *original-stream* stream) type view accept-args)))
       (apply #'accept-1 (or *original-stream* stream) type
 			:query-identifier query-identifier accept-args))))
 
-(defmethod accept-1 ((stream input-protocol-mixin) type &rest args)
-  (declare (dynamic-extent args))
-  (apply #'accept-2 (or *original-stream* stream) type args))
+(defmethod accept-1 ((stream input-protocol-mixin) type &rest accept-args)
+  (declare (dynamic-extent accept-args))
+  (apply #'accept-2 (or *original-stream* stream) type accept-args))
 
-(defmethod prompt-for-accept ((stream input-protocol-mixin) type &rest args
+(defmethod prompt-for-accept ((stream input-protocol-mixin) type (view view)
+			      &rest accept-args
 			      &key query-identifier &allow-other-keys)
-  (declare (dynamic-extent args))
+  (declare (dynamic-extent accept-args))
   (when (output-stream-p stream)
-    (apply #'prompt-for-accept-internal stream type args))
+    (apply #'prompt-for-accept-1 stream type accept-args))
   query-identifier)
 
-(defun prompt-for-accept-internal (stream type
-				   &key (default nil default-supplied-p) (default-type type)
-					(prompt t) (prompt-mode ':normal)
-					(display-default prompt)
-				   &allow-other-keys)
+(defun prompt-for-accept-1 (stream type
+			    &key (default nil default-supplied-p) (default-type type)
+				 (prompt t) (prompt-mode ':normal)
+				 (display-default prompt)
+			    &allow-other-keys)
   (cond ((eq prompt t)
 	 (write-string "Enter " stream)
 	 (describe-presentation-type type stream 1))
@@ -136,13 +128,27 @@
 		      (default nil default-supplied-p)
 		      (default-type type)
 		      ((:history history-type) type)
+		      (insert-default nil) (replace-input t replace-supplied-p)
+		      (prompt t)
 		      (present-p nil)
 		      (query-identifier nil)
-		      (activation-characters nil)
-		      (additional-activation-characters nil)
-		      (blip-characters nil)
-		      (additional-blip-characters nil)
+		      (activation-gestures nil)
+		      (additional-activation-gestures nil)
+		      (blip-gestures nil)
+		      (additional-blip-gestures nil)
+		      #+CLIM-1-compatibility (activation-characters nil)
+		      #+CLIM-1-compatibility (additional-activation-characters nil)
+		      #+CLIM-1-compatibility (blip-characters nil)
+		      #+CLIM-1-compatibility (additional-blip-characters nil)
 		 &allow-other-keys)
+
+  #+CLIM-1-compatibility
+  (when (or activation-characters additional-activation-characters
+	    blip-characters additional-blip-characters)
+    (setq activation-gestures activation-characters
+	  additional-activation-gestures additional-activation-characters
+	  blip-gestures blip-characters
+	  additional-blip-gestures additional-blip-characters))
 
   ;; Set up the input editing environment
   (let ((the-object nil)
@@ -156,33 +162,34 @@
 	  (history-type
 	   (setq history (presentation-type-history history-type))))
 
-    ;; In AVVs, ACCEPT can turn into PRESENT
+    ;; Inside ACCEPTING-VALUES, ACCEPT can turn into PRESENT
     (when present-p
       (return-from accept-2
 	(accept-present-default type stream view default default-supplied-p
-				present-p query-identifier)))
+				present-p query-identifier :prompt prompt)))
 
     (block input-editing
       (flet ((input-sensitizer (continuation stream)
 	       (declare (dynamic-extent continuation))
-	       (if (stream-record-p stream)
-		   (with-output-as-presentation (:type (or the-type type)
-						 :stream stream
-						 :object the-object)
+	       (if (stream-recording-p stream)
+		   (with-output-as-presentation (stream the-object (or the-type type))
 		     (funcall continuation stream))
 		   (funcall continuation stream))))
 	(declare (dynamic-extent #'input-sensitizer))
-	(with-input-editing (stream :input-sensitizer #'input-sensitizer)
+	(with-input-editing (stream :input-sensitizer #'input-sensitizer
+				    :initial-contents (and insert-default
+							   default-supplied-p
+							   (list default default-type)))
 	  (let ((start-position (input-position stream)))
 	    (with-input-context (type)
 				(object presentation-type nil options)
-	      (with-activation-characters ((or activation-characters
-					       additional-activation-characters
-					       *standard-activation-characters*)
-					   :override (not (null activation-characters)))
-		(with-blip-characters ((or blip-characters
-					   additional-blip-characters)
-				       :override (not (null blip-characters)))
+	      (with-activation-gestures ((or activation-gestures
+					     additional-activation-gestures
+					     *standard-activation-gestures*)
+					 :override (not (null activation-gestures)))
+		(with-blip-gestures ((or blip-gestures
+					 additional-blip-gestures)
+				     :override (not (null blip-gestures)))
 		  (handler-bind ((parse-error
 				   #'(lambda (error)
 				       (declare (ignore error))
@@ -229,7 +236,9 @@
 		 (setq the-object object
 		       the-type presentation-type
 		       activated nil)
-		 (when (getf options :echo t)
+		 (when (if replace-supplied-p
+			   replace-input
+			   (getf options :echo t))
 		   (presentation-replace-input stream object presentation-type view
 					       :buffer-start start-position
 					       :query-identifier query-identifier))))))))
@@ -242,11 +251,11 @@
     ;; input editing, such as string streams.
     ;;--- This is really lousy.  We need a coherent theory here.
     (when activated
-      (when (and (not (interactive-stream-p stream))
+      (when (and (not (input-editing-stream-p stream))
 		 (stream-supports-input-editing stream))
 	(let ((gesture (read-gesture :stream stream :timeout 0)))
 	  ;;--- For now, just ignore button release events
-	  (when (typep gesture 'silica::pointer-release-event)
+	  (when (typep gesture 'pointer-button-release-event)
 	    (read-gesture :stream stream :timeout 0)))))
     (when (and history (frame-maintain-presentation-histories *application-frame*))
       ;;--- Should this only record stuff that was input via the keyboard?
@@ -275,7 +284,7 @@
   (loop
     (let ((char (read-gesture :stream stream)))
       (when (or (not (characterp char))
-		(blip-character-p char)
+		(blip-gesture-p char)
 		(not (whitespace-character-p char)))
 	;; If we got some kind of mouse gesture or a blip character or
 	;; a printing character, then put it back and check to see if
@@ -283,8 +292,8 @@
 	(unread-gesture char :stream stream)
 	(setf (input-position stream) location)
 	(when (or (null char)
-		  (activation-character-p char)
-		  (blip-character-p char))
+		  (activation-gesture-p char)
+		  (blip-gesture-p char))
 	  ;; Insert the default if we got a character that will terminate
 	  ;; the current call to ACCEPT
 	  (unless (rescanning-p stream)
@@ -329,12 +338,12 @@
 				        (loop
 					  (let ((char (read-char stream nil :eof)))
 					    (when (or (not (characterp char))
-						      (blip-character-p char)
+						      (blip-gesture-p char)
 						      (not (whitespace-character-p char)))
 					      (unread-char char stream)
 					      (when (or (eql char :eof)
-							(activation-character-p char)
-							(blip-character-p char))
+							(activation-gesture-p char)
+							(blip-gesture-p char))
 						(return-from check-for-default t))
 					      (return-from check-for-default nil))))))
 				 (declare (dynamic-extent #'check-for-default))
@@ -368,10 +377,11 @@
     (check-type gesture character)
     (stream-unread-char stream gesture)))
 
-(defmethod accept-1 ((stream t) type &rest args)
-  (declare (dynamic-extent args))
-  (apply #'accept-2 (or *original-stream* stream) type args))
+(defmethod accept-1 ((stream t) type &rest accept-args)
+  (declare (dynamic-extent accept-args))
+  (apply #'accept-2 (or *original-stream* stream) type accept-args))
 
-(defmethod prompt-for-accept ((stream t) type &key query-identifier &allow-other-keys)
+(defmethod prompt-for-accept ((stream t) type (view view) 
+			      &key query-identifier &allow-other-keys)
   (declare (ignore type))
   query-identifier)

@@ -18,20 +18,20 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: layout.cl,v 1.4 92/01/06 20:44:25 cer Exp Locker: cer $
+;; $fiHeader: layout.cl,v 1.5 92/01/08 14:59:04 cer Exp $
 
 (in-package :silica)
 
 
-(defclass space-req ()
-    ((width :initarg :width :accessor space-req-width)
-     (max-width :accessor space-req-max-width)
-     (min-width :accessor space-req-min-width)
-     (height :initarg :height :accessor space-req-height)
-     (max-height :accessor space-req-max-height)
-     (min-height :accessor space-req-min-height)))
+(defclass space-requirement ()
+    ((width :initarg :width :accessor space-requirement-width)
+     (max-width :accessor space-requirement-max-width)
+     (min-width :accessor space-requirement-min-width)
+     (height :initarg :height :accessor space-requirement-height)
+     (max-height :accessor space-requirement-max-height)
+     (min-height :accessor space-requirement-min-height)))
 
-(defmethod print-object ((o space-req) s)
+(defmethod print-object ((o space-requirement) s)
   (print-unreadable-object 
       (o s :type t)
     (with-slots (min-width width  max-width min-height height
@@ -41,9 +41,9 @@
 		min-height height
 		max-height))))
 
-(defmethod copy-space-req ((sr space-req))
+(defmethod copy-space-requirement ((sr space-requirement))
   (with-slots (width height max-width max-height min-width min-height) sr
-      (make-instance 'space-req
+      (make-instance 'space-requirement
 		     :width width
 		     :height height
 		     :max-width max-width
@@ -51,7 +51,7 @@
 		     :min-width min-width
 		     :min-height min-height)))
 
-(defmethod initialize-instance :after ((s space-req)
+(defmethod initialize-instance :after ((s space-requirement)
 				       &key
 				       (width (error "width not specified"))
 				       (min-width width)
@@ -64,8 +64,8 @@
 	(slot-value s 'min-width) min-width
 	(slot-value s 'max-width) max-width))
 
-(defun make-space-req (&rest args)
-  (apply #'make-instance 'space-req args))
+(defun make-space-requirement (&rest args)
+  (apply #'make-instance 'space-requirement args))
 
 (defconstant +fill+ (/ (expt 10 (floor (log most-positive-fixnum 10))) 100))
 
@@ -86,7 +86,7 @@
 ;  )
 ;
 ;(defmethod compose-space (sheet)
-;  (make-instance 'space-req
+;  (make-instance 'space-requirement
 ;		 :width (sheet-width sheet)
 ;		 :height (sheet-height sheet)))
 ;
@@ -125,7 +125,7 @@
       (when (or (and minx (/= x minx))
 		(and miny (/= y miny)))
 	(setf (sheet-transformation sheet)
-	  (compose-translation-transformation
+	  (compose-translation-with-transformation
 	   trans
 	   (if minx (- minx x) 0)
 	   (if miny (- miny y) 0)))))))
@@ -207,9 +207,9 @@
 ;(defmethod (setf contents) (new-contents (lcm list-contents-mixin))
 ;  (with-slots (reverse-p contents children) lcm
 ;    (dolist (pane contents)
-;      (disown-child lcm pane))
+;      (sheet-disown-child lcm pane))
 ;    (dolist (pane new-contents)
-;      (adopt-child lcm pane))
+;      (sheet-adopt-child lcm pane))
 ;    (setf contents (if reverse-p (reverse new-contents)
 ;		       new-contents)
 ;	  ;; So that things repaint from top to bottom
@@ -217,7 +217,7 @@
 ;	  children (if reverse-p (nreverse children)
 ;			  children))
 ;    
-;    (space-req-changed (sheet-parent lcm) lcm)))
+;    (note-space-requirement-changed (sheet-parent lcm) lcm)))
 ;
 ;
 ;
@@ -239,7 +239,7 @@
 ;    (dolist (pane panes)
 ;      (insert-pane lcm pane :position position :batch-p t)
 ;      (unless reverse-p (incf position)))
-;    (space-req-changed (sheet-parent lcm) lcm)))
+;    (note-space-requirement-changed (sheet-parent lcm) lcm)))
 ;
 ;(defmethod insert-pane ((lcm list-contents-mixin) (pane pane) 
 ;			&key position batch-p &allow-other-keys)
@@ -251,25 +251,25 @@
 ;	(let ((tail (nthcdr (1- position) contents)))
 ;	  (setf (cdr tail) 
 ;		(cons pane (cdr tail)))))
-;    (adopt-child lcm pane)
+;    (sheet-adopt-child lcm pane)
 ;    (unless batch-p
-;      (space-req-changed (sheet-parent lcm) lcm))))
+;      (note-space-requirement-changed (sheet-parent lcm) lcm))))
 ;			      
 ;(defmethod remove-panes ((lcm list-contents-mixin) panes)
 ;  (dolist (pane panes)
 ;    (with-slots (contents) lcm
 ;      (setf contents (delete pane contents))
-;      (disown-child lcm pane)))
-;  (space-req-changed (sheet-parent lcm) lcm))
+;      (sheet-disown-child lcm pane)))
+;  (note-space-requirement-changed (sheet-parent lcm) lcm))
 ;
 ;(defmethod remove-pane ((lcm list-contents-mixin) (pane pane)
 ;			&key batch-p &allow-other-keys)
 ;  (with-slots (contents) lcm
 ;    (setf contents (delete pane contents :test #'eq))
-;    (disown-child lcm pane)
-;    (unless batch-p (space-req-changed (sheet-parent lcm) lcm))))
+;    (sheet-disown-child lcm pane)
+;    (unless batch-p (note-space-requirement-changed (sheet-parent lcm) lcm))))
 ;
-;(defmethod space-req-changed :before (parent (lcm list-contents-mixin))
+;(defmethod note-space-requirement-changed :before (parent (lcm list-contents-mixin))
 ;  #-PCL ;; PCL uses this variable for method-table cache misses, unfortunately.
 ;  (declare (ignore parent))
 ;  (with-slots (nslots contents) lcm

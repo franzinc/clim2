@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader$
+;; $fiHeader: sysdcl.cl,v 1.2 92/01/06 20:44:06 cer Exp $
 
 
 (defsys::defsystem :xlib

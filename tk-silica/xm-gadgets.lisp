@@ -18,23 +18,23 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.cl,v 1.5 92/01/08 14:58:39 cer Exp Locker: cer $
+;; $fiHeader: xm-gadgets.cl,v 1.6 92/01/17 17:49:31 cer Exp $
 
 (in-package :xm-silica)
 
 (defmethod realize-pane-class ((realizer motif-frame-manager) class &rest options) 
   (declare (ignore options))
   (second (assoc class '(
-			 (silica::scroll-bar motif-scrollbar)
+			 (scroll-bar motif-scrollbar)
 			 (slider motif-slider)
 			 (push-button motif-push-button)
 			 (canvas motif-drawing-area)
 			 (text-field motif-text-field)
 			 (toggle-button motif-toggle-button)
-			 (silica::menubar motif-menubar)
+			 (menu-bar motif-menu-bar)
 			 (silica::viewport xm-viewport)
-			 (silica::radio-box motif-radio-box)
-			 (silica::frame-pane motif-frame-pane)
+			 (radio-box motif-radio-box)
+			 (frame-pane motif-frame-pane)
 			 (silica::top-level-sheet motif-top-level-sheet)
 			 ;; One day
 			 (line-editor-pane)
@@ -43,12 +43,9 @@
 			 (horizontal-divider-pane)
 			 (vertical-divider-pane)
 			 (label-pane)
-				   ;;;
+			 ;;
 			 (list-pane)
-			 (menu-bar)
 			 (caption-pane)
-			 (scroll-bar)
-			 (radio-box)
 			 (cascade-button)
 			 ))))
 
@@ -65,22 +62,22 @@
 		    'queue-value-changed-event
 		    sheet))
 
-(defmethod silica::gadget-value ((gadget motif-value-pane))
+(defmethod gadget-value ((gadget motif-value-pane))
   (if (sheet-direct-mirror gadget)
       (tk::get-values (sheet-mirror gadget) :value)
     (call-next-method)))
 
-(defmethod (setf silica::gadget-value) (nv (gadget motif-value-pane))
+(defmethod (setf gadget-value) (nv (gadget motif-value-pane))
   (when (sheet-mirror gadget)
     (tk::set-values (sheet-mirror gadget) :value nv)))
 
 (defmethod queue-value-changed-event (widget sheet)
   (declare (ignore widget))
   (distribute-event
-   (port sheet)
+   (sheet-port sheet)
    (make-instance 'value-changed-gadget-event
 		  :gadget sheet
-		  :value (silica::gadget-value sheet))))
+		  :value (gadget-value sheet))))
 
 ;;; Motif widgets that support the activate callback
 
@@ -95,14 +92,14 @@
 (defmethod queue-active-event (widget count sheet)
   (declare (ignore widget count))
   (distribute-event
-   (port sheet)
+   (sheet-port sheet)
    (make-instance 'activate-gadget-event
 		  :gadget sheet)))
 
 ;;; Push button
 
 (defclass motif-push-button (xt-leaf-pane 
-			     silica::push-button
+			     push-button
 			     motif-action-pane) 
 	  ())
 
@@ -168,9 +165,11 @@
 
 (defmethod find-widget-class-and-initargs-for-sheet ((port motif-port) (sheet motif-slider))
   (with-accessors ((orientation silica::gadget-orientation)
-		   (value silica::gadget-value)) sheet
+		   (label silica::gadget-label)
+		   (value gadget-value)) sheet
     (values 'tk::xm-scale 
 	    (append
+	     (and label (list :title-string label))
 	     (list :orientation orientation)
 	     (and value (list :value value))))))
 
@@ -179,12 +178,16 @@
   (let ((x 16))
     (ecase (silica::gadget-orientation m)
       (:vertical
-       (silica::make-space-req :width x
+       (make-space-requirement :width x
 			       :min-height x
 			       :height (* 2 x)
 			       :max-height +fill+))
       (:horizontal
-       (silica::make-space-req :height x
+       (make-space-requirement :height (if (silica::gadget-label m) ;
+								    ;Should ask the label how big
+								    ;it wants to be and add that in
+					   (+ x 20)
+					   x)
 			       :min-width x
 			       :width (* 2 x)
 			       :max-width +fill+)))))
@@ -203,7 +206,7 @@
 			  (list :orientation orientation))))
 
 (defmethod (setf silica::scrollbar-size) (nv (sb motif-scrollbar))
-  (tk::set-values (sheet-direct-mirror sb) :slider-size nv)
+  (tk::set-values (sheet-direct-mirror sb) :slider-size (floor nv))
   nv)
 
 (defmethod (setf silica::scrollbar-value) (nv (sb motif-scrollbar))
@@ -230,8 +233,8 @@
       (tk::get-values widget :value :slider-size)
     (silica::scrollbar-value-changed-callback
      sheet
-     (silica::gadget-client sheet)
-     (silica::gadget-id sheet)
+     (gadget-client sheet)
+     (gadget-id sheet)
      value
      size)))
 
@@ -240,12 +243,12 @@
   (let ((x 16))
     (ecase (silica::gadget-orientation m)
       (:vertical
-       (silica::make-space-req :width x
+       (make-space-requirement :width x
 			       :min-height x
 			       :height (* 2 x)
 			       :max-height +fill+))
       (:horizontal
-       (silica::make-space-req :height x
+       (make-space-requirement :height x
 			       :min-width x
 			       :width (* 2 x)
 			       :max-width +fill+)))))
@@ -329,7 +332,7 @@
 
 (defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
 						     (sheet motif-text-field))
-  (with-accessors ((value silica::gadget-value)) sheet
+  (with-accessors ((value gadget-value)) sheet
     (values 'tk::xm-text-field 
 	    (append
 	     (and value `(:value ,value))))))
@@ -344,7 +347,7 @@
 
 (defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
 						     (sheet motif-toggle-button))
-  (with-accessors ((set silica::gadget-value)
+  (with-accessors ((set gadget-value)
 		   (label silica::gadget-label)
 		   (indicator-type silica::gadget-indicator-type)) sheet
     (values 'tk::xm-toggle-button 
@@ -355,17 +358,17 @@
 			    (:one-of :one-of-many)
 			    (:some-of :n-of-many)))))))
 
-(defmethod silica::gadget-value ((gadget motif-toggle-button))
+(defmethod gadget-value ((gadget motif-toggle-button))
   (if (sheet-direct-mirror gadget)
       (tk::get-values (sheet-mirror gadget) :set)
     (call-next-method)))
 
-(defmethod (setf silica::gadget-value) (nv (gadget motif-toggle-button))
+(defmethod (setf gadget-value) (nv (gadget motif-toggle-button))
   (when (sheet-direct-mirror gadget)
     (tk::set-values (sheet-mirror gadget) :set nv)))
 
 (defmethod xm-silica::add-sheet-callbacks :after ((port motif-port) 
-						  (sheet clim::extended-stream-sheet)
+						  (sheet clim-internals::extended-stream-sheet)
 						  (widget t))
   (declare (ignore sheet))
 ;  (tk::add-callback widget 
@@ -401,15 +404,14 @@
 (defun scrollbar-changed-callback (widget which scroller)
   (let* ((vp (silica::sheet-child scroller))
 	 (viewport (silica::xm-viewport-viewport vp))
-	 (extent (clim-internals::output-recording-stream-output-record
-		  (silica::sheet-child vp))))
+	 (extent (stream-output-history (sheet-child vp))))
     (multiple-value-bind
 	(value size)
 	(tk::get-values widget :value :slider-size)
       (case which
 	(:vertical
-	 (clim::scroll-extent
-	  (silica::sheet-child vp)
+	 (clim-internals::scroll-extent
+	  (sheet-child vp)
 	  :x (bounding-rectangle-min-x viewport)
 	  :y (truncate
 	      (* (max 0 (- (bounding-rectangle-height extent)
@@ -418,7 +420,7 @@
 		     0
 		   (/ value (- 100 size)))))))
 	(:horizontal
-	 (clim::scroll-extent
+	 (clim-internals::scroll-extent
 	  (silica::sheet-child vp)
 	  :x (truncate
 	      (* (max 0 (- (bounding-rectangle-width extent)
@@ -508,13 +510,13 @@
 (defclass  motif-radio-box (mirrored-sheet-mixin
 			    sheet-multiple-child-mixin
 			    sheet-permanently-enabled-mixin
-			    silica::radio-box
+			    radio-box
 			    silica::pane
 			    ask-widget-for-size-mixin)
 	   ((current-selection :accessor radio-box-current-selection)))
 
-(defmethod adopt-child :after ((gadget motif-radio-box) child)
-  (setf (silica::gadget-client child) gadget))
+(defmethod sheet-adopt-child :after ((gadget motif-radio-box) child)
+  (setf (gadget-client child) gadget))
 
 (defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
 						     (sheet motif-radio-box))
@@ -523,16 +525,16 @@
     (values 'tk::xm-radio-box
 	    (list :orientation orientation))))
 
-(defmethod silica::value-changed-callback :after ((v gadget)
-						  (client motif-radio-box)
-						  (id t)
-						  (value t))
+(defmethod value-changed-callback :after ((v gadget)
+					  (client motif-radio-box)
+					  (id t)
+					  (value t))
   (when (eq value t)
     (setf (radio-box-current-selection client) v)
-    (silica::value-changed-callback client 
-				    (silica::gadget-client client)
-				    (silica::gadget-id client) 
-				    v)))
+    (value-changed-callback client 
+			    (gadget-client client)
+			    (gadget-id client) 
+			    v)))
 
 ;; This is an experiment at using a frame but there are problems with
 ;; it

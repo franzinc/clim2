@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-silica.cl,v 1.4 92/01/08 14:58:42 cer Exp Locker: cer $
+;; $fiHeader: xm-silica.cl,v 1.5 92/01/17 17:49:34 cer Exp $
 
 (in-package :xm-silica)
 

@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: sheet.cl,v 1.3 92/01/02 15:09:23 cer Exp Locker: cer $
+;; $fiHeader: sheet.cl,v 1.4 92/01/06 20:43:57 cer Exp $
 
 (in-package :silica)
 
@@ -39,10 +39,10 @@
     (unless (and x (null (cdr x)))
       (error "Not one child:~S" sheet))
     (car x)))
-(defgeneric adopt-child (sheet child)
+(defgeneric sheet-adopt-child (sheet child)
   )
 
-(defgeneric disown-child (sheet child)
+(defgeneric sheet-disown-child (sheet child)
   )
 
 (defgeneric sheet-siblings (sheet)
@@ -89,20 +89,20 @@
   ((child :initform nil :accessor sheet-child))
   )
 
-(defmethod adopt-child :before ((sheet sheet) (child sheet))
+(defmethod sheet-adopt-child :before ((sheet sheet) (child sheet))
   (when (sheet-parent child)
     (error "Trying to adopt a child that has a parent: ~S" child)))
 
-(defmethod adopt-child ((sheet sheet-single-child-mixin) child)
+(defmethod sheet-adopt-child ((sheet sheet-single-child-mixin) child)
   (when (sheet-child sheet)
     (error "Sheet Already has a child: ~S" sheet))
   (setf (sheet-child sheet) child
 	(sheet-parent child) sheet))
 
-(defmethod adopt-child :after (sheet child)
+(defmethod sheet-adopt-child :after (sheet child)
   (note-sheet-adopted child)
-  (when (port sheet)
-    (setf (port child :graft (graft sheet)) (port sheet))))
+  (when (sheet-port sheet)
+    (setf (sheet-port child :graft (sheet-graft sheet)) (sheet-port sheet))))
 
 (defmethod sheet-children ((sheet sheet-single-child-mixin))
   (let ((x (sheet-child sheet)))
@@ -113,45 +113,45 @@
   )
 
 
-(defmethod adopt-child ((sheet sheet-multiple-child-mixin) child)
+(defmethod sheet-adopt-child ((sheet sheet-multiple-child-mixin) child)
   (push child (sheet-children sheet))
   (setf (sheet-parent child) sheet))
 
-(defmethod (setf port) ((port null) sheet &key graft)
+(defmethod (setf sheet-port) ((port null) sheet &key graft)
   (declare (ignore graft))
   (note-sheet-degrafted sheet)
   (setf (slot-value sheet 'port) port)
   (when (typep sheet 'sheet-parent-mixin)
     (dolist (child (sheet-children sheet))
-      (setf (port child) port))))
+      (setf (sheet-port child) port))))
 
-(defmethod (setf port) ((port port) sheet &key graft)
+(defmethod (setf sheet-port) ((port port) sheet &key graft)
   (setf (slot-value sheet 'port) port
 	(slot-value sheet 'graft) graft)
   (note-sheet-grafted sheet)
   (when (typep sheet 'sheet-parent-mixin)
     (dolist (child (sheet-children sheet))
-      (setf (port child :graft graft) port))))
+      (setf (sheet-port child :graft graft) port))))
 
-(defmethod disown-child ((parent sheet-multiple-child-mixin) child)
+(defmethod sheet-disown-child ((parent sheet-multiple-child-mixin) child)
   (unless (eq (sheet-parent child) parent)
     (error "~S is not child of ~S" child parent))
   (setf (sheet-parent child) nil)
   (setf  (sheet-children parent)
     (delete child (sheet-children parent)))
   (note-sheet-disowned child)
-  (when (port parent)
-    (setf (port child) nil)))
+  (when (sheet-port parent)
+    (setf (sheet-port child) nil)))
 
 
-(defmethod disown-child ((parent sheet-single-child-mixin) child)
+(defmethod sheet-disown-child ((parent sheet-single-child-mixin) child)
   (unless (eq (sheet-parent child) parent)
     (error "~S is not child of ~S" child parent))
   (setf (sheet-parent child) nil
 	(sheet-child parent) nil)
   (note-sheet-disowned child)
-  (when (port parent)
-    (setf (port child) nil)))
+  (when (sheet-port parent)
+    (setf (sheet-port child) nil)))
 
 
 ;;;;
@@ -325,9 +325,9 @@
 
 (defmethod initialize-instance :after ((sheet sheet) &key parent children)
   (when parent
-    (adopt-child parent sheet))
+    (sheet-adopt-child parent sheet))
   (dolist (child children)
-    (adopt-child sheet child)))
+    (sheet-adopt-child sheet child)))
 
 
 ;;; Output
@@ -351,13 +351,13 @@
 (defmethod note-sheet-grafted :after ((sheet permanent-medium-sheet-output-mixin))
   (when (sheet-medium-type sheet)
     (setf (sheet-medium sheet)
-	  (make-medium (port sheet) sheet))
-    (when (port sheet)
-      (engraft-medium (sheet-medium sheet) (port sheet) sheet))))
+	  (make-medium (sheet-port sheet) sheet))
+    (when (sheet-port sheet)
+      (engraft-medium (sheet-medium sheet) (sheet-port sheet) sheet))))
 
 (defmethod note-sheet-degrafted ((sheet permanent-medium-sheet-output-mixin))
   (when (sheet-medium sheet)
-    (degraft-medium (sheet-medium sheet) (port sheet) sheet)
+    (degraft-medium (sheet-medium sheet) (sheet-port sheet) sheet)
     (setf (sheet-medium sheet) nil)))
 
 

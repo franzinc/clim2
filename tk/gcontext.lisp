@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: gcontext.cl,v 1.2 92/01/02 15:08:43 cer Exp Locker: cer $
+;; $fiHeader: gcontext.cl,v 1.3 92/01/06 20:43:45 cer Exp $
 
 (in-package :tk)
 

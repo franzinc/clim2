@@ -34,7 +34,7 @@
 ;;; Rights in Technical Data and Computer Software Clause at DFARS 252.227-7013
 ;;; (Oct. 1988) and FAR 52.227-19(c) (June 1987) Sun Microsystems, Inc. 2550
 ;;; Garcia Avenue, Mountain View, California 94043.
-;; $fiHeader$
+;; $fiHeader: x11-keysyms.cl,v 1.2 92/01/08 15:22:09 cer Exp $
 
 
 ;;;@(#)x11-keysym.lisp	1.3 11/29/90
