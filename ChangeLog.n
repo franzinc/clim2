@@ -12,6 +12,11 @@ If there are user-visible changes in this commit, then list the
 
 *******************************************************************************
 
+2003-12-23  Kevin Layer  <layer@crikey>
+
+	* Makefile.linux: add dmalloc debugging stuff, turned off by
+	  default
+
 2003-12-10  Kevin Layer  <layer@crikey>
 
 	* Makefile.macosx: remove /usr/local/lib from DYLD_LIBRARY_PATH,

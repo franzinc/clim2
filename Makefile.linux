@@ -1,4 +1,4 @@
-# $Id: Makefile.linux,v 1.2.36.1.28.1 2003/04/30 20:18:41 layer Exp $
+# $Id: Makefile.linux,v 1.2.36.1.28.2 2003/12/23 20:43:10 layer Exp $
 
 include Makefile.defs
 
@@ -9,7 +9,13 @@ XINCLUDES=-I/usr/X11R6/include
 TKLIB=-lXm -lXpm -lXext -lXp
 XTLIB=-lXt
 XLIB=-lX11
+
+ifdef FI_USE_DMALLOC
+THREADLIB = -lpthread -ldmallocth
+CFLAGS = -I/usr/local/include
+else
 THREADLIB = -lpthread
+endif
 
 SET_LIBRARY_PATH = LD_RUN_PATH=/usr/X11R6/lib:/lib:/usr/lib; export LD_RUN_PATH
 
