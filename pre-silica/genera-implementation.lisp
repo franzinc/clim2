@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $Id: genera-implementation.lisp,v 1.9.22.1 1998/07/06 23:09:48 layer Exp $
+;; $Id: genera-implementation.lisp,v 1.9.22.2 1998/11/03 22:04:53 layer Exp $
 
 (in-package :clim-internals)
 
@@ -1075,7 +1075,7 @@
 			       (setq index new-index))
 			     (let ((new-top (box-top (presentation-displayed-box
 						       (aref displayed-strings index)))))
-			       (when ( new-top y)
+			       (when (-control-z-char- new-top y)
 				 (setq y new-top)
 				 (loop-finish))))
 			while (index-ok-p index))

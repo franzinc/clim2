@@ -11,6 +11,14 @@ Tests for new features:	<`no new features', `no tests for new features', or
 	* <changes go here...>
 
 *******************************************************************************
+2.2.1.33
+
+1998-11-03    <layer@HOBART>
+
+	* pre-silica/genera-implementation.lisp: remove ^Z character
+	because it was messing up new version of CVS
+
+*******************************************************************************
 2.2.1.32
 
 Sat Sept 19 12:00:00 1998  Jeff Morrill <jmorrill@pointnclick.com>
