@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xt-silica.lisp,v 1.113 2002/07/09 20:57:18 layer Exp $
+;; $Id: xt-silica.lisp,v 1.114 2003/01/30 04:51:56 duane Exp $
 
 (in-package :xm-silica)
 
@@ -1427,7 +1427,7 @@ setup."
   ;; Like cltl1:make-char but prevents the need to (require :cltl1)
   (if (zerop bits)
       character
-    (code-char (char-code character) bits)))
+    (excl::old-code-char (char-code character) bits)))
 
 (defun state->modifiers (x)
   (declare (optimize (speed 3) (safety 0))
