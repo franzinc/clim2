@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-callbacks.lisp,v 1.4 92/02/24 13:03:34 cer Exp Locker: cer $
+;; $fiHeader: ol-callbacks.lisp,v 1.5 92/03/09 17:40:50 cer Exp $
 
 (in-package :tk)
 
@@ -38,21 +38,6 @@
 				(:dnd_ownselection      6)
 				(:dnd_animate           7)
 				))
-
-(def-c-type (ol-callback-struct :in-foreign-space) :struct
-	    (reason :int))
-
-(def-c-type (ol-expose-callback-struct :in-foreign-space) :struct
-	    (reason :int)
-	    (event * x11:xevent))
-
-
-(def-c-type (ol-resize-callback-struct :in-foreign-space) :struct
-	    (reason :int)
-	    (x xt-position)
-	    (y xt-position)
-	    (width xt-dimension)
-	    (height xt-dimension))
 
 (defun find-ol-callback-reason (call-data)
   (or (car (find (tk::ol-callback-struct-reason call-data)

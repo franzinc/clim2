@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.22 92/04/15 11:48:40 cer Exp Locker: cer $
+;; $fiHeader: xm-gadgets.lisp,v 1.23 92/04/21 16:13:27 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -157,8 +157,9 @@
 			   :button4-motion
 			   :button5-motion
 			   :button-motion
+			   :exposure
 			   )
-			 0
+			 1
 			 'sheet-mirror-event-handler
 			 sheet))
 
@@ -424,7 +425,7 @@
 			   :button-press
 			   :button-release
       			   )
-			 0
+			 1
 			 'sheet-mirror-event-handler
 			 sheet))
 
@@ -818,6 +819,7 @@
 			      (frame-top-level-sheet frame))
 			     (title "Notify user")
 			     documentation
+			     exit-boxes
 			     (name title))
   (let ((dialog (make-instance (ecase style
 				 (:inform 'tk::xm-information-dialog)
@@ -831,8 +833,8 @@
 			       ))
 	(result nil))
     (multiple-value-bind
-	(help-button)
-	(get-message-box-child dialog :help)
+	(ok-button cancel-button help-button)
+	(get-message-box-child dialog :ok :cancel :help)
       (flet ((set-it (widget r)
 	       (declare (ignore widget))
 	       (setq result (list r)))
@@ -844,9 +846,21 @@
 		:associated-window associated-window)))
 	(tk::add-callback dialog :ok-callback #'set-it t)
 	(tk::add-callback dialog :cancel-callback #'set-it nil)
-	(if documentation
-	    (tk::add-callback help-button :activate-callback #'display-help)
-	  (xt::set-sensitive help-button nil))
+
+	(flet ((set-button-set (name button)
+		 (let ((x (assoc name exit-boxes)))
+		   (cond ((and x (null (second x)))
+			  (tk::unmanage-child button))
+			 ((second x)
+			  (tk::set-values button :label-string (second x)))))))
+	  (set-button-state :ok ok-button)
+	  (set-button-state :cancel cancel-button)
+	  (set-button-state :help help-button)
+	  
+	  (if documentation
+	      (tk::add-callback help-button :activate-callback #'display-help)
+	    (xt::set-sensitive help-button nil)))
+	
 	(unwind-protect
 	    (progn
 	      (tk::manage-child dialog)

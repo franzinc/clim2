@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xlib.lisp,v 1.14 92/04/15 11:44:54 cer Exp Locker: cer $
+;; $fiHeader: xlib.lisp,v 1.15 92/04/21 16:12:27 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -155,7 +155,7 @@
 
 (defmethod initialize-instance :after ((x color) &key foreign-address red green blue)
   (unless foreign-address
-    (setq foreign-address (x11::make-xcolor))
+    (setq foreign-address (x11::make-xcolor :in-foreign-space t))
     (setf (x11::xcolor-red foreign-address) red
 	  (x11:xcolor-green foreign-address) green
 	  (x11:xcolor-blue foreign-address) blue
@@ -172,8 +172,8 @@
 	     (x11:xcolor-blue cm)))))
 
 (defun lookup-color (colormap color-name)
-  (let ((exact (x11::make-xcolor))
-	(closest (x11::make-xcolor)))
+  (let ((exact (x11::make-xcolor :in-foreign-space t))
+	(closest (x11::make-xcolor :in-foreign-space t)))
     (if (zerop (x11:xlookupcolor
 		(object-display colormap)
 		colormap
@@ -185,7 +185,8 @@
 	      (make-instance 'color :foreign-address closest)))))
 
 (defun allocate-color (colormap x)
-  (let ((y (x11::make-xcolor)))
+  (let ((y (x11::make-xcolor :in-foreign-space t))
+	(x x))
     (setf (x11:xcolor-red y) (x11:xcolor-red x)
 	  (x11:xcolor-green y) (x11:xcolor-green x)
 	  (x11:xcolor-blue y) (x11:xcolor-blue x))
@@ -344,25 +345,25 @@
 	     (error "cannot encode event-mask ~S" mask))))))
 
 
-(warn "remove me")
+(defvar *lookup-string-buffers* nil)
 
 (defun lookup-string (event)
-  (let ((buffer (string-to-char* (load-time-value (make-string 4 :initial-element #\null)))))
-    ;;-- Before anyone goes changing this again they need to remember
-    ;;-- that buffer needs to be zeroed before hand
-    (with-ref-par 
-	((keysym 0))
-      (values
-       (x11:xlookupstring
-	event
-	buffer
-	2
-	keysym
-	0)
-       (prog1
-	   (char*-to-string buffer)
-	 (excl::free buffer))
-       (aref keysym 0)))))
+  (declare (optimize (speed 3) (safety 0)))
+  (let ((buffer (or (pop *lookup-string-buffers*)
+		    (excl::malloc 256))))
+    (declare (type (unsigned-byte 32) buffer))
+    (with-ref-par ((keysym 0))
+      (let* ((nchars (x11:xlookupstring event buffer 256 keysym 0))
+	     (result (make-string nchars)))
+	(declare (fixnum nchars)
+		 (simple-string result))
+	(dotimes (i nchars)
+	  (declare (fixnum i))
+	  (setf (schar result i)
+	    (code-char (sys:memref-int buffer 0 i :unsigned-byte))))
+	(push buffer *lookup-string-buffers*)
+	(values result
+		(aref keysym 0))))))
 
 (defclass image (ff:foreign-pointer)
   ((width :reader image-width :initarg :width)

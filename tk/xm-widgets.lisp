@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-widgets.lisp,v 1.4 92/01/31 14:55:20 cer Exp $
+;; $fiHeader: xm-widgets.lisp,v 1.5 92/02/24 13:04:08 cer Exp $
 
 (in-package :tk)
 
@@ -43,9 +43,6 @@
   (remf :parent args)
   (remf :name args)
   (apply #'create-popup-shell name (class-of w) parent args))
-
-(defforeign 'xm_main_window_set_area :entry-point
-  "_XmMainWindowSetAreas")
 
 (tk::add-resource-to-class (find-class 'vendor-shell)
 			   (make-instance 'resource

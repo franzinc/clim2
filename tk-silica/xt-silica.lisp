@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.19 92/04/15 11:49:06 cer Exp Locker: cer $
+;; $fiHeader: xt-silica.lisp,v 1.20 92/04/21 16:13:39 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -29,8 +29,11 @@
      (display :reader port-display)
      (context :reader port-context)     
      (copy-gc :initform nil)
+     (opacities :initform nil)
      (type :allocation :class 
 	   :initform :xt :reader port-type)
+     (event-lock :initform (clim-sys:make-lock "port event lock")
+		 :reader port-event-lock)
      (menu-cache
       :initform nil
       :accessor port-menu-cache))
@@ -42,8 +45,23 @@
     (or copy-gc
 	(setf copy-gc
 	  (make-instance 'tk::gcontext
-			 :display display
-			 :foreign-address (x11:screen-default-gc (x11:xdefaultscreenofdisplay (port-display port))))))))
+	    :display display
+	    :graphics-exposures :on
+	    :foreign-address (x11:screen-default-gc
+			      (x11:xdefaultscreenofdisplay display)))))))
+
+
+
+(defmethod restart-port ((port xt-port))
+  (let ((process (silica::port-process port)))
+    (when process
+      (clim-sys:destroy-process process)))
+  (setf (silica::port-process port)
+    (mp:process-run-restartable-function
+     (list :name (format nil "CLIM Event Dispatcher for ~A"
+			 (port-server-path port))
+	   :priority 1000)
+     #'silica::port-event-loop port)))
 
 (defmacro destructure-x-server-path ((&key display) path &body body)
   ;;-- Of course the port ends up with an unspecified server-path.
@@ -134,7 +152,8 @@
 				  :name *xt-fallback-font*)))
 	    ;;; Perhaps we should just grab the first font we can find.
 	    (t
-	     (error "Unable to determine default font"))))))
+	     (error "Unable to determine default font")))))
+  (setup-opacities port display))
 
 (defparameter *xt-logical-size-alist*
 	      '((:tiny       6)
@@ -150,7 +169,105 @@
   (standardize-text-style-1
     port style character-set *xt-logical-size-alist*))
 
+(defun make-stipple-image (height width patterns)
+  (make-instance 'tk::image :width width :height height
+		 :data (clim-internals::make-stipple-array height width patterns)
+		 :depth 1))
+
+(defvar *opacity-stipples*
+	(mapcar #'(lambda (entry)
+		    (cons (first entry)
+			  (apply #'make-stipple-image (second entry))))
+		'((+nowhere+ (1 1 (#b0)))
+		  (0.05 (8 06 (#b1000000000000000
+			      #b0000001000000000
+			      #b0000000000001000
+			      #b0010000000000000
+			      #b0000000010000000
+			      #b0000000000000010
+			      #b0000100000000000
+			      #b0000000000100000)))
+		  (0.1 (8 8 (#b10000000
+			     #b00010000
+			     #b00000010
+			     #b01000000
+			     #b00001000
+			     #b00000001
+			     #b00100000
+			     #b00000100)))
+		  (0.2 (4 4 (#b1000
+			     #b0010
+			     #b0100
+			     #b0001)))
+		  (0.3 (3 3 (#b100
+			     #b010
+			     #b001)))
+		  (0.4 (2 2 (#b10
+			     #b01)))
+		  (0.6 (3 3 (#b011
+			     #b101
+			     #b110)))
+		  (0.7 (4 4 (#b0111
+			     #b1101
+			     #b1011
+			     #b1110)))
+		  (0.8 (8 8 (#b01111111
+			     #b11101111
+			     #b11111101
+			     #b10111111
+			     #b11110111
+			     #b11111110
+			     #b11011111
+			     #b11111011)))
+		  (0.9 (8 06 (#b0111111111111111
+			       #b1111110111111111
+			       #b1111111111110111
+			       #b1101111111111111
+			       #b1111111101111111
+			       #b1111111111111101
+			       #b1111011111111111
+			       #b1111111111011111)))
+		  (+everywhere+ (1 1 (#b1))))))
+
+
+(defun setup-opacities (port display)
+  (let ((opacities nil)
+	(root (tk::display-root-window display))
+	gc)
+    (dolist (ls *opacity-stipples*)
+      (let ((pixmap (make-instance 'tk::pixmap
+		      :drawable root
+		      :width (tk::image-width (cdr ls))
+		      :height (tk::image-height (cdr ls))
+		      :depth 1)))
+	(unless gc
+	  (setq gc (make-instance 'tk::gcontext :drawable pixmap
+				  :foreground 1 :background 0)))
+	 (tk::put-image pixmap gc (cdr ls))
+	(push (cons (car ls) pixmap) opacities)))
+    (when gc
+      (tk::free-gcontext gc))
+    (setf (slot-value port 'opacities) (nreverse opacities))))
+
+;;
+;; Takes an opacity, and returns a clip mask (pixmap) for that opacity.
+;;
+(defun decode-opacity (opacity port)
+  (let ((pops (slot-value port 'opacities)))
+    (cond ((eq opacity +nowhere+)
+	   (cdar pops))
+	  ((eq opacity +everywhere+)
+	   (cdar (last pops)))
+	  (t
+	   (let ((lastpop (cdar pops))
+		 (value (opacity-value opacity)))
+	     (dolist (pop (cdr pops) lastpop)
+	       (if (< value (car pop))
+		   (return lastpop))
+	       (setq lastpop (cdr pop))))))))
+
 
+
 (defmethod destroy-mirror ((port xt-port) sheet)
   ;;-- I dont think that we should do this.
   (tk::destroy-widget (sheet-direct-mirror sheet)))
@@ -166,7 +283,7 @@
 	(initialize-mirror port sheet widget)
 	widget))))
 
-(defmethod initialize-mirror (port sheet widget)
+(defmethod initialize-mirror ((port xt-port) sheet widget)
   (add-sheet-callbacks port sheet widget))
 
 (defmethod add-sheet-callbacks ((port xt-port) sheet (widget t))
@@ -178,9 +295,12 @@
     (declare (ignore same-p root child root-x root-y))
     (let ((modifiers (logand #16rff mask))
 	  (button (ash mask -8)))
+      #+ignore
+      (format excl:*initial-terminal-io* "Got event ~s~%" (tk::event-type event))
       (let ((clim-event
 	     (ecase (tk::event-type event)
-	       ((:map-notify :unmap-notify)
+	       ((:map-notify :unmap-notify :selection-clear :selection-request
+		 :selection-notify :client-message :mapping-notify)
 		nil)
 	       (:configure-notify
 		(sheet-mirror-resized-callback
@@ -204,7 +324,6 @@
 				 (state->modifiers
 				  (x11::xkeyevent-state event)
 				  nil))))
-    
 	       (:key-release
 		(multiple-value-bind (character keysym)
 		    (lookup-character-and-keysym sheet widget event)
@@ -216,7 +335,6 @@
 				 (state->modifiers
 				  (x11::xkeyevent-state event)
 				  nil))))
-    
 	       (:button-press
 		(make-instance 'pointer-button-press-event
 			       :sheet sheet
@@ -300,6 +418,9 @@
 	 (height (x11::xexposeevent-height event))
 	 (maxx (+ minx width))
 	 (maxy (+ miny height)))
+    #+ignore
+    (format excl:*initial-terminal-io* "Got expose event ~s~%"
+	    (tk::event-type event))
     (dispatch-repaint
       sheet
       (make-instance 'window-repaint-event
@@ -540,10 +661,23 @@
 		(list  target-left  target-top w h)
 		(list nx ny nw nh)))))))
 
-(defmethod process-next-event (port &key wait-function timeout)
-  (tk::process-one-event (port-context port)
-			 :wait-function wait-function
-			 :timeout timeout))
+(defmacro with-port-event-lock ((port) &body body)
+  `(clim-sys:with-lock-held ((port-event-lock ,port))
+     ,@body))
+
+(defmethod process-next-event ((port xt-port) &key wait-function timeout)
+  (with-slots (context event-lock) port
+    (multiple-value-bind (mask reason)
+	(tk::wait-for-event context
+			    :wait-function wait-function
+			    :timeout timeout)
+      (clim-sys:with-lock-held (event-lock)
+	;; Make sure there is still an event ready, so we don't block in C.
+	(multiple-value-setq (mask reason)
+	  (tk::wait-for-event context
+			      :wait-function wait-function
+			      :timeout timeout))
+	(tk::process-one-event context mask reason)))))
 
 (defmethod port-force-output ((port xt-port))
   ;;--- move to tk
@@ -592,10 +726,6 @@
 (defmethod text-style-descent ((text-style standard-text-style) (port xt-port))
   (tk::font-descent (text-style-mapping port text-style)))
 					
-#+ignore
-(ff::defforeign 'xtsetkeyboardfocus
-    :entry-point "_XtSetKeyboardFocus")
-
 (defmethod stream-set-input-focus (stream)
   nil)
 
@@ -786,9 +916,8 @@
 
 (defun lookup-character-and-keysym (sheet mirror event)
   (declare (ignore sheet mirror))
-  (multiple-value-bind (ignore character keysym)
+  (multiple-value-bind (character keysym)
       (tk::lookup-string event)
-    (declare (ignore ignore))
     (setq character (and (= (length character) 1) (aref character 0)))
     ;;--- Map the asci control-characters into the common lisp
     ;;--- control characters except where they are special!

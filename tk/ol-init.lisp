@@ -20,12 +20,10 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-init.lisp,v 1.9 92/04/03 12:04:05 cer Exp Locker: cer $
+;; $fiHeader: ol-init.lisp,v 1.10 92/04/10 14:26:16 cer Exp Locker: cer $
 
 
 (in-package :tk)
-
-(defforeign 'ol_toolkit_initialize :entry-point "_OlToolkitInitialize")
 
 (defun ol-initialize ()
   (ol_toolkit_initialize))
@@ -48,18 +46,6 @@
   (warn "toolkit error: ~A"
 	(char*-to-string message)))
 
-
-(defforeign 'ol_set_warning_handler 
-    :entry-point "_OlSetWarningHandler")
-
-(defforeign 'ol_set_error_handler 
-  :entry-point "_OlSetErrorHandler")
-
-(defforeign 'ol_set_va_display_error_msg_handler
-    :entry-point "_OlSetVaDisplayErrorMsgHandler")
-
-(defforeign 'ol_set_va_display_warning_msg_handler
-    :entry-point "_OlSetVaDisplayWarningMsgHandler")
 
 (ol_set_warning_handler (register-function 'ol-warning-handler))
 (ol_set_va_display_warning_msg_handler (register-function 'ol-warning-va-handler))

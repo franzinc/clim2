@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: font.lisp,v 1.8 92/03/30 17:51:32 cer Exp $
+;; $fiHeader: font.lisp,v 1.9 92/04/15 11:44:42 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -46,8 +46,6 @@
     (make-instance 'font
 		    :display display
 		    :foreign-address h)))
-
-(def-c-type (xcharstruct-vector :in-foreign-space) 1 x11:xcharstruct)
 
 (defmethod font-width (font)
   (x11::xfontstruct-max-bounds-width font))
@@ -79,8 +77,6 @@
 	 (x11:xfontstruct-per-char font)
 	 (- index min)))))
 
-(def-c-type (xfontname-list :in-foreign-space) 1 * :char)
-
 (defun list-font-names (display pattern &key (max-fonts 65535) (result-type 'list))
   (with-ref-par ((n 0))
     (let* ((names (x11:xlistfonts display
@@ -93,8 +89,6 @@
 	  (dotimes (i n seq)
 	    (setf (elt seq i) (char*-to-string (xfontname-list names i))))
 	(x11::xfreefontnames names)))))
-
-(def-c-type (xfontstruct-array :in-foreign-space) 1 x11::xfontstruct)
 
 (defun list-font-names-with-info (display pattern &key (max-fonts 65535) (result-type 'list))
   (with-ref-par ((n 0)

@@ -20,24 +20,9 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-protocols.lisp,v 1.4 92/02/24 13:04:05 cer Exp Locker: cer $
+;; $fiHeader: xm-protocols.lisp,v 1.5 92/03/09 17:41:09 cer Exp $
 
 (in-package :tk)
-
-(defforeign 'xm_add_protocol_callback
-    :entry-point "_XmAddProtocolCallback")
-
-(defforeign 'xm_intern_atom 
-    :entry-point "_XmInternAtom")
-
-(def-c-type (proto-callback-info :in-foreign-space) :struct
-	     (handle :int)
-	     (data :int))
-
-(def-c-type (protocol :in-foreign-space) :struct
-  (object * :char)
-  (ext * :char)
-  (protocol * :char))
 
 (defun-c-callable protocol-callback-handler ((something-weird-widget :unsigned-long)
 					     (x :unsigned-long)
@@ -49,13 +34,13 @@
   
   #+ignore
   (print (list something-weird-widget
-	       (protocol-object something-weird-widget)
-	       (protocol-ext something-weird-widget)
-	       (protocol-protocol something-weird-widget)
-	       (proto-callback-info-handle x)))
+	       (xm-protocol-object something-weird-widget)
+	       (xm-protocol-ext something-weird-widget)
+	       (xm-protocol-protocol something-weird-widget)
+	       (xm-proto-callback-info-handle x)))
   
-  (callback-handler-1 (proto-callback-info-handle x)
-		      (proto-callback-info-data x)
+  (callback-handler-1 (xm-proto-callback-info-handle x)
+		      (xm-proto-callback-info-data x)
 		      call-data))
 
 (defvar *protocol-callback-handler-address* (register-function 'protocol-callback-handler))
@@ -71,9 +56,9 @@
      (if (integerp property) property (xm-intern-atom shell property))
      (if (integerp protocol) protocol (xm-intern-atom shell protocol))
      *protocol-callback-handler-address*
-     (let ((x (make-proto-callback-info)))
-       (setf (proto-callback-info-handle x) shell
-	     (proto-callback-info-data x)
+     (let ((x (make-xm-proto-callback-info)))
+       (setf (xm-proto-callback-info-handle x) shell
+	     (xm-proto-callback-info-data x)
 	     (caar (push
 		    (list (new-callback-id) (cons function args) type)
 		    (widget-callback-data shell))))

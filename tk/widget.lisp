@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: widget.lisp,v 1.16 92/04/15 11:44:53 cer Exp Locker: cer $
+;; $fiHeader: widget.lisp,v 1.17 92/04/21 16:12:25 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -37,23 +37,23 @@
      (apply #'make-instance
 	    class
 	    :foreign-address
-	    (app_create_shell application-name
-			      application-class
-			      handle
-			      display
-			      arglist
-			      (truncate (length arglist) 2))
+	    (xt_app_create_shell application-name
+				 application-class
+				 handle
+				 display
+				 arglist
+				 (truncate (length arglist) 2))
 	    :display display
 	    args))))
 
 (defun create-widget (name widget-class parent &rest args)
   (apply #'create-widget-1 
-	 #'create_widget name widget-class parent 
+	 #'xt_create_widget name widget-class parent 
 	 args))
 
 (defun create-managed-widget (name widget-class parent &rest args)
   (apply #'create-widget-1 
-	 #'create_managed_widget name widget-class parent 
+	 #'xt_create_managed_widget name widget-class parent 
 	 args))
 
 
@@ -68,10 +68,10 @@
 	     (truncate (length arglist) 2))))
 
 (defun realize-widget (widget)
-  (realize_widget widget))
+  (xt_realize_widget widget))
 
 (defun manage-child (child)
-  (manage_child child))
+  (xt_manage_child child))
 
 (defun unmanage-child (child)
   (unmanage_child child))
@@ -79,26 +79,32 @@
 (defun is-managed-p (widget)
     (not (zerop (xt_is_managed widget))))
 
+
+(defun unmanage-child (child)
+  (xt_unmanage_child child))
+
 (defun manage-children (children)
-  (manage_children (map '(simple-array (signed-byte 32))
+  (xt_manage_children (map '(simple-array (signed-byte 32))
 		     #'ff:foreign-pointer-address 
 		     children)
 		   (length children)))
 		     
 (defun destroy-widget (widget)
-  (destroy_widget widget))
+  (xt_destroy_widget widget))
 
 (defun popup (shell)
-       (_popup shell 0))
+       (xt_popup shell
+	       0))
+
 
 (defun popdown (shell)
-       (_popdown shell))
+       (xt_popdown shell))
 
 (defun create-popup-shell (name widget-class parent &rest args)
   (let* ((class (find-class-maybe widget-class))
 	 (handle (class-handle class))
 	 (arglist (make-arglist-for-class class parent args)))
-    (create_popup_shell
+    (xt_create_popup_shell
 	     (string-to-char* name)
 	     handle
 	     parent
@@ -129,7 +135,7 @@
 
 (defun widget-class-of (x)
   (intern-widget-class
-   (xtk-widget-widget-class x)))
+   (xt-widget-widget-class x)))
 
 (defun intern-widget-class (class)
   (find-object-from-address class))
@@ -184,19 +190,6 @@
   (let ((x (xt_parent widget)))
     (and (not (zerop x)) (intern-widget x))))
 
-(def-c-type xt-geometry-mask :unsigned-int)
-(def-c-type xt-position :short)
-(def-c-type xt-dimension :unsigned-short)
-
-(def-c-type (xt-widget-geometry :in-foreign-space) :struct
-  (request-mode xt-geometry-mask)
-  (x xt-position)
-  (y xt-position)
-  (width xt-dimension)
-  (height xt-dimension)
-  (border-width xt-dimension)
-  (sibling xtk-widget)
-  (stack-mode :int))
 
 (defconstant xt-geometry-yes 0)
 (defconstant xt-geometry-no 1)

@@ -20,13 +20,14 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: pkg.lisp,v 1.6 92/03/09 17:40:55 cer Exp Locker: cer $
+;; $fiHeader: pkg.lisp,v 1.7 92/03/30 17:51:47 cer Exp $
 
 (defpackage :tk
   ;;-- No we really need
   ;; to use the x11 package?
   (:use :common-lisp :ff #+ignore :x11)
   (:nicknames :xt)
+  (:import-from :excl #:if*)
   (:export
    #:initialize-motif-toolkit
    #:xm-drawing-area

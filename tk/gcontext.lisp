@@ -20,65 +20,103 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: gcontext.lisp,v 1.10 92/04/15 11:44:44 cer Exp Locker: cer $
+;; $fiHeader: gcontext.lisp,v 1.11 92/04/21 16:12:21 cer Exp Locker: cer $
 
 (in-package :tk)
 
 (eval-when (compile load eval)
-	   (defconstant *gcontext-components* 
-	     '((function :int)
-	       (plane-mask :unsigned-long)
-	       (foreground :unsigned-long)
-	       (background :unsigned-long)
-	       (line-width :int)
-	       (line-style :int)
-	       (cap-style :int)
-	       (join-style :int)
-	       (fill-style :int)
-	       (fill-rule :int)
-	       (arc-mode :int)
-	       (tile :pixmap)
-	       (stipple :pixmap)
-	       (ts-x-origin :int)
-	       (ts-y-origin :int)
-	       (font x-font)
-	       (subwindow-mode :int)
-	       (exposures :boolean)
-	       (clip-x-origin :int)
-	       (clip-y-origin :int)
-	       (clip-mask :pixmap)
-	       (dash-offset :int)
-	       (dashes :char)))
-
-	   (defconstant *gcontext-bit-mask*
-	     '(function plane-mask foreground background
-			line-width line-style cap-style join-style fill-style
-			fill-rule tile stipple ts-x-origin ts-y-origin font subwindow-mode
-			exposures clip-x-origin clip-y-origin clip-mask dash-offset dashes
-			arc-mode)))
+  #+ignore
+  (defconstant *gcontext-components* 
+      '((function :int)
+	(plane-mask :unsigned-long)
+	(foreground :unsigned-long)
+	(background :unsigned-long)
+	(line-width :int)
+	(line-style :int)
+	(cap-style :int)
+	(join-style :int)
+	(fill-style :int)
+	(fill-rule :int)
+	(arc-mode :int)
+	(tile :pixmap)
+	(stipple :pixmap)
+	(ts-x-origin :int)
+	(ts-y-origin :int)
+	(font x-font)
+	(subwindow-mode :int)
+	(graphics-exposures :boolean)
+	(clip-x-origin :int)
+	(clip-y-origin :int)
+	(clip-mask :pixmap)
+	(dash-offset :int)
+	(dashes :char)))
 
 
-(eval-when (compile load eval)
-	   (defun gcontext-component-to-slot-definition (x)
-	     (destructuring-bind
-	      (name c-type) x
-	      `(,name :reader ,(intern (format nil "~A-~A" 'gcontext name)))))
+  (defconstant *gcontext-bit-mask*
+      '(function plane-mask foreground background
+	line-width line-style cap-style join-style fill-style
+	fill-rule tile stipple ts-x-origin ts-y-origin font subwindow-mode
+	graphics-exposures clip-x-origin clip-y-origin clip-mask dash-offset dashes
+	arc-mode)))
+
+
+(eval-when (compile eval)
+  #+ignore
+  (defun gcontext-component-to-slot-definition (x)
+    (destructuring-bind
+	(name c-type) x
+      (declare (ignore c-type))
+      `(,name :reader ,(intern (format nil "~A-~A" 'gcontext name)))))
   
-	   (defun gcontext-component-to-writer  (x)
-	     (destructuring-bind
-	      (name c-type) x
-	      `(defmethod (setf ,(intern (format nil "~A-~A" 'gcontext name))) 
-		 (nv gc)
-		 (set-gcontext-component 
-		  gc 
-		  ,(intern (symbol-name name) :keyword)
-		  nv)
-		 (setf (slot-value gc ',name) nv)))))
+  #+ignore
+  (defun gcontext-component-to-writer  (x)
+    (destructuring-bind
+	(name c-type) x
+      (declare (ignore c-type))
+      `(defmethod (setf ,(intern (format nil "~A-~A" 'gcontext name))) 
+	   (nv gc)
+	 (set-gcontext-component 
+	  gc 
+	  ,(intern (symbol-name name) :keyword)
+	  nv)
+	 (setf (slot-value gc ',name) nv))))
+  
+  (defmacro define-gc-writer (name encoder &rest args)
+    `(progn
+       (defmethod (setf ,(intern (format nil "~A-~A" 'gcontext name)))
+	   (nv (gc gcontext))
+	 (let ((gc-values (x11::make-xgcvalues)))
+	   (setf (,(intern (format nil "~A~A"
+				   'xgcvalues-
+				   name)
+			   :x11)
+		  gc-values)
+	     (,encoder nv ,@args))
+	 
+	   (x11:xchangegc
+	    (object-display gc)
+	    gc
+	    ,(ash 1 (or (position name *gcontext-bit-mask*)
+			(error "Cannot find ~S in gcontext components" name)))
+	    gc-values)
+	   nv))))
+
+  (defmacro define-gc-reader (name decoder &rest args)
+    `(defmethod ,(intern (format nil "~A-~A" 'gcontext name)) ((gc gcontext))
+       (,decoder 
+	(,(intern (format nil "~A~A" '_xgc-values- name) :x11)
+	 gc)
+	,@args)))
+  
+  (defmacro define-gc-accessor (name (encoder decoder) &rest args)
+    `(progn
+       (define-gc-reader ,name ,decoder ,@args)
+       (define-gc-writer ,name ,encoder ,@args)
+       ',name)))
 
 
 (defclass gcontext (display-object)
   ())
-
 
 (defmethod initialize-instance :after ((gcontext gcontext)
 				       &key
@@ -89,14 +127,17 @@
 				       cap-style join-style fill-style fill-rule 
 				       arc-mode tile stipple ts-x ts-y
 				       font subwindow-mode 
-				       exposures clip-x-origin clip-y-origin
+				       graphics-exposures clip-x-origin clip-y-origin
 				       clip-mask clip-ordering 
 				       dash-offset dashes)
 
   (unless foreign-address
-    (setf foreign-address (x11::xcreategc display drawable 0 0)
-	  (foreign-pointer-address gcontext) foreign-address
-	  (slot-value gcontext 'display) (object-display drawable))
+    (unless drawable
+      (error ":drawable must be specified when creating gcontext"))
+    (let ((display (object-display drawable)))
+      (setf foreign-address (x11::xcreategc display drawable 0 0)
+	    (foreign-pointer-address gcontext) foreign-address
+	    (slot-value gcontext 'display) display))
     (register-address gcontext foreign-address))
     
     ;;; Set the ones that are specified
@@ -118,14 +159,13 @@
   (when ts-y (setf (gcontext-ts-y gcontext) ts-y))
   (when font (setf (gcontext-font gcontext) font))
   (when subwindow-mode (setf (gcontext-subwindow-mode gcontext) subwindow-mode))
-  (when exposures (setf (gcontext-exposures gcontext) exposures))
+  (when graphics-exposures (setf (gcontext-graphics-exposures gcontext) graphics-exposures))
   (when clip-x-origin (setf (gcontext-clip-x-origin gcontext) clip-x-origin))
   (when clip-y-origin (setf (gcontext-clip-y-origin gcontext) clip-y-origin))
   (when clip-mask (setf (gcontext-clip-mask gcontext clip-ordering) clip-mask))
   (when dash-offset (setf (gcontext-dash-offset gcontext) dash-offset))
   (when dashes (setf (gcontext-dashes gcontext) dashes))
   gcontext)
-
 
 
 (defun free-gcontext (gc)
@@ -137,38 +177,7 @@
 (defun lispify-function-name (name)
   (intern (substitute #\_ #\- (symbol-name (lispify-tk-name name)))))
 
-(defmacro define-gc-writer (name encoder &rest args)
-  `(progn
-     (defmethod (setf ,(intern (format nil "~A-~A" 'gcontext name)))
-	 (nv (gc gcontext))
-       (let ((gc-values (x11::make-xgcvalues)))
-	 (setf (,(intern (format nil "~A~A"
-				 'xgcvalues-
-				 name)
-			 :x11)
-		gc-values)
-	       (,encoder nv ,@args))
-	 
-	 (x11:xchangegc
-	  (object-display gc)
-	  gc
-	  ,(ash 1 (or (position name *gcontext-bit-mask*)
-		      (error "Cannot find ~S in gcontext components" name)))
-	  gc-values)
-	 nv))))
 
-(defmacro define-gc-reader (name decoder &rest args)
-  `(defmethod ,(intern (format nil "~A-~A" 'gcontext name)) ((gc gcontext))
-    (,decoder 
-     (,(intern (format nil "~A~A" '_xgc-values- name) :x11)
-      gc)
-     ,@args)))
-
-(defmacro define-gc-accessor (name (encoder decoder) &rest args)
-  `(progn
-     (define-gc-reader ,name ,decoder ,@args)
-     (define-gc-writer ,name ,encoder ,@args)
-     ',name))
 
 ;;; Accessors for the gc
 
@@ -243,7 +252,8 @@
 
 (define-gc-accessor subwindow-mode (encode-enum decode-enum)
 		  '(:clip-by-children :include-inferiors))
-(define-gc-accessor exposures (encode-enum decode-enum) '(:off :on))
+
+(define-gc-accessor graphics-exposures (encode-enum decode-enum) '(:off :on))
 (define-gc-accessor clip-x-origin (encode-int16 decode-int16))
 (define-gc-accessor clip-y-origin (encode-int16 decode-int16))
 
@@ -322,33 +332,33 @@
       (error "~S is not a valid line-style" x)))
 
 (defmethod (setf gcontext-dashes) (nv (gc gcontext))
-  (multiple-value-bind
-      (n v)
+  (multiple-value-bind (n v)
       (encode-dashes nv)
     (x11:xsetdashes
      (object-display gc)
      gc
      0
      v
-     n)
-    (excl::free v)))
+     n)))
 
 
 (defun encode-dashes (nv)
-  (let (n v)
+  (declare (optimize (speed 3) (safety 0)))
+  (let* ((n (length nv))
+	 (v (make-array n :element-type '(unsigned-byte 8))))
+    (declare (fixnum n)
+	     (type (simple-array (unsigned-byte 8) (*)) v))
     (etypecase nv
-      (list 
-       (setq n (length nv))
-       (setq v (excl::malloc n))
+      (list
        (let ((i 0))
+	 (declare (fixnum i))
 	 (dolist (x nv)
-	   (setf (sys::memref-int v i 0 :unsigned-byte) x)
+	   (declare (type (unsigned-byte 8) x))
+	   (setf (aref v i) x)
 	   (incf i))))
       (vector
-       (setq n (length nv))
-       (setq v (excl::malloc n))
        (dotimes (i n)
-	 (setf (sys::memref-int v i 0 :unsigned-byte) (aref nv i)))))
+	 (setf (aref v i) (the (unsigned-byte 8) (aref nv i))))))
     (values n v)))
   
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -366,11 +376,12 @@
 (defun decode-card16 (x) x)
 
 (defun decode-font (x) 
+  (declare (special gc))
   (if (= x #16rffffffff)
       (error "cannot decode font")
     (let ((font (find-object-from-xid x nil)))
       (or font
-	  (query-font display x)))))
+	  (query-font (object-display gc) x)))))
 
 (defun decode-pixmap (x) 
   (and (/= #16rffffffff x)
@@ -411,18 +422,14 @@
 					      *gcontext-bit-mask*
 					      :test #'string=))
 			       r)))))
-    `(let ((,tgc (allocate-temp-gc gc)))
-       (x11:xcopygc (object-display gc)
-		  gc
-		  ,bits
-		  ,tgc)
+    `(let* ((,tgc (allocate-temp-gc gc))
+	    (.gc. ,gc)
+	    (.display. (object-display .gc.)))
+       (x11:xcopygc .display. .gc. ,bits ,tgc)
        (unwind-protect
 	   (progn ,@(nreverse setfs)
 		  ,@body)
-	 (x11:xcopygc (object-display gc)
-		    ,tgc
-		    ,bits
-		    gc)
+	 (x11:xcopygc .display. ,tgc ,bits .gc.)
 	 (deallocate-temp-gc ,tgc)))))
 
 (defun allocate-temp-gc (gc)
@@ -430,6 +437,8 @@
 		 :drawable (display-root-window (object-display gc))))
 
 (defun deallocate-temp-gc (gc)
+  (x11:xfreegc (object-display gc) gc)
+  (setf (ff:foreign-pointer-address gc) 0)
   nil)
 
 #|
@@ -437,13 +446,11 @@
 	       (print gc))
 |#
 
+(defun decode-pixel (x) x)
+
 (defmethod encode-pixel ((x integer))
   x)
 
-(defun decode-pixel (x) x)
 (defmethod encode-pixel ((x color))
-  (allocate-color (default-colormap display 0) x))
-
-
-    
-   
+  (declare (special gc))
+  (allocate-color (default-colormap (object-display gc) 0) x))

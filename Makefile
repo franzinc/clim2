@@ -1,4 +1,4 @@
-# $fiHeader: Makefile,v 1.21 92/04/10 14:27:40 cer Exp Locker: cer $
+# $fiHeader: Makefile,v 1.22 92/04/15 11:48:32 cer Exp Locker: cer $
 # 
 #  Makefile for CLIM 2.0
 #
@@ -26,9 +26,9 @@ ECHO	= /bin/echo
 MV	= /usr/fi/mv-nfs
 TAGS	= /usr/fi/lib/emacs/etc/etags
 TMP	= /usr/tmp
-SRC_FILES= */*.lisp *.lisp Makefile */Makefile misc/make-stub-file \
-	misc/undefinedsymbols misc/undefinedsymbols.olit misc/undefinedsymbols.motif \
-	misc/undefinedsymbols.xt
+SRC_FILES = */*.lisp *.lisp Makefile */Makefile misc/make-stub-file \
+	    misc/undefinedsymbols misc/undefinedsymbols.olit \
+	    misc/undefinedsymbols.motif misc/undefinedsymbols.xt
 
 DEST=/dev/null
 
@@ -72,7 +72,12 @@ FCLIMOBJS= `pwd`/stub-motif.o `pwd`/stub-olit.o `pwd`/stub-x.o `pwd`/stub-xt.o
 #
 # "Compile time objects" -- these go into clim-debug.fasl
 #
-DEBUG-OBJS = xlib/ffi.fasl xlib/xlib-defs.fasl xlib/xlib-funs.fasl xlib/x11-keysyms.fasl xlib/load-xlib.fasl xlib/last.fasl
+DEBUG-OBJS = xlib/ffi.fasl xlib/xlib-defs.fasl xlib/xlib-funs.fasl \
+	     xlib/x11-keysyms.fasl xlib/load-xlib.fasl xlib/last.fasl \
+	     tk/xt-defs.fasl tk/xm-defs.fasl 
+
+# This should be in the clim-debug file but it seems a pain to have to compile it up
+# tk/ol-defs.fasl
 
 #
 # "Load time objects" -- these go into clim.fasl
@@ -183,7 +188,6 @@ XT-TK-OBJS =  xlib/load-xlib.fasl \
                 tk/font.fasl \
                 tk/gcontext.fasl \
                 tk/graphics.fasl \
-                tk/xtk.fasl \
                 tk/meta-tk.fasl \
                 tk/make-classes.fasl \
                 tk/foreign.fasl \
@@ -208,6 +212,7 @@ XM-TK-OBJS = tk/xm-classes.fasl \
 OL-CLIM-OBJS = tk/ol-classes.fasl \
 	     tk/load-ol.fasl \
 		tk/xt-funs.fasl \
+		tk/ol-funs.fasl \
                 tk/ol-init.fasl \
                 tk/ol-callbacks.fasl \
                 tk/make-widget.fasl
@@ -264,8 +269,10 @@ compile-ol:	$(CLIMOBJS) FORCE
 
 # Concatenation
 
-cat-xm:	climg.fasl climxm.fasl clim-debug.fasl
-cat-ol:	climg.fasl climol.fasl clim-debug.fasl
+cat:	cat-xm cat-ol
+cat-g:	climg.fasl clim-debug.fasl
+cat-xm:	cat-g climxm.fasl
+cat-ol:	cat-g climol.fasl
 
 climg.fasl	: $(GENERIC-OBJS) $(XT-OBJS)
 	$(CAT)  $(GENERIC-OBJS) $(XT-OBJS) > $(TMP)/clim.fasl_`whoami`
@@ -303,6 +310,7 @@ clim-xm:	FORCE
 		(load \"misc/dump.lisp\")" | $(DUMP-CL) $(CLOPTS) -batch
 	$(MV) $(TMP)/clim.temp_`whoami` $(CLIM)
 	ls -lt $(CLIM) >> Clim-sizes.n
+	size $(CLIM) >> Clim-sizes.n
 	ls -lt $(CLIM)
 
 clim-ol:	FORCE
@@ -314,6 +322,7 @@ clim-ol:	FORCE
 		(load \"misc/dump.lisp\")" | $(DUMP-CL) $(CLOPTS) -batch
 	$(MV) $(TMP)/clim.temp_`whoami` $(CLIM)
 	ls -lt $(CLIM) >> Clim-sizes.n
+	size $(CLIM) >> Clim-sizes.n
 	ls -lt $(CLIM)
 
 
@@ -323,6 +332,7 @@ clim-small:	FORCE
 		(load \"misc/dump.lisp\")" | $(DUMP-CL) $(CLOPTS) -batch
 	$(MV) $(TMP)/clim.temp_`whoami` $(CLIM-SMALL)
 	ls -lt $(CLIM-SMALL) >> Clim-sizes.n
+	size $(CLIM) >> Clim-sizes.n
 	ls -lt $(CLIM-SMALL)
 
 # Training
@@ -336,7 +346,9 @@ train	:	FORCE
 # Misc
 
 clean:
-	find $(DIRS) -name "*.fasl" -print | xargs rm -f ; rm -f clim*.fasl clim-debug.fasl
+	find $(DIRS) -name "*.fasl" -print | xargs rm -f ; rm -f $(CLIMFASLS) \
+	  $(CLIMOBJS) slim slim-small
+
 
 cheapclean:
 	find $(CHEAP_CLEAN) -name "*.fasl" -print | xargs rm -f
@@ -410,9 +422,9 @@ stub-xt.c	:  $(XT_UNDEFS) misc/make-stub-file
 FRC	: 
 
 xm-composer : xm-dcl
-	cd /usr/composer2 ; make CL=/vapor/usr/tech/cer/cl/src/dcl rebuild-c2
+	cd /usr/composer2 ; make CL=$(CL) rebuild-c2
 
 ol-composer : ol-dcl
-	cd /usr/composer2 ; make CL=/vapor/usr/tech/cer/cl/src/dcl rebuild-c2
+	cd /usr/composer2 ; make CL=$(CL) rebuild-c2
 
 

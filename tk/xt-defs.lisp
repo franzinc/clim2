@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-defs,v 1.7 92/03/30 17:51:58 cer Exp $
+;; $fiHeader: xt-defs.lisp,v 1.1 92/04/21 16:40:03 cer Exp Locker: cer $
 
 ;;
 ;; This file contains compile time only code -- put in clim-debug.fasl.

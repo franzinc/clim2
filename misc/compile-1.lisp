@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: compile-1.lisp,v 1.1 92/03/24 19:45:40 cer Exp Locker: cer $
+;; $fiHeader: compile-1.lisp,v 1.2 92/04/10 14:27:44 cer Exp Locker: cer $
 
 (in-package :user)
 
@@ -33,6 +33,17 @@
 (setf (sys:gsgc-switch :print) t)
 (setf (sys:gsgc-switch :stats) t)
 
+(setq comp:generate-call-count-code-switch
+  (named-function |(> debug 1)| 
+		  (lambda (safety size speed debug)
+		    (declare (ignore safety size speed))
+		    (> debug 1))))
+(setq comp:declared-fixnums-remain-fixnums-switch
+  (named-function |(> speed 2)|
+		  (lambda (safety size speed debug)
+		    (declare (ignore safety size debug))
+		    (> speed 2))))
+
 (setq *compile-print* nil)
 
 (unless (find-package 'clim-defsystem)
@@ -43,7 +54,7 @@
 
 
 (defun compile-it (sys)
-  (unless (errorset (clim-defsys::find-system sys))
+  (unless (ignore-errors (defsys::find-system sys))
     (load "sys/sysdcl"))
   (clim-defsys::compile-system sys :propagate t)
   (tenuring

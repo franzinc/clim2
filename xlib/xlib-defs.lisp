@@ -1,5 +1,5 @@
 ;; -*- mode: common-lisp; package: x11 -*-
-;; (c) Copyright  1990 Sun Microsystems, Inc.  All Rights Reserved.
+;;; (c) Copyright  1990 Sun Microsystems, Inc.  All Rights Reserved.
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
@@ -20,6 +20,31 @@
 ;; applicable.
 ;;
 ;;; $fiHeader: xlib-defs.lisp,v 1.1 92/03/06 17:06:59 cer Exp $
+
+;;      (c) Copyright 1989, 1990, 1991 Sun Microsystems, Inc. Sun design
+;;      patents pending in the U.S. and foreign countries. OPEN LOOK is a
+;;      registered trademark of USL. Used by written permission of the owners.
+;;
+;;      (c) Copyright Bigelow & Holmes 1986, 1985. Lucida is a registered
+;;      trademark of Bigelow & Holmes. Permission to use the Lucida
+;;      trademark is hereby granted only in association with the images
+;;      and fonts described in this file.
+;;
+;;      SUN MICROSYSTEMS, INC., USL, AND BIGELOW & HOLMES
+;;      MAKE NO REPRESENTATIONS ABOUT THE SUITABILITY OF
+;;      THIS SOURCE OR OBJECT CODE FOR ANY PURPOSE. IT IS PROVIDED "AS IS"
+;;      WITHOUT EXPRESS OR IMPLIED WARRANTY OF ANY KIND.
+;;      SUN  MICROSYSTEMS, INC., USL AND BIGELOW  & HOLMES,
+;;      SEVERALLY AND INDIVIDUALLY, DISCLAIM ALL WARRANTIES
+;;      WITH REGARD TO THIS CODE, INCLUDING ALL IMPLIED
+;;      WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+;;      PARTICULAR PURPOSE. IN NO EVENT SHALL SUN MICROSYSTEMS,
+;;      INC., USL OR BIGELOW & HOLMES BE LIABLE FOR ANY
+;;      SPECIAL, INDIRECT, INCIDENTAL, OR CONSEQUENTIAL DAMAGES,
+;;      OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA
+;;      OR PROFITS, WHETHER IN AN ACTION OF  CONTRACT, NEGLIGENCE
+;;      OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION
+;;      WITH THE USE OR PERFORMANCE OF THIS OBJECT CODE.
 
 (in-package :x11)
 
@@ -1278,7 +1303,7 @@
   (display :type (:pointer display))
   (window :type window))
 
-(def-exported-foreign-struct xevent
+(def-exported-foreign-struct (xevent :no-substruct-accessors)
   (type :type int)
   (xany :type xanyevent :overlays type)
   (xkey :type xkeyevent :overlays xany)

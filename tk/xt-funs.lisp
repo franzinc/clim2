@@ -20,66 +20,106 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-funs.lisp,v 1.1 92/03/30 17:58:40 cer Exp Locker: cer $
+;; $fiHeader: xt-funs.lisp,v 1.2 92/04/10 14:26:20 cer Exp Locker: cer $
 
+;;
+;; This file contains compile time only code -- put in clim-debug.fasl.
+;;
 
 (in-package :xt)
 
-(defforeign 'quark_to_string
-    :entry-point "_XrmQuarkToString")
+(defforeign 'xt_get_resource_list :entry-point "_XtGetResourceList")
+(defforeign 'xt_get_constraint_resource_list :entry-point "_XtGetConstraintResourceList")
 
-(defforeign 'get-resource-list-1 :entry-point "_XtGetResourceList")
-(defforeign 'get-constraint-resource-list-1 :entry-point "_XtGetConstraintResourceList")
+(defforeign 'xt_initialize_widget_class :entry-point "_XtInitializeWidgetClass")
 
-(defforeign 'initialize-widget-class :entry-point "_XtInitializeWidgetClass")
+(defforeign 'xt_free
+    :arguments '(ff:foreign-address)
+    :call-direct t
+    :callback nil
+    :arg-checking nil
+    :return-type :void
+    :entry-point "_XtFree")
 
-(defforeign 'xt_free :entry-point "_XtFree")
-
-(defforeign 'toolkit-initialize
+(defforeign 'xt_toolkit_initialize
     :entry-point "_XtToolkitInitialize")
 
-(defforeign 'create_application_context
+(defforeign 'xt_create_application_context
     :entry-point "_XtCreateApplicationContext")
 
 
-(defforeign 'app_set_error_handler
+(defforeign 'xt_app_set_error_handler
     :entry-point "_XtAppSetErrorHandler")
 
-(defforeign 'app_set_warning_handler
+(defforeign 'xt_app_set_warning_handler
     :entry-point "_XtAppSetWarningHandler")
 
-(defforeign 'open_display
+(defforeign 'xt_open_display
     :entry-point "_XtOpenDisplay")
 
-(defforeign 'app_create_shell 
+(defforeign 'xt_app_create_shell 
     :entry-point "_XtAppCreateShell")
 
 ;;;; 
 
-(defforeign 'create_widget :entry-point "_XtCreateWidget")
-(defforeign 'create_managed_widget :entry-point "_XtCreateManagedWidget")
-(defforeign 'realize_widget :entry-point "_XtRealizeWidget")
-(defforeign 'manage_child :entry-point "_XtManageChild")
+(defforeign 'xt_create_widget :entry-point "_XtCreateWidget")
+(defforeign 'xt_create_managed_widget
+    :arguments '(simple-string ff:foreign-address ff:foreign-address
+		 ff:foreign-address fixnum)
+    :call-direct t
+    :callback t
+    :arg-checking nil
+    :return-type :unsigned-integer
+    :entry-point "_XtCreateManagedWidget")
+
+(defforeign 'xt_realize_widget :entry-point "_XtRealizeWidget")
+(defforeign 'xt_manage_child :entry-point "_XtManageChild")
 (defforeign 'xt_is_managed :entry-point "_XtIsManaged")
-(defforeign 'unmanage_child :entry-point "_XtUnmanageChild")
-(defforeign 'manage_children :entry-point "_XtManageChildren")
-(defforeign 'destroy_widget :entry-point "_XtDestroyWidget")
-(defforeign 'create_popup_shell :entry-point "_XtCreatePopupShell")
-(defforeign '_popup :entry-point "_XtPopup")
-(defforeign '_popdown :entry-point "_XtPopdown")
+(defforeign 'xt_unmanage_child :entry-point "_XtUnmanageChild")
+(defforeign 'xt_manage_children :entry-point "_XtManageChildren")
+(defforeign 'xt_destroy_widget :entry-point "_XtDestroyWidget")
+(defforeign 'xt_create_popup_shell :entry-point "_XtCreatePopupShell")
+(defforeign 'xt_popup :entry-point "_XtPopup")
+(defforeign 'xt_popdown :entry-point "_XtPopdown")
 (defforeign 'xt_window :entry-point "_XtWindow")
 (defforeign 'xt_parent :entry-point "_XtParent")
 (defforeign 'xt_query_geometry :entry-point "_XtQueryGeometry")
 (defforeign 'xt_configure_widget :entry-point "_XtConfigureWidget")
 
-(defforeign 'set_values :entry-point "_XtSetValues")
-(defforeign 'get_values :entry-point "_XtGetValues")
+(defforeign 'xt_set_values
+    :arguments '(ff:foreign-address ff:foreign-address fixnum)
+    :call-direct t
+    :callback t
+    :arg-checking nil
+    :return-type :void
+    :entry-point "_XtSetValues")
+(defforeign 'xt_get_values
+    :arguments '(ff:foreign-address ff:foreign-address fixnum)
+    :call-direct t
+    :callback t
+    :arg-checking nil
+    :return-type :void
+    :entry-point "_XtGetValues")
 
-(defforeign 'app_pending :return-type :fixnum :entry-point "_XtAppPending")
-(defforeign 'app_process_event :entry-point "_XtAppProcessEvent")
-(defforeign 'add_event_handler :entry-point "_XtAddEventHandler")
+
+(defforeign 'xt_app_pending
+    :arguments '(ff:foreign-address)
+    :call-direct t
+    ;; Maybe callback can be safely set to nil...
+    :callback t
+    :arg-checking nil
+    :return-type :fixnum
+    :entry-point "_XtAppPending")
+(defforeign 'xt_app_process_event
+    :arguments '(ff:foreign-address fixnum)
+    :call-direct t
+    :callback t
+    :arg-checking nil
+    :return-type :void
+    :entry-point "_XtAppProcessEvent")
+(defforeign 'xt_add_event_handler :entry-point "_XtAddEventHandler")
 (defforeign 'xt_build_event_mask :entry-point "_XtBuildEventMask")
 
-(defforeign 'add_callback :entry-point "_XtAddCallback")
+(defforeign 'xt_add_callback :entry-point "_XtAddCallback")
 (defforeign 'xt_has_callbacks :entry-point "_XtHasCallbacks")
 (ff::defforeign 'xtsetsensitive :entry-point "_XtSetSensitive")

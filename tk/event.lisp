@@ -20,58 +20,102 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: event.lisp,v 1.7 92/03/30 17:51:31 cer Exp $
+;; $fiHeader: event.lisp,v 1.8 92/04/15 11:44:40 cer Exp Locker: cer $
 
 (in-package :tk)
 
 (defun simple-event-loop (context)
-  (loop 
-      (process-one-event context)))
+  (loop
+    (multiple-value-bind (mask reason)
+	(wait-for-event context)
+      (process-one-event context mask reason))))
 
 (defconstant *xt-im-xevent*		1)
 (defconstant *xt-im-timer*		2)
 (defconstant *xt-im-alternate-input*	4)
 (defconstant *xt-im-all* (logior *xt-im-xevent*  *xt-im-timer*  *xt-im-alternate-input*))
 
-(defun process-one-event (context &key timeout wait-function)
-  (let (mask
+(defun wait-for-event (context &key timeout wait-function)
+  (let ((mask 0)
 	(fds (mapcar #'(lambda (display)
 			 (x11::display-fd display))
 		     (application-context-displays context)))
-	reason)
+	(reason nil))
+    (declare (fixnum mask))
     
-    (unwind-protect
-	(progn (mapc #'multiprocessing::mpwatchfor fds)
-	       (flet ((wait-function ()
-				     (or (plusp (setq mask (app-pending context)))
-					 (and wait-function
-					      (funcall wait-function)
-					      (setq reason :wait)))))
-		     (if timeout
-			 (multiprocessing:process-wait-with-timeout 
-			  "Waiting for toolkit" 
-			  timeout
-			  #'wait-function)
-		       (mp::process-wait 
-			"Waiting for toolkit" 
-			#'wait-function))))
-      (mapc #'multiprocessing::mpunwatchfor fds))
-    (cond ((plusp mask)
-	   (app-process-event 
-	    context 
-	    ;; Because of a feature in the OLIT toolkit we need to
-	    ;; give preference to events rather than timer events
-	    (if (logtest mask *xt-im-xevent*) *xt-im-xevent* mask))
-	   t)
-	  (reason :wait-function)
-	  (t :timeout))))
+    (flet ((wait-function (fd)
+	     (declare (ignore fd))
+	     (or (plusp (setq mask (xt_app_pending context)))
+		 (and wait-function
+		      (funcall wait-function)
+		      (setq reason :wait)))))
+      (mp:wait-for-input-available fds :wait-function #'wait-function
+				   :timeout timeout))
+    (values mask reason)))
+
+(defun process-one-event (context mask reason)
+  (cond ((plusp mask)
+	 (xt_app_process_event
+	  context
+	  ;; Because of a feature in the OLIT toolkit we need to
+	  ;; give preference to events rather than timer events
+	  (if (logtest mask *xt-im-xevent*) *xt-im-xevent* mask))
+	 t)
+	(reason :wait-function)
+	(t :timeout)))
+
+(defun-c-callable match-event-sequence-and-types ((display :unsigned-long)
+						  (event :unsigned-long)
+						  (arg :unsigned-long))
+  ;; Arg points to a n element (unsigned-byte 32) vector, where the first
+  ;; element is the display, the second is the sequence number, and
+  ;; the other elements are the event types to be matched (null terminated).
+  (let ((desired-display (sys:memref-int arg 0 0 :unsigned-long))
+	(desired-sequence (sys:memref-int arg 4 0 :unsigned-long))
+	(event-type (x11:xevent-type event)))
+    (if (and (eql desired-display display)
+	     (eql desired-sequence (x11:xanyevent-serial event))
+	     (do* ((i 8 (+ i 4))
+		   (desired-type (sys:memref-int arg i 0 :unsigned-long)
+				 (sys:memref-int arg i 0 :unsigned-long)))
+		 ((zerop desired-type) nil)
+	       (if (eql desired-type event-type)
+		   (return t))))
+	1
+      0)))
 
 
-(defun app-pending (context)
-  (app_pending context))
+(defparameter *match-event-sequence-and-types-address*
+    (register-function 'match-event-sequence-and-types))
 
-(defun app-process-event (context mask)
-  (app_process_event context mask))
+(defun get-event-matching-sequence-and-types (display-object seq-no types
+					      &key (block t))
+  (unless (consp types)
+    (setq types (list types)))
+  (let ((display (object-display display-object))
+	(data (make-array (+ 3 (length types))
+			  :element-type '(unsigned-byte 32)))
+	(i 2)
+	(resulting-event (x11:make-xevent)))
+    (declare (type (simple-array (unsigned-byte 32) (*)) data)
+	     (fixnum i)) 
+    (setf (aref data 0) (ff:foreign-pointer-address display))
+    (setf (aref data 1) seq-no)
+    (dolist (type types)
+      (setf (aref data i) (position type tk::*event-types*))
+      (incf i))
+    (setf (aref data i) 0)
+    (cond (block
+	   (x11:xifevent display resulting-event
+			 *match-event-sequence-and-types-address* data)
+	   resulting-event)
+	  ((zerop (x11:xcheckifevent display resulting-event
+				     *match-event-sequence-and-types-address*
+				     data))
+	   nil)
+	  (t
+	   resulting-event))))
+
 
 (defvar *event* nil)
 
@@ -93,7 +137,7 @@
 (defvar *event-handler-address* (register-function 'event-handler))
 
 (defun add-event-handler (widget events maskable function &rest args)
-  (add_event_handler
+  (xt_add_event_handler
    widget
    (encode-event-mask events)
    maskable

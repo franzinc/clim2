@@ -20,24 +20,9 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-font-list.lisp,v 1.5 92/03/09 17:41:05 cer Exp $
+;; $fiHeader: xm-font-list.lisp,v 1.6 92/03/30 17:51:55 cer Exp $
 
 (in-package :tk)
-
-(defforeign 'xm_font_list_init_font_context
-    :entry-point "_XmFontListInitFontContext")
-
-(defforeign 'xm_font_list_free_font_context
-    :entry-point "_XmFontListFreeFontContext")
-
-
-(defforeign 'xm_font_list_get_next_font
-    :entry-point "_XmFontListGetNextFont")
-
-(defforeign 'xm_font_list_create
-    :entry-point "_XmFontListCreate")
-
-
 
 (defmethod convert-resource-out (parent (type (eql 'font-list)) value)
   (declare (ignore parent))

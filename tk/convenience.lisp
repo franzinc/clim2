@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: convenience.lisp,v 1.6 92/03/30 17:51:29 cer Exp Locker: cer $
+;; $fiHeader: convenience.lisp,v 1.7 92/04/21 16:12:18 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -51,7 +51,7 @@
 		  arglist
 		  (truncate (length arglist) 2))))
 	   (when managed
-	     (manage_child o))
+	     (xt_manage_child o))
 	   o)))))
 
 (define-convenience-class xm-menu-bar (xm-row-column) "_XmCreateMenuBar")

@@ -18,9 +18,11 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: pkg.lisp,v 1.3 92/01/31 14:56:21 cer Exp $
+;; $fiHeader: pkg.lisp,v 1.4 92/02/24 13:06:14 cer Exp $
 
-(defpackage :xm-silica
-  (:use clim-lisp clim-utils clim silica tk))
+(defpackage :tk-silica
+  (:nicknames :xm-silica)
+  (:use clim-lisp clim-utils clim silica tk)
+  (:import-from :excl #:if*))
 
   

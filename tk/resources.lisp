@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: resources.lisp,v 1.15 92/04/15 11:44:49 cer Exp Locker: cer $
+;; $fiHeader: resources.lisp,v 1.16 92/04/21 16:12:23 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -30,13 +30,15 @@
        (or (position value ',elements)
 	   (error "cannot convert ~S to type ~S" value ',type)))
      (defmethod convert-resource-in ((parent t) (type (eql ',type)) value)
+       (declare (ignorable parent))
        (setq value (ash value -24))
        (elt ',elements value))))
 
 
+
 (defun set-values (widget &rest values)
   (let ((arglist (make-arglist-for-class (class-of widget) widget values)))
-    (set_values widget
+    (xt_set_values widget
 		arglist
 		(truncate (length arglist) 2))))
 
@@ -75,14 +77,12 @@
       (ff:foreign-pointer-address result))))
 
 (defmethod convert-resource-out ((parent t) (type (eql 'xm-string)) value)
-  (string_create_l_to_r (string-to-char* value) (string-to-char* "")))
+  (xm_string_create_l_to_r (string-to-char* value) (string-to-char* "")))
 
 (defmethod convert-resource-out ((parent t) (type (eql 'orientation)) value)
   (ecase value
     (:vertical 1)
     (:horizontal 2)))
-
-(def-c-type (x-arglist :in-foreign-space) 1 :unsigned-long)
 
 (defun get-values (widget &rest resources)
   (let* ((class (class-of widget))
@@ -107,8 +107,7 @@
     ;;-- This also ought to be resource allocated
     
     (setq arglist (coerce (nreverse arglist) '(vector (signed-byte 32))))
-    
-    (get_values widget
+    (xt_get_values widget
 		arglist
 		(truncate (length arglist) 2))
     
@@ -136,7 +135,7 @@
 (defmethod convert-resource-in (class (type (eql 'xm-string)) value)
   (and (not (zerop value))
        (with-ref-par ((string 0))
-	 (string_get_l_to_r value xm_string_default_char_set string)
+	 (xm_string_get_l_to_r value xm_string_default_char_set string)
 	 (char*-to-string (sys:memref-int (foreign-pointer-address string) 0 0
 					  :signed-long)))))
 
@@ -223,7 +222,8 @@
 	    (screen (x11:xdefaultscreenofdisplay display))
 	    (white (x11::xwhitepixel display 0))
 	    (black (x11::xblackpixel display 0)))
-       (get_pixmap screen (string-to-char* value) black white)))))
+       (xm_get_pixmap screen (string-to-char* value) white black)))))
+
 
 (defmethod convert-resource-out ((parent t) (type (eql 'boolean)) value)
   (if value 1 0))
@@ -320,13 +320,11 @@
 
 
 
-(def-c-type (xtk-widget-list :in-foreign-space) 1 * xtk-widget)
-
 (defmethod convert-resource-in ((widget t) (type (eql 'widget-list)) x)
   (let ((r nil))
     (dotimes (i (widget-num-children widget))
       (push (convert-resource-in 
-	     widget 'widget (xtk-widget-list x i))
+	     widget 'widget (xt-widget-list x i))
 	    r))
     (nreverse r)))
 
@@ -341,15 +339,16 @@
 
 
 (defun setup (&optional (hostspec "localhost:0"))
-  (setq context (create-application-context))
-  (setq display (make-instance 'display 
-			       :host hostspec
-			       :context context))
-  (setq app (app-create-shell :display display :widget-class 'application-shell)))
+  (let* ((context (create-application-context))
+	 (display (make-instance 'display 
+		    :host hostspec
+		    :context context))
+	 (app (app-create-shell :display display
+				:widget-class 'application-shell)))
+    (values context display app)))
 
 (defun initialize-motif-toolkit (hostspec)
-  (setup hostspec)
-  (values context display app))
+  (setup hostspec))
 
 
 ;;; ol resource

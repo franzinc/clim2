@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: processes.lisp,v 1.2 92/01/31 15:07:26 cer Exp $
+;; $fiHeader: processes.lisp,v 1.3 92/02/24 13:05:49 cer Exp $
 
 (in-package :clim-utils)
 
@@ -37,9 +37,9 @@
   )
 
 (defun make-lock (&optional (lock-name "a CLIM lock"))
-  #-(or Genera Minima) (declare (ignore lock-name))
+  #-(or Genera Minima Allegro) (declare (ignore lock-name))
   #{
-    Allegro	(mp::make-process-lock)
+    Allegro	(mp::make-process-lock :name lock-name)
     lispworks	(mp::make-lock)
     Lucid	nil
     CCL-2	nil

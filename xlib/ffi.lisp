@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ffi.lisp,v 1.9 92/03/30 17:52:16 cer Exp $
+;; $fiHeader: ffi.lisp,v 1.10 92/04/15 11:45:43 cer Exp Locker: cer $
 
 (in-package :x11)
 
@@ -53,37 +53,42 @@
 (defun fintern (control &rest args)
   (intern (apply #'format nil control args)))
 
-(defmacro def-exported-foreign-struct (name &rest slots)
-  `(progn
-     (eval-when (eval load compile)
-       (export '(,name
-		 ,(fintern "~A~A" 'make- name)
-		 ,@(mapcar #'(lambda (x)
-			       (fintern "~A-~A" name (car x)))
-		    slots))))
-     ,(flet ((foo-slot (slot)
-	       (destructuring-bind
-		   (name &key type) slot
-		 `(,name ,@(trans-slot-type type)))))
-	(if (notany #'(lambda (s) (member :overlays (cdr s))) slots)
-	    `(ff::def-c-type (,name :in-foreign-space :no-defuns)
-	       ,@(mapcar #'foo-slot slots))
-	  (destructuring-bind
-	      ((first-slot-name . first-options) . other-slots) slots
-	    (if (and (null (member :overlays first-options))
-		     (every #'(lambda (slot)
-				t
-				#+ignore
-				(eq (getf (cdr slot) :overlays)
-				    first-slot-name))
-			    other-slots))
-		`(ff::def-c-type (,name :in-foreign-space :no-defuns) :union
-				 ,@(mapcar #'(lambda (slot)
-					       (setq slot (copy-list slot))
-					       (remf (cdr slot) :overlays)
-					       (foo-slot slot))
-					   slots))
-	      (error ":overlays used in a way we cannot handle")))))))
+(defmacro def-exported-foreign-struct (name-and-options &rest slots)
+  (let (name (options nil))
+    (if (atom name-and-options)
+	(setq name name-and-options)
+      (setq name (car name-and-options)
+	    options (cdr name-and-options)))
+    `(progn
+       (eval-when (eval load compile)
+	 (export '(,name
+		   ,(fintern "~A~A" 'make- name)
+		   ,@(mapcar #'(lambda (x)
+				 (fintern "~A-~A" name (car x)))
+		      slots))))
+       ,(flet ((foo-slot (slot)
+		 (destructuring-bind
+		     (name &key type) slot
+		   `(,name ,@(trans-slot-type type)))))
+	  (if (notany #'(lambda (s) (member :overlays (cdr s))) slots)
+	      `(ff::def-c-type (,name :no-defuns ,@options)
+		 ,@(mapcar #'foo-slot slots))
+	    (destructuring-bind
+		((first-slot-name . first-options) . other-slots) slots
+	      (if (and (null (member :overlays first-options))
+		       (every #'(lambda (slot)
+				  t
+				  #+ignore
+				  (eq (getf (cdr slot) :overlays)
+				      first-slot-name))
+			      other-slots))
+		  `(ff::def-c-type (,name :no-defuns ,@options) :union
+				   ,@(mapcar #'(lambda (slot)
+						 (setq slot (copy-list slot))
+						 (remf (cdr slot) :overlays)
+						 (foo-slot slot))
+					     slots))
+		(error ":overlays used in a way we cannot handle"))))))))
 	  
 
 (defun trans-slot-type (type)

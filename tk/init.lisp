@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: init.lisp,v 1.3 92/01/31 14:54:45 cer Exp $
+;; $fiHeader: init.lisp,v 1.4 92/02/24 13:03:05 cer Exp $
 
 
 (in-package :tk)
@@ -28,6 +28,6 @@
 (defvar *done* nil)
 (unless *done*
   (insert_classes)
-  (toolkit-initialize)
+  (xt_toolkit_initialize)
   (make-classes)
   (setq *done* t))

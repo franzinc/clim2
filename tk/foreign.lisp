@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: foreign.lisp,v 1.8 92/04/03 12:03:57 cer Exp Locker: cer $
+;; $fiHeader: foreign.lisp,v 1.9 92/04/15 11:44:43 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -40,12 +40,12 @@
   (register-function 'toolkit-warning-handler))
 
 (defmethod initialize-instance :after ((c application-context) &key context)
-  (let ((context (or context (create_application_context))))
+  (let ((context (or context (xt_create_application_context))))
     (setf (foreign-pointer-address c) context)
-    (app_set_error_handler 
+    (xt_app_set_error_handler 
      context
      *error-handler-function-address*)
-    (app_set_warning_handler
+    (xt_app_set_warning_handler
      context
      *warning-handler-function-address*)))
 
@@ -61,7 +61,7 @@
 			  (argc 0)
 			  (argv 0))
   (let ((d (with-ref-par ((argc argc))
-	     (open_display context
+	     (xt_open_display context
 			   (if host 
 			       host
 			     0)

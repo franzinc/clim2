@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: load-xm.lisp,v 1.1 92/02/16 20:31:30 cer Exp $
+;; $fiHeader: load-xm.lisp,v 1.2 92/02/24 13:09:54 cer Exp $
 
 (excl::free (excl::malloc 131072))
 
@@ -32,4 +32,5 @@
        (*load-xref-info* nil)
        (excl:*global-gc-behavior* nil))
    (let ((*enable-package-locked-errors* nil))
-     (load "clim.fasl"))))
+     (load "climg.fasl")
+     (load "climxm.fasl"))))

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: dev-load-1.lisp,v 1.2 92/04/10 14:27:45 cer Exp Locker: cer $
+;; $fiHeader: dev-load-1.lisp,v 1.3 92/04/15 11:48:34 cer Exp Locker: cer $
 
 (excl::free (excl::malloc 131072))
 
@@ -40,6 +40,7 @@
    (let ((*load-source-file-info* t)
 	 (*load-xref-info* nil)
 	 (excl:*global-gc-behavior* nil))
+     #-ignore
      (ecase sys
        (motif-clim
 	(load "climg.fasl")
@@ -48,7 +49,12 @@
        (openlook-clim
 	(load "climg.fasl")
 	(load "climol.fasl")
-	(load "clim-debug.fasl")))))
+	(load "clim-debug.fasl")))
+     #+ignore
+     (defsys::load-system sys)))
+
+  #+ignore
+  (defsys:update-system sys)
 
   ;;-- What would be good is to mark the files in the system as having
   ;;-- been loaded

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sysdcl.lisp,v 1.12 92/04/10 14:27:13 cer Exp Locker: cer $
+;; $fiHeader: sysdcl.lisp,v 1.13 92/04/15 11:47:38 cer Exp Locker: cer $
 
 (in-package #-ANSI-90 "USER" #+ANSI-90 :cl-user)
 
@@ -433,6 +433,7 @@ o     :needed-systems (clim-standalone)
      :load-before-compile (xlib))
   ;; General stuff
   ("pkg")
+  ("xt-defs")				; Used to be 'xtk'.
   ("foreign-obj")
   ("macros")
   ;; Xlib stuff
@@ -442,8 +443,6 @@ o     :needed-systems (clim-standalone)
   ("graphics")
   
   ;; Toolkit stuff
-  ;; ("load-xt")
-  ("xtk")
   ("meta-tk")
   ("make-classes")
   ("foreign")
@@ -461,9 +460,10 @@ o     :needed-systems (clim-standalone)
      :needed-systems (xt-tk)
      :load-before-compile (xt-tk))
   ;; Motif specific stuff
+  ("xm-defs")
+  ("xm-classes")
   ("load-xm")
-  ;;--- This is really in tk but because of the loading
-  ("xt-funs")
+  ("xt-funs") ;;--- This is really in tk but because of the loading
   ("xm-funs")
   ("xm-classes")
   ("xm-init")
@@ -483,9 +483,11 @@ o     :needed-systems (clim-standalone)
      :needed-systems (xt-tk)
      :load-before-compile (xt-tk))
   ;; OpenLook specific stuff
-  ("load-ol")
-  ("xt-funs")
+  ("ol-defs")
   ("ol-classes")
+  ("load-ol")
+  ("xt-funs") ;;--- This is really in tk but because of the loading
+  ("ol-funs")
   ("ol-init")
   ("ol-callbacks")
   #+ignore("ol-examples")

@@ -20,21 +20,15 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: make-classes.lisp,v 1.13 92/04/15 11:44:47 cer Exp Locker: cer $
+;; $fiHeader: make-classes.lisp,v 1.14 92/04/21 16:12:22 cer Exp Locker: cer $
 
 (in-package :tk)
-
-#+obsolete
-(ff:defforeign 'insert_classes :return-type :fixnum)
-
 
 (defun get-entry-point-value (x)  
   (let ((xx (make-array 1 :element-type '(unsigned-byte 32))))
     (unless (zerop (get-entry-points (vector x) xx))
       (error "Cannot find the entry-point for: ~S" x))
     (aref xx 0)))
-
-(def-c-type (class-array :in-foreign-space) 1 :unsigned-long)
 
 (defun get-foreign-variable-value (x)
   (class-array (get-entry-point-value x) 0))
@@ -60,10 +54,10 @@
       r)))
       
 (defun get-resource-list (class) 
-  (get-resource-list-internal class #'get-resource-list-1 'resource))
+  (get-resource-list-internal class #'xt_get_resource_list 'resource))
 
 (defun get-constraint-resource-list (class) 
-  (get-resource-list-internal class #'get-constraint-resource-list-1
+  (get-resource-list-internal class #'xt_get_constraint_resource_list
 			      'constraint-resource))
 
 
@@ -134,7 +128,7 @@
     (dolist (class-ep classes)
       (format excl:*initial-terminal-io* ";; Initializing class ~s~%" class-ep)
       (let ((h (get-foreign-variable-value class-ep)))
-	(initialize-widget-class h)
+	(xt_initialize_widget_class h)
 	(push (list h
 		    (get-resource-list h)
 		    (get-constraint-resource-list h))
@@ -154,10 +148,10 @@
 	(let ((class
 	       (clos::ensure-class
 		(lispify-class-name (widget-class-name handle))
-		:direct-superclasses (list (if (zerop (xtk-class-superclass handle))
+		:direct-superclasses (list (if (zerop (xt-class-superclass handle))
 					       'xt-root-class
 					     (lispify-class-name (widget-class-name
-								  (xtk-class-superclass handle)))))
+								  (xt-class-superclass handle)))))
 		:direct-slots nil
 		:metaclass 'xt-class
 		:direct-resources  direct-resources
@@ -204,7 +198,7 @@
 
 	
 (defun widget-class-name (h)
-  (char*-to-string (xtk-class-name h)))
+  (char*-to-string (xt-class-name h)))
 
 (defun lispify-class-name (x) 
   (let ((name (lispify-tk-name x)))

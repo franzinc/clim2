@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-silica.lisp,v 1.14 92/04/15 11:48:43 cer Exp Locker: cer $
+;; $fiHeader: xm-silica.lisp,v 1.15 92/04/21 16:13:30 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -30,6 +30,7 @@
 
 (defmethod find-port-type ((type (eql ':motif)))
   'motif-port)
+
 
 (defmethod change-widget-geometry ((parent tk::xm-drawing-area) child
 				   &rest args

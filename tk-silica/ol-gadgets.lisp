@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-gadgets.lisp,v 1.8 92/04/10 14:27:47 cer Exp Locker: cer $
+;; $fiHeader: ol-gadgets.lisp,v 1.9 92/04/15 11:48:38 cer Exp Locker: cer $
 
 
 (in-package :xm-silica)
@@ -136,8 +136,9 @@
 			   :button4-motion
 			   :button5-motion
 			   :button-motion
+			   :exposure
 			   )
-			 0
+			 1
 			 'sheet-mirror-event-handler
 			 sheet))
 

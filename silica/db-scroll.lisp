@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-scroll.lisp,v 1.14 92/04/15 11:45:04 cer Exp Locker: cer $
+;; $fiHeader: db-scroll.lisp,v 1.15 92/04/21 16:12:37 cer Exp Locker: cer $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright(c) 1991, 1992 International Lisp Associates.
@@ -307,12 +307,11 @@
 	     (let ((region (viewport-viewport-region vp)))
 	       ;;---- we should make the sheet-region bigger at this point
 	       ;; perhaps we do a union of the sheet-region and the viewport
-	       (with-sheet-medium (medium vp)
-		 (draw-rectangle* medium
-				  0 0 
-				  (bounding-rectangle-width region)
-				  (bounding-rectangle-height region)
-				  :ink +background-ink+ :filled t))
+	       (with-sheet-medium (medium stream)
+		 (multiple-value-call #'draw-rectangle* 
+		   medium
+		   (bounding-rectangle* region)
+		   :ink +background-ink+ :filled t))
 	       (replay (stream-output-history stream) stream region)))))))))
 
 

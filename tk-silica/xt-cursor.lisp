@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-cursor.lisp,v 1.3 92/03/04 16:20:33 cer Exp Locker: cer $
+;; $fiHeader: xt-cursor.lisp,v 1.4 92/04/03 12:04:55 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -65,11 +65,9 @@
 		  port mirror)))
 	    (xt::realize-widget gadget)
 	    (let ((window (tk::widget-window gadget)))
-	      (setf (tk::drawable-save-under window) t
-		    (xt::drawable-backing-store window) t))
+	      (setf (tk::drawable-save-under window) t))
 	    ;;--- This really should be done somewhere else but where??????
 	    (let ((window (tk::widget-window (sheet-mirror sheet))))
-		(setf (tk::drawable-save-under window) t
-		      (xt::drawable-backing-store window) t))
+	      (setf (xt::drawable-backing-store window) t))
 	    gadget)))))
 

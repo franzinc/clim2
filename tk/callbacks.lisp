@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: callbacks.lisp,v 1.8 92/03/09 17:40:32 cer Exp Locker: cer $
+;; $fiHeader: callbacks.lisp,v 1.9 92/03/30 17:51:25 cer Exp $
 
 (in-package :tk)
 
@@ -57,7 +57,7 @@
   (multiple-value-bind
       (name type)
       (convert-callback-name callback-name)
-    (add_callback
+    (xt_add_callback
      widget
      name
      *callback-handler-address*
@@ -131,19 +131,8 @@
 		(setf (third z) (string-to-char* (second z))))
 	    (fourth z))))
 
-
-(def-c-type (x-push-button-callback-struct :in-foreign-space) :struct
-  (reason :int)
-  (event * x11:xevent)
-  (click-count :int))
-
 (defmethod spread-callback-data (widget data (type (eql :activate)))
   (x-push-button-callback-struct-click-count data))
-
-(def-c-type (x-drawing-area-callback :in-foreign-space) :struct
-  (reason :int)
-  (event * x11:xevent)
-  (window x11:window))
 
 (defmethod spread-callback-data (widget call-data (type (eql 'drawing-area)))
   (values (x-drawing-area-callback-window call-data)

@@ -20,20 +20,49 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-funs.lisp,v 1.1 92/03/30 17:58:42 cer Exp Locker: cer $
+;; $fiHeader: xm-funs.lisp,v 1.2 92/04/21 16:12:29 cer Exp Locker: cer $
+
+;;
+;; This file contains compile time only code -- put in clim-debug.fasl.
+;;
 
 (in-package :tk)
 
-(defforeign 'string_create_l_to_r
+(defforeign 'xm_string_create_l_to_r
     :entry-point "_XmStringCreateLtoR"
     :return-type :integer)
 
-(defforeign 'string_get_l_to_r
+(defforeign 'xm_string_get_l_to_r
     :entry-point "_XmStringGetLtoR"
     :return-type :integer)
 
-(defforeign 'get_pixmap
+(defforeign 'xm_get_pixmap
     :entry-point "_XmGetPixmap")
+
+(defforeign 'xm_font_list_init_font_context
+    :entry-point "_XmFontListInitFontContext")
+
+(defforeign 'xm_font_list_free_font_context
+    :entry-point "_XmFontListFreeFontContext")
+
+(defforeign 'xm_font_list_get_next_font
+    :entry-point "_XmFontListGetNextFont")
+
+(defforeign 'xm_font_list_create
+    :entry-point "_XmFontListCreate")
+
+(defforeign 'xm_add_protocol_callback
+    :entry-point "_XmAddProtocolCallback")
+
+(defforeign 'xm_intern_atom 
+    :entry-point "_XmInternAtom")
+
+(defforeign 'xm_main_window_set_area :entry-point
+  "_XmMainWindowSetAreas")
+
+(ff:defforeign 'xm_process_traversal
+    :entry-point "_XmProcessTraversal")
 
 (defforeign 'xm-message-box-get-child
     :entry-point "_XmMessageBoxGetChild")
+
