@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-protocol.lisp,v 1.5 92/01/31 14:58:16 cer Exp $
+;; $fiHeader: input-protocol.lisp,v 1.6 92/02/24 13:07:54 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -370,11 +370,12 @@
 
 ;; Presentation translators have probably already run...
 (defmethod receive-gesture
-	   ((stream input-protocol-mixin) (gesture pointer-button-press-event))
-  (when *pointer-button-press-handler*
-    ;; This may throw or something, but otherwise we will return the gesture
-    (funcall *pointer-button-press-handler* stream gesture))
-  gesture)
+    ((stream input-protocol-mixin) (gesture pointer-button-press-event))
+  (if *pointer-button-press-handler*
+      ;; This may throw or something, but otherwise we will return the gesture
+      (progn (funcall *pointer-button-press-handler* stream gesture)
+	     nil)
+    gesture))
 
 (defmethod receive-gesture
 	   ((stream input-protocol-mixin) (gesture (eql ':resynchronize)))

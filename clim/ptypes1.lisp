@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: ptypes1.lisp,v 1.4 92/02/24 13:08:21 cer Exp Locker: cer $
+;; $fiHeader: ptypes1.lisp,v 1.5 92/02/26 10:23:42 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -397,6 +397,12 @@
 (defmethod acceptable-presentation-type-class ((class ccl::compile-time-class))
   nil)
 
+#+Allegro
+(progn
+  (warn "This should be elsewhere")
+  (defmethod clos::class-prototype ((class clos::structure-class)) 
+    (allocate-instance class)))
+
 
 ;;;; Retrieving Information about a Presentation Type or P.T. Abbreviation
 
@@ -769,7 +775,10 @@
 						    'define-presentation-type
 						    (typecase superclass
 						      (funcallable-standard-class 'defgeneric)
-						      (standard-class 'defclass)
+						      (standard-class
+						       'defclass)
+						      #+Allegro
+						      (clos::structure-class 'defstruct)
 						      #+Symbolics ;Symbolics CLOS, that is
 						      (clos:structure-class 'defstruct)
 						      #+CCL-2 (structure-class 'defstruct))

@@ -20,36 +20,43 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: load-xm.lisp,v 1.5 92/02/16 20:55:01 cer Exp $
+;; $fiHeader: load-xm.lisp,v 1.6 92/02/24 13:03:10 cer Exp Locker: cer $
 
 (in-package :tk)
 
-#|
-make ucl_xtras='/usr/tech/cer/stuff/clim-2.0/xm-classes.o /usr/motif/usr/lib/libXm.a /usr/motif/usr/lib/libXt.a /usr/motif/usr/lib/libX11.a' ucl
-|#
+(defmacro symbols-from-file (file)
+  (with-open-file (s file :direction :input)
+    (do ((r nil)
+	 (l (read-line s nil nil) (read-line s nil nil)))
+	((null l)
+	 `(quote ,r))
+      (push l r))))
 
 
-
-(defun load-from-xm (&optional (what *motif-classes*))
-  (setq what (remove-if #'ff::get-entry-point
-			`(
-			  "_XCopyGC"
-			  ,@what
-			  )))
+(defun load-undefined-symbols-from-library (what kludges libraries)
+  (setq what (remove-if #'ff::get-entry-point what))
   (when what
-    #+ignore
-    (mapc #'foreign-functions:remove-entry-point 
-	  '("__unpack_quadruple" 
-	    "__prod_b10000" 
-	    "__carry_out_b10000" 
-	    "__prod_65536_b10000"))
+    (mapc #'foreign-functions:remove-entry-point kludges)
     (load "" 
 	  :unreferenced-lib-names what
-	  :foreign-files 
-	  '("/usr/motif/usr/lib/libXm.a"
-	    "/usr/motif/usr/lib/libXt.a"
-	    "/usr/motif/usr/lib/libX11.a") 
+	  :foreign-files libraries
 	  :print t)))
+
+;;;; 
+(defvar *libxm-pathname* "/usr/motif/usr/lib/libXm.a")
+(defvar *libxt-pathname* "/usr/motif/usr/lib/libXt.a")
+(defvar *libx11-pathname* "/usr/motif/usr/lib/libX11.a")
+
+(defun load-from-xm ()
+  (load-undefined-symbols-from-library
+   (list* "_XCopyGC" (symbols-from-file "misc/undefinedsymbols.motif"))
+   '("__unpack_quadruple" 
+     "__prod_b10000" 
+     "__carry_out_b10000" 
+     "__prod_65536_b10000")
+   (list *libxm-pathname*
+	 *libxt-pathname*
+	 *libx11-pathname*)))
 
 (load-from-xm)
 

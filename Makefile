@@ -1,4 +1,4 @@
-# $fiHeader: Makefile,v 1.11 92/02/24 13:09:36 cer Exp Locker: cer $
+# $fiHeader: Makefile,v 1.12 92/02/26 10:23:58 cer Exp Locker: cer $
 # 
 #  Makefile for CLIM 2.0
 #
@@ -55,6 +55,7 @@ CLIM-UTILS-OBJS = utils/excl-verification.fasl \
                    utils/transformations.fasl \
                    utils/regions.fasl \
                    utils/region-arithmetic.fasl \
+                   utils/extended-regions.fasl \
                    utils/designs.fasl
 
 CLIM-SILICA-OBJS = silica/classes.fasl \
@@ -65,6 +66,7 @@ CLIM-SILICA-OBJS = silica/classes.fasl \
                     silica/event.fasl \
                     silica/port.fasl \
                     silica/medium.fasl \
+                    silica/framem.fasl \
                     silica/graphics.fasl \
                     silica/std-sheet.fasl \
                     silica/layout.fasl \
@@ -72,7 +74,8 @@ CLIM-SILICA-OBJS = silica/classes.fasl \
                     silica/db-box.fasl \
                     silica/db-table.fasl \
                     silica/gadgets.fasl \
-                    silica/db-scroll.fasl
+                    silica/db-scroll.fasl \
+                    silica/db-border.fasl
 
 CLIM-STANDALONE-OBJS = clim/gestures.fasl \
                         clim/defprotocol.fasl \
@@ -88,7 +91,6 @@ CLIM-STANDALONE-OBJS = clim/gestures.fasl \
                         clim/input-defs.fasl \
                         clim/input-protocol.fasl \
                         clim/output-protocol.fasl \
-                        clim/window-protocol.fasl \
                         clim/recording-protocol.fasl \
 			clim/text-recording.fasl \
 			clim/graphics-recording.fasl \
@@ -104,6 +106,7 @@ CLIM-STANDALONE-OBJS = clim/gestures.fasl \
                         clim/translators.fasl \
                         clim/histories.fasl \
                         clim/ptypes2.fasl \
+			clim/excl-presentations.fasl \
                         clim/standard-types.fasl \
                         clim/table-formatting.fasl \
                         clim/graph-formatting.fasl \
@@ -167,7 +170,8 @@ MOTIF-CLIM-OBJS = xm-silica/pkg.fasl \
                    xm-silica/xt-gadgets.fasl \
                    xm-silica/xm-gadgets.fasl \
                    xm-silica/xm-menus.fasl \
-                   xm-silica/xt-pixmaps.fasl
+                   xm-silica/xt-pixmaps.fasl \
+                   xm-silica/xm-cursor.fasl
 
 OL-CLIM-OBJS = tk/ol-classes.fasl \
                 tk/ol-init.fasl \
@@ -208,6 +212,11 @@ compile:	FORCE
 clim.fasl:	$(MOTIF-OBJS)
 	$(CAT) $(MOTIF-OBJS) > $(TMP)/clim.fasl_`whoami`
 	$(MV) $(TMP)/clim.fasl_`whoami` clim.fasl
+	ls -lt clim.fasl >> Clim-sizes.n
+	ls -lt clim.fasl
+
+echo-fasls:
+	ls -lt $(MOTIF-OBJS) > /tmp/foo
 
 clim-debug.fasl:	$(MOTIF-OBJS)
 	$(CAT) $(DEBUG-OBJS) > $(TMP)/clim-debug.fasl_`whoami`
@@ -223,6 +232,8 @@ clim:	FORCE
 		(load \"misc/dev-load-xm.lisp\") \
 		(load \"misc/dump.lisp\")" | $(DUMP-CL) $(CLOPTS) -batch
 	$(MV) $(TMP)/clim.temp_`whoami` $(CLIM)
+	ls -lt $(CLIM) >> Clim-sizes.n
+	ls -lt $(CLIM)
 
 clim-small:	FORCE
 	$(ECHO) " \
@@ -231,7 +242,9 @@ clim-small:	FORCE
 		(load \"misc/load-xm.lisp\") \
 		(load \"misc/dump.lisp\")" | $(DUMP-CL) $(CLOPTS) -batch
 	$(MV) $(TMP)/clim.temp_`whoami` $(CLIM-SMALL)
-	
+	ls -lt $(CLIM-SMALL) >> Clim-sizes.n
+	ls -lt $(CLIM-SMALL)
+
 xm-composer:
 	cd tk ; $(MAKE) xm-composer
 

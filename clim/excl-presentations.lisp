@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: excl-presentations.lisp,v 1.3 92/02/24 13:09:45 cer Exp Locker: cer $
+;; $fiHeader: excl-presentations.lisp,v 1.4 92/02/26 10:23:36 cer Exp Locker: cer $
 
 
 (in-package :clim-internals)
@@ -39,8 +39,11 @@
 					&rest args
 					&key (type nil type-p)
 					     object)
-  (unless (and type-p
-	       (find-presentation-type-class type nil))
+  (when (and (null type-p)
+	     ;;--- If its a lisp kind of object then we want to generate expressions
+	     ;;--- but in the lisp thats all we generate to there
+	     ;;--- should be a problem
+	     t)
     (setf (getf args :type) (presentation-type-of object)))
   (apply #'call-next-method rec args))
 
