@@ -11,6 +11,19 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.2.2.23.1
+
+2000-08-15 tfb@cley.com (Tim Bradshaw)
+
+	* tk-silica/xt-silica.lisp: Change initialize-xlib-port to better
+	  cope with X servers with missing or messed-up fonts.  In particular
+	  warn if the fallback font for a character set that has other
+	  mappings is not loadable, as things will likely go wrong
+	  later in this case.  If the fallback is not loadable, but the
+	  character set has no other mappings, then just ignore it.  This
+	  may still not be right, but it is better, I think.
+
+*******************************************************************************
 <no version change--patch made to 6.0.beta.1(rc2)>
 
 2000-08-06  Kevin Layer  <layer@ultra>
