@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.12 92/02/26 10:23:24 cer Exp $
+;; $fiHeader: xm-gadgets.lisp,v 1.13 92/03/04 16:20:36 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -105,7 +105,7 @@
 						     (sheet motif-label-pane))
   (with-accessors ((label gadget-label)) sheet
     (values 'tk::xm-label
-	    (and  label (list :label-string)))))
+	    (and  label (list :label-string label)))))
 
 ;;; Push button
 

@@ -1,45 +1,65 @@
-%%  $fiHeader: clim.todo,v 1.6 92/03/02 19:16:26 cer Exp Locker: cer $
+%%  $fiHeader: clim.todo,v 1.7 92/03/04 10:47:05 cer Exp Locker: cer $
 
-%% ****************************************** SWM THINGS
+%% ****************************************** SWM things
 
 % Silica back-ends
   * [swm] Genera
+    - Get the basic port working.
+    - When a sheet has only a TOP-LEVEL-SHEET as its parent, and overlaps no
+      other sheet, mirror it.
+    - Mirrored sheets on Genera should use Genera scroll bars.
   * [swm] Raw CLX
 
 % Holes to fill in
-  * [swm] Protocol for deciding whether prompt-for-accept should or not.
+  * [swm] Protocol for deciding whether PROMPT-FOR-ACCEPT should or not.
   * [swm] Complete abstract gadgets.
     - Take whatever is needed from ILA CLIM in order to get the non-adaptive
-      gadgets together. 
-  * [swm] Write a "null" frame manager that implements the same look and feel for all
-    ports.
+      gadgets together.
+    - Most gadgets should use temporary mediums.
+    - Do some graphic design work (but not too much :-).
+  * [swm] Write a "null" frame manager that implements the same look and feel
+    for all ports.
     - Genera's frame manager will inherit from this.
-  * [swm] Take the keyboard gesture stuff code from ILA CLIM, but make it more
-    cons-efficient.
+  * [swm] Implement the keyboard gesture stuff, modelled after ILA CLIM.
+    - Flush the EXTENDED-CHAR type at the same time.
   * [swm] Stream defprotocols: be sure that all of the sheet and medium protocol
     functions are explicitly defined with DEFOPERATION so that the stream
-    trampolines are properly created.
+    trampolines are properly created. 
+    - TEXT-STYLE-xxx in TEXT-STYLE.LISP
+    - SHEET-xxx in GADGET-OUTPUT.LISP
+    - MEDIUM-DRAW-xxx in STREAM-DEFPROTOCOLS.LISP
+    - WINDOW-xxx in STREAM-DEFPROTOCOLS.LISP
   * Temporary-medium sheets.
     - [swm] Medium accessors on a sheet with no medium?
   * [swm] Implement compatibility code for CLIM 1.0's :LAYOUT language.
-  * [swm] Should we divide the drawing protocol into a medium and a port layer, or
-    should it be a single layer as Bill suggests? 
+  * [swm] Should we divide the drawing protocol into a medium and a port layer,
+    or should it be a single layer as Bill suggests? 
   * [swm] Spiff up the code for defining new graphics operators.
     - DEFINE-GRAPHICS-OPERATOR is like DEFGENERIC.
     - DEFINE-GRAPHICS-METHOD is like DEFMETHOD.
     - DEFINE-GRAPHICS-RECORDING.
     - What of this goes into the spec?
-  * [swm] Figure out what things are part of the frame manager protocol and which are
-    part of the port protocol.
+  * [swm] Figure out what things are part of the frame manager protocol and
+    which are part of the port protocol.
     - PORT-MENU-CHOOSE should really be FRAME-MANAGER-MENU-CHOOSE.
     - Ditto, PORT-DIALOG-VIEW.
+  * [swm] Figure out which things are part of the medium protocol and which are
+    part of the port protocol.
+    - Should we divide the drawing protocol into a medium and a port layer, or
+      should it be a single layer as Bill suggests?  (That is, do we need to
+      flush PORT-DRAW-xxx?)
+    - Ditto, COPY-AREA.
+  * [swm] Figure out what things are part of the graft ("console"? "display"?)
+    protocol  and which are part of the port protocol.
   * [swm] Figure out how views really interact with frame managers and dialogs. 
     - Indirect views. 
+  * [swm] Reinstate clipping regions
+    - For output records
   * [swm] Implement more of DRAW-DESIGN for composites.  
     - Create a table that describes what works and what doesn't, for each port.
-  * [swm] Figure out which WINDOW-xxx functions from CLIM 1.0 make sense.  It's OK to
-    change the names to correspond to newthink.
-    - WINDOW-VIEWPORT
+  * [swm] Figure out which WINDOW-xxx functions from CLIM 1.0 make sense.  It's
+    OK to change the names to correspond to newthink.
+    - WINDOW-VIEWPORT => PANE-VIEWPORT-REGION
     - WINDOW-VIEWPORT-POSITION* and WINDOW-SET-VIEWPORT-POSITION*.
     - WINDOW-INSIDE-xxx and WINDOW-SET-INSIDE-xxx.
 
@@ -48,22 +68,35 @@
     - Go through CLIM 1.0 to make sure we didn't miss anything.
     - Go through ILA CLIM with a fine-tooth comb.
   * [swm] Flush all of the DRAW-xxx-INTERNAL junk.
-  * [swm ] Find all the #+Silica/#-Silica stuff.
+  * [swm] Do we use PORT-WRITE-CHAR-1 and PORT-WRITE-STRING-1 anywhere?
+  * [swm] Find all the #+Silica/#-Silica stuff.
     - Make sure that the #+Silica branch really does the right thing.
     - Flush the #-Silica branch.
   * [swm] Must we really convert all of the code to lowercase?  Do it if we must.
 
 % Bugs to fix
-  * [swm] No output-recording for draw-text*. Hence the compass menu is
-    broken.
+  * [swm] No output-recording for DRAW-TEXT*.  Hence the compass menu is broken.
+  * [swm] Missing graphics operators, to be taken from CLIM 1.0.
+    - DRAW-ARROW[*]
+    - DRAW-OVAL[*]
+    - Spiff up DRAW-POINTS[*] and DRAW-LINES[*]
+  * [swm] Rectangles and bboxes don't do region arithmetic with each other.
+    - STANDARD-BOUNDING-RECTANGLE should inherit from STANDARD-RECTANGLE.
+    - All region classes should have slots of type COORDINATE, but be sure that
+      the constructors do the necessary coercions.
+  * Cursors are just plain buggy.
+    - [swm] Make the Genera port use native cursors when possible.
 
 % Performance
   * [swm] Simplify transformation classes so that there is a single class of
     transformation.  Special-case +IDENTITY-TRANSFORMATION+. 
   * [swm] Make use of volatile transformations.
     - Be careful never to modify +IDENTITY-TRANSFORMATION+.
-  * [swm] Make use of volatile rectangular regions.
+  * [swm] Make use of volatile rectangular regions for sheets.
   * [swm] Reinstate sheet region and transformation caches (as in ILA CLIM).
+  * [swm] Use resourced events to save consing.
+    - This means events are volatile, so we need COPY-EVENT in the API.
+    - Keep a speedy resource of 10 or so of each kind of event.
   * [swm] (deftype coordinate () ...)
     - Flush all inappropriate FIXNUM declarations from the code and replace them
       with the new COORDINATE declaration.
@@ -128,19 +161,21 @@
     - What else?
 
 
-
-r% ********************************************* CER THINGS 
+%% ********************************************* CER things 
 
 % Silica back-ends
   * [cer,jdi] Xt
     - Motif
     - OpenLook
 
-
 % Holes to fill in
-  * [cer] input-protocol and the handle-event problem
-  * [cer] Why does INPUT-PROTOCOL-MIXIN define an input buffer?  What's wrong with the
+  * [cer] INPUT-PROTOCOL and the HANDLE-EVENT problem
+  - Why does INPUT-PROTOCOL-MIXIN define an input buffer?  What's wrong with the
     sheet event queue?
+  - What we really need to do is maintain a separate input buffer for the stream,
+    then STREAM-READ-GESTURE should loop doing HANDLE-EVENT until something gets
+    inserted into the stream's input buffer.  When there is something in input
+    buffer, STREAM-READ-GESTURE should then process it.
   * [cer] Define cursor protocol
   * [cer] Rename DEFSYS package to CLIM-DEFSYS.
   * Sheet protocol.
@@ -150,8 +185,8 @@ r% ********************************************* CER THINGS
   * [cer] Multiple layouts need to allow different size reqs for the sheets.
   * [cer] The code for switching layouts needs to be cleaned up.
   * [cer] Protocol to compute to the WM the desired geometry of the frame.
-  * [cer] When the viewport is resized in might need to be moved, for example, if it
-    becomes big enough to display the entire window: in the ALLOCATE-SPACE for
+  * [cer] When the viewport is resized in might need to be moved, for example, if
+    it becomes big enough to display the entire window: in the ALLOCATE-SPACE for
     viewport. 
   * [cer] Pointer documentation panes and other pane types,
   * [cer] Gadget enable/disable protocol.
@@ -164,44 +199,56 @@ r% ********************************************* CER THINGS
     windows where we want.
 
 % Bugs to fix
-  * [cer] What's the problem with radio-boxes and move-cursor-after.  The alternative
-    definitions almost work except for exit-buttons.  I think the bounding
-    rectangle of gadget output records is computed incorrectly and that it
-    works because the update-gadget-position is broken to match. 
-  * [cer] why? #<standard-method stream-read-char-no-hang (motif-top-level-sheet) @ #x1b18eee>
-  * [cer] When default-text-margin slot yet bound. Drawing on a unexposed window
-    can cause problems.
+  * [cer] What's the problem with radio-boxes and move-cursor-after.  The
+    alternative definitions almost work except for exit-buttons.  I think the
+    bounding rectangle of gadget output records is computed incorrectly and that
+    it works because the UPDATE-GADGET-POSITION is broken to match. 
+  * [cer] why? #<standard-method STREAM-READ-CHAR-NO-HANG (motif-top-level-sheet) @ #x1b18eee>
+  * [cer] When default-text-margin slot yet bound, drawing on a unexposed window
+    can cause problems. 
+  * [cer] command parser uses the variable stream, + others.
+  * [cer] perhaps max widths ending up smaller than widths!
+  * [cer] :fill in box panes??
+  * [cer] why do we need a pane when we read commands?
 
-%%%% ******************************************* JDI THINGS
+%% ******************************************* JDI things
 
 % Holes to fill in
   * [jdi] Design and implement a colormap scheme
+    - Poll the CLIM@BBN.COM mailing list to see what the requirements are.
 
-%%% **************************************** UNASSIGNED THINGS
+
+%% **************************************** UNASSIGNED things
 
 % Silica back-ends
-  * [??] Postscript
+  * [???] PostScript
+
+% Cleanups
+  * Make the CLIM-LISP package conform exactly to the exports in X3J13.
 
 % Holes to fill in
+  * Implement pixmap mediums.  Check out the use of MEDIUM-TYPE in ILA CLIM.
+  * Verify that :MENU-BAR fully subsumes ILA CLIM's :MENU-GROUP.
   * [all] Layout for gadgets within ACCEPTING-VALUES.
   * [all] ACCEPTING-VALUES :OWN-WINDOW architecture that allows integration with
     toolkit dialogs.
   * [all] Implement clean interface to THROW-HIGHLIGHTED-PRESENTATION.
     - SWM claims that it is already clean.  Why do SWM and CER disagree?
-  * [all] Interprocess communication, i.e., one process to another to execute a frame
-    command. 
+  * [all] Interprocess communication, i.e., one process to another to execute a
+    frame command. 
   * Temporary-medium sheets.
-    - [all] Temporary medium need to have their state decached. This looks
-      like it should be a method on deallocate-medium since the medium
-      is not degrafted. Just not associated with a window. This does
-      not seem nice: engraft,degraft, deallocate?
+    - Medium accessors on a sheet with no medium?
+    - [all] Temporary medium need to have their state decached.  This looks like
+      it should be a method on deallocate-medium since the medium is not
+      degrafted.  Just not associated with a window.  This does not seem nice:
+      engraft, degraft, deallocate? 
   * Sheet protocol.
     - [all] Where do event queues come from?
     - [all] Repaint protocol: who clears the area and sets the clipping region when
       doing the repaint?
-    - [all] What is the precise value returned by EVENT-SHEET?  Does the EVENT-SHEET
-      accessor return the sheet that the event was dispatched to? We
-      had to do this for correct distribution of keyboard events.
+    - [all] What is the precise value returned by EVENT-SHEET?  Does the
+       EVENT-SHEET accessor return the sheet that the event was dispatched to? 
+       We had to do this for correct distribution of keyboard events. 
   * Event protocol:
     - Consider design of DISTRIBUTE-EVENT.
     - [all] Timestamp.
@@ -209,15 +256,16 @@ r% ********************************************* CER THINGS
   * [all] Should we do "stream relative" coordinates (as opposed to the current
     "parent relative" scheme) for output records?  It solves some problems, but
     introduces others. 
+  * silica::shift-code is undefined in the gesture code.
 
 % Final spec conformance checking
-% Final Testing and bug fixing
+
+% Final testing and bug fixing
 
 % Performance
   * [all] Meet CLIM 1.0 performance goals.
   * [all] Surpass CLIM 1.0 performance goals.
-  * Add port-level caches for inks.
-
+  * Add port-level (graft-level? medium-level?) caches for inks.
 
 % User Guide.
 
@@ -226,3 +274,4 @@ r% ********************************************* CER THINGS
 % Franz specific stuff.
 
 % [todo: /vapor/usr/tech/cer/todo/franz-clim.todo]
+

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.8 92/02/26 10:23:28 cer Exp $
+;; $fiHeader: xt-silica.lisp,v 1.9 92/03/04 16:20:46 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -484,10 +484,11 @@
 		(/= target-top ny)
 		(/= w nw)
 		(/= h nh))
-	(warn "Geo set fail, ~S, ~S,~S"
-	      sheet
-	       (list  target-left  target-top w h)
-	       (list nx ny nw nh))))))
+	(let ((*error-output* excl:*initial-terminal-io*))
+	  (warn "Geo set fail, ~S, ~S,~S"
+		sheet
+		(list  target-left  target-top w h)
+		(list nx ny nw nh)))))))
 
 (defmethod process-next-event (port &key wait-function timeout)
   (tk::process-one-event (port-context port)

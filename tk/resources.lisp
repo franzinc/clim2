@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: resources.lisp,v 1.7 92/02/05 21:45:06 cer Exp $
+;; $fiHeader: resources.lisp,v 1.8 92/02/24 13:03:48 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -232,10 +232,10 @@
   (ash value -16))
 
 (defmethod convert-resource-in ((parent t) (type (eql 'horizontal-position)) value)
-  (ash value -16))
+  (convert-16bit-resource-in value))
 
 (defmethod convert-resource-in ((parent t) (type (eql 'vertical-position)) value)
-  (ash value -16))
+  (convert-16bit-resource-in value))
 
 (defmethod convert-resource-out ((parent t) (type (eql 'pixel)) value)
   (etypecase value
@@ -331,8 +331,16 @@
 (defmethod convert-resource-out ((parent t) (type (eql 'position)) value)
   value)
 
-(defmethod convert-resource-in ((parent t) (type (eql 'position)) value)
-  (ash value -16))
+(defmethod convert-resource-in ((parent t) (type (eql 'position))
+				value)
+  (convert-16bit-resource-in value))
+
+(defun convert-16bit-resource-in (value)
+  (let ((x (ash value -16)))
+    ;; 16bit signed value!
+    (if (>= x (ash 1 15))
+	(- x (ash 1 16))
+      x)))
 
 (defmethod convert-resource-out ((parent t) (type (eql 'dimension)) value)
   value)
