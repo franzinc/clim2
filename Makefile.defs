@@ -1,4 +1,4 @@
-# $Id: Makefile.defs,v 1.45.10.5 1998/12/17 00:18:49 layer Exp $
+# $Id: Makefile.defs,v 1.45.10.6 1999/01/11 19:52:48 layer Exp $
 #
 #  Makefile.defs for CLIM 2.0
 
@@ -149,7 +149,7 @@ GENERIC-FASLS= \
 	clim/drag-and-drop.fasl clim/item-list-manager.fasl \
 	postscript/pkgdcl.fasl postscript/postscript-s.fasl \
 	clim/stream-trampolines.fasl \
-	xlib/pkg.fasl xlib/load-xlib.fasl
+	xlib/pkg.fasl xlib/load-xlib.fasl xlib/xlib-defs.fasl
 
 DEMO-FASLS= \
 	demo/packages.fasl demo/demo-driver.fasl demo/listener.fasl \
