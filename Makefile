@@ -1,4 +1,4 @@
-# $fiHeader: Makefile,v 1.4 92/01/02 15:33:41 cer Exp Locker: cer $
+# $fiHeader: Makefile,v 1.5 92/01/06 20:44:36 cer Exp Locker: cer $
 
 SOMEDIRS=utils silica clim ws 
 DIRS=$(SOMEDIRS) xlib tk xm-silica
@@ -25,8 +25,14 @@ xm-composer:
 xm-dcl:
 	cd tk ; $(MAKE) xm-dcl
 
+dist	:
+	gtar -z -cf - \
+	*/*.lisp */*.cl Makefile \
+	> Dist/src.tar.Z
+
 # For the day the make dist happens.
 
 echo_src_files:
 	@find . '(' -name '*.cl' -o -name '*.lisp' ')' -print
+
 
