@@ -1,6 +1,6 @@
-# $fiHeader: Makefile.hpprism,v 1.6 1995/05/15 07:17:41 duane Exp $
+# $fiHeader: Makefile.hpprism,v 1.7 1995/05/17 19:47:06 colin Exp $
 #
-#  Makefile.hp700 for CLIM 2.0
+#  Makefile.hpprism for CLIM 2.0
 #
 
 include Makefile.defs

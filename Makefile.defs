@@ -1,4 +1,4 @@
-# $fiHeader: Makefile.defs,v 1.32 1995/05/15 07:17:39 duane Exp $
+# $fiHeader: Makefile.defs,v 1.33 1995/05/17 19:47:02 colin Exp $
 #
 #  Makefile.defs for CLIM 2.0
 #
@@ -81,8 +81,8 @@ PRODUCT-GENERIC-FASLS= \
 	climg.fasl climdemo.fasl clim-debug.fasl climps.fasl \
 	climgg.fasl climhpgl.fasl
 
-PRODUCT-XM-FASLS= climxm.fasl clim-debugxm.fasl
-PRODUCT-OL-FASLS= climol.fasl clim-debugol.fasl
+PRODUCT-XM-FASLS= 	climxm.fasl clim-debugxm.fasl
+PRODUCT-OL-FASLS= 	climol.fasl clim-debugol.fasl
 
 PRODUCT-GENERIC-OBJS= \
 	stub-xt.o stub-x.o xtsupport.o xlibsupport.o
@@ -95,9 +95,9 @@ SHARED-OL-OBJS= climol.so
 
 # The default is for statically linked Motif
 
-PRODUCT-TK-FASLS= $(PRODUCT-XM-FASLS)
-PRODUCT-TK-OBJS= $(STATIC-XM-OBJS)
-SYSTEM = motif-clim
+SYSTEM=		motif-clim
+PRODUCT-FASLS=  $(PRODUCT-GENERIC-FASLS) $(PRODUCT-XM-FASLS)
+PRODUCT-OBJS=	$(PRODUCT-GENERIC-OBJS) $(STATIC-XM-OBJS)
 
 #
 # "Load time objects" -- these go into clim.fasl
@@ -158,6 +158,7 @@ DEMO-FASLS= \
 	demo/browser.fasl demo/peek-frame.fasl demo/process-browser.fasl \
 	demo/custom-records.fasl demo/demo-activity.fasl \
 	test/test-suite.fasl demo/demo-last.fasl
+
 
 HOMEGROWN-GADGET-FASLS= \
 	homegrown/db-menu.fasl homegrown/db-list.fasl \

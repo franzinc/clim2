@@ -1,4 +1,154 @@
 *************************************************************
+Fri Oct 20 10:35:00 PDT 1995	Colin Meldrum (colin@vapor)
+
+Makefile.cobjs		added rule for stub-wnn.c
+			mainxm.o now uses STATIC-WNN-OBJS
+
+Makefile.defs		removed PRODUCT-TK-FASLS, PRODUCT-TK-OBJS
+			added PRODUCT-FASLS, PRODUCT-OBJS
+
+Makefile.generic	changes to use PRODUCT-FASLS, PRODUCT-OBJS
+			added sys::*libwnn-pathname* to compile, clim,
+			and load-train rules
+			added rules for climwnn.fasl clim-debugwnn.fasl
+			added stub-wnn.c to clean
+			added echo_WNNLIB rule
+			added STATIC-WNN-OBJS and WNNLIB to xm-dcl, ucl.clim
+
+Makefile.hpprism	changed hp700 to hpprim
+
+Makefile.hpprism-ja, Makefile.sun4-ja, Makefile.defs-ja
+			new makefiles for creating Japanese version
+
+Makefile.rs6000, Makefile.sgi4d-svr4, Makefile.sun4-ol, Makefile.sun4-svr4-ol
+			changed to use PRODUCT-OBJS, PRODUCT-FASLS
+
+instclimxm.lisp		load climwnn module for ics
+
+clim/basic-translators.lisp
+			presentation-menu presentation-action uses
+			frame-menu-translator-documentation 
+
+clim/cursor.lisp	support for variable size cursor for non-fixed
+			width fonts
+
+clim/frames.lisp	new gfs frame-pointer-buttons-documentation,
+			frame-modifier-keys-documentation and
+			frame-menu-translator-documentation to allow
+			internationalization
+			changed frame-document-highlighted-presentation-1 
+			to use above new gfs
+
+clim/input-editor-commands.lisp
+			added support for multiple input-editor-command-array
+			and hook in stream-process-gesture to call
+			kana-process-gesture for japanese-input-editor
+
+clim/interactive-protocol.lisp
+			for ics added kana-state and kanji-server slots to 
+			input-editing-stream-mixin
+			for ics added *kana-input-editor-command-aarray*
+			added new method ie-set-cursor-position to set
+			cursor width for variable width fonts
+
+clim/japanese-input-editor.lisp
+			new file for ics
+			romaji->kana conversion + hooks for kana-kanji
+			conversion 
+
+clim/output-protocol.lisp
+			added stream-write-char-1 and stream-write-string-1
+			misc changes to stream-scan-string-for-writing for ics
+
+demo/japanese-graphics-editor.lisp
+			japanized version of the graphics-editor demo
+demo/packages.lisp	for ics added japanese-graphics-editor package
+demo/sysdcl.lisp	for ics added japanese-graphics-editor to defsys
+
+hpgl/hpgl-port.lisp	changed (port-undefined-text-style port) to
+			*undefined-text-style* 
+
+misc/compile-1.lisp	for ics compile-system 'wnn
+
+misc/dev-load-1.lisp	for ics load climwnn + clim-debugwnn
+
+misc/undefinedsymbols.wnn
+			new file for ics 
+			foreign symbols used in wnn/jl-funs.lisp
+
+notes/release-notes.n	new file
+
+sys/sysdcl.lisp		for ics added japanese-input-editor
+			for ics added new system wnn
+
+test/test-demos.lisp	for ics added test to run japanese-graphics-editor
+			demo 
+
+tk/callbacks.lisp, tk/font.lisp, tk/foreign-obj, tk/foreign.lisp,
+tk/graphics.lisp, tk/load-xm.lisp, tk/resources.lisp, tk/widget.lisp,
+tk/xlib.lisp, tk/xm-font-list.lisp, tk/xm-funs.lisp, tk/xm-protocols.lisp,
+tk/xm-widget.lisp, tk/xt-funs.lisp, tk-silica/xm-frames.lisp,
+tk-silica/xm-gadgets.lisp, tk-silica/xm-silica.lisp,
+tk-silica/xt-graphics.lisp, tk-silica/xt-silica.lisp, xlib/xlib-defs.lisp,
+xlib/xlib-funs.lisp 
+
+	numerous changes for ics support and correct handling of
+	fat-strings and toolkit compound strings and font sets
+	
+	The following new definitions are made for ics
+
+	defclass: font-set
+
+	defmethod: gadget-needs-font-set-p text-style-to-font-list
+	font-set-from-font-list  
+			
+	defun: create-font-set fonts-of-font-set text-extents
+	fat-string-to-string8 fat-string-to-string16 xchar-code setlocale
+	partition-compound-string
+
+	defvar: *font-list-tags* *empty-compound-string* 
+			
+	defconstant: xm-font-is-fontset
+			
+	defforeign: xt_set_language_proc xm_string_concat xm_string_copy
+	setlocale-1 lisp-xdrawstring16 xopenim xcreatefontset
+	xfontsoffontset xmbtextextents
+
+tk-silica/pkg.lisp	added exports of *xt-font-families* 
+			*xt-logical-size-alist* *xt-cursor-type-alist*
+
+tk-silica/xt-gadgets.lisp
+			changed fix-coordinate to floor in
+			convert-scroll-bar-value-out to get rid of spurious 
+			Xm warnings
+
+tk-silica/xt-silica.lisp
+			added a named font-cache to xt-port
+			new method find-named-font
+			reworked fallback/undefined font handling
+
+utils/packages.lisp	
+
+	new exports from clim 
+	*default-kanji-server-path* basic-kanji-server
+	destroy-kanji-server find-kanji-server map-over-kanji-servers
+	kanji-server kanji-server-path kanji-server-type kanji-server-p
+	frame-menu-translator-documentation
+	frame-pointer-buttons-documentation
+	frame-modifier-keys-documentation  
+	jie-begin-kanji-conversion jie-get-kanji jie-end-kanji-conversion 
+
+	new exports from silica 
+	*kanji-servers* find-kanji-server-type make-device-text-style
+
+	exports removed from silica
+	port-undefined-text-style make-device-font-text-style
+	*undefined-text-style*
+
+xlib/xlibsupport.c
+	new C function for ics lisp_XDrawString16
+
+*************************************************************
 Mon Oct 16 21:58:05 PDT 1995	Colin Meldrum (colin@vapor)
 
 Makefile.cobjs		fix library path for ol version

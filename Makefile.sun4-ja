@@ -1,0 +1,23 @@
+# $fiHeader:$
+#
+#  Makefile.sun4-ja for CLIM 2.0
+#
+
+include Makefile.defs
+include Makefile.defs-ja
+
+Makefile=Makefile.sun4-ja
+
+CL=/usr/fi/dcli-devel
+
+MOTIFHOME=/net/vapor/3rd/motif-1.2.4
+
+XINCLUDES=-I$(MOTIFHOME)/usr/include
+
+TKLIB=$(MOTIFHOME)/usr/lib/libXm.a
+XTLIB=/net/louie/malle/colin/X11R5/Ximp-libs/libXt.a
+XLIB=/net/louie/malle/colin/X11R5/Ximp-libs/libX11.a
+
+WNNLIB=/usr/fi/X11R5/lib/libwnn.a
+
+include Makefile.generic

@@ -1,4 +1,4 @@
-# $fiHeader$
+# $fiHeader: Makefile.sun4-svr4-ol,v 1.1 1995/05/17 19:47:17 colin Exp $
 #
 #  Makefile.sun4-svr4-ol for CLIM 2.0
 #
@@ -9,10 +9,9 @@ Makefile=Makefile.sun4-svr4-ol
 
 CLIM=./slim.ol
 
-SYSTEM=openlook-clim
-PRODUCT-TK-FASLS= $(PRODUCT-OL-FASLS)
-PRODUCT-TK-OBJS= $(STATIC_OL-OBJS) $(SHARED-OL-OBJS)
-
+SYSTEM=		openlook-clim
+PRODUCT-FASLS= 	$(PRODUCT-GENERIC-FASLS) $(PRODUCT-OL-FASLS)
+PRODUCT-OBJS= 	$(PRODUCT-GENERIC-OBJS) $(STATIC-OL-OBJS) $(SHARED-OL-OBJS)
 
 XINCLUDES=-I/usr/openwin/include
 

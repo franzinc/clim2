@@ -1,4 +1,4 @@
-# $fiHeader: Makefile.sgi4d-svr4,v 1.5 1995/05/15 07:17:42 duane Exp $
+# $fiHeader: Makefile.sgi4d-svr4,v 1.6 1995/05/17 19:47:10 colin Exp $
 #
 #  Makefile.sigi4d-svr4 for CLIM 2.0
 #
@@ -13,7 +13,7 @@ XLIB=-lX11
 
 XINCLUDES=-I/usr/include
 
-PRODUCT-TK-OBJS= $(STATIC-XM-OBJS) $(SHARED-XM-OBJS)
+PRODUCT-OBJS= $(PRODUCT-GENERIC-OBJS) $(STATIC-XM-OBJS) $(SHARED-XM-OBJS)
 
 PICFLAGS = -KPIC
 SHAREFLAGS = -shared -all

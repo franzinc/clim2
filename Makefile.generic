@@ -1,4 +1,4 @@
-# $fiHeader: Makefile.generic,v 1.30 1995/06/21 21:24:08 georgej Exp $
+# $fiHeader: Makefile.generic,v 1.31 1995/10/17 05:00:57 colin Exp $
 #
 #  Makefile.generic for CLIM 2.0
 #
@@ -10,7 +10,7 @@ trained:
 
 FORCE:
 
-compile: FORCE $(PRODUCT-GENERIC-OBJS) $(PRODUCT-TK-OBJS)
+compile: FORCE $(PRODUCT-OBJS)
 	(eval '$(SET_LIBRARY_PATH)' ; \
 	$(ECHO) " \
 	(progn \
@@ -20,6 +20,7 @@ compile: FORCE $(PRODUCT-GENERIC-OBJS) $(PRODUCT-TK-OBJS)
 	  (setq sys::*libtk-pathname* \"$(TKLIB)\") \
 	  (setq sys::*libxt-pathname* \"$(XTLIB)\") \
 	  (setq sys::*libx11-pathname* \"$(XLIB)\") \
+	  (setq sys::*libwnn-pathname* \"$(WNNLIB)\") \
 	  (load \"misc/compile-1.lisp\") \
 	  (proclaim '(optimize (speed $(SPEED)) (debug $(DEBUG)) (safety $(SAFETY)))) \
 	  (let ((*compile-print $(COMPILE_PRINT)) \
@@ -34,7 +35,7 @@ compile: FORCE $(PRODUCT-GENERIC-OBJS) $(PRODUCT-TK-OBJS)
 
 # Concatenation
 
-cat: $(PRODUCT-GENERIC-FASLS) $(PRODUCT-TK-FASLS)
+cat: $(PRODUCT-FASLS)
 
 climg.fasl: $(GENERIC-FASLS)
 	$(CAT) $(GENERIC-FASLS) > $(TMP)/clim.fasl_`whoami`
@@ -84,6 +85,18 @@ clim-debugol.fasl: $(OL-DEBUG-FASLS)
 	ls -lt clim-debugol.fasl >> Clim-sizes.n
 	ls -lt clim-debugol.fasl
 
+climwnn.fasl: $(WNN-FASLS)
+	$(CAT) $(WNN-FASLS) > $(TMP)/clim.fasl_`whoami`
+	$(MV) $(TMP)/clim.fasl_`whoami` climwnn.fasl
+	ls -lt climwnn.fasl >> Clim-sizes.n
+	ls -lt climwnn.fasl
+
+clim-debugwnn.fasl: $(WNN-DEBUG-FASLS)
+	$(CAT) $(WNN-DEBUG-FASLS) > $(TMP)/clim.fasl_`whoami`
+	$(MV) $(TMP)/clim.fasl_`whoami` clim-debugwnn.fasl
+	ls -lt clim-debugwnn.fasl >> Clim-sizes.n
+	ls -lt clim-debugwnn.fasl
+
 climps.fasl: $(POSTSCRIPT-FASLS)
 	$(CAT) $(POSTSCRIPT-FASLS) > $(TMP)/clim.fasl_`whoami`
 	$(MV) $(TMP)/clim.fasl_`whoami` climps.fasl
@@ -100,7 +113,7 @@ clim1compat.fasl: $(CLIM1COMPAT-FASLS)
 
 # Building (loading and dumping)
 
-clim: FORCE $(PRODUCT-GENERIC-OBJS) $(PRODUCT-TK-OBJS)
+clim: FORCE $(PRODUCT-OBJS)
 	-$(RM) -f $(CLIM)
 	(eval '$(SET_LIBRARY_PATH)' ; \
 	$(ECHO) " \
@@ -111,6 +124,7 @@ clim: FORCE $(PRODUCT-GENERIC-OBJS) $(PRODUCT-TK-OBJS)
 	  (setq sys::*libtk-pathname* \"$(TKLIB)\") \
 	  (setq sys::*libxt-pathname* \"$(XTLIB)\") \
 	  (setq sys::*libx11-pathname* \"$(XLIB)\") \
+	  (setq sys::*libwnn-pathname* \"$(WNNLIB)\") \
 	  (load \"misc/dev-load-1.lisp\") \
 	  (load-it '$(SYSTEM)) \
 	  (setq sys::*clim-dump-name* \"$(TMP)/clim.temp_`whoami`\") \
@@ -148,6 +162,7 @@ load-train: FORCE
 	  (setq sys::*libtk-pathname* \"$(TKLIB)\") \
 	  (setq sys::*libxt-pathname* \"$(XTLIB)\") \
 	  (setq sys::*libx11-pathname* \"$(XLIB)\") \
+	  (setq sys::*libwnn-pathname* \"$(WNNLIB)\") \
 	  (load \"misc/dev-load-1.lisp\") \
 	  (load-it '$(SYSTEM)) \
 	  (load \"misc/train.lisp\") \
@@ -187,7 +202,7 @@ cleanobjs:
 clean:
 	find . -name '*.fasl' -print | xargs rm -f
 	rm -f *.o *.so slim slim.ol \
-	  	stub-motif.c stub-olit.c stub-xt.c stub-x.c 
+	  	stub-motif.c stub-olit.c stub-xt.c stub-x.c stub-wnn.c
 	rm -f *.z *.Z *.gz *.ilt *.out
 
 clean-notes:
@@ -210,39 +225,48 @@ echo_XLIB:
 echo_TKLIB:
 	@echo $(TKLIB)
 
+echo_WNNLIB:
+	@echo $(WNNLIB)
+
 makeclimfasls: compile cat
 
 install_obj:
-	cp $(PRODUCT-GENERIC-OBJS) $(PRODUCT-TK-OBJS) $(DEST)
+	cp $(PRODUCT-OBJS) $(DEST)
 	
 install_clim: install_obj
-	cp $(PRODUCT-GENERIC-FASLS) $(PRODUCT-TK-FASLS) $(DEST)
+	cp $(PRODUCT-FASLS) $(DEST)
 
 echo_src_files:
 	@echo $(PRODUCT_SRC_FILES)
 
-makeclimobjs: $(PRODUCT-GENERIC-OBJS) $(PRODUCT-TK-OBJS)
+makeclimobjs: $(PRODUCT-OBJS)
 
 ################## Lower level Makefile stuff
 
-xm-dcl	: stub-x.o stub-xt.o stub-motif.o xlibsupport.o xtsupport.o xmsupport.o
+# re: STATIC-WNN-OBJS + STATIC-WNN-OBJS-WITH-PWD
+# I'm sorry - but for the moment I can't think of a better way to do this
+
+xm-dcl	: stub-x.o $(STATIC-WNN-OBJS) stub-xt.o stub-motif.o \
+		 xlibsupport.o xtsupport.o xmsupport.o
 	cd $(CL_SRC) ; /bin/mv ucl ucl.climsave ; $(SAVEEXP) ;\
 	make initial_oldspace=$(OLDSPACE) oldspace=$(OLDSPACE) \
 		newspace=$(NEWSPACE) premallocs=$(PREMALLOCS) stubs=$(stubs) \
-		user_objects='$(PWD)/stub-x.o $(PWD)/stub-xt.o \
+		user_objects='$(PWD)/stub-x.o $(STATIC-WNN-OBJS-WITH-PWD) $(PWD)/stub-xt.o \
 		$(PWD)/stub-motif.o $(PWD)/xlibsupport.o $(PWD)/xmsupport.o \
 		$(PWD)/xtsupport.o $(CL_SRC)/code/excldep.o $(CL_SRC)/code/socket.o \
-		$(TKLIB) $(XTLIB) $(XLIB)' dcl ;\
+		$(TKLIB) $(XTLIB) $(XLIB) $(WNNLIB)' dcl ;\
 	/bin/mv ucl.climsave ucl; $(RESTEXP)
 
-ucl.clim: stub-x.o stub-xt.o stub-motif.o xlibsupport.o xtsupport.o xmsupport.o
+ucl.clim: stub-x.o $(STATIC-WNN-OBJS) stub-xt.o stub-motif.o \
+		 xlibsupport.o xtsupport.o xmsupport.o
 	cd $(CL_SRC) ; /bin/mv ucl ucl.climsave ;\
 	/bin/mv dcl dcl.climsave ; $(SAVEEXP) ;\
 	make stubs=$(stubs) \
 		user_objects=' \
-		$(PWD)/stub-x.o $(PWD)/stub-xt.o $(PWD)/stub-motif.o \
+		$(PWD)/stub-x.o $(STATIC-WNN-OBJS-WITH-PWD) $(PWD)/stub-xt.o
+		$(PWD)/stub-motif.o \
 		$(PWD)/xlibsupport.o $(PWD)/xmsupport.o $(PWD)/xtsupport.o \
-		$(TKLIB) $(XTLIB) $(XLIB) $(MOTIFXTRAS)' ucl ;\
+		$(TKLIB) $(XTLIB) $(XLIB) $(WNNLIB) $(MOTIFXTRAS)' ucl ;\
 	/bin/mv ucl ucl.clim ; $(RESTEXP) ; /bin/mv ucl.climsave ucl ; \
 	/bin/mv dcl.climsave dcl
 

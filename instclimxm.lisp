@@ -1,7 +1,7 @@
 ;; -*- mode: common-lisp; package: system -*-
 ;;
 ;;				-[Sun Jun  5 10:03:07 1994 by duane]-
-;; 
+;;
 ;; copyright (c) 1991 Franz Inc, Berkeley, CA  All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
@@ -20,7 +20,7 @@
 ;; applicable.
 ;;
 
-;; $fiHeader: instclimxm.lisp,v 1.9 1994/06/08 06:56:32 duane Exp $
+;; $fiHeader: instclimxm.lisp,v 1.10 1995/05/17 19:47:23 colin Exp $
 
 ;;
 ;; Load the Motif version of CLIM
@@ -29,6 +29,9 @@
 (in-package :system)
 
 (load-application (require :climxm) :devel system::*devel*)
+
+#+ics
+(load-application (require :climwnn) :devel system::*devel*)
 
 (format t "~&; Finished loading CLIM XM~%")
 (force-output)
