@@ -6,11 +6,19 @@ C_OBJECT_MAKEFILE = Makefile.cobjs-svr4
 
 XLIB-CLIM-OBJS = xlib/pkg.fasl
 
-MOTIF_OBJS= climxm.so
-OPENLOOK_OBJS= climol.so
+GENERIC_PUBLIC_OBJS =
+XM_PUBLIC_OBJS =
+OL_PUBLIC_OBJS =
+PUBLIC_OBJS =
+OL_LICENSED_OBJS =
+XM_LICENSED_OBJS =
+MOTIF_OBJS = climxm.so
+OPENLOOK_OBJS = climol.so
 CLIMOBJS= climxm.so climol.so
-INSTALLED_CLIMOBJS= $(CLIMOBJS) xlibsupport.o xtsupport.o olsupport.o \
-		MyDrawingA.o
+INSTALLED_CLIMXMOBJS = MyDrawingA.o climxm.so
+INSTALLED_CLIMOLOBJS = olsupport.o climol.so
+INSTALLED_CLIMOBJS= xlibsupport.o xtsupport.o \
+	$(INSTALLED_CLIMOLOBJS) $(INSTALLED_CLIMXMOBJS)
 
 MOTIFLIB=/usr/lib/libXm$(DEBUGLIB).a
 MOTIFLIB_d=/usr/lib/libXm.a
