@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-frames.lisp,v 1.12.24.2 2000/09/05 19:06:38 layer Exp $
+;; $Id: acl-frames.lisp,v 1.12.24.2.24.1 2002/05/23 15:57:47 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -900,7 +900,8 @@ to be run from another."
 					 tick alist submenus)))
 		 (clim-internals::menu-item-items item)))
 	   (progn
-	     (push (list tick (menu-item-value item))
+	     (push (list tick (menu-item-value item) 
+			 item) ;; spr25894 -- Third item is the menu-item itself
 		   alist)
 	     
 	     (excl:with-native-string (p-i (print-item item))

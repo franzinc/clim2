@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: stream-defprotocols.lisp,v 1.21 2000/06/08 19:16:52 layer Exp $
+;; $Id: stream-defprotocols.lisp,v 1.21.54.1 2002/05/23 15:57:47 layer Exp $
 
 (in-package :clim-internals)
 
@@ -389,6 +389,11 @@
 (defoperation medium-draw-string* drawing-state-mixin
   ((stream drawing-state-mixin)
    string x y start end align-x align-y towards-x towards-y transform-glyphs))
+
+;;; spr26133 --pnc
+(defoperation medium-draw-bezier-curve* drawing-state-mixin
+  ((stream drawing-state-mixin) position-seq filled))
+
 
 
 ;;; window protocol

@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xm-gadgets.lisp,v 1.102.6.5 2001/06/08 04:18:25 layer Exp $
+;; $Id: xm-gadgets.lisp,v 1.102.6.5.2.1 2002/05/23 15:57:47 layer Exp $
 
 (in-package :xm-silica)
 
@@ -98,7 +98,21 @@
       (etypecase label
 	((or null string)
 	 (unless (getf initargs :label-string)
-	   (setf (getf initargs :label-string) (or label ""))))
+	   (setf (getf initargs :label-string) (or label "")))
+	 (when (typep sheet 'tk-silica::motif-toggle-button)
+	   ;; SPR25487 -- P&C
+	   ;; Under Motif2.1  a toggle-button, with an empty 
+	   ;; label is drawn too small (Motif1.2 had a 
+	   ;; more reasonable size for the label-less toggle.)
+	   ;; Since Clim  can draw its own prompts (especially in
+	   ;; accepting-values) this can cause display-misalignments.
+	   ;; I can find no direct way to over-ride this, 
+	   ;; so the work-around is to given the label-less
+	   ;; toggle-button a blank-space as a label.
+	   (let ((old-label-string (getf initargs :label-string)))
+	     (when (or (null old-label-string)
+		       (< (length old-label-string) 1))
+	       (setf (getf initargs :label-string) " ")))))
 	((or tk::pixmap pattern)
 	 (unless (getf initargs :label-pixmap)
 	   (when (typep label 'pattern)

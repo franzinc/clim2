@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: input-defs.lisp,v 1.25.64.1 2001/08/25 22:35:16 layer Exp $
+;; $Id: input-defs.lisp,v 1.25.64.2 2002/05/23 15:57:47 layer Exp $
 
 (in-package :clim-internals)
 
@@ -121,7 +121,15 @@
           (t (setq tr (compose-transformations
                        tr (sheet-transformation sheet)))))))
 
-
+;;; spr25911
+;;; This method appears to be called only by 
+;;;   (stream-set-pointer-position input-protocol-mixin) x y)
+;;; According to the documentation for that method:
+;;; "This function sets the position (two coordinate values)of the 
+;;; pointer in the stream's coordinate system."
+;;; However, this method (set-sheet-pointer-position) sets
+;;; it in the screen's coordinate system.
+;;; The change below changes it to the agree with the documentation.
 (defmethod set-sheet-pointer-position ((sheet basic-sheet) pointer x y)
   (setf (pointer-sheet pointer) sheet
         (pointer-position-changed pointer) t
@@ -135,7 +143,8 @@
             valid t
             position-changed t))
     (multiple-value-bind (native-x native-y)
-          (transform-position (sheet-device-transformation sheet) x y)
+	#+the-old-way (transform-position (sheet-device-transformation sheet) x y)
+	(transform-position (sheet-delta-transformation sheet nil) x y)
         (setf native-x-position native-x
               native-y-position native-y)
         (port-set-pointer-position (port pointer) pointer native-x native-y))

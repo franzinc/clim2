@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: input-editor-commands.lisp,v 1.39 2000/05/01 21:43:24 layer Exp $
+;; $Id: input-editor-commands.lisp,v 1.39.62.1 2002/05/23 15:57:47 layer Exp $
 
 (in-package :clim-internals)
 
@@ -741,12 +741,20 @@ This may confused the input editor" gestures))
                          (ie-line-end input-buffer target-line)))))))))
 
 
-(define-input-editor-command (com-ie-rubout :type delete)
+;;; spr25914
+;;; A kill can change the input context 
+;;; (for example, by rubbing out a command-arg,
+;;; or part of a [previously completed] command-name).
+;;; So, to be safe always rescan immediately following a kill.
+(define-input-editor-command (com-ie-rubout :type delete 
+					    :rescan :immediate) 
                              (stream input-buffer numeric-argument)
   "Rubout character"
   (ie-rub-del stream input-buffer (- numeric-argument)))
 
-(define-input-editor-command (com-ie-delete-character :type delete)
+(define-input-editor-command (com-ie-delete-character :type delete 
+						      ;; spr29514 (see above)
+						      :rescan :immediate)
                              (stream input-buffer numeric-argument)
   "Delete character"
   (ie-rub-del stream input-buffer numeric-argument))
@@ -773,12 +781,16 @@ This may confused the input editor" gestures))
         (beep stream))))
 
 
-(define-input-editor-command (com-ie-rubout-word :type kill)
+(define-input-editor-command (com-ie-rubout-word :type kill  
+						 ;; spr29514 (see above)
+						 :rescan :immediate)
                              (stream input-buffer numeric-argument)
   "Rubout word"
   (ie-rub-del-word stream input-buffer (- numeric-argument)))
 
-(define-input-editor-command (com-ie-delete-word :type kill)
+(define-input-editor-command (com-ie-delete-word :type kill  
+						 ;; spr29514 (see above)
+						 :rescan :immediate)
                              (stream input-buffer numeric-argument)
   "Delete word"
   (ie-rub-del-word stream input-buffer numeric-argument))
@@ -798,12 +810,16 @@ This may confused the input editor" gestures))
         (beep stream))))
 
 
-(define-input-editor-command (com-ie-rubout-sexp :type kill)
+(define-input-editor-command (com-ie-rubout-sexp :type kill 
+						 ;; spr29514 (see above)
+						 :rescan :immediate)
                              (stream input-buffer numeric-argument)
   "Rubout sexp"
   (ie-rub-del-sexp stream input-buffer (- numeric-argument)))
 
-(define-input-editor-command (com-ie-delete-sexp :type kill)
+(define-input-editor-command (com-ie-delete-sexp :type kill 
+						 ;; spr29514 (see above)
+						 :rescan :immediate)
                              (stream input-buffer numeric-argument)
   "Delete sexp"
   (ie-rub-del-sexp stream input-buffer numeric-argument))

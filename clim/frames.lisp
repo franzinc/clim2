@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: frames.lisp,v 1.96.52.1 2001/08/25 22:35:15 layer Exp $
+;; $Id: frames.lisp,v 1.96.52.2 2002/05/23 15:57:47 layer Exp $
 
 (in-package :clim-internals)
 
@@ -1001,19 +1001,31 @@
 ;; Sizes an application frame based on the size of the contents of the
 ;; output recording stream STREAM.
 (defun size-frame-from-contents (stream
-                                  &key width height
-                                       (right-margin 10) (bottom-margin 10)
-                                       (size-setter #'window-set-inside-size))
+				 &key width height
+				      (right-margin 10) (bottom-margin 10)
+				      (size-setter #'window-set-inside-size))
   (with-slots (output-record) stream
     (with-bounding-rectangle* (left top right bottom) output-record
+      ;; spr25783
+      ;; According to the clim-documentation, the :right-margin and
+      ;; :bottom-margin args should take the same forms as the 
+      ;; :x-spacing and :y-spacing args in formatting-table.
+      (setq right-margin (or (process-spacing-arg stream right-margin 
+						  'size-frame-from-contents
+						  :right-margin)
+			     (stream-string-width stream " ")))
+      (setq bottom-margin (or (process-spacing-arg stream bottom-margin 
+						   'size-frame-from-contents
+						   :bottom-margin) 
+			      (stream-vertical-spacing stream)))
       (let* ((graft (or (graft stream)
-                        (find-graft)))                ;--- is this right?
+                        (find-graft)))	;--- is this right?
              (gw (bounding-rectangle-width (sheet-region graft)))
              (gh (bounding-rectangle-height (sheet-region graft)))
-             ;;--- Does this need to account for the size of window decorations?
+	     ;;--- Does this need to account for the size of window decorations?
              (width (min gw (+ (or width (- right left)) right-margin)))
              (height (min gh (+ (or height (- bottom top)) bottom-margin))))
-        ;; The size-setter will typically resize the entire frame
+	;; The size-setter will typically resize the entire frame
         (funcall size-setter stream width height)
         (window-set-viewport-position stream left top)))))
 
