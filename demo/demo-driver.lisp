@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: demo-driver.lisp,v 1.21 92/12/14 15:02:36 cer Exp $
+;; $fiHeader: demo-driver.lisp,v 1.22 92/12/16 16:47:23 cer Exp $
 
 (in-package :clim-demo)
 
@@ -25,7 +25,7 @@
   (when (fboundp 'clim-user::do-test-suite)
     (clim-user::do-test-suite :port port :force force)))
 
-(defun start-demo (&key (port (find-port)))
+(defun start-demo (&key (port (find-port)) force)
   (let* ((framem (typecase port
 		   (frame-manager port)
 		   (t (find-frame-manager :port port))))
@@ -53,7 +53,7 @@
 		((functionp demo-fcn)
 		 (funcall demo-fcn))
 		(t
-		 (funcall demo-fcn :port port))))))))
+		 (funcall demo-fcn :port port :force force))))))))
 
 (defparameter *color-stream-p* t)
 (defun color-stream-p (stream)

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-defs.lisp,v 1.6 92/11/20 08:46:24 cer Exp $
+;; $fiHeader: xt-defs.lisp,v 1.7 92/12/01 09:46:58 cer Exp $
 
 ;;
 ;; This file contains compile time only code -- put in clim-debug.fasl.
@@ -43,17 +43,6 @@
 (def-c-typedef xt-position :short)
 (def-c-typedef xt-dimension :unsigned-short)
 (def-c-typedef xt-pointer * char)
-
-(def-c-type (xrm-resource :no-defuns) :struct
-	    (name xrm-quark)
-	    (class xrm-quark)
-	    (type xrm-quark)
-	    (size :cardinal)
-	    (offset :long)
-	    (default-type xrm-quark)
-	    (default-addr * :char))
-
-(def-c-type (xrm-resource-array :no-defuns) 1 xrm-resource)
 
 (def-c-type (xt-class :no-defuns) :struct
 	    (superclass :long)
@@ -85,7 +74,7 @@
 	    (version xt-version-type)
 	    (callback-private * :char))
 
-(def-c-type (x-resource :no-defuns) :struct
+(def-c-type (xt-resource :no-defuns) :struct
   (name * :char)
   (class * :char)
   (type * :char)
@@ -96,8 +85,6 @@
   )
 
 ;; Horrible internal stuff
-
-
     
 (def-c-type (xt-offset-rec :no-defuns) :struct
 	    (next * :char)
@@ -117,7 +104,7 @@
   (widget-class :unsigned-long)
   )
 
-(def-c-type (x-resource-list :in-foreign-space :no-defuns) 1 x-resource)
+(def-c-type (xt-resource-list :in-foreign-space :no-defuns) 1 xt-resource)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

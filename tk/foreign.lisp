@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: foreign.lisp,v 1.12 92/05/22 19:26:19 cer Exp $
+;; $fiHeader: foreign.lisp,v 1.13 92/08/18 17:53:33 cer Exp $
 
 (in-package :tk)
 
@@ -83,3 +83,16 @@
   (setf (foreign-pointer-address d)
     (or display
 	(apply #'open-display args))))
+
+(defun display-database (display)
+  (make-instance 'resource-database 
+		 :foreign-address (xt_database display)))
+
+
+(defun get-application-name-and-class (display)
+  (with-ref-par ((name 0)
+		 (class 0))
+    (xt_get_application_name_and_class display name class)
+    (values (char*-to-string (aref name 0))
+	    (char*-to-string (aref class 0)))))
+    

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-funs.lisp,v 1.14 92/11/13 14:47:04 cer Exp $
+;; $fiHeader: xt-funs.lisp,v 1.15 92/12/14 15:04:17 cer Exp $
 
 ;;
 ;; This file contains compile time only code -- put in clim-debug.fasl.
@@ -91,6 +91,29 @@
     :call-direct t
     :arguments '(foreign-address foreign-address foreign-address foreign-address
 		 foreign-address fixnum foreign-address foreign-address)
+    :arg-checking nil
+    :return-type :unsigned-integer)
+
+(defforeign 'xt_database
+    :entry-point (ff:convert-to-lang "XtDatabase")
+    :call-direct t
+    :arguments '(foreign-address)
+    :arg-checking nil
+    :return-type :unsigned-integer)
+
+(defforeign 'xt_get_application_name_and_class
+    :entry-point (ff:convert-to-lang "XtGetApplicationNameAndClass")
+    :call-direct t
+    :arguments '(foreign-address foreign-address foreign-address)
+    :arg-checking nil
+    :return-type :unsigned-integer)
+
+
+(defforeign 'xt_convert_and_store
+    :entry-point (ff:convert-to-lang "XtConvertAndStore")
+    :call-direct t
+    :arguments '(foreign-address foreign-address foreign-address
+		 foreign-address foreign-address)
     :arg-checking nil
     :return-type :unsigned-integer)
 
@@ -205,7 +228,21 @@
     :arguments '(foreign-address)
     :arg-checking nil
     :return-type :unsigned-integer)
-	    
+
+(defforeign 'xt_name
+    :entry-point (ff:convert-to-lang "XtName")
+    :call-direct t
+    :arguments '(foreign-address)
+    :arg-checking nil
+    :return-type :unsigned-integer)
+
+(defforeign 'xt_class
+    :entry-point (ff:convert-to-lang "XtClass")
+    :call-direct t
+    :arguments '(foreign-address)
+    :arg-checking nil
+    :return-type :unsigned-integer)
+
 (defforeign 'xt_query_geometry
     :entry-point (ff:convert-to-lang "XtQueryGeometry")
     :call-direct t
