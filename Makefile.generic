@@ -1,4 +1,4 @@
-# $Id: Makefile.generic,v 1.47.10.2.2.1 1998/05/18 23:56:10 layer Exp $
+# $Id: Makefile.generic,v 1.47.10.2.2.2 1998/05/19 00:54:09 layer Exp $
 #  Makefile.generic for CLIM 2.0
 
 ifeq ($(OS_NAME),windows)
@@ -13,7 +13,7 @@ ifneq ($(OS_NAME),windows)
 compile_depends = wnn.$(SHARED_EXT)
 endif
 
-compile: FORCE $(PRODUCT-OBJS) $(ICS-PRODUCT-OBJS) 
+compile: FORCE $(PRODUCT-OBJS) $(ICS-PRODUCT-OBJS) $(compile_depends)
 	rm -f build.tmp
 	echo '(setq sys::*libtk-pathname* "$(TKLIB)")' >> build.tmp
 	echo '(setq sys::*libxt-pathname* "$(XTLIB)")' >> build.tmp
