@@ -1,4 +1,4 @@
-# $fiHeader: Makefile.generic,v 1.7 93/04/07 09:06:22 cer Exp $
+# $fiHeader: Makefile.generic,v 1.8 93/04/08 13:17:13 colin Exp $
 #
 #  Makefile.generic for CLIM 2.0
 #
@@ -249,6 +249,8 @@ makeclimobjs	: $(CLIMOBJS)
 
 ################## Lower level Makefile stuff
 
+echo-xm-ucl-xtras: 
+	@echo $(PWD)/stub-x.o $(PWD)/clim-motif.o $(PWD)/xlibsupport.o $(PWD)/MyDrawingA.o $(PWD)/xtsupport.o   $(MOTIFLIB) $(XTLIB) $(XLIB) $(XMDCLXTRAS)
 
 ol-dcl	:  stub-x.o stub-xt.o clim-olit.o xlibsupport.o olsupport.o xtsupport.o  $(MALLOCOBJS)
 	cd $(CL_SRC) ; /bin/rm -f ucl ;\
