@@ -82,7 +82,7 @@ tk-silica/xt-gadgets.lisp		Added port-set-pane-foreground/background
 utils/clos-patches.lisp		compiler-environment-p now handles (eq environment 'compile-file)
 
 
---------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 from jdi: Mon Jul 27 19:28:33 PDT 1992
 
 NOTES
