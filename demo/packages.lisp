@@ -14,7 +14,7 @@
     defun
     flet labels
     defgeneric defmethod
-    #+(and allegro (or :rs6000 (not (version>= 4 1)))) with-slots
+    #+(and allegro (not (version>= 4 1))) with-slots
     dynamic-extent non-dynamic-extent)
 
   (:export   
@@ -30,7 +30,7 @@
     defun
     flet labels
     defgeneric defmethod
-    #+(and allegro (or :rs6000 (not (version>= 4 1)))) with-slots
+    #+(and allegro (not (version>= 4 1))) with-slots
     dynamic-extent non-dynamic-extent))
 
 
@@ -43,6 +43,6 @@
     defun
     flet labels
     defgeneric defmethod
-    #+(and allegro (or :rs6000 (not (version>= 4 1)))) with-slots
+    #+(and allegro (not (version>= 4 1))) with-slots
     dynamic-extent non-dynamic-extent))
 

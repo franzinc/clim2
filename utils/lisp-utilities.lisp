@@ -583,7 +583,7 @@
 	(copy-list list)
       list))
 
-  #+(and (target-class r t) (version>= 4 1))
+  #+(and (target-class r) (version>= 4 1))
   (defun-inline evacuate-list (list)
     (if (comp::ll :<u (comp::ll :register :stack-pointer) list)
 	(copy-list list)
@@ -595,10 +595,11 @@
 
 #+(version>= 4 2 7)
 (defun-inline evacuate-list (list)
-    ;; the HP's stack grows toward higher memory
-    (if (excl::stack-allocated-p list)
-	(copy-list list)
-      list))
+  ;; the HP's stack grows toward higher memory
+  (if (and (consp list)
+	   (excl::stack-allocated-p list))
+      (copy-list list)
+    list))
 
 )	;#+Allegro
 
@@ -1021,7 +1022,7 @@
     (setf (gethash symbol table) value))
   value)
 
-#-(or Genera (and ansi-90 (not (and Allegro (or :rs6000 (not (version>= 4 1)))))))
+#-(or Genera (and ansi-90 (not (and Allegro (not (version>= 4 1))))))
 (defmacro define-compiler-macro (name lambda-list &body body &environment env)
   env
   #+Allegro `(excl::defcmacro ,name ,lambda-list ,@body)

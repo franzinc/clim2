@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: tk -*-
 ;;
-;;				-[Tue Jul  6 22:42:47 1993 by layer]-
+;;				-[Sun Jun  5 21:07:00 1994 by duane]-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -25,10 +25,10 @@
 (in-package :tk)
 
 (defun get-foreign-variable-value (x)
-  (let ((ep #+hpprism (ff:get-extern-data-address x)
-	    #-hpprism (ff:get-entry-point
+  (let ((ep #-svr4 (ff:get-extern-data-address x)
+	    #+svr4 (ff:get-entry-point
 		       x
-		       #+svr4 :note-shared-library-references #+svr4 nil)))
+		       :note-shared-library-references nil)))
     (unless ep (error "Entry point ~S not found" x))
     (class-array ep 0)))
 
@@ -220,7 +220,8 @@
 
 (defun define-toolkit-classes (&rest classes)
   (make-classes 
-   (mapcar #'ff:convert-to-lang
+   (mapcar #-rs6000 #'ff:convert-to-lang
+	   #+rs6000 #'identity
 	   (remove-duplicates 
 	    (apply #'append classes)
 	    :test #'string=))))

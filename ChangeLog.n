@@ -1,3 +1,37 @@
+(for 4.2.devel.26 merge):
+
+Tue Jun  7 23:44:53 1994  Duane Rettig  (duane at clay)
+
+New file:
+
+	* Makefile.rs6000: New file for rs6000
+
+Changed files:
+
+	* Makefile: Add stubs variable
+
+	* Makefile.cobjs: Remove lib dependencies 
+
+	* Makefile.cobjs-svr4: Generalize; Fix mainxm dependency
+
+	* Makefile.generic: Add stub file support for rs6000
+
+	* Makefile.sgi4d-svr4: Fix debug lib name; add MOTIFXTRAOS
+
+	* Makefile.sun4-svr4: Add MOTIFXTRAOS
+
+	* instclimxm.lisp: Use portable lib spec
+
+	* clx/pkgdcl.lisp:
+	* demo/packages.lisp:
+	* postscript/pkgdcl.lisp:
+	* utils/clos-patches.lisp:
+	* utils/packages.lisp:
+
+	* tk/make-classes.lisp: Add sgi, rs6000 to foreign-defining code
+
+	* utils/lisp-utilities.lisp: Generalize and fix evacuate-list
+
 Tue Jan 11 15:30:15 1994  George Jacob  (georgej@lava)
 
 * utils/excl-verification.lisp: Changed version to CLIM2.0

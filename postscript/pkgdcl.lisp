@@ -16,7 +16,7 @@
     dynamic-extent
     #-(or Allegro Lucid) non-dynamic-extent)
 
-  #+(and Allegro (or :rs6000 (not (version>= 4 1))))
+  #+(and Allegro (not (version>= 4 1)))
   (:shadowing-import-from clim-utils
     with-slots))
 

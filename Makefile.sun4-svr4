@@ -8,10 +8,11 @@ MOTIFHOME=/net/vapor/3rd/motif-1.2.2-sol2/ICS/Motif
 MOTIFLIB=$(MOTIFHOME)/usr/lib/libXm$(DEBUGLIB).a
 MOTIFLIB_d=$(MOTIFHOME)/usr/lib/libXm.a
 XLIB=$(MOTIFHOME)/usr/lib/libX11$(DEBUGLIB).a 
+MAINOBJXLIB=$(XLIB)
 XTLIB=$(MOTIFHOME)/usr/lib/libXt$(DEBUGLIB).a
 XINCLUDES=-I$(MOTIFHOME)/usr/include
 XMINCLUDES=-I$(MOTIFHOME)/usr/include
-MOTIFXTRAOS=
+MOTIFXTRAOS=-lgen
 
 XTSUPPORTINCLUDES=-I/net/vapor/x11/R5/src/mit/lib/Xt
 

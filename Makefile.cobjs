@@ -3,16 +3,18 @@
 #  Makefile.cobj for CLIM 2.0, containing non-svr4 C rules
 #
 
-clim-motif.o	: stub-motif.o stub-xt.o $(MOTIFLIB)
+# Removed lib dependencies; these were bogus because the libraries will tend to
+# be older anyway.  MAKE CLEAN instead.
+clim-motif.o	: stub-motif.o stub-xt.o
 	ld -r $(LDFLAGS) -o clim-motif.o stub-motif.o stub-xt.o $(MOTIFXTRAOS) $(MOTIFLIB)
 
-clim-olit.o	: stub-olit.o stub-xt.o $(LIBXOL)
+clim-olit.o	: stub-olit.o stub-xt.o
 	ld -r $(LDFLAGS) -o clim-olit.o stub-olit.o stub-xt.o $(LIBXOL)
 
-clim-motif_d.o	: stub-motif.o stub-xt.o $(MOTIFLIB_d)
+clim-motif_d.o	: stub-motif.o stub-xt.o
 	ld -r  $(LDFLAGS) -o clim-motif_d.o stub-motif.o stub-xt.o $(MOTIFXTRAOS) $(MOTIFLIB_d)
 
-clim-olit_d.o	: stub-olit.o  stub-xt.o $(LIBXOL_d)
+clim-olit_d.o	: stub-olit.o  stub-xt.o
 	ld -r $(LDFLAGS) -o clim-olit_d.o stub-olit.o stub-xt.o $(LIBXOL_d)
 
 xlibsupport.o	: xlib/xlibsupport.c 

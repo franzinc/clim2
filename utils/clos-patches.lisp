@@ -86,7 +86,7 @@
 ;;; Go through this rigamarole because WITH-SLOTS doesn't accept declarations
 ;;; on old versions of Lucid and Franz Allegro
 
-#+(and Allegro (or :rs6000 (not (version>= 4 1))))
+#+(and Allegro (not (version>= 4 1)))
 (lisp:defun slot-value-alist (body)
   (declare (values real-body alist))
   (let ((alist nil))
@@ -102,19 +102,19 @@
 	  (dolist (var vars)
 	    (push (cons var type) alist)))))))
 
-#+(and Allegro (or :rs6000 (not (version>= 4 1))))
+#+(and Allegro (not (version>= 4 1)))
 (defparameter *with-slots*
 	      #+PCL 'pcl::with-slots 
-	      #+(and Allegro (or :rs6000 (not (version>= 4 1)))) 'clos::with-slots
-              #-(or (and Allegro (or :rs6000 (not (version>= 4 1)))) PCL) 'clos:with-slots)
+	      #+(and Allegro (not (version>= 4 1))) 'clos::with-slots
+              #-(or (and Allegro (not (version>= 4 1))) PCL) 'clos:with-slots)
 
-#+(and Allegro (or :rs6000 (not (version>= 4 1))))
+#+(and Allegro (not (version>= 4 1)))
 (defparameter *slot-value*
 	      #+PCL 'pcl::slot-value
-	      #+(and Allegro (or :rs6000 (not (version>= 4 1)))) 'clos::slot-value
-	      #-(or (and Allegro (or :rs6000 (not (version>= 4 1)))) PCL) 'clos:slot-value)
+	      #+(and Allegro (not (version>= 4 1))) 'clos::slot-value
+	      #-(or (and Allegro (not (version>= 4 1))) PCL) 'clos:slot-value)
 
-#+(and Allegro (or :rs6000 (not (version>= 4 1))))
+#+(and Allegro (not (version>= 4 1)))
 (defmacro with-slots (slot-entries instance-form &body body &environment environment)
   (multiple-value-bind (real-body alist) (slot-value-alist body)
     (let ((expansion (macroexpand `(,*with-slots* ,slot-entries ,instance-form

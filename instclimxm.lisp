@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: system -*-
 ;;
-;;				-[Fri Apr 16 11:55:04 1993 by layer]-
+;;				-[Sun Jun  5 10:03:07 1994 by duane]-
 ;; 
 ;; copyright (c) 1991 Franz Inc, Berkeley, CA  All rights reserved.
 ;;
@@ -30,8 +30,8 @@
 
 #-svr4
 (progn
-  (defvar sys::*libx11-pathname* "/x11/R4/sun4-lib/libX11.a")
-  (defvar sys::*libxt-pathname* "/x11/R4/sun4-lib/libXt.a"))
+  (defvar sys::*libx11-pathname* "c")
+  (defvar sys::*libxt-pathname* "c"))
 
 (load-application (require :climxm) :devel system::*devel*)
 

@@ -3067,10 +3067,10 @@
 
   ;; Older versions of Lucid and Allegro don't hack declarations properly
   ;; for WITH-SLOTS
-  #+(and Allegro (or :rs6000 (not (version>= 4 1))))
+  #+(and Allegro (not (version>= 4 1)))
   (:shadow
     with-slots)
-  #+(and Allegro (or :rs6000 (not (version>= 4 1))))
+  #+(and Allegro (not (version>= 4 1)))
   (:export
     with-slots)
 
@@ -3374,7 +3374,7 @@
     dynamic-extent
     #-(or Allegro Lucid) non-dynamic-extent)
 
-  #+(and Allegro (or :rs6000 (not (version>= 4 1))))
+  #+(and Allegro (not (version>= 4 1)))
   (:shadowing-import-from clim-utils
     with-slots)
 
@@ -3623,7 +3623,7 @@
     dynamic-extent
     #-(or Allegro Lucid) non-dynamic-extent)
 
-  #+(and Allegro (or :rs6000 (not (version>= 4 1))))
+  #+(and Allegro (not (version>= 4 1)))
   (:shadowing-import-from clim-utils
     with-slots))
 
