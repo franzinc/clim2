@@ -1,5 +1,5 @@
 ;; Load this file to make a clim image.
-;; $Id: buildclim.cl,v 1.2.4.1 1998/05/19 01:04:15 layer Exp $
+;; $Id: buildclim.cl,v 1.2.4.2 1998/07/21 16:35:46 layer Exp $
 
 (excl:generate-application
  #+ics "climi" #-ics "clim"
@@ -18,7 +18,6 @@
    )
  :autoload-warning nil
  :image-only t
- :print-startup-message :default
  :purify t
  :debug-on-error t
  :internal-debug "buildclim.out"

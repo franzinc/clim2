@@ -1,4 +1,4 @@
-# $Id: Makefile.generic,v 1.47.10.7 1998/07/21 02:54:45 layer Exp $
+# $Id: Makefile.generic,v 1.47.10.8 1998/07/21 16:35:45 layer Exp $
 #  Makefile.generic for CLIM 2.0
 
 ifeq ($(OS_NAME),windows)
@@ -147,7 +147,6 @@ $(CLIM): FORCE $(PRODUCT-OBJS) $(ICS-PRODUCT-OBJS)
 	       (load-it '$(SYSTEM)))) \
 	   :autoload-warning nil \
 	   :image-only t \
-	   :print-startup-message :default \
 	   :purify t \
 	   :debug-on-error t \
 	   :internal-debug \"build-clim.out\" \
