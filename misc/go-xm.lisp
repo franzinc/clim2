@@ -20,8 +20,21 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader$
+;; $fiHeader: go-xm.lisp,v 1.1 92/01/30 10:16:06 cer Exp Locker: cer $
 
+#+ignore
 (let ((which :motif))
   (declare (special which))
   (load (merge-pathnames "go.cl" excl::*source-pathname*)))
+
+(compile-file-if-needed "sys/defsystem")
+(let ((*enable-package-locked-errors* nil))
+  (load "sys/defsystem"))
+(load "sys/sysdcl")
+(defsys::compile-system 'motif-clim :propagate t)
+(tenuring (defsys::load-system 'motif-clim))
+
+
+
+
+

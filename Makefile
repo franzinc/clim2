@@ -1,7 +1,7 @@
-# $fiHeader: Makefile,v 1.6 92/01/30 10:09:16 cer Exp $
+# $fiHeader: Makefile,v 1.7 92/01/31 14:59:11 cer Exp Locker: cer $
 
-SOMEDIRS=utils silica clim
-DIRS=$(SOMEDIRS) xlib tk xm-silica
+SOMEDIRS=sys utils silica clim demo
+DIRS=$(SOMEDIRS) xlib tk xm-silica misc
 DEVICE=/dev/null
 CL=/net/vapor/usr/composer2/composer2
 CLOPTS	= -qq
@@ -21,7 +21,7 @@ FRC :
 
 
 swm-tape:
-	tar cf $(DEVICE) `find misc $(SOMEDIRS) '(' -name "*.cl" -o -name "*.lisp" ')' -print`
+	tar cf $(DEVICE) `find $(SOMEDIRS) '(' -name "*.cl" -o -name "*.lisp" ')' -print`
 
 xm-composer:
 	cd tk ; $(MAKE) xm-composer
@@ -35,7 +35,7 @@ dist	:
 	> Dist/src.tar.Z
 
 rcscheck:
-	rcscheck $(DIRS) | grep -v .fasl
+	rcscheck  $(DIRS) | grep -v .fasl
 
 # For the day the make dist happens.
 
