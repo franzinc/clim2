@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-scroll.lisp,v 1.15 92/04/21 16:12:37 cer Exp Locker: cer $
+;; $fiHeader: db-scroll.lisp,v 1.16 92/04/21 20:27:55 cer Exp Locker: cer $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright(c) 1991, 1992 International Lisp Associates.
@@ -270,49 +270,56 @@
   (let ((vp (pane-viewport stream)))
     (when vp
       (with-bounding-rectangle* (left top right bottom) 
-	  (pane-viewport-region stream)
+	(pane-viewport-region stream)
 	;;;---- This should actually bash the sheet-transformation
 	(setf (sheet-transformation stream)
-	      (make-translation-transformation (- x) (- y)))
+	  (make-translation-transformation (- x) (- y)))
 	(bounding-rectangle-set-position (viewport-viewport-region vp) x y)
 	;;--- Is this the correct place?
 	(update-scroll-bars vp)
 	(with-bounding-rectangle* (nleft ntop nright nbottom) 
-	    (pane-viewport-region stream)
+	  (pane-viewport-region stream)
 	  ;;--- Do we really want to do this here??
 	  (update-region stream nleft ntop nright nbottom)
 	  (cond
-	    ;; if some of the stuff that was previously on display is still on display
-	    ;; bitblt it into the proper place and redraw the rest.
-	    ((ltrb-overlaps-ltrb-p left top right bottom
-				   nleft ntop nright nbottom)
-	     ;; move the old stuff to the new position
-	     (window-shift-visible-region stream 
-					  left top right bottom
-					  nleft ntop nright nbottom)
-	     (let ((rectangles (ltrb-difference nleft ntop nright nbottom
-						left top right bottom)))
-	       (with-sheet-medium (medium stream)
-		 (dolist (region rectangles)
-		   (multiple-value-call #'draw-rectangle*
-					medium
-					(bounding-rectangle* region)
-					:ink +background-ink+ :filled t)
-		   (when (typep stream 'clim-internals::output-recording-mixin)
-		     (replay (stream-output-history stream) stream region))))))
-	    ;; otherwise, just redraw the whole visible viewport
-	    ;; adjust for the left and top margins by hand so clear-area doesn't erase
-	    ;; the margin components.
-	    ((typep stream 'clim-internals::output-recording-mixin)
-	     (let ((region (viewport-viewport-region vp)))
-	       ;;---- we should make the sheet-region bigger at this point
-	       ;; perhaps we do a union of the sheet-region and the viewport
-	       (with-sheet-medium (medium stream)
-		 (multiple-value-call #'draw-rectangle* 
-		   medium
-		   (bounding-rectangle* region)
-		   :ink +background-ink+ :filled t))
-	       (replay (stream-output-history stream) stream region)))))))))
+	   ;; if some of the stuff that was previously on display is still on display
+	   ;; bitblt it into the proper place and redraw the rest.
+	   ((ltrb-overlaps-ltrb-p left top right bottom
+				  nleft ntop nright nbottom)
+	    ;; move the old stuff to the new position
+	    (window-shift-visible-region stream 
+					 left top right bottom
+					 nleft ntop nright nbottom)
+	    (let ((rectangles (ltrb-difference nleft ntop nright nbottom
+					       left top right bottom)))
+	      (with-sheet-medium (medium stream)
+		(dolist (region rectangles)
+		  (multiple-value-call #'draw-rectangle*
+		    medium
+		    (bounding-rectangle* region)
+		    :ink +background-ink+ :filled t)
+		  (when (typep stream 'clim-internals::output-recording-mixin)
+		    (replay (stream-output-history stream) stream region))))))
+	   ;; otherwise, just redraw the whole visible viewport
+	   ;; adjust for the left and top margins by hand so clear-area doesn't erase
+	   ;; the margin components.
+	   ((typep stream 'clim-internals::output-recording-mixin)
+	    (let ((region (viewport-viewport-region vp)))
+	      ;;---- we should make the sheet-region bigger at this point
+	      ;; perhaps we do a union of the sheet-region and the viewport
+	      (with-sheet-medium (medium stream)
+		(multiple-value-call #'draw-rectangle* 
+		  medium
+		  (bounding-rectangle* region)
+		  :ink +background-ink+ :filled t))
+	      (replay (stream-output-history stream) stream region)))))
+	(when (and (/= left x) (/= top y))
+	  (note-viewport-position-changed
+	   (pane-frame stream)
+	   stream))))))
+
+(defmethod note-viewport-position-changed (frame pane)
+  nil)
 
 
 ;;; Home-grown scroll-bars

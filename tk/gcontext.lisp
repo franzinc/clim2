@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: gcontext.lisp,v 1.11 92/04/21 16:12:21 cer Exp Locker: cer $
+;; $fiHeader: gcontext.lisp,v 1.12 92/04/21 20:27:31 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -297,6 +297,13 @@
    (object-display gc)
    gc
    x11::none))
+
+(defmethod (setf gcontext-clip-mask) ((nv pixmap) (gc gcontext))
+  (x11:xsetclipmask
+   (object-display gc)
+   gc
+   nv))
+
 
 (defmethod (setf gcontext-clip-mask) ((nv cons) (gc gcontext))
   (destructuring-bind

@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-frames.lisp,v 1.13 92/04/21 16:13:26 cer Exp Locker: cer $
+;; $fiHeader: xm-frames.lisp,v 1.14 92/04/21 20:28:30 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -311,10 +311,10 @@
 		      (second 
 		       (decode-gadget-background medium sheet x))))))))
 	(destructuring-bind
-	    (&key name pixmap clip-mask) icon
+	    (&key name pixmap clipping-mask) icon
 	  (when name
 	    (tk::set-values shell :icon-name name))
 	  (when pixmap
 	    (tk::set-values shell :icon-pixmap (decode-pixmap pixmap)))
-	  (when clip-mask
-	    (tk::set-values shell :clip-mask (decode-pixmap clip-mask))))))))
+	  (when clipping-mask
+	    (tk::set-values shell :clip-mask (decode-pixmap clipping-mask))))))))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: output-protocol.lisp,v 1.9 92/03/09 17:41:47 cer Exp $
+;; $fiHeader: output-protocol.lisp,v 1.10 92/04/15 11:46:56 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -71,6 +71,8 @@
 		    :accessor stream-default-view))
   (:default-initargs :end-of-line-action :wrap
 		     :end-of-page-action :scroll
+		     ;;-- Is this correct
+		     :default-text-margin +largest-coordinate+
                      ;;--- 16 bit indices into fonts big enough?
                      :output-glyph-buffer (make-array 512 :element-type '(unsigned-byte 16)
 							  :initial-element 0)

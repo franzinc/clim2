@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: frames.lisp,v 1.14 92/04/15 11:46:30 cer Exp Locker: cer $
+;; $fiHeader: frames.lisp,v 1.15 92/04/21 16:13:03 cer Exp Locker: cer $
 
 
 (in-package :clim-internals)
@@ -71,7 +71,7 @@
   
   (destructuring-bind (&key x y width height) geometry
     (declare (ignore x y width height)))
-  (destructuring-bind (&key name pixmap clip-mask) icon
+  (destructuring-bind (&key name pixmap clipping-mask) icon
     (declare (ignore name pixmap clip-mask)))
   
   (let ((frame-manager
@@ -585,10 +585,15 @@ the same time " options))
 		       #'command-line-read-remaining-arguments-for-partial-command
 		       #'menu-read-remaining-arguments-for-partial-command)))
 	     (command-stream
-	       ;;--- I'm not really convinced that this is right
-	       (typecase *standard-input*
-		 (output-protocol-mixin *standard-input*)
-		 (t (frame-top-level-sheet frame)))))
+	      ;;-- We have to ask the frame since we do not want to
+	      ;; just pick up a stream from the dynamic environment
+	      (let ((si (or (frame-standard-input frame)
+			    (frame-standard-output frame))))
+	      ;;--- I'm not really convinced that this is right
+	      ;; Who is not convinced
+	       (typecase si
+		 (output-protocol-mixin si)
+		 (t (frame-top-level-sheet frame))))))
 	#+Allegro
 	(unless (typep *standard-input* 'excl::bidirectional-terminal-stream)
 	  (assert (port *standard-input*)))
@@ -849,8 +854,17 @@ the same time " options))
   (not (null (find-frame-pane-of-type frame 'interactor-pane))))
 
 (defmethod notify-user (frame message &rest options) 
-  (declare (dynamic-extent format-arguments))
-  (apply #'port-notify-user (port frame) message :frame frame options))
+  (when frame (setf (getf options :frame) frame))
+  (apply #'port-notify-user 
+	 (if frame (port frame) (find-port))
+	 message
+	 options))
+
+(defmethod select-file (frame &rest options) 
+  (when frame (setf (getf options :frame) frame))
+  (apply #'port-select-file 
+	 (if frame (port frame) (find-port))
+	 options))
 
 
 ;;; Pointer documentation

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept-values.lisp,v 1.15 92/04/15 11:46:02 cer Exp Locker: cer $
+;; $fiHeader: accept-values.lisp,v 1.16 92/04/21 16:12:56 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -279,7 +279,9 @@
      (if own-window
 	 (let ((frame (make-application-frame (or frame-class 'accept-values-own-window)
 					      :calling-frame *application-frame*
-					      :parent *application-frame*
+					      :parent
+					      *application-frame*
+					      :pretty-name label
 					      :continuation continuation
 					      :exit-boxes exit-boxes
 					      :own-window the-own-window
@@ -367,17 +369,18 @@
 					     :use-keystrokes t)))))
 		     (if (and command (not (keyboard-event-p command)))
 			 (execute-frame-command frame command)
-			 (beep stream)))
-		   (when (or resynchronize-every-pass (slot-value avv-record 'resynchronize))
-		     ;; When the user has asked to resynchronize every pass, that
-		     ;; means we should run the continuation an extra time to see
-		     ;; that all visible stuff is up to date.  That's all!
-		     (with-output-recording-options (stream :draw nil)
-		       (redisplay avv stream :check-overlapping check-overlapping)))
-		   (setf (slot-value avv-record 'resynchronize) nil)
-		   (when exit-button-record
-		     (redisplay exit-button-record exit-button-stream))
-		   (redisplay avv stream :check-overlapping check-overlapping))))
+		       (beep stream)))
+		   (with-defered-gadget-updates
+		       (when (or resynchronize-every-pass (slot-value avv-record 'resynchronize))
+			 ;; When the user has asked to resynchronize every pass, that
+			 ;; means we should run the continuation an extra time to see
+			 ;; that all visible stuff is up to date.  That's all!
+			 (with-output-recording-options (stream :draw nil)
+			   (redisplay avv stream :check-overlapping check-overlapping)))
+		     (setf (slot-value avv-record 'resynchronize) nil)
+		     (when exit-button-record
+		       (redisplay exit-button-record exit-button-stream))
+		     (redisplay avv stream :check-overlapping check-overlapping)))))
 	  (declare (dynamic-extent #'run-continuation #'run-avv))
 	  (with-simple-restart (frame-exit "Exit from the ACCEPT-VALUES dialog")
 	    (setq avv

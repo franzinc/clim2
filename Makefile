@@ -1,10 +1,16 @@
-# $fiHeader: Makefile,v 1.22 92/04/15 11:48:32 cer Exp Locker: cer $
+# $fiHeader: Makefile,v 1.23 92/04/21 20:28:19 cer Exp Locker: cer $
 # 
 #  Makefile for CLIM 2.0
 #
 CL	= /vapor/usr/tech/cer/cl/src/dcl
 DUMP-CL	= $(CL)
 CLOPTS	= -qq
+
+# Info
+LOAD_SOURCE_FILE_INFO=t
+RECORD_SOURCE_FILE_INFO=t
+RECORD_XREF_INFO=nil
+LOAD_XREF_INFO=nil
 
 # Lisp optimization for compiling
 SPEED	= 3
@@ -257,11 +263,19 @@ all-ol:	compile-ol cat-ol clim-ol
 
 compile-xm:	$(CLIMOBJS) FORCE
 	$(ECHO) " \
+		(setf excl:*load-source-file-info* $(LOAD_SOURCE_FILE_INFO)) \
+		(setf excl:*record-source-file-info* $(RECORD_SOURCE_FILE_INFO)) \
+		(setf excl:*record-xref-info* $(RECORD_XREF_INFO)) \
+		(setf excl:*load-xref-info* $(LOAD_XREF_INFO)) \
 		(proclaim '(optimize (speed $(SPEED)) (safety $(SAFETY)))) \
 		(load \"misc/compile-xm.lisp\")" | $(CL) $(CLOPTS) -batch
 
 compile-ol:	$(CLIMOBJS) FORCE
 	$(ECHO) " \
+		(setf excl:*load-source-file-info* $(LOAD_SOURCE_FILE_INFO)) \
+		(setf excl:*record-source-file-info* $(RECORD_SOURCE_FILE_INFO)) \
+		(setf excl:*record-xref-info* $(RECORD_XREF_INFO)) \
+		(setf excl:*load-xref-info* $(LOAD_XREF_INFO)) \
 		(setq *ignore-package-name-case* t) \
 		(set-case-mode :case-insensitive-lower) \
 		(proclaim '(optimize (speed $(SPEED)) (safety $(SAFETY)))) \

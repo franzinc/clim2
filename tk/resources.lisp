@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: resources.lisp,v 1.16 92/04/21 16:12:23 cer Exp Locker: cer $
+;; $fiHeader: resources.lisp,v 1.17 92/04/21 20:27:41 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -135,9 +135,11 @@
 (defmethod convert-resource-in (class (type (eql 'xm-string)) value)
   (and (not (zerop value))
        (with-ref-par ((string 0))
+	 ;;--- I think we need to read the book about
+	 ;;--- xm_string_get_l_to_r and make sure it works with multiple
+	 ;;-- segment strings
 	 (xm_string_get_l_to_r value xm_string_default_char_set string)
-	 (char*-to-string (sys:memref-int (foreign-pointer-address string) 0 0
-					  :signed-long)))))
+	 (char*-to-string (aref string 0)))))
 
 
 (define-enumerated-resource separator-type (:no-line 
@@ -571,3 +573,19 @@
 	(setf (x-arglist r i)
 	  (convert-resource-out parent 'xm-string (car v))))
     0))
+
+;;-- This is a problem cos we dont know the number of items
+
+(defmethod convert-resource-in (parent (type (eql 'xm-string-table)) value)
+  value)
+
+(defun convert-xm-string-table-in (parent table n)
+  (let ((r nil))
+    (dotimes (i n (nreverse r))
+      (push (convert-resource-in parent 'xm-string (x-arglist table i))
+	    r))))
+
+(defmethod convert-resource-out (parent (type (eql 'proc)) value)
+  (etypecase value
+    ;;-- Should check to see if its registered
+    (integer value)))

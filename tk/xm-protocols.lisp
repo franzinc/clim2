@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-protocols.lisp,v 1.5 92/03/09 17:41:09 cer Exp $
+;; $fiHeader: xm-protocols.lisp,v 1.6 92/04/21 20:27:48 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -29,15 +29,18 @@
 					     (call-data
 					      :unsigned-long))
 
-  ;; Seems that the first argument is not a widget but a pointer to
-  ;; one of the above, and that the protocol component is the widget
-  
-  #+ignore
-  (print (list something-weird-widget
+  ;;-- Seems that the first argument is not a widget but a pointer to
+  ;;-- one of the above, and that the protocol component is the widget
+  #+debug
+  (let ((x (list something-weird-widget
 	       (xm-protocol-object something-weird-widget)
 	       (xm-protocol-ext something-weird-widget)
 	       (xm-protocol-protocol something-weird-widget)
-	       (xm-proto-callback-info-handle x)))
+	       (xm-proto-callback-info-handle x))))
+    (print (list x 
+		 (mapcar #'(lambda (x) 
+			     (find-object-from-address x nil))
+			 x))))
   
   (callback-handler-1 (xm-proto-callback-info-handle x)
 		      (xm-proto-callback-info-data x)
@@ -56,7 +59,8 @@
      (if (integerp property) property (xm-intern-atom shell property))
      (if (integerp protocol) protocol (xm-intern-atom shell protocol))
      *protocol-callback-handler-address*
-     (let ((x (make-xm-proto-callback-info)))
+     ;;--- Malloc thing
+     (let ((x (make-xm-proto-callback-info :in-foreign-space t)))
        (setf (xm-proto-callback-info-handle x) shell
 	     (xm-proto-callback-info-data x)
 	     (caar (push

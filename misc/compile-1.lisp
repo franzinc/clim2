@@ -20,16 +20,12 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: compile-1.lisp,v 1.2 92/04/10 14:27:44 cer Exp Locker: cer $
+;; $fiHeader: compile-1.lisp,v 1.3 92/04/21 20:28:21 cer Exp Locker: cer $
 
 (in-package :user)
 
 (setq *ignore-package-name-case* t)
 (set-case-mode :case-insensitive-lower)
-(setf *load-source-file-info* t)
-(setf *record-source-file-info* t)
-(setf *load-xref-info* nil)
-(setf *record-xref-info* nil)
 (setf (sys:gsgc-switch :print) t)
 (setf (sys:gsgc-switch :stats) t)
 

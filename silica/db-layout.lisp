@@ -22,7 +22,7 @@
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
 ;;;
-;; $fiHeader: db-layout.lisp,v 1.12 92/04/15 11:45:02 cer Exp Locker: cer $
+;; $fiHeader: db-layout.lisp,v 1.13 92/04/21 16:12:36 cer Exp Locker: cer $
 
 (in-package :silica)
 

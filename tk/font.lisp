@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: font.lisp,v 1.9 92/04/15 11:44:42 cer Exp Locker: cer $
+;; $fiHeader: font.lisp,v 1.10 92/04/21 20:27:29 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -29,7 +29,8 @@
 
 (defmethod print-object ((x font) stream)
   (print-unreadable-object (x stream :type t :identity t)
-    (format stream "~A ~X" (font-name x) x)))
+    (format stream "~A" 
+	    (if (slot-boundp x 'name) (font-name x) :dunno))))
 
 (defmethod initialize-instance :after ((f font) &key foreign-address display name)
   (unless foreign-address
@@ -49,6 +50,11 @@
 
 (defmethod font-width (font)
   (x11::xfontstruct-max-bounds-width font))
+
+(defmethod font-height (font)
+  (+ (font-ascent font)
+     (font-descent font)))
+
  
 (defmethod font-ascent (font)
   (x11:xfontstruct-ascent font))
@@ -76,6 +82,20 @@
 	(xcharstruct-vector-width
 	 (x11:xfontstruct-per-char font)
 	 (- index min)))))
+
+(defmethod char-dimensions (font index)
+  (multiple-value-bind
+      (min max) (font-range font)
+    (if (and (<= min index)
+	     (<= index max))
+	(let ((n (- index min))
+	      (s (x11:xfontstruct-per-char font)))
+	  (values
+	   (xcharstruct-vector-lbearing s n)
+	   (xcharstruct-vector-rbearing s n)
+	   (xcharstruct-vector-width s n)
+	   (xcharstruct-vector-ascent s n)
+	   (xcharstruct-vector-descent s n))))))
 
 (defun list-font-names (display pattern &key (max-fonts 65535) (result-type 'list))
   (with-ref-par ((n 0))

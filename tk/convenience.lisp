@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: convenience.lisp,v 1.7 92/04/21 16:12:18 cer Exp Locker: cer $
+;; $fiHeader: convenience.lisp,v 1.8 92/04/21 20:27:27 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -65,3 +65,7 @@
 (define-convenience-class xm-warning-dialog (xm-message-box) "_XmCreateWarningDialog")
 (define-convenience-class xm-information-dialog (xm-message-box) "_XmCreateInformationDialog")
 (define-convenience-class xm-error-dialog (xm-message-box) "_XmCreateErrorDialog")
+
+(define-convenience-class xm-file-selection-dialog
+    (xm-file-selection-box) 
+  "_XmCreateFileSelectionDialog")

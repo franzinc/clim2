@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.20 92/04/21 16:13:39 cer Exp Locker: cer $
+;; $fiHeader: xt-silica.lisp,v 1.21 92/04/21 20:28:37 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -36,7 +36,8 @@
 		 :reader port-event-lock)
      (menu-cache
       :initform nil
-      :accessor port-menu-cache))
+      :accessor port-menu-cache)
+     (rotated-font-cache :initform nil :accessor port-rotated-font-cache))
   (:default-initargs :allow-loose-text-style-size-mapping t)
   (:documentation "The port for X intrinsics based ports"))
 
@@ -963,10 +964,15 @@
 
 ;;;---- This is just an experiment
 
-(defmethod engraft-medium :before ((medium t) (port xt-port) (pane clim-stream-pane))
-  (default-from-mirror-resources port pane))
+;(defmethod engraft-medium :before ((medium t) (port xt-port) (pane clim-stream-pane))
+;  (default-from-mirror-resources port pane))
+;
+;(defmethod engraft-medium :before ((medium t) (port xt-port) (pane top-level-sheet))
+;  (default-from-mirror-resources port pane))
 
-(defmethod engraft-medium :before ((medium t) (port xt-port) (pane top-level-sheet))
+
+(defmethod engraft-medium :before ((medium t) (port xt-port) 
+				   (pane clim-internals::output-protocol-mixin))
   (default-from-mirror-resources port pane))
 
 ;;-- What do we do about pixmap streams. I guess they should inherit
@@ -980,19 +986,20 @@
 
 (defun default-from-mirror-resources (port pane)
   (let ((w (sheet-mirror pane)))
-    (multiple-value-bind
-	(foreground background)
-	;;-- What about the case when there is a pixmap
-	(tk::get-values w :foreground :background)
-      ;; Now we have to convert into CLIM colors.
-      (flet ((ccm (x)
-	       (multiple-value-bind
-		   (r g b)
-		   (tk::query-color (tk::default-colormap (port-display port)) x)
-		 (let ((x #.(1- (ash 1 16))))
-		   (make-rgb-color 
-		    (/ r x)
-		    (/ g x)
-		    (/ b x))))))
-	(setf (medium-foreground pane) (ccm foreground)
-	      (medium-background pane) (ccm background))))))
+    ;;-- What about the case when there is a pixmap
+    (when (typep w 'xt::xt-root-class)
+      (multiple-value-bind
+	  (foreground background)
+	  (tk::get-values w :foreground :background)
+	;; Now we have to convert into CLIM colors.
+	(flet ((ccm (x)
+		 (multiple-value-bind
+		     (r g b)
+		     (tk::query-color (tk::default-colormap (port-display port)) x)
+		   (let ((x #.(1- (ash 1 16))))
+		     (make-rgb-color 
+		      (/ r x)
+		      (/ g x)
+		      (/ b x))))))
+	  (setf (medium-foreground pane) (ccm foreground)
+		(medium-background pane) (ccm background)))))))

@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: test.lisp,v 1.20 92/04/15 11:47:45 cer Exp Locker: cer $
+;; $fiHeader: test.lisp,v 1.21 92/04/21 16:13:21 cer Exp Locker: cer $
 
 (in-package :clim-user)
 
@@ -382,12 +382,12 @@
 		 #+ignore
 		 (scrolling ()
 			    (make-pane 'text-editor 
-					  :value "lucid sucks"
+					  :value "lucid "
 					  :ncolumns 30
 					  :nlines 10))
 		 (scrolling ()
 			    (make-pane 'text-editor 
-					  :value "harlqn sucks more"
+					  :value "harlqn  more"
 					  :ncolumns 30
 					  :nlines 10)))))
 
@@ -427,13 +427,13 @@
        (horizontally ()
 		     (scrolling ()
 				(make-pane 'text-editor 
-					   :value "lucid sucks"
+					   :value "lucid "
 					   :value-changed-callback 'text-field-changed
 					   :ncolumns 30
 					   :nlines 10))
 		     (scrolling ()
 				(make-pane 'text-editor 
-					   :value "harlqn sucks more"
+					   :value "harlqn  more"
 					   :value-changed-callback 'text-field-changed
 					   :ncolumns 30
 					   :nlines 10))))
@@ -455,14 +455,14 @@
 						     'xm-silica::motif-scrolling-window
 						     :contents
 						     (make-pane 'text-editor 
-								:value "lucid sucks"
+								:value "lucid "
 								:value-changed-callback 'text-field-changed
 								:ncolumns 30
 								:nlines 10))
 						    (make-pane
 						     'xm-silica::motif-scrolling-window
 						     :contents (make-pane 'text-editor 
-									  :value "harlqn sucks more"
+									  :value "harlqn  more"
 									  :value-changed-callback 'text-field-changed
 									  :ncolumns 30
 									  :nlines 10))))))

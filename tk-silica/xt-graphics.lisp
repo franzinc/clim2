@@ -20,7 +20,7 @@ U;; -*- mode: common-lisp; package: tk-silica -*-
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.17 92/04/21 16:13:36 cer Exp Locker: cer $
+;; $fiHeader: xt-graphics.lisp,v 1.18 92/04/21 20:28:35 cer Exp Locker: cer $
 
 (in-package :tk-silica)
 
@@ -576,28 +576,34 @@ and on color servers, unless using white or black")
 (defmethod port-draw-text* ((port xt-port) sheet medium
 			    string-or-char x y start end
 			    align-x align-y
-			    ;; towards-point towards-x towards-y
-			    ;; transform-glyphs
+			    towards-x towards-y transform-glyphs
 			    )
   (let* ((transform (sheet-device-transformation sheet))
 	 (font (text-style-mapping port (medium-text-style medium)))
 	 (ascent (tk::font-ascent font)))
     (convert-to-device-coordinates transform x y)
+    (when towards-x
+      (convert-to-device-coordinates transform towards-x towards-y))
     (when (typep string-or-char 'character)
       (setq string-or-char (string string-or-char)))
     (ecase align-x
       (:center 
-	(decf x (floor (text-size sheet string-or-char
-				  :text-style (medium-text-style medium)
-				  :start start :end end) 2)))
+       (let ((dx (floor (text-size sheet string-or-char
+				   :text-style (medium-text-style medium)
+				   :start start :end end) 2)))
+	 (when towards-x (decf towards-x dx))
+	 (decf x dx)))
       (:left nil))
     (ecase align-y
       (:center 
-	(decf y (- (text-style-descent (medium-text-style medium) port)
-		   (floor (text-style-height (medium-text-style medium) port) 2))))
+       (let ((dy (- (text-style-descent (medium-text-style medium) port)
+		  (floor (text-style-height (medium-text-style medium) port) 2))))
+	 (decf y dy)
+	 (when towards-y (decf towards-y dy))))
       (:baseline nil)
       (:top
-	(incf y ascent))) 
+       (when towards-y (incf towards-y ascent))
+       (incf y ascent))) 
     (when (medium-drawable medium)
       (let ((gc (adjust-ink
 		 medium
@@ -605,13 +611,313 @@ and on color servers, unless using white or black")
 		 (medium-ink medium)
 		 (medium-line-style medium)
 		 x 
-		 (- y ascent))))
+		 (- y ascent)))
+	    (drawable (medium-drawable medium)))
 	(setf (tk::gcontext-font gc) font)
-	(tk::draw-string
-	  (medium-drawable medium)
-	  gc
-	  x y
-	  string-or-char start end)))))
+	(if (and towards-x towards-y)
+	    (port-draw-rotated-text
+	     port
+	     drawable
+	     gc
+	     x y
+	     string-or-char 
+	     start 
+	     end
+	     font
+	     towards-x towards-y transform-glyphs)
+	  (tk::draw-string
+	   drawable
+	   gc
+	   x y
+	   string-or-char start end))))))
+
+(defmethod clim-internals::port-text-bounding-box ((port xt-port)
+						   stream
+						   string x y start end align-x
+						   align-y text-style
+						   towards-x
+						   towards-y
+						   transform-glyphs)
+  (declare (ignore string start end transform-glyphs))
+  (multiple-value-bind
+      (left top right bottom) (call-next-method)
+    (if (and towards-y towards-x)
+	(flet ((compute-rotation (x y towards-x towards-y)
+		 (decf towards-x x)
+		 (decf towards-y y)
+		 (mod (round (atan towards-y towards-x) (/ pi 2.0))
+		      4)))
+	  (let ((ascent (text-style-ascent text-style (port stream))))
+	    (ecase align-y
+	      (:top (incf y ascent)
+		    (incf towards-y ascent))
+	      ;;-- which
+	      ((:baseline :base-line)))
+	    (ecase align-x
+	      (:left))
+	    (let ((transformation
+		   (make-rotation-transformation 
+		    (* (compute-rotation x y towards-x
+						towards-y)
+		       (/ pi 2.0))
+		    (make-point x y))))
+	      (multiple-value-setq (left top)
+		(transform-position transformation left top))
+	      (multiple-value-setq (right bottom)
+		(transform-position transformation right bottom))
+	      (values (min left right) (min top bottom)
+		      (max left right) (max top bottom)))))
+      (values left top right bottom))))
+
+(defun port-draw-rotated-text (port
+			       drawable
+			       gcontext
+			       x
+			       y
+			       string 
+			       start 
+			       end
+			       font
+			       towards-x 
+			       towards-y 
+			       transform-glyphs)
+  (declare (ignore transform-glyphs))
+  ;; When we are transforming glyphs:
+  ;;-- What we need to do is to create a 2^n depth 1 pixmap containing all
+  ;;-- the characters in the font and rotate it by the required amount
+  ;; Then use the bitmap  as a clip-mask for drawing when drawing each
+  ;; rectangle character
+  (flet ((compute-rotation (x y towards-x towards-y)
+	   (decf towards-x x)
+	   (decf towards-y y)
+	   (mod (round (atan towards-y towards-x) (/ pi 2.0)) 4)))
+    (let* ((rotation (compute-rotation x y towards-x towards-y))
+	   (min-char (xt::font-range font))
+	   (ascent (xt::font-ascent font))
+	   (descent (xt::font-descent font)))
+    (multiple-value-bind
+	(pixmap columns 
+	 width 
+	 leftover-width 
+	 rows height
+	 leftover-height)
+	(find-rotated-text-pixmap
+	 port font rotation)
+      (flet ((compute-next-x-and-y (char-width x y)
+	       (let ()
+		 (case rotation
+		   (0 (values (+ x char-width) y))
+		   (3 (values x (- y char-width)))
+		   (2 (values (- x char-width) y))
+		   (1 (values x (+ y char-width))))))
+	     (compute-clip-x-and-clip-y (char char-width x y)
+	       ;;-- This has to get to the right character in the pixmap
+	       (multiple-value-bind
+		(row column)
+		(truncate (- char min-char) columns)
+		;; Now we have to take into account the rotation
+		(let ((columns columns)
+		      (rows rows))
+		  #+debug
+		  (format t "Was Row ~D of ~D, Column ~D of ~D~%" 
+					row rows column columns)
+		  (dotimes (i rotation)
+		    (psetf column (- (1- rows) row) row column)
+		    (rotatef rows columns)))
+		#+debug
+		(format t "Now Row ~D of ~D, Column ~D of ~D~%" 
+			row rows column columns)
+		(let ((px (* column (if (oddp rotation) height width)))
+		      (py (* row (if (oddp rotation) width height)))
+		      (w (- width char-width)))
+		  (ecase rotation
+		    (0)
+		    (3 (incf py leftover-width)
+		       (incf py w))
+		    (2 (incf px leftover-width)
+		       (incf px w)
+		       (incf py leftover-height))
+		    (1 (incf px leftover-height)))
+		  #+debug
+		  (format t "x ~D y ~D px ~D py ~D~%" x y px py)
+		  (values (- x px) (- y py))))))
+	(let  ((ox x)
+	       (oy y))
+	  (declare (ignore oy)
+		   (ignore ox))
+	  (setf (tk::gcontext-clip-mask gcontext) pixmap)
+	  (unless start (setq start 0))
+	  (unless end (setq end (length string)))
+	  (dotimes (i (- end start))
+	    (let* ((char (char-int (aref string (+ start i))))
+		   (char-width (xt::char-width font char))
+		   (cx x)
+		   (cy y))
+	      
+	      (ecase rotation
+		(0 (decf cy ascent))
+		(3 (decf cx ascent)
+		   (decf cy char-width))
+		(2 (decf cy descent)
+		   (decf cx char-width))
+		(1 (decf cx descent)))
+	      
+	      (multiple-value-bind
+		  (clip-x clip-y)
+		  (compute-clip-x-and-clip-y char char-width cx cy)
+		#+debug
+		(setf (tk::gcontext-clip-x-origin gcontext) 0
+		      (tk::gcontext-clip-y-origin gcontext) 70
+		      )
+		#+debug
+		(tk::draw-rectangle drawable gcontext 
+				    0 70 256 256 
+				    t)
+		#+debug
+		(format t "CLip-x, clip-y ~D,~D~%" clip-x clip-y)
+		(setf (tk::gcontext-clip-x-origin gcontext) clip-x
+		      (tk::gcontext-clip-y-origin gcontext) clip-y
+		      ))
+	      ;;-- We have lost the clipping region at this point!
+	      ;;--- We should draw in the background color also
+	      (tk::draw-rectangle drawable gcontext 
+				  cx cy 
+				  (if (oddp rotation) height char-width)
+				  (if (oddp rotation) char-width height)
+				  t)
+	      ;;
+	      (multiple-value-setq
+		  (x y) (compute-next-x-and-y char-width x y))))))))))
+
+(defun find-rotated-text-pixmap (port font rotation)
+  (let ((x (assoc (list font rotation) (port-rotated-font-cache port) 
+		  :test #'equal)))
+    (when x
+      (return-from find-rotated-text-pixmap (values-list (cdr x))))
+    (multiple-value-bind
+	(min-char max-char) (xt::font-range font)
+      (let ((width (xt::font-width font))
+	    (height (xt::font-height font))
+	    (ascent (xt::font-ascent font))
+	    (nchars (- max-char min-char)))
+	(flet ((find-pixmap-size ()
+		 ;;-- Is there a better way???
+		 (do ((power 2 (* power 2)))
+		     (nil)
+		   (let ((columns (truncate (/ power width)))
+			 (rows (truncate (/ power height))))
+		     (when  (>= (* columns rows) nchars)
+		       (return (values power columns rows)))))))
+	  (multiple-value-bind
+	      (n columns rows)
+	      (find-pixmap-size)
+	    (let* ((pixmap (make-instance 'tk::pixmap
+					  :drawable
+					  (xt::display-root-window
+					   (port-display port))
+					  :depth 1
+					  :width n
+					  :height n))
+		   (gc (make-instance 'tk::gcontext
+				      :drawable pixmap
+				      :foreground 1
+				      :background 0)))
+	      ;; Draw all the characters
+	      (setf (tk::gcontext-foreground gc) 0)
+	      (tk::draw-rectangle pixmap gc 0 0 n n t)
+	      (setf (tk::gcontext-foreground gc) 1)
+	      (do ((row 0)
+		   (col 0)
+		   (string (make-string 1))
+		   (char min-char (1+ char)))
+		  ((> char max-char))
+		(when (= col columns)
+		  (setq col 0 row (1+ row)))
+		(setf (schar string 0) 
+		  (cltl1:int-char char))
+		(tk::draw-string pixmap gc 
+				 (* col width) 
+				 (+ (* row height) ascent)
+				 string)
+		(incf col))
+	      (rotate-pixmap pixmap rotation)
+	      (values-list
+	       (cdr (car
+		     (push (list* (list font rotation)
+				  pixmap
+				  (list columns width (- n (* columns width))
+					rows height (- n (* rows height))))
+			   (port-rotated-font-cache port))))))))))))
+
+(defun rotate-pixmap  (source-pixmap n)
+  ;; original code was in smalltalk from april 1981 byte magazine.
+  ;; this code is mostly from a symbolics lispm hack:
+  ;;   created 11/24/81 by cmb
+  ;;   modified, 1/9/82 by dlw
+  ;;   converted to clim, 19mar92 by nlc.
+  ;; the bit array must be square and a power of two bits on a side.
+  (let* ((array-size (xt::pixmap-width source-pixmap))
+	 (mask-pixmap (make-instance 'tk::pixmap
+		       :drawable source-pixmap
+		       :width array-size
+		       :height array-size
+		       :depth 1))
+	 (temp-pixmap (make-instance 'tk::pixmap
+		       :drawable source-pixmap
+		       :width array-size
+		       :height array-size
+		       :depth 1))
+	 (gc (make-instance 'tk::gcontext :drawable source-pixmap)))
+    (dotimes (i n)
+      (macrolet ((copy-all-to (from xoffset yoffset to alu)
+		   `(stream-bitblt-support gc
+					   ,from  0 0
+					   ,to ,xoffset ,yoffset
+					   (- array-size ,xoffset) (- array-size ,yoffset)
+					   :function ,alu))
+		 (copy-all-from (to xoffset yoffset from alu)
+		   `(stream-bitblt-support gc
+					   ,from ,xoffset ,yoffset
+					   ,to 0 0
+					   (- array-size ,xoffset) (- array-size ,yoffset)
+					   :function ,alu)))
+	(copy-all-to mask-pixmap 0 0 mask-pixmap boole-clr)
+	(copy-all-from mask-pixmap (/ array-size 2) (/ array-size 2)
+		       mask-pixmap boole-set)
+	(do ((quad (/ array-size 2) (/ quad 2)))
+	    ((< quad 1))
+	  (copy-all-to mask-pixmap 0 0 temp-pixmap boole-1) ; 1        
+	  (copy-all-to mask-pixmap 0 quad temp-pixmap boole-ior) ; 2
+	  (copy-all-to source-pixmap 0 0 temp-pixmap boole-and) ; 3
+	  (copy-all-to temp-pixmap 0 0 source-pixmap boole-xor) ; 4
+	  (copy-all-from temp-pixmap quad 0 source-pixmap boole-xor) ; 5
+	  (copy-all-from source-pixmap quad 0 source-pixmap boole-ior) ; 6
+	  (copy-all-to temp-pixmap quad 0 source-pixmap boole-xor) ; 7
+	  (copy-all-to source-pixmap 0 0 temp-pixmap boole-1) ; 8
+	  (copy-all-from temp-pixmap quad quad source-pixmap boole-xor) ; 9
+	  (copy-all-to mask-pixmap 0 0 temp-pixmap boole-and) ; 10
+	  (copy-all-to temp-pixmap 0 0 source-pixmap boole-xor) ; 11
+	  (copy-all-to temp-pixmap quad quad source-pixmap boole-xor) ; 12
+	  (copy-all-from mask-pixmap (floor quad 2) (floor quad 2)
+			 mask-pixmap boole-and) ;13
+	  (copy-all-to mask-pixmap quad 0 mask-pixmap boole-ior) ; 14
+	  (copy-all-to mask-pixmap 0 quad mask-pixmap boole-ior) ; 15
+	  )))))
+
+(defun stream-bitblt-support (gc
+			      from from-left from-top
+			      to to-left to-top
+			      width height &key function)
+  (setf (tk::gcontext-function gc) 
+    (or function boole-1))
+  (tk::copy-area from
+		 gc
+		 from-left from-top
+		 width height
+		 to
+		 to-left to-top))
+
+
 
 ;;--- Is this used any more?
 (defmethod port-write-string-1 ((port xt-port) medium

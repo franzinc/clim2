@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.23 92/04/21 16:13:27 cer Exp Locker: cer $
+;; $fiHeader: xm-gadgets.lisp,v 1.24 92/04/21 20:28:32 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -814,18 +814,25 @@
 			     message-string 
 			     &key 
 			     (style :inform)
-			     (frame *application-frame*)
+			     (frame nil frame-p)
 			     (associated-window
-			      (frame-top-level-sheet frame))
+			      (if frame-p
+				  (frame-top-level-sheet frame)
+				(find-graft :port port)))
 			     (title "Notify user")
 			     documentation
-			     exit-boxes
+			     (exit-boxes
+			      '(:exit
+				:abort
+				:help))
 			     (name title))
   (let ((dialog (make-instance (ecase style
 				 (:inform 'tk::xm-information-dialog)
 				 (:error 'tk::xm-error-dialog)
 				 (:question 'tk::xm-question-dialog)
 				 (:warning 'tk::xm-warning-dialog))
+			       :dialog-style :primary-application-modal
+			       :managed nil
 			       :parent (sheet-mirror associated-window)
 			       :name name
 			       :dialog-title title
@@ -840,21 +847,23 @@
 	       (setq result (list r)))
 	     (display-help (widget ignore)
 	       (declare (ignore widget ignore))
-	       (port-notif-user 
+	       (port-notify-user 
 		port
 		documentation
 		:associated-window associated-window)))
 	(tk::add-callback dialog :ok-callback #'set-it t)
 	(tk::add-callback dialog :cancel-callback #'set-it nil)
 
-	(flet ((set-button-set (name button)
-		 (let ((x (assoc name exit-boxes)))
-		   (cond ((and x (null (second x)))
-			  (tk::unmanage-child button))
-			 ((second x)
-			  (tk::set-values button :label-string (second x)))))))
-	  (set-button-state :ok ok-button)
-	  (set-button-state :cancel cancel-button)
+	(flet ((set-button-state (name button)
+		 (unless (dolist (x exit-boxes nil)
+			   (cond ((eq x name) (return t))
+				 ((atom x))
+				 ((eq (car x) name)
+				  (tk::set-values button :label-string (second x))
+				  (return t))))
+		   (tk::unmanage-child button))))
+	  (set-button-state :exit ok-button)
+	  (set-button-state :abort cancel-button)
 	  (set-button-state :help help-button)
 	  
 	  (if documentation
@@ -866,7 +875,7 @@
 	      (tk::manage-child dialog)
 	      (wait-for-callback-invocation
 	       (port associated-window)
-	       #'(lambda () result)
+	       #'(lambda () (or result (not (tk::is-managed-p dialog))))
 	       "Waiting for dialog"))
 	  (tk::destroy-widget dialog))
 	(car result)))))
@@ -929,3 +938,102 @@
 	  (t x))))
 
 ;;;; Working
+
+;;; File Selection
+
+(defmethod port-select-file ((port motif-port) &rest options 
+			     &key 
+			     (frame nil frame-p)
+			     (associated-window
+			      (if frame-p
+				  (frame-top-level-sheet frame)
+				(find-graft :port port)))
+			     (title "Select File")
+			     documentation
+			     file-search-proc
+			     directory-list-label
+			     file-list-label
+			     (exit-boxes
+			      '(:exit
+				:abort
+				:help))
+			     (name title))
+				  
+  (let ((dialog (make-instance 
+		 'tk::xm-file-selection-dialog
+		 :dialog-style :primary-application-modal
+		 :managed nil
+		 :parent (sheet-mirror associated-window)
+		 :name name
+		 :dialog-title title))
+	(result nil))
+    
+    (when directory-list-label
+      (tk::set-values dialog :dir-list-label-string
+		      directory-list-label))
+    
+    (when file-list-label
+      (tk::set-values dialog :file-list-label-string file-list-label))
+    
+    (when file-search-proc
+      (tk::set-values dialog 
+		      :file-search-proc
+		      (make-file-search-proc-function dialog
+						      file-search-proc))
+      (tk::xm_file_selection_do_search 
+       dialog (xt::xm_string_create_l_to_r (tk::get-values dialog :dir-mask))))
+      
+    (flet ((set-it (widget r)
+	     (declare (ignore widget))
+	     (setq result (list r))))
+      (tk::add-callback dialog :ok-callback #'set-it t)
+      (tk::add-callback dialog :cancel-callback #'set-it nil)
+
+      (unwind-protect
+	  (progn
+	    (tk::manage-child dialog)
+	    (wait-for-callback-invocation
+	     (port associated-window)
+	     #'(lambda () (or result (not (tk::is-managed-p dialog))))
+	     "Waiting for dialog")
+	    (if (car result)
+		(tk::get-values dialog :dir-spec :directory)))
+	(tk::destroy-widget dialog)))))
+
+(ff::defun-c-callable file-search-proc-callback ((widget :unsigned-long)
+						 (cb :unsigned-long))
+  (setq widget (xt::find-object-from-address widget))
+  (file-search-proc-callback-1 
+   widget cb
+   (or (cdr (assoc :file-search-proc (tk::widget-callback-data widget)))
+       (error "No file search proc ~S" widget))))
+  
+(defun file-search-proc-callback-1 (widget cb fn)
+  (multiple-value-bind
+      (new newp)
+      (funcall fn
+	       (tk::convert-resource-in 
+		widget 'tk::xm-string 
+		(tk::xm-file-selection-box-callback-struct-value cb))
+	       (tk::convert-resource-in 
+		widget 'tk::xm-string 
+		(tk::xm-file-selection-box-callback-struct-mask cb))
+	       (tk::convert-resource-in 
+		widget 'tk::xm-string 
+		(tk::xm-file-selection-box-callback-struct-dir cb))
+	       (tk::convert-resource-in 
+		widget 'tk::xm-string 
+		(tk::xm-file-selection-box-callback-struct-pattern
+		 cb)))
+    (when newp
+      (tk::set-values widget 
+		      :file-list-items new 
+		      :file-list-item-count (length new)
+		      :list-updated t))))
+
+(defvar *file-search-proc-callback-address* (ff:register-function 'file-search-proc-callback))
+
+(defun make-file-search-proc-function (dialog file-search-proc)
+  (push (cons :file-search-proc file-search-proc)
+	(tk::widget-callback-data dialog))
+  *file-search-proc-callback-address*)

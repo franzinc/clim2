@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: gadget-output.lisp,v 1.10 92/04/15 11:46:32 cer Exp Locker: cer $
+;; $fiHeader: gadget-output.lisp,v 1.11 92/04/21 16:13:06 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -187,14 +187,40 @@
   ;; Perhaps we should enable the gadget at this point
   nil)
 
+(defvar *with-deffered-gadget-updates* nil)
+
+(defmacro with-defered-gadget-updates (&body body)
+  `(flet ((with-defered-gadget-updates-body ()
+	    ,@body))
+     (if *with-deffered-gadget-updates*
+	 (with-defered-gadget-updates-body)
+       (let ((*with-deffered-gadget-updates* (list nil)))
+	 (multiple-value-prog1
+	     (with-defered-gadget-updates-body)
+	   (complete-gadget-updates))))))
+
+(defun complete-gadget-updates ()
+  (mapc #'(lambda (x)
+	    (setf (sheet-enabled-p (car x)) (cadr x)))
+	(remove-duplicates (cdr *with-deffered-gadget-updates*)
+			   :key #'car
+			   :test #'eq
+			   :from-end t)))
+
+(defun update-output-rec-gadget-state (rec state)
+  (if *with-deffered-gadget-updates*
+      (push (list (output-record-gadget rec) state)
+	    (cdr *with-deffered-gadget-updates*))
+    (setf (sheet-enabled-p (output-record-gadget rec)) state)))
+
 (defmethod note-output-record-attached :after ((rec gadget-output-record) stream)
   (declare (ignore stream))
   (when (output-record-gadget rec)
     (update-gadget-position rec)
-    (setf (sheet-enabled-p (output-record-gadget rec)) t)))
+    (update-output-rec-gadget-state rec t)))
 
 (defmethod note-output-record-detached :after ((rec gadget-output-record))
-  (setf (sheet-enabled-p (output-record-gadget rec)) nil))
+  (update-output-rec-gadget-state rec nil))
 
 ;;; Control whetherwe display a prompt in the gadget or not
 
@@ -238,7 +264,7 @@
 				 stream query-identifier)))))
       (dolist (element sequence)
 	(make-pane 'toggle-button 
-		   :label (princ-to-string element)
+		   :label (funcall name-key element)
 		   :value (and default-supplied-p
 			       (funcall test 
 					(funcall value-key element)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics-recording.lisp,v 1.3 92/04/14 15:29:53 cer Exp Locker: cer $
+;; $fiHeader: graphics-recording.lisp,v 1.4 92/04/15 11:46:41 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -14,32 +14,36 @@
 				       highlighting-function)
   (destructuring-bind (function-args
 		       &key points-to-transform point-sequences-to-transform
-			    distances-to-transform
+		       distances-to-transform
+		       optional-points-to-transform
 		       &allow-other-keys)
       (get-drawing-function-description name)
     ;; Gross me right out!
     (setq function-args
-	  (mapcar #'(lambda (x) (intern (symbol-name x) *package*))
-		  function-args))
+      (mapcar #'(lambda (x) (intern (symbol-name x) *package*))
+	      function-args))
+    (setq optional-points-to-transform
+      (mapcar #'(lambda (x) (intern (symbol-name x) *package*))
+	      optional-points-to-transform))
     (setq points-to-transform
-	  (mapcar #'(lambda (x) (intern (symbol-name x) *package*))
-		  points-to-transform))
+      (mapcar #'(lambda (x) (intern (symbol-name x) *package*))
+	      points-to-transform))
     (setq point-sequences-to-transform
-	  (mapcar #'(lambda (x) (intern (symbol-name x) *package*))
-		  point-sequences-to-transform))
+      (mapcar #'(lambda (x) (intern (symbol-name x) *package*))
+	      point-sequences-to-transform))
     (setq distances-to-transform
-	  (mapcar #'(lambda (x) (intern (symbol-name x) *package*))
-		  distances-to-transform))
+      (mapcar #'(lambda (x) (intern (symbol-name x) *package*))
+	      distances-to-transform))
     (let* ((medium-graphics-function*
-	     (intern (format nil "~A~A*" 'medium- name)))
+	    (intern (format nil "~A~A*" 'medium- name)))
 	   (superclasses '(output-record-element-mixin 
 			   graphics-displayed-output-record))
 	   (slots
-	     (remove 'filled (append medium-components function-args)))
+	    (remove 'filled (append medium-components function-args)))
 	   (slot-descs 
-	     (mapcar #'(lambda (x)
-			 (list x :initarg (intern (symbol-name x) *keyword-package*)))
-			 slots)))
+	    (mapcar #'(lambda (x)
+			(list x :initarg (intern (symbol-name x) *keyword-package*)))
+		    slots)))
       `(progn
 	 (defclass ,class ,superclasses ,slot-descs)
 	 ;;--- Need to define a speedy constructor
@@ -48,9 +52,9 @@
 	   (when (stream-recording-p medium)
 	     (let ((transformation (medium-transformation medium))
 		   ,@(mapcar #'(lambda (medium-component)
-					  (list medium-component
-						`(,(fintern"~A~A" 'medium- medium-component)
-						  medium)))
+				 (list medium-component
+				       `(,(fintern"~A~A" 'medium- medium-component)
+					 medium)))
 			     medium-components))
 	       ;; Overload FILLED and LINE-STYLE -- when FILLED is T,
 	       ;; the LINE-STYLE is ignored and must be NIL
@@ -63,19 +67,29 @@
 		 ,@(mapcar #'(lambda (p)
 			       `(transform-position-sequence (transformation) ,p))
 			   point-sequences-to-transform)
-		 (transform-positions (transformation) ,@points-to-transform)
+		 ,@(do ((pts points-to-transform (cddr pts))
+			(r nil))
+		       ((null pts)
+			(nreverse r))
+		     (push 
+		      (if (member (car pts)
+				  optional-points-to-transform)
+			  `(when ,(car pts)
+			     (transform-positions (transformation) ,(car pts) ,(cadr pts)))
+			`(transform-positions (transformation) ,(car pts) ,(cadr pts)))
+		      r))
 		 (transform-distances (transformation) ,@distances-to-transform)
 		 (let ((record
-			 (make-instance ',class
-			   ,@(mapcan #'(lambda (x)
-					 (list (intern (symbol-name x) *keyword-package*) x))
-				     slots))))
+			(make-instance ',class
+				       ,@(mapcan #'(lambda (x)
+						     (list (intern (symbol-name x) *keyword-package*) x))
+						 slots))))
 		   (multiple-value-bind (lf tp rt bt)
 		       (progn ,bounding-rectangle)
 		     (declare (type coordinate lf tp rt bt))
 		     (bounding-rectangle-set-edges
-		       record
-		       (- lf abs-x) (- tp abs-y) (- rt abs-x) (- bt abs-y))
+		      record
+		      (- lf abs-x) (- tp abs-y) (- rt abs-x) (- bt abs-y))
 		     (multiple-value-bind (cx cy) (stream-cursor-position medium)
 		       (declare (type coordinate cx cy))
 		       ;; Doing this directly beats calling
@@ -90,13 +104,16 @@
 			       point-sequences-to-transform)
 		     ,@(when points-to-transform
 			 `((with-slots ,points-to-transform record
-			     (setf ,@(do ((p points-to-transform (cddr p))
+			     ,@(do ((p points-to-transform (cddr p))
 					  r)
 					 ((null p) (nreverse r))
-				       (push (first p) r)
-				       (push `(- ,(first p) abs-x) r)
-				       (push (second p) r)
-				       (push `(- ,(second p) abs-y) r)))))))
+				 (let ((b `(setf
+					    ,(first p) (- ,(first p) abs-x)
+					    ,(second p) (- ,(second p) abs-y))))
+				   (push
+				    (if (member (car p) optional-points-to-transform)
+					`(when ,(car p) ,b) b) 
+				    r)))))))
 		   (stream-add-output-record medium record)))))
 	   (when (stream-drawing-p medium)
 	     (call-next-method)))
@@ -107,31 +124,33 @@
 	   (with-slots (,@slots) record
 	     (with-sheet-medium (medium stream)
 	       (letf-globally (((medium-transformation medium) +identity-transformation+))
-	         (with-drawing-options 
-		     (medium ,@(mapcan #'(lambda (medium-component)
-					   (list (intern (symbol-name medium-component)
-							 *keyword-package*)
-						 medium-component))
-				       medium-components))
-		   (let (,@(when (and (member 'filled function-args)
-				      (member 'line-style medium-components))
-			     `((filled (not line-style))))
-			 ,@(mapcar #'(lambda (p) (list p p))
-				   points-to-transform)
-			 ,@(mapcar #'(lambda (p) (list p p))
-				   point-sequences-to-transform))
-		     ,@(mapcar #'(lambda (p)
-				   `(setq ,p (adjust-point-sequence 
-					       ,p (- x-offset) (- y-offset))))
-			       point-sequences-to-transform)
-		     (setf ,@(do ((p points-to-transform (cddr p))
-				  r)
-				 ((null p) (nreverse r))
-			       (push (first p) r)
-			       (push `(+ ,(first p) x-offset) r)
-			       (push (second p) r)
-			       (push `(+ ,(second p) y-offset) r)))
-		     (,medium-graphics-function* medium ,@function-args)))))))
+			      (with-drawing-options 
+				  (medium ,@(mapcan #'(lambda (medium-component)
+							(list (intern (symbol-name medium-component)
+								      *keyword-package*)
+							      medium-component))
+						    medium-components))
+				(let (,@(when (and (member 'filled function-args)
+						   (member 'line-style medium-components))
+					  `((filled (not line-style))))
+				      ,@(mapcar #'(lambda (p) (list p p))
+						points-to-transform)
+				      ,@(mapcar #'(lambda (p) (list p p))
+						point-sequences-to-transform))
+				  ,@(mapcar #'(lambda (p)
+						`(setq ,p (adjust-point-sequence 
+							   ,p (- x-offset) (- y-offset))))
+					    point-sequences-to-transform)
+				  ,@(do ((p points-to-transform (cddr p))
+					 r)
+					((null p) (nreverse r))
+				      (let ((b `(setf
+						 ,(first p) (+ ,(first p) x-offset)
+						 ,(second p) (+ ,(second p) y-offset))))
+					(push
+					 (if (member (car p) optional-points-to-transform)
+					     `(when ,(car p) ,b) b) r)))
+				  (,medium-graphics-function* medium ,@function-args)))))))
 	 
 	 ,@(when highlighting-test
 	     (let ((args (first highlighting-test))
@@ -527,19 +546,49 @@
 (define-output-recorder text-output-record
     draw-text (text-style ink)
     :bounding-rectangle
-    (text-bounding-box medium string-or-char x y start end align-x
-			       align-y text-style))
+    (text-bounding-box medium
+		       transformation
+		       string-or-char 
+		       x y start end align-x
+		       align-y 
+		       text-style 
+		       towards-x
+		       towards-y
+		       transform-glyphs))
 
-(defun text-bounding-box (stream string x y start end align-x
-				  align-y text-style)
-  (let ((width (stream-string-width stream string
-				    :start start
-				    :end end
-				    :text-style text-style))
-	;;-- The height really depends on the text in the string
-	;;rather than just the text-style
-	(height (stream-line-height stream text-style))
-	vx vt vr vb)
+(defun text-bounding-box (stream transformation
+			  string x y start end align-x
+			  align-y text-style
+			  towards-x
+			  towards-y
+			  transform-glyphs)
+  (port-text-bounding-box
+   (port stream)
+   stream
+   string x y start end align-x
+   align-y text-style
+   towards-x
+   towards-y
+   transform-glyphs))
+
+(defmethod port-text-bounding-box ((port port)
+				   stream
+				   string x y start end align-x
+				   align-y text-style
+				   towards-x
+				   towards-y
+				   transform-glyphs)
+  (declare (ignore towards-x towards-y transform-glyphs))
+  (let* ((width (stream-string-width stream string
+				     :start start
+				     :end end
+				     :text-style text-style))
+	 ;;-- Is this the correct?
+	 ;;-- Text-style-foo does not take a port!
+	 (ascent (text-style-ascent text-style (port stream)))
+	 (descent (text-style-descent text-style (port stream)))
+	 (height (+ ascent descent))
+	 vx vt vr vb)
     (ecase align-x
       (:left (setq vx x
 		   vr (+ x width)))
@@ -549,14 +598,16 @@
 		     vr (+ x (round width 2)))))
     (ecase align-y
       ;;--- Using STREAM-LINE-HEIGHT for baseline isn't right.
-      (:baseline (setq vt (- y height)
-		       vb y))
+      (:baseline (setq vt (- y ascent)
+		       vb (+ y descent)))
       (:top (setq vt y
 		  vb (+ y height)))
       (:bottom (setq vt (- y height)
 		     vb y))
       ;;--- Use FLOOR and CEILING, no?
-      (:center (setq vt (- y (round height 2))
-		     vb (+ y (round height 2)))))
+      (:center 
+       (let ((h2 (round height 2))) 
+	 (setq vt (- y h2)
+	       vb (+ y h2)))))
     (values vx vt vr vb)))
 

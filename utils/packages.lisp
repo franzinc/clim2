@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: packages.lisp,v 1.10 92/04/10 14:26:42 cer Exp Locker: cer $
+;; $fiHeader: packages.lisp,v 1.11 92/04/15 11:45:33 cer Exp Locker: cer $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :common-lisp-user)
 
@@ -1731,6 +1731,7 @@
     note-sheet-grafted
     note-sheet-region-changed
     note-sheet-transformation-changed
+    note-viewport-position-changed
     permanent-medium-sheet-output-mixin
     pointer-button-event
     pointer-button-hold-event
@@ -1753,6 +1754,7 @@
     port
     port-keyboard-input-focus
     port-notify-user
+    port-select-file
     port-properties
     port-server-path
     port-type
@@ -2539,6 +2541,7 @@
     redisplay-frame-panes
     reset-frame
     run-frame-top-level
+    select-file
     shrink-frame
     standard-application-frame
     standard-frame-manager
