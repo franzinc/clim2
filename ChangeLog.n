@@ -11,6 +11,12 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.2.2.12 Tim Bradshaw <tfb@cley.com>
+
+	* clim/accept.lisp: try and work around Gray stream dependence 
+	  (more work is needed on gray streams)
+
+*******************************************************************************
 2.2.2.11
 
 2000-06-08  Kevin Layer  <layer@ultra>
