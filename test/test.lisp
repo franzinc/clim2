@@ -1,3 +1,4 @@
+;; -*- mode: common-lisp; package: clim -*-
 
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
@@ -19,6 +20,8 @@
 ;; applicable.
 ;;
 (in-package :clim)
+;; $fiHeader$
+
 
 (define-application-frame test-frame ()
   (a b c)
