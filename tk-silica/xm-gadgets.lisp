@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.30 92/05/13 17:11:16 cer Exp Locker: cer $
+;; $fiHeader: xm-gadgets.lisp,v 1.31 92/05/22 19:29:30 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -174,7 +174,8 @@
 						     (sheet motif-push-button))
   (values 'tk::xm-push-button nil))
 
-(defmethod add-sheet-callbacks ((port motif-port) (sheet t) (widget tk::xm-my-drawing-area))
+(defmethod add-sheet-callbacks
+    ((port motif-port) (sheet t) (widget tk::xm-my-drawing-area))
   (tk::add-callback widget 
 		    :expose-callback 
 		    'sheet-mirror-exposed-callback
@@ -199,8 +200,12 @@
 			 'sheet-mirror-event-handler
 			 sheet))
 
+#|
+
 ;; Drawing area
 ;; Who uses this anyway??????????????
+
+;; Noone!
 
 (defclass motif-drawing-area (standard-sheet-input-mixin 
 			      permanent-medium-sheet-output-mixin
@@ -217,6 +222,7 @@
 (defmethod add-sheet-callbacks :after ((port motif-port) (sheet motif-drawing-area) widget)
   ;; Now does nothing
   )
+|#
 
 ;;; range pane mixin
 

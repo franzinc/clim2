@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: medium.lisp,v 1.12 92/05/14 11:03:46 cer Exp Locker: cer $
+;; $fiHeader: medium.lisp,v 1.13 92/05/22 19:26:56 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -137,6 +137,23 @@
   (with-slots (transformation transformed-clipping-region) medium
     (setf transformed-clipping-region (transform-region transformation clipping-region)))
   clipping-region)
+
+(defmacro with-medium-clipping-region ((medium new-region) &body body)
+  `(flet ((with-medium-clipping-region-body (,medium) ,@body))
+     (declare (dynamic-extent #'with-medium-clipping-region-body))
+     (invoke-with-medium-clipping-region ,medium
+					 #'with-medium-clipping-region-body
+					 ,new-region)))
+
+(defmethod invoke-with-medium-clipping-region ((medium medium)
+					       continuation
+					       region)
+  (let ((saved-region (medium-clipping-region medium)))
+    (unwind-protect
+	(progn
+	  (setf (medium-clipping-region medium) region)
+	  (funcall continuation medium))
+      (setf (medium-clipping-region medium) saved-region))))
 
 ;; NOTE: if you change the keyword arguments accepted by this method, you
 ;; also have to change the list of keywords in *ALL-DRAWING-OPTIONS*

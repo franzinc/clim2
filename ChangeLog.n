@@ -1,4 +1,34 @@
 --------------------------------------------------------------------------------
+from jdi: Tue May 26 09:50:37 PDT 1992
+
+NOTES
+    1: Delete:
+	clim/output-recording-protocol.lisp
+	clim/output-recording-defs.lisp
+
+
+CHANGES
+	-- Fixed scroll-extent so that copied region is correct, also so that
+	   repaint is correctly clipped to newly visible region.
+
+	-- Added with-medium-clipping-region macro to support above.
+
+	-- Optimized s'more gcontext code and #||#ed out unused code.
+
+	-- Put in window-width,height,depth readers.
+
+	-- Moved setting of backing store to exposure callback.
+
+	-- Created new gcontext subclass to allow much faster adjust-ink.
+
+	-- Get rid of 'unknown event 4'.
+
+	-- Have draw-rotated-text null out gcontext clip mask cache.
+
+	-- Other minor cleanups & speedups.
+
+
+--------------------------------------------------------------------------------
 from jdi: Wed May 13 17:13:58 PDT 1992
 
 	Added print-object method for window-repaint-event

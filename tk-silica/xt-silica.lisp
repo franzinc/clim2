@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.27 92/05/13 17:11:24 cer Exp Locker: cer $
+;; $fiHeader: xt-silica.lisp,v 1.28 92/05/22 19:29:39 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -372,7 +372,6 @@
 		(make-instance 'pointer-exit-event
 			       :native-x native-x
 			       :native-y native-y
-			       :button (x-button->silica-button button)
 			       :modifiers
 			       (state->modifiers
 				(x11::xkeyevent-state event))
@@ -381,7 +380,6 @@
 		(make-instance 'pointer-enter-event
 			       :native-x native-x
 			       :native-y native-y
-			       :button (x-button->silica-button button)
 			       :modifiers 
 			       (state->modifiers
 				(x11::xkeyevent-state event))
@@ -420,7 +418,10 @@
 		     :sheet sheet))))
 
 (defmethod sheet-mirror-exposed-callback (widget window event sheet)
-  (declare (ignore widget window))
+  ;; This isn't really the right place to do this, but it's better than
+  ;; in ensure-blinker-for-cursor.
+  (let ((window (tk::widget-window widget)))
+    (setf (xt::window-backing-store window) t))
   (let* ((minx (x11::xexposeevent-x event))
 	 (miny (x11::xexposeevent-y event))
 	 (width (x11::xexposeevent-width event))

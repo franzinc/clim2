@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xlib.lisp,v 1.17 92/05/13 17:10:28 cer Exp Locker: cer $
+;; $fiHeader: xlib.lisp,v 1.18 92/05/22 19:26:33 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -112,25 +112,9 @@
 
 (define-window-accessor save-under (encode-save-under decode-save-under))
 
-;;--- Something else should be here.
-
-(defmethod window-depth ((window window))
-  (let ((attrs (x11:make-xwindowattributes)))
-    (x11:xgetwindowattributes (object-display window)
-			      window
-			      attrs)
-    (x11:xwindowattributes-depth attrs)))
-
-
-(defmethod window-map-state ((window window))
-  (let ((attrs (x11:make-xwindowattributes)))
-    (x11:xgetwindowattributes (object-display window)
-			      window
-			      attrs)
-    (ecase (x11:xwindowattributes-map-state attrs)
-      (0 :unmapped)
-      (1 :unviewable)
-      (2 :viewable))))
+(define-window-reader width)
+(define-window-reader height)
+(define-window-reader depth)
 
 
 (defmethod drawable-width ((window window))

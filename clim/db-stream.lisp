@@ -22,7 +22,7 @@
 ;;;
 ;;; Copyright (c) 1990 by Xerox Corporations.  All rights reserved.
 ;;;
-;; $fiHeader: db-stream.lisp,v 1.17 92/05/12 18:24:56 cer Exp Locker: cer $
+;; $fiHeader: db-stream.lisp,v 1.18 92/05/22 19:27:49 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -418,6 +418,7 @@
 (defmethod window-set-inside-size ((stream clim-stream-sheet) width height)
   (change-space-requirements stream :width width :height height :resize-frame t))
 
+
 (defun-inline window-parent (window)
   (sheet-parent window))
 
@@ -461,15 +462,15 @@
 		    (<= delta-y 0))
 	       ;; shifting up and to the right
 	       (setq from-x 0
-		     from-y (abs delta-y)))
+		     from-y (- delta-y)))
 	      ((>= delta-y 0)
 	       ;; shifting down and to the left
-	       (setq from-x (abs delta-x)
+	       (setq from-x (- delta-x)
 		     from-y 0))
 	      (t
 	       ;; shifting up and to the left
-	       (setq from-x (abs delta-x)
-		     from-y (abs delta-y))))
+	       (setq from-x (- delta-x)
+		     from-y (- delta-y))))
 	(let ((width (- stream-width (abs delta-x)))
 	      (height (- stream-height (abs delta-y))))
 	  (multiple-value-bind (ml mt) 

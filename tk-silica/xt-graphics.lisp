@@ -20,9 +20,13 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.22 92/05/14 11:04:02 cer Exp Locker: cer $
+;; $fiHeader: xt-graphics.lisp,v 1.23 92/05/22 19:29:37 cer Exp Locker: cer $
 
 (in-package :tk-silica)
+
+(defclass fast-gcontext (tk::gcontext)
+  ((last-medium-clip-mask :initform nil)
+   (last-line-style :initform nil)))
 
 (defclass xt-medium (medium)
   ((foreground-gcontext :reader medium-foreground-gcontext :initform nil)
@@ -103,18 +107,18 @@
 	   (screen (tk::display-screen-number display))
 	   (drawable (or drawable
 			 (tk::display-root-window display))))
-      (setf foreground-gcontext (tk::make-instance 'tk::gcontext
+      (setf foreground-gcontext (tk::make-instance 'fast-gcontext
 				    :drawable drawable))
-      (setf background-gcontext (tk::make-instance 'tk::gcontext
+      (setf background-gcontext (tk::make-instance 'fast-gcontext
 				    :drawable drawable))
       (setf flipping-gcontext
-	(tk::make-instance 'tk::gcontext 
+	(tk::make-instance 'fast-gcontext 
 	  :drawable drawable
 	  :function boole-xor))
       (setf color-p (color-medium-p medium))
       (setf white-pixel (x11:xwhitepixel display screen))
       (setf black-pixel (x11:xblackpixel display screen))
-      (setf tile-gcontext (make-instance 'tk::gcontext
+      (setf tile-gcontext (make-instance 'fast-gcontext
 				 :drawable drawable
 				 :foreground black-pixel
 				 :background white-pixel))
@@ -265,7 +269,7 @@
     (or (gethash ink ink-table)
 	(let ((drawable (or drawable
 			    (tk::display-root-window (port-display (port sheet)))))
-	      (new-gc (make-instance 'tk::gcontext :drawable drawable)))
+	      (new-gc (make-instance 'fast-gcontext :drawable drawable)))
 	  (cond (color-p
 		 (setf (tk::gcontext-foreground new-gc)
 		   (decode-color medium ink)))
@@ -309,7 +313,7 @@ and on color servers, unless using white or black")
 	  (let* ((port (port sheet))
 		 (display (port-display port))
 		 (drawable (or drawable (tk::display-root-window display)))
-		 (new-gc (make-instance 'tk::gcontext :drawable drawable)))
+		 (new-gc (make-instance 'fast-gcontext :drawable drawable)))
   
 	    (x11:xcopygc display foreground-gcontext -1 new-gc)
 	    (setf (tk::gcontext-stipple new-gc) (decode-opacity opacity port)
@@ -366,41 +370,46 @@ and on color servers, unless using white or black")
 
 (defvar *default-dashes* '(4 4))
 
-(defmethod adjust-ink ((medium xt-medium) gc ink line-style x-origin y-origin)
-  (declare (ignore ink))
-  (let* ((dashes (line-style-dashes line-style))
-	 (gc-line-style (if dashes :dash :solid)))
+(defun adjust-ink (gc medium line-style x-origin y-origin)
+  (with-slots (last-medium-clip-mask last-line-style) gc
+    (unless (eq last-line-style line-style)
+      (let* ((dashes (line-style-dashes line-style))
+	     (gc-line-style (if dashes :dash :solid)))
 	
-    (tk::set-line-attributes 
-     gc
-     (let ((thickness (line-style-thickness line-style)))
-       (ecase (line-style-unit line-style)
-	 (:normal)
-	 (:point
-	  (setq thickness (* (graft-pixels-per-point (graft medium))
-			     thickness))))
-       (when (< thickness 2)
-	 (setq thickness 0))
-       (setq thickness (the fixnum (round thickness)))
-       thickness)
-     gc-line-style
-     (ecase (line-style-cap-shape line-style)
-       (:butt :butt)
-       (:square :projecting)
-       (:round :round)
-       (:no-end-point :not-last))
-     (ecase (line-style-joint-shape line-style)
-       ((:miter :none) :miter)
-       (:bevel :bevel)
-       (:round :round)))
+	(tk::set-line-attributes 
+	 gc
+	 (let ((thickness (line-style-thickness line-style)))
+	   (ecase (line-style-unit line-style)
+	     (:normal)
+	     (:point
+	      (setq thickness (* (graft-pixels-per-point (graft medium))
+				 thickness))))
+	   (when (< thickness 2)
+	     (setq thickness 0))
+	   (setq thickness (the fixnum (round thickness)))
+	   thickness)
+	 gc-line-style
+	 (ecase (line-style-cap-shape line-style)
+	   (:butt :butt)
+	   (:square :projecting)
+	   (:round :round)
+	   (:no-end-point :not-last))
+	 (ecase (line-style-joint-shape line-style)
+	   ((:miter :none) :miter)
+	   (:bevel :bevel)
+	   (:round :round)))
     
-    (when (eq gc-line-style :dash)
-      (setf (tk::gcontext-dashes gc)
-	(if (excl::sequencep dashes) dashes *default-dashes*))
-      ;; The following isn't really right, but it's better than nothing.
-      (setf (tk::gcontext-dash-offset gc) (1- y-origin)))
-    
-    (setf (tk::gcontext-clip-mask gc) (medium-clip-mask medium))
+	(when (eq gc-line-style :dash)
+	  (setf (tk::gcontext-dashes gc)
+	    (if (excl::sequencep dashes) dashes *default-dashes*))
+	  ;; The following isn't really right, but it's better than nothing.
+	  (setf (tk::gcontext-dash-offset gc) (1- y-origin))))
+      (setf last-line-style line-style))
+
+    (let ((mcm (medium-clip-mask medium)))
+      (unless (eq last-medium-clip-mask mcm)
+	(setf (tk::gcontext-clip-mask gc) (medium-clip-mask medium))
+	(setf last-medium-clip-mask mcm)))
     
     (when (member (tk::gcontext-fill-style gc) '(:tiled :stippled) :test #'eq)
       (setf (tk::gcontext-ts-x-origin gc) x-origin
@@ -413,48 +422,48 @@ and on color servers, unless using white or black")
     gc))
 
 (defmethod xt-decode-pattern ((pattern pattern) medium &optional width height tiled-p)    
-  (let* ((ink-table (slot-value medium 'ink-table))
-	 (drawable (or (slot-value medium 'drawable)
-		       (tk::display-root-window
-			(port-display (port (medium-sheet medium))))))
-	 (depth (tk::drawable-depth drawable)))
+  (let ((ink-table (slot-value medium 'ink-table)))
     (or (gethash pattern ink-table)
-	(setf (gethash pattern ink-table)
-	      (multiple-value-bind (array designs)
-		  (decode-pattern pattern)
-		(let ((image-data (make-array (array-dimensions array)))
-		      (design-pixels (make-array (length designs))))
-		  (declare (simple-vector design-pixels))
-		  ;; Cache the decoded designs from the pattern
-		  (do* ((num-designs (length designs))
-			(n 0 (1+ n))
-			design)
-		       ((eq n num-designs))
-		    (setq design (elt designs n))
-		    (setf (svref design-pixels n) (decode-color medium design)))
-		  (dotimes (w (array-dimension array 1))
-		    (dotimes (h (array-dimension array 0))
-		      (setf (aref image-data h w)
-			    (svref design-pixels (aref array h w)))))
-		  (let* ((pattern-height (array-dimension array 0))
-			 (pattern-width (array-dimension array 1))
-			 (image (make-instance 'tk::image
-					       :width pattern-width
-					       :height pattern-height
-					       :data image-data
-					       :depth depth))
-			 (gc 
-			   (make-instance 'tk::gcontext :drawable drawable))
-			 (pixmap 
-			   (make-instance 'tk::pixmap
-					  :drawable drawable
-					  :width pattern-width
-					  :height pattern-height
-					  :depth depth)))
-		    (tk::put-image pixmap gc image)
-		    (setf (tk::gcontext-tile gc) pixmap
-			  (tk::gcontext-fill-style gc) :tiled)
-		    gc)))))))
+	(let* ((drawable (or (slot-value medium 'drawable)
+			     (tk::display-root-window
+			      (port-display (port (medium-sheet medium))))))
+	       (depth (tk::drawable-depth drawable)))
+	  (setf (gethash pattern ink-table)
+	    (multiple-value-bind (array designs)
+		(decode-pattern pattern)
+	      (let ((image-data (make-array (array-dimensions array)))
+		    (design-pixels (make-array (length designs))))
+		(declare (simple-vector design-pixels))
+		;; Cache the decoded designs from the pattern
+		(do* ((num-designs (length designs))
+		      (n 0 (1+ n))
+		      design)
+		    ((eq n num-designs))
+		  (setq design (elt designs n))
+		  (setf (svref design-pixels n) (decode-color medium design)))
+		(dotimes (w (array-dimension array 1))
+		  (dotimes (h (array-dimension array 0))
+		    (setf (aref image-data h w)
+		      (svref design-pixels (aref array h w)))))
+		(let* ((pattern-height (array-dimension array 0))
+		       (pattern-width (array-dimension array 1))
+		       (image (make-instance 'tk::image
+				:width pattern-width
+				:height pattern-height
+				:data image-data
+				:depth depth))
+		       (gc 
+			(make-instance 'fast-gcontext :drawable drawable))
+		       (pixmap 
+			(make-instance 'tk::pixmap
+			  :drawable drawable
+			  :width pattern-width
+			  :height pattern-height
+			  :depth depth)))
+		  (tk::put-image pixmap gc image)
+		  (setf (tk::gcontext-tile gc) pixmap
+			(tk::gcontext-fill-style gc) :tiled)
+		  gc))))))))
 
 
 (defmethod port-draw-point* ((port xt-port) sheet medium x y)
@@ -468,9 +477,8 @@ and on color servers, unless using white or black")
 	(cond ((< thickness 1.5)
 	       (tk::draw-point
 		drawable
-		(adjust-ink medium
-			    (decode-ink ink medium)
-			    ink
+		(adjust-ink (decode-ink ink medium)
+			    medium
 			    line-style
 			    x y)
 		x y))
@@ -478,9 +486,8 @@ and on color servers, unless using white or black")
 	       (setq thickness (round thickness))
 	       (tk::draw-ellipse
 		drawable
-		(adjust-ink medium
-			    (decode-ink ink medium)
-			    ink
+		(adjust-ink (decode-ink ink medium)
+			    medium
 			    line-style
 			    (the fixnum (- (the fixnum x) (the fixnum thickness)))
 			    (the fixnum (- (the fixnum y) (the fixnum thickness))))
@@ -501,9 +508,8 @@ and on color servers, unless using white or black")
 				       x1 y1 x2 y2)
 	(tk::draw-line
 	 drawable
-	 (adjust-ink medium
-		     (decode-ink ink medium)
-		     ink
+	 (adjust-ink (decode-ink ink medium)
+		     medium
 		     (medium-line-style medium)
 		     (the fixnum (min (the fixnum x1) (the fixnum x2)))
 		     (the fixnum (min (the fixnum y1) (the fixnum y2))))
@@ -523,9 +529,8 @@ and on color servers, unless using white or black")
 		 (declare (fixnum min-x min-y))
 		 (tk::draw-rectangle
 		  drawable
-		  (adjust-ink medium
-			      (decode-ink ink medium)
-			      ink
+		  (adjust-ink (decode-ink ink medium)
+			      medium
 			      (medium-line-style medium)
 			      min-x min-y)
 		  min-x min-y
@@ -565,8 +570,7 @@ and on color servers, unless using white or black")
       (setf (tk::xpoint-array-x points (- npoints 1)) (tk::xpoint-array-x points 0)
 	    (tk::xpoint-array-y points (- npoints 1)) (tk::xpoint-array-y points 0)))
     (setq ink 
-      (adjust-ink medium (decode-ink (medium-ink medium) medium)
-		  (medium-ink medium)
+      (adjust-ink (decode-ink (medium-ink medium) medium) medium
 		  (medium-line-style medium)
 		  minx miny))
     (when (medium-drawable medium)
@@ -598,9 +602,8 @@ and on color servers, unless using white or black")
     (when (medium-drawable medium)
       (tk::draw-ellipse
 	(medium-drawable medium)
-	(adjust-ink medium
-		    (decode-ink (medium-ink medium) medium)
-		    (medium-ink medium)
+	(adjust-ink (decode-ink (medium-ink medium) medium)
+		    medium
 		    (medium-line-style medium)
 		    (- center-x 
 		       (if (zerop radius-1-dx) radius-2-dx radius-1-dx))
@@ -644,9 +647,8 @@ and on color servers, unless using white or black")
        (incf y ascent))) 
     (when (medium-drawable medium)
       (let ((gc (adjust-ink
-		 medium
 		 (decode-ink (medium-ink medium) medium)
-		 (medium-ink medium)
+		 medium
 		 (medium-line-style medium)
 		 x 
 		 (- y ascent)))
@@ -784,6 +786,7 @@ and on color servers, unless using white or black")
 	  (declare (ignore oy)
 		   (ignore ox))
 	  (setf (tk::gcontext-clip-mask gcontext) pixmap)
+	  (setf (slot-value gcontext 'last-medium-clip-mask) nil)
 	  (unless start (setq start 0))
 	  (unless end (setq end (length string)))
 	  (dotimes (i (- end start))
@@ -856,7 +859,7 @@ and on color servers, unless using white or black")
 					  :depth 1
 					  :width n
 					  :height n))
-		   (gc (make-instance 'tk::gcontext
+		   (gc (make-instance 'fast-gcontext
 				      :drawable pixmap
 				      :foreground 1
 				      :background 0)))
@@ -905,7 +908,7 @@ and on color servers, unless using white or black")
 		       :width array-size
 		       :height array-size
 		       :depth 1))
-	 (gc (make-instance 'tk::gcontext :drawable source-pixmap)))
+	 (gc (make-instance 'fast-gcontext :drawable source-pixmap)))
     (dotimes (i n)
       (macrolet ((copy-all-to (from xoffset yoffset to alu)
 		   `(stream-bitblt-support gc

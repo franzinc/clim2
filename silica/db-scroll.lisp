@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-scroll.lisp,v 1.20 92/05/07 13:11:13 cer Exp $
+;; $fiHeader: db-scroll.lisp,v 1.21 92/05/22 19:26:47 cer Exp Locker: cer $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright(c) 1991, 1992 International Lisp Associates.
@@ -254,7 +254,12 @@
 				     (max (bounding-rectangle-width  stream) width)
 				     (max (bounding-rectangle-height stream) height))))))
 
+(eval-when (compile)
+  (warn "This isn't really right"))
+
 (defun scroll-extent (stream &key (x 0) (y 0))
+  (setq x (fix-coordinate x))
+  (setq y (fix-coordinate y))
   (let ((viewport (pane-viewport stream)))
     (when viewport
       (with-bounding-rectangle* (left top right bottom) 
@@ -270,35 +275,38 @@
 	  ;;--- Do we really want to do this here??
 	  (update-region stream nleft ntop nright nbottom)
 	  (cond
-	    ;; If some of the stuff that was previously on display is still on
-	    ;; display, BITBLT it into the proper place and redraw the rest.
-	    ((ltrb-overlaps-ltrb-p left top right bottom
-				   nleft ntop nright nbottom)
-	     ;; move the old stuff to the new position
-	     (window-shift-visible-region stream 
-					  left top right bottom
-					  nleft ntop nright nbottom)
-	     (let ((rectangles (ltrb-difference nleft ntop nright nbottom
-						left top right bottom)))
-	       (with-sheet-medium (medium stream)
-		 (dolist (region rectangles)
-		   (multiple-value-call #'draw-rectangle*
-		     medium (bounding-rectangle* region)
-		     :ink +background-ink+ :filled t)
-		   (when (output-recording-stream-p stream)
-		     (replay (stream-output-history stream) stream region))))))
-	    ;; Otherwise, just redraw the whole visible viewport
-	    ;; adjust for the left and top margins by hand so clear-area doesn't erase
-	    ;; the margin components.
-	    ((output-recording-stream-p stream)
-	     (let ((region (viewport-viewport-region viewport)))
-	       ;;---- we should make the sheet-region bigger at this point
-	       ;; perhaps we do a union of the sheet-region and the viewport
-	       (with-sheet-medium (medium stream)
-		 (multiple-value-call #'draw-rectangle* 
-		   medium (bounding-rectangle* region)
-		   :ink +background-ink+ :filled t))
-	       (replay (stream-output-history stream) stream region)))))
+	   ;; If some of the stuff that was previously on display is still on
+	   ;; display, bitblt it into the proper place and redraw the rest.
+	   ((ltrb-overlaps-ltrb-p left top right bottom
+				  nleft ntop nright nbottom)
+	    ;; move the old stuff to the new position
+	    (window-shift-visible-region stream 
+					 left top right bottom
+					 nleft ntop nright nbottom)
+	    (let ((rectangles (ltrb-difference nleft ntop nright nbottom
+					       left top right bottom)))
+	      (with-sheet-medium (medium stream)
+		(dolist (region rectangles)
+		  (with-medium-clipping-region (medium region)
+		    (multiple-value-call #'draw-rectangle*
+		      medium
+		      (bounding-rectangle* region)
+		      :ink +background-ink+ :filled t)
+		    (when (typep stream 'clim-internals::output-recording-mixin)
+		      (replay (stream-output-history stream) stream region)))))))
+	   ;; otherwise, just redraw the whole visible viewport
+	   ;; adjust for the left and top margins by hand so clear-area doesn't erase
+	   ;; the margin components.
+	   ((typep stream 'clim-internals::output-recording-mixin)
+	    (let ((region (viewport-viewport-region viewport)))
+	      ;;---- we should make the sheet-region bigger at this point
+	      ;; perhaps we do a union of the sheet-region and the viewport
+	      (with-sheet-medium (medium stream)
+		(multiple-value-call #'draw-rectangle* 
+		  medium
+		  (bounding-rectangle* region)
+		  :ink +background-ink+ :filled t))
+	      (replay (stream-output-history stream) stream region)))))
 	(when (and (/= left x) (/= top y))
 	  (note-viewport-position-changed (pane-frame stream) stream))))))
 

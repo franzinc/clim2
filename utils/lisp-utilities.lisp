@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: lisp-utilities.lisp,v 1.9 92/05/07 13:11:38 cer Exp Locker: cer $
+;; $fiHeader: lisp-utilities.lisp,v 1.10 92/05/13 17:10:40 cer Exp $
 
 (in-package :clim-utils)
 
@@ -71,7 +71,10 @@
   #+use-float-coordinates  `(the coordinate (float ,x 0f0))
   #+use-fixnum-coordinates (ecase round-direction
 			     (round
-			       `(the fixnum (values (floor (+ ,x .5f0)))))
+			      #-Allegro
+			      `(the fixnum (values (floor (+ ,x .5f0))))
+			      #+Allegro
+			      `(the fixnum (round ,x)))
 			     (floor
 			       `(the fixnum (values (floor ,x))))
 			     (ceiling

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: gcontext.lisp,v 1.15 92/05/13 17:10:17 cer Exp Locker: cer $
+;; $fiHeader: gcontext.lisp,v 1.16 92/05/22 19:26:21 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -211,7 +211,12 @@
    (x11::_xgc-values-fill-style gc)))
 
 (defun decode-fill-style (x)
-  (nth x '(:solid :tiled :stippled :opaque-stippled)))
+  (declare (optimize (speed 3) (safety 0)))
+  (case x
+    (0 :solid)
+    (1 :tiled)
+    (2 :stippled)
+    (3 :opaque-stippled)))
 
 (defun encode-fill-style (x)
   (declare (optimize (speed 3) (safety 0)))
@@ -312,6 +317,7 @@
    (object-display gc)
    gc
    nv))
+
 
 (defmethod (setf gcontext-clip-mask) ((nv cons) (gc gcontext))
   (let ((r (x11:make-xrectangle)))
@@ -426,6 +432,8 @@
 
 ;;;;;;;;;;;;;;;;;;;
 
+#|
+
 (defparameter *temp-gc-stack* nil)
 
 (defmacro with-gcontext ((gc &rest options) &body body)
@@ -466,6 +474,8 @@
   (x11:xfreegc (object-display gc) gc)
   (setf (ff:foreign-pointer-address gc) 0)
   nil)
+
+|#
 
 #|
 (with-gcontext (gc :function foo :font bar)

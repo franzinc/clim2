@@ -1,4 +1,4 @@
-# $fiHeader: Makefile,v 1.29 92/05/13 17:16:09 cer Exp Locker: cer $
+# $fiHeader: Makefile,v 1.30 92/05/22 19:29:16 cer Exp Locker: cer $
 # 
 #  Makefile for CLIM 2.0
 #
@@ -348,7 +348,8 @@ tk/xm-defs.fasl : tk/xm-defs.lisp
 	echo Foo
 
 tk/ol-defs.fasl	: tk/ol-defs.lisp
-	echo Bar
+	echo Pretending to make ol-defs.fasl
+	touch tk/ol-defs.fasl
 
 
 # Building

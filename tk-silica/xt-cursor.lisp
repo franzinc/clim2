@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-cursor.lisp,v 1.8 92/05/12 18:25:26 cer Exp Locker: cer $
+;; $fiHeader: xt-cursor.lisp,v 1.9 92/05/13 17:11:21 cer Exp $
 
 (in-package :xm-silica)
 
@@ -70,9 +70,5 @@
 	    (xt::realize-widget gadget)
 	    (let ((window (tk::widget-window gadget)))
 	      (setf (tk::window-save-under window) t))
-	    ;;--- This really should be done somewhere else but where??????
-	    #+ignore
-	    (let ((window (tk::widget-window (sheet-mirror sheet))))
-	      (setf (xt::window-backing-store window) t))
 	    gadget)))))
 
