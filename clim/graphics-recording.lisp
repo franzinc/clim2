@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics-recording.lisp,v 1.1 92/02/24 13:17:05 cer Exp Locker: cer $
+;; $fiHeader: graphics-recording.lisp,v 1.2 92/03/30 17:52:26 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -516,6 +516,42 @@
 
 
 ;;--- Where is DRAW-TEXT?  and/or DRAW-STRING and DRAW-CHARACTER?
+
+(define-output-recorder text-output-record
+    draw-text (text-style ink)
+    :bounding-rectangle
+    (text-bounding-box medium string-or-char x y start end align-x
+			       align-y text-style))
+
+(defun text-bounding-box (stream string x y start end align-x
+				  align-y text-style)
+  (let ((width (stream-string-width stream string
+				    :start start
+				    :end end
+				    :text-style text-style))
+	;;-- The height really depends on the text in the string
+	;;rather than just the text-style
+	(height (stream-line-height stream text-style))
+	vx vt vr vb)
+    (ecase align-x
+      (:left (setq vx x
+		   vr (+ x width)))
+      (:right (setq vx (- x width)
+		    vr x))
+      (:center (setq vx (- x (round width 2))
+		     vr (+ x (round width 2)))))
+    (ecase align-y
+      ;;--- Using STREAM-LINE-HEIGHT for baseline isn't right.
+      (:baseline (setq vt (- y height)
+		       vb y))
+      (:top (setq vt y
+		  vb (+ y height)))
+      (:bottom (setq vt (- y height)
+		     vb y))
+      ;;--- Use FLOOR and CEILING, no?
+      (:center (setq vt (- y (round height 2))
+		     vb (+ y (round height 2)))))
+    (values vx vt vr vb)))
 
 
 ;;--- Does anyone use this?

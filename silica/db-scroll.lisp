@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-scroll.lisp,v 1.11 92/04/03 12:04:11 cer Exp Locker: cer $
+;; $fiHeader: db-scroll.lisp,v 1.12 92/04/10 14:26:28 cer Exp Locker: cer $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright(c) 1991, 1992 International Lisp Associates.
@@ -11,13 +11,16 @@
 
 ;;--- Need to be able to specify horizontal and vertical separately
 ;;--- What do we need from CLIM 0.9's DB-NEW-SCROLL?
+
 (defclass scroller-pane (client-space-requirement-mixin
 			 wrapping-space-mixin
 			 layout-pane)
-	  (vertical-scrollbar
+	  ((scroll-bars :initarg :scroll-bars)
+	   vertical-scrollbar
 	   horizontal-scrollbar
 	   contents
-	   viewport))
+	   viewport)
+  (:default-initargs :scroll-bars :both))
 
 (defmethod pane-viewport ((x sheet))
   (and (typep (sheet-parent x) 'viewport)
@@ -38,32 +41,64 @@
 (defmethod gadget-supplies-scrollbars-p ((gadget t))
   nil)
 
+;;--- Ideally we should use a toolkit scrolling window. This will look
+;;--- exactly right and will deal with user specified placement of scrollbars.
+;;--- However the geometry management problems are quite huge.
+
 (defmethod initialize-instance :after ((pane scroller-pane) 
 				       &key contents frame-manager frame
-					    (scroll-bars :both))
+					    scroll-bars)
   (if (gadget-supplies-scrollbars-p contents)
       (sheet-adopt-child pane contents)
-    (with-slots (vertical-scrollbar horizontal-scrollbar (c contents) viewport) pane
-      (with-look-and-feel-realization (frame-manager frame)
-	(setf vertical-scrollbar (make-pane 'scroll-bar 
-					    :orientation :vertical
-					    :client pane
-					    :id :vertical)
-	      horizontal-scrollbar (make-pane 'scroll-bar 
-					      :id :horizontal
-					      :client pane
-					      :orientation :horizontal)
+    (progn
+      (check-type scroll-bars
+	  (member :both :dynamic :vertical :horizontal))
+      (with-slots (vertical-scrollbar horizontal-scrollbar (c contents) viewport) pane
+	(with-look-and-feel-realization (frame-manager frame)
+	  (let ((verticalp
+		 (member scroll-bars '(:both :dynamic :vertical)))
+		(horizontalp
+		 (member scroll-bars '(:both :dynamic :horizontal))))
+	    (setf vertical-scrollbar 
+	      (and verticalp
+		   (make-pane 'scroll-bar 
+			      :orientation :vertical
+			      :client pane
+			      :id :vertical))
+	      horizontal-scrollbar 	    
+	      (and horizontalp
+		   (make-pane 'scroll-bar 
+			      :id :horizontal
+			      :client pane
+			      :orientation :horizontal))
 	      c contents
 	      viewport (make-pane 'viewport))
-	(sheet-adopt-child pane
-			   (tabling ()
-				    (viewport vertical-scrollbar)
-				    (horizontal-scrollbar nil))))
-      (sheet-adopt-child viewport c)
-      ;; Add callbacks
-      )))
+	    (sheet-adopt-child pane
+			       (cond ((and horizontalp verticalp)
+				      (tabling ()
+					       (viewport vertical-scrollbar)
+					       (horizontal-scrollbar
+						nil)))
+				     (verticalp
+				      (horizontally ()
+						    viewport
+						    vertical-scrollbar))
+				     (horizontalp
+				      (vertically ()
+						  viewport
+						  horizontal-scrollbar))
+				     (t
+				      (error "Should not have got here"))))
+
+	    (sheet-adopt-child viewport c)
+	    ;;-- Add callbacks
+	    ))))))
 
 (defun update-scrollbars (vp)
+  ;;-- This is not the most efficient thing in the world
+  (multiple-value-call
+      #'update-dynamic-scrollbars
+    vp (compute-dynamic-scrollbar-values vp))
   (with-bounding-rectangle* (minx miny maxx maxy)
     (let ((c (sheet-child vp)))
       (if (typep c 'clim-internals::output-recording-mixin)

@@ -22,7 +22,7 @@
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved.
 ;;;
-;; $fiHeader: db-table.lisp,v 1.7 92/02/24 13:04:31 cer Exp Locker: cer $
+;; $fiHeader: db-table.lisp,v 1.8 92/04/10 14:26:29 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -54,6 +54,7 @@
 		 ,@options))
 
 (defmethod compose-space ((x table-pane) &key width height)
+  (declare (ignore width height))
   (with-slots (contents) x
     (let ((omin-w 0)
 	  (omin-h 0)
@@ -70,7 +71,8 @@
 	      (max-h nil))
 	  (dotimes (column (array-dimension contents 1))
 	    (let ((item (aref contents row column)))
-	      (when item
+	      (when (and item
+			 (sheet-enabled-p item))
 		(let ((isr (compose-space item)))
 		  ;; Max the heights
 		  (maxf h (space-requirement-height isr))
@@ -81,12 +83,12 @@
 		      (setf max-h (space-requirement-max-height isr)))))))
 	  (push (make-space-requirement
 		  :width 0
-		  :min-height min-h :height h :max-height max-h)
+		  :min-height min-h :height h :max-height (or max-h 0))
 		row-srs)
 	  ;; Add the heights
 	  (incf oh h)
 	  (incf omin-h min-h)
-	  (incf omax-h max-h)))
+	  (incf omax-h (or max-h 0))))
       (setf (slot-value x 'row-space-requirements) (nreverse row-srs))
       ;; Iterate over the columns determing the widths of each
       (dotimes (column (array-dimension contents 1))
@@ -95,7 +97,8 @@
 	      (max-w nil))
 	  (dotimes (row (array-dimension contents 0))
 	    (let ((item (aref contents row column)))
-	      (when item
+	      (when (and item
+			 (sheet-enabled-p item))
 		(let ((isr (compose-space item)))
 		  ;; Max the widths
 		  (maxf w (space-requirement-width isr))
@@ -105,12 +108,12 @@
 		      (minf max-w (space-requirement-max-width isr))
 		      (setf max-w (space-requirement-max-width isr)))))))
 	  (push (make-space-requirement
-		  :min-width min-w :width w :max-width max-w
+		  :min-width min-w :width w :max-width (or max-w 0)
 		  :height 0)
 		column-srs)
 	  (incf ow w)
 	  (incf omin-w min-w)
-	  (incf omax-w max-w)))
+	  (incf omax-w (or max-w 0))))
       (setf (slot-value x 'column-space-requirements) (nreverse column-srs))
       (make-space-requirement
 	:min-width omin-w :width ow :max-width omax-w
@@ -147,7 +150,8 @@
 	  (dotimes (column (array-dimension contents 1))
 	    (let ((column-width (pop column-widths))
 		  (item (aref contents row column)))
-	      (when item
+	      (when (and item
+			 (sheet-enabled-p item))
 		(move-and-resize-sheet*
 		  item x y 
 		  (min column-width (1- (- width x)))

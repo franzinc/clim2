@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.19 92/04/03 12:04:51 cer Exp Locker: cer $
+;; $fiHeader: xm-gadgets.lisp,v 1.20 92/04/10 14:27:50 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -253,26 +253,28 @@
   (destructuring-bind
       (label scrollbar) (tk::widget-children (sheet-direct-mirror m))
     (declare (ignore scrollbar))
-    (let ((label-width 
-	   (and (gadget-label m)
-		(nth-value 2 (tk::widget-best-geometry label)))))
+    (multiple-value-bind
+	(label-x label-y label-width label-height)
+	(and (gadget-label m)
+	     (tk::widget-best-geometry label))
+      (declare (ignore label-x label-y))
       ;;-- We need to estimate the space requirements for the value if
-      ;;-- that is show
+      ;;-- that is shown
       (let ((fudge 16))
 	(ecase (gadget-orientation m)
 	  (:vertical
 	   (make-space-requirement :width (if (gadget-label m) ;
-					       (+ fudge label-width)
-					     fudge)
+					      (+ fudge label-width)
+					    fudge)
 				   :min-height fudge
-				   :height (* 2 fudge)
+				   :height (max (* 2 fudge) label-height)
 				   :max-height +fill+))
 	  (:horizontal
 	   (make-space-requirement :height (if (gadget-label m) ;
-					       (+ fudge label-width)
+					       (+ fudge label-height)
 					     fudge)
 				   :min-width fudge
-				   :width (* 2 fudge)
+				   :width (max (* 2 fudge) label-width)
 				   :max-width +fill+)))))))
 
 ;;; Scrollbar
@@ -384,6 +386,7 @@
 		  ;; bulletin board messes with the event handling of
 		  ;; its drawing area children
 		  :accelerators nil
+		  :resize-policy :none
 		  :name (string (frame-name (pane-frame sheet))))))
    (t
     (values 'tk::xm-drawing-area 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept-values.lisp,v 1.12 92/03/24 19:37:42 cer Exp Locker: cer $
+;; $fiHeader: accept-values.lisp,v 1.13 92/04/10 14:26:56 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -186,17 +186,19 @@
   (:pane 
     (with-slots (stream own-window  exit-button-stream) *application-frame*
       (vertically ()
-	(scrolling ()
-	  (progn
-	    (setq stream
-		  (make-instance 'accept-values-stream
-				 :stream (setf own-window
-					       (make-pane 'clim-stream-pane
-							     :initial-cursor-visibility nil))))
-	    own-window))
-	(setf exit-button-stream
+	 (outlining ()
+	    (scrolling (:scroll-bars :dynamic)
+		       (progn
+			 (setq stream
+			   (make-instance 'accept-values-stream
+					  :stream (setf own-window
+						    (make-pane 'clim-stream-pane
+							       :initial-cursor-visibility nil))))
+			 own-window)))
+	 (outlining ()
+	    (setf exit-button-stream
 	      (make-pane 'clim-stream-pane
-			    :initial-cursor-visibility nil)))))
+			    :initial-cursor-visibility nil))))))
   (:top-level (accept-values-top-level))
   (:menu-bar nil)
   (:command-table accept-values)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: navfun.lisp,v 1.3 92/03/24 19:38:18 cer Exp Locker: cer $
+;; $fiHeader: navfun.lisp,v 1.4 92/04/10 14:27:34 cer Exp Locker: cer $
 
 (in-package :clim-demo)
 
@@ -1389,17 +1389,12 @@
 			      :pilot pilot
 			      :souls souls
 			      :color color))
-    (with-slots (fp-window) *application-frame*
-      (window-clear fp-window)
-      (compute-flight-plan fp-window plan)
-      (window-expose fp-window)
-      (present "Click here to remove this display" 'string :stream fp-window)
-      (with-input-context ('string)
-			  ()
-	   (loop
-	     (read-gesture :stream fp-window))
-	 (T nil))
-      (setf (window-visibility fp-window) nil))))
+    (accepting-values (*query-io*
+		       :own-window t
+		       :exit-boxes '((:exit "Click here to remove this display")))
+      (let ((fp-window *query-io*))
+	(window-clear fp-window)
+	(compute-flight-plan fp-window plan)))))
 
 (define-presentation-to-command-translator flight-plan
     (route com-flight-plan flight-planner

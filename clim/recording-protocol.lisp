@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: recording-protocol.lisp,v 1.5 92/03/10 10:12:49 cer Exp Locker: cer $
+;; $fiHeader: recording-protocol.lisp,v 1.6 92/03/24 19:37:56 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -1201,15 +1201,17 @@
   ;;--- Who should establish the clipping region?
   ;;--- Is it here or in the handle-repaint method
   ;; Who should clear the region?
-  (with-sheet-medium (medium stream)
-    (multiple-value-call #'draw-rectangle*
-      medium
-      (bounding-rectangle* (region-intersection
-			     region 
-			     (or (pane-viewport-region stream)
-				 (bounding-rectangle stream))))
-      :ink +background-ink+)
-    (stream-replay stream region)))
+  (let ((clear (region-intersection
+		region 
+		(or (pane-viewport-region stream)
+		    (bounding-rectangle stream)))))
+    (unless (eq clear +nowhere+)
+      (with-sheet-medium (medium stream)
+	(multiple-value-call #'draw-rectangle*
+	  medium
+	  (bounding-rectangle* clear)
+	  :ink +background-ink+))
+      (stream-replay stream region))))
 
 
 ;;; For Silica
