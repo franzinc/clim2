@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: event.lisp,v 1.30 92/12/01 09:46:23 cer Exp $
+;; $fiHeader: event.lisp,v 1.31 92/12/14 15:03:33 cer Exp $
 
 (in-package :silica)
 
@@ -145,12 +145,12 @@
 (defmethod queue-repaint ((sheet immediate-repainting-mixin) repaint-event)
   (repaint-sheet sheet (window-event-region repaint-event)))
 
-(defclass mute-repainting-mixin () ())
+(defclass sheet-mute-repainting-mixin () ())
 
-(defmethod queue-repaint ((sheet mute-repainting-mixin) repaint-event)
+(defmethod queue-repaint ((sheet sheet-mute-repainting-mixin) repaint-event)
   (queue-event sheet repaint-event))
 
-(defmethod handle-repaint ((sheet mute-repainting-mixin) region)
+(defmethod handle-repaint ((sheet sheet-mute-repainting-mixin) region)
   (declare (ignore region))
   nil)
 
@@ -514,8 +514,8 @@
     (let ((sheet (let ((v (port-trace-thing port)))
 		   (and (not (zerop (fill-pointer v)))
 			(aref v (1- (fill-pointer v)))))))
-      ;;--- This is not quite right. We need to transform the
-      ;;--- coordinates better. Also it should probably override 
+      ;;--- This is not quite right.  We need to transform the
+      ;;--- coordinates better.  Also it should probably override 
       ;;--- the sheet in the trace-thing.
       (unless sheet 
 	(setq sheet (port-grabbing-sheet port)))

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-gadgets.lisp,v 1.34 92/12/07 12:15:53 cer Exp $
+;; $fiHeader: ol-gadgets.lisp,v 1.35 92/12/14 15:04:28 cer Exp $
 
 
 (in-package :xm-silica)
@@ -644,7 +644,7 @@
 		    (:horizontal :fixedrows)
 		    (:vertical :fixedcols))))))
 
-(defmethod value-changed-callback :around ((v gadget)
+(defmethod value-changed-callback :around ((v basic-gadget)
 					   (client openlook-radio-box)
 					   (id t)
 					   (value t))
@@ -709,7 +709,7 @@
 		    (:horizontal :fixedrows)
 		    (:vertical :fixedcols))))))
 
-(defmethod value-changed-callback :around ((v gadget)
+(defmethod value-changed-callback :around ((v basic-gadget)
 					   (client openlook-check-box)
 					   (id t)
 					   (value t))

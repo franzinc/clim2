@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics-demos.lisp,v 1.11 92/10/07 14:43:30 cer Exp $
+;; $fiHeader: graphics-demos.lisp,v 1.12 92/12/01 09:46:04 cer Exp $
 
 (in-package :clim-demo)
 
@@ -24,8 +24,10 @@
   (frame-exit *application-frame*))
 
 (defmacro define-gdemo (name explanation (window) &body body)
-  `(define-graphics-demo-command (,(intern (format nil "~A-~A-~A" 'com name 'graphics-demo))
-				  :menu ,(nstring-capitalize (substitute #\space #\- (string name)))) ()
+  `(define-graphics-demo-command 
+       (,(intern (format nil "~A-~A-~A" 'com name 'graphics-demo))
+	:menu ,(nstring-capitalize (substitute #\space #\- (string name)))) 
+       ()
      (explain ,explanation)
      (let ((,window (get-frame-pane *application-frame* 'demo)))
        (window-clear ,window)

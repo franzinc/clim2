@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-layout.lisp,v 1.25 92/09/24 09:37:31 cer Exp $
+;; $fiHeader: db-layout.lisp,v 1.26 92/10/02 15:18:10 cer Exp $
 
 (in-package :silica)
 
@@ -651,6 +651,8 @@
 
 
 ;; Most of the layout panes should inherit from this
+;;--- It would be nice if this and COMPOSITE-PANE had single- and multiple-child
+;;--- versions so that users could get better error diagnostics
 (defclass layout-pane (sheet-mute-input-mixin
 		       foreground-background-and-text-style-mixin
 		       space-requirement-mixin

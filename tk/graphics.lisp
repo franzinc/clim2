@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: graphics.lisp,v 1.11 92/12/01 09:46:50 cer Exp $
+;; $fiHeader: graphics.lisp,v 1.12 92/12/03 10:30:01 cer Exp $
 
 (in-package :tk)
 
@@ -114,7 +114,6 @@
      y
      width height)))
 
-
 (defun draw-rectangles (drawable gcontext rects nrects &optional
 				  fill-p)
   (if fill-p
@@ -126,6 +125,7 @@
      (object-display drawable)
      drawable
      gcontext rects nrects)))
+
 
 #+ignore
 (defun text-extents (font sequence &key (start 0) end translate)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-text.lisp,v 1.5 92/11/06 18:59:21 cer Exp $
+;; $fiHeader: db-text.lisp,v 1.6 92/11/19 14:17:24 cer Exp $
 
 "Copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
 
@@ -29,15 +29,17 @@
       (setf (cursor-visibility (stream-text-cursor stream)) nil))))
 
 (defun do-text-editing (stream &key initial-contents clear (exit-gesture '(:end)))
-  (when clear
-    (window-clear stream))
-  (with-input-focus (stream)
-    (with-input-editing (stream :initial-contents initial-contents)
-      (with-activation-gestures (exit-gesture :override t)
-	(unwind-protect
-	    (read-token stream)
-	  ;; Eat the activation character
-	  (read-gesture :stream stream :timeout 0))))))
+  (with-clim-state-reset (:all t
+			  :encapsulating-streams nil)
+    (when clear
+      (window-clear stream))
+    (with-input-focus (stream)
+      (with-input-editing (stream :initial-contents initial-contents)
+	(with-activation-gestures (exit-gesture :override t)
+	  (unwind-protect
+	      (read-token stream)
+	    ;; Eat the activation character
+	    (read-gesture :stream stream :timeout 0)))))))
 
 
 ;;; Text field and text editor gadgets
@@ -83,12 +85,25 @@
 (defun edit-text-field (pane)
   (let ((string
 	  (do-text-editing pane :initial-contents (gadget-value pane) :clear t)))
-    (setf (gadget-value pane) string)))
+    (setf (gadget-value pane :invoke-callback t) string)))
 
 
 (defclass text-field-pane (text-field
 			   text-editor-mixin)
     ())
+
+(defmethod compose-space ((pane text-field-pane) &key width height)
+  (declare (ignore width height))
+  (with-sheet-medium (medium pane)
+    (let* ((style (medium-default-text-style medium))
+	   (style-width (text-style-width style medium))
+	   (style-height (text-style-height style medium))
+	   (string (gadget-value pane)))
+      (multiple-value-bind (width height)
+	  (if string 
+	      (text-size pane string :text-style style)
+	      (values (* style-width 20) style-height))
+	(make-space-requirement :width width :height height)))))
 
 (defmethod handle-event ((pane text-field-pane) (event pointer-button-press-event))
   (edit-text-field pane))

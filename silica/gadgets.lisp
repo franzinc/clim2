@@ -1,6 +1,6 @@
 ;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadgets.lisp,v 1.41 92/11/20 08:45:47 cer Exp $
+;; $fiHeader: gadgets.lisp,v 1.42 92/12/03 10:29:24 cer Exp $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
@@ -8,8 +8,9 @@
 (in-package :silica)
 
 
-;;--- This should be BASIC-GADGET, with GADGET being a protocol class
-(defclass gadget (foreground-background-and-text-style-mixin pane)
+(define-protocol-class gadget (pane))
+
+(defclass basic-gadget (foreground-background-and-text-style-mixin gadget)
     ((id :initarg :id :reader gadget-id :initform nil)
      (client :initarg :client :initform nil :accessor gadget-client)
      (armed-callback :initarg :armed-callback :initform nil
@@ -19,9 +20,6 @@
      (active :initarg :active :accessor gadget-active-p))
   (:default-initargs :active t))
 
-(defmethod gadgetp ((object t)) nil)
-(defmethod gadgetp ((object gadget)) t)
-
 ;;; Arming and disarming
 
 (defun-inline invoke-callback-function (function &rest args)
@@ -30,44 +28,44 @@
       (apply (car function) (append args (cdr function)))
       (apply function args)))
 
-(defmethod armed-callback :around ((gadget gadget) (client t) (id t))
+(defmethod armed-callback :around ((gadget basic-gadget) (client t) (id t))
   (let ((callback (gadget-armed-callback gadget)))
     (if callback
 	(invoke-callback-function callback gadget)
         (call-next-method))))
 
-(defmethod armed-callback ((gadget gadget) (client t) (id t))
+(defmethod armed-callback ((gadget basic-gadget) (client t) (id t))
   nil)
 
-(defmethod disarmed-callback :around ((gadget gadget) (client t) (id t))
+(defmethod disarmed-callback :around ((gadget basic-gadget) (client t) (id t))
   (let ((callback (gadget-disarmed-callback gadget)))
     (if callback
 	(invoke-callback-function callback gadget)
         (call-next-method))))
 
-(defmethod disarmed-callback ((gadget gadget) (client t) (id t))
+(defmethod disarmed-callback ((gadget basic-gadget) (client t) (id t))
   nil)
 
 ;;; Activation and deactivation, not intended to be like callbacks
 
-(defmethod activate-gadget ((gadget gadget))
+(defmethod activate-gadget ((gadget basic-gadget))
   (unless (gadget-active-p gadget)
     (setf (gadget-active-p gadget) t)
     (note-gadget-activated (gadget-client gadget) gadget)))
  
-(defmethod note-gadget-activated ((client t) (gadget gadget))
+(defmethod note-gadget-activated ((client t) (gadget basic-gadget))
   nil)
  
-(defmethod deactivate-gadget ((gadget gadget))
+(defmethod deactivate-gadget ((gadget basic-gadget))
   (when (gadget-active-p gadget)
     (setf (gadget-active-p gadget) nil)
     (note-gadget-deactivated (gadget-client gadget) gadget)))
  
-(defmethod note-gadget-deactivated ((client t) (gadget gadget))
+(defmethod note-gadget-deactivated ((client t) (gadget basic-gadget))
   nil)
 
 
-(defclass value-gadget (gadget) 
+(defclass value-gadget (basic-gadget) 
     ((value :initarg :value :initform nil
 	    :reader gadget-initial-value)
      (value-changed-callback :initarg :value-changed-callback :initform nil
@@ -101,7 +99,7 @@
   nil)
 
 
-(defclass action-gadget (gadget) 
+(defclass action-gadget (basic-gadget)
     ((activate-callback :initarg :activate-callback :initform nil
 			:reader gadget-activate-callback)))  
 
@@ -115,7 +113,7 @@
   nil)
 
 
-(defclass focus-gadget (gadget)
+(defclass focus-gadget (basic-gadget)
     ((focus-out-callback :initarg :focus-out-callback :initform nil
 			 :reader gadget-focus-out-callback)
      (focus-in-callback :initarg :focus-in-callback :initform nil
@@ -378,7 +376,7 @@
 	      :parent rb))))))
 
 (defmethod value-changed-callback :around 
-	   ((selection gadget) (client radio-box) gadget-id value)
+	   ((selection basic-gadget) (client radio-box) gadget-id value)
   (declare (ignore gadget-id))
   ;;--- The following comment is wrong.  Perhaps these should be :BEFORE
   ;;--- methods since the user could define a more specific around method only.
@@ -425,7 +423,7 @@
 	      :parent cb))))))
 
 (defmethod value-changed-callback :around 
-	   ((selection gadget) (client check-box) gadget-id value)
+	   ((selection basic-gadget) (client check-box) gadget-id value)
   (declare (ignore gadget-id))
   (if (eq value t)
       (pushnew selection (check-box-current-selection client))
@@ -595,6 +593,9 @@
 
 
 (defmacro scrolling (options &body contents)
+  (assert (null (cdr contents)) (contents)
+	  "The ~S layout macro can have only a single pane as its contents"
+	  'scrolling)
   `(make-pane 'scroller-pane
      :contents ,@contents
      ,@options))
@@ -653,8 +654,11 @@
 (defclass option-pane (set-gadget-mixin 
 		       labelled-gadget-mixin
 		       value-gadget)
-    ((printer :initarg :printer :reader option-pane-printer))
-  (:default-initargs :printer nil))
+    ;;--- Should this be :ONE-OF/:SOME-OF, as radio boxes are?
+    ((mode :initarg :mode :type (member :exclusive :nonexclusive)
+	   :accessor option-pane-mode)
+     (printer :initarg :printer :reader option-pane-printer))
+  (:default-initargs :mode :exclusive :printer nil))
 
 
 ;; Callbacks on widgets generate these events

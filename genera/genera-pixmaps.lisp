@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: GENERA-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: genera-pixmaps.lisp,v 1.6 92/09/08 15:18:53 cer Exp $
+;; $fiHeader: genera-pixmaps.lisp,v 1.7 92/09/24 09:39:54 cer Exp $
 
 (in-package :genera-clim)
 
@@ -33,6 +33,9 @@
 
 (defmethod pixmap-depth ((pixmap genera-pixmap))
   (scl:send (slot-value pixmap 'pixmap) :bits-per-pixel))
+
+(defmethod port ((pixmap genera-pixmap))
+  (port (slot-value pixmap 'for-medium)))
 
 
 (defclass genera-pixmap-medium (genera-medium basic-pixmap-medium) ())
@@ -69,8 +72,9 @@
 	     (when (>= to-y from-y)
 	       (setq height (- (abs height))))
 	     (let ((window (medium-drawable from-medium)))
-	       (scl:send window :bitblt-within-sheet
-			 tv:alu-seta width height from-x from-y to-x to-y)))))
+	       (with-genera-clipping-region (from-medium window)
+		 (scl:send window :bitblt-within-sheet
+			   tv:alu-seta width height from-x from-y to-x to-y))))))
 	(t
 	 (when (and (medium-drawing-possible from-medium)
 		    (medium-drawing-possible to-medium))
@@ -83,10 +87,12 @@
 	     (convert-to-device-coordinates from-transform from-x from-y)
 	     (convert-to-device-coordinates to-transform to-x to-y)
 	     (convert-to-device-distances from-transform width height)
-	     (tv:bitblt-from-sheet-to-sheet
-	       tv:alu-seta width height
-	       from-drawable from-x from-y
-	       to-drawable to-x to-y))))))
+	     (with-genera-clipping-region (from-medium from-drawable)
+	       (with-genera-clipping-region (to-medium to-drawable)
+		 (tv:bitblt-from-sheet-to-sheet
+		   tv:alu-seta width height
+		   from-drawable from-x from-y
+		   to-drawable to-x to-y))))))))
 
 (defmethod medium-copy-area 
 	   ((from-medium genera-medium) from-x from-y width height
@@ -97,10 +103,11 @@
       (convert-to-device-distances transform width height)
       (let ((window (medium-drawable from-medium))
 	    (pixmap (medium-drawable to-medium)))
-	(tv:bitblt-from-sheet-to-sheet
-	  tv:alu-seta width height
-	  window from-x from-y
-	  pixmap to-x to-y)))))
+	(with-genera-clipping-region (from-medium window)
+	  (tv:bitblt-from-sheet-to-sheet
+	    tv:alu-seta width height
+	    window from-x from-y
+	    pixmap to-x to-y))))))
 
 (defmethod medium-copy-area 
 	   ((from-medium genera-pixmap-medium) from-x from-y width height
@@ -110,10 +117,11 @@
       (convert-to-device-coordinates transform to-x to-y)
       (let ((window (medium-drawable to-medium))
 	    (pixmap (medium-drawable from-medium)))
-	(tv:bitblt-from-sheet-to-sheet
-	  tv:alu-seta width height
-	  pixmap from-x from-y
-	  window to-x to-y)))))
+	(with-genera-clipping-region (to-medium window)
+	  (tv:bitblt-from-sheet-to-sheet
+	    tv:alu-seta width height
+	    pixmap from-x from-y
+	    window to-x to-y))))))
 
 (defmethod medium-copy-area 
 	   ((from-medium genera-medium) from-x from-y width height
@@ -124,10 +132,11 @@
       (convert-to-device-distances transform width height)
       (let ((window (medium-drawable from-medium))
 	    (pixmap (slot-value pixmap 'pixmap)))
-	(tv:bitblt-from-sheet-to-sheet
-	  tv:alu-seta width height
-	  window from-x from-y
-	  pixmap to-x to-y)))))
+	(with-genera-clipping-region (from-medium window)
+	  (tv:bitblt-from-sheet-to-sheet
+	    tv:alu-seta width height
+	    window from-x from-y
+	    pixmap to-x to-y))))))
 
 (defmethod medium-copy-area 
 	   ((pixmap genera-pixmap) from-x from-y width height
@@ -137,7 +146,8 @@
       (convert-to-device-coordinates transform to-x to-y)
       (let ((window (medium-drawable to-medium))
 	    (pixmap (slot-value pixmap 'pixmap)))
-	(tv:bitblt-from-sheet-to-sheet
-	  tv:alu-seta width height
-	  pixmap from-x from-y
-	  window to-x to-y)))))
+	(with-genera-clipping-region (to-medium window)
+	  (tv:bitblt-from-sheet-to-sheet
+	    tv:alu-seta width height
+	    pixmap from-x from-y
+	    window to-x to-y))))))

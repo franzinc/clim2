@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-border.lisp,v 1.14 92/12/01 09:46:17 cer Exp $
+;; $fiHeader: db-border.lisp,v 1.15 92/12/03 10:29:15 cer Exp $
 
 "Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved.
  Portions copyright (c) 1991, 1992 by Symbolics, Inc.  All rights reserved."
@@ -48,6 +48,9 @@
 (defmacro bordering ((&rest options &key thickness &allow-other-keys)
 		     &body contents)
   (declare (ignore thickness))
+  (assert (null (cdr contents)) (contents)
+	  "The ~S layout macro can have only a single pane as its contents"
+	  'bordering)
   `(make-pane 'border-pane
      :contents ,@contents
      ,@options))
@@ -60,6 +63,9 @@
 (defmacro outlining ((&rest options &key thickness &allow-other-keys)
 		     &body contents)
   (declare (ignore thickness))
+  (assert (null (cdr contents)) (contents)
+	  "The ~S layout macro can have only a single pane as its contents"
+	  'outlining)
   `(make-pane 'outlined-pane
      :contents ,@contents
      ,@options))
@@ -70,6 +76,9 @@
 
 (defmacro spacing ((&rest options &key thickness &allow-other-keys) &body contents)
   (declare (ignore thickness))
+  (assert (null (cdr contents)) (contents)
+	  "The ~S layout macro can have only a single pane as its contents"
+	  'spacing)
   `(make-pane 'spacing-pane
      :contents ,@contents
      ,@options))
@@ -95,6 +104,9 @@
 		      &allow-other-keys) 
 		     &body contents &environment env)
   #-(or Genera Minima) (declare (ignore env))
+  (assert (null (cdr contents)) (contents)
+	  "The ~S layout macro can have only a single pane as its contents"
+	  'labelling)
   (setq options (remove-keywords options '(:label-alignment)))
   (let ((lvar '#:label)
 	(cvar '#:contents))
@@ -111,6 +123,7 @@
 		 (vertically () ,cvar ,lvar))
 	       (:top
 		 (vertically () ,lvar ,cvar)))))))
+
 
 (defclass generic-label-pane 
 	  (label-pane

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: formatted-output-defs.lisp,v 1.6 92/10/02 15:19:24 cer Exp $
+;; $fiHeader: formatted-output-defs.lisp,v 1.7 92/11/06 18:59:32 cer Exp $
 
 (in-package :clim-internals)
 
@@ -13,7 +13,8 @@
 			     &key x-spacing y-spacing
 				  multiple-columns multiple-columns-x-spacing	
 				  equalize-column-widths
-				  record-type (move-cursor t))
+				  record-type (move-cursor t)
+			     &allow-other-keys)
 			    &body body)
   (declare (ignore x-spacing y-spacing 
 		   multiple-columns multiple-columns-x-spacing
@@ -24,24 +25,31 @@
      (declare (dynamic-extent #'formatting-table-body))
      (invoke-formatting-table ,stream #'formatting-table-body ,@options)))
 
-(defmacro formatting-row ((&optional stream &key record-type) &body body)
+(defmacro formatting-row ((&optional stream
+			   &rest options &key record-type &allow-other-keys)
+			  &body body)
   #+Genera (declare (zwei:indentation 0 3 1 1))
   (default-output-stream stream formatting-row)
+  (setq options (remove-keywords options '(:record-type)))
   (unless record-type (setq record-type `'standard-row-output-record))
-  `(with-new-output-record (,stream ,record-type)
+  `(with-new-output-record (,stream ,record-type nil ,@options)
      ,@body))
 
-(defmacro formatting-column ((&optional stream &key record-type) &body body)
+(defmacro formatting-column ((&optional stream
+			      &rest options &key record-type &allow-other-keys)
+			     &body body)
   #+Genera (declare (zwei:indentation 0 3 1 1))
   (default-output-stream stream formatting-column)
+  (setq options (remove-keywords options '(:record-type)))
   (unless record-type (setq record-type `'standard-column-output-record))
-  `(with-new-output-record (,stream ,record-type)
+  `(with-new-output-record (,stream ,record-type nil ,@options)
      ,@body))
 
 (defmacro formatting-cell ((&optional stream
 			    &rest options
 			    &key (align-x ':left) (align-y ':top)
-				 min-width min-height record-type)
+				 min-width min-height record-type
+			    &allow-other-keys)
 			   &body body)
   (declare (ignore align-x align-y min-width min-height record-type))
   #+Genera (declare (zwei:indentation 0 3 1 1))
@@ -57,7 +65,8 @@
 				      n-columns n-rows
 				      max-width max-height
 				      stream-width stream-height
-				      (row-wise t) (move-cursor t))
+				      (row-wise t) (move-cursor t)
+				 &allow-other-keys)
 				&body body)
   (declare (ignore x-spacing y-spacing initial-spacing
 		   record-type n-columns n-rows max-width max-height

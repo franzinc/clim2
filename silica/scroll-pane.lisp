@@ -1,12 +1,13 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-scroll.lisp,v 1.36 92/12/01 09:46:20 cer Exp $
+;; $fiHeader: scroll-pane.lisp,v 1.1 92/12/07 12:15:21 cer Exp $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright(c) 1991, 1992 International Lisp Associates.
  Portions copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
 
 (in-package :silica)
+
 
 ;; An implementation of a scroller pane
 (defclass generic-scroller-pane (scroller-pane 
@@ -110,6 +111,7 @@
 		(sheet-adopt-child viewport c)
 		;;--- Add callbacks
 		)))))))
+
 
 ;;; Home-grown scroll bars
 
@@ -384,13 +386,16 @@
 	  (scroll-bar-value-changed-callback
 	    scroll-bar scroller-pane id (min 1.0s0 (max 0.0s0 mouse-offset)) current-size))))))
 
-
 ;;; Set the indicator to the proper size and location (size and value are between 0 and 1)
 (defmethod change-scroll-bar-values ((scroll-bar scroll-bar-pane)
 				     &key slider-size value)
-  (setf (gadget-value scroll-bar) value)
-  (setf (scroll-bar-current-size scroll-bar) slider-size))
-
+  (setf (gadget-value scroll-bar :invoke-callback nil) value)
+  (setf (scroll-bar-current-size scroll-bar) slider-size)
+  (let* ((scroller (gadget-client scroll-bar))
+	 (contents (pane-contents scroller)))
+    ;;--- Hmm, if two "linked" panes have callbacks that cause the other
+    ;;--- pane to be scrolled, this will go into a loop...
+    (value-changed-callback scroll-bar contents (gadget-id scroll-bar) value)))
 
 
 (defclass scroll-bar-target-pane 
@@ -544,7 +549,6 @@
 			identity))))))))
 
 
-
 (defmethod handle-event :around ((pane scroll-bar-target-pane) 
 				 (event pointer-button-press-event))
   (with-sheet-medium (medium pane)
@@ -552,7 +556,6 @@
     (call-next-method)
     (draw-target pane medium :filled t :ink +background-ink+)
     (draw-target pane medium :filled nil)))
-
 
 ;;; This implements genera style scroll bars.
 ;;; Vertical Scroll bars
@@ -605,8 +608,9 @@
 	 scroll-bar client id orientation x y)))))
 
 (defmethod handle-event :after ((pane scroll-bar-shaft-pane) (event pointer-enter-event))
+  (declare (special *pointer-documentation-output*))
   (frame-manager-display-pointer-documentation-string
-    (frame-manager pane) *pointer-documentation-output*
+    (frame-manager pane) (pane-frame pane) *pointer-documentation-output*
     (ecase (gadget-orientation (slot-value pane 'scroll-bar))
       (:vertical
 	"L: This line to top; M: Proportional scrolling; R: Top line to here.")
@@ -614,8 +618,9 @@
 	"L: This column to left edge; M: Proportional scrolling; R: Left edge to here."))))
 
 (defmethod handle-event :after ((pane scroll-bar-target-pane) (event pointer-enter-event))
+  (declare (special *pointer-documentation-output*))
   (frame-manager-display-pointer-documentation-string
-    (frame-manager pane) *pointer-documentation-output*
+    (frame-manager pane) (pane-frame pane) *pointer-documentation-output*
     (ecase (gadget-orientation (slot-value pane 'scroll-bar))
       (:vertical
 	(ecase (slot-value pane 'end)
@@ -631,12 +636,14 @@
 	    "L: Next column; M: First screenful; R: Previous column."))))))
 
 (defmethod handle-event :after ((pane scroll-bar-shaft-pane) (event pointer-exit-event))
+  (declare (special *pointer-documentation-output*))
   (frame-manager-display-pointer-documentation-string 
-    (frame-manager pane) *pointer-documentation-output* nil))
+    (frame-manager pane) (pane-frame pane) *pointer-documentation-output* nil))
 
 (defmethod handle-event :after ((pane scroll-bar-target-pane) (event pointer-exit-event))
+  (declare (special *pointer-documentation-output*))
   (frame-manager-display-pointer-documentation-string 
-    (frame-manager pane) *pointer-documentation-output* nil))
+    (frame-manager pane) (pane-frame pane) *pointer-documentation-output* nil))
 
 (defmethod handle-event :after ((pane scroll-bar-shaft-pane) (event pointer-event))
   (deallocate-event event))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: demo-prefill.lisp,v 1.7 92/09/24 09:40:05 cer Exp $
+;; $fiHeader: demo-prefill.lisp,v 1.8 92/10/07 14:43:29 cer Exp $
 
 (in-package :clim-internals)
 
@@ -152,7 +152,7 @@
     (clim-demo::cad-demo t))
   (graft
     (clim-demo::cad-demo))
-  (highlight-output-record-1
+  (highlight-output-record
     (clim-demo::input t t)
     (clim-demo::or-gate t t)
     (clim-demo::and-gate t t)
@@ -703,7 +703,6 @@
   (initialize-instance)
   (invoke-accept-values-command-button)
   (present-method
-    ((presentation-type clim-demo::demo-menu-item) t t t t t pointer-documentation-view)
     ((presentation-type clim-demo::y-label) t t t t t textual-menu-view)
     ((presentation-type clim-demo::address-number) t t t t t textual-view)
     ((presentation-type clim-demo::printer) t t t t t textual-dialog-view)

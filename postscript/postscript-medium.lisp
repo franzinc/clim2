@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: POSTSCRIPT-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: postscript-medium.lisp,v 1.9 92/11/13 14:46:39 cer Exp $
+;; $fiHeader: postscript-medium.lisp,v 1.10 92/12/03 10:29:05 cer Exp $
 
 (in-package :postscript-clim)
 
@@ -34,12 +34,12 @@
 
 (defun use-line-style (medium line-style)
   (let ((printer-stream (slot-value medium 'printer-stream))
-	(thickness (case (line-style-unit line-style)
+	(thickness (ecase (line-style-unit line-style)
 		     (:normal (normal-line-thickness 
 			        (port medium) (line-style-thickness line-style)))
-		     (:points (line-style-thickness line-style))))
+		     (:point (line-style-thickness line-style))))
 	(dashes (line-style-dashes line-style)))
-    (format printer-stream " ~D setlinewidth~%" thickness)
+    (format printer-stream " ~D setlinewidth~%" (round thickness))
     (when dashes
       (when (eq dashes t)
 	(setq dashes '(4 4)))
@@ -61,11 +61,11 @@
 
 (defmethod maybe-set-color
 	   ((medium postscript-medium) (ink (eql +foreground-ink+)))
-  (maybe-set-color medium (or (slot-value medium 'current-color) +black+)))
+  (maybe-set-color medium (or (medium-foreground medium) +black+)))
 
 (defmethod maybe-set-color
 	   ((medium postscript-medium) (ink (eql +background-ink+)))
-  (maybe-set-color medium +white+))
+  (maybe-set-color medium (or (medium-background medium) +white+)))
 
 (defmethod maybe-set-color
 	   ((medium postscript-medium) (ink flipping-ink))

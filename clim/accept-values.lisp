@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept-values.lisp,v 1.48 92/12/03 10:25:53 cer Exp $
+;; $fiHeader: accept-values.lisp,v 1.49 92/12/07 12:13:56 cer Exp $
 
 (in-package :clim-internals)
 
@@ -539,17 +539,20 @@
 		(move-cursor-beyond-output-record 
 		  (encapsulating-stream-stream stream) avv)))))))))
 
-(defmethod invoke-with-aligned-prompts ((stream accept-values-stream) continuation &key (align-prompts t))
+(defmethod invoke-with-aligned-prompts ((stream accept-values-stream) continuation 
+					&key (align-prompts t))
+  (declare (dynamic-extent continuation))
   (setq align-prompts (ecase align-prompts
 			((t :right) :right)
 			((:left) :left)
 			((nil) nil)))
   (letf-globally (((slot-value stream 'align-prompts) align-prompts)) 
     (formatting-table (stream)
-	(funcall continuation stream))))
+      (funcall continuation stream))))
 
 (defmethod invoke-with-aligned-prompts ((stream t) continuation &key align-prompts)
   (declare (ignore align-prompts))
+  (declare (dynamic-extent continuation))
   (funcall continuation stream))
 
 (defmethod frame-manager-display-input-editor-error

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-list.lisp,v 1.2 92/11/09 10:54:18 cer Exp $
+;; $fiHeader: db-list.lisp,v 1.3 92/11/19 14:17:14 cer Exp $
 
 "Copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
 
@@ -51,8 +51,11 @@
 	  (armed (slot-value pane 'armed))
 	  (pattern *check-mark-pattern*))
       (with-bounding-rectangle* (left top right bottom) (sheet-region pane)
-	(when (gadget-value pane)
-	  (draw-pattern* medium pattern (- right (+ (pattern-width pattern) 2)) (+ top 1)))
+	(if (gadget-value pane)
+	    (draw-pattern* medium pattern (- right (+ (pattern-width pattern) 2)) (+ top 1))
+	    (draw-rectangle* medium 
+			     (- right (+ (pattern-width pattern) 2)) (+ top 1) right bottom
+			     :filled t :ink +background-ink+))
 	(draw-rectangle* medium left top (1- right) (1- bottom)
 			 :filled nil)
 	(draw-text* medium text (+ left 2) (+ top (floor (- bottom top) 2))
@@ -118,9 +121,8 @@
 		    :contents buttons)))
 	    (sheet-adopt-child pane inferiors)))))))
 
-;;--- This doesn't work right yet...
 (defmethod value-changed-callback :around 
-	   ((selection gadget) (client generic-list-pane) gadget-id value)
+	   ((selection toggle-button) (client generic-list-pane) gadget-id value)
   (declare (ignore gadget-id))
   (with-slots (items value-key mode) client
     (let ((real-value (funcall value-key (gadget-id selection)))
@@ -135,7 +137,7 @@
 	      (setf (gadget-value client) (delete real-value (gadget-value client))))))
       (when old-selection
 	(let ((button (find old-selection items :key #'gadget-id)))
-	  (setf (gadget-value button :invoke-callback t) nil)))
+	  (setf (gadget-value button :invoke-callback nil) nil)))
       (value-changed-callback
 	client (gadget-client client) (gadget-id client) (gadget-value client))))
   (call-next-method))
@@ -145,12 +147,15 @@
 
 
 (defclass generic-option-pane (option-pane push-button-pane)
-    ((menu :initform nil)))
+    ((menu :initform nil))
+  (:default-initargs :pattern *right-triangle-button-pattern*))
 
 ;;--- The idea is the the option pane itself is a pushbutton which, when
 ;;--- pressed, pops up a menu containing the options.
 (defmethod initialize-instance :after ((pane generic-option-pane) &key)
-  (with-slots (items name-key value-key test mode) pane
+  (with-slots (external-label label
+	       items name-key value-key test mode) pane
+    (shiftf external-label label nil)
     (let* ((frame (pane-frame pane))
 	   (framem (frame-manager frame))
 	   (buttons nil))
@@ -166,10 +171,40 @@
 			     (and (member (funcall value-key item) (gadget-value pane) :test test)
 				  t)))
 		  :label (funcall name-key item)
-		  :id item)
+		  :id item
+		  :client pane)
 		buttons))
 	(setq buttons (nreverse buttons))
 	(setq items (copy-list buttons))	;save them away
 	(let ((menu (make-pull-down-menu :port (port frame))))
 	  (initialize-pull-down-menu menu buttons)
 	  (setf (slot-value pane 'menu) menu))))))
+
+(defmethod handle-event ((pane generic-option-pane) (event pointer-button-release-event))
+  (with-slots (armed menu) pane
+    (when (eq armed :active)
+      (setf armed t)
+      (with-sheet-medium (medium pane)
+	(highlight-button pane medium))
+      (choose-from-pull-down-menu menu pane))))
+
+(defmethod value-changed-callback :around 
+	   ((selection toggle-button) (client generic-option-pane) gadget-id value)
+  (declare (ignore gadget-id))
+  (with-slots (items value-key mode) client
+    (let ((real-value (funcall value-key (gadget-id selection)))
+	  (old-selection nil))
+      (ecase mode
+	(:exclusive
+	  (setq old-selection (gadget-value client))
+	  (setf (gadget-value client) (and value real-value)))
+	(:nonexclusive
+	  (if value
+	      (pushnew real-value (gadget-value client))
+	      (setf (gadget-value client) (delete real-value (gadget-value client))))))
+      (when old-selection
+	(let ((button (find old-selection items :key #'gadget-id)))
+	  (setf (gadget-value button :invoke-callback nil) nil)))
+      (value-changed-callback
+	client (gadget-client client) (gadget-id client) (gadget-value client))))
+  (call-next-method))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: GENERA-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: genera-frames.lisp,v 1.13 92/10/28 11:32:38 cer Exp $
+;; $fiHeader: genera-frames.lisp,v 1.14 92/12/03 10:28:55 cer Exp $
 
 (in-package :genera-clim)
 
@@ -32,7 +32,12 @@
 			     (clim-internals::find-frame-pane-of-type 
 			       frame 'clim-internals::command-menu-pane))
 			nil
-			menu-bar))))
+			menu-bar)))
+	(menu-width (let ((geometry (clim-internals::frame-geometry frame)))
+		      (or (getf geometry :width)
+			  (let ((left  (getf geometry :left))
+				(right (getf geometry :right)))
+			    (and left right (- right left)))))))
     (with-look-and-feel-realization (framem frame)
       (outlining ()
 	(if menu-bar
@@ -42,7 +47,8 @@
 		  (outlining ()
 		    (make-pane 'command-menu-pane
 		      :display-function 
-		        `(display-command-menu :command-table ,menu-bar)
+		        `(display-command-menu :command-table ,menu-bar
+					       :max-width ,menu-width)
 		      :incremental-redisplay t
 		      :default-text-style clim-internals::*command-table-menu-text-style*
 		      :text-style clim-internals::*command-table-menu-text-style*
@@ -107,30 +113,20 @@
 (defvar *pointer-documentation-buffer*
 	(make-array 80 :element-type 'string-char :fill-pointer 0 :adjustable t))
 
+(defmethod frame-manager-pointer-documentation-stream 
+	   ((framem genera-frame-manager) frame stream)
+  (declare (ignore stream))
+  (let ((console (tv:sheet-console (sheet-mirror (graft frame)))))
+    (if (eq console sys:*main-console*)
+	tv:who-line-documentation-window
+	(let ((who-screen (tv:console-who-line-screen console)))
+	  (and who-screen
+	       (tv:get-who-line-field :mouse-documentation who-screen))))))
+
 (defmethod frame-manager-display-pointer-documentation
 	   ((framem genera-frame-manager)
 	    frame presentation input-context window x y stream)
-  (declare (ignore stream))
-  (let ((stream
-	  (let ((console (tv:sheet-console (sheet-mirror (graft frame)))))
-	    (if (eq console sys:*main-console*)
-		tv:who-line-documentation-window
-		(let ((who-screen (tv:console-who-line-screen console)))
-		  (and who-screen
-		       (tv:get-who-line-field :mouse-documentation who-screen)))))))
-    ;; The documentation should never say anything if we're not over a presentation
-    (when (null presentation) 
-      (scl:send stream :clear-window))
-    ;; Cheap test to not do this work too often
-    (let ((old-modifier-state clim-internals::*last-pointer-documentation-modifier-state*)
-	  (modifier-state (clim-internals::window-modifier-state window))
-	  (last-time clim-internals::*last-pointer-documentation-time*)
-	  (time (get-internal-real-time)))
-      (setq clim-internals::*last-pointer-documentation-modifier-state* modifier-state)
-      (when (and (< time (+ last-time clim-internals::*pointer-documentation-interval*))
-		 (= modifier-state old-modifier-state))
-	(return-from clim-internals::frame-manager-display-pointer-documentation nil))
-      (setq clim-internals::*last-pointer-documentation-time* time))
+  (let ((stream (frame-manager-pointer-documentation-stream framem frame stream)))
     (when presentation
       (setf (fill-pointer *pointer-documentation-buffer*) 0)
       (with-output-to-string (stream *pointer-documentation-buffer*)
@@ -141,16 +137,8 @@
       (scl:send stream :string-out *pointer-documentation-buffer*))))
 
 (defmethod frame-manager-display-pointer-documentation-string 
-	   ((framem genera-frame-manager) stream string)
-  (declare (ignore stream))
-  (let ((stream
-	  (let ((console 
-		  (tv:sheet-console (sheet-mirror (first (port-grafts (port framem)))))))
-	    (if (eq console sys:*main-console*)
-		tv:who-line-documentation-window
-		(let ((who-screen (tv:console-who-line-screen console)))
-		  (and who-screen
-		       (tv:get-who-line-field :mouse-documentation who-screen)))))))
+	   ((framem genera-frame-manager) frame stream string)
+  (let ((stream (frame-manager-pointer-documentation-stream framem frame stream)))
     (scl:send stream :clear-window)
     (when string
       (scl:send stream :string-out string))))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: menus.lisp,v 1.36 92/12/01 09:45:24 cer Exp $
+;; $fiHeader: menus.lisp,v 1.37 92/12/03 10:27:16 cer Exp $
 
 (in-package :clim-internals)
 
@@ -13,24 +13,25 @@
 (defparameter *default-menu-label-text-style* (make-text-style :fix :italic :normal))
 
 (define-application-frame menu-frame ()
-			  (menu 
-			   label 
-			   (scroll-bars :initarg :scroll-bars 
-					:initform t
-					:reader menu-frame-scroll-bars))
+    (menu 
+     label 
+     (scroll-bars :initarg :scroll-bars 
+		  :initform t
+		  :reader menu-frame-scroll-bars))
   (:pane
    (with-slots (menu label scroll-bars) *application-frame*
      (outlining ()
-		(vertically ()
-		    (setq label (make-pane 'label-pane 
-					   :label ""
-					   :text-style *default-menu-label-text-style*))
-		  (if scroll-bars
-		      (scrolling (:scroll-bars  scroll-bars )
-				 (setq menu (make-pane 'clim-stream-pane
-						       :initial-cursor-visibility nil)))
-		    (setq menu (make-pane 'clim-stream-pane
-					  :initial-cursor-visibility nil)))))))
+       (vertically ()
+	 (setq label (make-pane 'label-pane 
+		       :label ""
+		       :text-style *default-menu-label-text-style*))
+	 (if scroll-bars
+	     (scrolling (:scroll-bars scroll-bars)
+	       (setq menu (make-pane 'clim-stream-pane
+			    :initial-cursor-visibility nil)))
+	     (setq menu (make-pane 'clim-stream-pane
+			  :initial-cursor-visibility nil)))))))
+
   (:menu-bar nil))
 
 (defmethod frame-calling-frame ((frame menu-frame))
@@ -49,13 +50,13 @@
     (values (slot-value frame 'menu) frame)))
 
 (defresource menu (associated-window root &key label (scroll-bars t))
-  :constructor (let* ((framem (if (null root) (find-frame-manager) (frame-manager root))))
-		 (frame-manager-get-menu framem :scroll-bars scroll-bars))
-  :deinitializer (window-clear menu)
-  :initializer (initialize-menu (port menu) menu :label label)
-  ;; Horrible kludge in the case where no associated window is passed in.
+  :constructor 
+    (let* ((framem (if (null root) (find-frame-manager) (frame-manager root))))
+      (frame-manager-get-menu framem :scroll-bars scroll-bars))
   :matcher (and (eq scroll-bars (menu-frame-scroll-bars (pane-frame menu)))
-		(eq (frame-manager menu) (frame-manager root))))
+		(eq (frame-manager menu) (frame-manager root)))
+  :deinitializer (window-clear menu)
+  :initializer (initialize-menu (port menu) menu :label label))
 
 (defmethod initialize-menu ((port basic-port) menu &key label)
   ;;--- Should this flush the menu's event queue?
@@ -226,7 +227,7 @@
 
 (defgeneric menu-choose (items &rest keys
 			 &key associated-window text-style default-item
-			      label printer presentation-type
+			      label scroll-bars printer presentation-type
 			      cache unique-id id-test cache-value cache-test
 			      max-width max-height n-rows n-columns
 			      x-spacing y-spacing
@@ -237,7 +238,7 @@
 (defmethod menu-choose ((items t) &rest keys
 			&key (associated-window (frame-top-level-sheet *application-frame*))
 			     text-style default-item
-			     label printer presentation-type
+			     label (scroll-bars t) printer presentation-type
 			     (cache nil) (unique-id items) (id-test #'equal)
 			     (cache-value items) (cache-test #'equal)
 			     max-width max-height n-rows n-columns
@@ -247,7 +248,7 @@
   (declare (values value chosen-item gesture))
   (declare (ignore associated-window
 		   text-style default-item
-		   label printer presentation-type
+		   label scroll-bars printer presentation-type
 		   cache unique-id id-test cache-value cache-test
 		   max-width max-height n-rows n-columns
 		   x-spacing y-spacing row-wise cell-align-x cell-align-y
@@ -263,7 +264,7 @@
 	    &key (associated-window
 		   (frame-top-level-sheet *application-frame*))
 		 text-style default-item
-		 label printer presentation-type
+		 label (scroll-bars t) printer presentation-type
 		 (cache nil) (unique-id items) (id-test #'equal)
 		 (cache-value items) (cache-test #'equal)
 		 max-width max-height n-rows n-columns
@@ -281,7 +282,7 @@
 	  ;; Lucid production compiler tries to use an undefined internal
 	  ;; variable if this LET isn't done.
 	  #+Lucid (items items))
-      (with-menu (menu associated-window :label label)
+      (with-menu (menu associated-window :label label :scroll-bars scroll-bars)
 	(reset-frame (pane-frame menu) :title label)
 	(with-text-style (menu text-style)
 	  (with-end-of-line-action (menu :allow)
@@ -317,27 +318,27 @@
 
 
 (defmacro with-mouse-grabbed-in-window ((window &rest options) &body body)
-  (let ((m (gensym)))
+  (let ((w (gensym)))
     `(flet ((with-mouse-grabbed-in-window-body () ,@body))
        (declare (dynamic-extent #'with-mouse-grabbed-in-window-body))
-       (let ((,m ,window))
+       (let ((,w ,window))
 	 (invoke-with-mouse-grabbed-in-window
-	  (frame-manager ,m)
-	  ,m #'with-mouse-grabbed-in-window-body ,@options)))))
+	   (frame-manager ,w) ,w #'with-mouse-grabbed-in-window-body ,@options)))))
 
-(defmethod invoke-with-mouse-grabbed-in-window ((framem standard-frame-manager) (window t) continuation &key)
+(defmethod invoke-with-mouse-grabbed-in-window 
+	   ((framem standard-frame-manager) (window t) continuation &key)
   (funcall continuation))
 
 (defmacro with-menu-as-popup ((menu) &body body)
-  (let ((m (gensym)))
+  (let ((w (gensym)))
     `(flet ((with-menu-as-popup-body () ,@body))
        (declare (dynamic-extent #'with-menu-as-popup-body))
-       (let ((,m ,menu))
-	 (invoke-with-menu-as-popup
-	  (frame-manager ,m)
-	  ,m #'with-menu-as-popup-body)))))
+       (let ((,w ,menu))
+	 (invoke-with-menu-as-popup 
+	   (frame-manager ,w) ,w #'with-menu-as-popup-body)))))
 
-(defmethod invoke-with-menu-as-popup ((framem standard-frame-manager) (window t) continuation)
+(defmethod invoke-with-menu-as-popup 
+	   ((framem standard-frame-manager) (window t) continuation)
   (funcall continuation))
 
 ;; The drawer gets called with (stream presentation-type &rest drawer-args).
@@ -359,111 +360,95 @@
 	 (abort-menu-handler () 
 	   (return-from menu-choose-from-drawer nil)))
    #+Allegro (declare (dynamic-extent #'abort-menu-handler))
-   ;;--- This should be done in a more modular way
-   ;;--- If you change this, change RUN-FRAME-TOP-LEVEL :AROUND
-   (let (#+Allegro (*click-outside-menu-handler* #'abort-menu-handler)
-	 (*original-stream* nil)
-	 (*input-wait-test* nil)
-	 (*input-wait-handler* nil)
-	 (*pointer-button-press-handler* nil)
-	 (*numeric-argument* nil)
-	 (*delimiter-gestures* nil)
-	 (*activation-gestures* nil)
-	 (*accelerator-gestures* nil)
-	 (*accelerator-numeric-argument* nil)
-	 (*input-context* nil)
-	 (*accept-help* nil)
-	 (*assume-all-commands-enabled* nil)
-	 (*sizing-application-frame* nil)
-	 (*command-parser* 'command-line-command-parser)
-	 (*command-unparser* 'command-line-command-unparser)
-	 (*partial-command-parser*
-	   'command-line-read-remaining-arguments-for-partial-command))
-    ;; We could make the drawer a lexical closure, but that would then
-    ;; partially defeat the purpose of the uid and cache-value because we'd cons the closure
-    ;; whether or not we ran it.
-    (let* ((cached-output-history-info
-	     (when cache
-	       (if (typep cache 'static-menu)
-		   cache-value
-		   (get-from-output-history-cache unique-id id-test))))
-	   (cached-menu-contents
-	     (when cached-output-history-info
-	       (if (typep cache 'static-menu)
-		   cached-output-history-info
-		   (let* ((contents (pop cached-output-history-info))
-			  (value cached-output-history-info))
-		     (when (funcall cache-test value cache-value)
-		       contents))))))
-      (cond (cached-menu-contents
-	     (stream-add-output-record menu cached-menu-contents))
-	    (t
-	     ;; "Draw" into deexposed menu for sizing only
-	     (with-output-recording-options (menu :draw nil :record t)
-	       (let ((menu-contents
-		       (with-new-output-record (menu)
-			 (setq default-presentation 
-			       (funcall drawer menu presentation-type)))))
-		 (when cache
-		   (setf (get-from-output-history-cache unique-id id-test)
-			 (cons menu-contents cache-value))))))))
-    (size-frame-from-contents menu)
-    (unwind-protect
-	(with-menu-as-popup (menu)
-	  (position-sheet-near-pointer
-	    (frame-top-level-sheet (pane-frame menu)) x-position y-position)
-	  (setf (window-visibility menu) t)
- 	  ;;--- If we have windows with backing store then we dont get
- 	  ;;--- exposure event and so nothing appears
- 	  #+Allegro (replay (stream-output-history menu) menu)
-	  (stream-set-input-focus menu)
-	  (when default-presentation
-	    (with-bounding-rectangle* (left top right bottom) default-presentation
-	      (stream-set-pointer-position
-		menu (floor (+ left right) 2) (floor (+ top bottom) 2))))
-	  ;; Pointer documentation usually adds no information, and slows things
-	  ;; down in a big way, which is why we defaultly disable it.
-	  (let ((*pointer-documentation-output* pointer-documentation))
-	    (with-input-context (presentation-type :override T)
-				(object type gesture)
-		 (labels ((input-wait-test (menu)
-			    ;; Wake up if the menu becomes buried, or if highlighting
-			    ;; is needed.
-			    ;;--- This screws up in Allegro because querying the server
-			    ;;--- in the wait function screws event handling.
-			    (or #-Allegro 
-				(and *abort-menus-when-buried*
-				     (not (window-visibility menu)))
-				(pointer-motion-pending menu)))
-			  (input-wait-handler (menu)
-			    ;; Abort if the menu becomes buried
-			    #-Allegro
-			    (when (and *abort-menus-when-buried*
-				       (not (window-visibility menu)))
-			      (return-from menu-choose-from-drawer nil))
-			    ;; Take care of highlighting
-			    (highlight-presentation-of-context-type menu)))
-		   (declare (dynamic-extent #'input-wait-test #'input-wait-handler))
-		   ;; Await exposure before going any further, since X can get
-		   ;; to the call to READ-GESTURE before the menu is visible.
-		   (when *abort-menus-when-buried*
-		     #-Silica (wait-for-window-exposed menu))
-		   (with-mouse-grabbed-in-window (menu)
-		     (loop
-		       (read-gesture :stream menu
-				     :input-wait-test #'input-wait-test
-				     :input-wait-handler #'input-wait-handler)
-		       (beep menu))))
-	       (t (values object gesture)))))
-      (unless leave-menu-visible
-	(setf (window-visibility menu) nil))
-      (force-output menu)))))
+   (with-clim-state-reset (:all t
+			   :additional-bindings
+			     #+Allegro ((*click-outside-menu-handler* #'abort-menu-handler))
+			     #-Allegro nil)
+     ;; We could make the drawer a lexical closure, but that would then
+     ;; partially defeat the purpose of the uid and cache-value because we'd cons the closure
+     ;; whether or not we ran it.
+     (let* ((cached-output-history-info
+	      (when cache
+		(if (typep cache 'static-menu)
+		    cache-value
+		    (get-from-output-history-cache unique-id id-test))))
+	    (cached-menu-contents
+	      (when cached-output-history-info
+		(if (typep cache 'static-menu)
+		    cached-output-history-info
+		    (let* ((contents (pop cached-output-history-info))
+			   (value cached-output-history-info))
+		      (when (funcall cache-test value cache-value)
+			contents))))))
+       (cond (cached-menu-contents
+	      (stream-add-output-record menu cached-menu-contents))
+	     (t
+	      ;; "Draw" into deexposed menu for sizing only
+	      (with-output-recording-options (menu :draw nil :record t)
+		(let ((menu-contents
+			(with-new-output-record (menu)
+			  (setq default-presentation 
+				(funcall drawer menu presentation-type)))))
+		  (when cache
+		    (setf (get-from-output-history-cache unique-id id-test)
+			  (cons menu-contents cache-value))))))))
+     (size-frame-from-contents menu)
+     (unwind-protect
+	 (with-menu-as-popup (menu)
+	   (position-sheet-near-pointer
+	     (frame-top-level-sheet (pane-frame menu)) x-position y-position)
+	   (setf (window-visibility menu) t)
+	   ;;--- If we have windows with backing store then we dont get
+	   ;;--- exposure event and so nothing appears
+	   #+Allegro (replay (stream-output-history menu) menu)
+	   (stream-set-input-focus menu)
+	   (when default-presentation
+	     (with-bounding-rectangle* (left top right bottom) default-presentation
+	       (stream-set-pointer-position
+		 menu (floor (+ left right) 2) (floor (+ top bottom) 2))))
+	   ;; Pointer documentation usually adds no information, and slows things
+	   ;; down in a big way, which is why we defaultly disable it.
+	   (let ((*pointer-documentation-output* pointer-documentation))
+	     (with-input-context (presentation-type :override T)
+				 (object type gesture)
+		  (labels ((input-wait-test (menu)
+			     ;; Wake up if the menu becomes buried, or if highlighting
+			     ;; is needed.
+			     ;;--- This screws up in Allegro because querying the server
+			     ;;--- in the wait function screws event handling.
+			     (or #-Allegro 
+				 (and *abort-menus-when-buried*
+				      (not (window-visibility menu)))
+				 (pointer-motion-pending menu)))
+			   (input-wait-handler (menu)
+			     ;; Abort if the menu becomes buried
+			     #-Allegro
+			     (when (and *abort-menus-when-buried*
+					(not (window-visibility menu)))
+			       (return-from menu-choose-from-drawer nil))
+			     ;; Take care of highlighting
+			     (highlight-presentation-of-context-type menu)))
+		    (declare (dynamic-extent #'input-wait-test #'input-wait-handler))
+		    ;; Await exposure before going any further, since X can get
+		    ;; to the call to READ-GESTURE before the menu is visible.
+		    (when *abort-menus-when-buried*
+		      #-Silica (wait-for-window-exposed menu))
+		    (with-mouse-grabbed-in-window (menu)
+		      (loop
+			(read-gesture :stream menu
+				      :input-wait-test #'input-wait-test
+				      :input-wait-handler #'input-wait-handler)
+			(beep menu))))
+		(t (values object gesture)))))
+       (unless leave-menu-visible
+	 (setf (window-visibility menu) nil))
+       (force-output menu)))))
 
 (defun hierarchical-menu-choose (items
 				 &key (associated-window
 					(frame-top-level-sheet *application-frame*))
 				      text-style default-item
-				      label printer presentation-type
+				      label (scroll-bars t) printer presentation-type
 				      x-position y-position
 				      (cache nil)
 				      (unique-id items) (id-test #'equal)
@@ -479,7 +464,7 @@
     (let ((item-printer (cond (presentation-type #'present-item)
 			      (printer printer)
 			      (t #'print-menu-item))))
-      (with-menu (menu associated-window :label label)
+      (with-menu (menu associated-window :label label :scroll-bars scroll-bars)
 	(reset-frame (pane-frame menu) :title label)
 	(with-text-style (menu text-style)
 	  (with-end-of-line-action (menu :allow)
@@ -585,7 +570,8 @@
 (defmethod menu-choose ((static-menu static-menu)
 			&rest keys
 			&key (associated-window (frame-top-level-sheet *application-frame*))
-			     label text-style pointer-documentation menu-type
+			     label text-style (scroll-bars t)
+			     pointer-documentation menu-type
 			&allow-other-keys)
   (declare (values value chosen-item gesture))
   (declare (dynamic-extent keys))
@@ -607,7 +593,7 @@
 	    (setq menu-contents (slot-value new-menu 'menu-contents)
 		  default-presentation (slot-value new-menu 'default-presentation)
 		  root-window this-root)))))
-    (with-menu (menu associated-window :label label)
+    (with-menu (menu associated-window :label label :scroll-bars scroll-bars)
       (with-text-style (menu text-style)
 	(multiple-value-bind (item gesture)
 	    (menu-choose-from-drawer 

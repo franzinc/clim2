@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: recording-protocol.lisp,v 1.27 92/11/19 14:18:22 cer Exp $
+;; $fiHeader: recording-protocol.lisp,v 1.28 92/12/03 10:27:46 cer Exp $
 
 (in-package :clim-internals)
 
@@ -1222,7 +1222,11 @@
       (with-sheet-medium (medium stream)
 	(with-bounding-rectangle* (left top right bottom) clear
 	  (medium-clear-area medium left top right bottom)))))
-  (stream-replay stream region))
+  (stream-replay stream region)
+  (let ((presentation (highlighted-presentation stream nil)))
+    (when presentation
+      (highlight-presentation 
+	presentation (presentation-type presentation) stream :highlight))))
 
 
 ;;; Genera compatibility

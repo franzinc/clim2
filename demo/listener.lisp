@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: listener.lisp,v 1.26 92/12/03 10:28:45 cer Exp $
+;; $fiHeader: listener.lisp,v 1.27 92/12/14 15:02:40 cer Exp $
 
 (in-package :clim-demo)
 
@@ -556,6 +556,9 @@
   (list `(,object)))
 
 )	;#-Minima
+
+(define-lisp-listener-command (com-demonstrate-clim :name "Demonstrate CLIM") ()
+  (start-demo :port (port *application-frame*)))
 
 (define-lisp-listener-command (com-quit-listener :name "Quit") ()
   (frame-exit *application-frame*))

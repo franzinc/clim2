@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-protocol.lisp,v 1.35 92/12/03 10:26:58 cer Exp $
+;; $fiHeader: input-protocol.lisp,v 1.36 92/12/07 12:14:26 cer Exp $
 
 (in-package :clim-internals)
 
@@ -45,14 +45,14 @@
       (if (and gesture
 	       pointer-button-press-handler
 	       (typep gesture 'pointer-button-press-event))
-	    ;; If we call a normal translator, we'll throw to a tag outside of
-	    ;; this function that was established by WITH-INPUT-CONTEXT.  If we
-	    ;; call an action, it will throw to NO-TRANSLATION, and return here
-	    ;; In that case, we want to loop through this again.
-	    (funcall pointer-button-press-handler stream gesture)
-	;; A "normal" gesture
-	(return-from stream-read-gesture
-	  (values gesture flag)))
+	  ;; If we call a normal translator, we'll throw to a tag outside of
+	  ;; this function that was established by WITH-INPUT-CONTEXT.  If we
+	  ;; call an action, it will throw to NO-TRANSLATION, and return here.
+	  ;; In that case, we want to loop through this again.
+	  (funcall pointer-button-press-handler stream gesture)
+	  ;; A "normal" gesture
+	  (return-from stream-read-gesture
+	    (values gesture flag)))
       ;; If we're looping when PEEK-P is T, we have to eat the gesture.
       ;;--- What if PEEK-P is T and another gesture has arrived
       ;;--- between the last call-next-method and this one? (cim)
@@ -276,17 +276,14 @@
       ;; This may throw or something, but otherwise we will return NIL
       ;; which will cause the gesture to be eaten
       (progn 
-	#+allegro
 	(when (and *click-outside-menu-handler*
 		   (output-recording-stream-p stream)
-		   (not 
-		    (region-contains-position-p
-		     (stream-output-history stream)
-		     (pointer-event-x gesture)
-		     (pointer-event-y gesture))))
+		   (not (region-contains-position-p
+			  (stream-output-history stream)
+			  (pointer-event-x gesture) (pointer-event-y gesture))))
 	  (funcall *click-outside-menu-handler*))
 	(funcall *pointer-button-press-handler* stream gesture)
-	     nil)
+	nil)
       ;; No button press handler, just return the gesture
       gesture))
 
@@ -379,7 +376,6 @@
   (process-abort-or-accelerator-gesture stream gesture)
   gesture)
 
-
 (defun process-abort-or-accelerator-gesture (stream gesture)
   (cond ((member gesture *accelerator-gestures*
 		 :test #'keyboard-event-matches-gesture-name-p)
@@ -416,8 +412,6 @@
 		     (write-string "[Abort]" stream) 
 		     (force-output stream))))))
 	 (error 'abort-gesture :event gesture))))
-
-
 
 ;;; This function is just a convenience for the programmer, defaulting the
 ;;; keyword :STREAM argument to *standard-input*.  The application can call

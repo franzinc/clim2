@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: ico.lisp,v 1.15 92/11/20 08:45:22 cer Exp $
+;; $fiHeader: ico.lisp,v 1.16 92/12/03 10:28:41 cer Exp $
 
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
@@ -263,7 +263,7 @@
 			(layered-color-color (svref inks1 buffer)) *line-color*
 			(layered-color-color (svref inks2 buffer)) *face1-color*
 			(layered-color-color (svref inks3 buffer)) *face2-color*)))
-	      (silica:medium-force-output medium))
+	      (medium-force-output medium))
 	    
 	    #+xlib-ignore
 	    (:clx 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clim-defs.lisp,v 1.20 92/12/03 10:26:06 cer Exp $
+;; $fiHeader: clim-defs.lisp,v 1.21 92/12/07 12:14:08 cer Exp $
 
 (in-package :clim-internals)
 
@@ -150,13 +150,17 @@
 
 (defvar *allow-sensitive-inferiors* t)
 (defmacro with-output-as-presentation ((stream object type 
+					&rest options
 					&key modifier single-box
 					     (allow-sensitive-inferiors t asi-p)
 					     parent
-					     (record-type `'standard-presentation))
+					     (record-type `'standard-presentation)
+					&allow-other-keys)
 				       &body body)
   #+Genera (declare (zwei:indentation 0 3 1 1))
   (default-output-stream stream)
+  (setq options (remove-keywords options '(:modifier :single-box :parent
+					   :allow-sensitive-inferiors :record-type)))
   ;; Maybe with-new-output-record should turn record-p on?
   (unless asi-p
     (setq allow-sensitive-inferiors '*allow-sensitive-inferiors*))
@@ -174,7 +178,8 @@
 					    (presentation-type-of ,nobject))
 				  :single-box ,single-box
 				  ,@(when modifier `(:modifier ,modifier))
-				  ,@(when parent `(:parent ,parent)))
+				  ,@(when parent `(:parent ,parent))
+				  ,@options)
 	   (let ((*allow-sensitive-inferiors* ,allow-sensitive-inferiors))
 	     ,@body))))))
 
@@ -283,14 +288,14 @@
 ;;; From MENUS.LISP
 ;;; For now, MENU-CHOOSE requires that you pass in a parent.
 (defmacro with-menu ((menu &optional (associated-window nil aw-p)
-				     &rest options &key label scroll-bars) &body body)
+		      &rest options &key label scroll-bars) &body body)
   (declare (ignore label scroll-bars))
   (let ((window '#:associated-window))
     `(let ((,window ,(if aw-p
 			 associated-window
 			 `(frame-top-level-sheet *application-frame*))))	;once-only
        (using-resource (,menu menu (window-top-level-window ,window) (window-root ,window)
-			      ,@options)
+			,@options)
 	 (letf-globally (((stream-default-view ,menu) +textual-menu-view+))
 	   ,@body)))))
 
@@ -312,8 +317,9 @@
 (defmacro with-aligned-prompts ((stream &rest args) &body body)
   (default-input-stream stream accepting-values)
   `(flet ((with-aligned-prompts-body (,stream) ,@body))
-     (declare (dynamic-extent #'accepting-values-body))
+     (declare (dynamic-extent #'with-aligned-prompts-body))
      (invoke-with-aligned-prompts ,stream #'with-aligned-prompts-body ,@args)))
+
 
 ;; Establish a first quadrant coordinate system, execute the body, and then
 ;; place the output in such a way that the upper left corner of it is where
@@ -339,6 +345,7 @@
 (defvar *application-frame*)
 (defvar *pointer-documentation-output* nil)
 (defvar *assume-all-commands-enabled* nil)
+
 (defvar *click-outside-menu-handler* nil)
 
 ;; Bound to T when the frame is being layed out

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-slider.lisp,v 1.15 92/09/24 09:37:35 cer Exp $
+;; $fiHeader: db-slider.lisp,v 1.16 92/10/02 15:18:17 cer Exp $
 
 "Copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
 
@@ -363,16 +363,23 @@
   (deallocate-event event))
 
 (defmethod handle-event ((pane slider-pane) (event pointer-enter-event))
+  (declare (special *pointer-documentation-output*))
   (with-slots (armed) pane
     (unless armed
       (setf armed t)
-      (armed-callback pane (gadget-client pane) (gadget-id pane)))))
+      (armed-callback pane (gadget-client pane) (gadget-id pane)))
+    (frame-manager-display-pointer-documentation-string
+      (frame-manager pane) (pane-frame pane) *pointer-documentation-output*
+      "L,M,R: Move the slider indicator.")))
 
 (defmethod handle-event ((pane slider-pane) (event pointer-exit-event))
+  (declare (special *pointer-documentation-output*))
   (with-slots (armed) pane
     (when armed
       (setf armed nil)
-      (disarmed-callback pane (gadget-client pane) (gadget-id pane)))))
+      (disarmed-callback pane (gadget-client pane) (gadget-id pane)))
+    (frame-manager-display-pointer-documentation-string
+      (frame-manager pane) (pane-frame pane) *pointer-documentation-output* nil)))
 
 (defmethod handle-event ((pane slider-pane) (event pointer-button-press-event))
   (with-slots (armed margin visible-value-width visible-value-height

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: GENERA-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: genera-medium.lisp,v 1.14 92/11/06 19:03:12 cer Exp $
+;; $fiHeader: genera-medium.lisp,v 1.15 92/12/03 10:28:58 cer Exp $
 
 (in-package :genera-clim)
 
@@ -436,16 +436,17 @@
   (unless (tv:sheet-output-held-p window)
     (apply continuation window arguments)))
 
-(defmacro with-genera-clipping-region ((medium drawable) &body body)
+(defmacro with-genera-clipping-region ((medium drawable &optional cleft ctop cright cbottom)
+				       &body body)
   (let ((sheet '#:sheet)
 	(region '#:region)
 	(medium-region '#:medium-region)
 	(clipping-region '#:clipping-region)
 	(valid '#:valid)
-	(cleft '#:cleft)
-	(ctop '#:ctop)
-	(cright '#:cright)
-	(cbottom '#:cbottom)
+	(cleft (or cleft '#:cleft))
+	(ctop (or ctop '#:ctop))
+	(cright (or cright '#:cright))
+	(cbottom (or cbottom '#:cbottom))
 	(mleft '#:mleft)
 	(mtop '#:mtop)
 	(mright '#:mright)
@@ -466,11 +467,11 @@
 		     ,mleft ,mtop ,mright ,mbottom)))))
 	   (when ,valid
 	     (fix-coordinates ,cleft ,ctop ,cright ,cbottom)
-	     (with-stack-list (,clipping-region
-			       (+ (tv:sheet-left-margin-size ,drawable) ,cleft)
-			       (+ (tv:sheet-top-margin-size ,drawable) ,ctop)
-			       (+ (tv:sheet-right-margin-size ,drawable) ,cright)
-			       (+ (tv:sheet-bottom-margin-size ,drawable) ,cbottom))
+	     (incf ,cleft (tv:sheet-left-margin-size ,drawable))
+	     (incf ,ctop  (tv:sheet-top-margin-size ,drawable))
+	     (incf ,cright  (tv:sheet-right-margin-size ,drawable))
+	     (incf ,cbottom (tv:sheet-bottom-margin-size ,drawable))
+	     (with-stack-list (,clipping-region ,cleft ,ctop ,cright ,cbottom)
 	       (scl:letf (((tv:sheet-clipping-region ,drawable) ,clipping-region))
 		 ,@body))))))))
 

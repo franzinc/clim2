@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sheet.lisp,v 1.32 92/12/01 09:46:32 cer Exp $
+;; $fiHeader: sheet.lisp,v 1.33 92/12/03 10:29:34 cer Exp $
 
 (in-package :silica)
 
@@ -400,7 +400,7 @@
 
 (defclass primitive-sheet-output-mixin () ())
 
-(defclass mute-sheet-output-mixin () ())
+(defclass sheet-mute-output-mixin () ())
 
 (defclass sheet-with-medium-mixin (standard-sheet-output-mixin)
     ((medium :initform nil :accessor sheet-medium)
@@ -483,7 +483,8 @@
   (apply #'port-invoke-with-pointer-grabbed (port sheet) sheet continuation options))
 
 (defmethod port-invoke-with-pointer-grabbed :around
-    ((port basic-port) (sheet basic-sheet) continuation &key)
+	   ((port basic-port) (sheet basic-sheet) continuation &key)
+  (declare (ignore continuation))
   (letf-globally (((port-grabbing-sheet port) sheet))
     (call-next-method)))
 

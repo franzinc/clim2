@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: interactive-protocol.lisp,v 1.21 92/11/06 19:00:01 cer Exp $
+;; $fiHeader: interactive-protocol.lisp,v 1.22 92/12/03 10:27:13 cer Exp $
 
 (in-package :clim-internals)
 
@@ -20,12 +20,6 @@
 
 ;;; Fake methods to keep things like COMPLETE-INPUT from blowing up on
 ;;; non-input-editing streams like string streams.
-(defmethod input-position ((stream t))
-  (file-position stream))
-
-(defmethod (setf input-position) (position (stream t))
-  (file-position stream position))
-
 (defmethod stream-scan-pointer ((stream t)) 0)
 
 (defmethod (setf stream-scan-pointer) (position (stream t))
@@ -599,7 +593,8 @@
       (do-input-buffer-pieces (input-buffer :start start :end end)
 			      (start end noise-string)
         :normal (incf length (- end start))
-	:noise-string (incf length (length (noise-string-display-string noise-string))))
+	:noise-string (when (typep noise-string 'accept-result)
+			(incf length (length (noise-string-display-string noise-string)))))
       (let ((new-top (make-string length))
 	    (index 0))
 	(when top
@@ -617,9 +612,10 @@
 	  :normal (replace new-top input-buffer
 			   :start1 index :end1 (incf index (- end start))
 			   :start2 start :end2 end)
-	  :noise-string (let ((string (noise-string-display-string noise-string)))
-			  (replace new-top string
-				   :start1 index :end1 (incf index (length string)))))
+	  :noise-string (when (typep noise-string 'accept-result)
+			  (let ((string (noise-string-display-string noise-string)))
+			    (replace new-top string
+				     :start1 index :end1 (incf index (length string))))))
 	(cond (top
 	       (setf (history-top-element *kill-ring*) new-top)
 	       #+Genera (genera-kill-ring-save new-top t))

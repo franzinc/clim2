@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.57 92/12/03 10:30:22 cer Exp $
+;; $fiHeader: xt-graphics.lisp,v 1.58 92/12/14 15:04:44 cer Exp $
 
 (in-package :tk-silica)
 
@@ -40,14 +40,14 @@
 					      'last-line-style)
        ,value)))
 
-(defmacro ink-gcontext-last-clip-mask (gcontext)
+(defmacro ink-gcontext-last-medium-clip-mask (gcontext)
   `(locally (declare (optimize (speed 3) (safety 0)))
      (excl::slot-value-using-class-name 'ink-gcontext ,gcontext
-					'last-clip-mask)))
-(defsetf ink-gcontext-last-clip-mask (gcontext) (value)
+					'last-medium-clip-mask)))
+(defsetf ink-gcontext-last-medium-clip-mask (gcontext) (value)
   `(locally (declare (optimize (speed 3) (safety 0)))
      (setf (excl::slot-value-using-class-name 'ink-gcontext ,gcontext
-					      'last-clip-mask)
+					      'last-medium-clip-mask)
        ,value)))
 
 (defmacro ink-gcontext-shift-tile-origin (gcontext)
@@ -187,7 +187,7 @@
 	(incf j 2))
       (tk::store-colors colormap xcolors n))))
 
-;;; things we can install in a palete
+;;; things we can install in a palette
 ;;; 1 - color (rgb etc)
 ;;; 2 - dynamic-color
 ;;; 3 - layered-color or it's layered-color-set
@@ -629,6 +629,7 @@ and on color servers, unless using white or black")
     (or (gethash ink ink-table)
 	(setf (gethash ink ink-table)
 	  (decode-pattern-ink ink medium)))))
+    
 
 (defmethod decode-color ((design design) (medium xt-medium))
   (decode-color-in-palette design (medium-palette medium)))
@@ -985,6 +986,7 @@ and on color servers, unless using white or black")
 	(setf (gethash ink ink-table)
 	  (multiple-value-bind (pattern width height)
 	      (decode-rectangular-tile ink)
+	  (setf (gethash pattern ink-table)
 	    (multiple-value-bind (array designs)
 		(decode-extended-pattern pattern width height)
 	      (let* ((image-data (make-array (list height width)))
@@ -1051,8 +1053,7 @@ and on color servers, unless using white or black")
 			    (tk::gcontext-background gc) (or two-color-bg 0))
 		    (setf (tk::gcontext-tile gc) pixmap
 			  (tk::gcontext-fill-style gc) :tiled))
-		  gc))))))))
-
+		  gc)))))))))
 
 
 
@@ -1232,7 +1233,7 @@ and on color servers, unless using white or black")
 		thickness 0 2pi
 		t)))))))
 
- (defmethod medium-draw-points* ((medium xt-medium) position-seq)
+(defmethod medium-draw-points* ((medium xt-medium) position-seq)
   (let ((drawable (medium-drawable medium)))
     (when drawable
       (let* ((ink (medium-ink medium))
@@ -1378,6 +1379,36 @@ and on color servers, unless using white or black")
 	   points
 	   npoints))))))
 
+(defmethod medium-draw-rectangle* ((medium xt-medium) x1 y1 x2 y2 filled)
+  (let ((drawable (medium-drawable medium)))
+    (when drawable
+      (let* ((ink (medium-ink medium))
+	     (sheet (medium-sheet medium))
+	     (transform (sheet-device-transformation sheet)))
+	(assert (rectilinear-transformation-p transform))
+	(convert-to-device-coordinates transform
+				       x1 y1 x2 y2)
+	;; Clipping a rectangle is ridiculously easy.
+	(unless (valid-point-p x1 y1)
+	  (setq x1 (min (max -32000 (the fixnum x1)) 32000))
+	  (setq y1 (min (max -32000 (the fixnum y1)) 32000)))
+	(unless (valid-point-p x2 y2)
+	  (setq x2 (min (max -32000 (the fixnum x2)) 32000))
+	  (setq y2 (min (max -32000 (the fixnum y2)) 32000)))
+	(let ((min-x (min (the fixnum x1) (the fixnum x2)))
+	      (min-y (min (the fixnum y1) (the fixnum y2))))
+	  (declare (fixnum min-x min-y))
+	  (tk::draw-rectangle
+	   drawable
+	   (adjust-ink (decode-ink ink medium)
+		       medium
+		       (medium-line-style medium)
+		       min-x min-y)
+	   min-x min-y
+	   (fast-abs (the fixnum (- (the fixnum x2) (the fixnum x1))))
+	   (fast-abs (the fixnum (- (the fixnum y2) (the fixnum y1))))
+	   filled))))))
+
 (defmethod medium-draw-rectangles* ((medium xt-medium) rectangles filled) 
   (let ((drawable (medium-drawable medium)))
     (when drawable
@@ -1429,36 +1460,6 @@ and on color servers, unless using white or black")
 		       overall-min-x overall-min-y)
 	   rects
 	   nrects
-	   filled))))))
-
-(defmethod medium-draw-rectangle* ((medium xt-medium) x1 y1 x2 y2 filled)
-  (let ((drawable (medium-drawable medium)))
-    (when drawable
-      (let* ((ink (medium-ink medium))
-	     (sheet (medium-sheet medium))
-	     (transform (sheet-device-transformation sheet)))
-	(assert (rectilinear-transformation-p transform))
-	(convert-to-device-coordinates transform
-				       x1 y1 x2 y2)
-	;; Clipping a rectangle is ridiculously easy.
-	(unless (valid-point-p x1 y1)
-	  (setq x1 (min (max -32000 (the fixnum x1)) 32000))
-	  (setq y1 (min (max -32000 (the fixnum y1)) 32000)))
-	(unless (valid-point-p x2 y2)
-	  (setq x2 (min (max -32000 (the fixnum x2)) 32000))
-	  (setq y2 (min (max -32000 (the fixnum y2)) 32000)))
-	(let ((min-x (min (the fixnum x1) (the fixnum x2)))
-	      (min-y (min (the fixnum y1) (the fixnum y2))))
-	  (declare (fixnum min-x min-y))
-	  (tk::draw-rectangle
-	   drawable
-	   (adjust-ink (decode-ink ink medium)
-		       medium
-		       (medium-line-style medium)
-		       min-x min-y)
-	   min-x min-y
-	   (fast-abs (the fixnum (- (the fixnum x2) (the fixnum x1))))
-	   (fast-abs (the fixnum (- (the fixnum y2) (the fixnum y1))))
 	   filled))))))
 
 
@@ -1741,7 +1742,7 @@ and on color servers, unless using white or black")
 	  (declare (ignore oy)
 		   (ignore ox))
 	  (setf (tk::gcontext-clip-mask gcontext) pixmap)
-	  (setf (ink-gcontext-last-clip-mask gcontext) nil)
+	  (setf (ink-gcontext-last-medium-clip-mask gcontext) nil)
 	  (unless start (setq start 0))
 	  (unless end (setq end (length string)))
 	  (dotimes (i (- end start))
@@ -1938,79 +1939,3 @@ and on color servers, unless using white or black")
 (defmethod medium-finish-output ((medium xt-medium))
   (x11:xsync (port-display (port medium)) 0))
 
-
-
-(defmethod medium-draw-bezier-curve* ((medium xt-medium) points filled)
-  (let* ((npoints (length points))
-	 (last (1- npoints))
-	 (new-points (cons nil nil))
-	 (head new-points)
-	 (distance 1))
-    
-    (assert (evenp npoints))
-    (assert (zerop (mod (- (/ npoints 2) 4) 3)))
-    
-    (flet ((collect (x y)
-	     (let ((more (list x y)))
-	       (setf (cdr new-points) more
-		     new-points (cdr more)))))
-      (declare (dynamic-extent #'collect))
-      (collect (elt points 0) (elt points 1))
-      
-      (do ((i 0 (+ i 6)))
-	  ((= i (1- last)))
-	(render-bezier #'collect 
-		       (elt points i)
-		       (elt points (+ 1 i))
-		       (elt points (+ 2 i))
-		       (elt points (+ 3 i))
-		       (elt points (+ 4 i))
-		       (elt points (+ 5 i))
-		       (elt points (+ 6 i))
-		       (elt points (+ 7 i))
-		       distance)
-	(collect (elt points (+ 6 i)) (elt points (+ 7 i)))))
-    
-    (medium-draw-polygon-1 medium (cdr head) nil filled)))
-
-
-(defun render-bezier (fn x0 y0 x1 y1 x2 y2 x3 y3 distance)
-  (let ((d1 (distance-from-line x0 y0 x3 y3 x1 y1))
-	(d2 (distance-from-line x0 y0 x3 y3 x2 y2)))
-    (if (and (< d1 distance) (< d2 distance))
-	nil
-      (multiple-value-bind
-	  (x00 y00 x10 y10 x20 y20 x30 y30 x01 y01 x11 y11 x21 y21 x31 y31)
-	  (split-bezier x0 y0 x1 y1 x2 y2 x3 y3)
-	(render-bezier fn x00 y00 x10 y10 x20 y20 x30 y30 distance)
-	(funcall fn x30 y30)
-	(render-bezier fn  x01 y01 x11 y11 x21 y21 x31 y31
-		       distance)))))
-
-
-(defun split-bezier (x0 y0 x1 y1 x2 y2 x3 y3)
-  ;; We should write a matrix multiplication macro
-  (values
-   ;; The first 1/2
-   x0 y0
-   (+ (/ x0 2) (/ x1 2)) (+ (/ y0 2) (/ y1 2))
-   (+ (/ x0 4) (/ x1 2) (/ x2 4))  (+ (/ y0 4) (/ y1 2) (/ y2 4))
-   (+ (* x0 1/8)  (* x1 3/8) (* x2 3/8) (* x3 1/8)) (+ (* y0 1/8)  (* y1 3/8) (* y2 3/8) (* y3 1/8))
-   ;; The second 1/2
-   (+ (* x0 1/8)  (* x1 3/8) (* x2 3/8) (* x3 1/8)) (+ (* y0 1/8)  (* y1 3/8) (* y2 3/8) (* y3 1/8))
-   (+ (/ x1 4) (/ x2 2) (/ x3 4))  (+ (/ y1 4) (/ y2 2) (/ y3 4))
-   (+ (/ x2 2) (/ x3 2)) (+ (/ y2 2) (/ y3 2))
-   x3 y3))
-
-(defun distance-from-line (x0 y0 x1 y1 x y)
-  (let* ((dx (- x1 x0))
-	 (dy (- y1 y0))
-	 (r-p-x (- x x0))
-	 (r-p-y (- y y0))
-	 (dot-v (+ (* dx dx) (* dy dy)))
-	 (dot-r-v (+ (* r-p-x dx) (* r-p-y dy)))
-	 (closest-x (+ x0 (* (/ dot-r-v dot-v)  dx)))
-	 (closest-y (+ y0 (* (/ dot-r-v dot-v)  dy))))
-    (let ((ax (- x closest-x))
-	  (ay (- y closest-y)))
-      (values (+ (* ax ax) (* ay ay)) closest-x closest-y))))

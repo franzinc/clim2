@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLX-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clx-pixmaps.lisp,v 1.5 92/08/18 17:24:26 cer Exp $
+;; $fiHeader: clx-pixmaps.lisp,v 1.6 92/09/08 15:17:15 cer Exp $
 
 (in-package :clx-clim)
 
@@ -8,7 +8,8 @@
 
 
 (defclass clx-pixmap (pixmap)
-    ((pixmap :initarg :pixmap)))
+    ((pixmap :initarg :pixmap)
+     (for-medium :initarg :for-medium)))
 
 (defmethod port-allocate-pixmap ((port clx-port) medium width height)
   (fix-coordinates width height)
@@ -16,7 +17,8 @@
 				    :width width :height height
 				    :depth (xlib:drawable-depth (medium-drawable medium)))))
     (make-instance 'clx-pixmap 
-      :pixmap pixmap)))
+      :pixmap pixmap
+      :for-medium medium)))
 
 (defmethod port-deallocate-pixmap ((port clx-port) (pixmap clx-pixmap))
   (with-slots (pixmap) pixmap
@@ -31,6 +33,9 @@
 
 (defmethod pixmap-depth ((pixmap clx-pixmap))
   (xlib:drawable-depth (slot-value pixmap 'pixmap)))
+
+(defmethod port ((pixmap clx-pixmap))
+  (port (slot-value pixmap 'for-medium)))
 
 
 (defclass clx-pixmap-medium (clx-medium basic-pixmap-medium) ())

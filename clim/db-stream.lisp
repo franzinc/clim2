@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-stream.lisp,v 1.40 92/12/07 12:14:11 cer Exp $
+;; $fiHeader: db-stream.lisp,v 1.41 92/12/14 15:02:03 cer Exp $
 
 (in-package :clim-internals)
 
@@ -350,11 +350,8 @@
 	    (setq pane `(vertically () ,label ,pane))))))
     (when borders 
       (setq pane `(outlining (:thickness 1)
-		   #+allegro
-		   ,pane
-		   #-allegro
-		   (spacing (:thickness 1)
-		     ,pane))))
+		    #+Allegro ,pane
+		    #-Allegro (spacing (:thickness 1) ,pane))))
     `(let (,stream)
        (values ,pane ,stream))))
 
@@ -404,7 +401,11 @@
 (defmethod window-refresh :after ((stream clim-stream-sheet))
   (frame-replay *application-frame* stream)
   (let ((text-record (stream-text-output-record stream)))
-    (when text-record (replay text-record stream))))
+    (when text-record (replay text-record stream)))
+  (let ((presentation (highlighted-presentation stream nil)))
+    (when presentation
+      (highlight-presentation 
+	presentation (presentation-type presentation) stream :highlight))))
 
 (defmethod window-refresh :around ((stream clim-stream-sheet))
   (with-viewport-position-saved (stream)

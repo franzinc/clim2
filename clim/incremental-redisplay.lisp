@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: incremental-redisplay.lisp,v 1.13 92/09/24 09:38:58 cer Exp $
+;; $fiHeader: incremental-redisplay.lisp,v 1.14 92/10/02 15:19:34 cer Exp $
 
 (in-package :clim-internals)
 
@@ -435,7 +435,11 @@
 		      (old-x-offset (coordinate 0)) (old-y-offset (coordinate 0)))
   (declare (type coordinate x-offset y-offset old-x-offset old-y-offset))
   (declare (values erases moves draws erase-overlapping move-overlapping))
-  (let (erases moves draws erase-overlapping move-overlapping)
+  (let ((erases nil)
+	(moves nil)
+	(draws nil)
+	(erase-overlapping nil)
+	(move-overlapping nil))
     (flet ((erase (record region)
 	     ;; REGION is the bounding rectangle
 	     (when region
@@ -551,7 +555,7 @@
 			 x-offset y-offset old-x-offset old-y-offset)))))))
       (declare (dynamic-extent #'augment-draws))
       (augment-draws record x-offset y-offset old-x-offset old-y-offset))
-    (values erases moves (nconc draws (nreverse new-draws))
+    (values erases moves (nconc (nreverse new-draws) draws)
 	    erase-overlapping move-overlapping)))
 
 ;; This has nothing to do with output-recording.  You can call this on any

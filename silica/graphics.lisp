@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics.lisp,v 1.24 92/12/01 09:46:27 cer Exp $
+;; $fiHeader: graphics.lisp,v 1.25 92/12/03 10:29:27 cer Exp $
 
 (in-package :silica)
 
@@ -578,34 +578,34 @@
   :drawing-options :line-joint
   :position-sequences-to-transform (position-seq)
   :medium-method-body
-  (let ((transform (medium-transformation medium)))
-    (cond ((rectilinear-transformation-p transform)
-	   (setq position-seq (transform-position-sequence transform position-seq))
-	   (call-next-method medium position-seq filled))
-	  (t
-	   (medium-draw-transformed-rectangles* medium position-seq filled)))))
+    (let ((transform (medium-transformation medium)))
+      (cond ((rectilinear-transformation-p transform)
+	     (setq position-seq (transform-position-sequence transform position-seq))
+	     (call-next-method medium position-seq filled))
+	    (t
+	     (medium-draw-transformed-rectangles* medium position-seq filled)))))
 
-(defun medium-draw-transformed-rectangles* (stream position-seq filled)
+(defun medium-draw-transformed-rectangles* (medium position-seq filled)
   (let ((len (length position-seq)))
     (assert (zerop (mod len 4)))
-    (macrolet ((guts (x1 y1 x2 y2)
+    (macrolet ((draw-one (x1 y1 x2 y2)
 		 `(let ((x1 ,x1) 
 			(y1 ,y1) 
 			(x2 ,x2) 
 			(y2 ,y2))
 		    (with-stack-list (list x1 y1 x2 y1 x2 y2 x1 y2)
-		      (medium-draw-polygon* stream list t filled)))))
+		      (medium-draw-polygon* medium list t filled)))))
       (if (listp position-seq)
 	  (do ((position-seq position-seq))
 	      ((null position-seq))
-	    (guts (pop position-seq) (pop position-seq) 
-		  (pop position-seq) (pop position-seq)))
-	(do ((i 0 (+ i 4)))
-	    ((= i len))
-	  (guts (aref position-seq i)
-		(aref position-seq (+ 1 i))
-		(aref position-seq (+ 2 i))
-		(aref position-seq (+ 3 i))))))))
+	    (draw-one (pop position-seq) (pop position-seq) 
+		      (pop position-seq) (pop position-seq)))
+	  (do ((i 0 (+ i 4)))
+	      ((= i len))
+	    (draw-one (aref position-seq i)
+		      (aref position-seq (+ 1 i))
+		      (aref position-seq (+ 2 i))
+		      (aref position-seq (+ 3 i))))))))
 
 ;; DRAW-PATTERN* is a special case of DRAW-RECTANGLE*, believe it or not...
 (defun draw-pattern* (medium pattern x y &key clipping-region transformation)
@@ -790,11 +790,6 @@
   (apply #'draw-oval* 
 	 medium (point-x center) (point-y center) x-radius y-radius args))
 
-(define-graphics-generic draw-bezier-curve ((points point-sequence position-seq)
-					    &key (filled t))
-  :drawing-options :line-joint-cap
-  :position-sequences-to-transform (position-seq))
-
 (define-graphics-generic draw-text (string-or-char (point point x y)
 				    &key (start 0) (end nil)
 					 (align-x :left) (align-y :baseline)
@@ -811,3 +806,75 @@
   (letf-globally (((medium-ink medium) +background-ink+)
 		  ((medium-transformation medium) +identity-transformation+))
     (medium-draw-rectangle* medium left top right bottom t)))
+
+
+;;; Cubic splines and Bezier curves
+
+(define-graphics-generic draw-bezier-curve ((points point-sequence position-seq)
+					    &key (filled nil))
+  :drawing-options :line-cap
+  :position-sequences-to-transform (position-seq))
+
+(defmethod medium-draw-bezier-curve* ((medium basic-medium) position-seq filled)
+  (let* ((npoints (length position-seq))
+	 (last (1- npoints))
+	 (new-points (cons nil nil))
+	 (head new-points)
+	 (distance 1))
+    (assert (zerop (mod (- (/ npoints 2) 4) 3)))
+    (flet ((collect (x y)
+	     (let ((more (list x y)))
+	       (setf (cdr new-points) more
+		     new-points (cdr more)))))
+      (declare (dynamic-extent #'collect))
+      (collect (elt position-seq 0) (elt position-seq 1))
+      (do ((i 0 (+ i 6)))
+	  ((= i (1- last)))
+	(render-bezier-curve #'collect 
+	  (elt position-seq i)	     (elt position-seq (+ 1 i))
+	  (elt position-seq (+ 2 i)) (elt position-seq (+ 3 i))
+	  (elt position-seq (+ 4 i)) (elt position-seq (+ 5 i))
+	  (elt position-seq (+ 6 i)) (elt position-seq (+ 7 i))
+	  distance)
+	(collect (elt position-seq (+ 6 i)) (elt position-seq (+ 7 i)))))
+    (medium-draw-polygon* medium (cdr head) nil filled)))
+
+(defun render-bezier-curve (function x0 y0 x1 y1 x2 y2 x3 y3 distance)
+  (flet ((split-bezier-curve (x0 y0 x1 y1 x2 y2 x3 y3)
+	   ;; We should write a matrix multiplication macro
+	   (values
+	     ;; The first 1/2
+	     x0 y0
+	     (+ (/ x0 2) (/ x1 2)) (+ (/ y0 2) (/ y1 2))
+	     (+ (/ x0 4) (/ x1 2) (/ x2 4)) (+ (/ y0 4) (/ y1 2) (/ y2 4))
+	     (+ (* x0 1/8) (* x1 3/8) (* x2 3/8) (* x3 1/8))
+	     (+ (* y0 1/8) (* y1 3/8) (* y2 3/8) (* y3 1/8))
+	     ;; The second 1/2
+	     (+ (* x0 1/8) (* x1 3/8) (* x2 3/8) (* x3 1/8)) 
+	     (+ (* y0 1/8) (* y1 3/8) (* y2 3/8) (* y3 1/8))
+	     (+ (/ x1 4) (/ x2 2) (/ x3 4)) (+ (/ y1 4) (/ y2 2) (/ y3 4))
+	     (+ (/ x2 2) (/ x3 2)) (+ (/ y2 2) (/ y3 2))
+	     x3 y3))
+	 (distance-from-line (x0 y0 x1 y1 x y)
+	   (let* ((dx (- x1 x0))
+		  (dy (- y1 y0))
+		  (r-p-x (- x x0))
+		  (r-p-y (- y y0))
+		  (dot-v (+ (* dx dx) (* dy dy)))
+		  (dot-r-v (+ (* r-p-x dx) (* r-p-y dy)))
+		  (closest-x (+ x0 (* (/ dot-r-v dot-v)  dx)))
+		  (closest-y (+ y0 (* (/ dot-r-v dot-v)  dy))))
+	     (let ((ax (- x closest-x))
+		   (ay (- y closest-y)))
+	       (values (+ (* ax ax) (* ay ay)) closest-x closest-y)))))
+    (declare (dynamic-extent #'split-bezier-curve #'distance-from-line))
+    (let ((d1 (distance-from-line x0 y0 x3 y3 x1 y1))
+	  (d2 (distance-from-line x0 y0 x3 y3 x2 y2)))
+      (if (and (< d1 distance) (< d2 distance))
+	  nil
+	  (multiple-value-bind (x00 y00 x10 y10 x20 y20 x30 y30
+				x01 y01 x11 y11 x21 y21 x31 y31)
+	      (split-bezier-curve x0 y0 x1 y1 x2 y2 x3 y3)
+	    (render-bezier-curve function x00 y00 x10 y10 x20 y20 x30 y30 distance)
+	    (funcall function x30 y30)
+	    (render-bezier-curve function x01 y01 x11 y11 x21 y21 x31 y31 distance))))))

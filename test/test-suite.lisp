@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: test-suite.lisp,v 1.49 92/12/07 12:15:37 cer Exp $
+;; $fiHeader: test-suite.lisp,v 1.50 92/12/14 15:03:43 cer Exp $
 
 (in-package :clim-user)
 
@@ -30,7 +30,7 @@ What about environment issue?
 (defmacro repeat (n &body body)
   (let ((i '#:i))
     `(dotimes (,i ,n)
-       #-(or Minima Genera allegro) (declare (ignore i))
+       #-(or minima genera allegro) (declare (ignore i))
        ,@body)))
 
 (defmacro with-display-pane ((stream) &body body)
@@ -41,7 +41,7 @@ What about environment issue?
 (defvar *all-the-tests* nil)
 
 (defmacro define-test ((name command-table) (stream) caption &body body)
-  #+Genera (declare (zwei:indentation 2 1))
+  #+genera (declare (zwei:indentation 2 1))
   (check-type caption (or null string))
   (let ((command-name (clim-utils:fintern "~A-~A" 'com name)))
     `(progn
@@ -93,21 +93,22 @@ What about environment issue?
 	 ,@body))))
 
 (defun draw-grid (stream)
-  (with-mm-transformation (stream -x -y +x +y)
-    (draw-line* stream -x 0 +x 0 :line-thickness 2)
-    (draw-line* stream 0 -y 0 +y :line-thickness 2)
-    (do ((x (ceiling -x) (1+ x)))
-	((> x +x))
-      (unless (zerop x)
-	(if (zerop (mod x 10))
-	    (draw-line* stream x -y x +y :line-thickness 1)
-	    (draw-line* stream x -1 x +1 :line-thickness 1))))
-    (do ((y (ceiling -y) (1+  y)))
-	((> y +y))
-      (unless (zerop y)
-	(if (zerop (mod y 10))
-	    (draw-line* stream -x y +x y :line-thickness 1)
-	    (draw-line* stream -1 y +1 y :line-thickness 1))))))
+  (with-new-output-record (stream)
+    (with-mm-transformation (stream -x -y +x +y)
+      (draw-line* stream -x 0 +x 0 :line-thickness 2)
+      (draw-line* stream 0 -y 0 +y :line-thickness 2)
+      (do ((x (ceiling -x) (1+ x)))
+	  ((> x +x))
+	(unless (zerop x)
+	  (if (zerop (mod x 10))
+	      (draw-line* stream x -y x +y :line-thickness 1)
+	      (draw-line* stream x -1 x +1 :line-thickness 1))))
+      (do ((y (ceiling -y) (1+  y)))
+	  ((> y +y))
+	(unless (zerop y)
+	  (if (zerop (mod y 10))
+	      (draw-line* stream -x y +x y :line-thickness 1)
+	      (draw-line* stream -1 y +1 y :line-thickness 1)))))))
 
 (defun draw-multiple-rectangles (stream &optional (size 10) (sx 0) (sy 0))
   (with-mm-transformation (stream -x -y +x +y)
@@ -671,24 +672,20 @@ people, shall not perish from the earth.
     (format-graphics-sample stream "Large Point" '(draw-point* 0 0 :line-thickness 5)))
   (formatting-graphics-samples (stream "Some Lines")
     (format-graphics-sample stream "Some Lines"
-	'(draw-lines* (0 0 10 100 50 50 90 100 100 10 40 50))))
+      '(draw-lines* (0 0 10 100 50 50 90 100 100 10 40 50))))
   (formatting-graphics-samples (stream "Some Rectangles")
     (format-graphics-sample stream "Some Rectangles"
-			    '(draw-rectangles* (0 0 10 100 50 50 90
-						100 100 10 40 50)))
-    
+      '(draw-rectangles* (0 0 10 100 50 50 90 100 100 10 40 50)))
     (format-graphics-sample stream "A rectangle" '(draw-rectangle* 0 0 10 100))
     (format-graphics-sample stream "A rectangles" '(draw-rectangle* 50 50 90 100 ))
     (format-graphics-sample stream "A rectangle" '(draw-rectangle*  100 10 40 50)))
   (with-rotation (stream .5)
-      (formatting-graphics-samples (stream "Some rotated rectangles")
-	 (format-graphics-sample stream "Some Rectangles"
-				 '(draw-rectangles* (0 0 10 100 50 50 90
-						     100 100 10 40
-						     50)))
-	 (format-graphics-sample stream "A rectangle" '(draw-rectangle* 0 0 10 100))
-	 (format-graphics-sample stream "A rectangle" '(draw-rectangle* 50 50 90 100 ))
-	 (format-graphics-sample stream "A rectangle" '(draw-rectangle*  100 10 40 50))))
+    (formatting-graphics-samples (stream "Some rotated rectangles")
+      (format-graphics-sample stream "Some Rectangles"
+        '(draw-rectangles* (0 0 10 100 50 50 90 100 100 10 40 50)))
+      (format-graphics-sample stream "A rectangle" '(draw-rectangle* 0 0 10 100))
+      (format-graphics-sample stream "A rectangle" '(draw-rectangle* 50 50 90 100 ))
+      (format-graphics-sample stream "A rectangle" '(draw-rectangle*  100 10 40 50))))
   (formatting-graphics-samples (stream "Many Points")
     (format-graphics-sample stream "Many Small Points"
       '(draw-points* (0 0 10 110 50 50 90 110 100 10 50 40)))
@@ -722,7 +719,7 @@ people, shall not perish from the earth.
 		    :towards-x x :towards-y 0)))))
 
 (define-test (negative-extent graphics) (stream)
-  "Draw things at -ve values. You should be able to scroll and see all of it"
+  "Draw things at negative values.  You should be able to scroll and see all of it"
   (let ((x 400)
 	(y 400))
     (draw-point* stream (- x) 0 :ink +red+ :line-thickness 3)
@@ -747,40 +744,39 @@ people, shall not perish from the earth.
 	(dotimes (i 5)
 	  (unless (= i j)
 	    (sleep 0.25)
-	    (copy-from-pixmap pixmap 0 0 100 100 medium (* j 100) (* i
-								     100))))))))
+	    (copy-from-pixmap pixmap 0 0 100 100 medium (* j 100) (* i 100))))))))
 
 #+allegro
 (define-test (read-image-test graphics) (stream)
   "Test image reading code"
   (formatting-table (stream)
-      (dolist (name '("woman" "escherknot" "tie_fighter" "mensetmanus"))
-	(formatting-row (stream)
-	    (formatting-cell (stream)
-		(write-string name stream))
-	  (formatting-cell (stream)
-	      (let ((filename (format nil "/usr/include/X11/bitmaps/~A" name)))
-		(if (probe-file filename)
-		    (let ((pattern (make-pattern-from-bitmap-file
-				    filename 
-				    :designs
-				    (list +background-ink+ +foreground-ink+))))
-		      (draw-rectangle* stream 0 0 (pattern-width pattern) (pattern-height pattern) :ink pattern))
-		  (write-string "not found" stream))))))))
+    (dolist (name '("woman" "escherknot" "tie_fighter" "mensetmanus"))
+      (formatting-row (stream)
+	(formatting-cell (stream)
+	  (write-string name stream))
+	(formatting-cell (stream)
+	  (let ((filename (format nil "/usr/include/X11/bitmaps/~A" name)))
+	    (if (probe-file filename)
+		(let ((pattern (make-pattern-from-bitmap-file
+				filename 
+				:designs
+				(list +background-ink+ +foreground-ink+))))
+		  (draw-rectangle* stream 0 0 (pattern-width pattern) (pattern-height pattern) :ink pattern))
+	      (write-string "not found" stream))))))))
 
 
 (define-test (draw-some-bezier-curves graphics) (stream)
   "Draw bezier curve"
   (let ((points (list 0 0 100 300 300 300 400 0 200 200 150 30 0 0)))
     (formatting-item-list (stream)
-	(dolist (filled '(nil t))
-	  (formatting-cell (stream)
-	      (with-scaling (stream 0.5)
-		(draw-bezier-curve* stream points :filled filled)
-		(do ((points points (cddr points)))
-		    ((null points))
-		  (draw-point* stream (car points) (cadr points) :line-thickness 2
-			       :ink +red+))))))))
+      (dolist (filled '(nil t))
+	(formatting-cell (stream)
+	  (with-scaling (stream 0.5)
+	    (draw-bezier-curve* stream points :filled filled)
+	    (do ((points points (cddr points)))
+		((null points))
+	      (draw-point* stream (car points) (cadr points) 
+			   :line-thickness 2 :ink +red+))))))))
 
 (defparameter *named-colors*
  '(+white+ +black+ +red+ +green+ +blue+ +yellow+ +cyan+ +magenta+
@@ -1175,13 +1171,13 @@ people, shall not perish from the earth.
 (define-test (simple-graph formatted-output) (stream)
   "Draw a graph showing the Green Line."
   (labels ((next-stops (stop)
-	     #+Genera (declare (sys:downward-function))
+	     #+genera (declare (sys:downward-function))
 	     (let ((next (cadr (find-green-line-stop stop *green-line-map*))))
 	       (if (listp next)
 		   (mapcar #'car next)
 		 (list next))))
 	   (find-green-line-stop (stop-name search-from)
-	     #+Genera (declare (sys:downward-function))
+	     #+genera (declare (sys:downward-function))
 	     (do ((stops search-from (cdr stops)))
 		 ((null stops))
 	       (if (listp (car stops))
@@ -1190,7 +1186,7 @@ people, shall not perish from the earth.
 		   (when (string-equal stop-name (car stops))
 		     (return stops)))))
 	   (draw-node (node stream)
-	     #+Genera (declare (sys:downward-function))
+	     #+genera (declare (sys:downward-function))
 	     (format stream "~A" node)))
     #+ignore (declare (dynamic-extent #'next-stops #'find-green-line-stop #'draw-node))
     (format-graph-from-root "Lechmere" #'draw-node #'next-stops
@@ -1252,36 +1248,34 @@ people, shall not perish from the earth.
     (sleep 2)
     (window-refresh stream)))
 
+#+allegro
 (define-test (hairy-graph-formatting formatted-output) (stream)
   "Some hairy re-entrant and circular graphs"
   (formatting-item-list (stream)
-      (dolist (test '((nil (a (bbbb (ccc (dd eee) (fff ggg (hh (ii jj) kkk))) (lll (mmm nnn) (ooo ppp qqq))) r (s t)))
-		      (t (a #1=(b (c #2= (d e #3=(f g)) (hhhhhhhhhh (i j k) l (m n o)))))
+    (dolist (test '((nil (a (bbbb (ccc (dd eee) (fff ggg (hh (ii jj) kkk)))
+				  (lll (mmm nnn) (ooo ppp qqq))) r (s t)))
+		    (t (a #1=(b (c #2=(d e #3=(f g)) (hhhhhhhhhh (i j k) l (m n o)))))
 		       (p (q (r (s t #3# u))))
 		       (w (x #2# #1#)))
-		      (t (a #11=(bbb (ccc (dd eee) (ffff g hhhhhhhh)))
+		    (t (a #11=(bbb (ccc (dd eee) (ffff g hhhhhhhh)))
 			  (mm (nnn ooo #11#) (p #12=(q r (s t))))
 			  (u (v (w (x #12#))))))
-		      (t (a #21= (b (c (d #21# e)) (f #22= (g (h i) j) k) #22#) (m n)))
-		      (t #34=(a #31= (b (c (d #31# e)) (f #32= (g (h i #31#) j) k) #32#) (m #34# n)))
-		      (t #51=(a #51#))
-		      (t #41=(aaa (bbb (ccc #41#))))
-		      ))
-	(formatting-cell (stream)
-	    (destructuring-bind (merge . data) test
-	      (flet ((printer-function (node stream)
-		       (format stream "~A" (if (consp node) (car node) node)))
-		     (child-function (node)
-		       (and (consp node) (cdr node))))
-		(format-graph-from-roots
-		 data
-		 #'printer-function
-		 #'child-function
-		 :stream stream
-		 :cutoff-depth 8
-		 :merge-duplicates merge
-		 )))))))
-    
+		    (t (a #21=(b (c (d #21# e)) (f #22=(g (h i) j) k) #22#) (m n)))
+		    (t #34=(a #31=(b (c (d #31# e)) (f #32=(g (h i #31#) j) k) #32#)
+			      (m #34# n)))
+		    (t #51=(a #51#))
+		    (t #41=(aaa (bbb (ccc #41#))))))
+      (formatting-cell (stream)
+	(destructuring-bind (merge . data) test
+	  (flet ((printer-function (node stream)
+		   (format stream "~A" (if (consp node) (car node) node)))
+		 (child-function (node)
+		   (and (consp node) (cdr node))))
+	    (format-graph-from-roots
+	      data #'printer-function #'child-function
+	      :stream stream
+	      :cutoff-depth 8
+	      :merge-duplicates merge)))))))
 
 (define-test (filled-output formatted-output) (stream)
   "Some simple tests of filled output.  The thing labelled <Click Here> should be sensitive."
@@ -1494,8 +1488,6 @@ Luke Luck licks the lakes Luke's duck likes."))
       (write-string "Any gesture to run the column test" stream)
       (read-gesture :stream stream)
       (table-graphics-test-column i))))
-
-
 
 
 ;;; Redisplay tests
@@ -1716,24 +1708,25 @@ Luke Luck licks the lakes Luke's duck likes."))
 
 (define-drag-and-drop-translator test-suite-dnd
     (drag-source string drop-target presentations)
-  (presentation destination-presentation)
-  (princ-to-string (list (presentation-object presentation) (presentation-object destination-presentation))))
-
+    (presentation destination-presentation)
+  (format nil "Dragged from ~D to ~D" 
+    (presentation-object presentation) (presentation-object destination-presentation)))
 
 (define-test (drag-and-drop-tests presentations) (stream)
   "Try drag and drop"
-  (formatting-table (stream)
-      (dotimes (i 3)
-	(formatting-row (stream)
-	    (formatting-cell (stream)
-		(with-output-as-presentation (stream i 'drag-source)
-		  (format stream "Drag source ~D" i)))
-	  (formatting-cell (stream)
-	      (with-output-as-presentation (stream i 'drop-target)
-		(format stream "drop target ~D" i))))))
+  (formatting-table (stream :x-spacing "   ")
+    (dotimes (i 3)
+      (formatting-row (stream)
+	(formatting-cell (stream)
+	  (with-output-as-presentation (stream i 'drag-source)
+	    (format stream "Drag source ~D" i)))
+	(formatting-cell (stream)
+	  (with-output-as-presentation (stream i 'drop-target)
+	    (format stream "Drop target ~D" i))))))
   (loop
     (terpri stream)
     (accept 'string :stream stream)))
+
 
 ;;; Menus
 
@@ -1755,7 +1748,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 		 :label "Select an activity")))
 
 
-#+Allegro
+#+allegro
 (define-test (more-simple-menus menus-and-dialogs) (stream)
   "Popup a few menus"
   (macrolet ((doit (&body body)
@@ -1776,15 +1769,15 @@ Luke Luck licks the lakes Luke's duck likes."))
       (menu-choose '("akjdfkjdf" "bdfkj" "cdfkj")
 		   :label "foo" :text-style '(:fix :roman :huge)))
     (doit
-     (menu-choose '("akjdfkjdf" "bdfkj" "cdfkj")
-		  :label '("Foo" :text-style (:serif :bold :huge)) 
-		  :text-style '(:fix :roman :huge)))))
+      (menu-choose '("akjdfkjdf" "bdfkj" "cdfkj")
+		   :label '("Foo" :text-style (:serif :bold :huge)) 
+		   :text-style '(:fix :roman :huge)))))
 
 (define-test (graphical-menu menus-and-dialogs) (stream)
   "A menu that contains graphics."
   (let ((icon-list '(blockhead bubblehead pinhead)))
     (labels ((draw-icon (icon stream)
-	       #+Genera (declare (sys:downward-function))
+	       #+genera (declare (sys:downward-function))
 	       (ecase icon
 		 (blockhead
 		   (draw-rectangle* stream 0 0 20 20))
@@ -1793,7 +1786,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 		 (pinhead
 		   (draw-polygon* stream '(0 0 20 0 10 20)))))
 	     (draw-icon-menu (menu presentation-type)
-	       #+Genera (declare (sys:downward-function))
+	       #+genera (declare (sys:downward-function))
 	       (formatting-table (menu :y-spacing 5)
 		 (dolist (icon icon-list)
 		   (with-output-as-presentation ( menu
@@ -1811,7 +1804,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 (define-test (choose-compass-direction menus-and-dialogs) (stream)
   "A more complicated graphical menu.  Try pointing at one of the compass points."
   (labels ((draw-compass-point (stream ptype symbol x y)
-	     #+Genera (declare (sys:downward-function))
+	     #+genera (declare (sys:downward-function))
 	     (with-output-as-presentation ( stream
 					    symbol
 					    ptype)
@@ -1819,7 +1812,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 			   :align-x :center :align-y :center
 			   :text-style '(:sans-serif :roman :large))))
 	   (draw-compass (stream ptype)
-	     #+Genera (declare (sys:downward-function))
+	     #+genera (declare (sys:downward-function))
 	     (with-room-for-graphics (stream :first-quadrant nil)
 	       (draw-line* stream 0 25 0 -25 :line-thickness 2)
 	       (draw-line* stream 25 0 -25 0 :line-thickness 2)
@@ -1987,52 +1980,52 @@ Luke Luck licks the lakes Luke's duck likes."))
   "Create a bunch of readonly gadgets"
   (accepting-values (stream :own-window nil :label "Gadgets dialog"
 			    :align-prompts nil)
-      (macrolet ((do-presents (view &rest p)
-		   `(progn
-		      ,@(mapcar #'(lambda (x)
-				    `(progn
-				       (present ',(car x) ',(cadr x)
-						,@(and view `(:view ,view))
-						:prompt (format nil "~A,~A"
-								',(cadr x)
-								,(if (constantp view)
-								     (if (eval view) `',(type-of (eval view)) :default)
-								   `(if ,view (type-of ,view) :default)))
-						:stream stream)
-				       (terpri stream)))
-				p))))
+    (macrolet ((do-presents (view &rest p)
+		 `(progn
+		    ,@(mapcar #'(lambda (x)
+				  `(progn
+				     (present ',(car x) ',(cadr x)
+					      ,@(and view `(:view ,view))
+					      :prompt (format nil "~A,~A"
+							',(cadr x)
+							,(if (constantp view)
+							     (if (eval view) `',(type-of (eval view)) :default)
+							     `(if ,view (type-of ,view) :default)))
+					      :stream stream)
+				     (terpri stream)))
+			      p))))
 	
-	(formatting-item-list (stream :n-columns 2)
-	    (formatting-cell (stream)
-		(with-aligned-prompts (stream)
-		  (do-presents
-		      nil
-		    (5.0 real)
-		    ("xxx" string)
-		    (#P"/tmp/fooo" pathname)
-		    (:a (member :a :b))
-		    ((:a :b) (subset :a :b))
-		    (( 3 4) (sequence integer))
-		    ;; sequence-enumerated
-		    (t boolean))))
-	  (formatting-cell (stream)
-	      (with-aligned-prompts (stream)
-		(do-presents
-		    +text-field-view+
-		  (5.0 real)
-		  ("xxx" string)
-		  (#P"/tmp/fooo" pathname)
-		  (:a (member :a :b))
-		  ((:a :b) (subset :a :b))
-		  (( 3 4) (sequence integer))
-		  ;; sequence-enumerated
-		  (t boolean))))
+      (formatting-item-list (stream :n-columns 2)
+	(formatting-cell (stream)
+	  (with-aligned-prompts (stream)
+	    (do-presents
+	      nil
+	      (5.0 real)
+	      ("xxx" string)
+	      (#P"/tmp/fooo" pathname)
+	      (:a (member :a :b))
+	      ((:a :b) (subset :a :b))
+	      (( 3 4) (sequence integer))
+	      ;; sequence-enumerated
+	      (t boolean))))
+	(formatting-cell (stream)
+	  (with-aligned-prompts (stream)
+	    (do-presents
+	      +text-field-view+
+	      (5.0 real)
+	      ("xxx" string)
+	      (#P"/tmp/fooo" pathname)
+	      (:a (member :a :b))
+	      ((:a :b) (subset :a :b))
+	      (( 3 4) (sequence integer))
+	      ;; sequence-enumerated
+	      (t boolean))))
 	  
-	  (formatting-cell (stream)
-	      (with-aligned-prompts (stream)
-		(do-presents
-		    '(text-editor-view :nlines 5 :ncolumns 30)
-		  ("      (do-presents
+	(formatting-cell (stream)
+	  (with-aligned-prompts (stream)
+	    (do-presents
+	      '(text-editor-view :nlines 5 :ncolumns 30)
+	      ("      (do-presents
 	  +text-field-view+
 	  (5.0 real)
 	(xxx string)
@@ -2042,15 +2035,14 @@ Luke Luck licks the lakes Luke's duck likes."))
 	(( 3 4) (sequence integer))
 	;; sequence-enumerated
 	(t boolean)) "
-		      string))))
+	       string))))
 	  
-	  (formatting-cell (stream)
-	      (with-aligned-prompts (stream)
-		(do-presents
-		    +slider-view+
-		  (5.0 float)
-		  (1 integer))))))))
-
+	(formatting-cell (stream)
+	  (with-aligned-prompts (stream)
+	    (do-presents
+	      +slider-view+
+	      (5.0 float)
+	      (1 integer))))))))
 
 (defun gadgets-dialog-internal (stream &optional own-window)
   (macrolet ((accepts (&rest accepts)
@@ -2092,7 +2084,6 @@ Luke Luck licks the lakes Luke's duck likes."))
 		 (k (subset :red :blue :green) :view +list-pane-view+)
 		 (l (member :red :blue :green) :view +option-pane-view+))))))
 
-
 (define-test (input-editor-tests menus-and-dialogs) (stream)
   "Type lots of input editor commands"
   (loop
@@ -2108,7 +2099,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 
 (defmacro define-benchmark ((name &key (iterations 1)) (stream) caption
 			    &body body)
-  #+Genera (declare (zwei:indentation 2 1))
+  #+genera (declare (zwei:indentation 2 1))
   (check-type caption (or null string))
   (let ((function-name (intern (format nil "~A-~A" 'benchmark name)
 			       (symbol-package 'define-benchmark))))
@@ -2124,6 +2115,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 ;;--- It would be nice if we could measure consing, too
 
 (defparameter *multiply-factor* 1)
+(defparameter *scale-iterations* t)
 
 (defun time-continuation (name iterations continuation &key (careful t))
   (with-display-pane (stream)
@@ -2132,30 +2124,32 @@ Luke Luck licks the lakes Luke's duck likes."))
       (when careful
 	(funcall continuation stream))
       (let ((initial-scale-iterations 1))
-        (repeat (* *multiply-factor* (if (not careful) 1 5))
-		(window-clear stream)
-		#+Genera (si:%gc-scavenge)
-		#+Cloe-Runtime (gc-immediately)
-		#+Lucid (lucid-common-lisp:ephemeral-gc)
-		#+excl (excl::gc)
-		#+ccl (ccl:gc)
-		(do ((scale-iterations initial-scale-iterations (* scale-iterations 2)))
-		    (nil)
-		  (let ((start-time (get-internal-real-time))
-			(vstart-time (get-internal-run-time)))
-		    (repeat (* iterations scale-iterations)
-			    (#+Genera mi:with-metering-enabled #-Genera progn
-				      (funcall continuation stream))
-			    (force-output stream))
-		    (let ((vtime (/ (float (- (get-internal-run-time) vstart-time))
-				    internal-time-units-per-second))
-			  (rtime (/ (float (- (get-internal-real-time) start-time))
-				    internal-time-units-per-second)))
-		      (when (or (> vtime 1) (> rtime 1))
-			(setq initial-scale-iterations scale-iterations)
-			(push (/ rtime scale-iterations) results)
-			(push (/ vtime scale-iterations) vresults)
-			(return nil)))))))
+	#+genera (si:%gc-scavenge)
+	#+cloe-runtime (gc-immediately)
+	#+lucid (lucid-common-lisp:ephemeral-gc)
+	#+allegro (excl::gc)
+	#+ccl (ccl:gc)
+	(#+genera si:inhibit-gc-flips #-genera progn
+	  (repeat (* *multiply-factor* (if (not careful) 1 5))
+	    (window-clear stream)
+	    (do ((scale-iterations initial-scale-iterations (* scale-iterations 2)))
+		(nil)
+	      (let ((start-time (get-internal-real-time))
+		    (vstart-time (get-internal-run-time)))
+		(repeat (* iterations scale-iterations)
+		  (#+genera mi:with-metering-enabled #-genera progn
+		    (funcall continuation stream))
+		  (force-output stream))
+		(let ((vtime (/ (float (- (get-internal-run-time) vstart-time))
+				internal-time-units-per-second))
+		      (rtime (/ (float (- (get-internal-real-time) start-time))
+				internal-time-units-per-second)))
+		  (when (or (null *scale-iterations*)
+			    (or (> vtime 1) (> rtime 1)))
+		    (setq initial-scale-iterations scale-iterations)
+		    (push (/ rtime scale-iterations) results)
+		    (push (/ vtime scale-iterations) vresults)
+		    (return nil))))))))
       (let ((time
 	     (if (not careful)
 		 (first results)
@@ -2167,11 +2161,8 @@ Luke Luck licks the lakes Luke's duck likes."))
 	       (let ((results (rest (butlast (sort vresults #'<)))))
 		 (/ (apply #'+ results) (length results))))))
 	(format (get-frame-pane *application-frame* 'caption-pane)
-		"~%Each run of ~A took about ~3$ real, ~3$ virtual, ~3$ v/r seconds"
-		name 
-		time
-		vtime
-		(float (/ vtime time)))
+	    "~%Each run of ~A took about ~3$ real, ~3$ virtual, ~3$ v/r seconds"
+	  name time vtime (float (/ vtime time)))
 	time))))
 
 ;;; To distill the results down to something more easily interpretable by the
@@ -2237,8 +2228,7 @@ Luke Luck licks the lakes Luke's duck likes."))
     (run-benchmarks-internal pathname comment)))
 
 (define-command (run-benchmarks-to-dummy-file :command-table benchmarks :menu t)
-    (&key 
-     (file '(null-or-type pathname) :default nil))
+    ((file '(null-or-type pathname) :default nil))
   (run-benchmarks-internal file "no comment"))
 
 (defun run-benchmarks-internal (pathname comment)
@@ -2302,9 +2292,9 @@ Luke Luck licks the lakes Luke's duck likes."))
 				    (unread-char ch file)
 				    (return))
 				  (write-line (read-line file) s)))
-			      #+Genera
+			      #+genera
 			      (format s "~\\date\\~%" (file-write-date file))
-			      #-Genera
+			      #-genera
 			      (format s "Date: ~D~%" (file-write-date file))))
 			  (file-data (read file)))
 		      (push (list short-name comments file-data) data)))))
@@ -2816,13 +2806,13 @@ Luke Luck licks the lakes Luke's duck likes."))
 	     ("Prudential" "Symphony" "Northeastern" "Museum"
 	      "Brigham Circle" "Heath" "Arborway")))))
     (labels ((next-stops (stop)
-	       #+Genera (declare (sys:downward-function))
+	       #+genera (declare (sys:downward-function))
 	       (let ((next (cadr (find-green-line-stop stop map))))
 		 (if (listp next)
 		     (mapcar #'car next)
 		   (list next))))
 	     (find-green-line-stop (stop-name search-from)
-	       #+Genera (declare (sys:downward-function))
+	       #+genera (declare (sys:downward-function))
 	       (do ((stops search-from (cdr stops)))
 		   ((null stops))
 		 (if (listp (car stops))
@@ -2831,7 +2821,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 		     (when (string-equal stop-name (car stops))
 		       (return stops)))))
 	     (draw-node (node stream)
-	       #+Genera (declare (sys:downward-function))
+	       #+genera (declare (sys:downward-function))
 	       (format stream "~A" node)))
       #+ignore (declare (dynamic-extent #'next-stops #'find-green-line-stop #'draw-node))
       (fresh-line stream)
@@ -3131,9 +3121,9 @@ Luke Luck licks the lakes Luke's duck likes."))
 
 
 (define-application-frame clim-tests ()
-			  ((history-class :initarg :history-class 
-					  :initform 'standard-tree-output-history
-					  :reader clim-tests-history-class))
+    ((history-class :initarg :history-class 
+		    :initform 'standard-tree-output-history
+		    :reader clim-tests-history-class))
   (:command-table (clim-tests
 		   :inherit-from (graphics
 				  output-recording
@@ -3153,6 +3143,7 @@ Luke Luck licks the lakes Luke's duck likes."))
   (:command-definer nil)
   (:panes 
    (caption-pane :application
+	      :scroll-bars :vertical
 		 :height 50
 		 :output-record
 		 (make-instance (clim-tests-history-class *application-frame*)))
@@ -3161,12 +3152,12 @@ Luke Luck licks the lakes Luke's duck likes."))
 		 (make-instance (clim-tests-history-class *application-frame*))))
   (:layouts
     (:default
-	(vertically () caption-pane display-pane))))
+      (vertically () caption-pane display-pane))))
 
 (defmethod frame-standard-output ((frame clim-tests))
   (get-frame-pane frame 'display-pane))
     
-#+Genera
+#+genera
 (define-genera-application clim-tests :select-key #\Circle
 			   :width 600 :height 420)
 

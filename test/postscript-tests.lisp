@@ -1,6 +1,6 @@
 ;;; -*- Mode: LISP; Syntax: Common-lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: postscript-tests.lisp,v 1.2 92/10/28 11:32:17 cer Exp $
+;; $fiHeader: postscript-tests.lisp,v 1.3 92/12/01 09:46:38 cer Exp $
 
 (in-package :clim-user)
 
@@ -72,7 +72,7 @@
 	   &body body)
   (let* ((command-name-string (command-name-from-symbol root-name))
 	 (command-body-function-name (clim-utils:fintern "~A~A" (string root-name) '-function))
-	 (additional-key-args '((output '(member :view :buffer #+Allegro :print)
+	 (additional-key-args '((output '(member :view :file :buffer #+Allegro :printer)
 					:default *postscript-test-default-output*)))
 	 (postscript-test-name (clim-utils:fintern "~A~A" 'pcom- (string root-name)))
 	 (args arguments)
@@ -96,15 +96,15 @@
 		       :name ,command-name-string)
 	  ,args
 	(ecase output
-	  (:file
-	   (with-open-file
-	       (file-stream "postscript.output" :direction :output :if-exists :supersede)
-	     (with-output-to-postscript-stream (*standard-output* file-stream)
-	       ,command-body-form)))
 	  (:view
 	    (with-drawing-display-window (*standard-output*)
 	      ,command-body-form))
-	  (:print 
+	  (:file
+	    (with-open-file
+	        (file-stream "postscript.output" :direction :output :if-exists :supersede)
+	      (with-output-to-postscript-stream (*standard-output* file-stream)
+		,command-body-form)))
+	  (:printer 
 	    #+Allegro
 	    (with-open-stream 
 	      (printer-stream-var

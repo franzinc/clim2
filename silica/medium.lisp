@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: medium.lisp,v 1.29 92/11/06 19:03:53 cer Exp $
+;; $fiHeader: medium.lisp,v 1.30 92/12/02 13:31:06 colin Exp $
 
 (in-package :silica)
 
@@ -199,7 +199,7 @@
 
 (defmethod make-load-form ((line-style standard-line-style))
   (with-slots (unit thickness joint-shape cap-shape dashes) line-style
-    `(make-line-style ,@(unless (eq unit :points) `(:unit ,unit))
+    `(make-line-style ,@(unless (eq unit :normal) `(:unit ,unit))
 		      ,@(unless (= thickness 1) `(:thickness ,thickness))
 		      ,@(unless (eq joint-shape :miter) `(:joint-shape ,joint-shape))
 		      ,@(unless (eq cap-shape :butt) `(:cap-shape ,cap-shape))
@@ -255,8 +255,7 @@
 		 line-joint-shape line-cap-shape
 		 (text-style nil text-style-p) (text-family nil text-family-p)
 		 (text-face nil text-face-p) (text-size nil text-size-p))
-  (with-accessors ((transformed-clipping-region medium-clipping-region))
-      medium
+  (with-accessors ((transformed-clipping-region medium-clipping-region)) medium
     (with-slots ((medium-ink ink)
 		 (medium-transformation transformation)
 		 (medium-line-style line-style)) medium
@@ -270,37 +269,37 @@
 		(setf medium-ink ink))
 	      (when transformation
 		(setf medium-transformation
-		  (compose-transformations saved-transformation transformation)))
+		      (compose-transformations saved-transformation transformation)))
 	      (when clipping-region
 		(setf transformed-clipping-region
-		  (region-intersection saved-clipping-region
-				       (transform-region medium-transformation
-							 clipping-region))))
+		      (region-intersection saved-clipping-region
+					   (transform-region medium-transformation
+							     clipping-region))))
 	      (cond ((or line-unit line-thickness line-joint-shape line-cap-shape dashes-p)
 		     (when (null line-style)
 		       (setf line-style saved-line-style))
 		     (setf medium-line-style
-		       (make-line-style-1
-			(or line-unit (line-style-unit line-style))
-			(or line-thickness (line-style-thickness line-style))
-			(if dashes-p line-dashes (line-style-dashes line-style))
-			(or line-joint-shape (line-style-joint-shape line-style))
-			(or line-cap-shape (line-style-cap-shape line-style)))))
+			   (make-line-style-1
+			     (or line-unit (line-style-unit line-style))
+			     (or line-thickness (line-style-thickness line-style))
+			     (if dashes-p line-dashes (line-style-dashes line-style))
+			     (or line-joint-shape (line-style-joint-shape line-style))
+			     (or line-cap-shape (line-style-cap-shape line-style)))))
 		    (line-style
 		     (setf medium-line-style line-style)))
 	      (when (or text-family-p text-face-p text-size-p)
 		(if text-style-p
 		    (setq text-style (with-stack-list (style text-family text-face text-size)
 				       (merge-text-styles style text-style)))
-		  (setq text-style (make-text-style text-family text-face text-size)
-			text-style-p t)))
+		    (setq text-style (make-text-style text-family text-face text-size)
+			  text-style-p t)))
 	      (if text-style-p
 		  (flet ((call-continuation (stream)
 			   (declare (ignore stream))
 			   (funcall continuation)))
 		    (declare (dynamic-extent #'call-continuation))
 		    (invoke-with-text-style medium #'call-continuation text-style medium))
-	        (funcall continuation)))
+		  (funcall continuation)))
 	  (setf medium-line-style saved-line-style)
 	  (setf transformed-clipping-region saved-clipping-region)
 	  (setf medium-transformation saved-transformation)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: frames.lisp,v 1.54 92/12/07 12:14:15 cer Exp $
+;; $fiHeader: frames.lisp,v 1.55 92/12/14 15:02:07 cer Exp $
 
 (in-package :clim-internals)
 
@@ -641,23 +641,23 @@
 ;; Create an application frame of the specified type if one does not already
 ;; exist, and then run it, possibly in its own process.  If one already exists,
 ;; just select it.
-(defun find-application-frame (frame-name &rest options
+(defun find-application-frame (frame-name &rest initargs
 			       &key (create t) (activate t) 
 				    (own-process *multiprocessing-p*)
-				    frame-class)
-  (declare (dynamic-extent options))
+				    frame-class
+			       &allow-other-keys)
+  (declare (dynamic-extent initargs))
   (when (null frame-class)
     (setq frame-class frame-name))
   (let ((frame
-	  (block find-frame
-	    (map-over-frames #'(lambda (frame)
-				 (when (typep frame frame-class)
-				   (return-from find-frame frame)))))))
-    (when (or (eq create :force)
-	      (and (null frame)
-		   (eq create t)))
-      (with-keywords-removed (options options '(:create :activate :own-process))
-	(setq frame (apply #'make-application-frame frame-name options))))
+	  (unless (eq create :force)
+	    (block find-frame
+	      (map-over-frames #'(lambda (frame)
+				   (when (typep frame frame-class)
+				     (return-from find-frame frame))))))))
+    (when (and create (null frame))
+      (with-keywords-removed (initargs initargs '(:create :activate :own-process))
+	(setq frame (apply #'make-application-frame frame-name initargs))))
     (when (and frame activate)
       (cond ((slot-value frame 'top-level-process)
 	     (raise-frame frame))
@@ -768,6 +768,42 @@
 
 (defgeneric run-frame-top-level (frame &key &allow-other-keys))
 
+;; Reset the state of the input editor and the presentation type system,
+;; etc., in case there is an entry into another application from inside
+;; the input editor, such as a Debugger written using CLIM.
+(defmacro with-clim-state-reset ((&key all 
+				       (encapsulating-streams all)
+				       (presentation-types all)
+				       (input-editor all)
+				       (frames all)
+				       (command-processor all)
+				       additional-bindings) &body body)
+  `(let (,@(when encapsulating-streams
+	     `((*original-stream* nil)))
+	 ,@(when presentation-types
+	     `((*input-wait-test* nil)
+	       (*input-wait-handler* nil)
+	       (*pointer-button-press-handler* nil)
+	       (*input-context* nil)))
+	 ,@(when input-editor
+	     `((*numeric-argument* nil)
+	       (*delimiter-gestures* nil)
+	       (*activation-gestures* nil)
+	       (*accelerator-gestures* nil)
+	       (*accelerator-numeric-argument* nil)
+	       (*accept-help* nil)))
+	 ,@(when frames
+	     `((*assume-all-commands-enabled* nil)
+	       (*sizing-application-frame* nil)
+	       (*frame-layout-changing-p* *frame-layout-changing-p*)))
+	 ,@(when command-processor
+	     `((*command-parser* 'command-line-command-parser)
+	       (*command-unparser* 'command-line-command-unparser)
+	       (*partial-command-parser* 
+		 'command-line-read-remaining-arguments-for-partial-command)))
+	 ,@additional-bindings)
+     ,@body))
+
 ;;--- It would be nice to have the CLIM 0.9 START-FRAME and STOP-FRAME functions
 (defmethod run-frame-top-level :around ((frame standard-application-frame) &key)
   (with-simple-restart (nil "Exit ~A" (frame-pretty-name frame))
@@ -777,31 +813,8 @@
 			   (when (eq frame exit-frame)
 			     (return-from run-frame-top-level nil))))))
       (unwind-protect
-	  (let (;; Reset the state of the input editor and the presentation
-		;; type system, etc., in case there is an entry into another
-		;; application from inside the input editor, such as a Debugger
-		;; written using CLIM.
-		;;--- This should be done in a more modular way
-		;;--- If you change this, change MENU-CHOOSE-FROM-DRAWER
-		(*original-stream* nil)
-		(*input-wait-test* nil)
-		(*input-wait-handler* nil)
-		(*pointer-button-press-handler* nil)
-		(*numeric-argument* nil)
-		(*delimiter-gestures* nil)
-		(*activation-gestures* nil)
-		(*accelerator-gestures* nil)
-		(*accelerator-numeric-argument* nil)
-		(*input-context* nil)
-		(*accept-help* nil)
-		(*assume-all-commands-enabled* nil)
-		(*sizing-application-frame* nil)
-		(*frame-layout-changing-p* *frame-layout-changing-p*)
-		(*command-parser* 'command-line-command-parser)
-		(*command-unparser* 'command-line-command-unparser)
-		(*partial-command-parser*
-		  'command-line-read-remaining-arguments-for-partial-command) 
-		(*application-frame* frame))
+	  (with-clim-state-reset (:all t
+				  :additional-bindings ((*application-frame* frame)))
 	    (with-frame-manager ((frame-manager frame))
 	      (loop
 		(with-simple-restart (nil "~A top level" (frame-pretty-name frame))
@@ -924,6 +937,15 @@
 ;; Generic because someone might want :BEFORE or :AFTER
 (defmethod frame-exit ((frame standard-application-frame))
   (signal 'frame-exit :frame frame))
+
+
+(defmethod handle-event ((stream input-protocol-mixin) (event port-terminated))
+  (if (pane-frame stream)
+      (frame-terminated (pane-frame stream) event)
+      (error "Port has died: ~A" event)))
+
+(defmethod frame-terminated ((frame standard-application-frame) event)
+  (error "Port for frame ~A has died: ~A" frame event))
 
 
 ;;; Sizing and moving of frames
@@ -1151,8 +1173,6 @@
 (defmethod execute-frame-command ((frame standard-application-frame) command)
   (apply (command-name command) (command-arguments command)))
 
-(defvar *click-outside-menu-handler* nil)
-
 (defmethod command-enabled (command-name (frame standard-application-frame))
   (with-slots (disabled-commands) frame
     (or *assume-all-commands-enabled*
@@ -1357,13 +1377,20 @@
   (frame-manager-display-pointer-documentation
     (frame-manager frame) frame presentation input-context window x y stream))
 
-(defmethod frame-manager-display-pointer-documentation
+(defmethod frame-manager-pointer-documentation-stream 
+	   ((framem standard-frame-manager) frame stream)
+  (declare (ignore frame))
+  stream)
+
+(defmethod frame-manager-display-pointer-documentation :around
 	   ((framem standard-frame-manager)
 	    frame presentation input-context window x y stream)
-  (when stream
+  (declare (ignore input-context x y))
+  (when (frame-manager-pointer-documentation-stream framem frame stream)
     ;; The documentation should never say anything if we're not over a presentation
     (when (null presentation) 
-      (window-clear stream))
+      (frame-manager-display-pointer-documentation-string
+	framem frame stream nil))
     ;; Cheap test to not do this work too often
     (let ((old-modifier-state *last-pointer-documentation-modifier-state*)
 	  (modifier-state (window-modifier-state window))
@@ -1374,6 +1401,12 @@
 		 (= modifier-state old-modifier-state))
 	(return-from frame-manager-display-pointer-documentation nil))
       (setq *last-pointer-documentation-time* time))
+    (call-next-method)))
+
+(defmethod frame-manager-display-pointer-documentation
+	   ((framem standard-frame-manager)
+	    frame presentation input-context window x y stream)
+  (let ((stream (frame-manager-pointer-documentation-stream framem frame stream)))
     (when presentation
       (with-output-recording-options (stream :record nil)
 	(with-end-of-line-action (stream :allow)
@@ -1385,13 +1418,15 @@
 	    (force-output stream)))))))
 
 (defmethod frame-manager-display-pointer-documentation-string 
-	   ((framem standard-frame-manager) stream string)
-  (with-output-recording-options (stream :record nil)
-    (with-end-of-line-action (stream :allow)
-      (with-end-of-page-action (stream :allow)
-	(window-clear stream)
-	(when string
-	  (write-string string stream))))))
+	   ((framem standard-frame-manager) frame stream string)
+  (let ((stream (frame-manager-pointer-documentation-stream framem frame stream)))
+    (when stream
+      (with-output-recording-options (stream :record nil)
+	(with-end-of-line-action (stream :allow)
+	  (with-end-of-page-action (stream :allow)
+	    (window-clear stream)
+	    (when string
+	      (write-string string stream))))))))
 
 (defun frame-document-highlighted-presentation-1
        (frame presentation input-context window x y stream)
@@ -1503,11 +1538,3 @@
     (values left   left-presentation   left-context
 	    middle middle-presentation middle-context
 	    right  right-presentation  right-context)))
-
-(defmethod handle-event ((stream input-protocol-mixin) (event port-terminated))
-  (if (pane-frame stream)
-      (frame-terminated (pane-frame stream) event)
-    (error "Port has died ~A" event)))
-
-(defmethod frame-terminated ((frame standard-application-frame) event)
-  (error "Port for frame ~A has died ~A" frame event))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sysdcl.lisp,v 1.32 92/12/03 10:29:40 cer Exp $
+;; $fiHeader: sysdcl.lisp,v 1.33 92/12/07 12:15:30 cer Exp $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :cl-user)
 
@@ -137,6 +137,7 @@
   ("queue")
   ("timers" :load-before-compile ("queue" "processes"))
   ("protocols")
+
   ;; Establish a uniform stream model
   ("clim-streams")
   ("cl-stream-classes" :features (not clim-uses-lisp-stream-classes))
@@ -343,38 +344,39 @@
   ("x11-keysyms" :load-before-compile ("ffi"))
   ("last" :load-before-compile ("load-xlib" "xlib-funs")))
 
+#+Allegro
 (macrolet ((define-xt-system (name file &rest modules)
-	       `(clim-defsys:defsystem ,name
-		    (:default-pathname #+Genera "SYS:CLIM;REL-2;TK;"
-		      #-Genera (frob-pathname "tk")
-		      :default-binary-pathname #+Genera "SYS:CLIM;REL-2;TK;"
-		      #-Genera (frob-pathname "tk")
-		      :needed-systems (xlib)
-		      :load-before-compile (xlib))
-		  (,file)
-		  ("pkg")
-		  ("macros")
-		  ("xt-defs")		; Used to be 'xtk'.
-		  ("xt-funs")
-		  ("foreign-obj")
-		  ;; Xlib stuff
-		  ("xlib")
-		  ("font")
-		  ("gcontext")
-		  ("graphics")
+	     `(clim-defsys:defsystem ,name
+	          (:default-pathname #+Genera "SYS:CLIM;REL-2;TK;"
+				     #-Genera (frob-pathname "tk")
+		   :default-binary-pathname #+Genera "SYS:CLIM;REL-2;TK;"
+					    #-Genera (frob-pathname "tk")
+		   :needed-systems (xlib)
+		   :load-before-compile (xlib))
+		(,file)
+		("pkg")
+		("macros")
+		("xt-defs")			; Used to be 'xtk'.
+		("xt-funs")
+		("foreign-obj")
+		;; Xlib stuff
+		("xlib")
+		("font")
+		("gcontext")
+		("graphics")
   
-		  ;; Toolkit stuff
-		  ("meta-tk")
-		  ("make-classes")
-		  ("foreign")
-		  ("widget")
-		  ("resources")
-		  ("event")
-		  ("callbacks")
-		  ("xt-classes")
-		  ("xt-init")
-		  ,@modules)))
-  
+		;; Toolkit stuff
+		("meta-tk")
+		("make-classes")
+		("foreign")
+		("widget")
+		("resources")
+		("event")
+		("callbacks")
+		("xt-classes")
+		("xt-init")
+		,@modules)))
+
   (define-xt-system xm-tk "load-xm"
     ("xm-defs")
     ("xm-funs")
@@ -395,7 +397,6 @@
     ("ol-widgets")
     ("ol-callbacks")
     ("make-widget")))
-
 
 #+Allegro
 (clim-defsys:defsystem motif-clim

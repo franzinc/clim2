@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.63 92/12/07 12:16:00 cer Exp $
+;; $fiHeader: xt-silica.lisp,v 1.64 92/12/14 15:04:49 cer Exp $
 
 (in-package :xm-silica)
 
@@ -97,12 +97,13 @@
       (port-terminated port condition)
       (mp:process-kill mp:*current-process*))))
 
+       
 (defparameter *use-color* t)		; For debugging monochrome
 
 (defvar *unreliable-server-vendors*
     '("Solbourne Computer, Inc" "Network Computing Devices"
       "Tektronix"))
-
+ 
 (defmethod initialize-instance :after ((port xt-port) &key server-path)
   (handler-case
       (destructuring-bind
@@ -246,13 +247,13 @@
 			  (apply #'make-stipple-image (second entry))))
 		'((+nowhere+ (1 1 (#b0)))
 		  (0.05 (8 16 (#b1000000000000000
-			      #b0000001000000000
-			      #b0000000000001000
-			      #b0010000000000000
-			      #b0000000010000000
-			      #b0000000000000010
-			      #b0000100000000000
-			      #b0000000000100000)))
+			       #b0000001000000000
+			       #b0000000000001000
+			       #b0010000000000000
+			       #b0000000010000000
+			       #b0000000000000010
+			       #b0000100000000000
+			       #b0000000000100000)))
 		  (0.1 (8 8 (#b10000000
 			     #b00010000
 			     #b00000010
@@ -286,13 +287,13 @@
 			     #b11011111
 			     #b11111011)))
 		  (0.9 (8 16 (#b0111111111111111
-			       #b1111110111111111
-			       #b1111111111110111
-			       #b1101111111111111
-			       #b1111111101111111
-			       #b1111111111111101
-			       #b1111011111111111
-			       #b1111111111011111)))
+			      #b1111110111111111
+			      #b1111111111110111
+			      #b1101111111111111
+			      #b1111111101111111
+			      #b1111111111111101
+			      #b1111011111111111
+			      #b1111111111011111)))
 		  (+everywhere+ (1 1 (#b1))))))
 
 
@@ -1308,7 +1309,7 @@
 
 ;;;--- Gadget activation deactivate
 
-(defmethod realize-mirror :around ((port xt-port) (sheet gadget))
+(defmethod realize-mirror :around ((port xt-port) (sheet basic-gadget))
   (let ((widget (call-next-method)))
     (unless (gadget-active-p sheet)
       (xt::set-sensitive widget nil))
@@ -1691,7 +1692,7 @@ the geometry of the children. Instead the parent has control. "))
      0					; time
      )))
 
-(defmethod clim-internals::port-move-frame ((port xt-port) frame x y)
+(defmethod port-move-frame ((port xt-port) frame x y)
   (check-type x (signed-byte 16))
   (check-type y (signed-byte 16))
   (tk::set-values (frame-shell frame) :x x :y y))

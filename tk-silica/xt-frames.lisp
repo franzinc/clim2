@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-frames.lisp,v 1.23 92/11/20 08:46:53 cer Exp $
+;; $fiHeader: xt-frames.lisp,v 1.24 92/12/01 09:47:12 cer Exp $
 
 
 (in-package :xm-silica)
@@ -194,4 +194,4 @@
 
 
 (defmethod invoke-with-mouse-grabbed-in-window ((framem xt-frame-manager) (window t) continuation &key)
-  (silica::invoke-with-pointer-grabbed window continuation))
+  (invoke-with-pointer-grabbed window continuation))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: POSTSCRIPT-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: postscript-port.lisp,v 1.11 92/11/19 14:24:43 cer Exp $
+;; $fiHeader: postscript-port.lisp,v 1.12 92/12/14 15:03:22 cer Exp $
 
 (in-package :postscript-clim)
 
@@ -256,9 +256,7 @@
       (features-sent :initform nil)
       (curfont :initform nil)			;a psfck structure
       (ch1buf :initform (make-array 1 :element-type #+ANSI-90 'character
-						    #-ANSI-90 'string-char))
-      (header-comments :initform nil :initarg :header-comments)
-      (orientation :initform :portrait :initarg :orientation)))
+						    #-ANSI-90 'string-char))))
 
 (defmethod implementation-pixels-per-point ((medium postscript-medium))
   (float (/ *1-pixel=points*) 0f0))
@@ -354,7 +352,7 @@
 ;;;       (prin1 (if (fixp elem) elem (float elem)) output-stream)
 ;;; and also some cases of Format ~D.
 (defun ps-optimal-flonize (n stream)
-  ;; lifted from definition of LGP:FAST-PRINT-NUM in "Q:>sys>hardcopy>postscript.lisp.1679"
+  ;; Lifted from definition of LGP:FAST-PRINT-NUM in SYS:HARDCOPY;POSTSCRIPT.LISP
   (if (and (not (zerop n))
 	   (< -1 n 1))
       (format stream "~F" (float n))
@@ -480,16 +478,16 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
 /m {moveto} def
 ")
 
-(defmethod postscript-prologue ((medium postscript-medium))
+(defmethod postscript-prologue ((medium postscript-medium)
+				&key scale-factor (orientation :portrait)
+				     header-comments)
   (let ((printer-stream (slot-value medium 'printer-stream))
-	(header-comments (slot-value medium 'header-comments))
-	(orientation (slot-value medium 'orientation))
 	(port (port medium)))
     (format printer-stream "%!PS-Adobe-2.0 EPSF-2.0~%")
     (multiple-value-bind (left top right bottom)
 	(postscript-bounding-box-edges (medium-sheet medium))
       (format printer-stream "%%BoundingBox: ~D ~D ~D ~D~%"
-	left top right bottom))
+	(float left) (float top) (float right) (float bottom)))
     (format printer-stream "%%Creator: CLIM 2.0~%")
     (let ((title (getf header-comments :title)))
       (when title
@@ -501,7 +499,7 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
 	(decode-universal-time (get-universal-time))
       (format printer-stream "%%CreationDate: ~D-~A-~D ~2,'0D:~2,'0D:~2,'0D~%"
 	date (svref #("Jan" "Feb" "Mar" "Apr" "May" "Jun"
-		      "Jul" "Aug" "Sep" "Oct" "Nov" "Dec") month) year
+		      "Jul" "Aug" "Sep" "Oct" "Nov" "Dec") (1- month)) year
 	hour minute second))
     (format printer-stream "%%DocumentFonts: (atend)~%")
     (format printer-stream "%%EndComments~%")
@@ -513,11 +511,13 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
       (:landscape
         (format printer-stream
             "/format-rotation -90 def ~%/format-y-translation ~D def~%" 
-          (* (slot-value port 'page-width)
-             (slot-value port 'device-units-per-inch)))))
+          (float (* (slot-value port 'page-height)
+		    (slot-value port 'device-units-per-inch))))))
+    (format printer-stream "/format-scale ~D def~%" (float (or scale-factor 1)))
     (format printer-stream
         "/new-matrix {0 format-y-translation translate
-		      format-rotation rotate} def
+		      format-rotation rotate
+		      format-scale format-scale scale} def
 	 /new-page {showpage new-matrix} def~%")
     (postscript-device-prologue port printer-stream)
     (format printer-stream "%%EndProlog~%")
@@ -616,7 +616,7 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
 (defclass postscript-port (basic-port)
     ;; 72 points per inch on PostScript devices
     ((font-map :initform (make-array 30 :initial-element nil))
-     (device-units-per-inch :initform 72 :allocation :class)))
+     (device-units-per-inch :initform 72)))
 
 (defmethod port-type ((port postscript-port))
   ':postscript)
@@ -715,6 +715,9 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
     (values (floor left) (floor top)
 	    (ceiling right) (ceiling bottom))))
 
+(defmethod pane-viewport-region ((stream postscript-stream))
+  +everywhere+)
+
 (defmethod window-inside-width ((stream postscript-stream))
   (let ((port (port stream)))
     (float (/ (* (slot-value port 'page-width)
@@ -748,8 +751,10 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
     (when (stream-drawing-p stream)
       (when output-record
 	(letf-globally (((stream-recording-p stream) nil))
-	  (if (or region (not multi-page))
-	      (replay output-record stream region)
+	  (if (or (and region
+		       (not (eq region +everywhere+)))
+		  (not multi-page))
+	      (replay output-record stream (or region +everywhere+))
 	      (with-bounding-rectangle* (left top right bottom) output-record
 		(let* ((page-width
 			 (floor (* (slot-value port 'page-width)
@@ -785,8 +790,8 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
 (defmacro with-output-to-postscript-stream ((stream-var file-stream &rest args) &body body)
   (declare (arglist (stream-var file-stream
 		     &key (device-type 'apple-laser-writer)
-			  header-comments multi-page 
-			  (orientation :portrait))
+			  multi-page scale-to-fit
+			  header-comments (orientation :portrait))
 		    &body body))
   `(flet ((postscript-output-body (,stream-var) ,@body))
      (declare (dynamic-extent #'postscript-output-body))
@@ -796,13 +801,13 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
 ;; Fixed in the CLOS stream system.
 (defun invoke-with-output-to-postscript-stream (file-stream continuation
 						&key (device-type 'apple-laser-writer)
-						     header-comments multi-page
+						     multi-page scale-to-fit
+						     header-comments
 						     (orientation :portrait))
+  (assert (not (and multi-page scale-to-fit)) (multi-page scale-to-fit)
+	  "You may not use both ~S and ~S" ':multi-page ':scale-to-fit)
   (let* ((port (make-instance device-type))
 	 (stream (make-instance 'postscript-stream
-		   :stream file-stream
-		   :header-comments header-comments
-		   :orientation orientation
 		   :multi-page multi-page))
 	 (abort-p t))
     (setf (port stream) port)
@@ -812,7 +817,30 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
 	(unwind-protect
 	    (multiple-value-prog1
 	      (funcall continuation stream)
-	      (postscript-prologue medium)
+	      (multiple-value-bind (width height) 
+		  (bounding-rectangle-size (stream-output-history stream))
+		(let* ((page-width
+			 (floor (* (slot-value port 'page-width)
+				   (slot-value port 'device-units-per-inch))
+				*1-pixel=points*))
+		       (page-height
+			 (floor (* (slot-value port 'page-height)
+				   (slot-value port 'device-units-per-inch))
+				*1-pixel=points*))
+		       (scale-factor
+			 (progn
+			   (when (eq orientation :landscape)
+			     (rotatef page-width page-height))
+			   (if (or (not scale-to-fit)
+				   (and (< width page-width)
+					(< height page-height)))
+			       1
+			       (min (/ page-width width)
+				    (/ page-height height))))))
+		  (postscript-prologue medium
+				       :scale-factor scale-factor
+				       :orientation orientation
+				       :header-comments header-comments)))
 	      ;; Now do the output to the printer, breaking up the output into
 	      ;; multiple pages if that was requested
 	      (with-output-recording-options (stream :record nil :draw t)

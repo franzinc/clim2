@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: demo-driver.lisp,v 1.20 92/12/03 10:28:38 cer Exp $
+;; $fiHeader: demo-driver.lisp,v 1.21 92/12/14 15:02:36 cer Exp $
 
 (in-package :clim-demo)
 
@@ -64,7 +64,7 @@
 	       *color-stream-p*))
 
 #+Genera
-(cp:define-command (com-demonstrate-clim
+(cp:define-command (si:com-demonstrate-clim
 		     :name "Demonstrate CLIM"
 		     :command-table "Demonstration"
 		     :provide-output-destination-keyword nil)

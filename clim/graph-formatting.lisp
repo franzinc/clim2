@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graph-formatting.lisp,v 1.20 92/12/01 17:49:59 cer Exp $
+;; $fiHeader: graph-formatting.lisp,v 1.21 92/12/07 12:14:20 cer Exp $
 
 (in-package :clim-internals)
 
@@ -121,8 +121,15 @@
      (object :accessor graph-node-object :initarg :object))
   (:default-initargs :size 5))
 
+;; Take, but ignore, :DUPLICATE-KEY and :DUPLICATE-TEST
+(defmethod initialize-instance :after ((node standard-graph-node-output-record)
+				       &key duplicate-key duplicate-test &allow-other-keys)
+  (declare (ignore duplicate-key duplicate-test))
+  nil)
+
 (define-output-record-constructor standard-graph-node-output-record
-				  (&key object x-position y-position (size 25))
+				  (&key object x-position y-position (size 25)
+					duplicate-key duplicate-test)
   :object object :x-position x-position :y-position y-position :size size)
 
 (defmethod tree-recompute-extent-1 ((record standard-graph-node-output-record))
@@ -140,42 +147,58 @@
 (defmethod (setf graph-node-y) (new-value (node standard-graph-node-output-record))
   (output-record-set-position node (bounding-rectangle-left node) new-value))
 
+;; Graph node output records match if their objects match
+(defmethod match-output-records ((record standard-graph-node-output-record) 
+				 &key object duplicate-key duplicate-test &allow-other-keys)
+  (or (and (null object)
+	   (null (graph-node-object record)))
+      (funcall duplicate-test (funcall duplicate-key object)
+			      (funcall duplicate-key (graph-node-object record)))))
 
 ;; For compatibility...
 (defun format-graph-from-root (root-object object-printer inferior-producer
 			       &rest keys
 			       &key (stream *standard-output*)
-				    (key #'identity)
-				    (orientation ':horizontal)
+				    (orientation ':horizontal) (center-nodes nil)
 				    (cutoff-depth nil)
+				    (merge-duplicates nil)
+				    (graph-type (if merge-duplicates :digraph :tree))
+				    (key #'identity) (test #'eql)
+				    (arc-drawer #'draw-linear-arc) 
+				    (arc-drawing-options nil)
 				    (generation-separation
 				      *default-generation-separation*)
 				    (within-generation-separation
 				      *default-within-generation-separation*)
-				    (store-objects nil) (move-cursor t))
+				    (maximize-generations #+Allegro t #-Allegro nil)
+				    (store-objects t) (move-cursor t))
   (declare (dynamic-extent keys object-printer inferior-producer)
-	   (ignore stream key orientation cutoff-depth store-objects
-		   generation-separation within-generation-separation move-cursor))
-  (with-keywords-removed (keys keys '(:key))
+	   (ignore stream orientation center-nodes cutoff-depth
+		   arc-drawer arc-drawing-options graph-type move-cursor store-objects
+		   generation-separation within-generation-separation maximize-generations))
+  (with-keywords-removed (keys keys '(:merge-duplicates :key :test))
     (apply #'format-graph-from-roots
-	   (list root-object) object-printer inferior-producer keys)))
+	   (list root-object) object-printer inferior-producer
+	   (if merge-duplicates
+	       (append `(:merge-duplicates ,merge-duplicates
+			 :duplicate-key ,key :duplicate-test ,test) keys)
+	       keys))))
 
 (defun format-graph-from-roots (root-objects object-printer inferior-producer
 				&key (stream *standard-output*)
 				     (orientation ':horizontal) (center-nodes nil)
 				     (cutoff-depth nil)
 				     (merge-duplicates nil)
+				     (graph-type (if merge-duplicates :digraph :tree))
 				     (duplicate-key #'identity key-supplied-p)
 				     (duplicate-test #'eql)
 				     (arc-drawer #'draw-linear-arc)
 				     (arc-drawing-options nil)
-				     (graph-type (if merge-duplicates :digraph :tree))
 				     (generation-separation
 				       *default-generation-separation*)
 				     (within-generation-separation
 				       *default-within-generation-separation*)
 				     (maximize-generations #+Allegro t #-Allegro nil)
-				     (store-objects nil) (move-cursor t)
 				     ;; These `offpage' connector print functions
 				     ;; should receive more useful id in addition
 				     ;; to an identification number, such as the
@@ -183,7 +206,8 @@
 				     (offpage-connector-out-printer
 				       #'(lambda (s n) (format s ">~D" n)))
 				     (offpage-connector-in-printer
-				       #'(lambda (s n) (format s "~D>" n))))
+				       #'(lambda (s n) (format s "~D>" n)))
+				     (store-objects t) (move-cursor t))
   (declare (dynamic-extent object-printer inferior-producer))
   (check-type cutoff-depth (or null integer))
   (check-type generation-separation real)
@@ -220,7 +244,6 @@
 		       root-objects object-printer inferior-producer
 		       :duplicate-key  duplicate-key 
 		       :duplicate-test duplicate-test
-		       :store-objects store-objects
 		       :offpage-connector-out-printer offpage-connector-out-printer
 		       :offpage-connector-in-printer  offpage-connector-in-printer)
 		     graph-record))))))
@@ -228,6 +251,14 @@
 	  (progn
 	    (layout-graph-nodes graph-record stream arc-drawer arc-drawing-options)
 	    (layout-graph-edges graph-record stream arc-drawer arc-drawing-options))
+	;; Flush any references to the user's objects if he doesn't want
+	;; them stored
+	(unless store-objects
+	  (map-over-output-records
+	    #'(lambda (r)
+		(when (graph-node-output-record-p r)
+		  (setf (graph-node-object r) nil)))
+	    graph-record))
 	;; We're going to free the hash table as we exit, so make sure
 	;; there are no pointers to it
 	(setf (slot-value graph-record 'hash-table) nil))
@@ -283,11 +314,10 @@
 
 (defmethod generate-graph-nodes ((graph tree-graph-output-record) stream
 				 root-objects object-printer inferior-producer
-				 &key duplicate-key duplicate-test store-objects
+				 &key duplicate-key duplicate-test
 				      offpage-connector-out-printer
 				      offpage-connector-in-printer)
-  (declare (ignore duplicate-key duplicate-test
-		   offpage-connector-out-printer offpage-connector-in-printer))
+  (declare (ignore offpage-connector-out-printer offpage-connector-in-printer))
   (let* ((properties (slot-value graph 'properties))
 	 (cutoff-depth (getf properties :cutoff-depth)))
     (labels ((format-node (object &optional (depth 1))
@@ -304,7 +334,9 @@
 			 (with-stream-cursor-position-saved (stream)
 			   (with-new-output-record
 			       (stream 'standard-graph-node-output-record nil
-				:object (and store-objects object))
+				:object object
+				:duplicate-key duplicate-key
+				:duplicate-test duplicate-test)
 			     (funcall object-printer object stream)))))
 		   (setf (graph-node-children this-node) children)
 		   (dolist (child (graph-node-children this-node))
@@ -495,20 +527,22 @@ circular graphs without accounting for this case.
 (defclass graph-node-connector-output-record
 	  (standard-graph-node-output-record)
     ((id :accessor connector-id :initarg :connector-id)))
+
 (defclass graph-node-connector-in-output-record (graph-node-connector-output-record) 
     () 
   (:default-initargs :object nil))
+
 (defclass graph-node-connector-out-output-record (graph-node-connector-output-record)
-	  ()
+    ()
   (:default-initargs :object nil))
+
 
 (defmethod generate-graph-nodes ((graph directed-graph-output-record) stream
 				 root-objects object-printer inferior-producer
-				 &key duplicate-key duplicate-test store-objects
+				 &key duplicate-key duplicate-test
 				      offpage-connector-out-printer
 				      offpage-connector-in-printer)
   (declare (dynamic-extent object-printer inferior-producer))
-  (declare (ignore duplicate-test))
   (with-slots (n-generations) graph
     (let* ((hash-table (slot-value graph 'hash-table))
 	   (graph-type (slot-value graph 'graph-type))
@@ -524,7 +558,9 @@ circular graphs without accounting for this case.
 			 (with-stream-cursor-position-saved (stream)
 			   (with-new-output-record
 			       (stream 'standard-graph-node-output-record nil
-				:object (and store-objects child-object))
+				:object child-object
+				:duplicate-key duplicate-key
+				:duplicate-test duplicate-test)
 			     (funcall object-printer child-object stream)))))
 		   ;; This guarantees that the next phase will have at least one
 		   ;; node from which to start.  Otherwise the entire graph gets
@@ -898,4 +934,3 @@ circular graphs without accounting for this case.
     (map nil #'(lambda (root)
 		 (traverse nil nil root max-depth))
 	 root-objects)))
-

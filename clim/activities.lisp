@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: activities.lisp,v 1.8 92/12/01 09:45:02 cer Exp $
+;; $fiHeader: activities.lisp,v 1.9 92/12/03 10:26:01 cer Exp $
 
 (in-package :clim-internals)
 
@@ -66,12 +66,11 @@
   (if (frame-manager-frames activity)
       (progn
 	(setf (activity-active-frame activity)
-	  (select-activity-initial-frame activity))
+	      (select-activity-initial-frame activity))
 	(enable-activity-frames activity))
-    (setf (activity-active-frame activity)
-      (prog1 (start-initial-application-frame activity)
-	(start-other-application-frames activity))))
-  ;; 
+      (setf (activity-active-frame activity)
+	    (prog1 (start-initial-application-frame activity)
+		   (start-other-application-frames activity))))
   (unwind-protect
       (loop
 	(let ((*activity* activity)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: packages.lisp,v 1.43 92/12/07 12:16:09 cer Exp $
+;; $fiHeader: packages.lisp,v 1.44 92/12/14 15:05:03 cer Exp $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :common-lisp-user)
 
@@ -1467,6 +1467,7 @@
     using-resource
     
     ;; Processes
+    *multiprocessing-p*
     all-processes
     current-process
     destroy-process
@@ -1794,9 +1795,13 @@
     map-sheet-rectangle*-to-parent
     medium
     medium-background
+    medium-beep
+    medium-clear-area
     medium-clipping-region
     medium-default-text-style
     medium-drawable
+    medium-finish-output
+    medium-force-output
     medium-foreground
     medium-ink
     medium-line-style
@@ -1805,12 +1810,9 @@
     medium-text-style
     medium-transformation
     mediump
+    mirrored-sheet-mixin
     move-and-resize-sheet
     move-sheet
-    mute-input-contract
-    mute-repainting-mixin
-    mute-sheet-input-mixin
-    mute-sheet-output-mixin
     note-sheet-adopted
     note-sheet-degrafted
     note-sheet-disabled
@@ -1885,11 +1887,16 @@
     sheet-mirror
     sheet-mirrored-ancestor
     sheet-multiple-child-mixin
+    sheet-mute-input-mixin
+    sheet-mute-output-mixin
+    sheet-mute-repainting-mixin
     sheet-native-region
     sheet-native-region*
     sheet-native-transformation
     sheet-occluding-sheets
     sheet-parent
+    sheet-parent-mixin
+    sheet-permanently-enabled-mixin
     sheet-pointer-cursor
     sheet-region
     sheet-siblings
@@ -2673,8 +2680,16 @@
     frame-input-context-button-press-handler
     frame-maintain-presentation-histories
     frame-manager
+    frame-manager-clear-progress-note
+    frame-manager-default-exit-boxes
+    frame-manager-display-help
+    frame-manager-display-pointer-documentation
+    frame-manager-display-pointer-documentation-string
+    frame-manager-display-progress-note
+    frame-manager-exit-box-labels
     frame-manager-frames
     frame-manager-notify-user
+    frame-manager-pointer-documentation-stream 
     frame-manager-select-file
     frame-name
     frame-named-panes
@@ -2820,6 +2835,7 @@
     activate-callback
     activate-gadget
     armed-callback
+    basic-gadget
     check-box
     check-box-current-selection
     check-box-pane
@@ -3059,7 +3075,6 @@
     extract-declarations
 
     ;; From UTILITIES
-    *multiprocessing-p*
     boolean
     collect
     def-property-slot-accessors
@@ -3083,8 +3098,6 @@
     convert-to-device-coordinates
     convert-to-device-distances
     copy-vector-portion
-    define-constructor
-    define-constructor-using-prototype-instance
     define-group
     define-keywords
     defun-inline
@@ -3142,7 +3155,8 @@
     diacritic-char-p
 
     ;; From CLOS
-    find-dynamic-class
+    define-constructor
+    define-constructor-using-prototype-instance
 
     ;; From QUEUE
     locking-queue
@@ -3195,13 +3209,6 @@
     role
     role-slots
     stream
-
-    ;; From AUTOCONSTRUCTOR
-    autoconstructor
-    defautoconstructor
-    disable-autoconstructors
-    enable-autoconstructors
-    make-instance-with-constructor
 
     ;; From CLIM-MACROS
     default-input-stream
@@ -3361,7 +3368,6 @@
     clear-space-requirement-cache
     clear-space-requirement-caching-in-ancestors
     clear-space-requirement-caches-in-tree
-    click-event
     client-overridability-mixin
     compute-gadget-label-size
     compute-list-pane-selected-items
@@ -3380,11 +3386,9 @@
     define-graphics-method
     define-text-style-mappings
     define-text-style-mappings-1 
-    display-device 
     distribute-event-1
     drag-gadget-event
     draw-gadget-label
-    fetch-medium-drawable
     find-port-type
     fit-region*-in-region*
     focus-gadget
@@ -3392,13 +3396,6 @@
     focus-out-gadget-event
     foreground-background-and-text-style-mixin
     frame-input-buffer
-    frame-manager-clear-progress-note
-    frame-manager-default-exit-boxes
-    frame-manager-display-help
-    frame-manager-display-progress-note
-    frame-manager-display-pointer-documentation
-    frame-manager-display-pointer-documentation-string
-    frame-manager-exit-box-labels
     frame-manager-matches-options-p
     frame-manager-note-pretty-name-changed
     frame-shell
@@ -3426,11 +3423,11 @@
     grid-pane
     inhibit-updating-scroll-bars
     initialize-pull-down-menu
-    intern-text-style
     invoke-callback-function
     invoke-with-menu-as-popup
     invoke-with-mouse-grabbed-in-window
     invoke-with-output-to-pixmap
+    invoke-with-pointer-grabbed
     invoke-with-sheet-medium
     label-button-pane
     layout-mixin
@@ -3445,10 +3442,7 @@
     map-endpoint-sequence
     map-position-sequence
     medium-+y-upward-p
-    medium-beep
-    medium-clear-area
-    medium-finish-output
-    medium-force-output
+    medium-draw-transformed-rectangles*
     medium-merged-text-style-valid
     medium-text-bounding-box
     menu-bar-button
@@ -3463,14 +3457,10 @@
     mirror-region*
     mirror-region-updated
     mirror-visible-p
-    mirrored-sheet-mixin
     modifier-keysym
-    mute-repainting-mixin
     non-drawing-option-keywords
     note-layout-mixin-region-changed
     note-sheet-tree-grafted
-    one-of-pane
-    option-pane
     pane-contents
     parse-gesture-spec
     pixmap
@@ -3498,6 +3488,7 @@
     port-invalidate-gesture-specs
     port-invoke-with-pointer-grabbed
     port-mirror->sheet-table
+    port-move-frame
     port-note-cursor-change
     port-note-frame-adopted
     port-note-gadget-activated
@@ -3533,9 +3524,6 @@
     sheet-cached-device-transformation
     sheet-cursor
     sheet-grabbed-pointer-cursor
-    sheet-mute-input-mixin
-    sheet-parent-mixin
-    sheet-permanently-enabled-mixin
     sheet-shell
     sheet-top-level-mirror
     sheet-top-level-sheet
@@ -3609,9 +3597,9 @@
 (#-(or ANSI-90 Lucid) clim-lisp::defpackage #+(or ANSI-90 Lucid) defpackage clim-user
   (:use clim-lisp clim))
 
-;;;; Nasty hack to improve debugability
-;;;; Dont need it right now.
-;#+allegro
+;;; Nasty hack to improve debuggability
+;;; Dont need it right now.
+;#+Allegro
 ;(let ((package (find-package :compiler))
 ;      (symbol (and package (intern :bad-to-tailpos package))))
 ;  (when (boundp symbol)

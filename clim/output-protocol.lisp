@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: output-protocol.lisp,v 1.29 92/12/01 09:45:27 cer Exp $
+;; $fiHeader: output-protocol.lisp,v 1.30 92/12/03 10:27:20 cer Exp $
 
 (in-package :clim-internals)
 
@@ -180,7 +180,6 @@
     (values cursor-x cursor-y)))
 
 (defmethod stream-set-cursor-position ((stream output-protocol-mixin) x y)
-  
   (with-slots (cursor-x cursor-y current-line-height baseline) stream
     (when x 
       (setf cursor-x (coordinate x)))
@@ -740,6 +739,49 @@
   (multiple-value-bind (last-x largest-x)
       (stream-string-output-size medium string :start start :end end :text-style text-style)
     (values last-x largest-x)))
+
+
+;; Damnable string streams!
+(defmethod text-size ((stream t) string &key text-style (start 0) end)
+  (declare (values largest-x total-height last-x last-y baseline))
+  (declare (ignore text-style))
+  (let ((char-width 8)
+	(line-height 12)
+	(baseline 10))
+    (when (characterp string)
+      (return-from text-size
+	(if (or (eql string #\Newline)
+		(eql string #\Return))
+	    (values 0 line-height 0 0 0)
+	    (values char-width line-height char-width 0 baseline))))
+    (let ((largest-x 0)
+	  (total-height 0)
+	  (last-x 0)
+	  (last-y 0))
+      (dovector (char string :start start :end end)
+	(cond ((or (eql char #\Newline)
+		   (eql char #\Return))
+	       (incf total-height line-height)
+	       (incf last-y line-height)
+	       (setq last-x 0))
+	      (t
+	       (incf last-x char-width)
+	       (maxf largest-x last-x)
+	       (maxf total-height line-height))))
+      (values largest-x total-height last-x last-y baseline))))
+
+(defmethod stream-string-output-size ((stream t) string &key (start 0) end text-style)
+  (multiple-value-bind (largest-x total-height last-x last-y baseline)
+      (text-size stream string :start start :end end :text-style text-style)
+    (values last-x largest-x last-y total-height baseline)))
+
+(defmethod stream-string-width ((stream t) string &key (start 0) end text-style)
+  (multiple-value-bind (last-x largest-x)
+      (stream-string-output-size stream string :start start :end end :text-style text-style)
+    (values last-x largest-x)))
+
+(defmethod stream-character-width ((stream t) character &optional text-style)
+  (values (text-size stream character :text-style text-style)))
 
 
 ;;; A few utilities for string writing.

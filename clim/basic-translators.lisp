@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: basic-translators.lisp,v 1.12 92/12/03 10:26:03 cer Exp $
+;; $fiHeader: basic-translators.lisp,v 1.13 92/12/07 12:14:00 cer Exp $
 
 (in-package :clim-internals)
 
@@ -22,15 +22,13 @@
     (object presentation)
   (values object (presentation-type presentation)))
 
-
 (defun identity-translator-applicable-p (presentation context-type)
   (let* ((type (presentation-type presentation))
 	 (type-name (presentation-type-name type))
 	 (object (presentation-object presentation)))
     (with-presentation-type-decoded (context-name context-parameters) context-type
       (if (eq type-name 'blank-area)
-	  (or ;;  D,#TD1PsT[Begin using 006 escapes](1 0 (NIL 0) (NIL :BOLD NIL) "CPTFONTCB") 0
-	   (eq context-name 'blank-area)
+	  (or (eq context-name 'blank-area)
 	      (presentation-subtypep-1 type context-type))
 	;; Let MENU-ITEM-IDENTITY take care of pure menu items
 	(unless (and (eq type-name 'menu-item)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept.lisp,v 1.20 92/11/20 08:44:21 cer Exp $
+;; $fiHeader: accept.lisp,v 1.21 92/12/03 10:25:56 cer Exp $
 
 (in-package :clim-internals)
 
@@ -305,11 +305,15 @@
 
 ;;; As in DW, this does not do defaulting, but does accept a :default argument
 ;;; in case the accept method needs it (e.g. for pathnames)
-(defun accept-from-string (type string &key (view +textual-view+)
-					    (default nil default-supplied-p)
-					    (default-type type)
-					    (start 0)
-					    (end nil))
+(defun accept-from-string (type string 
+			   &key (view +textual-view+)
+				(default nil default-supplied-p)
+				(default-type type)
+				(activation-gestures nil activation-gestures-p)
+				(additional-activation-gestures nil)
+				(delimiter-gestures nil delimiter-gestures-p)
+				(additional-delimiter-gestures nil)
+				(start 0) (end nil))
   (declare (values object type index))
 
   ;; Allow the arguments to be presentation type abbreviations
@@ -329,38 +333,45 @@
   (let ((index start))
     (multiple-value-bind (the-object the-type)
 	(with-input-from-string (stream string :start start :end end :index index)
-	  (handler-bind 
-	      ((parse-error
-		 #'(lambda (error)
-		     (declare (ignore error))
-		     ;; This private version of CHECK-FOR-DEFAULT is
-		     ;; enough for string and string streams to do a
-		     ;; reasonable job, but it's not perfect.  Some
-		     ;; hairy presentation types may still not work.
-		     (flet ((check-for-default (stream)
-			      (loop
-				(let ((char (read-char stream nil *end-of-file-marker*)))
-				  (when (or (not (characterp char))
-					    (delimiter-gesture-p char)
-					    (not (whitespace-char-p char)))
-				    (unless (eq char *end-of-file-marker*)
-				      (unread-char char stream))
-				    (when (and default-supplied-p
-					       (or (eq char *end-of-file-marker*)
-						   (activation-gesture-p char)
-						   (delimiter-gesture-p char)))
-				      (return-from check-for-default t))
-				    (return-from check-for-default nil))))))
-		       (declare (dynamic-extent #'check-for-default))
-		       (when (check-for-default stream)
-			 (return-from accept-from-string
-			   (values default default-type index)))))))
-	    (if default-supplied-p
-		(funcall-presentation-generic-function accept
-		  type stream view
-		  :default default :default-type default-type)
-	        (funcall-presentation-generic-function accept
-		  type stream view))))
+	  (with-activation-gestures ((or activation-gestures
+					 additional-activation-gestures
+					 *standard-activation-gestures*)
+				     :override activation-gestures-p)
+	    (with-delimiter-gestures ((or delimiter-gestures
+					  additional-delimiter-gestures)
+				      :override delimiter-gestures-p)
+	      (handler-bind 
+		  ((parse-error
+		     #'(lambda (error)
+			 (declare (ignore error))
+			 ;; This private version of CHECK-FOR-DEFAULT is
+			 ;; enough for string and string streams to do a
+			 ;; reasonable job, but it's not perfect.  Some
+			 ;; hairy presentation types may still not work.
+			 (flet ((check-for-default (stream)
+				  (loop
+				    (let ((char (read-char stream nil *end-of-file-marker*)))
+				      (when (or (not (characterp char))
+						(delimiter-gesture-p char)
+						(not (whitespace-char-p char)))
+					(unless (eq char *end-of-file-marker*)
+					  (unread-char char stream))
+					(when (and default-supplied-p
+						   (or (eq char *end-of-file-marker*)
+						       (activation-gesture-p char)
+						       (delimiter-gesture-p char)))
+					  (return-from check-for-default t))
+					(return-from check-for-default nil))))))
+			   (declare (dynamic-extent #'check-for-default))
+			   (when (check-for-default stream)
+			     (return-from accept-from-string
+			       (values default default-type index)))))))
+		(if default-supplied-p
+		    (funcall-presentation-generic-function accept
+		      type stream view
+		      :default default :default-type default-type)
+		    (funcall-presentation-generic-function accept
+		      type stream view))))))
       (values the-object (or the-type type) index))))
 
 ;; Make ACCEPT work inside WITH-INPUT-FROM-STRING

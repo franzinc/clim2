@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: table-formatting.lisp,v 1.16 92/11/19 14:18:33 cer Exp $
+;; $fiHeader: table-formatting.lisp,v 1.17 92/12/03 10:27:56 cer Exp $
 
 (in-package :clim-internals)
 
@@ -488,67 +488,88 @@
 	(t (error "The ~:[~;~S ~]spacing specification, ~S, to ~S was invalid"
 		  clause clause spacing form))))
 
-;; FORMATTING-TABLE macro in FORMATTED-OUTPUT-DEFS
+;; FORMATTING-TABLE macro is in FORMATTED-OUTPUT-DEFS
 (defun invoke-formatting-table (stream continuation
+				&rest initargs
 				&key x-spacing y-spacing
 				     (record-type 'standard-table-output-record)
 				     multiple-columns multiple-columns-x-spacing
 				     equalize-column-widths
-				     (move-cursor t))
-  (let ((table 
-	  (with-output-recording-options (stream :draw nil :record t)
-	    (with-end-of-line-action (stream :allow)
-	      (with-end-of-page-action (stream :allow)
-		(with-new-output-record (stream record-type nil
-					 :x-spacing
-					   (or (process-spacing-arg stream x-spacing
-								    'formatting-table
-								    ':x-spacing)
-					       (stream-string-width stream " "))
-					 :y-spacing
-					   (or (process-spacing-arg stream y-spacing
-								    'formatting-table
-								    ':y-spacing)
-					       (stream-vertical-spacing stream))
-					 :equalize-column-widths equalize-column-widths)
-		  (funcall continuation stream)))))))
-    (adjust-table-cells table stream)
-    (when multiple-columns
-      (adjust-multiple-columns table stream
-			       (and (numberp multiple-columns) multiple-columns)
-			       (and multiple-columns multiple-columns-x-spacing)))
-    (replay table stream)
-    (when move-cursor
-      (move-cursor-beyond-output-record stream table))
-    table))
+				     (move-cursor t)
+				&allow-other-keys)
+  (declare (dynamic-extent initargs))
+  (with-keywords-removed (initargs initargs '(:record-type :x-spacing :y-spacing
+					      :multiple-columns :multiple-columns-x-spacing
+					      :equalize-column-widths :move-cursor))
+    (let ((table 
+	    (with-output-recording-options (stream :draw nil :record t)
+	      (with-end-of-line-action (stream :allow)
+		(with-end-of-page-action (stream :allow)
+		  (flet ((invoke-formatting-table-1 (record)
+			   (declare (ignore record))
+			   (funcall continuation stream)))
+		    (declare (dynamic-extent #'invoke-formatting-table-1))
+		    (apply #'invoke-with-new-output-record 
+			   stream #'invoke-formatting-table-1 record-type nil
+			   :x-spacing
+			     (or (process-spacing-arg stream x-spacing
+						      'formatting-table ':x-spacing)
+				 (stream-string-width stream " "))
+			   :y-spacing
+			     (or (process-spacing-arg stream y-spacing
+						      'formatting-table ':y-spacing)
+				 (stream-vertical-spacing stream))
+			   :equalize-column-widths equalize-column-widths
+			   initargs)))))))
+      (adjust-table-cells table stream)
+      (when multiple-columns
+	(adjust-multiple-columns table stream
+				 (and (numberp multiple-columns) multiple-columns)
+				 (and multiple-columns multiple-columns-x-spacing)))
+      (replay table stream)
+      (when move-cursor
+	(move-cursor-beyond-output-record stream table))
+      table)))
 
-;; FORMATTING-CELL macro in FORMATTED-OUTPUT-DEFS
+;; FORMATTING-CELL macro is in FORMATTED-OUTPUT-DEFS
 (defmethod invoke-formatting-cell ((stream output-protocol-mixin) continuation
+				   &rest initargs
 				   &key (align-x ':left) (align-y ':top)
 					min-width min-height 
-					(record-type 'standard-cell-output-record))
-  (setq min-width (or (process-spacing-arg 
-			stream min-width 'formatting-cell :min-width)
-		      (coordinate 0))
-	min-height (or (process-spacing-arg
-			 stream min-height 'formatting-cell :min-height)
-		       (coordinate 0)))
-  ;; Jump through a hoop to get a constant record-type symbol into the
-  ;; WITH-NEW-OUTPUT-RECORD macro so we invoke a fast constructor instead
-  ;; of a slow MAKE-INSTANCE.  If this body was just expanded inline in
-  ;; FORMATTING-CELL, it would just work to slip the IF and simply call
-  ;; INVOKE-WITH-NEW-OUTPUT-RECORD...  Too bad.
-  (let ((stream (encapsulated-stream stream)))
-    (with-stream-cursor-position-saved (stream)
-      (if (eq record-type 'standard-cell-output-record)
-	  (with-new-output-record (stream 'standard-cell-output-record nil
-				   :align-x align-x :align-y align-y
-				   :min-width min-width :min-height min-height)
-	    (funcall continuation stream))
-	  (with-new-output-record (stream record-type nil
-				   :align-x align-x :align-y align-y
-				   :min-width min-width :min-height min-height)
-	    (funcall continuation stream))))))
+					(record-type 'standard-cell-output-record)
+				   &allow-other-keys)
+  (declare (dynamic-extent initargs))
+  (with-keywords-removed (initargs initargs '(:record-type :align-x :align-y
+					      :min-width :min-height))
+    (setq min-width (or (process-spacing-arg 
+			  stream min-width 'formatting-cell :min-width)
+			(coordinate 0))
+	  min-height (or (process-spacing-arg
+			   stream min-height 'formatting-cell :min-height)
+			 (coordinate 0)))
+    ;; Jump through a hoop to get a constant record-type symbol into the
+    ;; WITH-NEW-OUTPUT-RECORD macro so we invoke a fast constructor instead
+    ;; of a slow MAKE-INSTANCE.  If this body was just expanded inline in
+    ;; FORMATTING-CELL, it would just work to slip the IF and simply call
+    ;; INVOKE-WITH-NEW-OUTPUT-RECORD...  Too bad.
+    (let ((stream (encapsulated-stream stream)))
+      (with-stream-cursor-position-saved (stream)
+	(flet ((invoke-formatting-cell-1 (record) 
+		 (declare (ignore record))
+		 (funcall continuation stream)))
+	  (declare (dynamic-extent #'invoke-formatting-cell-1))
+	  (if (eq record-type 'standard-cell-output-record)
+	      (apply #'invoke-with-new-output-record
+		     stream #'invoke-formatting-cell-1 
+		     'standard-cell-output-record 'standard-cell-output-record-constructor
+		     :align-x align-x :align-y align-y 
+		     :min-width min-width :min-height min-height
+		     initargs)
+	      (apply #'invoke-with-new-output-record
+		     stream #'invoke-formatting-cell-1 record-type nil
+		     :align-x align-x :align-y align-y 
+		     :min-width min-width :min-height min-height
+		     initargs)))))))
 
 (defmethod invoke-formatting-cell :around ((stream output-recording-mixin) continuation
 					   &rest options)
@@ -799,39 +820,48 @@
 		  (map-over-item-list-cells menu #'adjust-cells)))))))))
   (tree-recompute-extent menu))
 
-;; FORMATTING-ITEM-LIST macro in FORMATTED-OUTPUT-DEFS
+;; FORMATTING-ITEM-LIST macro is in FORMATTED-OUTPUT-DEFS
 (defun invoke-formatting-item-list (stream continuation
+				    &rest initargs
 				    &key x-spacing y-spacing initial-spacing
 					 n-columns n-rows 
 					 max-width max-height stream-width stream-height
 					 (row-wise t) (move-cursor t) 
-					 (record-type 'standard-item-list-output-record))
-  (let ((menu 
-	  (with-output-recording-options (stream :draw nil :record t)
-	    (with-end-of-line-action (stream :allow)
-	      (with-end-of-page-action (stream :allow)
-		(with-new-output-record (stream record-type nil
-					 :n-columns n-columns :n-rows n-rows
-					 :max-width max-width :max-height max-height
-					 :stream-width stream-width
-					 :stream-height stream-height
-					 :x-spacing
-					   (process-spacing-arg stream x-spacing
-								'formatting-item-list
-								':x-spacing)
-					 :y-spacing
-					   (or (process-spacing-arg stream y-spacing
-								    'formatting-item-list
-								    ':y-spacing)
-					       (stream-vertical-spacing stream))
-					 :initial-spacing initial-spacing
-					 :row-wise row-wise)
-		  (funcall continuation stream)))))))
-    (adjust-table-cells menu stream)
-    (replay menu stream)
-    (when move-cursor
-      (move-cursor-beyond-output-record stream menu))
-    menu))
+					 (record-type 'standard-item-list-output-record)
+				    &allow-other-keys)
+  (declare (dynamic-extent initargs))
+  (with-keywords-removed (initargs initargs '(:x-spacing :y-spacing :initial-spacing
+					      :n-columns :n-rows :max-width :max-height 
+					      :stream-width :stream-height
+					      :row-wise :move-cursor :record-type))
+    (let ((menu 
+	    (with-output-recording-options (stream :draw nil :record t)
+	      (with-end-of-line-action (stream :allow)
+		(with-end-of-page-action (stream :allow)
+		  (flet ((invoke-formatting-item-list-1 (record)
+			   (declare (ignore record))
+			   (funcall continuation stream)))
+		    (declare (dynamic-extent #'invoke-formatting-item-list-1))
+		    (apply #'invoke-with-new-output-record
+			   stream #'invoke-formatting-item-list-1 record-type nil
+			   :n-columns n-columns :n-rows n-rows
+			   :max-width max-width :max-height max-height
+			   :stream-width stream-width :stream-height stream-height
+			   :x-spacing
+			     (process-spacing-arg stream x-spacing
+						  'formatting-item-list ':x-spacing)
+			   :y-spacing
+			     (or (process-spacing-arg stream y-spacing
+						      'formatting-item-list ':y-spacing)
+				 (stream-vertical-spacing stream))
+			   :initial-spacing initial-spacing
+			   :row-wise row-wise
+			   initargs)))))))
+      (adjust-table-cells menu stream)
+      (replay menu stream)
+      (when move-cursor
+	(move-cursor-beyond-output-record stream menu))
+      menu)))
 
 (defun format-items (items &key (stream *standard-output*) printer presentation-type
 				x-spacing y-spacing initial-spacing (row-wise t)

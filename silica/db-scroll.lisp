@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-scroll.lisp,v 1.37 92/12/03 10:29:18 cer Exp $
+;; $fiHeader: db-scroll.lisp,v 1.38 92/12/07 12:15:15 cer Exp $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright(c) 1991, 1992 International Lisp Associates.
@@ -96,7 +96,7 @@
   (setf (scroll-bar-current-size sheet) nil))
 
 ;;--- In the case where the viewport is bigger than the window this
-;;--- code gets things wrong. Check out the thinkadot demo.  It's
+;;--- code gets things wrong.  Check out the thinkadot demo.  It's
 ;;--- because (- (--) (- vmin)) is negative.
 (defun update-scroll-bar (scroll-bar min max vmin vmax)
   (declare (optimize (safety 0) (speed 3)))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: lisp-utilities.lisp,v 1.26 92/12/03 10:30:41 cer Exp $
+;; $fiHeader: lisp-utilities.lisp,v 1.27 92/12/14 15:04:58 cer Exp $
 
 (in-package :clim-utils)
 
@@ -660,34 +660,30 @@
      ,@body))
 
 (defun remove-keywords (list keywords)
-  (macrolet ((kernel (predicate)
+  (macrolet ((remove-keywords-1 (name-var predicate-form)
 	       `(let ((head nil)
 		      (tail nil))
 		  (do ()
 		      ((null list))
-		    (let ((name (pop list))
+		    (let ((,name-var (pop list))
 			  (value (pop list)))
-		      (when (not (,predicate name))
-			(setq tail (setq head (list name value)))
+		      (unless ,predicate-form
+			(setq tail (setq head (list ,name-var value)))
 			(return))))
 		  (do ()
 		      ((null list) head)
-		    (let ((name (pop list))
+		    (let ((,name-var (pop list))
 			  (value (pop list)))
-		      (when (not (,predicate name))
-			(setq tail (setf (cddr tail) (list name value)))))))))
+		      (unless ,predicate-form
+			(setq tail (setf (cddr tail) (list ,name-var value)))))))))
     (cond ((null list) nil)
 	  ((null keywords) list)
 	  ;; Special case: use EQ instead of MEMBER when only one keyword is supplied.
 	  ((null (cdr keywords))
 	   (let ((keyword (car keywords)))
-	     (flet ((eq-predicate (name) (eq name keyword)))
-	       (declare (dynamic-extent #'eq-predicate))
-	       (kernel eq-predicate))))
+	     (remove-keywords-1 name (eq name keyword))))
 	  (t
-	   (flet ((member-predicate (name) (member name keywords)))
-	     (declare (dynamic-extent #'member-predicate))
-	     (kernel member-predicate))))))
+	   (remove-keywords-1 name (member name keywords))))))
 
 )	;#-(or Genera Cloe-Runtime)
 

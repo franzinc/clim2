@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: standard-types.lisp,v 1.23 92/12/07 12:14:34 cer Exp $
+;; $fiHeader: standard-types.lisp,v 1.24 92/12/14 15:02:19 cer Exp $
 
 (in-package :clim-internals)
 
@@ -563,10 +563,11 @@
 
 (define-presentation-method accept ((type completion) stream (view textual-view) &key)
   (flet ((possibility-printer (possibility type stream)
-	   (let ((object (find (second possibility) sequence 
-			       :key value-key :test test)))
-	     (with-output-as-presentation (stream object type)
-	       (funcall printer (funcall name-key object) stream)))))
+ 	   (with-output-as-presentation (stream (funcall value-key (second possibility)) type)
+ 	     (funcall printer 
+ 		      (funcall name-key (find (second possibility) sequence 
+ 					      :key value-key :test test))
+ 		      stream))))
     (declare (dynamic-extent #'possibility-printer))
     (values
       (completing-from-suggestions 
@@ -744,10 +745,11 @@
 	      " "
 	      (make-array 2 :initial-contents (list separator #\space)))))
     (flet ((possibility-printer (possibility type stream)
-	     (let ((object (find (second possibility) sequence 
-				 :key value-key :test test)))
-	       (with-output-as-presentation (stream (list object) type)
-		 (funcall printer (funcall name-key object) stream)))))
+	     (with-output-as-presentation (stream (list (funcall value-key (second possibility))) type)
+	       (funcall printer 
+			(funcall name-key (find (second possibility) sequence 
+						:key value-key :test test))
+			stream))))
       (declare (dynamic-extent #'possibility-printer))
       (loop
 	(let ((element
@@ -1516,8 +1518,13 @@
 	   (cond ((and (activation-gesture-p char) (not desired-delimiter))
 		  (unread-char char stream)
 		  (return))
-		 ((and (delimiter-gesture-p char) (not desired-delimiter))
+		 ((and (delimiter-gesture-p char) (not desired-delimiter)
+		       auto-activate)
 		  (beep stream))
+		 ((and (delimiter-gesture-p char) (not desired-delimiter)
+		       (not auto-activate))
+		  (unread-char char stream) 
+		  (return))
 		 ((not (or (ordinary-char-p char)
 			   (diacritic-char-p char)))
 		  (beep stream))

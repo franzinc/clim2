@@ -21,7 +21,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: bitmap-editor.lisp,v 1.10 92/12/01 09:46:01 cer Exp $
+;; $fiHeader: bitmap-editor.lisp,v 1.11 92/12/03 10:28:25 cer Exp $
 
 (in-package :clim-demo)
 
@@ -31,8 +31,8 @@
      (columns :initarg :columns :initform 8)
      (array :initarg :array :initform nil)
      (current-color :initarg :current-color :initform 1)
-     (colors :initarg :colors :initform 
-	     (list +white+ +black+)))
+     (colors :initarg :colors
+	     :initform (list +white+ +black+)))
   (:panes
     (palette :accept-values
 	     :width :compute :height :compute

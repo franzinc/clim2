@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: classes.lisp,v 1.27 92/12/07 12:15:12 cer Exp $
+;; $fiHeader: classes.lisp,v 1.28 92/12/14 15:03:28 cer Exp $
 
 (in-package :silica)
 
@@ -58,7 +58,6 @@
 			      :initform (make-hash-table :test #'equal))
      (grabbing-sheet :initform nil :accessor port-grabbing-sheet)
      (alive-p :initform nil :accessor port-alive-p)))
-
 
 )	;locally
 
@@ -129,6 +128,7 @@
 (define-event-class event () 
   ((timestamp :reader event-timestamp
 	      :initform (atomic-incf *event-timestamp*) :initarg :timestamp)))
+
 
 (define-event-class device-event (event) 
   ((sheet :reader event-sheet :initarg :sheet)

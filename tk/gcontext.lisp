@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: gcontext.lisp,v 1.19 92/07/01 15:44:30 cer Exp $
+;; $fiHeader: gcontext.lisp,v 1.20 92/12/02 13:31:15 colin Exp $
 
 (in-package :tk)
 
@@ -363,7 +363,7 @@
      0					; clip-y-origin
      rs
      n
-     x11:unsorted)))
+   x11:unsorted)))
 
 (defmethod (setf gcontext-clip-mask) ((nv (eql :nowhere)) (gc gcontext))
   (x11:xsetcliprectangles

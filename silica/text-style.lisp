@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: text-style.lisp,v 1.16 92/11/19 14:25:06 cer Exp $
+;; $fiHeader: text-style.lisp,v 1.17 92/12/07 12:15:24 cer Exp $
 
 (in-package :silica)
 
@@ -659,7 +659,8 @@
       (let ((tuples (gethash key mapping-table))
 	    (last-tuple nil)
 	    (last-size nil))
-	(dolist (tuple tuples (if (and tuples (not exact-size-required)) (cadar (last tuples))))
+	(dolist (tuple tuples (and tuples (not exact-size-required)
+				   (cadar (last tuples))))
 	  (let ((font-size (text-style-size (car tuple))))
 	    (if exact-size-required
 		(when (= size font-size)
