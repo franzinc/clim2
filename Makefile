@@ -1,4 +1,4 @@
-# $fiHeader: Makefile,v 1.12 92/02/26 10:23:58 cer Exp Locker: cer $
+# $fiHeader: Makefile,v 1.13 92/02/28 09:18:01 cer Exp Locker: cer $
 # 
 #  Makefile for CLIM 2.0
 #
@@ -267,7 +267,7 @@ swm-tape:
 dist:
 	tar -cf - \
 	*/*.lisp *.lisp Makefile */Makefile \
-	| compress >  /home/s1/1/franz/clim-2.0/Dist/src.tar.Z
+	| compress >  Dist/src.tar.Z
 
 rcscheck:
 	rcscheck $(DIRS) | grep -v .fasl

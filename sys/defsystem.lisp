@@ -18,10 +18,10 @@
 ;;; 
 ;;; $Author: cer $
 ;;; $Source: /repo/cvs.copy/clim2/sys/defsystem.lisp,v $
-;;; $Revision: 1.4 $
-;;; $Date: 1992/02/24 13:09:00 $
+;;; $Revision: 1.5 $
+;;; $Date: 1992/03/02 18:38:40 $
 ;;;
-;;; $Revision: 1.4 $
+;;; $Revision: 1.5 $
 ;;; Hacked by smL to convert it to lisp from C.
 ;;; No, seriously folks.  Lots of changes here.  Added support for multiple
 ;;;  source file-types.  Cleaned up a *lot* of code.
@@ -30,19 +30,19 @@
 ;;; Added support for different modules applicable only in certain features.
 ;;; -smL 17-April-89
 ;;;
-;;; $Revision: 1.4 $
+;;; $Revision: 1.5 $
 ;;; Added support for sysdcl files.
 ;;; -smL
 ;;;
-;;; $Revision: 1.4 $
+;;; $Revision: 1.5 $
 ;;; Cleaned up a lot of syntax.  Made some fields of the defsystem macro be eval'ed.
 ;;; -smL
 ;;;
-;;; $Revision: 1.4 $
+;;; $Revision: 1.5 $
 ;;; Added "temporary" hack *load-all-before-compile*.
 ;;; -smL
 ;;;
-;;; $Revision: 1.4 $
+;;; $Revision: 1.5 $
 ;;; Incorporated changes from Bill York @ ILA to deal with Genera.
 ;;; Added the :default-binary-pathname option to defsystem and :binary-pathname
 ;;;  to each module.
@@ -55,12 +55,12 @@
 ;;; Fixed the spelling of "propagate".
 ;;; -smL
 ;;;
-;;; $Revision: 1.4 $
+;;; $Revision: 1.5 $
 ;;; Fixed a bug that caused many too many calls to file-write-date during a
 ;;;  load-system.
 ;;; -smL
 ;;;
-;;; $Revision: 1.4 $
+;;; $Revision: 1.5 $
 ;;; Incorporated changes from Bill York <york@ila-west.dialnet.symbolics.com>
 ;;;  to make string --> pathname coersion cleaner under Genera.
 ;;; Also made some trivial changes to the messages printed out when *tracep*
@@ -75,7 +75,7 @@
 ;;; load-system and compile-system now return the system name.
 ;;; -smL
 ;;;
-;;; $Revision: 1.4 $
+;;; $Revision: 1.5 $
 ;;; Fixed bug with pretty-pathname-component.  Added message when compiling a
 ;;;  file in Genera, since it doesn't print one by default.  Fixed a small bug
 ;;;  with handling of *features*.  Fixed a bug with *tracep*.
@@ -91,7 +91,7 @@
 ;;;
 ;;;-----------------------------------------------------------
 
-;; $fiHeader: defsystem.lisp,v 1.6 91/03/26 12:59:59 cer Exp $
+;; $fiHeader: defsystem.lisp,v 1.4 92/02/24 13:09:00 cer Exp Locker: cer $
 
 ;; Add a feature for ANSI-adhering Lisps.  So far, only Apple's
 ;; version 2.0 tries to do adhere to the ANSI spec instead of CLtL rev 1.
@@ -121,7 +121,7 @@
 #+ANSI-90
 (defpackage "DEFSYSTEM"
   (:use "COMMON-LISP")
-  (:nicknames "DEFSYS")
+  (:nicknames "DEFSYS" "DS")
   (:export
     *current-system*
     *defsystem-version*

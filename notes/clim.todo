@@ -1,31 +1,11 @@
-%%  $fiHeader: clim.todo,v 1.3 92/02/14 18:57:52 cer Exp Locker: cer $
-%%%%%%%%%%%%%%%%%%%%%%%%% CLIM 2.0 plan
+%%  $fiHeader: clim.todo,v 1.4 92/02/28 09:17:42 cer Exp Locker: cer $
+
+%%% Things that are currently unassigned.
 
 % Silica back-ends
-  * Genera
-  * Raw CLX
-  * Xt
-    - Motif
-    - OpenLook
-  * Postscript
+  * [??] Postscript
 
 % Holes to fill in
-  * [cer] input-protocol and the handle-event problem
-  * [cer] Why does INPUT-PROTOCOL-MIXIN define an input buffer?  What's wrong with the
-    sheet event queue?
-  * [cer] Define cursor protocol
-  * [cer] Rename DEFSYS package to CLIM-DEFSYS.
-  * [swm] Complete abstract gadgets.
-    - Take whatever is needed from ILA CLIM in order to get the non-adaptive
-      gadgets together. 
-  * [swm] Write a "null" frame manager that implements the same look and feel for all
-    ports.
-    - Genera's frame manager will inherit from this.
-  * [swm] Take the keyboard gesture stuff code from ILA CLIM, but make it more
-    cons-efficient.
-  * [swm] Stream defprotocols: be sure that all of the sheet and medium protocol
-    functions are explicitly defined with DEFOPERATION so that the stream
-    trampolines are properly created.
   * [all] Layout for gadgets within ACCEPTING-VALUES.
   * [all] ACCEPTING-VALUES :OWN-WINDOW architecture that allows integration with
     toolkit dialogs.
@@ -34,7 +14,6 @@
   * [all] Interprocess communication, i.e., one process to another to execute a frame
     command. 
   * Temporary-medium sheets.
-    - [swm] Medium accessors on a sheet with no medium?
     - [all] Temporary medium need to have their state decached. This looks
       like it should be a method on deallocate-medium since the medium
       is not degrafted. Just not associated with a window. This does
@@ -43,146 +22,25 @@
     - [all] Where do event queues come from?
     - [all] Repaint protocol: who clears the area and sets the clipping region when
       doing the repaint?
-    - [cer] How do we deal with the case where a sheet has one children and its
-      mirror allows one children only but the sheet actually has two children,
-      e.g., (FRAME (HORIZONTALLY () () ())).
     - [all] What is the precise value returned by EVENT-SHEET?  Does the EVENT-SHEET
       accessor return the sheet that the event was dispatched to? We
       had to do this for correct distribution of keyboard events.
-  * [cer] Multiple layouts need to allow different size reqs for the sheets.
-  * [cer] The code for switching layouts needs to be cleaned up.
-  * [swm] Implement compatibility code for CLIM 1.0's :LAYOUT language.
-  * [cer] Protocol to compute to the WM the desired geometry of the frame.
-  * [cer] When the viewport is resized in might need to be moved, for example, if it
-    becomes big enough to display the entire window: in the ALLOCATE-SPACE for
-    viewport. 
-  * [cer] Pointer documentation panes and other pane types,
-  * [cer] Gadget enable/disable protocol.
   * Event protocol:
     - Consider design of DISTRIBUTE-EVENT.
     - [all] Timestamp.
     - [all] Native region.
-  * [cer] On-demand scrollbars.
   * [all] Should we do "stream relative" coordinates (as opposed to the current
     "parent relative" scheme) for output records?  It solves some problems, but
     introduces others. 
-  * [swm] Should we divide the drawing protocol into a medium and a port layer, or
-    should it be a single layer as Bill suggests? 
-  * [swm] Spiff up the code for defining new graphics operators.
-    - DEFINE-GRAPHICS-OPERATOR is like DEFGENERIC.
-    - DEFINE-GRAPHICS-METHOD is like DEFMETHOD.
-    - DEFINE-GRAPHICS-RECORDING.
-    - What of this goes into the spec?
-  * [swm] Figure out what things are part of the frame manager protocol and which are
-    part of the port protocol.
-    - PORT-MENU-CHOOSE should really be FRAME-MANAGER-MENU-CHOOSE.
-    - Ditto, PORT-DIALOG-VIEW.
-  * [swm] Figure out how views really interact with frame managers and dialogs. 
-    - Indirect views. 
-  * [swm] Implement more of DRAW-DESIGN for composites.  
-    - Create a table that describes what works and what doesn't, for each port.
-  * [swm] Figure out which WINDOW-xxx functions from CLIM 1.0 make sense.  It's OK to
-    change the names to correspond to newthink.
-    - WINDOW-VIEWPORT
-    - WINDOW-VIEWPORT-POSITION* and WINDOW-SET-VIEWPORT-POSITION*.
-    - WINDOW-INSIDE-xxx and WINDOW-SET-INSIDE-xxx.
-  * [jdi] Design and implement a colormap scheme
 
-% Cleanups
-  * [swm] What should we retain from previous versions of CLIM?
-    - Go through CLIM 1.0 to make sure we didn't miss anything.
-    - Go through ILA CLIM with a fine-tooth comb.
-  * [swm] Flush all of the DRAW-xxx-INTERNAL junk.
-  * [swm ] Find all the #+Silica/#-Silica stuff.
-    - Make sure that the #+Silica branch really does the right thing.
-    - Flush the #-Silica branch.
-  * [swm] Must we really convert all of the code to lowercase?  Do it if we must.
-  * [cer] Sort out the whole server path mechanism and make sure we can
-    windows where we want.
-
-% Bugs to fix
-  * [cer] What's the problem with radio-boxes and move-cursor-after.  The alternative
-    definitions almost work except for exit-buttons.  I think the bounding
-    rectangle of gadget output records is computed incorrectly and that it
-    works because the update-gadget-position is broken to match. 
-  * [swm] No output-recording for draw-text*. Hence the compass menu is
-    broken.
-  * [cer] why? #<standard-method stream-read-char-no-hang (motif-top-level-sheet) @ #x1b18eee>
-  * [cer] When default-text-margin slot yet bound. Drawing on a unexposed window
-    can cause problems.
+% Final spec conformance checking
+% Final Testing and bug fixing
 
 % Performance
   * [all] Meet CLIM 1.0 performance goals.
   * [all] Surpass CLIM 1.0 performance goals.
-  * [swm] Simplify transformation classes so that there is a single class of
-    transformation.  Special-case +IDENTITY-TRANSFORMATION+. 
-  * [swm] Make use of volatile transformations.
-    - Be careful never to modify +IDENTITY-TRANSFORMATION+.
-  * [swm] Make use of volatile rectangular regions.
-  * [swm] Reinstate sheet region and transformation caches (as in ILA CLIM).
   * Add port-level caches for inks.
-  * [swm] (deftype coordinate () ...)
-    - Flush all inappropriate FIXNUM declarations from the code and replace them
-      with the new COORDINATE declaration.
-    - Look at callers of FLOOR, CEILING, TRUNCATE, and ROUND, and decide what of
-      those really mean to coerce to the COORDINATE type.
-    - The per-port code will needs to "devicize" all coordinates.  For example,
-      for CLX that means integerizing, but not for PostScript.
-  * [swm] Reinstate graphics function optimizers.
-    - Is any of the CLIM 1.0 graphics-defining stuff useful?
-    - Is any of the ILA CLIM graphics-defining stuff useful?
 
-% Size issues
-  * [swm] Modularize with load on demand/required modules
-    - Extended geometry (lines, ellipses, polygons).
-    - DRAW-DESIGN and MAKE-DESIGN-FROM-OUTPUT-RECORD.
-    - Some formatted output stuff: graph formatting, FILLING-OUTPUT.
-
-% [swm] Specification
-  * Write up the Silica API and protocol.
-  * Write up the gadget API and protocol.
-    - Document new callback function architecture.
-  * Specify and implement DEFINE-PANE-TYPE.
-    - Implement all of the CLIM 1.0 pane types.
-  * Write up the application frame and pane API and protocol.
-    - Include the layout protocol.
-    - What about RWK's "mosaics"?
-  * Rename all of the "POSITION*" functions to "POSITION", because a "position"
-    is unambiguously an (X,Y) pair.  That is, POSITION, POSITION*, and POINT*
-    all mean the same thing. 
-    - Update the code accordingly.
-  * What happens when you draw on a sheet that is not grafted?
-  * Who enables a frame?
-    - RUN-FRAME-TOP-LEVEL?
-    - or DEFAULT-FRAME-TOP-LEVEL?
-    - The "command loop" proposal needs to explicitly address this.
-  * Who calls REALIZE-MIRROR?
-  * ENABLE-MIRROR and ENABLE->MIRROR, MIRROR->ENABLE?
-  * SHEET-REGION/TRANSFORMATION can change for two reasons: program does a SETF
-    or the port sends a configure notify.  Should we use that :PORT-TRIGGER
-    keyword in the notification protocol? 
-  * Enumerate the implicit inputs to all functions.
-    - *APPLICATION-FRAME*
-    - *INPUT-CONTEXT* and *NULL-PRESENTATION*
-    - *COMMAND-PARSER*, *COMMAND-UNPARSER*, and *PARTIAL-COMMAND-PARSER*
-    - *UNSUPPLIED-ARGUMENT-MARKER* and *NUMERIC-ARGUMENT-MARKER*
-    - *NUMERIC-ARGUMENT*
-    - *DELIMITER-GESTURES* and *ACTIVATION-GESTURES*
-    - *COMPLETION-GESTURES*, *HELP-GESTURES*, and *POSSIBILITIES-GESTURES*
-    - *ABORT-GESTURES* and *ACCELERATOR-GESTURES*
-    - *INPUT-WAIT-TEST* and *INPUT-WAIT-HANDLER*
-    - *POINTER-BUTTON-PRESS-HANDLER*
-    - *DEFAULT-TEXT-STYLE*, *NULL-TEXT-STYLE*, and *UNDEFINED-TEXT-STYLE*
-  * Unify the sheet and output record protocols by giving the same name to
-    generic functions that (conceptually) do the same thing.  This could lay the
-    groundwork for tighter unification later, and costs us very little.
-    - SHEET-ADOPT-CHILD and ADD-OUTPUT-RECORD
-    - SHEET-DISOWN-CHILD and DELETE-OUTPUT-RECORD
-    - SHEET-PARENT and OUTPUT-RECORD-PARENT
-    - SHEET-CHILDREN and OUTPUT-RECORD-CHILDREN
-    - The mapping functions.
-    - SHEET-REGION and BOUNDING-RECTANGLE*
-    - What else?
 
 % User Guide.
 
