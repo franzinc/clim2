@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-init.cl,v 1.3 92/01/17 17:49:20 cer Exp $
+;; $fiHeader: ol-init.lisp,v 1.4 92/01/31 14:55:05 cer Exp $
 
 
 (in-package :tk)
@@ -67,13 +67,12 @@
 (ol_set_va_display_error_msg_handler (register-function 'ol-error-va-handler))
 
 
-(ol-initialize)
-(toolkit-initialize)
 
 (defvar *ol-done* nil)
 
 (unless *ol-done*
-  (make-classes *openlook-classes*)
+  (ol-initialize)
+  (define-toolkit-classes *openlook-classes*)
   (setq *ol-done* t))
 
 (defmethod make-widget ((w event) 

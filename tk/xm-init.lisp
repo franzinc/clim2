@@ -20,17 +20,18 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-init.cl,v 1.2 92/01/02 15:09:02 cer Exp $
+;; $fiHeader: xm-init.lisp,v 1.3 92/01/31 14:55:16 cer Exp $
 
 
 (in-package :tk)
 
-(defvar *done* nil)
+(defvar *xm-done* nil)
 
-(unless *done*
-  (toolkit-initialize)
+(warn "This bites")
+
+(unless *xm-done*
   (define-toolkit-classes *motif-classes*)
-  (setq *done* t))
+  (setq *xm-done* t))
 
 
 

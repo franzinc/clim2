@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: load-xm.cl,v 1.3 92/01/17 17:49:13 cer Exp $
+;; $fiHeader: load-xm.lisp,v 1.4 92/01/31 14:54:49 cer Exp $
 
 (in-package :tk)
 
@@ -28,57 +28,7 @@
 make ucl_xtras='/usr/tech/cer/stuff/clim-2.0/xm-classes.o /usr/motif/usr/lib/libXm.a /usr/motif/usr/lib/libXt.a /usr/motif/usr/lib/libX11.a' ucl
 |#
 
-;;; This has to kept consistent with the Makefile
 
-(eval-when (compile load eval)
-  (defparameter *motif-classes* '(
-				  "_constraintWidgetClass"
-				 "_objectClass"
-				 "_xmGadgetClass"
-				 "_wmShellWidgetClass"
-				 "_vendorShellWidgetClass"
-				     "_coreWidgetClass"
-				     "_shellWidgetClass"
-				     "_compositeWidgetClass"
-				     "_xmPrimitiveWidgetClass"
-				     "_xmManagerWidgetClass"
-				     "_applicationShellWidgetClass"
-				     "_xmArrowButtonWidgetClass"
-				     "_xmArrowButtonGadgetClass"
-				     "_xmBulletinBoardWidgetClass"
-				     "_xmCascadeButtonWidgetClass"
-				     "_xmCascadeButtonGadgetClass"
-				     "_xmCommandWidgetClass"
-				     "_xmDialogShellWidgetClass"
-				     "_xmDrawingAreaWidgetClass"
-				     "_xmDrawnButtonWidgetClass"
-				     "_xmFileSelectionBoxWidgetClass"
-				     "_xmFormWidgetClass"
-				     "_xmFrameWidgetClass"
-				     "_xmLabelWidgetClass"
-				     "_xmLabelGadgetClass"
-				     "_xmListWidgetClass"
-				     "_xmMainWindowWidgetClass"
-				     "_xmMenuShellWidgetClass"
-				     "_xmMessageBoxWidgetClass"
-				     "_overrideShellWidgetClass"
-				     "_xmPanedWindowWidgetClass"
-				     "_xmPushButtonWidgetClass"
-				     "_xmPushButtonGadgetClass"
-				     "_xmRowColumnWidgetClass"
-				     "_xmScaleWidgetClass"
-				     "_xmScrollBarWidgetClass"
-				     "_xmScrolledWindowWidgetClass"
-				     "_xmSelectionBoxWidgetClass"
-				     "_xmSeparatorWidgetClass"
-				     "_xmSeparatorGadgetClass"
-				     "_xmTextWidgetClass"
-				     "_xmTextFieldWidgetClass"
-				     "_xmToggleButtonWidgetClass"
-				     "_xmToggleButtonGadgetClass"
-				     "_topLevelShellWidgetClass"
-				     "_transientShellWidgetClass"
-				     )))
 
 (defun load-from-xm (&optional (what *motif-classes*))
   (setq what (remove-if #'ff::get-entry-point

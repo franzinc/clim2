@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader$
+;; $fiHeader: xt-pixmaps.lisp,v 1.1 92/02/08 15:01:14 cer Exp $
 
 
 (in-package :xm-silica)
@@ -29,11 +29,12 @@
   (declare (ignore sheet))
   (assert (integerp width))
   (assert (integerp height))
-  (make-instance 'tk::pixmap
-		 :drawable (tk::display-root-window (port-display port))
-		 :width width
-		 :height height
-		 :depth 8))
+  (let ((root (tk::display-root-window (port-display port))))
+    (make-instance 'tk::pixmap
+      :drawable root
+      :width width
+      :height height
+      :depth (tk::drawable-depth root))))
 
 (defmethod fetch-medium-drawable ((sheet clim-internals::pixmap-stream) pixmap)
   pixmap)

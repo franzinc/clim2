@@ -20,10 +20,11 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: pkg.cl,v 1.2 92/01/02 15:08:57 cer Exp $
+;; $fiHeader: pkg.lisp,v 1.3 92/01/31 14:55:07 cer Exp $
 
 (defpackage :tk
   (:use common-lisp ff)
+  (:nicknames :xt)
   (:export
    #:initialize-motif-toolkit
    #:xm-drawing-area

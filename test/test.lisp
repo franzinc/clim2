@@ -19,6 +19,8 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
+;; $fiHeader$
+
 (in-package :clim-internals)
 
 (define-application-frame test-frame ()

@@ -1,6 +1,6 @@
  ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: lisp-utilities.lisp,v 1.10 91/04/15 15:43:01 cer Exp $
+;; $fiHeader: lisp-utilities.lisp,v 1.2 92/01/31 14:52:39 cer Exp $
 
 (in-package :clim-utils)
 
@@ -400,13 +400,20 @@
      (declare (dynamic-extent ,var))
      ,@body))
 
-#+(and (not :rs6000) (version>= 4 1))
+#+(and (target-class r t) (version>= 4 1))
+;; Hack to allow compiling CLIM without a dcl.
+(eval-when (eval compile)
+  comp::(def-qc-ll-fcn qc-ll_<u :<u
+	  (with-u-computed
+	      (qc-boolean-compare :ltu u target cc))))
+
+#+(and (target-class r t) (version>= 4 1))
 (defun-inline evacuate-list (list)
   (if (comp::ll :<u (comp::ll :register :stack-pointer) list)
       (copy-list list)
     list))
 
-#-(and (not :rs6000) (version>= 4 1))
+#-(and (target-class r t) (version>= 4 1))
 (defun-inline evacuate-list (list) `,list)
 
 )	;#+Allegro

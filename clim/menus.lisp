@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: menus.lisp,v 1.8 92/02/05 21:45:43 cer Exp Locker: cer $
+;; $fiHeader: menus.lisp,v 1.9 92/02/14 18:58:01 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -64,7 +64,7 @@
   ;; into a menu is required to use with-end-of-line-action and with-end-of-page-action
   ;; or set the size first itself.
   :initializer (initialize-menu (sheet-port menu) menu associated-window)
-  :matcher (or (null root)
+  :matcher (or #+ignore (null root) #-ignore nil
 	       ;; horrible kludge in the case where no associated window is passed in.
 	       (eql (sheet-port menu) (sheet-port root))))
 

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-gadgets.lisp,v 1.3 92/02/05 21:45:29 cer Exp Locker: cer $
+;; $fiHeader: xt-gadgets.lisp,v 1.4 92/02/14 18:57:46 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -70,19 +70,19 @@
       
       ;; Background can either be a pixel of a bitmap
       ;; Foreground has to be a pixel
-      ;; clx-decode-gadget-background
-      ;; clx-decode-gadget-foreground
+      ;; decode-gadget-background
+      ;; decode-gadget-foreground
       
       (when silica::background
 	(with-sheet-medium (medium sheet)
 	  (setf initargs
-	    (append (clx-decode-gadget-background medium sheet silica::background) 
+	    (append (decode-gadget-background medium sheet silica::background) 
 		    initargs))))
       
       (when silica::foreground
 	(with-sheet-medium (medium sheet)
 	  (setf initargs
-	    (append (clx-decode-gadget-foreground medium sheet silica::foreground)
+	    (append (decode-gadget-foreground medium sheet silica::foreground)
 		    initargs))))
 
       (when silica::text-style
@@ -91,20 +91,18 @@
 
       (values class initargs))))
 
-(defmethod clx-decode-gadget-background (medium sheet ink)
+(defmethod decode-gadget-background (medium sheet ink)
   (declare (ignore sheet))
-  (let ((gc (clx-decode-ink ink medium)))
+  (let ((gc (decode-ink ink medium)))
     (if (tk::gcontext-tile gc)
 	(list :background-pixmap (tk::gcontext-tile gc))
       (list :background (tk::gcontext-foreground gc)))))
 
 
-(defmethod clx-decode-gadget-foreground (medium sheet ink)
+(defmethod decode-gadget-foreground (medium sheet ink)
   (declare (ignore sheet))
-  (let ((gc (clx-decode-ink ink medium)))
-    (if (tk::gcontext-tile gc)
-	(error "Gadget foreground cannot be pixmap")
-      (list :foreground (tk::gcontext-foreground gc)))))
+  (let ((pixel (decode-color medium ink)))
+    (list :foreground pixel)))
 
 
 ;; This needs to be somewhere.

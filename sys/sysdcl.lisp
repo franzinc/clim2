@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sysdcl.lisp,v 1.6 91/03/26 13:00:01 cer Exp $
+;; $fiHeader: sysdcl.lisp,v 1.2 92/02/08 14:59:29 cer Exp $
 
 (in-package #-ANSI-90 "USER" #+ANSI-90 :cl-user)
 
@@ -323,13 +323,16 @@
      :needed-systems (clim-standalone)
      :load-before-compile (clim-standalone))
   ("pkg")
+  #+ignore
+  ("ffi" :eval-after (mapc #'load '("xlib/xlib.lisp" "xlib/x11-keysyms.lisp"
+				    "xlib/last.lisp")))
   ("ffi")
   ("xlib")
   ("x11-keysyms")
   ("last"))
 
 #+Allegro
-(defsys::defsystem tk-clim
+(defsys::defsystem xt-clim
     (:default-pathname (frob-pathname "tk")
      :default-binary-pathname (frob-pathname "tk")
      :needed-systems (xlib-clim)
@@ -354,9 +357,16 @@
   ("resources")
   ("event")
   ("callbacks")
+  ("xt-classes")
+  ("xt-init"))
 
+(defsys::defsystem xm-clim
+    (:default-pathname (frob-pathname "tk")
+     :default-binary-pathname (frob-pathname "tk")
+     :needed-systems (xt-clim)
+     :load-before-compile (xt-clim))
   ;; Motif specific stuff
-  ("load-xm")
+  ("xm-classes")
   ("xm-init")
   ("xm-widgets")
   ("xm-font-list")
@@ -371,32 +381,9 @@
 (defsys::defsystem ol-clim
     (:default-pathname (frob-pathname "tk")
 	:default-binary-pathname (frob-pathname "tk")
-	:needed-systems (xlib-clim)
-	:load-before-compile (xlib-clim))
-  (|pkg|)
-  (|foreign-obj|)
-  (|macros|)
-  
-  ;; Xlib stuff
-  
-  (|xlib|)
-  (|font|)
-  (|gcontext|)
-  (|graphics|)
-  
-  
-  ;; Toolkit stuff
-  
-  (|xtk|)
-  (|meta-tk|)
-  (|make-classes|)
-  
-  (|foreign|)
-  (|widget|)
-  (|resources|)
-  (|event|)
-  (|callbacks|)
-  (|load-ol|)
+	:needed-systems (xt-clim)
+	:load-before-compile (xt-clim))
+  (|ol-classes|)
   (|ol-init|)
   (|ol-callbacks|)
   #+ignore(|ol-examples|)
@@ -407,8 +394,8 @@
 (defsys::defsystem motif-clim
     (:default-pathname (frob-pathname "xm-silica")
 	:default-binary-pathname (frob-pathname "xm-silica")
-	:needed-systems (tk-clim)
-	:load-before-compile (tk-clim))
+	:needed-systems (xm-clim)
+	:load-before-compile (xm-clim))
   ("pkg")
   ("xt-silica")
   ("xm-silica")

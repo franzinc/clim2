@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xlib.lisp,v 1.5 92/01/31 14:55:12 cer Exp Locker: cer $
+;; $fiHeader: xlib.lisp,v 1.6 92/02/05 21:45:08 cer Exp $
 
 (in-package :tk)
 
@@ -28,6 +28,7 @@
 
 (defclass screen (handle-class display-object) ())
 
+#+obsolete
 (defun screen-gcontext (screen)
   (let ((gc (x-screen-gc (object-handle screen))))
     (or (find-object-from-address gc nil)
@@ -45,41 +46,49 @@
 (defclass window (drawable)
 	  ())
 
+;; Ugh.  This should be part of a general purpose mechanism
+(defmethod drawable-depth ((window window))
+  (let ((attrs (x11:make-xwindowattributes)))
+    (x11:xgetwindowattributes (display-handle (object-display window))
+			      (object-handle window)
+			      attrs)
+    (x11:xwindowattributes-depth attrs)))
+    
+  
 (defclass pixmap (drawable)
-	  ((width :initarg :width :reader pixmap-width)
-	   (height :initarg :height :reader pixmap-height)))
-
-(defforeign 'x_create_pixmap
-    :entry-point "_XCreatePixmap")
+  ((width :initarg :width :reader pixmap-width)
+   (height :initarg :height :reader pixmap-height)
+   (depth :initarg :depth :reader drawable-depth)))
 
 (defmethod initialize-instance :after ((p pixmap) &key handle 
 						       width 
 						       height
 						       depth 
 						       drawable)
-  (with-slots (display) p (setf display (object-display drawable)))
-  (unless handle
-    (setf (slot-value p 'handle)
-      (x_create_pixmap
-       (display-handle display)
-       (object-handle drawable)
-       width
-       height
-       depth))
-    (register-xid p)))
-		   
+  (with-slots (display) p
+    (setf display (object-display drawable))
+    (unless handle
+      (setf (slot-value p 'handle)
+	(x11:xcreatepixmap
+	 (display-handle display)
+	 (object-handle drawable)
+	 width
+	 height
+	 depth))
+      (register-xid p))))
+
 (defun-c-callable x-error-handler (display (x :unsigned-long))
   (error "x-error:~S" 
-	 (get-error-text (x11:xerrorevent-error-code x))))
+	 (get-error-text (x11:xerrorevent-error-code x) display)))
 
 (defun-c-callable x-io-error-handler (x)
   (error "x-io-error:~S" x))
 
 
 
-(defun get-error-text (code)
+(defun get-error-text (code display-handle)
   (let ((s (string-to-char* (make-string 1000))))
-    (x11::xgeterrortext (display-handle display) code s 1000)
+    (x11::xgeterrortext display-handle code s 1000)
     (char*-to-string s)))
       
 (x11:xseterrorhandler (register-function 'x-error-handler))
@@ -92,6 +101,8 @@
    'window
    :display display))
 
+(defmethod display-screen-number (display)
+  (x11:xdefaultscreen (display-handle display)))
 
 
 (defclass colormap (handle-class display-object) ())
@@ -304,56 +315,70 @@
        (aref keysym 0)))))
 
 (defclass image (handle-class)
-	  ((width :reader image-width :initarg :width)
-	   (height :reader image-height :initarg :height)))
-
-
-(defforeign 'x_create_image
-    :entry-point "_XCreateImage")
-
-(defmethod initialize-instance :after ((i image) &key width height data depth)
-  (let (v)
-    (ecase depth
-      (8 
-       (setq v (excl::malloc (* width height)))
-       (dotimes (w width)
-	 (dotimes (h height)
-	   (setf (sys::memref-int v (+ (* h width) w) 0 :unsigned-byte)
-	     (aref data h w))))))
-    (let* ((bytes-per-line 0)
-	   (bitmap-pad 8) ;;; Why is this 8 - if 0 get signal 8!
-	   (visual (x11:screen-root-visual
-		    (display-default-screen display)))
-	   (format x11:zpixmap)
-	   (offset 0)
-	   (x (x_create_image
-	       (display-handle display)
-	       visual
-	       depth
-	       format
-	       offset
-	       v
-	       width
-	       height
-	       bitmap-pad
-	       bytes-per-line)))
-      (setf (slot-value i 'handle) x))))
-
-
-(defforeign 'x_put_image
-    :entry-point "_XPutImage")
-
-(defmethod put-image (pixmap gc image &key x y)
-  (x_put_image
-   (display-handle display)
-   (object-handle pixmap)
-   (object-handle gc)
-   (object-handle image)
-   0 ;; src-x
-   0 ;; src-t
-   0 ;; dest-x
-   0 ;; dest-y
-   (image-width image)
-   (image-height image)))
-   
+  ((width :reader image-width :initarg :width)
+   (height :reader image-height :initarg :height)
+   (data :reader image-data :initarg :data)
+   (depth :reader image-depth :initarg :depth)
+   (realized-displays :initform nil :accessor realized-displays)))
   
+
+(defmethod realize-image (image display)
+  (when (not (member display (realized-displays image)))
+    (let ((width (image-width image))
+	  (height (image-height image))
+	  (data (image-data image))
+	  (depth (image-depth image))
+	  v
+	  format
+	  (bytes-per-line 0)
+	  (bitmap-pad 8))		; Why is this 8 - if 0 get signal 8!
+					;  -- RTFM, dude.  (jdi)
+      (ecase depth
+	(8 
+	 (setq format x11:zpixmap)
+	 (setq v (excl::malloc (* width height)))
+	 (dotimes (h height)
+	   (dotimes (w width)
+	     (setf (sys::memref-int v (+ (* h width) w) 0 :unsigned-byte)
+	       (aref data h w)))))
+	(1
+	 (setq format x11:xybitmap)
+	 (setq bytes-per-line (ceiling (/ width bitmap-pad)))
+	 (setq v (excl::malloc (* bytes-per-line height)))))
+      (let* ((visual (x11:screen-root-visual
+		      (display-default-screen display)))
+	     (offset 0)
+	     (x (x11:xcreateimage
+		 (display-handle display)
+		 visual
+		 depth
+		 format
+		 offset
+		 v
+		 width
+		 height
+		 bitmap-pad
+		 bytes-per-line)))
+	(case depth
+	  (1
+	   (dotimes (h height)
+	     (dotimes (w width)
+	       (x11:xputpixel x w h (aref data h w))))))
+	(setf (slot-value image 'handle) x)))
+    (pushnew display (realized-displays image))))
+
+(defmethod put-image (pixmap gc image
+		      &key (src-x 0) (src-y 0) (dest-x 0) (dest-y 0))
+  (let ((display (object-display pixmap)))
+    (realize-image image display)
+    (x11:xputimage
+     (display-handle display)
+     (object-handle pixmap)
+     (object-handle gc)
+     (object-handle image)
+     src-x
+     src-y
+     dest-x
+     dest-y
+     (image-width image)
+     (image-height image))))

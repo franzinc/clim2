@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: USER; Base: 10 -*-
 
-;; $fiHeader$
+;; $fiHeader: lisp-package-fixups.lisp,v 1.2 92/01/31 15:07:24 cer Exp $
 
 #+ANSI-90 (in-package :cl-user)
 
@@ -32,7 +32,7 @@
 ;;; the ANSI-named COMMON-LISP and COMMON-LISP-USER packages.
 ;;; I left a copy of this form in defsystem.lisp so that defsystem
 ;;; can be compiled (it has lots of references to LISP: symbols).
-#+ANSI-90
+#+(and ANSI-90 (not Allegro))
 (eval-when (eval compile load)
   (flet ((fix-package (pack-name add-name)
 	   (setq add-name (string add-name))
@@ -54,13 +54,14 @@
 ;;; Moved here from sysdcl.lisp, York, 5 June 91 The point of this one
 ;;; is really to add the ANSI names COMMON-LISP and COMMON-LISP-USER
 ;;; to the LISP and USER packages found in non-ANSI Lisps.
+#-Allegro
 (eval-when (compile load eval)
   (flet ((clean-up-package (old-package-name primary-name required-nicknames)
 	   (let* ((package (or (find-package old-package-name)
 			       (find-package primary-name)))
 		  (old-name (package-name package))
 		  (old-nicknames (package-nicknames package)))
-	     (let (#+excl(excl::*enable-package-locked-errors* nil))
+	     (let ((excl::*enable-package-locked-errors* nil))
 	       (rename-package package primary-name
 			       (remove primary-name (union (cons old-name old-nicknames)
 							   required-nicknames

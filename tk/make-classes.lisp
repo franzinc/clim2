@@ -20,10 +20,11 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: make-classes.cl,v 1.5 92/01/17 17:49:15 cer Exp $
+;; $fiHeader: make-classes.lisp,v 1.6 92/01/31 14:54:56 cer Exp $
 
 (in-package :tk)
 
+#+obsolete
 (ff:defforeign 'insert_classes :return-type :fixnum)
 
 
@@ -124,6 +125,7 @@
     (setq direct-resources (nreverse direct-resources))
     
     (dolist (class-ep classes)
+      (format excl:*initial-terminal-io* "Initializing class ~s~%" class-ep)
       (let ((h (get-foreign-variable-value class-ep)))
 	(initialize-widget-class h)
 	(push (list h

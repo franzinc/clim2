@@ -18,68 +18,59 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ffi.cl,v 1.3 92/01/08 15:22:08 cer Exp $
+;; $fiHeader: ffi.lisp,v 1.4 92/01/31 14:56:44 cer Exp $
 
 (in-package :x11)
 
+;; Note -- All exports are now done in pkg.lisp, for space/performance
+;;         reasons.  jdi
 
 (defmacro def-exported-constant (name value)
   ;; define the constant and export it from :x11
-  `(progn
-     (export ',name :x11)
-     (defconstant ,name ,value)))
+  `(defconstant ,name ,value))
 
 (eval-when (compile load eval)
-	   (defun transmogrify-ff-type (type)
-	     (if (consp type)
-		 (case (car type)
-		   (:pointer
-		    `(* ,@(transmogrify-ff-type (second type))))
-		   (:array
-		    `(,@(third type) ,(second type)))
-		   (t (list type)))
-	       (list type))))
+  (defun transmogrify-ff-type (type)
+    (if (consp type)
+	(case (car type)
+	  (:pointer
+	   `(* ,@(transmogrify-ff-type (second type))))
+	  (:array
+	   `(,@(third type) ,(second type)))
+	  (t (list type)))
+      (list type))))
 
 
 (defmacro def-exported-foreign-synonym-type (new-name old-name)
-  `(progn
-     (export ',new-name :x11)
-     (ff::def-c-typedef ,new-name ,@(transmogrify-ff-type old-name))))
+  `(ff::def-c-typedef ,new-name ,@(transmogrify-ff-type old-name)))
 
 (defun fintern (control &rest args)
   (intern (apply #'format nil control args)))
 
 (defmacro def-exported-foreign-struct (name &rest slots)
-  `(progn
-     (export '(,name
-	       ,(fintern "~A~A" 'make- name)
-	       ,@(mapcar #'(lambda (x)
-			     (fintern "~A-~A"  name (car x)))
-			 slots))
-	     :x11)
-     ,(flet ((foo-slot (slot)
-		       (destructuring-bind
-			(name &key type) slot
-			`(,name ,@(trans-slot-type type)))))
-	    (if (notany #'(lambda (s) (member :overlays (cdr s))) slots)
-		`(ff::def-c-type (,name :in-foreign-space) :struct
-				 ,@(mapcar #'foo-slot slots))
-	      (destructuring-bind
-	       ((first-slot-name . first-options) . other-slots) slots
-	       (if (and (null (member :overlays first-options))
-			(every #'(lambda (slot)
-				   t
-				   #+ignore
-				   (eq (getf (cdr slot) :overlays)
-				       first-slot-name))
-			       other-slots))
-		   `(ff::def-c-type (,name :in-foreign-space) :union
-				    ,@(mapcar #'(lambda (slot)
-						  (setq slot (copy-list slot))
-						  (remf (cdr slot) :overlays)
-						  (foo-slot slot))
-					      slots))
-		 (error ":overlays used in a way we cannot handle")))))))
+  (flet ((foo-slot (slot)
+	   (destructuring-bind
+	       (name &key type) slot
+	     `(,name ,@(trans-slot-type type)))))
+    (if (notany #'(lambda (s) (member :overlays (cdr s))) slots)
+	`(ff::def-c-type (,name :in-foreign-space :macro) :struct
+			 ,@(mapcar #'foo-slot slots))
+      (destructuring-bind
+	  ((first-slot-name . first-options) . other-slots) slots
+	(if (and (null (member :overlays first-options))
+		 (every #'(lambda (slot)
+			    t
+			    #+ignore
+			    (eq (getf (cdr slot) :overlays)
+				first-slot-name))
+			other-slots))
+	    `(ff::def-c-type (,name :in-foreign-space :macro) :union
+			     ,@(mapcar #'(lambda (slot)
+					   (setq slot (copy-list slot))
+					   (remf (cdr slot) :overlays)
+					   (foo-slot slot))
+				       slots))
+	  (error ":overlays used in a way we cannot handle"))))))
 	  
 
 (defun trans-slot-type (type)
@@ -94,24 +85,28 @@
 
 #+ignore
 (defmacro def-exported-foreign-function ((name &rest options) &rest args)
-  `(progn
-     (export ',name :x11)
-     (foreign-functions:defforeign 
-	 ',name 
-	 :arguments ',(mapcar #'(lambda (x) x t) args)
-	 :entry-point ,(second (assoc :name options)))))
+  `(foreign-functions:defforeign 
+       ',name 
+       :arguments ',(mapcar #'(lambda (x) x t) args)
+       :call-direct t
+       :callback nil
+       :arg-checking nil
+       :return-type 'integer
+       :entry-point ,(second (assoc :name options))))
 
 
-;; delay version
+;;; Delay version
 
 (defmacro def-exported-foreign-function ((name &rest options) &rest args)
-  `(progn
-     (export ',name :x11)
-     (eval-when (compile eval)
-       (delayed-defforeign
-	',name 
-	:arguments ',(mapcar #'(lambda (x) x t) args)
-	:entry-point ,(second (assoc :name options))))))
+  `(eval-when (compile eval)
+     (delayed-defforeign
+      ',name 
+      :arguments ',(mapcar #'(lambda (x) (declare (ignore x)) t) args)
+      #|      :call-direct t |#
+      #|      :callback nil  |#
+      :arg-checking nil
+      :return-type :integer
+      :entry-point ,(second (assoc :name options)))))
 
 (defparameter *defforeigned-functions* nil
   "A list of name and defforeign arguments")
@@ -130,6 +125,11 @@
 (defmacro def-exported-foreign-macro ((name &rest options) &rest args)
   `(def-exported-foreign-function (,name  ,@options) ,@args))
 
+(foreign-functions:def-c-typedef :fixnum :int)
+(foreign-functions:def-c-typedef :signed-32bit :int)
+(foreign-functions:def-c-typedef :pointer * :char)
+(foreign-functions:def-c-typedef :signed-8bit :char)
+
 (def-exported-foreign-synonym-type char :char)
 (def-exported-foreign-synonym-type unsigned-char :unsigned-char)
 (def-exported-foreign-synonym-type short  :short)
@@ -145,11 +145,6 @@
 (def-exported-foreign-synonym-type long-int long)
 (def-exported-foreign-synonym-type unsigned unsigned-int)
 (def-exported-foreign-synonym-type long-float double)
-(foreign-functions:def-c-typedef :fixnum :int)
-(foreign-functions:def-c-typedef :signed-32bit :int)
-(foreign-functions:def-c-typedef :pointer * :char)
-
-(foreign-functions:def-c-typedef :signed-8bit :char)
 
 (def-exported-foreign-synonym-type caddr-t int)
 (def-exported-foreign-synonym-type u-char unsigned-char)

@@ -34,7 +34,7 @@
 ;;; Rights in Technical Data and Computer Software Clause at DFARS 252.227-7013
 ;;; (Oct. 1988) and FAR 52.227-19(c) (June 1987) Sun Microsystems, Inc. 2550
 ;;; Garcia Avenue, Mountain View, California 94043.
-;; $fiHeader: x11-keysyms.cl,v 1.2 92/01/08 15:22:09 cer Exp $
+;; $fiHeader: x11-keysyms.lisp,v 1.3 92/01/31 14:57:02 cer Exp $
 
 
 ;;;@(#)x11-keysym.lisp	1.3 11/29/90
@@ -54,21 +54,8 @@
 ;;; The exported special variables below are bound to lists of keysyms (real symbols).
 ;;; The variables are created in xlib.lisp (don't ask).
 
-(export 
- '(keyboard-keysyms
-   latin-1-keysyms 
-   latin-2-keysyms
-   latin-3-keysyms 
-   latin-4-keysyms 
-   kana-keysyms
-   arabic-keysyms 
-   cyrillic-keysyms 
-   greek-keysyms 
-   technical-keysyms 
-   special-keysyms 
-   publishing-keysyms 
-   apl-keysyms 
-   hebrew-keysyms))
+
+;; (exports moved to pkg.lisp -- jdi)
 
 
 ;;; KeySym Categoriy Lists from X11/kesymdef.h.  The lists are created in x11-keysym.lisp.

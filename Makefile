@@ -1,45 +1,257 @@
-# $fiHeader: Makefile,v 1.8 92/01/31 17:51:05 cer Exp Locker: cer $
-
-SOMEDIRS=sys utils silica clim demo
-DIRS=$(SOMEDIRS) xlib tk xm-silica misc
-DEVICE=/dev/null
-CL=/net/vapor/usr/composer2/composer2
+# $fiHeader: Makefile,v 1.9 92/01/31 17:52:53 cer Exp $
+# 
+#  Makefile for CLIM 2.0
+#
+CL	= /misc/jdi/cl
+DUMP-CL	= /misc/jdi/cl
 CLOPTS	= -qq
+
+# Lisp optimization for compiling
+SPEED	= 3
+SAFETY	= 1
+
+# Name of dumped lisp
+CLIM	= ./slim
+CLIM-SMALL	= ./slim-small
+
+PUBDIRS	= sys utils silica clim demo test
+DIRS	= $(PUBDIRS) xlib tk xm-silica misc
+
+DEVICE	= /dev/null
+RM	= /bin/rm
+CAT	= /bin/cat
 ECHO	= /bin/echo
+MV	= /usr/fi/mv-nfs
+TAGS	= /usr/fi/lib/emacs/etc/etags
+TMP	= /usr/tmp
 
+#
+# "Compile time objects" -- these go into clim-debug.fasl
+#
+DEBUG-OBJS = xlib/xlib.fasl
 
-default: compile
+#
+# "Load time objects" -- these go into clim.fasl
+#
+CLIM-UTILS-OBJS = utils/excl-verification.fasl \
+                   utils/lisp-package-fixups.fasl \
+                   utils/defpackage.fasl \
+                   utils/packages.fasl \
+                   utils/defun-utilities.fasl \
+                   utils/reader.fasl \
+                   utils/clos-patches.fasl \
+                   utils/clos.fasl \
+                   utils/utilities.fasl \
+                   utils/lisp-utilities.fasl \
+                   utils/processes.fasl \
+                   utils/queue.fasl \
+                   utils/protocols.fasl \
+                   utils/autoconstructor.fasl \
+                   utils/clim-streams.fasl \
+                   utils/excl-streams.fasl \
+                   utils/clim-macros.fasl \
+                   utils/transformations.fasl \
+                   utils/regions.fasl \
+                   utils/region-arithmetic.fasl \
+                   utils/designs.fasl
 
-compile : FRC
+CLIM-SILICA-OBJS = silica/classes.fasl \
+                    silica/text-style.fasl \
+                    silica/macros.fasl \
+                    silica/sheet.fasl \
+                    silica/mirror.fasl \
+                    silica/event.fasl \
+                    silica/port.fasl \
+                    silica/medium.fasl \
+                    silica/graphics.fasl \
+                    silica/std-sheet.fasl \
+                    silica/layout.fasl \
+                    silica/db-layout.fasl \
+                    silica/db-box.fasl \
+                    silica/db-table.fasl \
+                    silica/gadgets.fasl \
+                    silica/db-scroll.fasl
+
+CLIM-STANDALONE-OBJS = clim/shift-mask.fasl \
+                        clim/defprotocol.fasl \
+                        clim/stream-defprotocols.fasl \
+                        clim/defresource.fasl \
+                        clim/temp-strings.fasl \
+                        clim/clim-defs.fasl \
+                        clim/stipples.fasl \
+                        clim/stream-class-defs.fasl \
+                        clim/interactive-defs.fasl \
+                        clim/cursor.fasl \
+                        clim/view-defs.fasl \
+                        clim/input-defs.fasl \
+                        clim/input-protocol.fasl \
+                        clim/output-protocol.fasl \
+                        clim/window-protocol.fasl \
+                        clim/output-recording-protocol.fasl \
+                        clim/output-recording-defs.fasl \
+                        clim/interactive-protocol.fasl \
+                        clim/input-editor-commands.fasl \
+                        clim/formatted-output-defs.fasl \
+                        clim/incremental-redisplay.fasl \
+                        clim/coordinate-sorted-set.fasl \
+                        clim/window-stream.fasl \
+                        clim/completer.fasl \
+                        clim/ptypes1.fasl \
+                        clim/presentations.fasl \
+                        clim/translators.fasl \
+                        clim/histories.fasl \
+                        clim/ptypes2.fasl \
+                        clim/standard-types.fasl \
+                        clim/table-formatting.fasl \
+                        clim/graph-formatting.fasl \
+                        clim/surround-output.fasl \
+                        clim/text-formatting.fasl \
+                        clim/tracking-pointer.fasl \
+                        clim/dragging-output.fasl \
+                        clim/db-stream.fasl \
+                        clim/gadget-output.fasl \
+                        clim/accept.fasl \
+                        clim/present.fasl \
+                        clim/command.fasl \
+                        clim/command-processor.fasl \
+                        clim/basic-translators.fasl \
+                        clim/frames.fasl \
+                        clim/menus.fasl \
+                        clim/accept-values.fasl \
+                        clim/item-list-manager.fasl \
+                        clim/pixmap-streams.fasl \
+                        clim/stream-trampolines.fasl
+
+XLIB-CLIM-OBJS = xlib/pkg.fasl \
+                  xlib/ffi.fasl \
+                  xlib/x11-keysyms.fasl \
+                  xlib/last.fasl
+
+XT-CLIM-OBJS = tk/pkg.fasl \
+                tk/foreign-obj.fasl \
+                tk/macros.fasl \
+                tk/xlib.fasl \
+                tk/font.fasl \
+                tk/gcontext.fasl \
+                tk/graphics.fasl \
+                tk/xtk.fasl \
+                tk/meta-tk.fasl \
+                tk/make-classes.fasl \
+                tk/foreign.fasl \
+                tk/widget.fasl \
+                tk/resources.fasl \
+                tk/event.fasl \
+                tk/callbacks.fasl \
+                tk/xt-classes.fasl \
+                tk/xt-init.fasl
+
+XM-CLIM-OBJS = tk/xm-classes.fasl \
+                tk/xm-init.fasl \
+                tk/xm-widgets.fasl \
+                tk/xm-font-list.fasl \
+                tk/xm-protocols.fasl \
+                tk/convenience.fasl \
+                tk/make-widget.fasl
+
+MOTIF-CLIM-OBJS = xm-silica/pkg.fasl \
+                   xm-silica/xt-silica.fasl \
+                   xm-silica/xm-silica.fasl \
+                   xm-silica/xt-graphics.fasl \
+                   xm-silica/xm-graphics.fasl \
+                   xm-silica/image.fasl \
+                   xm-silica/xt-frames.fasl \
+                   xm-silica/xm-frames.fasl \
+                   xm-silica/xt-gadgets.fasl \
+                   xm-silica/xm-gadgets.fasl \
+                   xm-silica/xm-menus.fasl \
+                   xm-silica/xt-pixmaps.fasl
+
+OL-CLIM-OBJS = tk/ol-classes.fasl \
+                tk/ol-init.fasl \
+                tk/ol-callbacks.fasl \
+                tk/make-widget.fasl
+
+OPENLOOK-CLIM-OBJS = xm-silica/pkg.fasl \
+                      xm-silica/xt-silica.fasl \
+                      xm-silica/ol-silica.fasl \
+                      xm-silica/xt-graphics.fasl \
+                      xm-silica/ol-graphics.fasl \
+                      xm-silica/image.fasl \
+                      xm-silica/xt-frames.fasl \
+                      xm-silica/ol-frames.fasl \
+                      xm-silica/xt-gadgets.fasl \
+                      xm-silica/ol-gadgets.fasl \
+                      xm-silica/xt-pixmaps.fasl
+
+MOTIF-OBJS = $(CLIM-UTILS-OBJS) $(CLIM-SILICA-OBJS) $(CLIM-STANDALONE-OBJS) \
+	     $(XLIB-CLIM-OBJS) $(XT-CLIM-OBJS) $(XM-CLIM-OBJS) \
+	     $(MOTIF-CLIM-OBJS) 
+
+OPENLOOK-OBJS = $(CLIM-UTILS-OBJS) $(CLIM-SILICA-OBJS) \
+		$(CLIM-STANDALONE-OBJS) $(XLIB-CLIM-OBJS) $(XT-CLIM-OBJS) \
+		$(OL-CLIM-OBJS) $(OPENLOOK-CLIM-OBJS)
+
+all:	compile cat clim
+
+compile:	FORCE
 	$(ECHO) " \
-		(load \"misc/go-xm.cl\")" | $(CL) $(CLOPTS) -batch
+		(setq *ignore-package-name-case* t) \
+		(set-case-mode :case-insensitive-lower) \
+		(proclaim '(optimize (speed $(SPEED)) (safety $(SAFETY)))) \
+		(load \"misc/compile-xm.lisp\")" | $(CL) $(CLOPTS) -batch
 
-clean : FRC
-	find $(DIRS)  -name "*.fasl" -exec $(RM) "{}" \;
+clim.fasl:	$(MOTIF-OBJS)
+	$(CAT) $(MOTIF-OBJS) > $(TMP)/clim.fasl_`whoami`
+	mv-nfs $(TMP)/clim.fasl_`whoami` clim.fasl
 
-FRC :
+clim-debug.fasl:	$(MOTIF-OBJS)
+	$(CAT) $(DEBUG-OBJS) > $(TMP)/clim-debug.fasl_`whoami`
+	mv-nfs $(TMP)/clim-debug.fasl_`whoami` clim-debug.fasl
 
+cat:	clim.fasl clim-debug.fasl
 
-swm-tape:
-	tar cf $(DEVICE) `find $(SOMEDIRS) '(' -name "*.cl" -o -name "*.lisp" ')' -print`
+clim:	FORCE
+	$(ECHO) " \
+		(setq *ignore-package-name-case* t) \
+		(set-case-mode :case-insensitive-lower) \
+		(load \"misc/dev-load-xm.lisp\") \
+		(load \"misc/dump.lisp\")" | $(DUMP-CL) $(CLOPTS) -batch
+	$(MV) $(TMP)/clim.temp_`whoami` $(CLIM)
 
+clim-small:	FORCE
+	$(ECHO) " \
+		(setq *ignore-package-name-case* t) \
+		(set-case-mode :case-insensitive-lower) \
+		(load \"misc/load-xm.lisp\") \
+		(load \"misc/dump.lisp\")" | $(DUMP-CL) $(CLOPTS) -batch
+	$(MV) $(TMP)/clim.temp_`whoami` $(CLIM-SMALL)
+	
 xm-composer:
 	cd tk ; $(MAKE) xm-composer
 
 xm-dcl:
 	cd tk ; $(MAKE) xm-dcl
 
-dist	:
+clean:
+	find $(DIRS) -name "*.fasl" -ls | xargs rm -f ; rm -f clim.fasl
+
+tags:
+	$(TAGS) `find $(DIRS) '(' -name "*.cl" -o -name "*.lisp" ')' -print`
+
+swm-tape:
+	tar cf $(DEVICE) `find $(PUBDIRS) '(' -name "*.cl" -o -name "*.lisp" ')' -print`
+
+dist:
 	gtar -z -cf - \
 	*/*.lisp *.lisp Makefile \
 	> Dist/src.tar.Z
 
 rcscheck:
-	rcscheck  $(DIRS) | grep -v .fasl
+	rcscheck $(DIRS) | grep -v .fasl
 
 # For the day the make dist happens.
-
 echo_src_files:
 	@find . '(' -name '*.cl' -o -name '*.lisp' ')' -print
 
+FORCE:
 
