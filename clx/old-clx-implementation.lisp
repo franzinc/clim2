@@ -2,6 +2,7 @@
 
 ;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
 ;; copyright (c) 1986-2002 Franz Inc, Berkeley, CA  - All rights reserved.
+;; copyright (c) 2002-2004 Franz Inc, Oakland, CA - All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -17,7 +18,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: old-clx-implementation.lisp,v 2.4 2003/12/15 18:35:13 layer Exp $
+;; $Id: old-clx-implementation.lisp,v 2.5 2004/01/16 19:15:42 layer Exp $
 
 ;;--- (1) Why does the new CLX port flush WHITE- and BLACK-PIXEL?
 ;;--- (2) What to do about reparenting?

@@ -1,6 +1,7 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 ;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
 ;; copyright (c) 1986-2002 Franz Inc, Berkeley, CA  - All rights reserved.
+;; copyright (c) 2002-2004 Franz Inc, Oakland, CA - All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -16,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: packages.lisp,v 2.5 2004/01/01 21:31:41 layer Exp $
+;; $Id: packages.lisp,v 2.6 2004/01/16 19:15:45 layer Exp $
 
 (in-package :common-lisp-user)
 
@@ -3305,7 +3306,7 @@
 
 (in-package :clim)
 
-(cl:defparameter *clim-version* "2.3.22")
+(cl:defparameter *clim-version* #.(sys::version-from-file "ChangeLog.n"))
 
 #+(version>= 5 0)
 (cl:locally (cl:declare (cl:special excl::*version-info*))

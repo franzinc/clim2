@@ -1,7 +1,8 @@
 ;; -*- mode: common-lisp; package: wnn -*-
 ;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
-;; copyright (c) 1986-2002 Franz Inc, Berkeley, CA  All rights reserved.
+;; copyright (c) 1986-2002 Franz Inc, Berkeley, CA  - All rights reserved.
+;; copyright (c) 2002-2004 Franz Inc, Oakland, CA - All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -18,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $Id: jserver.lisp,v 2.4 2003/12/15 18:35:18 layer Exp $
+;; $Id: jserver.lisp,v 2.5 2004/01/16 19:15:45 layer Exp $
 
 (in-package :wnn)
 
