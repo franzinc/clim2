@@ -21,6 +21,7 @@ Mon Jul 06 14:45:24 1998    <layer@HOBART>
 	* clim/db-list.lisp: bug7092: add initialize-pull-down-menu and
 	make-pull-down-menu back.
 	* clim/design-recording.lisp: bug7092: add nyi definition
+	* aclpc/acl-class.lisp: bug7092: fix ffi calls
 
 *******************************************************************************
 2.2.1.24

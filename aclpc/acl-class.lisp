@@ -90,18 +90,12 @@
 
 (defun init-cursors ()
   ;; put back old cursor mechanism for the moment (cim 9/13/96)
-  (setf arrow-cursor
-        (win:LoadCursor
-	  (ct:null-handle win::hinst)
-	  (ct:ccallocate (char *) :initial-value win:IDC_ARROW)))
+  (setf arrow-cursor (win:LoadCursor 0 win:IDC_ARROW))
   (when (zerop arrow-cursor)
     (check-last-error "LoadCursor" :action :warn))
   ;; this just does the icon now - the cursor stuff is all handled in
   ;; realize-cursor methods in acl-port (cim 9/12/96)
-  (setf application-icon
-	(win:LoadIcon
-	  (ct:null-handle win::hinst)
-	  (ct:ccallocate (char *) :initial-value win:IDI_APPLICATION)))
+  (setf application-icon (win:LoadIcon 0 win:IDI_APPLICATION))
   (when (zerop application-icon)
     (check-last-error "LoadIcon" :action :warn))
   t)
