@@ -3,7 +3,7 @@
 ;;; Simple extensible browser
 ;;; Scott McKay
 
-;; $fiHeader: browser.lisp,v 1.18 93/01/18 13:55:04 cer Exp $
+;; $fiHeader: browser.lisp,v 1.19 93/03/19 09:44:09 cer Exp $
 
 (in-package :clim-browser)
 
@@ -747,18 +747,20 @@
 	   :end-of-line-action :allow)
     (interactor :interactor :height '(5 :line))
     (control-panel :accept-values
-		   :height :compute
+		   :height :compute :width :compute
+		   :max-height :compute :max-width :compute
+		   :scroll-bars nil
 		   :display-function
 		   '(accept-values-pane-displayer
-		      :displayer accept-call-graph-options)))
+		     :align-prompts t
+		     :displayer accept-call-graph-options)))
   (:layouts
    (default
      (vertically ()
-       (3/4 graph)
-       (:fill 
-	 (horizontally ()
-	   (1/2 interactor) 
-	   (:fill control-panel)))))))
+       (:fill graph)
+       (horizontally ()
+	 (:fill interactor) 
+	 control-panel)))))
 
   
 #+genera (define-genera-application browser :select-key #\)
@@ -1027,16 +1029,17 @@
   (with-slots (browser-type browser-subtype tree-depth
 	       merge-duplicate-nodes auto-snapshot browser-options 
 	       root-nodes root-node-maker all-nodes) browser
-    (flet ((accept (type default prompt query-id)
-	     (fresh-line stream)
-	     (accept type
+    (flet ((accept (type default prompt query-id &rest options)
+	     (apply #'accept type
 		     :stream stream :default default
 		     :query-identifier query-id
-		     :prompt prompt)))
+		     :prompt prompt 
+		     options)))
       (declare (dynamic-extent #'accept))
       (multiple-value-bind (new-type ignore type-changed)
 	  (accept `(member ,@*browser-types*) (or browser-type (first *browser-types*))
-		  "Browser type" 'type)
+		  "Browser type" 'type
+		  :view '(radio-box-view :columns 2))
 	(declare (ignore ignore))
 	(let* ((sub-ptype
 		 (browser-type-subtypes new-type))
@@ -1046,10 +1049,8 @@
 			 "Browser subtype" 'subtype))
 	       (new-depth
 		 (accept '(integer 1 10) tree-depth
-			 "Starting depth" 'depth))
-	       (new-merge
-		 (accept 'boolean merge-duplicate-nodes
-			 "Merge duplicate nodes" 'merge))
+			 "Starting depth" 'depth :view
+					 '(text-field-view :width (4 :character))))
 	       (new-auto-snapshot
 		 (accept 'boolean auto-snapshot
 			 "Automatic snapshots" 'auto-snapshot)))
@@ -1057,7 +1058,6 @@
 	    (when additional-dialog
 	      (funcall additional-dialog browser stream)))
 	  (setq tree-depth new-depth
-		merge-duplicate-nodes new-merge
 		auto-snapshot new-auto-snapshot)
 	  (when (or (not (eql new-type browser-type))
 		    (not (eql new-subtype browser-subtype)))
@@ -1072,8 +1072,7 @@
 		      ;; ALL-NODES and ROOT-NODES must not be EQ lists...
 		      (setq all-nodes (copy-list root-nodes))))
 	    ;; Regenerate and redisplay the call graph
-	    (generate-call-graph browser root-nodes)
-	    (redisplay-frame-pane *application-frame* 'graph :force-p t)))))))
+	    (generate-call-graph browser root-nodes)))))))
 
 
 ;;; Browser commands

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept-values.lisp,v 1.57 93/03/31 10:38:30 cer Exp $
+;; $fiHeader: accept-values.lisp,v 1.58 93/04/02 13:35:55 cer Exp $
 
 (in-package :clim-internals)
 
@@ -1376,9 +1376,14 @@
 		   
 		   :label (if (stringp prompt)
 			      prompt
-			    (pixmap-from-menu-item stream 
+			    ;;-- Does this suck or what???
+			    ;;-- If you do a
+			    ;;surrounding-output-with-border without
+			    ;;this write-string output does not get bordered.
+			    (let ((*original-stream* nil))
+			      (pixmap-from-menu-item stream 
 						     prompt
 						     #'funcall
-						     nil)))))))
+						     nil))))))))
 
 

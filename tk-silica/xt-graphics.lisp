@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.67 93/03/31 10:40:30 cer Exp $
+;; $fiHeader: xt-graphics.lisp,v 1.68 93/04/02 13:37:36 cer Exp $
 
 (in-package :tk-silica)
 
@@ -1538,59 +1538,20 @@
 	   (min-char (xt::font-range font))
 	   (ascent (xt::font-ascent font))
 	   (descent (xt::font-descent font)))
-    (multiple-value-bind
-	(pixmap columns 
-	 width 
-	 leftover-width 
-	 rows height
-	 leftover-height)
-	(find-rotated-text-pixmap
-	 port font rotation)
-      (flet ((compute-next-x-and-y (char-width x y)
-	       (let ()
-		 (case rotation
-		   (0 (values (+ x char-width) y))
-		   (3 (values x (- y char-width)))
-		   (2 (values (- x char-width) y))
-		   (1 (values x (+ y char-width))))))
-	     (compute-clip-x-and-clip-y (char char-width x y)
-	       ;;-- This has to get to the right character in the pixmap
-	       (multiple-value-bind
-		(row column)
-		(truncate (- char min-char) columns)
-		;; Now we have to take into account the rotation
-		(let ((columns columns)
-		      (rows rows))
-		  #+debug
-		  (format t "Was Row ~D of ~D, Column ~D of ~D~%" 
-					row rows column columns)
-		  (dotimes (i rotation)
-		    (psetf column (- (1- rows) row) row column)
-		    (rotatef rows columns)))
-		#+debug
-		(format t "Now Row ~D of ~D, Column ~D of ~D~%" 
-			row rows column columns)
-		(let ((px (* column (if (oddp rotation) height width)))
-		      (py (* row (if (oddp rotation) width height)))
-		      (w (- width char-width)))
-		  (ecase rotation
-		    (0)
-		    (3 (incf py leftover-width)
-		       (incf py w))
-		    (2 (incf px leftover-width)
-		       (incf px w)
-		       (incf py leftover-height))
-		    (1 (incf px leftover-height)))
-		  #+debug
-		  (format t "x ~D y ~D px ~D py ~D~%" x y px py)
-		  (values (- x px) (- y py))))))
-	(let  ((ox x)
-	       (oy y))
-	  (declare (ignore oy)
-		   (ignore ox))
+      (multiple-value-bind
+	  (pixmap columns 
+	   width 
+	   leftover-width 
+	   rows height
+	   leftover-height)
+	  (find-rotated-text-pixmap
+	   port font rotation)
+	(flet ()
 
-	  (setf (tk::gcontext-clip-mask gcontext) pixmap)
-	  (setf (ink-gcontext-last-medium-clip-mask gcontext) nil)
+
+	  #+ignore (setf (tk::gcontext-clip-mask gcontext) pixmap)
+	  #+ignore (setf (ink-gcontext-last-medium-clip-mask gcontext) nil)
+	  
 	  (unless start (setq start 0))
 	  (unless end (setq end (length string)))
 	  
@@ -1601,43 +1562,174 @@
 			 drawable 0 0)
 	  #+debug
 	  (progn
+	    (setf (tk::gcontext-clip-mask gcontext) pixmap)
 	    (setf (tk::gcontext-clip-x-origin gcontext) 0
 		  (tk::gcontext-clip-y-origin gcontext) 70)
 	    (tk::draw-rectangle drawable gcontext 0 70 256 256 t))
-	  
-	  #-debug
-	  (dotimes (i (- end start))
-	    (let* ((char (char-int (aref string (+ start i))))
-		   (char-width (xt::char-width font char))
-		   (cx x)
-		   (cy y))
+
+	  ;;-- This should be drawing onto an appropriately size bitmap
+	  ;;-- that should be cached
+	  ;;-- Width/height is the width of string
+	  ;;-- Height/width is the height of the font
+
+	  (multiple-value-bind (string-pixmap pixmap-width pixmap-height)
+	      (find-or-cache-string-pixmap port
+					   string start end font
+					   ascent descent height rotation pixmap
+					   min-char columns rows width
+				    leftover-width leftover-height)
+	    ;; Now its time to 
+	    (multiple-value-bind (dst-x dst-y)
+		(ecase rotation
+		  (0 (values x (- y ascent)))
+		  (1 (values (- x descent) y))
+		  (2 (values (- x pixmap-width) (- y descent)))
+		  (3 (values (- x ascent) (- y pixmap-height))))
+		    
+	      (setf (tk::gcontext-clip-mask gcontext) string-pixmap)
+	      (setf (ink-gcontext-last-medium-clip-mask gcontext) nil)
+	      (setf (tk::gcontext-clip-x-origin gcontext) dst-x
+		    (tk::gcontext-clip-y-origin gcontext) dst-y)
+	      (tk::draw-rectangle drawable gcontext
+				  dst-x dst-y pixmap-width
+				  pixmap-height t))))))))
+
+#+ignore
+(defun clear-rotation-caches (&optional (port (find-port)))
+  (setf (tk-silica::port-rotated-font-cache port) nil
+	(xm-silica::port-rotated-string-cache port) nil))
+#+ignore
+(clear-rotation-caches)
+
+(defun find-or-cache-string-pixmap (port string start end font ascent
+				    descent height rotation pixmap
+				    min-char columns rows width
+				    leftover-width leftover-height)
+  (psetq string (subseq string start end)
+	 start 0
+	 end (- end start))
+  (let ((strings-for-font (assoc (cons rotation font)
+				 (port-rotated-string-cache port)
+				 :test #'equal)))
+    (let ((res (assoc string (cdr strings-for-font) :test #'string=)))
+      (when res (return-from find-or-cache-string-pixmap 
+		  (values-list (cdr res)))))
+    (flet ((compute-string-dimensions ()
+	     (values (do ((r 0)
+			  (i start (1+ i)))
+			 ((= i end) r)
+		       (incf r 
+			     (xt::char-width font (char-int (aref string i)))))
+		     (+ ascent descent)))
+	   (compute-clip-x-and-clip-y (char char-width)
+	     ;;-- This has to get to the right character in the pixmap
+	     (multiple-value-bind
+		 (row column)
+		 (truncate (- char min-char) columns)
+	       ;; Now we have to take into account the rotation
+	       (let ((columns columns)
+		     (rows rows))
+		 #+debug
+		 (format t "Was Row ~D of ~D, Column ~D of ~D~%" 
+			 row rows column columns)
+		 (dotimes (i rotation)
+		   (psetf column (- (1- rows) row) row column)
+		   (rotatef rows columns)))
+	       #+debug
+	       (format t "Now Row ~D of ~D, Column ~D of ~D~%" 
+		       row rows column columns)
+	       (let ((px (* column (if (oddp rotation) height width)))
+		     (py (* row (if (oddp rotation) width height)))
+		     (w (- width char-width)))
+		 (ecase rotation
+		   (0)
+		   (3 (incf py leftover-width)
+		      (incf py w))
+		   (2 (incf px leftover-width)
+		      (incf px w)
+		      (incf py leftover-height))
+		   (1 (incf px leftover-height)))
+		 #+debug
+		 (format t "x ~D y ~D px ~D py ~D~%" x y px py)
+		 (values px py))))
+	   (compute-next-x-and-y (char-width x y)
+	     (let ()
+	       (case rotation
+		 ;; Normal
+		 (0 (values (+ x char-width) y))
+		 ;; -ve y coordinates (up)
+		 (3 (values x (- y char-width)))
+		 ;; -ve x (back)
+		 (2 (values (- x char-width) y))
+		 ;; +ve y (down)
+		 (1 (values x (+ y char-width)))))))
+      (multiple-value-bind (string-width string-height)
+	  (compute-string-dimensions)
+	(multiple-value-bind (pixmap-width pixmap-height)
+	    (ecase rotation
+	      ((0 2) (values string-width string-height))
+	      ((1 3) (values string-height string-width)))
+	  (let ((string-pixmap (make-instance 'tk::pixmap 
+					      :depth 1
+					      :drawable pixmap
+					      :width pixmap-width
+					      :height
+					      pixmap-height)))
+	    #+ignore
+	    (tk::draw-rectangle string-pixmap clear-gc 
+				0 0 
+				pixmap-width pixmap-height
+				t)
+	    (multiple-value-bind (x y)
+		(ecase rotation
+		  (0 (values 0 ascent))
+		  (1 (values descent 0))
+		  (2 (values pixmap-width descent))
+		  (3 (values ascent pixmap-height)))
+	      (let ((copy-gc (port-copy-gc-depth-1 port)
+			     #+ignore (make-instance 'tk::gcontext
+					    :drawable pixmap)))
+		(dotimes (i (- end start))
+		  (let* ((char (char-int (aref string (+ start i))))
+			 (char-width (xt::char-width font char))
+			 (cx x)
+			 (cy y))
 	      
-	      (ecase rotation
-		(0 (decf cy ascent))
-		(3 (decf cx ascent)
-		   (decf cy char-width))
-		(2 (decf cy descent)
-		   (decf cx char-width))
-		(1 (decf cx descent)))
+		    (ecase rotation
+		      (0 (decf cy ascent))
+		      (3 (decf cx ascent)
+			 (decf cy char-width))
+		      (2 (decf cy descent)
+			 (decf cx char-width))
+		      (1 (decf cx descent)))
 	      
-	      (multiple-value-bind
-		  (clip-x clip-y)
-		  (compute-clip-x-and-clip-y char char-width cx cy)
-		#+debug
-		(format t "CLip-x, clip-y ~D,~D~%" clip-x clip-y)
-		(setf (tk::gcontext-clip-x-origin gcontext) clip-x
-		      (tk::gcontext-clip-y-origin gcontext) clip-y
-		      ))
-	      ;;-- We have lost the clipping region at this point!
-	      ;;--- We should draw in the background color also
-	      (tk::draw-rectangle drawable gcontext 
-				  cx cy 
-				  (if (oddp rotation) height char-width)
-				  (if (oddp rotation) char-width height)
-				  t)
-	      ;;
-	      (multiple-value-setq
-		  (x y) (compute-next-x-and-y char-width x y))))))))))
+		    (multiple-value-bind
+			(clip-x clip-y)
+			(compute-clip-x-and-clip-y char char-width)
+		      #+debug
+		      (format excl:*initial-terminal-io* "CLip-x, clip-y ~D,~D~%" 
+			      clip-x clip-y)
+		      #+ignore
+		      (setf (tk::gcontext-clip-x-origin gcontext) clip-x
+			    (tk::gcontext-clip-y-origin gcontext) clip-y
+			    )
+		      ;;-- We have lost the clipping region at this point!
+		      ;;--- We should draw in the background color also
+		      (tk::copy-area pixmap 
+				     copy-gc
+				     clip-x clip-y 
+				     (if (oddp rotation) height char-width)
+				     (if (oddp rotation) char-width height)
+				     string-pixmap cx cy ))
+		    ;;
+		    (multiple-value-setq
+			(x y) (compute-next-x-and-y char-width x y))))))
+	    (unless strings-for-font
+	      (push (setq strings-for-font (list (cons rotation font)))
+		    (port-rotated-string-cache port)))
+	    (push (list string string-pixmap pixmap-width pixmap-height) 
+		  (cdr strings-for-font))
+	    (values string-pixmap pixmap-width pixmap-height)))))))
 
 (defun find-rotated-text-pixmap (port font rotation)
   (let ((x (assoc (list font rotation) (port-rotated-font-cache port) 
@@ -1668,6 +1760,7 @@
 					  :depth 1
 					  :width n
 					  :height n))
+		   ;;--- Perhaps we should reuse this gc instead
 		   (gc (make-instance 'ink-gcontext
 				      :drawable pixmap
 				      :font font
@@ -1692,6 +1785,7 @@
 				 string)
 		(incf col))
 	      (rotate-pixmap pixmap rotation)
+	      (xt::free-gcontext gc)
 	      (values-list
 	       (cdr (car
 		     (push (list* (list font rotation)
@@ -1708,16 +1802,20 @@
   ;;   converted to clim, 19mar92 by nlc.
   ;; the bit array must be square and a power of two bits on a side.
   (let* ((array-size (xt::pixmap-width source-pixmap))
+	 ;;-- Perhaps we should be clever and reuse these if the next
+	 ;;-- time through the map is the same
 	 (mask-pixmap (make-instance 'tk::pixmap
-		       :drawable source-pixmap
-		       :width array-size
-		       :height array-size
-		       :depth 1))
+				     :drawable source-pixmap
+				     :width array-size
+				     :height array-size
+				     :depth 1))
 	 (temp-pixmap (make-instance 'tk::pixmap
-		       :drawable source-pixmap
-		       :width array-size
-		       :height array-size
-		       :depth 1))
+				     :drawable source-pixmap
+				     :width array-size
+				     :height array-size
+				     :depth 1))
+	 ;;-- Perhaps we should reuse this bitmap instead of
+	 ;;-- destroying it
 	 (gc (make-instance 'ink-gcontext :drawable source-pixmap)))
     (dotimes (i n)
       (macrolet ((copy-all-to (from xoffset yoffset to alu)
@@ -1753,7 +1851,10 @@
 			 mask-pixmap boole-and) ;13
 	  (copy-all-to mask-pixmap quad 0 mask-pixmap boole-ior) ; 14
 	  (copy-all-to mask-pixmap 0 quad mask-pixmap boole-ior) ; 15
-	  )))))
+	  )))
+    (xt::destroy-pixmap mask-pixmap)
+    (xt::destroy-pixmap temp-pixmap)
+    (xt::free-gcontext gc)))
 
 (defun stream-bitblt-support (gc
 			      from from-left from-top

@@ -1,4 +1,4 @@
-# $fiHeader: Makefile.generic,v 1.5 93/04/02 13:35:41 cer Exp $
+# $fiHeader: Makefile.generic,v 1.6 93/04/02 18:40:38 cer Exp $
 #
 #  Makefile.generic for CLIM 2.0
 #
@@ -38,8 +38,8 @@ compile-ol:	$(OPENLOOK_OBJS) FORCE
 	  (lambda () \
 	    (setq *compile-print* $(COMPILE_PRINT)) \
 	    (setf excl:*load-xref-info* $(LOAD_XREF_INFO)) \
-	    (setq sys::*libxt-pathname* \"$(XTLIB)\") \
-	    (setq sys::*libx11-pathname* \"$(XLIB)\") \
+	    (setq sys::*libxt-pathname* \"$(OLXTLIB)\") \
+	    (setq sys::*libx11-pathname* \"$(OLXLIB)\") \
 	    (setq sys::*clim-olit-pathname* \"clim-olit$(DEBUGLIB).o\") \
 	    (setq *ignore-package-name-case* t) \
 	    (set-case-mode :case-insensitive-lower) \
@@ -146,8 +146,8 @@ clim-xm:	FORCE $(MOTIF_OBJS)
 clim-ol:	FORCE $(OPENLOOK_OBJS)
 	-$(RM) -f $(CLIMOL)
 	$(ECHO) " \
-		(setq sys::*libxt-pathname* \"$(XTLIB)\") \
-		(setq sys::*libx11-pathname* \"$(XLIB)\") \
+		(setq sys::*libxt-pathname* \"$(OLXTLIB)\") \
+		(setq sys::*libx11-pathname* \"$(OLXLIB)\") \
 	        (setq sys::*clim-olit-pathname* \"clim-olit$(DEBUGLIB).o\") \
 		(load \"misc/dev-load-1.lisp\") \
 		(load-it 'openlook-clim) \

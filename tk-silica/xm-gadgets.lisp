@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.69 93/03/31 10:40:20 cer Exp $
+;; $fiHeader: xm-gadgets.lisp,v 1.70 93/04/02 13:37:26 cer Exp $
 
 (in-package :xm-silica)
 
@@ -172,8 +172,8 @@
 	:height (process-height-specification sheet `(1 :line))))
       (tk::pixmap
        (make-space-requirement
-	:width (xt::pixmap-width label)
-	:height (xt::pixmap-height label))))))
+	:width (+ (xt::pixmap-width label) (text-gadget-margin-width sheet))
+	:height (+ (xt::pixmap-height label) (text-gadget-margin-height sheet)))))))
 
 ;;; Push button
 
@@ -575,10 +575,14 @@
 		  (first width))
 		 (string (length width)))))
     (multiple-value-bind (font-list margin highlight shadow)
-	(tk::get-values (sheet-direct-mirror sheet)
-			:font-list :margin-width :highlight-thickness :shadow-thickness)
-      (let ((font-width (font-list-max-width-and-height font-list)))
-	(+ (* 2 (+ margin highlight shadow)) (* font-width chars))))))
+	(tk::get-values (sheet-direct-mirror sheet) :font-list
+			:margin-width :highlight-thickness :shadow-thickness)
+      (+ (* 2 (+ margin highlight shadow)) (* (font-list-max-width-and-height font-list) chars)))))
+
+(defun text-gadget-margin-width (sheet)
+  (multiple-value-bind (margin highlight shadow)
+      (tk::get-values (sheet-direct-mirror sheet) :margin-width :highlight-thickness :shadow-thickness)
+    (+ (* 2 (+ margin highlight shadow)))))
 
 (defun font-list-max-width-and-height (font-list)
   (let* ((max-width most-negative-fixnum)
@@ -605,6 +609,11 @@
 			:font-list :margin-height :highlight-thickness :shadow-thickness)
       (let ((font-height (nth-value 1 (font-list-max-width-and-height font-list))))
 	(+ (* 2 (+ margin highlight shadow)) (* font-height chars))))))
+
+(defun text-gadget-margin-height (sheet)
+  (multiple-value-bind (margin highlight shadow)
+      (tk::get-values (sheet-direct-mirror sheet) :margin-height :highlight-thickness :shadow-thickness)
+    (+ (* 2 (+ margin highlight shadow)))))
 
 
 #+ignore

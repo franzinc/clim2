@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.74 93/03/31 10:40:33 cer Exp $
+;; $fiHeader: xt-silica.lisp,v 1.75 93/04/02 13:37:41 cer Exp $
 
 (in-package :xm-silica)
 
@@ -37,6 +37,7 @@
      (event-lock :initform (clim-sys:make-lock "port event lock")
 		 :reader port-event-lock)
      (rotated-font-cache :initform nil :accessor port-rotated-font-cache)
+     (rotated-string-cache :initform nil :accessor port-rotated-string-cache)
      (depth :accessor port-depth)
      (visual-class :accessor port-visual-class)
      (cursor-font :initform nil)

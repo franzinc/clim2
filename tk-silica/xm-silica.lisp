@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-silica.lisp,v 1.32 93/03/31 10:40:23 cer Exp $
+;; $fiHeader: xm-silica.lisp,v 1.33 93/04/02 13:37:30 cer Exp $
 
 (in-package :xm-silica)
 
@@ -71,7 +71,7 @@
 	      (append
 	       (let ((x (find-shell-of-calling-frame sheet)))
 		 (and x `(:transient-for ,x)))
-	       ;;'(:keyboard-focus-policy :pointer)
+	       '(:keyboard-focus-policy :pointer)
 	       (and (typep (pane-frame sheet)
 			   'clim-internals::menu-frame)
 		    '(:override-redirect t))))

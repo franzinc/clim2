@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: incremental-redisplay.lisp,v 1.16 93/03/19 09:43:33 cer Exp $
+;; $fiHeader: incremental-redisplay.lisp,v 1.17 93/03/31 10:38:40 cer Exp $
 
 (in-package :clim-internals)
 
@@ -172,24 +172,32 @@
 		(apply #'match-output-records candidate initargs))))
     (let ((elts-to-find (when use-old-children (output-record-old-children record))))
       (if use-old-children
+	  ;; Bugger me, you learn several new things about
+	  ;; incremental redisplay every day. This code does not do a
+	  ;; full search of the old-children but rather just looks at
+	  ;; the first two. I suppose its reasonable since things
+	  ;; normally get created in the same order again. However, in
+	  ;; the case of the grapher things tend to get created in a
+	  ;; more random order causing this to fail unnecessarily.
 	  (let ((found-record
-		  (if unique-id
-		      (find-with-test unique-id elts-to-find
-				      #'output-record-unique-id id-test)
-		      ;; UNIQUE-ID can be NIL when we are coming through
-		      ;; INVOKE-WITH-NEW-OUTPUT-RECORD to create new records
-		      (or (and (do-match (first elts-to-find)) (first elts-to-find))
-			  (let ((candidate (second elts-to-find)))
-			    (and (do-match candidate)
-				 ;; assume the first one was deleted, and
-				 ;; therefore we don't want to match
-				 ;; against it anymore.
-				 ;; If they want better performance, they
-				 ;; should use UID's.
-				 (setf (output-record-old-children record)
-				       (nconc (rest elts-to-find)
-					      (list (first elts-to-find))))
-				 candidate))))))
+		 (if unique-id
+		     (find-with-test unique-id elts-to-find
+				     #'output-record-unique-id id-test)
+		   ;; UNIQUE-ID can be NIL when we are coming through
+		   ;; INVOKE-WITH-NEW-OUTPUT-RECORD to create new records
+		   (or (and (do-match (first elts-to-find))
+			    (first elts-to-find))
+		       (let ((candidate (second elts-to-find)))
+			 (and (do-match candidate)
+			      ;; assume the first one was deleted, and
+			      ;; therefore we don't want to match
+			      ;; against it anymore.
+			      ;; If they want better performance, they
+			      ;; should use UID's.
+			      (setf (output-record-old-children record)
+				(nconc (rest elts-to-find)
+				       (list (first elts-to-find))))
+			      candidate))))))
 	    (when found-record
 	      (setf (output-record-old-children record)
 		    (delete found-record (output-record-old-children record)))
@@ -438,6 +446,7 @@
 		      (old-x-offset (coordinate 0)) (old-y-offset (coordinate 0)))
   (declare (type coordinate x-offset y-offset old-x-offset old-y-offset))
   (declare (values erases moves draws erase-overlapping move-overlapping))
+  #+ignore (when (eq record wt::*c*) (break "found it"))
   (let ((erases nil)
 	(moves nil)
 	(draws nil)
@@ -649,7 +658,7 @@
 	       (with-bounding-rectangle* (left top right bottom) rectangle
 		 (translate-coordinates xoff yoff left top right bottom)
 		 (draw-rectangle* stream left top right bottom
-				  :ink +background-ink+  :filled t)
+				  :ink #+ignore +red+ +background-ink+  :filled t)
 		 #+ignore
 		 (break "erase ~S" (list left top right bottom))))
 	     (replay-record (record stream region)
@@ -932,6 +941,12 @@
 	  ;; is if another, more deeply nested output record, was moved
 	  ;; from somewhere in the hierarchy that was >not< erased.  In that
 	  ;; case, we could just bitblt, but we won't detect that anymore.
+
+	  ;;--- I dont understand how this is right
+	  ;;--- since we have to do the erase first
+	  ;;--- Anyway things are screwed up when the parent has changed
+	  ;;--- Since we dont know where things are.
+	  
 	  ((and old-parent
 		(not (eq (output-record-parent record) old-parent))
 		(not (eq (output-record-generation-tick old-parent) *generation-tick*)))
