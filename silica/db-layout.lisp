@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-layout.lisp,v 1.26 92/10/02 15:18:10 cer Exp $
+;; $fiHeader: db-layout.lisp,v 1.27 92/12/16 16:48:36 cer Exp $
 
 (in-package :silica)
 
@@ -32,7 +32,12 @@
 
 (defmethod note-space-requirements-changed ((composite composite-pane) child)
   (declare (ignore child))
-  (note-space-requirements-changed (sheet-parent composite) composite))
+  (note-space-requirements-changed (sheet-parent composite)
+				   composite))
+
+(defmethod note-space-requirements-changed ((composite top-level-sheet) child)
+  (declare (ignore child))
+  (layout-frame (pane-frame composite)))
 
 (defmethod note-space-requirements-changed ((composite null) child)
   ;; ??? Why is this method necessary -- RR
@@ -115,10 +120,6 @@
 	      (multiple-value-call #'allocate-space 
 	        pane (bounding-rectangle-size pane)))))))))
 
-(defmethod note-space-requirement-changed (parent child)
-  (multiple-value-call #'allocate-space 
-    parent (bounding-rectangle-size parent)))
-
 (defmethod change-space-requirements :around ((pane layout-mixin) 
 					      &key resize-frame &allow-other-keys)
   (call-next-method)
@@ -128,7 +129,7 @@
 	      (cdr *inside-changing-space-requirements*))
 	(if (and frame resize-frame)
 	    (layout-frame frame)
-	    (note-space-requirement-changed (sheet-parent pane) pane)))))
+	    (note-space-requirements-changed (sheet-parent pane) pane)))))
 
 
 (defun space-requirement-combine (function sr1 sr2)

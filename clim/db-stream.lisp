@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-stream.lisp,v 1.42 92/12/16 16:46:11 cer Exp $
+;; $fiHeader: db-stream.lisp,v 1.43 93/01/18 13:54:20 cer Exp $
 
 (in-package :clim-internals)
 
@@ -283,8 +283,8 @@
   (declare (dynamic-extent keys))
   ;; Assume always called with width and height
   (multiple-value-bind (history-width history-height)
-      (if (stream-current-output-record pane)
-	  (bounding-rectangle-size (stream-current-output-record pane))
+      (if (stream-output-history pane)
+	  (bounding-rectangle-size (stream-output-history pane))
 	  (values width height))
     ;; Don't ever shrink down smaller than our contents.
     (if (and (numberp width)
@@ -383,7 +383,7 @@
 	;;--- This does a lot of uncessary expensive bitblting, but
 	;;--- how do we avoid it, since a lot of what it does we need
 	;;--- to do to reset the viewport
-	(scroll-extent stream :x 0 :y 0)
+	(scroll-extent stream 0 0)
 	(stream-set-cursor-position stream 0 0)
 	(setf (stream-baseline stream) (coordinate 0)
 	      (stream-current-line-height stream) (coordinate 0)))
@@ -445,7 +445,7 @@
 
 (defmethod window-set-viewport-position ((stream clim-stream-sheet) x y)
   (when (pane-viewport stream)
-    (scroll-extent stream :x x :y y)))
+    (scroll-extent stream x y)))
 
 (defgeneric* (setf window-viewport-position) (x y stream))
 (defmethod* (setf window-viewport-position) (x y (stream clim-stream-sheet))

@@ -1,6 +1,6 @@
 ;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadgets.lisp,v 1.42 92/12/03 10:29:24 cer Exp $
+;; $fiHeader: gadgets.lisp,v 1.43 92/12/16 16:49:26 cer Exp $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
@@ -509,10 +509,16 @@
 	      (when (and (< oheight ch) (<= ch height))
 		(setq y ctop))
 	      (if (or (/= x ox) (/= y oy))
-		  (scroll-extent (sheet-child viewport) :x x  :y y)
+		  (scroll-extent (sheet-child viewport) x y)
 		  (progn
 		    (update-scroll-bars viewport)
 		    (viewport-region-changed (sheet-child viewport) viewport))))))))))
+
+(defmethod note-space-requirements-changed ((pane viewport) inner)
+  (declare (ignore inner))
+  (allocate-space 
+    pane 
+    (bounding-rectangle-width pane) (bounding-rectangle-height pane)))
 
 ;;--- Work on this
 #+++ignore

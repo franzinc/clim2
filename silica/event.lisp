@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: event.lisp,v 1.31 92/12/14 15:03:33 cer Exp $
+;; $fiHeader: event.lisp,v 1.32 92/12/16 16:49:23 cer Exp $
 
 (in-package :silica)
 
@@ -570,7 +570,7 @@
 					  #-Genera "CLIM Input")
 			     timeout)
   (cond (*multiprocessing-p*
-	 (assert (port-alive-p port) () "The port is not alive")
+	 (assert (and port (port-alive-p port)) () "The port is not alive")
 	 (process-wait-with-timeout wait-reason timeout waiter) 
 	 (values))
 	(t 

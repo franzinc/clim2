@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graph-formatting.lisp,v 1.22 92/12/16 16:46:25 cer Exp $
+;; $fiHeader: graph-formatting.lisp,v 1.23 93/01/18 13:54:36 cer Exp $
 
 (in-package :clim-internals)
 
@@ -150,10 +150,13 @@
 ;; Graph node output records match if their objects match
 (defmethod match-output-records ((record standard-graph-node-output-record) 
 				 &key object duplicate-key duplicate-test &allow-other-keys)
-  (or (and (null object)
-	   (null (graph-node-object record)))
-      (funcall duplicate-test (funcall duplicate-key object)
-			      (funcall duplicate-key (graph-node-object record)))))
+  (when (or (and (null object)
+		 (null (graph-node-object record)))
+	    (funcall duplicate-test (funcall duplicate-key object)
+		     (funcall duplicate-key (graph-node-object record))))
+    (setf (graph-node-parents record) nil
+	  (graph-node-children record) nil)
+    t))
 
 ;; For compatibility...
 (defun format-graph-from-root (root-object object-printer inferior-producer
@@ -567,9 +570,6 @@ circular graphs without accounting for this case.
 		   ;; lost.  If the first node isn't really a root, it will be
 		   ;; deleted from the set of roots when the cycle is
 		   ;; detected.
-		   ;;;-- 
-		   (setf (graph-node-parents child-record) nil
-			 (graph-node-children child-record) nil)
 		   (when (null root-nodes)
 		     (push child-record root-nodes))
 		   (old-node-function parent-object parent-record child-object child-record)))
@@ -677,7 +677,7 @@ circular graphs without accounting for this case.
       (dolist (root root-nodes)
 	(traverse root 0)))))
 
-(defmethod add-graph-filler-output-records ((graph directed-graph-output-record) stream)
+>(defmethod add-graph-filler-output-records ((graph directed-graph-output-record) stream)
   (with-slots (root-nodes) graph
     (labels ((traverse (node)
 	       (let* ((gen (graph-node-generation node))
@@ -692,7 +692,7 @@ circular graphs without accounting for this case.
 					 nil)))
 			   (setf (graph-node-children filler) (list child)
 				 (graph-node-parents filler)  (list node)
-				 (graph-node-object filler) (graph-node-object node)
+				 (graph-node-object filler) `(:filler ,filler ,(graph-node-object node))
 				 (car c) filler
 				 (graph-node-generation filler) gen1)
 			   (traverse filler))
@@ -792,7 +792,7 @@ circular graphs without accounting for this case.
 				       (graph-node-children new) (graph-node-children node)
 				       (graph-node-parents new) (graph-node-parents node)
 				       (graph-node-parents child) (list new)
-				       (graph-node-object new) (graph-node-object node)
+				       (graph-node-object new) `(:filler ,new ,(graph-node-object node))
 				       (car c) new)))))
 			 (map nil #'replace-filler-nodes children))))
 		    (declare (dynamic-extent #'replace-filler-nodes))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: basic-translators.lisp,v 1.13 92/12/07 12:14:00 cer Exp $
+;; $fiHeader: basic-translators.lisp,v 1.14 92/12/16 16:46:02 cer Exp $
 
 (in-package :clim-internals)
 
@@ -134,11 +134,13 @@
 ;; Display some more of a history display
 (define-presentation-action display-rest-of-history
     (display-rest-of-history nil global-command-table
-     :gesture :select
-     :documentation "Display the rest of the history")
-    (object window)
-  (display-history-contents (first object) window
-			    :start-index (second object) :string (third object)))
+			     :gesture :select
+			     :documentation "Display the rest of the history")
+  (object)
+  (let ((stream (fourth object)))
+    (with-input-editor-help stream
+      (display-history-contents (first object) stream
+				:start-index (second object) :string (third object)))))
 
 (define-presentation-action yank-kill-ring-element
     (kill-ring-element input-editor global-command-table

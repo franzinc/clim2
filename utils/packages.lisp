@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: packages.lisp,v 1.44 92/12/14 15:05:03 cer Exp $
+;; $fiHeader: packages.lisp,v 1.45 92/12/16 16:51:14 cer Exp $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :common-lisp-user)
 
@@ -2300,6 +2300,8 @@
     event-matches-gesture-name-p
     extended-input-stream
     extended-input-stream-p
+    gesture-name-button-and-modifiers
+    gesture-name-keysym-and-modifiers
     gesture-processing-handler
     make-modifier-state
     modifier-state-matches-gesture-name-p

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: POSTSCRIPT-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: postscript-medium.lisp,v 1.10 92/12/03 10:29:05 cer Exp $
+;; $fiHeader: postscript-medium.lisp,v 1.11 92/12/16 16:48:16 cer Exp $
 
 (in-package :postscript-clim)
 
@@ -311,11 +311,18 @@
 	  (incf towards-y y-adjust)))
       ;; do raster/ink stuff.
       (set-font-if-needed medium fcs)
-      (with-postscript-drawing-options (medium printer-stream
-					:epilogue nil :newpath nil
-					:ink ink)
-	(ps-pos-op medium "m" x y)
-	(carefully-output-ps-showstring printer-stream string start end))
+      (if towards-x
+	  (with-postscript-gsave medium 
+	    (ps-pos-op medium "m" x y)
+	    (format (slot-value medium 'printer-stream) " currentpoint translate ~D rotate "
+		    (- 360 (truncate (* (atan (- towards-y y) (- towards-x x)) (/ 360 (* pi 2))))))
+	    (carefully-output-ps-showstring (slot-value medium
+							'printer-stream) string start end))
+	(with-postscript-drawing-options (medium printer-stream
+						 :epilogue nil :newpath nil
+						 :ink ink)
+	  (ps-pos-op medium "m" x y)
+	  (carefully-output-ps-showstring printer-stream string start end)))
       (annotating-postscript (medium printer-stream)
 	(format printer-stream "      (medium-draw-string* ~S ~D ~D ~D ~D ~S ~S ...)"
 	  string x y start end align-x align-y)))))
@@ -346,11 +353,17 @@
 	  (incf towards-y y-adjust)))
 	;; do raster/ink stuff.
 	(set-font-if-needed medium fcs)
-	(with-postscript-drawing-options (medium printer-stream
-					  :epilogue nil :newpath nil
-					  :ink ink)
-	  (ps-pos-op medium "m" x y)
-	  (carefully-output-ps-showstring printer-stream ch1buf 0 1))
+	(if towards-x
+	    (with-postscript-gsave medium 
+	      (ps-pos-op medium "m" x y)
+	      (format (slot-value medium 'printer-stream) " currentpoint translate ~D rotate "
+		      (- 360 (truncate (* (atan (- towards-y y) (- towards-x x)) (/ 360 (* pi 2))))))
+	      (carefully-output-ps-showstring (slot-value medium 'printer-stream) ch1buf 0 1))
+	  (with-postscript-drawing-options (medium printer-stream
+						   :epilogue nil :newpath nil
+						   :ink ink)
+	    (ps-pos-op medium "m" x y)
+	    (carefully-output-ps-showstring printer-stream ch1buf 0 1)))
 	(annotating-postscript (medium printer-stream)
 	  (format printer-stream "      (medium-draw-character* ~C ~D ~D ~S ~S ...)"
 	    character x y align-x align-y))))))
@@ -364,6 +377,27 @@
 			      align-x align-y towards-x towards-y transform-glyphs)
       (medium-draw-string* medium string-or-char x y start end 
 			   align-x align-y towards-x towards-y transform-glyphs)))
+
+(defmethod medium-text-bounding-box ((medium postscript-medium)
+				     string x y start end align-x
+				     align-y text-style
+				     towards-x towards-y
+				     transform-glyphs transformation)
+  (declare (ignore string start end transform-glyphs transformation))
+  (multiple-value-bind
+      (left top right bottom cx cy towards-x towards-y) (call-next-method)
+    (if (and towards-y towards-x)
+	(let ((transformation
+	       (make-rotation-transformation 
+		(atan (- towards-y cy) (- towards-x cx))
+		(make-point cx cy))))
+	  (multiple-value-setq (left top)
+	    (transform-position transformation left top))
+	  (multiple-value-setq (right bottom)
+	    (transform-position transformation right bottom))
+	  (values (min left right) (min top bottom)
+		  (max left right) (max top bottom)))
+      (values left top right bottom))))
 
 #+++ignore
 (defmethod draw-vertical-string-internal ((medium postscript-medium)

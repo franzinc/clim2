@@ -1,0 +1,15 @@
+XmStringCreateLtoR
+XmStringGetLtoR
+XmGetPixmap
+XmFontListInitFontContext
+XmFontListFreeFontContext
+XmFontListGetNextFont
+XmFontListCreate
+XmAddProtocolCallback
+XmInternAtom
+XmMainWindowSetAreas
+XmProcessTraversal
+XmMessageBoxGetChild
+XmFileSelectionDoSearch
+XmOptionLabelGadget
+XmOptionButtonGadget

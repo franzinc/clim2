@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-scroll.lisp,v 1.39 92/12/16 16:48:42 cer Exp $
+;; $fiHeader: db-scroll.lisp,v 1.40 93/01/18 13:55:16 cer Exp $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright(c) 1991, 1992 International Lisp Associates.
@@ -152,8 +152,8 @@
 	(:vertical
 	  (scroll-extent
 	    contents
-	    :x (bounding-rectangle-min-x region)
-	    :y (+ (bounding-rectangle-min-y extent)
+	     (bounding-rectangle-min-x region)
+	     (+ (bounding-rectangle-min-y extent)
 		  (* (max 0 (- (bounding-rectangle-height extent)
 			       (bounding-rectangle-height region)))
 		     (if (= size (gadget-range sheet))
@@ -163,14 +163,14 @@
 	(:horizontal
 	  (scroll-extent
 	    contents
-	    :x (+ (bounding-rectangle-min-x extent)
+	    (+ (bounding-rectangle-min-x extent)
 		  (* (max 0 (- (bounding-rectangle-width extent)
 			       (bounding-rectangle-width region)))
 		     (if (= size (gadget-range sheet))
 			 0
 			 (/ (- value (gadget-min-value sheet))
 			    (- (gadget-range sheet) size)))))
-	    :y (bounding-rectangle-min-y region)))))))
+	    (bounding-rectangle-min-y region)))))))
 
 (defun update-region (sheet nleft ntop nright nbottom &key no-repaint)
   ;;--- I suspect that we should pass in mins and maxs since this does
@@ -202,7 +202,7 @@
 	      (slot-value region 'right)  (max (bounding-rectangle-width  sheet) width)
 	      (slot-value region 'bottom) (max (bounding-rectangle-height sheet) height))))))
 
-(defun scroll-extent (sheet &key (x 0) (y 0))
+(defun scroll-extent (sheet x y)
   ;;--- CER says that this really isn't right...
   (fix-coordinates x y)
   (let ((viewport (pane-viewport sheet)))

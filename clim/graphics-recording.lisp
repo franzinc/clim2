@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics-recording.lisp,v 1.19 92/12/03 10:26:48 cer Exp $
+;; $fiHeader: graphics-recording.lisp,v 1.20 92/12/16 16:46:29 cer Exp $
 
 (in-package :clim-internals)
 
@@ -530,7 +530,7 @@
 (defmethod medium-text-bounding-box ((medium basic-medium) string x y
 				     start end align-x align-y text-style
 				     towards-x towards-y transform-glyphs transformation)
-  (declare (ignore towards-x towards-y transform-glyphs transformation))
+  (declare (ignore transform-glyphs transformation))
   (let* ((width (stream-string-width (medium-sheet medium) string
  				     :start start :end end
  				     :text-style text-style))
@@ -541,18 +541,27 @@
     (ecase align-x
       (:left (setq vx x
 		   vr (+ x width)))
-      (:right (setq vx (- x width)
-		    vr x))
-      (:center (setq vx (- x (round width 2))
-		     vr (+ x (round width 2)))))
+      (:right (setq vx (- x width) vr x)
+	      (when towards-x (decf towards-x width)))
+      (:center (let ((w2 (round width 2)))
+		 (setq vx (- x w2)
+		       vr (+ x w2))
+		 (when towards-x (decf towards-x w2)))))
     (ecase align-y
       (:baseline (setq vt (- y height)
 		       vb (+ y descent)))
-      (:top (setq vt y
-		  vb (+ y height)))
-      (:bottom (setq vt (- y height)
-		     vb y))
-      (:center (setq vt (- y (floor height 2))
-		     vb (+ y (ceiling height 2)))))
+      (:top (setq vt y vb (+ y height))
+	    (when towards-y (incf towards-y ascent)))
+      (:bottom (setq vt (- y height) vb y)
+	       (when towards-y (decf towards-y descent)))
+      (:center (let ((h2 (floor height 2)))
+		 (setq vt (- y h2)
+		       vb (+ y (ceiling height 2)))
+		 (when towards-y (decf towards-y h2)))))
     (values (coordinate vx) (coordinate vt) 
-	    (coordinate vr) (coordinate vb))))
+	    (coordinate vr) (coordinate vb)
+	    (coordinate vx)
+	    (coordinate (+ vt ascent))
+	    towards-x
+	    towards-y)))
+	    

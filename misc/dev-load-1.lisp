@@ -20,13 +20,12 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: dev-load-1.lisp,v 1.20 92/11/09 10:55:32 cer Exp $
+;; $fiHeader: dev-load-1.lisp,v 1.21 92/11/19 14:24:37 cer Exp $
 
 ;;;; This should not matter
 ;;;; (setq *ignore-package-name-case* t)
 
 (set-case-mode :case-insensitive-lower)
-
 
 (tenuring
    (let ((*load-source-file-info* t)

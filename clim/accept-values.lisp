@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept-values.lisp,v 1.50 92/12/16 16:45:51 cer Exp $
+;; $fiHeader: accept-values.lisp,v 1.51 93/01/18 13:54:16 cer Exp $
 
 (in-package :clim-internals)
 
@@ -402,7 +402,7 @@
 	   (own-window-bottom-margin (pop properties)))
       (letf-globally (((stream-default-view stream) 
 		       (frame-manager-dialog-view (frame-manager frame)))
-		      ((cursor-state (stream-text-cursor stream)) nil))
+		      ((stream-read-gesture-cursor-state stream) nil))
 	(labels ((run-continuation (stream avv-record)
 		   (setf (slot-value stream 'avv-record) avv-record)
 		   (setf (slot-value stream 'avv-frame) frame)
@@ -764,12 +764,12 @@
 	    (setq record
 		  (with-new-output-record (stream)
 		    (setq new-value
-			  ;; The text cursor should be visible while this ACCEPT is
-			  ;; waiting for input to be typed into this field
-			  (with-cursor-state (stream t)
-			    (accept presentation-type
-				    :stream stream :prompt nil :default value
-				    :insert-default modify)))))
+		      ;; The text cursor should be visible while this ACCEPT is
+		      ;; waiting for input to be typed into this field
+		      (letf-globally (((stream-read-gesture-cursor-state stream) t))
+			(accept presentation-type
+				:stream stream :prompt nil :default value
+				:insert-default modify)))))
 	    ;; This so that the input editor's typing gets erased properly.
 	    (erase-output-record record stream)
 	    ;;--- Kludge until Bill can explain the whole "leave the delimiter" vs

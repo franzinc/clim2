@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.60 92/12/17 15:33:46 cer Exp $
+;; $fiHeader: xt-graphics.lisp,v 1.61 93/01/11 15:46:28 colin Exp $
 
 (in-package :tk-silica)
 
@@ -1594,7 +1594,7 @@ and on color servers, unless using white or black")
 	     (when towards-y (decf towards-y dy))))
 	  (:center 
 	   (let ((dy (- (text-style-descent (medium-text-style medium) medium)
-		      (floor (text-style-height (medium-text-style medium) medium) 2))))
+			(floor (text-style-height (medium-text-style medium) medium) 2))))
 	     (decf y dy)
 	     (when towards-y (decf towards-y dy))))
 	  (:baseline nil)
@@ -1630,34 +1630,26 @@ and on color servers, unless using white or black")
 				     align-y text-style
 				     towards-x towards-y
 				     transform-glyphs transformation)
-  (declare (ignore string start end transform-glyphs transformation))
+  (declare (ignore string start end towards-x towards-y align-x align-y transform-glyphs transformation))
   (multiple-value-bind
-      (left top right bottom) (call-next-method)
+      (left top right bottom cx cy towards-x towards-y) (call-next-method)
     (if (and towards-y towards-x)
-	(flet ((compute-rotation (x y towards-x towards-y)
-		 (decf towards-x x)
-		 (decf towards-y y)
-		 (mod (round (atan towards-y towards-x) (/ pi 2.0))
-		      4)))
-	  (let ((ascent (text-style-ascent text-style medium)))
-	    (ecase align-y
-	      (:top (incf y ascent)
-		    (incf towards-y ascent))
-	      (:baseline))
-	    (ecase align-x
-	      (:left))
-	    (let ((transformation
+	(flet ((compute-rotation (cx cy towards-x towards-y)
+		 (decf towards-x cx)
+		 (decf towards-y cy)
+		 (mod (round (atan towards-y towards-x) (/ pi 2.0)) 4)))
+	  (let ((transformation
 		   (make-rotation-transformation 
-		    (* (compute-rotation x y towards-x
-						towards-y)
+		    (* (compute-rotation cx cy towards-x
+					 towards-y)
 		       (/ pi 2.0))
-		    (make-point x y))))
+		    (make-point cx cy))))
 	      (multiple-value-setq (left top)
 		(transform-position transformation left top))
 	      (multiple-value-setq (right bottom)
 		(transform-position transformation right bottom))
 	      (values (min left right) (min top bottom)
-		      (max left right) (max top bottom)))))
+		      (max left right) (max top bottom))))
       (values left top right bottom))))
 
 (defun port-draw-rotated-text (port

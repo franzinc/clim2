@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: cursor.lisp,v 1.20 92/11/20 08:44:32 cer Exp $
+;; $fiHeader: cursor.lisp,v 1.21 92/12/03 10:26:15 cer Exp $
 
 (in-package :clim-internals)
 
@@ -173,7 +173,7 @@
 ;;; thus change from a hollow rectangle to a filled one (or in Genera, it might
 ;;; start blinking).
 (defmethod port-note-cursor-change :after ((port basic-port) 
-					   cursor stream type old new)
+					   cursor stream (type (eql 'cursor-focus)) old new)
   (declare (ignore old type cursor))
   ;;--- This should really only do this when PORT-INPUT-FOCUS-SELECTION
   ;;--- is :SHEET-UNDER-POINTER, since this causes the "wrong" thing to

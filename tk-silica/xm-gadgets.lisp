@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.60 92/12/14 15:04:36 cer Exp $
+;; $fiHeader: xm-gadgets.lisp,v 1.61 93/01/11 15:46:18 colin Exp $
 
 (in-package :xm-silica)
 
@@ -329,7 +329,7 @@
         (:vertical
          (make-space-requirement :width swidth
                                  :min-height fudge
-                                 :height (* 2 fudge)
+                                 :height (max (* 2 fudge) sheight)
                                  :max-height +fill+))
         (:horizontal
          (make-space-requirement :height sheight
@@ -656,8 +656,8 @@
         (:vertical
           (scroll-extent
             (sheet-child vp)
-            :x (bounding-rectangle-min-x viewport)
-            :y (truncate
+             (bounding-rectangle-min-x viewport)
+             (truncate
                  (* (max 0 (- (bounding-rectangle-height extent)
                               (bounding-rectangle-height viewport)))
                     (if (= size 100)
@@ -666,13 +666,13 @@
         (:horizontal
           (scroll-extent
             (sheet-child vp)
-            :x (truncate
+             (truncate
                  (* (max 0 (- (bounding-rectangle-width extent)
                               (bounding-rectangle-width viewport)))
                     (if (= size 100)
                         0
                         (/ value (- 100 size)))))
-            :y (bounding-rectangle-min-y viewport)))))))
+             (bounding-rectangle-min-y viewport)))))))
         
 ;;;;;;;;;;;;;;;
 

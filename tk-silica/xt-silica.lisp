@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.66 92/12/17 15:33:50 cer Exp $
+;; $fiHeader: xt-silica.lisp,v 1.67 93/01/11 15:46:36 colin Exp $
 
 (in-package :xm-silica)
 
@@ -1115,13 +1115,14 @@
 (define-xt-keysym (keysym 255 010) :newline)
 
 ;; Other useful characters
-(define-xt-keysym (keysym 255 087) :end)
-(define-xt-keysym (keysym 255 105) :abort)
-(define-xt-keysym (keysym 255 106) :help)
-(define-xt-keysym (keysym 255 104) :complete)
-(define-xt-keysym (keysym 255 086) :scroll)
-(define-xt-keysym (keysym 255 097) :refresh)
-(define-xt-keysym (keysym 255 011) :clear-input)
+(define-xt-keysym (keysym 255 #x6a) :help)
+(define-xt-keysym (keysym 255 #xde) :end)
+
+(define-xt-keysym (keysym 255 #x68) :complete)
+(define-xt-keysym (keysym 255 #x69) :abort)
+(define-xt-keysym (keysym 255 #x56) :scroll)
+(define-xt-keysym (keysym 255 #x61) :refresh)
+(define-xt-keysym (keysym 255 #x0b) :clear-input)
 
 (define-xt-keysym (keysym 255 #x51) :left)
 (define-xt-keysym (keysym 255 #x52) :up)

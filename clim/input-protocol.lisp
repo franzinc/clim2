@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-protocol.lisp,v 1.36 92/12/07 12:14:26 cer Exp $
+;; $fiHeader: input-protocol.lisp,v 1.37 92/12/16 16:46:36 cer Exp $
 
 (in-package :clim-internals)
 
@@ -65,9 +65,12 @@
 			      :initarg :input-buffer)
      (pointer-motion-pending :initform nil)
      (text-cursor :accessor stream-text-cursor
-		  :initarg :text-cursor))
+		  :initarg :text-cursor)
+     (read-gesture-cursor-state :initarg :read-gesture-cursor-state 
+				:accessor stream-read-gesture-cursor-state))
   (:default-initargs
-    :text-cursor (make-instance 'standard-text-cursor)))
+      :text-cursor (make-instance 'standard-text-cursor)
+    :read-gesture-cursor-state t))
 
 ;; Use the sheet's event queue as the input buffer.
 ;;--- This may not be right.  See comment in STREAM-READ-GESTURE.
@@ -230,44 +233,45 @@
 
 (defmethod stream-read-gesture ((stream input-protocol-mixin)
 				&key timeout peek-p
-				     (input-wait-test *input-wait-test*)
-				     (input-wait-handler *input-wait-handler*)
-				     pointer-button-press-handler)
+				(input-wait-test *input-wait-test*)
+				(input-wait-handler *input-wait-handler*)
+				pointer-button-press-handler)
   (declare (ignore pointer-button-press-handler))
-  (with-cursor-state (stream t)
-    (loop
-      (multiple-value-bind (input-happened flag)
-	  (stream-input-wait
-	    stream
-	    :timeout timeout :input-wait-test input-wait-test)
-	(case flag
-	  (:timeout
-	    (return-from stream-read-gesture (values nil :timeout)))
-	  (:input-wait-test
-	    ;; only call the input-wait-handler if we didn't get a first-rate
-	    ;; gesture back from stream-input-wait.
-	    (when input-wait-handler
-	      (funcall input-wait-handler stream)))
-	  (otherwise 
-	    (when input-happened
-	      (let ((gesture (queue-get (stream-input-buffer stream))))
-		(when gesture
-		  ;;--- What we *should* do is to reinstate a separate input
-		  ;;--- buffer for the stream, then this should loop doing
-		  ;;--- HANDLE-EVENT until something gets inserted into the
-		  ;;--- stream's input buffer.  Then this should read and
-		  ;;--- process the gesture in the input buffer.
-		  (let* ((sheet (and (typep gesture 'device-event)
-				     (event-sheet gesture)))
-			 (new-gesture 
+  (let ((read-gesture-cursor-state (stream-read-gesture-cursor-state stream)))
+    (with-cursor-state (stream read-gesture-cursor-state)
+      (loop
+	(multiple-value-bind (input-happened flag)
+	    (stream-input-wait
+	     stream
+	     :timeout timeout :input-wait-test input-wait-test)
+	  (case flag
+	    (:timeout
+	     (return-from stream-read-gesture (values nil :timeout)))
+	    (:input-wait-test
+	     ;; only call the input-wait-handler if we didn't get a first-rate
+	     ;; gesture back from stream-input-wait.
+	     (when input-wait-handler
+	       (funcall input-wait-handler stream)))
+	    (otherwise 
+	     (when input-happened
+	       (let ((gesture (queue-get (stream-input-buffer stream))))
+		 (when gesture
+		   ;;--- What we *should* do is to reinstate a separate input
+		   ;;--- buffer for the stream, then this should loop doing
+		   ;;--- HANDLE-EVENT until something gets inserted into the
+		   ;;--- stream's input buffer.  Then this should read and
+		   ;;--- process the gesture in the input buffer.
+		   (let* ((sheet (and (typep gesture 'device-event)
+				      (event-sheet gesture)))
+			  (new-gesture 
 			   (receive-gesture
-			     (if (or (null sheet) (eq sheet stream))
-				 (encapsulated-stream stream)
-				 sheet)
-			     gesture)))
-		    (when new-gesture
-		      (when peek-p (queue-unget (stream-input-buffer stream) gesture))
-		      (return-from stream-read-gesture new-gesture))))))))))))
+			    (if (or (null sheet) (eq sheet stream))
+				(encapsulated-stream stream)
+			      sheet)
+			    gesture)))
+		     (when new-gesture
+		       (when peek-p (queue-unget (stream-input-buffer stream) gesture))
+		       (return-from stream-read-gesture new-gesture)))))))))))))
 
 ;; Presentation translators have probably already run...
 (defmethod receive-gesture
@@ -562,6 +566,7 @@
 			  (+ start-time
 			     (* timeout internal-time-units-per-second)))))
       (flet ((waiter ()
+	       (unless (port stream) (return-from waiter (setq flag :eof)))
 	       (when (not (queue-empty-p input-buffer))
 		 (setq flag :input-buffer))
 	       (when (and input-wait-test (funcall input-wait-test stream))

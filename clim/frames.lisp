@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: frames.lisp,v 1.56 92/12/16 16:46:20 cer Exp $
+;; $fiHeader: frames.lisp,v 1.57 93/01/18 13:54:26 cer Exp $
 
 (in-package :clim-internals)
 
@@ -398,6 +398,7 @@
      :text-style (parse-text-style '(:sans-serif :bold :large))
      :scroll-bars nil
      :width :compute :height :compute
+     :max-height :compute
      :end-of-page-action :allow 
      :end-of-line-action :allow))
 
@@ -841,7 +842,8 @@
 	;; called ENABLE-FRAME here, ACCEPTING-VALUES would disable the
 	;; wrong frame.  Sigh.
 	(queue-flush (frame-command-queue frame))
-	(queue-flush (sheet-event-queue (frame-top-level-sheet frame)))
+	(let ((sheet (frame-top-level-sheet frame)))
+	  (when sheet (queue-flush (sheet-event-queue sheet))))
 	(disable-frame frame)))))
 
 (defmethod run-frame-top-level ((frame standard-application-frame) &rest args)

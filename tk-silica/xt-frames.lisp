@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-frames.lisp,v 1.25 92/12/16 16:50:50 cer Exp $
+;; $fiHeader: xt-frames.lisp,v 1.26 93/01/18 13:58:10 cer Exp $
 
 
 (in-package :xm-silica)
@@ -38,25 +38,28 @@
   (with-look-and-feel-realization (framem frame)
     (let* ((menu-bar (slot-value frame 'menu-bar))
 	   (menu-bar-pane
-	     (and menu-bar
-		  (apply #'make-pane 
-			 'menu-bar
-			 :command-table (cond ((eq t menu-bar)
-					       (frame-command-table frame))
-					      ((listp menu-bar)
-					       (find-command-table (car menu-bar)))
-					      (t (find-command-table menu-bar)))
-			 (and (listp menu-bar) (cdr menu-bar)))))
+	    (and menu-bar
+		 (apply #'make-pane 
+			'menu-bar
+			:command-table (cond ((eq t menu-bar)
+					      (frame-command-table frame))
+					     ((listp menu-bar)
+					      (find-command-table (car menu-bar)))
+					     (t (find-command-table menu-bar)))
+			(and (listp menu-bar) (cdr menu-bar)))))
 	   (pointer-doc-pane
-	     ;;--- Don't like these forward references
-	     (and (clim-internals::frame-pointer-documentation-p frame)
-		  (make-pane
-		   'clim-internals::pointer-documentation-pane
-		   :max-width +fill+
-		   ;;--- This should be one line height in some text style
-		   :max-height 15
-		   :height 15))))
+	    ;;--- Don't like these forward references
+	    (let ((options (clim-internals::frame-pointer-documentation-p frame)))
+	      (and options
+		   (apply #'make-pane
+			  'clim-internals::pointer-documentation-pane
+			  (append (and (listp options) options)
+				  `(
+				    :max-width ,+fill+
+				    :max-height (1 :line)
+				    :height (1 :line))))))))
       (cond ((and menu-bar-pane pointer-doc-pane)
+
 	     (vertically () menu-bar-pane pane pointer-doc-pane))
 	    (menu-bar-pane
 	     (vertically () menu-bar-pane pane))

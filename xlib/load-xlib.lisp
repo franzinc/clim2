@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: load-xlib.lisp,v 1.8 92/08/18 17:54:03 cer Exp $
+;; $fiHeader: load-xlib.lisp,v 1.9 92/12/14 15:05:14 cer Exp $
 
 (in-package :x11)
 
@@ -34,19 +34,20 @@
 
 
 (defun load-undefined-symbols-from-library (file what libraries)
-  (let* ((n (length what))
-	 (names (coerce what 'vector))
-	 (entry-points (make-array n :element-type '(unsigned-byte 32))))
-    (declare (type (simple-array (unsigned-byte 32) (*))))
-    (when (> (ff:get-entry-points names entry-points) 0)
-      #+ignore
-      (dotimes (i n) 
+  (let* ((n (length what)))
+    (when (> n 0)			; bug2898
+      (let ((names (coerce what 'vector))
+	    (entry-points (make-array n :element-type '(unsigned-byte 32))))
+	(declare (type (simple-array (unsigned-byte 32) (*))))
+	(when (> (ff:get-entry-points names entry-points) 0)
+	  #+ignore
+	  (dotimes (i n) 
 	    (when (= (aref entry-points i)
-			sys::*impossible-load-address*)
+		     sys::*impossible-load-address*)
 	      (format t ";; ~A is undefined~%" (aref names i))))
-      (load file
-	    :system-libraries libraries
-	    :print t))))
+	  (load file
+		:system-libraries libraries
+		:print t))))))
 
 (defvar sys::*libx11-pathname* "/x11/R4/sun4-lib/libX11.a")
 

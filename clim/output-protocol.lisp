@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: output-protocol.lisp,v 1.31 92/12/16 16:46:48 cer Exp $
+;; $fiHeader: output-protocol.lisp,v 1.32 93/01/11 15:44:49 colin Exp $
 
 (in-package :clim-internals)
 
@@ -376,7 +376,7 @@
 			   sx sy cx cy
 			   :no-repaint t)))
 	(when (or new-x new-y)
-	  (scroll-extent stream :x (or new-x vleft) :y (or new-y vtop)))))))
+	  (scroll-extent stream (or new-x vleft) (or new-y vtop)))))))
 
 (defparameter *character-wrap-indicator-width* 3)
 

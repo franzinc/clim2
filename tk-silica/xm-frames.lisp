@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-frames.lisp,v 1.44 92/12/14 15:04:33 cer Exp $
+;; $fiHeader: xm-frames.lisp,v 1.45 93/01/11 15:46:14 colin Exp $
 
 (in-package :xm-silica)
 
@@ -82,7 +82,29 @@
 	 (when (eq type :menu) (return-from flat-command-table-menu-p nil))))
    ct)
   t)
-		      
+
+(defmethod compose-space ((mb motif-menu-bar) &key width height)
+  (let ((sr (call-next-method)))
+    (when (or width height)
+      (return-from compose-space sr))
+    (let ((max-height 0)
+	  (max-width  0)
+	  (m (sheet-direct-mirror mb)))
+      (multiple-value-bind (margin-width margin-height)
+	  (tk::get-values m :margin-width :margin-height)
+	(dolist (child (tk::widget-children m))
+	  (multiple-value-bind (x y width height border-width)
+	      (tk::widget-best-geometry child)
+	    (declare (ignore x y))
+	    (maxf max-width (+ width (* 2 margin-width)  (* 2 border-width)))
+	    (maxf max-height (+ height (* 2 margin-height) (* 2 border-width)))))
+	(make-space-requirement
+	 :min-width max-width
+	 :width (space-requirement-width sr)
+	 :max-width (space-requirement-max-width sr)
+	 :min-height max-height
+	 :height (space-requirement-height sr)
+	 :max-height (space-requirement-max-height sr))))))
 
 ;;; If would be nice if we could abstract this and use it for the OLIT
 ;;; port
