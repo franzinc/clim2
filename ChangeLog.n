@@ -11,6 +11,12 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2000-01-31  Charles A. Cox  <cox@freezer>
+
+	* Makefile.defs: Build in euc locale.
+	* tk/macros.lisp: Use euc compatibility in xchar-code.
+
+*******************************************************************************
 2.2.2.7 -- join from acl50 branch
 
 - changes from 2.2.1.55 to 2.2.1.68

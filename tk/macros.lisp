@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: macros.lisp,v 1.23 1999/02/25 08:23:42 layer Exp $
+;; $Id: macros.lisp,v 1.24 2000/02/03 00:39:00 cox Exp $
 
 (in-package :tk)
 
@@ -122,7 +122,12 @@
 
 (defmacro xchar-code (char)
   (clim-utils:with-gensyms (code)
-    `(let ((,code (char-code ,char)))
+    `(let ((,code (char-code
+		   (excl:ics-target-case
+		    (:+ics
+		     #+(version>= 6 0 :pre-alpha 19) (excl::process-code ,char)
+		     #-(version>= 6 0 :pre-alpha 19) ,char)
+		    (:-ics ,char)))))
        (excl:ics-target-case
 	(:+ics (logand ,code
 		       (if (logbitp 15 ,code)
