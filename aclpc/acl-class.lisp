@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-class.lisp,v 1.14.24.2 2000/09/05 19:06:37 layer Exp $
+;; $Id: acl-class.lisp,v 1.14.24.2.24.1 2001/09/18 16:28:37 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -157,7 +157,8 @@
 		    (the fixnum (* 4 (the fixnum ,i)))
 		    :signed-long))
 
-(ff:defun-c-callable wproc-clim-wrapper (hwnd message wparam lparam)
+;; [rfe4951]:
+(ff:defun-foreign-callable wproc-clim-wrapper (hwnd message wparam lparam)
   (let* ((s *clim-wproc-arg-struct*)
 	 (d (pccstructure-data-pointer s)))
     (setf (long-ref d 0) hwnd
@@ -170,17 +171,20 @@
 (defun init-clim-win-proc (wproc-address arg-struct)
   (declare (ignore wproc-address))
   (setf *clim-wproc-arg-struct* arg-struct)
-  (ff:register-function 'clim-wind-proc :reuse :return-value))
+  ;; [rfe4951]:
+  (ff:register-foreign-callable 'clim-wind-proc :reuse :return-value))
 
 (defun init-tooltip-relay (wproc-address arg-struct)
   (declare (ignore wproc-address))
   (setf *tooltip-relay-struct* arg-struct)
-  (ff:register-function 'tooltip-relay :reuse :return-value))
+  ;; [rfe4951]:
+  (ff:register-foreign-callable 'tooltip-relay :reuse :return-value))
 
 (defun init-clim-ctrl-proc (wproc-address arg-struct)
   (declare (ignore wproc-address))
   (setf *clim-ctrl-arg-struct* arg-struct)
-  (ff:register-function 'clim-ctrl-proc :reuse :return-value))
+  ;; [rfe4951]:
+  (ff:register-foreign-callable 'clim-ctrl-proc :reuse :return-value))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; callback for the windowproc for all CLIM windows.
@@ -817,7 +821,8 @@
 ;; Refer to the windows documentation on Tooltip controls.
 ;; The message stream needs to be relayed to the tooltip 
 ;; control for it to know when and where to display tool tips.
-(ff:defun-c-callable tooltip-relay (window msg wparam lparam)
+;; [rfe4951]:
+(ff:defun-foreign-callable tooltip-relay (window msg wparam lparam)
   (declare (:convention :stdcall) (:unwind 0)
 	   (optimize (safety 0) (speed 3)))
   (case msg
@@ -857,7 +862,8 @@
 ;; the message immediately.  This function is supposed to return
 ;; a 32-bit "LRESULT" value to the caller.  The nature of the
 ;; return value depends on the message.
-(ff:defun-c-callable clim-wind-proc (window msg wparam lparam)
+;; [rfe4951]:
+(ff:defun-foreign-callable clim-wind-proc (window msg wparam lparam)
   (declare (:convention :stdcall) (:unwind 0)
 	   (optimize (safety 0) (speed 3)))
   (let ((result 0)
@@ -951,7 +957,8 @@
 ;;; Implements the window proc for the subclassed controls (presently
 ;;; only the edit control).
 
-(ff:defun-c-callable clim-ctrl-proc (window msg wparam lparam)
+;; [rfe4951]
+(ff:defun-foreign-callable clim-ctrl-proc (window msg wparam lparam)
   (declare (:convention :stdcall) (:unwind 0))
   (mp:without-scheduling
     (setf *hwnd* window)

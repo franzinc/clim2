@@ -11,6 +11,15 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.3.10
+
+2001-09-18  Kevin Layer  <layer@crikey>
+
+    from duane:
+	* aclpc/acl-class.cl: rfe4951: remove ffcompat dependencies
+	* aclpc/pkgdcl.lisp: rfe4951: remove require of ffcompat module
+
+*******************************************************************************
 2.3.9
 
 2001-08-23 Nichael Cramer <ncramer@pointnclick.com>
