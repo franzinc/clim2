@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-frames.lisp,v 1.55 93/04/23 09:18:45 cer Exp $
+;; $fiHeader: xm-frames.lisp,v 1.56 93/04/27 14:36:09 cer Exp $
 
 (in-package :xm-silica)
 
@@ -125,7 +125,8 @@
 	 (text-style (pane-text-style sheet))
 	 (font-list (list :font-list (text-style-mapping port text-style)))
 	 (ct (menu-bar-command-table sheet))
-	 (flatp (flat-command-table-menu-p ct)))
+	 (flatp (flat-command-table-menu-p ct))
+	 (frame (pane-frame sheet)))
     (labels ((compute-options (item)
 	       (let ((text-style (getf (command-menu-item-options item) :text-style)))
 		 (if text-style
@@ -149,7 +150,7 @@
 		   (tk::remove-all-callbacks parent :map-callback)
 		   (tk::add-callback parent :map-callback
 				     #'update-menu-item-sensitivity 
-				     (pane-frame sheet)
+				     frame
 				     commands-and-buttons))))
 	     (make-submenu (parent menu item)
 	       (let* ((shell (make-instance 'xt::xm-menu-shell 
@@ -167,14 +168,19 @@
 					      :managed nil
 					      :parent shell
 					      :row-column-type :menu-pulldown))
-		      (cb (apply #'make-instance 'xt::xm-cascade-button-gadget
+		      (cb (apply #'make-instance 'xt::xm-cascade-button
 					 :parent parent
 					 :label-string menu
 					 :sub-menu-id submenu
 					 (compute-options item))))
 		 (unless flatp
 		   (set-button-mnemonic sheet
-					cb (getf (command-menu-item-options item) :mnemonic)))
+					cb (getf
+					    (command-menu-item-options
+					     item) :mnemonic)))
+
+		 (add-documentation-callbacks 
+		  frame cb (getf (command-menu-item-options item) :documentation))
 		 
 		 (let* ((ct (find-command-table (second item)))
 			(tick (slot-value ct 'clim-internals::menu-tick)))
@@ -244,6 +250,9 @@
 			       (push (list item button)
 				     commands-and-buttons)
 			       
+			       (add-documentation-callbacks 
+				frame button (getf (command-menu-item-options item) :documentation))
+
 			       (when flatp 
 				 (push (cons (car (command-menu-item-value item))
 					     button)
@@ -256,16 +265,9 @@
 			
 				 (set-button-mnemonic
 				  sheet
-				  button (getf (command-menu-item-options item) :mnemonic)))
-
-			       (when (getf (command-menu-item-options item) :documentation)
-				 (tk::add-callback
-				  button
-				  :help-callback
-				  'display-motif-help
-				  port
-				  (getf (command-menu-item-options
-					 item) :documentation)))
+				  button (getf
+					  (command-menu-item-options
+					   item) :mnemonic)))
 			       
 			       (tk::add-callback
 				button
@@ -281,10 +283,11 @@
 	 ct mirror (not flatp)))
     mirror))
 
-(defun display-motif-help (widget port documentation)
+(defun display-motif-help (widget framem documentation)
   (frame-manager-notify-user 
-   (find-frame-manager :port port)		;--- frame manager should be passed in
+   framem
    documentation
+   ;;-- Gross
    :associated-window widget))
 	     
 
@@ -335,7 +338,8 @@
 				    1))
 			      :managed nil))
 	 (font (and text-style (text-style-mapping port text-style)))
-	 (font-list (and (or label simplep) font (list :font-list (list font)))))
+	 (font-list (and (or label simplep) font (list :font-list (list font))))
+	 (frame (pane-frame associated-window)))
     (when label
       (let ((title (if (atom label) label (car label))))
 	(check-type title string)
@@ -383,13 +387,10 @@
 			  (xt::add-widget-cleanup-function
 			     button
 			     #'tk::destroy-pixmap pixmap)
-			  button))))
-		 (when (clim-internals::menu-item-documentation item)
-		   (tk::add-callback button 
-				 :help-callback 
-				 'display-motif-help
-				 port
-				 (clim-internals::menu-item-documentation item)))
+			  button))))	
+		 (add-documentation-callbacks
+		  frame button
+		  (clim-internals::menu-item-documentation item))
 		 button))
 	     (construct-menu-from-items (menu items)
 	       (map nil #'(lambda (item)
@@ -445,6 +446,8 @@
 		(if init
 		    (setf value-returned nil return-value nil)
 		  (values value-returned return-value))))))
+
+
 
 (defmethod frame-manager-allows-menu-caching ((framem motif-frame-manager))
   ;; Deal with the problem of motif installing passive grabs
@@ -555,3 +558,22 @@
     ;; menu frames, such as implemented "click off menu to abort".
     (setf (getf (frame-properties frame) :menu-frame) t)
     (values (slot-value frame 'clim-internals::menu) frame)))
+
+(defmethod add-documentation-callbacks (frame (button tk::xm-push-button) documentation)
+  (when documentation
+    (tk::add-callback
+     button :arm-callback 
+     'pointer-documentation-callback-function
+     frame documentation t)
+    (tk::add-callback
+     button :disarm-callback 
+     'pointer-documentation-callback-function
+     frame documentation nil)))
+
+(defmethod add-documentation-callbacks :after (frame (button t) documentation)
+  (when documentation
+    (tk::add-callback button 
+		      :help-callback 
+		      'display-motif-help
+		      (frame-manager frame)
+		      documentation)))

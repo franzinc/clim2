@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-silica.lisp,v 1.35 93/04/16 09:46:02 cer Exp $
+;; $fiHeader: xm-silica.lisp,v 1.36 1993/05/13 16:32:02 colin Exp $
 
 (in-package :xm-silica)
 
@@ -178,5 +178,11 @@
 
 (defun xm-get-focus-widget (widget)
   (tk::intern-widget (tk::xm_get_focus_widget widget)))
+
+(defmethod port-move-focus-to-gadget ((port xm-silica::motif-port) gadget)
+  ;;-- If this is composite then it should find the first child
+  ;;-- that can take the focus
+  (let ((m (sheet-direct-mirror gadget)))
+    (when m (tk::xm_process_traversal m 0))))
 
 

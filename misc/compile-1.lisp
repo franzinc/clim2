@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: compile-1.lisp,v 1.21 93/04/02 13:36:29 cer Exp $
+;; $fiHeader: compile-1.lisp,v 1.22 93/04/23 09:18:00 cer Exp $
 
 (in-package :user)
 
@@ -71,6 +71,8 @@
 
   (compile-file-if-needed "test/test-suite")
 
+  (load "test/test-suite")
+  
   (load "demo/sysdcl")
   (clim-defsys::compile-system 'clim-demo :propagate t)
   (clim-defsys::load-system 'clim-demo)

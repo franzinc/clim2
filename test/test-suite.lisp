@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: test-suite.lisp,v 1.63 93/05/13 16:24:24 cer Exp $
+;; $fiHeader: test-suite.lisp,v 1.63 1993/05/13 16:24:24 cer Exp $
 
 (in-package :clim-user)
 
@@ -776,7 +776,7 @@ people, shall not perish from the earth.
 (define-test (read-image-test graphics) (stream)
   "Test image reading code"
   (formatting-table (stream)
-    (dolist (name '("woman" "escherknot" "tie_fighter" "mensetmanus"))
+    (dolist (name '("woman" "escherknot" "tie_fighter" "mensetmanus" "calculator"))
       (formatting-row (stream)
 	(formatting-cell (stream)
 	  (write-string name stream))
@@ -1049,6 +1049,20 @@ people, shall not perish from the earth.
     (stream-force-output stream)
     (sleep 2)
     (window-refresh stream)))
+
+(define-test (multiple-erases output-recording) (stream)
+  "The four overlapping circles and a line and erase three of them"
+  (flet ((circle (x y r n)
+	   (with-output-as-presentation (stream  n 'integer)
+	     (draw-circle* stream x y r :ink (make-contrasting-inks 4 n)))))
+    (circle 100  50 40 1)
+    (let ((records (list 
+		    (circle  75 100 40 2)
+		    (circle 125 100 40 3)
+		    (circle 200 200 40 3))))
+      (draw-line* stream 100 50  200 200 :ink +white+)
+      (sleep 2)
+      (erase-output-record records stream))))
 
 
 ;;; Formatted output
@@ -1796,8 +1810,10 @@ Luke Luck licks the lakes Luke's duck likes."))
 (define-test (simple-menu menus-and-dialogs) (stream)
   "A simple test of MENU-CHOOSE."
   (write-string
-    (menu-choose '("Whistle"
-		   ("Pat head" :items
+    (menu-choose '(("Whistle" :documentation "Select whistle")
+		   ("Pat head" 
+		    :documentation "Pat head in various ways"
+		    :items
 		    (("with right hand" . "Pat head with right hand")
 		     ("with left hand" . "Pat head with left hand")))
 		   ("Rub Tummy" :items
@@ -2073,6 +2089,16 @@ Luke Luck licks the lakes Luke's duck likes."))
 	 (f (float 0 100) :view '(slider-view :orientation :vertical :show-value-p t))
 	 (g (integer 0 10) :view '(slider-view :orientation :vertical)))
 	(terpri stream)))))
+
+(define-test (list-pane-dialog menus-and-dialogs) (stream)
+  "Various list panes"
+  (let ((x :a-one))
+    (accepting-values (stream)
+      (setf x (accept '(member :a-one :b-two :c-three :d-four)
+		      :stream stream
+		      :view +list-pane-view+
+		      :default x
+		      :prompt "Value for X")))))
 
 (define-test (readonly-gadget-dialog menus-and-dialogs) (stream)
   "Create a bunch of readonly gadgets"

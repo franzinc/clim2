@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: event.lisp,v 1.16 93/02/08 15:57:53 cer Exp $
+;; $fiHeader: event.lisp,v 1.17 1993/05/13 16:24:34 cer Exp $
 
 (in-package :tk)
 
@@ -85,6 +85,12 @@
 
 (defun process-one-event (context mask reason)
   (cond ((plusp mask)
+	 #+debug
+	 (when (logtest mask *xt-im-xevent*)
+	   (let ((event (x11:make-xevent)))
+	     (unless (zerop (xt_app_peek_event context event))
+	       (when (eq (event-type event) :key-press)
+		 (break)))))
 	 (xt_app_process_event
 	  context
 	  ;; Because of a feature in the OLIT toolkit we need to

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-scroll.lisp,v 1.43 93/03/19 09:44:39 cer Exp $
+;; $fiHeader: db-scroll.lisp,v 1.44 1993/05/05 01:39:41 cer Exp $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright(c) 1991, 1992 International Lisp Associates.
@@ -97,12 +97,12 @@
 	      (update-scroll-bar vertical-scroll-bar
 				 top bottom 
 				 vtop vbottom
-				 (line-scroll-amount scroller :vertical nil)))
+				 :vertical))
 	    (when horizontal-scroll-bar
 	      (update-scroll-bar horizontal-scroll-bar
 				 left right 
 				 vleft vright
-				 (line-scroll-amount scroller :horizontal  nil)))))))))
+				 :horizontal))))))))
 
 (defmethod note-sheet-grafted :before ((sheet scroll-bar))
   (setf (scroll-bar-current-size sheet) nil))
@@ -110,7 +110,7 @@
 ;;--- In the case where the viewport is bigger than the window this
 ;;--- code gets things wrong.  Check out the thinkadot demo.  It's
 ;;--- because (- (--) (- vmin)) is negative.
-(defun update-scroll-bar (scroll-bar min max vmin vmax line-scroll)
+(defun update-scroll-bar (scroll-bar min max vmin vmax orientation)
   (declare (optimize (safety 0) (speed 3)))
   ;;-- Is this really the right thing to do?
   ;;-- If in an interactor some draws at -ve coordinates but the
@@ -137,28 +137,19 @@
 			(the single-float
 			  (if (= max min)
 			      1.0
-			      (min 1.0 (the single-float
-					 (/ viewport-range contents-range))))))))
+			    (min 1.0 (the single-float
+				       (/ viewport-range contents-range))))))))
 	     ;;-- This does not scale by the range
 	     (pos (the single-float
 		    (min 1.0s0 (max 0.0s0
 				    (if (<= contents-range viewport-range)
 					0.0
-					(/ (float (- vmin min) 0.0s0) 
-					   ;;--- Uh-oh, the home-grown scroll bars
-					   ;;--- seem to have a different contract
-					   ;;--- from Motif/OpenLook.  Fix them!
-					   #+Allegro (- contents-range viewport-range)
-					   #-Allegro contents-range))))))
-	     (line-scroll #+ignore
-			  (* range (/ line-scroll viewport-range))
-			  (if (zerop contents-range)
-			      0 ;-- Who knows
-			    (* range (/ line-scroll contents-range)))
-			  #+ignore
-			  (if (< contents-range viewport-range)
-			      0 ;-- Who knows
-			    (* range (/ line-scroll (- contents-range viewport-range))))))
+				      (/ (float (- vmin min) 0.0s0) 
+					 ;;--- Uh-oh, the home-grown scroll bars
+					 ;;--- seem to have a different contract
+					 ;;--- from Motif/OpenLook.  Fix them!
+					 #+Allegro (- contents-range viewport-range)
+					 #-Allegro contents-range)))))))
 	(declare (type single-float pos size))
 	(unless (and current-size
 		     current-value
@@ -166,10 +157,15 @@
 		     (= current-value pos))
 	  (setf (scroll-bar-current-value scroll-bar) pos)
 	  (setf (scroll-bar-current-size scroll-bar) size)
-	  (change-scroll-bar-values scroll-bar 
-				    :slider-size size
-				    :value pos
-				    :line-increment line-scroll))))))
+	  ;;-- It would be nice if we could do this at the point of scrolling
+	  (let* ((line-scroll (line-scroll-amount (slot-value scroll-bar 'client) orientation nil))
+		 (line-scroll (if (zerop contents-range)
+				  0 ;-- Who knows
+				(* range (/ line-scroll contents-range)))))
+	    (change-scroll-bar-values scroll-bar 
+				      :slider-size size
+				      :value pos
+				      :line-increment line-scroll)))))))
 
 (defmethod scroll-bar-value-changed-callback
 	   (sheet (client scroller-pane) id value size)

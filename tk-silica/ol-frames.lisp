@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-frames.lisp,v 1.23 93/04/08 13:18:52 colin Exp $
+;; $fiHeader: ol-frames.lisp,v 1.24 1993/05/13 16:31:25 colin Exp $
 
 
 (in-package :xm-silica)
@@ -77,7 +77,8 @@
 			      :managed nil))
 	 (menu (tk::get-values menu-shell :menu-pane))
 	 (font (and text-style (text-style-mapping (port framem) text-style)))
-	 (font-args (and font (list :font font))))
+	 (font-args (and font (list :font font)))
+	 (frame (pane-frame associated-window)))
 
     (let ((title (cond ((null label) "Choose")
 		       ((atom label) label)
@@ -121,13 +122,9 @@
 			   button
 			   #'tk::destroy-image image)
 			  button))))
-		 #+dunno
-		 (when (clim-internals::menu-item-documentation item)
-		   (tk::add-callback button 
-				 :help-callback 
-				 'display-motif-help
-				 port
-				 (clim-internals::menu-item-documentation item)))
+		 (add-documentation-callbacks
+		  frame button
+		  (clim-internals::menu-item-documentation item))
 		 button))
 	     (construct-menu-from-items (menu items)
 	       (map nil #'(lambda (item)
@@ -180,6 +177,8 @@
 		(if init
 		    (setf value-returned nil return-value nil)
 		  (values value-returned return-value))))))
+
+
 
 (defmethod framem-enable-menu ((framem openlook-frame-manager) menu)
   (tk::ol_menu_post menu))

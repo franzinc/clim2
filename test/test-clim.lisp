@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: test-clim.lisp,v 1.5 1993/05/05 01:40:05 cer Exp $
+;; $fiHeader: test-clim.lisp,v 1.6 1993/05/13 16:24:16 cer Exp $
 
 
 (in-package :clim-user)
@@ -57,7 +57,7 @@
 
 (define-command-sequence clim-tests-commands
     (com-draw-some-bezier-curves)
-    (:commands do-avv-test)
+  (:commands do-avv-test)
   (com-input-editor-tests)
   "This is (sexp) and a string"
   :ie-backward-character
@@ -97,18 +97,20 @@
   (:presentation-click display-pane integer)
   (:presentation-click display-pane integer)
   :abort
-  
-  (com-read-image-test)
+  )
+
+
+(define-frame-test more-clim-tests (clim-tests 
+				    :width 600 :height 600)
+  ((com-read-image-test)
    
   (com-filled-output)
+  (:presentation-click display-pane string)
    
   ;; This would be nice but moving to the top right of the
   ;; presentation does not work when they are circular!
   ;; (com-ordering-test-1)
   ;; (:presentation-click display-pane integer)
-
-
-  (:presentation-click display-pane string)
    
   (com-ordering-test-2a)
   (:presentation-click display-pane integer)
@@ -195,6 +197,9 @@
   (com-scaled-rotated-rectangles)
   (com-rotated-scaled-rectangles)
   (com-draw-some-rectangles))
+
+  (exit-clim-tests)
+  )
 
 (define-frame-test test-drag-and-drop (clim-tests 
 					       :width 600 :height 600  
@@ -508,15 +513,70 @@
 (push 'find-frame-manager-test *frame-tests*)
 
 (defun find-frame-manager-test ()
-  (handler-case (let ((fm (find-frame-manager)))
-		  (with-frame-manager (fm)
-		    (let ((*default-server-path* 
-			   `(,(if (excl::featurep :clim-motif)
-				  :motif :openlook)
-				:display "mysparc10:0")))
-		      (assert (eq fm (find-frame-manager))))))
-    (error (c)
-      (note-test-failed 'find-frame-manager-test c))
-    (:no-error (&rest ignore)
-      (declare (ignore ignore))
-      (note-test-succeeded 'find-frame-manager-test))))
+  (with-test-success-expected ('find-frame-manager-test)
+    (let ((fm (find-frame-manager)))
+      (with-frame-manager (fm)
+	(let ((*default-server-path* 
+	       `(,(if (excl::featurep :clim-motif)
+		      :motif :openlook)
+		    :display "mysparc10:0")))
+	  (assert (eq fm (find-frame-manager))))))))
+
+;;
+
+(push 'open-window-stream-test *frame-tests*)
+
+;; Stewart introduced bugs here......................
+
+(defun open-window-stream-test ()
+  (with-test-success-expected ('open-window-stream-test)
+    (let* (stream1 stream2 stream3)
+      (setq stream1 (open-window-stream :label "Fred" :scroll-bars :vertical))
+      (window-expose stream1)
+      (setq stream2 (open-window-stream :label "Joh" :scroll-bars :vertical :parent stream1))
+      (window-expose stream2)
+      (setq stream3 (open-window-stream :label "Joh" :scroll-bars :vertical :left 500 :top 500))
+      (window-expose stream3)
+      (sleep 10)
+      (setf (window-visibility stream1) nil
+	    (window-visibility stream2) nil
+	    (window-visibility stream3) nil))))
+
+
+;;
+
+(push 'multiple-value-setf-test *frame-tests*)
+
+(defun multiple-value-setf-test ()
+  (with-test-success-expected ('multiple-value-setf-test)
+    (let ((x (make-bounding-rectangle 0 0 10 10)))
+      (setf (bounding-rectangle* x)
+	(values 12 12 13 14)))))
+
+(push 'filling-output-on-plain-stream-test *frame-tests*)
+
+(defun filling-output-on-plain-stream-test ()
+  (with-test-success-expected ('filling-output-on-plain-stream-test)
+    (filling-output (*standard-output* :fill-width '(20 :character))
+      (write-string *gettysburg-address* *standard-output*))))
+
+
+
+(macrolet ((define-profile-clim-tests ()
+	       `(define-frame-test profile-clim-tests (clim-tests :width 600 :height 600)
+		  ,(mapcan #'(lambda (benchmark-group)
+			       (mapcar #'list (cdr benchmark-group)))
+			   *summary-contributions*)
+		  (exit-clim-tests))))
+  (define-profile-clim-tests))
+
+(push 'run-profile-clim-tests *frame-tests*)
+
+(defun run-profile-clim-tests ()
+  (let ((prof::*hidden-packages* nil)
+	(prof::*significance-threshold* 0.001)
+	(prof::*fractional-significance-threshold* .002))
+    (with-test-success-expected ('run-profile-clim-tests-time)
+      (do-frame-test-with-profiling 'profile-clim-tests  :type :time))
+    (with-test-success-expected ('run-profile-clim-tests-space)
+      (do-frame-test-with-profiling 'profile-clim-tests :type :space))))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: macros.lisp,v 1.13 92/08/18 17:23:48 cer Exp $
+;; $fiHeader: macros.lisp,v 1.14 92/09/24 09:37:45 cer Exp $
 
 (in-package :silica)
 
@@ -43,10 +43,13 @@
     (setq frame `*application-frame*))
   `(flet ((make-pane (pane-class &rest pane-options)
 	    (declare (dynamic-extent pane-options))
-	    (apply #'make-pane-1 
-		   ,frame-manager ,frame pane-class pane-options)))
-     (declare (dynamic-extent #'make-pane))
-     #'make-pane			;prevent spurious compiler warnings
+	    (apply #'make-pane-1 ,frame-manager ,frame pane-class pane-options))
+	  (make-clim-stream-pane (&rest pane-options)
+	    (declare (dynamic-extent pane-options))
+	    (apply #'clim-internals::make-clim-stream-pane-1 ,frame-manager ,frame pane-options)))
+     (declare (dynamic-extent #'make-pane #'make-clim-stream-pane))
+     #'make-pane		;prevent spurious compiler warnings
+     #'make-clim-stream-pane
      ,@forms))
 
 #+Genera (zwei:defindentation (make-pane 1 1))
@@ -55,3 +58,7 @@
   (warn "~S not inside a call to ~S"
 	'make-pane 'with-look-and-feel-realization))
 
+(defun make-clim-stream-pane (&rest pane-options)
+  (declare (ignore pane-options))
+  (warn "~S not inside a call to ~S"
+	'make-clim-stream-pane 'with-look-and-feel-realization))

@@ -20,7 +20,8 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-funs.lisp,v 1.17 93/05/13 16:24:42 cer Exp $
+;; $fiHeader: xt-funs.lisp,v 1.17 1993/05/13 16:24:42 cer Exp $
+
 
 ;;
 ;; This file contains compile time only code -- put in clim-debug.fasl.
@@ -277,6 +278,15 @@
     :arg-checking nil
     :return-type :fixnum
     :entry-point (ff:convert-to-lang "XtAppPending"))
+
+
+(defforeign 'xt_app_peek_event
+    :arguments '(foreign-address foreign-address)
+    :call-direct t
+    :arg-checking nil
+    :return-type :fixnum
+    :entry-point (ff:convert-to-lang "XtAppPeekEvent"))
+
 (defforeign 'xt_app_process_event
     :arguments '(foreign-address fixnum)
     :call-direct t
@@ -396,3 +406,18 @@
 ;    :arg-checking nil
 ;    :entry-point (ff:convert-to-lang "XtGetMultiClickTime")
 ;    :return-type :unsigned-integer)
+
+(ff:defforeign 'xt_parse_translation_table
+    :call-direct t
+    :arguments '(string)
+    :arg-checking nil
+    :entry-point (ff:convert-to-lang "XtParseTranslationTable")
+    :return-type :unsigned-integer)
+
+(ff:defforeign 'xt_parse_accelerator_table
+    :call-direct t
+    :arguments '(string)
+    :arg-checking nil
+    :entry-point (ff:convert-to-lang "XtParseAcceleratorTable")
+    :return-type :unsigned-integer)
+

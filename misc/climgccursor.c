@@ -1,7 +1,6 @@
 #include <X11/Intrinsic.h>
 #include <X11/StringDefs.h>
 #include <signal.h>
-#include <stdio.h>
 
 
 static Widget gc_widget = (Widget)NULL;
@@ -26,8 +25,6 @@ int cursor;
 
 	    if (XFindContext(display, root, context, &font_cursor)) {
 		font_cursor = XCreateFontCursor(display, cursor);
-		fprintf(stderr, "Making cursor\n");
-		fflush(stderr);
 		XSaveContext(display, root, context, font_cursor);
 	    }
 	    return (font_cursor);
@@ -73,8 +70,6 @@ Widget client_data;
 int *call_data;
 {
     if (gc_widget == client_data) {
-	fprintf(stderr, "Removing gc cursor\n");
-	fflush(stderr);
 	gc_widget = 0;
     }
 }

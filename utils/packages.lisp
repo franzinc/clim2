@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: packages.lisp,v 1.53 93/04/27 14:36:16 cer Exp $
+;; $fiHeader: packages.lisp,v 1.54 1993/05/13 16:33:01 colin Exp $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :common-lisp-user)
 
@@ -2032,6 +2032,7 @@
     pixmap-height
     pixmap-width
     with-output-to-pixmap
+    with-medium-state-cached
     
     ;; Colors
     +background-ink+
@@ -2666,6 +2667,7 @@
     disable-frame
     disown-frame
     display-command-menu
+    display-invalid-queries
     enable-frame
     execute-frame-command
     execute-command-in-frame
@@ -3470,6 +3472,8 @@
     mirror-region-updated
     mirror-visible-p
     modifier-keysym
+    move-focus-to-gadget
+    port-move-focus-to-gadget
     non-drawing-option-keywords
     note-layout-mixin-region-changed
     note-sheet-tree-grafted

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: recording-protocol.lisp,v 1.32 93/04/07 09:06:50 cer Exp $
+;; $fiHeader: recording-protocol.lisp,v 1.33 1993/05/05 01:38:56 cer Exp $
 
 (in-package :clim-internals)
 
@@ -1150,25 +1150,44 @@
 	    (replay text-output-record stream region)))))))
 
 (defmethod erase-output-record (record (stream output-recording-mixin) &optional (errorp t))
-  (let ((parent (output-record-parent record)))
-    (multiple-value-bind (xoff yoff)
-	(convert-from-relative-to-absolute-coordinates stream parent)
-      (with-bounding-rectangle* (left top right bottom) record
-	(with-output-recording-options (stream :record nil)
-	  (if (or (= left right) (= top bottom))
-	      ;; Handle specially, since a thin line is wider than a
-	      ;; rectangle of zero width or height
-	      (draw-line-internal stream xoff yoff
-				  left top right bottom
-				  +background-ink+ nil)
-	      (draw-rectangle-internal stream xoff yoff
-				       left top right bottom
-				       +background-ink+ nil)))))
-    (when parent
-      (delete-output-record record parent errorp))
-    ;; Use the output record itself as the replay region, and replay
-    ;; the stuff that might have been obscured by the erased output
-    (frame-replay *application-frame* stream record)))
+  (macrolet ((draw-it ()
+	       `(if (or (= left right) (= top bottom))
+		    ;; Handle specially, since a thin line is wider than a
+		    ;; rectangle of zero width or height
+		    (draw-line-internal stream xoff yoff
+					left top right bottom
+					+background-ink+ nil)
+		  (draw-rectangle-internal stream xoff yoff
+					   left top right bottom
+					   +background-ink+ nil))))
+    (if (listp record)
+	(let ((replay-region +nowhere+))
+	  (with-output-recording-options (stream :record nil)
+	    (dolist (record record)
+	      (let ((parent (output-record-parent record)))
+		(multiple-value-bind (xoff yoff)
+		    (convert-from-relative-to-absolute-coordinates stream parent)
+		  (with-bounding-rectangle* (left top right bottom) record
+		    (draw-it)
+		    (when parent
+		      (delete-output-record record parent errorp))
+		    (translate-coordinates xoff yoff left top right bottom)
+		    (setq replay-region
+		      (region-union
+		       replay-region
+		       (make-bounding-rectangle left top right bottom))))))))
+	  (frame-replay *application-frame* stream replay-region))
+      (let ((parent (output-record-parent record)))
+	(multiple-value-bind (xoff yoff)
+	    (convert-from-relative-to-absolute-coordinates stream parent)
+	  (with-bounding-rectangle* (left top right bottom) record
+	    (with-output-recording-options (stream :record nil)
+	      (draw-it))))
+	(when parent
+	  (delete-output-record record parent errorp))
+	;; Use the output record itself as the replay region, and replay
+	;; the stuff that might have been obscured by the erased output
+	(frame-replay *application-frame* stream record)))))
 
 (defmethod invoke-with-output-recording-options ((stream output-recording-mixin)
 						 continuation record draw)

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-frames.lisp,v 1.33 93/04/16 09:46:04 cer Exp $
+;; $fiHeader: xt-frames.lisp,v 1.34 93/04/23 09:18:48 cer Exp $
 
 
 (in-package :xm-silica)
@@ -190,8 +190,8 @@
 
 (defmethod frame-manager-exit-box-labels ((framem xt-frame-manager) frame view)
   (declare (ignore frame view))
-  '((:exit  "Ok")
-    (:abort  "Cancel")))
+  '((:exit  "OK" :documentation "Exit from dialog")
+    (:abort  "Cancel" :documentation "Cancel dialog")))
 
 (defmethod frame-manager-default-exit-boxes ((framem xt-frame-manager))
   '((:exit) (:abort)))
@@ -291,3 +291,17 @@
       (destructuring-bind (&key name &allow-other-keys) (clim-internals::frame-icon frame)
 	;;-- Dialog shells do not have :icon-name resource
 	(tk::set-values shell :icon-name (or name (frame-pretty-name frame)))))))
+
+(defmethod add-documentation-callbacks (frame button documentation)
+  (declare (ignore frame button documentation)))
+
+(defun pointer-documentation-callback-function (widget frame documentation showp)
+  (declare (ignore widget))
+  (let ((pointer-documentation-pane
+	 (clim-internals::frame-actual-pointer-documentation-pane frame)))
+    (when pointer-documentation-pane
+      (frame-manager-display-pointer-documentation-string
+       (frame-manager frame)
+       frame
+       pointer-documentation-pane
+       (and showp documentation)))))

@@ -122,13 +122,19 @@
      #'(lambda () (setq done (not (mp::process-stack-group process)))))
     done))
 
+(defvar *execute-one-command-hook* nil)
 
 (defun execute-commands-in-invocation (invocation commands)
   (do ((commands commands (cdr commands)))
       ((or (not (invocation-active-p invocation))
 	   (null commands)))
-    (execute-one-command invocation (car commands))
-    (wait-for-clim-input-state invocation)))
+    (let ((command (car commands)))
+      (flet ((do-it ()
+	       (execute-one-command invocation command)
+	       (wait-for-clim-input-state invocation)))
+	(if *execute-one-command-hook*
+	    (funcall *execute-one-command-hook* invocation command #'do-it)
+	  (do-it))))))
 
 (defvar *command-sequence-table* (make-hash-table))
 
@@ -190,6 +196,17 @@
 		    (wait-for-clim-input-state invocation timeout)))
 	      (execute-command-in-frame (or avv-frame (invocation-frame invocation)) command)))))))))
 
+(defmacro with-test-success-expected ((test-name) &body body)
+  (let ((tname (gensym)))
+    `(let ((,tname ,test-name))
+       (handler-case (progn ,@body)
+	 (error (c)
+	   (note-test-failed ,tname c))
+	 (:no-error (&rest ignore)
+	   (declare (ignore ignore))
+	   (note-test-succeeded ,tname))))))
+
+
 (defun exercise-frame (test-name class initargs commands exit-command 
 		       &key (error *catch-errors-in-tests*)
 			    (invocation-class 'frame-invocation))
@@ -205,12 +222,8 @@
 		 (warn "Process would not die when killed"))
 	       (destroy-invocation invocation)))))
     (if error
-	(handler-case (doit)
-	  (error (condition)
-	    (note-test-failed test-name condition))
-	  (:no-error (&rest ignore)
-	    (declare (ignore ignore))
-	    (note-test-succeeded test-name)))
+	(with-test-success-expected (test-name)
+	  (doit))
       (doit))))
 
 
@@ -665,6 +678,27 @@
 ;; How can we wait for a frame to be created. Grab hold of it and then
 ;; run some commands on it.
 
+(eval-when (compile load eval)
+  (require :prof))
+
+(defun do-frame-test-with-profiling (test &key (type :time))
+  (flet ((profiling-hook (invocation command continuation)
+	   ;;-- it would be nice to restrict it to the invocation process
+	   (if (or (atom command)
+		   (equal command '(exit-clim-tests)))
+	       (funcall continuation)
+	     (progn
+	       (unwind-protect
+		   (progn 
+		     (prof::start-profiler :type type :verbose nil)
+		     (funcall continuation))
+		 (profiler:stop-profiler))
+	       (with-open-file (*standard-output* (format nil "notes/profiles/~A.~A-profile.lisp" (car command) type)
+				:direction :output :if-exists :supersede)
+		 (prof:show-call-graph)
+		 (prof:show-flat-profile))))))
+    (let ((*execute-one-command-hook* #'profiling-hook))
+      (funcall test))))
 
 ;;; This should be at the end:
 ;;; make the training selective.
@@ -677,3 +711,4 @@
 ;; This stops warnings happening asynchronously and causing confusion.
 
 (setq excl:*global-gc-behavior* nil)
+

@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.74 93/05/13 16:25:00 cer Exp $
+;; $fiHeader: xm-gadgets.lisp,v 1.74 1993/05/13 16:25:00 cer Exp $
 
 (in-package :xm-silica)
 
@@ -1745,5 +1745,49 @@
       (tk::set-values button 
                       :accelerator accel
                       :accelerator-text accel-text))))
+
+
+
+;; Support for help
+
+(defmethod add-sheet-callbacks :after 
+           ((port motif-port) (sheet gadget) (widget xt::xm-primitive))
+  (add-help-callback sheet widget))
+
+(defmethod add-sheet-callbacks :after 
+           ((port motif-port) (sheet gadget) (widget xt::xm-manager))
+  (add-help-callback sheet widget))
+
+(defun add-help-callback (sheet widget)
+  (when (silica::gadget-help-callback sheet)
+    (tk::add-callback widget 
+		      :help-callback 
+		      'help-callback-function
+		      sheet)))
+
+(defun help-callback-function (widget sheet)
+  (declare (ignore widget))
+  (distribute-event
+   (port sheet)
+   (allocate-event 'gadget-help-event
+		   :gadget sheet)))
+
+(defclass gadget-help-event (gadget-event) 
+  ())
+
+(defmethod handle-event ((sheet basic-gadget) (event gadget-help-event))
+  (let ((help (silica::gadget-help-callback sheet)))
+    (etypecase help
+      (string (display-motif-help sheet (frame-manager sheet) help))
+      (cons (apply (car help) sheet (cdr help))))))
+
+
+(defun clim-internals::make-help-from-presentation-type (stream presentation-type)
+  ;;-- We have to do it this way because describe methods might invoke
+  ;;-- presentations etc etc
+  (accepting-values (stream :exit-boxes '(:exit)
+			    :label "Help"
+			    :own-window t)
+    (describe-presentation-type presentation-type stream)))
 
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-stream.lisp,v 1.51 93/05/13 16:23:01 cer Exp $
+;; $fiHeader: db-stream.lisp,v 1.52 1993/05/13 16:28:41 colin Exp $
 
 (in-package :clim-internals)
 
@@ -347,79 +347,65 @@
 
 (defclass command-menu-pane (clim-stream-pane) ())
 
-(defmethod compose-space :before ((pane command-menu-pane) &key width height)
-  (declare (ignore width height))
-  ;;------ !!!!!!!!!!!!!!!!!!!!!!
-  ;;
-  #+ignore
-  (window-clear pane))
+(defun make-clim-stream-pane-1 (framem frame
+				&rest options
+				&key (type 'clim-stream-pane)
+				     label 
+				     (label-alignment #+Genera :bottom #-Genera :top)
+				     (scroll-bars ':vertical)
+				     (borders t)
+				     (display-after-commands nil dac-p)
+				     (background nil background-p)
+				     name
+				&allow-other-keys)
+  (with-look-and-feel-realization (framem frame)
+    (setq options (remove-keywords options '(:type :scroll-bars :borders
+					     :label :background
+					     :label-alignment :display-after-commands)))
+    (when dac-p
+      (setf (getf options :display-time)
+	(cond ((eq display-after-commands t) :command-loop)
+	      ((eq display-after-commands :no-clear) :no-clear)
+	      (t nil))))
+    
+    (let* ((stream (apply #'make-pane type options))
+	   (pane stream))
 
+      (when scroll-bars
+	(setq pane (apply #'make-pane 'scroller-pane
+			  :contents pane
+			  :name name
+			  (and background-p `(:background ,background)))))
 
-;; This is a macro because it counts on being expanded inside of a call
-;; to WITH-LOOK-AND-FEEL-REALIZATION
-(defmacro make-clim-stream-pane (&rest options
-				 &key (type ''clim-stream-pane) 
-				      label 
-				      (label-alignment #+Genera :bottom #-Genera :top)
-				      (scroll-bars ':vertical)
-				      (borders t)
-				      (display-after-commands nil dac-p)
-				      (background nil background-p)
-				      name
-				 &allow-other-keys)
-  (setq options (remove-keywords options '(:type :scroll-bars :borders
-					   :label :background
-					   :label-alignment :display-after-commands)))
-  (let* ((stream '#:clim-stream)
-	 (display-time
-	   (and dac-p
-		`(:display-time ,(cond ((eq display-after-commands t) :command-loop)
-				       ((eq display-after-commands :no-clear) :no-clear)
-				       (t nil)))))
-	 (background-var (and background (gensym)))
-	 (pane
-	   `(setq ,stream (make-pane ,type 
-				     ,@display-time
-				     ,@(and background-p `(:background ,background-var))
-				     ,@options))))
-    (when scroll-bars
-      (setq pane `(scrolling
-		      (:scroll-bars ,scroll-bars
-		       :name ,name
-		       ,@(and background-p `(:background ,background-var)))
-		    ,pane)))
-    (when label
-      (let ((label (if (stringp label)
-		       `(make-pane 'label-pane 
-			  :label ,label
-			  :max-width +fill+
-			   ,@(and background-p `(:background ,background-var)))
-		       `(make-pane 'label-pane 
-			  :label ,(first label)
-			  :max-width +fill+ ,@(rest label)
-			   ,@(and background-p `(:background ,background-var))))))
-	(ecase label-alignment
-	  (:bottom
-	   (setq pane `(vertically 
-			   (,@(and background-p `(:background ,background-var)))
-			 ,pane
-			 ,label)))
-	  (:top
-	   (setq pane `(vertically 
-			   (,@(and background-p `(:background ,background-var)))
-			 ,label
-			 ,pane))))))
-    (when borders 
-      (setq pane `(outlining 
-		      (:thickness 1 
-		       :name ,name
-		       ,@(and background-p `(:background ,background-var)))
-		    (spacing (:thickness 1
-			      ,@(and background-p `(:background ,background-var)))
-		      ,pane))))
-    `(let ((,stream)
-	   ,@(and background-p `((,background-var ,background))))
-       (values ,pane ,stream))))
+      (when label
+	(let ((label (if (stringp label)
+			 (apply #'make-pane 'label-pane 
+				:label label
+				:max-width +fill+
+				(and background-p `(:background ,background)))
+		       (apply #'make-pane 'label-pane 
+			      :label (first label)
+			      :max-width +fill+ 
+			      (append (rest label)
+				      (and background-p `(:background ,background)))))))
+	  (setq pane (apply #'make-pane 'vbox-pane
+			    :contents 	  
+			    (ecase label-alignment
+			      (:bottom (list pane label))
+			      (:top (list label pane)))
+			    (and background-p `(:background ,background))))))
+      (when borders 
+	(setq pane
+	  (apply #'make-pane 'outlined-pane
+		 :name name
+		 :thickness 1
+		 :contents (apply #'make-pane 'spacing-pane
+				  :name name
+				  :thickness 1
+				  :contents pane
+				  (and background-p `(:background ,background)))
+		 (and background-p `(:background ,background)))))
+      (values pane stream))))
 
 (defmacro make-clim-interactor-pane (&rest options)
   `(make-clim-stream-pane :type 'interactor-pane ,@options))
@@ -680,54 +666,3 @@
       (values (floor (- right left) char-width)
 	      (floor (- bottom top) line-height)))))
 
-
-;;; This is too useful to simply omit
-(defun open-window-stream (&key left top right bottom width height
-				(foreground +black+) (background +white+)
-				text-style default-text-style
-				(vertical-spacing 2)
-				(end-of-line-action :allow)
-				(end-of-page-action :allow)
-				output-record (draw t) (record t)
-				(initial-cursor-visibility :off)
-				text-margin default-text-margin
-				save-under input-buffer
-				(scroll-bars :vertical) borders label)
-  (declare (ignore borders input-buffer))
-  (when (or width height)
-    (assert (and (null right) (null bottom))))
-  (when (null left) (setq left 0))
-  (when (null top)  (setq top 0))
-  (when (or (null width) (null height))
-    (if (or (null right) (null bottom))
-	(setq width 100
-	      height 100)
-	(setq width (- right left)
-	      height (- bottom top))))
-  (let* ((stream
-	  ;;-- This should call frame-manager-get-menu to get
-	  ;;-- the right kind of menu-frame
-	  (frame-manager-get-menu (find-frame-manager)
-					       ;;-- what about :save-under
-					       :label label
-					       :scroll-bars scroll-bars))
-	 (port (port stream)))
-    (setf (medium-foreground stream) foreground
-	  (medium-background stream) background
-	  (medium-default-text-style stream) (or default-text-style *default-text-style*)
-	  (medium-text-style stream) (or text-style *default-text-style*)
-	  (stream-vertical-spacing stream) vertical-spacing
-	  (stream-end-of-line-action stream) end-of-line-action
-	  (stream-end-of-page-action stream) end-of-page-action
-	  (stream-recording-p stream) record
-	  (stream-drawing-p stream) draw
-	  (cursor-visibility (stream-text-cursor stream)) initial-cursor-visibility
-	  (stream-text-margin stream) text-margin
-	  (stream-default-text-margin stream) default-text-margin)
-    (when output-record
-      (stream-output-history stream) (make-instance output-record))
-    (window-set-inside-size stream width height)
-    (window-set-viewport-position stream 0 0)
-    (position-sheet-carefully
-      (frame-top-level-sheet (pane-frame stream)) width height)
-    stream))

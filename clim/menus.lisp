@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: menus.lisp,v 1.43 93/04/16 09:44:55 cer Exp $
+;; $fiHeader: menus.lisp,v 1.44 1993/05/05 01:38:44 cer Exp $
 
 (in-package :clim-internals)
 
@@ -619,3 +619,86 @@
 		 (return-from menu-choose
 		   (values (menu-item-value item) item gesture)))))))))
 
+
+
+;;; This is too useful to simply omit
+
+(define-application-frame open-window-stream-frame ()
+  ((type :initarg :type)
+   (scroll-bars :initarg :scroll-bars) 
+   (borders :initarg :borders)
+   stream
+   pane)
+  (:command-definer nil)
+  (:menu-bar nil)
+  (:pane
+   (with-slots (pane stream type scroll-bars borders) *application-frame*
+     (multiple-value-setq (pane stream)
+       (make-clim-stream-pane
+	:type type
+	:scroll-bars scroll-bars
+	:borders borders))
+     pane)))
+
+(defun open-window-stream (&key (left nil leftp)
+				(top nil topp)
+				(right nil rightp)
+				(bottom nil bottomp) 
+				width height
+				(foreground +black+) (background +white+)
+				text-style default-text-style
+				(vertical-spacing 2)
+				(end-of-line-action :allow)
+				(end-of-page-action :allow)
+				output-record (draw t) (record t)
+				(initial-cursor-visibility :off)
+				text-margin default-text-margin
+				save-under input-buffer
+				(scroll-bars :vertical) borders label
+				(type 'application-pane)
+				parent)
+  (declare (ignore save-under))
+  (when (or width height)
+    (assert (and (null right) (null bottom))))
+  (when (null left) (setq left 0))
+  (when (null top)  (setq top 0))
+  (when (or (null width) (null height))
+    (if (or (null right) (null bottom))
+	(setq width 100
+	      height 100)
+	(setq width (- right left)
+	      height (- bottom top))))
+  (let* ((frame (make-application-frame 'open-window-stream-frame
+					:resize-frame t
+					:pretty-name label
+					:type  type
+					:scroll-bars scroll-bars
+					:borders  borders
+					:input-buffer input-buffer
+					:frame-manager
+					(etypecase parent
+					  ((or pane standard-application-frame) 
+					   (frame-manager parent))
+					  (frame-manager parent)
+					  (null (find-frame-manager)))))
+	 (stream (slot-value frame 'stream)))
+    (setf (medium-foreground stream) foreground
+	  (medium-background stream) background
+	  (medium-default-text-style stream) (or default-text-style *default-text-style*)
+	  (medium-text-style stream) (or text-style *default-text-style*)
+	  (stream-vertical-spacing stream) vertical-spacing
+	  (stream-end-of-line-action stream) end-of-line-action
+	  (stream-end-of-page-action stream) end-of-page-action
+	  (stream-recording-p stream) record
+	  (stream-drawing-p stream) draw
+	  (cursor-visibility (stream-text-cursor stream)) initial-cursor-visibility
+	  (stream-text-margin stream) text-margin
+	  (stream-default-text-margin stream) default-text-margin)
+    (when output-record
+      (stream-output-history stream) (make-instance output-record))
+    (window-set-inside-size stream width height)
+    (window-set-viewport-position stream 0 0)
+    (when (or leftp topp rightp bottomp)
+      (position-sheet-carefully
+       (frame-top-level-sheet (pane-frame stream)) left top))
+    stream))

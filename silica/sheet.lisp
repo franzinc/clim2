@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sheet.lisp,v 1.35 93/02/08 15:57:40 cer Exp $
+;; $fiHeader: sheet.lisp,v 1.36 93/03/18 14:38:23 colin Exp $
 
 (in-package :silica)
 
@@ -498,3 +498,4 @@
 	   ((port basic-port) (sheet basic-sheet) cursor)
   (declare (ignore cursor))
   nil)
+

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept-values.lisp,v 1.61 1993/05/05 01:38:12 cer Exp $
+;; $fiHeader: accept-values.lisp,v 1.62 1993/05/13 16:22:58 cer Exp $
 
 (in-package :clim-internals)
 
@@ -138,6 +138,8 @@
 		   (setf (accept-values-query-changed-p query) nil)))))
 
 ;; Probably should be keyword arguments...
+
+
 (defmethod find-or-add-query ((stream accept-values-stream) query-identifier ptype prompt
 			      default default-supplied-p view active-p)
   (let ((avv-record (slot-value stream 'avv-record)))
@@ -180,7 +182,8 @@
 				 ;; can change values without changing the query itself.
 				 :default (if (accept-values-query-changed-p query)
 					      (accept-values-query-value query)
-					      (setf (accept-values-query-value query) default))
+					      (setf (accept-values-query-error-p query) nil
+						  (accept-values-query-value query) default))
 				 :history ptype
 				 :present-p `(accept-values-choice ,query)
 				 :query-identifier query
@@ -449,9 +452,9 @@
 			      (setq initial-query
 				    (find-query avv-record 
 						(car initially-select-query-identifier))))
-		     (if (cdr initially-select-query-identifier)
-			 (com-modify-avv-choice initial-query)
-			 (com-edit-avv-choice initial-query))
+		     (move-focus-to-query stream 
+					  initial-query
+					  (not (cdr initially-select-query-identifier)))
 		     (redisplay avv stream :check-overlapping check-overlapping))
 		   (loop
 		     (let ((command
@@ -561,6 +564,32 @@
 		(move-cursor-beyond-output-record 
 		  (encapsulating-stream-stream stream) avv)))))))))
 
+(defun find-query-gadget (query)
+  (let ((record (accept-values-query-presentation query)))
+    (when record
+      (labels ((find-gadget-output-record (record)
+		 (typecase record
+		   (gadget-output-record 
+		    (return-from find-query-gadget (output-record-gadget record)))
+		   (output-record
+		    (map-over-output-records #'find-gadget-output-record record)))))
+	(declare (dynamic-extent #'find-gadget-output-record))
+	(find-gadget-output-record record)))))
+
+(defun move-focus-to-query (stream query &optional (editp t))
+  (declare (ignore stream))
+  ;;-- If there is a gadget then we should move the focus to that
+  ;;-- otherwise edit the field
+  (let ((gadget (find-query-gadget query)))
+    (cond (gadget
+	   (move-focus-to-gadget gadget))
+	  ;;-- This stuff will still loose on old style CLIM
+	  ;;-- member fields
+	  (editp
+	   (com-edit-avv-choice query))
+	  (t
+	   (com-modify-avv-choice query)))))
+
 (defmethod display-view-background (stream (view view))
   nil)
 
@@ -593,36 +622,16 @@
   (loop (read-gesture :stream stream)))
 
 (defmethod frame-manager-display-help 
-	   ((framem standard-frame-manager) (frame accept-values-own-window) stream continuation)
+    (framem (frame accept-values-own-window) (stream standard-input-editing-stream) continuation)
   (declare (dynamic-extent continuation))
-  (when (null (slot-value frame 'help-window))
-    (setf (slot-value frame 'help-window)
-	  (allocate-resource 'menu stream (window-root stream))))
-  (let ((help-window (slot-value frame 'help-window))
-	(own-window (slot-value frame 'own-window)))
-    (setf (window-visibility help-window) nil)
-    ;; You might think that we should bind *INPUT-CONTEXT* to NIL, but
-    ;; by not doing the translators from the ACCEPT-VALUES dialog apply
-    ;; to any items presented in the help window.  Cool, huh?
-    (let ((*original-stream* nil))
-      (window-clear help-window)
-      (with-output-recording-options (help-window :draw t :record t)
-	(with-end-of-line-action (help-window :allow)
-	  (with-end-of-page-action (help-window :allow)
-	    (funcall continuation help-window)
-	    (fresh-line help-window)
-	    (with-text-face (help-window :italic)
-	      (write-line "Press any key to remove this window" help-window)))))
-      (size-frame-from-contents help-window)
-      (multiple-value-bind (x y) (bounding-rectangle-position own-window)
-	(position-sheet-carefully 
-	  (frame-top-level-sheet (pane-frame help-window)) x y))
-      (setf (window-visibility help-window) t)
-      (clear-input help-window)
-      (unwind-protect
-	  (with-input-focus (help-window)
-	    (read-gesture :stream help-window))
-	(setf (window-visibility help-window) nil)))))
+  ;;-- Yuck but think of a better way
+  (let ((old-help *accept-help*))
+    (accepting-values (stream :exit-boxes '(:exit)
+			      :label "Input editor help"
+			      :own-window t)
+      (let ((*accept-help* old-help))
+	(funcall continuation stream)))))
+
 
 (defmethod accept-values-top-level :around ((frame accept-values-own-window) &rest args)
   (declare (ignore args))
@@ -667,14 +676,17 @@
 
 (define-presentation-type accept-values-exit-box ())
 
-(defmacro with-exit-box-decoded ((value label text-style) exit-box labels &body body)
+(defmacro with-exit-box-decoded ((value label text-style documentation) exit-box labels &body body)
   `(let* ((,value (if (consp ,exit-box) (first ,exit-box) ,exit-box))
 	  (,label (or (and (consp ,exit-box)
 			   (second ,exit-box))
 		      (second (assoc ,value ,labels))))
 	  (,text-style (or (and (consp ,exit-box)
 				(getf (cddr ,exit-box) :text-style))
-			   (getf (cddr (assoc ,value ,labels)) :text-style))))
+			   (getf (cddr (assoc ,value ,labels)) :text-style)))
+	  (,documentation (or (and (consp ,exit-box)
+				   (getf (cddr ,exit-box) :documentation))
+			      (getf (cddr (assoc ,value ,labels)) :documentation))))
      ,@body))
 
 ;;; Applications can create their own AVV class and specialize this method in
@@ -689,7 +701,8 @@
     (updating-output (stream :unique-id stream :cache-value 'exit-boxes)
       (with-slots (exit-boxes) frame
 	(dolist (exit-box exit-boxes)
-	  (with-exit-box-decoded (value label text-style) exit-box labels
+	  (with-exit-box-decoded (value label text-style documentation) exit-box labels
+	    (declare (ignore documentation))
 	    (when label
 	      (with-text-style (stream text-style)
 		(with-output-as-presentation (stream value 'accept-values-exit-box)
@@ -884,21 +897,88 @@
 (define-gesture-name :abort-dialog :keyboard (:abort))
 
 (define-accept-values-command (com-exit-avv :keystroke :exit-dialog) ()
-  (with-slots (stream) *application-frame*
-    (let ((avv-record (slot-value stream 'avv-record))
-	  (query-ids nil))
-      (map-over-accept-values-queries avv-record
-	#'(lambda (record unique-id)
-	    (declare (ignore record))
-	    (when (accept-values-query-error-p (find-query avv-record unique-id))
-	      (push unique-id query-ids))))
-      (if query-ids
-	  (notify-user *application-frame*
-		       (format nil "The following fields are not valid:~{ ~A~}"
-			 (mapcar #'cadr (nreverse query-ids)))
-		       :title "Invalid Fields"
-		       :style :error :exit-boxes '(:exit))
-	  (frame-exit *application-frame*)))))
+  (let ((frame *application-frame*))
+    (with-slots (stream) frame
+      (when (verify-queries frame stream (slot-value stream 'avv-record))
+	(frame-exit *application-frame*)))))
+
+
+(defun verify-queries (frame stream avv-record)
+  (let ((queries nil))
+    (maphash
+     #'(lambda (query-identifier query)
+	 (declare (ignore query-identifier))
+	 (when (and (accept-values-query-active-p query)
+		    (output-record-stream (accept-values-query-presentation query))
+		    (accept-values-query-error-p query))
+	   (push query queries)))
+     (slot-value avv-record 'query-table))
+    (if queries
+	(progn
+	  (verify-queries-1 frame stream queries)
+	  nil)
+      t)))
+
+(defun verify-queries-1 (frame stream queries)
+  (display-invalid-queries 
+   frame 
+   stream
+   (mapcar #'(lambda (query)
+	       (list
+		query
+		(slot-value query 'query-identifier)
+		(let ((condition (accept-values-query-error-p query)))
+		  (and (not (eq condition t)) condition))))
+	   queries))
+  (move-focus-to-query stream (car queries)))
+	
+
+
+(defmethod display-invalid-queries ((frame standard-application-frame) stream query-info)
+  (declare (ignore stream))
+  (notify-user frame
+	       (format nil "The following fields are not valid:~{ ~{~A~:[~;~:* : ~A~]~}~}"
+		       (mapcar #'(lambda (query-stuff)
+				   (destructuring-bind (query id condition) query-stuff
+				     (declare (ignore query))
+				     (list
+				      (if (and (consp id)
+					       (eq (car id) :query-identifier)
+					       (consp (cdr id))
+					       (stringp (second id)))
+					  (second id)
+					id)
+				      (and (not (eq condition t)) condition))))
+			       query-info))
+	       :title "Invalid Fields"
+	       :style :error :
+	       exit-boxes '(:exit)))
+
+(defmethod display-invalid-queries ((frame accept-values-own-window) stream queries)
+  (display-invalid-queries (frame-calling-frame frame) stream queries))
+
+#+ignore
+(defmethod (setf accept-values-query-error-p query) :around (value (query accept-values-query))
+  (let ((old-value (accept-values-query-error-p query)))
+    (call-next-method)
+    (unless (eq value old-value)
+      (note-query-validity-changed query value))))
+
+#+ignore
+(defmethod note-query-validity-changed (query errorp)
+  (let ((gadget (find-query-gadget query)))
+    (when (and gadget (typep gadget '(or text-field text-editor)))
+      (if errorp
+	  (setf (gadget-original-background gadget) (gadget-background gadget)
+		(gadget-background gadget) +red+)
+	(setf (gadget-background gadget) (gadget-original-background gadget))))))
+
+;; Focus-in callback/ value changed - establish normal 
+;; Focus-out callback - establish error condition
+;; Need to save away contents, cursor position, colors.
+;; What about the case when we are changing it back to ok cos some one
+;; has changed the value?
+;; Perhaps the old value come from present-to-string the query value.
 
 (define-accept-values-command (com-abort-avv :keystroke :abort-dialog) ()
   (abort))
@@ -926,33 +1006,34 @@
 
 (define-presentation-type accept-values-command-button ())
 
-(defmacro accept-values-command-button ((&optional stream &rest options) prompt 
-					&body body &environment env)
+(defmacro accept-values-command-button ((&optional stream &rest options &key (view nil viewp) &allow-other-keys) prompt 
+														 &body body &environment env)
   #+Genera (declare (zwei:indentation 1 3 2 1))
   #-(or Genera Minima) (declare (ignore env))
   (declare (arglist ((&optional stream 
-		      &key documentation query-identifier
-			   (cache-value t) (cache-test #'eql)
-			   view resynchronize)
+				&key documentation query-identifier
+				(cache-value t) (cache-test #'eql)
+				view resynchronize)
 		     prompt &body body)))
   (default-input-stream stream accept-values-command-button)
-  (let ((constant-prompt-p
-	  (and (constantp prompt #+(or Genera Minima) env)
-	       (stringp (eval prompt #+(or Genera Minima-Developer) env)))))
-    `(flet ((avv-command-button-body () ,@body)
-	    ,@(unless constant-prompt-p
-		`((avv-command-button-prompt (,stream) ,prompt))))
-       ,@(unless constant-prompt-p
-	   `((declare (dynamic-extent #'avv-command-button-prompt))))
-       (invoke-accept-values-command-button
-	 ,stream
-	 #'avv-command-button-body ,(getf options :view `(stream-default-view ,stream))
-	 ,(if constant-prompt-p
-	      (eval prompt #+(or Genera Minima-Developer) env)
-	      '#'avv-command-button-prompt)
-	 ,@options))))
+  (with-keywords-removed (options options '(:view))
+    (let ((constant-prompt-p
+	   (and (constantp prompt #+(or Genera Minima) env)
+		(stringp (eval prompt #+(or Genera Minima-Developer) env)))))
+      `(flet ((avv-command-button-body () ,@body)
+	      ,@(unless constant-prompt-p
+		  `((avv-command-button-prompt (,stream) ,prompt))))
+	 ,@(unless constant-prompt-p
+	     `((declare (dynamic-extent #'avv-command-button-prompt))))
+	 (invoke-accept-values-command-button
+	  ,stream
+	  #'avv-command-button-body ,(if viewp view `(stream-default-view ,stream))
+	  ,(if constant-prompt-p
+	       (eval prompt #+(or Genera Minima-Developer) env)
+	     '#'avv-command-button-prompt)
+	  ,@options)))))
 
-(defmethod invoke-accept-values-command-button
+(defmethod invoke-accept-values-command-button-1
 	   (stream continuation (view t) prompt
 	    &key (documentation (if (stringp prompt)
 				    prompt
@@ -960,8 +1041,10 @@
 				      (funcall prompt stream))))
 		 (query-identifier (list ':button documentation))
 		 (cache-value t) (cache-test #'eql)
-		 resynchronize)
-  (declare (dynamic-extent prompt))
+		 resynchronize
+		 active-p)
+  (declare (dynamic-extent prompt)
+	   (ignore active-p))
   (updating-output (stream :unique-id query-identifier :id-test #'equal
 			   :cache-value cache-value :cache-test cache-test)
     (with-output-as-presentation (stream
@@ -1301,8 +1384,8 @@
 			       :cache-value 'exit-boxes)
 	(formatting-table (stream :equalize-column-widths nil)
 	  (dolist (exit-box exit-boxes)
-	    (with-exit-box-decoded (value label text-style) exit-box labels
-	      (when label
+	    (with-exit-box-decoded (value label text-style documentation) exit-box labels
+		(when label
 		(when text-style
 		  (setq text-style `(:text-style ,text-style)))
 		(formatting-column (stream)
@@ -1310,6 +1393,7 @@
 		    (with-output-as-gadget (stream)
 		      (apply #'make-pane 'push-button
 			:label label
+			:help-callback documentation
 			:client frame :id value
 			:activate-callback #'handle-exit-box-callback
 			text-style))))))))))))
@@ -1357,8 +1441,42 @@
   `(,#'accept-values-value-changed-callback ,stream ,query))
 
 ;; This is how we associate an output-record with the button
-(defmethod invoke-accept-values-command-button
-    (stream continuation (view gadget-dialog-view) prompt
+
+(defun invoke-accept-values-command-button (stream continuation view prompt
+					    &rest options
+					    &key (documentation (if (stringp prompt)
+								    prompt
+								  ;;-- What is the right thing to do?
+								  (ignore-errors
+								   (with-output-to-string (stream)
+								     (funcall prompt stream)))))
+						 (query-identifier (list ':button documentation))
+					    &allow-other-keys)
+  (typecase view
+    (null)
+    (symbol (setq view (make-instance view)))
+    (cons   (setq view (apply #'make-instance view))))
+  (apply #'invoke-accept-values-command-button-1
+	 stream
+	 continuation
+	 (decode-indirect-view
+	  'accept-values-command-button
+	  view
+	  (frame-manager stream)
+	  :query-identifier query-identifier)
+	 prompt
+	 :documentation documentation
+	 :query-identifier query-identifier
+	 options))
+
+(define-presentation-method decode-indirect-view
+    ((type accept-values-command-button) (view gadget-dialog-view)
+					  (framem standard-frame-manager) &key read-only)
+  (declare (ignore read-only))
+  +push-button-view+)
+
+(defmethod invoke-accept-values-command-button-1
+    (stream continuation (view push-button-view) prompt
      &key (documentation (if (stringp prompt)
 			     prompt
 			   ;;-- What is the right thing to do?
@@ -1367,48 +1485,67 @@
 			      (funcall prompt stream)))))
 	  (query-identifier (list ':button documentation))
 	  (cache-value t) (cache-test #'eql)
-	  resynchronize)
+	  resynchronize
+	  (active-p t))
   (declare (dynamic-extent prompt))
+  (move-cursor-to-view-position stream view)
   (updating-output (stream :unique-id query-identifier :id-test #'equal
-			   :cache-value cache-value :cache-test cache-test)
-    (flet ((doit (stream)
-	     (with-output-as-gadget (stream)
-	       (let ((record (stream-current-output-record (encapsulating-stream-stream stream)))
-		     (client (make-instance 'accept-values-command-button
-					    :continuation continuation
-					    :documentation documentation
-					    :resynchronize resynchronize)))
-		 (make-pane 'push-button
-			    :id record :client client
-			    :activate-callback
-			    #'(lambda (button)
-				(when (accept-values-query-valid-p nil record) ;---can't be right
-				  (let ((sheet (sheet-parent button)))
-				    (process-command-event
-				     sheet
-				     (allocate-event 'presentation-event
-						     :sheet sheet
-						     :echo nil
-						     :presentation-type 'command
-						     :value `(com-avv-command-button ,client ,record)
-						     :frame *application-frame*)))))
-		   
-			    :label (if (stringp prompt)
-				       prompt
-				     ;;-- Does this suck or what???
-				     ;;-- If you do a
-				     ;;surrounding-output-with-border without
-				     ;;this write-string output does not get bordered.
-				     (let ((*original-stream* nil))
-				       (pixmap-from-menu-item stream 
-							      prompt
-							      #'funcall
-							      nil))))))))
-      (let ((align-prompts (slot-value stream 'align-prompts)) query)
+			   :cache-value (cons active-p cache-value) 
+			   :cache-test #'(lambda (x y)
+					   (and (eq (car x) (car y))
+						(funcall cache-test (cdr x) (cdr y)))))
+    (labels ((update-gadget (record gadget)
+			(declare (ignore record))	     ;;-- This sucks
+			(setf (gadget-label gadget) (compute-prompt))
+			(if active-p
+			    (activate-gadget gadget)
+			  (deactivate-gadget gadget)))
+	     (compute-prompt ()
+	       (if (stringp prompt)
+		   prompt
+		 ;;-- Does this suck or what???
+		 ;;-- If you do a
+		 ;;surrounding-output-with-border without
+		 ;;this write-string output does not get bordered.
+		 (let ((*original-stream* nil))
+		   (pixmap-from-menu-item stream 
+					  prompt
+					  #'funcall
+					  nil))))
+	     (doit (stream)
+	       (with-output-as-gadget (stream  :update-gadget #'update-gadget)
+		   (let ((record (stream-current-output-record (encapsulating-stream-stream stream)))
+			 (client (make-instance 'accept-values-command-button
+						:continuation continuation
+						:documentation documentation
+						:resynchronize resynchronize)))
+		     (make-pane-from-view 
+		      'push-button
+		      view
+		      :id record :client client
+		      :activate-callback #'(lambda (button)
+					     (when (accept-values-query-valid-p nil record) ;---can't be right
+					       (let ((sheet (sheet-parent button)))
+						 (process-command-event
+						  sheet
+						  (allocate-event 'presentation-event
+								  :sheet sheet
+								  :echo nil
+								  :presentation-type 'command
+								  :value `(com-avv-command-button ,client ,record)
+								  :frame *application-frame*)))))
+		      :label (compute-prompt)
+		      :help-callback documentation
+		      :active active-p)))))
+      (let ((align-prompts (slot-value stream 'align-prompts)))
 	(if align-prompts
 	    (formatting-row (stream)
 	      (formatting-cell (stream) stream)
 	      (formatting-cell (stream) (doit stream)))
 	  (doit stream))))))
+
+
+
+
 
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: activities.lisp,v 1.11 93/03/19 09:43:12 cer Exp $
+;; $fiHeader: activities.lisp,v 1.12 1993/05/05 01:38:17 cer Exp $
 
 (in-package :clim-internals)
 
@@ -21,13 +21,15 @@
      (input-buffer :initform (make-locking-queue) :accessor frame-input-buffer)
      (auto-select :initform nil :initarg :auto-select :accessor activity-auto-select)
      (frame-manager :initform nil :initarg :frame-manager
-		    :accessor frame-manager)))
+		    :accessor frame-manager)
+     (actual-pointer-documentation-pane :initform nil :accessor frame-actual-pointer-documentation-pane)))
 
 (defmethod initialize-instance :after ((activity activity) &key pretty-name)
   (setf (frame-pretty-name activity)
 	(or pretty-name (title-capitalize (string (frame-name activity)))))
   (unless (frame-manager activity)
     (setf (frame-manager activity) (find-frame-manager))))
+
 
 (defmethod frame-name ((activity activity))
   (type-of activity))
@@ -146,6 +148,15 @@
 ;; An application frame that participates in an activity
 (defclass activity-frame (standard-application-frame)
     ((activity :initform nil :accessor frame-activity :initarg :activity)))
+
+(defmethod frame-actual-pointer-documentation-pane ((frame activity-frame))
+  (let ((act (frame-activity frame)))
+    (and act (frame-actual-pointer-documentation-pane act))))
+
+(defmethod (setf frame-actual-pointer-documentation-pane) (value (frame activity-frame))
+  (let ((act (frame-activity frame)))
+    (when act (setf (frame-actual-pointer-documentation-pane act) value)))
+  value)
 
 (defmethod frame-top-level-process ((frame activity-frame))
   (let ((act (frame-activity frame)))

@@ -38,3 +38,5 @@ XtUngrabPointer
 XtUnmanageChild
 XtUnmanageChildren
 XtWindow
+XtParseTranslationTable
+XtParseAcceleratorTable

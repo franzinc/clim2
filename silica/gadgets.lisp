@@ -1,6 +1,6 @@
 ;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadgets.lisp,v 1.51 1993/05/05 01:39:49 cer Exp $
+;; $fiHeader: gadgets.lisp,v 1.52 1993/05/13 16:24:04 cer Exp $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
@@ -17,7 +17,10 @@
 		     :reader gadget-armed-callback)
      (disarmed-callback :initarg :disarmed-callback :initform nil
 			:reader gadget-disarmed-callback)
-     (active :initarg :active :accessor gadget-active-p))
+     (active :initarg :active :accessor gadget-active-p)
+     (help-callback :initform nil 
+		    :initarg :help-callback 
+		    :accessor gadget-help-callback))
   (:default-initargs :active t))
 
 ;;; Arming and disarming
@@ -733,3 +736,9 @@
 
 (defmethod handle-event ((gadget focus-gadget) (event focus-in-gadget-event))
   (focus-in-callback gadget (gadget-client gadget) (gadget-id gadget)))
+
+(defun move-focus-to-gadget (gadget)
+  (port-move-focus-to-gadget (port gadget) gadget))
+
+(defmethod port-move-focus-to-gadget ((port t) (gadget t))
+  nil)

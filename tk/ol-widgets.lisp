@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-widgets.lisp,v 1.2 92/06/23 08:19:15 cer Exp $
+;; $fiHeader: ol-widgets.lisp,v 1.3 92/07/27 19:29:14 cer Exp $
 
 (in-package :xt)
 
@@ -74,4 +74,20 @@
 					  :name :appl-delete-item
 					  :type 'function
 					  :original-name 
-					  (string-to-char* "applDeleteItem")))
+					  (string-to-char*
+					   "applDeleteItem")))
+
+(tk::add-resource-to-class (find-class 'ol-list)
+			   (make-instance 'resource
+					  :name :view-height
+					  :type 'dimension
+					  :original-name 
+					  (string-to-char*
+					   "viewHeight")))
+
+(tk::add-resource-to-class (find-class 'ol-list)
+			   (make-instance 'resource
+					  :name :recompute-width
+					  :type 'boolean
+					  :original-name 
+					  (string-to-char* "recomputeWidth")))

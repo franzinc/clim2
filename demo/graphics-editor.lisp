@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-GRAPHICS-EDITOR; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics-editor.lisp,v 1.18 93/04/27 14:35:44 cer Exp $
+;; $fiHeader: graphics-editor.lisp,v 1.19 93/04/27 15:49:36 cer Exp $
 
 (in-package :clim-graphics-editor)
 
@@ -262,7 +262,7 @@
 				   graphics-editor-edit-commands
 				   graphics-editor-option-commands)
 		    :inherit-menu :keystrokes
-		    :menu (("File" :menu graphics-editor-file-commands :mnemonic #\F)
+		    :menu (("File" :menu graphics-editor-file-commands :mnemonic #\F :documentation "File commands")
 			   ("Edit" :menu graphics-editor-edit-commands :mnemonic #\E )
 			   ("Options" :menu graphics-editor-option-commands :mnemonic #\O))))
   (:pointer-documentation t)
@@ -305,10 +305,15 @@
 
 ;;; Presentation types
 
-(define-presentation-type-abbreviation line-thickness ()
-  '((member 1 2 3 4) :name-key identity
-		     :printer present-line-thickness
-		     :highlighter highlight-line-thickness))
+(define-presentation-type line-thickness ()
+    :inherit-from `((completion (1 2 3 4))
+		    :name-key identity
+		    :printer present-line-thickness
+		    :highlighter highlight-line-thickness))
+
+(define-presentation-method describe-presentation-type ((type line-thickness) stream plural-count)
+  (declare (ignore plural-count))
+  (write-string  "Specify one of four line thicknesses" stream))
 
 (defun present-line-thickness (object stream &key acceptably)
   (declare (ignore acceptably))
@@ -323,10 +328,15 @@
   (surrounding-output-with-border (stream)
     (funcall continuation object stream)))
 
-(define-presentation-type-abbreviation line-style-type ()
-  '((member :solid :dashed) :name-key identity
-			    :printer present-line-style
-			    :highlighter highlight-line-style))
+(define-presentation-type line-style-type ()
+    :inherit-from `((completion (:solid :dashed))
+		    :name-key identity
+		    :printer present-line-style
+		    :highlighter highlight-line-style))
+
+(define-presentation-method describe-presentation-type ((type line-style-type) stream plural-count)
+  (declare (ignore plural-count))
+  (write-string  "Specify solid or dashed line style" stream))
 
 (defun present-line-style (object stream &key acceptably)
   (declare (ignore acceptably))
@@ -346,6 +356,16 @@
   '((member :oval :rectangle) :name-key identity
 			      :printer present-object-shape
 			      :highlighter highlight-object-shape))
+
+(define-presentation-type object-shape ()
+    :inherit-from `((completion (:oval :rectangle))
+		    :name-key identity
+		    :printer present-object-shape
+		    :highlighter highlight-object-shape))
+
+(define-presentation-method describe-presentation-type ((type object-shape) stream plural-count)
+  (declare (ignore plural-count))
+  (write-string  "Specify rectangle or oval shape" stream))
 
 (defun present-object-shape (object stream &key acceptably)
   (declare (ignore acceptably))
@@ -505,7 +525,9 @@
 ;; Deselect an object by clicking the Deselect menu button, or by
 ;; clicking over blank area without moving the mouse.
 (define-command (com-deselect-object :command-table graphics-editor-edit-commands
-				     :menu "Deselect") ()
+				     :menu ("Deselect"
+					    :documentation "Deselect all objects")) 
+    ()
   (when (frame-selected-object *application-frame*)
     (deselect-object *application-frame* (frame-selected-object *application-frame*))))
 
@@ -565,7 +587,10 @@
 	(move-handle handle (- x dx) (- y dy))))))
 
 ;; OK, I added a menu button to clear the window.
-(define-command (com-clear :command-table graphics-editor-edit-commands :menu t) nil
+(define-command (com-clear :command-table
+			   graphics-editor-edit-commands 
+			   :menu ("Clear" :documentation "Clear all graphics"))
+    ()
   (with-slots (objects selected-object last-box) *application-frame*
     (setq objects nil
 	  selected-object nil
@@ -575,15 +600,21 @@
 ;; OK, I added a menu button to redisplay the window, too, although
 ;; it's only here for debugging.
 (define-command (com-redisplay :command-table graphics-editor-edit-commands 
-			       :keystroke (:r :meta) :menu t) ()
+			       :keystroke (:r :meta) 
+			       :menu  ("Redisplay" :documentation "Redisplay windows"))
+    ()
   (redisplay-frame-pane *application-frame* 'display :force-p t))
 
 (define-command (com-quit :command-table graphics-editor-file-commands
-			  :keystroke (:x :meta) :menu t) ()
+			  :keystroke (:x :meta) 
+			  :menu ("Quit" :documentation "Quit application")) ()
   (frame-exit *application-frame*))
 
 (define-command (com-change-layout :command-table graphics-editor-option-commands 
-				   :keystroke (:l :meta) :menu t) ()
+				   :keystroke (:l :meta) 
+				   :menu ("Change application layout"
+					  :documentation "Change layout"))
+    ()
   (let ((layouts (frame-all-layouts *application-frame*)))
     (setf (frame-current-layout *application-frame*)
 	  (or (second (member (frame-current-layout *application-frame*) layouts))

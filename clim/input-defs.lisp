@@ -1,6 +1,6 @@
 M;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-defs.lisp,v 1.17 93/03/19 09:43:36 cer Exp $
+;; $fiHeader: input-defs.lisp,v 1.18 1993/05/05 01:38:30 cer Exp $
 
 (in-package :clim-internals)
 
@@ -80,7 +80,7 @@ M;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10
 (defun sheets-nearest-common-ancestor (sheet1 sheet2)
   (if (eq sheet1 sheet2) 
       sheet1
-    (do ((sheet sheet1 (sheet-parent sheet1)))
+    (do ((sheet sheet1 (sheet-parent sheet)))
 	((null sheet))
       (when (sheet-ancestor-p sheet2 sheet)
 	(return sheet)))))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: view-defs.lisp,v 1.11 92/09/24 09:39:33 cer Exp Locker: cer $
+;; $fiHeader: view-defs.lisp,v 1.12 92/10/28 08:19:42 cer Exp $
 
 (in-package :clim-internals)
 
@@ -63,6 +63,8 @@
        ',name)))
 
 (define-gadget-view toggle-button)
+
+(define-gadget-view push-button)
 
 (define-gadget-view radio-box)
 (define-gadget-view check-box)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadget-output.lisp,v 1.49 93/05/13 16:23:07 cer Exp $
+;; $fiHeader: gadget-output.lisp,v 1.50 1993/05/13 16:28:50 colin Exp $
 
 (in-package :clim-internals)
 
@@ -356,7 +356,8 @@
 				:value-changed-callback
 				  (make-accept-values-value-changed-callback
 				    stream query-identifier)
-				:active active-p)))))
+				:active active-p
+				:help-callback (make-gadget-help type))))))
 	  (values (if radio-box-label
 		      (outlining ()
 			(vertically ()
@@ -445,7 +446,8 @@
 				       :value-changed-callback
 				         (make-accept-values-value-changed-callback
 					   stream query-identifier)
-				       :active active-p)))))
+				       :active active-p
+				       :help-callback (make-gadget-help type))))))
 	(values (if check-box-label
 		    (outlining ()
 		      (vertically ()
@@ -489,7 +491,8 @@
 		      :value-changed-callback
 		        (make-accept-values-value-changed-callback
 			 stream query-identifier)
-		      :active active-p)))
+		      :active active-p
+		      :help-callback (make-gadget-help type))))
  	(values (outlining () button) button)))))
 
 
@@ -547,7 +550,8 @@
 			 (make-accept-values-value-changed-callback
 			   stream query-identifier))
 		  :active active-p
-		  :editable-p editable-p)))
+		  :editable-p editable-p
+		  :help-callback (make-gadget-help type))))
 	  (values (outlining () slider) slider))))))
 
 (define-presentation-method accept-present-default 
@@ -599,7 +603,8 @@
 			 (make-accept-values-value-changed-callback
 			   stream query-identifier))
 		  :active active-p
-		  :editable-p editable-p)))
+		  :editable-p editable-p
+		  :help-callback (make-gadget-help type))))
 	  (values (outlining () slider) slider))))))
 
 
@@ -663,7 +668,8 @@
 			    (and editable-p
 				 `(accept-values-string-field-changed-callback
 				    ,stream ,query-identifier))
-			  :active active-p)))
+			    :active active-p
+			    :help-callback (make-gadget-help type))))
  	(values text-field text-field)))))
 
 (defmethod accept-values-note-text-field-changed-callback
@@ -687,8 +693,12 @@
 	  ;; correctly (see tk-silica/ol-gadgets)
 	  (assert (= index (length new-value)))
 	  object)
-	(error () 
-	 (setf (accept-values-query-error-p query) t))
+	(error (c) 
+	  (setf (accept-values-query-error-p query) c)
+	  (let ((frame (pane-frame stream)))
+	    (unless (typep *application-frame* 'accept-values)
+	      (verify-queries-1 frame stream (list query))
+	      (setf (accept-values-query-changed-p query) nil))))
 	(:no-error (object)
 	 (setf (accept-values-query-error-p query) nil)
 	 (do-avv-command object stream query))))))
@@ -734,7 +744,8 @@
 				 (make-accept-values-value-changed-callback
 				   stream query-identifier))
 			  :active active-p
-			  :editable-p editable-p)))
+			  :editable-p editable-p
+			  :help-callback (make-gadget-help type))))
  	(values (scrolling () text-field) text-field)))))
 
 
@@ -786,7 +797,8 @@
 			 :value-changed-callback
 			   (make-accept-values-value-changed-callback
 			    stream query-identifier)
-			 :active active-p)
+			 :active active-p
+			 :help-callback (make-gadget-help type))
 		       (make-pane-from-view pane-type view
 			 :items sequence
 			 :name-key name-key
@@ -799,7 +811,8 @@
 			 :value-changed-callback
 			   (make-accept-values-value-changed-callback
 			     stream query-identifier)
-			 :active active-p))))
+			 :active active-p
+			 :help-callback (make-gadget-help type)))))
 	(values (if (eq pane-type 'list-pane) (scrolling () pane) pane)
 		pane)))))
 
@@ -842,3 +855,8 @@
 
 (defmethod sheet-disown-child ((stream standard-encapsulating-stream) child)
   (sheet-disown-child (encapsulating-stream-stream stream) child))
+
+;;
+
+(defun make-gadget-help (ptype)
+  `(make-help-from-presentation-type ,ptype))

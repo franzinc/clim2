@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: standard-types.lisp,v 1.27 93/03/19 09:43:48 cer Exp $
+;; $fiHeader: standard-types.lisp,v 1.28 1993/05/13 16:23:22 cer Exp $
 
 (in-package :clim-internals)
 
@@ -614,7 +614,7 @@
   (let ((position 0)
 	(last (1- (length sequence))))
     (map nil #'(lambda (item)
-		 (write-string (funcall name-key item) stream)
+		 (funcall printer (funcall name-key item) stream)
 		 (unless (= position last)
 		   (write-string (if (= last 1) " " ", ") stream)
 		   (when (= (incf position) last)

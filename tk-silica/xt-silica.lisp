@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.82 93/05/13 16:25:07 cer Exp $
+;; $fiHeader: xt-silica.lisp,v 1.83 1993/05/13 16:32:28 colin Exp $
 
 (in-package :xm-silica)
 
@@ -1695,9 +1695,6 @@ the geometry of the children. Instead the parent has control. "))
 	       0)
 	    (tk::destroy-pixmap pixmap)
 	    (when mask (tk::destroy-pixmap mask))))))))
-
-
-      
 
 (defvar *pointer-grabbed* nil)
 
