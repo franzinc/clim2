@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: accept-values.lisp,v 1.85 1999/02/25 08:23:27 layer Exp $
+;; $Id: accept-values.lisp,v 1.86 1999/05/04 01:21:03 layer Exp $
 
 (in-package :clim-internals)
 
@@ -1670,21 +1670,22 @@
   (updating-output (stream :unique-id query-identifier :id-test #'equal
                            :cache-value (cons active-p cache-value)
                            :cache-test #'(lambda (x y)
-                                           (and (eq (car x) (car y))
+                                           (and (consp x) (consp y)
+						(eq (car x) (car y))
                                                 (funcall cache-test (cdr x) (cdr y)))))
     (labels ((update-gadget (record gadget)
-                        (declare (ignore record))            ;;-- This sucks
-                        (setf (gadget-label gadget) (compute-prompt))
-                        (if active-p
-                            (activate-gadget gadget)
-                          (deactivate-gadget gadget)))
+	       (declare (ignore record))            ;;-- This sucks
+	       (setf (gadget-label gadget) (compute-prompt))
+	       (if active-p
+		   (activate-gadget gadget)
+		 (deactivate-gadget gadget)))
              (compute-prompt ()
                (if (stringp prompt)
                    prompt
-                 ;;-- Does this suck or what???
-                 ;;-- If you do a
-                 ;;surrounding-output-with-border without
-                 ;;this write-string output does not get bordered.
+		 ;;-- Does this suck or what???
+		 ;;-- If you do a
+		 ;;surrounding-output-with-border without
+		 ;;this write-string output does not get bordered.
                  (let ((*original-stream* nil))
                    (apply #'pixmap-from-menu-item
                           stream prompt #'funcall nil
@@ -1692,30 +1693,30 @@
                           (view-gadget-initargs view)))))
              (doit (stream)
                (with-output-as-gadget (stream  :update-gadget #'update-gadget)
-                   (let ((record (stream-current-output-record (encapsulating-stream-stream stream)))
-                         (client (make-instance 'accept-values-command-button
-                                                :continuation continuation
-                                                :documentation documentation
-                                                :resynchronize resynchronize)))
-                     (make-pane-from-view
-                      'push-button
-                      view ()
-                      :id record :client client
-                      :activate-callback #'(lambda (button)
-                                             (when (accept-values-query-valid-p nil record) ;---can't be right
-                                               (let ((sheet (sheet-parent button)))
-                                                 (process-command-event
-                                                  sheet
-                                                  (allocate-event 'presentation-event
-                                                                  :sheet sheet
-                                                                  :echo nil
-                                                                  :presentation-type 'command
-                                                                  :value `(com-avv-command-button ,client ,record)
-                                                                  :frame *application-frame*)))))
-                      :label (compute-prompt)
-                      :name :accept-values-command-button
-                      :help-callback documentation
-                      :active active-p)))))
+		 (let ((record (stream-current-output-record (encapsulating-stream-stream stream)))
+		       (client (make-instance 'accept-values-command-button
+				 :continuation continuation
+				 :documentation documentation
+				 :resynchronize resynchronize)))
+		   (make-pane-from-view
+		    'push-button
+		    view ()
+		    :id record :client client
+		    :activate-callback #'(lambda (button)
+					   (when (accept-values-query-valid-p nil record) ;---can't be right
+					     (let ((sheet (sheet-parent button)))
+					       (process-command-event
+						sheet
+						(allocate-event 'presentation-event
+								:sheet sheet
+								:echo nil
+								:presentation-type 'command
+								:value `(com-avv-command-button ,client ,record)
+								:frame *application-frame*)))))
+		    :label (compute-prompt)
+		    :name :accept-values-command-button
+		    :help-callback documentation
+		    :active active-p)))))
       (let ((align-prompts (slot-value stream 'align-prompts)))
         (if align-prompts
             (formatting-row (stream)

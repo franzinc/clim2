@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: bitmap-editor.lisp,v 1.22 1999/02/25 08:23:30 layer Exp $
+;; $Id: bitmap-editor.lisp,v 1.23 1999/05/04 01:21:05 layer Exp $
 
 (in-package :clim-demo)
 
@@ -84,16 +84,11 @@
 		"Delete Color"
 		(delete-current-color frame)))))))))
 
-
 (defun replace-current-color (frame)
-  (declare (ignore frame))
-  ;;--- Exercise for the reader
-  )
+  (notify-user frame "Bitmap editor operation not yet implemented"))
 
 (defun delete-current-color (frame)
-  (declare (ignore frame))
-  ;;--- Exercise for the reader
-  )
+  (notify-user frame "Bitmap editor operation not yet implemented"))
 
 (defun add-new-color (frame)
   (let ((fr (make-application-frame 'color-chooser)))

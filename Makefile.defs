@@ -1,4 +1,4 @@
-# $Id: Makefile.defs,v 1.48 1999/02/25 08:23:21 layer Exp $
+# $Id: Makefile.defs,v 1.49 1999/05/04 01:20:59 layer Exp $
 #
 #  Makefile.defs for CLIM 2.0
 
@@ -8,10 +8,10 @@ CLIM		= clim.dxl
 SHARED_EXT = so
 
 ifeq ($(OS_NAME),windows)
-LISP	= ../src/lisp
+LISP	= ../src/lisp$(exe)
 DCL	= dcl
 else
-LISP	= ../src/lispi
+LISP	= ../src/lispi$(exe)
 DCL	= dcli
 endif
 
@@ -23,7 +23,7 @@ CAT	= cat
 ECHO	= echo
 TAGS	= etags
 
-SHELL	= /bin/sh
+SHELL	= sh
 
 # Lisp optimization for compiling
 SPEED	= 3

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-widget.lisp,v 1.11 1999/02/25 08:23:25 layer Exp $
+;; $Id: acl-widget.lisp,v 1.12 1999/05/04 01:21:00 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -178,7 +178,8 @@
 	(let ((str (acl-clim::nstringify (funcall name-key item)))
 	      (pos (position item items)))
 	  ;;(break "insert gadget item [~a @ ~a]" str pos)
-	  (win:SendMessage mirror win:LB_INSERTSTRING pos str)))
+	  (excl:with-native-string (str str)
+	    (win:SendMessage mirror win:LB_INSERTSTRING pos str))))
       (win:InvalidateRect mirror ct:hnull win:TRUE)))) ;; make sure it updates
 
 (defmethod acl-clim::command-event :around ((gadget hlist-pane) 
@@ -375,7 +376,8 @@
 	;; Don't redraw till I tell you:
 	(win:SendMessage mirror win:WM_SETREDRAW 0 0)
 	;; Here's the text:
-	(win:SetWindowText mirror (xlat-newline-return new))
+	(excl:with-native-string (s1 (xlat-newline-return new))
+	  (win:SetWindowText mirror s1))
 	;; Try to preserve the scroll position:
 	(win:SendMessage mirror win:EM_LINESCROLL leftchar topline)
 	;; Redraw now:
@@ -388,10 +390,12 @@
 	(let* ((wl (win:SendMessage mirror 
 				    win:WM_GETTEXTLENGTH 
 				    0 0))
-	       (teb (make-string wl))
+	       (teb
+		#+removed (make-string wl)
+		(make-array wl :element-type '(unsigned-byte 8)))
 	       (tlen (win:GetWindowText mirror teb (1+ wl))))
 	  (declare (ignorable tlen))
-	  (setf teb (unxlat-newline-return teb)) 
+	  (setf teb (unxlat-newline-return (excl:mb-to-string teb)))
 	  (setf value teb)
 	  ;; By the way, does anyone know why 
 	  ;; the second value is returned? -smh
@@ -606,7 +610,8 @@
 (defmethod (setf gadget-label) :after (str (pane hpbutton-pane))
   (with-slots (mirror) pane
     (when mirror
-      (win:SetWindowText mirror str))))
+      (excl:with-native-string (str str)
+	(win:SetWindowText mirror str)))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -809,7 +814,8 @@
 	(let ((str (acl-clim::nstringify (funcall name-key item)))
 	      (pos (position item items)))
 	  ;;(break "insert gadget item [~a @ ~a]" str pos)
-	  (win:SendMessage mirror win:CB_INSERTSTRING pos str)))
+	  (excl:with-native-string (str str)
+	    (win:SendMessage mirror win:CB_INSERTSTRING pos str))))
       ;; make sure it updates
       (win:InvalidateRect mirror ct:hnull win:TRUE)
       (note-sheet-region-changed pane))))
@@ -1325,15 +1331,17 @@
 	(exstyle win:WS_EX_CLIENTEDGE)
 	(window nil))
     (setq window
-      (win:CreateWindowEx exstyle
-			  *clim-class*
-			  *win-name*
-			  winstyle
-			  left top width height
-			  (or parent 0)
-			  0		; menu
-			  *hinst*
-			  (symbol-name (gensym)) )) 
+      (excl:with-native-string (*clim-class* *clim-class*)
+	(excl:with-native-string (*win-name* *win-name*)
+	  (win:CreateWindowEx exstyle
+			      *clim-class*
+			      *win-name*
+			      winstyle
+			      left top width height
+			      (or parent 0)
+			      0		; menu
+			      *hinst*
+			      (symbol-name (gensym)) )))) 
     (when (zerop window)
       (or (check-last-error "CreateWindowEx")
 	  (error "CreateWindowEx: unknown error")))

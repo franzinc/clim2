@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-class.lisp,v 1.11 1999/02/25 08:23:24 layer Exp $
+;; $Id: acl-class.lisp,v 1.12 1999/05/04 01:21:00 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -1083,7 +1083,8 @@
   ((device-handle1 :initarg :device-handle1
 		   :initform 0)
    (device-handle2 :initarg :device-handle1
-		   :initform (win:CreateDC "DISPLAY" ct:hnull ct:hnull ct:hnull))))
+		   :initform (excl:with-native-string (d "DISPLAY")
+			       (win:CreateDC d ct:hnull ct:hnull ct:hnull)))))
 
 (defun initialize-cg ()
   (let* ((dataobj (make-array 3 :element-type '(signed-byte 32))))
@@ -1242,15 +1243,17 @@
 		     win:WS_MINIMIZEBOX
 		     win:WS_MAXIMIZEBOX))))
     (setq window
-      (win:CreateWindowEx exstyle
-			  *clim-class*
-			  *win-name*
-			  winstyle
-			  left top width height
-			  (or parent 0)
-			  menu
-			  *hinst*
-			  *win-x* )) 
+      (excl:with-native-string (*clim-class* *clim-class*)
+	(excl:with-native-string (*win-name* *win-name*)
+	  (win:CreateWindowEx exstyle
+			      *clim-class*
+			      *win-name*
+			      winstyle
+			      left top width height
+			      (or parent 0)
+			      menu
+			      *hinst*
+			      *win-x* ))))
     (when (zerop window)
       (or (check-last-error "CreateWindowEx")
 	  (error "CreateWindowEx: unknown error")))
@@ -1275,16 +1278,19 @@
          (*win-name* *win-name*))
     (when pretty
       (setq *win-name* pretty))
-    (let ((window (win:CreateWindowEx
-		   (if ovl 0 win:WS_EX_TOOLWINDOW)
-		   *clim-class*
-		   *win-name*
-		   winstyle
-		   left top width height
-		   parent
-		   0
-		   *hinst*
-		   *win-x*)))
+    (let ((window
+	   (excl:with-native-string (*clim-class* *clim-class*)
+	     (excl:with-native-string (*win-name* *win-name*)
+	       (win:CreateWindowEx
+		(if ovl 0 win:WS_EX_TOOLWINDOW)
+		*clim-class*
+		*win-name*
+		winstyle
+		left top width height
+		parent
+		0
+		*hinst*
+		*win-x*)))))
       (when (zerop window)
 	(check-last-error "CreateWindowEx"))
       window)))
@@ -1316,15 +1322,17 @@
     (when pretty
       (setq *win-name* pretty))
     (setq window
+      (excl:with-native-string (*clim-class* *clim-class*)
+	(excl:with-native-string (*win-name* *win-name*)
 	  (win:CreateWindowEx exstyle
-		*clim-class*
-		*win-name*
-		winstyle
-		left top width height
-		parent
-		menu
-		*hinst*
-		*win-x*))
+			      *clim-class*
+			      *win-name*
+			      winstyle
+			      left top width height
+			      parent
+			      menu
+			      *hinst*
+			      *win-x*))))
     (when (zerop window)
       (check-last-error "CreateWindowEx"))
     (if (or (eql scroll :both)(eql scroll :vertical))

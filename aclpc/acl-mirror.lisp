@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-mirror.lisp,v 1.8 1999/02/25 08:23:25 layer Exp $
+;; $Id: acl-mirror.lisp,v 1.9 1999/05/04 01:21:00 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -295,8 +295,10 @@
   (let ((window (sheet-mirror sheet)))
     (unless *in-layout-avp*
       (win:ShowWindow window win:SW_SHOW) ; returns NIL if it was already visible.
+      ;; Don't signal errors for UpdateWindow, just warn. JPM 3/19/99.
       (or (win:UpdateWindow window)	; send a WM_PAINT message
-	  (check-last-error "UpdateWindow")))))
+	  (check-last-error "UpdateWindow" :action :warn))
+      )))
 
 (defmethod disable-mirror ((port acl-port) sheet)
   (win:ShowWindow (sheet-mirror sheet) win:SW_HIDE))
@@ -370,15 +372,19 @@
     (values (coordinate 0) (coordinate 0)
 	    (- c a) (- d b))))
 
+(defvar *setting-sheet-mirror* nil)
+
 (defmethod set-sheet-mirror-edges* ((port acl-port) sheet
 				    left top right bottom)
   ;; unspecialized (not top)
   (fix-coordinates left top right bottom)
-  (win:SetWindowPos (sheet-mirror sheet)
-		    0 ; we really want win:HWND_TOP
-		    left top (- right left) (- bottom top)
-		    (logior win:SWP_NOACTIVATE
-			    win:SWP_NOZORDER)))
+  (unless (eq sheet *setting-sheet-mirror*) ; avoid recursion bug
+    (let ((*setting-sheet-mirror* sheet))
+      (win:SetWindowPos (sheet-mirror sheet)
+			0		; we really want win:HWND_TOP
+			left top (- right left) (- bottom top)
+			(logior win:SWP_NOACTIVATE
+				win:SWP_NOZORDER)))))
 
 (defvar *port-mirror-sheet-alist* nil)
 
@@ -529,8 +535,7 @@
   ;; Set the "inside" size of a top-level sheet.
   ;; Top-level sheet has to account for sizes of window decorations.
   (fix-coordinates left top right bottom)
-  (multiple-value-bind (wleft wtop wright wbottom) (mirror-region* port
-sheet)
+  (multiple-value-bind (wleft wtop wright wbottom) (mirror-region* port sheet)
     (when (and (= left wleft) (= top wtop)
 	       (= right wright) (= bottom wbottom))
       ;; We seem to get infinite recursion if we don't check for this.

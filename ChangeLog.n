@@ -11,6 +11,13 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.2.2.6 -- join from acl50 branch
+
+- changes from 2.2.1.45 to 2.2.1.54
+- cvs command: cvs update -d -j acl50_merge5 -j acl50
+- next merge tag: acl50_merge6
+
+*******************************************************************************
 2.2.2.5 -- join from acl50 branch
 
 - changes from 2.2.1.34 to 2.2.1.44
@@ -57,6 +64,128 @@ next merge tag: acl50_merge2
 2.2.1.17 -- join from acl50 branch (versions 2.2.1.13 to 2.2.1.16)
 (this should have been version 2.2.2.0, but was 2.2.1.17 instead)
 next merge tag: acl50_merge1
+
+*******************************************************************************
+2.2.1.54
+
+1999-04-15  Kevin Layer  <layer@ultra>
+
+	* Makefile.rs6000: use ../src/bin/make_exp
+
+1999-04-13    <layer@HOBART>
+
+	* clim/frames.lisp: fix for bug7897 from Jeff
+	* Makefile.defs: SHELL = sh for Interix
+
+*******************************************************************************
+2.2.1.53
+
+1999-04-08  Kevin Layer  <layer@ultra>
+
+	* clim/frames.lisp: fix for spr19429 from Jeff
+
+*******************************************************************************
+2.2.1.52
+
+Thu Apr 08 17:35:24 1999  Charles A. Cox  <cox@FOX>
+
+	* utils/defun-utilities.lisp: add backward compatible definitions
+	of newly used ics functions.
+
+*******************************************************************************
+2.2.1.51
+  
+Thu Apr 08 11:41:57 1999  Charles A. Cox  <cox@FOX>
+
+  Overall change:  Add calls to string-convertors for ffi calls to winapi.
+  This allows clim2 to run under windows iacl, but the japanese-input-stream,
+  which is unix specific, is disabled under windows.  Thus, other than being
+  able to run in iacl under Japanese Windows, there is no new or changed
+  functionality with this commit.
+
+  Furthermore, presumably due to font deficiencies, Japanese characters do not
+  display.  Finally, presumably due to "non-standard" windows input, clim
+  windows appear unable to accept Japanese character input via the Windows
+  Japanese Input Method Editor.
+	
+  NOTE: For this commit, on Windows, it is not possible to compile
+  clim2 with iacl.  One can load, however, already built fasl files
+  (eg, climnt.fasl, etc.) into iacl.
+
+	* [many files]: use with-native-string, string-to-native, etc. for
+	foreign calls to winapi.
+
+*******************************************************************************
+2.2.1.50
+
+1999-03-31  Jeff Morrill  <jmorrill@pointnclick.com> 
+
+* aclpc/acl-frames: Fix (setf command-enabled) again
+* aclpc/acl-medium: Fixes for medium-draw-polygon*, rotated text
+* aclpc/acl-mirror: Don't error for UpdateWindow, just warn.
+* aclpc/acl-port: Rotated font support
+* aclpc/acl-prel: Try to address occasional failures of CreateDIBitmap
+* aclpc/winwidgh: add memcopy
+* silica/graphics: Fix map-endpoint-sequence to fix presentation highlighting
+* clim/frames: Fix accepting-values panes for the case of recycled frames
+* clim/accept-values: Fix updating-output breakage in avv buttons
+* test/test-suite: Add test for flipping-ink
+* demo/bitmap-editor: Clean up a bit
+
+*******************************************************************************
+2.2.1.49
+
+1999-03-30    <layer@OMEGA>
+
+	* Makefile: add windows ifdef (can't believe it wasn't there!!)
+
+*******************************************************************************
+2.2.1.48
+
+1999-03-29  Kevin Layer  <layer@ultra>
+
+    changed files:
+	* Makefile: for mklinux
+	* Makefile.freebsd: Add second PIC flag
+	* Makefile.wnn: Add crypt library for freebsd
+    deleted files:
+	* Makefile.linux86
+	* Makefile.sun4-ol
+	* Makefile.sun4-svr4-ol
+	* instclimol.lisp
+	* make-symbolic-links.sh
+	* makedist.sh
+	* readme.win32
+
+*******************************************************************************
+2.2.1.47
+
+1999-03-19    <layer@OMEGA>
+
+	* Makefile.defs: add $(exe) where appropriate (for Interix)
+
+*******************************************************************************
+2.2.1.46
+
+1999-03-16    <layer@HOBART>
+
+	* aclpc/pkgdcl.lisp: load user32.dll with :system-library t
+	arguments (in lisps that support this new keyword to load)
+
+*******************************************************************************
+2.2.1.45
+
+1999-02-24  Jeff Morrill  <jmorrill@pointnclick.com> 
+
+* aclpc/acl-frames: Fix (setf command-enabled) so it sticks, fix menu-choose
+  so it can disable menu items and so it will return three values.
+* aclpc/acl-medium: Fix medium-draw-lines* so it works
+* aclpc/acl-mirror: Try to prevent infinite recursion setting edges of
+   top-level sheet ("too deep!")
+* clim/frames: Fix (setf command-enabled) so it sticks
+* tk-silica/xt-graphics: Fix port-draw-rotated-text to rotate the correct angle
+* tk-silica/xt-silica: Don't lose character bits (control, meta)
+* utils/designs: More helpful error message for palette-full condition.
 
 *******************************************************************************
 2.2.1.44

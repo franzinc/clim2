@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xt-graphics.lisp,v 1.98 1999/02/25 08:23:45 layer Exp $
+;; $Id: xt-graphics.lisp,v 1.99 1999/05/04 01:21:10 layer Exp $
 
 (in-package :tk-silica)
 
@@ -1646,11 +1646,16 @@
   (flet ((compute-rotation (x y towards-x towards-y)
 	   (decf towards-x x)
 	   (decf towards-y y)
-	   #+OLD ; ARE YOU KIDDING? THIS SURE IS THE LONG WAY AROUND THE BARN...JPM
+	   #+OLD			; ARE YOU KIDDING? THIS SURE IS THE LONG WAY AROUND THE BARN...JPM
 	   (MOD (ROUND (ATAN TOWARDS-Y TOWARDS-X) (/ PI 2.0)) 4)
-	   (IF (>= TOWARDS-X 0)
-	       (IF (>= TOWARDS-Y 0) 0 2)
-	     (IF (>= TOWARDS-Y 0) 1 3))))
+	   (cond ((> towards-x 0)
+		  (cond ((> towards-y 0) 1)
+			((= towards-y 0) 0)
+			(t 3)))
+		 ((= towards-x 0)
+		  (cond ((>= towards-y 0) 1)
+			(t 3)))
+		 (t 2))))
     (let* ((rotation (compute-rotation x y towards-x towards-y))
 	   (min-char (xt::font-range font))
 	   (ascent (xt::font-ascent font))

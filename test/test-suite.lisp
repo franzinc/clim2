@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $Id: test-suite.lisp,v 1.85 1999/02/25 08:23:40 layer Exp $
+;; $Id: test-suite.lisp,v 1.86 1999/05/04 01:21:09 layer Exp $
 
 (in-package :clim-user)
 
@@ -668,6 +668,11 @@ people, shall not perish from the earth.
                 (sample (rest shape)))
             (format-graphics-sample stream label sample)))))))
 
+(defun rectangle-with-text (medium x1 y1 x2 y2 text &rest keys)
+  (apply #'draw-rectangle* medium x1 y1 x2 y2 keys)
+  (draw-line* medium x1 y1 x2 y2 :ink +flipping-ink+)
+  (draw-text* medium text x1 y1 :ink +flipping-ink+))
+
 (define-test (basic-graphics-inks graphics) (stream)
   "Test basic graphics inks"
   (formatting-graphics-samples (stream "Colors" 6)
@@ -691,7 +696,12 @@ people, shall not perish from the earth.
     (let ((sample '(draw-polygon* (0 0 45 100 100 0))))
       (dotimes (i 6)
         (format-graphics-sample stream (format nil "Ink ~D" i) sample
-                                :ink (make-contrasting-inks 6 i))))))
+                                :ink (make-contrasting-inks 6 i)))))
+  (formatting-graphics-samples (stream "Flipping" 10)
+    (let ((sample '(rectangle-with-text 0 0 200 100 "Flip")))
+      (format-graphics-sample stream "Black" sample :ink +black+)
+      (format-graphics-sample stream "White" sample :ink +white+)
+      (format-graphics-sample stream "Unfilled" sample :ink +black+ :filled nil))))
 
 (define-test (points-and-lines graphics) (stream)
   "Test drawing points"

@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-prel.lisp,v 1.8 1999/02/25 08:23:25 layer Exp $
+;; $Id: acl-prel.lisp,v 1.9 1999/05/04 01:21:00 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -46,23 +46,25 @@
 			 (scroll-mode (combobox-scroll-bars items)))
   (declare (ignore id))
   (let* ((hwnd
-	  (win:CreateWindowEx 
-	   0				; extended-style
-	   "COMBOBOX"			; classname
-	   (nstringify label)		; windowname
-	   (logior
-	    (if (member scroll-mode '(:vertical :both t :dynamic)) 
-		win:WS_VSCROLL
-	      0)
-	    (if (member scroll-mode '(:horizontal :both t :dynamic)) 
-		win:WS_HSCROLL
-	      0)
-	    win:WS_CHILD
-	    win:WS_TABSTOP
-	    win:CBS_DROPDOWNLIST)
-	   0 0 0 0
-	   parent (ct::null-handle win::hmenu)
-	   *hinst* (symbol-name (gensym)))))
+	  (excl:with-native-string (x "COMBOBOX")
+	    (excl:with-native-string (label (nstringify label))
+	      (win:CreateWindowEx 
+	       0			; extended-style
+	       x			; classname
+	       label			; windowname
+	       (logior
+		(if (member scroll-mode '(:vertical :both t :dynamic)) 
+		    win:WS_VSCROLL
+		  0)
+		(if (member scroll-mode '(:horizontal :both t :dynamic)) 
+		    win:WS_HSCROLL
+		  0)
+		win:WS_CHILD
+		win:WS_TABSTOP
+		win:CBS_DROPDOWNLIST)
+	       0 0 0 0
+	       parent (ct::null-handle win::hmenu)
+	       *hinst* (symbol-name (gensym)))))))
     (if (ct:null-handle-p hwnd hwnd)
 	;; failed
 	(cerror "proceed" "failed")
@@ -78,7 +80,8 @@
 	  (dolist (item items)
 	    (setf item-name (funcall name-key item))
 	    (incf index)
-	    (win:SendMessage hwnd win:CB_INSERTSTRING index item-name)
+	    (excl:with-native-string (item-name item-name)
+	      (win:SendMessage hwnd win:CB_INSERTSTRING index item-name))
 	    ))
 	(win:SendMessage hwnd win:CB_SETCURSEL (or value 0) 0)
 	(win:SendMessage hwnd CB_SETTOPINDEX (or value 0) 0)))
@@ -121,15 +124,17 @@
 	   win:WS_CLIPSIBLINGS))
 	 (exstyle win:WS_EX_CLIENTEDGE)
 	 (hwnd
-	  (win:CreateWindowEx exstyle
-			      "LISTBOX"	; classname
-			      (nstringify label) ; windowname
-			      style
-			      0 0 0 0
-			      parent
-			      (ct::null-handle win::hmenu)
-			      *hinst*
-			      (symbol-name (gensym)))))
+	  (excl:with-native-string (classname "LISTBOX")
+	    (excl:with-native-string (windowname (nstringify label))
+	      (win:CreateWindowEx exstyle
+				  classname ; classname
+				  windowname ; windowname
+				  style
+				  0 0 0 0
+				  parent
+				  (ct::null-handle win::hmenu)
+				  *hinst*
+				  (symbol-name (gensym)))))))
     (if (ct:null-handle-p hwnd hwnd)
 	;; failed
 	(cerror "proceed" "failed")
@@ -152,7 +157,8 @@
 	      (ct:cset (:char 256) cstr ((fixnum i))
 		       (char-int (char item-name i))))
 	    (incf index)
-	    (win:SendMessage hwnd win:LB_INSERTSTRING index item-name)
+	    (excl:with-native-string (item-name item-name)
+	      (win:SendMessage hwnd win:LB_INSERTSTRING index item-name))
 	    ))
 	(if (eq mode :nonexclusive)
 	    (let ((i 0))
@@ -186,21 +192,23 @@
 
 (defun scrollbar-open (parent left top width height orientation)
   (let* ((hwnd
-	  (win:CreateWindowEx 
-	   0				; style
-	   "SCROLLBAR"			; classname
-	   (nstringify "")		; windowname
-	   (logior (if (eql orientation :horizontal) 
-		       win::SBS_HORZ win::SBS_VERT)
-		   win::WS_CHILD
-		   win::WS_BORDER
-		   win::WS_CLIPCHILDREN 
-		   win::WS_CLIPSIBLINGS) ; style
-	   0 0 0 0			; x, y, width, height
-	   parent
-	   (ct:null-handle win::hmenu)
-	   *hinst*
-	   (symbol-name (gensym)))))
+	  (excl:with-native-string (classname "SCROLLBAR")
+	    (excl:with-native-string (windowname (nstringify ""))
+	      (win:CreateWindowEx 
+	       0			; style
+	       classname		; classname
+	       windowname		; windowname
+	       (logior (if (eql orientation :horizontal) 
+			   win::SBS_HORZ win::SBS_VERT)
+		       win::WS_CHILD
+		       win::WS_BORDER
+		       win::WS_CLIPCHILDREN 
+		       win::WS_CLIPSIBLINGS) ; style
+	       0 0 0 0			; x, y, width, height
+	       parent
+	       (ct:null-handle win::hmenu)
+	       *hinst*
+	       (symbol-name (gensym)))))))
     (if (ct:null-handle-p hwnd hwnd)
 	;; failed
 	(cerror "proceed" "failed")
@@ -230,19 +238,21 @@
   ;; Both push buttons and radio buttons are created here.
   (let* ((nlabel (cleanup-button-label label))
 	 (hwnd
-	  (win:CreateWindowEx 0
-			       "BUTTON"	; classname
-			       (nstringify nlabel) ; windowname
-			       (logior buttonstyle
-				       win:WS_TABSTOP
-				       win:WS_CHILD
-				       win:WS_CLIPCHILDREN 
-				       win:WS_CLIPSIBLINGS) ; style
-			       0 0 0 0
-			       parent
-			       (ct::null-handle win::hmenu)
-			       *hinst*
-			       (symbol-name (gensym)))))
+	  (excl:with-native-string (classname "BUTTON")
+	    (excl:with-native-string (windowname (nstringify nlabel) )
+	      (win:CreateWindowEx 0
+				  classname ; classname
+				  windowname ; windowname
+				  (logior buttonstyle
+					  win:WS_TABSTOP
+					  win:WS_CHILD
+					  win:WS_CLIPCHILDREN 
+					  win:WS_CLIPSIBLINGS) ; style
+				  0 0 0 0
+				  parent
+				  (ct::null-handle win::hmenu)
+				  *hinst*
+				  (symbol-name (gensym)))))))
     (if (ct:null-handle-p hwnd hwnd)
 	;; failed
 	(cerror "proceed" "failed")
@@ -266,37 +276,40 @@
 			(scroll-mode nil))
   (declare (ignore id))
   (let* ((hwnd
-	  (win:CreateWindowEx 
-	   win:WS_EX_CLIENTEDGE
-	   "EDIT"			; classname
-	   (nstringify label)		; windowname
-	   (logior editstyle
-		   win:WS_CHILD
-		   win:WS_BORDER
-		   win:WS_TABSTOP
-		   (if (member scroll-mode '(:horizontal :both t :dynamic))
-		       win:WS_HSCROLL
-		     0)
-		   (if (member scroll-mode '(:vertical :both t :dynamic))
-		       win:WS_VSCROLL
-		     0)
+	  (excl:with-native-string (classname "EDIT")
+	    (excl:with-native-string (windowname (nstringify label))
+	      (win:CreateWindowEx 
+	       win:WS_EX_CLIENTEDGE
+	       classname		; classname
+	       windowname		; windowname
+	       (logior editstyle
+		       win:WS_CHILD
+		       win:WS_BORDER
+		       win:WS_TABSTOP
+		       (if (member scroll-mode '(:horizontal :both t :dynamic))
+			   win:WS_HSCROLL
+			 0)
+		       (if (member scroll-mode '(:vertical :both t :dynamic))
+			   win:WS_VSCROLL
+			 0)
 					   
-		   win:WS_CLIPCHILDREN 
-		   win:WS_CLIPSIBLINGS)	; style
-	   0 0 0 0
-	   parent
-	   (ct::null-handle win::hmenu)
-	   *hinst*
-	   (symbol-name (gensym)))))
+		       win:WS_CLIPCHILDREN 
+		       win:WS_CLIPSIBLINGS) ; style
+	       0 0 0 0
+	       parent
+	       (ct::null-handle win::hmenu)
+	       *hinst*
+	       (symbol-name (gensym)))))))
     (if (ct:null-handle-p hwnd hwnd)
 	;; failed
 	(cerror "proceed" "failed")
       ;; else succeed if we can init the DC
       (progn
 	(if (stringp value)
-	    (win:SetWindowText 
-	     hwnd 
-	     (silica::xlat-newline-return value)))
+	    (excl:with-native-string (s1 (silica::xlat-newline-return value))
+	      (win:SetWindowText 
+	       hwnd 
+	       s1)))
 	;; Override the default window proc.
 	(progn				;+++
 	  (setf std-ctrl-proc-address
@@ -365,19 +378,60 @@
 (defmethod get-texture (device-context pixel-map bitmapinfo)
   ;; The value of this function becomes the dc-image-bitmap.
   ;; It gets applied to the device context using SELECT-OBJECT.
-  (unless (and device-context (not (zerop device-context)))
-    (error "Device context not valid"))
-  (let* (texture-handle)
-    ;; Create nondiscardable Device Dependent Bitmap.
-    ;; The Windows docs suggest we should be using device independent bitmaps.
-    (setq texture-handle
-      (win:CreateDIBitmap
-       device-context
-       bitmapinfo 
-       win:CBM_INIT			; initialize bitmap bits
-       pixel-map
-       bitmapinfo 
-       win:DIB_RGB_COLORS))
+  ;; Pixel-map is an array of integers.  The element type is
+  ;; specific to bits-per-pixel specified in the BMP file.
+  ;;
+  ;; Create nondiscardable Device Dependent Bitmap.
+  ;; The Windows docs suggest we should be using device independent bitmaps.
+  (let* ((dc (win:GetDC 0))
+	 (texture-handle
+	  (win:CreateDIBitmap
+	   dc
+	   bitmapinfo 
+	   win:CBM_INIT			; initialize bitmap bits
+	   pixel-map
+	   bitmapinfo 
+	   win:DIB_RGB_COLORS)))
+    (when (zerop texture-handle)
+      ;;Below is Charley Cox's May 6 message from bug5991 (common graphics)
+      ;;
+      ;;The workaround I have installed to open-texture (the only place that
+      ;;calls CreateDIBitmap) occurs when an initial call to CreateDIBitmap
+      ;;fails.  If a failure occurs, open-texture does an on-the-spot copy of
+      ;;the pixmap array into a malloc'd block and then tries calling
+      ;;CreateDIBitmap again.  Afterwards, it frees the malloc'd block.
+      ;;
+      ;;This workaround has fixed all the failure cases I was able to
+      ;;reproduce, and I have not seen any failures since its installation.  I
+      ;;have also since not seen any StretchDIBits failures.
+      ;;
+      ;;I'm not really happy not knowing what was causing CreateDIBitmap's
+      ;;failure.  The GetLastError code was not being set, and single stepping
+      ;;all the way through did not reveal anything.  It's possible we may
+      ;;revisit this in the future.
+      (let (width height bits-per-pixel)
+	(let ((d (array-dimensions pixel-map)))
+	  (setq width (first d) height (second d)))
+	(setq bits-per-pixel 8)		; kludge
+	(let* ((image-size
+		;; Formula from msdn document: SAMPLE: DIBs and Their Uses
+		(* (ash
+		    (logand (+ (* width bits-per-pixel) 31)
+			    #.(lognot 31))
+		    -3)
+		   height))
+	       (malloc-texture-array
+		(ff:allocate-fobject `(:array :char ,image-size) :c)))
+	  (unless (zerop malloc-texture-array)
+	    (memcpy malloc-texture-array pixel-map image-size))
+	  (setq texture-handle
+	    (win:CreateDIBitmap
+	     device-context
+	     bitmapinfo 
+	     win:CBM_INIT		; initialize bitmap bits
+	     pixel-map
+	     bitmapinfo 
+	     win:DIB_RGB_COLORS)))))
     (when (zerop texture-handle)
       (check-last-error "CreateDIBitmap"))
     texture-handle))
@@ -485,3 +539,4 @@
 		   (values (funcall parser string) string))))
 	(win:CloseClipboard))
     (check-last-error "OpenClipboard")))
+

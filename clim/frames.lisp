@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: frames.lisp,v 1.92 1999/02/25 08:23:29 layer Exp $
+;; $Id: frames.lisp,v 1.93 1999/05/04 01:21:04 layer Exp $
 
 (in-package :clim-internals)
 
@@ -862,7 +862,8 @@
 			  (frame-standard-output frame))))
 	      (typecase si
 		(output-protocol-mixin si)
-		(t (frame-top-level-sheet frame))))))
+		(t (frame-top-level-sheet frame)))))
+	   (*avv-refreshed* nil))
       ;; The read-eval-print loop for applications...
       (letf-globally (((frame-actual-pointer-documentation-pane frame)
 		       *pointer-documentation-output*))
@@ -870,6 +871,12 @@
 	  ;; Redisplay all the panes
 	  (catch-abort-gestures ("Return to ~A command level" (frame-pretty-name frame))
 	    (redisplay-frame-panes frame)
+	    (when (not *avv-refreshed*) 
+	      ;;; This needs to happen after the 
+	      ;;; call to redisplay-frame-panes
+	      ;;; but only do it the first time.
+	      (force-refresh-avv-streams FRAME)
+	      (setq *avv-refreshed* t))
 	    (when interactor
 	      (fresh-line *standard-input*)
 	      (if (stringp prompt)
@@ -881,6 +888,24 @@
 	      ;; Need this check in case the user aborted out of a command menu
 	      (when command
 		(execute-frame-command frame command)))))))))
+
+(defmethod force-refresh-avv-streams (frame)
+  ;;; NOTE:  Not using get-frame-pane-to-avv-stream-table.
+  ;;; Don't create the hashtable if it's not already there.
+  (let ((ht (frame-pane-to-avv-stream-table frame)))
+    (when ht
+      (maphash #'(lambda (pane pair) 
+		   pane
+		   (let ((avv-stream (car pair))
+			 (avv-record (cdr pair)))
+		     (and avv-stream
+			  avv-record
+			  (port avv-stream)
+			  (sheet-medium avv-stream)
+			  (redisplay avv-record
+				     avv-stream
+				     :check-overlapping t))))
+	       ht))))
   
 ;; Generic because someone might want :BEFORE or :AFTER
 (defmethod frame-exit ((frame standard-application-frame))
@@ -1143,20 +1168,19 @@
                                )
   (read-command (frame-command-table frame) :stream stream))
 
-
-#+(or aclpc acl86win32)
-(defvar *frame*)
-
 (defmacro with-menu-disabled (frame &body body)
   #-mswindows (declare (ignore frame))
+  #-mswindows `(progn ,@body)
   #+mswindows
   `(unwind-protect 
-       (progn (enable-menu-items ,frame nil) ,@body)
-     (enable-menu-items ,frame t)
-     (setq *frame* ,frame))
-  #-mswindows `(progn ,@body))
+       (progn 
+	 (disable-all-menu-items ,frame)
+	 ,@body)
+     (re-enable-menu-items ,frame)))
 
 (defmethod execute-frame-command ((frame standard-application-frame) command)
+  (apply (command-name command) (command-arguments command))
+  #+ignore ;; from jeff on 4/8/99
   (with-menu-disabled frame
     (apply (command-name command) (command-arguments command))))
 

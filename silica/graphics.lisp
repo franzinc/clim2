@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: graphics.lisp,v 1.34 1998/08/06 23:16:59 layer Exp $
+;; $Id: graphics.lisp,v 1.35 1999/05/04 01:21:07 layer Exp $
 
 (in-package :silica)
 
@@ -306,22 +306,32 @@
 
 (defun map-endpoint-sequence (function positions)
   (declare (dynamic-extent function))
-  (if (listp positions)
-      (loop
-        (when (null positions) (return))
-        (let* ((x1 (pop positions))
-               (y1 (pop positions))
-               (x2 (pop positions))
-               (y2 (pop positions)))
-          (funcall function x1 y1 x2 y2)))
-      (let ((length (length positions))
-            #+Genera (positions positions))
-        (declare (type vector positions))
-        (do ((i 0 (+ i 4)))
-            ((>= i length))
-          (funcall function (aref positions i) (aref positions (1+ i))
-                            (aref positions (+ i 2)) (aref positions (+ i 3))))))
-  nil)
+  (let ((lastx nil) (lasty nil))
+    (cond ((listp positions)
+	   (setq lastx (pop positions))
+	   (setq lasty (pop positions))
+	   (loop
+	     (when (null positions) (return))
+	     (let* ((x (pop positions))
+		    (y (pop positions)))
+	       (funcall function lastx lasty x y)
+	       (setq lastx x lasty y))))
+	  (t
+	   (let ((length (length positions))
+		 (i 0))
+	     (declare (type vector positions) (fixnum i))
+	     (assert (evenp length))
+	     (setq lastx (aref positions i))
+	     (setq lasty (aref positions (1+ i)))
+	     (incf i 2)
+	     (loop 
+	       (when (>= i length) (return))
+	       (let* ((x (aref positions i))
+		      (y (aref positions (1+ i))))
+		 (funcall function lastx lasty x y)
+		 (setq lastx x lasty y)
+		 (incf i 2))))))
+    nil))
 
 ;; Transforms all of the positions in the sequence.  This returns the
 ;; original sequence if the transformation is the identity and COPY-P

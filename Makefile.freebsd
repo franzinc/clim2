@@ -1,4 +1,4 @@
-# $Id: Makefile.freebsd,v 1.2 1999/02/25 08:23:21 layer Exp $
+# $Id: Makefile.freebsd,v 1.3 1999/05/04 01:20:59 layer Exp $
 
 include Makefile.defs
 
@@ -16,7 +16,7 @@ PRODUCT-OBJS= $(PRODUCT-GENERIC-OBJS) $(STATIC-XM-OBJS) $(SHARED-XM-OBJS)
 
 #MOTIFXTRAS=-lgen
 
-PICFLAGS = -DPIC
+PICFLAGS = -fPIC -DPIC
 SHAREFLAGS = 
 MAKE_SHARED = ld -Bshareable -Bdynamic -L/usr/X11R6/lib -L/usr/local/lib
 STD_DEFINES =

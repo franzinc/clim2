@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: designs.lisp,v 1.25 1998/08/06 23:17:33 layer Exp $
+;; $Id: designs.lisp,v 1.26 1999/05/04 01:21:12 layer Exp $
 
 (in-package :clim-utils)
 
@@ -330,13 +330,32 @@
 
 ;;; Palettes
 
+;;; Portability note: It is not possible to get a palette-full
+;;; error on #+mswindows.  The operating system will automatically
+;;; give you the closest matching color.  JPM 2/24/99.
+
+(defparameter *palette-full-error-message*
+    "The color palette is full. ~%~
+Try closing color-intensive applications such as Netscape, or try~%~
+setting the colormap X resource to yes to get a private colormap,~%~
+then restart your application.")
+
+(defparameter *palette-full-dynamic-error-message*
+    "The color palette is full ~%~
+and find-closest-matching-color does not apply to dynamic colors.~%~
+Try closing color-intensive applications such as Netscape, or try~%~
+setting the colormap X resource to yes to get a private colormap,~%~
+then restart your application.")
+
 (eval-when (#-Allegro compile load eval)
 (define-condition palette-full (error)
   ((palette :initarg :palette :reader palette-full-palette)
    (color :initarg :color :reader palette-full-color))
   (:report (lambda (condition stream)
-	     (format stream "The palette ~S is full"
-	       (palette-full-palette condition)))))
+	     (let ((color (palette-full-color condition)))
+	       (if (typep color 'dynamic-color)
+		   (format stream *palette-full-dynamic-error-message*)
+		 (format stream *palette-full-error-message*))))))
 )	;eval-when
 
 (defvar *use-closest-color* :warn)

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-port.lisp,v 1.9 1999/02/25 08:23:25 layer Exp $
+;; $Id: acl-port.lisp,v 1.10 1999/05/04 01:21:00 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -137,30 +137,35 @@
   
 (define-constructor make-acl-event-queue queue () )
 
-;; reinstated the text-style->acl-font-mapping table (and commented
-;; out font-cache-style/font slots) because we now need to have
-;; multiple logical fonts open simultaneously for the life time of any
-;; controls for which a :text-style is specified. Before, only the 
-;; Windows system font was being used and text-style-mapping was only
-;; used to put stuff in device contexts which only lived inside a
-;; with-dc - besides which the *original-font*, *created-font* logic
-;; was suspect. (cim 10/14/96)
-
 (defclass acl-port (basic-port)
-  ((dc-cache :initform (make-hash-table) :accessor port-dc-cache)
-   (text-style->acl-font-mapping :initform (make-hash-table)) 
+  (;; Cache used by dc-image-for-ink for mapping inks to device contexts:
+   (dc-cache :initform (make-hash-table) :accessor port-dc-cache)
+   ;; Virtual key to keysym:
    (vk->keysym :initform (make-hash-table))
-   (keysym->keysym :initform (make-hash-table))
+   ;; Cached value of (win:GetDeviceCaps dc win:LOGPIXELSY) :
    logpixelsy
+   ;; Where window events get put:
    (event-queue :initform (make-acl-event-queue))
+   ;; Most recently activated window or control:
    (mirror-with-focus :initform nil :accessor acl-port-mirror-with-focus)
+   ;; Cache used by realize-cursor:
+   (cursor-cache :initform nil)
+   ;; Support for pointer grabbing:
+   (grab-cursor :initform nil :accessor port-grab-cursor)
+   ;; Default foreground, background colors:
+   (resources :initform nil :accessor port-default-resources)
+   ;; Four slots for cached pointer state:
+   (pointer-x :initform 0)
+   (pointer-y :initform 0)
    (pointer-sheet :initform nil)
    (motion-pending :initform nil)
-   (cursor-cache :initform nil)
-   (grab-cursor :initform nil :accessor port-grab-cursor)
-   (resources :initform nil :accessor port-default-resources)
-   (pointer-x :initform 0)
-   (pointer-y :initform 0)))
+   ;; Cached mapping of CLIM text styles to operating system fonts:
+   (text-style->acl-font-mapping :initform (make-hash-table)) 
+   ;; Drawing text at an angle is implemented by asking the
+   ;; operating system to rotate a font to the required angle:
+   (rotated-font-htable :initform (make-hash-table)
+			:accessor port-rotated-font-htable)   
+   ))
 
 (defmethod restart-port ((port acl-port))
   ;; No need to devote a thread to receiving messages
@@ -303,10 +308,131 @@
 		(:very-large 18)
 		(:huge       24)))
 
-;;--- hacked to allow text-styles to be specified as lists
-;;--- there's probably a more efficient way...
-(defmethod text-style-mapping ((port acl-port) (style list)
-			       &optional (character-set *standard-character-set*) etc)
+(defmethod port-find-rotated-font ((port acl-port) 
+				   plain-font font-rotation-angle)
+  ;; Find the rotated-font corresponding to plain-font
+  ;; rotated at the appropriate angle.
+  ;; If it doesn't exist, create it and cache a record
+  ;; of it.
+  (let ((htable (port-rotated-font-htable port)))
+    (let ((base-font-list (gethash plain-font htable)))
+      (let ((font-pair (and base-font-list
+			    (find font-rotation-angle base-font-list 
+				  :test #'=
+				  :key #'first))))
+	(cond (font-pair
+	       (second font-pair))
+	      (t
+	       (let ((new-font (port-duplicate-rotated-windows-font 
+				port plain-font font-rotation-angle)))
+		 (push (list font-rotation-angle new-font)
+		       (gethash plain-font htable))
+		 new-font)))))))
+
+(defmethod port-duplicate-rotated-windows-font 
+    ((port acl-port) plain-font font-rotation-angle)
+  (let ((text-style (port-acl-font->text-style port plain-font)))
+    (cond (text-style 
+	   (text-style-mapping-1 
+	    port text-style 
+	    :font-rotation-angle font-rotation-angle))
+	  (t 
+	   ;;; Make a best guess.
+	   (let ((old-height (acl-font-height plain-font))
+		 (italic-flag (acl-font-italic plain-font))
+		 (underline-flag (acl-font-underlined plain-font))
+		 (weight-flag (acl-font-weight plain-font)))
+	     (make-windows-font 
+	      old-height 
+	      :escapement font-rotation-angle
+	      :orientation font-rotation-angle
+	      :italic (not (= italic-flag 0))
+	      :underline (not (= underline-flag 0))
+	      :weight weight-flag
+	      ))))))
+
+(defun pos-to-font-angle (x0 y0 x1 y1)
+  (let ((dx (if (null x1) 0 (- x1 x0)))
+	(dy (if (null y1) 0 (- y0 y1))))
+    (cond ((= dy 0)
+	   (if (< dx 0)
+	       -1800
+	     0))
+	  ((= dx 0)
+	   (if (< dy 0)
+	       -900
+	     900))
+	  (t
+	   (let* ((angfact #.(/ 180 pi))
+		  (ang (* (atan dy dx) angfact)))
+	     (round (* 10 ang)))))))
+
+(defmethod port-acl-font->text-style ((port acl-port) acl-font)
+  (with-slots (text-style->acl-font-mapping) port
+    (when text-style->acl-font-mapping
+      (catch :font-found 
+	(maphash #'(lambda (KEY VAL)
+		     (if (eql VAL ACL-FONT)
+			 (throw :font-found KEY)))
+		 text-style->acl-font-mapping)))))
+
+(defmethod text-style-mapping-1
+    ((port acl-port) (style text-style) &key font-rotation-angle)
+  (multiple-value-bind (weight italic)
+      (let ((face (text-style-face style)))
+	(typecase face
+	  (cons
+	   (values (if (member :bold face) win:FW_BOLD win:FW_NORMAL)
+		   (member :italic face)))
+	  (otherwise
+	   (case face
+	     (:roman (values win:FW_NORMAL nil))
+	     (:bold (values win:FW_BOLD nil))
+	     (:italic (values win:FW_NORMAL t))
+	     (otherwise (values win:FW_BOLD nil))))))
+    (multiple-value-bind (family face-name)
+	(case (text-style-family style)
+	  (:fix (values (logior win:FIXED_PITCH win:FF_MODERN)
+			#+ignore
+			"courier"))
+	  (:serif (values (logior win:VARIABLE_PITCH win:FF_ROMAN)
+			  "times new roman"))
+	  (:sans-serif (values (logior win:VARIABLE_PITCH win:FF_SWISS)
+			       "arial"))
+	  ;;--- some of these specify ugly ugly linedrawn fonts
+	  (otherwise (values (logior win:DEFAULT_PITCH win:FF_DONTCARE)
+			     (string (text-style-family style)))))
+      (let ((size (text-style-size style))
+	    (point-size nil))
+	(when (numberp size)
+	  (setq point-size size))
+	(unless point-size
+	  (setq point-size
+	    (second (assoc size *acl-logical-size-alist*))))
+	(unless point-size
+	  (format *trace-output*
+		  "~& Warning: ~S does not specify size, using 12" style)
+	  (setq point-size 12))
+	(if font-rotation-angle 
+	    (make-windows-font 
+	     (- (round (* point-size (slot-value port 'logpixelsy)) 72))
+	     :weight weight 
+	     :italic italic
+	     :pitch-and-family family 
+	     :face face-name	  
+	     :escapement font-rotation-angle
+	     :orientation font-rotation-angle)
+	  (make-windows-font 
+	   (- (round (* point-size (slot-value port 'logpixelsy)) 72))
+	   :weight weight 
+	   :italic italic
+	   :pitch-and-family family 
+	   :face face-name	  
+	   ))))))
+
+(defmethod text-style-mapping 
+    ((port acl-port) (style list)
+     &optional (character-set *standard-character-set*) etc)
   (text-style-mapping port (apply #'make-text-style style)
 		      character-set etc))
 
@@ -317,47 +443,7 @@
   (with-slots (text-style->acl-font-mapping) port
     (or (gethash style text-style->acl-font-mapping)
 	(setf (gethash style text-style->acl-font-mapping)
-	  (multiple-value-bind (weight italic)
-	      (let ((face (text-style-face style)))
-		(typecase face
-		  (cons
-		   (values (if (member :bold face) win:FW_BOLD win:FW_NORMAL)
-			   (member :italic face)))
-		  (otherwise
-		   (case face
-		     (:roman (values win:FW_NORMAL nil))
-		     (:bold (values win:FW_BOLD nil))
-		     (:italic (values win:FW_NORMAL t))
-		     (otherwise (values win:FW_BOLD nil))))))
-	    (multiple-value-bind (family face-name)
-		(case (text-style-family style)
-		  (:fix (values (logior win:FIXED_PITCH win:FF_MODERN) 
-				#+ignore
-				"courier"))
-		  (:serif (values (logior win:VARIABLE_PITCH win:FF_ROMAN)
-				  "times new roman"))
-		  (:sans-serif (values (logior win:VARIABLE_PITCH win:FF_SWISS)
-				       "arial"))
-		  ;;--- some of these specify ugly ugly linedrawn fonts
-		  (otherwise (values (logior win:DEFAULT_PITCH win:FF_DONTCARE)
-				     (string (text-style-family style)))))
-	      (let ((size (text-style-size style))
-		    (point-size nil))
-		(when (numberp size)
-		  (setq point-size size))
-		(unless point-size
-		  (setq point-size
-		    (second (assoc size *acl-logical-size-alist*))))
-		(unless point-size
-		  (format *trace-output*
-			  "~& Warning: ~S is not a known size, using 12" size)
-		  (setq point-size 12))
-		(make-windows-font 
-		 (- (round (* point-size (slot-value port 'logpixelsy)) 72))
-		 :weight weight 
-		 :italic italic
-		 :pitch-and-family family 
-		 :face face-name))))))))
+	  (text-style-mapping-1 port style)))))
 
 (defmethod text-style-mapping
     ((device acl-port) (style silica::device-font)
@@ -379,7 +465,8 @@
 	 (array (make-array (1+ last-character))))
     (loop for i from first-character to last-character do
 	  (setf (char string 0) (code-char i))
-	  (cond ((win:getTextExtentPoint dc string 1 tepsize)
+	  (cond ((excl:with-native-string (string string)
+		   (win:getTextExtentPoint dc string 1 tepsize))
 		 (setf (aref array i) (ct:cref win:size tepsize cx)))
 		(t
 		 ;; Why does this clause ever run?  getlasterror=10035.
@@ -411,21 +498,22 @@
 		 win-font) 
   (unless win-font
     (setq win-font
-      (win:createFont height		; logical height
-		      width		; logical average width
-		      escapement	; angle of escapement (tenths of degrees)
-		      orientation	; normally the same as escapement
-		      weight		; font weight (FW_NORMAL=400, FW_BOLD=700)
-		      (if italic 1 0) 
-		      (if underline 1 0)
-		      (if strikeout 1 0) 
-		      charset		; if you want chinese or greek
-		      output-precision
-		      clip-precision
-		      quality
-		      pitch-and-family 
-		      (or face "")
-		      )))
+      (excl:with-native-string (vface (or face ""))
+	(win:createFont height		; logical height
+			width		; logical average width
+			escapement	; angle of escapement (tenths of degrees)
+			orientation	; normally the same as escapement
+			weight		; font weight (FW_NORMAL=400, FW_BOLD=700)
+			(if italic 1 0) 
+			(if underline 1 0)
+			(if strikeout 1 0) 
+			charset		; if you want chinese or greek
+			output-precision
+			clip-precision
+			quality
+			pitch-and-family 
+			vface
+			))))
   (when (zerop win-font)
     (check-last-error "CreateFont"))
   (make-device-font win-font))

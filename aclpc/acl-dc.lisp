@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-dc.lisp,v 1.8 1999/02/25 08:23:24 layer Exp $
+;; $Id: acl-dc.lisp,v 1.9 1999/05/04 01:21:00 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -236,27 +236,28 @@
 	 (brush *null-brush*)
 	 (pen (when (= code 1) (dc-image-solid-1-pen image)))
 	 (rop2 (dc-image-rop2 image))
-	 (color (dc-image-text-color image)))
+	 (text-color (dc-image-text-color image)))
     (declare (fixnum thickness code))
     (unless pen
       (when *created-pen*
 	(push *created-pen* *extra-objects*))
       (when (and dashes (> thickness 1))
-	;; CreatePen does not support this combination.
+	;; CreatePen does not support thick dashed lines.
 	;; So render dashes with thickness=1.
+	;; (Use ExtCreatePen!)
 	(setq thickness 1))
       (when (= rop2 win:R2_XORPEN)
-	(setq color #xffffff))		; black
+	(setq text-color #xffffff))		; black
       (setq pen
 	(setq *created-pen*
 	  (createPen (if dashes win:PS_DASH win:PS_SOLID)
 		     thickness
-		     color))))
+		     text-color))))
     (selectobject dc pen)
     (if dashes
 	(win:SetBkMode dc win:TRANSPARENT)
       (win:SetBkMode dc win:OPAQUE))
-    (selectobject dc brush)
+    (when brush (selectobject dc brush))
     (when rop2 (win:SetRop2 dc rop2))
     t))
 
@@ -327,8 +328,7 @@
 	 (text-color (dc-image-text-color image))
 	 (background-color (dc-image-background-color image))
 	 (brush (dc-image-brush image))
-	 (pen (dc-image-solid-1-pen image))
-	 (rop2 (dc-image-rop2 image)))
+	 (pen (dc-image-solid-1-pen image)))
     (win:SetMapMode dc win:MM_TEXT)
     (when font (selectobject dc font))
     (cond ((not background-color)
@@ -338,10 +338,12 @@
 	  (t
 	   (win:SetBkMode dc win:OPAQUE)
 	   (win:SetBkColor dc background-color)))
-    (when text-color (win:setTextColor dc text-color))
     (when brush (win:SelectObject dc brush))
     (when pen (win:SelectObject dc pen))
-    (when rop2 (win:SetRop2 dc rop2))))
+    (when text-color (win:SetTextColor dc text-color))
+    ;; SetRop2 has no effect on text.  If you want to use
+    ;; one, you have to draw into a bitmap and biblt that.
+    t))
 
 (defgeneric dc-image-for-ink (medium ink))
 

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: pkgdcl.lisp,v 1.4 1999/02/25 08:23:27 layer Exp $
+;; $Id: pkgdcl.lisp,v 1.5 1999/05/04 01:21:01 layer Exp $
 
 (in-package :common-lisp-user)
 
@@ -30,8 +30,9 @@
   ;;(require :for)			; for FOR macro
   (require :winapi)
   (require :winapi-dev)
-  (load "user32.dll")
-
+  ;; Kevin: (FEATUREP (:VERSION>= 5 (0 1) :PRE-BETA2)) throws an error
+  (or (ignore-errors (load "user32.dll" :system-library t))
+      (load "user32.dll"))
   ;; Turn this off as long as clim-utils is a locked package.
   (setq excl:*enable-package-locked-errors* nil)
   )
