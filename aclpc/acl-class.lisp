@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-class.lisp,v 1.7.8.8 1998/07/20 21:57:15 layer Exp $
+;; $Id: acl-class.lisp,v 1.7.8.9 1998/08/12 21:15:08 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -33,11 +33,15 @@
 
 ;; this will grow indefinitely as menu-ids are never removed (cim 9/10/96)
 (defvar *menu-id->command-table*
-  (make-array 256 :element-type t :adjustable t :fill-pointer 0 :initial-element nil))
+    (make-array 256 
+		:element-type t :adjustable t 
+		:fill-pointer 0 :initial-element nil))
 
 ;; this will grow indefinitely as items are never removed (cim 9/10/96)
-(defvar *popup-menu->menu-item-ids*
-    (make-hash-table))
+(defvar *popup-menu->menu-item-ids* (make-hash-table))
+
+;; this will grow indefinitely as items are never removed (cim 9/10/96)
+(defvar *popup-menu->command-table* (make-hash-table))
 
 (defstruct modstate
   (numlock nil)
@@ -415,49 +419,65 @@
     *win-result*))  
 
 ;; Process WM_VSCROLL
-(defun onvscroll (window msg wparam lparam)
-  (let* ((type (loword wparam))
+(defun OnVScroll (window msg wparam lparam)
+  (let* ((scrollcode (loword wparam))
 	 (position (hiword wparam))
 	 (hwnd (if (zerop lparam) window lparam)) ; JPM for rfe353
 	 (message (cond ((eql msg win:wm_hscroll) :horizontal)
 			((eql msg win:wm_vscroll) :vertical)))
-	 (flag (cond ((eql msg win:wm_hscroll) win:sb_horz)
-		     ((eql msg win:wm_vscroll) win:sb_vert)))
-	 (sheet (mirror->sheet *acl-port* hwnd)))
+	 (sheet (mirror->sheet *acl-port* hwnd))
+	 (bar (cond ((gadgetp sheet) win:sb_ctl)
+		    ((eql msg win:wm_hscroll) win:sb_horz)
+		    ((eql msg win:wm_vscroll) win:sb_vert)))
+	 (redraw 1))
     (declare (fixnum action position))
+    ;; By convention, scroll bar values should always have a range of 
+    ;; 0 to *win-scroll-grain*.
     (multiple-value-bind (action amount)
-	(cond ((eql type win:sb_lineup)
-	       (win:setScrollPos window flag
-				  (- (win:getScrollPos window flag) 1) 1)
-	       (values :relative-jump -1))
-	      ((eql type win:sb_linedown)
-	       (win:setScrollPos window flag
-				  (+ (win:getScrollPos window flag) 1) 1)
-	       (values :relative-jump +1))
-	      ((eql type win:sb_pageup)
-	       (win:setScrollPos window flag
-				  (- (win:getScrollPos window flag) 1) 1)
-	       (values :screenful -1))
-	      ((eql type win:sb_pagedown)
-	       (win:setScrollPos window flag
-				  (+ (win:getScrollPos window flag) 1) 1)
-	       (values :screenful +1))
-	      ((eql type win:sb_thumbposition)
-	       (win:setScrollPos window flag position 1)
-	       (values :percentage position))
-	      ((and *realtime-scrollbar-tracking*
-		    (eql type win:sb_thumbtrack))
-	       (win:setScrollPos window flag position 1)
-	       (values :percentage position))
-	      ((eql type win:sb_top)
-	       (win:setScrollPos window flag 0 1)
-	       (values :percentage 0))
-	      ((eql type win:sb_bottom)
-	       (win:setScrollPos window flag *win-scroll-grain* 1)
-	       (values :percentage 100)))
+	(case scrollcode
+	  (#.win:sb_bottom
+	   ;; Scroll to lower right
+	   (win:setScrollPos window bar *win-scroll-grain* redraw)
+	   (values :percentage *win-scroll-grain*))
+	  ((#.win:sb_linedown #.win:sb_lineright)
+	   ;; Scroll down/right one unit
+	   (win:setScrollPos window bar
+			     (+ (win:getScrollPos window bar) 1) 
+			     redraw)
+	   (values :relative-jump +1))
+	  ((#.win:sb_lineup #.win:sb_lineleft)
+	   ;; Scroll up/left one unit
+	   (win:setScrollPos window bar
+			     (- (win:getScrollPos window bar) 1) 
+			     redraw)
+	   (values :relative-jump -1))
+	  ((#.win:sb_pagedown #.win:sb_pageright)
+	   ;; Scroll down/right by width of window.
+	   (win:setScrollPos window bar
+			     (+ (win:getScrollPos window bar) 1) 
+			     redraw)
+	   (values :screenful +1))
+	  ((#.win:sb_pageup #.win:sb_pageleft)
+	   ;; Scroll up/left by width of window.
+	   (win:setScrollPos window bar
+			     (- (win:getScrollPos window bar) 1) 
+			     redraw)
+	   (values :screenful -1))
+	  (#.win:sb_thumbposition
+	   ;; Scroll to absolute position.
+	   (win:setScrollPos window bar position redraw)
+	   (values :percentage position))
+	  (#.win:sb_thumbtrack
+	   ;; Scroll to absolute position.
+	   (win:setScrollPos window bar position redraw)
+	   (values :percentage position))
+	  (#.win:sb_top
+	   ;; Scroll to upper left
+	   (win:setScrollPos window bar 0 redraw)
+	   (values :percentage 0))
+	  )
       (when (and action sheet)
 	(with-slots (event-queue) *acl-port*
-	  ;;(queue-put event-queue
 	  (handle-event
 	   sheet
 	   (allocate-event 'silica::scrollbar-event
@@ -471,7 +491,7 @@
 (declaim (special *setting-sheet-mirror-edges*))
 
 ;; Process WM_MOVE
-(defun onmove (window msg wparam lparam)
+(defun OnMove (window msg wparam lparam)
   (let ((sheet (mirror->sheet *acl-port* window)))
     (if (and sheet
 	     (not (eq sheet *setting-sheet-mirror-edges*))
@@ -483,31 +503,25 @@
 	  ;; set return value to 0
 	  (clear-winproc-result *win-result*))
       (setq *win-result* (win:defwindowproc window msg wparam lparam)))
-    *win-result*))  
+    *win-result*))
+
+;; Process WM_SIZE
+(defun OnSize (window msg wparam lparam)
+  (let ((sheet (mirror->sheet *acl-port* window)))
+    (if (and sheet
+	     (not (eq sheet *setting-sheet-mirror-edges*))
+	     (not (win:IsIconic window)))
+	(progn
+	  (handle-event
+	   sheet
+	   (allocate-event 'window-configuration-event :sheet sheet))
+	  ;; set return value to 0
+	  (clear-winproc-result *win-result*))
+      (setq *win-result* (win:defwindowproc window msg wparam lparam)))
+    *win-result*))
 
 ;; Process WM_GETMINMAXINFO
-(defun ongetminmaxinfo (window msg wparam lparam)
-  #+aclpc ;; pnc Aug97 for clim2bug740
-  (let ((sheet (mirror->sheet *acl-port* window)))
-    (if (typep sheet 'acl-top-level-sheet)
-	(let ((min-width (acl-top-min-width sheet))
-	      (min-height (acl-top-min-height sheet)))
-	  ;; someone who knows how to use the pc ff interface should get
-	  ;; rid of all these memrefs! (cim 10/4/96)
-	  (when (and min-width min-height)
-	    (set-measureitemstruct-width-and-height lparam min-width
-						    min-height)
-	    #+ignore
-	    (setf (sys:memref-int lparam 0 24 win:uint) min-width
-		  (sys:memref-int lparam 0 28 win:uint) min-height)
-	    (clear-winproc-result *win-result*)))
-      #+acl86win32
-      (setq *win-result* (win:defwindowproc window msg wparam lparam))
-      #+aclpc
-      (ct:%set-long *win-result* 4 0
-		     (win:defwindowproc window msg wparam lparam)))
-    *win-result*)
-  #-aclpc				; +++ fix this for aclpc +++
+(defun OnGetMinMaxInfo (window msg wparam lparam)
   (let ((sheet (mirror->sheet *acl-port* window)))
     (if (typep sheet 'acl-top-level-sheet)
 	(let ((min-width (acl-top-min-width sheet))
@@ -518,15 +532,13 @@
 	    (setf (sys:memref-int lparam 0 24 :unsigned-long) min-width
 		  (sys:memref-int lparam 0 28 :unsigned-long) min-height)
 	    (clear-winproc-result *win-result*)))
-      #+acl86win32
-      (setq *win-result* (win:defwindowproc window msg wparam lparam))
-      #+aclpc
-      (ct:%set-long *win-result* 4 0
-		     (win:defwindowproc window msg wparam lparam)))
+      (setq *win-result* (win:defwindowproc window msg wparam lparam)))
     *win-result*))
 
 ;; PROCESS EN_UPDATE
-(defun onupdate (window msg wparam lparam)
+(defun OnUpdateText (window msg wparam lparam)
+  ;; An edit control is about to display modified text.
+  ;; Resize the edit control, if necessary.
   (declare (ignore msg wparam lparam))
   (let ((sheet (mirror->sheet *acl-port* window)))
     (when sheet
@@ -686,7 +698,7 @@
       (clim:beep))))
 
 ;; Process WM_BUTTONDOWN
-(defun onbuttondown (window msg wparam lparam)
+(defun OnButtonDown (window msg wparam lparam)
   ;; added the following so that clicking on a blank area will
   ;; move the focus away from any text-fields and cause their
   ;; value to be correctly updated  - this was copied from the
@@ -732,7 +744,10 @@
   *win-result*)  
 
 ;; Process WM_ACTIVATE
-(defun onactivate (window msg wparam lparam)
+(defun OnActivate (window msg wparam lparam)
+  ;; A window or a control is being activated.
+  ;; If user is activating with a mouse click, 
+  ;; OnMouseActivate is also called.
   (declare (ignore msg lparam))
   (let ((sheet (mirror->sheet *acl-port* window))
 	(flag (loword wparam)))
@@ -762,13 +777,26 @@
     *win-result*))
 
 ;; Process WM_INITMENUPOPUP
-(defun oninitmenupopup (window msg wparam lparam)
-  (declare (ignore msg window lparam))
-  (update-menu-item-sensitivities wparam)
-  *win-result*)
+(defun OnInitMenuPopup (window msg wparam lparam)
+  ;; Sent when a drop-down menu or submenu is about to become active.
+  ;; We use it to activate/deactivate menu items and to update
+  ;; menus in response to add/remove menu-item-from-command-table.
+  (declare (ignore msg))
+  (let ((sheet (mirror->sheet *acl-port* window))
+	(system-menu (plusp (hiword lparam)))
+	(index (loword lparam))
+	(menu-handle wparam))
+    (unless system-menu
+      (update-menu-contents sheet menu-handle index)
+      (update-menu-item-sensitivities menu-handle)
+      ;; set return value to 0
+      (clear-winproc-result *win-result*)
+      *win-result*)))
 
 ;; Process WM_NCHITTEST
-(defun onnchittest (window msg wparam lparam)
+(defun OnNcHitTest (window msg wparam lparam)
+  ;; Called on the object that contains the cursor
+  ;; every time the mouse moves.
   (setq *win-result* (win:defwindowproc window msg wparam lparam)))
 
 ;; Allow Windows to provide default message processing.
@@ -831,12 +859,14 @@
        (oncommand window msg wparam lparam))
       ((#.win:wm_hscroll #.win:wm_vscroll)
        (onvscroll window msg wparam lparam))
-      ((#.win:wm_move #.win:wm_size)
+      (#.win:wm_move
        (onmove window msg wparam lparam))
+      (#.win:wm_size
+       (onsize window msg wparam lparam))
       (#.win:wm_getminmaxinfo
        (ongetminmaxinfo window msg wparam lparam))
       (#.win:en_update
-       (onupdate window msg wparam lparam))
+       (OnUpdateText window msg wparam lparam))
       ;; character typed
       ((#.win:wm_keydown 
 	#.win:wm_syskeydown
@@ -858,7 +888,7 @@
       (#.win:wm_initmenupopup
        (oninitmenupopup window msg wparam lparam))
       (#.win:wm_nchittest
-       (onnchittest window msg wparam lparam))
+       (OnNcHitTest window msg wparam lparam))
       (otherwise
        (message-default window msg wparam lparam)))
     (setf result *win-result*)

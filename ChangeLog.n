@@ -11,11 +11,29 @@ Tests for new features:	<`no new features', `no tests for new features', or
 	* <changes go here...>
 
 *******************************************************************************
+2.2.1.31
+
+Wed Aug 12 12:00:00 1998  Jeff Morrill <jmorrill@pointnclick.com>
+
+	* silica/db-label: fix handle-repaint of generic-label-pane
+        * aclpc/acl-class: scroll correctly in scroll-bars, update menu bars
+        * aclpc/acl-dc: fixes for flipping-ink, dashed lines, stipples
+        * aclpc/acl-frames: update menu bars, fix select-file segv,
+            keep noting-progress from hanging
+        * aclpc/acl-medium: make color->wincolor more accurate, fix
+            stipples and draw-pattern*
+        * aclpc/acl-port: keep the event processor from hanging lisp
+        * aclpc/acl-prel: fixes for stipples and draw-pattern*
+        * aclpc/acl-scroll: scroll correctly in scroll-bars
+        * aclpc/acl-widget: scroll correctly in scroll-bars
+
+*******************************************************************************
 2.2.1.30
 
 Wed Aug 12 09:22:38 1998  Kevin Layer  <layer@ultra>
 
-	* code/last.cl: bug7227: add version specification to load-patches
+	* utils/last.lisp: bug7227: add version specification to
+	load-patches
 
 *******************************************************************************
 2.2.1.29

@@ -1,4 +1,4 @@
-;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: ACL-CLIM; Base: 10; Lowercase: Yes -*-
+;;; -*- Mode: Lisp; Package: silica -*-
 ;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
 ;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
 ;;
@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-scroll.lisp,v 1.4.8.5 1998/07/20 21:57:19 layer Exp $
+;; $Id: acl-scroll.lisp,v 1.4.8.6 1998/08/12 21:15:14 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -45,24 +45,24 @@
 			 (event silica::scrollbar-event))
   (with-slots (silica::orientation silica::action silica::amount) event
     (assert (eql silica::orientation (gadget-orientation pane)))
-    (multiple-value-bind (min max) (gadget-range* pane)
-      (let ((new
-	     (max min 
-		  (min (- max (scroll-bar-size pane))
-		       (case silica::action
-			 (:relative-jump ; press arrows
-			  (+ (gadget-value pane) 
-			     (* (scroll-bar-size pane) silica::amount)))
-			 (:screenful	; click near thumb
-			  (+ (gadget-value pane) 
-			     (* (scroll-bar-size pane) silica::amount)))
-			 (:percentage	; drag thumb
-			  (+ min
-			     (* (- max min (scroll-bar-size pane)) 
-				(/ silica::amount 
-				   (float acl-clim::*win-scroll-grain*))))))))))
-	#+ignore
-        (setf (gadget-value pane) new)
+    (multiple-value-bind (min) (gadget-range* pane)
+      ;; SCROLL-BAR-SIZE is less than or equal to the range.
+      (let* ((new (case silica::action
+		    (:relative-jump	; press arrows
+		     ;; AMOUNT is plus or minus one
+		     (+ (gadget-value pane) 
+			(* (scroll-bar-size pane) silica::amount)))
+		    (:screenful		; click near thumb
+		     ;; AMOUNT is plus or minus one
+		     (+ (gadget-value pane) 
+			(* (scroll-bar-size pane) silica::amount)))
+		    (:percentage	; drag thumb
+		     ;; AMOUNT is absolute position in the scroll range
+		     ;; (from 0 to *win-scroll-grain*).
+		     (+ min
+			(* (gadget-range pane)
+			   (/ silica::amount 
+			      (float acl-clim::*win-scroll-grain*))))))))
 	(value-changed-callback pane (gadget-client pane) 
 				(gadget-id pane) new)
 	))))
@@ -119,19 +119,19 @@
 (defmethod gadget-supplies-scrolling-p ((sheet acl-clim::acl-text-editor-pane)) t)
 
 (defmethod handle-event ((pane mswin-scroller-pane) 
-						 (event scrollbar-event))
+			 (event scrollbar-event))
   (with-slots (orientation action amount) event
-	(case action
-	  (:relative-jump
-		(case amount
-		  (-1  (scroll-up-line pane orientation))
-		  (1 (scroll-down-line pane orientation))))
-	  (:screenful
-		(case amount
-		  (-1  (scroll-up-page pane orientation))
-		  (1 (scroll-down-page pane orientation))))
-	  (:percentage
-		(scroll-to-position pane orientation amount)))))
+    (case action
+      (:relative-jump
+       (case amount
+	 (-1  (scroll-up-line pane orientation))
+	 (1 (scroll-down-line pane orientation))))
+      (:screenful
+       (case amount
+	 (-1  (scroll-up-page pane orientation))
+	 (1 (scroll-down-page pane orientation))))
+      (:percentage
+       (scroll-to-position pane orientation amount)))))
 
 (defmethod scroll-bar-value-changed-callback
     (sheet (client scroller-pane) id value size)
@@ -196,8 +196,10 @@
 	   (gmax (float (gadget-max-value scroll-bar) 0s0))
 	   (range (- gmax gmin)))
       (declare (type single-float range gmin gmax))
-      (when (and (and current-size (= (the single-float current-size) range))
-		 (= min vmin) (> (- vmax vmin) (- max min)))
+      (when (and current-size
+		 (= (the single-float current-size) range)
+		 (= min vmin)
+		 (> (- vmax vmin) (- max min)))
 	(return-from update-scroll-bar))
       ;; The elevator size in 01 units - calculated from the contents
       (let* ((contents-range (float (- max min) 0.0s0))
@@ -217,33 +219,34 @@
 					  corrected-contents-range))))))))
 	     ;;-- This does not scale by the range
 	     (pos (the single-float
-		    (min 1.0s0 (max 0.0s0
-				    (if (<= corrected-contents-range viewport-range)
-					0.0
-				      (/ (float (- vmin min) 0.0s0) 
-					 ;;--- Uh-oh, the home-grown scroll bars
-					 ;;--- seem to have a different contract
-					 ;;--- from Motif/OpenLook.  Fix them!
-					 #-(or aclpc acl86win32)
-					 (- contents-range viewport-range)
-					 #+(or aclpc acl86win32)
-					 corrected-contents-range)))))))
+		    (min 1.0s0 
+			 (max 0.0s0
+			      (if (<= corrected-contents-range viewport-range)
+				  0.0
+				(/ (float (- vmin min) 0.0s0) 
+				   ;;--- Uh-oh, the home-grown scroll bars
+				   ;;--- seem to have a different contract
+				   ;;--- from Motif/OpenLook.  Fix them!
+				   corrected-contents-range)))))))
 	(declare (type single-float pos size))
 	(unless (and current-size
 		     current-value
 		     (= current-size size)
 		     (= current-value pos))
-	  (let ((scrollinfo-struct (ct:ccallocate win::scrollinfo))
-		(win-id (if (eq orientation :vertical) win:SB_VERT win:SB_HORZ))
-		(win-pos (floor (* pos acl-clim::*win-scroll-grain*)))
-		(win-size (floor (* size (1+ acl-clim::*win-scroll-grain*)))))
-	    (ct:csets win::scrollinfo scrollinfo-struct
-		      win::cbSize (ct:sizeof win::scrollinfo)
-		      win::fMask #.(logior win::SIF_PAGE win::SIF_POS
-					   win::SIF_DISABLENOSCROLL)
-		      win::nPage win-size
-		      win::nPos win-pos)
-	    (win::SetScrollInfo (sheet-mirror scroll-bar) win-id scrollinfo-struct t))
+	  (let ((mirror (sheet-mirror scroll-bar))
+		(struct (ct:ccallocate win:scrollinfo))
+		(bar (if (eq orientation :vertical) 
+			 win:SB_VERT win:SB_HORZ))
+		(page (floor (* size acl-clim::*win-scroll-grain*)))
+		(position (floor (* pos acl-clim::*win-scroll-grain*))))
+	    (ct:csets win:scrollinfo struct
+		      cbSize (ct:sizeof win:scrollinfo)
+		      fMask win:SIF_ALL
+		      nmin 0
+		      nMax acl-clim::*win-scroll-grain*
+		      nPage page
+		      nPos position)
+	    (win:SetScrollInfo mirror bar struct 1))
 	  (case orientation
 	    (:vertical
 	     (setf (scroller-current-vertical-size scroll-bar) size)
@@ -251,9 +254,6 @@
 	    (:horizontal
 	     (setf (scroller-current-horizontal-size scroll-bar) size)
 	     (setf (scroller-current-horizontal-value scroll-bar) pos)))
-	  ;;-- It would be nice if we could do this at the point of scrolling
-	  #+foo (cerror "foo" "pos=~a size=~a min=~a max=~a vmin=~a vmax=~a contents-range=~a"
-			pos size min max vmin vmax contents-range)
 	  )))))
 
 
@@ -281,7 +281,7 @@
 	   (flag (case orientation
 		   (:vertical win:sb_vert)
 		   (:horizontal win:sb_horz)))
-	   (current-value (/ (win::getScrollPos window flag)
+	   (current-value (/ (win:getScrollPos window flag)
 			     (float acl-clim::*win-scroll-grain*)))
 	   (current-size (case orientation
 			   (:horizontal current-horizontal-size)
@@ -293,7 +293,6 @@
 			   (/ (line-scroll-amount scroller-pane orientation :up)
 			      (float contents-range  0.0s0)))))
 	   (new-value (max 0.0 (- current-value line-value))))
-      #+ignore (win::setScrollPos window flag (floor (* new-value *win-scroll-grain*)) 1)
       (scroll-bar-value-changed-callback
        scroller-pane scroller-pane orientation new-value current-size))))
 
@@ -309,7 +308,7 @@
 		   (:vertical win:sb_vert)
 		   (:horizontal win:sb_horz)))
 	   (window (sheet-mirror scroller-pane))
-	   (current-value (/ (win::getScrollPos window flag)
+	   (current-value (/ (win:getScrollPos window flag)
 			     (float acl-clim::*win-scroll-grain*)))
 	   (current-size (case orientation
 			   (:horizontal current-horizontal-size)
@@ -325,35 +324,34 @@
 				 acl-clim::*win-scroll-grain*) ;; max pos
 			      current-size)
 			   (+ current-value line-value))))
-      #+ignore (win::setScrollPos window flag (floor (* 100 new-value)) 1)
       (scroll-bar-value-changed-callback
        scroller-pane scroller-pane orientation new-value current-size)
       )))
 
 (defmethod scroll-up-page ((scroller-pane mswin-scroller-pane) orientation)
   (with-slots (current-vertical-size current-vertical-value
-									 current-horizontal-size current-horizontal-value
-									 viewport contents) scroller-pane
-	(let* ((flag (case orientation
-				   (:vertical win:sb_vert)
-				   (:horizontal win:sb_horz)))
-		   (window (sheet-mirror scroller-pane))
-		   (current-value (/ (win::getScrollPos window flag)
-				     (float acl-clim::*win-scroll-grain*)))
-		   (current-size (case orientation
-						   (:horizontal current-horizontal-size)
-						   (:vertical  current-vertical-size)))
-		   (contents-range (contents-range scroller-pane orientation))
-		   (viewport-range (bounding-rectangle-max-y viewport))
-		   new-value)
-	  (if (zerop contents-range)
-		  (setq new-value current-value)
-		  (let ((page-value (the single-float 
-								 (/ viewport-range (float contents-range 0.0s0)))))
-			(setq new-value (max 0.0 (- current-value page-value)))))
-	  #+ignore (win::setScrollPos window flag (floor (* 100 new-value)) 1)
-	  (scroll-bar-value-changed-callback
-		scroller-pane scroller-pane orientation new-value current-size))))
+	       current-horizontal-size current-horizontal-value
+	       viewport contents) scroller-pane
+    (let* ((flag (case orientation
+		   (:vertical win:sb_vert)
+		   (:horizontal win:sb_horz)))
+	   (window (sheet-mirror scroller-pane))
+	   (current-value (/ (win:getScrollPos window flag)
+			     (float acl-clim::*win-scroll-grain*)))
+	   (current-size (case orientation
+			   (:horizontal current-horizontal-size)
+			   (:vertical  current-vertical-size)))
+	   (contents-range (contents-range scroller-pane orientation))
+	   (viewport-range (bounding-rectangle-max-y viewport))
+	   new-value)
+      (if (zerop contents-range)
+	  (setq new-value current-value)
+	(let ((page-value 
+	       (the single-float 
+		 (/ viewport-range (float contents-range 0.0s0)))))
+	  (setq new-value (max 0.0 (- current-value page-value)))))
+      (scroll-bar-value-changed-callback
+       scroller-pane scroller-pane orientation new-value current-size))))
 
 (defmethod scroll-down-page  ((scroller-pane mswin-scroller-pane) orientation)
   (with-slots (current-vertical-size current-vertical-value
@@ -363,7 +361,7 @@
 		   (:vertical win:sb_vert)
 		   (:horizontal win:sb_horz)))
 	   (window (sheet-mirror scroller-pane))
-	   (current-value (/ (win::getScrollPos window flag)
+	   (current-value (/ (win:getScrollPos window flag)
 			     (float acl-clim::*win-scroll-grain*)))
 	   (current-size (case orientation
 			   (:horizontal current-horizontal-size)
@@ -379,7 +377,6 @@
 				     acl-clim::*win-scroll-grain*)
 				  current-size)
 			       (+ current-value page-value)))))
-      #+ignore (win::setScrollPos window flag (floor (* 100 new-value)) 1)
       (scroll-bar-value-changed-callback
        scroller-pane scroller-pane orientation new-value current-size))))
 
@@ -388,19 +385,9 @@
   (with-slots (current-vertical-size current-vertical-value
 	       current-horizontal-size current-horizontal-value
 	       viewport contents) scroller-pane
-    (let* (#+ignore
-	   (flag (case orientation
-		   (:vertical win:sb_vert)
-		   (:horizontal win:sb_horz)))
-	   #+ignore
-	   (current-value (case orientation
-			    (:horizontal current-horizontal-value)
-			    (:vertical  current-vertical-value)))
-	   (current-size (case orientation
+    (let* ((current-size (case orientation
 			   (:horizontal current-horizontal-size)
 			   (:vertical  current-vertical-size)))
-	   ;;(contents-range (contents-range scroller-pane orientation))
-	   ;;(viewport-range (bounding-rectangle-max-y viewport))
 	   (new-value (/ pos (float acl-clim::*win-scroll-grain*))))
       (scroll-bar-value-changed-callback
        scroller-pane scroller-pane orientation new-value current-size))))

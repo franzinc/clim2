@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-port.lisp,v 1.5.8.7 1998/07/20 21:57:19 layer Exp $
+;; $Id: acl-port.lisp,v 1.5.8.8 1998/08/12 21:15:13 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -732,6 +732,26 @@
 
 (defvar *clim-pulse-rate* 1.0)		; seconds.
 
+;; Redefine function from utils/processes.lisp.
+(defun clim-utils::process-wait (state function &rest args)
+  (declare (dynamic-extent function args))
+  #+someday
+  (apply #'mp:process-wait state function args)
+  (let ((result nil))
+    (loop
+      ;; 5/28/98 JPM ACL 5.0.beta
+      ;; There seems to be a bug in process-wait (on NT) that
+      ;; it does not run the test function often enough.
+      ;; Lisp will appear to hang until it receives some Windows
+      ;; events, which apparently wake up the scheduler.
+      ;; The workaround is to wake up every so often and
+      ;; run the test function.
+      (when (setq result (apply #'mp:process-wait-with-timeout 
+				state *clim-pulse-rate* 
+				function args))
+	(return result)))))
+  
+
 (defmethod process-next-event ((port acl-port)
 			       &key (timeout nil) 
 				    (wait-function nil)
@@ -754,17 +774,7 @@
 	  (if timeout
 	      (mp:process-wait-with-timeout state timeout
 					    #'wait-for-event)
-	    (loop
-	      ;; 5/28/98 JPM ACL 5.0.beta
-	      ;; There seems to be a bug in process-wait that
-	      ;; it does not run the test function often enough.
-	      ;; The workaround is to wake up every so often and
-	      ;; run the test function.
-	      (when (mp:process-wait-with-timeout 
-		     state *clim-pulse-rate* #'wait-for-event)
-		(return)))
-	    #+someday
-	    (mp:process-wait state #'wait-for-event))))
+	    (process-wait state #'wait-for-event))))
       (cond (event
 	     (distribute-event port event)
 	     t)

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-medium.lisp,v 1.6.8.7 1998/07/20 21:57:19 layer Exp $
+;; $Id: acl-medium.lisp,v 1.6.8.8 1998/08/12 21:15:12 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -135,9 +135,9 @@
 (defmethod dc-image-for-ink ((medium acl-medium) (ink (eql +background-ink+)))
   (dc-image-for-ink medium (medium-background medium)))
 
-;; changing the conversion as follows makes CLIM gray colors 1/4, 1/2
-;; and 3/4 gray colors map to the corresponding windows solid system
-;; colors avoiding need for windows to stipple. (cim 10/11/96)
+(defmethod dc-image-for-ink ((medium acl-medium) (ink t))
+  ;; Don't blow out if somebody tries to use a fancy ink like compose-in.
+  (dc-image-for-ink medium (medium-foreground medium)))
 
 (defun color->wincolor (ink &optional medium)
   (declare (optimize (speed 3) (safety 0)))
@@ -150,24 +150,29 @@
 	 ))
   (flet ((convert (x)
 	   (declare (short-float x))
-	   (setq x (float x))		; needed?
-	   (if (< x 1.0)
-	       (values (the fixnum (floor (the short-float (* x #x100)))))
-	     #xff)))
+	   ;; the most common cases should be fast
+	   (let ((v 255.0))
+	     (declare (short-float v))
+	     (cond ((= x 0.0) 0)
+		   ((= x 1.0) #xff)
+		   (t 
+		    (setq v (the short-float (* x v)))
+		    (values (the fixnum (round v))))))))
     (multiple-value-bind (red green blue)
 	(color-rgb ink)
-      (let ((color (dpb (convert blue) (byte 8 16)
-			(dpb (convert green) (byte 8 8)
-			     (convert red)))))
+      (let ((color (dpb (convert (float blue)) (byte 8 16)
+			(dpb (convert (float green)) (byte 8 8)
+			     (convert (float red))))))
 	color))))
 
 (defun wincolor->color (color)
   (if (= color -1)
       +transparent-ink+
     (flet ((convert (x)
-	     (if (eql x #xff)
-		 1.0
-	       (float (/ x 256)))))
+	     ;; the most common cases should be fast
+	     (cond ((= x 0) 0.0)
+		   ((= x #xff) 1.0)
+		   (t (/ x 255.0)))))
       (let ((red (ldb (byte 8 0) color))
 	    (green (ldb (byte 8 8) color))
 	    (blue (ldb (byte 8 16) color)))
@@ -216,8 +221,16 @@
 (defvar *the-dc* nil)			; new just for now, later 
 					; rationalize passing dc
 
+(defun get-bitmapinfo (medium dc-image pixel-map colors)
+  (or (dc-image-bitmapinfo dc-image)
+      (setf (dc-image-bitmapinfo dc-image)
+	(let* ((width (array-dimension pixel-map 1))
+	       (height (array-dimension pixel-map 0)))
+	  (acl-bitmapinfo colors width height medium)))))
+
 ;;;  just for now, later rationalize passing dc
-(defun dc-image-for-multi-color-pattern (medium array designs)
+(defun dc-image-for-multi-color-pattern (medium ink array designs)
+  (declare (ignore ink))
   (let* ((dc-image (copy-dc-image
 		    (slot-value medium 'foreground-dc-image)))
 	 (tink (aref designs 1))
@@ -231,14 +244,19 @@
       (dotimes (j width)
 	(setf (aref into i j) (aref array i j))))
     (setf *bitmap-array* into)
-    (let ((bitmap (get-texture *the-dc* into designs medium)))	
-      (setf (dc-image-bitmap dc-image) bitmap
-	    *created-bitmap* bitmap)
-      (setf (dc-image-background-color dc-image) bcolor)
-      (setf (dc-image-text-color dc-image) tcolor))
+    (with-medium-dc (medium dc)
+      (let* ((bitmapinfo (get-bitmapinfo medium dc-image into designs))
+	     (bitmap (get-texture dc into bitmapinfo)))	
+	;; To Do: replace BITMAP with INTO and just use 
+	;; device-independent bitmap operations.
+	(setf (dc-image-bitmap dc-image) bitmap
+	      *created-bitmap* bitmap)
+	(setf (dc-image-background-color dc-image) bcolor)
+	(setf (dc-image-text-color dc-image) tcolor)))
     dc-image))
 
-(defun dc-image-for-two-color-pattern (medium array designs)
+(defun dc-image-for-two-color-pattern (medium ink array designs)
+  (declare (ignore ink))
   (let* ((dc-image (copy-dc-image
 		    (slot-value medium 'foreground-dc-image)))
 	 (tink (aref designs 1))
@@ -252,11 +270,15 @@
       (dotimes (j width)
 	(setf (aref into i j) (aref array i j))))
     (setf *bitmap-array* into)
-    (let ((bitmap (get-texture *the-dc* into designs medium)))	
-      (setf (dc-image-bitmap dc-image) bitmap
-	    *created-bitmap* bitmap)
-      (setf (dc-image-background-color dc-image) bcolor)
-      (setf (dc-image-text-color dc-image) tcolor))
+    (with-medium-dc (medium dc)
+      (let* ((bitmapinfo (get-bitmapinfo medium dc-image into designs))
+	     (bitmap (get-texture dc into bitmapinfo)))	
+	;; To Do: replace BITMAP with INTO and just use 
+	;; device-independent bitmap operations.
+	(setf (dc-image-bitmap dc-image) bitmap
+	      *created-bitmap* bitmap)
+	(setf (dc-image-background-color dc-image) bcolor)
+	(setf (dc-image-text-color dc-image) tcolor)))
     dc-image))
 
 (defun byte-align-pixmap (a)
@@ -291,37 +313,75 @@
     b))
 
 (defmethod dc-image-for-ink ((medium acl-medium) (ink pattern))
-  (multiple-value-bind (array designs) (decode-pattern ink)
-    (cond ((= (length designs) 2)
-	   (setq array (byte-align-pixmap array))
-	   (dc-image-for-two-color-pattern
-	    medium array designs))
-	  ((find +transparent-ink+ designs)
-	   (error 
-	    "Multicolor patterns must not use +transparent-ink+"))
-	  (t
-	   (setq array (byte-align-pixmap array))
-	   (dc-image-for-multi-color-pattern
-	    medium array designs)))))
+  ;; The "pattern" part of the ink is put into the brush.
+  ;; There seems to be a problem with two-color stipples.
+  (let ((cache (port-dc-cache (port medium))))
+    (or (gethash ink cache)
+	(setf (gethash ink cache)
+	  (multiple-value-bind (array designs) (decode-pattern ink)
+	    (cond ((= (length designs) 2)
+		   (setq array (byte-align-pixmap array))
+		   (let ((dc-image (dc-image-for-two-color-pattern
+				    medium ink array designs)))
+		     ;; win95: creating brushes from patterns larger than
+		     ;; 8x8 is not supported.
+		     (setf (dc-image-brush dc-image) 
+		       (win:createPatternBrush (dc-image-bitmap dc-image)))
+		     dc-image))
+		  ((find +transparent-ink+ designs)
+		   (error 
+		    "Multicolor patterns must not use +transparent-ink+"))
+		  (t
+		   (setq array (byte-align-pixmap array))
+		   (let ((dc-image (dc-image-for-multi-color-pattern
+				    medium ink array designs)))
+		     ;; win95: creating brushes from patterns larger than
+		     ;; 8x8 is not supported.
+		     (setf (dc-image-brush dc-image)
+		       (win:createPatternBrush (dc-image-bitmap dc-image)))
+		     dc-image))))))))
+
+#|
+does anyone know how to make the bitmaps have transparent
+backgrounds or how to show gif files? i need to make pictures so that
+whats under it will show, but need code in vb3!!! thanks
+
+Joe,
+
+You can do this by creating two pictures, 
+one with white in the transparent area (The Picture)
+and the other with black in the transparent area. (The Mask)
+
+Then use the bitblt API to blit the picture with
+the SRCAND (&h8800c6) flag.
+Then blit the mask in the same location with
+the SRCOR (&hee0086) flag.
+
+This will give you the transparent effect.
+
+This works because ANDing any value with 1 and XORing it with 0
+leaves the original value unchanged. To draw a masked image
+on-screen, Windows first logically ANDs the values in the AND mask
+with the pixel values in the destination DC. This creates a "hole" for
+the image composed of pixels with color values of 0. Then Windows
+XORs the values in the XOR mask to the destination DC, filling in the
+hole left by the AND mask and setting all the 0 pixels to the image
+colors. This is standard stuff described in any entry-level graphics
+programming course. It's also the technique that Windows uses to
+draw icons and mouse cursors on the screen. 
+|#
 
 (defmethod dc-image-for-ink ((medium acl-medium) (ink rectangular-tile))
   ;; The only case we handle right now is stipples
-  (let ((pattern (decode-rectangular-tile ink)))
-    (multiple-value-bind (array designs)
-	(decode-pattern pattern)
-      (unless array
-	(error 
-	 "Rectangular tiles other than stipples are not supported yet."))
-      (unless (= (length designs) 2)
-	(error "Only 2-color stipples are currently supported."))
-      (setq array (byte-align-pixmap array))
-      #+old
-      (dc-image-for-ink medium (aref designs 1))
-      (let ((dc-image 
-	     (dc-image-for-two-color-pattern medium array designs)))
-	(setf (dc-image-brush dc-image) 
-	  (win:createPatternBrush (dc-image-bitmap dc-image)))
-	dc-image))))
+  (let ((cache (port-dc-cache (port medium))))
+    (or (gethash ink cache)
+	(setf (gethash ink cache)
+	  (let ((pattern (decode-rectangular-tile ink)))
+	    (let ((dc-image (dc-image-for-ink medium pattern)))
+	      ;; There seems to be a problem with two-color stipples.
+	      (setf (dc-image-brush dc-image) 
+		(win:createPatternBrush (dc-image-bitmap dc-image)))
+	      dc-image))))))
 
 (defun nyi ()
   (error "This NT CLIM operation is NYI (Not Yet Implemented)."))
@@ -457,21 +517,29 @@
 					 left top right bottom)
           (when (< right left) (rotatef right left))
           (when (< bottom top) (rotatef bottom top))
-          (cond ((typep ink 'pattern)
-		 ;; DRAW-PATTERN* ultimately does its drawing here.
-		 ;; BUG: Transparent bits aren't transparent.
-		 (with-compatible-dc (dc cdc)
-		   (let ((width (- right left))
-			 (height (- bottom top))
-			 (*the-dc* dc))
-		     (set-cdc-for-pattern cdc medium ink nil)
-		     (win:bitblt dc left top width height
-				 cdc 0 0 win:srccopy))))
+	  (cond ((typep ink 'pattern)
+		 ;; DRAW-PATTERN* ends up here.  In principle
+		 ;; we could skip this case and rely on the "brush"
+		 ;; to correctly paint the rectangle.  In practice,
+		 ;; this case is needed to correctly render patterns
+		 ;; larger than 8x8, due to limitations of CreatePatternBrush.
+		 (let ((cdc nil)
+		       (dc-image (dc-image-for-ink medium ink)))
+		   ;; Create compatable memory dc
+		   (setq cdc (win:createcompatibledc dc))
+		   ;; select a (Device-Dependent) bitmap into the dc
+		   (win:selectobject cdc (dc-image-bitmap dc-image))
+		   ;; Copy bitmap from memory dc to screen dc
+		   (win:bitblt dc left top (- right left) (- bottom top)
+			       cdc 0 0 win:srccopy)
+		   ;; Delete memory dc
+		   (win:deletedc cdc))
+		 t)
 		(t
-		 ;; dc=0 for acl-pixmap-medium...FIXME.
 		 (let ((*the-dc* dc))
 		   (set-dc-for-ink dc medium ink 
-				   (if filled nil line-style)))
+				   (if filled nil line-style)
+				   left top))
 		 (if filled
 		     (win:rectangle dc left top (1+ right) (1+ bottom))
 		   (win:rectangle dc left top right bottom))))
@@ -518,8 +586,7 @@
 	       (length (length position-seq))
 	       (numpoints (floor length 2))
 	       (extra (and closed line-style))
-	       #-acl86win32 (point-vector (ct:ccallocate (win:point 256)))
-	       #+acl86win32 (point-vector (ct:callocate (:long *) :size 512))) ;  limit?
+	       (point-vector (ct:callocate (:long *) :size 512))) ;  limit?
 	  ;; These really are fixnums, since we're fixing coordinates below
 	  ;; (declare (type fixnum minx miny))
 	  (with-stack-array (points (if extra (+ length 2) length))
@@ -537,17 +604,7 @@
 		  (ct:cset (:long 512) point-vector ((fixnum (* numpoints 2))) x)
 		  (ct:cset (:long 512) point-vector ((fixnum (+ 1 (* numpoints 2)))) y)
 		  ))))
-	  (if (or (typep ink 'pattern) (typep ink 'rectangular-tile))
-	      (if (null line-style)
-		  (let ((*the-dc* dc)
-			(nink ink
-			      #+ignore
-			      (if (typep ink 'pattern)
-				  (make-rectangular-tile ink  8 8)
-				ink)))
-		    (set-dc-for-ink dc medium nink line-style))
-		(set-dc-for-ink dc medium +foreground-ink+ line-style))	    
-	    (set-dc-for-ink dc medium ink line-style))
+	  (set-dc-for-ink dc medium ink line-style)
 	  (if (null line-style)
 	      (win:polygon dc point-vector numpoints)
 	    (win:polyline dc
@@ -579,17 +636,7 @@
 	  (when (null start-angle)
 	    (setq start-angle 0.0
 		  end-angle 2pi))
-	  (if (or (typep ink 'pattern) (typep ink 'rectangular-tile))
-	      (if (null line-style)
-		  (let ((*the-dc* dc)
-			(nink ink
-			      #+ignore
-			      (if (typep ink 'pattern)
-				  (make-rectangular-tile ink  8 8)
-				ink)))
-		    (set-dc-for-ink dc medium nink line-style))
-		(set-dc-for-ink dc medium +foreground-ink+ line-style))	    
-	    (set-dc-for-ink dc medium ink line-style))
+	  (set-dc-for-ink dc medium ink line-style)
 	  (multiple-value-bind (x-radius y-radius)
 	      (cond ((and (= radius-1-dx 0) (= radius-2-dy 0))
 		     (values (abs radius-2-dx) (abs radius-1-dy)))

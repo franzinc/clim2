@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-frames.lisp,v 1.5.8.8 1998/07/20 21:57:16 layer Exp $
+;; $Id: acl-frames.lisp,v 1.5.8.9 1998/08/12 21:15:10 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -92,9 +92,12 @@
    (sheet-thread :initform nil :accessor clim-internals::sheet-thread)
    ))
 
-(defun record-accelerator (sheet keysym command)
-  (push (cons keysym command)
-	(slot-value sheet 'accelerator-gestures)))
+(defun record-accelerator (frame keysym command &optional sheet)
+  (unless sheet
+    (setq sheet (frame-top-level-sheet frame)))
+  (pushnew (cons keysym command)
+	   (slot-value sheet 'accelerator-gestures)
+	   :test #'equal))
 
 (defun keysymeql (keysyma keysymb)
   (or (eql keysyma keysymb)
@@ -327,72 +330,100 @@
 				   (gesture-spec-for-mswin keystroke))
 			 newtext))))
 
+(defun make-menu-for-command-table (command-table menuhand frame &optional top-level-sheet)
+  (unless top-level-sheet
+    (setq top-level-sheet (clim:frame-top-level-sheet frame)))
+  ;; (re)initialize
+  (let ((count (win:getmenuitemcount menuhand)))
+    (when (plusp count)
+      (dotimes (position count)
+	;; Use position = 0 every time because the menu items get
+	;; renumbered each time through this loop.
+	(win:deletemenu menuhand 0 win:MF_BYPOSITION))
+      (win:drawmenubar (sheet-mirror (frame-top-level-sheet frame)))))
+  (setf (gethash menuhand *popup-menu->menu-item-ids*) nil) 
+  (setf (gethash menuhand *popup-menu->command-table*) 
+    (list command-table 
+	  (slot-value (find-command-table command-table)
+		      'clim-internals::menu-tick)))
+  ;; Make the menu
+  (map-over-command-table-menu-items
+   #'(lambda (menu keystroke item)
+       (let* ((type (command-menu-item-type item))
+	      (value (command-menu-item-value item))
+	      (menu-item-available-p 
+	       (or (not (eq type :command))
+		   (command-enabled (car value) frame)))
+	      (menu-item-selected-p nil)
+	      (acckey keystroke)
+	      (flags (logior
+		      win:MF_STRING
+		      (if menu-item-available-p
+			  win:MF_ENABLED win:MF_GRAYED)
+		      (if menu-item-selected-p
+			  win:MF_CHECKED win:MF_UNCHECKED)))
+	      (smflags (logior flags win:MF_POPUP)))
+	 (case type
+	   (:command
+	    (when acckey
+	      (record-accelerator frame acckey value top-level-sheet))
+	    (let ((menu-item-id (assign-command-menu-item-id value frame)))
+	      (win:AppendMenu
+	       menuhand
+	       flags
+	       menu-item-id
+	       (make-menu-text menu acckey item))
+	      (push menu-item-id (gethash menuhand *popup-menu->menu-item-ids*))))
+	   (:function
+	    (warn ":function not yet implemented in menu bars")
+	    )
+	   (:menu
+	    (let* ((submenu (win::CreatePopupMenu))
+		   (submenu-handle (ct:handle-value 'win::hmenu submenu))
+		   (menutext (make-menu-text menu acckey item)))
+	      (win::AppendMenu menuhand
+			       smflags
+			       submenu-handle
+			       menutext)
+	      (make-menu-for-command-table value submenu-handle frame top-level-sheet)))
+	   (:divider
+	    (win::AppendMenu menuhand
+			     win:MF_SEPARATOR
+			     0
+			     "x")
+	    ))))
+   command-table))
+
 (defun compute-msmenu-bar-pane (frame top command-table)
   (let* ((mirror (sheet-mirror top))
 	 (menu-handle (win:GetMenu mirror))
 	 (command-table
 	  (if (listp command-table) (car command-table) command-table)))
     (when (silica::default-command-table-p command-table)
-	;; command-table arg comes from menu-bar slot of frame
-	;; and may be NIL T=menu-hbox-pane command-table-arg
-      (setq command-table (frame-command-table frame)))
-    (with-look-and-feel-realization ((frame-manager frame) frame)
-      (labels
-	  ((make-command-table-buttons (command-table menuhand top-level)
-	     (let ((menu-item-ids nil))
-	       (map-over-command-table-menu-items
-		#'(lambda (menu keystroke item)
-		    (let* ((type (command-menu-item-type item))
-			   (value (command-menu-item-value item))
-			   (menu-item-available-p 
-			    (or (not (eq type :command))
-				(command-enabled (car value) frame)))
-			   (menu-item-selected-p nil)
-			   (acckey (and (not top-level) keystroke))
-			   (flags (logior
-				   win:MF_STRING
-				   (if menu-item-available-p
-				       win:MF_ENABLED win:MF_GRAYED)
-				   (if menu-item-selected-p
-				       win:MF_CHECKED win:MF_UNCHECKED)))
-			   (smflags (logior flags win:MF_POPUP)))
-		      (case type
-			(:command
-			 (when acckey
-			   (record-accelerator top acckey value))
-			 (let ((menu-item-id
-				(assign-command-menu-item-id value frame)))
-			   (win:AppendMenu
-			    menuhand
-			    flags
-			    menu-item-id
-			    (make-menu-text menu acckey item))
-			   (push menu-item-id menu-item-ids)))
-			(:function
-			 (warn ":function not yet implemented in menu bars")
-			 )
-			(:menu
-			 (let* ((popmenu (win::CreatePopupMenu))
-				(hmenu (ct:handle-value 'win::hmenu popmenu))
-				(menutext (make-menu-text menu acckey item)))
-			   (win::AppendMenu menuhand
-					    smflags
-					    hmenu
-					    menutext)
-			   (setf (gethash hmenu *popup-menu->menu-item-ids*)
-			     (make-command-table-buttons value popmenu nil))))
-			(:divider
-			 (unless top-level
-			   (win::AppendMenu menuhand
-					    win:MF_SEPARATOR
-					    0
-					    "x")
-			   )))))
-		command-table)
-	       menu-item-ids)))
-	(make-command-table-buttons command-table menu-handle t)))))
+      ;; command-table arg comes from menu-bar slot of frame
+      ;; and may be NIL T=menu-hbox-pane command-table-arg
+      (setq command-table (frame-command-table frame)))    
+    (make-menu-for-command-table command-table menu-handle frame top)))
+
+(defun update-menu-contents (sheet menuhand index)
+  ;; Called just before making a menu active.  If the menu is associated
+  ;; with a command table, make sure to rebuild the menu if the command
+  ;; table has changed recently.  Returns T if the menu was rebuilt.
+  (declare (ignore index))
+  (let* ((frame (pane-frame sheet))
+	 (pair (gethash menuhand *popup-menu->command-table*))
+	 (command-table (first pair))
+	 (tickthen (second pair))
+	 (ticknow (when tickthen (slot-value (find-command-table command-table)
+					     'clim-internals::menu-tick))))
+    (when (and tickthen ticknow (not (= tickthen ticknow)))
+      (make-menu-for-command-table command-table menuhand frame)
+      t)))
 
 (defun update-menu-item-sensitivities (hmenu)
+  ;; Called just before making a menu active.  If the menu is associated
+  ;; with a command table, make sure to enable or gray the menu
+  ;; items appropriately.
   (dolist (menu-item-id (gethash hmenu *popup-menu->menu-item-ids*))
     (let* ((item (aref *menu-id->command-table* menu-item-id))
 	   (frame (first item))
@@ -781,7 +812,9 @@ to be run from another."
 	    (cdr dotted-pair) (code-char 0))))
 
 (eval-when (compile load eval) 
-  (defconstant *scratch-string-length* 256)
+  ;; All pathnames returned by SELECT-FILE must fit in the scratch string,
+  ;; so make it pretty big.
+  (defconstant *scratch-string-length* 2048)
   )
 
 (defparameter *scratch-lisp-string*
@@ -903,19 +936,15 @@ to be run from another."
 		 (char-int (aref string i))))
 	     c-string)))
     (let* ((open-file-struct (ct:ccallocate win:openfilename))
-	   (file-filter-string (fill-c-string
-				(apply #'concatenate 'string
-				       (mapcar #'make-filter-string allowed-types))))
-	   (initial-dir-string 
-	    (ff:string-to-char* directory)
-	    #+ignore
-	    (fill-c-string 
-	     (or directory (namestring *default-pathname-defaults*))))
+	   (file-filter-string 
+	    (fill-c-string
+	     (apply #'concatenate 'string
+		    (mapcar #'make-filter-string allowed-types))))
+	   (initial-dir-string (ff:string-to-char* directory))
 	   (prompt-string (fill-c-string prompt)))
       (ct:csets win:openfilename open-file-struct
 		lstructsize (ct:sizeof win:openfilename)
-		hwndowner (or (and stream 
-				   (clim::sheet-mirror stream))
+		hwndowner (or (and stream (clim::sheet-mirror stream))
 			      0)
 		hinstance 0		; no custom dialog
 		lpstrfilter file-filter-string
@@ -924,7 +953,7 @@ to be run from another."
 		nfilterindex 0		; zero means use custom-filter if supplied
 					; otherwise the first filter in the list
 		lpstrfile (lisp-string-to-scratch-c-string (or initial-name ""))
-		nmaxfile 256
+		nmaxfile *scratch-string-length*
 		lpstrfiletitle 0 
 		nmaxfiletitle 0
 		lpstrinitialdir initial-dir-string
@@ -937,14 +966,20 @@ to be run from another."
 		       win:ofn_nochangedir
 		       win:ofn_hidereadonly
 		       )
+		nfileoffset 0
 		nfileextension 0 
+		lpstrdefext 0
+		lcustdata 0
+		lpfnhook 0
+		lptemplatename 0
 		)
       (let* ((result 
 	      (if save-p
 		  (win:GetSaveFileName open-file-struct)
 		(win:GetOpenFileName open-file-struct))))
-	(dolist (c-string (list file-filter-string initial-dir-string prompt-string))
-	  (ff::free-fobject-c c-string))
+	(ff:free-fobject-c file-filter-string)
+	(ff:free-fobject-c initial-dir-string)
+	(ff:free-fobject-c prompt-string)
 	(if result ;; t means no errors and user said "OK"
 	    (if multiple-p
 		(pathnames-from-directory-and-filenames
@@ -961,6 +996,7 @@ to be run from another."
 				(or (cdr (assoc error-code
 						common-dialog-errors))
 				    error-code))))))))))
+
 
 (defun get-directory (sheet title)
   (let* ((info (ct:ccallocate browseinfo)))
@@ -1161,7 +1197,7 @@ to be run from another."
 				  :height 125))
 		     (setf (work-process frame) worker)
 		     (run-frame-top-level frame)))))
-	    (mp:process-wait
+	    (process-wait
 	     "Synchronize"
 	     #'(lambda () 
 		 (and frame 
@@ -1372,10 +1408,12 @@ in a second Lisp process.  This frame cannot be reused."
       (call-next-method frame width height)
       (let ((wrect (ct::ccallocate win::rect))
 	    (handle (sheet-direct-mirror (frame-top-level-sheet frame))))
-	;;; +++rl don't show the window here
-	;;; the code below makes sure that the frame grows or shrinks
-	;;; when the user resizes the frame window
-	#+ignore (win::showWindow handle win::sw_show)
+	;;; The code below makes sure that the frame grows or shrinks
+	;;; when the user resizes the frame window.
+	;; ----
+	;; Actually, the code below repaints the entire frame,
+	;; which isn't good because, while resizing with the mouse,
+	;; we end up doing this each time the mouse moves.  JPM.
 	(or (win:getClientRect handle wrect)
 	    (acl-clim::check-last-error "GetClientRect"))
 	(or (win:InvalidateRect handle wrect 1)

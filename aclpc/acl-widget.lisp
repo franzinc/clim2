@@ -1,4 +1,4 @@
-;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: ACL-CLIM; Base: 10; Lowercase: Yes -*-
+;;; -*- Mode: Lisp; Package: silica; -*-
 ;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
 ;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
 ;;
@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-widget.lisp,v 1.7.8.7 1998/07/20 21:57:19 layer Exp $
+;; $Id: acl-widget.lisp,v 1.7.8.8 1998/08/12 21:15:14 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -889,48 +889,42 @@
 				     line-increment
 				     (page-increment slider-size))
   (declare (ignore page-increment line-increment))
-  (let ((mirror (sheet-direct-mirror sb)))
+  (let ((mirror (sheet-direct-mirror sb))
+	(range (gadget-range sb)))
     (when mirror
       (unless slider-size (setq slider-size (scroll-bar-size sb)))
+      (setq slider-size (min slider-size range)); sanity check
       (unless value (setq value (gadget-value sb)))
       (multiple-value-bind (min max) (gadget-range* sb)
-	(let* ((scrollinfo-struct (ct:ccallocate win:scrollinfo))
-	       (win-id win:SB_CTL)	; a control (decoupled from other panes)
-	       (range (- max min))
-	       (win-size (floor (* acl-clim::*win-scroll-grain* 
-				   ;; Don't divide zero by zero
-				   (if (zerop slider-size) slider-size
-				     (/ slider-size (+ range slider-size))))))
-	       (win-pos (floor (* (- acl-clim::*win-scroll-grain* 
-				     slider-size)
-				  ;; Don't divide zero by zero
-				  (if (= value min) 0
-				    (/ (- value min) (- range slider-size)))))))
+	(setf value (max min (min max value))); sanity check
+	(decf value min)
+	(let* ((struct (ct:ccallocate win:scrollinfo))
+	       (page
+		(floor 
+		 (* acl-clim::*win-scroll-grain* 
+		    (if (zerop slider-size) 
+			slider-size (/ slider-size range)))))
+	       (position
+		(floor
+		 (* acl-clim::*win-scroll-grain* 
+		    (if (zerop value) value (/ value range))))))
 	  (ct:csets
-	   win:scrollinfo scrollinfo-struct
-	   win::cbSize (ct:sizeof win:scrollinfo)
-	   win::fMask #.(logior 
-			 win:SIF_PAGE 
-			 win:SIF_POS
-			 1		;win:SIF_RANGE
-			 win:SIF_DISABLENOSCROLL)
-	   win::nMin 0
-	   win::nMax acl-clim::*win-scroll-grain*
-	   win::nPage win-size
-	   win::nPos win-pos)
-	  (win:SetScrollInfo (sheet-mirror sb) win-id scrollinfo-struct t))))))
+	   win:scrollinfo struct
+	   cbSize (ct:sizeof win:scrollinfo)
+	   fMask win:SIF_ALL
+	   nMin 0
+	   nMax acl-clim::*win-scroll-grain*
+	   nPage page
+	   nPos position)
+	  (win:SetScrollInfo mirror win:SB_CTL struct 1))))))
 
 (defmethod (setf gadget-value) :after
 	   (nv (gadget mswin-scroll-bar) &key invoke-callback)
   (declare (ignore invoke-callback))
-  (let ((mirror (sheet-direct-mirror gadget)))
-    (when mirror
-      (change-scroll-bar-values gadget :value nv))))
+  (change-scroll-bar-values gadget :value nv))
 
 (defmethod (setf scroll-bar-size) :after (nv (gadget mswin-scroll-bar))
-  (let ((mirror (sheet-direct-mirror gadget)))
-    (when mirror
-       (change-scroll-bar-values gadget :slider-size nv))))
+  (change-scroll-bar-values gadget :slider-size nv))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; pull-down-menu

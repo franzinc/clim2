@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-prel.lisp,v 1.4.8.6 1998/07/20 21:57:19 layer Exp $
+;; $Id: acl-prel.lisp,v 1.4.8.7 1998/08/12 21:15:13 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -363,23 +363,25 @@
     ;; return values
     (values bmi win:DIB_RGB_COLORS)))
 
-(defmethod get-texture (device-context pixel-map colors medium)
-  (let* ((width (array-dimension pixel-map 1))
-	 (height (array-dimension pixel-map 0))
-	 texture-handle)
-    (multiple-value-bind (bitmapinfo dib-mode)
-	(acl-bitmapinfo colors width height medium)
-      (setq texture-handle
-	(win:CreateDIBitmap
-	 device-context
-	 bitmapinfo 
-	 win:CBM_INIT			; initialize bitmap bits
-	 pixel-map
-	 bitmapinfo 
-	 dib-mode))
-      (when (zerop texture-handle)
-	(check-last-error "CreateDIBitmap"))
-      texture-handle)))
+(defmethod get-texture (device-context pixel-map bitmapinfo)
+  ;; The value of this function becomes the dc-image-bitmap.
+  ;; It gets applied to the device context using SELECT-OBJECT.
+  (unless (and device-context (not (zerop device-context)))
+    (error "Device context not valid"))
+  (let* (texture-handle)
+    ;; Create nondiscardable Device Dependent Bitmap.
+    ;; The Windows docs suggest we should be using device independent bitmaps.
+    (setq texture-handle
+      (win:CreateDIBitmap
+       device-context
+       bitmapinfo 
+       win:CBM_INIT			; initialize bitmap bits
+       pixel-map
+       bitmapinfo 
+       win:DIB_RGB_COLORS))
+    (when (zerop texture-handle)
+      (check-last-error "CreateDIBitmap"))
+    texture-handle))
 
 ;;; about box support
 
