@@ -15,10 +15,11 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: last.lisp,v 1.8 1998/08/06 23:17:43 layer Exp $
+;; $Id: last.lisp,v 1.8.36.1 2001/06/08 04:18:27 layer Exp $
 
 (in-package :x11)
 
+#-(version>= 6 1)
 (defforeign-functions-now)
 
 (provide :clim-debug)

@@ -11,6 +11,38 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.3.7
+
+2001-06-07  Kevin Layer  <layer@crikey>
+
+    from duane for rfe4797:
+	* Makefile.macosx: Fix to build clim on MacOSX under XonX
+	* Makefile.wnn: Don't use libcrypt on MacOSX
+	* silica/text-style.lisp: Don' assume codeset-* are exported.
+	* sys/sysdcl.lisp: Don't add exports
+	* tk/callbacks.lisp: defun-c-callable -> defun-foreign-callable
+	* tk/convenience.lisp: defforeign -> def-foreign-call
+	* tk/event.lisp: defun-c-callable -> defun-foreign-callable
+	* tk/font.lisp: Remove commented code
+	* tk/make-classes.lisp: defun-c-callable -> defun-foreign-callable
+	* tk/resources.lisp: Fix 6-bit allocation bug; remove euc
+	dependencies
+	* tk/xlib.lisp: defun-c-callable -> defun-foreign-callable
+	* tk/xm-funs.lisp: defforeign -> def-foreign-call
+	* tk/xt-funs.lisp: defforeign -> def-foreign-call
+	* tk-silica/xm-gadgets.lisp: defun-c-callable ->
+	defun-foreign-callable
+	* tk-silica/xm-silica.lisp: defun-c-callable ->
+	defun-foreign-callable
+	* utils/last.lisp: Don't force euc loading
+	* wnn/jl-funs.lisp: defforeign -> def-foreign-call
+	* wnn/jserver.lisp: Remove wchar*-to-string refs
+	* xlib/ffi.lisp: defforeign -> def-foreign-call; Remove
+	foreign-function definer list and utilities
+	* xlib/last.lisp: No need to run a foreign-function definer
+	because def-foreign-call does "the right thing"
+
+*******************************************************************************
 2.3.6
 
 2001-05-31  Kevin Layer  <layer@crikey>

@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xm-gadgets.lisp,v 1.102.6.4 2001/05/23 19:49:14 duane Exp $
+;; $Id: xm-gadgets.lisp,v 1.102.6.5 2001/06/08 04:18:25 layer Exp $
 
 (in-package :xm-silica)
 
@@ -1868,8 +1868,8 @@
 		  (tk::get-values dialog :dir-spec :directory)))
 	  (tk::destroy-widget dialog))))))
 
-(ff::defun-c-callable file-search-proc-callback ((widget :unsigned-natural)
-                                                 (cb :unsigned-natural))
+(ff::defun-foreign-callable file-search-proc-callback ((widget :foreign-address)
+						       (cb :foreign-address))
   (setq widget (xt::find-object-from-address widget))
   (file-search-proc-callback-1
    widget cb

@@ -1,11 +1,11 @@
-# $Header: /repo/cvs.copy/clim2/Makefile.macosx,v 1.1.2.1 2001/05/23 19:49:11 duane Exp $
+# $Header: /repo/cvs.copy/clim2/Makefile.macosx,v 1.1.2.2 2001/06/08 04:18:22 layer Exp $
 #
 #  Makefile.macosx for CLIM 2.0
 #
 
 include Makefile.defs
 
-SHARED_EXT = sl
+SHARED_EXT = dylib
 
 SHARED-XM-OBJS= climxm.dylib
 SHARED-OL-OBJS= climol.dylib
@@ -17,10 +17,9 @@ SET_LIBRARY_PATH = \
 
 #CL=../src/xm-dcl
 
-#TKLIB=-lXm
-TKLIB=-lXm
-XTLIB=-lXt
-XLIB=-lX11
+TKLIB=/usr/X11R6/lib/libXm.a /usr/X11R6/lib/libXext.a /usr/X11R6/lib/libXp.a
+XTLIB=/usr/X11R6/lib/libXt.a /usr/X11R6/lib/libSM.a /usr/X11R6/lib/libICE.a
+XLIB=/usr/X11R6/lib/libX11.a
 
 XINCLUDES=-I/usr/X11R6/include
 
@@ -31,5 +30,7 @@ MAKE_SHARED = ../src/bin/make_shared.mac
 AR = ar cq
 
 PRODUCT-OBJS= $(PRODUCT-GENERIC-OBJS) $(STATIC-XM-OBJS) $(SHARED-XM-OBJS)
+
+IMPORTS = stub-x.o stub-xt.o stub-motif.o
 
 include Makefile.generic

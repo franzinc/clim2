@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xm-silica.lisp,v 1.50.36.2 2001/05/23 19:49:14 duane Exp $
+;; $Id: xm-silica.lisp,v 1.50.36.3 2001/06/08 04:18:26 layer Exp $
 
 (in-package :xm-silica)
 
@@ -86,10 +86,10 @@
   (popup (widget-parent mirror)))
 
 
-(ff:defun-c-callable my-drawing-area-query-geometry-stub
-    ((widget :unsigned-natural)
-     (intended :unsigned-natural)
-     (desired :unsigned-natural))
+(ff:defun-foreign-callable my-drawing-area-query-geometry-stub
+    ((widget :foreign-address)
+     (intended :foreign-address)
+     (desired :foreign-address))
   (my-drawing-area-query-geometry widget intended desired))
 
 (defun setup-mda ()

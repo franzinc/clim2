@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: last.lisp,v 1.4.24.2 2000/09/05 19:06:47 layer Exp $
+;; $Id: last.lisp,v 1.4.24.3 2001/06/08 04:18:26 layer Exp $
 
 ;;; All this is allegro-sepcific.
 
@@ -23,7 +23,11 @@
 
 ;;; This is, perhaps, a temporary hack to get the EUC stuff loaded at
 ;;; a non-bad time.
-;;;
+;;
+;; This is no longer needed, since we're using native-to-* interface now
+;; The euc module may be autoloaded due to process-code usage, but the
+;; autoload no longer produces a mesage at inopportune times.
+#+ignore
 (eval-when (:load-toplevel :execute)
   (require :euc)
   (find-external-format :euc))

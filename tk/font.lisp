@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: font.lisp,v 1.24.34.2 2000/09/05 19:06:42 layer Exp $
+;; $Id: font.lisp,v 1.24.34.3 2001/06/08 04:18:24 layer Exp $
 
 (in-package :tk)
 
@@ -128,7 +128,7 @@
 	  (seq (make-sequence result-type n)))
       (prog1
 	  (dotimes (i n seq)
-	    (setf (elt seq i) (excl:native-to-string 
+	    (setf (elt seq i) (excl:native-to-string
 			       (xfontname-list names i))))
 	(x11::xfreefontnames names)))))
 
@@ -219,19 +219,6 @@
   (clim-utils::allocate-cstruct 'x11::xrectangle
 				:initialize t
 				:number number))
-
-#+ignore
-(defun text-extents (font-set string)
-  (let* ((euc (excl:string-to-euc string))
-	 (length (1- (length euc)))
-	 (overall-ink-return (make-xrectangle))
-	 (overall-logical-return (make-xrectangle)))
-    (values (x11:xmbtextextents
-	     font-set
-	     (ff:euc-to-char* euc)
-	     length
-	     overall-ink-return
-	     overall-logical-return))))
 
 )
 

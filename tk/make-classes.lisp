@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: make-classes.lisp,v 1.48.36.3 2001/05/23 19:49:12 duane Exp $
+;; $Id: make-classes.lisp,v 1.48.36.4 2001/06/08 04:18:24 layer Exp $
 
 (in-package :tk)
 
@@ -329,11 +329,11 @@
       new)))
 
 
-(defun-c-callable toolkit-error-handler ((message :unsigned-natural))
+(defun-foreign-callable toolkit-error-handler ((message :foreign-address))
   (let ((*error-output* excl:*initial-terminal-io*))
     (error "Xt: ~a" (excl:native-to-string message))))
 
-(defun-c-callable toolkit-warning-handler ((message :unsigned-natural))
+(defun-foreign-callable toolkit-warning-handler ((message :foreign-address))
   (let ((*error-output* excl:*initial-terminal-io*))
     (warn "Xt: ~a" (excl:native-to-string message))))
 

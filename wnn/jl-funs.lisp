@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: wnn -*-
 ;;
-;;				-[Fri Dec  3 23:34:30 1999 by duane]-
+;;				-[Wed Jun  6 14:06:09 2001 by duane]-
 ;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1992 Franz Inc, Berkeley, CA  All rights reserved.
@@ -20,96 +20,92 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $Id: jl-funs.lisp,v 1.5 2000/03/04 05:13:53 duane Exp $
+;; $Id: jl-funs.lisp,v 1.5.34.1 2001/06/08 04:18:27 layer Exp $
 
 (in-package :wnn)
 
-(defforeign 'jl_open_lang
-    :arguments '(foreign-address foreign-address foreign-address
-		 integer integer integer integer)
-    :return-type :foreign-address
-    :call-direct t
-    :arg-checking nil)
+(def-foreign-call jl_open_lang
+    ((x :foreign-address) (y :foreign-address) (z :foreign-address)
+			  a b c d)
+  :returning :foreign-address
+  :call-direct t
+  :arg-checking nil)
 
-(defforeign 'jl_connect_lang
-    :arguments '(foreign-address foreign-address foreign-address
-		 integer integer integer integer)
-    :return-type :foreign-address
-    :call-direct t
-    :arg-checking nil)
+(def-foreign-call jl_connect_lang
+    ((x :foreign-address) (y :foreign-address) (z :foreign-address)
+			  a b c d)
+  :returning :foreign-address
+  :call-direct t
+  :arg-checking nil)
 
-(defforeign 'jl_isconnect_e
-    :arguments '(foreign-address)
-    :return-type :integer
-    :call-direct t
-    :arg-checking nil)
+(def-foreign-call jl_isconnect_e
+    ((x :foreign-address))
+  :returning :int
+  :call-direct t
+  :arg-checking nil)
 
-(defforeign 'jl_env_get
-    :arguments '(foreign-address)
-    :return-type :foreign-address
-    :call-direct t
-    :arg-checking nil)
+(def-foreign-call jl_env_get
+    ((x :foreign-address))
+  :returning :foreign-address
+  :call-direct t
+  :arg-checking nil)
 
-(defforeign 'jl_ren_conv
-    :arguments '(foreign-address foreign-address
-		 integer integer integer)
-    :return-type :integer
-    :call-direct t
-    :arg-checking nil)
+(def-foreign-call jl_ren_conv
+    ((x :foreign-address) (y :foreign-address) a b c)
+  :returning :int
+  :call-direct t
+  :arg-checking nil)
 
-(defforeign 'wnn_get_area
-    :arguments '(foreign-address integer integer
-		 foreign-address integer)
-    :return-type :integer
-    :call-direct t
-    :arg-checking nil)
+(def-foreign-call wnn_get_area
+    ((a :foreign-address) b c (d :foreign-address) e)
+  :returning :int
+  :call-direct t
+  :arg-checking nil)
 
-(defforeign 'jl_kanji_len
-    :arguments '(foreign-address integer integer)
-    :return-type :integer
-    :call-direct t
-    :arg-checking nil)
+(def-foreign-call jl_kanji_len
+    ((x :foreign-address) y z)
+  :returning :int
+  :call-direct t
+  :arg-checking nil)
 
-(defforeign 'jl_yomi_len
-    :arguments '(foreign-address integer integer)
-    :return-type :integer
-    :call-direct t
-    :arg-checking nil)
+(def-foreign-call jl_yomi_len
+    ((x :foreign-address) y z)
+  :returning :int
+  :call-direct t
+  :arg-checking nil)
 
-(defforeign 'jl_get_zenkouho_kanji
-    :arguments '(foreign-address integer foreign-address)
-    :return-type :void
-    :call-direct t
-    :arg-checking nil)
+(def-foreign-call jl_get_zenkouho_kanji
+    ((x :foreign-address) y (z :foreign-address))
+  :returning :void
+  :call-direct t
+  :arg-checking nil)
 
-(defforeign 'jl_get_zenkouho_yomi
-    :arguments '(foreign-address integer foreign-address)
-    :return-type :void
-    :call-direct t
-    :arg-checking nil)
+(def-foreign-call jl_get_zenkouho_yomi
+    ((x :foreign-address) y (z :foreign-address))
+  :returning :void
+  :call-direct t
+  :arg-checking nil)
 
-(defforeign 'jl_zenkouho
-    :arguments '(foreign-address
-		 integer integer integer)
-    :return-type :integer
-    :call-direct t
-    :arg-checking nil)
+(def-foreign-call jl_zenkouho
+    ((w :foreign-address) x y z)
+  :returning :int
+  :call-direct t
+  :arg-checking nil)
 
-(defforeign 'jl_zenkouho_dai
-    :arguments '(foreign-address
-		 integer integer integer)
-    :return-type :integer
-    :call-direct t
-    :arg-checking nil)
+(def-foreign-call jl_zenkouho_dai
+    ((w :foreign-address) x y z)
+  :returning :int
+  :call-direct t
+  :arg-checking nil)
 
-(defforeign 'jl_set_jikouho
-    :arguments '(foreign-address integer)
-    :return-type :integer
-    :call-direct t
-    :arg-checking nil)
+(def-foreign-call jl_set_jikouho
+    ((x :foreign-address) y)
+  :returning :int
+  :call-direct t
+  :arg-checking nil)
 
-(defforeign 'jl_update_hindo
-    :arguments '(foreign-address integer integer)
-    :return-type :integer
-    :call-direct t
-    :arg-checking nil)
+(def-foreign-call jl_update_hindo
+    ((x :foreign-address) y z)
+  :returning :int
+  :call-direct t
+  :arg-checking nil)

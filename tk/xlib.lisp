@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xlib.lisp,v 1.65.24.3 2001/05/23 19:49:13 duane Exp $
+;; $Id: xlib.lisp,v 1.65.24.4 2001/06/08 04:18:24 layer Exp $
 
 (in-package :tk)
 
@@ -262,8 +262,8 @@
 		  (clim-utils::system-free s))))
 	    resourceid)))
 
-(defun-c-callable x-error-handler ((display :unsigned-natural)
-				   (event :unsigned-natural))
+(defun-foreign-callable x-error-handler ((display :foreign-address)
+					 (event :foreign-address))
   (error 'x-error
 	 :display display
 	 :error-code (x11:xerrorevent-error-code event)
@@ -284,7 +284,7 @@
 
 (defvar *x-io-error-hook* nil)
 
-(defun-c-callable x-io-error-handler ((display :unsigned-natural))
+(defun-foreign-callable x-io-error-handler ((display :foreign-address))
   (when *x-io-error-hook*
     (funcall *x-io-error-hook* display))
   (error 'x-connection-lost :display display))

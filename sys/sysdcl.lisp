@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: sysdcl.lisp,v 1.59 2000/05/01 21:43:34 layer Exp $
+;; $Id: sysdcl.lisp,v 1.59.24.1 2001/06/08 04:18:23 layer Exp $
 
 (in-package :cl-user)
 
@@ -24,7 +24,7 @@
 ;; successful compilation of CLIM in a non-ICS lisp (cim 2/26/96)
 #+ignore (require :ics)
 
-#+(and allegro (not acl86win32)) ;; no ics on Windows (yet?)
+#+(and allegro (not acl86win32) (not (version>= 6 1)))
 (let ((*enable-package-locked-errors* nil))
   (export '(excl::codeset-0 excl::codeset-1 excl::codeset-2 excl::codeset-3
 	    excl::string-to-euc excl::euc-to-string)
@@ -75,7 +75,7 @@
 
 (eval-when (compile load eval)
 
-#+(or allegro 
+#+(or allegro
       Minima)
 (pushnew :clim-uses-lisp-stream-classes *features*)
 

@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $Id: jserver.lisp,v 1.5.36.2 2000/09/05 19:06:48 layer Exp $
+;; $Id: jserver.lisp,v 1.5.36.3 2001/06/08 04:18:27 layer Exp $
 
 (in-package :wnn)
 
@@ -83,13 +83,13 @@
   (with-slots (buf area) js
     (unless (zerop (wnn_get_area buf bunsetu bunsetu-end
 				 area wnn_kanji))
-      (ff:wchar*-to-string area))))
+      (excl:native-to-string area :external-format :16-bit))))
 
 (defun get-yomi (js bunsetu &optional (bunsetu-end (1+ bunsetu)))
   (with-slots (buf area) js
     (unless (zerop (wnn_get_area buf bunsetu bunsetu-end
 				 area wnn_yomi))
-      (ff:wchar*-to-string area))))
+      (excl:native-to-string area :external-format :16-bit))))
 
 (defparameter *wnn-unique* :unique-kanji)
 
@@ -119,7 +119,7 @@
 	(when set-jikouho
 	  (jl_set_jikouho buf kouho))
 	(jl_get_zenkouho_kanji buf kouho area)
-	(ff:wchar*-to-string area)))))
+	(excl:native-to-string area :external-format :16-bit)))))
 
 (defun get-zenkouho-kanji (js bunsetu)
   (let ((zen nil))

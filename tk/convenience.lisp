@@ -16,10 +16,11 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: convenience.lisp,v 1.23.34.1 2001/05/23 19:49:11 duane Exp $
+;; $Id: convenience.lisp,v 1.23.34.2 2001/06/08 04:18:23 layer Exp $
 
 (in-package :tk)
 
+#-(version>= 6 1)
 (eval-when (eval compile)
   (defmacro define-convenience-class (class superclasses entry-point)
     (let ((c-function-name
@@ -33,6 +34,39 @@
 	       :arguments '(foreign-address foreign-address foreign-address fixnum)
 	       :arg-checking nil
 	       :return-type :foreign-address))
+	 (defclass ,class ,superclasses
+	   ()
+	   (:metaclass xt-class))
+	 (defmethod make-widget ((w ,class) name parent &rest args
+				 &key (managed t) &allow-other-keys)
+	   (remf args :managed)
+	   (with-malloced-objects
+	       (multiple-value-bind
+		   (arglist n)
+		   (make-arglist-for-class (find-class ',class)
+					   parent
+					   args)
+	       (let ((o (,c-function-name
+			 parent
+			 (note-malloced-object (clim-utils:string-to-foreign name))
+			 arglist
+			 n)))
+		 (when managed
+		   (xt_manage_child o))
+		 o))))))))
+#+(version>= 6 1)
+(eval-when (eval compile)
+  (defmacro define-convenience-class (class superclasses entry-point)
+    (let ((c-function-name
+	   (intern (substitute #\_ #\-
+			       (lispify-tk-name entry-point :package nil)))))
+      `(progn
+	 (eval-when (eval compile)
+	   (def-foreign-call (,c-function-name ,entry-point)
+	       ((w :foreign-address) (x :foreign-address) (y :foreign-address) (z :int fixnum))
+	     :returning :foreign-address
+	     :call-direct t
+	     :arg-checking nil))
 	 (defclass ,class ,superclasses
 	   ()
 	   (:metaclass xt-class))

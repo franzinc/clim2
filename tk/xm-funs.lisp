@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xm-funs.lisp,v 1.22.34.2 2001/05/23 19:49:13 duane Exp $
+;; $Id: xm-funs.lisp,v 1.22.34.3 2001/06/08 04:18:25 layer Exp $
 
 ;;
 ;; This file contains compile time only code -- put in clim-debug.fasl.
@@ -23,268 +23,213 @@
 
 (in-package :tk)
 
-(defforeign 'xm_string_create_l_to_r
-    :entry-point (ff:convert-foreign-name "XmStringCreateLtoR")
-    :call-direct t
-    :callback nil
-    :arguments '(foreign-address foreign-address)
-    :return-type :foreign-address)
+(def-foreign-call (xm_string_create_l_to_r "XmStringCreateLtoR")
+    ((x :foreign-address) (y :foreign-address))
+  :returning :foreign-address
+  :call-direct t)
 
-(defforeign 'xm_string_concat
-    :entry-point (ff:convert-foreign-name "XmStringConcat")
-    :call-direct t
-    :callback nil
-    :arguments '(foreign-address foreign-address)
-    :return-type :foreign-address)
+(def-foreign-call (xm_string_concat "XmStringConcat")
+    ((x :foreign-address) (y :foreign-address))
+  :returning :foreign-address
+  :call-direct t)
 
-(defforeign 'xm_string_copy
-    :entry-point (ff:convert-foreign-name "XmStringCopy")
-    :call-direct t
-    :callback nil
-    :arguments '(foreign-address)
-    :return-type :foreign-address)
+(def-foreign-call (xm_string_copy "XmStringCopy")
+    ((x :foreign-address))
+  :returning :foreign-address
+  :call-direct t)
 
-(defforeign 'xm_string_get_l_to_r
-    :entry-point (ff:convert-foreign-name "XmStringGetLtoR")
-    :call-direct t
-    :callback nil
-    :arguments '(foreign-address foreign-address foreign-address)
-    :arg-checking nil
-    :return-type :fixnum)
+(def-foreign-call (xm_string_get_l_to_r "XmStringGetLtoR")
+    ((x :foreign-address) (y :foreign-address) (z :foreign-address))
+  :returning (:int fixnum)
+  :call-direct t
+  :arg-checking nil)
 
 ;;; New method to support Motif2.1
-(defforeign 'xm_string_free
-    :entry-point (ff:convert-foreign-name "XmStringFree")
-    :call-direct t
-    :callback nil
-    :arguments '(foreign-address)
-    :arg-checking nil
-    :return-type :void)
+(def-foreign-call (xm_string_free "XmStringFree")
+    ((x :foreign-address))
+  :returning :void
+  :call-direct t
+  :arg-checking nil)
 
-(defforeign 'xm_get_pixmap
-    :entry-point (ff:convert-foreign-name "XmGetPixmap")
-    :call-direct t
-    :arguments '(foreign-address foreign-address integer integer)
-    :arg-checking nil
-    :return-type :foreign-address)
+(def-foreign-call (xm_get_pixmap "XmGetPixmap")
+    ((w :foreign-address) (x :foreign-address) y z)
+  :returning :foreign-address
+  :call-direct t
+  :arg-checking nil)
 
-(defforeign 'xm_font_list_init_font_context
-    :entry-point (ff:convert-foreign-name "XmFontListInitFontContext")
-    :call-direct t
-    :callback nil
-    :arguments '(foreign-address foreign-address)
-    :arg-checking nil
-    :return-type :fixnum)
+(def-foreign-call (xm_font_list_init_font_context "XmFontListInitFontContext")
+    ((x :foreign-address) (y :foreign-address))
+  :returning (:int fixnum)
+  :call-direct t
+  :arg-checking nil)
 
-(defforeign 'xm_font_list_free_font_context
-    :entry-point (ff:convert-foreign-name "XmFontListFreeFontContext")
-    :call-direct t
-    :callback nil
-    :arguments '(foreign-address)
-    :arg-checking nil
-    :return-type :void)
+(def-foreign-call (xm_font_list_free_font_context "XmFontListFreeFontContext")
+    ((x :foreign-address))
+  :returning :void
+  :call-direct t
+  :arg-checking nil)
 
-(defforeign 'xm_font_list_get_next_font
-    :entry-point (ff:convert-foreign-name "XmFontListGetNextFont")
-    :call-direct t
-    :callback nil
-    :arguments '(foreign-address foreign-address foreign-address)
-    :arg-checking nil
-    :return-type :fixnum)
+(def-foreign-call (xm_font_list_get_next_font "XmFontListGetNextFont")
+    ((x :foreign-address) (y :foreign-address) (z :foreign-address))
+  :returning (:int fixnum)
+  :call-direct t
+  :arg-checking nil)
 
-(defforeign 'xm_font_list_create
-    :entry-point (ff:convert-foreign-name "XmFontListCreate")
-    :call-direct t
-    :callback nil
-    :arguments '(foreign-address foreign-address)
-    :arg-checking nil
-    :return-type :foreign-address)
+(def-foreign-call (xm_font_list_create "XmFontListCreate")
+    ((x :foreign-address) (y :foreign-address))
+  :returning :foreign-address
+  :call-direct t
+  :arg-checking nil)
 
-(defforeign 'xm_font_list_free
-    :entry-point (ff:convert-foreign-name "XmFontListFree")
-    :call-direct t
-    :callback nil
-    :arguments '(foreign-address)
-    :arg-checking nil
-    :return-type :void)
+(def-foreign-call (xm_font_list_free "XmFontListFree")
+    ((x :foreign-address))
+  :returning :void
+  :call-direct t
+  :arg-checking nil)
 
-(defforeign 'xm_font_list_entry_free
-    :entry-point (ff:convert-foreign-name "XmFontListEntryFree")
-    :call-direct t
-    :callback nil
-    :arguments '(foreign-address)
-    :arg-checking nil
-    :return-type :void)
+(def-foreign-call (xm_font_list_entry_free "XmFontListEntryFree")
+    ((x :foreign-address))
+  :returning :void
+  :call-direct t
+  :arg-checking nil)
 
-(defforeign 'xm_add_protocol_callback
-    :entry-point (ff:convert-foreign-name "XmAddProtocolCallback")
-    :call-direct t
-    :arguments '(foreign-address integer integer foreign-address foreign-address)
-    :arg-checking nil
-    :return-type :void)
+(def-foreign-call (xm_add_protocol_callback "XmAddProtocolCallback")
+    ((v :foreign-address) w x (y :foreign-address) (z :foreign-address))
+  :returning :void
+  :call-direct t
+  :arg-checking nil)
 
-(defforeign 'xm_intern_atom
-    :entry-point (ff:convert-foreign-name "XmInternAtom")
-    :call-direct t
-    :callback nil
-    :arguments '(foreign-address foreign-address fixnum)
-    :arg-checking nil
-    :return-type :foreign-address)
+(def-foreign-call (xm_intern_atom "XmInternAtom")
+    ((x :foreign-address) (y :foreign-address) (z :int fixnum))
+  :returning :foreign-address
+  :call-direct t
+  :arg-checking nil)
 
-(defforeign 'xm_main_window_set_area
-    :entry-point (ff:convert-foreign-name "XmMainWindowSetAreas")
-    :call-direct t
-    :arguments '(foreign-address foreign-address foreign-address
-		 foreign-address foreign-address foreign-address)
-    :arg-checking nil
-    :return-type :void)
+(def-foreign-call (xm_main_window_set_area "XmMainWindowSetAreas")
+    ((a :foreign-address) (b :foreign-address) (c :foreign-address)
+     (d :foreign-address) (e :foreign-address) (f :foreign-address))
+ :returning :void
+  :call-direct t
+  :arg-checking nil)
 
-(ff:defforeign 'xm_process_traversal
-    :entry-point (ff:convert-foreign-name "XmProcessTraversal")
-    :call-direct t
-    :arguments '(foreign-address integer)
-    :arg-checking nil
-    :return-type :fixnum)
+(def-foreign-call (xm_process_traversal "XmProcessTraversal")
+    ((x :foreign-address) y)
+  :returning (:int fixnum)
+  :call-direct t
+  :arg-checking nil)
 
-(defforeign 'xm-message-box-get-child
-    :entry-point (ff:convert-foreign-name "XmMessageBoxGetChild")
-    :call-direct t
-    :arguments '(foreign-address fixnum)
-    :arg-checking nil
-    :return-type :foreign-address)
+(def-foreign-call (xm-message-box-get-child "XmMessageBoxGetChild")
+    ((x :foreign-address) (y :int fixnum))
+  :returning :foreign-address
+  :call-direct t
+  :arg-checking nil)
 
-(defforeign 'xm-selection-box-get-child
-    :entry-point (ff:convert-foreign-name "XmSelectionBoxGetChild")
-    :call-direct t
-    :arguments '(foreign-address fixnum)
-    :arg-checking nil
-    :return-type :foreign-address)
+(def-foreign-call (xm-selection-box-get-child "XmSelectionBoxGetChild")
+    ((x :foreign-address) (y :int fixnum))
+  :returning :foreign-address
+  :call-direct t
+  :arg-checking nil)
 
+(def-foreign-call (xm_file_selection_do_search "XmFileSelectionDoSearch")
+    ((x :foreign-address) (y :foreign-address))
+  :returning :void
+  :call-direct t
+  :arg-checking nil)
 
-(defforeign 'xm_file_selection_do_search
-    :entry-point (ff:convert-foreign-name "XmFileSelectionDoSearch")
-    :call-direct t
-    :arguments '(foreign-address foreign-address)
-    :arg-checking nil
-    :return-type :void)
+(def-foreign-call (xm_option_label_gadget "XmOptionLabelGadget")
+    ((x :foreign-address))
+  :returning :foreign-address
+  :call-direct t
+  :arg-checking nil)
 
-(defforeign 'xm_option_label_gadget
-    :entry-point (ff:convert-foreign-name "XmOptionLabelGadget")
-    :call-direct t
-    :arguments '(foreign-address)
-    :arg-checking nil
-    :return-type :foreign-address)
+(def-foreign-call (xm_option_button_gadget "XmOptionButtonGadget")
+    ((x :foreign-address))
+  :returning :foreign-address
+  :call-direct t
+  :arg-checking nil)
 
-(defforeign 'xm_option_button_gadget
-    :entry-point (ff:convert-foreign-name "XmOptionButtonGadget")
-    :call-direct t
-    :arguments '(foreign-address)
-    :arg-checking nil
-    :return-type :foreign-address)
+(def-foreign-call (initializemydrawingareaquerygeometry "InitializeMyDrawingAreaQueryGeometry")
+    (x)
+  :returning :void
+  :call-direct t
+  :arg-checking nil)
 
-(defforeign 'initializemydrawingareaquerygeometry
-    :entry-point (ff:convert-foreign-name "InitializeMyDrawingAreaQueryGeometry")
-    :call-direct t
-    :callback nil
-    :arguments '(integer)
-    :arg-checking nil
-    :return-type :void)
+(def-foreign-call (xm_get_focus_widget "XmGetFocusWidget")
+    ((x :foreign-address))
+  :returning :foreign-address
+  :call-direct t
+  :arg-checking nil)
 
-(defforeign 'xm_get_focus_widget
-    :entry-point (ff:convert-foreign-name "XmGetFocusWidget")
-    :call-direct t
-    :arguments '(foreign-address)
-    :arg-checking nil
-    :return-type :foreign-address)
+(def-foreign-call (xm_is_traversable "XmIsTraversable")
+    ((x :foreign-address))
+  :returning :foreign-address
+  :call-direct t
+  :arg-checking nil)
 
-(defforeign 'xm_is_traversable
-    :entry-point (ff:convert-foreign-name "XmIsTraversable")
-    :call-direct t
-    :arguments '(foreign-address)
-    :arg-checking nil
-    :return-type :foreign-address)
+(def-foreign-call (xm_font_list_append_entry "XmFontListAppendEntry")
+    ((x :foreign-address) (y :foreign-address))
+  :returning :foreign-address
+  :call-direct t
+  :arg-checking nil)
 
-(defforeign 'xm_font_list_append_entry
-    :entry-point (ff:convert-foreign-name "XmFontListAppendEntry")
-    :call-direct t
-    :callback nil
-    :arguments '(foreign-address foreign-address)
-    :arg-checking nil
-    :return-type :foreign-address)
+(def-foreign-call (xm_font_list_entry_create "XmFontListEntryCreate")
+    ((x :foreign-address) (y :foreign-address) (z :foreign-address))
+  :returning :foreign-address
+  :call-direct t
+  :arg-checking nil)
 
-(defforeign 'xm_font_list_entry_create
-    :entry-point (ff:convert-foreign-name "XmFontListEntryCreate")
-    :call-direct t
-    :callback nil
-    :arguments '(foreign-address foreign-address foreign-address)
-    :arg-checking nil
-    :return-type :foreign-address)
+(def-foreign-call (xm_font_list_entry_get_font "XmFontListEntryGetFont")
+    ((x :foreign-address) (y :foreign-address))
+  :returning :foreign-address
+  :call-direct t
+  :arg-checking nil)
 
-(defforeign 'xm_font_list_entry_get_font
-    :entry-point (ff:convert-foreign-name "XmFontListEntryGetFont")
-    :call-direct t
-    :callback nil
-    :arguments '(foreign-address foreign-address)
-    :arg-checking nil
-    :return-type :foreign-address)
+(def-foreign-call (xm_font_list_next_entry "XmFontListNextEntry")
+    ((x :foreign-address))
+  :returning :foreign-address
+  :call-direct t
+  :arg-checking nil)
 
-(defforeign 'xm_font_list_next_entry
-    :entry-point (ff:convert-foreign-name "XmFontListNextEntry")
-    :call-direct t
-    :callback nil
-    :arguments '(foreign-address)
-    :arg-checking nil
-    :return-type :foreign-address)
+(def-foreign-call (xm_toggle_button_set_state "XmToggleButtonSetState")
+    ((x :foreign-address) (y :int fixnum) (z :int fixnum))
+  :returning :void
+  :call-direct t
+  :arg-checking nil)
 
-(defforeign 'xm_toggle_button_set_state
-    :entry-point (ff:convert-foreign-name "XmToggleButtonSetState")
-    :call-direct t
-    :callback t
-    :arguments '(foreign-address fixnum fixnum)
-    :arg-checking nil
-    :return-type :void)
+(def-foreign-call (xm_toggle_button_get_state "XmToggleButtonGetState")
+    ((x :foreign-address))
+  :returning (:int fixnum)
+  :call-direct t
+  :arg-checking nil)
 
-(defforeign 'xm_toggle_button_get_state
-    :entry-point (ff:convert-foreign-name "XmToggleButtonGetState")
-    :call-direct t
-    :callback t
-    :arguments '(foreign-address)
-    :arg-checking nil
-    :return-type :fixnum)
+(def-foreign-call (xm_text_field_get_selection "XmTextFieldGetSelection")
+    ((x :foreign-address))
+  :returning :int
+  :call-direct t
+  :arg-checking nil)
 
-(ff:defforeign 'xm_text_field_get_selection
-    :call-direct t
-    :arguments '(foreign-address)
-    :arg-checking nil
-    :entry-point (ff:convert-foreign-name "XmTextFieldGetSelection")
-    :return-type :integer)
+(def-foreign-call (xm_text_get_selection "XmTextGetSelection")
+    ((x :foreign-address))
+  :returning :int
+  :call-direct t
+  :arg-checking nil)
 
-(ff:defforeign 'xm_text_get_selection
-    :call-direct t
-    :arguments '(foreign-address)
-    :arg-checking nil
-    :entry-point (ff:convert-foreign-name "XmTextGetSelection")
-    :return-type :integer)
+(def-foreign-call (xm_scale_set_value "XmScaleSetValue")
+    ((x :foreign-address) (y :int fixnum))
+  :returning :void
+  :call-direct t
+  :arg-checking nil)
 
-(ff:defforeign 'xm_scale_set_value
-    :call-direct t
-    :arguments '(foreign-address fixnum)
-    :arg-checking nil
-    :entry-point (ff:convert-foreign-name "XmScaleSetValue")
-    :return-type :void)
+(def-foreign-call (xm_get_display "XmGetXmDisplay")
+    ((x :foreign-address))
+  :returning :int
+  :call-direct t
+  :arg-checking nil)
 
-(ff:defforeign 'xm_get_display
-    :call-direct t
-    :arguments '(foreign-address)
-    :arg-checking nil
-    :entry-point (ff:convert-foreign-name "XmGetXmDisplay")
-    :return-type :integer)
-
-(ff:defforeign 'xm_change_color
-    :call-direct t
-    :arguments '(foreign-address fixnum)
-    :arg-checking nil
-    :entry-point (ff:convert-foreign-name "XmChangeColor")
-    :return-type :void)
+(def-foreign-call (xm_change_color "XmChangeColor")
+    ((x :foreign-address) (y :int fixnum))
+  :returning :void
+  :call-direct t
+  :arg-checking nil)
 
 (provide :clim-debugxm)

@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: resources.lisp,v 1.63.34.3 2001/04/24 19:53:21 layer Exp $
+;; $Id: resources.lisp,v 1.63.34.4 2001/06/08 04:18:24 layer Exp $
 
 (in-package :tk)
 
@@ -461,7 +461,7 @@
     ;; pointer but is really just the value.
     (dotimes (j len)
       (setf (xt-arglist-value arglist j)
-	(clim-utils::allocate-memory 8 0)))
+	(clim-utils::allocate-memory #-64bit 8 #+64bit 16 0)))
     (dolist (r resources)
       (let ((resource (or (find-class-resource class r)
 			  (psetq constraint-resource-used t)
@@ -685,7 +685,7 @@
 (defmethod convert-resource-in ((parent t) (type (eql 'string)) value)
   (unless (zerop value)
     (excl:ics-target-case
-     (:+ics (let ((euc (ff:char*-to-euc value)))
+     (:+ics (let ((euc (excl:native-to-octets value)))
 	      (excl:euc-to-string euc)))
      (:-ics (values (excl:native-to-string value))))))
 
