@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-gadgets.lisp,v 1.44 93/04/16 09:45:53 cer Exp $
+;; $fiHeader: ol-gadgets.lisp,v 1.45 93/04/23 09:18:40 cer Exp $
 
 
 (in-package :xm-silica)
@@ -530,23 +530,29 @@
 (defun openlook-text-field-edit-widget (tf &optional (mirror (sheet-direct-mirror tf)))
   (tk::get-values mirror :text-edit-widget))
 
-;;; --we need to define an event handler to deal with the losing focus
-;;; correcly. At the moment this function is simply incorrect.
-;;; when this is fixed put back assert in clim/gadget-output
-;;; accept-values-string-field-changed-callback 
-
 (defmethod add-sheet-callbacks :after ((port openlook-port) 
 				       (sheet openlook-text-field) 
 				       (widget t))
   (when (gadget-editable-p sheet)
-    (tk::add-callback (openlook-text-field-edit-widget sheet widget)
-		      :post-modify-notification
-		      'queue-value-changed-event
-		      sheet)
-    (tk::add-callback (openlook-text-field-edit-widget sheet widget)
-		      :post-modify-notification
-		      'queue-losing-focus-event
-		      sheet)))
+    (let ((edit-widget (openlook-text-field-edit-widget sheet widget))) 
+      (tk::add-callback edit-widget
+			:post-modify-notification
+			'queue-value-changed-event
+			sheet)
+      (tk::add-event-handler edit-widget
+			     '(:focus-change)
+			     1
+			     ;; this should eventually be
+			     ;; sheet-mirror-event-handler once all
+			     ;; the focus stuff works
+			     'openlook-text-field-event-handler
+			     sheet))))
+
+(defun openlook-text-field-event-handler (widget event sheet)
+  (case (tk::event-type event)
+    (:focus-in (queue-gaining-focus-event widget sheet))
+    (:focus-out (queue-losing-focus-event widget sheet))))
+
 
 (defmethod gadget-value ((gadget openlook-text-field))
   (if (sheet-direct-mirror gadget)
@@ -1092,7 +1098,7 @@
     (assert (not (zerop (tk::ol_text_edit_get_last_position widget end))))
     (assert (not (zerop (tk::ol_text_edit_read_substring 
 			 widget string 0 (aref end 0)))))
-    (ff::char*-to-string (aref string 0))))
+    (subseq (ff::char*-to-string (aref string 0)) 0 (aref end 0))))
 
 
 (defmethod (setf text-editor-text) (nv (te openlook-text-editor))
