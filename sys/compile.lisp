@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: compile.lisp,v 1.5.22.4 1998/12/17 00:19:40 layer Exp $
+;; $Id: compile.lisp,v 1.5.22.5 1999/01/30 19:12:53 layer Exp $
 
 (in-package :user)
 
@@ -116,6 +116,7 @@
 		  "demo/listener.fasl"
 		  "demo/graphics-demos.fasl"
 		  "demo/cad-demo.fasl"
+		  "demo/bitmap-editor.fasl"
 		  "demo/navdata.fasl"
 		  "demo/navfun.fasl"
 		  "demo/puzzle.fasl"

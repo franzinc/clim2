@@ -15,8 +15,12 @@ If there are user-visible changes in this commit, then list the
 
 1999-01-30  Kevin Layer  <layer@ultra>
 
+    removed files:
+	* Makefile.win32: no longer used
+    changed files:
 	* Makefile.alpha: use make_shared in ../src/bin
 	* Makefile.rs6000: use make_shared in ../src/bin
+	* sys/compile.lisp: add bitmap-editor.lisp for windows
 
 *******************************************************************************
 2.2.1.43
