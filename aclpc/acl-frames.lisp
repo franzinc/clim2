@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-frames.lisp,v 1.12.24.1 2000/07/19 18:53:08 layer Exp $
+;; $Id: acl-frames.lisp,v 1.12.24.1.14.1 2000/08/11 00:03:51 cley Exp $
 
 #|****************************************************************************
 *                                                                            *

@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-prel.lisp,v 1.12.12.1 2000/07/19 18:53:09 layer Exp $
+;; $Id: acl-prel.lisp,v 1.12.12.1.14.1 2000/08/11 00:03:52 cley Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -379,46 +379,29 @@
 	  bitmapinfo 
 	  win:DIB_RGB_COLORS)))
     (when (zerop texture-handle)
-      ;;Below is Charley Cox's May 6 message from bug5991 (common graphics)
+      ;; This code comes from Ken Cheetham's mail attached to
+      ;; spr21608.  This should finally fix this problem as I think he
+      ;; and/or microsoft understand why it is occuring now. The
+      ;; underlying answer seems to be that you need to use space
+      ;; which is really got from the C library malloc, not from any
+      ;; lisp-runtime approximation to it.
       ;;
-      ;;The workaround I have installed to open-texture (the only place that
-      ;;calls CreateDIBitmap) occurs when an initial call to CreateDIBitmap
-      ;;fails.  If a failure occurs, open-texture does an on-the-spot copy of
-      ;;the pixmap array into a malloc'd block and then tries calling
-      ;;CreateDIBitmap again.  Afterwards, it frees the malloc'd block.
-      ;;
-      ;;This workaround has fixed all the failure cases I was able to
-      ;;reproduce, and I have not seen any failures since its installation.  I
-      ;;have also since not seen any StretchDIBits failures.
-      ;;
-      ;;I'm not really happy not knowing what was causing CreateDIBitmap's
-      ;;failure.  The GetLastError code was not being set, and single stepping
-      ;;all the way through did not reveal anything.  It's possible we may
-      ;;revisit this in the future.
-      (let (width height bits-per-pixel)
-	(let ((d (array-dimensions pixel-map)))
-	  (setq width (first d) height (second d)))
-	(setq bits-per-pixel 8)		; kludge
-	(let* ((image-size
-		;; Formula from msdn document: SAMPLE: DIBs and Their Uses
-		(* (ash
-		    (logand (+ (* width bits-per-pixel) 31)
-			    #.(lognot 31))
-		    -3)
-		   height))
-	       (malloc-texture-array
-		(ff:allocate-fobject `(:array :char ,image-size) :c)))
-	  (unless (zerop malloc-texture-array)
-	    (memcpy malloc-texture-array pixel-map image-size)
-	    (setq texture-handle
-	      (win:CreateDIBitmap
-	       device-context
-	       bitmapinfo 
-	       win:CBM_INIT		; initialize bitmap bits
-	       malloc-texture-array
-	       bitmapinfo 
-	       win:DIB_RGB_COLORS))
-	    (ff:free-fobject malloc-texture-array)))))
+      ;; This is hugely simpler than the previous code, which had a
+      ;; very hairy computation of the buffer size, which I've just
+      ;; not done here.  I think this means that bitmaps may be
+      ;; assumed 8bits deep, if they were deeper you'd need a suitable
+      ;; factor in the computation of image-size.
+      (let ((image-size (array-total-size pixel-map)))
+	(with-malloced-space (buffer-address image-size)
+	  (memcpy buffer-address pixel-map image-size)
+	  (setq texture-handle
+	    (win:CreateDIBitmap
+	     device-context
+	     bitmapinfo 
+	     win:CBM_INIT		; initialize bitmap bits
+	     buffer-address
+	     bitmapinfo 
+	     win:DIB_RGB_COLORS)))))
     (when (zerop texture-handle)
       (check-last-error "CreateDIBitmap"))
     texture-handle))

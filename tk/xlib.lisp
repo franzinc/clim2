@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xlib.lisp,v 1.65.24.1 2000/07/19 18:53:12 layer Exp $
+;; $Id: xlib.lisp,v 1.65.24.1.14.1 2000/08/11 00:03:54 cley Exp $
 
 (in-package :tk)
 

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $Id: jserver.lisp,v 1.5.36.1 2000/07/19 18:53:15 layer Exp $
+;; $Id: jserver.lisp,v 1.5.36.1.14.1 2000/08/11 00:03:57 cley Exp $
 
 (in-package :wnn)
 

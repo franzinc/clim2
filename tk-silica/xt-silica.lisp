@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xt-silica.lisp,v 1.112.34.1 2000/07/19 18:53:14 layer Exp $
+;; $Id: xt-silica.lisp,v 1.112.34.1.14.1 2000/08/11 00:03:56 cley Exp $
 
 (in-package :xm-silica)
 
