@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-port.lisp,v 1.12 2000/05/01 21:43:20 layer Exp $
+;; $Id: acl-port.lisp,v 1.12.48.1 2000/10/03 12:11:38 cley Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -511,6 +511,61 @@
 	(setf (gethash style text-style->acl-font-mapping)
 	  (let ((name (silica::device-font-name style)))
 	    (make-device-font (win:GetStockObject name)))))))
+
+(defmethod (setf text-style-mapping) (mapping (port acl-port) (style list)
+				      &optional charset etc)
+  (setf (text-style-mapping port (apply #'make-text-style style)
+			    charset etc) mapping))
+
+(defmethod (setf text-style-mapping) (mapping (port acl-port)
+				      (style text-style)
+				      &optional charset etc)
+  (declare (ignore charset etc))
+  (when (listp mapping)
+    (assert (eq (first mapping) :style) ()
+      "Text style mappings must be atomic font names ~
+or (:style . (family face size))")
+    (setf mapping (parse-text-style (cdr mapping))))
+  ;; I wonder if this is right
+  (setf (gethash style (slot-value port 'text-style->acl-font-mapping))
+    (typecase mapping
+      (string
+       (make-windows-font-named mapping
+			:size (text-style-size style)
+			:face (text-style-face style)
+			:port port))
+      (t mapping))))
+
+(defun make-windows-font-named (name &key (size ':normal)
+				  (face ':roman)
+				  (port (find-port)))
+  ;; This is a simplified user wrapper around MAKE-WINDOWS-FONT
+  (let ((point-size (or (etypecase size
+			  (real size)
+			  (symbol (second (assoc (or size ':normal)
+						 *acl-logical-size-alist*))))
+			(progn
+			  (warn "~S does not specify a size, using :normal"
+				size)
+			  (second (assoc ':normal 
+					 *acl-logical-size-alist*))))))
+    (multiple-value-bind (weight italic)
+	(etypecase face
+	  (cons 
+	   (values (if (member ':bold face) win:FW_BOLD win:FW_NORMAL)
+		   (member ':italic face)))
+	  (symbol
+	   (case face
+	     (:roman (values win:FW_NORMAL nil))
+	     (:bold (values win:FW_BOLD nil))
+	     (:italic (values win:FW_NORMAL t))
+	     ;; ?? this default, but see text-style-mapping-1
+	     (otherwise (values win:FW_BOLD nil)))))
+      (make-windows-font
+       (- (round (* point-size (slot-value port 'logpixelsy)) 72))
+       :weight weight
+       :italic italic
+       :face name))))
 
 (defun make-font-width-table (dc last-character first-character default-width)
   (let* ((tepsize (ct:ccallocate win:size))
