@@ -11,6 +11,15 @@ Tests for new features:	<`no new features', `no tests for new features', or
 	* <changes go here...>
 
 *******************************************************************************
+Documentation changes:	none
+Tests for new features:	no new features
+
+Sat Mar 28 01:05:08 1998  Kevin Layer  <layer@ultra>
+
+    new files:
+	* buildclim.cl
+
+*******************************************************************************
 2.2.1.12
 
 Documentation changes:	none
