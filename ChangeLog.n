@@ -1,7 +1,7 @@
 For more detailed instructions on filling in the ChangeLog form, see 
 `/fi/doc/procedures/changelogs.txt'.
 *******************************************************************************
-<version for this commit> (incf *clim-build-version* in utils/packages.lisp)
+<version for this commit> (change *clim-build-version* in utils/packages.lisp)
 
 If there are user-visible changes in this commit, then list the
   new ../RELNOTES entries, which include bug and/or RFE references:
@@ -11,9 +11,27 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.2.2.21.6
+merge from cley6 branch (tag cley6_merge1)
+next merge tag: cley6_to_acl60beta_merge2
+
+*******************************************************************************
 2.2.2.21.5
 merge from cley6 branch
 next merge tag: cley6_merge1
+
+*******************************************************************************
+2.2.2.21.5.1
+
+2000-08-17 tfb@cley.com (Tim Bradshaw)
+
+	* tk/xm-widgets.lisp: made the change to XM-FONT-LIST-DEFAULT-TAG
+	  work: defining a constant as a native string doesn't work, so
+	  define it as a string and then use with-native-string in the
+	  code.
+
+	* utils/packages.lisp: made *clim-build-version* be a string,
+          so we can have stuff like 21.5.1.
 
 *******************************************************************************
 2.2.2.23.2 (should have been version 2.2.2.21.4)
