@@ -11,6 +11,13 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.2.2.15.1 tfb@cley.com (Tim Bradshaw) Tue Jul  4 15:41:41 2000
+
+	* xlib/x11-keysyms.lisp: wrap excl:convert-mixed-case-symbols 
+          around the definitions of the X11 keysums to try and stop 
+	  case-folding lossage in an ansi CL.
+
+*******************************************************************************
 2.2.2.15 -- join from cley2 branch
 next merge tag: cley2_merg1
 
