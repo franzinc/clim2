@@ -11,6 +11,23 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.2.1.67
+
+1999-06-23    <layer@HOBART>
+
+	* aclpc/acl-frames.lisp: make select-file work: the binding of s1
+	using with-native-string was wrong, since that macro takes a lisp
+	string and lisp-string-to-scratch-c-string was returning a C
+	string (ie, a number); use :c not :foreign accessor in
+	lisp-string-to-scratch-c-string.
+	* aclpc/acl-medium.lisp: use (fslot-value-typed ... :foreign ...)
+	instead of (fslot-value-typed ... :foreign-static-gc ...) in
+	set-point, since the latter is an allocation type.
+	* aclpc/acl-widget.lisp: fix compile-time warning
+	* test/test-suite.lisp: select-file returns a pathname, so
+	namestring it before calling write-string
+
+*******************************************************************************
 2.2.1.66
 
 1999-06-23  Jeff Morrill  <jmorrill@pointnclick.com> 

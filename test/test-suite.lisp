@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $Id: test-suite.lisp,v 1.82.22.4 1999/06/23 15:25:25 layer Exp $
+;; $Id: test-suite.lisp,v 1.82.22.5 1999/06/23 18:28:37 layer Exp $
 
 (in-package :clim-user)
 
@@ -2493,7 +2493,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 (define-test (select-file-test menus-and-dialogs) (stream)
   "A simple test of SELECT-FILE."
   (write-string
-   (select-file (pane-frame stream))))
+   (namestring (select-file (pane-frame stream)))))
 
 
 ;;;; Benchmarks

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-widget.lisp,v 1.7.8.20 1999/06/23 15:25:19 layer Exp $
+;; $Id: acl-widget.lisp,v 1.7.8.21 1999/06/23 18:28:36 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -152,7 +152,9 @@
 	   (tsh 0)
 	   (iwid (or (space-requirement-width initial-space-requirement) 0))
 	   (ihgt (or (space-requirement-height initial-space-requirement) 0))
+#+ign
 	   (par (sheet-parent pane))
+#+ign
 	   (scroll-mode (and (acl-clim::scroller-pane-p par)
 			     (scroller-pane-scroll-bar-policy par)))
 	   )

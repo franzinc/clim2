@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-frames.lisp,v 1.5.8.21 1999/06/22 21:40:28 layer Exp $
+;; $Id: acl-frames.lisp,v 1.5.8.22 1999/06/23 18:28:36 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -1001,17 +1001,16 @@ to be run from another."
     (dotimes (i length 
 	       ;; null term
 	       (setf (ff:fslot-value-typed 'acl-clim::foreign-string
-					   :foreign
+					   :c
 					   *scratch-c-string*
 					   length)
 		 0))
       (setf (ff:fslot-value-typed 'acl-clim::foreign-string
-				  :foreign
+				  :c
 				  *scratch-c-string*
 				  i)
 	(char-int (aref lisp-string i))))
-    *scratch-c-string*
-    ))
+    *scratch-c-string*))
 
 (defun scratch-c-string-to-lisp-string ()
   (ff:char*-to-string *scratch-c-string*))
@@ -1111,82 +1110,58 @@ to be run from another."
 
 (defun get-pathname (prompt directory stream allowed-types initial-name
 		     save-p multiple-p warn-if-exists-p)
-  (flet ((fill-c-string (string)
-	   (let ((c-string (ff:allocate-fobject-c '(:array :char 256)))
-		 (length (length string)))
-	     (assert (< length 255))
-	     (dotimes (i length)
-	       (setf (ff:fslot-value-typed 'acl-clim::foreign-string
-					   :foreign
-					   c-string
-					   i)
-		 (char-int (aref string i))))
-	     (setf (ff:fslot-value-typed 'acl-clim::foreign-string
-					 :foreign
-					 c-string
-					 length)
-	       0)
-	     c-string)))
-    (let* ((open-file-struct (ct:ccallocate win:openfilename))
-	   (file-filter-string 
-	    (fill-c-string
-	     (apply #'concatenate 'string
-		    (mapcar #'make-filter-string allowed-types))))
-	   (initial-dir-string (fill-c-string (string directory)))
-	   (prompt-string (fill-c-string (string prompt))))
-      (excl:with-native-string (file-filter-string file-filter-string)
-	(excl:with-native-string (s1 (lisp-string-to-scratch-c-string (or initial-name "")))
-	  (excl:with-native-string (initial-dir-string initial-dir-string)
-	    (excl:with-native-string (prompt-string prompt-string)
+  (let ((open-file-struct (ct:ccallocate win:openfilename)))
+    (excl:with-native-string
+	(file-filter-string
+	 (apply #'concatenate 'string
+		(mapcar #'make-filter-string allowed-types)))
+      (let ((s1 (lisp-string-to-scratch-c-string (or initial-name ""))))
+	(excl:with-native-string (initial-dir-string (string directory))
+	  (excl:with-native-string (prompt-string (string prompt))
 
-	      (ct:csets win:openfilename open-file-struct
-			lstructsize (ct:sizeof win:openfilename)
-			hwndowner (or (and stream (sheet-mirror stream))
-				      0)
-			hinstance 0	; no custom dialog
-			lpstrfilter file-filter-string
-			lpstrcustomfilter 0 
-			nmaxcustfilter 0 ;; length of custom filter string
-			nfilterindex 0	; zero means use custom-filter if supplied
+	    (ct:csets win:openfilename open-file-struct
+		      lstructsize (ct:sizeof win:openfilename)
+		      hwndowner (or (and stream (sheet-mirror stream))
+				    0)
+		      hinstance 0	; no custom dialog
+		      lpstrfilter file-filter-string
+		      lpstrcustomfilter 0 
+		      nmaxcustfilter 0 ;; length of custom filter string
+		      nfilterindex 0	; zero means use custom-filter if supplied
 					; otherwise the first filter in the list
-			lpstrfile s1
-			nmaxfile *scratch-string-length*
-			lpstrfiletitle 0 
-			nmaxfiletitle 0
-			lpstrinitialdir initial-dir-string
-			lpstrtitle prompt-string
-			flags (get-pathname-flags save-p multiple-p warn-if-exists-p)
-			nfileoffset 0
-			nfileextension 0 
-			lpstrdefext 0
-			lcustdata 0
-			lpfnhook 0
-			lptemplatename 0
-			)))))
-      (let* ((result 
-	      (if save-p
-		  (win:GetSaveFileName open-file-struct)
-		(win:GetOpenFileName open-file-struct))))
-	(ff:free-fobject-c file-filter-string)
-	(ff:free-fobject-c initial-dir-string)
-	(ff:free-fobject-c prompt-string)
-	(if result ;; t means no errors and user said "OK"
-	    (if multiple-p
-		(pathnames-from-directory-and-filenames
-		 (spaced-string-to-list
-		  (string-downcase
-		   (scratch-c-string-to-lisp-string))))
-	      (pathname
-	       (string-downcase
-		(scratch-c-string-to-lisp-string))))
-	  (let ((error-code (win:CommDlgExtendedError)))
-	    (and (plusp error-code) ;; zero means cancelled, so return NIL
-		 (error (format nil 
-				"Common dialog error ~a."
-				(or (cdr (assoc error-code
-						common-dialog-errors))
-				    error-code))))))))))
-
+		      lpstrfile s1
+		      nmaxfile *scratch-string-length*
+		      lpstrfiletitle 0 
+		      nmaxfiletitle 0
+		      lpstrinitialdir initial-dir-string
+		      lpstrtitle prompt-string
+		      flags (get-pathname-flags save-p multiple-p warn-if-exists-p)
+		      nfileoffset 0
+		      nfileextension 0 
+		      lpstrdefext 0
+		      lcustdata 0
+		      lpfnhook 0
+		      lptemplatename 0)))))
+    (let* ((result 
+	    (if save-p
+		(win:GetSaveFileName open-file-struct)
+	      (win:GetOpenFileName open-file-struct))))
+      (if result ;; t means no errors and user said "OK"
+	  (if multiple-p
+	      (pathnames-from-directory-and-filenames
+	       (spaced-string-to-list
+		(string-downcase
+		 (scratch-c-string-to-lisp-string))))
+	    (pathname
+	     (string-downcase
+	      (scratch-c-string-to-lisp-string))))
+	(let ((error-code (win:CommDlgExtendedError)))
+	  (and (plusp error-code) ;; zero means cancelled, so return NIL
+	       (error (format nil 
+			      "Common dialog error ~a."
+			      (or (cdr (assoc error-code
+					      common-dialog-errors))
+				  error-code)))))))))
 
 (defun get-directory (sheet title)
   (let* ((info (ct:ccallocate browseinfo)))
