@@ -13,6 +13,12 @@ If there are user-visible changes in this commit, then list the
 *******************************************************************************
 post release patches:
 
+2002-01-03  Nichael Cramer <ncramer@pointnclick.com>
+    from pnc for bug11562/spr25133:
+        * tk-silica/xm-frames.lisp
+          spr25133 - Correct X race-condition causing 
+          'XtGrabPoint failed' message when a menu pops-up.
+                      
 2001-09-18  Kevin Layer  <layer@crikey>
 
     from pnc:
