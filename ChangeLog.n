@@ -13,6 +13,10 @@ If there are user-visible changes in this commit, then list the
 *******************************************************************************
 2.3.19
 
+2003-08-25  Kevin Layer  <layer@crikey>
+
+	* postscript/postscript-port.lisp: add defpatch
+
 2003-08-19  Martin Mikelsons  <mm@gemini>
 
 	* utils/packages.lisp (*clim-version*): 2.3.19 
