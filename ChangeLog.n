@@ -11,6 +11,13 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.2.1.49
+
+1999-03-30    <layer@OMEGA>
+
+	* Makefile: add windows ifdef (can't believe it wasn't there!!)
+
+*******************************************************************************
 2.2.1.48
 
 1999-03-29  Kevin Layer  <layer@ultra>

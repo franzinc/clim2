@@ -1,10 +1,14 @@
-# $Header: /repo/cvs.copy/clim2/Makefile,v 1.84.2.6 1999/03/29 21:20:58 layer Exp $
+# $Header: /repo/cvs.copy/clim2/Makefile,v 1.84.2.7 1999/03/30 19:25:11 layer Exp $
 
 # If ../makefile.top doesn't exist, then you must specify HOST=xxx on the
 # `make' command line.
 
 include ../makefile.top
 include ../makefile.defs
+
+ifeq ($(OS_NAME),windows)
+HOST = windows
+endif
 
 ifeq ($(OS_NAME),sunos)
 ifeq ($(MACHINE),sparc)
