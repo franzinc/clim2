@@ -5,6 +5,8 @@
 "Copyright (c) 1990, 1991 Symbolics, Inc.  All rights reserved.
  Portions copyright (c) 1988, 1989, 1990 International Lisp Associates."
 
+;; $fiHeader$
+
 (#-ANSI-90 clim-lisp::defpackage #+ANSI-90 defpackage CLIM-DEMO
   (:use CLIM-LISP CLIM)
   (:shadowing-import-from CLIM-UTILS
