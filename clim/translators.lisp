@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: translators.lisp,v 1.10 92/11/06 19:00:47 cer Exp $
+;; $fiHeader: translators.lisp,v 1.11 92/11/19 14:18:36 cer Exp $
 
 (in-package :clim-internals)
 
@@ -325,9 +325,9 @@
   (let ((translators nil))
     (flet ((collect-translators (translator)
 	     (with-presentation-type-translator-key
-	       (translator-from-key (presentation-translator-from-type translator))
+		 (translator-from-key (presentation-translator-from-type translator))
 	       (with-presentation-type-translator-key
-		 (translator-to-key (presentation-translator-to-type translator))
+		   (translator-to-key (presentation-translator-to-type translator))
 		 (when (and (presentation-subtypep-1 from-key translator-from-key)
 			    ;; PRESENTATION-SUBTYPEP will return T when the
 			    ;; translator is "context independent", that is,
@@ -362,9 +362,10 @@
 	      (floor (presentation-translator-priority translator1) 10)
 	    (multiple-value-bind (high2 low2)
 		(floor (presentation-translator-priority translator2) 10)
-	      (if (< high1 high2)
-		  (setf (car translators) translator2
-			(car remaining) translator1)
+	      (unless (< high2 high1)
+		(if (< high1 high2)
+		    (setf (car translators) translator2
+			  (car remaining) translator1)
 		  (cond ((eq name1 name2)
 			 ;; If the two types are the same, then use the low
 			 ;; order part of the priority to break the tie
@@ -374,7 +375,7 @@
 			((presentation-subtypep-1 type2 type1)
 			 ;; The second type is more specific than the first, swap.
 			 (setf (car translators) translator2
-			       (car remaining) translator1)))))))))
+			       (car remaining) translator1))))))))))
     translators))
 
 ;; Return a list of all classes that are not provably disjoint from CLASS

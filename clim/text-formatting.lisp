@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: text-formatting.lisp,v 1.10 92/09/08 15:18:37 cer Exp $
+;; $fiHeader: text-formatting.lisp,v 1.11 92/11/06 19:00:40 cer Exp $
 
 (in-package :clim-internals)
 
@@ -115,10 +115,13 @@
 					   (member char break-characters)))
 				   string :start start :end end))
 	       (width (text-size stream string 
-				 :start start :end break)))
+				 :start start :end (or break end))))
 	  (when (or (null break) (> break 0))
-	    (let ((ofp (fill-pointer buffer)))
-	      (incf (fill-pointer buffer) (- (or break end) start))
+	    (let* ((ofp (fill-pointer buffer))
+		   (nfp (+ ofp (- (or break end) start))))
+	      (when (> nfp (array-dimension buffer 0))
+		(adjust-array buffer (+ nfp nfp)))
+	      (setf (fill-pointer buffer) nfp)
 	      (replace buffer string
 		       :start1 ofp
 		       :start2 start :end2 break)))
