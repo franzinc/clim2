@@ -15,11 +15,12 @@ If there are user-visible changes in this commit, then list the
 
 2001-04-02  Kevin Layer  <layer@crikey>
 
+    from PNC, integration of Motif 2.1 patch:
 	* tk/resources.lisp,
 	* tk/xm-font-list.lisp,
 	* tk/xm-funs.lisp,
 	* tk/xm-widgets.lisp,
-	* tk-silica/xm-gadgets.lisp: make it work with motif 2.1
+	* tk-silica/xm-gadgets.lisp
 
 *******************************************************************************
 2.2.2.21.14
