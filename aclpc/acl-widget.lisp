@@ -390,7 +390,7 @@
         (setf value (length teb))
         ;; By the way, does anyone know why the second value is returned? -smh
 	(values teb tlen))
-      (values value (length value)))))
+      (values value (if (listp value) (length value) 0)))))
 
 #+ignore
 (defmethod gadget-value ((pane mswin-text-edit))

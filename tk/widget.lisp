@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/tk/widget.lisp,v 1.43 1997/02/05 01:53:11 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/tk/widget.lisp,v 1.44 1997/10/04 00:56:32 tomj Exp $
 
 (in-package :tk)
 
@@ -290,6 +290,7 @@
 (defparameter *fallback-resources*
     `("clim*dragInitiatorProtocolStyle: DRAG_NONE"
       "clim*dragreceiverprotocolstyle:	DRAG_NONE"
+      #+ignore 
       ,@(excl:ics-target-case
 	 (:+ics '("clim*xnlLanguage: japanese"))))
   "A list of resource specification strings")
@@ -309,8 +310,8 @@
 	       (ff:string-to-char* (nth i *fallback-resources*))))
 	   (setf (*-array v n) 0)
 	   v))))
-    (excl:ics-target-case
-     (:+ics (xt_set_language_proc context 0 0)))
+    #+ignore (excl:ics-target-case
+	      (:+ics (xt_set_language_proc context 0 0)))
     (let* ((display (apply #'make-instance 'display
 			   :context context
 			   args))

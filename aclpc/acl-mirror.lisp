@@ -259,7 +259,9 @@
         (if childwin
           (sheet-native-transformation (sheet-parent sheet))
           +identity-transformation+))
-      (unless (or control msscrollwin save-under) ; tryit
+      ;;added first clause in OR below to prevent bashing a shared event
+      ;;queue for activities. -- Kalman
+      (unless (or (sheet-event-queue sheet) control msscrollwin save-under) ; tryit
         (setf (sheet-event-queue sheet) (make-acl-event-queue)))
       (when control (setf (silica::gadget-id->window sheet gadget-id) window)) 
       (unless (or control msscrollwin)
@@ -505,15 +507,17 @@
       ;; rl: +++kludge, why doesn't it know the size of the menu bar
       ;;     in the first pass?, so add 19 for now
       (win::setWindowPos (sheet-mirror sheet)
-		      (ct::null-handle win::hwnd) ; we really want win::HWND_TOP
+		      #+aclpc (ct::null-handle win::hwnd) ; we really want win::HWND_TOP
+		      #+acl86win32 0
 		      pldl
 		      ptdt
 		      (+ (- right left) dw)
 		      (+ (- bottom top) dh
 			 ;; kludge added back in -tjm Aug97
 			 (if (and *use-native-menubar*
-				  ;; how to verify that sheet's frame has a
+				  ;; is this how to verify that sheet's frame has a
 				  ;; menu bar? -tjm
+				  (slot-value (slot-value sheet 'silica::frame) 'silica::menu-bar)
 				  (zerop (+ (win:GetSystemMetrics win:SM_CYCAPTION)
 					    (win:GetSystemMetrics win:SM_CYFRAME)
 					    dt)))

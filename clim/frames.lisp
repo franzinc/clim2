@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/clim/frames.lisp,v 1.86 1997/09/03 04:03:27 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/frames.lisp,v 1.87 1997/10/04 00:56:25 tomj Exp $
 
 (in-package :clim-internals)
 
@@ -496,6 +496,12 @@
         (if (frame-resizable frame)
             (values)
           (bounding-rectangle-size (frame-top-level-sheet frame))))
+      #+acl86win32 ;; spr16580, port-trace-thing was getting mangled
+      (let ((port (port frame)))
+	(when port
+	  (let ((port-trace-thing (silica::port-trace-thing port)))
+	    (when port-trace-thing
+	      (setf (fill-pointer port-trace-thing 0))))))
       ;;--- Don't throw, just recompute stream bindings in a principled way
       (setf (sheet-enabled-p sheets) t))
     (note-frame-layout-changed (frame-manager frame) frame)
@@ -762,7 +768,8 @@
          ,@additional-bindings)
      ,@body))
 
-#+(or aclpc acl86win32); unqualified first
+;; moved within file; aclwin requires primary method to come before :around
+;; method -tjm
 (defmethod run-frame-top-level ((frame standard-application-frame) &rest args)
   (declare (dynamic-extent args))
   (with-slots (top-level-process) frame
@@ -825,30 +832,6 @@
         (let ((sheet (frame-top-level-sheet frame)))
           (when sheet (queue-flush (sheet-event-queue sheet))))
         (disable-frame frame)))))
-
-#-(or aclpc acl86win32)
-(defmethod run-frame-top-level ((frame standard-application-frame) &rest args)
-  (declare (dynamic-extent args))
-  (with-slots (top-level-process) frame
-    (when top-level-process
-      (cerror "Bludgeon ahead, assuming the risk"
-              "The process ~S is already running the top-level function for frame ~S"
-              top-level-process frame))
-    (unwind-protect
-        (let* ((top-level (frame-top-level frame))
-               (tl-function (if (listp top-level) (first top-level) top-level))
-               (tl-args (if (listp top-level) (rest top-level) nil)))
-          (setq top-level-process (current-process))
-          ;; Cons as little as possible
-          (cond ((and (null args) (null tl-args))
-                 (funcall tl-function frame))
-                ((null tl-args)
-                 (apply tl-function frame args))
-                ((null args)
-                 (apply tl-function frame tl-args))
-                (t
-                 (apply tl-function frame (append args tl-args)))))
-      (setq top-level-process nil))))
 
 ;;; Update demo/default-frame-top-level.lisp if you change this
 ;;--- I'm not really convinced that this is right  --SWM

@@ -576,12 +576,12 @@
       (let ((pointer (port-pointer port)))
 	(when pointer
 	  (queue-put event-queue
-				 (allocate-event 'pointer-motion-event
-								 :native-x pointer-x
-								 :native-y pointer-y
-								 :modifier-state (port-modifier-state port)
-								 :pointer pointer
-								 :sheet pointer-sheet))))
+		     (allocate-event 'pointer-motion-event
+				     :native-x pointer-x
+				     :native-y pointer-y
+				     :modifier-state (port-modifier-state port)
+				     :pointer pointer
+				     :sheet pointer-sheet))))
       (setf pointer-sheet nil
 	    motion-pending nil))))
 
@@ -609,14 +609,14 @@
     (let ((event (queue-next queue))
           (sheet nil))
       (setf (clim-utils::queue-head queue)
-            (free-cons queue (queue-head queue)))
+	(free-cons queue (queue-head queue)))
       (if (and (or (typep event 'device-event)
 		   (typep event 'window-event))
 	       (or (not (setq sheet (event-sheet event)))
 		   (not (slot-value sheet 'silica::mirror))))
-	(progn
-	  (deallocate-event event)
-	  (queue-get queue))
+	  (progn
+	    (deallocate-event event)
+	    (queue-get queue))
 	event))))
 
 (defvar *l-counter* 0)
@@ -661,8 +661,8 @@
 	  (reason nil))
       (unless event 
 	(flet ((wait-for-event ()
-		 ;(await-response t);(cg::process-pending-events);
-         (sys::process-pending-events)
+		 ;;(await-response t);(cg::process-pending-events);
+		 (sys::process-pending-events)
 		 (when motion-pending
 		   (flush-pointer-motion port))
 		 (or (setq event (queue-get event-queue))
@@ -702,25 +702,6 @@
 				    native-region)))
         (call-next-method)))))
 
-#+acl86win32-notyet ;; a work in progress
-(eval-when (compile load eval)
-  (defconstant win::VER_PLATFORM_ETC 1)
-  (ff:def-foreign-type win::OSVERSIONINFO
-      (:struct (dwOSVersionInfoSize dword)
-	       (dwMajorVersion dword)
-	       (dwMinorVersion dword)
-	       (dwBuildNumber dword)
-	       (dwPlatformID dword)
-	       (szCSDVersion (char *))))
-  (ff:def-foreign-type win::LPOSVERSIONINFO (win::OSVERSIONINFO *)))
-  
-#+aclpc-notyet
-(eval-when (compile load eval)
-  (defcstruct win::OSVERSIONINFO
-    ))
-
-;; need to update this to use GetVersionEx and return :win95 or :winnt4 in
-;; addition to :winnt and :win31 -tjm Aug97
 (defun get-system-version ()
   "Use win::GetVersion to determine the operating system being used."
   (let* ((v (win::GetVersion))

@@ -92,7 +92,7 @@
 
 (defmethod frame-maintain-presentation-histories ((frame wlistener)) t)
 
-(defmacro condition-restart-loop ((conditions description . args) &body body)
+(defmacro wl-condition-restart-loop ((conditions description . args) &body body)
   #---ignore (declare (ignore conditions))
   (let ((tag (clim-utils:gensymbol 'restart)))
     `(tagbody ,tag
@@ -184,7 +184,7 @@
 	     #+allegro (*current-frame-pointer* *top-frame-pointer*))
 	(terpri *wlistener-io*)
 	(with-command-table-keystrokes (keystrokes command-table)
-	  (condition-restart-loop (#+Genera (sys:error sys:abort)
+	  (wl-condition-restart-loop (#+Genera (sys:error sys:abort)
 				   #-Genera (error)
 				   "Restart CLIM lisp listener")
 	    (wlistener-command-reader

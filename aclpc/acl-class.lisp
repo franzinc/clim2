@@ -340,8 +340,8 @@
   #+acl86win32 (setf *hwnd* window)
   (mformat #+acl86win32 excl:*initial-terminal-io* 
 	   #+aclpc *standard-output*
-	   "In clim-wind-proc msg=~a sheet=~s~%"
-	   (msg-name msg) (mirror->sheet *acl-port* window))
+	   "In clim-wind-proc msg=~a sheet=~s lparam=~a~%"
+	   (msg-name msg) (mirror->sheet *acl-port* window) lparam)
   (let ((result #+aclpc (ct::ccallocate (win:void *)) #-aclpc 0)
         (*level* (1+ *level*)))
     (when (> *level* 40)
@@ -507,6 +507,7 @@
 					 :pointer pointer
 					 :sheet sheet
 					 :mswin-control gadget))))))
+	      ;; else
 	      (if (typep gadget 'silica::mswin-text-edit)
 		  (let ((sheet (mirror->sheet *acl-port* window)))
 		    (when (and sheet (= whiword pc::en_killfocus))
@@ -526,6 +527,7 @@
 						     :pointer pointer
 						     :sheet sheet
 						     :mswin-control gadget))))))
+		;; else
 		(when (or (not (typep gadget 'silica::hlist-pane))
 			  (= whiword pc::hln_selchange))
 		  (when (typep gadget 'silica::hlist-pane)

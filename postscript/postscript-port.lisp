@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: POSTSCRIPT-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/postscript/postscript-port.lisp,v 1.26 1997/02/05 01:49:38 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/postscript/postscript-port.lisp,v 1.27 1997/10/04 00:56:28 tomj Exp $
 
 (provide :climps)
 
@@ -975,7 +975,7 @@ end } def
   (when (and draw
 	     (not (stream-drawing-p stream))
 	     (not (stream-generating-postscript stream)))
-    (error "Cannot turning drawing on for postscript stream ~S" stream)))
+    (error "Cannot turn drawing on for postscript stream ~S" stream)))
 
 
 (defmacro with-output-to-postscript-stream ((stream-var file-stream &rest args) &body body)

@@ -1,5 +1,4 @@
-
-(in-package "USER")
+(in-package :user)
 
 ;;; In order to build and load versions of clim, changes in
 ;;; file names must be made in this file to reflect the actual drive and directory
@@ -60,21 +59,15 @@
 (let* ((file (pop-up-message-dialog *lisp-main-window* "CLIM operation"
                      "Choose COMPile, LOAD, or LoaD No Demo"
                      question-icon "CANCEL" "COMP" "LOAD" "LDND"))
-       (*default-pathname-defaults* *load-pathname*)
-       drib
-       )
-   (when (setq drib (case file
-                       (2 (setq file "compile.lisp") "comp")
-                       (3 (setq file "load.lisp") "load")
-                       (4 (setq file "loadnd.lisp") "ldnd")                       
-                       ))
-      (when (driball drib)
-         (time (load file))
-         (driball))
-      ))
-
-
-      
-
-
-
+       (*default-pathname-defaults* *load-pathname*))
+  (case file
+    (2 (when (driball "comp")
+	 (time (load "compile.lisp"))
+	 (driball)))
+    (3 (when (driball "load")
+	 (time (load "load.lisp"))
+	 (driball)))
+    (4 (when (driball "ldnd")
+	 (setf user::*no-clim-demos* t)
+	 (time (load "load.lisp")))
+	 (driball))))

@@ -11,10 +11,28 @@ Tests for new features:	<`no new features', `no tests for new features', or
 	* <changes go here...>
 
 *******************************************************************************
+Fri Oct  3 17:47:17 PDT 1997  Tom McClure <tomj@romeo>
+
+
+CLIM 2.2alpha ACLWin
+
+ aclpc/acl-mirror - pnc's fix for activity frame event queues
+ aclpc/acl-mirror - frames without menu bars werent' sizing correctly
+ clim/frames - port-trace-thing was getting mangled on layout change, spr16580
+ demo/winlisp - renamed duplicate condition-restart-loop to
+                prevent build error on ACLWin
+ sys/do - changed ACLWin build script to always use load.lisp,
+          even for no-demo loads (setf *no-clim-demos* t)
+ sys/load - compile-if-new hack for defsystem.fsl didn't work if
+            source was missing (eg in a distribution)
+ tk/widget - Colin commented out a line here so Clint Hyde could run
+             on SunOS4
+
+*******************************************************************************
 Tue Sep  2 21:00:53 PDT 1997  Tom McClure <tomj@romeo>
 
 
-CLIM 2.2alpha
+CLIM 2.2alpha NT
 
 
 Merged Paul Robertson's latest changes in, also committing many of my

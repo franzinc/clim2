@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/silica/sheet.lisp,v 1.41 1997/02/05 01:51:20 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/silica/sheet.lisp,v 1.42 1997/10/04 00:56:30 tomj Exp $
 
 (in-package :silica)
 
@@ -59,18 +59,12 @@
     (dolist (child (sheet-children sheet))
       (map-over-sheets function child))))
 
-#-(or aclpc acl86win32)
-(defmethod sheet-adopt-child :before ((sheet basic-sheet) (child basic-sheet))
-  (when (sheet-parent child)
-    (error "Sheet ~S trying to adopt child ~S that already has a parent" sheet child)))
-
 (defmethod sheet-adopt-child ((sheet sheet-single-child-mixin) child)
   (when (sheet-children sheet)
     (error "Single-child sheet ~S already has a child" sheet))
   (setf (sheet-children sheet) (list child)
         (sheet-parent child) sheet))
 
-#+(or aclpc acl86win32)
 (defmethod sheet-adopt-child :before ((sheet basic-sheet) (child basic-sheet))
   (when (sheet-parent child)
     (error "Sheet ~S trying to adopt child ~S that already has a parent" sheet child)))
