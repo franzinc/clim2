@@ -11,6 +11,14 @@ Tests for new features:	<`no new features', `no tests for new features', or
 	* <changes go here...>
 
 *******************************************************************************
+Fri May 29 08:58:03 1998  Kevin Layer  <layer@ultra>
+
+    new files:
+	* Makefile.linux
+    changed files:
+	* Makefile: for `linux' host
+
+*******************************************************************************
 2.2.1.18 -- public release on ACL 5.0.beta
 
 1998-05-27    <layer@HOBART>
