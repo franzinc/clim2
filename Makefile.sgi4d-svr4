@@ -1,4 +1,4 @@
-# $Header: /repo/cvs.copy/clim2/Makefile.sgi4d-svr4,v 1.13 1998/05/19 18:50:20 layer Exp $
+# $Id: Makefile.sgi4d-svr4,v 1.14 1998/08/06 23:15:36 layer Exp $
 #
 #  Makefile.sigi4d-svr4 for CLIM 2.0
 #
@@ -9,7 +9,7 @@ Makefile=Makefile.sgi4d-svr4
 
 TKLIB=-lXm
 XTLIB=-lXt
-XLIB=-lX11 -lcvt
+XLIB=-lX11 # -lcvt
 
 XINCLUDES=-I/usr/include
 

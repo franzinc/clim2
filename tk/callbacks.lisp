@@ -1,9 +1,6 @@
 ;; -*- mode: common-lisp; package: tk -*-
-;;
-;;				-[]-
-;;
-;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
-;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
+;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
+;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -19,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/tk/callbacks.lisp,v 1.29 1998/05/19 18:51:12 layer Exp $
+;; $Id: callbacks.lisp,v 1.30 1998/08/06 23:17:14 layer Exp $
 
 (in-package :tk)
 
@@ -31,8 +28,8 @@
 				    (call-data :unsigned-long))
   (callback-handler-1 widget client-data call-data))
 
-(defun callback-handler-1 (widget client-data call-data)
-  (let* ((widget (find-object-from-address widget))
+(defun callback-handler-1 (address client-data call-data)
+  (let* ((widget (find-object-from-address address))
 	 (callback-info (or (assoc client-data (widget-callback-data widget))
 			    (error "Cannot find callback info ~S,~S"
 				   widget client-data))))

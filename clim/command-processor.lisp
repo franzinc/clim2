@@ -1,11 +1,27 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
-
-;; $Header: /repo/cvs.copy/clim2/clim/command-processor.lisp,v 1.27 1998/05/19 18:50:29 layer Exp $
+;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
+;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
+;;
+;; The software, data and information contained herein are proprietary
+;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
+;; given in confidence by Franz, Inc. pursuant to a written license
+;; agreement, and may be stored and used only in accordance with the terms
+;; of such license.
+;;
+;; Restricted Rights Legend
+;; ------------------------
+;; Use, duplication, and disclosure of the software, data and information
+;; contained herein by any agency, department or entity of the U.S.
+;; Government are subject to restrictions of Restricted Rights for
+;; Commercial Software developed at private expense as specified in
+;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
+;;
+;; $Id: command-processor.lisp,v 1.28 1998/08/06 23:15:50 layer Exp $
 
 (in-package :clim-internals)
 
-"Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved.
- Portions copyright (c) 1989, 1990 International Lisp Associates."
+;;;"Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved.
+;;; Portions copyright (c) 1989, 1990 International Lisp Associates."
 
 (defparameter *command-dispatchers* '(#\:))
 
@@ -766,6 +782,13 @@
       (let ((*command-parser* command-parser)
             (*command-unparser* command-unparser)
             (*partial-command-parser* partial-command-parser))
+	;; spr16572: Due to the identity translator, it is possible to
+	;; click on anything that has been presented as a command, including
+	;; disabled commands, commands from other command tables, and lists
+	;; that aren't even funcallable.  This problem may be rooted in the 
+	;; design of the identity translator and all the cures I have tried
+	;; create much bigger problems.
+	;; JPM 5/27/98.
         (values (accept `(command :command-table ,command-table)
                         :stream stream :prompt nil)))))
 

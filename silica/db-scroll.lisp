@@ -1,10 +1,26 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
+;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
+;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
+;;
+;; The software, data and information contained herein are proprietary
+;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
+;; given in confidence by Franz, Inc. pursuant to a written license
+;; agreement, and may be stored and used only in accordance with the terms
+;; of such license.
+;;
+;; Restricted Rights Legend
+;; ------------------------
+;; Use, duplication, and disclosure of the software, data and information
+;; contained herein by any agency, department or entity of the U.S.
+;; Government are subject to restrictions of Restricted Rights for
+;; Commercial Software developed at private expense as specified in
+;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
+;;
+;; $Id: db-scroll.lisp,v 1.59 1998/08/06 23:16:57 layer Exp $
 
-;; $Header: /repo/cvs.copy/clim2/silica/db-scroll.lisp,v 1.58 1998/05/19 18:51:04 layer Exp $
-
-"Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
- Portions copyright(c) 1991, 1992 International Lisp Associates.
- Portions copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
+;;;"Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
+;;; Portions copyright(c) 1991, 1992 International Lisp Associates.
+;;; Portions copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
 
 (in-package :silica)
 
@@ -84,83 +100,48 @@
        (when viewport
          (update-scroll-bars viewport)))))
 
-;;;#+(or aclpc acl86win32)
-;;;(eval-when (compile load eval)
-;;;   ;;mm: 11Jan95 - this is defined later in  ???
-;;;   (unless (ignore-errors (find-class 'generic-scroller-pane))
-;;;      (defclass generic-scroller-pane () ())))
-
-
 (defun update-scroll-bars (viewport)
   (unless *inhibit-updating-scroll-bars*
     ;;--- This is not the most efficient thing in the world
     (let ((scroller (viewport-scroller-pane viewport))
 	  (contents (viewport-contents-extent viewport)))
-
-      #+ignore
-      (multiple-value-bind (changedp
-                            hscroll-bar hscroll-bar-enabled-p
-                            vscroll-bar vscroll-bar-enabled-p)
-          (compute-dynamic-scroll-bar-values scroller)
-        (update-dynamic-scroll-bars
-          scroller changedp
-          hscroll-bar hscroll-bar-enabled-p
-          vscroll-bar vscroll-bar-enabled-p t))
-
       ;;--- next bit new [tjm 15Mar97] otherwise buffered
       ;;--- text-output-record not considered [spr15933]
       (with-bounding-rectangle* (left top right bottom) contents
 	(when (output-recording-stream-p contents)
-	  (let ((pending-text (slot-value contents 'clim-internals::text-output-record)))
+	  (let ((pending-text 
+		 (slot-value contents 'clim-internals::text-output-record)))
 	    (when pending-text
-	      (with-bounding-rectangle* (tleft ttop tright tbottom) pending-text
+	      (with-bounding-rectangle* (tleft ttop tright tbottom)
+		  pending-text
 		(declare (ignore tleft ttop))
 		(maxf right tright)
 		(maxf bottom tbottom)))))
         (with-bounding-rectangle* (vleft vtop vright vbottom)
             (viewport-viewport-region viewport)
-          (let* ((vertical-scroll-bar (scroller-pane-vertical-scroll-bar scroller))
-                 (horizontal-scroll-bar (scroller-pane-horizontal-scroll-bar scroller)))
-            (if (progn
-		  #+(or aclpc acl86win32)
-		  ;; Not normally defined, because none of the files in
-		  ;; homegrown are loaded on Windows.
-		  (ignore-errors
-		   (typep scroller 'silica::generic-scroller-pane))
-		  #-(or aclpc acl86win32) t)
-                (progn
-                  (minf left vleft)
-                  (minf top vtop)
-                  (maxf right vright)
-                  (maxf bottom vbottom)
-                  (when vertical-scroll-bar
-                    (update-scroll-bar vertical-scroll-bar
-                                       top bottom 
-                                       vtop vbottom
-                                       :vertical))
-                  (when horizontal-scroll-bar
-                    (update-scroll-bar horizontal-scroll-bar
-                                       left right 
-                                       vleft vright
-                                       :horizontal)))
-                #+(or aclpc acl86win32)
-                (progn
-                  (when vertical-scroll-bar
-                    (update-mswin-sbar vertical-scroll-bar
-                                       top bottom 
-                                       vtop vbottom
-                                       :vertical))
-                  (when horizontal-scroll-bar
-                    (update-mswin-sbar horizontal-scroll-bar
-                                       left right 
-                                       vleft vright
-                                       :horizontal)))
-              )))))))
+          (let* ((vertical-scroll-bar
+		  (scroller-pane-vertical-scroll-bar scroller))
+                 (horizontal-scroll-bar
+		  (scroller-pane-horizontal-scroll-bar scroller)))
+	    (minf left vleft)
+	    (minf top vtop)
+	    (maxf right vright)
+	    (maxf bottom vbottom)
+	    (when vertical-scroll-bar
+	      (update-scroll-bar vertical-scroll-bar
+				 top bottom 
+				 vtop vbottom
+				 :vertical))
+	    (when horizontal-scroll-bar
+	      (update-scroll-bar horizontal-scroll-bar
+				 left right 
+				 vleft vright
+				 :horizontal))))))))
 
 ;;--- In the case where the viewport is bigger than the window this
 ;;--- code gets things wrong.  Check out the thinkadot demo.  It's
 ;;--- because (- (--) (- vmin)) is negative.
-(defun update-scroll-bar (scroll-bar min max vmin vmax orientation)
+(defmethod update-scroll-bar (scroll-bar min max vmin vmax orientation)
   (declare (optimize (safety 0) (speed 3)))
   ;;-- Is this really the right thing to do?
   ;;-- If in an interactor some draws at -ve coordinates but the

@@ -1,10 +1,26 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
-
-;; $Id: packages.lisp,v 1.85 1998/05/19 18:51:28 layer Exp $
+;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
+;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
+;;
+;; The software, data and information contained herein are proprietary
+;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
+;; given in confidence by Franz, Inc. pursuant to a written license
+;; agreement, and may be stored and used only in accordance with the terms
+;; of such license.
+;;
+;; Restricted Rights Legend
+;; ------------------------
+;; Use, duplication, and disclosure of the software, data and information
+;; contained herein by any agency, department or entity of the U.S.
+;; Government are subject to restrictions of Restricted Rights for
+;; Commercial Software developed at private expense as specified in
+;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
+;;
+;; $Id: packages.lisp,v 1.86 1998/08/06 23:17:35 layer Exp $
 
 (in-package :common-lisp-user)
 
-"Copyright (c) 1991, 1992 Symbolics, Inc.  All rights reserved."
+;;;"Copyright (c) 1991, 1992 Symbolics, Inc.  All rights reserved."
 
 
 ;; Define the CLIM-LISP package, a package designed to mimic ANSI Common Lisp
@@ -3298,8 +3314,8 @@
 
 (cl:defvar *clim-major-version* 2)
 (cl:defvar *clim-minor-version* 2)
-(cl:defvar *clim-generation-version* 1)
-(cl:defvar *clim-build-version* 17)
+(cl:defvar *clim-generation-version* 2)
+(cl:defvar *clim-build-version* 1)
 
 (cl:defparameter *clim-version*
     (cl:format () "~d.~d.~d.~a"

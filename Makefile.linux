@@ -1,0 +1,25 @@
+# $Id: Makefile.linux,v 1.2 1998/08/06 23:15:36 layer Exp $
+
+include Makefile.defs
+
+Makefile=Makefile.linux
+
+XINCLUDES=-I/usr/X11R6/include
+
+TKLIB=-lXm -lXpm -lXext
+XTLIB=-lXt
+XLIB=-lX11
+
+SET_LIBRARY_PATH = LD_RUN_PATH=/usr/X11R6/lib:/lib:/usr/lib; export LD_RUN_PATH
+
+PRODUCT-OBJS= $(PRODUCT-GENERIC-OBJS) $(STATIC-XM-OBJS) $(SHARED-XM-OBJS)
+
+#MOTIFXTRAS=-lgen
+
+#PICFLAGS = -K pic
+SHAREFLAGS = 
+MAKE_SHARED = ld -shared -L/usr/X11R6/lib
+STD_DEFINES = -DSVR4 -DSYSV
+AR = ar cq
+
+include Makefile.generic

@@ -1,9 +1,5 @@
-;; -*- mode: common-lisp; package: system -*-
-;;
-;;				-[Mon May 18 17:59:41 1998 by layer]-
-;;
-;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
-;; copyright (c) 1986-1992 Franz Inc, Berkeley, CA  All rights reserved.
+;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
+;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -19,17 +15,18 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: last.lisp,v 1.10 1998/05/19 18:51:15 layer Exp $
+;; $Id: last.lisp,v 1.2 1998/08/06 23:17:34 layer Exp $
 
 (in-package :system)
 
-(defvar system::*devel* nil)
-
-(load-application
- (load-patches "patch" "sys:;update-clim2;")
- :devel (locally (declare (special system::*devel*)) system::*devel*))
+#-(version>= 5 0 pre-final 16)
+(load-patches "patch" "sys:;update-clim;*.fasl")
+#+(version>= 5 0 pre-final 16)
+(load-patches :product #.*patch-product-code-clim*)
 
 (provide
+ #+mswindows :climnt
+ #-mswindows
  (cond ((excl::featurep :clim-motif) :climxm)
        ((excl::featurep :clim-openlook) :climol)
        (t (error "Unknown Xt backend"))))

@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: cl-user -*-
 ;;
-;;				-[Thu Oct  9 14:32:33 1997 by layer]-
+;;				-[Mon Jul  6 15:35:40 1998 by layer]-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/wnn/pkg.lisp,v 1.3 1997/10/13 20:29:42 layer Exp $
+;; $Id: pkg.lisp,v 1.4 1998/08/06 23:17:41 layer Exp $
 
 (defpackage :wnn
   (:use :clim-lisp :clim-utils :clim :silica :ff)

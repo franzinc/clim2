@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: user -*-
 ;;
-;;				-[Tue Apr 14 15:22:38 1998 by layer]-
+;;				-[Thu Aug  6 14:41:46 1998 by layer]-
 ;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/misc/compile-1.lisp,v 1.34 1998/05/19 18:50:57 layer Exp $
+;; $Id: compile-1.lisp,v 1.35 1998/08/06 23:16:43 layer Exp $
 
 (in-package :user)
 
@@ -46,56 +46,47 @@
 
 (setf (sys:gsgc-parameter :print) t)
 
-;(unless (find-package 'clim-defsystem)
-;  (compile-file-if-needed "sys/defsystem")
-;  (let ((*enable-package-locked-errors* nil))
-;    (load "sys/defsystem")))
-
 (defun compile-it (sys)
-  (let ((excl::*update-entry-points* nil))
-    (unless (ignore-errors (excl:find-system 'sys))
-      (load "clim2:;sys;sysdcl"))
-    (excl:compile-system sys :include-components t)
-    (tenuring
-     (excl:load-system sys))
-
-    (progn
-      (excl:compile-system 'wnn :include-components t)
-      (excl:load-system 'wnn))
-
-    (excl:compile-system 'clim-homegrown)
-
-    (load "clim2:;postscript;sysdcl")
-    (excl:compile-system 'postscript-clim :include-components t)
-    (excl:load-system 'postscript-clim)
-
-    (compile-file-if-needed "clim2:;test;test-suite")
-
-    (load "clim2:;test;test-suite")
-
-    (load "clim2:;demo;sysdcl")
-    (excl:compile-system 'clim-demo :include-components t)
-    (excl:load-system 'clim-demo)
-
-    (progn
-      (load "clim2:;test;testdcl")
+  (with-compilation-unit ()
+    (let ((excl::*update-entry-points* nil))
+      (unless (ignore-errors (excl:find-system 'sys))
+	(load "clim2:;sys;sysdcl"))
+      (excl:compile-system sys :include-components t)
       (tenuring
-       (excl:compile-system 'testing)
-       (excl:load-system 'testing)))
+       (excl:load-system sys))
 
-    (when (probe-file "clim2:;climtoys;sysdcl.lisp")
-      (load "clim2:;climtoys;sysdcl.lisp")
-      (excl:compile-system 'clim-toys))
+      (progn
+	(excl:compile-system 'wnn :include-components t)
+	(excl:load-system 'wnn))
 
-    #+ignore (load "compatibility/sysdcl.lisp")
-    #+ignore (excl:compile-system 'clim-compatibility :include-components t)
+      ;;(excl:compile-system 'clim-homegrown)
 
-    (load "clim2:;hpgl;sysdcl")
-    (excl:compile-system 'hpgl-clim :include-components t)
-    (excl:load-system 'hpgl-clim)
+      (load "clim2:;postscript;sysdcl")
+      (excl:compile-system 'postscript-clim :include-components t)
+      (excl:load-system 'postscript-clim)
 
-    ))
+      (compile-file-if-needed "clim2:;test;test-suite")
 
+      (load "clim2:;test;test-suite")
 
+      (load "clim2:;demo;sysdcl")
+      (excl:compile-system 'clim-demo :include-components t)
+      (excl:load-system 'clim-demo)
 
+      (progn
+	(load "clim2:;test;testdcl")
+	(tenuring
+	 (excl:compile-system 'testing)
+	 (excl:load-system 'testing)))
+
+      (when (probe-file "clim2:;climtoys;sysdcl.lisp")
+	(load "clim2:;climtoys;sysdcl.lisp")
+	(excl:compile-system 'clim-toys))
+
+;;;      (load "compatibility/sysdcl.lisp")
+;;;      (excl:compile-system 'clim-compatibility :include-components t)
+
+      (load "clim2:;hpgl;sysdcl")
+      (excl:compile-system 'hpgl-clim :include-components t)
+      (excl:load-system 'hpgl-clim))))
 

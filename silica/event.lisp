@@ -1,11 +1,27 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
-
-;; $Header: /repo/cvs.copy/clim2/silica/event.lisp,v 1.43 1998/05/19 18:51:04 layer Exp $
+;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
+;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
+;;
+;; The software, data and information contained herein are proprietary
+;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
+;; given in confidence by Franz, Inc. pursuant to a written license
+;; agreement, and may be stored and used only in accordance with the terms
+;; of such license.
+;;
+;; Restricted Rights Legend
+;; ------------------------
+;; Use, duplication, and disclosure of the software, data and information
+;; contained herein by any agency, department or entity of the U.S.
+;; Government are subject to restrictions of Restricted Rights for
+;; Commercial Software developed at private expense as specified in
+;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
+;;
+;; $Id: event.lisp,v 1.44 1998/08/06 23:16:58 layer Exp $
 
 (in-package :silica)
 
-"Copyright (c) 1991, 1992 Franz, Inc.  All rights reserved.
- Portions copyright (c) 1992 Symbolics, Inc.  All rights reserved."
+;;;"Copyright (c) 1991, 1992 Franz, Inc.  All rights reserved.
+;;; Portions copyright (c) 1992 Symbolics, Inc.  All rights reserved."
 
 
 (defgeneric process-next-event (port &key wait-function timeout))

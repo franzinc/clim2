@@ -1,9 +1,6 @@
 ;; -*- mode: common-lisp; package: silica -*-
-;;
-;;                                -[Thu Jul 22 17:16:08 1993 by colin]-
-;; 
-;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
-;; copyright (c) 1986-1992 Franz Inc, Berkeley, CA  All rights reserved.
+;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
+;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -16,11 +13,10 @@
 ;; Use, duplication, and disclosure of the software, data and information
 ;; contained herein by any agency, department or entity of the U.S.
 ;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
+;; Commercial Software developed at private expense as specified in
+;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/silica/db-label.lisp,v 1.5 1998/05/19 18:51:02 layer Exp $
+;; $Id: db-label.lisp,v 1.6 1998/08/06 23:16:57 layer Exp $
 
 ;;; This file also exists in clim2/homegrown. The homegrown directory
 ;;; contains files to implement CLIM's generic gadgets. Native backends
@@ -48,6 +44,7 @@
 (defmethod handle-repaint ((pane generic-label-pane) region)
   (declare (ignore region))                        ;not worth checking
   (with-sheet-medium (medium pane)
+    (window-clear medium)
     (with-bounding-rectangle* (left top right bottom) (sheet-region pane)
       (declare (ignore bottom))
       ;; fixed bug when :align-x not :left (cim 10/14/96)

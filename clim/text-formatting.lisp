@@ -1,10 +1,26 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
-
-;; $Header: /repo/cvs.copy/clim2/clim/text-formatting.lisp,v 1.18 1998/05/19 18:50:41 layer Exp $
+;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
+;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
+;;
+;; The software, data and information contained herein are proprietary
+;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
+;; given in confidence by Franz, Inc. pursuant to a written license
+;; agreement, and may be stored and used only in accordance with the terms
+;; of such license.
+;;
+;; Restricted Rights Legend
+;; ------------------------
+;; Use, duplication, and disclosure of the software, data and information
+;; contained herein by any agency, department or entity of the U.S.
+;; Government are subject to restrictions of Restricted Rights for
+;; Commercial Software developed at private expense as specified in
+;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
+;;
+;; $Id: text-formatting.lisp,v 1.19 1998/08/06 23:16:06 layer Exp $
 
 (in-package :clim-internals)
 
-"Copyright (c) 1990, 1991 Symbolics, Inc.  All rights reserved."
+;;;"Copyright (c) 1990, 1991 Symbolics, Inc.  All rights reserved."
 
 ;;; Filling output
 
@@ -152,12 +168,14 @@
                                       continuation &rest continuation-args)
   (declare (dynamic-extent continuation continuation-args))
   (let ((stream (slot-value filling-stream 'stream))
+	#+(or aclpc acl86win32)
         (fill-width (slot-value filling-stream 'fill-width))
+	#+(or aclpc acl86win32)
         (buffer (slot-value filling-stream 'buffer)))
     ;; Flush the current line buffer
-#-(or aclpc acl86win32)
+    #-(or aclpc acl86win32)
     (filling-stream-write-buffer filling-stream t)
-#+(or aclpc acl86win32)
+    #+(or aclpc acl86win32)
     (progn
       (stream-write-string stream buffer)
       (setf (fill-pointer buffer) 0)

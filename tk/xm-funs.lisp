@@ -1,9 +1,5 @@
-;; -*- mode: common-lisp; package: tk -*-
-;;
-;;				-[Thu Jul 22 17:17:07 1993 by colin]-
-;;
-;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
-;; copyright (c) 1986-1992 Franz Inc, Berkeley, CA  All rights reserved.
+;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
+;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -19,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/tk/xm-funs.lisp,v 1.20 1997/02/05 01:53:20 tomj Exp $
+;; $Id: xm-funs.lisp,v 1.21 1998/08/06 23:17:20 layer Exp $
 
 ;;
 ;; This file contains compile time only code -- put in clim-debug.fasl.

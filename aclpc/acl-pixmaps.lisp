@@ -1,4 +1,22 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: ACL-CLIM; Base: 10; Lowercase: Yes -*-
+;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
+;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
+;;
+;; The software, data and information contained herein are proprietary
+;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
+;; given in confidence by Franz, Inc. pursuant to a written license
+;; agreement, and may be stored and used only in accordance with the terms
+;; of such license.
+;;
+;; Restricted Rights Legend
+;; ------------------------
+;; Use, duplication, and disclosure of the software, data and information
+;; contained herein by any agency, department or entity of the U.S.
+;; Government are subject to restrictions of Restricted Rights for
+;; Commercial Software developed at private expense as specified in
+;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
+;;
+;; $Id: acl-pixmaps.lisp,v 1.5 1998/08/06 23:15:44 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -29,29 +47,19 @@
 	      (rtop (min from-y to-y))
 	      (rright (+ (max from-x to-x) width))
 	      (rbottom (+ (max from-y to-y) height)))
-          (let ((scrollrect (ct:callocate win:rect
-					; win::left rleft 
-					; win::top rtop 
-					; win::right rright
-					; win::bottom rbottom
-                             ))
-                (cliprect (ct:callocate win:rect 
-                              ; win::left rleft
-                              ; win::top rtop 
-						      ; win::right rright
-						      ; win::bottom rbottom
-                             )))
-            (setf (ct::cref win::rect scrollrect win::left) rleft)
-            (setf (ct::cref win::rect cliprect win::left) rleft)
-            (setf (ct::cref win::rect scrollrect win::top) rtop)
-            (setf (ct::cref win::rect cliprect win::top) rtop)
-            (setf (ct::cref win::rect scrollrect win::right) rright)
-            (setf (ct::cref win::rect cliprect win::right) rright)
-            (setf (ct::cref win::rect scrollrect win::bottom) rbottom)
-            (setf (ct::cref win::rect cliprect win::bottom) rbottom)
+          (let ((scrollrect (ct:callocate win:rect))
+                (cliprect (ct:callocate win:rect)))
+            (setf (ct:cref win:rect scrollrect win::left) rleft)
+            (setf (ct:cref win:rect cliprect win::left) rleft)
+            (setf (ct:cref win:rect scrollrect win::top) rtop)
+            (setf (ct:cref win:rect cliprect win::top) rtop)
+            (setf (ct:cref win:rect scrollrect win::right) rright)
+            (setf (ct:cref win:rect cliprect win::right) rright)
+            (setf (ct:cref win:rect scrollrect win::bottom) rbottom)
+            (setf (ct:cref win:rect cliprect win::bottom) rbottom)
             (win::scrollDc dc (- to-x from-x) (- to-y from-y)
-		          scrollrect cliprect (ct::null-handle win::hrgn)
-			  #+aclpc ct::null #-aclpc 0)
+		          scrollrect cliprect (ct:null-handle win::hrgn)
+			  #+aclpc ct:null #-aclpc 0)
 		      )))))))
 
 ;; changed bop->winop to return the val let variable rather than the
@@ -59,29 +67,25 @@
 ;; the function. (sdj 9/27/96)
 
 (defun bop->winop (bop)
-  (let ((val
-         (cond
-	  ((eq bop boole-1)     #xcc0020) ; srccopy
-	  ((eq bop boole-2)     #xaa0029) ;
-	  ((eq bop boole-clr)   #xff0062) ; whiteness
-	  ((eq bop boole-set)   #x42)	; blackness
-	  ((eq bop boole-c1)    #x330008) ; notsrccopy
-	  ((eq bop boole-c2)    #x550009) ; dstinvert
-	  ((eq bop boole-and)   #x8800c6) ; srcand
-	  ((eq bop boole-ior)   #xee0086) ; srcpaint
-	  ((eq bop boole-xor)   #x660046) ; srcinvert
-	  ((eq bop boole-eqv)   #x990066) ;
-	  ((eq bop boole-nand)  #x7700e6) ; 
-	  ((eq bop boole-nor)   #x1100a6) ; notsrcerase
-	  ((eq bop boole-andc1) #x220326) ;
-	  ((eq bop boole-andc2) #x440328) ; srcerase
-	  ((eq bop boole-orc1)  #xbb0226) ; mergepaint 
-	  ((eq bop boole-orc2)  #xdd0228) ;
-	  (t win:srccopy)
-	  ))
-	#+ignore
-        (winop (ct:ccallocate :long)))
-    val))
+  (cond
+   ((eq bop boole-1)     #xcc0020)	; srccopy
+   ((eq bop boole-2)     #xaa0029)	;
+   ((eq bop boole-clr)   #xff0062)	; whiteness
+   ((eq bop boole-set)   #x42)		; blackness
+   ((eq bop boole-c1)    #x330008)	; notsrccopy
+   ((eq bop boole-c2)    #x550009)	; dstinvert
+   ((eq bop boole-and)   #x8800c6)	; srcand
+   ((eq bop boole-ior)   #xee0086)	; srcpaint
+   ((eq bop boole-xor)   #x660046)	; srcinvert
+   ((eq bop boole-eqv)   #x990066)	;
+   ((eq bop boole-nand)  #x7700e6)	; 
+   ((eq bop boole-nor)   #x1100a6)	; notsrcerase
+   ((eq bop boole-andc1) #x220326)	;
+   ((eq bop boole-andc2) #x440328)	; srcerase
+   ((eq bop boole-orc1)  #xbb0226)	; mergepaint 
+   ((eq bop boole-orc2)  #xdd0228)	;
+   (t win:srccopy)
+   ))
 
 ;;; consider caching instance in port
 (defmethod port-allocate-pixmap ((port acl-port) medium width height)
@@ -93,16 +97,14 @@
     (with-dc (window dc)
       (setq cdc (win:createCompatibleDC dc))
       (setq bitmap (win:createCompatibleBitmap dc width height))
-      (setf obitmap (win:selectObject cdc bitmap)))
+      (setf obitmap (selectobject cdc bitmap)))
     (make-instance 'acl-pixmap 
       :bitmap bitmap
       :for-medium medium
       :width width
       :height height
       :cdc cdc
-      :original-bitmap obitmap    
-      )))
-
+      :original-bitmap obitmap)))
      
 (defmethod port-deallocate-pixmap ((port acl-port) (pixmap acl-pixmap))
   (with-slots (bitmap cdc original-bitmap) pixmap
@@ -110,7 +112,7 @@
       (win:deleteObject bitmap)
       (setq bitmap nil))
     (when cdc
-      (win:selectObject cdc original-bitmap)
+      (selectobject cdc original-bitmap)
       (win:deleteDC cdc)
       (setq bitmap nil cdc nil))))
 

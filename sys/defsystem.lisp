@@ -1,4 +1,22 @@
 ;;; -*-Mode: Lisp; Syntax: ANSI-Common-lisp; Package: CLIM-DEFSYSTEM; Base: 10; Lowercase: Yes -*-
+;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
+;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
+;;
+;; The software, data and information contained herein are proprietary
+;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
+;; given in confidence by Franz, Inc. pursuant to a written license
+;; agreement, and may be stored and used only in accordance with the terms
+;; of such license.
+;;
+;; Restricted Rights Legend
+;; ------------------------
+;; Use, duplication, and disclosure of the software, data and information
+;; contained herein by any agency, department or entity of the U.S.
+;; Government are subject to restrictions of Restricted Rights for
+;; Commercial Software developed at private expense as specified in
+;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
+;;
+;; $Id: defsystem.lisp,v 1.23 1998/08/06 23:17:05 layer Exp $
 
 ;;;
 ;;; DEFSYSTEM Utility
@@ -26,8 +44,6 @@
 ;;; gets in the lisps, it can be removed from this file.
 ;;;
 ;;;-----------------------------------------------------------
-
-;; $Header: /repo/cvs.copy/clim2/sys/defsystem.lisp,v 1.22 1997/02/05 01:51:38 tomj Exp $
 
 ;; Add a feature for ANSI-adhering Lisps.  So far, only Apple's
 ;; version 2.0 tries to do adhere to the ANSI spec instead of CLtL rev 1.

@@ -1,9 +1,6 @@
 ;; -*- mode: common-lisp; package: tk -*-
-;;
-;;				-[Thu Dec 28 00:25:24 1995 by duane]-
-;;
-;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
-;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
+;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
+;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -19,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/tk/gcontext.lisp,v 1.32 1997/05/31 01:00:42 tomj Exp $
+;; $Id: gcontext.lisp,v 1.33 1998/08/06 23:17:15 layer Exp $
 
 (in-package :tk)
 
@@ -133,7 +130,9 @@
 				       function plane-mask foreground background
 				       line-width line-style
 				       cap-style join-style fill-style fill-rule
-				       arc-mode tile stipple ts-x ts-y
+				       arc-mode tile stipple
+				       #+broken ts-x
+				       #+broken ts-y
 				       font subwindow-mode
 				       graphics-exposures clip-x-origin clip-y-origin
 				       clip-mask clip-ordering
@@ -163,7 +162,9 @@
   (when arc-mode (setf (gcontext-arc-mode gcontext) arc-mode))
   (when tile (setf (gcontext-tile gcontext) tile))
   (when stipple (setf (gcontext-stipple gcontext) stipple))
+  #+broken
   (when ts-x (setf (gcontext-ts-x gcontext) ts-x))
+  #+broken
   (when ts-y (setf (gcontext-ts-y gcontext) ts-y))
   (when font (setf (gcontext-font gcontext) font))
   (when subwindow-mode (setf (gcontext-subwindow-mode gcontext) subwindow-mode))
@@ -265,7 +266,11 @@
 (define-gc-reader font decode-font)
 (define-gc-writer-function font x11:xsetfont encode-font)
 
+#+broken
 (define-gc-accessor cap-style (encode-cap-style decode-cap-style))
+
+#-broken
+(define-gc-writer cap-style encode-cap-style)
 
 (defun encode-cap-style (gc x)
   (declare (optimize (speed 3) (safety 0))
@@ -276,7 +281,11 @@
     (:round 2)
     (:projecting 3)))
 
+#+broken
 (define-gc-accessor join-style (encode-join-style decode-join-style))
+
+#-broken
+(define-gc-writer join-style encode-join-style)
 
 (defun encode-join-style (gc x)
   (declare (optimize (speed 3) (safety 0))
@@ -423,7 +432,10 @@
       (call-next-method)
       (setf cached-clip-mask nv))))
 
+#+broken
 (define-gc-accessor line-style  (encode-line-style decode-style))
+#-broken
+(define-gc-writer line-style encode-line-style)
 
 (defun encode-line-style (gc x)
   (declare (optimize (speed 3) (safety 0))

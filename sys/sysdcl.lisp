@@ -1,6 +1,22 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
-
-;; $Header: /repo/cvs.copy/clim2/sys/sysdcl.lisp,v 1.56 1997/10/13 20:29:35 layer Exp $
+;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
+;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
+;;
+;; The software, data and information contained herein are proprietary
+;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
+;; given in confidence by Franz, Inc. pursuant to a written license
+;; agreement, and may be stored and used only in accordance with the terms
+;; of such license.
+;;
+;; Restricted Rights Legend
+;; ------------------------
+;; Use, duplication, and disclosure of the software, data and information
+;; contained herein by any agency, department or entity of the U.S.
+;; Government are subject to restrictions of Restricted Rights for
+;; Commercial Software developed at private expense as specified in
+;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
+;;
+;; $Id: sysdcl.lisp,v 1.57 1998/08/06 23:17:07 layer Exp $
 
 (in-package :cl-user)
 
@@ -277,7 +293,7 @@
    ("panes" (:load-before-compile "frames"))
    ("default-frame" (:load-before-compile "frames"))
    ("activities" (:load-before-compile "frames"))
-   #+acl86win32 ("db-menu" (:load-before-compile "frames"))
+   ("db-menu" (:load-before-compile "frames"))
    #+acl86win32 ("db-list" (:load-before-compile "db-menu"))
    #+acl86win32 ("db-text" (:load-before-compile "frames"))
    ("noting-progress" (:load-before-compile "frames"))
@@ -383,6 +399,10 @@
   ("ol-callbacks")
   ("make-widget")))
 
+#+allegro
+(defsystem last (:default-pathname "clim2:;utils;")
+  (:serial ("last")))
+
 #+(and Allegro (not acl86win32))
 (defsystem motif-clim
     (:default-pathname "clim2:;tk-silica;")
@@ -402,7 +422,7 @@
    ("xm-gadgets")
    ("xt-pixmaps")
    ("gc-cursor")
-   ("last")))
+   last))
 
 #+(and Allegro (not acl86win32))
 (defsystem openlook-clim
@@ -423,7 +443,7 @@
    ("ol-gadgets")
    ("xt-pixmaps")
    ("gc-cursor")
-   ("last")))
+   last))
 
 #+aclpc ;; keep in mind that for now, aclpc loads sysdcl-pc, not this file. -tjm 23May97
 (defun frob-pathname (subdir

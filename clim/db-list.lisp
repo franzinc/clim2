@@ -1,8 +1,24 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
+;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
+;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
+;;
+;; The software, data and information contained herein are proprietary
+;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
+;; given in confidence by Franz, Inc. pursuant to a written license
+;; agreement, and may be stored and used only in accordance with the terms
+;; of such license.
+;;
+;; Restricted Rights Legend
+;; ------------------------
+;; Use, duplication, and disclosure of the software, data and information
+;; contained herein by any agency, department or entity of the U.S.
+;; Government are subject to restrictions of Restricted Rights for
+;; Commercial Software developed at private expense as specified in
+;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
+;;
+;; $Id: db-list.lisp,v 1.8 1998/08/06 23:15:51 layer Exp $
 
-;; $Header: /repo/cvs.copy/clim2/clim/db-list.lisp,v 1.7 1998/05/19 18:50:29 layer Exp $
-
-"Copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
+;;;"Copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
 
 ;;; This file also exists in clim2/homegrown. The homegrown directory
 ;;; contains files to implement CLIM's generic gadgets. Native backends
@@ -169,6 +185,26 @@
 (defclass generic-option-pane (option-pane push-button-pane)
     ((menu :initform nil))
   (:default-initargs :pattern *right-triangle-button-pattern*))
+
+#+(or aclpc acl86win32)
+(defmacro initialize-pull-down-menu (menu &body buttons)
+  (assert (= (length buttons) 1))
+  `(with-look-and-feel-realization ()
+     (setf (pull-down-menu-buttons ,menu) ,@buttons)
+     (sheet-adopt-child ,menu (make-pane 'vbox-pane
+                                :contents (pull-down-menu-buttons ,menu)
+                                :spacing 0))
+     (layout-frame (pane-frame ,menu))
+     ,menu))
+
+#+(or aclpc acl86win32)
+(defun make-pull-down-menu (&key port)
+  (let ((frame
+	 (make-application-frame
+	  'pull-down-menu-frame
+	  :frame-manager (find-frame-manager :port port)
+	  :save-under t)))
+    (values (slot-value frame 'menu) frame)))
 
 ;;--- The idea is the the option pane itself is a pushbutton which, when
 ;;--- pressed, pops up a menu containing the options.

@@ -1,11 +1,27 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
-
-;; $Header: /repo/cvs.copy/clim2/clim/menus.lisp,v 1.52 1998/05/19 18:50:37 layer Exp $
+;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
+;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
+;;
+;; The software, data and information contained herein are proprietary
+;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
+;; given in confidence by Franz, Inc. pursuant to a written license
+;; agreement, and may be stored and used only in accordance with the terms
+;; of such license.
+;;
+;; Restricted Rights Legend
+;; ------------------------
+;; Use, duplication, and disclosure of the software, data and information
+;; contained herein by any agency, department or entity of the U.S.
+;; Government are subject to restrictions of Restricted Rights for
+;; Commercial Software developed at private expense as specified in
+;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
+;;
+;; $Id: menus.lisp,v 1.53 1998/08/06 23:16:00 layer Exp $
 
 (in-package :clim-internals)
 
-"Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved.
- Portions copyright (c) 1988, 1989, 1990 International Lisp Associates."
+;;;"Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved.
+;;; Portions copyright (c) 1988, 1989, 1990 International Lisp Associates."
 
 (defvar *abort-menus-when-buried* t)
 
@@ -380,20 +396,6 @@
 ;;  2) Using that type to find a printer for PRESENT purposes
 ;;  3) Presenting a different set of choices based on the type, or graying over things
 ;;     that are of different types.  See example below
-#+acl86win32
-(defun input-wait-test (menu)
-  ;; Wake up if the menu becomes buried, or if highlighting
-  ;; is needed.
-  ;;--- This screws up in Allegro because querying the server
-  ;;--- in the wait function screws event handling.
-  ;; on nt there is no server round trip so
-  ;; it's safe to check window-visibility
-  ;; (cim 9/16/96)
-  (or #-(and Allegro (not acl86win32)) 
-      (and *abort-menus-when-buried*
-           (not (window-visibility menu)))
-      (pointer-motion-pending menu)))
-
 (defun menu-choose-from-drawer (menu presentation-type drawer
                                 &key x-position y-position
                                      cache unique-id (id-test #'equal) 
@@ -460,8 +462,7 @@
             (let ((*pointer-documentation-output* pointer-documentation))
               (with-input-context (presentation-type :override T)
                 (object type gesture)
-                (labels (#-acl86win32
-                         (input-wait-test (menu)
+                (labels ((input-wait-test (menu)
                            ;; Wake up if the menu becomes buried, or if highlighting
                            ;; is needed.
                            ;;--- This screws up in Allegro because querying the server
@@ -470,34 +471,30 @@
                            ;; on nt there is no server round trip so
                            ;; it's safe to check window-visibility
                            ;; (cim 9/16/96)
-                           (or #-(and Allegro (not acl86win32))
-                               (and *abort-menus-when-buried*
+                           (or (and *abort-menus-when-buried*
                                     (not (window-visibility menu)))
                                (pointer-motion-pending menu)))
                          (input-wait-handler (menu)
                            ;; Abort if the menu becomes buried
-                           #-(and Allegro (not acl86win32))
                            (when (and *abort-menus-when-buried*
                                       (not (window-visibility menu)))
                              (return-from menu-choose-from-drawer nil))
                            ;; Take care of highlighting
                            (highlight-presentation-of-context-type menu)))
-                  #-Allegro
                   (declare (dynamic-extent #'input-wait-test #'input-wait-handler))
                   ;; Await exposure before going any further, since X can get
                   ;; to the call to READ-GESTURE before the menu is visible.
                   (when *abort-menus-when-buried*
                     #-Silica (wait-for-window-exposed menu))
                   (with-mouse-grabbed-in-window (menu)
-                    #+(or aclpc acl86win32) (beep menu)
                     (loop
-                      #+(or aclpc acl86win32); fix for menu aborting
-                      (unless (window-visibility menu)
-                        (return-from menu-choose-from-drawer nil))
                       (read-gesture :stream menu
                                     :input-wait-test #'input-wait-test
                                     :input-wait-handler #'input-wait-handler)
-                      #-(or aclpc acl86win32) (beep menu))))
+		      ;; Silly user typed a character at a window.
+		      ;; Admonish now.
+		      #+ignore
+                      (beep menu))))
                 (t (values object gesture)))))
         (unless leave-menu-visible
           (setf (window-visibility menu) nil))

@@ -1,7 +1,5 @@
-;; -*- mode: common-lisp; package: xm-silica -*-
-;;
-;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
-;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
+;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
+;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -17,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/tk-silica/xm-silica.lisp,v 1.49 1998/05/19 18:51:18 layer Exp $
+;; $Id: xm-silica.lisp,v 1.50 1998/08/06 23:17:26 layer Exp $
 
 (in-package :xm-silica)
 
@@ -162,7 +160,11 @@
 	 (plist (and cursor
 		     (slot-value cursor 'clim-internals::plist)))
 	 (input-widget (getf plist :input-widget)))
-    (when input-widget
+    (when (and input-widget
+	       ;; JPM 7/98: Don't destroy something already destroyed.
+	       ;; spr17831 and spr17939.  Apparently the motif-top-level-sheet
+	       ;; may have already destroyed it.  
+	       (tk::find-object-from-address (ff:foreign-pointer-address input-widget) nil))
       (tk::destroy-widget input-widget))))
 
 (defmethod port-note-cursor-change :after

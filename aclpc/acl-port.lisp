@@ -1,4 +1,22 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: ACL-CLIM; Base: 10; Lowercase: Yes -*-
+;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
+;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
+;;
+;; The software, data and information contained herein are proprietary
+;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
+;; given in confidence by Franz, Inc. pursuant to a written license
+;; agreement, and may be stored and used only in accordance with the terms
+;; of such license.
+;;
+;; Restricted Rights Legend
+;; ------------------------
+;; Use, duplication, and disclosure of the software, data and information
+;; contained herein by any agency, department or entity of the U.S.
+;; Government are subject to restrictions of Restricted Rights for
+;; Commercial Software developed at private expense as specified in
+;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
+;;
+;; $Id: acl-port.lisp,v 1.7 1998/08/06 23:15:45 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -129,21 +147,20 @@
 ;; was suspect. (cim 10/14/96)
 
 (defclass acl-port (basic-port)
-    ((text-style->acl-font-mapping :initform (make-hash-table)) 
-     #+ignore (font-cache-style :initform nil)
-     #+ignore (font-cache-font :initform nil)
-     (vk->keysym :initform (make-hash-table))
-     (keysym->keysym :initform (make-hash-table))
-     logpixelsy
-     (event-queue :initform (make-acl-event-queue))
-     (mirror-with-focus :initform nil :accessor acl-port-mirror-with-focus)
-     (pointer-sheet :initform nil)
-     (motion-pending :initform nil)
-     (cursor-cache :initform nil)
-     (grab-cursor :initform nil :accessor port-grab-cursor)
-     (resources :initform nil :accessor port-default-resources)
-     pointer-x
-     pointer-y))
+  ((dc-cache :initform (make-hash-table) :accessor port-dc-cache)
+   (text-style->acl-font-mapping :initform (make-hash-table)) 
+   (vk->keysym :initform (make-hash-table))
+   (keysym->keysym :initform (make-hash-table))
+   logpixelsy
+   (event-queue :initform (make-acl-event-queue))
+   (mirror-with-focus :initform nil :accessor acl-port-mirror-with-focus)
+   (pointer-sheet :initform nil)
+   (motion-pending :initform nil)
+   (cursor-cache :initform nil)
+   (grab-cursor :initform nil :accessor port-grab-cursor)
+   (resources :initform nil :accessor port-default-resources)
+   (pointer-x :initform 0)
+   (pointer-y :initform 0)))
 
 (defmethod restart-port ((port acl-port))
   ;; No need to devote a thread to receiving messages
@@ -186,6 +203,34 @@
     :color-p color-p
     :dynamic-p dynamic-p))
 
+(defclass acl-device-color (device-color) 
+  ((color :initform nil)))
+
+(defmethod make-device-color ((palette acl-palette) pixel)
+  (make-instance 'acl-device-color 
+    :palette palette
+    :pixel pixel))
+
+(defmethod device-color-color ((device-color acl-device-color))
+  (with-slots (color) device-color
+    (or color
+	(setq color (wincolor->color (device-color-pixel device-color))))))
+
+(defmethod silica::port-set-pane-background ((port acl-port) pane medium ink)
+  (declare (ignore pane))
+  ;; Invoked :after (setf pane-background)
+  (setf (medium-background medium) ink))
+
+(defmethod silica::port-set-pane-foreground ((port acl-port) pane medium ink)
+  (declare (ignore pane))
+  ;; Invoked :after (setf pane-foreground)
+  (setf (medium-foreground medium) ink))
+
+(defmethod silica::port-set-pane-text-style ((port acl-port) pane medium style)
+  (declare (ignore pane))
+  ;; Invoked :after (setf pane-text-style)
+  (setf (medium-text-style medium) style))
+
 (defmethod initialize-instance :before ((port acl-port) &key)
   (ensure-clim-initialized)
   (unless (null *acl-port*)
@@ -212,13 +257,12 @@
     ;; get-sheet-resources:
     (setf (port-default-resources port)
       `(:background 
-	,(wincolor->color (win:getSysColor win:color_btnface))
+	,+ltgray+
 	:foreground
 	,(wincolor->color (win:getSysColor win:color_windowtext))))
     ;; Panes that don't have a direct mirror will use this as
     ;; the default background:
-    (setq silica:*default-pane-background* 
-      (wincolor->color (win:getSysColor win:color_btnface)))
+    (setq silica:*default-pane-background* +ltgray+)
     ))
 
 (defmethod destroy-port :before ((port acl-port))
@@ -274,33 +318,38 @@
 	      (let ((face (text-style-face style)))
 		(typecase face
 		  (cons
-		   (values (if (member :bold face) 700 400)
+		   (values (if (member :bold face) win:FW_BOLD win:FW_NORMAL)
 			   (member :italic face)))
 		  (otherwise
 		   (case face
-		     (:roman (values 400 nil))
-		     (:bold (values 700 nil))
-		     (:italic (values 400 t))
-		     (otherwise (values 400 nil))))))
+		     (:roman (values win:FW_NORMAL nil))
+		     (:bold (values win:FW_BOLD nil))
+		     (:italic (values win:FW_NORMAL t))
+		     (otherwise (values win:FW_BOLD nil))))))
 	    (multiple-value-bind (family face-name)
 		(case (text-style-family style)
-		  (:fix (values 0 "courier"))
-		  (:serif (values 0 "times new roman"))
-		  (:sans-serif (values 0 "arial"))
+		  (:fix (values (logior win:FIXED_PITCH win:FF_MODERN) 
+				"courier"))
+		  (:serif (values (logior win:VARIABLE_PITCH win:FF_ROMAN)
+				  "times new roman"))
+		  (:sans-serif (values (logior win:VARIABLE_PITCH win:FF_SWISS)
+				       "arial"))
 		  ;;--- some of these specify ugly ugly linedrawn fonts
-		  (otherwise (values 0 nil)))
+		  (otherwise (values (logior win:DEFAULT_PITCH win:FF_DONTCARE)
+				     (string (text-style-family style)))))
 	      (let ((point-size
 		     (let ((size (text-style-size style)))
 		       (typecase size
-			 (number
-			  size)
+			 (number size)
 			 (otherwise
-			  (or (second (assoc size *acl-logical-size-alist*)) 12))))))
+			  (or (second (assoc size *acl-logical-size-alist*)) 
+			      12))))))
 		(make-windows-font 
-		 (- (round (* point-size (slot-value port 'logpixelsy))
-			   72))
-		 :weight weight :italic italic
-		 :pitch-and-family family :face face-name))))))))
+		 (- (round (* point-size (slot-value port 'logpixelsy)) 72))
+		 :weight weight 
+		 :italic italic
+		 :pitch-and-family family 
+		 :face face-name))))))))
 
 (defmethod text-style-mapping
     ((device acl-port) (style silica::device-font)
@@ -324,36 +373,53 @@
 	  (let ((name (silica::device-font-name style)))
 	    (make-device-font (win:getstockobject name)))))))
 
-(defvar *fwt* nil)
-
-(defun make-font-width-table (dc last-character first-character)
+(defun make-font-width-table (dc last-character first-character default-width)
   (let* ((tepsize (ct:ccallocate win::size))
 	 (string (make-string 1) )
 	 (array (make-array (1+ last-character))))
     (loop for i from first-character to last-character do
 	  (setf (char string 0) (code-char i))
-	  (win:getTextExtentPoint dc string 1 tepsize)
-	  (setf (aref array i) (ct:cref win::size tepsize win::cx)))
-    (setq *fwt* array)))
+	  (cond ((win:getTextExtentPoint dc string 1 tepsize)
+		 (setf (aref array i) (ct:cref win:size tepsize cx)))
+		(t
+		 ;; Why does this clause ever run?  getlasterror=10035.
+		 (check-last-error "GetTextExtentPoint" :action :warn)
+		 (setf (aref array i) default-width))))
+    array))
 
 (defun make-system-font ()
   (make-device-font (win:getstockobject win:system_font)))
 
 (defun make-windows-font
     (height &key (width 0) (escapement 0) (orientation 0)
-		 (weight 400) (italic nil) (underline nil) (strikeout nil)
-		 (charset 0) (output-precision 0) (clip-precision 0)
-		 (quality 2) ;; ie PROOF_QUALITY
-		 (pitch-and-family 0) (face nil) win-font) 
+		 (weight win:FW_NORMAL) 
+		 (italic nil) (underline nil) (strikeout nil)
+		 (charset win:ANSI_CHARSET) 
+		 (output-precision WIN:OUT_DEFAULT_PRECIS) 
+		 (clip-precision WIN:CLIP_DEFAULT_PRECIS)
+		 (quality win:PROOF_QUALITY) 
+		 (pitch-and-family (logior win:DEFAULT_PITCH win:FF_DONTCARE)) 
+		 (face nil) 
+		 win-font) 
   (let ((win-font 
 	 (or win-font
-	     (win:createFont height width escapement orientation weight
-			     (if italic 1 0) (if underline 1 0)
-			     (if strikeout 1 0) charset
-			     output-precision clip-precision quality
-			     pitch-and-family (or face "")))))
+	     (win:createFont height	; logical height
+			     width	; logical average width
+			     escapement ; angle of escapement (tenths of degrees)
+			     orientation; normally the same as escapement
+			     weight	; font weight (FW_NORMAL=400, FW_BOLD=700)
+			     (if italic 1 0) 
+			     (if underline 1 0)
+			     (if strikeout 1 0) 
+			     charset	; if you want chinese or greek
+			     output-precision
+			     clip-precision
+			     quality
+			     pitch-and-family 
+			     (or face "")
+			     ))))
     (when (zerop win-font)
-      (error "CreateFont: system error ~s" (win:getlasterror)))
+      (check-last-error "CreateFont"))
     (make-device-font win-font)))
 
 (defun make-device-font (win-font) 
@@ -362,9 +428,26 @@
 		 (sheet-mirror (frame-top-level-sheet *application-frame*))))
 	(tmstruct (ct:ccallocate win:textmetric)))
     (unless cw (setf cw *current-window*))
+    (unless (win:iswindow cw) 
+      ;; This clause is for the rare case that you are doing drawing
+      ;; from a background process the first time you attempt to use
+      ;; this font.  It doesn't really matter which frame you pick.
+      (let* ((framem (find-frame-manager))
+	     (frame (some #'(lambda (f)
+			      (when (win:iswindow
+				     (sheet-mirror (frame-top-level-sheet
+						    f)))
+				f))
+			  (when framem
+			    (frame-manager-frames framem)))))
+	(when frame
+	  (setq cw (sheet-mirror (frame-top-level-sheet frame))))))
+    (unless (win:iswindow cw) 
+      (error "No window found for calculating text font metrics."))
     (with-dc (cw dc)
-      (win:selectObject dc win-font)
-      (win:getTextMetrics dc tmstruct)
+      (selectobject dc win-font)
+      (or (win:getTextMetrics dc tmstruct)
+	  (check-last-error "GetTextMetrics"))
       (let ((average-character-width
 	     (ct:cref win:textmetric tmstruct tmavecharwidth))
 	    (maximum-character-width
@@ -374,7 +457,8 @@
 	    (font-width-array-or-nil nil))
 	(setq font-width-array-or-nil
 	  (and (/= average-character-width maximum-character-width)
-	       (make-font-width-table dc last-character first-character)))
+	       (make-font-width-table dc last-character first-character
+				      maximum-character-width)))
 	(make-acl-font
 	 :index win-font 
 	 :height (ct:cref win:textmetric tmstruct tmheight)
@@ -429,6 +513,8 @@
       (values index acl-font escapement-x escapement-y
 	      origin-x origin-y bb-x bb-y))))
 
+;; The second element of each item is passed to
+;; LoadCursor and SetCursor.
 (defvar *win-cursor-type-alist*
     `((:appstarting ,win:idc_appstarting)
       (:default ,win:IDC_ARROW)
@@ -450,13 +536,21 @@
 
 (defmethod port-set-sheet-pointer-cursor ((port acl-port) sheet cursor)
   (unless (eq (sheet-pointer-cursor sheet) cursor)
+    #+ignore
     (win:setCursor (realize-cursor port cursor)) ; mouse cursor
+    ;; SetCursor doesn't seem to be the right thing.
+    ;; Each time the mouse moves, Windows sets the cursor back
+    ;; to the default for the class and then sends a WM_SETCURSOR
+    ;; message where we get a chance to SetCursor again.  
+    (win:setClassLong (sheet-mirror sheet) 
+		      -12		; GCL_HCURSOR
+		      (realize-cursor port cursor))
     )
   cursor)
 
 (defmethod realize-cursor ((port acl-port) (cursor symbol))
   (let ((cursor (or (second (assoc cursor *win-cursor-type-alist*))
-		    :default)))
+		    win:IDC_ARROW)))
     (realize-cursor port cursor)))
 
 (defvar *loaded-cursors* nil)
@@ -467,7 +561,10 @@
       (setq result 
 	(win:LoadCursor 0 cursor))
       (when (zerop result)
-	(error "LoadCursor: system error ~s" (win:getlasterror)))
+	;; Suppress the error for now to be compatible with
+	;; previous versions of CLIM.  It would be nice to
+	;; figure out what is causing this and fix it.  JPM 6/98.
+	(check-last-error "LoadCursor" :action :warn))
       (push (list cursor result) *loaded-cursors*))
     result))
 
@@ -497,13 +594,13 @@
   (declare (ignore pointer))
   (fix-coordinates x y)
   (or (win:setCursorPos x y)
-      (error "SetCursorPos: system error ~S" (win:getlasterror))))
+      (check-last-error "SetCursorPos")))
 
 (defmethod clim-internals::port-query-pointer ((port acl-port) sheet)
   (let ((point (ct:ccallocate win:point))
 	(native-x 0)(native-y 0))
     (or (win:getCursorPos point)
-	(error "GetCursorPos: system error ~s" (win:getlasterror)))
+	(check-last-error "GetCursorPos"))
     (let ((root-x (ct:cref win:point point x))
 	  (root-y (ct:cref win:point point y)))
       (multiple-value-bind (x y)
@@ -560,11 +657,24 @@
 
 
 (defmethod note-pointer-motion ((port acl-port) sheet x y)
+  ;; X and Y come straight from WM_MOUSEMOVE.
+  ;; Take care not to declare motion-pending in the case where there
+  ;; was no motion, WM_MOUSEMOVE gives you more than you need.
   (with-slots (pointer-sheet motion-pending pointer-x pointer-y) port
-    (setf pointer-sheet sheet)
-    (setf pointer-x x)
-    (setf pointer-y y)
-    (setf motion-pending t)))
+    (cond ((and (eq x pointer-x)
+		(eq y pointer-y))
+	   nil)
+	  (t
+	   #+debug
+	   (format *trace-output* 
+		   "~% Was ~A ~A ~A IS ~A ~A ~A~%"
+		   pointer-sheet pointer-x pointer-y
+		   sheet x y)
+	   (setf pointer-sheet sheet)
+	   (setf pointer-x x)
+	   (setf pointer-y y)
+	   (setf motion-pending t)
+	   t))))
 
 (defmethod flush-pointer-motion ((port acl-port))
   (with-slots (event-queue motion-pending pointer-sheet pointer-x pointer-y)
@@ -620,43 +730,12 @@
 (defvar *l-counter* 0)
 (defvar *nowait* nil)
 
-;;--- event-processing is horribly wrong on aclwin; fix me!!!
-#+aclpc
-(defmethod process-next-event ((port acl-port)
-			       &key (timeout nil) (wait-function nil)
-			       (state "Windows Event"))
-  (setq *l-counter* 0)
-  ; (if (and timeout (= timeout 0)) (cerror "timeout" "zero"))
-  (with-slots (event-queue) port ;  nil to disable timeout
-    (let ((end-time (and timeout (+ (get-internal-real-time)
-				     (* internal-time-units-per-second
-				        timeout)))))
-      ;; dispatch one pending message, if one is pending
-      (await-response nil)
-      (loop
-        (incf *l-counter*)
-	(flush-pointer-motion port)	; adds mouse-moved event to port's
-					; queue if necessary
-	(let ((event (queue-get event-queue)))
-	  (when event
-	    (distribute-event port event)
-	    (return t)))
-	(when (and wait-function
-		   (funcall wait-function))
-	  (return nil))
-	(when (and end-time (>= (get-internal-real-time) end-time))
-	  (return nil))
-	(loop
-	  ;; dispatches all pending messages
-	  (unless (await-response nil) (return nil)))
-	))))
+(defvar *clim-pulse-rate* 1.0)		; seconds.
 
-#+acl86win32
 (defmethod process-next-event ((port acl-port)
 			       &key (timeout nil) 
 				    (wait-function nil)
 				    (state "Windows Event"))
-  (declare (ignore state))
   (with-slots (event-queue motion-pending) port
     (let ((event (queue-get event-queue))
 	  (reason nil))
@@ -673,9 +752,19 @@
 			  (funcall wait-function)
 			  (setq reason :wait-function)))))
 	  (if timeout
-	      (mp:process-wait-with-timeout "Windows Event" timeout
+	      (mp:process-wait-with-timeout state timeout
 					    #'wait-for-event)
-	    (mp:process-wait "Windows Event" #'wait-for-event))))
+	    (loop
+	      ;; 5/28/98 JPM ACL 5.0.beta
+	      ;; There seems to be a bug in process-wait that
+	      ;; it does not run the test function often enough.
+	      ;; The workaround is to wake up every so often and
+	      ;; run the test function.
+	      (when (mp:process-wait-with-timeout 
+		     state *clim-pulse-rate* #'wait-for-event)
+		(return)))
+	    #+someday
+	    (mp:process-wait state #'wait-for-event))))
       (cond (event
 	     (distribute-event port event)
 	     t)

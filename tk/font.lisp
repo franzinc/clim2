@@ -1,9 +1,6 @@
 ;; -*- mode: common-lisp; package: tk -*-
-;;
-;;				-[Sat Mar 23 17:50:57 1996 by duane]-
-;;
-;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
-;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
+;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
+;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -19,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/tk/font.lisp,v 1.21 1997/02/05 01:52:40 tomj Exp $
+;; $Id: font.lisp,v 1.22 1998/08/06 23:17:15 layer Exp $
 
 (in-package :tk)
 
@@ -134,7 +131,7 @@
 	    (setf (elt seq i) (char*-to-string (xfontname-list names i))))
 	(x11::xfreefontnames names)))))
 
-
+#+broken
 (defun list-font-names-with-info (display pattern &key (max-fonts 65535) (result-type 'list))
   (with-ref-par ((n 0 :int)
 		 (fonts 0 *))

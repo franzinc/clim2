@@ -1,9 +1,5 @@
-;; -*- mode: common-lisp; package: tk -*-
-;;
-;;				-[Mon Sep 26 02:03:59 1994 by smh]-
-;;
-;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
-;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
+;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
+;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -19,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/tk/xlib.lisp,v 1.60 1998/05/19 18:51:13 layer Exp $
+;; $Id: xlib.lisp,v 1.61 1998/08/06 23:17:19 layer Exp $
 
 (in-package :tk)
 
@@ -131,6 +127,7 @@
 (define-window-reader depth)
 (define-window-reader map-state decode-window-map-state)
 
+#+obsolete
 (define-window-accessor cursor nil)
 
 (defun decode-window-map-state (x)
@@ -682,7 +679,7 @@
 	     (padded-bits-per-line (* bitmap-pad
 				      (ceiling bits-per-line bitmap-pad)))
 	     (bytes-per-line (/ padded-bits-per-line 8))
-	     (v (excl::malloc (* bytes-per-line height)))
+	     (v (x11::system-malloc (* bytes-per-line height)))
 	     (visual (x11:screen-root-visual
 		      (x11:xdefaultscreenofdisplay display)))
 	     (offset 0)
@@ -801,7 +798,7 @@
    (length string)))
 
 (defun get-cut-buffer (display)
-  (let ((string (make-string 1024)))
+  (let (#+ignore (string (make-string 1024)))
     (with-ref-par
 	((actual-type 0 :unsigned-long)
 	 (actual-format 0 :int)

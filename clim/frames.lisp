@@ -1,12 +1,28 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
-
-;; $Header: /repo/cvs.copy/clim2/clim/frames.lisp,v 1.89 1998/05/19 18:50:33 layer Exp $
+;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
+;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
+;;
+;; The software, data and information contained herein are proprietary
+;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
+;; given in confidence by Franz, Inc. pursuant to a written license
+;; agreement, and may be stored and used only in accordance with the terms
+;; of such license.
+;;
+;; Restricted Rights Legend
+;; ------------------------
+;; Use, duplication, and disclosure of the software, data and information
+;; contained herein by any agency, department or entity of the U.S.
+;; Government are subject to restrictions of Restricted Rights for
+;; Commercial Software developed at private expense as specified in
+;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
+;;
+;; $Id: frames.lisp,v 1.90 1998/08/06 23:15:56 layer Exp $
 
 (in-package :clim-internals)
 
-"Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved.
- Portions copyright (c) 1991, 1992 Franz, Inc.  All rights reserved.
- Portions copyright (c) 1989, 1990 International Lisp Associates."
+;;;"Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved.
+;;; Portions copyright (c) 1991, 1992 Franz, Inc.  All rights reserved.
+;;; Portions copyright (c) 1989, 1990 International Lisp Associates."
 
 (define-protocol-class application-frame ())
 
@@ -472,12 +488,6 @@
         (if (frame-resizable frame)
             (values)
           (bounding-rectangle-size (frame-top-level-sheet frame))))
-      #+acl86win32 ;; spr16580, port-trace-thing was getting mangled
-      (let ((port (port frame)))
-	(when port
-	  (let ((port-trace-thing (silica::port-trace-thing port)))
-	    (when port-trace-thing
-	      (setf (fill-pointer port-trace-thing) 0)))))
       ;;--- Don't throw, just recompute stream bindings in a principled way
       (setf (sheet-enabled-p sheets) t))
     (note-frame-layout-changed (frame-manager frame) frame)
@@ -1170,6 +1180,7 @@
 ;;; This is the wrong modularity... Bury calls in commands for acl case later.
 ;;;-- pr Aug97
 (defmacro with-menu-disabled (frame &body body)
+  #-acl86win32 (declare (ignore frame))
   #+(or aclpc acl86win32)
   `(unwind-protect 
       (progn (enable-menu-items ,frame nil) ,@body)

@@ -1,10 +1,26 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
-
-;; $Header: /repo/cvs.copy/clim2/utils/defun.lisp,v 1.13 1998/05/19 18:51:25 layer Exp $
+;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
+;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
+;;
+;; The software, data and information contained herein are proprietary
+;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
+;; given in confidence by Franz, Inc. pursuant to a written license
+;; agreement, and may be stored and used only in accordance with the terms
+;; of such license.
+;;
+;; Restricted Rights Legend
+;; ------------------------
+;; Use, duplication, and disclosure of the software, data and information
+;; contained herein by any agency, department or entity of the U.S.
+;; Government are subject to restrictions of Restricted Rights for
+;; Commercial Software developed at private expense as specified in
+;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
+;;
+;; $Id: defun.lisp,v 1.14 1998/08/06 23:17:32 layer Exp $
 
 (in-package :clim-utils)
 
-"Copyright (c) 1989, 1990 International Lisp Associates.  All rights reserved."
+;;;"Copyright (c) 1989, 1990 International Lisp Associates.  All rights reserved."
 
 ;;;
 ;;; DEFUN and friends which support implementation-specific ways of declaring that
@@ -34,7 +50,7 @@
 ;;;	(declare (dynamic-extent #'continuate))
 ;;;	(apply continuation args)))
 ;;;*** The following warning issued only under Genera (for now):
-;;; ==> Warning: The rest argument ARGS will be copied at runtime because it is not declared 
+;;; ==> Warning: The rest argument ARGS will be copied at runtime because it is not declared
 ;;;		 to have dynamic extent.
 ;;; (lisp:defun test (#:ignore-4 #:ignore-5 #:ignore-6 continuation &rest args)
 ;;;   "This is a test of dynamic-extent"   ;; [Should we preserve ALL doc strings??]
@@ -131,7 +147,7 @@
 		(dolist (de (rest dcl-form))
 		  (typecase de
 		    (symbol (make-dynamic de))
-		    (list (if (and (null (cddr de)) 
+		    (list (if (and (null (cddr de))
 				   (or (eq (first de) *function-symbol*)
 				       #+Genera (eq (first de) 'zl:::scl:function)))
 			      (progn
@@ -167,10 +183,10 @@
 			 ,@(when downward-p
 			     (generate-downward-function-declarations))
 			 ,@(when dynamic-extent-functions
-			     (generate-downward-funarg-declarations 
+			     (generate-downward-funarg-declarations
 			       (nreverse dynamic-extent-functions)))
 			 ,@(when dynamic-extent-vars
-			     (generate-downward-rest-declarations 
+			     (generate-downward-rest-declarations
 			       (nreverse dynamic-extent-vars))))))
 		    (when decl-stuff
 		      `((declare ,@decl-stuff))))
@@ -211,7 +227,7 @@
 (defmacro with-new-function ((ll-var body-var)
 			     (lambda-list orig-body
 					  &key environment clos-method-p function-name
-					  downward-p)  
+					  downward-p)
 			     &body body)
   #+Genera (declare (zwei:indentation 0 3 1 3 2 1))
   `(multiple-value-bind (,ll-var ,body-var)
@@ -237,7 +253,7 @@
   (setf (get 'defun 'zwei:definition-function-spec-parser)
 	(zl:::scl:function (:property zl:::scl:defun zwei:definition-function-spec-parser)))
   (setf (get 'defun 'zwei:definition-function-spec-type) 'zl:::scl:defun)
-  (setf (get 'defun 'gprint::formatter) 
+  (setf (get 'defun 'gprint::formatter)
 	(zl:::scl:function (:property zl:::scl:defun gprint::formatter)))
   (pushnew 'defun zwei:*irrelevant-functions*)
   (pushnew 'defun zwei:*irrelevant-defining-forms*))
@@ -344,7 +360,7 @@
       `(,*defmethod* ,name ,@qualifiers ,ll ,@b))))
 
 (lisp:defun make-method-name (function-name qualifiers lambda-list)
-  (let* ((specifier-list 
+  (let* ((specifier-list
 	   (do ((ll lambda-list (cdr ll))
 		(result nil))
 	       ((null ll) (nreverse result))
@@ -359,14 +375,14 @@
 #+(and Allegro (not acl86win32) (version>= 4 1))
 (eval-when (compile load eval) (cltl1::require :scm))
 #+(and Allegro (not acl86win32) (version>= 4 1))
-(scm::define-simple-parser defmethod scm::defmethod-parser)
+(excl::define-simple-parser defmethod scm::defmethod-parser)
 
 #+Genera
 (progn
   (setf (get 'defmethod 'zwei:definition-function-spec-parser)
 	(get *defmethod* 'zwei:definition-function-spec-parser))
   #-PCL
-  (setf (get 'defmethod 'gprint::formatter) 
+  (setf (get 'defmethod 'gprint::formatter)
 	(zl:::scl:function (:property clos:defmethod gprint::formatter)))
   (setf (get 'defmethod 'zwei:definition-function-spec-type) 'zl:::scl:defun)
   (pushnew 'defmethod zwei:*irrelevant-functions*)

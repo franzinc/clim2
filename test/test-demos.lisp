@@ -1,6 +1,6 @@
 (in-package :clim-user)
 
-;; $Header: /repo/cvs.copy/clim2/test/test-demos.lisp,v 1.11 1997/02/05 01:52:13 tomj Exp $
+;; $Id: test-demos.lisp,v 1.12 1998/08/06 23:17:10 layer Exp $
 
 
 

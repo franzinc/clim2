@@ -1,7 +1,6 @@
 ;;; -*- Mode: LISP; Syntax: Common-lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
-;;
-;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
-;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
+;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
+;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -17,12 +16,12 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/clim/logical-gestures.lisp,v 1.7 1998/05/19 18:50:36 layer Exp $
-
+;; $Id: logical-gestures.lisp,v 1.8 1998/08/06 23:15:59 layer Exp $
+;;
 
 (in-package :clim-internals)
 
-"Copyright (c) 1988, 1989, 1990 International Lisp Associates.  All rights reserved."
+;;;"Copyright (c) 1988, 1989, 1990 International Lisp Associates.  All rights reserved."
 
 ;;; a logical-gesture-name is a symbol that is not eq to a defined keysym or a
 ;;; defined shift.

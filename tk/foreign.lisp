@@ -1,9 +1,6 @@
 ;; -*- mode: common-lisp; package: tk -*-
-;;
-;;				-[]-
-;;
-;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
-;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
+;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
+;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -19,15 +16,11 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/tk/foreign.lisp,v 1.23 1998/05/19 18:51:12 layer Exp $
+;; $Id: foreign.lisp,v 1.24 1998/08/06 23:17:15 layer Exp $
 
 (in-package :tk)
 
 ;;; We have to interface to various foreign functions in the toolkit
-
-;;
-
-
 
 (defclass application-context (ff:foreign-pointer)
   ((displays :initform nil :accessor application-context-displays)))

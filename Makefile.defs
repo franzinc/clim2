@@ -1,4 +1,4 @@
-# $Id: Makefile.defs,v 1.46 1998/05/19 18:50:19 layer Exp $
+# $Id: Makefile.defs,v 1.47 1998/08/06 23:15:35 layer Exp $
 #
 #  Makefile.defs for CLIM 2.0
 
@@ -78,7 +78,7 @@ WNN_UNDEFS=misc/undefinedsymbols.wnn
 
 PRODUCT-GENERIC-FASLS = \
 	climg.fasl climdemo.fasl clim-debug.fasl climps.fasl \
-	climgg.fasl climhpgl.fasl
+	climhpgl.fasl # climgg.fasl
 
 PRODUCT-XM-FASLS = climxm.fasl clim-debugxm.fasl
 PRODUCT-OL-FASLS = climol.fasl clim-debugol.fasl
@@ -144,7 +144,7 @@ GENERIC-FASLS= \
 	clim/db-stream.fasl clim/gadget-output.fasl clim/accept.fasl \
 	clim/present.fasl clim/command.fasl clim/command-processor.fasl \
 	clim/basic-translators.fasl clim/frames.fasl clim/panes.fasl \
-	clim/default-frame.fasl clim/activities.fasl \
+	clim/default-frame.fasl clim/activities.fasl clim/db-menu.fasl \
 	clim/noting-progress.fasl clim/menus.fasl clim/accept-values.fasl \
 	clim/drag-and-drop.fasl clim/item-list-manager.fasl \
 	postscript/pkgdcl.fasl postscript/postscript-s.fasl \
@@ -162,12 +162,12 @@ DEMO-FASLS= \
 	demo/custom-records.fasl demo/demo-activity.fasl \
 	test/test-suite.fasl demo/demo-last.fasl
 
-
-HOMEGROWN-GADGET-FASLS= \
-	homegrown/db-menu.fasl homegrown/db-list.fasl \
-	homegrown/db-text.fasl homegrown/db-button.fasl \
-	homegrown/db-slider.fasl homegrown/scroll-pane.fasl \
-	homegrown/db-label.fasl homegrown/last.fasl
+# not used anymore
+#HOMEGROWN-GADGET-FASLS= \
+#	homegrown/db-menu.fasl homegrown/db-list.fasl \
+#	homegrown/db-text.fasl homegrown/db-button.fasl \
+#	homegrown/db-slider.fasl homegrown/scroll-pane.fasl \
+#	homegrown/db-label.fasl homegrown/last.fasl
 
 GENERIC-XT-FASLS= \
 	tk/pkg.fasl tk/foreign-obj.fasl tk/macros.fasl tk/xlib.fasl \
@@ -187,7 +187,8 @@ XM-FASLS= \
 	tk-silica/xt-frames.fasl tk-silica/xm-frames.fasl \
 	tk-silica/xm-dialogs.fasl tk-silica/xt-gadgets.fasl \
 	tk-silica/xm-gadgets.fasl tk-silica/xt-pixmaps.fasl \
-	tk-silica/gc-cursor.fasl tk-silica/last.fasl
+	tk-silica/gc-cursor.fasl \
+	utils/last.fasl
 
 OL-FASLS= \
 	tk/load-ol.fasl $(GENERIC-XT-FASLS) \

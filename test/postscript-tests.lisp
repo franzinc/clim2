@@ -1,6 +1,6 @@
 ;;; -*- Mode: LISP; Syntax: Common-lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/test/postscript-tests.lisp,v 1.10 1997/02/05 01:52:05 tomj Exp $
+;; $Id: postscript-tests.lisp,v 1.11 1998/08/06 23:17:09 layer Exp $
 
 (in-package :clim-user)
 

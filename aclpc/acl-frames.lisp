@@ -1,4 +1,22 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: ACL-CLIM; Base: 10; Lowercase: Yes -*-
+;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
+;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
+;;
+;; The software, data and information contained herein are proprietary
+;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
+;; given in confidence by Franz, Inc. pursuant to a written license
+;; agreement, and may be stored and used only in accordance with the terms
+;; of such license.
+;;
+;; Restricted Rights Legend
+;; ------------------------
+;; Use, duplication, and disclosure of the software, data and information
+;; contained herein by any agency, department or entity of the U.S.
+;; Government are subject to restrictions of Restricted Rights for
+;; Commercial Software developed at private expense as specified in
+;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
+;;
+;; $Id: acl-frames.lisp,v 1.7 1998/08/06 23:15:43 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -33,40 +51,39 @@
 	(native *use-native-menubar* #+ignore (slot-value frame 'msmenubart))
 	(pointer-doc-pane nil)
 	(pointer-options
-	  (clim-internals::frame-pointer-documentation-p frame)))
-    (when ;mm: was: (eq menu-bar 't)
+	 (clim-internals::frame-pointer-documentation-p frame)))
+    (when				;mm: was: (eq menu-bar 't)
         (silica::default-command-table-p menu-bar)
       (setq menu-bar (frame-command-table frame)))
     (when native (setf (getf (frame-properties frame) :native-menu) t))
     (when pointer-options
       (setq pointer-doc-pane
-	    (with-look-and-feel-realization (framem frame)
-	      (apply #'make-pane
-		   'clim-internals::pointer-documentation-pane
-		   :name :pointer-documentation
-		   (append (and (listp pointer-options) pointer-options)
-			   `(:max-width ,+fill+
-					;; commented out hard-wired
-					;; white background (cim 10/9/96)
-					#| :background ,+white+ |#
-					:min-height (1 :line)
-					:max-height (1 :line)
-					:height (1 :line)))))))
+	(with-look-and-feel-realization (framem frame)
+	  (apply #'make-pane
+		 'clim-internals::pointer-documentation-pane
+		 :name :pointer-documentation
+		 (append (and (listp pointer-options) pointer-options)
+			 `(:max-width ,+fill+
+				      ;; commented out hard-wired
+				      ;; white background (cim 10/9/96)
+				      #| :background ,+white+ |#
+				      :min-height (1 :line)
+				      :max-height (1 :line)
+				      :height (1 :line)))))))
     #+ignore ;; rl: wanted to do the menu bar here, but can't
     (when (and native menu-bar)
       (compute-msmenu-bar-pane frame menu-bar))
     (with-look-and-feel-realization (framem frame)
-      (outlining ()
-	(cond ((and (not native) menu-bar pointer-doc-pane)
-	       (vertically ()
-		 (compute-menu-bar-pane frame menu-bar)
-		 pane
-		 pointer-doc-pane))
-	      ((and (not native) menu-bar)
-	       (vertically () (compute-menu-bar-pane frame menu-bar) pane))
-	      (pointer-doc-pane
-	       (vertically () pane pointer-doc-pane))
-	      (t pane))))))
+      (cond ((and (not native) menu-bar pointer-doc-pane)
+	     (vertically ()
+	       (compute-menu-bar-pane frame menu-bar)
+	       pane
+	       pointer-doc-pane))
+	    ((and (not native) menu-bar)
+	     (vertically () (compute-menu-bar-pane frame menu-bar) pane))
+	    (pointer-doc-pane
+	     (vertically () pane pointer-doc-pane))
+	    (t pane)))))
 
 (defclass acl-top-level-sheet (top-level-sheet)
   ((min-width :accessor acl-top-min-width :initform nil)
@@ -132,13 +149,12 @@
 ;; a global id counter and the association list should be kept on a
 ;; per application-frame basis. 
 
-(defun get-command-menu-item-id (command frame)
+(defun assign-command-menu-item-id (command frame)
+  ;; We should probably allow COMMAND to be NIL.
+  ;; It is allowed for the UNIX port, apparently.
+  (when (atom command) (setq command (list command)))
   (prog1
     (fill-pointer *menu-id->command-table*)
-    #+ignore
-    (when (= (fill-pointer *menu-id->command-table*)
-	     (array-total-size *menu-id->command-table*))
-      (cerror "Continue" "Too many menu items"))
     (vector-push-extend (cons frame command) *menu-id->command-table*
 			256)))
 
@@ -146,9 +162,8 @@
   (position-if
    #'(lambda (x)
        (when x
-	 (destructuring-bind (f c &rest args)
-	     x
-	   (declare (ignore args))
+	 (let ((f (first x))
+	       (c (second x)))
 	   (and (eq f frame)
 		(eq c command)))))
    *menu-id->command-table*))
@@ -158,8 +173,7 @@
   (dotimes (id (fill-pointer *menu-id->command-table*))
     (let ((x (aref *menu-id->command-table* id)))
       (when x
-	(destructuring-bind (f c &rest xargs) x
-	  (declare (ignore xargs c))
+	(let ((f (first x)))
 	  (if (eq f frame) (apply func id args)))))))
 
 ;;; Disable all menu items.
@@ -224,29 +238,21 @@
       (make-array 2048 :fill-pointer t :element-type 'character)))
 
 (defun nstringify (x)
+  ;; This function is now a misnomer.  It is not destructive.
   (typecase x
     (simple-string x)
-    (string 
-     (let ((new-length 
-	    (min (length x) (length nstringify-buffer))))
-       (ncopy-vector nstringify-buffer x 0 0 new-length)
-       (set-strlen nstringify-buffer new-length)
-       nstringify-buffer))
+    (string (coerce x 'simple-string))
     (null "")
-    (t (nprin1-to-string x))))
+    (t (prin1-to-string x))))
 
 (defun nstringify-for-control (x)
+  ;; This function is now a misnomer.  It is not destructive.
   (typecase x
     ((not symbol)
      (nstringify x))
     (null "")
     (t
-     (let* ((symbol-name (symbol-name x))
-	    (new-length 
-	     (min (length symbol-name) #.(length nstringify-buffer))))
-       (ncopy-vector nstringify-buffer symbol-name 0 0 new-length)
-       (set-strlen nstringify-buffer new-length)
-       (nstring-capitalize nstringify-buffer :end new-length)))))
+     (string-upcase (nstringify x)))))
 
 (defun schar-byte (string index)
   (if (< index (length string))
@@ -322,87 +328,82 @@
 			 newtext))))
 
 (defun compute-msmenu-bar-pane (frame top command-table)
-  (let* (#+ignore
-	 (text-style
-	   (and (listp command-table)
-		(getf (cdr command-table) :text-style)
-		`(:text-style ,(getf (cdr command-table) :text-style))))
-	 (mirror (sheet-mirror top))
+  (let* ((mirror (sheet-mirror top))
 	 (menu-handle (win:GetMenu mirror))
 	 (command-table
-	   (if (listp command-table) (car command-table) command-table)))
-    (when
-        ;; command-table arg comes from menu-bar slot of frame
-        ;; and may be NIL T=menu-hbox-pane command-table-arg
-        (silica::default-command-table-p command-table)
+	  (if (listp command-table) (car command-table) command-table)))
+    (when (silica::default-command-table-p command-table)
+	;; command-table arg comes from menu-bar slot of frame
+	;; and may be NIL T=menu-hbox-pane command-table-arg
       (setq command-table (frame-command-table frame)))
     (with-look-and-feel-realization ((frame-manager frame) frame)
       (labels
-	((make-command-table-buttons (command-table menuhand top-level)
-	   (let ((menu-item-ids nil))
-	     (map-over-command-table-menu-items
-	      #'(lambda (menu keystroke item)
-		  (let* ((type (command-menu-item-type item))
-			 (value (command-menu-item-value item))
-			 (menu-item-available-p 
-			  (or (not (eq type :command))
-			      (command-enabled (car value) frame)))
-			 (menu-item-selected-p nil)
-			 (acckey (and (not top-level) keystroke))
-			 (flags (logior
-				 win:MF_STRING
-				 (if menu-item-available-p
-				     win:MF_ENABLED win:MF_GRAYED)
-				 (if menu-item-selected-p
-				     win:MF_CHECKED win:MF_UNCHECKED)))
-			 (smflags (logior flags win:MF_POPUP)))
-		    (case type
-		      (:command
-		       (when acckey
-			 (record-accelerator top acckey value))
-		       (let ((menu-item-id (get-command-menu-item-id value frame)))
-			 (win:AppendMenu
-			  menuhand
-			  flags
-			  menu-item-id
-			  (make-menu-text menu acckey item))
-			 (push menu-item-id menu-item-ids)))
-		      (:function
-		       ;; do something here
-		       )
-		      (:menu
-		       (let* ((popmenu (win::CreatePopupMenu))
-			      (hmenu (ct:handle-value 'win::hmenu popmenu))
-			      (menutext (make-menu-text menu acckey item)))
-			 (win::AppendMenu menuhand
-					  smflags
-					  hmenu
-					  menutext)
-			 (setf (gethash hmenu *popup-menu->menu-item-ids*)
-			   (make-command-table-buttons value popmenu nil))))
-		      (:divider
-		       (unless top-level
-			 (win::AppendMenu menuhand
-					  win:MF_SEPARATOR
-					  0
-					  "x")
-			 )))))
-	      command-table)
-	     menu-item-ids)))
+	  ((make-command-table-buttons (command-table menuhand top-level)
+	     (let ((menu-item-ids nil))
+	       (map-over-command-table-menu-items
+		#'(lambda (menu keystroke item)
+		    (let* ((type (command-menu-item-type item))
+			   (value (command-menu-item-value item))
+			   (menu-item-available-p 
+			    (or (not (eq type :command))
+				(command-enabled (car value) frame)))
+			   (menu-item-selected-p nil)
+			   (acckey (and (not top-level) keystroke))
+			   (flags (logior
+				   win:MF_STRING
+				   (if menu-item-available-p
+				       win:MF_ENABLED win:MF_GRAYED)
+				   (if menu-item-selected-p
+				       win:MF_CHECKED win:MF_UNCHECKED)))
+			   (smflags (logior flags win:MF_POPUP)))
+		      (case type
+			(:command
+			 (when acckey
+			   (record-accelerator top acckey value))
+			 (let ((menu-item-id
+				(assign-command-menu-item-id value frame)))
+			   (win:AppendMenu
+			    menuhand
+			    flags
+			    menu-item-id
+			    (make-menu-text menu acckey item))
+			   (push menu-item-id menu-item-ids)))
+			(:function
+			 (warn ":function not yet implemented in menu bars")
+			 )
+			(:menu
+			 (let* ((popmenu (win::CreatePopupMenu))
+				(hmenu (ct:handle-value 'win::hmenu popmenu))
+				(menutext (make-menu-text menu acckey item)))
+			   (win::AppendMenu menuhand
+					    smflags
+					    hmenu
+					    menutext)
+			   (setf (gethash hmenu *popup-menu->menu-item-ids*)
+			     (make-command-table-buttons value popmenu nil))))
+			(:divider
+			 (unless top-level
+			   (win::AppendMenu menuhand
+					    win:MF_SEPARATOR
+					    0
+					    "x")
+			   )))))
+		command-table)
+	       menu-item-ids)))
 	(make-command-table-buttons command-table menu-handle t)))))
 
 (defun update-menu-item-sensitivities (hmenu)
   (dolist (menu-item-id (gethash hmenu *popup-menu->menu-item-ids*))
-    (destructuring-bind (frame command &rest args)
-	(aref *menu-id->command-table* menu-item-id)
-      (declare (ignore args))
-      (let* ((top (frame-top-level-sheet frame))
-	     (mirror (sheet-mirror top))
-	     (menu-handle (win::GetMenu mirror)))
-	(win::EnableMenuItem menu-handle menu-item-id
-			     (if (command-enabled command frame)
-				 win:MF_ENABLED
-			       win:MF_GRAYED))))))
+    (let* ((item (aref *menu-id->command-table* menu-item-id))
+	   (frame (first item))
+	   (command (second item))
+	   (top (frame-top-level-sheet frame))
+	   (mirror (sheet-mirror top))
+	   (menu-handle (win::GetMenu mirror)))
+      (win::EnableMenuItem menu-handle menu-item-id
+			   (if (command-enabled command frame)
+			       win:MF_ENABLED
+			     win:MF_GRAYED)))))
 
 (defmethod redisplay-frame-panes :around ((frame standard-application-frame)
 					  &key force-p)
@@ -450,14 +451,13 @@ to be run from another."
     (when menu-handle
       (win::EnableMenuItem menu-handle command-id flag))))
 
-;; moved the SetForegroundWindow call from an around method on
-;; realize-mirror to the following method to stop the focus moving
-;; when the window wasn't yet visible (cim 10/3/96) 
-
 (defmethod note-frame-enabled :around ((framem acl-frame-manager) frame)
   (call-next-method)
   (let ((*in-layout-avp* *in-layout-avp*)
 	(sheet (frame-top-level-sheet frame))
+	#+nevermind
+	(parent (and *application-frame*
+		     (frame-top-level-sheet *application-frame*)))
 	(avp nil))
     (when sheet
       (map-over-sheets #'(lambda (sheet)
@@ -465,17 +465,31 @@ to be run from another."
 			     (setf avp t)))
 		       sheet)
       (setf *in-layout-avp* avp)
-      (setf (sheet-enabled-p (frame-top-level-sheet frame)) t)
-      ;; On Windows95, this call often fails when enabling a menu-frame.
-      ;; But the menu shows up after a few seconds anyway.  So that is
-      ;; why it would be bad to check the return status of this guy.
-      (win:SetForegroundWindow (sheet-mirror sheet)))))
+      (setf (sheet-enabled-p sheet) t)
+      ;; Put the window somewhere other than the bottom of the Z order.
+      ;; Avoid putting the window on top of all windows, if possible,
+      ;; to avoid de-selecting another activity that the user 
+      ;; is trying to keep selected.  This window probably ought to
+      ;; be the topmost clim window but not necessarily the topmost
+      ;; of all windows.
+      #+nevermind
+      (win:setWindowPos (sheet-mirror sheet) 
+			(cond ((not parent) win:HWND_TOP)
+			      ((typep frame 'clim-internals::menu-frame) 
+			       win:HWND_TOPMOST)
+			      (t (sheet-mirror parent)))
+			0 0 0 0		; x y width height
+			(logior win:swp_nomove ; ignore x y
+				win:swp_nosize ; ignore width height
+				))
+      (raise-sheet sheet))))
 
 (defmethod note-frame-layout-changed :after ((framem acl-frame-manager) frame)
   ;; added this to workaround some bugs with new layouts not being
   ;; correctly redisplayed - in particular problems with label-panes
   ;; - this should be viewed as a temporary fix (cim 10/14/96) 
   (repaint-sheet (frame-top-level-sheet frame) +everywhere+)
+  ;; spr16580.
   ;; Added this next one to fix problem with distribute-event
   ;; after changing the layout of the frame.  Need to clear
   ;; port-trace-thing, otherwise buttons may "go dead" due to a failure
@@ -485,8 +499,8 @@ to be run from another."
   )
 
 (defmethod frame-manager-note-pretty-name-changed
-	   ((framem acl-frame-manager)
-	    (frame standard-application-frame))
+    ((framem acl-frame-manager)
+     (frame standard-application-frame))
   (let ((name (frame-pretty-name frame))
         (sheet (frame-top-level-sheet frame)))
     (when name
@@ -497,8 +511,8 @@ to be run from another."
           (ct::cset (:char 256) cstr ((fixnum i)) (char-int (char name i))))
 	(ct::cset (:char 256) cstr ((fixnum subsize)) 
 		  #-aclpc (char-int #\NULL) #+aclpc 0)
-      (or (win:SetWindowText win cstr)
-	  (error "SetWindowText: system error ~s" (win:getlasterror)))))))
+	(or (win:SetWindowText win cstr)
+	    (check-last-error "SetWindowText"))))))
 
 (defun select-messagebox-icon (style)
   ;; Decides which Windows icon matches this (standardized) style. 
@@ -653,36 +667,38 @@ to be run from another."
 	    (write-string message-string stream)))))))
 
 (defun do-one-menu-item (popmenu item printer tick alist submenus)
-  (flet ((print-item (item)
-	   (with-output-to-string (stream)
-	     (funcall (or printer #'print-menu-item) item stream))))
-    (declare (dynamic-extent #'print-item))
-    (incf tick)
-    (ecase (clim-internals::menu-item-type item)
-      (:divider
-       (win:appendmenu popmenu win:MF_SEPARATOR tick 0))
-      (:label
-       (win:appendmenu popmenu win:MF_DISABLED tick 
-		       (print-item item)))
-      (:item
-       (if (clim-internals::menu-item-items item)
-	   (let ((submenu (win:createpopupmenu)))
-	     (push submenu submenus)
-	     ;; submenu
-	     (win:appendmenu popmenu win:MF_POPUP submenu
-			     (print-item item))
-	     (map nil
-	       #'(lambda (it)
-		   (multiple-value-setq (tick alist submenus)
-		     (do-one-menu-item submenu it printer
-				       tick alist submenus)))
-	       (clim-internals::menu-item-items item)))
-	 (progn
-	   (push (list tick (menu-item-value item))
-		 alist)
-	   (win:appendmenu popmenu win:MF_ENABLED tick 
-			   (print-item item))))))
-    (values tick alist submenus)))
+  (let ((*print-circle* nil))
+    (flet ((print-item (item)
+	     (silica::xlat-newline-return 
+	      (with-output-to-string (stream)
+		(funcall (or printer #'print-menu-item) item stream)))))
+      (declare (dynamic-extent #'print-item))
+      (incf tick)
+      (ecase (clim-internals::menu-item-type item)
+	(:divider
+	 (win:appendmenu popmenu win:MF_SEPARATOR tick 0))
+	(:label
+	 (win:appendmenu popmenu win:MF_DISABLED tick 
+			 (print-item item)))
+	(:item
+	 (if (clim-internals::menu-item-items item)
+	     (let ((submenu (win:createpopupmenu)))
+	       (push submenu submenus)
+	       ;; submenu
+	       (win:appendmenu popmenu win:MF_POPUP submenu
+			       (print-item item))
+	       (map nil
+		 #'(lambda (it)
+		     (multiple-value-setq (tick alist submenus)
+		       (do-one-menu-item submenu it printer
+					 tick alist submenus)))
+		 (clim-internals::menu-item-items item)))
+	   (progn
+	     (push (list tick (menu-item-value item))
+		   alist)
+	     (win:appendmenu popmenu win:MF_ENABLED tick 
+			     (print-item item))))))
+      (values tick alist submenus))))
 
 ;; Gets rid of scroll bars if possible.
 (defmethod frame-manager-menu-choose
@@ -704,30 +720,36 @@ to be run from another."
 	  x-position
 	  y-position
 	  scroll-bars)
-  (declare (ignore text-style
-		   gesture cache-test cache-value
-		   id-test unique-id label))
-  ;; What we oughta do here is implement a real Win32 menu.
-  ;; Think about calling CreatePopupMenu
-  (if (or presentation-type foreground background cache row-wise 
-	  n-columns n-rows scroll-bars)
+  ;; The basic theory of ignoring is that we ignore arguments
+  ;; that don't contribute functionality and just bring up
+  ;; the native menu without any fluff.
+  (declare (ignore text-style cache
+		   cache-test cache-value
+		   id-test unique-id label
+		   foreground background))
+  (if (or presentation-type ;; foreground background  
+	  row-wise n-columns n-rows scroll-bars)
       (call-next-method)
     #+simple-but-sure
     (apply #'call-next-method framem items :scroll-bars nil keys)
-    (let ((popmenu (win::CreatePopupMenu))
+    (let ((popmenu (win:CreatePopupMenu))
 	  (submenus nil)
-	  (flags (logior win:tpm_returncmd win:tpm_nonotify
-			 win:tpm_leftbutton win:tpm_rightbutton))
+	  (flags (logior win:tpm_returncmd ; return the selection
+			 win:tpm_nonotify ; don't notify clim
+			 (if (eq gesture :menu) 
+			     win:tpm_rightbutton
+			   win:tpm_leftbutton)))
+	  (rect 0)
 	  (tick 0)
 	  (alist nil)
 	  (code 0))
       (when (zerop popmenu)
-	(error "CreatePopupMenu -- system error ~A" (win:getlasterror)))
+	(check-last-error "CreatePopupMenu"))
       (unless (and x-position y-position)
 	;; Get screen coordinates of pointer.
 	(let ((point (ct:ccallocate win:point)))
 	  (or (win:getCursorPos point)
-	      (error "GetCursorPos: system error ~s" (win:getlasterror)))
+	      (check-last-error "GetCursorPos"))
 	  (setq x-position (ct:cref win:point point x))
 	  (setq y-position (ct:cref win:point point y))))
       (setq x-position (truncate x-position))
@@ -737,18 +759,26 @@ to be run from another."
 		     (do-one-menu-item popmenu item printer 
 				       tick alist submenus)))
 	   items)
+      ;; Bug here, exhibited by CAD Demo Create, that menu
+      ;; is sometimes never exposed.  TrackPopupMenu returns 0.  
+      ;; But most of the time this seems to work... 5/98 JPM.
       (setq code
 	(win:trackpopupmenu
-	 popmenu flags x-position y-position 0 
-	 (sheet-mirror associated-window) 0))
+	 popmenu flags x-position y-position 
+	 0				; reserved, must be zero
+	 (sheet-mirror associated-window) rect))
       (win:destroymenu popmenu)
       (dolist (submenu submenus) (win:destroymenu submenu))
-      (second (assoc code alist)))))
+      (cond ((zerop code)		; no item is selected
+	     nil)
+	    (t
+	     (second (assoc code alist)))))))
 
 (defun make-filter-string (dotted-pair)
-  (format nil "~a (~a)~a~a~a"
-	  (car dotted-pair) (cdr dotted-pair) (cltl1:int-char 0)
-	  (cdr dotted-pair) (cltl1:int-char 0)))
+  (let ((*print-circle* nil))
+    (format nil "~a (~a)~a~a~a"
+	    (car dotted-pair) (cdr dotted-pair) (code-char 0)
+	    (cdr dotted-pair) (code-char 0))))
 
 (eval-when (compile load eval) 
   (defconstant *scratch-string-length* 256)
@@ -932,21 +962,6 @@ to be run from another."
 						common-dialog-errors))
 				    error-code))))))))))
 
-(ff:def-foreign-type browseinfo
-    (:struct (hwndOwner win:hwnd)
-	     (pidlRoot win:long #+ig win:lpcitemidlist)
-	     (pszDisplayName win:lpstr)
-	     (lpszTitle win:lpcstr)
-	     (ulflags win:uint)
-	     (lpfn (* :void) #+ig win:bffcallback)
-	     (lparam win:lparam)
-	     (iImage :int)))
-
-(ff:def-foreign-call (SHBrowseForFolder "SHBrowseForFolder")
-    ((info browseinfo))
-  :returning :int
-  :release-heap :when-ok)
-
 (defun get-directory (sheet title)
   (let* ((info (ct:ccallocate browseinfo)))
     (ct:csets browseinfo info
@@ -990,8 +1005,6 @@ to be run from another."
 		   file-search-proc documentation))
   (unless pattern 
     (setq pattern ""))
-  (unless directory 
-    (setq directory (namestring (excl:current-directory))))
   (when default-p
     (let ((name (pathname-name default))
 	  (type (pathname-type default))
@@ -1008,6 +1021,14 @@ to be run from another."
 	  (namestring (make-pathname :name nil
 				     :directory dir
 				     :device device))))))
+  ;; Massage the directory to make sure, in particular,
+  ;; that it has a device.  Expensive, but worth it to 
+  ;; avoid a segmentation violation.  JPM.
+  (if directory
+      (setq directory
+	(namestring (merge-pathnames (pathname directory)
+				     (excl:current-directory))))
+    (setq directory (namestring (excl:current-directory))))
   (let* ((stream associated-window)
 	 (save-p nil)
 	 (directory-p nil))
@@ -1025,6 +1046,162 @@ to be run from another."
 		    save-p
 		    multiple-select
 		    warn-if-exists-p))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Progress notification code.
+
+(define-application-frame nt-working-dialog ()
+  ((note :initform "" :accessor work-note :initarg :note)
+   (fraction :initform 0.0 :accessor fraction
+	     :initarg :fraction)
+   (cancellable :initform t :accessor cancellable
+		:initarg :cancellable)
+   (cancel-button :accessor cancel-button)
+   (thermopane :initform nil :accessor thermopane)
+   (notepane :initform nil :accessor notepane)
+   (process :accessor work-process))
+  (:panes
+   (display 
+    (setf (notepane *application-frame*)
+      (make-pane 'application-pane
+		 :text-style '(:sans-serif :roman :small)
+		 :display-function 'display-note
+		 :initial-cursor-visibility nil
+		 )))
+   (thermometer
+    (setf (thermopane *application-frame*)
+      (make-pane 'application-pane
+		 :min-width 250 :width 250
+		 :display-function 'display-thermometer
+		 :initial-cursor-visibility nil
+		 :record-p nil		;performance hack
+		 :foreground +blue+
+		 )))
+   (cancel
+    (setf (cancel-button *application-frame*)
+      (make-pane 'push-button
+		 :label "Cancel"
+		 :align-x :center
+		 :align-y :center
+		 :show-as-default (cancellable *application-frame*)
+		 :active (cancellable *application-frame*)
+		 :activate-callback
+		 #'(lambda (button)
+		     (let ((frame (pane-frame button))
+			   (process nil))
+		       (when (and frame (cancellable frame))
+			 (setq process (work-process frame))
+			 (if process 
+			     (mp:process-interrupt process 'abort)
+			   (beep)))))))))
+  (:menu-bar nil)
+  (:layouts (main 
+	     (spacing (:thickness 10)
+	       (vertically () 
+		 display
+		 (25 (horizontally ()
+		       (vertically ()
+			 (15 (outlining () thermometer))
+			 :fill)
+		       :fill
+		       cancel)))))))
+
+(defmethod modal-frame-p ((frame nt-working-dialog)) t)
+
+(defmethod display-note ((frame nt-working-dialog) stream)
+  "The pane display function for the DISPLAY pane."
+  (window-clear stream)
+  (stream-set-cursor-position stream 0 40)
+  (write-string (work-note frame) stream)
+  (force-output stream))
+
+(defmethod display-thermometer ((frame nt-working-dialog) stream)
+  (let ((fraction (fraction frame)))
+    (with-bounding-rectangle* (left top right bottom) (sheet-region stream)
+      (medium-draw-rectangle* stream left top 
+			      (+ left (* (- right left) fraction)) bottom
+			      t))))
+
+(defvar *working-dialog* nil)
+
+(defmethod clim-internals::frame-manager-invoke-with-noting-progress
+    ((framem acl-frame-manager)
+     note
+     continuation)
+  (if *working-dialog*
+      (let ((old-string (work-note *working-dialog*))
+	    (old-value (fraction *working-dialog*)))
+	(unwind-protect
+	    (progn
+	      (clim-internals::frame-manager-display-progress-note
+	       framem note)
+	      (funcall continuation note))
+	  (setf (work-note *working-dialog*) old-string)
+	  (setf (fraction *working-dialog*) old-value)
+	  (redisplay-frame-panes *working-dialog*)))
+    (let ((frame nil)
+	  (parent-frame *application-frame*)
+	  (*working-dialog* nil)
+	  (worker (current-process))
+	  (waiter nil))
+      (unwind-protect
+	  (progn
+	    (setq waiter
+	      (mp:process-run-function
+	       "Progress Note"
+	       #'(lambda ()
+		   (let ((*application-frame* parent-frame)) ; for application-modal
+		     (setq frame (make-application-frame
+				  'nt-working-dialog
+				  :cancellable t
+				  :note (string (progress-note-name note))
+				  :pretty-name ""
+				  :left 200 :top 200
+				  :width 400
+				  :height 125))
+		     (setf (work-process frame) worker)
+		     (run-frame-top-level frame)))))
+	    (mp:process-wait
+	     "Synchronize"
+	     #'(lambda () 
+		 (and frame 
+		      (eq (frame-state frame) :enabled))))
+	    (setq *working-dialog* frame)
+	    (clim-internals::frame-manager-invoke-with-noting-progress
+	     framem note continuation))
+	(when waiter
+	  (mp:process-kill waiter)
+	  (setq *working-dialog* nil))))))
+
+(defmethod clim-internals::frame-manager-display-progress-note
+    ((framem acl-frame-manager) note)
+  (when *working-dialog*
+    (let ((old (fraction *working-dialog*))
+	  (new (/ (float (slot-value note 'clim-internals::numerator))
+		  (float (slot-value note 'clim-internals::denominator)))))
+      (unless (= old new)
+	(setf (fraction *working-dialog*) new)
+	(display-thermometer *working-dialog* (thermopane *working-dialog*))))
+    (let ((old (work-note *working-dialog*))
+	  (new (string (progress-note-name note))))
+      (unless (string= old new)
+	(setf (work-note *working-dialog*) new)
+	(display-note *working-dialog* (notepane *working-dialog*))))))
+
+(defun wait-demo (&key (time 10.0) (N 100))
+  (let ((*application-frame* (car (frame-manager-frames 
+				   (find-frame-manager))))
+	(note (format nil "Men at work. ~%Please wait."))
+	(wtime (/ time N)))
+    (with-simple-restart (abort "Abort Wait Demo")
+      (clim-internals::frame-manager-invoke-with-noting-progress
+       (find-frame-manager)
+       (clim-internals::add-progress-note note t)
+       #'(lambda (note)
+	   (let ((*current-progress-note* note))
+	     (dotimes (i N)
+	       (sleep wtime)
+	       (note-progress i N))))))))
 
 ;;; ms-windows style command menu support
 
@@ -1067,55 +1244,36 @@ to be run from another."
   (with-slots (mirrored-sheet) event
     (dispatch-event mirrored-sheet event)))
 
+(defparameter *mswin-pane-classes*
+    '((scroll-bar mswin-scroll-bar)
+      (scroller-pane silica::mswin-scroller-pane)
+      (viewport viewport)
+      (menu-bar mswin-menu-bar-pane)
+      (menu-bar-button-logic mswin-menu-bar-button)
+      (pull-down-button-logic mswin-pull-down-menu-button)
+      (push-button hpbutton-pane)
+      (toggle-button hbutton-pane)
+      (radio-box radio-box-pane)
+      (check-box check-box-pane)
+      (slider slider-pane)
+      (top-level-sheet acl-clim::acl-top-level-sheet)
+      (frame-pane frame-pane)
+      (label-pane generic-label-pane)
+      (text-field mswin-text-field)
+      ;;mm: interpose a pane class to manipulate initargs
+      (text-editor acl-clim::acl-text-editor-pane)
+      (list-pane hlist-pane)
+      (option-pane mswin-combo-box-pane)
+      (outlined-pane acl-clim::mswin-outlined-pane)
+      ;;--- Need to do these
+      (horizontal-divider-pane)
+      (vertical-divider-pane)
+      ))
+
 (defmethod make-pane-class ((framem acl-clim::acl-frame-manager) class
 			    &rest options)
   (declare (ignore options))
-  (if acl-clim::*generic-gadgets*
-    (second (assoc class '((scroll-bar scroll-bar-pane)
-			 (scroller-pane generic-scroller-pane)
-			 (viewport viewport)
-			 (menu-bar menu-bar-pane)
-			 (menu-bar-button-logic menu-bar-button)
-			 (pull-down-button-logic pull-down-menu-button)
-			 (push-button push-button-pane)
-			 (toggle-button toggle-button-pane)
-			 (radio-box radio-box-pane)
-			 (check-box check-box-pane)
-			 (slider slider-pane)
-			 (top-level-sheet top-level-sheet)
-			 (frame-pane frame-pane)
-			 (label-pane generic-label-pane)
-			 (text-field text-field-pane)
-			 (text-editor text-editor-pane)
-			 (list-pane generic-list-pane)
-			 (option-pane generic-option-pane)
-			 ;;--- Need to do these
-			 (horizontal-divider-pane)
-			 (vertical-divider-pane)
-			 )))
-    (second (assoc class '((scroll-bar mswin-scroll-bar)
-			 (scroller-pane silica::mswin-scroller-pane)
-			 (viewport viewport)
-			 (menu-bar mswin-menu-bar-pane)
-			 (menu-bar-button-logic mswin-menu-bar-button)
-			 (pull-down-button-logic mswin-pull-down-menu-button)
-			 (push-button hpbutton-pane)
-			 (toggle-button hbutton-pane)
-			 (radio-box radio-box-pane)
-			 (check-box check-box-pane)
-			 (slider slider-pane)
-			 (top-level-sheet acl-clim::acl-top-level-sheet)
-			 (frame-pane frame-pane)
-			 (label-pane generic-label-pane)
-                         (text-field mswin-text-field)
-                           ;;mm: interpose a pane class to manipulate initargs
-			 (text-editor acl-clim::acl-text-editor-pane)
-			 (list-pane hlist-pane)
-			 (option-pane mswin-combo-box-pane)
-			 ;;--- Need to do these
-			 (horizontal-divider-pane)
-			 (vertical-divider-pane)
-			 )))))
+  (second (assoc class *mswin-pane-classes*)))
 
 ;; modulor the frame-background/foreground hacks this is identical to
 ;; the default method for standard-frame-manager in silica/framem -
@@ -1153,7 +1311,7 @@ to be run from another."
 			  (logior win:swp_noactivate
 				  win:swp_nozorder
 				  win:swp_nosize))
-	(error "SetWindowPos: system error ~s" (win:getlasterror)))))
+	(acl-clim::check-last-error "SetWindowPos"))))
 
 (in-package :clim-internals)
 
@@ -1219,12 +1377,11 @@ in a second Lisp process.  This frame cannot be reused."
 	;;; when the user resizes the frame window
 	#+ignore (win::showWindow handle win::sw_show)
 	(or (win:getClientRect handle wrect)
-	    (error "GetClientRect: system error ~s" (win:getlasterror)))
+	    (acl-clim::check-last-error "GetClientRect"))
 	(or (win:InvalidateRect handle wrect 1)
-	    (error "InvalidateRect: system error ~s" (win:getlasterror)))
+	    (acl-clim::check-last-error "InvalidateRect"))
 	(or (win:UpdateWindow handle)
-	    (error "UpdateWindow: system error ~s" (win:getlasterror)))
-	))))
+	    (acl-clim::check-last-error "UpdateWindow"))))))
 
 (defun clean-frame (frame)
   (declare (ignore frame))
@@ -1249,3 +1406,4 @@ in a second Lisp process.  This frame cannot be reused."
      (logior win:swp_noactivate
 	     win:swp_nozorder
 	     win:swp_nosize)))
+

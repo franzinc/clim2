@@ -1,4 +1,4 @@
-# $Header: /repo/cvs.copy/clim2/Makefile,v 1.85 1998/05/19 18:50:19 layer Exp $
+# $Header: /repo/cvs.copy/clim2/Makefile,v 1.86 1998/08/06 23:15:35 layer Exp $
 
 # If ../makefile.top doesn't exist, then you must specify HOST=xxx on the
 # `make' command line.
@@ -10,6 +10,10 @@ ifeq ($(OS_NAME),sunos)
 ifeq ($(MACHINE),sparc)
 HOST = sun4-svr4
 endif
+endif
+
+ifeq ($(OS_NAME),linux)
+HOST = linux
 endif
 
 ifeq ($(OS_NAME),hp-ux)

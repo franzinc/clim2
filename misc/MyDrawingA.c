@@ -1,4 +1,4 @@
-/*				-[Thu Dec  7 14:48:54 1995 by duane]-
+/*				-[Sat May 30 09:25:34 1998 by layer]-
  *
  * copyright (c) 1992 Franz Inc, Berkeley, CA  All rights reserved.
  *
@@ -16,7 +16,7 @@
  * Commercial Software developed at private expense as specified in 
  * DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
  *
- * $Header: /repo/cvs.copy/clim2/misc/MyDrawingA.c,v 1.9 1997/02/05 01:48:59 tomj Exp $
+ * $Header: /repo/cvs.copy/clim2/misc/MyDrawingA.c,v 1.10 1998/08/06 23:16:43 layer Exp $
  */
 
 #if defined(__alpha)
@@ -45,7 +45,7 @@ static QueryGeometry (da, intended, desired)
 }
 
 InitializeMyDrawingAreaQueryGeometry(fn)
-char *fn;
+    int (*fn)();
 {
     querygeometryfunction = fn;
 }

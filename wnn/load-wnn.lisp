@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/wnn/load-wnn.lisp,v 1.7 1997/10/13 20:29:42 layer Exp $
+;; $Id: load-wnn.lisp,v 1.8 1998/08/06 23:17:41 layer Exp $
 
 (in-package :user)
 

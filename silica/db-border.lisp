@@ -1,9 +1,25 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
+;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
+;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
+;;
+;; The software, data and information contained herein are proprietary
+;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
+;; given in confidence by Franz, Inc. pursuant to a written license
+;; agreement, and may be stored and used only in accordance with the terms
+;; of such license.
+;;
+;; Restricted Rights Legend
+;; ------------------------
+;; Use, duplication, and disclosure of the software, data and information
+;; contained herein by any agency, department or entity of the U.S.
+;; Government are subject to restrictions of Restricted Rights for
+;; Commercial Software developed at private expense as specified in
+;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
+;;
+;; $Id: db-border.lisp,v 1.26 1998/08/06 23:16:56 layer Exp $
 
-;; $Header: /repo/cvs.copy/clim2/silica/db-border.lisp,v 1.25 1998/05/19 18:51:01 layer Exp $
-
-"Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved.
- Portions copyright (c) 1991, 1992 by Symbolics, Inc.  All rights reserved."
+;;;"Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved.
+;;; Portions copyright (c) 1991, 1992 by Symbolics, Inc.  All rights reserved."
 
 (in-package :silica)
 
@@ -45,19 +61,17 @@
 (defun repaint-border-pane (pane)
   (with-sheet-medium (medium pane)
     (with-bounding-rectangle* (left top right bottom) 
-      (sheet-region pane)
+	(sheet-region pane)
       (let* ((thickness (slot-value pane 'thickness))
-             ;; this used to be ceiling but it sometimes caused
-             ;; borders to overwrite the child pane - which played
-             ;; havoc with the flipping-ink mechanism used to draw the
-             ;; cursor (cim 9/14/95)
+	     ;; this used to be ceiling but it sometimes caused
+	     ;; borders to overwrite the child pane - which played
+	     ;; havoc with the flipping-ink mechanism used to draw the
+	     ;; cursor (cim 9/14/95)
              (ht (floor thickness 2)))
-        (when #-(or aclpc acl86win32) t
-              #+(or aclpc acl86win32) (> thickness 1)
-          (incf left ht)
-          (incf top ht)
-          (decf right ht)
-          (decf bottom ht))
+	(incf left ht)
+	(incf top ht)
+	(decf right ht)
+	(decf bottom ht)
         (draw-rectangle* medium left top right bottom
                          :line-thickness thickness :filled nil
                          :ink (border-color pane))))))
@@ -133,14 +147,14 @@
        ,(if (constantp label-alignment #+(or Genera Minima) env)
             (ecase (eval label-alignment #+(or Genera Minima-Developer) env)
               (:bottom
-                `(vertically () ,cvar #+acl86win32 :fill ,lvar))
+                `(vertically () ,cvar ,lvar))
               (:top
-                `(vertically () ,lvar #+acl86win32 :fill ,cvar)))
+                `(vertically () ,lvar ,cvar)))
             `(ecase ,label-alignment
                (:bottom
-                 (vertically () ,cvar #+acl86win32 :fill ,lvar))
+                 (vertically () ,cvar ,lvar))
                (:top
-                 (vertically () ,lvar #+acl86win32 :fill ,cvar)))))))
+                 (vertically () ,lvar ,cvar)))))))
 
 
 

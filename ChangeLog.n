@@ -11,8 +11,227 @@ Tests for new features:	<`no new features', `no tests for new features', or
 	* <changes go here...>
 
 *******************************************************************************
+2.2.2.1 -- join from acl50 branch
+next merge tag: acl50_merge2
+
+*******************************************************************************
 2.2.1.17 -- join from acl50 branch (versions 2.2.1.13 to 2.2.1.16)
+(this should have been version 2.2.2.0, but was 2.2.1.17 instead)
 next merge tag: acl50_merge1
+
+*******************************************************************************
+2.2.1.29
+
+Tue Jul 21 09:35:09 1998  Kevin Layer  <layer@ultra>
+
+	* buildclim.cl,
+	* Makefile.generic: remove :print-startup-message argument to
+	generate-application
+
+Mon Jul 20 15:00:38 1998  Kevin Layer  <layer@ultra>
+
+	* tk-silica/xt-silica.lisp: remove :survive-dumplisp reference
+	* Makefile.defs: remove climgg.fasl from depends
+	* Makefile.generic: remove climgg.fasl rule
+	* hpgl/hpgl-medium.lisp: fix compile time warnings
+	* hpgl/hpgl-port.lisp: fix compile time warnings
+	* misc/compile-1.lisp: add back wnn and hpgl module compilation
+	* tk/gcontext.lisp: fix compile time warnings
+
+*******************************************************************************
+2.2.1.28
+
+Mon Jul 20 12:00:00 1998  Jeff Morrill <jmorrill@pointnclick.com>
+
+        * misc/compile-1: don't compile systems that are obsolete or broken
+        * tk-silica/xm-silica: resolve spr17831 & spr17939 regarding 
+           destroying a widget that is already destroyed
+        * utils/last: provide :climnt for #+mswindows
+        * tk-silica/gc-cursor: implement reinitialize-gc-cursor
+	* silica/db-label: repaint generic label panes correctly
+        * silica/db-scroll: use method dispatch rather than typep and
+           confused reader conditionalizations
+        * aclpc/acl-widget: don't divide by zero when scrolling
+        * aclpc/acl-scroll: lots of scroll bar fixes
+        * aclpc/acl-prel: be more careful when printing warnings
+           in order to avoid recursive warning loop
+        * aclpc/acl-port: better font mapping
+        * aclpc/acl-medium: fixes for flipping-ink, pixmaps
+        * aclpc/acl-frames: fixes for menu-choose, select-file, noting-progress
+        * aclpc/acl-dc: various changes to device context handling
+        * aclpc/acl-class: two fixes for better handling of OnCommand events.
+
+*******************************************************************************
+2.2.1.27
+
+Sat Jul 11 08:42:42 1998  Kevin Layer  <layer@ultra>
+
+	* utils/last.lisp: patch loading fix
+
+*******************************************************************************
+2.2.1.26
+
+Wed Jul 08 16:21:38 1998    <layer@HOBART>
+
+	* utils/defun.lisp: bug7098: fix package qualifier for
+	define-simple-parser
+
+*******************************************************************************
+2.2.1.25
+
+Mon Jul  6 16:07:31 1998  Kevin Layer  <layer@ultra>
+
+	fix copyright notices
+
+Mon Jul 06 14:45:24 1998    <layer@HOBART>
+
+	* tk-silica/gc-cursor.cl: start of gc hook fix
+	* Makefile.generic: fix tags rule
+	* aclpc/acl-frames.lisp: bug7092: package qualify some
+	check-last-error calls
+	* clim/db-list.lisp: bug7092: add initialize-pull-down-menu and
+	make-pull-down-menu back.
+	* clim/design-recording.lisp: bug7092: add nyi definition
+	* aclpc/acl-class.lisp: bug7092: fix ffi calls
+
+*******************************************************************************
+2.2.1.24
+
+Mon Jul 06 12:36:16 1998    <layer@HOBART>
+
+	* utils/last.lisp: conditionalize load-patches call based on
+	version of lisp
+
+*******************************************************************************
+2.2.1.23
+
+Mon July 1  1998  
+       Possible source tree for release 5.0 of ACL.
+
+        * aclpc/acl-class: Fix problems with LoadCursor and activate-default-gadget
+        * aclpc/acl-dc: Explore better device contexts
+        * aclpc/acl-frames: Fix problems with error checking
+        * aclpc/acl-medium: Fix problems with foreground & background colors
+        * aclpc/acl-port: Fix problems drawing from a background thread
+        * aclpc/acl-port: Use FormatMessage to get error messages from NT
+        * aclpc/acl-widget: Mostly stuff to support BBN's widget use
+        * aclpc/pkgdcl: Put back package lock stuff since it won't build otherwise
+        * aclpc/winwidgh: Move foreign function definitions here
+        * clim/db-menu: support non-native menu-bars better
+        * tk-silica/gc-cursor: don't trust svref (spr17568)
+        * utils/last: provide required arguments
+        * utils/transformations: optimization
+
+*******************************************************************************
+2.2.1.22
+
+Mon Jun 22  1998  
+
+        * aclpc/acl-class: mostly just cleanup
+        * aclpc/acl-frames: fix command-table bugs for BBN
+        * aclpc/acl-medium: fix medium-draw-string* for newline,
+          make draw-pattern sorta work for stipples
+        * aclpc/acl-mirror: improved look & feel
+        * aclpc/acl-port: fix text-size problems
+        * aclpc/acl-prel: improved look & feel, improved error messages
+        * aclpc/acl-widget: work on menu-bar widgets for BBN
+        * clim/output-protocol: null medium is a transient initial state
+          we should tolerate
+        * silica/db-border: fix bug in macro LABELLING (#+microsoft-32)
+	* utils/packages: bump version id
+
+*******************************************************************************
+2.2.1.21
+
+Tue Jun  9 23:55:40 1998  Kevin Layer  <layer@ultra>
+
+	* Makefile.defs: new file utils/last, for patches
+	* Makefile.sgi4d-svr4: don't link with -lcvt, because it doesn't
+	exist on grape and isn't (apparently) needed anymore
+	* aclpc/acl-scroll.lisp: remove setting of
+	excl::*enable-package-locked-errors* to nil
+	* aclpc/pkgdcl.lisp: ditto
+	* aclpc/sysdcl.lisp: new file utils/last, for patches
+	* misc/compile-1.lisp: remove dead code
+	* misc/dev-load-1.lisp: remove dead code
+	* sys/compile.lisp: new file utils/last.fasl
+	* sys/sysdcl.lisp: new file utils/last.lisp
+	* tk/xlib.lisp: in (method initialize-instance :after (image))
+	allocate with x11::system-malloc instead of excl::malloc, because
+	the latter can't be freed with free(), which is what will happen
+	to this memory (eventually)
+	* tk-silica/xt-silica.lisp: warnings for unix
+	* utils/last.lisp: new file to load patches
+	* xlib/xlib-funs.lisp: new system-malloc
+
+*******************************************************************************
+2.2.1.20
+
+Mon Jun  1 16:05:13 1998  Kevin Layer  <layer@ultra>
+
+	* Makefile.generic: windows/unix hacking
+    the rest is to reduce the number of warnings on UNIX to 1
+	* clim/frames.lisp
+	* clim/text-formatting.lisp
+	* homegrown/db-menu.lisp
+	* hpgl/hpgl-medium.lisp
+	* misc/MyDrawingA.c
+	* misc/compile-1.lisp
+	* tk/resources.lisp
+	* tk/widget.lisp
+	* tk/xlib.lisp
+	* tk-silica/image.lisp
+	* tk-silica/xt-gadgets.lisp
+	* tk-silica/xt-graphics.lisp
+	* tk-silica/xt-silica.lisp
+	* wnn/strings.c
+
+*******************************************************************************
+2.2.1.19 (from pnc)
+
+* tk-silica/xt-frames and xt-silica: spr17465, stop windows from
+  iconifying in Sparc Common Desktop Environment when switching
+  workspaces.
+* clim/command-processor: added comments describing spr16572 inability
+  of the command-processor to detect invalid commands.
+* aclpc/acl-widget: native implementation of outlining-pane
+* aclpc/acl-frames: implement noting-progress thermometer
+* aclpc/acl-class: fix bugs with pointer cursor and button show-as-default
+* aclpc/*: cleanup; fix some of the many bugs with colors and patterns
+
+*******************************************************************************
+Fri May 29 08:58:03 1998  Kevin Layer  <layer@ultra>
+
+    new files:
+	* Makefile.linux
+    changed files:
+	* Makefile: for `linux' host
+
+*******************************************************************************
+2.2.1.18 -- public release on ACL 5.0.beta
+
+1998-05-27    <layer@HOBART>
+
+	* makedist.sh: tweaks
+	* readme.win32: changes from Jeff Morrill
+
+1998-05-26    <layer@HOBART>
+
+    new files
+	* makedist.sh
+	* readme.win32
+
+*******************************************************************************
+2.2.1.17 (from pnc)
+
+Tues May 26 9:00:00 1998  Jeff Morrill <jmorrill@pointnclick.com>
+
+        * silica/classes: Fix default back/fore of medium (for NT)
+        * postscript/postscript-medium: define nyi
+        * demo/custom-records: fix little bug
+        * clim/menus: cleanup
+        * aclpc/*.lisp: Cleaned up, reduced compiler warnings,
+          and fixed several bugs found during testing
 
 *******************************************************************************
 2.2.1.16

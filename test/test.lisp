@@ -18,7 +18,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/test/test.lisp,v 1.56 1997/02/05 01:52:24 tomj Exp $
+;; $Id: test.lisp,v 1.57 1998/08/06 23:17:11 layer Exp $
 
 (in-package :clim-user)
 

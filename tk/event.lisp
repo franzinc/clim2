@@ -1,9 +1,6 @@
 ;; -*- mode: common-lisp; package: tk -*-
-;;
-;;				-[Fri Aug 20 18:53:50 1993 by layer]-
-;;
-;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
-;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
+;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
+;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -19,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/tk/event.lisp,v 1.28 1998/05/19 18:51:12 layer Exp $
+;; $Id: event.lisp,v 1.29 1998/08/06 23:17:14 layer Exp $
 
 (in-package :tk)
 

@@ -1,12 +1,28 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
-
-;; $Header: /repo/cvs.copy/clim2/clim/graphics-recording.lisp,v 1.31 1998/05/19 18:50:34 layer Exp $
+;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
+;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
+;;
+;; The software, data and information contained herein are proprietary
+;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
+;; given in confidence by Franz, Inc. pursuant to a written license
+;; agreement, and may be stored and used only in accordance with the terms
+;; of such license.
+;;
+;; Restricted Rights Legend
+;; ------------------------
+;; Use, duplication, and disclosure of the software, data and information
+;; contained herein by any agency, department or entity of the U.S.
+;; Government are subject to restrictions of Restricted Rights for
+;; Commercial Software developed at private expense as specified in
+;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
+;;
+;; $Id: graphics-recording.lisp,v 1.32 1998/08/06 23:15:57 layer Exp $
 
 (in-package :clim-internals)
 
-"Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved.
- Portions copyright (c) 1991, 1992 Franz, Inc.  All rights reserved.
- Portions copyright (c) 1989, 1990 International Lisp Associates."
+;;;"Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved.
+;;; Portions copyright (c) 1991, 1992 Franz, Inc.  All rights reserved.
+;;; Portions copyright (c) 1989, 1990 International Lisp Associates."
 
 (defmacro define-graphics-recording (name medium-components 
                                      &key bounding-rectangle

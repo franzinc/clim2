@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: POSTSCRIPT-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/postscript/postscript-port.lisp,v 1.28 1998/03/21 01:55:02 smh Exp $
+;; $Id: postscript-port.lisp,v 1.29 1998/08/06 23:16:47 layer Exp $
 
 (provide :climps)
 

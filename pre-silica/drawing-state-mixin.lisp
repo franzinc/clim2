@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/pre-silica/drawing-state-mixin.lisp,v 1.8 1997/02/05 01:50:05 tomj Exp $
+;; $Id: drawing-state-mixin.lisp,v 1.9 1998/08/06 23:16:51 layer Exp $
 
 (in-package :clim-internals)
 

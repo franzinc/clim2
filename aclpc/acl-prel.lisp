@@ -1,3 +1,22 @@
+;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
+;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
+;;
+;; The software, data and information contained herein are proprietary
+;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
+;; given in confidence by Franz, Inc. pursuant to a written license
+;; agreement, and may be stored and used only in accordance with the terms
+;; of such license.
+;;
+;; Restricted Rights Legend
+;; ------------------------
+;; Use, duplication, and disclosure of the software, data and information
+;; contained herein by any agency, department or entity of the U.S.
+;; Government are subject to restrictions of Restricted Rights for
+;; Commercial Software developed at private expense as specified in
+;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
+;;
+;; $Id: acl-prel.lisp,v 1.6 1998/08/06 23:15:45 layer Exp $
+
 #|****************************************************************************
 *                                                                            *
 *                                                                            *
@@ -14,47 +33,55 @@
 
 (declaim (special *hinst*))
 
+(defun combobox-scroll-bars (items)
+  ;; If there are many items, you won't be able 
+  ;; to see them without a scroll bar.
+  (if (> (length items) 30) :vertical nil))
+
 (defun hcombo-open (parent id left top width height 
-		    &key (mode :exclusive)
-			 (items nil)
+		    &key (items nil)
 			 (value nil)
 			 (name-key #'identity)
-			 (border3d t)
-			 (sorted nil)
-			 (label ""))
-  (declare (ignore sorted border3d mode height id))
+			 (label "")
+			 (scroll-mode (combobox-scroll-bars items)))
+  (declare (ignore id))
   (let* ((hwnd
-	  (win:CreateWindowEx 0		; extended-style
-			  "COMBOBOX"	; classname
-			  (nstringify label) ; windowname
-			  (logior
-			   win:WS_CHILD
-			   win:CBS_DROPDOWNLIST)
-			  0 0 0 0
-			  parent (ct::null-handle win::hmenu)
-			  *hinst* (symbol-name (gensym)))))
+	  (win:CreateWindowEx 
+	   0				; extended-style
+	   "COMBOBOX"			; classname
+	   (nstringify label)		; windowname
+	   (logior
+	    (if (member scroll-mode '(:vertical :both t :dynamic)) 
+		win:WS_VSCROLL
+	      0)
+	    (if (member scroll-mode '(:horizontal :both t :dynamic)) 
+		win:WS_HSCROLL
+	      0)
+	    win:WS_CHILD
+	    win:WS_TABSTOP
+	    win:CBS_DROPDOWNLIST)
+	   0 0 0 0
+	   parent (ct::null-handle win::hmenu)
+	   *hinst* (symbol-name (gensym)))))
     (if (ct:null-handle-p hwnd hwnd)
 	;; failed
 	(cerror "proceed" "failed")
       ;; else succeed if we can init the DC
       (progn
 	(win:SetWindowPos hwnd (ct:null-handle hwnd) 
-		      left top width 250 ;height
-		      0
-		      ;;#.(logior win:SWP_NOACTIVATE win:SWP_NOZORDER)
-		      )
+			  left top width height
+			  0
+			  ;;#.(logior win:SWP_NOACTIVATE win:SWP_NOZORDER)
+			  )
 	(let* ((index -1)
-	       (item-name "")
-	       ;;(cstr (ct::callocate (:char *) :size 256))
-	       ;;(subsize 0)
-	       )
+	       (item-name ""))
 	  (dolist (item items)
 	    (setf item-name (funcall name-key item))
 	    (incf index)
 	    (win:SendMessage hwnd win:CB_INSERTSTRING index item-name)
 	    ))
 	(win:sendMessage hwnd win:CB_SETCURSEL (or value 0) 0)
-	(win:sendMessage hwnd win:CB_SETTOPINDEX (or value 0) 0)))
+	(win:sendMessage hwnd CB_SETTOPINDEX (or value 0) 0)))
     hwnd))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -73,47 +100,44 @@
 			(label "")
 			(horizontal-extent 0))
   (declare (ignore border3d id))
-  (let* ((hwnd
-	  (win:CreateWindowEx 0		; extended-style
-			  "LISTBOX"	; classname
-			  (nstringify label) ; windowname
-			  (logior
-			   win:LBS_NOINTEGRALHEIGHT ; partial item displayed at bottom
-			   win:LBS_NOTIFY
-			   win:LBS_USETABSTOPS ; Expands tab characters in items
-			   (if sorted win:LBS_SORT 0)
-			   (if (eq mode :nonexclusive) win:LBS_MULTIPLESEL 0)
-			   win:WS_CHILD
-			   win:WS_BORDER
-			   (if (member scroll-mode '(:horizontal :both t :dynamic))
-			       win:WS_HSCROLL
-			     0)
-			   (if (member scroll-mode '(:vertical :both t :dynamic))
-			       win:WS_VSCROLL
-			     0)
-			   (if (member scroll-mode '(:horizontal :vertical :both t))
-			       win:LBS_DISABLENOSCROLL
-			     0)
-			   win:WS_CLIPCHILDREN 
-			   win:WS_CLIPSIBLINGS) ; style
-			  0 0 0 0
-			  parent
-			  #+acl86win32 (ct::null-handle win::hmenu)
-			  #-acl86win32 (let ((hmenu (ccallocate hmenu)))
-					 (setf (handle-value hmenu hmenu) id)
-					; (or id (next-child-id parent))
-					 hmenu)
-			  *hinst*
-			  #+acl86win32 (symbol-name (gensym))
-			  #+aclpc acl-clim::*win-arg*)))
+  (let* ((style
+ 	  (logior
+	   win:LBS_NOINTEGRALHEIGHT	; partial item displayed at bottom
+	   win:LBS_NOTIFY
+	   win:LBS_USETABSTOPS		; Expands tab characters in items
+	   (if sorted win:LBS_SORT 0)
+	   (if (eq mode :nonexclusive) win:LBS_MULTIPLESEL 0)
+	   win:WS_CHILD
+	   (if (member scroll-mode '(:horizontal :both t :dynamic))
+	       win:WS_HSCROLL
+	     0)
+	   (if (member scroll-mode '(:vertical :both t :dynamic))
+	       win:WS_VSCROLL
+	     0)
+	   (if (member scroll-mode '(:horizontal :vertical :both t))
+	       LBS_DISABLENOSCROLL
+	     0)
+	   win:WS_CLIPCHILDREN 
+	   win:WS_CLIPSIBLINGS))
+	 (exstyle win:ws_ex_clientedge)
+	 (hwnd
+	  (win:CreateWindowEx exstyle
+			      "LISTBOX"	; classname
+			      (nstringify label) ; windowname
+			      style
+			      0 0 0 0
+			      parent
+			      (ct::null-handle win::hmenu)
+			      *hinst*
+			      (symbol-name (gensym)))))
     (if (ct:null-handle-p hwnd hwnd)
 	;; failed
 	(cerror "proceed" "failed")
       ;; else succeed if we can init the DC
       (progn
 	(win:SetWindowPos hwnd (ct:null-handle hwnd) 
-		      left top width height
-		      #.(logior win:SWP_NOACTIVATE win:SWP_NOZORDER))
+			  left top width height
+			  #.(logior win:SWP_NOACTIVATE win:SWP_NOZORDER))
 	(let* ((index -1)
 	       (item-name "")
 	       ;;(cstr (ct::callocate (:char *) :size 256))
@@ -297,7 +321,7 @@
 (defconstant +rgb-bitmapinfo+
     (ct:callocate win:bitmapinfo :size +bitmapinfosize+))
 
-(defun acl-bitmapinfo (colors width height)
+(defun acl-bitmapinfo (colors width height medium)
   (assert (< (length colors) +maxcolors+))
   ;; returns the appropriate bitmapinfo and DIB_XXX_COLORS constant
   (let ((bitcount +bits-per-pixel+)
@@ -317,6 +341,12 @@
 	      )
     (dotimes (i (length colors))
       (let ((rgb (aref colors i)))
+	(cond ((eq rgb +foreground-ink+)
+	       (setq rgb (medium-foreground medium)))
+	      ((eq rgb +background-ink+)
+	       (setq rgb (medium-background medium)))
+	      ((eq rgb +transparent-ink+)
+	       (setq rgb (medium-background medium))))
 	(multiple-value-bind (red green blue) (color-rgb rgb)
 	  (ct:cset windows:bitmapinfo bmi
 		   (windows::bmicolors (fixnum i) rgbreserved) 
@@ -333,12 +363,12 @@
     ;; return values
     (values bmi win:DIB_RGB_COLORS)))
 
-(defmethod get-texture (device-context pixel-map colors)
+(defmethod get-texture (device-context pixel-map colors medium)
   (let* ((width (array-dimension pixel-map 1))
 	 (height (array-dimension pixel-map 0))
 	 texture-handle)
     (multiple-value-bind (bitmapinfo dib-mode)
-	(acl-bitmapinfo colors width height)
+	(acl-bitmapinfo colors width height medium)
       (setq texture-handle
 	(win:CreateDIBitmap
 	 device-context
@@ -348,43 +378,8 @@
 	 bitmapinfo 
 	 dib-mode))
       (when (zerop texture-handle)
-	(error "CreateDIBitmap: error"))
+	(check-last-error "CreateDIBitmap"))
       texture-handle)))
-
-
-;;; clipboard support
-#|| +++ broken (ct::callocate handle)
-(defconstant clphdata (ct::callocate handle))
-(defconstant clppdata (ct::callocate (:void *)))
-
-
-(defun lisp->clipboard (object)
-  (let ((*inside-convert-clipboard-from-lisp* t))
-    (when (OpenClipboard (ct:null-handle hwnd))
-      (unwind-protect
-	(add-string-to-clipboard object)
-	(CloseClipboard))))) 
-
-(defmethod clipboard->lisp ()
-  (when (OpenClipboard (ct:null-handle hwnd))
-    (unwind-protect
-      (progn
-	(GetClipboardData CF_TEXT clphdata)
-	(unless (ct:null-handle-p handle clphdata)
-	  (GlobalLock clphdata clppdata)  
-	  (unless (null-cpointer-p clppdata)
-	    (let* ((raw-clpsize (GlobalSize clphdata :static))
-		   (clpsize 
-		     (if (fixnump raw-clpsize)
-		       raw-clpsize
-		       most-positive-fixnum))
-		   (string (make-string clpsize)))
-	      (far-peek string clppdata 0 clpsize)
-	      (GlobalUnlock clphdata)
-	      (shorten-vector string (strlen string))
-	      string))))
-      (CloseClipboard))))
-||#
 
 ;;; about box support
 
@@ -394,4 +389,98 @@
 			    (clim-internals::frame-pretty-name frame)
 			    (lisp-implementation-version))
 		    :exit-boxes '((:exit "OK"))
-		    :title (format nil "About ~A" (clim-internals::frame-pretty-name frame))))
+		    :title (format nil "About ~A" 
+				   (clim-internals::frame-pretty-name frame))))
+
+(defun errno-to-text (errno)
+  (let* ((pointer (make-array 1 
+			      :element-type '(unsigned-byte 32)
+			      :initial-element 0))
+	 (flags (logior #x100		; format_message_allocate_buffer
+			#x1000		; format_message_from_system
+			))
+	 ;; Unfortunately, most of the interesting error codes are not
+	 ;; in the system's message table.  Where are they?  If we had
+	 ;; a handle to the relevant module, we could specify that
+	 ;; to FormatMessage in order to search a module's message table.
+	 (chars (formatmessage flags
+			       0 errno 0 
+			       pointer 0 0)))
+    (values (if (plusp chars)
+		(nsubstitute #\space #\return (ff:char*-to-string (aref pointer 0)))
+	      "unidentified system error")
+	    chars)))
+
+(defun check-last-error (name &key (action :error))
+  ;; Check the value of GetLastError.  It is quite
+  ;; impossible to ensure correct operation of CLIM
+  ;; without paying attention to the errors that come
+  ;; back from the system calls.  Sometimes, however,
+  ;; it is more appropriate to warn about the problem 
+  ;; than to signal an error.
+  (let* ((code (win:getlasterror)))
+    (cond ((zerop code) nil)
+	  ((eq action :error)
+	   (error "~A: (error ~A) ~A" name code (errno-to-text code)))
+	  ((eq action :warn)
+	   ;; Printing warnings on clim windows risks recursive
+	   ;; warning loop.
+	   (format *trace-output*
+		   "~&Warning: ~A: (error ~A) ~A~%" name code (errno-to-text code))
+	   code)
+	  (t code))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Clipboard Support
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; This seems to work, but CLIM doesn't really use it
+;; other than in one of the CLIM Demos.
+
+(defun lisp->clipboard (object &key (printer #'prin1-to-string)
+				    (format win:CF_TEXT))
+  ;; Can't open clipboard if somebody else has it open.
+  (if (win:OpenClipboard (ct:null-handle hwnd))
+      (unwind-protect
+	  (let* ((string 
+		   (let ((*print-readably* t))
+		     (funcall printer object)))
+		 (cstring nil)
+		 (l (length string))
+		 (hmem (win:GlobalAlloc (logior win:GMEM_MOVEABLE
+						win:GMEM_DDESHARE)
+					(1+ l)))
+		 (mem (win:GlobalLock hmem)))
+	    (setq cstring (ff:string-to-char* string mem))
+	    (win:GlobalUnlock hmem)
+	    ;; After calling SetClipboardData, the
+	    ;; clipboard owns hMem.  It must not be 
+	    ;; modified or freed.
+	    (or (win:emptyclipboard)
+		(check-last-error "EmptyClipboard"))
+	    (win:SetClipboardData format hmem)
+	    (ff:free-fobject-c cstring)
+	    t)
+	(win:CloseClipboard))
+    (check-last-error "OpenClipboard")))
+
+(defun clipboard->lisp (&key (parser #'read-from-string)
+			     (format win:CF_TEXT))
+  ;; Can't open clipboard if somebody else has it open.
+  (if (win:OpenClipboard (ct:null-handle hwnd))
+      (unwind-protect
+	  (let ((hmem (win:GetClipboardData format))
+		(string nil))
+	    ;; The clipboard owns hMem.  The application must
+	    ;; not modify it, free it, or rely on it's value being
+	    ;; stable after closing the clipboard.
+	    (when (zerop hmem)
+	      (check-last-error "GetClipboardData"))
+	    (setq string (ct:handle-value win:handle hmem))
+	    (cond ((zerop string) (values nil nil))
+		  (t
+		   (when (integerp string)
+		     (setq string (ff:char*-to-string string)))
+		   (values (funcall parser string) string))))
+	(win:CloseClipboard))
+    (check-last-error "OpenClipboard")))

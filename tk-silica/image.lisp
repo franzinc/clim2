@@ -1,9 +1,5 @@
-;; -*- mode: common-lisp; package: xm-silica -*-
-;;
-;;				-[Mon Aug  2 10:00:30 1993 by colin]-
-;;
-;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
-;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
+;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
+;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -19,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/tk-silica/image.lisp,v 1.24 1998/05/19 18:51:15 layer Exp $
+;; $Id: image.lisp,v 1.25 1998/08/06 23:17:24 layer Exp $
 
 (in-package :xm-silica)
 
@@ -443,7 +439,7 @@
 		 (unless  (eql (setq c (peek-char t stream)) #\newline)
 		   (return c))))))
 
-    (let (name width height ncolors pixels colors cpp)
+    (let (#+ignore name width height ncolors pixels colors cpp)
 
       (assert (eql #\/ (skip-whitespace)) () "File must begin with a comment")
 
@@ -454,6 +450,7 @@
 	  () "Expected char keyword" )
       (ensure-next-char #\*)
 
+      #+ignore
       (setq name (read-a-token #'(lambda (c) (or (alphanumericp c) (eql c #\_)))))
 
       (ensure-next-char #\[)

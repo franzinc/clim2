@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/pre-silica/cloe-applications.lisp,v 1.6 1997/02/05 01:49:51 tomj Exp $
+;; $Id: cloe-applications.lisp,v 1.7 1998/08/06 23:16:50 layer Exp $
 
 (in-package :clim-internals)
 

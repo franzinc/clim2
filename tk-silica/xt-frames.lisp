@@ -1,9 +1,5 @@
-;; -*- mode: common-lisp; package: xm-silica -*-
-;;
-;;				-[Wed Sep  8 11:40:41 1993 by colin]-
-;;
-;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
-;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
+;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
+;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -19,8 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/tk-silica/xt-frames.lisp,v 1.48 1998/05/19 18:51:20 layer Exp $
-
+;; $Id: xt-frames.lisp,v 1.49 1998/08/06 23:17:26 layer Exp $
 
 (in-package :xm-silica)
 
@@ -214,14 +209,18 @@
 (defmethod frame-manager-default-exit-boxes ((framem xt-frame-manager))
   '((:exit) (:abort)))
 
+(defvar *suppress-xevents* nil)
+
 (defmethod note-frame-iconified ((framem xt-frame-manager) frame)
-  (let ((display (port-display (port framem))))
-    (x11:xiconifywindow display (tk::widget-window (frame-shell frame))
-		    (xt::display-screen-number display))))
+  (unless *suppress-xevents*
+    (let ((display (port-display (port framem))))
+      (x11:xiconifywindow display (tk::widget-window (frame-shell frame))
+			  (xt::display-screen-number display)))))
 
 (defmethod note-frame-deiconified ((framem xt-frame-manager) frame)
-  (x11:xmapwindow (port-display (port framem))
-		  (tk::widget-window (frame-shell frame))))
+  (unless *suppress-xevents*
+    (x11:xmapwindow (port-display (port framem))
+		    (tk::widget-window (frame-shell frame)))))
 
 ;;;
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/hpgl/pkg.lisp,v 1.5 1997/02/05 01:48:53 tomj Exp $
+;; $Id: pkg.lisp,v 1.6 1998/08/06 23:16:41 layer Exp $
 
 "Copyright (c) 1991 by International Lisp Associates.  All rights reserved."
 "Portions copyright (c) 1992 Franz Inc. All rights reserved"

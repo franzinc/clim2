@@ -1,9 +1,5 @@
-;; -*- mode: common-lisp; package: tk -*-
-;;
-;;				-[Tue Oct 14 12:08:52 1997 by layer]-
-;;
-;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
-;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
+;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
+;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -19,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/tk/xm-widgets.lisp,v 1.28 1997/10/20 23:11:09 layer Exp $
+;; $Id: xm-widgets.lisp,v 1.29 1998/08/06 23:17:20 layer Exp $
 
 (in-package :tk)
 
@@ -95,6 +91,7 @@
 (defmethod convert-resource-in ((parent t) (type (eql 'xm-string-table)) value)
   value)
 
+#+broken
 (defun convert-xm-string-table-in (parent table n)
   (let ((r nil))
     (dotimes (i n (nreverse r))

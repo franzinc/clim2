@@ -1,10 +1,26 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
-
-;; $Header: /repo/cvs.copy/clim2/utils/transformations.lisp,v 1.15 1998/05/19 18:51:29 layer Exp $
+;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
+;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
+;;
+;; The software, data and information contained herein are proprietary
+;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
+;; given in confidence by Franz, Inc. pursuant to a written license
+;; agreement, and may be stored and used only in accordance with the terms
+;; of such license.
+;;
+;; Restricted Rights Legend
+;; ------------------------
+;; Use, duplication, and disclosure of the software, data and information
+;; contained herein by any agency, department or entity of the U.S.
+;; Government are subject to restrictions of Restricted Rights for
+;; Commercial Software developed at private expense as specified in
+;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
+;;
+;; $Id: transformations.lisp,v 1.16 1998/08/06 23:17:37 layer Exp $
 
 (in-package :clim-utils)
 
-"Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved."
+;;;"Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved."
 
 ;;; Generic Functions
 
@@ -687,14 +703,33 @@
   (declare (type real x y))
   (values (coordinate x) (coordinate y)))
 
+;; This macro is specially designed for the transformation functions
+;; and shouldn't be applied elsewhere without studying the context
+;; of how it is currently used.  It gets rid of a few million bytes
+;; of garbage without disturbing the status quo too much.  JPM 6/98.
+(defmacro quickadd (a b)
+  `(if (typep ,a 'fixnum)
+       (the fixnum (+ (the fixnum ,a) (the fixnum (round ,b))))
+     (the short-float (+ (the short-float (coerce ,a 'short-float))
+			 (the short-float ,b)))))
+
 (defmethod transform-position ((transform translation-transformation) x y)
+  #+original
   (declare (type real x y))
+  #+original
   (let ((x (coordinate x))
 	(y (coordinate y)))
     (declare (type coordinate x y))
     (with-slots (tx ty) transform
       (declare (type single-float tx ty))
-      (values (coordinate (+ x tx)) (coordinate (+ y ty))))))
+      (values (coordinate (+ x tx))
+	      (coordinate (+ y ty)))))
+  (declare (type real x y)
+	   (optimize (speed 3) (safety 0)))
+  (with-slots (tx ty) transform
+    (declare (type short-float tx ty))
+    (values (quickadd x tx)
+	    (quickadd y ty))))
 
 ;; coordinates *would* be single floats if we compiled with feature use-float-coordinates
 ;; ... why *don't* we?
@@ -769,7 +804,8 @@
 	  (coordinate x2) (coordinate y2)))
 
 (defmethod transform-rectangle* ((transform translation-transformation) x1 y1 x2 y2)
-  (declare (type real x1 y1 x2 y2))
+  (declare (type real x1 y1 x2 y2)
+	   (optimize (speed 3) (safety 0)))
   (let ((x1 (coordinate x1))
 	(y1 (coordinate y1))
 	(x2 (coordinate x2))
@@ -777,8 +813,13 @@
     (declare (type coordinate x1 y1 x2 y2))
     (with-slots (tx ty) transform
       (declare (type single-float tx ty))
+      #+original
       (values (coordinate (+ x1 tx)) (coordinate (+ y1 ty))
-	      (coordinate (+ x2 tx)) (coordinate (+ y2 ty))))))
+	      (coordinate (+ x2 tx)) (coordinate (+ y2 ty)))
+      (values (quickadd x1 tx)
+	      (quickadd y1 ty)
+	      (quickadd x2 tx)
+	      (quickadd y2 ty)))))
 
 (defmethod transform-rectangle* ((transform standard-transformation) x1 y1 x2 y2)
   (declare (type real x1 y1 x2 y2))

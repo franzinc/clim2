@@ -1,9 +1,5 @@
-;; -*- mode: common-lisp; package: xm-silica -*-
-;;
-;;				-[Thu Dec 14 20:13:58 1995 by duane]-
-;;
-;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
-;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
+;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
+;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -19,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/tk-silica/xt-silica.lisp,v 1.109 1998/05/19 18:51:20 layer Exp $
+;; $Id: xt-silica.lisp,v 1.110 1998/08/06 23:17:28 layer Exp $
 
 (in-package :xm-silica)
 
@@ -89,21 +85,17 @@
 
 
 (defmethod restart-port ((port xt-port))
-  (flet ((cleanup-port-after-dumplisp (process)
-	   (mp::process-kill process)))
-    (let ((process (port-process port)))
-      (when process
-	(clim-sys:destroy-process process))
-      (setq process
-	(mp:process-run-function
-	 (list :name (format nil "CLIM Event Dispatcher for ~A"
-			     (port-server-path port))
-	       :priority 1000)
-	 #'port-event-loop port))
-      (setf (getf (mp:process-property-list process) :survive-dumplisp)
-	#'cleanup-port-after-dumplisp)
-      (setf (getf (mp:process-property-list process) :no-interrupts) t)
-      (setf (port-process port) process))))
+  (let ((process (port-process port)))
+    (when process
+      (clim-sys:destroy-process process))
+    (setq process
+      (mp:process-run-function
+       (list :name (format nil "CLIM Event Dispatcher for ~A"
+			   (port-server-path port))
+	     :priority 1000)
+       #'port-event-loop port))
+    (setf (getf (mp:process-property-list process) :no-interrupts) t)
+    (setf (port-process port) process)))
 
 (defparameter *use-color* t)		; For debugging monochrome
 
@@ -639,18 +631,25 @@
 (defmethod sheet-mirror-map-callback (event sheet)
   (let ((frame (pane-frame sheet)))
     (when frame
-      (let ((state (frame-state frame)))
+      (let ((state (frame-state frame))
+	    ;; Inform lisp but don't feed event back to X.
+	    (*suppress-xevents* t))
+	(declare (special *suppress-xevents*))
 	(case (tk::event-type event)
 	  (:map-notify
 	   (when (eq state :shrunk)
-	     (setf (frame-state frame) :enabled)
-	     #+ignore
-	     (note-frame-deiconified (frame-manager frame) frame)))
+	     (setf (frame-state frame) :enabled)))
 	  (:unmap-notify
+	   ;; spr17465
+	   ;; On Sparc in CDE (common desktop environment),
+	   ;; switching out of a workspace will send an UnmapNotify
+	   ;; message.  Iconifying a window also sends an UnmapNotify
+	   ;; message.  There is apparently no way to tell the difference.
+	   ;; The right thing to do is to stop calling XIconifyWindow in
+	   ;; response, since it is not only unnecessary, it is detrimental.  
+	   ;; That is the purpose of *suppress-xevents*.
 	   (when (eq state :enabled)
-	     (setf (frame-state frame) :shrunk)
-	     #+ignore
-	     (note-frame-iconified (frame-manager frame) frame))))))))
+	     (setf (frame-state frame) :shrunk))))))))
 
 (defmethod find-widget-class-and-name-for-sheet
     ((port xt-port) (parent t) (sheet basic-sheet))
@@ -1411,6 +1410,7 @@
 		(and style `(:text-style ,style)))))))))
 
 (defun convert-text-style (port display text-style)
+  (declare (ignore display))
   (ignore-errors
    (let ((spec (read-from-string text-style)))
      (if (consp spec)
@@ -1758,12 +1758,14 @@ the geometry of the children. Instead the parent has control. "))
   cursor)
 
 (defmethod realize-cursor :around ((port xt-port) sheet cursor)
+  (declare (ignore sheet))
   (with-slots (cursor-cache) port
     (or (getf cursor-cache cursor)
 	(setf (getf cursor-cache cursor)
 	  (call-next-method)))))
 
 (defmethod realize-cursor ((port xt-port) sheet (cursor null))
+  (declare (ignore sheet))
   x11:none)
 
 (defmethod realize-cursor ((port xt-port) sheet (cursor symbol))
