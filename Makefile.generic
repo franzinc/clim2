@@ -1,4 +1,4 @@
-# $Header: /repo/cvs.copy/clim2/Makefile.generic,v 1.44 1998/02/04 22:22:19 layer Exp $
+# $Header: /repo/cvs.copy/clim2/Makefile.generic,v 1.44.2.1 1998/02/05 18:16:34 layer Exp $
 #
 #  Makefile.generic for CLIM 2.0
 #
@@ -136,8 +136,11 @@ $(CLIM): FORCE $(PRODUCT-OBJS) $(ICS-PRODUCT-OBJS)
 	       (setq sys::*libwnn-pathname* \"$(WNNLIB)\") \
 	       (load \"misc/dev-load-1.lisp\") \
 	       (load-it '$(SYSTEM)))) \
+	   :autoload-warning nil \
 	   :image-only t \
 	   :purify nil \
+	   :debug-on-error t \
+	   :internal-debug \"build-clim.out\" \
 	   :shlib-warning nil \
 	   :libfasl-warning nil \
 	   :record-source-file-info t :load-source-file-info t \

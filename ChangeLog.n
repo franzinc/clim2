@@ -11,6 +11,13 @@ Tests for new features:	<`no new features', `no tests for new features', or
 	* <changes go here...>
 
 *******************************************************************************
+2.2.1.5.1
+
+Thu Feb  5 10:15:13 1998  Kevin Layer  <layer@ultra>
+
+	* Makefile.generic: disable the autoload warning
+
+*******************************************************************************
 2.2.1.5
 
 Documentation changes:	none
