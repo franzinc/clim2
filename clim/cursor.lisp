@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: cursor.lisp,v 1.8 92/04/03 12:04:32 cer Exp Locker: cer $
+;; $fiHeader: cursor.lisp,v 1.9 92/04/15 11:46:20 cer Exp $
 
 (in-package :clim-internals)
 
@@ -33,14 +33,14 @@
 ;;--- The positions here should be a COORDINATE pair, no?
 (defclass text-cursor
 	  (cursor #+Silica region)
-    ((x :initarg :x)
-     (y :initarg :y)
+    ((x :initarg :x :type coordinate)
+     (y :initarg :y :type coordinate)
      (stream :initarg :stream)
-     (flags :initform 0)
-     (width :initarg :width)
+     (flags :initform 0 :type fixnum)
+     (width :initarg :width :type coordinate)
      (plist :initform nil))
-  (:default-initargs :x 0 :y 0
-		     :width 8
+  (:default-initargs :x (coordinate 0) :y (coordinate 0)
+		     :width (coordinate 8)
 		     :stream nil))
 
 (defmethod bounding-rectangle* ((cursor text-cursor))
@@ -68,18 +68,20 @@
 #-Silica
 (defmethod cursor-set-position ((cursor text-cursor) nx ny)
   (with-slots (x y visibility) cursor
-    (unless (and (= x nx)
-		 (= y ny))
+    (unless (and (= x (coordinate nx))
+		 (= y (coordinate ny)))
       (when (eq visibility :on)
 	(draw-cursor cursor nil))
-      (setf x nx y ny)
+      (setf x (coordinate nx)
+	    y (coordinate ny))
       (when (eq visibility :on)
 	(draw-cursor cursor T)))))
 
 #+Silica
 (defmethod cursor-set-position ((cursor text-cursor) nx ny)
   (with-slots (x y visibility) cursor
-    (setf x nx y ny)))
+    (setf x (coordinate nx) 
+	  y (coordinate ny))))
 
 #+CLIM-1-compatibility
 (define-compatibility-function (cursor-position* cursor-position)
@@ -143,16 +145,10 @@
 ;;; state transitions.  For example, the cursor might be getting the focus, and
 ;;; thus change from a hollow rectangle to a filled one (or in Genera, it might
 ;;; start blinking).
-
-(defmethod port-note-cursor-change :after ((port port)
-					   cursor 
-					   stream 
-					   type 
-					   old
-					   new)
+(defmethod port-note-cursor-change :after ((port port) 
+					   cursor stream type old new)
   (declare (ignore old type cursor))
-  (setf (port-keyboard-input-focus port) 
-    (and new stream)))
+  (setf (port-keyboard-input-focus port) (and new stream)))
 
 (defmethod port-note-cursor-change ((port port) 
 				    cursor stream (type (eql 'cursor-state)) old new)
@@ -194,20 +190,19 @@
   ;; --- protocol violations:  output-recording-options
   ;; ---                       graphics protocol
   ;; ---                       output protocol (line-height)
-  #-Ignore (declare (ignore on-p))
+  (declare (ignore on-p))
   (let ((height (stream-line-height stream))
 	(width (slot-value cursor 'width)))
     (unless focus-p (setq focus (cursor-focus cursor)))
     (with-output-recording-options (stream :record nil)
       (draw-rectangle* stream x y (+ x width) (+ y height) :filled focus
-		       :ink +flipping-ink+ #+Ignore (if on-p +foreground-ink+ +background-ink+)))
+		       :ink +flipping-ink+))	;---yetch
     ;; --- do we really want to do this here??
     (force-output stream)))
 
 #-Silica
 (defmethod draw-cursor ((cursor text-cursor) on-p)
   (with-slots (x y stream) cursor
-    (declare (type coordinate x y))
     (when stream
       ;; --- protocol violations:  output-recording-options
       ;; ---                       graphics protocol
@@ -216,14 +211,12 @@
 	(declare (type coordinate height))
 	(with-output-recording-options (stream :record nil)
 	  (draw-line-internal
-	    stream 0 0
-	    (the coordinate x) (the coordinate (+ y height))
-	    (the coordinate (+ x 2)) (the coordinate (+ y height 2))
+	    stream (coordinate 0) (coordinate 0)
+	    x (+ y height) (+ x 2) (+ y height 2)
 	    (if on-p +foreground-ink+ +background-ink+) +highlighting-line-style+)
 	  (draw-line-internal
-	    stream 0 0
-	    (the coordinate x) (the coordinate (+ y height))
-	    (the coordinate (- x 2)) (the coordinate (+ y height 2))
+	    stream (coordinate 0) (coordinate 0)
+	    x (+ y height) (- x 2) (+ y height 2)
 	    (if on-p +foreground-ink+ +background-ink+) +highlighting-line-style+))
 	;; --- do we really want to do this here??
 	(force-output stream)))))

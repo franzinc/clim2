@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics.lisp,v 1.9 92/04/15 11:45:12 cer Exp Locker: cer $
+;; $fiHeader: graphics.lisp,v 1.10 92/04/28 09:25:19 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -64,15 +64,14 @@
 ;; One would imagine that WITH-DRAWING-OPTIONS affects this rather
 ;; than the medium
 ;;--- I don't think so --SWM
-(defclass sheet-with-graphics-state ()
-	  ((foreground :initform +black+ :accessor sheet-foreground)
-	   (background :initform +white+ :accessor sheet-background)
-	   (ink :initform +white+ :accessor sheet-ink)))
+(defclass sheet-with-graphics-state-mixin ()
+    ((foreground :initform +black+ :accessor sheet-foreground)
+     (background :initform +white+ :accessor sheet-background)
+     (ink :initform +white+ :accessor sheet-ink)))
 
-(defmethod (setf sheet-foreground) :after (nv (sheet sheet-with-graphics-state))
+(defmethod (setf sheet-foreground) :after (ink (sheet sheet-with-graphics-state-mixin))
   (when (sheet-medium sheet)
-    (setf (medium-foreground (sheet-medium sheet))
-      nv)))
+    (setf (medium-foreground (sheet-medium sheet)) ink)))
 
 
 (eval-when (compile load eval)
@@ -337,7 +336,7 @@
       `(progn
 	 (defun ,name (medium ,@unspread-argument-names &rest args
 		       &key ,@drawing-options ,@unspread-other-keyword-arguments) 
-	   (declare (ignore ,@drawing-options)
+	   (declare (ignore ,@drawing-options ,@keyword-argument-names)
 		    (dynamic-extent args))
 	   ,(if keywords-to-spread
 		  `(with-keywords-removed 
@@ -535,6 +534,8 @@
   :drawing-options :line-joint
   :points-to-transform (x1 y1 x2 y2))
 
+;;--- What about DRAW-RECTANGLES[*]?
+
 ;; DRAW-PATTERN* is a special case of DRAW-RECTANGLE*, believe it or not...
 (defun draw-pattern* (medium pattern x y &key clipping-region transformation)
   (check-type pattern pattern)
@@ -570,8 +571,7 @@
 	 (dy (- y2 y1))
 	 (next-x x2)
 	 (next-y y2))
-    (dotimes (i (- nsides 2))
-      #-(or Allegro Minima) (declare (ignore i))
+    (repeat (- nsides 2)
       (multiple-value-setq (dx dy)
 	(transform-distance transform dx dy))
       (incf next-x dx)
@@ -624,9 +624,9 @@
   (apply #'draw-ellipse medium center radius 0 0 radius args))
 
 (define-compiler-macro draw-circle (medium center radius &rest args)
-  (let ((gm (gensym))
-	(gc (gensym))
-	(gr (gensym)))
+  (let ((gm (gensymbol 'medium))
+	(gc (gensymbol 'center))
+	(gr (gensymbol 'radius)))
     `(let ((,gm ,medium)
 	   (,gc ,center)
 	   (,gr ,radius))
@@ -640,10 +640,10 @@
   (apply #'draw-ellipse* medium center-x center-y radius 0 0 radius args))
 
 (define-compiler-macro draw-circle* (medium center-x center-y radius &rest args)
-  (let ((gm (gensym))
-	(gx (gensym))
-	(gy (gensym))
-	(gr (gensym)))
+  (let ((gm (gensymbol 'medium))
+	(gx (gensymbol 'x))
+	(gy (gensymbol 'y))
+	(gr (gensymbol 'radius)))
     `(let ((,gm ,medium)
 	   (,gx ,center-x)
 	   (,gy ,center-y)

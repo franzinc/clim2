@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: text-style.lisp,v 1.5 92/03/04 16:19:56 cer Exp $
+;; $fiHeader: text-style.lisp,v 1.6 92/03/10 10:11:44 cer Exp $
 
 (in-package :silica)
 
@@ -463,31 +463,6 @@
       (stream-string-output-size medium string
 				 :text-style text-style :start start :end end)
     (values largest-x total-height last-x last-y baseline)))
-
-;;--- Make this stuff be as DEFPROTOCOL!
-(defmethod text-style-height ((text-style standard-text-style)
-			      (stream standard-encapsulating-stream))
-  (text-style-height text-style (slot-value stream 'stream)))
-
-(defmethod text-style-width ((text-style standard-text-style)
-			     (stream standard-encapsulating-stream))
-  (text-style-width text-style (slot-value stream 'stream)))
-
-(defmethod text-style-ascent ((text-style standard-text-style)
-			      (stream standard-encapsulating-stream))
-  (text-style-ascent text-style (slot-value stream 'stream)))
-
-(defmethod text-style-descent ((text-style standard-text-style) 
-			       (stream standard-encapsulating-stream))
-  (text-style-descent text-style (slot-value stream 'stream)))
-
-(defmethod text-style-fixed-width-p ((text-style standard-text-style) 
-				     (stream standard-encapsulating-stream))
-  (text-style-fixed-width-p text-style (slot-value stream 'stream)))
-
-(defmethod text-size ((stream standard-encapsulating-stream) string
-		      &key (text-style (medium-merged-text-style stream)) (start 0) end)
-  (text-size stream string :text-style text-style :start start :end end))
 
 
 #-Genera

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept-values.lisp,v 1.18 92/04/30 09:09:26 cer Exp Locker: cer $
+;; $fiHeader: accept-values.lisp,v 1.19 92/05/06 15:37:34 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -46,7 +46,9 @@
       (presentation :initarg :presentation
 		    :accessor accept-values-query-presentation)
       (changed-p :initform nil
-		 :accessor accept-values-query-changed-p))
+		 :accessor accept-values-query-changed-p)
+      (active-p :initform t
+		:accessor accept-values-query-active-p))
   (:default-initargs :presentation nil))
 
 (defresource accept-values-stream (encapsulee)
@@ -63,8 +65,11 @@
 (defmethod prompt-for-accept :around ((stream accept-values-stream) type (view view)
 				      &rest accept-args
 				      &key query-identifier (prompt t) (display-default nil)
+					   (active-p t)
 				      &allow-other-keys)
   (declare (dynamic-extent accept-args))
+  ;;--- When ACTIVE-P is NIL, this should do some sort of "graying out"
+  (declare (ignore active-p))
   ;; ACCEPT within ACCEPTING-VALUES has to have a query-identifier, so default
   ;; it here and return it.  It's better to cons this list than to call format
   ;; to intern something.
@@ -85,9 +90,11 @@
 
 (defmethod stream-accept ((stream accept-values-stream) ptype
 			  &key query-identifier (prompt t) (default nil default-supplied-p)
+			       (active-p t)
 			  &allow-other-keys)
+  ;;--- When ACTIVE-P is NIL, this should do some sort of "graying out"
   (let ((query (find-or-add-query stream query-identifier ptype prompt
-				  default default-supplied-p)))
+				  default default-supplied-p active-p)))
     (values (accept-values-query-value query)
 	    (accept-values-query-type query)
 	    ;; Set this to NIL so that it appears that nothing has
@@ -97,7 +104,7 @@
 
 ;; Probably should be keyword arguments...
 (defmethod find-or-add-query ((stream accept-values-stream) query-identifier ptype prompt
-			      default default-supplied-p)
+			      default default-supplied-p active-p)
   (let ((avv-record
 	  #-ignore (slot-value stream 'avv-record)
 	  #+ignore (find-accept-values-record
@@ -111,6 +118,7 @@
 				     :presentation-type ptype
 				     :value default
 				     :query-identifier query-identifier)))
+	(setf (accept-values-query-active-p query) active-p)
 	;;--- Really wants to reuse existing presentation if found and
 	;;--- make sure that that presentation gets re-parented if necessary
 	;;--- (suppose inside FORMATTING TABLE...)
@@ -186,19 +194,19 @@
   (:pane 
     (with-slots (stream own-window  exit-button-stream) *application-frame*
       (vertically ()
-	  (outlining ()
-	(scrolling  (:scroll-bars :dynamic)
-	  (progn
-	    (setq stream
-		  (make-instance 'accept-values-stream
-				 :stream (setf own-window
-					       (make-pane 'clim-stream-pane
-							  :initial-cursor-visibility nil))))
-	    own-window)))
-	  (outlining ()
-	(setf exit-button-stream
-	      (make-pane 'clim-stream-pane
-			 :initial-cursor-visibility nil))))))
+	(outlining ()
+	  (scrolling (:scroll-bars :dynamic)
+	    (progn
+	      (setq stream
+		    (make-instance 'accept-values-stream
+				   :stream (setf own-window
+						 (make-pane 'clim-stream-pane
+							    :initial-cursor-visibility nil))))
+	      own-window)))
+	(outlining ()
+	  (setf exit-button-stream
+		(make-pane 'clim-stream-pane
+			   :initial-cursor-visibility nil))))))
   (:menu-bar nil)
   (:top-level (accept-values-top-level))
   (:command-table accept-values)
@@ -286,6 +294,8 @@
 					      :continuation continuation
 					      :exit-boxes exit-boxes
 					      :own-window the-own-window
+					      :pretty-name label
+					      :width width :height height
 					      :x-position x-position
 					      :y-position y-position
 					      :right-margin right-margin
@@ -296,7 +306,7 @@
 					      resynchronize-every-pass
 					      :resize-frame resize-frame 
 					      :check-overlapping
-					      check-overlapping)))
+					        check-overlapping)))
 	   ;; What do we do about sizing?????
 	   ;; What do we do about positioning????
 	   (let ((*avv-calling-frame* *application-frame*))
@@ -394,7 +404,7 @@
 		     exit-button-stream
 		     :size-fn
 		     #'(lambda (pane w h)
-			 (change-space-requirement pane 
+			 (change-space-requirements pane 
 			  :width w :min-width w :max-width w
 			  :height h :min-height h :max-height h)))
 		    (size-menu-appropriately own-window
@@ -501,10 +511,11 @@
 
 (define-presentation-type accept-values-choice ())
 
-(defun-inline accept-values-query-valid-p (query-record)
-  (let ((avv-record (find-accept-values-record query-record)))
-    (and avv-record
-	 (= (slot-value avv-record 'tick) *current-accept-values-tick*))))
+(defun-inline accept-values-query-valid-p (query query-record)
+  (and (or (null query) (accept-values-query-active-p query))
+       (let ((avv-record (find-accept-values-record query-record)))
+	 (and avv-record
+	      (= (slot-value avv-record 'tick) *current-accept-values-tick*)))))
 
 (define-accept-values-command com-edit-avv-choice
     ((choice 'accept-values-choice))
@@ -516,8 +527,8 @@
     (accept-values-choice com-edit-avv-choice accept-values
      :documentation "Edit this field"
      :pointer-documentation "Edit this field"
-     :tester ((presentation)
-	      (accept-values-query-valid-p presentation))
+     :tester ((object presentation)
+	      (accept-values-query-valid-p object presentation))
      :gesture :select)
     (object)
   (list object))
@@ -532,8 +543,8 @@
     (accept-values-choice com-modify-avv-choice accept-values
      :documentation "Modify this field"
      :pointer-documentation "Modify this field"
-     :tester ((presentation)
-	      (accept-values-query-valid-p presentation))
+     :tester ((object presentation)
+	      (accept-values-query-valid-p object presentation))
      :gesture :describe)
     (object)
   (list object))
@@ -633,8 +644,8 @@
     (accept-values-choice com-delete-avv-choice accept-values
      :documentation "Remove this field"
      :pointer-documentation "Remove this field"
-     :tester ((presentation)
-	      (accept-values-query-valid-p presentation))
+     :tester ((object presentation)
+	      (accept-values-query-valid-p object presentation))
      :gesture :delete)
     (object)
   (list object))
@@ -730,7 +741,7 @@
      :documentation document-command-button
      :pointer-documentation document-command-button
      :tester ((presentation)
-	      (accept-values-query-valid-p presentation))
+	      (accept-values-query-valid-p nil presentation))
      :gesture :select)
     (object presentation)
   (list object presentation))
@@ -778,8 +789,11 @@
     (accept-values-one-of com-avv-choose-one-of accept-values
      :documentation "Select this value"
      :pointer-documentation "Select this value"
-     :tester ((presentation)
-	      (accept-values-query-valid-p presentation))
+     :tester ((object presentation)
+	      (accept-values-query-valid-p
+		(accept-values-multiple-choices-query-identifier
+		  (accept-values-multiple-choice-choices object))
+		presentation))
      :gesture :select)
     (object)
   (list object))
@@ -854,8 +868,11 @@
     (accept-values-some-of com-avv-choose-some-of accept-values
      :documentation "De/Select this value"
      :pointer-documentation "De/Select this value"
-     :tester ((presentation)
-	      (accept-values-query-valid-p presentation))
+     :tester ((object presentation)
+	      (accept-values-query-valid-p
+		(accept-values-multiple-choices-query-identifier
+		  (accept-values-multiple-choice-choices object))
+		presentation))
      :gesture :select)
     (object)
   (list object))
@@ -1043,8 +1060,8 @@
 (defmethod prompt-for-accept ((stream accept-values-stream) type (view gadget-dialog-view)
 			      &rest accept-args 
 			      &key query-identifier &allow-other-keys)
-  ;; This does nothing, the gadget ACCEPT methods should provide a
-  ;; label
+  (declare (ignore accept-args))
+  ;; This does nothing, the gadget ACCEPT methods should provide a label
   (unless (gadget-includes-prompt-p type stream view)
     (call-next-method))
   query-identifier)
@@ -1076,21 +1093,24 @@
 			    (declare (ignore gadget))
 			    (com-exit-avv))))))))))
 
-
 ;; It's OK that this is only in the ACCEPT-VALUES command table because
 ;; we're going to execute it manually in the callbacks below
 (define-command (com-change-query :command-table accept-values)
-    ((id t)
+    ((query t)
      (new-value t))
-  (with-slots (value changed-p) id
+  (with-slots (value changed-p) query
     (setf value new-value
 	  changed-p t)))
 
-(defmethod accept-values-value-changed-callback (gadget new-value stream query-id)
+(defmethod accept-values-value-changed-callback (gadget new-value stream query)
   (declare (ignore gadget))
-  (when (accept-values-query-valid-p (accept-values-query-presentation query-id))
+  (when (accept-values-query-valid-p query (accept-values-query-presentation query))
     ;; Only call the callback if the query is still valid
-    (do-avv-command new-value stream query-id)))
+    (do-avv-command new-value stream query)))
+
+(defun make-accept-values-value-changed-callback (stream query)
+  ;; We attach a callback function directly now
+  `(,#'accept-values-value-changed-callback ,stream ,query))
 
 (defmethod accept-values-value-changed-callback ((gadget radio-box) new-value stream query-id)
   (call-next-method gadget (gadget-id new-value) stream query-id))
@@ -1098,14 +1118,10 @@
 (defmethod accept-values-value-changed-callback ((gadget silica::check-box) new-value stream query-id)
   (call-next-method gadget (mapcar #'gadget-id new-value) stream query-id))
 
-(defun make-accept-values-value-changed-callback (stream query-id)
-  ;; We attach a callback function directly now
-  `(,#'accept-values-value-changed-callback ,stream ,query-id))
-
-(defun do-avv-command (new-value client id)
+(defun do-avv-command (new-value client query)
   (throw-highlighted-presentation
    (make-instance 'standard-presentation
-		  :object `(com-change-query ,id ,new-value)
+		  :object `(com-change-query ,query ,new-value)
 		  :type 'command)
    *input-context*
    ;;--- It would be nice if we had the real event...
@@ -1131,26 +1147,26 @@
    (stream :unique-id query-identifier :id-test #'equal
 	   :cache-value cache-value :cache-test cache-test)
    (with-output-as-gadget (stream)
-     (let ((id (stream-current-output-record (slot-value stream 'stream)))
+     (let ((record (stream-current-output-record (slot-value stream 'stream)))
 	   (client (make-instance 'accept-values-command-button
 				  :continuation continuation
 				  :documentation documentation
 				  :resynchronize resynchronize)))
        (make-pane 'push-button
-		  :label prompt
-		  :id id :client client
-		  :activate-callback
-		    #'(lambda (button)
-		        (when (accept-values-query-valid-p id)
-			      (throw-highlighted-presentation
-				(make-instance 'standard-presentation
-					       :object `(com-avv-command-button ,client ,id)
-					       :type 'command)
-				*input-context*
-				;;--- It would be nice if we had the real event...
-				(make-instance 'pointer-button-press-event
-					       :sheet (sheet-parent button)
-					       :x 0
-					       :y 0
-					       :modifiers 0
-					       :button +pointer-left-button+)))))))))
+	 :label prompt
+	 :id record :client client
+	 :activate-callback
+	   #'(lambda (button)
+	       (when (accept-values-query-valid-p nil record)	;---can't be right
+		 (throw-highlighted-presentation
+		   (make-instance 'standard-presentation
+				  :object `(com-avv-command-button ,client ,record)
+				  :type 'command)
+		   *input-context*
+		   ;;--- It would be nice if we had the real event...
+		   (make-instance 'pointer-button-press-event
+				  :sheet (sheet-parent button)
+				  :x 0
+				  :y 0
+				  :modifiers 0
+				  :button +pointer-left-button+)))))))))

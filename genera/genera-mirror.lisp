@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: GENERA-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: genera-mirror.lisp,v 1.2 92/03/04 16:22:50 cer Exp $
+;; $fiHeader: genera-mirror.lisp,v 1.3 92/04/15 11:48:00 cer Exp $
 
 (in-package :genera-clim)
 
@@ -142,7 +142,8 @@
 (defmethod mirror-inside-edges* ((port genera-port) sheet)
   (multiple-value-bind (left top right bottom)
       (mirror-native-edges* port sheet)
-    (values 0 0 (- right left) (- bottom top))))
+    (values (coordinate 0) (coordinate 0) 
+	    (- right left) (- bottom top))))
  
 (defmethod set-sheet-mirror-edges* ((port genera-port) sheet 
 				    left top right bottom)

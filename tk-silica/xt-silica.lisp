@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.23 92/04/30 09:09:55 cer Exp Locker: cer $
+;; $fiHeader: xt-silica.lisp,v 1.24 92/05/06 15:38:00 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -592,21 +592,23 @@
   (let* ((display (port-display port))
 	 (screen (x11:xdefaultscreen display)))
     (with-slots (silica::mm-height silica::mm-width
-				   silica::pixel-height silica::pixel-width
-				   silica::pixels-per-point) graft
+		 silica::pixel-height silica::pixel-width
+		 silica::pixels-per-point) graft
       ;;-- If anyone cared we could just grab the screen and call the
       ;;-- accessors on that
       (setq silica::mm-width (x11:xdisplaywidthmm display screen)
 	    silica::mm-height (x11:xdisplayheightmm display screen)
 	    silica::pixel-width (x11::xdisplaywidth display screen)
 	    silica::pixel-height (x11::xdisplayheight display screen)
-	    silica::pixels-per-point (float (/ silica::pixel-width (* 72 (/ silica::mm-width 25.4)))))
+	    silica::pixels-per-point (float (/ silica::pixel-width
+					       (* 72 (/ silica::mm-width 25.4)))))
       ;;--- Mess with the region
       (warn "Do something about the graft")
       (setf (sheet-region graft)
 	(ecase (graft-units graft)
 	  ((:device :pixel)
-	   (make-bounding-rectangle 0 0 silica::pixel-width silica::pixel-height))))
+	   (make-bounding-rectangle 0 0
+				    silica::pixel-width silica::pixel-height))))
       ;;-- what about the transformation
       )))
 
@@ -614,9 +616,8 @@
   (when (sheet-mirror sheet)
     (multiple-value-bind (x y width height)
 	(get-values (sheet-mirror sheet) :x :y :width :height)
-      (values x y 
-	      (+ x width)
-	      (+ y height)))))
+      (values (coordinate x) (coordinate y) 
+	      (coordinate (+ x width)) (coordinate (+ y height))))))
 
 (defmethod mirror-region ((port xt-port) sheet)
   (multiple-value-call #'make-bounding-rectangle
@@ -625,18 +626,21 @@
 (defmethod mirror-inside-region* ((port xt-port) sheet)
   (multiple-value-bind (minx miny maxx maxy)
       (mirror-region* port sheet)
-    (values 0 0 (- maxx minx) (- maxy miny))))
+    (values (coordinate 0) (coordinate 0) 
+	    (- maxx minx) (- maxy miny))))
 
 (defmethod mirror-native-edges* ((port xt-port) sheet)
   (let* ((mirror (sheet-direct-mirror sheet)))
     (multiple-value-bind (x y width height)
 	(get-values mirror :x :y :width :height)
-      (values x y (+ x width) (+ y height)))))
+      (values (coordinate x) (coordinate y)
+	      (coordinate (+ x width)) (coordinate (+ y height))))))
 
 (defmethod mirror-inside-edges* ((port xt-port) sheet)
   (multiple-value-bind (a b c d)
       (mirror-native-edges* port sheet)
-    (values 0 0 (- c a) (- d b))))
+    (values (coordinate 0) (coordinate 0)
+	    (- c a) (- d b))))
 
 (defmethod set-sheet-mirror-edges* ((port xt-port) sheet 
 				    target-left target-top
@@ -997,7 +1001,7 @@
 	       (medium-background pane))
     (let ((w (sheet-mirror pane)))
       ;;-- What about the case when there is a pixmap
-      (when (typep w 'xt::xt-root-class)
+      (when (typep w 'xm-drawing-area)
 	(multiple-value-bind
 	    (foreground background)
 	    (tk::get-values w :foreground :background)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics-recording.lisp,v 1.4 92/04/15 11:46:41 cer Exp Locker: cer $
+;; $fiHeader: graphics-recording.lisp,v 1.5 92/04/28 09:25:47 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -119,7 +119,10 @@
 	     (call-next-method)))
 
 	 (defmethod replay-output-record ((record ,class) stream 
-					  &optional region (x-offset 0) (y-offset 0))
+					  &optional region 
+						    (x-offset (coordinate 0)) 
+						    (y-offset (coordinate 0)))
+	   (declare (type coordinate x-offset y-offset))
 	   (declare (ignore region))
 	   (with-slots (,@slots) record
 	     (with-sheet-medium (medium stream)
@@ -407,13 +410,14 @@
 (defmethod draw-design ((polygon standard-polygon) stream &rest args &key ink line-style)
   (declare (dynamic-extent args)
 	   (ignore ink line-style))
-  (apply #'draw-polygon stream (polygon-points polygon) :closed t :filled t args))
+  (apply #'draw-polygon* stream (coerce (slot-value polygon 'clim-utils::coords) 'list)
+			 :closed t :filled t args))
 
 (defmethod draw-design ((polyline standard-polyline) stream &rest args &key ink line-style)
   (declare (dynamic-extent args)
 	   (ignore ink line-style))
-  (with-slots (closed) polyline
-    (apply #'draw-polygon stream (polygon-points polyline) :closed closed :filled nil args)))
+  (apply #'draw-polygon* stream (coerce (slot-value polyline 'clim-utils::coords) 'list)
+			 :closed (polyline-closed polyline) :filled nil args))
 
 (defun point-sequence-bounding-rectangle (list-of-x-and-ys line-style)
   (let* ((minx (car list-of-x-and-ys))
@@ -543,6 +547,7 @@
 
 ;;--- Where is DRAW-TEXT?  and/or DRAW-STRING and DRAW-CHARACTER?
 
+
 (define-output-recorder text-output-record
     draw-text (text-style ink)
     :bounding-rectangle
@@ -605,9 +610,7 @@
       (:bottom (setq vt (- y height)
 		     vb y))
       ;;--- Use FLOOR and CEILING, no?
-      (:center 
-       (let ((h2 (round height 2))) 
-	 (setq vt (- y h2)
-	       vb (+ y h2)))))
-    (values vx vt vr vb)))
-
+      (:center (setq vt (- y (round height 2))
+		     vb (+ y (round height 2)))))
+    (values (coordinate vx) (coordinate vt) 
+	    (coordinate vr) (coordinate vb))))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: histories.lisp,v 1.4 92/03/04 16:21:47 cer Exp $
+;; $fiHeader: histories.lisp,v 1.5 92/04/15 11:46:42 cer Exp $
 
 (in-package :clim-internals)
 
@@ -88,8 +88,7 @@
       (let ((new-elements
 	      (let ((new nil)
 		    (elts elements))
-		(dotimes (i length)
-		  #-(or Allegro Minima) (declare (ignore i))
+		(repeat length
 		  (push (pop elts) new))
 		(nreverse new))))
 	 (setq elements new-elements
@@ -135,8 +134,7 @@
   (with-slots (rotation) history
     (let ((index (+ (or index rotation) (or offset 0)))
 	  (length (history-length history)))
-      (dotimes (n (if cutoff-length (min length cutoff-length) length))
-	#-(or Allegro Minima) (declare (ignore n))
+      (repeat (if cutoff-length (min length cutoff-length) length)
 	(unless (< -1 index length)
 	  (setq index (mod index length)))
 	(let ((element (history-element history index)))

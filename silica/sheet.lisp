@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: sheet.lisp,v 1.10 92/04/15 11:45:19 cer Exp Locker: cer $
+;; $fiHeader: sheet.lisp,v 1.11 92/04/21 16:12:44 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -43,22 +43,16 @@
 (defgeneric sheet-viewable-p (sheet))
 (defgeneric occluding-sheets (sheet child))
 
-(defmethod bounding-rectangle* ((x sheet))
-  (bounding-rectangle* (sheet-region x)))
+(defmethod bounding-rectangle* ((sheet sheet))
+  (bounding-rectangle* (sheet-region sheet)))
 
-(defmethod sheet-child (sheet)
+(defmethod sheet-child ((sheet sheet))
   (let ((x (sheet-children sheet)))
     (unless (and x (null (cdr x)))
-      (error "Not one child:~S" sheet))
+      (error "The sheet ~S has more than one child" sheet))
     (car x)))
 
-(defun map-over-sheets (function sheet)
-  (declare (dynamic-extent function))
-  (funcall function sheet)
-  (when (typep sheet 'sheet-parent-mixin)
-    (dolist (child (sheet-children sheet))
-      (map-over-sheets function child))))
-
+
 ;;; Genealogy
 
 (defclass sheet-leaf-mixin () ())
@@ -67,6 +61,13 @@
 
 (defclass sheet-single-child-mixin (sheet-parent-mixin)
     ((child :initform nil :accessor sheet-child)))
+
+(defun map-over-sheets (function sheet)
+  (declare (dynamic-extent function))
+  (funcall function sheet)
+  (when (typep sheet 'sheet-parent-mixin)
+    (dolist (child (sheet-children sheet))
+      (map-over-sheets function child))))
 
 (defmethod sheet-adopt-child :before ((sheet sheet) (child sheet))
   (when (sheet-parent child)
@@ -78,7 +79,7 @@
   (setf (sheet-child sheet) child
 	(sheet-parent child) sheet))
 
-(defmethod sheet-adopt-child :after (sheet child)
+(defmethod sheet-adopt-child :after ((sheet sheet) child)
   (note-sheet-adopted child)
   (when (port sheet)
     (setf (port child :graft (graft sheet)) (port sheet))))
@@ -111,6 +112,7 @@
     (dolist (child (sheet-children sheet))
       (setf (port child :graft graft) port))))
 
+
 (defmethod sheet-disown-child ((parent sheet-multiple-child-mixin) child)
   (unless (eq (sheet-parent child) parent)
     (error "~S is not child of ~S" child parent))
@@ -121,7 +123,6 @@
   (when (port parent)
     (setf (port child) nil)))
 
-
 (defmethod sheet-disown-child ((parent sheet-single-child-mixin) child)
   (unless (eq (sheet-parent child) parent)
     (error "~S is not child of ~S" child parent))
@@ -131,33 +132,33 @@
   (when (port parent)
     (setf (port child) nil)))
 
-
-;;;;
+
+;;; Geometry
 
 (defgeneric map-sheet-position-to-parent (sheet x y)
-  (:method (sheet x y)
+  (:method ((sheet sheet) x y)
    (transform-position (sheet-transformation sheet) x y)))
 
 
 (defgeneric map-sheet-position-to-child (sheet x y)
-  (:method (sheet x y)
+  (:method ((sheet sheet) x y)
    (untransform-position (sheet-transformation sheet) x y)))
 
 (defgeneric map-sheet-rectangle*-to-parent (sheet min-x min-y max-x max-y)
-  (:method (sheet min-x min-y max-x max-y)
+  (:method ((sheet sheet) min-x min-y max-x max-y)
    (transform-rectangle*
      (sheet-transformation sheet)
      min-x min-y max-x max-y)))
 
 (defgeneric map-sheet-rectangle*-to-child (sheet min-x min-y max-x max-y)
-  (:method (sheet min-x min-y max-x max-y)
+  (:method ((sheet sheet) min-x min-y max-x max-y)
    (untransform-rectangle*
      (sheet-transformation sheet)
      min-x min-y max-x max-y)))
 
 (defgeneric child-containing-position (sheet x y))
 
-(defmethod child-containing-position (sheet x y)
+(defmethod child-containing-position ((sheet sheet) x y)
   (find-if #'(lambda (child)
 	       (and (sheet-enabled-p child)
 		    (multiple-value-bind (x y)
@@ -168,7 +169,7 @@
 
 (defgeneric children-overlapping-region (sheet region))
 
-(defmethod children-overlapping-region (sheet region)
+(defmethod children-overlapping-region ((sheet sheet) region)
   (remove-if-not #'(lambda (child)
 		     (and (sheet-enabled-p child)
 			  (multiple-value-call #'ltrb-overlaps-ltrb-p
@@ -181,7 +182,7 @@
 (defgeneric children-overlapping-rectangle* (sheet min-x min-y max-x max-y))
 
 (defgeneric delta-transformation (sheet ancestor)
-  (:method (sheet ancestor)
+  (:method ((sheet sheet) ancestor)
    (let ((parent (sheet-parent sheet)))
      (cond
        ((eq parent ancestor)
@@ -222,22 +223,22 @@
 ;;; Notification
 
 (defgeneric note-sheet-adopted (sheet)
-  (:method (sheet) nil))
+  (:method ((sheet sheet)) nil))
 
 (defgeneric note-sheet-disowned (sheet)
-  (:method (sheet) nil))
+  (:method ((sheet sheet)) nil))
 
 (defgeneric note-sheet-grafted (sheet)
-  (:method (sheet) nil))
+  (:method ((sheet sheet)) nil))
 
 (defgeneric note-sheet-degrafted (sheet)
-  (:method (sheet) nil))
+  (:method ((sheet sheet)) nil))
 
 (defgeneric note-sheet-enabled (sheet)
-  (:method (sheet) nil))
+  (:method ((sheet sheet)) nil))
 
 (defgeneric note-sheet-disabled (sheet)
-  (:method (sheet) nil))
+  (:method ((sheet sheet)) nil))
 
 (defgeneric sheet-engrafted-p (sheet)
   (:method ((sheet sheet))
@@ -246,51 +247,52 @@
 	 (sheet-engrafted-p parent)))))
 
 
-(defmethod (setf sheet-region) :after (nv sheet)
+(defmethod (setf sheet-region) :after (region (sheet sheet))
+  (declare (ignore region))
   (note-sheet-region-changed sheet))
 
 (defgeneric note-sheet-region-changed (sheet &key port-did-it)
-  (:method (sheet &key port-did-it)
+  (:method ((sheet sheet) &key port-did-it)
    (declare (ignore port-did-it))
    nil))
 
-;;--- 
-(defmethod (setf sheet-transformation) :after (nv sheet)
+(defmethod (setf sheet-transformation) :after (transformation (sheet sheet))
+  (declare (ignore transformation))
   (note-sheet-transformation-changed sheet))
 
 (defgeneric note-sheet-transformation-changed (sheet &key port-did-it)
-  (:method (sheet &key port-did-it) 
+  (:method ((sheet sheet) &key port-did-it)
    (declare (ignore port-did-it)) 
    nil))
 
 (defgeneric invalidate-cached-transformations (sheet)
-  (:method ((sheet t)) 
+  (:method ((sheet sheet)) 
 	   (setf (sheet-cached-device-region sheet) nil)
 	   (setf (sheet-cached-device-transformation sheet) nil))
   (:method :after ((sheet sheet-parent-mixin))
     (mapc #'invalidate-cached-transformations (sheet-children sheet))))
-	     
+
 (defgeneric invalidate-cached-regions (sheet)
-  (:method ((sheet t)) 
+  (:method ((sheet sheet)) 
 	   (setf (sheet-cached-device-region sheet) nil)
 	   (setf (sheet-cached-device-transformation sheet) nil))
   (:method :after ((sheet sheet-parent-mixin))
 	   (mapc #'invalidate-cached-regions (sheet-children sheet))))
 
-(defmethod note-sheet-region-changed :before (sheet &key port-did-it)
+(defmethod note-sheet-region-changed :before ((sheet sheet) &key port-did-it)
   (declare (ignore port-did-it))
   (invalidate-cached-regions sheet))
 
-;;-- Check to see if the call to invalidate-cached-regions is really necessary.
-(defmethod note-sheet-transformation-changed :before (sheet &key port-did-it)
-  (declare (ignore port-did-it))
+;;--- Check to see if the call to invalidate-cached-regions is really necessary.
+(defmethod note-sheet-transformation-changed :before ((sheet sheet) &key port-did-it)
+ (declare (ignore port-did-it))
   (invalidate-cached-transformations sheet)
   (invalidate-cached-regions sheet))
 
 (defgeneric update-native-transformation (port sheet))
 
-(defmethod (setf sheet-enabled-p) :after  (nv (sheet sheet))
-  (if nv
+(defmethod (setf sheet-enabled-p) :after (enabled (sheet sheet))
+  (if enabled
       (note-sheet-enabled sheet)
       (note-sheet-disabled sheet)))
 
@@ -311,11 +313,11 @@
 
 (defclass mute-sheet-output-mixin () ())
 
-(defclass sheet-with-medium (standard-sheet-output-mixin)
+(defclass sheet-with-medium-mixin (standard-sheet-output-mixin)
     ((medium :initform nil :accessor sheet-medium)
      (medium-type :initarg :medium :initform  t :accessor sheet-medium-type)))
 
-(defclass permanent-medium-sheet-output-mixin (sheet-with-medium) ())
+(defclass permanent-medium-sheet-output-mixin (sheet-with-medium-mixin) ())
 
 (defmethod note-sheet-grafted :after ((sheet permanent-medium-sheet-output-mixin))
   (when (sheet-medium-type sheet)
@@ -330,7 +332,7 @@
     (setf (sheet-medium sheet) nil)))
 
 
-(defclass temporary-medium-sheet-output-mixin (sheet-with-medium) ())
+(defclass temporary-medium-sheet-output-mixin (sheet-with-medium-mixin) ())
 
 ;; This is badly named since it merely specifies the default
 

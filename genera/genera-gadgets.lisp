@@ -1,10 +1,11 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: GENERA-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: genera-gadgets.lisp,v 1.2 92/03/04 16:22:47 cer Exp $
+;; $fiHeader: genera-gadgets.lisp,v 1.4 92/04/15 11:47:55 cer Exp $
 
 (in-package :genera-clim)
 
 "Copyright (c) 1992 Symbolics, Inc.  All rights reserved."
+
 
 (defmethod make-pane-class ((framem genera-frame-manager) class &rest options)
   (declare (ignore options))

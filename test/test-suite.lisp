@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: test-suite.lisp,v 1.17 92/04/21 16:13:17 cer Exp Locker: cer $
+;; $fiHeader: test-suite.lisp,v 1.18 92/04/30 09:09:40 cer Exp Locker: cer $
 
 (in-package :clim-user)
 
@@ -30,7 +30,7 @@ What about environment issue?
 (defmacro repeat (n &body body)
   (let ((i '#:i))
     `(dotimes (,i ,n)
-       #-excl (declare (ignore ,i))
+       #-(or Minima Genera Allegro) (declare (ignore i))
        ,@body)))
 
 (defmacro with-display-pane ((stream) &body body)
@@ -263,7 +263,7 @@ people, shall not perish from the earth.
 	(text "The quick brown fox jumped over the lazy dog.")
 	(families '(nil :fix :serif :sans-serif))
 	(faces '(nil :bold :italic (:bold :italic)))
-	(sizes '(nil :normal :tiny :very-small :very-large :huge :small :large :smaller :larger)))
+	(sizes '(nil :normal :very-small :very-large :small :large :smaller :larger)))
     (with-end-of-line-action (stream :allow)
       (dolist (size sizes)
 	(dolist (face faces)
@@ -337,9 +337,9 @@ people, shall not perish from the earth.
 		    (format stream "~A" result))))))))))
    (region-test-comment stream))
 
-(defparameter *test-regions-for-region-contains-point*-p*
-	      ;; region point* correct-result
-	      '((+nowhere+ (0 0) nil)	;region point* correct-result
+(defparameter *test-regions-for-region-contains-position-p*
+	      ;; region position correct-result
+	      '((+nowhere+ (0 0) nil)	;region position correct-result
 		(+nowhere+ (5 5) nil)
 		(+everywhere+ (0 0) t)
 		(+everywhere+ (5 5) t)
@@ -357,42 +357,42 @@ people, shall not perish from the earth.
 		((make-rectangle* 10 10 20 20) (10 10) t)))
 
 (define-test (region-contains-point-tests graphics) (stream)
-  "Exercise REGION-CONTAINS-POINT*-P."
+  "Exercise REGION-CONTAINS-POSITION-P."
   (let ((regions nil)
-	(point*s nil))
-    (dolist (result *test-regions-for-region-contains-point*-p*)
+	(positions nil))
+    (dolist (result *test-regions-for-region-contains-position-p*)
       (pushnew (first result) regions :test #'equal)
-      (pushnew (second result) point*s :test #'equal))
+      (pushnew (second result) positions :test #'equal))
     (setq regions (nreverse regions)
-	  point*s (nreverse point*s))
+	  positions (nreverse positions))
     (formatting-table (stream :x-spacing "  ")
       (formatting-row (stream)
 	(formatting-cell (stream)
 	  (declare (ignore stream)))		;make a column for the row headings
-	(dolist (point* point*s)
+	(dolist (position positions)
 	  (formatting-cell (stream) 
 	    (with-text-face (stream :italic)
-	      (format stream "(~D,~D)" (first point*) (second point*))))))
+	      (format stream "(~D,~D)" (first position) (second position))))))
       (dolist (region regions)
 	(formatting-row (stream)
 	  (formatting-cell (stream :align-x :right)
 	    (with-text-face (stream :italic)
 	      (format stream "~A" region)))
-	  (dolist (point* point*s)
+	  (dolist (position positions)
 	    (let ((res (find-if #'(lambda (result-entry)
 				    (and (equal (first result-entry) region)
-					 (equal (second result-entry) point*)))
-				*test-regions-for-region-contains-point*-p*))
-		  (x (first point*))
-		  (y (second point*)))
+					 (equal (second result-entry) position)))
+				*test-regions-for-region-contains-position-p*))
+		  (x (first position))
+		  (y (second position)))
 	      (with-output-as-presentation ( stream
-					     `(region-contains-point*-p ,region ,x ,y)
+					     `(region-contains-position-p ,region ,x ,y)
 					     'form
 					    :single-box t)
 		(formatting-cell (stream :align-x :center)
 		  (when res
 		    (let* ((correct-result (third res))
-			   (result (region-contains-point*-p (eval region) x y)))
+			   (result (region-contains-position-p (eval region) x y)))
 		      (with-text-face (stream
 				       (if (eq correct-result result) nil :bold))
 			(format stream "~A" result)))))))))))
@@ -1247,7 +1247,8 @@ Luke Luck licks the lakes Luke's duck likes."))
 	(decf bottom yoff))
       (draw-rectangle* stream left top right bottom :filled nil :ink +cyan+))))
 
-(define-table-cell-test set-cursor-position* "move the cursor, output some text"
+
+(define-table-cell-test set-cursor-position "move the cursor, output some text"
   (stream-set-cursor-position stream 50 50)
   (write-string ">Wally<" stream))
 
@@ -1576,7 +1577,7 @@ Luke Luck licks the lakes Luke's duck likes."))
   (graphics-dialog-internal stream))
 
 (define-test (graphics-dialog-own-window menus-and-dialogs) (stream)
-  "An own window ACCEPTING-VALUES dialog that has graphics inside of it."
+  "An own-window ACCEPTING-VALUES dialog that has graphics inside of it."
   (graphics-dialog-internal stream t))
 
 (defun graphics-dialog-internal (stream &optional own-window)
@@ -1588,54 +1589,54 @@ Luke Luck licks the lakes Luke's duck likes."))
 	(line-thickness 1)
 	(line-thickness-units :normal))
     (accepting-values (stream :own-window own-window)
-		      (setq square-dimension
-			(accept '(real 0) :stream stream
-				:prompt "Size of square" :default square-dimension))
-		      (terpri stream)
-		      (setq draw-circle
-			(accept 'boolean :stream stream
-				:prompt "Draw the circle" :default draw-circle))
-		      (terpri stream)
-		      (setq draw-square
-			(accept 'boolean :stream stream
-				:prompt "Draw the square" :default draw-square))
-		      (terpri stream)
-		      (setq draw-/-diagonal
-			(accept 'boolean :stream stream
-				:prompt "Draw / diagonal" :default draw-/-diagonal))
-		      (terpri stream)
-		      (setq draw-\\-diagonal
-			(accept 'boolean :stream stream
-				:prompt "Draw \\ diagonal" :default draw-\\-diagonal))
-		      (terpri stream)
-		      (setq line-thickness
-			(accept 'number :stream stream
-				:prompt "Line thickness" :default line-thickness))
-		      (terpri stream)
-		      (setq line-thickness-units
-			(accept '(member :normal :point) :stream stream
-				:prompt "Line style units" :default line-thickness-units))
-		      (terpri stream)
-		      (with-room-for-graphics (stream)
-			(let ((radius (/ square-dimension 2)))
-			  (with-drawing-options (stream :line-unit line-thickness-units
-							:line-thickness line-thickness)
-			    (when draw-square
-			      (draw-polygon* stream (list 0 0
-							  0 square-dimension
-							  square-dimension square-dimension
-							  square-dimension 0)
-					     :line-joint-shape :miter
-					     :filled nil))
-			    (when draw-circle
-			      (draw-circle* stream radius radius radius
-					    :filled nil))
-			    (when draw-/-diagonal
-			      (draw-line* stream 0 square-dimension square-dimension 0
-					  :line-cap-shape :round))
-			    (when draw-\\-diagonal
-			      (draw-line* stream 0 0 square-dimension square-dimension
-					  :line-cap-shape :round))))))))
+      (setq square-dimension
+	    (accept 'number :stream stream
+		    :prompt "Size of square" :default square-dimension))
+      (terpri stream)
+      (setq draw-circle
+	    (accept 'boolean :stream stream
+		    :prompt "Draw the circle" :default draw-circle))
+      (terpri stream)
+      (setq draw-square
+	    (accept 'boolean :stream stream
+		    :prompt "Draw the square" :default draw-square))
+      (terpri stream)
+      (setq draw-/-diagonal
+	    (accept 'boolean :stream stream
+		    :prompt "Draw / diagonal" :default draw-/-diagonal))
+      (terpri stream)
+      (setq draw-\\-diagonal
+	    (accept 'boolean :stream stream
+		    :prompt "Draw \\ diagonal" :default draw-\\-diagonal))
+      (terpri stream)
+      (setq line-thickness
+	    (accept 'number :stream stream
+		    :prompt "Line thickness" :default line-thickness))
+      (terpri stream)
+      (setq line-thickness-units
+	    (accept '(member :normal :point) :stream stream
+		    :prompt "Line style units" :default line-thickness-units))
+      (terpri stream)
+      (with-room-for-graphics (stream)
+	(let ((radius (/ square-dimension 2)))
+	  (with-drawing-options (stream :line-unit line-thickness-units
+					:line-thickness line-thickness)
+	    (when draw-square
+	      (draw-polygon* stream (list 0 0
+					  0 square-dimension
+					  square-dimension square-dimension
+					  square-dimension 0)
+			     :line-joint-shape :miter
+			     :filled nil))
+	    (when draw-circle
+	      (draw-circle* stream radius radius radius
+			    :filled nil))
+	    (when draw-/-diagonal
+	      (draw-line* stream 0 square-dimension square-dimension 0
+			  :line-cap-shape :round))
+	    (when draw-\\-diagonal
+	      (draw-line* stream 0 0 square-dimension square-dimension
+			  :line-cap-shape :round))))))))
 
 
 ;;;; Benchmarks
@@ -1769,7 +1770,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 
 (define-command (run-benchmarks-to-dummy-file :command-table benchmarks :menu t)
     ((file 'pathname))
-  (run-benchmarks-internal file "foo comment"))
+  (run-benchmarks-internal file "no comment"))
 
 (defun run-benchmarks-internal (pathname comment)
   (let ((data nil))
@@ -1911,7 +1912,6 @@ Luke Luck licks the lakes Luke's duck likes."))
   (let ((delta (floor 400 n-lines)))
     (do ((x 0 (+ x delta)))
 	((>= x 400))
-      (declare (fixnum x))
       (draw-line* stream x 0 (+ x delta) 50))))
 
 (define-benchmark (line-drawing :iterations 10) (stream)
@@ -1946,14 +1946,12 @@ Luke Luck licks the lakes Luke's duck likes."))
     (do ((y 75)
 	 (x 0 (+ x delta)))
 	((>= x 400))
-      (declare (fixnum x y))
       (draw-rectangle* stream x y (+ x delta) (+ y delta)
 		       :filled filled-p))
     (do ((y 150)
 	 (x 0 (+ x delta))
 	 (offset (floor delta 4)))
 	((>= x 400))
-      (declare (fixnum x y offset))
       (draw-polygon* stream
 		     (list (+ x offset) y
 			   x (+ y delta)
@@ -1964,7 +1962,6 @@ Luke Luck licks the lakes Luke's duck likes."))
 	 (x 0 (+ x delta))
 	 (radius (floor delta 2)))
 	((>= x 400))
-      (declare (fixnum x y radius))
       (draw-circle* stream (+ x radius) (+ y radius) radius
 		    :filled filled-p))))
 
@@ -2049,25 +2046,21 @@ Luke Luck licks the lakes Luke's duck likes."))
   (do ((x start-x)
        (y start-y (+ y delta)))
       ((= y y-excursion))
-    (declare (fixnum x y))
     (window-set-viewport-position stream x y)
     (force-output stream))
   (do ((x start-x)
        (y y-excursion (- y delta)))
       ((= y start-y))
-    (declare (fixnum x y))
     (window-set-viewport-position stream x y)
     (force-output stream))
   (do ((x start-x (+ x delta))
        (y start-y))
       ((= x x-excursion))
-    (declare (fixnum x y))
     (window-set-viewport-position stream x y)
     (force-output stream))
   (do ((x x-excursion (- x delta))
        (y start-y))
       ((= x start-x))
-    (declare (fixnum x y))
     (window-set-viewport-position stream x y)
     (force-output stream)))
 

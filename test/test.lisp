@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: test.lisp,v 1.23 92/04/30 09:09:43 cer Exp Locker: cer $
+;; $fiHeader: test.lisp,v 1.24 92/05/06 15:37:46 cer Exp Locker: cer $
 
 (in-package :clim-user)
 
@@ -28,29 +28,28 @@
     (vertically ()
       (scrolling ()
 	(make-pane 'interactor-pane
-		      :foreground +green+
-		      :background +red+))
+	  :foreground +green+
+	  :background +red+))
       (make-pane 'push-button
-		    :label "press me"
-		    :background (make-pattern #2A((0 0 0 1 1 0 0 0)
-						  (0 0 1 1 1 1 0 0)
-						  (0 1 1 1 1 1 1 0)
-						  (1 1 1 1 1 1 1 1)
-						  (1 1 1 1 1 1 1 1)
-						  (0 1 1 1 1 1 1 0)
-						  (0 0 1 1 1 1 0 0)
-						  (0 0 0 1 1 0 0 0))
-					      (list +red+ +green+))
-		    :foreground +purple+
-		    :text-style (make-text-style :serif :roman 20)))))
+        :label "press me"
+	:background (make-pattern #2A((0 0 0 1 1 0 0 0)
+				      (0 0 1 1 1 1 0 0)
+				      (0 1 1 1 1 1 1 0)
+				      (1 1 1 1 1 1 1 1)
+				      (1 1 1 1 1 1 1 1)
+				      (0 1 1 1 1 1 1 0)
+				      (0 0 1 1 1 1 0 0)
+				      (0 0 0 1 1 0 0 0))
+				  (list +red+ +green+))
+	:foreground +purple+
+	:text-style (make-text-style :serif :roman 20)))))
 
 
 (define-application-frame test-frame0 () ()
   (:command-table test-frame)
   (:pane 
     (scrolling ()
-	       (make-pane 'interactor-pane)))
-  
+      (make-pane 'interactor-pane)))
   (:icon :name "foo" 
 	 :pixmap (make-pattern 
 		  (let ((x (make-array '(48 48))))
@@ -82,7 +81,7 @@
 	 (make-pane 'slider)))
       (scrolling ()
 	(make-pane 'interactor-pane
-		      :display-function 'moby-display-function))
+	  :display-function 'moby-display-function))
       (scrolling ()
 	(make-pane 'interactor-pane)))))
 
@@ -98,7 +97,7 @@
   (:pane 
     (scrolling ()
       (make-pane 'interactor-pane
-		    :width 300 :height 300))))
+	:width 300 :height 300))))
 
 
 (define-test-frame-command (com-square-it :name t :menu t)
@@ -147,8 +146,8 @@
       (make-pane 'text-field)
       (scrolling ()
 	(make-pane 'interactor-pane
-		      :width 300 :max-width +fill+
-		      :height 300 :max-height +fill+)))))
+	  :width 300 :max-width +fill+
+	  :height 300 :max-height +fill+)))))
 
 
 (define-application-frame test-frame5 () ()
@@ -157,9 +156,9 @@
     (a (horizontally ()
 	 (make-pane 'push-button :label "Press me")
 	 (make-pane 'push-button :label "Squeeze me")))
-    (b :toggle-button)
-    (c :slider)
-    (d :text-field)
+    (b toggle-button)
+    (c slider)
+    (d text-field)
     (e :interactor
        :width 300 :max-width +fill+
        :height 300 :max-height +fill+))
@@ -234,15 +233,15 @@
       (setf (car weird)
 	    (with-output-as-presentation (stream weird 'some-kinda-gadget)
 	      (surrounding-output-with-border (stream)
-		(clim-internals::with-output-as-gadget (stream)
+		(with-output-as-gadget (stream)
 		  (make-pane 'slider))))))
     (let ((weird (cons nil nil)))
       (setf (car weird)
 	    (with-output-as-presentation (stream weird 'some-kinda-gadget)
 	      (surrounding-output-with-border (stream)
-		(clim-internals::with-output-as-gadget (stream)
+		(with-output-as-gadget (stream)
 		  (make-pane 'push-button
-				:label "Amazing"))))))
+		    :label "Amazing"))))))
     (let ((weird (cons nil nil)))
       (setf (car weird)
 	    (with-output-as-presentation (stream weird 'some-kinda-gadget)
@@ -276,9 +275,8 @@
     ()
   (let* ((stream *query-io*))
     (flet ((make-it (i)
-	     (clim-internals::with-output-as-gadget (stream)
-	       (make-pane 
-		 'push-button
+	     (with-output-as-gadget (stream)
+	       (make-pane 'push-button
 		 :label (format nil "Amazing ~D" i)))))
       (format-graph-from-root
 	'(a (c (x) (y)))
@@ -291,15 +289,13 @@
 (define-test-frame-command (com-make-radio-box :name t :menu t)
     ()
   (let* ((stream *query-io*))
-    (clim-internals::with-output-as-gadget (stream)
-      (let* (#+ignore (frame-pane (make-pane 'frame-pane))
-	     (gadget
-	       (make-pane 'radio-box
-			     #+ignore :parent #+ignore frame-pane)))
-	(make-pane 'toggle-button :label "a" :parent gadget)
-	(make-pane 'toggle-button :label "b" :parent gadget)
-	(make-pane 'toggle-button :label "c" :parent gadget)
-	gadget))))
+    (with-output-as-gadget (stream)
+      (make-pane 'radio-box
+		 :choices
+		   (list
+		     (make-pane 'toggle-button :label "a")
+		     (make-pane 'toggle-button :label "b")
+		     (make-pane 'toggle-button :label "c"))))))
 
 
 (define-application-frame tf0 () (radio-box)
@@ -309,37 +305,34 @@
       (outlining ()
 	(horizontally ()
 	  (make-pane 'push-button 
-			:label "B1"
-			:activate-callback 'push-button-callback)
+	    :label "B1"
+	    :activate-callback 'push-button-callback)
 	  (make-pane 'push-button 
-			:label "B2"
-			:activate-callback 'push-button-callback)))
+	    :label "B2"
+	    :activate-callback 'push-button-callback)))
       (outlining ()
 	(horizontally ()
 	  (make-pane 'toggle-button
-			:label "T1" 
-			:value-changed-callback 'toggle-button-callback)
+	    :label "T1" 
+	    :value-changed-callback 'toggle-button-callback)
 	  (make-pane 'toggle-button 
-			:label "T2"
-			:value-changed-callback 'toggle-button-callback)))
+	    :label "T2"
+	    :value-changed-callback 'toggle-button-callback)))
       (outlining ()
-	(with-radio-box ()
+	(with-radio-box (:value-changed-callback 'radio-value-changed-callback)
 	  (make-pane 'toggle-button
-			:label "RT1"
-			:value-changed-callback 'toggle-button-callback)
+	    :label "RT1")
 	  (radio-box-current-selection
 	    (make-pane 'toggle-button
-			  :label "RT2"
-			  :value-changed-callback 'toggle-button-callback))
+	      :label "RT2"))
 	  (make-pane 'toggle-button
-			:label "RT3"
-			:value-changed-callback 'toggle-button-callback)))
+	    :label "RT3")))
       (outlining ()
 	(spacing ()
 	  (make-pane 'slider
-			:label "Slider"
-			:value-changed-callback 'slider-changed-callback
-			:drag-callback 'slider-dragged-callback)))
+	    :label "Slider"
+	    :value-changed-callback 'slider-changed-callback
+	    :drag-callback 'slider-dragged-callback)))
       (outlining ()
 	(scrolling ()
 	  (make-pane 'interactor-pane))))))
@@ -350,14 +343,19 @@
 (defun toggle-button-callback (button value)
   (format t "~&Button ~A toggled to ~S" (gadget-label button) value))
 
+(defun radio-value-changed-callback (radio-box value)
+  (declare (ignore radio-box))
+  (format t "~&Radio box toggled to ~S" value))
+
 (defun slider-changed-callback (slider value)
   (format t "~&Slider ~A changed to ~S" (gadget-label slider) value))
 
 (defun slider-dragged-callback (slider value)
   (format t "~&Slider ~A dragged to ~S" (gadget-label slider) value))
 
+
 (defun text-field-changed (tf value)
-  (format t "~&Text field ~A changed to ~S"  tf value))
+  (format t "~&Text field ~A changed to ~S" tf value))
 
 (defun option-pane-changed-callback (tf value)
   (format t "~&option menu ~A changed to ~S"  tf value))
@@ -380,80 +378,108 @@
 	  :prompt "Select an insect"))
   (describe bug))
 
-
-(define-application-frame tf100 
-    () ()
-    (:command-table test-frame)
-    (:pane
-     (vertically ()
-		 #+ignore
-		 (scrolling ()
-			    (make-pane 'text-editor 
-					  :value "lucid "
-					  :ncolumns 30
-					  :nlines 10))
-		 (scrolling ()
-			    (make-pane 'text-editor 
-					  :value "harlqn  more"
-					  :ncolumns 30
-					  :nlines 10)))))
-
+(clim:define-application-frame tf100 () ()
+  (:command-table test-frame)
+  (:pane
+    (vertically ()
+      (scrolling ()
+	(make-pane 'text-editor 
+	  :value "c sucks"
+	  :ncolumns 30 :nlines 10))
+      (scrolling ()
+        (make-pane 'text-editor 
+	  :value "unix sucks more"
+	  :ncolumns 30 :nlines 10)))))
 
 (define-application-frame tf99 () ()
   (:command-table test-frame)
   (:pane 
-   (horizontally 
-    ()
-    (make-pane 'slider
-	       :label "SliderH"
-	       :orientation :vertical
-	       :show-value-p t
-	       :value-changed-callback 'slider-changed-callback
-	       :drag-callback 'slider-dragged-callback)
+    (horizontally ()
+      (make-pane 'slider
+        :label "SliderH"
+	:orientation :vertical
+	:show-value-p t
+	:value-changed-callback 'slider-changed-callback
+	:drag-callback 'slider-dragged-callback)
+      (vertically ()
+        (outlining ()
+	  (horizontally ()
+	    (make-pane 'push-button 
+	      :label "B1"
+	      :activate-callback 'push-button-callback)
+	    (make-pane 'push-button 
+	      :label "B2"
+	      :activate-callback 'push-button-callback)))
+	(outlining ()
+	  (horizontally ()
+	    (make-pane 'toggle-button
+	      :label "T1" 
+	      :value-changed-callback 'toggle-button-callback)
+	    (make-pane 'toggle-button 
+	      :label "T2"
+	      :value-changed-callback 'toggle-button-callback)))
+	(horizontally ()
+	  (scrolling ()
+	    (make-pane 'text-editor 
+	      :value "c sucks"
+	      :value-changed-callback 'text-field-changed
+	      :ncolumns 30 :nlines 10))
+	  (scrolling ()
+	    (make-pane 'text-editor 
+	      :value "unix sucks more"
+	      :value-changed-callback 'text-field-changed
+	      :ncolumns 30 :nlines 10)))
+	(outlining ()
+	  (spacing ()
+	    (make-pane 'slider
+	      :label "Slider"
+	      :show-value-p t
+	      :value-changed-callback 'slider-changed-callback
+	      :drag-callback 'slider-dragged-callback)))))))
+
+(define-application-frame tf98 () ()
+  (:command-table test-frame)
+  (:pane 
     (vertically ()
       (outlining ()
 	(horizontally ()
 	  (make-pane 'push-button 
-			:label "B1"
-			:activate-callback 'push-button-callback)
+	    :label "B1"
+	    :activate-callback 'push-button-callback)
 	  (make-pane 'push-button 
-			:label "B2"
-			:activate-callback 'push-button-callback)
+	    :label "B2"
+	    :activate-callback 'push-button-callback)
 	  :fill))
       (outlining ()
 	(horizontally ()
 	  (make-pane 'toggle-button
-			:label "T1" 
-			:value-changed-callback 'toggle-button-callback)
-	  :fill
+	    :label "T1" 
+	    :value-changed-callback 'toggle-button-callback)
 	  (make-pane 'toggle-button 
-			:label "T2"
-			:value-changed-callback
-			'toggle-button-callback)))
+	    :label "T2"
+	    :value-changed-callback 'toggle-button-callback)))
       (outlining ()
-       (horizontally ()
-		     (scrolling ()
-				(make-pane 'text-editor 
-					   :value "lucid "
-					   :value-changed-callback 'text-field-changed
-					   :ncolumns 30
-					   :nlines 10))
-		     (scrolling ()
-				(make-pane 'text-editor 
-					   :value "harlqn  more"
-					   :value-changed-callback 'text-field-changed
-					   :ncolumns 30
-					   :nlines 10))))
+	(horizontally ()
+	  (scrolling ()
+	    (make-pane 'text-editor 
+	      :value "c sucks"
+	      :value-changed-callback 'text-field-changed
+	      :ncolumns 30 :nlines 10))
+	  (scrolling ()
+	    (make-pane 'text-editor 
+	      :value "unix sucks more"
+	      :value-changed-callback 'text-field-changed
+	      :ncolumns 30 :nlines 10))))
       (outlining ()
-	(spacing ()
-	  (make-pane 'slider
-		     :label "Slider"
-		     :show-value-p t
-		     :value-changed-callback 'slider-changed-callback
-		     :drag-callback 'slider-dragged-callback)))))))
+ 	(spacing ()
+ 	  (make-pane 'slider
+	    :label "Slider"
+	    :show-value-p t
+	    :value-changed-callback 'slider-changed-callback
+	    :drag-callback 'slider-dragged-callback))))))
+ 
 
-
-(define-application-frame tf98 () ()
+(define-application-frame tf988 () ()
 			  (:command-table test-frame)
 			  (:pane 
 			   (outlining ()
@@ -486,7 +512,9 @@
 					   :value-changed-callback 
 					   'list-pane-changed-callback
 					   :items '("Franz" "Lucid"
-						    "Harlqn" "Symbolics")))
+						    "Harlqn"
+						    "Symbolics")))
+			       :fill
 			       (scrolling ()
 					  (make-pane
 					   'list-pane
@@ -531,15 +559,15 @@
 (define-test-frame-command (com-frob-sizes :name t :menu t)
     ()
   (changing-space-requirements ()
-			       (change-space-requirement 
+			       (change-space-requirements
 				(get-frame-pane *application-frame* 'a)
 				:resize-frame t
 				:width `(,(random 60) :character))
-			       (change-space-requirement 
+			       (change-space-requirements
 				(get-frame-pane *application-frame* 'b)
 				:resize-frame t
 				:width `(,(random 60) :character))
-			       (change-space-requirement 
+			       (change-space-requirements
 				(get-frame-pane *application-frame* 'd)
 				:resize-frame t
 				:height `(,(random 10) :line))))
@@ -700,3 +728,4 @@
      (dy 'integer))
   (shift-output-record *query-io* (car weird) dx dy))
   
+

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: default-application.lisp,v 1.4 92/03/10 10:12:25 cer Exp $
+;; $fiHeader: default-application.lisp,v 1.5 92/04/15 11:46:24 cer Exp $
 
 (in-package :clim-internals)
 
@@ -127,8 +127,7 @@
 		 (let ((bit #o20)
 		       (shift-name '("h-" "s-" "m-" "c-" "sh-")))
 		   (declare (type fixnum bit))
-		   (dotimes (i 5)
-		     #-(or Allegro Minima) (declare (ignore i))
+		   (repeat 5			;length of shift-name
 		     (unless (zerop (logand bit modifier-state))
 		       (write-string (car shift-name) stream))
 		     (pop shift-name)

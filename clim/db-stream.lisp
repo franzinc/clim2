@@ -22,7 +22,7 @@
 ;;;
 ;;; Copyright (c) 1990 by Xerox Corporations.  All rights reserved.
 ;;;
-;; $fiHeader: db-stream.lisp,v 1.14 92/04/30 09:09:28 cer Exp Locker: cer $
+;; $fiHeader: db-stream.lisp,v 1.15 92/05/06 15:37:36 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -35,12 +35,11 @@
 ;;--- I'm not convinced that including WINDOW-STREAM here is right...
 (defclass clim-stream-sheet 
 	  (window-stream			;includes output recording
-	   pane
 	   sheet-permanently-enabled-mixin
 	   sheet-mute-input-mixin
 	   sheet-multiple-child-mixin
-	   mute-repainting-mixin
-	   space-requirement-mixin)
+	   space-requirement-mixin
+	   pane)
     ()
   (:default-initargs 
     :medium t 
@@ -220,6 +219,7 @@
       (process-relative-space-requirements)
       sr)))
 
+
 (defun relative-space-requirement-p (sr)
   (and (consp sr)
        (= (length sr) 2)
@@ -289,7 +289,7 @@
 ;;; to represent the size of the contents, but may be stretched to fill the
 ;;; available viewport space.
 
-(defmethod change-space-requirement :around
+(defmethod change-space-requirements :around
 	   ((pane clim-stream-pane) &rest keys &key width height)
   (declare (dynamic-extent keys))
   ;; Assume always called with width height
@@ -359,8 +359,8 @@
       (window-erase-viewport stream)
       (when (extended-output-stream-p stream)	;can we assume this?
 	(stream-set-cursor-position stream 0 0)
-	(setf (stream-baseline stream) 0
-	      (stream-current-line-height stream) 0))
+	(setf (stream-baseline stream) (coordinate 0)
+	      (stream-current-line-height stream) (coordinate 0)))
       ;; Flush the old mouse position relative to this window
       ;; so that we don't get bogus highlighted presentations
       ;; when menus first pop up.
@@ -389,6 +389,7 @@
 (defmethod window-expose ((stream clim-stream-sheet))
   (setf (window-visibility stream) t))
 
+;;--- Is there any way to do this?
 (defmethod (setf window-label) (label (stream clim-stream-sheet))
   nil)
 
@@ -414,7 +415,8 @@
   (bounding-rectangle-size (pane-viewport-region stream)))
 
 (defmethod window-set-inside-size ((stream clim-stream-sheet) width height)
-  (change-space-requirement stream :width width :height height :resize-frame t))
+  (change-space-requirements stream :width width :height height :resize-frame t))
+
 
 (defun-inline window-parent (window)
   (sheet-parent window))

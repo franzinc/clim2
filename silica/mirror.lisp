@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: mirror.lisp,v 1.15 92/04/15 11:45:16 cer Exp Locker: cer $
+;; $fiHeader: mirror.lisp,v 1.16 92/04/21 16:12:43 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -44,8 +44,8 @@
 (defgeneric enable-mirror (port sheet))
 (defgeneric disable-mirror (port sheet))
 
-(defmethod sheet-direct-mirror ((sheet t)) nil)
 
+(defmethod sheet-direct-mirror ((sheet sheet)) nil)
 
 (defclass mirrored-sheet-mixin ()
     ((mirror :initform nil :accessor sheet-direct-mirror)
@@ -54,7 +54,7 @@
 
 ;;; Native transformation
 
-(defmethod sheet-native-transformation (sheet)
+(defmethod sheet-native-transformation ((sheet sheet))
   (compose-transformations 
     (sheet-transformation sheet)
     (sheet-native-transformation (sheet-parent sheet))))
@@ -98,7 +98,7 @@
 
 ;;--- This assumes that sheet siblings do not overlap...
 
-(defmethod sheet-device-region (sheet)
+(defmethod sheet-device-region ((sheet sheet))
   (or (sheet-cached-device-region sheet)
       (setf (sheet-cached-device-region sheet)
 	(region-intersection
@@ -107,10 +107,11 @@
 	  (sheet-region sheet))
 	 (sheet-device-region (sheet-parent sheet))))))
 
+
 ;;;; Mirror region stuff
 
 
-(defmethod sheet-actual-native-edges* (sheet)
+(defmethod sheet-actual-native-edges* ((sheet sheet))
   ;; Returns the sheet-region in the parents native coordinate space
   (let* ((region (sheet-region sheet))
 	 (sheet-to-parent (sheet-transformation sheet))
@@ -131,8 +132,7 @@
 ;; Sets the mirror's region in its parents coordinate space
 (defgeneric set-mirror-edges* (port sheet minx miny maxx maxy))
 
-(defmethod mirror-origin (port sheet)
-  (declare (ignore port sheet))
+(defmethod mirror-origin ((port port) (sheet sheet))
   :nw)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

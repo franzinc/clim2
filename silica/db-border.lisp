@@ -5,7 +5,7 @@
 
 (in-package :silica)
 
-;; $fiHeader: db-border.lisp,v 1.5 92/04/10 14:26:24 cer Exp Locker: cer $
+;; $fiHeader: db-border.lisp,v 1.6 92/04/15 11:44:58 cer Exp $
 
 ;;; Border Panes
 (defclass border-pane (layout-pane)
@@ -35,10 +35,12 @@
 	      :contents ,@contents
 	      ,@options))
 
+
 (defclass outlined-pane (border-pane)
   ((background :initform +black+ :accessor pane-background)))
 
 (defmethod repaint-sheet ((pane border-pane) region)
+  (declare (ignore region))			;not worth checking
   (with-sheet-medium (medium pane)
     (with-bounding-rectangle* (left top right bottom) (sheet-region pane)
       (let ((thickness (slot-value pane 'thickness)))
@@ -53,6 +55,7 @@
 	      :contents ,@contents
 	      ,@options))
 
+
 (defclass spacing-pane (border-pane) ()
   (:default-initargs :thickness 2))
 
@@ -60,4 +63,3 @@
   `(make-pane 'spacing-pane
 	      :contents ,@contents
 	      ,@options))
-

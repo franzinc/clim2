@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: color-ed.lisp,v 1.2 92/02/24 13:09:06 cer Exp Locker: cer $
+;; $fiHeader: color-ed.lisp,v 1.3 92/04/10 14:27:17 cer Exp $
 
 
 (in-package :clim)
@@ -33,18 +33,15 @@
    (ihs :initform :rgb))
   (:command-table (color-editor :inherit-from (accept-values-pane)))
   (:pane
-   (silica::scrolling ()
-		      (silica::make-pane
-		       'application-pane
-		       :display-function
-		       'color-editor-display-function))))
+   (scrolling ()
+     (make-pane 'application-pane
+       :display-function 'color-editor-display-function))))
 
 (defun color-editor-display-function (frame stream)
   (accept-values-pane-displayer
-   frame stream
-   :resynchronize-every-pass t
-   :displayer
-   #'color-editor-display-function-1))
+    frame stream
+    :resynchronize-every-pass t
+    :displayer #'color-editor-display-function-1))
    
 (defun color-editor-display-function-1 (frame stream)
   (with-slots (red green blue ihs) frame

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: GENERA-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: genera-port.lisp,v 1.2 92/03/04 16:22:52 cer Exp $
+;; $fiHeader: genera-port.lisp,v 1.4 92/04/15 11:48:02 cer Exp $
 
 (in-package :genera-clim)
 
@@ -544,6 +544,7 @@
 	  (multiple-value-bind (x y) (bounding-rectangle* cursor)
 	    (multiple-value-setq (x y)
 	      (transform-position transformation x y))
+	    (fix-coordinates x y)
 	    (cond ((and active state focus)
 		   (scl:send mirror :set-cursorpos x y)
 		   (scl:send blinker :set-visibility :blink))
@@ -563,9 +564,10 @@
 	(if (eq (scl:send mirror :alias-for-selected-windows)
 		(scl:send old-mirror :alias-for-selected-windows))
 	    (scl:send old-mirror :select-relative)
-	    (scl:send mirror :deselect t))))))
+	    (scl:send mirror :deselect t)))))
+  focus)
 
-(defmethod port-note-cursor-change ((port genera-port) cursor stream type old new)
+(defmethod port-note-cursor-change :after ((port genera-port) cursor stream type old new)
   (declare (ignore type old))
   (ensure-blinker-matches-cursor cursor stream))
 

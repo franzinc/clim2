@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: stream-defprotocols.lisp,v 1.5 92/03/04 16:22:17 cer Exp $
+;; $fiHeader: stream-defprotocols.lisp,v 1.6 92/04/15 11:47:21 cer Exp $
 
 (in-package :clim-internals)
 
@@ -103,6 +103,9 @@
 (defoperation stream-unread-gesture basic-extended-input-protocol
   ((stream basic-extended-input-protocol) gesture))
 
+(defoperation receive-gesture basic-extended-input-protocol
+  ((stream basic-extended-input-protocol) gesture))
+
 ;;; Extended Input
 (defoperation stream-input-wait basic-extended-input-protocol 
   ((stream basic-extended-input-protocol) &key timeout input-wait-test))
@@ -144,6 +147,10 @@
   ((stream fundamental-character-output-stream) string &optional (start 0) end)
   #+CLIM-uses-lisp-stream-functions (:no-defgeneric t))
 
+(defoperation stream-draw-lozenged-character fundamental-character-output-stream
+  ((stream fundamental-character-output-stream)
+   character cursor-x cursor-y baseline height style max-x record-p draw-p))
+
 (defoperation stream-terpri fundamental-character-output-stream
   ((stream fundamental-character-output-stream))
   #+CLIM-uses-lisp-stream-functions (:no-defgeneric t))
@@ -177,7 +184,8 @@
    string start end style cursor-x max-x &optional glyph-buffer))
 
 (defoperation stream-scan-character-for-writing fundamental-character-output-stream
-  ((stream fundamental-character-output-stream) character style cursor-x max-x))
+  ((stream fundamental-character-output-stream) #+Silica medium
+   character style cursor-x max-x))
 
 (defoperation stream-write-string-1 fundamental-character-output-stream
   ((stream fundamental-character-output-stream) glyph-buffer start end font color x y))
@@ -226,6 +234,25 @@
   stream-default-view
   stream-display-device-type
   stream-output-glyph-buffer)
+
+(defoperation text-style-height basic-extended-output-protocol
+  (text-style (stream basic-extended-output-protocol)))
+
+(defoperation text-style-width basic-extended-output-protocol
+  (text-style (stream basic-extended-output-protocol)))
+
+(defoperation text-style-ascent basic-extended-output-protocol
+  (text-style (stream basic-extended-output-protocol)))
+
+(defoperation text-style-descent basic-extended-output-protocol
+  (text-style (stream basic-extended-output-protocol)))
+
+(defoperation text-style-fixed-width-p basic-extended-output-protocol
+  (text-style (stream basic-extended-output-protocol)))
+
+(defoperation text-size basic-extended-output-protocol
+  ((stream basic-extended-output-protocol) string &key text-style start end)
+  (declare (values largest-x total-height last-x last-y baseline)))
 
 #+CLIM-1-compatibility
 (define-compatibility-function (stream-vsp stream-vertical-spacing)
@@ -338,13 +365,29 @@
 (defoperation window-clear window-mixin
   ((window window-mixin)))
 
-(defoperation window-with-zero-viewport-position window-mixin
-  ((window window-mixin) continuation))
+(defoperation window-refresh window-mixin
+  ((window window-mixin)))
 
-#-Silica (progn
 (defoperation window-erase-viewport window-mixin
   ((window window-mixin)))
 
+(defoperation window-expose window-mixin
+  ((window window-mixin)))
+
+(defoperation window-viewport-position window-mixin
+  ((window window-mixin)))
+
+(defoperation window-set-viewport-position window-mixin
+  ((window window-mixin) x y))
+
+(defoperation window-inside-size window-mixin
+  ((window window-mixin))
+  (declare (values width height)))
+
+(defoperation window-set-inside-size window-mixin
+  ((window window-mixin) new-width new-height))
+
+#-Silica (progn
 (defoperation window-stack-on-top window-mixin
   ((window window-mixin)))
 
@@ -355,20 +398,8 @@
   ((window window-mixin)
    from-left from-top from-right from-bottom to-left to-top))
 
-(defoperation window-refresh window-mixin
-  ((window window-mixin)))
-
-(defoperation window-expose window-mixin
-  ((window window-mixin)))
-
 (defoperation window-drawing-possible window-mixin
   ((window window-mixin)))
-
-(defoperation window-viewport-position window-mixin
-  ((window window-mixin)))
-
-(defoperation window-set-viewport-position window-mixin
-  ((window window-mixin) x y))
 
 (defoperation redisplay-decorations window-mixin
   ((window window-mixin)) )
@@ -383,15 +414,8 @@
   ((window window-mixin))
   (declare (values left top right bottom)))
 
-(defoperation window-inside-size window-mixin
-  ((window window-mixin))
-  (declare (values width height)))
-
 (defoperation window-set-inside-edges window-mixin
   ((window window-mixin) new-left new-top new-right new-bottom))
-
-(defoperation window-set-inside-size window-mixin
-  ((window window-mixin) new-width new-height))
 
 (defoperation window-inside-left window-mixin
   ((window window-mixin)))
@@ -458,6 +482,10 @@
 
 (defoperation invoke-with-output-recording-options output-recording-mixin
   ((stream output-recording-mixin) continuation record draw))
+
+(defoperation invoke-with-new-output-record output-recording-mixin
+  ((stream output-recording-mixin) continuation record-type constructor
+   &rest init-args &key parent &allow-other-keys))
 
 (defoperation stream-close-text-output-record output-recording-mixin
   ((stream output-recording-mixin) &optional wrapped))

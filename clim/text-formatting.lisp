@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: text-formatting.lisp,v 1.6 92/03/10 10:12:55 cer Exp $
+;; $fiHeader: text-formatting.lisp,v 1.7 92/04/15 11:47:27 cer Exp $
 
 (in-package :clim-internals)
 
@@ -62,21 +62,26 @@
   (with-slots (stream current-width) filling-stream
     (filling-stream-write-buffer filling-stream t)
     (stream-terpri stream)
-    (setq current-width 0)))
+    (filling-stream-handle-line-break filling-stream)))
+
+(defmethod stream-fresh-line ((filling-stream filling-stream))
+  (with-slots (current-width prefix-width) filling-stream
+    (unless (= current-width prefix-width)
+      (stream-terpri filling-stream)
+      t)))
 
 (defmethod stream-write-char ((filling-stream filling-stream) char)
-  (with-slots (stream current-width buffer) filling-stream
-    (cond ((char= char #\Newline)
-	   (filling-stream-write-buffer filling-stream t)
-	   (stream-terpri stream)
-	   (setq current-width 0))
+  (with-slots (stream current-width fill-width buffer) filling-stream
+    (cond ((or (char= char #\Newline)
+	       (char= char #\Return))
+	   (stream-terpri filling-stream))
 	  (t
 	   (vector-push-extend char buffer)
 	   (incf current-width (text-size stream char))
-	   ;; We need to do the FILLING-STREAM-WRITE-BUFFER for every
-	   ;; character since it needs to know as soon as output crosses
-	   ;; the fill width.
-	   (filling-stream-write-buffer filling-stream)))))
+	   ;; FILLING-STREAM-WRITE-BUFFER will only do something if we
+	   ;; are beyond the fill-width, so optimize calls to it
+	   (when (> current-width fill-width)
+	     (filling-stream-write-buffer filling-stream))))))
 
 (defmethod stream-write-string ((filling-stream filling-stream) string
 				&optional (start 0) end)

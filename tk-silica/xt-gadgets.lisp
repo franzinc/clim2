@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-gadgets.lisp,v 1.10 92/04/15 11:48:52 cer Exp Locker: cer $
+;; $fiHeader: xt-gadgets.lisp,v 1.11 92/05/06 15:37:59 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -70,7 +70,7 @@
 
 (defmethod find-widget-class-and-initargs-for-sheet :around
     ((port xt-port) (parent t)
-     (sheet silica::foreground-background-and-text-style-mixin))
+     (sheet foreground-background-and-text-style-mixin))
   (multiple-value-bind
       (class initargs)
       (call-next-method)
@@ -128,10 +128,10 @@
 ;(defclass xt-composite-pane () ())
 
 (defclass xt-leaf-pane (sheet-permanently-enabled-mixin
-			client-overridability
-			xt-pane 
+			client-overridability-mixin
 			mirrored-sheet-mixin 
-			ask-widget-for-size-mixin)
+			ask-widget-for-size-mixin
+			xt-pane)
 	  ())
 
 ;;--- This isn't really right.  Genera and CLX ports have kludges

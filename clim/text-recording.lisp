@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: text-recording.lisp,v 1.3 92/03/10 10:12:56 cer Exp $
+;; $fiHeader: text-recording.lisp,v 1.4 92/04/15 11:47:28 cer Exp $
 
 (in-package :clim-internals)
 
@@ -38,7 +38,7 @@
     ((initial-text-style :initform nil :initarg :initial-style)
      (text-style-changes :initform nil)
      (current-text-style :initform nil :initarg :current-style)
-     (baseline :initform 0 :initarg :baseline)))
+     (baseline :initform (coordinate 0) :initarg :baseline)))
 
 (define-constructor make-standard-text-output-record
 		    standard-text-output-record (ink string)
@@ -66,7 +66,8 @@
   (slot-value text 'string))
 
 (defmethod replay-output-record ((record standard-text-output-record) stream
-				 &optional region (x-offset 0) (y-offset 0))
+				 &optional region 
+					   (x-offset (coordinate 0)) (y-offset (coordinate 0)))
   (declare (type coordinate x-offset y-offset))
   (declare (ignore region))
   (let* ((string (slot-value record 'string))
@@ -132,7 +133,8 @@
 	    stream cursor-y (bounding-rectangle-height record) (stream-text-margin stream) nil)))))))
 
 (defmethod replay-output-record ((record styled-text-output-record) stream
-				 &optional region (x-offset 0) (y-offset 0))
+				 &optional region 
+					   (x-offset (coordinate 0)) (y-offset (coordinate 0)))
   (declare (type coordinate x-offset y-offset))
   (declare (ignore region))
   (let* ((string (slot-value record 'string))
@@ -322,7 +324,7 @@
   (with-slots (string wrapped-p) text
     (let* ((output-record (output-record-parent text))
 	   (match (and output-record
-		       (find-inferior-output-record
+		       (find-child-output-record
 			 output-record t 'standard-text-output-record
 			 :unique-id string :id-test #'text-recompute-contents-id-test))))
       (when match
@@ -354,7 +356,7 @@
 	      text
     (let* ((output-record (output-record-parent text))
 	   (match (and output-record
-		       (find-inferior-output-record
+		       (find-child-output-record
 			 output-record t 'styled-text-output-record
 			 :unique-id string :id-test #'text-recompute-contents-id-test))))
       (when match
@@ -475,10 +477,10 @@
 ;; only the text overlapping that region is copied.
 ;; This loses information about text styles, presentations, and graphics, and
 ;; doesn't deal perfectly with tab characters and changing baselines.
-(defun copy-textual-output-history (window stream &optional region)
+(defun copy-textual-output-history (window stream &optional region record)
   (let* ((char-width (stream-character-width window #\space))
 	 (line-height (stream-line-height window))
-	 (history (stream-output-history window))
+	 (history (or record (stream-output-history window)))
 	 (array (make-array (ceiling (bounding-rectangle-height history) line-height)
 			    :fill-pointer 0 :adjustable t :initial-element nil)))
     (labels ((collect (record x-offset y-offset)
@@ -504,14 +506,12 @@
 	       (y (pop item))
 	       (x (pop item)))
 	  (unless (= y current-y)
-	    (dotimes (j (round (- y current-y) line-height))
-	      #-(or Allegro Minima) (declare (ignore j))
+	    (repeat (round (- y current-y) line-height)
 	      (terpri stream)
 	      (setq current-x (coordinate 0)))
 	    (setq current-y y))
 	  (unless (= x current-x)
-	    (dotimes (j (round (- x current-x) char-width))
-	      #-(or Allegro Minima) (declare (ignore j))
+	    (repeat (round (- x current-x) char-width)
 	      (write-char #\space stream))
 	    (setq current-x x))
 	  (write-string item stream)

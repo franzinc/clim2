@@ -20,11 +20,9 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: load-xm.lisp,v 1.9 92/03/30 17:51:39 cer Exp Locker: cer $
+;; $fiHeader: load-xm.lisp,v 1.10 92/04/03 12:04:00 cer Exp $
 
 (in-package :tk)
-
-
 
 ;;;; 
 (defvar *libx11-pathname* "/x11/R4/src/mit/lib/X/libX_d.a")

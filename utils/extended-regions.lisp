@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: extended-regions.lisp,v 1.1 92/02/24 13:13:38 cer Exp $
+;; $fiHeader: extended-regions.lisp,v 1.2 92/04/15 11:45:29 cer Exp $
 
 (in-package :clim-utils)
 
@@ -11,10 +11,10 @@
 ;;; Lines
 
 (defclass standard-line (line)
-    ((start-x :initarg :start-x :type real)
-     (start-y :initarg :start-y :type real)
-     (end-x :initarg :end-x :type real)
-     (end-y :initarg :end-y :type real)
+    ((start-x :initarg :start-x :type coordinate)
+     (start-y :initarg :start-y :type coordinate)
+     (end-x :initarg :end-x :type coordinate)
+     (end-y :initarg :end-y :type coordinate)
      (points :type simple-vector :initarg :points :reader polygon-points)))
 
 (define-constructor make-line-1 standard-line (start-x start-y end-x end-y points)
@@ -29,7 +29,9 @@
 		    :start-x start-x :start-y start-y :end-x end-x :end-y end-y)
 
 (defun make-line* (start-x start-y end-x end-y)
-  (make-line*-1 start-x start-y end-x end-y))
+  (declare (type real start-x start-y end-x end-y))
+  (make-line*-1 (coordinate start-x) (coordinate start-y)
+		(coordinate end-x) (coordinate end-y)))
 
 (defmethod make-load-form ((line standard-line))
   `(make-line ',(line-start-point line) ',(line-end-point line)))
@@ -71,7 +73,9 @@
 
 (defmethod region-equal ((line1 standard-line) (line2 standard-line))
   (with-slots ((sx1 start-x) (sy1 start-y) (ex1 end-x) (ey1 end-y)) line1
+   (declare (type coordinate sx1 sy1 ex1 ey1))
     (with-slots ((sx2 start-x) (sy2 start-y) (ex2 end-x) (ey2 end-y)) line2
+      (declare (type coordinate sx2 sy2 ex2 ey2))
       (or (and (= sx1 sx2) (= sy1 sy2) (= ex1 ex2) (= ey1 ey2))
 	  (and (= sx1 ex2) (= sy1 ey2) (= ex1 sx2) (= ey1 sy2))))))
 
@@ -81,6 +85,7 @@
 (defmethod region-contains-position-p ((line standard-line) x y)
   (with-slots (start-x start-y end-x end-y) line
     (let ((x1 start-x) (y1 start-y) (x2 end-x) (y2 end-y))
+      (declare (type coordinate x1 y1 x2 y2))
       (when (or (<= x1 x x2)
 		(>= x1 x x2))
 	(= (+ (* (- y2 y1) x)
@@ -97,6 +102,8 @@
     (with-slots ((sx2 start-x) (sy2 start-y) (ex2 end-x) (ey2 end-y)) line2
       (let ((sx1 sx1) (sy1 sy1) (ex1 ex1) (ey1 ey1)
 	    (sx2 sx2) (sy2 sy2) (ex2 ex2) (ey2 ey2))
+	(declare (type coordinate sx1 sy1 ex1 ey1
+				  sx2 sy2 ex2 ey2))
 	(and (>= (max sx2 ex2) (min sx1 ex1))
 	     (>= (max sx1 ex1) (min sx2 ex2))
 	     (let ((dx1 (- ex1 sx1)) (dy1 (- ey1 sy1))
@@ -107,7 +114,9 @@
 (defmethod region-intersection ((line1 standard-line) (line2 standard-line))
   (if (region-intersects-region-p line1 line2)
       (with-slots ((sx1 start-x) (sy1 start-y) (ex1 end-x) (ey1 end-y)) line1
+	(declare (type coordinate sx1 sy1 ex1 ey1))
 	(with-slots ((sx2 start-x) (sy2 start-y) (ex2 end-x) (ey2 end-y)) line2
+	  (declare (type coordinate sx2 sy2 ex2 ey2))
 	  (make-line* (max sx1 sx2) (max sy1 sy2) (min ex1 ex2) (min ey1 ey2))))
       +nowhere+))
 
@@ -121,6 +130,7 @@
 
 (defmethod bounding-rectangle* ((line standard-line))
   (with-slots (start-x start-y end-x end-y) line
+    (declare (type coordinate start-x start-y end-x end-y))
     (fix-rectangle (min start-x end-x) (min start-y end-y)
 		   (max start-x end-x) (max start-y end-y))))
 
@@ -240,12 +250,12 @@
 
 (defclass ellipse-mixin ()
     ((center-point :type point :initarg :center-point :reader ellipse-center-point)
-     (center-x :initarg :center-x :type real)
-     (center-y :initarg :center-y :type real)
-     (radius-1-dx :initarg :radius-1-dx :type real)
-     (radius-1-dy :initarg :radius-1-dy :type real)
-     (radius-2-dx :initarg :radius-2-dx :type real)
-     (radius-2-dy :initarg :radius-2-dy :type real)
+     (center-x :initarg :center-x :type coordinate)
+     (center-y :initarg :center-y :type coordinate)
+     (radius-1-dx :initarg :radius-1-dx :type coordinate)
+     (radius-1-dy :initarg :radius-1-dy :type coordinate)
+     (radius-2-dx :initarg :radius-2-dx :type coordinate)
+     (radius-2-dy :initarg :radius-2-dy :type coordinate)
      (start-angle :initarg :start-angle :reader ellipse-start-angle :type single-float)
      (end-angle :initarg :end-angle :reader ellipse-end-angle :type single-float)))
 
@@ -269,8 +279,8 @@
   (center-point radius-1-dx radius-1-dy radius-2-dx radius-2-dy
 		&key start-angle end-angle)
   :center-point center-point :center-x (point-x center-point) :center-y (point-y center-point)
-  :radius-1-dx radius-1-dx :radius-1-dy radius-1-dy
-  :radius-2-dx radius-2-dx :radius-2-dy radius-2-dy
+  :radius-1-dx (coordinate radius-1-dx) :radius-1-dy (coordinate radius-1-dy)
+  :radius-2-dx (coordinate radius-2-dx) :radius-2-dy (coordinate radius-2-dy)
   :start-angle (cond (start-angle (float start-angle 0f0))
 		     (end-angle 0f0)
 		     (t nil))
@@ -282,8 +292,8 @@
   (center-x center-y radius-1-dx radius-1-dy radius-2-dx radius-2-dy
 	    &key start-angle end-angle)
   :center-x center-x :center-y center-y
-  :radius-1-dx radius-1-dx :radius-1-dy radius-1-dy
-  :radius-2-dx radius-2-dx :radius-2-dy radius-2-dy
+  :radius-1-dx (coordinate radius-1-dx) :radius-1-dy (coordinate radius-1-dy)
+  :radius-2-dx (coordinate radius-2-dx) :radius-2-dy (coordinate radius-2-dy)
   :start-angle (cond (start-angle (float start-angle 0f0))
 		     (end-angle 0f0)
 		     (t nil))
@@ -325,8 +335,8 @@
   (center-point radius-1-dx radius-1-dy radius-2-dx radius-2-dy
 		&key start-angle end-angle)
   :center-point center-point :center-x (point-x center-point) :center-y (point-y center-point)
-  :radius-1-dx radius-1-dx :radius-1-dy radius-1-dy
-  :radius-2-dx radius-2-dx :radius-2-dy radius-2-dy
+  :radius-1-dx (coordinate radius-1-dx) :radius-1-dy (coordinate radius-1-dy)
+  :radius-2-dx (coordinate radius-2-dx) :radius-2-dy (coordinate radius-2-dy)
   :start-angle (cond (start-angle (float start-angle 0f0))
 		     (end-angle 0f0)
 		     (t nil))
@@ -338,8 +348,8 @@
   (center-x center-y radius-1-dx radius-1-dy radius-2-dx radius-2-dy
 	    &key start-angle end-angle)
   :center-x center-x :center-y center-y
-  :radius-1-dx radius-1-dx :radius-1-dy radius-1-dy
-  :radius-2-dx radius-2-dx :radius-2-dy radius-2-dy
+  :radius-1-dx (coordinate radius-1-dx) :radius-1-dy (coordinate radius-1-dy)
+  :radius-2-dx (coordinate radius-2-dx) :radius-2-dy (coordinate radius-2-dy)
   :start-angle (cond (start-angle (float start-angle 0f0))
 		     (end-angle 0f0)
 		     (t nil))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: transformations.lisp,v 1.4 92/03/04 16:20:26 cer Exp $
+;; $fiHeader: transformations.lisp,v 1.5 92/04/15 11:45:39 cer Exp $
 
 (in-package :clim-utils)
 
@@ -683,26 +683,27 @@
 ;;; Transforming and untransforming of points
 
 (defmethod transform-position ((transform identity-transformation) x y)
-  (values x y))
+  (declare (type real x y))
+  (values (coordinate x) (coordinate y)))
 
 (defmethod transform-position ((transform translation-transformation) x y)
   (declare (type real x y))
-  (let ((x (float x 0f0))
-	(y (float y 0f0)))
-    (declare (type single-float x y))
+  (let ((x (coordinate x))
+	(y (coordinate y)))
+    (declare (type coordinate x y))
     (with-slots (tx ty) transform
       (declare (type single-float tx ty))
-      (values (+ x tx) (+ y ty)))))
+      (values (coordinate (+ x tx)) (coordinate (+ y ty))))))
 
 (defmethod transform-position ((transform standard-transformation) x y)
   (declare (type real x y))
-  (let ((x (float x 0f0))
-	(y (float y 0f0)))
-    (declare (type single-float x y))
+  (let ((x (coordinate x))
+	(y (coordinate y)))
+    (declare (type coordinate x y))
     (with-slots (mxx mxy myx myy tx ty) transform
       (declare (type single-float mxx mxy myx myy tx ty))
-      (values (+ (* x mxx) (* y mxy) tx)
-	      (+ (* x myx) (* y myy) ty)))))
+      (values (coordinate (+ (* x mxx) (* y mxy) tx))
+	      (coordinate (+ (* x myx) (* y myy) ty))))))
 
 #+CLIM-1-compatibility
 (define-compatibility-function (transform-point* transform-position)
@@ -711,16 +712,17 @@
 
 
 (defmethod untransform-position ((transform identity-transformation) x y)
-  (values x y))
+  (declare (type real x y))
+  (values (coordinate x) (coordinate y)))
 
 (defmethod untransform-position ((transform translation-transformation) x y)
   (declare (type real x y))
-  (let ((x (float x 0f0))
-	(y (float y 0f0)))
-    (declare (type single-float x y))
+  (let ((x (coordinate x))
+	(y (coordinate y)))
+    (declare (type coordinate x y))
     (with-slots (tx ty) transform
       (declare (type single-float tx ty))
-      (values (- x tx) (- y ty)))))
+      (values (coordinate (- x tx)) (coordinate (- y ty))))))
 
 (defmethod untransform-position ((transform standard-transformation) x y)
   (declare (type real x y))
@@ -735,27 +737,31 @@
 ;;; Transforming and untransforming of distances
 
 (defmethod transform-distance ((transform identity-transformation) dx dy)
-  (values dx dy))
+  (declare (type real dx dy))
+  (values (coordinate dx) (coordinate dy)))
 
 (defmethod transform-distance ((transform translation-transformation) dx dy)
-  (values dx dy))
+  (declare (type real dx dy))
+  (values (coordinate dx) (coordinate dy)))
 
 (defmethod transform-distance ((transform standard-transformation) dx dy)
   (declare (type real dx dy))
-  (let ((dx (float dx 0f0))
-	(dy (float dy 0f0)))
-    (declare (type single-float dx dy))
+  (let ((dx (coordinate dx))
+	(dy (coordinate dy)))
+    (declare (type coordinate dx dy))
     (with-slots (mxx mxy myx myy tx ty) transform
       (declare (type single-float mxx mxy myx myy tx ty))
-      (values (+ (* dx mxx) (* dy mxy))
-	      (+ (* dx myx) (* dy myy))))))
+      (values (coordinate (+ (* dx mxx) (* dy mxy)))
+	      (coordinate (+ (* dx myx) (* dy myy)))))))
 
 
 (defmethod untransform-distance ((transform identity-transformation) dx dy)
-  (values dx dy))
+  (declare (type real dx dy))
+  (values (coordinate dx) (coordinate dy)))
 
 (defmethod untransform-distance ((transform translation-transformation) dx dy)
-  (values dx dy))
+  (declare (type real dx dy))
+  (values (coordinate dx) (coordinate dy)))
 
 (defmethod untransform-distance ((transform standard-transformation) dx dy)
   (declare (type real dx dy))
@@ -765,49 +771,55 @@
 ;;; Transforming and untransforming of points
 
 (defmethod transform-rectangle* ((transform identity-transformation) x1 y1 x2 y2)
-  (values x1 y1 x2 y2))
+  (declare (type real x1 y1 x2 y2))
+  (values (coordinate x1) (coordinate y1)
+	  (coordinate x2) (coordinate y2)))
 
 (defmethod transform-rectangle* ((transform translation-transformation) x1 y1 x2 y2)
   (declare (type real x1 y1 x2 y2))
-  (let ((x1 (float x1 0f0))
-	(y1 (float y1 0f0))
-	(x2 (float x2 0f0))
-	(y2 (float y2 0f0)))
-    (declare (type single-float x1 y1 x2 y2))
+  (let ((x1 (coordinate x1))
+	(y1 (coordinate y1))
+	(x2 (coordinate x2))
+	(y2 (coordinate y2)))
+    (declare (type coordinate x1 y1 x2 y2))
     (with-slots (tx ty) transform
       (declare (type single-float tx ty))
-      (values (+ x1 tx) (+ y1 ty) (+ x2 tx) (+ y2 ty)))))
+      (values (coordinate (+ x1 tx)) (coordinate (+ y1 ty))
+	      (coordinate (+ x2 tx)) (coordinate (+ y2 ty))))))
 
 (defmethod transform-rectangle* ((transform standard-transformation) x1 y1 x2 y2)
   (declare (type real x1 y1 x2 y2))
   (assert (rectilinear-transformation-p transform) (transform)
 	  "Bounding rectangles can only be transformed by a rectilinear transformation")
-  (let ((x1 (float x1 0f0))
-	(y1 (float y1 0f0))
-	(x2 (float x2 0f0))
-	(y2 (float y2 0f0)))
-    (declare (type single-float x1 y1 x2 y2))
+  (let ((x1 (coordinate x1))
+	(y1 (coordinate y1))
+	(x2 (coordinate x2))
+	(y2 (coordinate y2)))
+    (declare (type coordinate x1 y1 x2 y2))
     (with-slots (mxx mxy myx myy tx ty) transform
       (declare (type single-float mxx mxy myx myy tx ty))
-      (values (+ (* x1 mxx) (* y1 mxy) tx)
-	      (+ (* x1 myx) (* y1 myy) ty)
-	      (+ (* x2 mxx) (* y2 mxy) tx)
-	      (+ (* x2 myx) (* y2 myy) ty)))))
+      (values (coordinate (+ (* x1 mxx) (* y1 mxy) tx))
+	      (coordinate (+ (* x1 myx) (* y1 myy) ty))
+	      (coordinate (+ (* x2 mxx) (* y2 mxy) tx))
+	      (coordinate (+ (* x2 myx) (* y2 myy) ty))))))
 
 
 (defmethod untransform-rectangle* ((transform identity-transformation) x1 y1 x2 y2)
-  (values x1 y1 x2 y2))
+  (declare (type real x1 y1 x2 y2))
+  (values (coordinate x1) (coordinate y1)
+	  (coordinate x2) (coordinate y2)))
 
 (defmethod untransform-rectangle* ((transform translation-transformation) x1 y1 x2 y2)
   (declare (type real x1 y1 x2 y2))
-  (let ((x1 (float x1 0f0))
-	(y1 (float y1 0f0))
-	(x2 (float x2 0f0))
-	(y2 (float y2 0f0)))
-    (declare (type single-float x1 y1 x2 y2))
+  (let ((x1 (coordinate x1))
+	(y1 (coordinate y1))
+	(x2 (coordinate x2))
+	(y2 (coordinate y2)))
+    (declare (type coordinate x1 y1 x2 y2))
     (with-slots (tx ty) transform
       (declare (type single-float tx ty))
-      (values (- x1 tx) (- y1 ty) (- x2 tx) (- y2 ty)))))
+      (values (coordinate (- x1 tx)) (coordinate (- y1 ty))
+	      (coordinate (- x2 tx)) (coordinate (- y2 ty))))))
 
 (defmethod untransform-rectangle* ((transform standard-transformation) x1 y1 x2 y2)
   (declare (type real x1 y1 x2 y2))

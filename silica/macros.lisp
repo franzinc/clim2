@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: macros.lisp,v 1.8 92/04/10 14:26:36 cer Exp Locker: cer $
+;; $fiHeader: macros.lisp,v 1.9 92/04/15 11:45:15 cer Exp $
 
 (in-package :silica)
 
@@ -45,7 +45,7 @@
 
 
 (defmacro with-port-locked ((port) &body body)
-  `(with-lock-held  ((port-lock (port ,port)))
+  `(with-lock-held ((port-lock (port ,port)))
      ,@body))
 
 (defmacro with-graft-locked ((graft) &body body)

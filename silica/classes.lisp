@@ -19,21 +19,22 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: classes.lisp,v 1.6 92/03/04 16:19:23 cer Exp $
+;; $fiHeader: classes.lisp,v 1.7 92/03/10 10:11:33 cer Exp $
 
 (in-package :silica)
 
+;;--- Make a PORT protocol class, and call this BASIC-PORT
 (defclass port () 
     ((server-path :reader port-server-path)
-     (properties :accessor port-properties :initform nil)
+     (properties :initform nil :accessor port-properties)
      (lock :initform (make-lock "a port lock") :reader port-lock)
      (grafts :initform nil :accessor port-grafts)
      (process :initform nil :accessor port-process)
      (modifier-state :initform (make-modifier-state)
 		     :reader port-modifier-state)
-     (mirror->sheet-table :initform (make-hash-table)
+     (mirror->sheet-table :initform (make-hash-table) 
 			  :reader port-mirror->sheet-table)
-     (focus :accessor port-keyboard-input-focus :initform nil)
+     (focus :initform nil :accessor port-keyboard-input-focus)
      (trace-thing :initform (make-array 10 :fill-pointer 0 :adjustable t)
 		  :reader port-trace-thing)
      (medium-cache :initform nil :accessor port-medium-cache)
@@ -55,37 +56,36 @@
      (allow-loose-text-style-size-mapping 
        :initform nil :initarg :allow-loose-text-style-size-mapping)))
 
+;;--- Make a SHEET protocol class, and call this BASIC-SHEET
 (defclass sheet ()
     ((port :initform nil :reader port)
      (graft :initform nil :reader graft)
-     (parent :initform nil
+     (parent :initform nil 
 	     :accessor sheet-parent)
-     (region :initarg :region
-	     :accessor sheet-region
-	     :initform (make-bounding-rectangle 0 0 100 100))
+     (region :initarg :region :initform (make-bounding-rectangle 0 0 100 100)
+	     :accessor sheet-region)
      (enabledp :initform nil :accessor sheet-enabled-p)))
 
+;;--- Make a MEDIUM protocol class, and call this BASIC-MEDIUM
 (defclass medium ()
     ((port :initarg :port :reader port)
      (sheet :initarg :sheet :initform nil :accessor medium-sheet)
-     (foreground :accessor medium-foreground :initform +black+)
-     (background :accessor medium-background :initform +white+)
-     (ink :accessor medium-ink :initform +foreground-ink+)
-     (text-style :accessor medium-text-style 
-		 :initform *default-text-style*)
-     (default-text-style :accessor medium-default-text-style 
-			 :initform *default-text-style*)
+     (foreground :initform +black+ :accessor medium-foreground)
+     (background :initform +white+ :accessor medium-background)
+     (ink :initform +foreground-ink+ :accessor medium-ink)
+     (text-style :initform *default-text-style* 
+		 :accessor medium-text-style)
+     (default-text-style :initform *default-text-style*
+			 :accessor medium-default-text-style)
      (merged-text-style :initform *default-text-style*
 			:writer (setf medium-merged-text-style))
      (merged-text-style-valid :initform nil
 			      :accessor medium-merged-text-style-valid)
-     (line-style :accessor medium-line-style :initform (make-line-style))
-     (transformation :accessor medium-transformation 
-		     :initarg :transformation
-		     :initform +identity-transformation+)
-     (region :accessor medium-clipping-region
-	     :initarg :region
-	     :initform +everywhere+)
+     (line-style :initform (make-line-style) :accessor medium-line-style)
+     (transformation :initarg :transformation :initform +identity-transformation+
+		     :accessor medium-transformation )
+     (region :initarg :region :initform +everywhere+
+	     :accessor medium-clipping-region)
      (+y-upward-p :initform nil :accessor medium-+y-upward-p)))
 
 
@@ -93,23 +93,19 @@
 
 (defmacro define-event-class (name supers slots &rest rest)
   `(progn
-     (defclass ,name ,supers 
-	 ((type :initform ,(intern (subseq 
-				     (symbol-name name) 
-				     0 (search (symbol-name '-event) (symbol-name name)
-					       :from-end t))
-				   *keyword-package*)
-		:allocation :class)
-	  ,@slots)
-       ,@rest)))
+     (defclass ,name ,supers (,@slots) ,@rest)
+     ;; We could use a class-allocated slot, but that is very slow
+     ;; in some implementations of CLOS
+     (defmethod event-type ((event ,name))
+       ,(intern (subseq 
+		  (symbol-name name) 
+		  0 (search (symbol-name '-event) (symbol-name name)
+			    :from-end t))
+		*keyword-package*))))
 
 (define-event-class event () 
   ((timestamp :reader event-timestamp
-	      :initform 0
-	      :initarg :timestamp)))
-
-(defmethod event-type ((event event))
-  (slot-value event 'type))
+	      :initform 0 :initarg :timestamp)))
 
 
 (define-event-class device-event (event) 

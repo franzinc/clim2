@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-examples.lisp,v 1.5 92/02/24 13:03:40 cer Exp Locker: cer $
+;; $fiHeader: ol-examples.lisp,v 1.6 92/04/15 11:44:48 cer Exp $
 
 (in-package :tk)
 
@@ -53,9 +53,9 @@
 			      :parent control))
   
   (setq scroll-bar (make-instance 'scroll-bar
-				 :orientation :horizontal
-				 :height 100
-				 :parent control))
+				  :orientation :horizontal
+				  :height 100
+				  :parent control))
   
   (setq list-pane (make-instance 'list-pane
 				 :parent control

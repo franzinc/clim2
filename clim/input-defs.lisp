@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-defs.lisp,v 1.6 92/03/04 16:21:52 cer Exp $
+;; $fiHeader: input-defs.lisp,v 1.7 92/04/15 11:46:46 cer Exp $
 
 (in-package :clim-internals)
 
@@ -16,14 +16,16 @@
     ((root :accessor pointer-root :initform nil :initarg :root)
      (window :accessor pointer-window :initform nil)
      ;; Position in root coordinates 
-     ;;--- Are these of type COORDINATE or FIXNUM?
-     (x-position :accessor pointer-x-position :initform 0)
-     (y-position :accessor pointer-y-position :initform 0)
-     ;;--- Are these of type COORDINATE or FIXNUM?
-     ;;--- It's clear that they need to be FIXed before passing them to the host
-     (native-x-position :accessor pointer-native-x-position :initform 0)
-     (native-y-position :accessor pointer-native-y-position :initform 0)
-     (button-state :accessor pointer-button-state :initform 0)
+     (x-position :accessor pointer-x-position
+		 :type coordinate :initform (coordinate 0))
+     (y-position :accessor pointer-y-position
+		 :type coordinate :initform (coordinate 0))
+     (native-x-position :accessor pointer-native-x-position
+			:type coordinate :initform (coordinate 0))
+     (native-y-position :accessor pointer-native-y-position
+			:type coordinate :initform (coordinate 0))
+     (button-state :accessor pointer-button-state 
+		   :type fixnum :initform 0)
      (position-changed :accessor pointer-position-changed)
      (cursor-pattern :accessor pointer-cursor-pattern)
      (cursor-width :accessor pointer-cursor-width)

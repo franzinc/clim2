@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-editor-commands.lisp,v 1.6 92/03/10 15:40:10 cer Exp $
+;; $fiHeader: input-editor-commands.lisp,v 1.7 92/04/15 11:46:47 cer Exp $
 
 (in-package :clim-internals)
 
@@ -118,7 +118,10 @@
 	   ,@body
 	   (setf (slot-value ,stream 'last-command-type) ',type)
 	   ,@(unless history `((setf (slot-value ,stream 'previous-history) nil)))
-	   ,@(when rescan `((immediate-rescan ,stream)))
+	   ,@(ecase rescan
+	       ((t) `((queue-rescan ,stream)))
+	       (:immediate `((immediate-rescan ,stream)))
+	       ((nil) nil))
 	   (values))))))
 
 #+Genera
@@ -306,8 +309,7 @@
 
 (define-input-editor-command (com-ie-forward-character :rescan nil)
 			     (stream input-buffer numeric-argument)
-  (dotimes (i numeric-argument) 
-    #-(or Allegro Minima) (declare (ignore i))
+  (repeat numeric-argument 
     (let ((p (forward-or-backward input-buffer (insertion-pointer stream) nil #'true)))
       (if p
 	  (setf (insertion-pointer stream) p)
@@ -315,8 +317,7 @@
 
 (define-input-editor-command (com-ie-forward-word :rescan nil)
 			     (stream input-buffer numeric-argument)
-  (dotimes (i numeric-argument)
-    #-(or Allegro Minima) (declare (ignore i))
+  (repeat numeric-argument
     (let ((p (move-over-word input-buffer (insertion-pointer stream) nil)))
       (if p
 	  (setf (insertion-pointer stream) p)
@@ -324,8 +325,7 @@
 
 (define-input-editor-command (com-ie-backward-character :rescan nil)
 			     (stream input-buffer numeric-argument)
-  (dotimes (i numeric-argument)
-    #-(or Allegro Minima) (declare (ignore i))
+  (repeat numeric-argument
     (let ((p (forward-or-backward input-buffer (insertion-pointer stream) t #'true)))
       (if p
 	  (setf (insertion-pointer stream) p)
@@ -333,8 +333,7 @@
 
 (define-input-editor-command (com-ie-backward-word :rescan nil)
 			     (stream input-buffer numeric-argument)
-  (dotimes (i numeric-argument)
-    #-(or Allegro Minima) (declare (ignore i))
+  (repeat numeric-argument
     (let ((p (move-over-word input-buffer (insertion-pointer stream) t)))
       (if p
 	  (setf (insertion-pointer stream) p)
@@ -377,8 +376,7 @@
 	   (target-line this-line))
       (if (plusp numeric-argument)
 	  (let (next-line-1)
-	    (dotimes (i numeric-argument)
-	      #-(or Allegro Minima) (declare (ignore i))
+	    (repeat numeric-argument
 	      (setq next-line-1 (position #\Newline input-buffer :start target-line))
 	      (unless next-line-1 (return))
 	      (setq target-line (1+ next-line-1)))
@@ -387,8 +385,7 @@
 		    (min (+ target-line position-in-line)
 			 (ie-line-end input-buffer target-line)))))
 	  (let (prev-line-end)
-	    (dotimes (i (- numeric-argument))
-	      #-(or Allegro Minima) (declare (ignore i))
+	    (repeat (- numeric-argument)
 	      (setq prev-line-end (position #\Newline input-buffer
 					    :end target-line :from-end t))
 	      (unless prev-line-end (return))
@@ -412,8 +409,7 @@
   (let* ((p1 (insertion-pointer stream))
 	 (p2 p1)
 	 (reverse-p (minusp numeric-argument))) 
-    (dotimes (i (abs numeric-argument))
-      #-(or Allegro Minima) (declare (ignore i))
+    (repeat (abs numeric-argument)
       (let ((p3 (forward-or-backward input-buffer p2 reverse-p #'true)))
 	(if p3 (setq p2 p3) (return))))
     (when (noise-string-p (aref input-buffer p2))
@@ -442,8 +438,7 @@
   (let* ((p1 (insertion-pointer stream))
 	 (p2 p1)
 	 (reverse-p (minusp numeric-argument))) 
-    (dotimes (i (abs numeric-argument))
-      #-(or Allegro Minima) (declare (ignore i))
+    (repeat (abs numeric-argument)
       (let ((p3 (move-over-word input-buffer p2 reverse-p)))
 	(if p3 (setq p2 p3) (return))))
     (if (/= p1 p2)

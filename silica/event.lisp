@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: event.lisp,v 1.8 92/03/10 10:11:38 cer Exp $
+;; $fiHeader: event.lisp,v 1.9 92/04/15 11:45:08 cer Exp $
 
 (in-package :silica)
 
@@ -36,27 +36,27 @@
   (handle-repaint client nil 
 		  (window-event-region event)))
 
-(defclass sheet-with-event-queue ()
+(defclass sheet-with-event-queue-mixin ()
     ((event-queue :initform nil
 		  :initarg :event-queue
 		  :accessor sheet-event-queue)))
 
-(defmethod note-sheet-grafted :after ((sheet sheet-with-event-queue))
+(defmethod note-sheet-grafted :after ((sheet sheet-with-event-queue-mixin))
   (unless (sheet-event-queue sheet)
     (setf (sheet-event-queue sheet)
 	  (or (do ((sheet (sheet-parent sheet) (sheet-parent sheet)))
 		  ((null sheet))
-		(when (and (typep sheet 'sheet-with-event-queue)
+		(when (and (typep sheet 'sheet-with-event-queue-mixin)
 			   (sheet-event-queue sheet))
 		  (return (sheet-event-queue sheet))))
 	      (make-queue)))))
 
 (defgeneric queue-event (client event)
-  (:method ((sheet sheet-with-event-queue) event)
+  (:method ((sheet sheet-with-event-queue-mixin) event)
    (queue-put (sheet-event-queue sheet) event)))
 
 (defgeneric event-read (client)
-  (:method ((sheet sheet-with-event-queue))
+  (:method ((sheet sheet-with-event-queue-mixin))
    (let ((queue (sheet-event-queue sheet)))
      (loop
        (process-wait "Event" #'(lambda ()
@@ -66,11 +66,11 @@
 
 
 (defgeneric event-read-no-hang (client)
-  (:method ((sheet sheet-with-event-queue))
+  (:method ((sheet sheet-with-event-queue-mixin))
    (queue-get (sheet-event-queue sheet) nil)))
 
 (defgeneric event-peek (client &optional event-type)
-  (:method ((sheet sheet-with-event-queue) &optional event-type)
+  (:method ((sheet sheet-with-event-queue-mixin) &optional event-type)
    (loop
      (let ((event (event-read sheet)))
        (when (or (null event-type)
@@ -81,18 +81,18 @@
 ;; Is there a lock here?
 
 (defgeneric event-unread (sheet event)
-  (:method ((sheet sheet-with-event-queue) event)
+  (:method ((sheet sheet-with-event-queue-mixin) event)
    (queue-unget (sheet-event-queue sheet) event)))
 
 (defgeneric event-listen (client)
-  (:method ((sheet sheet-with-event-queue))
+  (:method ((sheet sheet-with-event-queue-mixin))
    (not (queue-empty-p (sheet-event-queue sheet)))))
 
 
 
-;; Standard 
+;;; Standard 
 
-(defclass standard-sheet-input-mixin (sheet-with-event-queue) ())
+(defclass standard-sheet-input-mixin (sheet-with-event-queue-mixin) ())
 
 (defmethod dispatch-event ((sheet standard-sheet-input-mixin) event)
   (queue-event sheet event))
@@ -100,6 +100,7 @@
 (defmethod dispatch-event ((sheet standard-sheet-input-mixin)
 			   (event window-configuration-event))
   (handle-event sheet event))
+
 
 ;;; Immediate
 
@@ -109,7 +110,7 @@
   (handle-event sheet event))
 
 
-;; delegate
+;;; Delegate
 
 (defclass delegate-sheet-input-mixin ()
     ((delegate :accessor delegate-sheet-delegate)))
@@ -119,8 +120,9 @@
 
 (defclass sheet-mute-input-mixin () ())
 
-(defmethod queue-event ((sheet sheet-mute-input-mixin) (event t))
+(defmethod queue-event ((sheet sheet-mute-input-mixin) (event event))
   nil)
+
 
 ;;; Repaint protocol
 
@@ -131,7 +133,7 @@
    (queue-event sheet region)))
 
 (defgeneric handle-repaint (sheet medium region)
-  (:method (sheet medium region)
+  (:method ((sheet sheet) medium region)
    (with-sheet-medium-bound (sheet medium)
      (repaint-sheet sheet region))
    (when (typep sheet 'sheet-parent-mixin)
@@ -143,9 +145,9 @@
 (defgeneric repaint-sheet (sheet region))
 
 
-(defclass standard-repainting-medium () ())
+(defclass standard-repainting-mixin () ())
 
-(defmethod dispatch-repaint ((sheet standard-repainting-medium) region)
+(defmethod dispatch-repaint ((sheet standard-repainting-mixin) region)
   (queue-repaint sheet region))
 
 (defclass immediate-repainting-mixin () ())
@@ -288,23 +290,23 @@
 			 :modifiers modifiers
 			 :button button))))))
 
-(defmethod distribute-event (port event)
+(defmethod distribute-event ((port port) event)
   (distribute-event-1 port event))
 
 (defgeneric distribute-event-1 (port event)
-  (:method (port event)
+  (:method ((port port) (event event))
    (dispatch-event (event-sheet event) event))
-  (:method (port (event keyboard-event))
+  (:method ((port port) (event keyboard-event))
    (let ((focus (or (port-keyboard-input-focus port)
 		    (event-sheet event))))
      ;;--- Is this correct???
      (setf (slot-value event 'sheet) focus)
      (dispatch-event focus event)))
-  (:method (port (event window-event))
+  (:method ((port port) (event window-event))
    (dispatch-event 
      (window-event-mirrored-sheet event)
      event))
-  (:method (port (event pointer-event))
+  (:method ((port port) (event pointer-event))
    (distribute-pointer-event
      port
      (event-sheet event)
@@ -317,6 +319,7 @@
      (event-modifier-state event)
      (pointer-event-button event))))
 	    
+
 ;;; Local event processing
 
 (defun process-event-locally (sheet event)
@@ -324,12 +327,14 @@
   (handle-event (event-sheet event) event))
 
 (defun local-event-loop (sheet)
-  (loop (process-event-locally sheet (event-read sheet))))
+  (loop 
+    (process-event-locally sheet (event-read sheet))))
 
 (defun port-event-wait (port waiter 
 			&key (wait-reason #+Genera si:*whostate-awaiting-user-input*
 					  #-Genera "CLIM Input")
 			     timeout)
+  (declare (ignore port))
   (process-wait-with-timeout wait-reason timeout waiter) 
   (values))
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: incremental-redisplay.lisp,v 1.4 92/03/04 16:21:50 cer Exp $
+;; $fiHeader: incremental-redisplay.lisp,v 1.5 92/04/15 11:46:44 cer Exp $
 
 (in-package :clim-internals)
 
@@ -43,7 +43,7 @@
       ;; UPDATING-OUTPUT-RECORD's can be easily moved through the
       ;; hierarchy, in which case it would be slightly expensive to
       ;; convert from relative to absolute coordinates.
-      (old-position :initform (make-point (coordinate 0) (coordinate 0)) 
+      (old-position :initform (make-point 0 0) 
 		    :initarg :old-position
 		    :accessor output-record-old-cursor-position)
       (old-parent :initform nil :initarg :old-parent
@@ -53,8 +53,7 @@
 				  (&key x-position y-position (size 25)
 					unique-id cache-value fixed-position
 					displayer all-new
-					(old-position 
-					  (make-point (coordinate 0) (coordinate 0)))
+					(old-position (make-point 0 0))
 					old-parent)
   :x-position x-position :y-position y-position :size size
   :unique-id unique-id :cache-value cache-value :fixed-position fixed-position
@@ -114,7 +113,7 @@
   ;;
   ;; So, the solution we come up with is to be robust against both types
   ;; of error.  If we don't match, and hence delete something, we now
-  ;; check (see COMPUTE-DIFFERENCES :AROUND).  And we are careful not to
+  ;; check (see COMPUTE-DIFFERENCE-SET :AROUND).  And we are careful not to
   ;; match for classes that have slots other than those involved in
   ;; incremental-redisplay (see match-output-records for presentation).
   ;;
@@ -126,25 +125,23 @@
   t)
 
 
-;; The reason that this is called FIND-INFERIOR-OUTPUT-RECORD-1, and it
-;; calls plain old vanilla FIND-INFERIOR-OUTPUT-RECORD, is that this is the
-;; function called internally by incremental redisplay, and it just massages
-;; some of the arguments, and then passes it on to the real (and generic)
-;; FIND-INFERIOR-OUTPUT-RECORD.  FIND-INFERIOR-OUTPUT-RECORD is the exported
+;; The reason that this is called FIND-CHILD-OUTPUT-RECORD-1, and it calls
+;; plain old vanilla FIND-CHILD-OUTPUT-RECORD, is that this is the function
+;; called internally by incremental redisplay, and it just massages some of
+;; the arguments, and then passes it on to the real (and generic)
+;; FIND-CHILD-OUTPUT-RECORD.  FIND-CHILD-OUTPUT-RECORD is the exported
 ;; interface, and is defined in the protocol.
-;;--- Rename to FIND-CHILD-OUTPUT-RECORD-1
-(defun find-inferior-output-record-1 (record record-type &rest init-args)
+(defun find-child-output-record-1 (record record-type &rest init-args)
   (declare (dynamic-extent init-args))
-   (apply #'find-inferior-output-record
+   (apply #'find-child-output-record
 	  record
 	  (and (not (output-record-contents-ok record))
 	       (eql (output-record-generation-tick record) *generation-tick*))
 	  record-type
 	  init-args))
 
-;;--- Rename to DECACHE-CHILD-OUTPUT-RECORD-1
-(defun decache-inferior-output-record-1 (record child)
-  (decache-inferior-output-record
+(defun decache-child-output-record-1 (record child)
+  (decache-child-output-record
     record child
     (and (not (output-record-contents-ok record))
 	 (eql (output-record-generation-tick record) *generation-tick*))))
@@ -159,8 +156,8 @@
 	  init-args))
 
 (defun find-with-test (item sequence key test)
-  ;; --- Allegro blows up mysteriously in the call to FIND below, so
-  ;; --- instead use this "by hand" code.
+  ;;--- Allegro blows up mysteriously in the call to FIND below, so
+  ;;--- instead use this "by hand" code.
   (flet ((robust-test (item1 item2)
 	   ;; Suppose someone has some IDs that are numbers and others
 	   ;; that are strings, and one of the ID tests is STRING-EQUAL?
@@ -177,12 +174,11 @@
 	(find item sequence :key key :test #'robust-test)
         (find item sequence :key key))))
 
-;;--- Rename to FIND-CHILD-OUTPUT-RECORD
-(defmethod find-inferior-output-record
+(defmethod find-child-output-record
 	   ((record output-record-mixin) use-old-children record-type
 	    &rest init-args &key unique-id id-test &allow-other-keys)
   (declare (dynamic-extent init-args))
-  ;; other types can write their own FIND-INFERIOR-OUTPUT-RECORD.  This is 
+  ;; Other types can write their own FIND-CHILD-OUTPUT-RECORD.  This is 
   ;; the default, stupid one.
   (flet ((do-match (candidate)
 	   ;; (class-name (class-of ...)) should just be type-of, but not in PCL.
@@ -229,8 +225,7 @@
 		    #'no-unique-id) 
 		record)))))))
 
-;;--- Rename to DECACHE-CHILD-OUTPUT-RECORD-1
-(defmethod decache-inferior-output-record
+(defmethod decache-child-output-record
 	   ((record output-record-mixin) child use-old-children)
   (when use-old-children
     (with-slots (old-children) record
@@ -242,7 +237,7 @@
 
 ;; and a slot, stream-redisplay-record
 
-;; this is only for the benefit of COMPUTE-DIFFERENCES, so it won't have
+;; this is only for the benefit of COMPUTE-DIFFERENCE-SET, so it won't have
 ;; to look inside this record.
 ;;
 ;; You can replace this method (as STANDARD-TEXT-OUTPUT-RECORD does), if
@@ -304,13 +299,12 @@
 			  (values (coordinate 0) (coordinate 0)))
 		    (and (= delta-x e-delta-x) (= delta-y e-delta-y))))
 	  (setf (output-record-contents-ok record) t)
-	  ;; If delta-x wasn't set, then we didn't see any relevant
-	  ;; inferiors.  So, this had, and has, zero extent, so it isn't
-	  ;; relevant.
+	  ;; If delta-x wasn't set, then we didn't see any relevant children.
+	  ;; So, this had, and has, zero extent, so it isn't relevant.
 	  (when delta-x
 	    ;; Just shift the old start position.  We don't have to
-	    ;; readjust the old start positions of the inferiors, because
-	    ;; COMPUTE-DIFFERENCES will never walk down past this record,
+	    ;; readjust the old start positions of the children because
+	    ;; COMPUTE-DIFFERENCE-SET will never walk down past this record,
 	    ;; since contents-ok is T.
 	    (multiple-value-bind (new-x new-y)
 		(output-record-start-cursor-position record)
@@ -360,19 +354,19 @@
 	      (flet ((redisplay-new-output-records (parent)
 		       (declare (ignore parent))
 		       (with-output-recording-options (stream :draw nil) 
-			 (new-output-records record stream))))
+			 (compute-new-output-records record stream))))
 		(declare (dynamic-extent #'redisplay-new-output-records))
 		(with-output-record-1 #'redisplay-new-output-records
 				      stream parent sup-x sup-y))))))
       (multiple-value-bind (erases moves draws erase-overlapping move-overlapping)
-	  (compute-differences record t)
+	  (compute-difference-set record t)
 	(when check-overlapping
 	  (multiple-value-setq (erases moves draws erase-overlapping move-overlapping)
 	    (augment-draw-set record erases moves draws erase-overlapping move-overlapping)))
-	(inferior-output-record-changed
+	(note-output-record-child-changed
 	  (output-record-parent record) record :change
-	  ;; You can use the state saved by COPY-DISPLAY-STATE here, since
-	  ;; the contract of NEW-OUTPUT-RECORDS is to maintain the old state.
+	  ;; You can use the state saved by COPY-DISPLAY-STATE here, since the
+	  ;; contract of COMPUTE-NEW-OUTPUT-RECORDS is to maintain the old state.
 	  (multiple-value-bind (x y)
 	      (output-record-old-start-cursor-position record)
 	    (make-point x y))
@@ -382,39 +376,38 @@
   (force-output stream))
 
 ;; If you make a change to an existing output-record you must call
-;; INFERIOR-OUTPUT-RECORD-CHANGED on its parent, so that the parent
+;; NOTE-OUTPUT-RECORD-CHILD-CHANGED on its parent, so that the parent
 ;; can choose to readjust itself based on those changes.
-;; INFERIOR-OUTPUT-RECORD-CHANGED assumes that the output-history
-;; already reflects the changes made, but that no output (screen, or
-;; hardcopy, or ...) has been done yet.
-;; (Some) parent will (eventually) do the appropriate updates.  You
-;; must pass the differences list (output in the style of
-;; COMPUTE-DIFFERENCES) to INFERIOR-OUTPUT-RECORD-CHANGED.  
-;; If you don't know the optimized form of the differences, then you
-;; must call COMPUTE-DIFFERENCES before you update the output-record
-;; history, and pass the results to INFERIOR-OUTPUT-RECORD-CHANGED.
-;; (See, for example, redisplay).
+;; NOTE-OUTPUT-RECORD-CHILD-CHANGED assumes that the output-history already
+;; reflects the changes made, but that no output (screen, or hardcopy, or
+;; ...) has been done yet.  (Some) parent will (eventually) do the
+;; appropriate updates.  You must pass the differences list (output in the
+;; style of COMPUTE-DIFFERENCE-SET) to NOTE-OUTPUT-RECORD-CHILD-CHANGED.
+;; If you don't know the optimized form of the differences, then you must
+;; call COMPUTE-DIFFERENCE-SET before you update the output-record history,
+;; and pass the results to NOTE-OUTPUT-RECORD-CHILD-CHANGED.  (See, for
+;; example, redisplay).
+
 ;; Mode is one of :DELETE, :ADD, :CHANGE, :MOVE, or :NONE
-;; If you don't recursively call your parent, then it is >your<
-;; responsibility to call INCREMENTAL-REDISPLAY.
-;;--- Rename to NOTE-OUTPUT-RECORD-CHILD-CHANGED
-(defmethod inferior-output-record-changed ((parent output-record-mixin) child mode
-					   old-child-position old-child-extent	;of child
-					   stream
-					   &optional erases moves draws
-						     erase-overlapping move-overlapping)
+;; If you don't recursively call your parent, then it is your responsibility
+;; to call INCREMENTAL-REDISPLAY.
+(defmethod note-output-record-child-changed 
+	   ((parent output-record-mixin) child mode
+	    old-child-position old-child-extent	;of child
+	    stream
+	    &optional erases moves draws erase-overlapping move-overlapping)
   (cond ((eq mode :add)
 	 (add-output-record child parent))
 	((eq mode :delete)
 	 (delete-output-record child parent)))
   (cond
-    ((propagate-inferior-output-record-changes-p parent child mode 
-						 old-child-position old-child-extent)
+    ((propagate-output-record-changes-p parent child mode 
+					old-child-position old-child-extent)
      (with-slots (old-bounding-rectangle start-x start-y old-start-x old-start-y) parent
        (let ((old-parent-extent old-bounding-rectangle)
 	     (old-parent-position
 	       (multiple-value-bind (x y)
-		   (output-record-old-start-cursor-position record)
+		   (output-record-old-start-cursor-position parent)
 		 (make-point x y))))
 	 (setf old-start-x start-x old-start-y start-y)
 	 (if (null old-bounding-rectangle)
@@ -427,7 +420,7 @@
 					      erases moves draws
 					      erase-overlapping move-overlapping)
 	   (when (output-record-parent parent)
-	     (inferior-output-record-changed
+	     (note-output-record-child-changed
 	       (output-record-parent parent) parent new-mode
 	       old-parent-position old-parent-extent stream 
 	       new-erases new-moves new-draws
@@ -444,15 +437,15 @@
 ;;
 ;; The difference list returned from this is in
 ;; coordinates relative to the parent of first record you called
-;; COMPUTE-DIFFERENCES on.  [OLD-]X/Y-OFFSET gives the absolute offsets
+;; COMPUTE-DIFFERENCE-SET on.  [OLD-]X/Y-OFFSET gives the absolute offsets
 ;; from that origin to the parent of RECORD.
 ;;
 ;; Need to clip this to the visible viewport, but we'll do that later, too.
-;;--- Rename to COMPUTE-DIFFERENCE-SET
-(defmethod compute-differences ((record output-record-element-mixin)
-				&optional (check-overlapping nil)
-					  (x-offset 0) (y-offset 0)
-					  (old-x-offset 0) (old-y-offset 0))
+(defmethod compute-difference-set
+	   ((record output-record-element-mixin)
+	    &optional (check-overlapping nil)
+		      (x-offset (coordinate 0)) (y-offset (coordinate 0))
+		      (old-x-offset (coordinate 0)) (old-y-offset (coordinate 0)))
   (declare (type coordinate x-offset y-offset old-x-offset old-y-offset))
   (declare (values erases moves draws erase-overlapping move-overlapping))
   (let (erases moves draws erase-overlapping move-overlapping)
@@ -518,7 +511,7 @@
 		       (flet ((compute-diffs (child)
 				(multiple-value-bind (nerases nmoves ndraws
 						      nerase-overlapping nmove-overlapping)
-				    (compute-differences
+				    (compute-difference-set
 				      child nil
 				      x-offset y-offset old-x-offset old-y-offset)
 				  (setq erases (append erases nerases))
@@ -532,19 +525,19 @@
 			 (map-over-output-records #'compute-diffs record))))))))))
     (values erases moves draws erase-overlapping move-overlapping)))
 
-;; If there are any output records that can have overlapping inferiors,
+;; If there are any output records that can have overlapping children,
 ;; none of which have been inserted into the "erase" or "draw" sets, but
-;; overlap anything in the "erase" set, then we must insert the inferior
+;; overlap anything in the "erase" set, then we must insert the child
 ;; into the "draw" set so that it does not simply disappear.
 (defmethod augment-draw-set ((record output-record-element-mixin)
 			     erases moves draws erase-overlapping move-overlapping
-			     &optional (x-offset 0) (y-offset 0)
-				       (old-x-offset 0) (old-y-offset 0))
+			     &optional (x-offset (coordinate 0)) (y-offset (coordinate 0))
+				       (old-x-offset (coordinate 0)) (old-y-offset (coordinate 0)))
   (declare (type coordinate x-offset y-offset old-x-offset old-y-offset))
   (declare (values erases moves draws erase-overlapping move-overlapping))
   (labels ((augment-draws (record x-offset y-offset old-x-offset old-y-offset)
 	     (when (and (displayed-output-record-p record)
-			(not (inferiors-never-overlap-p (output-record-parent record)))
+			(not (children-never-overlap-p (output-record-parent record)))
 			(not (member record draws :key #'first))
 			(not (member record erases :key #'first))
 			(dolist (erase erases nil)
@@ -566,7 +559,7 @@
 			 (old-x-offset (+ old-x-offset o-start-x))
 			 (old-y-offset (+ old-y-offset o-start-y)))
 		     (map-over-output-records
-		       #'augment-draws record 0 0
+		       #'augment-draws record (coordinate 0) (coordinate 0)
 		       x-offset y-offset old-x-offset old-y-offset)))))))
     (declare (dynamic-extent #'augment-draws))
     (augment-draws record x-offset y-offset old-x-offset old-y-offset))
@@ -630,8 +623,8 @@
 		(region (third move)))
 	    (replay-output-record record stream region xoff yoff)))))))
 
-;; this is done completely for side-effect.
-(defmethod new-output-records ((record output-record-element-mixin) stream)
+;; This is done completely for side-effect.
+(defmethod compute-new-output-records ((record output-record-element-mixin) stream)
   ;; Position and bounding rectangle are identical on these guys.
   (multiple-value-bind (cursor-x cursor-y)
       (stream-cursor-position stream)
@@ -653,31 +646,29 @@
 	stream (+ cursor-x delta-x) (+ cursor-y delta-y)))))
 
 ;; If you do REDISPLAY on a random output-record, do you want it to walk
-;; down its inferiors?  Or do you just assume that unless you did
+;; down its children?  Or do you just assume that unless you did
 ;; updating-output there's no point in updating anything?  Certainly
-;; SURROUNDING-OUTPUT-WITH-BORDER could beneficially call
-;; new-output-records recursively on its inferiors and then recompute
-;; the border.  Similarly TABLES.  A presentation could represent the
-;; object with the appropriate presentation-type - although
-;; WITH-OUTPUT-AS-PRESENTATION would definitely not work.
+;; SURROUNDING-OUTPUT-WITH-BORDER could beneficially call COMPUTE-NEW-OUTPUT-RECORDS
+;; recursively on its children and then recompute the border.  Similarly
+;; TABLES.  A presentation could represent the object with the appropriate
+;; presentation-type - although WITH-OUTPUT-AS-PRESENTATION would definitely
+;; not work.
 ;;
-;; The question is what the default behavior should be.  The current
-;; behavior is sort of minimalist.
+;; The question is what the default behavior should be.  The current behavior
+;; is sort of minimalist.
 #+ignore
-(defmethod new-output-records ((record output-record-mixin) stream)
-  ;; walk over inferiors?
+(defmethod compute-new-output-records ((record output-record-mixin) stream)
+  ;; walk over children?
   )
     
 ;; if this doesn't work, just return nil, for the purposes of testing
 ;; the first implementation.
 
-;; The interesting thing in this function is that both
-;; old-inferior-position and inferior-start-position,
-;; old-inferior-extent and inferior-extent, are all relative to the
-;; parents start-position.  Nothing is relative to the parent's
-;; old-start-position.
-;;--- Rename to PROPAGATE-OUTPUT-RECORD-CHANGES-P
-(defmethod propagate-inferior-output-record-changes-p
+;; The interesting thing in this function is that both old-child-position
+;; and inferior-start-position, old-child-extent and inferior-extent, are
+;; all relative to the parents start-position.  Nothing is relative to
+;; the parent's old-start-position.
+(defmethod propagate-output-record-changes-p
 	   ((record output-record-mixin) child mode
 	    &optional (old-child-position 
 			(multiple-value-bind (x y)
@@ -687,7 +678,7 @@
 			(output-record-old-bounding-rectangle child)))
   #---ignore
   nil
-  #+++ignore ;; until propagate-output-record-changes is implemented.
+  #+++ignore ;; until PROPAGATE-OUTPUT-RECORD-CHANGES is implemented.
   (and (if (or (eq mode :change) (eq mode :move) (eq mode :none))
 	   (or (not (bounding-rectangle-position-equal
 		      old-child-position 
@@ -725,15 +716,12 @@
 		   (bounding-rectangle-bottom old-child-extent)))
 	       nil))))))
    
-;;  This needs to return the differences list in the coordinates of its
-;;  parent.
-;;  Also, the extents in the differences list must be allowed to be
-;;  side-effected.  (At this stage, you are allowed to modify old-bounding-rectangle
-;;  and old-start-position, because once you construct a
-;;  differences-list, no one is allowed to depend on the values of state
-;;  that you save in copy-display-state.
-;;
-;; --- still needs to be implemented...
+;; This needs to return the differences list in the coordinates of its parent.
+;; Also, the extents in the differences list must be allowed to be side-effected.
+;; (At this stage, you are allowed to modify old-bounding-rectangle and
+;; old-start-position, because once you construct a differences-list, no one is
+;; allowed to depend on the values of state that you save in copy-display-state.
+;;--- Still needs to be implemented...
 (defmethod propagate-output-record-changes
 	   ((record output-record-mixin) child mode
 	    &optional (old-child-position 
@@ -745,10 +733,10 @@
 		      erases moves draws erase-overlapping move-overlapping)
   (declare (values new-mode new-erases new-moves new-draws
 		   new-erase-overlapping new-move-overlapping))
-  ;; if :delete, and deleted all inferiors, delete self,
-  ;; if :delete and there's anyone past the extent, move them.
-  ;; if :add or :change, and extent grew, and there's anyone past the extent, move them.
-  ;; if :change, and shrank the extent, move them, unless output-record-fixed-position
+  ;; If :DELETE, and deleted all children, delete self,
+  ;; if :DELETE and there's anyone past the extent, move them.
+  ;; if :ADD or :CHANGE, and extent grew, and there's anyone past the extent, move them.
+  ;; if :CHANGE, and shrank the extent, move them, unless output-record-fixed-position
   ;; If the extent shrinks, first move the records on its right, to their left.
   ;; Then, (if nothing from the right took its place), move the records below it, up.
   (when (eq mode :delete)
@@ -764,18 +752,16 @@
 
 ;; just use default, for now.
 #+ignore
-;;--- Rename to FIND-CHILD-OUTPUT-RECORD
-(defmethod find-inferior-output-record ((record standard-updating-output-record)
-					use-old-children record-type
-					&rest init-args &key unique-id id-test
-					&allow-other-keys)
+(defmethod find-child-output-record ((record standard-updating-output-record)
+				     use-old-children record-type &rest init-args
+				     &key unique-id id-test &allow-other-keys)
   ;;; need to explicitly define what happens here.
   (declare (dynamic-extent init-args))
   )
 
 
 
-(defmethod new-output-records ((record standard-updating-output-record) stream)
+(defmethod compute-new-output-records ((record standard-updating-output-record) stream)
   (funcall (slot-value record 'displayer) stream))
 
 ;; the contents of the output-record are ok, but we might have to move
@@ -852,10 +838,11 @@
 	  (setf old-cache (delete elt old-cache)))
 	elt))))
 
-(defmethod compute-differences :around ((record standard-updating-output-record)
-					 &optional check-overlapping
-						   (x-offset 0) (y-offset 0)
-						   (old-x-offset 0) (old-y-offset 0))
+(defmethod compute-difference-set :around
+	   ((record standard-updating-output-record)
+	    &optional check-overlapping
+		      (x-offset (coordinate 0)) (y-offset (coordinate 0))
+		      (old-x-offset (coordinate 0)) (old-y-offset (coordinate 0)))
   (declare (values erases moves draws erase-overlapping move-overlapping))
   (declare (ignore old-x-offset old-y-offset check-overlapping))
   (with-slots (all-new old-bounding-rectangle contents-ok old-parent) record
@@ -866,15 +853,17 @@
 			       (bounding-rectangle-shift-position
 				 record x-offset y-offset)))
 		   nil nil))
-	  ;; if contents were ok, but we're being copied from something that isn't up-to-date,
-	  ;; or was off the screen, then it will be erased, so we have to do the move
-	  ;; (i.e. "draw") even if it is "in the same position".
-	  ;; Even if contents weren't ok, we don't want to erase inferior output records, and
-	  ;; we don't want to start copying inferiors, either.  Assume the whole branch needs
-	  ;; to be computed from scratch.  It's exactly like all-new.
-	  ;; The only screw case here is if >another<, more deeply nested output record, was
-	  ;; moved from somewhere in the hierarchy that was >not< erased.  In that case, we
-	  ;; >could< just bitblt, but we won't detect that anymore.
+	  ;; If contents were ok, but we're being copied from something that
+	  ;; isn't up-to-date, or was off the screen, then it will be erased,
+	  ;; so we have to do the move (i.e. "draw") even if it is "in the
+	  ;; same position".
+	  ;; Even if contents weren't ok, we don't want to erase inferior
+	  ;; output records, and we don't want to start copying children,
+	  ;; either.  Assume the whole branch needs to be computed from
+	  ;; scratch.  It's exactly like all-new.  The only screw case here
+	  ;; is if another, more deeply nested output record, was moved
+	  ;; from somewhere in the hierarchy that was >not< erased.  In that
+	  ;; case, we could just bitblt, but we won't detect that anymore.
 	  ((and old-parent
 		(not (eq (output-record-parent record) old-parent))
 		(not (eql (output-record-generation-tick old-parent) *generation-tick*)))
@@ -920,7 +909,7 @@
 			       :unique-id unique-id :id-test id-test
 			       args))
 		   (and current-output-record
-			(apply #'find-inferior-output-record-1
+			(apply #'find-child-output-record-1
 			       current-output-record record-type
 			       :unique-id unique-id :id-test id-test
 			       :cache-value cache-value
@@ -949,7 +938,7 @@
 	    ;; we found it in some cache, make sure that it is decached from its immediate
 	    ;; parent...
 	    (when (output-record-parent output-record)
-	      (decache-inferior-output-record-1
+	      (decache-child-output-record-1
 		(output-record-parent output-record) output-record))
 	    (when current-redisplay-cache
 	      (cache-output-record current-redisplay-cache output-record unique-id id-test))
@@ -981,16 +970,16 @@
 	    (when (and current-output-record
 		       ;; even if we didn't move in hierarchy, because if we are
 		       ;; running this code then our parent did >not< have
-		       ;; contents-ok, and therefore lost all of his inferiors (if he
-		       ;; was updated this pass, so check generation-tick).
+		       ;; contents-ok, and therefore lost all of his children (if
+		       ;; he was updated this pass, so check generation-tick).
 		       (or output-record-moved-in-hierarchy
 			   (eql (output-record-generation-tick current-output-record)
 				*generation-tick*)))
-	      ;; --- is there some way to detect deletes without clearing the output-record?
-	      ;; --- this current implementation has the potential for gratuitous consing...
-	      ;; --- maybe we should add (yet) one >more< slot to the output-record as part
-	      ;; --- of the copy-display-state protocol, whose purpose, after all, >is< to
-	      ;; --- reduce torrential consathons.
+	      ;;--- is there some way to detect deletes without clearing the output-record?
+	      ;;--- this current implementation has the potential for gratuitous consing...
+	      ;;--- maybe we should add (yet) one >more< slot to the output-record as part
+	      ;;--- of the copy-display-state protocol, whose purpose, after all, >is< to
+	      ;;--- reduce torrential consathons.
 	      (add-output-record output-record current-output-record))
 	    (let ((position (output-record-old-cursor-position output-record)))
 	      (setf (point-x position) cursor-x)

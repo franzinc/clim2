@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: stream-class-defs.lisp,v 1.4 92/02/24 13:08:30 cer Exp $
+;; $fiHeader: stream-class-defs.lisp,v 1.5 92/04/15 11:47:19 cer Exp $
 
 (in-package :clim-internals)
 
@@ -90,6 +90,7 @@
 
 
 ;;; Exists to hang window&output-recording :around methods on.
+#-Silica
 (defclass window-output-recording () ())
 
 ;;; Exists to hang window&graphics :around methods on.
@@ -97,13 +98,16 @@
 
 ;;; This is the class you mix in (in addition) when you've mixed together
 ;;; the extended-input-protocol and the window-protocol.
+#-Silica
 (defclass input-and-window-protocol-intermediary () ())
 
 ;;; This is the class you mix in (in addition) when you've mixed together
 ;;; the extended-output-protocol and the window-protocol.
+#-Silica
 (defclass output-and-window-protocol-intermediary () ())
 
 ;;; This is the class you mix in (in addition) when you've mixed together
 ;;; the extended-output-protocol and output-recording-mixin.
+#-Silica
 (defclass output-and-recording-protocol-intermediary () ())
 

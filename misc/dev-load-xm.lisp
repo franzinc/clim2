@@ -20,8 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: dev-load-xm.lisp,v 1.5 92/03/04 16:23:12 cer Exp Locker: cer $
-
+;; $fiHeader: dev-load-xm.lisp,v 1.6 92/03/24 19:38:33 cer Exp $
 
 (load "misc/dev-load-1")
 (load-it 'motif-clim)

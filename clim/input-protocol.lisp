@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-protocol.lisp,v 1.11 92/04/15 11:46:49 cer Exp Locker: cer $
+;; $fiHeader: input-protocol.lisp,v 1.12 92/04/21 16:13:08 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -200,12 +200,11 @@
 
 (defmethod queue-event ((stream input-protocol-mixin) (event pointer-motion-event))
   (let ((pointer (stream-primary-pointer stream)))
-    (pointer-set-position pointer (pointer-event-x event) (pointer-event-y event))
-    (pointer-set-native-position
-      pointer 
+    (pointer-set-position pointer
+      (pointer-event-x event) (pointer-event-y event))
+    (pointer-set-native-position pointer 
       (pointer-event-native-x event) (pointer-event-native-y event))
-    (setf (pointer-button-state pointer) 
-	  (event-modifier-state event))
+    (setf (pointer-button-state pointer) (event-modifier-state event))
     (setf (pointer-window pointer) stream)
     (setf (pointer-motion-pending stream pointer) t)))
 
@@ -350,10 +349,6 @@
 			       (force-output stream)))
 			   (error 'abort-gesture :event gesture))
 			  (t (return-from stream-read-gesture gesture)))))))))))))
-
-(defmethod receive-gesture
-	   ((stream standard-encapsulating-stream) gesture)
-  (receive-gesture (slot-value stream 'stream) gesture))
 
 ;; Presentation translators have probably already run...
 (defmethod receive-gesture
@@ -735,7 +730,7 @@
 	  (values (coordinate 0) (coordinate 0))))))
 
 (defun set-stream-pointer-position-in-window-coordinates (stream x y &key pointer)
-  (declare (type coordinate x y))
+  (declare (type real x y))
   (unless pointer (setf pointer (stream-primary-pointer stream)))
   (setf (pointer-position-changed pointer) t)
   #+Silica
@@ -752,7 +747,6 @@
   (declare (ignore pointer))
   (with-slots (input-buffer) stream
     (queue-put input-buffer
-	       ;; X and Y had better be fixnums
 	       (make-button-press-event stream 
 					(coordinate x) (coordinate y)
 					button modifier-state))))

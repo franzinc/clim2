@@ -19,32 +19,32 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: std-sheet.lisp,v 1.3 92/01/31 14:55:49 cer Exp $
+;; $fiHeader: std-sheet.lisp,v 1.4 92/02/24 13:04:58 cer Exp $
 
 (in-package :silica)
 
 
+;;--- This should probably be flushed
 (defclass standard-sheet 
-	  (sheet
-	   permanent-medium-sheet-output-mixin
+	  (permanent-medium-sheet-output-mixin
 	   mirrored-sheet-mixin
 	   sheet-multiple-child-mixin
 	   sheet-transformation-mixin
-	   standard-repainting-medium
+	   standard-repainting-mixin
 	   standard-sheet-input-mixin
-	   mute-repainting-mixin)
+	   sheet)
     ())
 
 
+;;--- This should probably be flushed
 (defclass simple-sheet
-	  (sheet 
-	   sheet-multiple-child-mixin 
+	  (sheet-multiple-child-mixin 
 	   sheet-transformation-mixin
-	   standard-repainting-medium
+	   standard-repainting-mixin
 	   standard-sheet-input-mixin
 	   temporary-medium-sheet-output-mixin
-	   mute-repainting-mixin)
-  ())
+	   sheet)
+    ())
 
 
 (defmethod handle-event (sheet event)

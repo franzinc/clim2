@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: command.lisp,v 1.6 92/03/10 10:12:22 cer Exp $
+;; $fiHeader: command.lisp,v 1.7 92/04/15 11:46:15 cer Exp $
 
 (in-package :clim-internals)
 
@@ -556,9 +556,7 @@
 					(initial-spacing t) move-cursor)
   (unless (or max-width max-height)
     (multiple-value-bind (width height)
-	#+Silica (let ((region (sheet-region stream)))
-		   (values (bounding-rectangle-width region)
-			   (bounding-rectangle-height region)))
+	#+Silica (bounding-rectangle-size (sheet-region stream))
 	#-Silica (window-inside-size stream)
 	(unless max-width (setf max-width width))
 	(unless max-height (setf max-height height))))
@@ -604,7 +602,7 @@
     (setq cache-value (slot-value command-table 'menu-tick)))
   (let ((menu-items (slot-value command-table 'menu)))
     (with-menu (menu associated-window)
-      #-silica (setf (window-label menu) label)
+      (setf (window-label menu) label)
       (with-text-style (menu default-style)
 	(flet ((menu-choose-body (stream type)
 		 (declare (ignore type))
@@ -628,7 +626,7 @@
     (setq cache-value (slot-value command-table 'menu-tick)))
   (let ((menu-items (slot-value command-table 'menu)))
     (with-menu (menu associated-window)
-      #-silica (setf (window-label menu) label)
+      (setf (window-label menu) label)
       (with-text-style (menu default-style)
 	(flet ((menu-choose-body (stream type)
 		 (menu-choose-command-drawer stream menu-items type)))

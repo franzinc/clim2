@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: present.lisp,v 1.3 92/02/24 13:08:16 cer Exp $
+;; $fiHeader: present.lisp,v 1.4 92/04/15 11:47:03 cer Exp $
 
 (in-package :clim-internals)
 
@@ -66,3 +66,36 @@
 	 (with-output-to-string (stream)
 	   (present object presentation-type :stream stream :view view
 		    :acceptably acceptably :for-context-type for-context-type)))))
+
+;; Like WITH-OUTPUT-TO-STRING, but stream is a full output-recording
+;; protocol stream so all CLIM operations "just work", rather than having
+;; to special-case them all for string streams.  Result is a string
+;; representation of the output.  STREAM must be an actual window; the
+;; formatting of the string will match the dimensions of the window.
+(defmacro with-presentations-to-string ((stream &optional string
+					 &rest options
+					 &key (element-type ''character)
+					      (end-of-line-action ':allow)
+					      (end-of-page-action ':allow))
+					&body body)
+  (declare (ignore element-type end-of-line-action end-of-page-action))
+  (default-output-stream stream with-presentations-to-string)
+  `(flet ((with-presentations-to-string-body (,stream) ,@body))
+     (declare (dynamic-extent #'with-presentations-to-string-body))
+     (invoke-with-presentations-to-string 
+       ,stream #'with-presentations-to-string-body ,string ,@options)))
+
+(defun invoke-with-presentations-to-string (stream continuation string
+					   &key (element-type 'character) 
+						(end-of-line-action ':allow)
+						(end-of-page-action ':allow))
+  (let ((record
+	  (with-end-of-line-action (stream end-of-line-action)
+	    (with-end-of-page-action (stream end-of-page-action)
+	      (with-output-to-output-record (stream)
+		(funcall continuation stream))))))
+    (when (null string)
+      (setq string (make-array 40 :fill-pointer 0 :element-type element-type)))
+    (with-output-to-string (s string)
+      (copy-textual-output-history stream s nil record)
+      string)))

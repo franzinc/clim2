@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sysdcl.lisp,v 1.7 92/04/10 14:27:37 cer Exp Locker: cer $
+;; $fiHeader: sysdcl.lisp,v 1.8 92/04/15 11:48:28 cer Exp $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :common-lisp-user)
 
@@ -43,16 +43,16 @@
 
 #+Genera
 (clim-defsys:import-into-sct 'clim-demo 
-			:pretty-name "CLIM Demo"
-			:default-pathname "SYS:CLIM;REL-2;DEMO;"
-			:default-destination-pathname "SYS:CLIM;REL-2;DEMO;")
+			     :pretty-name "CLIM Demo"
+			     :default-pathname "SYS:CLIM;REL-2;DEMO;"
+			     :default-destination-pathname "SYS:CLIM;REL-2;DEMO;")
 
 #+Minima
 (clim-defsys:import-into-sct 'clim-demo :subsystem t
-			:sct-name :minima-clim-demo-standalone
-			:pretty-name "Minima CLIM Demo Standalone"
-			:default-pathname "SYS:CLIM;REL-2;DEMO;"
-			:default-destination-pathname "SYS:CLIM;REL-2;DEMO;")
+			     :sct-name :minima-clim-demo-standalone
+			     :pretty-name "Minima CLIM Demo Standalone"
+			     :default-pathname "SYS:CLIM;REL-2;DEMO;"
+			     :default-destination-pathname "SYS:CLIM;REL-2;DEMO;")
 
 #+Minima
 (zl:::sct:defsystem minima-clim-demo

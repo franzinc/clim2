@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: dev-load-1.lisp,v 1.3 92/04/15 11:48:34 cer Exp Locker: cer $
+;; $fiHeader: dev-load-1.lisp,v 1.4 92/04/21 20:28:22 cer Exp Locker: cer $
 
 (excl::free (excl::malloc 131072))
 
@@ -65,11 +65,11 @@
 	(*load-xref-info* nil))
 
     (tenuring
-     (load "test/test-suite") )
+      (load "test/test-suite"))
 
     (load "demo/sysdcl")
     (tenuring
-     (clim-defsys::load-system 'clim-demo)))
+      (clim-defsys::load-system 'clim-demo)))
   
   (when (probe-file "/scm/4.1/sparc/src/code/")
     (let ((sys::*require-search-list*
@@ -82,8 +82,7 @@
 	    sys::*load-search-list*)))
       (tenuring (require :composer)))
   
-    (set (intern :*clm-binary-directory* ':xtk)
-	 "/scm/4.1/sparc/src/"))
-  
-  (tenuring
-   (load "misc/clos-preload.fasl" :if-does-not-exist nil)))
+    (set (intern :*clm-binary-directory* ':xtk) "/scm/4.1/sparc/src/")
+
+    (tenuring
+      (load "misc/clos-preload.fasl" :if-does-not-exist nil))))

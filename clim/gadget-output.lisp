@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: gadget-output.lisp,v 1.13 92/04/30 09:09:31 cer Exp Locker: cer $
+;; $fiHeader: gadget-output.lisp,v 1.14 92/05/06 15:37:40 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -74,12 +74,13 @@
   (declare (ignore dx1 dy1 dx2 dy2))
   (update-gadget-position record))
 
-(defmethod bounding-rectangle-set-edges :after ((rec gadget-output-record) a b c d)
-  (declare (ignore  a b c d))
+(defmethod bounding-rectangle-set-edges :after ((rec gadget-output-record) 
+						left top right bottom)
+  (declare (ignore left top right bottom))
   (update-gadget-position rec))
 
-(defmethod bounding-rectangle-set-position :after ((rec gadget-output-record) a b)
-  (declare (ignore  a b))
+(defmethod bounding-rectangle-set-position :after ((rec gadget-output-record) x y)
+  (declare (ignore x y))
   (update-gadget-position rec))
 
 (defmethod bounding-rectangle-set-size :after ((rec gadget-output-record) a b)
@@ -90,18 +91,18 @@
 (defmethod update-gadget-position (record) 
   (let ((gadget (output-record-gadget record)))
     (when gadget
-      (with-bounding-rectangle* 
-	  (left top right bottom) record
-	  (let ((xoff 0)
-		(yoff 0))
-	    (multiple-value-setq
+      (with-bounding-rectangle* (left top right bottom) record
+        (let ((xoff (coordinate 0))
+	      (yoff (coordinate 0)))
+	  (multiple-value-setq
 		(xoff yoff)
 	      (convert-from-relative-to-absolute-coordinates 
 	       (sheet-parent gadget) 
 	       record))
-	    (move-and-resize-sheet* gadget
-				    (+ left xoff) (+ top yoff)
-				    (- right left) (- bottom top)))))))
+	  (move-and-resize-sheet* gadget
+				  (+ left xoff) (+ top yoff)
+				  (- right left) (- bottom top)))))))
+
 
 #-ignore
 (defmethod update-gadget-position (record) 
@@ -247,22 +248,9 @@
 (defmethod note-output-record-detached :after ((rec gadget-output-record))
   (update-output-rec-gadget-state rec nil))
 
-;;; Control whetherwe display a prompt in the gadget or not
-
-(defun gadget-includes-prompt-p (type stream view)
-  (call-presentation-generic-function
-   gadget-includes-prompt-p type stream view))
-
-
-(define-presentation-method gadget-includes-prompt-p ((type t) (stream t) (view view) &key)
-  nil)
-
-;;; 
-
 ;;; Completion gadget
 
-;; -- Gadget currently does not include prompt
-
+;;--- Gadget currently does not include prompt
 (define-presentation-method accept-present-default ((type completion) 
 						    stream
 						    (view gadget-dialog-view)
@@ -330,7 +318,8 @@
 
 ;;; Boolean gadget
 
-(define-presentation-method gadget-includes-prompt-p ((type boolean) (stream t) (view gadget-view) &key)
+(define-presentation-method gadget-includes-prompt-p 
+			    ((type boolean) (stream t) (view gadget-view))
   t)
 
 (define-presentation-method accept-present-default ((type boolean) 
@@ -359,12 +348,9 @@
     #+ignore
     (setf (gadget-value gadget) default)))
 
-;;;;-------------- Integer gadget
-;;;; I general there should be a way of using a slider to input a real
-;;;; number but I do not think it should be the default
-
 #+ignore
-(define-presentation-method gadget-includes-prompt-p ((type integer) (stream t) (view gadget-view) &key)
+(define-presentation-method gadget-includes-prompt-p
+			    ((type integer) (stream t) (view gadget-view))
   t)
 
 #+ignore
@@ -377,13 +363,13 @@
   (declare (ignore present-p))
   (with-output-as-gadget (stream)
     (outlining ()
-      (make-pane 'slider
-		 :label (and (stringp prompt) prompt)
-		 :value (if default-supplied-p default 0)
-		 :client stream :id query-identifier
-		 :value-changed-callback
-	         (make-accept-values-value-changed-callback
-		  stream query-identifier)))))
+	       (make-pane 'slider
+			  :label (and (stringp prompt) prompt)
+			  :value (if default-supplied-p default 0)
+			  :client stream :id query-identifier
+			  :value-changed-callback
+			  (make-accept-values-value-changed-callback
+			   stream query-identifier)))))
 
 
 

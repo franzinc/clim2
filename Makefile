@@ -1,4 +1,4 @@
-# $fiHeader: Makefile,v 1.25 92/04/30 09:09:48 cer Exp Locker: cer $
+# $fiHeader: Makefile,v 1.26 92/05/06 15:37:50 cer Exp Locker: cer $
 # 
 #  Makefile for CLIM 2.0
 #
@@ -219,6 +219,7 @@ XM-TK-OBJS = tk/xm-classes.fasl \
 	     tk/load-xm.fasl \
 		tk/xt-funs.fasl \
 		tk/xm-funs.fasl \
+		tk/xm-callbacks.fasl \
                 tk/xm-init.fasl \
                 tk/xm-widgets.fasl \
                 tk/xm-font-list.fasl \
@@ -269,8 +270,8 @@ OPENLOOK-OBJS = $(OL-CLIM-OBJS) $(OPENLOOK-CLIM-OBJS)
 
 default: all-xm
 
-train-clim-xm:	
-	(make all-xm train ; make clim-xm) |& mail cer
+trained-clim-xm:	
+	(make all-xm train ; make clim-xm)
 
 all-xm:	compile-xm cat-xm clim-xm
 all-ol:	compile-ol cat-ol clim-ol

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: defs-graphics-generics.lisp,v 1.3 92/03/04 16:21:28 cer Exp $
+;; $fiHeader: defs-graphics-generics.lisp,v 1.4 92/04/15 11:46:26 cer Exp $
 
 (in-package :clim-internals)
 
@@ -280,7 +280,9 @@
 	(adjust-for-viewport-and-margins stream x-offset y-offset)
 	(call-next-method stream x-offset y-offset ,@pass-on-arglist))
       (defmethod replay-output-record ((record ,class-name) stream
-				       &optional region (x-offset 0) (y-offset 0))
+				       &optional region 
+						 (x-offset (coordinate 0))
+						 (y-offset (coordinate 0)))
 	;; Ignore the region and let MAP-OVER-OUTPUT-RECORDS-OVERLAPPING-REGION
 	;; take care of not calling REPLAY-OUTPUT-RECORD unnecessarily.  Too expensive here.
 	(declare (ignore region))

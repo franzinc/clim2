@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: ptypes1.lisp,v 1.9 92/04/10 14:27:06 cer Exp Locker: cer $
+;; $fiHeader: ptypes1.lisp,v 1.10 92/04/15 11:47:07 cer Exp $
 
 (in-package :clim-internals)
 
@@ -1611,14 +1611,9 @@
 
 (define-presentation-generic-function gadget-includes-prompt-p-method
 				      gadget-includes-prompt-p
-  (type-key parameters options type
-	    stream view
-	    &key
-	    &allow-other-keys)
+  (type-key parameters options type stream view)
   #-CCL-2
-  (declare (arglist type-key parameters options type
-		    stream view
-		    &key)))
+  (declare (arglist type-key parameters options type stream view)))
 
 (define-presentation-generic-function highlight-presentation-method
 				      highlight-presentation

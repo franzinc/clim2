@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: cad-demo.lisp,v 1.5 92/04/10 14:27:29 cer Exp Locker: cer $
+;; $fiHeader: cad-demo.lisp,v 1.6 92/04/15 11:48:12 cer Exp $
 
 (in-package :clim-demo)
 
@@ -688,12 +688,11 @@
 			     ;; fudge for the fact that the presentation encloses the
 			     ;; half of the circle that's invisible
 			     (- x 20) (+ y *component-size*)))
-			 (write-string (string (class-name (class-of icon))) menu)
-			 )))))))))
-  (with-menu (menu parent)
-    (let ((component (menu-choose-from-drawer
-		       menu 'menu-item #'draw-icon-menu)))
-      (class-name (class-of component))))))
+			 (write-string (string (class-name (class-of icon))) menu)))))))))
+    (with-menu (menu parent)
+      (let ((component (menu-choose-from-drawer
+			 menu 'menu-item #'draw-icon-menu)))
+	(class-name (class-of component))))))
 
 
 

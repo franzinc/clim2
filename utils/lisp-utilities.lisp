@@ -1,6 +1,6 @@
- ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
+;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: lisp-utilities.lisp,v 1.7 92/03/30 17:52:12 cer Exp $
+;; $fiHeader: lisp-utilities.lisp,v 1.8 92/04/15 11:45:31 cer Exp $
 
 (in-package :clim-utils)
 
@@ -23,26 +23,65 @@
     (symbol (fboundp thing))
     (function t)))
 
+;;; ONCE-ONLY does the same thing as it does in zetalisp.  I should have just
+;;; lifted it from there but I am honest.  Not only that but this one is
+;;; written in Common Lisp.  I feel a lot like bootstrapping, or maybe more
+;;; like rebuilding Rome.
+(defmacro once-only (vars &body body)
+  (let ((gensym-var (gensym))
+        (run-time-vars (gensym))
+        (run-time-vals (gensym))
+        (expand-time-val-forms ()))
+    (dolist (var vars)
+      (push `(if (or (symbolp ,var)
+                     (numberp ,var)
+                     (and (listp ,var)
+			  (member (car ,var) '(quote function))))
+                 ,var
+                 (let ((,gensym-var (gensym)))
+                   (push ,gensym-var ,run-time-vars)
+                   (push ,var ,run-time-vals)
+                   ,gensym-var))
+            expand-time-val-forms))    
+    `(let* (,run-time-vars
+            ,run-time-vals
+            (wrapped-body
+	      (let ,(mapcar #'list vars (reverse expand-time-val-forms))
+		,@body)))
+       `(let ,(mapcar #'list (reverse ,run-time-vars)
+			     (reverse ,run-time-vals))
+	  ,wrapped-body))))
+
+(defmacro dorest ((var list &optional (by 'cdr)) &body body)
+  `(do ((,var ,list (,by ,var)))
+       ((null ,var) nil)
+     ,@body))
+
+
+;;; Stuff for dealing weith CLIM coordinates
+
 (deftype coordinate () 
-  #-Silica 'fixnum
-  ;;--- Turn this into 'SINGLE-FLOAT after debugging the type declarations
-  #+Silica 't)
+  #+use-float-coordinates  'single-float
+  #+use-fixnum-coordinates 'fixnum
+  #-(or use-float-coordinates use-fixnum-coordinates) 't)
 
 ;; Convert a number of arbitrary type into a COORDINATE
 (defmacro coordinate (x &optional (round-direction 'round))
-  #+Silica (declare (ignore round-direction))
-  #-Silica (ecase round-direction
-	     (round
-	       `(the fixnum (values (floor (+ ,x .5f0)))))
-	     (floor
-	       `(the fixnum (values (floor ,x))))
-	     (ceiling
-	       `(the fixnum (values (ceiling ,x)))))
-  #+Silica `(the coordinate (float ,x 0f0)))
+  #-use-fixnum-coordinates (declare (ignore round-direction))
+  #+use-float-coordinates  `(the coordinate (float ,x 0f0))
+  #+use-fixnum-coordinates (ecase round-direction
+			     (round
+			       `(the fixnum (values (floor (+ ,x .5f0)))))
+			     (floor
+			       `(the fixnum (values (floor ,x))))
+			     (ceiling
+			       `(the fixnum (values (ceiling ,x)))))
+  #-(or use-float-coordinates use-fixnum-coordinates) `,x)
 
 (defconstant +largest-coordinate+
-	     #-Silica most-positive-fixnum
-	     #+Silica (float (expt 10 (floor (log most-positive-fixnum 10))) 0f0))
+	     #+use-float-coordinates  (float (expt 10 (floor (log most-positive-fixnum 10))) 0f0)
+	     #+use-fixnum-coordinates most-positive-fixnum
+	     #-(or use-float-coordinates use-fixnum-coordinates) most-positive-fixnum)
 
 (defmacro integerize-single-float-coordinate (coord)
   `(the fixnum (values (floor (+ (the single-float ,coord) .5f0)))))
@@ -83,40 +122,6 @@
   `(progn
      ,@(mapcar #'(lambda (x) `(setq ,x (fix-coordinate ,x)))
 	       coords)))
-
-;;; ONCE-ONLY does the same thing as it does in zetalisp.  I should have just
-;;; lifted it from there but I am honest.  Not only that but this one is
-;;; written in Common Lisp.  I feel a lot like bootstrapping, or maybe more
-;;; like rebuilding Rome.
-(defmacro once-only (vars &body body)
-  (let ((gensym-var (gensym))
-        (run-time-vars (gensym))
-        (run-time-vals (gensym))
-        (expand-time-val-forms ()))
-    (dolist (var vars)
-      (push `(if (or (symbolp ,var)
-                     (numberp ,var)
-                     (and (listp ,var)
-			  (member (car ,var) '(quote function))))
-                 ,var
-                 (let ((,gensym-var (gensym)))
-                   (push ,gensym-var ,run-time-vars)
-                   (push ,var ,run-time-vals)
-                   ,gensym-var))
-            expand-time-val-forms))    
-    `(let* (,run-time-vars
-            ,run-time-vals
-            (wrapped-body
-	      (let ,(mapcar #'list vars (reverse expand-time-val-forms))
-		,@body)))
-       `(let ,(mapcar #'list (reverse ,run-time-vars)
-			     (reverse ,run-time-vals))
-	  ,wrapped-body))))
-
-(defmacro dorest ((var list &optional (by 'cdr)) &body body)
-  `(do ((,var ,list (,by ,var)))
-       ((null ,var) nil)
-     ,@body))
 
 ;; COORDINATE-PAIRS is a list of pairs of coordinates.
 ;; The coordinates must be of type COORDINATE
@@ -218,6 +223,14 @@
 #-(or ANSI-90 Genera)
 (defmacro with-standard-io-syntax (&body body)
   `(with-standard-io-environment ,@body))
+
+;; Define this so we don't have to deal with stupid warnings about
+;; the iteration variable being used, or not used, or what not
+(defmacro repeat (n &body body)
+  (let ((i '#:i))
+    `(dotimes (,i ,n)
+       #-(or Minima Genera Allegro) (declare (ignore i))
+       ,@body)))
 
 
 ;;; Have to provide CLIM-LISP:WITH-OPEN-STREAM, because it needs to use a different
@@ -1354,8 +1367,7 @@
 	 (let (#+Genera (from-vector from-vector)
 	       #+Genera (to-vector to-vector))
 	   (declare #+Genera (sys:array-register from-vector to-vector))
-	   (dotimes (i length)
-	     #-(or Allegro Minima) (declare (ignore i))
+	   (repeat length
 	     (setf (svref to-vector to-start) (svref from-vector from-start))
 	     (incf from-start)
 	     (incf to-start))))

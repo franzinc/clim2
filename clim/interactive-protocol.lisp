@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: interactive-protocol.lisp,v 1.6 92/03/10 10:12:42 cer Exp $
+;; $fiHeader: interactive-protocol.lisp,v 1.7 92/04/15 11:46:51 cer Exp $
 
 (in-package :clim-internals)
 
@@ -318,23 +318,23 @@
   (with-slots (rescan-queued) istream
     (setf rescan-queued rescan-type)))
 
-(defmethod rescan-if-necessary ((istream input-editing-stream-mixin))
-  (with-slots (rescan-queued) istream
-    (when rescan-queued
-      (setf rescan-queued nil)
-      (throw 'rescan (values)))))
-
+;; Do a rescan if one is pending.
+;; If it's an "activation" rescan, that means that the user typed an activation
+;; character at some point, so this rescan should terminate all input.  That's
+;; why we set the insertion pointer to the end of the buffer...
 ;; In the cases where the program is maintaining another input buffer besides
 ;; the input editor's buffer, that buffer can get out of synch (for instance,
 ;; it could appear to be empty) because the user yanked something in and then
 ;; immediately hit <End>.  In that case, the yank commands have left a rescan
-;; pending which we can take care of now.
-;;--- This is a pretty crappy solution, since people need to know magically
-;;--- when to call RESCAN-FOR-ACTIVATION!
-(defmethod rescan-for-activation ((istream input-editing-stream-mixin))
+;; pending which we can take care of now.  In general, any piece of code that
+;; is maintaining an input buffer separate from the input editor's buffer should
+;; call RESCAN-IF-NECESSARY before parsing any input.
+(defmethod rescan-if-necessary ((istream input-editing-stream-mixin)
+				&optional inhibit-activation)
   (with-slots (rescan-queued input-buffer insertion-pointer) istream
     (when rescan-queued
-      (when (eq rescan-queued ':activation)
+      (when (and (not inhibit-activation)
+		 (eql rescan-queued ':activation))
 	(setq insertion-pointer (fill-pointer input-buffer)))
       (setf rescan-queued nil)
       (throw 'rescan (values)))))
@@ -357,8 +357,7 @@
 	     (let* ((n-words (the fixnum (- length from-index)))
 		    (to (the fixnum (+ to-index n-words)))
 		    (from (the fixnum (+ from-index n-words))))
-	       (dotimes (i n-words)
-		 #-(or Allegro Minima) (declare (ignore i))
+	       (repeat n-words
 		 (decf to)
 		 (decf from)
 		 (setf (aref buffer to) (aref buffer from))))))
@@ -367,8 +366,7 @@
 	   (let ((n-places (the fixnum (- from-index to-index))))
 	     (decf (fill-pointer buffer) n-places)
 	     (let ((n-words (the fixnum (- length from-index))))
-	       (dotimes (i n-words)
-		 #-(or Allegro Minima) (declare (ignore i))
+	       (repeat n-words
 		 (setf (aref buffer to-index) (aref buffer from-index))
 		 (incf to-index)
 		 (incf from-index))))))
@@ -407,7 +405,7 @@
 				     (input-wait-handler *input-wait-handler*)
 				     (pointer-button-press-handler
 				       *pointer-button-press-handler*))
-  (rescan-if-necessary istream)
+  (rescan-if-necessary istream t)
   (with-slots (stream input-buffer scan-pointer insertion-pointer
 	       activation-gesture rescanning-p
 	       numeric-argument previous-history) istream
@@ -479,8 +477,7 @@
 			    ;; Don't put things in the buffer that we can't echo later
 			    (ordinary-char-p new-thing)
 			    (not (activation-gesture-p new-thing)))
-		   (dotimes (i (or numeric-argument 1))
-		     #-(or Allegro Minima) (declare (ignore i))
+		   (repeat (or numeric-argument 1)
 		     (cond ((< insertion-pointer (fill-pointer input-buffer))
 			    (erase-input-buffer istream insertion-pointer)
 			    (setq input-buffer (shift-buffer-portion
@@ -501,11 +498,7 @@
 		 (when new-thing
 		   (setq numeric-argument nil
 			 previous-history nil)
-		   (cond ((or (not (characterp new-thing))
-			      (ordinary-char-p new-thing))
-			  (return-from stream-read-gesture
-			    (values new-thing new-type)))
-			 ((activation-gesture-p new-thing)
+		   (cond ((activation-gesture-p new-thing)
 			  ;; If we got an activation gesture, we must first finish
 			  ;; scanning the input line, moving the insertion-pointer
 			  ;; to the end and finishing rescanning.  Only then can we
@@ -515,6 +508,13 @@
 				   (values new-thing new-type)))
 				(t (setf insertion-pointer (fill-pointer input-buffer))
 				   (setf activation-gesture new-thing))))
+			 ((or (not (characterp new-thing))
+			      (ordinary-char-p new-thing))
+			  ;; There might be some queued up rescans from destructive
+			  ;; input editing commands, so take care of them now
+			  (rescan-if-necessary istream t)
+			  (return-from stream-read-gesture
+			    (values new-thing new-type)))
 			 (t
 			   ;; Some input editing doesn't throw, and should not
 			   ;; cause us to return just yet, since IE commands don't
@@ -601,6 +601,8 @@
       (setf (fill-pointer input-buffer) start))
   ;; The insertion-pointer started out at either start or end, they're the same now
   (setf (insertion-pointer stream) start)
+  ;; Make sure the scan pointer doesn't point past the insertion pointer
+  (minf (input-position stream) (insertion-pointer stream))
   (redraw-input-buffer stream)
   ;; This can be called in a loop, so reflect the kill operation now
   (setf (slot-value stream 'last-command-type) 'kill))
@@ -770,7 +772,7 @@
 	     ;; and to the right of text from the input editor.  We merge erasures so
 	     ;; as to erase as few rectangles as possible.
 	     (labels ((erase-merged-stuff ()
-			(draw-rectangle-internal stream 0 0
+			(draw-rectangle-internal stream (coordinate 0) (coordinate 0)
 						 oleft otop oright obottom
 						 +background-ink+ nil))
 		      (erase-screen-piece (left top right bottom extra)
@@ -815,6 +817,21 @@
       (funcall continuation stream)
     (fresh-line stream)
     (terpri stream)))
+
+(defmethod input-editor-format ((istream standard-input-editing-stream) 
+				format-string &rest format-args)
+  (declare (dynamic-extent format-args))
+  (with-slots (input-buffer scan-pointer insertion-pointer) istream
+    (unless (rescanning-p istream)
+      (let ((noise-string 
+	      (make-noise-string
+		:display-string (apply #'format nil format-string format-args))))
+	(vector-push-extend noise-string input-buffer)
+	(incf scan-pointer)
+	(incf insertion-pointer)
+	(with-text-style (istream *noise-string-style*)
+	  (write-string (noise-string-display-string noise-string) istream))))))
+
 
 (defresource input-editing-stream (class stream)
   :constructor (make-instance class :stream stream)

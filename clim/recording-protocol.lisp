@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: recording-protocol.lisp,v 1.9 92/04/21 16:13:14 cer Exp Locker: cer $
+;; $fiHeader: recording-protocol.lisp,v 1.10 92/05/06 15:37:43 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -56,47 +56,53 @@
     ;; start position is relative to the parent's start-position
     ;; start position is where the cursor was when the new
     ;; output-record was started.
-    ((start-x :initform 0 :initarg :start-x)
-     (start-y :initform 0 :initarg :start-y)
+    ((start-x :initform (coordinate 0) :initarg :start-x :type coordinate)
+     (start-y :initform (coordinate 0) :initarg :start-y :type coordinate)
      ;; end position is relative to start position.
      ;; end position is where the cursor was when we finished the
      ;; output-record.
-     (end-x :initform 0 :initarg :end-x)
-     (end-y :initform 0 :initarg :end-y)
+     (end-x :initform (coordinate 0) :initarg :end-x :type coordinate)
+     (end-y :initform (coordinate 0) :initarg :end-y :type coordinate)
      ;; old-start-position is relative to old-start-position of parent
-     (old-start-x :initform 0)
-     (old-start-y :initform 0)
+     (old-start-x :initform (coordinate 0) :type coordinate)
+     (old-start-y :initform (coordinate 0) :type coordinate)
      ;; old bounding rectangle is relative to parents' old-start-position.
      (old-bounding-rectangle :initform nil
 			     :accessor output-record-old-bounding-rectangle)
      (contents-ok :initform nil :accessor output-record-contents-ok)
      (parent :accessor output-record-parent :initarg :parent)
      (stream :initform nil :accessor output-record-stream))
-  (:default-initargs :parent nil :left 0 :top 0 :right 0 :bottom 0))
+  (:default-initargs :parent nil 
+		     :left  (coordinate 0) :top (coordinate 0)
+		     :right (coordinate 0) :bottom (coordinate 0)))
 
 ;;; Give initial rectangle of 0 size, it will get expanded as children are added.
 (defmethod initialize-instance :after ((record output-record-element-mixin)
 				       &key (x-position 0) (y-position 0))
   (with-slots (left top right bottom) record
-    (setf left x-position
-	  top  y-position
-	  right  x-position
-	  bottom y-position)))
+    (let ((x (coordinate x-position))
+	  (y (coordinate y-position)))
+      (setf left   x
+	    top    y
+	    right  x
+	    bottom y))))
 
 ;;; Shadow the method on RECTANGLE with this one that keeps the start-position and 
 ;;; bounding rectangle in synch.
 (defmethod bounding-rectangle-set-position ((record output-record-element-mixin) nx ny)
-  (declare (type coordinate nx ny))
+  (declare (type real nx ny))
   (with-slots (left top right bottom start-x start-y parent) record
     (declare (type coordinate left top right bottom start-x start-y))
-    ;; Move the start position by as much as we do the record.
-    (setq start-x (+ start-x (- nx left)))
-    (setq start-y (+ start-y (- ny top)))
-    (let ((width (- right left))
-	  (height (- bottom top)))
-      (setf left nx top ny)
-      (setf right  (+ nx width)
-	    bottom (+ ny height)))))
+    (let ((nx (coordinate nx))
+	  (ny (coordinate ny)))
+      ;; Move the start position by as much as we do the record.
+      (setq start-x (+ start-x (- nx left)))
+      (setq start-y (+ start-y (- ny top)))
+      (let ((width (- right left))
+	    (height (- bottom top)))
+	(setf left nx top ny)
+	(setf right  (+ nx width)
+	      bottom (+ ny height))))))
 
 #+ignore
 (defmethod bounding-rectangle-set-position :around ((record output-record-element-mixin) nx ny)
@@ -143,13 +149,15 @@
   (declare (type coordinate nx ny))
   (with-slots (start-x start-y) record
     (declare (type coordinate start-x start-y))
-    (with-bounding-rectangle* (left top right bottom) record
-      (let ((dx (- nx start-x))
-	    (dy (- ny start-y)))
-	(bounding-rectangle-set-edges 
-	  record
-	  (+ left dx) (+ top dy) (+ right dx) (+ bottom dy))
-	(setf start-x nx start-y ny)))))
+    (let ((nx (coordinate nx))
+	  (ny (coordinate ny)))
+      (with-bounding-rectangle* (left top right bottom) record
+	(let ((dx (- nx start-x))
+	      (dy (- ny start-y)))
+	  (bounding-rectangle-set-edges 
+	    record
+	    (+ left dx) (+ top dy) (+ right dx) (+ bottom dy))
+	  (setf start-x nx start-y ny))))))
 
 (defmethod output-record-end-cursor-position ((record output-record-element-mixin))
   (with-slots (end-x end-y) record
@@ -158,8 +166,8 @@
 (defmethod output-record-set-end-cursor-position ((record output-record-element-mixin) nx ny)
   (declare (type coordinate nx ny))
   (with-slots (end-x end-y) record
-    (setf end-x nx)
-    (setf end-y ny)))
+    (setf end-x (coordinate nx))
+    (setf end-y (coordinate ny))))
 
 (defmethod output-record-old-start-cursor-position ((record output-record-element-mixin))
   (with-slots (old-start-x old-start-y) record
@@ -169,8 +177,8 @@
 	   ((record output-record-element-mixin) nx ny)
   (declare (type coordinate nx ny))
   (with-slots (old-start-x old-start-y) record
-    (setf old-start-x nx)
-    (setf old-start-y ny)))
+    (setf old-start-x (coordinate nx))
+    (setf old-start-y (coordinate ny))))
 
 #+CLIM-1-compatibility
 (progn
@@ -244,7 +252,7 @@
     (multiple-value-bind (xoff yoff) (compute-output-record-offsets record)
       (declare (type coordinate xoff yoff))
       (ltrb-contains-position-p left top right bottom
-				(+ x xoff) (+ y yoff)))))
+				(+ (coordinate x) xoff) (+ (coordinate y) yoff)))))
 
 (defmethod region-contains-region-p
 	   ((record1 output-record-element-mixin) (record2 output-record-element-mixin))
@@ -301,11 +309,11 @@
 ;;; This maps over all of the children of the record
 #+Genera (zwei:defindentation (map-over-output-records 1 1))
 (defun map-over-output-records (function record
-				&optional (x-offset 0) (y-offset 0)
+				&optional (x-offset (coordinate 0)) (y-offset (coordinate 0))
 				&rest continuation-args)
   (declare (dynamic-extent function continuation-args))
   (apply #'map-over-output-records-overlapping-region
-	 function record nil x-offset y-offset continuation-args))
+	 function record nil (coordinate x-offset) (coordinate y-offset) continuation-args))
 
 #+CLIM-1-compatibility
 (define-compatibility-function (map-over-output-record-elements
@@ -370,46 +378,52 @@
 ;;; we are mapping over.
 (defmethod map-over-output-records-overlapping-region
 	   (function (record output-record-element-mixin) region
-	    &optional (x-offset 0) (y-offset 0) &rest continuation-args)
+	    &optional (x-offset (coordinate 0)) (y-offset (coordinate 0))
+	    &rest continuation-args)
   (declare (ignore region function x-offset y-offset continuation-args)
 	   (dynamic-extent function continuation-args))
   nil)
 
 (defmethod map-over-output-records-containing-position
 	   (function (record output-record-element-mixin) x y
-	    &optional (x-offset 0) (y-offset 0) &rest continuation-args)
+	    &optional (x-offset (coordinate 0)) (y-offset (coordinate 0))
+	    &rest continuation-args)
   (declare (ignore x y function x-offset y-offset continuation-args)
 	   (dynamic-extent function continuation-args))
   nil)
 
 (defmethod map-over-output-records-containing-position
 	   (function (record t) x y
-	    &optional (x-offset 0) (y-offset 0) &rest continuation-args)
+	    &optional (x-offset (coordinate 0)) (y-offset (coordinate 0))
+	    &rest continuation-args)
   (declare (dynamic-extent function continuation-args))
   (apply #'map-over-output-records-overlapping-region
 	 function record (make-point x y)
-	 x-offset y-offset continuation-args))
+	 (coordinate x-offset) (coordinate y-offset) continuation-args))
 
 
 ;; A mix-in for classes that can store other output records
 (defclass output-record-mixin ()
-     ;; OLD-CHILDREN is the list of >unmatched< output records from last
-     ;; redisplay pass.  if you implement your own FIND-INFERIOR-OUTPUT-RECORD,
-     ;; and iff you match from OLD-CHILDREN, you are required to remove the
-     ;; match from OLD-CHILDREN, probably by using DECACHE-INFERIOR-OUTPUT-RECORD.
+     ;; OLD-CHILDREN is the list of unmatched output records from last redisplay
+     ;; pass.  if you implement your own FIND-CHILD-OUTPUT-RECORD, and iff you
+     ;; match from OLD-CHILDREN, you are required to remove the match from
+     ;; OLD-CHILDREN, probably by using DECACHE-CHILD-OUTPUT-RECORD.
      ((old-children :initform nil :accessor output-record-old-children)
       (generation-tick :initform 0 :initarg :generation-tick
 		       :accessor output-record-generation-tick)))
 
-(defmethod inferiors-never-overlap-p ((record output-record-mixin)) nil)
+(defmethod children-never-overlap-p ((record output-record-mixin)) nil)
 
 #+Silica
 (defmethod note-output-record-moved :after ((record output-record-mixin) dx1 dy1 dx2 dy2)
-  (unless (= 0 dx1 dy1 dx2 dy2)
-    (map-over-output-records
-     #'(lambda (child)
-	 (note-output-record-moved child dx1 dy1 dx2 dy2))
-     record)))
+  (unless (and (zerop dx1)
+	       (zerop dy1)
+	       (zerop dx2)
+	       (zerop dy2))
+    (flet ((note-moved (child)
+	     (note-output-record-moved child dx1 dy1 dx2 dy2)))
+      (declare (dynamic-extent #'note-moved))
+      (map-over-output-records #'note-moved record))))
 
 #+Silica
 (defmethod bounding-rectangle-set-position :around ((record output-record-mixin) nx ny)
@@ -523,25 +537,6 @@
 	     (values (+ our-x x) (+ our-y y)))))))
 
 
-(defun with-output-record-1 (continuation stream record &optional abs-x abs-y)
-  ;; Close the text record before and after, 
-  (stream-close-text-output-record stream)
-  (let ((current-output-position
-	  (stream-output-history-position stream)))
-    (unless abs-y
-      (multiple-value-setq (abs-x abs-y)
-	(stream-cursor-position stream)))
-    (letf-globally (((point-x current-output-position) abs-x)
-		    ((point-y current-output-position) abs-y)
-		    ((stream-current-output-record stream) record))
-      (funcall continuation record)
-      (multiple-value-bind (end-x end-y)
-	  (stream-cursor-position stream)
-	(declare (type coordinate end-x end-y))
-	(output-record-set-end-cursor-position
-	  record (- end-x abs-x) (- end-y abs-y)))
-      (stream-close-text-output-record stream))))
-
 ;;; Rest of stuff started in clim-defs...
 (defun construct-output-record-1 (type &rest init-args)
   (declare (dynamic-extent init-args))
@@ -579,14 +574,15 @@
 	(vector-push-extend record record-vector)))))
 ||#
 
-(defun invoke-with-new-output-record (stream continuation record-type constructor
-				      &rest init-args &key parent &allow-other-keys)
+(defmethod invoke-with-new-output-record
+	   ((stream output-recording-mixin) continuation record-type constructor
+	    &rest init-args &key parent &allow-other-keys)
   (declare (dynamic-extent init-args))
   (with-keywords-removed (init-args init-args '(:parent))
     (let* ((current-output-record (stream-current-output-record stream))
 	   (new-output-record (and (stream-redisplaying-p stream)
 				   current-output-record
-				   (apply #'find-inferior-output-record-1
+				   (apply #'find-child-output-record-1
 					  current-output-record record-type init-args))))
       (multiple-value-bind (cursor-x cursor-y)
 	  (stream-cursor-position stream)
@@ -623,6 +619,32 @@
 	      (add-output-record new-output-record parent)))
 	  new-output-record)))))
 
+(defmethod invoke-with-new-output-record
+	   ((stream t) continuation record-type constructor
+	    &rest init-args &key parent &allow-other-keys)
+  (declare (dynamic-extent init-args))
+  (declare (ignore record-type constructor init-args parent))
+  (funcall continuation stream))
+
+(defun with-output-record-1 (continuation stream record &optional abs-x abs-y)
+  ;; Close the text record before and after
+  (stream-close-text-output-record (or *original-stream* stream))
+  (let ((current-output-position
+	  (stream-output-history-position stream)))
+    (unless abs-y
+      (multiple-value-setq (abs-x abs-y)
+	(stream-cursor-position stream)))
+    (letf-globally (((point-x current-output-position) abs-x)
+		    ((point-y current-output-position) abs-y)
+		    ((stream-current-output-record stream) record))
+      (funcall continuation record)
+      (multiple-value-bind (end-x end-y)
+	  (stream-cursor-position stream)
+	(declare (type coordinate end-x end-y))
+	(output-record-set-end-cursor-position
+	  record (- end-x abs-x) (- end-y abs-y)))
+      (stream-close-text-output-record (or *original-stream* stream)))))
+
 (defun invoke-with-room-for-graphics (stream continuation record-type move-cursor &key height)
   (let ((record
 	  (with-output-recording-options (stream :draw nil :record t)
@@ -653,11 +675,12 @@
 
 ;; Replay all the the inferiors of RECORD that overlap REGION.
 (defmethod replay-output-record ((record output-record-mixin) stream
-				 &optional region (x-offset 0) (y-offset 0))
-  (declare (type coordinate x-offset y-offset))
+				 &optional region
+					   (x-offset (coordinate 0)) (y-offset (coordinate 0)))
   ;;--- Doing things this way bypasses any REPLAY-OUTPUT-RECORD methods supplied on 
   ;;--- non-standard classes that satisfy the output record protocol.
   ;;--- Too bad, this relative coordinates stuff is a disaster anyway.
+  (declare (type coordinate x-offset y-offset))
   (labels ((replay-1 (record x-offset y-offset)
 	     (declare (type coordinate x-offset y-offset))
 	     (if (output-record-p record)
@@ -825,10 +848,10 @@
   (setf (output-record-stream record) stream))
 
 (defmethod note-output-record-attached :after ((record output-record-mixin) stream)
-  (map-over-output-records
-   #'(lambda (rec)
-       (note-output-record-attached rec stream))
-   record))
+  (flet ((note-attached (rec)
+	   (note-output-record-attached rec stream)))
+    (declare (dynamic-extent #'note-attached))
+    (map-over-output-records #'note-attached record)))
 
 ;;; Ditto.
 (defmethod delete-output-record :after
@@ -986,9 +1009,9 @@
 
 (defmethod map-over-output-records-overlapping-region
 	   (function (record standard-sequence-output-record) region  
-	    &optional (x-offset 0) (y-offset 0) &rest continuation-args)
+	    &optional (x-offset (coordinate 0)) (y-offset (coordinate 0))
+	    &rest continuation-args)
   (declare (dynamic-extent function continuation-args))
-  (declare (type coordinate x-offset y-offset))
   (declare (optimize (safety 0)))
   (with-slots (elements fill-pointer) record
     (typecase elements
@@ -998,7 +1021,8 @@
 	    (dovector (child elements :start 0 :end fill-pointer :simple-p t)
 	      (apply function child continuation-args))
 	  (with-bounding-rectangle* (left1 top1 right1 bottom1) region
-	    (translate-coordinates x-offset y-offset left1 top1 right1 bottom1)
+	    (translate-coordinates (coordinate x-offset) (coordinate y-offset) 
+	      left1 top1 right1 bottom1)
 	    ;; Subtract out the record offset from the region, to make comparison fair
 	    (multiple-value-bind (xoff yoff)
 		(output-record-position record)
@@ -1015,17 +1039,18 @@
 	      (output-record-position record)
 	    (declare (type coordinate xoff yoff))
 	    (when (region-intersects-offset-region-p
-		    elements region (- x-offset xoff) (- y-offset yoff))
+		    elements region 
+		    (- (coordinate x-offset) xoff) (- (coordinate y-offset) yoff))
 	      (apply function elements continuation-args)))))))
   nil)
 
 (defmethod map-over-output-records-containing-position
 	   (function (record standard-sequence-output-record) x y 
-	    &optional (x-offset 0) (y-offset 0) &rest continuation-args)
+	    &optional (x-offset (coordinate 0)) (y-offset (coordinate 0))
+	    &rest continuation-args)
   (declare (dynamic-extent function continuation-args))
-  (declare (type coordinate x y x-offset y-offset))
   (declare (optimize (safety 0)))
-  (translate-coordinates x-offset y-offset x y)
+  (translate-coordinates (coordinate x-offset) (coordinate y-offset) x y)
   (with-slots (elements fill-pointer) record
     (typecase elements
       (null nil)
@@ -1049,7 +1074,6 @@
 
 (defmethod bounding-rectangle-set-edges ((record stream-output-history-mixin)
 					 nleft ntop nright nbottom)
-  (declare (type coordinate nleft ntop nright nbottom))
   #+ignore (assert (<= nleft nright))
   #+ignore (assert (<= ntop  nbottom))
   (with-slots (left top right bottom parent stream) record
@@ -1061,27 +1085,31 @@
 	  (old-right  right)
 	  (old-bottom bottom))
       (declare (type coordinate old-left old-top old-right old-bottom))
-      (setq left (min nleft (coordinate 0))
-	    top  (min ntop  (coordinate 0))
-	    right  nright
-	    bottom nbottom)))
+      (setq left (min (coordinate nleft) (coordinate 0))
+	    top  (min (coordinate ntop)  (coordinate 0))
+	    right  (coordinate nright)
+	    bottom (coordinate nbottom))))
   record)
 
 #+Silica
 (defmethod bounding-rectangle-set-edges :around ((record stream-output-history-mixin) 
 						 nleft ntop nright nbottom)
-  (with-bounding-rectangle* (left top right bottom) record
-    (call-next-method)
-    (unless (and (= left nleft)
-		 (= top  ntop)
-		 (= right  nright)
-		 (= bottom nbottom))
-      ;; This should update the scroll-bars etc 
-      (let* ((stream (output-record-stream record))
-	     (viewport (pane-viewport stream)))
-	(when viewport
-	  (update-scroll-bars viewport))
-	(update-region stream nleft ntop nright nbottom)))))
+  (let ((nleft (coordinate nleft))
+	(ntop  (coordinate ntop))
+	(nright  (coordinate nright))
+	(nbottom (coordinate nbottom)))
+    (with-bounding-rectangle* (left top right bottom) record
+      (call-next-method)
+      (unless (and (= left nleft)
+		   (= top  ntop)
+		   (= right  nright)
+		   (= bottom nbottom))
+	;; This should update the scroll bars, etc 
+	(let* ((stream (output-record-stream record))
+	       (viewport (pane-viewport stream)))
+	  (when viewport
+	    (update-scroll-bars viewport))
+	  (update-region stream nleft ntop nright nbottom))))))
 
 ;;; Defclass of OUTPUT-RECORDING-MIXIN, etc. is in STREAM-CLASS-DEFS
 (defmethod initialize-instance :after ((stream output-recording-mixin) &rest args)
@@ -1121,9 +1149,11 @@
       (when (or output-record text-output-record)
 	(letf-globally ((record-p nil))
 	  (when output-record
-	    (replay-output-record output-record stream region 0 0))
+	    (replay-output-record output-record stream region 
+				  (coordinate 0) (coordinate 0)))
 	  (when text-output-record
-	    (replay-output-record text-output-record stream region 0 0)))))))
+	    (replay-output-record text-output-record stream region
+				  (coordinate 0) (coordinate 0))))))))
 
 (defun erase-output-record (output-record stream)	;--- specialize on stream?
   (multiple-value-bind (xoff yoff)
@@ -1214,9 +1244,9 @@
   ;;--- Is it here or in the handle-repaint method
   ;; Who should clear the region?
   (let ((clear (region-intersection
-		region 
-		(or (pane-viewport-region stream)
-		    (bounding-rectangle stream)))))
+		 region 
+		 (or (pane-viewport-region stream)
+		     (bounding-rectangle stream)))))
     (unless (eq clear +nowhere+)
       (with-sheet-medium (medium stream)
 	(with-bounding-rectangle* (a b c d) clear

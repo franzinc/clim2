@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: port.lisp,v 1.10 92/04/15 11:45:18 cer Exp Locker: cer $
+;; $fiHeader: port.lisp,v 1.11 92/05/06 15:37:22 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -52,6 +52,7 @@
   (:method (x)
    (error "Cannot find port type: ~S" x)))
 
+(defmethod port ((x t)) nil)
 
 (defmethod initialize-instance :around ((port port) &key server-path)
   (setf (slot-value port 'server-path) (copy-list server-path))
@@ -65,7 +66,8 @@
   #+ignore
   (:method ((port port)) port)
   #+ignore
-  (:method ((x t)) nil))
+  (:method ((object t)) nil))
+
 
 (defgeneric port-properties (port))
 
@@ -101,10 +103,12 @@
 
 ;;;;;;;;;;;;;;;;
 
-(defclass graft (sheet 
-		 mirrored-sheet-mixin
-		 sheet-multiple-child-mixin
-		 sheet-transformation-mixin)
+;;--- Make a GRAFT protocol class, and call this STANDARD-GRAFT
+(defclass graft 
+	  (mirrored-sheet-mixin
+	   sheet-multiple-child-mixin
+	   sheet-transformation-mixin
+	   sheet)
     ((port :initarg :port :reader port)
      (lock :initform (make-lock "a graft lock") :reader graft-lock)
      (orientation :reader graft-orientation :initarg :orientation)
@@ -192,8 +196,9 @@
 (defgeneric port-graft-class (port)
   (:method ((port port)) 'graft))
 
-(defgeneric graft (object)
-  (:method ((x graft)) x))
+(defgeneric graft (x)
+  (:method ((graft graft)) graft)
+  (:method ((object t)) nil))
 
 (defun map-over-grafts (function port)
   (declare (dynamic-extent function))

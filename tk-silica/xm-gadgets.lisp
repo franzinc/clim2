@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.26 92/04/30 09:09:51 cer Exp Locker: cer $
+;; $fiHeader: xm-gadgets.lisp,v 1.27 92/05/06 15:37:54 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -63,7 +63,8 @@
       (tk::get-values (sheet-mirror gadget) :value)
     (call-next-method)))
 
-(defmethod (setf gadget-value) (nv (gadget motif-value-pane) &key)
+(defmethod (setf gadget-value) (nv (gadget motif-value-pane) &key invoke-callback)
+  (declare (ignore invoke-callback))
   (when (sheet-mirror gadget)
     (tk::set-values (sheet-mirror gadget) :value nv)))
 
@@ -86,7 +87,7 @@
   (multiple-value-bind
       (class initargs)
       (call-next-method)
-    (with-accessors ((alignment silica::gadget-alignment)
+    (with-accessors ((alignment gadget-alignment)
 		     (label gadget-label)) sheet
       (when label
 	(unless (getf initargs :label-string)
@@ -104,7 +105,7 @@
     (tk::set-values (sheet-direct-mirror sheet) :label-string (or nv
 								  ""))))
 
-(defmethod (setf silica::gadget-alignment) :after (nv (sheet motif-labelled-gadget))
+(defmethod (setf gadget-alignment) :after (nv (sheet motif-labelled-gadget))
   (when (sheet-direct-mirror sheet)
     (tk::set-values (sheet-direct-mirror sheet) 
 		    :alignment (ecase nv
@@ -150,7 +151,7 @@
 
 ;;; Label
 
-(defclass motif-label-pane (xt-leaf-pane motif-labelled-gadget label-pane) 
+(defclass motif-label-pane (label-pane xt-leaf-pane motif-labelled-gadget) 
 	  ())
 
 (defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
@@ -161,10 +162,10 @@
 
 ;;; Push button
 
-(defclass motif-push-button (xt-leaf-pane
+(defclass motif-push-button (push-button
+			     motif-action-pane
 			     motif-labelled-gadget
-			     push-button
-			     motif-action-pane) 
+			     xt-leaf-pane) 
 	  ())
 
 
@@ -203,10 +204,9 @@
 ;; Drawing area
 ;; Who uses this anyway??????????????
 
-(defclass motif-drawing-area (xt-leaf-pane 
-			      standard-sheet-input-mixin
+(defclass motif-drawing-area (standard-sheet-input-mixin 
 			      permanent-medium-sheet-output-mixin
-			      mute-repainting-mixin) 
+			      xt-leaf-pane) 
 	  ())
 
 (defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
@@ -230,32 +230,33 @@
   (let ((mirror (sheet-direct-mirror gadget)))
     (if mirror 
 	(multiple-value-bind
-	    (smin smax) (silica::gadget-range* gadget)
+	    (smin smax) (gadget-range* gadget)
 	  (multiple-value-bind
 	      (value mmin mmax)
 	      (tk::get-values mirror :value :minimum :maximum)
-	    (silica::compute-symmetric-value
+	    (compute-symmetric-value
 	     mmin mmax value smin smax)))
       (call-next-method))))
 
 
-(defmethod (setf gadget-value) (nv (gadget motif-range-pane) &key)
+(defmethod (setf gadget-value) (nv (gadget motif-range-pane) &key invoke-callback)
+  (declare (ignore invoke-callback))
   (let ((gadget (sheet-mirror gadget)))
     (when gadget
       (multiple-value-bind
-	  (smin smax) (silica::gadget-range* gadget)
+	  (smin smax) (gadget-range* gadget)
 	(multiple-value-bind
 	    (mmin mmax)
 	    (tk::get-values gadget :minimum :maximum)
 	  (tk::set-values gadget
-			  :value (silica::compute-symmetric-value
+			  :value (compute-symmetric-value
 				  smin smax nv mmin mmax)))))))
 
 ;;; Slider
 
-(defclass motif-slider (xt-leaf-pane
-			motif-range-pane
+(defclass motif-slider (motif-range-pane
 			motif-oriented-gadget
+			xt-leaf-pane
 			slider)
 	  ())
 
@@ -263,10 +264,10 @@
 						     (parent t)
 						     (sheet motif-slider))
   (with-accessors ((label gadget-label)
-		   (show-value-p silica::gadget-show-value-p)
+		   (show-value-p gadget-show-value-p)
 		   (value gadget-value)) sheet
     (multiple-value-bind
-	(smin smax) (silica::gadget-range* sheet)
+	(smin smax) (gadget-range* sheet)
 
       (let ((mmin 0) 
 	    (mmax 100)
@@ -295,7 +296,7 @@
 		       :maximum mmax
 		       :decimal-points decimal-points)
 		 (and value 
-		      (list :value (silica::compute-symmetric-value
+		      (list :value (compute-symmetric-value
 				    smin smax value mmin mmax)))))))))
 
 (defmethod (setf gadget-show-value-p) :after (nv (sheet motif-slider)) 
@@ -328,9 +329,9 @@
 ;;; Scroll-Bar
 
 
-(defclass motif-scroll-bar (xt-leaf-pane
+(defclass motif-scroll-bar (scroll-bar
 			    motif-oriented-gadget
-			    scroll-bar)
+			    xt-leaf-pane)
 	  ())
 
 (defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
@@ -352,17 +353,17 @@
 (defmethod change-scroll-bar-values ((sb motif-scroll-bar) &key slider-size value)
   (let ((mirror (sheet-direct-mirror sb)))
     (multiple-value-bind
-	(smin smax) (silica::gadget-range* sb)
+	(smin smax) (gadget-range* sb)
       (multiple-value-bind
 	  (mmin mmax) (tk::get-values mirror :minimum :maximum)
 	(tk::set-values
 	 mirror
 	 :slider-size 
 	 (fix-coordinate
-	  (silica::compute-symmetric-value
+	  (compute-symmetric-value
 		       smin smax slider-size mmin mmax))
 	 :value (fix-coordinate
-		 (silica::compute-symmetric-value
+		 (compute-symmetric-value
 		  smin smax value mmin mmax)))))))
 
 
@@ -468,10 +469,10 @@
 
 ;;;; text field
 
-(defclass motif-text-field (xt-leaf-pane
-			    motif-value-pane 
+(defclass motif-text-field (motif-value-pane 
 			    motif-action-pane
-			    text-field)
+			    text-field
+			    xt-leaf-pane)
 	  ())
 
 (defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
@@ -484,10 +485,10 @@
 
 ;;; 
 
-(defclass motif-text-editor (xt-leaf-pane
-			     motif-value-pane 
+(defclass motif-text-editor (motif-value-pane 
 			     motif-action-pane
-			     silica::text-editor)
+			     text-editor
+			     xt-leaf-pane)
 	  ())
 
 (defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
@@ -521,7 +522,7 @@
 (defmethod compose-space ((te motif-text-editor) &key width height)
   (declare (ignore width height))
   (let ((sr (call-next-method)))
-    (setq sr (silica::copy-space-requirement sr))
+    (setq sr (copy-space-requirement sr))
     ;;-- What it the correct thing to do???
     (setf (space-requirement-max-width sr) +fill+
 	  (space-requirement-max-height sr) +fill+)
@@ -535,10 +536,10 @@
 
 ;;; Toggle button
 
-(defclass motif-toggle-button (xt-leaf-pane 
-			       motif-labelled-gadget
+(defclass motif-toggle-button (motif-labelled-gadget
 			       motif-value-pane
-			       toggle-button)
+			       toggle-button
+			       xt-leaf-pane)
 	  ())
 
 (defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
@@ -558,7 +559,8 @@
       (tk::get-values (sheet-mirror gadget) :set)
     (call-next-method)))
 
-(defmethod (setf gadget-value) (nv (gadget motif-toggle-button) &key)
+(defmethod (setf gadget-value) (nv (gadget motif-toggle-button) &key invoke-callback)
+  (declare (ignore invoke-callback))
   (when (sheet-direct-mirror gadget)
     (tk::set-values (sheet-mirror gadget) :set nv)))
 
@@ -605,8 +607,8 @@
 ;;;;;;;;;;;;;;;
 
 (defclass xm-viewport
-	  (viewport
-	   mirrored-sheet-mixin)
+	  (mirrored-sheet-mixin
+	   viewport)
     ())
 
 (defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
@@ -636,8 +638,8 @@
 			   sheet-multiple-child-mixin
 			   sheet-permanently-enabled-mixin
 			   radio-box
-			   pane
-			   ask-widget-for-size-mixin)
+			   ask-widget-for-size-mixin
+			   pane)
     ())
 
 (defmethod sheet-adopt-child :after ((gadget motif-radio-box) child)
@@ -666,8 +668,8 @@
 			   sheet-multiple-child-mixin
 			   sheet-permanently-enabled-mixin
 			   silica::check-box
-			   pane
-			   ask-widget-for-size-mixin)
+			   ask-widget-for-size-mixin
+			   pane)
     ())
 
 (defmethod sheet-adopt-child :after ((gadget motif-check-box) child)
@@ -694,13 +696,12 @@
 
 ;; Frame-viewport that we need because a sheet can have
 
-(defclass xm-frame-viewport
-    (sheet-single-child-mixin
-	   sheet-permanently-enabled-mixin
-	   silica::wrapping-space-mixin
-	   pane
-	   mirrored-sheet-mixin)
-    ())
+(defclass xm-frame-viewport (sheet-single-child-mixin
+			     sheet-permanently-enabled-mixin
+			     wrapping-space-mixin
+			     mirrored-sheet-mixin
+			     pane)
+	  ())
 
 
 (defmethod find-widget-class-and-initargs-for-sheet
@@ -728,8 +729,8 @@
 			    mirrored-sheet-mixin
 			    sheet-single-child-mixin
 			    sheet-permanently-enabled-mixin
-			    pane
-			    silica::layout-mixin)
+			    layout-mixin
+			    pane)
 	  ((thickness :initform nil :initarg :thickness)))
 
 (defmethod initialize-instance :after ((pane motif-frame-pane) &key
@@ -750,7 +751,7 @@
 
 (defmethod compose-space ((fr motif-frame-pane) &key width height)
   (declare (ignore width height))
-  (silica::space-requirement+*
+  (space-requirement+*
    (compose-space (sheet-child fr))
    :width 4 :height 4))
 
@@ -781,7 +782,7 @@
   (let ((fudge-factor (+ 16
 			 (tk::get-values (sheet-mirror fr)
 					 :spacing)))
-	(sr (silica::copy-space-requirement (compose-space
+	(sr (copy-space-requirement (compose-space
 					     (sheet-child fr)))))
     (incf (space-requirement-width sr) fudge-factor)
     (incf (space-requirement-height sr) fudge-factor)
@@ -877,7 +878,8 @@
   (with-look-and-feel-realization (frame-manager frame)
     (make-pane 'motif-scrolling-window :contents contents)))
 
-(defmethod (setf gadget-value) :after (nv (l motif-list-pane) &key)
+(defmethod (setf gadget-value) :after (nv (l motif-list-pane) &key invoke-callback)
+  (declare (ignore invoke-callback))
   (when (sheet-direct-mirror l)
     (let ((selected-items
 	   (compute-list-pane-selected-items l nv)))
@@ -918,7 +920,9 @@
   (declare (ignore count))
   (queue-value-changed-event widget sheet value))
 
-(defmethod (setf gadget-value) :after (nv (gadget motif-option-pane) &key)
+
+(defmethod (setf gadget-value) :after (nv (gadget motif-option-pane) &key invoke-callback)
+  (declare (ignore invoke-callback)) 
   (set-option-menu-value gadget nv))
 
 (defmethod realize-mirror :around ((port motif-port) (pane motif-option-pane))
@@ -1012,7 +1016,7 @@
 
 
 (defun wait-for-callback-invocation (port predicate &optional (whostate "Waiting for callback"))
-  (if (eq mp:*current-process* (silica::port-process port))
+  (if (eq mp:*current-process* (port-process port))
       (progn
 	(loop 
 	  (when (funcall predicate) (return nil))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graph-formatting.lisp,v 1.7 92/03/04 16:21:44 cer Exp $
+;; $fiHeader: graph-formatting.lisp,v 1.8 92/04/15 11:46:37 cer Exp $
 
 (in-package :clim-internals)
 
@@ -16,8 +16,8 @@
 	       (nconc *graph-type-record-type-alist* (list (list ',graph-type ',class)))))))
 
 
-(defparameter *default-generation-separation* 20)
-(defparameter *default-within-generation-separation* 10)
+(defparameter *default-generation-separation* (coordinate 20))
+(defparameter *default-within-generation-separation* (coordinate 10))
 
 
 ;; Some graph layout algorithms will want this...
@@ -44,7 +44,7 @@
 
 ;;--- Not correct, since edges can overlap nodes. 
 ;;--- This really needs its own AUGMENT-DRAW-SET method.
-(defmethod inferiors-never-overlap-p ((record basic-graph-output-record)) t)
+(defmethod children-never-overlap-p ((record basic-graph-output-record)) t)
 
 ;; Recover the hash table during incremental redisplay
 (defmethod match-output-records :after
@@ -142,8 +142,10 @@
 			:center-nodes center-nodes
 			:cutoff-depth cutoff-depth
 			:merge-duplicates merge-duplicates
-			:generation-separation generation-separation
-			:within-generation-separation within-generation-separation
+			:generation-separation
+			  (coordinate generation-separation)
+			:within-generation-separation 
+			  (coordinate within-generation-separation)
 			:hash-table hash-table)
 		     (generate-graph-nodes graph-record stream
 					   root-objects object-printer inferior-producer
@@ -203,8 +205,8 @@
   (declare (ignore stream))
   (with-slots (root-nodes orientation center-nodes
 	       generation-separation within-generation-separation) graph
-    (let ((start-x 0)
-	  (start-y 0)
+    (let ((start-x (coordinate 0))
+	  (start-y (coordinate 0))
 	  ;;--- This needs to handle multiple root nodes
 	  (root-node (first root-nodes)))
       (macrolet

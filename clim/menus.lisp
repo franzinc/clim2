@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: menus.lisp,v 1.20 92/04/21 16:13:11 cer Exp Locker: cer $
+;; $fiHeader: menus.lisp,v 1.21 92/05/06 15:37:41 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -18,7 +18,6 @@
 	(scrolling ()
 	  (setq menu (make-pane 'clim-stream-pane
 				:initial-cursor-visibility nil))))))
-
   (:menu-bar nil))
 
 (defmethod frame-calling-frame ((frame menu-frame))
@@ -56,9 +55,10 @@
   :initializer (initialize-menu menu associated-window)
   ;; Deexpose the menu, and clear it so that the GC can reclaim any
   ;; garbage output records.
-  :deinitializer (progn (setf (window-visibility menu) nil)
-			(window-clear menu)
-			#-Silica (setf (window-label menu) nil))
+  :deinitializer (progn
+		   (setf (window-visibility menu) nil)
+		   (window-clear menu)
+		   (setf (window-label menu) nil))
   :matcher (eq (window-parent menu) root))
 
 #+Silica
@@ -120,14 +120,15 @@
 				     (size-fn 
 				      #'window-set-inside-size))
   (with-slots (output-record) menu
-    (with-bounding-rectangle* (minx miny maxx maxy) output-record
-	(let* ((graft (graft menu))
-	       (gw (bounding-rectangle-width (sheet-region graft)))
-	       (gh (bounding-rectangle-height (sheet-region graft)))
-	       (width (min gw (+ (- maxx minx) right-margin)))
-	       (height (min gh (+ (- maxy miny) bottom-margin))))
-	  (funcall size-fn menu width height)
-	  (window-set-viewport-position menu minx miny)))))
+    (with-bounding-rectangle* (left top right bottom) output-record
+      (let* ((graft (graft menu))
+	     (gw (bounding-rectangle-width (sheet-region graft)))
+	     (gh (bounding-rectangle-height (sheet-region graft)))
+	     (width (min gw (+ (or width (- right left)) right-margin)))
+	     (height (min gh (+ (or height (- bottom top)) bottom-margin))))
+	(funcall size-fn menu width height)
+	(window-set-viewport-position menu left top)))))
+
 
 #-Silica
 (defun position-window-near-carefully (window x y)
@@ -149,9 +150,9 @@
 #-Silica
 (defun position-window-near-pointer (window &optional x y)
   (unless (and x y)
-    (multiple-value-setq (x-position y-position)
-      (stream-pointer-position-in-window-coordinates (window-parent menu))))
-  (position-window-near-carefully menu x y))
+    (multiple-value-setq (x y)
+      (stream-pointer-position-in-window-coordinates (window-parent window))))
+  (position-window-near-carefully window x y))
 
 #+Silica
 (defun position-window-near-carefully (window x y)
@@ -258,26 +259,30 @@
     (flet ((format-item (item)
 	     (let ((type (menu-item-type item)))
 	       (unless (eq type :separator)
-		 (flet ((printit ()
-			  (formatting-cell (menu :align-x cell-align-x :align-y cell-align-y)
-					   (funcall item-printer item
-						    menu))))
+		 (flet ((print-item ()
+			  (formatting-cell (menu :align-x cell-align-x 
+						 :align-y cell-align-y)
+			    (funcall item-printer item menu))))
+		   (declare (dynamic-extent #'print-item))
 		   (ecase type
 		     (:item 
-		      (if (menu-item-active item)
-			  (let ((presentation
-				 (with-output-as-presentation (menu item presentation-type
-								    :single-box T)
-				   (printit))))
-			    (when (and default-item (eq item default-item))
-			      (setf default-presentation
-				presentation)))
-			;;-- Perhaps it should be grayed out in someway?
-			(printit)))
-		     (:label (printit))
-		     (:separator)))))))
+		       (if (menu-item-active item)
+			   (let ((presentation
+				   (with-output-as-presentation (menu item presentation-type
+								 :single-box t)
+				     (print-item))))
+			     (when (and default-item
+					(eq item default-item))
+			       (setf default-presentation presentation)))
+			 ;;--- Perhaps it should be grayed out in someway?
+			 (print-item)))
+		     (:label 
+		       (print-item))
+		     (:separator
+		       ;; Ignore separators for the time being
+		       )))))))
       (declare (dynamic-extent #'format-item))
-    (map nil #'format-item items)))
+      (map nil #'format-item items)))
   default-presentation)
 
 (defun print-menu-item (menu-item &optional (stream *standard-output*))
@@ -294,7 +299,7 @@
     (if style
 	(with-text-style (stream style)
 	  (write-string string stream))
-      (write-string string stream))))
+	(write-string string stream))))
 
 (defclass static-menu ()
     ((name :initarg :name)
@@ -364,7 +369,7 @@
 	  ;; variable if this LET isn't done.
 	  #+Lucid (items items))
       (with-menu (menu associated-window)
-	#-Silica (setf (window-label menu) label)
+	(setf (window-label menu) label)
 	#+Silica (reset-frame (pane-frame menu) :title label)
 	(with-text-style (menu default-style)
 	  (with-end-of-line-action (menu :allow)
@@ -548,7 +553,7 @@
 			      (printer printer)
 			      (t #'print-menu-item))))
       (with-menu (menu associated-window)
-	#-Silica (setf (window-label menu) label)
+	(setf (window-label menu) label)
 	(with-text-style (menu default-style)
 	  (multiple-value-bind (item gesture)
 	      (flet ((menu-choose-body (stream presentation-type)
@@ -671,7 +676,7 @@
 		  default-presentation (slot-value new-menu 'default-presentation)
 		  root-window this-root)))))
     (with-menu (menu associated-window)
-      #-Silica (setf (window-label menu) label)
+      (setf (window-label menu) label)
       (with-text-style (menu default-style)
 	(multiple-value-bind (item gesture)
 	    (menu-choose-from-drawer 

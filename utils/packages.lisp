@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: packages.lisp,v 1.13 92/04/30 09:09:18 cer Exp Locker: cer $
+;; $fiHeader: packages.lisp,v 1.14 92/05/06 15:37:27 cer Exp Locker: cer $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :common-lisp-user)
 
@@ -1398,28 +1398,35 @@
 (#-ANSI-90 clim-lisp::defpackage #+ANSI-90 defpackage CLIM-SYS
   (:use)				;use nothing
   (:export
-    ;; CLIM-SYS
-    all-processes
+    ;; Resources
     allocate-resource
     clear-resource
-    current-process
     deallocate-resource
-    defgeneric*
-    defmethod*
     defresource
+    map-resource
+    using-resource
+    
+    ;; Processes
+    all-processes
+    current-process
     destroy-process
-    make-lock
     make-process
-    make-recursive-lock
     process-interrupt
     process-wait
     process-wait-with-timeout
     process-yield
-    setf*
-    using-resource
+    without-scheduling
+
+    ;; Locks
+    make-lock
+    make-recursive-lock
     with-lock-held
     with-recursive-lock-held
-    without-scheduling))
+
+    ;; SETF*
+    defgeneric*
+    defmethod*
+    setf*))
 
 #+(and Genera lock-CLIM-packages) (setf (si:pkg-locked (find-package :clim-sys)) t)
 
@@ -1644,7 +1651,6 @@
     child-containing-position
     children-overlapping-rectangle*
     children-overlapping-region
-    copy-event
     deallocate-medium
     define-sheet-class
     degraft-medium
@@ -2135,26 +2141,26 @@
     ;; Incremental redisplay
     augment-draw-set
     cache-output-record
-    compute-differences
-    decache-inferior-output-record
+    compute-difference-set
+    compute-new-output-records
+    decache-child-output-record
     find-cached-output-record
-    find-inferior-output-record
+    find-child-output-record
     incremental-redisplay
-    inferior-output-record-changed
     match-output-records
-    new-output-records
+    note-output-record-child-changed
     output-record-cache-value
     output-record-contents-ok
     output-record-displayer
     output-record-fixed-position
     output-record-unique-id
-    propagate-inferior-output-record-changes-p
     propagate-output-record-changes
+    propagate-output-record-changes-p
     recompute-contents-ok
     redisplay
     redisplay-output-record
-    standard-updating-output-record
     redisplayable-stream-p
+    standard-updating-output-record
     updating-output
     updating-output-record
     updating-output-record-p
@@ -2239,8 +2245,8 @@
     completion
     complex
     default-describe-presentation-type
-    define-click-and-drag-translator
     define-default-presentation-method
+    define-drag-and-drop-translator
     define-presentation-action
     define-presentation-generic-function
     define-presentation-method
@@ -2345,6 +2351,7 @@
     with-presentation-type-decoded
     with-presentation-type-options
     with-presentation-type-parameters
+    with-presentations-to-string
     
     ;; Input editing and completion
     *activation-gestures*
@@ -2364,6 +2371,7 @@
     input-editing-stream
     input-editing-stream-p
     input-editor-buffer
+    input-editor-format
     input-not-of-required-type
     interactive-stream-p
     presentation-replace-input
@@ -2440,6 +2448,7 @@
     command-present-in-command-table-p
     command-table
     command-table-already-exists
+    command-table-complete-input
     command-table-error
     command-table-inherit-from
     command-table-name
@@ -2499,12 +2508,12 @@
     find-frame-manager
     find-pane-for-frame
     frame-calling-frame
-    frame-click-and-drag-feedback
-    frame-click-and-drag-highlighting
     frame-command-table
     frame-current-layout
     frame-current-panes
     frame-document-highlighted-presentation
+    frame-drag-and-drop-feedback
+    frame-drag-and-drop-highlighting
     frame-error-output
     frame-exit
     frame-find-innermost-applicable-presentation
@@ -2530,7 +2539,6 @@
     get-frame-pane
     interactor-pane
     layout-frame
-    layout-frame-panes
     make-application-frame
     note-command-disabled
     note-command-enabled
@@ -2543,7 +2551,6 @@
     panes-need-redisplay
     read-frame-command
     reconfigure-frame
-    redisplay-frame-command-menu
     redisplay-frame-pane
     redisplay-frame-panes
     reset-frame
@@ -2566,7 +2573,7 @@
     bboard-pane
     border-pane
     bordering
-    change-space-requirement
+    change-space-requirements
     changing-space-requirements
     clim-stream-pane
     clim-stream-sheet
@@ -2582,7 +2589,7 @@
     make-pane
     make-pane-1
     make-space-requirement
-    note-space-requirement-changed
+    note-space-requirements-changed
     outlined-pane
     outlining
     pane
@@ -2592,11 +2599,11 @@
     pane-text-style
     pane-viewport
     pane-viewport-region
+    panep
     raising
-    make-pane
-    make-pane-1
     restraining
     restraining-pane
+    scroll-extent
     scroller-pane
     scrolling
     space-requirement
@@ -2639,15 +2646,13 @@
     gadget-label-align-x
     gadget-label-align-y
     gadget-label-text-style
-    gadget-min-value
     gadget-max-value
+    gadget-min-value
     gadget-orientation
     gadget-output-record
-    gadget-orientation
-    gadget-min-value
-    gadget-max-value
     gadget-range
     gadget-range*
+    gadget-show-value-p
     gadget-value
     gadget-value-changed-callback
     gadget-show-value-p
@@ -2662,7 +2667,7 @@
     list-pane
     list-pane-mode
     option-pane
-    
+
     label-pane
     labelled-gadget
     menu-bar
@@ -2683,7 +2688,6 @@
     scroll-bar-pane
     slider
     slider-pane
-    slider-show-value-p
     text-editor
     text-editor-pane
     text-field
@@ -3059,6 +3063,7 @@
     with-gensyms
 
     ;; From LISP-UTILITIES
+    +largest-coordinate+
     bind-to-list
     canonicalize-and-match-lambda-lists	 
     clause
@@ -3085,7 +3090,6 @@
     gensymbol 
     get-compile-time-local-property
     ignore-arglist
-    +largest-coordinate+
     lambda-list-variables-used-in-body
     letf-globally
     letf-globally-if
@@ -3097,6 +3101,7 @@
     push-unique
     remove-keywords
     remove-word-from-string
+    repeat
     simple-vector-insert-element
     simple-vector-push-extend
     standard-io-environment-vars-and-vals 
@@ -3294,7 +3299,10 @@
     clear-space-requirement-caching-in-ancestors
     clear-space-requirement-caches-in-tree
     click-event
-    client-overridability
+    client-overridability-mixin
+    compute-symmetric-value
+    copy-event
+    copy-space-requirement
     default-space-requirements
     define-character-face
     define-character-face-added-mappings
@@ -3307,14 +3315,20 @@
     display-device 
     find-port-type
     fit-region*-in-region*
+    foreground-background-and-text-style-mixin
     frame-shell
     frame-wrapper
+    gadget-alignment
+    gadget-range
+    gadget-range*
+    gadget-show-value-p
     get-drawing-function-description
     get-port-canonical-gesture-spec
     grid-pane
     intern-text-style
     invoke-callback-function
     label-button-pane
+    layout-mixin
     line-editor-pane
     list-pane
     make-frame-manager
@@ -3357,6 +3371,7 @@
     port-note-gadget-activated
     port-note-gadget-deactivated
     port-pointer
+    port-process
     port-undefined-text-style
     port-write-char-1
     port-write-string-1
@@ -3364,9 +3379,9 @@
     radio-button-pane
     raise-mirror
     resize-sheet*
+    scroll-bar-value-changed-callback
     scroll-extent
     scrollable-pane
-    scroll-bar-value-changed-callback
     set-sheet-mirror-edges*
     shadow-pane
     sheet-actual-native-edges*
@@ -3374,7 +3389,8 @@
     sheet-permanently-enabled-mixin
     sheet-shell
     sheet-top-level-mirror
-    sheet-with-graphics-state
+    sheet-with-graphics-state-mixin
+    space-requirement+*
     space-requirement-components
     space-requirement-mixin
     standard-sheet
@@ -3396,7 +3412,8 @@
     viewport-region-changed
     window-configuration-event
     window-repaint-event
-    window-shift-visible-region))
+    window-shift-visible-region
+    wrapping-space-mixin))
 
 (#-ANSI-90 clim-lisp::defpackage #+ANSI-90 defpackage CLIM-INTERNALS
   (:use	CLIM-LISP CLIM-SYS CLIM CLIM-UTILS CLIM-SILICA)  

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: coordinate-sorted-set.lisp,v 1.3 92/03/04 16:21:18 cer Exp $
+;; $fiHeader: coordinate-sorted-set.lisp,v 1.4 92/04/15 11:46:19 cer Exp $
 
 (in-package :clim-internals)
 
@@ -120,9 +120,9 @@
 
 (defmethod map-over-output-records-overlapping-region
 	   (function (record standard-tree-output-record) region
-	    &optional (x-offset 0) (y-offset 0) &rest continuation-args)
+	    &optional (x-offset (coordinate 0)) (y-offset (coordinate 0))
+	    &rest continuation-args)
   (declare (dynamic-extent function continuation-args))
-  (declare (type coordinate x-offset y-offset))
   (declare (optimize (safety 0)))
   (let ((vector (slot-value record 'coordinate-sorted-set))
 	(length (slot-value record 'fill-pointer)))
@@ -132,10 +132,13 @@
 	(dovector ((child index) vector :start 0 :end length :simple-p t)
 	  (apply function child continuation-args))
       (with-bounding-rectangle* (left1 top1 right1 bottom1) region
-	(translate-coordinates x-offset y-offset left1 top1 right1 bottom1)
-	(let ((start (coordinate-sorted-set-index-for-position vector 0 top1 0 length))
+	(translate-coordinates (coordinate x-offset) (coordinate y-offset)
+	  left1 top1 right1 bottom1)
+	(let ((start (coordinate-sorted-set-index-for-position 
+		       vector (coordinate 0) top1 0 length))
 	      (limit (+ bottom1 (slot-value record 'tallest-box-height))))
-	  (declare (type fixnum start limit))
+	  (declare (type fixnum start)
+		   (type coordinate limit))
 	  ;; Subtract out the record offset from the region, to make comparison fair
 	  (multiple-value-bind (xoff yoff)
 	      (output-record-position record)
@@ -153,19 +156,24 @@
 
 (defmethod map-over-output-records-containing-position
 	   (function (record standard-tree-output-record) x y
-	    &optional (x-offset 0) (y-offset 0) &rest continuation-args)
+	    &optional (x-offset (coordinate 0)) (y-offset (coordinate 0))
+	    &rest continuation-args)
   (declare (dynamic-extent function continuation-args))
-  (declare (type coordinate x-offset y-offset))
   (declare (optimize (safety 0)))
-  (translate-coordinates x-offset y-offset x y)
+  (translate-coordinates (coordinate x-offset) (coordinate y-offset)
+    x y)
   (let ((vector (slot-value record 'coordinate-sorted-set))
 	(length (slot-value record 'fill-pointer))
 	(bound (slot-value record 'tallest-box-height)))
-    (declare (type simple-vector vector) (fixnum length bound)
+    (declare (type simple-vector vector)
+	     (type fixnum length)
+	     (type coordinate bound)
 	     #+Genera (sys:array-register vector))
-    (let ((end (coordinate-sorted-set-index-for-position vector 0 (+ y bound 1) 0 length))
+    (let ((end (coordinate-sorted-set-index-for-position
+		 vector (coordinate 0) (+ y bound 1) 0 length))
 	  (limit (- y bound)))
-      (declare (type fixnum end limit))
+      (declare (type fixnum end)
+	       (type coordinate limit))
       (multiple-value-bind (xoff yoff)
 	  (output-record-position record)
 	(translate-coordinates (- xoff) (- yoff) x y))

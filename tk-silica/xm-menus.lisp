@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-menus.lisp,v 1.10 92/04/21 16:13:29 cer Exp Locker: cer $
+;; $fiHeader: xm-menus.lisp,v 1.11 92/05/06 15:37:58 cer Exp Locker: cer $
 
 
 (in-package :xm-silica)
@@ -214,7 +214,6 @@
 		    (setf value-returned nil return-value nil)
 		  (values value-returned return-value))))))
 		
-
 (defun pixmap-from-menu-item (associated-window menu-item printer presentation-type)
   (with-menu (menu associated-window)
     (setf (stream-text-margin menu) 1000)

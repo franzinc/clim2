@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept.lisp,v 1.5 92/03/10 10:12:15 cer Exp $
+;; $fiHeader: accept.lisp,v 1.6 92/04/15 11:46:05 cer Exp $
 
 (in-package :clim-internals)
 
@@ -26,7 +26,7 @@
 		    #+CLIM-1-compatibility (blip-characters nil)
 		    #+CLIM-1-compatibility (additional-blip-characters nil)
 		    (insert-default nil) (replace-input t)
-		    (present-p nil))
+		    (present-p nil) (active-p t))
   (declare (dynamic-extent accept-args))
   (declare (values object type))
   (declare (ignore prompt-mode display-default query-identifier
@@ -36,7 +36,7 @@
 		   #+CLIM-1-compatibility additional-activation-characters
 		   #+CLIM-1-compatibility blip-characters
 		   #+CLIM-1-compatibility additional-blip-characters
-		   insert-default replace-input present-p))
+		   insert-default replace-input present-p active-p))
 
   ;; Allow the arguments to be presentation type abbreviations
   (multiple-value-bind (expansion expanded)

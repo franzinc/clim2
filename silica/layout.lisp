@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: layout.lisp,v 1.14 92/04/30 09:09:16 cer Exp Locker: cer $
+;; $fiHeader: layout.lisp,v 1.15 92/05/06 15:37:21 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -72,7 +72,7 @@
   (declare (dynamic-extent args))
   (apply #'make-instance 'space-requirement args))
 
-(defconstant +fill+ (/ (expt 10 (floor (log most-positive-fixnum 10))) 100))
+(defconstant +fill+ (floor (/ (expt 10 (floor (log most-positive-fixnum 10))) 100)))
 
 
 ;;; Layout protocol
@@ -106,15 +106,16 @@
 	      :contents (list ,@(parse-box-contents contents))
 	      ,@options))
 
+
 (defmacro horizontally (options &body contents)
   `(make-pane 'hbox-pane
 	      :contents (list ,@(parse-box-contents contents))
 	      ,@options))
 
+;;;--- If force is not T then changing-space-requirements tends not to
+;;;have any effect
 
-;;;---- Should force be T
-
-(defmethod resize-sheet* ((sheet sheet) width height &key (force nil))
+(defmethod resize-sheet* ((sheet sheet) width height &key (force t))
   (unless (and (> width 0) (> height 0))
     (error "Trying to resize sheet to zero ~S,~S,~S"
 	   sheet width height))
@@ -149,19 +150,23 @@
 ;; Various
 
 ;;--- What about PANE-FOREGROUND/BACKGROUND vs. MEDIUM-FOREGROUND/BACKGROUND?
+;;--- Make a PANE protocol class, and call this BASIC-PANE
 (defclass pane 
-    (sheet 
-     sheet-transformation-mixin
-     standard-sheet-input-mixin
-     standard-repainting-medium
-     permanent-medium-sheet-output-mixin
-     mute-repainting-mixin)
+	  (sheet-transformation-mixin
+	   standard-sheet-input-mixin
+	   standard-repainting-mixin
+	   permanent-medium-sheet-output-mixin
+	   sheet)
     ((frame :reader pane-frame :initarg :frame)
-     (framem :reader pane-frame-manager :initarg :frame-manager)
+     (framem :reader frame-manager :initarg :frame-manager)
      (name :initform nil :reader pane-name)))
 
 (defmethod panep ((x pane)) t)
 (defmethod panep ((x t)) nil)
+
+(defmethod repaint-sheet ((pane pane) region)
+  (declare (ignore region))
+  nil)
 
 ;;--- This is suspicious - it should either be on a composite-pane or
 ;;--- on a top-level sheet
@@ -172,10 +177,6 @@
     (allocate-space sheet width height)))
 
 (defmethod pane-frame ((x sheet)) nil)
-
-(defclass leaf-mixin (sheet-leaf-mixin) ())
-(defclass composite-pane (pane sheet-multiple-child-mixin) ())
-(defclass mute-input-mixin (sheet-mute-input-mixin) ())
 
 (defclass pane-background-mixin () 
     ((background :initform +white+ :accessor pane-background)))
@@ -236,7 +237,7 @@
 ;	  children (if reverse-p (nreverse children)
 ;			  children))
 ;    
-;    (note-space-requirement-changed (sheet-parent lcm) lcm)))
+;    (note-space-requirements-changed (sheet-parent lcm) lcm)))
 ;
 ;
 ;
@@ -258,7 +259,7 @@
 ;    (dolist (pane panes)
 ;      (insert-pane lcm pane :position position :batch-p t)
 ;      (unless reverse-p (incf position)))
-;    (note-space-requirement-changed (sheet-parent lcm) lcm)))
+;    (note-space-requirements-changed (sheet-parent lcm) lcm)))
 ;
 ;(defmethod insert-pane ((lcm list-contents-mixin) (pane pane) 
 ;			&key position batch-p &allow-other-keys)
@@ -272,23 +273,23 @@
 ;		(cons pane (cdr tail)))))
 ;    (sheet-adopt-child lcm pane)
 ;    (unless batch-p
-;      (note-space-requirement-changed (sheet-parent lcm) lcm))))
+;      (note-space-requirements-changed (sheet-parent lcm) lcm))))
 ;			      
 ;(defmethod remove-panes ((lcm list-contents-mixin) panes)
 ;  (dolist (pane panes)
 ;    (with-slots (contents) lcm
 ;      (setf contents (delete pane contents))
 ;      (sheet-disown-child lcm pane)))
-;  (note-space-requirement-changed (sheet-parent lcm) lcm))
+;  (note-space-requirements-changed (sheet-parent lcm) lcm))
 ;
 ;(defmethod remove-pane ((lcm list-contents-mixin) (pane pane)
 ;			&key batch-p &allow-other-keys)
 ;  (with-slots (contents) lcm
 ;    (setf contents (delete pane contents :test #'eq))
 ;    (sheet-disown-child lcm pane)
-;    (unless batch-p (note-space-requirement-changed (sheet-parent lcm) lcm))))
+;    (unless batch-p (note-space-requirements-changed (sheet-parent lcm) lcm))))
 ;
-;(defmethod note-space-requirement-changed :before (parent (lcm list-contents-mixin))
+;(defmethod note-space-requirements-changed :before (parent (lcm list-contents-mixin))
 ;  #-PCL ;; PCL uses this variable for method-table cache misses, unfortunately.
 ;  (declare (ignore parent))
 ;  (with-slots (nslots contents) lcm
@@ -301,10 +302,10 @@
 	  (;;--- Temporary kludge until we get the protocols correct
 	   ;;--- so that ACCEPT works correctly on a raw sheet
 	   clim-internals::window-stream
-	   pane
 	   wrapping-space-mixin
+	   sheet-multiple-child-mixin
 	   mirrored-sheet-mixin
-	   sheet-multiple-child-mixin)
+	   pane)
     ()
     ;;--- More of same...
     (:default-initargs :text-cursor nil :text-margin 10))
@@ -334,9 +335,14 @@
   (compose-space (first (sheet-children sheet)) :width width :height height))
 
 
+(defclass composite-pane
+	  (sheet-multiple-child-mixin 
+	   pane)
+    ())
+
 (defclass leaf-pane 
 	  (sheet-permanently-enabled-mixin
-	   client-overridability
+	   client-overridability-mixin
 	   pane)
     ((cursor :initarg :cursor :initform nil
 	     :accessor sheet-cursor)))

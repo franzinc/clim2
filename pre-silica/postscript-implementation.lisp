@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: postscript-implementation.lisp,v 1.2 92/02/24 13:08:11 cer Exp $
+;; $fiHeader: postscript-implementation.lisp,v 1.3 92/04/15 11:47:01 cer Exp $
 
 (in-package :clim-internals)
 
@@ -582,12 +582,14 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
         "/new-matrix {0 format-y-translation translate
 		      format-rotation rotate} def
 	 /new-page {showpage new-matrix} def~%")
+    (postscript-device-prologue display-device-type printer-stream)
     (format printer-stream "%%EndProlog~%")
     (format printer-stream "~%new-matrix~%")))
 
 (defmethod postscript-epilogue ((stream postscript-implementation-mixin))
-  (with-slots (printer-stream font-map) stream
+  (with-slots (printer-stream display-device-type font-map) stream
     (format printer-stream "showpage~%")
+    (postscript-device-epilogue display-device-type printer-stream)
     (format printer-stream "%%Trailer~%")
     (let ((font-names-used nil))
       (dotimes (index (length font-map))
@@ -1074,6 +1076,15 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
 		       size style)
 	       *undefined-text-style*))))))
 
+;; Some people need to be able to specialize this
+(defmethod postscript-device-prologue ((device postscript-device) printer-stream)
+  (declare (ignore printer-stream)))
+
+;; Some people need to be able to specialize this, too
+(defmethod postscript-device-epilogue ((device postscript-device) printer-stream)
+  (declare (ignore printer-stream)))
+
+
 (defclass apple-laser-writer (postscript-device)
     ((x-resolution :initform 300 :allocation :class)	;pixels per inch
      (y-resolution :initform 300 :allocation :class)
@@ -1122,8 +1133,8 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
   (with-bounding-rectangle* (left top right bottom)
       (stream-output-history stream)
     (pixels-to-points left top right bottom)
-    (values (round left) (round top)
-	    (round right) (round bottom))))
+    (values (floor left) (floor top)
+	    (ceiling right) (ceiling bottom))))
 
 (defmethod window-inside-width ((stream postscript-implementation-mixin))
   (with-slots (display-device-type) stream

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-init.lisp,v 1.4 92/04/03 12:04:09 cer Exp Locker: cer $
+;; $fiHeader: xt-init.lisp,v 1.5 92/04/21 20:27:52 cer Exp Locker: cer $
 
 
 (in-package :tk)
@@ -32,3 +32,4 @@
     (xt_toolkit_initialize)
     (define-toolkit-classes *intrinsic-classes*)
     (setq *xt-done* t)))
+

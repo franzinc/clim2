@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: load-ol.lisp,v 1.7 92/03/30 17:51:37 cer Exp Locker: cer $
+;; $fiHeader: load-ol.lisp,v 1.8 92/04/03 12:03:58 cer Exp $
 
 (in-package :tk)
 
@@ -50,3 +50,4 @@
 	 x11::*libx11-pathname*)))
 
 (load-from-ol)
+

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: genera-implementation.lisp,v 1.3 92/03/04 16:21:40 cer Exp $
+;; $fiHeader: genera-implementation.lisp,v 1.4 92/04/15 11:46:33 cer Exp $
 
 (in-package :clim-internals)
 
@@ -177,13 +177,14 @@
 (defmethod window-label-size ((stream sheet-implementation-mixin)
 			      &optional (label (window-label stream)))
   (cond ((null label)
-	 (values 0 0))
+	 (values (coordinate 0) (coordinate 0)))
 	(t (dw::margin-label-size (clim-label->genera-label label stream)
 				  (slot-value stream 'window)))))
 
 (defmethod window-margins ((stream sheet-implementation-mixin))
   stream
-  (values 0 0 0 0))
+  (values (coordinate 0) (coordinate 0) 
+	  (coordinate 0) (coordinate 0)))
 
 (defmethod host-window-margins ((stream sheet-implementation-mixin))
   (with-slots (window) stream
@@ -412,8 +413,7 @@
 		       (sys:copy-array-portion source s (+ s w)
 					       destination d (+ d w)))
 		      ((integerp key)
-		       (dotimes (ii w)
-			 (declare (ignore ii))
+		       (repeat w
 			 (setf (aref destination d) (if (= (aref source s) key) 1 0))
 			 (incf s)
 			 (incf d)))))))

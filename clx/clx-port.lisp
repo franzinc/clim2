@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLX-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clx-port.lisp,v 1.4 92/03/10 10:12:08 cer Exp $
+;; $fiHeader: clx-port.lisp,v 1.6 92/04/15 11:45:56 cer Exp $
 
 (in-package :clx-clim)
 
@@ -566,7 +566,6 @@
 (defmethod set-cursor-location ((port clx-port) sheet x y)
   (xlib:warp-pointer (sheet-mirror sheet)
 		     (fix-coordinate x) (fix-coordinate y)))
-
 
 
 ;;--- Doesn't this need a sheet/stream argument?

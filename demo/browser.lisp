@@ -1,5 +1,11 @@
 ;;; -*- Mode: LISP; Syntax: ANSI-Common-lisp; Package: (CLIM-BROWSER :use (CLIM-LISP CLIM)); Base: 10; Lowercase: Yes -*-
-;; $fiHeader: browser.lisp,v 1.4 92/02/24 13:09:39 cer Exp Locker: cer $
+
+;;; Simple extensible browser
+;;; Scott McKay
+
+;;; $fiHeader: browser.lisp,v 1.5 92/04/10 14:27:42 cer Exp $
+
+"Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved."
 
 (eval-when (compile load eval)
   (defpackage :clim-browser
@@ -7,11 +13,6 @@
     (:shadow package)))
 
 (in-package :clim-browser)
-
-;;; Simple extensible browser
-;;; Scott McKay
-
-"Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved."
 
 ;;; To use the Browser, first choose a browser type and browser subtype from
 ;;; the ACCEPTING-VALUES pane in the lower right corner. 
@@ -780,25 +781,26 @@
   (:panes
    (title (scrolling ()
 		     (make-pane 'application-pane
-			:display-after-commands t
-			:display-function 'display-title-pane
-			:default-text-style '(:sans-serif :bold :large))))
+		       :display-after-commands t
+		       :display-function 'display-title-pane
+		       :default-text-style '(:sans-serif :bold :large))))
    (graph (scrolling ()
 		     (make-pane 'application-pane
-			:display-function 'display-graph-pane
-			:display-after-commands t
-			:incremental-redisplay t
-			:scroll-bars :both)))
+		       :display-function 'display-graph-pane
+		       :display-after-commands t
+		       :incremental-redisplay t
+		       :scroll-bars :both)))
    (commands (make-pane 'menu-bar
-			   :display-function '(display-command-menu :n-rows 2)))
+	       :display-function '(display-command-menu :n-rows 2)))
    (interactor (scrolling ()
 			  (make-pane 'interactor-pane
-					:height 50)))
+			    :height 50)))
    (control-panel (scrolling ()
 			     (make-pane 'application-pane
-					   :height 200
-				:display-function '(clim-internals::accept-values-pane-displayer
-						    :displayer accept-call-graph-options)))))
+			       :height 200
+			       :display-function
+			         '(clim-internals::accept-values-pane-displayer
+				    :displayer accept-call-graph-options)))))
   (:layout
    (default
        (vertically () graph interactor control-panel))))

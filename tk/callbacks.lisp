@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: callbacks.lisp,v 1.10 92/04/21 20:27:24 cer Exp Locker: cer $
+;; $fiHeader: callbacks.lisp,v 1.11 92/05/06 15:37:07 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -138,13 +138,3 @@
   (values (x-drawing-area-callback-window call-data)
 	  (x-drawing-area-callback-event call-data)))
 
-(defmethod spread-callback-data (widget call-data (type (eql :single-selection)))
-  (declare (ignore widget))
-  (xm-list-callback-struct-item-position call-data))
-
-(defmethod spread-callback-data (widget call-data (type (eql :multiple-selection)))
-  (declare (ignore widget))
-  (let ((si (xm-list-callback-struct-selected-item-positions call-data))
-	(r nil))
-    (dotimes (i (xm-list-callback-struct-selected-item-count call-data) (nreverse r))
-      (push (xm-selected-position-array si i) r))))

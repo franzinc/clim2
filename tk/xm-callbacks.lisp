@@ -1,4 +1,4 @@
-;; -*- mode: common-lisp; package: xm-silica -*-
+;; -*- mode: common-lisp; package: tk -*-
 ;;
 ;;				-[]-
 ;; 
@@ -20,10 +20,10 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader$
+;; $fiHeader: xm-callbacks.lisp,v 1.1 92/05/07 11:01:22 cer Exp Locker: cer $
 
 
-(in-package :xm-silica)
+(in-package :tk)
 
 (defmethod spread-callback-data (widget call-data (type (eql :single-selection)))
   (declare (ignore widget))

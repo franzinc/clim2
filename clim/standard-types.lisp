@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: standard-types.lisp,v 1.6 92/04/15 11:47:17 cer Exp Locker: cer $
+;; $fiHeader: standard-types.lisp,v 1.7 92/04/30 09:09:37 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -60,7 +60,7 @@
   (loop
     (let ((token (read-token stream)))
       (when (input-editing-stream-p stream)
-	(rescan-for-activation stream))
+	(rescan-if-necessary stream))
       (multiple-value-bind (object index)
 	  (let ((*read-eval* nil))		;disable "#."
 	    (read-from-string token nil token))
@@ -148,31 +148,32 @@
 
 (define-presentation-method describe-presentation-type :after ((type real) stream plural-count)
   (declare (ignore plural-count))	;primary method gets it
-  (describe-numeric-subrange low high stream)
+  (describe-numeric-subrange low high stream base)
   (unless (= base 10)
     (format stream " in base ~D" base)))
   
-(defun describe-numeric-subrange (low high stream)
-  (if (eq low '*)
-      (if (eq high '*)
-	  nil
-	  (rangecase high
-	    (inclusive (format stream " less than or equal to ~S" high))
-	    (exclusive (format stream " less than ~S" high))))
-      (if (eq high '*)
-	  (rangecase low
-	    (inclusive (format stream " greater than or equal to ~S" low))
-	    (exclusive (format stream " greater than ~S" low)))
-	  (rangecase low
-	    (inclusive
-	      (rangecase high
-		(inclusive (format stream " between ~S and ~S" low high))
-		(exclusive (format stream " >= ~S and < ~S" low high))))
-	    (exclusive
-	      (rangecase high
-		(inclusive (format stream " > ~S and <= ~S" low high))
-		(exclusive (format stream " between ~S and ~S (exclusive)"
-				   low high))))))))
+(defun describe-numeric-subrange (low high stream &optional (base 10))
+  (let ((*print-base* base))
+    (if (eq low '*)
+	(if (eq high '*)
+	    nil
+	    (rangecase high
+	      (inclusive (format stream " less than or equal to ~S" high))
+	      (exclusive (format stream " less than ~S" high))))
+	(if (eq high '*)
+	    (rangecase low
+	      (inclusive (format stream " greater than or equal to ~S" low))
+	      (exclusive (format stream " greater than ~S" low)))
+	    (rangecase low
+	      (inclusive
+		(rangecase high
+		  (inclusive (format stream " between ~S and ~S" low high))
+		  (exclusive (format stream " >= ~S and < ~S" low high))))
+	      (exclusive
+		(rangecase high
+		  (inclusive (format stream " > ~S and <= ~S" low high))
+		  (exclusive (format stream " between ~S and ~S (exclusive)"
+				     low high)))))))))
 
 (define-presentation-method presentation-type-specifier-p ((type real))
   (macrolet ((realp (object) `(typep ,object '(or rational float))))
@@ -1371,7 +1372,7 @@
     (with-temporary-string (string)
       (read-recursive stream string nil)
       (when (input-editing-stream-p stream)
-	(rescan-for-activation stream))
+	(rescan-if-necessary stream))
       (multiple-value-bind (expression index)
 	  (read-from-string string nil string)
 	(when (eq expression string)

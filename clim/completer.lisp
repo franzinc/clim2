@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: completer.lisp,v 1.5 92/03/10 10:12:24 cer Exp $
+;; $fiHeader: completer.lisp,v 1.6 92/04/15 11:46:17 cer Exp $
 
 (in-package :clim-internals)
 
@@ -65,131 +65,131 @@
 		 (let ((sl (length string)))
 		   (and (plusp sl)
 			(char-equal (aref string (1- sl)) char)))))
-	  (declare (dynamic-extent #'ends-in-char-p))
-	  (loop
-	    ;; Maybe these, as well as TOKEN and CH should be LET inside the loop...
-	    (setq unread nil return nil extend nil)
-	    (with-input-context (`(completer :stream ,stream
-					     :function ,function
-					     :possibility-printer ,possibility-printer
-					     :prefix ,stuff-so-far
-					     :location ,location)) ()
-	         (progn 
-		   (setq token (read-token stream))
-		   (setq ch (read-gesture :stream stream)))
+	 (declare (dynamic-extent #'ends-in-char-p))
+	 (loop
+	   ;; Maybe these, as well as TOKEN and CH should be LET inside the loop...
+	   (setq unread nil return nil extend nil)
+	   (with-input-context (`(completer :stream ,stream
+					    :function ,function
+					    :possibility-printer ,possibility-printer
+					    :prefix ,stuff-so-far
+					    :location ,location)) ()
+		(progn 
+		  (setq token (read-token stream))
+		  (setq ch (read-gesture :stream stream)))
 	      (t (beep)))
-	    (extend-vector stuff-so-far token)
-	    (cond ((null ch)
-		   (error "Null ch?"))
-		  ((keyboard-event-p ch)
-		   (cond ((member ch *help-gestures* 
-				  :test #'keyboard-event-matches-gesture-name-p)
-			  (setq completion-mode ':help))
-			 ((member ch *possibilities-gestures* 
-				  :test #'keyboard-event-matches-gesture-name-p)
-			  (setq completion-mode ':possibilities))
-			 ((member ch *completion-gestures*
-				  :test #'keyboard-event-matches-gesture-name-p)
-			  (setq completion-mode ':complete-maximal))
-			 ((member ch partial-completers 
-				  :test #'keyboard-event-matches-gesture-name-p)
-			  (setq completion-mode ':complete-limited
-				unread t extend t return 'if-completed))
-			 ;; What about "overloaded" partial completers??
-			 ((delimiter-gesture-p ch)
-			  (setq completion-mode (if allow-any-input nil ':complete)
-				unread t extend t return t))
-			 ((activation-gesture-p ch)
-			  (setq completion-mode (if allow-any-input nil ':complete) 
-				unread t return t))))
-		  ((eq ch ':eof)
-		   (setq completion-mode (if allow-any-input nil ':complete) 
-			 return t))
-		  (t				;mouse click?
-		   (beep stream)))
+	   (extend-vector stuff-so-far token)
+	   (cond ((null ch)
+		  (error "Null ch?"))
+		 ((keyboard-event-p ch)
+		  (cond ((member ch *help-gestures* 
+				 :test #'keyboard-event-matches-gesture-name-p)
+			 (setq completion-mode ':help))
+			((member ch *possibilities-gestures* 
+				 :test #'keyboard-event-matches-gesture-name-p)
+			 (setq completion-mode ':possibilities))
+			((member ch *completion-gestures*
+				 :test #'keyboard-event-matches-gesture-name-p)
+			 (setq completion-mode ':complete-maximal))
+			((member ch partial-completers 
+				 :test #'keyboard-event-matches-gesture-name-p)
+			 (setq completion-mode ':complete-limited
+			       unread t extend t return 'if-completed))
+			;; What about "overloaded" partial completers??
+			((delimiter-gesture-p ch)
+			 (setq completion-mode (if allow-any-input nil ':complete)
+			       unread t extend t return t))
+			((activation-gesture-p ch)
+			 (setq completion-mode (if allow-any-input nil ':complete) 
+			       unread t return t))))
+		 ((eq ch ':eof)
+		  (setq completion-mode (if allow-any-input nil ':complete) 
+			return t))
+		 (t				;mouse click?
+		  (beep stream)))
 
-	    ;; OK, this is a SPECIAL case.  We check to see if the null string
-	    ;; was read, and if so, we signal a parse-error (because ACCEPT
-	    ;; handles this specially) so that the default value will be filled
-	    ;; in by ACCEPT.
-	    ;; There is a tension here between wanting to fill in the default and
-	    ;; use the maximal left substring when the user types #\End or a field
-	    ;; terminator that also does completion.  Putting this check before the
-	    ;; completion code means that the default always wins.
-	    (when (and return (zerop (fill-pointer stuff-so-far)))
-	      (when unread
-		(unread-gesture ch :stream stream))
-	      (when (input-editing-stream-p stream)
-		(rescan-for-activation stream))
-	      (simple-parse-error "Attempting to complete the null string"))
+	   ;; OK, this is a SPECIAL case.  We check to see if the null string
+	   ;; was read, and if so, we signal a parse-error (because ACCEPT
+	   ;; handles this specially) so that the default value will be filled
+	   ;; in by ACCEPT.
+	   ;; There is a tension here between wanting to fill in the default and
+	   ;; use the maximal left substring when the user types #\End or a field
+	   ;; terminator that also does completion.  Putting this check before the
+	   ;; completion code means that the default always wins.
+	   (when (and return (zerop (fill-pointer stuff-so-far)))
+	     (when unread
+	       (unread-gesture ch :stream stream))
+	     (when (input-editing-stream-p stream)
+	       (rescan-if-necessary stream))
+	     (simple-parse-error "Attempting to complete the null string"))
 
-	    (cond ((or (eq completion-mode ':help)
-		       (eq completion-mode ':possibilities))
-		   ;; Since we've asked the input editor not to do this,
-		   ;; we must do it here ourselves
-		   (display-accept-help stream completion-mode "")
-		   (setq completion-type nil))
-		  (completion-mode
-		   (multiple-value-bind (string success object nmatches)
-		       (funcall function stuff-so-far completion-mode)
-		     (setq answer-object object)
-		     (cond ((= nmatches 0)
-			    ;; no valid completion, so no replace input
-			    (setq completion-type 'invalid)
-			    (when extend
-			      (vector-push-extend ch stuff-so-far)))
-			   ((= nmatches 1)
-			    (setq completion-type (if success 'unique 'ambiguous))
-			    ;; replace contents of stuff-so-far with completion
-			    (setf (fill-pointer stuff-so-far) 0)
-			    (extend-vector stuff-so-far string)
-			    )
-			   ((> nmatches 1)
-			    (setq completion-type 'ambiguous)
-			    ;; replace contents of stuff-so-far with completion
-			    (setf (fill-pointer stuff-so-far) 0)
-			    (extend-vector stuff-so-far string)
-			    ;; need-to-add-delimiter test??
-			    (when (and extend
-				       (not (ends-in-char-p string ch)))
-			      (vector-push-extend ch stuff-so-far)))))))
+	   (cond ((or (eq completion-mode ':help)
+		      (eq completion-mode ':possibilities))
+		  ;; Since we've asked the input editor not to do this,
+		  ;; we must do it here ourselves
+		  (display-accept-help stream completion-mode "")
+		  (setq completion-type nil))
+		 (completion-mode
+		  (multiple-value-bind (string success object nmatches)
+		      (funcall function stuff-so-far completion-mode)
+		    (setq answer-object object)
+		    (cond ((= nmatches 0)
+			   ;; no valid completion, so no replace input
+			   (setq completion-type 'invalid)
+			   (when extend
+			     (vector-push-extend ch stuff-so-far)))
+			  ((= nmatches 1)
+			   (setq completion-type (if success 'unique 'ambiguous))
+			   ;; replace contents of stuff-so-far with completion
+			   (setf (fill-pointer stuff-so-far) 0)
+			   (extend-vector stuff-so-far string)
+			   )
+			  ((> nmatches 1)
+			   (setq completion-type 'ambiguous)
+			   ;; replace contents of stuff-so-far with completion
+			   (setf (fill-pointer stuff-so-far) 0)
+			   (extend-vector stuff-so-far string)
+			   ;; need-to-add-delimiter test??
+			   (when (and extend
+				      (not (ends-in-char-p string ch)))
+			     (vector-push-extend ch stuff-so-far)))))))
 
-	    ;; Check for errors unconditionally, remembering that we may not have
-	    ;; called the completer at all (completion-type = NIL)
-	    (ecase completion-type
-	      ((nil unique left-substring))	; no possible errors to report
-	      (invalid
+	   ;; Check for errors unconditionally, remembering that we may not have
+	   ;; called the completer at all (completion-type = NIL)
+	   (ecase completion-type
+	     ((nil unique left-substring))	; no possible errors to report
+	     (invalid
 	       (unless allow-any-input
 		 (when unread
 		   (unread-gesture ch :stream stream))
 		 (simple-parse-error "Invalid completion: ~A" stuff-so-far)))
-	      (ambiguous
+	     (ambiguous
 	       ;; only beep on ambiguous full completions, in either ALLOW-ANY-INPUT mode
 	       (when (eq completion-mode :complete)
 		 (beep stream))))
 
-	    (when (eq return 'if-completed)
-	      (unless (eq completion-type 'unique)
-		(setq return nil)))
+	   (when (eq return 'if-completed)
+	     (unless (eq completion-type 'unique)
+	       (setq return nil)))
 
-	    ;; Decide whether or not to return, remembering that
-	    ;; we might have called the completer.
-	    (when return
-	      (when (or (member completion-type '(nil unique left-substring))
-			allow-any-input)
-		;; leave the last delimiter for our caller
-		(when unread
-		  (unread-gesture ch :stream stream))
-		;; Must replace-input after unread-gesture so the delimiter is unread
-		;; into the input editor's buffer, not the underlying stream's buffer
-		(unless (rescanning-p stream)
-		  (replace-input stream stuff-so-far :buffer-start location))
-		(return-from complete-input
-		  (values answer-object t (evacuate-temporary-string stuff-so-far)))))
+	   ;; Decide whether or not to return, remembering that
+	   ;; we might have called the completer.
+	   (when return
+	     (when (or (member completion-type '(nil unique left-substring))
+		       allow-any-input)
+	       ;; leave the last delimiter for our caller
+	       (when unread
+		 (unread-gesture ch :stream stream))
+	       ;; Must replace-input after unread-gesture so the delimiter is unread
+	       ;; into the input editor's buffer, not the underlying stream's buffer
+	       (unless (rescanning-p stream)
+		 (replace-input stream stuff-so-far :buffer-start location))
+	       (return-from complete-input
+		 (values answer-object t (evacuate-temporary-string stuff-so-far)))))
 
-	    ;; Not returning yet, but update the input editor's buffer anyway
-	    (unless (rescanning-p stream)
-	      (replace-input stream stuff-so-far :buffer-start location)))))))))))
+	   ;; Not returning yet, but update the input editor's buffer anyway
+	   (unless (rescanning-p stream)
+	     (replace-input stream stuff-so-far :buffer-start location)))))))))))
 
 (defun display-completion-possibilities (stream function stuff-so-far
 					 &key possibility-printer (display-possibilities t))
@@ -344,7 +344,7 @@
 		  (cutoff (let ((start 0)
 				(cutoff nil))
 			    (dotimes (i nchunks cutoff)
-			      #-(or Allegro Minima) (declare (ignore i))
+			      #-(or Genera Minima Allegro) (declare (ignore i))
 			      (let ((new (position-if #'delimiter-p completion :start start)))
 				(unless new (return nil))
 				(setq cutoff new

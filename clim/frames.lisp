@@ -1,7 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: frames.lisp,v 1.17 92/04/30 09:09:29 cer Exp Locker: cer $
-
+;; $fiHeader: frames.lisp,v 1.18 92/05/06 15:37:38 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -27,7 +26,9 @@
      (histories :initform nil)
      (frame-manager :reader frame-manager)
      (calling-frame :reader frame-calling-frame :initarg :calling-frame)
-     ;;--- How does ALL-PANES differ from PANES?
+     ;; PANES is the description of all of the named panes,
+     ;; ALL-PANES is an alist that stores all of the named panes that
+     ;; have actually been realized so far
      (panes :initarg :panes :accessor frame-panes)
      (all-panes :initform nil)
      (current-panes :initform nil :accessor frame-current-panes)
@@ -313,9 +314,8 @@
     `((defmethod generate-panes ((,framem standard-frame-manager) (,frame ,name))
 	(symbol-macrolet
 	  ,(mapcar #'(lambda (pane-spec)
-		       (destructuring-bind (name code . ignore)
-			   pane-spec
-			 (declare (ignore ignore code))
+		       (destructuring-bind (name code &rest ignore) pane-spec
+			 (declare (ignore code ignore))
 			 `(,name (find-or-make-pane-named ,frame ',name))))
 		   panes)
 	  (let ((*application-frame* ,frame))
@@ -328,30 +328,43 @@
 					`(,name ,panes)))
 				  layouts)))))))))))
 
+(defmethod find-or-make-pane-named ((frame standard-application-frame) name)
+  (with-slots (all-panes pane-constructors) frame
+    (second (or (assoc name all-panes)
+		(car (push (list name 
+				 (funcall (second (assoc name pane-constructors))
+					  frame (frame-manager frame)))
+			   all-panes))))))
+
 (defun compute-pane-constructor-code (panes)
   `(list ,@(mapcar #'(lambda (pane-spec)
-		       (destructuring-bind (name code . rest) pane-spec
-			 (setq code (canonicalize-pane-spec name code rest))
+		       (destructuring-bind (name code &rest options) pane-spec
+			 (setq code (canonicalize-pane-spec name code options))
 			 `(list ',name
 				#'(lambda (frame framem)
 				    (with-look-and-feel-realization (framem frame)
 				      ,code)))))
 		   panes)))
-
+   
 (defun canonicalize-pane-spec (name code rest)
   (cond ((symbolp code)
 	 (unless (getf rest :name)
 	   (setf (getf rest :name) `',name))
 	 (apply #'find-pane-class-constructor code rest))
-	((null rest)
-	 code)
+	((null rest) code)
 	(t
 	 (error "Invalid pane specification: ~S"
 		(list* name code rest)))))
 
+(defmethod find-pane-class-constructor ((typep t) &rest options)
+  (error "Unknown pane type ~S with options ~S" type options))
+
 (defmacro define-pane-type (type lambda-list &body body)
   `(defmethod find-pane-class-constructor ((type (eql ',type)) ,@lambda-list)
      ,@body))
+
+(define-pane-type :title (&rest options)
+  `(make-pane 'title-pane ,@options))
 
 (define-pane-type :interactor (&rest options)
   `(make-clim-interactor-pane ,@options))
@@ -365,31 +378,31 @@
 (define-pane-type :command-menu (&rest options)
   `(make-pane 'command-menu-pane ,@options))
 
-(define-pane-type :scroll-bar (&rest options)
+(define-pane-type scroll-bar (&rest options)
   `(make-pane 'scroll-bar ,@options))
 
-(define-pane-type :slider (&rest options)
+(define-pane-type slider (&rest options)
   `(make-pane 'slider ,@options))
 
-(define-pane-type :push-button (&rest options)
+(define-pane-type push-button (&rest options)
   `(make-pane 'push-button ,@options))
 
-(define-pane-type :label-pane (&rest options)
+(define-pane-type label-pane (&rest options)
   `(make-pane 'label-pane ,@options))
 
-(define-pane-type :text-field (&rest options)
+(define-pane-type text-field (&rest options)
   `(make-pane 'text-field ,@options))
 
-(define-pane-type :text-editor (&rest options)
-  `(make-pane 'silica::text-editor ,@options))
+(define-pane-type text-editor (&rest options)
+  `(make-pane 'silicatext-editor ,@options))
 
-(define-pane-type :toggle-button (&rest options)
+(define-pane-type toggle-button (&rest options)
   `(make-pane 'toggle-button ,@options))
 
-(define-pane-type :radio-box (&rest options)
+(define-pane-type radio-box (&rest options)
   `(make-pane 'radio-box ,@options))
 
-(define-pane-type :menu-bar (&rest options)
+(define-pane-type menu-bar (&rest options)
   `(make-pane 'menu-bar ,@options))
 
 ;;; 
@@ -402,6 +415,7 @@
 					  frame (frame-manager frame)))
 			   all-panes))))))
 
+>>>>>>> 1.18
 (defmethod layout-frame ((frame standard-application-frame) &optional width height)
   (let ((panes (frame-panes frame)))
     (when panes
@@ -869,7 +883,7 @@ the same time " options))
 
 (defun find-frame-pane-of-type (frame type)
   (map-over-sheets #'(lambda (sheet)
-		       (when (typep  sheet type)
+		       (when (typep sheet type)
 			 (return-from find-frame-pane-of-type sheet)))
 		   (frame-top-level-sheet frame)))
 
@@ -982,8 +996,7 @@ the same time " options))
 		 (let ((bit #o20)
 		       (shift-name '("h-" "s-" "m-" "c-" "sh-")))
 		   (declare (type fixnum bit))
-		   (dotimes (i 5)
-		     #-(or Allegro Minima) (declare (ignore i))
+		   (repeat 5			;length of shift-name
 		     (unless (zerop (logand bit modifier-state))
 		       (write-string (car shift-name) stream))
 		     (pop shift-name)

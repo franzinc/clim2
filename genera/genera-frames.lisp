@@ -1,9 +1,11 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: GENERA-CLIM; Base: 10; Lowercase: Yes -*-
-;; $fiHeader: genera-frames.lisp,v 1.2 92/03/04 16:22:45 cer Exp $
+
+;; $fiHeader: genera-frames.lisp,v 1.4 92/04/15 11:47:51 cer Exp $
 
 (in-package :genera-clim)
 
 "Copyright (c) 1992 Symbolics, Inc.  All rights reserved."
+
 
 (defclass genera-frame-manager (standard-frame-manager)
     ())
@@ -35,3 +37,17 @@
 ;;--- Should "gray" the command button, if there is one
 (defmethod note-command-disabled ((framem genera-frame-manager) frame command)
   (declare (ignore frame command)))
+
+;;--- We can do better than this at some point
+(defmethod port-notify-user ((port genera-port) message-string 
+			     &key (style :inform)
+				  (frame nil frame-p)
+				  (associated-window
+				    (if frame-p
+					(frame-top-level-sheet frame)
+					(find-graft :port port)))
+				  (title "Notify user")
+				  documentation
+				  (exit-boxes '(:exit :abort :help))
+				  (name title))
+  (tv:notify nil message-string))

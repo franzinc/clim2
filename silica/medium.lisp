@@ -1,26 +1,34 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: medium.lisp,v 1.8 92/03/04 16:19:47 cer Exp Locker: cer $
+;; $fiHeader: medium.lisp,v 1.9 92/04/10 14:26:37 cer Exp $
 
 (in-package :silica)
 
 "Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved.
  Portions copyright (c) 1991, 1992 Franz, Inc.  All rights reserved."
 
-(defmethod engraft-medium (medium port sheet)
+(defmethod engraft-medium ((medium medium) port sheet)
   (declare (ignore sheet port))
   nil)
 
-(defmethod degraft-medium (medium port sheet)
+(defmethod degraft-medium ((medium medium) port sheet)
   (declare (ignore sheet port))
   nil)
 
-(defun invoke-with-sheet-medium (sheet continuation)
+(defmethod invoke-with-sheet-medium ((sheet sheet) continuation)
   (if (sheet-medium sheet)
       (funcall continuation (sheet-medium sheet))
       (with-temporary-medium (medium sheet)
 	(with-sheet-medium-bound (sheet medium)
 	  (funcall continuation medium)))))
+
+;; Special-case the one we know is going to work all the time
+(defmethod invoke-with-sheet-medium ((sheet permanent-medium-sheet-output-mixin) continuation)
+  (funcall continuation (slot-value sheet 'medium)))
+
+;;--- Use DEFOPERATION
+(defmethod invoke-with-sheet-medium ((x standard-encapsulating-stream) continuation)
+  (invoke-with-sheet-medium (slot-value x 'stream) continuation))
 
 (defun invoke-with-sheet-medium-bound (sheet medium continuation)
   (cond ((sheet-medium sheet)
@@ -111,9 +119,7 @@
 		      ,@(unless (eq dashes nil) `(:dashes ,dashes)))))
 
 
-(defmethod invoke-with-drawing-options ((sheet sheet) continuation
-					&rest options
-					&key ink &allow-other-keys)
+(defmethod invoke-with-drawing-options ((sheet sheet) continuation &rest options)
   (declare (dynamic-extent options))
   (with-sheet-medium (medium sheet)
     (apply #'invoke-with-drawing-options medium continuation options)))
@@ -200,8 +206,8 @@
 
 ;; Make sheets do the medium protocol
 
-(defprotocol medium-protocol
-	     (:roles medium))
+(defprotocol medium-protocol ()
+  (:roles medium))
 
 (defrole medium ()
   ((foreground :accessor medium-foreground)
@@ -248,7 +254,7 @@
   `(with-text-style (,stream (make-text-style nil nil ,size)) ,@body))
 
 (defoperation invoke-with-text-style medium-protocol 
-	      ((stream medium) style continuation original-stream))
+  ((stream medium) style continuation original-stream))
 	      
 (defmethod invoke-with-text-style ((stream medium)
 				   continuation style original-stream)
@@ -266,9 +272,11 @@
   (invoke-with-text-style (slot-value stream 'stream)
 			  continuation style original-stream))
 
+;; Default method for string streams
 (defmethod invoke-with-text-style ((stream t) continuation style original-stream)
   (declare (ignore style))
   (funcall continuation original-stream))
+
 
 (defmethod graft ((medium medium))
   (graft (medium-sheet medium)))
@@ -276,14 +284,7 @@
 (defmethod port ((medium medium))
   (port (medium-sheet medium)))
 
-;;--- This surely doesn't belong here... 
+;; Generate the sheet->medium trampolines now
 (generate-trampolines medium-protocol medium standard-sheet-output-mixin
 		      `(sheet-medium ,standard-sheet-output-mixin))
 
-
-
-
-
-
-    
-	

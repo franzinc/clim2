@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics-generics.lisp,v 1.1 92/01/31 14:27:54 cer Exp $
+;; $fiHeader: graphics-generics.lisp,v 1.2 92/02/24 13:07:42 cer Exp $
 
 (in-package :clim-internals)
 
@@ -12,7 +12,8 @@
   :drawing-options :point
   :method-body
     (with-transformed-arguments
-      (draw-point-internal stream 0 0 x y
+      (draw-point-internal stream (coordinate 0) (coordinate 0) 
+			   x y
 			   (medium-ink stream) (medium-line-style stream))))
 
 (defun draw-points (stream point-seq &rest args)
@@ -56,7 +57,8 @@
   :drawing-options :line-cap
   :method-body
     (with-transformed-arguments
-      (draw-line-internal stream 0 0 x1 y1 x2 y2
+      (draw-line-internal stream (coordinate 0) (coordinate 0) 
+			  x1 y1 x2 y2
 			  (medium-ink stream) (medium-line-style stream))))
 
 (defun draw-lines (stream point-seq &rest args)
@@ -124,16 +126,19 @@
 		 (bdy (* dx base-norm))
 		 (ink (medium-ink stream))
 		 (line-style (medium-line-style stream)))
-	    (draw-line-internal stream 0 0 x1 y1 x2 y2 ink line-style)
+	    (draw-line-internal stream (coordinate 0) (coordinate 0) 
+				x1 y1 x2 y2 ink line-style)
 	    (when from-head
 	      (let ((xa (+ x1 ldx)) (ya (+ y1 ldy)))
 		(with-stack-list (points x1 y1 (+ xa bdx) (- ya bdy) (- xa bdx) (+ ya bdy))
-		  (draw-polygon-internal stream 0 0 points t ink nil))
+		  (draw-polygon-internal stream (coordinate 0) (coordinate 0) 
+					 points t ink nil))
 		(setq x1 xa y1 ya)))
 	    (when to-head
 	      (let ((xa (- x2 ldx)) (ya (- y2 ldy)))
 		(with-stack-list (points x2 y2 (+ xa bdx) (- ya bdy) (- xa bdx) (+ ya bdy))
-		  (draw-polygon-internal stream 0 0 points t ink nil)
+		  (draw-polygon-internal stream (coordinate 0) (coordinate 0) 
+					 points t ink nil)
 		  (setq x2 xa y2 ya)))))))))
 
 ;;; More complicated.  It has to decide when to call
@@ -152,7 +157,8 @@
 		     (tt (min y1 y2))
 		     (rr (max x1 x2))
 		     (bb (max y1 y2)))
-		 (draw-rectangle-internal stream 0 0 ll tt rr bb
+		 (draw-rectangle-internal stream (coordinate 0) (coordinate 0) 
+					  ll tt rr bb
 					  (medium-ink stream)
 					  (and (not filled)
 					       (medium-line-style stream))))))
@@ -196,7 +202,8 @@
 	    (rotatef start-angle end-angle))
 	  (unless (<= 0f0 (abs (- end-angle start-angle)) 2pi)
 	    (nyi)))
-	(draw-ellipse-internal stream 0 0 center-x center-y 
+	(draw-ellipse-internal stream (coordinate 0) (coordinate 0) 
+			       center-x center-y 
 			       radius-1-dx radius-1-dy radius-2-dx radius-2-dy
 			       start-angle end-angle
 			       ink line-style))))
@@ -230,55 +237,55 @@
 	    (line-style (and (not filled) (medium-line-style stream))))
 	(cond ((or (= x-radius y-radius) 
 		   (zerop x-radius))
-	       (draw-ellipse-internal stream 0 0
+	       (draw-ellipse-internal stream (coordinate 0) (coordinate 0)
 				      center-x center-y y-radius 0 0 y-radius
 				      nil nil ink line-style))
 	      ((zerop y-radius)
-	       (draw-ellipse-internal stream 0 0
+	       (draw-ellipse-internal stream (coordinate 0) (coordinate 0)
 				      center-x center-y x-radius 0 0 x-radius
 				      nil nil ink line-style))
 	      ((> x-radius y-radius)
 	       (let ((rect-left (+ left y-radius))
 		     (rect-right (- right y-radius)))
 		 (cond (line-style
-			(draw-line-internal stream 0 0 
+			(draw-line-internal stream (coordinate 0) (coordinate 0) 
 					    rect-left top rect-right top
 					    ink line-style)
 			(draw-line-internal stream 0 0
 					    rect-left bottom rect-right bottom
 					    ink line-style))
 		       (t
-			(draw-rectangle-internal stream 0 0
+			(draw-rectangle-internal stream (coordinate 0) (coordinate 0)
 						 rect-left top rect-right bottom
 						 ink line-style)))
 		 (let ((north (float (* pi 1/2) 0.0))
 		       (south (float (* pi 3/2) 0.0)))
-		   (draw-ellipse-internal stream 0 0
+		   (draw-ellipse-internal stream (coordinate 0) (coordinate 0)
 					  rect-left center-y y-radius 0 0 y-radius
 					  north south ink line-style)
-		   (draw-ellipse-internal stream 0 0
+		   (draw-ellipse-internal stream (coordinate 0) (coordinate 0)
 					  rect-right center-y y-radius 0 0 y-radius
 					  south north ink line-style))))
 	      (t
 	       (let ((rect-top (+ top x-radius))
 		     (rect-bottom (- bottom x-radius)))
 		 (cond (line-style
-			(draw-line-internal stream 0 0 
+			(draw-line-internal stream (coordinate 0) (coordinate 0) 
 					    left rect-top left rect-bottom
 					    ink line-style)
-			(draw-line-internal stream 0 0 
+			(draw-line-internal stream (coordinate 0) (coordinate 0) 
 					    right rect-top right rect-bottom
 					    ink line-style))
 		       (t
-			(draw-rectangle-internal stream 0 0
+			(draw-rectangle-internal stream (coordinate 0) (coordinate 0)
 						 left rect-top right rect-bottom
 						 ink line-style)))
 		 (let ((east 0.0)
 		       (west (float pi 0.0)))
-		   (draw-ellipse-internal stream 0 0
+		   (draw-ellipse-internal stream (coordinate 0) (coordinate 0)
 					  center-x rect-top x-radius 0 0 x-radius
 					  west east ink line-style)
-		   (draw-ellipse-internal stream 0 0
+		   (draw-ellipse-internal stream (coordinate 0) (coordinate 0)
 					  center-x rect-bottom x-radius 0 0 x-radius
 					  east west ink line-style))))))))
 
@@ -287,7 +294,8 @@
   :drawing-options :line-joint-cap
   :method-body
     (with-transformed-arguments
-      (draw-polygon-internal stream 0 0 list-of-x-and-ys closed
+      (draw-polygon-internal stream (coordinate 0) (coordinate 0) 
+			     list-of-x-and-ys closed
 			     (medium-ink stream)
 			     (and (not filled) (medium-line-style stream)))))
 
@@ -307,8 +315,7 @@
 	 (dy (- y2 y1))
 	 (next-x x2)
 	 (next-y y2))
-    (dotimes (i (- nsides 2))
-      #-(or Allegro Minima) (declare (ignore i))
+    (repeat (- nsides 2)
       (multiple-value-setq (dx dy)
 	(transform-distance transform dx dy))
       (incf next-x dx)
@@ -351,7 +358,7 @@
   :drawing-options :text
   :method-body
     (with-transformed-arguments
-      (draw-string-internal stream 0 0
+      (draw-string-internal stream (coordinate 0) (coordinate 0)
 			    string x y start end align-x align-y
 			    (medium-merged-text-style stream)
 			    (medium-ink stream))))
@@ -363,7 +370,7 @@
   :drawing-options :text
   :method-body
     (with-transformed-arguments
-      (draw-character-internal stream 0 0
+      (draw-character-internal stream (coordinate 0) (coordinate 0)
 			       character x y align-x align-y
 			       (medium-merged-text-style stream)
 			       (medium-ink stream))))

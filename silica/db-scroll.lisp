@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-scroll.lisp,v 1.18 92/04/30 09:09:13 cer Exp Locker: cer $
+;; $fiHeader: db-scroll.lisp,v 1.19 92/05/06 15:37:16 cer Exp Locker: cer $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright(c) 1991, 1992 International Lisp Associates.
@@ -11,7 +11,6 @@
 
 ;;--- Need to be able to specify horizontal and vertical separately
 ;;--- What do we need from CLIM 0.9's DB-NEW-SCROLL?
-
 (defclass scroller-pane (client-space-requirement-mixin
 			 wrapping-space-mixin
 			 layout-pane)
@@ -71,10 +70,9 @@
 ;;--- exactly right and will deal with user specified placement of scroll-bars.
 ;;--- However the geometry management problems are quite huge.
 
-
 (defmethod initialize-instance :after ((pane scroller-pane) 
 				       &key contents frame-manager frame
-					    scroll-bars)
+				       scroll-bars)
   (let ((x (gadget-supplied-scrolling frame-manager frame contents :scroll-bars scroll-bars)))
     (if x
 	(progn
@@ -118,12 +116,12 @@
 					(vertically ()
 						    viewport
 						    horizontal-scroll-bar))
-				       (t
-					(error "Should not have got here"))))
+				       (t (error "Should not have got here"))))
 
 	      (sheet-adopt-child viewport c)
 	      ;;-- Add callbacks
 	      )))))))
+
 
 (defun update-scroll-bars (vp)
   ;;-- This is not the most efficient thing in the world
@@ -135,7 +133,6 @@
      (sheet-parent (sheet-parent vp))
      changedp hscroll-bar hscroll-bar-enabled-p vscroll-bar
      vscroll-bar-enabled-p t))
-    ;;;
   (with-bounding-rectangle* (minx miny maxx maxy)
     (viewport-contents-extent vp)
     (with-bounding-rectangle* (vminx vminy vmaxx vmaxy)
@@ -150,6 +147,7 @@
 	  (update-scroll-bar horizontal-scroll-bar
 			     minx maxx vminx vmaxx))))))
 
+
 ;;--- In the case where the viewport is bigger than the window this
 ;;--- code gets things wrong. Check out the thinkadot demo.  It's
 ;;--- because (- (--) (- vmin)) is negative.
@@ -159,8 +157,6 @@
     (let ((current-size (scroll-bar-current-size scroll-bar))
 	  (current-value (scroll-bar-current-value scroll-bar)))
     ;; Kinda bogus benchmark optimization -- if the scroll-bar was full size
-    ;; before, and the viewport is bigger than the extent, don't bother with
-    ;; the fancy math.
       (let* ((gmin (float (gadget-min-value scroll-bar) 0s0))
 	     (gmax (float (gadget-max-value scroll-bar) 0s0))
 	     (range (- gmax gmin)))
@@ -170,12 +166,12 @@
 	  (return-from update-scroll-bar))
       (let* ((size (the single-float
 		     (* range
-		      (the single-float
-			(if (zerop (- max min))
-			    1.0
-			  (min 1.0 (the single-float
-				     (/ (float (- vmax vmin) 0.0s0)
-					(float (- max min) 0.0s0)))))))))
+			(the single-float
+			  (if (= max min)
+			      1.0
+			    (min 1.0 (the single-float
+				       (/ (float (- vmax vmin) 0.0s0)
+					  (float (- max min) 0.0s0)))))))))
 	     (pos (the single-float
 		    (min 1.0
 			 (the single-float
@@ -199,21 +195,17 @@
 				   :slider-size size
 				   :value value))))))
 
+
 (defmethod scroll-bar-value-changed-callback :before
-	   ((sheet scroll-bar)
-	    (client scroller-pane) 
-	    id value
-	    size)
+	   ((sheet scroll-bar) (client scroller-pane) id value size)
   (declare (ignore id))
   (with-slots (current-size current-value) sheet
-    (setf current-size (float size 0.0s0)
-	  current-value (float value 0.0s0))))
+    (setf current-size (float size 0s0)
+	  current-value (float value 0s0))))
   
 
-(defmethod scroll-bar-value-changed-callback (sheet 
-					      (client scroller-pane) 
-					      id value
-					      size)
+(defmethod scroll-bar-value-changed-callback
+	   (sheet (client scroller-pane) id value size)
   (with-slots (viewport contents) client
     ;;--- This TYPEP stuff is a major kludge
     (let* ((extent (viewport-contents-extent viewport))
@@ -225,12 +217,12 @@
 	    contents
 	    :x (bounding-rectangle-min-x viewport)
 	    :y (+ (bounding-rectangle-min-y extent)
-		    (* (max 0 (- (bounding-rectangle-height extent)
-				 (bounding-rectangle-height viewport)))
-		       (if (= size (gadget-range sheet))
-			   0
-			 (/ (- value (gadget-min-value sheet))
-			    (- (gadget-range sheet) size)))))))
+		  (* (max 0 (- (bounding-rectangle-height extent)
+			       (bounding-rectangle-height viewport)))
+		     (if (= size (gadget-range sheet))
+			 0
+		       (/ (- value (gadget-min-value sheet))
+			  (- (gadget-range sheet) size)))))))
 	(:horizontal
 	  (scroll-extent
 	    contents
@@ -239,7 +231,7 @@
 		  (if (= size (gadget-range sheet))
 		      0
 		    (/ (- value (gadget-min-value sheet))
-		       (- (gadget-range sheet) size))))
+ 		       (- (gadget-range sheet) size))))
 	    :y (bounding-rectangle-min-y viewport)))))))
 
 (defun update-region (stream nleft ntop nright nbottom &key no-repaint)
@@ -324,20 +316,19 @@
   nil)
 
 
-;;; Home-grown scroll-bars
+;;; Home-grown scroll bars
 
 ;;--- orientation, min-value, max-value, unit-increment, page-increment.
 (defclass scroll-bar-pane
 	  (scroll-bar
-	   pane
 	   ;;--- Add IMMEDIATE-SHEET-INPUT-MIXIN so that scroll bars
 	   ;;--- get handled immediately by the event process?
 	   wrapping-space-mixin
 	   sheet-permanently-enabled-mixin
 	   sheet-mute-input-mixin
 	   sheet-multiple-child-mixin
-	   mute-repainting-mixin
-	   space-requirement-mixin)
+	   space-requirement-mixin
+	   pane)
     ((shaft-thickness :initarg :shaft-thickness)
      (min-target-pane :initform nil)
      (max-target-pane :initform nil)
@@ -386,10 +377,10 @@
 				       :height shaft-thickness))
 		      (setq shaft-pane 
 			    (make-pane 'scroll-bar-shaft-pane
-					  :scroll-bar pane
-					  :width 0
-					  :max-width +fill+
-					  :height shaft-thickness))
+				       :scroll-bar pane
+				       :width 0
+				       :max-width +fill+
+				       :height shaft-thickness))
 		      (setq max-target-pane
 			    (make-pane 'scroll-bar-target-pane
 				       :scroll-bar pane
@@ -399,16 +390,15 @@
 	(sheet-adopt-child pane inferiors)))))
 
 (defmethod change-scroll-bar-values ((scroll-bar scroll-bar-pane) &rest args 
-					    &key slider-size value)
+				     &key slider-size value)
+  (declare (dynamic-extent args))
   (declare (ignore slider-size value))
   )
 
 
 (defclass scroll-bar-target-pane 
-	  (leaf-pane
-	   sheet-permanently-enabled-mixin
-	   mute-repainting-mixin
-	   space-requirement-mixin)
+	  (space-requirement-mixin
+	   leaf-pane)
     ((end :initarg :end)
      (scroll-bar :initarg :scroll-bar)
      (coord-cache :initform nil)))
@@ -485,10 +475,8 @@
     (draw-polygon* medium coord-cache :filled filled :ink ink)))
 
 (defclass scroll-bar-shaft-pane
-	  (leaf-pane
-	   sheet-permanently-enabled-mixin
-	   mute-repainting-mixin
-	   space-requirement-mixin)
+	  (space-requirement-mixin
+	   leaf-pane)
     ((scroll-bar :initarg :scroll-bar)
      (needs-erase :initform nil)))
 
@@ -629,12 +617,12 @@
     (setf (gadget-value scroll-bar) value)))
 
 ;;;--- This looks like a value gadget to me
-(defmethod (setf gadget-value) (nv (pane scroll-bar-pane) &key)
-  (with-slots (value) pane
-    (setf value nv)))
+(defmethod (setf gadget-value) (value (pane scroll-bar-pane) &key invoke-callback)
+  (declare (ignore invoke-callback))
+  (setf (slot-value pane 'value) value))
 
-(defmethod (setf gadget-value) :around (nv (pane scroll-bar-pane) &key)
-  (declare (ignore nv))
+(defmethod (setf gadget-value) :around (value (pane scroll-bar-pane) &key invoke-callback)
+  (declare (ignore value invoke-callback))
   (if (port pane)
       (let ((shaft (slot-value pane 'shaft-pane)))
 	(with-sheet-medium (medium pane)

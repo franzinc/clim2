@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: defresource.lisp,v 1.5 92/03/04 16:21:26 cer Exp $
+;; $fiHeader: defresource.lisp,v 1.6 92/03/10 10:12:30 cer Exp $
 
 (in-package :clim-internals)
 
@@ -51,9 +51,18 @@
       (when (> (fill-pointer objects) 0)
 	(format t "~%~D Object~:P:" (fill-pointer objects)))
       (doseq (object-storage objects)
-	(format t "~%~S, ~:[Not in~;In~] use"
+	(format t "~%~S, ~:[not in~;in~] use"
 		(os-object object-storage)
-		(os-use-cons object-storage))))))
+		(cdr (os-use-cons object-storage)))))))
+
+(defun map-resource (function resource)
+  (with-resource-rd (resource rd)
+    (let ((objects (rd-objects rd)))
+      (doseq (object-storage objects)
+	(funcall function
+		 (os-object object-storage) 
+		 (not (null (cdr (os-use-cons object-storage))))
+		 resource)))))
 
 (defun clear-resource (resource)
   (with-resource-rd (resource rd)
@@ -122,8 +131,7 @@
 	(setf (rd-objects rd) (make-array (* 2 (or initial-copies 10))
 					  :fill-pointer 0))
 	(when initial-copies
-	  (dotimes (i initial-copies)
-	    #-(or Allegro Minima) (declare (ignore i))
+	  (repeat initial-copies
 	    (vector-push (cons nil (funcall constructor rd)) (rd-objects rd)))))
       (setf (rd-constructor rd) constructor)
       (setf (rd-initializer rd) initializer)

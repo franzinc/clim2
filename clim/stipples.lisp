@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: stipples.lisp,v 1.3 92/01/31 14:58:44 cer Exp $
+;; $fiHeader: stipples.lisp,v 1.4 92/02/24 13:08:28 cer Exp $
 
 (in-package :clim-internals)
 
@@ -105,8 +105,7 @@
       (let ((space-between-bits (/ num-rows num-per-row)))
 	(let ((result 0)
 	      (where 0))
-	  (dotimes (i num-per-row)
-	    #-(or Allegro Minima) (declare (ignore i))
+	  (repeat num-per-row
 	    (setq result
 		  (dpb 1 (byte 1 (floor where)) result))
 	    (incf where space-between-bits))

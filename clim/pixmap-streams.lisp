@@ -21,17 +21,17 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: pixmap-streams.lisp,v 1.3 92/03/04 16:22:06 cer Exp Locker: cer $
+;; $fiHeader: pixmap-streams.lisp,v 1.4 92/04/21 16:13:12 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
-(defclass pixmap-stream (sheet
-			 input-protocol-mixin
+(defclass pixmap-stream (input-protocol-mixin
 			 output-protocol-mixin
 			 mirrored-sheet-mixin
 			 sheet-permanently-enabled-mixin
 			 permanent-medium-sheet-output-mixin
-			 sheet-transformation-mixin)
+			 sheet-transformation-mixin
+			 sheet)
 	  ())
 
 (defmethod realize-mirror ((port port) (stream pixmap-stream))
@@ -52,11 +52,11 @@
   (setf (sheet-direct-mirror stream) pixmap
 	(port stream) port
 	(sheet-transformation stream) +identity-transformation+
-	(sheet-region stream) (make-bounding-rectangle 0 0 width
-						       height))
-  ;;-- What about text style
-  (setf (medium-foreground stream) (medium-foreground sheet)
+	(sheet-region stream) (make-bounding-rectangle 0 0 width height)
+	;;-- What about text style
+	(medium-foreground stream) (medium-foreground sheet)
 	(medium-background stream) (medium-background sheet)))
+
 
 ;; Interface to this stuff
 

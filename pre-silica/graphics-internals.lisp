@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics-internals.lisp,v 1.2 92/02/24 13:07:44 cer Exp $
+;; $fiHeader: graphics-internals.lisp,v 1.3 92/04/15 11:46:39 cer Exp $
 
 (in-package :clim-internals)
 
@@ -213,13 +213,14 @@
 (defmethod draw-design ((polygon standard-polygon) stream &rest args &key ink line-style)
   (declare (dynamic-extent args)
 	   (ignore ink line-style))
-  (apply #'draw-polygon stream (polygon-points polygon) :closed t :filled t args))
+  (apply #'draw-polygon* stream (coerce (slot-value polygon 'clim-utils::coords) 'list)
+			 :closed t :filled t args))
 
 (defmethod draw-design ((polyline standard-polyline) stream &rest args &key ink line-style)
   (declare (dynamic-extent args)
 	   (ignore ink line-style))
-  (with-slots (closed) polyline
-    (apply #'draw-polygon stream (polygon-points polyline) :closed closed :filled nil args)))
+  (apply #'draw-polygon* stream (coerce (slot-value polyline 'clim-utils::coords) 'list)
+			 :closed (polyline-closed polyline) :filled nil args))
 
 
 ;; By the time we get here, START-ANGLE and END-ANGLE are either both NIL

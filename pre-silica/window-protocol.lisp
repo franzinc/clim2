@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: window-protocol.lisp,v 1.4 92/03/04 16:22:28 cer Exp $
+;; $fiHeader: window-protocol.lisp,v 1.5 92/04/15 11:47:32 cer Exp $
 
 (in-package :clim-internals)
 
@@ -314,7 +314,7 @@
 (defmethod window-label-size ((window window-mixin) &optional (label (window-label window)))
   (declare (ignore label))
   ;; default method returns nothing.
-  (values 0 0))
+  (values (coordinate 0) (coordinate 0)))
 
 (defmethod window-note-size-or-position-change ((window window-mixin)
 						new-left new-top new-right new-bottom)
@@ -329,8 +329,8 @@
 
 ;;; Offset from root
 (defun window-offset (stream)
-  (let ((x-offset 0)
-	(y-offset 0))
+  (let ((x-offset (coordinate 0))
+	(y-offset (coordinate 0)))
     (declare (type coordinate x-offset y-offset))
     (do ((s stream (window-parent s)))
 	((null s) nil)
@@ -446,4 +446,4 @@
 (defun whistle (&key (direction ':down))
   #-Genera (declare (ignore direction))
   #+Genera (compiler:inhibit-style-warnings (dbg:whistle :direction direction))
-  #-Genera (dotimes (i 3) (beep)))
+  #-Genera (repeat 3 (beep)))

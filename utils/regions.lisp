@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: regions.lisp,v 1.6 92/04/15 11:45:37 cer Exp Locker: cer $
+;; $fiHeader: regions.lisp,v 1.7 92/04/21 16:12:47 cer Exp Locker: cer $
 
 (in-package :clim-utils)
 
@@ -187,14 +187,15 @@
 
 
 (defclass standard-point (point)
-    ((x :initarg :x :accessor point-x :type real)
-     (y :initarg :y :accessor point-y :type real)))
+    ((x :initarg :x :accessor point-x :type coordinate)
+     (y :initarg :y :accessor point-y :type coordinate)))
 
 (define-constructor make-point-1 standard-point (x y)
 		    :x x :y y)
 
 (defun make-point (x y)
-  (make-point-1 x y))
+  (declare (type real x y))
+  (make-point-1 (coordinate x) (coordinate y)))
 
 (defmethod make-load-form ((point standard-point))
   (with-slots (x y) point
@@ -211,45 +212,59 @@
 
 (defmethod region-equal ((point1 standard-point) (point2 standard-point))
   (with-slots ((x1 x) (y1 y)) point1
+    (declare (type coordinate x1 y1))
     (with-slots ((x2 x) (y2 y)) point2
+      (declare (type coordinate x2 y2))
       (and (= x1 x2) (= y1 y2)))))
 
 (defmethod region-contains-position-p ((point standard-point) x y)
+  (declare (type real x y))
   (with-slots ((px x) (py y)) point
+    (declare (type coordinate px py))
     (and (= px x) (= py y))))
 
 (defmethod region-contains-region-p ((point1 standard-point) (point2 standard-point))
   (with-slots ((x1 x) (y1 y)) point1
+    (declare (type coordinate x1 y1))
     (with-slots ((x2 x) (y2 y)) point2
+      (declare (type coordinate x2 y2))
       (and (= x1 x2) (= y1 y2)))))
 
 (defmethod region-contains-region-p ((region region) (point standard-point))
   (with-slots (x y) point
+    (declare (type coordinate x y))
     (region-contains-position-p region x y)))
 
 (defmethod region-intersects-region-p ((point1 standard-point) (point2 standard-point))
   (with-slots ((x1 x) (y1 y)) point1
+    (declare (type coordinate x1 y1))
     (with-slots ((x2 x) (y2 y)) point2
+      (declare (type coordinate x2 y2))
       (and (= x1 x2) (= y1 y2)))))
 
 (define-symmetric-region-method region-intersects-region-p
 				((point standard-point) (region region))
   (with-slots ((px x) (py y)) point
+    (declare (type coordinate px py))
     (region-contains-position-p region px py)))
 
 (defmethod region-intersection ((point1 standard-point) (point2 standard-point))
   (with-slots ((x1 x) (y1 y)) point1
+    (declare (type coordinate x1 y1))
     (with-slots ((x2 x) (y2 y)) point2
+      (declare (type coordinate x2 y2))
       (if (and (= x1 x2) (= y1 y2)) point1 +nowhere+))))
 
 (defmethod transform-region (transformation (point standard-point))
   (with-slots (x y) point
+    (declare (type coordinate x y))
     (multiple-value-bind (x y)
 	(transform-position transformation x y)
       (make-point-1 x y))))
 
 (defmethod bounding-rectangle* ((point standard-point))
   (with-slots (x y) point
+    (declare (type coordinate x y))
     (fix-rectangle x y (1+ x) (1+ y))))
 
 
@@ -286,18 +301,20 @@
 ;;; Rectangles
 
 (defclass standard-rectangle (rectangle)
-    ((min-x :initarg :min-x :reader rectangle-min-x :type real)
-     (min-y :initarg :min-y :reader rectangle-min-y :type real)
-     (max-x :initarg :max-x :reader rectangle-max-x :type real)
-     (max-y :initarg :max-y :reader rectangle-max-y :type real)
-     (points :type simple-vector :reader polygon-points)))
+    ((min-x :initarg :min-x :reader rectangle-min-x :type coordinate)
+     (min-y :initarg :min-y :reader rectangle-min-y :type coordinate)
+     (max-x :initarg :max-x :reader rectangle-max-x :type coordinate)
+     (max-y :initarg :max-y :reader rectangle-max-y :type coordinate)
+     (points :initarg :points :type simple-vector :reader polygon-points)))
 
 (define-constructor make-rectangle-1 standard-rectangle (min-x min-y max-x max-y points)
   :min-x min-x :min-y min-y :max-x max-x :max-y max-y :points points)
 
 (defun make-rectangle (min-point max-point)
   (multiple-value-bind (min-x min-y) (point-position min-point)
+    (declare (type coordinate min-x min-y))
     (multiple-value-bind (max-x max-y) (point-position max-point)
+      (declare (type coordinate max-x max-y))
       (assert (<= min-x max-x))
       (assert (<= min-y max-y))
       (make-rectangle-1 min-x min-y max-x max-y
@@ -308,9 +325,15 @@
   :min-x x1 :min-y y1 :max-x x2 :max-y y2)
 
 (defun make-rectangle* (x1 y1 x2 y2)
-  (when (> x1 x2) (rotatef x1 x2))
-  (when (> y1 y2) (rotatef y1 y2))
-  (make-rectangle*-1 x1 y1 x2 y2))
+  (declare (type real x1 y1 x2 y2))
+  (let ((x1 (coordinate x1))
+	(y1 (coordinate y1))
+	(x2 (coordinate x2))
+	(y2 (coordinate y2)))
+    (declare (type coordinate x1 y1 x2 y2))
+    (when (> x1 x2) (rotatef x1 x2))
+    (when (> y1 y2) (rotatef y1 y2))
+    (make-rectangle*-1 x1 y1 x2 y2)))
 
 (defmethod make-load-form ((rectangle standard-rectangle))
   `(make-rectangle* ,(rectangle-min-x rectangle) ,(rectangle-min-y rectangle)
@@ -336,14 +359,17 @@
 
 (defmethod rectangle-width ((rectangle standard-rectangle))
   (with-slots (min-x max-x) rectangle
+    (declare (type coordinate min-x max-x))
     (- max-x min-x)))
 
 (defmethod rectangle-height ((rectangle standard-rectangle))
   (with-slots (min-y max-y) rectangle
+    (declare (type coordinate min-y max-y))
     (- max-y min-y)))
 
 (defmethod rectangle-size ((rectangle standard-rectangle))
   (with-slots (min-x min-y max-x max-y) rectangle
+    (declare (type coordinate min-x min-y max-x max-y))
     (values (- max-x min-x) (- max-y min-y))))
 
 (defmethod map-over-polygon-coordinates (function (rectangle standard-rectangle))
@@ -370,7 +396,8 @@
 
 (defmethod region-contains-position-p ((rectangle standard-rectangle) x y)
   (with-slots (min-x min-y max-x max-y) rectangle
-    (ltrb-contains-position-p min-x min-y max-x max-y x y)))
+    (ltrb-contains-position-p min-x min-y max-x max-y 
+			      (coordinate x) (coordinate y))))
 
 (defmethod region-contains-region-p ((rect1 standard-rectangle) (rect2 standard-rectangle))
   (with-slots ((sx1 min-x) (sy1 min-y) (ex1 max-x) (ey1 max-y)) rect1
@@ -386,6 +413,7 @@
 
 (defmethod transform-region (transformation (rectangle standard-rectangle))
   (with-slots (min-x min-y max-x max-y) rectangle
+    (declare (type coordinate min-x min-y max-x max-y))
     (if (rectilinear-transformation-p transformation)
 	(multiple-value-bind (x1 y1)
 	    (transform-position transformation min-x min-y)
@@ -404,6 +432,7 @@
 
 (defmethod bounding-rectangle* ((rectangle standard-rectangle))
   (with-slots (min-x min-y max-x max-y) rectangle
+    (declare (type coordinate min-x min-y max-x max-y))
     (fix-rectangle (min min-x max-x) (min min-y max-y)
 		   (max min-x max-x) (max min-y max-y))))
 
@@ -455,6 +484,7 @@
 
 (defmethod transform-region (transformation (rectangle standard-bounding-rectangle))
   (with-slots (left top right bottom) rectangle
+    (declare (type coordinate left top right bottom))
     (multiple-value-bind (x1 y1 x2 y2)
 	(transform-rectangle* transformation left top right bottom)
       (make-bounding-rectangle x1 y1 x2 y2))))
@@ -509,7 +539,8 @@
 
 (defmethod region-contains-position-p ((rectangle standard-bounding-rectangle) x y)
   (with-slots (left top right bottom) rectangle
-    (ltrb-contains-position-p left top right bottom x y)))
+    (ltrb-contains-position-p left top right bottom 
+			      (coordinate x) (coordinate y))))
 
 (defmethod region-contains-region-p ((rect1 standard-bounding-rectangle) 
 				     (rect2 standard-bounding-rectangle))
@@ -550,17 +581,16 @@
 
 ;; Set the edges of the rectangle, and return the rectangle as the value
 ;; LEFT, TOP, RIGHT, and BOTTOM had better be of type COORDINATE
-;;--- Or should this coerce to COORDINATE?
 (defmethod bounding-rectangle-set-edges ((rectangle standard-bounding-rectangle)
 					 left top right bottom)
-  (declare (type coordinate left top right bottom))
+  (declare (type real left top right bottom))
   #+ignore (assert (<= left right))
   #+ignore (assert (<= top bottom))
   (with-slots ((bl left) (bt top) (br right) (bb bottom)) rectangle
-    (setq bl left
-	  bt top
-	  br right
-	  bb bottom))
+    (setq bl (coordinate left)
+	  bt (coordinate top)
+	  br (coordinate right)
+	  bb (coordinate bottom)))
   rectangle)
 
 (defmacro define-bounding-rectangle-setf (name &optional (accessor name))
@@ -616,12 +646,14 @@
 
 ;; Set the position of the rectangle, and return the rectangle as the value
 (defmethod bounding-rectangle-set-position ((rectangle standard-bounding-rectangle) x y)
-  (declare (type coordinate x y))
+  (declare (type real x y))
   (with-slots (left top right bottom) rectangle
     (declare (type coordinate left top right bottom))
-    (let ((width (- right left))
+    (let ((x (coordinate x))
+	  (y (coordinate y))
+	  (width (- right left))
 	  (height (- bottom top)))
-      (declare (type coordinate width height))
+      (declare (type coordinate x y width height))
       (setq left   x
 	    top    y
 	    right  (+ x width)
@@ -644,8 +676,11 @@
 ;; and return the new rectangle.
 (defun bounding-rectangle-shift-position (region dx dy &optional reuse-rectangle)
   (declare (values region))
-  (declare (type coordinate dx dy))
-  (let ((rectangle (bounding-rectangle region reuse-rectangle)))
+  (declare (type real dx dy))
+  (let ((rectangle (bounding-rectangle region reuse-rectangle))
+	(dx (coordinate dx))
+	(dy (coordinate dy)))
+    (declare (type coordinate dx dy))
     (with-slots (left top right bottom) rectangle
       (declare (type coordinate left top right bottom))
       (incf left   dx)
@@ -699,11 +734,11 @@
 
 ;; Set the size of the rectangle, and return the rectangle as the value
 (defmethod bounding-rectangle-set-size ((rectangle standard-bounding-rectangle) width height)
-  (declare (type coordinate width height))
+  (declare (type real width height))
   (with-slots (left top right bottom) rectangle
     (declare (type coordinate left top right bottom))
-    (let ((new-right  (+ left width))
-	  (new-bottom (+ top height)))
+    (let ((new-right  (+ left (coordinate width)))
+	  (new-bottom (+ top  (coordinate height))))
       (setq right  new-right
 	    bottom new-bottom)))
   rectangle)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: address-book.lisp,v 1.4 92/04/10 14:27:28 cer Exp Locker: cer $
+;; $fiHeader: address-book.lisp,v 1.5 92/04/15 11:48:09 cer Exp $
 
 (in-package :clim-demo)
 
@@ -39,15 +39,18 @@
 
 (progn
   (add-address (make-address :name "Chris Richardson"
-			     :address "Franz Inc"
+			     :address "Franz, Inc."
 			     :number "510-548-3600"))
   (add-address (make-address :name "John Irwin"
-			     :address "Franz Inc"
+			     :address "Franz, Inc."
 			     :number "510-548-3600"))
   (add-address (make-address :name "Scott Mckay"
-			     :address "Symbolics Inc"
-			     :number "617-221-xxxx"))
-)
+			     :address "Symbolics, Inc."
+			     :number "617-221-1000"))
+  (add-address (make-address :name "Bill York"
+			     :address "Internation Lisp Associates"
+			     :number "415-968-3656"))
+  )
 
 ;;; --------------------------------
 ;;; Define the user interface here.

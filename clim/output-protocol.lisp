@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: output-protocol.lisp,v 1.11 92/04/28 09:25:49 cer Exp Locker: cer $
+;; $fiHeader: output-protocol.lisp,v 1.12 92/04/30 09:09:33 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -23,28 +23,29 @@
 
 (defclass output-protocol-mixin
 	  (basic-extended-output-protocol)
-     ((cursor-x :initform (coordinate 0))
-      (cursor-y :initform (coordinate 0))
-      (baseline :initform (coordinate 0) :accessor stream-baseline)
+     ((cursor-x :type coordinate :initform (coordinate 0))
+      (cursor-y :type coordinate :initform (coordinate 0))
+      (baseline :accessor stream-baseline
+		:type coordinate :initform (coordinate 0))
       (foreground :initform nil
 		  :accessor medium-foreground
 		  :initarg :stream-foreground)
       (background :initform nil
 		  :accessor medium-background
 		  :initarg :stream-background)
-      (current-line-height :initform (coordinate 0)
-			   :accessor stream-current-line-height)
-      (vertical-space :initform (coordinate 2) :initarg :vertical-spacing 
-		      :accessor stream-vertical-spacing)
+      (current-line-height :accessor stream-current-line-height
+			   :type coordinate :initform (coordinate 0))
+      (vertical-space :accessor stream-vertical-spacing
+		      :type coordinate
+		      :initform (coordinate 2) :initarg :vertical-spacing)
       (end-of-line-action :initarg :end-of-line-action
 			  :accessor stream-end-of-line-action)
       (end-of-page-action :initarg :end-of-page-action
 			  :accessor stream-end-of-page-action)
-      
+      ;; The following two are either NIL or a coordinate
       (text-margin :initarg :text-margin)
       (default-text-margin :accessor stream-default-text-margin
 			   :initarg :default-text-margin)
-
       #-Silica
       (display-device-type :initarg :display-device-type
 			   :accessor stream-display-device-type
@@ -223,7 +224,6 @@
     (values cursor-x cursor-y)))
 
 (defmethod stream-set-cursor-position ((stream output-protocol-mixin) x y)
-  (declare (type coordinate x y))
   (with-slots (cursor-x cursor-y current-line-height baseline) stream
     (when x 
       (setf cursor-x (coordinate x)))
@@ -248,6 +248,7 @@
 			       (stream x y)
   (stream-set-cursor-position stream x y))
 
+;; NB: X and Y are already coordinates!
 (defmethod stream-set-cursor-position-internal ((stream output-protocol-mixin) x y)
   (declare (type coordinate x y))
   (with-slots (cursor-x cursor-y current-line-height baseline) stream
@@ -291,25 +292,39 @@
 
 ;;; Make normal output streams obey some parts of other protocols for efficiency.
 
+;;--- We put these methods on T so that string streams work.
+;;--- It would be nice to put them on something a bit more specific,
+;;--- but OUTPUT-PROTOCOL-MIXIN is too specific.  Sigh.
+
 ;;; For "normal" output streams, there are no margins.
-(defmethod window-margins ((stream output-protocol-mixin))
-  (values 0 0 0 0))
+(defmethod window-margins ((stream t))
+  (values (coordinate 0) (coordinate 0)
+	  (coordinate 0) (coordinate 0)))
 
 ;;; "Normal" output streams are never recording.
-(defmethod stream-recording-p ((stream output-protocol-mixin))
-  nil)
+(defmethod stream-recording-p ((stream t)) nil)
 
 ;;; It is an error to set record-p on non-recording streams to non-NIL.
-(defmethod (setf stream-recording-p) (new-value (stream output-protocol-mixin))
+(defmethod (setf stream-recording-p) (new-value (stream t))
   (when new-value (error "Attempt to set RECORD-P for stream ~S" stream)))
 
 ;;; "Normal" output streams are always drawing.
-(defmethod stream-drawing-p ((stream output-protocol-mixin))
-  t)
+(defmethod stream-drawing-p ((stream t)) t)
 
 ;;; It is an error to set draw-p on non-recording streams to NIL.
-(defmethod (setf stream-drawing-p) (new-value (stream output-protocol-mixin))
+(defmethod (setf stream-drawing-p) (new-value (stream t))
   (when (not new-value) (error "Attempt to set DRAW-P for stream ~S" stream)))
+
+(defmethod with-output-recording-options-internal ((stream t) draw-p record-p continuation)
+  ;; Enforce the assumptions
+  (unless draw-p
+    (error "Attempt to DRAW-P to NIL for stream ~S" stream))
+  (unless (null record-p)
+    ;; Unfortunately WITH-OUTPUT-AS-PRESENTATION always tries to turn on
+    ;; RECORD-P, so forgive this pecadillo.
+    #+++ignore
+    (error "Attempt to set RECORD-P for stream ~S" stream))
+  (funcall continuation))
 
 #+CLIM-1-compatibility
 (progn
@@ -367,7 +382,6 @@
 	t))))
 
 (defmethod stream-increment-cursor-position ((stream output-protocol-mixin) dx dy)
-  (declare (type coordinate dx dy))
   (with-slots (cursor-x cursor-y) stream
     (declare (type coordinate cursor-x cursor-y))
     (let ((cx (if dx (+ cursor-x dx) cursor-x))
@@ -381,7 +395,7 @@
   (stream-increment-cursor-position stream dx dy))
 
 (defmethod stream-advance-cursor-x ((stream output-protocol-mixin) amount)
-  (declare (type coordinate amount))
+  (declare (type real amount))
   (with-slots (cursor-x cursor-y) stream
     (declare (type coordinate cursor-x cursor-y))
     (stream-set-cursor-position 
@@ -408,7 +422,8 @@
   (when (and (or (not (output-recording-stream-p stream))
 		 (stream-drawing-p stream))
 	     (pane-scroller stream))
-    (unless cy (multiple-value-setq (cx cy) (stream-cursor-position stream)))
+    (unless cy
+      (multiple-value-setq (cx cy) (stream-cursor-position stream)))
     (let ((viewport (pane-viewport-region stream))
 	  (new-x nil)
 	  (new-y nil)
@@ -436,18 +451,18 @@
 	;; If the cursor moves outside the current region, expand
 	;; it to include the new cursor position.
 	(when (> cy (bounding-rectangle-height stream))
-   	  (update-region stream 
- 			 (bounding-rectangle-min-x stream)
- 			 (bounding-rectangle-min-y stream)
- 			 cx cy
-			 :no-repaint t))
+	  (multiple-value-bind (sx sy) (bounding-rectangle-position stream)
+	    (update-region stream 
+			   sx sy cx cy
+			   :no-repaint t)))
 	(when (or new-x new-y)
 	  (scroll-extent stream :x (or new-x vleft) :y (or new-y vtop)))))))
 
 (defparameter *character-wrap-indicator-width* 3)
 
 (defmethod stream-write-char ((stream output-protocol-mixin) character)
-  (multiple-value-bind (cursor-x cursor-y baseline height style max-x record-p draw-p)
+  (multiple-value-bind (cursor-x cursor-y baseline height style 
+			max-x record-p draw-p)
       (decode-stream-for-writing stream)
     (declare (type coordinate cursor-x cursor-y baseline height max-x))
     (cond ((or (graphic-char-p character)
@@ -459,7 +474,8 @@
 		 (ink (medium-ink stream)))
 	     (dotimes (i 2)
 	       (multiple-value-bind (no-wrap new-cursor-x new-baseline new-height font index)
-		   (stream-scan-character-for-writing stream character style cursor-x max-x)
+		   (stream-scan-character-for-writing stream #+Silica medium
+						      character style cursor-x max-x)
 		 (declare (type coordinate new-cursor-x new-baseline new-height))
 		 (when no-wrap
 		   (when record-p
@@ -518,13 +534,7 @@
 					  new-baseline new-height)))))
   character)					;Return the right value
 
-(defmethod stream-draw-lozenged-character ((stream standard-encapsulating-stream) character
-					   cursor-x cursor-y baseline height style
-					   max-x record-p draw-p)
-  (stream-draw-lozenged-character (slot-value stream 'stream)
-                                  character cursor-x cursor-y baseline height style
-				  max-x record-p draw-p))
-
+;;--- Hack COORDINATEs correctly here...
 (defmethod stream-draw-lozenged-character ((stream output-protocol-mixin) character
 					   cursor-x cursor-y baseline height style
 					   max-x record-p draw-p)
@@ -780,7 +790,7 @@
 					(or text-style
 					    (medium-merged-text-style stream)))
 	  (declare (ignore index font escapement-x escapement-y origin-x origin-y bb-x))
-	  bb-y)
+	  (coordinate bb-y))
 	current-line-height)))
 
 (defmethod stream-tab-size ((stream output-protocol-mixin) text-style)
@@ -789,8 +799,7 @@
 				  (or text-style
 				      (medium-merged-text-style stream)))
     (declare (ignore index font escapement-y origin-x origin-y bb-y))
-    (declare (type coordinate escapement-x bb-x))
-    (* (max bb-x escapement-x) 8.)))
+    (coordinate (* (max bb-x escapement-x) 8.))))
 
 ;;;--- These forwarding methods are for Silica conversion convenience only.
 ;;; Their callers should be changed to invoke the method on the medium directly.
@@ -842,13 +851,13 @@
       (if brief-p
 	  (values cursor-x cursor-y baseline line-height)
 	(values cursor-x cursor-y baseline line-height
-		  (medium-merged-text-style stream)
-		  (cond ((and wrap-p
-			      (stream-text-margin stream)))
-			(t +largest-coordinate+))
-		  (stream-recording-p stream)
-		  (stream-drawing-p stream)
-		  (stream-output-glyph-buffer stream))))))
+		(medium-merged-text-style stream)
+		(cond ((and wrap-p
+			    (stream-text-margin stream)))
+		      (t +largest-coordinate+))
+		(stream-recording-p stream)
+		(stream-drawing-p stream)
+		(stream-output-glyph-buffer stream))))))
 
 (defmethod encode-stream-after-writing ((stream output-protocol-mixin) cursor-x cursor-y
 					baseline line-height)
@@ -916,8 +925,10 @@
 	       #-Silica stream #+Silica medium 
 	       character style our-font)
 	   (declare (ignore escapement-y origin-x bb-x))
-	   (declare (type fixnum index)
-		    (type coordinate origin-y bb-y))
+	   (declare (type fixnum index))
+	  (let ((origin-y (coordinate origin-y))
+		(bb-y (coordinate bb-y)))
+	    (declare (type coordinate origin-y bb-y))
 	   (when fixed-width-font-p
 	     (let* ((room-left (- max-x cursor-x *character-wrap-indicator-width*))
 		    (spaces-left (floor room-left escapement-x))
@@ -965,7 +976,7 @@
 	   (maxf baseline origin-y)
 	   (maxf height bb-y)
 	   (setf our-font font)
-	   (setq start (the fixnum (+ start 1))))))))
+	   (setq start (the fixnum (+ start 1)))))))))
 
 (defmethod stream-scan-string-for-writing ((stream output-protocol-mixin) #+Silica medium
 					   string start end style
@@ -978,29 +989,30 @@
 ;;; This function returns NIL as its first value if the character won't
 ;;; fit on the current line.  It is never called on non-graphic
 ;;; characters; they are handled in WRITE-CHAR instead.
-(defmethod stream-scan-character-for-writing ((stream output-protocol-mixin) character
-					      style cursor-x max-x)
+(defmethod stream-scan-character-for-writing ((stream output-protocol-mixin) #+Silica medium
+					      character style cursor-x max-x)
   (declare (values char-normal new-cursor-x new-baseline new-height font))
   (declare (type coordinate cursor-x max-x))
   (multiple-value-bind (index font escapement-x escapement-y origin-x origin-y bb-x bb-y)
-      (stream-glyph-for-character stream character style)
+      (stream-glyph-for-character medium character style)
     (declare (ignore escapement-y origin-x bb-x))
     (when (> (+ cursor-x escapement-x *character-wrap-indicator-width*) max-x)
-      (return-from stream-scan-character-for-writing (values nil cursor-x 0 0)))
-    (incf cursor-x escapement-x)
-    (values t cursor-x origin-y bb-y font index)))
+      (return-from stream-scan-character-for-writing 
+	(values nil cursor-x (coordinate 0) (coordinate 0))))
+    (incf cursor-x (coordinate escapement-x))
+    (values t cursor-x (coordinate origin-y) (coordinate bb-y) font index)))
 
 (defun-inline draw-character-wrap-indicator (stream y height max-x &optional (old-record-p t))
   (if old-record-p
       (with-output-recording-options (stream :record nil :draw t)
 	(draw-rectangle-internal
-	  stream 0 0
+	  stream (coordinate 0) (coordinate 0)
 	  (- max-x *character-wrap-indicator-width* -1) y
 	  ;; HEIGHT can be zero if the line has only Tabs in it...
 	  max-x (+ y (if (zerop height) 10 height))
 	  +foreground-ink+ nil))
       (draw-rectangle-internal
-	stream 0 0
+	stream (coordinate 0) (coordinate 0)
 	(- max-x *character-wrap-indicator-width* -1) y
 	max-x (+ y (if (zerop height) 10 height))
 	+foreground-ink+ nil)))
@@ -1017,7 +1029,7 @@
 (defmethod stream-next-tab-column ((stream output-protocol-mixin) cursor-x style)
   (declare (type coordinate cursor-x))
   (let ((tab-size (stream-tab-size stream style)))
-    (* tab-size (ceiling (1+ cursor-x) tab-size))))
+    (coordinate (* tab-size (ceiling (1+ cursor-x) tab-size)))))
 
 
 ;;; Genera hooks

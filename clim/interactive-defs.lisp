@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: interactive-defs.lisp,v 1.6 92/03/10 10:12:41 cer Exp Locker: cer $
+;; $fiHeader: interactive-defs.lisp,v 1.7 92/03/10 15:40:12 cer Exp $
 
 (in-package :clim-internals)
 
@@ -51,12 +51,13 @@
      ,@body))
 
 (defun activation-gesture-p (gesture)
-  (dolist (set *activation-gestures*)
-    (when (if (listp set)
-	      (member gesture set 
-		      :test #'keyboard-event-matches-gesture-name-p)
-	      (funcall set gesture))
-      (return-from activation-gesture-p t))))
+  (and (not (typep gesture 'pointer-button-release-event))
+       (dolist (set *activation-gestures*)
+	 (when (if (listp set)
+		   (member gesture set 
+			   :test #'keyboard-event-matches-gesture-name-p)
+		 (funcall set gesture))
+	   (return-from activation-gesture-p t)))))
 
 #+CLIM-1-compatibility
 (progn
@@ -128,7 +129,7 @@
 		 (unread-gesture unread :stream stream))
 	       (when (and (activation-gesture-p unread)
 			  (input-editing-stream-p stream))
-		 (rescan-for-activation stream))
+		 (rescan-if-necessary stream))
 	       (return-from read-token
 		 (values (evacuate-temporary-string string)))))
 	(loop

@@ -22,7 +22,7 @@
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved.
 ;;;
-;; $fiHeader: db-table.lisp,v 1.9 92/04/14 15:29:35 cer Exp Locker: cer $
+;; $fiHeader: db-table.lisp,v 1.10 92/04/15 11:45:06 cer Exp $
 
 (in-package :silica)
 
@@ -71,8 +71,8 @@
 	      (max-h nil))
 	  (dotimes (column (array-dimension contents 1))
 	    (let ((item (aref contents row column)))
-	      (when (and item
-			 (sheet-enabled-p item))
+ 	      (when (and item
+ 			 (sheet-enabled-p item))
 		(let ((isr (compose-space item)))
 		  ;; Max the heights
 		  (maxf h (space-requirement-height isr))
@@ -98,7 +98,7 @@
 	  (dotimes (row (array-dimension contents 0))
 	    (let ((item (aref contents row column)))
 	      (when (and item
-			 (sheet-enabled-p item))
+ 			 (sheet-enabled-p item))
 		(let ((isr (compose-space item)))
 		  ;; Max the widths
 		  (maxf w (space-requirement-width isr))

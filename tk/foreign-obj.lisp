@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: foreign-obj.lisp,v 1.8 92/04/10 14:26:15 cer Exp Locker: cer $
+;; $fiHeader: foreign-obj.lisp,v 1.9 92/04/21 16:12:19 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -42,7 +42,6 @@
 	(errorp 
 	 (error "Cannot find object from handle: ~S" handle))))
 
-  
 (defun register-address (object &optional (handle (foreign-pointer-address object)))
   (setf (gethash handle *address->object-mapping*) object)
   object)
@@ -71,7 +70,6 @@
 	 *address->object-mapping*
 	 handle))
 
-
 (defun intern-object-xid (handle class &rest initargs)
   (apply #'intern-object-1 
 	 *xid->object-mapping*
@@ -79,10 +77,9 @@
 	 class 
 	 initargs))
 
-
 (defun unintern-object-1 (table handle)
   (remhash handle table))
-    
+
 (defun intern-object-1 (table handle class &rest initargs)
   (let ((x (find-object-from-handle handle table nil)))
     (cond ((null x)

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: make-classes.lisp,v 1.14 92/04/21 16:12:22 cer Exp Locker: cer $
+;; $fiHeader: make-classes.lisp,v 1.15 92/04/21 20:27:34 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -195,7 +195,6 @@
   (make-classes (remove-duplicates 
 		 (apply #'append classes)
 		 :test #'string=)))
-
 	
 (defun widget-class-name (h)
   (char*-to-string (xt-class-name h)))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: ptypes2.lisp,v 1.5 92/03/04 16:22:11 cer Exp $
+;; $fiHeader: ptypes2.lisp,v 1.6 92/04/15 11:47:10 cer Exp $
 
 (in-package :clim-internals)
 
@@ -96,7 +96,11 @@
 	(describe-presentation-type presentation-type stream plural-count))
       (let ((type (expand-presentation-type-abbreviation presentation-type)))
 	(with-presentation-type-decoded (nil nil options) type
-	  (let ((description (getf options :description)))
+	  (let ((description 
+		  (or (getf options :description)
+		      (with-presentation-type-decoded (name) presentation-type
+			(gethash (find-presentation-type-class name)
+				 *presentation-type-description-table* name)))))
 	    (if description
 		(default-describe-presentation-type description stream plural-count)
 		(funcall-presentation-generic-function describe-presentation-type
@@ -359,7 +363,7 @@
 	  (return name))))))
 
 
-;;;; accept-present-default
+;;;; ACCEPT-PRESENT-DEFAULT and prompting
 
 ;;; Called when ACCEPT turns into PRESENT
 (defun accept-present-default (presentation-type stream view default default-supplied-p
@@ -378,6 +382,16 @@
 	(present default presentation-type :stream stream :view view)
 	(with-text-face (stream :italic)
 	  (describe-presentation-type presentation-type stream 1)))))
+
+
+;; Most gadgets do not include a prompt...
+(define-default-presentation-method gadget-includes-prompt-p (presentation-type stream view)
+  (declare (ignore presentation-type stream view))
+  nil)
+
+(defun gadget-includes-prompt-p (type stream view)
+  (funcall-presentation-generic-function
+    gadget-includes-prompt-p type stream view))
 
 
 ;;;; Highlight

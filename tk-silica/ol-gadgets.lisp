@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-gadgets.lisp,v 1.9 92/04/15 11:48:38 cer Exp Locker: cer $
+;; $fiHeader: ol-gadgets.lisp,v 1.10 92/04/21 20:28:26 cer Exp Locker: cer $
 
 
 (in-package :xm-silica)
@@ -54,8 +54,8 @@
 
 ;;;;;;;;;;;;;;;;;;;;
 
-(defclass openlook-scroll-bar (xt-leaf-pane
-			      scroll-bar)
+(defclass openlook-scroll-bar (scroll-bar
+			       xt-leaf-pane)
 	  ())
 
 (defmethod find-widget-class-and-initargs-for-sheet ((port openlook-port)
@@ -74,7 +74,7 @@
   nv)
 
 (defmethod change-scroll-bar-values ((sb openlook-scroll-bar) &rest args 
-				    &key slider-size value)
+				     &key slider-size value)
   (declare (ignore args))
   (tk::set-values
    (sheet-direct-mirror sb)
@@ -263,7 +263,7 @@
 
 ;;; Label pane
 
-(defclass openlook-label-pane (xt-leaf-pane silica::label-pane) 
+(defclass openlook-label-pane (label-pane xt-leaf-pane) 
 	  ())
 
 (defmethod find-widget-class-and-initargs-for-sheet ((port openlook-port)
@@ -282,9 +282,9 @@
   
 ;;; Push button
 
-(defclass openlook-push-button (xt-leaf-pane
-				push-button
-				openlook-action-pane) 
+(defclass openlook-push-button (push-button
+				openlook-action-pane
+				xt-leaf-pane) 
 	  ())
 
 
@@ -317,10 +317,10 @@
 
 ;;; Text field
 
-(defclass openlook-text-field (xt-leaf-pane
-			       openlook-value-pane 
+(defclass openlook-text-field (openlook-value-pane 
 			       openlook-action-pane
-			       text-field)
+			       text-field
+			       xt-leaf-pane)
 	  ())
 
 (defmethod find-widget-class-and-initargs-for-sheet ((port openlook-port)
@@ -337,8 +337,8 @@
 
 (defclass openlook-value-pane () ())
 
-(defmethod add-sheet-callbacks :after ((port openlook-port) (sheet
-							     openlook-value-pane) (widget t))
+(defmethod add-sheet-callbacks :after ((port openlook-port) 
+				       (sheet openlook-value-pane) (widget t))
   #+igore
   (tk::add-callback widget
 		    :value-changed-callback
@@ -350,7 +350,8 @@
       (tk::get-values (sheet-mirror gadget) :value)
     (call-next-method)))
 
-(defmethod (setf gadget-value) (nv (gadget openlook-value-pane) &key)
+(defmethod (setf gadget-value) (nv (gadget openlook-value-pane) &key invoke-callback)
+  (declare (ignore invoke-callback))
   (when (sheet-mirror gadget)
     (tk::set-values (sheet-mirror gadget) :value nv)))
 

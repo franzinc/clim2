@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-button.lisp,v 1.4 92/03/24 19:36:24 cer Exp $
+;; $fiHeader: db-button.lisp,v 1.6 92/04/15 11:45:01 cer Exp $
 
 "Copyright (c) 1990, 1991 International Lisp Associates.
  Portions copyright (c) 1991, 1992 by Symbolics, Inc.  All rights reserved."
@@ -9,10 +9,8 @@
 
 
 (defclass button-pane-mixin 
-	  (leaf-pane
-	   sheet-permanently-enabled-mixin
-	   mute-repainting-mixin
-	   space-requirement-mixin)
+	  (space-requirement-mixin
+	   leaf-pane)
     ((armed :initform nil)))
 
 ;; General highlight-by-inverting method
@@ -30,6 +28,7 @@
 		     :show-as-default nil))
 
 (defmethod compose-space ((pane push-button-pane) &key width height)
+  (declare (ignore width height))
   (multiple-value-bind (width height)
       (compute-gadget-label-size pane)
     (make-space-requirement :width width :height height)))
@@ -93,6 +92,7 @@
 		     :indicator-type ':one-of))
 
 (defmethod compose-space ((pane toggle-button-pane) &key width height)
+  (declare (ignore width height))
   (multiple-value-bind (width height)
       (compute-gadget-label-size pane)
     (let ((radius (slot-value pane 'radius)))
@@ -118,9 +118,10 @@
 		    :align-x ':left :align-y ':center)))))
 
 ;; This is done in the (SETF GADGET-VALUE) method because that's where it 
-;; would be done in, say, Motif.  (I.e. we'd pass the SET-GADGET-VALUE off
-;; to Motif which would toggle the indicator.)
-(defmethod (setf gadget-value) :after (nv (pane toggle-button-pane) &key)
+;; would be done in, say, Motif.  (That is, we'd pass the SET-GADGET-VALUE
+;; off to Motif which would toggle the indicator.)
+(defmethod (setf gadget-value) :after (value (pane toggle-button-pane) &key invoke-callback)
+  (declare (ignore value invoke-callback))
   (when (port pane)
     ;; If it's not grafted, don't draw it.
     (with-sheet-medium (medium pane)
@@ -141,7 +142,7 @@
 (defmethod handle-event ((pane toggle-button-pane) (event pointer-button-release-event))
   (with-slots (armed) pane
     (when armed
-      (setf (gadget-value pane) (not (gadget-value pane)))
+      (setf (gadget-value pane :invoke-callback t) (not (gadget-value pane)))
       (setf armed nil)
       (disarmed-callback pane (gadget-client pane) (gadget-id pane)))))
 
@@ -170,13 +171,12 @@
 
 (defclass radio-box-pane 
 	  (radio-box
-	   pane
 	   wrapping-space-mixin
 	   sheet-permanently-enabled-mixin
 	   sheet-mute-input-mixin
 	   sheet-multiple-child-mixin
-	   mute-repainting-mixin
-	   space-requirement-mixin)
+	   space-requirement-mixin
+	   pane)
     ())
 
 ;; When one of the radio-box's managed gadgets gets selected (or deselected)
@@ -191,10 +191,12 @@
     (cond ((eql selection old-selection)
 	   (setf (radio-box-current-selection client) (and new-value selection)))
 	  (old-selection
-	   (setf (gadget-value old-selection) nil)
-	   (setf (radio-box-current-selection client) (and new-value selection)))
+	   (setf (gadget-value old-selection :invoke-callback t) nil)
+	   ;; We could just SETF RADIO-BOX-CURRENT-SELECTION, but this
+	   ;; way we get the right callback behavior...
+	   (setf (gadget-value client :invoke-callback t) (and new-value selection)))
 	  (t
-	   (setf (radio-box-current-selection client) (and new-value selection))))))
+	   (setf (gadget-value client :invoke-callback t) (and new-value selection))))))
 
 (defmethod initialize-instance :after ((pane radio-box-pane) 
 				       &key choices selection frame-manager frame)
@@ -212,9 +214,7 @@
 
 ;; This macro is just an example of one possible syntax.  The obvious "core"
 ;; syntax is (MAKE-PANE 'RADIO-BOX :CHOICES (LIST ...) :SELECTION ...)
-
 (defmacro with-radio-box ((&rest options) &body body)
-  (declare (ignore options))
   (let ((current-selection '#:current-selection)
 	(choices '#:choices))
     `(let ((,current-selection nil))
@@ -223,4 +223,5 @@
 	 (let ((,choices (list ,@body)))
 	   (make-pane 'radio-box
 		      :choices ,choices
-		      :selection ,current-selection))))))
+		      :selection ,current-selection
+		      ,@options))))))

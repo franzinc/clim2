@@ -27,7 +27,7 @@
 ;;;
 ;;;-----------------------------------------------------------
 
-;; $fiHeader: defsystem.lisp,v 1.8 92/04/10 14:27:11 cer Exp Locker: cer $
+;; $fiHeader: defsystem.lisp,v 1.9 92/04/15 11:47:35 cer Exp $
 
 ;; Add a feature for ANSI-adhering Lisps.  So far, only Apple's
 ;; version 2.0 tries to do adhere to the ANSI spec instead of CLtL rev 1.
@@ -82,13 +82,21 @@
             #-ANSI-90 :nicknames #-ANSI-90 '("CLIM-DEFSYS"))
 
 #-ANSI-90
-(export '(system-source-file set-system-source-file load-system-def
-	  load-system *current-system* compile-system show-system 
-	  *language-descriptions* undefsystem *defsystem-version* defsystem
-	  *sysdcl-pathname-defaults*
-	  ;; Hack
+(export '(*current-system*
+	  *defsystem-version*
+	  *language-descriptions*
 	  *load-all-before-compile*
-	  with-compiler-options with-delayed-compiler-warnings)
+	  *sysdcl-pathname-defaults*
+	  compile-system 
+	  defsystem
+	  load-system
+	  load-system-def
+	  set-system-source-file
+	  show-system
+	  system-source-file 
+	  undefsystem
+	  with-compiler-options
+	  with-delayed-compiler-warnings)
 	"CLIM-DEFSYSTEM")
 
 ;;; *** A temporary workaround, easier than fixing all references to
@@ -400,7 +408,7 @@
 
 (pushnew :defsystem *features*)
 
-(defparameter *clim-defsystem-version* 3.66)
+(defparameter *defsystem-version* 4.0)
 
 ;;; Let debugging and information stuff know what module we're on.
 
@@ -411,7 +419,7 @@
 ;; multiple languages.
 ;;
 
-;; Quite compiler messages about references to undefined functions untill the
+;; Quite compiler messages about references to undefined functions until the
 ;; entire body is completed.
 ;;
 (defmacro with-delayed-compiler-warnings (&body body)
@@ -487,26 +495,23 @@
 
 (defparameter lisp-file-types
   ;; Thanks to PCL for providing all this info
-  #+(and Genera imach)                `("lisp" 		"ibin")
-  #+(and Genera (not imach))          `("lisp" 		"bin")
+  #+Genera			      `("lisp" 		,si:*default-binary-file-type*)
   #+Cloe-Runtime		      `("l"		"fas")
   #+Minima			      `("lisp"		"mebin")
+  #+lucid			      `(("lisp" "cl")   ,lcl:*load-binary-pathname-types*)
+  #+Allegro			      `(("lisp" "cl")	"fasl")
+  #+lispworks                         `("lisp"		,ccl::*binary-file-type*)
+  #+ccl                               `("lisp"          "fasl")
   #+(and dec common vax (not ultrix)) `("LSP"		"FAS")
   #+(and dec common vax ultrix)       `("lsp"		"fas")
   #+KCL                               `("lsp"		"o")
   #+xerox                             `(("lisp" "cl" "")"dfasl")
-  #+(and Lucid MC68000)		      `(("lisp" "cl")	,lcl:*load-binary-pathname-types*)
-  #+(and Lucid VMS)		      `(("lisp" "cl")	,lcl:*load-binary-pathname-types*)
-  #+(and Lucid SPARC)		      `(("lisp" "cl")	,lcl:*load-binary-pathname-types*)
-  #+Allegro			      `(("lisp" "cl")	"fasl")
   #+ibcl                              `(("lisp" "lsp")  "o")
-  #+lispworks                         `("lisp"		,ccl::*binary-file-type*)
   #+system::cmu                       `("slisp"		"sfasl")
   #+cmu				      `("lisp"		"sparcf")
   #+prime                             `("lisp"		"pbin")
   #+hp                                `("l"		"b")
-  #+TI                                `("lisp"		"xfasl")
-  #+ccl                               `("lisp"          "fasl"))
+  #+TI                                `("lisp"		"xfasl"))
 
 (defun compile-lisp-file (pathname binary-pathname optimizations)
   #+(or Genera Cloe-Runtime lispworks CCL-2)
@@ -522,7 +527,8 @@
 	(compile-file pathname :output-file binary-pathname))))
      
 
-(defun load-lisp-file (pathname)
+(defun load-lisp-file (pathname &optional libraries)
+  (declare (ignore libraries))
   #+Cloe-Runtime (format t "~&; Loading ~A~%" pathname)
   #+CCL-2 (ccl:set-mini-buffer ccl:*top-listener* "~A: Loading ~A."
                                *current-system*
@@ -573,7 +579,8 @@
   #-(or ibcl (and Allegro unix) (and Lucid unix))
   (error "Don't know how to compile C code"))
 
-(defun load-c-file (binary-pathname)
+(defun load-c-file (binary-pathname &optional libraries)
+  #-(and Allegro unix) (declare (ignore libraries))
   (progn binary-pathname)			;Get rid of warnings when undefined.
   #+ibcl
   ;; This is stupid.  You can't just load a C object file - you have to load it
@@ -588,7 +595,7 @@
       (compile-file tmp-lsp-file :output-file tmp-o-file))
     (system:faslink tmp-o-file (format nil "~a" binary-pathname)))
   #+(and Allegro unix)
-  (load binary-pathname)
+  (load binary-pathname :foreign-files libraries)
   #+(and Lucid unix)
   (progn
     (lcl:load-foreign-files (list binary-pathname))
@@ -649,6 +656,7 @@
   (binary-pathname nil)
   (package nil)
   (binary-only nil)
+  (libraries nil :type list)
   ;; Internal slots
   (system)
   (load-after-list nil :type list)	;Expanded version of the load-after slot
@@ -790,10 +798,10 @@
 		(t sname))))))
 
 ;; Is the most recent version of the module loaded?
-(defun module-up-to-date-p (module)
+(defun module-up-to-date-p (module &optional source-if-newer)
   (cond ((not (module-applicable-p module)) t)
 	((not (module-loaded-p module)) nil)
-	(t (let ((file (probe-file (module-loadable-path module))))
+	(t (let ((file (probe-file (module-loadable-path module source-if-newer))))
 	     (if file
 		 (eql (module-load-date module) (file-write-date file))
 		 (error "The module ~S has disappeared." (module-name module)))))))
@@ -1025,7 +1033,7 @@ pathname fields are evaluated."
   (flet ((expand-module-descr (name &key compile-satisfies-load (load-after t)
 				    load-before-compile optimizations (language :lisp)
 				    (features t) eval-after pathname binary-pathname
-				    package binary-only)
+				    package binary-only libraries)
 	   `(make-module :name ',(pretty-pathname-component (string name))
 			 :pathname ,(pretty-pathname-component pathname)
 			 :binary-pathname ,(pretty-pathname-component binary-pathname)
@@ -1037,7 +1045,8 @@ pathname fields are evaluated."
 			 :features ',features
 			 :eval-after ',eval-after
 			 :package ',package
-			 :binary-only ',binary-only)))
+			 :binary-only ',binary-only
+			 :libraries ',libraries)))
     `(define-system (make-system :name ',name
 				 :default-pathname ,default-pathname
 				 :default-binary-pathname ,default-binary-pathname
@@ -1077,6 +1086,18 @@ pathname fields are evaluated."
 	   
 )
 
+;; Compute the package to use in a module environment
+(defun in-module-package (module)
+  (let* ((name (or (module-package module)
+		   (system-default-package (module-system module))
+		   (package-name *package*)))
+	 (package (find-package name)))
+    (or package
+	(progn
+	  (warn "~S does not name a package, using ~S instead."
+		name *package*)
+	  *package*))))
+
 ;; Evaluate the BODY with the reader context and default pathname set up as
 ;; defined by the module.
 (defmacro in-module-env ((module) &body body)
@@ -1084,9 +1105,7 @@ pathname fields are evaluated."
 	(path (gensym)))
     `(let* ((,mod ,module)
 	    (,path (module-src-path ,mod))
-	    (*package* (find-package (or (module-package ,mod)
-					 (system-default-package (module-system ,mod))
-					 (package-name *package*))))
+	    (*package* (in-module-package ,mod))
 	    #-Allegro
 	    (*default-pathname-defaults*
              ;; Some systems may not like a logical pathname as a default.
@@ -1153,7 +1172,7 @@ verify that each already loaded subsystem is up-to-date, reloading it if need be
 	 nil)
 	((member module *loaded-modules* :test #'eq)
 	 nil)
-	((or reloadp (not (module-up-to-date-p module)))
+	((or reloadp (not (module-up-to-date-p module source-if-newer)))
 	 ;; Load the modules that must preceed this one
 	 (dolist (m (module-load-after-list module))
 	   (load-module m reloadp source-if-newer))
@@ -1162,7 +1181,7 @@ verify that each already loaded subsystem is up-to-date, reloading it if need be
 	   (in-module-env (module)
 	     (cond (*tracep* (format t "~&;;; -- Would load ~A" pathname))
 		   (t (funcall (language-load-fn (find-language (module-language module)))
-			pathname)
+			pathname (module-libraries module))
 		      (setf (module-loaded-p module) t
 			    (module-load-date module) (file-write-date pathname)
 			    (module-loaded-from-file module) pathname)))
@@ -1267,9 +1286,10 @@ verify that each already loaded subsystem is up-to-date, reloading it if need be
 		  (null b-date)
 		  (< b-date s-date)
 		  (find-if #'(lambda (m)
-			       (let ((s (file-write-date-or-nil (module-src-path m))))
-				 (or (null s)
-				     (< b-date s))))
+			       (and (module-applicable-p m)
+				    (let ((s (file-write-date-or-nil (module-src-path m))))
+				      (or (null s)
+					  (< b-date s)))))
 			   (module-load-before-compile module)))
 	  ;; This module needs to be recompiled
 	  (funcall pre-compile-fn)
@@ -1430,7 +1450,7 @@ verify that each already loaded subsystem is up-to-date, reloading it if need be
 		      (:type ,(ecase (module-language module)
 				(:lisp
 				  (if (module-applicable-p module)
-				      #+Minima :minima-lisp #-Minima :lisp
+				      :lisp
 				      :lisp-example))))
 		      ,@(unless (eq (module-language module) :lisp)
 			  `((:type ,(module-language module))))

@@ -1,6 +1,6 @@
-;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
+;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadgets.lisp,v 1.19 92/04/30 09:09:14 cer Exp Locker: cer $
+;; $fiHeader: gadgets.lisp,v 1.20 92/05/06 15:37:19 cer Exp Locker: cer $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
@@ -24,6 +24,12 @@
       (cons (setq text-style (parse-text-style text-style)))
       (text-style nil))))
 
+(defun-inline invoke-callback-function (function &rest args)
+  (declare (dynamic-extent args))
+  (if (consp function)
+      (apply (car function) (append args (cdr function)))
+      (apply function args)))
+
 
 (defclass gadget (foreground-background-and-text-style-mixin)
 	  ((id :initarg :id :reader gadget-id :initform nil)
@@ -35,18 +41,23 @@
 	   (active :initarg :active :accessor gadget-active-p))
   (:default-initargs :active t))
 
+(defmethod armed-callback :around ((gadget gadget) (client t) (id t))
+  (let ((callback (gadget-armed-callback gadget)))
+    (if callback
+	(invoke-callback-function callback gadget)
+        (call-next-method))))
+
 (defmethod armed-callback ((gadget gadget) (client t) (id t))
-  (invoke-callback-function (gadget-armed-callback gadget) gadget))
+  nil)
+
+(defmethod disarmed-callback :around ((gadget gadget) (client t) (id t))
+  (let ((callback (gadget-disarmed-callback gadget)))
+    (if callback
+	(invoke-callback-function callback gadget)
+        (call-next-method))))
 
 (defmethod disarmed-callback ((gadget gadget) (client t) (id t))
-  (invoke-callback-function (gadget-disarmed-callback gadget) gadget))
-
-(defun invoke-callback-function (function &rest args)
-  (declare (dynamic-extent args))
-  (when function
-    (if (consp function)
-	(apply (car function) (append args (cdr function)))
-	(apply function args))))
+  nil)
 
 
 (defclass value-gadget (gadget) 
@@ -55,39 +66,46 @@
      (value-changed-callback :initarg :value-changed-callback :initform nil
 			     :reader gadget-value-changed-callback)))
 
-(defmethod value-changed-callback ((gadget value-gadget) (client t) (id t) value)
-  (invoke-callback-function (gadget-value-changed-callback gadget) gadget value))
-
 (defgeneric gadget-value (gadget))
 
 (defmethod gadget-value ((gadget value-gadget))
-  (with-slots (value) gadget
-    value))
+  (slot-value gadget 'value))
 
-(defmethod value-changed-callback :before ((gadget value-gadget) client id new-value)
-  (declare (ignore id client))
-  (with-slots (value) gadget
-    (setf value new-value)))
+(defgeneric (setf gadget-value) (value gadget &key invoke-callback))
 
-(defgeneric (setf gadget-value) (nv gadget &key))
-
-(defmethod (setf gadget-value) (nv (gadget value-gadget) &key)
-  (declare (ignore nv)))
+(defmethod (setf gadget-value) (value (gadget value-gadget) &key invoke-callback)
+  (declare (ignore value invoke-callback)))
 
 ;;--- What is the correct default for INVOKE-CALLBACK?
-(defmethod (setf gadget-value) :after (nv (gadget value-gadget) &key invoke-callback)
-  (with-slots (value) gadget
-    (setf value nv))
+(defmethod (setf gadget-value) :after (value (gadget value-gadget) &key invoke-callback)
+  (setf (slot-value gadget 'value) value)
   (when invoke-callback
-    (value-changed-callback gadget (gadget-client gadget) (gadget-id gadget) nv)))
+    (value-changed-callback gadget (gadget-client gadget) (gadget-id gadget) value)))
+
+(defmethod value-changed-callback :around ((gadget value-gadget) (client t) (id t) value)
+  (setf (slot-value gadget 'value) value)
+  (let ((callback (gadget-value-changed-callback gadget)))
+    (if callback
+	(invoke-callback-function callback gadget value)
+        (call-next-method))))
+
+(defmethod value-changed-callback ((gadget value-gadget) (client t) (id t) value)
+  (declare (ignore value))
+  nil)
 
 
 (defclass action-gadget (gadget) 
     ((activate-callback :initarg :activate-callback :initform nil
 			:reader gadget-activate-callback)))  
 
+(defmethod activate-callback :around ((gadget action-gadget) (client t) (id t))
+  (let ((callback (gadget-activate-callback gadget)))
+    (if callback
+	(invoke-callback-function callback gadget)
+        (call-next-method))))
+
 (defmethod activate-callback ((gadget action-gadget) (client t) (id t))
-  (invoke-callback-function (gadget-activate-callback gadget) gadget))
+  nil)
 
 
 ;;; Basic gadgets-mixins
@@ -149,12 +167,18 @@
       :decimal-places 0
       :show-value-p nil))
 
+(defmethod drag-callback :around ((gadget slider) (client t) (id t) value)
+  (let ((callback (slider-drag-callback gadget)))
+    (if callback
+	(invoke-callback-function callback gadget value)
+        (call-next-method))))
 
 (defmethod drag-callback ((gadget slider) (client t) (id t) value)
-  (invoke-callback-function (slider-drag-callback gadget) gadget value))
+  (declare (ignore value))
+  nil)
 
 
-;; Scroll bar
+;;; Scroll bar
 
 (defclass scroll-bar
 	  (value-gadget range-gadget-mixin oriented-gadget)
@@ -163,8 +187,15 @@
      (drag-callback :initarg :drag-callback :initform nil
 		    :reader scroll-bar-drag-callback)))
 
+(defmethod drag-callback :around ((gadget scroll-bar) (client t) (id t) value)
+  (let ((callback (scroll-bar-drag-callback gadget)))
+    (if callback
+	(invoke-callback-function callback gadget value)
+        (call-next-method))))
+
 (defmethod drag-callback ((gadget scroll-bar) (client t) (id t) value)
-  (invoke-callback-function (scroll-bar-drag-callback gadget) gadget value))
+  (declare (ignore value))
+  nil)
 
 
 ;;; Push-button
@@ -173,14 +204,15 @@
     ())
 
 
-;; Toggle button
+
 (defclass toggle-button (value-gadget labelled-gadget) 
 	  ((indicator-type :initarg :indicator-type :initform :some-of
 			   :type (member :some-of :one-of)
 			   :reader gadget-indicator-type)))
 
 
-;; Menu button
+
+;;; Menu button
 (defclass menu-button 
 	  (value-gadget labelled-gadget) 
     ((indicator-type :initarg :indicator-type :initform :some-of
@@ -210,14 +242,17 @@
   (let ((frame (pane-frame rb)))
     (with-look-and-feel-realization ((frame-manager frame) frame)
       (dolist (choice choices)
-	(make-pane 'toggle-button 
-		   :value (equal (radio-box-current-selection rb) choice)
-		   :label (if (stringp choice)
-			      (string choice)
+	(unless (panep choice)
+	  ;; Sometimes the user calls MAKE-PANE within a call to
+	  ;; WITH-RADIO-BOX, so don't mess up
+	  (make-pane 'toggle-button 
+		     :value (equal (radio-box-current-selection rb) choice)
+		     :label (if (stringp choice)
+				(string choice)
 			      (gadget-label choice))
-		   :indicator-type :one-of
-		   :id choice
-		   :parent rb)))))
+		     :id choice
+		     :parent rb))))))
+
 
 
 ;; Check-box
@@ -252,7 +287,7 @@
 
 
 ;;; Text edit
-;; As well as the callback mechanism a we want to specify a binding to commands
+;;--- Do we want to specify a binding to commands?
 (defclass text-field 
 	  (value-gadget action-gadget) 
     ())
@@ -283,8 +318,8 @@
 	  (make-bounding-rectangle 0 0 width height))))
 
 (defmethod allocate-space ((viewport viewport) width height)
-  ;;-- Make sure the child is at least as big as the viewport
-  ;;-- Viewport-region-changed actually does this also
+  ;;--- Make sure the child is at least as big as the viewport
+  ;;--- VIEWPORT-REGION-CHANGED actually does this also
   (let* ((child (sheet-child viewport)))
     (multiple-value-bind (cwidth cheight)
 	(bounding-rectangle-size child)
@@ -311,6 +346,19 @@
   (viewport-region-changed (sheet-child viewport) viewport))
 
 ;;--- Work on this
+#+ignore
+(defmethod note-sheet-region-changed :around ((viewport viewport) &key port-did-it)
+  (declare (ignore port-did-it))
+  (multiple-value-bind (changedp 
+			hscroll-bar hscroll-bar-enabled-p
+			vscroll-bar vscroll-bar-enabled-p)
+      (compute-dynamic-scroll-bar-values viewport)
+    (if changedp
+ 	(update-dynamic-scroll-bars 
+	  viewport changedp
+	  hscroll-bar hscroll-bar-enabled-p
+	  vscroll-bar vscroll-bar-enabled-p)
+        (call-next-method))))
 
 (defun update-dynamic-scroll-bars (sp 
 				   changedp
@@ -322,7 +370,6 @@
       (setf (sheet-enabled-p hscroll-bar) hscroll-bar-enabled-p))
     (when vscroll-bar
       (setf (sheet-enabled-p vscroll-bar) vscroll-bar-enabled-p))
-    
     (when (or (and hscroll-bar (not hscroll-bar-enabled-p))
 	      (and vscroll-bar (not vscroll-bar-enabled-p)))
       (let* ((contents (slot-value sp 'contents))
@@ -339,23 +386,21 @@
 	   (if (and vscroll-bar (not vscroll-bar-enabled-p))
 	       (bounding-rectangle-min-y c-extent)
 	     vy)))))
-
     (clear-space-requirement-caches-in-tree sp)
     (when relayout
-      (multiple-value-bind
-	  (w h)
-	  (bounding-rectangle-size sp)
-	  (allocate-space sp w h)))))
+      (let ((table (sheet-child sp)))
+	(multiple-value-bind
+	    (w h)
+	    (bounding-rectangle-size table)
+	  (allocate-space table w h))))))
 
 (defun compute-dynamic-scroll-bar-values (sp)
   (let* ((hscroll-bar (scroller-pane-horizontal-scroll-bar sp))
 	 (vscroll-bar (scroller-pane-vertical-scroll-bar sp))
 	 (scroll-bar-policy (scroller-pane-scroll-bar-policy sp)))
     (if (eq scroll-bar-policy :dynamic)
-	(multiple-value-bind
-	    (vwidth vheight) (bounding-rectangle-size sp)
-	  (multiple-value-bind
-	      (cwidth cheight) 
+	(multiple-value-bind (vwidth vheight) (bounding-rectangle-size sp)
+	  (multiple-value-bind (cwidth cheight) 
 	      (bounding-rectangle-size 
 	       (viewport-contents-extent (slot-value sp 'viewport)))
 	    (let ((ohenp (sheet-enabled-p hscroll-bar))
@@ -363,20 +408,20 @@
 		  (nhenp (> cwidth vwidth))
 		  (nvenp (> cheight vheight)))
 	      (values
-	       (not (and (eq ohenp nhenp)
-			 (eq ovenp nvenp)))
-	       (and (not (eq ohenp nhenp)) hscroll-bar)
-	       nhenp
-	       (and (not (eq ovenp nvenp)) vscroll-bar)
-	       nvenp))))
-      (values nil nil nil nil nil))))
+		(not (and (eq ohenp nhenp)
+			  (eq ovenp nvenp)))
+		(and (not (eq ohenp nhenp)) hscroll-bar)
+		nhenp
+		(and (not (eq ovenp nvenp)) vscroll-bar)
+		nvenp))))
+        (values nil nil nil nil nil))))
 
 (defun viewport-contents-extent (viewport)
   (let ((c (sheet-child viewport)))
     (stream-output-history c)))
 
-;;--- Need something in update-scroll-bars also.
-l	    
+
+
 ;;; Then there is the layout stuff and scrolling macros
 
 (defmacro scrolling (options &body contents)
@@ -391,6 +436,7 @@ l
 	 :frame frame :frame-manager framem
 	 options))
 
+
 ;; Callbacks on widgets generate these events
 
 (defclass gadget-event (event) 
@@ -407,6 +453,7 @@ l
 
 (defmethod handle-event ((gadget  action-gadget) (event activate-gadget-event))
   (activate-callback gadget (gadget-client gadget) (gadget-id gadget)))
+
 
 ;;; Do these have readers and writers?
 
@@ -447,6 +494,7 @@ l
   (:default-initargs :mode :exclusive))
 
 (defclass option-pane (set-gadget-mixin 
-			     value-gadget 
-			     labelled-gadget)
+		       value-gadget 
+		       labelled-gadget)
 	  ())
+

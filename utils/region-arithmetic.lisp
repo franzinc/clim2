@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: region-arithmetic.lisp,v 1.5 92/03/10 10:11:59 cer Exp $
+;; $fiHeader: region-arithmetic.lisp,v 1.6 92/04/15 11:45:35 cer Exp $
 
 (in-package :clim-utils)
 
@@ -170,6 +170,7 @@
 
 
 ;;; Simple rectangle (LTRB) arithmetic
+;;; These operate only on COORDINATEs, so be careful!
 
 (defun ltrb-well-formed-p (left top right bottom)
   (declare (type coordinate left top right bottom))
@@ -326,10 +327,10 @@
 ;;; Special cases for bounding rectangles
 
 (defclass standard-rectangle-set (region-set bounding-rectangle)
-    ((left   :initarg :left)
-     (top    :initarg :top)
-     (right  :initarg :right)
-     (bottom :initarg :bottom)
+    ((left   :initarg :left :type coordinate)
+     (top    :initarg :top  :type coordinate)
+     (right  :initarg :right  :type coordinate)
+     (bottom :initarg :bottom :type coordinate)
      (rectangles :type list :initarg :rectangles :reader rectangle-set-rectangles)
      (x-banded-rectangles :type list)
      (y-banded-rectangles :type list)))
@@ -349,7 +350,8 @@
 	(maxf-or right  rr)
 	(maxf-or bottom rb)))
     (make-rectangle-set-1 (copy-list rectangles)
-			  left top right bottom)))
+			  (coordinate left)  (coordinate top) 
+			  (coordinate right) (coordinate bottom))))
 
 (defmethod bounding-rectangle* ((rectangle standard-rectangle-set))
   (with-slots (left top right bottom) rectangle

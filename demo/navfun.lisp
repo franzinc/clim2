@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: navfun.lisp,v 1.5 92/04/14 15:30:01 cer Exp Locker: cer $
+;; $fiHeader: navfun.lisp,v 1.6 92/04/15 11:48:21 cer Exp $
 
 (in-package :clim-demo)
 
@@ -1394,9 +1394,9 @@
     (accepting-values (*query-io*
 		       :own-window t
 		       :exit-boxes '((:exit "Click here to remove this display")))
-      (let ((fp-window *query-io*))
-	(window-clear fp-window)
-	(compute-flight-plan fp-window plan)))))
+       (let ((fp-window *query-io*))
+ 	(window-clear fp-window)
+ 	(compute-flight-plan fp-window plan)))))
 
 (define-presentation-to-command-translator flight-plan
     (route com-flight-plan flight-planner

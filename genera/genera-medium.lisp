@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: GENERA-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: genera-medium.lisp,v 1.2 92/03/04 16:22:49 cer Exp $
+;; $fiHeader: genera-medium.lisp,v 1.3 92/04/15 11:47:57 cer Exp $
 
 (in-package :genera-clim)
 
@@ -213,8 +213,7 @@
 		       (sys:copy-array-portion source s (+ s w)
 					       destination d (+ d w)))
 		      ((integerp key)
-		       (dotimes (ii w)
-			 (declare (ignore ii))
+		       (repeat w
 			 (setf (aref destination d) (if (= (aref source s) key) 1 0))
 			 (incf s)
 			 (incf d)))))))
@@ -676,8 +675,8 @@
 	     (ascent (- height descent)))
 	(incf x (clim-internals::compute-text-x-adjustment 
 		  align-x sheet character text-style))
-	(incf y (clim-internals::compute-text-y-adjustment
-		  align-y descent ascent height))
+	(incf y (- (clim-internals::compute-text-y-adjustment
+		     align-y descent ascent height) ascent))
 	(with-appropriate-drawing-state medium ink nil
 	  #'(lambda (window alu)
 	      (declare (sys:downward-function))

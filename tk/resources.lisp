@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: resources.lisp,v 1.18 92/04/28 09:25:04 cer Exp Locker: cer $
+;; $fiHeader: resources.lisp,v 1.19 92/05/06 15:37:08 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -92,28 +92,24 @@
     
     ;;-- This class resource
     ;;-- Accumulate resources into a resource allocated vector
-    
     (dolist (r resources)
       (let ((resource (find r class-resources :key #'resource-name)))
 	(unless resource
 	  (error "No such resource ~S for class ~S widget ~S"
 		 r class widget))
+	;;--- Need to resource allocate this
 	(push resource rds)
 	(push (resource-original-name resource) arglist)
-	;;--- Need to resource allocate this
 	(push (make-x-arglist) arglist)))
     
     ;;-- We ought to be ashamed of ourselves for using coerce
     ;;-- This also ought to be resource allocated
-    
     (setq arglist (coerce (nreverse arglist) '(vector (signed-byte 32))))
     (xt_get_values widget
 		arglist
 		(truncate (length arglist) 2))
-    
     ;;--- Perhaps this list should be a vector that is resource
     ;;-- allocated.
-    
     (do ((rs (nreverse rds) (cdr rs))
 	 (i 1 (+ i 2))
 	 values)
@@ -142,7 +138,6 @@
 	 (xm_string_get_l_to_r value xm_string_default_char_set string)
 	 (char*-to-string (aref string 0)))))
 
-
 (define-enumerated-resource separator-type (:no-line 
 					    :single-line
 					    :double-line 
@@ -150,7 +145,6 @@
 					    :double-dashed-line
 					    :shadow-etched-in
 					    :shadow-etched-out))
-
       
 (defmethod convert-resource-out ((parent t) (type (eql 'menu-widget)) value)
   value)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: table-formatting.lisp,v 1.5 92/03/04 16:22:19 cer Exp $
+;; $fiHeader: table-formatting.lisp,v 1.6 92/04/15 11:47:25 cer Exp $
 
 (in-package :clim-internals)
 
@@ -28,7 +28,7 @@
   :equalize-column-widths equalize-column-widths
   :size size)
 
-(defmethod inferiors-never-overlap-p ((record standard-table-output-record)) t)
+(defmethod children-never-overlap-p ((record standard-table-output-record)) t)
 
 
 (define-protocol-class row-output-record (output-record))
@@ -42,7 +42,7 @@
 				  (&key x-position y-position (size 5))
   :x-position x-position :y-position y-position :size size)
 
-(defmethod inferiors-never-overlap-p ((record standard-row-output-record)) t)
+(defmethod children-never-overlap-p ((record standard-row-output-record)) t)
 
 
 (define-protocol-class column-output-record (output-record))
@@ -56,7 +56,7 @@
 				  (&key x-position y-position (size 5))
   :x-position x-position :y-position y-position :size size)
 
-(defmethod inferiors-never-overlap-p ((record standard-column-output-record)) t)
+(defmethod children-never-overlap-p ((record standard-column-output-record)) t)
 
 
 (define-protocol-class cell-output-record (output-record))
@@ -66,9 +66,9 @@
   ((x-alignment :initform ':left :initarg :align-x)
    (y-alignment :initform ':top :initarg :align-y)
    (min-width :initform 0 :initarg :min-width
-	      :accessor cell-min-width)
+	      :accessor cell-min-width :type coordinate)
    (min-height :initform 0 :initarg :min-height
-	       :accessor cell-min-height))
+	       :accessor cell-min-height :type coordinate))
   (:default-initargs :size 5))
 
 (define-output-record-constructor standard-cell-output-record
@@ -77,7 +77,7 @@
 					(size 5) min-width min-height)
   :x-position x-position :y-position y-position :size size
   :align-x align-x :align-y align-y
-  :min-width min-width :min-height min-height)
+  :min-width (coordinate min-width) :min-height (coordinate min-height))
 
 #+Genera (zwei:defindentation (map-over-table-elements-helper 2 1))
 (defmethod map-over-table-elements-helper
@@ -340,9 +340,7 @@
 				      (x-alignment-adjust 0)
 				      (y-alignment-adjust 0))
 				  (declare (type coordinate column-width row-height
-						            cell-width cell-height
-							    x-alignment-adjust
-							    y-alignment-adjust))
+						            cell-width cell-height))
 				  (ecase (slot-value cell 'x-alignment)
 				    (:left )
 				    (:right
@@ -439,7 +437,7 @@
   (declare (ignore stream))
   #+ignore
   (let ((x-spacing (slot-value (output-record-parent row) 'x-spacing))
-	(x-position 0))
+	(x-position (coordinate 0)))
     (map-over-row-cells
       #'(lambda (cell)
 	  (with-bounding-rectangle* (left top right bottom) cell
@@ -461,23 +459,27 @@
 	    (incf x-position (+ (- right left) x-spacing))))
       column)))
 
-;;--- Should this return a COORDINATE?
 (defun process-spacing-arg (stream spacing form &optional clause)
   (cond ((null spacing) nil)
-	((integerp spacing) spacing)
-	((stringp spacing) (stream-string-width stream spacing))
-	((characterp spacing) (stream-character-width stream spacing))
-	((or (symbolp spacing) (functionp spacing)) (funcall spacing stream))
+	((integerp spacing) 
+	 (coordinate spacing))
+	((stringp spacing)
+	 (coordinate (stream-string-width stream spacing)))
+	((characterp spacing)
+	 (coordinate (stream-character-width stream spacing)))
+	((or (symbolp spacing) (functionp spacing))
+	 (coordinate (funcall spacing stream)))
 	((listp spacing)
 	 (let ((units (second spacing))
 	       (number (first spacing)))
-	   (case units
-	     (:point (round (* number (graft-pixels-per-point (graft stream)))))
-	     ((:pixel :device) number)
-	     ;; Which character?  Width or height?
-	     (:character (* number (stream-character-width stream #\W)))
-	     (:line (+ (* number (stream-line-height stream))
-		       (* (1- number) (stream-vertical-spacing stream)))))))
+	   (coordinate
+	     (ecase units
+	       (:point (round (* number (graft-pixels-per-point (graft stream)))))
+	       ((:pixel :device) number)
+	       ;; Which character?  Width or height?
+	       (:character (* number (stream-character-width stream #\W)))
+	       (:line (+ (* number (stream-line-height stream))
+			 (* (1- number) (stream-vertical-spacing stream))))))))
 	(t (error "The ~:[~;~S ~]spacing specification, ~S, to ~S was invalid"
 		  clause clause spacing form))))
 
@@ -522,10 +524,10 @@
 					(record-type 'standard-cell-output-record))
   (setq min-width (or (process-spacing-arg 
 			stream min-width 'formatting-cell :min-width)
-		      0)
+		      (coordinate 0))
 	min-height (or (process-spacing-arg
 			 stream min-height 'formatting-cell :min-height)
-		       0))
+		       (coordinate 0)))
   ;;--- Jump through a hoop to get a constant record-type symbol into the
   ;;--- WITH-NEW-OUTPUT-RECORD macro so we invoke a PCL instance-constructor
   ;;--- function instead of slow MAKE-INSTANCE.  If this body was just expanded
@@ -581,7 +583,7 @@
   :n-columns n-columns :n-rows n-rows :max-width max-width :max-height max-height
   :stream-width stream-width :stream-height stream-height :size size)
 
-(defmethod inferiors-never-overlap-p ((record standard-item-list-output-record)) t)
+(defmethod children-never-overlap-p ((record standard-item-list-output-record)) t)
 
 ;;; map-over-TABLE-cells??
 #+Genera (zwei:defindentation (map-over-menu-cells 1 1))
@@ -590,7 +592,7 @@
   (map-over-table-elements function menu 'cell))
 
 ;; If we had our hands on a stream, we could use twice the width of #\Space
-(defvar *default-minimum-menu-x-spacing* 10)
+(defvar *default-minimum-menu-x-spacing* (coordinate 10))
 
 (defmethod adjust-table-cells ((menu standard-item-list-output-record) stream)
   ;; We will set the local variables NROWS and NCOLUMNS below, but we never
@@ -713,7 +715,7 @@
 	    (unless x-spacing
 	      (setq x-spacing
 		    (if max-width
-			(let ((accumulated-width 0))
+			(let ((accumulated-width (coordinate 0)))
 			  (declare (type coordinate accumulated-width))
 			  (dotimes (column ncolumns)
 			    (incf accumulated-width (column-width column)))
@@ -727,7 +729,7 @@
 		    (accumulated-width 
 		      (if (or (stream-redisplaying-p stream) initial-spacing)
 			  (coordinate 0)
-			  x-spacing)))
+			  (coordinate x-spacing))))
 		(declare (type coordinate accumulated-height accumulated-width))
 		(flet ((adjust-cells (cell)
 			 (let ((column-width (column-width column-count))
@@ -737,8 +739,7 @@
 			       (x-alignment-adjust 0)
 			       (y-alignment-adjust 0))
 			   (declare (type coordinate column-width row-height
-					  cell-width cell-height
-					  x-alignment-adjust y-alignment-adjust))
+					  cell-width cell-height))
 			   (ecase (slot-value cell 'x-alignment)
 			     (:left )
 			     (:right

@@ -20,7 +20,7 @@ U;; -*- mode: common-lisp; package: tk-silica -*-
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.18 92/04/21 20:28:35 cer Exp Locker: cer $
+;; $fiHeader: xt-graphics.lisp,v 1.19 92/04/28 09:26:35 cer Exp Locker: cer $
 
 (in-package :tk-silica)
 
@@ -338,13 +338,11 @@ and on color servers, unless using white or black")
     (tk::set-line-attributes 
      gc
      (let ((thickness (line-style-thickness line-style)))
-
        (ecase (line-style-unit line-style)
 	 (:normal)
 	 (:point
 	  (setq thickness (* (graft-pixels-per-point (graft medium))
 			     thickness))))
-       
        (when (< thickness 2)
 	 (setq thickness 0))
        (round thickness))
