@@ -11,6 +11,27 @@ Tests for new features:	<`no new features', `no tests for new features', or
 <standard changelog date stamp>
 	* <changes go here...>
 *******************************************************************************
+Thu Feb  6 15:41:07 PST 1997  Tom McClure  <tomj@romeo>
+
+	* This slipped through the last commit (of Paul Robertson's tree)
+	  - new directory aclpc with new files:
+	    aclpc/acl-class.lisp
+	    aclpc/acl-dc.lisp
+	    aclpc/acl-frames.lisp
+	    aclpc/acl-medium.lisp
+	    aclpc/acl-mirror.lisp
+	    aclpc/acl-pixmaps.lisp
+	    aclpc/acl-port.lisp
+	    aclpc/acl-prel.lisp
+	    aclpc/acl-scroll.lisp
+	    aclpc/acl-widget.lisp
+	    aclpc/clim.ico
+	    aclpc/climpat.lisp
+	    aclpc/pkgdcl.lisp
+	    aclpc/sysdcl.lisp
+	    aclpc/winwidgh.lisp
+
+*******************************************************************************
 Tue Feb  4 17:08:22 PST 1997  Tom McClure  <tomj@vapor>
 
 	* This is the merge of Paul Robertson's 1/23/97 tree into the
