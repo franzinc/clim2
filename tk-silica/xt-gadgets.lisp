@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-gadgets.lisp,v 1.22 92/09/30 11:45:40 cer Exp Locker: cer $
+;; $fiHeader: xt-gadgets.lisp,v 1.23 92/10/02 15:21:06 cer Exp $
 
 (in-package :xm-silica)
 
@@ -97,7 +97,7 @@
 
 (defmethod decode-gadget-foreground (medium sheet ink)
   (declare (ignore sheet))
-  (let ((pixel (decode-color medium ink)))
+  (let ((pixel (decode-color ink medium)))
     (list :foreground pixel)))
 
 (defclass xt-pane (basic-pane) 

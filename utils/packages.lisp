@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: packages.lisp,v 1.33 92/10/04 14:16:15 cer Exp $
+;; $fiHeader: packages.lisp,v 1.34 92/10/28 11:31:08 cer Exp Locker: cer $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :common-lisp-user)
 
@@ -2045,6 +2045,22 @@
     opacityp
     with-delayed-mutations
     
+
+    palette
+    palette-color-p
+    palette-mutable-p
+    palettep
+    make-palette
+    port-default-palette
+    medium-palette
+    sheet-palette
+    frame-palette
+    frame-manager-palette
+
+    palette-full
+    add-to-palette
+    remove-from-palette
+
     ;; Designs
     compose-in
     compose-out
@@ -3330,6 +3346,7 @@
     activate-gadget-event
     add-sheet-callbacks
     all-drawing-options-lambda-list
+    allocate-color
     allocate-event
     basic-pixmap-medium
     bury-mirror
@@ -3381,6 +3398,7 @@
     frame-user-specified-position-p
     frame-user-specified-size-p
     frame-wrapper
+    free-color
     gadget-alignment
     gadget-columns
     gadget-editable-p

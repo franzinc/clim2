@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: medium.lisp,v 1.25 92/10/04 14:16:09 cer Exp $
+;; $fiHeader: medium.lisp,v 1.26 92/10/28 11:30:50 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -448,3 +448,39 @@
 (generate-trampolines medium-protocol medium standard-sheet-output-mixin
 		      `(sheet-medium ,standard-sheet-output-mixin))
 
+;;; not clear that these should be here.
+
+(defmethod sheet-palette ((sheet sheet))
+  (let* ((frame (pane-frame sheet))
+	 (framem (and frame (frame-manager frame))))
+    (if framem
+	(frame-manager-palette framem)
+      (port-default-palette (port sheet)))))
+
+(defmethod medium-palette ((medium medium))
+  (sheet-palette (medium-sheet medium)))
+
+;;; especially these - could be with other named-color stuff in
+;;; utils/designs but things like port, sheet, medium aren't known
+;;; there.
+
+;;; think we might want a silica/palette.lisp
+
+(defmethod find-named-color (name (port port))
+  (find-named-color name (port-default-palette port)))
+
+(define-condition palette-full (serious-condition) ())
+
+(defmethod add-to-palette ((palette basic-palette) &rest colors)
+  (let ((colors-done nil))
+    (dolist (color colors)
+      (handler-case
+	  (allocate-color color palette)
+	(palette-full (condition)
+	  (dolist (color colors-done)
+	    (free-color color palette))
+	  (signal condition))))))
+
+(defmethod remove-from-palette ((palette basic-palette) &rest colors)
+  (dolist (color colors)
+    (free-color color palette)))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: recording-protocol.lisp,v 1.23 92/10/02 15:19:58 cer Exp $
+;; $fiHeader: recording-protocol.lisp,v 1.24 92/10/28 11:32:05 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -548,12 +548,12 @@
 	      (setq new-output-record
 		    (if constructor
 			(apply constructor
-			       :x-position x :y-position y initargs)
+			       :x-position 0 :y-position 0 initargs)
 			(apply #'construct-output-record-1 record-type
-			       :x-position x :y-position y initargs))))
+			       :x-position 0 :y-position 0 initargs))))
 	  (output-record-set-start-cursor-position new-output-record x y)
 	  (with-output-record-1 continuation 
-				stream new-output-record cursor-x cursor-y)
+	    stream new-output-record cursor-x cursor-y)
 	  (when (stream-redisplaying-p stream)
 	    (recompute-contents-ok new-output-record))
 	  ;; We set the parent after doing everything else so that calls
@@ -572,14 +572,11 @@
   (declare (ignore record-type constructor initargs parent))
   (funcall continuation stream))
 
-(defun with-output-record-1 (continuation stream record &optional abs-x abs-y)
+(defun with-output-record-1 (continuation stream record abs-x abs-y)
   ;; Close the text record before and after
   (stream-close-text-output-record (or *original-stream* stream))
   (let ((current-output-position
 	  (stream-output-history-position stream)))
-    (unless abs-y
-      (multiple-value-setq (abs-x abs-y)
-	(stream-cursor-position stream)))
     (letf-globally (((point-x current-output-position) abs-x)
 		    ((point-y current-output-position) abs-y)
 		    ((stream-current-output-record stream) record))
@@ -588,7 +585,7 @@
 	  (stream-cursor-position stream)
 	(declare (type coordinate end-x end-y))
 	(output-record-set-end-cursor-position
-	  record (- end-x abs-x) (- end-y abs-y)))
+	 record (- end-x abs-x) (- end-y abs-y)))
       (stream-close-text-output-record (or *original-stream* stream)))))
 
 (defun invoke-with-room-for-graphics (stream continuation record-type move-cursor 

@@ -1,4 +1,4 @@
-# $fiHeader: Makefile,v 1.54 92/10/07 14:43:56 cer Exp Locker: cer $
+# $fiHeader: Makefile,v 1.55 92/10/28 08:20:00 cer Exp Locker: cer $
 # 
 #  Makefile for CLIM 2.0
 #

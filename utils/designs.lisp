@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: designs.lisp,v 1.7 92/10/04 14:16:14 cer Exp $
+;; $fiHeader: designs.lisp,v 1.8 92/10/28 11:31:04 cer Exp Locker: cer $
 
 (in-package :clim-utils)
 
@@ -388,8 +388,9 @@
 
 (defmethod mutate-color ((group-color group-color) (color color))
   (with-delayed-mutations
-    (dolist (mutable (group-color-mutables group-color))
-      (mutate-mutable mutable color))))
+      (dolist (mutable (group-color-mutables group-color))
+	(mutate-color mutable color))))
+
 
 ;; GROUP-COLOR-MUTABLES should not be exported to the user.  It is important
 ;; that these mutables are not drawn with.  Instead the fully specified group
@@ -406,6 +407,27 @@
 				       group
 				       layers)
 		mutables)))))
+
+
+(defun map-over-group-colors (function group &optional layers)
+  (let* ((group-layers (color-group-layers group))
+	 (dimensions (make-list (length group-layers))))
+    (labels ((iterate (layers group-layers dims)
+	       (if group-layers
+		   (let ((layer (car layers))
+			 (rest-layers (cdr layers))
+			 (group-layer (car group-layers))
+			 (rest-group-layers (cdr group-layers))
+			 (rest-dims (cdr dims)))
+		     (if layer
+			 (progn 
+			   (setf (car dims) layer)
+			   (iterate rest-layers rest-group-layers rest-dims))
+		       (dotimes (i group-layer)
+			 (setf (car dims) i)
+			 (iterate rest-layers rest-group-layers rest-dims))))
+		 (funcall function dimensions))))
+      (iterate layers group-layers dimensions))))
 
 
 ;;; Foreground and background (indirect) inks

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xlib.lisp,v 1.29 92/10/02 15:18:01 cer Exp $
+;; $fiHeader: xlib.lisp,v 1.30 92/10/28 11:30:39 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -247,6 +247,8 @@
 (eval-when (load)
   (setup-error-handlers))
 
+(define-condition x-colormap-error (serious-condition) ())
+
 ;;--
 
 (defmethod display-root-window (display)
@@ -332,10 +334,23 @@
       ;;-- This needs to be handled intelligently
       ;;-- Perhaps the colormap code should enable the user to
       ;;-- intercept this or we should just resort to some kind of stippling
-      (when (zerop z)
-	(error "Could not allocate color: ~S" x))
-      (values (x11:xcolor-pixel y)
-	      (make-instance 'color :foreign-address y)))))
+      (if (zerop z)
+	  (error 'x-colormap-error)
+	(values (x11:xcolor-pixel y)
+		(make-instance 'color :foreign-address y))))))
+
+
+(defvar *pixel-array* 
+    (make-array 1 :initial-element 0 :element-type '(unsigned-byte 32)))
+
+(defun free-color-cells (colormap pixel planes)
+  (setf (aref *pixel-array* 0) pixel)
+  (x11:xfreecolors
+   (object-display colormap)
+   colormap
+   *pixel-array*
+   1
+   planes))
 
 (defun allocate-named-color (colormap name)
   (let ((exact (x11::make-xcolor :in-foreign-space t))
@@ -406,7 +421,7 @@
 	     pixels
 	     ncolors)))
     (when (zerop z)
-      (error "Could not allocate color cells ~D,~D" ncolors nplanes))
+      (error 'x-colormap-error))
     (values pixels masks)))
 
    

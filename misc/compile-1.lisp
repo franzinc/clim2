@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: compile-1.lisp,v 1.10 92/09/08 10:35:23 cer Exp Locker: cer $
+;; $fiHeader: compile-1.lisp,v 1.11 92/09/30 18:04:22 cer Exp Locker: cer $
 
 (in-package :user)
 
@@ -35,8 +35,10 @@
   (load "~/stuff/misc/new-slot-opt.fasl")
   )
 
-(setf (sys:gsgc-switch :print) t)
-(setf (sys:gsgc-switch :stats) t)
+#+ignore
+(progn
+  (setf (sys:gsgc-switch :print) t)
+  (setf (sys:gsgc-switch :stats) t))
 
 (setq *compile-print* nil)
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: menus.lisp,v 1.32 92/09/24 09:39:09 cer Exp $
+;; $fiHeader: menus.lisp,v 1.33 92/10/28 11:31:49 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -398,12 +398,21 @@
 	    (with-input-context (presentation-type :override T)
 				(object type gesture)
 		 (labels ((input-wait-test (menu)
-			    ;; Wake up if the menu becomes buried, or if highlighting is needed
-			    (or (and *abort-menus-when-buried*
+			    ;; Wake up if the menu becomes buried, or
+			    ;; if highlighting is needed
+			    ;; this screws up in Allegro because
+			    ;; querying the server in the wait
+			    ;; function screws event handling.
+			    (or #-Allegro 
+				(and *abort-menus-when-buried*
+				     #+Cloe-Runtime
+				     (not (stream-has-input-focus menu))
+				     #-Cloe-Runtime
 				     (not (window-visibility menu)))
 				(pointer-motion-pending menu)))
 			  (input-wait-handler (menu)
 			    ;; Abort if the menu becomes buried
+			    #-Allegro
 			    (when (and *abort-menus-when-buried*
 				       (not (window-visibility menu)))
 			      (return-from menu-choose-from-drawer nil))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: framem.lisp,v 1.20 92/10/04 14:16:08 cer Exp $
+;; $fiHeader: framem.lisp,v 1.21 92/10/28 11:30:47 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -15,6 +15,11 @@
      (frames :accessor frame-manager-frames :initform nil)
      (palette :accessor frame-manager-palette :initarg :palette)
      (dialog-view :accessor frame-manager-dialog-view :initarg :dialog-view)))
+
+(defmethod initialize-instance :after ((framem standard-frame-manager) &key)
+  (with-slots (port palette) framem
+    (unless palette
+      (setf palette (port-default-palette port)))))
 
 ;;--- This is most likely wrong
 (defmethod graft ((framem standard-frame-manager))

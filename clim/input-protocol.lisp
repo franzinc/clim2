@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-protocol.lisp,v 1.28 92/10/02 15:19:38 cer Exp $
+;; $fiHeader: input-protocol.lisp,v 1.29 92/10/28 11:31:46 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -53,7 +53,10 @@
 	;; A "normal" gesture
 	(return-from stream-read-gesture
 	  (values gesture flag)))
-      ;; If we're looping when PEEK-P is T, we have to eat the gesture.
+      ;; If we're looping when PEEK-P is T, we have to eat the
+      ;; gesture.
+      ;;--- what if peek-p is t and another gesture has arrived
+      ;; between the last call-next-method and this one??? (cim)
       (call-next-method stream :timeout 0 :peek-p nil))))
 
 ;;; Our implementation of the extended-input protocol.
