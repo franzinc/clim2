@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-frames.lisp,v 1.5.8.22 1999/06/23 18:28:36 layer Exp $
+;; $Id: acl-frames.lisp,v 1.5.8.23 1999/10/04 18:43:40 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -403,8 +403,8 @@
       (dotimes (position count)
 	;; Use position = 0 every time because the menu items get
 	;; renumbered each time through this loop.
-	(win:deletemenu menuhand 0 win:MF_BYPOSITION))
-      (win:drawmenubar (sheet-mirror (frame-top-level-sheet frame)))))
+	(win:DeleteMenu menuhand 0 win:MF_BYPOSITION))
+      (win:DrawMenuBar (sheet-mirror (frame-top-level-sheet frame)))))
   (setf (gethash menuhand *popup-menu->menu-item-ids*) nil) 
   (setf (gethash menuhand *popup-menu->command-table*) 
     (list command-table 
@@ -523,6 +523,19 @@
       ;; So we have to have this restriction.
       (error "SendMessage: attempt to send a message to a window in another thread"))
     (win:SendMessage a b c d)))
+
+(defmethod frame-update-window (frame handle)
+  (let* ((me mp:*current-process*)
+	 (sheet (frame-top-level-sheet frame))
+	 (him (when sheet (clim-internals::sheet-thread sheet))))
+    (unless (eq me him)
+      ;; SendMessage will block, awaiting the response from the other thread.
+      ;; If the other thread sends a message to me, then you have a deadlock.
+      ;; So we have to have this restriction.
+      (error "UpdateWindow: attempt to send a message to a window in another thread"))
+    ;; Don't signal errors for UpdateWindow, just warn. JPM 3/19/99.
+    (or (win:UpdateWindow handle)
+	(acl-clim::check-last-error "UpdateWindow" :action :warn))))
 
 (defmethod initialize-tooltips ((frame standard-application-frame))
   ;; Create a tooltip control associated with this frame.
@@ -694,7 +707,7 @@ to be run from another."
     (when name
       (or (excl:with-native-string (cstr name)
 	    (win:SetWindowText (sheet-mirror sheet) cstr))
-	  (check-last-error "SetWindowText")))))
+	  (check-last-error "SetWindowText" :action :warn)))))
 
 (defun select-messagebox-icon (style)
   ;; Decides which Windows icon matches this (standardized) style. 
@@ -1150,11 +1163,9 @@ to be run from another."
 	  (if multiple-p
 	      (pathnames-from-directory-and-filenames
 	       (spaced-string-to-list
-		(string-downcase
-		 (scratch-c-string-to-lisp-string))))
+		(scratch-c-string-to-lisp-string)))
 	    (pathname
-	     (string-downcase
-	      (scratch-c-string-to-lisp-string))))
+	     (scratch-c-string-to-lisp-string)))
 	(let ((error-code (win:CommDlgExtendedError)))
 	  (and (plusp error-code) ;; zero means cancelled, so return NIL
 	       (error (format nil 
@@ -1543,14 +1554,12 @@ in a second Lisp process.  This frame cannot be reused."
 	;; ----
 	;; Actually, the code below repaints the entire frame. 
 	;; Shouldn't we free wrect? JPM.
-	;; ---
-	;; Don't signal errors for UpdateWindow, just warn. JPM 3/19/99.
 	(or (win:getClientRect handle wrect)
 	    (acl-clim::check-last-error "GetClientRect"))
 	(or (win:InvalidateRect handle wrect 1)
 	    (acl-clim::check-last-error "InvalidateRect"))
-	(or (win:UpdateWindow handle)
-	    (acl-clim::check-last-error "UpdateWindow" :action :warn))))))
+	#+ignore ; not needed and may be implicated in a race condition.
+	(acl-clim::frame-update-window frame handle)))))
 
 ;; Obsolete I think.
 (defun clean-frame (frame)

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: activities.lisp,v 1.15.22.3 1998/12/17 00:19:06 layer Exp $
+;; $Id: activities.lisp,v 1.15.22.4 1999/10/04 18:43:45 layer Exp $
 
 (in-package :clim-internals)
 
@@ -77,8 +77,8 @@
           (default-frame-top-level activity))
       (setq top-level-process nil))))
 
-(defmethod frame-exit ((activity activity))
-  (signal 'frame-exit :frame activity))
+(defmethod frame-exit ((activity activity) &rest keys)
+  (signal 'frame-exit :frame activity :options keys))
 
 (defmethod default-frame-top-level ((activity activity) &key &allow-other-keys)
   (if (frame-manager-frames activity)
@@ -279,7 +279,8 @@
     #+++ignore (throw 'window-resynchronize :window-resynchronize)))
 
 ;; Exit from just this frame, not the whole activity
-(defmethod frame-exit ((frame activity-frame))
+(defmethod frame-exit ((frame activity-frame) &rest keys)
+  (declare (ignore keys))
   (activity-frame-window-close frame))
 
 (defmethod redisplay-frame-panes ((frame activity-frame) &key force-p)

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-mirror.lisp,v 1.4.22.14 1999/06/09 21:29:47 layer Exp $
+;; $Id: acl-mirror.lisp,v 1.4.22.15 1999/10/04 18:43:43 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -247,6 +247,9 @@
   (let ((mirror (sheet-direct-mirror sheet)))
     (when mirror 
       (win:DestroyWindow mirror)
+      ;; DestroyWindow is supposed to destroy everything, including
+      ;; the window's menu and the window's child windows.  It is
+      ;; also supposed to flush the thread message queue.
       (setf (sheet-direct-mirror sheet) nil))))
 
 (defvar *in-layout-avp* nil)
@@ -255,9 +258,8 @@
   (let ((window (sheet-mirror sheet)))
     (unless *in-layout-avp*
       (win:ShowWindow window win:SW_SHOW) ; returns NIL if it was already visible.
-      ;; Don't signal errors for UpdateWindow, just warn. JPM 3/19/99.
-      (or (win:UpdateWindow window)	; send a WM_PAINT message
-	  (check-last-error "UpdateWindow" :action :warn))
+      #+ignore
+      (frame-update-window (pane-frame sheet) window)
       )))
 
 (defmethod disable-mirror ((port acl-port) sheet)
@@ -412,7 +414,7 @@
 	  (let ((dc (GetDc mirror)))
 	    (unless (zerop dc)
 	      (win:DrawIcon dc 0 0 *clim-icon*)
-	      (win:ReleaseDC mirror dc))))
+	      (ReleaseDC mirror dc))))
 	))))
 
 (defmethod realize-mirror :around ((port acl-port) 

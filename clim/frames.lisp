@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: frames.lisp,v 1.88.8.11 1999/06/18 21:27:31 layer Exp $
+;; $Id: frames.lisp,v 1.88.8.12 1999/10/04 18:43:47 layer Exp $
 
 (in-package :clim-internals)
 
@@ -598,24 +598,38 @@
   (declare (dynamic-extent initargs))
   (when (null frame-class)
     (setq frame-class frame-name))
+  (when (and activate own-process)
+    (with-keywords-removed (initargs initargs '(:own-process))
+      (make-process #'(lambda () 
+			;; On mswindows, frame must be activated by 
+			;; the process that created it.
+			(apply #'find-application-frame frame-name
+			       :own-process nil
+			       initargs))))
+    (return-from find-application-frame t))
   (let ((frame
-          (unless (eq create :force)
-            (block find-frame
-              (map-over-frames #'(lambda (frame)
-                                   (when (typep frame frame-class)
-                                     (return-from find-frame frame)))
-                               :frame-manager frame-manager
-                               :port port)
-              nil))))
+	 (unless (eq create :force)
+	   (block find-frame
+	     (map-over-frames #'(lambda (frame)
+				  (when (typep frame frame-class)
+				    (return-from find-frame frame)))
+			      :frame-manager frame-manager
+			      :port port)
+	     nil))))
+    #+mswindows
+    (when (and frame (not (slot-value frame 'top-level-process)))
+      ;; We cannot reuse this window because its creator thread
+      ;; is probably gone.  We wouldn't have to worry about this
+      ;; case if we always destroyed the window's mirrors upon
+      ;; frame-exit.
+      (setq frame nil))
     (when (and create (null frame))
-      (with-keywords-removed (initargs initargs '(:create :activate :own-process))
+      (with-keywords-removed (initargs initargs 
+				       '(:create :activate :own-process))
         (setq frame (apply #'make-application-frame frame-name initargs))))
     (when (and frame activate)
       (cond ((slot-value frame 'top-level-process)
              (raise-frame frame))
-            (own-process
-             (make-process #'(lambda () (run-frame-top-level frame))
-                           :name (frame-pretty-name frame)))
             (t
              (run-frame-top-level frame))))
     frame))
@@ -709,12 +723,11 @@
   nil)
 
 
-(eval-when (#-Allegro compile load eval)
 (define-condition frame-exit (condition)
-  ((frame :initarg :frame :reader frame-exit-frame))
+  ((frame :initarg :frame :reader frame-exit-frame)
+   (options :initarg :options :initform nil :reader frame-exit-options))
   (:report (lambda (condition stream)
              (format stream "Exit from frame ~A" (frame-exit-frame condition)))))
-)        ;eval-when
 
 (defgeneric run-frame-top-level (frame &key &allow-other-keys))
 
@@ -781,43 +794,37 @@
 
 ;;--- It would be nice to have the CLIM 0.9 START-FRAME and STOP-FRAME functions
 (defmethod run-frame-top-level :around ((frame standard-application-frame) &key)
-  (with-simple-restart (nil "Exit ~A" (frame-pretty-name frame))
-    (handler-bind ((frame-exit
-                     #'(lambda (condition)
-                         (let ((exit-frame (frame-exit-frame condition)))
-                           (when (eq frame exit-frame)
-                             (return-from run-frame-top-level nil))))))
-      (unwind-protect
-          (with-clim-state-reset (:all t
-                                  :additional-bindings ((*application-frame* frame)))
-            (with-frame-manager ((frame-manager frame))
-              (loop
-                (with-simple-restart (nil "~A top level" (frame-pretty-name frame))
-                  (loop
-                    (catch 'layout-changed
-                      (let ((*application-frame* frame))
-                        ;; We must return the values from CALL-NEXT-METHOD,
-                        ;; or else ACCEPTING-VALUES will return NIL
-                        #-CCL-2
-                        (return-from run-frame-top-level (call-next-method))
-                        ;; The (RETURN-FROM FOO (CALL-NEXT-METHOD)) form above
-                        ;; doesn't work in Coral.  If the "top level" restart
-                        ;; above is taken, the CALL-NEXT-METHOD form blows out
-                        ;; the second time through this code, claiming that it
-                        ;; can't find the next method.  Hoisting the
-                        ;; CALL-NEXT-METHOD out of the RETURN-FROM form seems
-                        ;; to fix it...  So it conses, big deal.
-                        #+CCL-2
-                        (let ((results (multiple-value-list (call-next-method))))
-                          (return-from run-frame-top-level (values-list results))))))))))
-        ;; We disable the frame here, but it is the responsibility of the
-        ;; top-level function to enable the frame.  For example, if we
-        ;; called ENABLE-FRAME here, ACCEPTING-VALUES would disable the
-        ;; wrong frame.  Sigh.
-        (queue-flush (frame-command-queue frame))
-        (let ((sheet (frame-top-level-sheet frame)))
-          (when sheet (queue-flush (sheet-event-queue sheet))))
-        (disable-frame frame)))))
+  (let ((destroy nil))
+    (with-simple-restart (nil "Exit ~A" (frame-pretty-name frame))
+      (handler-bind ((frame-exit
+		      #'(lambda (condition)
+			  (let ((exit-frame (frame-exit-frame condition))
+				(options (frame-exit-options condition)))
+			    (setq destroy (getf options :destroy nil))
+			    (when (eq frame exit-frame)
+			      (return-from run-frame-top-level nil))))))
+	(unwind-protect
+	    (with-clim-state-reset (:all t
+					 :additional-bindings ((*application-frame* frame)))
+	      (with-frame-manager ((frame-manager frame))
+		(loop
+		  (with-simple-restart (nil "~A top level" (frame-pretty-name frame))
+		    (loop
+		      (catch 'layout-changed
+			(let ((*application-frame* frame))
+			  ;; We must return the values from CALL-NEXT-METHOD,
+			  ;; or else ACCEPTING-VALUES will return NIL
+			  (return-from run-frame-top-level (call-next-method)))))))))
+	  ;; We disable the frame here, but it is the responsibility of the
+	  ;; top-level function to enable the frame.  For example, if we
+	  ;; called ENABLE-FRAME here, ACCEPTING-VALUES would disable the
+	  ;; wrong frame.  Sigh.
+	  (queue-flush (frame-command-queue frame))
+	  (let ((sheet (frame-top-level-sheet frame)))
+	    (when sheet (queue-flush (sheet-event-queue sheet))))
+	  (disable-frame frame)
+	  (when destroy (destroy-frame frame))
+	  )))))
 
 ;;; Update demo/default-frame-top-level.lisp if you change this
 ;;--- I'm not really convinced that this is right  --SWM
@@ -908,8 +915,9 @@
 	       ht))))
   
 ;; Generic because someone might want :BEFORE or :AFTER
-(defmethod frame-exit ((frame standard-application-frame))
-  (signal 'frame-exit :frame frame))
+(defmethod frame-exit ((frame standard-application-frame) 
+		       &rest keys)
+  (signal 'frame-exit :frame frame :options keys))
 
 
 (defmethod handle-event ((stream input-protocol-mixin) (event port-terminated))
@@ -1221,28 +1229,26 @@
            (push command-name disabled-commands)
            (note-command-disabled (frame-manager frame) frame command-name)))))
 
-
-;;--- There is the compiler bug with (eval-when (compile load eval) ...)
-;;--- DEFMETHOD with a CALL-NEXT-METHOD.  See to incorporate this patch.
-(eval-when (#-Allegro compile load eval)
 (define-condition synchronous-command-event ()
   ((command :initarg :command :reader synchronous-command-event-command)
    (echo :initarg :echo :reader synchronous-command-event-echo-p))
   (:report (lambda (condition stream)
              (format stream "Command event condition signalled for ~S"
-               (synchronous-command-event-command condition)))))
-)        ;eval-when
+		     (synchronous-command-event-command condition)))))
 
 (defvar *reading-frame-command* nil)
 
 (defmethod read-frame-command :around ((frame standard-application-frame) &key)
+  (initialize-for-command-reader (frame-manager frame) frame)
   (flet ((maybe-echo-command (command)
            (let ((ptype `(command :command-table ,(frame-command-table frame))))
              (when (eq *command-parser* #'command-line-command-parser)
-               (present command ptype :stream *standard-input* :allow-sensitive-inferiors nil))
+               (present command ptype :stream *standard-input* 
+			:allow-sensitive-inferiors nil))
              (when (frame-maintain-presentation-histories frame)
                (push-history-element (presentation-type-history ptype)
-                                     (make-presentation-history-element :object command :type ptype))))))
+                                     (make-presentation-history-element 
+				      :object command :type ptype))))))
     (let* ((command-and-options (queue-pop (frame-command-queue frame))))
       (if command-and-options
           (destructuring-bind (command &key echo) command-and-options
@@ -1256,6 +1262,8 @@
                               (return-from read-frame-command command)))))
           (let ((*reading-frame-command* t))
             (call-next-method)))))))
+
+(defmethod initialize-for-command-reader ((frame-manager t) (frame t)) nil)
 
 ;;--- Actually this should be named COMMAND-EVENT
 (defclass presentation-event (event)

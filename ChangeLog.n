@@ -11,6 +11,39 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.2.1.70
+
+1999-09-30  jmorrill@pointnclick.com
+
+* aclpc/acl-class: Fix events being received by text-fields
+* aclpc/acl-dc: work on leak of system resources.
+* aclpc/acl-medium: ditto.
+* aclpc/acl-frames: Fix race condition with UpdateWindow.
+             Fix character case problem with select-file.
+* aclpc/acl-mirror: Fix race condition with UpdateWindow.
+* aclpc/acl-widgets: Fix event handling by text-fields.
+      Fix handling of <cr><lf> in multiline strings.
+      Work on leak of system resources.
+* clim/activities: add DESTROY keyword argument to frame-exit.
+* clim/frames: ditto
+* silica/db-layout: fix layout problem (spr20225)
+* tk-silica/xm-frames: Fix menubar sensitivity problem
+
+*******************************************************************************
+2.2.1.69
+
+1999-07-30  jmorrill@pointnclick.com
+
+	* aclpc/acl-class.lisp, Fix META keystroke accelerator
+	* aclpc/acl-frames.lisp, Change an error to a warning
+      * aclpc/acl-prel.lisp, clean up some ct:: junk
+      * aclpc/acl-widget.lisp, implement gadget-current-selection (was missing)
+      * clim/frames.lisp, tk-silica/xm-frames.lisp, update menubar activation more often
+      * clim/table-formatting.lisp, fix :min-height for spr
+      * silica/db-layout.lisp, fix :max-height for make-pane 
+      * tk-silica/xm-frames.lisp, fix color palette stuff
+
+*******************************************************************************
 2.2.1.68
 
 1999-06-24  Jeff

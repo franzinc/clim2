@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-widget.lisp,v 1.7.8.22 1999/06/24 18:32:36 layer Exp $
+;; $Id: acl-widget.lisp,v 1.7.8.23 1999/10/04 18:43:44 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -49,7 +49,9 @@
     (when (setq m (sheet-direct-mirror gadget))
       (win:EnableWindow m 0))))
 
-
+(defmethod port-move-focus-to-gadget ((port acl-clim::acl-port)
+				      (gadget acl-gadget-id-mixin))
+  (win:SetFocus (sheet-direct-mirror gadget)))
 
 ;;;acl-gadget-id-mixin   
 
@@ -67,10 +69,8 @@
   (:default-initargs :background +white+))
 
 (defmethod handle-event ((pane hlist-pane)
-			 ;; use window-change-event to workaround bug
-			 ;; with bad redirection of pointer-events -
-			 ;; see comment in silica/event.lisp (cim 9/17/96)
 			 (event window-change-event))
+  ;; Handle WM_COMMAND message.
   (let ((mirror (sheet-direct-mirror pane))
 	(index 0))
     (when mirror
@@ -287,7 +287,7 @@
 ;; Kludge.  Sorry.  This is a workaround for the fact that
 ;; the min height in a +text-field-view+ is zero.  At some
 ;; point, lets try modifying +text-field-view+ and 
-;; +text-editor-view+ to supply better default sizes.
+;; +text-editor-view+ to supply better default sizes than zero.
 (defvar *min-text-field-width* 75)
 (defvar *min-text-field-height* 25)
 
@@ -329,6 +329,9 @@
 	       ;; This is where accepting-values views factors in.
 	       (setq h (max (process-height-specification 
 			     pane (space-requirement-height initial-space-requirement))
+			    (if nlines 
+				(process-height-specification pane `(,nlines :line))
+			      0)
 			    *min-text-field-height*)))
 	      (nlines
 	       (setq h (process-height-specification pane `(,nlines :line))))
@@ -354,47 +357,61 @@
   (declare (ignore background label))
   nil)
 
+(defmethod handle-event ((pane mswin-text-edit) 
+			 (event window-change-event))
+  ;; Handle WM_COMMAND event
+  ;; This event occurs when the control receives keystrokes that can
+  ;; be entered into the buffer.
+  (let ((old (slot-value pane 'value))
+	(new (gadget-value pane)))
+    (unless (equal old new)		
+      (setf (gadget-value pane :invoke-callback t) new))))
+
 (defmethod handle-event ((pane mswin-text-edit) (event key-press-event))
+  ;; This event occurs when a text-field recevies a RETURN character.
+  (activate-callback pane (gadget-client pane) (gadget-id pane))
   (let ((mirror (sheet-direct-mirror pane)))
     (declare (ignore mirror))
     ;; Give up the focus
     (win:SetFocus (win:GetActiveWindow))))
 
-(defmethod handle-event ((pane mswin-text-edit) (event window-change-event))
-  (let ((mirror (sheet-direct-mirror pane)))
-    (declare (ignore mirror))
-    (setf (gadget-value pane :invoke-callback t) (gadget-value pane))))
-
-(defmethod handle-event ((pane mswin-text-edit) (event focus-out-event))
-  (let ((mirror (sheet-direct-mirror pane)))
-    (declare (ignore mirror))
-    (setf (gadget-value pane :invoke-callback t) (gadget-value pane))))
-
-(defmethod handle-event :after ((pane mswin-text-edit) (event window-change-event))
-  (focus-out-callback pane (gadget-client pane) (gadget-id pane)))
-
-(defun xlat-newline-return (str)
+(defun xlat-newline-return (str &optional (convert-to-foreign nil))
   ;; Given a Lisp string, create an equivalent C string.
   ;; Replace Newline with Return&Newline.
-  (if (not (find #\Newline str :test #'char=))
-      (values str (length str))
-    (let* ((subsize (length str))
-	   (nnl (let ((nl 0))
-		  (dotimes (i subsize)
-		    (when (char= (char str i) #\Newline)
-		      (incf nl)))
-		  nl))
-	   (cstr (ct:callocate (:char *) :size (+ 1 nnl subsize)))
-	   (pos 0))
-      (dotimes (i subsize)
-	(when (char= (char str i) #\Newline)
-	  (ct:cset (:char 256) cstr ((fixnum pos)) (char-int #\Return))
-	  (incf pos))
-	(ct:cset (:char 256) cstr ((fixnum pos)) (char-int (char str i)))
-	(incf pos))
-      ;; terminate with null
-      (ct:cset (:char 256) cstr ((fixnum pos)) 0)
-      (values cstr pos))))
+  (let ((nl 0)
+	(subsize (length str))
+	(string nil)
+	(cstr nil)
+	(pos 0))
+    (dotimes (i subsize)
+      (when (char= (char str i) #\Newline)
+	(incf nl)))
+    (cond (convert-to-foreign
+	   ;; This doesn't do the right thing for international lisp.
+	   ;; Use excl:with-native-string for that, and phase this out.
+	   ;; Unfortunately, excl:with-native-string ignores the 
+	   ;; issue of Newline.
+	   (setq cstr (ct:callocate (:char *) :size (+ 1 nl subsize)))
+	   (dotimes (i subsize)
+	     (when (char= (char str i) #\Newline)
+	       (ct:cset (:char 256) cstr ((fixnum pos)) (char-int #\Return))
+	       (incf pos))
+	     (ct:cset (:char 256) cstr ((fixnum pos)) (char-int (char str i)))
+	     (incf pos))
+	   ;; terminate with null
+	   (ct:cset (:char 256) cstr ((fixnum pos)) 0)
+	   (values cstr pos))
+	  ((zerop nl)
+	   (values str subsize))
+	  (t
+	   (setq string (make-string (+ nl subsize)))
+	   (dotimes (i subsize)
+	     (when (char= (char str i) #\newline)
+	       (setf (char string pos) #\return)
+	       (incf pos))
+	     (setf (char string pos) (char str i))
+	     (incf pos))
+	   (values string pos)))))
 
 (defun unxlat-newline-return (str)
   ;; Given a C string, create an equivalent Lisp string.
@@ -417,9 +434,10 @@
   (declare (ignore invoke-callback))
   (let ((mirror (sheet-direct-mirror pane))
 	(topline 0)
-	(leftchar 0))
-    (with-slots (value) pane
-      (setq value new)
+	(leftchar 0)
+	(old (slot-value pane 'value)))
+    (unless (equal old new)
+      (setf (slot-value pane 'value) new)
       (when mirror
 	;; How do I get leftchar?
 	(setq topline (acl-clim::frame-send-message 
@@ -429,7 +447,7 @@
 	(acl-clim::frame-send-message
 	 (pane-frame pane) mirror win:WM_SETREDRAW 0 0)
 	;; Here's the text:
-	#+broken ; dies when string contains newline/return
+	#+broken			; dies when string contains newline/return
 	(excl:with-native-string (s1 (xlat-newline-return new))
 	  (win:SetWindowText mirror s1))
 	(win:SetWindowText mirror (xlat-newline-return new))
@@ -441,8 +459,7 @@
 	 (pane-frame pane) mirror win:WM_SETREDRAW 1 0)
 	;; Force redraw
 	(win:InvalidateRect mirror 0 win:TRUE)
-	(or (win:UpdateWindow mirror)	; send a WM_PAINT message
-	    (acl-clim::check-last-error "UpdateWindow" :action :warn))
+	(acl-clim::frame-update-window (pane-frame pane) mirror)
 	))))
 
 (defmethod gadget-value ((pane mswin-text-edit))
@@ -464,13 +481,30 @@
 	  (values teb (length teb)))
       (values value (if (listp value) (length value) 0)))))
 
-(defmethod acl-clim::command-event :around ((gadget mswin-text-edit) 
-					    port sheet wparam lparam)
-  (let ((notifycode (acl-clim::hiword wparam)))
-    (when (= notifycode win:EN_KILLFOCUS)
-      ;; Don't (setf gadget-value) with every keystroke.
-      ;; Only when edit control loses keyboard focus.
-      (call-next-method gadget port sheet wparam lparam))))
+(defmethod gadget-current-selection ((pane mswin-text-edit))
+  (let ((mirror (sheet-direct-mirror pane)))
+    (when mirror
+      (let* ((wl (acl-clim::frame-send-message (pane-frame pane)
+					       mirror 
+					       win:WM_GETTEXTLENGTH 
+					       0 0))
+	     (teb (make-array wl :element-type '(unsigned-byte 8)))
+	     (tlen (win:GetWindowText mirror teb (1+ wl)))
+	     (startptr (make-array 1 
+				  :element-type '(unsigned-byte 32)
+				  :initial-element 0))
+	     (endptr (make-array 1 
+				  :element-type '(unsigned-byte 32)
+				  :initial-element 0)))
+	(declare (ignorable tlen))
+	(acl-clim::frame-send-message (pane-frame pane)
+				      mirror
+				      win:EM_GETSEL
+				      startptr endptr)
+	(unxlat-newline-return 
+	 (excl:mb-to-string teb 
+			    :start (aref startptr 0) 
+			    :end (aref endptr 0)))))))
 
 (defmethod text-edit-flags ((sheet mswin-text-edit))
   (logior 
@@ -738,8 +772,6 @@
 	    :height h :min-height h)))
       )))
 
-(defvar *background-brush* nil)
-
 (defmethod draw-picture-button ((pane hpbutton-pane) state hdc rect)
   ;; Handle the drawing part of owner-drawn buttons (BS_OWNERDRAW).
   (assert (acl-clim::valid-handle hdc))
@@ -751,45 +783,50 @@
       (win:SetBkColor hdc bg)
       (win:SetTextColor hdc fg)
       (win:SetRop2 hdc win:R2_COPYPEN)
-      (let ((brush (win:CreateSolidBrush bg)))
-	(win:SelectObject hdc brush))
-      (win:DrawEdge hdc
-		    rect 
-		    (if (logtest state win:ODS_SELECTED)
-			win:BDR_SUNKEN
-		      win:BDR_RAISED)
-		    (+ win:BF_RECT win:BF_MIDDLE))
-      (win:rectangle hdc 1 1 (- bwidth 2) (- bheight 2))
-      (let ((pixmap (slot-value pane 'pixmap))
-	    (label (gadget-label pane)))
-	(cond (pixmap
-	       (let* ((op (slot-value pane 'raster-op))
-		      (width (pixmap-width pixmap))
-		      (height (pixmap-height pixmap))
-		      (x (floor (- bwidth width) 2))
-		      (y (floor (- bheight height) 2)))
-		 (when (logtest state win:ODS_SELECTED)
-		   (incf x)
-		   (incf y))
-		 (win:BitBlt hdc x y width height (acl-clim::pixmap-cdc pixmap) 0 0
-			     (acl-clim::bop->winop op))))
-	      (label
-	       (acl-clim::adjust-gadget-colors pane hdc)
-	       (with-sheet-medium (medium pane)
-		 (let* ((port (port medium))
-			(text-style (medium-merged-text-style medium))
-			(font (text-style-mapping port text-style))
-			(index (acl-clim::acl-font-index font)))
-		   (when (acl-clim::valid-handle index) (win:selectobject hdc index))
-		   (multiple-value-bind (cstr len)
-		       (silica::xlat-newline-return label)
-		     (multiple-value-bind (width height) 
-			 (text-size medium label :text-style text-style)
-		       (let ((x (floor (- bwidth width) 2))
-			     (y (floor (- bheight height) 2)))
-			 (or (win:TextOut hdc x y cstr len) 
-			     (acl-clim::check-last-error "TextOut" :action :warn)))
-		       ))))))))))
+      (let* ((dc-image 
+	      (with-sheet-medium (m pane)
+		(acl-clim::dc-image-for-ink 
+		 m (pane-background pane))))
+	     (brush (acl-clim::dc-image-brush dc-image)))
+	(win:SelectObject hdc brush)
+	(win:DrawEdge hdc
+		      rect 
+		      (if (logtest state win:ODS_SELECTED)
+			  win:BDR_SUNKEN
+			win:BDR_RAISED)
+		      (+ win:BF_RECT win:BF_MIDDLE))
+	(win:rectangle hdc 1 1 (- bwidth 2) (- bheight 2))
+	(let ((pixmap (slot-value pane 'pixmap))
+	      (label (gadget-label pane)))
+	  (cond (pixmap
+		 (let* ((op (slot-value pane 'raster-op))
+			(width (pixmap-width pixmap))
+			(height (pixmap-height pixmap))
+			(x (floor (- bwidth width) 2))
+			(y (floor (- bheight height) 2)))
+		   (when (logtest state win:ODS_SELECTED)
+		     (incf x)
+		     (incf y))
+		   (win:BitBlt hdc x y width height (acl-clim::pixmap-cdc pixmap) 0 0
+			       (acl-clim::bop->winop op))))
+		(label
+		 (acl-clim::adjust-gadget-colors pane hdc)
+		 (with-sheet-medium (medium pane)
+		   (let* ((port (port medium))
+			  (text-style (medium-merged-text-style medium))
+			  (font (text-style-mapping port text-style))
+			  (index (acl-clim::acl-font-index font)))
+		     (when (acl-clim::valid-handle index) (win:selectobject hdc index))
+		     (multiple-value-bind (cstr len)
+			 (silica::xlat-newline-return label)
+		       (multiple-value-bind (width height) 
+			   (text-size medium label :text-style text-style)
+			 (let ((x (floor (- bwidth width) 2))
+			       (y (floor (- bheight height) 2)))
+			   (or (win:TextOut hdc x y cstr len) 
+			       (acl-clim::check-last-error "TextOut" :action :warn)))
+			 )))))))
+	))))
 
 ;; deallocate and pixmap associated with a picture button when it's
 ;; destroyed - this is the only note-sheet-degrafted method in the
@@ -808,6 +845,7 @@
 
 (defmethod handle-event ((pane hpbutton-pane) 
 			 (event window-change-event))
+  ;; Handle WM_COMMAND event.
   ;; SPR18779.  This code runs as a result of pushing a button.
   ;; Turn on output recording in case the callback does any
   ;; output.  Output recording is otherwise turned off by 
@@ -935,32 +973,33 @@
     (win:SetBkColor hdc (acl-clim::color->wincolor (pane-background pane)))
     (win:SetTextColor hdc (acl-clim::color->wincolor (pane-foreground pane)))
     (win:SetRop2 hdc win:R2_COPYPEN)
-    (let ((brush (win:CreateSolidBrush 
-		  (acl-clim::color->wincolor (pane-background pane)))))
-      (when (acl-clim::valid-handle brush)
-	(win:SelectObject hdc brush)
-	(win:DeleteObject brush)))
-    (win:DrawEdge hdc
-		  rect 
-		  (if (logtest state win:ODS_SELECTED)
-		      win:BDR_SUNKEN
-		    win:BDR_RAISED)
-		  (+ win:BF_RECT win:BF_MIDDLE))
-    (let ((margin 1))
-      (win:rectangle hdc margin margin 
-		     (- bwidth margin margin) (- bheight margin margin)))
-    (let* ((pixmap (slot-value pane 'pixmap)))
-      (when pixmap
-	(let* ((op (slot-value pane 'raster-op))
-	       (width (pixmap-width pixmap))
-	       (height (pixmap-height pixmap))
-	       (x (floor (- bwidth width) 2))
-	       (y (floor (- bheight height) 2)))
-	  (when (logtest state win:ODS_SELECTED)
-	    (incf x)
-	    (incf y))
-	  (win:BitBlt hdc x y width height (acl-clim::pixmap-cdc pixmap) 0 0
-		      (acl-clim::bop->winop op)))))))
+    (let* ((dc-image 
+	    (with-sheet-medium (m pane)
+	      (acl-clim::dc-image-for-ink 
+	       m (pane-background pane))))
+	   (brush (acl-clim::dc-image-brush dc-image)))
+      (win:SelectObject hdc brush)
+      (win:DrawEdge hdc
+		    rect 
+		    (if (logtest state win:ODS_SELECTED)
+			win:BDR_SUNKEN
+		      win:BDR_RAISED)
+		    (+ win:BF_RECT win:BF_MIDDLE))
+      (let ((margin 1))
+	(win:rectangle hdc margin margin 
+		       (- bwidth margin margin) (- bheight margin margin)))
+      (let* ((pixmap (slot-value pane 'pixmap)))
+	(when pixmap
+	  (let* ((op (slot-value pane 'raster-op))
+		 (width (pixmap-width pixmap))
+		 (height (pixmap-height pixmap))
+		 (x (floor (- bwidth width) 2))
+		 (y (floor (- bheight height) 2)))
+	    (when (logtest state win:ODS_SELECTED)
+	      (incf x)
+	      (incf y))
+	    (win:BitBlt hdc x y width height (acl-clim::pixmap-cdc pixmap) 0 0
+			(acl-clim::bop->winop op))))))))
 
 (defmethod compose-space ((pane hbutton-pane) &key width height)
   (declare (ignore width height))
@@ -987,10 +1026,8 @@
   (declare (ignore medium)))
 
 (defmethod handle-event ((pane hbutton-pane) 
-			 ;; use window-change-event to workaround bug
-			 ;; with bad redirection of pointer-events -
-			 ;; see comment in silica/event.lisp (cim 9/17/96)
 			 (event window-change-event))
+  ;; Handle WM_COMMAND event.
   (setf (gadget-value pane :invoke-callback t)
     (or (eq (gadget-indicator-type pane) :one-of)
 	(not (gadget-value pane)))))
@@ -1041,6 +1078,7 @@
 
 (defmethod handle-event ((pane mswin-combo-box-pane) 
 			 (event window-change-event))
+  ;; Handle WM_COMMAND event.
   (let ((mirror (sheet-direct-mirror pane))
 	(index 0))
     (with-slots (items value mode value-key) pane
@@ -1192,6 +1230,7 @@
 
 (defmethod handle-event ((pane mswin-menu-bar-button)
 			 (event window-change-event))
+  ;; Handle WM_COMMAND event.
   (with-slots (armed next-menu) pane
     (with-sheet-medium (medium pane)
       (declare (ignore medium))
@@ -1382,10 +1421,8 @@
   )
 
 (defmethod handle-event ((pane mswin-pull-down-menu-button)
-			 ;; use window-change-event to workaround bug
-			 ;; with bad redirection of pointer-events -
-			 ;; see comment in silica/event.lisp (cim 9/17/96)
 			 (event window-change-event))
+  ;; Handle WM_COMMAND event.
   (with-slots (armed) pane
     (when (eq armed :active)
       (setf armed t)

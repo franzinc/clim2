@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xm-frames.lisp,v 1.75.22.4 1998/12/17 00:19:52 layer Exp $
+;; $Id: xm-frames.lisp,v 1.75.22.5 1999/10/04 18:43:49 layer Exp $
 
 (in-package :xm-silica)
 
@@ -37,7 +37,12 @@
        shell
        :wm-delete-window
        'frame-wm-protocol-callback
-       frame))))
+       frame) 
+      (let* ((palette (frame-palette frame))
+	     (colormap (palette-colormap palette)))
+	;; Tell motif to use this color palette.
+	(tk::set-values shell :colormap colormap)
+	))))
 
 (defmethod note-frame-enabled :after ((framem motif-frame-manager) frame)
   ;;-- Doing this gets around the problem with motif-menu bars coming
@@ -339,6 +344,41 @@
 				   accel-text)))))
   (when accelerator-text
     (tk::set-values button :accelerator-text accelerator-text)))
+
+(defmethod clim-internals::initialize-for-command-reader 
+    ((frame-manager motif-frame-manager) (frame t))
+  (flet ((fix-sheet (sheet)
+	   (when (typep sheet 'motif-menu-bar)
+	     (update-menubar-sensitivity sheet frame))))
+    (declare (dynamic-extent #'fix-sheet))
+    (map-over-sheets #'fix-sheet (frame-top-level-sheet frame))))
+
+(defmethod update-menubar-sensitivity ((sheet motif-menu-bar) frame)
+  ;; There is a common convention in CLIM applications to control
+  ;; the enabling/disabling of commands by defining EQL-specialized
+  ;; methods on the COMMAND-ENABLED generic function.  That is a
+  ;; passive approach that won't have any effect until the function
+  ;; is called.  Here is where we can call the COMMAND-ENABLED function.
+  (let ((command-table (or (menu-bar-command-table sheet)
+			   (frame-command-table (pane-frame sheet))))
+	(framem (frame-manager frame)))
+    (labels ((visit-table (ct)
+	       (map-over-command-table-menu-items
+		#'(lambda (menu keystroke item)
+		    (declare (ignore keystroke menu))
+		    (let ((type (command-menu-item-type item))
+			  (value (command-menu-item-value item)))
+		      (cond ((eq type :menu)
+			     (visit-table value))
+			    ((eq type :command)
+			     (let* ((name (car value))
+				    (enabled (command-enabled name frame)))
+			       (if enabled
+				   (note-command-enabled framem frame name)
+				 (note-command-disabled framem frame name)))))))
+		ct)))
+      (declare (dynamic-extent #'visit-table))
+      (visit-table command-table))))
 
 (defun display-motif-help (widget framem documentation)
   (frame-manager-notify-user

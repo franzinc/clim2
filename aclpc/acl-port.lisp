@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-port.lisp,v 1.5.8.17 1999/06/23 15:25:18 layer Exp $
+;; $Id: acl-port.lisp,v 1.5.8.18 1999/10/04 18:43:43 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -166,6 +166,8 @@
    ;; operating system to rotate a font to the required angle:
    (rotated-font-htable :initform (make-hash-table)
 			:accessor port-rotated-font-htable)   
+   ;; Pixmaps
+   (pixmaps :initform nil :accessor port-pixmaps)
    ))
 
 (defmethod restart-port ((port acl-port))
@@ -279,8 +281,38 @@
     ))
 
 (defmethod destroy-port :before ((port acl-port))
-  (when (eq port *acl-port*)
-    (setf *acl-port* nil)))
+  ;; This method should release all open handles 
+  ;; and "uninitialize" clim.  This is very useful
+  ;; for tracking down resource leaks, because any
+  ;; handles left open after this were leaked.
+  (declare (special *port-mirror-sheet-alist*))
+  (without-scheduling 
+    (let ((hash (port-dc-cache port)))
+      (maphash #'(lambda (ink dc-image) 
+		   (declare (ignore ink))
+		   (destroy-dc-image dc-image))
+	       hash)
+      (clrhash hash))
+    (destroy-dc)
+    (let ((hash (port-rotated-font-htable port)))
+      (maphash #'(lambda (font list)
+		   (declare (ignore font))
+		   (dolist (pair list)
+		     (destroy-acl-font (second pair))))
+	       hash)
+      (clrhash hash))
+    (let ((hash (slot-value port 'text-style->acl-font-mapping)))
+      (maphash #'(lambda (font acl-font)
+		   (declare (ignore font))
+		   (destroy-acl-font acl-font))
+	       hash)
+      (clrhash hash))
+    (dolist (pix (port-pixmaps port))
+      (port-deallocate-pixmap port pix))
+    (setf (port-pixmaps port) nil)
+    (when (eq port *acl-port*)
+      (setq *port-mirror-sheet-alist* nil)
+      (setf *acl-port* nil))))
 
 (defstruct (acl-font)
   index
@@ -304,6 +336,13 @@
   pitch
   family
   font-width-table)
+
+(defun destroy-acl-font (acl-font)
+  (let ((f (acl-font-index acl-font)))
+    (when f
+      (win:DeleteObject f)
+      (setf (acl-font-index acl-font) nil))
+    acl-font))
 
 (defparameter *acl-logical-size-alist*
 	      '((:tiny       6)
@@ -550,6 +589,7 @@
       (win:SetMapMode dc win:MM_TEXT)
       (assert (valid-handle dc))
       (when (valid-handle win-font) (selectobject dc win-font))
+      ;; NEED TO FREE TMSTRUCT?
       (or (win:GetTextMetrics dc tmstruct)
 	  (check-last-error "GetTextMetrics"))
       (let ((average-character-width

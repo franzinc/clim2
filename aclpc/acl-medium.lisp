@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-medium.lisp,v 1.6.8.23 1999/06/24 18:32:34 layer Exp $
+;; $Id: acl-medium.lisp,v 1.6.8.24 1999/10/04 18:43:43 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -289,7 +289,7 @@
 	(setf (aref into i j) (aref array i j))))
     (setf *bitmap-array* into)
     (let* ((bitmapinfo (get-bitmapinfo medium dc-image into designs))
-	   (dc (win:GetDC 0))
+	   (dc (GetDC 0))
 	   (bitmap (unless (zerop dc)
 		     (get-texture dc into bitmapinfo))))
       (when bitmap
@@ -344,7 +344,7 @@
 						   (list clim:+white+ 
 							 mainink))
 				       ))
-	   (dc (win:GetDC 0))
+	   (dc (GetDC 0))
 	   (bitmap (get-texture dc copy-arr bitmapinfo)))
       ;; To Do: replace BITMAP with COPY-ARR and just use 
       ;; device-independent bitmap operations.
@@ -360,7 +360,7 @@
 					    (list clim:+black+ 
 						  mainink))
 				))
-	       (dc-mask (win:GetDC 0))
+	       (dc-mask dc)
 	       (bitmap-mask (get-texture dc-mask copy-arr-mask 
 					 bitmapinfo-mask)))
 	  ;; To Do: replace BITMAP with COPY-ARR and just use 
@@ -379,6 +379,7 @@
 	  ;;
 	  ;; Windows does not support transparent ink directly.  We have to
 	  ;; create transparency with two images.
+	  (win:ReleaseDC 0 dc)
 	  (values
 	   (list dc-image
 		 dc-image-mask)
@@ -515,6 +516,8 @@ draw icons and mouse cursors on the screen.
 		   ;; work right now, so lets use a Windows hatchbrush
 		   ;; for now.  We can cache a hatchbrush I think.
 		   (dolist (dci image)
+		     (let ((old (dc-image-brush dci)))
+		       (when (valid-handle old) (win:DeleteObject old)))
 		     (setf (dc-image-background-color dci) -1) ; transparent
 		     (setf (dc-image-brush dci) 
 		       (pattern-to-hatchbrush pattern)))
@@ -693,7 +696,7 @@ draw icons and mouse cursors on the screen.
 			 (medium ink)
 			
 			 ;; Create compatable memory dc
-			 (setq cdc (win:createcompatibledc dc))
+			 (setq cdc (win:CreateCompatibleDC dc))
 			 (assert (valid-handle cdc))	
 			 (cond ((listp dc-image)
 				;; This is the case of a pattern that contains transparent ink.
@@ -711,12 +714,12 @@ draw icons and mouse cursors on the screen.
 				  ;; select a (Device-Dependent) bitmap into the dc
 				  (when (valid-handle pictbm) (SelectObject cdc pictbm))
 				  ;; Copy bitmap from memory dc to screen dc
-				  (win:bitblt dc left top (- right left) (- bottom top)
+				  (win:BitBlt dc left top (- right left) (- bottom top)
 					      cdc 0 0 
 					      win:SRCAND)
 			 
 				  (when (valid-handle maskbm) (SelectObject cdc maskbm))
-				  (win:bitblt dc left top (- right left) (- bottom top)
+				  (win:BitBlt dc left top (- right left) (- bottom top)
 					      cdc 0 0 
 					      acl-clim::SRCOR)))
 			       (t
@@ -724,10 +727,10 @@ draw icons and mouse cursors on the screen.
 				(let ((bm (dc-image-bitmap dc-image)))
 				  (when (valid-handle bm) (SelectObject cdc bm)))
 				;; Copy bitmap from memory dc to screen dc
-				(win:bitblt dc left top (- right left) (- bottom top)
+				(win:BitBlt dc left top (- right left) (- bottom top)
 					    cdc 0 0 win:SRCCOPY)))
 			 ;; Delete memory dc
-			 (win:deletedc cdc)
+			 (win:DeleteDC cdc)
 			 (when (valid-handle old) (SelectObject dc old))))
 		     t)
 		    (t
@@ -736,8 +739,8 @@ draw icons and mouse cursors on the screen.
 						(if filled nil line-style)
 						left top)
 			 (if filled
-			     (win:rectangle dc left top (1+ right) (1+ bottom))
-			   (win:rectangle dc left top right bottom))
+			     (win:Rectangle dc left top (1+ right) (1+ bottom))
+			   (win:Rectangle dc left top right bottom))
 			 (when (valid-handle old) (SelectObject dc old))
 			 t
 			 )))))))))))
@@ -959,17 +962,17 @@ draw icons and mouse cursors on the screen.
       (if (flipping-ink-p ink)
 	  (medium-draw-inverted-string* medium string x y start end font text-style)
 	(with-medium-dc (medium dc)
-	  (with-selected-acl-dc (old) (medium window dc)
-				(when old
-				  (with-temporary-substring (substring string start end)
-				    (with-set-dc-for-text (dc medium ink (acl-font-index font))
-				      (multiple-value-bind (cstr len)
-					  (silica::xlat-newline-return substring)
-					(or (excl:with-native-string (cstr cstr)
-					      (win:TextOut dc x y cstr len))
-					    (check-last-error "TextOut" :action :warn)))
-		
-				      (when (valid-handle old) (SelectObject dc old)))))))))))
+	  (with-selected-acl-dc (old) 
+	    (medium window dc)
+	    (when old
+	      (with-temporary-substring (substring string start end)
+		(with-set-dc-for-text (dc medium ink (acl-font-index font))
+		  (multiple-value-bind (cstr len)
+		      (silica::xlat-newline-return substring)
+		    (or (excl:with-native-string (cstr cstr)
+			  (win:TextOut dc x y cstr len))
+			(check-last-error "TextOut" :action :warn)))
+		  (when (valid-handle old) (SelectObject dc old)))))))))))
 
 (defmethod medium-draw-inverted-string* ((medium acl-medium)
 					 string x y start end font text-style)

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-class.lisp,v 1.7.8.17 1999/06/23 15:25:18 layer Exp $
+;; $Id: acl-class.lisp,v 1.7.8.18 1999/10/04 18:43:40 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -343,12 +343,12 @@
 (defun oncommand (window msg wparam lparam)
   (declare (ignore msg))
   (let* ((port *acl-port*)
-	 (sheet (mirror->sheet port window))
+	 (parent (mirror->sheet port window))
 	 (control (not (zerop lparam))))
     (flush-pointer-motion port)
     (cond ((not control)
 	   ;; User selected a command from the menu bar.
-	   (let* ((frame (pane-frame sheet))
+	   (let* ((frame (pane-frame parent))
 		  (ID (loword wparam))
 		  (command (cdr (aref *menu-id->command-table* ID))))
 	     (when command
@@ -356,13 +356,13 @@
 		 (if (member (car command) clim-internals::disabled-commands)
 		     (win:MessageBeep 200)
 		   (execute-command-in-frame frame command))))))
-	  (sheet
+	  (parent
 	   ;; User clicked on a control.
 	   (let ((gadget (mirror->sheet port lparam)))
 	     (when gadget
-	       (command-event gadget port sheet wparam lparam)))))
+	       (command-event gadget port parent wparam lparam)))))
     (clear-winproc-result *win-result*)
-    *win-result*))
+    0))
 
 (defmethod command-event ((gadget t) port sheet wparam lparam)
   "Gadget just issued a WM_COMMAND event."
@@ -599,11 +599,13 @@
 	      (setf keysym (char->keysym keysym)))
 	    (let ((frame (pane-frame sheet))
 		  (command nil))
-	      (cond ((and (eql msg win:WM_KEYDOWN)
+	      (cond ((and (or (eql msg win:WM_KEYDOWN)
+			      (eql msg win:WM_SYSKEYDOWN)); Alt keyboard accelerator
 			  (setq command 
 			    (lookup-accelerator frame keysym modstate)))
 		     (execute-command-in-frame frame command))
-		    ((and (eql msg win:WM_KEYDOWN)
+		    ((and (or (eql msg win:WM_KEYDOWN)
+			      (eql msg win:WM_SYSKEYDOWN))
 			  (eql keysym :newline)
 			  (find-default-gadget frame))
 		     (activate-default-gadget frame))
@@ -748,17 +750,18 @@
 
 ;; Process WM_ACTIVATE
 (defun onactivate (window msg wparam lparam)
-  ;; A window or a control is being activated.
-  ;; If user is activating with a mouse click, 
-  ;; OnMouseActivate is also called.
-  (declare (ignore msg lparam))
+  ;; A window is being activated or deactivated.
+  ;; This message is not sent when interacting with the
+  ;; individual controls in an active window.
+  ;; If user is activating a window with a mouse click, 
+  ;; OnMouseActivate is also called, and ACTIVE will be
+  ;; 2 (WA_CLICKACTIVE).
   (let ((sheet (mirror->sheet *acl-port* window))
-	(flag (loword wparam)))
-    (when (and sheet (> flag 0))
+	(WA_INACTIVE 0)
+	(active (loword wparam)))
+    (when (and sheet (not (= active WA_INACTIVE)))
       (setf (acl-port-mirror-with-focus *acl-port*) window))
-    ;; set return value to 0
-    (clear-winproc-result *win-result*)
-    *win-result*))  
+    (setq *win-result* (win:DefWindowProc window msg wparam lparam))))  
 
 ;; Process WM_KILLFOCUS
 (defun onkillfocus (window msg wparam lparam)
@@ -955,15 +958,14 @@
     (mformat excl:*initial-terminal-io*
 	     "In clim-ctrl-proc msg=~a sheet=~s~%"
 	     (msg-name msg) (mirror->sheet *acl-port* window))
-    ;;(setq *args* (list window msg wparam lparam))
     (let ((result 0))
       (cond
        ;; character typed
        ((or (eql msg win:WM_KEYDOWN)
 	    (eql msg win:WM_SYSKEYDOWN)
 	    (eql msg win:WM_KEYUP)
-	    (eql msg win:WM_SYSKEYUP)
-	    (eql msg win:WM_CHAR))
+	    (eql msg win:WM_SYSKEYUP))
+	;; JPM: This ought to be merged with onkeydown().
 	(flush-pointer-motion *acl-port*)
 	(let* ((code wparam)
 	       (pass t)			; !!!
@@ -1033,8 +1035,7 @@
 		   sheet
 		   (allocate-event
 		    (cond ((or (eql msg win:WM_KEYDOWN)
-			       (eql msg win:WM_SYSKEYDOWN)
-			       (eql msg win:WM_CHAR))
+			       (eql msg win:WM_SYSKEYDOWN))
 			   'key-press-event)
 			  ((or (eql msg win:WM_KEYUP)
 			       (eql msg win:WM_SYSKEYUP))
