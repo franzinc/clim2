@@ -1,4 +1,15 @@
 *******************************************************************************
+4.3.2.pre-alpha.114
+
+Thu Oct 17 06:43:30 1996  Duane Rettig  <duane@beta>
+
+	* Makefile.cobjs:
+	* Makefile.generic:
+	* Makefile.cobjs: Add shared-lib support for HP
+
+	* tk/resources.lisp: Work around SGI Motif bug (per smh spr15174)
+
+*******************************************************************************
 Tue Jul 23 14:29:37 PDT 1996 Colin Meldrum (colin@vapor)
 
 Makefile.defs

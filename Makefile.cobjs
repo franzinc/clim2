@@ -58,9 +58,21 @@ climxm.so: xlibsupport.o xtsupport.o xmsupport.o
 		xlibsupport.o xtsupport.o xmsupport.o \
 		$(IMPORTS) $(TKLIB) $(XTLIB) $(XLIB) $(MOTIFXTRAS))
 
+climxm.sl: xlibsupport.o xtsupport.o xmsupport.o
+	(eval '$(SET_LIBRARY_PATH)' ; \
+	$(MAKE_SHARED) $(SHAREFLAGS) -o climxm.sl \
+		xlibsupport.o xtsupport.o xmsupport.o \
+		$(IMPORTS) $(TKLIB) $(XTLIB) $(XLIB) $(MOTIFXTRAS))
+
 climol.so: xlibsupport.o xtsupport.o olsupport.o
 	(eval '$(SET_LIBRARY_PATH)' ; \
 	$(MAKE_SHARED) $(SHAREFLAGS) -o climol.so \
+		xlibsupport.o xtsupport.o olsupport.o \
+		$(IMPORTS) $(TKLIB) $(XTLIB) $(XLIB))
+
+climol.sl: xlibsupport.o xtsupport.o olsupport.o
+	(eval '$(SET_LIBRARY_PATH)' ; \
+	$(MAKE_SHARED) $(SHAREFLAGS) -o climol.sl \
 		xlibsupport.o xtsupport.o olsupport.o \
 		$(IMPORTS) $(TKLIB) $(XTLIB) $(XLIB))
 

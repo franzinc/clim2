@@ -14,10 +14,14 @@ CFLAGS= -O -D_NO_PROTO -DSTRINGS_ALIGNED -DNO_REGEX -DNO_ISDIR \
 STD_DEFINES = -DSYSV
 AR = ar clq
 
-TKLIB=/usr/lib/Motif1.2/libXm.a
-XTLIB=/usr/lib/X11R5/libXt.a
-XLIB=/usr/lib/X11R5/libX11.a
+TKLIB=-lXm
+XTLIB=-lXt
+XLIB=-lX11
 
 XINCLUDES= -I/usr/include/Motif1.2 -I/usr/include/X11R5
+
+PICFLAGS = +z
+SHAREFLAGS = -b
+MAKE_SHARED = ld
 
 include Makefile.generic

@@ -392,7 +392,11 @@
     (int nil)
     (short nil)
     (function nil)
-    (top-item-position nil)
+    ;; SGI has a bug or oddity in it Motif.  The top-item-position
+    ;; resource on a XmList returns a null type.  It is an integer
+    ;; doesn't need any conversion, so this papers over the issue.
+    ;; spr15174
+    (|| nil)
     (t t)))
 
 (defmethod resource-type-set-conversion-p (type)
@@ -415,7 +419,7 @@
     (short nil)
     (int nil)
     (function nil)
-    (top-item-position nil)
+    (|| nil)			; spr15174 see above
     (t t)))
 
 (defmethod resource-type-get-memref-type (type)
