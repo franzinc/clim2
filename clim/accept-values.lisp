@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: accept-values.lisp,v 1.82.22.5 1999/11/16 15:09:13 layer Exp $
+;; $Id: accept-values.lisp,v 1.82.22.6 2000/02/03 15:26:25 layer Exp $
 
 (in-package :clim-internals)
 
@@ -1123,18 +1123,23 @@
 (define-accept-values-command (com-abort-avv :keystroke :abort-dialog) ()
   (abort))
 
+(define-accept-values-command (com-exit-avv-funcall-helper) ((thing t))
+  (funcall thing))
+
 (define-presentation-translator abort-or-exit-avv
     (accept-values-exit-box (command :command-table accept-values) accept-values
      :tester-definitive t               ;just like a to-command translator
      :documentation ((object stream)
                      (case object
                        (:exit (write-string "Exit" stream))
-                       (:abort (write-string "Abort" stream))))
+                       (:abort (write-string "Abort" stream))
+		       (t (write-string (princ-to-string object) stream))))
      :gesture :select)
     (object)
   (case object
     (:exit '(com-exit-avv))
-    (:abort '(com-abort-avv))))
+    (:abort '(com-abort-avv))
+    (t `(com-exit-avv-funcall-helper ,object))))
 
 
 ;;; ACCEPTING-VALUES command buttons

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: frames.lisp,v 1.88.8.12 1999/10/04 18:43:47 layer Exp $
+;; $Id: frames.lisp,v 1.88.8.13 2000/02/03 15:26:27 layer Exp $
 
 (in-package :clim-internals)
 
@@ -586,6 +586,36 @@
         (enable-frame frame))
       frame)))
 
+#+mswindows
+(defun windows-launch-frame-helper (frame-class process-return-var &rest initargs)
+  (let ((frame (apply #'make-application-frame frame-class initargs)))
+    (when process-return-var
+      (set process-return-var frame))
+
+    ;; Note that this won't return until the frame exits.
+    (run-frame-top-level frame)    
+    frame))
+
+;;; On mswindows, frame must be activated by the process 
+;;; that created it.
+#+mswindows
+(defun windows-launch-frame (frame-class &rest initargs)
+  (let ((namestr (string-upcase (princ-to-string frame-class)))
+	(process-return-var (gensym "PRV")))
+    (set process-return-var nil)
+    (make-process #'(lambda () 
+		      (apply #'windows-launch-frame-helper 
+			     frame-class 
+			     process-return-var
+			     initargs))
+		  :name namestr)
+    
+    (process-wait "windows-launch-frame" #'(lambda ()
+					     (not (eql (eval process-return-var) nil))))
+    
+    (eval process-return-var)
+    ))
+
 ;; Create an application frame of the specified type if one does not already
 ;; exist, and then run it, possibly in its own process.  If one already exists,
 ;; just select it.
@@ -598,40 +628,66 @@
   (declare (dynamic-extent initargs))
   (when (null frame-class)
     (setq frame-class frame-name))
-  (when (and activate own-process)
-    (with-keywords-removed (initargs initargs '(:own-process))
-      (make-process #'(lambda () 
-			;; On mswindows, frame must be activated by 
-			;; the process that created it.
-			(apply #'find-application-frame frame-name
-			       :own-process nil
-			       initargs))))
-    (return-from find-application-frame t))
   (let ((frame
 	 (unless (eq create :force)
 	   (block find-frame
 	     (map-over-frames #'(lambda (frame)
-				  (when (typep frame frame-class)
+				  ;; On Windows, only retrieve a frame
+				  ;; which has a top-level-process.
+				  (when (and (typep frame frame-class)
+					     #+mswindows (slot-value frame 'top-level-process))
 				    (return-from find-frame frame)))
 			      :frame-manager frame-manager
 			      :port port)
 	     nil))))
+
+    #-mswindows
+    (progn
+      (when (and create (null frame))
+	(with-keywords-removed (initargs initargs 
+					 '(:create :activate :own-process))
+	  (setq frame (apply #'make-application-frame frame-name initargs))))
+      (when (and frame activate)
+	(cond ((slot-value frame 'top-level-process)
+	       (raise-frame frame))
+	      (own-process
+	       (let ((namestr (string-upcase (princ-to-string frame-class))))
+		 (make-process #'(lambda () (run-frame-top-level frame))
+			       :name namestr)))
+	      (t
+	       (run-frame-top-level frame))))
+      )
+    
     #+mswindows
-    (when (and frame (not (slot-value frame 'top-level-process)))
-      ;; We cannot reuse this window because its creator thread
-      ;; is probably gone.  We wouldn't have to worry about this
-      ;; case if we always destroyed the window's mirrors upon
-      ;; frame-exit.
-      (setq frame nil))
-    (when (and create (null frame))
-      (with-keywords-removed (initargs initargs 
-				       '(:create :activate :own-process))
-        (setq frame (apply #'make-application-frame frame-name initargs))))
-    (when (and frame activate)
-      (cond ((slot-value frame 'top-level-process)
-             (raise-frame frame))
-            (t
-             (run-frame-top-level frame))))
+    (progn
+      (cond ((null frame)
+	     (cond (create
+		    (with-keywords-removed (initargs initargs 
+						     '(:create :activate :own-process))
+		      ;; On mswindows, frame must be activated by 
+		      ;; the process that created it.		
+		      (cond (activate
+			     (cond (own-process
+				    (setq frame 
+				      (apply #'windows-launch-frame frame-class
+					     initargs)))
+				   (t
+				    (setq frame
+				      (apply #'make-application-frame frame-name initargs))
+				    (run-frame-top-level frame))))				   
+			    (t 
+			     (setq frame
+			       (apply #'make-application-frame frame-name initargs))))))
+		   (t
+		    nil)))
+	    (activate
+	     ;; Note: If we've got to this point, then 
+	     ;; frame must have a top-level-process
+	     ;;
+	     ;; Note: This seems to work only if
+	     ;; it's run in its own process.
+	     (make-process #'(lambda () 
+			       (raise-frame frame))))))
     frame))
 
 (defmethod enable-frame ((frame standard-application-frame))

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-medium.lisp,v 1.6.8.24 1999/10/04 18:43:43 layer Exp $
+;; $Id: acl-medium.lisp,v 1.6.8.25 2000/02/03 15:26:22 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -303,6 +303,19 @@
     (values dc-image
 	    created-bitmap)))
 
+;;; On Windows machines, patterns containing transparent inks are
+;;; implemented as a pair of images A main "picture" image and a
+;;; second "mask" image The "image" is drawn and then overlayed with
+;;; the "mask".  (For an example, see the method
+;;; medium-draw-rectangle*.)
+;;;
+;;; However, because of the way Windows does things, these bitmaps
+;;; cannot be reused (or cached) so they need to be created and then
+;;; destroyed.
+;;;
+;;; In short, if one of these patterns is used, the caller is
+;;; responsible for cleaning up the structures afterwards.  Again,
+;;; see the example in medium-draw-rectangle*.
 (defun dc-image-for-transparent-pattern (medium ink array designs)
   (declare (ignore ink)
 	   (values (dc-image-list created-bitmap created-mask-bitmap)))
@@ -721,7 +734,11 @@ draw icons and mouse cursors on the screen.
 				  (when (valid-handle maskbm) (SelectObject cdc maskbm))
 				  (win:BitBlt dc left top (- right left) (- bottom top)
 					      cdc 0 0 
-					      acl-clim::SRCOR)))
+					      acl-clim::SRCOR)
+				  
+				  (destroy-dc-image dci-pict :destroy-bitmap nil)
+				  (destroy-dc-image dci-mask :destroy-bitmap nil)
+				  ))
 			       (t
 				;; select a (Device-Dependent) bitmap into the dc
 				(let ((bm (dc-image-bitmap dc-image)))
@@ -740,7 +757,9 @@ draw icons and mouse cursors on the screen.
 						left top)
 			 (if filled
 			     (win:Rectangle dc left top (1+ right) (1+ bottom))
-			   (win:Rectangle dc left top right bottom))
+			   ;; right and bottom need to be incremented
+			   ;; for consistent behavior with unix.
+			   (win:Rectangle dc left top (1+ right) (1+ bottom)))
 			 (when (valid-handle old) (SelectObject dc old))
 			 t
 			 )))))))))))

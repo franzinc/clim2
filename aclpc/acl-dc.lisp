@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-dc.lisp,v 1.4.8.16 1999/11/16 15:09:10 layer Exp $
+;; $Id: acl-dc.lisp,v 1.4.8.17 2000/02/03 15:26:22 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -71,7 +71,9 @@
   and-brush                             ; AND part of masked brush (monochrome)
   )
 
-(defun destroy-dc-image (dc)
+;; Bitmap has to handled carefully when using transparent inks
+;; on mswindows.  See, for example dc-image-for-transparent-pattern.
+(defun destroy-dc-image (dc &key (destroy-bitmap t))
   (let (;; (bitmapinfo (dc-image-bitmapinfo dc)) ; instance of win:bitmapinfo
 	(bitmap (dc-image-bitmap dc))
 	(solid-1-pen (dc-image-solid-1-pen dc))
@@ -88,7 +90,8 @@
     (when brush
       (win:DeleteObject brush)
       (setf (dc-image-brush dc) nil))
-    (when bitmap
+    (when (and bitmap
+	       destroy-bitmap)
       (win:DeleteObject bitmap)
       (setf (dc-image-bitmap dc) nil))
     dc))

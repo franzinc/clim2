@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-widget.lisp,v 1.7.8.24 1999/11/16 15:09:10 layer Exp $
+;; $Id: acl-widget.lisp,v 1.7.8.25 2000/02/03 15:26:23 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -675,7 +675,15 @@
    ;; gadgets is a real mess - some day this needs to be cleaned up
    ;; (cim 10/4/96)
    (pixmap :initform nil)
-   (raster-op :initform *default-picture-button-op* :initarg :raster-op))
+   (raster-op :initform *default-picture-button-op* :initarg :raster-op)
+   
+   ;; New slots to support "graying-out" deactivate
+   ;; "colored" buttons on mswindows.
+   (original-pane-foreground :initform nil :accessor original-pane-foreground)
+   (deactivated-pane-foreground :initarg :deactivated-pane-foreground
+				:initform nil 
+				:accessor deactivated-pane-foreground)
+   )
   (:default-initargs :label nil
     :text-style nil
     :show-as-default nil
@@ -747,7 +755,13 @@
 	    (acl-clim::frame-send-message
 	     (pane-frame sheet)
 	     window win:WM_SETFONT 
-			     (acl-clim::acl-font-index font) 0))))
+	     (acl-clim::acl-font-index font) 0))))
+      
+      (setf (original-pane-foreground SHEET) 
+	(or (pane-foreground sheet)
+	    (let ((resources (acl-clim::port-default-resources port)))
+	      (getf resources :foreground))))
+      
       (when (sheet-enabled-p sheet)
 	;; It's too soon for this.  Need to do this later, 
 	;; after the layout has been processed, but where?
@@ -893,6 +907,38 @@
       ;;; Work-around to force button to refresh.
       (win:SetWindowText mirror (or (gadget-label PANE) "")))))
 
+(defmethod note-gadget-activated :after ((client t)
+					 (gadget hpbutton-pane))
+  (when (or (pane-foreground gadget)
+	    (pane-background gadget))
+    (setf (pane-foreground gadget)
+      (or (original-pane-foreground gadget)
+	  (let ((port (port gadget)))
+	    (getf (acl-clim::port-default-resources port)
+		  :background))
+	  clim:+black+)))
+  )
+
+(defvar +hpbutton-deactivate-light-gray+ (clim-utils::make-gray-color-1 0.8))
+(defvar +hpbutton-deactivate-dark-gray+ (clim-utils::make-gray-color-1 0.3))
+(defmethod note-gadget-deactivated :after ((client t)
+					   (gadget hpbutton-pane))
+  (when (or (pane-foreground gadget)
+	    (pane-background gadget))
+    (let ((dpf (deactivated-pane-foreground gadget)))
+      (when (null dpf)
+	;; If not specified, make a best guess at
+	;; color to use for deactivated-pane-foreground.
+	(let ((opf (original-pane-foreground gadget)))
+	  (cond ((and (typep opf 'clim-utils::gray-color)
+		      (< 0.6 (color-rgb opf)))
+		 (setq dpf +hpbutton-deactivate-dark-gray+))
+		(t
+		 (setq dpf +hpbutton-deactivate-light-gray+))))	
+	(setf (deactivated-pane-foreground gadget) dpf)) 
+
+      (setf (pane-foreground gadget) dpf))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; hbutton-pane
 
@@ -937,6 +983,7 @@
       (setq window
 	(let ((label (slot-value sheet 'silica::label))
 	      (resources (acl-clim::port-default-resources port)))
+	  resources
 	  (when (or (acl-clim::isa-pixmap label)
 		    (acl-clim::isa-pattern label))
 	    (setf (slot-value sheet 'silica::pixmap)
@@ -950,12 +997,15 @@
 		label))
 	    (setq buttonstyle win:BS_OWNERDRAW ;; pnc Aug97 for clim2bug740
 		  label nil))
-	  (unless (eq (pane-background sheet) 
-		      (getf resources :background))
-	    (setq buttonstyle win:BS_OWNERDRAW))
-	  (unless (eq (pane-foreground sheet) 
-		      (getf resources :foreground))
-	    (setq buttonstyle win:BS_OWNERDRAW))
+	  ;; pnc Dec99 for spr20626
+	  ;; If this is set, the toggle button is drawn
+	  ;; as a OWNERDRAWn push-button.
+	  #+IGNORE (unless (eq (pane-background sheet) 
+			       (getf resources :background))
+			   (setq buttonstyle win:BS_OWNERDRAW))
+	  #+IGNORE (unless (eq (pane-foreground sheet) 
+			       (getf resources :foreground))
+			   (setq buttonstyle win:BS_OWNERDRAW))
 	  (acl-clim::hbutton-open parent gadget-id
 				  left top width height 
 				  :buttonstyle buttonstyle

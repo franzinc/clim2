@@ -11,6 +11,27 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.2.1.72
+
+1999-12-02  ncramer@pointandclicksolutions.com
+
+* clim/frames: Make find-application-frame return t properly, and
+properly launch processes on mswindows.  spr20549 and spr21055.
+* aclpc/acl-medium, aclpc/acl-dc: Patch memory-leak problem when
+drawing patterns with transparent inks on mswindows.  spr21074.
+* aclpc/acl-widget: Handle graying-out of (non-default) colored
+push-buttons on mswindows. spr21130
+* aclpc/acl-medium: Make hollow (i.e. non-filled) rectangles
+on Windows the same size as on Unix.   spr20313
+# aclpc/acl-widget.lisp: Disable buggy setting of foreground
+and background colors on toggle buttons (hbutton-pane).  spr20626
+# clim2/clim/accept-values.lisp:  Accept-values buttons handle
+"functional" (i.e. other than :EXIT or :ABORT) options in text
+mode. spr21277
+# postscript/postscript-port, postscript/postscript-medium: Make
+new-page work properly.  spr21276
+
+*******************************************************************************
 2.2.1.71
 
 1999-10-06  jmorrill@pointnclick.com
