@@ -428,6 +428,3 @@ IGNORE JDI SPECIFIC CHANGES TO Makefile
 	Integrated Sun's copyright
 
 	Lots of other stuff
-
-
-
