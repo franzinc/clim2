@@ -20,24 +20,24 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.69 93/04/07 09:07:27 cer Exp $
+;; $fiHeader: xt-graphics.lisp,v 1.70 93/04/08 13:19:15 colin Exp $
 
 (in-package :tk-silica)
 
 (defclass ink-gcontext (tk::gcontext)
-  ((last-device-clip-region :initform nil :fixed-index 2)
+  ((last-clip-region-tick :initform nil :fixed-index 2)
    (last-line-style :initform nil :fixed-index 3)
    (shift-tile-origin :initform nil :fixed-index 4)
    (ink-clip-region :initform nil :fixed-index 5)))
 
-(defmacro ink-gcontext-last-device-clip-region (gcontext)
+(defmacro ink-gcontext-last-clip-region-tick (gcontext)
   `(locally (declare (optimize (speed 3) (safety 0)))
      (excl::slot-value-using-class-name 'ink-gcontext ,gcontext
-					'last-device-clip-region)))
-(defsetf ink-gcontext-last-device-clip-region (gcontext) (value)
+					'last-clip-region-tick)))
+(defsetf ink-gcontext-last-clip-region-tick (gcontext) (value)
   `(locally (declare (optimize (speed 3) (safety 0)))
      (setf (excl::slot-value-using-class-name 'ink-gcontext ,gcontext
-					      'last-device-clip-region)
+					      'last-clip-region-tick)
        ,value)))
 
 (defmacro ink-gcontext-last-line-style (gcontext)
@@ -74,7 +74,8 @@
   ((drawable :initform nil)
    (ink-table :initform (make-hash-table :test #'equal))
    (indirect-inks :initform nil)
-   (device-clip-region :initform nil)))
+   (device-clip-region :initform nil)
+   (device-clip-region-tick :initform 0)))
 
 (defmethod make-medium ((port xt-port) sheet)
   (make-instance 'xt-medium
@@ -264,14 +265,17 @@
 ;;   3. medium's sheet's device transformation changes
 
 (defun medium-device-clip-region (medium)
-  (with-slots (sheet device-clip-region) medium
-    (or device-clip-region
-	(setf device-clip-region
-	  (let ((dr (sheet-device-region sheet))
-		(mcr (medium-clipping-region medium)))
-	    (region-intersection 
-	     dr 
-	     (transform-region (sheet-device-transformation sheet) mcr)))))))
+  (with-slots (sheet device-clip-region device-clip-region-tick)
+      medium
+    (unless device-clip-region
+      (setf device-clip-region
+	(let ((dr (sheet-device-region sheet))
+	      (mcr (medium-clipping-region medium)))
+	  (region-intersection 
+	   dr 
+	   (transform-region (sheet-device-transformation sheet) mcr))))
+      (incf device-clip-region-tick))
+    (values device-clip-region device-clip-region-tick)))
 
 (defmethod (setf medium-clipping-region) :after (cr (medium xt-medium))
   (declare (ignore cr))
@@ -298,12 +302,15 @@
   (tk::widget-window mirror nil))
 
 (defmethod engraft-medium :after ((medium xt-medium) (port xt-port) sheet)
-  (with-slots (indirect-inks drawable device-clip-region)
+  (with-slots (indirect-inks drawable device-clip-region
+			     device-clip-region-tick)
       medium
     (let ((palette (medium-palette medium)))
       (with-slots (white-pixel black-pixel)
 	  palette
-	(setf indirect-inks nil device-clip-region nil)
+	(setf indirect-inks nil 
+	      device-clip-region nil
+	      device-clip-region-tick 0)
 	(setf (medium-sheet medium) sheet)
 	(when (and drawable
 		   (not (eq (port-display port)
@@ -413,34 +420,36 @@
       (setf (ink-gcontext-last-line-style gc) line-style)))
 
   ;; clip mask
-  (let ((device-clip-region (medium-device-clip-region medium))
-	(ink-clip-region (ink-gcontext-ink-clip-region gc)))
-    (when ink-clip-region
-      (setq device-clip-region 
-	(region-intersection (transform-region
-			      (make-translation-transformation x-origin y-origin)
-			      ink-clip-region)
-			     device-clip-region)))
-    (unless (eq (ink-gcontext-last-device-clip-region gc)
-		device-clip-region)
-      (setf (tk::gcontext-clip-mask gc)
-	(macrolet ((region-rectangle (region)
-		     `(with-bounding-rectangle* (left top right bottom) ,region
-		        (list (fix-coordinate left) (fix-coordinate top) 
-			      (fix-coordinate (- right left))
-			      (fix-coordinate (- bottom top))))))
-	  (etypecase device-clip-region
-	    (everywhere :none)
-	    (nowhere nil)
-	    (standard-rectangle-set
-	     (let ((regions (region-set-regions device-clip-region))
-		   (rectangles nil))
-	       (dolist (region regions)
-		 (push (region-rectangle region) rectangles))
-	       rectangles))
-	    (standard-bounding-rectangle
-	     (list (region-rectangle device-clip-region))))))
-      (setf (ink-gcontext-last-device-clip-region gc) device-clip-region)))
+  (let ((ink-clip-region (ink-gcontext-ink-clip-region gc)))
+    (multiple-value-bind (device-clip-region device-clip-region-tick)
+	(medium-device-clip-region medium)
+      (when ink-clip-region
+	(setq device-clip-region
+	  (region-intersection (transform-region
+				(make-translation-transformation x-origin y-origin)
+				ink-clip-region)
+			       device-clip-region)))
+      (unless (and (eq (ink-gcontext-last-clip-region-tick gc)
+		       device-clip-region-tick)
+		   (null ink-clip-region))
+	(setf (tk::gcontext-clip-mask gc)
+	  (macrolet ((region-rectangle (region)
+		       `(with-bounding-rectangle* (left top right bottom) ,region
+		          (list (fix-coordinate left) (fix-coordinate top) 
+				(fix-coordinate (- right left))
+				(fix-coordinate (- bottom top))))))
+	    (etypecase device-clip-region
+	      (everywhere :none)
+	      (nowhere nil)
+	      (standard-rectangle-set
+	       (let ((regions (region-set-regions device-clip-region))
+		     (rectangles nil))
+		 (dolist (region regions)
+		   (push (region-rectangle region) rectangles))
+		 rectangles))
+	      (standard-bounding-rectangle
+	       (list (region-rectangle device-clip-region))))))
+	(setf (ink-gcontext-last-clip-region-tick gc) device-clip-region-tick))))
 
   ;; tile and stipple origin
   (when (ink-gcontext-shift-tile-origin gc)
@@ -1396,7 +1405,7 @@
 
 
 	  #+ignore (setf (tk::gcontext-clip-mask gcontext) pixmap)
-	  #+ignore (setf (ink-gcontext-last-device-clip-region gcontext) nil)
+	  #+ignore (decf (ink-gcontext-last-clip-region-tick gcontext))
 
 	  (unless start (setq start 0))
 	  (unless end (setq end (length string)))
@@ -1433,7 +1442,7 @@
 		  (3 (values (- x ascent) (- y pixmap-height))))
 		    
 	      (setf (tk::gcontext-clip-mask gcontext) string-pixmap)
-	      (setf (ink-gcontext-last-device-clip-region gcontext) nil)
+	      (decf (ink-gcontext-last-clip-region-tick gcontext))
 	      (setf (tk::gcontext-clip-x-origin gcontext) dst-x
 		    (tk::gcontext-clip-y-origin gcontext) dst-y)
 	      (tk::draw-rectangle drawable gcontext
