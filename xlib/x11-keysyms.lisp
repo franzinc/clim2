@@ -45,7 +45,7 @@
 ;;      WITH THE USE OR PERFORMANCE OF THIS OBJECT CODE.
 
 ;;;@(#)x11-keysym.lisp	1.3 11/29/90
-
+;;; $fiHeader$
 
 (in-package :x11)
 
