@@ -11,6 +11,13 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.3.8
+
+2001-06-26  Kevin Layer  <layer@crikey>
+
+	* tk/xm-widgets.lisp: bug10894: fix select-file
+
+*******************************************************************************
 2.3.7
 
 2001-06-07  Kevin Layer  <layer@crikey>

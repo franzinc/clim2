@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xm-widgets.lisp,v 1.30.34.3 2001/04/24 19:53:21 layer Exp $
+;; $Id: xm-widgets.lisp,v 1.30.34.4 2001/06/26 17:15:55 layer Exp $
 
 (in-package :tk)
 
@@ -98,8 +98,17 @@
 	  ;;--- I think we need to read the book about
 	  ;;--- xm_string_get_l_to_r and make sure it works with multiple
 	  ;;-- segment strings
-	  (xm_string_get_l_to_r value xm-font-list-default-tag &string)
-	  (char*-to-string string)) 
+	  (let ((result-flag (xm_string_get_l_to_r 
+			      value
+			      (clim-utils:string-to-foreign 
+			       xm-font-list-default-tag) 
+			      &string)))
+	    (cond ((= result-flag 1) 
+		   (char*-to-string string))
+		  (t
+		   ;; If the string isn't found (see the docs
+		   ;; for XmStringGetLtoR) signal an error.
+		   (error "xm_string_get_l_to_r failed while converting xm-string resource")))))
       (tk::add-widget-cleanup-function parent
 				       #'destroy-generated-xm-string
 				       value))))
