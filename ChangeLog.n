@@ -1,3 +1,105 @@
+--------------------------------------------------------------------------------
+from jdi: Wed May 13 17:13:58 PDT 1992
+
+	Added print-object method for window-repaint-event
+
+	Optimize invoke-with-sheet-medium.
+
+	Made xm-proto-callback-info c-type be :in-foreign-space by default
+	since it is captured by C.
+
+	Made ':line-dashes t' work by fixing adjust-ink.
+
+	Optimized port-draw-* functions.
+
+	Optimized convert-to-device-* macros.
+
+	Added fast-abs macro to lisp-utilities.  Do abs() assuming all fixnums.
+
+	Lots of other speedups.
+
+	Made object-display slot fixed index (0).
+	  Fixed Lisp's slot-value-using-class macro to allow this
+	  without having to heavily munge CLIM source.
+
+	Cached clip-mask in medium.  Update it lazily when needed.  Invalidate
+	it when necessary.
+
+	Cached clip-mask in medium, and medium in ink.
+	  Only send a request to X when necessary.
+
+	Wrote lisp-xdrawstring.
+
+	Added XmMyDrawingArea (for lack of better name).  It compresses
+	exposure events.
+
+	Made xid->object mapping be specialized per display.
+
+	Highly optimized set-values, get-values, and resource converters
+
+	Other misc stuff too boring to describe here.
+
+
+Timings of:
+
+(defun foo (port sheet)
+  (declare (optimize (speed 3) (safety 0)))
+  (dotimes (i 1000) (silica:mirror-region* port sheet)))
+
+Where sheet is the application pane.
+
+Original:
+	cpu time (non-gc) 1983 msec user, 34 msec system
+	cpu time (gc)     0 msec user, 0 msec system
+	cpu time (total)  1983 msec user, 34 msec system
+	real time  2030 msec
+	space allocation:
+	 24010 cons cells, 0 symbols, 72096 other bytes,
+
+After resource allocation and rework of get-values:
+	cpu time (non-gc) 1400 msec user, 33 msec system
+	cpu time (gc)     0 msec user, 0 msec system
+	cpu time (total)  1400 msec user, 33 msec system
+	real time  1450 msec
+	space allocation:
+	 13002 cons cells, 0 symbols, 32 other bytes,
+
+After caching whole sucker in class:
+	cpu time (non-gc) 583 msec user, 0 msec system
+	cpu time (gc)     0 msec user, 0 msec system
+	cpu time (total)  583 msec user, 0 msec system
+	real time  600 msec
+	space allocation:
+	 4002 cons cells, 0 symbols, 32 other bytes,
+
+--
+
+Timings of:
+
+(defun bar (viewport)
+  (declare (optimize (speed 3) (safety 0)))
+  (let ((vertbar (silica::scroller-pane-vertical-scroll-bar
+		   (sheet-parent (sheet-parent viewport)))))
+    (dotimes (i 1000) (silica:change-scroll-bar-values vertbar :slider-size .8 :value .1))))
+
+Where sheet is the viewport after the Gettysburg demo runs.
+
+Original:
+	cpu time (non-gc) 2850 msec user, 66 msec system
+	cpu time (gc)     0 msec user, 0 msec system
+	cpu time (total)  2850 msec user, 66 msec system
+	real time  3000 msec
+	space allocation:
+	 32010 cons cells, 0 symbols, 368096 other bytes,
+
+After caching whole sucker in class:
+	cpu time (non-gc) 1300 msec user, 16 msec system
+	cpu time (gc)     0 msec user, 0 msec system
+	cpu time (total)  1300 msec user, 16 msec system
+	real time  1360 msec
+	space allocation:
+	 11001 cons cells, 0 symbols, 256032 other bytes,
+--------------------------------------------------------------------------------
 from jdi: Tue Apr 21 16:45:10 PDT 1992
 
 FILES MOVED OR CHANGED:

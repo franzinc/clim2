@@ -1,4 +1,4 @@
-# $fiHeader: Makefile,v 1.27 92/05/07 13:13:41 cer Exp Locker: cer $
+# $fiHeader: Makefile,v 1.28 92/05/13 17:11:04 cer Exp Locker: cer $
 # 
 #  Makefile for CLIM 2.0
 #
@@ -51,7 +51,8 @@ TMP	= /usr/tmp
 
 SRC_FILES = */*.lisp *.lisp Makefile */Makefile misc/make-stub-file \
 	    misc/undefinedsymbols misc/undefinedsymbols.olit \
-	    misc/undefinedsymbols.motif misc/undefinedsymbols.xt
+	    misc/undefinedsymbols.motif misc/undefinedsymbols.xt \
+	    xlib/xlibsupport.c misc/MyDrawingA*.[hc]
 
 DEST=/dev/null
 
