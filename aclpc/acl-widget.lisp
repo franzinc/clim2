@@ -835,6 +835,14 @@ acl-gadget-id-mixin
 
 (in-package :silica)
 
+;; this is defined in silica/db-border.lisp for non-mswin clims, and in
+;; silica/gadgets.lisp for mswin clims -- apparently it needs to inherit
+;; from basic-pane (and not pane) on mswin, and on aclpc the class
+;; definition must come before any method definitions, but
+;; silica/gadgets.lisp gets compiled before this file does, so we no longer
+;; need this one... leaving it here as a reminder that this is a mess and
+;; really ought to be cleaned up.  -tjm 14Feb97
+#+ignore
 (defclass separator (oriented-gadget-mixin basic-pane) 
   () #||((sheet-parent :accessor sheet-parent :initarg :sheet-parent)
    (frame :initarg :frame)

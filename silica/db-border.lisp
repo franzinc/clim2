@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/silica/db-border.lisp,v 1.23 1997/02/05 01:50:38 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/silica/db-border.lisp,v 1.24 1997/02/14 23:57:06 tomj Exp $
 
 "Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved.
  Portions copyright (c) 1991, 1992 by Symbolics, Inc.  All rights reserved."
@@ -146,6 +146,6 @@
 
 
 ;;; Separator panes
-
+#-(or aclpc acl86win32) ;; in mswin we do this in silica/gadgets.lisp (?) -tjm 12Feb97
 (defclass separator (oriented-gadget-mixin pane) ())
 

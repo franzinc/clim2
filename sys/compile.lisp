@@ -24,6 +24,14 @@
 
 #+acl86win32
 (compile-file-if-needed (climpath "sys\\defsystem.lisp"))
+#+aclpc
+(let* ((defsys-path (climpath "sys\\defsystem.lisp"))
+       (defsys-fsl-path (climpath "sys\\defsystem.fsl"))
+       (fsl-file-date (if (probe-file defsys-fsl-path)
+			  (file-write-date defsys-fsl-path))))
+  (unless (and fsl-file-date
+	       (>= fsl-file-date (file-write-date defsys-path)))
+    (compile-file defsys-path)))
 
 #+aclpc
 (load (climpath "sys\\defsystem.fsl"))
@@ -94,3 +102,5 @@
 (clim-defsystem:compile-system "postscript-clim")
 
 (clim-defsystem:load-system "postscript-clim")
+
+

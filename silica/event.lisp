@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/silica/event.lisp,v 1.41 1997/02/05 01:50:57 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/silica/event.lisp,v 1.42 1997/02/14 23:57:08 tomj Exp $
 
 (in-package :silica)
 
@@ -698,12 +698,13 @@
   ;; Piling warts upon warts, we have to force finalization at
   ;; macroexpand time... - smh 18may93
   (#+Allegro clos:finalize-inheritance 
-   #-Allegro cl:finalize-inheritance
+   #+aclpc acl:finalize-inheritance
+   #-(or Allegro aclpc) cl:finalize-inheritance
    (find-class event-class)) ;smh 18may93
-  (let* ((slots #+aclpc  (cl:class-slots (find-class event-class))
+  (let* ((slots #+aclpc  (acl:class-slots (find-class event-class))
                 #-(or CCL-2 aclpc) (clos:class-slots (find-class event-class))
                 #+CCL-2 (ccl:class-slots (find-class event-class)))
-         (slot-names #+aclpc (mapcar #'cl:slot-definition-name slots)
+         (slot-names #+aclpc (mapcar #'acl:slot-definition-name slots)
                      #-(or CCL-2 aclpc) (mapcar #'clos:slot-definition-name slots)
                      #+CCL-2 (mapcar #'ccl:slot-definition-name slots))
          (resource-name (fintern "*~A-~A*" event-class 'resource)))
@@ -819,11 +820,11 @@
 (defun copy-event (event)
   (let* ((class (class-of event))
          (copy (allocate-instance class)))
-    (dolist (slot (#+aclpc cl:class-slots 
+    (dolist (slot (#+aclpc acl:class-slots 
                    #-aclpc clos:class-slots class))
-      (let ((name (#+aclpc cl:slot-definition-name 
+      (let ((name (#+aclpc acl:slot-definition-name 
                    #-aclpc clos:slot-definition-name slot))
-            (allocation (#+aclpc cl:slot-definition-allocation
+            (allocation (#+aclpc acl:slot-definition-allocation
                          #-aclpc clos:slot-definition-allocation slot)))
         (when (and (eql allocation :instance)
                    (slot-boundp event name))

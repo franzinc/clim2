@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/utils/defun.lisp,v 1.10 1997/02/05 01:54:48 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/utils/defun.lisp,v 1.11 1997/02/14 23:57:18 tomj Exp $
 
 (in-package :clim-utils)
 
@@ -200,8 +200,11 @@
   (let ((warn (not (null (set-difference args non-dynamic-vars)))))
     (when (and warn *warn-about-copied-rest-args*)
       (let ((singular-p (null (cdr args))))
-	(warn "The rest argument~:[s~] ~{~S~^, ~} will be copied at runtime ~
-	     because ~:[they are~;it is~] not declared to have dynamic extent."
+	;; aclpc chokes on unix ~#\linefeed, so I had to make this all one
+	;; line.  there are many other instances of this in the rest of the
+	;; clim code, though, so we should eventually employ charley's
+	;; redefinition of read-up-to from pcspr4080   -tjm 12Feb97
+	(warn "The rest argument~:[s~] ~{~S~^, ~} will be copied at runtime because ~:[they are~;it is~] not declared to have dynamic extent."
 	      singular-p args singular-p))))
   nil)
 
@@ -258,8 +261,8 @@
 			  (let ((downward-name (second de)))
 			    (if (assoc downward-name functions)
 				(push downward-name result)
-				(warn "Function ~S declared to have dynamic extent, but not ~
-				       defined in this ~A form" downward-name operator)))
+			      (warn "Function ~S declared to have dynamic extent, but not defined in this ~A form"
+				    downward-name operator)))
 			  (warn "Syntax error in ~A: invalid ~S declaration ~S"
 				operator 'dynamic-extent de)))
 		    ;; Get rid of the errant declaration

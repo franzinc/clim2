@@ -10,6 +10,42 @@ Tests for new features:	<`no new features', `no tests for new features', or
 
 <standard changelog date stamp>
 	* <changes go here...>
+
+*******************************************************************************
+Fri Feb 14 15:27:21 PST 1997  Tom McClure  <tomj@romeo>
+
+	* aclpc/acl-widget.lisp
+		- commented out redundant silica:separator defclass
+		  (this one became redundant because apparently one
+		  had to be added to silica/gadgets.lisp which gets
+		  compiled earlier	
+	* silica/db-border.lisp
+		- made original silica:separator defclass #-aclpc
+	* clim/db-stream.lisp
+		- made original clim-internals:accept-values-pane
+		  defclass #-aclpc (a #+aclpc version appears in
+		  silica/framem.lisp)
+	* silica/event.lisp
+		- discovered some more instances of MOP package-change
+		  repercussions (changed #+aclpc cl:mop-foo to
+		  #+aclpc acl:mop-foo)
+	* sys/compile.lisp
+		- inserted compile-file-if-needed analog for defsystem.fsl
+		  since I was getting sick of having to do it by hand
+	* sys/load.lisp, sys/loaddemo.lisp
+		- corrected filename references
+	* utils/defun.lisp
+		- aclpc chokes on ~#\linefeed in format strings since
+		  it expects a CRLF pair, so I changed some warning
+		  strings to be on one long line as a temporary workaround
+	* utils/lisp-utilities.lisp
+		- aclpc appears to be case-sensitive for features?
+		  Should investigate further, but for now changed
+		  #+CLIM-uses-Lisp... to #+clim-uses-lisp...
+	* utils/packages.lisp
+		- had inadvertantly removed some #+aclpc :shadow
+		  forms, added them back in
+
 *******************************************************************************
 Thu Feb  6 16:18:21 PST 1997  Tom McClure  <tomj@romeo>
 

@@ -1,6 +1,6 @@
 
 #+aclpc
-(load (climpath "demo\\test-sui.fsl"))
+(load (climpath "demo\\test-suite.fsl"))
 #+allegro
 (load (climpath "demo\\test-suite.fasl"))
 

@@ -23,7 +23,7 @@
 #+acl86win32
 (load (climpath "sys\\defsystem.fasl"))
 
-(load (climpath "sys\\sysdcl.lisp"))
+(load (climpath "sys\\sysdcl-pc.lisp"))
 
 (load (climpath "aclpc\\sysdcl.lisp"))
 
@@ -41,7 +41,7 @@
 #+acl86win32
 (load (climpath "test\\test-suite.fasl"))
 
-(load (climpath "demo\\sysdcl.lisp"))
+(load (climpath "demo\\sysdcl-pc.lisp"))
 
 )
 
@@ -63,7 +63,7 @@
 
 ;; postscipt backend 
 
-(load (climpath "postscript\\sysdcl.lisp"))
+(load (climpath "postscript\\sysdcl-pc.lisp"))
 
 (clim-defsystem:load-system "postscript-clim")
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/utils/lisp-utilities.lisp,v 1.35 1997/02/05 01:54:59 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/utils/lisp-utilities.lisp,v 1.36 1997/02/14 23:57:20 tomj Exp $
 
 (in-package :clim-utils)
 
@@ -335,7 +335,7 @@
 ;;; setting of that variable.  I believe this implementation of WITH-OPEN-STREAM to
 ;;; have as small a timing window, and to be as semantically correct as possible.
 
-#+(or (not CLIM-uses-Lisp-stream-functions)	;Do this if we provide CLOSE function
+#+(or (not clim-uses-lisp-stream-functions)	;Do this if we provide CLOSE function
       Genera					; Sigh.  CLOSE also shadowed for Genera.
       CCL-2)					; Sigh.  CLOSE also shadowed for CCL-2.
 (defmacro with-open-stream ((stream-variable construction-form) &body body &environment env)

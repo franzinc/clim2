@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/utils/packages.lisp,v 1.71 1997/02/05 01:55:08 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/utils/packages.lisp,v 1.72 1997/02/14 23:57:24 tomj Exp $
 
 (in-package :common-lisp-user)
 
@@ -1012,6 +1012,48 @@
    acl::dynamic-extent
    synonym-stream
    )
+
+ ;; Stream Proposal -- Classes and class predicates.
+ #-clim-uses-lisp-stream-classes
+ (:shadow
+   fundamental-binary-input-stream
+   fundamental-binary-output-stream
+   fundamental-binary-stream
+   fundamental-character-input-stream
+   fundamental-character-output-stream
+   fundamental-character-stream
+   fundamental-input-stream
+   fundamental-output-stream
+   fundamental-stream
+   input-stream-p
+   open-stream-p
+   output-stream-p
+   streamp)
+
+ #-(or clim-uses-lisp-stream-functions Lucid)
+ (:shadow
+   clear-input
+   clear-output
+   close
+   finish-output
+   force-output
+   format
+   fresh-line
+   listen
+   pathname 
+   peek-char
+   read-byte
+   read-char
+   read-char-no-hang
+   read-line
+   stream-element-type
+   terpri
+   truename
+   unread-char
+   with-open-stream
+   write-byte
+   write-char
+   write-string)
 
  ;; Export symbols from Gray stream proposal, sigh
  (:export
