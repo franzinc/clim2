@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: tk -*-
 ;;
-;;				-[Sun Jun  5 21:07:00 1994 by duane]-
+;;				-[Tue Dec  6 16:27:07 1994 by smh]-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -281,8 +281,10 @@
 	    (push-char (if (<= l cc m)
 			   (code-char (+ cc n))
 			 c)))))
-      (values 
-       (intern new package)))))
+      (if package
+	  (values 
+	   (intern new package))
+	new))))
 
 (defun tkify-lisp-name (name &key class)
   (setq name (string name))

@@ -1,3 +1,14 @@
+------------------------------------------------------------------------
+Tue Dec  6 17:57:45 1994  Steve Haflich  (smh@vapor)
+
+[Compiled Colin's merge and fix minor editing glitches.
+This tree now compiles and runs with devel.27 and dynamic-extent closures
+under multiprocessing.  Not exhaustively checked.]
+
+sys/sysdcl.lisp		Fix parenthesization botch.
+
+tk/make-classes.lisp	Fixed lispify-tk-name to handle NIL package.
+
 ------------------------------------------------------------
 Sun Dec  4 15:51:34 PST 1994  Colin Meldrum (colin@vapor)
 

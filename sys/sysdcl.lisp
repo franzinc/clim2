@@ -283,15 +283,15 @@
     (:default-pathname "clim2:;homegrown;")
   (:serial
    clim-standalone 
-   clim-silica)
-  "scroll-pane"
-  "db-button"
-  "db-label"
-  "db-slider"
-  "db-menu"
-  ("db-list" (:load-before-compile "db-menu"))
-  "db-text"
-  "last")
+   clim-silica
+   "scroll-pane"
+   "db-button"
+   "db-label"
+   "db-slider"
+   "db-menu"
+   ("db-list" (:load-before-compile "db-menu"))
+   "db-text"
+   "last"))
 
 
 #+Allegro
