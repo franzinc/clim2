@@ -5,6 +5,7 @@
 
 (in-package :silica)
 
+;;; $fiHeader$
 
 ;;; Border Panes
 (defclass border-pane (layout-pane)
