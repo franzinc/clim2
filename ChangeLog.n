@@ -16,11 +16,11 @@ Tests for new features:	<`no new features', `no tests for new features', or
 Mon Jul 06 14:45:24 1998    <layer@HOBART>
 
 	* Makefile.generic: fix tags rule
-	* aclpc/acl-frames.lisp: package qualify some check-last-error
-	calls
-	* clim/db-list.lisp: add initialize-pull-down-menu and
+	* aclpc/acl-frames.lisp: bug7092: package qualify some
+	check-last-error calls
+	* clim/db-list.lisp: bug7092: add initialize-pull-down-menu and
 	make-pull-down-menu back.
-	* clim/design-recording.lisp: add nyi definition
+	* clim/design-recording.lisp: bug7092: add nyi definition
 
 *******************************************************************************
 2.2.1.24
