@@ -11,6 +11,16 @@ Tests for new features:	<`no new features', `no tests for new features', or
 	* <changes go here...>
 
 *******************************************************************************
+2.2.1.5
+
+Documentation changes:	none
+Tests for new features:	no new features
+
+Tue Feb 03 09:17:26 1998    <layer@HOBART>
+
+	* ChangeLog: use generate-application to build clim image
+
+*******************************************************************************
 2.2.1.4
 	
 Documentation changes:	none

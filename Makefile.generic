@@ -1,4 +1,4 @@
-# $Header: /repo/cvs.copy/clim2/Makefile.generic,v 1.43 1997/10/20 23:10:57 layer Exp $
+# $Header: /repo/cvs.copy/clim2/Makefile.generic,v 1.44 1998/02/04 22:22:19 layer Exp $
 #
 #  Makefile.generic for CLIM 2.0
 #
@@ -122,20 +122,32 @@ $(CLIM): FORCE $(PRODUCT-OBJS) $(ICS-PRODUCT-OBJS)
 	ALLEGRO_CL_HOME=$(CL_HOME) ; export ALLEGRO_CL_HOME ; \
 	$(ECHO) " \
 	(progn \
-	  (push (merge-pathnames (current-directory) \"hosts.cl\") \
-	    (logical-pathname-translations-database-pathnames)) \
-	  (setq sys::*libtk-pathname* \"$(TKLIB)\") \
-	  (setq sys::*libxt-pathname* \"$(XTLIB)\") \
-	  (setq sys::*libx11-pathname* \"$(XLIB)\") \
-	  (setq sys::*libwnn-pathname* \"$(WNNLIB)\") \
-	  (load \"misc/dev-load-1.lisp\") \
-	  (load-it '$(SYSTEM)) \
-	  (setq sys::*clim-dump-name* \"$(TMP)/clim.temp_`whoami`\") \
-	  (load \"misc/dump.lisp\"))" \
-	| $(CL) $(CLOPTS))
-	$(MV) $(TMP)/clim.temp_`whoami` $(CLIM)
-	ls -lLt $(CLIM) >> Clim-sizes.n
-	ls -lLt $(CLIM)
+	 (generate-application \
+	   \"$(CLIM)\" \"./\" \
+	   nil \
+	   :pre-load-form \
+	   (quote \
+	     (progn \
+	       (push (merge-pathnames (current-directory) \"hosts.cl\") \
+		     (logical-pathname-translations-database-pathnames)) \
+	       (setq sys::*libtk-pathname* \"$(TKLIB)\") \
+	       (setq sys::*libxt-pathname* \"$(XTLIB)\") \
+	       (setq sys::*libx11-pathname* \"$(XLIB)\") \
+	       (setq sys::*libwnn-pathname* \"$(WNNLIB)\") \
+	       (load \"misc/dev-load-1.lisp\") \
+	       (load-it '$(SYSTEM)))) \
+	   :image-only t \
+	   :purify nil \
+	   :shlib-warning nil \
+	   :libfasl-warning nil \
+	   :record-source-file-info t :load-source-file-info t \
+	   :record-xref-info t :load-xref-info t \
+	   :discard-local-name-info t \
+	   :discard-source-file-info t \
+	   :discard-xref-info t) \
+	 (exit 0))" | $(CL) $(CLOPTS))
+	@ls -lLt $(CLIM) >> Clim-sizes.n
+	@ls -lLt $(CLIM)
 	@echo $(SYSTEM) built!!!!	
 
 # Training
