@@ -11,6 +11,16 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.2.2.21.5.6
+
+2000-09-20 tfb@cley.com (Tim Bradshaw)
+
+	* aclpc/acl-port.lisp: provide SETF methods for text-style-mapping, 
+	  and the semi-documented function make-windows-font-named.
+	* aclpc/pkgdcl.lisp: export make-windows-font-named from the acl-clim
+	  package
+
+*******************************************************************************
 2.2.2.21.5.5
 
 2000-08-28 tfb@cley.com (Tim Bradshaw)
