@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-classes.lisp,v 1.4 92/03/30 17:51:46 cer Exp $
+;; $fiHeader: ol-classes.lisp,v 1.5 92/05/07 13:10:54 cer Exp Locker: cer $
 
 (provide :climol)
 (require :climg)
@@ -91,12 +91,15 @@
 				   "_sliderWidgetClass"
 				   "_staticTextWidgetClass"
 				   "_stubWidgetClass"
-				   "_textWidgetClass"
-				   
+
+				   ;;"_textWidgetClass"
 				   ;;; This two seem to be broken!
-				   ;; "_textEditWidgetClass"
 				   ;;"_textPaneWidgetClass"
-				   
+
+				   ;; Try this again
+				   "_textEditWidgetClass"
+				   "_textFieldWidgetClass"
+
 				   "_compositeWidgetClass"
 				   "_overrideShellWidgetClass"
 				   "_shellWidgetClass"

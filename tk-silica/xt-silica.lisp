@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.30 92/06/16 15:02:26 cer Exp Locker: cer $
+;; $fiHeader: xt-silica.lisp,v 1.31 92/06/16 19:11:15 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -286,8 +286,19 @@
 
 
 
-(defmethod destroy-mirror ((port xt-port) sheet)
+(defmethod destroy-mirror ((port xt-port) (sheet silica::mirrored-sheet-mixin))
+  ;; Only do this if its the top most widget being destroyed or we are
+  ;; screwing around with the tree in someway
   (tk::destroy-widget (sheet-direct-mirror sheet)))
+
+(defmethod destroy-mirror :after ((port xt-port) (sheet silica::sheet-parent-mixin))
+  (labels ((loose-em (sheet)
+	   (dolist (child (sheet-children sheet))
+	     (when (sheet-direct-mirror child)
+	       (setf (sheet-direct-mirror child) nil))
+	     (when (typep child 'silica::sheet-parent-mixin)
+	       (loose-em child)))))
+    (loose-em sheet)))
 
 (defmethod realize-mirror ((port xt-port) sheet)
   (let ((parent (find-widget-parent port sheet)))
@@ -1135,3 +1146,10 @@ the geometry of the children. Instead the parent has control. "))
 |#
 
 
+(defmethod queue-value-changed-event (widget sheet &optional (value (gadget-value sheet)))
+  (declare (ignore widget))
+  (distribute-event
+   (port sheet)
+   (make-instance 'value-changed-gadget-event
+		  :gadget sheet
+		  :value value)))

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: resources.lisp,v 1.23 92/06/16 15:01:07 cer Exp Locker: cer $
+;; $fiHeader: resources.lisp,v 1.24 92/06/16 19:10:54 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -368,6 +368,7 @@
     (pixel nil)
     (int nil)
     (short nil)
+    (function nil)
     (t t)))
 
 (defmethod resource-type-set-conversion-p (type)

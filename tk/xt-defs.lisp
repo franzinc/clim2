@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-defs.lisp,v 1.3 92/05/13 17:10:33 cer Exp Locker: cer $
+;; $fiHeader: xt-defs.lisp,v 1.4 92/06/16 15:01:09 cer Exp Locker: cer $
 
 ;;
 ;; This file contains compile time only code -- put in clim-debug.fasl.
@@ -42,7 +42,7 @@
 (def-c-typedef xt-geometry-mask :unsigned-int)
 (def-c-typedef xt-position :short)
 (def-c-typedef xt-dimension :unsigned-short)
-
+(def-c-typedef xt-pointer * char)
 
 (def-c-type (xrm-resource :no-defuns) :struct
 	    (name xrm-quark)

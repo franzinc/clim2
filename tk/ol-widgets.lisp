@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader$
+;; $fiHeader: ol-widgets.lisp,v 1.1 92/05/26 09:08:11 cer Exp Locker: cer $
 
 (in-package :xt)
 
@@ -44,3 +44,34 @@
 					  :original-name 
 					  (string-to-char*
 					   "menuPane")))
+
+
+(tk::add-resource-to-class (find-class 'text-edit)
+			   (make-instance 'resource
+					  :name :source
+					  :type 'string
+					  :original-name 
+					  (string-to-char* "source")))
+
+
+(tk::add-resource-to-class (find-class 'ol-list)
+			   (make-instance 'resource
+					  :name :appl-add-item
+					  :type 'function
+					  :original-name 
+					  (string-to-char*
+					   "applAddItem")))
+
+(tk::add-resource-to-class (find-class 'ol-list)
+			   (make-instance 'resource
+					  :name :appl-touch-item
+					  :type 'function
+					  :original-name 
+					  (string-to-char* "applTouchItem")))
+
+(tk::add-resource-to-class (find-class 'ol-list)
+			   (make-instance 'resource
+					  :name :appl-delete-item
+					  :type 'function
+					  :original-name 
+					  (string-to-char* "applDeleteItem")))

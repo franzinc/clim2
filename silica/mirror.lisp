@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: mirror.lisp,v 1.18 92/05/12 18:24:33 cer Exp Locker: cer $
+;; $fiHeader: mirror.lisp,v 1.19 92/05/22 19:26:58 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -141,16 +141,17 @@
   (sheet-direct-mirror
     (sheet-mirrored-ancestor sheet)))
 
-(defgeneric sheet-mirrored-ancestor (sheet)
-  (:method ((sheet sheet))
-   (cond ((sheet-direct-mirror sheet)
-	  sheet)
-	 ((null (sheet-parent sheet))
-	  (error "Error in sheet mirrored ancestor: ~S"
-		 sheet))
-	 (t
-	  (sheet-mirrored-ancestor
-	    (sheet-parent sheet))))))
+(defgeneric sheet-mirrored-ancestor (sheet))
+
+(defmethod sheet-mirrored-ancestor ((sheet sheet))
+  (cond ((sheet-direct-mirror sheet)
+	 sheet)
+	((null (sheet-parent sheet))
+	 (error "Error in sheet mirrored ancestor: ~S"
+		sheet))
+	(t
+	 (sheet-mirrored-ancestor
+	  (sheet-parent sheet)))))
 
 
 

@@ -47,7 +47,8 @@ _shellWidgetClass
 _sliderWidgetClass
 _staticTextWidgetClass
 _stubWidgetClass
-_textWidgetClass
+_textEditWidgetClass
+_textFieldWidgetClass
 _topLevelShellWidgetClass
 _topLevelShellWidgetClass
 _transientShellWidgetClass
@@ -55,3 +56,6 @@ _vendorShellWidgetClass
 _widgetClass
 _widgetClassRec
 _wmShellWidgetClass
+_OlTextEditClearBuffer
+_OlTextEditReadSubString
+_OlTextEditInsert

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-gadgets.lisp,v 1.12 92/05/13 17:11:12 cer Exp Locker: cer $
+;; $fiHeader: ol-gadgets.lisp,v 1.13 92/05/22 19:29:25 cer Exp Locker: cer $
 
 
 (in-package :xm-silica)
@@ -246,6 +246,7 @@
 			    :select
 			    'command-button-callback-ol
 			    (slot-value sheet 'silica::frame)
+			    command-table
 			    item))))))
 		command-table)))
       (make-menu-for-command-table
@@ -254,8 +255,8 @@
        t))
     mirror))
 
-(defun command-button-callback-ol (button frame item)
-  (command-button-callback button nil frame item))
+(defun command-button-callback-ol (button frame command-table item)
+  (command-button-callback button nil frame command-table item))
 
 
 ;;; Label pane
@@ -314,19 +315,43 @@
 
 ;;; Text field
 
-(defclass openlook-text-field (openlook-value-pane 
-			       openlook-action-pane
-			       text-field
-			       xt-leaf-pane)
+(defclass openlook-text-field (text-field xt-leaf-pane)
 	  ())
 
 (defmethod find-widget-class-and-initargs-for-sheet ((port openlook-port)
 						     (parent t)
 						     (sheet openlook-text-field))
   (with-accessors ((value gadget-value)) sheet
-    (values 'tk::text
+    (values 'tk::text-field
 	    (append
 	     (and value `(:string ,value))))))
+
+(defun openlook-text-field-edit-widget (tf &optional (mirror (sheet-direct-mirror tf)))
+  (tk::get-values mirror :text-edit-widget))
+
+(defmethod add-sheet-callbacks :after ((port openlook-port) 
+				       (sheet openlook-text-field) 
+				       (widget t))
+  (tk::add-callback (openlook-text-field-edit-widget sheet widget)
+		    :post-modify-notification
+		    'queue-value-changed-event
+		    sheet))
+
+(defmethod gadget-value ((gadget openlook-text-field))
+  (if (sheet-direct-mirror gadget)
+      (text-editor-text (openlook-text-field-edit-widget gadget))
+    (call-next-method)))
+
+
+(defmethod (setf gadget-value) :after 
+	   (nv (gadget openlook-text-field) &key invoke-callback)
+  (declare (ignore invoke-callback))
+  (when (sheet-direct-mirror gadget)
+    (setf (text-editor-text (openlook-text-field-edit-widget gadget)) nv)))
+
+;;--- We need to implement the activate callback stuff so that when
+;;--- the user hits return we invoke the callback. I guess we need to
+;;-- look at whats been inserted.
 
 
 ;;; Value stuff
@@ -347,18 +372,11 @@
       (tk::get-values (sheet-mirror gadget) :value)
     (call-next-method)))
 
-(defmethod (setf gadget-value) (nv (gadget openlook-value-pane) &key invoke-callback)
+(defmethod (setf gadget-value) :after 
+	   (nv (gadget openlook-value-pane) &key invoke-callback)
   (declare (ignore invoke-callback))
-  (when (sheet-mirror gadget)
+  (when (sheet-direct-mirror gadget)
     (tk::set-values (sheet-mirror gadget) :value nv)))
-
-(defmethod queue-value-changed-event (widget sheet)
-  (declare (ignore widget))
-  (distribute-event
-   (port sheet)
-   (make-instance 'value-changed-gadget-event
-		  :gadget sheet
-		  :value (gadget-value sheet))))
 
 ;;;
 
@@ -437,7 +455,8 @@
       (tk::get-values (sheet-mirror gadget) :set)
     (call-next-method)))
 
-(defmethod (setf gadget-value) (nv (gadget openlook-toggle-button) &key invoke-callback)
+(defmethod (setf gadget-value) :after 
+	   (nv (gadget openlook-toggle-button) &key invoke-callback)
   (declare (ignore invoke-callback))
   (when (sheet-direct-mirror gadget)
     (tk::set-values (sheet-mirror gadget) :set nv)))
@@ -585,6 +604,48 @@
 				     smin smax value mmin
 				     mmax))))))))))
 
+(defmethod gadget-value ((slider openlook-slider))
+  (if (sheet-direct-mirror slider)
+      (compute-slider-value slider)
+    (call-next-method)))
+
+(defmethod (setf gadget-value) :after  (nv (slider openlook-slider) &key invoke-callback)
+  (declare (ignore invoke-callback))
+  (when (sheet-direct-mirror slider)
+    (set-slider-value slider nv)))
+
+(defun compute-slider-value (sheet)
+  (let ((widget (sheet-direct-mirror sheet)))
+    (multiple-value-bind
+	(smin smax) (gadget-range* sheet)
+      (multiple-value-bind
+	  (value mmin mmax)
+	  (tk::get-values widget :slider-value :slider-min :slider-max)
+	(compute-symmetric-value
+			 mmin mmax value smin smax)))))
+
+
+(defun set-slider-value (sheet nv)
+  (let ((widget (sheet-direct-mirror sheet)))
+    (multiple-value-bind
+	(smin smax) (gadget-range* sheet)
+      (multiple-value-bind
+	  (mmin mmax)
+	  (tk::get-values widget :slider-min :slider-max)
+	(tk::set-values widget
+			:slider-value
+			(round
+			 (compute-symmetric-value
+			   smin smax  nv mmin mmax)))))))
+
+(defmethod add-sheet-callbacks :after ((port openlook-port) 
+				       (sheet openlook-slider)
+				       (widget t))
+  (tk::add-callback widget :slider-moved 'slider-changed-callback-1 sheet))
+
+(defmethod slider-changed-callback-1 ((widget t) (sheet openlook-slider))
+  (queue-value-changed-event widget sheet))
+
 (defmethod compose-space ((m openlook-slider) &key width height)
   (declare (ignore width height))
   (let ((sr (copy-space-requirement (call-next-method))))
@@ -607,11 +668,25 @@
 
 ;;; 
 
-(defclass openlook-text-editor (openlook-value-pane 
-				openlook-action-pane
-				text-editor
-				xt-leaf-pane)
+(defclass openlook-text-editor (text-editor xt-leaf-pane)
 	  ())
+
+(defmethod text-editor-text ((te openlook-text-editor))
+  (let ((widget (sheet-direct-mirror te)))
+    (tk::with-ref-par ((end 0)
+		       (string 0))
+      (assert (not (zerop (tk::ol_text_edit_get_last_position widget end))))
+      (assert (not (zerop (tk::ol_text_edit_read_substring 
+			   widget string 0 (aref end 0)))))
+      (ff::char*-to-string (aref string 0)))))
+
+
+(defmethod (setf text-editor-text) (nv (te openlook-text-editor))
+  (let ((widget (sheet-direct-mirror te)))
+    (assert (not (zerop (tk::ol_text_edit_clear_buffer widget))))
+    (assert (not (zerop (tk::ol_text_edit_insert widget nv (length nv))))))
+  nv)
+
 
 (defmethod find-widget-class-and-initargs-for-sheet ((port openlook-port)
 						     (parent t)
@@ -620,12 +695,19 @@
   (with-accessors ((value gadget-value)
 		   (ncolumns silica::gadget-columns)
 		   (nlines silica::gadget-lines)) sheet
-    (values 'tk::text
+    (values 'tk::text-edit
 	    (append
-	     (list :edit-mode :multi-line)
-	     (and ncolumns (list :columns ncolumns))
-	     (and nlines (list :rows nlines))
-	     (and value `(:value ,value))))))
+	     (and ncolumns (list :chars-visible ncolumns))
+	     (and nlines (list :lines-visible nlines))
+	     (and value `(:source ,value))))))
+
+(defmethod add-sheet-callbacks :after ((port openlook-port) 
+				       (sheet openlook-text-editor) 
+				       (widget t))
+  (tk::add-callback widget
+		    :post-modify-notification
+		    'queue-value-changed-event
+		    sheet))
 
 (defmethod compose-space ((te openlook-text-editor) &key width height)
   (declare (ignore width height))
@@ -635,6 +717,18 @@
     (setf (space-requirement-max-width sr) +fill+
 	  (space-requirement-max-height sr) +fill+)
     sr))
+
+(defmethod gadget-value ((gadget openlook-text-editor))
+  (if (sheet-direct-mirror gadget)
+      (text-editor-text gadget)
+    (call-next-method)))
+
+(defmethod (setf gadget-value) :after 
+	   (nv (gadget openlook-text-editor) &key invoke-callback)
+  (declare (ignore invoke-callback))
+  (when (sheet-direct-mirror gadget)
+    (setf (text-editor-text gadget) nv)))
+
 
 (defmethod silica::gadget-supplied-scrolling (frame-manager frame 
 					      (contents openlook-text-editor) 
@@ -680,3 +774,191 @@
 						     (parent t)
 						     (sheet openlook-scrolling-window))
   (values 'xt::scrolled-window nil))
+
+
+;;; 
+
+(defclass openlook-list-pane (list-pane xt-leaf-pane)
+	  ((item-list :accessor list-pane-item-list)
+	   (token-list :accessor list-pane-token-list)
+	   (current-tokens :initform nil :accessor list-pane-current-tokens)))
+
+(defmethod silica::gadget-supplied-scrolling (frame-manager frame 
+					      (contents openlook-list-pane) 
+					      &rest ignore)
+  (declare (ignore ignore))
+  contents)
+
+(defmethod find-widget-class-and-initargs-for-sheet ((port openlook-port)
+						     (parent t)
+						     (sheet openlook-list-pane))
+  (with-accessors ((items set-gadget-items)
+		   (value gadget-value)
+		   (value-key set-gadget-value-key)
+		   (test set-gadget-test)
+		   (mode list-pane-mode)
+		   (name-key set-gadget-name-key)) sheet
+    (values 'xt::ol-list nil)))
+
+(defmethod realize-mirror :around ((port openlook-port) (sheet openlook-list-pane))
+  (let ((widget (call-next-method))
+	(item-list nil)
+	(token-list nil)
+	selected-tokens
+	(count 0))
+    (with-accessors ((items set-gadget-items)
+		     (value gadget-value)
+		     (value-key set-gadget-value-key)
+		     (test set-gadget-test)
+		     (mode list-pane-mode)
+		     (name-key set-gadget-name-key)) sheet
+      (dolist (item items)
+	(let ((x (tk::make-ol-list-item :in-foreign-space t))
+	      (selected-p (silica::list-pane-selected-item-p sheet item)))
+	  (setf (tk::ol-list-item-label-type x) tk::ol-string
+		(tk::ol-list-item-label x) (tk::string-to-char* (funcall name-key item))
+		(tk::ol-list-item-mnemonic x) 0
+		(tk::ol-list-item-attr x)
+		(dpb (if selected-p 1 0)
+		     '#.tk::ol_b_list_attr_current
+		     (dpb count '#.tk::ol_b_list_attr_appl 0)))
+	  (let ((token
+		 (tk::ol_appl_add_item
+		 (tk::get-values widget :appl-add-item)
+		 widget
+		 0
+		 0
+		 x)))
+	    (push (list token count) token-list)
+	    (when selected-p (push token selected-tokens))
+	    (push x item-list))
+	  (incf count)))
+      (setf (list-pane-item-list sheet) (nreverse item-list)
+	    (list-pane-token-list sheet) token-list
+	    (list-pane-current-tokens sheet) selected-tokens)
+      widget)))
+
+(defmethod add-sheet-callbacks :after ((port openlook-port) 
+				       (sheet openlook-list-pane) 
+				       (widget t))
+  (tk::add-callback widget
+		    :user-make-current
+		    'list-pane-value-changed
+		    sheet))
+
+(defun list-pane-value-changed (widget token sheet)
+  ;; Need to decide between exclusive and nonexclusive etc etc
+  (let ((item (find-list-pane-item-from-token token)))
+    (with-accessors ((items set-gadget-items)
+		     (value gadget-value)
+		     (value-key set-gadget-value-key)
+		     (test set-gadget-test)
+		     (mode list-pane-mode)
+		     (name-key set-gadget-name-key)) sheet
+      (flet ((item-from-token (token)
+	       (nth (second (assoc token (list-pane-token-list sheet))) items)))
+	(ecase mode
+	  (:exclusive
+	   (unless (member token (list-pane-current-tokens sheet))
+	     (let* ((old-token (car (list-pane-current-tokens sheet)))
+		    (old-item (find-list-pane-item-from-token old-token)))
+	       (setf (tk::ol-list-item-attr old-item)
+		 (dpb 0 '#.tk::ol_b_list_attr_current (tk::ol-list-item-attr old-item))
+		 (tk::ol-list-item-attr item)
+		 (dpb 1 '#.tk::ol_b_list_attr_current (tk::ol-list-item-attr item)))
+	       (touch-list-pane-item widget old-token)
+	       (touch-list-pane-item widget token))
+	     (setf (list-pane-current-tokens sheet) (list token)))
+	   (queue-value-changed-event
+	    widget sheet (funcall value-key 
+				  (item-from-token 
+				   (car (list-pane-current-tokens sheet))))))
+	  (:nonexclusive
+	   (if (member token (list-pane-current-tokens sheet))
+	       (progn
+		 (setf (list-pane-current-tokens sheet)
+		   (delete token (list-pane-current-tokens sheet))
+		   (tk::ol-list-item-attr item)
+		   (dpb 0 '#.tk::ol_b_list_attr_current (tk::ol-list-item-attr item))))
+	     (progn
+	       (push token (list-pane-current-tokens sheet))
+	       (setf (tk::ol-list-item-attr item)
+		 (dpb 1 '#.tk::ol_b_list_attr_current
+		      (tk::ol-list-item-attr item)))))
+	   (touch-list-pane-item widget token)
+	   (queue-value-changed-event
+	    widget sheet (mapcar value-key (mapcar 
+					    #'item-from-token
+					    (list-pane-current-tokens sheet))))))))))
+
+
+
+(defun touch-list-pane-item (widget token)
+  (tk::ol_appl_touch_item (tk::get-values widget :appl-touch-item) widget token))
+
+(defun find-list-pane-item-from-token (token)
+  (tk::ol_list_item_pointer token))
+
+;;;
+
+(defclass openlook-option-pane (option-pane xt-leaf-pane)
+	  ((buttons :accessor option-menu-buttons)))
+
+(defmethod find-widget-class-and-initargs-for-sheet ((port openlook-port)
+						     (parent t)
+						     (sheet openlook-option-pane))
+  (values 'xt::control nil))
+
+(defmethod realize-mirror ((port openlook-port) (sheet openlook-option-pane))
+  (with-accessors ((items set-gadget-items)
+		   (name-key set-gadget-name-key)
+		   (value-key set-gadget-value-key)
+		   (test set-gadget-test)
+		   (label gadget-label)) sheet
+    (let* ((control (call-next-method))
+	   (label (apply #'make-instance 'tk::static-text
+			 :parent control
+			 (append 
+			  (and label `(:string ,label)))))
+	   (widget (apply #'make-instance 
+			  'xt::abbrev-menu-button
+			  :parent control nil))
+	   (preview (make-instance 'tk::static-text
+				   :string "xxxxxxxxxxxxxxxxxxxxxxxx"
+				   :parent control))
+	   (menu-pane (tk::get-values widget :menu-pane)))
+      (setf (option-menu-buttons sheet)
+	(mapcar #'(lambda (item)
+		    (let* ((currentp (funcall
+				      test (funcall value-key item)
+				      (gadget-value sheet)))
+			   (label (funcall name-key item))
+			   (button (make-instance 'tk::oblong-button
+						  :default currentp
+						  :label label
+						  :parent menu-pane)))
+		      (tk::add-callback button
+					:select
+					#'(lambda (&rest ignore)
+					    (declare (ignore ignore))
+					    (queue-value-changed-event
+					     widget sheet (funcall
+							   value-key item))
+					    (tk::set-values button :default t)
+					    (tk::set-values preview :string label)))
+		      (when currentp
+			(tk::set-values preview :string label))
+		      (list button item)))
+		items))
+      (tk::set-values widget :preview-widget preview)
+      control)))
+
+(defmethod (setf gadget-value) :after (nv (sheet openlook-option-pane) &key invoke-callback)
+  (declare (ignore invoke-callback))
+  (with-accessors ((items set-gadget-items)
+		   (value-key set-gadget-value-key)
+		   (test set-gadget-test)) sheet
+    (let ((item (find nv items :test test :key value-key)))
+      (assert item)
+      (let ((button (find item (option-menu-buttons sheet) :key #'second)))
+	(tk::set-values button :default t)))))

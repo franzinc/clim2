@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: event.lisp,v 1.12 92/05/22 19:26:50 cer Exp $
+;; $fiHeader: event.lisp,v 1.13 92/06/02 13:30:42 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -295,6 +295,9 @@
 			 :modifiers modifiers
 			 :button button
 			 :pointer pointer))))))
+
+(defmethod distribute-event ((port null) (event event))
+  (warn "Got event for NIL port ~S" event))
 
 (defmethod distribute-event ((port port) event)
   (distribute-event-1 port event))

@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: sheet.lisp,v 1.15 92/05/22 19:27:01 cer Exp Locker: cer $
+;; $fiHeader: sheet.lisp,v 1.16 92/06/16 15:01:18 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -116,21 +116,21 @@
 (defmethod sheet-disown-child ((parent sheet-multiple-child-mixin) child)
   (unless (eq (sheet-parent child) parent)
     (error "~S is not child of ~S" child parent))
-  (setf (sheet-parent child) nil)
-  (setf  (sheet-children parent)
-	 (remove child (sheet-children parent)))
   (note-sheet-disowned child)
   (when (port parent)
-    (setf (port child) nil)))
+    (setf (port child) nil))
+  (setf (sheet-parent child) nil)
+  (setf (sheet-children parent)
+    (remove child (sheet-children parent))))
 
 (defmethod sheet-disown-child ((parent sheet-single-child-mixin) child)
   (unless (eq (sheet-parent child) parent)
     (error "~S is not child of ~S" child parent))
-  (setf (sheet-parent child) nil
-	(sheet-child parent) nil)
   (note-sheet-disowned child)
   (when (port parent)
-    (setf (port child) nil)))
+    (setf (port child) nil))
+  (setf (sheet-parent child) nil
+	(sheet-child parent) nil))
 
 
 ;;; Geometry

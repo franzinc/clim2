@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-silica.lisp,v 1.8 92/04/03 12:04:50 cer Exp $
+;; $fiHeader: ol-silica.lisp,v 1.9 92/05/22 19:29:26 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -86,3 +86,8 @@
 
 (defmethod disable-xt-mirror ((parent xt::transient-shell) (mirror t))
   (tk::popdown parent))
+
+(defmethod destroy-mirror ((port openlook-port) (sheet silica::mirrored-sheet-mixin))
+  ;; Only do this if its the top most widget being destroyed or we are
+  ;; screwing around with the tree in someway
+  (xt::unmanage-child (sheet-direct-mirror sheet)))

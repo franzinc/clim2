@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.26 92/06/16 15:02:24 cer Exp Locker: cer $
+;; $fiHeader: xt-graphics.lisp,v 1.27 92/06/16 19:11:13 cer Exp Locker: cer $
 
 (in-package :tk-silica)
 
@@ -816,6 +816,15 @@ and on color servers, unless using white or black")
     (convert-to-device-distances transform 
       radius-1-dx radius-1-dy radius-2-dx radius-2-dy)
     (when (medium-drawable medium)
+
+      ;;--- This is some magic that means that things get drawn
+      ;;--- correctly.
+      
+      (setq start-angle (- 2pi start-angle)
+	    end-angle (- 2pi end-angle))
+      (rotatef start-angle end-angle)
+      (when (< end-angle start-angle)
+	(setq end-angle (+ end-angle 2pi)))
       (tk::draw-ellipse
 	(medium-drawable medium)
 	(adjust-ink (decode-ink (medium-ink medium) medium)

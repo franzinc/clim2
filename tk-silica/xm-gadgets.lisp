@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.32 92/05/26 14:33:26 cer Exp Locker: cer $
+;; $fiHeader: xm-gadgets.lisp,v 1.33 92/06/16 15:02:21 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -67,14 +67,6 @@
   (declare (ignore invoke-callback))
   (when (sheet-direct-mirror gadget)
     (tk::set-values (sheet-mirror gadget) :value nv)))
-
-(defmethod queue-value-changed-event (widget sheet &optional (value (gadget-value sheet)))
-  (declare (ignore widget))
-  (distribute-event
-   (port sheet)
-   (make-instance 'value-changed-gadget-event
-		  :gadget sheet
-		  :value value)))
 
 ;; Gadgets that have a :label initarg
 
@@ -862,22 +854,6 @@
       (:nonexclusive
        (tk::add-callback widget :multiple-selection-callback 
 			 'list-pane-multiple-selection-callback sheet))))
-
-(defun compute-list-pane-selected-items (sheet value)
-  (with-accessors ((items set-gadget-items)
-		   (value-key set-gadget-value-key)
-		   (test set-gadget-test)
-		   (mode list-pane-mode)
-		   (name-key set-gadget-name-key)) sheet
-    (ecase mode
-      (:exclusive
-       (let ((x (find value items :test test :key value-key)))
-	 (and x (list (funcall name-key x)))))
-      (:nonexclusive
-       (mapcar name-key 
-	       (remove-if-not #'(lambda (item)
-				  (member (funcall value-key item) value :test test))
-			      items))))))
 
 (defmethod silica::gadget-supplied-scrolling (frame-manager frame
 					      (contents motif-list-pane)

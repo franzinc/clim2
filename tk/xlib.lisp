@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xlib.lisp,v 1.19 92/05/26 14:32:55 cer Exp $
+;; $fiHeader: xlib.lisp,v 1.20 92/06/16 19:10:55 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -131,7 +131,13 @@
 (define-window-reader width)
 (define-window-reader height)
 (define-window-reader depth)
+(define-window-reader map-state decode-window-map-state)
 
+(defun decode-window-map-state (x)
+  (ecase x
+    (0 :unmapped)
+    (1 :unviewable)
+    (2 :viewable)))
 
 (defmethod drawable-width ((window window))
   (window-width window))

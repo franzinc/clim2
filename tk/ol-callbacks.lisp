@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-callbacks.lisp,v 1.6 92/04/21 20:27:35 cer Exp Locker: cer $
+;; $fiHeader: ol-callbacks.lisp,v 1.7 92/05/22 19:26:26 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -72,3 +72,6 @@
 	    (2 :wm-save-yourself)	; 80000002
 	    (4 :wm-take-focus)		; 80000004
 	    ))
+
+(defmethod spread-callback-data ((widget ol-list) data (type (eql 'ol-list-item-make-current)))
+  data)

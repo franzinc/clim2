@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-frames.lisp,v 1.10 92/05/07 13:13:56 cer Exp $
+;; $fiHeader: xt-frames.lisp,v 1.11 92/05/22 19:29:35 cer Exp Locker: cer $
 
 
 (in-package :xm-silica)
@@ -66,28 +66,13 @@
 
 ;;;
 
-(defclass presentation-event (event)
-    ((value :initarg :value :reader presentation-event-value)
-     (sheet :initarg :sheet :reader event-sheet)))
-
-(defmethod handle-event (sheet (event presentation-event))
-  (throw-highlighted-presentation
-    (make-instance 'standard-presentation
-		   :object (presentation-event-value event)
-		   :type 'command)
-    *input-context*
-    (make-instance 'pointer-button-press-event
-		   :sheet sheet
-		   :x 0
-		   :y 0
-		   :modifiers 0
-		   :button 256)))
-
-(defun command-button-callback (button dunno frame item)
+(defun command-button-callback (button dunno frame command-table item)
   (distribute-event
     (port frame)
     (make-instance 'presentation-event
+		   :frame frame
 		   :sheet (frame-top-level-sheet frame)
+		   ::presentation-type `(command :command-table ,command-table)
 		   :value (second item))))
 
 

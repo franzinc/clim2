@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: widget.lisp,v 1.19 92/05/13 17:10:27 cer Exp Locker: cer $
+;; $fiHeader: widget.lisp,v 1.20 92/05/22 19:26:32 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -181,7 +181,7 @@
 (defun unintern-widget (widget)
   (unintern-object-address (foreign-pointer-address widget)))
 
-(defmethod widget-parent (widget)
+(defmethod widget-parent ((widget xt-root-class))
   (let ((x (xt_parent widget)))
     (and (not (zerop x)) (intern-widget x))))
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: regions.lisp,v 1.8 92/05/07 13:11:44 cer Exp $
+;; $fiHeader: regions.lisp,v 1.9 92/05/22 19:27:20 cer Exp Locker: cer $
 
 (in-package :clim-utils)
 
@@ -161,9 +161,8 @@
 (defmethod region-contains-region-p ((everywhere everywhere) (region region)) t)
 (defmethod region-contains-region-p ((region region) (everywhere everywhere)) nil)
 
-(define-symmetric-region-method region-intersects-region-p
-				((everywhere everywhere) (region region))
-  t)
+(define-symmetric-region-method region-intersects-region-p ((everywhere everywhere) (region region))
+  (not (eq region +nowhere+)))
 
 (defmethod transform-region (transformation (region everywhere))
   (declare (ignore transformation))

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: callbacks.lisp,v 1.14 92/05/22 19:26:15 cer Exp Locker: cer $
+;; $fiHeader: callbacks.lisp,v 1.15 92/06/16 15:01:05 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -126,6 +126,8 @@
 	    ("sliderMoved" slider-moved)
 	    ("select")
 	    ("unselect")
+	    ("postModifyNotification")
+	    ("userMakeCurrent" ol-list-item-make-current)
 	    )))
 
 (defun convert-callback-name (x)

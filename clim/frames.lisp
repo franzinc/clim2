@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: frames.lisp,v 1.24 92/06/03 18:18:29 cer Exp Locker: cer $
+;; $fiHeader: frames.lisp,v 1.25 92/06/16 15:01:44 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -50,7 +50,8 @@
 		 :accessor frame-properties)
      (resizable :initarg :resize-frame
 		:reader frame-resizable)
-     (layout :initarg :layouts :reader frame-layouts))
+     (layout :initarg :layouts :reader frame-layouts)
+     (command-queue :initform (make-queue) :reader frame-command-queue))
   (:default-initargs :pointer-documentation nil
     :layouts nil
     :resize-frame nil
@@ -73,8 +74,8 @@
 					    geometry icon
 					    (parent frame-manager))
   (declare (ignore args))
-  (destructuring-bind (&key x y width height) geometry
-    (declare (ignore x y width height)))
+  (destructuring-bind (&key left top width height) geometry
+    (declare (ignore left top width height)))
   (destructuring-bind (&key name pixmap clipping-mask) icon
     (declare (ignore name pixmap clipping-mask)))
   (let ((frame-manager
@@ -439,8 +440,14 @@
 					  frame (frame-manager frame)))
 			   all-panes))))))
 
+(defmethod find-pane-named ((frame standard-application-frame) name &optional (errorp t))
+  (with-slots (all-panes pane-constructors) frame
+    (cond ((second (assoc name all-panes)))
+	  (errorp (error "Cannot find pane named ~S in frame ~S" name frame)))))
+		
 (defmethod layout-frame ((frame standard-application-frame) &optional width height)
-  (let ((panes (frame-panes frame)))
+  (let ((panes (frame-panes frame))
+	(*application-frame* frame))
     (when panes
       (clear-space-requirement-caches-in-tree panes)
       (unless (and width height)
@@ -509,25 +516,51 @@
 (defun make-application-frame (frame-name &rest options 
 			       &key frame-class
 				    enable pretty-name
-			            x y width height
+			            left top right bottom width height
 				    save-under
 			       &allow-other-keys)
   (declare (dynamic-extent options))
   (check-type pretty-name (or null string))
   (when (null frame-class)
     (setq frame-class frame-name))
-  (when (or x y width height)
+  (when (or left top right bottom width height)
     (when (getf options :geometry)
-      (error "Cannot specify ~S and ~S, S, ~S, or ~S at the same time"
-	     :geometry :x :y :width :height))
+      (error "Cannot specify :geometry with any of :left, :top, ~
+:right, :bottom, :width or :height"))
+    
+    (cond ((and left width)
+	   (if right (error "Cannot specify :left, :width and :right together"))
+	   (setq right (+ left width)))
+	  
+	  ((and right width)
+	   (if left (error "Cannot specify :left, :width and :right together"))
+	   (setq left (+ right width)))
+	  
+	  ((and right left)
+	   (if width (error "Cannot specify :left, :width and :right together"))
+	   (setq width (- right left))))
+    
+    (cond ((and top height)
+       (if bottom (error "Cannot specify :top, :height and :bottom together"))
+       (setq bottom (+ top height)))
+	  
+      ((and bottom height)
+       (if top (error "Cannot specify :top, :height and :bottom together"))
+       (setq top (+ bottom height)))
+	  
+      ((and bottom top)
+       (if height (error "Cannot specify :top, :height and :bottom together"))
+       (setq height (- bottom top))))
+
     (setf (getf options :geometry)
-	  (append (and x `(:x ,x))
-		  (and y `(:y ,y))
+	  (append (and left `(:left ,left))
+		  (and top `(:top ,top))
 		  (and width `(:width ,width))
 		  (and height `(:height ,height)))))
+
   (with-keywords-removed (options options 
 			  '(:frame-class :pretty-name
-			    :enable :x :y :width :height :save-under))
+			    :enable :left :top :right :bottom :width :height :save-under))
       (let ((frame (apply #'make-instance frame-class
 			  :name frame-name
 			  ;;--- Perhaps this should be a default-initarg?
@@ -1113,3 +1146,47 @@
 	    middle middle-presentation middle-context
 	    right  right-presentation  right-context)))
 
+;;;;
+
+(defmethod execute-command-in-frame ((frame standard-application-frame) command)
+  (distribute-event
+   (port frame)
+   (make-instance 'presentation-event
+		  :sheet (frame-top-level-sheet frame)
+		  :value command)))
+
+(define-condition synchronous-command-event ()
+  ((command :initarg :command :reader synchronous-command-event-command)))
+
+(defmethod read-frame-command :around ((frame standard-application-frame) &key)
+  (let* ((command (queue-pop (frame-command-queue frame))))
+    (or command 
+	(handler-bind ((synchronous-command-event
+			#'(lambda (c)
+			    (return-from read-frame-command
+			      (synchronous-command-event-command c)))))
+	  (call-next-method)))))
+	
+
+;; Actually this should be treated as a command event
+
+(defclass presentation-event (event)
+	  ((value :initarg :value :reader presentation-event-value)
+	   (sheet :initarg :sheet :reader event-sheet)
+	   (frame :initarg :frame :reader event-frame)
+	   (presentation-type :initarg :presentation-type 
+			      :reader event-presentation-type)))
+
+(defmethod handle-event (sheet (event presentation-event))
+  (process-command-event sheet event))
+
+(defun process-command-event (sheet event)
+  (when (and (eq *application-frame* (event-frame event)) *input-buffer-empty*)
+    (signal 'synchronous-command-event :command (presentation-event-value event)))
+  ;; Perhaps if this results directly from a user action then either
+  ;; we should do it right away, ie. loose the input buffer or beep if
+  ;; it has to be deffered,
+  (queue-frame-command (event-frame event) (presentation-event-value event)))
+
+(defun queue-frame-command (frame command)
+  (queue-push (frame-command-queue frame) command))

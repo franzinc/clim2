@@ -1,4 +1,4 @@
-# $fiHeader: Makefile,v 1.32 92/06/02 13:31:18 cer Exp Locker: cer $
+# $fiHeader: Makefile,v 1.33 92/06/03 18:19:01 cer Exp Locker: cer $
 # 
 #  Makefile for CLIM 2.0
 #
@@ -58,7 +58,7 @@ TMP	= /usr/tmp
 SRC_FILES = */*.lisp *.lisp Makefile */Makefile misc/make-stub-file \
 	    misc/undefinedsymbols misc/undefinedsymbols.olit \
 	    misc/undefinedsymbols.motif misc/undefinedsymbols.xt \
-	    xlib/xlibsupport.c misc/MyDrawingA*.[hc]
+	    xlib/xlibsupport.c misc/MyDrawingA*.[hc] misc/olsupport.c
 
 DEST=/dev/null
 
@@ -95,8 +95,10 @@ XM_UNDEFS=misc/undefinedsymbols.motif
 OL_UNDEFS=misc/undefinedsymbols.olit
 
 CLIMFASLS= climg.fasl climol.fasl climxm.fasl clim-debug.fasl
-CLIMOBJS= stub-x.o stub-xt.o stub-motif.o stub-olit.o xlibsupport.o MyDrawingA.o
-FCLIMOBJS= `pwd`/stub-motif.o `pwd`/stub-olit.o `pwd`/stub-x.o `pwd`/stub-xt.o `pwd`/xlibsupport.o `pwd`/MyDrawingA.o
+CLIMOBJS= stub-x.o stub-xt.o stub-motif.o stub-olit.o xlibsupport.o MyDrawingA.o \
+	olsupport.o
+
+FCLIMOBJS= `pwd`/stub-motif.o `pwd`/stub-olit.o `pwd`/stub-x.o `pwd`/stub-xt.o `pwd`/xlibsupport.o `pwd`/MyDrawingA.o `pwd`/olsupport.o
 
 
 #
@@ -290,6 +292,9 @@ default: all-xm
 trained-clim-xm:	
 	(make all-xm train ; make clim-xm)
 
+trained-clim-ol:	
+	(make all-ol train ; make clim-ol)
+
 all-xm:	compile-xm cat-xm clim-xm
 all-ol:	compile-ol cat-ol clim-ol
 
@@ -448,9 +453,9 @@ makeclimobjs	: $(CLIMOBJS)
 ################## Lower level Makefile stuff
 
 
-ol-dcl	:  stub-x.o stub-xt.o stub-olit.o xlibsupport.o MyDrawingA.o
+ol-dcl	:  stub-x.o stub-xt.o stub-olit.o xlibsupport.o olsupport.o
 	cd $(CL_SRC) ; /bin/rm -f ucl ;\
-	make initial_oldspace=$(OLDSPACE) oldspace=$(OLDSPACE) newspace=$(NEWSPACE) ucl_xtras='$(PWD)/stub-x.o $(PWD)/stub-xt.o $(PWD)/stub-olit.o $(PWD)/xlibsupport.o $(PWD)/MyDrawingA.o $(LIBXOL) $(OLXLIBS)' dcl
+	make initial_oldspace=$(OLDSPACE) oldspace=$(OLDSPACE) newspace=$(NEWSPACE) ucl_xtras='$(PWD)/stub-x.o $(PWD)/stub-xt.o $(PWD)/stub-olit.o $(PWD)/xlibsupport.o $(PWD)/olsupport.o $(LIBXOL) $(OLXLIBS)' dcl
 
 xm-dcl	: stub-x.o stub-xt.o stub-motif.o xlibsupport.o MyDrawingA.o
 	cd $(CL_SRC) ; /bin/rm -f ucl ;\
@@ -478,6 +483,9 @@ xlibsupport.o	: xlib/xlibsupport.c
 
 MyDrawingA.o: misc/MyDrawingA.c
 	$(CC) -c $(CFLAGS) -o MyDrawingA.o misc/MyDrawingA.c
+
+olsupport.o: misc/olsupport.c
+	$(CC) -c $(CFLAGS) -o olsupport.o misc/olsupport.c
 
 FRC	: 
 

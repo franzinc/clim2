@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: test.lisp,v 1.29 92/06/03 18:18:39 cer Exp Locker: cer $
+;; $fiHeader: test.lisp,v 1.30 92/06/16 15:01:59 cer Exp Locker: cer $
 
 (in-package :clim-user)
 
@@ -103,7 +103,7 @@
      (make-pane 'toggle-button)
      (make-pane 'slider)
      (make-pane 'text-field)
-     (make-clim-interactor-pane
+     (clim-internals::make-clim-interactor-pane
       :width 300 :max-width +fill+
       :height 300 :max-height +fill+))))
 
@@ -775,3 +775,6 @@
 				    :top-attachment :form
 				    :bottom-attachment :form))
 		    :contents (list a b c)))))
+
+;; 
+

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: load-ol.lisp,v 1.10 92/05/22 19:26:22 cer Exp $
+;; $fiHeader: load-ol.lisp,v 1.11 92/06/02 13:30:35 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -28,6 +28,25 @@
 (defvar sys::*libxt-pathname* "/x11/R4/sun4-lib/libXt_d.a")
 
 (defun load-from-ol ()
+  (unless (ff:get-entry-point (ff:convert-to-lang "ol_appl_add_item"))
+    (mapc #'ff::remove-entry-point
+	  '("__unpack_quadruple" 
+	    "__prod_b10000" 
+	    "__carry_out_b10000" 
+	    "__prod_65536_b10000"
+	    "__unpacked_to_decimal"
+	    ;; got these when compiling on ox
+	    "__pack_integer"
+	    "_class_double"
+	    "_class_single"
+	    "_class_extended"
+	    "__unpack_integer"
+	    ))
+    (load "olsupport.o"
+	  :system-libraries (list sys::*libxol-pathname*
+				  sys::*libxt-pathname*
+				  sys::*libx11-pathname*)
+	  :print t))
   (x11::load-undefined-symbols-from-library
    "stub-olit.o"
    (x11::symbols-from-file 

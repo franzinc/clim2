@@ -1,6 +1,6 @@
 ;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadgets.lisp,v 1.22 92/05/12 18:24:27 cer Exp Locker: cer $
+;; $fiHeader: gadgets.lisp,v 1.23 92/05/22 19:26:52 cer Exp Locker: cer $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
@@ -475,10 +475,41 @@
     ((mode :initarg :mode :type (member :exclusive :nonexclusive)
 	   :accessor list-pane-mode))
   (:default-initargs :mode :exclusive))
- 
+
+(defun compute-list-pane-selected-items (sheet value)
+  (with-accessors ((items set-gadget-items)
+		   (value-key set-gadget-value-key)
+		   (test set-gadget-test)
+		   (mode list-pane-mode)
+		   (name-key set-gadget-name-key)) sheet
+    (ecase mode
+      (:exclusive
+       (let ((x (find value items :test test :key value-key)))
+	 (and x (list (funcall name-key x)))))
+      (:nonexclusive
+       (mapcar name-key 
+	       (remove-if-not #'(lambda (item)
+				  (member (funcall value-key item) value :test test))
+			      items))))))
+
+
+(defun list-pane-selected-item-p (sheet item)
+  (with-accessors ((items set-gadget-items)
+		   (value gadget-value)
+		   (value-key set-gadget-value-key)
+		   (test set-gadget-test)
+		   (mode list-pane-mode)
+		   (name-key set-gadget-name-key)) sheet
+    (ecase mode
+      (:exclusive
+       (funcall test (funcall value-key item) value))
+      (:nonexclusive
+       (member (funcall value-key item) value :test test)))))
+
+
 (defclass option-pane (set-gadget-mixin 
 		       value-gadget 
-		       labelled-gadget)
+		       labelled-gadget-mixin)
     ())
 
 

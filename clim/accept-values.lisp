@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept-values.lisp,v 1.21 92/05/22 19:27:38 cer Exp Locker: cer $
+;; $fiHeader: accept-values.lisp,v 1.22 92/06/16 15:01:33 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -300,8 +300,7 @@
 	       own-window-width own-window-height
 	       own-window-right-margin own-window-bottom-margin
 	       exit-button-stream) frame
-    (let* ((command-table (frame-command-table frame))
-	   (original-view (stream-default-view stream))
+    (let* ((original-view (stream-default-view stream))
 	   (return-values nil)
 	   (initial-query nil)
 	   exit-button-record
@@ -339,10 +338,8 @@
 			       ;; to what it was before we started.
 			       (letf-globally (((stream-default-view command-stream)
 						original-view))
-				 (read-command command-table
-					       :stream command-stream
-					       :command-parser 'menu-command-parser
-					       :use-keystrokes t)))))
+					      (read-frame-command
+					       frame :stream command-stream)))))
 		       (if (and command (not (keyboard-event-p command)))
 			   (execute-frame-command frame command)
 		       (beep stream)))
@@ -359,7 +356,18 @@
  		       (redisplay exit-button-record exit-button-stream))
 		     (redisplay avv stream :check-overlapping
 				check-overlapping))
-		     (when (frame-resizable frame)
+		     (when (ecase (frame-resizable frame)
+			     ((nil) nil)
+			     ((t) t)
+			     (:grow
+			      (and own-window
+				   (multiple-value-bind (data-w data-h)
+				       (bounding-rectangle-size
+					(stream-output-history own-window))
+				     (multiple-value-bind (v-w v-h)
+					 (bounding-rectangle-size (or (pane-viewport own-window)
+								      own-window))
+				       (or (> data-w v-w) (> data-h v-h)))))))
 		       (size-panes-appropriately))))
 	       (size-panes-appropriately ()
 		 (changing-space-requirements ()
@@ -423,6 +431,13 @@
 	      (unless own-window
 		(move-cursor-beyond-output-record (slot-value stream 'stream) avv))))
 	  (values-list return-values))))))
+
+
+(defmethod read-frame-command ((frame accept-values) &key (stream *query-io*))
+  (read-command (frame-command-table frame)
+		:stream stream
+		:command-parser 'menu-command-parser
+		:use-keystrokes t))
 
 (defmethod accept-values-resynchronize ((stream accept-values-stream))
   (setf (slot-value (slot-value stream 'avv-record) 'resynchronize) t))
@@ -1110,19 +1125,16 @@
   `(,#'accept-values-value-changed-callback ,stream ,query))
 
 (defun do-avv-command (new-value client query)
-  (throw-highlighted-presentation
-   (make-instance 'standard-presentation
-		  :object `(com-change-query ,query ,new-value)
-		  :type 'command)
-   *input-context*
-   ;;--- It would be nice if we had the real event...
-   (make-instance 'pointer-button-press-event
-		  :sheet (slot-value client 'stream)
-		  :x 0
-		  :y 0
-		  :modifiers 0
-		  :button 256)))
+  (let ((sheet (slot-value client 'stream)))
+    (process-command-event
+     sheet
+     (make-instance 'presentation-event
+		    :sheet sheet
+		    :presentation-type 'command
+		    :value `(com-change-query ,query ,new-value)
+		    :frame (slot-value client 'avv-frame) ))))
 
+     
 ;; This is how we associate an output-record with the button
 (defmethod invoke-accept-values-command-button
     	   (stream continuation (view gadget-dialog-view) prompt

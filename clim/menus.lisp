@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: menus.lisp,v 1.23 92/05/22 19:28:12 cer Exp Locker: cer $
+;; $fiHeader: menus.lisp,v 1.24 92/06/16 15:01:52 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -97,7 +97,7 @@
 (defmacro menu-item-getf (menu-item indicator &optional default)
   `(let (rest)
      (cond ((atom ,menu-item) nil)
-	   ((atom (setq rest (cdr ,menu-item))) nil)
+	   ((atom (setq rest (cdr ,menu-item))) ,default)
 	   (t (getf rest ,indicator ,default)))))
 
 (defun menu-item-style (menu-item)

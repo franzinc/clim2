@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: packages.lisp,v 1.17 92/05/22 19:27:16 cer Exp Locker: cer $
+;; $fiHeader: packages.lisp,v 1.18 92/06/16 15:01:22 cer Exp Locker: cer $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :common-lisp-user)
 
@@ -1763,6 +1763,7 @@
     port-type
     portp
     primitive-sheet-output-mixin
+    presentation-event
     process-next-event
     queue-event
     queue-input
@@ -2490,13 +2491,16 @@
     command-menu-pane
     default-frame-top-level
     define-application-frame
+    destroy-frame
     disable-frame
     disown-frame
     display-command-menu
     enable-frame
     execute-frame-command
+    execute-command-in-frame
     find-frame-manager
     find-pane-for-frame
+    find-pane-named
     frame-calling-frame
     frame-command-table
     frame-current-layout

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: make-classes.lisp,v 1.19 92/06/03 18:18:11 cer Exp Locker: cer $
+;; $fiHeader: make-classes.lisp,v 1.20 92/06/16 19:10:50 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -64,8 +64,10 @@
 (defmethod find-class-resource ((class xt-class) resource-name)
   (declare (optimize (speed 3) (safety 0)))
   (with-slots (cached-resources specially-hacked-resources) class
-    (let ((value (gethash resource-name cached-resources :not-found)))
-      (if (not (eq value :not-found))
+    (multiple-value-bind
+	(value foundp)
+	(gethash resource-name cached-resources)
+      (if foundp
 	  value				; Never had it, never will
 	(setf (gethash resource-name cached-resources)
 	  (if* (find resource-name specially-hacked-resources
@@ -79,8 +81,10 @@
 (defmethod find-class-constraint-resource ((class xt-class) resource-name)
   (declare (optimize (speed 3) (safety 0)))
   (with-slots (cached-constraint-resources) class
-    (let ((value (gethash resource-name cached-constraint-resources :not-found)))
-      (if (not (eq value :not-found))
+    (multiple-value-bind
+	(value foundp)
+	(gethash resource-name cached-constraint-resources)
+      (if foundp
 	  value				; Never had it, never will
 	(setf (gethash resource-name cached-constraint-resources)
 	  (get-resource-internal class
@@ -92,7 +96,9 @@
 
 ;; These next five aren't used except maybe by describe-widget.
 (defmethod class-resources ((class xt-class))
-  (get-resource-list class))
+  (append 
+   (slot-value class 'specially-hacked-resources)
+   (get-resource-list class)))
 
 (defmethod class-constraint-resources ((class xt-class))
   (get-constraint-resource-list class))
@@ -258,8 +264,15 @@
 
 ;; This is a terrible hack used to compensate for bugs/inconsistencies
 ;; in the XM and OLIT toolkits.
+
 (defun add-resource-to-class (class resource)
   (clos::map-over-subclasses
    #'(lambda (c)
-       (pushnew resource (slot-value c 'specially-hacked-resources)))
+       (pushnew resource (slot-value c 'specially-hacked-resources))
+       (with-slots (cached-resources get-values-cache set-values-cache
+				     cached-constraint-resources) c
+	 (clrhash cached-resources)
+	 (clrhash get-values-cache)
+	 (clrhash set-values-cache)
+	 (clrhash cached-constraint-resources)))
    class))

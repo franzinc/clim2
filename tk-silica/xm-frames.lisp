@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-frames.lisp,v 1.19 92/06/02 13:31:25 cer Exp Locker: cer $
+;; $fiHeader: xm-frames.lisp,v 1.20 92/06/16 15:02:20 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -182,6 +182,7 @@
 				:activate-callback
 				'command-button-callback
 				(slot-value sheet 'silica::frame)
+				command-table
 				item)))))))
 			  
 		  command-table)
@@ -219,16 +220,18 @@
 		      :min-width (fix-coordinate (space-requirement-min-width sr))
 		      :min-height
 		      (fix-coordinate (space-requirement-min-height sr))))
+
     (let ((geo (clim-internals::frame-geometry frame)))
       (destructuring-bind
-	  (&key x y width height &allow-other-keys) geo
+	  (&key left top width height &allow-other-keys) geo
 	;;-- what about width and height
 	(when (and width height)
-	  (tk::set-values shell :width width :height height))
-	(when (and x y)
+	  (tk::set-values shell :width (fix-coordinate width) 
+			  :height (fix-coordinate height)))
+	(when (and left top)
 	  (tk::set-values shell 
-			  :x (fix-coordinate x)
-			  :y (fix-coordinate y)))))
+			  :x (fix-coordinate left)
+			  :y (fix-coordinate top)))))
     
     (tk::set-values shell :title (frame-pretty-name frame))
     (let ((icon (clim-internals::frame-icon frame)))

@@ -17,7 +17,7 @@
  * 52.227-19 or DOD FAR Supplement 252 52.227-7013 (c) (1) (ii), as
  * applicable.
  *
- * $fiHeader: MyDrawingA.c,v 1.1 92/05/13 08:54:21 cer Exp Locker: cer $
+ * $fiHeader: MyDrawingA.c,v 1.2 92/06/16 15:02:16 cer Exp Locker: cer $
  */
 
 
@@ -30,7 +30,7 @@
 
 static int (*querygeometryfunction) () = 0;
 
-QueryGeometry (da, intended, desired)
+static QueryGeometry (da, intended, desired)
             XmDrawingAreaWidget da ;
             XtWidgetGeometry * intended ;
             XtWidgetGeometry * desired ;

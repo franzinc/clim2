@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: test-suite.lisp,v 1.22 92/06/03 18:18:35 cer Exp Locker: cer $
+;; $fiHeader: test-suite.lisp,v 1.23 92/06/16 15:01:56 cer Exp Locker: cer $
 
 (in-package :clim-user)
 
@@ -79,8 +79,8 @@ What about environment issue?
 
 ;; Try to get millimeters
 (defun window-mm-transformation (window)
-  (with-bounding-rectangle* (wl wt wr wb) #-silica (window-viewport window)
-					  #+silica (sheet-region window)
+  (with-bounding-rectangle* (wl wt wr wb) #-ignore (window-viewport window)
+					  #+ignore (sheet-region window)
     (make-transformation 3.4 0 0 -3.4 (floor (- wr wl) 2) (floor (- wb wt) 2))))
 
 (defmacro with-mm-transformation ((window -x -y +x +y) &body body)
@@ -89,8 +89,8 @@ What about environment issue?
        (with-bounding-rectangle* (,-x ,-y ,+x ,+y)
 				 (untransform-region 
 				   transform
-				   #-silica (window-viewport ,window)
-				   #+silica (bounding-rectangle (sheet-region ,window)))
+				   #-ignore (window-viewport ,window)
+				   #+ignore (bounding-rectangle (sheet-region ,window)))
 	 ,@body))))
 
 (defun draw-grid (stream)
@@ -175,6 +175,32 @@ What about environment issue?
   (draw-some-circles stream)
   (sleep 2)
   (window-refresh stream))
+
+(define-test (draw-some-arcs graphics) (stream)
+  "Draw some arcs, wait a few seconds, and refresh the window."
+  (formatting-table (stream)
+      (dolist (angles `((0 ,(* 2 pi))
+			(0 ,(* 0.5 pi))
+			(,(* 0.5 pi) ,pi)
+			(,pi ,(* 1.5 pi))
+			(,(* 1.5 pi) ,(* 2 pi))
+			))
+	(formatting-row (stream)
+	    (formatting-cell (stream)
+		(format stream "Arc from ~3f to ~3f" (car angles) (second angles)))
+	  (formatting-cell (stream)
+	      (draw-circle* stream  0 0 50 
+			    :ink +red+
+			    :filled t
+			    :start-angle (car angles)
+			    :end-angle (second angles)))
+	  (formatting-cell (stream)
+	      (draw-circle* stream  0 0 50 
+			    :ink +green+
+			    :filled t
+			    :start-angle (second angles)
+			    :end-angle (car angles)))))))
+
 
 (define-test (rotated-scaled-circles graphics) (stream)
   "Draw some circles, first rotated then scaled, wait a few seconds, then refresh."
@@ -313,6 +339,10 @@ people, shall not perish from the earth.
 		(make-rectangle* 0 0 10 10)
 		(make-rectangle* 10 10 20 20)))
 
+(define-presentation-type form-to-evaluate ())
+
+
+
 (define-test (region-equal-tests graphics) (stream)
   "Exercise REGION-EQUAL."
   (formatting-table (stream :x-spacing "  ")
@@ -329,7 +359,7 @@ people, shall not perish from the earth.
 		  (correct-result (equal region1 region2)))
 	      (with-output-as-presentation (stream
 					    `(region-equal ,region1 ,region2)
-					     'form
+					     'form-to-evaluate
 					    :single-box t)
 		(if (eq result correct-result)
 		    (format stream "~A" result)
@@ -387,7 +417,7 @@ people, shall not perish from the earth.
 		  (y (second position)))
 	      (with-output-as-presentation ( stream
 					     `(region-contains-position-p ,region ,x ,y)
-					     'form
+					     'form-to-evaluate
 					    :single-box t)
 		(formatting-cell (stream :align-x :center)
 		  (when res
@@ -444,7 +474,7 @@ people, shall not perish from the earth.
 	    (dolist (region2 regions)
 	      (with-output-as-presentation ( stream
 					     `(region-contains-region-p ,region1 ,region2) 
-					     'form
+					     'form-to-evaluate
 					    :single-box t)
 		(formatting-cell (stream :align-x :center)
 		  (let ((res (lookup-result region1 region2))
@@ -504,7 +534,7 @@ people, shall not perish from the earth.
 	    (dolist (region2 regions)
 	      (with-output-as-presentation ( stream
 					     `(region-intersects-region-p ,region1 ,region2)
-					     'form
+					     'form-to-evaluate
 					    :single-box t)
 		(formatting-cell (stream :align-x :center)
 		  (let ((res (lookup-result region1 region2))
@@ -1015,6 +1045,16 @@ people, shall not perish from the earth.
     (format-graph-from-root "Lechmere" #'draw-node #'next-stops
 			    :orientation :vertical
 			    :stream stream)))
+
+#+allegro
+(define-test (clos-metaobjects-graph formatted-output) (stream)
+  "Draw a graph showing part of the CLOS class hierarchy"
+  (format-graph-from-roots 
+   (mapcar #'find-class '(clos:metaobject clos:dependee-mixin))
+   #'(lambda (o s) (format s "~A" (clos::class-name o))) 
+   #'clos::class-direct-subclasses
+   :stream stream
+   :merge-duplicates t))
 
 (define-test (offset-table formatted-output) (stream)
   "Draw a table offset in the window.  After refreshing, it should look the same."
@@ -2709,7 +2749,12 @@ Luke Luck licks the lakes Luke's duck likes."))
 
 (defmethod frame-standard-output ((frame clim-tests))
   (get-frame-pane frame 'display-pane))
-    
+
+(define-presentation-action evaluate-form 
+    (form-to-evaluate command clim-tests)
+  (object)
+  (format t "~%The result of evaluating ~S is ~S" object (eval object)))
+
 #+Genera
 (define-genera-application clim-tests :select-key #\Circle
 			   :width 600 :height 420)
