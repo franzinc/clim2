@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-medium.lisp,v 1.6.8.19 1999/06/18 21:27:31 layer Exp $
+;; $Id: acl-medium.lisp,v 1.6.8.20 1999/06/22 21:40:28 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -764,12 +764,17 @@ draw icons and mouse cursors on the screen.
 
 (defparameter *point-vector* (ff:allocate-fobject `(:array :long 100) :foreign-static-gc))
 
+(eval-when (compile eval load)
+  ;; this type useful since we don't open code anonymous types well yet:
+  (ff:def-foreign-type foreign-long-array (:array :long 1))
+  )
+
 (defun set-point (vector i x)
   (declare (optimize (speed 3) (safety 0))
 	   (type (SIMPLE-ARRAY EXCL:FOREIGN (101)) vector)
 	   (fixnum i)
 	   (type excl:foreign x))
-  (setf (ff:fslot-value-typed '(:array :long 1) :foreign-static-gc
+  (setf (ff:fslot-value-typed 'foreign-long-array :foreign-static-gc
 			      vector i)
     x))
 
@@ -795,11 +800,11 @@ draw icons and mouse cursors on the screen.
       (when closed
 	;; Make the first point be the last.
 	(set-point vector i 
-		   (ff:fslot-value-typed '(:array :long 1) :foreign
+		   (ff:fslot-value-typed 'foreign-long-array :foreign
 					 vector 0))
 	(incf i)
 	(set-point vector i 
-		   (ff:fslot-value-typed '(:array :long 1) :foreign
+		   (ff:fslot-value-typed 'foreign-long-array :foreign
 					 vector 1))
 	(incf i))
       i)))

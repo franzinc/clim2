@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-frames.lisp,v 1.5.8.20 1999/06/18 19:41:40 layer Exp $
+;; $Id: acl-frames.lisp,v 1.5.8.21 1999/06/22 21:40:28 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -990,16 +990,25 @@ to be run from another."
 (defparameter *scratch-c-string*
   (ff:allocate-fobject-c `(:array :char ,*scratch-string-length*)))
 
+(eval-when (compile eval load)
+  ;; this type useful since we don't open code anonymous types well yet:
+  (ff:def-foreign-type foreign-string (:array :char 1))
+  )
+
 (defun lisp-string-to-scratch-c-string (lisp-string)
   (let ((length (min (length lisp-string)
 		     (1- *scratch-string-length*))))
     (dotimes (i length 
 	       ;; null term
-	       (setf (ff:fslot-value-c '(:array :char 1)
-					*scratch-c-string*
-					length) 0))
-      (setf (ff:fslot-value-c '(:array char 1) *scratch-c-string*
-			       i)
+	       (setf (ff:fslot-value-typed 'acl-clim::foreign-string
+					   :foreign
+					   *scratch-c-string*
+					   length)
+		 0))
+      (setf (ff:fslot-value-typed 'acl-clim::foreign-string
+				  :foreign
+				  *scratch-c-string*
+				  i)
 	(char-int (aref lisp-string i))))
     *scratch-c-string*
     ))
@@ -1107,9 +1116,15 @@ to be run from another."
 		 (length (length string)))
 	     (assert (< length 255))
 	     (dotimes (i length)
-	       (setf (ff:fslot-value-c '(:array char 1) c-string i)
+	       (setf (ff:fslot-value-typed 'acl-clim::foreign-string
+					   :foreign
+					   c-string
+					   i)
 		 (char-int (aref string i))))
-	     (setf (ff:fslot-value-c '(:array :char 1) c-string length)
+	     (setf (ff:fslot-value-typed 'acl-clim::foreign-string
+					 :foreign
+					 c-string
+					 length)
 	       0)
 	     c-string)))
     (let* ((open-file-struct (ct:ccallocate win:openfilename))
@@ -1596,17 +1611,18 @@ in a second Lisp process.  This frame cannot be reused."
   (let ((length (length string)))
     (assert (< length 1024))
     ;; The header is the size of a "word"
-    (setf (ff:fslot-value-c '(:array char 1) buffer 0) 
+    (setf (ff:fslot-value-typed 'acl-clim::foreign-string :foreign buffer 0) 
       (ldb (byte 8 0) code))
-    (setf (ff:fslot-value-c '(:array char 1) buffer 1) 
+    (setf (ff:fslot-value-typed 'acl-clim::foreign-string :foreign buffer 1) 
       (ldb (byte 8 8) code))
-    (setf (ff:fslot-value-c '(:array char 1) buffer 2) 
+    (setf (ff:fslot-value-typed 'acl-clim::foreign-string :foreign buffer 2) 
       (ldb (byte 8 16) code))
-    (setf (ff:fslot-value-c '(:array char 1) buffer 3) 
+    (setf (ff:fslot-value-typed 'acl-clim::foreign-string :foreign buffer 3) 
       (ldb (byte 8 24) code))
     ;; The rest is the actual string.
     (dotimes (i length)
-      (setf (ff:fslot-value-c '(:array char 1) buffer (+ i 4))
+      (setf (ff:fslot-value-typed 'acl-clim::foreign-string :foreign
+				  buffer (+ i 4))
 	(char-code (char string i))))
     buffer))
 

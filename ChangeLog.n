@@ -11,6 +11,15 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.2.1.65
+
+1999-06-22    <layer@HOBART>
+
+	* aclpc/acl-medium.lisp,
+	* aclpc/acl-frames.lisp: speed up ico demo by removing use of
+	anonymous foreign types.
+
+*******************************************************************************
 2.2.1.64
 
 1999-06-21  Kevin Layer  <layer@ultra>
