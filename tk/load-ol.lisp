@@ -20,11 +20,11 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: load-ol.lisp,v 1.6 92/02/24 13:03:09 cer Exp Locker: cer $
+;; $fiHeader: load-ol.lisp,v 1.7 92/03/30 17:51:37 cer Exp Locker: cer $
 
 (in-package :tk)
 
-(defvar *libxol-pathname* "/usr/tech/cer/stuff/clim-2.0/tk/lib2/libXol.a")
+(defvar *libxol-pathname* "/vapor/usr/tech/cer/stuff/clim-2.0/tk/lib2/libXol.a")
 (defvar *libxt-pathname* "/x11/R4/src/mit/lib/Xt/libXt_d.a")
 
 (defun load-from-ol ()
@@ -35,11 +35,18 @@
     "misc/undefinedsymbols.olit")
    '("__unpack_quadruple" 
      "__unpacked_to_decimal"
-      "__prod_b10000" 
-      "__carry_out_b10000" 
-      "__prod_65536_b10000")
-    (list *libxol-pathname*
-	  *libxt-pathname*
-	  x11::*libx11-pathname*)))
+     "__prod_b10000" 
+     "__carry_out_b10000" 
+     "__prod_65536_b10000"
+     ;; got these when compiling on ox
+     "__pack_integer"
+     "_class_double"
+     "_class_single"
+     "_class_extended"
+     "__unpack_integer"
+     )
+   (list *libxol-pathname*
+	 *libxt-pathname*
+	 x11::*libx11-pathname*)))
 
 (load-from-ol)

@@ -1,4 +1,4 @@
-# $fiHeader: Makefile,v 1.18 92/03/24 19:38:26 cer Exp Locker: cer $
+# $fiHeader: Makefile,v 1.19 92/03/30 17:52:42 cer Exp Locker: cer $
 # 
 #  Makefile for CLIM 2.0
 #
@@ -27,7 +27,9 @@ MV	= /usr/fi/mv-nfs
 TAGS	= /usr/fi/lib/emacs/etc/etags
 TMP	= /usr/tmp
 SRC_FILES= */*.lisp *.lisp Makefile */Makefile misc/make-stub-file \
-	misc/undefinedsymbols misc/undefinedsymbols.olit misc/undefinedsymbols.motif
+	misc/undefinedsymbols misc/undefinedsymbols.olit misc/undefinedsymbols.motif \
+	misc/undefinedsymbols.xt
+
 DEST=/dev/null
 
 CL_SRC=/vapor/usr/tech/cer/cl/src
@@ -222,7 +224,7 @@ MOTIF-CLIM-OBJS = tk-silica/pkg.fasl \
                    tk-silica/xm-gadgets.fasl \
                    tk-silica/xm-menus.fasl \
                    tk-silica/xt-pixmaps.fasl \
-                   tk-silica/xm-cursor.fasl
+                   tk-silica/xt-cursor.fasl
 
 
 OPENLOOK-CLIM-OBJS = tk-silica/pkg.fasl \
@@ -235,6 +237,7 @@ OPENLOOK-CLIM-OBJS = tk-silica/pkg.fasl \
                       tk-silica/ol-frames.fasl \
                       tk-silica/xt-gadgets.fasl \
                       tk-silica/ol-gadgets.fasl \
+		      tk-silica/xt-cursor.fasl \
                       tk-silica/xt-pixmaps.fasl
 
 GENERIC-OBJS= $(CLIM-UTILS-OBJS) $(CLIM-SILICA-OBJS) $(CLIM-STANDALONE-OBJS)
@@ -301,7 +304,8 @@ clim-xm:	FORCE
 	$(MV) $(TMP)/clim.temp_`whoami` $(CLIM)
 	ls -lt $(CLIM) >> Clim-sizes.n
 	ls -lt $(CLIM)
-
+	-echo removing clim*.fasls
+	/bin/rm -f clim*.fasl clim-debug.fasl
 
 clim-ol:	FORCE
 	-$(RM) $(CLIM)
@@ -327,7 +331,7 @@ clim-small:	FORCE
 # Misc
 
 clean:
-	find $(DIRS) -name "*.fasl" -print | xargs rm -f ; rm -f clim.fasl clim-debug.fasl
+	find $(DIRS) -name "*.fasl" -print | xargs rm -f ; rm -f clim*.fasl clim-debug.fasl
 
 cheapclean:
 	find $(CHEAP_CLEAN) -name "*.fasl" -print | xargs rm -f

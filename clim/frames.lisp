@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; ;; $fiHeader: frames.lisp,v 1.10 92/03/10 10:12:33 cer Exp Locker: cer $
+;; ;; $fiHeader: frames.lisp,v 1.11 92/03/24 19:37:49 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -303,7 +303,9 @@
     `((defmethod generate-panes ((,framem standard-frame-manager) (,frame ,name))
 	(symbol-macrolet
 	  ,(mapcar #'(lambda (pane-spec)
-		       (destructuring-bind (name code) pane-spec
+		       (destructuring-bind (name code . ignore)
+			   pane-spec
+			 (declare (ignore ignore code))
 			 `(,name (find-or-make-pane-named ,frame ',name))))
 		   panes)
 	  (let ((*application-frame* ,frame))
@@ -318,13 +320,46 @@
 
 (defun compute-pane-constructor-code (panes)
   `(list ,@(mapcar #'(lambda (pane-spec)
-		       (destructuring-bind (name code) pane-spec
+		       (destructuring-bind (name code . rest) pane-spec
+			 (setq code (canonicalize-pane-spec name code rest))
 			 `(list ',name
 				#'(lambda (frame framem)
 				    (with-look-and-feel-realization (framem frame)
 				      ,code)))))
 		   panes)))
-   
+
+(defun canonicalize-pane-spec (name code rest)
+  (cond ((symbolp code)
+	 (multiple-value-bind
+	     (class options)
+	     (find-pane-class-and-options code)
+	   `(realize-pane ',class ,@rest :name ',name ,@options)))
+	((null rest)
+	 code)
+	(t
+	 (error "Invalid pane specification: ~S"
+		(list* name code rest)))))
+
+(defmacro define-pane-type (type class . options)
+  `(defmethod find-pane-class-and-options ((type (eql ',type)))
+     (values ',class ',options)))
+
+(define-pane-type :interactor interactor-pane)
+(define-pane-type :application application-pane)
+(define-pane-type :pointer-documentation pointer-documentation-pane)
+(define-pane-type :command-menu command-menu-pane)
+(define-pane-type :scroll-bar scroll-bar)
+(define-pane-type :slider slider)
+(define-pane-type :push-button push-button)
+(define-pane-type :label-pane label-pane)
+(define-pane-type :text-field text-field)
+(define-pane-type :text-editor silica::text-editor)
+(define-pane-type :toggle-button toggle-button)
+(define-pane-type :radio-box radio-box)
+(define-pane-type :menu-bar menu-bar)
+
+;;; 
+
 (defmethod find-or-make-pane-named ((frame standard-application-frame) name)
   (with-slots (all-panes pane-constructors) frame
     (second (or (assoc name all-panes)

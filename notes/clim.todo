@@ -1,4 +1,4 @@
-K%%  $fiHeader: clim.todo,v 1.12 92/03/13 09:55:56 cer Exp Locker: cer $
+K%%  $fiHeader: clim.todo,v 1.13 92/03/24 19:37:35 cer Exp Locker: cer $
 
 %% ****************************************** SWM things
 
@@ -213,6 +213,7 @@ K%%  $fiHeader: clim.todo,v 1.12 92/03/13 09:55:56 cer Exp Locker: cer $
     - Labels in menus
     - Hierarchical menus
   * Locking
+  * check for duplicate pane names.
 
 
 %% ******************************************* JDI things

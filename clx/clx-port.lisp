@@ -3,7 +3,7 @@
 (in-package :clx-clim)
 
 "Copyright (c) 1992 Symbolics, Inc.  All rights reserved.
-;;; $fiHeader: clx-port.lisp,v 1.3 92/03/04 16:20:55 cer Exp $
+;;; $fiHeader: clx-port.lisp,v 1.4 92/03/10 10:12:08 cer Exp Locker: cer $
  Portions copyright (c) 1991, 1992 International Lisp Associates."
 
 
@@ -566,11 +566,6 @@
   (xlib:warp-pointer (sheet-mirror sheet)
 		     (integerize-coordinate x)
 		     (integerize-coordinate y)))
-
-(defmethod port-note-cursor-change ((port clx-port) cursor stream type old new)
-  (declare (ignore type old))
-  ;;--- Where should this be, really?
-  (setf (port-keyboard-input-focus port) (and new stream)))
 
 
 ;;--- Doesn't this need a sheet/stream argument?

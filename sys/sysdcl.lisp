@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sysdcl.lisp,v 1.9 92/03/24 19:37:59 cer Exp Locker: cer $
+;; $fiHeader: sysdcl.lisp,v 1.10 92/03/30 17:52:35 cer Exp Locker: cer $
 
 (in-package #-ANSI-90 "USER" #+ANSI-90 :cl-user)
 
@@ -9,7 +9,9 @@
 (eval-when (compile load eval)
 
 ;;; Tell the world that we're here
-  ;;------------- This needs to be in the CLIM.fasl also.
+;;;;------------- This needs to be in the CLIM.fasl also.
+  ;; currently its in excl-verification  but that does not seem the
+  ;; best place.
   
 (pushnew :clim *features*)
 (pushnew :clim-2 *features*)
@@ -507,7 +509,7 @@
   ("xt-gadgets")
   ("xm-gadgets")
   ("xm-menus")
-  ("xm-cursor")
+  ("xt-cursor")
   ("xt-pixmaps"))
 
 #+(and Silica Allegro)

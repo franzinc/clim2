@@ -3,7 +3,7 @@
 (in-package :genera-clim)
 
 "Copyright (c) 1992 Symbolics, Inc.  All rights reserved.
-;;; $fiHeader: genera-port.lisp,v 1.1 92/02/24 13:28:08 cer Exp $
+;;; $fiHeader: genera-port.lisp,v 1.2 92/03/04 16:22:52 cer Exp Locker: cer $
  Portions copyright (c) 1991, 1992 International Lisp Associates."
 
 
@@ -540,8 +540,6 @@
 
 (defmethod port-note-cursor-change ((port genera-port) cursor stream type old new)
   (declare (ignore type old))
-  ;;--- Where should this be, really?
-  (setf (port-keyboard-input-focus port) (and new stream))
   (ensure-blinker-matches-cursor cursor stream))
 
 

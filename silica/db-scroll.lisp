@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-scroll.lisp,v 1.9 92/03/24 19:36:28 cer Exp Locker: cer $
+;; $fiHeader: db-scroll.lisp,v 1.10 92/03/30 17:52:02 cer Exp Locker: cer $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright(c) 1991, 1992 International Lisp Associates.
@@ -84,39 +84,42 @@
     ;; Kinda bogus benchmark optimization -- if the scrollbar was full size
     ;; before, and the viewport is bigger than the extent, don't bother with
     ;; the fancy math.
-    (if (and (eql (the (integer 0 100) current-size) 100)
-	     (> (- vmax vmin) (- max min)))
-	(return-from update-scrollbar))
-    (let* ((size (the fixnum (truncate (* 100.0
-					  (the single-float
-					    (if (zerop (- max min))
-						1.0
-					      (min 1.0 (the single-float
-							 (/ (float (- vmax vmin) 0.0s0)
-							    (float (- max min) 0.0s0))))))))))
-	   (pos (the single-float
-		  (min 1.0
-		       (the single-float
-			 (max 0.0
-			      (the single-float
-				(if (zerop (- (- max min) (- vmax vmin)))
-				    0.0
-				  (the single-float 
-				    (/ (float (- vmin min) 0.0s0)
-				       (float (- (- max min) (- vmax vmin)) 0.0s0))))))))))
-	   (value (min (the fixnum (- 100 size))
-		       (the fixnum (truncate (* 100 pos))))))
-      (declare (fixnum size value)
-	       (type single-float pos))
-      (unless (and current-size
-		   current-value
-		   (eq current-size size)
-		   (eq current-value value))
-	(setf current-size size
-	      current-value value)
-	(change-scrollbar-values scrollbar 
-				 :slider-size size
-				 :value value)))))
+    (let ((range (float (gadget-range scrollbar) 0.0s0)))
+      (declare (type single-float range))
+      (if (and (and current-size (= (the single-float current-size) range))
+	       (> (- vmax vmin) (- max min)))
+	  (return-from update-scrollbar))
+      (let* ((size (the single-float
+		     (* range
+		      (the single-float
+			(if (zerop (- max min))
+			    1.0
+			  (min 1.0 (the single-float
+				     (/ (float (- vmax vmin) 0.0s0)
+					(float (- max min) 0.0s0)))))))))
+	     (pos (the single-float
+		    (min 1.0
+			 (the single-float
+			   (max 0.0
+				(the single-float
+				  (if (zerop (- (- max min) (- vmax vmin)))
+				      0.0
+				    (the single-float 
+				      (/ (float (- vmin min) 0.0s0)
+					 (float (- (- max min) (- vmax vmin)) 0.0s0))))))))))
+	     (value (+ (gadget-min-value scrollbar)
+		       (* (- range size) pos))))
+	(declare (type single-float pos size))
+	(unless (and current-size
+		     current-value
+		     (= current-size size)
+		     (= current-value value))
+	  (setf current-size size
+		current-value value)
+	  (change-scrollbar-values scrollbar 
+				   :slider-size size
+				   :value value))))))
+
 
 
 (defmethod scrollbar-value-changed-callback :before
@@ -126,15 +129,14 @@
 	    size)
   (declare (ignore id))
   (with-slots (current-size current-value) sheet
-    (setf current-size (truncate size)
-	  current-value (truncate value))))
+    (setf current-size (float size 0.0s0)
+	  current-value (float value 0.0s0))))
   
 
 (defmethod scrollbar-value-changed-callback (sheet 
 					      (client scroller-pane) 
 					      id value
 					      size)
-  (declare (ignore sheet))
   (with-slots (viewport contents) client
     (let* ((extent (if (typep contents 'clim-internals::output-recording-mixin)
 		       (stream-output-history contents)
@@ -146,22 +148,22 @@
 	  (scroll-extent
 	    contents
 	    :x (bounding-rectangle-min-x viewport)
-	    :y (truncate
-		 (+ (bounding-rectangle-min-y extent)
+	    :y (+ (bounding-rectangle-min-y extent)
 		    (* (max 0 (- (bounding-rectangle-height extent)
 				 (bounding-rectangle-height viewport)))
-		       (if (= size 100)
+		       (if (= size (gadget-range sheet))
 			   0
-			   (/ value (- 100 size))))))))
+			 (/ (- value (gadget-min-value sheet))
+			    (- (gadget-range sheet) size)))))))
 	(:horizontal
 	  (scroll-extent
 	    contents
-	    :x (truncate
-		 (* (max 0 (- (bounding-rectangle-width extent)
-			      (bounding-rectangle-width viewport)))
-		    (if (= size 100)
-			0
-			(/ value (- 100 size)))))
+	    :x (* (max 0 (- (bounding-rectangle-width extent)
+			    (bounding-rectangle-width viewport)))
+		  (if (= size (gadget-range sheet))
+		      0
+		    (/ (- value (gadget-min-value sheet))
+		       (- (gadget-range sheet) size))))
 	    :y (bounding-rectangle-min-y viewport)))))))
 
 (defun update-region (stream nminx nminy nmaxx nmaxy &key no-repaint)

@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-silica.lisp,v 1.10 92/03/04 16:20:39 cer Exp Locker: cer $
+;; $fiHeader: xm-silica.lisp,v 1.11 92/03/09 17:41:26 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -30,23 +30,6 @@
 
 (defmethod find-port-type ((type (eql ':motif)))
   'motif-port)
-
-(ff:defforeign 'xmprocesstraversal
-    :entry-point "_XmProcessTraversal")
-
-(defmethod port-note-cursor-change ((port motif-port)
-				    cursor stream type old new)
-  (declare (ignore old type cursor))
-  (call-next-method)
-  ;;--- This probably is bogus because of the current focus policy
-  (when new
-    (xmprocesstraversal (sheet-mirror stream) 0))
-  ;;--- Where should this be, really?
-  (setf (port-keyboard-input-focus port) 
-    (and new stream)))
-
-
-
 
 (defmethod change-widget-geometry ((parent tk::xm-drawing-area) child
 				   &rest args
@@ -110,3 +93,10 @@ about their children"))
 		  '(:keyboard-focus-policy :pointer))))
 	(t
 	 (call-next-method))))
+
+(defmethod make-cursor-widget-for-port ((port motif-port) parent)
+  (make-instance 'tk::xm-drawing-area
+		 :parent parent
+		 :width 2
+		 :height 11
+		 :managed t))

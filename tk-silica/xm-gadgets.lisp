@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.17 92/03/24 19:37:09 cer Exp Locker: cer $
+;; $fiHeader: xm-gadgets.lisp,v 1.18 92/03/30 17:52:46 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -29,7 +29,7 @@
 			 (push-button motif-push-button)
 			 (label-pane motif-label-pane)
 			 (text-field motif-text-field)
-			 (silica::text-editor motif-text-editor)
+			 (text-editor motif-text-editor)
 			 (toggle-button motif-toggle-button)
 			 (menu-bar motif-menu-bar)
 			 (viewport xm-viewport)
@@ -98,7 +98,7 @@
 
 ;;; Label
 
-(defclass motif-label-pane (xt-leaf-pane silica::label-pane) 
+(defclass motif-label-pane (xt-leaf-pane label-pane) 
 	  ())
 
 (defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
@@ -186,6 +186,32 @@
 	  ())
 
 
+(defmethod gadget-value ((gadget motif-value-pane))
+  ;;--- We should use the scale functions to get the value
+  (let ((mirror (sheet-direct-mirror gadget)))
+    (if mirror 
+	(multiple-value-bind
+	    (smin smax) (silica::gadget-range* gadget)
+	  (multiple-value-bind
+	      (value mmin mmax)
+	      (tk::get-values mirror :value :minimum :maximum)
+	    (silica::compute-symmetric-value
+	     mmin mmax value smin smax)))
+      (call-next-method))))
+
+
+(defmethod (setf gadget-value) (nv (gadget motif-value-pane) &key)
+  (let ((gadget (sheet-mirror gadget)))
+    (when gadget
+      (multiple-value-bind
+	  (smin smax) (silica::gadget-range* gadget)
+	(multiple-value-bind
+	    (mmin mmax)
+	    (tk::get-values gadget :minimum :maximum)
+	  (tk::set-values gadget
+			  :value (silica::compute-symmetric-value
+				  smin smax nv mmin mmax)))))))
+
 (defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
 						     (parent t)
 						     (sheet motif-slider))
@@ -209,10 +235,10 @@
 			       :max-height +fill+))
       (:horizontal
        (make-space-requirement :height (if (gadget-label m) ;
-								    ;Should ask the label how big
-								    ;it wants to be and add that in
+					;Should ask the label how big
+					;it wants to be and add that in
 					   (+ x 20)
-					   x)
+					 x)
 			       :min-width x
 			       :width (* 2 x)
 			       :max-width +fill+)))))
@@ -228,8 +254,9 @@
 						     (parent t)
 						     (sheet motif-scrollbar))
   (with-accessors ((orientation gadget-orientation)) sheet
-		  (values 'tk::xm-scroll-bar 
-			  (list :orientation orientation))))
+    ;;-- we should really decide what the min and max resources should be
+    (values 'tk::xm-scroll-bar 
+	    (list :orientation orientation))))
 
 (defmethod (setf silica::scrollbar-size) (nv (sb motif-scrollbar))
   (tk::set-values (sheet-direct-mirror sb) :slider-size (floor nv))
@@ -239,12 +266,25 @@
   (tk::set-values (sheet-direct-mirror sb) :value nv)
   nv)
 
-(defmethod change-scrollbar-values ((sb motif-scrollbar) &rest args 
-				    &key slider-size value)
-  (declare (ignore slider-size value))
-  (apply #'tk::set-values
-	(sheet-direct-mirror sb)
-	args))
+;;;--- We should use the motif functions for getting and changing the
+;;;--- values
+
+(defmethod change-scrollbar-values ((sb motif-scrollbar) &key slider-size value)
+  (let ((mirror (sheet-direct-mirror sb)))
+    (multiple-value-bind
+	(smin smax) (silica::gadget-range* sb)
+      (multiple-value-bind
+	  (mmin mmax) (tk::get-values mirror :minimum :maximum)
+	(tk::set-values
+	 mirror
+	 :slider-size 
+	 (integerize-coordinate
+	  (silica::compute-symmetric-value
+		       smin smax slider-size mmin mmax))
+	 :value (integerize-coordinate
+		 (silica::compute-symmetric-value
+		  smin smax value mmin mmax)))))))
+
 
 (defmethod add-sheet-callbacks ((port motif-port) (sheet motif-scrollbar) (widget t))
   (tk::add-callback widget
@@ -255,14 +295,18 @@
 
 (defun scrollbar-changed-callback-1 (widget sheet)
   (multiple-value-bind
-      (value size)
-      (tk::get-values widget :value :slider-size)
-    (scrollbar-value-changed-callback
-     sheet
-     (gadget-client sheet)
-     (gadget-id sheet)
-     value
-     size)))
+      (smin smax) (silica::gadget-range* sheet)
+    (multiple-value-bind
+	(value size mmin mmax)
+	(tk::get-values widget :value :slider-size :minimum :maximum)
+      (scrollbar-value-changed-callback
+       sheet
+       (gadget-client sheet)
+       (gadget-id sheet)
+       (silica::compute-symmetric-value
+	mmin mmax value smin smax)
+       (silica::compute-symmetric-value
+	mmin mmax size smin smax)))))
 
 
 (defmethod compose-space ((m motif-scrollbar) &key width height)
@@ -307,6 +351,7 @@
    (t
     (values 'tk::xm-drawing-area 
 	    (list :resize-policy :none
+		  :name (string (frame-name (pane-frame sheet)))
 		  :margin-width 0 :margin-height 0)))))
 
 ;;; 

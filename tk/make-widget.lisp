@@ -1,4 +1,4 @@
-;; -*- mode: common-lisp; package: user -*-
+;; -*- mode: common-lisp; package: tk -*-
 ;;
 ;;				-[]-
 ;; 
@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: make-widget.lisp,v 1.3 92/01/31 14:54:57 cer Exp $
+;; $fiHeader: make-widget.lisp,v 1.4 92/02/24 13:03:30 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -47,3 +47,14 @@
   (apply #'create-popup-shell name (class-of w) parent args))
 
 
+;; Where should this go??
+
+(defmacro define-widget-accessor (name class resource)
+  `(progn
+     (defmethod ,name ((widget ,class))
+       (get-values widget ,resource))
+     (defmethod (setf ,name) (nv (widget ,class))
+       (set-values widget ,resource nv))))
+
+(define-widget-accessor widget-children composite :children)
+(define-widget-accessor widget-num-children composite :num-children)

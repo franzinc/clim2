@@ -1,12 +1,19 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: excl-verification.lisp,v 1.6 92/03/24 19:36:55 cer Exp Locker: cer $
+;; $fiHeader: excl-verification.lisp,v 1.7 92/03/30 17:52:11 cer Exp Locker: cer $
 
 (in-package :sys)
 
 "Copyright (c) 1991 Franz Inc.  All rights reserved."
 
 (assert (eq excl::*current-case-mode* :case-insensitive-lower))
+
+(eval-when (compile load eval)
+  (pushnew :clim *features*)
+  (pushnew :clim-2 *features*)
+  (pushnew :clim-2.0 *features*)
+  (pushnew :silica *features*)
+  )
 
 #-Silica
 (eval-when (compile load eval)

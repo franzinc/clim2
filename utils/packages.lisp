@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: packages.lisp,v 1.7 92/03/10 10:11:54 cer Exp Locker: cer $
+;; $fiHeader: packages.lisp,v 1.8 92/03/24 19:36:56 cer Exp Locker: cer $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :common-lisp-user)
 
@@ -2513,6 +2513,7 @@
     note-frame-enabled
     notify-user
     pane-frame
+    pane-name
     pane-needs-redisplay
     panes-need-redisplay
     pane-viewport
@@ -2582,6 +2583,10 @@
     gadget-indicator-type
     gadget-label
     gadget-orientation
+    gadget-min-value
+    gadget-max-value
+    gadget-range
+    gadget-range*
     gadget-value
     label-pane
     menu-bar

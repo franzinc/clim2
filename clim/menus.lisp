@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: menus.lisp,v 1.15 92/03/10 10:12:44 cer Exp Locker: cer $
+;; $fiHeader: menus.lisp,v 1.16 92/03/24 19:37:54 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -186,6 +186,14 @@
 (defun menu-item-documentation (menu-item)
   (menu-item-getf menu-item :documentation))
 
+(defun menu-item-type (menu-item)
+  (or (menu-item-getf menu-item :type)
+      :item))
+
+(defun menu-item-active (menu-item)
+  (or (atom menu-item)
+      (menu-item-getf menu-item :active t)))
+
 ;; Item list can be a general sequence...
 (defun menu-item-item-list (menu-item)
   (menu-item-getf menu-item :item-list))
@@ -242,13 +250,26 @@
 			      :x-spacing x-spacing :y-spacing y-spacing
 			      :move-cursor nil)
     (flet ((format-item (item)
-	     (let ((presentation
-		     (with-output-as-presentation (menu item presentation-type
-						   :single-box T)
-		       (formatting-cell (menu :align-x cell-align-x :align-y cell-align-y)
-			 (funcall item-printer item menu)))))
-	       (when (and default-item (eq item default-item))
-		 (setf default-presentation presentation)))))
+	     (let ((type (menu-item-type item)))
+	       (unless (eq type :separator)
+		 (flet ((printit ()
+			  (formatting-cell (menu :align-x cell-align-x :align-y cell-align-y)
+					   (funcall item-printer item
+						    menu))))
+		   (ecase type
+		     (:item 
+		      (if (menu-item-active item)
+			  (let ((presentation
+				 (with-output-as-presentation (menu item presentation-type
+								    :single-box T)
+				   (printit))))
+			    (when (and default-item (eq item default-item))
+			      (setf default-presentation
+				presentation)))
+			;;-- Perhaps it should be grayed out in someway?
+			(printit)))
+		     (:label (printit))
+		     (:separator)))))))
       (declare (dynamic-extent #'format-item))
     (map nil #'format-item items)))
   default-presentation)
@@ -267,7 +288,7 @@
     (if style
 	(with-text-style (stream style)
 	  (write-string string stream))
-	(write-string string stream))))
+      (write-string string stream))))
 
 (defclass static-menu ()
     ((name :initarg :name)

@@ -18,97 +18,197 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-menus.lisp,v 1.6 92/03/10 15:39:59 cer Exp Locker: cer $
+;; $fiHeader: xm-menus.lisp,v 1.7 92/03/24 19:37:11 cer Exp Locker: cer $
 
 
 (in-package :xm-silica)
 
+
+;;-- This is generic and should be specialized on xt-port
+
 (defmethod port-menu-choose ((port motif-port) items &rest keys
 			     &key printer 
 				  presentation-type 
-				  cache
 				  associated-window
-				  default-style label)
+				  default-style label
+				  cache
+				  (unique-id items)
+				  (id-test 'equal)
+				  (cache-value items)
+				  (cache-test #'equal))
+  (declare (ignore keys))      
   (declare (values value chosen-item gesture))
-  (let ((simplep (and (null printer)
-		      (null presentation-type))))
-    (unless (and (not cache))
-      (return-from port-menu-choose
-	(call-next-method))) 
-    ;; We can use labels for the menu items, so use a Motif menu
-    (let ((menu (make-instance 'tk::xm-popup-menu 
-			       :parent (or (and associated-window
-						(sheet-mirror associated-window))
-					   (port-application-shell
-					    port))
-			       :managed nil))
-	  (return-value nil)
-	  (value-returned nil))
-      (when label
-	(make-instance 'tk::xm-label
-		       :parent menu
-		       :managed nil
-		       :label-string label)
-	(make-instance 'tk::xm-separator
-		       :managed nil
-		       :parent menu))
-      (map nil #'(lambda (item)
-		   (let ((menu-button
-			  (if simplep
-			      (make-instance 'tk::xm-push-button
-					 :parent menu
-					 :managed nil
-					 :label-string (string
-							(menu-item-display item)))
-			    (make-instance 'tk::xm-push-button
-					 :parent menu
-					 :managed nil
-					 :label-type :pixmap
-					 :label-pixmap
-					 (pixmap-from-menu-item
-					  associated-window 
-					  item
-					  printer
-					  presentation-type))))
-			 (value (menu-item-value item)))
-		     (tk::add-callback
-		      menu-button
-		      :activate-callback
-		      #'(lambda (&rest args)
-			  (declare (ignore args))
-			  (setq return-value (list value item)
-				value-returned t)))))
-	   items)
-      ;; 
-      (tk::add-callback (widget-parent menu)
-			:popdown-callback
-			#'(lambda (&rest ignore) 
-			    (setq value-returned t)))
-      ;;
-      (tk::manage-children (tk::widget-children menu))
-      ;;
-      (multiple-value-bind
-	  (ignore win1 win2 x y root-x root-y)
-	  (tk::query-pointer (tk::display-root-window
-			       (port-display port)))
-	(declare (ignore ignore win1 win2 x y))
-	(tk::set-values menu :x root-x :y root-y)
-	(loop
-	  (when value-returned (return nil))
-	  (tk::manage-child menu)
-	  ;; Now we have to wait
-	  (port-force-output port)
-	  (mp::process-wait "Returned value" #'(lambda () 
-						 ;;-- This is to deal
-						 ;;-- with the race
-						 ;;-- condition where
-						 ;;-- the menu go down
-						 ;;-- to quick
-						 (or (not (tk::is-managed-p menu))
-						     value-returned))))
-	;; destroy the menu
-	(tk::unmanage-child menu)
-	(values-list return-value)))))
+  (let (menu closure)
+    (when cache
+      (let ((x (assoc unique-id
+		      (port-menu-cache port)
+		      :test id-test)))
+	(when x
+	  (destructuring-bind
+	      (menu-cache-value amenu aclosure) x
+	    (if (funcall cache-test cache-value menu-cache-value)
+		(setq menu amenu closure aclosure)
+	      (progn
+		(setf (port-menu-cache port)
+		  (delete x (port-menu-cache port)))
+		;;--- it would be nice todo this
+		#+ignore
+		(tk::destroy-widget amenu)))))))
+      
+    (unless menu
+      (multiple-value-setq
+	  (menu closure)
+	(port-construct-menu port 
+			     items 
+			     printer 
+			     presentation-type 
+			     associated-window
+			     default-style
+			     label))
+      (when cache
+	(push (list unique-id menu closure) 
+	      (port-menu-cache port))))
+	  
+    ;; initialize the closure
+    (funcall closure t)
+    ;;
+    (multiple-value-bind
+	(ignore win1 win2 x y root-x root-y)
+	(tk::query-pointer (tk::display-root-window
+			    (port-display port)))
+      (declare (ignore ignore win1 win2 x y))
+      (tk::set-values menu :x root-x :y root-y)
+      (loop
+	(when (funcall closure) (return nil))
+	(tk::manage-child menu)
+	;; Now we have to wait
+	(port-force-output port)
+	(mp::process-wait "Returned value" #'(lambda () 
+					       ;;-- This is to deal
+					       ;;-- with the race
+					       ;;-- condition where
+					       ;;-- the menu go down
+					       ;;-- to quick
+					       (or (not (tk::is-managed-p menu))
+						   (funcall closure)))))
+      ;; destroy the menu
+      (tk::unmanage-child menu)
+      (values-list (nth-value 1 (funcall closure))))))
+
+(defmethod port-construct-menu ((port motif-port) 
+				items 
+				printer 
+				presentation-type 
+				associated-window
+				default-style
+				label)
+  (declare (ignore default-style))
+  (let (value-returned 
+	return-value
+	(simplep (and (null printer)
+		      (null presentation-type)))
+	(menu (make-instance 'tk::xm-popup-menu 
+			     :parent (or (and associated-window
+					      (sheet-mirror associated-window))
+					 (port-application-shell
+					  port))
+			     :managed nil)))
+    (when label
+      (make-instance 'tk::xm-label
+		     :parent menu
+		     :managed nil
+		     :label-string label)
+      (make-instance 'tk::xm-separator
+		     :managed nil
+		     :separator-type :double-line
+		     :parent menu))
+    (labels ((construct-menu-from-items (menu items)
+	       (map nil #'(lambda (item)
+			    (ecase (clim-internals::menu-item-type item)
+			      (:separator
+			       (make-instance 'tk::xm-separator
+					      :managed nil
+					      :parent menu))
+			      (:label
+				  (make-instance 'tk::xm-label
+						 :parent menu
+						 :managed nil
+						 :label-string (string
+								(menu-item-display item))))
+			      (:item
+			       (if (clim-internals::menu-item-item-list item)
+				   (let* ((submenu (make-instance
+						    'tk::xm-pulldown-menu
+						    :managed nil
+						    :parent menu))
+					  (menu-button
+					   (if simplep
+					       (make-instance 'tk::xm-cascade-button
+							      :parent menu
+							      :sensitive (clim-internals::menu-item-active item)
+							      :managed nil
+							      :sub-menu-id submenu
+							      :label-string (string
+									     (menu-item-display item)))
+					     (make-instance 'tk::xm-cascade-button
+							    :parent menu
+							    :managed nil
+							    :sub-menu-id submenu
+							    :sensitive (clim-internals::menu-item-active item)
+							    :label-type :pixmap
+							    :label-pixmap
+							    (pixmap-from-menu-item
+							     associated-window 
+							     item
+							     printer
+							     presentation-type)))))
+				     (declare (ignore menu-button))
+				     (construct-menu-from-items 
+				      submenu 
+				      (clim-internals::menu-item-item-list item)))
+				 (let ((menu-button
+					(if simplep
+					    (make-instance 'tk::xm-push-button
+							   :parent menu
+							   :sensitive (clim-internals::menu-item-active item)
+							   :managed nil
+							   :label-string (string
+									  (menu-item-display item)))
+					  (make-instance 'tk::xm-push-button
+							 :parent menu
+							 :managed nil
+							 :sensitive (clim-internals::menu-item-active item)
+							 :label-type :pixmap
+							 :label-pixmap
+							 (pixmap-from-menu-item
+							  associated-window 
+							  item
+							  printer
+							  presentation-type))))
+				       (value (menu-item-value item)))
+				   (tk::add-callback
+				    menu-button
+				    :activate-callback
+				    #'(lambda (&rest args)
+					(declare (ignore args))
+					(setq return-value (list value item)
+					      value-returned t))))))))
+		    items)
+	       ;;
+	       (tk::manage-children (tk::widget-children menu))))
+	
+      (construct-menu-from-items menu items))
+    (tk::add-callback (widget-parent menu)
+		      :popdown-callback
+		      #'(lambda (&rest ignore) 
+			  (declare (ignore ignore))
+			  (setq value-returned t)))
+    (values menu
+	    #'(lambda (&optional init)
+		(if init
+		    (setf value-returned nil return-value nil)
+		  (values value-returned return-value))))))
+		
 
 (defun pixmap-from-menu-item (associated-window menu-item printer presentation-type)
   (with-menu (menu associated-window)

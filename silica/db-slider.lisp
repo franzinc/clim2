@@ -3,7 +3,7 @@
 "Copyright (c) 1990, 1991 International Lisp Associates.
  Portions copyright (c) 1991, 1992 by Symbolics, Inc.  All rights reserved."
 
-;; $fiHeader: db-slider.lisp,v 1.3 92/03/10 15:45:47 cer Exp Locker: cer $
+;; $fiHeader: db-slider.lisp,v 1.4 92/03/24 19:36:30 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -15,15 +15,11 @@
 	   sheet-permanently-enabled-mixin
 	   mute-repainting-mixin
 	   space-requirement-mixin)
-    ((thickness :initarg :thickness :initform 20)
-     (min-value :initarg :min-value
-		:accessor slider-min-value)
-     (max-value :initarg :max-value
-		:accessor slider-max-value)
-     (show-value :initarg :show-value
+	  ((thickness :initarg :thickness :initform 20)
+	   (show-value :initarg :show-value
 		 :accessor slider-show-value)
      (armed :initform nil))
-  (:default-initargs :value 0 :min-value 0 :max-value 1
+  (:default-initargs :value 0
 		     :show-value nil))
 
 (defmethod compose-space ((pane slider-pane) &key width height)

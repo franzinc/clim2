@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadgets.lisp,v 1.12 92/03/24 19:36:39 cer Exp Locker: cer $
+;; $fiHeader: gadgets.lisp,v 1.13 92/03/30 17:52:04 cer Exp Locker: cer $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
@@ -124,12 +124,26 @@
       (values (+ 4 (stream-string-width text text-style medium))
 	      (+ 4 (text-style-height text-style medium))))))
 
+;;;- We might want a way of changing the range and the value together.
+
+(defclass range-gadget-mixin ()
+	  ((min-value :initarg :min-value :accessor gadget-min-value)
+	   (max-value :initarg  :max-value :accessor gadget-max-value))
+  (:default-initargs :min-value 0.0 :max-value 1.0))
+
+(defmethod gadget-range ((gadget range-gadget-mixin))
+  (- (gadget-max-value gadget)
+     (gadget-min-value gadget)))
+
+(defmethod gadget-range* ((gadget range-gadget-mixin))
+  (values (gadget-min-value gadget)
+	  (gadget-max-value gadget)))
 
 ;;; The intent is that the real implementations inherit from these
 
 ;;; Slider
 (defclass slider
-	  (value-gadget oriented-gadget labelled-gadget)
+	  (value-gadget oriented-gadget range-gadget-mixin labelled-gadget)
     ((drag-callback :initarg :drag-callback :initform nil
 		    :reader slider-drag-callback)))
 
@@ -139,8 +153,9 @@
 
 
 ;; Scroll bar
+
 (defclass scrollbar
-	  (value-gadget oriented-gadget)
+	  (value-gadget range-gadget-mixin oriented-gadget)
     ((current-value :initform nil)
      (current-size :initform nil)
      (drag-callback :initarg :drag-callback :initform nil

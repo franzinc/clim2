@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.15 92/03/24 19:37:17 cer Exp Locker: cer $
+;; $fiHeader: xt-silica.lisp,v 1.16 92/03/30 17:52:50 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -30,7 +30,10 @@
      (context :reader port-context)     
      (copy-gc :initform nil)
      (type :allocation :class 
-	   :initform :xt :reader port-type))
+	   :initform :xt :reader port-type)
+     (menu-cache
+      :initform nil
+      :accessor port-menu-cache))
   (:default-initargs :allow-loose-text-style-size-mapping t)
   (:documentation "The port for X intrinsics based ports"))
 
@@ -408,6 +411,7 @@
 	    (find-shell-class-and-initargs port sheet)
 	  (apply #'make-instance class
 		 :parent (find-shell-parent port sheet)
+		 :name (string (frame-name (pane-frame sheet)))
 		 initargs))
         (sheet-mirror ma))))
 

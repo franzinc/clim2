@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-silica.lisp,v 1.6 92/03/04 16:20:32 cer Exp Locker: cer $
+;; $fiHeader: ol-silica.lisp,v 1.7 92/03/24 19:37:03 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -34,10 +34,10 @@
 (warn "Changing the default server path to ~S"
       (setq *default-server-path* '(:openlook)))
 
-(defmethod port-note-cursor-change ((port openlook-port)
-				    cursor stream type old new)
-  (declare (ignore old type cursor))
-  (call-next-method)
-  ;;--- This is in both xm and ol to perhaps should be an after on xt
-  (setf (port-keyboard-input-focus port) 
-	(and new stream)))
+(defmethod make-cursor-widget-for-port ((port openlook-port) parent)
+  (make-instance 'tk::draw-area
+		 :parent parent
+		 :width 2
+		 :height 11
+		 :managed t))
+

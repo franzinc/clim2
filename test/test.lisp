@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: test.lisp,v 1.16 92/03/24 19:38:10 cer Exp Locker: cer $
+;; $fiHeader: test.lisp,v 1.17 92/03/30 17:52:38 cer Exp Locker: cer $
 
 (in-package :clim-user)
 
@@ -146,12 +146,12 @@
     (a (horizontally ()
 	 (realize-pane 'push-button :label "Press me")
 	 (realize-pane 'push-button :label "Squeeze me")))
-    (b (realize-pane 'toggle-button))
-    (c (realize-pane 'slider))
-    (d (realize-pane 'text-field))
-    (e (realize-pane 'interactor-pane
-		     :width 300 :max-width +fill+
-		     :height 300 :max-height +fill+)))
+    (b :toggle-button)
+    (c :slider)
+    (d :text-field)
+    (e :interactor
+       :width 300 :max-width +fill+
+       :height 300 :max-height +fill+))
   (:layout
     (:default 
       (vertically ()

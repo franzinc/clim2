@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-cursor.lisp,v 1.2 92/02/26 10:23:23 cer Exp $
+;; $fiHeader: xm-cursor.lisp,v 1.3 92/03/04 16:20:33 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -31,7 +31,7 @@
 	(state (cursor-state cursor))
 	(focus (cursor-focus cursor)))
     (let* ((mirror (sheet-mirror stream))
-	   (blinker (ensure-blinker-for-cursor stream mirror cursor)))
+	   (blinker (ensure-blinker-for-cursor port stream mirror cursor)))
       (when blinker
 	(let ((transformation (sheet-native-transformation stream)))
 	  (multiple-value-bind (x y) (bounding-rectangle* cursor)
@@ -47,7 +47,12 @@
 		  (t 
 		   (tk::unmanage-child blinker)))))))))
 
-(defmethod ensure-blinker-for-cursor (sheet mirror cursor)
+;;--- Whenever the sheet-native-region changes we have to move the
+;;--- cursor. Perhaps unmanaging it if its not visible.
+;;--- Also, rather than using set-values to position it we should use
+;;--- XtMoveWidget
+
+(defmethod ensure-blinker-for-cursor (port sheet mirror cursor)
   ;; Make sure that is the widget for the cursor
   ;;----- This is going to fail in all kinds of ways
   ;;----- For example if the window is ungrafted and then regrafted
@@ -56,11 +61,8 @@
     (or (getf clim-internals::plist 'gadget)
 	(setf (getf clim-internals::plist 'gadget)
 	  (let ((gadget 
-		 (make-instance 'tk::xm-drawing-area
-				:parent mirror
-				:width 2
-				:height 11
-				:managed t)))
+		 (make-cursor-widget-for-port
+		  port mirror)))
 	    (xt::realize-widget gadget)
 	    (let ((window (tk::widget-window gadget)))
 	      (setf (tk::drawable-save-under window) t
@@ -70,3 +72,4 @@
 		(setf (tk::drawable-save-under window) t
 		      (xt::drawable-backing-store window) t))
 	    gadget)))))
+

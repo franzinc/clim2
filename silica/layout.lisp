@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: layout.lisp,v 1.8 92/03/04 16:19:45 cer Exp Locker: cer $
+;; $fiHeader: layout.lisp,v 1.9 92/03/24 19:36:44 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -147,14 +147,15 @@
 
 ;;--- What about PANE-FOREGROUND/BACKGROUND vs. MEDIUM-FOREGROUND/BACKGROUND?
 (defclass pane 
-	  (sheet 
-	   sheet-transformation-mixin
-	   standard-sheet-input-mixin
-	   standard-repainting-medium
-	   permanent-medium-sheet-output-mixin
-	   mute-repainting-mixin)
+    (sheet 
+     sheet-transformation-mixin
+     standard-sheet-input-mixin
+     standard-repainting-medium
+     permanent-medium-sheet-output-mixin
+     mute-repainting-mixin)
     ((frame :reader pane-frame :initarg :frame)
-     (framem :reader pane-frame-manager :initarg :frame-manager)))
+     (framem :reader pane-frame-manager :initarg :frame-manager)
+     (name :initform nil :reader pane-name)))
 
 (defmethod panep ((x pane)) t)
 (defmethod panep ((x t)) nil)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: cursor.lisp,v 1.6 92/02/26 10:23:35 cer Exp $
+;; $fiHeader: cursor.lisp,v 1.7 92/03/04 16:21:20 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -132,6 +132,17 @@
 ;;; state transitions.  For example, the cursor might be getting the focus, and
 ;;; thus change from a hollow rectangle to a filled one (or in Genera, it might
 ;;; start blinking).
+
+(defmethod port-note-cursor-change :after ((port port)
+					   cursor 
+					   stream 
+					   type 
+					   old
+					   new)
+  (declare (ignore old type cursor))
+  (setf (port-keyboard-input-focus port) 
+    (and new stream)))
+
 (defmethod port-note-cursor-change ((port port) 
 				    cursor stream (type (eql 'cursor-state)) old new)
   (declare (ignore old))

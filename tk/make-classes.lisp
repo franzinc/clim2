@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: make-classes.lisp,v 1.10 92/03/09 17:40:47 cer Exp $
+;; $fiHeader: make-classes.lisp,v 1.11 92/03/30 17:51:42 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -166,6 +166,7 @@
 
 
 (defun add-accessors-for-toolkit-class (class)
+  #+ignore
   (dolist (r (class-direct-resources class))
     (let* ((rname (resource-name r))
 	   (name (intern (format nil "~A-~A" 'widget rname))))
@@ -182,8 +183,7 @@
 				    (get-values x rname))))
       (add-method
        (ensure-generic-function `(setf ,name))
-       (make-instance 'clos::
-		      standard-method
+       (make-instance 'clos::standard-method
 		      :lambda-list '(nv x)
 		      :qualifiers nil
 		      :specializers (list (find-class t) class)
@@ -191,8 +191,10 @@
 				    (set-values x rname nv)
 				    nv))))))
 
-(defun define-toolkit-classes (classes)
-  (make-classes classes))
+(defun define-toolkit-classes (&rest classes)
+  (make-classes (remove-duplicates 
+		 (apply #'append classes)
+		 :test #'string=)))
 
 	
 (defun widget-class-name (h)

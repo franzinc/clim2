@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: resources.lisp,v 1.11 92/03/10 10:11:31 cer Exp Locker: cer $
+;; $fiHeader: resources.lisp,v 1.12 92/03/30 17:51:49 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -132,9 +132,15 @@
 	 (char*-to-string (sys:memref-int (foreign-pointer-address string) 0 0
 					  :signed-long)))))
 
-(defmethod convert-resource-out ((parent t) (type (eql 'separator-type)) value)
-  (ecase value
-    (:single-line 1)))
+
+(define-enumerated-resource separator-type (:no-line 
+					    :single-line
+					    :double-line 
+					    :single-dashed-line
+					    :double-dashed-line
+					    :shadow-etched-in
+					    :shadow-etched-out))
+
       
 (defmethod convert-resource-out ((parent t) (type (eql 'menu-widget)) value)
   value)

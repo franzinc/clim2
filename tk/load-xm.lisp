@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: load-xm.lisp,v 1.8 92/03/24 19:36:13 cer Exp Locker: cer $
+;; $fiHeader: load-xm.lisp,v 1.9 92/03/30 17:51:39 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -40,7 +40,14 @@
     '("__unpack_quadruple" 
       "__prod_b10000" 
       "__carry_out_b10000" 
-      "__prod_65536_b10000")
+      "__prod_65536_b10000"
+      ;; got these when compiling on ox
+      "__pack_integer"
+      "_class_double"
+      "_class_single"
+      "_class_extended"
+      "__unpack_integer"
+      )
     (list *libxm-pathname*
 	  *libxt-pathname*
 	  x11::*libx11-pathname*)))
