@@ -1,0 +1,20 @@
+;Speed of Allegro CL 4.1 [SPARC; R1] (2/4/92 19:33)
+;on SPARC id: #x4210456.
+;vapor
+
+((clim-user::line-drawing 0.95) (clim-user::unrecorded-line-drawing 0.54) (clim-user::transformed-line-drawing 1.1533333)
+ (clim-user::thick-line-drawing 1.1999999) (clim-user::clipped-line-drawing 0.9633333) (clim-user::shape-drawing 0.41)
+ (clim-user::unrecorded-shape-drawing 0.27666667) (clim-user::transformed-shape-drawing 0.48)
+ (clim-user::thick-shape-drawing 0.66333336) (clim-user::filled-shape-drawing 0.41)
+ (clim-user::stippled-shape-drawing 2.9666665) (clim-user::clipped-shape-drawing 0.40333334)
+ (clim-user::text-output 1.4633335) (clim-user::unrecorded-text-output 1.3033333)
+ (clim-user::stylish-text-output 2.6866665) (clim-user::text-scrolling 4.5266666) (clim-user::graphics-scrolling 2.386667)
+ (clim-user::text-refresh 1.2566667) (clim-user::graphics-refresh 0.5133333)
+ (clim-user::find-shape-presentations 1.2966666) (clim-user::highlight-shape-presentations 1.14)
+ (clim-user::find-textual-presentations 2.0766666) (clim-user::highlight-textual-presentations 11.64)
+ (clim-user::highlight-menu-items 8.756667) (clim-user::simple-table-formatting 1.58)
+ (clim-user::compound-table-formatting 1.0433333) (clim-user::graphic-table-formatting 0.15)
+ (clim-user::simple-graph-formatting 0.97) (clim-user::basic-redisplay 3.4066668) (clim-user::graphic-redisplay 1.5666666)
+ (clim-user::compound-redisplay 4.5200005) (clim-user::simple-menu-choose 3.386667)
+ (clim-user::cached-menu-choose 2.9366667) (clim-user::simple-dialog 0.74) (clim-user::window-dialog 1.0866667)
+ (clim-user::compound-dialog 0.37)) 
