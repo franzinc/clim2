@@ -11,6 +11,13 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.2.1.47
+
+1999-03-19    <layer@OMEGA>
+
+	* Makefile.defs: add $(exe) where appropriate (for Interix)
+
+*******************************************************************************
 2.2.1.46
 
 1999-03-16    <layer@HOBART>

@@ -1,4 +1,4 @@
-# $Id: Makefile.defs,v 1.45.10.7 1999/01/29 05:06:40 layer Exp $
+# $Id: Makefile.defs,v 1.45.10.8 1999/03/19 18:49:21 layer Exp $
 #
 #  Makefile.defs for CLIM 2.0
 
@@ -8,10 +8,10 @@ CLIM		= clim.dxl
 SHARED_EXT = so
 
 ifeq ($(OS_NAME),windows)
-LISP	= ../src/lisp
+LISP	= ../src/lisp$(exe)
 DCL	= dcl
 else
-LISP	= ../src/lispi
+LISP	= ../src/lispi$(exe)
 DCL	= dcli
 endif
 
