@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-frames.cl,v 1.3 92/01/06 20:43:59 cer Exp Locker: cer $
+;; $fiHeader: xm-frames.cl,v 1.4 92/01/17 17:49:30 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -31,7 +31,8 @@
   (make-instance ' motif-frame-manager :port port))
 
 (defmethod adopt-frame :after ((framem motif-frame-manager) (frame application-frame))
-  (establish-wm-protocol-callbacks framem frame))
+  (when (frame-panes frame)
+    (establish-wm-protocol-callbacks framem frame)))
 
 (defmethod establish-wm-protocol-callbacks ((framem motif-frame-manager) frame)
   (let ((shell (frame-shell frame)))
