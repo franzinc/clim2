@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: xm-silica -*-
 ;;
-;;				-[Thu Dec 14 20:13:58 1995 by duane]-
+;;				-[Sat May 30 09:10:58 1998 by layer]-
 ;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/tk-silica/xt-silica.lisp,v 1.108.22.2 1998/06/01 22:27:14 layer Exp $
+;; $Header: /repo/cvs.copy/clim2/tk-silica/xt-silica.lisp,v 1.108.22.3 1998/06/01 23:07:34 layer Exp $
 
 (in-package :xm-silica)
 
@@ -1418,6 +1418,7 @@
 		(and style `(:text-style ,style)))))))))
 
 (defun convert-text-style (port display text-style)
+  (declare (ignore display))
   (ignore-errors
    (let ((spec (read-from-string text-style)))
      (if (consp spec)
@@ -1765,12 +1766,14 @@ the geometry of the children. Instead the parent has control. "))
   cursor)
 
 (defmethod realize-cursor :around ((port xt-port) sheet cursor)
+  (declare (ignore sheet))
   (with-slots (cursor-cache) port
     (or (getf cursor-cache cursor)
 	(setf (getf cursor-cache cursor)
 	  (call-next-method)))))
 
 (defmethod realize-cursor ((port xt-port) sheet (cursor null))
+  (declare (ignore sheet))
   x11:none)
 
 (defmethod realize-cursor ((port xt-port) sheet (cursor symbol))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/clim/frames.lisp,v 1.88.8.1 1998/05/19 01:04:30 layer Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/frames.lisp,v 1.88.8.2 1998/06/01 23:07:22 layer Exp $
 
 (in-package :clim-internals)
 
@@ -1170,6 +1170,7 @@
 ;;; This is the wrong modularity... Bury calls in commands for acl case later.
 ;;;-- pr Aug97
 (defmacro with-menu-disabled (frame &body body)
+  #-acl86win32 (declare (ignore frame))
   #+(or aclpc acl86win32)
   `(unwind-protect 
       (progn (enable-menu-items ,frame nil) ,@body)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: hpgl-clim; Base: 10; Lowercase: Yes -*-
 
-;;; $Header: /repo/cvs.copy/clim2/hpgl/hpgl-medium.lisp,v 1.4 1997/10/20 23:11:04 layer Exp $
+;;; $Header: /repo/cvs.copy/clim2/hpgl/hpgl-medium.lisp,v 1.4.22.1 1998/06/01 23:07:26 layer Exp $
 
 "Copyright (c) 1991 by International Lisp Associates.  All rights reserved."
 "Portions copyright (c) 1992 Franz Inc. All rights reserved"
@@ -669,33 +669,34 @@ a point. Hence we have 72dpi resolution printer.
 ;;; Text stuff
 
 (defmacro with-hpgl-port-glyph-for-character ((port) &body body)
-  `(macrolet ((port-glyph-for-character (port character style &optional our-font)
-		`(multiple-value-bind (character-set index)
-		     (char-character-set-and-index ,character)
-		   (let* (;; For now we are asserting that each string
-			  ;; passed to WRITE-STRING will have no style
-			  ;; changes within it.  This is what our-font
-			  ;; is all about.
-			  (pfd (or ,our-font
-				   (text-style-mapping ,',port ,style character-set)))
-			  (pface (pfd-face pfd))
-			  (point-size (pfd-point-size pfd))
-			  (height (* point-size (pface-height pface)))
-			  (ascent (* (pface-ascent pface) height))
-			  (cwt (pface-width-table pface))
-			  (relwidth (if (numberp cwt) 
-					cwt
-				      (aref cwt index)))
-			  (escapement-x (* height relwidth))
-			  (escapement-y 0)
-			  (origin-x 0)
-			  (origin-y ascent)
-			  (bb-x ;; really ought know real dope, but not avl yet.
-			   escapement-x)
-			  (bb-y height))
-		     (values index pfd escapement-x escapement-y origin-x origin-y
-			     bb-x bb-y (numberp cwt))))))
-     ,@body))
+  `(excl:without-package-locks
+    (macrolet ((port-glyph-for-character (port character style &optional our-font)
+		 `(multiple-value-bind (character-set index)
+		      (char-character-set-and-index ,character)
+		    (let* (;; For now we are asserting that each string
+			   ;; passed to WRITE-STRING will have no style
+			   ;; changes within it.  This is what our-font
+			   ;; is all about.
+			   (pfd (or ,our-font
+				    (text-style-mapping ,',port ,style character-set)))
+			   (pface (pfd-face pfd))
+			   (point-size (pfd-point-size pfd))
+			   (height (* point-size (pface-height pface)))
+			   (ascent (* (pface-ascent pface) height))
+			   (cwt (pface-width-table pface))
+			   (relwidth (if (numberp cwt) 
+					 cwt
+				       (aref cwt index)))
+			   (escapement-x (* height relwidth))
+			   (escapement-y 0)
+			   (origin-x 0)
+			   (origin-y ascent)
+			   (bb-x ;; really ought know real dope, but not avl yet.
+			    escapement-x)
+			   (bb-y height))
+		      (values index pfd escapement-x escapement-y origin-x origin-y
+			      bb-x bb-y (numberp cwt))))))
+      ,@body)))
 
 (defmethod port-glyph-for-character ((port hpgl-port)
 				     character appearance &optional our-font)
@@ -720,10 +721,10 @@ a point. Hence we have 72dpi resolution printer.
 					    string start end
 					    style cursor-x max-x
 					    &optional glyph-buffer)
-  #+Genera (declare
-	    (values write-char next-char-index new-cursor-x new-baseline new-height font))
+  #+Genera (declare (values write-char next-char-index new-cursor-x
+			    new-baseline new-height font))
   ;;(declare (ignore stream))
-  (let ((port (port medium)))
+  (let (#+ignore (port (port medium)))
     (with-hpgl-port-glyph-for-character (port)
       (stream-scan-string-for-writing-1
        stream medium string start end style cursor-x max-x glyph-buffer))))

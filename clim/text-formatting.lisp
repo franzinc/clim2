@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/clim/text-formatting.lisp,v 1.17.22.1 1998/05/19 01:04:39 layer Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/text-formatting.lisp,v 1.17.22.2 1998/06/01 23:07:22 layer Exp $
 
 (in-package :clim-internals)
 
@@ -152,12 +152,14 @@
                                       continuation &rest continuation-args)
   (declare (dynamic-extent continuation continuation-args))
   (let ((stream (slot-value filling-stream 'stream))
+	#+(or aclpc acl86win32)
         (fill-width (slot-value filling-stream 'fill-width))
+	#+(or aclpc acl86win32)
         (buffer (slot-value filling-stream 'buffer)))
     ;; Flush the current line buffer
-#-(or aclpc acl86win32)
+    #-(or aclpc acl86win32)
     (filling-stream-write-buffer filling-stream t)
-#+(or aclpc acl86win32)
+    #+(or aclpc acl86win32)
     (progn
       (stream-write-string stream buffer)
       (setf (fill-pointer buffer) 0)

@@ -1,4 +1,4 @@
-# $Id: Makefile.generic,v 1.47.10.4 1998/05/19 01:04:14 layer Exp $
+# $Id: Makefile.generic,v 1.47.10.5 1998/06/01 23:07:19 layer Exp $
 #  Makefile.generic for CLIM 2.0
 
 ifeq ($(OS_NAME),windows)
@@ -11,6 +11,10 @@ endif
 
 ifneq ($(OS_NAME),windows)
 compile_depends = wnn.$(SHARED_EXT)
+endif
+
+ifeq ($(OS_NAME),windows)
+runlisp_args = -o compile.out 
 endif
 
 compile: FORCE $(PRODUCT-OBJS) $(ICS-PRODUCT-OBJS) $(compile_depends)
@@ -35,10 +39,12 @@ compile: FORCE $(PRODUCT-OBJS) $(ICS-PRODUCT-OBJS) $(compile_depends)
 	echo '#-mswindows (compile-it (quote $(SYSTEM)))' >> build.tmp
 	echo '(exit 0)' >> build.tmp
 	(eval '$(SET_LIBRARY_PATH)'; \
-	 sh ../src/runlisp.sh -f build.tmp -o compile.out $(CL) $(CLOPTS))
+	 sh ../src/runlisp.sh -f build.tmp $(runlisp_args) $(CL) $(CLOPTS))
+ifeq ($(OS_NAME),windows)
 # various programs expect to see the result of the compile on stdout, so
 # cat it now:
 	@cat compile.out
+endif
 
 # Concatenation
 

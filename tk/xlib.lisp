@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: tk -*-
 ;;
-;;				-[Mon Sep 26 02:03:59 1994 by smh]-
+;;				-[Sat May 30 09:09:06 1998 by layer]-
 ;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/tk/xlib.lisp,v 1.59.22.1 1998/05/19 01:05:10 layer Exp $
+;; $Header: /repo/cvs.copy/clim2/tk/xlib.lisp,v 1.59.22.2 1998/06/01 23:07:31 layer Exp $
 
 (in-package :tk)
 
@@ -801,7 +801,7 @@
    (length string)))
 
 (defun get-cut-buffer (display)
-  (let ((string (make-string 1024)))
+  (let (#+ignore (string (make-string 1024)))
     (with-ref-par
 	((actual-type 0 :unsigned-long)
 	 (actual-format 0 :int)

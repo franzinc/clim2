@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: tk -*-
 ;;
-;;				-[Fri Jul 30 16:14:28 1993 by colin]-
+;;				-[Sat May 30 09:09:56 1998 by layer]-
 ;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/tk/resources.lisp,v 1.60 1997/09/03 04:03:43 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/tk/resources.lisp,v 1.60.22.1 1998/06/01 23:07:29 layer Exp $
 
 
 (in-package :tk)
@@ -583,6 +583,7 @@
   (convert-pixmap-out parent value))
 
 (defmethod convert-pixmap-out (parent (value pixmap))
+  (declare (ignore parent))
   value)
 
 (defmethod convert-resource-out ((parent t) (type (eql 'boolean)) value)

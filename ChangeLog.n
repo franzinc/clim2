@@ -11,6 +11,28 @@ Tests for new features:	<`no new features', `no tests for new features', or
 	* <changes go here...>
 
 *******************************************************************************
+2.2.1.20
+
+Mon Jun  1 16:05:13 1998  Kevin Layer  <layer@ultra>
+
+	* Makefile.generic: windows/unix hacking
+    the rest is to reduce the number of warnings on UNIX to 1
+	* clim/frames.lisp
+	* clim/text-formatting.lisp
+	* homegrown/db-menu.lisp
+	* hpgl/hpgl-medium.lisp
+	* misc/MyDrawingA.c
+	* misc/compile-1.lisp
+	* tk/resources.lisp
+	* tk/widget.lisp
+	* tk/xlib.lisp
+	* tk-silica/image.lisp
+	* tk-silica/xt-gadgets.lisp
+	* tk-silica/xt-graphics.lisp
+	* tk-silica/xt-silica.lisp
+	* wnn/strings.c
+
+*******************************************************************************
 2.2.1.19 (from pnc)
 
 ...changelog from pnc pending...

@@ -1,5 +1,5 @@
 /*
- * $Id: strings.c,v 1.1 1996/03/13 09:57:22 colin Exp $
+ * $Id: strings.c,v 1.1.26.1 1998/06/01 23:07:39 layer Exp $
  */
 /*
  * Copyright Kyoto University Research Institute for Mathematical Sciences
@@ -55,6 +55,7 @@
 #include "commonhd.h"
 #include "wnn_string.h"
 
+#undef NULL
 #define NULL	0
 
 #define is_half_width(c)	(! is_full_width(c))
