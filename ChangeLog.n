@@ -11,6 +11,26 @@ Tests for new features:	<`no new features', `no tests for new features', or
 	* <changes go here...>
 
 *******************************************************************************
+2.2.1.23
+
+Mon July 1  1998  
+       Possible source tree for release 5.0 of ACL.
+
+        * aclpc/acl-class: Fix problems with LoadCursor and activate-default-gadget
+        * aclpc/acl-dc: Explore better device contexts
+        * aclpc/acl-frames: Fix problems with error checking
+        * aclpc/acl-medium: Fix problems with foreground & background colors
+        * aclpc/acl-port: Fix problems drawing from a background thread
+        * aclpc/acl-port: Use FormatMessage to get error messages from NT
+        * aclpc/acl-widget: Mostly stuff to support BBN's widget use
+        * aclpc/pkgdcl: Put back package lock stuff since it won't build otherwise
+        * aclpc/winwidgh: Move foreign function definitions here
+        * clim/db-menu: support non-native menu-bars better
+        * tk-silica/gc-cursor: don't trust svref (spr17568)
+        * utils/last: provide required arguments
+        * utils/transformations: optimization
+
+*******************************************************************************
 2.2.1.22
 
 Mon Jun 22  1998  

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/clim/db-menu.lisp,v 1.9.22.1 1998/05/19 01:04:28 layer Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/db-menu.lisp,v 1.9.22.2 1998/07/06 17:41:34 layer Exp $
 
 "Copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
 
@@ -217,94 +217,6 @@
 (defmethod handle-event :after ((pane pull-down-menu) (event pointer-event))
   (deallocate-event event))
 
-
-;;; Interface to pull-down menus 
-
-#+(or aclpc acl86win32)
-(define-application-frame pull-down-menu-frame ()
-    (menu)
-  (:pane
-    (with-slots (menu) *application-frame*
-      (outlining ()
-        (setq menu (make-pane 'pull-down-menu
-                     :width 100 :height 100)))))
-  (:menu-bar nil))
-
-#+(or aclpc acl86win32)
-(defun make-pull-down-menu (&key port)
-  (let ((frame (make-application-frame 'pull-down-menu-frame
-                                       :frame-manager (find-frame-manager :port port)
-                                       :save-under t)))
-    (values (slot-value frame 'menu) frame)))
-
-;; Pull-down menus share their event queue with the owning application
-#+(or aclpc acl86win32)
-(defresource pull-down-menu (port)
-  :constructor (make-pull-down-menu :port port)
-  :matcher (eq (port pull-down-menu) port)
-  :deinitializer 
-    (progn
-      (setf (pull-down-menu-buttons pull-down-menu) nil)
-      (setf (pull-down-menu-entered pull-down-menu) nil)
-      (dolist (child (sheet-children pull-down-menu))
-        (sheet-disown-child pull-down-menu child))))
-
-#+(or aclpc acl86win32)
-(defmacro initialize-pull-down-menu (menu &body buttons)
-  (assert (= (length buttons) 1))
-  `(with-look-and-feel-realization ()
-     (setf (pull-down-menu-buttons ,menu) ,@buttons)
-     (sheet-adopt-child ,menu (make-pane 'vbox-pane
-                                :contents (pull-down-menu-buttons ,menu)
-                                :spacing 0))
-     (layout-frame (pane-frame ,menu))
-     ,menu))
-
-#-(or aclpc acl86win32)
-(defvar *subsidiary-pull-down-menu* nil)
-#-(or aclpc acl86win32)
-(defun choose-from-pull-down-menu (menu &optional button &key cascade-p)
-  (let ((menu-frame (pane-frame menu))
-        (event-queue (sheet-event-queue menu)))
-    (when button
-      (with-bounding-rectangle* (bleft btop bright bbottom)
-          (sheet-device-region button)
-        (declare (ignore bright))
-        (multiple-value-bind (fleft ftop fright fbottom)
-            (let ((tls (get-top-level-sheet button)))
-              (mirror-region* (port tls) tls))
-          (declare (ignore fright fbottom))
-          (if cascade-p
-              (let ((pattern-width (pattern-width (slot-value button 'normal-pattern)))
-                    (button-x-margin (slot-value button 'x-margin)))
-                (move-sheet (frame-top-level-sheet menu-frame)
-                            (+ bleft fleft pattern-width button-x-margin -16)
-                            (+ btop ftop)))
-              (move-sheet (frame-top-level-sheet menu-frame)
-                          (+ bleft fleft 10)
-                          (+ bbottom ftop -10))))))
-    (enable-frame menu-frame)
-    ;; Share the event queue with the application frame
-    (setf (sheet-event-queue (frame-top-level-sheet (pane-frame menu)))
-          (sheet-event-queue (frame-top-level-sheet *application-frame*)))
-    ;; Ensure no surprise exit events
-    (setf (pull-down-menu-entered menu) nil)
-    ;; Wait for an event and then handle it
-    (unwind-protect
-        (flet ((waiter ()
-                 (not (queue-empty-p event-queue))))
-          #-Allegro (declare (dynamic-extent #'waiter))
-          (catch (if *subsidiary-pull-down-menu* 
-                     '|Not exit-pull-down-menu|
-                     'exit-pull-down-menu)
-            (let ((*subsidiary-pull-down-menu* t))
-              (loop
-                (port-event-wait (port menu) #'waiter 
-                            :wait-reason "Pull Down Menu" :timeout 2)
-                (let ((event (queue-get event-queue)))
-                  (handle-event (event-sheet event) event))))))
-      (disable-frame menu-frame))))
-
 ;;--- Kludge alert
 #+(or aclpc acl86win32)
 (defun get-top-level-sheet (pane)
@@ -330,19 +242,24 @@
 ;;--- What about graying of disabled commands?
 #+(or aclpc acl86win32)
 (defun compute-menu-bar-pane (frame command-table)
-  (let* ((text-style (and (listp command-table)
-			  (getf (cdr command-table) :text-style)
-			  `(:text-style ,(getf (cdr command-table) :text-style))))
-         (command-table (if (listp command-table) (car command-table) command-table)))
-    (when ;;mm was:(eq command-table 't)
-	;; command-table arg comes from menu-bar slot of frame
-	;; and may be NIL T=menu-hbox-pane command-table-arg
-        (default-command-table-p command-table)
+  (outlining ()
+    (setf (slot-value frame 'menu-bar)
+      (compute-menu-bar-pane-1 frame command-table))))
+
+#+(or aclpc acl86win32)
+(defun compute-menu-bar-pane-1 (frame command-table)
+  ;; Returns an hbox-pane containing a row of buttons.
+  (let* ((command-table 
+	  (if (listp command-table) (car command-table) command-table)))
+    (when (default-command-table-p command-table)
+      ;;mm was:(eq command-table 't)
+      ;; command-table arg comes from menu-bar slot of frame
+      ;; and may be NIL T=menu-hbox-pane command-table-arg
       (setq command-table (frame-command-table frame)))
     (with-look-and-feel-realization ((frame-manager frame) frame)
       (labels
-	  ((make-command-table-buttons (command-table top-level)
-	     (let ((buttons nil))
+	  ((make-command-table-menu (command-table)
+	     (let ((choices nil))
 	       (map-over-command-table-menu-items
 		#'(lambda (menu keystroke item)
 		    (declare (ignore keystroke))
@@ -350,73 +267,34 @@
 			  (value (command-menu-item-value item)))
 		      (case type
 			(:command 
-                         (push
-			  (apply
-			   #'make-pane
-			   (if top-level
-			       'push-button
-			     #+(or aclpc acl86win32) 'pull-down-button-logic
-			     #-(or aclpc acl86win32) 'pull-down-menu-button)
-			   :label menu
-			   :activate-callback
-			   #'(lambda (button)
-			       (menu-bar-command-callback
-				button command-table value))
-			   text-style)
-                               buttons))
-			(:function
-			 ;;--- Do something about this
+			 (push `(,menu :value 
+				       (,value ,command-table))
+			       choices))
+			(:function	;--- Do something about this
                          )
-			(:menu
-                         (push (apply #'make-pane
-                                      (if top-level
-					  #-(or aclpc acl86win32) 'menu-bar-button
-					  #+(or aclpc acl86win32) 'menu-bar-button-logic
-					  #+(or aclpc acl86win32) 'pull-down-button-logic
-					  #-(or aclpc acl86win32) 'pull-down-menu-button)
-                                      :label menu
-                                      :next-menu (make-command-table-menu value nil)
-                                      :activate-callback nil
-                                      text-style)
-                               buttons))
-			(:divider
-                         (unless top-level
-			   ;;--- Do something about this
-                           )))))
+			(:menu 
+			 (push (list menu :items 
+				     (make-command-table-menu value))
+			       choices))
+			(:divider 
+			 (push (list nil :type :divider) choices)))))
 		command-table)
-	       (nreverse buttons)))
-	   (make-command-table-menu (command-table top-level)
-	     (let ((buttons (make-command-table-buttons command-table top-level)))
-	       (if top-level
-		   #-(or ACLPC acl86win32)
-		   (outlining ()
-		     (make-pane 'hbox-pane :contents buttons))
-		   ;;mm: We need to remember the ultimate menu-bar pane so that
-		   ;;    we can resize if all the buttons are dropped, or we go
-		   ;;    from no buttons to some.
-		   #+(or ACLPC acl86win32)
-		   (outlining ()
-		     (setf (slot-value frame 'menu-bar)
-		       (make-pane 'hbox-pane :contents buttons 
-				  :min-height 2 :height 2)))
-		   (let ((menu (make-pull-down-menu :port (port frame))))
-		     (initialize-pull-down-menu menu buttons)
-		     menu)))))
-        (declare (dynamic-extent #'make-command-table-buttons #'make-command-table-menu))
-        (make-command-table-menu command-table t)))))
-
-
-#+(or aclpc acl86win32)
-(defun menu-bar-command-callback (button command-table command)
-  (let ((frame (pane-frame button)))
-    (distribute-event
-      (port button)
-      (allocate-event 'presentation-event
-        :frame frame
-        :sheet (frame-top-level-sheet frame)
-        :presentation-type `(command :command-table ,command-table)
-        :value command))))
-
-
-
-
+	       (nreverse choices)))
+	   (make-menubar-buttons (command-table)
+	     (let ((buttons 
+		    (mapcar #'(lambda (menu)
+				(let ((name (first menu))
+				      (kind (second menu))
+				      (value (third menu)))
+				  (if (eq kind :items)
+				      (make-pane 'menu-bar-button-logic
+						 :label name
+						 :next-menu value)
+				    (error "not yet implemented")
+				    )))
+			    (make-command-table-menu command-table))))
+	       (make-pane 'hbox-pane :contents buttons 
+			  :min-height 2 :height 2))))
+        (declare (dynamic-extent #'make-command-table-menu
+				 #'make-menubar-buttons))
+        (make-menubar-buttons command-table)))))

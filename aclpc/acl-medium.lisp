@@ -16,7 +16,11 @@
 
 (defclass acl-medium (basic-medium)
   ((background-dc-image)
-   (foreground-dc-image)))
+   (foreground-dc-image)
+   ;; DC is cached value of GetDC().  This is safe as long
+   ;; as we use CS_OWNDC.
+   (dc :initform nil :accessor medium-dc)
+   ))
 
 (defmethod engraft-medium :after ((medium acl-medium) port sheet)
   (declare (ignore port sheet))
@@ -92,9 +96,9 @@
 	       mleft mtop mright mbottom))))))
     (when valid
       (fix-coordinates cleft ctop cright cbottom)
-      (setq winrgn (win:createRectRgn cleft ctop cright cbottom))
+      (setq winrgn (createRectRgn cleft ctop cright cbottom))
       (setf *created-region* winrgn)
-      (win:selectObject dc winrgn))))
+      (selectobject dc winrgn))))
 
 (defmethod dc-image-for-ink ((medium acl-medium) (ink (eql +ltgray+)))
   ;; This is not supposed to be just ANY light gray.
@@ -108,10 +112,14 @@
   (color-rgb (wincolor->color (win:getSysColor win:COLOR_BTNFACE))))
 
 (defmethod dc-image-for-ink ((medium acl-medium) (ink (eql +foreground-ink+)))
-  (slot-value medium 'foreground-dc-image))
+  #+ignore
+  (slot-value medium 'foreground-dc-image)
+  (dc-image-for-ink medium (medium-foreground medium)))
 
 (defmethod dc-image-for-ink ((medium acl-medium) (ink (eql +background-ink+)))
-  (slot-value medium 'background-dc-image))
+  #+ignore
+  (slot-value medium 'background-dc-image)
+  (dc-image-for-ink medium (medium-background medium)))
 
 #+obsolete
 (defmethod dc-image-for-ink ((medium acl-medium) (ink (eql +black+)))
@@ -345,7 +353,7 @@
 (defmethod medium-draw-point* ((medium acl-medium) x y)
   (let ((window (medium-drawable medium))
 	(old nil))
-    (with-dc (window dc)
+    (with-medium-dc (medium dc)
       (setq old (select-acl-dc medium window dc))
       (when old
         (let* ((sheet (medium-sheet medium))
@@ -357,13 +365,13 @@
 	  ;;(win:rectangle dc x y (+ x 1) (+ y 1))  pity it doesn't work
 	  (win:moveToEx dc x y null)
 	  (win:lineTo dc (+ x 1) (+ y 1))
-	  (win:selectobject dc old)
+	  (selectobject dc old)
 	  )))))
 
 (defmethod medium-draw-points* ((medium acl-medium) position-seq)
   (let ((window (medium-drawable medium))
 	(old nil))
-    (with-dc (window dc)
+    (with-medium-dc (medium dc)
       (setq old (select-acl-dc medium window dc))
       (when old
         (let* ((sheet (medium-sheet medium))
@@ -380,7 +388,7 @@
               ;(win:rectangle dc x y x y)
 	      (win:moveToEx dc x y null)
 	      (win:lineTo dc (+ x 1) (+ y 1))))
-	  (win:selectobject dc old))))))
+	  (selectobject dc old))))))
 
 (defmethod medium-draw-line* ((medium acl-medium) x1 y1 x2 y2)
   (let ((window (medium-drawable medium))
@@ -396,12 +404,12 @@
           (set-dc-for-ink dc medium ink line-style)
           (win:moveToEx dc x1 y1 null)
           (win:lineTo dc x2 y2)
-	  (win:selectobject dc old))))))
+	  (selectobject dc old))))))
 
 (defmethod medium-draw-lines* ((medium acl-medium) position-seq)
   (let ((window (medium-drawable medium))
 	(old nil))
-    (with-dc (window dc)
+    (with-medium-dc (medium dc)
       (setq old (select-acl-dc medium window dc))
       (when old
         (let* ((sheet (medium-sheet medium))
@@ -421,13 +429,13 @@
 	      (convert-to-device-coordinates transform x1 y1 x2 y2)
               (win:moveToEx dc x1 y1 null)
               (win:lineTo dc x2 y2)))
-	  (win:selectobject dc old))))))
+	  (selectobject dc old))))))
 
 (defmethod medium-draw-rectangle* ((medium acl-medium)
 				   left top right bottom filled)
   (let ((window (medium-drawable medium))
 	(old nil))
-    (with-dc (window dc)
+    (with-medium-dc (medium dc)
       (setq old (select-acl-dc medium window dc)) 
       (when old
         (let* ((sheet (medium-sheet medium))
@@ -454,12 +462,12 @@
 		 (if filled
 		     (win:rectangle dc left top (1+ right) (1+ bottom))
 		   (win:rectangle dc left top right bottom))))
-	  (win:selectobject dc old))))))
+	  (selectobject dc old))))))
 
 (defmethod medium-draw-rectangles* ((medium acl-medium) position-seq filled)
   (let ((window (medium-drawable medium))
 	(old nil))
-    (with-dc (window dc)
+    (with-medium-dc (medium dc)
       (setq old (select-acl-dc medium window dc))
       (when old
         (let* ((sheet (medium-sheet medium))
@@ -481,13 +489,13 @@
 	      (if filled
 		  (win:rectangle dc left top (1+ right) (1+ bottom))
 		(win:rectangle dc left top right bottom))))
-	  (win:selectobject dc old))))))
+	  (selectobject dc old))))))
 
 (defmethod medium-draw-polygon* ((medium acl-medium)
 				 position-seq closed filled)
   (let ((window (medium-drawable medium))
 	(old nil))
-    (with-dc (window dc)
+    (with-medium-dc (medium dc)
       (setq old (select-acl-dc medium window dc))
       (when old
 	(let* ((sheet (medium-sheet medium))
@@ -534,7 +542,7 @@
 			  (if (and closed line-style)
 			      (+ numpoints 1)
 			    numpoints)))
-	  (win:selectobject dc old))))))
+	  (selectobject dc old))))))
 
 (defconstant *ft* 0.0001)
 (defun-inline fl-= (x y) (< (abs (- x y)) *ft*))
@@ -545,7 +553,7 @@
 				 start-angle end-angle filled)
   (let ((window (medium-drawable medium))
 	(old nil))
-    (with-dc (window dc)
+    (with-medium-dc (medium dc)
       (setq old (select-acl-dc medium window dc))
       (when old
 	(let* ((sheet (medium-sheet medium))
@@ -612,7 +620,7 @@
 		      (round (1- (+ center-x (* (cos end-angle) x-radius))))
 		      (round (1- (- center-y (* (sin end-angle) y-radius)))))))
 	      ))
-	  (win:selectobject dc old))))))
+	  (selectobject dc old))))))
 
 (defmethod medium-draw-string* ((medium acl-medium)
 				string x y start end align-x align-y
@@ -620,7 +628,7 @@
   (declare (ignore transform-glyphs))
   (let ((window (medium-drawable medium))
 	(old nil))
-    (with-dc (window dc)
+    (with-medium-dc (medium dc)
       (setq old (select-acl-dc medium window dc))
       (when old
 	(let* ((sheet (medium-sheet medium))
@@ -658,7 +666,7 @@
 	      (multiple-value-bind (cstr len)
 		  (silica::xlat-newline-return substring)
 		(win:textOut dc x y cstr len))))
-	  (win:selectobject dc old))))))
+	  (selectobject dc old))))))
 
 (defmethod medium-draw-character* ((medium acl-medium)
 				   char x y align-x align-y
@@ -666,7 +674,7 @@
   (declare (ignore transform-glyphs))
   (let ((window (medium-drawable medium))
 	(old nil))
-    (with-dc (window dc)
+    (with-medium-dc (medium dc)
       (setq old (select-acl-dc medium window dc))
       (when old
 	(let* ((sheet (medium-sheet medium))
@@ -694,7 +702,7 @@
 	    (let ((cstr (ct:callocate (:char *) :size 2)))
 	      (ct:cset (:char 2) cstr 0 (char-int char))
 	      (win:textOut dc x y cstr 1))))
-	(win:selectobject dc old)))))
+	(selectobject dc old)))))
 
 (defmethod medium-draw-text* ((medium acl-medium)
 			      string-or-char x y start end
@@ -710,7 +718,7 @@
   #+old
   (let ((window (medium-drawable medium))
 	(old nil))
-    (with-dc (window dc)
+    (with-medium-dc (medium dc)
       (setq old (select-acl-dc medium window dc))
       (when old
 	(with-slots (background-dc-image) medium
@@ -722,7 +730,7 @@
 	    (when (< bottom top) (rotatef bottom top))
 	    (set-dc-for-filling dc background-dc-image)
 	    (win:rectangle dc left top (1+ right) (1+ bottom))))
-	(win:selectobject dc old))))
+	(selectobject dc old))))
   (with-drawing-options (medium :ink (medium-background medium))
     (medium-draw-rectangle* medium left top right bottom t)))
 

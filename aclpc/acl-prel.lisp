@@ -62,7 +62,7 @@
 	    (win:SendMessage hwnd win:CB_INSERTSTRING index item-name)
 	    ))
 	(win:sendMessage hwnd win:CB_SETCURSEL (or value 0) 0)
-	(win:sendMessage hwnd win:CB_SETTOPINDEX (or value 0) 0)))
+	(win:sendMessage hwnd CB_SETTOPINDEX (or value 0) 0)))
     hwnd))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -96,7 +96,7 @@
 	       win:WS_VSCROLL
 	     0)
 	   (if (member scroll-mode '(:horizontal :vertical :both t))
-	       win:LBS_DISABLENOSCROLL
+	       LBS_DISABLENOSCROLL
 	     0)
 	   win:WS_CLIPCHILDREN 
 	   win:WS_CLIPSIBLINGS))
@@ -372,13 +372,6 @@
 		    :exit-boxes '((:exit "OK"))
 		    :title (format nil "About ~A" 
 				   (clim-internals::frame-pretty-name frame))))
-
-(ff:def-foreign-call (FormatMessage "FormatMessageA")
-    ((flags :int) (source :int) (messageid :int)
-		  (languageid :int) (buffer :int)
-		  (size :int) (arguments :int))
-  :arg-checking nil
-  :returning :int)
 
 (defun errno-to-text (errno)
   (let* ((pointer (make-array 1 

@@ -445,4 +445,7 @@
     (resize-sheet child nwidth nheight)	;;; get the viewport sized correctly!
     (allocate-space child nwidth nheight)))
 
-(eval-when (compile load eval) (provide :climnt))
+(eval-when (compile load eval) 
+  ;; Turn this on as long as it gets turned off in pkgdcl.lisp
+  (setq excl:*enable-package-locked-errors* common-lisp-user::*lock-preference*)
+  (provide :climnt))

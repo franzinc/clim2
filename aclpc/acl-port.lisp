@@ -415,13 +415,19 @@
       ;; from a background process the first time you attempt to use
       ;; this font.  It doesn't really matter which frame you pick.
       (let* ((framem (find-frame-manager))
-	     (frame (when framem (first (frame-manager-frames framem)))))
+	     (frame (some #'(lambda (f)
+			      (when (win:iswindow
+				     (sheet-mirror (frame-top-level-sheet
+						    f)))
+				f))
+			  (when framem
+			    (frame-manager-frames framem)))))
 	(when frame
 	  (setq cw (sheet-mirror (frame-top-level-sheet frame))))))
     (unless (win:iswindow cw) 
       (error "No window found for calculating text font metrics."))
     (with-dc (cw dc)
-      (win:selectObject dc win-font)
+      (selectobject dc win-font)
       (or (win:getTextMetrics dc tmstruct)
 	  (check-last-error "GetTextMetrics"))
       (let ((average-character-width

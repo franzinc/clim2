@@ -1,163 +1,58 @@
 ;;; -*- Package: win; mode: Common-Lisp -*-
 
-(in-package :win)
+(in-package :acl-clim)
 
-#+ignore
-(eval-when (compile load eval)
-  (defmacro defsystemcall (name &key entry-point arguments return-type
-				     arg-checking call-direct
-				     (release-heap :when-ok))
-    (if (constantp arguments) (setq arguments (eval arguments)))
-    (setq arguments
-      (if arguments
-	  (mapcar #'(lambda (type)
-		      (list (gensym)
-			    (cond ((eq type t) :int)
-				  ((eq type 'integer) :int)
-				  ((eq type 'fixnum) :int)
-				  (type))))
-		  arguments)
-	'(:void)))
-    (if (constantp name) (setq name (eval name)))
-    (setq return-type
-      (case return-type
-	(:integer :int)
-	(:unsigned-integer :unsigned-int)
-	(otherwise return-type)))
-    `(ff:def-foreign-call (,name ,entry-point) ,arguments
-       :returning ,return-type
-       :call-direct ,call-direct
-       :arg-checking ,arg-checking
-       :release-heap ,release-heap)))
-
-#+ignore
-(defsystemcall 'createpen
-    :entry-point "CreatePen"
-    :arguments '(integer integer integer)
-    :return-type :integer
-    :arg-checking nil
-    :call-direct t)
-
-#+ignore
-(defsystemcall 'createpopupmenu
-    :entry-point "CreatePopupMenu"
-    :arguments '()
-    :return-type :unsigned-integer
-    :arg-checking nil
-    :call-direct t)
-
-#+ignore
-(defsystemcall 'createrectrgn
-    :entry-point "CreateRectRgn"
-    :arguments '(integer integer integer integer)
-    :return-type :integer
-    :arg-checking nil
-    :call-direct t)
-
-#+ignore
-(defsystemcall 'createsolidbrush
-    :entry-point "CreateSolidBrush"
-    :arguments '(integer)
-    :return-type :integer
-    :arg-checking nil
-    :call-direct t)
-
-#+ignore
-(defsystemcall 'getactivewindow
-    :entry-point "GetActiveWindow"
-    :arguments '()
-    :return-type :unsigned-integer
-    :arg-checking nil
-    :call-direct t)
-
-#+ignore
-(defsystemcall 'getdc
-    :entry-point "GetDC"
-    :arguments '(integer)
-    :return-type :integer
-    :arg-checking nil
-    :call-direct t)
-
-#+ignore
-(defsystemcall 'getlasterror
-    :entry-point "GetLastError"
-    :arguments '()
-    :return-type :integer
-    :arg-checking nil
-    :call-direct t)
-
-#+ignore
-(defsystemcall 'getversion
-    :entry-point "GetVersion"
-    :arguments '()
-    :return-type :unsigned-integer
-    :arg-checking nil
-    :call-direct t)
-
-#+ignore
-(defsystemcall 'lineto
-    :entry-point "LineTo"
-    :arguments '(integer fixnum fixnum)
-    :return-type :boolean
-    :arg-checking nil
-    :call-direct t)
-
-#+ignore
-(defsystemcall 'movetoex
-    :entry-point "MoveToEx"
-    :arguments '(integer integer integer integer)
-    :return-type :boolean
-    :arg-checking nil
-    :call-direct t)
-
-#+ignore
-(defsystemcall 'releasedc
-    :entry-point "ReleaseDC"
-    :arguments '(integer fixnum)
-    :return-type :integer
-    :arg-checking nil
-    :call-direct t)
-
-#+ignore
-(defsystemcall 'selectobject
-    :entry-point "SelectObject"
-    :arguments '(integer integer)
-    :return-type :integer
-    :arg-checking nil
-    :call-direct t)
-
-#+ignore
-(defsystemcall 'setrop2
-    :entry-point "SetROP2"
-    :arguments '(integer integer)
-    :return-type :integer
-    :arg-checking nil
-    :call-direct t)
-
-(eval-when (compile load eval)
-  (export '(
-	    LBS_DISABLENOSCROLL
-	    HLN_SELCHANGE
-	    CB_SETTOPINDEX
-	    )
-	  'windows))
-
-
-
+;; These seem to be missing from winapi-dev
 (defconstant LBS_DISABLENOSCROLL #x1000)
 (defconstant HLN_SELCHANGE #x1)
 (defconstant CB_SETTOPINDEX #x015c)
 
+(ff:def-foreign-type browseinfo
+    (:struct (hwndOwner win:hwnd)
+	     (pidlRoot win:long #+ig win:lpcitemidlist)
+	     (pszDisplayName win:lpstr)
+	     (lpszTitle win:lpcstr)
+	     (ulflags win:uint)
+	     (lpfn (* :void) #+ig win:bffcallback)
+	     (lparam win:lparam)
+	     (iImage :int)))
 
-#+ignore
-(def-foreign-type scrollinfo
-    (:struct (cbSize uint)
-	     (fMask uint)
-	     (nMin int)
-	     (nMax int)
-	     (nPage uint)
-	     (nPos int)
-	     (nTrackPos int)))
+(ff:def-foreign-call (SHBrowseForFolder "SHBrowseForFolder")
+    ((info browseinfo))
+  :returning :int
+  :release-heap :when-ok)
 
-#+ignore
-(ct:defctype lpscrollinfo (scrollinfo *))
+(ff:def-foreign-call (FormatMessage "FormatMessageA")
+    ((flags :int) (source :int) (messageid :int)
+		  (languageid :int) (buffer :int)
+		  (size :int) (arguments :int))
+  :arg-checking nil
+  :returning :int)
+
+;; This should be equivalent to win:createpen but not cons.
+(ff:def-foreign-call (CreatePen "CreatePen")
+    ((flags :int) (source :int) (color :int))
+  :arg-checking nil
+  :call-direct t
+  :returning :int)
+
+;; This should be equivalent to win:createrectrgn but not cons.
+(ff:def-foreign-call (CreateRectRgn "CreateRectRgn")
+    ((left :int) (top :int) (right :int) (bottom :int))
+  :arg-checking nil
+  :call-direct t
+  :returning :int)
+
+;; This should be equivalent to win:getdc but not cons.
+(ff:def-foreign-call (GetDC "GetDC")
+    ((window :int))
+  :arg-checking nil
+  :call-direct t
+  :returning :int)
+
+;; This should be equivalent to win:selectobject but not cons.
+(ff:def-foreign-call (SelectObject "SelectObject")
+    ((a :int) (b :int))
+  :arg-checking nil
+  :call-direct t
+  :returning :int)

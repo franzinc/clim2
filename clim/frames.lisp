@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/clim/frames.lisp,v 1.88.8.2 1998/06/01 23:07:22 layer Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/frames.lisp,v 1.88.8.3 1998/07/06 17:41:36 layer Exp $
 
 (in-package :clim-internals)
 
@@ -472,12 +472,6 @@
         (if (frame-resizable frame)
             (values)
           (bounding-rectangle-size (frame-top-level-sheet frame))))
-      #+acl86win32 ;; spr16580, port-trace-thing was getting mangled
-      (let ((port (port frame)))
-	(when port
-	  (let ((port-trace-thing (silica::port-trace-thing port)))
-	    (when port-trace-thing
-	      (setf (fill-pointer port-trace-thing) 0)))))
       ;;--- Don't throw, just recompute stream bindings in a principled way
       (setf (sheet-enabled-p sheets) t))
     (note-frame-layout-changed (frame-manager frame) frame)

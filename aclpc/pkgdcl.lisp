@@ -2,6 +2,8 @@
 
 (in-package :common-lisp-user)
 
+(defvar *lock-preference* excl:*enable-package-locked-errors*)
+
 ;; Invite everybody to the party.
 (eval-when (compile load eval)
   (require :climg)
@@ -11,7 +13,10 @@
   ;;(require :for)			; for FOR macro
   (require :winapi)
   (require :winapi-dev)
-  (load "user32.dll")  
+  (load "user32.dll")
+
+  ;; Turn this off as long as clim-utils is a locked package.
+  (setq excl:*enable-package-locked-errors* nil)
   )
 
 (defpackage acl-clim

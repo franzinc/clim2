@@ -1,4 +1,4 @@
-;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: ACL-CLIM; Base: 10; Lowercase: Yes -*-
+;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: ACL-CLIM; Base: 10; Lowercase: Yes -*-
 
 
 #|****************************************************************************
@@ -73,7 +73,7 @@
   (setf *black-pen* (win:getStockObject win:black_pen))
   (setf *white-pen* (win:getStockObject win:white_pen))
   (setf *ltgray-pen* 
-    (win:createPen win:ps_solid 1 (win:getSysColor win:COLOR_BTNFACE)))
+    (createPen win:ps_solid 1 (win:getSysColor win:COLOR_BTNFACE)))
   ;;
   (setf *null-brush* (win:getStockObject win:null_brush))
   (setf *black-brush* (win:getStockObject win:black_brush))
@@ -125,46 +125,32 @@
 
 (defun release-objects (window dc)
   (when *created-pen*
-    (win:selectObject dc *black-pen*)
+    (selectobject dc *black-pen*)
     (win:deleteObject *created-pen*)
     (setq *created-pen* nil))
   (when *created-brush*
-    (win:selectObject dc *white-brush*)
+    (selectobject dc *white-brush*)
     (win:deleteObject *created-brush*)
     (setq *created-brush* nil))
   (when *created-tile*
     (win:deleteObject *created-tile*)
     (setq *created-tile* nil))
   (when *created-region*
-    (win:selectObject dc (ct::null-handle win:hrgn))
+    (selectobject dc (ct::null-handle win:hrgn))
     (win:deleteObject *created-region*)
     (setq *created-region* nil))
   (when (and *created-font* *original-font*)
-    (win:selectObject dc *original-font*)
+    (selectobject dc *original-font*)
     (win:deleteObject *created-font*)
     (setq *created-font* nil))     
   (when (and *created-bitmap* *original-bitmap*)
-    (win:selectObject dc *original-bitmap*)
-	(note-destroyed *created-bitmap*)
+    (selectobject dc *original-bitmap*)
     (win:deleteObject *created-bitmap*)
     (setq *created-bitmap* nil))
   (dolist (xtra *extra-objects*)
-	(note-destroyed xtra)
 	(win:deleteObject xtra))
   (setq *extra-objects* nil)
   (win:releaseDc window dc))
-
-(defvar *note-created* ())
-
-(defun note-created (kind obj)
-  (declare (ignore kind))
-  #+ignore (push (cons obj kind)  *note-created*)
-  obj)
-
-(defun note-destroyed (obj)
-  #+ignore (setf *note-created* (delete obj *note-created* :key #'car))
-  obj)
-
 
 (defclass acl-pixmap (pixmap)
   ((bitmap :initarg :bitmap)
@@ -200,20 +186,44 @@
 	 (release-objects ,window ,dc))       
        )))
 
+;; The call to GetDC will cons a bignum (16 bytes).
+;; We should probably try to optimize this some how
+;; since it is called constantly during simple
+;; things like repaint.
 (defmacro with-dc ((window dc) &rest body)
-  `(let ((,dc nil))
-     (if (typep ,window 'acl-pixmap)
-	 (with-slots (cdc for-medium) ,window
-	   (let ((,dc cdc)
-		 (medium for-medium))
-	     medium
-	     ,@body))
+  `(if (typep ,window 'acl-pixmap)
+       (with-slots (cdc for-medium) ,window
+	 (let ((,dc cdc)
+	       (medium for-medium))
+	   medium
+	   ,@body))
+     ;; It was my intention to rewrite this to
+     ;; cache the DC, in combination with setting
+     ;; CS_OWNDC.
+     (let ((,dc 0))
        (unwind-protect
 	   (progn
-	     (setf ,dc (win:getDc ,window))
+	     (setq ,dc (getDc ,window))
 	     ,@body)
 	 (release-objects ,window ,dc))       
        )))
+
+(defmacro with-medium-dc ((medium dc) &rest body)
+  `(if (typep ,medium 'acl-pixmap)
+       (with-slots (cdc for-medium) ,medium
+	 (let ((,dc cdc)
+	       (medium for-medium))
+	   medium
+	   ,@body))
+     ;; It was my intention to rewrite this to
+     ;; cache the DC, in combination with setting
+     ;; CS_OWNDC.
+     (let ((,dc 0))
+       (unwind-protect
+	   (progn
+	     (setq ,dc (getDc (medium-drawable ,medium)))
+	     ,@body)
+	 (release-objects (medium-drawable ,medium) ,dc)))))
 
 
 (defmacro with-compatible-dc ((dc cdc) &rest body)
@@ -222,7 +232,7 @@
 	 (progn
 	   (setf ,cdc (win:createCompatibleDC ,dc))
 	   ,@body)
-       (win:selectObject ,cdc *original-bitmap*)
+       (selectobject ,cdc *original-bitmap*)
        (when (and *created-bitmap*
 		  (not (ct::null-handle-p win:hbitmap *created-bitmap*)))
 	 (win:deleteObject *created-bitmap*))
@@ -242,15 +252,14 @@
 	(push *created-pen* *extra-objects*))
       (setq pen
 	(setq *created-pen*
-	  (note-created 'pen 
-			(win:createPen (if dashes win:ps_dash win:ps_solid)
-				       thickness
-				       (dc-image-text-color image))))))
-    (win:selectObject dc pen)
+	  (createPen (if dashes win:ps_dash win:ps_solid)
+		     thickness
+		     (dc-image-text-color image)))))
+    (selectobject dc pen)
     (if dashes
 	(win:setBkMode dc win:TRANSPARENT)
       (win:setBkMode dc win:OPAQUE))
-    (win:selectObject dc brush)
+    (selectobject dc brush)
     (when rop2 (win:setRop2 dc rop2))
     t))
 
@@ -260,7 +269,7 @@
 	(brush (dc-image-brush image))
 	(pen *null-pen*)
 	(rop2 (dc-image-rop2 image)))
-    (win:selectObject dc pen)
+    (selectobject dc pen)
     (when background-color
       (cond ((minusp background-color)
 	     (win:setBkMode dc win:TRANSPARENT))
@@ -268,7 +277,7 @@
 	     (win:setBkMode dc win:OPAQUE)
 	     (win:setBkColor dc background-color))))
     (when text-color (win:setTextColor dc text-color))
-    (when brush (win:selectObject dc brush))
+    (when brush (selectobject dc brush))
     (when rop2  (win:setRop2 dc rop2))
     t))
 
@@ -295,7 +304,7 @@
 	    ((ct::null-handle-p win:hdc dc)
 	     (format *terminal-io* "No DC (~s) ~%" dc))
 	    (t
-	     (setf *original-bitmap* (win:selectObject dc *created-bitmap*))))
+	     (setf *original-bitmap* (selectobject dc *created-bitmap*))))
       #+ign
       (unless (> size 2)
 	(let ((background-color (dc-image-background-color image))
@@ -316,7 +325,7 @@
 	 (text-color (dc-image-text-color image))
 	 (background-color (dc-image-background-color image))
 	 (oldfont nil))
-    (setq oldfont (win:selectObject dc font))
+    (setq oldfont (selectobject dc font))
     (cond ((not background-color)
 	   (win:setBkMode dc win:transparent))
 	  ((minusp background-color)

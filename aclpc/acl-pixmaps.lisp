@@ -79,7 +79,7 @@
     (with-dc (window dc)
       (setq cdc (win:createCompatibleDC dc))
       (setq bitmap (win:createCompatibleBitmap dc width height))
-      (setf obitmap (win:selectObject cdc bitmap)))
+      (setf obitmap (selectobject cdc bitmap)))
     (make-instance 'acl-pixmap 
       :bitmap bitmap
       :for-medium medium
@@ -94,7 +94,7 @@
       (win:deleteObject bitmap)
       (setq bitmap nil))
     (when cdc
-      (win:selectObject cdc original-bitmap)
+      (selectobject cdc original-bitmap)
       (win:deleteDC cdc)
       (setq bitmap nil cdc nil))))
 

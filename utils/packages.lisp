@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $Id: packages.lisp,v 1.84.8.11 1998/06/22 21:49:51 layer Exp $
+;; $Id: packages.lisp,v 1.84.8.12 1998/07/06 17:41:39 layer Exp $
 
 (in-package :common-lisp-user)
 
@@ -3299,7 +3299,7 @@
 (cl:defvar *clim-major-version* 2)
 (cl:defvar *clim-minor-version* 2)
 (cl:defvar *clim-generation-version* 1)
-(cl:defvar *clim-build-version* 22)
+(cl:defvar *clim-build-version* 23)
 
 (cl:defparameter *clim-version*
     (cl:format () "~d.~d.~d.~a"

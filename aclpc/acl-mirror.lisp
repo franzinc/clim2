@@ -595,7 +595,7 @@
 	  #+ignore
 	  (multiple-value-bind (left top right bottom)
 	      (mirror-native-edges* acl-clim::*acl-port* sheet)
-	    (let ((dc (win:GetDc mirror)))
+	    (let ((dc (GetDc mirror)))
 	      (win:DrawIcon dc 0 0 *clim-icon*)
 	      (win:releaseDC mirror dc)))
 	  )))))

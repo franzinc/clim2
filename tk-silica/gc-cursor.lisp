@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/tk-silica/gc-cursor.lisp,v 1.8 1998/03/02 23:17:04 duane Exp $
+;; $Header: /repo/cvs.copy/clim2/tk-silica/gc-cursor.lisp,v 1.8.14.1 1998/07/06 17:41:36 layer Exp $
 
 
 (in-package :xm-silica)
@@ -31,21 +31,17 @@
 (defun init-gc-cursor (frame)
   (when *use-clim-gc-cursor*
     (unless *gc-before*			; Do just once.
-      (let ((vec (if* (fboundp 'excl::gc-before-c-hooks) ;; The new style
-		    then (make-array 2 :element-type '(unsigned-byte 32))
-		    else (vector nil nil))))
+      (let ((vec (make-array 2 :element-type '(unsigned-byte 32))))
 	(tk::init_clim_gc_cursor_stuff vec)
-	(setq *gc-before* (svref vec 0)
-	      *gc-after*  (svref vec 1))
-	(if* (fboundp 'excl::gc-before-c-hooks)
-	   then (pushnew (make-array 1 :element-type '(unsigned-byte 32)
-				     :initial-element *gc-before*)
-			 (excl:gc-before-c-hooks))
-		(pushnew (make-array 1 :element-type '(unsigned-byte 32)
-				     :initial-element *gc-after*)
-			 (excl:gc-after-c-hooks))
-	   else (pushnew *gc-before* (excl::gc-before-hooks))
-		(pushnew *gc-after*  (excl::gc-after-hooks)))))
+	(setq *gc-before* (aref vec 0)
+	      *gc-after*  (aref vec 1))
+	(pushnew (make-array 1 :element-type '(unsigned-byte 32)
+			     :initial-element *gc-before*)
+		 (excl:gc-before-c-hooks))
+	
+	(pushnew (make-array 1 :element-type '(unsigned-byte 32)
+			     :initial-element *gc-after*)
+		 (excl:gc-after-c-hooks))))
     (let* ((sheet (frame-top-level-sheet frame))
 	   (mirror (and sheet (sheet-direct-mirror sheet))))
       (if mirror

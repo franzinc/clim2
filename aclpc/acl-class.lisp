@@ -95,7 +95,7 @@
 	  (ct:null-handle win::hinst)
 	  (ct:ccallocate (char *) :initial-value win:IDC_ARROW)))
   (when (zerop arrow-cursor)
-    (check-last-error "LoadCursor"))
+    (check-last-error "LoadCursor" :action :warn))
   ;; this just does the icon now - the cursor stuff is all handled in
   ;; realize-cursor methods in acl-port (cim 9/12/96)
   (setf application-icon
@@ -103,7 +103,7 @@
 	  (ct:null-handle win::hinst)
 	  (ct:ccallocate (char *) :initial-value win:IDI_APPLICATION)))
   (when (zerop application-icon)
-    (check-last-error "LoadIcon"))
+    (check-last-error "LoadIcon" :action :warn))
   t)
 
 ;;; Gather up the argument information and invoke the window procedure.
@@ -266,7 +266,8 @@
 		  'window-repaint-event
 		  :native-region (sheet-native-region sheet)
 		  :region (make-bounding-rectangle ilef itop irig ibot)
-		  :sheet sheet)))))))))
+		  :sheet sheet))
+		)))))))
 
 ;; Process WM_DRAWITEM
 (defun ondrawitem (window msg wparam lparam)
@@ -317,83 +318,84 @@
     (declare (special *gadget-id->window*))
     (when pointer
       (flush-pointer-motion *acl-port*))
-    (if (and (= lparam 0)		; menu item
-	     (= whiword 0))		; otherwise control (or accelerator)
-	(let* ((frame (pane-frame sheet))
-	       (command-table (frame-command-table frame))
-	       (command (cdr (aref *menu-id->command-table* wloword))))
-	  ;; pr Aug97
-	  (with-slots (clim-internals::disabled-commands) frame
-	    (if (member (car command) clim-internals::disabled-commands)
-		(win:messagebeep 200)
-	      (queue-put (slot-value *acl-port* 'event-queue)
-			 (allocate-event 'presentation-event
-					 :frame frame
-					 :sheet (frame-top-level-sheet frame)
-					 :presentation-type
-					 `(command :command-table ,command-table)
-					 :value command)))))
-      (progn
-	(setf (ct:handle-value win:hwnd hwnd) lparam)
-	;;mm: for the moment, the following seems superfluous
-	;;(setf hwndid (silica::gadget-id->window sheet wloword))
-	(setf gadget (mirror->sheet *acl-port* hwnd))
-	(if (typep gadget 'silica::mswin-combo-box-pane)
-	    (let ((sheet (mirror->sheet *acl-port* window)))
-	      (when (and sheet (= whiword win:cbn_closeup))
-		(with-slots (event-queue) *acl-port*
-		  (queue-put
-		   event-queue
-		   (multiple-value-bind (left top right bottom)
-		       (mirror-client-region-internal* *acl-port* hwnd window)
-		     (declare (ignore right bottom))
-		     (allocate-event 'silica::window-change-event
-				     :native-x (+ left 1)
-				     :native-y (+ top 1)
-				     :button +pointer-left-button+
-				     :modifier-state 0
-				     :pointer pointer
-				     :sheet sheet
-				     :mswin-control gadget))))))
-	  ;; else
-	  (if (typep gadget 'silica::mswin-text-edit)
-	      (let ((sheet (mirror->sheet *acl-port* window)))
-		(when (and sheet (= whiword win:en_killfocus))
+    (cond ((and (= lparam 0)		; menu item
+		(= whiword 0))		; otherwise control (or accelerator)
+	   (let* ((frame (pane-frame sheet))
+		  (command-table (frame-command-table frame))
+		  (command (cdr (aref *menu-id->command-table* wloword))))
+	     ;; pr Aug97
+	     (with-slots (clim-internals::disabled-commands) frame
+	       (if (member (car command) clim-internals::disabled-commands)
+		   (win:messagebeep 200)
+		 (queue-put (slot-value *acl-port* 'event-queue)
+			    (allocate-event 
+			     'presentation-event
+			     :frame frame
+			     :sheet (frame-top-level-sheet frame)
+			     :presentation-type
+			     `(command :command-table ,command-table)
+			     :value command))))))
+	  (t
+	   (setf (ct:handle-value win:hwnd hwnd) lparam)
+	   ;;mm: for the moment, the following seems superfluous
+	   ;;(setf hwndid (silica::gadget-id->window sheet wloword))
+	   (setf gadget (mirror->sheet *acl-port* hwnd))
+	   (cond ((typep gadget 'silica::mswin-combo-box-pane)
+		  (let ((sheet (mirror->sheet *acl-port* window)))
+		    (when (and sheet (= whiword win:cbn_closeup))
+		      (with-slots (event-queue) *acl-port*
+			(queue-put
+			 event-queue
+			 (multiple-value-bind (left top right bottom)
+			     (mirror-client-region-internal* *acl-port* hwnd window)
+			   (declare (ignore right bottom))
+			   (allocate-event 'silica::window-change-event
+					   :native-x (+ left 1)
+					   :native-y (+ top 1)
+					   :button +pointer-left-button+
+					   :modifier-state 0
+					   :pointer pointer
+					   :sheet sheet
+					   :mswin-control gadget)))))))
+		 ((typep gadget 'silica::mswin-text-edit)
+		  (let ((sheet (mirror->sheet *acl-port* window)))
+		    (when (and sheet (= whiword win:en_killfocus))
 
-		  (with-slots (event-queue) *acl-port*
+		      (with-slots (event-queue) *acl-port*
 					;handle-event
 					;  gadget
+			(multiple-value-bind (left top right bottom)
+			    (mirror-client-region-internal* *acl-port* hwnd window)
+			  (declare (ignore right bottom))
+			  (queue-put event-queue
+				     (allocate-event 
+				      'silica::window-change-event
+				      :native-x (+ left 1)
+				      :native-y (+ top 1)
+				      :button +pointer-left-button+
+				      :modifier-state 0
+				      :pointer pointer
+				      :sheet sheet
+				      :mswin-control gadget)))))))
+		 ((or (not (typep gadget 'silica::hlist-pane))
+		      (= whiword hln_selchange))
+		  (when (typep gadget 'silica::hlist-pane)
+		    (win:setfocus window))
+		  (with-slots (event-queue) *acl-port*
+
 		    (multiple-value-bind (left top right bottom)
 			(mirror-client-region-internal* *acl-port* hwnd window)
 		      (declare (ignore right bottom))
 		      (queue-put event-queue
-				 (allocate-event 'silica::window-change-event
-						 :native-x (+ left 1)
-						 :native-y (+ top 1)
-						 :button +pointer-left-button+
-						 :modifier-state 0
-						 :pointer pointer
-						 :sheet sheet
-						 :mswin-control gadget))))))
-	    ;; else
-	    (when (or (not (typep gadget 'silica::hlist-pane))
-		      (= whiword win:hln_selchange))
-	      (when (typep gadget 'silica::hlist-pane)
-		(win:setfocus window))
-	      (with-slots (event-queue) *acl-port*
-
-		(multiple-value-bind (left top right bottom)
-		    (mirror-client-region-internal* *acl-port* hwnd window)
-		  (declare (ignore right bottom))
-		  (queue-put event-queue
-			     (allocate-event 'silica::window-change-event
-					     :native-x (+ left 1)
-					     :native-y (+ top 1)
-					     :button +pointer-left-button+
-					     :modifier-state modifier-state
-					     :pointer pointer
-					     :sheet sheet
-					     :mswin-control gadget)))))))))
+				 (allocate-event 
+				  'silica::window-change-event
+				  :native-x (+ left 1)
+				  :native-y (+ top 1)
+				  :button +pointer-left-button+
+				  :modifier-state modifier-state
+				  :pointer pointer
+				  :sheet sheet
+				  :mswin-control gadget))))))))
     (clear-winproc-result *win-result*)
     *win-result*))  
 
@@ -603,7 +605,8 @@
 					:value command)
 			)))
 		    ((and (eql msg win:wm_keydown)
-			  (eql keysym :newline))
+			  (eql keysym :newline)
+			  (find-default-gadget frame))
 		     (activate-default-gadget frame))
 		    (t
 		     (queue-put event-queue
@@ -629,30 +632,40 @@
 	(clear-winproc-result *win-result*)
 	*win-result*))))
 
+(defun find-default-gadget (frame)
+  ;; Look for a button that is "show-as-default"
+  (let ((gadget nil)
+	(input-context *input-context*))
+    ;; If we are not accepting a command, then forget about
+    ;; activating the default gadget.  Is this the right test?  
+    ;; JPM 6/30/98.
+    (when (eq (caar input-context) 'command-name)
+      (flet ((look (s)
+	       (when (and (typep s 'push-button)
+			  (push-button-show-as-default s))
+		 (setq gadget s))))
+	(declare (dynamic-extent #'look))
+	(map-over-sheets #'look
+			 (frame-top-level-sheet frame))
+	gadget))))
+
 (defun activate-default-gadget (frame)
   ;; Look for a button that is "show-as-default"
   ;; and activate it.
-  (let ((gadget nil))
-    (flet ((look (s)
-	     (when (and (typep s 'push-button)
-			(push-button-show-as-default s))
-	       (setq gadget s))))
-      (declare (dynamic-extent #'look))
-      (map-over-sheets #'look
-		       (frame-top-level-sheet frame))
-      (if gadget
-	  (with-slots (event-queue) *acl-port*
-	    (queue-put event-queue
-		       (allocate-event 
-			'silica::window-change-event 
-			:native-x 0
-			:native-y 0
-			:button +pointer-left-button+
-			:modifier-state 0
-			:pointer (port-pointer *acl-port*)
-			:sheet gadget
-			:mswin-control gadget)))
-	(clim:beep)))))
+  (let ((gadget (find-default-gadget frame)))
+    (if gadget
+	(with-slots (event-queue) *acl-port*
+	  (queue-put event-queue
+		     (allocate-event 
+		      'silica::window-change-event 
+		      :native-x 0
+		      :native-y 0
+		      :button +pointer-left-button+
+		      :modifier-state 0
+		      :pointer (port-pointer *acl-port*)
+		      :sheet gadget
+		      :mswin-control gadget)))
+      (clim:beep))))
 
 ;; Process WM_BUTTONDOWN
 (defun onbuttondown (window msg wparam lparam)
@@ -1032,7 +1045,10 @@
                  win::cbSize (ct:sizeof win:wndclassex)
                  win::style (logior win:CS_DBLCLKS
 				    win:CS_BYTEALIGNCLIENT
-				    win:CS_BYTEALIGNWINDOW)
+				    win:CS_BYTEALIGNWINDOW
+				    ;; win:CS_SAVEBITS ; Can we afford this?
+				    ;; win:CS_OWNDC
+				    )
                  win::lpfnwndproc clim-window-proc-address 
                  win::cbClsExtra 0
                  win::cbWndExtra 0

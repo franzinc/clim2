@@ -58,8 +58,7 @@
 			 ;; use window-change-event to workaround bug
 			 ;; with bad redirection of pointer-events -
 			 ;; see comment in silica/event.lisp (cim 9/17/96)
-			 (event #+ignore pointer-button-release-event
-				#-ignore window-change-event))
+			 (event window-change-event))
   (let ((mirror (sheet-direct-mirror pane))
 	(index 0))
     (when mirror
@@ -138,17 +137,12 @@
   (declare (ignore width height))
   (with-slots (items name-key text-style visible-items
 		     initial-space-requirement) pane
-    (let (;;(name "")
-	  (name-width 0)
+    (let ((name-width 0)
 	  (name-height 0)
-	  ;;(index 0)
           (tsh 0)
           (iwid (or (space-requirement-width initial-space-requirement) 0))
           (ihgt (or (space-requirement-height initial-space-requirement) 0))
-	  #+ignore
-	  (vizlimit (and items visible-items (numberp visible-items)
-			 (> (length items) visible-items)))
-         )
+	  )
       (multiple-value-setq (name-width tsh)
 	(compute-set-gadget-dimensions pane))
       (setq name-height (* (if visible-items visible-items (max (length items) 1))
@@ -221,22 +215,23 @@
     (let* ((p (sheet-parent pane))
 	   (ext-label-width 0)
 	   (ext-label-height 0)
-	   (tswid 0)
-	   (tshgt 0)
+	   (tswid 20)
+	   (tshgt 20)
 	   (space-for-scrollbars
 	    (if (and (typep p 'silica::scroller-pane) 
 		     (silica::scroller-pane-scroll-bar-policy p)) 
 		2 0))
 	   (iwid (or (space-requirement-width initial-space-requirement) 0))
 	   (ihgt (or (space-requirement-height initial-space-requirement) 0)))
-      (with-sheet-medium (medium pane)
-	(multiple-value-setq (tswid tshgt)
-	  (text-size medium "W" :text-style text-style)))
+      (when (port pane)
+	(with-sheet-medium (medium pane)
+	  (multiple-value-setq (tswid tshgt)
+	    (text-size medium "W" :text-style text-style))))
       (if (numberp ncolumns) 
 	  (setq iwid (max iwid (* (+ space-for-scrollbars ncolumns) tswid))))
       (if (numberp nlines) 
 	  (setq ihgt (max ihgt (* (+ space-for-scrollbars nlines) tshgt))))
-      (when external-label
+      (when (and external-label (port pane))
 	(let ((text-style (slot-value pane 'text-style)))
 	  (with-sheet-medium (medium pane)
 	    (multiple-value-bind (w h)
@@ -265,8 +260,7 @@
     (let* ((ext-label-width 0)
 	   (ext-label-height 0)
            (iwid (or (space-requirement-width initial-space-requirement) 0))
-	   #+ignore
-           (ihgt (or (space-requirement-height initial-space-requirement) 0)))
+	   )
       (when external-label
 	(let ((text-style (slot-value pane 'text-style)))
 	  (with-sheet-medium (medium pane)
@@ -295,7 +289,7 @@
   (let ((mirror (sheet-direct-mirror pane)))
     (declare (ignore mirror))
     ;; Give up the focus
-    (win:setfocus (win:getactivewindow) #-acl86win32 :static)))
+    (win:setfocus (win:getactivewindow))))
 
 (defmethod handle-event ((pane mswin-text-edit) (event window-change-event))
   (let ((mirror (sheet-direct-mirror pane)))
@@ -313,23 +307,25 @@
 (defun xlat-newline-return (str)
   ;; Given a Lisp string, create an equivalent C string.
   ;; Replace Newline with Return&Newline.
-  (let* ((subsize (length str))
-	 (nnl (let ((nl 0))
-		(dotimes (i subsize)
-		  (when (char= (char str i) #\Newline)
-		    (incf nl)))
-		nl))
-	 (cstr (ct:callocate (:char *) :size (+ 1 nnl subsize)))
-	 (pos 0))
-    (dotimes (i subsize)
-      (when (char= (char str i) #\Newline)
-	(ct:cset (:char 256) cstr ((fixnum pos)) (char-int #\Return))
+  (if (not (find #\Newline str :test #'char=))
+      (values str (length str))
+    (let* ((subsize (length str))
+	   (nnl (let ((nl 0))
+		  (dotimes (i subsize)
+		    (when (char= (char str i) #\Newline)
+		      (incf nl)))
+		  nl))
+	   (cstr (ct:callocate (:char *) :size (+ 1 nnl subsize)))
+	   (pos 0))
+      (dotimes (i subsize)
+	(when (char= (char str i) #\Newline)
+	  (ct:cset (:char 256) cstr ((fixnum pos)) (char-int #\Return))
+	  (incf pos))
+	(ct:cset (:char 256) cstr ((fixnum pos)) (char-int (char str i)))
 	(incf pos))
-      (ct:cset (:char 256) cstr ((fixnum pos)) (char-int (char str i)))
-      (incf pos))
-    ;; terminate with null
-    (ct:cset (:char 256) cstr ((fixnum pos)) 0)
-    (values cstr pos)))
+      ;; terminate with null
+      (ct:cset (:char 256) cstr ((fixnum pos)) 0)
+      (values cstr pos))))
 
 (defun unxlat-newline-return (str)
   ;; Given a C string, create an equivalent Lisp string.
@@ -368,7 +364,7 @@
     (if mirror				; else clause added - smh 26Nov96
 	(let* ((wl (win:SendMessage mirror 
 				     win:WM_GETTEXTLENGTH 
-				     0 0 #-acl86win32 :static))
+				     0 0))
 	     (teb (make-string wl))
 	     (tlen (win:GetWindowText mirror teb (1+ wl))))
 	(declare (ignorable tlen))
@@ -466,10 +462,6 @@
       (win:bitblt hdc x y width height (acl-clim::pixmap-cdc pixmap) 0 0
 		   (acl-clim::bop->winop op)))))
 
-;; (method draw-picture-button (hbutton-pane t t t)) moved below defclass
-;; for hbutton-pane
-
-
 ;; deallocate and pixmap associated with a picture button when it's
 ;; destroyed - this is the only note-sheet-degrafted method in the
 ;; aclpc directory - someone should check what other resources 
@@ -498,8 +490,7 @@
 			 ;; use window-change-event to workaround bug
 			 ;; with bad redirection of pointer-events -
 			 ;; see comment in silica/event.lisp (cim 9/17/96)
-			 (event #+ignore pointer-button-release-event
-				#-ignore window-change-event))
+			 (event window-change-event))
   ;; removed the armed test that came from db-button.lisp - not
   ;; applicable for built in gadgets - check for other gadget classes
   ;; (cim 9/17/96) 
@@ -590,8 +581,7 @@
 			 ;; use window-change-event to workaround bug
 			 ;; with bad redirection of pointer-events -
 			 ;; see comment in silica/event.lisp (cim 9/17/96)
-			 (event #+ignore pointer-button-release-event
-				#-ignore window-change-event))
+			 (event window-change-event))
   ;; removed the armed test that came from db-button.lisp - not
   ;; applicable for built in gadgets - check for other gadget classes
   ;; (cim 9/17/96) 
@@ -605,191 +595,27 @@
 ;;; clim\db-list
 (defclass acl-clim::winwidget-mixin () ())
 
-(defclass mswin-option-pane (option-pane hpbutton-pane
-			     acl-clim::winwidget-mixin)
-  ((menu :initform nil))
-  (:default-initargs
-      :background +white+
-    :pattern *right-triangle-button-pattern*
-    :mode :exclusive
-    :label "Choose"
-    :name-key #'(lambda (it) (princ-to-string it #+ignore (gadget-value it)))))
-
 ;;; When an hbutton is set, update its checkmark appropriately.
-#+(or aclpc acl86win32)
 (defmethod (setf gadget-value) :after (value (pane hbutton-pane) 
 				       &key invoke-callback)
   (declare (ignore invoke-callback))
   (with-slots (mirror) pane
     (when mirror
       ;;(break "About to set value of ~a to ~a." pane value)
-      (win:sendmessage mirror win:BM_SETCHECK (if value 1 0) 0 #-acl86win32 :static))))
-
-;;; When items are set in an option-pane, the option-pane mirror must be
-;;; made to update its appearance appropriately.
-#+(or aclpc acl86win32)
-(defmethod (setf set-gadget-items) :after (nitems (pane mswin-option-pane))
-  (declare (ignore nitems))
-  (with-slots (items name-key value-key test mode) pane
-    (let* ((frame (pane-frame pane))
-	   (framem (frame-manager frame))
-	   (buttons nil)
-	   ;;(val (gadget-value pane))
-	   )
-      ;; (break "adding options to pane")
-      ;; First of all destroy existing panes! +++
-      ;; default is not set
-      (dolist (item items)
-	(with-look-and-feel-realization (framem frame)
-	  (push (make-pane 'toggle-button
-			   :value (ecase mode
-				    (:exclusive
-				     (funcall test (funcall value-key item) 
-					      (gadget-value pane)))
-				    (:nonexclusive
-				     (and (member (funcall value-key item) 
-						  (gadget-value pane) 
-						  :test test)
-					  t)))
-			   :label (funcall name-key item)
-			   :id item
-			   :client pane)
-		buttons)))
-      (setq buttons (nreverse buttons))
-      (setq items (copy-list buttons))		;save them away
-      (let ((menu (make-pull-down-menu :port (port frame))))
-	(initialize-pull-down-menu menu buttons)
-	(setf (slot-value pane 'menu) menu)))))
+      (win:sendmessage mirror win:BM_SETCHECK (if value 1 0) 0))))
 
 ;;; When items are set in an hlist-pane the  mirror must be
 ;;; made to update its appearance appropriately.
-#+(or aclpc acl86win32)
 (defmethod (setf set-gadget-items) :after (items (pane hlist-pane))
   (with-slots (name-key mirror) pane
     (when mirror
-      (win:SendMessage mirror win:LB_RESETCONTENT 0 0 #-acl86win32 :static)
+      (win:SendMessage mirror win:LB_RESETCONTENT 0 0)
       (dolist (item items)
 	(let ((str (acl-clim::nstringify (funcall name-key item)))
 	      (pos (position item items)))
 	  ;;(break "insert gadget item [~a @ ~a]" str pos)
 	  (win:SendMessage mirror win:LB_INSERTSTRING pos str)))
       (win:InvalidateRect mirror ct:hnull win:true)))) ;; make sure it updates
-
-;;--- The idea is the the option pane itself is a pushbutton which, when
-;;--- pressed, pops up a menu containing the options.
-(defmethod initialize-instance :after ((pane mswin-option-pane) &key visible-items)
-  (declare (ignore visible-items))
-  (with-slots (external-label label
-	       items name-key value-key test mode) pane
-    ; (shiftf external-label label nil)
-    (let* ((frame (pane-frame pane))
-	   (framem (frame-manager frame))
-	   (buttons nil)
-	   (val (gadget-value pane)))
-      (assert (and frame framem) ()
-	      "There must be both a frame and frame manager active")
-      (when (and val (eql mode :exclusive))
-	(setf label (funcall name-key val)))
-      (with-look-and-feel-realization (framem frame)
-	(dolist (item items)
-	  (push (make-pane 'toggle-button
-		  :value (ecase mode
-			   (:exclusive
-			     (funcall test (funcall value-key item) (gadget-value pane)))
-			   (:nonexclusive
-			     (and (member (funcall value-key item) (gadget-value pane) :test test)
-				  t)))
-		  :label (funcall name-key item) ; was item
-		  :id item
-		  :client pane)
-		buttons))
-	(setq buttons (nreverse buttons))
-	(setq items (copy-list buttons))	;save them away
-	(let ((menu (make-pull-down-menu :port (port frame))))
-	  (initialize-pull-down-menu menu buttons)
-	    (setf (slot-value pane 'menu) menu))))))
-
-(defmethod handle-event ((pane mswin-option-pane) 
-			 ;; use window-change-event to workaround bug
-			 ;; with bad redirection of pointer-events -
-			 ;; see comment in silica/event.lisp (cim 9/17/96)
-			 (event #+ignore pointer-button-release-event
-				#-ignore window-change-event))
-  (with-slots (armed menu) pane
-    (when (eq armed :active)
-      (setf armed t)
-      (with-sheet-medium (medium pane)
-	(highlight-button pane medium))
-      (choose-from-pull-down-menu menu pane))))
-
-(defmethod (setf gadget-value) :after (value (pane mswin-option-pane) &key invoke-callback)
-  (declare (ignore invoke-callback))
-  (with-slots (name-key mirror mode) pane
-    (when (and mirror
-	       (eql mode :exclusive))
-      (let ((str (acl-clim::nstringify (funcall name-key value))))
-	(win:setWindowText mirror str)))))
-
-(defmethod value-changed-callback :around 
-	   ((selection toggle-button) (client mswin-option-pane) gadget-id value)
-  #-aclpc (declare (ignore gadget-id))
-  (let ((subvert value))
-    (with-slots (items value-key mode) client
-      (let ((real-value (funcall value-key (gadget-id selection)))
-            (old-selection nil))
-        (ecase mode
-          (:exclusive
-            (setq old-selection (gadget-value client))
-            (when (and old-selection (not (and value real-value)))
-              (let ((button
-                      (find old-selection items
-                            :key #'(lambda (val)
-                                     (funcall value-key (gadget-id val)))
-                            :test #'equal)))
-                (setq subvert t)
-                (unless button
-                  (cerror "never mind" "button not found ~a in ~a" old-selection items))
-                (when button
-                  (with-slots (mirror) button
-                    (when mirror
-		      (win:sendmessage mirror win:bm_setcheck 1 1)))
-                  (setf (gadget-value button) t)))
-              ;(setf (gadget-value old-selection) t)
-              (setq real-value old-selection
-                    value t
-                    old-selection nil))
-            (setf (gadget-value client) (and value real-value)))
-          (:nonexclusive
-            (if value
-                (pushnew real-value (gadget-value client))
-                (setf (gadget-value client) (delete real-value (gadget-value client))))))
-        ;;(setq *sel* selection)
-        ;;(setq *cl* client)
-        ;(if t ;(eql old-selection (gadget-value client))
-             ;    (cerror "do it" "old-selection=~a new=~a" old-selection (gadget-value client)))
-        (when old-selection
-          (let ((button
-                  (find old-selection items
-                        :key #'(lambda (val)
-                                 (funcall value-key (gadget-id val)))
-                        :test #'equal)))
-            (when (null button)
-              (let (;;(*selection* selection)
-                    ;;(*client* client)
-                    ;;(*old-selection* old-selection)
-                    ;;(*items* items)
-		    )
-                (cerror "never mind" "Button not found in options pane")))
-            (when button
-              (with-slots (mirror) button
-                (when mirror
-		  (win:sendmessage mirror win:bm_setcheck 0 0)))
-              (setf (gadget-value button :invoke-callback nil) nil))))
-        (value-changed-callback
-          client (gadget-client client) (gadget-id client) (gadget-value client))))
-  (call-next-method)
-  (with-slots (value) selection
-    (setf value subvert))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Combo Box
@@ -848,7 +674,7 @@
       (multiple-value-setq (name-width tsh)
 	(compute-set-gadget-dimensions pane))
       ;; this specifies the regular size, not the dropped-down size
-      (setq name-height tsh #+ignore (* (+ 2 (length items)) tsh))
+      (setq name-height tsh)
       (make-space-requirement
        :width (+ name-width 20)
        :height (+ name-height 7)))))
@@ -891,11 +717,10 @@
 
 ;;; When items are set in an combo-pane the  mirror must be
 ;;; made to update its appearance appropriately.
-#+(or aclpc acl86win32)
 (defmethod (setf set-gadget-items) :after (items (pane mswin-combo-box-pane))
   (with-slots (name-key mirror) pane
     (when mirror
-      (win:SendMessage mirror win:CB_RESETCONTENT 0 0 #-acl86win32 :static)
+      (win:SendMessage mirror win:CB_RESETCONTENT 0 0)
       (dolist (item items)
 	(let ((str (acl-clim::nstringify (funcall name-key item)))
 	      (pos (position item items)))
@@ -913,54 +738,32 @@
 ;;; top level.  Period.  To implement this, we have to
 ;;; use "non-native" menu bars.
 
-(defclass mswin-menu-bar-pane (mirrored-sheet-mixin 
-			       menu-bar
+(defclass mswin-menu-bar-pane (menu-bar
 			       sheet-permanently-enabled-mixin
 			       space-requirement-mixin
+			       sheet-single-child-mixin
 			       basic-pane)
     ())
 
 (defmethod compose-space ((pane mswin-menu-bar-pane) &key width height)
-  ;; Total guess.
   (unless width (setq width 150))
   (unless height (setq height 25))
-  (make-space-requirement
+  (make-space-requirement 
    :width (max width 40)
    :min-width 40
    :height (max height 25)
    :min-height 25))
 
-;; TODO: make this unmirrored.  Create buttons using
-;; compute-menu-bar-pane from within initialize-instance :after.
-;; compute-menu-bar-pane needs to be modified to take the
-;; relevant pane as its argument.
+(defmethod allocate-space ((pane mswin-menu-bar-pane) width height)
+  (let ((child (sheet-child pane)))
+    (when child (move-and-resize-sheet child 0 0 width height))))
 
-(defmethod realize-mirror ((port acl-clim::acl-port) 
-			   (sheet mswin-menu-bar-pane))
-  (multiple-value-bind (left top right bottom)
-      (sheet-native-region* sheet)
-    (fix-coordinates left top right bottom)
-    (let* ((parent (sheet-mirror sheet))
-           (window nil)
-	   (width (- right left))
-	   (height (- bottom top)))
-      (setq window
-	(acl-clim::create-child-window 
-	 parent nil nil left top width height))
-      (setf (sheet-native-transformation sheet)
-	(sheet-native-transformation (sheet-parent sheet)))
-      (win:showWindow window win:sw_show)
-      (setf (sheet-direct-mirror sheet) window)
-      window)))
-
-(defmethod note-sheet-tree-grafted ((port acl-clim::acl-port) 
-				    (sheet mswin-menu-bar-pane))
-  ;; This method is invoked when the sheet and its descendents have
-  ;; been mirrored
-  (let* ((frame (pane-frame sheet))
-	 (command-table (menu-bar-command-table sheet)))
-    (when command-table
-      (acl-clim::compute-msmenu-bar-pane frame sheet command-table))))
+(defmethod initialize-instance :after ((object mswin-menu-bar-pane)
+				       &rest options
+				       &key command-table frame)
+  (when (and frame command-table)
+    (let ((inferiors (silica::compute-menu-bar-pane-1 frame command-table)))
+      (sheet-adopt-child object inferiors))))
 
 (defclass mswin-menu-bar-button (hpbutton-pane)
     ((next-menu :initform nil :initarg :next-menu)))
@@ -976,34 +779,30 @@
 		         (event pointer-exit-event))
   (with-slots (armed next-menu) pane
     (when armed
-      (setf armed nil)))
-)
-
+      (setf armed nil))))
 
 (defmethod handle-event ((pane mswin-menu-bar-button)
-			 (event pointer-button-press-event))
+			 (event window-change-event))
   (with-slots (armed next-menu) pane
     (with-sheet-medium (medium pane)
       (declare (ignore medium))
       (when armed (setf armed :active))
-      (if (typep next-menu 'pull-down-menu)
-	  (choose-from-pull-down-menu next-menu pane)
-	  (activate-callback pane (gadget-client pane) (gadget-id pane)))
+      (let ((choice 
+	     (menu-choose next-menu :associated-window pane)))
+	(when choice
+	  (apply #'queue-command pane choice)))
       (setf armed t)
       )))
 
-(defmethod handle-event ((pane mswin-menu-bar-button)
-			 ;; use window-change-event to workaround bug
-			 ;; with bad redirection of pointer-events -
-			 ;; see comment in silica/event.lisp (cim 9/17/96)
-			 (event #+ignore pointer-button-release-event
-				#-ignore window-change-event))
-  (with-slots (armed) pane
-    (when (and (eq armed :active))
-      (with-sheet-medium (medium pane)
-	(declare (ignore medium))
-	(setf armed t)
-	))))
+(defun queue-command (button command command-table)
+  (let ((frame (pane-frame button)))
+    (distribute-event
+      (port button)
+      (allocate-event 'presentation-event
+        :frame frame
+        :sheet (frame-top-level-sheet frame)
+        :presentation-type `(command :command-table ,command-table)
+        :value command))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; scroll-bar
@@ -1168,8 +967,7 @@
 			 ;; use window-change-event to workaround bug
 			 ;; with bad redirection of pointer-events -
 			 ;; see comment in silica/event.lisp (cim 9/17/96)
-			 (event #+ignore pointer-button-release-event
-				#-ignore window-change-event))
+			 (event window-change-event))
   (with-slots (armed) pane
     (when (eq armed :active)
       (setf armed t)
@@ -1178,10 +976,7 @@
       (throw 'exit-pull-down-menu (values)))))
 
 (defun winhandle-equal (x y)
-  (cond (#+acl86win32 nil
-         #-acl86win32 
-         (and (typep x 'win:lhandle)
-              (typep y 'win:lhandle))
+  (cond (nil
          (eql (ct:lhandle-value x)
               (ct:lhandle-value y)))
         (t (equal x y))))
@@ -1204,9 +999,8 @@
 (defun choose-from-pull-down-menu (menu &optional button &key cascade-p)
   (let ((menu-frame (pane-frame menu))
 	(event-queue (sheet-event-queue menu))
-	#+(or aclpc acl86win32) (mirror (sheet-mirror menu)))
-    (when #-(or aclpc acl86win32) button
-          #+(or aclpc acl86win32) (and acl-clim::*generic-gadgets* button)
+	(mirror (sheet-mirror menu)))
+    (when (and acl-clim::*generic-gadgets* button)
       (with-bounding-rectangle* (bleft btop bright bbottom)
 	  (sheet-device-region button)
 	(declare (ignore bright))
@@ -1223,12 +1017,8 @@
 	      (move-sheet (frame-top-level-sheet menu-frame)
 			  (+ bleft fleft 4)
 			  (+ bbottom ftop 23))))))
-    #+(or aclpc acl86win32)
     (when (and (not acl-clim::*generic-gadgets*) button)
-      (let (#+ignore
-	    (mirror (sheet-mirror button))
-	    #+ignore
-            (tls (sheet-mirror (get-top-level-sheet button))))
+      (let ()
         (multiple-value-bind (bleft btop bright bbottom)
             (acl-clim::mirror-native-edges*
 	     acl-clim::*acl-port* button)
@@ -1251,7 +1041,7 @@
     ;; Wait for an event and then handle it
 
     ;; make sure that the pulldown has the focus
-    (win:setFocus mirror #-acl86win32 :static)
+    (win:setFocus mirror)
     (setf (acl-clim::acl-port-mirror-with-focus
             acl-clim::*acl-port*) mirror)
     
@@ -1276,8 +1066,6 @@
 		  (when event
 		    (handle-event (event-sheet event) event)))))))
       (disable-frame menu-frame))))
-
-;;;(win:setFocus (sheet-direct-mirror stream) #-acl86win32 :static)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; slider fixes
@@ -1406,7 +1194,7 @@
 ;; explicit text-style is given. (cim 10/14/96)
 
 (defmethod get-sheet-resources :around ((port acl-port)
-					(sheet silica::acl-gadget-id-mixin))
+					(sheet t))
   (or *windows-system-text-style*
       (setq *windows-system-text-style* 
 	#+ignore

@@ -471,6 +471,7 @@ to be run from another."
   ;; correctly redisplayed - in particular problems with label-panes
   ;; - this should be viewed as a temporary fix (cim 10/14/96) 
   (repaint-sheet (frame-top-level-sheet frame) +everywhere+)
+  ;; spr16580.
   ;; Added this next one to fix problem with distribute-event
   ;; after changing the layout of the frame.  Need to clear
   ;; port-trace-thing, otherwise buttons may "go dead" due to a failure
@@ -480,8 +481,8 @@ to be run from another."
   )
 
 (defmethod frame-manager-note-pretty-name-changed
-	   ((framem acl-frame-manager)
-	    (frame standard-application-frame))
+    ((framem acl-frame-manager)
+     (frame standard-application-frame))
   (let ((name (frame-pretty-name frame))
         (sheet (frame-top-level-sheet frame)))
     (when name
@@ -492,8 +493,8 @@ to be run from another."
           (ct::cset (:char 256) cstr ((fixnum i)) (char-int (char name i))))
 	(ct::cset (:char 256) cstr ((fixnum subsize)) 
 		  #-aclpc (char-int #\NULL) #+aclpc 0)
-      (or (win:SetWindowText win cstr)
-	  (error "SetWindowText: system error ~s" (win:getlasterror)))))))
+	(or (win:SetWindowText win cstr)
+	    (check-last-error "SetWindowText"))))))
 
 (defun select-messagebox-icon (style)
   ;; Decides which Windows icon matches this (standardized) style. 
@@ -720,12 +721,12 @@ to be run from another."
 	  (alist nil)
 	  (code 0))
       (when (zerop popmenu)
-	(error "CreatePopupMenu -- system error ~A" (win:getlasterror)))
+	(check-last-error "CreatePopupMenu"))
       (unless (and x-position y-position)
 	;; Get screen coordinates of pointer.
 	(let ((point (ct:ccallocate win:point)))
 	  (or (win:getCursorPos point)
-	      (error "GetCursorPos: system error ~s" (win:getlasterror)))
+	      (check-last-error "GetCursorPos"))
 	  (setq x-position (ct:cref win:point point x))
 	  (setq y-position (ct:cref win:point point y))))
       (setq x-position (truncate x-position))
@@ -751,9 +752,10 @@ to be run from another."
 	     (second (assoc code alist)))))))
 
 (defun make-filter-string (dotted-pair)
-  (format nil "~a (~a)~a~a~a"
-	  (car dotted-pair) (cdr dotted-pair) (cltl1:int-char 0)
-	  (cdr dotted-pair) (cltl1:int-char 0)))
+  (let ((*print-circle* nil))
+    (format nil "~a (~a)~a~a~a"
+	    (car dotted-pair) (cdr dotted-pair) (code-char 0)
+	    (cdr dotted-pair) (code-char 0))))
 
 (eval-when (compile load eval) 
   (defconstant *scratch-string-length* 256)
@@ -936,21 +938,6 @@ to be run from another."
 				(or (cdr (assoc error-code
 						common-dialog-errors))
 				    error-code))))))))))
-
-(ff:def-foreign-type browseinfo
-    (:struct (hwndOwner win:hwnd)
-	     (pidlRoot win:long #+ig win:lpcitemidlist)
-	     (pszDisplayName win:lpstr)
-	     (lpszTitle win:lpcstr)
-	     (ulflags win:uint)
-	     (lpfn (* :void) #+ig win:bffcallback)
-	     (lparam win:lparam)
-	     (iImage :int)))
-
-(ff:def-foreign-call (SHBrowseForFolder "SHBrowseForFolder")
-    ((info browseinfo))
-  :returning :int
-  :release-heap :when-ok)
 
 (defun get-directory (sheet title)
   (let* ((info (ct:ccallocate browseinfo)))
@@ -1293,7 +1280,7 @@ to be run from another."
 			  (logior win:swp_noactivate
 				  win:swp_nozorder
 				  win:swp_nosize))
-	(error "SetWindowPos: system error ~s" (win:getlasterror)))))
+	(check-last-error "SetWindowPos"))))
 
 (in-package :clim-internals)
 
@@ -1359,11 +1346,11 @@ in a second Lisp process.  This frame cannot be reused."
 	;;; when the user resizes the frame window
 	#+ignore (win::showWindow handle win::sw_show)
 	(or (win:getClientRect handle wrect)
-	    (error "GetClientRect: system error ~s" (win:getlasterror)))
+	    (check-last-error "GetClientRect"))
 	(or (win:InvalidateRect handle wrect 1)
-	    (error "InvalidateRect: system error ~s" (win:getlasterror)))
+	    (check-last-error "InvalidateRect"))
 	(or (win:UpdateWindow handle)
-	    (error "UpdateWindow: system error ~s" (win:getlasterror)))
+	    (check-last-error "UpdateWindow"))
 	))))
 
 (defun clean-frame (frame)
