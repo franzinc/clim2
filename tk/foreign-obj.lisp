@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: foreign-obj.lisp,v 1.6 92/02/24 13:03:00 cer Exp Locker: cer $
+;; $fiHeader: foreign-obj.lisp,v 1.7 92/03/09 17:40:41 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -42,6 +42,7 @@
 	(errorp 
 	 (error "Cannot find object from handle: ~S" handle))))
 
+  
 (defun register-address (object &optional (handle (foreign-pointer-address object)))
   (setf (gethash handle *address->object-mapping*) object)
   object)
@@ -61,6 +62,11 @@
 	 class 
 	 initargs))
 
+(defun unintern-object-address (handle)
+  (unintern-object-1 
+	 *address->object-mapping*
+	 handle))
+
 
 (defun intern-object-xid (handle class &rest initargs)
   (apply #'intern-object-1 
@@ -70,21 +76,29 @@
 	 initargs))
 
 
+(defun unintern-object-1 (table handle)
+  (remhash handle table))
+    
 (defun intern-object-1 (table handle class &rest initargs)
   (let ((x (find-object-from-handle handle table nil)))
     (cond ((null x)
-	   (setf (gethash handle table)
-	     (apply #'make-instance 
-		    class 
-		    :foreign-address handle
-		    initargs)))
-	  ((typep x class) x)
+	   (values 
+	    (setf (gethash handle table)
+	      (apply #'make-instance 
+		     class 
+		     :foreign-address handle
+		     initargs))
+	    t))
+	  ((typep x class) 
+	   (values x nil))
 	  (t
 	   (cerror "Make a new one"
 		   "~s has the wrong class: ~s"
 		   x class)
-	   (setf (gethash handle table)
-	     (apply #'make-instance 
-		    class 
-		    :foreign-address handle
-		    initargs))))))
+	   (values 
+	    (setf (gethash handle table)
+	      (apply #'make-instance 
+		     class 
+		     :foreign-address handle
+		     initargs))
+	    t)))))

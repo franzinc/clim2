@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: thinkadot.lisp,v 1.3 92/03/04 16:23:05 cer Exp Locker: cer $
+;; $fiHeader: thinkadot.lisp,v 1.4 92/03/24 19:38:23 cer Exp Locker: cer $
 
 (in-package :clim-demo)
 
@@ -52,7 +52,7 @@
    (rexit))
   (:panes
    (display
-    (realize-pane 'application-pane
+    (make-pane 'application-pane
 		  :display-function 'draw-the-display
 		  :incremental-redisplay t)))
   (:layout

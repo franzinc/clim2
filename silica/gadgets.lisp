@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadgets.lisp,v 1.13 92/03/30 17:52:04 cer Exp Locker: cer $
+;; $fiHeader: gadgets.lisp,v 1.14 92/04/03 12:04:14 cer Exp Locker: cer $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
@@ -142,10 +142,14 @@
 ;;; The intent is that the real implementations inherit from these
 
 ;;; Slider
+
 (defclass slider
-	  (value-gadget oriented-gadget range-gadget-mixin labelled-gadget)
+    (value-gadget oriented-gadget range-gadget-mixin labelled-gadget)
     ((drag-callback :initarg :drag-callback :initform nil
-		    :reader slider-drag-callback)))
+		    :reader slider-drag-callback)
+     (show-value-p :initarg :show-value-p 
+		   :accessor gadget-show-value-p))
+  (:default-initargs :show-value-p nil))
 
 (defmethod drag-callback ((gadget slider) (client t) (id t) value)
   (when (slider-drag-callback gadget)
@@ -210,7 +214,7 @@
   (let ((fr (pane-frame rb)))
     (with-look-and-feel-realization ((frame-manager fr) fr)
       (dolist (choice choices)
-	(realize-pane 'toggle-button 
+	(make-pane 'toggle-button 
 		      :value (equal (radio-box-current-selection rb) choice)
 		      :label (string choice)
 		      :id choice
@@ -285,11 +289,11 @@
 ;;; Then there is the layout stuff and scrolling macros
 
 (defmacro scrolling (options &body contents)
-  `(realize-pane 'scroller-pane
+  `(make-pane 'scroller-pane
 		 :contents ,@contents
 		 ,@options))
 
-(defmethod realize-pane-1 ((framem standard-frame-manager) frame name &rest options)
+(defmethod make-pane-1 ((framem standard-frame-manager) frame name &rest options)
   (declare (dynamic-extent options))
   (apply #'make-instance 
 	 name

@@ -22,7 +22,7 @@
 ;;;
 ;;; Copyright (c) 1990 by Xerox Corporations.  All rights reserved.
 ;;;
-;; $fiHeader: db-stream.lisp,v 1.9 92/03/04 16:21:21 cer Exp Locker: cer $
+;; $fiHeader: db-stream.lisp,v 1.10 92/03/24 19:37:47 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -216,7 +216,7 @@
       (setf-unless :height 100)
       (setf-unless :min-height 0)
       (setf-unless :max-height +fill+))
-    (let ((pane `(realize-pane ,type ,@options))
+    (let ((pane `(make-pane ,type ,@options))
 	  (hscroll (not (null (member scroll-bars '(t :both :horizontal)))))
 	  (vscroll (not (null (member scroll-bars '(t :both :vertical))))))
       (when scroll-bars
@@ -226,7 +226,7 @@
       (when label
 	(setq pane `(vertically ()
 		      ,pane
-		      (realize-pane 'label-pane 
+		      (make-pane 'label-pane 
 				    :text ,label
 				    :max-width +fill+))))
       `(outlining (:thickness 1)

@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-frames.lisp,v 1.10 92/03/04 16:20:35 cer Exp Locker: cer $
+;; $fiHeader: xm-frames.lisp,v 1.11 92/03/09 17:41:25 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -145,63 +145,109 @@
 	  (list :resize-height t
 		:resize-width t)))
 
+;;; If would be nice if we could abstract this and use it for the OLIT
+;;; port
+
 (defmethod realize-mirror :around ((port motif-port) (sheet motif-menu-bar))
 
   ;; This code fills the menu-bar. If top level items do not have
   ;; submenus then it creates one with a menu of its own
   
   (let ((mirror (call-next-method)))
-    (labels ((make-menu-for-command-table (command-table parent top)
-	     (map-over-command-table-menu-items
-	      #'(lambda (menu keystroke item)
-		  (declare (ignore keystroke))
-		  (let ((type (command-menu-item-type item)))
-		    (case type
-		      (:divider)
-		      (:function
-		       ;;--- Do this sometime
-		       )
-		      (:menu
-		       (let* ((submenu (make-instance
-					'tk::xm-pulldown-menu
-					:managed nil
-					:parent parent))
-			      (cb (make-instance 'tk::xm-cascade-button
-						 :parent parent
-						 :label-string menu
-						 :sub-menu-id submenu)))
-			 (declare (ignore cb))
-			 (make-menu-for-command-table
-			  (find-command-table (second item))
-			  submenu
-			  nil)))
-		      (t
-		       (let ((parent parent))
-		       (when top
-			 (let* ((submenu (make-instance
-					  'tk::xm-pulldown-menu
-					  :managed nil
-							:parent parent))
-				(cb (make-instance 'tk::xm-cascade-button
-						   :parent parent
+    (labels ((update-menu-item-sensitivity (widget frame commands)
+	       (declare (ignore widget))
+	       (dolist (cbs commands)
+		 (tk::set-sensitive (second cbs)
+				    (command-enabled
+				     (car (second (car cbs)))
+				     frame))))
+	     (make-menu-for-command-table (command-table parent top)
+	       (if top
+		   (make-menu-for-command-table-1 command-table parent
+						  top)
+		 (let ((commands-and-buttons
+			(make-menu-for-command-table-1 command-table parent top)))
+		   ;; We should call
+		   (tk::add-callback parent :map-callback
+				     #'update-menu-item-sensitivity 
+				     (pane-frame sheet)
+				     commands-and-buttons))))
+	     (make-submenu (parent menu item)
+	       (let* ((submenu (make-instance
+				'tk::xm-pulldown-menu
+				:managed nil
+				:parent parent))
+		      (cb (make-instance 'tk::xm-cascade-button
+					 :parent parent
+					 :label-string menu
+					 :sub-menu-id submenu)))
+		 (declare (ignore cb))
+		 ;;-- At this point should write the code to lazily
+		 ;;-- create menus and update them if the table has
+		 ;;-- changed.
+		 (let* ((ct (find-command-table (second item)))
+			(tick (slot-value ct 'clim-internals::menu-tick)))
+		   (tk::add-callback (tk::widget-parent submenu)
+				 :popup-callback
+				 #'(lambda (ignore)
+				     (declare (ignore ignore))
+				     (let ((children
+					    (tk::widget-children submenu)))
+				       (when (or (null children)
+						 (/= tick
+						     (setq tick
+						       (slot-value ct 'clim-internals::menu-tick))))
+					 (mapc #'tk::destroy-widget children)
+					 (make-menu-for-command-table
+					  ct
+					  submenu
+					  nil))))))))
+	     (make-menu-for-command-table-1 (command-table parent top)
+	       ;; Unless we are at the top level we want to have a
+	       ;; map-before callback that sets the sensitivity of
+	       ;; each item. Also we might want to regenerate the menu
+	       ;; if it has got out of date wrt to the command table.
+	       (let ((commands-and-buttons nil))
+		 (map-over-command-table-menu-items
+		  #'(lambda (menu keystroke item)
+		      (declare (ignore keystroke))
+		      (let ((type (command-menu-item-type item)))
+			(case type
+			  (:divider)
+			  (:function
+			   ;;--- Do this sometime
+			   )
+			  (:menu
+			   (make-submenu parent menu item))
+			  (t
+			   (let ((parent parent))
+			     (when top
+			       (let* ((submenu (make-instance
+						'tk::xm-pulldown-menu
+						:managed nil
+						:parent parent))
+				      (cb (make-instance 'tk::xm-cascade-button
+							 :parent parent
+							 :label-string menu
+							 :sub-menu-id
+							 submenu)))
+				 (declare (ignore cb))
+				 (setq parent submenu)))
+			     (let ((button 
+				    (make-instance 'tk::xm-push-button
 						   :label-string menu
-						   :sub-menu-id
-						   submenu)))
-			   (declare (ignore cb))
-			   (setq parent submenu)))
-		       (let ((button 
-			      (make-instance 'tk::xm-push-button
-				      :label-string menu
-				      :managed t
-				      :parent parent)))
-			 (tk::add-callback
-			  button
-			  :activate-callback
-			  'command-button-callback
-			  (slot-value sheet 'silica::frame)
-			  item)))))))
+						   :managed t
+						   :parent parent)))
+			       (push (list item button) commands-and-buttons)
+			       (tk::add-callback
+				button
+				:activate-callback
+				'command-button-callback
+				(slot-value sheet 'silica::frame)
+				item)))))))
 			  
-	      command-table)))
+		  command-table)
+		 commands-and-buttons)))
       (make-menu-for-command-table
        (slot-value sheet 'command-table)
        mirror

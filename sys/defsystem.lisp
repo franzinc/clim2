@@ -27,21 +27,12 @@
 ;;;
 ;;;-----------------------------------------------------------
 
-;; $fiHeader: defsystem.lisp,v 1.6 92/03/04 16:22:31 cer Exp Locker: cer $
+;; $fiHeader: defsystem.lisp,v 1.7 92/03/30 17:52:33 cer Exp Locker: cer $
 
 ;; Add a feature for ANSI-adhering Lisps.  So far, only Apple's
 ;; version 2.0 tries to do adhere to the ANSI spec instead of CLtL rev 1.
 ;; Yes, I know it's not yet an ANSI spec.  That's why this is called
 ;; ANSI-90, corresponding to what we think the spec will be, in late 1990.
-
-#+Allegro
-(eval-when (compile load eval)
-  (when (and (find-package :defsys)
-	     (not (find-package :excl-defsystem)))
-    (let ((excl::*enable-package-locked-errors* nil))
-      (rename-package 'defsys 'excl-defsystem))))
- 
-
 
 #+(or CCL-2 Allegro Minima)	;Have to assume this won't blow up anybody's lisp
 (eval-when (:compile-toplevel :load-toplevel :execute)
@@ -55,9 +46,9 @@
       (pushnew :ansi-90 *features*))))
 
 #+ANSI-90
-(defpackage "DEFSYSTEM"
+(defpackage "CLIM-DEFSYSTEM"
   (:use "COMMON-LISP")
-  (:nicknames "DEFSYS" "DS")
+  (:nicknames "CLIM-DEFSYS" "CLIM-DS")
   (:export
     *current-system*
     *defsystem-version*
@@ -76,19 +67,19 @@
     with-delayed-compiler-warnings))
 
 #+ANSI-90
-(in-package :defsystem)
+(in-package :clim-defsystem)
 
 #+(or Genera-Release-8-0 Genera-Release-8-1)
-(lisp:in-package "DEFSYSTEM"
+(lisp:in-package "CLIM-DEFSYSTEM"
 		 :use '("LISP")
-		 :nicknames '("DEFSYS"))
+		 :nicknames '("CLIM-DEFSYS"))
 
 #-(or ANSI-90 Genera-Release-8-0 Genera-Release-8-1)
-(lisp:in-package #-(or lispworks ANSI-90) "DEFSYSTEM" 
+(lisp:in-package #-(or lispworks ANSI-90) "CLIM-DEFSYSTEM" 
             #+lispworks "PDEFSYS"
-            #+ANSI-90 "DEFSYSTEM"
+            #+ANSI-90 "CLIM-DEFSYSTEM"
             #-ANSI-90 :use #-ANSI-90 '("LISP")
-            #-ANSI-90 :nicknames #-ANSI-90 '("DEFSYS"))
+            #-ANSI-90 :nicknames #-ANSI-90 '("CLIM-DEFSYS"))
 
 #-ANSI-90
 (export '(system-source-file set-system-source-file load-system-def
@@ -98,7 +89,7 @@
 	  ;; Hack
 	  *load-all-before-compile*
 	  with-compiler-options with-delayed-compiler-warnings)
-	"DEFSYSTEM")
+	"CLIM-DEFSYSTEM")
 
 ;;; *** A temporary workaround, easier than fixing all references to
 ;;; *** LISP:<foo>.  --RWK 20.Nov.90
@@ -131,8 +122,8 @@
 
 #-(or Minima Genera)
 (eval-when (eval load compile)
-  (export (list (intern (symbol-name :make-pathname) :defsystem)
-		(intern (symbol-name :pathname-directory) :defsystem))))
+  (export (list (intern (symbol-name :make-pathname) :clim-defsystem)
+		(intern (symbol-name :pathname-directory) :clim-defsystem))))
 
 ;;
 ;; The implementations of PATHNAME-DIRECTORY and MAKE-PATHNAME use two
@@ -409,7 +400,7 @@
 
 (pushnew :defsystem *features*)
 
-(defparameter *defsystem-version* 3.66)
+(defparameter *clim-defsystem-version* 3.66)
 
 ;;; Let debugging and information stuff know what module we're on.
 

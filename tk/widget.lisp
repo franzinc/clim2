@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: widget.lisp,v 1.13 92/03/10 15:39:52 cer Exp Locker: cer $
+;; $fiHeader: widget.lisp,v 1.14 92/03/30 17:51:51 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -157,20 +157,32 @@
       (or display
 	  (object-display parent))))
   (unless foreign-address
-    (register-address
+    (register-widget
      w
      (progn
        (remf :foreign-address args)
        (setf (foreign-pointer-address w)
 	 (apply #'make-widget w args))))))
 
-(defun intern-widget (widget &rest args)
-  (and (not (zerop widget))
-       (apply
-	#'intern-object-address 
-	widget 
-	(widget-class-of widget)
-	args)))
+(defun intern-widget (widget-address &rest args)
+  (unless (zerop widget-address)
+    (multiple-value-bind
+	(widget newp)
+	(apply
+	 #'intern-object-address 
+	 widget-address
+	 (widget-class-of widget-address)
+	 args)
+      (when newp
+	(add-callback widget :destroy-callback #'unintern-widget))
+      widget)))
+
+(defun register-widget (widget &optional (handle (foreign-pointer-address widget)))
+  (register-address widget handle)
+  (add-callback widget :destroy-callback #'unintern-widget))
+
+(defun unintern-widget (widget)
+  (unintern-object-address (foreign-pointer-address widget)))
 
 (defmethod widget-parent (widget)
   (let ((x (xt_parent widget)))
@@ -244,3 +256,6 @@
 	    (handler-case
 		(get-values w (intern (resource-name r) :keyword))
 	      (error (c) c "Get-values failed!")))))
+
+(defun set-sensitive (widget value)
+  (xtsetsensitive widget (if value 1 0)))

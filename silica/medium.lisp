@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: medium.lisp,v 1.7 92/02/26 10:23:19 cer Exp $
+;; $fiHeader: medium.lisp,v 1.8 92/03/04 16:19:47 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -269,6 +269,12 @@
 (defmethod invoke-with-text-style ((stream t) continuation style original-stream)
   (declare (ignore style))
   (funcall continuation original-stream))
+
+(defmethod graft ((medium medium))
+  (graft (medium-sheet medium)))
+
+(defmethod port ((medium medium))
+  (port (medium-sheet medium)))
 
 ;;--- This surely doesn't belong here... 
 (generate-trampolines medium-protocol medium standard-sheet-output-mixin

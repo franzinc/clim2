@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; ;; $fiHeader: frames.lisp,v 1.11 92/03/24 19:37:49 cer Exp Locker: cer $
+;; ;; $fiHeader: frames.lisp,v 1.12 92/04/03 12:04:34 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -333,7 +333,7 @@
 	 (multiple-value-bind
 	     (class options)
 	     (find-pane-class-and-options code)
-	   `(realize-pane ',class ,@rest :name ',name ,@options)))
+	   `(make-pane ',class ,@rest :name ',name ,@options)))
 	((null rest)
 	 code)
 	(t
@@ -343,6 +343,7 @@
 (defmacro define-pane-type (type class . options)
   `(defmethod find-pane-class-and-options ((type (eql ',type)))
      (values ',class ',options)))
+
 
 (define-pane-type :interactor interactor-pane)
 (define-pane-type :application application-pane)

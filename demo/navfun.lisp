@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: navfun.lisp,v 1.2 92/02/24 13:09:28 cer Exp Locker: cer $
+;; $fiHeader: navfun.lisp,v 1.3 92/03/24 19:38:18 cer Exp Locker: cer $
 
 (in-package :clim-demo)
 
@@ -1021,8 +1021,8 @@
     ()
   ((fp-window))
   (:panes 
-   (display (realize-pane 'application-pane))
-   (interactor (realize-pane 'interactor-pane)))
+   (display (make-pane 'application-pane))
+   (interactor (make-pane 'interactor-pane)))
   (:layout 
    (default
        (vertically 

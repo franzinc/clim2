@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: puzzle.lisp,v 1.2 92/02/24 13:09:31 cer Exp Locker: cer $
+;; $fiHeader: puzzle.lisp,v 1.3 92/03/24 19:38:21 cer Exp Locker: cer $
 
 (in-package :clim-demo)
 
@@ -13,7 +13,7 @@
   (:panes
    (display
     (outlining ()
-	       (realize-pane 'application-pane
+	       (make-pane 'application-pane
 			     :text-cursor nil
 			     :width :compute
 			     :max-width +fill+
@@ -90,7 +90,7 @@
 		      (unless (zerop value)
 			(with-output-as-presentation 
 			    (stream (encode-puzzle-cell row column) 'puzzle-cell)
-			  (format stream "~D" value))))))))))))))))
+			  (format stream "~2D" value))))))))))))))))
 
 (defun find-open-cell (puzzle)
   (dotimes (row 4)

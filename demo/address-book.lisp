@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: address-book.lisp,v 1.2 92/02/24 13:09:16 cer Exp Locker: cer $
+;; $fiHeader: address-book.lisp,v 1.3 92/03/24 19:38:14 cer Exp Locker: cer $
 
 (in-package :clim-demo)
 
@@ -106,16 +106,16 @@
   (:panes
    (interactor
     (scrolling ()
-	       (realize-pane 'interactor-pane)))
+	       (make-pane 'interactor-pane)))
    (address
     (scrolling ()
-	       (realize-pane 'application-pane
+	       (make-pane 'application-pane
 			     :incremental-redisplay t
 			     :display-function
 			     'display-current-address)))
    (names
     (scrolling ()
-	       (realize-pane 'application-pane
+	       (make-pane 'application-pane
 			     :incremental-redisplay t
 			     :display-function 'display-names))))
   (:layout

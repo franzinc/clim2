@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: listener.lisp,v 1.6 92/03/06 09:08:54 cer Exp $
+;; $fiHeader: listener.lisp,v 1.7 92/03/10 10:13:08 cer Exp Locker: cer $
 
 (in-package :clim-demo)
 
@@ -16,7 +16,7 @@
   #+Silica
   (:pane (outlining ()
 	   (scrolling ()
-	     (realize-pane 'interactor-pane))))
+	     (make-pane 'interactor-pane))))
   (:command-table (lisp-listener :inherit-from (user-command-table)))
   (:command-definer t)
   (:menu-bar nil)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-scroll.lisp,v 1.10 92/03/30 17:52:02 cer Exp Locker: cer $
+;; $fiHeader: db-scroll.lisp,v 1.11 92/04/03 12:04:11 cer Exp Locker: cer $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright(c) 1991, 1992 International Lisp Associates.
@@ -35,28 +35,33 @@
 	      'scroller-pane)
        (sheet-parent (sheet-parent (sheet-parent x)))))
 
+(defmethod gadget-supplies-scrollbars-p ((gadget t))
+  nil)
+
 (defmethod initialize-instance :after ((pane scroller-pane) 
 				       &key contents frame-manager frame
 					    (scroll-bars :both))
-  (with-slots (vertical-scrollbar horizontal-scrollbar (c contents) viewport) pane
-    (with-look-and-feel-realization (frame-manager frame)
-      (setf vertical-scrollbar (realize-pane 'scroll-bar 
-					     :orientation :vertical
-					     :client pane
-					     :id :vertical)
-	    horizontal-scrollbar (realize-pane 'scroll-bar 
-					       :id :horizontal
-					       :client pane
-					       :orientation :horizontal)
-	    c contents
-	    viewport (realize-pane 'viewport))
-      (sheet-adopt-child pane
-			 (tabling ()
-			   (viewport vertical-scrollbar)
-			   (horizontal-scrollbar nil))))
-    (sheet-adopt-child viewport c)
-    ;; Add callbacks
-    ))
+  (if (gadget-supplies-scrollbars-p contents)
+      (sheet-adopt-child pane contents)
+    (with-slots (vertical-scrollbar horizontal-scrollbar (c contents) viewport) pane
+      (with-look-and-feel-realization (frame-manager frame)
+	(setf vertical-scrollbar (make-pane 'scroll-bar 
+					    :orientation :vertical
+					    :client pane
+					    :id :vertical)
+	      horizontal-scrollbar (make-pane 'scroll-bar 
+					      :id :horizontal
+					      :client pane
+					      :orientation :horizontal)
+	      c contents
+	      viewport (make-pane 'viewport))
+	(sheet-adopt-child pane
+			   (tabling ()
+				    (viewport vertical-scrollbar)
+				    (horizontal-scrollbar nil))))
+      (sheet-adopt-child viewport c)
+      ;; Add callbacks
+      )))
 
 (defun update-scrollbars (vp)
   (with-bounding-rectangle* (minx miny maxx maxy)
@@ -292,19 +297,19 @@
 		  (spacing (:thickness 1)
 		    (vertically ()
 		      (setq min-target-pane
-			    (realize-pane 'scroll-bar-target-pane
+			    (make-pane 'scroll-bar-target-pane
 					  :scroll-bar pane
 					  :end :less-than
 					  :width shaft-thickness
 					  :height shaft-thickness))
 		      (setq shaft-pane 
-			    (realize-pane 'scroll-bar-shaft-pane 
+			    (make-pane 'scroll-bar-shaft-pane 
 					  :scroll-bar pane
 					  :width shaft-thickness
 					  :height 0
 					  :max-height +fill+))
 		      (setq max-target-pane
-			    (realize-pane 'scroll-bar-target-pane
+			    (make-pane 'scroll-bar-target-pane
 					  :scroll-bar pane
 					  :end :greater-than
 					  :width shaft-thickness
@@ -313,19 +318,19 @@
 		  (spacing (:thickness 1)
 		    (horizontally ()
 		      (setq min-target-pane
-			    (realize-pane 'scroll-bar-target-pane
+			    (make-pane 'scroll-bar-target-pane
 					  :scroll-bar pane
 					  :end :less-than
 					  :width shaft-thickness
 					  :height shaft-thickness))
 		      (setq shaft-pane 
-			    (realize-pane 'scroll-bar-shaft-pane
+			    (make-pane 'scroll-bar-shaft-pane
 					  :scroll-bar pane
 					  :width 0
 					  :max-width +fill+
 					  :height shaft-thickness))
 		      (setq max-target-pane
-			    (realize-pane 'scroll-bar-target-pane
+			    (make-pane 'scroll-bar-target-pane
 					  :scroll-bar pane
 					  :end :greater-than
 					  :width shaft-thickness

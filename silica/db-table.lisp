@@ -22,7 +22,7 @@
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved.
 ;;;
-;; $fiHeader: db-table.lisp,v 1.6 92/02/05 21:45:17 cer Exp $
+;; $fiHeader: db-table.lisp,v 1.7 92/02/24 13:04:31 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -49,7 +49,7 @@
 
 
 (defmacro tabling (options &body contents)
-  `(realize-pane 'table-pane
+  `(make-pane 'table-pane
 		 :contents (list ,@(mapcar #'(lambda (x) `(list ,@x)) contents))
 		 ,@options))
 

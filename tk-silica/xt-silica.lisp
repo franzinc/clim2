@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.16 92/03/30 17:52:50 cer Exp Locker: cer $
+;; $fiHeader: xt-silica.lisp,v 1.17 92/04/03 12:04:58 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -464,14 +464,26 @@
 (defmethod realize-graft ((port xt-port) graft)
   ;; Set the width etc etc
   (setf (sheet-direct-mirror graft) (port-application-shell port))
-  ;;--- Mess with the region
-  (warn "Do something about the graft")
-  (setf (sheet-region graft)
+  (let* ((display (port-display port))
+	 (screen (x11:xdefaultscreen display)))
+    (with-slots (silica::mm-height silica::mm-width
+				   silica::pixel-height silica::pixel-width
+				   silica::pixels-per-point) graft
+      ;;-- If anyone cared we could just grab the screen and call the
+      ;;-- accessors on that
+      (setq silica::mm-width (x11:xdisplaywidthmm display screen)
+	    silica::mm-height (x11:xdisplayheightmm display screen)
+	    silica::pixel-width (x11::xdisplaywidth display screen)
+	    silica::pixel-height (x11::xdisplayheight display screen)
+	    silica::pixels-per-point (float (/ silica::pixel-width (* 72 (/ silica::mm-width 25.4)))))
+      ;;--- Mess with the region
+      (warn "Do something about the graft")
+      (setf (sheet-region graft)
 	(ecase (graft-units graft)
 	  ((:device :pixel)
-	   (make-bounding-rectangle 0 0 1100 850))))
-  ;; Mess with the native transformation
-  )
+	   (make-bounding-rectangle 0 0 silica::pixel-width silica::pixel-height))))
+      ;;-- what about the transformation
+      )))
 
 (defmethod mirror-region* ((port xt-port) sheet)
   (when (sheet-mirror sheet)

@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: macros.lisp,v 1.6 92/03/10 10:11:41 cer Exp Locker: cer $
+;; $fiHeader: macros.lisp,v 1.7 92/03/24 19:36:46 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -57,11 +57,11 @@
   (when (and (null frame) (null frame-manager))
     (setq frame-manager `(frame-manager *application-frame*))
     (setq frame `*application-frame*))
-  `(flet ((realize-pane (pane-class &rest pane-options)
-		(apply #'realize-pane-1 ,frame-manager ,frame pane-class pane-options)))
+  `(flet ((make-pane (pane-class &rest pane-options)
+		(apply #'make-pane-1 ,frame-manager ,frame pane-class pane-options)))
      ,@forms))
 
-(defun realize-pane (pane-class &rest pane-options)
+(defun make-pane (pane-class &rest pane-options)
   (declare (ignore pane-class pane-options))
   (error "~S not inside a call to ~S"
-	'realize-pane 'with-look-and-feel-realization))
+	'make-pane 'with-look-and-feel-realization))

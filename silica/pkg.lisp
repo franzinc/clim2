@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader$
+;; $fiHeader: pkg.lisp,v 1.3 92/01/02 15:09:18 cer Exp Locker: cer $
 
 (defpackage :silica
   (:use clim-lisp clim-utils)
@@ -157,7 +157,7 @@
    #:queue-event
    #:realize-graft
    #:realize-mirror
-   #:realize-pane-internal
+   #:make-pane-internal
    #:repaint-sheet
    #:set-sheet-mirror-edges*
    #:sheet
@@ -228,7 +228,7 @@
    #:define-application-frame
    #:run-frame-top-level
    #:vertically
-   #:realize-pane
+   #:make-pane
    #:space-req-height
    #:space-req-width
    #:scroller-pane

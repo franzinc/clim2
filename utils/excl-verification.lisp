@@ -1,10 +1,28 @@
-;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: USER; Base: 10; Lowercase: Yes -*-
-
-;; $fiHeader: excl-verification.lisp,v 1.7 92/03/30 17:52:11 cer Exp Locker: cer $
+;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SYS; Base: 10; Lowercase: Yes -*-
+;;
+;;				-[]-
+;; 
+;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
+;; copyright (c) 1986-1992 Franz Inc, Berkeley, CA  All rights reserved.
+;;
+;; The software, data and information contained herein are proprietary
+;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
+;; given in confidence by Franz, Inc. pursuant to a written license
+;; agreement, and may be stored and used only in accordance with the terms
+;; of such license.
+;;
+;; Restricted Rights Legend
+;; ------------------------
+;; Use, duplication, and disclosure of the software, data and information
+;; contained herein by any agency, department or entity of the U.S.
+;; Government are subject to restrictions of Restricted Rights for
+;; Commercial Software developed at private expense as specified in FAR
+;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
+;; applicable.
+;;
+;; $fiHeader: excl-verification.lisp,v 1.8 92/04/03 12:04:19 cer Exp Locker: cer $
 
 (in-package :sys)
-
-"Copyright (c) 1991 Franz Inc.  All rights reserved."
 
 (assert (eq excl::*current-case-mode* :case-insensitive-lower))
 
@@ -40,4 +58,4 @@ You do not have patches ~{~S ~}"
 
 (si::rcsnote
  "CLIM 2.0.alpha.0"
- "$fiHeader: ")
+ "$fiHeader: $")

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: chess.lisp,v 1.2 92/02/16 20:55:42 cer Exp $
+;; $fiHeader: chess.lisp,v 1.3 92/02/24 13:09:04 cer Exp Locker: cer $
 
 
 (in-package :clim)
@@ -35,7 +35,7 @@
   (:pane
    (silica::scrolling 
     ()
-    (silica::realize-pane 
+    (silica::make-pane 
      'application-pane
      :incremental-redisplay t
      :display-function 'draw-chess-board))))

@@ -3,7 +3,7 @@
 "Copyright (c) 1990, 1991 International Lisp Associates.
  Portions copyright (c) 1991, 1992 by Symbolics, Inc.  All rights reserved."
 
-;; $fiHeader: db-button.lisp,v 1.3 92/03/10 15:45:49 cer Exp Locker: cer $
+;; $fiHeader: db-button.lisp,v 1.4 92/03/24 19:36:24 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -203,7 +203,7 @@
     (setf (gadget-client choice) pane))
   (let ((inferiors
 	  (with-look-and-feel-realization (frame-manager frame)
-	    (realize-pane 'hbox-pane
+	    (make-pane 'hbox-pane
 			  :spacing 5
 			  :contents choices))))
     (sheet-adopt-child pane inferiors)
@@ -211,7 +211,7 @@
       (setf (gadget-value selection) t))))
 
 ;; This macro is just an example of one possible syntax.  The obvious "core"
-;; syntax is (realize-pane 'radio-box :choices (list ...) :selection ...)
+;; syntax is (make-pane 'radio-box :choices (list ...) :selection ...)
 (defmacro with-radio-box ((&rest options) &body body)
   (declare (ignore options))
   (let ((current-selection '#:current-selection)
@@ -220,6 +220,6 @@
        (macrolet ((radio-box-current-selection (form)
 		    `(setq ,',current-selection ,form)))
 	 (let ((,choices (list ,@body)))
-	   (realize-pane 'radio-box
+	   (make-pane 'radio-box
 			 :choices ,choices
 			 :selection ,current-selection))))))

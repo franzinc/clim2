@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: layout.lisp,v 1.9 92/03/24 19:36:44 cer Exp Locker: cer $
+;; $fiHeader: layout.lisp,v 1.10 92/04/03 12:04:16 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -93,13 +93,13 @@
 ;  (declare (ignore sheet width height)))
 
 (defmacro vertically (options &body contents)
-  `(realize-pane 'vbox-pane
+  `(make-pane 'vbox-pane
 		 :contents (list ,@contents)
 		 ,@options))
 
 
 (defmacro horizontally (options &body contents)
-  `(realize-pane 'hbox-pane
+  `(make-pane 'hbox-pane
 		 :contents (list ,@contents)
 		 ,@options))
 

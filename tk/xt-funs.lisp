@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader$
+;; $fiHeader: xt-funs.lisp,v 1.1 92/03/30 17:58:40 cer Exp Locker: cer $
 
 
 (in-package :xt)
@@ -82,3 +82,4 @@
 
 (defforeign 'add_callback :entry-point "_XtAddCallback")
 (defforeign 'xt_has_callbacks :entry-point "_XtHasCallbacks")
+(ff::defforeign 'xtsetsensitive :entry-point "_XtSetSensitive")

@@ -1,4 +1,4 @@
-# $fiHeader: Makefile,v 1.19 92/03/30 17:52:42 cer Exp Locker: cer $
+# $fiHeader: Makefile,v 1.20 92/04/03 12:04:47 cer Exp Locker: cer $
 # 
 #  Makefile for CLIM 2.0
 #
@@ -304,8 +304,6 @@ clim-xm:	FORCE
 	$(MV) $(TMP)/clim.temp_`whoami` $(CLIM)
 	ls -lt $(CLIM) >> Clim-sizes.n
 	ls -lt $(CLIM)
-	-echo removing clim*.fasls
-	/bin/rm -f clim*.fasl clim-debug.fasl
 
 clim-ol:	FORCE
 	-$(RM) $(CLIM)
@@ -327,6 +325,12 @@ clim-small:	FORCE
 	ls -lt $(CLIM-SMALL) >> Clim-sizes.n
 	ls -lt $(CLIM-SMALL)
 
+# Training
+
+train	:	FORCE
+	$(ECHO) "\
+		(load \"/net/vapor/usr/tech/cer/stuff/misc/test-clim.lisp\") \
+		(clim-user::train-clim-2)" | $(CLIM) $(CLOPTS) -batch
 
 # Misc
 
@@ -376,7 +380,6 @@ makeclimobjs	: $(CLIMOBJS)
 
 ################## Lower level Makefile stuff
 
-default	: xm-composer
 
 ol-dcl	:  stub-x.o stub-xt.o stub-olit.o
 	cd $(CL_SRC) ; /bin/rm -f ucl ;\

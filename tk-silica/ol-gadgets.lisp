@@ -20,12 +20,12 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-gadgets.lisp,v 1.6 92/03/04 16:20:30 cer Exp Locker: cer $
+;; $fiHeader: ol-gadgets.lisp,v 1.7 92/03/24 19:37:01 cer Exp Locker: cer $
 
 
 (in-package :xm-silica)
 
-(defmethod realize-pane-class ((framem openlook-frame-manager) class &rest options) 
+(defmethod make-pane-class ((framem openlook-frame-manager) class &rest options) 
   (declare (ignore options))
   (second (assoc class '((scroll-bar openlook-scrollbar)
 			 (slider openlook-slider)

@@ -1,5 +1,5 @@
 ;;; -*- Mode: LISP; Syntax: ANSI-Common-lisp; Package: (CLIM-BROWSER :use (CLIM-LISP CLIM)); Base: 10; Lowercase: Yes -*-
-;; $fiHeader: browser.lisp,v 1.3 92/02/08 15:02:13 cer Exp $
+;; $fiHeader: browser.lisp,v 1.4 92/02/24 13:09:39 cer Exp Locker: cer $
 
 (eval-when (compile load eval)
   (defpackage :clim-browser
@@ -779,23 +779,23 @@
   (:command-table (browser :inherit-from (clim-internals::accept-values-pane)))
   (:panes
    (title (scrolling ()
-		     (realize-pane 'application-pane
+		     (make-pane 'application-pane
 			:display-after-commands t
 			:display-function 'display-title-pane
 			:default-text-style '(:sans-serif :bold :large))))
    (graph (scrolling ()
-		     (realize-pane 'application-pane
+		     (make-pane 'application-pane
 			:display-function 'display-graph-pane
 			:display-after-commands t
 			:incremental-redisplay t
 			:scroll-bars :both)))
-   (commands (realize-pane 'menu-bar
+   (commands (make-pane 'menu-bar
 			   :display-function '(display-command-menu :n-rows 2)))
    (interactor (scrolling ()
-			  (realize-pane 'interactor-pane
+			  (make-pane 'interactor-pane
 					:height 50)))
    (control-panel (scrolling ()
-			     (realize-pane 'application-pane
+			     (make-pane 'application-pane
 					   :height 200
 				:display-function '(clim-internals::accept-values-pane-displayer
 						    :displayer accept-call-graph-options)))))

@@ -3,7 +3,7 @@
 (in-package :clx-clim)
 
 "Copyright (c) 1992 Symbolics, Inc.  All rights reserved."
-;;; $fiHeader: clx-frames.lisp,v 1.2 92/02/24 13:23:38 cer Exp $
+;;; $fiHeader: clx-frames.lisp,v 1.3 92/03/04 16:20:49 cer Exp Locker: cer $
 
 
 (defclass clx-frame-manager (standard-frame-manager)
@@ -19,7 +19,7 @@
 	(with-look-and-feel-realization (framem frame)
 	  (vertically ()
 	    (outlining ()
-	      (realize-pane 'command-menu-pane
+	      (make-pane 'command-menu-pane
 			    :display-function 
 			      `(display-command-menu :command-table ,menu-bar)
 			    :width :compute :height :compute))

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-init.lisp,v 1.8 92/03/24 19:36:17 cer Exp Locker: cer $
+;; $fiHeader: ol-init.lisp,v 1.9 92/04/03 12:04:05 cer Exp Locker: cer $
 
 
 (in-package :tk)
@@ -105,17 +105,3 @@
 				       "menuPane")))
 
 
-;(setq shell (intern-widget shell (widget-class-of shell)))
-;
-;(defforeign 'xt_display :entry-point "_XtDisplay")
-;(defforeign 'xt_display_to_application_context
-;    :entry-point "_XtDisplayToApplicationContext")
-;
-;(setf (slot-value shell 'display)
-;      (let* ((d (xt_display shell))
-;	     (c (xt_display_to_application_context d)))
-;	(intern-widget d 'display 
-;		       :display d
-;		       :context 
-;		       (make-instance 'application-context :context c))))
-    

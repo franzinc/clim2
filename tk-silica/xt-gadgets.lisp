@@ -20,20 +20,20 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-gadgets.lisp,v 1.7 92/03/04 16:20:42 cer Exp Locker: cer $
+;; $fiHeader: xt-gadgets.lisp,v 1.8 92/04/03 12:04:56 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
 (defclass ask-widget-for-size-mixin () ())
 
-(defmethod realize-pane-1 ((framem xt-frame-manager)
+(defmethod make-pane-1 ((framem xt-frame-manager)
 			   frame abstract-type &rest options)
-  (let ((type (apply #'realize-pane-class framem abstract-type options)))
+  (let ((type (apply #'make-pane-class framem abstract-type options)))
     (if type
 	(apply #'make-instance type 
 	       :frame frame
 	       :frame-manager framem
-	       (apply #'realize-pane-arglist
+	       (apply #'make-pane-arglist
 		      framem abstract-type options))
 	(call-next-method))))
 
@@ -47,7 +47,7 @@
 		     care-height care-borderwidth)) 
     (make-instance 'space-requirement :width width :height height)))
 
-(defmethod realize-pane-arglist (realizer type &rest options)
+(defmethod make-pane-arglist (realizer type &rest options)
   (declare (ignore realizer type))
   options)
 

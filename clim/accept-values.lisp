@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept-values.lisp,v 1.11 92/03/10 10:12:13 cer Exp Locker: cer $
+;; $fiHeader: accept-values.lisp,v 1.12 92/03/24 19:37:42 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -191,11 +191,11 @@
 	    (setq stream
 		  (make-instance 'accept-values-stream
 				 :stream (setf own-window
-					       (realize-pane 'clim-stream-pane
+					       (make-pane 'clim-stream-pane
 							     :initial-cursor-visibility nil))))
 	    own-window))
 	(setf exit-button-stream
-	      (realize-pane 'clim-stream-pane
+	      (make-pane 'clim-stream-pane
 			    :initial-cursor-visibility nil)))))
   (:top-level (accept-values-top-level))
   (:menu-bar nil)
@@ -1022,8 +1022,10 @@
 (defmethod prompt-for-accept ((stream accept-values-stream) type (view gadget-dialog-view)
 			      &rest accept-args 
 			      &key query-identifier &allow-other-keys)
-  (declare (ignore type accept-args))
-  ;; This does nothing, the gadget ACCEPT methods should provide a label
+  ;; This does nothing, the gadget ACCEPT methods should provide a
+  ;; label
+  (unless (gadget-includes-prompt-p type stream view)
+    (call-next-method))
   query-identifier)
 
 (defmethod display-exit-boxes ((frame accept-values) stream (view gadget-dialog-view))
@@ -1036,7 +1038,7 @@
 	(formatting-item-list (stream :n-columns 2 :initial-spacing nil)
 	 (formatting-cell (stream)
 	  (with-output-as-gadget (stream)
-	    (realize-pane 'push-button
+	    (make-pane 'push-button
 			  :activate-callback
 			  #'(lambda (gadget)
 			      (declare (ignore gadget))
@@ -1046,7 +1048,7 @@
 			  :label abort)))
 	 (formatting-cell (stream)
 	  (with-output-as-gadget (stream)
-	    (realize-pane 'push-button
+	    (make-pane 'push-button
 			  :activate-callback
 			  #'(lambda (gadget)
 			      (declare (ignore gadget))
@@ -1137,7 +1139,7 @@
 				  :continuation continuation
 				  :documentation documentation
 				  :resynchronize resynchronize)))
-       (realize-pane 'push-button
+       (make-pane 'push-button
 		     :activate-callback
 		     #'(lambda (button)
 			 (when (accept-values-query-valid-p id)

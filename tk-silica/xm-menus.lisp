@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-menus.lisp,v 1.7 92/03/24 19:37:11 cer Exp Locker: cer $
+;; $fiHeader: xm-menus.lisp,v 1.8 92/04/03 12:04:53 cer Exp Locker: cer $
 
 
 (in-package :xm-silica)
@@ -51,8 +51,6 @@
 	      (progn
 		(setf (port-menu-cache port)
 		  (delete x (port-menu-cache port)))
-		;;--- it would be nice todo this
-		#+ignore
 		(tk::destroy-widget amenu)))))))
       
     (unless menu
@@ -89,10 +87,11 @@
 					       ;;-- condition where
 					       ;;-- the menu go down
 					       ;;-- to quick
-					       (or (not (tk::is-managed-p menu))
-						   (funcall closure)))))
-      ;; destroy the menu
-      (tk::unmanage-child menu)
+					       (or (funcall closure)
+						   (not (tk::is-managed-p menu))))))
+      (unless cache
+	(tk::destroy-widget menu))
+      
       (values-list (nth-value 1 (funcall closure))))))
 
 (defmethod port-construct-menu ((port motif-port) 
@@ -122,7 +121,33 @@
 		     :managed nil
 		     :separator-type :double-line
 		     :parent menu))
-    (labels ((construct-menu-from-items (menu items)
+    (labels ((destroy-menu-pixmap (widget)
+	       (tk::destroy-pixmap (tk:get-values widget :label-pixmap)))
+	     (make-menu-button (item class parent &rest options)
+	       (if simplep
+		   (apply #'make-instance
+			  class 
+			  :sensitive (clim-internals::menu-item-active item)
+			  :parent parent 
+			  :managed nil
+			  :label-string (string (menu-item-display item))
+			  options) 
+		 (let* ((pixmap (pixmap-from-menu-item
+				 associated-window 
+				 item
+				 printer
+				 presentation-type))
+			(button
+			 (apply #'make-instance
+				class 
+				:sensitive (clim-internals::menu-item-active item)
+				:parent parent 
+				:label-type :pixmap
+				:label-pixmap pixmap
+				options)))
+		   (tk::add-callback button :destroy-callback #'destroy-menu-pixmap)
+		   button)))
+	     (construct-menu-from-items (menu items)
 	       (map nil #'(lambda (item)
 			    (ecase (clim-internals::menu-item-type item)
 			      (:separator
@@ -142,49 +167,18 @@
 						    :managed nil
 						    :parent menu))
 					  (menu-button
-					   (if simplep
-					       (make-instance 'tk::xm-cascade-button
-							      :parent menu
-							      :sensitive (clim-internals::menu-item-active item)
-							      :managed nil
-							      :sub-menu-id submenu
-							      :label-string (string
-									     (menu-item-display item)))
-					     (make-instance 'tk::xm-cascade-button
-							    :parent menu
-							    :managed nil
-							    :sub-menu-id submenu
-							    :sensitive (clim-internals::menu-item-active item)
-							    :label-type :pixmap
-							    :label-pixmap
-							    (pixmap-from-menu-item
-							     associated-window 
-							     item
-							     printer
-							     presentation-type)))))
+					   (make-menu-button item 
+							     'tk::xm-cascade-button
+							     menu
+							     :sub-menu-id submenu)))
 				     (declare (ignore menu-button))
 				     (construct-menu-from-items 
 				      submenu 
 				      (clim-internals::menu-item-item-list item)))
 				 (let ((menu-button
-					(if simplep
-					    (make-instance 'tk::xm-push-button
-							   :parent menu
-							   :sensitive (clim-internals::menu-item-active item)
-							   :managed nil
-							   :label-string (string
-									  (menu-item-display item)))
-					  (make-instance 'tk::xm-push-button
-							 :parent menu
-							 :managed nil
-							 :sensitive (clim-internals::menu-item-active item)
-							 :label-type :pixmap
-							 :label-pixmap
-							 (pixmap-from-menu-item
-							  associated-window 
-							  item
-							  printer
-							  presentation-type))))
+					(make-menu-button item 
+							  'tk::xm-push-button
+							  menu))
 				       (value (menu-item-value item)))
 				   (tk::add-callback
 				    menu-button

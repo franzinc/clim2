@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-frames.lisp,v 1.5 92/03/04 16:20:40 cer Exp Locker: cer $
+;; $fiHeader: xt-frames.lisp,v 1.6 92/03/24 19:37:13 cer Exp Locker: cer $
 
 
 (in-package :xm-silica)
@@ -36,7 +36,7 @@
   (let ((menu-bar (slot-value frame 'menu-bar)))
     (if menu-bar
 	(with-look-and-feel-realization (framem frame)
-	  (let ((mb (realize-pane 'menu-bar
+	  (let ((mb (make-pane 'menu-bar
 			  :command-table (if (eq menu-bar t)
 					     (frame-command-table frame)
 					   (find-command-table
@@ -45,7 +45,7 @@
 		(pointer
 		 (if (clim-internals::frame-pointer-documentationp frame)
 		     (setf (slot-value frame 'clim-internals::pointer-documentation-pane)
-		       (realize-pane
+		       (make-pane
 			'clim-internals::pointer-documentation-pane
 			:max-width +fill+
 			;;-- This should be a better value!

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: menus.lisp,v 1.16 92/03/24 19:37:54 cer Exp Locker: cer $
+;; $fiHeader: menus.lisp,v 1.17 92/04/03 12:04:36 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -16,7 +16,7 @@
     (with-slots (menu) *application-frame*
       (outlining ()
 	(scrolling ()
-	  (setq menu (realize-pane 'clim-stream-pane
+	  (setq menu (make-pane 'clim-stream-pane
 				   :initial-cursor-visibility nil))))))
   (:menu-bar nil))
 

@@ -20,7 +20,7 @@ U;; -*- mode: common-lisp; package: xm-silica -*-
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.13 92/03/24 19:37:15 cer Exp Locker: cer $
+;; $fiHeader: xt-graphics.lisp,v 1.14 92/03/30 17:52:48 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -312,6 +312,13 @@ U;; -*- mode: common-lisp; package: xm-silica -*-
     (tk::set-line-attributes 
      gc
      (let ((thickness (line-style-thickness line-style)))
+
+       (ecase (line-style-unit line-style)
+	 (:normal)
+	 (:point
+	  (setq thickness (* (graft-pixels-per-point (graft medium))
+			     thickness))))
+       
        (when (< thickness 2)
 	 (setq thickness 0))
        (round thickness))

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: color-ed.cl,v 1.1 92/01/30 10:17:27 cer Exp $
+;; $fiHeader: color-ed.lisp,v 1.2 92/02/24 13:09:06 cer Exp Locker: cer $
 
 
 (in-package :clim)
@@ -34,7 +34,7 @@
   (:command-table (color-editor :inherit-from (accept-values-pane)))
   (:pane
    (silica::scrolling ()
-		      (silica::realize-pane
+		      (silica::make-pane
 		       'application-pane
 		       :display-function
 		       'color-editor-display-function))))

@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-silica.lisp,v 1.11 92/03/09 17:41:26 cer Exp Locker: cer $
+;; $fiHeader: xm-silica.lisp,v 1.12 92/04/03 12:04:54 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -100,3 +100,11 @@ about their children"))
 		 :width 2
 		 :height 11
 		 :managed t))
+
+;(ff:defforeign 'xmprocesstraversal
+;    :entry-point "_XmProcessTraversal")
+;(defmethod port-note-cursor-change :after ((port motif-port)
+;					   cursor stream type old new)
+;  (declare (ignore old type cursor))
+;  (when new
+;    (xmprocesstraversal (sheet-mirror stream) 0)))

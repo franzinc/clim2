@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: gadget-output.lisp,v 1.7 92/03/04 16:21:37 cer Exp Locker: cer $
+;; $fiHeader: gadget-output.lisp,v 1.8 92/03/24 19:37:52 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -196,6 +196,26 @@
 (defmethod note-output-record-detached :after ((rec gadget-output-record))
   (setf (sheet-enabled-p (output-record-gadget rec)) nil))
 
+;;; Control whetherwe display a prompt in the gadget or not
+
+(defun gadget-includes-prompt-p (type stream view)
+  (call-presentation-generic-function
+   gadget-includes-prompt-p type stream view))
+
+;(define-presentation-method gadget-includes-prompt-p ((type t) (stream t) (view textual-view) &key)
+;  nil)
+;  
+;(define-presentation-method gadget-includes-prompt-p ((type t) (stream t) (view gadget-view) &key)
+;  nil)
+
+(define-presentation-method gadget-includes-prompt-p ((type t) (stream t) (view view) &key)
+  nil)
+
+;;; 
+
+;;; Completion gadget
+
+;; -- Gadget currently does not include prompt
 
 (define-presentation-method accept-present-default ((type completion) 
 						    stream
@@ -207,7 +227,7 @@
   ;; value-key, test, sequence
   (with-output-as-gadget (stream)
     (let* ((gadget
-	    (realize-pane 'radio-box 
+	    (make-pane 'radio-box 
 			  :label (and (stringp prompt) prompt)
 			  :value-changed-callback
 			  (make-accept-values-value-changed-callback
@@ -215,7 +235,7 @@
 			  :client stream
 			  :id query-identifier)))
       (dolist (element sequence)
-	(realize-pane 'toggle-button 
+	(make-pane 'toggle-button 
 		      :value (and default-supplied-p
 				  (funcall test 
 					   (funcall value-key element)
@@ -225,6 +245,12 @@
 		      :parent gadget))
       gadget)))
 
+
+;;; Boolean gadget
+
+(define-presentation-method gadget-includes-prompt-p ((type boolean) (stream t) (view gadget-view) &key)
+  t)
+
 (define-presentation-method accept-present-default ((type boolean) 
 						    stream
 						    (view gadget-dialog-view)
@@ -233,7 +259,7 @@
 						    &key (prompt t))
   (declare (ignore default-supplied-p present-p))
   (let ((x (with-output-as-gadget (stream)
-	     (realize-pane 'toggle-button
+	     (make-pane 'toggle-button
 			   :client stream 
 			   :value-changed-callback
 			   (make-accept-values-value-changed-callback
@@ -247,6 +273,10 @@
     (setf (gadget-value x) default)))
     
 
+;;; Integer gadget
+
+(define-presentation-method gadget-includes-prompt-p ((type integer) (stream t) (view gadget-view) &key)
+  t)
 
 (define-presentation-method accept-present-default ((type integer)
 						    stream
@@ -256,7 +286,7 @@
 						    &key (prompt t))
   (declare (ignore present-p))
   (with-output-as-gadget (stream)
-    (realize-pane 'slider
+    (make-pane 'slider
 		  :value-changed-callback
 		  (make-accept-values-value-changed-callback
 		   stream query-identifier)

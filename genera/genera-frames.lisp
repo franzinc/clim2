@@ -3,7 +3,7 @@
 (in-package :genera-clim)
 
 "Copyright (c) 1992 Symbolics, Inc.  All rights reserved."
-;;; $fiHeader: genera-frames.lisp,v 1.1 92/02/24 13:28:02 cer Exp $
+;;; $fiHeader: genera-frames.lisp,v 1.2 92/03/04 16:22:45 cer Exp Locker: cer $
 
 (defclass genera-frame-manager (standard-frame-manager)
     ())
@@ -18,7 +18,7 @@
 	(with-look-and-feel-realization (framem frame)
 	  (vertically ()
 	    (outlining ()
-	      (realize-pane 'command-menu-pane
+	      (make-pane 'command-menu-pane
 			    :display-function 
 			      `(display-command-menu :command-table ,menu-bar)
 			    :width :compute :height :compute))

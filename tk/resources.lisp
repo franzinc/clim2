@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: resources.lisp,v 1.12 92/03/30 17:51:49 cer Exp Locker: cer $
+;; $fiHeader: resources.lisp,v 1.13 92/04/03 12:04:06 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -94,6 +94,9 @@
 	 (arglist nil)
 	 rds)
     
+    ;;-- This class resource
+    ;;-- Accumulate resources into a resource allocated vector
+    
     (dolist (r resources)
       (let ((resource (find r class-resources :key #'resource-name)))
 	(unless resource
@@ -101,12 +104,21 @@
 		 r class widget))
 	(push resource rds)
 	(push (resource-original-name resource) arglist)
+	;;--- Need to resource allocate this
 	(push (make-x-arglist) arglist)))
     
+    ;;-- We ought to be ashamed of ourselves for using coerce
+    ;;-- This also ought to be resource allocated
+    
     (setq arglist (coerce (nreverse arglist) '(vector (signed-byte 32))))
+    
     (get_values widget
 		arglist
 		(truncate (length arglist) 2))
+    
+    ;;--- Perhaps this list should be a vector that is resource
+    ;;-- allocated.
+    
     (do ((rs (nreverse rds) (cdr rs))
 	 (i 1 (+ i 2))
 	 values)
@@ -523,3 +535,14 @@
 
 
 (define-enumerated-resource edit-mode (:multi-line :single-line))
+
+
+;;; Accelerator table stuff
+
+(defmethod convert-resource-in (parent (type (eql 'xt::accelerator-table))
+				(value (eql 0)))
+  nil)
+
+(defmethod convert-resource-out (parent (type (eql 'xt::accelerator-table))
+				(value (eql nil)))
+  0)

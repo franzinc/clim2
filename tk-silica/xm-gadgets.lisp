@@ -18,13 +18,17 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.18 92/03/30 17:52:46 cer Exp Locker: cer $
+;; $fiHeader: xm-gadgets.lisp,v 1.19 92/04/03 12:04:51 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
-(defmethod realize-pane-class ((framem motif-frame-manager) class &rest options) 
+(defmethod make-pane-class ((framem motif-frame-manager) class &rest options) 
   (declare (ignore options))
-  (second (assoc class '((scroll-bar motif-scrollbar)
+  (second (assoc class '(
+			 ;; experiment
+			 (outlined-pane motif-frame-pane)
+			 ;;
+			 (scroll-bar motif-scrollbar)
 			 (slider motif-slider)
 			 (push-button motif-push-button)
 			 (label-pane motif-label-pane)
@@ -178,15 +182,25 @@
   ;; Now does nothing
   )
 
-;;; Slider
-
-(defclass motif-slider (xt-leaf-pane
-			motif-value-pane
-			slider)
-	  ())
-
-
 (defmethod gadget-value ((gadget motif-value-pane))
+  ;;--- We should use the scale functions to get the value
+  (let ((mirror (sheet-direct-mirror gadget)))
+    (if mirror 
+	(tk::get-values mirror :value)
+      (call-next-method))))
+
+(defmethod (setf gadget-value) (nv (gadget motif-value-pane) &key)
+  (let ((gadget (sheet-mirror gadget)))
+    (when gadget
+      (tk::set-values gadget
+		      :value nv))))
+
+;;; range pane mixin
+
+(defclass motif-range-pane (motif-value-pane) ())
+
+
+(defmethod gadget-value ((gadget motif-range-pane))
   ;;--- We should use the scale functions to get the value
   (let ((mirror (sheet-direct-mirror gadget)))
     (if mirror 
@@ -200,7 +214,7 @@
       (call-next-method))))
 
 
-(defmethod (setf gadget-value) (nv (gadget motif-value-pane) &key)
+(defmethod (setf gadget-value) (nv (gadget motif-range-pane) &key)
   (let ((gadget (sheet-mirror gadget)))
     (when gadget
       (multiple-value-bind
@@ -212,36 +226,54 @@
 			  :value (silica::compute-symmetric-value
 				  smin smax nv mmin mmax)))))))
 
+;;; Slider
+
+(defclass motif-slider (xt-leaf-pane
+			motif-range-pane
+			slider)
+	  ())
+
 (defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
 						     (parent t)
 						     (sheet motif-slider))
   (with-accessors ((orientation gadget-orientation)
 		   (label gadget-label)
+		   (show-value-p silica::gadget-show-value-p)
 		   (value gadget-value)) sheet
     (values 'tk::xm-scale 
 	    (append
+	     (and show-value-p (list :show-value show-value-p ))
 	     (and label (list :title-string label))
 	     (list :orientation orientation)
 	     (and value (list :value value))))))
 
 
 (defmethod compose-space ((m motif-slider) &key width height)
-  (let ((x 16))
-    (ecase (gadget-orientation m)
-      (:vertical
-       (make-space-requirement :width x
-			       :min-height x
-			       :height (* 2 x)
-			       :max-height +fill+))
-      (:horizontal
-       (make-space-requirement :height (if (gadget-label m) ;
-					;Should ask the label how big
-					;it wants to be and add that in
-					   (+ x 20)
-					 x)
-			       :min-width x
-			       :width (* 2 x)
-			       :max-width +fill+)))))
+  (declare (ignore width height))
+  (destructuring-bind
+      (label scrollbar) (tk::widget-children (sheet-direct-mirror m))
+    (declare (ignore scrollbar))
+    (let ((label-width 
+	   (and (gadget-label m)
+		(nth-value 2 (tk::widget-best-geometry label)))))
+      ;;-- We need to estimate the space requirements for the value if
+      ;;-- that is show
+      (let ((fudge 16))
+	(ecase (gadget-orientation m)
+	  (:vertical
+	   (make-space-requirement :width (if (gadget-label m) ;
+					       (+ fudge label-width)
+					     fudge)
+				   :min-height fudge
+				   :height (* 2 fudge)
+				   :max-height +fill+))
+	  (:horizontal
+	   (make-space-requirement :height (if (gadget-label m) ;
+					       (+ fudge label-width)
+					     fudge)
+				   :min-width fudge
+				   :width (* 2 fudge)
+				   :max-width +fill+)))))))
 
 ;;; Scrollbar
 
@@ -347,7 +379,12 @@
    ;; comes up in the right place.
    ((popup-frame-p sheet)
     (values 'tk::xm-bulletin-board
-	    nil))
+	    (list :margin-width 0 :margin-height 0
+		  ;; We specify NIL for accelerators otherwise the
+		  ;; bulletin board messes with the event handling of
+		  ;; its drawing area children
+		  :accelerators nil
+		  :name (string (frame-name (pane-frame sheet))))))
    (t
     (values 'tk::xm-drawing-area 
 	    (list :resize-policy :none
@@ -356,7 +393,8 @@
 
 ;;; 
 
-(defmethod add-sheet-callbacks :after ((port motif-port) (sheet t) (widget tk::xm-bulletin-board))
+(defmethod add-sheet-callbacks :after ((port motif-port) (sheet t) 
+				       (widget tk::xm-bulletin-board))
   (tk::add-event-handler widget
 			 '(:enter-window 
 			   :leave-window
@@ -406,7 +444,8 @@
 
 (defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
 						     (parent t)
-						     (sheet motif-text-editor))
+						     (sheet
+						      motif-text-editor))
   (with-accessors ((value gadget-value)
 		   (ncolumns silica::gadget-columns)
 		   (nlines silica::gadget-lines)) sheet
@@ -560,18 +599,49 @@
 			    (gadget-id client) 
 			    id)))
 
-;; This is an experiment at using a frame but there are problems with
-;; it
+;;; Lets have a frame so that it can be nice and pretty
 
-(defclass motif-frame-pane (mirrored-sheet-mixin
+
+(defclass xm-frame-viewport
+	  (sheet-single-child-mixin
+	   sheet-permanently-enabled-mixin
+	   silica::wrapping-space-mixin
+	   pane
+	   mirrored-sheet-mixin)
+    ())
+
+
+
+
+(defclass motif-frame-pane (motif-geometry-manager
+			    mirrored-sheet-mixin
 			    sheet-single-child-mixin
 			    sheet-permanently-enabled-mixin
 			    pane
-			    ask-widget-for-size-mixin)
+			    silica::layout-mixin)
 	  ())
+
+(defmethod initialize-instance :after ((pane motif-frame-pane) &key
+							       frame-manager frame
+							       contents)
+  (let ((viewport (with-look-and-feel-realization (frame-manager frame)
+		    (make-pane 'xm-frame-viewport))))
+    (sheet-adopt-child pane viewport)
+    (sheet-adopt-child viewport contents)))
+
 
 (defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
 						     (parent t)
 						     (sheet motif-frame-pane))
   (values 'tk::xm-frame nil))
 
+(defmethod compose-space ((fr motif-frame-pane) &key width height)
+  (declare (ignore width height))
+  (silica::space-requirement+*
+   (compose-space (sheet-child fr))
+   :width 4 :height 4))
+
+(defmethod allocate-space ((fr motif-frame-pane) width height)
+  ;;-- We do not need to do anything here because
+  ;;-- the pane should resize its child
+  )

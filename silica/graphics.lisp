@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics.lisp,v 1.6 92/03/04 16:19:43 cer Exp Locker: cer $
+;; $fiHeader: graphics.lisp,v 1.7 92/03/24 19:36:41 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -577,12 +577,33 @@
 			 . #.(all-drawing-options-lambda-list :line-cap)))
   (apply #'draw-ellipse medium center radius 0 0 radius args))
 
+(define-compiler-macro draw-circle (medium center radius &rest args)
+  (let ((gm (gensym))
+	(gc (gensym))
+	(gr (gensym)))
+    `(let ((,gm ,medium)
+	   (,gc ,center)
+	   (,gr ,radius))
+       (draw-ellipse ,gm ,gc ,gr 0 0 ,gr ,@args))))
+
 (defun draw-circle* (medium center-x center-y radius &rest args)
   (declare (dynamic-extent args))
   (declare (arglist medium center-x center-y radius
 		    &key start-angle end-angle (filled t)
 		         . #.(all-drawing-options-lambda-list :line-cap)))
   (apply #'draw-ellipse* medium center-x center-y radius 0 0 radius args))
+
+(define-compiler-macro draw-circle* (medium center-x center-y radius &rest args)
+  (let ((gm (gensym))
+	(gx (gensym))
+	(gy (gensym))
+	(gr (gensym)))
+    `(let ((,gm ,medium)
+	   (,gx ,center-x)
+	   (,gy ,center-y)
+	   (,gr ,radius))
+       (draw-ellipse* ,gm ,gx ,gy ,gr 0 0 ,gr ,@args))))
+
 
 ;;--- What about DRAW-OVAL[*]?
 

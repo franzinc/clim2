@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: framem.lisp,v 1.2 92/03/04 16:19:39 cer Exp Locker: cer $
+;; $fiHeader: framem.lisp,v 1.3 92/03/24 19:36:37 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -58,7 +58,7 @@
   (when (frame-panes frame)
     (let* ((top-pane (frame-panes frame))
 	   (sheet (with-look-and-feel-realization (framem frame)
-		    (realize-pane 'top-level-sheet 
+		    (make-pane 'top-level-sheet 
 				  :region (multiple-value-bind (width height)
 					      (bounding-rectangle-size top-pane)
 					    (make-bounding-rectangle 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sysdcl.lisp,v 1.10 92/03/30 17:52:35 cer Exp Locker: cer $
+;; $fiHeader: sysdcl.lisp,v 1.11 92/04/03 12:04:39 cer Exp Locker: cer $
 
 (in-package #-ANSI-90 "USER" #+ANSI-90 :cl-user)
 
@@ -36,7 +36,7 @@
 )	;eval-when
 
 #+Genera
-(when (null (find-package :defsys))
+(when (null (find-package :clim-defsys))
   (load "SYS:CLIM;REL-2;SYS;DEFSYSTEM"))
 
 
@@ -90,7 +90,7 @@
 )	;eval-when
 
 
-(setq defsys:*load-all-before-compile* t)
+(setq clim-defsys:*load-all-before-compile* t)
 
 #+Allegro
 (defun frob-pathname (subdir &optional (dir excl::*source-pathname*))
@@ -106,7 +106,7 @@
       :directory (append (butlast (pathname-directory dir)) (list subdir)))))
 
 
-(defsys:defsystem clim-utils
+(clim-defsys:defsystem clim-utils
   (:default-pathname #+Genera "SYS:CLIM;REL-2;UTILS;"
 		     #+Minima "SYS:CLIM;REL-2;UTILS;"
 		     #+Cloe-Runtime "\\clim\\rel-2\\utils\\"
@@ -162,7 +162,7 @@
   ("extended-regions")
   ("designs"))
 
-(defsys:defsystem clim-silica
+(clim-defsys:defsystem clim-silica
     (:default-pathname #+Genera "SYS:CLIM;REL-2;SILICA;"
       		       #+Minima "SYS:CLIM;REL-2;SILICA;"
 		       #+Cloe-Runtime "\\clim\\rel-2\\silica\\"
@@ -206,7 +206,7 @@
   ("db-button")
   ("db-slider"))
 
-(defsys:defsystem clim-standalone
+(clim-defsys:defsystem clim-standalone
   (:default-pathname #+Genera "SYS:CLIM;REL-2;CLIM;"
 		     #+Minima "SYS:CLIM;REL-2;CLIM;"
 		     #+Cloe-Runtime "\\clim\\rel-2\\clim\\rel-2\\"
@@ -382,7 +382,7 @@
 
 
 #+(and Silica Genera)
-(defsys:defsystem genera-clim
+(clim-defsys:defsystem genera-clim
     (:default-pathname "SYS:CLIM;REL-2;GENERA;"
      :default-binary-pathname #+Genera "SYS:CLIM;REL-2;GENERA;"
      :needed-systems (clim-standalone)
@@ -396,7 +396,7 @@
   ("genera-activities"))
 
 #+(and Silica CLX use-CLX)
-(defsys:defsystem clx-clim
+(clim-defsys:defsystem clx-clim
     (:default-pathname "SYS:CLIM;REL-2;CLX;"
      :default-binary-pathname #+Genera "SYS:CLIM;REL-2;CLX;"
      :needed-systems (clim-standalone)
@@ -410,7 +410,7 @@
 
 
 #+(and Silica Allegro)
-(defsys:defsystem xlib
+(clim-defsys:defsystem xlib
     (:default-pathname (frob-pathname "xlib")
 	:default-binary-pathname (frob-pathname "xlib")
 	:needed-systems (clim-standalone)
@@ -427,7 +427,7 @@
 
 
 #+(and Silica Allegro)
-(defsys:defsystem xt-tk
+(clim-defsys:defsystem xt-tk
     (:default-pathname (frob-pathname "tk")
      :default-binary-pathname (frob-pathname "tk")
      :needed-systems (xlib)
@@ -456,7 +456,7 @@
   ("xt-init"))
 
 #+(and Silica Allegro)
-(defsys:defsystem xm-tk
+(clim-defsys:defsystem xm-tk
     (:default-pathname (frob-pathname "tk")
      :default-binary-pathname (frob-pathname "tk")
      :needed-systems (xt-tk)
@@ -478,7 +478,7 @@
   ("make-widget"))
 
 #+(and Silica Allegro)
-(defsys:defsystem ol-tk
+(clim-defsys:defsystem ol-tk
     (:default-pathname (frob-pathname "tk")
      :default-binary-pathname (frob-pathname "tk")
      :needed-systems (xt-tk)
@@ -493,7 +493,7 @@
   ("make-widget"))
 
 #+(and Silica Allegro)
-(defsys:defsystem motif-clim
+(clim-defsys:defsystem motif-clim
     (:default-pathname (frob-pathname "tk-silica")
      :default-binary-pathname (frob-pathname "tk-silica")
      :needed-systems (clim-standalone xm-tk)
@@ -513,7 +513,7 @@
   ("xt-pixmaps"))
 
 #+(and Silica Allegro)
-(defsys:defsystem openlook-clim
+(clim-defsys:defsystem openlook-clim
     (:default-pathname (frob-pathname "tk-silica")
      :default-binary-pathname (frob-pathname "tk-silica")
      :needed-systems (clim-standalone ol-tk)
@@ -532,7 +532,7 @@
 
 
 #+(and Silica CCL-2)
-(defsys:defsystem ccl-clim
+(clim-defsys:defsystem ccl-clim
     (:default-pathname "SYS:CLIM;REL-2;CCL;"
      :default-binary-pathname #+Genera "SYS:CLIM;REL-2;CCL;"
      :needed-systems (clim-standalone)
@@ -547,7 +547,7 @@
 
 
 #+(and Silica Cloe-Runtime)
-(defsys:defsystem cloe-clim
+(clim-defsys:defsystem cloe-clim
     (:default-pathname "SYS:CLIM;REL-2;CLOE;"
      :default-binary-pathname #+Genera "SYS:CLIM;REL-2;CLOE;"
      :needed-systems (clim-standalone)
@@ -564,7 +564,7 @@
 
 
 #+(and Silica use-PostScript)
-(defsys:defsystem postscript-clim
+(clim-defsys:defsystem postscript-clim
     (:default-pathname "SYS:CLIM;REL-2;POSTSCRIPT;"
      :default-binary-pathname #+Genera "SYS:CLIM;REL-2;POSTSCRIPT;"
      :needed-systems (clim-standalone)
@@ -580,25 +580,25 @@
 
 #+Genera (progn
 
-(defsys:import-into-sct 'clim-utils :subsystem t
+(clim-defsys:import-into-sct 'clim-utils :subsystem t
 			:pretty-name "CLIM Utilities"
 			:default-pathname "SYS:CLIM;REL-2;UTILS;")
 
-(defsys:import-into-sct 'clim-silica :subsystem t
+(clim-defsys:import-into-sct 'clim-silica :subsystem t
 			:pretty-name "CLIM Silica"
 			:default-pathname "SYS:CLIM;REL-2;SILICA;")
 
-(defsys:import-into-sct 'clim-standalone :subsystem t
+(clim-defsys:import-into-sct 'clim-standalone :subsystem t
 			:pretty-name "CLIM Standalone"
 			:default-pathname "SYS:CLIM;REL-2;CLIM;")
 
 #+Silica
-(defsys:import-into-sct 'genera-clim :subsystem t
+(clim-defsys:import-into-sct 'genera-clim :subsystem t
 			:pretty-name "Genera CLIM"
 			:default-pathname "SYS:CLIM;REL-2;GENERA;")
 
 #+Silica
-(defsys:import-into-sct 'clx-clim :subsystem t
+(clim-defsys:import-into-sct 'clx-clim :subsystem t
 			:pretty-name "CLX CLIM"
 			:default-pathname "SYS:CLIM;REL-2;CLX;")
 
@@ -618,12 +618,12 @@
 	   #+Silica "clx-clim"))
 
 #+(and Silica ignore)
-(defsys:import-into-sct 'motif-clim :subsystem t
+(clim-defsys:import-into-sct 'motif-clim :subsystem t
 			:pretty-name "Motif CLIM"
 			:default-pathname "SYS:CLIM;REL-2;XM-SILICA;")
 
 #+(and Silica ignore)
-(defsys:import-into-sct 'openlook-clim :subsystem t
+(clim-defsys:import-into-sct 'openlook-clim :subsystem t
 			:pretty-name "OpenLook CLIM"
 			:default-pathname "SYS:CLIM;REL-2;XM-SILICA;")
 
@@ -643,20 +643,20 @@
 
 #+Minima-Developer (progn
 
-(defsys:import-into-sct 'clim-utils :subsystem t
+(clim-defsys:import-into-sct 'clim-utils :subsystem t
 			:sct-name :minima-clim-utils :pretty-name "Minima CLIM Utilities"
 			:default-pathname "SYS:CLIM;REL-2;UTILS;")
 
-(defsys:import-into-sct 'clim-silica :subsystem t
+(clim-defsys:import-into-sct 'clim-silica :subsystem t
 			:sct-name :minima-clim-silica :pretty-name "Minima CLIM Silica"
 			:default-pathname "SYS:CLIM;REL-2;SILICA;")
 
-(defsys:import-into-sct 'clim-standalone :subsystem t
+(clim-defsys:import-into-sct 'clim-standalone :subsystem t
 			:sct-name :minima-clim-standalone :pretty-name "Minima CLIM Standalone"
 			:default-pathname "SYS:CLIM;REL-2;CLIM;")
 
 #+Silica
-(defsys:import-into-sct 'clx-clim :subsystem t
+(clim-defsys:import-into-sct 'clx-clim :subsystem t
 			:sct-name :minima-clx-clim :pretty-name "CLX CLIM"
 			:default-pathname "SYS:CLIM;REL-2;CLX;")
 

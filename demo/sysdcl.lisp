@@ -1,13 +1,13 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sysdcl.lisp,v 1.5 92/03/04 16:23:04 cer Exp Locker: cer $
+;; $fiHeader: sysdcl.lisp,v 1.6 92/03/24 19:38:22 cer Exp Locker: cer $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :common-lisp-user)
 
 "Copyright (c) 1990, 1991 Symbolics, Inc.  All rights reserved.
  Portions copyright (c) 1988, 1989, 1990 International Lisp Associates."
 
-(defsys:defsystem clim-demo
+(clim-defsys:defsystem clim-demo
   (:default-pathname #+Genera "SYS:CLIM;REL-2;DEMO;"
 		     #+Minima "SYS:CLIM;REL-2;DEMO;"
 		     #+Cloe-Runtime "\\clim\\rel-2\\demo\\"
@@ -45,13 +45,13 @@
   ("demo-prefill" :features (and (not Silica) (or Genera Cloe-Runtime))))
 
 #+Genera
-(defsys:import-into-sct 'clim-demo 
+(clim-defsys:import-into-sct 'clim-demo 
 			:pretty-name "CLIM Demo"
 			:default-pathname "SYS:CLIM;REL-2;DEMO;"
 			:default-destination-pathname "SYS:CLIM;REL-2;DEMO;")
 
 #+Minima
-(defsys:import-into-sct 'clim-demo :subsystem t
+(clim-defsys:import-into-sct 'clim-demo :subsystem t
 			:sct-name :minima-clim-demo-standalone
 			:pretty-name "Minima CLIM Demo Standalone"
 			:default-pathname "SYS:CLIM;REL-2;DEMO;"
