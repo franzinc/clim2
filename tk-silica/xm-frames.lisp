@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-frames.lisp,v 1.37 92/11/06 19:04:31 cer Exp $
+;; $fiHeader: xm-frames.lisp,v 1.38 92/11/09 10:56:05 cer Exp $
 
 (in-package :xm-silica)
 
@@ -298,7 +298,6 @@
 	    associated-window
 	    text-style
 	    label)
-  (declare (ignore text-style))
   (let* (value-returned 
 	 return-value
 	 (simplep (and (null printer)
@@ -307,13 +306,19 @@
 	 (menu (make-instance 'tk::xm-popup-menu 
 			      :parent (or (and associated-window
 					       (sheet-mirror associated-window))
-					  (port-application-shell port))
-			      :managed nil)))
+					  (port-application-shell
+					   port))
+			      ;;---------- Hard decision
+			      ;; :menu-post "<Btn1Down>"
+			      :managed nil))
+	 (font (and text-style (text-style-mapping (port framem) text-style)))
+	 (font-list (and (or label simplep) font (list :font-list (list font)))))
     (when label
-      (make-instance 'xt::xm-label
+      (apply #'make-instance 'xt::xm-label
 		     :parent menu
 		     :managed nil
-		     :label-string label)
+		     :label-string label
+		     font-list)
       (make-instance 'xt::xm-separator
 		     :managed nil
 		     :separator-type :double-line
@@ -327,12 +332,13 @@
 				 :parent parent 
 				 :managed nil
 				 :label-string (string (menu-item-display item))
-				 options) 
+				 (append font-list options)) 
 			(let* ((pixmap (pixmap-from-menu-item
 					associated-window 
 					item
 					printer
-					presentation-type))
+					presentation-type
+					text-style))
 			       (button
 				(apply #'make-instance
 				       class 
@@ -340,8 +346,7 @@
 				       :parent parent 
 				       :label-type :pixmap
 				       :label-insensitive-pixmap pixmap
-				       :label-pixmap pixmap
-				       options)))
+				       :label-pixmap pixmap options)))
 			  (xt::add-widget-cleanup-function
 			   button
 			   #'tk::destroy-pixmap pixmap)

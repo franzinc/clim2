@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept.lisp,v 1.16 92/10/28 11:31:25 cer Exp $
+;; $fiHeader: accept.lisp,v 1.17 92/11/06 18:58:57 cer Exp $
 
 (in-package :clim-internals)
 
@@ -142,6 +142,7 @@
 		      (additional-activation-gestures nil)
 		      (delimiter-gestures nil delimiter-gestures-p)
 		      (additional-delimiter-gestures nil)
+		      (active-p nil)
 		 &allow-other-keys)
 
   ;; Set up the input editing environment
@@ -161,7 +162,8 @@
     (when present-p
       (return-from accept-1
 	(accept-present-default type stream view default default-supplied-p
-				present-p query-identifier :prompt prompt)))
+				present-p query-identifier :prompt prompt
+				:active-p active-p)))
 
     (block input-editing
       (flet ((input-sensitizer (continuation stream)

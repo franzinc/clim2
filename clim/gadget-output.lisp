@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadget-output.lisp,v 1.36 92/11/06 18:59:38 cer Exp $
+;; $fiHeader: gadget-output.lisp,v 1.37 92/11/09 10:54:34 cer Exp $
 
 (in-package :clim-internals)
 
@@ -291,12 +291,17 @@
 (define-presentation-method accept-present-default 
 			    ((type completion) stream (view radio-box-view)
 			     default default-supplied-p present-p query-identifier
-			     &key (prompt t))
+			     &key (prompt t)
+			     active-p)
   (declare (ignore present-p))
   (move-cursor-to-view-position stream view)
   (let ((current-selection nil))
     (flet ((update-gadget (record gadget radio-box)
 	     (declare (ignore gadget record))
+	     ;;-- This sucks
+	     (if active-p
+		 (activate-gadget radio-box)
+	       (deactivate-gadget radio-box))
 	     (map-over-sheets
 	       #'(lambda (sheet)
 		   (when (typep sheet 'toggle-button)
@@ -348,7 +353,8 @@
 				:id query-identifier 
 				:value-changed-callback
 				  (make-accept-values-value-changed-callback
-				    stream query-identifier))))))
+				   stream query-identifier)
+				  :active active-p)))))
 	  (values (outlining () radio-box)
 		  radio-box))))))
 
@@ -367,11 +373,15 @@
 (define-presentation-method accept-present-default 
 			    ((type subset-completion) stream (view check-box-view)
 			     default default-supplied-p present-p query-identifier
-			     &key (prompt t))
+			     &key  (prompt t) (active-p t))
   (declare (ignore present-p))
   (move-cursor-to-view-position stream view)
   (flet ((update-gadget (record gadget check-box)
 	   (declare (ignore record gadget))
+	   ;;-- This sucks
+	   (if active-p
+	       (activate-gadget check-box)
+	     (deactivate-gadget check-box))
 	   (let ((current-selection nil))
 	     (map-over-sheets
 	       #'(lambda (sheet)
@@ -427,7 +437,8 @@
 				       :id query-identifier
 				       :value-changed-callback
 				         (make-accept-values-value-changed-callback
-					   stream query-identifier))))))
+					  stream query-identifier)
+					 :active active-p)))))
 	(values (outlining () check-box)
 		check-box)))))
 
@@ -446,11 +457,15 @@
 (define-presentation-method accept-present-default 
 			    ((type boolean) stream (view toggle-button-view)
 			     default default-supplied-p present-p query-identifier
-			     &key (prompt t))
+			     &key  (prompt t) (active-p t))
   (declare (ignore default-supplied-p present-p))
   (move-cursor-to-view-position stream view)
   (flet ((update-gadget (record gadget button)
  	   (declare (ignore record gadget))
+	   ;;-- This sucks
+	   (if active-p
+	       (activate-gadget button)
+	     (deactivate-gadget button))
  	   (setf (gadget-value button) default)))
     (with-output-as-gadget (stream :cache-value type :update-gadget #'update-gadget)
       (let ((button (make-pane-from-view 'toggle-button view
@@ -459,7 +474,8 @@
 		      :client stream :id query-identifier
 		      :value-changed-callback
 		        (make-accept-values-value-changed-callback
-			  stream query-identifier))))
+			 stream query-identifier)
+			:active active-p)))
  	(values (outlining () button) button)))))
 
 
@@ -472,15 +488,19 @@
 (define-presentation-method accept-present-default 
 			    ((type real) stream (view slider-view)
 			     default default-supplied-p present-p query-identifier
-			     &key (prompt t))
+			     &key  (prompt t) (active-p t))
   (declare (ignore present-p))
   (move-cursor-to-view-position stream view)
   (let ((min-value (if (eq low '*) 0 low))
 	(max-value (if (eq high '*) 100 high)))
     (flet ((update-gadget (record gadget slider)
 	     (declare (ignore record gadget))
+	     ;;-- This sucks
+	     (if active-p
+		 (activate-gadget slider)
+	       (deactivate-gadget slider))
 	     (setf (gadget-value slider)
-		   (if default-supplied-p default min-value))))
+	       (if default-supplied-p default min-value))))
       (with-output-as-gadget (stream :cache-value type :update-gadget #'update-gadget)
 	(let ((slider 
 		;;--- What other initargs do we pass along from the view?
@@ -494,19 +514,24 @@
 		  :client stream :id query-identifier
 		  :value-changed-callback
 		    (make-accept-values-value-changed-callback
-		      stream query-identifier))))
+		     stream query-identifier)
+		    :active active-p)))
 	  (values (outlining () slider) slider))))))
 
 (define-presentation-method accept-present-default 
 			    ((type integer) stream (view slider-view)
 			     default default-supplied-p present-p query-identifier
-			     &key (prompt t))
+			     &key  (prompt t) (active-p t))
   (declare (ignore present-p))
   (move-cursor-to-view-position stream view)
   (let ((min-value (if (eq low '*) 0 low))
 	(max-value (if (eq high '*) 100 high)))
     (flet ((update-gadget (record gadget slider)
 	     (declare (ignore record gadget))
+	     ;;-- This sucks
+	     (if active-p
+		 (activate-gadget slider)
+	       (deactivate-gadget slider))
 	     (setf (gadget-value slider)
 		   (if default-supplied-p default min-value))))
       (with-output-as-gadget (stream :cache-value type :update-gadget #'update-gadget)
@@ -522,7 +547,8 @@
 		  :client stream :id query-identifier
 		  :value-changed-callback
 		    (make-accept-values-value-changed-callback
-		      stream query-identifier))))
+		     stream query-identifier)
+		    :active active-p)))
 	  (values (outlining () slider) slider))))))
 
 
@@ -531,11 +557,14 @@
 (define-presentation-method accept-present-default 
 			    ((type t) stream (view text-field-view)
 			     default default-supplied-p present-p query-identifier
-			     &key (prompt t))
+			     &key  (prompt t) (active-p t))
   (declare (ignore default-supplied-p present-p))
   (move-cursor-to-view-position stream view)
   (flet ((update-gadget (record gadget text-field)
- 	   (declare (ignore record gadget))
+ 	   (declare (ignore record gadget))	     ;;-- This sucks
+	     (if active-p
+		 (activate-gadget text-field)
+	       (deactivate-gadget text-field))
  	   (setf (gadget-value text-field) (present-to-string default type))))
     (with-output-as-gadget (stream :cache-value type :update-gadget #'update-gadget)
       (let ((text-field (make-pane-from-view 'text-field view
@@ -544,7 +573,8 @@
 			  :client stream :id query-identifier
 			  :value-changed-callback
 			    `(accept-values-string-field-changed-callback
-			       ,stream ,query-identifier))))
+			      ,stream ,query-identifier)
+			    :active active-p)))
  	(values text-field text-field)))))
 
 ;;--- This is mostly nonsense.  If we enter something that is an error then
@@ -572,11 +602,14 @@
 (define-presentation-method accept-present-default 
 			    ((type string) stream (view text-field-view)
 			     default default-supplied-p present-p query-identifier
-			     &key (prompt t))
+			     &key  (prompt t) (active-p t))
   (declare (ignore default-supplied-p present-p))
   (move-cursor-to-view-position stream view)
   (flet ((update-gadget (record gadget button)
  	   (declare (ignore record gadget))
+	     (if active-p
+		 (activate-gadget button)
+	       (deactivate-gadget button))
  	   (setf (gadget-value button) default)))
     (with-output-as-gadget (stream :cache-value type :update-gadget #'update-gadget)
       (let ((text-field (make-pane-from-view 'text-field view
@@ -585,17 +618,21 @@
 			  :client stream :id query-identifier
 			  :value-changed-callback
 			    (make-accept-values-value-changed-callback
-			      stream query-identifier))))
+			     stream query-identifier)
+			    :active active-p)))
  	(values text-field text-field)))))
 
 (define-presentation-method accept-present-default 
 			    ((type string) stream (view text-editor-view)
 			     default default-supplied-p present-p query-identifier
-			     &key (prompt t))
+			     &key  (prompt t) (active-p t))
   (declare (ignore default-supplied-p present-p))
   (move-cursor-to-view-position stream view)
   (flet ((update-gadget (record gadget button)
  	   (declare (ignore record gadget))
+	     (if active-p
+		 (activate-gadget button)
+	       (deactivate-gadget button))
  	   (setf (gadget-value button) default)))
     (with-output-as-gadget (stream :cache-value type :update-gadget #'update-gadget)
       (let ((text-field (make-pane-from-view 'text-editor view
@@ -604,7 +641,8 @@
 			  :client stream :id query-identifier
 			  :value-changed-callback
 			    (make-accept-values-value-changed-callback
-			      stream query-identifier))))
+			     stream query-identifier)
+			    :active active-p)))
  	(values (scrolling () text-field) text-field)))))
 
 
@@ -613,28 +651,31 @@
 (define-presentation-method accept-present-default 
 			    ((type completion) stream (view list-pane-view)
 			     default default-supplied-p present-p query-identifier
-			     &key (prompt t))
+			     &key  (prompt t) (active-p t))
   (declare (ignore present-p default-supplied-p prompt))
   (make-list/option-pane-for-ptype 'list-pane
 				   stream view sequence
 				   name-key value-key test
 				   default query-identifier type printer
-				   :exclusive))
+				   :exclusive
+				   active-p))
 
 (define-presentation-method accept-present-default 
 			    ((type subset-completion) stream (view list-pane-view)
 			     default default-supplied-p present-p query-identifier
-			     &key (prompt t))
+			     &key  (prompt t) (active-p t))
   (declare (ignore present-p default-supplied-p prompt))
   (make-list/option-pane-for-ptype 'list-pane 
 				   stream view sequence
 				   name-key value-key test
 				   default query-identifier type printer
-				   :nonexclusive))
+				   :nonexclusive
+				   active-p))
 
 (defun make-list/option-pane-for-ptype (pane-type stream view sequence 
 					name-key value-key test
-					default query-identifier type printer mode)
+					default query-identifier type
+					printer mode active-p)
   (move-cursor-to-view-position stream view)
   (flet ((update-gadget (record gadget list-pane)
 	   (declare (ignore gadget record))
@@ -654,7 +695,8 @@
 			 :visible-items (min 10 (length sequence))
 			 :value-changed-callback
 			   (make-accept-values-value-changed-callback
-			     stream query-identifier))
+			    stream query-identifier)
+			   :active active-p)
 		       (make-pane-from-view pane-type view
 			 :items sequence
 			 :name-key name-key
@@ -666,32 +708,22 @@
 			 :visible-items (min 10 (length sequence))
 			 :value-changed-callback
 			   (make-accept-values-value-changed-callback
-			     stream query-identifier)))))
+			     stream query-identifier)
+			   :active active-p))))
 	(values (if (eq pane-type 'list-pane) (scrolling () pane) pane)
 		pane)))))
 
 (define-presentation-method accept-present-default 
 			    ((type completion) stream (view option-pane-view)
 			     default default-supplied-p present-p query-identifier
-			     &key (prompt t))
+			     &key  (prompt t) (active-p t))
   (declare (ignore present-p default-supplied-p prompt))
   (make-list/option-pane-for-ptype 'option-pane
 				   stream view sequence name-key value-key
 				   test default query-identifier type 
 				   printer
-				   :exclusive))
-
-(define-presentation-method accept-present-default 
-			    ((type subset-completion) stream (view option-pane-view)
-			     default default-supplied-p present-p query-identifier
-			     &key (prompt t))
-  (declare (ignore present-p default-supplied-p prompt))
-  (make-list/option-pane-for-ptype 'option-pane 
-				   stream view sequence
-				   name-key value-key test
-				   default query-identifier type printer
-				   :nonexclusive))
-
+				   :exclusive
+				   active-p))
 
 ;;--- These should be defined in the standard DEFOPERATION way...
 

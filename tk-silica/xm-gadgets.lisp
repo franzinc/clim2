@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.54 92/11/06 19:04:34 cer Exp $
+;; $fiHeader: xm-gadgets.lisp,v 1.55 92/11/09 10:56:09 cer Exp $
 
 (in-package :xm-silica)
 
@@ -294,7 +294,7 @@
             (mmax 100)
             (decimal-points 0)
             (decimal-places (slider-decimal-places sheet)))
-        (cond ((and (zerop decimal-places)
+        (cond ((and (or (null decimal-places) (zerop decimal-places))
                     (typep smin '(signed-byte 32))
                     (typep smax '(signed-byte 32)))
                (setq mmin smin mmax smax decimal-points 0))

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-frames.lisp,v 1.15 92/10/28 11:33:14 cer Exp $
+;; $fiHeader: ol-frames.lisp,v 1.16 92/11/06 19:04:26 cer Exp $
 
 
 (in-package :xm-silica)
@@ -59,7 +59,6 @@
 	    associated-window
 	    text-style
 	    label)
-  (declare (ignore text-style))
   (let* (value-returned 
 	 return-value
 	 (simplep (and (null printer)
@@ -71,10 +70,13 @@
 					  (port-application-shell port))
 			      :menu-augment nil
 			      :managed nil))
-	 (menu (tk::get-values menu-shell :menu-pane)))
+	 (menu (tk::get-values menu-shell :menu-pane))
+	 (font (and text-style (text-style-mapping (port framem) text-style)))
+	 (font-args (and font (list :font font))))
 
     (tk::set-values menu-shell :title (or label "Choose"))
-    
+    (when font (tk::set-values menu-shell :font font))
+
     (labels ((make-menu-button (item class parent &rest options)
 	       (let ((button
 		      (if simplep
@@ -83,13 +85,15 @@
 				 :sensitive (clim-internals::menu-item-active item)
 				 :parent parent 
 				 :managed nil
-				 :label (string (menu-item-display item))
-				 options) 
+				 :label (string (menu-item-display
+						 item))
+				 (append font-args options)) 
 			(let* ((pixmap (pixmap-from-menu-item
 					associated-window 
 					item
 					printer
-					presentation-type))
+					presentation-type
+					text-style))
 			       (image (tk::image-from-pixmap pixmap))
 			       (button
 				(apply #'make-instance
@@ -117,16 +121,18 @@
 	       (map nil #'(lambda (item)
 			    (ecase (clim-internals::menu-item-type item)
 			      (:divider
-			       (make-instance 'xt::static-text
+			       (apply #'make-instance 'xt::static-text
 					      :parent menu
 					      :managed nil
-					      :string " "))
+					      :string " " 
+					      font-args))
 			      (:label
-			       (make-instance 'xt::static-text
+			       (apply #'make-instance 'xt::static-text
 						 :parent menu
 						 :managed nil
 						 :string (string
-								(menu-item-display item))))
+							  (menu-item-display item))
+						 font-args))
 			      (:item
 			       (if (clim-internals::menu-item-items item)
 				   (let* ((menu-button

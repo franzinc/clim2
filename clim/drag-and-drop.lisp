@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: drag-and-drop.lisp,v 1.5 92/11/05 17:15:35 cer Exp $
+;; $fiHeader: drag-and-drop.lisp,v 1.6 92/11/06 18:59:26 cer Exp $
 
 (in-package :clim-internals)
 
@@ -244,18 +244,20 @@
 				  (presentation-object destination) destination
 				  doc-stream)))))))
 	    (:pointer-motion (window x y)
-	     (highlight destination last-window :unhighlight)
-	     (setq destination nil)
-	     (when last-x
-	       (feedback last-window last-x last-y :unhighlight))
-	     (setq last-x x
-		   last-y y
-		   last-window window)
-	     (feedback window x y :highlight))))
+			     (when (typep window 'clim-stream-sheet)
+			       (highlight destination last-window :unhighlight)
+			       (setq destination nil)
+			       (when last-x
+				 (feedback last-window last-x last-y :unhighlight))
+			       (setq last-x x
+				     last-y y
+				     last-window window)
+			       (feedback window x y :highlight)))))
 	(when last-x
 	  (feedback last-window last-x last-y :unhighlight)))
       ;; The user has put down the presentation, figure out what to do
       ;;--- What if there is more than one translator?
+      (unless destination (setq destination *null-presentation*))
       (let ((translator (find-translator destination last-window last-x last-y)))
 	(when translator
 	  (multiple-value-bind (result-object result-type options)

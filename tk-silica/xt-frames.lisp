@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-frames.lisp,v 1.20 92/10/28 11:33:20 cer Exp $
+;; $fiHeader: xt-frames.lisp,v 1.21 92/11/06 19:04:37 cer Exp $
 
 
 (in-package :xm-silica)
@@ -137,27 +137,30 @@
 			    (port-display port)))
       (declare (ignore ignore win1 win2 x y))
       (tk::set-values menu :x root-x :y root-y)
-      (loop
-	(when (funcall closure) (return nil))
-	(framem-enable-menu framem menu)
-	;; Now we have to wait
-	(port-force-output port)
-	(wait-for-callback-invocation
-	 port
-	 #'(lambda () 
-	     ;;-- This is to deal
-	     ;;-- with the race
-	     ;;-- condition where
-	     ;;-- the menu go down
-	     ;;-- to quick
-	     (or (funcall closure)
-		 (not (framem-menu-active-p framem menu)))) 
-	 "Returned value"))
 
-      (framem-popdown-menu framem menu)
-      
-      (unless cache
-	(framem-destroy-menu framem menu))
+      (unwind-protect
+	  (progn
+	    (loop
+	      (when (funcall closure) (return nil))
+
+
+	      (framem-enable-menu framem menu)
+	      ;; Now we have to wait
+	      (port-force-output port)
+	      (wait-for-callback-invocation
+	       port
+	       #'(lambda () 
+		   ;;-- This is to deal
+		   ;;-- with the race
+		   ;;-- condition where
+		   ;;-- the menu go down
+		   ;;-- to quick
+		   (or (funcall closure)
+		       (not (framem-menu-active-p framem menu)))) 
+	       "Returned value"))
+	    (framem-popdown-menu framem menu))
+	(unless cache
+	  (framem-destroy-menu framem menu)))
       
       (values-list (nth-value 1 (funcall closure))))))
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept-values.lisp,v 1.41 92/11/06 18:58:53 cer Exp $
+;; $fiHeader: accept-values.lisp,v 1.42 92/11/09 10:54:03 cer Exp $
 
 (in-package :clim-internals)
 
@@ -151,9 +151,10 @@
 	      (updating-output
 		  (stream :unique-id query-identifier
 			  :id-test #'equal
-			  :cache-value (if (accept-values-query-changed-p query)
-					   (accept-values-query-value query)
-					   default)
+			  :cache-value (cons active-p
+					     (if (accept-values-query-changed-p query)
+						 (accept-values-query-value query)
+					       default))
 			  :cache-test #'(lambda (x y)
 					  (unless (accept-values-query-changed-p query)
 					    (equal x y))))
@@ -171,7 +172,8 @@
 					      (setf (accept-values-query-value query) default))
 				 :history ptype
 				 :present-p `(accept-values-choice ,query)
-				 :query-identifier query))
+				 :query-identifier query
+				 :active-p active-p))
 		      ((and found-p
 			    (presentation-typep (accept-values-query-value query) ptype))
 		       ;; The programmer supplied no default, but a previous edit
@@ -182,14 +184,16 @@
 				 :default (accept-values-query-value query)
 				 :history ptype
 				 :present-p `(accept-values-choice ,query)
-				 :query-identifier query))
+				 :query-identifier query
+				 :active-p active-p))
 		      (t
 		       ;; No default supplied, field has never been edited.
 		       (accept-1 stream ptype
 				 :view view :prompt prompt
 				 :history ptype :provide-default nil
 				 :present-p `(accept-values-choice ,query)
-				 :query-identifier query)))))
+				 :query-identifier query
+				 :active-p active-p)))))
 	;; really wants to move the cursor position to some reasonable
 	;; place in case we're just reusing an existing presentation
 	(unless found-p

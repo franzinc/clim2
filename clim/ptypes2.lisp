@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: ptypes2.lisp,v 1.17 92/11/06 19:00:24 cer Exp $
+;; $fiHeader: ptypes2.lisp,v 1.18 92/11/09 10:54:42 cer Exp $
 
 (in-package :clim-internals)
 
@@ -466,9 +466,10 @@
 
 ;;; Called when ACCEPT turns into PRESENT
 (defun accept-present-default (presentation-type stream view default default-supplied-p
-			       present-p query-identifier &key (prompt t))
+			       present-p query-identifier &key (prompt t) (active-p t))
   (funcall-presentation-generic-function accept-present-default
     presentation-type stream view default default-supplied-p present-p query-identifier
+    :active-p active-p
     :prompt prompt))
 
 (define-default-presentation-method accept-present-default

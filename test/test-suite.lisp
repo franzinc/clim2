@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: test-suite.lisp,v 1.42 92/10/28 11:32:18 cer Exp $
+;; $fiHeader: test-suite.lisp,v 1.43 92/11/06 19:04:13 cer Exp $
 
 (in-package :clim-user)
 
@@ -1598,6 +1598,29 @@ Luke Luck licks the lakes Luke's duck likes."))
 		 :label "Select an activity")))
 
 
+#+Allegro
+(define-test (more-simple-menus menus-and-dialogs) (stream)
+  "Popup a few menus"
+  (macrolet ((doit (&body body)
+	       `(mp::with-timeout (5) ,@body)))
+    (doit
+     (menu-choose '("Whistle"
+		    ("Pat head" :items
+		     (("with right hand" . "Pat head with right hand")
+		      ("with left hand" . "Pat head with left hand")))
+		    ("Rub Tummy" :items
+		     (("clockwise" . "Rub tummy clockwise")
+		      ("counter-clockwise" . "Rub tummy counter-clockwise")))
+		    "Walk"
+		    "Chew Gum")
+		  :associated-window stream
+		  :label "Select an activity"))
+    (doit
+     (menu-choose '("akjdfkjdf" "bdfkj" "cdfkj") :label "foo" :text-style '(:fix :roman :huge)))
+
+    (doit
+     (menu-choose '("akjdfkjdf" "bdfkj" "cdfkj") :label "foo" :text-style '(:fix :roman :tiny)))))
+
 
 (define-test (graphical-menu menus-and-dialogs) (stream)
   "A menu that contains graphics."
@@ -1766,6 +1789,55 @@ Luke Luck licks the lakes Luke's duck likes."))
 		(when draw-\\-diagonal
 		  (draw-line* stream 0 0 square-dimension square-dimension
 			      :line-cap-shape :round))))))))))
+
+(define-test (gadgets-dialog menus-and-dialogs) (stream)
+  "An own-window ACCEPTING-VALUES dialog that has graphics inside of it."
+  (gadgets-dialog-internal stream nil))
+
+
+(defun gadgets-dialog-internal (stream &optional own-window)
+  (macrolet ((accepts (&rest accepts)
+	       `(progn
+		  ,@(mapcar #'(lambda (ac)
+				(destructuring-bind (var type &key 
+							 view
+							 (prompt
+							  (format nil "~A" var))) ac
+				  `(progn
+				     (setq ,var (accept ',type 
+							:stream
+							stream
+							,@(and view `(:view ,view))
+							:default ,var
+							:prompt ,prompt))
+				     (terpri stream))))
+			    accepts))))
+    (let ((a :red)
+	  (b '(:green))
+	  (c nil)
+	  (d 0.5)
+	  (e 5)
+	  (f :blue)
+	  (g 5)
+	  (h "kjkdjf")
+	  (i "kjdfjdf")
+	  (j :red)
+	  (k '(:green :blue))
+	  (l :red))
+      (accepting-values (stream :own-window own-window :label "Gadgets dialog")
+	  (accepts (a (member :red :blue :green))
+		   (b (subset :red :blue :green))
+		   (c boolean)
+		   (d (float 0 1) :view '(slider-view :decimal-places 2))
+		   (e (integer 0 10) :view +slider-view+)
+		   (f (member :red :blue :green) :view +text-field-view+)
+		   (g (integer 0 10) :view +text-field-view+)
+		   (h string :view +text-field-view+)
+		   (i string :view +text-editor-view+)
+		   (j (member :red :blue :green) :view +list-pane-view+)
+		   (k (subset :red :blue :green) :view +list-pane-view+)
+		   (l (member :red :blue :green) :view +option-pane-view+))))))
+
 
 
 ;;;; Benchmarks

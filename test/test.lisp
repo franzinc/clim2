@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: test.lisp,v 1.39 92/09/24 09:39:44 cer Exp Locker: cer $
+;; $fiHeader: test.lisp,v 1.40 92/10/04 14:16:30 cer Exp $
 
 (in-package :clim-user)
 
@@ -962,3 +962,20 @@
 		    :stream stream
 		    :prompt "barf"
  		    :default v))))
+
+(clim-demo::define-lisp-listener-command (com-test-active-p :name t)
+    ()
+  (let ((x 1)
+	(y :a)
+	(stream *query-io*))
+    (accepting-values (stream :align-prompts t :resynchronize-every-pass t)
+	(setq y (accept '(member :a :b :c)
+			:default y 
+			:active-p (< x 5)
+			:stream stream
+			:prompt "YYY"))
+      (setq x (accept '(integer 0 10)
+		      :default x 
+		      :view +slider-view+
+		      :stream stream
+		      :prompt "XXXX")))))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: pixmap-streams.lisp,v 1.12 92/08/21 16:33:58 cer Exp $
+;; $fiHeader: pixmap-streams.lisp,v 1.13 92/09/08 15:18:11 cer Exp $
 
 (in-package :clim-internals)
 
@@ -58,15 +58,17 @@
     (funcall continuation pixmap-stream)
     (slot-value pixmap-medium 'silica::pixmap)))
 
-(defun pixmap-from-menu-item (associated-window menu-item printer presentation-type)
+(defun pixmap-from-menu-item (associated-window menu-item printer
+			      presentation-type &optional text-style)
   (with-menu (menu associated-window)
     (setf (stream-text-margin menu) 1000)
     (let ((record (with-output-recording-options (menu :draw nil :record t)
 		    (with-output-to-output-record (menu)
 		      (handler-case
-			(if presentation-type
-			    (present menu-item presentation-type :stream menu)
-			    (funcall printer menu-item menu))
+			  (with-text-style (menu text-style)
+			    (if presentation-type
+				(present menu-item presentation-type :stream menu)
+			      (funcall printer menu-item menu)))
 			(error ()
 			  (write-string "Error in printer" menu)))))))
       (multiple-value-bind (width height)
