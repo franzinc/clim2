@@ -1,4 +1,4 @@
-# $Header: /repo/cvs.copy/clim2/Makefile.hpprism,v 1.17 2000/07/06 20:43:09 layer Exp $
+# $Header: /repo/cvs.copy/clim2/Makefile.hpprism,v 1.18 2000/07/17 19:59:05 layer Exp $
 #
 #  Makefile.hpprism for CLIM 2.0
 #
@@ -21,7 +21,7 @@ STD_DEFINES = -DSYSV
 AR = ar clq
 
 #TKLIB=-lXm
-TKLIB=/lib/libXm.3
+TKLIB=/lib/libXm.1
 XTLIB=-lXt
 XLIB=-lX11
 

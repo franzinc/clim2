@@ -11,6 +11,14 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.2.2.21
+
+2000-07-17  Kevin Layer  <layer@ultra>
+
+	* Makefile: remove SIXTYFOURBIT variable
+	* Makefile.hpprism: attempt to force clim to use motif 1.2
+
+*******************************************************************************
 2.2.2.20
 
 Fri Jul  7 21:18:31 PDT 2000  Duane Rettig  <duane@beta>
