@@ -1,5 +1,5 @@
 /*
- * $Id: wnnerrmsg.c,v 1.1 1996/03/13 09:57:26 colin Exp $
+ * $Id: wnnerrmsg.c,v 2.4 2003/12/15 18:35:18 layer Exp $
  */
 /*
  * Copyright Kyoto University Research Institute for Mathematical Sciences

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $Id: db-text.lisp,v 1.3 1998/08/06 23:16:38 layer Exp $
+;; $Id: db-text.lisp,v 2.4 2003/12/15 18:35:13 layer Exp $
 
 "Copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
 

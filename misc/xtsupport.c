@@ -1,4 +1,4 @@
-/* $Header: /repo/cvs.copy/clim2/misc/xtsupport.c,v 1.14 1997/02/05 01:49:19 tomj Exp $ */
+/* $Header: /repo/cvs.copy/clim2/misc/xtsupport.c,v 2.4 2003/12/15 18:35:14 layer Exp $ */
 
 #if defined(__alpha)
 # pragma pointer_size (save)

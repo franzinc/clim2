@@ -1,5 +1,5 @@
 /*
- * $Id: strings.c,v 1.2 1998/08/06 23:17:41 layer Exp $
+ * $Id: strings.c,v 2.4 2003/12/15 18:35:18 layer Exp $
  */
 /*
  * Copyright Kyoto University Research Institute for Mathematical Sciences

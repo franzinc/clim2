@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $Id: sysdcl.lisp,v 1.6 2000/05/01 21:43:29 layer Exp $
+;; $Id: sysdcl.lisp,v 2.4 2003/12/15 18:35:13 layer Exp $
 
 (in-package #-ansi-90 :user #+ansi-90 :cl-user)
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: USER; Base: 10; Lowercase: Yes -*-
 
-;; $Id: wheader.lisp,v 1.7 1998/08/06 23:16:53 layer Exp $
+;; $Id: wheader.lisp,v 2.4 2003/12/15 18:35:14 layer Exp $
 
 ;;; "Translated" from \sys\include\windows.h
 

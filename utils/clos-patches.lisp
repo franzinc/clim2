@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: clos-patches.lisp,v 1.18 2003/05/29 00:20:08 duane Exp $
+;; $Id: clos-patches.lisp,v 2.4 2003/12/15 18:35:18 layer Exp $
 
 (in-package :clim-utils)
 

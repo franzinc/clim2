@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: excl-verification.lisp,v 1.26 2002/07/09 20:57:19 layer Exp $
+;; $Id: excl-verification.lisp,v 2.4 2003/12/15 18:35:18 layer Exp $
 
 (in-package :sys)
 

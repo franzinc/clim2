@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: old-clx-implementation.lisp,v 1.10 2002/07/09 20:57:16 layer Exp $
+;; $Id: old-clx-implementation.lisp,v 2.4 2003/12/15 18:35:13 layer Exp $
 
 ;;--- (1) Why does the new CLX port flush WHITE- and BLACK-PIXEL?
 ;;--- (2) What to do about reparenting?

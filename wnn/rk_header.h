@@ -1,5 +1,5 @@
 /*
- * $Id: rk_header.h,v 1.1 1996/03/13 09:57:08 colin Exp $
+ * $Id: rk_header.h,v 2.4 2003/12/15 18:35:18 layer Exp $
  */
 /*
  * Copyright Kyoto University Research Institute for Mathematical Sciences

@@ -1,5 +1,5 @@
 /*
- * $Id: jl.c,v 1.4 2000/06/13 14:26:05 layer Exp $
+ * $Id: jl.c,v 2.4 2003/12/15 18:35:18 layer Exp $
  */
 /*
  * Copyright Kyoto University Research Institute for Mathematical Sciences

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $Id: cloe-implementation.lisp,v 1.5 1998/08/06 23:16:13 layer Exp $
+;; $Id: cloe-implementation.lisp,v 2.4 2003/12/15 18:35:12 layer Exp $
 
 ;;; Support for the shared class DC.
 

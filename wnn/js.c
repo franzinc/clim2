@@ -1,5 +1,5 @@
 /*
- * $Id: js.c,v 1.2 1998/05/19 18:51:33 layer Exp $
+ * $Id: js.c,v 2.4 2003/12/15 18:35:18 layer Exp $
  */
 /*
  * Copyright Kyoto University Research Institute for Mathematical Sciences

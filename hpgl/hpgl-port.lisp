@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: hpgl-clim; Base: 10; Lowercase: Yes -*-
 
-;;; $Id: hpgl-port.lisp,v 1.7 1998/08/06 23:16:41 layer Exp $
+;;; $Id: hpgl-port.lisp,v 2.4 2003/12/15 18:35:13 layer Exp $
 
 "Copyright (c) 1991 by International Lisp Associates.  All rights reserved."
 "Portions copyright (c) 1992 Franz Inc. All rights reserved"

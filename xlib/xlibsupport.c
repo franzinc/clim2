@@ -15,7 +15,7 @@
  * Commercial Software developed at private expense as specified in 
  * DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
  *
- * $Id: xlibsupport.c,v 1.9 1998/08/06 23:17:44 layer Exp $
+ * $Id: xlibsupport.c,v 2.4 2003/12/15 18:35:18 layer Exp $
  */
 
 /************************************************************************/

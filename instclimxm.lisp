@@ -18,7 +18,7 @@
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
 
-;; $Id: instclimxm.lisp,v 1.15 2002/07/09 20:57:14 layer Exp $
+;; $Id: instclimxm.lisp,v 2.4 2003/12/15 18:35:11 layer Exp $
 
 ;;
 ;; Load the Motif version of CLIM

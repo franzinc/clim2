@@ -1,5 +1,5 @@
 ;; Load this file to make a clim image.
-;; $Id: buildclim.cl,v 1.7 2003/11/11 05:34:56 layer Exp $
+;; $Id: buildclim.cl,v 2.4 2003/12/15 18:35:11 layer Exp $
 
 (excl:build-lisp-image
  #+ics "sys:clim.dxl" #-ics "sys:clim8.dxl"

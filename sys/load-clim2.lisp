@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: load-clim2.lisp,v 1.8 2002/07/09 20:57:18 layer Exp $
+;; $Id: load-clim2.lisp,v 2.4 2003/12/15 18:35:16 layer Exp $
  
 (defun flush-clim ()
   (when (find-package 'clim-defsys)

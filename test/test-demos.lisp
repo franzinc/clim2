@@ -1,6 +1,6 @@
 (in-package :clim-user)
 
-;; $Id: test-demos.lisp,v 1.12 1998/08/06 23:17:10 layer Exp $
+;; $Id: test-demos.lisp,v 2.4 2003/12/15 18:35:17 layer Exp $
 
 
 

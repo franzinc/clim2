@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: recompile.lisp,v 1.5 2002/07/09 20:57:18 layer Exp $
+;; $Id: recompile.lisp,v 2.4 2003/12/15 18:35:16 layer Exp $
 
 ;; this file is way out of date -- it needs to be recoded using
 ;; compile.lisp as a model.  -tjm 23May97

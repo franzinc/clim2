@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: frames.lisp,v 1.98 2003/12/12 05:33:29 layer Exp $
+;; $Id: frames.lisp,v 2.4 2003/12/15 18:35:12 layer Exp $
 
 (in-package :clim-internals)
 
