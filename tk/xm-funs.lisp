@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xm-funs.lisp,v 1.21 1998/08/06 23:17:20 layer Exp $
+;; $Id: xm-funs.lisp,v 1.22 2000/03/04 05:13:49 duane Exp $
 
 ;;
 ;; This file contains compile time only code -- put in clim-debug.fasl.
@@ -28,21 +28,21 @@
     :call-direct t
     :callback nil
     :arguments '(foreign-address foreign-address)
-    :return-type :unsigned-integer)
+    :return-type :foreign-address)
 
 (defforeign 'xm_string_concat
     :entry-point (ff:convert-to-lang "XmStringConcat")
     :call-direct t
     :callback nil
     :arguments '(foreign-address foreign-address)
-    :return-type :unsigned-integer)
+    :return-type :foreign-address)
 
 (defforeign 'xm_string_copy
     :entry-point (ff:convert-to-lang "XmStringCopy")
     :call-direct t
     :callback nil
     :arguments '(foreign-address)
-    :return-type :unsigned-integer)
+    :return-type :foreign-address)
 
 (defforeign 'xm_string_get_l_to_r
     :entry-point (ff:convert-to-lang "XmStringGetLtoR")
@@ -57,7 +57,7 @@
     :call-direct t
     :arguments '(foreign-address foreign-address integer integer)
     :arg-checking nil
-    :return-type :unsigned-integer)
+    :return-type :foreign-address)
 
 (defforeign 'xm_font_list_init_font_context
     :entry-point (ff:convert-to-lang "XmFontListInitFontContext")
@@ -89,7 +89,7 @@
     :callback nil
     :arguments '(foreign-address foreign-address)
     :arg-checking nil
-    :return-type :unsigned-integer)
+    :return-type :foreign-address)
 
 (defforeign 'xm_font_list_free
     :entry-point (ff:convert-to-lang "XmFontListFree")
@@ -120,7 +120,7 @@
     :callback nil
     :arguments '(foreign-address foreign-address fixnum)
     :arg-checking nil
-    :return-type :unsigned-integer)
+    :return-type :foreign-address)
 
 (defforeign 'xm_main_window_set_area
     :entry-point (ff:convert-to-lang "XmMainWindowSetAreas")
@@ -142,14 +142,14 @@
     :call-direct t
     :arguments '(foreign-address fixnum)
     :arg-checking nil
-    :return-type :unsigned-integer)
+    :return-type :foreign-address)
 
 (defforeign 'xm-selection-box-get-child
     :entry-point (ff:convert-to-lang "XmSelectionBoxGetChild")
     :call-direct t
     :arguments '(foreign-address fixnum)
     :arg-checking nil
-    :return-type :unsigned-integer)
+    :return-type :foreign-address)
 
 
 (defforeign 'xm_file_selection_do_search
@@ -164,14 +164,14 @@
     :call-direct t
     :arguments '(foreign-address)
     :arg-checking nil
-    :return-type :unsigned-integer)
+    :return-type :foreign-address)
 
 (defforeign 'xm_option_button_gadget
     :entry-point (ff:convert-to-lang "XmOptionButtonGadget")
     :call-direct t
     :arguments '(foreign-address)
     :arg-checking nil
-    :return-type :unsigned-integer)
+    :return-type :foreign-address)
 
 (defforeign 'initializemydrawingareaquerygeometry
     :entry-point (ff:convert-to-lang "InitializeMyDrawingAreaQueryGeometry")
@@ -186,14 +186,14 @@
     :call-direct t
     :arguments '(foreign-address)
     :arg-checking nil
-    :return-type :unsigned-integer)
+    :return-type :foreign-address)
 
 (defforeign 'xm_is_traversable
     :entry-point (ff:convert-to-lang "XmIsTraversable")
     :call-direct t
     :arguments '(foreign-address)
     :arg-checking nil
-    :return-type :unsigned-integer)
+    :return-type :foreign-address)
 
 (defforeign 'xm_font_list_append_entry
     :entry-point (ff:convert-to-lang "XmFontListAppendEntry")
@@ -201,7 +201,7 @@
     :callback nil
     :arguments '(foreign-address foreign-address)
     :arg-checking nil
-    :return-type :unsigned-integer)
+    :return-type :foreign-address)
 
 (defforeign 'xm_font_list_entry_create
     :entry-point (ff:convert-to-lang "XmFontListEntryCreate")
@@ -209,7 +209,7 @@
     :callback nil
     :arguments '(foreign-address foreign-address foreign-address)
     :arg-checking nil
-    :return-type :unsigned-integer)
+    :return-type :foreign-address)
 
 (defforeign 'xm_font_list_entry_get_font
     :entry-point (ff:convert-to-lang "XmFontListEntryGetFont")
@@ -217,7 +217,7 @@
     :callback nil
     :arguments '(foreign-address foreign-address)
     :arg-checking nil
-    :return-type :unsigned-integer)
+    :return-type :foreign-address)
 
 (defforeign 'xm_font_list_next_entry
     :entry-point (ff:convert-to-lang "XmFontListNextEntry")
@@ -225,7 +225,7 @@
     :callback nil
     :arguments '(foreign-address)
     :arg-checking nil
-    :return-type :unsigned-integer)
+    :return-type :foreign-address)
 
 (defforeign 'xm_toggle_button_set_state
     :entry-point (ff:convert-to-lang "XmToggleButtonSetState")

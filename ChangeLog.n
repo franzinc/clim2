@@ -11,6 +11,23 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.2.2.8
+
+Fri Mar  3 20:47:21 PST 2000  Duane Rettig  <duane@beta>
+
+	* Makefile: Add SIXTYFOURBIT def
+	* Makefile.alpha: Add 64-bit port
+	* tk/convenience.lisp: :unsigned-integer -> :foreign-address
+	* tk/font.lisp: Add 64-bit
+	* tk/resources.lisp: Add 64-bit
+	* tk/xlib.lisp: Add 64-bit
+	* tk/xm-funs.lisp: Add 64-bit
+	* tk/xt-funs.lisp: Add 64-bit
+	* utils/lisp-utilities.lisp: Add 64-bit
+	* utils/packages.lisp: Incf version
+	* wnn/jl-funs.lisp: Add 64-bit
+
+*******************************************************************************
 2000-02-25  Charles A. Cox  <cox@delta>
 
 	* utils/lisp-utilities.lisp: add ':strings-convert nil' to _free def.

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: lisp-utilities.lisp,v 1.42 2000/02/26 01:09:59 cox Exp $
+;; $Id: lisp-utilities.lisp,v 1.43 2000/03/04 05:13:51 duane Exp $
 
 (in-package :clim-utils)
 
@@ -1593,7 +1593,7 @@
       ((data :int))
     :call-direct t
     :arg-checking nil
-    :returning :int)
+    :returning :foreign-address)
   (ff:def-foreign-call (_free "free")
       ((data (* :char)))
     :call-direct t
@@ -1607,7 +1607,7 @@
 ;;; ALLOCATE-CSTRUCT was adapted from ff:make-cstruct.
 ;;; We aren't using ff:make-cstruct because it uses excl:aclmalloc.
 #-mswindows
-(defun allocate-cstruct (name &key 
+(defun allocate-cstruct (name &key
 			      (number 1)
 			      (initialize
 			       (ff::cstruct-property-initialize
@@ -1623,13 +1623,13 @@
   ;; Used only by ALLOCATE-CSTRUCT.
   (let ((pointer (_malloc size)))
     (when init
-      (do ((i 0 (+ i 4)))
+      (do ((i 0 (+ i #-64bit 4 #+64bit 8)))
 	  ((>= i size))
 	(declare (fixnum i))
-	(setf (sys:memref-int pointer i 0 :unsigned-long) 0)))
+	(setf (sys:memref-int pointer i 0 :unsigned-natural) 0)))
     pointer))
 
-;; Adapted from FF:STRING-TO-CHAR*. 
+;; Adapted from FF:STRING-TO-CHAR*.
 ;;; We aren't using FF:STRING-TO-CHAR* because it uses excl:aclmalloc.
 (defun string-to-foreign (string &optional address)
   "Convert a Lisp string to a C string, by copying."

@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xt-funs.lisp,v 1.31 1998/08/06 23:17:21 layer Exp $
+;; $Id: xt-funs.lisp,v 1.32 2000/03/04 05:13:49 duane Exp $
 
 ;;
 ;; This file contains compile time only code -- put in clim-debug.fasl.
@@ -66,14 +66,14 @@
     :call-direct t
     :arguments nil
     :arg-checking nil
-    :return-type :unsigned-integer)
+    :return-type :foreign-address)
 
 (defforeign 'xt_destroy_application_context
     :entry-point (ff:convert-to-lang "XtDestroyApplicationContext")
     :call-direct t
     :arguments '(foreign-address)
     :arg-checking nil
-    :return-type :unsigned-integer)
+    :return-type :foreign-address)
 
 (defforeign 'xt_app_set_error_handler
     :entry-point (ff:convert-to-lang "XtAppSetErrorHandler")
@@ -95,28 +95,28 @@
     :arguments '(foreign-address foreign-address foreign-address foreign-address
 		 foreign-address fixnum foreign-address foreign-address)
     :arg-checking nil
-    :return-type :unsigned-integer)
+    :return-type :foreign-address)
 
 (defforeign 'xt_close_display
     :entry-point (ff:convert-to-lang "XtCloseDisplay")
     :call-direct t
     :arguments '(foreign-address)
     :arg-checking nil
-    :return-type :unsigned-integer)
+    :return-type :foreign-address)
 
 (defforeign 'xt_database
     :entry-point (ff:convert-to-lang "XtDatabase")
     :call-direct t
     :arguments '(foreign-address)
     :arg-checking nil
-    :return-type :unsigned-integer)
+    :return-type :foreign-address)
 
 (defforeign 'xt_get_application_name_and_class
     :entry-point (ff:convert-to-lang "XtGetApplicationNameAndClass")
     :call-direct t
     :arguments '(foreign-address foreign-address foreign-address)
     :arg-checking nil
-    :return-type :unsigned-integer)
+    :return-type :foreign-address)
 
 
 (defforeign 'xt_convert_and_store
@@ -125,7 +125,7 @@
     :arguments '(foreign-address foreign-address foreign-address
 		 foreign-address foreign-address)
     :arg-checking nil
-    :return-type :unsigned-integer)
+    :return-type :foreign-address)
 
 (defforeign 'xt_app_create_shell
     :entry-point (ff:convert-to-lang "XtAppCreateShell")
@@ -133,7 +133,7 @@
     :arguments '(foreign-address foreign-address foreign-address foreign-address
 		 foreign-address fixnum)
     :arg-checking nil
-    :return-type :unsigned-integer)
+    :return-type :foreign-address)
 
 ;;;;
 
@@ -143,7 +143,7 @@
     :arguments '(foreign-address foreign-address foreign-address
 		 foreign-address fixnum)
     :arg-checking nil
-    :return-type :unsigned-integer)
+    :return-type :foreign-address)
 
 
 (defforeign 'xt_create_managed_widget
@@ -152,7 +152,7 @@
     :arguments '(foreign-address foreign-address foreign-address
 		 foreign-address fixnum)
     :arg-checking nil
-    :return-type :unsigned-integer)
+    :return-type :foreign-address)
 
 (defforeign 'xt_realize_widget
     :entry-point (ff:convert-to-lang "XtRealizeWidget")
@@ -216,7 +216,7 @@
     :call-direct t
     :arguments '(foreign-address foreign-address foreign-address foreign-address fixnum)
     :arg-checking nil
-    :return-type :unsigned-integer)
+    :return-type :foreign-address)
 
 (defforeign 'xt_popup
     :entry-point (ff:convert-to-lang "XtPopup")
@@ -237,35 +237,35 @@
     :call-direct t
     :arguments '(foreign-address)
     :arg-checking nil
-    :return-type :unsigned-integer)
+    :return-type :foreign-address)
 
 (defforeign 'xt_parent
     :entry-point (ff:convert-to-lang "XtParent")
     :call-direct t
     :arguments '(foreign-address)
     :arg-checking nil
-    :return-type :unsigned-integer)
+    :return-type :foreign-address)
 
 (defforeign 'xt_name
     :entry-point (ff:convert-to-lang "XtName")
     :call-direct t
     :arguments '(foreign-address)
     :arg-checking nil
-    :return-type :unsigned-integer)
+    :return-type :foreign-address)
 
 (defforeign 'xt_class
     :entry-point (ff:convert-to-lang "XtClass")
     :call-direct t
     :arguments '(foreign-address)
     :arg-checking nil
-    :return-type :unsigned-integer)
+    :return-type :foreign-address)
 
 (defforeign 'xt_query_geometry
     :entry-point (ff:convert-to-lang "XtQueryGeometry")
     :call-direct t
     :arguments '(foreign-address foreign-address foreign-address)
     :arg-checking nil
-    :return-type :unsigned-integer)
+    :return-type :foreign-address)
 
 (defforeign 'xt_configure_widget
     :entry-point (ff:convert-to-lang "XtConfigureWidget")
@@ -332,7 +332,7 @@
     :call-direct t
     :arguments '(foreign-address)
     :arg-checking nil
-    :return-type :unsigned-integer)
+    :return-type :foreign-address)
 
 (defforeign 'xt_add_callback
     :entry-point (ff:convert-to-lang "XtAddCallback")
@@ -346,7 +346,7 @@
     :call-direct t
     :arguments '(foreign-address foreign-address)
     :arg-checking nil
-    :return-type :unsigned-integer)
+    :return-type :foreign-address)
 
 (defforeign 'xt_remove_all_callbacks
     :entry-point (ff:convert-to-lang "XtRemoveAllCallbacks")
@@ -402,49 +402,49 @@
     :arguments '(foreign-address	; display
 		 )
     :arg-checking nil
-    :return-type :unsigned-integer)
+    :return-type :foreign-address)
 
 (defforeign 'xt_set_keyboard_focus
     :entry-point (ff:convert-to-lang "XtSetKeyboardFocus")
     :call-direct t
     :arguments '(foreign-address foreign-address)
     :arg-checking nil
-    :return-type :unsigned-integer)
+    :return-type :foreign-address)
 
 (ff:defforeign 'init_clim_gc_cursor_stuff
     :call-direct t
     :arguments '(foreign-address)
     :arg-checking nil
     :entry-point (ff:convert-to-lang "init_clim_gc_cursor_stuff")
-    :return-type :unsigned-integer)
+    :return-type :foreign-address)
 
 (ff:defforeign 'set_clim_gc_cursor_widget
     :call-direct t
     :arguments '(foreign-address integer)
     :arg-checking nil
     :entry-point (ff:convert-to-lang "set_clim_gc_cursor_widget")
-    :return-type :unsigned-integer)
+    :return-type :foreign-address)
 
 ;(ff:defforeign 'xt_get_multi_click_time
 ;    :call-direct t
 ;    :arguments '(foreign-address)
 ;    :arg-checking nil
 ;    :entry-point (ff:convert-to-lang "XtGetMultiClickTime")
-;    :return-type :unsigned-integer)
+;    :return-type :foreign-address)
 
 (ff:defforeign 'xt_parse_translation_table
     :call-direct t
     :arguments '(simple-string)
     :arg-checking nil
     :entry-point (ff:convert-to-lang "XtParseTranslationTable")
-    :return-type :unsigned-integer)
+    :return-type :foreign-address)
 
 (ff:defforeign 'xt_parse_accelerator_table
     :call-direct t
     :arguments '(simple-string)
     :arg-checking nil
     :entry-point (ff:convert-to-lang "XtParseAcceleratorTable")
-    :return-type :unsigned-integer)
+    :return-type :foreign-address)
 
 (ff:defforeign 'xt_app_set_fallback_resources
     :call-direct t
@@ -475,7 +475,7 @@
     :arg-checking nil
     :entry-point (ff:convert-to-lang "setlocale")
     :arguments '(integer integer)
-    :return-type :unsigned-integer)
+    :return-type :foreign-address)
 
 #+debug
 (progn
@@ -485,14 +485,14 @@
     :arguments nil
     :arg-checking nil
     :entry-point (ff:convert-to-lang "_XlcCurrentLC")
-    :return-type :unsigned-integer)
+    :return-type :foreign-address)
 
 (ff:defforeign 'init-font-set
     :call-direct t
     :arguments '(foreign-address)
     :arg-checking nil
     :entry-point (ff:convert-to-lang "initFontSet")
-    :return-type :unsigned-integer)
+    :return-type :foreign-address)
 
 
 (ff:defforeign 'islower
@@ -500,7 +500,7 @@
     :arguments '(foreign-address)
     :arg-checking nil
     :entry-point (ff:convert-to-lang "islower")
-    :return-type :unsigned-integer)
+    :return-type :foreign-address)
 
 
 (ff:defforeign 'toupper
@@ -508,6 +508,6 @@
     :arguments '(foreign-address)
     :arg-checking nil
     :entry-point (ff:convert-to-lang "toupper")
-    :return-type :unsigned-integer)
+    :return-type :foreign-address)
 
 ) ;;progn

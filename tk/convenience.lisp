@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: convenience.lisp,v 1.22 1999/02/25 08:23:42 layer Exp $
+;; $Id: convenience.lisp,v 1.23 2000/03/04 05:13:48 duane Exp $
 
 (in-package :tk)
 
@@ -32,7 +32,7 @@
 	       :call-direct t
 	       :arguments '(foreign-address foreign-address foreign-address fixnum)
 	       :arg-checking nil
-	       :return-type :unsigned-integer))
+	       :return-type :foreign-address))
 	 (defclass ,class ,superclasses
 	   ()
 	   (:metaclass xt-class))

@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: resources.lisp,v 1.62 1999/02/25 08:23:42 layer Exp $
+;; $Id: resources.lisp,v 1.63 2000/03/04 05:13:48 duane Exp $
 
 (in-package :tk)
 
@@ -445,7 +445,7 @@
     (int :signed-long)
     (boolean :unsigned-byte)
     (ol-define :unsigned-word)
-    (t :unsigned-long)))
+    (t :unsigned-natural)))
 
 
 (defun fill-gv-cache (parent-class class resources)
@@ -461,7 +461,7 @@
     ;; pointer but is really just the value.
     (dotimes (j len)
       (setf (xt-arglist-value arglist j)
-	(clim-utils::allocate-memory 8 0)))	
+	(clim-utils::allocate-memory 8 0)))
     (dolist (r resources)
       (let ((resource (or (find-class-resource class r)
 			  (psetq constraint-resource-used t)
@@ -601,10 +601,10 @@
 (defmethod convert-resource-out ((parent  t) (type (eql 'string)) value)
   (note-malloced-object
    (excl:ics-target-case
-    (:+ics 
-     ;; JPM 1/99. We know this EUC stuff is wrong for two reasons: 
+    (:+ics
+     ;; JPM 1/99. We know this EUC stuff is wrong for two reasons:
      ;; 1.  We free everything with SYSTEM-FREE, which can't free
-     ;;     things created via excl:aclmalloc.  Therefore, 
+     ;;     things created via excl:aclmalloc.  Therefore,
      ;;     EUC-TO-CHAR* is not viable in CLIM.  You'll get SEGV on Linux.
      ;; 2.  It doesn't handle Japanese character sets correctly anyway.
      ;;     Contrast with the convert-resource-out method for

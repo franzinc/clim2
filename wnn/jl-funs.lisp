@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: wnn -*-
 ;;
-;;				-[Mon Jul  6 15:35:41 1998 by layer]-
+;;				-[Fri Dec  3 23:34:30 1999 by duane]-
 ;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1992 Franz Inc, Berkeley, CA  All rights reserved.
@@ -20,21 +20,21 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $Id: jl-funs.lisp,v 1.4 1998/08/06 23:17:41 layer Exp $
+;; $Id: jl-funs.lisp,v 1.5 2000/03/04 05:13:53 duane Exp $
 
 (in-package :wnn)
 
 (defforeign 'jl_open_lang
     :arguments '(foreign-address foreign-address foreign-address
 		 integer integer integer integer)
-    :return-type :unsigned-integer
+    :return-type :foreign-address
     :call-direct t
     :arg-checking nil)
 
 (defforeign 'jl_connect_lang
     :arguments '(foreign-address foreign-address foreign-address
 		 integer integer integer integer)
-    :return-type :unsigned-integer
+    :return-type :foreign-address
     :call-direct t
     :arg-checking nil)
 
@@ -46,7 +46,7 @@
 
 (defforeign 'jl_env_get
     :arguments '(foreign-address)
-    :return-type :unsigned-integer
+    :return-type :foreign-address
     :call-direct t
     :arg-checking nil)
 

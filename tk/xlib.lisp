@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xlib.lisp,v 1.63 1999/02/25 08:23:42 layer Exp $
+;; $Id: xlib.lisp,v 1.64 2000/03/04 05:13:49 duane Exp $
 
 (in-package :tk)
 
@@ -208,7 +208,7 @@
 	     (char*-to-string (x11:xrmvalue-addr xrmvalue)))
 	    ((equal type "Pixel")
 	     (sys::memref-int (x11:xrmvalue-addr xrmvalue) 0 0
-			      :unsigned-long))
+			      :unsigned-natural))
 	    (t
 	     (error "Unknown resource type: ~A" type)))
 	   type))))))
@@ -351,7 +351,7 @@
 
 (defun make-xcolor (&key in-foreign-space (number 1))
   (declare (ignore in-foreign-space))
-  (clim-utils::allocate-cstruct 'x11::xcolor 
+  (clim-utils::allocate-cstruct 'x11::xcolor
 				:number number :initialize t))
 
 (defmethod initialize-instance :after
@@ -412,7 +412,7 @@
       (if (zerop z)
 	  (error 'x-colormap-full)
 	(values (x11:xcolor-pixel y)
-		(make-instance 'color 
+		(make-instance 'color
 		  :in-foreign-space t
 		  :foreign-address y))))))
 
@@ -479,27 +479,27 @@
 
 (defun make-xcolor-array (&key (number 1) in-foreign-space (initialize t))
   (declare (ignore in-foreign-space))
-  (clim-utils::allocate-cstruct 'x11::xcolor-array 
+  (clim-utils::allocate-cstruct 'x11::xcolor-array
 				:number number :initialize initialize))
 
 (defun make-xsegment-array (&key (number 1) in-foreign-space (initialize t))
   (declare (ignore in-foreign-space))
-  (clim-utils::allocate-cstruct 'x11::xsegment-array 
+  (clim-utils::allocate-cstruct 'x11::xsegment-array
 				:number number :initialize initialize))
 
 (defun make-xpoint-array (&key (number 1) in-foreign-space (initialize t))
   (declare (ignore in-foreign-space))
-  (clim-utils::allocate-cstruct 'x11::xpoint-array 
+  (clim-utils::allocate-cstruct 'x11::xpoint-array
 				:number number :initialize initialize))
 
 (defun make-xrectangle-array (&key (number 1) in-foreign-space (initialize t))
   (declare (ignore in-foreign-space))
-  (clim-utils::allocate-cstruct 'x11::xrectangle-array 
+  (clim-utils::allocate-cstruct 'x11::xrectangle-array
 				:number number :initialize initialize))
 
 (defun make-xarc-array (&key (number 1) in-foreign-space (initialize t))
   (declare (ignore in-foreign-space))
-  (clim-utils::allocate-cstruct 'x11::xarc-array 
+  (clim-utils::allocate-cstruct 'x11::xarc-array
 				:number number :initialize initialize))
 
 (def-foreign-array-resource xcolor-array make-xcolor-array)

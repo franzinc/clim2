@@ -1,4 +1,4 @@
-# $Header: /repo/cvs.copy/clim2/Makefile.alpha,v 1.8 1999/02/25 08:23:21 layer Exp $
+# $Header: /repo/cvs.copy/clim2/Makefile.alpha,v 1.9 2000/03/04 05:13:48 duane Exp $
 #
 #  Makefile.alpha for CLIM 2.0
 
@@ -6,7 +6,12 @@ include Makefile.defs
 
 Makefile=Makefile.alpha
 
+ifeq ($(SIXTYFOURBIT),yes)
+CFLAGS = -O -G 0 -DAcl64Bit -resumption_safe
+else
 CFLAGS = -O -G 0 -taso -xtaso -xtaso_short -resumption_safe
+endif
+
 STD_DEFINES = -DDEC -DR5_XLIB -DSMT
 AR = ar cqls
 
@@ -20,6 +25,11 @@ PRODUCT-OBJS= $(PRODUCT-GENERIC-OBJS) $(STATIC-XM-OBJS) $(SHARED-XM-OBJS)
 
 PICFLAGS =
 SHAREFLAGS =
+
+ifeq ($(SIXTYFOURBIT),yes)
+MAKE_SHARED = ../src/bin/make_shared.dec64
+else
 MAKE_SHARED = ../src/bin/make_shared.dec
+endif
 
 include Makefile.generic

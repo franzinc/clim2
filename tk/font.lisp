@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: font.lisp,v 1.23 1999/02/25 08:23:42 layer Exp $
+;; $Id: font.lisp,v 1.24 2000/03/04 05:13:48 duane Exp $
 
 (in-package :tk)
 
@@ -175,8 +175,8 @@
 	  (missing-charsets nil))
       (dotimes (i missing-count)
 	(push (ff:char*-to-string
-	       ;; needs work for 64bit machines
-	       (sys:memref-int missing-list 0 (* i 4) :unsigned-long))
+	       (sys:memref-int missing-list 0 (* i #-64bit 4 #+64bit 8)
+			       :unsigned-natural))
 	      missing-charsets))
       (values font-set missing-charsets
 	      (unless (zerop def-string)
@@ -204,14 +204,12 @@
 	  (fonts nil))
       (dotimes (i n)
 	(let ((name (ff:char*-to-string
-		     ;; needs work for 64bit machines
 		     (sys:memref-int font-name-list-return
-				     0 (* i 4) :unsigned-long))))
+				     0 (* i #-64bit 4 #+64bit 8) :unsigned-natural))))
 
 	  (push (intern-object-address
-		 ;; needs work for 64bit machines
 		 (sys:memref-int font-struct-list-return
-				 0 (* i 4) :unsigned-long)
+				 0 (* i #-64bit 4 #+64bit 8) :unsigned-natural)
 		 'font :name name)
 		fonts)))
       (nreverse fonts))))
@@ -241,6 +239,6 @@
   (declare (ignore font-set))
   ;; Generate a meaningful error message
   (error "~
-A non-ICS lisp that uses 7-bit characters does not support this operation.")) 
+A non-ICS lisp that uses 7-bit characters does not support this operation."))
 
 )) ;; ics-target-case
