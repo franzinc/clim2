@@ -13,6 +13,11 @@ developers or documentation.
 
 ************* add new entries below this line *********************************
 
+<<<add new entries here, include bug/rfe id for each item>>>
+
+*******************************************************************************
+*** 5.0.1.beta2 items below this line
+
 1. <norfe>    CLIM works on FreeBSD only with MetroLink Motif
 	      Complete! version 1.2.4.
 
