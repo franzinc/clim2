@@ -19,6 +19,12 @@ If there are user-visible changes in this commit, then list the
 	* aclpc/acl-class.cl: rfe4951: remove ffcompat dependencies
 	* aclpc/pkgdcl.lisp: rfe4951: remove require of ffcompat module
 
+    from pnc:
+        * aclpc/acl-class.lisp,
+        * tk-silica/xt-silica.lisp:
+          note-frame-iconified and note-frame-deiconified called
+          when frame is de/iconified by window-manager."
+
 *******************************************************************************
 2.3.9
 

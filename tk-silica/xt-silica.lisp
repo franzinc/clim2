@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xt-silica.lisp,v 1.112.34.5.6.1 2001/08/25 22:35:18 layer Exp $
+;; $Id: xt-silica.lisp,v 1.112.34.5.6.2 2001/09/18 16:35:36 layer Exp $
 
 (in-package :xm-silica)
 
@@ -718,10 +718,22 @@ setup."
 	    ;; Inform lisp but don't feed event back to X.
 	    (*suppress-xevents* t))
 	(declare (special *suppress-xevents*))
+	;; spr24753
+	;; Call note-frame-iconified and note-frame-deiconifed
+	;; rather than simply setting the frame-state to :shrunk
+	;; and :enabled respectively.  (This happens on the
+	;; respective :after methods in silica/framem.lisp.)
+	;; Note that according to the documenation, calling 
+	;; these methods also directly iconify/deiconify the
+	;; frame (by calling the functions x11:xmapwindow
+	;; and x11:xiconifywindow and  --see tk-silica/xt-frames.lisp.)
+	;; We are depending on the fact that the windows-system
+	;; won't try to re-iconify an already iconfied window, etc.
 	(case (tk::event-type event)
 	  (:map-notify
 	   (when (eq state :shrunk)
-	     (setf (frame-state frame) :enabled)))
+	     (note-frame-deiconified (frame-manager frame) frame) 
+	     ))
 	  (:unmap-notify
 	   ;; spr17465
 	   ;; On Sparc in CDE (common desktop environment),
@@ -732,7 +744,8 @@ setup."
 	   ;; response, since it is not only unnecessary, it is detrimental.
 	   ;; That is the purpose of *suppress-xevents*.
 	   (when (eq state :enabled)
-	     (setf (frame-state frame) :shrunk))))))))
+	     (note-frame-iconified (frame-manager frame) frame) 
+	     )))))))
 
 (defmethod find-widget-class-and-name-for-sheet
     ((port xt-port) (parent t) (sheet basic-sheet))
