@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: packages.lisp,v 1.47 93/02/08 15:58:29 cer Exp $
+;; $fiHeader: packages.lisp,v 1.48 93/03/04 19:02:59 colin Exp $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :common-lisp-user)
 
@@ -3398,7 +3398,6 @@
     focus-gadget
     focus-in-gadget-event
     focus-out-gadget-event
-    foreground-background-and-text-style-mixin
     frame-input-buffer
     frame-manager-matches-options-p
     frame-manager-note-pretty-name-changed
@@ -3421,6 +3420,7 @@
     generic-option-pane
     generic-scroller-pane
     get-drawing-function-description
+    get-sheet-resources
     graft-mm-height
     graft-mm-width
     graft-pixel-height
@@ -3533,6 +3533,7 @@
     sheet-shell
     sheet-top-level-mirror
     sheet-top-level-sheet
+    sheet-with-resources-mixin
     slider-decimal-places
     space-requirement+
     space-requirement+*
