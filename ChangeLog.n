@@ -12,6 +12,11 @@ If there are user-visible changes in this commit, then list the
 
 *******************************************************************************
 
+2003-12-10  Kevin Layer  <layer@crikey>
+
+	* Makefile.macosx: remove /usr/local/lib from DYLD_LIBRARY_PATH,
+	  since current configs of jax and seed don't need it
+
 2003-10-29  Kevin Layer  <layer@crikey>
 
 	* Makefile.macosx: try and make it work on jax now that openmotif
