@@ -13,6 +13,10 @@ If there are user-visible changes in this commit, then list the
 *******************************************************************************
 2.2.1.54
 
+1999-04-15  Kevin Layer  <layer@ultra>
+
+	* Makefile.rs6000: use ../src/bin/make_exp
+
 1999-04-13    <layer@HOBART>
 
 	* clim/frames.lisp: fix for bug7897 from Jeff
