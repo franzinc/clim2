@@ -1,4 +1,4 @@
-# $Header: /repo/cvs.copy/clim2/Makefile.generic,v 1.42 1997/10/13 20:29:33 layer Exp $
+# $Header: /repo/cvs.copy/clim2/Makefile.generic,v 1.43 1997/10/20 23:10:57 layer Exp $
 #
 #  Makefile.generic for CLIM 2.0
 #
@@ -23,14 +23,16 @@ compile: FORCE $(PRODUCT-OBJS) $(ICS-PRODUCT-OBJS)
 	  (setq sys::*libwnn-pathname* \"$(WNNLIB)\") \
 	  (load \"misc/compile-1.lisp\") \
 	  (proclaim '(optimize (speed $(SPEED)) (debug $(DEBUG)) (safety $(SAFETY)))) \
-	  (let ((*compile-print* $(COMPILE_PRINT)) \
-		(*compile-verbose* t) \
-		(setf (sys:gsgc-switch :print) nil) \
-		(excl:*redefinition-warnings* t) \
+	  (let ((*compile-print* $(compile_print)) \
+		(*compile-verbose* $(compile_verbose)) \
+		(excl:*redefinition-warnings* $(redef_warning)) \
 		(excl:*record-source-file-info* $(RECORD_SOURCE_FILE_INFO)) \
+		(comp:save-local-names-switch $(SAVE_LOCAL_NAMES)) \
+		(excl:*load-local-names-info* $(LOAD_LOCAL_NAMES_INFO)) \
 		(excl:*load-source-file-info* $(LOAD_SOURCE_FILE_INFO)) \
 		(excl:*record-xref-info* $(RECORD-XREF-INFO)) \
 		(excl:*load-xref-info* $(LOAD_XREF_INFO))) \
+	    (setf (sys:gsgc-switch :print) $(gc_print)) \
 	    (compile-it '$(SYSTEM))))" \
 	| $(CL) $(CLOPTS))
 
@@ -114,7 +116,7 @@ clim1compat.fasl: $(CLIM1COMPAT-FASLS)
 
 # Building (loading and dumping)
 
-clim: FORCE $(PRODUCT-OBJS) $(ICS-PRODUCT-OBJS)
+$(CLIM): FORCE $(PRODUCT-OBJS) $(ICS-PRODUCT-OBJS)
 	-$(RM) -f $(CLIM)
 	(eval '$(SET_LIBRARY_PATH)' ; \
 	ALLEGRO_CL_HOME=$(CL_HOME) ; export ALLEGRO_CL_HOME ; \
@@ -133,9 +135,8 @@ clim: FORCE $(PRODUCT-OBJS) $(ICS-PRODUCT-OBJS)
 	| $(CL) $(CLOPTS))
 	$(MV) $(TMP)/clim.temp_`whoami` $(CLIM)
 	ls -lLt $(CLIM) >> Clim-sizes.n
-	size $(CLIM) >> Clim-sizes.n
 	ls -lLt $(CLIM)
-	echo $(SYSTEM) built!!!!	
+	@echo $(SYSTEM) built!!!!	
 
 # Training
 
@@ -149,7 +150,7 @@ train: FORCE
 		:benchmarkp $(TRAIN_BM) :profilep $(TRAIN_PROFILEP) \
 		:compile $(TRAIN_COMPILE) :psview $(PSVIEW) \
 		:hpglview $(HPGLVIEW)))" \
-	| $(CLIM) $(CLOPTS))
+	| $(LISP) -I $(CLIM) $(CLOPTS))
 	echo $(SYSTEM) trained!!!!	
 
 # the following two rules are used by make-dist so that we don't have 
@@ -173,32 +174,32 @@ load-train: FORCE
 		:compile $(TRAIN_COMPILE) :psview $(PSVIEW) \
 		:hpglview $(HPGLVIEW) :report-file \"$(REPORT_FILE)\") \
 	  (clim-test::generate-pretty-test-report :file \"$(REPORT_FILE)\")" \
-	| $(CL) $(CLOPTS))
+	| $(LISP) -I $(CLIM) $(CLOPTS))
 
 generate_test_report: FORCE
 	(ALLEGRO_CL_HOME=$(CLIM_HOME) ; export ALLEGRO_CL_HOME ; \
 	$(ECHO) " \
 	(clim-test::generate-pretty-test-report :file \"$(REPORT_FILE)\")" \
-	| $(CLIM) $(CLOPTS))
+	| $(LISP) -I $(CLIM) $(CLOPTS))
 
 profile: FORCE
 	(ALLEGRO_CL_HOME=$(CLIM_HOME) ; export ALLEGRO_CL_HOME ; \
 	$(ECHO) " \
 	(clim-user::run-profile-clim-tests)" \
-	| $(CLIM) $(CLOPTS))
+	| $(LISP) -I $(CLIM) $(CLOPTS))
 
 benchmark: FORCE
 	(ALLEGRO_CL_HOME=$(CLIM_HOME) ; export ALLEGRO_CL_HOME ; \
 	$(ECHO) " \
 	(clim-test::benchmark-clim $(BENCHMARK_FILE))" \
-	| $(CLIM) $(CLOPTS))
+	| $(LISP) -I $(CLIM) $(CLOPTS))
 
 testps: FORCE
 	(ALLEGRO_CL_HOME=$(CLIM_HOME) ; export ALLEGRO_CL_HOME ; \
 	$(ECHO) " \
 	(load \"test/postscript-tests.lisp\") \
 	(clim-user::run-postscript-tests :output $(PSVIEW))" \
-	| $(CLIM) $(CLOPTS))
+	| $(LISP) -I $(CLIM) $(CLOPTS))
 
 # Misc
 

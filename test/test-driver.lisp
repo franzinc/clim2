@@ -99,7 +99,10 @@
       (when port #-acl86win32 (xm-silica::port-finish-output port)))
     (mp:process-allow-schedule)
     (flet ((input-state-p (process)
-	     (or (not (mp::process-stack-group process))
+	     (or #-target=os-threads
+		 (not (mp::process-stack-group process))
+		 #+target=os-threads
+		 (not (mp:process-thread process))
 		 (member  (mp::process-whostate process) 
 			  '("Returned value" 
 			    "Waiting for dialog"
@@ -124,7 +127,12 @@
 (defun terminate-invocation (invocation exit-command)
   (with-slots (process) invocation
     (write-line "Terminating frame")
-    (unless (mp::process-stack-group process) (error "Frame terminated abnormally"))
+    (unless (progn
+	      #-target=os-threads
+	      (mp::process-stack-group process)
+	      #+target=os-threads
+	      (mp::process-thread process))
+      (error "Frame terminated abnormally"))
     (execute-one-command invocation exit-command)
     (unless (wait-for-death process)
       (error "Process did not terminate"))))
@@ -134,7 +142,11 @@
     (mp:process-wait-with-timeout
      "Waiting for death" 
      *death-timeout*
-     #'(lambda () (setq done (not (mp::process-stack-group process)))))
+     #'(lambda ()
+	 (setq done
+	   (not
+	    #-target=os-threads (mp::process-stack-group process)
+	    #+target=os-threads (mp::process-thread process)))))
     done))
 
 (defvar *execute-one-command-hook* nil)

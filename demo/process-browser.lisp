@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
-;; $Header: /repo/cvs.copy/clim2/demo/process-browser.lisp,v 1.10 1997/02/05 01:47:48 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/demo/process-browser.lisp,v 1.11 1997/10/20 23:11:02 layer Exp $
 
 (in-package :clim-demo)
 
@@ -90,9 +90,12 @@
 	  (dolist (p processes)
 	    (destructuring-bind (times-resumed msec-used msec-used-d . process) p
 	      (let ((profilep 
-		      (let ((stack-group (mp::process-stack-group process)))
-			(and stack-group
-			     (mp::profile-stack-group-p stack-group)))))
+		     #-target=os-threads
+		     (let ((stack-group (mp::process-stack-group process)))
+		       (and stack-group
+			    (mp::profile-stack-group-p stack-group)))
+		     #+target=os-threads
+		     (mp:profile-process-p process)))
 		(updating-output (t :unique-id process 
 				    :cache-test #'equal
 				    :cache-value 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: hpgl-clim; Base: 10; Lowercase: Yes -*-
 
-;;; $Header: /repo/cvs.copy/clim2/hpgl/hpgl-medium.lisp,v 1.3 1997/02/05 01:48:49 tomj Exp $
+;;; $Header: /repo/cvs.copy/clim2/hpgl/hpgl-medium.lisp,v 1.4 1997/10/20 23:11:04 layer Exp $
 
 "Copyright (c) 1991 by International Lisp Associates.  All rights reserved."
 "Portions copyright (c) 1992 Franz Inc. All rights reserved"
@@ -722,7 +722,7 @@ a point. Hence we have 72dpi resolution printer.
 					    &optional glyph-buffer)
   #+Genera (declare
 	    (values write-char next-char-index new-cursor-x new-baseline new-height font))
-  (declare (ignore stream))
+  ;;(declare (ignore stream))
   (let ((port (port medium)))
     (with-hpgl-port-glyph-for-character (port)
       (stream-scan-string-for-writing-1

@@ -1,4 +1,4 @@
-# $Header: /repo/cvs.copy/clim2/Makefile.rs6000,v 1.7 1997/02/05 01:42:00 tomj Exp $
+# $Header: /repo/cvs.copy/clim2/Makefile.rs6000,v 1.8 1997/10/20 23:10:57 layer Exp $
 #
 #  Makefile.rs6000 for CLIM 2.0
 #
@@ -7,7 +7,7 @@ include Makefile.defs
 
 Makefile=Makefile.rs6000
 
-CFLAGS	= -O -D_BSD -D_NO_PROTO -D_NONSTD_TYPES -D_MBI=void
+CFLAGS	= -O -D_BSD # -D_NO_PROTO -D_NONSTD_TYPES -D_MBI=void
 
 TKLIB=-lXm
 XTLIB=-lXt
@@ -19,8 +19,6 @@ PRODUCT-OBJS= $(PRODUCT-GENERIC-OBJS) $(STATIC-XM-OBJS) $(SHARED-XM-OBJS)
 MAKE_SHARED = make_shared
 STD_DEFINES = -DSYSV -DAIXV3
 AR = ar clq
-
-CL= ../src/xm-dcl
 
 # This should be defined in make-dist. For CLIM devel (ie making
 # slim images) we use climdcl-devel and don't use the shared library

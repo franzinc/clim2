@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: user -*-
 ;;
-;;				-[]-
+;;				-[Wed Oct 15 21:07:19 1997 by layer]-
 ;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/misc/dump.lisp,v 1.9 1997/02/05 01:49:09 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/misc/dump.lisp,v 1.10 1997/10/20 23:11:06 layer Exp $
 
 ;; Assuming CLIM is loaded, dump it into /usr/tmp/clim.temp_$USER.
 (room t)
@@ -28,5 +28,9 @@
 
 #+ignore (setq tpl::*user-top-level* nil) ;; workaround for bug3225
 
-(dumplisp :name sys::*clim-dump-name* :checkpoint nil)
+(gc :tenure)
+(gc :tenure)
+(gc :tenure)
+(gc t)
 
+(dumplisp :name sys::*clim-dump-name* :shlib-warning nil)

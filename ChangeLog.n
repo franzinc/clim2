@@ -1,7 +1,7 @@
 For more detailed instructions on filling in the ChangeLog form, see 
 `/fi/doc/procedures/changelogs.txt'.
 *******************************************************************************
-<version for this commit, if applicable>
+<version for this commit> (incf *clim-build-version* in utils/packages.lisp)
 
 Documentation changes:	<`none' or give pointer to them>
 Tests for new features:	<`no new features', `no tests for new features', or
@@ -10,6 +10,40 @@ Tests for new features:	<`no new features', `no tests for new features', or
 <standard changelog date stamp>
 	* <changes go here...>
 
+*******************************************************************************
+2.2.1.2
+
+Documentation changes:	none
+Tests for new features:	no new features
+
+Mon Oct 20 16:04:27 1997  Kevin Layer  <layer@ultra>
+
+	* Makefile.defs: 
+	* Makefile.generic: 
+	* Makefile.hpprism: 
+	* Makefile.linux86: 
+	* Makefile.rs6000: 
+	* Makefile.sun4-svr4: 
+	* Makefile.sun4-svr4-ol: 
+	* Makefile.sunx86: packaging for unix
+
+	* clim/db-stream.lisp: 
+	* clim/graphics-recording.lisp: 
+	* clim/japanese-input-editor.lisp: 
+	* clim/standard-types.lisp: 
+	* clim/table-formatting.lisp: 
+	* demo/custom-records.lisp: 
+	* hpgl/hpgl-medium.lisp: 
+	* tk/xm-widgets.lisp: 
+	* utils/clos-patches.lisp: 
+	* utils/lisp-utilities.lisp: 
+	* utils/packages.lisp: get rid of compile time warnings
+
+	* test/test-driver.lisp:
+	* demo/process-browser.lisp: target=os-threads fixes
+
+	* clim/histories.lisp: bug2419 was fixed, remove hack
+	* misc/dump.lisp: dumplisp without a warning
 *******************************************************************************
 2.2.1.1
 

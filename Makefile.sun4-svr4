@@ -1,11 +1,10 @@
-# $Header: /repo/cvs.copy/clim2/Makefile.sun4-svr4,v 1.15 1997/10/13 20:29:33 layer Exp $
+# $Header: /repo/cvs.copy/clim2/Makefile.sun4-svr4,v 1.16 1997/10/20 23:10:57 layer Exp $
 #
 #  Makefile.sun4-svr4 for CLIM 2.0
 #
 
 include Makefile.defs
-#CL_HOME=/fi/scm/4.3/sunos5/src
-#CL=$(CL_HOME)/dcl
+
 CLIM_HOME=$(CL_HOME)
 
 Makefile=Makefile.sun4-svr4
@@ -34,8 +33,8 @@ PRODUCT-OBJS= $(PRODUCT-GENERIC-OBJS) $(STATIC-XM-OBJS) $(SHARED-XM-OBJS)
 MOTIFXTRAS=-lgen
 
 PICFLAGS = -K pic
-SHAREFLAGS = -G
-MAKE_SHARED = ld
+SHAREFLAGS = 
+MAKE_SHARED = ld -G
 STD_DEFINES = -DSVR4 -DSYSV
 AR = ar cq
 

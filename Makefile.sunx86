@@ -1,4 +1,4 @@
-# $Header: /repo/cvs.copy/clim2/Makefile.sunx86,v 1.4 1997/02/05 01:42:12 tomj Exp $
+# $Header: /repo/cvs.copy/clim2/Makefile.sunx86,v 1.5 1997/10/20 23:10:58 layer Exp $
 #
 #  Makefile.sun4-svr4 for CLIM 2.0
 #
@@ -34,7 +34,7 @@ PRODUCT-OBJS= $(PRODUCT-GENERIC-OBJS) $(STATIC-XM-OBJS) $(SHARED-XM-OBJS)
 MOTIFXTRAS=-lgen
 
 PICFLAGS = -K pic
-SHAREFLAGS = -G
-MAKE_SHARED = ld
+SHAREFLAGS = 
+MAKE_SHARED = ld -G
 
 include Makefile.generic

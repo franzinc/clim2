@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/demo/custom-records.lisp,v 1.7 1997/10/13 20:29:35 layer Exp $
+;; $Header: /repo/cvs.copy/clim2/demo/custom-records.lisp,v 1.8 1997/10/20 23:11:02 layer Exp $
 
 (in-package :clim-user)
 
@@ -284,14 +284,15 @@
 	      (output-record-position record)
 	    (translate-positions (- xoff) (- yoff) left top right bottom))
 	  (map-over-data-point-xy-positions
-	    #'(lambda (ex ey element)
-		(when (> ex right)
-		  (return-from map-over-output-records-overlapping-region nil))
-		(when (and (>= ex left)
-			   #+++ignore (<= top ey bottom))
-		  (apply function element continuation-args)))
-	    record
-	    :start (bsearch left data :key #'data-xy-position)))))
+	   #'(lambda (ex ey element)
+	       (declare (ignore ey))
+	       (when (> ex right)
+		 (return-from map-over-output-records-overlapping-region nil))
+	       (when (and (>= ex left)
+			  #+++ignore (<= top ey bottom))
+		 (apply function element continuation-args)))
+	   record
+	   :start (bsearch left data :key #'data-xy-position)))))
   nil)
 
 (defmethod map-over-output-records-containing-position

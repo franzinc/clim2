@@ -1,4 +1,4 @@
-# $Header: /repo/cvs.copy/clim2/Attic/Makefile.sun4-svr4-ol,v 1.3 1997/02/05 01:42:10 tomj Exp $
+# $Header: /repo/cvs.copy/clim2/Attic/Makefile.sun4-svr4-ol,v 1.4 1997/10/20 23:10:57 layer Exp $
 #
 #  Makefile.sun4-svr4-ol for CLIM 2.0
 #
@@ -27,7 +27,7 @@ SET_LIBRARY_PATH= \
 MOTIFXTRAS=-lgen
 
 PICFLAGS = -K pic
-SHAREFLAGS = -G
-MAKE_SHARED = ld
+SHAREFLAGS = 
+MAKE_SHARED = ld -G
 
 include Makefile.generic

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/clim/graphics-recording.lisp,v 1.29 1997/02/12 02:08:51 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/graphics-recording.lisp,v 1.30 1997/10/20 23:10:59 layer Exp $
 
 (in-package :clim-internals)
 
@@ -498,7 +498,7 @@
 			 radius-1-dx radius-1-dy radius-2-dx radius-2-dy
 			 start-angle end-angle ink line-style) record
      ;; Added test for angle. -smh 26dec96
-     (let ((z nil))
+     (let (#+never (z nil))
        (and (if (null line-style)
 		(point-inside-ellipse-p (- x center-x) (- y center-y)
 					radius-1-dx radius-1-dy radius-2-dx radius-2-dy)

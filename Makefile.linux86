@@ -1,4 +1,4 @@
-# $Header: /repo/cvs.copy/clim2/Attic/Makefile.linux86,v 1.2 1997/02/05 01:41:59 tomj Exp $
+# $Header: /repo/cvs.copy/clim2/Attic/Makefile.linux86,v 1.3 1997/10/20 23:10:57 layer Exp $
 #
 #  Makefile.sun4-svr4 for CLIM 2.0
 #
@@ -31,8 +31,8 @@ PRODUCT-OBJS= $(PRODUCT-GENERIC-OBJS) $(STATIC-XM-OBJS) $(SHARED-XM-OBJS)
 MOTIFXTRAS=
 
 PICFLAGS = -fPIC
-SHAREFLAGS = -shared
-MAKE_SHARED = ld
+SHAREFLAGS = 
+MAKE_SHARED = ld -shared
 STD_DEFINES = 
 AR = ar cq
 

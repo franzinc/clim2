@@ -1,12 +1,13 @@
-# $Header: /repo/cvs.copy/clim2/Makefile.defs,v 1.42 1997/10/13 20:29:33 layer Exp $
+# $Header: /repo/cvs.copy/clim2/Makefile.defs,v 1.43 1997/10/20 23:10:57 layer Exp $
 #
 #  Makefile.defs for CLIM 2.0
 #
 
 SHARED_EXT = so
 
-#CL	= ../src/lisp -I ../src/dcl.dxl
-CL	= ../src/lispi -I ../src/dcli.dxl
+LISP	= ../src/lispi
+DCL	= dcli
+CL	= $(LISP) -I $(DCL)
 CLOPTS	= -qq -batch -backtrace-on-error
 
 DEVICE	= /dev/null
@@ -31,8 +32,10 @@ TRAIN_BM=t
 FRAME_TESTS=t
 
 # Info
+LOAD_LOCAL_NAMES_INFO=t
 LOAD_SOURCE_FILE_INFO=t
 LOAD_XREF_INFO=nil
+SAVE_LOCAL_NAMES=t
 RECORD_SOURCE_FILE_INFO=t
 RECORD_XREF_INFO=nil
 
@@ -42,10 +45,13 @@ SAFETY	= 1
 # This next should be set to 1 for distribution
 DEBUG   = 2
 
-COMPILE_PRINT=nil 
+gc_print	= nil
+compile_verbose	= t
+compile_print	= nil
+redef_warning	= t
 
 # where to dump the CLIM images
-CLIM		= ./slim
+CLIM		= clim.dxl
 
 
 CFLAGS	= -O -D_NO_PROTO -DSTRINGS_ALIGNED -DNO_REGEX -DNO_ISDIR \
@@ -249,10 +255,12 @@ WNN-DEBUG-FASLS = wnn/jl-defs.fasl wnn/jl-funs.fasl
 
 
 make = make SPEED=${SPEED} SAFETY=${SAFETY} DEBUG=${DEBUG} \
+	LOAD_LOCAL_NAMES_INFO=${LOAD_LOCAL_NAMES_INFO} \
 	LOAD_SOURCE_FILE_INFO=${LOAD_SOURCE_FILE_INFO} \
+	SAVE_LOCAL_NAMES=${SAVE_LOCAL_NAMES} \
 	RECORD_SOURCE_FILE_INFO=${RECORD_SOURCE_FILE_INFO} \
 	LOAD_XREF_INFO=${LOAD_XREF_INFO} \
 	RECORD_XREF_INFO=${RECORD_XREF_INFO} CL=${CL} ALLEGRO_CL_HOME=${ALLEGRO_CL_HOME} \
-	CLIM=${CLIM} COMPILE_PRINT=${COMPILE_PRINT} TMP=${TMP} -f ${Makefile}
+	CLIM=${CLIM} compile_print=${compile_print} TMP=${TMP} -f ${Makefile}
 
 BENCHMARK_FILE=nil

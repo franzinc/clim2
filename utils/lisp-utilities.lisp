@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/utils/lisp-utilities.lisp,v 1.36 1997/02/14 23:57:20 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/utils/lisp-utilities.lisp,v 1.37 1997/10/20 23:11:11 layer Exp $
 
 (in-package :clim-utils)
 
@@ -1295,7 +1295,7 @@
 		    (find-class name errorp nil))
 	        (find-class name errorp environment)))
 
-#+Allegro
+#+(and Allegro never-never-and-never)
 (eval-when (compile)
   (warn "~S hacked for lack of environment support in 4.1" 'find-class-that-works))
 

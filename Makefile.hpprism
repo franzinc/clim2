@@ -1,4 +1,4 @@
-# $Header: /repo/cvs.copy/clim2/Makefile.hpprism,v 1.13 1997/10/13 20:29:33 layer Exp $
+# $Header: /repo/cvs.copy/clim2/Makefile.hpprism,v 1.14 1997/10/20 23:10:57 layer Exp $
 #
 #  Makefile.hpprism for CLIM 2.0
 #
@@ -29,7 +29,7 @@ XINCLUDES= -I/usr/include/Motif1.2 -I/usr/include/X11R5
 CFLAGS= -O -Ae +DA1.1
 MOTIFXTRAS=-lc
 PICFLAGS = +Z
-SHAREFLAGS = -b
-MAKE_SHARED = ld
+SHAREFLAGS = 
+MAKE_SHARED = ld -b
 
 include Makefile.generic

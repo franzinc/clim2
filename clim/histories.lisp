@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/clim/histories.lisp,v 1.19 1997/02/05 01:43:46 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/histories.lisp,v 1.20 1997/10/20 23:11:01 layer Exp $
 
 (in-package :clim-internals)
 
@@ -362,11 +362,11 @@
   (string nil)
   (view nil))
 
-#+Allegro
+#+(and Allegro aclpc)
 (eval-when (compile load)
   (setf (find-class 'presentation-history-element) nil))
 
-#+Allegro
+#+(and Allegro aclpc)
 (eval-when (compile)
   (warn "~S structure hacked for bug2419" 'presentation-history-element))
 

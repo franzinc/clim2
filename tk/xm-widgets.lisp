@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: tk -*-
 ;;
-;;				-[Thu Jul 22 17:17:19 1993 by colin]-
+;;				-[Tue Oct 14 12:08:52 1997 by layer]-
 ;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/tk/xm-widgets.lisp,v 1.27 1997/09/03 04:03:43 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/tk/xm-widgets.lisp,v 1.28 1997/10/20 23:11:09 layer Exp $
 
 (in-package :tk)
 
@@ -120,13 +120,15 @@
 
  (:-ics
   (defun partition-compound-string (s f &key (start 0) (end (length s)))
-    (declare (ignore s))
+    ;;(declare (ignore s))
     (funcall f nil start end))))
 
 (excl:ics-target-case
  (:+ics
 
   (defvar *empty-compound-string* nil)
+  
+  (eval-when (compile) (declaim (special *font-list-tags*)))
 
   (defmethod convert-resource-out ((parent t) (type (eql 'xm-string)) value)
     (let ((result nil))

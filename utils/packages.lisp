@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/utils/packages.lisp,v 1.73 1997/10/13 20:29:41 layer Exp $
+;; $Header: /repo/cvs.copy/clim2/utils/packages.lisp,v 1.74 1997/10/20 23:11:11 layer Exp $
 
 (in-package :common-lisp-user)
 
@@ -16,13 +16,13 @@
  (:use common-lisp #+Allegro clos #+Allegro stream #+aclpc allegro)
 
  ;; Import these symbols so that we can define methods for them.
- (:shadow 
-   pathname
-   truename)
+ (:shadow pathname truename)
 
  ;; Shadow this everywhere to make it a generic function
- (:shadow
-   interactive-stream-p)
+ (:shadow interactive-stream-p)
+ 
+ #+Allegro
+ (:import-from :excl #:non-dynamic-extent)
 
  (:export
    &allow-other-keys
@@ -1091,6 +1091,8 @@
 ;; Define the CLIM-SYS package
 (defpackage clim-sys
   (:use)				;use nothing
+  #+Allegro
+  (:import-from :excl #:non-dynamic-extent)
   (:export
     ;; Resources
     allocate-resource
@@ -1139,6 +1141,8 @@
 ;; Define the CLIM package
 (defpackage clim
   (:use)                                ;use nothing
+  #+Allegro
+  (:import-from :excl #:non-dynamic-extent)
   #+Allegro (:implementation-packages 
              :silica 
              :clim-utils 
@@ -2689,6 +2693,8 @@
 
 (defpackage clim
   (:use)
+  #+Allegro
+  (:import-from :excl #:non-dynamic-extent)
   ;; should these all be exported from the clim package?
 
   (:export
@@ -2714,6 +2720,8 @@
 			    :clim-internals :xt-silica)
   (:use	clim-lisp clim-sys clim)
 
+  #+Allegro
+  (:import-from :excl #:non-dynamic-extent)
   #+Allegro (:import-from excl
     arglist)
 
@@ -3000,6 +3008,8 @@
    #+Allegro (:implementation-packages :clim-silica :clim-internals :xt-silica)
   (:use	clim-lisp clim-sys clim clim-utils)
 
+  #+Allegro
+  (:import-from :excl #:non-dynamic-extent)
   (:shadowing-import-from clim-utils
     defun
     flet labels
@@ -3248,6 +3258,8 @@
 (defpackage clim-silica
   (:use)
 
+  #+Allegro
+  (:import-from :excl #:non-dynamic-extent)
   (:export
    *kanji-servers*
    find-kanji-server-type))
@@ -3257,6 +3269,8 @@
 (defpackage clim-internals
   (:use        :clim-lisp :clim-sys :clim :clim-utils :clim-silica)
   #+Allegro (:implementation-packages :clim-internals :xt-silica)
+  #+Allegro
+  (:import-from :excl #:non-dynamic-extent)
   #+aclpc
   (:shadowing-import-from clim-utils
     defun
@@ -3267,7 +3281,7 @@
 
 ;; A package for casual use...
 (defpackage clim-user
-   (:use clim-lisp clim))
+  (:use clim-lisp clim))
 
 #+Allegro
 (flet ((lock-package (package)
@@ -3287,7 +3301,7 @@
 (cl:defvar *clim-major-version* 2)
 (cl:defvar *clim-minor-version* 2)
 (cl:defvar *clim-generation-version* 1)
-(cl:defvar *clim-build-version* 1)
+(cl:defvar *clim-build-version* 2)
 
 (cl:defparameter *clim-version*
     (cl:format () "CLIM ~d.~d.~d.~d" 
@@ -3295,4 +3309,4 @@
 	       *clim-generation-version* *clim-build-version*))
 
 #-aclpc
-(si::rcsnote *clim-version* "$Id: packages.lisp,v 1.73 1997/10/13 20:29:41 layer Exp $")
+(si::rcsnote *clim-version* "$Id: packages.lisp,v 1.74 1997/10/20 23:11:11 layer Exp $")

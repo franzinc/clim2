@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/clim/standard-types.lisp,v 1.37 1997/09/03 04:03:32 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/standard-types.lisp,v 1.38 1997/10/20 23:11:01 layer Exp $
 
 (in-package :clim-internals)
 
@@ -121,7 +121,6 @@
   :description "complex number")
 
 (define-presentation-method presentation-typep (object (type complex))
-  #-aclpc (declare (ignore type))
   (or (eq type '*)
       (and (presentation-typep (realpart object) type)
            (presentation-typep (imagpart object) type))))
@@ -140,7 +139,7 @@
 
 (define-presentation-method describe-presentation-type :after
                             ((type complex) stream plural-count)
-  (declare (ignore #-aclpc type plural-count))
+  (declare (ignore plural-count))
   (unless (eq type '*)
     (format stream " whose components are ")
     (describe-presentation-type type stream t)))

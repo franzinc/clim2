@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/utils/clos-patches.lisp,v 1.11 1997/02/05 01:54:39 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/utils/clos-patches.lisp,v 1.12 1997/10/20 23:11:10 layer Exp $
 
 (in-package :clim-utils)
 
@@ -29,7 +29,7 @@
   (or (eq environment 'compile-file)
       excl::*compiler-environment*))
 
-#+Allegro
+#+(and Allegro never-in-a-million-years)
 (eval-when (compile)
   (warn "~S hacked for lack of environment support in 4.1" 'compile-file-environment-p))
 

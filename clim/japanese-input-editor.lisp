@@ -19,7 +19,7 @@
 ;; applicable.
 ;;
 
-;; $Header: /repo/cvs.copy/clim2/clim/japanese-input-editor.lisp,v 1.3 1997/02/05 01:44:08 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/japanese-input-editor.lisp,v 1.4 1997/10/20 23:11:01 layer Exp $
 
 (in-package :clim-internals)
 
@@ -125,6 +125,7 @@
 	   (kanji (let ((bunsetu 0)
 			(r ""))
 		    (dolist (candidate candidates)
+		      (declare (ignore candidate))
 		      (setq r
 			(concatenate 'string
 			  r (jie-get-kanji kanji-server bunsetu 0))))
@@ -153,6 +154,7 @@
 		(return-from kana-process-gesture
 		  (values gesture type)))
 	    (destructuring-bind (hiragana katakana depth new) entry
+	      (declare (ignore katakana))
 	      #+debug
 	      (format excl:*initial-terminal-io* "~%~S" entry)
 	      (let* ((point (- (stream-insertion-pointer stream) depth))

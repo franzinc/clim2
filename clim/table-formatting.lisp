@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/clim/table-formatting.lisp,v 1.22 1997/02/05 01:45:05 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/table-formatting.lisp,v 1.23 1997/10/20 23:11:01 layer Exp $
 
 (in-package :clim-internals)
 
@@ -393,8 +393,10 @@
               (bounding-rectangle-size stream)
             (declare (type coordinate stream-width)
                      (ignore stream-height)) ;for now
+	    tbottom
+	    ttop
             (let* ((table-width (- tright tleft))
-                   (table-height (- tbottom ttop))
+                   #+ignore (table-height (- tbottom ttop))
                    (between-column-margin
                      (if x-spacing
                          (process-spacing-arg stream x-spacing
@@ -629,7 +631,7 @@
         (max-height (slot-value menu 'max-height))        ; exceed these bounds
         (row-wise (slot-value menu 'row-wise))
         (constrain t)
-        (preferred-geometry :column)                ;vertical menu
+	;;(preferred-geometry :column)                ;vertical menu
         (golden-ratio 1.6))
     (declare (type fixnum ncells))
     (declare (type coordinate max-cell-width max-cell-height))
@@ -653,7 +655,8 @@
             (when (> (/ swidth sheight) golden-ratio)
               ;; When the stream is wider than it is high by more than the golden
               ;; ratio, make the preferred ordering :row
-              (setq preferred-geometry :row))))))
+	      ;;(setq preferred-geometry :row)
+	      )))))
     ;; Compute geometry
     (cond (ncolumns
            (setq nrows (max 1 (ceiling (/ ncells ncolumns)))))
