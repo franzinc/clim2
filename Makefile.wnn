@@ -1,11 +1,12 @@
-# $Header: /repo/cvs.copy/clim2/Makefile.wnn,v 1.3 1997/05/30 17:56:31 layer Exp $
+# $Header: /repo/cvs.copy/clim2/Makefile.wnn,v 1.4 1997/10/13 20:29:33 layer Exp $
 #
 #  Makefile.wnn for CLIM 2.0
 #
 # Makefile for the jlib part of Wnn4.2
 
 
-WNNFLAGS = -DJAPANESE -DCHINESE -DKOREAN -DLATIN -DWRITE_CHECK -DWNNDEFAULT
+WNNFLAGS = -DJAPANESE -DCHINESE -DKOREAN -DLATIN -DWRITE_CHECK -DWNNDEFAULT \
+	$(PICFLAGS)
 
 WNN_OBJS= js.o wnnerrmsg.o jl.o \
 	msg.o yincoding.o py_table.o zy_table.o strings.o bcopy.o \
@@ -70,5 +71,5 @@ rk_vars.o : wnn/rk_vars.c
 libwnn.a: $(WNN_OBJS)
 	$(AR) $@ $(WNN_OBJS)
 
-wnn.so: $(WNN_OBJS)
-	$(MAKE_SHARED) $(SHAREFLAGS) -o wnn.so $(WNN_OBJS)
+wnn.$(SHARED_EXT): $(WNN_OBJS)
+	$(MAKE_SHARED) $(SHAREFLAGS) -o wnn.$(SHARED_EXT) $(WNN_OBJS)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SYS; Base: 10; Lowercase: Yes -*-
 ;;
-;;				-[Tue Apr 27 18:31:42 1993 by layer]-
+;;				-[Mon Oct 13 12:11:47 1997 by layer]-
 ;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1992 Franz Inc, Berkeley, CA  All rights reserved.
@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/utils/excl-verification.lisp,v 1.21 1996/07/23 21:34:52 colin Exp $
+;; $Header: /repo/cvs.copy/clim2/utils/excl-verification.lisp,v 1.22 1997/10/13 20:29:40 layer Exp $
 
 (in-package :sys)
 
@@ -36,9 +36,3 @@
 
 (provide :clim)
 (provide :climg)
-
-(defvar *clim-version*
-    '("CLIM 2.1"
-      "$Header: /repo/cvs.copy/clim2/utils/excl-verification.lisp,v 1.21 1996/07/23 21:34:52 colin Exp $"))
-
-(si::rcsnote (first *clim-version*) (second *clim-version*))

@@ -17,22 +17,33 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/tk/load-xm.lisp,v 1.40 1997/05/05 22:35:17 layer Exp $
+;; $Header: /repo/cvs.copy/clim2/tk/load-xm.lisp,v 1.41 1997/10/13 20:29:38 layer Exp $
 
 (in-package :user)
 
-(require :climg)
+(eval-when (compile eval load)
+  (require :climg))
 
-#+dlfcn
+#+(version>= 5 0)
+(unless (ff:get-entry-point (ff:convert-to-lang "XmCreateMyDrawingArea"))
+  (let ((excl::*dlopen-mode* (excl:ics-target-case
+			      (:+ics #x102)
+			      (:-ics excl::*dlopen-mode*))))
+    (load (merge-pathnames (make-pathname
+			    :type (or (car excl::*load-foreign-types*)
+				      (error "Don't know foreign extension.")))
+			   "clim2:;climxm"))))
+
+#+(and (not (version>= 5 0)) dlfcn)
 (unless (ff:get-entry-point (ff:convert-to-lang "XmCreateMyDrawingArea")
-			    #-(version>= 5 0) :note-shared-library-references
-			    #-(version>= 5 0) nil)
+			    :note-shared-library-references
+			    nil)
   (let ((ff::*dlopen-mode* (excl:ics-target-case
 			    (:+ics #x102)
 			    (:-ics ff::*dlopen-mode*))))
     (load "clim2:;climxm.so")))
 
-#-dlfcn
+#+(and (not (version>= 5 0)) (not dlfcn))
 (progn
 
 (defvar sys::*libtk-pathname* "Xm")

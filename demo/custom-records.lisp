@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/demo/custom-records.lisp,v 1.6 1997/02/05 01:47:13 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/demo/custom-records.lisp,v 1.7 1997/10/13 20:29:35 layer Exp $
 
 (in-package :clim-user)
 
@@ -137,7 +137,9 @@
   ;; Eat up the initargs that records are supposed to handle
   (declare (ignore object type single-box)))
 
-(proclaim '(inline make-data-point))
+(eval-when (compile)
+  (proclaim '(inline make-data-point)))
+
 (defun make-data-point (u v)
   (make-instance 'data-point :u u :v v))
 

@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/wnn/load-wnn.lisp,v 1.6 1997/05/30 17:56:33 layer Exp $
+;; $Header: /repo/cvs.copy/clim2/wnn/load-wnn.lisp,v 1.7 1997/10/13 20:29:42 layer Exp $
 
 (in-package :user)
 
@@ -27,19 +27,27 @@
 (excl:ics-target-case
 (:+ics
 
-#-dlfcn
-(progn
+#+(version>= 5 0)
+(unless (ff:get-entry-point (ff:convert-to-lang "jl_open_lang"))
+  (load (merge-pathnames (make-pathname
+			  :type (or (car excl::*load-foreign-types*)
+				    (error "Don't know foreign extension.")))
+			 "clim2:;wnn")))
 
+#+(and (not (version>= 5 0)) dlfcn)
+(unless (ff:get-entry-point (ff:convert-to-lang "jl_open_lang")
+			    :note-shared-library-references
+			    nil)
+  (load "clim2:;wnn.so"))
+
+#+(and (not (version>= 5 0)) (not dlfcn))
+(progn
   (defvar sys::*libwnn-pathname* "wnn")
 
   (unless (ff:get-entry-point (ff:convert-to-lang "jl_open_lang"))
     (load "stub-wnn.o"
 	  :system-libraries (list sys::*libwnn-pathname*)
 	  :print t)))
-
-#+dlfcn
-(unless (ff:get-entry-point (ff:convert-to-lang "jl_open_lang"))
-  (load "clim2:;wnn.so"))
 
 (provide :wnn)
 (pushnew :wnn *features*)

@@ -1,16 +1,22 @@
-# $Header: /repo/cvs.copy/clim2/Makefile.hpprism,v 1.12 1997/02/05 01:41:57 tomj Exp $
+# $Header: /repo/cvs.copy/clim2/Makefile.hpprism,v 1.13 1997/10/13 20:29:33 layer Exp $
 #
 #  Makefile.hpprism for CLIM 2.0
 #
 
 include Makefile.defs
 
+SHARED_EXT = sl
+
+SHARED-XM-OBJS= climxm.sl
+SHARED-OL-OBJS= climol.sl
+
 Makefile=Makefile.hpprism
 
-CL=../src/xm-dcl
+SET_LIBRARY_PATH = \
+	LPATH=/usr/lib/X11R5:/lib/pa1.1:/lib:/usr/lib:/usr/lib/Motif1.2:$(LPATH); export LPATH
 
-CFLAGS= -O -D_NO_PROTO -DSTRINGS_ALIGNED -DNO_REGEX -DNO_ISDIR \
-	-DUSE_RE_COMP -DUSER_GETWD -Wp,-H1280000
+#CL=../src/xm-dcl
+
 STD_DEFINES = -DSYSV
 AR = ar clq
 
@@ -20,7 +26,9 @@ XLIB=-lX11
 
 XINCLUDES= -I/usr/include/Motif1.2 -I/usr/include/X11R5
 
-PICFLAGS = +z
+CFLAGS= -O -Ae +DA1.1
+MOTIFXTRAS=-lc
+PICFLAGS = +Z
 SHAREFLAGS = -b
 MAKE_SHARED = ld
 

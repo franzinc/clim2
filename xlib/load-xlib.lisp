@@ -17,11 +17,11 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/xlib/load-xlib.lisp,v 1.17 1997/02/05 01:56:00 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/xlib/load-xlib.lisp,v 1.18 1997/10/13 20:29:45 layer Exp $
 
 (in-package :x11)
 
-#-dlfcn
+#+(and (not (version>= 5 0)) (not dlfcn))
 (progn
 
   (defvar sys::*libx11-pathname* "X11")

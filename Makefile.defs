@@ -1,7 +1,9 @@
-# $Header: /repo/cvs.copy/clim2/Makefile.defs,v 1.41 1997/05/30 17:56:31 layer Exp $
+# $Header: /repo/cvs.copy/clim2/Makefile.defs,v 1.42 1997/10/13 20:29:33 layer Exp $
 #
 #  Makefile.defs for CLIM 2.0
 #
+
+SHARED_EXT = so
 
 #CL	= ../src/lisp -I ../src/dcl.dxl
 CL	= ../src/lispi -I ../src/dcli.dxl
@@ -99,10 +101,10 @@ PRODUCT-GENERIC-OBJS= \
 	stub-xt.o stub-x.o xtsupport.o xlibsupport.o
 
 STATIC-XM-OBJS= stub-motif.o xmsupport.o
-SHARED-XM-OBJS= climxm.so
+SHARED-XM-OBJS= climxm.$(SHARED_EXT)
 
 STATIC-OL-OBJS= stub-olit.o olsupport.o
-SHARED-OL-OBJS= climol.so
+SHARED-OL-OBJS= climol.$(SHARED_EXT)
 
 WNNLIB = libwnn.a
 STATIC-WNN-OBJS=stub-wnn.o $(WNNLIB)
@@ -254,4 +256,3 @@ make = make SPEED=${SPEED} SAFETY=${SAFETY} DEBUG=${DEBUG} \
 	CLIM=${CLIM} COMPILE_PRINT=${COMPILE_PRINT} TMP=${TMP} -f ${Makefile}
 
 BENCHMARK_FILE=nil
-

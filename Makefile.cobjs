@@ -1,4 +1,4 @@
-# $Header: /repo/cvs.copy/clim2/Makefile.cobjs,v 1.16 1997/02/05 01:41:47 tomj Exp $
+# $Header: /repo/cvs.copy/clim2/Makefile.cobjs,v 1.17 1997/10/13 20:29:32 layer Exp $
 #
 #  Makefile.cobj for CLIM 2.0
 #
@@ -52,9 +52,9 @@ xlibsupport.o : xlib/xlibsupport.c
 
 # .so's made from above support files (for dynamic loading)
 
-climxm.so: xlibsupport.o xtsupport.o xmsupport.o
+climxm.$(SHARED_EXT): xlibsupport.o xtsupport.o xmsupport.o
 	(eval '$(SET_LIBRARY_PATH)' ; \
-	$(MAKE_SHARED) $(SHAREFLAGS) -o climxm.so \
+	$(MAKE_SHARED) $(SHAREFLAGS) -o climxm.$(SHARED_EXT) \
 		xlibsupport.o xtsupport.o xmsupport.o \
 		$(IMPORTS) $(TKLIB) $(XTLIB) $(XLIB) $(MOTIFXTRAS))
 
@@ -64,9 +64,9 @@ climxm.sl: xlibsupport.o xtsupport.o xmsupport.o
 		xlibsupport.o xtsupport.o xmsupport.o \
 		$(IMPORTS) $(TKLIB) $(XTLIB) $(XLIB) $(MOTIFXTRAS))
 
-climol.so: xlibsupport.o xtsupport.o olsupport.o
+climol.$(SHARED_EXT): xlibsupport.o xtsupport.o olsupport.o
 	(eval '$(SET_LIBRARY_PATH)' ; \
-	$(MAKE_SHARED) $(SHAREFLAGS) -o climol.so \
+	$(MAKE_SHARED) $(SHAREFLAGS) -o climol.$(SHARED_EXT) \
 		xlibsupport.o xtsupport.o olsupport.o \
 		$(IMPORTS) $(TKLIB) $(XTLIB) $(XLIB))
 
@@ -99,7 +99,7 @@ makemainxm: $(ACL_MAIN_OBJ) $(PRODUCT-GENERIC-OBJS) $(STATIC-XM-OBJS)
 # If they're not linked in then when climxm is loaded they will be
 # loaded individually or in the case of dlfcn 
 # 
-# 	climxm.so
+# 	climxm.$(SHARED_EXT)
 # 
 # (a shared library made from all of the above) will be loaded.
 # 

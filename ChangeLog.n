@@ -11,8 +11,34 @@ Tests for new features:	<`no new features', `no tests for new features', or
 	* <changes go here...>
 
 *******************************************************************************
-Fri Oct  3 17:47:17 PDT 1997  Tom McClure <tomj@romeo>
+2.2.1.1
 
+Documentation changes:	none
+Tests for new features:	no new features
+
+Mon Oct 13 13:22:58 1997  Kevin Layer  <layer@ultra>
+
+	* Makefile.cobjs: parameterize .so extension (for HP, where it is .sl)
+	* Makefile.defs: parameterize .so extension (for HP, where it is .sl)
+	* Makefile.generic: parameterize .so extension (for HP, where it
+	is .sl)
+	* Makefile.hpprism: fixes to make clim work at all on 5.0
+	* Makefile.sun4-svr4: don't define `CL' (why, though????)
+	* Makefile.wnn: parameterize .so extension (for HP, where it is .sl)
+	* demo/custom-records.lisp: fix compile time warning
+	* sys/sysdcl.lisp: fix compile time warnings
+	* tk/load-xm.lisp: fix for all acl-based lisps
+	* tk/pkg.lisp: fix compile time warning
+	* tk-silica/pkg.lisp: fix compile time warning
+	* utils/excl-verifications.lisp: move stuff to packages.lisp
+	* utils/packages.lisp: add version info
+	* wnn/load-wnn.lisp: fix for all acl-based lisps
+	* wnn/pkg.lisp: fix compile time warning
+	* xlib/ffi.lisp: fix for 5.0
+	* xlib/load-xlib.lisp: fix for 5.0
+
+*******************************************************************************
+Fri Oct  3 17:47:17 PDT 1997  Tom McClure <tomj@romeo>
 
 CLIM 2.2alpha ACLWin
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/sys/sysdcl.lisp,v 1.55 1997/05/31 01:00:39 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/sys/sysdcl.lisp,v 1.56 1997/10/13 20:29:35 layer Exp $
 
 (in-package :cl-user)
 
@@ -35,6 +35,9 @@
   ;;mm: to suppress many compiler warnings.
   (declaim (declaration values arglist))
   )
+
+#+Allegro
+(declaim (declaration non-dynamic-extent))
 
 
 ;;; CLIM is implemented using the "Gray Stream Proposal" (STREAM-DEFINITION-BY-USER)

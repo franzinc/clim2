@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/xlib/ffi.lisp,v 1.19 1997/02/05 01:55:57 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/xlib/ffi.lisp,v 1.20 1997/10/13 20:29:44 layer Exp $
 
 (in-package :x11)
 
@@ -114,6 +114,7 @@
 
 ;;; Delay version
 
+#-(version>= 5 0)
 (defun trans-arg-type (type)
   (excl:if* (consp type)
      then (ecase (car type)
@@ -127,6 +128,22 @@
 	    (t
 	     (if (get type 'ff::cstruct)
 		 'ff:foreign-address
+	       't)))))
+
+#+(version>= 5 0)
+(defun trans-arg-type (type)
+  (excl:if* (consp type)
+     then (ecase (car type)
+	    (:pointer :foreign-address)
+	    (:array :foreign-address))
+     else (case type
+	    (void (error "void not allowed here"))
+	    ((int unsigned-int :unsigned-32bit :signed-32bit) 'integer)
+	    ((fixnum-int fixnum-unsigned-int) 'fixnum)
+	    (fixnum-drawable :foreign-address)
+	    (t
+	     (if (get type 'ff::cstruct)
+		 :foreign-address
 	       't)))))
 
 (defun trans-return-type (type)

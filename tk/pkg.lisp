@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: cl-user -*-
 ;;
-;;				-[Thu Aug 12 09:55:10 1993 by layer]-
+;;				-[Thu Oct  9 13:16:25 1997 by layer]-
 ;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/tk/pkg.lisp,v 1.19 1997/02/05 01:53:07 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/tk/pkg.lisp,v 1.20 1997/10/13 20:29:38 layer Exp $
 
 (defpackage :tk
   ;;-- No we really need
@@ -50,3 +50,5 @@
    ))
 
 (setf (package-definition-lock (find-package :tk)) t)
+
+(in-package :tk)
