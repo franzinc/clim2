@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: graphics.cl,v 1.2 92/01/02 15:09:12 cer Exp $
+;; $fiHeader: graphics.lisp,v 1.3 92/01/31 14:55:40 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -429,4 +429,40 @@
 		      from-max-x from-max-y 
 		      to-min-x to-min-y)
   (port-copy-area (sheet-port sheet) 
-		  sheet from-min-x from-min-y from-max-x from-max-y to-min-x to-min-y))
+		  sheet
+		  sheet
+		  from-min-x from-min-y from-max-x from-max-y to-min-x to-min-y))
+
+#+ignore
+(define-graphics-operation draw-arrow (x1 y1 x2 y2
+				       &key (from-head nil) (to-head t)
+					    (head-length 10) (head-width 5))
+  :arguments ((point x1 y1 x2 y2))
+  :drawing-options :line-cap
+  :method-body
+    (with-transformed-arguments
+      (let* ((dx (- x2 x1))
+	     (dy (- y2 y1))
+	     (norm (if (zerop dx)
+		       (if (zerop dy) nil (/ 1.0 (abs dy)))
+		       (if (zerop dy) (/ 1.0 (abs dx)) (/ (sqrt (+ (* dx dx) (* dy dy))))))))
+	(when norm
+	  (let* ((length-norm (* head-length norm))
+		 (ldx (* dx length-norm))
+		 (ldy (* dy length-norm))
+		 (base-norm (* head-width norm 0.5))
+		 (bdx (* dy base-norm))
+		 (bdy (* dx base-norm))
+		 (ink (medium-ink stream))
+		 (line-style (medium-line-style stream)))
+	    (draw-line-internal stream 0 0 x1 y1 x2 y2 ink line-style)
+	    (when from-head
+	      (let ((xa (+ x1 ldx)) (ya (+ y1 ldy)))
+		(with-stack-list (points x1 y1 (+ xa bdx) (- ya bdy) (- xa bdx) (+ ya bdy))
+		  (draw-polygon-internal stream 0 0 points t ink nil))
+		(setq x1 xa y1 ya)))
+	    (when to-head
+	      (let ((xa (- x2 ldx)) (ya (- y2 ldy)))
+		(with-stack-list (points x2 y2 (+ xa bdx) (- ya bdy) (- xa bdx) (+ ya bdy))
+		  (draw-polygon-internal stream 0 0 points t ink nil)
+		  (setq x2 xa y2 ya)))))))))

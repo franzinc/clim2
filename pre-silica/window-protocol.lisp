@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: window-protocol.lisp,v 1.7 91/03/29 18:01:14 cer Exp $
+;; $fiHeader: window-protocol.lisp,v 1.1 92/01/31 14:28:13 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -399,10 +399,13 @@
 	      #-Silica (window-margins window)
 	    (declare (type coordinate ml mt))
 	    (translate-fixnum-positions ml mt from-x from-y)
-	    (copy-area window
-		       from-x from-y
-		       (+ from-x width) (+ from-y height)
-		       (+ from-x delta-x) (+ from-y delta-y))))))))
+	    (let ((tf (sheet-native-transformation window)))
+	      (multiple-value-call 
+		  #'copy-area 
+		window
+		(untransform-point* tf from-x from-y)
+		(untransform-point* tf (+ from-x width) (+ from-y height))
+		(untransform-point* tf (+ from-x delta-x) (+ from-y delta-y))))))))))
 
 
 #+Silica

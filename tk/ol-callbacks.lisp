@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-callbacks.cl,v 1.1 92/01/17 17:46:09 cer Exp $
+;; $fiHeader: ol-callbacks.lisp,v 1.2 92/01/31 14:55:01 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -67,11 +67,8 @@
     (:expose 
      (values (object-handle (widget-window widget))
 	     (ol-expose-callback-struct-event call-data)))
-    (:resize (values (object-handle (widget-window widget))
-		     nil		; this is meant to be an event
-		     )
-	     )))
+    (:resize (values nil nil))))
 
-
-
+(defmethod spread-callback-data (widget data (type (eql 'slider-moved)))
+  (values))
 

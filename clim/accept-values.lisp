@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept-values.lisp,v 1.4 91/03/26 12:47:03 cer Exp $
+;; $fiHeader: accept-values.lisp,v 1.5 92/01/31 14:57:29 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -192,6 +192,7 @@
 				        (realize-pane 'extended-stream-pane
 						      :initial-cursor-visibility nil))))
 	 own-window))))
+  (:menu-bar nil)
   (:command-table accept-values)
   (:command-definer nil))
 
@@ -1013,7 +1014,7 @@
 	  (abort (or (second (assoc :abort exit-boxes)) "<Abort> aborts")))
       (updating-output (stream :unique-id stream
 			       :cache-value 'exit-boxes)
-0	(formatting-item-list (stream :n-columns 2 :initial-spacing nil)
+	(formatting-item-list (stream :n-columns 2 :initial-spacing nil)
 	 (formatting-cell (stream)
 	  (with-output-as-gadget (stream)
 	    (realize-pane 'push-button

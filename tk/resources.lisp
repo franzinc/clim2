@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: resources.cl,v 1.5 92/01/17 17:49:21 cer Exp $
+;; $fiHeader: resources.lisp,v 1.6 92/01/31 14:55:09 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -156,6 +156,7 @@
     (:static 0)))
 
 
+#+ignore
 (defmethod convert-resource-out ((parent t) (type (eql 'packing)) value)
   (ecase value
     (:pack-column 2)))
@@ -182,11 +183,14 @@
   (convert-pixmap-out parent value))
 
 (defun convert-pixmap-out (parent value)
-  (let* ((display (widget-display parent))
-	 (screen (display-default-screen display))
-	 (white (screen_white_pixel screen))
-	 (black (screen_black_pixel screen)))
-    (get_pixmap screen (string-to-char* value) white black)))
+  (etypecase value
+    (pixmap (object-handle value))
+    (string
+     (let* ((display (widget-display parent))
+	    (screen (display-default-screen display))
+	    (white (screen_white_pixel screen))
+	    (black (screen_black_pixel screen)))
+       (get_pixmap screen (string-to-char* value) white black)))))
 
 (defmethod convert-resource-out ((parent t) (type (eql 'boolean)) value)
   (if value 1 0))
@@ -339,7 +343,8 @@
 
 ;; from OpenLook.h
 
-(defvar *ol-defines* '(
+(defparameter *ol-defines* '(
+		       (:ignore -1)
 		       (:absent-pair		0)
 		       (:all			1)
 		       (:always		2)
@@ -500,3 +505,8 @@
   (or (second (find value *ol-defines* :key #'first))
       (call-next-method)))
   
+
+(define-enumerated-resource packing (:no-packing
+				     :tight
+				     :column
+				     :none))

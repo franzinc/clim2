@@ -21,7 +21,7 @@
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
 ;;;
-;; $fiHeader: db-box.lisp,v 1.5 92/01/06 20:44:15 cer Exp $
+;; $fiHeader: db-box.lisp,v 1.6 92/01/31 14:55:31 cer Exp Locker: cer $
 
 
 (in-package :silica)
@@ -68,7 +68,7 @@
 	    (note-space-requirement-changed (sheet-parent lcm) lcm))))))
 
 
-(defmacro compose-box (contract (major major+ major- minor minor+ minor-) keys)
+(defmacro compose-box (contract (major major+ major- minor minor+ minor- width-or-height) keys)
   `(with-slots (contents space) ,contract
      (if (null contents) (make-space-requirement)
 	 (let ((major 0)
@@ -84,7 +84,7 @@
 	     (cond ((eq entry :fill) (incf major+ +fill+))
 		   ((numberp entry) (incf major entry))
 		   (t 
-		    (let ((space-req (compose-space entry)))
+		    (let ((space-req (compose-space entry ,@width-or-height)))
 		      (incf major (+ (,major space-req) space))
 		      (incf major+ (,major+ space-req))
 		      (incf major- (,major- space-req))
@@ -149,13 +149,14 @@
 (defclass hbox-pane (box-pane)
     ())
 
-(defmethod compose-space ((contract hbox-pane))
+(defmethod compose-space ((contract hbox-pane) &key width height)
   (compose-box contract (space-requirement-width 
 			 space-requirement-max-width
 			 space-requirement-min-width
 			 space-requirement-height
 			 space-requirement-max-height
-			 space-requirement-min-height)
+			 space-requirement-min-height
+			 (:height height))
 	       (:width :max-width :min-width :height :max-height :min-height)))
 
 (defmethod allocate-space ((contract hbox-pane) width height)
@@ -173,13 +174,14 @@
     ()
   )
 
-(defmethod compose-space ((contract vbox-pane))
+(defmethod compose-space ((contract vbox-pane) &key width height)
   (compose-box contract (space-requirement-height
 			 space-requirement-max-height
 			 space-requirement-min-height
 			 space-requirement-width 
 			 space-requirement-max-width
-			 space-requirement-min-width)
+			 space-requirement-min-width
+			 (:width width))
 	       (:height :max-height :min-height :width :max-width :min-width)))
 
 (defmethod allocate-space ((contract vbox-pane) width height)
@@ -193,7 +195,7 @@
 	    #'space-requirement-min-height
 	    #'space-requirement-height
 	    #'space-requirement-max-height
-	    #'compose-space))
+	    #'(lambda (x) (compose-space x :width width))))
 	  (y 0))
       (mapc #'(lambda (sheet size)
 		(move-and-resize-sheet* sheet 

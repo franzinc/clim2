@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.cl,v 1.2 92/01/17 17:49:35 cer Exp $
+;; $fiHeader: xt-silica.lisp,v 1.3 92/01/31 14:56:42 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -28,10 +28,17 @@
 	  ((application-shell :reader port-application-shell)
 	   (display :reader port-display)
 	   (context :reader port-context)
+	   (copy-gc :initform nil)
 	   )
   (:documentation "The port for X intrinsics based ports"))
 
-
+(defmethod port-copy-gc ((port xt-port))
+  (with-slots (copy-gc display) port
+    (or copy-gc
+	(setf copy-gc
+	  (make-instance 'tk::gcontext
+			 :display display
+			 :handle (x11:screen-default-gc (tk::display-default-screen (port-display port))))))))
 
 (defmethod initialize-instance :after ((port xt-port) &key server-path)
   (destructuring-bind
@@ -181,6 +188,50 @@
       (distribute-event
        (sheet-port sheet)
        (ecase (tk::event-type event)
+	 (:key-press
+	  (multiple-value-bind
+	       (ignore character keysym)
+	       (tk::lookup-string event)
+	     (declare (ignore ignore))
+	     (make-instance 'key-press-event
+			    :key-name keysym
+			    :character (and (= (length character) 1)
+					    (aref character 0))
+			    :sheet sheet
+			    :modifiers (x11::xkeyevent-state event))))
+    
+	 (:key-release
+	  (multiple-value-bind
+	       (ignore character keysym)
+	       (tk::lookup-string event)
+	     (declare (ignore ignore))
+	     (make-instance 'key-release-event
+			    :key-name keysym
+			    :character (and (= (length character) 1)
+					    (aref character 0))
+			    :sheet sheet
+			    :modifiers (x11::xkeyevent-state event))))
+    
+	 (:button-press
+	  (make-instance 'pointer-button-press-event
+			  :sheet sheet
+			  :x :??
+			  :y :??
+			  :modifiers (x11::xkeyevent-state event)
+			  :button (x-button->silica-button 
+				   (x11::xbuttonevent-button event))
+			  :native-x (x11::xbuttonevent-x event)
+			  :native-y (x11::xbuttonevent-y event)))
+	 (:button-release
+	  (make-instance 'pointer-button-release-event
+			  :sheet sheet
+			  :x :??
+			  :y :??
+			  :modifiers (x11::xkeyevent-state event)
+			  :button (x-button->silica-button 
+				   (x11::xbuttonevent-button event))
+			  :native-x (x11::xbuttonevent-x event)
+			  :native-y (x11::xbuttonevent-y event)))
 	 (:leave-notify
 	  (make-instance 'pointer-exit-event
 			 :native-x native-x
@@ -416,11 +467,15 @@
 				    target-right target-bottom)
   (let ((w (- target-right  target-left))
 	(h (- target-bottom target-top)))
+    (setf target-left (floor target-left)
+	  target-top (floor target-top)
+	  w (floor w)
+	  h (floor h))
     (tk::set-values (sheet-direct-mirror sheet)
-		    :x (floor target-left)
-		    :y (floor target-top)
-		    :width (floor w)
-		    :height (floor h))
+		    :x target-left
+		    :y target-top
+		    :width w
+		    :height h)
     (multiple-value-bind
 	(nx ny nw nh)
 	(tk::get-values (sheet-direct-mirror sheet)

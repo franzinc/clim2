@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xlib.cl,v 1.4 92/01/08 14:58:25 cer Exp $
+;; $fiHeader: xlib.lisp,v 1.5 92/01/31 14:55:12 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -46,7 +46,8 @@
 	  ())
 
 (defclass pixmap (drawable)
-	  ())
+	  ((width :initarg :width :reader pixmap-width)
+	   (height :initarg :height :reader pixmap-height)))
 
 (defforeign 'x_create_pixmap
     :entry-point "_XCreatePixmap")
@@ -56,6 +57,7 @@
 						       height
 						       depth 
 						       drawable)
+  (with-slots (display) p (setf display (object-display drawable)))
   (unless handle
     (setf (slot-value p 'handle)
       (x_create_pixmap
@@ -295,7 +297,9 @@
 	buffer
 	20
 	keysym
-	compose-status)
+	;;compose-status is bigger than an int
+	#+this-is-a-goodway-to-die compose-status
+	0)
        (char*-to-string buffer)
        (aref keysym 0)))))
 

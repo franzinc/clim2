@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: output-protocol.lisp,v 1.4 91/03/26 12:48:23 cer Exp $
+;; $fiHeader: output-protocol.lisp,v 1.5 92/01/31 14:58:25 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -551,9 +551,10 @@
 	      (draw-text* stream name (+ lozenge-left 1) (+ lozenge-top 2)
 			  :align-y :top :text-style text-style :ink ink)
 	      (macrolet ((line (x1 y1 x2 y2)
-			   `(draw-line-internal stream 0 0
+			   `(draw-line* stream 
 						,x1 ,y1 ,x2 ,y2
-						ink +highlighting-line-style+)))
+						:ink ink
+						:line-style +highlighting-line-style+)))
 		(line lozenge-left lozenge-top lozenge-right lozenge-top)
 		(line lozenge-left lozenge-bottom lozenge-right lozenge-bottom)
 		(line lozenge-left lozenge-top lozenge-left-point lozenge-y-point)

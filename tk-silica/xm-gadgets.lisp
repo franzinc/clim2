@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.cl,v 1.6 92/01/17 17:49:31 cer Exp $
+;; $fiHeader: xm-gadgets.lisp,v 1.7 92/01/31 14:56:29 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -174,7 +174,7 @@
 	     (and value (list :value value))))))
 
 
-(defmethod compose-space ((m motif-slider))
+(defmethod compose-space ((m motif-slider) &key width height)
   (let ((x 16))
     (ecase (silica::gadget-orientation m)
       (:vertical
@@ -239,7 +239,7 @@
      size)))
 
 
-(defmethod compose-space ((m motif-scrollbar))
+(defmethod compose-space ((m motif-scrollbar) &key width height)
   (let ((x 16))
     (ecase (silica::gadget-orientation m)
       (:vertical
@@ -313,8 +313,8 @@
   (silica::resize-sheet*  (car (sheet-children sheet)) 
 			  width height))
 
-(defmethod compose-space ((sheet motif-top-level-sheet))
-  (compose-space (car (sheet-children sheet))))
+(defmethod compose-space ((sheet motif-top-level-sheet) &key width height)
+  (compose-space (car (sheet-children sheet)) :width width :height height))
 
 (defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
 						     (sheet motif-top-level-sheet))

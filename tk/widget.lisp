@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: widget.cl,v 1.7 92/01/17 17:49:22 cer Exp $
+;; $fiHeader: widget.lisp,v 1.8 92/01/31 14:55:10 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -249,3 +249,10 @@
        (logtest r x11:cwborderwidth)))))
 
 
+(defun describe-widget (w)
+  (dolist (r (class-resources (class-of w)))
+    (format t "~S : ~S~%"
+	    (resource-name r)
+	    (handler-case
+		(get-values w (intern (resource-name r) :keyword))
+	      (error (c) c "Get-values failed!")))))

@@ -21,7 +21,7 @@
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
 ;;;
-;; $fiHeader: db-layout.lisp,v 1.5 92/01/08 14:58:54 cer Exp $
+;; $fiHeader: db-layout.lisp,v 1.6 92/01/31 14:55:32 cer Exp Locker: cer $
 
 
 (in-package :silica)
@@ -30,7 +30,7 @@
 ;;; Layout Protocol
 ;;;
 
-(defgeneric compose-space (pane)
+(defgeneric compose-space (pane &key width height)
   (:documentation
     "<Pane> should calculate how much space it wants."))
 
@@ -207,7 +207,7 @@
 	  
 	  
 
-(defmethod compose-space ((pane space-requirement-mixin))
+(defmethod compose-space ((pane space-requirement-mixin) &key width height)
   (slot-value pane 'space-requirement))
 
 (defmethod change-space-requirement ((pane space-requirement-mixin) &rest keys)
@@ -259,7 +259,7 @@ slot that defaults to NIL"))
     (:documentation "If the user specifies some space requirements then
 use it otherwise use other value"))
 
-(defmethod compose-space :around ((pane client-space-requirement-mixin))
+(defmethod compose-space :around ((pane client-space-requirement-mixin) &key width height)
   (or (slot-value pane 'client-space-requirement)
       (call-next-method)))
 
@@ -309,7 +309,7 @@ use it otherwise use other value"))
   (:documentation "Client can specify values that override those
 provided elsewhere"))
 
-(defmethod compose-space :around ((pane client-overridability))
+(defmethod compose-space :around ((pane client-overridability) &key width height)
   (with-slots (width height max-width max-height min-width min-height) pane
     (let ((value (call-next-method)))
       (when (or width height max-width max-height min-width
@@ -355,7 +355,7 @@ provided elsewhere"))
 (defclass space-requirement-cache-mixin (layout-mixin)
     ((space-requirement :initform nil)))
 
-(defmethod compose-space :around ((pane space-requirement-cache-mixin))
+(defmethod compose-space :around ((pane space-requirement-cache-mixin) &key width height)
   (with-slots (space-requirement) pane
     (or space-requirement (setf space-requirement (call-next-method)))))
 
@@ -395,9 +395,9 @@ provided elsewhere"))
 (defmethod allocate-space ((pane wrapping-space-mixin) width height)
   (resize-sheet* (sheet-child pane) width height))
 
-(defmethod compose-space ((pane wrapping-space-mixin))
+(defmethod compose-space ((pane wrapping-space-mixin) &key width height)
   (let ((child (sheet-child pane)))
-    (compose-space child)))
+    (compose-space child :width width :height height)))
 
 
 ;;;

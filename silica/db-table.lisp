@@ -21,7 +21,7 @@
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved.
 ;;;
-;; $fiHeader: db-table.lisp,v 1.4 92/01/02 15:33:10 cer Exp $
+;; $fiHeader: db-table.lisp,v 1.5 92/01/31 14:55:35 cer Exp Locker: cer $
 
 
 (in-package :silica)
@@ -57,7 +57,7 @@
 		 (vscrollbar viewport)
 		 (nil        hscrollbar))
 
-(defmethod compose-space ((x table-pane))
+(defmethod compose-space ((x table-pane) &key width height)
   (with-slots (contents) x
     (let ((omin-w 0)
 	  (omin-h 0)

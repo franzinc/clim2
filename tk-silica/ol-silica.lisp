@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-silica.cl,v 1.1 92/01/17 17:46:52 cer Exp $
+;; $fiHeader: ol-silica.lisp,v 1.2 92/01/31 14:56:19 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -29,3 +29,15 @@
 
 (defmethod find-port-type ((type (eql :openlook)))
   'openlook-port)
+
+(defmethod port-note-cursor-change ((port openlook-port)
+				    cursor
+				    stream
+				    type
+				    old
+				    new)
+  (declare (ignore old type cursor))
+  (call-next-method)
+  ;;--- This is in both xm and ol to perhaps should be an after on xt
+  (setf (silica::port-keyboard-focus port) 
+    (and new stream)))

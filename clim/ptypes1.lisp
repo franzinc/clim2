@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: ptypes1.lisp,v 1.6 91/03/29 18:21:40 cer Exp $
+;; $fiHeader: ptypes1.lisp,v 1.2 92/01/31 14:58:37 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -384,6 +384,12 @@
 (defmethod acceptable-presentation-type-class ((class (eql (find-class 't)))) t)
 (defmethod acceptable-presentation-type-class ((class t)) nil)
 
+#+excl
+(progn
+  ;;--- In theory we could cons up a prototype of a structure-class just
+  ;; by calling the constructor
+  (defmethod acceptable-presentation-type-class ((class clos::structure-class)) nil)
+  )
 ;;; Abstract flavors aren't accepted since CLASS-PROTOTYPE signals an error
 #+Genera
 (defmethod acceptable-presentation-type-class ((class clos-internals::flavor-class))

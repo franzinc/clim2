@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-frames.cl,v 1.5 92/01/20 09:58:28 cer Exp $
+;; $fiHeader: xm-frames.lisp,v 1.6 92/01/31 14:56:27 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -145,17 +145,24 @@
 
 
 (defmethod clim-internals::frame-wrapper ((frame t) (framem motif-frame-manager) pane)
-  (with-look-and-feel-realization (framem frame)
-    (vertically ()
-      (realize-pane 'menu-bar
-		    :command-table (frame-command-table frame))
-      pane)))
+  (let ((mb (slot-value frame 'clim-internals::menu-bar)))
+    (if mb
+	(with-look-and-feel-realization (framem frame)
+	  (vertically ()
+		      (realize-pane 'menu-bar
+				    :command-table (if (eq mb t)
+						       (frame-command-table frame)
+						     (find-command-table mb)))
+		      (call-next-method)))
+      (call-next-method))))
 
 (defclass motif-menu-bar (xt-leaf-pane) 
 	  ((command-table :initarg :command-table)))
 
 (defmethod find-widget-class-and-initargs-for-sheet (port (sheet motif-menu-bar))
-  (values 'tk::xm-menu-bar nil))
+  (values 'tk::xm-menu-bar 
+	  (list :resize-height t
+		:resize-width t)))
 
 (defmethod realize-mirror :around ((port motif-port) (sheet motif-menu-bar))
 

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-gadgets.cl,v 1.1 92/01/17 17:48:37 cer Exp $
+;; $fiHeader: xt-gadgets.lisp,v 1.2 92/01/31 14:56:38 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -39,11 +39,12 @@
 		      abstract-type options))
       (call-next-method))))
 
-(defmethod compose-space ((pane ask-widget-for-size-mixin))
+(defmethod compose-space ((pane ask-widget-for-size-mixin) &key width height)
   (multiple-value-bind
       (x y width height borderwidth
 	 care-x care-y care-width care-height care-borderwidth)
-      (tk::widget-best-geometry (sheet-direct-mirror pane))
+      (tk::widget-best-geometry (sheet-direct-mirror pane) :width
+				width :height height)
     (declare (ignore x y borderwidth care-x care-y care-width
 		     care-height care-borderwidth)) 
     (make-instance 'silica::space-requirement :width width :height height)))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: define-application.lisp,v 1.4 91/03/26 12:47:50 cer Exp $
+;; $fiHeader: frames.lisp,v 1.6 92/01/31 14:57:58 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -23,7 +23,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: frames.cl,v 1.5 92/01/06 20:44:19 cer Exp $
+;; $fiHeader: frames.lisp,v 1.6 92/01/31 14:57:58 cer Exp Locker: cer $
 
 ;; Frame protocol:
 ;;   adopt-frame
@@ -35,30 +35,32 @@
 (define-protocol-class application-frame ())
 
 (defclass standard-application-frame (application-frame)
-  ;;--- Is it right for these to be SHEET accessors??
-  ((name :initarg :name :accessor frame-name)
-   (pretty-name :initarg :pretty-name :accessor frame-pretty-name)
-   (command-table :initarg :command-table 
-		  :initform (find-command-table 'user-command-table)
-		  :accessor frame-command-table)
-   (disabled-commands :initarg :disabled-commands :initform nil)
-   ;;--- One of  T, NIL, or a command-table; used by the menu-bar
-   (menu-bar :initarg :menu-bar :initform t)
-   (histories :initform nil)
-   (port :reader sheet-port :initarg :port)
-   (graft :reader sheet-graft :initarg :graft)
-   (frame-manager :reader frame-manager :initarg :frame-manager)
-   (panes :initarg :panes :accessor frame-panes)
-   (top-level-sheet :accessor frame-top-level-sheet :initform nil)
-   (shell :accessor frame-shell)
-   (state :initform :disowned :accessor frame-state 
-	  :type (member :disowned :disabled :enabled :shrunk))
-   (top-level :initarg :top-level  :accessor frame-top-level)
-   (current-layout :initarg :default-layout :reader frame-current-layout)
-   (all-panes :initform nil)
-   (pane-constructors :initarg :pane-constructors)
-   (default-size :initform nil :initarg :default-size))
+	  ;;--- Is it right for these to be SHEET accessors??
+	  ((name :initarg :name :accessor frame-name)
+	   (pretty-name :initarg :pretty-name :accessor frame-pretty-name)
+	   (command-table :initarg :command-table 
+			  :initform (find-command-table 'user-command-table)
+			  :accessor frame-command-table)
+	   (disabled-commands :initarg :disabled-commands :initform nil)
+	   ;;--- One of  T, NIL, or a command-table; used by the menu-bar
+	   (menu-bar :initarg :menu-bar :initform t)
+	   (histories :initform nil)
+	   (port :reader sheet-port :initarg :port)
+	   (graft :reader sheet-graft :initarg :graft)
+	   (frame-manager :reader frame-manager :initarg :frame-manager)
+	   (panes :initarg :panes :accessor frame-panes)
+	   (top-level-sheet :accessor frame-top-level-sheet :initform nil)
+	   (shell :accessor frame-shell)
+	   (state :initform :disowned :accessor frame-state 
+		  :type (member :disowned :disabled :enabled :shrunk))
+	   (top-level :initarg :top-level  :accessor frame-top-level)
+	   (current-layout :initarg :default-layout :reader frame-current-layout)
+	   (all-panes :initform nil)
+	   (pane-constructors :initarg :pane-constructors)
+	   (default-size :initform nil :initarg :default-size)
+	   (menu-bar :initarg :menu-bar))
   (:default-initargs
+      :menu-bar t
     :top-level 'default-frame-top-level
     :frame-manager (find-frame-manager)
     :port (find-port)
@@ -96,6 +98,7 @@
   (let ((pane (second (assoc :pane options)))
 	(panes (cdr (assoc :panes options)))
 	(layout (cdr (assoc :layout  options)))
+	(menu-bar (assoc :menu-bar options))
 	(command-definer (second (or (assoc :command-definer options)
 				     '(t t))))
 	(command-table (second (or (assoc :command-table options)
@@ -122,6 +125,7 @@
 	   ,slots
 	 (:default-initargs
 	     ,@(and layout `(:default-layout ',(car (car layout))))
+	   ,@(and menu-bar `(:menu-bar ',(second menu-bar)))
 	   ,@(and top-level `(:top-level ',(second top-level)))
 	   ,@(and panes `(:pane-constructors
 			  ,(compute-pane-constructor-code panes)))
@@ -375,6 +379,8 @@
 		   (frame-top-level-sheet frame)))
 
 (defun redisplay-frame-pane (frame pane &key force-p)
+  (when (symbolp pane)
+    (setq pane (get-frame-pane frame pane)))
   (when (pane-display-function pane)
     (let* ((ird (slot-value pane 'incremental-redisplay-p))
 	   (history 

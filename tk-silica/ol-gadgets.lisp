@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-gadgets.cl,v 1.1 92/01/17 17:46:54 cer Exp $
+;; $fiHeader: ol-gadgets.lisp,v 1.2 92/01/31 14:56:15 cer Exp Locker: cer $
 
 
 (in-package :xm-silica)
@@ -75,9 +75,10 @@
 
 (defmethod silica::change-scrollbar-values ((sb openlook-scrollbar) &rest args 
 					    &key slider-size value)
-  (declare (ignore slider-size value))
+  (declare (ignore args))
   (tk::set-values
    (sheet-direct-mirror sb)
+   :proportion-length  slider-size
    :slider-value value))
 
 
@@ -87,7 +88,18 @@
 		    'scrollbar-changed-callback-internal
 		    sheet))
 
-(defmethod compose-space ((m openlook-scrollbar))
+(defmethod scrollbar-changed-callback-internal ((widget t) (sheet openlook-scrollbar))
+  (multiple-value-bind
+      (value size)
+      (tk::get-values widget :slider-value :proportion-length)
+    (silica::scrollbar-value-changed-callback
+     sheet
+     (gadget-client sheet)
+     (gadget-id sheet)
+     value
+     size)))
+
+(defmethod compose-space ((m openlook-scrollbar) &key width height)
   (let ((x 16))
     (ecase (silica::gadget-orientation m)
       (:vertical
@@ -107,11 +119,6 @@
   (tk::add-callback widget 
 		    :expose-callback 
 		    'sheet-mirror-exposed-callback
-		    sheet)
-  #+doesnot-have-on-of-these
-  (tk::add-callback widget 
-		    :input-callback 
-		    'sheet-mirror-input-callback
 		    sheet)
   (tk::add-event-handler widget
 			 '(:key-press 
@@ -155,14 +162,13 @@
   (silica::resize-sheet*  (car (sheet-children sheet)) 
 			  width height))
 
-(defmethod compose-space ((sheet openlook-top-level-sheet))
+(defmethod compose-space ((sheet openlook-top-level-sheet) &key width height)
   (compose-space (car (sheet-children sheet))))
 
 (defmethod find-widget-class-and-initargs-for-sheet ((port openlook-port)
 						     (sheet openlook-top-level-sheet))
   (values 'tk::draw-area
-	  (list :resize-policy :none
-		:margin-width 0 :margin-height 0)))
+	  (list :layout :ignore)))
 
 
 ;; OpenLook viewport
@@ -191,16 +197,13 @@
    width height)
   (update-scrollbars vp)
   (clim-internals::viewport-region-changed 
-   (sheet-child vp)
+   (car (sheet-children  vp))
    vp))
 
 
 (defmethod find-widget-class-and-initargs-for-sheet ((port openlook-port) (sheet ol-viewport))
   (values 'tk::draw-area
-	  '(:scrolling-policy :application-defined
-	    :margin-width 0 :margin-height 0
-	    :resize-policy :none
-	    :scroll-bar-display-policy :static)))
+	  '(:layout :ignore)))
 
 (defmethod add-sheet-callbacks  :after ((port openlook-port) (sheet ol-viewport) widget)
   ;; I wonder whether this is needed since it should not be resized by

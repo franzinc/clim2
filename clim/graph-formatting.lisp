@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader$
+;; $fiHeader: graph-formatting.lisp,v 1.4 92/01/31 15:07:38 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -406,7 +406,10 @@
 	      ((:horizontal :right :left)
 	       (values #'bounding-rectangle-height #'bounding-rectangle-width
 		       #'yx-output-record-set-position* start-y start-x)))
-	  (macrolet ((traverse (new-node-function &optional (old-node-function '#'ignore))
+	  (macrolet ((traverse (new-node-function &optional
+						  (old-node-function
+						   '#'(lambda (&rest
+							       x) nil)))
 		       `(traverse-graph root-nodes #'inferior-mapper 
 					hash-table #'identity
 					,new-node-function ,old-node-function))

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.3 92/01/31 14:56:40 cer Exp Locker: cer $
+;; $fiHeader: xt-graphics.lisp,v 1.4 92/01/31 16:22:09 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -28,12 +28,26 @@
   ((foreground-gcontext :reader medium-foreground-gcontext :initform nil)
    (background-gcontext :reader medium-background-gcontext :initform nil)
    (flipping-gcontext :reader medium-flipping-gcontext :initform nil)
+   (sheet :accessor  medium-sheet)
+   (drawable :initform nil :writer (setf medium-drawable))
    (ink-table :initform (make-hash-table))))
+
+(defmethod medium-drawable ((medium xt-medium))
+  (with-slots (drawable sheet) medium
+    (or drawable
+	(setf drawable (fetch-medium-drawable 
+			sheet
+			(sheet-mirror sheet))))))
+
+(defmethod fetch-medium-drawable (sheet (mirror tk::xt-root-class))
+  (declare (ignore sheet))
+  (tk::widget-window mirror nil))
 
 (defmethod engraft-medium :after ((medium xt-medium) (port xt-port) sheet)
   (with-slots 
       (foreground-gcontext background-gcontext flipping-gcontext) 
       medium
+    (setf (medium-sheet medium) sheet)
     (let ((drawable (tk::display-root-window (port-display port))))
       (unless foreground-gcontext
 	(setf foreground-gcontext (tk::make-instance 'tk::gcontext :drawable drawable)))
@@ -50,8 +64,10 @@
 (defmethod silica::degraft-medium :after ((medium xt-medium) (port xt-port) sheet)
   (declare (ignore sheet))
   (with-slots 
-      (foreground-gcontext background-gcontext flipping-gcontext)
+      (foreground-gcontext background-gcontext flipping-gcontext drawable)
       medium
+    (setf drawable nil
+	  (medium-sheet medium) nil)
     (macrolet ((loose-gc (gc)
 		 `(when ,gc
 		    (tk::free-gcontext ,gc)
@@ -213,18 +229,19 @@
   (let ((transform (sheet-device-transformation sheet)))
     (multiple-value-setq (x1 y1) (devicize-point transform x1 y1))
     (multiple-value-setq (x2 y2) (devicize-point transform x2 y2)))
-  (tk::draw-line
-   (tk::widget-window (sheet-mirror sheet))
-   (clx-adjust-ink medium
-		   (clx-decode-ink (medium-ink medium) medium)
-		   (medium-ink medium)
-		   (medium-line-style medium)
-		   (min x1 x2)
-		   (min y1 y2))
-   x1
-   y1
-   x2
-   y2))
+  (when (medium-drawable medium)
+    (tk::draw-line
+     (medium-drawable medium)
+     (clx-adjust-ink medium
+		     (clx-decode-ink (medium-ink medium) medium)
+		     (medium-ink medium)
+		     (medium-line-style medium)
+		     (min x1 x2)
+		     (min y1 y2))
+     x1
+     y1
+     x2
+     y2)))
 
 
 (defmethod port-draw-rectangle* ((port xt-port)
@@ -236,19 +253,20 @@
 	(progn
 	  (multiple-value-setq (x1 y1) (devicize-point transform x1 y1))
 	  (multiple-value-setq (x2 y2) (devicize-point transform x2 y2))
-	  (tk::draw-rectangle
-	   (tk::widget-window (sheet-mirror sheet))
-	   (clx-adjust-ink medium
-			   (clx-decode-ink (medium-ink medium) medium)
-			   (medium-ink medium)
-			   (medium-line-style medium)
-			   (min x1 x2)
-			   (min y1 y2))
-	   (min x1 x2)
-	   (min y1 y2)
-	   (abs (- x2 x1))
-	   (abs (- y2 y1))
-	   filled))
+	  (when (medium-drawable medium)
+	    (tk::draw-rectangle
+	     (medium-drawable medium)
+	     (clx-adjust-ink medium
+			     (clx-decode-ink (medium-ink medium) medium)
+			     (medium-ink medium)
+			     (medium-line-style medium)
+			     (min x1 x2)
+			     (min y1 y2))
+	     (min x1 x2)
+	     (min y1 y2)
+	     (abs (- x2 x1))
+	     (abs (- y2 y1))
+	     filled)))
       (port-draw-transformed-rectangle*
        port sheet medium x1 y1 x2 y2 filled))))
       
@@ -284,15 +302,15 @@
       (:baseline nil)
       (:top 
        (incf y (tk::font-ascent font))))
-
-    (let ((gc (clx-decode-ink (medium-ink medium) medium)))
-      (setf (tk::gcontext-font gc) font)
-      (tk::draw-string
-       (tk::widget-window (sheet-mirror sheet))
-       gc
-       x y
-       string-or-char
-       start end))))
+    (when (medium-drawable medium)
+      (let ((gc (clx-decode-ink (medium-ink medium) medium)))
+	(setf (tk::gcontext-font gc) font)
+	(tk::draw-string
+	 (medium-drawable medium)
+	 gc
+	 x y
+	 string-or-char
+	 start end)))))
 
 
 (defmethod silica::port-write-string-internal ((port xt-port)
@@ -307,7 +325,7 @@
   (unless (= start end)
     (let* ((sheet (medium-sheet medium))
 	   (transform (sheet-device-transformation sheet))
-	   (window (tk::widget-window (sheet-mirror sheet) nil))
+	   (window (medium-drawable medium))
 	   (font x-font))
     
       ;; At one point we checked to see whether the widget is unrealized
@@ -316,19 +334,19 @@
       (multiple-value-setq (x y) (devicize-point transform x y))
     
       (incf y (tk::font-ascent font))
-
-      (let ((gc (clx-decode-ink (medium-ink medium) medium)))
-	(setf (tk::gcontext-font gc) font)
-	(etypecase glyph-buffer
-	  ((simple-array (unsigned-byte 16))
-	   (x11::xdrawstring16
-	    (tk::display-handle (tk::object-display window))
-	    (tk::object-handle window)
-	    (tk::object-handle gc)
-	    x 
-	    y
-	    glyph-buffer
-	    (- end start))))))))
+      (when (medium-drawable medium)
+	(let ((gc (clx-decode-ink (medium-ink medium) medium)))
+	  (setf (tk::gcontext-font gc) font)
+	  (etypecase glyph-buffer
+	    ((simple-array (unsigned-byte 16))
+	     (x11::xdrawstring16
+	      (tk::display-handle (tk::object-display window))
+	      (tk::object-handle window)
+	      (tk::object-handle gc)
+	      x 
+	      y
+	      glyph-buffer
+	      (- end start)))))))))
 
 
 (defmethod port-beep ((port xt-port) (sheet t))
@@ -358,31 +376,31 @@
 
     (multiple-value-setq (radius-2-dx radius-2-dy) 
       (devicize-distance transform radius-2-dx
-		       radius-2-dy))
-    
-    (tk::draw-ellipse
-     (tk::widget-window (sheet-mirror sheet))
-     (clx-adjust-ink medium
-		     (clx-decode-ink (medium-ink medium) medium)
-		     (medium-ink medium)
-		     (medium-line-style medium)
-		     (- center-x 
-			(if (zerop radius-1-dx)
-			    radius-2-dx
-			  radius-1-dx))
-		     (- center-y 
-			(if (zerop radius-1-dy)
-			    radius-2-dy
-			  radius-1-dy)))
-     center-x
-     center-y
-     radius-1-dx 
-     radius-1-dy 
-     radius-2-dx
-     radius-2-dy 
-     start-angle 
-     end-angle 
-     filled)))
+			 radius-2-dy))
+    (when (medium-drawable medium)
+      (tk::draw-ellipse
+       (medium-drawable medium)
+       (clx-adjust-ink medium
+		       (clx-decode-ink (medium-ink medium) medium)
+		       (medium-ink medium)
+		       (medium-line-style medium)
+		       (- center-x 
+			  (if (zerop radius-1-dx)
+			      radius-2-dx
+			    radius-1-dx))
+		       (- center-y 
+			  (if (zerop radius-1-dy)
+			      radius-2-dy
+			    radius-1-dy)))
+       center-x
+       center-y
+       radius-1-dx 
+       radius-1-dy 
+       radius-2-dx
+       radius-2-dy 
+       start-angle 
+       end-angle 
+       filled))))
    
 (ff::def-c-type (xpoint-array :in-foreign-space) 2 x11::xpoint)
   
@@ -394,12 +412,12 @@
 				       filled)
   (let* ((transform (sheet-device-transformation sheet))
 	 (npoints (/ (length list-of-x-and-ys) 2))
-	 (points (excl::malloc ;; BUG BUG BUG
+	 (points (excl::malloc ;;;------ BUG BUG BUG
 		  (* 4 (cond 
 			((and closed (not filled))
 			 (incf npoints))
 			(t npoints)))))
-	 (window (tk::widget-window (sheet-mirror sheet)))
+	 (window (medium-drawable medium))
 	 ;;--- is this right
 	 (minx most-positive-fixnum)
 	 (miny most-positive-fixnum))
@@ -420,9 +438,22 @@
     (when (and closed (not filled))
       (setf (xpoint-array-x points (- npoints 1)) (xpoint-array-x points 0)
 	    (xpoint-array-y points (- npoints 1)) (xpoint-array-y points 0)))
-    
-    (if filled
-	(x11:xfillpolygon
+    (when (medium-drawable medium)
+      (if filled
+	  (x11:xfillpolygon
+	   (tk::display-handle (tk::object-display window))
+	   (tk::object-handle window)
+	   (tk::object-handle (clx-adjust-ink medium
+					      (clx-decode-ink (medium-ink medium) medium)
+					      (medium-ink medium)
+					      (medium-line-style medium)
+					      minx
+					      miny))
+	   points
+	   npoints
+	   x11:complex
+	   x11:coordmodeorigin)
+	(x11:xdrawlines
 	 (tk::display-handle (tk::object-display window))
 	 (tk::object-handle window)
 	 (tk::object-handle (clx-adjust-ink medium
@@ -433,20 +464,7 @@
 					    miny))
 	 points
 	 npoints
-	 x11:complex
-	 x11:coordmodeorigin)
-      (x11:xdrawlines
-       (tk::display-handle (tk::object-display window))
-       (tk::object-handle window)
-       (tk::object-handle (clx-adjust-ink medium
-					  (clx-decode-ink (medium-ink medium) medium)
-					  (medium-ink medium)
-					  (medium-line-style medium)
-					  minx
-					  miny))
-       points
-       npoints
-       x11:coordmodeorigin))))
+	 x11:coordmodeorigin)))))
 
 
 (defmethod clx-decode-ink ((ink rectangular-tile) medium)
@@ -498,20 +516,16 @@
 		
 
 (defmethod silica::port-copy-area ((port xt-port)
-					   medium
-					   from-left
-					   from-top 
-					   from-right 
-					   from-bottom
-					   to-left
-					   to-top)
+				   from-sheet
+				   to-sheet
+				   from-left
+				   from-top 
+				   from-right 
+				   from-bottom
+				   to-left
+				   to-top)
   ;; coords in "host" coordinate system
-  (let ((transform +identity-transformation+
-		   ;; This is really horrible cos sheet-transformation
-		   ;; are used to implement scrolling but the
-		   ;; coordinates are in the coordinates of the
-		   ;; viewport rather than the sheet so we are screwed.
-		   #+oh-no(sheet-native-transformation medium)))
+  (let ((transform (sheet-native-transformation from-sheet)))
     (multiple-value-setq
 	(from-left from-top)
       (devicize-point transform from-left from-top))
@@ -521,11 +535,16 @@
     (multiple-value-setq
 	(to-left to-top)
       (devicize-point transform to-left to-top))
-    (let ((window (tk::widget-window (sheet-mirror medium))))
-      (let ((width (- from-right from-left))
-	    (height (- from-bottom from-top))
-	    ;;;-------------------!
-	    (copy-gc (make-instance 'tk::gcontext
-				    :drawable window)))
-	(tk::copy-area 
-	 window copy-gc from-left from-top width height window to-left to-top)))))
+    (with-sheet-medium (from-medium from-sheet)
+      (with-sheet-medium (to-medium to-sheet)
+	(let* ((from-window (medium-drawable from-medium))
+	       (to-window (medium-drawable to-medium))
+	       (width (- from-right from-left))
+	       (height (- from-bottom from-top))
+	       (copy-gc (port-copy-gc port)))
+	  (when (and from-medium to-medium)
+	    (tk::copy-area 
+	     from-window
+	     copy-gc from-left from-top width height to-window to-left to-top)))))))
+
+

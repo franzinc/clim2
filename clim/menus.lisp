@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: menus.lisp,v 1.6 91/04/16 13:54:59 cer Exp $
+;; $fiHeader: menus.lisp,v 1.7 92/01/31 14:58:22 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -13,10 +13,13 @@
 (define-application-frame menu-frame ()
   (menu)
   (:pane
-    (with-slots (menu) *application-frame*
-      (scrolling ()
-	(setq menu (realize-pane 'extended-stream-pane
-				 :initial-cursor-visibility nil))))))
+   (with-slots (menu) *application-frame*
+     (scrolling ()
+		(setq menu (realize-pane 'extended-stream-pane
+					 :initial-cursor-visibility
+					 nil)))))
+  (:menu-bar nil))
+
 
 (defun get-menu (&key server-path)
   (let ((frame (make-application-frame 'menu-frame)))

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: font.cl,v 1.3 92/01/02 15:08:40 cer Exp $
+;; $fiHeader: font.lisp,v 1.4 92/01/31 14:54:27 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -115,6 +115,7 @@
 			     :handle (xfontstruct-array fonts i)
 			     :name (char*-to-string (xfontname-list
 						     names i)))))
+	;;--- Dont free the font info
 	(x11:xfreefontnames names)))))
 
 (defun tk::font-property (font which)
