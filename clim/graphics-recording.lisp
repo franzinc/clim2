@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/clim/graphics-recording.lisp,v 1.28 1997/02/05 01:43:43 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/graphics-recording.lisp,v 1.29 1997/02/12 02:08:51 tomj Exp $
 
 (in-package :clim-internals)
 
@@ -466,57 +466,94 @@
         result)))
 
 
+;; This revision of the ellipse functions fixes several problems: - smh 10Jan97
+;;  - The bounding box and drawing calculations had different
+;;    notions about the y-axis sign.  (The windows back end also needs to
+;;    be revised to agree with this fix.)
+;;  - angle-between-angles-p did exact comparisons, but computations
+;;    in radians (involving pi) are necessarily approximate.
+;; But there are still bugs:
+;;  - X (and presumably also Windows) take start and end in skewed angles.
+;;    CLIM defines these arguments in non-skewed form.  Thios might just be a bug
+;;    in the CLIM standard, but anyway, no one has ever noticed.  Anyway, until
+;;    this is resolved the start/end angle refined position test cannot be fixed.
+;;    For ellipses spanning less than PI radians, the bounding box is sufficient
+;;    and the start/end limit checks are redundant.  But for larger spans the
+;;    bounding-box check is ineffective, and the entire 2PI span of the ellipse
+;;    will be sensitive to input.
+
 (define-graphics-recording draw-ellipse (ink line-style clipping-region)
   :bounding-rectangle
-    (multiple-value-bind (left top right bottom)
-        (elliptical-arc-box
-          center-x center-y 
-          radius-1-dx radius-1-dy radius-2-dx radius-2-dy
-          start-angle end-angle
-          (line-style-thickness (medium-line-style medium)))
-      ;; Make this a bit too big because most hosts rasterize ellipses
-      ;; to be a shade too big on the right
-      (values left top (1+ right) (1+ bottom)))
+  (multiple-value-bind (left top right bottom)
+      (elliptical-arc-box center-x center-y
+			  radius-1-dx radius-1-dy radius-2-dx radius-2-dy
+			  start-angle end-angle
+			  (line-style-thickness (medium-line-style medium)))
+    ;; Make this a bit too big because most hosts rasterize ellipses
+    ;; to be a shade too big on the right
+    (values left top (1+ right) (1+ bottom)))
   :refined-position-test
-    ((x y)
-     (with-slots (center-x center-y
-                  radius-1-dx radius-1-dy radius-2-dx radius-2-dy
-                  start-angle end-angle ink line-style) record
-       (and (or (null start-angle)
-                ;; NYI - check for within the proper angle
-                t)
-            (if (null line-style)
-                (point-inside-ellipse-p (- x center-x) (- y center-y)
-                                        radius-1-dx radius-1-dy radius-2-dx radius-2-dy)
-                (point-on-thick-ellipse-p (- x center-x) (- y center-y)
-                                          radius-1-dx radius-1-dy radius-2-dx radius-2-dy
-                                          (ceiling (line-style-thickness line-style) 2))))))
+  ((x y)
+   (with-slots (center-x center-y
+			 radius-1-dx radius-1-dy radius-2-dx radius-2-dy
+			 start-angle end-angle ink line-style) record
+     ;; Added test for angle. -smh 26dec96
+     (let ((z nil))
+       (and (if (null line-style)
+		(point-inside-ellipse-p (- x center-x) (- y center-y)
+					radius-1-dx radius-1-dy radius-2-dx radius-2-dy)
+	      (point-on-thick-ellipse-p (- x center-x) (- y center-y)
+					radius-1-dx radius-1-dy radius-2-dx radius-2-dy
+					(ceiling (line-style-thickness line-style) 2)))
+	    ;; These start and end angle tests, although slow, are probably correct.
+	    ;; Unfortunately, the drawing functions in both X and Windows neglect
+	    ;; to take into accout that non-circular ellipses are define in terms of
+	    ;; skewed angles.  See you favorite Xlib manual fdor details.
+	    ;; - smh 30Dec96
+	    #+never
+	    (or (null start-angle)
+		(progn (setq z (phase (complex (- x center-x) (- center-y y))))
+		       (loop
+			   while (<= z start-angle)
+			   do (incf z 2pi))
+		       t))
+	    #+never
+	    (or (null end-angle)
+		(loop
+		    initially (unless z
+				(setq z (phase (complex (- x center-x) (- center-y y)))))
+		    with start = (or start-angle 0)
+		    while (<= z start)
+		    do (incf z 2pi))
+		#+never (format *trace-output* "~&[~f,~f] end ~f ~f~%"
+				(- x center-x) (- y center-y) end-angle z)
+		(<= z end-angle))))))
   :highlighting-function
-    ((stream state)
-     (declare (ignore state))
-     (multiple-value-bind (xoff yoff)
-         (convert-from-relative-to-absolute-coordinates
-           stream (output-record-parent record))
-       (with-slots (center-x center-y
-                    radius-1-dx radius-1-dy radius-2-dx radius-2-dy
-                    start-angle end-angle ink line-style) record
-         (let ((delta 2)
-               (radius-1 (sqrt (+ (* radius-1-dx radius-1-dx) (* radius-1-dy radius-1-dy))))
-               (radius-2 (sqrt (+ (* radius-2-dx radius-2-dx) (* radius-2-dy radius-2-dy)))))
-           (when line-style
-             (incf delta (ceiling (line-style-thickness line-style) 2)))
-           (let ((delta-1-dx (round (* delta radius-1-dx) radius-1))
-                 (delta-1-dy (round (* delta radius-1-dy) radius-1))
-                 (delta-2-dx (round (* delta radius-2-dx) radius-2))
-                 (delta-2-dy (round (* delta radius-2-dy) radius-2)))
-             (with-output-recording-options (stream :record nil)
-               (draw-ellipse-internal
-                 stream xoff yoff
-                 center-x center-y
-                 (+ radius-1-dx delta-1-dx) (+ radius-1-dy delta-1-dy)
-                 (+ radius-2-dx delta-2-dx) (+ radius-2-dy delta-2-dy)
-                 start-angle end-angle
-                 +flipping-ink+ +highlighting-line-style+))))))))
+  ((stream state)
+   (declare (ignore state))
+   (multiple-value-bind (xoff yoff)
+       (convert-from-relative-to-absolute-coordinates
+	stream (output-record-parent record))
+     (with-slots (center-x center-y
+			   radius-1-dx radius-1-dy radius-2-dx radius-2-dy
+			   start-angle end-angle ink line-style) record
+       (let ((delta 2)
+	     (radius-1 (sqrt (+ (* radius-1-dx radius-1-dx) (* radius-1-dy radius-1-dy))))
+	     (radius-2 (sqrt (+ (* radius-2-dx radius-2-dx) (* radius-2-dy radius-2-dy)))))
+	 (when line-style
+	   (incf delta (ceiling (line-style-thickness line-style) 2)))
+	 (let ((delta-1-dx (round (* delta radius-1-dx) radius-1))
+	       (delta-1-dy (round (* delta radius-1-dy) radius-1))
+	       (delta-2-dx (round (* delta radius-2-dx) radius-2))
+	       (delta-2-dy (round (* delta radius-2-dy) radius-2)))
+	   (with-output-recording-options (stream :record nil)
+	     (draw-ellipse-internal
+	      stream xoff yoff
+	      center-x center-y
+	      (+ radius-1-dx delta-1-dx) (+ radius-1-dy delta-1-dy)
+	      (+ radius-2-dx delta-2-dx) (+ radius-2-dy delta-2-dy)
+	      start-angle end-angle
+	      +flipping-ink+ +highlighting-line-style+))))))))
 
 
 (define-graphics-recording draw-bezier-curve (ink line-style clipping-region)
