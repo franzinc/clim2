@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: JAPANESE-GRAPHICS-EDITOR; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: japanese-graphics-editor.lisp,v 1.1 1995/10/20 17:37:59 colin Exp $
+;; $fiHeader: japanese-graphics-editor.lisp,v 1.2 1996/03/01 05:42:32 colin Exp $
 
 (in-package :japanese-graphics-editor)
 
@@ -317,11 +317,22 @@
 (defmethod frame-menu-translator-documentation ((frame graphics-editor))
   "メニュー")
 
-(defmethod frame-pointer-buttons-documentation ((frame graphics-editor))
-  '("左" "中" "右"))
+(defmethod frame-pointer-button-documentation ((frame graphics-editor) button)
+  (case button
+    (:left "左")
+    (:middle "中")
+    (:right "右")))
 
-(defmethod frame-modifier-keys-documentation ((frame graphics-editor))
-  '("h" "s" "m" "c" "sh"))
+;; Perhaps these need to be localized. At present this method is
+;; identical to that on standard-application-frame.
+
+(defmethod frame-modifier-key-documentation ((frame graphics-editor) modifier)
+  (case modifier
+    (:shift "sh")
+    (:control "c")
+    (:meta "m")
+    (:super "s")
+    (:hyper "h")))
 
 (defmethod read-frame-command ((frame graphics-editor) &key (stream *standard-input*))
   (read-command (frame-command-table frame) :use-keystrokes t :stream stream))

@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: $
+;; $fiHeader: load-wnn.lisp,v 1.1 1995/10/20 17:42:19 colin Exp $
 
 (in-package :user)
 
@@ -33,6 +33,11 @@
     (load "stub-wnn.o"
 	  :system-libraries (list sys::*libwnn-pathname*)
 	  :print t)))
+
+#+dlfcn
+(unless (ff:get-entry-point (ff:convert-to-lang "jl_open_lang"))
+  (cerror "Continue without jlib"
+	  "Can't load jlib dynamically - need to rebuild Lisp"))
 
 (provide :wnn)
 (pushnew :wnn *features*)

@@ -1,3 +1,89 @@
+
+*************************************************************
+
+Wed Mar 13 01:49:35 PST 1996	Colin Meldrum	(colin@vapor)
+
+Makefile.hpprism-ja, Makefile.sun4-ja
+
+Makefile.rs6000
+	added SAVEEXPI and RESTEXPI for ICS
+
+Makefile.<ARCH>
+	added STD_DEFINES + AR defn for building Wnn
+	got rid of WNNLIB defns - now we build it and it's always in
+	clim-2.0/libwnn.a 
+
+Makefile.cobjs
+
+	changed mainxm.o not to only include stub-xt.o, stub-x.o and
+	stub-motif.o because they're the only ones that need to be in
+	mainxm.o - all the *support.o files are also included in the
+	distribution and can be linked in separately
+
+Makefile.defs
+	Added default SAVEEXP,RESTEXP
+	Added new SAVEEXPI,RESTEXPI for ICS
+	Added ICS-PRODUCT-FASLS + ICS-PRODUCT-OBJS
+
+Makefile.generic
+	Added ICS-PRODUCT-FASLS + ICS-PRODUCT-OBJS to compile, cat, clim
+	makclimobjs, makeclimfasls, install_obj + install_clim
+	fixed ucl/dcl.climsave bug in ucl.clim and xm-dcl rules
+	added new rules ucli.clim and xm-dcli rules
+	got rid of STATIC-WNN-OBJS-WITH-PWD hack
+
+clim/frames.lisp
+	frame-pointer-buttons-documentation removed 
+	frame-pointer-button-documentation added
+	frame-modifier-keys-documentation removed
+	frame-modifier-key-documentation added
+	
+demo/README
+	Got rid of reference to OpenLook
+
+demo/japanese-graphics-editor.lisp
+	fixed to work correctly with frame-modifier-key-documentation and
+	frame-pointer-button-documentation 
+
+misc/compile-1.lisp
+	always compile-system 'wnn - even if with non-ICS lisp - no fat
+	strings so not a problem
+
+silica/text-style.lisp
+	fixed device-fonts + text-style-mapping
+
+sys/sysdcl.lisp
+	Got rid of defn of ics-target-case which expanded into
+	comp::ics-target-ecase - now it's available using
+	excl:ics-target-case directly
+
+test/testdcl.lisp
+	added a missing :serial constraint
+
+tk/load-xm.lisp
+	for ICS load clim2:;climxm.so with *dlopen-mode* #x102
+	fixed sys:*toolkit-static* bug which could result in re-initialzing
+	the toolkit twice on restart
+
+tk-silica/xm-gadgets.lisp
+	fixed typo in find-widget-resource-initargs-for-sheet which was
+	causing text-fields not to work correctly in ICS CLIM.
+
+* Added Wnn jlib code under clim-2.0/wnn so we can build it for each port
+without having to go to an entire X11 distribution - new files
+
+	bcopy.c bdic.c commonhd.h config.h cplib.h demcom.h
+	jd_sock.h jdata.h jh.h jl.c jllib.h js.c jslib.h
+	msg.c msg.h pwd.c py_table.c rk_bltinfn.c rk_extvars.h 
+	rk_fundecl.h rk_header.h rk_macros.h rk_main.c rk_modread.c
+	rk_read.c rk_spclval.h rk_vars.c strings.c wnn_os.h wnn_string.h
+	wnnerrmsg.c wnnerror.h yincoding.c zy_table.c 
+
+wnn/load-wnn.lisp	
+
+	Error if you try to load-wnn into a dlfcn lisp and the code isn't
+	already statically linked
+
 *************************************************************
 
 Thu Feb 29 21:35:08 PST 1996	Colin Meldrum	(colin@vapor)

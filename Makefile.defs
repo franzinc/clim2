@@ -1,9 +1,9 @@
-# $fiHeader: Makefile.defs,v 1.34 1995/10/20 17:36:03 colin Exp $
+# $fiHeader: Makefile.defs,v 1.35 1996/03/01 05:41:26 colin Exp $
 #
 #  Makefile.defs for CLIM 2.0
 #
 
-CL	= /usr/fi/dcl-devel
+CL	= ../src/dcl
 CLOPTS	= -qq -batch -backtrace-on-error
 
 DEVICE	= /dev/null
@@ -52,6 +52,11 @@ OLDSPACE = 15000000
 NEWSPACE = 5000000
 PREMALLOCS = '-m 401408'
 
+SAVEEXP	= echo no exports file in this port
+RESTEXP = echo no exports file in this port
+SAVEEXPI = echo no exports file in this port
+RESTEXPI = echo no exports file in this port
+
 # Used for tags
 ALL_SRC = *.lisp */*.lisp *.cl */*.cl *.c */*.c *.h */*.h
 
@@ -98,11 +103,18 @@ SHARED-XM-OBJS= climxm.so
 STATIC-OL-OBJS= stub-olit.o olsupport.o
 SHARED-OL-OBJS= climol.so
 
+WNNLIB = libwnn.a
+STATIC-WNN-OBJS=stub-wnn.o $(WNNLIB)
+
 # The default is for statically linked Motif
 
 SYSTEM=		motif-clim
+
 PRODUCT-FASLS=  $(PRODUCT-GENERIC-FASLS) $(PRODUCT-XM-FASLS)
 PRODUCT-OBJS=	$(PRODUCT-GENERIC-OBJS) $(STATIC-XM-OBJS)
+
+ICS-PRODUCT-FASLS= $(PRODUCT-WNN-FASLS)
+ICS-PRODUCT-OBJS=  $(STATIC-WNN-OBJS)
 
 #
 # "Load time objects" -- these go into clim.fasl

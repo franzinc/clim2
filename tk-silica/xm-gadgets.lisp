@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.91 1995/11/08 06:15:59 georgej Exp $
+;; $fiHeader: xm-gadgets.lisp,v 1.92 1996/03/01 05:44:12 colin Exp $
 
 (in-package :xm-silica)
 
@@ -2150,7 +2150,7 @@
 			 (sheet-text-style port sheet)))
 	 (font-list (text-style-mapping port text-style *all-character-sets*)))
     (excl:ics-target-case
-     (:ics (when (gadget-needs-font-set-p sheet)
+     (:+ics (when (gadget-needs-font-set-p sheet)
 	     (setq font-list
 	       (font-set-from-font-list port font-list)))))
     `(:font-list ,font-list ,@initargs)))

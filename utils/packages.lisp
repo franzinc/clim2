@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: packages.lisp,v 1.67 1995/10/20 17:42:09 colin Exp $
+;; $fiHeader: packages.lisp,v 1.68 1996/03/01 05:44:44 colin Exp $
 
 (in-package :common-lisp-user)
 
@@ -1547,6 +1547,7 @@
     *default-text-style*
     *undefined-text-style*
     invoke-with-text-style
+    make-device-font-text-style
     make-text-style
     merge-text-styles
     parse-text-style
@@ -2318,8 +2319,8 @@
     frame-state
     frame-top-level-sheet
     frame-menu-translator-documentation
-    frame-pointer-buttons-documentation
-    frame-modifier-keys-documentation
+    frame-pointer-button-documentation
+    frame-modifier-key-documentation
     generate-panes
     get-frame-pane
     interactor-pane
@@ -3030,7 +3031,6 @@
     layout-mixin
     line-editor-pane
     list-pane-selected-item-p
-    make-device-font
     make-frame-manager
     make-medium
     make-pane-arglist

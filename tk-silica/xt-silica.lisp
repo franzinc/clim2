@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.100 1996/01/23 06:47:41 duane Exp $
+;; $fiHeader: xt-silica.lisp,v 1.101 1996/03/01 05:44:25 colin Exp $
 
 (in-package :xm-silica)
 
@@ -1405,7 +1405,7 @@
        (let ((font-name (if (stringp spec)
 			    spec
 			  text-style)))
-	 (silica::make-device-font port font-name))))))
+	 (make-device-font-text-style port font-name))))))
 
 ;;;--- Gadget activation deactivate
 

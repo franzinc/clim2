@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $fiHeader: load-xm.lisp,v 1.34 1995/06/21 21:24:17 georgej Exp $
+;; $fiHeader: load-xm.lisp,v 1.36 1995/11/08 06:14:05 georgej Exp $
 
 (in-package :user)
 
@@ -25,39 +25,46 @@
 
 #+dlfcn
 (progn
-  (defvar sys::*toolkit-static* nil)
 
-  (unless (ff:get-entry-point (ff:convert-to-lang "XmCreateMyDrawingArea")
-			      :note-shared-library-references nil)
-    (load "clim2:;climxm.so")))
+(defvar sys::*toolkit-static*
+    (or (ff:get-entry-point (ff:convert-to-lang "XmCreateMyDrawingArea")
+			    :note-shared-library-references nil)
+	(prog1 nil
+	  (let ((ff::*dlopen-mode* (excl:ics-target-case
+				    (:+ics #x102)
+				    (:-ics ff::*dlopen-mode*))))
+	    (load "clim2:;climxm.so")))))
+)
 
 #-dlfcn
 (progn
-  (defvar sys::*libtk-pathname* "Xm")
-  (defvar sys::*libxt-pathname* "Xt")
 
-  (unless (ff:get-entry-point (ff:convert-to-lang "XtToolkitInitialize"))
-    (load "clim2:;stub-motif.o"
-	  :system-libraries (list sys::*libtk-pathname*
-				  sys::*libxt-pathname*
-				  sys::*libx11-pathname*)
-	  :print t)
-    (load "clim2:;stub-xt.o"
-	  :system-libraries (list sys::*libxt-pathname*
-				  sys::*libx11-pathname*)
-	  :print t))
+(defvar sys::*libtk-pathname* "Xm")
+(defvar sys::*libxt-pathname* "Xt")
 
-  (unless (ff:get-entry-point (ff:convert-to-lang "XmCreateMyDrawingArea"))
-    (load "clim2:;xmsupport.o"
-	  :system-libraries (list sys::*libtk-pathname*
-				  sys::*libxt-pathname*
-				  sys::*libx11-pathname*)
-	  :print t))
+(unless (ff:get-entry-point (ff:convert-to-lang "XtToolkitInitialize"))
+  (load "clim2:;stub-motif.o"
+	:system-libraries (list sys::*libtk-pathname*
+				sys::*libxt-pathname*
+				sys::*libx11-pathname*)
+	:print t)
+  (load "clim2:;stub-xt.o"
+	:system-libraries (list sys::*libxt-pathname*
+				sys::*libx11-pathname*)
+	:print t))
 
-  (unless (ff:get-entry-point (ff:convert-to-lang "XtAppIntervalNextTimer"))
-    (load "clim2:;xtsupport.o"
-	  :system-libraries (list sys::*libxt-pathname*
-				  sys::*libx11-pathname*)
-	  :print t)))
+(unless (ff:get-entry-point (ff:convert-to-lang "XmCreateMyDrawingArea"))
+  (load "clim2:;xmsupport.o"
+	:system-libraries (list sys::*libtk-pathname*
+				sys::*libxt-pathname*
+				sys::*libx11-pathname*)
+	:print t))
+
+(unless (ff:get-entry-point (ff:convert-to-lang "XtAppIntervalNextTimer"))
+  (load "clim2:;xtsupport.o"
+	:system-libraries (list sys::*libxt-pathname*
+				sys::*libx11-pathname*)
+	:print t))
+)
 
 (pushnew :clim-motif *features*)

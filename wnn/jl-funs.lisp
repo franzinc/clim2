@@ -1,7 +1,7 @@
 ;; -*- mode: common-lisp; package: wnn -*-
 ;;
 ;;				-[Thu Nov 10 19:28:13 1994 by smh]-
-;; 
+;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1992 Franz Inc, Berkeley, CA  All rights reserved.
 ;;
@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader:$
+;; $fiHeader: jl-funs.lisp,v 1.1 1995/10/20 17:42:16 colin Exp $
 
 (in-package :wnn)
 
@@ -89,14 +89,14 @@
     :arg-checking nil)
 
 (defforeign 'jl_zenkouho
-    :arguments '(foreign-address 
+    :arguments '(foreign-address
 		 integer integer integer)
     :return-type :integer
     :call-direct t
     :arg-checking nil)
 
 (defforeign 'jl_zenkouho_dai
-    :arguments '(foreign-address 
+    :arguments '(foreign-address
 		 integer integer integer)
     :return-type :integer
     :call-direct t

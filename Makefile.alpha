@@ -1,4 +1,4 @@
-# $fiHeader: Makefile.alpha,v 1.6 1995/05/17 19:47:10 colin Exp $
+# $fiHeader: Makefile.alpha,v 1.1 1996/01/23 06:46:22 duane Exp $
 #
 #  Makefile.alpha for CLIM 2.0
 #
@@ -8,6 +8,8 @@ include Makefile.defs
 Makefile=Makefile.alpha
 
 CFLAGS = -O -G 0 -taso -xtaso -xtaso_short -resumption_safe
+STD_DEFINES = -DDEC -DR5_XLIB -DSMT
+AR = ar cqls
 
 TKLIB=-lXm
 XTLIB=-lXt
@@ -20,8 +22,5 @@ PRODUCT-OBJS= $(PRODUCT-GENERIC-OBJS) $(STATIC-XM-OBJS) $(SHARED-XM-OBJS)
 PICFLAGS =
 SHAREFLAGS =
 MAKE_SHARED = make_shared
-
-SAVEEXP = echo no exports file in this port
-RESTEXP = echo no exports file in this port
 
 include Makefile.generic

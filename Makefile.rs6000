@@ -1,4 +1,4 @@
-# $fiHeader: Makefile.rs6000,v 1.3 1995/05/17 19:47:08 colin Exp $
+# $fiHeader: Makefile.rs6000,v 1.4 1995/10/20 17:36:10 colin Exp $
 #
 #  Makefile.rs6000 for CLIM 2.0
 #
@@ -18,7 +18,7 @@ XINCLUDES= -I/usr/include
 PRODUCT-OBJS= $(PRODUCT-GENERIC-OBJS) $(STATIC-XM-OBJS) $(SHARED-XM-OBJS)
 MAKE_SHARED = make_shared
 
-CL= /usr/fi/climdcl-devel
+CL= ../src/xm-dcl
 
 # This should be defined in make-dist. For CLIM devel (ie making
 # slim images) we use climdcl-devel and don't use the shared library
@@ -28,5 +28,7 @@ stubs = c2stubs
 
 SAVEEXP = /bin/mv ucl.exp ucl.exp.climsave
 RESTEXP = /bin/mv ucl.exp.climsave ucl.exp
+SAVEEXPI = /bin/mv ucli.exp ucli.exp.climsave
+RESTEXPI = /bin/mv ucli.exp.climsave ucli.exp
 
 include Makefile.generic

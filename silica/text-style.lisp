@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: text-style.lisp,v 1.23 1995/10/20 17:40:47 colin Exp $
+;; $fiHeader: text-style.lisp,v 1.24 1996/03/01 05:42:55 colin Exp $
 
 (in-package :silica)
 
@@ -39,11 +39,11 @@
     (with-slots (family face size) style
       (format stream "~S ~S ~S" family  (face-code->face face) size))))
 
-(defclass device-font ()
+(defclass device-font (text-style)
      ((display-device :initarg :display-device :reader device-font-display-device)
-      (font-name :initarg :font-name :reader device-font-name)))
+      (font-name :initarg :font-name :accessor device-font-name)))
 
-(defun make-device-font (display-device font-name)
+(defun make-device-font-text-style (display-device font-name)
   (make-instance 'device-font :display-device display-device :font-name font-name))
 
 (defmethod print-object ((df device-font) stream)
@@ -610,6 +610,18 @@
 		mapping)))
 	(setf (gethash style mapping-table) mapping)))))
 
+(defmethod (setf text-style-mapping) (mapping (port basic-port) (style device-font)
+				      &optional (character-set *standard-character-set*)
+						window)
+  ;;--- What about the character set when using device fonts?
+  (declare (ignore character-set window))
+  ;;--- EQL? TYPE-EQUAL?  This is too restrictive as it stands
+  (unless (eq port (device-font-display-device style))
+    (error "An attempt was made to map device font ~S on port ~S, ~@
+	    but it is defined for the port ~S"
+	   style port (device-font-display-device style)))
+  (setf (device-font-name style) mapping))
+
 ;;; This is broken up into two methods so any :AROUND method will only
 ;;; be called on the outermost recursion.
 
@@ -636,6 +648,7 @@
 	    but it is defined for the port ~S"
 	   style port (device-font-display-device style)))
   (device-font-name style))
+
 
 (defmethod text-style-mapping* ((port basic-port) style
 				&optional (character-set *standard-character-set*)

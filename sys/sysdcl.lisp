@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sysdcl.lisp,v 1.49 1995/11/08 06:13:01 georgej Exp $
+;; $fiHeader: sysdcl.lisp,v 1.50 1996/03/01 05:43:02 colin Exp $
 
 (in-package :cl-user)
 
@@ -12,17 +12,7 @@
   (export '(excl::codeset-0 excl::codeset-1 excl::codeset-2 excl::codeset-3
 	    excl::string-to-euc excl::euc-to-string)
 	  (find-package :excl))
-  (export '(ff::euc-to-char* ff::char*-to-euc) (find-package :ff))
-  (export 'excl::ics-target-case (find-package :excl)))
-
-(let ((*enable-package-locked-errors* nil))
-  (defmacro excl::ics-target-case (&rest cases)
-    `(comp::ics-target-ecase
-      ,@cases
-      ,@(unless (assoc :+ics cases)
-	  '((:+ics nil)))
-      ,@(unless (assoc :-ics cases)
-	  '((:-ics nil))))))
+  (export '(ff::euc-to-char* ff::char*-to-euc) (find-package :ff)))
 
 "Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved."
 

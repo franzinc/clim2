@@ -1,4 +1,4 @@
-# $fiHeader: Makefile.sgi4d-svr4,v 1.6 1995/05/17 19:47:10 colin Exp $
+# $fiHeader: Makefile.sgi4d-svr4,v 1.7 1995/10/20 17:36:12 colin Exp $
 #
 #  Makefile.sigi4d-svr4 for CLIM 2.0
 #
@@ -18,8 +18,5 @@ PRODUCT-OBJS= $(PRODUCT-GENERIC-OBJS) $(STATIC-XM-OBJS) $(SHARED-XM-OBJS)
 PICFLAGS = -KPIC
 SHAREFLAGS = -shared -all
 MAKE_SHARED = ld
-
-SAVEEXP = echo no exports file in this port
-RESTEXP = echo no exports file in this port
 
 include Makefile.generic

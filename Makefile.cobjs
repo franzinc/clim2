@@ -1,4 +1,4 @@
-# $fiHeader: Makefile.cobjs,v 1.10 1995/10/17 05:00:54 colin Exp $
+# $fiHeader: Makefile.cobjs,v 1.12 1995/11/08 06:11:10 georgej Exp $
 #
 #  Makefile.cobj for CLIM 2.0
 #
@@ -64,12 +64,13 @@ climol.so: xlibsupport.o xtsupport.o olsupport.o
 		xlibsupport.o xtsupport.o olsupport.o \
 		$(IMPORTS) $(TKLIB) $(XTLIB) $(XLIB))
 
-# mainxm.o contains all foreign code required by Motif version of CLIM 
-# (including code extracted from licenced libXm.a) statically linked
+# mainxm.o contains foreign code from the libraries X11,Xt and Xm
+# required by Motif version of CLIM statically linked
 
-mainxm.o: $(ACL_MAIN_OBJ) $(PRODUCT-GENERIC-OBJS) $(STATIC-XM-OBJS) $(STATIC-WNN-OBJS)
+mainxm.o: $(ACL_MAIN_OBJ) $(PRODUCT-GENERIC-OBJS) $(STATIC-XM-OBJS) 
 	(eval '$(SET_LIBRARY_PATH)' ; \
 	ld -r $(LDFLAGS) -o mainxm.o \
 		$(ACL_MAIN_OBJ) \
-		$(PRODUCT-GENERIC-OBJS) $(STATIC-XM-OBJS) $(STATIC-WNN-OBJS) \
-		$(TKLIB) $(XTLIB) $(XLIB) $(WNNLIB) $(MOTIFXTRAS))
+		stub-xt.o stub-x.o stub-motif.o \
+		$(TKLIB) $(XTLIB) $(XLIB) $(MOTIFXTRAS))
+

@@ -1,4 +1,4 @@
-# $fiHeader: Makefile.generic,v 1.33 1995/11/08 06:11:13 georgej Exp $
+# $fiHeader: Makefile.generic,v 1.34 1996/03/01 05:41:30 colin Exp $
 #
 #  Makefile.generic for CLIM 2.0
 #
@@ -10,7 +10,7 @@ trained:
 
 FORCE:
 
-compile: FORCE $(PRODUCT-OBJS)
+compile: FORCE $(PRODUCT-OBJS) $(ICS-PRODUCT-OBJS)
 	(eval '$(SET_LIBRARY_PATH)' ; \
 	$(ECHO) " \
 	(progn \
@@ -34,7 +34,7 @@ compile: FORCE $(PRODUCT-OBJS)
 
 # Concatenation
 
-cat: $(PRODUCT-FASLS)
+cat: $(PRODUCT-FASLS) $(ICS-PRODUCT-FASLS)
 
 climg.fasl: $(GENERIC-FASLS)
 	$(CAT) $(GENERIC-FASLS) > $(TMP)/clim.fasl_`whoami`
@@ -112,7 +112,7 @@ clim1compat.fasl: $(CLIM1COMPAT-FASLS)
 
 # Building (loading and dumping)
 
-clim: FORCE $(PRODUCT-OBJS)
+clim: FORCE $(PRODUCT-OBJS) $(ICS-PRODUCT-OBJS)
 	-$(RM) -f $(CLIM)
 	(eval '$(SET_LIBRARY_PATH)' ; \
 	$(ECHO) " \
@@ -198,7 +198,7 @@ cleanobjs:
 
 clean:
 	find . -name '*.fasl' -print | xargs rm -f
-	rm -f *.o *.so slim slim.ol \
+	rm -f *.o *.so *.a slim slim.ol \
 	  	stub-motif.c stub-olit.c stub-xt.c stub-x.c stub-wnn.c
 	rm -f *.z *.Z *.gz *.ilt *.out
 
@@ -225,48 +225,73 @@ echo_TKLIB:
 echo_WNNLIB:
 	@echo $(WNNLIB)
 
-makeclimfasls: compile cat
+makeclimobjs: $(PRODUCT-OBJS) $(ICS-PRODUCT-OBJS)
 
 install_obj:
-	cp $(PRODUCT-OBJS) $(DEST)
-	
+	cp $(PRODUCT-OBJS) $(ICS-PRODUCT-OBJS) $(DEST)
+
+makeclimfasls: compile cat
+
 install_clim: install_obj
-	cp $(PRODUCT-FASLS) $(DEST)
+	cp $(PRODUCT-FASLS) $(ICS-PRODUCT-FASLS) $(DEST)
 
 echo_src_files:
 	@echo $(PRODUCT_SRC_FILES)
 
-makeclimobjs: $(PRODUCT-OBJS)
 
 ################## Lower level Makefile stuff
 
-# re: STATIC-WNN-OBJS + STATIC-WNN-OBJS-WITH-PWD
-# I'm sorry - but for the moment I can't think of a better way to do this
-
-xm-dcl	: stub-x.o $(STATIC-WNN-OBJS) stub-xt.o stub-motif.o \
+xm-dcl	: stub-x.o stub-xt.o stub-motif.o \
 		 xlibsupport.o xtsupport.o xmsupport.o
-	cd $(CL_SRC) ; /bin/mv ucl ucl.climsave ; $(SAVEEXP) ;\
+	cd $(CL_SRC) ; \
+	/bin/mv dcl dcl.climsave ; /bin/mv ucl ucl.climsave ; $(SAVEEXP) ; \
 	make initial_oldspace=$(OLDSPACE) oldspace=$(OLDSPACE) \
 		newspace=$(NEWSPACE) premallocs=$(PREMALLOCS) stubs=$(stubs) \
-		user_objects='$(PWD)/stub-x.o $(STATIC-WNN-OBJS-WITH-PWD) $(PWD)/stub-xt.o \
-		$(PWD)/stub-motif.o $(PWD)/xlibsupport.o $(PWD)/xmsupport.o \
-		$(PWD)/xtsupport.o $(CL_SRC)/code/excldep.o $(CL_SRC)/code/socket.o \
-		$(TKLIB) $(XTLIB) $(XLIB) $(WNNLIB)' dcl ;\
-	/bin/mv ucl.climsave ucl; $(RESTEXP)
+		user_objects='$(PWD)/stub-x.o $(PWD)/stub-xt.o $(PWD)/stub-motif.o \
+		$(PWD)/xlibsupport.o $(PWD)/xmsupport.o $(PWD)/xtsupport.o \
+		$(CL_SRC)/code/excldep.o $(CL_SRC)/code/socket.o \
+		$(TKLIB) $(XTLIB) $(XLIB)' dcl ;\
+	/bin/mv dcl xm-dcl ; \
+	/bin/mv dcl.climsave dcl ; /bin/mv ucl.climsave ucl; $(RESTEXP)
 
-ucl.clim: stub-x.o $(STATIC-WNN-OBJS) stub-xt.o stub-motif.o \
+
+xm-dcli	: stub-x.o stub-xt.o stub-motif.o stub-wnn.o \
 		 xlibsupport.o xtsupport.o xmsupport.o
-	cd $(CL_SRC) ; /bin/mv ucl ucl.climsave ;\
-	/bin/mv dcl dcl.climsave ; $(SAVEEXP) ;\
+	cd $(CL_SRC) ; \
+	/bin/mv dcli dcli.climsave ; /bin/mv ucli ucli.climsave ; $(SAVEEXPI) ; \
+	make initial_oldspace=$(OLDSPACE) oldspace=$(OLDSPACE) \
+		newspace=$(NEWSPACE) premallocs=$(PREMALLOCS) stubs=$(stubs) \
+		user_objects='$(PWD)/stub-x.o $(PWD)/stub-xt.o $(PWD)/stub-motif.o \
+		$(PWD)/stub-wnn.o \
+		$(PWD)/xlibsupport.o $(PWD)/xmsupport.o $(PWD)/xtsupport.o \
+		$(CL_SRC)/code/excldep.o $(CL_SRC)/code/socket.o \
+		$(TKLIB) $(XTLIB) $(XLIB) $(PWD)/libwnn.a' dcli ;\
+	/bin/mv dcli xm-dcli ; \
+	/bin/mv dcli.climsave dcli ; /bin/mv ucli.climsave ucli; $(RESTEXPI)
+
+ucl.clim: stub-x.o stub-xt.o stub-motif.o \
+		 xlibsupport.o xtsupport.o xmsupport.o
+	cd $(CL_SRC) ; /bin/mv ucl ucl.climsave ; $(SAVEEXP) ; \
 	make stubs=$(stubs) \
 		user_objects=' \
-		$(PWD)/stub-x.o $(STATIC-WNN-OBJS-WITH-PWD) $(PWD)/stub-xt.o\
-		$(PWD)/stub-motif.o \
+		$(PWD)/stub-x.o $(PWD)/stub-xt.o $(PWD)/stub-motif.o \
 		$(PWD)/xlibsupport.o $(PWD)/xmsupport.o $(PWD)/xtsupport.o \
-		$(TKLIB) $(XTLIB) $(XLIB) $(WNNLIB) $(MOTIFXTRAS)' ucl ;\
-	/bin/mv ucl ucl.clim ; $(RESTEXP) ; /bin/mv ucl.climsave ucl ; \
-	/bin/mv dcl.climsave dcl
+		$(TKLIB) $(XTLIB) $(XLIB) $(MOTIFXTRAS)' ucl ;\
+	/bin/mv ucl ucl.clim ; $(RESTEXP) ; /bin/mv ucl.climsave ucl
+
+ucli.clim: stub-x.o stub-xt.o stub-motif.o stub-wnn.o \
+		 xlibsupport.o xtsupport.o xmsupport.o
+	cd $(CL_SRC) ; /bin/mv ucli ucli.climsave ; $(SAVEEXPI) ; \
+	make stubs=$(stubs) \
+		user_objects=' \
+		$(PWD)/stub-x.o $(PWD)/stub-xt.o $(PWD)/stub-motif.o \
+		$(PWD)/stub-wnn.o \
+		$(PWD)/xlibsupport.o $(PWD)/xmsupport.o $(PWD)/xtsupport.o \
+		$(TKLIB) $(XTLIB) $(XLIB) $(PWD)/libwnn.a $(MOTIFXTRAS)' ucli ;\
+	/bin/mv ucli ucli.clim ; $(RESTEXPI) ; /bin/mv ucli.climsave ucli
 
 ################## End of make-dist stuff
 
 include Makefile.cobjs
+
+include Makefile.wnn

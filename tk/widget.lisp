@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $fiHeader: widget.lisp,v 1.40 1996/01/23 06:47:11 duane Exp $
+;; $fiHeader: widget.lisp,v 1.41 1996/03/01 05:43:38 colin Exp $
 
 (in-package :tk)
 
@@ -287,7 +287,7 @@
 
 ;; Could not think of anywhere better!
 
-(defvar *fallback-resources*
+(defparameter *fallback-resources*
     `("clim*dragInitiatorProtocolStyle: DRAG_NONE"
       "clim*dragreceiverprotocolstyle:	DRAG_NONE"
       ,@(excl:ics-target-case

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: frames.lisp,v 1.80 1995/10/20 17:37:29 colin Exp $
+;; $fiHeader: frames.lisp,v 1.81 1996/03/01 05:41:55 colin Exp $
 
 (in-package :clim-internals)
 
@@ -1417,13 +1417,21 @@
 	    (when string
 	      (write-string string stream))))))))
 
-(defmethod frame-pointer-buttons-documentation
-    ((frame standard-application-frame))
-  '("L" "M" "R"))
+(defmethod frame-pointer-button-documentation
+    ((frame standard-application-frame) button)
+  (case button
+    (:left "L")
+    (:middle "M")
+    (:right "R")))
 
-(defmethod frame-modifier-keys-documentation
-    ((frame standard-application-frame))
-  '("h" "s" "m" "c" "sh"))
+(defmethod frame-modifier-key-documentation
+    ((frame standard-application-frame) modifier)
+  (case modifier
+    (:shift "sh")
+    (:control "c")
+    (:meta "m")
+    (:super "s")
+    (:hyper "h")))
 
 (defun frame-document-highlighted-presentation-1
        (frame presentation input-context window x y stream)
@@ -1434,61 +1442,68 @@
 			  right  right-presentation  right-context)
 	(find-applicable-translators-for-documentation presentation input-context
 						       frame window x y modifier-state)
-      (destructuring-bind (l m r) (frame-pointer-buttons-documentation frame)
-	(let ((modifier-names (frame-modifier-keys-documentation frame)))
-	  (let* ((*print-length* 3)
-		 (*print-level* 2)
-		 (*print-circle* nil)
-		 (*print-array* nil)
-		 (*print-readably* nil)
-		 (*print-pretty* nil))
-	    (flet ((document-translator (translator presentation context-type
-					 button-name separator)
-		     ;; Assumes 5 modifier keys and the reverse ordering of *MODIFIER-KEYS*
-		     (let ((bit #o20)
-			   (shift-name modifier-names))
-		       (declare (type fixnum bit))
-		       (repeat 5	;length of shift-name
-			       (unless (zerop (logand bit modifier-state))
-				 (write-string (car shift-name) stream)
-				 (write-string "-" stream))
-			       (pop shift-name)
-			       (setq bit (the fixnum (ash bit -1)))))
-		     (write-string button-name stream)
-		     (document-presentation-translator translator presentation context-type
-						       frame nil window x y
-						       :stream stream
-						       :documentation-type :pointer)
-		     (write-string separator stream)))
-	      (declare (dynamic-extent #'document-translator))
-	      ;;--- The button names should be hard-wired in.  Consider 1-button
-	      ;;--- Macs and 2-button PCs...
-	      (when left
-		(let ((button-name (cond ((and (eq left middle)
-					       (eq left right))
-					  (setq middle nil
-						right nil)
-					  (format nil "~A,~A,~A: " l m r))
-					 ((eq left middle)
-					  (setq middle nil)
-					  (format nil "~A,~A: " l m))
-					 (t
-					  (format nil "~A: " l)))))
-		  (document-translator left left-presentation left-context
-				       button-name (if (or middle right) "; " "."))))
-	      (when middle
-		(let ((button-name (cond ((eq middle right)
-					  (setq right nil)
-					  (format nil "~A,~A: " m r))
-					 (t
-					  (format nil "~A: " m)))))
-		  (document-translator middle middle-presentation middle-context
-				       button-name (if right "; " "."))))
-	      (when right
-		(document-translator right right-presentation right-context
-				     (format nil "~A: " r) "."))
-	      ;; Return non-NIL if any pointer documentation was produced
-	      (or left middle right))))))))
+      (let* ((*print-length* 3)
+	     (*print-level* 2)
+	     (*print-circle* nil)
+	     (*print-array* nil)
+	     (*print-readably* nil)
+	     (*print-pretty* nil))
+	(flet ((document-translator (translator presentation context-type
+				     button-names separator)
+		 ;; Assumes 5 modifier keys and the reverse ordering of *MODIFIER-KEYS*
+		 (let ((bit #o20)
+		       (shift-name '(:hyper :super :meta :control :shift)))
+		   (declare (type fixnum bit))
+		   (repeat 5		;length of shift-name
+			   (unless (zerop (logand bit modifier-state))
+			     (write-string
+			      (frame-modifier-key-documentation frame
+								(car shift-name))
+			      stream)
+			     (write-string "-" stream))
+			   (pop shift-name)
+			   (setq bit (the fixnum (ash bit -1)))))
+		 (write-string
+		  (frame-pointer-button-documentation frame (car button-names))
+		  stream)
+		 (dolist (button-name (cdr button-names))
+		   (write-string "," stream)
+		   (write-string
+		    (frame-pointer-button-documentation frame button-name)
+		    stream))
+		 (write-string ": " stream)
+		 (document-presentation-translator translator presentation context-type
+						   frame nil window x y
+						   :stream stream
+						   :documentation-type :pointer)
+		 (write-string separator stream)))
+	  (declare (dynamic-extent #'document-translator))
+	  ;;--- The button names should be hard-wired in.  Consider 1-button
+	  ;;--- Macs and 2-button PCs...
+	  (when left
+	    (let ((button-name (cond ((and (eq left middle)
+					   (eq left right))
+				      (setq middle nil
+					    right nil)
+				      '(:left :middle :right))
+				     ((eq left middle)
+				      (setq middle nil)
+				      '(:left :middle))
+				     (t '(:left)))))
+	      (document-translator left left-presentation left-context
+				   button-name (if (or middle right) "; " "."))))
+	  (when middle
+	    (let ((button-name (cond ((eq middle right)
+				      (setq right nil)
+				      (list :middle :right))
+				     (t '(:middle)))))
+	      (document-translator middle middle-presentation middle-context
+				   button-name (if right "; " "."))))
+	  (when right
+	    (document-translator right right-presentation right-context
+				 '(:right) "."))
+	  ;; Return non-NIL if any pointer documentation was produced
+	  (or left middle right))))))
 
 ;; This is derived directly from FIND-APPLICABLE-TRANSLATORS
 (defun find-applicable-translators-for-documentation

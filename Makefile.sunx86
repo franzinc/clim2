@@ -1,4 +1,4 @@
-# $fiHeader: Makefile.sun4-svr4,v 1.8 1995/10/17 05:00:59 colin Exp $
+# $fiHeader: Makefile.sunx86,v 1.1 1996/01/23 06:46:25 duane Exp $
 #
 #  Makefile.sun4-svr4 for CLIM 2.0
 #
@@ -36,8 +36,5 @@ MOTIFXTRAS=-lgen
 PICFLAGS = -K pic
 SHAREFLAGS = -G
 MAKE_SHARED = ld
-
-SAVEEXP = echo no exports file in this port
-RESTEXP = echo no exports file in this port
 
 include Makefile.generic
