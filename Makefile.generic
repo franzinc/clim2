@@ -1,4 +1,4 @@
-# $Header: /repo/cvs.copy/clim2/Makefile.generic,v 1.47 1998/03/18 20:27:52 layer Exp $
+# $Header: /repo/cvs.copy/clim2/Makefile.generic,v 1.47.10.1 1998/04/08 17:18:43 layer Exp $
 #
 #  Makefile.generic for CLIM 2.0
 #
@@ -10,7 +10,7 @@ trained:
 
 FORCE:
 
-compile: FORCE $(PRODUCT-OBJS) $(ICS-PRODUCT-OBJS)
+compile: FORCE $(PRODUCT-OBJS) $(ICS-PRODUCT-OBJS) wnn.$(SHARED_EXT)
 	(eval '$(SET_LIBRARY_PATH)' ; \
 	ALLEGRO_CL_HOME=$(CL_HOME) ; export ALLEGRO_CL_HOME ; \
 	$(ECHO) " \

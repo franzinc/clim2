@@ -1,4 +1,4 @@
-# $Header: /repo/cvs.copy/clim2/Makefile.sgi4d-svr4,v 1.12 1998/02/13 21:04:44 layer Exp $
+# $Header: /repo/cvs.copy/clim2/Makefile.sgi4d-svr4,v 1.12.16.1 1998/04/08 17:18:43 layer Exp $
 #
 #  Makefile.sigi4d-svr4 for CLIM 2.0
 #
@@ -13,7 +13,7 @@ XLIB=-lX11 -lcvt
 
 XINCLUDES=-I/usr/include
 
-PRODUCT-OBJS= $(PRODUCT-GENERIC-OBJS) $(STATIC-XM-OBJS) $(SHARED-XM-OBJS)
+PRODUCT-OBJS = $(PRODUCT-GENERIC-OBJS) $(STATIC-XM-OBJS) $(SHARED-XM-OBJS)
 
 PICFLAGS = -KPIC -n32
 SHAREFLAGS = 
