@@ -11,6 +11,18 @@ Tests for new features:	<`no new features', `no tests for new features', or
 	* <changes go here...>
 
 *******************************************************************************
+2.2.1.15
+
+Documentation changes:	none
+Tests for new features:	no new features
+
+Wed May 13 08:15:36 1998  Kevin Layer  <layer@ultra>
+
+	* Makefile.generic: don't hardwire source file and xref info
+	* tk-silica/last.lisp: load-patches call was wrong
+	* tk-silica/xm-gadgets.lisp: deal with package violation
+
+*******************************************************************************
 2.2.1.14
 
 Mon Apr 27 16:21:48 1998  Kevin Layer  <layer@ultra>

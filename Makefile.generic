@@ -1,4 +1,4 @@
-# $Header: /repo/cvs.copy/clim2/Makefile.generic,v 1.47.10.2 1998/04/15 17:22:51 layer Exp $
+# $Header: /repo/cvs.copy/clim2/Makefile.generic,v 1.47.10.3 1998/05/13 15:18:31 layer Exp $
 #
 #  Makefile.generic for CLIM 2.0
 #
@@ -25,10 +25,10 @@ compile: FORCE $(PRODUCT-OBJS) $(ICS-PRODUCT-OBJS) wnn.$(SHARED_EXT)
 		(*compile-verbose* $(compile_verbose)) \
 		(excl:*redefinition-warnings* $(redef_warning)) \
 		(excl:*record-source-file-info* $(RECORD_SOURCE_FILE_INFO)) \
+		(excl:*load-source-file-info* $(LOAD_SOURCE_FILE_INFO)) \
 		(comp:save-local-names-switch $(SAVE_LOCAL_NAMES)) \
 		(excl:*load-local-names-info* $(LOAD_LOCAL_NAMES_INFO)) \
-		(excl:*load-source-file-info* $(LOAD_SOURCE_FILE_INFO)) \
-		(excl:*record-xref-info* $(RECORD-XREF-INFO)) \
+		(excl:*record-xref-info* $(RECORD_XREF_INFO)) \
 		(excl:*load-xref-info* $(LOAD_XREF_INFO))) \
 	    (setf (sys:gsgc-switch :print) $(gc_print)) \
 	    (compile-it '$(SYSTEM))))" \
@@ -134,8 +134,10 @@ $(CLIM): FORCE $(PRODUCT-OBJS) $(ICS-PRODUCT-OBJS)
 	   :internal-debug \"build-clim.out\" \
 	   :shlib-warning nil \
 	   :libfasl-warning nil \
-	   :record-source-file-info t :load-source-file-info t \
-	   :record-xref-info t :load-xref-info t \
+	   :record-source-file-info $(RECORD_SOURCE_FILE_INFO) \
+	   :load-source-file-info $(LOAD_SOURCE_FILE_INFO) \
+	   :record-xref-info $(RECORD_XREF_INFO) \
+	   :load-xref-info $(LOAD_XREF_INFO) \
 	   :discard-local-name-info t \
 	   :discard-source-file-info t \
 	   :discard-xref-info t) \
