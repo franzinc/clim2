@@ -1,0 +1,15 @@
+		     CLIM 2.2.1 for ACL 5.0.beta
+			Windows 95 and NT 4.0
+
+Files in this release:
+
+	clim221.txt (this file)
+	code/climnt.fasl
+	code/climg.fasl
+	code/climps.fasl
+	code/climdemo.fasl
+	src/clim/demo/
+
+To use CLIM on Windows evaluate this:
+
+	(require :climnt)

@@ -12,4 +12,6 @@ stub-xt.c
 test-suite-reportol.lisp
 test-suite-reportxm.lisp
 update.log
-compile.out
+*.out
+*.zip
+dist
