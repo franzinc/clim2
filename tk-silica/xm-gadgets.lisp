@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xm-gadgets.lisp,v 1.97.8.7 1999/06/18 19:41:47 layer Exp $
+;; $Id: xm-gadgets.lisp,v 1.97.8.8 1999/06/18 20:07:05 layer Exp $
 
 (in-package :xm-silica)
 
@@ -2212,17 +2212,6 @@
 	       (font-set-from-font-list port font-list)))))
     `(:font-list ,font-list ,@initargs)))
 
-#+(version>= 5 0)
-(in-package :tk)
-
-#+(version>= 5 0)
-(defun reinitialize-silica-callbacks ()
-  (xm-silica::setup-mda)
-  (setq xm-silica::*file-search-proc-callback-address*
-    (ff:register-foreign-callable
-     'xm-silica::file-search-proc-callback :reuse)))
-
-
 (defmethod frame-manager-print-file
     ((framem motif-frame-manager) filename
      &key 	  
@@ -2234,3 +2223,14 @@
      &allow-other-keys)
   (declare (ignore filename associated-window))
   (error "not yet implemented for UNIX"))
+
+#+(version>= 5 0)
+(in-package :tk)
+
+#+(version>= 5 0)
+(defun reinitialize-silica-callbacks ()
+  (xm-silica::setup-mda)
+  (setq xm-silica::*file-search-proc-callback-address*
+    (ff:register-foreign-callable
+     'xm-silica::file-search-proc-callback :reuse)))
+

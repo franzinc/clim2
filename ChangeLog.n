@@ -11,6 +11,13 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.2.1.62
+
+1999-06-18  Kevin Layer  <layer@ultra>
+
+	* tk-silica/xm-gadgets.lisp: make it compile on unix
+
+*******************************************************************************
 2.2.1.61
 
 1999-06-18  Jeff Morrill  <jmorrill@pointnclick.com> 
