@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-class.lisp,v 2.5 2004/01/16 19:15:39 layer Exp $
+;; $Id: acl-class.lisp,v 2.6 2004/03/11 02:13:07 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -61,7 +61,8 @@
   (setq *msg-names* (make-array 4096))
   (dolist (x (remove-duplicates
 	      (apropos-list "WM_" (find-package :win))))
-    (push x (svref *msg-names* (symbol-value x)))))
+    (when (<= 0 (symbol-value x) 4095)
+      (push x (svref *msg-names* (symbol-value x))))))
 
 (defun msg-name (msg)
   (unless *msg-names* (init-msg-names))

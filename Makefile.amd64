@@ -1,0 +1,32 @@
+# $Id: Makefile.amd64,v 2.1 2004/03/11 02:13:07 layer Exp $
+
+include Makefile.defs
+
+Makefile=Makefile.amd64
+
+XINCLUDES=-I/usr/X11R6/include
+
+TKLIB=-lXm -lXpm -lXext -lXp
+XTLIB=-lXt
+XLIB=-lX11
+
+ifdef FI_USE_DMALLOC
+THREADLIB = -lpthread -ldmallocth
+CFLAGS = -I/usr/local/include
+else
+THREADLIB = -lpthread
+endif
+
+SET_LIBRARY_PATH = LD_RUN_PATH=/usr/X11R6/lib64:/lib:/usr/lib; export LD_RUN_PATH
+
+PRODUCT-OBJS= $(PRODUCT-GENERIC-OBJS) $(STATIC-XM-OBJS) $(SHARED-XM-OBJS)
+
+#MOTIFXTRAS=-lgen
+
+PICFLAGS = -fPIC
+SHAREFLAGS = 
+MAKE_SHARED = ld -shared -L/usr/X11R6/lib64
+STD_DEFINES = -DSVR4 -DSYSV
+AR = ar cq
+
+include Makefile.generic

@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-port.lisp,v 2.5 2004/01/16 19:15:40 layer Exp $
+;; $Id: acl-port.lisp,v 2.6 2004/03/11 02:13:07 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -981,7 +981,7 @@ or (:style . (family face size))")
 				function args))
 	(return result)))))
   
-
+#+ignore
 (defmethod process-next-event ((port acl-port)
 			       &key (timeout nil) 
 				    (wait-function nil)
@@ -1010,6 +1010,36 @@ or (:style . (family face size))")
 	     t)
 	    (reason :wait-function)
 	    (t :timeout)))))
+
+;; recoded for wait-function constraints ....
+;; assume wait-function is a 'nice' test of state only
+(defmethod process-next-event ((port acl-port)
+			       &key (timeout nil) 
+				    (wait-function nil)
+				    (state "Windows Event"))
+  (with-slots (event-queue motion-pending) port
+    (let (#+ignore (sheet (frame-top-level-sheet *application-frame*))
+	  event)
+	(flet ((wait-for-event ()
+		 (or (not (queue-empty-p event-queue))
+		     (and wait-function (funcall wait-function)))))
+
+	   (loop
+	    (if timeout
+		(mp:with-timeout (timeout
+				  (return-from process-next-event :timeout))
+		    (mp:process-wait state #'wait-for-event))
+	      (process-wait state #'wait-for-event))
+	    (setq event (queue-get event-queue))
+	    (when event
+	      (distribute-event port event)
+	      (return-from process-next-event t))
+	    (when motion-pending
+	      (flush-pointer-motion port))
+	    (when (and wait-function (funcall wait-function))
+	      (return-from process-next-event :wait-function))
+	    )))))
+
 
 (defmethod distribute-event :around ((port acl-port) (event device-event))
   (let* ((sheet (event-sheet event))

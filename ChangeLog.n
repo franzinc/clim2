@@ -1,18 +1,25 @@
-For more detailed instructions on filling in the ChangeLog form, see 
-`/fi/doc/procedures/changelogs.txt'.
-*******************************************************************************
-If there are user-visible changes in this commit, then list the
-  new ../RELNOTES entries, which include bug and/or RFE references:
-	<...>
+2004-03-10  Kevin Layer  <layer@gemini>
 
-<standard changelog date stamp>
-	* <changes go here...>
+	* Makefile: add amd64
+	* (NEW) Makefile.amd64
+	* Makefile.rs6000: use Motif 2.1 instead of 1.2 (on bb1)
+	* Makefile.wnn: for amd64
+    from mm/rfr -- THESE CHANGES ARE NOT THE LATEST CHANGES FROM MM
+	* aclpc/acl-class.lisp
+	* aclpc/acl-port.lisp
 
 *******************************************************************************
 join from acl62 to trunk on 2/12/04
 next join tag: use join2.sh
 
 *******************************************************************************
+
+2004-03-05  <rfr@janus>
+
+	* aclpc/acl-class.lisp: protect push in init-msg-names
+	  against big message numbers
+	* aclpc/acl-port.lisp: fix wait function in process-next-event
+
 
 2004-01-16  Kevin Layer  <layer@gemini>
 
@@ -5910,4 +5917,4 @@ IGNORE JDI SPECIFIC CHANGES TO Makefile
 	Lots of other stuff
 
 *******************************************************************************
-$Revision: 2.7 $
+$Revision: 2.8 $
