@@ -1,5 +1,5 @@
-# $fiHeader: Makefile,v 1.60 92/11/05 19:28:07 cer Exp $
-#
+# $fiHeader: Makefile,v 1.61 92/11/09 10:53:31 cer Exp $
+# 
 #  Makefile for CLIM 2.0
 #
 #CL	= /usr/tech/cer/cl/src/dcl
