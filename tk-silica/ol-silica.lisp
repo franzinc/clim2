@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-silica.lisp,v 1.14 92/09/22 19:38:05 cer Exp $
+;; $fiHeader: ol-silica.lisp,v 1.15 92/10/02 15:20:56 cer Exp $
 
 (in-package :xm-silica)
 
@@ -53,15 +53,17 @@
 	(let ((window (tk::widget-window mirror)))
 	  (with-port-event-lock (port)
 	    (excl:without-interrupts
-	      (tk:with-server-grabbed ((port-display port))
-		(when (eq (tk::window-map-state window) :viewable)
-		  ;;--- There could very well be a race condition involving
-		  ;;--- a couple of processes.  Another process could have made
-		  ;;--- this window go away at this point
-		  (tk::ol_set_input_focus 
-		   mirror
-		   2			; RevertToParent
-		   0))))))))))
+	      (let ((display (port-display port)))
+		(tk:with-server-grabbed (display)
+		  (when (eq (tk::window-map-state window) :viewable)
+		    ;;--- There could very well be a race condition involving
+		    ;;--- a couple of processes.  Another process could have made
+		    ;;--- this window go away at this point
+		    (tk::ol_set_input_focus 
+		     mirror
+		     2			; RevertToParent
+		     ;;-- This is not exact but it might work better.
+		     (xt::xt-last-timestamp-processed display))))))))))))
 
 (defmethod change-widget-geometry ((parent tk::draw-area) child
 				   &rest args

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-funs.lisp,v 1.12 92/09/22 19:36:41 cer Exp $
+;; $fiHeader: xt-funs.lisp,v 1.13 92/10/02 15:18:02 cer Exp $
 
 ;;
 ;; This file contains compile time only code -- put in clim-debug.fasl.
@@ -315,3 +315,11 @@
     :arg-checking nil
     :return-type :fixnum)
 
+
+(defforeign 'xt-last-timestamp-processed
+    :entry-point "_XtLastTimestampProcessed"
+    :call-direct t
+    :arguments '(foreign-address	; display
+		 )
+    :arg-checking nil
+    :return-type :unsigned-integer)

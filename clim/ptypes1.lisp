@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: ptypes1.lisp,v 1.18 92/10/28 11:31:59 cer Exp $
+;; $fiHeader: ptypes1.lisp,v 1.19 92/11/06 19:00:20 cer Exp $
 
 (in-package :clim-internals)
 
@@ -335,6 +335,9 @@
 ;;; This hash table is keyed by the presentation type name and yields the class.
 (defvar *presentation-type-class-table* (make-hash-table))
 
+;;; Keyed by name, yields the function that translates one type specifier into another
+(defvar *presentation-type-abbreviation-table* (make-hash-table))
+
 #+CCL-2
 (defvar *presentation-class-type-table* (make-hash-table))
 
@@ -498,8 +501,7 @@
 
 ;;;; Presentation Type Abbreviations
 
-;;; Keyed by name, yields the function that translates one type specifier into another
-(defvar *presentation-type-abbreviation-table* (make-hash-table))
+
 
 ;;; Define a "macro" that expands one presentation type specifier into another
 (defmacro define-presentation-type-abbreviation (name parameters expansion &key options

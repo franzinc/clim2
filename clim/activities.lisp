@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: activities.lisp,v 1.4 92/10/29 15:02:39 cer Exp $
+;; $fiHeader: activities.lisp,v 1.5 92/11/06 18:59:00 cer Exp $
 
 (in-package :clim-internals)
 
@@ -183,7 +183,9 @@
       (select-activity-active-frame activity frame))))
 
 (defmethod activity-frame-window-select :around ((activity-frame activity-frame))
-  (unless (eq activity-frame (activity-active-frame (frame-activity activity-frame)))
+  (unless (let ((activity (frame-activity activity-frame)))
+	    (and activity
+		 (eq activity-frame (activity-active-frame activity))))
     (call-next-method)))
 
 (defun select-activity-active-frame (activity frame)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: test-suite.lisp,v 1.43 92/11/06 19:04:13 cer Exp $
+;; $fiHeader: test-suite.lisp,v 1.44 92/11/09 19:55:44 cer Exp $
 
 (in-package :clim-user)
 
@@ -683,6 +683,23 @@ people, shall not perish from the earth.
       (with-output-as-presentation (stream 4 'form) 
 	(draw-text* stream "Dont be silly in the City." x 200
 		    :towards-x x :towards-y 0)))))
+
+(define-test (pixmap-test graphics) (stream)
+  "Test pixmap code"
+  (with-sheet-medium (medium stream)
+    (let ((pixmap (with-output-to-pixmap (ps stream :width 100 :height 100)
+		    (draw-rectangle* ps 0 0 100 100 :ink +red+)
+		    (surrounding-output-with-border (ps)
+			(draw-text* ps "hello" 10 50)))))
+      (dotimes (i 5)
+	(sleep 0.25)
+	(copy-from-pixmap pixmap 0 0 100 100 medium (* i 100) (* i 100))))
+    (dotimes (j 5)
+      (let ((pixmap (copy-to-pixmap medium (* j 100) (* j 100) 100 100)))
+	(dotimes (i 5)
+	  (unless (= i j)
+	    (sleep 0.25)
+	    (copy-from-pixmap pixmap 0 0 100 100 medium (* j 100) (* i 100))))))))
 
 (defparameter *named-colors*
  '(+white+ +black+ +red+ +green+ +blue+ +yellow+ +cyan+ +magenta+
@@ -1791,8 +1808,81 @@ Luke Luck licks the lakes Luke's duck likes."))
 			      :line-cap-shape :round))))))))))
 
 (define-test (gadgets-dialog menus-and-dialogs) (stream)
-  "An own-window ACCEPTING-VALUES dialog that has graphics inside of it."
+  "An own-window ACCEPTING-VALUES dialog that has lots of gadgets inside of it."
   (gadgets-dialog-internal stream nil))
+
+(define-test (ozone-dialog menus-and-dialogs) (stream)
+  "Test of gadgets out in hyper space"
+  (let ((x "hello"))
+    (accepting-values (stream :own-window nil :label "Gadgets dialog")
+	(stream-set-cursor-position stream 100000 0)
+      (setq x (accept 'string :view +text-field-view+ 
+		      :stream stream
+		      :default x))
+      (terpri stream))))
+
+
+(define-test (readonly-gadget-dialog menus-and-dialogs) (stream)
+  " Create a bunch of readonly gadgets"
+  (accepting-values (stream :own-window nil :label "Gadgets dialog"
+			    :align-prompts t)
+      (macrolet ((do-presents (view &rest p)
+		   `(progn
+		      ,@(mapcar #'(lambda (x)
+				    `(progn
+				       (present ',(car x) ',(cadr x)
+						,@(and view `(:view ,view))
+						:prompt (format nil "~A,~A"
+								',(cadr x)
+								(if ,view (type-of ,view) :default))
+						:stream stream)
+				       (terpri stream)))
+				p))))
+	(do-presents
+	    nil
+	  (5.0 real)
+	  ("xxx" string)
+	  (#P"/tmp/fooo" pathname)
+	  (:a (member :a :b))
+	  ((:a :b) (subset :a :b))
+	  (( 3 4) (sequence integer))
+	  ;; sequence-enumerated
+	  (t boolean))
+	
+	(do-presents
+	    +text-field-view+
+	  (5.0 real)
+	  ("xxx" string)
+	  (#P"/tmp/fooo" pathname)
+	  (:a (member :a :b))
+	  ((:a :b) (subset :a :b))
+	  (( 3 4) (sequence integer))
+	  ;; sequence-enumerated
+	  (t boolean))
+		
+      
+	(do-presents
+	    '(text-editor-view :nlines 5 :ncolumns 30)
+	  ("      (do-presents
+	  +text-field-view+
+	  (5.0 real)
+	(xxx string)
+	(#P/tmp/fooo pathname)
+	(:a (member :a :b))
+	((:a :b) (subset :a :b))
+	(( 3 4) (sequence integer))
+	;; sequence-enumerated
+	(t boolean)) "
+	      string))
+	
+	(do-presents
+	    +slider-view+
+	  (5.0 float)
+	  (1 integer)))))
+
+
+	
+	
 
 
 (defun gadgets-dialog-internal (stream &optional own-window)

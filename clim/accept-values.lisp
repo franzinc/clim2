@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept-values.lisp,v 1.42 92/11/09 10:54:03 cer Exp $
+;; $fiHeader: accept-values.lisp,v 1.43 92/11/09 19:54:44 cer Exp $
 
 (in-package :clim-internals)
 
@@ -1283,3 +1283,46 @@
 		     :x 0 :y 0
 		     :modifier-state 0
 		     :button +pointer-left-button+)))))))))
+
+;;--- It seems a little bizarre having a prompt argument but
+;;--- is there a better way.
+
+(defmethod stream-present ((stream accept-values-stream) object presentation-type 
+							 &rest present-args
+							 &key view
+							 (prompt nil prompt-p)
+							 (query-identifier nil))
+
+  (declare (ignore prompt))
+  (unless prompt-p (return-from stream-present (call-next-method)))
+
+  (flet ((do-ppresent (stream)
+	   (updating-output
+	       (stream :unique-id query-identifier
+		       :id-test #'equal
+		       :cache-value object
+		       :cache-test #'equal)
+	       stream
+	     ;;--- We did this because (sequence integer) reinvoked
+	     ;;--- present with the prompt for each of components of
+	     ;;--- the stream. so we end up back here and create badly
+	     ;;--- identified updating-output records.
+	     (apply #'stream-present (encapsulating-stream-stream stream)
+		    object presentation-type present-args))))
+    (declare (dynamic-extent #'do-ppresent))
+    (let ((align-prompts (slot-value stream 'align-prompts)))
+      (cond (align-prompts
+	     ;; The user has asked to line up the labels, so oblige him
+	     (formatting-row (stream)
+		 (formatting-cell (stream :align-x align-prompts)
+		     (setq query-identifier 
+		       (apply #'prompt-for-accept
+			      (encapsulated-stream stream) presentation-type view present-args)))
+	       (formatting-cell (stream :align-x :left)
+		   (do-ppresent stream))))
+	    (t
+	     (setq query-identifier
+	       (apply #'prompt-for-accept
+		      (encapsulated-stream stream) presentation-type view present-args))
+	     (do-ppresent stream)))))
+  (values object))

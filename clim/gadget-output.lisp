@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadget-output.lisp,v 1.37 92/11/09 10:54:34 cer Exp $
+;; $fiHeader: gadget-output.lisp,v 1.38 92/11/09 19:54:54 cer Exp $
 
 (in-package :clim-internals)
 
@@ -106,13 +106,7 @@
 	    (output-record-stream record) (output-record-parent record))
 	(with-bounding-rectangle* (left top right bottom) record
 	  (translate-positions xoff yoff left top right bottom)
-	  (with-bounding-rectangle* (gleft gtop gright gbottom) gadget
-	    (unless (and (= left gleft)
-			 (= top  gtop)
-			 (= right  gright)
-			 (= bottom gbottom))
-	      (move-and-resize-sheet gadget
-				     left top (- right left) (- bottom top)))))))))
+	  (move-and-resize-sheet gadget left top (- right left) (- bottom top)))))))
 
 ;;--- Flush this when REPLAY-OUTPUT-RECORD calls itself recursively
 (defmethod note-output-record-replayed ((record gadget-output-record) stream
@@ -278,11 +272,13 @@
 ;;; Completion gadget
 
 (define-presentation-method decode-indirect-view
-			    ((type completion) (view gadget-dialog-view)
-			     (framem standard-frame-manager) &key)
+    ((type completion) (view gadget-dialog-view)
+		       (framem standard-frame-manager) &key read-only)
   ;;--- We can be clever and return different views depending on the
   ;;--- number of items, etc.
-  +radio-box-view+)
+  (if read-only
+      (call-next-method)
+    +radio-box-view+))
 
 ;(define-presentation-method gadget-includes-prompt-p 
 ;			    ((type completion) (stream t) (view radio-box-view))
@@ -362,9 +358,11 @@
 ;;; Subset completion gadget
 
 (define-presentation-method decode-indirect-view
-			    ((type subset-completion) (view gadget-dialog-view)
-			     (framem standard-frame-manager) &key)
-  +check-box-view+)
+    ((type subset-completion) (view gadget-dialog-view)
+			      (framem standard-frame-manager) &key read-only)
+  (if read-only
+      (call-next-method)
+    +check-box-view+))
 
 ;(define-presentation-method gadget-includes-prompt-p 
 ;			    ((type subset-completion) (stream t) (view check-box-view))
@@ -446,9 +444,11 @@
 ;;; Boolean gadget
 
 (define-presentation-method decode-indirect-view
-			    ((type boolean) (view gadget-dialog-view)
-			     (framem standard-frame-manager) &key)
-  +toggle-button-view+)
+    ((type boolean) (view gadget-dialog-view)
+		    (framem standard-frame-manager) &key read-only)
+  (if read-only
+      (call-next-method)
+    +toggle-button-view+))
 
 (define-presentation-method gadget-includes-prompt-p 
 			    ((type boolean) (stream t) (view toggle-button-view))
@@ -486,10 +486,25 @@
   t)
 
 (define-presentation-method accept-present-default 
-			    ((type real) stream (view slider-view)
-			     default default-supplied-p present-p query-identifier
-			     &key  (prompt t) (active-p t))
+    ((type real) stream (view slider-view)
+		 default default-supplied-p present-p query-identifier
+		 &key  (prompt t) (active-p t))
   (declare (ignore present-p))
+  (make-real-gadget-for-slider-view stream view active-p default
+				    type prompt query-identifier
+				    low high default-supplied-p t))
+
+(define-presentation-method present
+    (object (type real) stream (view slider-view) &key acceptably query-identifier prompt)
+  (declare (ignore acceptably))
+  (make-real-gadget-for-slider-view stream view t object
+				    type prompt query-identifier
+				    low high t nil))
+
+(defun make-real-gadget-for-slider-view (stream view active-p default
+					 type prompt query-identifier
+					 low high default-supplied-p
+					       &optional (editable-p t))
   (move-cursor-to-view-position stream view)
   (let ((min-value (if (eq low '*) 0 low))
 	(max-value (if (eq high '*) 100 high)))
@@ -505,24 +520,41 @@
 	(let ((slider 
 		;;--- What other initargs do we pass along from the view?
 		(make-pane-from-view 'slider view
-		  :label (and (stringp prompt) prompt)
-		  :value (if default-supplied-p default min-value)
-		  :min-value min-value :max-value max-value
-		  :orientation (gadget-orientation view)
-		  :decimal-places (slider-decimal-places view)
-		  :show-value-p (gadget-show-value-p view)
-		  :client stream :id query-identifier
-		  :value-changed-callback
-		    (make-accept-values-value-changed-callback
-		     stream query-identifier)
-		    :active active-p)))
+				     :label (and (stringp prompt) prompt)
+				     :value (if default-supplied-p default min-value)
+				     :min-value min-value :max-value max-value
+				     :orientation (gadget-orientation view)
+				     :decimal-places (or (slider-decimal-places view) 0)
+				     :show-value-p (gadget-show-value-p view)
+				     :client stream :id query-identifier
+				     :value-changed-callback
+				     (and editable-p
+					  (make-accept-values-value-changed-callback
+					   stream query-identifier))
+				     :active active-p
+				     :editable-p editable-p)))
 	  (values (outlining () slider) slider))))))
 
 (define-presentation-method accept-present-default 
-			    ((type integer) stream (view slider-view)
-			     default default-supplied-p present-p query-identifier
-			     &key  (prompt t) (active-p t))
+    ((type integer) stream (view slider-view)
+		    default default-supplied-p present-p query-identifier
+		    &key  (prompt t) (active-p t))
   (declare (ignore present-p))
+  (make-integer-gadget-for-slider-view stream view active-p default
+				       type prompt query-identifier
+				       low high default-supplied-p t))
+
+(define-presentation-method present
+    (object (type integer) stream (view slider-view) &key acceptably query-identifier prompt)
+  (declare (ignore acceptably))
+  (make-integer-gadget-for-slider-view stream view t object
+				    type prompt query-identifier
+				    low high t nil))
+
+(defun make-integer-gadget-for-slider-view (stream view active-p default
+					    type prompt query-identifier
+					    low high default-supplied-p
+					    &optional (editable-p t))
   (move-cursor-to-view-position stream view)
   (let ((min-value (if (eq low '*) 0 low))
 	(max-value (if (eq high '*) 100 high)))
@@ -536,45 +568,75 @@
 		   (if default-supplied-p default min-value))))
       (with-output-as-gadget (stream :cache-value type :update-gadget #'update-gadget)
 	(let ((slider
-		;;--- What other initargs do we pass along from the view?
-		(make-pane-from-view 'slider view
-		  :label (and (stringp prompt) prompt)
-		  :value (if default-supplied-p default min-value)
-		  :min-value min-value :max-value max-value
-		  :orientation (gadget-orientation view)
-		  :number-of-quanta (- high low) :decimal-places 0
-		  :show-value-p (gadget-show-value-p view)
-		  :client stream :id query-identifier
-		  :value-changed-callback
-		    (make-accept-values-value-changed-callback
-		     stream query-identifier)
-		    :active active-p)))
+	       ;;--- What other initargs do we pass along from the view?
+	       (make-pane-from-view 'slider view
+				    :label (and (stringp prompt) prompt)
+				    :value (if default-supplied-p default min-value)
+				    :min-value min-value :max-value max-value
+				    :orientation (gadget-orientation view)
+				    :number-of-quanta (- max-value min-value) 
+				    :decimal-places 0
+				    :show-value-p (gadget-show-value-p view)
+				    :client stream :id query-identifier
+				    :value-changed-callback
+				    (and editable-p
+				     (make-accept-values-value-changed-callback
+				      stream query-identifier))
+				    :active active-p
+				    :editable-p editable-p)))
 	  (values (outlining () slider) slider))))))
 
 
 ;;; Text editing gadgets
 
 (define-presentation-method accept-present-default 
-			    ((type t) stream (view text-field-view)
-			     default default-supplied-p present-p query-identifier
-			     &key  (prompt t) (active-p t))
+    ((type t) stream (view text-field-view)
+	      default default-supplied-p present-p query-identifier
+	      &key  (prompt t) (active-p t))
   (declare (ignore default-supplied-p present-p))
+  (make-gadget-for-text-field-view stream view active-p default type prompt query-identifier t))
+
+;;;-- This is boring. We need a whole bunch of methods to shadow those
+;;;-- in standard-types:
+;;;-- eg..
+
+(defmacro define-present-methods-for-types (function types view)
+  `(progn
+     ,@(mapcar #'(lambda (type)
+		   `(define-presentation-method present 
+			(object (type ,type) stream (view ,view) 
+				&key acceptably query-identifier prompt)
+		      (declare (ignore acceptably))
+		      (,function 
+		       stream view t object type prompt query-identifier nil)))
+	       types)))
+
+;;;--- Should there be a method specialized on T???
+
+(define-present-methods-for-types make-gadget-for-text-field-view 
+    (real string pathname completion subset-completion sequence sequence-enumerated boolean)
+  text-field-view)
+
+(defun make-gadget-for-text-field-view (stream view active-p default type prompt query-identifier
+					       &optional (editable-p t))
   (move-cursor-to-view-position stream view)
   (flet ((update-gadget (record gadget text-field)
  	   (declare (ignore record gadget))	     ;;-- This sucks
-	     (if active-p
-		 (activate-gadget text-field)
-	       (deactivate-gadget text-field))
+	   (if active-p
+	       (activate-gadget text-field)
+	     (deactivate-gadget text-field))
  	   (setf (gadget-value text-field) (present-to-string default type))))
     (with-output-as-gadget (stream :cache-value type :update-gadget #'update-gadget)
       (let ((text-field (make-pane-from-view 'text-field view
-			  :label (and (stringp prompt) prompt)
-			  :value (present-to-string default type)
-			  :client stream :id query-identifier
-			  :value-changed-callback
-			    `(accept-values-string-field-changed-callback
-			      ,stream ,query-identifier)
-			    :active active-p)))
+					     :label (and (stringp prompt) prompt)
+					     :value (present-to-string default type)
+					     :client stream :id query-identifier
+					     :editable-p editable-p
+					     :value-changed-callback
+					     (and editable-p
+						  `(accept-values-string-field-changed-callback
+						    ,stream ,query-identifier))
+					     :active active-p)))
  	(values text-field text-field)))))
 
 ;;--- This is mostly nonsense.  If we enter something that is an error then
@@ -599,34 +661,43 @@
 			     (framem standard-frame-manager) &key)
   +text-field-view+)
 
-(define-presentation-method accept-present-default 
-			    ((type string) stream (view text-field-view)
-			     default default-supplied-p present-p query-identifier
-			     &key  (prompt t) (active-p t))
-  (declare (ignore default-supplied-p present-p))
-  (move-cursor-to-view-position stream view)
-  (flet ((update-gadget (record gadget button)
- 	   (declare (ignore record gadget))
-	     (if active-p
-		 (activate-gadget button)
-	       (deactivate-gadget button))
- 	   (setf (gadget-value button) default)))
-    (with-output-as-gadget (stream :cache-value type :update-gadget #'update-gadget)
-      (let ((text-field (make-pane-from-view 'text-field view
-			  :label (and (stringp prompt) prompt)
-			  :value default
-			  :client stream :id query-identifier
-			  :value-changed-callback
-			    (make-accept-values-value-changed-callback
-			     stream query-identifier)
-			    :active active-p)))
- 	(values text-field text-field)))))
+;;--- How does this differ from the default method for
+;;--- accept-present-default
+;(define-presentation-method accept-present-default 
+;			    ((type string) stream (view text-field-view)
+;			     default default-supplied-p present-p query-identifier
+;			     &key  (prompt t) (active-p t))
+;  (declare (ignore default-supplied-p present-p))
+;  (move-cursor-to-view-position stream view)
+;  (flet ((update-gadget (record gadget button)
+; 	   (declare (ignore record gadget))
+;	     (if active-p
+;		 (activate-gadget button)
+;	       (deactivate-gadget button))
+; 	   (setf (gadget-value button) default)))
+;    (with-output-as-gadget (stream :cache-value type :update-gadget #'update-gadget)
+;      (let ((text-field (make-pane-from-view 'text-field view
+;			  :label (and (stringp prompt) prompt)
+;			  :value default
+;			  :client stream :id query-identifier
+;			  :value-changed-callback
+;			    (make-accept-values-value-changed-callback
+;			     stream query-identifier)
+;			    :active active-p)))
+; 	(values text-field text-field)))))
 
 (define-presentation-method accept-present-default 
-			    ((type string) stream (view text-editor-view)
-			     default default-supplied-p present-p query-identifier
-			     &key  (prompt t) (active-p t))
+    ((type string) stream (view text-editor-view)
+		   default default-supplied-p present-p query-identifier
+		   &key  (prompt t) (active-p t))
   (declare (ignore default-supplied-p present-p))
+  (make-gadget-for-text-editor stream view active-p default type prompt query-identifier t))
+
+(define-present-methods-for-types make-gadget-for-text-editor (string) text-editor-view)
+
+(defun make-gadget-for-text-editor (stream view active-p default type prompt query-identifier
+					       &optional (editable-p t))
+
   (move-cursor-to-view-position stream view)
   (flet ((update-gadget (record gadget button)
  	   (declare (ignore record gadget))
@@ -636,13 +707,15 @@
  	   (setf (gadget-value button) default)))
     (with-output-as-gadget (stream :cache-value type :update-gadget #'update-gadget)
       (let ((text-field (make-pane-from-view 'text-editor view
-			  :label (and (stringp prompt) prompt)
-			  :value default
-			  :client stream :id query-identifier
-			  :value-changed-callback
-			    (make-accept-values-value-changed-callback
-			     stream query-identifier)
-			    :active active-p)))
+					     :label (and (stringp prompt) prompt)
+					     :value default
+					     :client stream :id query-identifier
+					     :value-changed-callback
+					     (and editable-p
+						  (make-accept-values-value-changed-callback
+						   stream query-identifier))
+					     :active active-p
+					     :editable-p editable-p)))
  	(values (scrolling () text-field) text-field)))))
 
 
@@ -744,4 +817,3 @@
 
 (defmethod sheet-disown-child ((stream standard-encapsulating-stream) child)
   (sheet-disown-child (encapsulating-stream-stream stream) child))
-

@@ -3,3 +3,4 @@ _XtGetResourceList
 _XtGetValues
 _XtSetValues
 _XtSetSensitive
+_XtLastTimestampProcessed

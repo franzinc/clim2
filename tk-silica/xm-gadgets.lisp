@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.55 92/11/09 10:56:09 cer Exp $
+;; $fiHeader: xm-gadgets.lisp,v 1.56 92/11/09 19:56:00 cer Exp $
 
 (in-package :xm-silica)
 
@@ -133,25 +133,6 @@
                                  (:center :center)
                                  (:right :end)))))
 
-;; Motif-orriented-gadget
-
-(defclass motif-oriented-gadget () ())
-
-(defmethod find-widget-class-and-initargs-for-sheet :around ((port motif-port)
-                                                             (parent t)
-                                                             (sheet motif-oriented-gadget))
-  (multiple-value-bind
-      (class initargs)
-      (call-next-method)
-    (with-accessors ((orientation gadget-orientation)) sheet
-      (unless (getf initargs :orientation)
-        (setf (getf initargs :orientation) orientation)))
-    (values class initargs)))
-
-(defmethod (setf gadget-orientation) :after (nv (gadget motif-oriented-gadget))
-  (when (sheet-direct-mirror gadget)
-    (tk::set-values (sheet-direct-mirror gadget) :orientation nv)))
-
 ;;; Motif widgets that support the activate callback
 
 (defclass motif-action-pane () ())
@@ -258,7 +239,7 @@
 
 ;;; 
 
-(defclass motif-separator (motif-oriented-gadget
+(defclass motif-separator (xt-oriented-gadget
                            xt-leaf-pane
                            silica::separator)
           ())
@@ -270,8 +251,19 @@
 
 ;;; Slider
 
+(defclass motif-oriented-sliding-gadget (xt-oriented-gadget)
+	  ())
+
+(defmethod set-widget-orientation ((gadget motif-oriented-sliding-gadget) nv)
+  (tk::set-values (sheet-direct-mirror gadget) 
+		  :processing-direction 
+		  (case nv
+		    (:vertical :max-on-top)
+		    (:horizontal :max-on-right))
+		  :orientation nv))
+
 (defclass motif-slider (motif-range-pane
-                        motif-oriented-gadget
+                        motif-oriented-sliding-gadget
                         xt-leaf-pane
                         slider)
           ())
@@ -294,7 +286,7 @@
             (mmax 100)
             (decimal-points 0)
             (decimal-places (slider-decimal-places sheet)))
-        (cond ((and (or (null decimal-places) (zerop decimal-places))
+        (cond ((and (zerop decimal-places)
                     (typep smin '(signed-byte 32))
                     (typep smax '(signed-byte 32)))
                (setq mmin smin mmax smax decimal-points 0))
@@ -353,7 +345,7 @@
 
 
 (defclass motif-scroll-bar (scroll-bar
-                            motif-oriented-gadget
+                            motif-oriented-sliding-gadget
                             xt-leaf-pane)
           ())
 
@@ -513,9 +505,12 @@
 (defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
                                                      (parent t)
                                                      (sheet motif-text-field))
-  (with-accessors ((value gadget-value)) sheet
+  (with-accessors ((editable gadget-editable-p)
+		   (value gadget-value)) sheet
     (values 'tk::xm-text-field 
             (append
+	     (and (not editable) '(:cursor-position-visible nil))
+	     `(:editable ,editable)
              (and value `(:value ,value))))))
 
 ;;; 
@@ -537,6 +532,7 @@
                    (nlines gadget-lines)) sheet
     (values 'tk::xm-text
             (append
+	     (and (not editable) '(:cursor-position-visible nil))
              (list :edit-mode :multi-line)
              (list :editable editable)
              (and ncolumns (list :columns ncolumns))
@@ -682,7 +678,7 @@
 
 (defclass motif-radio-box (motif-geometry-manager
                            mirrored-sheet-mixin
-                           motif-oriented-gadget
+                           xt-oriented-gadget
                            sheet-multiple-child-mixin
                            sheet-permanently-enabled-mixin
                            radio-box
@@ -701,7 +697,7 @@
 
 (defclass motif-check-box (motif-geometry-manager
                            mirrored-sheet-mixin
-                           motif-oriented-gadget
+                           xt-oriented-gadget
                            sheet-multiple-child-mixin
                            sheet-permanently-enabled-mixin
                            check-box

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: present.lisp,v 1.9 92/10/28 11:31:57 cer Exp $
+;; $fiHeader: present.lisp,v 1.10 92/11/06 19:00:17 cer Exp $
 
 (in-package :clim-internals)
 
@@ -8,7 +8,11 @@
 
 (defun present (object &optional (presentation-type (presentation-type-of object))
 		&rest present-args
-		&key (stream *standard-output*) &allow-other-keys)
+		&key (stream *standard-output*) 
+		     (view (stream-default-view stream))
+		     (for-context-type presentation-type)
+		     query-identifier
+		&allow-other-keys)
   (declare (dynamic-extent present-args))
   (declare (arglist object &optional (presentation-type (presentation-type-of object))
 		    &key (stream *standard-output*)
@@ -17,9 +21,34 @@
 			 (for-context-type presentation-type) (single-box nil)
 			 (allow-sensitive-inferiors *allow-sensitive-inferiors*)
 			 (sensitive *allow-sensitive-inferiors*)
-			 (record-type 'standard-presentation)))
-  (with-keywords-removed (present-args present-args '(:stream))
-    (apply #'stream-present stream object presentation-type present-args)))
+			 (record-type 'standard-presentation)
+			 prompt
+			 query-identifier))
+  
+  (multiple-value-bind (expansion expanded)
+      (expand-presentation-type-abbreviation presentation-type)
+    (when expanded
+      (when (eq for-context-type presentation-type)
+	(setq for-context-type expansion))
+      (setq presentation-type expansion)))
+  
+  (unless (eq for-context-type presentation-type)
+    (multiple-value-bind (expansion expanded)
+	(expand-presentation-type-abbreviation for-context-type)
+      (when expanded
+	(setq for-context-type expansion))))
+
+  (typecase view
+    (null)
+    (symbol (setq view (make-instance view)))
+    (cons   (setq view (apply #'make-instance view))))
+  
+  (setq view (decode-indirect-view presentation-type view (frame-manager stream)
+				   :read-only t
+				   :query-identifier query-identifier))
+
+  (with-keywords-removed (present-args present-args '(:stream :view))
+    (apply #'stream-present stream object presentation-type :view view present-args)))
 
 ;; Specialize on T since this method is good for all stream classes
 (defmethod stream-present ((stream t) object presentation-type
@@ -28,7 +57,8 @@
 				(for-context-type presentation-type) (single-box nil)
 				(allow-sensitive-inferiors *allow-sensitive-inferiors*) 
 				(sensitive *allow-sensitive-inferiors*)
-				(record-type 'standard-presentation))
+				(record-type 'standard-presentation)
+				(prompt nil prompt-p))
 
   ;; The arguments are allowed to be presentation type abbreviations
   (multiple-value-bind (expansion expanded)
@@ -61,13 +91,15 @@
 				    :single-box single-box
 				    :allow-sensitive-inferiors allow-sensitive-inferiors
 				    :record-type record-type)
-	(funcall-presentation-generic-function present
+	(apply-presentation-generic-function present
 	  object presentation-type stream view
-	  :acceptably acceptably :for-context-type for-context-type))
+	  :acceptably acceptably :for-context-type for-context-type
+	  (and prompt-p (list :prompt prompt))))
       (let ((*allow-sensitive-inferiors* allow-sensitive-inferiors))
-	(funcall-presentation-generic-function present
+	(apply-presentation-generic-function present
 	  object presentation-type stream view
-	  :acceptably acceptably :for-context-type for-context-type))))
+	  :acceptably acceptably :for-context-type for-context-type
+	  (and prompt-p (list :prompt prompt))))))
 
 (defun present-to-string (object
 			  &optional (presentation-type (presentation-type-of object))

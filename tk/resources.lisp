@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: resources.lisp,v 1.35 92/10/04 14:16:04 cer Exp $
+;; $fiHeader: resources.lisp,v 1.36 92/11/10 08:56:23 cer Exp $
 
 (in-package :tk)
 
@@ -630,3 +630,9 @@
   (make-instance 'font
 		 :display (widget-display parent)
 		 :foreign-address value))
+
+
+(define-enumerated-resource processing-direction (:max-on-top
+						  :max-on-bottom
+						  :max-on-left
+						  :max-on-right))

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.55 92/11/05 17:16:01 cer Exp $
+;; $fiHeader: xt-silica.lisp,v 1.56 92/11/06 19:04:44 cer Exp $
 
 (in-package :xm-silica)
 
@@ -47,7 +47,9 @@
 (defmethod port-type ((port xt-port))
   ':xt)
 
+
 (defmethod port-copy-gc ((port xt-port))
+  ;;-- Assume 1-1 port-graft mapping?
   (with-slots (copy-gc display) port
     (or copy-gc
 	(setf copy-gc
@@ -926,6 +928,26 @@
   ;; In this case let the parent deal with it
   (apply #'tk::set-values child args))
 
+
+(defmethod change-widget-geometry :around (parent child &key x y width height)
+  ;;-- Nasty use of (widget-callback-data child) field
+  (unless (and (typep x '(signed-byte 16))
+	       (typep (+ x width) '(signed-byte 16))
+	       (typep y '(signed-byte 16))
+	       (typep (+ y height) '(signed-byte 16)))
+    (let ((window (tk::widget-window child nil)))
+      (when (and window (not (assoc 'widget-is-cached (tk::widget-callback-data child))))
+	(push (cons 'widget-is-cached t) (tk::widget-callback-data child))
+	(x11::xunmapwindow (xt::widget-display child) window)))
+    (return-from change-widget-geometry nil))
+  ;; Make sure its mapped
+  (let ((x (assoc 'widget-is-cached (tk::widget-callback-data child))))
+    (when x 
+      (setf (tk::widget-callback-data child)  (delete x (tk::widget-callback-data child)))
+      (let ((window (tk::widget-window child nil)))
+	(when window (x11::xmapwindow (xt::widget-display child) window)))))
+  ;; 
+  (call-next-method))
 
 (defmethod popup-frame-p ((frame application-frame))
   (typep frame '(or clim-internals::menu-frame clim-internals::accept-values-own-window)))

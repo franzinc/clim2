@@ -1,6 +1,6 @@
 ;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadgets.lisp,v 1.37 92/10/28 11:30:48 cer Exp $
+;; $fiHeader: gadgets.lisp,v 1.38 92/11/06 19:03:51 cer Exp $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
@@ -223,14 +223,16 @@
      (max-label :initarg :max-label)
      (range-label-text-style :initarg :range-label-text-style)
      (number-of-tick-marks :initarg :number-of-tick-marks)
-     (number-of-quanta :initarg :number-of-quanta))
+     (number-of-quanta :initarg :number-of-quanta)
+     (editable-p :initarg :editable-p :accessor gadget-editable-p))
   (:default-initargs :decimal-places 0
 		     :show-value-p nil
 		     :min-label nil
 		     :max-label nil
 		     :range-label-text-style *default-slider-range-label-text-style*
 		     :number-of-tick-marks 0
-		     :number-of-quanta nil))
+		     :number-of-quanta nil
+		     :editable-p t))
 
 (defmethod initialize-instance :after ((pane slider) 
 				       &key (decimal-places 0 places-p)
@@ -403,9 +405,12 @@
 
 ;;; Text edit
 ;;--- Do we want to specify a binding to commands?
+
 (defclass text-field 
-	  (value-gadget action-gadget) 
-    ())
+    (value-gadget action-gadget) 
+    ((editable-p :initarg :editable-p :accessor
+		 gadget-editable-p))
+  (:default-initargs :editable-p t))
 
 (defclass text-editor (text-field) 
     ((ncolumns :initarg :ncolumns

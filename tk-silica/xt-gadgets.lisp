@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-gadgets.lisp,v 1.23 92/10/02 15:21:06 cer Exp $
+;; $fiHeader: xt-gadgets.lisp,v 1.24 92/10/28 13:17:44 cer Exp $
 
 (in-package :xm-silica)
 
@@ -189,4 +189,27 @@
 	 (some #'(lambda (gesture)
 		   (clim-internals::keyboard-event-matches-gesture-name-p event gesture port))
 	       (top-level-sheet-accelerator-gestures (frame-top-level-sheet frame))))))
+
+
+;; Xt-orriented-gadget
+
+(defclass xt-oriented-gadget () ())
+
+(defmethod find-widget-class-and-initargs-for-sheet :around ((port xt-port)
+                                                             (parent t)
+                                                             (sheet xt-oriented-gadget))
+  (multiple-value-bind
+      (class initargs)
+      (call-next-method)
+    (with-accessors ((orientation gadget-orientation)) sheet
+      (unless (getf initargs :orientation)
+        (setf (getf initargs :orientation) orientation)))
+    (values class initargs)))
+
+(defmethod (setf gadget-orientation) :after (nv (gadget xt-oriented-gadget))
+  (when (sheet-direct-mirror gadget)
+    (set-widget-orientation gadget nv)))
+
+(defmethod set-widget-orientation ((gadget xt-oriented-gadget) nv)
+  (tk::set-values (sheet-direct-mirror gadget) :orientation nv))
 

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-classes.lisp,v 1.6 92/06/23 08:19:12 cer Exp $
+;; $fiHeader: ol-classes.lisp,v 1.7 92/08/18 17:53:40 cer Exp $
 
 (in-package :tk)
 
@@ -65,6 +65,7 @@
 				   "_flatWidgetClass"
 				   "_footerPanelWidgetClass"
 				   "_formWidgetClass"
+				   "_gaugeWidgetClass"
 				   "_helpWidgetClass"
 				   "_listPaneWidgetClass"
 				   "_magWidgetClass"

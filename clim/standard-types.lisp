@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: standard-types.lisp,v 1.17 92/10/28 11:32:07 cer Exp $
+;; $fiHeader: standard-types.lisp,v 1.18 92/11/06 19:00:31 cer Exp $
 
 (in-package :clim-internals)
 
@@ -563,11 +563,11 @@
 
 (define-presentation-method accept ((type completion) stream (view textual-view) &key)
   (flet ((possibility-printer (possibility type stream)
-	   (declare (ignore type))
-	   (funcall printer 
-		    (funcall name-key (find (second possibility) sequence 
-					    :key value-key :test test))
-		    stream)))
+	   (with-output-as-presentation (stream (funcall value-key (second possibility)) type)
+	     (funcall printer 
+		      (funcall name-key (find (second possibility) sequence 
+					      :key value-key :test test))
+		      stream))))
     (declare (dynamic-extent #'possibility-printer))
     (values
       (completing-from-suggestions 
@@ -746,10 +746,11 @@
 	      (make-array 2 :initial-contents (list separator #\space)))))
     (flet ((possibility-printer (possibility type stream)
 	     (declare (ignore type))
-	     (funcall printer 
-		      (funcall name-key (find (second possibility) sequence 
-					      :key value-key :test test))
-		      stream)))
+	     (with-output-as-presentation (stream (funcall value-key (second possibility)) type)
+	       (funcall printer 
+			(funcall name-key (find (second possibility) sequence 
+						:key value-key :test test))
+			stream))))
       (declare (dynamic-extent #'possibility-printer))
       (loop
 	(let ((element

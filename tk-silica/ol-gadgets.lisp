@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-gadgets.lisp,v 1.29 92/10/04 14:16:48 cer Exp $
+;; $fiHeader: ol-gadgets.lisp,v 1.30 92/10/28 11:33:15 cer Exp $
 
 
 (in-package :xm-silica)
@@ -51,15 +51,14 @@
 ;;;;;;;;;;;;;;;;;;;;
 
 (defclass openlook-scroll-bar (scroll-bar
+			       xt-oriented-gadget
 			       xt-leaf-pane)
 	  ())
 
 (defmethod find-widget-class-and-initargs-for-sheet ((port openlook-port)
 						     (parent t)
 						     (sheet openlook-scroll-bar))
-  (with-accessors ((orientation gadget-orientation)) sheet
-		  (values 'tk::scrollbar
-			  (list :orientation orientation))))
+  (values 'tk::scrollbar nil))
 
 (defmethod (setf scroll-bar-size) (nv (sb openlook-scroll-bar))
   ;; (tk::set-values (sheet-direct-mirror sb) :slider-size nv)
@@ -451,11 +450,15 @@
 (defmethod find-widget-class-and-initargs-for-sheet ((port openlook-port)
 						     (parent t)
 						     (sheet openlook-text-field))
-  (with-accessors ((value gadget-value)) sheet
-    (values 'tk::text-field
-	    (append
-	     `(:chars-visible ,(if (zerop (length value)) 30 (length value)))
-	     (and value `(:string ,value))))))
+  (with-accessors ((value gadget-value)
+		   (editable gadget-editable-p)) sheet
+    (if editable
+	(values 'tk::text-field
+		(append
+		 `(:chars-visible ,(if (zerop (length value)) 30 (length value)))
+		 (and value `(:string ,value))))
+      (values 'tk::static-text
+	      `(:string ,value)))))
 
 (defun openlook-text-field-edit-widget (tf &optional (mirror (sheet-direct-mirror tf)))
   (tk::get-values mirror :text-edit-widget))
@@ -599,31 +602,6 @@
     (with-no-value-changed-callbacks
 	(tk::set-values (sheet-mirror gadget) :set nv))))
 
-
-
-
-;;; 
-
-;; Openlook-orriented-gadget
-
-(defclass openlook-oriented-gadget () ())
-
-(defmethod find-widget-class-and-initargs-for-sheet :around ((port openlook-port)
-							     (parent t)
-							     (sheet openlook-oriented-gadget))
-  (multiple-value-bind
-      (class initargs)
-      (call-next-method)
-    (with-accessors ((orientation gadget-orientation)) sheet
-      (unless (getf initargs :orientation)
-	(setf (getf initargs :orientation) orientation)))
-    (values class initargs)))
-
-(defmethod (setf gadget-orientation) :after (nv (gadget openlook-oriented-gadget))
-  (when (sheet-direct-mirror gadget)
-    (tk::set-values (sheet-direct-mirror gadget) :orientation nv)))
-
-
 ;;
 
 (defclass openlook-radio-box (openlook-geometry-manager 
@@ -737,7 +715,7 @@
 
 
 (defclass openlook-slider (#+ignore openlook-range-pane
-			   #+ignore openlook-oriented-gadget
+			   xt-oriented-gadget
 			   xt-leaf-pane
 			   slider)
 	  ())
@@ -748,14 +726,13 @@
   (with-accessors ((label gadget-label)
 		   (show-value-p gadget-show-value-p)
 		   (value gadget-value)
-		   (orientation gadget-orientation)) sheet
+		   (editable gadget-editable-p)) sheet
     (multiple-value-bind
 	(smin smax) (gadget-range* sheet)
       (let ((mmin 0) 
 	    (mmax 100))
-	(values 'tk::slider
+	(values (if editablep 'tk::slider 'tk::gauge)
 		(append
-		 (list :orientation orientation)
 		 #+dunno
 		 (and label (list :title-string label))
 		 (list :slider-min mmin
@@ -871,9 +848,11 @@
 						      openlook-text-editor))
   (with-accessors ((value gadget-value)
 		   (ncolumns gadget-columns)
-		   (nlines gadget-lines)) sheet
+		   (nlines gadget-lines)
+		   (editable gadget-editable-p)) sheet
     (values 'tk::text-edit
 	    (append
+	     `(and (not editable) `(:edit-type :text-read))
 	     (and ncolumns (list :chars-visible ncolumns))
 	     (and nlines (list :lines-visible nlines))
 	     (and value `(:source ,value))))))
