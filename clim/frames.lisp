@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: frames.lisp,v 1.88.8.9 1999/04/09 03:42:40 layer Exp $
+;; $Id: frames.lisp,v 1.88.8.10 1999/04/13 18:15:00 layer Exp $
 
 (in-package :clim-internals)
 
@@ -889,24 +889,23 @@
 	      (when command
 		(execute-frame-command frame command)))))))))
 
-(defmethod force-refresh-avv-streams (FRAME)
+(defmethod force-refresh-avv-streams (frame)
   ;;; NOTE:  Not using get-frame-pane-to-avv-stream-table.
   ;;; Don't create the hashtable if it's not already there.
-  (let ((HT (frame-pane-to-avv-stream-table FRAME)))
-    (when HT
-      (maphash #'(lambda (PANE PAIR) 
-		   PANE
-		   (let ((AVV-STREAM (car PAIR))
-			 (AVV-RECORD (cdr PAIR)))
-		     (and AVV-STREAM
-			  AVV-RECORD
-			  (redisplay AVV-RECORD
-				     AVV-STREAM
-				     :check-overlapping t)
-			  )
-		     )
-		   )
-	       HT))))
+  (let ((ht (frame-pane-to-avv-stream-table frame)))
+    (when ht
+      (maphash #'(lambda (pane pair) 
+		   pane
+		   (let ((avv-stream (car pair))
+			 (avv-record (cdr pair)))
+		     (and avv-stream
+			  avv-record
+			  (port avv-stream)
+			  (sheet-medium avv-stream)
+			  (redisplay avv-record
+				     avv-stream
+				     :check-overlapping t))))
+	       ht))))
   
 ;; Generic because someone might want :BEFORE or :AFTER
 (defmethod frame-exit ((frame standard-application-frame))

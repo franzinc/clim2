@@ -11,11 +11,18 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.2.1.54
+
+1999-04-13    <layer@HOBART>
+
+	* clim/frames.lisp: fix for bug7897 from Jeff
+
+*******************************************************************************
 2.2.1.53
 
 1999-04-08  Kevin Layer  <layer@ultra>
 
-	* clim/frames.lisp: fix for spr19429
+	* clim/frames.lisp: fix for spr19429 from Jeff
 
 *******************************************************************************
 2.2.1.52
