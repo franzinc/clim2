@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-frames.lisp,v 1.5.8.17 1999/06/08 16:50:00 layer Exp $
+;; $Id: acl-frames.lisp,v 1.5.8.18 1999/06/09 21:29:47 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -1591,52 +1591,116 @@ in a second Lisp process.  This frame cannot be reused."
 	     win:swp_nosize)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Printer support
 
-(defun print-file-1 (filename associated-window
-		     &key 	  
-		     start end min-start max-end
-		     copies collate-p 
-		     print-to-file-p disable-print-to-file hide-print-to-file
-		     disable-page-numbers disable-selection selection-p
-		     (disable-copies-and-collate-if-no-driver-support t)
-		     no-warning-p no-dialog-p
-		     ;; so OPTIONS for the printer stream can be passed
-		     &allow-other-keys)
-  (declare (ignore filename))
-  (let* ((printdlg (ct:ccallocate win:printdlg))
-	 ;; (filename-buffer (ct:ccallocate (:char 256)))
-	 (hwnd (if associated-window (sheet-mirror associated-window) 0))
-	 ;; mem-handle mem-pointer 
-	 ;; flags all-pages-p selected-pages-p page-nums-p
-	 ;;filename-length
-	 )
-    (ct:csets win:printdlg printdlg
-	      lStructSize (ct:sizeof win:printdlg)
-	      hwndOwner hwnd
-	      hDevMode 0
-	      hdevnames 0        
-	      hdc 0
-	      flags (logior (if collate-p win:pd_collate 0)
-			    (if print-to-file-p win:pd_printtofile 0)
-			    (if disable-print-to-file win:pd_disableprinttofile 0)
-			    (if hide-print-to-file win:pd_hideprinttofile 0)
-			    (if disable-page-numbers win:pd_nopagenums 0)
-			    (if (or start end) win:pd_pagenums 0)
-			    (if disable-selection win:pd_noselection 0)
-			    (if no-warning-p win:pd_nowarning 0)
-			    (if no-dialog-p win:psd_returndefault 0)
-			    (if selection-p win:pd_selection 0)
-			    (if disable-copies-and-collate-if-no-driver-support
-				win:pd_usedevmodecopiesandcollate 0)
-			    win:pd_returndc)
-	      nfrompage (or start 1)
-	      ntopage (or end start 1)
-	      nminpage (or min-start 1)
-	      nmaxpage (or max-end most-positive-fixnum)
-	      ncopies (or copies 1)
-	      )
-    (when (win:PrintDlg printdlg)
-      t)))
+(ff:defun-c-callable printer-abort-proc (hdc code)
+  (declare (ignore hdc code))
+  1)
+
+(defun print-postscript (filename printer)
+  ;; Print a file as postscript.
+  ;; 'printer' is an hdc
+  (assert (stringp filename))
+  (assert (acl-clim::valid-handle printer))
+  (let ((code 1)
+	(prcode 4115 #+ig win:POSTSCRIPT_PASSTHROUGH)
+	(pointer (ct:callocate :long))
+	(isa-psprinter t)
+	(docinfo (ct:ccallocate win:docinfo)))
+    (ct:csets win:docinfo docinfo
+	      cbSize (ct:sizeof win:docinfo)
+	      lpszDocName (coerce filename 'simple-string)
+	      lpszOutput 0
+	      lpszDataType 0
+	      fwType 0)
+    (setf (aref pointer 0) prcode)
+    (setq isa-psprinter
+      (plusp (win:Escape printer win:QUERYESCSUPPORT 
+
+			 (ct:sizeof :long) pointer 0)))
+    (unless isa-psprinter
+      (return-from print-postscript :error-postscript-not-supported))
+    (or (plusp (win:StartDoc printer docinfo))
+	(acl-clim::check-last-error "StartDoc"))
+    (with-open-file (stream filename :direction :input)
+      (loop 
+	(let ((line (read-line stream nil nil nil)))
+	  (unless line (return))
+	  (multiple-value-bind (string i)
+	      (silica::xlat-newline-return line)
+	    (excl:with-native-string (cstr string)
+	      (win:Escape printer prcode i cstr 0))))))
+    (setq code (win:EndDoc printer))
+    (cond ((plusp code) nil)
+	  (t (acl-clim::check-last-error "EndDoc")
+	     :error))))
+
+(defun print-ascii (filename printer)
+  ;; Print a file as plain ascii text.
+  ;; 'printer' is an hdc
+  (assert (stringp filename))
+  (assert (acl-clim::valid-handle printer))
+  (let ((code 0)
+	(x 0)
+	(y 0)
+	(currentline 0)
+	(lines-per-page nil)
+	(pagesize (win:GetDeviceCaps printer win:VERTRES))
+	(line-height 12)
+	(textmetric (ct:ccallocate win:textmetric))
+	(docinfo (ct:ccallocate win:docinfo)))
+    (or (win:GetTextMetrics printer textmetric)
+	(acl-clim::check-last-error "GetTextMetrics"))
+    (setq line-height 
+      (+ (ct:cref win:textmetric textmetric tmHeight)
+	 (ct:cref win:textmetric textmetric tmExternalLeading)))
+    (setf (ct:cref win:docinfo docinfo cbSize) (ct:sizeof win:docinfo))
+    (setf (ct:cref win:docinfo docinfo lpszDocName) (acl-clim::nstringify filename))
+    (setf (ct:cref win:docinfo docinfo lpszOutput) 0)
+    (setq lines-per-page (1- (truncate pagesize line-height)))
+    
+    #+ignore
+    (win:SetAbortProc printer 
+		      (ff:register-function 'printer-abort-proc 
+					    :reuse :return-value))
+    
+    (or (plusp (win:StartDoc printer docinfo))
+	(acl-clim::check-last-error "StartDoc"))
+    (progn
+      (win:StartPage printer)
+      (with-open-file (stream filename :direction :input)
+	(loop 
+	  (let ((line (read-line stream nil nil nil)))
+	    (unless line (return))
+	    (multiple-value-bind (string i)
+		(silica::xlat-newline-return line)
+	      (excl:with-native-string (cstr string)
+		(win:TextOut printer x y cstr i)))
+	    (incf currentline)
+	    (incf y line-height)
+	    (when (> currentline lines-per-page)
+	      (win:EndPage printer)
+	      (win:StartPage printer)
+	      (setq currentline 1)
+	      (setq y 0))
+	    )))
+      (win:EndPage printer))
+    (setq code (win:EndDoc printer))
+    (cond ((plusp code) nil)
+	  (t (acl-clim::check-last-error "EndDoc")
+	     :error))))
+
+(defun determine-print-file-type (filename)
+  (unless (probe-file filename)
+    (return-from determine-print-file-type :none))
+  (with-open-file (stream filename :direction :input)
+    (let ((char1 (read-char stream nil nil nil))
+	  (char2 (read-char stream nil nil nil)))
+      (unless char1
+	(return-from determine-print-file-type :empty))
+      (cond ((and char2 (char= char1 #\%) (char= char2 #\!))
+	     :postscript)
+	    (t :ascii)))))
 
 (defmethod frame-manager-print-file
     ((framem acl-clim::acl-frame-manager) filename
@@ -1646,33 +1710,96 @@ in a second Lisp process.  This frame cannot be reused."
       (if frame-p
 	  (frame-top-level-sheet frame)
 	(graft framem)))
-     start end min-start max-end
-     copies collate-p 
-     print-to-file-p disable-print-to-file hide-print-to-file
-     disable-page-numbers disable-selection selection-p
-     no-warning-p no-dialog-p
-     ;; so OPTIONS for the printer stream can be passed
-     &allow-other-keys)
-  (print-file-1 filename associated-window
-		:start start 
-		:end end 
-		:min-start min-start 
-		:max-end max-end
-		:copies copies 
-		:collate-p collate-p 
-		:print-to-file-p print-to-file-p 
-		:disable-print-to-file disable-print-to-file
-		:hide-print-to-file hide-print-to-file
-		:disable-page-numbers disable-page-numbers 
-		:disable-selection disable-selection
-		:selection-p selection-p
-		:no-warning-p no-warning-p 
-		:no-dialog-p no-dialog-p))
+     from-page to-page min-page max-page
+     ncopies collate-p 
+     print-to-file-p disable-print-to-file (hide-print-to-file t)
+     nopagenums noselection selection
+     nowarning nodialog)
+  (let* ((printdlg (ct:ccallocate win:printdlg))
+	 (hwnd (if associated-window (sheet-mirror associated-window) 0)))
+    (ct:csets win:printdlg printdlg
+	      lStructSize (ct:sizeof win:printdlg)
+	      hwndOwner hwnd
+	      hDevMode 0
+	      hdevnames 0        
+	      hdc 0
+	      flags (logior 
+		     ;; check the collate box
+		     (if collate-p win:pd_collate 0)
+		     ;; disable the printtofile check box
+		     (if disable-print-to-file win:pd_disableprinttofile 0)
+		     ;; hide the printtofile check box
+		     (if hide-print-to-file win:pd_hideprinttofile 0)
+		     ;; disable the pages radio button
+		     (if nopagenums win:pd_nopagenums 0)
+		     ;; disable the selection radio button
+		     (if noselection win:pd_noselection 0)
+		     ;; Prevents warning message from being displayed
+		     ;; when there is no default printer.
+		     (if nowarning win:pd_nowarning 0)
+		     ;; selects the pages radio button
+		     (if (or from-page to-page) win:pd_pagenums win:pd_allpages)
+		     ;; selects the printtofile check box
+		     (if print-to-file-p win:pd_printtofile 0)
+		     ;; suppress the dialog box
+		     (if nodialog win:psd_returndefault 0)
+		     ;; selects the selection radio button
+		     (if selection win:pd_selection 0)
+		     ;; return a device context to the printer
+		     win:pd_returndc)
+	      nfrompage (or from-page #xffff)
+	      ntopage (or to-page #xffff)
+	      nminpage (or min-page 1)
+	      nmaxpage (or max-page #xffff)
+	      ncopies (or ncopies 1))
+    (cond ((not (win:PrintDlg printdlg)) 
+	   ;; User cancelled, or there was an error.
+	   (let ((code (win:CommDlgExtendedError)))
+	     (if (zerop code) 
+		 nil			
+	       ;; Code will be among CDERR_* or PDERR_* families
+	       (error "PrintDlg failed with error code ~A" code))))
+	  (t
+	   (let ((hdc (ct:cref win:printdlg printdlg hdc)))
+	     (unwind-protect
+		 (ecase (determine-print-file-type filename)
+		   (:postscript 
+		    (case (print-postscript filename hdc)
+		      (:error-postscript-not-supported
+		       (frame-manager-notify-user
+			framem
+			"Printing Error: Printer does not support postscript"
+			:style :error))
+		      (:error
+		       (frame-manager-notify-user
+			framem
+			"Printing Error: Cannot print file"
+			:style :error)
+		       )))
+		   (:ascii 
+		    (case (print-ascii filename hdc)
+		      (:error
+		       (frame-manager-notify-user 
+			framem
+			"Printing Error: Cannot print file"
+			:style :error))))
+		   (:none
+		    (frame-manager-notify-user 
+		     framem
+		     "Printing Error: File does not exist"
+		     :style :error))
+		   (:empty
+		    (frame-manager-notify-user 
+		     framem
+		     "Printing Error: File is empty"
+		     :style :error)))
+	       (win:DeleteDC hdc)
+	       ))))))
 
 (defmethod print-file (frame filename &rest options)
   (declare (dynamic-extent options))
   (when frame
     (setf (getf options :frame) frame))
   (apply #'frame-manager-print-file
-         (if frame (frame-manager frame) (find-frame-manager)) 
+	 (or (and frame (frame-manager frame)) (find-frame-manager)) 
 	 filename options))

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-medium.lisp,v 1.6.8.16 1999/06/08 16:50:00 layer Exp $
+;; $Id: acl-medium.lisp,v 1.6.8.17 1999/06/09 21:29:47 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -92,42 +92,47 @@
 
 (defmethod select-acl-dc-1 ((medium acl-medium) window dc)
   (declare (ignore window))
-  (assert (valid-handle dc))
-  (let* ((sheet (medium-sheet medium))
-	 (region (sheet-device-region sheet))
-	 (medium-region (medium-clipping-region medium))
-	 cleft ctop cright cbottom
-         winrgn
-	 (valid nil))
-    (unless (eq region +nowhere+)
-      (multiple-value-setq (cleft ctop cright cbottom) 
-	(bounding-rectangle* region))
-      (setf valid t)
-      (unless (or (eq medium-region +everywhere+) (eq medium-region +nowhere+))
-	(with-bounding-rectangle* (mleft mtop mright mbottom) medium-region
-	  (multiple-value-setq (valid cleft ctop cright cbottom)
-	    (multiple-value-call #'ltrb-overlaps-ltrb-p
-	      cleft ctop cright cbottom
-	      (transform-rectangle* 
-	       (sheet-device-transformation sheet)
-	       mleft mtop mright mbottom))))))
-    (when valid
-      (fix-coordinates cleft ctop cright cbottom)
-      (setq winrgn (createRectRgn cleft ctop cright cbottom))
-      (let ((val1 (and (valid-handle winrgn)
-		       (SelectObject dc winrgn))))
-	(values val1
-		winrgn)))))
+  (cond ((not (valid-handle dc))
+	 nil)
+	(t
+	 (let* ((sheet (medium-sheet medium))
+		(region (sheet-device-region sheet))
+		(medium-region (medium-clipping-region medium))
+		cleft ctop cright cbottom
+		winrgn
+		(valid nil))
+	   (unless (eq region +nowhere+)
+	     (multiple-value-setq (cleft ctop cright cbottom) 
+	       (bounding-rectangle* region))
+	     (setf valid t)
+	     (unless (or (eq medium-region +everywhere+) 
+			 (eq medium-region +nowhere+))
+	       (with-bounding-rectangle* (mleft mtop mright mbottom) 
+		   medium-region
+		 (multiple-value-setq (valid cleft ctop cright cbottom)
+		   (multiple-value-call #'ltrb-overlaps-ltrb-p
+		     cleft ctop cright cbottom
+		     (transform-rectangle* 
+		      (sheet-device-transformation sheet)
+		      mleft mtop mright mbottom))))))
+	   (when valid
+	     (fix-coordinates cleft ctop cright cbottom)
+	     (setq winrgn (createRectRgn cleft ctop cright cbottom))
+	     (let ((val1 (and (valid-handle winrgn)
+			      (SelectObject dc winrgn))))
+	       (values val1
+		       winrgn)))))))
 
 (defmacro with-selected-acl-dc ((var) (medium window dc) &rest body)
   `(multiple-value-bind (,var ..winrgn..)
        (select-acl-dc-1 ,medium ,window ,dc)
-     (unwind-protect
-	 (progn
-	   ,@body) 
-       (when (valid-handle ..winrgn..)
-	 (or (win:DeleteObject ..winrgn..)
-	     (error "with-selected-acl-dc: DeleteObject"))))))
+     (when ,var
+       (unwind-protect
+	   (progn
+	     ,@body) 
+	 (when (valid-handle ..winrgn..)
+	   (or (win:DeleteObject ..winrgn..)
+	       (error "with-selected-acl-dc: DeleteObject")))))))
 
 (defmacro with-dc-image-for-ink ((image-var) (medium ink) &body body)
   `(let ((,image-var nil)
@@ -285,13 +290,16 @@
     (setf *bitmap-array* into)
     (let* ((bitmapinfo (get-bitmapinfo medium dc-image into designs))
 	   (dc (win:GetDC 0))
-	   (bitmap (get-texture dc into bitmapinfo)))	
-      ;; To Do: replace BITMAP with INTO and just use 
-      ;; device-independent bitmap operations.
-      (setf (dc-image-bitmap dc-image) bitmap
-	    created-bitmap bitmap)
-      (setf (dc-image-background-color dc-image) bcolor)
-      (setf (dc-image-text-color dc-image) tcolor))
+	   (bitmap (unless (zerop dc)
+		     (get-texture dc into bitmapinfo))))
+      (when bitmap
+	;; To Do: replace BITMAP with INTO and just use 
+	;; device-independent bitmap operations.
+	(setf (dc-image-bitmap dc-image) bitmap
+	      created-bitmap bitmap)
+	(setf (dc-image-background-color dc-image) bcolor)
+	(setf (dc-image-text-color dc-image) tcolor)
+	(win:ReleaseDC 0 dc)))
     (values dc-image
 	    created-bitmap)))
 
@@ -340,35 +348,43 @@
 	   (bitmap (get-texture dc copy-arr bitmapinfo)))
       ;; To Do: replace BITMAP with COPY-ARR and just use 
       ;; device-independent bitmap operations.
-      (setf (dc-image-bitmap dc-image) bitmap
-	    created-bitmap bitmap)
-      (setf (dc-image-background-color dc-image) 
-	(color->wincolor clim:+white+ medium))
-      (setf (dc-image-text-color dc-image) maincolor)
-      (let* ((bitmapinfo-mask (get-bitmapinfo medium dc-image-mask copy-arr-mask
-					      (make-array 2 :initial-contents 
-							  (list clim:+black+ 
-								mainink))
-					      ))
-	     (dc-mask (win:GetDC 0))
-	     (bitmap-mask (get-texture dc-mask copy-arr-mask bitmapinfo-mask)))
-	;; To Do: replace BITMAP with COPY-ARR and just use 
-	;; device-independent bitmap operations.
-	(setf (dc-image-bitmap dc-image-mask) bitmap-mask)
+      (when bitmap
+	(setf (dc-image-bitmap dc-image) bitmap
+	      created-bitmap bitmap)
+	(setf (dc-image-background-color dc-image) 
+	  (color->wincolor clim:+white+ medium))
+	(setf (dc-image-text-color dc-image) maincolor)
+	(let* ((bitmapinfo-mask 
+		(get-bitmapinfo medium dc-image-mask copy-arr-mask
+				(make-array 2 :initial-contents 
+					    (list clim:+black+ 
+						  mainink))
+				))
+	       (dc-mask (win:GetDC 0))
+	       (bitmap-mask (get-texture dc-mask copy-arr-mask 
+					 bitmapinfo-mask)))
+	  ;; To Do: replace BITMAP with COPY-ARR and just use 
+	  ;; device-independent bitmap operations.
+	  (setf (dc-image-bitmap dc-image-mask) bitmap-mask)
 
-	(setf created-mask-bitmap bitmap-mask)
+	  (setf created-mask-bitmap bitmap-mask)
 
-	(setf (dc-image-background-color dc-image-mask) 
-	  (color->wincolor clim:+black+ medium))
-	(setf (dc-image-text-color dc-image-mask) maincolor)
-	;; Windows does not support transparent ink directly.  We have to
-	;; create transparency with two images.
-	(values
-	 (list dc-image
-	       dc-image-mask)
-	 created-bitmap
-	 created-mask-bitmap)
-	))))
+	  (setf (dc-image-background-color dc-image-mask) 
+	    (color->wincolor clim:+black+ medium))
+	  (setf (dc-image-text-color dc-image-mask) maincolor)
+	  ;; I guess we don't want to release the device context
+	  ;; until we destroy the rest of the image.
+	  ;;(unless (zerop dc) (win:ReleaseDC 0 dc))
+	  ;;(unless (zerop dc-mask) (win:ReleaseDC 0 dc-mask))
+	  ;;
+	  ;; Windows does not support transparent ink directly.  We have to
+	  ;; create transparency with two images.
+	  (values
+	   (list dc-image
+		 dc-image-mask)
+	   created-bitmap
+	   created-mask-bitmap)
+	  )))))
 
 (defun byte-align-pixmap (a)
   ;; Pad the pixmap so that the y dimension is a multiple of 4.
@@ -584,7 +600,7 @@ draw icons and mouse cursors on the screen.
 
 (defmethod medium-draw-line* ((medium acl-medium) x1 y1 x2 y2)
   (let ((window (medium-drawable medium)))
-    (with-dc (window dc)
+    (with-medium-dc (medium dc)
       (with-selected-acl-dc (old) (medium window dc)
 	(when old
 	  (let* ((sheet (medium-sheet medium))
@@ -616,15 +632,25 @@ draw icons and mouse cursors on the screen.
 		 (line-style (medium-line-style medium)))
 	    (with-set-dc-for-ink (dc medium ink line-style)
 	      (let ((init t))
-		(silica:map-position-sequence
-		 #'(lambda (x y)
-		     (convert-to-device-coordinates transform x y)
-		     (cond (init
-			    (win:moveToEx dc x y null)
-			    (setq init nil))
-			   (t
-			    (win:lineTo dc x y))))
-		 position-seq))
+		(declare (optimize (speed 3) (safety 0)))
+		(labels ((visit1 (x y)
+			   (fix-coordinates x y)
+			   (cond (init
+				  (win:MoveToEx dc x y null)
+				  (setq init nil))
+				 (t
+				  (win:LineTo dc x y))))
+			 (visit2 (x y)
+			   (convert-to-device-coordinates transform x y)
+			   (cond (init
+				  (win:MoveToEx dc x y null)
+				  (setq init nil))
+				 (t
+				  (win:LineTo dc x y)))))
+		  (declare (dynamic-extent #'visit1 #'visit2))
+		  (if (identity-transformation-p transform)
+		      (silica:map-position-sequence #'visit1 position-seq)
+		    (silica:map-position-sequence #'visit2 position-seq))))
 	      (when (valid-handle old) (SelectObject dc old)))))))))
 
 (defmethod medium-draw-rectangle* ((medium acl-medium)
@@ -739,55 +765,81 @@ draw icons and mouse cursors on the screen.
 		    (win:rectangle dc left top right bottom))))
 	      (when (valid-handle old) (SelectObject dc old)))))))))
 
-(defmethod medium-draw-polygon* ((medium acl-medium)
-				 position-seq closed filled)
+(defvar *point-vector* (ff:allocate-fobject `(:array :long 100)))
+
+(defun fill-point-vector (vector transform position-seq closed)
+  ;;(declare (optimize (speed 3) (safety 0)))
+  (let ((i 0))
+    (labels ((visit1 (x y)
+	       (fix-coordinates x y)
+	       (setf (ff:fslot-value-typed '(:array :long 1) :foreign
+					   vector i) 
+		 x)
+	       (incf i)
+	       (setf (ff:fslot-value-typed '(:array :long 1) :foreign
+					   vector i) 
+		 y)
+	       (incf i))
+	     (visit2 (x y)
+	       (convert-to-device-coordinates transform x y)
+	       (setf (ff:fslot-value-typed '(:array :long 1) :foreign
+					   vector i) 
+		 x)
+	       (incf i)
+	       (setf (ff:fslot-value-typed '(:array :long 1) :foreign
+					   vector i) 
+		 y)
+	       (incf i)))
+      (declare (dynamic-extent #'visit1 #'visit2))
+      (if (identity-transformation-p transform)
+	  (silica:map-position-sequence #'visit1 position-seq)
+	  (silica:map-position-sequence #'visit2 position-seq))
+      (when closed
+	;; Make the first point be the last.
+	(setf (ff:fslot-value-typed '(:array :long 1) :foreign
+				    vector i)
+	  (ff:fslot-value-typed '(:array :long 1) :foreign
+				vector 0))
+	(incf i)
+	(setf (ff:fslot-value-typed '(:array :long 1) :foreign
+				    vector i)
+	  (ff:fslot-value-typed '(:array :long 1) :foreign
+				vector 1))
+	(incf i))
+      i)))
+
+(defun draw-polygon-1 (medium position-seq dc filled closed old)
+  (let* ((sheet (medium-sheet medium))
+	 (transform (sheet-device-transformation sheet))
+	 (ink (medium-ink medium))
+	 (line-style (and (not filled) (medium-line-style medium)))
+	 (length (length position-seq))
+	 (numpoints (floor length 2))
+	 (point-vector nil))
+    (when (and closed (not filled))
+      (incf length 2)
+      (incf numpoints))
+    (setq point-vector *point-vector*)
+    (when (< (length point-vector) length)
+      (setq point-vector (ff:allocate-fobject `(:array :long ,length)))
+      (setq *point-vector* point-vector))
+    (fill-point-vector point-vector transform position-seq
+			       (and closed (not filled)))
+    (with-set-dc-for-ink (dc medium ink line-style)
+      (if filled
+	  (win:polygon dc point-vector numpoints)
+	(win:polyline dc point-vector numpoints))
+      (when (valid-handle old) (SelectObject dc old))
+      t)))
+
+(defmethod medium-draw-polygon* ((medium acl-medium) position-seq closed filled)
   (let ((window (medium-drawable medium))
 	(length (length position-seq)))
     (assert (evenp length))
     (with-medium-dc (medium dc)
       (with-selected-acl-dc (old) (medium window dc)
-        (when old
-	  (let* ((sheet (medium-sheet medium))
-		 (transform (sheet-device-transformation sheet))
-		 (ink (medium-ink medium))
-		 (line-style (and (not filled) (medium-line-style medium)))
-		 (length (length position-seq))
-		 (numpoints (floor length 2))
-		 (point-vector nil)
-		 (i 0))
-	    (when (and closed (not filled))
-	      (incf length 2)
-	      (incf numpoints))
-	    (setq point-vector (ff:allocate-fobject `(:array :long ,length)))
-	    (silica:map-position-sequence
-	     #'(lambda (x y)
-		 (convert-to-device-coordinates transform x y)
-		 (setf (ff:fslot-value-typed '(:array :long 1) :foreign
-					     point-vector i) 
-		   (truncate x))
-		 (incf i)
-		 (setf (ff:fslot-value-typed '(:array :long 1) :foreign
-					     point-vector i)
-		   (truncate y))
-		 (incf i))
-	     position-seq)
-	    (when (and closed (not filled))
-	      (setf (ff:fslot-value-typed '(:array :long 1) :foreign
-					  point-vector i)
-		(ff:fslot-value-typed '(:array :long 1) :foreign
-				      point-vector 0))
-	      (incf i)
-	      (setf (ff:fslot-value-typed '(:array :long 1) :foreign
-					  point-vector i)
-		(ff:fslot-value-typed '(:array :long 1) :foreign
-				      point-vector 1))
-	      (incf i))
-	    (with-set-dc-for-ink (dc medium ink line-style)
-	      (if filled
-		  (win:polygon dc point-vector numpoints)
-		(win:polyline dc point-vector numpoints))
-	      (when (valid-handle old) (SelectObject dc old))
-	      t)))))))
+			    (when old
+			      (draw-polygon-1 medium position-seq dc filled closed old))))))
 
 (defconstant *ft* 0.0001)
 (defun-inline fl-= (x y) (< (abs (- x y)) *ft*))

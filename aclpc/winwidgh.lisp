@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: winwidgh.lisp,v 1.1.22.8 1999/06/02 21:43:34 layer Exp $
+;; $Id: winwidgh.lisp,v 1.1.22.9 1999/06/09 21:29:50 layer Exp $
 
 (in-package :acl-clim)
 
@@ -84,6 +84,37 @@
 ;; This should be equivalent to win:getdc but not cons.
 (ff:def-foreign-call (GetDC "GetDC")
     ((window :int))
+  :arg-checking nil
+  :call-direct t
+  :returning :int)
+
+;; This should be equivalent to win:getdc but not cons.
+(ff:def-foreign-call (ReleaseDC "ReleaseDC")
+    ((window :int) (dc :int))
+  :arg-checking nil
+  :call-direct t
+  :returning :int)
+
+(ff:def-foreign-call (SetBkMode "SetBkMode")
+    ((dc :int) (mode :int))
+  :arg-checking nil
+  :call-direct t
+  :returning :int)
+
+(ff:def-foreign-call (SetBkColor "SetBkColor")
+    ((dc :int) (color :int))
+  :arg-checking nil
+  :call-direct t
+  :returning :int)
+
+(ff:def-foreign-call (SetTextColor "SetTextColor")
+    ((dc :int) (color :int))
+  :arg-checking nil
+  :call-direct t
+  :returning :int)
+
+(ff:def-foreign-call (SetROP2 "SetROP2")
+    ((dc :int) (rop2 :int))
   :arg-checking nil
   :call-direct t
   :returning :int)

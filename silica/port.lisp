@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: port.lisp,v 1.38.22.2 1998/07/06 23:09:57 layer Exp $
+;; $Id: port.lisp,v 1.38.22.3 1999/06/09 21:29:54 layer Exp $
 
 (in-package :silica)
 
@@ -210,16 +210,19 @@
                         (port (find-port :server-path server-path))
                         (orientation :default)
                         (units :device))
-  (unless port
-    (setq port (find-port :server-path server-path)))
-  (map-over-grafts #'(lambda (graft)
-                       (when (graft-matches-spec graft orientation units)
-                         (return-from find-graft graft)))
-                   port)
-  (make-instance (port-graft-class port)
-    :port port
-    :orientation orientation
-    :units units))
+  ;; Simultaneous calls to this function must not result in
+  ;; multiple grafts.
+  (without-scheduling			
+    (unless port
+      (setq port (find-port :server-path server-path)))
+    (map-over-grafts #'(lambda (graft)
+			 (when (graft-matches-spec graft orientation units)
+			   (return-from find-graft graft)))
+		     port)
+    (make-instance (port-graft-class port)
+      :port port
+      :orientation orientation
+      :units units)))
 
 (defgeneric realize-graft (port graft))
 

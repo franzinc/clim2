@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-port.lisp,v 1.5.8.14 1999/06/08 16:50:01 layer Exp $
+;; $Id: acl-port.lisp,v 1.5.8.15 1999/06/09 21:29:47 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -138,7 +138,8 @@
 (define-constructor make-acl-event-queue queue () )
 
 (defclass acl-port (basic-port)
-  (;; Cache used by dc-image-for-ink for mapping inks to device contexts:
+  ((screen :initform nil :accessor port-screen)
+   ;; Cache used by dc-image-for-ink for mapping inks to device contexts:
    (dc-cache :initform (make-hash-table) :accessor port-dc-cache)
    ;; Virtual key to keysym:
    (vk->keysym :initform (make-hash-table))

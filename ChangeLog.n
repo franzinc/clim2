@@ -11,6 +11,20 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.2.1.58
+
+1999-06-09  Jeff Morrill  <jmorrill@pointnclick.com> 
+
+* aclpc/*.lisp: Fix some recently introduced device context bugs.
+  Improve performance of drawing operations.  Add initial version
+  of PRINT-FILE enhancement.
+* demo/*.lisp: Fix a variety of minor bugs in the demos so that
+  testing can be more successful.
+* clim/cursor.lisp: don't erase the cursor on a destroyed window.
+* clim/db-stream: default view of accepting-values-pane should
+  be +gadget-dialog-view+
+
+*******************************************************************************
 2.2.1.57
 
 1999-06-07  Jeff Morrill  <jmorrill@pointnclick.com> 

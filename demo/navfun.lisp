@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: navfun.lisp,v 1.29.22.2 1998/07/06 23:09:27 layer Exp $
+;; $Id: navfun.lisp,v 1.29.22.3 1999/06/09 21:29:54 layer Exp $
 
 (in-package :clim-demo)
 
@@ -1115,7 +1115,7 @@
       (typep thing 'vor)))
 
 (define-presentation-type-abbreviation route-start-object ()
-  '(or airport named-intersection vor))
+  '(or named-intersection vor airport))
 
 ;;; Add <kind>
 (define-flight-planner-command (com-add-object :name t :menu "Add")

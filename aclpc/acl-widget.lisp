@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-widget.lisp,v 1.7.8.17 1999/06/08 16:50:03 layer Exp $
+;; $Id: acl-widget.lisp,v 1.7.8.18 1999/06/09 21:29:50 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -296,8 +296,9 @@
 	       (setq w (process-width-specification pane `(,ncolumns :character))))
 	      (initial-space-requirement
 	       ;; This is where accepting-values views factors in.
-	       (setq w (process-width-specification 
-			pane (space-requirement-width initial-space-requirement))))
+	       (setq w (max (process-width-specification 
+			     pane (space-requirement-width initial-space-requirement))
+			    75)))
 	      ((stringp value)
 	       (setq w (process-width-specification pane value)))
 	      (t
@@ -314,8 +315,9 @@
 	       (setq h (process-height-specification pane `(,nlines :line))))
 	      (initial-space-requirement
 	       ;; This is where accepting-values views factors in.
-	       (setq h (process-height-specification 
-			pane (space-requirement-height initial-space-requirement))))
+	       (setq h (max (process-height-specification 
+			     pane (space-requirement-height initial-space-requirement))
+			    25)))
 	      ((stringp value)
 	       (setq h (process-height-specification pane value)))
 	      (t
@@ -530,7 +532,8 @@
   ;;; As a result, if the parent is a viewport, and if width/height
   ;;; is specified, we want to use that value (i.e. in order
   ;;; to fill the space provided by the viewport).
-  (with-slots (x-margin y-margin initial-space-requirement nlines ncolumns) pane
+  (with-slots (x-margin y-margin initial-space-requirement nlines ncolumns) 
+      pane
     (let* ((parent (sheet-parent pane))
 	   (parent-viewport-p (isa-viewport parent)))
       (let ((w 0) 
@@ -545,8 +548,9 @@
 	       (setq w (process-width-specification pane `(,ncolumns :character))))
 	      (initial-space-requirement
 	       ;; This is where accepting-values views factors in.
-	       (setq w (process-width-specification 
-			pane (space-requirement-width initial-space-requirement))))
+	       (setq w (max (process-width-specification 
+			     pane (space-requirement-width initial-space-requirement))
+			    75)))
 	      ((stringp value)
 	       (setq w (process-width-specification pane value)))
 	      (t
@@ -560,8 +564,9 @@
 	       (setq h (process-height-specification pane `(,nlines :line))))
 	      (initial-space-requirement
 	       ;; This is where accepting-values views factors in.
-	       (setq h (process-height-specification 
-			pane (space-requirement-height initial-space-requirement))))
+	       (setq h (max (process-height-specification 
+			     pane (space-requirement-height initial-space-requirement))
+			    25)))
 	      ((stringp value)
 	       (setq h (process-height-specification pane value)))
 	      (t
@@ -729,11 +734,8 @@
       (win:SetBkColor hdc bg)
       (win:SetTextColor hdc fg)
       (win:SetRop2 hdc win:R2_COPYPEN)
-      (when (acl-clim::valid-handle *background-brush*)
-	(or (win:DeleteObject *background-brush*) (error "DeleteObject")))
-      (setq *background-brush* (win:CreateSolidBrush bg))
-      (when (acl-clim::valid-handle *background-brush*)
-	(win:SelectObject hdc *background-brush*))
+      (let ((brush (win:CreateSolidBrush bg)))
+	(win:SelectObject hdc brush))
       (win:DrawEdge hdc
 		    rect 
 		    (if (logtest state win:ODS_SELECTED)
@@ -918,7 +920,9 @@
     (win:SetRop2 hdc win:R2_COPYPEN)
     (let ((brush (win:CreateSolidBrush 
 		  (acl-clim::color->wincolor (pane-background pane)))))
-      (when (acl-clim::valid-handle brush) (win:SelectObject hdc brush)))
+      (when (acl-clim::valid-handle brush)
+	(win:SelectObject hdc brush)
+	(win:DeleteObject brush)))
     (win:DrawEdge hdc
 		  rect 
 		  (if (logtest state win:ODS_SELECTED)
@@ -1564,13 +1568,15 @@
 ;; (cim 10/11/96)
 
 (defmethod adjust-gadget-colors (pane hdc)
-  (when silica::*background-brush*
-    (or (win:DeleteObject silica::*background-brush*) (error "DeleteObject")))
-  (let* ((bg (color->wincolor (pane-background pane)))
-	 (fg (color->wincolor (pane-foreground pane))))
-    (win:SetBkColor hdc bg)
-    (win:SetTextColor hdc fg)
-    (setq silica::*background-brush* (win:CreateSolidBrush bg))))
+  (excl:without-interrupts			; due to global variable
+    (when (acl-clim::valid-handle silica::*background-brush*)
+      (or (win:DeleteObject silica::*background-brush*) 
+	  (error "DeleteObject")))
+    (let* ((bg (color->wincolor (pane-background pane)))
+	   (fg (color->wincolor (pane-foreground pane))))
+      (win:SetBkColor hdc bg)
+      (win:SetTextColor hdc fg)
+      (setq silica::*background-brush* (win:CreateSolidBrush bg)))))
 
 (defmethod get-sheet-resources ((port acl-port) sheet)
   (declare (ignore sheet))

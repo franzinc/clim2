@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-prel.lisp,v 1.4.8.13 1999/05/26 18:11:37 layer Exp $
+;; $Id: acl-prel.lisp,v 1.4.8.14 1999/06/09 21:29:49 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -388,6 +388,9 @@
 	   pixel-map
 	   bitmapinfo 
 	   win:DIB_RGB_COLORS)))
+    ;; I guess we don't want to release the device context
+    ;; until we destroy the DIBitmap.
+    ;;(unless (zerop dc) (win:ReleaseDC 0 dc))
     (when (zerop texture-handle)
       ;;Below is Charley Cox's May 6 message from bug5991 (common graphics)
       ;;

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-dc.lisp,v 1.4.8.12 1999/06/08 16:50:00 layer Exp $
+;; $Id: acl-dc.lisp,v 1.4.8.13 1999/06/09 21:29:47 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -141,36 +141,35 @@
 ;; We should probably try to optimize this some how
 ;; since it is called constantly during simple
 ;; things like repaint.
-;; JPM: this macro should be rewritten to expand the body only once.
 (defmacro with-dc ((window dc) &rest body)
-  `(cond ((isa-pixmap-medium ,window)
-	  (let ((,dc (pixmap-cdc (medium-drawable ,window)))) ,@body))
-	 ((isa-pixmap ,window)
-	  (let ((,dc (pixmap-cdc ,window))) ,@body))
+  ;; It was my intention to rewrite this to
+  ;; cache the DC, in combination with setting
+  ;; CS_OWNDC.
+  `(let ((,dc 0))
+     (unwind-protect
+	 (progn
+	   ;; There are occasions where GetDC returns 0
+	   ;; despite the fact that you did everything right.
+	   ;; "Since only five common device contexts are
+	   ;; available at any given time, failure to release
+	   ;; a device context can prevent other applications
+	   ;; from accessing a device context."  Microsoft document.
+	   (setq ,dc (getDc ,window))
+	   ,@body)
+       (unless (zerop ,dc)
+	 (ReleaseDC ,window ,dc)))))
+
+;; JPM: this macro should be rewritten to expand the body only once.
+(defmacro with-medium-dc ((medium dc) &rest body)
+  `(cond ((isa-pixmap-medium ,medium)
+	  (let ((,dc (pixmap-cdc (medium-drawable ,medium)))) ,@body))
+	 ((isa-pixmap ,medium)
+	  (let ((,dc (pixmap-cdc ,medium))) ,@body))
 	 (t
 	  ;; It was my intention to rewrite this to
 	  ;; cache the DC, in combination with setting
 	  ;; CS_OWNDC.
-	  (let ((,dc 0))
-	    (unwind-protect
-		(progn
-		  (setq ,dc (getDc ,window))
-		  ,@body)
-	      (release-objects ,window ,dc))))))
-
-(defmacro with-medium-dc ((medium dc) &rest body)
-  `(if (isa-pixmap-medium ,medium)
-       (let ((,dc (pixmap-cdc (medium-drawable ,medium))))
-	 ,@body)
-     ;; It was my intention to rewrite this to
-     ;; cache the DC, in combination with setting
-     ;; CS_OWNDC.
-     (let ((,dc 0))
-       (unwind-protect
-	   (progn
-	     (setq ,dc (getDc (medium-drawable ,medium)))
-	     ,@body)
-	 (release-objects (medium-drawable ,medium) ,dc)))))
+	  (with-dc ((medium-drawable ,medium) ,dc) ,@body))))
 
 (defmacro with-compatible-dc ((dc cdc) &rest body)
   `(let ((,cdc nil))
@@ -178,7 +177,8 @@
 	 (progn
 	   (setf ,cdc (win:CreateCompatibleDC ,dc))
 	   ,@body)
-       (when (valid-handle *original-bitmap*) (selectobject ,cdc *original-bitmap*))
+       (when (valid-handle *original-bitmap*) 
+	 (selectobject ,cdc *original-bitmap*))
        (when (valid-handle *created-bitmap*) 
 	 (or (win:DeleteObject *created-bitmap*)
 	     (error "DeleteObject")))
@@ -226,10 +226,10 @@
 		     text-color))))
     (when (valid-handle pen) (selectobject dc pen))
     (if dashes
-	(win:SetBkMode dc win:TRANSPARENT)
-      (win:SetBkMode dc win:OPAQUE))
+	(SetBkMode dc win:TRANSPARENT)
+      (SetBkMode dc win:OPAQUE))
     (when (valid-handle brush) (selectobject dc brush))
-    (when rop2 (win:SetRop2 dc rop2))
+    (when rop2 (SetRop2 dc rop2))
     created-pen))
 
 (defun set-dc-for-filling (dc image &optional xorg yorg)
@@ -243,17 +243,17 @@
     (when background-color
       (cond ((minusp background-color)
 	     ;; This affects brushes created with CreateHatchBrush.
-	     (win:SetBkMode dc win:TRANSPARENT))
+	     (SetBkMode dc win:TRANSPARENT))
 	    (t
-	     (win:SetBkMode dc win:OPAQUE)
-	     (win:SetBkColor dc background-color))))
-    (when text-color (win:SetTextColor dc text-color))
+	     (SetBkMode dc win:OPAQUE)
+	     (SetBkColor dc background-color))))
+    (when text-color (SetTextColor dc text-color))
     (when (valid-handle brush)
       (when (and xorg yorg)
 	;; Is this working?  JPM.
 	(win:SetBrushOrgEx dc xorg yorg 0))
       (selectobject dc brush))
-    (when rop2  (win:SetRop2 dc rop2))
+    (when rop2  (SetRop2 dc rop2))
     t))
 
 (defun set-dc-for-ink-1 (dc image line-style &optional xorg yorg)
@@ -302,10 +302,10 @@
 	  (t
 	   (win:SetBkMode dc win:OPAQUE)
 	   (win:SetBkColor dc background-color)))
-    (win:SetBkMode dc win:TRANSPARENT)
+    (SetBkMode dc win:TRANSPARENT)
     (when (valid-handle brush) (SelectObject dc brush))
     (when (valid-handle pen) (SelectObject dc pen))
-    (when text-color (win:SetTextColor dc text-color))
+    (when text-color (SetTextColor dc text-color))
     ;; SetRop2 has no effect on text.  If you want to use
     ;; one, you have to draw into a bitmap and biblt that.
     t))

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: db-stream.lisp,v 1.67.8.1 1998/07/06 23:08:56 layer Exp $
+;; $Id: db-stream.lisp,v 1.67.8.2 1999/06/09 21:29:51 layer Exp $
 
 (in-package :clim-internals)
 
@@ -391,10 +391,9 @@
 (defclass interactor-pane (clim-stream-pane) ())
 (defclass application-pane (clim-stream-pane) ())
 
-#-aclpc
-;; apparently aclpc needs to do this in silica/framem.lisp instead since it
-;; refers to the class in a note-frame-enabled method -tjm 12Feb97
-(defclass accept-values-pane (clim-stream-pane) ())
+(defclass accept-values-pane (clim-stream-pane) 
+  ()
+  (:default-initargs :default-view +gadget-dialog-view+))
 
 (eval-when (compile)
   ;; defined later in the compilation...

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-mirror.lisp,v 1.4.22.13 1999/06/08 16:50:01 layer Exp $
+;; $Id: acl-mirror.lisp,v 1.4.22.14 1999/06/09 21:29:47 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -32,14 +32,12 @@
 
 (in-package :acl-clim)
 
-(defvar *screen* nil)
-
 ;;--- This isn't really right, all ports only have kludges for this
 (defmethod sheet-shell (sheet) sheet)
 
 (defmethod realize-graft ((port acl-port) graft)
-  (let ((handle (slot-value *screen-device* 'device-handle1)))
-   (setq *screen* handle)
+  (let ((screen (slot-value *screen-device* 'device-handle1)))
+   (setf (port-screen port) screen)
    (init-cursors)
    (with-slots (silica::pixels-per-point
 	        silica::pixel-width
@@ -47,7 +45,7 @@
 	        silica::mm-width
 	        silica::mm-height
 	        silica::units) graft
-   (with-dc (*screen* dc) 
+   (with-dc (screen dc) 
     (let ((screen-width (win:GetSystemMetrics win:SM_CXSCREEN)) 
 	  (screen-height (win:GetSystemMetrics win:SM_CYSCREEN))
 	  (logpixelsx (win:GetDeviceCaps dc win:LOGPIXELSX))
@@ -67,7 +65,7 @@
 		   0 0 
 		   silica::pixel-width silica::pixel-height))))
 	(setf (sheet-native-transformation graft) +identity-transformation+)
-	(setf (sheet-direct-mirror graft) handle)
+	(setf (sheet-direct-mirror graft) screen)
 	(update-mirror-transformation port graft))))))
 
 (defmethod modal-frame-p ((frame t)) nil)
@@ -172,7 +170,7 @@
 			    :scroll-mode :vertical
 			    :name-key
 			    (slot-value sheet 'silica::name-key)))
-	      ((not (eql parent *screen*))
+	      ((not (eql parent (port-screen port)))
 	       (setq childwin t)
 	       (create-child-window
 		parent pretty-name scroll left top width height))
@@ -412,8 +410,9 @@
 	    (mirror-native-edges* *acl-port* sheet)
 	  (declare (special *clim-icon*))
 	  (let ((dc (GetDc mirror)))
-	    (win:DrawIcon dc 0 0 *clim-icon*)
-	    (win:ReleaseDC mirror dc)))
+	    (unless (zerop dc)
+	      (win:DrawIcon dc 0 0 *clim-icon*)
+	      (win:ReleaseDC mirror dc))))
 	))))
 
 (defmethod realize-mirror :around ((port acl-port) 
