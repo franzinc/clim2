@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.64 93/03/04 19:02:14 colin Exp $
+;; $fiHeader: xt-graphics.lisp,v 1.65 93/03/18 14:39:33 colin Exp $
 
 (in-package :tk-silica)
 
@@ -271,6 +271,10 @@
 		   :none)
 		  ((eq dr +nowhere+)
 		   :nowhere)
+		  #+ignore
+		  ((typep dr 'clim-utils:standard-rectangle-set)
+		   ;;-- Do something more complicated
+		   )
 		  (t
 		   (with-bounding-rectangle* (left top right bottom) dr
 		     (list (fix-coordinate left) (fix-coordinate top) 

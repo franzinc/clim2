@@ -45,7 +45,7 @@
 ;;      OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION
 ;;      WITH THE USE OR PERFORMANCE OF THIS OBJECT CODE.
 
-;;; $fiHeader: xlib-funs.lisp,v 1.9 92/12/14 15:05:17 cer Exp $
+;;; $fiHeader: xlib-funs.lisp,v 1.10 93/03/04 19:03:17 colin Exp $
 
 (in-package :x11)
 
@@ -2003,6 +2003,11 @@
   (keysym-return (:pointer keysym))
   (status-in-out (:pointer xcomposestatus)))
 
+(def-exported-foreign-function (xiconifywindow (:return-type int) (:name "XIconifyWindow")) 
+  (dpy (:pointer display))
+  (win window)
+  (scr int))
+
 #+ignore
 (def-exported-foreign-function (xmatchvisualinfo (:return-type int)
 						 (:name "XMatchVisualInfo"))
@@ -2011,3 +2016,4 @@
     (depth int)
     (class int)
     (vinfo-return (:pointer visual-info)))
+

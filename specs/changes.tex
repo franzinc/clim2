@@ -4,8 +4,8 @@
 \label {changes}
 
 This appendix lists the incompatible changes from CLIM 1.0 (and CLIM 0.9 for the
-API related to the windowing substrate), and the rationale for those changes.
-They are listed on a chapter-by-chapter basis.
+API related to the windowing substrate and gadgets), and the rationale for those
+changes.  They are listed on a chapter-by-chapter basis.
 
 When the items say that a compatibility stub will be provided, this does not
 mean that this compatibility needs to be part of CLIM itself.  It could be
@@ -218,9 +218,9 @@ provided.
 \cl{stream-add-string-output} and \cl{stream-add-character-output}.
 Compatibility functions will be provided.
 
-\item \cl{with-output-recording-options} has had its \arg{draw-p} and
-\arg{record-p} keyword arguments changed to \arg{draw} and \arg{record} to
-conform to Common Lisp naming conventions.  Compability code will be provided.
+\item \cl{with-output-recording-options} has had its \cl{:draw-p} and
+\cl{:record-p} keyword arguments changed to \cl{:draw} and \cl{:record} to
+conform to Common Lisp naming conventions.  Compatibility code will be provided.
 \end{itemize}
 
 
@@ -234,8 +234,8 @@ have been renamed to \cl{:x-spacing}, \cl{:y-spacing}, and
 options.  Compatibility options will be provided.
 
 \item The \cl{:minimum-width} and \cl{:minimum-height} options to
-\cl{formatting-cell} have been renamed to \cl{:min-width} and {:min-height} in
-order to be consistent with the pane options.  Compatibility options will be
+\cl{formatting-cell} have been renamed to \cl{:min-width} and \cl{:min-height}
+in order to be consistent with the pane options.  Compatibility options will be
 provided.
 
 \item The \cl{:inter-column-spacing} and \cl{:inter-row-spacing} options to
@@ -243,7 +243,7 @@ provided.
 \cl{:x-spacing} and \cl{:y-spacing} in order to be consistent with the pane
 options.  Compatibility options will be provided.
 
-\item The \cl{:no-initial-spacing} option to {formatting-item-list} and
+\item The \cl{:no-initial-spacing} option to \cl{formatting-item-list} and
 \cl{format-items} has been renamed to \cl{:initial-spacing}, because
 inverted-sense flags are too hard to keep straight.  The default for
 \cl{:no-initial-spacing} was \term{true}, therefore the default for
@@ -280,9 +280,10 @@ remain as a compatibility function that takes a single root object.
 conventions.  A compatibility function will be provided.
 
 \item All of the clause arglists for \cl{tracking-pointer} are specified with
-\key, that is, they are named arguments rather than positional ones.  This
-should not cause any problems, except for the one case that the \arg{character}
-argument to the \cl{:keyboard} clause has been renamed to \arg{gesture}.
+{\tt\&key\}, that is, they are named arguments rather than positional ones.
+This should not cause any problems, except for the one case that the
+\arg{character} argument to the \cl{:keyboard} clause has been renamed to
+\arg{gesture}.
 
 \item The function \cl{dragging-output-record} has been renamed to
 \cl{drag-output-record} to be consistent with our naming conventions.  A
@@ -296,18 +297,18 @@ compatibility function will be provided.
 \item The argument list for \cl{with-output-as-presentation} has been changed to
 make \arg{stream}, \arg{object}, and \arg{type} be required arguments instead of
 keyword arguments.  This is because it is always necessary to supply those
-arguments in order for \cl{with-output-as-presentation} to work.  Compability
+arguments in order for \cl{with-output-as-presentation} to work.  Compatibility
 code will be provided to support the old syntax.
 
-\item The \arg{activation-characters}, \arg{additional-activation-characters},
-\arg{blip-characters}, and \arg{additional-blip-characters} keyword arguments to
-the \cl{accept} functions have been renamed to \arg{activation-gestures},
-\arg{additional-activation-gestures}, \arg{delimiter-gestures}, and
-\arg{additional-delimiter-gestures}.  Compability code will be provided to
+\item The \cl{:activation-characters}, \cl{:additional-activation-characters},
+\cl{:blip-characters}, and \cl{:additional-blip-characters} keyword arguments to
+the \cl{accept} functions have been renamed to \cl{:activation-gestures},
+\cl{:additional-activation-gestures}, \cl{:delimiter-gestures}, and
+\cl{:additional-delimiter-gestures}.  Compatibility code will be provided to
 support the old keyword arguments.
 
 \item The arglists for presentation translators and their documentation and
-tester components have been changed to take a single position \arg{object}
+tester components have been changed to take a single positional \arg{object}
 argument and a list of named (keyword) arguments.  Except for translators that
 omit the \arg{object} argument or have it in other than the initial position of
 the arglist, this will not pose a problem.  This change can be detected.
@@ -317,15 +318,15 @@ been changed to be a \arg{command-table} argument.  A check at run-time
 can detect when a frame is supplied to
 \cl{find-presentation-translators} instead of a command table.
 
-\item The \arg{shift-mask} keyword argument to \cl{test-presentation-translator},
+\item The \cl{:shift-mask} keyword argument to \cl{test-presentation-translator},
 \cl{find-applicable-translators}, \cl{presentation-matches-context-type}, and
 \cl{find-innermost-applicable-presentation} has been renamed to
-\arg{modifier-state} in order to be consistent with the device event terminology.
-Compability code will be provided to support the old keyword.
+\cl{:modifier-state} in order to be consistent with the device event terminology.
+Compatibility code will be provided to support the old keyword.
 
-\item The \arg{shifts} keyword argument to \cl{define-gesture-name} has been
-renamed to \arg{modifiers} in order to be consistent with the device event
-terminology.  Compability code will be provided to support the old keyword.
+\item \cl{define-gesture-name} is completely different from CLIM 1.1.  There
+will be no compatibility code provided to support the old version of
+\cl{define-gesture-name}.
 
 \item \cl{dialog-view} and \cl{+dialog-view+} have been renamed to
 \cl{textual-dialog-view} and \cl{+textual-dialog-view+} in order to accurately
@@ -395,18 +396,20 @@ be retained, but its use is deprecated.
 options will be provided.
 
 \item The \cl{:test} argument to the following functions has been removed, since
-the use of gesture names makes it unnecessary:  \cl{add-command-to-command-table},
-\cl{add-keystroke-to-command-table}, \cl{remove-keystroke-from-command-table},
-\cl{find-keystroke-item}, \cl{lookup-keystroke-item}, and
-\cl{lookup-keystroke-command-item}.  The \cl{:keystroke-test} argument has been
-removed from \cl{read-command} and \cl{read-command-using-keystrokes} for the
-same reason.
+the use of gesture names makes it unnecessary:
+\cl{add-command-to-command-table}, \cl{(add-keystroke-to-command-table}, and
+\cl{remove-keystroke-from-command-table}.  The \cl{:keystroke-test} argument has
+been removed from \cl{read-command} and \cl{read-command-using-keystrokes} for
+the same reason.
 \end{itemize}
 
 
 \paragraph {Application Frames}
 
 \begin{itemize}
+\item The \cl{:root} argument has been removed from \cl{open-window-stream} and
+\cl{make-application-frame}.
+
 \item The \cl{:layout} option has been removed, and is replaced by the more
 general \cl{:layouts} option.  A compatibility hook will be provided that
 handles the old \cl{:layout} option.
@@ -434,7 +437,7 @@ Compatibility functions will be provided.
 
 \begin{itemize}
 \item \cl{realize-pane} and \cl{realize-pane-1} have been renamed to
-\cl{make-pane} and \cl{make-pane-1}.  A compability function will be provided
+\cl{make-pane} and \cl{make-pane-1}.  A compatibility function will be provided
 for \cl{realize-pane}.
 
 \item The pane options \cl{:hs}, \cl{:hs+}, \cl{:hs-}, \cl{:vs}, \cl{:vs+}, and

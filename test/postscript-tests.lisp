@@ -1,6 +1,6 @@
 ;;; -*- Mode: LISP; Syntax: Common-lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: postscript-tests.lisp,v 1.4 92/12/16 16:50:10 cer Exp $
+;; $fiHeader: postscript-tests.lisp,v 1.5 93/03/04 19:01:26 colin Exp $
 
 (in-package :clim-user)
 
@@ -248,7 +248,7 @@
 		       (0 0 0 1 0 0 0 0)
 		       (0 0 0 0 0 0 0 0)
 		       (0 0 0 0 0 0 0 0))
-		   (list +foreground-ink+ +background-ink+))
+		   (list +background-ink+ +foreground-ink+))
      8 8))
 
 ;(defun pat-ps (&optional file)

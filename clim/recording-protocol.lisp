@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: recording-protocol.lisp,v 1.28 92/12/03 10:27:46 cer Exp $
+;; $fiHeader: recording-protocol.lisp,v 1.29 92/12/16 16:46:52 cer Exp $
 
 (in-package :clim-internals)
 
@@ -195,12 +195,30 @@
   (declare (ignore x y))
   t)
 
+
+#+ignore
 (defun compute-output-record-offsets (record)
   (let ((parent (output-record-parent record)))
     (if (null parent)
 	(values (coordinate 0) (coordinate 0))
       (multiple-value-bind (x y)
 	  (compute-output-record-offsets parent)
+	(declare (type coordinate x y))
+	(multiple-value-bind (our-x our-y) (output-record-position record)
+	  (declare (type coordinate our-x our-y))
+	  (values (+ our-x x) (+ our-y y)))))))
+
+
+(defun compute-output-record-offsets (record)
+  (compute-output-record-offsets-1 (output-record-parent record)))
+
+
+(defun compute-output-record-offsets-1 (record)
+  (if (null record)
+      (values 0 0)
+  (let ((parent (output-record-parent record)))
+    (multiple-value-bind (x y)
+	  (compute-output-record-offsets-1 parent)
 	(declare (type coordinate x y))
 	(multiple-value-bind (our-x our-y) (output-record-position record)
 	  (declare (type coordinate our-x our-y))

@@ -118,7 +118,7 @@ direction, and how to constrain them in the vertical direction.
                                \key x-spacing y-spacing
                                     multiple-columns multiple-columns-x-spacing
                                     equalize-column-widths 
-                                    (move-cursor \cl{t}) record-type)
+                                    (move-cursor \cl{t}) record-type \allow)
                               \body body}
 
 Binds the local environment in such a way the output of \arg{body} will be done
@@ -175,7 +175,7 @@ a programmer if there is a new class of output record that supports the table
 formatting protocol.
 
 
-\Defmacro {formatting-row} {(\optional stream \key record-type)
+\Defmacro {formatting-row} {(\optional stream \key record-type \allow)
                             \body body} 
 
 Binds the local environment in such a way the output of \arg{body} will be
@@ -197,7 +197,7 @@ programmer if there is a new class of output record that supports the row
 formatting protocol.
 
 
-\Defmacro {formatting-column} {(\optional stream \key record-type)
+\Defmacro {formatting-column} {(\optional stream \key record-type \allow)
                                \body body} 
 
 Binds the local environment in such a way the output of \arg{body} will be
@@ -221,7 +221,7 @@ column formatting protocol.
 
 \Defmacro {formatting-cell} {(\optional stream
                               \key (align-x \cl{':left}) (align-y \cl{':baseline}) 
-                                   min-width min-height record-type)
+                                   min-width min-height record-type \allow)
                              \body body}
 
 Controls the output of a single cell inside a table row or column, or of a
@@ -262,8 +262,8 @@ formatting protocol.
                                    \key x-spacing y-spacing
                                         n-columns n-rows 
                                         stream-width stream-height max-width max-height
-                                        initial-spacing 
-                                        (move-cursor \cl{t}) record-type) 
+                                        initial-spacing (row-wise \cl{t})
+                                        (move-cursor \cl{t}) record-type \allow) 
                                   \body body}
 
 Binds the local environment in such a way that the output of \arg{body} will be
@@ -280,6 +280,12 @@ succeeding row has its top aligned with the bottom of the previous row (plus the
 specified \arg{y-spacing}).  Multiple rows and columns are constructed after
 laying the item list out in a single column.  Item list output takes place in a
 normalized +$y$-downward coordinate system.
+
+If \arg{row-wise} is \term{true} (the default) and the item list requires
+multiple columns, each successive element in the item list is layed out from
+left to right.  If \arg{row-wise} is \term{false} and the item list requires
+multiple columns, each successive element in the item list is layed out below
+its predecessor, like in a telephone book.
 
 The returned value is the output record corresponding to the table.
 
@@ -328,7 +334,7 @@ the item list formatting protocol.
                                   n-columns n-rows
                                   max-width max-height
                                   cell-align-x cell-align-y
-                                  initial-spacing
+                                  initial-spacing (row-wise \cl{t})
                                   (move-cursor \cl{t}) record-type}
 
 This is a function interface to the item list formatter.  The elements of the
@@ -351,8 +357,8 @@ When \arg{printer} is supplied, each item will be enclosed in a presentation
 whose type is \arg{presentation-type}.
 
 \arg{x-spacing}, \arg{y-spacing}, \arg{n-columns}, \arg{n-rows},
-\arg{max-width}, \arg{max-height}, \arg{initial-spacing}, and \arg{move-cursor}
-are as for \cl{formatting-item-list}.
+\arg{max-width}, \arg{max-height}, \arg{initial-spacing}, \arg{row-wise}, and
+\arg{move-cursor} are as for \cl{formatting-item-list}.
 
 \arg{cell-align-x} and \arg{cell-align-y} are used to supply \cl{:align-x} and
 \cl{:align-y} to an implicitly used \cl{formatting-cell}.
@@ -402,7 +408,7 @@ The protocol class that represents tabular output records; a subclass of
 \cl{output-record}.
 \IfYouWantClass {a} {table output record} {table-output-record}
 
-\Defun {table-output-record-p} {object}
+\Defpredicate {table-output-record-p} {object}
 
 Returns \term{true} if \arg{object} is a \term{table output record}, otherwise
 returns \term{false}.
@@ -458,7 +464,7 @@ The protocol class that represents one row in a table; a subclass of
 \cl{output-record}.
 \IfYouWantClass {a} {row output record} {row-output-record}
 
-\Defun {row-output-record-p} {object}
+\Defpredicate {row-output-record-p} {object}
 
 Returns \term{true} if \arg{object} is a \term{row output record}, otherwise
 returns \term{false}.
@@ -484,7 +490,7 @@ The protocol class that represents one column in a table; a subclass of
 \cl{output-record}.
 \IfYouWantClass {a} {column output record} {column-output-record}
 
-\Defun {column-output-record-p} {object}
+\Defpredicate {column-output-record-p} {object}
 
 Returns \term{true} if \arg{object} is a \term{column output record}, otherwise
 returns \term{false}.
@@ -516,7 +522,7 @@ The protocol class that represents one cell in a table or an item list; a
 subclass of \cl{output-record}.
 \IfYouWantClass {a} {cell output record} {cell-output-record}
 
-\Defun {cell-output-record-p} {object}
+\Defpredicate {cell-output-record-p} {object}
 
 Returns \term{true} if \arg{object} is a \term{cell output record}, otherwise
 returns \term{false}.
@@ -554,7 +560,7 @@ The protocol class that represents an item list; a subclass of
 \cl{output-record}.
 \IfYouWantClass {an} {item list output record} {item-list-output-record}
 
-\Defun {item-list-output-record-p} {object}
+\Defpredicate {item-list-output-record-p} {object}
 
 Returns \term{true} if \arg{object} is an \term{item list output record},
 otherwise returns \term{false}.
@@ -562,6 +568,7 @@ otherwise returns \term{false}.
 \definitarg {:x-spacing}
 \definitarg {:y-spacing}
 \definitarg {:initial-spacing}
+\definitarg {:row-wise}
 \definitarg {:n-rows}
 \definitarg {:n-columns}
 \definitarg {:max-width}
@@ -569,14 +576,14 @@ otherwise returns \term{false}.
 
 All subclasses of \cl{item-list-output-record} must handle these initargs, which
 are used to specify, respectively, the $x$ and $y$ spacing, the initial spacing,
-the desired number of rows and columns, and maximum width and height attributes
-of the item list.
+row-wise, the desired number of rows and columns, and maximum width and height
+attributes of the item list.
 
 \Defclass {standard-item-list-output-record}
 
-The output record that represents item list output.  Its children will be a
-sequence of cells, with presentations possibly intervening.  This is a subclass
-of \cl{item-list-output-record}.
+The instantiable output record that represents item list output.  Its children
+will be a sequence of cells, with presentations possibly intervening.  This is a
+subclass of \cl{item-list-output-record}.
 
 \Defgeneric {map-over-item-list-cells} {function item-list-record}
 

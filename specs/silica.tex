@@ -129,17 +129,22 @@ calling \cl{make-pane} is how application programmers will make sheets.
 
 \Defprotoclass {sheet}
 
-The protocol class that corresponds to a sheet, a subclass of
-\cl{bounding-rectangle}.  This and the next chapter describe all of the sheet
-protocols.
+The protocol class that corresponds to a sheet.  This and the next chapter
+describe all of the sheet protocols.
 \IfYouWantClass {a} {sheet} {sheet}
 
 All of the subclasses of \cl{sheet} are mutable.
 
-\Defun {sheetp} {object}
+\Defpredicate {sheetp} {object}
 
 Returns \term{true} if \arg{object} is a \term{sheet}, otherwise returns
 \term{false}.
+
+\Defclass {basic-sheet}
+
+The basic class on which all CLIM sheets are built, a subclass of \cl{sheet}.
+\AbstractClass
+
 
 
 \section {Relationships Between Sheets}
@@ -279,10 +284,19 @@ are enabled and appear earlier in the \term{sheet} \arg{sheet}'s children.  If
 
 \FreshOutputs
 
+\Defgeneric {map-over-sheets} {function sheet}
+
+Applies the function \arg{function} to the sheet \arg{sheet}, and then applies
+\arg{function} to all of the descendents (the children, the children's children,
+and so forth) of \arg{sheet}.
+
+Function is a function of one argument, the sheet; it has dynamic extent.
+
 
 \subsection {Sheet Genealogy Classes}
 
-Different ``mixin'' classes are provided that implement the relationship protocol.
+Different ``mixin'' classes are provided that implement the relationship
+protocol.  None of the four following classes is instantiable.
 
 \Defclass {sheet-parent-mixin}
 
@@ -319,8 +333,9 @@ Returns a transformation that converts coordinates in the \term{sheet}
 system.  Using \cl{setf} on this accessor will modify the sheet's coordinate
 system, including moving its region in its parent's coordinate system.
 
-When the sheet's transformation is changed, \cl{note-sheet-region-changed} is
-called to notify the sheet of the change.
+When the sheet's transformation is changed,
+\cl{note-sheet-transformation-changed} is called on the to notify the sheet of
+the change.
 
 \defgeneric {sheet-region} {sheet}
 \Defgeneric {(setf sheet-region)} {region sheet}
@@ -329,8 +344,8 @@ Returns a region object that represents the set of points to which the
 \term{sheet} \arg{sheet} refers.  The region is in the sheet's coordinate
 system.  Using \cl{setf} on this accessor modifies the sheet's region.
 
-When the sheet's region is changed, \cl{note-sheet-region-region} is called
- to notify the sheet of the change.
+When the sheet's region is changed, \cl{note-sheet-region-region} is called on
+\arg{sheet} to notify the sheet of the change.
 
 \issue {RSL} {To reshape and move a region, you generally have to manipulate
 both of the above.  Maybe there should be a single function that takes either
@@ -344,6 +359,55 @@ transformation was modified.  Currently, using \cl{setf} on mirrored sheets
 requests that the server move or resize the sheet; the accessor will continue to
 return the old value until the notification comes in from the display server
 that says that the mirror has been moved.}
+
+
+\Defgeneric {move-sheet} {sheet x y}
+
+Moves the \term{sheet} \arg{sheet} to the new position $(x,y)$.  \arg{x} and
+\arg{y} are expressed in the coordinate system of \arg{sheet}'s parent.
+
+\cl{move-sheet} simply modifies \arg{sheet}'s transformation, and could be
+implemented as follows:
+
+\begin{verbatim}
+(defmethod move-sheet ((sheet basic-sheet) x y)
+  (let ((transform (sheet-transformation sheet)))
+    (multiple-value-bind (old-x old-y)
+        (transform-position transform 0 0)
+      (setf (sheet-transformation sheet)
+            (compose-translation-with-transformation
+              transform (- x old-x) (- y old-y))))))
+\end{verbatim}
+
+\Defgeneric {resize-sheet} {sheet width height}
+
+Resizes the \term{sheet} \arg{sheet} to have a new width \arg{width} and a new
+height \arg{height}.  \arg{width} and \arg{height} are real numbers.
+
+\cl{resize-sheet} simply modifies \arg{sheet}'s region, and could be implemented
+as follows:
+
+\begin{verbatim}
+(defmethod resize-sheet ((sheet basic-sheet) width height)
+  (setf (sheet-region sheet)
+        (make-bounding-rectangle 0 0 width height)))
+\end{verbatim}
+
+
+\Defgeneric {move-and-resize-sheet} {sheet x y width height}
+
+Moves the \term{sheet} \arg{sheet} to the new position $(x,y)$, and changes its
+size to the new width \arg{width} and the new height \arg{height}.  \arg{x} and
+\arg{y} are expressed in the coordinate system of \arg{sheet}'s parent.
+\arg{width} and \arg{height} are real numbers.
+
+\cl{move-and-resize-sheet} could be implemented as follows:
+
+\begin{verbatim}
+(defmethod move-and-resize-sheet ((sheet basic-sheet) x y width height)
+  (move-sheet sheet x y)
+  (resize-sheet sheet width height))
+\end{verbatim}
 
 
 \Defgeneric {map-sheet-position-to-parent} {sheet x y}
@@ -379,6 +443,23 @@ bounding rectangle of the transformed region as four values, \arg{min-x},
 \issue {SWM} {I now think that \cl{map-} in these names is misleading; maybe
 \cl{convert-} is better?}
 
+\Defgeneric {map-over-sheets-containing-position} {function sheet x y}
+
+Applies the function \arg{function} to all of the children of the sheet
+\arg{sheet} that contain the position $(x,y)$.  \arg{x} and \arg{y} are
+expressed in \arg{sheet}'s coordinate system.
+
+Function is a function of one argument, the sheet; it has dynamic extent.
+
+\Defgeneric {map-over-sheets-overlapping-region} {function sheet region}
+
+Applies the function \arg{function} to all of the children of the sheet
+\arg{sheet} that overlap the region \arg{region}.  \arg{region} is expressed in
+\arg{sheet}'s coordinate system.
+
+Function is a function of one argument, the sheet; it has dynamic extent.
+
+
 \Defgeneric {child-containing-position} {sheet x y}
 
 Returns the topmost enabled direct child of the \term{sheet} \arg{sheet} whose
@@ -396,9 +477,6 @@ whose corner points are $(x1,y1)$ and $(x2,y2)$.  The region is expressed in
 \arg{sheet}'s coordinate system.
 \FreshOutputs
 
-\issue {SWM} {The above three functions should really be \cl{map-over-...}
-functions to both avoid consing and be consistent with that convention
-throughout the rest of CLIM.}
 
 \Defgeneric {sheet-delta-transformation} {sheet ancestor}
 
@@ -421,7 +499,8 @@ from \arg{child}'s actual region.
 \subsection {Sheet Geometry Classes}
 
 Each of the following implements the sheet geometry protocol in a different
-manner, according to the sheet's requirements.
+manner, according to the sheet's requirements.  None of the four following
+classes is instantiable.
 
 \Defclass {sheet-identity-transformation-mixin}
 
@@ -442,7 +521,8 @@ translating by some amount in $x$ and $y$.
 \Defclass {sheet-transformation-mixin}
 
 This class is mixed into sheet classes whose coordinate system is related to
-that of its parent by an arbitrary affine transformation.
+that of its parent by an arbitrary affine transformation.  CLIM implementations
+are allowed to restrict these transformations to just rectilinear ones.
 
 
 \chapter {Sheet Protocols}
@@ -493,9 +573,11 @@ In the functions below, the \arg{client} argument is typically a sheet, but it
 may be another object that supports event distribution, dispatching, and
 handling.
 
-\issue {SWM} {Do we want to advertise \cl{sheet-event-queue}?  It is analogous
-to the input buffer for a stream.  (In fact, sometimes the stream's input buffer
-and the event queue for the shet are the exact same object.)}
+\Defgeneric {sheet-event-queue} {sheet}
+
+Any sheet that can process events will have an event queue from which the events
+are gotten.  \cl{sheet-event-queue} returns the object that acts as the event
+queue.  The exact representation of an event queue is explicitly unspecified.
 
 \Defgeneric {process-next-event} {port \key wait-function timeout}
 
@@ -557,7 +639,8 @@ that the pointer has entered its territory, there would be a method to carry out
 the policy that specializes the appropriate sheet and event classes.
 
 In addition to \cl{queue-event}, the queued input protocol handles the following
-generic functions:
+generic functions.  The \arg{client} argument to these functions is typically a
+sheet.
 
 \Defgeneric {event-read} {client}
 
@@ -595,38 +678,45 @@ delegate all other events to some other input client.  Such a sheet should have
 \cl{delegate-sheet-input-mixin} as a superclass, and have a more specific method
 for \cl{dispatch-event} on its class and \cl{pointer-button-click-event}.
 
+None of the five following classes is instantiable.
+
 \Defclass {standard-sheet-input-mixin}
 
 This class of sheet provides a method for \cl{dispatch-event} that calls
 \cl{queue-event} on each device event.  Note that configuration events invoke
 \cl{handle-event} immediately.
 
+The \cl{standard-sheet-input-mixin} class will also provide a
+\cl{sheet-event-queue} method, describe above.
+
 \Defclass {immediate-sheet-input-mixin}
 
 This class of sheet provides a method for \cl{dispatch-event} that calls
 \cl{handle-event} immediately for all events.
 
-\Defclass {mute-sheet-input-mixin}
+The \cl{immediate-sheet-input-mixin} class will also provide a
+\cl{sheet-event-queue} method, describe above.
+
+\Defclass {sheet-mute-input-mixin}
 
 This is mixed in to any sheet class the does not handle any input events.
 
 \Defclass {delegate-sheet-input-mixin}
 
 This class of sheet provides a method for \cl{dispatch-event} that calls
-\cl{dispatch-event} on a designated substitute and the event.  The
-initialization argument \cl{:delegate} or the accessor {delegate-sheet-delegate}
-may be used to set the recipient of dispatched events.
-
-\issue {SWM} {What is a ``substitute'' and how do you ``designate'' it?  Is the
-substitute what \cl{delegate-sheet-delegate} returns?  Does't this want an
-initarg for the substitute?}
+\cl{dispatch-event} on a designated substitute recipient and the event.  The
+initarg \cl{:delegate} or the accessor {delegate-sheet-delegate} may be used to
+set the recipient of dispatched events.
 
 \defgeneric {delegate-sheet-delegate} {sheet}
 \Defgeneric {(setf delegate-sheet-delegate)} {delegate sheet}
 
 This may be set to another recipient of events dispatched to a sheet of class
-\cl{delegate-sheet-input-mixin}.  If the delegate is \cl{nil}, events are
-discarded.
+\cl{delegate-sheet-input-mixin}.  \arg{delegate} is the object to which events
+will be dispatched, and is usually another sheet.  If the delegate is \cl{nil},
+events are discarded.
+
+
 
 
 \section {Standard Device Events}
@@ -655,11 +745,14 @@ XX\=XX\=XX\=XX\=XX\=XX\=  \kill
 \>\>\>\>\cl{pointer-button-release-event} \\
 \>\>\>\>\cl{pointer-button-hold-event}    \\
 \>\>\>\cl{pointer-motion-event}  \\
-\>\>\>\>\cl{pointer-enter-event} \\
-\>\>\>\>\cl{pointer-exit-event}  \\
+\>\>\>\>\cl{pointer-boundary-event} \\
+\>\>\>\>\>\cl{pointer-enter-event} \\
+\>\>\>\>\>\cl{pointer-exit-event}  \\
 \>\cl{window-event} \\
 \>\>\cl{window-configuration-event} \\
 \>\>\cl{window-repaint-event}       \\
+\>\cl{window-manager-event}           \\
+\>\>\cl{window-manager-delete--event} \\
 \>\cl{timer-event} \\
 \end{tabbing}
 \caption{\label{event-hier} CLIM event classes.  All classes that appear
@@ -674,9 +767,12 @@ lesser indentation.}
 The protocol class that corresponds to any sort of ``event''.
 \IfYouWantClass {an} {event} {event}
 
-All of the event classes are immutable.
+All of the event classes are immutable.  CLIM implementations may choose to keep
+a resource of the device event classes, but this must be invisible at the API
+level.  That is, any event visible at the level of the API must act as though it
+is immutable.
 
-\Defun {eventp} {object}
+\Defpredicate {eventp} {object}
 
 Returns \term{true} if \arg{object} is an \term{event}, otherwise returns
 \term{false}.
@@ -707,8 +803,8 @@ All event classes must implement methods for \cl{event-type} and
 \definitarg {:sheet}
 \Definitarg {:modifier-state}
 
-The class that corresponds to any sort of device event.  This is a subclass of
-\cl{event}.
+The instantiable class that corresponds to any sort of device event.  This is a
+subclass of \cl{event}.
 
 All subclasses of \cl{device-event} must take the \cl{:sheet} and
 \cl{:modifier-state} initargs, which are used to specify the sheet and modifier
@@ -720,9 +816,10 @@ Returns the sheet associated with the event \arg{device-event}.
 
 \Defgeneric {event-modifier-state} {device-event}
 
-Returns a value that encodes the state of all the modifier keys on the keyboard.
-This will be a mask consisting of the \cl{logior} of \cl{+shift-key+},
-\cl{+control-key+}, \cl{+meta-key+}, \cl{+super-key+}, and \cl{+hyper-key+}.
+Returns an integer value that encodes the state of all the modifier keys on the
+keyboard.  This will be a mask consisting of the \cl{logior} of
+\cl{+shift-key+}, \cl{+control-key+}, \cl{+meta-key+}, \cl{+super-key+}, and
+\cl{+hyper-key+}.
 
 All device event classes must implement methods for \cl{event-sheet} and
 \cl{event-modifier-state}.
@@ -731,8 +828,8 @@ All device event classes must implement methods for \cl{event-sheet} and
 \defclass {keyboard-event}
 \Definitarg {:key-name}
 
-The class that corresponds to any sort of keyboard event.  This is a subclass of
-\cl{device-event}.
+The instantiable class that corresponds to any sort of keyboard event.  This is
+a subclass of \cl{device-event}.
 
 All subclasses of \cl{keyboard-event} must take the \cl{:key-name} initarg,
 which is used to specify the key name component for the event.
@@ -755,8 +852,8 @@ All keyboard event classes must implement methods for
 \defclass {key-press-event}
 \Defclass {key-release-event}
  
-The classes that correspond to a key press or release event.  This is a subclass
-of \cl{keyboard-event}.
+The instantiable classes that correspond to a key press or release event.  This
+is a subclass of \cl{keyboard-event}.
 
 
 \defclass {pointer-event}
@@ -765,8 +862,8 @@ of \cl{keyboard-event}.
 \definitarg {:x}
 \Definitarg {:y}
  
-The class that corresponds to any sort of pointer event.  This is a subclass of
-\cl{device-event}.
+The instantiable class that corresponds to any sort of pointer event.  This is a
+subclass of \cl{device-event}.
 
 All subclasses of \cl{pointer-event} must take the \cl{:pointer}, \cl{:button},
 \cl{:x}, and \cl{:y} initargs, which are used to specify the pointer object,
@@ -792,54 +889,67 @@ method for these generic functions.
 
 Returns the pointer object to which this event refers.
 
-\Defgeneric {pointer-event-button} {pointer-event}
-
-Returns the number of the pointer button that was pressed, which will be
-one of \cl{+pointer-left-button+}, \cl{+pointer-middle-button+}, or
-\cl{+pointer-right-button+}.
-
 All pointer event classes must implement methods for \cl{pointer-event-x},
 \cl{pointer-event-y}, \cl{pointer-event-native-x}, \cl{pointer-event-native-y},
-\cl{pointer-event-pointer}, and \cl{pointer-event-button}.
+and \cl{pointer-event-pointer}.
 
 \Defclass {pointer-button-event}
  
-The class that corresponds to any sort of pointer button event.  This is a
-subclass of \cl{pointer-event}.
+The instantiable class that corresponds to any sort of pointer button event.
+This is a subclass of \cl{pointer-event}.
+
+\Defgeneric {pointer-event-button} {pointer-button-event}
+
+Returns the an integer corresponding to the pointer button that was pressed or
+released, which will be one of \cl{+pointer-left-button+},
+\cl{+pointer-middle-button+}, or \cl{+pointer-right-button+}.
 
 \defclass {pointer-button-press-event}
 \defclass {pointer-button-release-event}
 \Defclass {pointer-button-hold-event}
  
-The classes that correspond to a pointer button press, button release, and
-click-and-hold events.  These are subclasses of \cl{pointer-button-event}.
+The instantiable classes that correspond to a pointer button press, button
+release, and click-and-hold events.  These are subclasses of
+\cl{pointer-button-event}.
 
-\defclass {pointer-button-click-event}
-\defclass {pointer-button-double-click-event}
-\Defclass {pointer-button-click-and-hold-event}
+\defclass {pointer-click-event}
+\defclass {pointer-double-click-event}
+\Defclass {pointer-click-and-hold-event}
  
-The classes that correspond to a pointer button press, followed immediately by
-(respectively) a button release, another button press, or pointer motion.  These
-are subclasses of \cl{pointer-button-event}.  Ports are not required to generate
-these events.
+The instantiable classes that correspond to a pointer button press, followed
+immediately by (respectively) a button release, another button press, or pointer
+motion.  These are subclasses of \cl{pointer-button-event}.  Ports are not
+required to generate these events.
 
 \Defclass {pointer-motion-event}
  
-The class that corresponds to any sort of pointer motion event.  This is a
-subclass of \cl{pointer-event}.
+The instantiable class that corresponds to any sort of pointer motion event.
+This is a subclass of \cl{pointer-event}.
+
+\Defclass {pointer-boundary-event}
+
+The instantiable class that corresponds to a pointer motion event that crosses
+some sort of sheet boundary.  This is a subclass of \cl{pointer-motion-event}.
+
+\Defgeneric {pointer-boundary-event-kind} {pointer-boundary-event}
+
+Returns the ``kind'' of boundary event, which will be one of \cl{:ancestor},
+\cl{:virtual}, \cl{:inferior}, \cl{:nonlinear}, \cl{:nonlinear-virtual}, or
+\cl{nil}.  These event kinds correspond to the detail members for X11 enter and
+exit events.
 
 \defclass {pointer-enter-event}
 \Defclass {pointer-exit-event}
 
-The classes that correspond to a pointer enter or exit event.  This is a
-subclass of \cl{pointer-motion-event}.
+The instantiable classes that correspond to a pointer enter or exit event.
+These are subclasses of \cl{pointer-boundary-event}.
 
 
 \defclass {window-event}
 \Definitarg {:region}
 
-The class that corresponds to any sort of windowing event.  This is a subclass
-of \cl{device-event}.
+The instantiable class that corresponds to any sort of windowing event.  This is
+a subclass of \cl{event}.
 
 All subclasses of \cl{window-event} must take a \cl{:region} initarg, which is
 used to specify the damage region associated with the event.
@@ -862,19 +972,34 @@ All window event classes must implement methods for \cl{window-event-region},
 
 \Defclass {window-configuration-event}
 
-The class that corresponds to a window changing its size or position.  This is
-a subclass of \cl{window-event}.
+The instantiable class that corresponds to a window changing its size or
+position.  This is a subclass of \cl{window-event}.
 
 \Defclass {window-repaint-event}
 
-The class that corresponds to a request to repaint the window.  This is a
-subclass of \cl{window-event}.
+The instantiable class that corresponds to a request to repaint the window.
+This is a subclass of \cl{window-event}.
+
+
+\defclass {window-manager-event}
+\Definitarg {:sheet}
+
+The instantiable class that corresponds to any sort of window manager event.
+This is a subclass of \cl{event}.
+
+All subclasses of \cl{window-manager-event} must take a \cl{:sheet} initarg,
+which is used to specify the sheet on which the window manager acted.
+
+\Defclass {window-manager-delete-event}
+
+The instantiable class that corresponds to window manager event that causes a
+host window to be deleted.  This is a subclass of \cl{window-manager-event}.
 
 
 \Defclass {timer-event}
 
-The class that corresponds to a timeout event.  This is a subclass of
-\cl{event}.
+The instantiable class that corresponds to a timeout event.  This is a subclass
+of \cl{event}.
 
 
 \defconst {+pointer-left-button+}
@@ -884,6 +1009,9 @@ The class that corresponds to a timeout event.  This is a subclass of
 Constants that correspond to the left, middle, and right button on a pointing
 device.  \cl{pointer-event-button} will returns one of these three values.
 
+These constants are powers of 2 so that they can be combined with \cl{logior}
+and tested with \cl{logtest}.
+
 \defconst {+shift-key+}
 \defconst {+control-key+}
 \defconst {+meta-key+}
@@ -891,36 +1019,15 @@ device.  \cl{pointer-event-button} will returns one of these three values.
 \Defconst {+hyper-key+}
 
 Constants that correspond to the shift, control, meta, super, and hyper modifier
-keys being held down on the keyboard.  These constants must be powers of 2 so
-that they can be combined with \cl{logior} and tested with \cl{logtest}.
+keys being held down on the keyboard.  These constants are powers of 2 that are
+disjoint from the pointer button constants, so that they can be combined with
+\cl{logior} and tested with \cl{logtest}.
+
 \cl{event-modifier-state} will return some combination of these values.
 
 Implementations must support at least shift, control, and meta modifiers.
 Control and meta might correspond to the control and option or command shift
 keys on a Macintosh keyboard, for example.
-
-\Defmacro {key-modifier-state-match-p} {button modifier-state \body clauses}
-
-This macro generates code that will check whether the modifier state
-\arg{modifier-state} and the pointer button \arg{button} match all of the
-clauses.  \arg{clauses} are implicitly grouped by \cl{and}.  Matching a button
-or a modifier means that that the modifier state indicates that the button or
-modifier is pressed.
-
-A clause may be one of:
-
-\begin{itemize}
-\item A pointer button.  One of \cl{:left}, \cl{:middle} or \cl{:right}.
-
-\item A modifier key.  One of \cl{:shift}, \cl{:control}, \cl{:meta},
-\cl{:super} or \cl{:hyper}.
-
-\item \cl{(and [\arg{clause}]+)}
-
-\item \cl{(or [\arg{clause}]+)}
-
-\item \cl{(not \arg{clause})}
-\end{itemize}
 
 
 \section {Output Protocol}
@@ -952,10 +1059,16 @@ The protocol class that corresponds to the output state for some kind of sheet.
 There is no single advertised standard medium class.
 \IfYouWantClass {a} {medium} {medium}
 
-\Defun {mediump} {object}
+\Defpredicate {mediump} {object}
 
 Returns \term{true} if \arg{object} is a \term{medium}, otherwise returns
 \term{false}.
+
+\Defclass {basic-medium}
+
+The basic class on which all CLIM mediums are built, a subclass of \cl{medium}.
+\AbstractClass
+
 
 The following generic functions comprise the basic medium protocol.  All mediums
 must implement methods for these generic functions.  Often, a sheet class that
@@ -1076,25 +1189,33 @@ Section~\ref{graphics-protocols}.
 
 \subsection {Output Protocol Classes}
 
-The following classes implement the standard output protocols.
+The following classes implement the standard output protocols.  None of the five
+following classes is instantiable.
 
 \Defclass {standard-sheet-output-mixin}
 
 This class is mixed in to any sheet that provides the standard output protocol,
 such as repainting and graphics.
 
-\Defclass {mute-sheet-output-mixin}
+\Defclass {sheet-mute-output-mixin}
 
 This class is mixed in to any sheet that provides none of the output protocol.
+
+\Defclass {sheet-with-medium-mixin}
+
+This class is used for any sheet that has either a permanent or a temporary
+medium.
 
 \Defclass {permanent-medium-sheet-output-mixin}
 
 This class is mixed in to any sheet that always has a medium associated with it.
+It is a subclass of \cl{sheet-with-medium-mixin}.
 
 \Defclass {temporary-medium-sheet-output-mixin}
 
 This class is mixed in to any sheet that may have a medium associated with it,
-but does not necessarily have a medium at any given instant.
+but does not necessarily have a medium at any given instant.  It is a subclass
+of \cl{sheet-with-medium-mixin}.
 
 
 \subsection {Associating a Medium with a Sheet}
@@ -1112,14 +1233,21 @@ purpose of displaying a border for another sheet, the border sheet receives
 output only when the window's shape is changed.
 
 To associate a sheet with a medium, the macro \cl{with-sheet-medium} is used.
+Only sheets that are subclasses of \cl{sheet-with-medium-mixin} may have a
+medium associated with them.
+
 
 \Defmacro {with-sheet-medium} {(medium sheet) \body body}
 
 Within the body, the variable \arg{medium} is bound to the sheet's medium.  If
-the sheet does not have a medium permanently allocated, one will be allocated,
-associated with the sheet for the duration of the body, and deallocated as the
-when the body has been exited.  The values of the last form of the body are
-returned as the values of \cl{with-sheet-medium}.
+the sheet does not have a medium permanently allocated, one will be allocated
+and associated with the sheet for the duration of the body (by calling
+\cl{engraft-medium}), and then degrafted from the sheet and deallocated when the
+body has been exited.  The values of the last form of the body are returned as
+the values of \cl{with-sheet-medium}.
+
+This macro will signal a runtime error if sheet is not a subclass of
+\cl{sheet-with-medium-mixin}.
 
 The \arg{medium} argument is not evaluated, and must be a symbol that is bound
 to a medium.  \arg{body} may have zero or more declarations as its first forms.
@@ -1132,10 +1260,13 @@ Typically, a single medium will be allocated an passed to several different
 sheets that can use the same medium.
 
 If the sheet already has a medium allocated to it, the new medium will not be
-given to the sheet.  If the value of \arg{medium} is \cl{nil},
-\cl{with-sheet-medium-bound} is exactly equivalent to \cl{with-sheet-medium}.
-The values of the last form of the body are returned as the values of
-\cl{with-sheet-medium-bound}.
+grafted to the sheet, and \cl{with-sheet-medium-bound} will simple evaluate the
+body.  If the value of \arg{medium} is \cl{nil}, \cl{with-sheet-medium-bound} is
+exactly equivalent to \cl{with-sheet-medium}.  The values of the last form of
+the body are returned as the values of \cl{with-sheet-medium-bound}.
+
+This macro will signal a runtime error if sheet is not a subclass of
+\cl{sheet-with-medium-mixin}.
 
 \arg{body} may have zero or more declarations as its first forms.
 
@@ -1143,6 +1274,73 @@ The values of the last form of the body are returned as the values of
 
 Returns the medium associated with the \term{sheet} \arg{sheet}.  If \arg{sheet}
 does not have a medium allocated to it, \cl{sheet-medium} returns \cl{nil}.
+
+This function will signal an error if sheet is not a subclass of
+\cl{sheet-with-medium-mixin}.
+
+\Defgeneric {medium-sheet} {medium}
+
+Returns the sheet associated with the \term{medium} \arg{medium}.  If
+\arg{medium} is not grafted to a sheet, \cl{medium-sheet} returns \cl{nil}.
+
+\Defgeneric {medium-drawable} {medium}
+
+Returns an implementation-dependent object that corresponds to the actual host
+window that will be drawn on when the \term{medium} \arg{medium} is drawn on.
+If \arg{medium} is not grafted to a sheet or the medium's sheet is not currently
+mirrored on a display server, \cl{medium-drawable} returns \cl{nil}.
+
+Programmers can use this function to get a host window system object that can be
+manipulated using the functions of the host window system.  This might be done
+in order to explicitly trade of performance against portability.
+
+\Defmethod {port} {(medium \cl{basic-medium})}
+
+If \arg{medium} is both grafted to a sheet and the sheet is currently mirrored
+on a display server, this returns the port with which \arg{medium} is
+associated.  Otherwise it returns \cl{nil}.
+
+\subsubsection {Grafting and Degrafting of Mediums}
+
+The following generic functions are the protocol-level functions responsible for
+the allocating, deallocating, grafting, and degrafting of mediums.  They are not
+intended for general use by programmers.
+
+\Defgeneric {allocate-medium} {port sheet}
+
+Allocates a medium from the \term{port} \arg{port}'s medium resource, or calls
+\cl{make-medium} on the port to create a new medium if the resource is empty or
+the port does not maintain a resource of mediums.  The resulting medium will
+have its default characteristics determined by \arg{sheet}.
+
+\Defgeneric {deallocate-medium} {port medium} 
+
+Returns the \term{medium} \arg{medium} to \arg{port}'s medium resource.
+
+\Defgeneric {make-medium} {port sheet}
+
+Creates a new medium for the \term{port} \arg{port}.  The new medium will have
+its default characteristics determined by \arg{sheet}.
+
+\Defgeneric {engraft-medium} {medium port sheet}
+
+Grafts the \term{medium} \arg{medium} to the \term{sheet} \arg{sheet} on the
+\term{port} \arg{port}.  
+
+The default method on \cl{basic-medium} will set \cl{medium-sheet} on
+\arg{medium} to point to the sheet, and will set up the medium state (foreground
+ink, background ink, and so forth) from the defaults gotten from {sheet}.  Each
+implementation may specialize this generic function in order to set up such
+things as per-medium ink caches, and so forth.
+
+\Defgeneric {degraft-medium} {medium port sheet} 
+
+Degrafts the \term{medium} \arg{medium} from the \term{sheet} \arg{sheet} on the
+\term{port} \arg{port}.
+
+The default method on \cl{basic-medium} will set \cl{medium-sheet} back to
+\cl{nil}.  Each implementation may specialize this generic function in order to
+clear any caches it has set up, and so forth.
 
 
 \section {Repaint Protocol}
@@ -1159,41 +1357,31 @@ cause a repaint to be executed for the newly-exposed region.
 
 \subsection {Repaint Protocol Functions}
 
-\Defgeneric {dispatch-repaint} {sheet region}
+\Defgeneric {queue-repaint} {sheet repaint-event} 
 
-Requests a repaint of the \term{region} \arg{region} within the \term{sheet}
-\arg{sheet}.  The region is given in sheet coordinates.  Depending on the class
-of the sheet, this may cause \cl{queue-repaint} or \cl{handle-repaint} to be
-invoked.
+Requests that the repaint event \arg{repaint-event} be placed in the input queue
+of the \term{sheet} \arg{sheet}.  A program that reads events out of the queue
+will be expected to call \cl{handle-event} for the sheet using the repaint
+region gotten from \arg{repaint-event}.
+
+\Defgeneric {handle-repaint} {sheet region} 
+
+Implements repainting for a given sheet class.  \term{sheet} is the sheet to
+repaint and \arg{region} is the region to repaint.
+
+\Defgeneric {repaint-sheet} {sheet region} 
+
+Recursively causes repainting of the \term{sheet} \arg{sheet} and any of its
+descendants that overlap the \term{region} \arg{region}.
 
 All CLIM implementations must support repainting for regions that are rectangles
 or region sets composed entirely of rectangles.
 
-\Defgeneric {queue-repaint} {sheet region}
-
-Requests that a repaint event for the \term{region} \arg{region} be placed in
-the input queue of the \term{sheet} \arg{sheet}.  A program that reads events
-out of the queue will be expected to call \cl{handle-event} for the repaint
-region; the method for that generic function on repaint events will generally
-call \cl{repaint-sheet}.
-
-\Defgeneric {handle-repaint} {sheet medium region}
-
-Recursively causes repainting of the \term{sheet} \arg{sheet} and any of its
-children that overlap the \term{region} \arg{region}.  \arg{medium} is the
-medium to use for the repainting; if it is \cl{nil}, \cl{handle-repaint} will
-allocate a medium and associate it with the sheet.  \cl{handle-repaint} will
-call \cl{repaint-sheet} on \arg{sheet}, and then call \cl{handle-repaint} on all
-of the children of \arg{sheet}.
-
-\Defgeneric {repaint-sheet} {sheet region}
-
-Implements repainting for a given sheet class.  It may only be called on a sheet
-that has an associated medium.  \term{sheet} and \arg{region} are as for
-\cl{dispatch-repaint}.
-
 
 \subsection {Repaint Protocol Classes}
+
+The following classes implement the standard repaint protocols.  None of the
+three following classes is instantiable.
 
 \Defclass {standard-repainting-mixin}
 
@@ -1203,7 +1391,7 @@ Defines a \cl{dispatch-repaint} method that calls \cl{queue-repaint}.
 
 Defines a \cl{dispatch-repaint} method that calls \cl{handle-repaint}.
 
-\Defclass {mute-repainting-mixin}
+\Defclass {sheet-mute-repainting-mixin}
 
 Defines a \cl{dispatch-repaint} method that calls \cl{queue-repaint}, and a
 method on \cl{repaint-sheet} that does nothing.  This means that its children
@@ -1264,30 +1452,30 @@ first element is a keyword that selects the kind of port.  The remainder of the
 server path is a list of alternating keywords and values whose interpretation is
 port type-specific.
 
-\Defun {find-port} {\key (server-path \cl{*default-server-path*})}
+\Defprotoclass {port}
+
+The protocol class that corresponds to a port.
+\IfYouWantClass {a} {port} {port}
+
+All of the subclasses of \cl{port} are mutable.
+
+\Defpredicate {portp} {object}
+
+Returns \term{true} if \arg{object} is a \term{port}, otherwise returns
+\term{false}.
+
+\Defclass {basic-port}
+
+The basic class on which all CLIM ports are built, a subclass of \cl{port}.
+\AbstractClass
+
+
+\Defun {find-port} {\rest initargs \key (server-path \cl{*default-server-path*}) \allow}
 
 Finds a port that provides a connection to the window server addressed by
 \arg{server-path}.  If no such connection exists, a new connection will be
-constructed and returned.
-
-The following server paths are currently supported:
-
-\def\Defdp #1 #2 {\Dodocf {#1} {#2} {Server~Path}}
-
-\Defdp {:x11} {\key host display-id screen-id}
-
-Given this server path, \cl{find-port} finds a port for the X server on the
-given \arg{host}, using the \arg{display-id} and \arg{screen-id}.
-
-On a Unix host, if these values are not supplied, the defaults come from the
-\cl{DISPLAY} environment variable.  Each CLIM implementation must describe how
-it uses such environment variables.
-
-\Defdp {:genera} {\key screen}
-
-\issue {SWM} {RSL claims that this is old and obsolete.  What is the proposed
-replacement for it?}
-
+constructed and returned.  The initargs in \arg{initargs} will be passed to the
+function that constructed the new port.
 
 \Defvar {*default-server-path*}
 
@@ -1298,6 +1486,47 @@ variable will be defaulted according to the environment.  In the Unix
 environment, for example, CLIM will attempt to set this variable based on the
 value of the \cl{DISPLAY} environment variable.
 
+The value of \cl{*default-server-path*} is a cons of a port type followed by a
+list of initargs.
+
+The following are the recommendations for port types and their initargs.  This
+list is not intended to be comprehensive, nor is it required that a CLIM
+implementation support any of these port types.
+
+\def\Defdp #1 #2 {\Dodocf {#1} {#2} {Server~Path}}
+
+\Defdp {:clx} {\key host display-id screen-id}
+
+Given this server path, \cl{find-port} finds a port for the X server on the
+given \arg{host}, using the \arg{display-id} and \arg{screen-id}.
+
+On a Unix host, if these values are not supplied, the defaults come from the
+\cl{DISPLAY} environment variable.  Each CLIM implementation must describe how
+it uses such environment variables.
+
+\Defdp {:motif} {\key host display-id screen-id}
+
+Given this server path, \cl{find-port} finds a port for a Motif X server on the
+given \arg{host}, using the \arg{display-id} and \arg{screen-id}.
+
+On a Unix host, if these values are not supplied, the defaults come from the
+\cl{DISPLAY} environment variable.
+
+\Defdp {:openlook} {\key host display-id screen-id}
+
+Given this server path, \cl{find-port} finds a port for an OpenLook X server on
+the given \arg{host}, using the \arg{display-id} and \arg{screen-id}.
+
+On a Unix host, if these values are not supplied, the defaults come from the
+\cl{DISPLAY} environment variable.
+
+\Defdp {:genera} {\key screen}
+
+Given this server path, \cl{find-port} finds a port for local Genera platform on
+the screen object \arg{screen}.  \arg{screen} defaults to \arg{tv:main-screen},
+but could also be an object return from \cl{color:find-color-screen}.
+
+
 \Defgeneric {port} {object}
 
 Returns the port associated with \arg{object}.  \cl{port} is defined for all
@@ -1306,7 +1535,7 @@ protocol), mediums, and application frames.  For degrafted sheets or other
 objects that aren't currently associated with particular ports, \cl{port}
 will return \cl{nil}.
 
-\Defmacro {with-port-locked} {port \body body}
+\Defmacro {with-port-locked} {(port) \body body} 
 
 Executes \arg{body} after grabbing a lock associated with the \term{port}
 \arg{port}, which may be a port or any object on which the function \cl{port}
@@ -1316,9 +1545,25 @@ without locking.
 \arg{body} may have zero or more declarations as its first forms.
 
 
+\Defun {map-over-ports} {function}
+
+Invokes \arg{function} on each existing port.  Function is a function of one
+argument, the port; it has dynamic extent.
+
 \Defgeneric {port-server-path} {port}
 
 Returns the server path associated with the \term{port} \arg{port}.
+
+\Defgeneric {port-name} {port}
+
+Returns an implementation-dependent string that is the name of the port.  For
+example, a \cl{:clx} port might have a name of \cl{"summer:0.0"}.
+
+\Defgeneric {port-type} {port}
+
+Returns the type of the port, that is, the first element of the server path
+spec.
+
 
 \defgeneric {port-properties} {port indicator}
 \Defgeneric {(setf port-properties)} {property port indicator}
@@ -1327,11 +1572,6 @@ These functions provide a port-based property list.  They are primarily intended
 to support users of CLIM that may need to associate certain information with
 ports.  For example, the implementor of a special graphics package may need to
 maintain resource tables for each port on which it is used.
-
-\Defun {map-over-ports} {function}
-
-Invokes \arg{function} on each existing port.  Function is a function of one
-argument, the port; it has dynamic extent.
 
 \Defgeneric {restart-port} {port}
 
@@ -1348,19 +1588,6 @@ forcibly degrafted by disowning the children of grafts on \arg{port} using
 \arg{sheet-disown-child}.  All server resources utilized by such hierarchies or
 by any graphics objects on \arg{port} are released as part of the connection
 shutdown.
-
-\defgeneric {add-watcher} {port watcher}
-\defgeneric {delete-watcher} {port watcher}
-\Defgeneric {reset-watcher} {watcher how}
-
-Watchers are a mechanism for clients to be notified when the port is destroyed
-or restarted.  \cl{add-watcher} and \cl{delete-watcher} provide an interface for
-adding and removing \arg{watcher} to the list of watchers that the \term{port}
-\arg{port} maintains.  \cl{destroy-port} and \cl{restart-port} invoke
-\cl{reset-watcher} on each of these watchers with \cl{:destroy} and
-\cl{:restart} being passed in as \arg{how}, respectively.
-
-\issue {SWM} {What exactly is a watcher?  The above is not specific enough.}
 
 
 \section {Grafts}
@@ -1381,8 +1608,9 @@ Returns \term{true} if any of the sheet's ancestors is a graft, otherwise
 returns \term{false}.
 
 
-\Defun {find-graft} {\key (port \cl{(find-port)}) (server-path \cl{*default-server-path*})
-                          (orientation \cl{:default}) (units \cl{:device})}
+\Defun {find-graft} {\key (server-path \cl{*default-server-path*})
+                          (port \cl{(find-port :server-path server-path)})
+                          (orientation \cl{:default}) (units \cl{:device})} 
 
 Finds a graft that represents the display device on the port \arg{port} that
 also matches the other supplied parameters.  If no such graft exists, a new
@@ -1430,7 +1658,7 @@ Invokes \arg{function} on each existing graft associated with the \term{port}
 \arg{port}.  \arg{function} is a function of one argument, the graft; it has
 dynamic extent.
 
-\Defmacro {with-graft-locked} {graft \body body}
+\Defmacro {with-graft-locked} {(graft) \body body} 
 
 Executes \arg{body} after grabbing a lock associated with the \term{graft}
 \arg{graft}, which may be a graft or any object on which the function
@@ -1506,6 +1734,10 @@ In both of these cases, we must have a coordinate transformation that converts
 coordinates in the mirror (so-called ``native'' coordinates) into coordinates
 in the sheet and vice-versa.
 
+\Defclass {mirrored-sheet-mixin}
+
+This class is mixed in to sheet classes that can be directly mirrored.
+
 
 \subsection {Mirror Functions}
 
@@ -1514,9 +1746,10 @@ the handle to the actual toolkit window or gadget?}
 
 \Defgeneric {sheet-direct-mirror} {sheet}
 
-Returns the mirror of the \term{sheet} \arg{sheet}.  If the sheet is not
-mirrored (or does not currently have a mirror), \cl{sheet-mirror} returns
-\cl{nil}.
+Returns the mirror of the \term{sheet} \arg{sheet}.  If the sheet is not a
+subclass of \cl{mirrored-sheet-mixin}, this will return \cl{nil}.  If the sheet
+is a subclass of \cl{mirrored-sheet-mixin} and does not currently have a mirror,
+\cl{sheet-mirror} will return \cl{nil}.
 
 \Defgeneric {sheet-mirrored-ancestor} {sheet}
 
@@ -1537,7 +1770,29 @@ ancestor.  \cl{sheet-mirror} could be implemented as:
 
 Creates a mirror for the \term{sheet} \arg{mirrored-sheet} on the \term{port}
 \arg{port}, if it does not already have one.  The returned value is the sheet's
-mirror.
+mirror; the type of this object is implementation dependent.
+
+\Defgeneric {destroy-mirror} {port mirrored-sheet}
+
+Destroys the mirror for the \term{sheet} \arg{mirrored-sheet} on the \term{port}
+\arg{port}.
+
+\Defgeneric {raise-mirror} {port sheet}
+
+Raises the \term{sheet} \arg{sheet}'s mirror to the top of all of the host
+windows on the \term{port} \arg{port}.  \arg{sheet} need not be a directly
+mirrored sheet.
+
+\Defgeneric {bury-mirror} {port sheet}
+
+Buries the \term{sheet} \arg{sheet}'s mirror at the bottom of all of the host
+windows on the \term{port} \arg{port}.  \arg{sheet} need not be a directly
+mirrored sheet.
+
+\Defmethod {port} {(sheet \cl{basic-sheet})}
+
+If \arg{sheet} is currently mirrored on a display server, this returns the port
+with which \arg{sheet} is associated.  Otherwise it returns \cl{nil}.
 
 
 \subsection {Internal Interfaces for Native Coordinates}

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.70 93/03/04 19:02:28 colin Exp $
+;; $fiHeader: xt-silica.lisp,v 1.71 93/03/18 14:39:45 colin Exp $
 
 (in-package :xm-silica)
 
@@ -1613,6 +1613,7 @@ the geometry of the children. Instead the parent has control. "))
      )))
 
 (defmethod port-move-frame ((port xt-port) frame x y)
+  (fix-coordinates x y)
   (check-type x (signed-byte 16))
   (check-type y (signed-byte 16))
   (tk::set-values (frame-shell frame) :x x :y y))

@@ -15,15 +15,16 @@ other applications.  In addition to controlling the screen real estate managed
 by an application, a frame keeps track of the Lisp state variables that contain
 the state of the application.
 
-The contents of frame is established by defining a hierarchy of \concept{panes}.
-CLIM panes are interactive objects that are analogous to the windows, gadgets,
-or widgets of other toolkits.  Application builders can compose their
-application's user interface from a library of standard panes or by defining and
-using their own pane types.  Application frames can use a number of different
-types of panes including \concept{layout panes} for spatially organizing panes,
-\concept{user panes} for presenting application specific information, and
-\concept{gadget panes} for displaying data and obtaining user input.  Panes are
-describe in greater detail in Chapter~\ref{panes} and Chapter~\ref{gadgets}.
+The visual aspect of an application frame is established by defining a hierarchy
+of \concept{panes}.  CLIM panes are interactive objects that are analogous to
+the windows, gadgets, or widgets of other toolkits.  Application builders can
+compose their application's user interface from a library of standard panes or
+by defining and using their own pane types.  Application frames can use a number
+of different types of panes including \concept{layout panes} for spatially
+organizing panes, \concept{user panes} for presenting application specific
+information, and \concept{gadget panes} for displaying data and obtaining user
+input.  Panes are describe in greater detail in Chapter~\ref{panes} and
+Chapter~\ref{gadgets}.
 
 Frames are managed by special applications called \concept{frame managers}.
 Frame managers control the realization of the look and feel of a frame.  The
@@ -108,7 +109,7 @@ The protocol class that corresponds to an application frame.
 
 All application frame classes are mutable.
 
-\Defun {application-frame-p} {object}
+\Defpredicate {application-frame-p} {object}
 
 Returns \term{true} if \arg{object} is an \term{application frame}, otherwise
 returns \term{false}.
@@ -130,9 +131,9 @@ properties for the frame.
 
 \Defclass {standard-application-frame}
 
-The standard class that implements application frames.  By default, most
-application frame classes will inherit from this class, unless a non-\cl{nil}
-value for \arg{superclasses} is supplied to \cl{define-application-frame}.
+The instantiable standard class that implements application frames.  By default,
+most application frame classes will inherit from this class, unless a
+non-\cl{nil} value for \arg{superclasses} is supplied to \cl{define-application-frame}.
 
 
 \Defmacro {define-application-frame} {name superclasses slots \rest options}
@@ -154,8 +155,8 @@ usual \cl{defclass} options, plus any of the following:
 \item \cl{:pane} \arg{form}, where \arg{form} specifies the single pane in the
 application.  The default is \cl{nil}, meaning that there is no single pane.
 This is the simplest way to define a pane hierarchy.  The \cl{:pane} option is
-mutually exclusive with the \cl{:panes} and \cl{:layouts} options.  See
-Section~\ref{frame-panes} for a complete description of the \cl{:pane} option.
+mutually exclusive with the \cl{:panes} options.  See Section~\ref{frame-panes}
+for a complete description of the \cl{:pane} option.
 
 \item \cl{:panes} \arg{form}, where \arg{form} is an alist that specifies names
 and panes of the application.  The default is \cl{nil}, meaning that there are
@@ -164,8 +165,7 @@ See Section~\ref{frame-panes} for a complete description of the \cl{:panes}
 option.
 
 \item \cl{:layouts} \arg{form}, where \arg{form} specifies the layout.  The
-default layout is to lay out all of the named panes in horizontal strips.  The
-\cl{:layouts} and \cl{:pane} options are mutually exclusive.  See
+default layout is to lay out all of the named panes in horizontal strips.  See
 Section~\ref{frame-panes} for a complete description of the \cl{:layouts}
 option.
 
@@ -174,6 +174,12 @@ is a list consisting of the name of the application frame's command table
 followed by some keyword-value pairs.  The keywords can be \cl{:inherit-from} or
 \cl{:menu} (which are as in \cl{define-command-table}).  The default is to
 create a command table with the same name as the application frame.
+
+\item \cl{:command-definer} \arg{value}, where \arg{value} either \cl{nil},
+\cl{t}, or another symbol.  When it is \cl{nil}, no command-defining macro is
+defined.  When it is \cl{t}, a command-defining macro is defined, whose name is
+of the form \cl{define-{\it name}-command}.  When it is another symbol, the
+symbol names the command-defining macro.  The default is \cl{t}.
 
 \item \cl{:menu-bar} \arg{form} is used to specify what commands will appear
 in a ``menu bar''.  It typically specifies the top-level commands of the
@@ -184,20 +190,23 @@ meaning that that command table's menu should be used; or a list, which is
 interpreted the same way the \cl{:menu} option to \cl{define-command-table} is
 interpreted.  The default is \cl{t}.
 
-\item \cl{:disabled-commands} \arg{commands}, where \arg{commands} is a list
-of command names that are initially disabled in the application frame.
-
-\item \cl{:command-definer} \arg{value}, where \arg{value} either \cl{nil},
-\cl{t}, or another symbol.  When it is \cl{nil}, no command-defining macro is
-defined.  When it is \cl{t}, a command-defining macro is defined, whose name is
-of the form \cl{define-{\it name}-command}.  When it is another symbol, the
-symbol names the command-defining macro.  The default is \cl{t}.
+\item \cl{:disabled-commands} \arg{commands}, where \arg{commands} is a list of
+command names that are initially disabled in the application frame.  The set of
+enabled and disabled commands can be modified via \cl{(setf~command-enabled)}.
 
 \item \cl{:top-level} \arg{form}, where \arg{form} is a list whose first
 element is the name of a function to be called to execute the top-level loop.
 The function must take at least one argument, the frame.  The rest of the list
 consists of additional arguments to be passed to the function.  The default
 function is \cl{default-frame-top-level}.
+
+\item \cl{:icon} \arg{pixmap} specifies a pixmap to be displayed by the host's
+window manager when the frame is iconified.
+
+\item \cl{:geometry} \arg{plist}, where \arg{plist} is a property list
+containing the default values for the \cl{:left}, \cl{:top}, \cl{:right},
+\cl{:bottom}, \cl{:width}, and \cl{:height} options to
+\cl{make-application-frame}.
 \end{itemize}
 
 The \arg{name}, \arg{superclasses}, and \arg{slots} arguments are not evaluated.
@@ -215,7 +224,9 @@ Makes an instance of the application frame of type \arg{frame-class}.  If
 \arg{frame-class} is not supplied, it defaults to \arg{frame-name}.
 
 The size options \arg{left}, \arg{top}, \arg{right}, \arg{bottom}, \arg{width},
-and \arg{height} can be used to specify the size of the frame.
+and \arg{height} can be used to specify the initial size of the frame.  If they
+are unsupplied and \cl{:geometry} was supplied to \cl{define-application-frame},
+then these arguments default from the specified geometry.
 
 \arg{options} are passed as additional arguments to \cl{make-instance}, after
 the \arg{pretty-name}, \arg{frame-manager}, \arg{enable}, \arg{state},
@@ -242,12 +253,38 @@ conjunction with \cl{with-slots} or \cl{slot-value}.
 
 \Defmacro {with-application-frame} {(frame) \body body}
 
-This macro provides lexical access to the ``current'' frame for use with the
-\cl{:pane}, \cl{:panes}, and \cl{:layouts} options.  \arg{frame} is bound to the
-current frame within the context of one of those options.  
+This macro provides lexical access to the ``current'' frame for use with
+commands and the \cl{:pane}, \cl{:panes}, and \cl{:layouts} options.
+\arg{frame} is bound to the current frame within the context of one of those
+options.
 
 \arg{frame} is a symbol; it is not evaluated.  \arg{body} may have zero or more
 declarations as its first forms.
+
+\Defun {map-over-frames} {function \key port frame-manager}
+
+Applies the function \arg{function} to all of the application frames that
+``match'' \arg{port} and \arg{frame-manager}.  If neither \arg{port} nor
+\arg{frame-manager} is supplied, all frames are considered to match.  If
+\arg{frame-manager} is supplied, only those frames that use that frame manager
+match.  If \arg{port} is supplied, only those frames that use that port match.
+
+\arg{function} is a function of one argument, the frame.  It has dynamic extent.
+
+
+\Defgeneric {destroy-frame} {frame} 
+
+Destroys the application frame \arg{frame}.
+
+\Defgeneric {raise-frame} {frame}
+
+Raises the application frame \arg{frame} to be on top of all of the other host
+windows by invoking \cl{raise-sheet} on the frame's top-level sheet.
+
+\Defgeneric {bury-frame} {frame}
+
+Buries the application frame \arg{frame} to be underneath all of the other host
+windows by invoking \cl{bury-sheet} on the frame's top-level sheet.
 
 
 \subsection {Specifying the Panes of a Frame\label{frame-panes}}
@@ -259,6 +296,9 @@ can be used.  Otherwise if named panes or multiple layouts are required, the
 option is mutually exclusive with \cl{:panes} and \cl{:layouts}.   It is
 meaningful to define frames that have no panes at all; the frame will simply
 serve as a repository for state and commands.
+
+Panes and gadgets are discussed in detail in Chapter~\ref{panes} and
+Chapter~\ref{gadgets}.
 
 The value of the \cl{:pane} option is a form that is used to create a single
 (albeit arbitrarily complex) pane.  For example:
@@ -284,7 +324,7 @@ If the \cl{:pane} option is not used, a set of named panes can be specified with
 the \cl{:panes} option.  Optionally, \cl{:layouts} can also be used to describe
 different layouts of the set of panes.
 
-The value of the \cl{:panes} option is an alist, each entry of which is of the
+The value of the \cl{:panes} option is a list, each entry of which is of the
 form \arg{(name . body)}.  \arg{name} is a symbol that names the pane, and
 \arg{body} specifies how to create the pane.  \arg{body} is either a list
 containing a single element that is itself a list, or a list consisting of a
@@ -297,14 +337,14 @@ example, \cl{slider} or \cl{push-button}).  For CLIM stream panes, the following
 abbreviations are defined:
 
 \begin{itemize}
-\item \cl{:interactor}---a pane of type \cl{interactor-pane}
+\item \cl{:interactor}---a pane of type \cl{interactor-pane}.
 
-\item \cl{:application}---a pane of type \cl{application-pane}
+\item \cl{:application}---a pane of type \cl{application-pane}.
 
-\item \cl{:command-menu}---a pane of type \cl{command-menu-pane}
+\item \cl{:command-menu}---a pane of type \cl{command-menu-pane}.
 
 \item \cl{:pointer-documentation}---a pane suitable for displaying pointer
-documentation, if the host window system does not provide this
+documentation, if the host window system does not provide this.
 
 \item \cl{:title}---a pane suitable for displaying the title of the application,
 if the host window system does not provide this.
@@ -332,13 +372,14 @@ An example of the use of \cl{:panes} is:
                :incremental-redisplay t))
 \end{verbatim}
 
-The value of the \cl{:layouts} option is an alist, each entry of which is of the
+The value of the \cl{:layouts} option is a list, each entry of which is of the
 form \arg{(name layout)}.  \arg{name} is a symbol that names the layout, and
 \arg{layout} specifies the layout.  \arg{layout} is a form like the form used in
 the \cl{:pane} option, with the extension to the syntax such that the name of a
-named pane can be used wherever a pane may appear.  For example, assuming a
-frame that uses the \cl{:panes} example above, the following layouts could be
-specified:
+named pane can be used wherever a pane may appear.  (This will typically be
+implemented by using \cl{symbol-macrolet} for each of the named panes.)  For
+example, assuming a frame that uses the \cl{:panes} example above, the following
+layouts could be specified:
 
 \begin{verbatim}
 (:layouts
@@ -354,6 +395,32 @@ specified:
       (horizontally ()
         button toggle))))
 \end{verbatim}
+
+The syntax for \cl{:layouts} can be concisely expressed as:
+
+\begin{description}
+\item \cl{:layouts (\arg{layout-name layout-panes})}
+
+\item \arg{layout-name} is a symbol.
+
+\item \arg{layout-panes} is \arg{layout-panes1} or \cl{(\arg{size-spec layout-panes1})}.
+
+\item \arg{layout-panes1} is a \arg{pane-name}, or a \arg{layout-macro-form}, or
+\arg{layout-code}.
+
+\item \arg{layout-code} is lisp code that generates a pane, which may include
+the name of a named pane.
+
+\item \arg{size-spec} is a rational number less than 1, or \cl{:fill}, or
+\cl{:compute}.
+
+\item \arg{layout-macro-form} is \cl{(\arg{layout-macro-name} (\arg{options}) .
+\arg{body})}.
+
+\item \arg{layout-macro-name} is one of the layout macros, such as
+\cl{outlining}, \cl{spacing}, \cl{labelling}, \cl{vertically}, \cl{horizontally},
+or \cl{tabling}.
+\end{description}
 
 
 \section {Application Frame Functions}
@@ -374,7 +441,9 @@ Returns the ``pretty name'' of the \term{frame} \arg{frame}, which is a string.
 \Defgeneric {(setf frame-pretty-name)} {name frame}
 
 Sets the pretty name of the \term{frame} \arg{frame} to \arg{name}, which must
-be a string.
+be a string.  Changing the pretty name of a frame notifies its frame manager,
+which in turn may change some aspects of the appearance of the frame, such as
+its title bar.
 
 
 \Defgeneric {frame-command-table} {frame}
@@ -393,7 +462,7 @@ bar) as needed.  \arg{command-table} is a \term{command table designator}.
 Returns the stream that will be used for \cl{*standard-output*} for the
 \term{frame} \arg{frame}.  The default method (on
 \cl{standard-application-frame}) returns the first named pane of type
-\cl{application-pane} that is exposed in the current layout; if there is no such
+\cl{application-pane} that is visible in the current layout; if there is no such
 pane, it returns the first pane of type \cl{interactor-pane} that is exposed in
 the current layout.
 
@@ -402,7 +471,7 @@ the current layout.
 Returns the stream that will be used for \cl{*standard-input*} for the
 \term{frame} \arg{frame}.  The default method (on
 \cl{standard-application-frame}) returns the first named pane of type
-\cl{interactor-pane} that is exposed in the current layout; if there is no such
+\cl{interactor-pane} that is visible in the current layout; if there is no such
 pane, the value returned by {frame-standard-output} is used.
 
 \Defgeneric {frame-query-io} {frame}
@@ -445,16 +514,22 @@ This often, but not always, returns the same value as \cl{frame-manager}.
 
 \Defgeneric {frame-panes} {frame}
 
-Returns a list of all of the \term{frame} \arg{frame}'s named panes.  This
-includes panes in the current layout, and panes in other layouts as well.  If
-there are no named panes (that is, the \cl{:pane} option was used), only the
-single, top level pane is returned.
-\ReadOnly
+Returns the pane that is the top-level pane in the current layout of the
+\term{frame} \arg{frame}'s named panes.  This will typically be some sort of a
+layout pane.
+
+\Defgeneric {frame-top-level-sheet} {frame}
+
+Returns the sheet that is the top-level sheet for the \term{frame} \arg{frame}.
+This is the sheet that has as its descendents all of the panes of \arg{frame}.
+
+The value returned by \cl{frame-panes} will be a descendents of the value of
+\cl{frame-top-level-sheet}.
 
 \Defgeneric {frame-current-panes} {frame}
 
 Returns a list of those named panes in the \term{frame} \arg{frame}'s current
-layout.  If there are no named panes (that is, the \cl{:pane} option was used),
+layout.  If there are no named panes (for example, the \cl{:pane} option was used),
 only the single, top level pane is returned.
 \ReadOnly
 
@@ -468,15 +543,6 @@ Returns the named CLIM stream pane in the \term{frame} \arg{frame} whose name is
 Returns the pane in the \term{frame} \arg{frame} whose name is \arg{pane-name}.
 This can return any type of pane, not just CLIM stream panes.
 
-
-\Defgeneric {frame-top-level-sheet} {frame}
-
-Returns the sheet that is the top-level sheet for the \term{frame} \arg{frame}.
-This is the sheet that has as its descendents all of the panes of \arg{frame}.
-
-\Defgeneric {frame-pane} {frame}
-
-Returns the pane that is the top level pane of the current layout of the frame.
 
 \Defgeneric {frame-current-layout} {frame}
 
@@ -495,6 +561,10 @@ implementations of CLIM may cause the application to ``throw'' all the way back
 to \cl{run-frame-top-level} in order to do this.  After the new layout has been
 computed, the contents of each of the panes must be displayed to the degree
 necessary to ensure that all output is visible.
+
+\Defgeneric {frame-all-layouts} {frame}
+
+Returns a list of the names of all of the possible layouts for the frame.
 
 \Defgeneric {layout-frame} {frame \optional width height}
 
@@ -515,24 +585,42 @@ In either case, after the frame is resized, the space allocation pass of the
 layout protocol is invoked on the top-level pane.
 
 
-\Defrestart {frame-exit}
+\Defcondition {frame-exit}
 
-The restart that is invoked when \cl{frame-exit} is called.
+The condition that is signalled when \cl{frame-exit} is called.  This condition
+will handle the \cl{:frame} initarg, which is used to supply the frame that is
+being exited from.
+
+\Defgeneric {frame-exit-frame} {condition}
+
+Returns the frame that is being exited from associated with the \cl{frame-exit}
+condition.
 
 \Defgeneric {frame-exit} {frame}
 
 Exits from the \term{frame} \arg{frame}.  The default method (on
-\cl{standard-application-frame}) invokes the \cl{frame-exit} restart.
+\cl{standard-application-frame}) signals a \cl{frame-exit} condition, supplying
+\arg{frame} as the \cl{:frame} initarg.
 
 
-\defgeneric {panes-need-redisplay} {frame}
-\Defgeneric {pane-needs-redisplay} {frame pane}
+\Defgeneric {pane-needs-redisplay} {pane}
 
-\cl{panes-need-redisplay} indicates that all of the panes in the \term{frame}
-\arg{frame} should be redisplayed the next time around the command loop.
-\cl{pane-needs-redisplay} causes only the pane \arg{pane} within \arg{frame} to
-be redisplayed the next time around the command loop; in this case, \arg{pane}
-is either a pane or the name of a named pane.
+Returns two values, the first indicating whether the \term{pane} \arg{pane}
+needs to be redisplayed, and the second indicating whether the pane needs to be
+cleared before being redisplayed.  The first value is \term{true} when the pane
+is to be redisplayed.  The second value is \term{true} when the pane is to be
+cleared.
+
+\Defgeneric {(setf pane-needs-redisplay)} {value pane}
+
+Indicates that the \term{pane} \arg{pane} should (or should not) be redisplayed
+the next time the owning frame executes the redisplay part of its command loop.
+
+When \arg{value} is \cl{nil}, the pane will not require redisplay.  When
+\arg{value} is \cl{t}, the pane will be cleared and redisplayed exactly once.
+When \arg{value} is \cl{:command-loop}, the pane will be cleared and redisplayed
+in each successive pass through the command loop.  When \arg{value} is
+\cl{:no-clear}, the pane will be redisplayed exactly once without clearing it.
 
 \Defgeneric {redisplay-frame-pane} {frame pane \key force-p}
 
@@ -556,16 +644,21 @@ region specified by the region \arg{region}, which defaults to viewport of
 \arg{stream}.
 
 
-\Defgeneric {notify-user} {frame format-string \rest format-args}
+\Defgeneric {notify-user} {frame message
+                           \key associated-window title documentation
+                                exit-boxes name style text-style
 
 Notifies the user of some event on behalf of the \term{frame} \arg{frame}.
-\arg{format-string} and \arg{format-args} are arguments allowable by
-\cl{format}.
+\arg{message} is a message string.  This function provides a look and feel
+independent way for applications to communicate messages to the user.
 
-This function is intended to provide a look and feel independent way for
-applications to communicate messages to the user.  For example, a frame manager
-might provide a top-level message window or a message window for each frame, or
-might pop up an alert box.
+\arg{associated-window} is the window with which the notification will be
+associated, as it is for \cl{menu-choose}.  \arg{title} is a title string to
+include in the notification.  \arg{text-style} is the text style in which to
+display the notification.  \arg{exit-boxes} is as for \arg{accepting-values}; it
+indicates what sort of exit boxes should appear in the notification.
+\arg{style} is the style in which to display the notification, and is
+implementation-dependent.
 
 
 \defgeneric {frame-properties} {frame property}
@@ -700,13 +793,13 @@ All classes that inherit from \cl{application-frame} must inherit or implement
 methods for all of the following functions.
 
 
-\Defgeneric {run-frame-top-level} {frame}
+\Defgeneric {run-frame-top-level} {frame \key \allow}
 
 Runs the top-level function for the \term{frame} \arg{frame}.  The default
 method on \cl{application-frame} simply invokes the top-level function for the
 frame (which defaults to \cl{default-frame-top-level}).
 
-\Defaroundmethod {run-frame-top-level} {(frame \cl{application-frame})}
+\Defaroundmethod {run-frame-top-level} {(frame \cl{application-frame}) \key}
 
 The \cl{:around} method of \cl{run-frame-top-level} on the
 \cl{application-frame} class is responsible for establish the initial dynamic
@@ -751,7 +844,7 @@ interactor, otherwise it defaults to
 \arg{command-parser}, \arg{command-unparser}, and \arg{partial-command-parser}.
 
 
-\Defgeneric {read-frame-command} {frame stream}
+\Defgeneric {read-frame-command} {frame \key (stream \cl{*standard-input*})}
 
 Reads a command from the stream \arg{stream} on behalf of the \term{frame}
 \arg{frame}.  The returned value is a command object.
@@ -769,6 +862,12 @@ of the command's arguments.
 The default method (on \cl{standard-application-frame}) for
 \cl{execute-frame-command} simply applies the \cl{command-name} of \arg{command}
 to \cl{command-arguments} of \arg{command}.
+
+If process that \cl{execute-frame-command} is invoked in is not the same process
+the one \arg{frame} is running in, CLIM may need to make special provisions in
+order for the command to be correctly executed, since as queueing up a special
+``command event'' in \arg{frame}'s event queue.  The exact details of how this
+should work is left unspecified.
 
 
 \Defgeneric {command-enabled} {command-name frame}
@@ -788,15 +887,16 @@ If \arg{enabled} is \term{false}, this disables the use of the command named by
 \arg{command-name} while in the \term{frame} \arg{frame}.  Otherwise if
 \arg{enabled} is \term{true}, the use of the command is enabled.  After the
 command has been enabled (or disabled), \cl{note-command-enabled} (or
-\cl{note-command-disabled}) is invoked on the frame manager in order to update
-the appearance of the interface.
+\cl{note-command-disabled}) is invoked on the frame manager and the frame in
+order to update the appearance of the interface, for example, ``graying out'' a
+disabled command.
 
 If \arg{command-name} is not accessible to the command table being used by
 \arg{frame}, using \cl{setf} on \cl{command-enabled} does nothing.
 
 
 \Defgeneric {display-command-menu} {frame stream
-                                    \key command-table initial-spacing
+                                    \key command-table initial-spacing row-wise
                                          max-width max-height n-rows n-columns
                                          (cell-align-x \cl{:left}) (cell-align-y \cl{:top})}
 
@@ -805,8 +905,9 @@ calling \cl{display-command-table-menu}.  If \arg{command-table} is not
 supplied, it defaults to \cl{(frame-command-table \arg{stream})}.  This function
 is generally used as the display function for panes that contain command menus.
 
-\arg{initial-spacing}, \arg{max-width}, \arg{max-height}, \arg{n-rows}, \arg{n-columns},
-\arg{cell-align-x}, and \arg{cell-align-y} are as for \cl{formatting-item-list}.
+\arg{initial-spacing}, \arg{max-width}, \arg{max-height}, \arg{n-rows},
+\arg{n-columns}, \arg{row-wise}, \arg{cell-align-x}, and \arg{cell-align-y} are
+as for \cl{formatting-item-list}.
 
 
 \section {Frame Managers}
@@ -839,7 +940,7 @@ There are no advertised standard frame manager classes.  Each port will
 implement one or more frame managers that correspond to the look and feel for
 the port.
 
-\Defun {frame-mananger-p} {object}
+\Defpredicate {frame-mananger-p} {object}
 
 Returns \term{true} if \arg{object} is a \term{frame manager}, otherwise returns
 \term{false}.
@@ -952,6 +1053,14 @@ with a frame.  For example, removing a frame from a frame manager that is
 talking to a remote server allows it to release all remote resources used by the
 frame.
 
+\Defmethod {port} {(frame \cl{standard-application-frame})}
+
+If \arg{frame} has been adopted by a frame manager, this returns the port with
+which \arg{frame} is associated.  Otherwise it returns \cl{nil}.
+
+\Defmethod {port} {(frame-manager \cl{standard-frame-manager})}
+
+Returns the port with which \arg{frame-manager} is associated.
 
 \Defgeneric {frame-state} {frame}
 
@@ -962,38 +1071,23 @@ indicating the current state of frame.
 \defgeneric {disable-frame} {frame}
 \Defgeneric {shrink-frame} {frame}
 
-These functions force a frame into the enabled, disabled, or shrunken states.  A
-frame in the enabled state may be visible if it is not occluded or placed out of
-the user's focus of attention.  A disabled frame is never visible.  A shrunk
-frame is accessible to the user for re-enabling, but may be represented in some
-abbreviated form, such as an icon or a menu item.
+These functions force a frame into the enabled, disabled, or shrunken
+(iconified) states.  A frame in the enabled state may be visible if it is not
+occluded or placed out of the user's focus of attention.  A disabled frame is
+never visible.  A shrunk frame is accessible to the user for re-enabling, but
+may be represented in some abbreviated form, such as an icon or a menu item.
 
-These functions call \cl{note-frame-state-changed} to notify the frame manager
-that the state of the frame changed.
+These functions call the notification functions describe below to notify the
+frame manager that the state of the frame changed.
 
-\Defgeneric {note-frame-state-changed} {frame-manager frame new-state}
+\defgeneric {note-frame-enabled} {frame-manager frame}
+\defgeneric {note-frame-disabled} {frame-manager frame}
+\defgeneric {note-frame-iconified} {frame-manager frame}
+\Defgeneric {note-frame-deiconified} {frame-manager frame}
 
-Notifies the frame manager \arg{frame-manager} that the frame \arg{frame}
-has changed its state to \arg{state}.
-
-
-\Defgeneric {generate-panes} {frame-manager frame}
-
-This function is invoked by a standard method of \cl{adopt-frame}.  It is the
-responsibility of the frame implementor to provide a method that invokes
-\cl{setf} of \cl{frame-pane} on the frame with a value of type \cl{pane}.
-\cl{define-application-frame} automatically supplies a \cl{generate-panes}
-method if either the \cl{:pane} or \cl{:panes} option is used in the
-\cl{define-application-frame}.
-
-\Defgeneric {find-pane-for-frame} {frame-manager frame}
-
-This function is invoked by a standard method of \cl{adopt-frame}.  It must
-return the root pane of the frame's layout.  It is the responsibility of the
-frame implementor to provide a method that constructs the frame's top-level
-pane.  \cl{define-application-frame} automatically supplies a a method for this
-function if either the \cl{:pane} or \cl{:panes} option is used in the
-\cl{define-application-frame}.
+Notifies the frame manager \arg{frame-manager} that the frame \arg{frame} has
+changed its state to the enabled, disabled, iconified, or deiconified state,
+respectively.
 
 
 \defgeneric {note-command-enabled} {frame-manager frame command-name}
@@ -1006,6 +1100,36 @@ as appropriate, for instance, by ``graying out'' a newly disabled command from a
 command menu or menu bar.
 
 
+\Defgeneric {frame-manager-notify-user} {framem message-string
+                                         \key frame associated-window title documentation
+                                              exit-boxes name style text-style}
+
+This is the generic function used by \cl{notify-user}.  The arguments are as for
+\cl{notify-user}.  The default method on \cl{standard-frame-manager} will
+display a dialog or an alert box that contains the message and has exit boxes
+that allow the user to dismiss the notification.
+
+
+\Defgeneric {generate-panes} {frame-manager frame}
+
+This function is invoked by a standard method of \cl{adopt-frame}.
+\cl{define-application-frame} automatically supplies a \cl{generate-panes}
+method if either the \cl{:pane} or \cl{:panes} option is used in the
+\cl{define-application-frame}.
+
+It is the responsibility of this method to call \cl{setf} on \cl{frame-panes} on
+the frame in order to set the current
+
+\Defgeneric {find-pane-for-frame} {frame-manager frame}
+
+This function is invoked by a standard method of \cl{adopt-frame}.  It must
+return the root pane of the frame's layout.  It is the responsibility of the
+frame implementor to provide a method that constructs the frame's top-level
+pane.  \cl{define-application-frame} automatically supplies a a method for this
+function if either the \cl{:pane} or \cl{:panes} option is used in the
+\cl{define-application-frame}.
+
+
 \subsection {Frame Manager Settings}
 
 CLIM provides frame manager settings in order to allow a frame to communicate
@@ -1015,7 +1139,7 @@ information to its frame manager.
 
 Sets the setting \arg{setting} to \arg{value} for the frame \arg{frame}.
 
-\Defgeneric {reset-frame} {frame \rest new-client-settings}
+\Defgeneric {reset-frame} {frame \rest client-settings}
 
 Resets the settings of frame.  \cl{reset-frame} invokes a protocol that forces
 the frame manager to notice that the settings have changed, where the setf
@@ -1041,7 +1165,7 @@ The following is an example that outlines a simple 4-by-4 sliding piece puzzle:
                    :height :compute
                    :incremental-redisplay T
                    :display-function 'draw-puzzle))))
-  (:layout
+  (:layouts
     (:default display)))
 
 (defmethod run-frame-top-level :before ((puzzle puzzle))
@@ -1092,7 +1216,7 @@ The following is an application frame with two layouts:
     (e :interactor-pane
        :width 300 :max-width +fill+
        :height 300 :max-height +fill+))
-  (:layout
+  (:layouts
     (default 
       (vertically ()
         a b c (scrolling () e)))

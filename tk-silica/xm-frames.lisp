@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-frames.lisp,v 1.48 93/02/10 10:04:22 cer Exp $
+;; $fiHeader: xm-frames.lisp,v 1.49 93/03/18 14:39:04 colin Exp $
 
 (in-package :xm-silica)
 
@@ -464,16 +464,51 @@
   (tk::is-managed-p menu))
 
 
-;;;; 
+;;; Progress notification code.
 
-#|
+(defvar *working-dialog* nil)
 
-(defmethod frame-manager-clear-progress-note 
-    ((framem motif-frame-manager) (note progress-note))
-  )
+(defmethod clim-internals::frame-manager-invoke-with-noting-progress ((framem motif-frame-manager)
+						      note
+						      continuation)
+  (if *working-dialog*
+      (let ((old-string (tk::get-values *working-dialog* :message-string)))
+	(unwind-protect
+	    (progn
+	      (tk::set-values *working-dialog* :message-string (string (progress-note-name note)))
+	      (funcall continuation note))
+	  (tk::set-values *working-dialog* :message-string old-string)))
+    (let ((dialog (make-instance 'xt::xm-working-dialog
+					   :dialog-style :primary-application-modal
+					   :managed nil
+					   :parent (let ((stream (slot-value note 'stream)))
+						     (if stream
+							 (frame-shell (pane-frame stream))
+						       (frame-shell *application-frame*)))
+					   :name "Working"
+					   :dialog-title "Progress Note"
+					   :resize-policy :grow
+					   :message-string 
+					   (format nil "~A      "(progress-note-name note)))))
+      (multiple-value-bind
+	  (ok-button cancel-button help-button separator)
+	  (get-message-box-child dialog :ok :cancel :help :separator)
+	(tk::unmanage-child help-button)
+	(xt::unmanage-child cancel-button)
+	(tk::unmanage-child ok-button)
+	(tk::unmanage-child separator))
+      (unwind-protect
+	  (progn
+	    (tk::manage-child dialog)
+	    (let ((*working-dialog* dialog))
+	    (funcall continuation note)))
+	(tk::destroy-widget dialog)))))
 
-(defmethod frame-manager-display-progress-note
-    ((framem motif-frame-manager) (note progress-note))
-  )
-
-|#
+(defmethod clim-internals::frame-manager-display-progress-note
+    ((framem motif-frame-manager) note)
+  (with-slots ((name clim-internals::name)
+	       (stream clim-internals::stream)
+	       (numerator clim-internals::numerator)
+	       (denominator clim-internals::denominator)) note
+    (tk::set-values *working-dialog* 
+		    :message-string (format nil "~A: ~3D%" name (round (* 100 numerator) denominator)))))

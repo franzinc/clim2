@@ -89,23 +89,26 @@ the default is \cl{eql}.  \arg{duplicate-key} and \arg{duplicate-test} have
 dynamic extent.
 
 \arg{generation-separation} is the amount of space to leave between successive
-generations of the graph; the default is 20.  \arg{within-generation-separation}
-is the amount of space to leave between nodes in the same generation of the
-graph; the default is 10.  \arg{generation-separation} and
-\arg{within-generation-separation} are specified in the same way as the
-\arg{inter-row-spacing} argument to \cl{formatting-table}.
+generations of the graph; the default should be chosen so that the resulting
+graph is visually pleasing.  \arg{within-generation-separation} is the amount of
+space to leave between nodes in the same generation of the graph; the default
+should be chosen so that the resulting graph is visually pleasing.
+\arg{generation-separation} and \arg{within-generation-separation} are specified
+in the same way as the \arg{inter-row-spacing} argument to
+\cl{formatting-table}.
 
 When \arg{center-nodes} is \term{true}, each node of the graph is centered with
 respect to the widest node in the same generation.  The default is \term{false}.
 
 \arg{arc-drawer} is a function of seven positional and some unspecified keyword
 arguments that is responsible for drawing the arcs from one node to another; it
-has dynamic extent.  The positional arguments are the stream, the ``from'' node,
-the ``to'' node, the ``from'' $x$ and $y$ position, and the ``to'' $x$ and $y$
-position.  The keyword arguments gotten from \arg{arc-drawing-options} are
-typically line drawing options, such as for \cl{draw-line*}.  If \arg{arc-drawer}
-is unsupplied, the default behavior is to draw a thin line from the ``from'' node
-to the ``to'' node using \cl{draw-line*}.
+has dynamic extent.  The positional arguments are the stream, the ``from''
+node's object, the ``to'' node's object, the ``from'' $x$ and $y$ position, and
+the ``to'' $x$ and $y$ position.  The keyword arguments gotten from
+\arg{arc-drawing-options} are typically line drawing options, such as for
+\cl{draw-line*}.  If \arg{arc-drawer} is unsupplied, the default behavior is to
+draw a thin line from the ``from'' node to the ``to'' node using
+\cl{draw-line*}.
 
 \arg{graph-type} is a keyword that specifies the type of graph to draw.  All
 CLIM implementations must support graphs of type \cl{:tree},
@@ -139,7 +142,7 @@ the graph output record.
 The protocol class that represents a graph; a subclass of \cl{output-record}.
 \IfYouWantClass {a} {graph output record} {graph-output-record}
 
-\Defun {graph-output-record-p} {object}
+\Defpredicate {graph-output-record-p} {object}
 
 Returns \term{true} if \arg{object} is a \term{graph output record}, otherwise
 returns \term{false}.
@@ -201,7 +204,7 @@ those graph node output records that correspond to the root objects.
 \arg{duplicate-key}, and \arg{duplicate-test} are as for
 \cl{format-graph-from-roots}.
 
-\Defgeneric {layout-graph-nodes} {graph-record stream}
+\Defgeneric {layout-graph-nodes} {graph-record stream arc-drawer arc-drawing-options} 
 
 This function is responsible for laying out the nodes in the graph contained in
 the output record \arg{graph-record}.  It is called after the graph output has
@@ -224,7 +227,7 @@ The protocol class that represents a node in graph; a subclass of
 \cl{output-record}.
 \IfYouWantClass {a} {graph node output record} {graph-node-output-record}
 
-\Defun {graph-node-output-record-p} {object}
+\Defpredicate {graph-node-output-record-p} {object}
 
 Returns \term{true} if \arg{object} is a \term{graph node output record},
 otherwise returns \term{false}.

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: packages.lisp,v 1.48 93/03/04 19:02:59 colin Exp $
+;; $fiHeader: packages.lisp,v 1.49 93/03/18 14:58:25 colin Exp $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :common-lisp-user)
 
@@ -2754,6 +2754,7 @@
     activity-frame-window-close
     activity-frame-window-select
     activity-quit
+    destroy-activity
     frame-activity
     select-activity-active-frame
     start-application-frame

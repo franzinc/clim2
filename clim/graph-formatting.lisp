@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graph-formatting.lisp,v 1.23 93/01/18 13:54:36 cer Exp $
+;; $fiHeader: graph-formatting.lisp,v 1.24 93/01/21 14:57:59 cer Exp $
 
 (in-package :clim-internals)
 
@@ -152,8 +152,10 @@
 				 &key object duplicate-key duplicate-test &allow-other-keys)
   (when (or (and (null object)
 		 (null (graph-node-object record)))
-	    (funcall duplicate-test (funcall duplicate-key object)
-		     (funcall duplicate-key (graph-node-object record))))
+	    (and duplicate-key 
+		 duplicate-test
+		 (funcall duplicate-test (funcall duplicate-key object)
+			  (funcall duplicate-key (graph-node-object record)))))
     (setf (graph-node-parents record) nil
 	  (graph-node-children record) nil)
     t))
@@ -677,7 +679,7 @@ circular graphs without accounting for this case.
       (dolist (root root-nodes)
 	(traverse root 0)))))
 
->(defmethod add-graph-filler-output-records ((graph directed-graph-output-record) stream)
+(defmethod add-graph-filler-output-records ((graph directed-graph-output-record) stream)
   (with-slots (root-nodes) graph
     (labels ((traverse (node)
 	       (let* ((gen (graph-node-generation node))

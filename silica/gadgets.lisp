@@ -1,6 +1,6 @@
 ;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadgets.lisp,v 1.45 93/02/08 15:57:32 cer Exp $
+;; $fiHeader: gadgets.lisp,v 1.46 93/03/18 14:38:01 colin Exp $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
@@ -450,7 +450,7 @@
 	     :accessor gadget-lines)
      (word-wrap :initarg :word-wrap
 		:accessor gadget-word-wrap))
-  (:default-initargs :ncolumns 1 :nlines 1 :editable-p t :word-wrap nil))
+  (:default-initargs :ncolumns 30 :nlines 1 :editable-p t :word-wrap nil))
 
 
 ;;; Viewport
@@ -486,16 +486,22 @@
 	:width width :min-width 0 :max-width max-width
 	:height height :min-height 0 :max-height max-height))))
 
+
 (defmethod allocate-space ((viewport viewport) width height)
   ;; Make sure the child is at least as big as the viewport
   ;; (VIEWPORT-REGION-CHANGED actually does this also)
   (let* ((child (sheet-child viewport)))
-    (multiple-value-bind (cwidth cheight)
-	(bounding-rectangle-size child)
-      (when (or (< cwidth width)
-		(< cheight height))
-	(resize-sheet
-	  child (max width cwidth) (max height cheight))))))
+    (if (typep child 'clim-stream-pane)
+	(multiple-value-bind (cwidth cheight)
+	    (bounding-rectangle-size child)
+	  (when (or (< cwidth width)
+		    (< cheight height))
+	    (resize-sheet
+	     child (max width cwidth) (max height cheight))))
+      (progn
+	(let ((sr (compose-space child :width width :height height)))
+	  (resize-sheet child (space-requirement-width sr)
+			(space-requirement-height sr)))))))
 
 (defmethod allocate-space :after ((viewport viewport) width height)
   (let ((vr (viewport-viewport-region viewport)))
@@ -518,6 +524,22 @@
 		  (progn
 		    (update-scroll-bars viewport)
 		    (viewport-region-changed (sheet-child viewport) viewport))))))))))
+
+;;-- This method seems applicable to a whole bunch of panes.
+;;-- The problem we have is that a whole bunch of panes dont get the
+;;-- right background so it looks crap.
+
+#+ignore
+(defmethod repaint-sheet ((sheet viewport) region)
+  (let ((region (region-intersection (sheet-region sheet) region)))
+    (dolist (child (sheet-children sheet))
+      (setq region (region-difference region (transform-region (sheet-transformation child) (sheet-region child)))))
+    (with-sheet-medium (medium sheet)
+      (with-drawing-options (medium  :ink +background-ink+)
+	(dolist (rect (region-set-regions region))
+	  (unless (eq +nowhere+ rect)
+	    (with-bounding-rectangle* (left top right bottom) rect
+	      (draw-rectangle* medium left top right bottom))))))))
 
 (defmethod note-space-requirements-changed ((pane viewport) inner)
   (declare (ignore inner))

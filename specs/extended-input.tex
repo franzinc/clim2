@@ -29,17 +29,17 @@ Returns the next character available in the \term{input stream} \arg{stream}, or
 \cl{:eof} if the stream is at end-of-file.  If no character is available this
 function will wait until one becomes available.
 
+\Defgeneric {stream-read-char-no-hang} {stream}
+
+Like \cl{stream-read-char}, except that if no character is available the
+function returns \term{false}.
+
 \Defgeneric {stream-unread-char} {stream character}
 
 Places the character \arg{character} back into the \term{input stream}
 \arg{stream}'s input buffer.  The next call to \cl{read-char} on \arg{stream}
 will return the unread character.  The character supplied must be the most
 recent character read from the stream.
-
-\Defgeneric {stream-read-char-no-hang} {stream}
-
-Like \cl{stream-read-char}, except that if no character is available the
-function returns \term{false}.
 
 \Defgeneric {stream-peek-char} {stream}
 
@@ -78,7 +78,7 @@ The protocol class for CLIM extended input streams.  This is a subclass of
 \cl{input-stream}.
 \IfYouWantClass {an} {extended input stream} {extended-input-stream}
 
-\Defun {extended-input-stream-p} {object}
+\Defpredicate {extended-input-stream-p} {object}
 
 Returns \term{true} if \arg{object} is a CLIM \term{extended input stream},
 otherwise returns \term{false}.
@@ -118,29 +118,12 @@ on one of them is available to an input call on any of the streams.  The input
 buffer must be vector with a fill pointer capable of holding general input
 gesture objects (such as characters and event objects).
 
-\Defgeneric {stream-pointers} {stream}
-
-Returns the list of pointer objects corresponding to the pointing devices of the
-port associated with \arg{stream}.
-\ReadOnly
-
-\Defgeneric {stream-primary-pointer} {stream}
-\Defgeneric {(setf stream-primary-pointer)} {pointer stream}
-
-Returns (or sets) the pointer object corresponding to the primary pointing
-device of the console.
-
-{\bf Note:} CLIM currently supports only a single pointer for any port.
-Therefore, the length of the list returned by \cl{stream-pointers} will always
-be one, and \cl{stream-primary-pointer} will always return an object that is the
-only element of that list.
-
 \Defgeneric {stream-pointer-position} {stream \key pointer}
 
 Returns the current position of the pointing device \arg{pointer} for the
 \term{extended input stream} \arg{stream} as two values, the $x$ and $y$
 positions in the stream's drawing surface coordinate system.  If \arg{pointer}
-is not supplied, it defaults to the \cl{stream-primary-pointer} of the stream.
+is not supplied, it defaults to \cl{port-pointer} of the stream's port.
 
 \Defgeneric {(setf* stream-pointer-position)} {x y stream \key pointer}
 
@@ -148,16 +131,14 @@ Sets the position of the pointing device for the \term{extended input stream}
 \arg{stream} to \arg{x} and \arg{y}, which are integers.  \arg{pointer} is as
 for \cl{stream-pointer-position}.
 
+For CLIM implementations that do not support \cl{setf*}, the ``setter'' function
+for this is \cl{stream-set-pointer-position}.
 
 \Defgeneric {stream-set-input-focus} {stream}
 
-Sets the ``input focus'' to the \term{extended input stream} \arg{stream} and
-returns the old input focus as its value.
-
-\Defgeneric {stream-restore-input-focus} {stream old-focus}
-
-Restores the ``input focus'' of the \term{extended input stream} \arg{stream} to
-\arg{old-focus}.
+Sets the ``input focus'' to the \term{extended input stream} \arg{stream} by
+changing the value of \cl{port-keyboard-input-focus} and returns the old input
+focus as its value.
 
 \Defmacro {with-input-focus} {(stream) \body body}
 
@@ -209,9 +190,9 @@ condition will be signalled.
 
 \cl{stream-read-gesture} works by invoking \cl{stream-input-wait} on
 \arg{stream}, \arg{input-wait-test}, and \arg{timeout}, and then processing the
-input, if there is any.  \cl{:around} methods on this generic function invoke a
-gesture preprocessing mechanism on every gesture.  For a discussion of this
-facility, see the Section~\ref{gesture-preproc}.
+input, if there is any.  \cl{:around} methods on this generic function can be
+used to implement some sort of a gesture preprocessing mechanism on every
+gesture; CLIM's input editor will typically be implemented this way.
 
 \arg{timeout} is either \cl{nil} or an integer that specifies the number of
 seconds that \cl{stream-read-gesture} will wait for input to become available.
@@ -275,7 +256,9 @@ the \cl{:abort} gesture name.
 \Defcondition {abort-gesture}
 
 This condition is signalled by \cl{read-gesture} whenever an abort gesture (one
-of the gestures in \cl{*abort-gestures*} is read from the user.
+of the gestures in \cl{*abort-gestures*} is read from the user.  This condition
+will handle the \cl{:event} initarg, which is used to supply the event
+corresponding to the abort gesture.
 
 \Defgeneric {abort-gesture-event} {condition}
 
@@ -290,12 +273,15 @@ The global value for this is \cl{nil}.
 \Defcondition {accelerator-gesture}
 
 This condition is signalled by \cl{read-gesture} whenever an keystroke
-accelerator gesture (one of the gestures in \cl{*accelerator-gestures*} is
-read from the user.
+accelerator gesture (one of the gestures in \cl{*accelerator-gestures*} is read
+from the user.  This condition will handle the \cl{:event} and the
+\cl{:numeric-argument} initargs, which are used to supply the event
+corresponding to the abort gesture and the accumulated numeric argument (which
+defaults to 1).
 
 \Defgeneric {accelerator-gesture-event} {condition}
 
-Returns the event that cause the accelerator gesture condition to be signalled.
+Returns the event that caused the accelerator gesture condition to be signalled.
 \cl{condition} is an object of type \cl{accelerator-gesture}.
 
 \Defgeneric {accelerator-gesture-numeric-argument} {condition}
@@ -345,13 +331,16 @@ gesture that corresponds to a standard printing character, it may be enough to
 represent the gesture object as a character.
 
 
-\Defmacro {define-gesture-name} {name type gesture-spec}
+\Defmacro {define-gesture-name} {name type gesture-spec \key (unique \cl{t})} 
 
 Defines a new gesture named by the symbol \arg{name}.  \arg{type} is the type of
 gesture being created, and must be one of the symbols described below.
 \arg{gesture-spec} specifies the physical gesture that corresponds to the named
 gesture; its syntax depends on the value of \arg{type}.
 \cl{define-gesture-name} must expand into a call to \cl{add-gesture-name}.
+
+If \arg{unique} is \term{true}, all old gestures named by \arg{name} are first
+removed.  \arg{unique} defaults to \cl{t}.
 
 None of the arguments to \cl{define-gesture-name} is evaluated.
 
@@ -378,7 +367,7 @@ naming the character (\cl{:newline}, \cl{:linefeed}, \cl{:return}, \cl{:tab},
 \cl{:backspace}, \cl{:page}, and \cl{:rubout}).  CLIM implementations may extend
 the set of key names on a per-port basic, but should choose a port-specific
 package.  For example, the Genera port might such gestures as include
-\cl{clim-genera:help} and \cl{clim-genera:complete}.
+\cl{genera-clim:help} and \cl{genera-clim:complete}.
 
 The names of the modifier keys have been chosen to be uniform across all
 platforms, even though not all platforms will have keys on the keyboard with
@@ -435,6 +424,12 @@ is because CLIM implicitly assumes that the canonical set of gesture names is
 the same on every port, and only the mappings differ from port to port.  Some
 ports may define additional gesture names, but they will simply not be mapped on
 other ports.  Is this a reasonable assumption?}
+
+\Defun {make-modifier-state} {\rest modifiers}
+
+Given a list of modifier state names, this creates an integer that serves as a
+modifier key state.  The legal modifier state names are \cl{:shift},
+\cl{:control}, \cl{:meta}, \cl{:super}, and \cl{:hyper}.
 
 
 \subsection {Standard Gesture Names}
@@ -506,7 +501,7 @@ The protocol class that corresponds to a pointing device.
 \IfYouWantClass {a} {pointer} {pointer}
 \Mutable
 
-\Defun {pointerp} {object}
+\Defpredicate {pointerp} {object}
 
 Returns \term{true} if \arg{object} is a \term{pointer}, otherwise returns
 \term{false}.
@@ -520,19 +515,17 @@ associated.
 
 The instantiable class that implements a pointer.
 
-\Defgeneric {pointer-port} {pointer}
-
-Returns the port with which the \term{pointer} \arg{pointer} is associated.
-
 \defgeneric {pointer-sheet} {pointer}
 \Defgeneric {(setf pointer-sheet)} {sheet pointer}
 
 Returns (or sets) the sheet over which the \term{pointer} \arg{pointer} is located.
 
-\Defgeneric {pointer-buttons} {pointer}
+\Defgeneric {pointer-button-state} {pointer}
 
-Returns the state of the buttons of the \term{pointer} \arg{pointer}.  This is
-represented in the same as \cl{pointer-event-button}.
+Returns the current state of the buttons of the \term{pointer} \arg{pointer} as
+an integer.  This will be a mask consisting of the \cl{logior} of
+\cl{+pointer-left-button+}, \cl{+pointer-middle-button+}, and
+\cl{+pointer-right-button+}.
 
 \Defgeneric {pointer-position} {pointer}
 
@@ -544,6 +537,9 @@ values.
 Sets the $x$ and $y$ position of the \term{pointer} \arg{pointer} to the
 specified position.
 
+For CLIM implementations that do not support \cl{setf*}, the ``setter'' function
+for this is \cl{pointer-set-position}.
+
 \defgeneric {pointer-cursor} {pointer}
 \Defgeneric {(setf pointer-cursor)} {cursor pointer}
 
@@ -551,10 +547,14 @@ A pointer object usually has a visible cursor associated with it.  These
 functions return (or set) the cursor associated with the \term{pointer}
 \arg{pointer}.
 
+\Defmethod {port} {(pointer \cl{standard-pointer})}
+
+Returns the port with which \arg{pointer} is associated.
+
 
 \section {Pointer Tracking}
 
-\Defmacro {tracking-pointer} {(sheet \key pointer multiple-windows
+\Defmacro {tracking-pointer} {(sheet \key pointer multiple-window
                                           transformp context-type highlight)
                               \body body}
 
@@ -580,7 +580,7 @@ an input sheet or stream.  If \arg{sheet} is \cl{t}, \cl{*standard-output*} is
 used.  \arg{body} may have zero or more declarations as its first forms.
 
 The \arg{pointer} argument specifies a pointer to track.  It defaults to
-the primary pointer for the sheet, \cl{(stream-primary-pointer \arg{sheet})}.
+the primary pointer for the sheet, \cl{(port-pointer (port \arg{sheet}))}.
 
 When the boolean \arg{multiple-windows} is \term{true}, then the pointer will be
 tracked across multiple windows, otherwise is will be tracked only in the window
@@ -602,7 +602,8 @@ When \arg{highlight} is \term{true}, \cl{tracking-pointer} will highlight
 applicable presentations as the pointer is positioned over them.  {highlight}
 defaults to \term{true} when any of the \cl{:presentation},
 \cl{:presentation-button-press}, or \cl{:presentation-button-release} clauses is
-supplied, otherwise it defaults to \term{false}.
+supplied, otherwise it defaults to \term{false}.  See
+Chapter~\ref{output-recording} for a complete discussion of presentations.
 
 The body of \cl{tracking-pointer} consists of a list of clauses.  Each clause is
 of the form
@@ -691,7 +692,8 @@ character typed.
 
 
 \Defgeneric {drag-output-record} {stream output-record
-                                  \key repaint erase feedback finish-on-release}
+                                  \key repaint erase feedback finish-on-release
+                                       multiple-window}
 
 Enters an interaction mode in which the user moves the pointer and
 \arg{output-record} ``follows'' the pointer by being dragged on the \term{output
@@ -728,7 +730,11 @@ If the boolean \arg{finish-on-release} is \term{false} (the default),
 it is \term{true}, \cl{drag-output-record} is exited when the user releases the
 pointer button currently being held down.
 
-\Defmacro {dragging-output} {(\optional stream \key repaint finish-on-release)
+\arg{multiple-window} is as for \cl{tracking-pointer}.
+
+
+\Defmacro {dragging-output} {(\optional stream 
+                              \key repaint finish-on-release multiple-window)
                              \body body}
 
 Evaluates \arg{body} inside of \cl{with-output-to-output-record} to produce an
@@ -743,28 +749,6 @@ to an \term{output recording stream} stream.  If \arg{stream} is \cl{t} (the
 default), \cl{*standard-output*} is used.  \arg{body} may have zero or more
 declarations as its first forms.
 
-\arg{repaint} and \arg{finish-on-release} are as for \cl{drag-output-record}.
+\arg{repaint}, \arg{finish-on-release}, and \arg{multiple-window} are as for
+\cl{drag-output-record}.
 
-
-\section {Gesture Preprocessing\label{gesture-preproc}}
-
-Every gesture that goes through \cl{stream-read-gesture} gets processed before
-it is returned.  This allows applications to intercept gestures and alter the
-flow of control.  Gesture processing is done via a gesture table that associates
-each gesture with a function of two arguments, \arg{stream} and \arg{gesture},
-which is applied when the gesture is read.
-
-\issue {SWM} {What function is ``gesture preprocessing'' meant to fulfill?
-At the very least, it needs to specialize on the application frame, or frame
-manager, or port, or something.}
-
-\defun {gesture-processing-handler} {gesture}
-\Defun {(setf gesture-processing-handler)} {gesture}
-
-Manipulate the gesture processing handler for a particular gesture.  All pointer
-button presses are considered equivalent at this layer; to modify the handler
-for pointer button presses, specify \cl{:pointer-button-press} as the
-\arg{gesture}.  The default values for the handlers for all gestures is
-\cl{nil}, meaning there is no handler.  The presentation subsystem could be
-implemented by installing \cl{input-context-button-press-handler} as the handler
-for pointer button presses.

@@ -30,7 +30,7 @@ The protocol class that corresponds to an encapsulating stream.
 \IfYouWantClass {an} {encapsulating stream} {encapsulating-stream}
 \Mutable
 
-\Defun {encapsulating-stream-p} {object}
+\Defpredicate {encapsulating-stream-p} {object}
 
 Returns \term{true} if \arg{object} is an \term{encapsulating stream}, otherwise
 returns \term{false}.  
@@ -42,7 +42,8 @@ specify the stream to be encapsulated.
 
 \Defclass {standard-encapsulating-stream}
 
-This class provides a standard implementation of an encapsulating stream.
+This instantiable class provides a standard implementation of an encapsulating
+stream.
 
 
 \subsection {Encapsulating Stream Protocol}

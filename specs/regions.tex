@@ -64,7 +64,7 @@ Chapter~\ref{color}).
 There is no general constructor called \cl{make-region} because of the
 impossibility of a uniform way to specify the arguments to such a function.
 
-\Defun {regionp} {object}
+\Defpredicate {regionp} {object}
 
 Returns \term{true} if \arg{object} is a \term{region}, otherwise returns
 \term{false}.
@@ -77,19 +77,19 @@ The protocol class \cl{path} denotes bounded regions that have
 \IfYouWantClass {a} {path} {path}
 
 Constructing a \cl{path} object with no length (via \cl{make-line*}, for
-example) canonicalizes it to \cl{+nowhere+}.
+example) may canonicalize it to \cl{+nowhere+}.
 
 Some rendering models support the constructing of areas by filling a closed
 path.  In this case, the path needs a direction associated with it.  Since CLIM
 does not currently support the path-filling model, paths are directionless.
 
-\Defun {pathp} {object}
+\Defpredicate {pathp} {object}
 
 Returns \term{true} if \arg{object} is a \term{path}, otherwise returns
 \term{false}.
 
 Note that constructing a \cl{path} object with no length (such as calling
-\cl{make-line} with two coincident points), for example) canonicalizes it to
+\cl{make-line} with two coincident points), for example) may canonicalize it to
 \cl{+nowhere+}.
 
 \Defprotoclass {area}
@@ -99,24 +99,29 @@ The protocol class \cl{area} denotes bounded regions that have dimensionality 2
 \IfYouWantClass {an} {area} {area}
 
 Note that constructing an \cl{area} object with no area (such as calling
-\cl{make-rectangle} with two coincident points), for example) canonicalizes it
-to \cl{+nowhere+}.
+\cl{make-rectangle} with two coincident points), for example) may canonicalize
+it to \cl{+nowhere+}.
 
-\Defun {areap} {object}
+\Defpredicate {areap} {object}
 
 Returns \term{true} if \arg{object} is an \term{area}, otherwise returns
 \term{false}.
 
 \Deftype {coordinate}
 
-The type that represents a coordinate.  This must be a subtype of \cl{real}, but
-CLIM implementations may use a more specific subtype (such as \cl{single-float})
-for reasons of efficiency.
+The type that represents a coordinate.  This must either be \cl{t}, or a
+subtype of \cl{real}.  CLIM implementations may use a more specific subtype of
+\cl{real}, such as \cl{single-float}, for reasons of efficiency.
 
 All of the specific region classes and subclasses of \cl{bounding-rectangle}
 will use this type to store their coordinates.  However, the constructor
 functions for the region classes and for bounding rectangles must accept numbers
 of any type and coerce them to \cl{coordinate}.
+
+\Defun {coordinate} {n}
+
+Coerces the number \arg{n} to be a coordinate.
+
 
 \defconst {+everywhere+}
 \Defconst {+nowhere+}
@@ -204,7 +209,7 @@ the union of several axis-aligned rectangles.
 
 \Immutable
 
-\Defun {region-set-p} {object}
+\Defpredicate {region-set-p} {object}
 
 Returns \term{true} if \arg{object} is a \term{region set}, otherwise returns
 \term{false}.
@@ -276,8 +281,8 @@ always has dimensionality that is the maximum dimensionality of \arg{region1}
 and \arg{region2}.  For example, the union of a path and an area produces an
 area; the union of two paths is a path.
 
-\cl{region-union} will return either a simple region or a member of the class
-\cl{standard-region-union}.
+\cl{region-union} will return either a simple region, a region set, or a member
+of the class \cl{standard-region-union}.
 
 \MayCaptureInputs
 
@@ -307,8 +312,8 @@ boundary points to make the result closed).  The result of
 same area; the difference of a path and an area produces the path clipped to
 stay outside of the area.
 
-\cl{region-difference} will return either a simple region or a member of the
-class \cl{standard-region-difference}.
+\cl{region-difference} will return either a simple region, a region set, or a
+member of the class \cl{standard-region-difference}.
 
 \MayCaptureInputs
 
@@ -324,16 +329,17 @@ class \cl{standard-region-difference}.
 The other types of regions are points, polylines, polygons, elliptical arcs, and
 ellipses.  All of these region types are closed under affine transformations.
 
-\Issue {SWM, York} {There is a proposal to remove the \cl{polygon}, \cl{polyline},
-\cl{line}, \cl{ellipse}, and {elliptical-arc} classes, since they are only of
-limited utility, and CLIM itself doesn't use the classes at all.  The advantage
-of removing these classes is that both the spec and CLIM itself become a little
-simpler, and there are fewer cases of the region protocol to implement.
-However, removing these classes results in a geometric model that is no longer
-closed (in the mathematical sense).  Furthermore, these are intuitive objects
-that are used by a small, but important, class of applications, and some people
-feel that CLIM should relieve programmers from having to implement these classes
-for himself or herself.
+\Issue {SWM, York} {There is a proposal to remove the \cl{polygon},
+\cl{polyline}, \cl{line}, \cl{ellipse}, and \cl{elliptical-arc} classes, since
+they are only of limited utility, and CLIM itself doesn't use the classes at
+all.  The advantage of removing these classes is that both the spec and CLIM
+itself become a little simpler, and there are fewer cases of the region protocol
+to implement.  However, removing these classes results in a geometric model that
+is no longer closed (in the mathematical sense).  This lack of closure makes it
+difficult to specify the design-based drawing model.  Furthermore, these are
+intuitive objects that are used by a small, but important, class of
+applications, and some people feel that CLIM should relieve programmers from
+having to implement these classes for himself or herself.
 
 The advocates of of removing these classes also propose removing the
 design-based drawing model.  In this case, a more consistent proposal is to
@@ -368,7 +374,7 @@ The protocol class that corresponds to a mathematical point.  This is a subclass
 of \cl{region} and \cl{bounding-rectangle}.
 \IfYouWantClass {a} {point} {point}
 
-\Defun {pointp} {object}
+\Defpredicate {pointp} {object}
 
 Returns \term{true} if \arg{object} is a \term{point}, otherwise returns
 \term{false}.
@@ -425,7 +431,7 @@ The protocol class that corresponds to a polyline.  This is a subclass of
 \cl{path}.
 \IfYouWantClass {a} {polyline} {polyline}
 
-\Defun {polylinep} {object}
+\Defpredicate {polylinep} {object}
 
 Returns \term{true} if \arg{object} is a \term{polyline}, otherwise returns
 \term{false}.
@@ -460,7 +466,7 @@ The protocol class that corresponds to a mathematical polygon.  This is a
 subclass of \cl{area}.
 \IfYouWantClass {a} {polygon} {polygon}
 
-\Defun {polygonp} {object}
+\Defpredicate {polygonp} {object}
 
 Returns \term{true} if \arg{object} is a \term{polygon}, otherwise returns
 \term{false}.
@@ -530,7 +536,7 @@ The protocol class that corresponds to a mathematical line segment, that is, a
 polyline with only a single segment.  This is a subclass of \cl{polyline}.
 \IfYouWantClass {a} {line} {line}
 
-\Defun {linep} {object}
+\Defpredicate {linep} {object}
 
 Returns \term{true} if \arg{object} is a \term{line}, otherwise returns
 \term{false}.
@@ -593,7 +599,7 @@ rectangular polygons whose sides are parallel to the coordinate axes.  This is a
 subclass of \cl{polygon}.
 \IfYouWantClass {a} {rectangle} {rectangle}
 
-\Defun {rectanglep} {object}
+\Defpredicate {rectanglep} {object}
 
 Returns \term{true} if \arg{object} is a \term{rectangle}, otherwise returns
 \term{false}.
@@ -729,7 +735,7 @@ The protocol class that corresponds to a mathematical ellipse.  This is a
 subclass of \cl{area}.
 \IfYouWantClass {an} {ellipse} {ellipse}
 
-\Defun {ellipsep} {object}
+\Defpredicate {ellipsep} {object}
 
 Returns \term{true} if \arg{object} is an \term{ellipse}, otherwise returns
 \term{false}.
@@ -778,7 +784,7 @@ The protocol class that corresponds to a mathematical elliptical arc.  This is a
 subclass of \cl{path}.
 \IfYouWantClass {an} {elliptical arc} {elliptical-arc}
 
-\Defun {elliptical-arc-p} {object}
+\Defpredicate {elliptical-arc-p} {object}
 
 Returns \term{true} if \arg{object} is an \term{elliptical arc}, otherwise
 returns \term{false}.

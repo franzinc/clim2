@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: region-arithmetic.lisp,v 1.10 92/11/20 08:47:20 cer Exp $
+;; $fiHeader: region-arithmetic.lisp,v 1.11 92/12/03 10:30:49 cer Exp $
 
 (in-package :clim-utils)
 
@@ -241,7 +241,12 @@
 	(t
 	 (ecase banding
 	   (:x-banding
-	     (let ((result nil))
+	    (when (< top2 top1)
+	      (rotatef left1 left2)
+	      (rotatef right1 right2)
+	      (rotatef top1 top2)
+	      (rotatef bottom1 bottom2))
+	    (let ((result nil))
 	       (when (< top1 top2)
 		 (push (make-bounding-rectangle left1 top1 right1 top2) result))
 	       (when (> bottom2 bottom1)
@@ -258,22 +263,27 @@
 		     (push (make-bounding-rectangle left2 top right1 bottom) result))))
 	       result))
 	   (:y-banding
-	     (let ((result nil))
-	       (when (< left1 left2)
-		 (push (make-bounding-rectangle left1 top1 left2 bottom1) result))
-	       (when (> right2 right1)
-		 (push (make-bounding-rectangle right1 top2 right2 bottom2) result))
-	       (when (< top1 top2)
-		 (let ((left (max left1 left2))
-		       (right (min right1 right2)))
-		   (when (> right left)
-		     (push (make-bounding-rectangle left top1 right bottom2) result))))
-	       (when (> bottom1 bottom2)
-		 (let ((left (min right1 right2))
-		       (right (max left1 left2)))
-		   (when (> right left)
-		     (push (make-bounding-rectangle left top2 right bottom1) result))))
-	       result))))))
+	    (when (< left2 left1)
+	      (rotatef left1 left2)
+	      (rotatef right1 right2)
+	      (rotatef top1 top2)
+	      (rotatef bottom1 bottom2))
+	    (let ((result nil))
+	      (when (< left1 left2)
+		(push (make-bounding-rectangle left1 top1 left2 bottom1) result))
+	      (when (> right2 right1)
+		(push (make-bounding-rectangle right1 top2 right2 bottom2) result))
+	      (when (< top1 top2)
+		(let ((left (max left1 left2))
+		      (right (min right1 right2)))
+		  (when (> right left)
+		    (push (make-bounding-rectangle left top1 right bottom2) result))))
+	      (when (> bottom1 bottom2)
+		(let ((left (min right1 right2))
+		      (right (max left1 left2)))
+		  (when (> right left)
+		    (push (make-bounding-rectangle left top2 right bottom1) result))))
+	      result))))))
 
 ;; Returns a single bounding rectangle that represents the intersection, or NIL.
 (defun ltrb-intersection (left1 top1 right1 bottom1

@@ -188,8 +188,9 @@ does not contain any items inherited from superior command tables.
 
 \item A menu that associates menu names to command menu items (used to support
 interaction via command menus).  The command menu items can invoke commands or
-sub-menus.  The menu does not contain any command menu items inherited from
-superior command tables.
+sub-menus.  By default, the menu does not contain any command menu items
+inherited from superior command tables, although this can be overridden by the
+\cl{:inherit-menu} option to \cl{define-command-table}.
 \end{itemize}
 
 We say that a command is \concept{present} in a command table when it has been
@@ -204,7 +205,7 @@ The protocol class that corresponds to command tables.
 \IfYouWantClass {a} {command table} {command-table}
 \Mutable
 
-\Defun {command-table-p} {object}
+\Defpredicate {command-table-p} {object}
 
 Returns \term{true} if \arg{object} is a \term{command table}, otherwise returns
 \term{false}.
@@ -231,7 +232,7 @@ Returns a list of the command tables from which the \term{command table}
 \ReadOnly
 
 
-\Defmacro {define-command-table} {name \key inherit-from menu}
+\Defmacro {define-command-table} {name \key inherit-from menu inherit-menu}
 
 Defines a command table whose name is the symbol \arg{name}.  The new command
 table inherits from all of the command tables specified by \arg{inherit-from},
@@ -241,6 +242,11 @@ with shadowing.  If no inheritance is specified, the command table will be made
 to inherit from CLIM's global command table.  (This command table contains such
 things as the ``menu'' translator that is associated with the right-hand button
 on pointers.)
+
+If \arg{inherit-menu} is \term{true}, the new command table will inherit the
+menu items and keystroke accelerators from all of the inherited command tables.
+If it is \term{false} (the default), no menu items or keystroke accelerators
+will be inherited.
 
 \arg{menu} can be used to specify a menu for the command table.  The value of
 \arg{menu} is a list of clauses.  Each clause is a list with the syntax
@@ -257,15 +263,16 @@ the existing command table alone.
 None of \cl{define-command-table}'s arguments are evaluated.
 
 
-\Defun {make-command-table} {name \key inherit-from menu (errorp t)}
+\Defun {make-command-table} {name \key inherit-from menu inherit-menu (errorp t)}
 
-Creates a command table named \arg{name}.  \arg{inherit-from} and \arg{menu} are
-the same as for \cl{define-command-table}.  \cl{make-command-table} does not
-implicitly include CLIM's global command table in the inheritance list for the
-new command table.  If the command table already exists and \arg{errorp} is
-\term{true}, the \cl{command-table-already-exists} error will be signalled.  If
-the command table already exists and \arg{errorp} is \term{false}, then the old
-command table will be discarded.  The returned value is the command table.
+Creates a command table named \arg{name}.  \arg{inherit-from}, \arg{menu}, and
+\arg{inherit-menu} are the same as for \cl{define-command-table}.
+\cl{make-command-table} does not implicitly include CLIM's global command table
+in the inheritance list for the new command table.  If the command table already
+exists and \arg{errorp} is \term{true}, the \cl{command-table-already-exists}
+error will be signalled.  If the command table already exists and \arg{errorp}
+is \term{false}, then the old command table will be discarded.  The returned
+value is the command table.
 
 
 \Defun {find-command-table} {name \key (errorp t)}
@@ -280,6 +287,10 @@ signalled.
 
 The class that is the superclass of the following four conditions.  This class
 is a subclass of \cl{error}.
+
+\cl{command-table-error} and its subclasses must handle the \cl{:format-string}
+and \cl{:format-arguments} initargs, which are used to specify a control string
+and arguments for a call to \cl{format}.
 
 \Deferror {command-table-not-found}
 
@@ -315,12 +326,9 @@ the \term{command table designator} \arg{command-table}.
 \cl{t}, or a string.  When it is \cl{nil}, the command will not be available via
 command-line interactions.  When it is a string, that string is the command-line
 name for the command.  When it is \cl{t}, the command-line name is generated
-automatically.  (The automatically generated name consists of the command's name
-with the hyphens replaced by spaces, and the words capitalized; furthermore, if
-there is a prefix of ``COM-'', the prefix is removed.  For example, if the
-command name is \cl{com-show-file}, the command-line name will be ``Show
-File''.)  For the purposes of command-line name lookup, the character case of
-\arg{name} is ignored.
+automatically by calling \cl{command-name-from-symbol} on \arg{command-name}.
+For the purposes of command-line name lookup, the character case of \arg{name}
+is ignored.
 
 \arg{menu} is a menu item for the command, and can be \cl{nil}, \cl{t}, a
 string, or a cons.  When it is \cl{nil}, the command will not be available via
@@ -351,6 +359,14 @@ by the \term{command table designator} \arg{command-table}.
 
 If the command is not present in the command table and \arg{errorp} is
 \term{true}, the \cl{command-not-present} error will be signalled.
+
+\Defun {command-name-from-symbol} {symbol}
+
+Generates a string suitable for use as a command-line name from the symbol
+\arg{symbol}.  The string consists the symbol name with the hyphens replaced by
+spaces, and the words capitalized.  If the symbol name is prefixed by ``COM-'',
+the prefix is removed.  For example, if the symbol is \cl{com-show-file}, the
+result string will be ``Show File''.
 
 
 \Defmacro {do-command-table-inheritance}  {(command-table-var command-table) \body body}
@@ -609,7 +625,7 @@ Returns a list of the options for the command menu item \arg{menu-item}.  If
 
 \Defgeneric {display-command-table-menu} {command-table stream
                                           \key max-width max-height n-rows n-columns
-                                               x-spacing y-spacing initial-spacing
+                                               x-spacing y-spacing initial-spacing row-wise
                                                (cell-align-x \cl{:left}) (cell-align-y \cl{:top})
                                                (move-cursor \cl{t})}
 
@@ -619,8 +635,9 @@ platform dependent manner, such as using the menu bar on a Macintosh.
 \arg{command-table} is a \term{command table designator}.
 
 \arg{max-width}, \arg{max-height}, \arg{n-rows}, \arg{n-columns},
-\arg{x-spacing}, \arg{y-spacing}, \arg{initial-spacing}, \arg{cell-align-x},
-\arg{cell-align-y}, and \arg{move-cursor} are as for \cl{formatting-item-list}.
+\arg{x-spacing}, \arg{y-spacing}, \arg{row-wise}, \arg{initial-spacing},
+\arg{cell-align-x}, \arg{cell-align-y}, and \arg{move-cursor} are as for
+\cl{formatting-item-list}.
 
 \Defun {menu-choose-command-from-command-table} {command-table 
                                                  \key associated-window default-style label
@@ -703,7 +720,7 @@ programmer requires this behavior, he should examine the type of the command
 menu item to see if it is \cl{:menu}.
 
 
-\Defun {find-keystroke-item} {gesture command-table \key (errorp t)}
+\Defun {find-keystroke-item} {gesture command-table \key test (errorp t)}
 
 Given a keyboard gesture \arg{gesture} and a command table, returns two values,
 the command menu item associated with the gesture and the command table in which
@@ -712,17 +729,15 @@ returned value will always be \arg{command-table}.)
 
 \ReadOnly
 
-Note that \arg{gesture} may be either a keyboard gesture name of a gesture
-object.  When it is a gesture name, \cl{eql} will be used to compare the
-supplied gesture to the gesture names stored in the command table's menu.  When
-it is a gesture object, \cl{event-matches-gesture-name-p} will be used to do the
-comparison.
+\arg{test} is the test used to compare the supplied gesture to the gesture name
+in the command table.  The supplied gesture will generally be an event object,
+so the default for \arg{test} is \cl{event-matches-gesture-name-p}.
 
 If the keystroke accelerator is not present in \arg{command-table} and
 \arg{errorp} is \term{true}, then the \cl{command-not-present} error will be
 signalled.  \arg{command-table} is a \term{command table designator}.
 
-\Defun {lookup-keystroke-item} {gesture command-table}
+\Defun {lookup-keystroke-item} {gesture command-table \key test}
 
 Given a keyboard gesture \arg{gesture} and a command table, returns two values,
 the command menu item associated with the gesture and the command table in which
@@ -736,7 +751,11 @@ cannot be found in the command table or any of the command tables from which it
 inherits, \cl{lookup-keystroke-item} will return \cl{nil}.  \arg{command-table}
 is a \term{command table designator}.
 
-\Defun {lookup-keystroke-command-item} {gesture command-table \key numeric-arg}
+\arg{test} is the test used to compare the supplied gesture to the gesture name
+in the command table.  The supplied gesture will generally be an event object,
+so the default for \arg{test} is \cl{event-matches-gesture-name-p}.
+
+\Defun {lookup-keystroke-command-item} {gesture command-table \key test numeric-arg}
 
 Given a keyboard gesture \arg{gesture} and a command table, returns the command
 associated with the keystroke, or \arg{gesture} if no command is found.  Note
@@ -747,6 +766,10 @@ and is handled in the same way as in \cl{find-keystroke-item}.
 This is like \cl{find-keystroke-item}, except that only keystrokes that map to
 an enabled application command will be matched.  \arg{command-table} is a
 \term{command table designator}.
+
+\arg{test} is the test used to compare the supplied gesture to the gesture name
+in the command table.  The supplied gesture will generally be an event object,
+so the default for \arg{test} is \cl{event-matches-gesture-name-p}.
 
 \arg{numeric-arg} (which defaults to 1) is substituted into the resulting
 command for any occurrence of \cl{*numeric-argument-marker*} in the command.
@@ -827,7 +850,7 @@ read a command.  These are all mediated by the Command Processor.
 
 
 \Defun {read-command} {command-table 
-                       \key (stream *query-io*)
+                       \key (stream *standard-input*)
                             command-parser command-unparser partial-command-parser
                             use-keystrokes} 
 
@@ -836,8 +859,9 @@ read a command.  These are all mediated by the Command Processor.
 \term{command table designator}.
 
 \arg{command-parser} must be a function of two arguments, a command table and a
-stream.  It reads a command from the user and returns a command object.  The
-default value for \arg{command-parser} is the value of \cl{*command-parser*}.
+stream.  It reads a command from the user and returns a command object, or
+\cl{nil} if an empty command line was read.  The default value for
+\arg{command-parser} is the value of \cl{*command-parser*}.
 
 \arg{command-unparser} must be a function of three arguments, a command table, a
 stream, and a command to ``unparse''.  It prints a textual description of the
@@ -876,7 +900,7 @@ context.  \arg{command-table} is a \term{command table designator}.  \arg{body}
 may have zero or more declarations as its first forms.
 
 \Defun {read-command-using-keystrokes} {command-table keystrokes
-                                        \key (stream *query-io*)
+                                        \key (stream *standard-input*)
                                              command-parser command-unparser
                                              partial-command-parser}
 

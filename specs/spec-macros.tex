@@ -96,8 +96,9 @@
 \def\Defvar #1 {\Dodocv {#1} {Variable}}
 \def\Defconst #1 {\Dodocv {#1} {Constant}}
 \def\Defprotoclass #1 {\Dodocv {#1} {Protocol~Class}}
+\def\Defpredicate #1 #2 {\Dodocf {#1} {#2} {Protocol~Predicate}}
 \def\Defclass #1 {\Dodocv {#1} {Class}}
-\def\Definitarg #1 {\Dodocv {#1} {Init~Arg}}
+\def\Definitarg #1 {\Dodocv {#1} {Initarg}}
 \def\Deftype #1 {\Dodocv {#1} {Type}}
 \def\Defoption #1 {\Dodocv {#1} {Option}}
 \def\Defptype #1 #2 {\Dodocf {#1} {#2} {Presentation~Type}}
@@ -121,8 +122,9 @@
 \def\defvar #1 {\dodocv {#1} {Variable}}
 \def\defconst #1 {\dodocv {#1} {Constant}}
 \def\defprotoclass #1 {\dodocv {#1} {Protocol~Class}}
+\def\defpredicate #1 #2 {\dodocf {#1} {#2} {Protocol~Predicate}}
 \def\defclass #1 {\dodocv {#1} {Class}}
-\def\definitarg #1 {\dodocv {#1} {Init~Arg}}
+\def\definitarg #1 {\dodocv {#1} {Initarg}}
 \def\defoption #1 {\dodocv {#1} {Option}}
 
 \def\Defcommandtable #1 {\Dodocv {#1} {Command~Table}}
@@ -144,8 +146,11 @@
 %%
 
 \def\IfYouWantClass #1 #2 #3 {If you want to create a new class that behaves
-like #1 #2, it should be a subclass of \cl{#3}.  Subclasses of \cl{#3} must obey
-the #2 protocol.\ }
+like #1 #2, it should be a subclass of \cl{#3}.  All instantiable subclasses of
+\cl{#3} must obey the #2 protocol.\ }
+
+\def\AbstractClass{This class is an abstract class, intended only to be
+subclassed, not instantiated.\ }
 
 \def\Mutable{Members of this class are mutable.\ }
 

@@ -212,7 +212,7 @@ to modify typed-in input.}
 \term{input editing}.}
 
 \GlossaryEntry {input stream designator} {n.} {A Lisp object that is either an
-input stream, or the symbol \cl{t}, which is taken to mean \cl{*query-io*}.}
+input stream, or the symbol \cl{t}, which is taken to mean \cl{*standard-input*}.}
 
 \GlossaryEntry {interactive stream} {n.} {A stream that supports both input from
 and output to the user in an interactive fashion.}
@@ -292,8 +292,8 @@ that is responsible for managing host display server resources and for
 processing input events received from the host display server.}
 
 \GlossaryEntry {position} {n.} {1.~A position on a plane, such as CLIM's
-abstract drawing plane.  2.~Two real number values $x$ and $y$ that represent a
-\term{position}.}
+abstract drawing plane.  2.~A pair of real number values $x$ and $y$ that
+represent a \term{position}.}
 
 \GlossaryEntry {presentation} {n.} {1.~An association between an object and a
 \term{presentation type} with some output on a \term{output recording stream}.
@@ -429,7 +429,7 @@ represents a \term{view}.}
 \GlossaryEntry {viewport} {n.} {The portion of the drawing plane of a sheet's
 medium that is visible on a display device.}
 
-\GlossaryEntry {volatile} {adj.} {1.~(of an immutable object) Having components
+\GlossaryEntry {volatile} {adj.} {(of an immutable object) Having components
 that cannot be modified by the programmer at the protocol level, but which may
 be modified internally by CLIM.  \term{Volatile} objects reflect internal state
 of CLIM.}

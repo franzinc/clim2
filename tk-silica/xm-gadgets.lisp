@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.65 93/03/04 19:02:03 colin Exp $
+;; $fiHeader: xm-gadgets.lisp,v 1.66 93/03/18 14:39:13 colin Exp $
 
 (in-package :xm-silica)
 
@@ -158,6 +158,13 @@
                                                      (sheet motif-label-pane))
   (values 'tk::xm-label nil))
 
+
+(defmethod compose-space ((sheet motif-label-pane) &key width height)
+  (declare (ignore width height))
+  (make-space-requirement
+   :width (process-width-specification sheet `(,(max 1 (length (gadget-label sheet))) :character))
+   :height (process-height-specification sheet `(1 :line))))
+
 ;;; Push button
 
 (defclass motif-push-button (push-button
@@ -198,6 +205,14 @@
                          1
                          'sheet-mirror-event-handler
                          sheet))
+
+;;-- This is identical to the method for label
+
+(defmethod compose-space ((sheet motif-push-button) &key width height)
+  (declare (ignore width height))
+  (make-space-requirement
+   :width (process-width-specification sheet `(,(max 1 (length (gadget-label sheet))) :character))
+   :height (process-height-specification sheet `(1 :line))))
 
 ;;; range pane mixin
 
@@ -453,6 +468,7 @@
 		  ;; its drawing area children
 		  :accelerators nil
 		  ;; Prevents buttons from deactivating dialog
+		  :dialog-style :primary-application-modal
 		  :auto-unmanage nil
 		  :resize-policy :none
 		  :name (if (pane-frame sheet)
@@ -514,6 +530,88 @@
 	     `(:editable ,editable)
              (and value `(:value ,value))))))
 
+
+
+;;; New definitions to support specifying width and height in terms of
+;;; lines and characters.
+
+;;;--- Implement caching
+;;;--- Flush ncolumns, nrows but perhaps keep them of compatibility
+;;;--- We are not supporting (pixels :relative)
+
+(defmethod compose-space :around ((sheet motif-text-field) &key width height)
+  (declare (ignore width height))
+  (compose-space-for-text-field-or-label
+   sheet (call-next-method)))
+
+;;-- For label pane there are margin-{left,top,right,bottom} resources also
+;;-- but they default to 0.
+
+(defmethod compose-space :around ((sheet motif-label-pane) &key width height)
+  (declare (ignore width height))
+  (compose-space-for-text-field-or-label
+   sheet (call-next-method)))
+
+(defmethod compose-space :around ((sheet motif-push-button) &key width height)
+  (declare (ignore width height))
+  (compose-space-for-text-field-or-label
+   sheet (call-next-method)))
+  
+(defun compose-space-for-text-field-or-label (sheet sr)
+  (multiple-value-bind (width min-width max-width height min-height max-height)
+      (space-requirement-components sr)
+    (if (and (numberp width)
+	     (numberp min-width)
+	     (numberp max-width))
+	sr
+      (make-space-requirement
+       :width (process-width-specification sheet width)
+       :min-width (process-width-specification sheet min-width)
+       :max-width (process-width-specification sheet max-width)
+       :height height
+       :min-height min-height
+       :max-height max-height))))
+
+(defun process-width-specification (sheet width)
+  (when (numberp width) (return-from process-width-specification width))
+  (let ((chars (etypecase width
+		 (list
+		  (assert (eq (second width) :character))
+		  (first width))
+		 (string (length width)))))
+    (multiple-value-bind (font-list margin highlight shadow)
+	(tk::get-values (sheet-direct-mirror sheet)
+			:font-list :margin-width :highlight-thickness :shadow-thickness)
+      (let ((font-width (font-list-max-width-and-height font-list)))
+	(+ (* 2 (+ margin highlight shadow)) (* font-width chars))))))
+
+(defun font-list-max-width-and-height (font-list)
+  (let* ((max-width most-negative-fixnum)
+	 (max-ascent most-negative-fixnum)
+	 (max-descent most-negative-fixnum))
+    (assert font-list)
+    (dolist (font font-list (values max-width (+ max-ascent max-descent)))
+      (let ((font (second font)))
+	(maxf max-ascent (tk::font-ascent font))
+	(maxf max-descent (tk::font-descent font))
+	(maxf max-width (tk::font-width font))))))
+
+;;-- What should this do really?
+
+(defun process-height-specification (sheet width)
+  (when (numberp width) (return-from process-height-specification width))
+  (let ((chars (etypecase width
+		 (list
+		  (assert (eq (second width) :line))
+		  (first width))
+		 (string (length width)))))
+    (multiple-value-bind (font-list margin highlight shadow)
+	(tk::get-values (sheet-direct-mirror sheet)
+			:font-list :margin-height :highlight-thickness :shadow-thickness)
+      (let ((font-height (nth-value 1 (font-list-max-width-and-height font-list))))
+	(+ (* 2 (+ margin highlight shadow)) (* font-height chars))))))
+
+
 #+ignore
 (defmethod add-sheet-callbacks :after
 	   ((port motif-port) (sheet motif-text-field) (widget t))
@@ -562,6 +660,31 @@
 	       (and value `(:value ,value))
 	       (and word-wrap `(:word-wrap t)))))))
 
+(defmethod compose-space ((te motif-text-editor) &key width height)
+  (declare (ignore width height))
+  (make-space-requirement :width (process-width-specification te`(,(gadget-columns te) :character))
+			  :height (process-height-specification te `(,(gadget-lines te) :line))))
+
+(defmethod compose-space :around ((sheet motif-text-editor) &key width height)
+   (declare (ignore width height))
+   (let ((sr (call-next-method)))
+     (multiple-value-bind (width min-width max-width height min-height max-height)
+	 (space-requirement-components (call-next-method))
+       (if (and (numberp width)
+		(numberp min-width)
+		(numberp max-width)
+		(numberp height)
+		(numberp min-height)
+		(numberp max-height))
+	   sr
+	 (make-space-requirement
+	  :width (process-width-specification sheet width)
+	  :min-width (process-width-specification sheet min-width)
+	  :max-width (process-width-specification sheet max-width)
+	  :height (process-height-specification sheet height)
+	  :min-height (process-height-specification sheet min-height)
+	  :max-height (process-height-specification sheet max-height))))))
+
 (defmethod (setf gadget-word-wrap) :after (nv (gadget motif-text-editor))
   (tk::set-values (sheet-direct-mirror gadget) :word-wrap (and nv t)))
 
@@ -596,20 +719,7 @@
         :width width :min-width min-width :max-width +fill+
         :height height :min-height min-height :max-height +fill+))))
 
-(defmethod compose-space ((te motif-text-editor) &key width height)
-  (declare (ignore width height))
-  (multiple-value-bind (font-list margin-height margin-width)
-      (tk::get-values (sheet-direct-mirror te) :font-list
-                      :margin-height :margin-width)
-    (let* ((max-width most-negative-fixnum)
-           (max-height most-negative-fixnum))
-      (assert font-list)
-      (dolist (font font-list)
-        (let ((font (second font)))
-          (maxf max-height (tk::font-height font))
-          (maxf max-width (tk::font-width font))))
-      (make-space-requirement :width (+ (* 2 margin-width) (* max-width (gadget-columns te)))
-                              :height (+ (* 2 margin-height) (* max-height (gadget-lines te)))))))
+
 
 ;;; Toggle button
 
@@ -934,7 +1044,7 @@
 		:scroll-bar-display-policy 
 		,(case scroll-mode
 		   ((:vertical :both) :static)
-		   (t :dynamic))
+		   (t :as-needed))
                 ,@(and selected-items
                        `(:selected-item-count ,(length selected-items)
                          :selected-items ,selected-items))

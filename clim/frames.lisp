@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: frames.lisp,v 1.59 93/02/08 15:56:45 cer Exp $
+;; $fiHeader: frames.lisp,v 1.60 93/03/18 14:36:38 colin Exp $
 
 (in-package :clim-internals)
 
@@ -53,7 +53,7 @@
      (resizable :initarg :resize-frame
 		:reader frame-resizable)
      (layout :initarg :layouts :reader frame-layouts)
-     (top-level-process :initform nil)
+     (top-level-process :initform nil :reader frame-top-level-process)
      (command-queue :initform (make-locking-queue) :reader frame-command-queue)
      (input-buffer :initform nil :initarg :input-buffer :reader frame-input-buffer)
      (pane-to-avv-stream-table :initform nil :accessor frame-pane-to-avv-stream-table))
@@ -102,6 +102,10 @@
 (defmethod generate-panes ((framem standard-frame-manager)
 			   (frame standard-application-frame))
   (setf (frame-panes frame) nil))
+
+(defmethod generate-panes :after ((framem standard-frame-manager)
+				  (frame standard-application-frame))
+  (adjust-layout-requirements frame (frame-current-layout frame)))
 
 (eval-when (compile load eval)
 (defun define-application-frame-1 (name state-variables pane-descriptions
@@ -156,9 +160,9 @@
       (check-type top-level list)
       (check-type disabled-commands list)
       (when (and pane panes)
-	(error "The ~S and ~S options cannot be used together" :pane :panes))
-      (when (and layouts (null panes))
-	(error "You must use ~S with ~S" :panes :layouts))
+	(error "You must use either ~S or ~S options" :pane :panes))
+      (when (and panes (null layouts))
+	(error "You must use ~S and ~S together" :panes :layouts))
       (when (null superclasses)
 	(setq superclasses '(standard-application-frame)))
       (when (eq command-definer 't)
@@ -181,11 +185,13 @@
 	    `(list ,@(mapcar
 		       #'(lambda (layout)
 			   (destructuring-bind (name panes &rest sizes) layout
+			     (check-type sizes list)
 			     (if sizes
 				 `(list ',name ',panes 
 					,@(mapcar #'(lambda (pane-and-size)
-						      `(list ',(car pane-and-size)
-							     ,@(cdr pane-and-size)))
+						      (destructuring-bind (pane &rest sizes) pane-and-size
+							`(list ',pane
+							       ,@sizes)))
 						  sizes))
 				 `',layout)))
 		       layouts))))
@@ -537,20 +543,23 @@
     (sheet-adopt-child (frame-top-level-sheet frame) (frame-panes frame))
     (multiple-value-call #'layout-frame
       frame (bounding-rectangle-size (frame-top-level-sheet frame)))
-    (let ((layout-space-requirements 
-	    (cddr (assoc layout (frame-layouts frame)))))
-      (changing-space-requirements (:layout nil)
-	(flet ((adjust-layout (sheet)
-		 (change-space-requirements-to-default sheet)
-		 (let ((x (and (panep sheet)
-			       (assoc (pane-name sheet) layout-space-requirements))))
-		   (when x (apply #'change-space-requirements sheet (cdr x))))))
-	  (declare (dynamic-extent #'adjust-layout))
-	  (map-over-sheets #'adjust-layout (frame-top-level-sheet frame)))))
     ;;--- Don't throw, just recompute stream bindings in a principled way
     (handler-case
         (throw 'layout-changed nil)
       (error () nil))))
+
+(defun adjust-layout-requirements (frame layout)
+  (when (frame-panes frame)
+    (let ((layout-space-requirements 
+	   (cddr (assoc layout (frame-layouts frame)))))
+      (changing-space-requirements (:layout nil)
+	(flet ((adjust-layout (sheet)
+		 (let ((x (and (panep sheet)
+			       (assoc (pane-name sheet) layout-space-requirements))))
+		   (if x (apply #'change-space-requirements sheet (cdr x))
+		     (change-space-requirements-to-default sheet)))))
+	  (declare (dynamic-extent #'adjust-layout))
+	  (map-over-sheets #'adjust-layout (frame-panes frame)))))))
 
 (defmethod frame-all-layouts ((frame standard-application-frame))
   (mapcar #'first (frame-layouts frame)))
@@ -682,7 +691,7 @@
       (:shrunk 
         (note-frame-deiconified (frame-manager frame) frame)))))
 
-(defmethod iconify-frame ((frame standard-application-frame))
+(defmethod shrink-frame ((frame standard-application-frame))
   (note-frame-iconified (frame-manager frame) frame))
 
 (defmethod destroy-frame ((frame standard-application-frame))
@@ -1145,15 +1154,20 @@
 			       )
   (read-command (frame-command-table frame) :stream stream))
 
-#+++ignore	;--- install this?
+
 (defmethod execute-frame-command :around ((frame standard-application-frame) command)
-  (let ((top-level-process (slot-value frame 'top-level-process)))
-    (if (and top-level-process
-	     (eq top-level-process (current-process)))
+  (let ((top-level-process (slot-value frame 'top-level-process))
+	activity)
+    (if (or (and top-level-process
+		 (eq top-level-process (current-process)))
+	    (and (typep frame 'activity-frame)
+		 (setq activity (frame-activity frame))
+		 (eq (slot-value activity 'top-level-process) (current-process))))
 	;; If we're in the process for the frame, just execute the command
+	;; Or the process for the frames activity
 	(call-next-method)
 	;; Otherwise arrange to run the command in the frame's process
-	(execute-command-in-frame frame command))))
+	(execute-command-in-frame frame command :queuep t))))
 
 (defmethod execute-frame-command ((frame standard-application-frame) command)
   (apply (command-name command) (command-arguments command)))

@@ -3,7 +3,7 @@
 ;;; Simple extensible browser
 ;;; Scott McKay
 
-;; $fiHeader: browser.lisp,v 1.17 92/12/03 10:28:28 cer Exp $
+;; $fiHeader: browser.lisp,v 1.18 93/01/18 13:55:04 cer Exp $
 
 (in-package :clim-browser)
 
@@ -477,7 +477,10 @@
   :inherit-from t
   :history t)
 
-#+genera
+(define-presentation-method presentation-typep (object (type package))
+  (typep object 'common-lisp:package))
+
+#+(or allegro genera)
 (define-presentation-method accept ((type package) stream (view textual-view) &key)
   (completing-from-suggestions (stream :partial-completers '(#\-))
     (map nil #'(lambda (package) 
@@ -510,7 +513,7 @@
 
 (defun package-browser-make-root (object)
   (typecase object
-    (package
+    (common-lisp:package
       (make-package-call-node object))
     ((or string symbol)
      (let ((package (find-package object)))

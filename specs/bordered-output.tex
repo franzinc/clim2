@@ -31,6 +31,7 @@ rectangular, highlighted with a dropshadow, and underlined, respectively.
 
 
 \Defmacro {surrounding-output-with-border} {(\optional stream
+                                             \rest drawing-options
                                              \key shape (move-cursor \cl{t}))
                                             \body body}
 
@@ -42,7 +43,8 @@ rectangle of the output.  \cl{:oval} draws an oval around the bounding rectangle
 of the output.  \cl{:drop-shadow} draws a ``drop shadow'' around the lower right
 edge of the bounding rectangle of the output.  \cl{:underline} draws a thin line
 along the baseline of all of the text in the output, but does not draw anything
-underneath non-textual output.
+underneath non-textual output.  \arg{drawing-options} is a list of drawing
+options that are passed to the function that draws the border.
 
 If the boolean \arg{move-cursor} is \term{true} (the default), then the text
 cursor will be moved so that it immediately follows the lower right corner of
@@ -69,6 +71,8 @@ comparison):
 \\
 \arg{(\key stream record left top right bottom)}
 \\
+
+\arg{arglist} may include other keyword arguments that serve as the drawing options.
 
 \arg{body} is the code that actually draws the border.  It has lexical access to
 \cl{stream}, \cl{record}, \cl{left}, \cl{top}, \cl{right}, and \cl{bottom},

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: menus.lisp,v 1.39 93/02/08 15:56:52 cer Exp $
+;; $fiHeader: menus.lisp,v 1.40 93/03/18 14:36:48 colin Exp $
 
 (in-package :clim-internals)
 
@@ -246,8 +246,7 @@
 			     (cell-align-x ':left) (cell-align-y ':top)
 			     pointer-documentation menu-type gesture)
   (declare (values value chosen-item gesture))
-  (declare (ignore associated-window
-		   text-style default-item
+  (declare (ignore text-style default-item
 		   label scroll-bars printer presentation-type
 		   cache unique-id id-test cache-value cache-test
 		   max-width max-height n-rows n-columns
@@ -255,7 +254,7 @@
 		   pointer-documentation menu-type gesture))
   (declare (dynamic-extent keys))
   (unless (zerop (length items))
-    (apply #'frame-manager-menu-choose (frame-manager *application-frame*) items keys)))
+    (apply #'frame-manager-menu-choose (frame-manager associated-window) items keys)))
 
 ;; Specific ports can put :AROUND methods on this in order to use their own
 ;; kinds of menus.

@@ -106,6 +106,11 @@ Most Lisp implementations provide some form of multi-processing.  CLIM provides
 a set of functions that implement a uniform interface to the multi-processing
 functionality.
 
+\Defvar {*multiprocessing-p*}
+
+The value of \cl{*multiprocessing-p*} is \cl{t} if the current Lisp
+environment supports multi-processing, otherwise it is \cl{nil}.
+
 \Defun {make-process} {function \key name}
 
 Creates a process named \arg{name}.  The new process will evaluate the function
@@ -125,6 +130,17 @@ would be returned by \cl{make-process}.
 \Defun {all-processes} {}
 
 Returns a sequence of all of the processes.
+
+\Defpredicate {processp} {object}
+
+Returns \cl{t} if \arg{object} is a process, otherwise returns \arg{nil}.
+
+\defun {process-name} {process}
+\defun {process-state} {process}
+\Defun {process-whostate} {process}
+
+These functions return, respectively, the name, state, and ``whostate'' of the
+process.  These format of these quantities will vary depending on the platform.
 
 \Defun {process-wait} {reason predicate}
 
@@ -152,14 +168,40 @@ Interrupts the process \arg{process} and causes it to evaluate the function
 \arg{function}.  On systems that do not support multi-processing, this is
 equivalent to \cl{funcall}'ing \arg{function}.
 
+\Defun {disable-process} {process}
+
+Disables the process \arg{process} from becoming runnable until it is enabled
+again.
+
+\Defun {enable-process} {process}
+
+Allows the process \arg{process} to become runnable again after it has been
+disabled.
+
+\Defun {restart-process} {process}
+
+Restarts the process \arg{process} by ``unwinding'' it to its initial state, and
+reinvoking its top-level function.
+
 \Defmacro {without-scheduling} {\body body}
 
 Evaluates \arg{body} in a context that is guaranteed to be free from
 interruption by other processes.  On systems that do not support
 multi-processing, \cl{without-scheduling} is equivalent to \cl{progn}.
 
+\defun {atomic-incf} {reference}
+\Defun {atomic-decf} {reference}
+
+Increments (or decrements) the fixnum value referred to by \arg{reference} as a
+single, atomic operation.
+
 
 \section {Locks}
+
+\Defun {make-lock} {\optional name}
+
+Creates a lock whose name is \arg{name}.  On systems that do not support
+locking, this will return a new list of one element, \cl{nil}.
 
 \Defmacro {with-lock-held} {(place \optional state) \body body}
 
@@ -169,10 +211,13 @@ reference to a lock created by \cl{make-lock}.
 On systems that do not support locking, \cl{with-lock-held} is equivalent to
 \cl{progn}.
 
-\Defun {make-lock} {\optional name}
+\Defun {make-recursive-lock} {\optional name}
 
-Creates a lock whose name is \arg{name}.  On systems that do not support
-locking, this will return a new list of one element, \cl{nil}.
+Creates a recursive lock whose name is \arg{name}.  On systems that do not
+support locking, this will return a new list of one element, \cl{nil}.  A
+recursive lock differs from an ordinary lock in that a process that already
+holds the recursive lock can call \cl{with-recursive-lock-held} on the same lock
+without blocking.
 
 \Defmacro {with-recursive-lock-held} {(place \optional state) \body body}
 
@@ -181,14 +226,6 @@ is a reference to a recursive lock created by \cl{make-recursive-lock}.
 
 On systems that do not support locking, \cl{with-recursive-lock-held} is
 equivalent to \cl{progn}.
-
-\Defun {make-recursive-lock} {\optional name}
-
-Creates a recursive lock whose name is \arg{name}.  On systems that do not
-support locking, this will return a new list of one element, \cl{nil}.  A
-recursive lock differs from an ordinary lock in that a process that already
-holds the recursive lock can call \cl{with-recursive-lock-held} on the same lock
-without blocking.
 
 
 %% Use \tt instead of \cl, such the hairy \cl macro will blow chow

@@ -56,19 +56,21 @@ identify a point in the drawing plane.
 
 \paragraph {Sheets and Mediums.}
 
-In this chapter, we use a sheet as a destination for output.  Associated with a
-sheet is a medium, which has a drawing plane, two designs called the medium's
-foreground and background, a transformation, a clipping region, a line style,
-and a text style.  There are per-medium, dynamically scoped, default drawing
-options.  Different medium classes are provided to allow programmers to draw on
-different sorts of devices, such as displays, printers, and virtual devices such
-as bitmaps.
+In this chapter, we use a medium as a destination for output.  The medium has a
+drawing plane, two designs called the medium's foreground and background, a
+transformation, a clipping region, a line style, and a text style.  There are
+per-medium, dynamically scoped, default drawing options.  Different medium
+classes are provided to allow programmers to draw on different sorts of devices,
+such as displays, printers, and virtual devices such as bitmaps.
 
-Note that a stream is a special kind of sheet that implements the stream
-protocol; streams include additional state such as the current text cursor
-(which is some point in the drawing plane).  While the functions defined here
-are specified to be called on sheets, they can also be called on streams and
-mediums.
+Many sheets can be used for doing output, so the drawing functions can also take
+a sheet as the output argument.  In this case, drawing function ``trampolines''
+to the sheet's medium.  So, while the functions defined here are specified to be
+called on sheets, they can also be called on sheets.
+
+A stream is a special kind of sheet that implements the stream protocol; streams
+include additional state such as the current text cursor (which is some point in
+the drawing plane).
 
 By default, the ``fundamental'' coordinate system of a CLIM stream (not a
 general sheet or medium, whose fundamental coordinate system is not defined) is
@@ -256,9 +258,9 @@ seen clearly in Figure~\ref{inscribed-circle} if we attempt to draw a rectangle
 and circle overlaid with the following code:
 
 \begin{verbatim}
-(defun draw-test (sheet radius)
-  (draw-circle* sheet 0 0 radius :ink +foreground-ink+)
-  (draw-rectangle* sheet (- radius) (- radius) (+ radius) (+ radius)
+(defun draw-test (medium radius)
+  (draw-circle* medium 0 0 radius :ink +foreground-ink+)
+  (draw-rectangle* medium (- radius) (- radius) (+ radius) (+ radius)
                    :ink +flipping-ink+))
 \end{verbatim}
 
@@ -347,8 +349,10 @@ signalled.  See Chapter~\ref{drawing-options} for a more complete discussion of
 the drawing options.  An error will be signalled if any drawing function is
 called on a sheet that is mute for output.
 
-While the functions in this section are specified to be called on sheets, they
-can also be called on streams and mediums.
+While the functions in this section are specified to be called on mediums, they
+can also be called on sheets and streams.  CLIM implementations will typically
+implement the method on a medium, and write a ``trampoline'' on the various
+sheet and stream classes that trampolines to the medium.
 
 {\bf Implementation note:} The drawing functions are all specified as ordinary
 functions, not as generic functions.  This is intended to ease the task of
@@ -375,11 +379,11 @@ extensions to CLIM.
 
 \subsection {Basic Drawing Functions}
 
-\defun {draw-point}  {sheet point \key \DrawingOptions \PointOptions}
-\Defun {draw-point*} {sheet x y   \key \DrawingOptions \PointOptions}
+\defun {draw-point}  {medium point \key \DrawingOptions \PointOptions}
+\Defun {draw-point*} {medium x y   \key \DrawingOptions \PointOptions}
 
 These functions (structured and spread arguments, respectively) draw a single
-point on the \term{sheet} \arg{sheet} at the \term{point} \arg{point} (or the
+point on the \term{medium} \arg{medium} at the \term{point} \arg{point} (or the
 position $(x,y)$).
 
 The unit and thickness components of the current line style (see
@@ -387,33 +391,33 @@ Chapter~\ref{drawing-options}) affect the drawing of the point by controlling
 the size on the display device of the ``blob'' that is used to render the point.
 
 
-\defun {draw-points}  {sheet point-seq \key \DrawingOptions \PointOptions}
-\Defun {draw-points*} {sheet coord-seq \key \DrawingOptions \PointOptions}
+\defun {draw-points}  {medium points \key \DrawingOptions \PointOptions}
+\Defun {draw-points*} {medium position-seq \key \DrawingOptions \PointOptions}
 
 These functions (structured and spread arguments, respectively) draw a set of
-points on the \term{sheet} \arg{sheet}.  \arg{point-seq} is a sequence of
-point objects; \arg{coord-seq} is a sequence of coordinate pairs, which are real
-numbers.  It is an error if \arg{coord-seq} does not contain an even number of
-elements.
+points on the \term{medium} \arg{medium}.  \arg{points} is a sequence of point
+objects; \arg{position-seq} is a sequence of coordinate pairs, which are real
+numbers.  It is an error if \arg{position-seq} does not contain an even number
+of elements.
 
-These functions exist as equivalents to
+Ignoring the drawing options, these functions exist as equivalents to
 \begin{verbatim}
-(map nil #`(lambda (point) (draw-point sheet point)) point-seq)
+(map nil #`(lambda (point) (draw-point medium point)) points)
 \end{verbatim}
 and
 \begin{verbatim}
 (do ((i 0 (+ i 2)))
-    ((= i (length coord-seq)))
-  (draw-point* sheet (elt coord-seq i) (elt coord-seq (+ i 1))))
+    ((= i (length position-seq)))
+  (draw-point* medium (elt position-seq i) (elt position-seq (+ i 1))))
 \end{verbatim}
 for convenience and efficiency.
 
 
-\defun {draw-line}  {sheet point1 point2 \key \DrawingOptions \LineCapOptions}
-\Defun {draw-line*} {sheet x1 y1  x2 y2  \key \DrawingOptions \LineCapOptions}
+\defun {draw-line}  {medium point1 point2 \key \DrawingOptions \LineCapOptions}
+\Defun {draw-line*} {medium x1 y1  x2 y2  \key \DrawingOptions \LineCapOptions}
 
 These functions (structured and spread arguments, respectively) draw a line
-segment on the \term{sheet} \arg{sheet} from the \term{point} \arg{point1} to
+segment on the \term{medium} \arg{medium} from the \term{point} \arg{point1} to
 \arg{point2} (or from the position (\arg{x1},\arg{y1}) to (\arg{x2},\arg{y2})).
 
 The current line style (see Chapter~\ref{drawing-options}) affects the drawing
@@ -421,35 +425,35 @@ of the line in the obvious way, except that the joint shape has no effect.
 Dashed lines start dashing at \arg{point1}.
 
 
-\defun {draw-lines}  {sheet point-seq \key \DrawingOptions \LineCapOptions}
-\Defun {draw-lines*} {sheet coord-seq \key \DrawingOptions \LineCapOptions}
+\defun {draw-lines}  {medium points \key \DrawingOptions \LineCapOptions}
+\Defun {draw-lines*} {medium position-seq \key \DrawingOptions \LineCapOptions}
 
 These functions (structured and spread arguments, respectively) draw a set of
-disconnected line segments.  \arg{point-seq} is a sequence of point objects;
-\arg{coord-seq} is a sequence of coordinate pairs.  It is an error if
-\arg{coord-seq} does not contain an even number of elements.
+disconnected line segments.  \arg{points} is a sequence of point objects;
+\arg{position-seq} is a sequence of coordinate pairs.  It is an error if
+\arg{position-seq} does not contain an even number of elements.
 
-These functions are equivalent to
+Ignoring the drawing options, these functions are equivalent to
 \begin{verbatim}
 (do ((i 0 (+ i 2)))
-    ((= i (length point-seq)))
-  (draw-line sheet (elt point-seq i) (elt point-seq (1+ i))))
+    ((= i (length points)))
+  (draw-line medium (elt points i) (elt points (1+ i))))
 \end{verbatim}
 and
 \begin{verbatim}
 (do ((i 0 (+ i 4)))
-    ((= i (length coord-seq)))
-  (draw-line* sheet (elt coord-seq i) (elt coord-seq (+ i 1))
-                    (elt coord-seq (+ i 2)) (elt coord-seq (+ i 3))))
+    ((= i (length position-seq)))
+  (draw-line* medium (elt position-seq i)       (elt position-seq (+ i 1))
+                     (elt position-seq (+ i 2)) (elt position-seq (+ i 3))))
 \end{verbatim}
 
 
-\defun {draw-polygon}  {sheet point-seq \key (filled \cl{t}) (closed \cl{t})
+\defun {draw-polygon}  {medium point-seq \key (filled \cl{t}) (closed \cl{t})
                         \DrawingOptions  \LineJointCapOptions}
-\Defun {draw-polygon*} {sheet coord-seq \key (filled \cl{t}) (closed \cl{t}) 
+\Defun {draw-polygon*} {medium coord-seq \key (filled \cl{t}) (closed \cl{t}) 
                         \DrawingOptions \LineJointCapOptions}
 
-Draws a polygon or polyline on the \term{sheet} \arg{sheet}.  When
+Draws a polygon or polyline on the \term{medium} \arg{medium}.  When
 \arg{filled} is \term{false}, this draws a set of connected lines, otherwise it
 draws a filled polygon.  If \arg{closed} is \term{true} (the default) and
 \arg{filled} is \term{false}, it ensures that a segment is drawn that connects
@@ -468,10 +472,12 @@ If \arg{filled} is \term{true}, a closed polygon is drawn and filled in.  In
 this case, \arg{closed} is assumed to be \term{true} as well.
 
 
-\Defun {draw-rectangle*} {sheet x1 y1 x2 y2 \key (filled \cl{t})
+\Defun {draw-rectangle} {medium point1 point2 \key (filled \cl{t})
+                         \DrawingOptions \LineJointOptions}
+\Defun {draw-rectangle*} {medium x1 y1 x2 y2 \key (filled \cl{t})
                           \DrawingOptions \LineJointOptions} 
 
-Draws either a filled or unfilled rectangle on the \term{sheet} \arg{sheet} that
+Draws either a filled or unfilled rectangle on the \term{medium} \arg{medium} that
 has its sides aligned with the coordinate axes of the native coordinate system.
 One corner of the rectangle is at the position (\arg{x1},\arg{y1}) and the
 opposite corner is at (\arg{x2},\arg{y2}).  The arguments \arg{x1}, \arg{y1},
@@ -483,16 +489,39 @@ of unfilled rectangles in the obvious way, except that the cap shape has no
 effect.
 
 
-\defun {draw-ellipse}  {sheet center-pt radius-1-dx radius-1-dy radius-2-dx radius-2-dy
+\defun {draw-rectangles}  {medium points \key \DrawingOptions \LineJointOptions}
+\Defun {draw-rectangles*} {medium position-seq \key \DrawingOptions \LineJointOptions}
+
+These functions (structured and spread arguments, respectively) draw a set of
+rectangles.  \arg{points} is a sequence of point objects; \arg{position-seq} is
+a sequence of coordinate pairs.  It is an error if \arg{position-seq} does not
+contain an even number of elements.
+
+Ignoring the drawing options, these functions are equivalent to
+\begin{verbatim}
+(do ((i 0 (+ i 2)))
+    ((= i (length points)))
+  (draw-rectangle medium (elt points i) (elt points (1+ i))))
+\end{verbatim}
+and
+\begin{verbatim}
+(do ((i 0 (+ i 4)))
+    ((= i (length position-seq)))
+  (draw-rectangle* medium (elt position-seq i)       (elt position-seq (+ i 1))
+                          (elt position-seq (+ i 2)) (elt position-seq (+ i 3))))
+\end{verbatim}
+
+
+\defun {draw-ellipse}  {medium center-pt radius-1-dx radius-1-dy radius-2-dx radius-2-dy
                         \key (filled \cl{t}) start-angle end-angle
                         \DrawingOptions \LineCapOptions}
-\Defun {draw-ellipse*} {sheet center-x center-y radius-1-dx radius-1-dy radius-2-dx radius-2-dy
+\Defun {draw-ellipse*} {medium center-x center-y radius-1-dx radius-1-dy radius-2-dx radius-2-dy
                         \key (filled \cl{t}) start-angle end-angle
                         \DrawingOptions \LineCapOptions}
 
 These functions (structured and spread arguments, respectively) draw an ellipse
 (when \arg{filled} is \term{true}, the default) or an elliptical arc (when
-\arg{filled} is \term{false}) on the \term{sheet} \arg{sheet}.  The center of
+\arg{filled} is \term{false}) on the \term{medium} \arg{medium}.  The center of
 the ellipse is the \term{point} \arg{center-pt} (or the position
 (\arg{center-x},\arg{center-y})).
 
@@ -522,14 +551,14 @@ that the joint shape has no effect.  Dashed elliptical arcs start ``dashing'' at
 \arg{start-angle}.
 
 
-\defun {draw-circle}  {sheet center-pt radius \key (filled \cl{t}) start-angle end-angle
+\defun {draw-circle}  {medium center-pt radius \key (filled \cl{t}) start-angle end-angle
                        \DrawingOptions \LineCapOptions}
-\Defun {draw-circle*} {sheet center-x center-y radius \key (filled \cl{t}) start-angle end-angle
+\Defun {draw-circle*} {medium center-x center-y radius \key (filled \cl{t}) start-angle end-angle
                        \DrawingOptions \LineCapOptions}
 
 These functions (structured and spread arguments, respectively) draw a circle
 (when \arg{filled} is \term{true}, the default) or a circular arc (when
-\arg{filled} is \term{false}) on the \term{sheet} \arg{sheet}.  The center of
+\arg{filled} is \term{false}) on the \term{medium} \arg{medium}.  The center of
 the circle is \arg{center-pt} or (\arg{center-x},\arg{center-y}) and the radius
 is \arg{radius}.  These are just special cases of \cl{draw-ellipse} and
 \cl{draw-ellipse*}.  \arg{filled} is as for \cl{draw-ellipse*}.
@@ -541,19 +570,19 @@ above.
 The ``filled arc'' behavior is the same as that of an ellipse, above.
 
 
-\defun {draw-text}  {sheet string-or-char point
+\defun {draw-text}  {medium string-or-char point
                      \key text-style (start \cl{0}) end
                           (align-x \cl{:left}) (align-y \cl{:baseline})
                           toward-point transform-glyphs
                      \DrawingOptions \TextOptions}
-\Defun {draw-text*} {sheet string-or-char x y
+\Defun {draw-text*} {medium string-or-char x y
                      \key text-style (start \cl{0}) end
                           (align-x \cl{:left}) (align-y \cl{:baseline})
                           toward-x toward-y transform-glyphs
                      \DrawingOptions \TextOptions}
 
-The text specified by \arg{string-or-char} is drawn on the \term{sheet}
-\arg{sheet} starting at the position specified by the \term{point} \arg{point}
+The text specified by \arg{string-or-char} is drawn on the \term{medium}
+\arg{medium} starting at the position specified by the \term{point} \arg{point}
 (or the position $(x,y)$).  The exact definition of ``starting at'' is dependent
 on \arg{align-x} and \arg{align-y}.  \arg{align-x} is one of \cl{:left},
 \cl{:center}, or \cl{:right}.  \arg{align-y} is one of \cl{:baseline},
@@ -562,7 +591,7 @@ and \arg{align-y} defaults to \cl{:baseline}; with these defaults, the first
 glyph is drawn with its left edge and its baseline at \arg{point}.
 
 \arg{text-style} defaults to \cl{nil}, meaning that the text will be drawn using
-the current text style of the sheet's medium.
+the current text style of the medium.
 
 \arg{start} and \arg{end} specify the start and end of the string, in the case
 where \arg{string-or-char} is a string.  If \arg{start} is supplied, it must be
@@ -595,15 +624,13 @@ CLIM also provides a few compound drawing functions.  The compound drawing
 functions could be composed by a programmer from the basic drawing functions,
 but are provided by CLIM because they are commonly used.
 
-\defun {draw-arrow}  {sheet point-1 point-2 \key \DrawingOptions \LineCapOptions
-                                                 to-head from-head
-                                                 head-length head-width}
-\Defun {draw-arrow*} {sheet x1 y1 x2 y2 \key \DrawingOptions \LineCapOptions
-                                             from-head to-head
-                                             head-length head-width}
+\defun {draw-arrow}  {medium point-1 point-2 \key \DrawingOptions \LineCapOptions
+                      to-head from-head head-length head-width}
+\Defun {draw-arrow*} {medium x1 y1 x2 y2 \key \DrawingOptions \LineCapOptions
+                      from-head to-head head-length head-width}
 
 These functions (structured and spread arguments, respectively) draw a line
-segment on the \term{sheet} \arg{sheet} from the \term{point} \arg{point1} to
+segment on the \term{medium} \arg{medium} from the \term{point} \arg{point1} to
 \arg{point2} (or from the position (\arg{x1},\arg{y1}) to (\arg{x2},\arg{y2})).
 If \arg{to-head} is \term{true} (the default), then the ``to'' end of the line
 is capped by an arrowhead.  If \arg{from-head} is \term{true} (the default is
@@ -616,13 +643,13 @@ of the line portion of the arrow in the obvious way, except that the joint shape
 has no effect.  Dashed arrows start dashing at \arg{point1}.
 
 
-\defun {draw-oval}  {sheet center-pt x-radius y-radius \key (filled \cl{t}) 
-                                                       \DrawingOptions \LineCapOptions}
-\Defun {draw-oval*} {sheet center-x center-y x-radius y-radius \key (filled \cl{t})
-                                                               \DrawingOptions \LineCapOptions}
+\defun {draw-oval}  {medium center-pt x-radius y-radius \key (filled \cl{t}) 
+                     \DrawingOptions \LineCapOptions}
+\Defun {draw-oval*} {medium center-x center-y x-radius y-radius \key (filled \cl{t})
+                     \DrawingOptions \LineCapOptions}
 
 These functions (structured and spread arguments, respectively) draw a filled or
-unfilled oval (that is, a ``race-track'' shape) on the \term{sheet} \arg{sheet}.
+unfilled oval (that is, a ``race-track'' shape) on the \term{medium} \arg{medium}.
 The oval is centered on \arg{center-pt} (or (\arg{center-x},\arg{center-y})).
 If \arg{x-radius} or \arg{y-radius} is $0$, then a circle is drawn with the
 specified non-zero radius.  Other, a figure is drawn that results from drawing a
@@ -633,30 +660,31 @@ short sides with a semicircular arc of the appropriate size.
 \section {Pixmaps}
 
 A \concept{pixmap} can be thought of as an ``off-screen window'', that is, a
-sheet that can be used for graphical output, but is not visible on any display
+medium that can be used for graphical output, but is not visible on any display
 device.   Pixmaps are provided to allow a programmer to generate a piece of
 output associated with some display device that can then be rapidly drawn on a
 real display device.  For example, an electrical CAD system might generate a
 pixmap that corresponds to a complex, frequently used part in a VLSI schematic,
 and then use \cl{copy-from-pixmap} to draw the part as needed.
 
-The exact representation of a pixmap is explicitly unspecified.  There is no
-interaction between the pixmap operations and output recording, that is,
-displaying a pixmap on a sheet is a pure drawing operation that affects only the
-display, not the output history.  Some sheets may not support pixmaps; in this
-case, an error will be signalled.
+The exact representation of a pixmap is explicitly unspecified.  There
+is no interaction between the pixmap operations and output recording,
+that is, displaying a pixmap on a sheet or medium is a pure drawing
+operation that affects only the display, not the output history.  Some
+mediums may not support pixmaps; in this case, an error will be
+signalled.
 
 
-\Defgeneric {allocate-pixmap} {sheet width height}
+\Defgeneric {allocate-pixmap} {medium width height}
 
-Allocates and returns a pixmap object that can be used on any sheet that shares
-the same characteristics as \arg{sheet}.  (The exact definition of ``shared
-characteristics'' will vary from host to host.)  \arg{sheet} can be a sheet, a
-medium, or a stream.
+Allocates and returns a pixmap object that can be used on any medium that shares
+the same characteristics as \arg{medium}.  (The exact definition of ``shared
+characteristics'' will vary from host to host.)  \arg{medium} can be a medium, a
+sheet, or a stream.
 
-The resulting pixmap will be \arg{width} units wide, \arg{height} units high,
-and as deep as is necessary to store the information for the sheet.  The exact
-representation of pixmaps is explicitly unspecified.
+The resulting pixmap will be at least \arg{width} units wide, \arg{height} units
+high, and as deep as is necessary to store the information for the medium.  The
+exact representation of pixmaps is explicitly unspecified.
 
 The returned value is the pixmap.
 
@@ -669,62 +697,76 @@ Deallocates the pixmap \arg{pixmap}.
 \defgeneric {pixmap-height} {pixmap}
 \Defgeneric {pixmap-depth}  {pixmap}
 
-These functions return, respectively, the programmer-specified width and height,
-and the depth of the pixmap \arg{pixmap}.
+These functions return, respectively, the width, height, and depth of the pixmap
+\arg{pixmap}.  These values may be different from the programmer-specified
+values, since some window systems need to allocate pixmaps only of particular
+sizes.
 
 
-\Defgeneric {copy-to-pixmap} {sheet sheet-x sheet-y width height
-                              \optional pixmap (pixmap-x \cl{0}) (pixmap-y \cl{0})}
+\Defun {copy-to-pixmap} {medium medium-x medium-y width height
+                         \optional pixmap (pixmap-x \cl{0}) (pixmap-y \cl{0})}
 
-Copies the pixels from the sheet \arg{sheet} starting at the position specified
-by (\arg{sheet-x},\arg{sheet-y}) into the pixmap \arg{pixmap} at the position
+Copies the pixels from the medium \arg{medium} starting at the position specified
+by (\arg{medium-x},\arg{medium-y}) into the pixmap \arg{pixmap} at the position
 specified by (\arg{pixmap-x},\arg{pixmap-y}).  A rectangle whose width and
-height is specified by \arg{width} and \arg{height} is copied.  \arg{sheet-x}
-and \arg{sheet-y} are specified in user coordinates.  (If \arg{sheet} is a
-medium or a stream, then \arg{sheet-x} and \arg{sheet-y} are transformed by the
-user transformation.)
+height is specified by \arg{width} and \arg{height} is copied.  \arg{medium-x}
+and \arg{medium-y} are specified in user coordinates.  (If \arg{medium} is a
+medium or a stream, then \arg{medium-x} and \arg{medium-y} are transformed by the
+user transformation.)  The copying must be done by \cl{medium-copy-copy}.
 
 If \arg{pixmap} is not supplied, a new pixmap will be allocated.  Otherwise,
 \arg{pixmap} must be an object returned by \cl{allocate-pixmap} that has the
-appropriate characteristics for \arg{sheet}. 
+appropriate characteristics for \arg{medium}. 
 
 The returned value is the pixmap.
 
-\Defgeneric {copy-from-pixmap} {pixmap pixmap-x pixmap-y width height
-                                sheet window-x window-y}
+\Defun {copy-from-pixmap} {pixmap pixmap-x pixmap-y width height
+                           medium medium-x medium-y}
 
 Copies the pixels from the pixmap \arg{pixmap} starting at the position
-specified by (\arg{pixmap-x},\arg{pixmap-y}) into the sheet \arg{sheet} at the
-position (\arg{sheet-x},\arg{sheet-y}).  A rectangle whose width and height is
-specified by \arg{width} and \arg{height} is copied.  \arg{sheet-x} and
-\arg{sheet-y} are specified in user coordinates.  (If \arg{sheet} is a medium or
-a stream, then \arg{sheet-x} and \arg{sheet-y} are transformed by the user
-transformation.)
+specified by (\arg{pixmap-x},\arg{pixmap-y}) into the medium \arg{medium} at the
+position (\arg{medium-x},\arg{medium-y}).  A rectangle whose width and height is
+specified by \arg{width} and \arg{height} is copied.  \arg{medium-x} and
+\arg{medium-y} are specified in user coordinates.  (If \arg{medium} is a medium or
+a stream, then \arg{medium-x} and \arg{medium-y} are transformed by the user
+transformation.)  The copying must be done by \cl{medium-copy-copy}.
 
 \arg{pixmap} must be an object returned by \cl{allocate-pixmap} that has the
-appropriate characteristics for \arg{sheet}.
+appropriate characteristics for \arg{medium}.
 
 The returned value is the pixmap.
 
-This is intended to specialize on both the \arg{pixmap} and \arg{sheet}
-arguments.
+\Defgeneric {copy-area} {medium from-x from-y width height to-x to-y}
 
-\Defgeneric {copy-area} {sheet from-x from-y width height to-x to-y}
-
-Copies the pixels from the sheet \arg{sheet} starting at the position specified
-by (\arg{from-x},\arg{from-y}) to the position (\arg{to-x},\arg{to-y}) on the
-same sheet.  A rectangle whose width and height is specified by \arg{width} and
-\arg{height} is copied.  \arg{from-x}, \arg{from-y}, \arg{to-x}, and \arg{to-y}
-are specified in user coordinates.  (If \arg{sheet} is a medium or a stream,
-then \arg{sheet-x} and \arg{sheet-y} are transformed by the user
-transformation.)
+Copies the pixels from the medium \arg{medium} starting at the position
+specified by (\arg{from-x},\arg{from-y}) to the position (\arg{to-x},\arg{to-y})
+on the same medium.  A rectangle whose width and height is specified by
+\arg{width} and \arg{height} is copied.  \arg{from-x}, \arg{from-y}, \arg{to-x},
+and \arg{to-y} are specified in user coordinates.  (If \arg{medium} is a medium
+or a stream, then the $x$ and $y$ values are transformed by the user
+transformation.)  The copying must be done by \cl{medium-copy-copy}.
 
 
-\Defmacro {with-output-to-pixmap} {(medium-var sheet \key width height) \body body}
+\Defgeneric {medium-copy-area} {from-drawable from-x from-y width height
+                                to-drawable to-x to-y}
+
+Copies the pixels from the source drawable \arg{from-drawable} at the position
+(\arg{from-x},\arg{from-y}) to the destination drawable \arg{to-drawable} at the
+position (\arg{to-x},\arg{to-y}).  A rectangle whose width and height is
+specified by \arg{width} and \arg{height} is copied.  \arg{from-x},
+\arg{from-y}, \arg{to-x}, and \arg{to-y} are specified in user coordinates.
+The $x$ and $y$ are transformed by the user transformation.
+
+This is intended to specialize on both the \arg{from-drawable} and
+\arg{to-drawable} arguments.  \arg{from-drawable} and \arg{to-drawable} may be
+either mediums or pixmaps.
+
+
+\Defmacro {with-output-to-pixmap} {(medium-var medium \key width height) \body body}
 
 Binds \arg{medium-var} to a ``pixmap medium'', that is, a medium that does
-output to a pixmap with the characteristics appropriate to the sheet
-\arg{sheet}, and then evaluates \arg{body} in that context.  All the output done
+output to a pixmap with the characteristics appropriate to the medium
+\arg{medium}, and then evaluates \arg{body} in that context.  All the output done
 to the medium designated by \arg{medium-var} inside of \arg{body} is drawn on
 the pixmap stream.  The pixmap medium must support the medium output protocol,
 including all of the graphics function.  CLIM implementations are permitted, but
@@ -737,7 +779,7 @@ contain all of the output done by \arg{body}.
 
 \arg{medium-var} must be a symbol; it is not evaluated.
 
-The returned value is a pixmap that can be drawn onto \arg{sheet} using
+The returned value is a pixmap that can be drawn onto \arg{medium} using
 \cl{copy-from-pixmap}.
 
 
@@ -751,34 +793,26 @@ same arguments as the non-generic spread function equivalents, except the
 arguments that are keyword arguments in the non-generic functions are positional
 arguments in the generic functions.
 
-Every port must implement methods for the various graphical drawing generic
+Every medium must implement methods for the various graphical drawing generic
 functions.  All of these generic functions take as (specialized) arguments the
-port and medium, followed by the drawing function-specific arguments, followed
-by the ink, line style (or text style), and clipping region.
+medium, followed by the drawing function-specific arguments, followed by the
+ink, line style (or text style), and clipping region.
 
-The drawing function-specific arguments will either be $x$ and $y$ positions, or
-a sequence of $x$ and $y$ positions.  These positions will be in medium
+The drawing function-specific arguments will either be $x$ and $y$ positions,
+or a sequence of $x$ and $y$ positions.  These positions will be in medium
 coordinates, and must be transformed by applying the medium's device
 transformation in order to produce device coordinates.  Note that the user
 transformation will have already been applied to the positions when the
-port-specific drawing function is called.
+medium-specific drawing function is called.  However, the medium-specific
+drawing function will still need to apply the device transformation to the
+positions in order to draw the graphics in the appopriate place on the host
+window.
 
-The ink, line style (or text style), and clipping regions arguments are
-optional, and default from the medium (\cl{medium-ink}, \cl{medium-line-style}
-(or \cl{medium-current-text-style}), and \cl{medium-clipping-region},
-respectively).  Each port method will decode the ink, line (or text) style, and
-clipping region in a port-specific way and communicate it to the underlying
+The ink, line style, text style, and clipping regions arguments are not part of
+the medium-specific drawing functions.  They must be extracted from the medium
+object.  Each medium-specific method will decode the ink, line (or text) style,
+and clipping region in a port-specific way and communicate it to the underlying
 port.
-
-\issue {SWM} {Do we need to specify \cl{define-graphics-generic} and
-\cl{define-graphics-method}, or whatever, so that the graphics protocol is
-easier to extend?  Such things should also help define the hooks into output
-recording.}
-
-\Issue {SWM, York} {The medium and port layers should be merged.  There is no
-gain in performance to be had by separating them, since transformations need to
-be applied to the coordinates at both layers anyway, and if the two layers are
-coalesced, there is better opportunity for caching transformations.}
 
 
 \subsection {General Behavior of Drawing Functions}
@@ -787,22 +821,27 @@ Using \cl{draw-line*} as an example, calling any of the drawing functions
 specified above results in the following series of function calls on a
 non-output recording sheet:
 
-\begin{itemize}
-\item A program calls \cl{draw-line*} on arguments \arg{sheet}, \arg{x1},
+\begin{itemize} 
+\item A program calls \cl{draw-line*} on either a sheet or a medium, \arg{x1},
 \arg{y1}, \arg{x2}, and \arg{y2}, and perhaps some drawing options.
 
-\item \cl{draw-line*} merges the supplied drawing options into the sheet's
-medium, and then calls \cl{medium-draw-line*} on the sheet.  (Note that a
-compiler macro could detect the case where there are no drawing options or
-constant drawing options, and do this at compile time.)
+\item \cl{draw-line*} merges the supplied drawing options into the medium, and
+then calls \cl{medium-draw-line*} on the sheet or medium.  (Note that a compiler
+macro could detect the case where there are no drawing options or constant
+drawing options, and do this at compile time.)
 
-\item \cl{medium-draw-line*} on the sheet trampolines to the medium's
-\cl{medium-draw-line*} method.
+\item If \cl{draw-line*} was called on a sheet, the \cl{medium-draw-line*} on
+the sheet trampolines to the medium's \cl{medium-draw-line*} method.
 
-\item \cl{medium-draw-line*} performs the necessary user transformations by
-applying the medium transformation to \arg{x1}, \arg{y1}, \arg{x2}, and
-\arg{y2}, and to the clipping region.  Then \cl{medium-draw-line*} calls
-\cl{port-draw-line*} to do the actual drawing.
+\item An \cl{:around} method for \cl{medium-draw-line*} performs the necessary
+user transformations by applying the medium transformation to \arg{x1},
+\arg{y1}, \arg{x2}, and \arg{y2}, and to the clipping region, and then calls the
+medium-specific method.
+
+\item The ``real'' \cl{medium-draw-line*} transforms the start and end
+coordinates of the line by the sheet's device transformation, decodes the ink
+and line style into port-specific objects, and finally invokes a port-specific
+function (such as \cl{xlib:draw-line}) to do the actual drawing.
 \end{itemize}
 
 
@@ -811,75 +850,78 @@ applying the medium transformation to \arg{x1}, \arg{y1}, \arg{x2}, and
 All mediums and all sheets that support the standard output protocol must
 implement methods for the following generic functions.
 
-{\bf: Note:} CLIM implementations should provide ``trampoline'' methods on
-sheets that support the standard output protocol that simply call the same
-generic function on the medium.  Sheets that support output recording will
+The method for each of these drawing functions on the most specific,
+implementation-dependent medium class will transform the coordinates by the
+device transformation of the medium's sheet, extract the medium's port-specific
+``drawable'', and then invoke a port-specific drawing function (such as
+\cl{xlib:draw-line}) to do the actual drawing.
+
+An \cl{:around} on \cl{basic-medium} for each of the drawing functions will have
+already transformed the user coordinates to medium coordinates before the most
+specific, implementation-dependent method is called.
+
+{\bf Implementation note:} CLIM implementations should provide ``trampoline''
+methods on sheets that support the standard output protocol that simply call the
+same generic function on the medium.  Sheets that support output recording will
 require extra mechanism before delegating to the medium in order to implement
 such functionality as creating output records and handling scrolling.
 
 \Defgeneric {medium-draw-point*} {medium x y}
 
-Draws a point on the \term{medium} \arg{medium}.  The point is drawn at
-$(x,y)$, transformed by the medium's current transformation.
-\cl{medium-draw-point*} will call \cl{port-draw-point*} in order to draw the
-point.
+Draws a point on the \term{medium} \arg{medium}.  
 
 \Defgeneric {medium-draw-points*} {medium coord-seq}
 
 Draws a set of points on the \term{medium} \arg{medium}.  \arg{coord-seq} is a
 sequence of coordinate pairs, which are real numbers.  It is an error if
-\arg{coord-seq} does not contain an even number of elements.  The coordinates in
-\arg{coord-seq} are transformed by the medium's current transformation.
-\cl{medium-draw-points*} will call \cl{port-draw-points*} in order to draw the
-points.
+\arg{coord-seq} does not contain an even number of elements.
 
 \Defgeneric {medium-draw-line*} {medium x1 y1 x2 y2}
 
 Draws a line on the \term{medium} \arg{medium}.  The line is drawn from
-$(x1,y1)$ to $(x2,y2)$, with the start and end positions transformed by the
-medium's current transformation.  \cl{medium-draw-line*} will call
-\cl{port-draw-line*} in order to draw the line.
+$(x1,y1)$ to $(x2,y2)$.
 
-\Defgeneric {medium-draw-lines*} {medium coord-seq}
+\Defgeneric {medium-draw-lines*} {stream position-seq} 
 
 Draws a set of disconnected lines on the \term{medium} \arg{medium}.
-\arg{coord-seq} is a sequence of coordinate pairs, which are real numbers.
-It is an error if \arg{coord-seq} does not contain an even number of
-elements.  The coordinates in \arg{coord-seq} are transformed by the medium's
-current transformation.  \cl{medium-draw-lines*} will call
-\cl{port-draw-lines*} in order to draw the line.
+\arg{coord-seq} is a sequence of coordinate pairs, which are real numbers.  Each
+successive pair of coordinate pairs is taken as the start and end position of
+each line.  It is an error if \arg{coord-seq} does not contain an even number of
+elements.
 
 \Defgeneric {medium-draw-polygon*} {medium coord-seq closed}
 
 Draws a polygon or polyline on the \term{medium} \arg{medium}.  \arg{coord-seq}
 is a sequence of coordinate pairs, which are real numbers.  It is an error if
-\arg{coord-seq} does not contain an even number of elements.  The coordinates in
-\arg{coord-seq} are transformed by the medium's current transformation.
-\cl{medium-draw-polygon*} will call \cl{port-draw-polygon*} in order to draw the
-polygon.
+\arg{coord-seq} does not contain an even number of elements.  Each successive
+coordinate pair is taken as the position of one vertex of the polygon.
 
 \Defgeneric {medium-draw-rectangle*} {medium x1 y1 x2 y2}
 
 Draws a rectangle on the \term{medium} \arg{medium}.  The corners of the
-rectangle are at $(x1,y1)$ and $(x2,y2)$, with the corner positions transformed
-by the medium's current transformation.  \cl{medium-draw-rectangle*} will call
-\cl{port-draw-rectangle*} in order to draw the rectangle.
+rectangle are at $(x1,y1)$ and $(x2,y2)$.
+
+\Defgeneric {medium-draw-rectangles*} {medium coord-seq}
+
+Draws a set of rectangles on the \term{medium} \arg{medium}.  \arg{coord-seq} is
+a sequence of coordinate pairs, which are real numbers.  It is an error if
+\arg{coord-seq} does not contain an even number of elements.  Each successive
+pair of coordinate pairs is taken as the upper-left and lower-right corner of
+the rectangle.
 
 \Defgeneric {medium-draw-ellipse*} {medium center-x center-y 
                                     radius-1-dx radius-1-dy radius-2-dx radius-2-dy  
                                     start-angle end-angle}
 
 
-Draws an rectangle on the \term{medium} \arg{medium}.  The center of the
-rectangle is at $(x,y)$, and the radii are specified by the two vectors
-(\arg{radius-1-dx},\arg{radius-1-dy}) and (\arg{radius-2-dx},\arg{radius-2-dy}).
-The center point and radii are transformed by the medium's current
-transformation.  \cl{medium-draw-ellipse*} will call \cl{port-draw-ellipse*} in
-order to draw the ellipse.
+Draws an ellipse or elliptical arc on the \term{medium} \arg{medium}.  The
+center of the ellipse is at $(x,y)$, and the radii are specified by the two
+vectors (\arg{radius-1-dx},\arg{radius-1-dy}) and
+(\arg{radius-2-dx},\arg{radius-2-dy}).
 
 \arg{start-angle} and \arg{end-angle} are real numbers that specify an arc
-rather than a complete ellipse.  The medium transformation must be applied to
-the angles as well.
+rather than a complete ellipse.  Note that the medium and device transformations
+must be applied to the angles as well.
 
 \Defgeneric {medium-draw-text*} {medium text x y
                                  (start \cl{0}) end
@@ -887,134 +929,36 @@ the angles as well.
                                  toward-x toward-y transform-glyphs}
 
 Draws a character or a string on the \term{medium} \arg{medium}.  The text is
-drawn starting at $(x,y)$, and towards (\arg{toward-x},\arg{toward-y}); these
-positions are transformed by the medium's current transformation.
-\cl{medium-draw-text*} will call either \cl{port-draw-string*} or
-\cl{port-draw-character*} in order to draw the text.
+drawn starting at $(x,y)$, and towards (\arg{toward-x},\arg{toward-y}).  In Some
+implementations of CLIM, \cl{medium-draw-text*} may call either
+\cl{medium-draw-string*} or \cl{medium-draw-character*} in order to draw the
+text.
 
+\subsection {Other Medium-specific Output Functions}
 
-\subsection {Port-specific Drawing Functions}
+\Defgeneric {medium-finish-output} {medium}
 
-The following port-specific functions are required by the drawing functions in
-the API.  If the optional arguments to these functions are not supplied, they
-are defaulted from the medium.
+Ensures that all the output sent to \arg{medium} has reached its destination,
+and only then return \term{false}.  This is used by \cl{finish-output}.
 
-\Defgeneric {port-draw-point*} {port medium x y
-                                \optional ink line-style clipping-region}
+\Defgeneric {medium-force-output} {medium}
 
-Draws a point on the \term{medium} \arg{medium} on the \term{port} \arg{port}.
-The point is drawn at the position that results from applying the device
-transformation to $(x,y)$.
+Like \cl{medium-finish-output}, except that it may return \term{false} without
+waiting for the output to complete.  This is used by \cl{force-output}.
 
-\Defgeneric {port-draw-points*} {port medium coord-seq
-                                 \optional ink line-style clipping-region}
+\Defgeneric {medium-clear-area} {medium left top right bottom}
 
-Draws a set of points on the \term{medium} \arg{medium} on the \term{port}
-\arg{port}.  \arg{coord-seq} is a sequence of coordinate pairs, which are real
-numbers.  It is an error if \arg{coord-seq} does not contain an even number of
-elements.  \cl{port-draw-points*} could be implemented by repeatedly calling
-{port-draw-point*}, but some ports may support faster primitives to do this.
+Clears an area on the {medium} \arg{medium} by filling the rectangle whose edges
+are at \arg{left}, \arg{top}, \arg{right}, and \arg{bottom} with the medium's
+background ink.  \arg{left}, \arg{top}, \arg{right}, and \arg{bottom} are in
+thed medium's coordinate system.
 
-\Defgeneric {port-draw-line*} {port medium x1 y1 x2 y2
-                               \optional ink line-style clipping-region}
+The default method on \cl{basic-medium} simply uses \cl{draw-rectangle*} to
+clear the area.  Some host window systems has special functions that are faster
+than \cl{draw-rectangle*}.
 
-Draws a line on the \term{medium} \arg{medium} on the \term{port} \arg{port}.
-The device transformation is applied to $(x1,y1)$ to $(x2,y2)$, and the line is
-drawn from one transformed endpoint to the other.
+\Defgeneric {medium-beep} {medium}
 
-\Defgeneric {port-draw-lines*} {port medium coord-seq
-                                \optional ink line-style clipping-region}
+Causes an audible sound to be played on the medium.  The default method
+does nothing.
 
-Draws a set of disconnected lines on the \term{medium} \arg{medium} on the
-\term{port} \arg{port}.  \arg{coord-seq} is a sequence of coordinate pairs,
-which are real numbers.  It is an error if \arg{coord-seq} does not contain an
-even number of elements.  \cl{port-draw-lines*} could be implemented by
-repeatedly calling {port-draw-line*}, but some ports may support faster
-primitives to do this.
-
-\Defgeneric {port-draw-polygon*} {port medium coord-seq closed
-                                  \optional ink line-style clipping-region} 
-
-Draws a polygon or polyline on the \term{medium} \arg{medium} on the \term{port}
-\arg{port}.  When \arg{line-style} is \cl{nil}, this draws a filled polygon;
-otherwise, \arg{line-style} is the line style to use when drawing a set of
-connected lines.  \arg{coord-seq} is a sequence of coordinate pairs, which are
-real numbers.  It is an error if \arg{coord-seq} does not contain an even number
-of elements.  The coordinate sequence specifies the corners of the polygon; the
-device transformation is applied to each of the coordinates to produce the
-corners of the rendered polygon.
-
-When \cl{port-draw-polygon*} is drawing a set of connected lines, then if
-\arg{closed} is \term{true}, a closed polygon is drawn.  If \arg{closed} is
-\term{false}, the polygon will not be closed.
-
-\Defgeneric {port-draw-rectangle*} {port medium x1 y1 x2 y2
-                                    \optional ink line-style clipping-region}
-
-Draws a rectangle on the \term{medium} \arg{medium} on the \term{port}
-\arg{port}.  When \arg{line-style} is \cl{nil}, this draws a filled rectangle;
-otherwise, \arg{line-style} is the line style to use when drawing an unfilled
-rectangle.  The device transformation is applied to $(x1,y1)$ and $(x2,y2)$ to
-produce the corners of the rectangle.
-
-\Defgeneric {port-draw-ellipse*} {port medium 
-                                  center-x center-y 
-                                  radius-1-dx radius-1-dy radius-2-dx radius-2-dy
-                                  start-angle end-angle
-                                  \optional ink line-style clipping-region}
-
-Draws an ellipse rectangle on the \term{medium} \arg{medium} on the \term{port}
-\arg{port}.  When \arg{line-style} is \cl{nil}, this draws a filled ellipse;
-otherwise, \arg{line-style} is the line style to use when drawing an unfilled
-ellipse.  
-
-The center of the ellipse is produced by applying the device transformation to
-(\arg{center-x},\arg{center-y}). Two vectors,
-(\arg{radius-1-dx},\arg{radius-1-dy}) and (\arg{radius-2-dx},\arg{radius-2-dy})
-specify the bounding parallelogram of the ellipse as explained in
-Chapter~\ref{regions}.  When the ellipse vectors have the same length, the
-ellipse is circle.  The device transformation must is applied to the vectors as
-well.
-
-\arg{start-angle} and \arg{end-angle} are real numbers that specify an arc
-rather than a complete ellipse.  The device transformation must be applied to
-the angles as well.
-
-\Defgeneric {port-draw-string*} {port medium text x y
-                                (start \cl{0}) end
-                                (align-x \cl{:left}) (align-y \cl{:baseline})
-                                toward-x toward-y transform-glyphs
-                                \optional ink text-style clipping-region}
-
-Draws a string on the \term{medium} \arg{medium} on the \term{port} \arg{port}.
-The string is drawn starting at the position that results from applying the
-device transformation to $(x,y)$, and towards (\arg{toward-x},\arg{toward-y}).
-\arg{align-x} is one of \cl{:left}, \cl{:center}, or \cl{:right}.  \arg{align-y}
-is one of \cl{:baseline}, \cl{:top}, \cl{:center}, or \cl{:bottom}.
-
-\arg{start} and \arg{end} specify the start and end of the string.  \arg{start}
-is an integer that is less than the length of the string.  \arg{end} is an
-integer that is less than the length of the string, but greater than or equal to
-\arg{start}.
-
-Normally, glyphs are drawn from left to right, but \arg{toward-x} and
-\arg{toward-y} can be used to change the direction from one glyph to the next
-one.  The reference point in each glyph lies on a line from $(x,y)$ to
-(\arg{toward-x},\arg{toward-y}) and the spacing of each glyph is determined by
-packing rectangles along that line, where each rectangle is ``char-width'' wide
-and ``char-height'' high.  Of course, some ports may not be able to fully
-support this.
-
-If \arg{transform-glyphs} is \term{true}, then each glyph is transformed as an
-image before it is drawn.  It is permissible for CLIM implementations to ignore
-\arg{transform-glyphs} if it is too expensive to implement.
-
-\Defgeneric {port-draw-character*} {port medium character x y
-                                    (align-x \cl{:left}) (align-y \cl{:baseline})
-                                    \optional ink text-style clipping-region}
-
-Draws a single character on the \term{medium} \arg{medium} on the \term{port}
-\arg{port} at the position that results from applying the device transformation
-to $(x,y)$.  \arg{align-x} is one of \cl{:left}, \cl{:center}, or \cl{:right}.
-\arg{align-y} is one of \cl{:baseline}, \cl{:top}, \cl{:center}, or
-\cl{:bottom}.

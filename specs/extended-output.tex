@@ -26,17 +26,6 @@ based on the CLIM output kernel.
 Writes the character \arg{character} to the \term{output stream} \arg{stream},
 and returns \arg{character} as its value.
 
-\Defgeneric {stream-line-column} {stream}
-
-This function returns the column number where the next character will be written
-on the \term{output stream} \arg{stream}.  The first column on a line is
-numbered 0.
-
-\Defgeneric {stream-start-line-p} {stream}
-
-Returns \term{true} if the \term{output stream} \arg{stream} is positioned at
-the beginning of a line (that is, column 0), otherwise returns \term{false}.
-
 \Defgeneric {stream-write-string} {stream string \optional (start \cl{0}) end}
 
 Writes the string \arg{string} to the \term{output stream} \arg{stream}.  If
@@ -68,6 +57,17 @@ Like \cl{stream-finish-output}, except that it may immediately return
 Aborts any outstanding output operation in progress on the \term{output stream}
 \arg{stream}, and returns \term{false}.
 
+\Defgeneric {stream-line-column} {stream}
+
+This function returns the column number where the next character will be written
+on the \term{output stream} \arg{stream}.  The first column on a line is
+numbered 0.
+
+\Defgeneric {stream-start-line-p} {stream}
+
+Returns \term{true} if the \term{output stream} \arg{stream} is positioned at
+the beginning of a line (that is, column 0), otherwise returns \term{false}.
+
 \Defgeneric {stream-advance-to-column} {stream column}
 
 Writes enough blank space on the \term{output stream} \arg{stream} so that the
@@ -87,14 +87,14 @@ The protocol class for CLIM extended output streams.  This is a subclass of
 \cl{output-stream}.
 \IfYouWantClass {an} {extended output stream} {extended-output-stream}
 
-\Defun {extended-output-stream-p} {object}
+\Defpredicate {extended-output-stream-p} {object}
 
 Returns \term{true} if \arg{object} is a CLIM \term{extended output stream},
 otherwise returns \term{false}.
 
 \definitarg {:foreground}
 \definitarg {:background}
-\definitarg {:default-text-style}
+\definitarg {:text-style}
 \definitarg {:vertical-spacing}
 \definitarg {:text-margin}
 \definitarg {:end-of-line-action}
@@ -105,6 +105,9 @@ All subclasses of \cl{extended-output-stream} must handle these initargs, which
 are used to specify, respectively, the medium foreground and background, default
 text style, vertical spacing, default text margin, end of line and end of page
 actions, and the default view for the stream.
+
+\cl{:foreground}, \cl{:background}, and \cl{:text-style} are handled via the
+usual pane initialize options (see Section~\ref{pane-init}).
 
 \Defclass {standard-extended-output-stream}
 
@@ -259,13 +262,18 @@ Many streams that maintain a text cursor display some visible indication of the
 text cursor.  The object that represents this display is (somewhat confusingly)
 also called a cursor.
 
+An \concept{active} cursor is one that is being actively maintained by its
+owning sheet.  A active cursor has a \concept{state} that is either on or off.
+An active cursor can also has a state that indicates the the owning sheet has
+the input focus.
+
 \Defprotoclass {cursor}
 
 The protocol class that corresponds to cursors.
 \IfYouWantClass {a} {cursor} {cursor}
 \Mutable
 
-\Defun {cursorp} {object}
+\Defpredicate {cursorp} {object}
 
 Returns \term{true} if \arg{object} is a \term{cursor}, otherwise returns
 \term{false}.
@@ -287,27 +295,41 @@ Returns the sheet with which the \term{cursor} \arg{cursor} is associated.
 \Defgeneric {cursor-position} {cursor}
 
 Returns the $x$ and $y$ position of the \term{cursor} \arg{cursor} as two
-values.
+values.  $x$ and $y$ are in the coordinate system of the cursor's sheet.
 
 \Defgeneric {(setf* cursor-position)} {x y cursor}
 
 Sets the $x$ and $y$ position of the \term{cursor} \arg{cursor} to the specified
-position.
+position.  $x$ and $y$ are in the coordinate system of the cursor's sheet.
+
+For CLIM implementations that do not support \cl{setf*}, the ``setter'' function
+for this is \cl{cursor-set-position}.
+
+\defgeneric {cursor-active} {cursor}
+\Defgeneric {(setf cursor-active)} {value cursor}
+
+Returns (or sets) the ``active'' attribute of the cursor.  When \term{true}, the
+cursor is active.
+
+\defgeneric {cursor-state} {cursor}
+\Defgeneric {(setf cursor-state)} {value cursor}
+
+Returns (or sets) the ``state'' attribute of the cursor.  When \term{true}, the
+cursor is visible.  When \term{false}, the cursor is not visible.
+
+\Defgeneric {cursor-focus} {cursor}
+
+Returns the ``focus'' attribute of the cursor.  When \term{true}, the sheet
+owning the cursor has the input focus.
 
 \defgeneric {cursor-visibility} {cursor}
 \Defgeneric {(setf cursor-visibility)} {visibility cursor}
 
-Returns (or sets) the visibility of the \term{cursor} \arg{cursor}.  The
-visibility can be either \cl{:on} (meaning that the cursor will be visible at
-its current position), \cl{:off} (meaning that the cursor is active, but not
-visible at its current position), or \cl{nil} (meaning that the cursor is to
-be deactivated).
-
-\Defgeneric {display-cursor} {cursor state}
-
-This is responsible for drawing or erasing the \term{cursor} \arg{cursor}.
-If \arg{state} is \cl{:draw}, the cursor will be drawn.  Otherwise, if the
-\arg{state} is \cl{:erase}, the cursor will be erased.
+These are convenience functions that combine the functionality of
+\cl{cursor-active} and \cl{cursor-state}.  The visibility can be either \cl{:on}
+(meaning that the cursor is active and visible at its current position),
+\cl{:off} (meaning that the cursor is active, but not visible at its current
+position), or \cl{nil} (meaning that the cursor is not activate).
 
 
 \subsection {Stream Text Cursor Protocol}
@@ -331,6 +353,9 @@ Returns the current text cursor position for the \term{extended output stream}
 Sets the text cursor position of the \term{extended output stream} \arg{stream}
 to \arg{x} and \arg{y}.  \arg{x} and \arg{y} are in device units, and must be
 integers.
+
+For CLIM implementations that do not support \cl{setf*}, the ``setter'' function
+for this is \cl{stream-set-cursor-position}.
 
 \Defgeneric {stream-increment-cursor-position} {stream dx dy}
 
@@ -389,8 +414,9 @@ change, too.
 
 Returns what the line height of a line on the \term{extended output stream}
 \arg{stream} containing text in the \term{text style} \arg{text-style} would be,
-as a rational number.  \arg{text-style} defaults to the current text style for
-the stream.
+as a rational number.  The height of the line is measured from the baseline of
+the text style to its ascent.  \arg{text-style} defaults to the current text
+style for the stream.
 
 
 \Defgeneric {stream-vertical-spacing} {stream}
@@ -410,18 +436,20 @@ The following macro provides a convenient way to mix text and graphics on the
 same output stream.
 
 \Defmacro {with-room-for-graphics} {(\optional stream
-                                     \key (move-cursor \cl{t}) height record-type)
+                                     \key (first-quadrant \cl{t}) height (move-cursor \cl{t})
+                                          record-type)
                                     \body body}
 
-Binds the dynamic environment to establish a local Cartesian coordinate system
-for doing graphics output onto the \term{extended output stream} designated by
-\arg{stream}.  The origin $(0,0)$ of the local coordinate system is placed at
-the current cursor position, and is in the lower left corner of the area
-created.  If the boolean \arg{move-cursor} is \term{true} (the default), then
-after the graphic output is completed, the cursor is positioned past
-(immediately below) this origin.  The bottom of the vertical block allocated is
-at this location (that is, just below point $(0,0)$, not necessarily at the
-bottom of the output done).
+Binds the dynamic environment to establish a local coordinate system for doing
+graphics output onto the \term{extended output stream} designated by
+\arg{stream}.  If \arg{first-quadrant} is \term{true} (the default), a local
+Cartesian coordinate system is established with the origin $(0,0)$ of the local
+coordinate system placed at the current cursor position; $(0,0)$ is in the lower
+left corner of the area created.  If the boolean \arg{move-cursor} is
+\term{true} (the default), then after the graphic output is completed, the
+cursor is positioned past (immediately below) this origin.  The bottom of the
+vertical block allocated is at this location (that is, just below point $(0,0)$,
+not necessarily at the bottom of the output done).
 
 The \arg{stream} argument is not evaluated, and must be a symbol that is bound
 to a stream.  If \arg{stream} is \cl{t} (the default), \cl{*standard-output*} is
@@ -488,14 +516,14 @@ vertically out of the viewport.
 The end-of-page action is one of: 
 
 \begin{itemize}
-\item \cl{:wrap}---when doing text output, wrap the text around (that is, go back
-to the top of the viewport).
-
 \item \cl{:scroll}---scroll the window vertically to keep the cursor position
 inside the viewport, then keep doing output.  This is the default.
 
 \item \cl{:allow}---ignore the viewport and do the output on the drawing plane
 beyond the visible part of the viewport.
+
+\item \cl{:wrap}---when doing text output, wrap the text around (that is, go back
+to the top of the viewport).
 \end{itemize}
 
 \Defmacro {with-end-of-page-action} {(stream action) \body body}
@@ -511,7 +539,7 @@ to a stream.  If \arg{stream} is \cl{t}, \cl{*standard-output*} is used.
 
 \section {Attracting the User's Attention}
 
-\Defgeneric {beep} {\optional sheet}
+\Defgeneric {beep} {\optional medium}
 
 Attracts the user's attention, usually with an audible sound.
 

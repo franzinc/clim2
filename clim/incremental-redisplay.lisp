@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: incremental-redisplay.lisp,v 1.14 92/10/02 15:19:34 cer Exp $
+;; $fiHeader: incremental-redisplay.lisp,v 1.15 92/12/16 16:46:32 cer Exp $
 
 (in-package :clim-internals)
 
@@ -64,7 +64,7 @@
     ;; Don't cons a rectangle to hold the old bounding-rect until we need one
     (if (null old-bounding-rectangle)
 	(setf old-bounding-rectangle (bounding-rectangle record))	;cons a new rectangle
-	(bounding-rectangle record old-bounding-rectangle))
+      (bounding-rectangle record old-bounding-rectangle))
     (output-record-set-old-start-cursor-position record start-x start-y)
     (setf contents-ok (not (null old-is-ok)))
     (unless old-is-ok
@@ -528,17 +528,22 @@
   (declare (values erases moves draws erase-overlapping move-overlapping))
   (let ((new-draws nil))
     (labels ((augment-draws (record x-offset y-offset old-x-offset old-y-offset)
-	       (when (and (displayed-output-record-p record)
-			  (not (children-never-overlap-p (output-record-parent record)))
-			  (not (member record draws :key #'first))
-			  (not (member record erases :key #'first))
-			  (dolist (erase erases nil)
-			    (when (region-intersects-region-p record (first erase))
-			      (return t))))
-		 (push (list record
-			     (bounding-rectangle-shift-position
-			       record x-offset y-offset))
-		       new-draws))
+	       (let ((erases-that-overlap nil))
+		 (when (and (displayed-output-record-p record)
+			    (not (children-never-overlap-p (output-record-parent record)))
+			    (not (member record draws :key #'first))
+			    (not (member record erases :key #'first))
+			    (do ((erases erases (cdr erases)))
+				((null erases) nil)
+			      (when (region-intersects-region-p record (first (first erases)))
+				(setq erases-that-overlap erases)
+				(return t))))
+		   (push (list record
+			       (bounding-rectangle-shift-position record x-offset y-offset)
+			       (compute-region-that-overlaps-with-erases
+				  record x-offset y-offset
+				  erases-that-overlap))
+			   new-draws)))
 	       (when (output-record-p record)
 		 (multiple-value-bind (start-x start-y)
 		     (output-record-start-cursor-position record)
@@ -557,6 +562,53 @@
       (augment-draws record x-offset y-offset old-x-offset old-y-offset))
     (values erases moves (nconc (nreverse new-draws) draws)
 	    erase-overlapping move-overlapping)))
+
+#+ignore
+(defun compute-region-that-overlaps-with-erases (record x-offset y-offset erases-that-overlap)
+  +everywhere+)
+
+(defun compute-region-that-overlaps-with-erases (record x-offset y-offset erases-that-overlap)
+  (with-bounding-rectangle* (left top right bottom) record
+    (translate-coordinates x-offset y-offset left top right bottom)
+    
+    (with-bounding-rectangle* (eleft etop eright ebottom) (caar erases-that-overlap)
+      (multiple-value-bind (xoff1 yoff1) (compute-output-record-offsets (caar erases-that-overlap))
+	(translate-coordinates xoff1 yoff1 eleft etop eright ebottom)
+	(let (union)
+	  (multiple-value-bind (intersectsp rleft rtop rright rbottom)
+	      (ltrb-overlaps-ltrb-p left top right bottom eleft etop eright ebottom)
+	    (assert intersectsp)
+	    
+	    (dolist (erase (cdr erases-that-overlap))
+
+	      (with-bounding-rectangle* (eleft etop eright ebottom) (car erase)
+		(multiple-value-bind (xoff1 yoff1) (compute-output-record-offsets (car erase))
+		  (translate-coordinates xoff1 yoff1 eleft etop eright ebottom)
+		  (multiple-value-setq (intersectsp eleft etop eright ebottom)
+		    (ltrb-overlaps-ltrb-p left top right bottom eleft etop eright ebottom))
+		  (when intersectsp
+		    (cond (union
+			   (setq union
+			     (region-union
+			      union (make-bounding-rectangle eleft etop eright ebottom))))
+			  ((ltrb-contains-ltrb-p
+			    eleft etop eright ebottom
+			    rleft rtop rright rbottom)
+			   (setf rleft eleft rtop etop rright eright rbottom ebottom))
+			      
+			  ((ltrb-contains-ltrb-p
+			    rleft rtop rright rbottom
+			    eleft etop eright ebottom))
+			      
+			  (t
+			   (let ((a (make-bounding-rectangle rleft
+							     rtop rright rbottom))
+				 (b (make-bounding-rectangle
+				     eleft etop eright ebottom)))
+			     (setq union (region-union a b)))))))))
+	    
+	    (or union (make-bounding-rectangle rleft rtop rright rbottom))))))))
+
 
 ;; This has nothing to do with output-recording.  You can call this on any
 ;; stream that can set the cursor position, replace existing output, and
@@ -585,7 +637,7 @@
 	       (with-bounding-rectangle* (left top right bottom) rectangle
 		 (translate-coordinates xoff yoff left top right bottom)
 		 (draw-rectangle* stream left top right bottom
-				  :ink +background-ink+ :filled t)))
+				  :ink +background-ink+  :filled t)))
 	     (replay-record (record stream region)
 	       ;; REGION is the bounding rectangle
 	       (multiple-value-bind (x y) (bounding-rectangle-position record)
@@ -604,8 +656,12 @@
 	    (replay-record record stream region)))
 	(dolist (draw draws)
 	  (let ((record (first draw))
-		(region (second draw)))
-	    (replay-record record stream region)))
+		(region (second draw))
+		(clipping (third draw)))
+	    (if clipping
+		(with-drawing-options (stream :clipping-region clipping)
+		  (replay-record record stream region))
+	    (replay-record record stream region))))
 	(dolist (erase erase-overlapping)
 	  (erase-rectangle stream erase))
 	(dolist (move move-overlapping)

@@ -62,19 +62,18 @@ presentations to be nested?}
 
 \Defprotoclass {presentation}
 
-The protocol class that corresponds to a presentation.  A subclass of
-\cl{output-record}.
+The protocol class that corresponds to a presentation.
 \IfYouWantClass {a} {presentation} {presentation}
 
-\Defun {presentationp} {object}
+\Defpredicate {presentationp} {object}
 
 Returns \term{true} if \arg{object} is a \term{presentation}, otherwise returns
 \term{false}.
 
 \Defclass {standard-presentation}
 
-The output record class that represents presentations.  \cl{present} normally
-creates output records of this class.
+The instantiable output record class that represents presentations.
+\cl{present} normally creates output records of this class.
 \Mutable
 
 \definitarg {:object}
@@ -359,7 +358,7 @@ this expands the type abbreviation once, and returns two values, the expansion
 and \cl{t}.  If \arg{type} is not a presentation type abbreviation, then the
 values \arg{type} and \cl{nil} are returned.
 
-\arg{env} is a macro-expansion environment, as in \cl{macroexpand}.
+\arg{env} is a macro-expansion environment, as for \cl{macroexpand}.
 
 \Defun {expand-presentation-type-abbreviation} {type \optional env}
 
@@ -702,9 +701,18 @@ at least as specific as \arg{type}.
 \arg{(type-key parameters default type \key default-type)}
 
 
-\Defpresmeth {presentation-refined-position-test} {}
+\Defpresmeth {presentation-refined-position-test} {type record x y}
 
-\issue {SWM} {To be supplied.}
+This method used to definitively answer hit detection queries for a
+presentation, that is, determining that the point $(x,y)$ is contained within
+the output record \arg{record}.  Its contract is exactly the same as for
+\cl{output-record-refined-position-test}, except that it is intended to
+specialize on the presentation type \arg{type}.
+
+{\bf Implementation note:} the actual argument list to the
+\cl{presentation-refined-position-test} method is
+\\
+\arg{(type-key parameters options type record x y)}
 
 
 \Defpresmeth {highlight-presentation} {type record stream state}
@@ -826,7 +834,7 @@ This is analogous to the Common Lisp \cl{typep} function.
 Returns a presentation type of which \arg{object} is a member.
 \cl{presentation-type-of} returns the most specific presentation type that can
 be conveniently computed and is likely to be useful to the programmer.  This is
-often the class name of the clas of the object.
+often the class name of the class of the object.
 
 If \cl{presentation-type-of} cannot determine the presentation type of the
 object, it may return either \cl{expression} or \cl{t}.
@@ -918,8 +926,8 @@ time.  The object can be any Lisp object.
 
 
 \Defmacro {with-output-as-presentation} {(stream object type
-                                          \key modifier single-box
-                                               allow-sensitive-inferiors record-type)
+                                          \key modifier single-box allow-sensitive-inferiors
+                                               parent record-type \allow)
                                          \body body} 
 
 The output of \arg{body} to the \term{extended output recording} \arg{stream} is
@@ -951,6 +959,10 @@ of the resulting presentation.  It can take on the values described under
 When the boolean \arg{allow-sensitive-inferiors} is \term{false}, nested calls
 to \cl{present} or \cl{with-output-as-presentation} inside this one will not
 generate presentations.  The default is \term{true}.
+
+\arg{parent} specifies what output record should serve as the parent for the
+newly created presentation.  If unspecified, \cl{stream-current-output-record}
+of \arg{stream} will be used as the parent.
 
 \arg{record-type} specifies the class of the presentation output record to be
 created.  It defaults to \cl{standard-presentation}.  This argument should only
@@ -1054,14 +1066,19 @@ be nested?}
 
 The current input context.  This will be a list, each element of which
 corresponds to a single call to \cl{with-input-context}.  The first element of
-the list is the context established by the most recent call to
-\cl{with-input-context}, and the last element is the least recent call to
-\cl{with-input-context}.
+the list represents the context established by the most recent call to
+\cl{with-input-context}, and the last element represents the context established
+by the least recent call to \cl{with-input-context}.
 
 The exact format of the elements in the list is unspecified, but will typically
 be a list of a presentation type and a tag that corresponds to the point in the
 control structure of CLIM at which the input context was establish.
 \cl{*input-context*} and the elements in it may have dynamic extent.
+
+\Defun {input-context-type} {context-entry}
+
+Given one element from \cl{*input-context*}, \arg{context-entry}, returns the
+presentation type of the context entry.
 
 \Defmacro {with-input-context} {(type \key override)
                                 (\optional object-var type-var event-var options-var)
@@ -1113,13 +1130,13 @@ For example,
 \Defun {accept} {type
                  \key stream view
                       default default-type provide-default 
-                      insert-default replace-input history
+                      insert-default replace-input history active-p
                       prompt prompt-mode display-default query-identifier
                       activation-gestures additional-activation-gestures
                       delimiter-gestures additional-delimiter-gestures}
 
 Requests input of type \arg{type} from the \term{stream} \arg{stream}, which
-defaults to \cl{*query-io*}.  \cl{accept} returns two values, the object
+defaults to \cl{*standard-input*}.  \cl{accept} returns two values, the object
 representing the input and its presentation type.  \arg{type} is a presentation
 type specifier, and can be an abbreviation.  The other arguments and overall
 behavior of \cl{accept} are as for \cl{accept-1}.
@@ -1134,7 +1151,7 @@ arguments.
 \Defgeneric {stream-accept} {stream type
                              \key view 
                                   default default-type provide-default 
-                                  insert-default replace-input history
+                                  insert-default replace-input history active-p
                                   prompt prompt-mode display-default query-identifier
                                   activation-gestures additional-activation-gestures
                                   delimiter-gestures additional-delimiter-gestures}
@@ -1159,7 +1176,7 @@ the default behavior.
 \Defun {accept-1} {stream type
                    \key view 
                         default default-type provide-default 
-                        insert-default replace-input history
+                        insert-default replace-input history active-p
                         prompt prompt-mode display-default query-identifier
                         activation-gestures additional-activation-gestures
                         delimiter-gestures additional-delimiter-gestures}
@@ -1223,7 +1240,11 @@ suppresses putting a colon after the prompt and/or default in a top-level
 in a nested \cl{accept}.
 
 \arg{query-identifier} is used within \cl{accepting-values} to identify the
-field within the dialog.
+field within the dialog.  The \cl{active-p} argument (which defaults to \cl{t})
+can be used to control whether a field within an \cl{accepting-values} is
+active; when \term{false}, the field will not be active, that is, it will not be
+available for input.  Some CLIM implementations will provide a visual cue that
+the field is inactive, for instance, by ``graying out'' the field.
 
 \arg{activation-gestures} is a list of gesture names that will override the
 current activation gestures (which are stored in \cl{*activation-gestures*}).
@@ -1300,49 +1321,49 @@ The protocol class for view objects.
 
 All of the view classes are immutable.
 
-\Defun {viewp} {object}
+\Defpredicate {viewp} {object}
 
 Returns \term{true} if \arg{object} is a \term{view}, otherwise returns
 \term{false}.
 
 \Defclass {textual-view}
 
-The class representing all textual views, a subclass of \cl{view}.  Presentation
-methods that apply to a textual view must only do textual input and output (such
-as \cl{read-char} and \cl{write-string}).
+The instantiable class representing all textual views, a subclass of \cl{view}.
+Presentation methods that apply to a textual view must only do textual input and
+output (such as \cl{read-char} and \cl{write-string}).
 
 \Defclass {textual-menu-view}
 
-The class that represents the default view that is used inside \cl{menu-choose}
-for frame managers that are not using a gadget-oriented look and feel.  It is a
-subclass of \cl{textual-view}.
+The instantiable class that represents the default view that is used inside
+\cl{menu-choose} for frame managers that are not using a gadget-oriented look
+and feel.  It is a subclass of \cl{textual-view}.
 
 \Defclass {textual-dialog-view}
 
-The class that represents the default view that is used inside
+The instantiable class that represents the default view that is used inside
 \cl{accepting-values} dialogs for frame managers that are not using a
 gadget-oriented look and feel.  It is a subclass of \cl{textual-view}.
 
 \Defclass {gadget-view}
 
-The class representing all gadget views, a subclass of \cl{view}.
+The instantiable class representing all gadget views, a subclass of \cl{view}.
 
 \Defclass {gadget-menu-view}
 
-The class that represents the default view that is used inside \cl{menu-choose}
-for frame managers that are using a gadget-oriented look and feel.  It is a
-subclass of \cl{gadget-view}.
+The instantiable class that represents the default view that is used inside
+\cl{menu-choose} for frame managers that are using a gadget-oriented look and
+feel.  It is a subclass of \cl{gadget-view}.
 
 \Defclass {gadget-dialog-view}
 
-The class that represents the default view that is used inside
+The instantiable class that represents the default view that is used inside
 \cl{accepting-values} dialogs for frame managers that are using a
 gadget-oriented look and feel.  It is a subclass of \cl{gadget-view}.
 
 \Defclass {pointer-documentation-view}
 
-The class that represents the default view that is used when computing pointer
-documentation.  It is a subclass of \cl{textual-view}.
+The instantiable class that represents the default view that is used when
+computing pointer documentation.  It is a subclass of \cl{textual-view}.
 
 \defconst {+textual-view+}
 \defconst {+textual-menu-view+}
@@ -1562,13 +1583,13 @@ None of \cl{define-presentation-action}'s arguments is evaluated.
 
 
 \Defmacro {define-drag-and-drop-translator} {name
-                                             from-type to-type destination-type command-table 
-                                             \key gesture tester
-                                                  documentation pointer-documentation
-                                                  menu priority
-                                                  feedback highlighting}
+                                             (from-type to-type destination-type command-table 
+                                              \key gesture tester
+                                                   documentation pointer-documentation
+                                                   menu priority
+                                                   feedback highlighting)
                                              arglist
-                                             \body body)
+                                             \body body}
 
 Defines a ``drag and drop'' (or ``direct manipulation'') translator named
 \arg{name} that translates from objects of type \arg{from-type} to objects of
@@ -1636,6 +1657,10 @@ pointer around in any CLIM pane), it should cache its result in order to avoid
 consing.  Therefore, the resulting list of translators should not be modified;
 the consequences of doing so are unspecified.
 
+{\bf Implementation note:} The ordering of the list of translators is left
+unspecified, but implementations may find it convenient to return the list using
+the ordering specified for \cl{find-applicable-translators}.
+
 
 \Defun {test-presentation-translator} {translator presentation context-type frame window x y
                                        \key event modifier-state for-menu}
@@ -1669,19 +1694,19 @@ ensure that its value matches \arg{to-type}.
 \Defun {find-applicable-translators} {presentation input-context frame window x y
                                       \key event modifier-state for-menu fastp}
 
-Returns an object that describes the translators that definitely apply to the
+Returns a list that describes the translators that definitely apply to the
 \term{presentation} \arg{presentation} in the input context \arg{input-context}.
-The result is a list whose elements are each of the form
+Each element in the returned list is of the form
 \\
-\arg{(translator the-presentation context-type tag)}
+\arg{(translator the-presentation context-type . rest)}
 \\
 where \arg{translator} is a presentation translator, \arg{the-presentation} is
 the presentation that the translator applies to (and can be different from
 \arg{presentation} due to nesting of presentations), \arg{context-type} is the
-context type that in which the translator applies, and \arg{tag} is a tag used
-internally by CLIM.  \arg{translator}, \arg{the-presentation}, and
-\arg{context-type} can be passed to such functions as
-\cl{call-presentation-translator} and \cl{document-presentation-translator}.
+context type in which the translator applies, and \arg{rest} is other
+unspecified data reserved for internal use by CLIM.  \arg{translator},
+\arg{the-presentation}, and \arg{context-type} can be passed to such functions
+as \cl{call-presentation-translator} and \cl{document-presentation-translator}.
 
 Since input contexts can be nested, \cl{find-applicable-translators} must
 iterate over all the contexts in \arg{input-context}.  \arg{window}, \arg{x},
@@ -1690,6 +1715,11 @@ and \arg{y} are as for \cl{test-presentation-translator}.  \arg{event} and
 for \arg{window}, respectively) are used to further restrict the set of
 applicable translators.  (Only one of \arg{event} or \arg{modifier-state} may be
 supplied; it is unspecified what will happen if both are supplied.)
+
+Presentations can also be nested.  The ordering of the translators returned by
+\cl{find-applicable-translators} is that translators matching inner contexts
+should precede translators matching outer contexts, and, in the same input
+context, inner presentations precede outer presentations.
 
 When \arg{for-menu} is non-\cl{nil}, this matches the value of \arg{for-menu}
 against the presentation's menu specification, and returns only those
@@ -1813,8 +1843,8 @@ it is unspecified what will happen if both are supplied.
 
 \arg{frame} defaults to the current frame, \cl{*application-frame*}.
 
-The default method for {frame-find-innermost-applicable-presentation} will call
-this function.
+The default method for \cl{frame-find-innermost-applicable-presentation} will
+call this function.
 
 
 \Defun {throw-highlighted-presentation} {presentation input-context button-press-event}
@@ -1846,6 +1876,10 @@ entry to \cl{highlight-applicable-presentation}, \arg{input-context} will be the
 value of \cl{*input-context*} and \arg{frame} will be the value of
 \cl{*application-frame*}.
 
+If \arg{prefer-pointer-window} is \term{true} (the default), CLIM will highlight
+the applicable presentation on the same window that the pointer is located over.
+Otherwise, CLIM will highlight an applicable presentation on \arg{stream}.
+
 {\bf Implementation note:} This will probably use
 \cl{frame-find-innermost-applicable-presentation-at-position} to locate the
 innermost presentation, and \cl{unhighlight-highlighted-presentation} and
@@ -1857,10 +1891,14 @@ innermost presentation, and \cl{unhighlight-highlighted-presentation} and
 Highlights the \term{presentation} \arg{presentation} on \arg{stream}.  This
 must call \cl{highlight-presentation} methods if that is appropriate.
 
+\arg{prefer-pointer-window} is as for \cl{highlight-applicable-presentation}.
+
 
 \Defun {unhighlight-highlighted-presentation} {stream \optional prefer-pointer-window}
 
 Unhighlights any highlighted presentations on \arg{stream}.
+
+\arg{prefer-pointer-window} is as for \cl{highlight-applicable-presentation}.
 
 
 \subsection {Translator Applicability}
@@ -1999,9 +2037,12 @@ no applicable presentations.  This will have a presentation type of \cl{blank-ar
 The type that represents a general number.  It is the supertype of all the
 number types.
 
-\Defptype {complex} {}
+\Defptype {complex} {\optional type}
 
 The type that represents a complex number.  It is a subtype of \cl{number}.
+
+The components of the complex number are of type \arg{type}, which must be
+\cl{real} or a subtype of \cl{real}.
 
 \Defptype {real} {\optional low high}
 
@@ -2207,6 +2248,14 @@ The type that is used to specify one of several types, for example, \cl{(or
 (member :all :none) integer)}.  The elements of \arg{types} can be presentation
 type abbreviations.  \cl{accept} returns one of the possible types as its second
 value, not the original \cl{or} presentation type specifier.
+
+The \cl{accept} method for \cl{or} could be implemented by iteratively calling
+\cl{accept} on each of the presentation types in \arg{types}.  It would
+establish a condition handler for \cl{parse-error}, call \cl{accept} on one of
+the types and return the result if no condition was signalled.  If a
+\cl{parse-error} is signalled, the \cl{accept} method for \cl{or} would call
+\cl{accept} on the next type.  When there are no more types, the \cl{accept}
+method for \cl{or} would itself signal a \cl{parse-error}.
 
 
 \Defptype {and} {\rest types}

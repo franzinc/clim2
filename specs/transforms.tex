@@ -23,7 +23,7 @@ transformations.  The exact names of these classes is explicitly unspecified.
 
 All of the instantiable transformation classes provided by CLIM are immutable.
 
-\Defun {transformationp} {object}
+\Defpredicate {transformationp} {object}
 
 Returns \term{true} if \arg{object} is a \term{transformation}, otherwise
 returns \term{false}.
@@ -44,17 +44,21 @@ is a subclass of \cl{error}.
 \Deferror {transformation-underspecified}
 
 The error that is signalled when \cl{make-3-point-transformation} is given three
-collinear image points.
+collinear image points.  This condition will handle the \cl{:points} initarg,
+which is used to supply the points that are in error.
 
 \Deferror {reflection-underspecified}
 
 The error that is signalled when \cl{make-reflection-transformation} is given
-two coincident points.
+two coincident points.  This condition will handle the \cl{:points} initarg,
+which is used to supply the points that are in error.
 
 \Deferror {singular-transformation}
 
 The error that is signalled when \cl{invert-transformation} is called on a
-singular transformation, that is, a transformation that has no inverse.
+singular transformation, that is, a transformation that has no inverse.  This
+condition will handle the \cl{:transformation} initarg, which is used to supply
+the transformation that is singular.
 
 
 \section {Transformation Constructors}
@@ -84,7 +88,7 @@ all entities from that point.
 points by \arg{angle} (which is a real number indicating an angle in radians)
 around the point \arg{origin}.  If \arg{origin} is supplied it must be a point;
 if not supplied it defaults to $(0,0)$.  \arg{origin-x} and \arg{origin-y} must
-be real numbers.
+be real numbers, and default to $0$.
 
 \defun {make-scaling-transformation}  {scale-x scale-y \optional origin} 
 \Defun {make-scaling-transformation*} {scale-x scale-y \optional origin-x origin-y} 
@@ -100,7 +104,7 @@ $x$-coordinate distance of every point from \arg{origin} by \arg{scale-x} and
 the $y$-coordinate distance of every point from \arg{origin} by \arg{scale-y}.
 \arg{scale-x} and \arg{scale-y} must be real numbers.  If \arg{origin} is
 supplied it must be a point; if not supplied it defaults to $(0,0)$.
-\arg{origin-x} and \arg{origin-y} must be real numbers.
+\arg{origin-x} and \arg{origin-y} must be real numbers, and default to $0$.
 
 
 \defun {make-reflection-transformation}  {point1 point2}
@@ -344,6 +348,11 @@ Furthermore, all subclasses of \cl{region} and \cl{design} must implement
 methods for \cl{transform-region} and \cl{untransform-region}.  That is, methods
 for the following generic functions will typically specialize both the
 \arg{transformation} and \term{region} arguments.
+
+Note that, if the extended region classes are not implemented, the following
+functions are not closed, that is, they may return results that are not CLIM
+regions.
+
 
 \Defgeneric {transform-region} {transformation region}
 

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-gadgets.lisp,v 1.38 93/02/08 15:58:04 cer Exp $
+;; $fiHeader: ol-gadgets.lisp,v 1.39 93/03/04 19:01:52 colin Exp $
 
 
 (in-package :xm-silica)
@@ -873,6 +873,82 @@
   (when (sheet-direct-mirror sheet)
     (tk::set-values (sheet-direct-mirror sheet) :title-string (or nv ""))))
 
+
+;;; New definitions to support specifying width and height in terms of
+;;; lines and characters.
+;;;;---------------- This needs to be done for Openlook
+;;;;---------------- Code currently is just a copy of the motif stuff
+
+;;;--- Implement caching
+;;;--- Flush ncolumns, nrows but perhaps keep them of compatibility
+;;;--- We are not supporting (pixels :relative)
+
+(defmethod compose-space :around ((sheet openlook-text-field) &key width height)
+  (declare (ignore width height))
+  (compose-space-for-text-field-or-label
+   sheet (call-next-method)))
+
+;;-- For label pane there are margin-{left,top,right,bottom} resources also
+;;-- but they default to 0.
+
+(defmethod compose-space :around ((sheet openlook-label-pane) &key width height)
+  (declare (ignore width height))
+  (compose-space-for-text-field-or-label
+   sheet (call-next-method)))
+
+(defmethod compose-space :around ((sheet openlook-push-button) &key width height)
+  (declare (ignore width height))
+  (compose-space-for-text-field-or-label
+   sheet (call-next-method)))
+  
+(defun compose-space-for-text-field-or-label (sheet sr)
+  (multiple-value-bind (width min-width max-width height min-height max-height)
+      (space-requirement-components sr)
+    (if (and (numberp width)
+	     (numberp min-width)
+	     (numberp max-width))
+	sr
+      (make-space-requirement
+       :width (process-width-specification sheet width)
+       :min-width (process-width-specification sheet min-width)
+       :max-width (process-width-specification sheet max-width)
+       :height height
+       :min-height min-height
+       :max-height max-height))))
+
+(defun process-width-specification (sheet width)
+  (break "Make me work")
+  (when (numberp width) (return-from process-width-specification width))
+  (let ((chars (etypecase width
+		 (list
+		  (assert (eq (second width) :character))
+		  (first width))
+		 (string (length width)))))
+    (multiple-value-bind (font left-margin right-margin)
+	(tk::get-values (sheet-direct-mirror sheet)
+			:font :left-margin :right-margin)
+      (let ((font-width (font-list-max-width-and-height font)))
+	(+ (* 2 (+ left-margin right-margin)) (* font-width chars))))))
+
+(defun font-list-max-width-and-height (font)
+  (values (tk::font-width font) (tk::font-height font)))
+
+;;-- What should this do really?
+
+(defun process-height-specification (sheet width)
+  (when (numberp width) (return-from process-height-specification width))
+  (let ((chars (etypecase width
+		 (list
+		  (assert (eq (second width) :line))
+		  (first width))
+		 (string (length width)))))
+    (multiple-value-bind (font top-margin bottom-margin)
+	(tk::get-values (sheet-direct-mirror sheet)
+			:font :top-margin :bottom-margin)
+      (let ((font-height (nth-value 1 (font-list-max-width-and-height font-list))))
+	(+ top-margin bottom-margin (* font-height chars))))))
+
+
 ;;; 
 
 (defclass openlook-text-editor (text-editor xt-leaf-pane)
@@ -940,6 +1016,26 @@
       (make-space-requirement
 	:width width :min-width min-width :max-width +fill+
 	:height height :min-height min-height :max-height +fill+))))
+
+(defmethod compose-space :around ((sheet openlook-text-editor) &key width height)
+   (declare (ignore width height))
+   (let ((sr (call-next-method)))
+     (multiple-value-bind (width min-width max-width height min-height max-height)
+	 (space-requirement-components (call-next-method))
+       (if (and (numberp width)
+		(numberp min-width)
+		(numberp max-width)
+		(numberp height)
+		(numberp min-height)
+		(numberp max-height))
+	   sr
+	 (make-space-requirement
+	  :width (process-width-specification sheet width)
+	  :min-width (process-width-specification sheet min-width)
+	  :max-width (process-width-specification sheet max-width)
+	  :height (process-height-specification sheet height)
+	  :min-height (process-height-specification sheet min-height)
+	  :max-height (process-height-specification sheet max-height))))))
 
 (defmethod gadget-value ((gadget openlook-text-editor))
   (if (sheet-direct-mirror gadget)

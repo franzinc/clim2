@@ -51,12 +51,15 @@ If the boolean \arg{move-cursor} is \term{true} (the default), CLIM moves the
 cursor to the end of the table.
 
 Programmers using \cl{indenting-output} should begin the body with a call to
-\arg{fresh-line} (or some equivalent) to position the stream to the indentation
-initially.  There is a restriction on interactions between \cl{indenting-output}
-and \cl{filling-output} such that a call to \cl{indenting-output} should appear
-outside of a call to \cl{filling-output}.  Implementations are permitted to
-relax this restriction, but uses of \cl{indenting-output} inside of
-\cl{filling-output} may not be portable.
+\arg{fresh-line} (or some equivalent) to position the stream to the initial
+indentation.
+
+{\bf Implementation note:} Some CLIM implementations restrict the use of
+\cl{indenting-output} and \cl{filling-output} such that a call to
+\cl{indenting-output} should appear outside of a call to \cl{filling-output}.
+Implementations are encouraged to relax this restriction if the behavior is
+well-defined, but uses of \cl{indenting-output} inside of \cl{filling-output}
+may not be portable.
 
 
 \section {Filled Output}

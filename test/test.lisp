@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: test.lisp,v 1.43 92/12/03 10:29:53 cer Exp $
+;; $fiHeader: test.lisp,v 1.44 93/02/08 15:57:48 cer Exp $
 
 (in-package :clim-user)
 
@@ -380,13 +380,15 @@
 	 (make-pane 'text-editor 
 		    :word-wrap nil
 		    :value "c sucks"
-		    :ncolumns 30 :nlines 10)))
+		    :width '(30 :character)
+		    :height '(10 :line))))
      (outlining ()
        (scrolling ()
 	 (make-pane 'text-editor 
 		    :word-wrap t
 		    :value "unix sucks more"
-		    :ncolumns 30 :nlines 10))))))
+		    :width '(30 :character)
+		    :height '(10 :line)))))))
 
 (define-application-frame tf99 () ()
   (:command-table test-frame)
@@ -421,13 +423,15 @@
 	      (make-pane 'text-editor 
 		:value "c sucks"
 		:value-changed-callback 'text-field-changed
-		:ncolumns 30 :nlines 10)))
+		:width '(30 :character)
+		:height '(10 :line))))
 	  (outlining ()
 	    (scrolling ()
 	      (make-pane 'text-editor 
 		:value "unix sucks more"
 		:value-changed-callback 'text-field-changed
-		:ncolumns 30 :nlines 10))))
+		:width '(30 :character)
+		:height '(10 :line)))))
 	(outlining ()
 	  (spacing ()
 	    (make-pane 'slider
@@ -464,13 +468,15 @@
 	      (make-pane 'text-editor 
 		:value "c sucks"
 		:value-changed-callback 'text-field-changed
-		:ncolumns 30 :nlines 10)))
+		:width '(30 :character)
+		:height '(10 :line))))
 	  (outlining ()
 	    (scrolling ()
 	      (make-pane 'text-editor 
 		:value "unix sucks more"
 		:value-changed-callback 'text-field-changed
-		:ncolumns 30 :nlines 10)))))
+		:width '(30 :character)
+		:height '(10 :line))))))
       (outlining ()
  	(spacing ()
  	  (make-pane 'slider
@@ -490,14 +496,14 @@
 	      (make-pane 'text-editor 
 		:value "lucid "
 		:value-changed-callback 'text-field-changed
-		:ncolumns 30
-		:nlines 10)))
+		:width '(30 :character)
+		:height '(10 :line))))
 	  (scrolling ()
 	    (make-pane 'text-editor 
 	      :value "harlqn  more"
 	      :value-changed-callback 'text-field-changed
-	      :ncolumns 30
-	      :nlines 10)))))))
+		:width '(30 :character)
+		:height '(10 :line))))))))
 
 (define-application-frame tf97 () ()
   (:command-table test-frame)
@@ -530,8 +536,8 @@
 	    (make-pane 'text-editor 
 	      :value "lucid are nice guys "
 	      :value-changed-callback 'text-field-changed
-	      :ncolumns 30
-	      :nlines 10))))
+	      		:width '(30 :character)
+		:height '(10 :line)))))
       (make-clim-interactor-pane :scroll-bars :vertical))))
 
 (define-application-frame tf96 () ()
@@ -950,8 +956,8 @@
     (setq r  (accept 'string :stream stream
 		     :prompt "foo"
 		     :view '(text-editor-view 
-			     :ncolumns 30
-			     :nlines 5)
+			     :width (30 :character)
+			     :height (5 :line))
 		     :default r))
     (terpri stream)
     (setq u (accept '(member :xxx :yyy :zyy)
@@ -1010,3 +1016,18 @@
 			     :foreground +cyan+
 			     :text-style (make-text-style :serif
 							  :roman 20))))))
+
+(define-application-frame tf108 ()
+			  ()
+  (:command-table test-frame)
+  (:panes 
+   (z push-button :label "fart")
+   (a text-field)
+   (b label-pane :label "hello")
+   (c text-field :width '(50 :character))
+   (d text-editor :height '(10 :line))
+   (e label-pane :label "goodbye" :width '(50 :character))
+   (f push-button :label "goodbye" :width '(50 :character)))
+  (:layouts
+   (default (scrolling (:max-height +fill+) 
+	      (vertically (:y-spacing 20) z a b c d e f)))))

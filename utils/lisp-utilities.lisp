@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: lisp-utilities.lisp,v 1.27 92/12/14 15:04:58 cer Exp $
+;; $fiHeader: lisp-utilities.lisp,v 1.28 92/12/16 16:51:08 cer Exp $
 
 (in-package :clim-utils)
 
@@ -400,7 +400,7 @@
 	       (cons evaled-item evaled-reference)))))
 
 (defmacro catch-if (condition tag &body body)
-  `(catch (if ,condition ,tag '|tag for CATCH-IF false condition|)
+  `(catch (if ,condition ,tag '#:tag-for-catch-if)
      ,@body))
 
 ;#+Genera

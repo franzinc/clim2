@@ -165,6 +165,12 @@ different portion of each of those designs shows through in each tile.
 
 \MayCaptureInputs
 
+\defgeneric {pattern-width} {pattern}
+\Defgeneric {pattern-height} {pattern}
+
+These functions return the width and height, respectively, of the \term{pattern}
+\arg{pattern}.
+
 
 \Defun {make-stencil} {array}
 
@@ -228,9 +234,9 @@ described in the sections on those designs.
 
 \section {Arbitrary Designs}
 
-\Defgeneric {draw-design} {sheet design \key \DrawingOptions \LineJointCapOptions\ \TextOptions}
+\Defgeneric {draw-design} {medium design \key \DrawingOptions \LineJointCapOptions\ \TextOptions}
 
-Draws the \term{design} \arg{design} onto the \term{sheet} \arg{sheet}.  This is
+Draws the \term{design} \arg{design} onto the \term{medium} \arg{medium}.  This is
 defined to work for all types of regions and designs, although in practice some
 implementations may be more restrictive.  \arg{ink}, \arg{transformation}, and
 \arg{clipping-region} are used to modify the medium.  The other drawing
@@ -239,13 +245,13 @@ being drawn.  For instance, if \arg{design} is a path, then line style options
 may be supplied.
 
 If \arg{design} is an area, \cl{draw-design} paints the specified region of the
-drawing plane with current ink of the sheet's medium.  If \arg{design} is a
+drawing plane with medium's current ink.  If \arg{design} is a
 path, \cl{draw-design} strokes the path with medium's current ink under control
 of the line-style.  If \arg{design} is a point, \cl{draw-design} is the same as
 \cl{draw-point}.
 
 If \arg{design} is a color or an opacity, \cl{draw-design} paints the entire
-drawing plane (subject to the clipping region of the sheet's medium).
+drawing plane (subject to the clipping region of the medium).
 
 If \arg{design} is \cl{+nowhere+}, \cl{draw-design} has no effect.
 
@@ -269,9 +275,9 @@ created by a geometric object constructor.
 \end{itemize}
 
 
-\Defun {draw-pattern*} {sheet pattern x y \key clipping-region transformation}
+\Defun {draw-pattern*} {medium pattern x y \key clipping-region transformation}
 
-Draws the pattern \arg{pattern} on the \term{sheet} \arg{sheet} at the
+Draws the pattern \arg{pattern} on the \term{medium} \arg{medium} at the
 position $(x,y)$. \arg{pattern} is any design created by \cl{make-pattern}.
 \arg{clipping-region} and \arg{transformation} are as for
 \cl{with-drawing-options} or any of the drawing functions.
@@ -294,16 +300,16 @@ and scaled pattern constructed from the raster array and raster color map.
 pattern.
 
 \begin{verbatim}
-(defun draw-pattern* (sheet pattern x y &key clipping-region transformation)
+(defun draw-pattern* (medium pattern x y &key clipping-region transformation)
   (check-type pattern pattern)
   (let ((width (pattern-width pattern))
         (height (pattern-height pattern)))
     (if (or clipping-region transformation)
-        (with-drawing-options (sheet :clipping-region clipping-region
-                                     :transformation transformation)
-          (draw-rectangle* sheet x y (+ x width) (+ y height)
+        (with-drawing-options (medium :clipping-region clipping-region
+                                      :transformation transformation)
+          (draw-rectangle* medium x y (+ x width) (+ y height)
                            :filled t :ink pattern))
-        (draw-rectangle* sheet x y (+ x width) (+ y height)
+        (draw-rectangle* medium x y (+ x width) (+ y height)
                          :filled t :ink pattern))))
 \end{verbatim}
 
@@ -330,7 +336,7 @@ Specify \cl{:ink (make-rectangular-tile (make-pattern \arg{array} \arg{colors}))
 
 \paragraph {Drawing a ``bitmap''.}
 
-Use \cl{(draw-design \arg{sheet} (make-pattern \arg{bit-array} (list
+Use \cl{(draw-design \arg{medium} (make-pattern \arg{bit-array} (list
 +background-ink+ +foreground-ink+)) :transformation
 (make-translation-transformation \arg{x} \arg{y}))}.
 

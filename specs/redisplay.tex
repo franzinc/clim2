@@ -8,15 +8,14 @@
 CLIM's incremental redisplay facility to allows the programmer to change the
 output in an output history (and hence, on the screen or other output device) in
 an incremental fashion.  It allows the programmer to redisplay individual pieces
-of the existing output differently, under program control.
-
-It is ``incremental'' in the sense that CLIM will try to minimize the changes to
-the existing output on a display device when displaying new output.
+of the existing output differently, under program control.  It is
+``incremental'' in the sense that CLIM will try to minimize the changes to the
+existing output on a display device when displaying new output.
 
 There are two different ways to do incremental redisplay.
 
-The first is to call \cl{redisplay} on an output record.  This essentially tells
-the system to recompute the output of that output record over from scratch.  It
+The first is to call \cl{redisplay} on an output record.  In essence, this tells
+CLIM to recompute the output of that output record over from scratch.  CLIM
 compares the new results with the existing output and tries to do minimal
 redisplay.  The \cl{updating-output} form allows the programmer to assist CLIM
 by informing it that entire branches of the output history are known not to have
@@ -25,10 +24,11 @@ fact that a piece of the output record hierarchy has moved, either by having an
 output record change its parent, or by having an output record change its
 position.
 
-The second way to do incremental redisplay is to manually do the updates to the
-output history, and then call \cl{note-output-record-child-changed} on an output
-record.  This causes CLIM to propagate the changes up the output record tree and
-allows parent output records to readjust themselves to account for the changes.
+The second way to do incremental redisplay is for the programmer to manually do the
+updates to the output history, and then call \cl{note-output-record-child-changed}
+on an output record.  This causes CLIM to propagate the changes up the output
+record tree and allows parent output records to readjust themselves to account for
+the changes.
 
 Each style is appropriate under different circumstances.  \cl{redisplay} is
 often easier to use, especially when there might are large numbers of changes
@@ -56,23 +56,23 @@ just hints to incremental redisplay that can reduce the amount of work done by
 CLIM.
 
 The outermost call to \cl{updating-output} executes its body, producing the
-initial version of the output, and returns an incremental redisplay record that
+initial version of the output, and returns an \cl{updating-output-record} that
 captures the body in a closure.  Each nested call to \cl{updating-output} stores
 its \cl{:unique-id} and \cl{:cache-value} arguments and the portion of the
 output produced by its body.
 
-\cl{redisplay} takes an incremental redisplay record and executes the captured
+\cl{redisplay} takes an \cl{updating-output-record} and executes the captured
 body of \cl{updating-output} over again.  When a nested call to
 \cl{updating-output} is executed during redisplay, \cl{updating-output} decides
 whether the cached output can be reused or the output needs to be redrawn.  This
 is controlled by the \cl{:cache-value} argument to \cl{updating-output}.  If its
 value matches its previous value, the body would produce output identical to the
-previous output and thus is unnecessary.  In this case the cached output is
-reused and \cl{updating-output} does not execute its body.  If the cache value
-does not match, the output needs to be redrawn, so \cl{updating-output} executes
-its body and the new output drawn on the stream replaces the previous output.
-The \cl{:cache-value} argument is only meaningful for nested calls to
-\cl{updating-output}.
+previous output and thus it is unnecessary for CLIM to execute the body again.
+In this case the cached output is reused and \cl{updating-output} does not
+execute its body.  If the cache value does not match, the output needs to be
+recomputed, so \cl{updating-output} executes its body and the new output drawn
+on the stream replaces the previous output.  The \cl{:cache-value} argument is
+only meaningful for nested calls to \cl{updating-output}.
 
 In order to compare the cache to the output record, two pieces of information
 are necessary:
@@ -164,7 +164,7 @@ CLIM takes care of ensuring that only the third line gets erased and
 redisplayed.  In the case where items moved around (try the example substituting
 
 \begin{verbatim}
-(setf list (sort list #'(lambda (x y)
+(setq list (sort list #'(lambda (x y)
                           (declare (ignore x y))
                           (zerop (random 2))))) 
 \end{verbatim}
@@ -183,8 +183,7 @@ redisplay automatically within the panes of an application frame.
                               \rest args
                               \key unique-id (id-test \#'\cl{eql})
                                    cache-value (cache-test \#'\cl{eql})
-                                   copy-cache-value fixed-position 
-                                   all-new parent-cache
+                                   fixed-position all-new parent-cache
                                    record-type)
                              \body body}
 
@@ -206,7 +205,7 @@ behavior of this macro is described under \cl{invoke-updating-output}.
 
 \Defgeneric {invoke-updating-output} {stream continuation record-type
                                       unique-id id-test
-                                      cache-value cache-test copy-cache-value
+                                      cache-value cache-test
                                       \key all-new parent-cache}
 
 Introduces a caching point for incremental redisplay.  Calls the function
@@ -233,9 +232,7 @@ that is used for comparing unique ids; it has indefinite extent.
 produced by body does not need to be recomputed.  If the cache value is not
 supplied, CLIM will not use a cache for this piece of output.  \arg{cache-test}
 is a function of two arguments that is used for comparing cache values; it has
-indefinite extent.  If \arg{copy-cache-value} is \term{true}, then the supplied
-cache value will be copied using \cl{copy-seq} before it is stored in the output
-record.  The default for \arg{copy-cache-value} is \term{false}.
+indefinite extent.
 
 If \arg{fixed-position} is \term{true}, then the location of this output is
 fixed relative to its parent output record.  When CLIM redisplays an output
@@ -286,8 +283,9 @@ history of the \term{output recording stream} \arg{stream}, although it can be
 anywhere inside the hierarchy.
 
 When \arg{check-overlapping} is \term{false}, this means that CLIM can assume
-that no sibling output records overlap each other at any level.  Supplying a
-\term{false} value for this argument can improve performance of redisplay.
+that no sibling output records overlap each other at any level in the output
+record tree.  Supplying a \term{false} value for this argument can improve
+performance of redisplay.
 
 {\bf Implementation note:} \cl{redisplay-output-record} is implemented by first
 binding \cl{stream-redisplaying-p} of the stream to \term{true}, then creating
@@ -327,7 +325,7 @@ The protocol class corresponding to records that support incremental redisplay;
 a subclass of \cl{output-record}.
 \IfYouWantClass {an} {updating output record} {updating-output-record}
 
-\Defun {updating-output-record-p} {object}
+\Defpredicate {updating-output-record-p} {object}
 
 Returns \term{true} if \arg{object} is an \term{updating output record},
 otherwise returns \term{false}.
@@ -419,7 +417,8 @@ that no sibling output records overlap each other at any level.  Supplying a
 \item \arg{move-overlapping} is a list of \cl{(\arg{record} \arg{old-box} \arg{new-position})}
 \end{itemize}
 
-\Defgeneric {augment-draw-set} {record erases moves draws erase-overlapping move-overlapping}
+\Defgeneric {augment-draw-set} {record erases moves draws erase-overlapping move-overlapping
+                                \optional x-offset y-offset old-x-offset old-y-offset}
 
 \issue {SWM} {To be supplied.}
 
@@ -514,7 +513,7 @@ contents of the record.
 
 \section {Incremental Redisplay Stream Protocol}
 
-\Defgeneric {stream-redisplayable-p} {stream}
+\Defgeneric {redisplayable-stream-p} {stream}
 
 Returns \term{true} for any stream that maintains an output history and supports
 the incremental redisplay protocol, otherwise returns \term{false}.

@@ -237,7 +237,9 @@ programmer would like to invoke \cl{(setf~output-record-position)}.  Normally
 however, \cl{setf} only takes a single value with which to modify the specified
 place.  CLIM provides a ``multiple value'' version of \cl{setf} that allows an
 expression that returns multiple values to be used in updating the specified
-place.  In this specification, this facility will be referred to as \cl{setf*}.
+place.  In this specification, this facility will be referred to as \cl{setf*}
+in the guise of function names such as \cl{(setf* output-record-position)}, even
+though \cl{setf*} is not actually a defined form.
 
 For example, the modifying function for \cl{output-record-position} might be
 called in either of the following two ways:
@@ -251,6 +253,11 @@ called in either of the following two ways:
 The second form works because \cl{output-record-position} itself returns two
 values.
 
+Some CLIM implementations may not support \cl{setf*} due to restrictions imposed
+by the underlying Lisp implementation.  In this case, programmers may use
+special ``setter'' function instead.  In the above example,
+\cl{output-record-set-position} is the ``setter'' function.
+
 
 \section {Sheet, Stream, or Medium Arguments to Macros}
 
@@ -260,12 +267,12 @@ In CLIM, this argument must be a variable bound to a sheet, stream, or medium;
 it may not be an arbitrary form that evaluates to a sheet, stream, or medium.
 \cl{t} and sometimes \cl{nil} are usually allowed as special cases; this causes
 the variable to be interpreted as a reference to another stream variable
-(usually \cl{*standard-output*} for output macros, or \cl{*query-io*} for input
-macros).  Note that, while the variable outside the macro form and the variable
-inside the body share the same name, they cannot be assumed to be the same
-reference.  That is, the macro is free to create a new binding for the variable.
-Thus, the following code fragment will not necessarily affect the value of
-\arg{stream} outside the \cl{formatting-table} form:
+(usually \cl{*standard-output*} for output macros, or \cl{*standard-input*} for
+input macros).  Note that, while the variable outside the macro form and the
+variable inside the body share the same name, they cannot be assumed to be the
+same reference.  That is, the macro is free to create a new binding for the
+variable.  Thus, the following code fragment will not necessarily affect the
+value of \arg{stream} outside the \cl{formatting-table} form:
 
 \begin{verbatim}
 (formatting-table (stream)

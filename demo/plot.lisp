@@ -21,7 +21,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: plot.lisp,v 1.20 92/12/03 10:28:48 cer Exp $
+;; $fiHeader: plot.lisp,v 1.21 92/12/14 15:02:44 cer Exp $
 
 (in-package :clim-demo)
 
@@ -110,6 +110,7 @@
 	     (setq nx x ny y)
 	     (return (make-rectangle* ox oy nx ny)))))))))
 
+
 ;; Define a presentation translator from a graph-plot to a graph-region.
 ;; In that way we trivially write a command that will zoom into a
 ;; particular region of the graph.
@@ -156,8 +157,8 @@
     (etypecase points
       ((array t (* *)) nil)
       (list
-	(setq points (make-array (list (length points) (length (car points)))
-				 :initial-contents (nreverse points)))))
+       (setq points (make-array (list (length points) (length (car points)))
+				:initial-contents (nreverse points)))))
 
     (multiple-value-setq  (width height)
       (default-width-and-height stream type points width height))
@@ -166,31 +167,33 @@
       (default-graph-axis type points x-min y-min x-max y-max y-labelling))
 
     (let ((transform
-	    (and (not (eq type :pie))
-		 (let ((scaling-transform
-			 (make-scaling-transformation
-			   (/ width (- x-max x-min))
-			   (/ height (- y-max y-min)))))
-		   (multiple-value-bind (ox oy)
-		       (transform-position scaling-transform x-min y-min)
-		     (compose-transformations
-		       (make-translation-transformation (- ox) (- oy))
-		       scaling-transform))))))
+	   (and (not (eq type :pie))
+		(let ((scaling-transform
+		       (make-scaling-transformation
+			(/ width (- x-max x-min))
+			(/ height (- y-max y-min)))))
+		  (multiple-value-bind (ox oy)
+		      (transform-position scaling-transform x-min y-min)
+		    (compose-transformations
+		     (make-translation-transformation (- ox) (- oy))
+		     scaling-transform))))))
       (with-output-as-presentation (stream nil 'graph-plot :single-box :position)
-	  (formatting-item-list (stream :n-columns 2)
-	      (formatting-cell (stream)
-		  (with-room-for-graphics (stream)
-		    (draw-axis stream type
-			       width height
-			       x-min y-min x-max y-max
-			       x-labels y-labels
-			       points transform
-			       y-labelling)
-		    (draw-data stream type
-			       width height x-min y-min x-max
-			       y-max points transform)))
+	(formatting-item-list (stream :n-columns 2)
+	  (updating-output (stream :unique-id :data-and-axis)
 	    (formatting-cell (stream)
-		(draw-caption stream type y-labels)))))))
+	      (with-room-for-graphics (stream)
+		(draw-axis stream type
+			   width height
+			   x-min y-min x-max y-max
+			   x-labels y-labels
+			   points transform
+			   y-labelling)
+		(draw-data stream type
+			   width height x-min y-min x-max
+			   y-max points transform))))
+	  (updating-output (stream :unique-id :caption)
+	    (formatting-cell (stream)
+	      (draw-caption stream type y-labels))))))))
    
 (defun draw-caption (stream type y-labels)
   (updating-output (stream :unique-id 'captions
@@ -277,6 +280,7 @@
       (dotimes (j (1- columns))
 	(updating-output (stream :unique-id `(pie ,j)
 				 :id-test #'equal
+				 :cache-test #'equal
 				 :cache-value (let ((r nil))
 						(dotimes (i rows (nreverse r))
 						  (push (aref points i (1+ j)) r))))
@@ -299,6 +303,7 @@
       (dotimes (i n-lines)
 	(updating-output (stream :unique-id `(bar ,i)
 				 :id-test #'equal
+				 :cache-test #'equal
 				 :cache-value (list x-min y-min x-max y-max width height
 						    (let ((r nil))
 						      (dotimes (j rows
@@ -327,6 +332,7 @@
       (dotimes (i n-lines)
 	(updating-output (stream :unique-id `(plot-line ,i)
 				 :id-test #'equal
+				 :cache-test #'equal
 				 :cache-value (list x-min y-min x-max y-max width height
 						    (let ((r nil))
 						      (dotimes (j rows
@@ -700,15 +706,14 @@
   (frame-exit *application-frame*))
 
 (defmethod display-graph ((frame plot-demo) stream &key &allow-other-keys)
-  (updating-output (stream)
-    (with-slots (y-labelling graph-type plot-data x-labels y-labels
-		 x-min y-min x-max y-max) frame
-      (plotting-data (stream :y-labelling y-labelling 
-			     :x-labels x-labels :y-labels y-labels
-			     :x-min x-min :y-min y-min 
-			     :x-max x-max :y-max y-max
-			     :type graph-type)
-	(plot-data plot-data)))))
+  (with-slots (y-labelling graph-type plot-data x-labels y-labels
+			   x-min y-min x-max y-max) frame
+    (plotting-data (stream :y-labelling y-labelling 
+			   :x-labels x-labels :y-labels y-labels
+			   :x-min x-min :y-min y-min 
+			   :x-max x-max :y-max y-max
+			   :type graph-type)
+		   (plot-data plot-data))))
 
 (define-plot-demo-command com-describe-graph-line 
     ((line 'graph-line :gesture :describe))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: POSTSCRIPT-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: postscript-port.lisp,v 1.14 92/12/17 15:33:11 cer Exp $
+;; $fiHeader: postscript-port.lisp,v 1.15 93/02/08 15:57:19 cer Exp $
 
 (in-package :postscript-clim)
 
@@ -252,7 +252,7 @@
 
 (defclass postscript-medium (basic-medium)
      ((printer-stream :initarg :stream)
-      (current-color :initform nil)		;for decoding stippled inks
+      (current-color :initform nil)	;for decoding stippled inks
       (features-sent :initform nil)
       (curfont :initform nil)			;a psfck structure
       (ch1buf :initform (make-array 1 :element-type #+ANSI-90 'character
@@ -818,6 +818,7 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
 	(unwind-protect
 	    (multiple-value-prog1
 		(funcall continuation stream)
+	      (force-output stream)
 	      (multiple-value-bind (width height) 
 		  (bounding-rectangle-size (stream-output-history stream))
 		(let* ((page-width

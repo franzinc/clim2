@@ -361,6 +361,16 @@ The \arg{medium} argument is not evaluated, and must be a symbol that is bound
 to a sheet or medium.  If \arg{medium} is \cl{t}, \cl{*standard-output*} is
 used.  \arg{body} may have zero or more declarations as its first forms.
 
+\Defmacro {with-identity-transformation} {(medium) \body body}
+
+Establishes the identity transformation on the \term{medium} designated
+by \arg{medium}.
+
+The \arg{medium} argument is not evaluated, and must be a symbol that is bound
+to a sheet or medium.  If \arg{medium} is \cl{t}, \cl{*standard-output*} is
+used.  \arg{body} may have zero or more declarations as its first forms.
+
+
 
 \subsection {Establishing Local Coordinate Systems}
 
@@ -401,7 +411,7 @@ substrate on how to perform the rendering.
 The protocol class for line styles.
 \IfYouWantClass {a} {line style} {line-style}
 
-\Defun {line-style-p} {object}
+\Defpredicate {line-style-p} {object}
 
 Returns \term{true} if \arg{object} is a \term{line style}, otherwise returns
 \term{false}.

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-frames.lisp,v 1.27 93/01/21 14:59:28 cer Exp $
+;; $fiHeader: xt-frames.lisp,v 1.28 93/02/08 15:58:13 cer Exp $
 
 
 (in-package :xm-silica)
@@ -73,7 +73,7 @@
 (defun command-button-callback (button dunno frame command-table item)
   (declare (ignore dunno button))
   (execute-command-in-frame
-   frame (second item)
+   frame (substitute clim-internals::*application-frame-marker* frame (second item))
    :presentation-type `(command :command-table ,command-table)))
 
 
@@ -104,7 +104,7 @@
 		 (id-test 'equal)
 		 (cache-value items)
 		 (cache-test #'equal)
-		 gesture)
+		 (gesture :select))
   (declare (ignore keys))      
   (declare (values value chosen-item gesture))
   (let ((port (port framem))
@@ -188,10 +188,13 @@
   '((:exit) (:abort)))
 
 (defmethod note-frame-iconified ((framem xt-frame-manager) frame)
-  (tk::set-values (frame-shell frame) :iconic t))
+  (let ((display (port-display (port framem))))
+    (x11:xiconifywindow display (tk::widget-window (frame-shell frame))
+		    (xt::display-screen-number display))))
 
 (defmethod note-frame-deiconified ((framem xt-frame-manager) frame)
-  (tk::set-values (frame-shell frame) :iconic nil))
+  (x11:xmapwindow (port-display (port framem)) 
+		  (tk::widget-window (frame-shell frame))))
 
 ;;; 
 

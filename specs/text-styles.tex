@@ -31,7 +31,7 @@ size component is not a relative size (that is, is neither \cl{:smaller} nor
 The protocol class for text styles.
 \IfYouWantClass {a} {text style} {text-style}
 
-\Defun {text-style-p} {object}
+\Defpredicate {text-style-p} {object}
 
 Returns \term{true} if \arg{object} is a \term{text style}, otherwise returns
 \term{false}.
@@ -64,7 +64,8 @@ Implementations are permitted to extend legal values for \arg{family},
 
 \issue {York, SWM} {Need to describe what family, face, size mean in terms of
 visual appearance.  This should also be reconciled with the ISO description of
-the attributes of a ``text style''.}
+the attributes of a ``text style'', including such things as underlining,
+subscripts, superscripts, etc.}
 
 \Defconst {*default-text-style*}
 
@@ -137,15 +138,15 @@ largest, is \cl{:tiny}, \cl{:very-small}, \cl{:small}, \cl{:normal},
 bold face with an italic one can result in a bold-italic face.}
 
 
-\defgeneric {text-style-ascent}  {text-style port} 
-\defgeneric {text-style-descent} {text-style port}
-\defgeneric {text-style-height}  {text-style port}
-\Defgeneric {text-style-width}   {text-style port}
+\defgeneric {text-style-ascent}  {text-style medium} 
+\defgeneric {text-style-descent} {text-style medium}
+\defgeneric {text-style-height}  {text-style medium}
+\Defgeneric {text-style-width}   {text-style medium}
 
 Returns the ascent, descent, height, and width (respectively) of the font
 corresponding to the \term{text style} \arg{text-style} as it would be rendered
-on any medium on the \term{port} \arg{port}.  \arg{text-style} must be a fully
-specified text style.
+on the \term{medium} \arg{medium}.  \arg{text-style} must be a fully specified
+text style.
 
 The ascent of a font is the distance between the top of the tallest character in
 that font and the font's baseline.  The descent of a font is the distance
@@ -155,21 +156,21 @@ and the descent of the font.  The width of a font is the width of some
 representative character in the font.
 
 The methods for these generic functions will typically specialize both the
-\arg{text-style} and \arg{port} arguments.  Implementations should also provide
-``trampoline'' for these generic function for mediums and output sheets; the
-trampolines will simply call the method for the port.
+\arg{text-style} and \arg{medium} arguments.  Implementations should also
+provide ``trampoline'' for these generic functions on output sheets; the
+trampolines will simply call the method for the medium.
 
 
-\Defgeneric {text-style-fixed-width-p} {text-style port}
+\Defgeneric {text-style-fixed-width-p} {text-style medium}
 
 Returns \term{true} if the \term{text styles} \arg{text-style} will map to a
-fixed-width font on any medium on the \term{port} \arg{port}, otherwise returns
+fixed-width font on the \term{medium} \arg{medium}, otherwise returns
 \term{false}.  \arg{text-style} must be a fully specified text style.
 
 The methods for this generic function will typically specialize both the
-\arg{text-style} and \arg{port} arguments.  Implementations should also provide
-a ``trampoline'' for this generic function for mediums and output sheets; the
-trampoline will simply call the method for the port.
+\arg{text-style} and \arg{medium} arguments.  Implementations should also
+provide a ``trampoline'' for this generic function for output sheets; the
+trampoline will simply call the method for the medium.
 
 
 \issue {SWM} {Discuss baselines?  Kerning?}

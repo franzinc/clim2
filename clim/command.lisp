@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: command.lisp,v 1.19 92/12/14 15:02:00 cer Exp $
+;; $fiHeader: command.lisp,v 1.20 93/02/08 15:56:39 cer Exp $
 
 (in-package :clim-internals)
 
@@ -14,6 +14,7 @@
 
 (defvar *unsupplied-argument-marker* '#:unsupplied-argument)
 (defvar *numeric-argument-marker*    '#:numeric-argument)
+(defvar *application-frame-marker* '#:application-frame)
 
 (defun unsupplied-argument-p (arg)
   (eq arg *unsupplied-argument-marker*))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept-values.lisp,v 1.54 93/03/04 18:59:38 colin Exp $
+;; $fiHeader: accept-values.lisp,v 1.55 93/03/18 14:36:07 colin Exp $
 
 (in-package :clim-internals)
 
@@ -267,13 +267,15 @@
 ;;--- These frames should be resourced
 (define-application-frame accept-values-own-window (accept-values)
     ((help-window :initform nil)
-     (scroll-bars :initform nil :initarg :scroll-bars))
+     (scroll-bars :initform nil :initarg :scroll-bars)
+     (align-prompts :initform nil :initarg :align-prompts))
   (:pane 
-    (with-slots (stream own-window exit-button-stream scroll-bars) *application-frame*
+    (with-slots (stream own-window exit-button-stream scroll-bars align-prompts) *application-frame*
       (vertically ()
 	(outlining ()
 	  (progn
 	    (setq stream (make-instance 'accept-values-stream
+			   :align-prompts align-prompts
 			   :stream (setq own-window 
 					 (make-pane 'clim-stream-pane
 					   :initial-cursor-visibility :off
@@ -321,6 +323,7 @@
 			 ((t :right) :right)
 			 ((:left) :left)
 			 ((nil) nil)))
+
    (let ((frame-manager (frame-manager stream))
 	 (*current-accept-values-tick* *accept-values-tick*)
 	 (the-own-window nil))
@@ -345,7 +348,8 @@
 			:resynchronize-every-pass resynchronize-every-pass
 			:check-overlapping check-overlapping
 			:resize-frame resize-frame
-			:scroll-bars scroll-bars)))
+			:scroll-bars scroll-bars
+			:align-prompts align-prompts)))
 	   (when command-table
 	     (setf (frame-command-table frame) command-table))
 	   (unwind-protect
@@ -450,7 +454,8 @@
 			 ;; means we should run the continuation an extra time to see
 			 ;; that all visible stuff is up to date.  That's all!
 			 (with-output-recording-options (stream :draw nil)
-			   (redisplay avv stream :check-overlapping check-overlapping)))
+			   (redisplay avv stream :check-overlapping
+				      check-overlapping)))
 		       (setf (slot-value avv-record 'resynchronize) nil)
 		       (when exit-button-record
 			 (redisplay exit-button-record exit-button-stream))
@@ -1330,41 +1335,38 @@
 
 ;; This is how we associate an output-record with the button
 (defmethod invoke-accept-values-command-button
-    	   (stream continuation (view gadget-dialog-view) prompt
-	    &key (documentation (if (stringp prompt)
-				    prompt
-				    (with-output-to-string (stream)
-				      (funcall prompt stream))))
-		 (query-identifier (list ':button documentation))
-		 (cache-value t) (cache-test #'eql)
-		 resynchronize)
+    (stream continuation (view gadget-dialog-view) prompt
+     &key (documentation (if (stringp prompt)
+			     prompt
+			   (with-output-to-string (stream)
+			     (funcall prompt stream))))
+	  (query-identifier (list ':button documentation))
+	  (cache-value t) (cache-test #'eql)
+	  resynchronize)
   (declare (dynamic-extent prompt))
   (updating-output (stream :unique-id query-identifier :id-test #'equal
 			   :cache-value cache-value :cache-test cache-test)
-   (with-output-as-gadget (stream)
-     (let ((record (stream-current-output-record (encapsulating-stream-stream stream)))
-	   (client (make-instance 'accept-values-command-button
-		     :continuation continuation
-		     :documentation documentation
-		     :resynchronize resynchronize)))
-       (make-pane 'push-button
-	 :label (if (stringp prompt)
-		    prompt
-		    ;;--- Perhaps we should create a pixmap
-		    (with-output-to-string (stream)
-		      (funcall prompt stream)))
-	 :id record :client client
-	 :activate-callback
-	   #'(lambda (button)
-	       (when (accept-values-query-valid-p nil record)	;---can't be right
-		 (throw-highlighted-presentation
-		   (make-instance 'standard-presentation
-		     :object `(com-avv-command-button ,client ,record)
-		     :type 'command)
-		   *input-context*
-		   ;;--- It would be nice if we had the real event...
-		   (allocate-event 'pointer-button-press-event
-		     :sheet (sheet-parent button)
-		     :x 0 :y 0
-		     :modifier-state 0
-		     :button +pointer-left-button+)))))))))
+    (with-output-as-gadget (stream)
+      (let ((record (stream-current-output-record (encapsulating-stream-stream stream)))
+	    (client (make-instance 'accept-values-command-button
+				   :continuation continuation
+				   :documentation documentation
+				   :resynchronize resynchronize)))
+	(make-pane 'push-button
+		   :label (if (stringp prompt)
+			      prompt
+			    ;;--- Perhaps we should create a pixmap
+			    (with-output-to-string (stream)
+			      (funcall prompt stream)))
+		   :id record :client client
+		   :activate-callback
+		   #'(lambda (button)
+		       (when (accept-values-query-valid-p nil record) ;---can't be right
+			 (let ((sheet (sheet-parent button)))
+			   (process-command-event
+			    sheet
+			    (allocate-event 'presentation-event
+					    :sheet sheet
+					    :presentation-type 'command
+					    :value `(com-avv-command-button ,client ,record)
+					    :frame *application-frame*))))))))))

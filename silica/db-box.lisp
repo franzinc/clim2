@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-box.lisp,v 1.22 92/09/24 09:37:28 cer Exp $
+;; $fiHeader: db-box.lisp,v 1.23 93/02/08 15:57:26 cer Exp $
 
 (in-package :silica)
 
@@ -15,7 +15,7 @@
 
 
 (defclass box-pane (layout-pane)
-    ((space :initform 1 :initarg :spacing)
+    ((spacing :initform 0 :initarg :spacing)
      contents))
 
 (defmethod initialize-instance :after 
@@ -37,10 +37,10 @@
   (deallocate-event event))
 
 (defmethod compose-box 
-	   ((box-pane box-pane)
-	    fn-major fn-major+ fn-major- fn-minor fn-minor+ fn-minor- width-or-height
-	    keys)
-  (with-slots (contents space) box-pane
+    ((box-pane box-pane)
+     fn-major fn-major+ fn-major- fn-minor fn-minor+ fn-minor- width-or-height
+     keys)
+  (with-slots (contents spacing) box-pane
     (if (null contents) 
 	(make-space-requirement)
       (let ((major 0)
@@ -60,7 +60,7 @@
 		     (psetf entry (second entry) 
 			    scale (let ((n (first entry)))
 				    (if (numberp n) (float n) n)))
-		     (setf scale 1.0))
+		   (setf scale 1.0))
 		 (let ((space-req (apply #'compose-space entry width-or-height)))
 		   (flet ((scale (x) 
 			    (if (and (numberp scale) (< x +fill+)) (/ x scale) x)))
@@ -68,26 +68,27 @@
 		     (cond ((eq scale :fill)
 			    (incf major+ +fill+))
 			   (t
-			    (incf major (+ (scale (funcall fn-major space-req)) space))
+			    (incf major (scale (funcall fn-major space-req)))
 			    (incf major+ (scale (funcall fn-major+ space-req)))))
 		     (incf major- (scale (funcall fn-major- space-req)))
 		     (setq minor (max minor (funcall fn-minor space-req))) 
 		     (maxf minor-min (funcall fn-minor- space-req))
 		     (minf minor-max (funcall fn-minor+ space-req)))))))
-	(decf major space)
 	;;--- These calcs lead to weirdness when fills are involved.
 	;;--- This looks like a leftover from the time when +/- were relative
 	;;(setq minor- (max 0 (- minor minor-min)))
 	;;(setq minor+ (max 0 (- minor-max minor)))
 	(setq minor- minor-min)
 	(setq minor+ minor-max)
-	(apply #'make-space-requirement
-	       (mapcan #'list
-		       keys 
-		       (list major major+ major- minor minor+ minor-)))))))
+	(let ((extra (* (1- (length (sheet-children box-pane))) spacing)))
+	  (apply #'make-space-requirement
+		 (mapcan #'list
+			 keys 
+			 (list (+ extra major) (+ extra major+) (+ extra major-) minor minor+ minor-))))))))
 
 
-(defclass hbox-pane (box-pane) ())
+(defclass hbox-pane (box-pane) 
+	  ((spacing :initarg :x-spacing)))
 
 (defmethod compose-space ((box-pane hbox-pane) &key width height)
   (declare (ignore width))
@@ -102,7 +103,7 @@
 	       '(:width :max-width :min-width :height :max-height :min-height)))
 
 (defmethod allocate-space ((box-pane hbox-pane) width height)
-  (with-slots (contents space) box-pane
+  (with-slots (contents spacing) box-pane
     (let ((space-requirement
 	    (compose-space box-pane :width width :height height)))
       (flet ((compose (x)
@@ -110,10 +111,11 @@
 		     ((eq (car x) :fill) :fill)
 		     (t (make-space-requirement :height 0 :width (* (car x) width))))))
 	(declare (dynamic-extent #'compose))
-	(let ((sizes 
+	(let* ((adjust (* spacing (1- (length (sheet-children box-pane)))))
+	       (sizes 
 		(allocate-space-to-items
-		  width
-		  space-requirement
+		  (- width adjust)
+		  (space-requirement+* space-requirement :height (- adjust))
 		  contents
 		  #'space-requirement-min-width
 		  #'space-requirement-width
@@ -125,13 +127,14 @@
 			      (and (consp sheet)
 				   (panep (second sheet))
 				   (setq sheet (second sheet))))
-		      (move-and-resize-sheet 
-			sheet x 0 (frob-size size width x) height))
+		      (move-and-resize-sheet sheet x 0 size height)
+		      (incf x spacing))
 		    (incf x size))
 		contents sizes))))))
 
 
-(defclass vbox-pane (box-pane) ())
+(defclass vbox-pane (box-pane) 
+	  ((spacing :initarg :y-spacing)))
 
 (defmethod compose-space ((box-pane vbox-pane) &key width height)
   (declare (ignore height))
@@ -146,7 +149,7 @@
 	       `(:height :max-height :min-height :width :max-width :min-width)))
 
 (defmethod allocate-space ((box-pane vbox-pane) width height)
-  (with-slots (contents space) box-pane
+  (with-slots (contents spacing) box-pane
     (let ((space-requirement
 	    (compose-space box-pane :width width :height height)))
       (flet ((compose (x)
@@ -154,10 +157,11 @@
 		     ((eq (car x) :fill) :fill)
 		     (t (make-space-requirement :width 0 :height (* (car x) height))))))
 	(declare (dynamic-extent #'compose))
-	(let ((sizes 
+	(let* ((adjust (* spacing (1- (length (sheet-children box-pane)))))
+	       (sizes 
 		(allocate-space-to-items
-		  height
-		  space-requirement
+		  (- height adjust)
+		  (space-requirement+* space-requirement :height (- adjust))
 		  contents
 		  #'space-requirement-min-height
 		  #'space-requirement-height
@@ -169,16 +173,10 @@
 			      (and (consp sheet)
 				   (panep (second sheet))
 				   (setq sheet (second sheet))))
-		      (move-and-resize-sheet
-			sheet 0 y width (frob-size size height y)))
+		      (move-and-resize-sheet sheet 0 y width size)
+		      (incf y spacing))
 		    (incf y size))
 		contents sizes))))))
-
-;;--- In theory this should work OK.
-(defun frob-size (wanted-size available where-we-are-now)
-  #---ignore (declare (ignore available where-we-are-now))
-  #---ignore wanted-size
-  #+++ignore (min wanted-size (1- (- available where-we-are-now))))
 
 ;;; Bulletin board
 ;;; Is there any value in this???

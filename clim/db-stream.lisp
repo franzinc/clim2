@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-stream.lisp,v 1.45 93/02/08 15:56:42 cer Exp $
+;; $fiHeader: db-stream.lisp,v 1.46 93/03/18 14:36:24 colin Exp $
 
 (in-package :clim-internals)
 
@@ -50,6 +50,22 @@
     (note-sheet-region-changed pane))
   (setf (stream-default-text-margin pane)
 	(bounding-rectangle-width (sheet-region viewport))))
+
+(defmethod update-region ((sheet clim-stream-sheet) nleft ntop nright nbottom &key no-repaint)
+  (declare (ignore no-repaint))
+  (with-bounding-rectangle* (left top right bottom) sheet
+    (when (or (< nleft left)
+	      (< ntop  top)
+	      (> nright  right)
+	      (> nbottom bottom))
+      ;; It should be safe to modify the sheet's region
+      (let ((region (sheet-region sheet)))
+	(setf (slot-value region 'left) (min nleft left)
+	      (slot-value region 'top)  (min ntop  top)
+	      (slot-value region 'right)  (max nright  right)
+	      (slot-value region 'bottom) (max nbottom bottom))
+	(note-sheet-region-changed sheet)))))
+
 
 (defmethod invoke-with-drawing-options ((sheet clim-stream-sheet) continuation
 					&rest options
@@ -640,7 +656,7 @@
 
 
 ;;; This is too useful to simply omit
-(defun open-window-stream (&key port left top right bottom width height
+(defun open-window-stream (&key left top right bottom width height
 				(foreground +black+) (background +white+)
 				text-style default-text-style
 				(vertical-spacing 2)
@@ -651,6 +667,7 @@
 				text-margin default-text-margin
 				save-under input-buffer
 				(scroll-bars :vertical) borders label)
+  (declare (ignore label borders scroll-bars input-buffer))
   (when (or width height)
     (assert (and (null right) (null bottom))))
   (when (null left) (setq left 0))
@@ -661,21 +678,15 @@
 	      height 100)
 	(setq width (- right left)
 	      height (- bottom top))))
-  (when (null port)
-    (setq port (find-port)))
-  (when (null text-style)
-    (setq text-style (port-default-text-style port)))
-  (when (null default-text-style)
-    (setq default-text-style (port-default-text-style port)))
-  (let ((stream
+  (let* ((stream
 	  (let ((frame (make-application-frame 'menu-frame
-					       :parent (or port (find-port))
 					       :save-under save-under)))
-	    (slot-value frame 'menu))))
+	    (slot-value frame 'menu)))
+	 (port (port stream)))
     (setf (medium-foreground stream) foreground
 	  (medium-background stream) background
-	  (medium-default-text-style stream) default-text-style
-	  (medium-text-style stream) text-style
+	  (medium-default-text-style stream) (or default-text-style (port-default-text-style port))
+	  (medium-text-style stream) (or text-style (port-default-text-style port))
 	  (stream-vertical-spacing stream) vertical-spacing
 	  (stream-end-of-line-action stream) end-of-line-action
 	  (stream-end-of-page-action stream) end-of-page-action

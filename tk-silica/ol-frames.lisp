@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-frames.lisp,v 1.19 92/12/03 10:30:10 cer Exp $
+;; $fiHeader: ol-frames.lisp,v 1.20 92/12/07 12:15:50 cer Exp $
 
 
 (in-package :xm-silica)
@@ -58,7 +58,9 @@
 	    presentation-type 
 	    associated-window
 	    text-style
-	    label)
+	    label
+	    gesture)
+  (declare (ignore gesture))
   (let* (value-returned 
 	 return-value
 	 (simplep (and (null printer)
@@ -190,3 +192,19 @@
   (declare (ignore menu))
   t)
 
+
+(defmethod clim-internals::frame-manager-invoke-with-noting-progress ((framem openlook-frame-manager)
+								      note
+								      continuation)
+  (let ((shell (let ((stream (slot-value note 'stream)))
+		 (if stream
+		     (frame-shell (pane-frame stream))
+		   (frame-shell *application-frame*)))))
+    (if (typep shell 'xt::vendor-shell)
+	(let ((old-busy (tk::get-values shell :busy)))
+	  (unwind-protect
+	      (progn
+		(tk::set-values shell :busy t)
+		(call-next-method))
+	    (tk::set-values shell :busy old-busy)))
+      (call-next-method))))
