@@ -21,7 +21,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: excl-presentations.lisp,v 1.5 92/02/28 09:17:48 cer Exp $
+;; $fiHeader: excl-presentations.lisp,v 1.6 92/03/04 16:21:33 cer Exp Locker: cer $
 
 
 (in-package :clim-internals)
@@ -40,11 +40,12 @@
 					&rest args
 					&key (type nil type-p)
 					     object)
-  (when (and (null type-p)
-	     ;;--- If its a lisp kind of object then we want to generate expressions
-	     ;;--- but in the lisp thats all we generate to there
-	     ;;--- should be a problem
-	     t)
+  (when (and 
+	 ;; (null type-p)
+	 ;;--- If its a lisp kind of object then we want to generate expressions
+	 ;;--- but in the lisp thats all we generate to there
+	 ;;--- should be a problem
+	 t)
     (setf (getf args :type) (presentation-type-of object)))
   (apply #'call-next-method rec args))
 

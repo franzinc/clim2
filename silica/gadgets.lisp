@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadgets.lisp,v 1.8 92/02/24 13:04:35 cer Exp $
+;; $fiHeader: gadgets.lisp,v 1.9 92/03/04 16:19:41 cer Exp Locker: cer $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
@@ -179,8 +179,18 @@
     ((selections :initform nil 
 		 :reader radio-box-selections)
      (current-selection :initform nil
+			:initarg :current-selection
 			:accessor radio-box-current-selection)))
 
+(defmethod initialize-instance :after ((rb radio-box) &key choices)
+  (let ((fr (pane-frame rb)))
+    (with-look-and-feel-realization ((frame-manager fr) fr)
+      (dolist (choice choices)
+	(realize-pane 'toggle-button 
+		      :value (equal (radio-box-current-selection rb) choice)
+		      :label (string choice)
+		      :id choice
+		      :parent rb)))))
 ;;; Menu-bar
 
 

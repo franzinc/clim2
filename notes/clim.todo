@@ -1,4 +1,4 @@
-%%  $fiHeader: clim.todo,v 1.7 92/03/04 10:47:05 cer Exp Locker: cer $
+%%  $fiHeader: clim.todo,v 1.8 92/03/06 09:08:36 cer Exp Locker: cer $
 
 %% ****************************************** SWM things
 
@@ -210,6 +210,11 @@
   * [cer] perhaps max widths ending up smaller than widths!
   * [cer] :fill in box panes??
   * [cer] why do we need a pane when we read commands?
+  * [cer] replay-output-record is not called on output-record-mixin!
+    See the method in recording-output-protocol.lisp
+  * [cer] I suspect that replay needs to intersect the region with the
+    viewport
+
 
 %% ******************************************* JDI things
 

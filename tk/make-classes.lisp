@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: make-classes.lisp,v 1.7 92/02/16 20:55:03 cer Exp $
+;; $fiHeader: make-classes.lisp,v 1.8 92/02/24 13:03:28 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -245,7 +245,8 @@
   (error "toolkit errror: ~a" (char*-to-string message)))
 
 (defun-c-callable toolkit-warning-handler ((message :unsigned-long))
-  (warn "toolkit warning: ~a" (char*-to-string message)))
+  (let ((*error-output* excl:*initial-terminal-io*))
+    (warn "toolkit warning: ~a" (char*-to-string message))))
 
 
 (defun add-resource-to-class (class resource)

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.9 92/03/04 16:20:46 cer Exp Locker: cer $
+;; $fiHeader: xt-silica.lisp,v 1.10 92/03/06 09:08:33 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -136,7 +136,9 @@
 
 
 (defmethod destroy-mirror ((port xt-port) sheet)
-  (tk::destroy-widget (sheet-direct-mirror sheet)))
+  ;;-- I dont think that we should do this.
+  (tk::destroy-widget (sheet-direct-mirror sheet))
+  )
 
 (defmethod realize-mirror ((port xt-port) sheet)
   (let ((parent (find-widget-parent port sheet)))

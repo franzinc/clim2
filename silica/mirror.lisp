@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: mirror.lisp,v 1.9 92/03/04 16:19:49 cer Exp Locker: cer $
+;; $fiHeader: mirror.lisp,v 1.10 92/03/06 09:08:28 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -266,10 +266,11 @@
 		  (/= sc-y 1.0)
 		  (not (zerop  tr-x))
 		  (not (zerop tr-y)))
-	  (warn "Mirror scaling ~S,~S,~S,~S" 
-		 (list tr-x tr-y sc-x sc-y) sheet
-		 (multiple-value-list (mirror-inside-edges* port sheet))
-		 (sheet-region sheet)))
+	  (let (#+Allegro (*error-output* excl::*initial-terminal-io*))
+	    (warn "Mirror scaling ~S,~S,~S,~S" 
+		  (list tr-x tr-y sc-x sc-y) sheet
+		  (multiple-value-list (mirror-inside-edges* port sheet))
+		  (sheet-region sheet))))
 	(setf (sheet-native-transformation sheet)
 	      ;;--- Inline the composition to save some consing
 	      (compose-transformations

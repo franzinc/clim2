@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.13 92/03/04 16:20:36 cer Exp Locker: cer $
+;; $fiHeader: xm-gadgets.lisp,v 1.14 92/03/06 09:08:32 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -468,11 +468,11 @@
 					  (id t)
 					  (value t))
   (when (eq value t)
-    (setf (radio-box-current-selection client) v)
+    (setf (radio-box-current-selection client) id)
     (value-changed-callback client 
 			    (gadget-client client)
 			    (gadget-id client) 
-			    v)))
+			    id)))
 
 ;; This is an experiment at using a frame but there are problems with
 ;; it
