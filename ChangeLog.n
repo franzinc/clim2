@@ -11,6 +11,15 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.2.1.56
+
+1999-06-02  Jeff Morrill  <jmorrill@pointnclick.com> 
+
+* aclpc/acl-widget, aclpc/winwidgh, clim/gadget-output: work on sizing
+  of text-fields yet again
+* utils/defun-utilities: fix up mb-to-string compatibility function
+
+*******************************************************************************
 2.2.1.55
 
 1999-05-21  Jeff Morrill  <jmorrill@pointnclick.com> 

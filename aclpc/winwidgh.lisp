@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: winwidgh.lisp,v 1.1.22.7 1999/05/26 18:11:37 layer Exp $
+;; $Id: winwidgh.lisp,v 1.1.22.8 1999/06/02 21:43:34 layer Exp $
 
 (in-package :acl-clim)
 
@@ -27,6 +27,11 @@
 (defconstant TTN_NEEDTEXTA TTN_FIRST)	; ascii
 (defconstant TTN_NEEDTEXTW (- TTN_FIRST 10)); unicode
 (defconstant TTN_NEEDTEXT TTN_NEEDTEXTA)
+
+(defconstant EM_SETMARGINS #xD3)
+(defconstant EC_LEFTMARGIN 1)
+(defconstant EC_RIGHTMARGIN 2)
+(defconstant EC_USEFONTINFO #xffff)
 
 (defvar SRCOR #xee0086)
 

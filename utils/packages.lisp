@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: packages.lisp,v 1.84.8.43 1999/05/26 18:11:38 layer Exp $
+;; $Id: packages.lisp,v 1.84.8.44 1999/06/02 21:43:35 layer Exp $
 
 (in-package :common-lisp-user)
 
@@ -1146,7 +1146,8 @@
     setf*))
 
 
-
+
+
 ;; Define the CLIM package
 (defpackage clim
   (:use)                                ;use nothing
@@ -2720,7 +2721,8 @@
 
 )) ;; ics-target-case
 
-
+
+
 ;; Now define all of the implementation packages
 (defpackage clim-utils
   #+Allegro (:implementation-packages :clim-utils :clim-silica
@@ -3266,7 +3268,8 @@
   #+Allegro
   (:import-from :excl #:non-dynamic-extent))
 
-
+
+
 ;; A package for casual use...
 (defpackage clim-user
   (:use clim-lisp clim))
@@ -3289,7 +3292,7 @@
 (cl:defvar *clim-major-version* 2)
 (cl:defvar *clim-minor-version* 2)
 (cl:defvar *clim-generation-version* 1)
-(cl:defvar *clim-build-version* 55)
+(cl:defvar *clim-build-version* 56)
 
 (cl:defparameter *clim-version*
     (cl:format () "~d.~d.~d.~a"

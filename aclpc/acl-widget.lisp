@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-widget.lisp,v 1.7.8.15 1999/05/26 18:11:37 layer Exp $
+;; $Id: acl-widget.lisp,v 1.7.8.16 1999/06/02 21:43:34 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -192,7 +192,7 @@
 
 (defclass mswin-text-edit (acl-gadget-id-mixin 
 			   mirrored-sheet-mixin 
-			   text-field	;-pane
+			   text-field 
 			   sheet-permanently-enabled-mixin
 			   space-requirement-mixin
 			   basic-pane)
@@ -200,7 +200,8 @@
    (depth :initarg :depth)
    (x-margin :initarg :x-margin)
    (y-margin :initarg :y-margin)
-   ;; needed for text-editor
+   ;; We probably should be inheriting from text-editor,
+   ;; not text-field.
    (ncolumns :initarg :ncolumns
 	     :accessor gadget-columns)
    (nlines :initarg :nlines
@@ -233,14 +234,14 @@
 	      (style (medium-default-text-style medium))
 	      (style-width (text-style-width style medium))
 	      (margin (slot-value sheet 'x-margin))
-	      (border 2))
+	      (border 4))
 	 (+ border margin (* style-width nchars) margin border))))
     (string 
      (with-sheet-medium (medium sheet)
        (let ((w 
 	      (text-size sheet width
 			 :text-style (medium-default-text-style medium)))
-	     (border 2)
+	     (border 4)
 	     (margin (slot-value sheet 'x-margin)))
 	 (+ border margin w margin border))))
     (otherwise width)))
@@ -278,15 +279,22 @@
     (let* ((par (sheet-parent pane))
 	   (scroll-mode (and (acl-clim::scroller-pane-p par)
 			     (scroller-pane-scroll-bar-policy par))))
-      (let ((w 0) (min-w 0)
-	    (h 0) (min-h 0))
+      (let ((w 0) 
+	    (min-w (process-width-specification pane '(1 :character)))
+	    (h 0)
+	    (value (gadget-value pane))
+	    (min-h (process-height-specification pane '(1 :line))))
 	;; WIDTH
-	(setq min-w (process-width-specification pane '(1 :character)))
-	(setq w (process-width-specification 
-		 pane 
-		 (or (and ncolumns `(,ncolumns :character))
-		     (gadget-value pane)
-		     '(20 :character))))
+	(cond (ncolumns
+	       (setq w (process-width-specification pane `(,ncolumns :character))))
+	      (initial-space-requirement
+	       ;; This is where accepting-values views factors in.
+	       (setq w (process-width-specification 
+			pane (space-requirement-width initial-space-requirement))))
+	      ((stringp value)
+	       (setq w (process-width-specification pane value)))
+	      (t
+	       (setq w (process-width-specification pane `(20 :character)))))
 	(when (member scroll-mode '(:horizontal :both t :dynamic))
 	  ;; Allow for the vertical scrollbar
 	  (let ((wsty (win-scroll-thick :y)))
@@ -295,12 +303,17 @@
 	(setq w (max w min-w))
 
 	;; HEIGHT
-	(setq min-h (process-height-specification pane '(1 :line))) 
-	(setq h (process-height-specification pane 
-					      (or (and nlines `(,nlines :line))
-						  (gadget-value pane)
-						  '(1 :line)))) 
-      
+	(cond (nlines
+	       (setq h (process-height-specification pane `(,nlines :line))))
+	      (initial-space-requirement
+	       ;; This is where accepting-values views factors in.
+	       (setq h (process-height-specification 
+			pane (space-requirement-height initial-space-requirement))))
+	      ((stringp value)
+	       (setq h (process-height-specification pane value)))
+	      (t
+	       (setq h (process-height-specification pane '(1 :line)))))
+
 	(when (member scroll-mode '(:horizontal :both t :dynamic))
 	  (let ((wstx (win-scroll-thick :x)))
 	    ;; Allow for the horizontal scrollbar
@@ -459,12 +472,12 @@
 	  (let ((font (text-style-mapping port text-style)))
 	    (win:SendMessage window win:WM_SETFONT 
 			     (acl-clim::acl-font-index font) 0))))
-      ;; Don't know how to set the y margins.
+      ;; Don't know how to set the y margins, but they look pretty good anyway.
       (with-slots (x-margin) sheet
-	(win:SendMessage window #xD3	; win:EM_SETMARGINS
-			 (logior 1	;win:EC_LEFTMARGIN 
-				 2	;win:EC_RIGHTMARGIN
-				 )
+	(win:SendMessage window acl-clim::EM_SETMARGINS
+			 ;;acl-clim::EC_USEFONTINFO
+			 (logior acl-clim::EC_LEFTMARGIN 
+				 acl-clim::EC_RIGHTMARGIN)
 			 x-margin))
       ;; It's too soon for this.  Need to do this later, 
       ;; after the layout has been processed, but where?
@@ -498,28 +511,41 @@
   ;;; is specified, we want to use that value (i.e. in order
   ;;; to fill the space provided by the viewport).
   (with-slots (x-margin y-margin initial-space-requirement nlines ncolumns) pane
-    (let* ((par (sheet-parent pane))
-	   (par-viewport-p (isa-viewport par)))
-      (let ((w 0) (min-w 0)
-	    (h 0) (min-h 0))
+    (let* ((parent (sheet-parent pane))
+	   (parent-viewport-p (isa-viewport parent)))
+      (let ((w 0) 
+	    (min-w (process-width-specification pane '(1 :character)))
+	    (h 0)
+	    (value (gadget-value pane))
+	    (min-h (process-height-specification pane '(1 :line))))
 	;; WIDTH
-	(setq min-w (process-width-specification pane '(1 :character)))
-	(setq w (process-width-specification pane 
-					     (or 
-					      (and par-viewport-p width)
-					      (and ncolumns `(,ncolumns :character))
-					      (gadget-value pane)
-					      '(20 :character))))
+	(cond (parent-viewport-p
+	       (setq w (process-width-specification pane width)))
+	      (ncolumns
+	       (setq w (process-width-specification pane `(,ncolumns :character))))
+	      (initial-space-requirement
+	       ;; This is where accepting-values views factors in.
+	       (setq w (process-width-specification 
+			pane (space-requirement-width initial-space-requirement))))
+	      ((stringp value)
+	       (setq w (process-width-specification pane value)))
+	      (t
+	       (setq w (process-width-specification pane `(20 :character)))))
 	(setq w (max w min-w))
 
 	;; HEIGHT
-	(setq min-h (process-height-specification pane '(1 :line))) 
-	(setq h (process-height-specification pane
-					      (or 
-					       (and par-viewport-p height)
-					       (and nlines `(,nlines :line))
-					       (gadget-value pane)
-					       '(1 :line)))) 
+	(cond (parent-viewport-p
+	       (setq h (process-height-specification pane height)))
+	      (nlines
+	       (setq h (process-height-specification pane `(,nlines :line))))
+	      (initial-space-requirement
+	       ;; This is where accepting-values views factors in.
+	       (setq h (process-height-specification 
+			pane (space-requirement-height initial-space-requirement))))
+	      ((stringp value)
+	       (setq h (process-height-specification pane value)))
+	      (t
+	       (setq h (process-height-specification pane '(1 :line))))) 
 	(setq h (max h min-h))
 
 	(make-space-requirement

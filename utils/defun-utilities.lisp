@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: defun-utilities.lisp,v 1.12.22.4 1999/04/09 00:39:04 cox Exp $
+;; $Id: defun-utilities.lisp,v 1.12.22.5 1999/06/02 21:43:35 layer Exp $
 
 (in-package :clim-utils)
 
@@ -135,10 +135,10 @@
 
   #-(version>= 5 (0 1) :pre-beta2 7)
   (defun mb-to-string (mb-vector)
-    (let* ((lgth (1- (length mb-vector)))
+    (let* ((lgth (length mb-vector))
 	   (string (make-string lgth)))
       (dotimes (i lgth string)
-	(setf (schar string i) (aref mb-vector i)))))
+	(setf (schar string i) (code-char (aref mb-vector i))))))
 
   #-(version>= 5 (0 1) :pre-beta2 7)
   (eval-when (compile load eval) (export 'mb-to-string)))
