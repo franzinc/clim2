@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept-values.lisp,v 1.32 92/09/08 10:34:36 cer Exp Locker: cer $
+;; $fiHeader: accept-values.lisp,v 1.33 92/09/08 15:17:23 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -1198,7 +1198,11 @@
 		     :documentation documentation
 		     :resynchronize resynchronize)))
        (make-pane 'push-button
-	 :label prompt
+	 :label (if (stringp prompt)
+		    stream
+		  ;;--- Perhaps we should create a pixmap
+		  (with-output-to-string (stream)
+		    (funcall prompt stream)))
 	 :id record :client client
 	 :activate-callback
 	   #'(lambda (button)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: ico.lisp,v 1.4 92/07/27 11:03:31 cer Exp Locker: cer $
+;; $fiHeader: ico.lisp,v 1.5 92/08/18 17:26:20 cer Exp Locker: cer $
 
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
@@ -40,23 +40,25 @@
 
 (defmethod display-options-pane ((frame ico-frame) pane &key max-width max-height)
   (declare (ignore max-width max-height))
-  (with-slots (ico-time-p ico-line-style draw-edges draw-faces) frame
-    (setf ico-time-p (accept 'boolean 
-			     :default ico-time-p
-			     :stream pane
-			     :prompt "Time"))
-    (terpri pane)
-    (let ((x (append (and draw-faces '(:faces))
-		     (and draw-edges '(:edges)))))
-      (setf x (accept '(subset :faces :edges) :default x :stream pane :prompt "Choose"))
-      (terpri pane)
-      (setf draw-edges (and (member :edges x) t)
-	    draw-faces (and (member :faces x) t)))
-    (setf ico-line-style (accept '(member :thin :thick)
-				 :default ico-line-style
-				 :stream pane
-				 :prompt "Line Style"))
-    (terpri pane)))
+  (formatting-item-list (pane :n-rows 1)
+      (with-slots (ico-time-p ico-line-style draw-edges draw-faces) frame
+	(formatting-cell (pane)
+	    (setf ico-time-p (accept 'boolean 
+				     :default ico-time-p
+				     :stream pane
+				     :prompt "Time")))
+	(formatting-cell (pane)
+	    (let ((x (append (and draw-faces '(:faces))
+			     (and draw-edges '(:edges)))))
+	      (setf x (accept '(subset :faces :edges) :default x :stream pane :prompt "Choose"))
+	      (setf draw-edges (and (member :edges x) t)
+		    draw-faces (and (member :faces x) t))))
+	(formatting-cell (pane)
+	    (setf ico-line-style (accept '(member :thin :thick)
+					 :default ico-line-style
+					 :stream pane
+					 :prompt "Line Style"))))))
+
 
 (define-ico-frame-command (com-ico-throw-ball :menu "Throw ball" :keystroke #\t) ()
   (with-application-frame (frame)

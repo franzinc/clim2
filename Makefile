@@ -1,8 +1,9 @@
-# $fiHeader: Makefile,v 1.44 92/08/21 16:34:13 cer Exp Locker: cer $
+# $fiHeader: Makefile,v 1.45 92/09/08 10:35:20 cer Exp Locker: cer $
 # 
 #  Makefile for CLIM 2.0
 #
-CL	= /usr/tech/cer/cl/src/dcl
+#CL	= /usr/tech/cer/cl/src/dcl
+CL	= /net/vapor/scm2/4.2.beta/src/dcl-stable
 PWD	= /usr/tech/cer/stuff/clim-2.0
 DUMP-CL	= $(CL)
 CLOPTS	= -qq
@@ -73,6 +74,7 @@ OPENWINHOME=/usr/openwin-3.0
 
 DEBUGLIB=
 MOTIFLIB=/x11/R4/sun4-lib/libXm$(DEBUGLIB).a
+MOTIFLIB_d=/x11/R4/sun4-lib/libXm_d.a
 XLIB= /x11/R4/sun4-lib/libX11$(DEBUGLIB).a 
 XTLIB=/x11/R4/sun4-lib/libXt$(DEBUGLIB).a
 XLIBS= $(XTLIB) $(XLIB)
@@ -80,6 +82,7 @@ XLIBS= $(XTLIB) $(XLIB)
 OLCOPYLIB=/usr/tech/cer/stuff/clim-2.0/tk/lib2
 OLXLIBS=$(OLCOPYLIB)/libXt.a $(OLCOPYLIB)/libX11.a
 LIBXOL=$(OLCOPYLIB)/libXol.a
+LIBXOL_d=$(OLCOPYLIB)/libXol.a
 
 # This has to be kept consistent with xlib.lisp
 UNDEFS=misc/undefinedsymbols
@@ -94,11 +97,14 @@ XM_UNDEFS=misc/undefinedsymbols.motif
 OL_UNDEFS=misc/undefinedsymbols.olit
 
 CLIMFASLS= climg.fasl climol.fasl climxm.fasl clim-debug.fasl climps.fasl
-CLIMOBJS= clim-motif.o clim-olit.o stub-xt.o stub-x.o xlibsupport.o MyDrawingA.o \
+CLIMOBJS= clim-motif_d.o clim-olit_d.o  clim-motif.o clim-olit.o stub-xt.o stub-x.o \
+	  xlibsupport.o MyDrawingA.o \
 	  olsupport.o xtsupport.o
 
 # These are linked into the distribution
-FCLIMOBJS= `pwd`/clim-motif.o `pwd`/clim-olit.o `pwd`/stub-xt.o `pwd`/stub-x.o \
+FCLIMOBJS= `pwd`/clim-motif_d.o `pwd`/clim-olit_d.o \
+	    `pwd`/clim-motif.o `pwd`/clim-olit.o \
+	    `pwd`/stub-xt.o `pwd`/stub-x.o \
 	   `pwd`/xlibsupport.o `pwd`/MyDrawingA.o `pwd`/olsupport.o `pwd`/xtsupport.o
 
 # These are built into xm-dcl and ol-dcl.
@@ -223,6 +229,7 @@ CLIM-STANDALONE-OBJS = clim/gestures.fasl \
                         clim/basic-translators.fasl \
                         clim/frames.fasl \
 			clim/default-frame.fasl \
+                        clim/activities.fasl \
 			clim/noting-progress.fasl \
                         clim/menus.fasl \
                         clim/accept-values.fasl \
@@ -487,6 +494,9 @@ compile-xm:	$(CLIMOBJS) FORCE
 		(setf excl:*record-xref-info* $(RECORD_XREF_INFO)) \
 		(setf excl:*load-xref-info* $(LOAD_XREF_INFO)) \
 		(proclaim '(optimize (speed $(SPEED)) (safety $(SAFETY)) (debug $(DEBUG)))) \
+		(setq sys::*libxt-pathname* \"$(XTLIB)\") \
+		(setq sys::*libx11-pathname* \"$(XLIB)\") \
+		(setq sys::*clim-motif-pathname* \"clim-motif$(DEBUGLIB).o\") \
 		(load \"misc/compile-xm.lisp\")" | $(CL) $(CLOPTS) -batch
 		echo CLIM-XM compiled!!!!
 
@@ -496,6 +506,9 @@ compile-ol:	$(CLIMOBJS) FORCE
 		(setf excl:*record-source-file-info* $(RECORD_SOURCE_FILE_INFO)) \
 		(setf excl:*record-xref-info* $(RECORD_XREF_INFO)) \
 		(setf excl:*load-xref-info* $(LOAD_XREF_INFO)) \
+		(setq sys::*libxt-pathname* \"$(XTLIB)\") \
+		(setq sys::*libx11-pathname* \"$(XLIB)\") \
+		(setq sys::*clim-olit-pathname* \"clim-olit$(DEBUGLIB).o\") \
 		(setq *ignore-package-name-case* t) \
 		(set-case-mode :case-insensitive-lower) \
 		(proclaim '(optimize (speed $(SPEED)) (safety $(SAFETY)) (debug $(DEBUG)))) \
@@ -549,9 +562,12 @@ tk/xm-defs.fasl : tk/xm-defs.lisp
 
 # Building
 
-clim-xm:	FORCE
+clim-xm:	FORCE $(CLIMOBJS)
 #	-$(RM) $(CLIM)
 	$(ECHO) " \
+		(setq sys::*libxt-pathname* \"$(XTLIB)\") \
+		(setq sys::*libx11-pathname* \"$(XLIB)\") \
+	        (setq sys::*clim-motif-pathname* \"clim-motif$(DEBUGLIB).o\") \
 		(load \"misc/dev-load-xm.lisp\") \
 		(load \"misc/dump.lisp\")" | $(DUMP-CL) $(CLOPTS) -batch
 	$(MV) $(TMP)/clim.temp_`whoami` $(CLIM)
@@ -563,6 +579,9 @@ clim-xm:	FORCE
 clim-ol:	FORCE
 #	-$(RM) $(CLIM)
 	$(ECHO) " \
+		(setq sys::*libxt-pathname* \"$(XTLIB)\") \
+		(setq sys::*libx11-pathname* \"$(XLIB)\") \
+	        (setq sys::*clim-olit-pathname* \"clim-olit$(DEBUGLIB).o\") \
 		(load \"misc/dev-load-ol.lisp\") \
 		(load \"misc/dump.lisp\")" | $(DUMP-CL) $(CLOPTS) -batch
 	$(MV) $(TMP)/clim.temp_`whoami` $(CLIM)
@@ -585,15 +604,26 @@ clim-small:	FORCE
 train	:	FORCE
 	$(TRAIN_TEXT)
 
+BENCHMARK_FILE=nil
+
+benchmark:
+	$(ECHO) "\
+	(load \"tk-silica/test-clim.lisp\") \
+	(clim-user::benchmark-clim $(BENCHMARK_FILE)) \
+"  | $(CLIM) $(CLOPTS) -batch
+
 echo-train:
 	-$(ECHO) "$(TRAIN_LISP)"
 
 # Misc
 
 
+cleanobjs: 
+	rm -f $(CLIMOBJS) stub-motif.o stub-olit.o
+
 clean:
 	find $(DIRS) -name "*.fasl" -print | xargs rm -f ; rm -f $(CLIMFASLS) \
-	  $(CLIMOBJS) slim slim-small
+l	  $(CLIMOBJS) slim slim-small
 
 
 cheapclean:
@@ -662,6 +692,13 @@ clim-motif.o	: stub-motif.o
 
 clim-olit.o	: stub-olit.o
 	ld -r -o clim-olit.o stub-olit.o $(LIBXOL)
+
+clim-motif_d.o	: stub-motif.o
+	ld -r -o clim-motif_d.o stub-motif.o $(MOTIFLIB_d)
+
+clim-olit_d.o	: stub-olit.o
+	ld -r -o clim-olit_d.o stub-olit.o $(LIBXOL_d)
+
 
 stub-motif.c	:  $(XT_UNDEFS) $(XM_UNDEFS) misc/make-stub-file
 	misc/make-stub-file "void ___lisp_load_motif_stub ()"  $(XT_UNDEFS) $(XM_UNDEFS) > stub-motif.c 

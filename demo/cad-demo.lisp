@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: cad-demo.lisp,v 1.15 92/08/18 17:26:16 cer Exp Locker: cer $
+;; $fiHeader: cad-demo.lisp,v 1.16 92/09/08 10:35:11 cer Exp Locker: cer $
 
 (in-package :clim-demo)
 
@@ -536,9 +536,7 @@
     (design-area :application))
   (:pointer-documentation t)
   (:layouts
-    (default design-area))
-  (:top-level
-    (default-frame-top-level :partial-command-parser cad-demo-partial-command-parser)))
+   (default design-area)))
 
 (defmethod initialize-instance :around ((cd cad-demo) &key)
   (call-next-method)
@@ -546,15 +544,6 @@
     ;;--- kludge this one pane
     (setf (stream-output-history dp) cd)
     (setf (stream-recording-p dp) nil)))
-
-(defun cad-demo-partial-command-parser (partial-command command-table stream start-location)
-  (let ((name (command-name partial-command)))
-    (if (eq name 'com-create-component)
-	(accept-values-command-parser
-	  name command-table (frame-top-level-sheet *application-frame*) partial-command
-	  :own-window t)
-        (menu-read-remaining-arguments-for-partial-command
-	  partial-command command-table stream start-location))))
 
 (defmethod bounding-rectangle* ((cd cad-demo))
   (let ((left 0)
@@ -797,32 +786,21 @@
 ;;; Commands
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-#+++ignore	;---why doesn't this work?
-(define-cad-demo-command (com-create-component :menu "Create")
-    ((type `(member-alist ,*component-types*)
-	   :prompt "Component type")
-     (position 'cad-position
-	       :prompt "Position"))
-  (let ((object (make-instance type :x (car position) :y (cdr position))))
-    (add-new-object *application-frame* object)
-    (draw-self object (get-frame-pane *application-frame* 'design-area))))
+;;;--- A good exercise for the reader would be to use a partial
+;;;--- command parser to read the type and position as the arguments.
+;;; cos we currently have to do it in the command body.
 
-#---ignore
 (define-cad-demo-command (com-create-component :menu "Create" :keystroke #\C)
-    ;; The substrate doesn't yet support popping up the menu for the first arg...
-    #+ignore ((type `((menu-alist ,*component-types*)))
-	      (position 'cad-position))
-    #-ignore ()
-    ;; ... so we do it in the command body.
-    (let* ((window (get-frame-pane *application-frame* 'design-area))
-	   (type (menu-choose *component-types*
-			      :associated-window (window-root window)
-			      :cache t :unique-id 'component-types)))
-      (when type
-	(let* ((position (accept 'cad-position :stream window :prompt nil))
-	       (object (make-instance type :x (car position) :y (cdr position))))
-	  (add-new-object *application-frame* object)
-	  (draw-self object window)))))
+    ()
+  (let* ((window (get-frame-pane *application-frame* 'design-area))
+	 (type (menu-choose *component-types*
+			    :associated-window (window-root window)
+			    :cache t :unique-id 'component-types)))
+    (when type
+      (let* ((position (accept 'cad-position :stream window :prompt nil))
+	     (object (make-instance type :x (car position) :y (cdr position))))
+	(add-new-object *application-frame* object)
+	(draw-self object window)))))
 
 ;;; Takes two operands, an input terminal and an output terminal
 ;;; --- This needs to propagate value changes down the line, or

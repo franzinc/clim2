@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: test-suite.lisp,v 1.33 92/09/08 15:18:44 cer Exp Locker: cer $
+;; $fiHeader: test-suite.lisp,v 1.34 92/09/09 11:44:49 cer Exp Locker: cer $
 
 (in-package :clim-user)
 
@@ -668,14 +668,22 @@ people, shall not perish from the earth.
       (draw-text* stream "Some fox jumped over something" 200 200
 		  :towards-x 400 :towards-y 200))
     (with-output-as-presentation (stream 2 'form) 
-      (draw-text* stream "Some fox jumped over something" 200 200
-		  :towards-x 200 :towards-y 400))
+      (with-text-style (stream '(nil :italic :larger))
+	(draw-text* stream "Some fox jumped over something" 200 200
+		    :towards-x 200 :towards-y 400)))
     (with-output-as-presentation (stream 3 'form) 
-      (draw-text* stream "Some fox jumped over something" 200 200
-		  :towards-x 0 :towards-y 200))
+      (with-text-style (stream '(nil :bold :huge))
+	(draw-text* stream "Some fox jumped over something" 200 200
+		    :towards-x 0 :towards-y 200)))
     (with-output-as-presentation (stream 4 'form) 
-      (draw-text* stream "Some fox jumped over something" 200 200
-		  :towards-x 200 :towards-y 0))))
+      (with-text-style (stream '(nil :bold :small))
+	(draw-text* stream "Some fox jumped over something" 200 200
+		    :towards-x 200 :towards-y 0)))
+    (do ((x 300 (+ x 20)))
+	((> x 1000))
+      (with-output-as-presentation (stream 4 'form) 
+	(draw-text* stream "Dont be silly in the City." x 200
+		      :towards-x x :towards-y 0)))))
 
 (defparameter *named-colors*
  '(+white+ +black+ +red+ +green+ +blue+ +yellow+ +cyan+ +magenta+
@@ -1100,7 +1108,12 @@ people, shall not perish from the earth.
   "Draw a graph showing part of the CLOS class hierarchy"
   (format-graph-from-roots 
     (mapcar #'find-class '(clos:metaobject clos:dependee-mixin))
-    #'(lambda (o s) (format s "~A" (clos::class-name o))) 
+    #'(lambda (o s)
+	(let ((text (format nil "~A" (clos::class-name o))))
+	  (multiple-value-bind (width height) (text-size s text)
+	    (with-new-output-record (s)
+	    (draw-rectangle* s 0 0 width height :filled t :ink +red+)
+	    (draw-text* s text 0 0 :align-x :left :align-y :top)))))
     #'clos::class-direct-subclasses
     :stream stream
     :merge-duplicates t))

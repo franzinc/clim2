@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gestures.lisp,v 1.11 92/08/18 17:24:57 cer Exp $
+;; $fiHeader: gestures.lisp,v 1.12 92/09/08 15:17:48 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -265,15 +265,15 @@
   (multiple-value-bind (keysym modifier-state) 
       (if modifier-state
 	  (values gesture-spec modifier-state)
-	  (parse-gesture-spec gesture-spec))
+	(parse-gesture-spec gesture-spec))
     (with-stack-list (key keysym modifier-state)
       (let ((table (port-canonical-gesture-specs port)))
 	(when table
 	  (multiple-value-bind (value found-p) (gethash key table)
 	    (if found-p
 		value
-		(setf (gethash (evacuate-list key) table)
-		      (call-next-method port keysym modifier-state)))))))))
+	      (setf (gethash (evacuate-list key) table)
+		(call-next-method port keysym modifier-state)))))))))
 
 ;; Needed for (sigh) string streams.  Hardly ever used...
 (defmethod port-canonicalize-gesture-spec 

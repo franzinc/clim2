@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: mirror.lisp,v 1.24 92/08/18 17:23:51 cer Exp $
+;; $fiHeader: mirror.lisp,v 1.25 92/09/08 15:16:47 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -149,8 +149,6 @@
 
 ;; Returns the regions mirror in the mirror coordinate space
 (defgeneric mirror-region (port sheet))
-(defgeneric mirror-region* (port sheet))
-(defgeneric mirror-inside-region* (port sheet))
 (defgeneric mirror-native-edges* (port sheet))
 (defgeneric mirror-inside-edges* (port sheet))
 (defgeneric set-sheet-mirror-edges* (port sheet left top right bottom))

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-gadgets.lisp,v 1.23 92/08/18 17:26:32 cer Exp $
+;; $fiHeader: ol-gadgets.lisp,v 1.24 92/09/08 15:19:13 cer Exp Locker: cer $
 
 
 (in-package :xm-silica)
@@ -158,7 +158,7 @@
 
 ;;; top level sheet
 
-(defclass openlook-top-level-sheet (top-level-sheet) ())
+(defclass openlook-top-level-sheet (xt-top-level-sheet) ())
 
 (defmethod add-sheet-callbacks :after ((port openlook-port) 
 				       (sheet openlook-top-level-sheet)
@@ -275,45 +275,101 @@
   ;; submenus then it creates one with a menu of its own
   
   (let ((mirror (call-next-method)))
-    (labels ((make-menu-for-command-table (command-table parent top)
-	       (map-over-command-table-menu-items
-		#'(lambda (menu keystroke item)
-		    (declare (ignore keystroke))
-		    (let ((type (command-menu-item-type item)))
-		      (case type
-			(:divider
-			 (unless top
-			   (make-instance 'xt::static-text
-					  :parent parent
-					  :managed nil
-					  :string " ")))
-			(:function
-			 ;;--- Do this sometime
-			 )
-			(:menu
-			 (let* ((mb (make-instance 'tk::menu-button
-						  :parent parent
-						  :label menu)))
-			   (make-menu-for-command-table
-			    (find-command-table (second item))
-			    (tk::get-values mb :menu-pane)
-			    nil)))
-			(t
-			 (let ((button 
-				(make-instance 'tk::oblong-button
-					       :label menu
-					       :managed t
-					       :parent parent)))
-			   (set-button-accelerator-from-keystroke button keystroke)
+    (labels ((update-menu-item-sensitivity (widget frame commands)
+	       (declare (ignore widget))
+	       (dolist (cbs commands)
+		 (tk::set-sensitive (second cbs)
+				    (command-enabled
+				     (car (second (car cbs)))
+				     frame))))
+	     
+	     
+	     (make-command-for-command-table-1 (mb item)
+	       (let* ((menu-pane (tk::get-values mb :menu-pane))
+		      (ct (find-command-table (second item)))
+		      (tick (slot-value ct 'clim-internals::menu-tick))
+		      (commands-and-buttons
+		       (make-menu-for-command-table
+			ct
+			menu-pane
+			nil)))
+
+		 (when commands-and-buttons
+		   ;; We might have add-callbacks for a different set
+		   ;; of children which are now destroyed
+		   (let ((shell (do ((widget menu-pane (tk::widget-parent widget)))
+				    ((typep widget 'tk::shell)
+				     widget)
+				  (assert widget))))
+		     
+		     (setf (tk::widget-create-popup-child-proc shell)
+		       #'(lambda (shell)
+			   (declare (ignore shell))
+			   (let ((children
+				  (tk::widget-children menu-pane)))
+			     (when (or (null children)
+				       (/= tick
+					   (setq tick
+					     (slot-value ct 'clim-internals::menu-tick))))
+			       (mapc #'tk::destroy-widget children)
+			       (make-command-for-command-table-1 mb item)))))
+		     
+		     (tk::remove-all-callbacks shell :popup-callback)
+		     (tk::add-callback shell :popup-callback
+				       #'update-menu-item-sensitivity 
+				       (pane-frame sheet)
+				       commands-and-buttons)))
+			     
+		 (set-button-mnemonic 
+		  sheet mb (getf
+			    (command-menu-item-options item) :mnemonic))))
+  
+	     (make-menu-for-command-table (command-table parent top)
+	       (let ((commands-and-buttons nil))
+		 (map-over-command-table-menu-items
+		  #'(lambda (menu keystroke item)
+		      (let ((type (command-menu-item-type item)))
+			(case type
+			  (:divider
+			   (unless top
+			     (make-instance 'xt::static-text
+					    :parent parent
+					    :managed nil
+					    :string " ")))
+			  (:function
+			   ;;--- Do this sometime
+			   )
+			  (:menu
+			   (make-command-for-command-table-1
+			      (make-instance 'tk::menu-button
+						     :parent parent
+						     :label menu) 
+			      item))
+
+			  (t
+			   (let ((button 
+				  (make-instance 'tk::oblong-button
+						 :label menu
+						 :managed t
+						 :parent parent)))
+			     (set-button-accelerator-from-keystroke
+			      sheet button keystroke)
 			   
-			   (tk::add-callback
-			    button
-			    :select
-			    'command-button-callback-ol
-			    (slot-value sheet 'silica::frame)
-			    command-table
-			    item))))))
-		command-table)))
+			     (set-button-mnemonic
+			      sheet
+			      button (getf (command-menu-item-options item) :mnemonic))
+
+			     (push (list item button) commands-and-buttons)
+
+			     (tk::add-callback
+			      button
+			      :select
+			      'command-button-callback-ol
+			      (slot-value sheet 'silica::frame)
+			      command-table
+			      item))))))
+		  command-table)
+		 commands-and-buttons)))
       (make-menu-for-command-table
        (menu-bar-command-table sheet)
        mirror
@@ -412,7 +468,8 @@
 	   (nv (gadget openlook-text-field) &key invoke-callback)
   (declare (ignore invoke-callback))
   (when (sheet-direct-mirror gadget)
-    (setf (text-editor-text (openlook-text-field-edit-widget gadget)) nv)))
+    (with-no-value-changed-callbacks
+	(setf (text-editor-text (openlook-text-field-edit-widget gadget)) nv))))
 
 ;;--- We need to implement the activate callback stuff so that when
 ;;--- the user hits return we invoke the callback. I guess we need to
@@ -441,7 +498,8 @@
 	   (nv (gadget openlook-value-pane) &key invoke-callback)
   (declare (ignore invoke-callback))
   (when (sheet-direct-mirror gadget)
-    (tk::set-values (sheet-mirror gadget) :value nv)))
+    (with-no-value-changed-callbacks
+	(tk::set-values (sheet-mirror gadget) :value nv))))
 
 ;;;
 
@@ -456,14 +514,19 @@
       (call-next-method)
     (with-accessors ((alignment gadget-alignment)
 		     (label gadget-label)) sheet
-      (when label
-	(unless (getf initargs :label)
-	  (setf (getf initargs :label) label)))
-      (unless (getf initargs :label-justify)
-	(setf (getf initargs :label-justify) 
-	  (ecase alignment
-	    (:center :left)
-	    ((:left :right)  alignment)))))
+      (typecase label
+	(string
+	 (unless (getf initargs :label)
+	   (setf (getf initargs :label) label))
+	 (unless (getf initargs :label-justify)
+	   (setf (getf initargs :label-justify) 
+	     (ecase alignment
+	       (:center :left)
+	       ((:left :right)  alignment)))))
+	(xt::pixmap
+	 (unless (getf initargs :label-image)
+	   (setf (getf initargs :label-image) (tk::image-from-pixmap label)
+		 (getf initargs :label-type) :image)))))
     (values class initargs)))
 
 (defmethod (setf gadget-label) :after (nv (sheet openlook-labelled-gadget))
@@ -481,7 +544,6 @@
 
 (defclass openlook-toggle-button (toggle-button
 				openlook-labelled-gadget
-				openlook-value-pane
 				xt-leaf-pane)
 	  ())
 
@@ -524,7 +586,8 @@
 	   (nv (gadget openlook-toggle-button) &key invoke-callback)
   (declare (ignore invoke-callback))
   (when (sheet-direct-mirror gadget)
-    (tk::set-values (sheet-mirror gadget) :set nv)))
+    (with-no-value-changed-callbacks
+	(tk::set-values (sheet-mirror gadget) :set nv))))
 
 
 
@@ -555,8 +618,6 @@
 
 (defclass openlook-radio-box (openlook-geometry-manager 
 			      mirrored-sheet-mixin
-			      #+ignore ;;-- Need to decide
-			      openlook-oriented-gadget
 			      sheet-multiple-child-mixin
 			      sheet-permanently-enabled-mixin
 			      radio-box
@@ -570,7 +631,12 @@
 (defmethod find-widget-class-and-initargs-for-sheet ((port openlook-port)
 						     (parent t)
 						     (sheet openlook-radio-box))
-  (values 'xt::exclusives nil))
+  (with-accessors ((orientation gadget-orientation)) sheet
+    (values 'xt::exclusives 
+	    (list :layout-type
+		  (ecase orientation
+		    (:horizontal :fixedrows)
+		    (:vertical :fixedcols))))))
 
 (defmethod value-changed-callback :around ((v gadget)
 					   (client openlook-radio-box)
@@ -586,22 +652,35 @@
 
 (defmethod compose-space ((rb openlook-radio-box) &key width height)
   (declare (ignore width height))
-  (let ((w 0)
-	(h 0))
-    (dolist (child (tk::widget-children (sheet-direct-mirror rb)))
+  (compose-space-for-radio/check-box rb))
+
+(defun compose-space-for-radio/check-box (rb &optional (spacing 0))
+  (let ((sum-w 0)
+	(max-w 0)
+	(max-h 0)
+	(sum-h 0)
+	(children (tk::widget-children (sheet-direct-mirror rb))))
+    (dolist (child children)
       (multiple-value-bind
 	  (ignore-x igore-y width height)
 	  (xt::widget-best-geometry child)
-	(maxf h height)
-	(incf w width)))
-    (make-space-requirement :width w :height h)))
+	(declare (ignore ignore-x igore-y))
+	(maxf max-h height)
+	(incf sum-w width)
+	(incf sum-h height)
+	(maxf max-w width)))
+    (case (gadget-orientation rb)
+      (:horizontal (make-space-requirement 
+		    :width (+ sum-w (* spacing (1- (length children))))
+		    :height max-h))
+      (:vertical (make-space-requirement 
+		  :width max-w 
+		  :height (+ sum-h (* spacing (1- (length children)))))))))
 ;;;
 
 
 (defclass openlook-check-box (openlook-geometry-manager
 			      mirrored-sheet-mixin
-			      #+Dunno ;;--- what do do about tihs
-			      openlook-oriented-gadget
 			      sheet-multiple-child-mixin
 			      sheet-permanently-enabled-mixin
 			      check-box
@@ -616,7 +695,12 @@
 						     (parent t)
 						     (sheet openlook-check-box))
   
-  (values 'xt::nonexclusives nil))
+  (with-accessors ((orientation gadget-orientation)) sheet
+    (values 'xt::nonexclusives 
+	    (list :layout-type
+		  (ecase orientation
+		    (:horizontal :fixedrows)
+		    (:vertical :fixedcols))))))
 
 (defmethod value-changed-callback :around ((v gadget)
 					   (client openlook-check-box)
@@ -634,22 +718,7 @@
 
 (defmethod compose-space ((cb openlook-check-box) &key width height)
   (declare (ignore width height))
-  ;;-- This is a dreadful hack that attempts to second guess that
-  ;;--- stupid tookit.
-  (let ((twidth 0)
-	(theight 0)
-	(children (tk::widget-children (sheet-direct-mirror cb))))
-    (dolist (child children)
-      (multiple-value-bind
-	  (x y width height borderwidth
-	   care-x care-y care-width care-height care-borderwidth)
-	  (tk::widget-best-geometry child)
-	(declare (ignore x y borderwidth care-x care-y 
-			 care-width care-height care-borderwidth))
-	(maxf theight height)
-	(incf twidth width)))
-    (make-space-requirement :width (+ twidth (* (1- (length children)) 15))
-			    :height theight)))
+  (compose-space-for-radio/check-box cb 15))
 
 
 ;;
@@ -662,13 +731,6 @@
 			   xt-leaf-pane
 			   slider)
 	  ())
-
-(defmethod add-sheet-callbacks :after ((port openlook-port) (sheet openlook-slider) (widget t))
-  (break "fix me")
-  (tk::add-callback widget
-		    :drag-callback
-		    'queue-drag-event
-		    sheet))
 
 (defmethod find-widget-class-and-initargs-for-sheet ((port openlook-port)
 						     (parent t)
@@ -703,7 +765,8 @@
 (defmethod (setf gadget-value) :after  (nv (slider openlook-slider) &key invoke-callback)
   (declare (ignore invoke-callback))
   (when (sheet-direct-mirror slider)
-    (set-slider-value slider nv)))
+    (with-no-value-changed-callbacks
+	(set-slider-value slider nv))))
 
 (defun compute-slider-value (sheet)
   (let ((widget (sheet-direct-mirror sheet)))
@@ -732,6 +795,9 @@
 (defmethod add-sheet-callbacks :after ((port openlook-port) 
 				       (sheet openlook-slider)
 				       (widget t))
+  ;;--- Do we need to do this?
+  #+ignore
+  (tk::add-callback widget :drag-callback 'queue-drag-event sheet)
   (tk::add-callback widget :slider-moved 'slider-changed-callback-1 sheet))
 
 (defmethod slider-changed-callback-1 ((widget t) (sheet openlook-slider))
@@ -785,9 +851,6 @@
     (setf (text-editor-text widget) nv)))
 
 (defmethod (setf text-editor-text) (nv (widget tk::text-edit))
-    (setf (text-editor-text widget) nv))
-
-(defmethod (setf text-editor-text) (nv (widget tk::text-edit))
   (assert (not (zerop (tk::ol_text_edit_clear_buffer widget))))
   (assert (not (zerop (tk::ol_text_edit_insert widget nv (length nv))))))
 
@@ -834,7 +897,8 @@
 	   (nv (gadget openlook-text-editor) &key invoke-callback)
   (declare (ignore invoke-callback))
   (when (sheet-direct-mirror gadget)
-    (setf (text-editor-text gadget) nv)))
+    (with-no-value-changed-callbacks
+	(setf (text-editor-text gadget) nv))))
 
 
 (defmethod gadget-supplies-scrolling-p ((contents openlook-text-editor))
@@ -1230,4 +1294,29 @@
     (let ((item (find nv items :test test :key value-key)))
       (assert item)
       (let ((button (find item (option-menu-buttons sheet) :key #'second)))
-	(tk::set-values button :default t)))))
+	(with-no-value-changed-callbacks
+	    (tk::set-values button :default t))))))
+
+(defmethod set-button-accelerator-from-keystroke ((menubar openlook-menu-bar) button keystroke)
+  (when keystroke 
+    (record-accelerator menubar keystroke)
+    (let ((accel (format nil "<~A>" (car keystroke)))
+	  (accel-text (format nil "~A" (car keystroke))))
+      (dolist (modifier (cdr keystroke))
+	(setq accel-text
+	  (concatenate 'string 
+	    (case modifier (:control "Ctrl+") (:meta "Alt+") (t ""))
+	    accel-text))
+	(setq accel
+	  (concatenate 'string 
+	    (case modifier (:control "c") (:meta "a") (t ""))
+	    accel)))
+      (tk::set-values button 
+		      :accelerator accel
+		      :accelerator-text accel-text))))
+
+(defmethod discard-accelerator-event-p ((port openlook-port) event)
+  ;;-- There are a whole bunch of other keysyms that need to be ignored.
+  ;;-- Perhaps in OLIT there is a way of getting the actual keysym.
+  ;;-- Perhaps we need a way of representing them in the clim world
+  (call-next-method))

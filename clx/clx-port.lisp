@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLX-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clx-port.lisp,v 1.12 92/07/27 11:02:02 cer Exp $
+;; $fiHeader: clx-port.lisp,v 1.13 92/08/18 17:24:27 cer Exp Locker: cer $
 
 (in-package :clx-clim)
 
@@ -505,33 +505,35 @@
 
 
 (defvar *clx-cursor-type-alist*
-  '((:default 132)
-    (:vertical-scroll 116)
-    (:scroll-up 114)
-    (:scroll-down 106)
-    (:horizontal-scroll 108)
-    (:scroll-left 110)
-    (:scroll-right 112)
-    (:busy 150)
-    (:upper-left 134)
-    (:upper-right 136)
-    (:lower-left 12)
-    (:lower-right 14)
-    (:vertical-thumb 112)
-    (:horizontal-thumb 114)
-    (:button 132)
-    (:prompt 92)
-    (:move 52)
-    (:position 34)))
+	'((:default 132)
+	  (:vertical-scroll 116)
+	  (:scroll-up 114)
+	  (:scroll-down 106)
+	  (:horizontal-scroll 108)
+	  (:scroll-left 110)
+	  (:scroll-right 112)
+	  (:busy 150)
+	  (:upper-left 134)
+	  (:upper-right 136)
+	  (:lower-left 12)
+	  (:lower-right 14)
+	  (:vertical-thumb 112)
+	  (:horizontal-thumb 114)
+	  (:button 132)
+	  (:prompt 92)
+	  (:move 52)
+	  (:position 34)))
 
-(defmethod install-port-cursor ((port clx-port) sheet cursor)
-  (unless (eq cursor (port-cursor port))
+;; In X Windows, cursors are associated with a particular window, so
+;; we are depending on the fact that the CLX port is not deeply mirrored
+;; to get the behavior that we can "globally" change the pointer cursor.
+(defmethod port-set-pointer-cursor ((port clx-port) pointer cursor)
+  (unless (eq (pointer-cursor pointer) cursor)
     (with-slots (display) port
-      (setf (port-cursor port) cursor)
-      (setf (xlib:window-cursor (sheet-mirror sheet))
+      (setf (xlib:window-cursor (sheet-mirror (pointer-sheet pointer)))
 	    (realize-cursor port cursor))
-      (xlib:display-force-output display))
-    cursor))
+      (xlib:display-force-output display)))
+  cursor)
 
 (defmethod realize-cursor :around ((port clx-port) cursor)
   (with-slots (cursor-cache) port
@@ -555,6 +557,7 @@
       :foreground (xlib:make-color :red   0.0 :green 0.0 :blue  0.0)
       :background (xlib:make-color :red   1.0 :green 1.0 :blue  1.0))))
 
+
 ;;--- We need something like PORT-SET-POINTER-POSITION
 (defmethod set-cursor-location ((port clx-port) sheet x y)
   (xlib:warp-pointer (sheet-mirror sheet)

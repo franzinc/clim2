@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-defs.lisp,v 1.12 92/07/27 11:02:30 cer Exp $
+;; $fiHeader: input-defs.lisp,v 1.13 92/08/18 17:25:05 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -27,6 +27,9 @@
      (button-state :accessor pointer-button-state
 		   :type fixnum :initform 0)
      (position-changed :accessor pointer-position-changed)
+     ;; In case the pointer's cursor needs to be managed more directly...
+     (cursor :initform nil :reader pointer-cursor)
+     ;;-- Dunno what all this are for.
      (cursor-pattern :accessor pointer-cursor-pattern)
      (cursor-width :accessor pointer-cursor-width)
      (cursor-height :accessor pointer-cursor-height)
@@ -39,6 +42,10 @@
 #+(or Genera Minima)
 (progn
   (declaim (notinline pointer-sheet (setf pointer-sheet))))
+
+(defmethod (setf pointer-cursor) (cursor (pointer standard-pointer))
+  (port-set-pointer-cursor (port pointer) pointer cursor)
+  (setf (slot-value pointer 'cursor) cursor))
 
 (defmethod pointer-position ((pointer standard-pointer))
   (with-slots (x-position y-position) pointer

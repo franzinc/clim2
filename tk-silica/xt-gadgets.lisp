@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-gadgets.lisp,v 1.18 92/08/18 17:26:38 cer Exp Locker: cer $
+;; $fiHeader: xt-gadgets.lisp,v 1.19 92/09/08 10:35:33 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -133,6 +133,11 @@
 			xt-pane)
 	  ())
 
+(defclass xt-top-level-sheet (top-level-sheet) 
+	  ((accelerator-gestures :initform nil)))
+
+(defmethod sheet-disown-child :after ((sheet xt-top-level-sheet) (child sheet))
+  (setf (slot-value sheet 'accelerator-gestures) nil))
 
 
 ;;--- This isn't really right.  Genera and CLX ports have kludges
@@ -163,21 +168,29 @@
 	  (process-next-event port)))
     (mp:process-wait whostate predicate)))
 
+(defun set-button-mnemonic (menubar button mnem)
+  (when mnem 
+    (record-accelerator menubar (list mnem :meta))
+    (tk::set-values button :mnemonic mnem)))
 
-(defun set-button-accelerator-from-keystroke (button keystroke)
-  (when keystroke 
-    (let ((accel (format nil "<Key>~A" (car keystroke)))
-	  (accel-text (format nil "~A" (car keystroke))))
-      (dolist (modifier (cdr keystroke))
-	(setq accel-text
-	  (concatenate 'string 
-	    (case modifier (:control "Ctrl+") (:meta "Alt+") (t ""))
-	    accel-text))
-	(setq accel
-	  (concatenate 'string 
-	    (case modifier (:control "Ctrl") (:meta "Mod1") (t ""))
-	    accel)))
-      (tk::set-values button 
-		      :accelerator accel
-		      :accelerator-text accel-text))))
+(defun record-accelerator (menubar gesture)
+  (let ((sheet (frame-top-level-sheet (pane-frame menubar))))
+    (push gesture (slot-value sheet 'accelerator-gestures))))
+
+(defmethod distribute-event ((port xt-port) (event keyboard-event))
+  (unless (discard-accelerator-event-p port event)
+    (call-next-method)))
+
+(defmethod discard-accelerator-event-p ((port xt-port) event)
+  (let ((frame (pane-frame (event-sheet event))))
+    (and frame
+	 (some #'(lambda (gesture)
+		   (clim-internals::keyboard-event-matches-gesture-name-p event gesture port))
+	       (slot-value (frame-top-level-sheet frame) 'accelerator-gestures)))))
+
+
+
+
+
+
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sysdcl.lisp,v 1.24 92/09/08 10:34:59 cer Exp Locker: cer $
+;; $fiHeader: sysdcl.lisp,v 1.25 92/09/08 15:18:42 cer Exp Locker: cer $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :cl-user)
 
@@ -295,6 +295,8 @@
   ("frames" 
    :load-before-compile ("clim-defs" "command-processor"))
   ("default-frame" 
+      :load-before-compile ("frames"))
+  ("activities" 
    :load-before-compile ("frames"))
   ("db-menu"
    :load-before-compile ("frames"))

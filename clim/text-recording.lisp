@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: text-recording.lisp,v 1.10 92/08/18 17:25:43 cer Exp $
+;; $fiHeader: text-recording.lisp,v 1.11 92/09/08 15:18:38 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -29,7 +29,7 @@
 
 (defclass standard-text-output-record
 	  (output-record-element-mixin text-displayed-output-record)
-    ((string :initarg :string)
+    ((string :initarg :string :reader text-displayed-output-record-string)
      (wrapped-p :initform nil :initarg :wrapped-p)
      (ink :initarg :ink)
      (clipping-region :initarg :clipping-region)))
@@ -54,6 +54,8 @@
 		    (string ink clipping-region wrapped-p style baseline)
   :ink ink :string string :clipping-region clipping-region :wrapped-p wrapped-p
   :initial-style style :current-style style :baseline baseline)
+
+
 
 (defmethod print-object ((object standard-text-output-record) stream)
   (print-unreadable-object (object stream :type t :identity t)

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.37 92/09/08 15:19:18 cer Exp Locker: cer $
+;; $fiHeader: xt-graphics.lisp,v 1.38 92/09/09 11:45:00 cer Exp Locker: cer $
 
 (in-package :tk-silica)
 
@@ -117,9 +117,12 @@
   (tk::widget-window mirror nil))
 
 (defmethod engraft-medium :after ((medium xt-medium) (port xt-port) sheet)
-  (with-slots (foreground-gcontext background-gcontext flipping-gcontext color-p
+  (with-slots (foreground-gcontext background-gcontext
+				   flipping-gcontext color-p
+				   indirect-inks
 				   drawable tile-gcontext white-pixel black-pixel clip-mask)
       medium
+    (setf indirect-inks nil)
     (setf clip-mask nil)
     (setf (medium-sheet medium) sheet)
     (when (and drawable
@@ -155,7 +158,7 @@
   (declare (ignore sheet))
   (with-slots 
        (foreground-gcontext background-gcontext flipping-gcontext tile-gcontext
-	drawable)
+			    ink-table drawable)
       medium
     (setf drawable nil
 	  (medium-sheet medium) nil)
@@ -163,9 +166,11 @@
 		 `(when ,gc
 		    (tk::free-gcontext ,gc)
 		    (setf ,gc nil))))
-      ;;-- Do we actually need to do this or cant we save them until
-      ;;-- the next time around. Also, what about all those gc's in
-      ;;-- the ink-table etc etc.
+      (maphash #'(lambda (ink gc) 
+		   (declare (ignore ink))
+		   (tk::free-gcontext gc))
+	       ink-table)
+      (clrhash ink-table)
       (loose-gc foreground-gcontext)
       (loose-gc background-gcontext)
       (loose-gc flipping-gcontext)
@@ -1174,6 +1179,7 @@ and on color servers, unless using white or black")
 					  :height n))
 		   (gc (make-instance 'fast-gcontext
 				      :drawable pixmap
+				      :font font
 				      :foreground 1
 				      :background 0)))
 	      ;; Draw all the characters

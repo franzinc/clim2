@@ -1,4 +1,4 @@
-;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
+>;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
 ;;
 ;;				-[]-
@@ -21,7 +21,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: plot.lisp,v 1.6 92/08/18 17:26:23 cer Exp Locker: cer $
+;; $fiHeader: plot.lisp,v 1.7 92/09/08 10:35:16 cer Exp $
 
 (in-package :clim-demo)
 
@@ -52,16 +52,35 @@
 ;; We should make presentations of these types
 
 (define-presentation-type graph-plot ())
+
 (define-presentation-type graph-region ())
 
+(define-presentation-method accept ((type graph-region) stream (view textual-view) &key)
+  (let ((ltrb (accept `((sequence-enumerated 
+			  ((sequence-enumerated real real) :echo-space nil)
+			  ((sequence-enumerated real real) :echo-space nil))
+			:separator #\: :echo-space nil) 
+		      :prompt nil :stream stream)))
+    (destructuring-bind ((left top) (right bottom)) ltrb
+      (make-rectangle* left top right bottom))))
+
+(define-presentation-method present (region (type graph-region) stream (view textual-view) &key)
+  (with-bounding-rectangle* (left top right bottom) region
+    (present `((,left ,top) (,right ,bottom))
+	     `((sequence-enumerated 
+		 ((sequence-enumerated real real) :echo-space nil)
+		 ((sequence-enumerated real real) :echo-space nil))
+	       :separator #\: :echo-space nil)
+	     :stream stream)))
+
 (define-presentation-method presentation-typep (object (type graph-region))
-  (typep object 'standard-rectangle))
+  (rectanglep object))
 
 (define-command-table plot-command-table)
 
 (define-presentation-translator select-graph-region
     (graph-plot graph-region plot-command-table :gesture :select)
-    (x y window)
+  (x y window)
   (let ((nx x)
 	(ny y)
 	(ox x)
@@ -72,22 +91,49 @@
 				:filled nil :ink +flipping-ink+)))
 	(declare (dynamic-extent #'draw-it))
 	(draw-it)
-	(tracking-pointer (window)
-	  (:pointer-motion (x y)
-	   (draw-it) 
-	   (setq nx x ny y)
-	   (draw-it))
-	  (:pointer-button-press (x y)
-	   (draw-it)
-	   (setq nx x ny y)
-	   (return (make-rectangle* ox oy nx ny))))))))
+	(clim-utils:letf-globally (((sheet-pointer-cursor window) (sheet-pointer-cursor window)))
+	  (tracking-pointer (window)
+	    (:pointer-motion (x y)
+			     (draw-it) 
+			     (setq nx x ny y)
+			     (draw-it)
+			     (setf (sheet-pointer-cursor window)
+			       (if (< nx ox)
+				   (if (< ny oy)
+				       :upper-left
+				     :lower-left)
+				 (if (< ny oy)
+				       :upper-right
+				     :lower-right))))
+	    (:pointer-button-press (x y)
+				   (draw-it)
+				   (setq nx x ny y)
+				   (return (make-rectangle* ox oy nx ny)))))))))
 
 ;; Define a presentation translator from a graph-plot to a graph-region.
 ;; In that way we trivially write a command that will zoom into a
 ;; particular region of the graph.
 
-(define-presentation-type graph-point ())
-(define-presentation-type graph-line ())
+(define-presentation-type plot-point ())
+
+(define-presentation-method accept ((type plot-point) stream (view textual-view) &key)
+  (values (accept `((sequence-enumerated real real) :echo-space nil) 
+		  :prompt nil :stream stream)))
+
+(define-presentation-method present (point (type plot-point) stream (view textual-view) &key)
+  (present point `((sequence-enumerated real real) :echo-space nil)
+	   :stream stream))
+
+(define-presentation-method presentation-typep (object (type plot-point))
+  (and (listp object)
+       (= (length object) 2)
+       (every #'realp object)))
+
+(define-presentation-type graph-point ()
+  :inherit-from 'plot-point)
+
+(define-presentation-type graph-line ()
+  :inherit-from 'integer)
 
 (define-presentation-type graph-axis ())
 
@@ -427,7 +473,8 @@
      (y-labels :initform  (copy-list '("Mexico City" "Tokyo" "New York"))))
   (:command-table (plot-demo :inherit-from (plot-command-table accept-values-pane)))
   (:panes 
-    (graph-window :application
+   (graph-window :application
+		 :label "Plot"
 		  :display-function 'display-graph
 		  :incremental-redisplay t
 		  :end-of-line-action :allow
@@ -435,6 +482,7 @@
 		  :scroll-bars :both
 		  :width :compute :height :compute)
     (data-window :application
+		 :label "Data"
 		 :display-function 'display-data
 		 :incremental-redisplay t
 		 :end-of-line-action :allow
@@ -442,6 +490,7 @@
 		 :scroll-bars :both
 		 :width :compute :height :compute)
     (options :accept-values
+	     :label "Options"
 	     :scroll-bars :both
 	     :display-function `(accept-values-pane-displayer
 				  :resynchronize-every-pass t
@@ -487,9 +536,13 @@
 (defmethod frame-standard-output ((fr plot-demo))
   (get-frame-pane fr 'command))
 
-(define-presentation-type data-point ())
-(define-presentation-type x-label ())
-(define-presentation-type y-label ())
+(define-presentation-type data-point ()
+  :inherit-from 'plot-point)
+
+(define-presentation-type x-label ()
+  :inherit-from 'integer)
+(define-presentation-type y-label ()
+  :inherit-from 'integer)
 
 (defmethod display-data ((frame plot-demo) stream &key &allow-other-keys)
   (updating-output (stream)
@@ -544,14 +597,6 @@
 			  (with-output-as-presentation (stream n 'number)
 			    (format stream "~2D" n)))))))))))))))
 
-(define-plot-demo-command (com-edit-x-label :name t :menu t)
-    ((i 'x-label :gesture :select))
-  (with-application-frame (frame)
-    (setf (nth i (slot-value frame 'x-labels))
-	  (accept 'string
-		  :default (nth i (slot-value frame 'x-labels))))))
-
-
 #+allegro
 (define-plot-demo-command (com-print-graph :name t :menu t)
     ((printer '(member :lw :lw2 :lw3)
@@ -562,7 +607,58 @@
     (with-output-to-postscript-stream (stream pipe :multi-page t)
       (display-graph *application-frame* stream))))
 
+(define-plot-demo-command (com-edit-x-label :name t :menu t)
+    ((i 'x-label :gesture :select))
+  (with-application-frame (frame)
+    (setf (nth i (slot-value frame 'x-labels))
+	  (accept 'string
+		  :default (nth i (slot-value frame 'x-labels))))))
 
+
+(define-presentation-action drag-it-translator
+    (blank-area command plot-command-table 
+		:documentation "Drag"
+		:gesture :describe)
+  (window)
+  (let (ox oy
+	;;--- We use this sheet because its a stable reference sheet.
+	;;--- We cannot use the window because its native transformation
+	;;--- changes as we go and than causes confusion
+	(sheet (frame-top-level-sheet (pane-frame window))))
+    (multiple-value-bind (minx miny maxx maxy) (viewport-range window)
+      (clim-utils:letf-globally (((sheet-pointer-cursor sheet) :move))
+	(tracking-pointer (sheet :multiple-window t)
+	  (:pointer-motion (x y)
+			   (multiple-value-bind (vx vy) (window-viewport-position window)
+			     (when ox
+			       (window-set-viewport-position
+				window
+				(min maxx (max minx (+ vx (- x ox)))) ; +/-
+				(min maxy (max miny (+ vy (- y oy))))))  ; +/-
+			     (setq ox x oy y)))
+	  (:pointer-button-press (x y)
+				 (when ox
+				   (multiple-value-bind (vx vy) (window-viewport-position window)
+				     (window-set-viewport-position
+				      window
+				      (min maxx (max minx (+ vx (- x ox))))
+				      (min maxy (max miny (+ vy (- y oy))))))
+				   (return nil))))))))
+
+(defun viewport-range (window)
+  (multiple-value-bind (vwidth vheight)
+      (bounding-rectangle-size (pane-viewport-region window))
+    (with-bounding-rectangle* (left top right bottom) 
+	(silica::viewport-contents-extent (pane-viewport window))
+      (let ((cwidth (- right left))
+	    (cheight (- bottom top)))
+	(values left 
+		top
+		(+ left (max 0 (- cwidth vwidth)))
+		(+ top (max 0 (- cheight vheight))))))))
+	      
+	      
+      
 
 (define-plot-demo-command (com-edit-y-label :name t :menu t)
     ((i 'y-label :gesture :select))
@@ -672,3 +768,5 @@
     (run-frame-top-level frame)))
 
 (define-demo "Plotting Demo" do-plot-demo)
+
+

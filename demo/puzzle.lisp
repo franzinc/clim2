@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: puzzle.lisp,v 1.13 92/08/21 16:34:11 cer Exp $
+;; $fiHeader: puzzle.lisp,v 1.14 92/09/08 15:19:06 cer Exp Locker: cer $
 
 (in-package :clim-demo)
 

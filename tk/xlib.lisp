@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xlib.lisp,v 1.25 92/09/08 10:34:08 cer Exp Locker: cer $
+;; $fiHeader: xlib.lisp,v 1.26 92/09/09 11:44:28 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -48,7 +48,8 @@
 
 (defclass drawable (display-object) ())
 	  
-(defclass window (drawable) ())
+(defclass window (drawable)
+  ((plist :accessor window-property-list :initform nil)))
 
 (eval-when (compile load eval)
   (defconstant *window-set-attributes-bit-mask*
@@ -130,6 +131,8 @@
 (define-window-reader height)
 (define-window-reader depth)
 (define-window-reader map-state decode-window-map-state)
+
+(define-window-accessor cursor nil)
 
 (defun decode-window-map-state (x)
   (declare (optimize (speed 3) (safety 0)))
@@ -310,6 +313,9 @@
 	      (object-display colormap)
 	      colormap
 	      y)))
+      ;;-- This needs to be handled intelligently
+      ;;-- Perhaps the colormap code should enable the user to
+      ;;-- intercept this or we should just resort to some kind of stippling
       (when (zerop z)
 	(error "Could not allocate color: ~S" x))
       (values (x11:xcolor-pixel y)
@@ -446,6 +452,7 @@
 
 
 (defun event-type (event)
+  (declare (optimize (speed 3) (safety 0)))
   (elt *event-types* (x11::xevent-type event)))
 
 (defun encode-event-mask (mask)

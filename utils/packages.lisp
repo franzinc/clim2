@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: packages.lisp,v 1.26 92/09/08 10:34:27 cer Exp Locker: cer $
+;; $fiHeader: packages.lisp,v 1.27 92/09/08 15:17:07 cer Exp Locker: cer $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :common-lisp-user)
 
@@ -1853,6 +1853,7 @@
     sheet-ancestor-p
     sheet-child
     sheet-children
+    sheet-cursor
     sheet-delta-transformation
     sheet-device-region
     sheet-device-transformation
@@ -1861,6 +1862,7 @@
     sheet-enabled-children
     sheet-enabled-p
     sheet-event-queue
+    sheet-grabbed-pointer-cursor
     sheet-grafted-p
     sheet-identity-transformation-mixin
     sheet-leaf-mixin
@@ -1873,6 +1875,7 @@
     sheet-native-transformation
     sheet-occluding-sheets
     sheet-parent
+    sheet-pointer-cursor
     sheet-region
     sheet-siblings
     sheet-single-child-mixin
@@ -1925,6 +1928,7 @@
     with-drawing-options
     with-first-quadrant-coordinates
     with-local-coordinates
+    with-pointer-grabbed
     with-rotation
     with-scaling
     with-translation
@@ -2587,6 +2591,7 @@
     application-frame
     application-frame-p
     application-pane
+    bury-frame
     client-setting
     command-enabled
     command-menu-pane
@@ -2642,7 +2647,9 @@
     note-command-disabled
     note-command-enabled
     note-frame-disabled
+    note-frame-deiconified
     note-frame-enabled
+    note-frame-iconified
     notify-user
     pane-frame
     pane-name
@@ -2651,6 +2658,7 @@
     pointer-documentation-pane
     position-sheet-carefully
     position-sheet-near-pointer
+    raise-frame
     read-frame-command
     reconfigure-frame
     redisplay-frame-pane
@@ -3499,12 +3507,16 @@
     port-graft-class
     port-grafts
     port-invalidate-gesture-specs
+    port-invoke-with-pointer-grabbed
     port-mirror->sheet-table
     port-note-cursor-change
     port-note-gadget-activated
     port-note-gadget-deactivated
     port-process
+    port-set-pointer-cursor
     port-set-pointer-position
+    port-set-sheet-pointer-cursor
+    port-set-sheet-grabbed-pointer-cursor
     port-trace-thing
     port-undefined-text-style
     process-event-locally

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: standard-types.lisp,v 1.12 92/08/21 16:33:59 cer Exp $
+;; $fiHeader: standard-types.lisp,v 1.13 92/09/08 15:18:32 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -359,7 +359,7 @@
   :inherit-from t			;enforce CL definition
   :history t
   :options ((default-type nil)
-	    (default-version :newest)
+	    (default-version #+allegro :unspecific #-allegro :newest)
 	    (merge-default t)))
 
 ;;; PATHNAME is supposed to be a built-in-class, but since it's missing in Genera,

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: classes.lisp,v 1.16 92/08/19 18:04:12 cer Exp $
+;; $fiHeader: classes.lisp,v 1.17 92/09/08 15:16:29 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -32,7 +32,6 @@
      (medium-cache :initform nil :accessor port-medium-cache)
      (color-cache :initform (make-hash-table) :reader port-color-cache)
      (pointer :initform nil)
-     (cursor :initform nil :accessor port-cursor)
      (mapping-table :initform (make-hash-table :test #'equal))
      (mapping-cache :initform (cons nil nil))	;one entry cache
      (undefined-text-style :initform *undefined-text-style*
@@ -56,13 +55,15 @@
 
 ;;--- Make a SHEET protocol class, and call this BASIC-SHEET
 (defclass sheet ()
-    ((port :initform nil :reader port)
-     (graft :initform nil :reader graft)
-     (parent :initform nil 
-	     :accessor sheet-parent)
-     (region :initarg :region :initform (make-bounding-rectangle 0 0 100 100)
-	     :accessor sheet-region)
-     (enabledp :initform nil :accessor sheet-enabled-p)))
+	  ((port :initform nil :reader port)
+	   (graft :initform nil :reader graft)
+	   (parent :initform nil 
+		   :accessor sheet-parent)
+	   (region :initarg :region :initform (make-bounding-rectangle 0 0 100 100)
+		   :accessor sheet-region)
+	   (enabledp :initform nil :accessor sheet-enabled-p)
+	   ;;-- Is this the best place
+	   (cursor :initform nil :reader sheet-pointer-cursor)))
 
 
 (define-protocol-class medium ())
@@ -214,4 +215,4 @@
 (deftype lock-keysym    () '(member :caps-lock :shift-lock :mode-lock))
 
 (deftype modifier-keysym ()
-  '(or shift-keysym control-keysym meta-keysym super-keysym hyper-keysym lock-keysym))
+  '(or shift-keysym control-keysym meta-keysym super-keysym hyper-keysym))

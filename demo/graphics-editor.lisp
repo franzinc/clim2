@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-GRAPHICS-EDITOR; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics-editor.lisp,v 1.6 92/09/08 10:35:15 cer Exp Locker: cer $
+;; $fiHeader: graphics-editor.lisp,v 1.7 92/09/08 15:19:01 cer Exp Locker: cer $
 
 (in-package :clim-graphics-editor)
 
@@ -554,6 +554,7 @@
 
 (define-command (com-quit :command-table graphics-editor-file-commands
 			  :keystroke (:x :meta)
+			  :name "Quit"
 			  :menu t) ()
   (frame-exit *application-frame*))
 
@@ -569,7 +570,7 @@
 
 (defvar *graphics-editors* nil)
 
-(defun do-graphics-editor (&key (port (find-port)) (force t))
+(defun do-graphics-editor (&key (port (find-port)) (force nil))
   (let* ((framem (find-frame-manager :port port))
 	 (frame 
 	   (let* ((entry (assoc port *graphics-editors*))

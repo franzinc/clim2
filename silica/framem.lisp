@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: framem.lisp,v 1.13 92/08/18 17:23:38 cer Exp $
+;; $fiHeader: framem.lisp,v 1.14 92/09/08 15:16:40 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -76,7 +76,9 @@
     (let* ((top-pane (frame-panes frame))
 	   (sheet (with-look-and-feel-realization (framem frame)
 		    (make-pane 'top-level-sheet
+                      :event-queue (clim-internals::frame-input-buffer frame)
 		      :user-specified-position-p (frame-user-specified-position-p frame)
+
 		      :user-specified-size-p (frame-user-specified-size-p frame)
 		      :region (multiple-value-bind (width height)
 				  (bounding-rectangle-size top-pane)
@@ -85,6 +87,8 @@
       (setf (frame-top-level-sheet frame) sheet
 	    (frame-shell frame) (sheet-shell sheet))
       (sheet-adopt-child sheet (frame-panes frame)))))
+
+
 
 (defmethod adopt-frame :after ((framem standard-frame-manager) frame)
   (setf (frame-manager-frames framem)
@@ -177,3 +181,9 @@
   (declare (ignore realizer type))
   (declare (non-dynamic-extent options))
   options)
+
+(defmethod note-frame-iconified ((framem standard-frame-manager) frame)
+  (setf (frame-state frame) :shrunk))
+
+(defmethod note-frame-deiconified ((framem standard-frame-manager) frame)
+  (setf (frame-state frame) :enabled))

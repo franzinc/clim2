@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-silica.lisp,v 1.12 92/07/20 16:01:50 cer Exp $
+;; $fiHeader: ol-silica.lisp,v 1.13 92/08/18 17:54:24 cer Exp $
 
 (in-package :xm-silica)
 
@@ -72,6 +72,8 @@
 
 (defclass openlook-geometry-manager (xt-geometry-manager) ())
 
+;;--- This looks kinda like to motif-port method.
+
 (defmethod find-shell-class-and-initargs ((port openlook-port) sheet)
   (declare (ignore port))
   (cond ( ;;--- hack alert
@@ -89,7 +91,7 @@
   (popup parent))
 
 (defmethod disable-xt-mirror ((parent xt::transient-shell) (mirror t))
-  (tk::popdown parent))
+  (popdown parent))
 
 (defmethod destroy-mirror ((port openlook-port) (sheet mirrored-sheet-mixin))
   ;; Only do this if its the top most widget being destroyed or we are

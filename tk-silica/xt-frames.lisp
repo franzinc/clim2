@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-frames.lisp,v 1.16 92/08/21 16:34:32 cer Exp Locker: cer $
+;; $fiHeader: xt-frames.lisp,v 1.17 92/09/08 10:35:32 cer Exp Locker: cer $
 
 
 (in-package :xm-silica)
@@ -81,7 +81,7 @@
      :sheet (frame-top-level-sheet frame))))
 
 (defmethod handle-event (sheet (event window-manager-delete-event))
-  (frame-exit *application-frame*))
+  (frame-exit (pane-frame sheet)))
 
 ;;; Menu code
 
@@ -173,3 +173,9 @@
 
 (defmethod frame-manager-default-exit-boxes ((framem xt-frame-manager))
   '((:exit) (:abort)))
+
+(defmethod note-frame-iconified ((framem xt-frame-manager) frame)
+  (tk::set-values (frame-shell frame) :iconic t))
+
+(defmethod note-frame-deiconified ((framem xt-frame-manager) frame)
+  (tk::set-values (frame-shell frame) :iconic nil))

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: load-xm.lisp,v 1.19 92/08/19 10:23:34 cer Exp Locker: cer $
+;; $fiHeader: load-xm.lisp,v 1.20 92/09/08 10:34:04 cer Exp Locker: cer $
 
 (in-package :user)
 
@@ -28,10 +28,12 @@
 (require :climg)
 
 ;;;; 
+
 (defvar sys::*libxt-pathname* "/x11/R4/sun4-lib/libXt.a")
+(defvar sys::*clim-motif-pathname* "clim-motif.o")
 
 (x11::load-undefined-symbols-from-library
- "clim-motif.o"
+ sys::*clim-motif-pathname*
  (x11::symbols-from-file "misc/undefinedsymbols.motif")
  (list sys::*libxt-pathname* sys::*libx11-pathname*))
 

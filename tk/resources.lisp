@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: resources.lisp,v 1.30 92/09/08 10:34:05 cer Exp Locker: cer $
+;; $fiHeader: resources.lisp,v 1.31 92/09/08 15:16:25 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -610,4 +610,13 @@
   (char-int value))
 
 (defmethod convert-resource-in ((parent t) (typep (eql 'key-sym)) value)
+  (cltl1:int-char value))
+
+
+;; Openlook 
+
+(defmethod convert-resource-out ((parent t) (typep (eql 'char)) value)
+  (char-int value))
+
+(defmethod convert-resource-in ((parent t) (typep (eql 'char)) value)
   (cltl1:int-char value))

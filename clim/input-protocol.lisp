@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-protocol.lisp,v 1.23 92/08/19 18:04:53 cer Exp $
+;; $fiHeader: input-protocol.lisp,v 1.24 92/09/08 15:17:57 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -369,9 +369,13 @@
 		 :numeric-argument (or *accelerator-numeric-argument* 1)))
 	((member gesture *abort-gestures*
 		 :test #'keyboard-event-matches-gesture-name-p)
-	 (let ((cursor (slot-value stream 'text-cursor)))
-	   (when (and cursor
-		      (cursor-active cursor))
+	 (let* ((frame (pane-frame stream))
+		(stream (if (typep stream 'interactor-pane)
+			    stream
+			  (and frame
+			       (find-frame-pane-of-type frame 'interactor-pane))))
+		(cursor (and stream (stream-text-cursor stream))))
+	   (when (and cursor (cursor-active cursor))
 	     (write-string "[Abort]" stream)
 	     (force-output stream)))
 	 (error 'abort-gesture :event gesture))))
@@ -407,6 +411,9 @@
 	(return-from stream-read-char gesture))
       ;;--- Probably wrong.  It prevents the input editor from ever seeing
       ;;--- mouse clicks, for example.
+      (when (and (typep gesture 'key-press-event)
+		 (characterp (keyboard-event-character gesture)))
+	(return-from stream-read-char (slot-value gesture 'character)))
       (beep stream))))
 
 (defmethod stream-unread-char ((stream input-protocol-mixin) character)

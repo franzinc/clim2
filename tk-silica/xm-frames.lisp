@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-frames.lisp,v 1.28 92/09/08 10:35:27 cer Exp Locker: cer $
+;; $fiHeader: xm-frames.lisp,v 1.29 92/09/08 15:19:15 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -123,9 +123,10 @@
 					 :parent parent
 					 :label-string menu
 					 :sub-menu-id submenu)))
-		 (declare (ignore cb))
-		 (let ((mnem (getf (command-menu-item-options item) :mnemonic)))
-		   (when mnem (tk::set-values cb :mnemonic mnem)))
+		 
+		 (set-button-mnemonic sheet
+				      cb (getf (command-menu-item-options item) :mnemonic))
+		 
 		 (let* ((ct (find-command-table (second item)))
 			(tick (slot-value ct 'clim-internals::menu-tick)))
 		   (make-menu-for-command-table ct submenu nil)
@@ -187,10 +188,12 @@
 				     commands-and-buttons)
 			       
 			       (set-button-accelerator-from-keystroke 
+				sheet
 				button keystroke)
-			
-			       (let ((mnem (getf (command-menu-item-options item) :mnemonic)))
-				 (when mnem (tk::set-values button :mnemonic mnem)))
+
+			       (set-button-mnemonic
+				sheet
+				button (getf (command-menu-item-options item) :mnemonic))
 
 			       (when (getf (command-menu-item-options item) :documentation)
 				 (tk::add-callback

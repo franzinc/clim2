@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-funs.lisp,v 1.10 92/08/19 10:23:37 cer Exp $
+;; $fiHeader: xt-funs.lisp,v 1.11 92/09/08 15:16:27 cer Exp Locker: cer $
 
 ;;
 ;; This file contains compile time only code -- put in clim-debug.fasl.
@@ -290,6 +290,28 @@
     :arguments '(foreign-address fixnum)
     :arg-checking nil
     :return-type :void)
-    
 
+(defforeign 'xt_grab_pointer
+    :entry-point "_XtGrabPointer"
+    :call-direct t
+    :arguments '(foreign-address	; display
+		 foreign-address	; widget
+		 fixnum			; owner
+		 fixnum			; pgrabmode
+		 fixnum			; kgrabmode
+		 foreign-address	; confine to
+		 foreign-address	; cursor
+		 fixnum			; time
+		 )
+    :arg-checking nil
+    :return-type :fixnum)
+
+(defforeign 'xt_ungrab_pointer
+    :entry-point "_XtUngrabPointer"
+    :call-direct t
+    :arguments '(foreign-address	; display
+		 fixnum			; time
+		 )
+    :arg-checking nil
+    :return-type :fixnum)
 

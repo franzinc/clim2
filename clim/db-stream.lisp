@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-stream.lisp,v 1.28 92/09/08 10:34:41 cer Exp Locker: cer $
+;; $fiHeader: db-stream.lisp,v 1.29 92/09/08 15:17:39 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -321,10 +321,10 @@
 			       ,pane)))
       (when label
 	(setq pane `(vertically ()
-			,pane
-		      (make-pane 'label-pane 
+			(make-pane 'label-pane 
 				 :label ,label
-				 :max-width +fill+))))
+				 :max-width +fill+)
+		      ,pane)))
       `(let (,stream)
 	 (values 
 	  (outlining (:thickness 1)

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.43 92/09/08 15:19:22 cer Exp Locker: cer $
+;; $fiHeader: xt-silica.lisp,v 1.44 92/09/09 11:45:06 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -37,7 +37,9 @@
 		 :reader port-event-lock)
      (rotated-font-cache :initform nil :accessor port-rotated-font-cache)
      (depth :accessor port-depth)
-     (visual-class :accessor port-visual-class))
+     (visual-class :accessor port-visual-class)
+     (cursor-font :initform nil)
+     (cursor-cache :initform nil))
   (:default-initargs :allow-loose-text-style-size-mapping t)
   (:documentation "The port for X intrinsics based ports"))
 
@@ -389,25 +391,47 @@
 	  (:key-press
 	   (multiple-value-bind (character keysym)
 	       (lookup-character-and-keysym sheet widget event)
-	     (allocate-event 'key-press-event
-			     :sheet sheet
-			     :key-name keysym
-			     :character character
-			     :modifier-state 
-			     (setf (port-modifier-state port)
-			       (state->modifiers
-				(x11::xkeyevent-state event) nil)))))
+	     (let ((keysym-shift-mask
+		    (if (typep keysym 'silica::modifier-keysym)
+			(make-modifier-state
+			 (case keysym
+			   ((:left-shift :right-shift) :shift)
+			   ((:left-control :right-control) :control)
+			   ((:left-meta :right-meta) :meta)
+			   ((:left-super :right-super) :super)
+			   ((:left-hyper :right-hyper) :hyper)))
+		      0)))
+	       (allocate-event 'key-press-event
+			       :sheet sheet
+			       :key-name keysym
+			       :character character
+			       :modifier-state
+			       (setf (port-modifier-state port)
+				 (logior
+				  (state->modifiers (x11::xkeyevent-state event))
+				  keysym-shift-mask))))))
 	  (:key-release
 	   (multiple-value-bind (character keysym)
 	       (lookup-character-and-keysym sheet widget event)
-	     (allocate-event 'key-release-event
-			     :sheet sheet
-			     :key-name keysym
-			     :character character
-			     :modifier-state 
-			     (setf (port-modifier-state port)
-			       (state->modifiers
-				(x11::xkeyevent-state event) nil)))))
+	     (let ((keysym-shift-mask
+		    (if (typep keysym 'silica::modifier-keysym)
+			(make-modifier-state
+			 (case keysym
+			   ((:left-shift :right-shift) :shift)
+			   ((:left-control :right-control) :control)
+			   ((:left-meta :right-meta) :meta)
+			   ((:left-super :right-super) :super)
+			   ((:left-hyper :right-hyper) :hyper)))
+		      0)))
+	       (allocate-event 'key-release-event
+			       :sheet sheet
+			       :key-name keysym
+			       :character character
+			       :modifier-state 
+			       (setf (port-modifier-state port)
+				 (logandc2
+				  (state->modifiers (x11::xkeyevent-state event))
+				  keysym-shift-mask))))))
 	  (:button-press
 	   (let ((button (x-button->silica-button 
 			  (x11::xbuttonevent-button event)))
@@ -515,7 +539,9 @@
   ;; This isn't really the right place to do this, but it's better than
   ;; in ensure-blinker-for-cursor.
   (let ((window (tk::widget-window widget)))
-    (setf (xt::window-backing-store window) t))
+    (unless (getf (window-property-list window) 'backing-store-on)
+      (setf (getf (window-property-list window) 'backing-store-on) t
+	    (xt::window-backing-store window)                      t)))
   (let* ((minx (x11::xexposeevent-x event))
 	 (miny (x11::xexposeevent-y event))
 	 (width (x11::xexposeevent-width event))
@@ -536,32 +562,57 @@
 
 (defmethod sheet-mirror-input-callback (widget window event sheet)
   (declare (ignore window))
-  (let ((port (port sheet)))
-    (ecase (tk::event-type event)
-      (:key-press
-       (distribute-event 
-	port
-	(multiple-value-bind (character keysym)
-	    (lookup-character-and-keysym sheet widget event)
-	  (allocate-event 'key-press-event
-			  :sheet sheet
-			  :key-name keysym
-			  :character character
-			  :modifier-state (setf (port-modifier-state port)
-					    (state->modifiers
-					     (x11::xkeyevent-state event) nil))))))
-      (:key-release
+  (let ((port (port sheet))
+	(event-key (tk::event-type event)))
+    (ecase event-key
+      ((:key-press :key-release)
        (distribute-event
 	port
 	(multiple-value-bind (character keysym)
 	    (lookup-character-and-keysym sheet widget event)
-	  (allocate-event 'key-release-event
-			  :sheet sheet
-			  :key-name keysym
-			  :character character
-			  :modifier-state (setf (port-modifier-state port)
-					    (state->modifiers
-					     (x11::xkeyevent-state event) nil))))))
+	  (let* ((keysym-shift-mask
+		  (if (typep keysym 'silica::modifier-keysym)
+		      (make-modifier-state
+		       (case keysym
+			 ((:left-shift :right-shift) :shift)
+			 ((:left-control :right-control) :control)
+			 ((:left-meta :right-meta) :meta)
+			 ((:left-super :right-super) :super)
+			 ((:left-hyper :right-hyper) :hyper)))
+		    0))
+		 (modifier-state
+		  (if (eq event-key :key-press)
+		      (logior (state->modifiers (x11::xkeyevent-state event))
+			      keysym-shift-mask)
+		    (logandc2 (state->modifiers (x11::xkeyevent-state event))
+			      keysym-shift-mask)))
+		 ;;-- Canonicalize the only interesting key right here.
+		 ;;--  If we get a key labelled "Return", we canonicalize it
+		 ;;-- into #\Newline.
+		 ;;-- This may be misguided, but it'll almost certainly help us
+		 ;;-- in the short run.
+		 ;;-- This code copied from clx-mirror.
+		 ;;-- This seems to break stuff.
+		 ;;-- It fails because newline is a standard-character
+		 ;;-- and so the event is #\newline which
+		 ;;-- port-canonicalize-gesture does not know what to
+		 ;;-- do with. It returns NIL. In comparision #\return
+		 ;;-- is nonstandard so no one gets confused.
+		 (char (cond #+this-does-not-work
+			     ((and (eq keysym ':return)
+				   (or (zerop modifier-state)
+				       (= modifier-state
+					  (make-modifier-state :shift))))
+			      #\Newline)
+			     (t character))))
+	    (setf (port-modifier-state port) modifier-state)
+	    (allocate-event (if (eq event-key :key-press)
+				'key-press-event
+			      'key-release-event)
+			    :sheet sheet
+			    :key-name keysym
+			    :character char
+			    :modifier-state modifier-state)))))
       (:button-press
        (let ((button (x-button->silica-button 
 		      (x11::xbuttonevent-button event)))
@@ -675,13 +726,47 @@
 	    `(:allow-shell-resize ,(clim-internals::frame-resizable (pane-frame sheet))
 				  ,@initargs))))
 
-(defmethod enable-mirror ((port xt-port) sheet)
+(defmethod enable-mirror ((port xt-port) (sheet t))
   (let ((mirror (sheet-mirror sheet)))
     (enable-xt-widget (widget-parent mirror) mirror)))
 
-(defmethod enable-xt-widget ((parent t) (mirror t))
+(defmethod enable-xt-widget ((parent t) mirror)
   (unless (xt::is-managed-p mirror)
     (manage-child mirror)))
+
+;(defmethod enable-mirror ((port xt-port) (sheet top-level-sheet))
+;  (let* ((mirror (sheet-mirror sheet))
+; 	 (parent (widget-parent mirror)))
+;    (manage-child mirror)
+;    (xt:realize-widget parent)		; Make sure widget is realized.
+;    (let ((ussp (slot-value sheet 'silica::user-specified-size-p))
+; 	  (uspp (slot-value sheet 'silica::user-specified-position-p)))
+;      (unless (and (eq ussp :unspecified)
+; 		   (eq uspp :unspecified))
+; 	(let* ((window (tk::widget-window parent))
+; 	       (display (tk::widget-display parent))
+; 	       (size-hints (x11::xallocsizehints)))
+; 	  (tk::with-ref-par ((supplied 0))
+; 	    (when (zerop
+; 		   (x11::xgetwmnormalhints display window size-hints supplied))
+; 	      (warn "top-level-sheet had no size hints?!")
+; 	      (return-from enable-mirror))
+; 	    (let ((flags (x11::xsizehints-flags size-hints)))
+; 	      (if* (and uspp (not (eq uspp :unspecified)))
+; 		 then (setf flags (logior flags x11::uspositionhint))
+; 	       elseif (null uspp)
+; 		 then (setf flags (logandc2 flags x11::uspositionhint)))
+; 	      (if* (and ussp (not (eq ussp :unspecified)))
+; 		 then (setf flags (logior flags x11::ussizehint))
+; 	       elseif (null ussp)
+; 		 then (setf flags (logandc2 flags x11::ussizehint)))
+; 	      (setf (x11::xsizehints-flags size-hints) flags))
+; 	    (x11::xsetwmnormalhints display window size-hints)))))
+;    (popup parent)))
+ 
+;(defmethod enable-xt-widget ((parent top-level-shell) mirror)
+;  (manage-child mirror)
+;  (popup (widget-parent mirror)))
 
 (defmethod disable-mirror ((port xt-port) sheet)
   (declare (ignore port))
@@ -689,11 +774,12 @@
     (when mirror
       (disable-xt-mirror (widget-parent mirror) mirror))))
 
-(defmethod disable-xt-mirror ((parent t) (mirror t))
+(defmethod disable-xt-mirror ((parent t) mirror)
   (tk::unmanage-child mirror))
 
-(defmethod disable-xt-mirror ((parent top-level-shell) (mirror t))
-  (tk::popdown parent))
+(defmethod disable-xt-mirror ((parent top-level-shell) mirror)
+  (declare (ignore mirror))
+  (popdown parent))
 
 (defmethod realize-graft ((port xt-port) graft)
   ;; Set the width etc etc
@@ -797,7 +883,7 @@
 	  (multiple-value-setq (mask reason)
 	    (tk::wait-for-event context
 				:wait-function wait-function
-				:timeout timeout))
+				:timeout 0))
 	  (tk::process-one-event context mask reason))))))
 
 
@@ -978,6 +1064,8 @@
 (define-xt-keysym (keysym 255 008) :backspace)
 (define-xt-keysym (keysym 009 227) :page)
 (define-xt-keysym (keysym 255 010) :linefeed)
+;;;---
+(define-xt-keysym (keysym 255 010) :newline)
 (define-xt-keysym (keysym 255 027) :escape)
 
 ;; Other useful characters
@@ -988,6 +1076,23 @@
 (define-xt-keysym (keysym 255 086) :scroll)
 (define-xt-keysym (keysym 255 097) :refresh)
 (define-xt-keysym (keysym 255 011) :clear-input)
+
+;;;
+
+
+;;; Some nonstandard keys
+
+(define-xt-keysym (keysym 255 #xb3) :f1)
+(define-xt-keysym (keysym 255 #xbf) :f2)
+(define-xt-keysym (keysym 255 #xc0) :f3)
+(define-xt-keysym (keysym 255 #xc1) :f4)
+(define-xt-keysym (keysym 255 #xc2) :f5)
+(define-xt-keysym (keysym 255 #xc3) :f6)
+(define-xt-keysym (keysym 255 #xc4) :f7)
+(define-xt-keysym (keysym 255 #xc5) :f8)
+(define-xt-keysym (keysym 255 #xc6) :f9)
+(define-xt-keysym (keysym 255 #xc7) :f10)
+
 
 ;; Finally, the shifts
 ;; snarfed from translate.cl
@@ -1020,6 +1125,7 @@
 (define-xt-keysym left-hyper-keysym    :left-hyper)
 (define-xt-keysym right-hyper-keysym   :right-hyper)
 
+;;;
 (defun lookup-character-and-keysym (sheet mirror event)
   (declare (ignore sheet mirror)
 	   (optimize (speed 3) (safety 0)))
@@ -1065,11 +1171,11 @@
     (values character (xt-keysym->keysym keysym))))
 
 
-(defun state->modifiers (x &optional (shift-it t))
+(defun state->modifiers (x)
   (declare (optimize (speed 3) (safety 0))
 	   (fixnum x))
   (logior
-    (if (and shift-it (logtest x x11:shiftmask)) +shift-key+ 0)
+    (if (logtest x x11:shiftmask) +shift-key+ 0)
     (if (logtest x x11:controlmask) +control-key+ 0)
     (if (logtest x x11:mod1mask) +meta-key+ 0)
     (if (logtest x x11:mod2mask) +super-key+ 0)
@@ -1178,7 +1284,16 @@ the geometry of the children. Instead the parent has control. "))
   ;;---  Surely if a sheet is mirrored then you do not need to
   ;;--- invalidate any caches below that point
   nil)
-	    
+
+#+ignore
+(defmethod initialize-mirror :after ((port xt-port)
+				     (parent xt-geometry-manager)
+				     (parent-widget t)
+				     (sheet t)
+				     (widget t))
+  ;; A bogus attempt to get the initial sheet-region right.
+  (sheet-mirror-resized-callback nil nil nil sheet))
+
 
 ;; Instead if the geometry of the parent has changed, I guess this
 ;; suggests that the children have changed shape and that we need to
@@ -1228,6 +1343,10 @@ the geometry of the children. Instead the parent has control. "))
 
 (defvar *dont-invoke-callbacks* nil)
 
+(defmacro with-no-value-changed-callbacks (&body body)
+  `(let ((*dont-invoke-callbacks* t))
+     ,@body))
+
 (defmethod queue-value-changed-event (widget sheet &optional (value (gadget-value sheet)))
   (declare (ignore widget))
   (unless *dont-invoke-callbacks*
@@ -1266,21 +1385,28 @@ the geometry of the children. Instead the parent has control. "))
 
 
 (defmethod port-canonicalize-gesture-spec 
-	   ((port xt-port) gesture-spec &optional modifier-state)
+    ((port xt-port) gesture-spec &optional modifier-state)
   (declare (optimize (speed 3) (safety 0)))
   (multiple-value-bind (keysym shifts)
       (if modifier-state
 	  (values gesture-spec modifier-state)
-	  (parse-gesture-spec gesture-spec))
+	(parse-gesture-spec gesture-spec))
     ;; Here, we must take the gesture spec, turn it back into
     ;; a keycode, then see what the keysyms are for that keycode
-    (let ((x-keysym (if (and (characterp keysym) (standard-char-p keysym))
-			(keysym->xt-keysym (xt-keysym->keysym (char-code keysym)))
-			(keysym->xt-keysym keysym)))
+    (let ((x-keysym 
+	   (if (characterp keysym)
+	       (case keysym
+		 (#\newline (keysym->xt-keysym :newline))
+		 (#\tab (keysym->xt-keysym :tab))
+		 (#\rubout (keysym->xt-keysym :rubout))
+		 (#\return (keysym->xt-keysym :return))
+		 (t (and (standard-char-p keysym)
+			 (keysym->xt-keysym (xt-keysym->keysym (char-code keysym))))))
+	     (keysym->xt-keysym keysym)))
 	  (x-keycode nil))
       (unless x-keysym 
 	(return-from port-canonicalize-gesture-spec nil))
-      (cons keysym shifts))))
+      (cons (xt-keysym->keysym x-keysym) shifts))))
 
 
 
@@ -1299,6 +1425,23 @@ the geometry of the children. Instead the parent has control. "))
        (fix-coordinate x)
        (fix-coordinate y)))))
 
+
+
+(defmethod raise-mirror ((port xt-port) sheet)
+  (x11:xraisewindow (port-display port) (tk::widget-window (sheet-mirror sheet))))
+
+(defmethod raise-mirror ((port xt-port) (sheet top-level-sheet))
+  ;; Compensate for the top-level-sheet's mirror not being the right window.
+  (x11:xraisewindow (port-display port)
+		    (tk::widget-window (tk::widget-parent (sheet-mirror sheet)))))
+
+(defmethod bury-mirror ((port xt-port) sheet)
+  (x11:xlowerwindow (port-display port) (tk::widget-window (sheet-mirror sheet))))
+
+(defmethod bury-mirror ((port xt-port) (sheet top-level-sheet))
+  ;; Compensate for the top-level-sheet's mirror not being the right window.
+  (x11:xlowerwindow (port-display port)
+		    (tk::widget-window (tk::widget-parent (sheet-mirror sheet)))))
 
 (defmethod enable-mirror ((port xt-port) (sheet top-level-sheet))
   (let* ((mirror (sheet-mirror sheet))
@@ -1333,3 +1476,138 @@ the geometry of the children. Instead the parent has control. "))
 (defmethod enable-xt-widget ((parent top-level-shell) (mirror t))
   (manage-child mirror)
   (popup (widget-parent mirror)))
+
+
+(defmethod mirror-visible-p ((port xt-port) sheet)
+  (let ((mirror (sheet-mirror sheet)))
+    ;;--- This costs a round trip to the display server.  A better
+    ;;--- scheme would be to have the map/unmap-notify set a flag
+    ;;--- that we could simply read here, as in CLIM 1.1
+    ;;--- What does unviewable mean?
+    (not (eq (tk::window-map-state (tk::widget-window mirror)) :unmapped))))
+
+;;;---- Cursor stuff
+
+(defvar *clx-cursor-type-alist*
+	'((:default 132)
+	  (:vertical-scroll 116)
+	  (:scroll-up 114)
+	  (:scroll-down 106)
+	  (:horizontal-scroll 108)
+	  (:scroll-left 110)
+	  (:scroll-right 112)
+	  (:busy 150)
+	  (:upper-left 134)
+	  (:upper-right 136)
+	  (:lower-left 12)
+	  (:lower-right 14)
+	  (:vertical-thumb 112)
+	  (:horizontal-thumb 114)
+	  (:button 132)
+	  (:prompt 92)
+	  (:move 52)
+	  (:position 34)))
+
+
+
+(defmethod port-set-pointer-cursor ((port xt-port) pointer cursor)
+  (unless (eq (pointer-cursor pointer) cursor)
+    (let* ((cursor (and cursor (realize-cursor port cursor)))
+	   (widget (sheet-direct-mirror (frame-top-level-sheet 
+					 (pane-frame (pointer-sheet pointer)))))
+	   (window (tk::widget-window widget nil)))
+      (when window
+	(if cursor
+	    (x11:xdefinecursor
+	     (port-display port) window cursor)
+	  (x11:xundefinecursor
+	   (port-display port) window))
+	(port-force-output port)))
+    cursor))
+
+
+(defmethod port-set-sheet-pointer-cursor ((port xt-port) sheet cursor)
+  (unless (eq (silica::sheet-pointer-cursor sheet)  cursor)
+    (let* ((cursor (and cursor (realize-cursor port cursor)))
+	   (widget (sheet-mirror sheet))
+	   (window (tk::widget-window widget nil)))
+      (when window
+	(if cursor
+	    (x11:xdefinecursor
+	     (port-display port) window cursor)
+	  (x11:xundefinecursor
+	   (port-display port) window))
+	(port-force-output port))))
+  cursor)
+
+(defmethod realize-cursor :around ((port xt-port) cursor)
+  (with-slots (cursor-cache) port
+    (or (getf cursor-cache cursor)
+	(setf (getf cursor-cache cursor)
+	      (call-next-method)))))
+
+(defmethod realize-cursor ((port xt-port) (cursor symbol))
+  (let ((cursor (or (second (assoc cursor *clx-cursor-type-alist*))
+		    132)))
+    (realize-cursor port cursor)))
+
+(defmethod realize-cursor ((port xt-port) (cursor number))
+  (x11:xcreatefontcursor
+   (port-display port)
+   cursor))
+
+
+(defvar *pointer-grabbed* nil)
+
+
+(defmethod port-invoke-with-pointer-grabbed ((port xt-port) (sheet sheet) continuation 
+								    &key
+								    confine-to cursor
+								    (ungrab-on-error t))
+  (let ((widget (sheet-mirror sheet)))
+    (unwind-protect
+	(progn
+	  (tk::xt_grab_pointer
+	   widget 
+	   ;;---- Are these parameters correct????
+	   0				; owner-events
+	   (xt-grabbed-event-mask)
+					; Event-mask
+	   x11:grabmodeasync		; pointer-grab-mode
+	   x11:grabmodeasync		; keyboard
+	   (if confine-to widget 0)	; confine to
+	   (if cursor (realize-cursor port cursor) 0)
+	   0				; current-time
+	   )
+	  (handler-bind ((error #'(lambda (condition)
+				    (declare (ignore condition))
+				    (when ungrab-on-error
+				      (tk::xt_ungrab_pointer
+				       widget 0)))))
+	    (let ((*pointer-grabbed* t))
+	      (funcall continuation))))
+      (tk::xt_ungrab_pointer widget 0))))
+
+(defun xt-grabbed-event-mask ()
+  (tk::encode-event-mask '(:enter-window 
+			   :leave-window
+			   :pointer-motion-hint
+			   :pointer-motion
+			   :button-motion
+			   :button-press
+			   :button-release
+			   )))
+
+(defmethod port-set-sheet-grabbed-pointer-cursor ((port xt-port)
+							  sheet
+							  cursor)
+  (when *pointer-grabbed*
+    (x11::xchangeactivepointergrab
+     (port-display port)
+     (xt-grabbed-event-mask)					; event-mask
+     (if cursor (realize-cursor port cursor) 0)
+     0					; time
+     )))
+
+
+

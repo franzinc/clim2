@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sysdcl.lisp,v 1.15 92/08/18 17:26:25 cer Exp Locker: cer $
+;; $fiHeader: sysdcl.lisp,v 1.16 92/09/08 10:35:18 cer Exp Locker: cer $
 
 (in-package #-ansi-90 :user #+ansi-90 :common-lisp-user)
 
@@ -35,6 +35,7 @@
   ("browser"	     :load-before-compile ("demo-driver" "packages"))
   #+Allegro
   ("process-browser" :load-before-compile ("demo-driver" "packages"))
+  ("demo-activity" :load-before-compile ("demo-driver" "packages"))
   ("bitmap-editor"    :load-before-compile ("demo-driver" "packages"))
  
  ("demo-prefill"    :features (or Genera Cloe-Runtime)))

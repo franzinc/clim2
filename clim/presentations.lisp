@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: presentations.lisp,v 1.14 92/08/19 10:24:03 cer Exp $
+;; $fiHeader: presentations.lisp,v 1.15 92/09/08 15:18:19 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -139,6 +139,7 @@
 		:object nil :type 'blank-area :single-box nil)))
 	(setf (presentation-object null-presentation) null-presentation)
 	null-presentation))
+
 
 (defun window-cohorts-p (window-one window-two)
   ;; The best test for whether or not two windows care about each

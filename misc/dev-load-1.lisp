@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: dev-load-1.lisp,v 1.11 92/09/08 10:35:25 cer Exp Locker: cer $
+;; $fiHeader: dev-load-1.lisp,v 1.12 92/09/08 15:19:10 cer Exp Locker: cer $
 
 ;;;; This should not matter
 ;;;; (setq *ignore-package-name-case* t)
@@ -83,7 +83,7 @@
      #-ignore
      (clim-defsys::load-system 'clim-demo)))
   
-
+  #+:allegro-v4.1
   (when (probe-file "/scm/4.1/sparc/src/code/")
     (let ((sys::*require-search-list*
 	   (cons (make-pathname :directory "/scm/4.1/sparc/src/code/"
@@ -98,4 +98,5 @@
     (set (intern :*clm-binary-directory* ':xtk) "/scm/4.1/sparc/src/"))
 
   (tenuring
-   (load "misc/clos-preload.fasl" :if-does-not-exist nil)))
+	(ignore-errors
+	   (load "misc/clos-preload.fasl" :if-does-not-exist nil))))

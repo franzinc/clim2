@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: output-protocol.lisp,v 1.21 92/09/08 15:18:07 cer Exp Locker: cer $
+;; $fiHeader: output-protocol.lisp,v 1.22 92/09/09 11:44:44 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -289,25 +289,19 @@
 (defmethod stream-start-line-p ((output-stream output-protocol-mixin))
   (zerop (slot-value output-stream 'cursor-x)))
 
-#+Allegro
-(defmethod stream-line-column ((output-stream output-protocol-mixin))
-  (multiple-value-bind (origin-x origin-y space-width)
-      (port-glyph-for-character (port output-stream) #\space
-				(medium-merged-text-style output-stream))
-    (declare (ignore origin-x origin-y))
-    (multiple-value-bind (column remainder)
-	(floor (slot-value output-stream 'cursor-x) space-width)
-      (and (= remainder 0)
-	   column))))
-
-;;--- This version returns non-integers and makes allegro unhappy.
-#-Allegro
 (defmethod stream-line-column ((output-stream output-protocol-mixin))
   (multiple-value-bind (origin-x origin-y space-width)
       (port-glyph-for-character (port output-stream) #\Space
 				(medium-merged-text-style output-stream))
     (declare (ignore origin-x origin-y))
-    ;; Better to return a rational number than NIL
+    ;;--- This is pretty dubious stuff
+    #-Symbolics
+    (multiple-value-bind (column remainder)
+	(floor (slot-value output-stream 'cursor-x) space-width)
+      (and (= remainder 0)
+	   column))
+    #+Symbolics
+    ;; Better to return a rational number than NIL. 
     (/ (slot-value output-stream 'cursor-x) space-width)))
 
 (defmethod stream-advance-to-column ((output-stream output-protocol-mixin) column)

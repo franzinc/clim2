@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader$
+;; $fiHeader: bitmap-editor.lisp,v 1.1 92/09/08 10:39:09 cer Exp Locker: cer $
 
 
 (in-package :clim-demo)
@@ -46,32 +46,37 @@
     (flet ((display-color (object stream)
 	     (with-room-for-graphics (stream)
 	       (draw-rectangle* stream 0 0 30 10 :ink object))))
-      (setf current-color
-	(position
-	 (accept `((completion ,colors)
-		   :name-key ,#'identity
-		   :printer ,#'display-color)
-		 :view '(clim-internals::radio-box-view :orientation
-			 :vertical :toggle-button-options (:indicator-type nil))
-		 :stream stream
-		 :default (nth current-color colors)
-		 :prompt "Colors")
-	 colors))
-      (terpri stream)
-      (accept-values-command-button (stream)
-	"Add Color"
-	(add-color-to-palette frame))
-      (terpri stream)
-      (accept-values-command-button (stream)
-	"Edit Color"
-	(replace-current-color frame))
-            (terpri stream)
-      (accept-values-command-button (stream)
-	"Delete Color"
-	(delete-current-color frame)))))
+      (formatting-item-list (stream :n-columns 2)
+	  (formatting-cell (stream)
+	      (setf current-color
+		(position
+		 (accept `((completion ,colors)
+			   :name-key ,#'identity
+			   :printer ,#'display-color)
+			 :view '(clim-internals::radio-box-view 
+				 :orientation :vertical
+				 :toggle-button-options (:indicator-type nil))
+			 :stream stream
+			 :default (nth current-color colors)
+			 :prompt "Colors")
+		 colors)))
+	(formatting-cell (stream)
+	    (formatting-item-list (stream :n-columns 1)
+		(formatting-cell (stream)
+		    (accept-values-command-button (stream)
+		      "Add Color"
+		      (add-color-to-palette frame)))
+	      (formatting-cell (stream)
+		  (accept-values-command-button (stream)
+		    "Edit Color"
+		    (replace-current-color frame)))
+	      (formatting-cell (stream)
+		  (accept-values-command-button (stream)
+		    "Delete Color"
+		    (delete-current-color frame)))))))))
 
 (defun replace-current-color (frame)
-  ;;--- Exercise for the read
+  ;;--- Exercise for the reader
   )
 
 (defun delete-current-color (frame)
@@ -190,3 +195,28 @@
 	(erase-output-record presentation stream)
 	(display-cell frame stream i j)
 	(display-pattern frame)))))
+
+
+(defvar *bitmap-editors* nil)
+
+(defun do-bitmap-editor (&key (port (find-port)) (force nil))
+  (let* ((framem (find-frame-manager :port port))
+	 (frame 
+	   (let* ((entry (assoc port *bitmap-editors*))
+		  (frame (cdr entry)))
+	     (when (or force (null frame))
+	       (setq frame (make-application-frame 'bitmap-editor
+						   :frame-manager framem)))
+	     (if entry 
+		 (setf (cdr entry) frame)
+		 (push (cons port frame) *bitmap-editors*))
+	     frame)))
+    (run-frame-top-level frame)))
+
+(define-demo "Bitmap Editor" do-bitmap-editor)
+
+
+
+
+
+  

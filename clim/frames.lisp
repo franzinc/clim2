@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: frames.lisp,v 1.39 92/09/08 10:34:45 cer Exp Locker: cer $
+;; $fiHeader: frames.lisp,v 1.40 92/09/08 15:17:44 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -54,7 +54,9 @@
 		:reader frame-resizable)
      (layout :initarg :layouts :reader frame-layouts)
      (top-level-process :initform nil)
-     (command-queue :initform (make-locking-queue) :reader frame-command-queue))
+     (command-queue :initform (make-locking-queue) :reader
+		    frame-command-queue)
+     (input-buffer :initform nil :initarg :input-buffer :reader frame-input-buffer))
   (:default-initargs :pointer-documentation nil
 		     :layouts nil
 		     :resize-frame nil
@@ -625,6 +627,8 @@
   (destructuring-bind (&key left top width height &allow-other-keys)
       (frame-geometry frame)
     (ecase (frame-state frame)
+      (:shrunk 
+       (note-frame-deiconified (frame-manager frame) frame))
       (:enabled)
       ((:disabled :disowned)
        (let ((old (frame-state frame)))
@@ -646,6 +650,9 @@
 	   (when (and left top)
 	     (move-sheet (frame-top-level-sheet frame) left top))
 	   (note-frame-enabled (frame-manager frame) frame)))))))
+
+(defmethod iconify-frame ((frame standard-application-frame))
+  (note-frame-iconified (frame-manager frame) frame))
 
 (defmethod destroy-frame ((frame standard-application-frame))
   (when (eq (frame-state frame) :enabled)
@@ -1035,14 +1042,17 @@
 	       (synchronous-command-event-command condition)))))
 )	;eval-when
 
+(defvar *reading-frame-command* nil)
+
 (defmethod read-frame-command :around ((frame standard-application-frame) &key)
   (let* ((command (queue-pop (frame-command-queue frame))))
     (or command 
 	(handler-bind ((synchronous-command-event
-			 #'(lambda (c)
-			     (return-from read-frame-command
-			       (synchronous-command-event-command c)))))
-	  (call-next-method)))))
+			#'(lambda (c)
+			    (return-from read-frame-command
+			      (synchronous-command-event-command c)))))
+	  (let ((*reading-frame-command* t))
+	    (call-next-method))))))
 	
 ;;--- Actually this should be named command-event
 
@@ -1346,5 +1356,11 @@
 	    middle middle-presentation middle-context
 	    right  right-presentation  right-context)))
 
+
+(defmethod raise-frame ((frame standard-application-frame))
+  (raise-sheet (frame-top-level-sheet frame)))
+
+(defmethod bury-frame ((frame standard-application-frame))
+  (bury-sheet (frame-top-level-sheet frame)))
 
 

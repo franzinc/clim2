@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.45 92/09/08 10:35:29 cer Exp Locker: cer $
+;; $fiHeader: xm-gadgets.lisp,v 1.46 92/09/08 15:19:16 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -69,8 +69,8 @@
   (declare (ignore invoke-callback))
   (let ((m (sheet-direct-mirror gadget)))
     (when (and m (not (equal nv (tk::get-values m :value))))
-      (let ((*dont-invoke-callbacks* t))
-	(tk::set-values m :value nv)))))
+      (with-no-value-changed-callbacks
+	  (tk::set-values m :value nv)))))
 
 ;; Gadgets that have a :label initarg
 
@@ -202,30 +202,6 @@
 			 'sheet-mirror-event-handler
 			 sheet))
 
-#|
-
-;; Drawing area
-;; Who uses this anyway??????????????
-
-;; Noone!
-
-(defclass motif-drawing-area (standard-sheet-input-mixin 
-			      permanent-medium-sheet-output-mixin
-			      xt-leaf-pane) 
-	  ())
-
-(defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
-						     (parent t)
-						     (sheet motif-drawing-area))
-  (values 'tk::xm-my-drawing-area (list :margin-width 0 
-				     :resize-policy :none
-				     :margin-height 0)))
-
-(defmethod add-sheet-callbacks :after ((port motif-port) (sheet motif-drawing-area) widget)
-  ;; Now does nothing
-  )
-|#
-
 ;;; range pane mixin
 
 (defclass motif-range-pane (motif-value-pane) ())
@@ -254,11 +230,11 @@
 	(multiple-value-bind
 	    (mmin mmax)
 	    (tk::get-values mirror :minimum :maximum)
-	  (let ((*dont-invoke-callbacks* t))
-	    (tk::set-values mirror
-			    :value (fix-coordinate 
-				    (compute-symmetric-value
-				     smin smax nv mmin mmax)))))))))
+	  (with-no-value-changed-callbacks
+	      (tk::set-values mirror
+			      :value (fix-coordinate 
+				      (compute-symmetric-value
+				       smin smax nv mmin mmax)))))))))
 
 ;;; 
 
@@ -438,8 +414,8 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-
-(defclass motif-top-level-sheet (top-level-sheet) ())
+(defclass motif-top-level-sheet (xt-top-level-sheet)
+	  ())
 
 (defmethod add-sheet-callbacks :after ((port motif-port) 
 				       (sheet motif-top-level-sheet)
@@ -612,8 +588,8 @@
   (declare (ignore invoke-callback))
   (let ((m (sheet-direct-mirror gadget)))
     (when (and m (not (equal nv (tk::get-values m :set))))
-      (let ((*dont-invoke-callbacks* t))
-	(tk::set-values m :set nv)))))
+      (with-no-value-changed-callbacks
+	  (tk::set-values m :set nv)))))
 
 #+ignore
 (defmethod add-sheet-callbacks :after ((port motif-port) 
@@ -923,10 +899,10 @@
   (when (sheet-direct-mirror l)
     (let ((selected-items
 	   (compute-list-pane-selected-items l nv)))
-      (let ((*dont-invoke-callbacks* t))
-	(tk::set-values (sheet-direct-mirror l)
-			:selected-item-count (length selected-items)
-			:selected-items selected-items)))))
+      (with-no-value-changed-callbacks
+	    (tk::set-values (sheet-direct-mirror l)
+			    :selected-item-count (length selected-items)
+			    :selected-items selected-items)))))
 
 ;;; Option buttons
 
@@ -973,8 +949,8 @@
 
 (defmethod (setf gadget-value) :after (nv (gadget motif-option-pane) &key invoke-callback)
   (declare (ignore invoke-callback)) 
-  (let ((*dont-invoke-callbacks* t))
-    (set-option-menu-value gadget nv)))
+  (with-no-value-changed-callbacks
+      (set-option-menu-value gadget nv)))
 
 (defmethod realize-mirror :around ((port motif-port) (pane motif-option-pane))
   (prog1 (call-next-method)
@@ -1465,3 +1441,29 @@
 			    'sheet-mirror-event-handler
 			    sheet))))
 
+(defmethod discard-accelerator-event-p ((port motif-port) event)
+  (or (call-next-method)
+      ;;-- There are a whole bunch of other keysyms that need to be
+      ;;-- ignored too but there does not appear to be an easy way
+      ;;-- of going from the osf name to the keysym that we need to ignore
+      ;;--  osfMenuBar
+      (member (keyboard-event-key-name event) '(:f10))))
+
+
+(defmethod set-button-accelerator-from-keystroke ((menubar motif-menu-bar) button keystroke)
+  (when keystroke 
+    (record-accelerator menubar keystroke)
+    (let ((accel (format nil "<Key>~A" (car keystroke)))
+	  (accel-text (format nil "~A" (car keystroke))))
+      (dolist (modifier (cdr keystroke))
+	(setq accel-text
+	  (concatenate 'string 
+	    (case modifier (:control "Ctrl+") (:meta "Alt+") (t ""))
+	    accel-text))
+	(setq accel
+	  (concatenate 'string 
+	    (case modifier (:control "Ctrl") (:meta "Mod1") (t ""))
+	    accel)))
+      (tk::set-values button 
+		      :accelerator accel
+		      :accelerator-text accel-text))))
