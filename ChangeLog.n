@@ -11,6 +11,18 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.2.2.15.2 tfb@cley.com (Tim Bradshaw) Thu Jul  6 15:04:44 2000
+
+partial changes for rfe4072: motif side is working, windows is not
+there yet.
+
+	* utils/packages.lisp: export more scroll-bar callbacks
+	* silica/gadget.lisp: basic definition, add many callbacks.
+	* tk-silica/xt-gadgets.lisp: support fine quantization.
+	* tk-silica/xm-gadgets.lisp: low-level motif scrollbar support
+	* aclpc/acl-widget.lisp: make sure things are initialised.
+
+*******************************************************************************
 2.2.2.15.1 tfb@cley.com (Tim Bradshaw) Tue Jul  4 15:41:41 2000
 
 	* xlib/x11-keysyms.lisp: wrap excl:convert-mixed-case-symbols 

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: packages.lisp,v 1.100.2.1 2000/07/04 15:26:19 cley Exp $
+;; $Id: packages.lisp,v 1.100.2.2 2000/07/06 16:57:16 cley Exp $
 
 (in-package :common-lisp-user)
 
@@ -2583,6 +2583,19 @@
     radio-box-selections
     scroll-bar
     scroll-bar-drag-callback
+    scroll-bar-scroll-to-bottom-callback
+    scroll-bar-scroll-to-top-callback
+    scroll-bar-scroll-down-line-callback
+    scroll-bar-scroll-up-line-callback
+    scroll-bar-scroll-down-page-callback
+    scroll-bar-scroll-up-page-callback
+    scroll-to-bottom-callback
+    scroll-to-top-callback
+    scroll-down-line-callback
+    scroll-up-line-callback
+    scroll-down-page-callback
+    scroll-up-page-callback
+    scroll-bar
     scroll-bar-pane
     scroll-bar-size
     set-gadget-items
@@ -3295,7 +3308,7 @@
 (cl:defvar *clim-major-version* 2)
 (cl:defvar *clim-minor-version* 2)
 (cl:defvar *clim-generation-version* 2)
-(cl:defvar *clim-build-version* 15.1)
+(cl:defvar *clim-build-version* 15.2)
 
 (cl:defparameter *clim-version*
     (cl:format () "~d.~d.~d.~a"
