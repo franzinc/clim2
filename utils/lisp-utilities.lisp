@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: lisp-utilities.lisp,v 1.44 2000/05/01 21:43:39 layer Exp $
+;; $Id: lisp-utilities.lisp,v 1.45 2000/07/08 04:56:33 duane Exp $
 
 (in-package :clim-utils)
 
@@ -406,7 +406,7 @@
   (declare (dynamic-extent format-args))
   (apply #'package-fintern *package* format-string format-args))
 
-		    
+
 (defvar *gensymbol* 0)
 
 (eval-when (compile load eval)
@@ -1611,7 +1611,7 @@
     :arg-checking nil
     :returning :foreign-address)
   (ff:def-foreign-call (_free "free")
-      ((data (* :char)))
+      ((data (* :char) simple-string))
     :call-direct t
     :strings-convert nil		; cac 25feb00
     :arg-checking nil
