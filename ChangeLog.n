@@ -1,3 +1,13 @@
+from colin: Thu Oct 28 00:10:46 PDT 1993
+
+clim/coordinate-sorted-set.lisp
+- fixed bug which caused image to dump core
+
+demo/demo-driver.lisp
+- minor bug fix in handling of :background 
+
+-------------------------------------------------------------------------------
+
 from colin: Mon Oct 25 20:19:08 PDT 1993
 
 Makefile.defs

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: coordinate-sorted-set.lisp,v 1.8 1993/07/27 01:38:37 colin Exp $
+;; $fiHeader: coordinate-sorted-set.lisp,v 1.9 1993/10/26 03:21:33 colin Exp $
 
 (in-package :clim-internals)
 
@@ -82,7 +82,7 @@
 		     ;; again the hard way.  If these things were more
 		     ;; disciplined with respect to managing overlapping
 		     ;; records, we wouldn't have to resort to this.
-		     (position child vector))))
+		     (position child vector :end fp))))
 	    (declare (type fixnum old-index))
 	    (when old-index
 	      (let ((new-index (coordinate-sorted-set-index-for-position
@@ -95,7 +95,8 @@
 		  ;; operation. The removal operation would cause all
 		  ;; indices to the right to be offset by one - so
 		  ;; when new-index is greater than old-index we must
-		  ;; decrement it in order to get the right place (cim)
+		  ;; decrement it in order to get the right place
+		  ;; (cim)
 		  (when (> new-index old-index)
 		    (decf new-index))
 		  (let ((d (signum (- new-index old-index))))
@@ -153,7 +154,7 @@
 		     ;; again the hard way.  If these things were more
 		     ;; disciplined with respect to managing overlapping
 		     ;; records, we wouldn't have to resort to this.
-		     (position child coordinate-sorted-set))))
+		     (position child coordinate-sorted-set :end fill-pointer))))
       (cond (index
 	     (let ((new-fp (the fixnum (1- fill-pointer)))
 		   (vector coordinate-sorted-set))

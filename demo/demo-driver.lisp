@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: demo-driver.lisp,v 1.28 1993/10/25 16:15:54 cer Exp $
+;; $fiHeader: demo-driver.lisp,v 1.29 1993/10/26 03:21:55 colin Exp $
 
 (in-package :clim-demo)
 
@@ -50,15 +50,15 @@
 
 (define-demo-driver-command (com-run-demo)
     ((demo 'demo :gesture :select))
-  (run-demo demo :port (port *application-frame*)))
+  (run-demo demo :port (port *application-frame*) :background t))
 
 (define-gesture-name :shift-select :pointer-button (:left :shift))
 
 (define-demo-driver-command (com-force-demo)
     ((demo 'demo :gesture :shift-select))
-  (run-demo demo :port (port *application-frame*) :force t))
+  (run-demo demo :port (port *application-frame*) :force t :background t))
 
-(defun run-demo (demo &key (port (find-port)) force (background t))
+(defun run-demo (demo &key (port (find-port)) force background)
   (flet ((do-it ()
 	   (let* ((entry (assoc port (demo-frames demo)))
 		  (frame (cdr entry))
@@ -88,6 +88,6 @@
 (let ((demo (make-instance 'demo
 	      :name "Demo Driver" :class 'demo-driver
 	      :initargs '(:left 0 :top 0))))
-  (defun start-demo (&rest args)
-    (apply #'run-demo demo args)))
+  (defun start-demo (&key (port (find-port)) (background t) force)
+    (run-demo demo :port port :background background :force force)))
 
