@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: clos-patches.lisp,v 1.16 2002/07/09 20:57:19 layer Exp $
+;; $Id: clos-patches.lisp,v 1.17 2002/09/06 01:39:41 duane Exp $
 
 (in-package :clim-utils)
 
@@ -42,8 +42,13 @@
 
 #+allegro
 (defun-inline compile-file-environment-p (environment)
-  (or (eq environment 'compile-file)
-      excl::*compiler-environment*))
+  #-(version>= 7 0)
+  (or (eq environment 'compile-file) excl::*compiler-environment*)
+  #+(version>= 7 0)
+  (or (and excl::*compile-file-environment*
+	   (excl::compilation-environment-p environment)
+	   environment)
+      excl::*compile-file-environment*))
 
 #+(and allegro never-in-a-million-years)
 (eval-when (compile)

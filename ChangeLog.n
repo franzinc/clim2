@@ -11,6 +11,15 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.3.18
+
+2002-09-05  Duane Rettig  <duane@beta>
+
+	* clim/ptypes1.lisp: Switch environments style for 7.0
+	* utils/clos-patches.lisp: Switch environments style for 7.0
+	* utils/packages.lisp: Incf version
+
+*******************************************************************************
 join from acl62 to trunk on 8/14/2002
 command:
    *********** THE FOLLOWING COMMAND IS WRONG:

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: ptypes1.lisp,v 1.34 2002/07/09 20:57:15 layer Exp $
+;; $Id: ptypes1.lisp,v 1.35 2002/09/06 01:39:41 duane Exp $
 
 (in-package :clim-internals)
 
@@ -767,7 +767,9 @@
                                          ;; Can't just put the environment here, since macro
                                          ;; expansion environments have dynamic extent
                                          ',(and (compile-file-environment-p environment)
-                                                'compile-file)))
+						#-(and allegro (version>= 7 0)) 'compile-file
+						#+(and allegro (version>= 7 0))
+						(sys:augment-environment environment))))
              (define-group ,name define-presentation-type
                (ensure-presentation-type ',name ',parameters ',options ',direct-supertypes
                                          ',description ',history
