@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: frames.lisp,v 1.27 92/06/29 14:04:46 cer Exp Locker: cer $
+;; $fiHeader: frames.lisp,v 1.28 92/07/01 15:46:20 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -578,7 +578,7 @@
 
 (defmethod enable-frame ((frame standard-application-frame))
   (unless (frame-manager frame)
-    (error "Cannot enabled a disowned frame ~S" frame))
+    (error "Cannot enable a disowned frame ~S" frame))
   (destructuring-bind (&key width height &allow-other-keys)
       (frame-geometry frame)
     (ecase (frame-state frame)
@@ -845,7 +845,7 @@
 			   (redisplay-p
 			    (redisplay redisplay-record pane 
 				       :check-overlapping check-overlapping))
-			   ((pane-needs-redisplay pane)
+			   ((or force-p (pane-needs-redisplay pane))
 			    (invoke-pane-display-function frame pane))))))))))
 	(force-p
 	 ;;--- Is there anything else we need to do?
@@ -1034,14 +1034,29 @@
   (process-command-event sheet event))
 
 (defun process-command-event (sheet event)
-  (when (and *input-buffer-empty*
-	     (eq *application-frame* (event-frame event)))
-    (signal 'synchronous-command-event
-	    :command (presentation-event-value event)))
-  ;; Perhaps if this results directly from a user action then either
-  ;; we should do it right away, ie. loose the input buffer or beep if
-  ;; it has to be deffered,
-  (queue-frame-command (event-frame event) (presentation-event-value event)))
+  ;; This code is as bad as I feel.
+  (let ((command (presentation-event-value event)))
+    (if (partial-command-p command)
+	(throw-highlighted-presentation
+	 (make-instance 'standard-presentation
+			:object command
+			:type (event-presentation-type event))
+	 *input-context*
+	 (make-instance 'pointer-button-press-event
+			:sheet sheet
+			:x 0
+			:y 0
+			:modifiers 0
+			:button 256))
+      (progn
+	(when (and *input-buffer-empty*
+		   (eq *application-frame* (event-frame event)))
+	  (signal 'synchronous-command-event
+		  :command command))
+	;; Perhaps if this results directly from a user action then either
+	;; we should do it right away, ie. loose the input buffer or beep if
+	;; it has to be deffered,
+	(queue-frame-command (event-frame event) (presentation-event-value event))))))
 
 (defun queue-frame-command (frame command)
   (queue-push (frame-command-queue frame) command))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-protocol.lisp,v 1.14 92/05/22 19:28:05 cer Exp $
+;; $fiHeader: input-protocol.lisp,v 1.15 92/07/01 15:46:36 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -446,7 +446,9 @@
       (setq gesture (stream-read-gesture (or *original-stream* stream)))
       (when (characterp gesture)
 	(return-from stream-read-char gesture))
-      (beep stream))))				;??
+      ;;--- This is disgusting
+      (unless (typep gesture 'pointer-button-release-event) 
+	(beep stream)))))		;??
 
 (defmethod stream-unread-char ((stream input-protocol-mixin) character)
   (stream-unread-gesture (or *original-stream* stream) character))
@@ -544,7 +546,7 @@
     ;; Non-Silica version is always one-process
     (loop
       (let ((flag (stream-event-handler stream :timeout timeout
-					       :input-wait-test input-wait-test)))
+					:input-wait-test input-wait-test)))
 	(cond ((or (eq flag ':timeout) (eq flag ':input-wait-test))
 	       (return-from stream-input-wait (values nil flag)))
 	      ((not (queue-empty-p input-buffer))
@@ -581,10 +583,9 @@
 	       flag))
 	(declare (dynamic-extent #'waiter))
 	(port-event-wait (port stream) #'waiter :timeout timeout)
-	(when flag
-	  (return-from stream-input-wait
-	    (values (when (eq flag ':input-buffer) t)
-		    flag)))))))
+	;; Surely if we have got to here and flag is NIL then we have timed-out
+	(values (when (eq flag ':input-buffer) t)
+		(or flag :timeout))))))
 
 
 #+Genera

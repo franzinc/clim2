@@ -1,4 +1,4 @@
-# $fiHeader: Makefile,v 1.34 92/06/23 08:20:02 cer Exp Locker: cer $
+# $fiHeader: Makefile,v 1.35 92/07/01 16:20:12 cer Exp Locker: cer $
 # 
 #  Makefile for CLIM 2.0
 #
@@ -42,7 +42,7 @@ NEWSPACE = 5000000
 CLIM	= ./slim
 CLIM-SMALL	= ./slim-small
 
-PUBDIRS	= sys utils silica clim demo test genera clx pre-silica
+PUBDIRS	= sys utils silica clim demo test genera clx pre-silica postscript cloe
 DIRS0	=  tk tk-silica misc
 DIRS	= $(PUBDIRS) xlib $(DIRS0)
 CHEAP_CLEAN	= $(PUBDIRS) $(DIRS0)
@@ -65,19 +65,15 @@ DEST=/dev/null
 CL_SRC=/usr/tech/cer/cl/src
 OPENWINHOME=/usr/openwin-3.0
 
-#MOTIFHOME=/usr/motif
-#MOTIFLIB=$(MOTIFHOME)/usr/lib/libXm.a 
-#XLIBS=$(MOTIFHOME)/usr/lib/libXt.a $(MOTIFHOME)/usr/lib/libX11.a
 
-MOTIFLIB=/x11/motif-1.1/lib/Xm/libXm.a
-XLIB= /x11/R4/sun4-lib/libX_d.a 
-XTLIB=/x11/R4/sun4-lib/libXt_d.a
+DEBUGLIB=_d
+MOTIFLIB=/x11/R4/sun4-lib/libXm$(DEBUGLIB).a
+XLIB= /x11/R4/sun4-lib/libX$(DEBUGLIB).a 
+XTLIB=/x11/R4/sun4-lib/libXt$(DEBUGLIB).a
 XLIBS= $(XTLIB) $(XLIB)
 
-#OLXLIBS=$(XTLIB) $(XLIB)
 OLCOPYLIB=/usr/tech/cer/stuff/clim-2.0/tk/lib2/
 OLXLIBS=$(OLCOPYLIB)/libXt.a $(OLCOPYLIB)/libX11.a
-#LIBXOL=$(OPENWINHOME)/lib/libXol.a
 LIBXOL=$(OLCOPYLIB)/libXol.a
 
 # This has to be kept consistent with xlib.lisp

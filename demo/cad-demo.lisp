@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: cad-demo.lisp,v 1.10 92/06/16 15:02:04 cer Exp $
+;; $fiHeader: cad-demo.lisp,v 1.11 92/07/01 15:47:37 cer Exp Locker: cer $
 
 (in-package :clim-demo)
 
@@ -533,8 +533,7 @@
 			  (standard-application-frame output-record)
     ((object-list :initform nil))
   (:panes
-    (design-area 
-      (make-pane 'application-pane)))
+    (design-area :application))
   (:pointer-documentation t)
   (:layouts
     (default
@@ -850,6 +849,10 @@
 			      :erase #'(lambda (c s)
 					 (draw-body c s :ink +background-ink+))))
       (move component (- x delta-x) (+ *component-size* (- y delta-y))))
+    ;;-- We should not have to do this
+    (let ((gesture (read-gesture :stream stream :peek-p t :timeout 0.2)))
+      (when (typep gesture 'pointer-button-release-event)
+	(read-gesture :stream stream)))
     (draw-self component stream)))
 
 (define-cad-demo-command (com-clear :menu "Clear" :keystroke #\L)
@@ -903,7 +906,7 @@ but first get better menu formatting!
 ;;; A per-root alist of cad demo objects.
 (defvar *cad-demos* nil)
 
-(defun run-cad-demo (&key reinit root)
+(defun run-cad-demo (&key reinit (root (find-frame-manager)))
   (let ((cd (cdr (assoc root *cad-demos*)))
 	(*highlight-ink* (if (color-stream-p root) +red+ +flipping-ink+)))
     (when (or (null cd) reinit)
@@ -912,4 +915,4 @@ but first get better menu formatting!
       (push (cons root cd) *cad-demos*))
     (run-frame-top-level cd)))
 
-(define-demo "Mini-CAD" (run-cad-demo :root *demo-root*))
+(define-demo "Mini-CAD" (run-cad-demo))

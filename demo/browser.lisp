@@ -3,7 +3,7 @@
 ;;; Simple extensible browser
 ;;; Scott McKay
 
-;;; $fiHeader: browser.lisp,v 1.5 92/04/10 14:27:42 cer Exp $
+;;; $fiHeader: browser.lisp,v 1.6 92/05/07 13:13:44 cer Exp Locker: cer $
 
 "Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved."
 
@@ -779,29 +779,26 @@
   (:command-definer t)
   (:command-table (browser :inherit-from (clim-internals::accept-values-pane)))
   (:panes
-   (title (scrolling ()
-		     (make-pane 'application-pane
-		       :display-after-commands t
-		       :display-function 'display-title-pane
-		       :default-text-style '(:sans-serif :bold :large))))
-   (graph (scrolling ()
-		     (make-pane 'application-pane
-		       :display-function 'display-graph-pane
-		       :display-after-commands t
-		       :incremental-redisplay t
-		       :scroll-bars :both)))
+   #+ignore
+   (title :application
+	  :display-after-commands t
+	  :display-function 'display-title-pane
+	  :default-text-style '(:sans-serif :bold :large))
+   (graph :application
+	  :display-function 'display-graph-pane
+	  :display-after-commands t
+	  :incremental-redisplay t
+	  :scroll-bars :both)
+   #+ignore
    (commands (make-pane 'menu-bar
-	       :display-function '(display-command-menu :n-rows 2)))
-   (interactor (scrolling ()
-			  (make-pane 'interactor-pane
-			    :height 50)))
-   (control-panel (scrolling ()
-			     (make-pane 'application-pane
-			       :height 200
-			       :display-function
-			         '(clim-internals::accept-values-pane-displayer
-				    :displayer accept-call-graph-options)))))
-  (:layout
+			:display-function '(display-command-menu :n-rows 2)))
+   (interactor :interactor :height '(5 :line))
+   (control-panel :application
+		  :height :compute
+		  :display-function
+		  '(clim-internals::accept-values-pane-displayer
+		    :displayer accept-call-graph-options)))
+  (:layouts
    (default
        (vertically () graph interactor control-panel))))
 
@@ -1124,7 +1121,7 @@
     (generate-call-graph *application-frame* root-nodes)
     (redisplay-frame-pane *application-frame* 'graph :force-p t)))
 
-(define-gesture-name :show-graph :button :left :modifiers (:shift))
+(define-gesture-name :show-graph :pointer-button (:left :shift))
 
 (define-presentation-to-command-translator show-graph
     (call-node com-show-graph browser
@@ -1397,8 +1394,8 @@
       (return-from subnode-object-present-in-node t)))
   nil)
 
-(define-gesture-name :subnode-1 :button :left   :modifiers (:control :meta))
-(define-gesture-name :subnode-2 :button :middle :modifiers (:control :meta))
+(define-gesture-name :subnode-1 :pointer-button (:left :control :meta))
+(define-gesture-name :subnode-2 :pointer-button (:middle :control :meta))
 
 (define-browser-command com-show-clos-slots
     ((class-node 'class-call-node
@@ -1446,3 +1443,15 @@
       (let ((subnode (make-package-symbols-subnode package-node symbols)))
 	(push subnode (node-inferiors package-node))
 	(tick-node subnode)))))
+
+(clim-demo::define-demo "Graph browser" (do-browser-demo))
+
+(defvar *browser-demo* nil)
+
+(defun do-browser-demo (&optional force)
+  (run-frame-top-level 
+   (or (and (not force) *browser-demo*)
+       (setq *browser-demo* (make-application-frame 'browser
+						    :width 800 :height 600
+						    )))))
+

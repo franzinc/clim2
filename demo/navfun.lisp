@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: navfun.lisp,v 1.11 92/06/16 15:02:08 cer Exp $
+;; $fiHeader: navfun.lisp,v 1.12 92/07/01 15:47:45 cer Exp Locker: cer $
 
 (in-package :clim-demo)
 
@@ -1022,10 +1022,10 @@
 
 (define-application-frame flight-planner
 			  ()
-    ((fp-window))
+    ()
   (:panes 
-    (display (make-pane 'application-pane))
-    (interactor (make-pane 'interactor-pane :height '(5 :line))))
+    (display :application)
+    (interactor :interactor :height '(5 :line)))
   (:layouts 
     (default
       (vertically ()
@@ -1055,12 +1055,7 @@
 
 (defmethod initialize-instance :after ((fp flight-planner) &key)
   (unless *position-list*
-    (set-up))
-  (with-slots (fp-window) fp
-    (setf fp-window
-	  (open-window-stream :parent (window-root (frame-top-level-sheet fp))
-			      :left 50 :top 50 :width 750 :height 350
-			      :save-under T))))
+    (set-up)))
 
 (defmethod enable-frame :after ((fp flight-planner))
   (let ((*application-frame* fp)
@@ -1643,7 +1638,7 @@
 
 (defvar *flight-planners* nil)
 
-(defun run-flight-planner (&key reinit root)
+(defun run-flight-planner (&key reinit (root (find-frame-manager)))
   (let ((fp (cdr (assoc root *flight-planners*))))
     (when (or (null fp) reinit)
       (setq fp (make-application-frame 'flight-planner
@@ -1651,5 +1646,5 @@
       (push (cons root fp) *flight-planners*))
     (run-frame-top-level fp)))
 
-(define-demo "Flight Planner" (run-flight-planner :root *demo-root*))
+(define-demo "Flight Planner" (run-flight-planner))
 

@@ -2,7 +2,7 @@
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
 ;;; Portions (c) 1992 Franz Inc.
-;;; $fiHeader$
+;;; $fiHeader: ico.lisp,v 1.1 92/07/01 16:07:07 cer Exp Locker: cer $
 ;;; Algorithm pretty much lifted from X11 demo program.
 ;;;
 
@@ -541,4 +541,4 @@
 
 (setq xform (create-xform))
 
-
+(clim-demo::define-demo "Ico demo" (ico))

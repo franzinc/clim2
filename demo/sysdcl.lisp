@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sysdcl.lisp,v 1.10 92/05/22 19:29:10 cer Exp $
+;; $fiHeader: sysdcl.lisp,v 1.11 92/07/01 15:47:49 cer Exp Locker: cer $
 
 (in-package #-ansi-90 :user #+ansi-90 :common-lisp-user)
 
@@ -39,6 +39,12 @@
   ("puzzle"         :load-before-compile ("demo-driver" "packages"))
   ("address-book"   :load-before-compile ("demo-driver" "packages"))
   ("thinkadot"      :load-before-compile ("demo-driver" "packages"))
+  ;;-- My god the unthinkable has happened.
+  ;;-- more demos!
+  ("plot"      :load-before-compile ("demo-driver" "packages"))
+  ("graphics-editor"       :load-before-compile ("demo-driver" "packages"))
+  ("ico"       :load-before-compile ("demo-driver" "packages"))
+  ("browser"       :load-before-compile ("demo-driver" "packages"))
   ("demo-prefill" :features (or Genera Cloe-Runtime)))
 
 #+Genera

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-gadgets.lisp,v 1.15 92/06/29 14:05:10 cer Exp Locker: cer $
+;; $fiHeader: ol-gadgets.lisp,v 1.16 92/07/01 15:47:59 cer Exp Locker: cer $
 
 
 (in-package :xm-silica)
@@ -41,6 +41,7 @@
 			 (menu-bar openlook-menu-bar)
 			 (viewport ol-viewport)
 			 (radio-box openlook-radio-box)
+			 (check-box openlook-check-box)
 			 (frame-pane openlook-frame-pane)
 			 (top-level-sheet openlook-top-level-sheet)
 			 (list-pane openlook-list-pane)
@@ -594,6 +595,26 @@
 			  (check-box-current-selection client))
   (call-next-method))
 
+(defmethod compose-space ((cb openlook-check-box) &key width height)
+  (declare (ignore width height))
+  ;;-- This is a dreadful hack that attempts to second guess that
+  ;;--- stupid tookit.
+  (let ((twidth 0)
+	(theight 0)
+	(children (tk::widget-children (sheet-direct-mirror cb))))
+    (dolist (child children)
+      (multiple-value-bind
+	  (x y width height borderwidth
+	   care-x care-y care-width care-height care-borderwidth)
+	  (tk::widget-best-geometry child)
+	(declare (ignore x y borderwidth care-x care-y 
+			 care-width care-height care-borderwidth))
+	(maxf theight height)
+	(incf twidth width)))
+    (make-space-requirement :width (+ twidth (* (1- (length children)) 15))
+			    :height theight)))
+
+
 ;;
 
 ;; Openlook-orriented-gadget
@@ -808,11 +829,11 @@
 	(gadget-supplies-scrolling-p contents))
       (sheet-adopt-child sp contents)
     (with-look-and-feel-realization (frame-manager frame)
-      (when (member scroll-bars '(:both :dynamic :vertical))
+      (when t #+bad-hack (member scroll-bars '(:both :dynamic :vertical))
 	(let ((sb (make-pane 'scroll-bar :orientation :vertical :id :vertical :client sp)))
 	  (setf (silica::scroller-pane-vertical-scroll-bar sp) sb)
 	  (sheet-adopt-child sp sb)))
-      (when (member scroll-bars '(:both :dynamic :horizontal))
+      (when t #+bad-hack (member scroll-bars '(:both :dynamic :horizontal))
 	(let ((sb (make-pane 'scroll-bar :orientation :horizontal :id :horizontal :client sp)))
 	  (setf (silica::scroller-pane-horizontal-scroll-bar sp) sb)
 	  (sheet-adopt-child sp sb)))
@@ -852,8 +873,10 @@
   ;;--- bigger than this. But atleast its a start
   ;;-- We check to see which scrollbars we have
 
-  (let* (
-	 (spacing 0 #+ignore (tk::get-values (sheet-mirror fr) :spacing))
+  (let* ((fudge 7) 			; This was from trial and
+					; error but at least 4 (1point) is from
+					; the contents border
+	 (spacing (+ fudge 0) #+ignore (tk::get-values (sheet-mirror fr) :spacing))
 	 (sr (copy-space-requirement (compose-space (silica::pane-contents fr)))))
 
     ;;--- if scroller-pane-gadget-supplies-scrolling-p is true we should
@@ -921,16 +944,26 @@
     (multiple-value-bind
 	(swidth sheight) (tk::get-values (sheet-direct-mirror
 					  scrolling-window) :width :height)
-      (let ((hsb-height (tk::ol-sw-geometries-hsb-height geometries))
-	    (vsb-width (tk::ol-sw-geometries-vsb-width geometries)))
-	(let ((w (- swidth vsb-width))
-	      (h (- sheight hsb-height)))
-	  (setf (tk::ol-sw-geometries-force-hsb geometries) 
-	    (if (silica::scroller-pane-horizontal-scroll-bar scrolling-window) 1 0))
-	  (setf (tk::ol-sw-geometries-force-vsb geometries) 
-	    (if (silica::scroller-pane-vertical-scroll-bar scrolling-window) 1 0))
-	  (when (plusp w) (setf (tk::ol-sw-geometries-bbc-width geometries) w))
-	  (when (plusp h) (setf (tk::ol-sw-geometries-bbc-height geometries) h)))))))
+      (let* ((fudge 0)
+	     (vsbp 
+	      (let ((sb (silica::scroller-pane-vertical-scroll-bar scrolling-window)))
+		(and sb (sheet-enabled-p sb))))
+	     (hsbp (let ((sb (silica::scroller-pane-horizontal-scroll-bar scrolling-window)))
+		     (and sb (sheet-enabled-p sb))))
+	     (hsb-height (tk::ol-sw-geometries-hsb-height geometries))
+	     (vsb-width (tk::ol-sw-geometries-vsb-width geometries))
+	     (w (- swidth (if vsbp vsb-width 0) fudge))
+	     (h (- sheight (if hsbp hsb-height 0) fudge)))
+	(setf (tk::ol-sw-geometries-force-hsb geometries) (if hsbp 1 0))
+	(setf (tk::ol-sw-geometries-force-vsb geometries) (if vsbp 1 0))
+	(when (plusp w) (setf (tk::ol-sw-geometries-bbc-width geometries) w))
+	(when (plusp h) (setf (tk::ol-sw-geometries-bbc-height geometries) h))
+	  #+ignore
+	(multiple-value-bind (extent-width extent-height)
+	    (bounding-rectangle-size (silica::viewport-contents-extent viewport))
+	  (setf (tk::ol-sw-geometries-bbc-real-width geometries) (fix-coordinate extent-width)
+		(tk::ol-sw-geometries-bbc-real-height geometries)
+		(fix-coordinate extent-height)))))))
 
 (defvar *scrolling-window-geometry-function-address* 
     (ff::register-function 'scrolling-window-geometry-function))

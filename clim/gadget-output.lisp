@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: gadget-output.lisp,v 1.17 92/05/22 19:27:54 cer Exp $
+;; $fiHeader: gadget-output.lisp,v 1.18 92/07/01 15:46:24 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -113,11 +113,12 @@
 
 ;;--- Flush this when REPLAY-OUTPUT-RECORD calls itself recursively
 (defmethod note-output-record-replayed ((record gadget-output-record) stream
-					&optional region x-offset y-offset)
+								      &optional region x-offset y-offset)
   (declare (ignore stream x-offset y-offset))
   (let ((gadget (output-record-gadget record)))
-    (with-sheet-medium (medium gadget)
-      (handle-repaint gadget medium region))))
+    (when (port gadget) 
+      (with-sheet-medium (medium gadget)
+	(handle-repaint gadget medium region)))))
 
 
 ;; Need to add the gadget to the stream
@@ -404,5 +405,5 @@
   (sheet-adopt-child (slot-value stream 'stream) child))
 
 (defmethod sheet-disown-child ((stream standard-encapsulating-stream) child)
-  (sheet-adopt-child (slot-value stream 'stream) child))
+  (sheet-disown-child (slot-value stream 'stream) child))
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: test-suite.lisp,v 1.25 92/06/29 14:04:52 cer Exp Locker: cer $
+;; $fiHeader: test-suite.lisp,v 1.26 92/07/01 15:47:19 cer Exp Locker: cer $
 
 (in-package :clim-user)
 
@@ -1511,10 +1511,10 @@ Luke Luck licks the lakes Luke's duck likes."))
   "A simple test of MENU-CHOOSE."
   (write-string
     (menu-choose '("Whistle"
-		   ("Pat head" :item-list
+		   ("Pat head" :items
 		    (("with right hand" . "Pat head with right hand")
 		     ("with left hand" . "Pat head with left hand")))
-		   ("Rub Tummy" :item-list
+		   ("Rub Tummy" :items
 		    (("clockwise" . "Rub tummy clockwise")
 		     ("counter-clockwise" . "Rub tummy counter-clockwise")))
 		   "Walk"
@@ -1604,6 +1604,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 
 (defun graphics-dialog-internal (stream &optional own-window)
   (let ((square-dimension 100)
+	(draw-point t)
 	(draw-circle t)
 	(draw-square t)
 	(draw-/-diagonal t)
@@ -1630,6 +1631,10 @@ Luke Luck licks the lakes Luke's duck likes."))
       (setq draw-\\-diagonal
 	    (accept 'boolean :stream stream
 		    :prompt "Draw \\ diagonal" :default draw-\\-diagonal))
+      (terpri stream)
+            (setq draw-point
+	    (accept 'boolean :stream stream
+		    :prompt "Draw point" :default draw-point))
       (terpri stream)
       (setq line-thickness
 	    (accept 'number :stream stream
@@ -1658,7 +1663,11 @@ Luke Luck licks the lakes Luke's duck likes."))
 			  :line-cap-shape :round))
 	    (when draw-\\-diagonal
 	      (draw-line* stream 0 0 square-dimension square-dimension
-			  :line-cap-shape :round))))))))
+			  :line-cap-shape :round))
+	    (when draw-point
+	      (draw-point* stream 
+			   (/ square-dimension 4)
+			   (/ square-dimension 2)))))))))
 
 
 ;;;; Benchmarks

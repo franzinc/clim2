@@ -20,13 +20,13 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: load-xm.lisp,v 1.14 92/06/02 13:30:36 cer Exp $
+;; $fiHeader: load-xm.lisp,v 1.15 92/07/01 15:44:31 cer Exp Locker: cer $
 
 (in-package :tk)
 
 ;;;; 
 (defvar sys::*libxt-pathname* "/x11/R4/sun4-lib/libXt_d.a")
-(defvar sys::*libxm-pathname* "/x11/motif-1.1/lib/Xm/libXm.a")
+(defvar sys::*libxm-pathname* "/x11/R4/sun4-lib/libXm_d.a")
 
 (defun load-from-xm ()
   (unless (ff:get-entry-point (ff:convert-to-lang "XmCreateMyDrawingArea"))

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.33 92/06/29 14:05:17 cer Exp Locker: cer $
+;; $fiHeader: xt-silica.lisp,v 1.34 92/07/01 15:48:17 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -57,7 +57,7 @@
 (defmethod restart-port ((port xt-port))
   (let ((process (port-process port)))
     (when process
-      (destroy-process process)))
+      (clim-sys:destroy-process process)))
   (setf (port-process port)
     (mp:process-run-restartable-function
      (list :name (format nil "CLIM Event Dispatcher for ~A"
@@ -324,9 +324,21 @@
 ;; not been established nor has the rest of tree been mirrored.
 ;; So it seems to work out really well to do this bottom up.
 
+
+(defmethod sheet-and-ancestors-enabled-p ((sheet sheet))
+  ;; If we have an non-mirrored ancestor that is between us and our
+  ;; mirrored-ancestor that is disabled then we should not manage this gadget.
+  ;; This should happen
+  (and (sheet-enabled-p sheet)
+       (do ((parent (sheet-parent sheet) (sheet-parent parent)))
+	   (nil)
+	 (when (or (null parent) (sheet-direct-mirror parent)) (return t))
+	 (unless (sheet-enabled-p parent) (return nil)))))
+
+
 (defmethod silica::note-sheet-tree-grafted :after ((port xt-port) (sheet mirrored-sheet-mixin))
   (let ((mirror (sheet-direct-mirror sheet)))
-    (when (and (sheet-enabled-p sheet)
+    (when (and (sheet-and-ancestors-enabled-p sheet)
 	       (typep mirror 'xt::xt-root-class)) ; Pixmap streams are
 						  ; mirrored by a
 						  ; pixmap rather than
@@ -447,8 +459,8 @@
 (defun x-button->silica-button (button)
   (ecase button
     (0 nil)
-    (4 (warn "got an event 4")
-       +pointer-right-button+)
+    (4 #+ignore (warn "got an event 4")
+       +pointer-left-button+)
     (#.x11::button3 +pointer-right-button+)
     (#.x11::button2 +pointer-middle-button+)
     (#.x11::button1 +pointer-left-button+)))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics-demos.lisp,v 1.7 92/06/16 15:02:06 cer Exp $
+;; $fiHeader: graphics-demos.lisp,v 1.8 92/07/01 15:47:41 cer Exp Locker: cer $
 
 (in-package :clim-demo)
 
@@ -11,13 +11,11 @@
     ()
   ()
   (:panes 
-    (demo (scrolling ()
-	    (make-pane 'application-pane 
-		       :min-width 200 :min-height 100
-		       :width 800 :height 600)))
-    (explanation (scrolling ()
-		   (make-pane 'application-pane
-			      :height 100))))
+    (demo :application
+	  :min-width 200 :min-height 100
+	  :width 800 :height 600)
+    (explanation :application
+		 :height 100))
   (:layouts (:default
 	      (vertically () demo explanation))))
 
@@ -241,12 +239,11 @@ to the window in which it is displayed."
 
 (defvar *graphics-demos* nil)
 
-(defun run-graphics-demos (root &key reinit)
+(defun run-graphics-demos (&key (root (find-frame-manager)) reinit)
   (let ((gd (cdr (assoc root *graphics-demos*))))
     (when (or (null gd) reinit)
-      (setq gd (make-application-frame 'graphics-demo
-				       :parent root))
+      (setq gd (make-application-frame 'graphics-demo :parent root))
       (push (cons root gd) *graphics-demos*))
     (run-frame-top-level gd)))
 
-(define-demo "Graphics Demos" (run-graphics-demos *demo-root*))
+(define-demo "Graphics Demos" (run-graphics-demos))

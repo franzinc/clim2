@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: thinkadot.lisp,v 1.9 92/06/16 15:02:13 cer Exp $
+;; $fiHeader: thinkadot.lisp,v 1.10 92/07/01 15:47:50 cer Exp Locker: cer $
 
 (in-package :clim-demo)
 
@@ -51,10 +51,9 @@
      (lexit)
      (rexit))
   (:panes
-    (display
-      (make-pane 'application-pane
-		 :display-function 'draw-the-display
-		 :incremental-redisplay t)))
+    (display  :application
+	      :display-function 'draw-the-display
+	      :incremental-redisplay t))
   (:layouts
     (:default (scrolling () display))))
 
@@ -178,7 +177,7 @@
 ;;; A per-root alist of thinkadot frames.
 (defvar *thinkadots* nil)
 
-(defun run-thinkadot (&key reinit root)
+(defun run-thinkadot (&key (root (find-frame-manager) reinit))
   (let ((tdt (cdr (assoc root *thinkadots*))))
     (when (or (null tdt) reinit)
       (setq tdt (make-application-frame 'thinkadot :parent root
@@ -186,4 +185,4 @@
       (push (cons root tdt) *thinkadots*))
     (run-frame-top-level tdt)))
 
-(define-demo "Thinkadot" (run-thinkadot :root *demo-root*))
+(define-demo "Thinkadot" (run-thinkadot))

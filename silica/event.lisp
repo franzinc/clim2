@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: event.lisp,v 1.14 92/06/23 08:19:23 cer Exp $
+;; $fiHeader: event.lisp,v 1.15 92/07/01 15:44:57 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -289,7 +289,7 @@
   (distribute-event-1 port event))
 
 (defmethod distribute-event ((port null) (event event))
-  (warn "Got an event for null port ~S" event))
+  #+ignore (warn "Got an event for null port ~S" event))
 
 (defgeneric distribute-event-1 (port event))
 

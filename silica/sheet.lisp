@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: sheet.lisp,v 1.18 92/06/29 14:04:38 cer Exp Locker: cer $
+;; $fiHeader: sheet.lisp,v 1.19 92/07/01 15:45:15 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -367,3 +367,23 @@
 (defmethod initialize-instance :after ((sheet sheet-permanently-enabled-mixin) 
 				       &key enabled)
   (setf (sheet-enabled-p sheet) enabled))
+
+;;; This code makes sure that enabling/disabling a non mirrored sheet
+;;; actually causes something to happen.
+
+(defun update-sheet-mirrored-children (sheet state)
+  (when (typep sheet '(and sheet-parent-mixin (not mirrored-sheet-mixin)))
+    (dolist (c (sheet-enabled-children sheet))
+      (if (typep c 'mirrored-sheet-mixin)
+	  (if (sheet-direct-mirror c)
+	    (funcall (if state #'enable-mirror #'disable-mirror) (port c) c))
+	(update-sheet-mirrored-children c state)))))
+
+(defmethod sheet-enabled-children ((sheet sheet-parent-mixin))
+  (remove-if-not #'sheet-enabled-p (sheet-children sheet)))
+
+(defmethod note-sheet-enabled :after ((sheet sheet-parent-mixin))
+  (update-sheet-mirrored-children sheet t))
+
+(defmethod note-sheet-disabled :after ((sheet sheet-parent-mixin))
+  (update-sheet-mirrored-children sheet nil))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: puzzle.lisp,v 1.8 92/06/02 13:31:11 cer Exp $
+;; $fiHeader: puzzle.lisp,v 1.9 92/06/16 15:02:10 cer Exp Locker: cer $
 
 (in-package :clim-demo)
 
@@ -182,7 +182,7 @@
 ;;; Standard demo driver...
 (defvar *puzzles* nil)
 
-(defun do-puzzle (&key reinit root)
+(defun do-puzzle (&key reinit (root (find-frame-manager)))
   (let* ((entry (assoc root *puzzles*))
 	 (p (cdr entry)))
     (when (or (null p) reinit)
@@ -192,4 +192,4 @@
 	  (push (cons root p) *puzzles*)))
     (run-frame-top-level p)))
 
-(define-demo "15 Puzzle" (do-puzzle :root *demo-root*))
+(define-demo "15 Puzzle" (do-puzzle))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: listener.lisp,v 1.12 92/06/03 18:18:50 cer Exp $
+;; $fiHeader: listener.lisp,v 1.13 92/07/01 15:47:42 cer Exp Locker: cer $
 
 (in-package :clim-demo)
 
@@ -9,9 +9,9 @@
 (define-application-frame lisp-listener
 			  ()
     ()
-  (:pane (outlining ()
-	   (scrolling ()
-	     (make-pane 'interactor-pane))))
+  (:panes
+   (interactor :interactor))
+  (:layouts (default interactor))
   (:command-table (lisp-listener :inherit-from (user-command-table)))
   (:command-definer t)
   (:menu-bar nil)

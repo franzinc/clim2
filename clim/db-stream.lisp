@@ -22,7 +22,7 @@
 ;;;
 ;;; Copyright (c) 1990 by Xerox Corporations.  All rights reserved.
 ;;;
-;; $fiHeader: db-stream.lisp,v 1.20 92/06/16 15:01:39 cer Exp $
+;; $fiHeader: db-stream.lisp,v 1.21 92/07/01 15:46:14 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -359,6 +359,11 @@
       (window-erase-viewport stream)
       (when (extended-output-stream-p stream)	;can we assume this?
 	(stream-set-cursor-position stream 0 0)
+	;; This is important since if the viewport position is at some
+	;; -ve position then things get really confused since the
+	;; cursor might be visible at (0,0) and the extent is big
+	;; enough but ....
+	(scroll-extent stream :x 0 :y 0)
 	(setf (stream-baseline stream) (coordinate 0)
 	      (stream-current-line-height stream) (coordinate 0)))
       ;; Flush the old mouse position relative to this window
