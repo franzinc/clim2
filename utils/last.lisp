@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: last.lisp,v 1.4.24.1.14.1 2000/08/11 00:03:57 cley Exp $
+;; $Id: last.lisp,v 1.4.24.1.14.2 2000/08/23 21:58:12 cley Exp $
 
 ;;; All this is allegro-sepcific.
 
@@ -24,8 +24,9 @@
 ;;; This is, perhaps, a temporary hack to get the EUC stuff loaded at
 ;;; a non-bad time.
 ;;;
-(require :euc)
-(find-external-format :euc)
+(eval-when (:load-toplevel :execute)
+  (require :euc)
+  (find-external-format :euc))
 
 #-(version>= 5 0 pre-final 16)
 (load-patches "patch" "sys:;update-clim;*.fasl")

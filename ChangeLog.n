@@ -11,6 +11,19 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.2.2.21.5.4
+
+2000-08-23 tfb@cley.com (Tim Bradshaw)
+
+	* utils/last.lisp: put the require of :euc inside an eval-when
+	  to keep the compiler happy (no need to load it at compile
+	  time anyway).
+	* clim/clim-defs.lisp, clim/standard-types.lisp,
+	  clim/translators.lisp: added excl:defun-protos and changed
+	  order of definitions to stop warnings about
+	  dynamic-extent-ness of arguments changing.
+
+*******************************************************************************
 2.2.2.21.5.3
 
 2000-08-17 tfb@cley.com (Tim Bradshaw)

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: clim-defs.lisp,v 1.29 1999/07/19 22:25:10 layer Exp $
+;; $Id: clim-defs.lisp,v 1.29.42.1 2000/08/23 21:58:11 cley Exp $
 
 (in-package :clim-internals)
 
@@ -221,6 +221,12 @@
         (push `((presentation-subtypep-1 ,pt-var ',type)
                 ,@body)
               new-clauses)))))        ;eval-when
+
+#+allegro
+(excl:defun-proto invoke-with-input-context (type override body-continuation 
+				  context-continuation)
+  (declare (dynamic-extent body-continuation context-continuation)))
+
 
 (defmacro with-input-context ((type &key override) 
                               (&optional object-var type-var event-var options-var)
