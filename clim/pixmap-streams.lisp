@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/clim/pixmap-streams.lisp,v 1.24 1997/02/05 01:44:23 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/pixmap-streams.lisp,v 1.25 1997/09/03 04:03:29 tomj Exp $
 
 (in-package :clim-internals)
 
@@ -22,7 +22,7 @@
 ;;--- Note that, since this calls the continuation on the original stream
 ;;--- instead of the pixmap stream, things like WINDOW-CLEAR will affect
 ;;--- the wrong stream
-#-Allegro        ;--- SWM is willing to live with this, but not CER
+#-(or Allegro aclpc) ;;--- SWM is willing to live with this, but not CER
 (defmethod invoke-with-output-to-pixmap ((stream output-protocol-mixin) continuation
                                          &key width height)
   (let ((record
@@ -43,7 +43,7 @@
       (replay record pixmap-stream)
       (slot-value pixmap-medium 'silica::pixmap))))
 
-#+Allegro
+#+(or Allegro aclpc)
 (defmethod invoke-with-output-to-pixmap ((stream output-protocol-mixin) continuation
                                                                         &key width height)
   (let (record)
@@ -106,16 +106,28 @@
            record stream +everywhere+
            (- (bounding-rectangle-left record))
            (- (bounding-rectangle-top record)))
+	  ;;--- on windoze, ideally we would create two output records, one
+	  ;;--- in light 3d-color and one in dark 3d-color, replay the light
+	  ;;--- one and then draw the dark one over it offset up and to the
+	  ;;--- left by one pixel.  Need to associate a palette with the
+	  ;;--- button in order to do this, though, and I haven't yet figured
+	  ;;--- out how to do that...
           (when gray-out
             (draw-rectangle* stream 0 0 width height
-                             :ink +gray-out-ink+ :filled t)))))))
+                             :ink #-(or aclpc acl86win32) +gray-out-ink+
+			     ;;--- no stipples on windoze, but
+			     ;;--- unfortunately this solution just
+			     ;;--- paints an ugly white box rather than
+			     ;;--- doing the gray-out thang. -tjm
+			     #+(or aclpc acl86win32) +white+
+			     :filled t)))))))
 
-;;; This code would be nice to use since it will eliminate the
-;;; creation of a whole bunch of pixmaps. However, quite often you get
-;;; multiple text output records and presentations. I suppose in
-;;; theory this could be handled by making sure that the
-;;; text-output-records line up nicely but........ This is tricky and
-;;; will be more efficient than creating a pixmap?
+;;; This code would be nice to use since it will eliminate the creation of
+;;; a whole bunch of pixmaps. However, quite often you get multiple text
+;;; output records and presentations. I suppose in theory this could be
+;;; handled by making sure that the text-output-records line up nicely
+;;; but........ This is tricky and will be more efficient than creating a
+;;; pixmap?
 
 #+ignore
 (defun find-single-text-output-record (record)

@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/tk-silica/xt-pixmaps.lisp,v 1.23 1997/02/05 01:54:16 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/tk-silica/xt-pixmaps.lisp,v 1.24 1997/09/03 04:03:46 tomj Exp $
 
 
 (in-package :xm-silica)
@@ -180,28 +180,40 @@
 				     (height (pixmap-height pixmap)))
   (declare (optimize (speed 3) (safety 0)))
   (let* ((image (tk::get-image pixmap :x x :y y :width width :height height))
+	 (hicolor-p (> (tk::image-depth image) 8))
 	 (pattern-data (make-array (list height width)))
 	 ;; warning this assumes a max depth of 8. For larger depths
 	 ;; we should use a sparse array
-	 (pixels (make-array 256))
+	 (pixels (or hicolor-p (make-array 256)))
 	 (colors nil)
 	 (color-count -1)
 	 (palette (port-default-palette (port pixmap))))
     (declare (simple-vector pixels)
 	     (type (simple-array t (* *)) pattern-data))
+    #+ignore
     (assert (not (> (tk::image-depth image) 8)) ()
       "~s doesn't support images of depth greater than 8" 'make-pattern-from-pixmap)
     (dotimes (w width)
       (dotimes (h height)
 	(let ((pixel (x11:xgetpixel image w h)))
 	  (setf (aref pattern-data h w)
-	    (or (svref pixels pixel)
-		(let ((color (device-color-color
-			      (make-device-color palette pixel))))
-		  (push color colors)
-		  (setf (svref pixels pixel)
-		    (incf color-count))))))))
+	    (if hicolor-p
+		;; slow but better than nothing
+		(let* ((color (device-color-color
+			       (make-device-color palette pixel)))
+		       (index (position color colors)))
+		  (if index
+		      (- color-count index)
+		    (progn
+		      (push color colors)
+		      (incf color-count))))
+	      ;; 8-bit image
+	      (or (svref pixels pixel)
+		  (let ((color (device-color-color
+				(make-device-color palette pixel))))
+		    (push color colors)
+		    (setf (svref pixels pixel)
+		      (incf color-count)))))))))
     (tk::destroy-image image)
     (make-pattern pattern-data
 		  (nreverse colors))))
-

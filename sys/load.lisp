@@ -47,7 +47,7 @@
 #+aclpc (clim-defsystem:load-system "aclpc-clim")
 #+acl86win32 (load-system 'aclnt-clim)
 
-(unless (and (boundp *no-clim-demos*) *no-clim-demos*)
+(unless (and (boundp '*no-clim-demos*) *no-clim-demos*)
   #+aclpc (load (climpath "test\\test-suite.fsl"))
   #+acl86win32 (load (climpath "test\\test-suite.fasl"))
   #+aclpc (load (climpath "demo\\sysdcl-pc.lisp"))

@@ -271,7 +271,7 @@
 (defmethod dc-image-for-ink (medium (ink pattern))
   (multiple-value-bind (array designs)
     (decode-pattern ink)
-	(setq array (re-order-hack array))
+	#+acl86win32 (setq array (re-order-hack array))
 	(unless (= (length designs) 2)
 	  (return-from dc-image-for-ink
 				   (dc-image-for-multi-color-pattern
@@ -625,18 +625,18 @@ stipples are not supported yet."))
 		     ;; drawing a pie slice
 		     (win::pie
 		       dc left top right bottom
-		       (round (+ center-x (* (cos start-angle) x-radius)))
-		       (round (- center-y (* (sin start-angle) y-radius)))
-		       (round (+ center-x (* (cos end-angle) x-radius)))
-		       (round (- center-y (* (sin end-angle) y-radius)))))
+		       (round (1- (+ center-x (* (cos start-angle) x-radius))))
+		       (round (1- (- center-y (* (sin start-angle) y-radius))))
+		       (round (1- (+ center-x (* (cos end-angle) x-radius))))
+		       (round (1- (- center-y (* (sin end-angle) y-radius))))))
 		    (t
 		      ;; drawing an arc
 		      (win::arc
 			dc left top right bottom
-			(round (+ center-x (* (cos start-angle) x-radius)))
-			(round (- center-y (* (sin start-angle) y-radius)))
-			(round (+ center-x (* (cos end-angle) x-radius)))
-			(round (- center-y (* (sin end-angle) y-radius))))))
+			(round (1- (+ center-x (* (cos start-angle) x-radius))))
+			(round (1- (- center-y (* (sin start-angle) y-radius))))
+			(round (1- (+ center-x (* (cos end-angle) x-radius))))
+			(round (1- (- center-y (* (sin end-angle) y-radius)))))))
 	      )))))))
 
 (defmethod medium-draw-string* ((medium acl-medium)

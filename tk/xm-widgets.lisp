@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/tk/xm-widgets.lisp,v 1.26 1997/02/05 01:53:25 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/tk/xm-widgets.lisp,v 1.27 1997/09/03 04:03:43 tomj Exp $
 
 (in-package :tk)
 
@@ -243,6 +243,13 @@
 	 (black (x11::xblackpixel display 0)))
     (xm_get_pixmap screen value white black)))
 
+#+ignore
 (defmethod convert-resource-out ((parent t) (type (eql 'text-position)) value)
+  (error 'foo)
+  value)
+
+#+ignore				; now in resources...
+(defmethod convert-resource-in ((parent t) (type (eql 'text-position)) value)
+  (error 'foo)
   value)
 

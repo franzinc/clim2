@@ -92,12 +92,13 @@
 	   gadget-id)
       ;;mm: defined in acl-widg.lsp later
       (declare (special silica::*hbutton-width* silica::*hbutton-height*))
-      (assert (eq parent parent2) ()
-	      "parents don't match!")      
+      (assert (eq parent parent2) () "parents don't match!")
+      ;; Wouldn't this COND work better as a pile of methods, or at least a
+      ;; typecase? JPM 14Aug97
       (cond ((typep sheet 'silica::scroller-pane)
 	     (setq msscrollwin t)
-	     (setq scroll (and (silica::scroller-pane-scroll-bar-policy sheet)
-			       (not (scroller-pane-gadget-supplies-scrolling-p sheet)))))
+	     (setq scroll (and (not (scroller-pane-gadget-supplies-scrolling-p sheet))
+			       (silica::scroller-pane-scroll-bar-policy sheet))))
 	    ((typep sheet 'silica::hlist-pane)
       	     (setq control :hlist)
 	     ;;mm: allocate gadget-id per parent
@@ -142,9 +143,14 @@
              (setq gadget-id (silica::allocate-gadget-id sheet))
 	     (setq value (slot-value sheet 'silica::value))
 	     (setf editstyle
-		   (logior pc::ES_MULTILINE pc::ES_AUTOHSCROLL 
-                           pc::ES_AUTOVSCROLL pc::ES_LEFT
-                           pc::WS_BORDER)))
+	       #+ignore ;; jpm Aug97 fixes large fonts problem
+	       (logior pc::ES_MULTILINE pc::ES_AUTOHSCROLL 
+		       pc::ES_AUTOVSCROLL pc::ES_LEFT
+		       pc::WS_BORDER)
+	       #-ignore
+	       (logior pc::ES_AUTOHSCROLL pc::ES_LEFT pc::WS_BORDER))
+	     (unless (typep sheet 'silica::mswin-text-field)
+               (setf editstyle (logior editstyle pc::ES_MULTILINE pc::ES_AUTOVSCROLL))))
 	    ((typep sheet 'silica::hbutton-pane)
 	     (setq control :hbutt)
 	     ;;mm: allocate gadget-id per parent
@@ -180,8 +186,9 @@
 					    :height (pattern-height label))
 				  (draw-pattern* stream label 0 0)))
 			    label))
-			(setq buttonstyle (logior buttonstyle
-						  win::BS_OWNERDRAW)
+			(setq buttonstyle win::BS_OWNERDRAW ;; pnc Aug97 for clim2bug740
+			                  #+ignore (logior buttonstyle
+							   win::BS_OWNERDRAW)
 			      label nil)))
 		     (pc::hbutton-open parent gadget-id
 				       left top width height 
@@ -502,8 +509,15 @@
 		      pldl
 		      ptdt
 		      (+ (- right left) dw)
-		      (+ (- bottom top)
-			 dh
+		      (+ (- bottom top) dh
+			 ;; kludge added back in -tjm Aug97
+			 (if (and *use-native-menubar*
+				  ;; how to verify that sheet's frame has a
+				  ;; menu bar? -tjm
+				  (zerop (+ (win:GetSystemMetrics win:SM_CYCAPTION)
+					    (win:GetSystemMetrics win:SM_CYFRAME)
+					    dt)))
+			     (win:GetSystemMetrics win:SM_CYMENU) 0)
 			 ;; got rid of the menu-bar kludge factor -
 			 ;; doesn't seem to be needed anymore
 			 ;; (cim 10/3/96)  

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/clim/gestures.lisp,v 1.24 1997/02/05 01:43:37 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/gestures.lisp,v 1.25 1997/09/03 04:03:28 tomj Exp $
 
 (in-package :clim-internals)
 
@@ -508,6 +508,9 @@
 (define-gesture-name :line      :keyboard (:line))
 (define-gesture-name :escape    :keyboard (:escape))
 
+(define-gesture-name :select      :keyboard (:select) :unique nil)
+(define-gesture-name :insert      :keyboard (:insert))
+(define-gesture-name :home        :keyboard (:home))
 (define-gesture-name :end         :keyboard (:end))
 (define-gesture-name :abort       :keyboard #+Genera (:abort)
                                             #+Cloe-Runtime (:escape)
@@ -515,6 +518,7 @@
 (define-gesture-name :help        :keyboard (:help))
 (define-gesture-name :complete    :keyboard (:complete)) ; not X
 (define-gesture-name :scroll      :keyboard (:scroll)) ; not X
+(define-gesture-name :scroll-up   :keyboard (:scroll-up)) ; aka prev, page up
 (define-gesture-name :refresh     :keyboard (:refresh)) ; not X
 (define-gesture-name :clear-input :keyboard (:clear-input)) ; not X
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/test/test-suite.lisp,v 1.81 1997/05/31 01:00:40 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/test/test-suite.lisp,v 1.82 1997/09/03 04:03:41 tomj Exp $
 
 (in-package :clim-user)
 
@@ -53,12 +53,15 @@ What about environment issue?
        (defun ,name (,stream)
          ,@body))))
 
-(defun write-test-caption (caption)
-  (let ((stream (get-frame-pane *application-frame* 'caption-pane)))
-    (window-clear stream)
+(defun write-test-caption (caption &key (clear-p t))
+  (let* ((stream (get-frame-pane *application-frame* 'caption-pane))
+	 (stream-width (bounding-rectangle-width (window-viewport stream))))
+    (when clear-p (window-clear stream))
     (when caption
-      (filling-output (stream :fill-width '(80 :character))
-        (write-string caption stream)))))
+      (filling-output (stream :fill-width (list stream-width :pixel))
+        (write-string caption stream))
+      (window-set-viewport-position stream 0 (if clear-p 0
+					       (stream-line-height stream))))))
 
 
 ;;; General graphics and text drawing tests
@@ -201,8 +204,10 @@ What about environment issue?
                       (,pi ,(* 1.5 pi))
                       (,(* 1.5 pi) ,(* 2 pi))))
       (formatting-row (stream)
-        (formatting-cell (stream)
-          (format stream "Arc from ~3F to ~3F" (car angles) (second angles)))
+        (formatting-cell (stream :align-y :center)
+	  (format stream "Arc from ~api to ~api~%~1@*and from ~api to ~@*~api"
+		  (rational (/ (car angles) pi))
+		  (rational (/ (second angles) pi))))
         (formatting-cell (stream)
           (draw-circle* stream 0 0 50
                         :ink +red+ :filled t
@@ -1335,13 +1340,13 @@ people, shall not perish from the earth.
   (stream-set-cursor-position stream 10 10)
   (surrounding-output-with-border (stream :shape :rectangle)
     (write-string "a rectangle" stream))
-  (stream-set-cursor-position stream 10 30)
-  (surrounding-output-with-border (stream :shape :rectangle :ink +yellow+ :filled t)
+  (stream-set-cursor-position stream 10 40)
+  (surrounding-output-with-border (stream :shape :rectangle :ink +blue+ :filled t)
     (write-string "a filled rectangle" stream))
-  (stream-set-cursor-position stream 10 50)
+  (stream-set-cursor-position stream 10 70)
   (surrounding-output-with-border (stream :shape :drop-shadow)
     (write-string "a dropshadow" stream))
-  (stream-set-cursor-position stream 10 70)
+  (stream-set-cursor-position stream 10 100)
   (surrounding-output-with-border (stream :shape :underline)
     (write-string "an underline" stream)))
 
@@ -2548,6 +2553,12 @@ Luke Luck licks the lakes Luke's duck likes."))
                  (first vresults)
                (let ((results (rest (butlast (sort vresults #'<)))))
                  (/ (apply #'+ results) (length results))))))
+	#-ignore (write-test-caption
+		  (format nil
+		      "~%Each run of ~A took about ~3$ real, ~3$ virtual, ~3$ v/r seconds"
+		      name time vtime (float (/ vtime time)))
+		  :clear-p nil)
+	#+ignore
         (format (get-frame-pane *application-frame* 'caption-pane)
             "~%Each run of ~A took about ~3$ real, ~3$ virtual, ~3$ v/r seconds"
           name time vtime (float (/ vtime time)))
@@ -3548,11 +3559,13 @@ Luke Luck licks the lakes Luke's duck likes."))
   (:command-definer nil)
   (:panes
    (caption-pane :application
-              :scroll-bars :vertical
-                 :height 50 :max-height 50
+		 :text-style '(:sans-serif :roman :normal)
+		 :scroll-bars :vertical
+                 :height '(2 :line) :max-height '(2 :line)
                  :output-record
                  (make-instance (clim-tests-history-class *application-frame*)))
    (display-pane :application
+		 :text-style '(:serif :roman :normal)
                  :output-record
                  (make-instance (clim-tests-history-class *application-frame*))))
   (:layouts

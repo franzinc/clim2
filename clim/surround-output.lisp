@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/clim/surround-output.lisp,v 1.13 1997/02/07 00:20:58 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/surround-output.lisp,v 1.14 1997/09/03 04:03:32 tomj Exp $
 
 (in-package :clim-internals)
 
@@ -58,7 +58,8 @@
     (let ((offset (if filled 2 1)))
       (draw-rectangle* stream
 		       (- left offset) (- top offset)
-		       (+ right offset) (+ bottom offset)
+		       (+ right offset #+(or aclpc acl86win32) 1)
+		       (+ bottom offset #+(or aclpc acl86win32) 1)
 		       :filled filled))
     ;; Y offset for text cursor is 3 if filled else 2 + line thickness
     (if filled 3 (+ 2 (line-style-thickness line-style)))))
@@ -87,14 +88,16 @@
 	 (y2 (+ bottom offset)))
     (draw-line* stream x1 y1 x2 y1)
     (draw-line* stream x1 y1 x1 y2)
-    (draw-polygon* stream (list x2 y1 x2 y2 x1 y2)
+    (draw-line* stream x1 y2 left y2)
+    (draw-line* stream x2 y1 x2 top)
+    (draw-polygon* stream (list left (1+ y2) (1+ x2) (1+ y2) (1+ x2) top)
 		   :closed nil :filled nil :line-style +drop-shadow-line-style+))
   ;; Y offset for text cursor is 4
   4)
 
 (define-border-type :underline (stream record left top right #+(or aclpc acl86win32) bottom)
   (let ((baseline (find-text-baseline record stream)))
-    (incf top baseline)
+    (incf top (1+ baseline))
     (draw-line* stream
 		;; can't get the baseline correctly on windows?  when we
 		;; can we should remember to switch this back --tjm

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/clim/drag-and-drop.lisp,v 1.16 1997/05/31 01:00:29 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/drag-and-drop.lisp,v 1.17 1997/09/03 04:03:27 tomj Exp $
 
 (in-package :clim-internals)
 
@@ -315,7 +315,7 @@
 (defmethod frame-drag-and-drop-feedback
            ((frame standard-application-frame) presentation stream
             initial-x initial-y new-x new-y state)
-  (declare (optimize (speed 3) (safety 0) (debug 0)))
+  (declare (optimize (speed 3) (safety 0) #-aclpc (debug 0)))
   (declare (ignore state))        ;we'll just use XOR
   (multiple-value-bind (xoff yoff)
       (convert-from-relative-to-absolute-coordinates

@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/tk-silica/image.lisp,v 1.22 1997/05/31 01:00:45 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/tk-silica/image.lisp,v 1.23 1997/09/03 04:03:45 tomj Exp $
 
 (in-package :xm-silica)
 
@@ -488,19 +488,22 @@
 			      (case (peek-char t s)
 				(#\# ; rgb
 				 (read-char s)
-				 (let ((number (read-a-token #'(lambda (c) (digit-char-p c 16)) s)))
-				   (assert (= (length number) 12) ()
-				     "Expected 12 character hex string. Got ~S" number)
-				   (flet ((get-integer (i)
-					    (/ (parse-integer number
-							   :start (* i 4)
-							   :end (* (1+ i) 4)
-							   :radix 16)
-					       #.(1- (ash 1 16)))))
-				     (make-rgb-color
-				      (get-integer 0)
-				      (get-integer 1)
-				      (get-integer 2)))))
+				 (let* ((number (read-a-token #'(lambda (c) (digit-char-p c 16)) s))
+					(color-string-length (length number)))
+				   (assert (or (= color-string-length 12)
+					       (= color-string-length 6)) ()
+				     "Expected 6 or 12 character hex string. Got ~S" number)
+				   (let ((comp-length (/ color-string-length 3)))
+				     (flet ((get-integer (i)
+					      (/ (parse-integer number
+								:start (* i comp-length)
+								:end (* (1+ i) comp-length)
+								:radix 16)
+						 (if (= comp-length 2) 255 65535))))
+				       (make-rgb-color
+					(get-integer 0)
+					(get-integer 1)
+					(get-integer 2))))))
 				(#\% ; hsv
 				 (read-char s)
 				 (error "HSV color spec not implemented")

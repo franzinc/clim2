@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/tk-silica/xt-silica.lisp,v 1.107 1997/05/31 01:00:47 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/tk-silica/xt-silica.lisp,v 1.108 1997/09/03 04:03:46 tomj Exp $
 
 (in-package :xm-silica)
 
@@ -44,7 +44,10 @@
      (cursor-cache :initform nil)
      (font-cache :initform (make-hash-table :test #'equal))
      (compose-status :initform (x11:make-xcomposestatus)
-		     :reader port-compose-status))
+		     :reader port-compose-status)
+     #+ignore ;; figure out how to get this translation
+     (fm-ornamentation-offset :initform nil
+			      :accessor port-fm-ornamentation-offset))
   (:default-initargs :allow-loose-text-style-size-mapping t
 		     :deep-mirroring t)
   (:documentation "The port for X intrinsics based ports"))
@@ -1169,10 +1172,15 @@
 
 (define-xt-keysym (keysym 255 #xde) :end)
 (define-xt-keysym (keysym 255 #x57) :end)
+;;--- not on lisp machines?
+(define-xt-keysym (keysym 255 #x50) :home)
+(define-xt-keysym (keysym 255 #x63) :insert)
+(define-xt-keysym (keysym 255 #x60) :select)
 
 (define-xt-keysym (keysym 255 #x68) :complete) ; Not on my keyboard
 (define-xt-keysym (keysym 255 #x69) :abort) ; Not on my keyboard
 (define-xt-keysym (keysym 255 #x56) :scroll) ; not on my keyboard
+(define-xt-keysym (keysym 255 #x55) :scroll-up) ; aka prev, page up
 (define-xt-keysym (keysym 255 #x61) :refresh) ; ditto
 (define-xt-keysym (keysym 255 #x0b) :clear-input) ; ditto
 

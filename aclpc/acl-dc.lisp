@@ -200,6 +200,9 @@
 
 ;;;
 
+#+ignore
+(defconstant CLR_NONE #xffffffff) ;; jpm Aug97
+
 (defun set-dc-for-drawing (dc image line-style)
   (let* ((dashes (line-style-dashes line-style))
          (thickness (max 1 (round (line-style-thickness line-style))))
@@ -215,9 +218,8 @@
 			         thickness
 			         (dc-image-text-color image))))))
     (win::selectObject dc pen)
-    ; (when dashes (win::setBkColor dc ???)) 
-    ; might want to setBkColor to textcolor of background-DC-image
-    )
+    #+ignore (when dashes (win::setBkColor dc CLR_NONE)) ;; jpm Aug97
+    (when dashes (win::setBkMode dc win:TRANSPARENT))) ;; tjm Aug97
   (win::selectObject dc *null-brush*)
   (win::setRop2 dc (dc-image-rop2 image))
   image)

@@ -302,46 +302,57 @@
 
 (defmethod handle-event ((pane mswin-text-edit) (event focus-out-event))
   (let ((mirror (sheet-direct-mirror pane)))
-    (cerror "do it" "about to set value ~a to ~a" (gadget-value pane) pane)
+    #+debugg (cerror "do it" "about to set value ~a to ~a" (gadget-value pane) pane)
     (setf (gadget-value pane :invoke-callback t) (gadget-value pane))))
 
-#-aclpc
-(defun xlat-newline-return (str)
-  (let* ((subsize (length str))
-		 (nnl (let ((nl 0))
-				(dotimes (i subsize)
-				  (if (char= (char str i) #\Newline) (incf nl)))
-				nl))
-		 (cstr (ct::callocate (:char *) :size (+ 1 nnl subsize)))
-		 (pos 0))
-	(dotimes (i subsize)
-	  (when (char= (char str i) #\Newline)
-		(ct::cset (:char 256) cstr ((fixnum pos)) (char-int #\Return))
-		(incf pos))
-	  (ct::cset (:char 256) cstr ((fixnum pos)) (char-int (char str i)))
-	  (incf pos))
-	(ct::cset (:char 256) cstr ((fixnum pos)) (char-int #\NULL))
-	cstr))
+(defmethod handle-event :after ((pane mswin-text-edit) (event window-change-event))
+  (focus-out-callback pane (gadget-client pane) (gadget-id pane)))
 
-#+aclpc
 (defun xlat-newline-return (str)
   (let* ((subsize (length str))
-		 (nnl (let ((nl 0))
-				(dotimes (i subsize)
-				  (if (char= (char str i) #\Newline) (incf nl)))
-				nl))
-		 (cstr (ct::callocate (:char *) :size (+ 1 nnl subsize)))
-		 (pos 0))
-	(dotimes (i subsize)
-	  (cond ((char= (char str i) #\Newline)
-			 (ct::cset (:char *) cstr ((fixnum pos)) 13)
-			 (incf pos)
-			 (ct::cset (:char *) cstr ((fixnum pos)) 10)
-			 (incf pos))
-			(t (ct::cset (:char *) cstr ((fixnum pos)) (char-int (char str i)))
-			   (incf pos))))
-	(ct::cset (:char *) cstr ((fixnum pos)) 0)
-	cstr))
+	 (nnl (let ((nl 0))
+		(dotimes (i subsize)
+		  (when (char= (char str i) #\Newline)
+		    (incf nl)))
+		nl))
+	 (cstr (ct::callocate (:char *) :size (+ 1 nnl subsize)))
+	 (pos 0))
+    #+acl86win32
+    (dotimes (i subsize)
+      (when (char= (char str i) #\Newline)
+	(ct::cset (:char 256) cstr ((fixnum pos)) (char-int #\Return))
+	(incf pos))
+      (ct::cset (:char 256) cstr ((fixnum pos)) (char-int (char str i)))
+      (incf pos))
+    #+aclpc
+    (dotimes (i subsize)
+      (cond ((char= (char str i) #\Newline)
+	     (ct::cset (:char *) cstr ((fixnum pos)) 13)
+	     (incf pos)
+	     (ct::cset (:char *) cstr ((fixnum pos)) 10)
+	     (incf pos))
+	    (t (ct::cset (:char *) cstr ((fixnum pos)) (char-int (char str i)))
+	       (incf pos))))
+    ;; terminate with null
+    (ct::cset #+acl86win32 (:char 256) #+aclpc (:char *) cstr ((fixnum pos)) 0)
+    cstr))
+
+;; pr Aug97
+(defun unxlat-newline-return (str)
+  (let* ((subsize (length str))
+	 (nnl (let ((nl 0))
+		(dotimes (i subsize)
+		  #+acl86win32 (when (char= (char str i) #\Return) (incf nl))
+		  #+aclpc (when (= (char-int (char str i)) 13) (incf nl)))
+		(- nl)))
+	 (cstr (make-string (+ nnl subsize)))
+	 (pos 0))
+    (dotimes (i subsize)
+      (unless #+acl86win32 (char= (char str i) #\Return)
+	      #+aclpc (= (char-int (char str i)) 13)
+	 (setf (char cstr pos) (char str i))
+	 (incf pos)))
+    cstr))
 
 ;; added back with mods by pr 1May97 (from whence?) -tjm 23May97
 (defmethod (setf gadget-value) :after (str (pane mswin-text-edit) &key invoke-callback)
@@ -375,7 +386,8 @@
       (let* ((wl (win::SendMessage mirror win::WM_GETTEXTLENGTH 0 0 #-acl86win32 :static))
 	     (teb (make-string wl))
 	     (tlen (win::GetWindowText mirror teb (1+ wl))))
-        (setf value teb)
+	(setf teb (unxlat-newline-return teb)) ;; pr Aug97
+        (setf value (length teb))
         ;; By the way, does anyone know why the second value is returned? -smh
 	(values teb tlen))
       (values value (length value)))))
@@ -467,8 +479,24 @@
   (load "user32.dll"))
   
 #+acl86win32
-(ff:defforeign 'win::drawedge :entry-point "DrawEdge"
+(ff:defforeign 'win::DrawEdge :entry-point "DrawEdge"
   :arguments '(integer integer integer integer) :return-type :integer)
+
+#+aclpc
+(ct:defun-dll drawedge
+ ((hdc :long-handle)
+  (box :long) ;; lprect
+  (style :long)
+  (type :long))
+ :library-name "user32.dll"
+ :return-type :long-bool
+ :entry-name "DrawEdge")
+
+#+aclpcxx
+(ct::defun-dll win::DrawEdge ((a :long) (b :long) (c :long) (d :long)) 
+  :return-type :short
+  :library-name "user32.dll"
+  :entry-name "DrawEdge")
 
 ;; many more bdr styles - see winuser.h
 
@@ -490,6 +518,7 @@
       (when selected
 	(incf x)
 	(incf y))
+      #+acl86win32 ;; tjm Aug97 only on 4.3.2 for now
       (win::DrawEdge #+aclpc (pc::handle-value win::hdc hdc) #+acl86win32 hdc
 		     rect 
 		     (if selected
@@ -515,6 +544,7 @@
       (when selected
 	(incf x)
 	(incf y))
+      #+acl86win32 ;; tjm Aug97 only on 4.3.2 for now
       (win::DrawEdge #+aclpc (pc::handle-value win::hdc hdc) #+acl86win32 hdc
 		     rect 
 		     (if selected
@@ -721,7 +751,6 @@
 					:static :static)))
       (pc::InvalidateRect mirror ct::hnull pc::true)))) ;; make sure it updates
 
-
 ;;--- The idea is the the option pane itself is a pushbutton which, when
 ;;--- pressed, pops up a menu containing the options.
 (defmethod initialize-instance :after ((pane mswin-option-pane) &key visible-items)
@@ -891,10 +920,11 @@
           (tsh 0))
       (multiple-value-setq (name-width tsh)
 	(compute-set-gadget-dimensions pane))
-      (setq name-height (* 2 #||(max 4 (min 10 (length items)))||# tsh))
+      ;; this specifies the regular size, not the dropped-down size
+      (setq name-height tsh #+ignore (* (+ 2 (length items)) tsh))
       (make-space-requirement
        :width (+ name-width 20)
-       :height (+ name-height 5)))))
+       :height (+ name-height 7)))))
 
 ;;; silica:separator
 
@@ -913,11 +943,14 @@
    (frame :initarg :frame)
    (frame-manager :initarg :frame-manager))||#)
 
+#+ignore
 (defmethod compute-gadget-label-size ((pane separator))
   (values 0 0))
 
+#+ignore
 (defmethod note-sheet-adopted ((sep separator)) nil)
 
+#+ignore
 (defmethod compose-space ((pane separator) &key width height)
   (multiple-value-bind (w h)
       (compute-gadget-label-size pane)
@@ -950,11 +983,10 @@
 				    left top right bottom)
   (fix-coordinates left top right bottom)
   (let* ((hwnd (sheet-mirror sheet))
-	 (height (+ (* (win:sendMessage hwnd win::CB_GETCOUNT 0 0)
-		       ;; I'd have expected the wparam to be 0 here
-		       ;; according to the docs but this doesn't work
-		       ;; right (cim 9/25/96)
-		       (win:sendMessage hwnd win::CB_GETITEMHEIGHT -1 0))
+	 (height (* (+ 2 (win:sendMessage hwnd win::CB_GETCOUNT 0 0))
+		    ;; I'd have expected the wparam to be 0 here
+		    ;; according to the docs but this doesn't work
+		    ;; right (cim 9/25/96)
 		    (win:sendMessage hwnd win::CB_GETITEMHEIGHT -1 0))))
     (win::setWindowPos hwnd
 		       (ct::null-handle win:hwnd) ; we really want win:HWND_TOP
@@ -979,7 +1011,9 @@
 	  ;;(break "insert gadget item [~a @ ~a]" str pos)
 	  (pc::SendMessage-with-pointer mirror pc::CB_INSERTSTRING pos str
 					:static :static)))
-      (pc::InvalidateRect mirror ct::hnull pc::true)))) ;; make sure it updates
+      ;; make sure it updates
+      (pc::InvalidateRect mirror ct::hnull pc::true)
+      (note-sheet-region-changed pane))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

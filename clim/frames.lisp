@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/clim/frames.lisp,v 1.85 1997/05/31 01:00:30 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/frames.lisp,v 1.86 1997/09/03 04:03:27 tomj Exp $
 
 (in-package :clim-internals)
 
@@ -104,6 +104,30 @@
         (frame-manager-palette framem)
       (and (port frame)
            (port-default-palette (port frame))))))
+
+#+(or aclpc acl86win32) ;; pr Aug97
+(defun clean-frame (frame)
+  ;; (disable-frame frame)
+  ;; (enable-frame frame)
+  nil)
+
+#+(or aclpc acl86win32) ;; pr Aug97
+(defun frame-find-position (frame)
+  (when frame 
+    (let ((wrect (ct::ccallocate win::rect))
+          (handle (sheet-mirror (frame-top-level-sheet frame))))
+      (win::GetWindowRect handle wrect)
+      (values (ct::cref win::rect wrect win::left) 
+              (ct::cref win::rect wrect win::top)))))
+
+#+(or aclpc acl86win32) ;; pr Aug97
+(defun frame-set-position (frame x y)
+  (win::setWindowPos (sheet-mirror (frame-top-level-sheet frame))
+     (ct::null-handle win::hwnd) ; we really want win::HWND_TOP
+     x y 0 0
+     (logior win::swp_noactivate
+	     win::swp_nozorder
+	     win::swp_nosize)))
 
 (defmethod color-stream-p ((stream stream))
   nil)
@@ -433,8 +457,8 @@
       (unless (and width height)
         (let ((sr (compose-space panes)))
           (setq width  (or width (space-requirement-width sr))
-                height (or height (space-requirement-height sr)))))
-      (limit-size-to-graft width height (graft frame))
+                height (or height (space-requirement-height sr))))
+	(limit-size-to-graft width height (graft frame)))
 
       ;;--- Don't bother with this if the size didn't change?
       ;; +++rl consider making frame-resizable t the default instead
@@ -834,62 +858,92 @@
                                     &key command-parser command-unparser
                                          partial-command-parser
                                          (prompt "Command: "))
-  ;; Enable the frame now
-  (unless (eq (frame-state frame) :enabled)
-    (enable-frame frame))
-  (loop
-    (let* ((*standard-output*
-            (or (frame-standard-output frame) *standard-output*))
-           (*standard-input*
-            (or (frame-standard-input frame) *standard-output*))
-           (*query-io*
-            (or (frame-query-io frame) *standard-input*))
-           (*error-output*
-            (or (frame-error-output frame) *standard-output*))
-           (*pointer-documentation-output*
-            (frame-pointer-documentation-output frame))
-           (interactor
-            (not (null (find-frame-pane-of-type frame 'interactor-pane))))
-           (*command-parser*
-            (or command-parser
-                (if interactor
-                    #'command-line-command-parser
-                  #'menu-command-parser)))
-           (*command-unparser*
-            (or command-unparser
-                #'command-line-command-unparser))
-           (*partial-command-parser*
-            (or partial-command-parser
-                (if interactor
-                    #'command-line-read-remaining-arguments-for-partial-command
-                  #'menu-read-remaining-arguments-for-partial-command)))
-           (command-stream
-            ;;--- We have to ask the frame since we do not want to
-            ;;--- just pick up a stream from the dynamic environment
-            (let ((si (or (frame-standard-input frame)
-                          (frame-standard-output frame))))
-              (typecase si
-                (output-protocol-mixin si)
-                (t (frame-top-level-sheet frame))))))
-      ;; The read-eval-print loop for applications...
-      (letf-globally (((frame-actual-pointer-documentation-pane frame)
-                       *pointer-documentation-output*))
-        (loop
-          ;; Redisplay all the panes
-          (catch-abort-gestures ("Return to ~A command level" (frame-pretty-name frame))
-            (redisplay-frame-panes frame)
-            (when interactor
-              (fresh-line *standard-input*)
-              (if (stringp prompt)
-                  (write-string prompt *standard-input*)
-                (funcall prompt *standard-input* frame)))
-            (let ((command (read-frame-command frame :stream command-stream)))
-              (when interactor
-                (terpri *standard-input*))
-              ;; Need this check in case the user aborted out of a command menu
-              (when command
-                (execute-frame-command frame command)))))))))
-
+  (let #-(or aclpc acl86win32) ()
+       #+(or aclpc acl86win32) (orig-x orig-y new-x new-y)
+    #-(or aclpc acl86win32) ;; Enable the frame now
+    (unless (eq (frame-state frame) :enabled)
+      (enable-frame frame))
+    #+(or aclpc acl86win32) ;; pr Aug97
+    ;;--- looks like he wants to do the ugly growing far off-screen
+    ;;--- and then move the window back in.  Hacky but effective. -tjm
+    (unless (eq (frame-state frame) :enabled)
+      (multiple-value-setq (orig-x orig-y) (frame-find-position frame))
+      (when (and orig-x orig-y)
+        (frame-set-position frame (+ orig-x 10000) (+ orig-y 10000)))
+      ;;(move-sheet (frame-top-level-sheet frame) (+ orig-x 10000) (+ orig-y 10000))
+      (multiple-value-setq (new-x new-y) (frame-find-position frame))
+      (when (and orig-x orig-y new-x new-y 
+                 (not (= new-x (+ orig-x 10000))) (not (= new-y (+ orig-y 10000))))
+        (frame-set-position frame orig-x orig-y)
+        (setf new-x nil new-y nil))
+      (enable-frame frame))
+    (loop
+      (let* ((*standard-output*
+	      (or (frame-standard-output frame) *standard-output*))
+	     (*standard-input*
+	      (or (frame-standard-input frame) *standard-output*))
+	     (*query-io*
+	      (or (frame-query-io frame) *standard-input*))
+	     (*error-output*
+	      (or (frame-error-output frame) *standard-output*))
+	     (*pointer-documentation-output*
+	      (frame-pointer-documentation-output frame))
+	     (interactor
+	      (not (null (find-frame-pane-of-type frame 'interactor-pane))))
+	     (*command-parser*
+	      (or command-parser
+		  (if interactor
+		      #'command-line-command-parser
+		    #'menu-command-parser)))
+	     (*command-unparser*
+	      (or command-unparser
+		  #'command-line-command-unparser))
+	     (*partial-command-parser*
+	      (or partial-command-parser
+		  (if interactor
+		      #'command-line-read-remaining-arguments-for-partial-command
+		    #'menu-read-remaining-arguments-for-partial-command)))
+	     (command-stream
+	      ;;--- We have to ask the frame since we do not want to
+	      ;;--- just pick up a stream from the dynamic environment
+	      (let ((si (or (frame-standard-input frame)
+			    (frame-standard-output frame))))
+		(typecase si
+		  (output-protocol-mixin si)
+		  (t (frame-top-level-sheet frame)))))
+	     #+(or aclpc acl86win32) ;; pr Aug97
+	     (iterations 0))
+	;; The read-eval-print loop for applications...
+	(letf-globally (((frame-actual-pointer-documentation-pane frame)
+			 *pointer-documentation-output*))
+	  (loop
+	    ;; Redisplay all the panes
+	    (catch-abort-gestures ("Return to ~A command level" (frame-pretty-name frame))
+	      (redisplay-frame-panes frame)
+	      (when interactor
+		(fresh-line *standard-input*)
+		(if (stringp prompt)
+		    (write-string prompt *standard-input*)
+		  (funcall prompt *standard-input* frame)))
+	      #+(or aclpc acl86win32) ;; pr Aug97
+	      ;;--- looks like he wants to do the ugly growing far off-screen
+	      ;;--- and then move the window back in.  Hacky but effective. -tjm
+	      (when (= 1 (incf iterations))
+		(multiple-value-bind (x y) (frame-find-position frame)
+		  (when (and x y new-x new-y (> x 9900))
+		    #-ignore (frame-set-position frame (max 0 (- x 10000)) (max 0 (- y 10000)))
+		    #+ignore (move-sheet (frame-top-level-sheet frame) (- x 10000) (- y 10000))))
+		(clean-frame frame)
+		#+no (setf (sheet-enabled-p (frame-top-level-sheet frame)) nil)
+		(unless (eq (frame-state frame) :enabled)
+		  (enable-frame frame)))
+	      (let ((command (read-frame-command frame :stream command-stream)))
+		(when interactor
+		  (terpri *standard-input*))
+		;; Need this check in case the user aborted out of a command menu
+		(when command
+		  (execute-frame-command frame command))))))))))
+  
 ;; Generic because someone might want :BEFORE or :AFTER
 (defmethod frame-exit ((frame standard-application-frame))
   (signal 'frame-exit :frame frame))
@@ -1037,6 +1091,7 @@
   ;; First display all the :accept-values panes, then display the rest.
   ;; We do this to ensure that all side-effects from :accept-values panes
   ;; have taken place.
+  #+moved ;; pr Aug97
   (when *frame-layout-changing-p* (setq force-p t))
   (map-over-sheets #'(lambda (sheet)
                        (when (typep sheet 'accept-values-pane)
@@ -1064,6 +1119,9 @@
     (with-simple-restart (skip-pane-redisplay "Skip redisplaying pane ~S" pane)
       (loop
         (with-simple-restart (retry-pane-redisplay "Retry displaying pane ~S" pane)
+	  #-moved ;; pr Aug97
+	  (when *frame-layout-changing-p*
+            (setq force-p t))
           (unless *sizing-application-frame*
             (unless (member pane (slot-value frame 'initialized-panes))
               (setq force-p t)
@@ -1147,7 +1205,23 @@
   (read-command (frame-command-table frame) :stream stream))
 
 
-#+(or aclpc acl86win32); unqualified first
+;;; This is the wrong modularity... Bury calls in commands for acl case later.
+;;;-- pr Aug97
+(defmacro with-menu-disabled (frame &body body)
+  #+(or aclpc acl86win32)
+  `(unwind-protect 
+      (progn (enable-menu-items ,frame nil) ,@body)
+	  (progn
+		(enable-menu-items ,frame t)
+		(setq *frame* ,frame)))
+  #-acl86win32 `(progn ,@body))
+
+#+(or aclpc acl86win32)
+(defmethod execute-frame-command ((frame standard-application-frame) command)
+  (with-menu-disabled frame ;; pr Aug97
+    (apply (command-name command) (command-arguments command))))
+
+#-(or aclpc acl86win32)
 (defmethod execute-frame-command ((frame standard-application-frame) command)
   (apply (command-name command) (command-arguments command)))
 
@@ -1167,10 +1241,6 @@
           (call-next-method)
           ;; Otherwise arrange to run the command in the frame's process
           (execute-command-in-frame frame command :queuep t)))))
-
-#-(or aclpc acl86win32)
-(defmethod execute-frame-command ((frame standard-application-frame) command)
-  (apply (command-name command) (command-arguments command)))
 
 (defmethod command-defined-p ((frame standard-application-frame) command)
   (or (not (symbolp command))

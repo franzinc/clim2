@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/clim/recording-protocol.lisp,v 1.40 1997/02/05 01:44:49 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/recording-protocol.lisp,v 1.41 1997/09/03 04:03:30 tomj Exp $
 
 (in-package :clim-internals)
 
@@ -1239,6 +1239,15 @@
                     (when parent
                       (delete-output-record record parent errorp))
                     (translate-coordinates xoff yoff left top right bottom)
+		    #-ignore ;; may be faster to send one big rectangle
+		    (if (eq replay-region +nowhere+)
+			(setq replay-region
+			  (make-bounding-rectangle left top right bottom))
+		      (let ((lf2 left) (tp2 top) (rt2 right) (bt2 bottom))
+			(with-slots (left top right bottom) replay-region
+			  (minf left lf2) (minf top tp2)
+			  (maxf right rt2) (maxf bottom bt2))))
+		    #+ignore
                     (setq replay-region
                       (region-union
                        replay-region

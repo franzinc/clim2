@@ -11,6 +11,181 @@ Tests for new features:	<`no new features', `no tests for new features', or
 	* <changes go here...>
 
 *******************************************************************************
+Tue Sep  2 21:00:53 PDT 1997  Tom McClure <tomj@romeo>
+
+
+CLIM 2.2alpha
+
+
+Merged Paul Robertson's latest changes in, also committing many of my
+own fixes, and some from pointnclick.
+
+
+Paul's mods are marked "pr Aug97":
+
+ aclpc/acl-class.lisp - *msg-names* array has 4096 elts but
+                        (apparently?) bogus windows messages greater
+                        than 4096 were coming in, added a check for
+                        this in msg-name
+ aclpc/acl-frames.lisp - new fns map-command-menu-ids and
+                         enable-menu-items, for graying out menu
+                         items when CLIM is busy or modal;
+                         in conjunction with new macro
+                         with-menu-disabled in clim/frames.lisp
+ aclpc/acl-widget.lisp - added unxlat-newline-return for some CRLF
+                         hackery in mswin-text-edit's gadget-value
+ clim/frames.lisp - hacked default-frame-top-level to expose windows
+                    far off screen (at x=10,000 y=10,000) and move
+                    them back when their growing pains are finished.
+                    Fixes bug where window is exposed before :compute
+                    panes figure out how big they should be.
+ clim/standard-types.lisp - hacked simple-lisp-object-parser to act
+                            differently on unexpected EOF on windows (?)
+ silica/framem.lisp - added *in-layout-frame* to acl86win32
+
+My mods (been a while...):
+
+    general:
+
+ several keyboard gestures missing, notably scroll-up and home; fixed
+ in *vk->keysym* in acl-port.lisp, mods also in clim/gestures.lisp,
+ clim/input-editor-commands.lisp and tk-silica/xt-silica.lisp.
+
+ added default prompt-y-offset for most widget prompts, since they
+ looked so dorky with the text way up top.  the prompt-for-accept
+ :around method in clim/accept-values.lisp now alters the stream
+ cursor position by the offset amount before drawing the prompt and
+ alters it again (back up) before drawing the widget.  Fixed some
+ alignment problems while I was at it.
+
+ renamed exit-dialog gesture in accept-values.lisp to default-dialog
+ gesture, since OK isn't always the default.  :newline or :end
+ should execute the default, and :escape has been added as an
+ abort-dialog gesture.  made behavior more consistent.
+
+ clim/activities.lisp: changed default-frame-top-level for activities
+ to correctly bind *standard-output* and *standard-input*.
+
+ changed erase-output-record in clim/record-protocol.lisp to send one
+ big rectangle for erasing instead of several small ones, since users
+ complained that erase-output-record was slow.  Probably wins most of
+ the time.
+
+ clim/surround-output.lisp: improved :shadow look. :underline looks
+ better too (now has one-pixel space between output and underline).
+
+ silica/db-scroll.lisp - update-scroll-bars wasn't taking buffered
+ text-output into consideration, so it would tend to get lost
+ (couldn't scroll down that far).
+
+ optimization of transform-position broke output-recording in the
+ newly added regions of windows that got user-resized to be bigger
+ than their initial size, since the sheet-region gets destructively
+ modified in a bunch of places to avoid consing.  So, I fixed it by
+ commenting out the destructive stuff from sheet-device-region method
+ on sheet-transformation-mixin and haven't seen a performance hit yet.
+
+ improved test/test-suite.lisp's write-test-caption, made minor
+ updates to a couple tests.
+
+ tk/resources.lisp had a hack to make list-boxes work on SGI IRIX
+ 5.x's buggy motif but this broke 'em everywhere else, including IRIX
+ 6.x; also, added text-position for getting and setting the cursor
+ position in a text field since many users had asked for this.
+
+ tk-silica/image.lisp: updated read-bitmap to read 6-character hex RGB
+ values now commonly found in .xpm files.
+
+ tk-silica/xt-pixmaps.lisp: added 24-bit pixmap support for
+ make-pattern-from-pixmap, but this needs to be redone since my
+ quick-and-dirty version is extremely inefficient.
+
+ utils/processes.lisp: frobbed atomic-incf to deal with delta other
+ than 1, for a customer.
+
+     on windows only (includes pnc fixes):
+
+ Proportional scrollbar thumbs on windows!  Also, increased the grain
+ from 100 to 1000, this is now globally settable with the variable
+ *win-scroll-grain* which is set in aclpc/acl-class.lisp; most changes
+ for this are in aclpc/acl-scroll.lisp - this fixes being able to
+ scroll far beyond where there's any output, as well as the problem
+ where the scroll bars wouldn't update when new output scrolled the
+ viewport.  Hooray!
+
+ clim-wind-proc in aclpc/acl-class.lisp includes three fixes from
+ point-n-click: one fixes the mouse cursor problems, another
+ fixes keyboard shiftstate problems (if the user pressed meta it
+ looked like they had pressed control), and a third enables nonstring
+ :printers for radio-box and check-box.
+
+ ellipse-drawing winapi funs were not getting passed the correct
+ params.  fixed in medium-draw-ellipse* in acl-medium.lisp
+
+ pixmap arrays were getting reordered everywhere, but they only needed
+ it on NT.  fixed in dc-image-for-ink pattern method in acl-medium.lisp
+
+ winapi was being asked for both scrollbars regardless of what was
+ desired.  fixed by pnc in realize-mirror in aclpc/acl-mirror.lisp,
+ and in mswin-scroller-pane compose-space and allocate-space methods
+ in aclpc/acl-scroll.lisp.
+
+ switched text-style-mapping from linedrawn vector fonts to truetype
+ fonts on windows.  fixed in acl-port.lisp, also this change somehow
+ revealed that we weren't handling lists as valid text-styles on
+ windows, added text-style-mapping method for lists.
+
+ get-pathname in acl-prel.lisp was passing lisp strings to the ffi
+ when it wanted c strings, and so select-file wouldn't work on
+ windows.  fixed.
+
+ changed space requirements for mswin scroller panes (made 'em taller
+ by one scrollbar thickness, this looks right; compose-space in
+ aclpc/acl-scroll/lisp).  still not right on silica panes (too short).
+
+ Changed *win-scroll-thick* from a constant 18 to actually look at the
+ SystemMetrics.  This fixed the bug where on some systems you could see
+ right through the window near the scrollbars.  in aclpc/acl-scroll.lisp
+
+ Paul recently added xlat-newline-return and unxlat-newline-return in
+ aclpc/acl-widget.lisp, and had two versions of each (for aclpc and
+ acl86win32) - I merged the four fns into two so we don't get into
+ trouble later on.
+
+ in aclpc/acl-widget.lisp, clim comboboxes (ie option panes) were not
+ communicating well with the winapi.  They specified their regular size
+ two times too big (in compose-space), their drop-down size one item
+ too short (in set-sheet-mirror-edges*), and didn't update their
+ drop-down size when the number of items changed (fixed in setf
+ gadget-items :after).  All better now.
+
+ the "character" symbol is reserved or something on aclpc so fns which
+ use it as an argname have mostly been changed.  apparently missed one
+ in clim/output-protocol.lisp
+
+ aclpc was making lozenged output for #\Linefeed, don't know why this
+ started but fixed it by adding a check in stream-write-char-1 in
+ clim/output-protocol.lisp
+
+ grayed-out command buttons on UNIX hack their grayed-outness by
+ overlaying a stipple, but windows doesn't have stipples, so to
+ prevent things from breaking I changed it to draw the gray-out box in
+ white ink instead of stippled ink.  Proper graying out on windows
+ would be to get the light and dark 3D system button colors and
+ overlay the button pattern in those inks at offsets, but you'd have
+ to get the palette stuff right and I didn't have the time.  Kludged
+ in pixmap-from-menu-item in clim/pixmap-streams.lisp
+
+ clim/surround-output.lisp - windows rectangles draw on the inside, so
+ surrounding things correctly requires an extra offset.
+
+ silica/gadgets.lisp - added rockwell fix to prevent compose-space on
+ separator panes from choking when width or height were nil.
+
+ added demo/winlisp.lisp - DOLL's Windows Lisp Listener demo from the
+ 2.1 aclwin dist.
+
+*******************************************************************************
 Fri May 30 17:49:18 PDT 1997  Tom McClure <tomj@romeo>
 
 	* aclpc/acl-medium.lisp

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/clim/accept-values.lisp,v 1.81 1997/05/31 01:00:29 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/accept-values.lisp,v 1.82 1997/09/03 04:03:25 tomj Exp $
 
 (in-package :clim-internals)
 
@@ -88,12 +88,36 @@
                              :cache-value prompt)
       (with-keywords-removed (prompt-args accept-args '(:display-default :query-identifier))
         ;; Explicitly pass DISPLAY-DEFAULT so that if it is not supplied by the
-        ;; user, we forcibly default it to NIL, which gives better-looking AVVs.
-        (apply #'call-next-method stream type view
-                                  :display-default display-default
-                                  :query-identifier query-identifier
-                                  prompt-args))))
+	;; user, we forcibly default it to NIL, which gives better-looking AVVs.
+	(let ((prompt-y-offset (prompt-y-offset view)))
+	  (when prompt-y-offset
+	    (stream-increment-cursor-position stream nil prompt-y-offset))
+	  (apply #'call-next-method stream type view
+                                    :display-default display-default
+                                    :query-identifier query-identifier
+                                    prompt-args)
+	  (when prompt-y-offset
+	    (stream-increment-cursor-position stream nil (- prompt-y-offset)))))))
   query-identifier)
+
+;; gadget prompts look really dorky without this hack.  maybe we should add
+;; a keyword to prompt-for-accept above to make this user-configurable on a
+;; per-accept basis?  Is there any way to base this offset on the text-height?
+(defmethod prompt-y-offset ((view view)) nil)
+(defmethod prompt-y-offset ((view toggle-button-view)) 8)
+(defmethod prompt-y-offset ((view radio-box-view)) 8)
+(defmethod prompt-y-offset ((view text-field-view)) 8)
+(defmethod prompt-y-offset ((view text-editor-view)) 8)
+(defmethod prompt-y-offset ((view slider-view)) 4)
+(defmethod prompt-y-offset ((view list-pane-view)) 8)
+(defmethod prompt-y-offset ((view check-box-view)) 8)
+(defmethod prompt-y-offset ((view option-pane-view)) 8)
+
+;; windoze gadgets are shorter
+#+(or aclpc acl86win32)
+(defmethod prompt-y-offset :around ((view view))
+  (let ((offset (call-next-method)))
+    (when offset (floor (/ offset 2)))))
 
 (defmethod prompt-for-accept ((stream accept-values-stream) type view
                               &rest accept-args
@@ -113,15 +137,15 @@
   (let ((align-prompts (slot-value stream 'align-prompts)) query)
     (cond (align-prompts
            ;; The user has asked to line up the labels, so oblige him
-           (updating-output (stream :unique-id (cons '#:accept (or query-identifier prompt))
+           (updating-output (stream :unique-id (cons '#:accept (or query-identifier (gensym)))
                                     :id-test #'equal)
              (formatting-row (stream)
-               (formatting-cell (stream :align-x align-prompts)
+               (formatting-cell (stream :align-x align-prompts :align-y :center)
                  (setq query-identifier
                    (apply #'prompt-for-accept
                           (encapsulating-stream stream) type view accept-args)))
                (letf-globally (((slot-value stream 'align-prompts) nil))
-                 (formatting-cell (stream :align-x :left)
+                 (formatting-cell (stream :align-x :left :align-y :center)
                    (setq query (find-or-add-query stream query-identifier type prompt
                                                   default default-supplied-p view active-p)))))))
           (t
@@ -242,11 +266,11 @@
       (cond (align-prompts
              ;; The user has asked to line up the labels, so oblige him
              (formatting-row (stream)
-               (formatting-cell (stream :align-x align-prompts)
+               (formatting-cell (stream :align-x align-prompts :align-y :center)
                  (setq query-identifier
                        (apply #'prompt-for-accept (encapsulating-stream stream)
                               presentation-type view present-args)))
-               (formatting-cell (stream :align-x :left)
+               (formatting-cell (stream :align-x :left :align-y :center)
                  (do-present stream))))
             (t
              (setq query-identifier
@@ -387,7 +411,7 @@
                         :scroll-bars scroll-bars
                         :background background
                         :foreground foreground
-                        :text-style text-style
+                        :text-style (merge-text-styles text-style *default-menu-text-style*)
                         :align-prompts align-prompts
                         :view view)))
            (when command-table
@@ -776,7 +800,7 @@
             exit-box labels
             (declare (ignore documentation show-as-default))
             (when label
-              (with-text-style (stream text-style)
+              (with-text-style (stream (merge-text-styles text-style *default-menu-text-style*))
                 (with-output-as-presentation (stream value 'accept-values-exit-box)
                   #-CCL-2
                   (write-string label stream)
@@ -969,10 +993,10 @@
       (setf value nil
             changed-p t))))
 
-(define-gesture-name :exit-dialog  :keyboard (:end))
-(define-gesture-name :abort-dialog :keyboard (:abort))
-
-(define-gesture-name :default-dialog  :keyboard (:newline))
+(define-gesture-name :exit-dialog    :keyboard (:end))
+(define-gesture-name :abort-dialog   :keyboard (:abort))
+(define-gesture-name :abort-dialog   :keyboard (:escape) :unique nil)
+(define-gesture-name :default-dialog :keyboard (:newline))
 
 ;; com-default-avv gets run when the "default" gesture is activated. On
 ;; Motif this is when the user hits "return". In most cases we don't need
@@ -1389,7 +1413,7 @@
               (progn
                 (display-view-background avv-stream view)
                 (funcall displayer frame avv-stream)))))))
-    #+(or aclpc acl86win32)
+    #+maybe ;; (or aclpc acl86win32) pr Aug97 took this out?  why was it here?
     (setf (sheet-enabled-p (frame-top-level-sheet frame)) t)
     (unless *sizing-application-frame*
       (setf (gethash pane (get-frame-pane-to-avv-stream-table frame))
@@ -1513,6 +1537,8 @@
             (with-exit-box-decoded (value label text-style documentation show-as-default)
               exit-box labels
               (when label
+		#-new
+		(setq text-style (merge-text-styles text-style *default-menu-text-style*))
                 (when text-style
                   (setq text-style `(:text-style ,text-style)))
                 (formatting-column (stream)

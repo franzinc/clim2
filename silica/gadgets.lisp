@@ -1,6 +1,6 @@
 ;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/silica/gadgets.lisp,v 1.63 1997/02/05 01:51:01 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/silica/gadgets.lisp,v 1.64 1997/09/03 04:03:37 tomj Exp $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright (c) 1992 by Symbolics, Inc.	 All rights reserved."
@@ -214,12 +214,14 @@
 
 #+(or aclpc acl86win32)
 (defmethod compose-space ((pane separator) &key width height)
-  (multiple-value-bind (w h)
-      (compute-gadget-label-size pane)
-    (make-space-requirement :width (max w width 20)  
-			    :min-width (max w width 20)
-			    :height (max h height 10) 
-			    :min-height (max h height 10))))
+  (let ((width (or width 20))
+	(height (or height 10)))
+    (multiple-value-bind (w h)
+	(compute-gadget-label-size pane)
+      (make-space-requirement :width (max w width 20)  
+			      :min-width (max w width 20)
+			      :height (max h height 10) 
+			      :min-height (max h height 10)))))
 
 ;; #+aclxx compose-box was here, merged back into silica/db-box.lisp
 ;;  31jan97 tjm w/colin

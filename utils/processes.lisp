@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/utils/processes.lisp,v 1.19 1997/02/05 01:55:11 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/utils/processes.lisp,v 1.20 1997/09/03 04:03:48 tomj Exp $
 
 (in-package :clim-utils)
 
@@ -143,8 +143,21 @@
            (let ((,value ,reference))
              (if (eq ,value most-positive-fixnum)
                  (setf ,reference most-negative-fixnum)
-                 (setf ,reference (the fixnum (1+ (the fixnum ,value)))))))
-        (warn "Implement ~S for the case when delta is not 1" 'atomic-incf))))
+	       (setf ,reference (the fixnum (1+ (the fixnum ,value)))))))
+      #+ignore (warn "Implement ~S for the case when delta is not 1" 'atomic-incf)
+      #-ignore ;; maybe?
+      (if (< delta 0)
+	  `(without-scheduling
+	     (let ((,value ,reference))
+	       (if (< ,delta (- ,value most-negative-fixnum))
+		   (setf ,reference most-positive-fixnum)
+		 (setf ,reference (the fixnum (+ (the fixnum ,delta) (the fixnum ,value)))))))
+	`(without-scheduling
+	   (let ((,value ,reference))
+	     (if (> ,delta (- most-positive-fixnum ,value))
+		 (setf ,reference most-negative-fixnum)
+	       (setf ,reference (the fixnum (+ (the fixnum ,delta) (the fixnum ,value))))))))
+      )))
 
 ;; Atomically decrements a fixnum value
 #+Genera

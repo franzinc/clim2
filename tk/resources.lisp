@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/tk/resources.lisp,v 1.59 1997/02/05 01:53:09 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/tk/resources.lisp,v 1.60 1997/09/03 04:03:43 tomj Exp $
 
 
 (in-package :tk)
@@ -392,10 +392,16 @@
     (int nil)
     (short nil)
     (function nil)
+    (text-position nil)
+    (top-item-position nil)
     ;; SGI has a bug or oddity in it Motif.  The top-item-position
     ;; resource on a XmList returns a null type.  It is an integer
     ;; doesn't need any conversion, so this papers over the issue.
-    ;; spr15174
+    ;; spr15174;
+    ;;
+    ;; smh had removed top-item-position above but this appears
+    ;; to be unnecessary (and fouls up list-panes everywhere else)
+    ;; -tjm 6/30/97
     (|| nil)
     (t t)))
 
@@ -419,6 +425,8 @@
     (short nil)
     (int nil)
     (function nil)
+    (text-position nil)
+    (top-item-position nil)
     (|| nil)			; spr15174 see above
     (t t)))
 

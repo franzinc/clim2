@@ -86,7 +86,7 @@
 							  dh))))
     (values width height)))
 
-;; added the follwoing two methods so that the default labels are the
+;; added the following two methods so that the default labels are the
 ;; same as for the Xt port (cim 9/25/96)
 
 (defmethod frame-manager-exit-box-labels ((framem acl-frame-manager) frame view)
@@ -123,14 +123,58 @@
 		(eq c command)))))
    *menu-id->command-table*))
 
+;; pr Aug97
+(defun map-command-menu-ids (frame func &rest args)
+  (dotimes (id (fill-pointer *menu-id->command-table*))
+    (let ((x (aref *menu-id->command-table* id)))
+      (when x
+	(destructuring-bind (f c &rest xargs) x
+	  (declare (ignore xargs c))
+	  (if (eq f frame) (apply func id args)))))))
+
+;;; Disable all menu items.
+(defun clim-internals::enable-menu-items (frame enablep)
+  (let* ((sheet (frame-top-level-sheet frame))
+	 (mirror (sheet-mirror sheet))
+	 (menu (win::getmenu mirror)))
+    (map-command-menu-ids
+     frame
+     #'(lambda (menuid)
+	 (let ((command-name (second (aref *menu-id->command-table* menuid))))
+	   (with-slots (clim-internals::disabled-commands) frame
+	     (if enablep
+		 (setf clim-internals::disabled-commands
+		   (delete command-name clim-internals::disabled-commands))
+	       (push command-name clim-internals::disabled-commands))))))))
+
+;;; Either of these would be nicer, but redisplay of the menu bar causes them to not
+;;; always get repainted in their ungrayed state at the end.  pr Aug97
+
+;(setf (command-enabled command-name frame) enablep)
+;(win::EnableMenuItem menu menuid (if enablep pc::MF_ENABLED pc::MF_GRAYED))
+
 (defun gesture-spec-for-mswin (gesture-spec)
-  (let ((alist '((:shift   "SHIFT+")
-		 (:control "CNTL+")
-		 (:meta    "ALT+")))
-	(nlist (list (first gesture-spec))))
+  (let* ((alist '((:shift   "SHIFT+")
+		  (:control "CTRL+")
+		  (:meta    "ALT+")))
+	 (keypress (first gesture-spec))
+	 ;; I think this is what pr meant to do -tjm Aug97
+	 (nlist (list (or (and (characterp keypress)
+			       (cond ((char= #\Backspace keypress) "Backspace")
+				     ((char= #\space keypress) "Space")
+				     (t keypress)))
+			  keypress))))
     (dolist (shift alist)
       (when (member (first shift) (rest gesture-spec))
-	(push (second shift) nlist)))
+	#-ignore (push (second shift) nlist)
+	#+ignore
+	(let ((gesture-mod (second shift)))
+	  (push ;; +++ fix this more generally to deal with all characters
+	        ;; pr Aug97 (what?? -tjm)
+	   (cond ((char= #\Backspace gesture-mod) "Backspace")
+		 ((char= #\space gesture-mod) "Space")
+		 (t gesture-mod))
+	   nlist))))
     (format nil "~A~{~A~}" #\tab nlist)))
 
 (defun make-menu-text (text keystroke item)
@@ -231,8 +275,11 @@
 					  &key force-p)
   (call-next-method)
   ;;; ensure that the top-level-sheet is visible, mostly for avp frames
-  (setf (sheet-enabled-p (frame-top-level-sheet frame)) t)
-  )
+  #-ignore ;;-- thought adding this unless would fix growing pains but it didn't.
+  (unless clim-internals::*sizing-application-frame*
+    (setf (sheet-enabled-p (frame-top-level-sheet frame)) t))
+  #+ignore
+  (setf (sheet-enabled-p (frame-top-level-sheet frame)) t))
 
 ;;--- Should "ungray" the command button, if there is one
 (defmethod note-command-enabled ((framem acl-frame-manager) frame command)

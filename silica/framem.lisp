@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/silica/framem.lisp,v 1.33 1997/02/05 01:50:59 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/silica/framem.lisp,v 1.34 1997/09/03 04:03:36 tomj Exp $
 
 (in-package :silica)
 
@@ -149,7 +149,7 @@
  (defmethod note-frame-deiconified (framem frame) nil)
 )
 
-#+aclpc
+#+(or aclpc acl86win32) ;; pr Aug97 added acl86win32
 (defvar *in-layout-frame* nil)
 
 #+aclpc

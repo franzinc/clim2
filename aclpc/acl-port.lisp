@@ -34,7 +34,7 @@
 		(#x03 :cancel)
 		(#x0c :clear :clear-input)
 		(#x13 :pause)
-		(#x21 :page-up)
+		(#x21 :page-up :scroll-up)
 		(#x22 :page-down :scroll)
 		(#x23 :end)
 		(#x24 :home)
@@ -229,6 +229,13 @@
 		(:large	     12)
 		(:very-large 18)))
 
+;;--- hacked to allow text-styles to be specified as lists
+;;--- there's probably a more efficient way...
+(defmethod text-style-mapping ((port acl-port) (style list)
+			       &optional (character-set *standard-character-set*) etc)
+  (text-style-mapping port (apply #'make-text-style style)
+		      character-set etc))
+
 (defmethod text-style-mapping
 	   ((port acl-port) (style text-style)
 	    &optional (character-set *standard-character-set*) etc)
@@ -249,9 +256,13 @@
 		     (otherwise (values 400 nil))))))
 	    (multiple-value-bind (family face-name)
 		(case (text-style-family style)
-		  (:fix (values #x35 nil))
-		  (:serif (values #x16 nil))
-		  (:sans-serif (values #x26 nil))
+		  #-ugly (:fix (values 0 "courier"))
+		  #-ugly (:serif (values 0 "times new roman"))
+		  #-ugly (:sans-serif (values 0 "arial"))
+		  ;;--- some of these specify ugly ugly linedrawn fonts
+		  #+ugly (:fix (values #x35 nil)) ;; (logior FF_MODERN FIXED_PITCH 4)
+		  #+ugly (:serif (values #x16 nil)) ;; (logior FF_ROMAN VARIABLE_PITCH 4)
+		  #+ugly (:sans-serif (values #x26 nil)) ;; (logior FF_SWISS VARIABLE_PITCH 4)
 		  (otherwise (values 0 nil)))
 	      (let ((point-size
 		     (let ((size (text-style-size style)))
@@ -301,7 +312,8 @@
        (height &key (width 0) (escapement 0) (orientation 0)
 	       (weight 400) (italic nil) (underline nil) (strikeout nil)
 	       (charset 0) (output-precision 0) (clip-precision 0)
-	       (quality 2) (pitch-and-family 0) (face nil) win-font)
+	       (quality 2) ;; ie PROOF_QUALITY
+	       (pitch-and-family 0) (face nil) win-font) 
   (let ((win-font 
 	 (or win-font
 	     (win::createFont height width escapement orientation weight
@@ -414,6 +426,14 @@
 	   (max-w (if acl-font (acl-font-maximum-character-width acl-font) 30))
 	   (fixed-width-p (= max-w average-w))
 	   (italic (if acl-font (plusp (acl-font-italic acl-font))))
+	   ;; jpm Aug97 this allows FIX.ROMAN.7 and others which for some
+	   ;; reason were blowing up on NT... someone should look into
+	   ;; what's wrong with the font data structure.
+	   (table (acl-font-font-width-table acl-font))
+	   (escapement-x (if (or fixed-width-p (>= index (length table)))
+			     average-w
+			   (or (aref table index) average-w)))
+	   #+ignore
 	   (escapement-x (if fixed-width-p
 			     average-w
 			   (aref (acl-font-font-width-table acl-font)
@@ -602,7 +622,8 @@
 (defvar *l-counter* 0)
 (defvar *nowait* nil)
 
-#-acl86win32
+;;--- event-processing is horribly wrong on aclwin; fix me!!!
+#+aclpc
 (defmethod process-next-event ((port acl-port)
 			       &key (timeout nil) (wait-function nil)
 			       (state "Windows Event"))
@@ -612,10 +633,12 @@
     (let ((end-time (and timeout (+ (get-internal-real-time)
 				     (* internal-time-units-per-second
 				        timeout)))))
+      ;; dispatch one pending message, if one is pending
       (await-response nil)
       (loop
         (incf *l-counter*)
-	(flush-pointer-motion port)
+	(flush-pointer-motion port)	; adds mouse-moved event to port's
+					; queue if necessary
 	(let ((event (queue-get event-queue)))
 	  (when event
 	    (distribute-event port event)
@@ -625,7 +648,8 @@
 	  (return nil))
 	(when (and end-time (>= (get-internal-real-time) end-time))
 	  (return nil))
-	(loop 
+	(loop
+	  ;; dispatches all pending messages
 	  (unless (await-response nil) (return nil)))
 	))))
 
@@ -678,7 +702,25 @@
 				    native-region)))
         (call-next-method)))))
 
+#+acl86win32-notyet ;; a work in progress
+(eval-when (compile load eval)
+  (defconstant win::VER_PLATFORM_ETC 1)
+  (ff:def-foreign-type win::OSVERSIONINFO
+      (:struct (dwOSVersionInfoSize dword)
+	       (dwMajorVersion dword)
+	       (dwMinorVersion dword)
+	       (dwBuildNumber dword)
+	       (dwPlatformID dword)
+	       (szCSDVersion (char *))))
+  (ff:def-foreign-type win::LPOSVERSIONINFO (win::OSVERSIONINFO *)))
+  
+#+aclpc-notyet
+(eval-when (compile load eval)
+  (defcstruct win::OSVERSIONINFO
+    ))
 
+;; need to update this to use GetVersionEx and return :win95 or :winnt4 in
+;; addition to :winnt and :win31 -tjm Aug97
 (defun get-system-version ()
   "Use win::GetVersion to determine the operating system being used."
   (let* ((v (win::GetVersion))

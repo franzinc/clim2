@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/clim/standard-types.lisp,v 1.36 1997/02/05 01:44:54 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/standard-types.lisp,v 1.37 1997/09/03 04:03:32 tomj Exp $
 
 (in-package :clim-internals)
 
@@ -66,7 +66,13 @@
                 (*package* package))        ;disable "#."
             (read-from-string token nil token))
         (when (eq object token)
-          (simple-parse-error "Unexpected EOF"))
+          (simple-parse-error 
+             #-(or aclpc acl86win32) "Unexpected EOF"
+             #+(or aclpc acl86win32) ;; pr Aug97
+             (if (and (stringp token) (> (length token) 0))
+                (format nil "Input ~S was not a ~A."
+                        token (describe-presentation-type type nil nil))
+                "Input was empty.")))
         ;; Too bad read-from-string doesn't take a :junk-allowed argument
         ;; Simulate what it would do
         (unless (>= index (length token))

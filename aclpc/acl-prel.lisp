@@ -423,55 +423,74 @@
     (prompt host stream allowed-types initial-name
      save-p multiple-p change-current-directory-p
      warn-if-exists-p)
-  (let* ((open-file-struct (ccallocate openfilename)))
-    (csets fi-openfilename open-file-struct
-	   struct-size (sizeof openfilename)
-	   #+acl86win32 owner #+acl86win32 (clim::sheet-mirror stream)
-	   hinst *hinst*
-	   file-filter  (apply #'concatenate 'string
-			       (mapcar #'make-filter-string allowed-types))
-	   #+acl86win32 custom-filter #+acl86win32 (ccallocate (:void *) :initial-value 0)
-	   max-custom-filter 0 ;; length of custom filter string
-	   filter-index 0	; zero means use custom-filter if supplied
-				; otherwise the first filter in the list
-	   selected-file (lisp-string-to-scratch-c-string (or initial-name ""))
-	   max-file 256
-	   #+acl86win32 file-title #+acl86win32 (ccallocate (:void *) :initial-value 0)
-	   max-file-title 0
-	   initial-dir  (or host (namestring *default-pathname-defaults*))
-	   window-title prompt
-	   flags (logior
-		  (if multiple-p ofn_allowmultiselect 0)
-		  (if save-p 0 ofn_filemustexist)
-		  (if warn-if-exists-p ofn_overwriteprompt 0)
-		  (if change-current-directory-p
-		      0 ofn_nochangedir)
-		  ofn_hidereadonly
-		  )
-	   #+acl86win32 default-extension #+acl86win32 (ccallocate (:void *) :initial-value 0)
-	   custom-data 0 ;; would be passed to the callback
-	   ;; callback ;; ignored since we don't pass that flag
-	   ;; template-name ;; ignored
-	   )
-    (let ((error-code (if save-p
-			(GetSaveFileName open-file-struct)
-			(GetOpenFileName open-file-struct))))
-      (if error-code ;; t means it worked
-	  (if multiple-p
-	      (pathnames-from-directory-and-filenames
-	       (spaced-string-to-list
-		(string-downcase
-		 (scratch-c-string-to-lisp-string))))
-	    (pathname
-	     (string-downcase
-	      (scratch-c-string-to-lisp-string))))
-	(let ((error-code (CommDlgExtendedError)))
-	  (and (plusp error-code) ;; zero means cancelled, so return NIL
-	       (error (format nil 
-			      "Common dialog error ~a."
-                              (or (cdr (assoc error-code
-                                          common-dialog-errors))
-                                  error-code)))))))))
+  (flet ((fill-c-string (string)
+	   #+acl86win32
+	   (let ((c-string (ff::allocate-fobject-c '(:array :char 256)))
+		 (length (length string)))
+	     (dotimes (i length (setf (ff::fslot-value-c '(:array :char 1)
+							 c-string
+							 length) 0))
+	       (setf (ff:fslot-value-c '(:array char 1) c-string i)
+		 (char-int (aref string i))))
+	     c-string)
+	   #-acl86win32 string))
+    (let* ((open-file-struct (ccallocate openfilename))
+	   (file-filter-string (fill-c-string
+				(apply #'concatenate 'string
+				       (mapcar #'make-filter-string allowed-types))))
+	   (initial-dir-string (fill-c-string
+				(or host (namestring *default-pathname-defaults*))))
+	   (prompt-string (fill-c-string prompt)))
+      (csets fi-openfilename open-file-struct
+	     struct-size (sizeof openfilename)
+	     #+acl86win32 owner #+acl86win32 (clim::sheet-mirror stream)
+	     hinst *hinst*
+	     file-filter file-filter-string
+	     #+acl86win32 custom-filter #+acl86win32 (ccallocate (:void *) :initial-value 0)
+	     max-custom-filter 0 ;; length of custom filter string
+	     filter-index 0		; zero means use custom-filter if supplied
+					; otherwise the first filter in the list
+	     selected-file (lisp-string-to-scratch-c-string (or initial-name ""))
+	     max-file 256
+	     #+acl86win32 file-title #+acl86win32 (ccallocate (:void *) :initial-value 0)
+	     max-file-title 0
+	     initial-dir initial-dir-string
+	     window-title prompt-string
+	     flags (logior
+		    (if multiple-p ofn_allowmultiselect 0)
+		    (if save-p 0 ofn_filemustexist)
+		    (if warn-if-exists-p ofn_overwriteprompt 0)
+		    (if change-current-directory-p
+			0 ofn_nochangedir)
+		    ofn_hidereadonly
+		    )
+	     #+acl86win32 default-extension #+acl86win32 (ccallocate (:void *) :initial-value 0)
+	     custom-data 0 ;; would be passed to the callback
+	     ;; callback ;; ignored since we don't pass that flag
+	     ;; template-name ;; ignored
+	     )
+      (let* ((error-code (if save-p
+			    (GetSaveFileName open-file-struct)
+			   (GetOpenFileName open-file-struct))))
+	#+acl86win32
+	(dolist (c-string (list file-filter-string initial-dir-string prompt-string))
+	  (ff::free-fobject-c c-string))
+	(if error-code ;; t means it worked
+	    (if multiple-p
+		(pathnames-from-directory-and-filenames
+		 (spaced-string-to-list
+		  (string-downcase
+		   (scratch-c-string-to-lisp-string))))
+	      (pathname
+	       (string-downcase
+		(scratch-c-string-to-lisp-string))))
+	  (let ((error-code (CommDlgExtendedError)))
+	    (and (plusp error-code) ;; zero means cancelled, so return NIL
+		 (error (format nil 
+				"Common dialog error ~a."
+				(or (cdr (assoc error-code
+						common-dialog-errors))
+				    error-code))))))))))
 
 ;;; bitmap support
 
@@ -589,6 +608,9 @@
 
 
 (in-package :printer)
+
+#+aclpc
+(fmakunbound 'set-format-destination)
 
 (defun set-format-destination (destination)
   (cond

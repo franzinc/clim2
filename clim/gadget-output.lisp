@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/clim/gadget-output.lisp,v 1.61 1997/02/05 01:43:34 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/gadget-output.lisp,v 1.62 1997/09/03 04:03:28 tomj Exp $
 
 (in-package :clim-internals)
 
@@ -750,6 +750,8 @@
   (if query (setf (accept-values-query-changed-p query) t)))
 
 #+(or aclpc acl86win32);; rl - needed by everyone?
+;;--- rockwell doesn't seem to think so... but I'm leaving it in for now
+;;--- tjm Aug97
 (defmethod accept-values-note-text-field-changed-callback :after
            ((gadget text-field) new-value query)
   (declare (ignore new-value))

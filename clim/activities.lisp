@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/clim/activities.lisp,v 1.14 1997/02/05 01:42:43 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/activities.lisp,v 1.15 1997/09/03 04:03:27 tomj Exp $
 
 (in-package :clim-internals)
 
@@ -108,6 +108,10 @@
                   (frame-exit activity))
                 (let* ((frame (activity-active-frame activity))
                        (*application-frame* frame)
+		       (*standard-output* (or (frame-standard-output frame)
+					      *standard-output*))
+		       (*standard-input* (or (frame-standard-input frame)
+					      *standard-input*))
                        (top-level (frame-top-level frame)))
                   (unwind-protect
                       (loop

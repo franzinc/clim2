@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-GRAPHICS-EDITOR; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/demo/graphics-editor.lisp,v 1.25 1997/02/05 01:47:24 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/demo/graphics-editor.lisp,v 1.26 1997/09/03 04:03:34 tomj Exp $
 
 (in-package :clim-graphics-editor)
 
@@ -279,6 +279,7 @@
 	     :scroll-bars :both
 	     :initial-cursor-visibility nil)
     (horizontal-options :accept-values
+			:text-style '(:sans-serif :roman :normal)
 			:min-height :compute :height :compute :max-height :compute
 			:display-function
 			  `(accept-values-pane-displayer
@@ -287,6 +288,7 @@
 					       frame stream
 					       :orientation :horizontal))))
     (vertical-options :accept-values
+		      :text-style '(:sans-serif :roman :normal)
 		      :min-width :compute :width :compute :max-width :compute
 		      :display-function
 		        `(accept-values-pane-displayer
@@ -398,7 +400,8 @@
 	     (let (object ptype changed)
 	       (formatting-cell (stream :align-x (ecase orientation
 						   (:horizontal :center)
-						   (:vertical :left)))
+						   (:vertical :left))
+					:align-y :center)
 		 (multiple-value-setq (object ptype changed)
 		   (accept type
 			   :stream stream :default default

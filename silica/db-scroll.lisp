@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/silica/db-scroll.lisp,v 1.55 1997/05/31 01:00:34 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/silica/db-scroll.lisp,v 1.56 1997/09/03 04:03:36 tomj Exp $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright(c) 1991, 1992 International Lisp Associates.
@@ -94,7 +94,8 @@
 (defun update-scroll-bars (viewport)
   (unless *inhibit-updating-scroll-bars*
     ;;--- This is not the most efficient thing in the world
-    (let ((scroller (viewport-scroller-pane viewport)))
+    (let ((scroller (viewport-scroller-pane viewport))
+	  (contents (viewport-contents-extent viewport)))
 
       #+ignore
       (multiple-value-bind (changedp
@@ -106,11 +107,15 @@
           hscroll-bar hscroll-bar-enabled-p
           vscroll-bar vscroll-bar-enabled-p t))
 
-      ;; tjm 15Mar97 otherwise most recent text-output-record not
-      ;; considered (spr15933)
-      (stream-force-output (sheet-child viewport))
-      (with-bounding-rectangle* (left top right bottom)
-          (viewport-contents-extent viewport)
+      ;;--- next bit new [tjm 15Mar97] otherwise buffered
+      ;;--- text-output-record not considered [spr15933]
+      (with-bounding-rectangle* (left top right bottom) contents
+	(when (output-recording-stream-p contents)
+	  (let ((pending-text (slot-value contents 'clim-internals::text-output-record)))
+	    (when pending-text
+	      (with-bounding-rectangle* (tleft ttop tright tbottom) pending-text
+		(maxf right tright)
+		(maxf bottom tbottom)))))
         (with-bounding-rectangle* (vleft vtop vright vbottom)
             (viewport-viewport-region viewport)
           (let* ((vertical-scroll-bar (scroller-pane-vertical-scroll-bar scroller))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/clim/input-editor-commands.lisp,v 1.34 1997/05/31 01:00:31 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/input-editor-commands.lisp,v 1.35 1997/09/03 04:03:28 tomj Exp $
 
 (in-package :clim-internals)
 
@@ -1229,11 +1229,15 @@ This may confused the input editor" gestures))
   (:ie-backward-word            :b   :meta)
   (:ie-backward-sexp            :b   :control :meta)
   (:ie-beginning-of-buffer  :\<  :meta)
+  (:ie-beginning-of-buffer  :home :control)
   (:ie-end-of-buffer            :\>  :meta)
+  (:ie-end-of-buffer            :end :control)
   (:ie-beginning-of-buffer  :\<  :meta :shift)
   (:ie-end-of-buffer            :\>  :meta :shift)
   (:ie-beginning-of-line    :a   :control)
+  (:ie-beginning-of-line    :home)
   (:ie-end-of-line            :e   :control)
+  (:ie-end-of-line            :end)
   (:ie-next-line            :n   :control)
   (:ie-previous-line            :p   :control)
   (:ie-delete-character            :d   :control)
@@ -1274,8 +1278,10 @@ This may confused the input editor" gestures))
   (:ie-scroll-right            :v   :super :meta)
   (:ie-scroll-forward            :scroll)
   (:ie-scroll-backward            :scroll :meta)
+  (:ie-scroll-backward            :scroll-up)
   (:ie-scroll-left            :scroll :super)
   (:ie-scroll-right            :scroll :super :meta)
+  (:ie-scroll-right            :scroll-up :super)
   (:ie-input-editor-help    :help :control))
 
 #-(or (and (not acl86win32) Allegro) Lucid)
@@ -1290,7 +1296,7 @@ This may confused the input editor" gestures))
   (:ie-show-value            :v   :meta :shift)
   (:ie-show-documentation   :d   :meta :shift))
 
-#+Allegro
+#+(or Allegro aclpc)
 (define-input-editor-gestures
   (:ie-rubout-character     :backspace)
   (:ie-rubout-word	    :backspace :meta)
@@ -1309,15 +1315,9 @@ This may confused the input editor" gestures))
 
 #+(or aclpc acl86win32)
 (define-input-editor-gestures
-  (:ie-rubout-character     :backspace)
-  (:ie-rubout-word            :backspace :meta)
-  (:ie-rubout-sexp            :backspace :control :meta)
   (:ie-delete-character            :delete)
   (:ie-delete-word            :delete :meta)
-  (:ie-beginning-of-line    :home)
   (:ie-clear-input            :clear)
-  (:ie-scroll-forward            :page-down)
-  (:ie-scroll-backward            :page-up)
   (:ie-scroll-left            :page-up :control)
   (:ie-scroll-right            :page-down :control))
 

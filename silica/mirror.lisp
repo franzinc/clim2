@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
-;; $Header: /repo/cvs.copy/clim2/silica/mirror.lisp,v 1.35 1997/02/05 01:51:12 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/silica/mirror.lisp,v 1.36 1997/09/03 04:03:37 tomj Exp $
 
 (in-package :silica)
 
@@ -120,6 +120,12 @@
     (cond ((or (eq region +nowhere+)		    ;it can happen
 	       (and region (slot-value region 'left)))
 	   region)
+	  ;; destructively modifying sheet-cached-device-region was
+	  ;; allowing the sheet size to be changed without invalidating the
+	  ;; gcontext-clip-mask cached-clip-mask (ie since the region had
+	  ;; different coordinates but was still eq). If we take a consing
+	  ;; hit as stated below we'll have to reconsider this. -tjm 4Jun97
+	  #+ignore
 	  (region
 	   ;; Be very careful not to cons.  It's worth all this hair
 	   ;; because common operations such as scrolling invalidate 
