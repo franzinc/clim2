@@ -20,13 +20,12 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: font.lisp,v 1.6 92/02/24 13:02:59 cer Exp Locker: cer $
+;; $fiHeader: font.lisp,v 1.7 92/03/09 17:40:39 cer Exp $
 
 (in-package :tk)
 
-(defclass font ()
-  ((name :initarg :name :reader font-name))
-  (:metaclass standard-class-wrapping-foreign-address))
+(defclass font (ff:foreign-pointer)
+  ((name :initarg :name :reader font-name)))
 
 (defmethod print-object ((x font) stream)
   (print-unreadable-object (x stream :type t :identity t)
@@ -88,7 +87,7 @@
 				  pattern
 				  max-fonts
 				  n))
-	   (n (sys:memref-int (foreign-pointer-address n) 0 0 :signed-long))
+	   (n (aref n 0))
 	   (seq (make-sequence result-type n)))
       (prog1
 	  (dotimes (i n seq)
@@ -105,7 +104,7 @@
 					  max-fonts
 					  n
 					  fonts))
-	   (n (sys:memref-int (foreign-pointer-address n) 0 0 :signed-long))
+	   (n (aref n 0))
 	   (fonts (aref fonts 0))
 	   (seq (make-sequence result-type n)))
       (prog1

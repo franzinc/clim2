@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: convenience.lisp,v 1.4 92/02/24 13:02:53 cer Exp Locker: cer $
+;; $fiHeader: convenience.lisp,v 1.5 92/03/09 17:40:34 cer Exp $
 
 (in-package :tk)
 
@@ -72,7 +72,7 @@
 			     (lispify-tk-name entry-point :package nil)))))
     `(progn
        (defforeign ',c-function-name :entry-point ,entry-point)
-       (defclass ,class ,superclasses 
+       (defclass ,class ,superclasses
 		 ()
 	 (:metaclass xt-class))
        (defmethod make-widget ((w ,class) &rest args &key (managed t)

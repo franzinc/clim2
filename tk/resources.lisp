@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: resources.lisp,v 1.10 92/03/09 17:40:58 cer Exp Locker: cer $
+;; $fiHeader: resources.lisp,v 1.11 92/03/10 10:11:31 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -34,8 +34,6 @@
        (elt ',elements value))))
 
 
-(defforeign 'set_values 
-    :entry-point "_XtSetValues")
 
 
 (defun set-values (widget &rest values)
@@ -86,8 +84,7 @@
     (:vertical 1)
     (:horizontal 2)))
 
-(defforeign 'get_values 
-    :entry-point "_XtGetValues")
+
 
 (def-c-type (x-arglist :in-foreign-space) 1 :unsigned-long)
 
@@ -517,3 +514,6 @@
 				     :tight
 				     :column
 				     :none))
+
+
+(define-enumerated-resource edit-mode (:multi-line :single-line))

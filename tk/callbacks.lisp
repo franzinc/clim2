@@ -20,15 +20,9 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: callbacks.lisp,v 1.7 92/02/24 13:02:52 cer Exp Locker: cer $
+;; $fiHeader: callbacks.lisp,v 1.8 92/03/09 17:40:32 cer Exp Locker: cer $
 
 (in-package :tk)
-
-(defforeign 'add_callback
-    :entry-point "_XtAddCallback")
-
-(defforeign 'xt_has_callbacks
-    :entry-point "_XtHasCallbacks")
 
 (defun has-callbacks-p (w name)
   (not (zerop (xt_has_callbacks w name))))

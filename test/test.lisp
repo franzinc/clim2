@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: test.lisp,v 1.15 92/03/09 17:41:57 cer Exp Locker: cer $
+;; $fiHeader: test.lisp,v 1.16 92/03/24 19:38:10 cer Exp Locker: cer $
 
 (in-package :clim-user)
 
@@ -361,7 +361,22 @@
 	  :prompt "Select an insect"))
   (describe bug))
 
-
+(define-application-frame tf100 
+    () ()
+    (:command-table test-frame)
+    (:pane
+     (vertically ()
+		 #+ignore
+		 (scrolling ()
+			    (realize-pane 'text-editor 
+					  :value "lucid sucks"
+					  :ncolumns 30
+					  :nlines 10))
+		 (scrolling ()
+			    (realize-pane 'text-editor 
+					  :value "harlqn sucks more"
+					  :ncolumns 30
+					  :nlines 10)))))
 
 (define-application-frame tf99 () ()
   (:command-table test-frame)

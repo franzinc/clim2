@@ -20,11 +20,14 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-classes.lisp,v 1.1 92/02/16 20:30:58 cer Exp $
-
-(in-package :tk)
+;; $fiHeader: xm-classes.lisp,v 1.2 92/02/24 13:03:56 cer Exp Locker: cer $
 
 ;;; This has to kept consistent with the Makefile
+
+(provide :climxm)
+(require :climg)
+
+(in-package :tk)
 
 (defparameter *motif-classes* '("_applicationShellWidgetClass"
 				"_compositeWidgetClass"

@@ -1,6 +1,6 @@
  ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: lisp-utilities.lisp,v 1.5 92/03/04 16:20:15 cer Exp $
+;; $fiHeader: lisp-utilities.lisp,v 1.6 92/03/10 10:11:52 cer Exp $
 
 (in-package :clim-utils)
 
@@ -38,7 +38,10 @@
 (defmacro integerize-float-coordinate (coord)
   `(the fixnum (values (floor (+ (the float ,coord) .5)))))
 
+#-allegro
 (defun integerize-coordinate (coord)
+  (declare (optimize (speed 3) (safety 0))
+	   (:explain :calls :types))
   (etypecase coord
     (fixnum coord)
     (single-float
@@ -51,6 +54,13 @@
       (values (floor (+ coord 1/2))))
     ;; disallow bignums and other types of numbers
     ))
+
+#+allegro
+(defmacro integerize-coordinate (coord)
+  ;; Round is good enough in Allegro for 90% of the speed, and it's less
+  ;; filling.
+  `(the fixnum (round ,coord)))
+
 
 (defmacro integerize-coordinates (&body coords)
   `(progn

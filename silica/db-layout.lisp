@@ -22,7 +22,7 @@
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
 ;;;
-;; $fiHeader: db-layout.lisp,v 1.9 92/03/04 16:19:28 cer Exp Locker: cer $
+;; $fiHeader: db-layout.lisp,v 1.10 92/03/24 19:36:26 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -81,8 +81,9 @@
 (defmethod note-space-requirement-changed (parent child)
   nil)
 
-(defmethod note-sheet-region-changed :after ((pane layout-mixin) &key port)
-  (note-layout-mixin-region-changed pane :port port))
+
+(defmethod note-sheet-region-changed :after ((pane layout-mixin) &key port-did-it)
+    (note-layout-mixin-region-changed pane :port port-did-it))
    
 (defmethod note-layout-mixin-region-changed ((pane layout-mixin) &key port)
   (declare (ignore port))

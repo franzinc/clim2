@@ -20,27 +20,30 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: load-xm.lisp,v 1.7 92/02/28 09:17:23 cer Exp Locker: cer $
+;; $fiHeader: load-xm.lisp,v 1.8 92/03/24 19:36:13 cer Exp Locker: cer $
 
 (in-package :tk)
 
 
 
 ;;;; 
-(defvar *libxm-pathname* "/usr/motif/usr/lib/libXm.a")
-(defvar *libxt-pathname* "/usr/motif/usr/lib/libXt.a")
-
+(defvar *libx11-pathname* "/x11/R4/src/mit/lib/X/libX_d.a")
+(defvar *libxm-pathname* "/x11/motif-1.1/lib/Xm/libXm.a")
+(defvar *libxt-pathname* "/x11/R4/src/mit/lib/Xt/libXt_d.a")
 
 (defun load-from-xm ()
   (x11::load-undefined-symbols-from-library
-   (list* "_XCopyGC" (x11::symbols-from-file "misc/undefinedsymbols.motif"))
-   '("__unpack_quadruple" 
-     "__prod_b10000" 
-     "__carry_out_b10000" 
-     "__prod_65536_b10000")
-   (list *libxm-pathname*
-	 *libxt-pathname*
-	 x11::*libx11-pathname*)))
+   "stub-motif.o"
+   (x11::symbols-from-file 
+    "misc/undefinedsymbols.xt"
+    "misc/undefinedsymbols.motif")
+    '("__unpack_quadruple" 
+      "__prod_b10000" 
+      "__carry_out_b10000" 
+      "__prod_65536_b10000")
+    (list *libxm-pathname*
+	  *libxt-pathname*
+	  x11::*libx11-pathname*)))
 
 (load-from-xm)
 

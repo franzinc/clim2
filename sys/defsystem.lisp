@@ -27,7 +27,7 @@
 ;;;
 ;;;-----------------------------------------------------------
 
-;; $fiHeader: defsystem.lisp,v 1.6 91/03/26 12:59:59 cer Exp $
+;; $fiHeader: defsystem.lisp,v 1.6 92/03/04 16:22:31 cer Exp Locker: cer $
 
 ;; Add a feature for ANSI-adhering Lisps.  So far, only Apple's
 ;; version 2.0 tries to do adhere to the ANSI spec instead of CLtL rev 1.
@@ -1080,7 +1080,8 @@ pathname fields are evaluated."
 	      *compiled-modules* *tracep*)))
 
 #-(and ANSI-90 (not Allegro) (not Cloe))
-(defun translate-logical-pathname (path) path)
+(#+Allegro excl::without-package-locks #-Allegro progn
+	   (defun translate-logical-pathname (path) path))
 
 ;; Evaluate the BODY with the reader context and default pathname set up as
 ;; defined by the module.

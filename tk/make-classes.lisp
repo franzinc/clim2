@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: make-classes.lisp,v 1.9 92/03/06 14:17:26 cer Exp Locker: cer $
+;; $fiHeader: make-classes.lisp,v 1.10 92/03/09 17:40:47 cer Exp $
 
 (in-package :tk)
 
@@ -68,7 +68,7 @@
 
 
 
-(defclass display-object ()
+(defclass display-object (ff:foreign-pointer)
   ((display :initarg :display
 	    :reader object-display
 	    :fixed-index 0)))
@@ -126,7 +126,7 @@
     (setq direct-resources (nreverse direct-resources))
     
     (dolist (class-ep classes)
-      (format excl:*initial-terminal-io* "Initializing class ~s~%" class-ep)
+      (format excl:*initial-terminal-io* ";; Initializing class ~s~%" class-ep)
       (let ((h (get-foreign-variable-value class-ep)))
 	(initialize-widget-class h)
 	(push (list h
@@ -149,9 +149,9 @@
 	       (clos::ensure-class
 		(lispify-class-name (widget-class-name handle))
 		:direct-superclasses (list (if (zerop (xtk-class-superclass handle))
-					    'xt-root-class
-					  (lispify-class-name (widget-class-name
-							       (xtk-class-superclass handle)))))
+					       'xt-root-class
+					     (lispify-class-name (widget-class-name
+								  (xtk-class-superclass handle)))))
 		:direct-slots nil
 		:metaclass 'xt-class
 		:direct-resources  direct-resources

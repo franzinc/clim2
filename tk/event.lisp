@@ -20,16 +20,10 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: event.lisp,v 1.5 92/02/24 13:02:56 cer Exp Locker: cer $
+;; $fiHeader: event.lisp,v 1.6 92/03/09 17:40:35 cer Exp Locker: cer $
 
 (in-package :tk)
 
-(defforeign 'app_pending 
-    :return-type :fixnum
-    :entry-point "_XtAppPending")
-
-(defforeign 'app_process_event
-    :entry-point "_XtAppProcessEvent")
 
 (defun simple-event-loop (context)
   (loop 
@@ -80,8 +74,7 @@
 (defun app-process-event (context mask)
   (app_process_event context mask))
 
-(defforeign 'add_event_handler
-    :entry-point "_XtAddEventHandler")
+
 
 (defvar *event* nil)
 
@@ -111,9 +104,6 @@
    (caar (push
 	  (list (new-callback-id) (cons function args))
 	  (widget-event-handler-data widget)))))
-
-(defforeign 'xt_build_event_mask 
-    :entry-point "_XtBuildEventMask")
 
 (defun build-event-mask (widget)
   (xt_build_event_mask widget))

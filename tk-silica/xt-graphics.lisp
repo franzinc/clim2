@@ -20,7 +20,7 @@ U;; -*- mode: common-lisp; package: xm-silica -*-
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.12 92/03/09 17:41:28 cer Exp Locker: cer $
+;; $fiHeader: xt-graphics.lisp,v 1.13 92/03/24 19:37:15 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -303,8 +303,6 @@ U;; -*- mode: common-lisp; package: xm-silica -*-
 
 (defmethod adjust-ink ((medium xt-medium) gc ink line-style x-origin y-origin)
   (declare (ignore ink))
-  ;;-- This should just call the equivalent of xsetlineattributes to bash
-  ;; everything in one go
   (let* ((dashes (line-style-dashes line-style))
 	 (gc-line-style
 	  (etypecase dashes
@@ -360,12 +358,9 @@ U;; -*- mode: common-lisp; package: xm-silica -*-
 
 (defmethod decode-ink :around ((ink t) (medium xt-medium))
   (let ((gc (call-next-method)))
-    #+ignore
-    (setf (tk::gcontext-clip-mask gc) 
-	  (compute-gcontext-clip-mask medium))
     gc))
 
-l(defmethod xt-decode-pattern ((pattern pattern) medium &optional width height tiled-p)    
+(defmethod xt-decode-pattern ((pattern pattern) medium &optional width height tiled-p)    
   (let* ((ink-table (slot-value medium 'ink-table))
 	 (drawable (or (slot-value medium 'drawable)
 		       (tk::display-root-window
@@ -409,14 +404,6 @@ l(defmethod xt-decode-pattern ((pattern pattern) medium &optional width height t
 			  (tk::gcontext-fill-style gc) :tiled)
 		    gc)))))))
 
-(defmethod compute-gcontext-clip-mask (medium)
-  (with-bounding-rectangle* (minx miny maxx maxy)
-      (sheet-device-region (medium-sheet medium))
-    (list (truncate minx)
-	  (truncate miny)
-	  (truncate maxx)
-	  (truncate maxy))))
-      
 
 (defmethod port-draw-point* ((port xt-port) sheet medium x y)
   (let ((transform (sheet-device-transformation sheet)))

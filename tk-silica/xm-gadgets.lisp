@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.16 92/03/10 10:12:02 cer Exp Locker: cer $
+;; $fiHeader: xm-gadgets.lisp,v 1.17 92/03/24 19:37:09 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -367,6 +367,7 @@
 		   (nlines silica::gadget-lines)) sheet
     (values 'tk::xm-text
 	    (append
+	     (list :edit-mode :multi-line)
 	     (and ncolumns (list :columns ncolumns))
 	     (and nlines (list :rows nlines))
 	     (and value `(:value ,value))))))

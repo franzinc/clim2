@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: gcontext.lisp,v 1.7 92/03/04 16:19:12 cer Exp Locker: cer $
+;; $fiHeader: gcontext.lisp,v 1.8 92/03/09 17:40:43 cer Exp $
 
 (in-package :tk)
 
@@ -77,8 +77,7 @@
 
 
 (defclass gcontext (display-object)
-  ()
-  (:metaclass standard-class-wrapping-foreign-address))
+  ())
 	  
 
 

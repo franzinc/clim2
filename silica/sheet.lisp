@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: sheet.lisp,v 1.7 92/03/04 16:19:55 cer Exp Locker: cer $
+;; $fiHeader: sheet.lisp,v 1.8 92/03/24 19:36:50 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -208,7 +208,13 @@
 (defclass sheet-transformation-mixin ()
     ((transformation 
        :initarg :transformation :initform +identity-transformation+
-       :accessor sheet-transformation)))
+       :accessor sheet-transformation)
+     (cached-device-transformation :initform nil
+				   :accessor sheet-cached-device-transformation)
+     ;; This next is here for lack of a better place, and because the accessor
+     ;; sheet-device-region can only work on a sheet that is of this class.
+     (cached-device-region :initform nil
+			   :accessor sheet-cached-device-region)))
 
 (defclass sheet-translation-mixin (sheet-transformation-mixin) ())
 
@@ -235,38 +241,46 @@
 (defgeneric note-sheet-disabled (sheet)
   (:method (sheet) nil))
 
-
-(defmethod (setf sheet-region) :after (nv sheet)
-  (note-sheet-region-changed sheet))
-
-(defgeneric note-sheet-region-changed (sheet &key port)
-  (:method (sheet &key port) (declare (ignore port)) nil))
-
-(defmethod (setf sheet-transformation) :after (nv sheet)
-  (note-sheet-transformation-changed sheet))
-
-(defgeneric note-sheet-transformation-changed (sheet &key port)
-  (:method (sheet &key port) (declare (ignore port)) nil))
-
-
 (defgeneric sheet-engrafted-p (sheet)
   (:method ((sheet sheet))
    (let ((parent (sheet-parent sheet)))
      (or (graftp parent)
 	 (sheet-engrafted-p parent)))))
 
-
 ;;---
-(warn "Is this right?")
 
-(defmethod note-sheet-region-changed :after (sheet &key port)
-  (unless port
-    (invalidate-cached-regions sheet)))
+(defmethod (setf sheet-region) :after (nv sheet)
+  (note-sheet-region-changed sheet))
 
-(defmethod note-sheet-transformation-changed :after (sheet &key port)
-  (unless port
-    (invalidate-cached-transformations sheet)))
+(defgeneric note-sheet-region-changed (sheet &key port-did-it)
+  (:method (sheet &key port-did-it) (declare (ignore port-did-it)) nil))
 
+(defmethod (setf sheet-transformation) :after (nv sheet)
+  (note-sheet-transformation-changed sheet))
+
+(defgeneric note-sheet-transformation-changed (sheet &key port-did-it)
+  (:method (sheet &key port-did-it) (declare (ignore port-did-it)) nil))
+
+
+(defgeneric invalidate-cached-transformations (sheet)
+  (:method ((sheet t)) nil)
+  (:method :after ((sheet sheet-parent-mixin))
+	   (mapc #'invalidate-cached-transformations (sheet-children sheet))))
+	     
+(defgeneric invalidate-cached-regions (sheet)
+    (:method ((sheet t)) nil)
+  (:method :after ((sheet sheet-parent-mixin))
+	   (mapc #'invalidate-cached-regions (sheet-children sheet))))
+
+(defmethod note-sheet-region-changed :before (sheet &key port-did-it)
+  (declare (ignore port-did-it))
+  (invalidate-cached-regions sheet))
+
+;;-- Check to see if the call to invalidate-cached-regions is really necessary.
+(defmethod note-sheet-transformation-changed :before (sheet &key port-did-it)
+  (declare (ignore port-did-it))
+  (invalidate-cached-transformations sheet)
+  (invalidate-cached-regions sheet))
 
 
 (defgeneric update-native-transformation (port sheet))

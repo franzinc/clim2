@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sysdcl.lisp,v 1.8 92/03/10 10:13:03 cer Exp Locker: cer $
+;; $fiHeader: sysdcl.lisp,v 1.9 92/03/24 19:37:59 cer Exp Locker: cer $
 
 (in-package #-ANSI-90 "USER" #+ANSI-90 :cl-user)
 
@@ -417,10 +417,11 @@
   #+++ignore ("ffi" :eval-after (mapc #'load '("xlib/xlib.lisp" "xlib/x11-keysyms.lisp"
 					       "xlib/last.lisp")))
   ("ffi")
-  ("xlib-defs" #|:load-before-compile ("ffi") |#) ; Takes forever to compile...
+  ("xlib-defs" #|:load-before-compile ("ffi") |#) ; Takes forever to ; compile...
+  ("load-xlib")
   ("xlib-funs" :load-before-compile ("ffi"))
   ("x11-keysyms" :load-before-compile ("ffi"))
-  ("last" :load-before-compile ("xlib-funs")))
+  ("last" :load-before-compile ("load-xlib" "xlib-funs")))
 
 
 #+(and Silica Allegro)
@@ -433,7 +434,6 @@
   ("pkg")
   ("foreign-obj")
   ("macros")
-  
   ;; Xlib stuff
   ("xlib")
   ("font")
@@ -441,6 +441,7 @@
   ("graphics")
   
   ;; Toolkit stuff
+  ;;; ("load-xt")
   ("xtk")
   ("meta-tk")
   ("make-classes")
@@ -460,6 +461,10 @@
      :load-before-compile (xt-tk))
   ;; Motif specific stuff
   ("xm-classes")
+  ("load-xm")
+  ;;--- This is really in tk but because of the loading
+  ("xt-funs")
+  ("xm-funs")
   ("xm-init")
   ("xm-widgets")
   ("xm-font-list")
@@ -478,6 +483,8 @@
      :load-before-compile (xt-tk))
   ;; OpenLook specific stuff
   ("ol-classes")
+  ("load-ol")
+  ("xt-funs")
   ("ol-init")
   ("ol-callbacks")
   #+ignore("ol-examples")
@@ -485,8 +492,8 @@
 
 #+(and Silica Allegro)
 (defsys:defsystem motif-clim
-    (:default-pathname (frob-pathname "xm-silica")
-     :default-binary-pathname (frob-pathname "xm-silica")
+    (:default-pathname (frob-pathname "tk-silica")
+     :default-binary-pathname (frob-pathname "tk-silica")
      :needed-systems (clim-standalone xm-tk)
      :load-before-compile (clim-standalone xm-tk))
   ("pkg")
@@ -505,8 +512,8 @@
 
 #+(and Silica Allegro)
 (defsys:defsystem openlook-clim
-    (:default-pathname (frob-pathname "xm-silica")
-     :default-binary-pathname (frob-pathname "xm-silica")
+    (:default-pathname (frob-pathname "tk-silica")
+     :default-binary-pathname (frob-pathname "tk-silica")
      :needed-systems (clim-standalone ol-tk)
      :load-before-compile (clim-standalone ol-tk))
   ("pkg")

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: foreign.lisp,v 1.5 92/02/24 13:03:01 cer Exp Locker: cer $
+;; $fiHeader: foreign.lisp,v 1.6 92/03/09 17:40:42 cer Exp $
 
 (in-package :tk)
 
@@ -30,9 +30,8 @@
 
 
 
-(defclass application-context ()
-  ((displays :initform nil :accessor application-context-displays))
-  (:metaclass ff:standard-class-wrapping-foreign-address))
+(defclass application-context (ff:foreign-pointer)
+  ((displays :initform nil :accessor application-context-displays)))
 
 (defparameter *error-handler-function-address*
   (register-function 'toolkit-error-handler))
@@ -76,25 +75,16 @@
 	(error "cannot open the display: ~A" host)
       d)))
 
-(defclass display ()
-  ((context :initarg :context :reader display-context))
-  (:metaclass ff:standard-class-wrapping-foreign-address))
+(defclass display (ff:foreign-pointer)
+  ((context :initarg :context :reader display-context)))
 
 
-(defmethod initialize-instance :after ((d display) &rest args &key display)
+(defmethod initialize-instance :after ((d display) &rest args
+				       &key display
+				       &allow-other-keys)
   (push d (application-context-displays (slot-value d 'context)))
   (setf (foreign-pointer-address d)
     (or display
 	(apply #'open-display args))))
 
 
-(defforeign 'string_create_l_to_r
-    :entry-point "_XmStringCreateLtoR"
-    :return-type :integer)
-
-(defforeign 'string_get_l_to_r
-    :entry-point "_XmStringGetLtoR"
-    :return-type :integer)
-
-(defforeign 'get_pixmap
-    :entry-point "_XmGetPixmap")

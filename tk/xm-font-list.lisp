@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-font-list.lisp,v 1.4 92/03/04 16:19:19 cer Exp Locker: cer $
+;; $fiHeader: xm-font-list.lisp,v 1.5 92/03/09 17:41:05 cer Exp $
 
 (in-package :tk)
 
@@ -62,7 +62,7 @@
   (let ((context
 	 (with-ref-par ((context 0))
 	   (assert (not (zerop (xm_font_list_init_font_context context font-list))))
-	   (sys:memref-int (foreign-pointer-address context) 0 0 :signed-long)))
+	   (aref context 0)))
 	(res nil))
     (with-ref-par
 	((char-set 0)
@@ -74,11 +74,11 @@
 		char-set
 		font))
 	  (return nil))
-	(push (list (let ((x (sys:memref-int (foreign-pointer-address char-set) 0 0 :signed-long)))
+	(push (list (let ((x (aref char-set 0)))
 		      (prog1
 			  (ff:char*-to-string x)
 		      (xt_free x)))
-		    (let ((x (sys:memref-int (foreign-pointer-address font) 0 0 :signed-long)))
+		    (let ((x (aref font 0)))
 		      (intern-object-address
 		       x
 		       'font

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: widget.lisp,v 1.12 92/03/09 17:41:01 cer Exp Locker: cer $
+;; $fiHeader: widget.lisp,v 1.13 92/03/10 15:39:52 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -46,8 +46,7 @@
 	    :display display
 	    args))))
 
-(defforeign 'create_widget :entry-point "_XtCreateWidget")
-(defforeign 'create_managed_widget :entry-point "_XtCreateManagedWidget")
+
 
 (defun create-widget (name widget-class parent &rest args)
   (apply #'create-widget-1 
@@ -70,54 +69,36 @@
 	     arglist
 	     (truncate (length arglist) 2))))
 
-(defforeign 'realize_widget 
-  :entry-point "_XtRealizeWidget")
+
 
 (defun realize-widget (widget)
   (realize_widget widget))
 
-(defforeign 'manage_child
-    :entry-point "_XtManageChild")
+
 
 (defun manage-child (child)
   (manage_child child))
 
 
-(defforeign 'xt_is_managed :entry-point "_XtIsManaged")
+
 
 (defun is-managed-p (widget)
     (not (zerop (xt_is_managed widget))))
 
-(defforeign 'unmanage_child
-    :entry-point "_XtUnmanageChild")
-
 (defun unmanage-child (child)
   (unmanage_child child))
-
-(defforeign 'manage_children
-    :entry-point "_XtManageChildren")
 
 (defun manage-children (children)
   (manage_children (map '(simple-array (signed-byte 32))
 		     #'ff:foreign-pointer-address 
 		     children)
 		   (length children)))
-		     
 
-(defforeign 'destroy_widget
-    :entry-point "_XtDestroyWidget")
 
 (defun destroy-widget (widget)
   (destroy_widget widget))
 
-(defforeign 'create_popup_shell 
-    :entry-point "_XtCreatePopupShell")
 
-(defforeign '_popup
-    :entry-point "_XtPopup")
-
-(defforeign '_popdown
-    :entry-point "_XtPopdown")
 
 (defun popup (shell)
        (_popup shell
@@ -140,8 +121,6 @@
 (defun find-class-maybe (x)
   (if (typep x 'clos::class) x
     (find-class x)))
-
-(defforeign 'xt_window :entry-point "_XtWindow")
 
 (defmethod widget-window (widget &optional (errorp t))
   (with-slots (window-cache) widget
@@ -185,9 +164,6 @@
        (setf (foreign-pointer-address w)
 	 (apply #'make-widget w args))))))
 
-(defforeign 'xt_parent 
-    :entry-point "_XtParent")
-
 (defun intern-widget (widget &rest args)
   (and (not (zerop widget))
        (apply
@@ -199,8 +175,6 @@
 (defmethod widget-parent (widget)
   (let ((x (xt_parent widget)))
     (and (not (zerop x)) (intern-widget x))))
-
-(defforeign 'xt_query_geometry :entry-point "_XtQueryGeometry")
 
 (def-c-type xt-geometry-mask :unsigned-int)
 (def-c-type xt-position :short)
@@ -253,7 +227,6 @@
        (logtest r x11:cwheight)
        (logtest r x11:cwborderwidth)))))
 
-(defforeign 'xt_configure_widget :entry-point "_XtConfigureWidget")
 
 ;;--- Should call either XtResizeWidget or XtConfigureWidget
 

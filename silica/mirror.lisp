@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: mirror.lisp,v 1.12 92/03/10 10:11:42 cer Exp Locker: cer $
+;; $fiHeader: mirror.lisp,v 1.13 92/03/24 19:36:47 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -181,19 +181,6 @@
   (when (sheet-direct-mirror sheet)
     (disable-mirror (port sheet) sheet)))
 
-
-(defgeneric invalidate-cached-transformations (sheet)
-  (:method (sheet) nil)
-  (:method :after ((sheet sheet-parent-mixin))
-	   (mapc #'invalidate-cached-transformations (sheet-children sheet))))
-	     
-
-(defgeneric invalidate-cached-regions (sheet)
-  (:method (sheet) nil)
-  (:method :after ((sheet sheet-parent-mixin))
-	   (mapc #'invalidate-cached-regions (sheet-children sheet))))
-
-
 ;;--- What sucks big?
 (warn "This sucks big")
 
@@ -201,9 +188,9 @@
   (when (sheet-direct-mirror sheet)
     (update-mirror-region (port sheet) sheet)))
 
-(defmethod note-sheet-region-changed :after ((sheet mirrored-sheet-mixin) &key port)
+(defmethod note-sheet-region-changed :after ((sheet mirrored-sheet-mixin) &key port-did-it)
   (when (sheet-direct-mirror sheet)
-    (unless port
+    (unless port-did-it
       (update-mirror-region (port sheet) sheet))))
 
 
@@ -211,7 +198,7 @@
 ;; invalidate-cached-transformations does it anyway.
 
 #+ignore
-(defmethod note-sheet-transformation-changed :after ((sheet mirrored-sheet-mixin) &key port)
+(defmethod note-sheet-transformation-changed :after ((sheet mirrored-sheet-mixin) &key port-did-it)
   (when (sheet-direct-mirror sheet)
     (unless port
       (update-mirror-region (port sheet) sheet))))
@@ -265,8 +252,8 @@
 	    (sc-y (/ (- mirror-bottom mirror-top)
 		     (- bottom top))))
 	(when (and *check-mirror-transformation*
-		   (or (/= sc-x 1.0)
-		       (/= sc-y 1.0)
+		   (or (> (abs (- sc-x 1.0)) 0.01)
+		       (> (abs (- sc-y 1.0)) 0.01)
 		       (not (zerop tr-x))
 		       (not (zerop tr-y))))
 	  (let (#+Allegro (*error-output* excl::*initial-terminal-io*))
@@ -346,9 +333,9 @@
 	  (when (or transformation-changed-p region-changed-p)
 	    (update-mirror-transformation port sheet))
 	  (when  region-changed-p
-	    (note-sheet-region-changed sheet :port t))
+	    (note-sheet-region-changed sheet :port-did-it t))
 	  (when transformation-changed-p
-	    (note-sheet-transformation-changed sheet :port t)))))))
+	    (note-sheet-transformation-changed sheet :port-did-it t)))))))
 
 (defmethod handle-event ((sheet mirrored-sheet-mixin)
 			 (event window-configuration-event))

@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ffi.lisp,v 1.7 92/03/09 17:41:32 cer Exp Locker: cer $
+;; $fiHeader: ffi.lisp,v 1.8 92/03/24 19:37:20 cer Exp Locker: cer $
 
 (in-package :x11)
 
@@ -66,7 +66,7 @@
 		   (name &key type) slot
 		 `(,name ,@(trans-slot-type type)))))
 	(if (notany #'(lambda (s) (member :overlays (cdr s))) slots)
-	    `(ff::def-c-type (,name :in-foreign-space :no-constructor :no-defuns)
+	    `(ff::def-c-type (,name :in-foreign-space :no-defuns)
 	       ,@(mapcar #'foo-slot slots))
 	  (destructuring-bind
 	      ((first-slot-name . first-options) . other-slots) slots
@@ -77,18 +77,13 @@
 				(eq (getf (cdr slot) :overlays)
 				    first-slot-name))
 			    other-slots))
-		`(ff::def-c-type (,name :in-foreign-space :no-constructor :no-defuns) :union
+		`(ff::def-c-type (,name :in-foreign-space :no-defuns) :union
 				 ,@(mapcar #'(lambda (slot)
 					       (setq slot (copy-list slot))
 					       (remf (cdr slot) :overlays)
 					       (foo-slot slot))
 					   slots))
-	      (error ":overlays used in a way we cannot handle")))))
-     (defmacro ,(fintern "~A~A" 'make- name) ()
-       #+ignore
-       `(excl::malloc ,,(ff::cstruct-property-length (ff::cstruct-prop name)))
-       #-ignore
-       `(ff::make-cstruct ',',name))))
+	      (error ":overlays used in a way we cannot handle")))))))
 	  
 
 (defun trans-slot-type (type)
@@ -149,7 +144,7 @@
   `(progn
      (eval-when (eval load compile)
        (export ',name))
-     (eval-when (compile eval)
+     (eval-when (compile eval load)
        ,(let ((c-name (second (assoc :name options)))
 	      (return-type (or (second (assoc :return-type options))
 			       'integer)))

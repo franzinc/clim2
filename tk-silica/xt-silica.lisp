@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.14 92/03/10 15:40:01 cer Exp Locker: cer $
+;; $fiHeader: xt-silica.lisp,v 1.15 92/03/24 19:37:17 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -394,11 +394,10 @@
       ;;--- We do not want to specify the x,y if this is a top-level
       ;;sheet.
       (unless (typep parent 'tk::shell)
-	;;--floor
-	(setf (getf initargs :x) (floor left)
-	      (getf initargs :y) (floor top)))
-      (setf (getf initargs :width) (floor (- right left))
-	    (getf initargs :height) (floor (- bottom top)))))
+	(setf (getf initargs :x) (integerize-coordinate left)
+	      (getf initargs :y) (integerize-coordinate top)))
+      (setf (getf initargs :width) (integerize-coordinate (- right left))
+	    (getf initargs :height) (integerize-coordinate (- bottom top)))))
   initargs)
 
 ;; If we are creating a top level sheet then we have to create a shell for it
@@ -503,10 +502,10 @@
 				    target-right target-bottom)
   (let ((w (- target-right  target-left))
 	(h (- target-bottom target-top)))
-    (setf target-left (floor target-left)
-	  target-top (floor target-top)
-	  w (floor w)
-	  h (floor h))
+    (setf target-left (integerize-coordinate target-left)
+	  target-top (integerize-coordinate target-top)
+	  w (integerize-coordinate w)
+	  h (integerize-coordinate h))
     (change-widget-geometry
      ;;--- For top level sheets the sheet-parent is the graft whose
      ;; mirror is the application shell

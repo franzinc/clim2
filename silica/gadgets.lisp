@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadgets.lisp,v 1.11 92/03/10 10:11:39 cer Exp Locker: cer $
+;; $fiHeader: gadgets.lisp,v 1.12 92/03/24 19:36:39 cer Exp Locker: cer $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
@@ -249,8 +249,14 @@
 	(resize-sheet* child
 		       (max width cwidth)
 		       (max height cheight))))))
-		       
 
+(defmethod compose-space ((viewport viewport) &key width height)
+  (declare (ignore width height))
+  (let ((sr (call-next-method)))
+    (setq sr (silica::copy-space-requirement sr))
+    (setf (space-requirement-min-width sr) 0
+	  (space-requirement-min-height sr) 0)
+    sr))
 
 (defmethod allocate-space :after ((viewport viewport) width height)
   (bounding-rectangle-set-size

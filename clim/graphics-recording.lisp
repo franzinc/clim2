@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics-recording.lisp,v 1.4 92/01/31 14:58:27 cer Exp $
+;; $fiHeader: graphics-recording.lisp,v 1.1 92/02/24 13:17:05 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -105,14 +105,15 @@
 					  &optional region (x-offset 0) (y-offset 0))
 	   (declare (ignore region))
 	   (with-slots (,@slots) record
-	     (letf-globally (((medium-transformation stream) +identity-transformation+))
-	       (with-drawing-options 
-		   (stream ,@(mapcan #'(lambda (medium-component)
+	     (with-sheet-medium (medium stream)
+	       (letf-globally (((medium-transformation medium) +identity-transformation+))
+	        (with-drawing-options 
+		   (medium ,@(mapcan #'(lambda (medium-component)
 					 (list (intern (symbol-name medium-component)
 						       *keyword-package*)
 					       medium-component))
 				     medium-components))
-		 (let (,@(when (and (member 'filled function-args)
+		  (let (,@(when (and (member 'filled function-args)
 				    (member 'line-style medium-components))
 			   `((filled (not line-style))))
 		       ,@(mapcar #'(lambda (p) (list p p))
@@ -130,7 +131,6 @@
 			     (push `(+ ,(first p) x-offset) r)
 			     (push (second p) r)
 			     (push `(+ ,(second p) y-offset) r)))
-		   (with-sheet-medium (medium stream)
 		     (,medium-graphics-function* medium ,@function-args)))))))
 	 
 	 ,@(when highlighting-test

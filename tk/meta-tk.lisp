@@ -20,13 +20,13 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: meta-tk.lisp,v 1.5 92/02/24 13:03:32 cer Exp Locker: cer $
+;; $fiHeader: meta-tk.lisp,v 1.6 92/03/09 17:40:49 cer Exp $
 
 
 (in-package :tk)
 
 
-(defclass xt-class (standard-class-wrapping-foreign-address)
+(defclass xt-class (standard-class ff:foreign-pointer)
   ((entry-point :initarg :entry-point
 		:reader class-entry-point)
    (resources :initform nil
@@ -40,17 +40,7 @@
 		     :reader class-direct-resources)
    (constraint-resources :initform nil
 			 :initarg :direct-constraints
-			 :reader class-direct-constraint-resources))
-  ;; Don't think about this too much, you might get hurt...
-  (:metaclass standard-class-wrapping-foreign-address))
-
-;; This is needed because the class itself is a foreign wrapper.
-(defmethod shared-initialize :after ((class xt-class) slot-names
-				     &key foreign-address
-				     &allow-other-keys)
-  (declare (ignore slot-names))
-  (when foreign-address
-    (setf (foreign-pointer-address class) foreign-address)))
+			 :reader class-direct-constraint-resources)))
 
 (defmethod class-handle ((class xt-class))
   (unless (clos::class-finalized-p class)

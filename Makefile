@@ -1,4 +1,4 @@
-# $fiHeader: Makefile,v 1.17 92/03/10 16:00:50 cer Exp Locker: cer $
+# $fiHeader: Makefile,v 1.18 92/03/24 19:38:26 cer Exp Locker: cer $
 # 
 #  Makefile for CLIM 2.0
 #
@@ -15,7 +15,7 @@ CLIM	= ./slim
 CLIM-SMALL	= ./slim-small
 
 PUBDIRS	= sys utils silica clim demo test genera clx
-DIRS0	=  tk xm-silica misc
+DIRS0	=  tk tk-silica misc
 DIRS	= $(PUBDIRS) xlib $(DIRS0)
 CHEAP_CLEAN	= $(PUBDIRS) $(DIRS0)
 
@@ -23,14 +23,54 @@ DEVICE	= /dev/null
 RM	= /bin/rm
 CAT	= /bin/cat
 ECHO	= /bin/echo
-MV	= mv-nfs
+MV	= /usr/fi/mv-nfs
 TAGS	= /usr/fi/lib/emacs/etc/etags
 TMP	= /usr/tmp
+SRC_FILES= */*.lisp *.lisp Makefile */Makefile misc/make-stub-file \
+	misc/undefinedsymbols misc/undefinedsymbols.olit misc/undefinedsymbols.motif
+DEST=/dev/null
+
+CL_SRC=/vapor/usr/tech/cer/cl/src
+OPENWINHOME=/usr/openwin-3.0
+
+#MOTIFHOME=/usr/motif
+#MOTIFLIB=$(MOTIFHOME)/usr/lib/libXm.a 
+#XLIBS=$(MOTIFHOME)/usr/lib/libXt.a $(MOTIFHOME)/usr/lib/libX11.a
+
+MOTIFLIB=/x11/motif-1.1/lib/Xm/libXm.a
+XLIB= /x11/R4/src/mit/lib/X/libX_d.a 
+XTLIB=/x11/R4/src/mit/lib/Xt/libXt_d.a
+XLIBS= $(XTLIB) $(XLIB)
+
+#OLXLIBS=$(XTLIB) $(XLIB)
+OLCOPYLIB=/usr/tech/cer/stuff/clim-2.0/tk/lib2/
+OLXLIBS=$(OLCOPYLIB)/libXt.a $(OLCOPYLIB)/libX11.a
+#LIBXOL=$(OPENWINHOME)/lib/libXol.a
+LIBXOL=$(OLCOPYLIB)/libXol.a
+
+# This has to be kept consistent with xlib.lisp
+
+UNDEFS=misc/undefinedsymbols
+
+XT_UNDEFS=misc/undefinedsymbols.xt
+
+# This should be the same as load-xm
+
+XM_UNDEFS=misc/undefinedsymbols.motif
+
+# This should be the same as load-ol
+
+OL_UNDEFS=misc/undefinedsymbols.olit
+
+CLIMFASLS= climg.fasl climol.fasl climxm.fasl clim-debug.fasl
+CLIMOBJS= stub-x.o stub-xt.o stub-motif.o stub-olit.o
+FCLIMOBJS= `pwd`/stub-motif.o `pwd`/stub-olit.o `pwd`/stub-x.o `pwd`/stub-xt.o
+
 
 #
 # "Compile time objects" -- these go into clim-debug.fasl
 #
-DEBUG-OBJS = xlib/ffi.fasl xlib/xlib-defs.fasl xlib/xlib-funs.fasl xlib/x11-keysyms.fasl xlib/last.fasl
+DEBUG-OBJS = xlib/ffi.fasl xlib/xlib-defs.fasl xlib/xlib-funs.fasl xlib/x11-keysyms.fasl xlib/load-xlib.fasl xlib/last.fasl
 
 #
 # "Load time objects" -- these go into clim.fasl
@@ -131,7 +171,10 @@ CLIM-STANDALONE-OBJS = clim/gestures.fasl \
 
 XLIB-CLIM-OBJS = xlib/pkg.fasl
 
-XT-TK-OBJS = tk/pkg.fasl \
+# Is this the correct place to put this load-xm??
+
+XT-TK-OBJS =  xlib/load-xlib.fasl \
+		tk/pkg.fasl \
                 tk/foreign-obj.fasl \
                 tk/macros.fasl \
                 tk/xlib.fasl \
@@ -150,6 +193,9 @@ XT-TK-OBJS = tk/pkg.fasl \
                 tk/xt-init.fasl
 
 XM-TK-OBJS = tk/xm-classes.fasl \
+	     tk/load-xm.fasl \
+		tk/xt-funs.fasl \
+		tk/xm-funs.fasl \
                 tk/xm-init.fasl \
                 tk/xm-widgets.fasl \
                 tk/xm-font-list.fasl \
@@ -158,57 +204,55 @@ XM-TK-OBJS = tk/xm-classes.fasl \
                 tk/make-widget.fasl
 
 OL-CLIM-OBJS = tk/ol-classes.fasl \
+	     tk/load-ol.fasl \
+		tk/xt-funs.fasl \
                 tk/ol-init.fasl \
                 tk/ol-callbacks.fasl \
                 tk/make-widget.fasl
 
-MOTIF-CLIM-OBJS = xm-silica/pkg.fasl \
-                   xm-silica/xt-silica.fasl \
-                   xm-silica/xm-silica.fasl \
-                   xm-silica/xt-graphics.fasl \
-                   xm-silica/xm-graphics.fasl \
-                   xm-silica/image.fasl \
-                   xm-silica/xt-frames.fasl \
-                   xm-silica/xm-frames.fasl \
-                   xm-silica/xt-gadgets.fasl \
-                   xm-silica/xm-gadgets.fasl \
-                   xm-silica/xm-menus.fasl \
-                   xm-silica/xt-pixmaps.fasl \
-                   xm-silica/xm-cursor.fasl
+MOTIF-CLIM-OBJS = tk-silica/pkg.fasl \
+                   tk-silica/xt-silica.fasl \
+                   tk-silica/xm-silica.fasl \
+                   tk-silica/xt-graphics.fasl \
+                   tk-silica/xm-graphics.fasl \
+                   tk-silica/image.fasl \
+                   tk-silica/xt-frames.fasl \
+                   tk-silica/xm-frames.fasl \
+                   tk-silica/xt-gadgets.fasl \
+                   tk-silica/xm-gadgets.fasl \
+                   tk-silica/xm-menus.fasl \
+                   tk-silica/xt-pixmaps.fasl \
+                   tk-silica/xm-cursor.fasl
 
 
-OPENLOOK-CLIM-OBJS = xm-silica/pkg.fasl \
-                      xm-silica/xt-silica.fasl \
-                      xm-silica/ol-silica.fasl \
-                      xm-silica/xt-graphics.fasl \
-                      xm-silica/ol-graphics.fasl \
-                      xm-silica/image.fasl \
-                      xm-silica/xt-frames.fasl \
-                      xm-silica/ol-frames.fasl \
-                      xm-silica/xt-gadgets.fasl \
-                      xm-silica/ol-gadgets.fasl \
-                      xm-silica/xt-pixmaps.fasl
+OPENLOOK-CLIM-OBJS = tk-silica/pkg.fasl \
+                      tk-silica/xt-silica.fasl \
+                      tk-silica/ol-silica.fasl \
+                      tk-silica/xt-graphics.fasl \
+                      tk-silica/ol-graphics.fasl \
+                      tk-silica/image.fasl \
+                      tk-silica/xt-frames.fasl \
+                      tk-silica/ol-frames.fasl \
+                      tk-silica/xt-gadgets.fasl \
+                      tk-silica/ol-gadgets.fasl \
+                      tk-silica/xt-pixmaps.fasl
 
 GENERIC-OBJS= $(CLIM-UTILS-OBJS) $(CLIM-SILICA-OBJS) $(CLIM-STANDALONE-OBJS)
 XT-OBJS= $(XLIB-CLIM-OBJS) $(XT-TK-OBJS)
 MOTIF-OBJS =  $(XM-TK-OBJS) $(MOTIF-CLIM-OBJS) 
-OPENLOOK-OBJS = #(OL-CLIM-OBJS) $(OPENLOOK-CLIM-OBJS)
+OPENLOOK-OBJS = $(OL-CLIM-OBJS) $(OPENLOOK-CLIM-OBJS)
 
 default: all-xm
 
 all-xm:	compile-xm cat-xm clim-xm
 all-ol:	compile-ol cat-ol clim-ol
 
-# Compilation
-
-compile-xm:	FORCE
+compile-xm:	$(CLIMOBJS) FORCE
 	$(ECHO) " \
-		(setq *ignore-package-name-case* t) \
-		(set-case-mode :case-insensitive-lower) \
 		(proclaim '(optimize (speed $(SPEED)) (safety $(SAFETY)))) \
 		(load \"misc/compile-xm.lisp\")" | $(CL) $(CLOPTS) -batch
 
-compile-ol:	FORCE
+compile-ol:	$(CLIMOBJS) FORCE
 	$(ECHO) " \
 		(setq *ignore-package-name-case* t) \
 		(set-case-mode :case-insensitive-lower) \
@@ -252,8 +296,6 @@ clim-debug.fasl:	$(DEBUG-OBJS)
 clim-xm:	FORCE
 	-$(RM) $(CLIM)
 	$(ECHO) " \
-		(setq *ignore-package-name-case* t) \
-		(set-case-mode :case-insensitive-lower) \
 		(load \"misc/dev-load-xm.lisp\") \
 		(load \"misc/dump.lisp\")" | $(DUMP-CL) $(CLOPTS) -batch
 	$(MV) $(TMP)/clim.temp_`whoami` $(CLIM)
@@ -275,8 +317,6 @@ clim-ol:	FORCE
 
 clim-small:	FORCE
 	$(ECHO) " \
-		(setq *ignore-package-name-case* t) \
-		(set-case-mode :case-insensitive-lower) \
 		(load \"misc/load-xm.lisp\") \
 		(load \"misc/dump.lisp\")" | $(DUMP-CL) $(CLOPTS) -batch
 	$(MV) $(TMP)/clim.temp_`whoami` $(CLIM-SMALL)
@@ -287,7 +327,7 @@ clim-small:	FORCE
 # Misc
 
 clean:
-	find $(DIRS) -name "*.fasl" -print | xargs rm -f ; rm -f clim.fasl
+	find $(DIRS) -name "*.fasl" -print | xargs rm -f ; rm -f clim.fasl clim-debug.fasl
 
 cheapclean:
 	find $(CHEAP_CLEAN) -name "*.fasl" -print | xargs rm -f
@@ -300,69 +340,64 @@ swm-tape:
 	tar cf $(DEVICE) `find $(PUBDIRS) '(' -name "*.cl" -o -name "*.lisp" ')' -print`
 
 dist:
-	tar -cf - \
-	*/*.lisp *.lisp Makefile */Makefile misc/make-stub-file \
-	misc/undefinedsymbols misc/undefinedsymbols.olit misc/undefinedsymbols.motif \
-	| compress >  Dist/src.tar.Z
+	tar -cf -  $(SRC_FILES) | compress >  Dist/src.tar.Z
 
 rcscheck:
 	rcscheck $(DIRS) | grep -v .fasl
 
-# For the day the make dist happens.
-echo_src_files:
-	@find . '(' -name '*.cl' -o -name '*.lisp' ')' -print
-
 FORCE:
+
+################## Make-dist stuff
+
+makeclimfasls	: makeclimxmfasls makeclimolfasls
+makeclimxmfasls	: compile-xm cat-xm
+makeclimolfasls	: compile-ol cat-ol
+
+
+install_clim	:
+	cp $(CLIMOBJS) $(CLIMFASLS) $(DEST)
+
+# Link in the libraries with standard names
+
+link-motif-libraries	:
+	ln -s  $(MOTIFLIB) $(DEST)/libXm.a
+	ln -s $(XTLIB) $(DEST)/libXt.a
+	ln -s $(XLIB) $(DEST)/libX11.a
+	ln -s $(FCLIMOBJS) $(DEST)
+
+echo_src_files:
+	@ls $(SRC_FILES) | cat
+	
+makeclimobjs	: $(CLIMOBJS)
 
 ################## Lower level Makefile stuff
 
-CL_SRC=/vapor/usr/tech/cer/cl/src
-OPENWINHOME=/usr/openwin-3.0
-
-#MOTIFHOME=/usr/motif
-#MOTIFLIB=$(MOTIFHOME)/usr/lib/libXm.a 
-#XLIBS=$(MOTIFHOME)/usr/lib/libXt.a $(MOTIFHOME)/usr/lib/libX11.a
-
-#MOTIFLIB=/x11/motif-1.1/lib/Xm/libXm.a
-#XLIBS=/x11/R4/src/mit/lib/Xt/libXt_d.a /x11/R4/src/mit/lib/X/libX_d.a 
-
-XLIBHOME=/misc
-MOTIFLIB=$(XLIBHOME)/libXm_d.a
-XLIBS=$(XLIBHOME)/libXt_d.a $(XLIBHOME)/libX_d.a
-
-#OLXLIBS=$(XLIBS)
-OLCOPYLIB=/usr/tech/cer/stuff/clim-2.0/tk/lib2/
-OLXLIBS=$(OLCOPYLIB)/libXt.a $(OLCOPYLIB)/libX11.a
-#LIBXOL=$(OPENWINHOME)/lib/libXol.a
-LIBXOL=$(OLCOPYLIB)/libXol.a
-
-# This has to be kept consistent with xlib.lisp
-
-UNDEFS=misc/undefinedsymbols
-
-# This should be the same as load-xm
-
-XM_UNDEFS=misc/undefinedsymbols.motif
-
-# This should be the same as load-ol
-
-OL_UNDEFS=misc/undefinedsymbols.olit
-
 default	: xm-composer
 
-ol-dcl	:  stub-olit.o
+ol-dcl	:  stub-x.o stub-xt.o stub-olit.o
 	cd $(CL_SRC) ; /bin/rm -f ucl ;\
-	 make ucl_xtras='$(PWD)/stub-olit.o $(LIBXOL) $(OLXLIBS)' dcl
+	 make ucl_xtras='$(PWD)/stub-x.o $(PWD)/stub-xt.o $(PWD)/stub-olit.o $(LIBXOL) $(OLXLIBS)' dcl
 
-xm-dcl	: stub-motif.o
+xm-dcl	: stub-x.o stub-xt.o stub-motif.o
 	cd $(CL_SRC) ; /bin/rm -f ucl ;\
-	make ucl_xtras='$(PWD)/stub-motif.o $(MOTIFLIB) $(XLIBS)' dcl	
+	make ucl_xtras='$(PWD)/stub-x.o $(PWD)/stub-xt.o $(PWD)/stub-motif.o $(MOTIFLIB) $(XTLIB) $(XLIB)' dcl	
 
-stub-motif.c	: $(UNDEFS) $(XM_UNDEFS) misc/make-stub-file
-	misc/make-stub-file "void ___lisp_load_motif_stub ()" $(UNDEFS) $(XM_UNDEFS) > stub-motif.c 
+dcl	: 
+	cd $(CL_SRC) ; /bin/rm -f ucl ;\
+	make dcl	
 
-stub-olit.c	: $(UNDEFS) $(OL_UNDEFS) misc/make-stub-file
-	misc/make-stub-file "void ___lisp_load_olit_stub ()" $(UNDEFS) $(OL_UNDEFS) > stub-olit.c 
+
+stub-motif.c	:  $(XT_UNDEFS) $(XM_UNDEFS) misc/make-stub-file
+	misc/make-stub-file "void ___lisp_load_motif_stub ()"  $(XT_UNDEFS) $(XM_UNDEFS) > stub-motif.c 
+
+stub-olit.c	:   $(XT_UNDEFS) $(OL_UNDEFS) misc/make-stub-file
+	misc/make-stub-file "void ___lisp_load_olit_stub ()"   $(OL_UNDEFS) > stub-olit.c 
+
+stub-x.c	:  $(UNDEFS) $(OL_UNDEFS) misc/make-stub-file
+	misc/make-stub-file "void ___lisp_load_x_stub ()"  $(UNDEFS) > stub-x.c 
+
+stub-xt.c	:  $(XT_UNDEFS) misc/make-stub-file
+	misc/make-stub-file "void ___lisp_load_xt_stub ()"  $(XT_UNDEFS)  > stub-xt.c 
 
 FRC	: 
 

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xtk.lisp,v 1.5 92/01/31 14:55:23 cer Exp $
+;; $fiHeader: xtk.lisp,v 1.6 92/02/24 13:04:18 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -88,8 +88,7 @@
 
 ;; Horrible internal stuff
 
-(defforeign 'quark_to_string
-    :entry-point "_XrmQuarkToString")
+
     
 (def-c-type (xt-offset-rec :in-foreign-space) :struct
 	    (next * :char)
@@ -113,28 +112,3 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defforeign 'get-resource-list-1 :entry-point "_XtGetResourceList")
-(defforeign 'get-constraint-resource-list-1 :entry-point "_XtGetConstraintResourceList")
-
-(defforeign 'initialize-widget-class :entry-point "_XtInitializeWidgetClass")
-
-(defforeign 'xt_free :entry-point "_XtFree")
-
-(defforeign 'toolkit-initialize
-    :entry-point "_XtToolkitInitialize")
-
-(defforeign 'create_application_context
-    :entry-point "_XtCreateApplicationContext")
-
-
-(defforeign 'app_set_error_handler
-    :entry-point "_XtAppSetErrorHandler")
-
-(defforeign 'app_set_warning_handler
-    :entry-point "_XtAppSetWarningHandler")
-
-(defforeign 'open_display
-    :entry-point "_XtOpenDisplay")
-
-(defforeign 'app_create_shell 
-    :entry-point "_XtAppCreateShell")

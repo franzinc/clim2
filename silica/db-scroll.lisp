@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-scroll.lisp,v 1.8 92/03/10 15:39:56 cer Exp Locker: cer $
+;; $fiHeader: db-scroll.lisp,v 1.9 92/03/24 19:36:28 cer Exp Locker: cer $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright(c) 1991, 1992 International Lisp Associates.
@@ -73,32 +73,41 @@
 	(update-scrollbar horizontal-scrollbar
 			  minx maxx vminx vmaxx)))))
 
+
 ;;;--- In the case where the viewport is bigger than the window this
 ;;;code gets things kind a wrong. Checkout the thinkadot puzzl. Its
 ;;;cos (- (--) (- vminx)) is -ve
 
-(defun update-scrollbar (scrollbar minx maxx vminx vmaxx)
+(defun update-scrollbar (scrollbar min max vmin vmax)
   (declare (optimize (safety 0) (speed 3)))
-  (let*  ((size (truncate (* 100.0
-			     (the single-float
-				  (if (zerop (- maxx minx))
-				      1.0
-				      (min 1.0  (the single-float
-						     (/ (float (- vmaxx vminx))
-							(float (- maxx minx))))))))))
-	  (pos (min 1.0
-		    (max 0.0
-			 (if (zerop (- (- maxx minx) (- vmaxx vminx)))
-			     0.0
-			     (the single-float 
-				  (/ (float (- vminx minx))
-				     (float (- (- maxx minx) (- vmaxx vminx)))))))))
-	  (value (min (- 100 size) 
-		      (truncate (* 100 pos)))))
-    ;;--- is this safe
-    (declare (type fixnum size value)
-	     (type single-float pos))
-    (with-slots (current-size current-value) scrollbar
+  (with-slots (current-size current-value) scrollbar
+    ;; Kinda bogus benchmark optimization -- if the scrollbar was full size
+    ;; before, and the viewport is bigger than the extent, don't bother with
+    ;; the fancy math.
+    (if (and (eql (the (integer 0 100) current-size) 100)
+	     (> (- vmax vmin) (- max min)))
+	(return-from update-scrollbar))
+    (let* ((size (the fixnum (truncate (* 100.0
+					  (the single-float
+					    (if (zerop (- max min))
+						1.0
+					      (min 1.0 (the single-float
+							 (/ (float (- vmax vmin) 0.0s0)
+							    (float (- max min) 0.0s0))))))))))
+	   (pos (the single-float
+		  (min 1.0
+		       (the single-float
+			 (max 0.0
+			      (the single-float
+				(if (zerop (- (- max min) (- vmax vmin)))
+				    0.0
+				  (the single-float 
+				    (/ (float (- vmin min) 0.0s0)
+				       (float (- (- max min) (- vmax vmin)) 0.0s0))))))))))
+	   (value (min (the fixnum (- 100 size))
+		       (the fixnum (truncate (* 100 pos))))))
+      (declare (fixnum size value)
+	       (type single-float pos))
       (unless (and current-size
 		   current-value
 		   (eq current-size size)
@@ -175,12 +184,14 @@
   #+ignore
   (let ((width (- nmaxx nminx))
 	(height (- nmaxy nminy)))
-  (when (or (> width (bounding-rectangle-width stream))
-	    (> height (bounding-rectangle-height stream)))
-    (setf (sheet-region stream)
-      (make-bounding-rectangle  0 0 
-				(max (bounding-rectangle-width stream) width)
-				(max (bounding-rectangle-height stream) height))))))
+    (when (or (> width (bounding-rectangle-width stream))
+	      (> height (bounding-rectangle-height stream)))
+      (setf (sheet-region stream)
+	(make-bounding-rectangle  0 0 
+				  (max (bounding-rectangle-width stream) width)
+				  (max (bounding-rectangle-height
+					stream) height))))))
+
 
 (defun scroll-extent (stream &key (x 0) (y 0))
   (let ((vp (pane-viewport stream)))
@@ -222,19 +233,19 @@
 		    (bounding-rectangle* region)
 		    :ink +background-ink+ :filled t)
 		  #+ignore
-		  (break "cleared region ~S" region)
+		  (break "cleared region ~s" region)
 		  (when (typep stream 'clim-internals::output-recording-mixin)
 		    (replay (stream-output-history stream) stream
 			    region))
 		  #+ignore
 		  (break "done replay")))))
 	   ;; otherwise, just redraw the whole visible viewport
-	   ;; Adjust for the left and top margins by hand so clear-area doesn't erase
+	   ;; adjust for the left and top margins by hand so clear-area doesn't erase
 	   ;; the margin components.
 	   ((typep stream 'clim-internals::output-recording-mixin)
 	    (let ((region (viewport-viewport-region vp)))
-	      ;;---- We should make the sheet-region bigger at this point
-	      ;; Perhaps we do a union of the sheet-region and the viewport
+	      ;;---- we should make the sheet-region bigger at this point
+	      ;; perhaps we do a union of the sheet-region and the viewport
 	      (with-sheet-medium (medium vp)
 		(draw-rectangle* medium
 				 0 0 
@@ -245,13 +256,13 @@
 
 
 
-;;; Home-grown scrollbars
+;;; home-grown scrollbars
 
 ;;--- orientation, min-value, max-value, unit-increment, page-increment.
 (defclass scroll-bar-pane
 	  (scrollbar
 	   pane
-	   ;;--- Add IMMEDIATE-SHEET-INPUT-MIXIN so that scroll bars
+	   ;;--- add immediate-sheet-input-mixin so that scroll bars
 	   ;;--- get handled immediately by the event process?
 	   wrapping-space-mixin
 	   sheet-permanently-enabled-mixin
@@ -266,7 +277,7 @@
   (:default-initargs :value 0
 		     :shaft-thickness 10))
 
-;;--- There should really be a small border around scroll bars so that
+;;--- there should really be a small border around scroll bars so that
 ;;--- they don't butt right up against the viewport's drawing area
 (defmethod initialize-instance :after ((pane scroll-bar-pane)
 				       &key orientation shaft-thickness
@@ -351,7 +362,7 @@
 (defmethod sheet-region-changed :after ((pane scroll-bar-target-pane) &key)
   (setf (slot-value pane 'coord-cache) nil))
 
-#+If-we-had-cheap-xforms...
+#+if-we-had-cheap-xforms...
 (defmethod sheet-region-changed :after ((pane scroll-bar-target-pane) &key)
   (let ((cursor (sheet-cursor pane)))
     (ecase cursor
@@ -377,7 +388,7 @@
       :filled nil)
     (draw-target pane medium)))
 
-;;; You can pass :filled T to this in order to highlight the target when clicked on...
+;;; you can pass :filled t to this in order to highlight the target when clicked on...
 (defmethod draw-target ((pane scroll-bar-target-pane) medium
 			&key filled (ink +foreground-ink+))
   (let ((coord-cache (slot-value pane 'coord-cache)))

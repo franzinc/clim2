@@ -20,38 +20,42 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader$
-
+;; $fiHeader: load-xlib.lisp,v 1.1 92/03/24 19:43:50 cer Exp Locker: cer $
 
 (in-package :x11)
 
-(defmacro symbols-from-file (file)
-  (with-open-file (s file :direction :input)
-    (do ((r nil)
-	 (l (read-line s nil nil) (read-line s nil nil)))
-	((null l)
-	 `(quote ,r))
-      (push l r))))
+(defmacro symbols-from-file (&rest files)
+  (let ((r nil))
+    (dolist (file files `(quote ,(nreverse r)))
+      (with-open-file (s file :direction :input)
+	(do ((l (read-line s nil nil) (read-line s nil nil)))
+	    ((null l))
+	  (push l r))))))
 
 
-(defun load-undefined-symbols-from-library (what kludges libraries)
-  (setq what (remove-if #'ff::get-entry-point what))
-  (when what
-    (mapc #'foreign-functions:remove-entry-point kludges)
-    (load "" 
-	  :unreferenced-lib-names what
-	  :foreign-files libraries
-	  :print t)))
+(defun load-undefined-symbols-from-library (file what kludges libraries)
+  (let* ((n (length what))
+	 (names (coerce what 'vector))
+	 (entry-points (make-array n :element-type '(unsigned-byte 32))))
+    (declare (type (simple-array (unsigned-byte 32) (*))))
+    (when (> (ff:get-entry-points names entry-points) 0)
+      (dotimes (i n) 
+	    (when (= (aref entry-points i)
+			sys::*impossible-load-address*)
+	      (format t ";; ~A is undefined~%" (aref names i))))
+      (mapc #'foreign-functions:remove-entry-point kludges)
+      (load file
+	    :system-libraries libraries
+	    :print t))))
 
-(defvar *libx11-pathname* "/usr/motif/usr/lib/libX11.a")
+(defvar *libx11-pathname* "/x11/R4/src/mit/lib/X/libX_d.a")
 
-(defun load-from-xlib ()
-  (x11::load-undefined-symbols-from-library
-   (list* "_XCopyGC" (x11::symbols-from-file "misc/undefinedsymbols"))
-   '("__unpack_quadruple" 
-     "__prod_b10000" 
-     "__carry_out_b10000" 
-     "__prod_65536_b10000")
-   (list x11::*libx11-pathname*)))
+(x11::load-undefined-symbols-from-library
+ "stub-x.o"
+ (x11::symbols-from-file "misc/undefinedsymbols")
+ '("__unpack_quadruple" 
+   "__prod_b10000" 
+   "__carry_out_b10000" 
+   "__prod_65536_b10000")
+ (list x11::*libx11-pathname*))
 
-(load-from-xlib)

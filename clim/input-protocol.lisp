@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-protocol.lisp,v 1.8 92/03/04 16:21:55 cer Exp $
+;; $fiHeader: input-protocol.lisp,v 1.9 92/03/10 10:12:39 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -461,11 +461,11 @@
 ;;; stream-read-gesture directly.
 (defun read-gesture (&rest args &key (stream *standard-input*) &allow-other-keys)
   (declare (arglist &key (stream *standard-input*)
-			 timeout peek-p input-wait-test input-wait-handler
-			 pointer-button-press-handler))
+		    timeout peek-p input-wait-test input-wait-handler
+		    pointer-button-press-handler))
   (declare (dynamic-extent args))
   (with-keywords-removed (keywords args '(:stream))
-    (apply #'stream-read-gesture stream keywords)))
+		 (apply #'stream-read-gesture stream keywords)))
 
 (defmethod stream-unread-gesture ((stream input-protocol-mixin) gesture)
   (queue-unget (stream-input-buffer stream) gesture))

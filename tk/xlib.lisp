@@ -20,14 +20,13 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xlib.lisp,v 1.11 92/03/09 17:41:03 cer Exp Locker: cer $
+;; $fiHeader: xlib.lisp,v 1.12 92/03/10 15:39:53 cer Exp $
 
 (in-package :tk)
 
 ;;; Pathetic clos interface to Xlib
 
-(defclass screen (display-object) ()
-	  (:metaclass standard-class-wrapping-foreign-address))
+(defclass screen (display-object) ())
 
 #+obsolete
 (defun screen-gcontext (screen)
@@ -41,13 +40,9 @@
 
 
 
-(defclass drawable (display-object)
-  ()
-  (:metaclass standard-class-wrapping-foreign-address))
+(defclass drawable (display-object) ())
 	  
-(defclass window (drawable)
-  ()
-  (:metaclass standard-class-wrapping-foreign-address))
+(defclass window (drawable) ())
 
 ;; Ugh.  This should be part of a general purpose mechanism
 (defmethod drawable-depth ((window window))
@@ -94,8 +89,7 @@
 (defclass pixmap (drawable)
   ((width :initarg :width :reader pixmap-width)
    (height :initarg :height :reader pixmap-height)
-   (depth :initarg :depth :reader drawable-depth))
-  (:metaclass standard-class-wrapping-foreign-address))
+   (depth :initarg :depth :reader drawable-depth)))
 
 (defmethod initialize-instance :after
 	   ((p pixmap) &key foreign-address width height depth drawable)
@@ -142,8 +136,7 @@
   (x11:xdefaultscreen display))
 
 
-(defclass colormap (display-object) ()
-  (:metaclass standard-class-wrapping-foreign-address))
+(defclass colormap (display-object) ())
 
 (defun default-colormap (display &optional (screen 0))
   (intern-object-xid
@@ -153,8 +146,7 @@
    :display 
    display))
 
-(defclass color () ()
-  (:metaclass standard-class-wrapping-foreign-address))
+(defclass color (ff:foreign-pointer) ())
 
 (defmethod initialize-instance :after ((x color) &key foreign-address red green
 				       blue)
@@ -235,18 +227,18 @@
 	  (values
 	   t
 	   (intern-object-xid
-	    (sys:memref-int (foreign-pointer-address root) 0 0 :signed-long)
+	    (aref root 0)
 	    'window
 	    :display display)
 	   (intern-object-xid
-	    (sys:memref-int (foreign-pointer-address child) 0 0 :signed-long)
+	    (aref child 0)
 	    'window
 	    :display display)
-	   (sys:memref-int (foreign-pointer-address root-x) 0 0 :signed-long)
-	   (sys:memref-int (foreign-pointer-address root-y) 0 0 :signed-long)
-	   (sys:memref-int (foreign-pointer-address x) 0 0 :signed-long)
-	   (sys:memref-int (foreign-pointer-address y) 0 0 :signed-long)
-	   (sys:memref-int (foreign-pointer-address mask) 0 0 :signed-long))))))
+	   (aref root-x 0)
+	   (aref root-y 0)
+	   (aref x 0)
+	   (aref y 0)
+	   (aref mask 0))))))
 	
 
 
@@ -337,27 +329,32 @@
 	     (error "cannot encode event-mask ~S" mask))))))
 
 
-(defun lookup-string (event)
-  (with-ref-par 
-      ((keysym 0)
-       (buffer 0))
-    (values
-     (x11:xlookupstring
-      event
-      buffer
-      2 
-      keysym
-      0)
-     (char*-to-string (foreign-pointer-address buffer))
-     (sys:memref-int (foreign-pointer-address keysym) 0 0 :signed-long))))
+(warn "remove me")
 
-(defclass image ()
+(defun lookup-string (event)
+  (let ((buffer (string-to-char* (load-time-value (make-string 4 :initial-element #\null)))))
+    ;;-- Before anyone goes changing this again they need to remember
+    ;;-- that buffer needs to be zeroed before hand
+    (with-ref-par 
+	((keysym 0))
+      (values
+       (x11:xlookupstring
+	event
+	buffer
+	2 
+	keysym
+	0)
+       (prog1
+	   (char*-to-string buffer)
+	 (excl::free buffer))
+       (aref keysym 0)))))
+
+(defclass image (ff:foreign-pointer)
   ((width :reader image-width :initarg :width)
    (height :reader image-height :initarg :height)
    (data :reader image-data :initarg :data)
    (depth :reader image-depth :initarg :depth)
-   (realized-displays :initform nil :accessor realized-displays))
-  (:metaclass standard-class-wrapping-foreign-address))
+   (realized-displays :initform nil :accessor realized-displays)))
   
 
 (defmethod realize-image (image display)

@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;;; $fiHeader: xlib-funs.lisp,v 1.1 92/03/06 17:07:01 cer Exp Locker: cer $
+;;; $fiHeader: xlib-funs.lisp,v 1.2 92/03/24 19:37:22 cer Exp Locker: cer $
 
 (in-package :x11)
 

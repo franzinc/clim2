@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: excl-verification.lisp,v 1.5 92/03/10 10:11:51 cer Exp Locker: cer $
+;; $fiHeader: excl-verification.lisp,v 1.6 92/03/24 19:36:55 cer Exp Locker: cer $
 
 (in-package :sys)
 
@@ -13,6 +13,7 @@
   (require :clx))
 
 (provide :clim)
+(provide :climg)
 
 #+(not (version>= 4 1))
 (let* ((patch-package (find-package :patch))

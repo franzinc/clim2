@@ -20,31 +20,26 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: load-ol.lisp,v 1.5 92/02/16 20:55:00 cer Exp $
+;; $fiHeader: load-ol.lisp,v 1.6 92/02/24 13:03:09 cer Exp Locker: cer $
 
 (in-package :tk)
 
+(defvar *libxol-pathname* "/usr/tech/cer/stuff/clim-2.0/tk/lib2/libXol.a")
+(defvar *libxt-pathname* "/x11/R4/src/mit/lib/Xt/libXt_d.a")
 
-(defun load-ol (&optional (what *openlook-classes*))
-  (setq what (remove-if #'ff::get-entry-point `(,@what)))
-  (when what
-    (mapc #'foreign-functions:remove-entry-point 
-	  '("__unpack_quadruple" 
-	    "__prod_b10000" 
-	    "__unpacked_to_decimal"
-	    "__carry_out_b10000" 
-	    "__prod_65536_b10000"))
-    (load ""
-	  :unreferenced-lib-names 
-	  what
-	  :foreign-files 
-	  '("/usr/openwin-3.0/lib/libXol.a"
-	    "/usr/motif/usr/lib/libXt.a"
-	    "/usr/motif/usr/lib/libX11.a"
-	    ;; Hopefully
-	    ;;"/usr/openwin-3.0/lib/libXt.a"
-	    ;; "/usr/openwin-3.0/lib/libX11.a"
-	    )
-	  :print t)))
+(defun load-from-ol ()
+  (x11::load-undefined-symbols-from-library
+   "stub-olit.o"
+   (x11::symbols-from-file 
+    "misc/undefinedsymbols.xt"
+    "misc/undefinedsymbols.olit")
+   '("__unpack_quadruple" 
+     "__unpacked_to_decimal"
+      "__prod_b10000" 
+      "__carry_out_b10000" 
+      "__prod_65536_b10000")
+    (list *libxol-pathname*
+	  *libxt-pathname*
+	  x11::*libx11-pathname*)))
 
-(load-ol)
+(load-from-ol)
