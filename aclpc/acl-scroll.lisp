@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-scroll.lisp,v 1.4.8.6 1998/08/12 21:15:14 layer Exp $
+;; $Id: acl-scroll.lisp,v 1.4.8.7 1998/09/24 15:58:52 layer Exp $
 
 #|****************************************************************************
 *                                                                            *

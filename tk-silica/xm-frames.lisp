@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xm-frames.lisp,v 1.75.22.2 1998/07/06 23:10:20 layer Exp $
+;; $Id: xm-frames.lisp,v 1.75.22.3 1998/09/24 15:58:56 layer Exp $
 
 (in-package :xm-silica)
 
@@ -144,7 +144,10 @@
 		    '(:font-list)))
 	 ;; menu-text-style used to be (pane-text-style sheet)
 	 ;; changed 28May97 -tjm
-	 (menu-text-style clim-internals::*default-menu-text-style*)
+	 ;; changed back 14Sep98 JPM 
+	 ;; (X resource database should provide default text styles - spr18064)
+	 (menu-text-style (pane-text-style sheet) 
+			  #+ignore clim-internals::*default-menu-text-style*)
 	 (frame (pane-frame sheet))
 	 (top-command-table (or (menu-bar-command-table sheet)
 				(frame-command-table frame)))

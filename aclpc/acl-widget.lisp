@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-widget.lisp,v 1.7.8.8 1998/08/12 21:15:14 layer Exp $
+;; $Id: acl-widget.lisp,v 1.7.8.9 1998/09/24 15:58:52 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -95,7 +95,7 @@
 		   (delete new (gadget-value pane))
 		 (push new (gadget-value pane)))))))))))
 
-(defmethod (setf gadget-value) :after
+(defmethod (setf gadget-value) :before
 	   (value (pane hlist-pane) &key invoke-callback)
   (declare (ignore invoke-callback))
   (with-slots (mode items value-key test) pane
@@ -120,12 +120,7 @@
 	    (when i 
 	      (win:sendMessage 
 	       hwnd win:LB_SETCURSEL i 0))))
-
-	;; check out compute-list-pane-selected-items
-	;; in the unix code to see how to do this 
-	;; (cim 9/25/96)
-	#+ignore
-	(win:sendMessage hwnd win:LB_settopindex value 0)))))
+	))))
 
 (defmethod handle-event :after ((pane hlist-pane) (event pointer-event))
   (deallocate-event event))
@@ -172,6 +167,27 @@
       (make-space-requirement
         :width (+ name-width 20)
         :height name-height))))
+
+;;; When items are set in an hlist-pane the  mirror must be
+;;; made to update its appearance appropriately.
+(defmethod (setf set-gadget-items) :before (items (pane hlist-pane))
+  (with-slots (name-key mirror) pane
+    (when mirror
+      (win:SendMessage mirror win:LB_RESETCONTENT 0 0)
+      (dolist (item items)
+	(let ((str (acl-clim::nstringify (funcall name-key item)))
+	      (pos (position item items)))
+	  ;;(break "insert gadget item [~a @ ~a]" str pos)
+	  (win:SendMessage mirror win:LB_INSERTSTRING pos str)))
+      (win:InvalidateRect mirror ct:hnull win:true)))) ;; make sure it updates
+
+(defmethod acl-clim::command-event :around ((gadget silica::hlist-pane) 
+					    port sheet wparam lparam)
+  (let ((notifycode (acl-clim::hiword wparam)))
+    (when (= notifycode win:lbn_selchange)
+      ;; Selection in list box is about to change.
+      (win:setfocus (sheet-mirror sheet))
+      (call-next-method gadget port sheet wparam lparam))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; mswin-text-edit
@@ -362,20 +378,14 @@
     cstr))
 
 ;; added back with mods by pr 1May97 (from whence?) -tjm 23May97
-(defmethod (setf gadget-value) :after (str (pane mswin-text-edit) &key invoke-callback)
+(defmethod (setf gadget-value) :before (str (pane mswin-text-edit) 
+					&key invoke-callback)
   (declare (ignore invoke-callback))
   (with-slots (mirror value) pane
     (setq value str)			; Moved outside conditional - smh 26Nov96
     (when mirror
       (win:setWindowText
-       mirror (xlat-newline-return str))
-      ;; I wonder whether this avoidance of the callback is really correct,
-      ;; or whether it was a quick workaround for bad control structure elsewhere.
-      ;; It could be causing some of our ds problems, but I'm not changing it
-      ;; right now.  Also, should it be moved outside the conditional? -smh 26Nov96
-      (when nil				;+++ invoke-callback
-	(value-changed-callback pane
-				(gadget-client pane) (gadget-id pane) str)))))
+       mirror (xlat-newline-return str)))))
 
 (defmethod gadget-value ((pane mswin-text-edit))
   (with-slots (mirror value) pane
@@ -393,6 +403,13 @@
       ;;this used to be (values value (length value)) which I believe is
       ;;right -- K. Reti
       (values value (if (listp value) (length value) 0)))))
+
+(defmethod acl-clim::command-event :around ((gadget silica::mswin-text-edit) 
+					    port sheet wparam lparam)
+  (let ((notifycode (acl-clim::hiword wparam)))
+    (when (= notifycode win:en_killfocus)
+      ;; Edit control just lost keyboard focus.
+      (call-next-method gadget port sheet wparam lparam))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; buttons
@@ -542,7 +559,6 @@
     ((pixmap :initform nil)
      (raster-op :initform *default-picture-button-op* :initarg :raster-op))
   (:default-initargs :label nil
-		     :indicator-type ':one-of
 		     ;; We no longer want this as it overrides the the
 		     ;; system font returned by get-sheet-resources
 		     ;; in acl-medi.lisp (cim 10/12/96)
@@ -600,10 +616,21 @@
 			 ;; with bad redirection of pointer-events -
 			 ;; see comment in silica/event.lisp (cim 9/17/96)
 			 (event window-change-event))
-  ;; removed the armed test that came from db-button.lisp - not
-  ;; applicable for built in gadgets - check for other gadget classes
-  ;; (cim 9/17/96) 
-  (setf (gadget-value pane :invoke-callback t) (not (gadget-value pane))))
+  (setf (gadget-value pane :invoke-callback t)
+    (or (eq (gadget-indicator-type pane) :one-of)
+	(not (gadget-value pane)))))
+
+(defmethod (setf gadget-indicator-type) :before (value (pane hbutton-pane))
+  (declare (ignore value))
+  (error "Cannot change the indicator-type of a checkbox at this time"))
+
+;;; When an hbutton is set, update its checkmark appropriately.
+(defmethod (setf gadget-value) :before (value (pane hbutton-pane) 
+				       &key invoke-callback)
+  (declare (ignore invoke-callback))
+  (with-slots (mirror) pane
+    (when mirror
+      (win:sendmessage mirror win:BM_SETCHECK (if value 1 0) 0))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; option panes
@@ -612,28 +639,6 @@
 
 ;;; clim\db-list
 (defclass acl-clim::winwidget-mixin () ())
-
-;;; When an hbutton is set, update its checkmark appropriately.
-(defmethod (setf gadget-value) :after (value (pane hbutton-pane) 
-				       &key invoke-callback)
-  (declare (ignore invoke-callback))
-  (with-slots (mirror) pane
-    (when mirror
-      ;;(break "About to set value of ~a to ~a." pane value)
-      (win:sendmessage mirror win:BM_SETCHECK (if value 1 0) 0))))
-
-;;; When items are set in an hlist-pane the  mirror must be
-;;; made to update its appearance appropriately.
-(defmethod (setf set-gadget-items) :after (items (pane hlist-pane))
-  (with-slots (name-key mirror) pane
-    (when mirror
-      (win:SendMessage mirror win:LB_RESETCONTENT 0 0)
-      (dolist (item items)
-	(let ((str (acl-clim::nstringify (funcall name-key item)))
-	      (pos (position item items)))
-	  ;;(break "insert gadget item [~a @ ~a]" str pos)
-	  (win:SendMessage mirror win:LB_INSERTSTRING pos str)))
-      (win:InvalidateRect mirror ct:hnull win:true)))) ;; make sure it updates
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Combo Box
@@ -667,7 +672,7 @@
         (setf index (win:sendmessage mirror win:cb_getcursel 0 0))
         (setf (gadget-value pane :invoke-callback t) (funcall value-key (elt items index)))))))
 
-(defmethod (setf gadget-value) :after
+(defmethod (setf gadget-value) :before
 	   (value (pane mswin-combo-box-pane) &key invoke-callback)
   (declare (ignore invoke-callback))
   (with-slots (mode items value-key test) pane
@@ -696,6 +701,13 @@
       (make-space-requirement
        :width (+ name-width 20)
        :height (+ name-height 7)))))
+
+(defmethod acl-clim::command-event ((gadget silica::mswin-combo-box-pane) 
+				    port sheet wparam lparam)
+  (let ((notifycode (acl-clim::hiword wparam)))
+    (when (= notifycode win:cbn_closeup)
+      ;; List box of a combo box has been closed.
+      (call-next-method gadget port sheet wparam lparam))))
 
 (in-package :acl-clim)
 
@@ -918,12 +930,12 @@
 	   nPos position)
 	  (win:SetScrollInfo mirror win:SB_CTL struct 1))))))
 
-(defmethod (setf gadget-value) :after
+(defmethod (setf gadget-value) :before
 	   (nv (gadget mswin-scroll-bar) &key invoke-callback)
   (declare (ignore invoke-callback))
   (change-scroll-bar-values gadget :value nv))
 
-(defmethod (setf scroll-bar-size) :after (nv (gadget mswin-scroll-bar))
+(defmethod (setf scroll-bar-size) :before (nv (gadget mswin-scroll-bar))
   (change-scroll-bar-values gadget :slider-size nv))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

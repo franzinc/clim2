@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-class.lisp,v 1.7.8.9 1998/08/12 21:15:08 layer Exp $
+;; $Id: acl-class.lisp,v 1.7.8.10 1998/09/24 15:58:49 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -135,6 +135,7 @@
 
 (defvar *clim-wproc-arg-struct* nil)
 (defvar *clim-ctrl-arg-struct* nil)
+(defvar *tooltip-relay-struct* nil)
 
 (defstruct (PCCStructure 
 	    (:print-function print-pccstructure)
@@ -168,6 +169,11 @@
   (declare (ignore wproc-address))
   (setf *clim-wproc-arg-struct* arg-struct)
   (ff:register-function 'clim-wind-proc :reuse :return-value))
+
+(defun init-tooltip-relay (wproc-address arg-struct)
+  (declare (ignore wproc-address))
+  (setf *tooltip-relay-struct* arg-struct)
+  (ff:register-function 'tooltip-relay :reuse :return-value))
 
 (defun init-clim-ctrl-proc (wproc-address arg-struct)
   (declare (ignore wproc-address))
@@ -235,7 +241,7 @@
 	(sheet (mirror->sheet *acl-port* window)))
     (declare (ignore keys))
     (setq *win-result*
-      (if (note-pointer-motion *acl-port* sheet mx my)
+      (if (or (not sheet) (note-pointer-motion *acl-port* sheet mx my))
 	  (win:defwindowproc window msg wparam lparam)
 	win:false))))
 
@@ -320,103 +326,54 @@
 	 
 	 (setf *win-result* (adjust-gadget-colors sheet hdc))))))
 
-;; Process WM_COMMAND
+;; Process WM_COMMAND.
+;; This message is sent when the user selects a command item
+;; from a menu, when a control sends a notification message to
+;; its parent window, or when an accelerator key is translated.
 (defun oncommand (window msg wparam lparam)
   (declare (ignore msg))
-  (let ((wloword (loword wparam))
-	(whiword (hiword wparam))
-	(sheet (mirror->sheet *acl-port* window))
-	(pointer (port-pointer *acl-port*))
-	(modifier-state (make-modifier-state))
-	(gadget nil)
-	(hwnd (ct:ccallocate win:hwnd)))
-    ;;mm: defined in acl-mirr.lsp later
-    (declare (special *gadget-id->window*))
-    (when pointer
-      (flush-pointer-motion *acl-port*))
-    (cond ((and (zerop lparam)		; menu item
-		(zerop whiword))	; otherwise control (or accelerator)
+  (let* ((port *acl-port*)
+	 (sheet (mirror->sheet port window))
+	 (control (not (zerop lparam))))
+    (flush-pointer-motion port)
+    (cond ((not control)
+	   ;; User selected a command from the menu bar.
 	   (let* ((frame (pane-frame sheet))
-		  (command (cdr (aref *menu-id->command-table* wloword))))
-	     ;; pr Aug97
-	     (with-slots (clim-internals::disabled-commands) frame
-	       (if (member (car command) clim-internals::disabled-commands)
-		   (win:messagebeep 200)
-		 #+old
-		 (queue-put (slot-value *acl-port* 'event-queue)
-			    (allocate-event 
-			     'presentation-event
-			     :frame frame
-			     :sheet (frame-top-level-sheet frame)
-			     :presentation-type
-			     `(command :command-table ,command-table)
-			     :value command))
-		 (execute-command-in-frame 
-		  frame command)
-		 ))))
-	  (t
-	   (setf (ct:handle-value win:hwnd hwnd) lparam)
-	   ;;mm: for the moment, the following seems superfluous
-	   ;;(setf hwndid (silica::gadget-id->window sheet wloword))
-	   (setf gadget (mirror->sheet *acl-port* hwnd))
-	   (cond ((typep gadget 'silica::mswin-combo-box-pane)
-		  (let ((sheet (mirror->sheet *acl-port* window)))
-		    (when (and sheet (= whiword win:cbn_closeup))
-		      (with-slots (event-queue) *acl-port*
-			(queue-put
-			 event-queue
-			 (multiple-value-bind (left top right bottom)
-			     (mirror-client-region-internal* *acl-port* hwnd window)
-			   (declare (ignore right bottom))
-			   (allocate-event 'silica::window-change-event
-					   :native-x (+ left 1)
-					   :native-y (+ top 1)
-					   :button +pointer-left-button+
-					   :modifier-state 0
-					   :pointer pointer
-					   :sheet sheet
-					   :mswin-control gadget)))))))
-		 ((typep gadget 'silica::mswin-text-edit)
-		  (let ((sheet (mirror->sheet *acl-port* window)))
-		    (when (and sheet (= whiword win:en_killfocus))
-
-		      (with-slots (event-queue) *acl-port*
-					;handle-event
-					;  gadget
-			(multiple-value-bind (left top right bottom)
-			    (mirror-client-region-internal* *acl-port* hwnd window)
-			  (declare (ignore right bottom))
-			  (queue-put event-queue
-				     (allocate-event 
-				      'silica::window-change-event
-				      :native-x (+ left 1)
-				      :native-y (+ top 1)
-				      :button +pointer-left-button+
-				      :modifier-state 0
-				      :pointer pointer
-				      :sheet sheet
-				      :mswin-control gadget)))))))
-		 ((or (not (typep gadget 'silica::hlist-pane))
-		      (= whiword hln_selchange))
-		  (when (typep gadget 'silica::hlist-pane)
-		    (win:setfocus window))
-		  (with-slots (event-queue) *acl-port*
-
-		    (multiple-value-bind (left top right bottom)
-			(mirror-client-region-internal* *acl-port* hwnd window)
-		      (declare (ignore right bottom))
-		      (queue-put event-queue
-				 (allocate-event 
-				  'silica::window-change-event
-				  :native-x (+ left 1)
-				  :native-y (+ top 1)
-				  :button +pointer-left-button+
-				  :modifier-state modifier-state
-				  :pointer pointer
-				  :sheet sheet
-				  :mswin-control gadget))))))))
+		  (ID (loword wparam))
+		  (command (cdr (aref *menu-id->command-table* ID))))
+	     (when command
+	       (with-slots (clim-internals::disabled-commands) frame
+		 (if (member (car command) clim-internals::disabled-commands)
+		     (win:messagebeep 200)
+		   (execute-command-in-frame frame command))))))
+	  (sheet
+	   ;; User clicked on a control.
+	   (let ((gadget (mirror->sheet port lparam)))
+	     (when gadget
+	       (command-event gadget port sheet wparam lparam)))))
     (clear-winproc-result *win-result*)
-    *win-result*))  
+    *win-result*))
+
+(defmethod command-event ((gadget t) port sheet wparam lparam)
+  "Gadget just issued a WM_COMMAND event."
+  (declare (ignore wparam))
+  (let ((pointer (port-pointer port))
+	(modifier-state (make-modifier-state)))
+    (with-slots (event-queue) port
+      (multiple-value-bind (left top right bottom)
+	  (mirror-client-region-internal*
+	   port lparam (sheet-mirror sheet))
+	(declare (ignore right bottom))
+	(queue-put event-queue
+		   (allocate-event 
+		    'silica::window-change-event
+		    :native-x (+ left 1)
+		    :native-y (+ top 1)
+		    :button +pointer-left-button+
+		    :modifier-state modifier-state
+		    :pointer pointer
+		    :sheet sheet
+		    :mswin-control gadget))))))
 
 ;; Process WM_VSCROLL
 (defun OnVScroll (window msg wparam lparam)
@@ -568,22 +525,19 @@
 	   (shiftstate (win:getKeyState win:vk_shift))
 	   (controlstate (win:getKeyState win:vk_control))
 	   (metastate (win:getKeyState win:vk_menu)))
-      #+debugg
-      (format *standard-output* 
-	      "caps=~a num=~a shift=~a ctrl=~a meta=~a code=~a~%"
-	      capstate numstate shiftstate controlstate metastate code)
-
       (setf (modstate-control *modstate*)
 	(or (minusp controlstate) (not (zerop (ash controlstate -15)))))
       (setf (modstate-meta *modstate*)
-					; whoops! this was controlstate!?
+	;; whoops! this was controlstate!?
 	(or (minusp metastate) (not (zerop (ash metastate -15)))))
       (setf (modstate-numlock *modstate*)
 	(and (plusp numstate) (zerop (ash numstate -15))))
       (setf (modstate-shift *modstate*)
-	(or (and (or (minusp shiftstate) (not (zerop (ash shiftstate -15))))
+	(or (and (or (minusp shiftstate) 
+		     (not (zerop (ash shiftstate -15))))
 		 (zerop capstate))
-	    (and (not (or (minusp shiftstate) (not (zerop (ash shiftstate -15)))))
+	    (and (not (or (minusp shiftstate) 
+			  (not (zerop (ash shiftstate -15)))))
 		 (and (plusp capstate) (zerop (ash capstate -15)))))))
     (if pass
 	(progn
@@ -621,22 +575,13 @@
 	      (cond ((and (eql msg win:wm_keydown)
 			  (setq command 
 			    (lookup-accelerator frame keysym modstate)))
-		     #+old
-		     (queue-put 
-		      event-queue
-		      (allocate-event 'presentation-event
-				      :frame frame
-				      :sheet (frame-top-level-sheet frame)
-				      :presentation-type
-				      `(command :command-table ,command-table)
-				      :value command))
-		     (execute-command-in-frame
-		      frame command))
+		     (execute-command-in-frame frame command))
 		    ((and (eql msg win:wm_keydown)
 			  (eql keysym :newline)
 			  (find-default-gadget frame))
 		     (activate-default-gadget frame))
 		    (t
+		     (setf (port-modifier-state *acl-port*) modstate)
 		     (queue-put event-queue
 				(allocate-event
 				 (cond ((or (eql msg win:wm_keydown)
@@ -647,9 +592,7 @@
 					'key-release-event))
 				 :key-name keysym
 				 :character char
-				 :modifier-state 
-				 (setf (port-modifier-state *acl-port*)
-				   modstate)
+				 :modifier-state modstate
 				 :sheet sheet))
 		     ;;added this so that port modifier state is always 
 		     ;; updated, even on passed characters. -- KR
@@ -697,18 +640,17 @@
 		      :mswin-control gadget)))
       (clim:beep))))
 
-;; Process WM_BUTTONDOWN
+;; Process WM_LBUTTONDOWN
 (defun OnButtonDown (window msg wparam lparam)
   ;; added the following so that clicking on a blank area will
   ;; move the focus away from any text-fields and cause their
   ;; value to be correctly updated  - this was copied from the
   ;; handle-event on key-press-event for mswin-text-edit in
   ;; acl-widg (cim 9/17/96)
-  (win:setfocus (win:getactivewindow) #-acl86win32 :static)
-
-  (let ((modifier-state
-	 (windows-mask->modifier-state wparam))
-	(pointer (port-pointer *acl-port*)))
+  (win:setfocus (win:getactivewindow))
+  (let* ((pointer (port-pointer *acl-port*))
+	 (sheet (mirror->sheet *acl-port* window))
+	 (modifier-state (windows-mask->modifier-state wparam)))
     (when pointer
       (flush-pointer-motion *acl-port*)
       (setf (port-modifier-state *acl-port*) modifier-state)
@@ -739,9 +681,43 @@
 				     :button button
 				     :modifier-state modifier-state
 				     :pointer pointer
-				     :sheet (mirror->sheet *acl-port* window)))))))
+				     :sheet sheet))))))
   (clear-winproc-result *win-result*)
-  *win-result*)  
+  *win-result*)
+
+;; Process WM_LBUTTONDBLCLK
+(defun OnButtonDblClk (window msg wparam lparam)
+  ;; A double click will actually generate four events:
+  ;; down, up, dblclk, up.  This function handles the 
+  ;; double click, the other three are handled by OnButtonDown.
+  (win:setfocus (win:getactivewindow))
+  (let* ((pointer (port-pointer *acl-port*))
+	 (sheet (mirror->sheet *acl-port* window))
+	 (modifier-state (windows-mask->modifier-state wparam t)))
+    (when pointer
+      (flush-pointer-motion *acl-port*)
+      (setf (port-modifier-state *acl-port*) modifier-state)
+      (multiple-value-bind (key button)
+	  (cond ((eql msg win:wm_lbuttondblclk)
+		 (values 'pointer-button-press-event
+			 +pointer-left-button+))
+		((eql msg win:wm_mbuttondblclk)
+		 (values 'pointer-button-press-event
+			 +pointer-middle-button+))
+		((eql msg win:wm_rbuttondblclk)
+		 (values 'pointer-button-press-event
+			 +pointer-right-button+)))
+	(with-slots (event-queue) *acl-port*
+	  (queue-put event-queue
+		     (allocate-event key
+				     :native-x (loword lparam)
+				     :native-y (hiword lparam)
+				     :button button
+				     :modifier-state modifier-state
+				     :pointer pointer
+				     :sheet sheet))))))
+  (clear-winproc-result *win-result*)
+  *win-result*)
 
 ;; Process WM_ACTIVATE
 (defun OnActivate (window msg wparam lparam)
@@ -804,6 +780,36 @@
   (clear-winproc-result *win-result*)
   (setq *win-result* (win:defwindowproc window msg wparam lparam))
   *win-result*)
+
+;; Refer to the windows documentation on Tooltip controls.
+;; The message stream needs to be relayed to the tooltip 
+;; control for it to know when and where to display tool tips.
+(ff:defun-c-callable tooltip-relay (window msg wparam lparam)
+  (declare (:convention :stdcall) (:unwind 0)
+	   (special wmsg)
+	   (optimize (safety 0) (speed 3)))
+  (case msg
+    ((#.win:wm_mousemove 
+      #.win:wm_lbuttondown
+      #.win:wm_lbuttonup
+      #.win:wm_rbuttondown
+      #.win:wm_rbuttonup)
+     (let* ((sheet (mirror->sheet *acl-port* window))
+	    (frame (pane-frame sheet))
+	    (top (frame-top-level-sheet frame))
+	    (tt (tooltip-control top))
+	    (ttm_relayevent #.(+ win:wm_user 7))
+	    (relay wmsg))
+       (when tt
+	 (ct:csets win:msg relay
+		   lparam lparam
+		   wparam wparam
+		   message msg
+		   hwnd window)
+	 (or (plusp (win:sendmessage tt TTM_RELAYEVENT 0 relay))
+	     (check-last-error "TTM_RELAYEVENT" :Action :warn))))))
+  #+optional
+  (callnexthookex *next-windows-hook* msg wparam lparam))
 
 (defvar *trace-messages* nil)
 
@@ -880,6 +886,10 @@
 	#.win:wm_rbuttonup
 	#.win:wm_mbuttonup)
        (onbuttondown window msg wparam lparam))
+      ((#.win:wm_lbuttondblclk
+	#.win:wm_lbuttondblclk
+	#.win:wm_lbuttondblclk)
+       (onbuttondblclk window msg wparam lparam))
       (#.win:wm_activate
        (onactivate window msg wparam lparam))
       ((#.win:wm_killfocus
@@ -889,6 +899,8 @@
        (oninitmenupopup window msg wparam lparam))
       (#.win:wm_nchittest
        (OnNcHitTest window msg wparam lparam))
+      (#.win:wm_notify
+       (message-default window msg wparam lparam))
       (otherwise
        (message-default window msg wparam lparam)))
     (setf result *win-result*)
@@ -943,11 +955,12 @@
 	    (setf (modstate-numlock *ctlmodstate*)
 	      (and (plusp numstate) (zerop (ash numstate -15))))
 	    (setf (modstate-shift *ctlmodstate*)
-	      (or (and (or (minusp shiftstate) (not (zerop (ash shiftstate -15))))
+	      (or (and (or (minusp shiftstate) 
+			   (not (zerop (ash shiftstate -15))))
 		       (zerop capstate))
-		  (and (not (or (minusp shiftstate) (not (zerop (ash shiftstate -15)))))
-		       (and (plusp capstate) (zerop (ash capstate -15))))))
-	    )
+		  (and (not (or (minusp shiftstate) 
+				(not (zerop (ash shiftstate -15)))))
+		       (and (plusp capstate) (zerop (ash capstate -15)))))))
 
 	  (when (and (or (<= #x30 vk #x5a)(<= #xba vk #xc0)(<= #xdb vk #xdf))
 		     (modstate-shift *ctlmodstate*))
@@ -979,13 +992,9 @@
 	      (if pass
 		  (progn
 		    (setq pass nil)
-		    #+acl86win32
-		    (setq *win-result* (win:callwindowproc std-ctrl-proc-address
-							   window msg wparam lparam))
-		    #+aclpc
-		    (ct:%set-long *win-result* 4 0
-				   (win:callwindowproc std-ctrl-proc-address
-						       window msg wparam lparam))
+		    (setq *win-result* 
+		      (win:callwindowproc std-ctrl-proc-address
+					  window msg wparam lparam))
 		    *win-result*)
 		(progn
 		  ;; We have decided to handle this character ourselves!
@@ -1025,6 +1034,8 @@
 (defvar clim-window-proc-address nil)
 (defvar clim-ctrl-proc-address nil)
 (defvar std-ctrl-proc-address nil)
+(defvar tooltip-relay-address nil)
+(defvar *next-windows-hook* nil)
 (defvar *clim-initialized* nil)
 (defvar lpcmdline "")
 (defvar *hinst* 0) 
@@ -1079,6 +1090,9 @@
       (init-clim-win-proc clim-window-proc-address #.(make-cstructure 0 16)))
     (setf clim-ctrl-proc-address 
       (init-clim-ctrl-proc clim-ctrl-proc-address #.(make-cstructure 0 16)))
+    #+not-yet
+    (setf tooltip-relay-address 
+      (init-tooltip-relay tooltip-relay-address #.(make-cstructure 0 16)))
     (setq *clim-initialized* t)))
 
 (defun acl-clim::register-window-class (hcursor)
@@ -1090,28 +1104,35 @@
 	  (icon (win:LoadIcon 0 win:IDI_APPLICATION)) ; (get-clim-icon)
 	  (reg nil))
       (ct:csets win:wndclassex class
-                 win::cbSize (ct:sizeof win:wndclassex)
-                 win::style (logior win:CS_DBLCLKS
-				    win:CS_BYTEALIGNCLIENT
-				    win:CS_BYTEALIGNWINDOW
-				    ;; win:CS_SAVEBITS ; Can we afford this?
-				    ;; win:CS_OWNDC
-				    )
-                 win::lpfnwndproc clim-window-proc-address 
-                 win::cbClsExtra 0
-                 win::cbWndExtra 0
-                 win::hinstance  *hinst*
-                 win::hicon icon 
-                 win::hcursor hcursor
-                 win::hbrbackground (1+ win:color_btnface)
-                 win::lpszmenuname ct:hnull ;*menu-name*
-                 win::lpszclassname (ff:string-to-char* *clim-class*)
-                 win::hIconSm icon)
+		cbSize (ct:sizeof win:wndclassex)
+		style (logior win:CS_DBLCLKS
+			      win:CS_BYTEALIGNCLIENT
+			      win:CS_BYTEALIGNWINDOW
+			      ;; win:CS_SAVEBITS ; Can we afford this?
+			      ;; win:CS_OWNDC
+			      )
+		lpfnwndproc clim-window-proc-address 
+		cbClsExtra 0
+		cbWndExtra 0
+		hinstance  *hinst*
+		hicon icon 
+		hcursor hcursor
+		hbrbackground (1+ win:color_btnface)
+		lpszmenuname ct:hnull	;*menu-name*
+		lpszclassname (ff:string-to-char* *clim-class*)
+		hIconSm icon)
       (setq reg (win:registerclassex class))
       (when (zerop reg)
 	(check-last-error "RegisterClassEx"))
-      (setq *wndclass-registered* t))
-    ))
+      (setq *wndclass-registered* t)
+      (when tooltip-relay-address
+	(setq *next-windows-hook*
+	  (SetWindowsHookEx win:WH_GETMESSAGE 
+			    tooltip-relay-address
+			    0 0))
+	(when (zerop *next-windows-hook*)
+	  (check-last-error "SetWindowsHookEx")))
+      t)))
 
 ;;; "CreateWindowEx"
 ;;;(dword lpctstr lpctstr dword int int int int hwnd hmenu handle lpstr)
@@ -1149,8 +1170,13 @@
     (when pretty
       (setq *win-name* pretty))
     (cond (modal
+	   ;; Accepting-values comes in here.  We need
+	   ;; thickframe, even though that is not normally
+	   ;; used for modal dialog boxes, so that AVV is
+	   ;; sizeable.
 	   (setq winstyle
 	     (logior winstyle
+		     win:ws_thickframe
 		     win:ws_popup
 		     (if parent win:ds_modalframe 0)
 		     win:ds_3dlook
@@ -1264,8 +1290,7 @@
 (defun wait-for-event ()
   (when (prog1
             (win:peekMessage wmsg (ct:null-handle win:hwnd) 0 0
-			     (logior win:PM_NOYIELD win:PM_NOREMOVE)
-			     #+acl86win32x wres)
+			     (logior win:PM_NOYIELD win:PM_NOREMOVE))
 	  (not (and (zerop (hiword wres)) (zerop (loword wres)))))
     t))
 

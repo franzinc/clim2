@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-medium.lisp,v 1.6.8.8 1998/08/12 21:15:12 layer Exp $
+;; $Id: acl-medium.lisp,v 1.6.8.9 1998/09/24 15:58:52 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -255,7 +255,7 @@
 	(setf (dc-image-text-color dc-image) tcolor)))
     dc-image))
 
-(defun dc-image-for-two-color-pattern (medium ink array designs)
+(defun dc-image-for-transparent-pattern (medium ink array designs)
   (declare (ignore ink))
   (let* ((dc-image (copy-dc-image
 		    (slot-value medium 'foreground-dc-image)))
@@ -266,6 +266,9 @@
 	 (width (array-dimension array 1))
 	 (height (array-dimension array 0))
 	 (into (make-pixel-map width height 256)))
+    (when (eq tink +transparent-ink+)
+      (rotatef tink bink)
+      (rotatef tcolor bcolor))
     (dotimes (i height)
       (dotimes (j width)
 	(setf (aref into i j) (aref array i j))))
@@ -312,6 +315,29 @@
 	  (if (>= col y-dim) 0 (if (zerop (aref a row col)) 0 1)))))
     b))
 
+(defun pattern-to-hatchbrush (pattern)
+  (multiple-value-bind (array designs) (decode-pattern pattern)
+    (let* ((tcolor (position-if #'(lambda (ink) (not (eq ink +transparent-ink+)))
+				designs))
+	   (style nil))
+      (unless tcolor (return-from pattern-to-hatchbrush nil))
+      (when (and (> (array-dimension array 0) 1)
+		 (> (array-dimension array 1) 1))
+	(let ((a11 (= (aref array 0 0) tcolor))
+	      (a12 (= (aref array 0 1) tcolor))
+	      (a21 (= (aref array 1 0) tcolor))
+	      (a22 (= (aref array 1 1) tcolor)))
+	  (setq style 
+	    (cond ((and a12 a21 a22) win:HS_CROSS)
+		  ((and a12 a21) win:HS_FDIAGONAL)
+		  ((and a11 a22) win:HS_BDIAGONAL)
+		  ((and a11 a12) win:HS_HORIZONTAL)
+		  ((and a11 a21) win:HS_VERTICAL)))))
+      (unless style (setq style win:HS_FDIAGONAL))
+      (win:createhatchbrush
+       style
+       (color->wincolor (elt designs tcolor))))))
+
 (defmethod dc-image-for-ink ((medium acl-medium) (ink pattern))
   ;; The "pattern" part of the ink is put into the brush.
   ;; There seems to be a problem with two-color stipples.
@@ -319,18 +345,16 @@
     (or (gethash ink cache)
 	(setf (gethash ink cache)
 	  (multiple-value-bind (array designs) (decode-pattern ink)
-	    (cond ((= (length designs) 2)
+	    (cond ((find +transparent-ink+ designs)
+		   ;; This is a terrible hack.
+		   ;; It avoids blowing out, and gives you a transparent stipple,
+		   ;; but it doesn't use the one you request.
 		   (setq array (byte-align-pixmap array))
-		   (let ((dc-image (dc-image-for-two-color-pattern
+		   (let ((dc-image (dc-image-for-transparent-pattern
 				    medium ink array designs)))
-		     ;; win95: creating brushes from patterns larger than
-		     ;; 8x8 is not supported.
 		     (setf (dc-image-brush dc-image) 
-		       (win:createPatternBrush (dc-image-bitmap dc-image)))
+		       (pattern-to-hatchbrush ink))
 		     dc-image))
-		  ((find +transparent-ink+ designs)
-		   (error 
-		    "Multicolor patterns must not use +transparent-ink+"))
 		  (t
 		   (setq array (byte-align-pixmap array))
 		   (let ((dc-image (dc-image-for-multi-color-pattern
@@ -376,12 +400,8 @@ draw icons and mouse cursors on the screen.
   (let ((cache (port-dc-cache (port medium))))
     (or (gethash ink cache)
 	(setf (gethash ink cache)
-	  (let ((pattern (decode-rectangular-tile ink)))
-	    (let ((dc-image (dc-image-for-ink medium pattern)))
-	      ;; There seems to be a problem with two-color stipples.
-	      (setf (dc-image-brush dc-image) 
-		(win:createPatternBrush (dc-image-bitmap dc-image)))
-	      dc-image))))))
+	  ;; The brush of PATTERN is used as the tile.
+	  (dc-image-for-ink medium (decode-rectangular-tile ink))))))
 
 (defun nyi ()
   (error "This NT CLIM operation is NYI (Not Yet Implemented)."))
@@ -838,7 +858,8 @@ draw icons and mouse cursors on the screen.
 ;;; reading patterns from bitmap files
 
 (defun read-bitmap-file (path &key (format :bitmap) (port (find-port)))
-  (declare (ignore format port))
+  (declare (ignore port))
+  (assert (member format '(:ico :bmp :cur))); give caller reasonable error msg
   (load-pixmap-1 path 0))
 
 (defun load-pixmap-1 (filename index) 
@@ -911,25 +932,25 @@ draw icons and mouse cursors on the screen.
 	  char2 (code-char (read-byte stream)))
     (cond ((and (eql char1 #\B)
 		(eql char2 #\M))
-	   (setq file-type :pixmap))
+	   (setq file-type :bmp))
 	  ((and (zerop (char-int char1))
 		(zerop (char-int char2)))
 	   (setq word2 (bm-read-word stream))
 	   (cond ((eql word2 1)
-		  (setq file-type :icon))
+		  (setq file-type :ico))
 		 ((eql word2 2)
-		  (setq file-type :cursor)))))
+		  (setq file-type :cur)))))
     (unless file-type
       (error "Object being read is neither a ~
 device-independent bitmap, an icon, nor a cursor."))
     (case file-type
-      (:pixmap
+      (:bmp
        (setq file-size (bm-read-long stream))
        (bm-read-word stream)		; reserved1 = 0
        (bm-read-word stream)		; reserved2 = 0
        (setq image-offset (bm-read-long stream))
        )
-      ((:icon :cursor)
+      ((:ico :cur)
        (setq number-of-resources (bm-read-word stream))
        (setq bytes-into-file 6)
        ;; skip the directory entries up to the requested one.
@@ -959,7 +980,7 @@ device-independent bitmap, an icon, nor a cursor."))
     (setq width (bm-read-long stream)
 	  height (bm-read-long stream))
     ;; for icons & cursors height is pixmap height + mask height
-    (unless (eq file-type :pixmap)
+    (unless (eq file-type :bmp)
       (setq height (floor height 2)))
     (bm-read-word stream) ;; bit-planes = 1
     (setq bits-per-pixel (bm-read-word stream))
@@ -1060,10 +1081,10 @@ device-independent bitmap, an icon, nor a cursor."))
     hotspot-x hotspot-y image-size file-size number-of-resources
     x-pixels-per-meter y-pixels-per-meter
     (case file-type
-      (:pixmap
+      (:bmp
        (values pixmap texture-info nil width
 	       ))
-      ((:icon :cursor)
+      ((:ico :cur)
        (setq file-width (* 4 (ceiling width 32))) ;; <15>
        (setq mask (make-pixel-map
 		   (* 8 file-width) ;; <15>
@@ -1092,10 +1113,12 @@ device-independent bitmap, an icon, nor a cursor."))
 
 (defun make-pattern-from-bitmap-file
     (path &key designs (format :bitmap) (port (find-port)))
+  ;; give reasonable error msg:
+  (assert (member format '(:xbm :xpm :ico :bmp :cur)))
   (if (member format '(:xbm :xpm))
-      (multiple-value-bind (array designs)
+      (multiple-value-bind (array designs-from-file)
 	  (read-xbitmap-file path :format format :port port)
-	(make-pattern array designs))
+	(make-pattern array (or designs designs-from-file)))
     (multiple-value-bind (array texture-info)
 	(read-bitmap-file path :format format :port port)
       (setq array (rotate-and-mirror-bitmap array))
@@ -1177,7 +1200,8 @@ device-independent bitmap, an icon, nor a cursor."))
 	      line))))
 
 (defun read-x11-bitmap-file (fstream)
-  (multiple-value-bind (width height depth left-pad format chars-per-pixel line)
+  (multiple-value-bind (width height depth left-pad format 
+			chars-per-pixel line)
       (get-bitmap-file-properties fstream)
     (declare (ignore format  chars-per-pixel line left-pad))
     (unless (and width height) (error "Not a BITMAP file"))
@@ -1286,6 +1310,7 @@ device-independent bitmap, an icon, nor a cursor."))
 
 (defun read-xbitmap-file (pathname &key (format :xbm) (port (find-port)))
   (declare (type (or pathname string stream) pathname))
+  (assert (member format '(:xbm :xpm)))	; give caller reasonable error msg
   (let ((palette (and port (port-default-palette port))))
     (read-image-file format pathname palette)))
 
@@ -1307,11 +1332,8 @@ device-independent bitmap, an icon, nor a cursor."))
 	(read-bitmap-file path)
       (create-icon array texture mask-array))))
 
-(defun icon-width ()
-   (win:GetSystemMetrics win:SM_CXICON))
-
-(defun icon-height ()
-   (win:GetSystemMetrics win:SM_CYICON))
+(defun icon-width  () (win:GetSystemMetrics win:SM_CXICON))
+(defun icon-height () (win:GetSystemMetrics win:SM_CYICON))
 
 (defun create-icon (pixmap texture-info mask-bitmap) ;; <7>
   (win:CreateIcon *hinst*
@@ -1321,34 +1343,18 @@ device-independent bitmap, an icon, nor a cursor."))
 		  (texture-info-bits-per-pixel texture-info)
 		  mask-bitmap
 		  pixmap))
-		
 
-(in-package :clim-utils)
+(defun initialize-named-colors ()
+  (let ((table clim-utils::*default-named-color-table*))
+    (setf (gethash "white"   table) +white+)
+    (setf (gethash "black"   table) +black+)
+    (setf (gethash "red"     table) +red+)
+    (setf (gethash "green"   table) +green+)
+    (setf (gethash "blue"    table) +blue+)
+    (setf (gethash "cyan"    table) +cyan+)
+    (setf (gethash "yellow"  table) +yellow+)
+    (setf (gethash "magenta" table) +magenta+)
+    table))
 
-(setf (gethash "white" clim-utils::*default-named-color-table*)
-      clim:+white+)
-
-(setf (gethash "black" clim-utils::*default-named-color-table*)
-      clim:+black+)
-
-(setf (gethash "red" clim-utils::*default-named-color-table*)
-      clim:+red+)
-
-(setf (gethash "green" clim-utils::*default-named-color-table*)
-      clim:+green+)
-
-(setf (gethash "blue" clim-utils::*default-named-color-table*)
-      clim:+blue+)
-
-(setf (gethash "cyan" clim-utils::*default-named-color-table*)
-      clim:+cyan+)
-
-(setf (gethash "yellow" clim-utils::*default-named-color-table*)
-      clim:+yellow+)
-
-(setf (gethash "magenta" clim-utils::*default-named-color-table*)
-      clim:+magenta+)
-
-
-
-
+(eval-when (load eval)
+  (initialize-named-colors))

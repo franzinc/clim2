@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: output-protocol.lisp,v 1.46.22.3 1998/07/06 23:09:03 layer Exp $
+;; $Id: output-protocol.lisp,v 1.46.22.4 1998/09/24 15:58:55 layer Exp $
 
 (in-package :clim-internals)
 
@@ -81,7 +81,10 @@
     (setf (slot-value stream 'text-margin) text-margin)))
 
 ;;--- I sure don't like having to do this to make string streams work
-(defmethod stream-default-view ((stream t)) +textual-view+)
+;; JPM: added setf method to help PC port. 8/98.
+(defvar *stream-default-view* +textual-view+)
+(defmethod stream-default-view ((stream t)) *stream-default-view*)
+(defmethod (setf stream-default-view) (new (stream t)) (setq *stream-default-view* new))
 
 (defmethod stream-vertical-spacing ((stream t))
   (coordinate 0))

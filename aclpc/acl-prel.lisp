@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-prel.lisp,v 1.4.8.7 1998/08/12 21:15:13 layer Exp $
+;; $Id: acl-prel.lisp,v 1.4.8.8 1998/09/24 15:58:52 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -233,6 +233,7 @@
 			       "BUTTON"	; classname
 			       (nstringify nlabel) ; windowname
 			       (logior buttonstyle
+				       win:WS_TABSTOP
 				       win:WS_CHILD
 				       win:WS_CLIPCHILDREN 
 				       win:WS_CLIPSIBLINGS) ; style

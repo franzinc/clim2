@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: classes.lisp,v 1.39.22.3 1998/07/06 23:09:53 layer Exp $
+;; $Id: classes.lisp,v 1.39.22.4 1998/09/24 15:58:55 layer Exp $
 
 (in-package :silica)
 
@@ -267,10 +267,16 @@
 (defconstant +super-key+   (ash 1 3))
 (defconstant +hyper-key+   (ash 1 4))
 
+;; Of course there is no "double" key. I am choosing to
+;; represent a double-click event in one of the unused
+;; bits of the modifier mask.  JPM 8/98.
+(defconstant +double-key+  (ash 1 5))
+
 ;; The order of this must match the values above
-(defconstant *modifier-keys* '#(:shift :control :meta :super :hyper))
+(defconstant *modifier-keys* '#(:shift :control :meta :super :hyper :double))
 
 (deftype shift-keysym   () '(member :left-shift :right-shift))
+(deftype double-keysym  () '(member :left-double :right-double))
 (deftype control-keysym () '(member :left-control :right-control))
 (deftype meta-keysym    () '(member :left-meta :right-meta))
 (deftype super-keysym   () '(member :left-super :right-super))
@@ -278,4 +284,5 @@
 (deftype lock-keysym    () '(member :caps-lock :shift-lock :mode-lock))
 
 (deftype modifier-keysym ()
-  '(or shift-keysym control-keysym meta-keysym super-keysym hyper-keysym))
+  '(or shift-keysym control-keysym meta-keysym 
+    super-keysym hyper-keysym double-keysym))

@@ -1,4 +1,4 @@
-;;; -*- Package: win; mode: Common-Lisp -*-
+;;; -*- Package: acl-clim; mode: Common-Lisp -*-
 ;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
 ;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
 ;;
@@ -16,13 +16,12 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: winwidgh.lisp,v 1.1.22.3 1998/07/06 23:08:51 layer Exp $
+;; $Id: winwidgh.lisp,v 1.1.22.4 1998/09/24 15:58:52 layer Exp $
 
 (in-package :acl-clim)
 
 ;; These seem to be missing from winapi-dev
 (defconstant LBS_DISABLENOSCROLL #x1000)
-(defconstant HLN_SELCHANGE #x1)
 (defconstant CB_SETTOPINDEX #x015c)
 
 (ff:def-foreign-type browseinfo
@@ -34,6 +33,16 @@
 	     (lpfn (* :void) #+ig win:bffcallback)
 	     (lparam win:lparam)
 	     (iImage :int)))
+
+(ff:def-foreign-type toolinfo
+    (:struct (cbsize win:uint)
+	     (uflags win:uint)
+	     (hwnd win:hwnd)
+	     (uid win:uint)
+	     (rect win:rect)
+	     (hinst win:hinstance)
+	     (lpsztext win:lpstr)
+	     (lparam win:lparam)))
 
 (ff:def-foreign-call (SHBrowseForFolder "SHBrowseForFolder")
     ((info browseinfo))
@@ -73,4 +82,12 @@
     ((a :int) (b :int))
   :arg-checking nil
   :call-direct t
+  :returning :int)
+
+(ff:def-foreign-call (setwindowshookex "SetWindowsHookExA")
+    ((a :int) (b :int) (c :int) (d :int))
+  :returning :int)
+
+(ff:def-foreign-call (callnexthookex "CallNextHookExA")
+    ((a :int) (b :int) (c :int) (d :int))
   :returning :int)

@@ -11,6 +11,26 @@ Tests for new features:	<`no new features', `no tests for new features', or
 	* <changes go here...>
 
 *******************************************************************************
+2.2.1.32
+
+Sat Sept 19 12:00:00 1998  Jeff Morrill <jmorrill@pointnclick.com>
+
+	* clim/frames, clim/gestures, silica/classes, tk-silica/xm-frames: 
+           enhancement to support double-click gesture
+      * clim/output-protocol: add (setf stream-default-view) 
+           for string-output-stream (resolve missing method error)
+      * aclpc/winwidgh, aclpc/acl-frames, aclpc/acl-class: 
+           partial solution to support tooltips
+      * aclpc/acl-widget: fixes for checkbox, fix (setf gadget-value)
+           to anticipate the callback might do a throw, cleanups
+      * aclpc/acl-port: fix problem mapping text styles to the right font
+      * aclpc/acl-mirror: fix for checkbox
+      * aclpc/acl-medium: partial solution to transparent rectangular tile
+      * aclpc/acl-frames: bulletproofing for select-file, fix menubar to
+           see command name only, cleanup
+      * aclpc/acl-class: handle dblclick events correctly, cleanup
+
+*******************************************************************************
 2.2.1.31
 
 Wed Aug 12 12:00:00 1998  Jeff Morrill <jmorrill@pointnclick.com>
