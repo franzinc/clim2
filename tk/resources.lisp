@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: resources.lisp,v 1.37 92/11/13 14:47:01 cer Exp $
+;; $fiHeader: resources.lisp,v 1.38 92/11/20 08:46:16 cer Exp $
 
 (in-package :tk)
 
@@ -615,6 +615,9 @@
   (cltl1:int-char value))
 
 (defmethod convert-resource-out ((parent t) (typep (eql 'colormap)) value)
+  value)
+
+(defmethod convert-resource-in ((parent t) (typep (eql 'colormap)) value)
   value)
 
 ;; Openlook 

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.64 92/12/14 15:04:49 cer Exp $
+;; $fiHeader: xt-silica.lisp,v 1.65 92/12/16 16:50:58 cer Exp $
 
 (in-package :xm-silica)
 
@@ -732,15 +732,16 @@
 	  `(:keyboard-focus-policy :pointer)))
 
 (defmethod find-shell-class-and-initargs :around ((port xt-port) (sheet pane))
-  (let ((colormap (palette-colormap 
-		   (frame-manager-palette (frame-manager (pane-frame sheet))))))
+  (let* ((palette (frame-manager-palette (frame-manager (pane-frame sheet)))))
     (multiple-value-bind
 	(class initargs)
 	(call-next-method)
       (values class
 	      `(:allow-shell-resize ,(and (pane-frame sheet)
-					(clim-internals::frame-resizable (pane-frame sheet)))
-				    ,@initargs :colormap ,colormap)))))
+					  (clim-internals::frame-resizable (pane-frame sheet)))
+				    ,@initargs 
+				    ,@(and (not (eq (port-default-palette port) palette))
+					   `(:colormap ,(palette-colormap palette))))))))
 
 
 (defmethod enable-mirror ((port xt-port) (sheet t))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: test-suite.lisp,v 1.50 92/12/14 15:03:43 cer Exp $
+;; $fiHeader: test-suite.lisp,v 1.51 92/12/16 16:50:14 cer Exp $
 
 (in-package :clim-user)
 
@@ -2228,7 +2228,7 @@ Luke Luck licks the lakes Luke's duck likes."))
     (run-benchmarks-internal pathname comment)))
 
 (define-command (run-benchmarks-to-dummy-file :command-table benchmarks :menu t)
-    ((file '(null-or-type pathname) :default nil))
+    (&key (file '(null-or-type pathname) :default nil))
   (run-benchmarks-internal file "no comment"))
 
 (defun run-benchmarks-internal (pathname comment)

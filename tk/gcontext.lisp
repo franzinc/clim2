@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: gcontext.lisp,v 1.20 92/12/02 13:31:15 colin Exp $
+;; $fiHeader: gcontext.lisp,v 1.21 92/12/16 16:50:23 cer Exp $
 
 (in-package :tk)
 
@@ -116,7 +116,7 @@
        ',name)))
 
 (defclass gcontext (display-object)
-  ((cached-clip-mask :initform nil)))
+  ((cached-clip-mask :initform nil :fixed-index 1)))
 
 (defmethod initialize-instance :after ((gcontext gcontext)
 				       &key

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sysdcl.lisp,v 1.33 92/12/07 12:15:30 cer Exp $
+;; $fiHeader: sysdcl.lisp,v 1.34 92/12/16 16:50:03 cer Exp $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :cl-user)
 
@@ -440,6 +440,7 @@
   ("ol-frames")
   ("xt-gadgets")
   ("ol-gadgets")
+  ("xt-cursor")
   ("xt-pixmaps")
   ("last"))
 

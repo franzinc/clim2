@@ -20,15 +20,15 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.58 92/12/14 15:04:44 cer Exp $
+;; $fiHeader: xt-graphics.lisp,v 1.59 92/12/16 16:50:54 cer Exp $
 
 (in-package :tk-silica)
 
 (defclass ink-gcontext (tk::gcontext)
-  ((last-clip-mask :initform nil :fixed-index 1)
-   (last-line-style :initform nil :fixed-index 2)
-   (shift-tile-origin :initform nil :fixed-index 3)
-   (ink-clip-mask :initform nil :fixed-index 4)))
+  ((last-medium-clip-mask :initform nil :fixed-index 2)
+   (last-line-style :initform nil :fixed-index 3)
+   (shift-tile-origin :initform nil :fixed-index 4)
+   (ink-clip-mask :initform nil :fixed-index 5)))
 
 (defmacro ink-gcontext-last-line-style (gcontext)
   `(locally (declare (optimize (speed 3) (safety 0)))
@@ -793,7 +793,7 @@ and on color servers, unless using white or black")
 
   (let ((ink-clip-mask (ink-gcontext-ink-clip-mask gc))
 	(medium-clip-mask (medium-clip-mask medium))
-	(last-clip-mask (ink-gcontext-last-clip-mask gc)))
+	(last-clip-mask (ink-gcontext-last-medium-clip-mask gc)))
     (multiple-value-bind (clip-mask x-origin y-origin)
 	(adjust-clip-mask medium ink-clip-mask medium-clip-mask x-origin y-origin)
       (unless (eq last-clip-mask clip-mask)
@@ -801,7 +801,7 @@ and on color servers, unless using white or black")
 		   (typep last-clip-mask 'tk::pixmap))
 	  (tk::destroy-pixmap last-clip-mask))
 	(setf (tk::gcontext-clip-mask gc) clip-mask
-	      (ink-gcontext-last-clip-mask gc) clip-mask))
+	      (ink-gcontext-last-medium-clip-mask gc) clip-mask))
       (when x-origin
 	(setf (tk::gcontext-clip-x-origin gc) x-origin
 	      (tk::gcontext-clip-y-origin gc) y-origin))))

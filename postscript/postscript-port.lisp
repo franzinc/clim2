@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: POSTSCRIPT-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: postscript-port.lisp,v 1.12 92/12/14 15:03:22 cer Exp $
+;; $fiHeader: postscript-port.lisp,v 1.13 92/12/16 16:48:19 cer Exp $
 
 (in-package :postscript-clim)
 
@@ -495,6 +495,7 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
     (let ((for (or (getf header-comments :for) #+Genera zl:user-id)))
       (when for
         (format printer-stream "%%For: ~A~%" for)))
+    
     (multiple-value-bind (second minute hour date month year)
 	(decode-universal-time (get-universal-time))
       (format printer-stream "%%CreationDate: ~D-~A-~D ~2,'0D:~2,'0D:~2,'0D~%"
