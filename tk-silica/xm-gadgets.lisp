@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xm-gadgets.lisp,v 1.101 1999/07/19 22:25:19 layer Exp $
+;; $Id: xm-gadgets.lisp,v 1.102 2000/07/06 20:46:02 layer Exp $
 
 (in-package :xm-silica)
 
@@ -557,12 +557,15 @@
 (defmethod find-widget-initargs-for-sheet ((port motif-port)
 					   (parent t)
 					   (sheet motif-scroll-bar))
-  (let ((size (scroll-bar-size sheet)))
-    (append '(:minimum 0 :maximum 1000)
+  (let ((size (scroll-bar-size sheet))
+	(increment (silica::scroll-bar-line-increment sheet)))
+    (append `(:minimum 0 :maximum ,*scroll-bar-quantization*)
+	    (when increment
+	      `(:increment
+		,(convert-scroll-bar-value-out sheet increment)))
 	    (when size
 	      `(:slider-size
-		,(convert-scroll-bar-value-out sheet
-					       size))))))
+		,(convert-scroll-bar-value-out sheet size))))))
 
 ;;;--- We should use the motif functions for getting and changing the
 ;;;--- values
@@ -591,7 +594,39 @@
 		    :drag-callback
 		    'xm-scroll-bar-callback
 		    sheet
-		    'drag-callback))
+		    'drag-callback)
+  ;; Callbacks below here are new.
+  (tk::add-callback widget
+		    :page-increment-callback
+		    'xm-scroll-bar-callback
+		    sheet
+		    'silica::scroll-down-page-callback)
+  (tk::add-callback widget
+		    :page-decrement-callback
+		    'xm-scroll-bar-callback
+		    sheet
+		    'silica::scroll-up-page-callback)
+  (tk::add-callback widget
+		    :increment-callback
+		    'xm-scroll-bar-callback
+		    sheet
+		    'silica::scroll-down-line-callback)
+  (tk::add-callback widget
+		    :decrement-callback
+		    'xm-scroll-bar-callback
+		    sheet
+		    'silica::scroll-up-line-callback)
+  (tk::add-callback widget
+		    :to-bottom-callback
+		    'xm-scroll-bar-callback
+		    sheet
+		    'silica::scroll-to-bottom-callback)
+  (tk::add-callback widget
+		    :to-top-callback
+		    'xm-scroll-bar-callback
+		    sheet
+		    'silica::scroll-to-top-callback)
+  )
 
 (defun xm-scroll-bar-callback (widget sheet callback-fn)
   (funcall callback-fn
@@ -623,11 +658,14 @@
 				     (tk::get-values mirror :slider-size))
       (call-next-method))))
 
-(defmethod (setf scroll-bar-size) :after (nv (sheet motif-scroll-bar))
-  (let ((mirror (sheet-direct-mirror sheet)))
+(defmethod (setf scroll-bar-size) :after (value (object motif-scroll-bar))
+  (let ((mirror (sheet-direct-mirror object)))
     (when mirror
-      (tk::set-values mirror
-		      :slider-size (convert-scroll-bar-value-out sheet nv)))))
+      ;; Set the XmNsliderSize and XmNpageIncrement resources so the correct 
+      ;; thing happens when the user presses the up-page/down-page buttons.
+      ;; Apparently it is not sufficient just to set slider-size.  JPM.
+      (let ((v (convert-scroll-bar-value-out object value)))
+	(tk::set-values mirror :slider-size v :page-increment v)))))
 
 (defmethod compose-space ((m motif-scroll-bar) &key width height)
   (declare (ignore width height))
@@ -644,6 +682,16 @@
                                :min-width x
                                :width (* 2 x)
                                :max-width +fill+)))))
+
+(defmethod (setf silica::scroll-bar-line-increment) :after 
+	   (value (object motif-scroll-bar))
+  (let ((mirror (sheet-direct-mirror object)))
+    (when mirror
+      ;; Set the XmNincrement resource so the correct thing happens when
+      ;; the user presses the up-line/down-line buttons.
+      (tk::set-values mirror
+		      :increment
+		      (convert-scroll-bar-value-out object value)))))
 
 ;; Should we stick in our preferred scroll-bar geometry here?
 

@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: x11-keysyms.lisp,v 1.12 1998/08/06 23:17:43 layer Exp $
+;; $Id: x11-keysyms.lisp,v 1.13 2000/07/06 20:46:02 layer Exp $
 
 ;;; (c) Copyright  1990 Sun Microsystems, Inc.  All Rights Reserved.
 ;;
@@ -88,6 +88,8 @@
        (pushnew ',id ,category)
        (def-exported-constant ,id ,value))))
 
+#+allegro
+(excl:convert-mixed-case-symbols nil :push t)
 
 (progn
   (def-x11-keysym keyboard-keysyms "XKG_VoidSymbol"          #xFFFFFF)       ;; void symbol
@@ -1134,3 +1136,5 @@
   (def-x11-keysym hebrew-keysyms "XK_Hebrew_switch"        #xFF7E)  ;; Alias for mode_switch
 )
 
+#+allegro
+(excl:convert-mixed-case-symbols t :pop t)

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-widget.lisp,v 1.14 2000/05/01 21:43:20 layer Exp $
+;; $Id: acl-widget.lisp,v 1.15 2000/07/06 20:46:01 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -1361,7 +1361,19 @@
       (setf (gadget-id->window sheet gadget-id) window)
       (win:ShowWindow window win:SW_SHOW)
       (setf (sheet-direct-mirror sheet) window) ; needed only to initialize
-      (change-scroll-bar-values sheet)	; initialize
+      ;; this from rfe4072
+      ;; Make sure defaults are sensible at the time the WIN32 scroll bar is 
+      ;; created.
+      (setf (gadget-min-value sheet) 
+	(or (gadget-min-value sheet) 0))
+      (setf (gadget-max-value sheet)
+	(or (gadget-max-value sheet) 1))
+      (change-scroll-bar-values		;initialize
+       sheet
+       ;; remaining from rfe4072
+       :slider-size (or (scroll-bar-size sheet) 1)
+       :value (or (gadget-value sheet) 0)
+       :line-increment (or (scroll-bar-line-increment sheet) 1))
       window)))
 
 (defmethod compose-space ((m mswin-scroll-bar) &key width height)
@@ -1424,6 +1436,7 @@
 
 (defmethod (setf scroll-bar-size) :before (nv (gadget mswin-scroll-bar))
   (change-scroll-bar-values gadget :slider-size nv))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; pull-down-menu

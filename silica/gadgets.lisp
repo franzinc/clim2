@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: gadgets.lisp,v 1.68 1999/02/25 08:23:37 layer Exp $
+;; $Id: gadgets.lisp,v 1.69 2000/07/06 20:46:01 layer Exp $
 
 ;;;"Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
 ;;; Portions copyright (c) 1992 by Symbolics, Inc.	 All rights reserved."
@@ -314,11 +314,32 @@
 
 
 ;;; Scroll bar
-(defclass scroll-bar
-	  (value-gadget range-gadget-mixin oriented-gadget-mixin)
-    ((size :initform nil :initarg :size :accessor scroll-bar-size)
-     (drag-callback :initarg :drag-callback :initform nil
-		    :reader scroll-bar-drag-callback)))
+(defclass scroll-bar (value-gadget range-gadget-mixin oriented-gadget-mixin)
+  ((size :initform 1 :initarg :size :accessor scroll-bar-size)
+   (drag-callback :initarg :drag-callback :initform nil 
+		  :reader scroll-bar-drag-callback)
+   (line-increment :initform 1
+		   :initarg :line-increment
+		   :accessor scroll-bar-line-increment)
+   (scroll-to-bottom-callback :initform nil
+			      :initarg :scroll-to-bottom-callback
+			      :reader scroll-bar-scroll-to-bottom-callback)
+   (scroll-to-top-callback :initform nil
+			   :initarg :scroll-to-top-callback
+			   :reader scroll-bar-scroll-to-top-callback)
+   (scroll-down-line-callback :initform nil
+			      :initarg :scroll-down-line-callback
+			      :reader scroll-bar-scroll-down-line-callback)
+   (scroll-up-line-callback :initform nil
+			    :initarg :scroll-up-line-callback
+			    :reader scroll-bar-scroll-up-line-callback)
+   (scroll-down-page-callback :initform nil
+			      :initarg :scroll-down-page-callback
+			      :reader scroll-bar-scroll-down-page-callback)
+   (scroll-up-page-callback :initform nil
+			    :initarg :scroll-up-page-callback
+			    :reader scroll-bar-scroll-up-page-callback)
+   ))
 
 (defmethod drag-callback :around ((gadget scroll-bar) (client t) (id t) value)
   (let ((callback (scroll-bar-drag-callback gadget)))
@@ -347,6 +368,52 @@
       (value)
     "Scroll bar value ~A out of range" value)
   (call-next-method value gadget))
+
+(defmethod (setf line-increment) :around (value (object scroll-bar))
+  (assert (and (> value (gadget-min-value object))
+	       (<= value (gadget-max-value object)))
+      (value)
+    "Scroll bar line-increment ~a out of range" value)
+  (call-next-method value object))
+
+(defmethod change-scroll-bar-values :before
+	   ((pane scroll-bar) 
+	    &key line-increment &allow-other-keys)
+  ;; Record line-increment since clim doesn't.
+  (setf (scroll-bar-line-increment pane) line-increment))
+
+;;; Here are the callbacks that were once called out in the CLIM spec:
+
+(defmethod scroll-to-bottom-callback ((pane scroll-bar) client id value)
+  (value-changed-callback pane client id value)
+  (let ((callback (scroll-bar-scroll-to-bottom-callback pane)))
+    (when callback (funcall callback pane))))
+
+(defmethod scroll-to-top-callback ((pane scroll-bar) client id value)
+  (value-changed-callback pane client id value)
+  (let ((callback (scroll-bar-scroll-to-top-callback pane)))
+    (when callback (funcall callback pane))))
+
+(defmethod scroll-up-line-callback ((pane scroll-bar) client id value)
+  (value-changed-callback pane client id value)
+  (let ((callback (scroll-bar-scroll-up-line-callback pane)))
+    (when callback (funcall callback pane))))
+
+(defmethod scroll-down-line-callback ((pane scroll-bar) client id value)
+  (value-changed-callback pane client id value)
+  (let ((callback (scroll-bar-scroll-down-line-callback pane)))
+    (when callback (funcall callback pane))))
+
+(defmethod scroll-up-page-callback ((pane scroll-bar) client id value)
+  (value-changed-callback pane client id value)
+  (let ((callback (scroll-bar-scroll-up-page-callback pane)))
+    (when callback (funcall callback pane))))
+
+(defmethod scroll-down-page-callback ((pane scroll-bar) client id value)
+  (value-changed-callback pane client id value)
+  (let ((callback (scroll-bar-scroll-down-page-callback pane)))
+    (when callback (funcall callback pane))))
+
 
 ;;; Push-button
 (defclass push-button 

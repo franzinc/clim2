@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xt-gadgets.lisp,v 1.48 1998/08/06 23:17:26 layer Exp $
+;; $Id: xt-gadgets.lisp,v 1.49 2000/07/06 20:46:02 layer Exp $
 
 (in-package :xm-silica)
 
@@ -212,18 +212,24 @@
 
 ;;; scroll bar utilities
 
+(defvar *scroll-bar-quantization* most-positive-fixnum)
+
 (defun convert-scroll-bar-value-out (scroll-bar value)
   (multiple-value-bind
       (smin smax) (gadget-range* scroll-bar)
-    (floor
-     (compute-symmetric-value
-      smin smax value 0 1000))))
+    (max 0
+	 (min *scroll-bar-quantization*
+	      (floor
+	       (compute-symmetric-value
+		smin smax value 0 *scroll-bar-quantization*))))))
 
 (defun convert-scroll-bar-value-in (scroll-bar value)
   (multiple-value-bind
       (smin smax) (gadget-range* scroll-bar)
-    (compute-symmetric-value
-     0 1000 value smin smax )))
+    (max smin
+	 (min smax
+	      (compute-symmetric-value
+	       0 *scroll-bar-quantization* value smin smax )))))
 
 (defun compute-new-scroll-bar-values (scroll-bar value slider-size line-increment
 				      &optional (page-increment slider-size))
