@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-protocol.lisp,v 1.34 92/12/01 09:45:20 cer Exp $
+;; $fiHeader: input-protocol.lisp,v 1.35 92/12/03 10:26:58 cer Exp $
 
 (in-package :clim-internals)
 
@@ -379,6 +379,7 @@
   (process-abort-or-accelerator-gesture stream gesture)
   gesture)
 
+
 (defun process-abort-or-accelerator-gesture (stream gesture)
   (cond ((member gesture *accelerator-gestures*
 		 :test #'keyboard-event-matches-gesture-name-p)
@@ -415,6 +416,8 @@
 		     (write-string "[Abort]" stream) 
 		     (force-output stream))))))
 	 (error 'abort-gesture :event gesture))))
+
+
 
 ;;; This function is just a convenience for the programmer, defaulting the
 ;;; keyword :STREAM argument to *standard-input*.  The application can call

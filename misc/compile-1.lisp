@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: compile-1.lisp,v 1.15 92/11/06 19:03:27 cer Exp $
+;; $fiHeader: compile-1.lisp,v 1.16 92/11/09 10:55:28 cer Exp $
 
 (in-package :user)
 
@@ -39,8 +39,6 @@
 (progn
   (setf (sys:gsgc-switch :print) t)
   (setf (sys:gsgc-switch :stats) t))
-
-(setq *compile-print* nil)
 
 (setq comp:generate-call-count-code-switch
   (named-function |(> debug 1)| 

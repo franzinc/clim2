@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clim-defs.lisp,v 1.19 92/12/01 09:45:05 cer Exp $
+;; $fiHeader: clim-defs.lisp,v 1.20 92/12/03 10:26:06 cer Exp $
 
 (in-package :clim-internals)
 
@@ -309,6 +309,11 @@
      (declare (dynamic-extent #'accepting-values-body))
      (invoke-accepting-values ,stream #'accepting-values-body ,@args)))
 
+(defmacro with-aligned-prompts ((stream &rest args) &body body)
+  (default-input-stream stream accepting-values)
+  `(flet ((with-aligned-prompts-body (,stream) ,@body))
+     (declare (dynamic-extent #'accepting-values-body))
+     (invoke-with-aligned-prompts ,stream #'with-aligned-prompts-body ,@args)))
 
 ;; Establish a first quadrant coordinate system, execute the body, and then
 ;; place the output in such a way that the upper left corner of it is where

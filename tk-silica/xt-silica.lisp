@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.61 92/12/01 09:47:21 cer Exp $
+;; $fiHeader: xt-silica.lisp,v 1.62 92/12/02 13:31:36 colin Exp $
 
 (in-package :xm-silica)
 
@@ -91,50 +91,50 @@
       (setf (getf (mp:process-property-list process) ':survive-dumplisp) #'cleanup-port-after-dumplisp)
       (setf (port-process port) process))))
 
-(defmacro destructure-x-server-path ((&key display) path &body body)
-  ;;-- Of course the port ends up with an unspecified server-path.
-  ;;-- Perhaps this is OK or perhaps we have to default the components before
-  ;;-- putting it in the port???
-  (let ((ignore (gensym)))
-    `(destructuring-bind
-	 (,ignore &key ((:display ,display)
-			(or (sys::getenv "DISPLAY")
-			    "localhost:0")))
-	 ,path
-	 (declare (ignore ,ignore))
-       ,@body)))
-       
+(defmethod port-event-loop :around ((port xt-port))
+  (handler-case (call-next-method)
+    (tk::x-connection-lost (condition)
+      (port-terminated port condition)
+      (mp:process-kill mp:*current-process*))))
+
 (defparameter *use-color* t)		; For debugging monochrome
 
+(defvar *unreliable-server-vendors*
+    '("Solbourne Computer, Inc" "Network Computing Devices"
+      "Tektronix"))
+
 (defmethod initialize-instance :after ((port xt-port) &key server-path)
-  (destructuring-bind
-      (&key (display nil display-p)
-	    (application-name nil application-name-p)
-	    (application-class nil application-class-p))
-      (cdr server-path)
-    (let ((args nil))
-      (when display-p (setf (getf args :host) display))
-      (when application-name-p (setf (getf args :application-name) application-name))
-      (when application-class-p (setf (getf args :application-class) application-class))
-      (multiple-value-bind (context display application-shell)
-	  (apply #'tk::initialize-toolkit args)
-	(setf (slot-value port 'application-shell) application-shell
-	      (slot-value port 'context) context
-	      (slot-value port 'display) display
-	      (port-depth port) (x11:xdefaultdepth display (tk::display-screen-number display))
-	      (port-visual-class port) (tk::screen-root-visual-class (tk::default-screen display))
-	      (slot-value port 'silica::default-palette) 
-	       (make-xt-palette port (tk::default-colormap (port-display port))))
-	(let* ((screen (x11:xdefaultscreenofdisplay display))
-	       (bs-p (not (zerop (x11::screen-backing-store screen))))
-	       (su-p (not (zerop (x11::screen-save-unders screen))))
-	       (vendor (ff:char*-to-string (x11::display-vendor display))))
-	  (if (and bs-p su-p
-		   ;; An amazing crock.  XXX
-		   (not (search "Network Computing Devices" vendor))
-		   (not (search "Tektronix" vendor)))
-	      (setf (slot-value port 'safe-backing-store) t)))
-	(initialize-xlib-port port display)))))
+  (handler-case
+      (destructuring-bind
+	  (&key (display nil display-p)
+		(application-name nil application-name-p)
+		(application-class nil application-class-p))
+	  (cdr server-path)
+	(let ((args nil))
+	  (when display-p (setf (getf args :host) display))
+	  (when application-name-p (setf (getf args :application-name) application-name))
+	  (when application-class-p (setf (getf args :application-class) application-class))
+	  (multiple-value-bind (context display application-shell)
+	      (apply #'tk::initialize-toolkit args)
+	    (setf (slot-value port 'application-shell) application-shell
+		  (slot-value port 'context) context
+		  (slot-value port 'display) display
+		  (port-depth port) (x11:xdefaultdepth display (tk::display-screen-number display))
+		  (port-visual-class port) (tk::screen-root-visual-class (tk::default-screen display))
+		  (slot-value port 'silica::default-palette) 
+		  (make-xt-palette port (tk::default-colormap (port-display port))))
+	    (let* ((screen (x11:xdefaultscreenofdisplay display))
+		   (bs-p (not (zerop (x11::screen-backing-store screen))))
+		   (su-p (not (zerop (x11::screen-save-unders screen))))
+		   (vendor (ff:char*-to-string (x11::display-vendor display))))
+	      (if (and bs-p su-p
+		       ;; An amazing crock.  XXX
+		       (notany #'(lambda (x) (search x vendor)) *unreliable-server-vendors*))
+		  (setf (slot-value port 'safe-backing-store) t)))
+	    (initialize-xlib-port port display))))
+    (tk::x-connection-lost (condition)
+      (port-terminated port condition))))
+
 
 (defmethod port-color-p ((port xt-port))
   (and *use-color*

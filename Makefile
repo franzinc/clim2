@@ -1,4 +1,4 @@
-# $fiHeader: Makefile,v 1.68 92/11/20 08:44:11 cer Exp $
+# $fiHeader: Makefile,v 1.69 92/12/01 09:44:55 cer Exp $
 #
 #  Makefile for CLIM 2.0
 #
@@ -14,9 +14,11 @@ TRAIN_TIMES=2
 # view, file, print
 PSVIEW=file
 
+FRAME_TESTS=t
+
 TRAIN_LISP= \
 	(load \"misc/train.lisp\") \
-	(train-clim :train-times $(TRAIN_TIMES) :psview :$(PSVIEW)) \
+	(train-clim :frame-tests $(FRAME_TESTS) :train-times $(TRAIN_TIMES) :psview :$(PSVIEW)) \
 	(exit 0)
 
 TRAIN_TEXT = \
@@ -37,23 +39,25 @@ SAFETY	= 1
 # This next should be set to 1 for distribution
 DEBUG   = 2
 
+COMPILE_PRINT=nil 
+# Name of dumped lisp
+CLIM	= ./slim
+CLIMOL= $(CLIM)
+CLIMXM= $(CLIM)
+
 make = make SPEED=${SPEED} SAFETY=${SAFETY} DEBUG=${DEBUG} \
 	LOAD_SOURCE_FILE_INFO=${LOAD_SOURCE_FILE_INFO} \
 	RECORD_SOURCE_FILE_INFO=${RECORD_SOURCE_FILE_INFO} \
 	LOAD_XREF_INFO=${LOAD_XREF_INFO} \
-	RECORD_XREF_INFO=${RECORD_XREF_INFO}
-
+	RECORD_XREF_INFO=${RECORD_XREF_INFO} \
+	CLIM=${CLIM} CLIMOL=${CLIMOL} CLIMXM=${CLIMXM} \
+	COMPILE_PRINT=${COMPILE_PRINT}
 
 CFLAGS	= -O -D_NO_PROTO -DSTRINGS_ALIGNED -DNO_REGEX -DNO_ISDIR -DUSE_RE_COMP -DUSER_GETWD -I/x11/motif-1.1/lib
 
 OLDSPACE = 15000000
 NEWSPACE = 5000000
 PREMALLOCS = '-m 401408'
-
-# Name of dumped lisp
-CLIM	= ./slim
-CLIMOL= $(CLIM)
-CLIMXM= $(CLIM)
 
 CLIM-SMALL	= ./slim-small
 
@@ -174,7 +178,6 @@ CLIM-UTILS-OBJS = utils/excl-verification.fasl \
                    utils/queue.fasl \
 		   utils/timers.fasl \
                    utils/protocols.fasl \
-                   utils/autoconstructor.fasl \
                    utils/clim-streams.fasl \
                    utils/excl-streams.fasl \
                    utils/clim-macros.fasl \
@@ -265,7 +268,7 @@ CLIM-STANDALONE-OBJS = clim/gestures.fasl \
                         clim/stream-trampolines.fasl
 
 GENERIC-GADGETS = clim/db-menu.fasl clim/db-list.fasl clim/db-text.fasl silica/db-button.fasl \
-	    silica/db-slider.fasl	   
+	    silica/db-slider.fasl silica/scroll-pane.fasl
 
 XLIB-CLIM-OBJS = xlib/pkg.fasl xlib/load-xlib.fasl
 
@@ -354,7 +357,6 @@ ALL_SRC =	   utils/excl-verification.lisp \
                    utils/processes.lisp \
                    utils/queue.lisp \
                    utils/protocols.lisp \
-                   utils/autoconstructor.lisp \
                    utils/clim-streams.lisp \
                    utils/excl-streams.lisp \
                    utils/clim-macros.lisp \
@@ -521,10 +523,12 @@ compile-xm:	$(CLIMOBJS) FORCE
 	(si::system-compile-wrapper \
 	 (function \
 	  (lambda () \
+	    (setq *compile-print* $(COMPILE_PRINT)) \
 	    (setq sys::*libxt-pathname* \"$(XTLIB)\") \
 	    (setq sys::*libx11-pathname* \"$(XLIB)\") \
 	    (setq sys::*clim-motif-pathname* \"clim-motif$(DEBUGLIB).o\") \
-	    (load \"misc/compile-xm.lisp\"))) \
+	    (load \"misc/compile-1.lisp\") \
+	    (compile-it 'motif-clim))) \
 	 :speed $(SPEED) :debug $(DEBUG) :safety $(SAFETY) \
 	 :record-source-file-info $(RECORD_SOURCE_FILE_INFO) \
 	 :record-xref-info $(RECORD_XREF_INFO) \
@@ -536,13 +540,15 @@ compile-ol:	$(CLIMOBJS) FORCE
 	(si::system-compile-wrapper \
 	 (function \
 	  (lambda () \
+	    (setq *compile-print* $(COMPILE_PRINT)) \
 	    (setf excl:*load-xref-info* $(LOAD_XREF_INFO)) \
 	    (setq sys::*libxt-pathname* \"$(XTLIB)\") \
 	    (setq sys::*libx11-pathname* \"$(XLIB)\") \
 	    (setq sys::*clim-olit-pathname* \"clim-olit$(DEBUGLIB).o\") \
 	    (setq *ignore-package-name-case* t) \
 	    (set-case-mode :case-insensitive-lower) \
-	    (load \"misc/compile-ol.lisp\"))) \
+	    (load \"misc/compile-1.lisp\") \
+	    (compile-it 'openlook-clim))) \
 	 :speed $(SPEED) :debug $(DEBUG) :safety $(SAFETY) \
 	 :record-source-file-info $(RECORD_SOURCE_FILE_INFO) \
 	 :record-xref-info $(RECORD_XREF_INFO) \
@@ -629,7 +635,8 @@ clim-xm:	FORCE $(CLIMOBJS)
 		(setq sys::*libxt-pathname* \"$(XTLIB)\") \
 		(setq sys::*libx11-pathname* \"$(XLIB)\") \
 	        (setq sys::*clim-motif-pathname* \"clim-motif$(DEBUGLIB).o\") \
-		(load \"misc/dev-load-xm.lisp\") \
+		(load \"misc/dev-load-1.lisp\") \
+		(load-it 'motif-clim) \
 		(load \"misc/dump.lisp\")" | $(DUMP-CL) $(CLOPTS) -batch
 	$(MV) $(TMP)/clim.temp_`whoami` $(CLIMXM)
 	ls -lLt $(CLIMXM) >> Clim-sizes.n
@@ -643,7 +650,8 @@ clim-ol:	FORCE $(CLIMOBJS)
 		(setq sys::*libxt-pathname* \"$(XTLIB)\") \
 		(setq sys::*libx11-pathname* \"$(XLIB)\") \
 	        (setq sys::*clim-olit-pathname* \"clim-olit$(DEBUGLIB).o\") \
-		(load \"misc/dev-load-ol.lisp\") \
+		(load \"misc/dev-load-1.lisp\") \
+		(load-it 'openlook-clim) \
 		(load \"misc/dump.lisp\")" | $(DUMP-CL) $(CLOPTS) -batch
 	$(MV) $(TMP)/clim.temp_`whoami` $(CLIMOL)
 	ls -lLt $(CLIMOL) >> Clim-sizes.n

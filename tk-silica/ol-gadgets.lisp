@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-gadgets.lisp,v 1.32 92/11/20 08:46:35 cer Exp $
+;; $fiHeader: ol-gadgets.lisp,v 1.33 92/12/03 10:30:13 cer Exp $
 
 
 (in-package :xm-silica)
@@ -101,6 +101,7 @@
 	mmin mmax size smin smax)))))
 
 (defmethod compose-space ((m openlook-scroll-bar) &key width height)
+  (declare (ignore width height))
   (let ((x 16))
     (ecase (gadget-orientation m)
       (:vertical
@@ -260,9 +261,9 @@
 	(declare (ignore ignore-x igore-y))
 	(maxf height h)
 	(incf width w)))
-    (multiple-value-bind (h-pad v-pad h-space v-space)
+    (multiple-value-bind (h-pad v-pad h-space)
 	(tk::get-values (sheet-direct-mirror mb)
-			:h-pad :v-pad :h-space :v-space)
+			:h-pad :v-pad :h-space)
       (incf width (+ (* 2 h-pad) (* (1- (length children)) h-space)))
       (incf height (* 2 v-pad)))
     (make-space-requirement :width width :height height)))
@@ -273,7 +274,7 @@
   ;; This code fills the menu-bar. If top level items do not have
   ;; submenus then it creates one with a menu of its own
   
-  (let ((mirror (call-next-method))
+  (let* ((mirror (call-next-method))
 	(text-style (menu-bar-text-style sheet))
 	(font-list (and text-style
 			(list :font (text-style-mapping port text-style))))
@@ -611,8 +612,12 @@
 	   (nv (gadget openlook-toggle-button) &key invoke-callback)
   (declare (ignore invoke-callback))
   (when (sheet-direct-mirror gadget)
-    (with-no-value-changed-callbacks
-	(tk::set-values (sheet-mirror gadget) :set nv))))
+    (handler-bind
+	;;-- Nasty hack alert for 
+	((simple-warning #'(lambda (condition)
+			     (muffle-warning condition))))
+      (with-no-value-changed-callbacks
+	  (tk::set-values (sheet-mirror gadget) :set nv)))))
 
 ;;
 
@@ -738,7 +743,7 @@
   (with-accessors ((label gadget-label)
 		   (show-value-p gadget-show-value-p)
 		   (value gadget-value)
-		   (editable gadget-editable-p)) sheet
+		   (editablep gadget-editable-p)) sheet
     (multiple-value-bind
 	(smin smax) (gadget-range* sheet)
       (let ((mmin 0) 
@@ -794,10 +799,11 @@
 (defmethod add-sheet-callbacks :after ((port openlook-port) 
 				       (sheet openlook-slider)
 				       (widget t))
-  ;;--- Do we need to do this?
-  #+ignore
-  (tk::add-callback widget :drag-callback 'queue-drag-event sheet)
-  (tk::add-callback widget :slider-moved 'slider-changed-callback-1 sheet))
+  (when (gadget-editable-p sheet)
+    ;;--- Do we need to do this?
+    #+ignore
+    (tk::add-callback widget :drag-callback 'queue-drag-event sheet)
+    (tk::add-callback widget :slider-moved 'slider-changed-callback-1 sheet)))
 
 (defmethod slider-changed-callback-1 ((widget t) (sheet openlook-slider))
   (queue-value-changed-event widget sheet))
@@ -949,6 +955,7 @@
 
 (defmethod initialize-instance :after ((sp openlook-scrolling-window)
 				       &key scroll-bars contents frame-manager frame)
+  #-bad-hack (declare (ignore scroll-bars))
   (if (setf (scroller-pane-gadget-supplies-scrolling-p sp)
 	(gadget-supplies-scrolling-p contents))
       (sheet-adopt-child sp contents)
@@ -1261,6 +1268,7 @@
 				   :string "xxxxxxxxxxxxxxxxxxxxxxxx"
 				   :parent control))
 	   (menu-pane (tk::get-values widget :menu-pane)))
+      (declare (ignore label))
       (setf (option-menu-buttons sheet)
 	(mapcar #'(lambda (item)
 		    (let* ((currentp (funcall
@@ -1316,7 +1324,7 @@
 		      :accelerator accel
 		      :accelerator-text accel-text))))
 
-(defmethod discard-accelerator-event-p ((port openlook-port) event)
+(defmethod discard-accelerator-event-p ((port openlook-port) (event t))
   ;;-- There are a whole bunch of other keysyms that need to be ignored.
   ;;-- Perhaps in OLIT there is a way of getting the actual keysym.
   ;;-- Perhaps we need a way of representing them in the clim world

@@ -1,79 +1,12 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
-;; Allegro Common Lisp
-;;				-[Thu Nov 19 18:52:10 1992 by smh]-
-;;
-;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
-;; copyright (c) 1986-1992 Franz Inc, Berkeley, CA  All rights reserved.
-;;
-;; The software, data and information contained herein are proprietary
-;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
-;; given in confidence by Franz, Inc. pursuant to a written license
-;; agreement, and may be stored and used only in accordance with the terms
-;; of such license.
-;;
-;; Restricted Rights Legend
-;; ------------------------
-;; Use, duplication, and disclosure of the software, data and information
-;; contained herein by any agency, department or entity of the U.S.
-;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
-;;
-;; $fiHeader: graph-formatting.lisp,v 1.18 92/11/06 18:59:45 cer Exp $
 
+;; $fiHeader: graph-formatting.lisp,v 1.20 92/12/01 17:49:59 cer Exp $
 
-"Copyright (c) 1990, 1991, 1992 Symbolics Inc.  All rights reserved."
+(in-package :clim-internals)
 
+"Copyright (c) 1990, 1991, 1992 Symbolics Inc.  All rights reserved.
+ Portions copyright (c) 1992 Franz, Inc.  All rights reserved."
 
-(In-package :clim-internals)
-
-#|
-
-This file is smh's quick hacked version for improved digraph layout.
-
-The basic strategy is that each node appearing more than once in the
-graph is reliably assigned the maximum generation (ply) to which it
-belongs, instead of depending on which occurence was encountered
-first.  Then `filler' output records are inserted to fill in missing
-generations in any link.  These fillers then participate in regular
-node layout.  This results in some unnecessarily squiggley lines, but
-generally the behavior is reasonable.
-
-In graphs where a node with large "depth" is adjacent to a small depth
-node with large fanout connections there is still the possibly that a
-connector will overwrite a node.  This could be fixed with one of
-several strategies: Pad the short node's depth somehow, which moves a
-lot of complexity onto the arc-drawing functions; or add a whole
-generation of additional filler nodes, which would be laid out to
-constrain the set of children of each parent to lie within that
-parents breadth.  I'd draw a picture of it weren't so tedious...
-
-The unnecessary squiggles could be fixed without too much work by
-postprocessing the links, successively moving filler nodes when there
-is room to line them up with one of it's connections in the adjacent
-generation.
-
-Useful rfe: Enforce some limit on the maximum absolute value slope on
-a connection.  Extra inter-generation spacing would be adde to limit
-the slope, since high-slope lines are the most visually confusion,
-especially when many occur together.
-
-As an additional hack, the digraph grapher handles circularities by
-creating a pair of `offpage' connectors.  This isn't as elegant as
-plotting circular paths backwards, but the current hack results in a
-clear visual diagram with little effort.  The new
-offpage-connector-out-printer and offpage-connector-in-printer args to
-format-graph-from-roots are something of a crock -- perhaps we can
-avoid documenting them until better treatment of cyclic graphs is
-devised.  BTW, before this hack, a circular graph with no roots (i.e.
-all nodes have at least one parent) would blow the stack, so don't
-undertake a more ambitious fix for circular graphs without accounting
-for this case.
-
-|#
-
-
 (defvar *graph-type-record-type-alist* nil)
 
 (defmacro define-graph-type (graph-type class)
@@ -157,15 +90,12 @@ for this case.
 ;; The basic graph output record class
 (defclass basic-graph-output-record 
 	  (standard-sequence-output-record graph-output-record)
-    ((orientation :initarg :orientation)
-     (center-nodes :initarg :center-nodes)
-     (cutoff-depth :initarg :cutoff-depth)
-     (merge-duplicates :initarg :merge-duplicates)
-     (generation-separation :initarg :generation-separation)
-     (within-generation-separation :initarg :within-generation-separation)
+    ((graph-type :initarg :graph-type)
      ;; The output records corresponding to the root nodes
      (root-nodes :initform nil :accessor graph-root-nodes)
-     (hash-table :initform nil :initarg :hash-table))
+     (hash-table :initform nil :initarg :hash-table)
+     ;; Stores things like :ORIENTATION, :MERGE-DUPLICATES, etc.
+     (properties :initarg :properties))
   (:default-initargs :size 30))
 
 ;;--- Not correct, since edges can overlap nodes. 
@@ -187,12 +117,13 @@ for this case.
     ((generation :accessor graph-node-generation :initform 0)
      ;; The output records corresponding to this node's parents and children
      (node-children :accessor graph-node-children :initform nil)
-     (node-parents :accessor graph-node-parents :initform nil))
+     (node-parents :accessor graph-node-parents :initform nil)
+     (object :accessor graph-node-object :initarg :object))
   (:default-initargs :size 5))
 
 (define-output-record-constructor standard-graph-node-output-record
-				  (&key x-position y-position (size 25))
-  :x-position x-position :y-position y-position :size size)
+				  (&key object x-position y-position (size 25))
+  :object object :x-position x-position :y-position y-position :size size)
 
 (defmethod tree-recompute-extent-1 ((record standard-graph-node-output-record))
   (bounding-rectangle* record))
@@ -221,9 +152,9 @@ for this case.
 				      *default-generation-separation*)
 				    (within-generation-separation
 				      *default-within-generation-separation*)
-				    (move-cursor t))
+				    (store-objects nil) (move-cursor t))
   (declare (dynamic-extent keys object-printer inferior-producer)
-	   (ignore stream key orientation cutoff-depth 
+	   (ignore stream key orientation cutoff-depth store-objects
 		   generation-separation within-generation-separation move-cursor))
   (with-keywords-removed (keys keys '(:key))
     (apply #'format-graph-from-roots
@@ -243,15 +174,16 @@ for this case.
 				       *default-generation-separation*)
 				     (within-generation-separation
 				       *default-within-generation-separation*)
-				     (move-cursor t)
+				     (maximize-generations #+Allegro t #-Allegro nil)
+				     (store-objects nil) (move-cursor t)
 				     ;; These `offpage' connector print functions
 				     ;; should receive more useful id in addition
 				     ;; to an identification number, such as the
 				     ;; from and to nodes.
 				     (offpage-connector-out-printer
-				      #'(lambda (s n) (format s ">~d" n)))
+				       #'(lambda (s n) (format s ">~D" n)))
 				     (offpage-connector-in-printer
-				      #'(lambda (s n) (format s "~d>" n))))
+				       #'(lambda (s n) (format s "~D>" n))))
   (declare (dynamic-extent object-printer inferior-producer))
   (check-type cutoff-depth (or null integer))
   (check-type generation-separation real)
@@ -272,22 +204,25 @@ for this case.
 		 (with-end-of-line-action (stream :allow)
 		   (with-new-output-record 
 		       (stream record-type graph-record
-			:orientation orientation
-			:center-nodes center-nodes
-			:cutoff-depth cutoff-depth
-			:merge-duplicates merge-duplicates
-			:generation-separation
-			  (coordinate generation-separation)
-			:within-generation-separation 
-			  (coordinate within-generation-separation)
+			:graph-type graph-type
+			:properties `(:orientation ,orientation
+				      :center-nodes ,center-nodes
+				      :cutoff-depth ,cutoff-depth
+				      :merge-duplicates ,merge-duplicates
+				      :maximize-generations ,maximize-generations
+				      :generation-separation
+				        ,(coordinate generation-separation)
+				      :within-generation-separation 
+				        ,(coordinate within-generation-separation))
 			:hash-table hash-table)
 		     (generate-graph-nodes
-		      graph-record stream
-		      root-objects object-printer inferior-producer
-		      :duplicate-key duplicate-key 
-		      :duplicate-test duplicate-test
-		      :offpage-connector-out-printer offpage-connector-out-printer
-		      :offpage-connector-in-printer  offpage-connector-in-printer)
+		       graph-record stream
+		       root-objects object-printer inferior-producer
+		       :duplicate-key  duplicate-key 
+		       :duplicate-test duplicate-test
+		       :store-objects store-objects
+		       :offpage-connector-out-printer offpage-connector-out-printer
+		       :offpage-connector-in-printer  offpage-connector-in-printer)
 		     graph-record))))))
       (unwind-protect
 	  (progn
@@ -302,31 +237,31 @@ for this case.
 	(move-cursor-beyond-output-record stream graph-record))
       graph-record)))
 
-(defun draw-linear-arc (stream from-node to-node x1 y1 x2 y2 &rest drawing-options)
+(defun draw-linear-arc (stream from-object to-object x1 y1 x2 y2 &rest drawing-options)
   (declare (dynamic-extent drawing-options))
-  (declare (ignore from-node to-node))
+  (declare (ignore from-object to-object))
   (apply #'draw-line* stream x1 y1 x2 y2 drawing-options))
 
-(defun-inline call-arc-drawer (stream arc-drawer from-node to-node
+(defun-inline call-arc-drawer (stream arc-drawer parent-object child-object
 			       parent parent-x parent-y child child-x child-y
 			       arc-drawing-options)
   (declare (dynamic-extent arc-drawer))
   (if (or (stream-redisplaying-p stream)
 	  (stream-current-redisplay-record stream))
-      (call-arc-drawer-1 stream arc-drawer from-node to-node
+      (call-arc-drawer-1 stream arc-drawer parent-object child-object
 			 parent parent-x parent-y child child-x child-y
 			 arc-drawing-options)
-      (apply arc-drawer stream from-node to-node
+      (apply arc-drawer stream parent-object child-object
 	     parent-x parent-y child-x child-y
 	     arc-drawing-options)))
 
 ;; Split out to avoid consing a closure environment
-(defun call-arc-drawer-1 (stream arc-drawer from-node to-node
+(defun call-arc-drawer-1 (stream arc-drawer parent-object child-object
 			  parent parent-x parent-y child child-x child-y
 			  arc-drawing-options)
   (declare (dynamic-extent arc-drawer))
   #---ignore	;--- this is the wrong thing...
-  (apply arc-drawer stream from-node to-node
+  (apply arc-drawer stream parent-object child-object
 	 parent-x parent-y child-x child-y
 	 arc-drawing-options)
   #+++ignore	;--- ...but the right thing doesn't work either
@@ -335,7 +270,7 @@ for this case.
 			   :cache-value (list parent-x parent-y
 					      child-x child-y)
 			   :cache-test #'equal)
-    (apply arc-drawer stream from-node to-node
+    (apply arc-drawer stream parent-object child-object
 	   parent-x parent-y child-x child-y
 	   arc-drawing-options)))
 
@@ -348,13 +283,13 @@ for this case.
 
 (defmethod generate-graph-nodes ((graph tree-graph-output-record) stream
 				 root-objects object-printer inferior-producer
-				 &key duplicate-key duplicate-test
-				 offpage-connector-out-printer
-				 offpage-connector-in-printer)
+				 &key duplicate-key duplicate-test store-objects
+				      offpage-connector-out-printer
+				      offpage-connector-in-printer)
   (declare (ignore duplicate-key duplicate-test
-		   offpage-connector-out-printer
-		   offpage-connector-in-printer))
-  (let ((cutoff-depth (slot-value graph 'cutoff-depth)))
+		   offpage-connector-out-printer offpage-connector-in-printer))
+  (let* ((properties (slot-value graph 'properties))
+	 (cutoff-depth (getf properties :cutoff-depth)))
     (labels ((format-node (object &optional (depth 1))
 	       (when (and cutoff-depth (> depth cutoff-depth))
 		 (return-from format-node nil))
@@ -367,7 +302,9 @@ for this case.
 		       (setq children (nconc children (list node))))))
 		 (let ((this-node 
 			 (with-stream-cursor-position-saved (stream)
-			   (with-new-output-record (stream 'standard-graph-node-output-record)
+			   (with-new-output-record
+			       (stream 'standard-graph-node-output-record nil
+				:object (and store-objects object))
 			     (funcall object-printer object stream)))))
 		   (setf (graph-node-children this-node) children)
 		   (dolist (child (graph-node-children this-node))
@@ -377,13 +314,16 @@ for this case.
 	    (map 'list #'format-node root-objects))))
   graph)
 
-(defmethod layout-graph-nodes ((graph tree-graph-output-record)
-			       stream arc-drawer arc-drawing-options)
+(defmethod layout-graph-nodes ((graph tree-graph-output-record) stream
+			       arc-drawer arc-drawing-options)
   (declare (ignore stream arc-drawer arc-drawing-options))
-  (with-slots (root-nodes orientation center-nodes
-	       generation-separation within-generation-separation) graph
-    (let ((start-x (coordinate 0))
-	  (start-y (coordinate 0)))
+  (with-slots (root-nodes) graph
+    (let* ((properties (slot-value graph 'properties))
+	   (orientation (getf properties :orientation))
+	   (generation-separation (getf properties :generation-separation))
+	   (within-generation-separation (getf properties :within-generation-separation))
+	   (start-x (coordinate 0))
+	   (start-y (coordinate 0)))
       (dolist (root-node root-nodes)
 	(macrolet
 	  ((layout-body (driver-function-name 
@@ -446,191 +386,254 @@ for this case.
 		       (layout-graph root-node start-x start-y
 				     (node-depth root-node))))))))))))
 
-(defmethod layout-graph-edges ((graph tree-graph-output-record) 
-			       stream arc-drawer arc-drawing-options)
-  (with-slots (orientation root-nodes) graph
-    (dolist (root-node root-nodes)
-      (flet ((parent-attachment-position (node)
-	       (with-bounding-rectangle* (left top right bottom) node
-		 (case orientation
-		   ((:horizontal :right)
-		    (values (1+ right) (+ top (floor (- bottom top) 2))))
-		   ((:vertical :down)
-		    (values (+ left (floor (- right left) 2)) (1+ bottom))))))
-	     (child-attachment-position (node)
-	       (with-bounding-rectangle* (left top right bottom) node
-		 (case orientation
-		   ((:horizontal :right)
-		    (values (1- left) (+ top (floor (- bottom top) 2))))
-		   ((:vertical :down)
-		    (values (+ left (floor (- right left) 2)) (1- top)))))))
-	(declare (dynamic-extent #'parent-attachment-position #'child-attachment-position))
-	(multiple-value-bind (xoff yoff)
-	    (convert-from-relative-to-absolute-coordinates
-	      stream (output-record-parent graph))
-	  (with-identity-transformation (stream)
-	    (with-output-recording-options (stream :draw nil :record t)
-	      (with-new-output-record (stream 'standard-sequence-output-record nil
-				       :parent graph)
-		(labels ((draw-edges (parent)
-			   (dolist (child (graph-node-children parent))
-			     (when (graph-node-children child)
-			       (draw-edges child))
-			     (multiple-value-bind (parent-x parent-y)
-				 (parent-attachment-position parent)
-			       (multiple-value-bind (child-x child-y)
-				   (child-attachment-position child)
-				 (translate-coordinates xoff yoff
-				   parent-x parent-y child-x child-y)
-				 (call-arc-drawer stream arc-drawer
-						  ;;--- Should be from- and to-node
-						  nil nil
-						  parent parent-x parent-y
-						  child child-x child-y
-						  arc-drawing-options))))))
-		  (declare (dynamic-extent #'draw-edges))
-		  (draw-edges root-node))))))))))
+(defmethod layout-graph-edges ((graph tree-graph-output-record) stream
+			       arc-drawer arc-drawing-options)
+  (with-slots (root-nodes properties) graph
+    (let ((orientation (getf properties :orientation)))
+      (dolist (root-node root-nodes)
+	(flet ((parent-attachment-position (node)
+		 (with-bounding-rectangle* (left top right bottom) node
+		   (case orientation
+		     ((:horizontal :right)
+		      (values (1+ right) (+ top (floor (- bottom top) 2))))
+		     ((:vertical :down)
+		      (values (+ left (floor (- right left) 2)) (1+ bottom))))))
+	       (child-attachment-position (node)
+		 (with-bounding-rectangle* (left top right bottom) node
+		   (case orientation
+		     ((:horizontal :right)
+		      (values (1- left) (+ top (floor (- bottom top) 2))))
+		     ((:vertical :down)
+		      (values (+ left (floor (- right left) 2)) (1- top)))))))
+	  (declare (dynamic-extent #'parent-attachment-position #'child-attachment-position))
+	  (multiple-value-bind (xoff yoff)
+	      (convert-from-relative-to-absolute-coordinates
+		stream (output-record-parent graph))
+	    (with-identity-transformation (stream)
+	      (with-output-recording-options (stream :draw nil :record t)
+		(with-new-output-record (stream 'standard-sequence-output-record nil
+					 :parent graph)
+		  (labels ((draw-edges (parent)
+			     (dolist (child (graph-node-children parent))
+			       (when (graph-node-children child)
+				 (draw-edges child))
+			       (multiple-value-bind (parent-x parent-y)
+				   (parent-attachment-position parent)
+				 (multiple-value-bind (child-x child-y)
+				     (child-attachment-position child)
+				   (translate-coordinates xoff yoff
+				     parent-x parent-y child-x child-y)
+				   (call-arc-drawer stream arc-drawer
+						    (graph-node-object parent) 
+						    (graph-node-object child)
+						    parent parent-x parent-y
+						    child child-x child-y
+						    arc-drawing-options))))))
+		    (declare (dynamic-extent #'draw-edges))
+		    (draw-edges root-node)))))))))))
 
 
 ;;; Directed graphs, both acyclic and cyclic
+
+#|
+
+The basic strategy is that each node appearing more than once in the
+graph is reliably assigned the maximum generation (ply) to which it
+belongs, instead of depending on which occurence was encountered
+first.  Then `filler' output records are inserted to fill in missing
+generations in any link.  These fillers then participate in regular
+node layout.  This results in some unnecessarily squiggley lines, but
+generally the behavior is reasonable.
+
+In graphs where a node with large "depth" is adjacent to a small depth
+node with large fanout connections there is still the possibly that a
+connector will overwrite a node.  This could be fixed with one of
+several strategies: Pad the short node's depth somehow, which moves a
+lot of complexity onto the arc-drawing functions; or add a whole
+generation of additional filler nodes, which would be laid out to
+constrain the set of children of each parent to lie within that
+parents breadth.  I'd draw a picture of it weren't so tedious...
+
+The unnecessary squiggles could be fixed without too much work by
+postprocessing the links, successively moving filler nodes when there
+is room to line them up with one of it's connections in the adjacent
+generation.
+
+Useful rfe: Enforce some limit on the maximum absolute value slope on
+a connection.  Extra inter-generation spacing would be added to limit
+the slope, since high-slope lines are the most visually confusing,
+especially when many occur together.
+
+As an additional hack, the digraph grapher handles circularities by
+creating a pair of `offpage' connectors.  This isn't as elegant as
+plotting circular paths backwards, but the current hack results in a
+clear visual diagram with little effort.  The offpage-connector-out-printer
+and offpage-connector-in-printer args to format-graph-from-roots are
+something of a crock -- perhaps we can avoid documenting them until
+better treatment of cyclic graphs is devised.  BTW, before this hack,
+a circular graph with no roots (i.e. all nodes have at least one parent)
+would blow the stack, so don't undertake a more ambitious fix for
+circular graphs without accounting for this case.
+
+|#
 
 (defclass directed-graph-output-record (basic-graph-output-record)
     ((n-generations :initform 0)))
 
 ;; For now, treat digraphs and DAGs the same way...
-;;
-;; With smh's hacks, cyclic digraphs get converted to dags automatically
-;; with the insertion of `offpage' connectors.
-;; This should be conditionalized, with options for also trying to thread
-;; the cycle path neatly backwards -- but it's too tricky for right now.
-;; Contact me for my thoughts on the matter. 19Nov92 -smh
-
 (define-graph-type :directed-graph directed-graph-output-record)
 (define-graph-type :digraph directed-graph-output-record)
 (define-graph-type :directed-acyclic-graph directed-graph-output-record)
 (define-graph-type :dag directed-graph-output-record)
 
-;; These implement the dummy nodes inserted when an arc must span
-;; more than one generation.
-(defclass graph-node-filler-output-record (standard-graph-node-output-record) ())
+;; These implement the dummy nodes inserted when an arc must span more
+;; than one generation.
+(defclass graph-node-filler-output-record   (standard-graph-node-output-record) ())
 (defclass graph-node-filler-output-record-1 (standard-graph-node-output-record) ())
 
 ;; These implement the `offpage' connectors for cyclic graphs.
 (defclass graph-node-connector-output-record
-    (standard-graph-node-output-record)
+	  (standard-graph-node-output-record)
     ((id :accessor connector-id :initarg :connector-id)))
-(defclass graph-node-connector-in-output-record  (graph-node-connector-output-record) ())
-(defclass graph-node-connector-out-output-record (graph-node-connector-output-record) ())
+(defclass graph-node-connector-in-output-record (graph-node-connector-output-record) 
+    () 
+  (:default-initargs :object nil))
+(defclass graph-node-connector-out-output-record (graph-node-connector-output-record)
+	  ()
+  (:default-initargs :object nil))
 
-(defmethod generate-graph-nodes ((graph directed-graph-output-record)
-				 stream
+(defmethod generate-graph-nodes ((graph directed-graph-output-record) stream
 				 root-objects object-printer inferior-producer
-				 &key duplicate-key duplicate-test
-				 offpage-connector-out-printer
-				 offpage-connector-in-printer)
+				 &key duplicate-key duplicate-test store-objects
+				      offpage-connector-out-printer
+				      offpage-connector-in-printer)
   (declare (dynamic-extent object-printer inferior-producer))
   (declare (ignore duplicate-test))
-  (let ((hash-table (slot-value graph 'hash-table))
-	(cutoff-depth (slot-value graph 'cutoff-depth))
-	(root-nodes '())
-	(connectors-in '()))
-    (labels ((inferior-mapper (function node)
-	       (map nil function (funcall inferior-producer node)))
-	     (new-node-function (parent-object parent-record child-object)
-	       (let ((child-record
-		      (with-stream-cursor-position-saved (stream)
-		      (with-new-output-record
-			  (stream 'standard-graph-node-output-record)
-			(funcall object-printer child-object stream)))))
-		 ;; This guarantees that the next phase will have at least one node
-		 ;; from which to start.  Otherwise the entire graph gets lost.
-		 ;; If the first node isn't really a root, it will be deleted from
-		 ;; the set of roots when the cycle is detected.
-		 (when (null root-nodes)
-		   (push child-record root-nodes))
-		 (old-node-function parent-object parent-record child-object child-record)))
-	     (old-node-function (parent-object parent-record child-object child-record)
-	       (declare (ignore parent-object child-object))
-	       ;; Preserve the ordering of the nodes
-	       ;; Generation numbers are now computed later -smh.
-	       (when parent-record
-		 (unless (member parent-record (graph-node-parents child-record))
-		   (setf (graph-node-parents child-record)
-		     (nconc (graph-node-parents child-record)
-			    (list parent-record))))
-		 (unless (member child-record (graph-node-children parent-record))
-		   (setf (graph-node-children parent-record)
-		     (nconc (graph-node-children parent-record)
-			    (list child-record)))))
-	       child-record))
-      (declare (dynamic-extent #'inferior-mapper #'new-node-function #'old-node-function))
-      (traverse-graph root-objects #'inferior-mapper
-		      hash-table duplicate-key
-		      #'new-node-function #'old-node-function
-		      cutoff-depth))
-    (map-node-table #'(lambda (key node)
-			(declare (ignore key))
-			(when (and (typep node 'graph-node-output-record)
-				   (null (graph-node-parents node)))
-			  (pushnew node root-nodes)))
-		    hash-table)
-    (labels ((break-cycles (node &optional path)
-	       (do ((c (graph-node-children node) (cdr c)))
-		   ((null c))
-		 (let ((child (car c)))
-		   (if (member child path)
-		       (let* ((id (connector-id
-				   (or (find child connectors-in
-					     :key #'(lambda (x)
-						      (car (graph-node-children x))))
-				       (let* ((id (1+ (length connectors-in)))
-					      (rec (with-new-output-record
-						       (stream
-							'graph-node-connector-in-output-record
-							nil :connector-id id)
-						     (funcall offpage-connector-in-printer
-							      stream id))))
-					 (push rec connectors-in)
-					 (setf (graph-node-children rec) (list child))
-					 ;; What about ordering?
-					 (push rec (graph-node-parents child))
-					 (setf root-nodes (delete child root-nodes))
-					 rec)))))
-			 (setf (car c)
+  (with-slots (n-generations) graph
+    (let* ((hash-table (slot-value graph 'hash-table))
+	   (graph-type (slot-value graph 'graph-type))
+	   (properties (slot-value graph 'properties))
+	   (cutoff-depth (getf properties :cutoff-depth))
+	   (maximize-generations (getf properties :maximize-generations))
+	   (root-nodes nil)
+	   (connectors-in nil))
+      (labels ((inferior-mapper (function node)
+		 (map nil function (funcall inferior-producer node)))
+	       (new-node-function (parent-object parent-record child-object)
+		 (let ((child-record
+			 (with-stream-cursor-position-saved (stream)
 			   (with-new-output-record
-			       (stream 'graph-node-connector-out-output-record nil
-				:connector-id id)
-			     (funcall offpage-connector-out-printer stream id))))
+			       (stream 'standard-graph-node-output-record nil
+				:object (and store-objects child-object))
+			     (funcall object-printer child-object stream)))))
+		   ;; This guarantees that the next phase will have at least one
+		   ;; node from which to start.  Otherwise the entire graph gets
+		   ;; lost.  If the first node isn't really a root, it will be
+		   ;; deleted from the set of roots when the cycle is detected.
+		   (when (null root-nodes)
+		     (push child-record root-nodes))
+		   (old-node-function parent-object parent-record child-object child-record)))
+	       (old-node-function (parent-object parent-record child-object child-record)
+		 (declare (ignore parent-object child-object))
+		 (unless maximize-generations
+		   (let ((old-generation (graph-node-generation child-record)))
+		     ;; Set the generation of this node to 1 greater than the parent,
+		     ;; and keep track of the highest generation encountered.
+		     (maxf n-generations
+			   (maxf (graph-node-generation child-record)
+				 (if parent-record
+				     (1+ (graph-node-generation parent-record))
+				     0)))
+		     ;; If the child-record got its generation adjusted, then we must
+		     ;; adjust the generation-number of already-processed children,
+		     ;; and their children, etc.
+		     (unless (eql (graph-node-generation child-record) old-generation)
+		       (increment-generation child-record))))
+		 ;; Preserve the ordering of the nodes.  Generation numbers are
+		 ;; computed later in the case when MAXIMIZE-GENERATIONS is T.
+		 (when parent-record
+		   (unless (member parent-record (graph-node-parents child-record))
+		     (setf (graph-node-parents child-record)
+			   (nconc (graph-node-parents child-record)
+				  (list parent-record))))
+		   (unless (member child-record (graph-node-children parent-record))
+		     (setf (graph-node-children parent-record)
+			   (nconc (graph-node-children parent-record)
+				  (list child-record)))))
+		 child-record)
+	       (increment-generation (record)
+		 (let ((new-generation (1+ (graph-node-generation record))))
+		   (dolist (child (graph-node-children record))
+		     ;; Remember which generation the child belonged to.
+		     (let ((old-generation (graph-node-generation child)))
+		       (maxf n-generations
+			     (maxf (graph-node-generation child) new-generation))
+		       ;; If it has changed, fix up the next generation recursively.
+		       (unless (eql (graph-node-generation child) old-generation)
+			 (increment-generation child)))))))
+	(declare (dynamic-extent #'inferior-mapper #'increment-generation
+				 #'new-node-function #'old-node-function))
+	(traverse-graph root-objects #'inferior-mapper
+			hash-table duplicate-key
+			#'new-node-function #'old-node-function
+			cutoff-depth))
+      (map-node-table #'(lambda (key node)
+			  (declare (ignore key))
+			  (when (and (typep node 'graph-node-output-record)
+				     (null (graph-node-parents node)))
+			    (pushnew node root-nodes)))
+		      hash-table)
+      (when (and (member graph-type '(:directed-graph :digraph))
+		 offpage-connector-in-printer offpage-connector-out-printer)
+	(labels 
+	  ((break-cycles (node &optional path)
+	     (do ((c (graph-node-children node) (cdr c)))
+		 ((null c))
+	       (let ((child (car c)))
+		 (if (member child path)
+		     (let* ((id (connector-id
+				  (or (find child connectors-in
+					    :key #'(lambda (x)
+						     (car (graph-node-children x))))
+				      (let* ((id (1+ (length connectors-in)))
+					     (rec (with-new-output-record
+						      (stream 'graph-node-connector-in-output-record nil
+						       :connector-id id)
+						    (funcall offpage-connector-in-printer
+							     stream id))))
+					(push rec connectors-in)
+					(setf (graph-node-children rec) (list child))
+					;;--- What about ordering?
+					(push rec (graph-node-parents child))
+					(setf root-nodes (delete child root-nodes))
+					rec)))))
+		       (setf (car c)
+			     (with-new-output-record
+				 (stream 'graph-node-connector-out-output-record nil
+				  :connector-id id)
+			       (funcall offpage-connector-out-printer stream id))))
 		     (break-cycles child (cons node path)))))))
-      (declare (dynamic-extent #'break-cycles))
-      (map nil #'break-cycles (copy-list root-nodes)))
-    (setf (slot-value graph 'root-nodes) (nconc (nreverse connectors-in)
-						(nreverse root-nodes)))
-    #+never
-    (let ((root-nodes nil))
-      (flet ((find-roots (key node)
-	       (declare (ignore key))
-	       (when (and (graph-node-output-record-p node)
-			  (null (graph-node-parents node)))
-		 (push node root-nodes))))
-	(declare (dynamic-extent #'find-roots))
-	(map-node-table #'find-roots hash-table))
-      (setf (graph-root-nodes graph) (nreverse root-nodes))))
-  (compute-graph-effective-generations graph)
-  (add-graph-filler-output-records graph stream)
+	  (declare (dynamic-extent #'break-cycles))
+	  (map nil #'break-cycles (copy-list root-nodes))))
+      (setf (slot-value graph 'root-nodes) 
+	    (nconc (nreverse connectors-in) (nreverse root-nodes)))
+      (when maximize-generations
+	(compute-graph-effective-generations graph)
+	(add-graph-filler-output-records graph stream))))
   graph)
 
 (defmethod compute-graph-effective-generations ((graph directed-graph-output-record))
-  (with-slots (n-generations root-nodes) graph
+  (with-slots (root-nodes n-generations) graph
     (labels ((traverse (node ply)
 	       (with-slots (generation) node
 		 (maxf generation ply)
 		 (let ((children (graph-node-children node))
 		       (gen1 (1+ generation)))
-		   (if children		;Save time -- do one or the other.
+		   (if children			;save time -- do one or the other
 		       (dolist (child children)
 			 (traverse child gen1))
-		     (maxf n-generations generation))))))
+		       (maxf n-generations generation))))))
+      (declare (dynamic-extent #'traverse))
       (dolist (root root-nodes)
 	(traverse root 0)))))
 
@@ -644,16 +647,17 @@ for this case.
 		     ((null c))
 		   (let ((child (car c)))
 		     (if (> (graph-node-generation child) gen1)
-			 (progn
-			   (let ((filler (with-new-output-record
-					     (stream 'graph-node-filler-output-record)
-					   nil)))
-			     (setf (graph-node-children filler) (list child)
-				   (graph-node-parents filler) (list node)
-				   (car c) filler
-				   (graph-node-generation filler) gen1)
-			     (traverse filler)))
-		       (traverse child)))))))
+			 (let ((filler (with-new-output-record
+					   (stream 'graph-node-filler-output-record)
+					 nil)))
+			   (setf (graph-node-children filler) (list child)
+				 (graph-node-parents filler)  (list node)
+				 (graph-node-object filler) (graph-node-object node)
+				 (car c) filler
+				 (graph-node-generation filler) gen1)
+			   (traverse filler))
+			 (traverse child)))))))
+      (declare (dynamic-extent #'traverse))
       (dolist (root root-nodes)
 	(traverse root)))))
 
@@ -669,14 +673,18 @@ for this case.
   (edge-breadth-separation nil)		;margin whitespace
   (touched nil))			;if T, use inner breadth separation
 
-(defmethod layout-graph-nodes ((graph directed-graph-output-record)
-			       stream arc-drawer arc-drawing-options)
-  (with-slots (orientation center-nodes
-	       generation-separation within-generation-separation n-generations
-	       root-nodes hash-table) graph
+(defmethod layout-graph-nodes ((graph directed-graph-output-record) stream
+			       arc-drawer arc-drawing-options)
+  (with-slots (root-nodes hash-table n-generations) graph
     (when root-nodes
-      (let ((start-x (coordinate 0))
-	    (start-y (coordinate 0)))
+      (let* ((properties (slot-value graph 'properties))
+	     (orientation (getf properties :orientation))
+	     (center-nodes (getf properties :center-nodes))
+	     (generation-separation (getf properties :generation-separation))
+	     (within-generation-separation (getf properties :within-generation-separation))
+	     (maximize-generations (getf properties :maximize-generations))
+	     (start-x (coordinate 0))
+	     (start-y (coordinate 0)))
 	(flet ((inferior-mapper (function node)
 		 (map nil function (graph-node-children node)))
 	       (yx-output-record-set-position (record y x)
@@ -717,38 +725,38 @@ for this case.
 			   (maxf (generation-depth descr) (depth child-node)))))
 		  (declare (dynamic-extent #'collect-node-size))
 		  (traverse #'collect-node-size))
-
-	      ;; Replace all filler nodes, giving them the max depth in their generation.
-	      (labels
-		  ((replace-filler-nodes (parent)
-		     (let ((children (graph-node-children parent)))
-		       (do ((c children (cdr c)))
-			   ((null c))
-			 (let ((node (car c)))
-			   (when (typep node 'graph-node-filler-output-record)
-			     (delete-output-record node graph)
-			     (let* ((depth (generation-depth
-					    (assoc (graph-node-generation node)
-						   generation-descriptors)))
-				    (new (with-output-to-output-record
-					     (stream 'graph-node-filler-output-record-1)
-					   (call-arc-drawer stream arc-drawer
-						    ;;--- Should be from- and to-node
-						    nil nil
-						    parent 0 0
-						    node depth 0
-						    arc-drawing-options)))
-				    (child (car (graph-node-children node))))
-			       (setf (graph-node-generation new) (graph-node-generation node)
-				     (graph-node-children new) (graph-node-children node)
-				     (graph-node-parents new) (graph-node-parents node)
-				     (graph-node-parents child) (list new)
-				     (car c) new)
-			       (add-output-record new graph)))))
-		       (map nil #'replace-filler-nodes children))))
-		(declare (dynamic-extent #'replace-filler-nodes))
-		(map nil #'replace-filler-nodes root-nodes))
-
+		;; Replace all filler nodes, giving them the max depth in their generation.
+		(when maximize-generations
+		  (labels
+		    ((replace-filler-nodes (parent)
+		       (let ((children (graph-node-children parent)))
+			 (do ((c children (cdr c)))
+			     ((null c))
+			   (let ((node (car c)))
+			     (when (typep node 'graph-node-filler-output-record)
+			       (delete-output-record node graph)
+			       (let* ((depth (generation-depth
+					       (assoc (graph-node-generation node)
+						      generation-descriptors)))
+				      (new (with-new-output-record
+					       (stream 'graph-node-filler-output-record-1 nil
+						:parent graph)
+					     (call-arc-drawer stream arc-drawer
+							      (graph-node-object parent)
+							      (graph-node-object node)
+							      parent 0 0
+							      node depth 0
+							      arc-drawing-options)))
+				      (child (car (graph-node-children node))))
+				 (setf (graph-node-generation new) (graph-node-generation node)
+				       (graph-node-children new) (graph-node-children node)
+				       (graph-node-parents new) (graph-node-parents node)
+				       (graph-node-parents child) (list new)
+				       (graph-node-object new) (graph-node-object node)
+				       (car c) new)))))
+			 (map nil #'replace-filler-nodes children))))
+		    (declare (dynamic-extent #'replace-filler-nodes))
+		    (map nil #'replace-filler-nodes root-nodes)))
 		;; Determine max-breadth and starting-depth
 		(loop with depth-so-far = start-depth
 		      for descr in generation-descriptors do
@@ -788,61 +796,62 @@ for this case.
 		  (declare (dynamic-extent #'place-node))
 		  (traverse #'place-node))))))))))
 
-(defmethod layout-graph-edges ((graph directed-graph-output-record) 
-			       stream arc-drawer arc-drawing-options)
-  (with-slots (orientation root-nodes hash-table) graph
-    (when root-nodes
-      (flet ((inferior-mapper (function node)
-	       (map nil function (graph-node-children node)))
-	     (north (node)
-	       (with-bounding-rectangle* (left top right bottom) node
-		 (declare (ignore bottom))
-		 (values (floor (+ right left) 2) (1- top))))
-	     (south (node)
-	       (with-bounding-rectangle* (left top right bottom) node
-		 (declare (ignore top))
-		 (values (floor (+ right left) 2) (1+ bottom))))
-	     (west (node)
-	       (with-bounding-rectangle* (left top right bottom) node
-		 (declare (ignore right))
-		 (values (1- left) (floor (+ top bottom) 2))))
-	     (east (node)
-	       (with-bounding-rectangle* (left top right bottom) node
-		 (declare (ignore left))
-		 (values (1+ right) (floor (+ top bottom) 2)))))
-	(declare (dynamic-extent #'inferior-mapper #'north #'south #'west #'east))
-	(multiple-value-bind (parent-attach child-attach)
-	    (ecase orientation
-	      ((:vertical :down) (values #'south #'north))
-	      ((:up) (values #'north #'south))
-	      ((:horizontal :right) (values #'east #'west))
-	      ((:left) (values #'west #'east)))
-	  (multiple-value-bind (xoff yoff)
-	      (convert-from-relative-to-absolute-coordinates
-		stream (output-record-parent graph))
-	    (with-identity-transformation (stream)
-	      (with-output-recording-options (stream :draw nil :record t)
-		(with-new-output-record (stream 'standard-sequence-output-record nil
-					 :parent graph)
-		  (labels ((draw-edge (parent ph child &optional ch)
-			     (declare (ignore ph ch))
-			     (when parent
-			       (multiple-value-bind (parent-x parent-y)
-				   (funcall parent-attach parent)
-				 (multiple-value-bind (child-x child-y)
-				     (funcall child-attach child)
-				   (translate-coordinates xoff yoff
-				     parent-x parent-y child-x child-y)
-				   (call-arc-drawer stream arc-drawer
-						    ;;--- Should be from- and to-node
-						    nil nil
-						    parent parent-x parent-y
-						    child child-x child-y
-						    arc-drawing-options))))))
-		    (declare (dynamic-extent #'draw-edge)) 
-		    (traverse-graph root-nodes #'inferior-mapper
-				    hash-table #'identity
-				    #'draw-edge #'draw-edge)))))))))))
+(defmethod layout-graph-edges ((graph directed-graph-output-record) stream
+			       arc-drawer arc-drawing-options)
+  (with-slots (root-nodes hash-table properties) graph
+    (let ((orientation (getf properties :orientation)))
+      (when root-nodes
+	(flet ((inferior-mapper (function node)
+		 (map nil function (graph-node-children node)))
+	       (north (node)
+		 (with-bounding-rectangle* (left top right bottom) node
+		   (declare (ignore bottom))
+		   (values (floor (+ right left) 2) (1- top))))
+	       (south (node)
+		 (with-bounding-rectangle* (left top right bottom) node
+		   (declare (ignore top))
+		   (values (floor (+ right left) 2) (1+ bottom))))
+	       (west (node)
+		 (with-bounding-rectangle* (left top right bottom) node
+		   (declare (ignore right))
+		   (values (1- left) (floor (+ top bottom) 2))))
+	       (east (node)
+		 (with-bounding-rectangle* (left top right bottom) node
+		   (declare (ignore left))
+		   (values (1+ right) (floor (+ top bottom) 2)))))
+	  (declare (dynamic-extent #'inferior-mapper #'north #'south #'west #'east))
+	  (multiple-value-bind (parent-attach child-attach)
+	      (ecase orientation
+		((:vertical :down) (values #'south #'north))
+		((:up) (values #'north #'south))
+		((:horizontal :right) (values #'east #'west))
+		((:left) (values #'west #'east)))
+	    (multiple-value-bind (xoff yoff)
+		(convert-from-relative-to-absolute-coordinates
+		  stream (output-record-parent graph))
+	      (with-identity-transformation (stream)
+		(with-output-recording-options (stream :draw nil :record t)
+		  (with-new-output-record (stream 'standard-sequence-output-record nil
+					   :parent graph)
+		    (labels ((draw-edge (parent ph child &optional ch)
+			       (declare (ignore ph ch))
+			       (when parent
+				 (multiple-value-bind (parent-x parent-y)
+				     (funcall parent-attach parent)
+				   (multiple-value-bind (child-x child-y)
+				       (funcall child-attach child)
+				     (translate-coordinates xoff yoff
+				       parent-x parent-y child-x child-y)
+				     (call-arc-drawer stream arc-drawer
+						      (graph-node-object parent) 
+						      (graph-node-object child)
+						      parent parent-x parent-y
+						      child child-x child-y
+						      arc-drawing-options))))))
+		      (declare (dynamic-extent #'draw-edge)) 
+		      (traverse-graph root-nodes #'inferior-mapper
+				      hash-table #'identity
+				      #'draw-edge #'draw-edge))))))))))))
 
 ;; ROOT-OBJECTS is a sequence of the roots of the graph.  
 ;; INFERIOR-MAPPER is a function of two arguments, a function and an object
@@ -874,7 +883,7 @@ for this case.
 	       (funcall new-node-function parent-object parent-hashval object)))
 	 (setf (get-node-table (funcall key object) hash-table) object-hashval)
 	 (when max-depth (decf max-depth))
-	 (unless (eql max-depth 0)
+	 (unless (eq max-depth 0)
 	   (flet ((traverse1 (child-object)
 		    (let ((child-key (funcall key child-object)))
 		      (multiple-value-bind (child-hashval found)
@@ -889,3 +898,4 @@ for this case.
     (map nil #'(lambda (root)
 		 (traverse nil nil root max-depth))
 	 root-objects)))
+

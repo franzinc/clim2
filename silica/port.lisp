@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: port.lisp,v 1.25 92/11/19 14:25:03 cer Exp $
+;; $fiHeader: port.lisp,v 1.26 92/12/01 09:46:29 cer Exp $
 
 (in-package :silica)
 
@@ -136,6 +136,17 @@
 (defgeneric remove-watcher (port watcher))
 (defgeneric reset-watcher (watcher how))
 
+(define-event-class port-terminated (window-manager-event) 
+  ((condition :initarg :condition :reader port-terminated-condition)))
+
+(defmethod port-terminated ((port basic-port) condition)
+  ;;--- Should mark it as dead 
+  (setq *ports* (delete port *ports*))
+  (dolist (graft (port-grafts port))
+    (dolist (sheet (sheet-children graft))
+      (queue-event sheet (make-instance 'port-terminated 
+					:condition condition
+					:sheet sheet)))))
 
 
 ;;;;;;;;;;;;;;;;

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: frames.lisp,v 1.52 92/12/01 09:45:11 cer Exp $
+;; $fiHeader: frames.lisp,v 1.53 92/12/03 10:26:35 cer Exp $
 
 (in-package :clim-internals)
 
@@ -1500,3 +1500,11 @@
     (values left   left-presentation   left-context
 	    middle middle-presentation middle-context
 	    right  right-presentation  right-context)))
+
+(defmethod handle-event ((stream input-protocol-mixin) (event port-terminated))
+  (if (pane-frame stream)
+      (frame-terminated (pane-frame stream) event)
+    (error "Port has died ~A" event)))
+
+(defmethod frame-terminated ((frame standard-application-frame) event)
+  (error "Port for frame ~A has died ~A" frame event))

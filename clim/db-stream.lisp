@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-stream.lisp,v 1.38 92/12/01 09:45:08 cer Exp $
+;; $fiHeader: db-stream.lisp,v 1.39 92/12/03 10:26:23 cer Exp $
 
 (in-package :clim-internals)
 
@@ -355,7 +355,7 @@
 	  (:top
 	    (setq pane `(vertically () ,label ,pane))))))
     (when borders 
-      (setq pane (outlining (:thickness 1)
+      (setq pane `(outlining (:thickness 1)
 		   #+allegro
 		   ,pane
 		   #-allegro

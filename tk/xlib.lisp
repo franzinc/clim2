@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xlib.lisp,v 1.34 92/11/18 15:54:57 colin Exp $
+;; $fiHeader: xlib.lisp,v 1.35 92/12/02 13:31:21 colin Exp $
 
 (in-package :tk)
 
@@ -194,6 +194,15 @@
    (asynchronous :reader x-error-asynchronous :initarg :asynchronous))
   (:report report-x-error))
 
+(define-condition x-connection-lost (error)
+  ((display :reader x-error-display :initarg :display))
+  (:report report-x-connection-lost))
+
+(defun report-x-connection-lost (condition stream)
+  (let ((display (x-error-display condition)))
+    (format stream "Xlib: Connection to X11 server '~a' lost"
+	    (ff:char*-to-string (x11:display-display-name display)))))
+
 (defun report-x-error (condition stream)
   (let ((display (x-error-display condition))
 	(error-code (x-error-error-code condition))
@@ -229,8 +238,8 @@
 
 (defun-c-callable x-io-error-handler ((display :unsigned-long))
   (let ((*error-output* excl:*initial-terminal-io*))
-    (error "Xlib: Connection to X11 server '~a' lost"
-	   (ff:char*-to-string (x11:display-display-name display)))))
+    (error 'x-connection-lost :display display)))
+
 
 
 (defun get-error-text (code display-handle)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: packages.lisp,v 1.41 92/12/01 09:47:32 cer Exp $
+;; $fiHeader: packages.lisp,v 1.42 92/12/03 10:30:45 cer Exp $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :common-lisp-user)
 
@@ -2557,6 +2557,7 @@
     display-exit-boxes
     frame-manager-dialog-view
     invoke-accept-values-command-button
+    with-aligned-prompts
     
     ;; Command processor
     *command-argument-delimiters*
@@ -3497,6 +3498,7 @@
     port-set-pointer-position
     port-set-sheet-pointer-cursor
     port-set-sheet-grabbed-pointer-cursor
+    port-terminated
     port-trace-thing
     port-undefined-text-style
     process-event-locally

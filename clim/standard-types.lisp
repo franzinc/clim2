@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: standard-types.lisp,v 1.21 92/11/20 08:44:58 cer Exp $
+;; $fiHeader: standard-types.lisp,v 1.22 92/12/03 10:27:49 cer Exp $
 
 (in-package :clim-internals)
 
@@ -1468,7 +1468,7 @@
 				(subseq string index))))
 	expression))))
 
-r(define-presentation-method present (object (type expression) stream (view textual-view)
+(define-presentation-method present (object (type expression) stream (view textual-view)
 				     &key (acceptably *print-readably*))
   (print-recursive object stream :make-presentation nil :readably acceptably))
 
@@ -1481,18 +1481,23 @@ r(define-presentation-method present (object (type expression) stream (view text
 ;;--- Maybe this should have WRITE options
 (define-presentation-type form ()
   :options ((auto-activate nil boolean))
-  :inherit-from `((expression) :auto-activate ,auto-activate))
+  ;; Handling of AUTO-ACTIVATE is done below...
+  :inherit-from `expression)
 
 (define-presentation-method presentation-type-history ((type form))
   ;; Share history with EXPRESSION
   (presentation-type-history-for-frame 'expression *application-frame*))
 
 (define-presentation-method map-over-presentation-type-supertypes ((type form) function)
-  (map-over-presentation-type-supertypes-augmented type function
-    ;; Include COMMAND-OR-FORM in the supertypes
-    (with-stack-list (new-type 'command-or-form
+  (with-presentation-type-decoded (name) type
+    (funcall function name type)
+    (with-stack-list (new-name 'command-or-form 
 			       :command-table (frame-command-table *application-frame*))
-      (funcall function 'command-or-form new-type))))
+      (with-stack-list (new-type new-name :auto-activate auto-activate)
+	(funcall function 'command-or-form new-type))
+      (with-stack-list (new-name 'expression)
+	(with-stack-list (new-type new-name :auto-activate auto-activate)
+	  (map-over-presentation-type-supertypes new-type function))))))
 
 (defvar *char-associations* '((#\( . #\))
 			      (#\" . #\")

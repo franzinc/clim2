@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-frames.lisp,v 1.18 92/11/10 08:56:55 cer Exp $
+;; $fiHeader: ol-frames.lisp,v 1.19 92/12/03 10:30:10 cer Exp $
 
 
 (in-package :xm-silica)
@@ -74,8 +74,11 @@
 	 (font (and text-style (text-style-mapping (port framem) text-style)))
 	 (font-args (and font (list :font font))))
 
-    (tk::set-values menu-shell :title (or label "Choose"))
-
+    (let ((title (cond ((null label) "Choose")
+		       ((atom label) label)
+		       (t (car label)))))
+      (check-type title string)
+      (tk::set-values menu-shell :title title))
     ;;-- Does not have a font resource
     ;;    (when font (tk::set-values menu-shell :font font))
     
@@ -184,6 +187,6 @@
   (tk::ol_menu_popdown menu 1))
 
 (defmethod framem-menu-active-p ((framem openlook-frame-manager) menu)
-  (declare (ignore t))
+  (declare (ignore menu))
   t)
 

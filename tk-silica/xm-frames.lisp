@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-frames.lisp,v 1.41 92/11/20 08:46:41 cer Exp $
+;; $fiHeader: xm-frames.lisp,v 1.42 92/12/03 10:30:17 cer Exp $
 
 (in-package :xm-silica)
 
@@ -321,11 +321,16 @@
 	 (font (and text-style (text-style-mapping (port framem) text-style)))
 	 (font-list (and (or label simplep) font (list :font-list (list font)))))
     (when label
-      (apply #'make-instance 'xt::xm-label
-		     :parent menu
-		     :managed nil
-		     :label-string label
-		     font-list)
+      (let ((title (if (atom label) label (car label))))
+	(check-type title string)
+	(destructuring-bind (&key text-style) (and (listp label) (cdr label))
+	  (apply #'make-instance 'xt::xm-label
+		 :parent menu
+		 :managed nil
+		 :label-string title
+		 (if text-style
+		     (list :font-list (list (text-style-mapping (port framem) text-style)))
+		   font-list))))
       (make-instance 'xt::xm-separator
 		     :managed nil
 		     :separator-type :double-line

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: test-suite.lisp,v 1.47 92/12/01 09:46:42 cer Exp $
+;; $fiHeader: test-suite.lisp,v 1.48 92/12/03 10:29:48 cer Exp $
 
 (in-package :clim-user)
 
@@ -767,7 +767,7 @@ people, shall not perish from the earth.
 		      (draw-rectangle* stream 0 0 (pattern-width pattern) (pattern-height pattern) :ink pattern))
 		  (write-string "not found" stream))))))))
 
-#+Allegro
+
 (define-test (draw-some-bezier-curves graphics) (stream)
   "Draw bezier curve"
   (let ((points (list 0 0 100 300 300 300 400 0 200 200 150 30 0 0)))
@@ -775,7 +775,7 @@ people, shall not perish from the earth.
 	(dolist (filled '(nil t))
 	  (formatting-cell (stream)
 	      (with-scaling (stream 0.5)
-		(draw-bezier-polygon* stream points :filled filled)
+		(draw-bezier-curve* stream points :filled filled)
 		(do ((points points (cddr points)))
 		    ((null points))
 		  (draw-point* stream (car points) (cadr points) :line-thickness 2
@@ -1250,6 +1250,37 @@ people, shall not perish from the earth.
 				  :stream stream))))
     (sleep 2)
     (window-refresh stream)))
+
+(define-test (hairy-graph-formatting formatted-output) (stream)
+  "Some hairy re-entrant and circular graphs"
+  (formatting-item-list (stream)
+      (dolist (test '((nil (a (bbbb (ccc (dd eee) (fff ggg (hh (ii jj) kkk))) (lll (mmm nnn) (ooo ppp qqq))) r (s t)))
+		      (t (a #1=(b (c #2= (d e #3=(f g)) (hhhhhhhhhh (i j k) l (m n o)))))
+		       (p (q (r (s t #3# u))))
+		       (w (x #2# #1#)))
+		      (t (a #11=(bbb (ccc (dd eee) (ffff g hhhhhhhh)))
+			  (mm (nnn ooo #11#) (p #12=(q r (s t))))
+			  (u (v (w (x #12#))))))
+		      (t (a #21= (b (c (d #21# e)) (f #22= (g (h i) j) k) #22#) (m n)))
+		      (t #34=(a #31= (b (c (d #31# e)) (f #32= (g (h i #31#) j) k) #32#) (m #34# n)))
+		      (t #51=(a #51#))
+		      (t #41=(aaa (bbb (ccc #41#))))
+		      ))
+	(formatting-cell (stream)
+	    (destructuring-bind (merge . data) test
+	      (flet ((printer-function (node stream)
+		       (format stream "~A" (if (consp node) (car node) node)))
+		     (child-function (node)
+		       (and (consp node) (cdr node))))
+		(format-graph-from-roots
+		 data
+		 #'printer-function
+		 #'child-function
+		 :stream stream
+		 :cutoff-depth 8
+		 :merge-duplicates merge
+		 )))))))
+    
 
 (define-test (filled-output formatted-output) (stream)
   "Some simple tests of filled output.  The thing labelled <Click Here> should be sensitive."
@@ -1742,7 +1773,11 @@ Luke Luck licks the lakes Luke's duck likes."))
 		   :label "Select an activity"))
     (doit
       (menu-choose '("akjdfkjdf" "bdfkj" "cdfkj")
-		   :label "foo" :text-style '(:fix :roman :huge)))))
+		   :label "foo" :text-style '(:fix :roman :huge)))
+    (doit
+     (menu-choose '("akjdfkjdf" "bdfkj" "cdfkj")
+		  :label '("Foo" :text-style (:serif :bold :huge)) 
+		  :text-style '(:fix :roman :huge)))))
 
 (define-test (graphical-menu menus-and-dialogs) (stream)
   "A menu that contains graphics."
@@ -1950,44 +1985,53 @@ Luke Luck licks the lakes Luke's duck likes."))
 (define-test (readonly-gadget-dialog menus-and-dialogs) (stream)
   "Create a bunch of readonly gadgets"
   (accepting-values (stream :own-window nil :label "Gadgets dialog"
-			    :align-prompts t)
-    (macrolet ((do-presents (view &rest p)
-		 `(progn
-		    ,@(mapcar #'(lambda (x)
-				  `(progn
-				     (present ',(car x) ',(cadr x)
-				       ,@(and view `(:view ,view))
-				       :prompt (format nil "~A,~A"
-						 ',(cadr x)
-						 ,(if (constantp view)
-						      (if (eval view) `',(type-of (eval view)) :default)
-						      `(if ,view (type-of ,view) :default)))
-				       :stream stream)
-				     (terpri stream)))
-			      p))))
-      (do-presents
-	nil
-	(5.0 real)
-	("xxx" string)
-	(#P"/tmp/foo" pathname)
-	(:a (member :a :b))
-	((:a :b) (subset :a :b))
-	(( 3 4) (sequence integer))
-	;; sequence-enumerated
-	(t boolean))
-      (do-presents
-	+text-field-view+
-	(5.0 real)
-	("xxx" string)
-	(#P"/tmp/foo" pathname)
-	(:a (member :a :b))
-	((:a :b) (subset :a :b))
-	(( 3 4) (sequence integer))
-	;; sequence-enumerated
-	(t boolean))
-      (do-presents
-	'(text-editor-view :nlines 5 :ncolumns 30)
-	("      (do-presents
+			    :align-prompts nil)
+      (macrolet ((do-presents (view &rest p)
+		   `(progn
+		      ,@(mapcar #'(lambda (x)
+				    `(progn
+				       (present ',(car x) ',(cadr x)
+						,@(and view `(:view ,view))
+						:prompt (format nil "~A,~A"
+								',(cadr x)
+								,(if (constantp view)
+								     (if (eval view) `',(type-of (eval view)) :default)
+								   `(if ,view (type-of ,view) :default)))
+						:stream stream)
+				       (terpri stream)))
+				p))))
+	
+	(formatting-item-list (stream :n-columns 2)
+	    (formatting-cell (stream)
+		(with-aligned-prompts (stream)
+		  (do-presents
+		      nil
+		    (5.0 real)
+		    ("xxx" string)
+		    (#P"/tmp/fooo" pathname)
+		    (:a (member :a :b))
+		    ((:a :b) (subset :a :b))
+		    (( 3 4) (sequence integer))
+		    ;; sequence-enumerated
+		    (t boolean))))
+	  (formatting-cell (stream)
+	      (with-aligned-prompts (stream)
+		(do-presents
+		    +text-field-view+
+		  (5.0 real)
+		  ("xxx" string)
+		  (#P"/tmp/fooo" pathname)
+		  (:a (member :a :b))
+		  ((:a :b) (subset :a :b))
+		  (( 3 4) (sequence integer))
+		  ;; sequence-enumerated
+		  (t boolean))))
+	  
+	  (formatting-cell (stream)
+	      (with-aligned-prompts (stream)
+		(do-presents
+		    '(text-editor-view :nlines 5 :ncolumns 30)
+		  ("      (do-presents
 	  +text-field-view+
 	  (5.0 real)
 	(xxx string)
@@ -1997,11 +2041,15 @@ Luke Luck licks the lakes Luke's duck likes."))
 	(( 3 4) (sequence integer))
 	;; sequence-enumerated
 	(t boolean)) "
-	 string))
-      (do-presents
-	+slider-view+
-	(5.0 float)
-	(1 integer)))))
+		      string))))
+	  
+	  (formatting-cell (stream)
+	      (with-aligned-prompts (stream)
+		(do-presents
+		    +slider-view+
+		  (5.0 float)
+		  (1 integer))))))))
+
 
 (defun gadgets-dialog-internal (stream &optional own-window)
   (macrolet ((accepts (&rest accepts)
@@ -2078,29 +2126,35 @@ Luke Luck licks the lakes Luke's duck likes."))
 
 (defun time-continuation (name iterations continuation &key (careful t))
   (with-display-pane (stream)
-		     (let ((results nil)
-		       (vresults nil))
+    (let ((results nil)
+	  (vresults nil))
       (when careful
 	(funcall continuation stream))
-      (repeat (* *multiply-factor* (if (not careful) 1 5))
-	(window-clear stream)
-	#+Genera (si:%gc-scavenge)
-	#+Cloe-Runtime (gc-immediately)
-	#+Lucid (lucid-common-lisp:ephemeral-gc)
-	#+excl (excl::gc)
-	#+ccl (ccl:gc)
-	(let ((start-time (get-internal-real-time))
-	      (vstart-time (get-internal-run-time)))
-	  (repeat iterations
-	    (#+Genera mi:with-metering-enabled #-Genera progn
-	      (funcall continuation stream))
-	    (force-output stream))
-	  (push (/ (float (- (get-internal-real-time) start-time))
-		   internal-time-units-per-second)
-		results)
-	  (push (/ (float (- (get-internal-run-time) vstart-time))
-		   internal-time-units-per-second)
-		vresults)))
+      (let ((initial-scale-iterations 1))
+        (repeat (* *multiply-factor* (if (not careful) 1 5))
+		(window-clear stream)
+		#+Genera (si:%gc-scavenge)
+		#+Cloe-Runtime (gc-immediately)
+		#+Lucid (lucid-common-lisp:ephemeral-gc)
+		#+excl (excl::gc)
+		#+ccl (ccl:gc)
+		(do ((scale-iterations initial-scale-iterations (* scale-iterations 2)))
+		    (nil)
+		  (let ((start-time (get-internal-real-time))
+			(vstart-time (get-internal-run-time)))
+		    (repeat (* iterations scale-iterations)
+			    (#+Genera mi:with-metering-enabled #-Genera progn
+				      (funcall continuation stream))
+			    (force-output stream))
+		    (let ((vtime (/ (float (- (get-internal-run-time) vstart-time))
+				    internal-time-units-per-second))
+			  (rtime (/ (float (- (get-internal-real-time) start-time))
+				    internal-time-units-per-second)))
+		      (when (or (> vtime 1) (> rtime 1))
+			(setq initial-scale-iterations scale-iterations)
+			(push (/ rtime scale-iterations) results)
+			(push (/ vtime scale-iterations) vresults)
+			(return nil)))))))
       (let ((time
 	     (if (not careful)
 		 (first results)
@@ -2112,11 +2166,11 @@ Luke Luck licks the lakes Luke's duck likes."))
 	       (let ((results (rest (butlast (sort vresults #'<)))))
 		 (/ (apply #'+ results) (length results))))))
 	(format (get-frame-pane *application-frame* 'caption-pane)
-	    "~%Each run of ~A took about ~3$ real, ~3$ virtual, ~3$ v/r seconds"
-	    name 
-	    time
-	    vtime
-	    (float (/ vtime time)))
+		"~%Each run of ~A took about ~3$ real, ~3$ virtual, ~3$ v/r seconds"
+		name 
+		time
+		vtime
+		(float (/ vtime time)))
 	time))))
 
 ;;; To distill the results down to something more easily interpretable by the
@@ -2953,7 +3007,7 @@ Luke Luck licks the lakes Luke's duck likes."))
   (without-clim-input
     (if #+allegro (typep (port stream) 'xm-silica::xt-port)
 	#-allegro nil
-	(sleep 1) ;; Avoid division by zero!
+	(sleep 0.1) ;; Avoid division by zero!
 	(menu-choose '(("Red" :value +red+)
 		       ("Green" :value +green+)
 		       ("Blue" :value +blue+)
@@ -2971,7 +3025,7 @@ Luke Luck licks the lakes Luke's duck likes."))
   (without-clim-input
     (if #+allegro (typep (port stream) 'xm-silica::xt-port)
 	#-allegro nil
-	(sleep 1) ;; Avoid division by zero!
+	(sleep 0.1) ;; Avoid division by zero!
 	(menu-choose '(("Red" :value +red+)
 		       ("Green" :value +green+)
 		       ("Blue" :value +blue+)
