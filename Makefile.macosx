@@ -1,4 +1,4 @@
-# $Header: /repo/cvs.copy/clim2/Makefile.macosx,v 1.2 2002/07/09 20:57:14 layer Exp $
+# $Id: Makefile.macosx,v 1.3 2003/01/15 04:51:07 layer Exp $
 #
 #  Makefile.macosx for CLIM 2.0
 #
@@ -13,15 +13,17 @@ SHARED-OL-OBJS= climol.dylib
 Makefile=Makefile.macosx
 
 SET_LIBRARY_PATH = \
-	DYLD_LIBRARY_PATH=/usr/local/lib:/usr/X11R6/lib:/lib:/usr/lib:$(DYLD_LIBRARY_PATH); export DYLD_LIBRARY_PATH
+  DYLD_LIBRARY_PATH=/usr/local/lib:/usr/local/X11R6/lib:/lib:/usr/lib:$(DYLD_LIBRARY_PATH); \
+  export DYLD_LIBRARY_PATH
 
 #CL=../src/xm-dcl
 
 TKLIB=-lXm
-XTLIB=-L/usr/X11R6/lib -lXt
-XLIB=-L/usr/X11R6/lib -lX11 /usr/local/lib/liblanginfo.a
+XTLIB=-L/usr/local/X11R6/lib -lXt
+XLIB=-L/usr/local/X11R6/lib -lX11
+# removed /usr/local/lib/liblanginfo.a from XLIB
 
-XINCLUDES=-I/usr/X11R6/include
+XINCLUDES=-I/usr/local/X11R6/include
 
 CFLAGS= 
 PICFLAGS = 
