@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graph-formatting.lisp,v 1.25 93/03/19 09:43:29 cer Exp $
+;; $fiHeader: graph-formatting.lisp,v 1.26 93/03/31 10:38:37 cer Exp $
 
 (in-package :clim-internals)
 
@@ -812,6 +812,7 @@ circular graphs without accounting for this case.
 		  (setf (generation-start-depth descr) depth-so-far)
 		  (incf depth-so-far (+ generation-separation (generation-depth descr))))
 		;; Determine breadth-spacing
+		(assert broadest-gen-descr)
 		(incf max-gen-breadth
 		      (* within-generation-separation (generation-size broadest-gen-descr)))
 		(loop for descr in generation-descriptors do

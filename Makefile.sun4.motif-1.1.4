@@ -1,0 +1,15 @@
+# $fiHeader: Makefile.sun4,v 1.1 93/03/01 14:26:12 cer Exp $
+#
+#  Makefile.sun4 for CLIM 2.0
+#
+
+include Makefile.defs
+
+MOTIFLIB=/x11/R4/sun4-lib/libXm$(DEBUGLIB).a
+MOTIFLIB_d=/x11/R4/sun4-lib/libXm_d.a
+XLIB= /x11/R4/sun4-lib/libX11$(DEBUGLIB).a 
+XTLIB=/x11/R4/sun4-lib/libXt$(DEBUGLIB).a
+XINCLUDES=-I/x11/motif-1.1/lib
+XTSUPPORTINCLUDES=-I/x11/R4/src/mit/lib/Xt
+
+include Makefile.generic

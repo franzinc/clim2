@@ -18,11 +18,44 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: pkg.lisp,v 1.7 92/07/27 19:30:23 cer Exp $
+;; $fiHeader: pkg.lisp,v 1.8 92/10/02 15:20:58 cer Exp $
 
 (defpackage tk-silica
   (:nicknames xm-silica xt-silica)
   (:use clim-lisp clim-utils clim silica tk)
-  (:import-from excl #:if*))
+  (:import-from excl #:if*)
+  (:export
+   ;; Motif 
+ 
+   #:motif-separator
+   #:motif-scroll-bar
+   #:motif-slider
+   #:motif-push-button
+   #:motif-label-pane
+   #:motif-text-field
+   #:motif-text-editor
+   #:motif-toggle-button
+   #:motif-menu-bar
+   #:motif-radio-box
+   #:motif-check-box
+   #:motif-frame-pane
+   #:motif-list-pane
+   #:motif-option-pane
 
-  
+   ;; Openlook
+ 
+   #:openlook-scroll-bar
+   #:openlook-slider
+   #:openlook-push-button
+   #:openlook-label-pane
+   #:openlook-text-field
+   #:openlook-text-editor
+   #:openlook-toggle-button
+   #:openlook-menu-bar
+   #:openlook-radio-box
+   #:openlook-check-box
+   #:openlook-list-pane
+   #:openlook-option-pane
+   
+   ))
+

@@ -1,7 +1,7 @@
-/* $fiHeader: xtsupport.c,v 1.2 93/03/01 14:26:21 cer Exp $ */
+/* $fiHeader: xtsupport.c,v 1.3 93/03/04 19:00:49 colin Exp $ */
 
 #ifdef sparc
-#include "/x11/R4/src/mit/lib/Xt/IntrinsicI.h"
+#include "IntrinsicI.h"
 #endif
 
 #ifdef ultrix

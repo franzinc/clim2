@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: packages.lisp,v 1.50 93/03/19 09:47:26 cer Exp $
+;; $fiHeader: packages.lisp,v 1.51 93/03/25 15:41:59 colin Exp $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :common-lisp-user)
 
@@ -2851,9 +2851,12 @@
     gadget
     gadget-activate-callback
     gadget-active-p
+    gadget-alignment
     gadget-armed-callback
     gadget-client
+    gadget-columns
     gadget-disarmed-callback
+    gadget-editable-p
     gadget-id
     gadget-indicator-type
     gadget-label
@@ -2869,6 +2872,7 @@
     gadget-show-value-p
     gadget-value
     gadget-value-changed-callback
+    gadget-word-wrap
     gadgetp
     labelled-gadget-mixin
     list-pane
@@ -3406,16 +3410,12 @@
     frame-user-specified-position-p
     frame-user-specified-size-p
     frame-wrapper
-    gadget-alignment
-    gadget-columns
-    gadget-editable-p
     gadget-event
     gadget-focus-out-callback
     gadget-focus-in-callback
     gadget-lines
     gadget-supplied-scrolling
     gadget-visible-items
-    gadget-word-wrap
     generic-label-pane
     generic-list-pane
     generic-option-pane

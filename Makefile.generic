@@ -1,4 +1,4 @@
-# $fiHeader: Makefile.generic,v 1.4 93/03/31 10:38:24 cer Exp $
+# $fiHeader: Makefile.generic,v 1.5 93/04/02 13:35:41 cer Exp $
 #
 #  Makefile.generic for CLIM 2.0
 #
@@ -262,13 +262,13 @@ dcl	:
 	make dcl	
 
 clim-motif.o	: stub-motif.o stub-xt.o $(MOTIFLIB)
-	ld -r $(LDFLAGS) -o clim-motif.o stub-motif.o stub-xt.o $(MOTIFLIB)
+	ld -r $(LDFLAGS) -o clim-motif.o stub-motif.o stub-xt.o $(MOTIFXTRAOS) $(MOTIFLIB)
 
 clim-olit.o	: stub-olit.o stub-xt.o $(LIBXOL)
 	ld -r $(LDFLAGS) -o clim-olit.o stub-olit.o stub-xt.o $(LIBXOL)
 
 clim-motif_d.o	: stub-motif.o stub-xt.o $(MOTIFLIB_d)
-	ld -r  $(LDFLAGS) -o clim-motif_d.o stub-motif.o stub-xt.o $(MOTIFLIB_d)
+	ld -r  $(LDFLAGS) -o clim-motif_d.o stub-motif.o stub-xt.o $(MOTIFXTRAOS) $(MOTIFLIB_d)
 
 clim-olit_d.o	: stub-olit.o  stub-xt.o $(LIBXOL_d)
 	ld -r $(LDFLAGS) -o clim-olit_d.o stub-olit.o stub-xt.o $(LIBXOL_d)
@@ -295,7 +295,7 @@ xlibsupport.o	: xlib/xlibsupport.c
 
 
 xtsupport.o: misc/xtsupport.c
-	$(CC) -c $(CFLAGS) -o xtsupport.o misc/xtsupport.c
+	$(CC) -c $(CFLAGS) $(XTSUPPORTINCLUDES) -o xtsupport.o misc/xtsupport.c
 
 MyDrawingA.o: misc/MyDrawingA.c
 	$(CC) -c $(CFLAGS) -o MyDrawingA.o misc/MyDrawingA.c
