@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: test-suite.lisp,v 1.41 92/10/28 08:19:47 cer Exp Locker: cer $
+;; $fiHeader: test-suite.lisp,v 1.42 92/10/28 11:32:18 cer Exp $
 
 (in-package :clim-user)
 
@@ -712,19 +712,20 @@ people, shall not perish from the earth.
 
 (define-test (colored-inks graphics) (stream)
   "Test colors"
-  (with-text-style (stream '(:sans-serif :italic :normal))
-    (format stream "~&~%~A~%" "Named Colors")
-    (formatting-table (stream)
-      (dolist (name *named-colors*)
-	(let ((color (if (symbolp name)
-			 (symbol-value name)
-			 (find-named-color name stream))))
-	  (when color
-	    (formatting-row (stream)
-	      (formatting-cell (stream)
-		(write-string (string name) stream))
-	      (formatting-cell (stream)
-		(draw-rectangle* stream 0 0 200 10 :ink color)))))))))
+  (let ((palette (frame-palette *application-frame*)))
+    (with-text-style (stream '(:sans-serif :italic :normal))
+      (format stream "~&~%~A~%" "Named Colors")
+      (formatting-table (stream)
+	(dolist (name *named-colors*)
+	  (let ((color (if (symbolp name)
+			   (symbol-value name)
+			   (find-named-color name palette :errorp nil))))
+	    (when color
+	      (formatting-row (stream)
+		(formatting-cell (stream)
+		  (write-string (string name) stream))
+		(formatting-cell (stream)
+		  (draw-rectangle* stream 0 0 200 10 :ink color))))))))))
 
 (define-test (patterned-graphics-shapes graphics) (stream)
   "Test patterned graphics shapes"
@@ -888,14 +889,14 @@ people, shall not perish from the earth.
   "Write some strings separated by horizontal cursor motion.  After refreshing, the output should look the same."
   (terpri stream)
   (let* ((width (bounding-rectangle-width stream))
-	 (rect-width (- (floor width 11) 10))
-	 (spacing 8))
+	 (rect-width (- (floor width 11) 10)))
     (multiple-value-bind (x y)
 	(stream-cursor-position stream)
-      (dotimes (i 11)
-	(stream-set-cursor-position stream x y)
-	(write-string (format nil "~1$" (float (/ i 10))) stream)
-	(incf x (+ rect-width spacing))))
+      (with-end-of-line-action (stream :allow)
+	(dotimes (i 11)
+	  (stream-set-cursor-position stream x y)
+	  (write-string (format nil "~1$" (float (/ i 10))) stream)
+	  (incf x rect-width))))
     (terpri stream)
     (stream-force-output stream)
     (sleep 2)
@@ -1677,12 +1678,14 @@ Luke Luck licks the lakes Luke's duck likes."))
   (graphics-dialog-internal stream t))
 
 (defun graphics-dialog-internal (stream &optional own-window)
-  (labels ((display-color (object stream)
+  (labels ((display-color (object stream &key acceptably)
+	     (declare (ignore acceptably))
 	     (with-room-for-graphics (stream)
 	       (draw-rectangle* stream 0 0 30 10 :ink
 				(color-name-color object))))
 	   (color-name-color (name)
 	     (ecase name
+	       (:foreground +foreground-ink+)
 	       (:red +red+)
 	       (:green +green+)
 	       (:blue +blue+))))
@@ -1693,49 +1696,50 @@ Luke Luck licks the lakes Luke's duck likes."))
 	  (draw-/-diagonal t)
 	  (draw-\\-diagonal t)
 	  (line-thickness 1)
-	  (color-name :red)
+	  (color-name :foreground)
 	  (line-thickness-units :normal))
       (accepting-values (stream :own-window own-window :label "Graphics Dialog")
-	  (setq square-dimension
-	    (accept 'number :stream stream
-		    :prompt "Size of square" :default square-dimension))
+	(setq square-dimension
+	      (accept 'number :stream stream
+		      :prompt "Size of square" :default square-dimension))
 	(terpri stream)
 	(setq draw-circle
-	  (accept 'boolean :stream stream
-		  :prompt "Draw the circle" :default draw-circle))
+	      (accept 'boolean :stream stream
+		      :prompt "Draw the circle" :default draw-circle))
 	(terpri stream)
 	(setq draw-square
-	  (accept 'boolean :stream stream
-		  :prompt "Draw the square" :default draw-square))
+	      (accept 'boolean :stream stream
+		      :prompt "Draw the square" :default draw-square))
 	(terpri stream)
 	(setq draw-point
-	  (accept 'boolean :stream stream
-		  :prompt "Draw point" :default draw-point))
+	      (accept 'boolean :stream stream
+		      :prompt "Draw point" :default draw-point))
 	(terpri stream)
 	(setq draw-/-diagonal
-	  (accept 'boolean :stream stream
-		  :prompt "Draw / diagonal" :default draw-/-diagonal))
+	      (accept 'boolean :stream stream
+		      :prompt "Draw / diagonal" :default draw-/-diagonal))
 	(terpri stream)
 	(setq draw-\\-diagonal
-	  (accept 'boolean :stream stream
-		  :prompt "Draw \\ diagonal" :default draw-\\-diagonal))
+	      (accept 'boolean :stream stream
+		      :prompt "Draw \\ diagonal" :default draw-\\-diagonal))
 	(terpri stream)
 	(setq line-thickness
-	  (accept 'number :stream stream
-		  :prompt "Line thickness" :default line-thickness))
+	      (accept 'number :stream stream
+		      :prompt "Line thickness" :default line-thickness))
 	(terpri stream)
 	(setq line-thickness-units
-	  (accept '(member :normal :point) :stream stream
-		  :prompt "Line style units" :default line-thickness-units))
+	      (accept '(member :normal :point) :stream stream
+		      :prompt "Line style units" :default line-thickness-units))
 	(terpri stream)
 	(setq color-name 
-	  (accept `((completion (:red :green :blue))
-		    :name-key ,#'identity
-		    :printer ,#'display-color)
-		  :view '(radio-box-view 
-			  :toggle-button-options (:indicator-type nil))
-		  :stream stream
-		  :prompt "Color" :default color-name))
+	      (accept `((completion (:foreground :red :green :blue))
+			:name-key ,#'identity
+			:printer ,#'display-color)
+		      :view #+allegro '(radio-box-view 
+					 :toggle-button-options (:indicator-type nil))
+			    #-allegro (stream-default-view stream)
+		      :stream stream
+		      :prompt "Color" :default color-name))
 	(terpri stream)
 	(with-drawing-options (stream :ink (color-name-color color-name))
 	  (with-room-for-graphics (stream)
@@ -2796,12 +2800,12 @@ Luke Luck licks the lakes Luke's duck likes."))
 				  menus-and-dialogs
 				  benchmarks)
 		   :menu (("Graphics" :menu graphics)
+			  ("Redisplay" :menu redisplay)
+			  ("Benchmarks" :menu benchmarks)
 			  ("Output Recording" :menu output-recording)
 			  ("Formatted Output" :menu formatted-output)
-			  ("Redisplay" :menu redisplay)
 			  ("Presentations" :menu presentations)
 			  ("Menus and Dialogs" :menu menus-and-dialogs)
-			  ("Benchmarks" :menu benchmarks)
 			  ("Exit" :command (exit-clim-tests)))))
   (:command-definer nil)
   (:panes 

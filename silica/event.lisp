@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: event.lisp,v 1.26 92/10/28 11:30:45 cer Exp Locker: cer $
+;; $fiHeader: event.lisp,v 1.27 92/11/05 17:15:24 cer Exp $
 
 (in-package :silica)
 
@@ -562,23 +562,18 @@
     (process-event-locally sheet (event-read sheet))))
 
 (defun port-event-wait (port waiter 
-			&key (wait-reason #+Genera si:*whostate-awaiting-user-input*
-					  #-Genera "CLIM Input")
+			     &key (wait-reason #+Genera si:*whostate-awaiting-user-input*
+					       #-Genera "CLIM Input")
 			     timeout)
   (cond (*multiprocessing-p*
 	 (process-wait-with-timeout wait-reason timeout waiter) 
 	 (values))
 	(t 
 	 ;; Single process, so run the event processing loop right here
-	 (let ((finish-time (when timeout (+ (* timeout internal-time-units-per-second)
-					     (get-internal-real-time)))))
-	   (loop
-	     (when (or (and timeout (> (get-internal-real-time) finish-time))
-		       (funcall waiter))
-	       (return-from port-event-wait (values)))
-	     (process-next-event port
-				 :wait-function waiter
-				 :state wait-reason))))))
+	 (process-next-event port
+			     :timeout timeout
+			     :wait-function waiter
+			     :state wait-reason))))
 
 
 ;;; Event resources

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: demo-driver.lisp,v 1.16 92/10/28 11:32:55 cer Exp Locker: cer $
+;; $fiHeader: demo-driver.lisp,v 1.17 92/11/05 17:15:49 cer Exp $
 
 (in-package :clim-demo)
 
@@ -41,9 +41,9 @@
 	     (demo-menu-choose (list)
 	       (with-menu (menu (typecase port
 				  (frame-manager (graft port))
-				  (t (find-graft :port port))))
-		 (setf (window-label menu)
-		       '("Clim Demonstrations" :text-style (:fix :bold :normal)))
+				  (t (find-graft :port port)))
+				:label '("Clim Demonstrations"
+					 :text-style (:serif :bold :normal)))
 		 (menu-choose-from-drawer
 		   menu 'demo-menu-item
 		   #'(lambda (stream type)

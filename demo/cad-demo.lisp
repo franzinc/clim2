@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: cad-demo.lisp,v 1.18 92/10/02 15:20:33 cer Exp $
+;; $fiHeader: cad-demo.lisp,v 1.19 92/10/07 14:43:18 cer Exp $
 
 (in-package :clim-demo)
 
@@ -850,7 +850,7 @@
   (make-drawing *application-frame*)
   (com-refresh))
 
-(define-cad-demo-command (com-exit-CAD-demo :menu "Exit" :keystroke #\X)
+(define-cad-demo-command (com-exit-cad-demo :menu "Exit" :keystroke #\X)
     ()
   (frame-exit *application-frame*))
 

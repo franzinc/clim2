@@ -1,6 +1,6 @@
 ;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadgets.lisp,v 1.36 92/10/02 15:18:21 cer Exp $
+;; $fiHeader: gadgets.lisp,v 1.37 92/10/28 11:30:48 cer Exp $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
@@ -437,17 +437,6 @@
 (defmethod viewportp ((x t)) nil)
 (defmethod viewportp ((x viewport)) t)
 
-(defmethod allocate-space ((viewport viewport) width height)
-  ;; Make sure the child is at least as big as the viewport
-  ;; (VIEWPORT-REGION-CHANGED actually does this also)
-  (let* ((child (sheet-child viewport)))
-    (multiple-value-bind (cwidth cheight)
-	(bounding-rectangle-size child)
-      (when (or (< cwidth width)
-		(< cheight height))
-	(resize-sheet
-	  child (max width cwidth) (max height cheight))))))
-
 (defmethod compose-space ((viewport viewport) &key width height)
   (declare (ignore width height))
   (let ((sr (call-next-method)))
@@ -458,6 +447,17 @@
       (make-space-requirement
 	:width width :min-width 0 :max-width max-width
 	:height height :min-height 0 :max-height max-height))))
+
+(defmethod allocate-space ((viewport viewport) width height)
+  ;; Make sure the child is at least as big as the viewport
+  ;; (VIEWPORT-REGION-CHANGED actually does this also)
+  (let* ((child (sheet-child viewport)))
+    (multiple-value-bind (cwidth cheight)
+	(bounding-rectangle-size child)
+      (when (or (< cwidth width)
+		(< cheight height))
+	(resize-sheet
+	  child (max width cwidth) (max height cheight))))))
 
 (defmethod allocate-space :after ((viewport viewport) width height)
   (let ((vr (viewport-viewport-region viewport)))

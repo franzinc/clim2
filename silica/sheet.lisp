@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sheet.lisp,v 1.29 92/10/02 15:18:33 cer Exp $
+;; $fiHeader: sheet.lisp,v 1.30 92/10/28 11:30:54 cer Exp $
 
 (in-package :silica)
 
@@ -34,7 +34,7 @@
 
 (defmethod sheet-child ((sheet basic-sheet))
   (let ((children (sheet-children sheet)))
-    (unless (and children (null (cdr children)))
+    (when (cdr children)
       (error "The sheet ~S has more than one child" sheet))
     (car children)))
 

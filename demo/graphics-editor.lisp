@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-GRAPHICS-EDITOR; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics-editor.lisp,v 1.13 92/10/28 13:17:33 cer Exp $
+;; $fiHeader: graphics-editor.lisp,v 1.14 92/10/29 16:55:29 cer Exp $
 
 (in-package :clim-graphics-editor)
 
@@ -173,12 +173,12 @@
 		       (+ xoff (- left 3)) (+ yoff (- top 3))
 		       (+ xoff right 3) (+ yoff bottom 3)
 		       :ink (make-flipping-ink 
-			     (if (palette-color-p
-				  (frame-palette (pane-frame stream)))
-				 +red+
-			       +foreground-ink+)
-			     +background-ink+)
-		       :line-style (make-line-style :thickness 2) 
+			      (if (palette-color-p
+				    (frame-palette (pane-frame stream)))
+				  +red+
+				  +foreground-ink+)
+			      +background-ink+)
+		       :line-style (make-line-style :thickness 2)
 		       :filled nil))))
 
 (defmethod move-object :after ((object box) x y)
@@ -425,12 +425,12 @@
 	(last-box (slot-value *application-frame* 'last-box))
 	(style (slot-value *application-frame* 'style))
 	(shape (slot-value *application-frame* 'shape))
-	(flipping-ink #+allegro 
-		      (make-flipping-ink (if (palette-color-p
-					      (frame-palette *application-frame*))
-					     +blue+
-					   +foreground-ink+) 
-					 +background-ink+)
+	(flipping-ink #+allegro (make-flipping-ink
+				  (if (palette-color-p
+					(frame-palette *application-frame*))
+				      +blue+
+				      +foreground-ink+) 
+				  +background-ink+)
 		      #-allegro +flipping-ink+))
     ;;--- Zdrava supplies primitives to input basic objects such as
     ;;--- points, lines, rectangles and polygons, circles and ellipses,

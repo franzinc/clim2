@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clos.lisp,v 1.6 92/05/22 19:27:07 cer Exp $
+;; $fiHeader: clos.lisp,v 1.7 92/07/01 15:45:28 cer Exp $
 
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
@@ -18,22 +18,26 @@
 ;;; hook into that mechanism.
 
 #+PCL
-(defmacro define-constructor (name class lambda-list &rest initialization-arguments)
-  `(pcl::defconstructor ,name ,class ,lambda-list ,@initialization-arguments))
+(defmacro define-constructor (name class lambda-list &body initargs)
+  `(pcl::defconstructor ,name ,class ,lambda-list ,@initargs))
 
 #+(and PCL (not VDPCL))
 (pushnew 'compile pcl::*defclass-times*)
 
 #+Allegro-v4.0-constructors
-(defmacro define-constructor (name class lambda-list &rest initialization-arguments)
-  `(clos::defconstructor ,name ,class ,lambda-list ,@initialization-arguments))
+(defmacro define-constructor (name class lambda-list &body initargs)
+  `(clos::defconstructor ,name ,class ,lambda-list ,@initargs))
 
 #-(or PCL Allegro-v4.0-constructors)
-(defmacro define-constructor (name class lambda-list &rest initialization-arguments)
-  `(progn
-     (eval-when (compile load eval) (proclaim '(inline ,name)))
-     (defun ,name ,lambda-list
-       (make-instance ',class ,@initialization-arguments))))
+;; NB: any &REST argument is declared to have dynamic extent!
+(defmacro define-constructor (name class lambda-list &body initargs)
+  (let ((rest-arg (member '&rest lambda-list)))
+    `(progn
+       (eval-when (compile load eval) (proclaim '(inline ,name)))
+       (defun ,name ,lambda-list
+	 ,@(when rest-arg
+	     `((declare (dynamic-extent ,(second rest-arg)))))
+	 (make-instance ',class ,@initargs)))))
 
 #+(and Genera PCL)
 (scl:defmethod (:fasd-form #-VDPCL pcl::std-instance #+VDPCL pcl::iwmc-class) ()
@@ -87,9 +91,9 @@
 	  (name class args &body tuples)
   `(define-group ,name define-constructor-using-prototype-instance
      (define-constructor ,name ,class ,args
-			 ,@(mapcan #'(lambda (tuple)
-				       (list (second tuple) (third tuple)))
-				   tuples))))
+       ,@(mapcan #'(lambda (tuple)
+		     (list (second tuple) (third tuple)))
+		 tuples))))
 
 
 

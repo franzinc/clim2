@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: dev-load-1.lisp,v 1.17 92/10/29 15:02:55 cer Exp Locker: cer $
+;; $fiHeader: dev-load-1.lisp,v 1.18 92/11/05 17:15:57 cer Exp $
 
 ;;;; This should not matter
 ;;;; (setq *ignore-package-name-case* t)
@@ -52,7 +52,6 @@
 	(load "clim-debug.fasl")
 	(load "clim-debugol.fasl")))
 
-
      ;;-- What would be good is to mark the files in the system as having
      ;;-- been loaded
 
@@ -63,6 +62,7 @@
 
      (compile-file-if-needed "test/test-suite")
 
+
      (load "test/test-suite")
 
      (load "demo/sysdcl")
@@ -72,8 +72,8 @@
      (when (probe-file "/usr/tech/cer/stuff/climtoys/sysdcl.lisp")
        (load "/usr/tech/cer/stuff/climtoys/sysdcl.lisp")
        (tenuring (clim-defsys::load-system 'clim-toys)))
-  
      (ignore-errors (require :composer))
+
    
      (ignore-errors
       (load (case sys

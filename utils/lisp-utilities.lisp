@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: lisp-utilities.lisp,v 1.20 92/10/02 15:18:50 cer Exp $
+;; $fiHeader: lisp-utilities.lisp,v 1.21 92/10/28 11:31:05 cer Exp $
 
 (in-package :clim-utils)
 
@@ -1223,10 +1223,17 @@
 (defun realp (x)
   (typep x 'real))
 
+#+(or Allegro Cloe-Runtime)
+(deftype eql (x) `(member ,x))
+
 (defconstant *end-of-file-marker* :eof)
 (deftype end-of-file-marker () 
-  #+Allegro '(member :eof)
-  #-Allegro '(eql :eof))
+  '(eql :eof))
+
+#+Cloe-Runtime
+(defmacro load-time-value (form &optional read-only-p)
+  (declare (ignore read-only-p))
+  form)
 
 
 ;;; Use a lambda-list to extract arguments from a list and bind variables.

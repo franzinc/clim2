@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes; Patch-File: Yes -*-
 
-;; $fiHeader: clim1-compatibility.lisp,v 1.3 92/09/24 09:40:43 cer Exp $
+;; $fiHeader: clim1-compatibility.lisp,v 1.4 92/10/02 15:21:25 cer Exp $
 
 (in-package :clim-internals)
 
@@ -904,14 +904,14 @@
     (cons   (setq view (apply #'make-instance view))))
   (setq view (decode-indirect-view type view (frame-manager stream)))
 
-  ;; Call methods to do the work
+  ;; Call STREAM-ACCEPT to do the work.  It would be nice if we could
+  ;; call PROMPT-FOR-ACCEPT to generate the real query-id here, but we
+  ;; can't because we want to be able to decide exactly how it is called
+  ;; on a case-by-case basis.  For example, within ACCEPTING-VALUES...
   (with-keywords-removed (accept-args accept-args '(:stream :view))
-    (let ((query-identifier
-	    (apply #'prompt-for-accept
-		   (or *original-stream* stream) type view accept-args)))
-      (apply #'stream-accept (or *original-stream* stream) type
-			     :view view :query-identifier query-identifier
-			     accept-args))))
+    (apply #'stream-accept (encapsulated-stream stream) type
+			   :view view :query-identifier query-identifier
+			   accept-args)))
 
 (define-compiler-macro accept 
 		       (&whole form
@@ -1571,20 +1571,21 @@
 
 
 (defgeneric menu-choose (items &rest keys
-			 &key associated-window default-item default-style
+			 &key associated-window text-style default-item
 			      label printer presentation-type
 			      cache unique-id id-test cache-value cache-test
 			      max-width max-height n-rows n-columns
 			      x-spacing y-spacing
 			      cell-align-x cell-align-y
 			      pointer-documentation
+			      #+CLIM-1-compatibility default-style
 			      #+CLIM-1-compatibility inter-row-spacing
 			      #+CLIM-1-compatibility inter-column-spacing))
 
 ;; Are these reasonable defaults for UNIQUE-ID, CACHE-VALUE, ID-TEST, and CACHE-TEST?
 (defmethod menu-choose ((items t) &rest keys
 			&key (associated-window (frame-top-level-sheet *application-frame*))
-			     default-item default-style
+			     text-style default-item
 			     label printer presentation-type
 			     (cache nil) (unique-id items) (id-test #'equal)
 			     (cache-value items) (cache-test #'equal)
@@ -1592,15 +1593,17 @@
 			     x-spacing y-spacing 
 			     (cell-align-x ':left) (cell-align-y ':top)
 			     pointer-documentation
+			     #+CLIM-1-compatibility default-style
 			     #+CLIM-1-compatibility inter-row-spacing
 			     #+CLIM-1-compatibility inter-column-spacing)
   (declare (values value chosen-item gesture))
   (declare (ignore associated-window
-		   default-item default-style
+		   text-style default-item
 		   label printer presentation-type
 		   cache unique-id id-test cache-value cache-test
 		   max-width max-height n-rows n-columns
 		   x-spacing y-spacing cell-align-x cell-align-y
+		   #+CLIM-1-compatibility default-style
 		   #+CLIM-1-compatibility inter-row-spacing
 		   #+CLIM-1-compatibility inter-column-spacing
 		   pointer-documentation))
@@ -1639,7 +1642,7 @@
 	   ((framem standard-frame-manager) items &rest keys
 	    &key (associated-window
 		   (frame-top-level-sheet *application-frame*))
-		 default-item default-style
+		 text-style default-item
 		 label printer presentation-type
 		 (cache nil) (unique-id items) (id-test #'equal)
 		 (cache-value items) (cache-test #'equal)
@@ -1647,10 +1650,14 @@
 		 x-spacing y-spacing 
 		 (cell-align-x ':left) (cell-align-y ':top)
 		 pointer-documentation
+		 #+CLIM-1-compatibility default-style
 		 #+CLIM-1-compatibility inter-row-spacing
 		 #+CLIM-1-compatibility inter-column-spacing)
   (declare (values value chosen-item gesture))
   (declare (ignore keys))
+  #+CLIM-1-compatibility
+  (when default-style
+    (setq text-style default-style))
   #+CLIM-1-compatibility
   (when (or inter-row-spacing inter-column-spacing)
     (setq x-spacing inter-column-spacing
@@ -1664,10 +1671,9 @@
 	  ;; Lucid production compiler tries to use an undefined internal
 	  ;; variable if this LET isn't done.
 	  #+Lucid (items items))
-      (with-menu (menu associated-window)
-	(setf (window-label menu) label)
+      (with-menu (menu associated-window :label label)
 	(reset-frame (pane-frame menu) :title label)
-	(with-text-style (menu default-style)
+	(with-text-style (menu text-style)
 	  (with-end-of-line-action (menu :allow)
 	    (loop
 	      (multiple-value-bind (item gesture)
@@ -1700,7 +1706,7 @@
 (defun hierarchical-menu-choose (items
 				 &key (associated-window
 					(frame-top-level-sheet *application-frame*))
-				      default-item default-style
+				      text-style default-item
 				      label printer presentation-type
 				      x-position y-position
 				      (cache nil)
@@ -1709,9 +1715,13 @@
 				      max-width max-height n-rows n-columns
 				      x-spacing y-spacing 
 				      (cell-align-x ':left) (cell-align-y ':top)
+				      #+CLIM-1-compatibility default-style
 				      #+CLIM-1-compatibility inter-row-spacing
 				      #+CLIM-1-compatibility inter-column-spacing)
   (declare (values value chosen-item gesture))
+  #+CLIM-1-compatibility
+  (when default-style
+    (setq text-style default-style))
   #+CLIM-1-compatibility
   (when (or inter-row-spacing inter-column-spacing)
     (setq x-spacing inter-column-spacing
@@ -1722,9 +1732,8 @@
     (let ((item-printer (cond (presentation-type #'present-item)
 			      (printer printer)
 			      (t #'print-menu-item))))
-      (with-menu (menu associated-window)
-	(setf (window-label menu) label)
-	(with-text-style (menu default-style)
+      (with-menu (menu associated-window :label label)
+	(with-text-style (menu text-style)
 	  (multiple-value-bind (item gesture)
 	      (flet ((menu-choose-body (stream presentation-type)
 		       (draw-standard-menu stream presentation-type items default-item
@@ -1749,7 +1758,7 @@
 		     (hierarchical-menu-choose
 		       (menu-item-items item)
 		       :associated-window associated-window
-		       :default-style default-style
+		       :text-style text-style
 		       :x-position mr :y-position mt
 		       :cache cache
 		       :unique-id unique-id :id-test id-test
@@ -1865,11 +1874,12 @@
 
 (defmacro define-static-menu (name root-window items
 			      &rest keys
-			      &key default-item default-style
+			      &key text-style default-item 
 				   printer presentation-type
 				   max-width max-height n-rows n-columns
 				   x-spacing y-spacing 
 				   (cell-align-x ':left) (cell-align-y ':top)
+				   #+CLIM-1-compatibility default-style
 				   #+CLIM-1-compatibility inter-row-spacing
 				   #+CLIM-1-compatibility inter-column-spacing)
   (declare (ignore max-width max-height n-rows n-columns
@@ -1877,10 +1887,11 @@
 		   #+CLIM-1-compatibility inter-row-spacing
 		   #+CLIM-1-compatibility inter-column-spacing))
   (with-keywords-removed (drawer-keys keys
-			  '(:default-item :default-style :printer :presentation-type))
+			  '(:text-style :default-item :printer :presentation-type
+			    #+CLIM-1-compatibility :default-style))
     `(defvar ,name (define-static-menu-1 ',name ,root-window ',items
 					 :default-item ',default-item
-					 :default-style ',default-style
+					 :text-style (or ',default-style ',text-style)
 					 :presentation-type ',presentation-type
 					 :printer ',printer
 					 :drawer-args ,(copy-list drawer-keys)))))

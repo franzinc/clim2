@@ -21,7 +21,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: plot.lisp,v 1.14 92/10/29 15:02:50 cer Exp Locker: cer $
+;; $fiHeader: plot.lisp,v 1.15 92/10/29 16:55:34 cer Exp $
 
 (in-package :clim-demo)
 
@@ -195,33 +195,32 @@
   (updating-output (stream :unique-id 'captions
 			   :cache-value (cons type (copy-list y-labels))
 			   :cache-test #'equalp)
-      (let ((n-lines (length y-labels))
-	    (ascent (text-style-ascent (medium-text-style stream) stream))
-	    (descent (text-style-descent (medium-text-style stream) stream))
-	    (i 0))
-	(surrounding-output-with-border (stream)
-	    (formatting-table (stream)
-		(dolist (label y-labels)
-		  (updating-output (stream :unique-id  label :id-test #'equalp)
-		      (formatting-row (stream)
-			  (updating-output (stream :unique-id (cons :ink label) :id-test #'equalp)
-			      (formatting-cell (stream)
-				  (if (eq type :plot)
-				      (progn
-					(draw-rectangle* stream 0 0 20 (+ ascent descent)
-							 :ink +background-ink+)
-					(draw-line* stream 0 (/ ascent 2) 20 (/ ascent 2)
-						    :ink (get-contrasting-inks stream n-lines i)
-						    :line-dashes
-						    (get-contrasting-dash-patterns stream n-lines i)))
-				    (draw-rectangle* stream 0 0 20 (+ ascent descent)
-						     :ink
-						     (get-contrasting-inks stream n-lines i)))))
-			(updating-output (stream :unique-id (cons :text label) :id-test #'equalp)
-			    (formatting-cell (stream)
-				(write-string label stream)))))
-		  (incf i)))))))
-	    
+    (let ((n-lines (length y-labels))
+	  (ascent (text-style-ascent (medium-text-style stream) stream))
+	  (descent (text-style-descent (medium-text-style stream) stream))
+	  (i 0))
+      (surrounding-output-with-border (stream)
+	(formatting-table (stream)
+	  (dolist (label y-labels)
+	    (updating-output (stream :unique-id  label :id-test #'equalp)
+	      (formatting-row (stream)
+		(updating-output (stream :unique-id (cons :ink label) :id-test #'equalp)
+		  (formatting-cell (stream)
+		    (if (eq type :plot)
+			(progn
+			  (draw-rectangle* stream 0 0 20 (+ ascent descent)
+					   :ink +background-ink+)
+			  (draw-line* stream 0 (/ ascent 2) 20 (/ ascent 2)
+				      :ink (get-contrasting-inks stream n-lines i)
+				      :line-dashes (get-contrasting-dash-patterns
+						     stream n-lines i))) 
+			(draw-rectangle* stream 0 0 20 (+ ascent descent)
+					 :ink
+					 (get-contrasting-inks stream n-lines i)))))
+		(updating-output (stream :unique-id (cons :text label) :id-test #'equalp)
+		  (formatting-cell (stream)
+		    (write-string label stream)))))
+	    (incf i)))))))
 
 (defun draw-axis (stream type width height
 		  x-min y-min x-max y-max x-labels y-labels 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: GENERA-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: genera-medium.lisp,v 1.12 92/09/24 09:39:50 cer Exp $
+;; $fiHeader: genera-medium.lisp,v 1.13 92/10/28 11:32:39 cer Exp $
 
 (in-package :genera-clim)
 
@@ -974,18 +974,27 @@
 	  (when towards-x
 	    (incf towards-x x-adjust)
 	    (incf towards-y y-adjust)))
-	(invoke-with-appropriate-drawing-state medium ink nil
-	  #'(lambda (window alu)
-	      (declare (sys:downward-function))
-	      (tv:prepare-sheet (window)
-		(let ((x (+ x (tv:sheet-left-margin-size window)))
-		      (y (+ y (tv:sheet-top-margin-size window))))
-		  (tv:sheet-draw-glyph (char-code character) font x y alu window)))
-	      (scl:send window :draw-glyph (char-code character) font x y alu))
-	  #'(lambda (window)
-	      (declare (sys:downward-function))
-	      (funcall (flavor:generic graphics:draw-glyph) window
-		       (char-code character) font x y))))))) 
+	(macrolet ((with-diacritic ((character font) &body body)
+		     ;; I am dumbfounded.  It seems that we need to bind the
+		     ;; fill pointer of the font structure beyond its usual
+		     ;; length if we want to output a diacritic character.
+		     `(if (diacritic-char-p ,character)
+			  (letf-globally (((tv:font-fill-pointer ,font) #o320))
+			    ,@body)
+			  ,@body)))
+	  (invoke-with-appropriate-drawing-state medium ink nil
+	    #'(lambda (window alu)
+		(declare (sys:downward-function))
+		(tv:prepare-sheet (window)
+		  (let ((x (+ x (tv:sheet-left-margin-size window)))
+			(y (+ y (tv:sheet-top-margin-size window))))
+		    (with-diacritic (character font)
+		      (tv:sheet-draw-glyph (char-code character) font x y alu window)))))
+	    #'(lambda (window)
+		(declare (sys:downward-function))
+		(with-diacritic (character font)
+		  (funcall (flavor:generic graphics:draw-glyph) window
+			   (char-code character) font x y)))))))))
 
 (defmethod medium-draw-text* ((medium genera-medium)
 			      string-or-char x y start end

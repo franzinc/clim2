@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-frames.lisp,v 1.14 92/09/30 18:04:26 cer Exp $
+;; $fiHeader: ol-frames.lisp,v 1.15 92/10/28 11:33:14 cer Exp $
 
 
 (in-package :xm-silica)
@@ -57,9 +57,9 @@
 	    printer 
 	    presentation-type 
 	    associated-window
-	    default-style
+	    text-style
 	    label)
-  (declare (ignore default-style))
+  (declare (ignore text-style))
   (let* (value-returned 
 	 return-value
 	 (simplep (and (null printer)

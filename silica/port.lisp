@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: port.lisp,v 1.22 92/10/28 11:30:53 cer Exp $
+;; $fiHeader: port.lisp,v 1.23 92/10/29 16:55:00 cer Exp $
 
 (in-package :silica)
 
@@ -31,9 +31,6 @@
 		      (when (port-match port server-path) 
 			(return-from find-port port))))
   (make-port :server-path server-path))
-
-(defmethod find-named-color (name (port port))
-  (find-named-color name (port-default-palette port)))
 
 #+Genera
 (scl:add-initialization "Reset ports"
@@ -74,6 +71,9 @@
   (setq *ports* (nconc *ports* (list port)))
   (restart-port port))
 
+
+(defmethod find-named-color (name (port basic-port) &key (errorp t))
+  (find-named-color name (port-default-palette port) :errorp errorp))
 
 (defmethod port-pointer ((port basic-port))
   (with-slots (pointer grafts) port
@@ -248,3 +248,4 @@
 (defgeneric graft-height (graft))
 (defgeneric graft-pixels-per-millimeter (graft))
 (defgeneric graft-pixels-per-inch (graft))
+

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: region-arithmetic.lisp,v 1.7 92/05/07 13:11:43 cer Exp $
+;; $fiHeader: region-arithmetic.lisp,v 1.8 92/07/20 15:59:44 cer Exp $
 
 (in-package :clim-utils)
 
@@ -12,7 +12,7 @@
     ((regions :type list :initarg :regions)))
 
 (define-constructor make-region-union-1 standard-region-union (regions)
-		    :regions regions)
+  :regions regions)
 
 (defun make-region-union (&rest regions)
   (declare (dynamic-extent regions))
@@ -72,7 +72,7 @@
     ((regions :type list :initarg :regions)))
 
 (define-constructor make-region-intersection-1 standard-region-intersection (regions)
-		    :regions regions)
+  :regions regions)
 
 (defun make-region-intersection (&rest regions)
   (declare (dynamic-extent regions))
@@ -128,7 +128,7 @@
      (regions :type list)))
 
 (define-constructor make-region-difference standard-region-difference
-  (region1 region2)
+		    (region1 region2)
   :region1 region1 :region2 region2)
 
 (defmethod region-set-function ((region standard-region-difference)) 'set-difference)
@@ -341,8 +341,8 @@
 
 (define-constructor make-rectangle-set-1 standard-rectangle-set
 		    (rectangles left top right bottom)
-		    :rectangles rectangles
-		    :left left :top top :right right :bottom bottom)
+  :rectangles rectangles
+  :left left :top top :right right :bottom bottom)
 
 (defun make-rectangle-set (&rest rectangles)
   (declare (dynamic-extent rectangles))

@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-frames.lisp,v 1.35 92/10/28 11:33:17 cer Exp Locker: cer $
+;; $fiHeader: xm-frames.lisp,v 1.36 92/11/05 17:15:59 cer Exp $
 
 (in-package :xm-silica)
 
@@ -287,9 +287,9 @@
 	    printer 
 	    presentation-type 
 	    associated-window
-	    default-style
+	    text-style
 	    label)
-  (declare (ignore default-style))
+  (declare (ignore text-style))
   (let* (value-returned 
 	 return-value
 	 (simplep (and (null printer)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: protocols.lisp,v 1.3 92/02/24 13:05:50 cer Exp $
+;; $fiHeader: protocols.lisp,v 1.4 92/07/01 15:45:43 cer Exp $
 
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
@@ -195,6 +195,8 @@
 				 (setf (,writer ,player-var) (values ,@values-vars)))))))))))
 	     (role-slots (find-role role-name)))))))
 
+;; If you change this to maintain a more complex mapping than a simple
+;; binding of *ORIGINAL-STREAM*, change ENCAPSULATED-STREAM too.
 (defmacro generate-trampolines (protocol-name role-name role-player delegate-form
 				&optional (outer-self '*outer-self*))
   `(progn

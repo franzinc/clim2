@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: POSTSCRIPT-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: postscript-port.lisp,v 1.8 92/10/02 15:21:17 cer Exp $
+;; $fiHeader: postscript-port.lisp,v 1.9 92/10/28 11:33:29 cer Exp $
 
 (in-package :postscript-clim)
 
@@ -255,7 +255,8 @@
       (current-color :initform nil)		;for decoding stippled inks
       (features-sent :initform nil)
       (curfont :initform nil)			;a psfck structure
-      (ch1buf :initform (make-array 1 :element-type 'character))	;used for char ops.
+      (ch1buf :initform (make-array 1 :element-type #+ANSI-90 'character
+						    #-ANSI-90 'string-char))
       (header-comments :initform nil :initarg :header-comments)
       (orientation :initform :portrait :initarg :orientation)))
 
@@ -271,12 +272,6 @@
 (defmethod medium-clear-output ((medium postscript-medium))
   (clear-output (slot-value medium 'printer-stream)))
 
-;;; Methods that might be needed:
-;;; what about other "window" protocols?
-;;; host-window-margins
-;;; window-margins (being flushed, should return (values 0 0 0 0))
-;;; window-beep
-;;; window-clear (do a fresh-page?)
 
 ;;; Support routines
 
@@ -376,7 +371,8 @@
 		  (negative-p nil))
 	      (when (minusp n)
 		(setq negative-p t))
-	      (with-stack-array (string from :element-type 'character)
+	      (with-stack-array (string from :element-type #+ANSI-90 'character 
+							   #-ANSI-90 'string-char)
 		(macrolet ((add-char (char)
 			     `(setf (aref string (decf from)) ,char)))
 		  (when (/= frac 0)
@@ -641,7 +637,7 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
   (make-instance 'postscript-palette
     :port port 
     :color-p t
-    :mutable-p nil))
+    :dynamic-p nil))
 
 (defmethod standardize-text-style ((port postscript-port) style &optional character-set)
   (declare (ignore character-set))

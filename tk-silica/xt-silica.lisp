@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.54 92/10/29 16:55:47 cer Exp Locker: cer $
+;; $fiHeader: xt-silica.lisp,v 1.55 92/11/05 17:16:01 cer Exp $
 
 (in-package :xm-silica)
 
@@ -199,7 +199,7 @@
 		 (make-instance 'tk::font 
 				:display display
 				:name *xt-fallback-font*)))
-	    ;;; Perhaps we should just grab the first font we can find.
+	      ;;; Perhaps we should just grab the first font we can find.
 	      (t
 	       (error "Unable to determine default font"))))))
   (setup-opacities port display))

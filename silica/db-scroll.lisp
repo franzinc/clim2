@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-scroll.lisp,v 1.32 92/09/24 09:37:33 cer Exp $
+;; $fiHeader: db-scroll.lisp,v 1.33 92/10/02 15:18:15 cer Exp $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright(c) 1991, 1992 International Lisp Associates.
@@ -110,14 +110,14 @@
 	  scroller)
 	(progn
 	  (check-type scroll-bars
-		      (member :both :dynamic :vertical :horizontal))
+		      (member t :both :dynamic :vertical :horizontal))
 	  (with-slots (vertical-scroll-bar horizontal-scroll-bar
 		       (c contents) viewport foreground background) pane
 	    (with-look-and-feel-realization (frame-manager frame)
 	      (let ((verticalp
-		      (member scroll-bars '(:both :dynamic :vertical)))
+		      (member scroll-bars '(t :both :dynamic :vertical)))
 		    (horizontalp
-		      (member scroll-bars '(:both :dynamic :horizontal))))
+		      (member scroll-bars '(t :both :dynamic :horizontal))))
 		(setf vertical-scroll-bar 
 		      (and verticalp
 			   (make-pane 'scroll-bar 

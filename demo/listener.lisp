@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: listener.lisp,v 1.21 92/10/07 14:43:36 cer Exp $
+;; $fiHeader: listener.lisp,v 1.22 92/10/28 11:33:00 cer Exp $
 
 (in-package :clim-demo)
 
@@ -220,13 +220,13 @@
     (with-output-recording-options (*lisp-listener-io* :draw t :record t)
       (lisp-listener-top-level *application-frame*))))
 
-(define-presentation-type restart-name ())
-
 (defvar *enter-debugger* '#:enter-debugger)
 (defun enter-debugger (stream)
   #+Genera
   (clim-internals::with-debug-io-selected (stream)
     (cl:break "Debugger break for ~A" (frame-pretty-name (pane-frame stream)))))
+
+(define-presentation-type restart-name ())
 
 (define-presentation-method presentation-typep (object (type restart-name))
   (or (eql object *enter-debugger*)
@@ -239,7 +239,7 @@
       (prin1 (restart-name object) stream)))
 
 (define-lisp-listener-command (com-invoke-restart :name t)
-    ((restart 'restart :gesture :select))
+    ((restart 'restart-name :gesture :select))
   (if (eql restart *enter-debugger*)
       (enter-debugger *standard-input*)
       (invoke-restart restart)))
@@ -266,7 +266,7 @@
 	(fresh-line stream)
 	(formatting-table (stream :x-spacing '(2 :character))
 	  (dolist (restart restarts)
-	    (with-output-as-presentation (stream restart 'restart
+	    (with-output-as-presentation (stream restart 'restart-name
 					  :single-box t :allow-sensitive-inferiors nil)
 	      (formatting-row (stream)
 		(formatting-cell (stream) stream)
@@ -276,7 +276,7 @@
 		(formatting-cell (stream)
 		  (format stream "~A" restart)))))
 	  #+Genera
-	  (with-output-as-presentation (stream *enter-debugger* 'restart
+	  (with-output-as-presentation (stream *enter-debugger* 'restart-name
 					:single-box t :allow-sensitive-inferiors nil)
 	    (formatting-row (stream)
 	      (formatting-cell (stream) stream)

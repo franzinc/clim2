@@ -3,7 +3,7 @@
 ;;; Simple extensible browser
 ;;; Scott McKay
 
-;; $fiHeader: browser.lisp,v 1.14 92/10/07 14:43:16 cer Exp Locker: cer $
+;; $fiHeader: browser.lisp,v 1.15 92/10/28 11:32:51 cer Exp $
 
 (in-package :clim-browser)
 
@@ -713,20 +713,20 @@
 ;;; The browser itself
 
 (define-application-frame browser ()
-			  ((graph-type :initform :graphical)
-			   (browser-type :initform nil)
-			   (browser-subtype :initform nil)
-			   (browser-ptype :initform nil)
-			   (browser-options :initform nil)
-			   (node-maker :initform #'false)
-			   (root-node-maker :initform #'false)
-			   (grapher-args :initform nil)
-			   (tree-depth :initform 1)
-			   (merge-duplicate-nodes :initform t)
-			   (root-nodes :initform nil)
-			   (all-nodes :initform nil)
-			   (auto-snapshot :initform t)
-			   (snapshots :initform nil))
+    ((graph-type :initform :graphical)
+     (browser-type :initform nil)
+     (browser-subtype :initform nil)
+     (browser-ptype :initform nil)
+     (browser-options :initform nil)
+     (node-maker :initform #'false)
+     (root-node-maker :initform #'false)
+     (grapher-args :initform nil)
+     (tree-depth :initform 1)
+     (merge-duplicate-nodes :initform t)
+     (root-nodes :initform nil)
+     (all-nodes :initform nil)
+     (auto-snapshot :initform t)
+     (snapshots :initform nil))
   (:command-definer t)
   (:command-table (browser :inherit-from (accept-values-pane)))
   (:panes
@@ -754,7 +754,6 @@
 	 (horizontally ()
 	   (1/2 interactor) 
 	   (:fill control-panel)))))))
-
 
   
 #+genera (define-genera-application browser :select-key #\Triangle)
@@ -1442,4 +1441,3 @@
     (run-frame-top-level frame)))
 
 (define-demo "Graphical Browser" do-browser)
-

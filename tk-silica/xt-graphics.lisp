@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.48 92/10/29 16:55:44 cer Exp $
+;; $fiHeader: xt-graphics.lisp,v 1.49 92/11/06 10:01:19 colin Exp $
 
 (in-package :tk-silica)
 
@@ -94,12 +94,10 @@
   (make-xt-palette port (tk::create-colormap (port-display port))))
 
 (defmethod medium-palette ((medium xt-medium))
-  (let* ((sheet (medium-sheet medium))
-	 (frame (pane-frame sheet))
-	 (framem (and frame (frame-manager frame))))
-    (if framem
-	(frame-manager-palette framem)
-      (port-default-palette (port sheet)))))
+  (let ((frame (pane-frame (medium-sheet medium))))
+    (if frame
+	(frame-palette frame)
+	(port-default-palette (port sheet)))))
 
 #+ignore
 (defmethod (setf frame-manager-palette) :after 
@@ -123,7 +121,7 @@
 			     :green (truncate (* x green))
 			     :blue (truncate (* x blue)))))))))
 
-(defmethod find-named-color (name (palette xt-palette))
+(defmethod find-named-color (name (palette xt-palette) &key (errorp t))
   (let ((named-color-cache (palette-named-color-cache palette)))
     ;;-- What is the correct thing to do?
     ;;-- CLIM has names containing dashes instead of spaces
@@ -183,24 +181,24 @@
 (defmethod allocate-color ((color layered-color) (palette xt-palette))
   (allocate-color (layered-color-set color) palette))
 
-(defmethod free-color ((color color) (palette xt-palette))
+(defmethod deallocate-color ((color color) (palette xt-palette))
   (let* ((color-cache (palette-color-cache palette))
 	 (pixel (gethash color color-cache)))
     (when pixel
       (tk::free-color-cells (palette-colormap palette) pixel 0)
       (remhash color color-cache))))
 
-(defmethod free-color ((color dynamic-color) (palette xt-palette))
+(defmethod deallocate-color ((color dynamic-color) (palette xt-palette))
   (let* ((dynamic-color-cache (palette-dynamic-color-cache palette))
 	 (pixel (gethash color dynamic-color-cache)))
     (when pixel
       (tk::free-color-cells (palette-colormap palette) pixel 0)
       (remhash color dynamic-color-cache))))
 
-(defmethod free-color ((color layered-color) (palette xt-palette))
-  (free-color (layered-color-set color) palette))
+(defmethod deallocate-color ((color layered-color) (palette xt-palette))
+  (deallocate-color (layered-color-set color) palette))
 
-(defmethod free-color ((set layered-color-set) (palette xt-palette))
+(defmethod deallocate-color ((set layered-color-set) (palette xt-palette))
   (let* ((layered-color-cache (palette-layered-color-cache palette))
 	 (pixel-planes (gethash set layered-color-cache)))
     (when pixel-planes
@@ -234,7 +232,6 @@
 ;;   1. medium's sheet's device region changes
 ;;   2. medium's clipping region changes
 ;;   3. medium's sheet's device transformation changes
-
 (defmethod medium-clip-mask ((medium xt-medium))
   (with-slots (sheet clip-mask) medium
     (or clip-mask
@@ -607,10 +604,7 @@ and on color servers, unless using white or black")
 
 (defmethod decode-ink ((ink pattern) medium)
   (xt-decode-pattern ink medium))
-
     
-(defmethod decode-color ((medium xt-medium) (design design))
-  (error "Drawing with design: ~A not yet implemented" design))
 
 (defmethod decode-color ((design design) (medium xt-medium))
   (decode-color-in-palette design (medium-palette medium)))
@@ -667,7 +661,7 @@ and on color servers, unless using white or black")
      (or (gethash color layered-color-cache)
 	 (setf (gethash color layered-color-cache)
 	   (let* ((set (layered-color-set color))
-		  (pixel-planes (gethash set layered-color-cache))) 
+		  (pixel-planes (gethash set layered-color-cache)))
 	     (unless pixel-planes
 	       (setq pixel-planes (decode-layered-color-set set palette)))
 	     (multiple-value-list 
@@ -717,7 +711,7 @@ and on color servers, unless using white or black")
 	      (incf count))
 	    (push plane-masks planes)))
 	(let ((pixel-planes (cons pixel planes)))
-	  (map-over-layered-colors 
+	  (map-over-layered-colors  
 	   #'(lambda (dimensions)
 	       (let ((dynamic-color (apply #'aref dynamic-array dimensions))
 		     (pixel (decode-layered-color dimensions
@@ -733,6 +727,7 @@ and on color servers, unless using white or black")
     (decode-color (if (palette-color-p palette)
 		      (make-color-for-contrasting-ink ink)
 		    (make-gray-color-for-contrasting-ink ink)) medium)))
+
 
 (defvar *default-dashes* '(4 4))
 

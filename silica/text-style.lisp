@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: text-style.lisp,v 1.13 92/09/24 09:37:55 cer Exp Locker: cer $
+;; $fiHeader: text-style.lisp,v 1.14 92/10/02 15:18:36 cer Exp $
 
 (in-package :silica)
 
@@ -165,7 +165,7 @@
 	      (member size *valid-text-style-sizes*)
 	      (eq size :smaller)
 	      (eq size :larger))
-    (error "The size ~S is not valid." size))
+    (error "The size ~S is not valid" size))
   ;; This needs to be fleshed out with error handlers, etc.
   (values family face size nil original-face))
 
@@ -314,7 +314,7 @@
 (defun add-text-face-class (name class)
   (let ((alist (assoc class *face->face-code-cache*)))
     (when (null alist)
-      (error "Can't define face ~S in unknown face class ~S." name class))
+      (error "Can't define face ~S in unknown face class ~S" name class))
     (unless (member name (cdr alist))
       (nconc alist (list name)))))
 

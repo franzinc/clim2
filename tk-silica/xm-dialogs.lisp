@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader$
+;; $fiHeader: xm-dialogs.lisp,v 1.1 92/09/08 10:40:50 cer Exp $
 
 
 (in-package :clim-internals)
@@ -126,10 +126,7 @@
 ;  ;; This requires formatting-table and friends to return their bodies' values properly.
 ;  (with-slots (stream continuation resynchronize-every-pass check-overlapping
 ;	       selected-item initially-select-query-identifier
-;	       own-window own-window-x-position own-window-y-position
-;	       own-window-width own-window-height
-;	       own-window-right-margin own-window-bottom-margin
-;	       exit-button-stream) frame
+;	       own-window own-window-properties exit-button-stream) frame
 ;
 ;    (unless own-window (return-from accept-values-top-level (call-next-method)))
 ;

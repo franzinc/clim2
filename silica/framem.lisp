@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: framem.lisp,v 1.21 92/10/28 11:30:47 cer Exp Locker: cer $
+;; $fiHeader: framem.lisp,v 1.22 92/10/28 13:17:08 cer Exp $
 
 (in-package :silica)
 
@@ -21,7 +21,11 @@
     (unless palette
       (setf palette (port-default-palette port)))))
 
-;;--- This is most likely wrong
+(defmethod find-named-color (name (framem standard-frame-manager) &key (errorp t))
+  (find-named-color name (frame-manager-palette framem) :errorp errorp))
+
+;;--- This is most likely wrong, since it forces a 1-to-1 mapping
+;;--- between ports and grafts
 (defmethod graft ((framem standard-frame-manager))
   (car (port-grafts (port framem))))
 
@@ -187,9 +191,9 @@
 			 (label-pane generic-label-pane)
 			 (text-field text-field-pane)
 			 (text-editor text-editor-pane)
+			 (list-pane generic-list-pane)
+			 (option-pane generic-option-pane)
 			 ;;--- Need to do these
-			 (list-pane)
-			 (option-pane)
 			 (horizontal-divider-pane)
 			 (vertical-divider-pane)
 			 ))))

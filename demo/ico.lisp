@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: ico.lisp,v 1.12 92/10/28 13:17:35 cer Exp $
+;; $fiHeader: ico.lisp,v 1.13 92/10/29 16:55:32 cer Exp $
 
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
@@ -72,52 +72,53 @@
 				     :prompt "Line style")))
       (when (palette-dynamic-p (frame-palette frame))
 	(formatting-cell (pane)
-	    (multiple-value-bind (buffering ptype changed)
-		(accept '(member :single :double :triple)
-			:default (svref #(:single :double :triple) (1- ico-buffers))
-			:stream pane
-			:prompt "Buffering")
-	      (declare (ignore ptype))
-	      (when changed
-		(with-slots (ico-color-set2 ico-color-set3
-					    inks0 inks1 inks2 inks3) frame    
-		  (case buffering
-		    (:single 
-		     (setf ico-buffers 1
-			   inks0 (vector *background-color*)
-			   inks1 (vector *line-color*)
-			   inks2 (vector *face1-color*)
-			   inks3 (vector *face2-color*)))
-		    (:double
-		     (let ((g (or ico-color-set2
-				  (setf ico-color-set2 
-				    (make-layered-color-set 4 4)))))
-		       (setf ico-buffers 2
-			     inks0 (vector (layered-color g 0 nil)
-					   (layered-color g nil 0))
-			     inks1 (vector (layered-color g 1 nil)
-					   (layered-color g nil 1))
-			     inks2 (vector (layered-color g 2 nil)
-					   (layered-color g nil 2))
-			     inks3 (vector (layered-color g 3 nil)
-					   (layered-color g nil 3)))))
-		    (:triple
-		     (let ((g (or ico-color-set3
-				  (setf ico-color-set3
-				    (make-layered-color-set 4 4 4)))))
-		       (setf ico-buffers 3
-			     inks0 (vector (layered-color g 0 nil nil)
-					   (layered-color g nil 0 nil)
-					   (layered-color g nil nil 0))
-			     inks1 (vector (layered-color g 1 nil nil)
-					   (layered-color g nil 1 nil)
-					   (layered-color g nil nil 1))
-			     inks2 (vector (layered-color g 2 nil nil)
-					   (layered-color g nil 2 nil)
-					   (layered-color g nil nil 2))
-			     inks3 (vector (layered-color g 3 nil nil)
-					   (layered-color g nil 3 nil)
-					   (layered-color g nil nil 3))))))))))))))
+	  (multiple-value-bind (buffering ptype changed)
+	      (accept '(member :single :double :triple)
+		      :default (svref #(:single :double :triple) (1- ico-buffers))
+		      :stream pane
+		      :prompt "Buffering")
+	    (declare (ignore ptype))
+	    (when changed
+	      (with-slots (ico-color-set2 ico-color-set3
+			   inks0 inks1 inks2 inks3) frame    
+		(case buffering
+		  (:single 
+		    (setf ico-buffers 1
+			  inks0 (vector *background-color*)
+			  inks1 (vector *line-color*)
+			  inks2 (vector *face1-color*)
+			  inks3 (vector *face2-color*)))
+		  (:double
+		    (let ((g (or ico-color-set2
+				 (setf ico-color-set2 
+				       (make-layered-color-set 4 4)))))
+		      (setf ico-buffers 2
+			    inks0 (vector (layered-color g 0 nil)
+					  (layered-color g nil 0))
+			    inks1 (vector (layered-color g 1 nil)
+					  (layered-color g nil 1))
+			    inks2 (vector (layered-color g 2 nil)
+					  (layered-color g nil 2))
+			    inks3 (vector (layered-color g 3 nil)
+					  (layered-color g nil 3)))))
+		  (:triple
+		    (let ((g (or ico-color-set3
+				 (setf ico-color-set3
+				       (make-layered-color-set 4 4 4)))))
+		      (setf ico-buffers 3
+			    inks0 (vector (layered-color g 0 nil nil)
+					  (layered-color g nil 0 nil)
+					  (layered-color g nil nil 0))
+			    inks1 (vector (layered-color g 1 nil nil)
+					  (layered-color g nil 1 nil)
+					  (layered-color g nil nil 1))
+			    inks2 (vector (layered-color g 2 nil nil)
+					  (layered-color g nil 2 nil)
+					  (layered-color g nil nil 2))
+			    inks3 (vector (layered-color g 3 nil nil)
+					  (layered-color g nil 3 nil)
+					  (layered-color g nil nil 3))))))))))))))
+
 
 (define-ico-frame-command (com-ico-throw-ball :menu "Throw ball" :keystroke #\t) ()
   (with-application-frame (frame)
@@ -133,10 +134,10 @@
       (let ((palette (frame-palette frame)))
 	(catch-ball frame)
 	(when ico-color-set2
-	  (remove-from-palette palette ico-color-set2)
+	  (remove-color-from-palette palette ico-color-set2)
 	  (setf ico-color-set2 nil))
 	(when ico-color-set3
-	  (remove-from-palette palette ico-color-set3)
+	  (remove-color-from-palette palette ico-color-set3)
 	  (setf ico-color-set3 nil))
 	(frame-exit frame)))))
 

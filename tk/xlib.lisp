@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xlib.lisp,v 1.31 92/10/28 13:17:01 cer Exp $
+;; $fiHeader: xlib.lisp,v 1.32 92/10/29 16:54:51 cer Exp $
 
 (in-package :tk)
 
@@ -339,7 +339,6 @@
 	(values (x11:xcolor-pixel y)
 		(make-instance 'color :foreign-address y))))))
 
-
 (defvar *pixel-array* 
     (make-array 1 :initial-element 0 :element-type '(unsigned-byte 32)))
 
@@ -351,6 +350,7 @@
    *pixel-array*
    1
    planes))
+
 
 (defun allocate-named-color (colormap name)
   (let ((exact (x11::make-xcolor :in-foreign-space t))

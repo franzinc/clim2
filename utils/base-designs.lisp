@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: base-designs.lisp,v 1.3 92/10/28 11:30:57 cer Exp $
+;; $fiHeader: base-designs.lisp,v 1.4 92/10/29 16:55:03 cer Exp $
 
 (in-package :clim-utils)
 
@@ -29,7 +29,7 @@
     ((value :type single-float :initarg :value :reader opacity-value)))
 
 (define-constructor make-standard-opacity-1 standard-opacity (value)
-		    :value value)
+  :value value)
 
 (defmethod make-load-form ((design standard-opacity))
   (with-slots (value) design
@@ -43,7 +43,7 @@
 	       :reader gray-color-luminosity)))
 
 (define-constructor make-gray-color-1 gray-color (luminosity)
-		    :luminosity luminosity)
+  :luminosity luminosity)
 
 (defmethod make-load-form ((color gray-color))
   (with-slots (luminosity) color
@@ -64,13 +64,14 @@
   (with-slots (red green blue) color
     `(make-rgb-color ,red ,green ,blue)))
 
+
 (defclass ihs-color (color)
     ((intensity  :type single-float :initarg :intensity)
      (hue	 :type single-float :initarg :hue)
      (saturation :type single-float :initarg :saturation)))
 
 (define-constructor make-ihs-color-1 ihs-color (intensity hue saturation)
-		    :intensity intensity :hue hue :saturation saturation)
+  :intensity intensity :hue hue :saturation saturation)
 
 (defmethod make-load-form ((color ihs-color))
   (with-slots (intensity hue saturation) color
@@ -91,7 +92,7 @@
      (layered-color-cache :reader palette-layered-color-cache
 			  :initform (make-hash-table))
      (delayed-recolors :reader palette-delayed-recolors
-			  :initform (make-array 32 :adjustable t :fill-pointer 0))))
+		       :initform (make-array 32 :adjustable t :fill-pointer 0))))
 
 (defgeneric make-palette (port &key))
 
@@ -113,7 +114,7 @@
 	       :accessor dynamic-color-palettes)))
 
 (define-constructor make-dynamic-color dynamic-color (color) 
-		    :color color)
+  :color color)
 
 (defmethod make-load-form ((color dynamic-color))
   (with-slots (color) color
@@ -123,23 +124,26 @@
 ;;; Layered Colors
 
 (defclass layered-color-set ()
-    ((layers :initform nil :reader layered-color-set-layers :initarg :layers)
-     (cache :initform (make-hash-table :test #'equal) :reader layered-color-set-cache)
-     (dynamic-array :reader layered-color-set-dynamic-array :initarg :dynamic-array)))
+    ((layers :initform nil :initarg :layers
+	     :reader layered-color-set-layers)
+     (cache :initform (make-hash-table :test #'equal)
+	    :reader layered-color-set-cache)
+     (dynamic-array :initarg :dynamic-array
+		    :reader layered-color-set-dynamic-array)))
 
 (define-constructor make-layered-color-set layered-color-set (&rest layers)
-		    :layers layers
-		    :dynamic-array (make-array layers))
+  :layers (copy-list layers)
+  :dynamic-array (make-array layers))
 
 (defgeneric layered-color (layered-color-set &rest layers))
 
 (defclass layered-color (design)
-    ((set :reader layered-color-set :initarg :set)
-     (layers :initform nil :reader layered-color-layers :initarg :layers)
-     (dynamics :initform nil))) 
+    ((set :initarg :set :reader layered-color-set)
+     (layers :initarg :layers :initform nil :reader layered-color-layers)
+     (dynamic-colors :initform nil))) 
    
 (define-constructor make-layered-color layered-color (set layers)
-		    :set set :layers layers)
+  :set set :layers layers)
 
 
 ;;; Foreground and background (indirect) inks
@@ -163,7 +167,7 @@
      (design2 :type design :initarg :design2)))
 
 (define-constructor make-flipping-ink-1 flipping-ink (design1 design2)
-		    :design1 design1 :design2 design2)
+  :design1 design1 :design2 design2)
 
 (defmethod make-load-form ((design flipping-ink))
   (with-slots (design1 design2) design
@@ -177,7 +181,7 @@
      (which-one :type integer :initarg :which-one)))
 
 (define-constructor make-contrasting-ink-1 contrasting-ink (which-one how-many)
-		    :which-one which-one :how-many how-many)
+  :which-one which-one :how-many how-many)
 
 (defmethod make-load-form ((design contrasting-ink))
   (with-slots (which-one how-many) design

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: packages.lisp,v 1.35 92/10/28 13:17:14 cer Exp $
+;; $fiHeader: packages.lisp,v 1.36 92/10/29 16:55:06 cer Exp $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :common-lisp-user)
 
@@ -2023,23 +2023,24 @@
     +foreground-ink+
     color
     color-ihs
+    color-not-found
     color-rgb
     colorp
     contrasting-inks-limit
     design
     designp
+    dynamic-color-color
     find-named-color
     layered-color
     layered-color-color
-    make-layered-color-set
     make-contrasting-inks
+    make-dynamic-color
     make-flipping-ink
     make-gray-color
     make-ihs-color
-    make-dynamic-color
+    make-layered-color-set
     make-opacity
     make-rgb-color
-    dynamic-color-color
     opacity
     opacity-value
     opacityp
@@ -2058,18 +2059,18 @@
     pattern-width
     
     ;; Palettes
+    add-color-to-palette
     frame-manager-palette
     frame-palette
     make-palette
     palette
     palette-color-p
     palette-dynamic-p
+    palette-full
     palettep
     port-default-palette
-    palette-full
-    add-to-palette
-    remove-from-palette
-    
+    remove-color-from-palette
+
     ;; Extended output
     beep
     cursor
@@ -2123,6 +2124,7 @@
     copy-textual-output-history
     delete-output-record
     displayed-output-record
+    displayed-output-record-ink
     displayed-output-record-p
     erase-output-record
     graphics-displayed-output-record
@@ -2388,6 +2390,7 @@
     highlight-presentation
     highlight-presentation-method
     integer
+    input-context-type
     keyword
     list-pane-view
     make-presentation-type-specifier
@@ -2657,6 +2660,7 @@
     frame-drag-and-drop-highlighting
     frame-error-output
     frame-exit
+    frame-exit-frame
     frame-find-innermost-applicable-presentation
     frame-input-context-button-press-handler
     frame-maintain-presentation-histories
@@ -2720,7 +2724,6 @@
     ;; Meta-frames, aka activities
     *activity*
     activity
-    activity-exit
     activity-frame
     activity-frame-window-close
     activity-frame-window-select
@@ -2940,7 +2943,6 @@
     translate-positions
     viewport-to-drawing-surface-coordinates
     window-children
-    window-clear-area
     window-expose
     window-inside-bottom
     window-inside-edges
@@ -2953,10 +2955,8 @@
     window-label
     window-label-size
     window-margins
-    window-name
     window-parent
     window-root
-    window-set-inside-edges
     window-set-inside-size
     window-stack-on-bottom
     window-stack-on-top
@@ -3021,7 +3021,7 @@
     graphic-char-p
     alpha-char-p)
 
-  #+(and ANSI-90 Genera)
+  #+(or (and ANSI-90 Genera) Cloe-Runtime)
   (:import-from lisp
     string-char
     char-bits)
@@ -3029,7 +3029,7 @@
   (:shadowing-import-from cltl1
     string-char
     char-bits)
-  #+(or Allegro (and ANSI-90 Genera))
+  #+(or Allegro (and ANSI-90 Genera) Cloe-Runtime)
   (:export
     string-char
     char-bits)
@@ -3155,7 +3155,7 @@
     delete-timer
     make-timer
 
-    ;; From PROTOCOLS
+    ;; From PROTOCOLS, DEFPROTOCOL, and CLIM-STREAMS
     *outer-self*
     define-protocol-class
     define-slot-trampoline-template
@@ -3163,6 +3163,7 @@
     defoperation
     defprotocol
     defrole
+    encapsulated-stream
     find-protocol
     find-role 
     generate-trampolines
@@ -3248,37 +3249,37 @@
     *all-palettes*
     allocate-color
     basic-palette
-    layered-color-set
-    layered-color-set-layers
-    layered-color-set-dynamic-array
     color-luminosity
     composite-in
     composite-out
     composite-over
     contrasting-ink
     contrasting-ink-index
+    deallocate-color
     decode-flipping-ink
     decode-pattern
     decode-rectangular-tile
     decode-tile-as-stipple
+    dynamic-color
+    dynamic-color-palettes
     flipping-ink
-    flipping-ink 
-    free-color
+    flipping-ink
     gray-color
     gray-color-luminosity
-    layered-color-layers
     ihs-color
+    layered-color-layers
+    layered-color-set
+    layered-color-set-layers
+    layered-color-set-dynamic-array
     make-color-for-contrasting-ink
     make-design-from-output-record
     make-flipping-ink
     make-gray-color-for-contrasting-ink
-    map-over-layered-colors    
-    dynamic-color
-    dynamic-color-palettes
+    map-over-layered-colors
     palette-color-cache
+    palette-delayed-recolors
     palette-dynamic-color-cache
     palette-layered-color-cache
-    palette-delayed-recolors
     pattern
     rectangular-tile
     rgb-color
@@ -3391,6 +3392,8 @@
     gadget-supplied-scrolling
     gadget-visible-items
     generic-label-pane
+    generic-list-pane
+    generic-option-pane
     generic-scroller-pane
     get-drawing-function-description
     graft-mm-height

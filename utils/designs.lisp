@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: designs.lisp,v 1.9 92/10/28 13:17:12 cer Exp $
+;; $fiHeader: designs.lisp,v 1.10 92/10/29 16:55:05 cer Exp $
 
 (in-package :clim-utils)
 
@@ -122,17 +122,27 @@
 (define-primary-color +yellow+  1 1 0)
 
 
-(defvar *default-named-color-table* (make-hash-table :test #+Genera #'string-equal
-							   #-Genera #'equalp))
+(defvar *default-named-color-table*
+	(make-hash-table :test #+(or Genera Cloe-Runtime) #'string-equal
+			       #-(or Genera Cloe-Runtime) #'equalp))
 
 (defmacro define-named-color (color-name r g b)
   `(setf (gethash ,color-name *default-named-color-table*)
 	 (make-rgb-color ,(/ r 255.0) ,(/ g 255.0) ,(/ b 255.0))))
 
+(define-condition color-not-found (error)
+  ((color :initarg :color :reader color-not-found-color))
+  (:report (lambda (condition stream)
+	     (format stream "The color named ~S was not found"
+	       (color-not-found-color condition)))))
+
 ;; Simplest possible palette returns canned, silly X Windows colors
-(defmethod find-named-color (name (palette basic-palette))
-  (let ((name (if (symbolp name) (symbol-name name) name)))
-    (values (gethash name *default-named-color-table*))))
+(defmethod find-named-color (name (palette basic-palette) &key (errorp t))
+  (let ((name (if (symbolp name) (symbol-name name) name))
+	(color (gethash name *default-named-color-table*)))
+    (if (and (null color) errorp)
+	(error 'color-not-found :color name)
+	color)))
 
 ;; Default values for named colors
 (define-named-color "snow"              255 250 250)
@@ -294,29 +304,36 @@
 (defmethod color-ihs ((color ihs-color))
   (with-slots (intensity hue saturation) color
     (values intensity hue saturation)))
+
 
-;;; Palettes 
+;;; Palettes
 
-(define-condition palette-full (serious-condition) ())
+(define-condition palette-full (error)
+  ((palette :initarg :palette :reader palette-full-palette))
+  (:report (lambda (condition stream)
+	     (format stream "The palette ~S is full"
+	       (palette-full-palette condition)))))
 
-(defmethod add-to-palette ((palette basic-palette) &rest colors)
+(defmethod add-colors-to-palette ((palette basic-palette) &rest colors)
+  (declare (dynamic-extent colors))
   (let ((colors-done nil))
     (dolist (color colors)
       (handler-case
-	  (progn
-	    (push color colors-done)
-	    (allocate-color color palette))
+	(progn
+	  (push color colors-done)
+	  (allocate-color color palette))
 	(palette-full (condition)
-	  (dolist (color colors-done)
-	    (free-color color palette))
-	  (error condition))))))
+	 (dolist (color colors-done)
+	   (deallocate-color color palette))
+	 (error condition))))))
 
-(defmethod remove-from-palette ((palette basic-palette) &rest colors)
+(defmethod remove-colors-from-palette ((palette basic-palette) &rest colors)
+  (declare (dynamic-extent colors))
   (dolist (color colors)
-    (free-color color palette)))
+    (deallocate-color color palette)))
 
 
-;;; Dynamic Colors 
+;;; Dynamic Colors
 
 (defmethod print-object ((color dynamic-color) stream)
   (print-unreadable-object (color stream :type t :identity t)
@@ -330,7 +347,7 @@
 
 (defvar *doing-delayed-recolors* nil)
 
-(defmethod recolor-dynamic ((dynamic-color dynamic-color) (color color))
+(defmethod recolor-dynamic-color ((dynamic-color dynamic-color) (color color))
   (if *doing-delayed-recolors*
       (dolist (palette (dynamic-color-palettes dynamic-color))
 	(let ((cell (gethash dynamic-color (palette-dynamic-color-cache palette)))
@@ -338,13 +355,13 @@
 	  (without-scheduling
 	    (vector-push-extend cell recolors)
 	    (vector-push-extend color recolors))))
-    (dolist (palette (dynamic-color-palettes dynamic-color))
-      (let ((cell (gethash dynamic-color (palette-dynamic-color-cache palette))))
-	(update-palette-entry palette cell color)))))
+      (dolist (palette (dynamic-color-palettes dynamic-color))
+	(let ((cell (gethash dynamic-color (palette-dynamic-color-cache palette))))
+	  (update-palette-entry palette cell color)))))
 
 (defmethod (setf dynamic-color-color) :after
 	   ((color color) (dynamic-color dynamic-color))
-  (recolor-dynamic dynamic-color color))
+  (recolor-dynamic-color dynamic-color color))
 
 ;; Note that the actual color recoloring occurs on exiting the outermost
 ;; call to WITH-DELAYED-RECOLORING
@@ -380,10 +397,10 @@
 			 (progn 
 			   (setf (car dims) layer)
 			   (iterate rest-layers rest-set-layers rest-dims))
-		       (dotimes (i set-layer)
-			 (setf (car dims) i)
-			 (iterate rest-layers rest-set-layers rest-dims))))
-		 (funcall function dimensions))))
+			 (dotimes (i set-layer)
+			   (setf (car dims) i)
+			   (iterate rest-layers rest-set-layers rest-dims))))
+		   (funcall function dimensions))))
       (iterate layers set-layers dimensions))))
 
 (defmethod initialize-instance :after ((set layered-color-set) &key dynamic-array)
@@ -402,26 +419,25 @@
 		(make-layered-color set layers))))))
 
 (defmethod (setf layered-color-color) 
-    ((color color) (layered-color layered-color))
+	   ((color color) (layered-color layered-color))
   (with-delayed-recoloring
-      (dolist (dynamic-color (layered-color-dynamics layered-color))
-	(setf (dynamic-color-color dynamic-color) color))))
+    (dolist (dynamic-color (layered-color-dynamic-colors layered-color))
+      (setf (dynamic-color-color dynamic-color) color))))
   
-;; LAYERED-COLOR-DYNAMICS should not be exported to the user.  It is important
-;; that these dynamics are not drawn with.  Instead the fully specified layered
-;; colors should be used
-(defmethod layered-color-dynamics ((layered-color layered-color))
-  (with-slots (set layers dynamics) layered-color
-    (or dynamics
-	(setf dynamics
-	  (let ((dynamic-array (layered-color-set-dynamic-array set))
-		dynamics)
-	    (map-over-layered-colors 
-	     #'(lambda (dimensions)
-		 (push (apply #'aref dynamic-array dimensions) dynamics))
-	     set
-	     layers)
-	    dynamics)))))
+;; LAYERED-COLOR-DYNAMIC-COLORS should not be exported to the user.  It
+;; is important that these dynamics are not drawn with.  Instead, the
+;; fully specified layered is used.
+(defmethod layered-color-dynamic-colors ((layered-color layered-color))
+  (with-slots (set layers dynamic-colors) layered-color
+    (or dynamic-colors
+	(setf dynamic-colors
+	      (let ((dynamic-array (layered-color-set-dynamic-array set))
+		    (dynamics nil))
+		(map-over-layered-colors 
+		  #'(lambda (dimensions)
+		      (push (apply #'aref dynamic-array dimensions) dynamics))
+		  set layers)
+		dynamics)))))
 
 
 ;;; Foreground and background (indirect) inks

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-frames.lisp,v 1.19 92/10/02 15:21:05 cer Exp $
+;; $fiHeader: xt-frames.lisp,v 1.20 92/10/28 11:33:20 cer Exp $
 
 
 (in-package :xm-silica)
@@ -88,7 +88,7 @@
 	    &key printer 
 		 presentation-type 
 		 (associated-window (frame-top-level-sheet *application-frame*))
-		 default-style label
+		 text-style label
 		 cache
 		 (unique-id items)
 		 (id-test 'equal)
@@ -122,7 +122,7 @@
 				      printer 
 				      presentation-type 
 				      associated-window
-				      default-style
+				      text-style
 				      label))
       (when cache
 	(push (list unique-id menu closure) 

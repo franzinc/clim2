@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.52 92/10/28 11:33:18 cer Exp $
+;; $fiHeader: xm-gadgets.lisp,v 1.53 92/11/06 14:32:44 colin Exp $
 
 (in-package :xm-silica)
 
@@ -454,17 +454,17 @@
    ;; comes up in the right place.
    ((popup-frame-p sheet)
     (values 'tk::xm-bulletin-board
-            (list :margin-width 0 :margin-height 0
-                  ;; Prevents buttons from deactivating dialog
-                  :auto-unmanage nil
-                  ;; We specify NIL for accelerators otherwise the
-                  ;; bulletin board messes with the event handling of
-                  ;; its drawing area children
-                  :accelerators nil
-                  :resize-policy :none
-                  :name (if (pane-frame sheet)
-                            (string (frame-name (pane-frame sheet)))
-                            "a CLIM pop-up"))))
+	    (list :margin-width 0 :margin-height 0
+		  ;; We specify NIL for accelerators otherwise the
+		  ;; bulletin board messes with the event handling of
+		  ;; its drawing area children
+		  :accelerators nil
+		  ;; Prevents buttons from deactivating dialog
+		  :auto-unmanage nil
+		  :resize-policy :none
+		  :name (if (pane-frame sheet)
+			    (string (frame-name (pane-frame sheet)))
+			    "a CLIM pop-up"))))
    (t
     (values 'tk::xm-my-drawing-area 
             (list :resize-policy :none

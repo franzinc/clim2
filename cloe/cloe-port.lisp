@@ -1,11 +1,102 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLOE-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: cloe-port.lisp,v 1.1 92/10/01 10:03:56 cer Exp $
+;; $fiHeader: cloe-port.lisp,v 1.2 92/10/28 11:32:31 cer Exp $
 
 (in-package :cloe-clim)
 
 "Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved."
 
+
+(defparameter *vk->keysym*
+	      `(
+		;; The semi-standard characters
+		(#x0d #\newline :enter :newline #\return :return)
+		(#x20 #\space :space)
+		(#x09 #\tab :tab)
+		(#x2e :delete)
+		(#x08 #\backspace :backspace :rubout)
+		;;(???? :page)
+		;;(???? :linefeed)
+		(#x1b #\escape :escape :abort)
+		;; The shifts
+		(#x10 :left-shift)
+		(#x11 :left-control)
+		(#x14 :caps-lock)
+		(#x12 :left-meta)
+		(#x90 :num-lock)
+		;; Non-standard keys
+		(#x03 :cancel)
+		(#x0c :clear :clear-input)
+		(#x13 :pause)
+		(#x21 :page-up)
+		(#x22 :page-down :scroll)
+		(#x23 :end)
+		(#x24 :home)
+		(#x25 :left)
+		(#x26 :up)
+		(#x27 :right)
+		(#x28 :down)
+		(#x29 :select)
+		(#x2b :execute)
+		(#x2c :print-screen)
+		(#x2d :insert)
+		(#x2f :help)
+		(#x60 :keypad-0)
+		(#x61 :keypad-1)
+		(#x62 :keypad-2)
+		(#x63 :keypad-3)
+		(#x64 :keypad-4)
+		(#x65 :keypad-5)
+		(#x66 :keypad-6)
+		(#x67 :keypad-7)
+		(#x68 :keypad-8)
+		(#x69 :keypad-9)
+		(#x6a :keypad-multiply)
+		(#x6b :keypad-add)
+		(#x6c :keypad-separator)
+		(#x6d :keypad-subtract)
+		(#x6e :keypad-decimal)
+		(#x6f :keypad-divide)
+		(#x70 :f1)
+		(#x71 :f2)
+		(#x72 :f3)
+		(#x73 :f4)
+		(#x74 :f5)
+		(#x75 :f6)
+		(#x76 :f7)
+		(#x77 :f8)
+		(#x78 :f9)
+		(#x79 :f10)
+		(#x7a :f11)
+		(#x7b :f12)
+		(#x7c :f13)
+		(#x7d :f14)
+		(#x7e :f15)
+		(#x7f :f16)
+		(#x80 :f17)
+		(#x81 :f18)
+		(#x82 :f19)
+		(#x83 :f20)
+		(#x84 :f21)
+		(#x85 :f22)
+		(#x86 :f23)
+		(#x87 :f24)
+		(#x91 :scroll-lock)
+		;;(???? :complete)
+		;;(???? :refresh)
+		))
+
+(defparameter *char->keysym*
+	      (let ((array (make-array 256 :initial-element nil)))
+		(dolist (char '(#\newline #\escape #\backspace #\tab #\space #\return))
+		  (setf (svref array (char-code char))
+			(intern (string-upcase (char-name char)) "KEYWORD")))
+		(loop for code from (char-code #\!) to (char-code #\~)
+		      do (setf (svref array code)
+			       (intern (string (char-upcase (code-char code))) "KEYWORD")))
+		array))
+
+
 
 (defvar *cloe-port* nil)
 
@@ -13,6 +104,8 @@
     ((text-style->cloe-font-mapping :initform (make-hash-table))
      (font-cache-style :initform nil)
      (font-cache-font :initform nil)
+     (vk->keysym :initform (make-hash-table))
+     (keysym->keysym :initform (make-hash-table))
      logpixelsy
      (event-queue :initform (make-queue))
      (pointer-sheet :initform nil)
@@ -29,11 +122,11 @@
 ;;--- Eventually do better than this
 (defclass cloe-palette (basic-palette) ())
 
-(defmethod make-palette ((port cloe-port) &key color-p mutable-p)
+(defmethod make-palette ((port cloe-port) &key color-p dynamic-p)
   (make-instance 'cloe-palette
     :port port 
     :color-p color-p
-    :mutable-p mutable-p))
+    :dynamic-p dynamic-p))
 
 
 (defmethod initialize-instance :before ((port cloe-port) &key)
@@ -42,11 +135,21 @@
   (setf *cloe-port* port))
 
 (defmethod initialize-instance :after ((port cloe-port) &key)
-  (initialize-dc)
-  (setf (slot-value port 'logpixelsy) (win::get-device-caps *dc* 90))
-  (setf (slot-value port 'silica::default-palette) 
-	(make-palette port :color-p t))
+  (with-slots (logpixelsy silica::default-palette vk->keysym) port
+    (initialize-dc)
+    (setf logpixelsy (win::get-device-caps *dc* win::logpixelsy))
+    (setf silica::default-palette (make-palette port :color-p t))
+    (loop for (vk . keysym) in *vk->keysym* do
+      (setf (gethash vk vk->keysym) keysym))
+    (loop for code from (char-code #\!) to (char-code #\~)
+	  for char = (code-char code)
+	  do (push char (gethash (win::get-keymap char) vk->keysym)))
+    )
   nil)
+
+(defmethod destroy-port :before ((port cloe-port))
+  (when (eq port *cloe-port*)
+    (setf *cloe-port* nil)))
 
 
 
@@ -72,23 +175,6 @@
   pitch
   family
   font-width-table)
-
-;;; Fill up the font width table for a variable width font
-;;; by asking windows the width of each character.
-;;; This doesn't quite work in the face of kerning.
-(defun initialize-font-width-table (font window)
-  ;; only need to run this on variable-width fonts.
-  (select-font (cloe-font-index font))
-  (let ((array (make-array (1+ (- 126 32)))))
-    (with-temporary-string (string :length 1)
-      (setf (fill-pointer string) 1)
-      (loop for i from 32 to 126 do
-	(setf (aref string 0) (code-char i))
-	(multiple-value-bind (width height)
-	    (win::get-text-extent window string)
-	  (declare (ignore height ))
-	  (setf (aref array (- i 32)) width))))
-    (setf (cloe-font-font-width-table font) array)))
 
 (defparameter *cloe-logical-size-alist*
 	      '((:tiny       6)
@@ -251,64 +337,232 @@
 
 
 
-#||
-(defvar *vk->keysym* (make-array 256 :initial-element nil))
-(defvar *keysym->vk* (make-hash-table))
+(defmethod port-canonicalize-gesture-spec 
+	   ((port cloe-port) gesture-spec &optional modifier-state)
+  (with-slots (vk->keysym) port
+    (multiple-value-bind (keysym shifts)
+	(if modifier-state
+	    (values gesture-spec modifier-state)
+	    (parse-gesture-spec gesture-spec))
+      (let ((char (typecase keysym
+		    (symbol
+		      (let ((code (position keysym *char->keysym*)))
+			(and code
+			     (code-char code))))
+		    (character
+		      (shiftf keysym (svref *char->keysym* (char-code keysym)))))))
+	(loop for keysyms being the hash-values of vk->keysym using (hash-key vk)
+	      when (member (or char keysym) keysyms)
+		do (setf keysym (first keysyms))
+	           (when (characterp keysym)
+		     (setf keysym (svref *char->keysym* (char-code keysym))))
+		   (when (logtest #x100 vk)
+		     (setf shifts (logior shifts +shift-key+)))
+		   (return))
+	(cons keysym shifts)))))
 
-(defmacro define-vk (vk keysym)
-  `(progn 
-     (setf (svref *vk->keysym* vk) keysym)
-     (setf (gethash ,keysym *keysym->vk*) ,vk)))
+
 
-(defun-inline vk->keysym (vk)
-  (svref *vk->keysym* vk))
+(defun-inline sign-extend-16 (n)
+  (dpb n (byte 15 0) (- (ldb (byte 1 15) n))))
 
-(defun-inline keysym->vk (keysym)
-  (gethash keysym *keysym->vk*))
+(defmethod note-pointer-motion ((port cloe-port) sheet x y)
+  (with-slots (pointer-sheet pointer-x pointer-y) port
+    (setf pointer-sheet sheet)
+    (setf pointer-x x)
+    (setf pointer-y y)))
 
-;; The semi-standard characters
-(define-vk 0x0d :return)
-(define-vk ???? :newline)
-(define-vk 0x09 :tab)
-(define-vk 0x2e :rubout)
-(define-vk 0x08 :backspace)
-(define-vk ???? :page)
-(define-vk ???? :linefeed)
-(define-vk 0x1b :escape)
+(defmethod flush-pointer-motion ((port cloe-port))
+  (with-slots (event-queue pointer-sheet pointer-x pointer-y) port
+    (when pointer-sheet
+      (let ((pointer (port-pointer port)))
+	(when pointer
+	  (queue-put event-queue
+		     (allocate-event 'pointer-motion-event
+		       :native-x pointer-x
+		       :native-y pointer-y
+		       :modifier-state (port-modifier-state port)
+		       :pointer pointer
+		       :sheet pointer-sheet))))
+      (setf pointer-sheet nil))))
 
-;; Other useful characters
-(define-vk 0x23 :end)
-(define-vk ???? :abort)
-(define-vk 0x2f :help)
-(define-vk ???? :complete)
-(define-vk 0x22 :scroll)
-(define-vk ???? :refresh)
-(define-vk ???? :clear-input)
+;;; Convert a MS Windows shift mask into a CLIM modifier-state
+(defun windows-mask->modifier-state (mask)
+  (if (logtest win::mk_shift mask)
+      (if (logtest win::mk_control mask)
+	  (make-modifier-state :shift :control)
+	  (make-modifier-state :shift))
+      (if (logtest win::mk_control mask)
+	  (make-modifier-state :control)
+	  (make-modifier-state))))
 
-;; Finally, the shifts
-(define-vk 0x19 :left-shift)
-(define-vk ???? :right-shift)
-(define-vk 0x11 :left-control)
-(define-vk ???? :right-control)
-(define-vk 0x14 :caps-lock)
-(define-vk ???? :shift-lock)
-(define-vk 0x12 :left-meta)
-(define-vk ???? :right-meta)
-(define-vk ???? :left-super)
-(define-vk ???? :right-super)
-(define-vk ???? :left-hyper)
-(define-vk ???? :right-hyper)
+(defmethod event-handler ((port cloe-port) args)
+  (with-slots (event-queue pointer-sheet pointer-x pointer-y vk->keysym) port
+    (let ((sheet (mirror->sheet port (win::get-16bit args 0)))
+	  (message (win::get-16bit args 2)))
+      (declare (fixnum message))
+      (when sheet
+	(cond ((eql message win::wm_mousemove)
+	       (note-pointer-motion port sheet (win::get-16bit args 6) (win::get-16bit args 8)))
 
-;; Non-standard keys found on Sun keyboards
+	      ((eql message win::wm_paint)
+	       (let ((ileft (win::get-16bit args 4))
+		     (itop (win::get-16bit args 6))
+		     (iright (win::get-16bit args 8))
+		     (ibottom (win::get-16bit args 10)))
+		 (unless (or (= ileft iright) (= itop ibottom))	;seems to happen alot
+		   (queue-put event-queue
+			      (allocate-event 'window-repaint-event
+				;;--- Should this be (MIRROR-REGION PORT SHEET), as
+				;;--- it is in the :CONFIGURE-NOTIFY case?
+				:native-region (sheet-native-region sheet)
+				:region (make-bounding-rectangle ileft itop iright ibottom)
+				:sheet sheet)))))
 
-(define-vk 0x70 :f1)
-(define-vk 0x71 :f2)
-(define-vk 0x72 :f3)
-(define-vk 0x73 :f4)
-(define-vk 0x74 :f5)
-(define-vk 0x75 :f6)
-(define-vk 0x76 :f7)
-(define-vk 0x77 :f8)
-(define-vk 0x78 :f9)
-(define-vk 0x79 :f10)
-||#
+	      #||
+	      ;; scrolling
+	      ((or (eql message win::wm_hscroll)
+		   (eql message win::wm_vscroll))
+	       (let ((type (win::get-16bit args 4))
+		     (position (win::get-16bit args 6))
+		     (message (cond ((eql message win::wm_hscroll) :x)
+				    ((eql message win::wm_vscroll) :y))))
+		 (declare (fixnum type position))
+		 (multiple-value-bind (type position)
+		     (cond ((eql type win::sb_lineup)
+			    (values :relative-jump -1))
+			   ((eql type win::sb_linedown)
+			    (values :relative-jump +1))
+			   ((eql type win::sb_pageup)
+			    (values :screenful -1))
+			   ((eql type win::sb_pagedown)
+			    (values :screenful +1))
+			   ((eql type win::sb_thumbposition)
+			    (values :percentage position))
+			   ((eql type win::sb_top)
+			    (values :percentage 0))
+			   ((eql type win::sb_bottom)
+			    (values :percentage 100)))
+		   (when type
+		     (queue-put pending-scrolls (list message type position))
+		     (pushnew stream *cloe-windows-with-deferred-events*)))))
+	      ||#
+
+	      ;; resizing
+	      ((or (eql message win::wm_move)
+		   (eql message win::wm_size))
+	       (queue-put event-queue
+			  (allocate-event 'window-configuration-event
+			    :sheet sheet)))
+
+	      ;; character typed
+	      ((or (eql message win::wm_keydown)
+		   (eql message win::wm_syskeydown)
+		   (eql message win::wm_keyup)
+		   (eql message win::wm_syskeyup))
+	       (flush-pointer-motion port)
+	       (let ((code (win::get-16bit args 4)))
+		 (let ((vk (ldb (byte 8 0) code)))
+		   ;; CAPS LOCK
+		   (when (and (logtest #x0800 code)
+			      (<= #x41 vk #x5a))
+		     (setf code (logior #x100 code)))
+		   ;; NUM LOCK
+		   (when (and (logtest #x1000 code)
+			      (<= #x60 vk #x69))
+		     (setf code (logior #x100 code))))
+		 (let ((keysym (or (gethash (ldb (byte 9 0) code) vk->keysym)
+				   (gethash (ldb (byte 8 0) code) vk->keysym)))
+		       (char nil))
+		   (when (consp keysym)
+		     (setf keysym (first keysym)))
+		   (when (characterp keysym)
+		     (when (zerop (ldb (byte 2 9) code))
+		       (setf char keysym))
+		     (setf keysym (svref *char->keysym* (char-code keysym))))
+		   (queue-put event-queue
+			      (allocate-event 
+				(cond ((or (eql message win::wm_keydown)
+					   (eql message win::wm_syskeydown))
+				       'key-press-event)
+				      ((or (eql message win::wm_keyup)
+					   (eql message win::wm_syskeyup))
+				       'key-release-event))
+				:key-name keysym
+				:character char
+				:modifier-state (setf (port-modifier-state port)
+						      (ldb (byte 3 8) code))
+				:sheet sheet)))))
+
+	      ;; button press or release
+	      ((or (eql message win::wm_lbuttondown)
+		   (eql message win::wm_rbuttondown)
+		   (eql message win::wm_mbuttondown)
+		   (eql message win::wm_lbuttonup)
+		   (eql message win::wm_rbuttonup)
+		   (eql message win::wm_mbuttonup))
+	       (let ((modifier-state (windows-mask->modifier-state (win::get-16bit args 4)))
+		     (pointer (port-pointer port)))
+		 (when pointer
+		   (flush-pointer-motion port)
+		   (setf (port-modifier-state port) modifier-state)
+		   (multiple-value-bind (key button)
+		       (cond ((eql message win::wm_lbuttondown)
+			      (values 'pointer-button-press-event +pointer-left-button+))
+			     ((eql message win::wm_mbuttondown)
+			      (values 'pointer-button-press-event +pointer-middle-button+))
+			     ((eql message win::wm_rbuttondown)
+			      (values 'pointer-button-press-event +pointer-right-button+))
+			     ((eql message win::wm_lbuttonup)
+			      (values 'pointer-button-release-event +pointer-left-button+))
+			     ((eql message win::wm_mbuttonup)
+			      (values 'pointer-button-release-event +pointer-middle-button+))
+			     ((eql message win::wm_rbuttonup)
+			      (values 'pointer-button-release-event +pointer-right-button+)))
+		     (queue-put event-queue
+				(allocate-event key
+				  :native-x (win::get-16bit args 6)
+				  :native-y (win::get-16bit args 8)
+				  :button button
+				  :modifier-state modifier-state
+				  :pointer pointer
+				  :sheet sheet))))))
+	      )))))
+
+(defun win::vanilla-event (code length args)
+  (declare (ignore code length))		;because I don't know what they are!
+  (event-handler *cloe-port* args))
+
+;;;
+
+(defmethod process-next-event ((port cloe-port)
+			       &key (timeout nil) (wait-function nil)
+			       (state "Windows Event"))
+  (declare (ignore state))
+  (with-slots (event-queue) port
+    (let ((end-time (and timeout (+ (get-internal-real-time)
+				    (* internal-time-units-per-second timeout)))))
+      (win::await-response -1 nil nil)
+      (loop
+	(flush-pointer-motion port)
+	(let ((event (queue-get event-queue)))
+	  (when event
+	    (distribute-event port event)
+	    (return t)))
+	(when (and wait-function
+		   (funcall wait-function))
+	  (return nil))
+	(when (and end-time (>= (get-internal-real-time) end-time))
+	  (return nil))
+	(win::await-response -1 t t)))))
+
+(defmethod distribute-event :around ((port cloe-port) (event window-configuration-event))
+  (let* ((sheet (event-sheet event))
+	 (mirror (sheet-mirror sheet)))
+    (unless (win::is-iconic mirror)
+      (let ((native-region (mirror-region port sheet)))
+	(setf (slot-value event 'pyrex::native-region) native-region)
+	(setf (slot-value event 'pyrex::region)
+	      (untransform-region (sheet-native-transformation sheet) 
+				  native-region)))
+      (call-next-method))))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: medium.lisp,v 1.27 92/10/28 13:17:09 cer Exp $
+;; $fiHeader: medium.lisp,v 1.28 92/10/29 16:54:58 cer Exp $
 
 (in-package :silica)
 
@@ -313,30 +313,6 @@
 (defmethod deallocate-medium (port medium)
   (setf (medium-sheet medium) nil)
   (push medium (port-medium-cache port)))
-
-
-;;; Support for colors
-
-;;--- Not clear that these should be here
-
-(defmethod sheet-palette ((sheet basic-sheet))
-  (let* ((frame (pane-frame sheet))
-	 (framem (and frame (frame-manager frame))))
-    (if framem
-	(frame-manager-palette framem)
-	(port-default-palette (port sheet)))))
-
-(defmethod medium-palette ((medium basic-medium))
-  (sheet-palette (medium-sheet medium)))
-
-(defmethod find-named-color (name (port basic-port))
-  (find-named-color name (port-default-palette port)))
-
-(defmethod find-named-color (name (sheet basic-sheet))
-  (find-named-color name (sheet-palette sheet)))
-
-(defmethod find-named-color (name (medium basic-medium))
-  (find-named-color name (medium-palette medium)))
 
 
 ;; Make sheets do the medium protocol
