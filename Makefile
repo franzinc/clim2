@@ -1,4 +1,4 @@
-# $fiHeader: Makefile,v 1.33 92/06/03 18:19:01 cer Exp Locker: cer $
+# $fiHeader: Makefile,v 1.34 92/06/23 08:20:02 cer Exp Locker: cer $
 # 
 #  Makefile for CLIM 2.0
 #
@@ -55,7 +55,7 @@ MV	= /usr/fi/mv-nfs
 TAGS	= /usr/fi/lib/emacs/etc/etags
 TMP	= /usr/tmp
 
-SRC_FILES = */*.lisp *.lisp Makefile */Makefile misc/make-stub-file \
+SRC_FILES = */*.lisp *.lisp Makefile misc/make-stub-file \
 	    misc/undefinedsymbols misc/undefinedsymbols.olit \
 	    misc/undefinedsymbols.motif misc/undefinedsymbols.xt \
 	    xlib/xlibsupport.c misc/MyDrawingA*.[hc] misc/olsupport.c
