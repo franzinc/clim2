@@ -11,6 +11,14 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.2.1.78
+
+2000-05-11  Kevin Layer  <layer@ultra>
+
+	* utils/last.lisp: change patch code so 5.0.1 patches won't be
+	loaded.
+
+*******************************************************************************
 2.2.1.77
 
 2000-04-24 tfb@cley.com
