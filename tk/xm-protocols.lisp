@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-protocols.lisp,v 1.10 1993/07/27 01:54:07 colin Exp $
+;; $fiHeader: xm-protocols.lisp,v 1.11 1994/12/05 00:01:23 colin Exp $
 
 (in-package :tk)
 
@@ -54,5 +54,6 @@
 (defun xm-intern-atom (shell name &optional only-if-exists)
   (xm_intern_atom
    (object-display shell)
-   (string name)
+   #+ics (fat-string-to-string8 name)
+   #-ics name
    (if only-if-exists 1 0)))

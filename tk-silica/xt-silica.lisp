@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.96 1995/05/17 19:50:21 colin Exp $
+;; $fiHeader: xt-silica.lisp,v 1.97 1995/10/17 05:03:56 colin Exp $
 
 (in-package :xm-silica)
 
@@ -43,6 +43,7 @@
      (visual-class :accessor port-visual-class)
      (cursor-font :initform nil)
      (cursor-cache :initform nil)
+     (font-cache :initform (make-hash-table :test #'equal))
      (compose-status :initform (x11:make-xcomposestatus)
 		     :reader port-compose-status))
   (:default-initargs :allow-loose-text-style-size-mapping t
@@ -160,13 +161,24 @@
        t))
 
 (defparameter *xt-font-families*
-    '((:fix "-*-courier-*-*-*-*-*-*-*-*-*-*-iso8859-1")
-      (:sans-serif "-*-helvetica-*-*-*-*-*-*-*-*-*-*-iso8859-1")
-      (:serif
-       ;; This causes problems on OpenWindows 3.0!
-       ;; "-*-charter-*-*-*-*-*-*-*-*-*-*-iso8859-1"
-       "-*-new century schoolbook-*-*-*-*-*-*-*-*-*-*-iso8859-1"
-       "-*-times-*-*-*-*-*-*-*-*-*-*-iso8859-1")))
+    '(;; ascii
+      (0 "fixed"
+       (:fix "-*-courier-*-*-*-*-*-*-*-*-*-*-*-*")
+       (:sans-serif "-*-helvetica-*-*-*-*-*-*-*-*-*-*-*-*")
+       (:serif "-*-new century schoolbook-*-*-*-*-*-*-*-*-*-*-*-*"
+	       "-*-times-*-*-*-*-*-*-*-*-*-*-*-*"))
+      ;; jis-x208 (kanji)
+      #+ics
+      (1 "k14"
+       (:fix "-*-*-*-*-*-*-*-*-*-*-*-*-jisx0208.1983-*")
+       (:sans-serif "-*-*-*-*-*-*-*-*-*-*-*-*-jisx0208.1983-*")
+       (:serif "-*-*-*-*-*-*-*-*-*-*-*-*-jisx0208.1983-*"))
+      ;; jis-x201 (half width katakana)
+      #+ics
+      (2 "rk14"
+       (:fix "-*-*-*-*-*-*-*-*-*-*-*-*-jisx0201.1976-*")
+       (:sans-serif "-*-*-*-*-*-*-*-*-*-*-*-*-jisx0201.1976-*")
+       (:serif "-*-*-*-*-*-*-*-*-*-*-*-*-jisx0201.1976-*"))))
 
 (defun disassemble-x-font-name (name)
   (let ((cpos 0)
@@ -181,9 +193,10 @@
 	(setf cpos (1+ dpos))))
     (reverse tokens)))
 
+;; by default don't use them because most users complain because they
+;; look ugly - at least on the HP that is.
 
-(defparameter *xt-fallback-font* "fixed"
-  "When non NIL and nothing better exists use this as the fallback font")
+(defvar *use-scalable-fonts* nil)
 
 (defmethod initialize-xlib-port ((port xt-port) display)
   (let* ((screen (x11:xdefaultscreen display))
@@ -191,9 +204,6 @@
 	 (screen-pixels-per-inch
 	  (* 25.4 (/ (x11::xdisplayheight display screen)
 		     (x11:xdisplayheightmm display screen)))))
-    (setf (port-undefined-text-style port)
-      (standardize-text-style
-       port (make-text-style :stand-in-for-undefined-style :roman 10)))
     (flet ((font->text-style (font family)
 	     (let* ((tokens (disassemble-x-font-name font))
 		    (italic (member (nth 4 tokens) '("i" "o") :test #'equalp))
@@ -213,37 +223,24 @@
 				(eql point-size 0)
 				(eql average-width 0)))
 		 (make-text-style family face (/ corrected-point-size 10))))))
-      (dolist (family-stuff *xt-font-families*)
-	(let ((family (car family-stuff)))
-	  (dolist (font-pattern (cdr family-stuff))
-	    (dolist (xfont (tk::list-font-names display font-pattern))
-	      ;; this hack overcomes a bug with hp's scalable fonts
-	      (unless (find #\* xfont)
-		(let ((text-style (font->text-style xfont family)))
-		  ;; prefer first font satisfying this text style, so
-		  ;; don't override if we've already defined one.
-		  (when text-style
-		    (unless (text-style-mapping-exists-p
-			     port text-style *standard-character-set* t)
-		      (setf (text-style-mapping port text-style) xfont)))))))
-	  ;; Now build the logical size alist for the family
-	  ))
-      (let (temp)
-	(cond ((setq temp
-		 (dolist (family *xt-font-families*)
-		   (when (text-style-mapping-exists-p port `(,(car family) :roman 10))
-		     (return (make-text-style (car family) :roman 10)))))
-	       (setf (text-style-mapping port (port-undefined-text-style port)) temp))
-	      ;; Perhaps we should look for some other conveniently sized
-	      ;; fonts.
-	      (*xt-fallback-font*
-	       (setf (text-style-mapping port (port-undefined-text-style port))
-		 (make-instance 'tk::font
-				:display display
-				:name *xt-fallback-font*)))
-	      ;;; Perhaps we should just grab the first font we can find.
-	      (t
-	       (error "Unable to determine default font"))))))
+      (dolist (per-charset *xt-font-families*)
+	(destructuring-bind (character-set fallback &rest families) per-charset
+	  (dolist (per-family families)
+	    (destructuring-bind (family &rest patterns) per-family
+	      (dolist (font-pattern patterns)
+		(dolist (xfont (tk::list-font-names display font-pattern))
+		  ;; this hack overcomes a bug with hp's scalable fonts
+		  (unless (find #\* xfont)
+		    (let ((text-style (font->text-style xfont family)))
+		      ;; prefer first font satisfying this text style, so
+		      ;; don't override if we've already defined one.
+		      (when text-style
+			(unless (text-style-mapping-exists-p
+				 port text-style character-set t)
+			  (setf (text-style-mapping port text-style character-set)
+			    xfont)))))))))
+	  (setf (text-style-mapping port *undefined-text-style* character-set)
+	    fallback)))))
   (setup-stipples port display))
 
 (defparameter *xt-logical-size-alist*
@@ -871,9 +868,14 @@
 (defmethod port-glyph-for-character ((port xt-port)
 				     character text-style
 				     &optional our-font)
-  (let* ((index (char-int character))
-	 (x-font (or our-font
-		     (text-style-mapping port text-style)))
+  #+ics (declare (ignore our-font))
+  (let* ((index #+ics (tk::xchar-code character)
+		#-ics (char-int character))
+	 (x-font (or #-ics our-font	; we don't used cached font
+					; for ics version because of possible
+					; codeset switches in the string
+		     (text-style-mapping port text-style
+					 #+ics (excl::char-codeset character))))
 	 (escapement-x (tk::char-width x-font index))
 	 (escapement-y 0)
 	 (origin-x 0)
@@ -885,37 +887,76 @@
     (values index x-font escapement-x escapement-y
 	    origin-x origin-y bb-x bb-y)))
 
+(defvar *trying-fallback* nil)
 
-(defmethod text-style-mapping :around ((port xt-port) text-style
-				       &optional (character-set *standard-character-set*) etc)
-  (declare (ignore etc))
-  (let ((font (call-next-method)))
-    (when (or (stringp font) (symbolp font))
-      (let* ((font-name (string font)))
-	(setf font
+(defmethod find-named-font ((port xt-port) name character-set)
+  (with-slots (font-cache) port
+    (or (gethash name font-cache)
+	(setf (gethash name font-cache)
 	  (handler-case
 	      (make-instance 'tk::font
 			     :display (port-display port)
-			     :name font-name)
+			     :name name)
 	    (error ()
-	      ;; fix this properly with iaclim merge - ie use
-	      ;; font-cache and fallback font
-	      ;; rebinding *error-output* prevents recursive errors
-	      ;; when it is a CLIM stream
-	      (let ((*error-output* excl:*initial-terminal-io*))
-		(warn "Failed to open font ~S, trying ~S" font-name *xt-fallback-font*))
-	      (make-instance 'tk::font
-			     :display (port-display port)
-			     :name *xt-fallback-font*))))
-	(setf (text-style-mapping port (parse-text-style text-style) character-set)
-	      font)))
-    font))
+	      (if *trying-fallback*
+		  (error "Failed to open fallback ~S" name)
+		(let ((*trying-fallback* t)
+		      ;; rebinding *error-output* prevents recursive
+		      ;; errors when *error-output* is a CLIM stream
+		      (*error-output* excl:*initial-terminal-io*))
+		  (warn "Failed to open font ~S, trying fallback" name)
+		  (text-style-mapping
+		   port *undefined-text-style* character-set)))))))))
+
+#-ics
+(defmethod text-style-mapping :around
+	   ((port xt-port) text-style
+	    &optional (character-set *standard-character-set*) window)
+  (let ((mapping (call-next-method)))
+    (if (stringp mapping)
+	(setf (text-style-mapping port text-style character-set)
+	  (find-named-font port mapping character-set))
+      mapping)))
+
+#+ics
+(defconstant +codesets+ 4)
+
+#+ics
+(defmethod text-style-mapping :around
+	   ((port xt-port) text-style
+	    &optional (character-set *standard-character-set*) window)
+  (if character-set
+      (let ((mapping (call-next-method)))
+	(if (stringp mapping)
+	    (setf (text-style-mapping port text-style character-set)
+	      (find-named-font port mapping character-set))
+	  mapping))
+    (let ((mappings nil))
+      (dotimes (c +codesets+)
+	(let ((mapping (text-style-mapping port text-style c window)))
+	  (when mapping
+	    (push (cons c mapping) mappings))))
+      (reverse mappings))))
+
+#+ics
+(defmethod font-set-from-font-list ((port xt-port) font-list)
+  (let ((name ""))
+    (dolist (item font-list)
+      (setq name
+	(concatenate 'string
+	  (tk::font-name (cdr item)) "," name)))
+    (with-slots (font-cache) port
+      (setq font-list
+	(or (gethash name font-cache)
+	    (setf (gethash name font-cache)
+	      (make-instance 'tk::font-set
+		:display (port-display port)
+		:base-names name)))))))
 
 (defmethod change-widget-geometry (parent child &rest args)
   (declare (ignore parent))
   ;; In this case let the parent deal with it
   (apply #'tk::set-values child args))
-
 
 (defmethod change-widget-geometry :around (parent child &key x y width height)
   (declare (ignore parent))
@@ -1340,21 +1381,10 @@
    (let ((spec (read-from-string text-style)))
      (if (consp spec)
 	 (parse-text-style spec)
-       (let ((font-name (or (and (stringp spec) spec)
-			    text-style)))
-
-	 ;; device fonts should be cached - cos otherwise this is
-	 ;; very inefficient if the server doesn't notice that it's
-	 ;; the same font name (cim 1/7/94)
-	 ;; in fact it's so bad - let's not support them till this is
-	 ;; fixed
-	 (error "Named fonts not supported")
-	 #+ignore
-	 (silica::make-device-font port
-				   (make-instance 'tk::font
-				     :display display
-				     :name (car (tk::list-font-names
-						 display font-name)))))))))
+       (let ((font-name (if (stringp spec)
+			    spec
+			  text-style)))
+	 (silica::make-device-font port font-name))))))
 
 ;;;--- Gadget activation deactivate
 
@@ -1367,8 +1397,6 @@
 ;; No longer a protocol function, but we need it internally
 (defmethod port-force-output ((port xt-port))
   (x11:xflush (port-display port)))
-
-
 
 
 ;;; Tricky ground ahead!

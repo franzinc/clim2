@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.86 1995/05/17 19:50:15 colin Exp $
+;; $fiHeader: xt-graphics.lisp,v 1.87 1995/10/17 05:03:51 colin Exp $
 
 (in-package :tk-silica)
 
@@ -1513,6 +1513,95 @@
 			      string-or-char x y start end
 			      align-x align-y
 			      towards-x towards-y transform-glyphs)
+  (let* ((port (port medium))
+	 (sheet (medium-sheet medium))
+	 (transform (sheet-device-transformation sheet))
+	 (text-style (medium-merged-text-style medium))
+	 (string (string string-or-char)))
+
+    ;;--rounding errors?
+    (transform-positions transform x y)
+    (when (and towards-x towards-y)
+      (transform-positions transform towards-x towards-y))
+
+    (multiple-value-bind (width height last-x last-y baseline)
+	(text-size sheet string :text-style text-style :start start :end end)
+      (declare (ignore last-x))
+      (unless (zerop last-y)
+	(error "Attempting to draw multi-line using ~S" 'medium-draw-text*))
+
+      (ecase align-x
+	(:right
+	 (let ((dx width))
+	   (when towards-x (decf towards-x dx))
+	   (decf x dx)))
+	(:center
+	 (let ((dx (floor width 2)))
+	   (when towards-x (decf towards-x dx))
+	   (decf x dx)))
+	(:left nil))
+
+      (ecase align-y
+	(:bottom
+	 (let ((dy (- height baseline)))
+	   (decf y dy)
+	   (when towards-y (decf towards-y dy))))
+	(:center
+	 (let ((dy (- (floor height 2)
+		      baseline)))
+	   (decf y dy)
+	   (when towards-y (decf towards-y dy))))
+	(:baseline nil)
+	(:top
+	 (when towards-y (incf towards-y baseline))
+	 (incf y baseline))))
+
+    (let ((y-factor 0)
+	  (x-factor 1))
+      (when (and towards-x towards-y)
+	(let ((alpha (atan (- towards-y y) (- towards-x x))))
+	  (setq y-factor (sin alpha) x-factor (cos alpha))))
+
+      (flet ((process-element (codeset start end)
+	       (let ((drawable (medium-drawable medium))
+		     (font (text-style-mapping port text-style codeset))
+		     (width (text-size sheet string :text-style text-style
+				       :start start :end end)))
+		 (when drawable
+		   (fix-coordinates x y)
+		   (discard-illegal-coordinates medium-draw-text* x y)
+		   (let ((gc (adjust-ink
+			      (decode-ink (medium-ink medium) medium)
+			      medium
+			      x
+			      (- y (tk::font-ascent font)))))
+		     (setf (tk::gcontext-font gc) font)
+		     (if (and towards-x towards-y)
+			 (if (tk::font-range font)
+			     (port-draw-rotated-text port drawable gc x y string start end
+						     font towards-x towards-y transform-glyphs)
+			   (let ((*error-output* excl:*initial-terminal-io*))
+			     (warn "Cannot rotate 16-bit font ~A" font)))
+		       (#+ics tk::draw-string16
+			#-ics tk::draw-string
+			drawable gc
+			x y
+			string start end))))
+		 (let ((dx (* width x-factor))
+		       (dy (* width y-factor)))
+		   (incf x dx)
+		   (incf y dy)
+		   (when towards-x (incf towards-x dx))
+		   (when towards-y (incf towards-y dy))))))
+	(declare (dynamic-extent #'process-element))
+	(tk::partition-compound-string string #'process-element
+				       :start start :end end)))))
+
+#| pre ICS
+(defmethod medium-draw-text* ((medium xt-medium)
+			      string-or-char x y start end
+			      align-x align-y
+			      towards-x towards-y transform-glyphs)
   (declare (optimize (speed 3) (safety 0)))
   (let ((drawable (medium-drawable medium)))
     (when drawable
@@ -1581,6 +1670,7 @@
 	     gc
 	     x y
 	     string-or-char start end)))))))
+|#
 
 (defmethod medium-text-bounding-box ((medium xt-medium)
 				     string x y start end align-x

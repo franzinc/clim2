@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xlib.lisp,v 1.53 1995/05/17 19:49:36 colin Exp $
+;; $fiHeader: xlib.lisp,v 1.54 1995/10/17 05:03:10 colin Exp $
 
 (in-package :tk)
 
@@ -193,12 +193,13 @@
   (with-ref-par ((type-ref 0))
     (let ((xrmvalue (x11:make-xrmvalue)))
       (unless (zerop (x11:xrmgetresource db
-					 name
-					 class
+					 #+ics (fat-string-to-string8 name)
+					 #-ics name
+					 #+ics (fat-string-to-string8 class)
+					 #-ics class
 					 type-ref xrmvalue))
 	(let ((type (char*-to-string (aref type-ref 0))))
 	  (values
-
 	   (cond
 	    ((equal type "String")
 	     (char*-to-string (x11:xrmvalue-addr xrmvalue)))
@@ -250,12 +251,12 @@
 	    serial current-serial request-code minor-code
 	    (when (< 1 request-code 128)
 	      (let ((request-cstring (princ-to-string request-code))
-		    (s (make-string 1000)))
+		    (s (excl::malloc 1000)))
 		(x11:xgeterrordatabasetext display "XRequest" request-cstring
 					   0 s 1000)
-		(let ((n (position (cltl1::int-char 0) s)))
-		  (when n (setq s (subseq s 0 n))))
-		s))
+		(prog1
+		    (ff:char*-to-string s)
+		  (excl::free s))))
 	    resourceid)))
 
 (defun-c-callable x-error-handler ((display :unsigned-long) (event :unsigned-long))
@@ -285,11 +286,11 @@
   (error 'x-connection-lost :display display))
 
 (defun get-error-text (code display-handle)
-  (let ((s (make-string 1000)))
+  (let ((s (excl::malloc 1000)))
     (x11::xgeterrortext display-handle code s 1000)
-    (let ((n (position (cltl1::int-char 0) s)))
-      (when n (setq s (subseq s 0 n))))
-    s))
+    (prog1
+	(ff:char*-to-string s)
+      (excl::free s))))
 
 (defvar *x-error-handler-address*
     (register-function 'x-error-handler))
@@ -373,7 +374,8 @@
     (unless (zerop (x11:xlookupcolor
 		    (object-display colormap)
 		    colormap
-		    name
+		    #+ics (fat-string-to-string8 name)
+		    #-ics name
 		    exact
 		    closest))
       (values (make-instance 'color :foreign-address exact)
@@ -384,7 +386,8 @@
     (unless (zerop (x11:xparsecolor
 		    (object-display colormap)
 		    colormap
-		    name
+		    #+ics (fat-string-to-string8 name)
+		    #-ics name
 		    exact))
       (values (make-instance 'color :foreign-address exact)))))
 

@@ -1,7 +1,7 @@
 
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: classes.lisp,v 1.35 1993/07/22 15:38:45 cer Exp $
+;; $fiHeader: classes.lisp,v 1.36 1995/05/17 19:49:04 colin Exp $
 
 (in-package :silica)
 
@@ -38,10 +38,20 @@
      (medium-cache :initform nil :accessor port-medium-cache)
      (default-palette :reader port-default-palette)
      (pointer :initform nil)
-     (mapping-table :initform (make-hash-table :test #'equal))
-     (mapping-cache :initform (cons nil nil))	;one entry cache
-     (undefined-text-style :initform *undefined-text-style*
-			   :accessor port-undefined-text-style)
+     (mapping-table :initform 
+		    #+ics (let ((v (make-array 4)))
+			    (dotimes (i 4)
+			      (setf (svref v i) 
+				(make-hash-table :test #'equal)))
+			    v)
+		    #-ics (make-hash-table :test #'equal))
+     (mapping-cache :initform  
+		    #+ics (let ((v (make-array 4)))
+			    (dotimes (i 4)
+			      (setf (svref v i) 
+				(cons nil nil)))
+			    v)
+		    #-ics (cons nil nil)) ;one entry cache
      ;; When this is true, the text style to device font mapping is done
      ;; loosely.  That is, the actual screen size of the font need not be
      ;; exactly what the user has asked for.  Instead the closest fit is

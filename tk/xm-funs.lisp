@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-funs.lisp,v 1.15 1994/12/05 00:01:20 colin Exp $
+;; $fiHeader: xm-funs.lisp,v 1.16 1995/10/17 05:03:15 colin Exp $
 
 ;;
 ;; This file contains compile time only code -- put in clim-debug.fasl.
@@ -33,6 +33,20 @@
     :call-direct t
     :callback nil
     :arguments '(foreign-address foreign-address)
+    :return-type :unsigned-integer)
+
+(defforeign 'xm_string_concat
+    :entry-point (ff:convert-to-lang "XmStringConcat")
+    :call-direct t
+    :callback nil
+    :arguments '(foreign-address foreign-address)
+    :return-type :unsigned-integer)
+
+(defforeign 'xm_string_copy
+    :entry-point (ff:convert-to-lang "XmStringCopy")
+    :call-direct t
+    :callback nil
+    :arguments '(foreign-address)
     :return-type :unsigned-integer)
 
 (defforeign 'xm_string_get_l_to_r

@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: x11 -*-
 ;;; (c) Copyright  1990 Sun Microsystems, Inc.  All Rights Reserved.
-;; 
+;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
 ;;
@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;;; $fiHeader: xlib-defs.lisp,v 1.7 1993/07/27 01:59:18 colin Exp $
+;;; $fiHeader: xlib-defs.lisp,v 1.8 1994/12/05 00:02:44 colin Exp $
 
 ;;      (c) Copyright 1989, 1990, 1991 Sun Microsystems, Inc. Sun design
 ;;      patents pending in the U.S. and foreign countries. OPEN LOOK is a
@@ -54,16 +54,16 @@
 ;;;
 ;;; All of the C identifiers have been converted to Lisp style identifiers: embedded
 ;;; underscores have been converted to dashes and all characters have been (effectively)
-;;; uppercased.  This led to one collision: the #defined constant Above collided with 
+;;; uppercased.  This led to one collision: the #defined constant Above collided with
 ;;; the slots called above in xconfigurerequestevent and xconfigureevent.  The Above
 ;;; constant was renamed "was-called-above"; its value is 0.
 ;;;
 ;;; The organization of this file should roughly follow the organization of Xlib.h (which
 ;;; #includes X.h).  Near the top of the file is a set of extensions and convienence
 ;;; functions that have been added locally.
-;;; 
+;;;
 ;;; LOADING:
-;;; This file depends on ffi.lisp. After ffi.lisp and this file load the X11 library: 
+;;; This file depends on ffi.lisp. After ffi.lisp and this file load the X11 library:
 ;;; (FFI:load-foreign-libraries nil '("-X11" "-lm" "-lc")
 ;;;
 ;;; HISTORY:
@@ -72,8 +72,8 @@
 ;;; 5-30-89 - Hans Muller, hmuller@sun.COM, Now only export names without a leading
 ;;; underscore.  Export structure constructor, predicate, accessors.
 ;;;
-;;; 11-20-89 - Hans Muller, hmuller@sun.COM. The drawing functions have been segregated 
-;;; and moved to the end of the file, :fixnum types have been substituted where possible.  
+;;; 11-20-89 - Hans Muller, hmuller@sun.COM. The drawing functions have been segregated
+;;; and moved to the end of the file, :fixnum types have been substituted where possible.
 ;;; Added an XDrawChar function.  These changes yielded about an 8X speedup over
 ;;; the original definitions.
 ;;;
@@ -81,10 +81,10 @@
 ;;; manager from Xresource.h.
 ;;;
 ;;; BUGS:
-;;; - Most of the C preprocessor macros where not translated.  A list of all of the 
+;;; - Most of the C preprocessor macros where not translated.  A list of all of the
 ;;;   untranslated macros appears at the end of this file.  Most of them could
 ;;;   be translated into comparable Lisp macros.
-;;; 
+;;;
 ;;; - Structure slots whose type is :pointer :pointer are probably C function pointers.
 ;;;   A synonym type should be used instead.
 ;;;
@@ -97,7 +97,7 @@
 ;; (exports moved to pkg.lisp -- jdi)
 
 
-;;; Above is renamed here to avoid colliding with the slots called above 
+;;; Above is renamed here to avoid colliding with the slots called above
 ;;; in xconfigurerequestevent and xconfigureevent.
 
 (def-exported-constant was-called-above 0)             ;; #define Above   0
@@ -404,7 +404,7 @@
 (def-exported-constant retainpermanent 1)              ;; #define RetainPermanent         1
 (def-exported-constant retaintemporary 2)              ;; #define RetainTemporary         2
 (def-exported-constant reverttoparent 2)               ;; #define RevertToParent 	2
-(def-exported-constant reverttopointerroot 1)          ;; #define RevertToPointerRoot (int)PointerRoot 
+(def-exported-constant reverttopointerroot 1)          ;; #define RevertToPointerRoot (int)PointerRoot
 (def-exported-constant reverttonone 0)                 ;; #define RevertToNone 	(int)None
 (def-exported-constant screensaveractive 1)            ;; #define ScreenSaverActive 1
 (def-exported-constant screensaverreset 0)             ;; #define ScreenSaverReset 0
@@ -613,11 +613,11 @@
 
 
 (def-exported-foreign-synonym-type xid unsigned-long)
-(def-exported-foreign-synonym-type window xid)    
-(def-exported-foreign-synonym-type drawable xid)  
-(def-exported-foreign-synonym-type font xid)      
-(def-exported-foreign-synonym-type pixmap xid)    
-(def-exported-foreign-synonym-type cursor xid)    
+(def-exported-foreign-synonym-type window xid)
+(def-exported-foreign-synonym-type drawable xid)
+(def-exported-foreign-synonym-type font xid)
+(def-exported-foreign-synonym-type pixmap xid)
+(def-exported-foreign-synonym-type cursor xid)
 (def-exported-foreign-synonym-type colormap xid)
 (def-exported-foreign-synonym-type gcontext xid)
 (def-exported-foreign-synonym-type keysym xid)
@@ -627,6 +627,8 @@
 (def-exported-foreign-synonym-type time unsigned-long)
 (def-exported-foreign-synonym-type keycode unsigned-char)
 
+#+ics
+(def-exported-foreign-synonym-type xfontset unsigned-long)
 
 (def-exported-foreign-synonym-type fixnum-drawable :fixnum)
 (def-exported-foreign-synonym-type fixnum-int :fixnum)
@@ -705,8 +707,8 @@
   (map-entries :type int))
 
 (def-exported-foreign-struct depth
-  (depth :type int) 
-  (nvisuals :type int) 
+  (depth :type int)
+  (nvisuals :type int)
   (visuals :type (:pointer visual)))
 
 (def-exported-foreign-struct screen
@@ -780,8 +782,8 @@
   (screen :type (:pointer screen)))
 
 (def-exported-foreign-struct xhostaddress
-  (family :type int) 
-  (length :type int) 
+  (family :type int)
+  (length :type int)
   (address :type (:pointer char)))
 
 (def-exported-foreign-struct funcs
@@ -829,13 +831,13 @@
   (pad :type unsigned-char))
 
 (def-exported-foreign-struct (xsegment :array)
-  (x1 :type short) 
-  (y1 :type short) 
-  (x2 :type short) 
+  (x1 :type short)
+  (y1 :type short)
+  (x2 :type short)
   (y2 :type short))
 
 (def-exported-foreign-struct (xpoint :array)
-  (x :type short) 
+  (x :type short)
   (y :type short))
 
 (def-exported-foreign-struct (xrectangle :array)
@@ -872,12 +874,12 @@
   (auto-repeats :type (:array char (32))))
 
 (def-exported-foreign-struct xtimecoord
-  (time :type time) 
-  (x :type short) 
+  (time :type time)
+  (x :type short)
   (y :type short))
 
 (def-exported-foreign-struct xmodifierkeymap
-  (max-keypermod :type int) 
+  (max-keypermod :type int)
   (modifiermap :type (:pointer keycode)))
 
 (def-exported-foreign-struct display
@@ -1341,7 +1343,7 @@
 (def-exported-foreign-synonym-type _xevent xevent)
 
 (def-exported-foreign-struct _xqevent
-  (next :type (:pointer _xsqevent)) 
+  (next :type (:pointer _xsqevent))
   (event :type xevent))
 
 (def-exported-foreign-synonym-type _xsqevent _xqevent)
@@ -1355,7 +1357,7 @@
   (attributes :type unsigned-short))
 
 (def-exported-foreign-struct xfontprop
-  (name :type atom) 
+  (name :type atom)
   (card32 :type unsigned-long))
 
 (def-exported-foreign-struct xfontstruct
@@ -1383,7 +1385,7 @@
   (font :type font))
 
 (def-exported-foreign-struct xchar2b
-  (byte1 :type unsigned-char) 
+  (byte1 :type unsigned-char)
   (byte2 :type unsigned-char))
 
 (def-exported-foreign-struct xtextitem16
@@ -1421,12 +1423,14 @@ typedef union { Display *display;
 (def-exported-foreign-synonym-type xrmrepresentation xrmquark)
 
 (def-exported-foreign-struct xrmvalue
-  (size :type unsigned-int) 
+  (size :type unsigned-int)
   (addr :type caddr-t))
 (def-exported-foreign-synonym-type xrmvalueptr (:pointer xrmvalue))
 
 (def-exported-foreign-synonym-type xrmsearchlist int)
 (def-exported-foreign-synonym-type xrmdatabase int)
+#+ics (def-exported-foreign-synonym-type xim int)
+#+ics (def-exported-foreign-synonym-type xic int)
 
 
 (defconstant XrmoptionNoArg 0)
@@ -1462,17 +1466,17 @@ typedef union { Display *display;
 (def-exported-constant inputhint 1)          ;; #define InputHint        (1L << 0)
 (def-exported-constant statehint 2)          ;; #define StateHint        (1L << 1)
 (def-exported-constant iconpixmaphint 4)     ;; #define IconPixmapHint   (1L << 2)
-(def-exported-constant iconwindowhint 8)     ;; #define IconWindowHint   (1L << 3) 
+(def-exported-constant iconwindowhint 8)     ;; #define IconWindowHint   (1L << 3)
 (def-exported-constant iconpositionhint 16)  ;; #define IconPositionHint (1L << 4)
 (def-exported-constant iconmaskhint 32)      ;; #define IconMaskHint     (1L << 5)
 (def-exported-constant windowgrouphint 64)   ;; #define WindowGroupHint  (1L << 6)
 
-(def-exported-constant WithdrawnState 0)     ;; #define WithdrawnState 0	
-(def-exported-constant NormalState 1)        ;; #define NormalState 1	
-(def-exported-constant IconicState 3)        ;; #define IconicState 3	
-(def-exported-constant DontCareState 0)      ;; #define DontCareState 0	
-(def-exported-constant ZoomState 2)          ;; #define ZoomState 2	
-(def-exported-constant InactiveState 4)      ;; #define InactiveState 4	
+(def-exported-constant WithdrawnState 0)     ;; #define WithdrawnState 0
+(def-exported-constant NormalState 1)        ;; #define NormalState 1
+(def-exported-constant IconicState 3)        ;; #define IconicState 3
+(def-exported-constant DontCareState 0)      ;; #define DontCareState 0
+(def-exported-constant ZoomState 2)          ;; #define ZoomState 2
+(def-exported-constant InactiveState 4)      ;; #define InactiveState 4
 
 (def-exported-foreign-struct xsizehints
   (flags :type long)
@@ -1520,57 +1524,57 @@ typedef union { Display *display;
 ;;; Untranslated C preprocessor #define statements
 #|
 
-#define MinCmapsOfScreen(s) ((s)->min_maps) 
-#define DoesSaveUnders(s) ((s)->save_unders) 
-#define EventMaskOfScreen(s) ((s)->root_input_mask) 
-#define ScreenCount(dpy) 	((dpy)->nscreens) 
-#define HeightOfScreen(s) ((s)->height) 
-#define RootWindowOfScreen(s) ((s)->root) 
-#define BitmapUnit(dpy) 	((dpy)->bitmap_unit) 
-#define MaxCmapsOfScreen(s) ((s)->max_maps) 
-#define ProtocolVersion(dpy) 	((dpy)->proto_major_version) 
-#define DoesBackingStore(s) ((s)->backing_store) 
-#define WhitePixel(dpy, scr) 	(((dpy)->screens[(scr)]).white_pixel) 
-#define PlanesOfScreen(s) ((s)->root_depth) 
-#define DefaultGC(dpy, scr) 	(((dpy)->screens[(scr)]).default_gc) 
-#define DefaultScreen(dpy) 	((dpy)->default_screen) 
-#define DisplayHeightMM(dpy, scr) (((dpy)->screens[(scr)]).mheight) 
-#define WidthMMOfScreen(s) ((s)->mwidth) 
-#define DisplayWidthMM(dpy, scr) (((dpy)->screens[(scr)]).mwidth) 
-#define ConnectionNumber(dpy) 	((dpy)->fd) 
-#define ProtocolRevision(dpy) 	((dpy)->proto_minor_version) 
-#define RootWindow(dpy, scr) 	(((dpy)->screens[(scr)]).root) 
-#define DefaultScreenOfDisplay(dpy) (&((dpy)->screens[(dpy)->default_screen])) 
-#define ScreenOfDisplay(dpy, scr) (&((dpy)->screens[(scr)])) 
-#define XAllocID(dpy) ((*(dpy)->resource_alloc)((dpy))) 
-#define BitmapPad(dpy) 		((dpy)->bitmap_pad) 
-#define VendorRelease(dpy) 	((dpy)->release) 
-#define DefaultDepth(dpy, scr) 	(((dpy)->screens[(scr)]).root_depth) 
-#define ServerVendor(dpy) 	((dpy)->vendor) 
-#define DefaultDepthOfScreen(s) ((s)->root_depth) 
-#define DisplayPlanes(dpy, scr) (((dpy)->screens[(scr)]).root_depth) 
-#define DisplayWidth(dpy, scr) 	(((dpy)->screens[(scr)]).width) 
-#define DisplayOfScreen(s) ((s)->display) 
-#define DefaultColormap(dpy, scr) (((dpy)->screens[(scr)]).cmap) 
-#define BlackPixel(dpy, scr) 	(((dpy)->screens[(scr)]).black_pixel) 
-#define HeightMMOfScreen(s) ((s)->mheight) 
-#define DefaultVisualOfScreen(s) ((s)->root_visual) 
-#define BitmapBitOrder(dpy) 	((dpy)->bitmap_bit_order) 
-#define LastKnownRequestProcessed(dpy) ((dpy)->last_request_read) 
-#define DisplayHeight(dpy, scr) (((dpy)->screens[(scr)]).height) 
-#define NextRequest(dpy) ((dpy)->request + 1) 
-#define DefaultVisual(dpy, scr) (((dpy)->screens[(scr)]).root_visual) 
-#define BlackPixelOfScreen(s) ((s)->black_pixel) 
-#define ImageByteOrder(dpy) 	((dpy)->byte_order) 
-#define DisplayCells(dpy, scr) 	(DefaultVisual((dpy), (scr))->map_entries) 
-#define DefaultColormapOfScreen(s) ((s)->cmap) 
-#define CellsOfScreen(s) (DefaultVisualOfScreen((s))->map_entries) 
-#define WidthOfScreen(s) ((s)->width) 
-#define DefaultGCOfScreen(s) ((s)->default_gc) 
-#define DefaultRootWindow(dpy) 	(((dpy)->screens[(dpy)->default_screen]).root) 
-#define AllPlanes 		(~0) 
-#define DisplayString(dpy) 	((dpy)->display_name) 
-#define QLength(dpy) 		((dpy)->qlen) 
-#define WhitePixelOfScreen(s) ((s)->white_pixel) 
+#define MinCmapsOfScreen(s) ((s)->min_maps)
+#define DoesSaveUnders(s) ((s)->save_unders)
+#define EventMaskOfScreen(s) ((s)->root_input_mask)
+#define ScreenCount(dpy) 	((dpy)->nscreens)
+#define HeightOfScreen(s) ((s)->height)
+#define RootWindowOfScreen(s) ((s)->root)
+#define BitmapUnit(dpy) 	((dpy)->bitmap_unit)
+#define MaxCmapsOfScreen(s) ((s)->max_maps)
+#define ProtocolVersion(dpy) 	((dpy)->proto_major_version)
+#define DoesBackingStore(s) ((s)->backing_store)
+#define WhitePixel(dpy, scr) 	(((dpy)->screens[(scr)]).white_pixel)
+#define PlanesOfScreen(s) ((s)->root_depth)
+#define DefaultGC(dpy, scr) 	(((dpy)->screens[(scr)]).default_gc)
+#define DefaultScreen(dpy) 	((dpy)->default_screen)
+#define DisplayHeightMM(dpy, scr) (((dpy)->screens[(scr)]).mheight)
+#define WidthMMOfScreen(s) ((s)->mwidth)
+#define DisplayWidthMM(dpy, scr) (((dpy)->screens[(scr)]).mwidth)
+#define ConnectionNumber(dpy) 	((dpy)->fd)
+#define ProtocolRevision(dpy) 	((dpy)->proto_minor_version)
+#define RootWindow(dpy, scr) 	(((dpy)->screens[(scr)]).root)
+#define DefaultScreenOfDisplay(dpy) (&((dpy)->screens[(dpy)->default_screen]))
+#define ScreenOfDisplay(dpy, scr) (&((dpy)->screens[(scr)]))
+#define XAllocID(dpy) ((*(dpy)->resource_alloc)((dpy)))
+#define BitmapPad(dpy) 		((dpy)->bitmap_pad)
+#define VendorRelease(dpy) 	((dpy)->release)
+#define DefaultDepth(dpy, scr) 	(((dpy)->screens[(scr)]).root_depth)
+#define ServerVendor(dpy) 	((dpy)->vendor)
+#define DefaultDepthOfScreen(s) ((s)->root_depth)
+#define DisplayPlanes(dpy, scr) (((dpy)->screens[(scr)]).root_depth)
+#define DisplayWidth(dpy, scr) 	(((dpy)->screens[(scr)]).width)
+#define DisplayOfScreen(s) ((s)->display)
+#define DefaultColormap(dpy, scr) (((dpy)->screens[(scr)]).cmap)
+#define BlackPixel(dpy, scr) 	(((dpy)->screens[(scr)]).black_pixel)
+#define HeightMMOfScreen(s) ((s)->mheight)
+#define DefaultVisualOfScreen(s) ((s)->root_visual)
+#define BitmapBitOrder(dpy) 	((dpy)->bitmap_bit_order)
+#define LastKnownRequestProcessed(dpy) ((dpy)->last_request_read)
+#define DisplayHeight(dpy, scr) (((dpy)->screens[(scr)]).height)
+#define NextRequest(dpy) ((dpy)->request + 1)
+#define DefaultVisual(dpy, scr) (((dpy)->screens[(scr)]).root_visual)
+#define BlackPixelOfScreen(s) ((s)->black_pixel)
+#define ImageByteOrder(dpy) 	((dpy)->byte_order)
+#define DisplayCells(dpy, scr) 	(DefaultVisual((dpy), (scr))->map_entries)
+#define DefaultColormapOfScreen(s) ((s)->cmap)
+#define CellsOfScreen(s) (DefaultVisualOfScreen((s))->map_entries)
+#define WidthOfScreen(s) ((s)->width)
+#define DefaultGCOfScreen(s) ((s)->default_gc)
+#define DefaultRootWindow(dpy) 	(((dpy)->screens[(dpy)->default_screen]).root)
+#define AllPlanes 		(~0)
+#define DisplayString(dpy) 	((dpy)->display_name)
+#define QLength(dpy) 		((dpy)->qlen)
+#define WhitePixelOfScreen(s) ((s)->white_pixel)
 
 |#

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: text-style.lisp,v 1.21 1993/08/19 20:10:16 smh Exp $
+;; $fiHeader: text-style.lisp,v 1.22 1994/12/05 00:00:31 colin Exp $
 
 (in-package :silica)
 
@@ -14,7 +14,7 @@
 
 (defclass standard-text-style (text-style)
      ((family :initarg :family :initform nil :reader text-style-family)
-      (face   :initarg :face   :initform nil :reader text-style-face-code)
+      (face   :initarg :face   :initform nil)
       (size   :initarg :size   :initform nil :reader text-style-size)
       (index  :initarg :index  :initform nil)))
 
@@ -35,19 +35,9 @@
     `(make-text-style ,family ,face ,size)))
 
 (defmethod print-object ((style standard-text-style) stream)
-  (with-slots (family face size) style
-    (let ((true-face (face-code->face face)))
-      #+Genera
-      (when *print-readably*
-	(format stream "#.(~S ~S)" 'parse-text-style
-		`'(,family ,true-face ,size))
-	(return-from print-object style))
-      (macrolet ((do-it ()
-		   `(format stream "~S.~S.~S" family true-face size)))
-	(if *print-escape*
-	    (print-unreadable-object (style stream :type t :identity t)
-	      (do-it))
-	    (do-it))))))
+  (print-unreadable-object (style stream :type t :identity t)
+    (with-slots (family face size) style
+      (format stream "~S ~S ~S" family  (face-code->face face) size))))
 
 (defclass device-font ()
      ((display-device :initarg :display-device :reader device-font-display-device)
@@ -60,38 +50,36 @@
   (print-unreadable-object (df stream :type t :identity t)
     (format stream "~A" (slot-value df 'font-name))))
 
-(defconstant maximum-text-style-index 256)	;Why not?  That's the Genera maximum
+(defconstant +maximum-text-style-index+ 256)
 
-(defvar *standard-character-set* nil)		;Not really used yet.
+(defvar *standard-character-set* 0)
 
 (defvar *null-text-style*)
 (defvar *undefined-text-style*)
+(defvar *default-text-style*)
+
 (defvar *text-style-index-table*)
 (defvar *next-text-style-index*)
 (defvar *text-style-intern-table*)
 (defvar *text-style-merging-cache*)
-(defvar *default-text-style*)
 
 (defun initialize-text-style-tables ()
   (setf *null-text-style* (make-text-style-1 nil nil nil 0)
-	*undefined-text-style* 
-	  (make-text-style-1 (make-symbol (symbol-name 'undefined)) nil nil 1)
 	*next-text-style-index* 2
 	*text-style-index-table*
-	  (make-array maximum-text-style-index 
-		      :initial-element *undefined-text-style*)
+	  (make-array +maximum-text-style-index+
+		      :initial-element *null-text-style*)
 	*text-style-intern-table*
 	  (copy-tree `((nil . ((nil . ((nil . ,*null-text-style*)))))))
 	(aref *text-style-index-table* 0) *null-text-style*
 	*text-style-merging-cache*
-	  (make-array (* maximum-text-style-index 10)
-		      :element-type `(integer 0 (,maximum-text-style-index))
+	  (make-array (* +maximum-text-style-index+ 10)
+		      :element-type `(integer 0 (,+maximum-text-style-index+))
 		      :initial-element 0)
 	*default-text-style*
-	  (make-text-style :fix :roman :normal)
+	(make-text-style :fix :roman :normal)
 	*undefined-text-style*
-	  (make-text-style :stand-in-for-undefined-style :roman :normal))
-  *null-text-style*)
+	(make-text-style :undefined :roman 10)))
 
 (defmethod parse-text-style ((text-style standard-text-style))
   text-style)
@@ -119,7 +107,7 @@
   (unless (numberp face)
     (setf original-face face
 	  face (face->face-code face)))		;"Intern" the face code.
-  (loop 
+  (loop
     (let* ((family-stuff (assoc family *text-style-intern-table*))
 	   (face-stuff (and family-stuff (assoc face (cdr family-stuff))))
 	   (size-stuff (and face-stuff (assoc size (cdr face-stuff)))))
@@ -141,12 +129,12 @@
 
 (defmethod text-style-index ((text-style standard-text-style))
   (let ((index (slot-value text-style 'index)))
-    (when index 
+    (when index
       (return-from text-style-index index))
     (let* ((new-index (with-lock-held (*text-style-lock* "Text style lock")
 			(prog1 *next-text-style-index*
 			       (incf *next-text-style-index*)))))
-      (when (> new-index maximum-text-style-index)
+      (when (> new-index +maximum-text-style-index+)
 	(error "Too many text style indices; can't assign an index to ~A"
 	       text-style))
       (setf (aref *text-style-index-table* new-index) text-style)
@@ -189,11 +177,11 @@
 
 (defun merge-text-style-indices (index1 index2)
   (when (zerop index1) (return-from merge-text-style-indices index2))
-  (let ((subscript (+ index1 (* index2 maximum-text-style-index))))
+  (let ((subscript (+ index1 (* index2 +maximum-text-style-index+))))
     (when (>= subscript (array-total-size *text-style-merging-cache*))
-      (let ((new (make-array (* (min (+ index2 5) maximum-text-style-index)
-				maximum-text-style-index)
-			     :element-type `(integer 0 (,maximum-text-style-index))
+      (let ((new (make-array (* (min (+ index2 5) +maximum-text-style-index+)
+				+maximum-text-style-index+)
+			     :element-type `(integer 0 (,+maximum-text-style-index+))
 			     :initial-element 0)))
 	(replace new *text-style-merging-cache*)
 	(setq *text-style-merging-cache* new)))
@@ -353,7 +341,7 @@
 			   (return-from face->face-code ;Return an error indication.
 			     (list "Can't parse face ~S in class ~S"
 				   face (car class-alist))))))
-	       ;; Iterate over the ((family . faces) ...) list 
+	       ;; Iterate over the ((family . faces) ...) list
 	       (do ((face-cache *face->face-code-cache* (cdr face-cache))
 		    (class-no 0 (1+ class-no)))
 		   ((null face-cache)
@@ -368,7 +356,7 @@
 		     (return (ash 1 value))))
 		 ;; Otherwise look in the added list
 		 ;; for :bold-italic type stuff
-		 (let* ((added-value-mapping-alist 
+		 (let* ((added-value-mapping-alist
 			 (assoc (caar face-cache) *face-added-text-mapping-cache*))
 			(value (cdr (assoc face (cdr added-value-mapping-alist)))))
 		   (when value
@@ -484,7 +472,7 @@
 	     (multiple-value-bind (index font escapement-x escapement-y
 				   origin-x origin-y bb-x bb-y)
 		 (port-glyph-for-character (port medium) char text-style)
-	       (declare (ignore index font 
+	       (declare (ignore index font
 				escapement-y origin-x origin-y bb-x))
 	       (incf last-x escapement-x)
 	       (maxf largest-x last-x)
@@ -531,7 +519,7 @@
 
 
 (defmacro define-display-device (name class &key font-for-undefined-style)
-  `(defvar ,name (make-instance ',class 
+  `(defvar ,name (make-instance ',class
 		   :name ',name
 		   :font-for-undefined-style ',font-for-undefined-style)))
 
@@ -563,49 +551,67 @@
 		     (otherwise (warn "Ill-formed mapping contains ~S" specs)))
 		   (load-specs family face size rest))
 		 (if (and family face size)
-		     (setf (text-style-mapping 
+		     (setf (text-style-mapping
 			     port (make-text-style family face size) character-set)
 			   specs)
 		     (error "Can't do [~A.~A.~A]" family face size)))))
     (dolist (spec specs)
       (load-specs nil nil nil spec))))
 
-(defmethod (setf text-style-mapping)
-	   (mapping (port basic-port) style 
-	    &optional (character-set *standard-character-set*) window)
+(defmethod port-mapping-table ((port basic-port) character-set)
+  #-ics (declare (ignore character-set))
+  (with-slots (mapping-table) port
+    #-ics mapping-table
+    #+ics (svref mapping-table character-set)))
+
+(defmethod port-mapping-cache ((port basic-port) character-set)
+  #-ics (declare (ignore character-set))
+  (with-slots (mapping-cache) port
+    #-ics mapping-cache
+    #+ics (svref mapping-cache character-set)))
+
+(defmethod (setf text-style-mapping) (mapping (port basic-port) style
+				      &optional (character-set *standard-character-set*)
+						window)
   (declare (ignore window))
-  (setq style (standardize-text-style port style character-set))
+  (setq style (standardize-text-style port (parse-text-style style) character-set))
   (when (listp mapping)
     (assert (eq (first mapping) :style) ()
-	    "Text style mappings must be atomic font names ~
+      "Text style mappings must be atomic font names ~
 	     or (:STYLE . (family face size))")
     (setf mapping (parse-text-style (cdr mapping))))
-  (with-slots (mapping-table allow-loose-text-style-size-mapping mapping-cache) port
-    (without-scheduling
-      (setf (car mapping-cache) nil
-	    (cdr mapping-cache) nil))
-    (if allow-loose-text-style-size-mapping
-	(multiple-value-bind (family face size) (text-style-components style)
-	  (declare (ignore size))
-	  ;; NB: loose size mapping requires an EQUAL hash table!
-	  (with-stack-list (key family face)
-	    (let* ((fonts (gethash key mapping-table))
-		   (old (assoc style fonts)))
-	      (cond (old
-		     (setf (second old) mapping))
-		    (t
-		     (push (list style mapping) fonts)
-		     (setq fonts (sort fonts #'(lambda (e1 e2)
-						 (< (text-style-size (first e1))
-						    (text-style-size (first e2))))))
-		     (setf (gethash (copy-list key) mapping-table) fonts))))))
-	(setf (gethash style mapping-table) mapping))))
+  (with-slots (allow-loose-text-style-size-mapping) port
+    (let ((mapping-table (port-mapping-table port character-set))
+	  (mapping-cache (port-mapping-cache port character-set)))
+      (without-scheduling
+	(setf (car mapping-cache) nil
+	      (cdr mapping-cache) nil))
+      (if allow-loose-text-style-size-mapping
+	  (multiple-value-bind (family face size) (text-style-components style)
+	    (declare (ignore size))
+	    ;; NB: loose size mapping requires an EQUAL hash table!
+	    (with-stack-list (key family face)
+	      (let* ((fonts (gethash key mapping-table))
+		     (old (assoc style fonts)))
+		(cond (old
+		       (setf (second old) mapping))
+		      (t
+		       (push (list style mapping) fonts)
+		       (setq fonts (sort fonts #'(lambda (e1 e2)
+						   (< (text-style-size (first e1))
+						      (text-style-size (first e2))))))
+		       (setf (gethash (copy-list key) mapping-table)
+			 fonts)))
+		mapping)))
+	(setf (gethash style mapping-table) mapping)))))
 
 ;;; This is broken up into two methods so any :AROUND method will only
 ;;; be called on the outermost recursion.
+
 (defmethod text-style-mapping ((port basic-port) style
-			       &optional (character-set *standard-character-set*) window)
-  (let ((mapping-cache (slot-value port 'mapping-cache)))
+			       &optional (character-set *standard-character-set*)
+					 window)
+  (let ((mapping-cache (port-mapping-cache port character-set)))
     (when (eq style (car mapping-cache))
       (return-from text-style-mapping (cdr mapping-cache)))
     (let ((font (text-style-mapping* port style character-set window)))
@@ -614,8 +620,9 @@
 	      (cdr mapping-cache) font))
       font)))
 
-(defmethod text-style-mapping ((port basic-port) (style device-font) 
-			       &optional (character-set *standard-character-set*) window)
+(defmethod text-style-mapping ((port basic-port) (style device-font)
+			       &optional (character-set *standard-character-set*)
+					 window)
   ;;--- What about the character set when using device fonts?
   (declare (ignore character-set window))
   ;;--- EQL? TYPE-EQUAL?  This is too restrictive as it stands
@@ -625,31 +632,33 @@
 	   style port (device-font-display-device style)))
   (device-font-name style))
 
-(defmethod text-style-mapping* ((port basic-port) style 
-				&optional (character-set *standard-character-set*) window)
+(defmethod text-style-mapping* ((port basic-port) style
+				&optional (character-set *standard-character-set*)
+					  window)
   (setq style (standardize-text-style port (parse-text-style style) character-set))
   (let* ((loose (slot-value port 'allow-loose-text-style-size-mapping))
-	 (mapping-table (slot-value port 'mapping-table))
-	 (result 
-	   (or (if loose
-		   (lookup-closest-font style mapping-table)
-		   (gethash style mapping-table))
-	       (if loose
-		   (lookup-closest-font (port-undefined-text-style port) mapping-table)
-		   (gethash (port-undefined-text-style port) mapping-table)))))
-    (when (text-style-p result)			;logical translations
+	 (mapping-table (port-mapping-table port character-set))
+	 (result
+	  (or (if loose
+		  (lookup-closest-font style mapping-table)
+		(gethash style mapping-table))
+	      (if loose
+		  (lookup-closest-font *undefined-text-style* mapping-table)
+		(gethash *undefined-text-style* mapping-table)))))
+    (when (text-style-p result)		;logical translations
       (setf result (text-style-mapping* port result character-set window)))
     result))
 
-(defmethod text-style-mapping-exists-p ((port basic-port) style 
-					&optional (character-set *standard-character-set*)
-						  exact-size-required)
+(defmethod text-style-mapping-exists-p ((port basic-port) style
+					&optional
+					(character-set *standard-character-set*)
+					exact-size-required)
   (setq style (standardize-text-style port (parse-text-style style) character-set))
   (let* ((loose (slot-value port 'allow-loose-text-style-size-mapping))
-	 (mapping-table (slot-value port 'mapping-table))
+	 (mapping-table (port-mapping-table port character-set))
 	 (result (if loose
 		     (lookup-closest-font style mapping-table exact-size-required)
-		     (gethash style mapping-table))))
+		   (gethash style mapping-table))))
     (cond ((null result) nil)
 	  ((text-style-p result)	;logical translations
 	   (text-style-mapping-exists-p port style character-set))
@@ -682,7 +691,7 @@
 
 ;; This method allows the device to convert logical sizes into point
 ;; sizes, etc.  The default method doesn't do much of anything.
-(defmethod standardize-text-style ((port basic-port) style 
+(defmethod standardize-text-style ((port basic-port) style
 				   &optional (character-set *standard-character-set*))
   (declare (ignore character-set))
   (unless (numberp (text-style-size style))
@@ -723,7 +732,8 @@
   #+Genera (si:diacritic-char-p character)
   #-Genera nil)
 
-;;; For now, only standard character set characters are understood...
 (defun-inline char-character-set-and-index (character)
   (declare (values character-set index))
-  (values *standard-character-set* (char-code character)))
+  (values #-ics *standard-character-set*
+	  #+ics (excl::char-codeset character) (char-code character)))
+

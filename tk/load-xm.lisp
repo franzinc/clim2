@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: load-xm.lisp,v 1.32 1995/05/15 07:17:56 duane Exp $
+;; $fiHeader: load-xm.lisp,v 1.34 1995/06/21 21:24:17 georgej Exp $
 
 (in-package :user)
 
@@ -62,5 +62,3 @@
 	  :print t)))
 
 (pushnew :clim-motif *features*)
-
-

@@ -1,0 +1,229 @@
+1. Text Styles and Character Sets
+
+All of the CLIM functions which take string arguments can now take a string
+consisting of characters in any IACL supported codeset. Mixed
+character set strings are allowed
+
+text-style-mapping port style &optional character-set
+(setf text-style-mapping) mapping port style &optional character-set
+
+The optional character-set (which is ignored in non IACL CLIM 2.0) defaults 
+to silica:*standard-character-set* A character-set is an integer from 0 to
+3 inclusive representing the particular codeset. (See IACL release notes
+section 3 for description of various codesets)
+
+Specifying a character-set of nil to text-style-mapping returns a list of
+mappings for all the codesets for which a mapping exists. It is not
+permitted to specify a character-set of nil for (setf text-style-mapping)
+
+CLIM's default mapping from text-styles to fonts can be controlled by
+setting tk-silica:*xt-font-families*
+
+The syntax is of tk-silica:*xt-font-families* is:
+
+((<codeset> <fallback> (<text-family> <X logical font description>)*)*)
+
+The logical font description should be as general as possible. In
+particular it should not specify any face, size or resolution
+information. It can and should specify family and codeset.
+
+The default value for tk-silica:*xt-font-families* is:
+
+((0 "fixed" (:fix "-*-courier-*-*-*-*-*-*-*-*-*-*-*-*")
+  (:sans-serif "-*-helvetica-*-*-*-*-*-*-*-*-*-*-*-*")
+  (:serif "-*-new century schoolbook-*-*-*-*-*-*-*-*-*-*-*-*"
+   "-*-times-*-*-*-*-*-*-*-*-*-*-*-*"))
+ (1 "kanji16" (:fix "-*-*-*-*-*-*-*-*-*-*-*-*-jisx0208.1983-*")
+  (:sans-serif "-*-*-*-*-*-*-*-*-*-*-*-*-jisx0208.1983-*")
+  (:serif "-*-*-*-*-*-*-*-*-*-*-*-*-jisx0208.1983-*"))
+ (2 "kana14" (:fix "-*-*-*-*-*-*-*-*-*-*-*-*-jisx0201.1976-*")
+  (:sans-serif "-*-*-*-*-*-*-*-*-*-*-*-*-jisx0201.1976-*")
+  (:serif "-*-*-*-*-*-*-*-*-*-*-*-*-jisx0201.1976-*")))
+
+Note that there is no default mapping for codeset 3. This is IACL's user
+defined codeset and you must specify suitable mappings if you want to use
+characters in this codeset for CLIM 2.0
+
+2. Kanji server interface
+
+All symbols in this section are exported from the :clim package
+
+IACLIM supports kanji servers which are used by the extended input editor
+to convert from kana to kanji. CLIM uses an abstract object referred to as
+a kanji server which is in many ways similar to a port but rather than
+connecting to a display it represents a connection to kana-kanji
+convertor. Currently the only kanji server supported is an interface to the 
+Wnn Jserver (see next section)
+
+find-kanji-server &rest initargs 
+		  &key (server-path *default-kanji-server-path*)
+		  &allow-other-keys				 [function]
+
+Finds a kanji-server that provides connection to a kana-kanji convertor
+addressed by server-path. If no such connection exists, a new connection
+will be constructed and returned. The initargs in initargs will be passed
+to the function that constructed the new kanji-server
+
+*default-kanji-server-path*
+
+This special variable is used by find-kanji-server to default the choice of 
+kana-kanji convertor used. It's default value is (:jserver) 
+
+destroy-kanji-server kanji-server	[generic function]
+
+Destroys an existing connection to a kana-kanji convertor. CLIM will
+attempt to shutdown the connection in a clean manner.
+
+3. Wnn Jserver Interface
+
+CLIM uses the Wnn jserver to perform kana-kanji conversion. There is
+normally no need for the programmer to call the functions in this
+section. jserver is automatically called by IACLIM's extended input
+editor.
+
+All symbols in this section are exported from the :wnn package
+
+The class of a jserver connection handle. A jserver connection can be made
+by making an instance of the class jserver. Normally this is not done
+directly by application-code. Instead clim:find-kanji-server is called with
+a server type of :jserver. You can control the login, host and lang by
+setting clim:*default-kanji-server-path* eg
+
+	(:jserver :login <login> :host <host> :lang <lang>)
+
+:login is a string specifying the user name. The default is the value of the 
+LOGNAME environment variable
+
+:host is a string specifying the host on which jserver is running. The
+default is the value of the JSERVER environment variable.
+
+:lang is a string specifying what language is to be used. The
+default is the value of the LANG environment variable. If this is not set
+the language "ja_JP" is used.
+
+jserver-login jserver [reader method]
+
+returns the login name associated with a particular jserver connection
+
+jserver-host jserver [reader method]
+
+returns the host name associated with a particular jserver connection
+
+jserver-lang jserver [reader method]
+
+returns the language associated with a particular jserver connection
+
+*jserver-timeout* [parameter]
+
+time in seconds to allow when attempting to make a conncection to a jserver 
+
+henkan-begin jserver yomi
+
+Registers the kana string yomi to be converted to kanji using jserver
+jserver. jserver should be an instance of class jserver. Returns the number 
+of phrases associated with this particular conversion.
+
+henkan-end jserver
+
+This is used when a kanji candidate has been selected for each phrase in
+the currently converted kana. It updates the frequencies associated with
+the particular kanji in the user's dictionary associated with the jserver
+connection. Returns nil
+
+bunsetu-suu jserver [function]
+
+returns then number of kanji phrases associated with the currenly converted 
+kana.
+
+get-kanji jserver bunsetu &optional bunestu-end
+
+returns the kanji associated with one or more phrases given by bunsetu and
+bunsetu-end with the currently converted kana. bunset-end defaults to (1+
+bunsetu), resulting in the kanji for a single phrase to be returned
+
+get-yomi jserver bunsetu &optional bunsetu-end
+
+The same as get-kanji except that it returns the original kana rather than
+the translated kanji
+
+*wnn-unique* [variable]
+
+controls whether the jserver returns duplicate kanji. It can take the
+values nil, :unique and :unique-kanji. The default is :unique-kanji
+
+bunsetu-kouhu-suu jserver bunsetu [function]
+
+Returns the total number of kanji candidates for a particular phrase
+identified by the integer bunsetu
+
+get-kouho-kanji jserver bunsetu kouho &optional set-jikouho
+
+Returns a particular kanji candidate identified by the integer kouho for
+a particular phrase identified by the integer bunsetu. when set-jokouho is
+non-nil the particular candidate is selected so that it will be returned by 
+subsequent calls to get-kanji. The selected candidate will then have the
+frequencies associated with it when the dictionary is updated (see
+henkan-end).
+
+get-zenkouho-kanji jserver bunsetu
+
+Returns a list of all the kanji candidates for a particular phrase
+identified by the integer bunsetu. None are selected.
+
+4. Japanese Extended Input Editor
+
+IACLIM extends CLIM's input editor to handle romaji->kana conversion and to 
+interface with a kanji server for kana->kanji conversion. The current
+version is a much simplified version of Mule's egg-mode (see 6. Limitations)
+
+The following keystrokes are used to control the kana/kanji modes
+
+Control-\	enters romaji->kana conversion mode
+Return		exits romaji->kana conversion mode (no kanji conversion)
+Space		kanji conversion
+
+5. Miscellaneous CLIM functions
+
+All symbols in this section are exported from the :clim package
+
+The following methods provide hooks to allow a Japanese application to use
+Japanese pointer documentation strings
+
+frame-menu-translator-documentation frame [generic-function]
+
+Returns a string to be used as the documentation for the default
+right-button menu translator. A default method is defined for the class
+standard-application-frame which returns the string "Menu"
+
+frame-pointer-buttons-documentation frame [generic-function]
+
+Returns a list of strings to be used in pointer documentation strings to
+identify the various mouse buttons. A default method is defined for the
+class standard-application-frame which returns the list ("L" "M" "R")
+
+frame-modifier-keys-documentation frame [generic-function]
+
+Returns a list of strings to be used in pointer documentation strings to
+identify the various modifier keys. A default method is defined for the
+class standard-application-frame which returns the list ("h" "s" "m" "c" "sh")
+
+6. Bugs and Limitations in this release
+
+with-output-to-postscript-stream does not support output of characters
+which do not belong to codeset 0 in this release of IACLIM.
+
+The current extended input editor doesn't let you edit the kanji returned
+by the kanji server. Patches and subsequent releases will allow you to do
+this. Also improved documentation on the Japanese extended input editor is
+planned in the near future. This will document editor gestures and commands 
+used allowing the application programmer to customize the behavior of the
+input editor.
+
+7. Using Mule
+
+In order for IACL to work correctly with Mule you should include the
+following in your .emacs
+
+(when (boundp 'mule-version)
+  (set-default-process-coding-system *euc-japan* *euc-japan*)
+  (set-file-coding-system *euc-japan*))

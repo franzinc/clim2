@@ -20,11 +20,19 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-font-list.lisp,v 1.13 1994/12/18 06:44:58 duane Exp $
+;; $fiHeader: xm-font-list.lisp,v 1.15 1995/06/21 21:24:21 georgej Exp $
 
 (in-package :tk)
 
 (defconstant xm-font-is-font 0)
+(defconstant xm-font-is-fontset 1)
+
+#+ics
+(defvar *font-list-tags*
+    (vector (string-to-char* "ascii")
+	    (string-to-char* "kanji")
+	    (string-to-char* "katakana")
+	    (string-to-char* "gaiji")))
 
 (defmethod convert-resource-out (parent (type (eql 'font-list)) value)
   (declare (ignore parent))
@@ -33,6 +41,32 @@
 (defun free-font-list (font-list)
   (xm_font_list_free font-list))
 
+#+ics ;; need to add note-malloced-objects
+(defun export-font-list (value)
+  (when (atom value)
+    (setq value (list value)))
+  (flet ((create-font-list-entry (font)
+	   (let ((tag ""))
+	     (when (consp font)
+	       (setq tag (svref *font-list-tags* (car font))
+		     font (cdr font)))
+	     (xm_font_list_entry_create
+	      tag
+	      (etypecase font
+		(font xm-font-is-font)
+		(font-set xm-font-is-fontset))
+	      font))))
+    (let ((font-list
+	   (xm_font_list_append_entry
+	    0				; old entry
+	    (create-font-list-entry (car value)))))
+      (dolist (item (cdr value))
+	(setq font-list
+	  (xm_font_list_append_entry font-list
+				     (create-font-list-entry item))))
+      font-list)))
+
+#-ics
 (defun export-font-list (value)
   (when (atom value)
     (setq value (list value)))
@@ -52,6 +86,7 @@
 							  font)))))
     (note-malloced-object font-list
 			  #'free-font-list)))
+
 
 #+:dec3100
 (defmethod convert-resource-out ((parent t) (type (eql 'xm-font-list)) value)
@@ -77,11 +112,15 @@
 	  (push (list
 		 ""
 		 (let ((font (xm_font_list_entry_get_font entry type)))
-		   (assert (= (aref type 0) 0))
-		   (intern-object-address
-		    font
-		    'font
-		    :name :unknown!)))
+		   (if (eq (aref type 0) xm-font-is-fontset)
+		       ;; we should really make the whole backend
+		       ;; fontset aware so that we get the right
+		       ;; metrics - this will do for now (cim 3/9/95)
+		       (car (fonts-of-font-set font))
+		     (intern-object-address
+		      font
+		      'font
+		      :name :unknown!))))
 		res)))
       (xm_font_list_free_font_context context)
       res)))

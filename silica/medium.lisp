@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: medium.lisp,v 1.39 1993/09/17 19:06:17 cer Exp $
+;; $fiHeader: medium.lisp,v 1.40 1994/12/05 00:00:25 colin Exp $
 
 (in-package :silica)
 
@@ -13,7 +13,7 @@
   (declare (ignore port sheet))
   nil)
 
-;; Doing this in an :AROUND method ensures that when any :BEFORE methods 
+;; Doing this in an :AROUND method ensures that when any :BEFORE methods
 ;; run, the medium and the sheet are correctly associated
 (defmethod engraft-medium :around ((medium basic-medium) port sheet)
   (declare (ignore port))
@@ -38,7 +38,7 @@
 (defmethod invoke-with-sheet-medium ((sheet permanent-medium-sheet-output-mixin) continuation)
   (declare (dynamic-extent continuation))
   (let ((medium (slot-value sheet 'medium)))
-    (if medium 
+    (if medium
 	(funcall continuation medium)
 	;; Some gadgets won't have a medium while they are being created.
 	;; Go get one now so that foreground/background can be decoded, etc.
@@ -83,7 +83,7 @@
 	     sheet #'call-continuation)))))
 
 (defgeneric make-medium (port sheet))
-			  
+
 (defgeneric medium-force-output (medium))
 (defgeneric medium-finish-output (medium))
 (defgeneric medium-beep (medium))
@@ -99,17 +99,17 @@
    (background :initform nil :accessor pane-background)
    (text-style :initform nil :accessor pane-text-style)
    (initargs :initform nil :reader sheet-with-resources-initargs)))
-  
-(defmethod initialize-instance :after 
+
+(defmethod initialize-instance :after
 	   ((sheet sheet-with-resources-mixin) &rest args)
   (with-slots (initargs) sheet
     (setf initargs args)))
 
 
-(defmethod get-sheet-resources ((port basic-port) 
+(defmethod get-sheet-resources ((port basic-port)
 				(sheet sheet-with-resources-mixin))
   nil)
-  
+
 (defmethod get-parent-initarg ((sheet basic-sheet) resource)
   (loop
     (when (null sheet)
@@ -118,8 +118,8 @@
     (when (typep sheet 'sheet-with-resources-mixin)
       (let ((r (getf (sheet-with-resources-initargs sheet) resource)))
 	(when r (return r))))))
-      
-(defmethod note-sheet-grafted :before ((sheet sheet-with-resources-mixin)) 
+
+(defmethod note-sheet-grafted :before ((sheet sheet-with-resources-mixin))
   (let* ((port (port sheet))
 	 (palette (port-default-palette port))
 	 (initargs (sheet-with-resources-initargs sheet))
@@ -139,7 +139,7 @@
       (with-slots (foreground background text-style) sheet
 	(setf foreground (ensure-color
 			  (get-resource :foreground *default-pane-foreground*))
-	      background (ensure-color 
+	      background (ensure-color
 			  (get-resource :background *default-pane-background*))
 	      text-style (get-resource :text-style *default-text-style*))))))
 
@@ -163,7 +163,7 @@
   ;; We set the slots directly in order to avoid running any per-port
   ;; :AFTER methods (or whatever).  That work should be done by similar
   ;; per-port methods on ENGRAFT-MEDIUM.
-  (with-slots (foreground background 
+  (with-slots (foreground background
 	       text-style default-text-style merged-text-style-valid)
       medium
     (setf foreground (pane-foreground sheet)
@@ -176,7 +176,7 @@
 (defclass pane-repaint-background-mixin () ())
 
 (defmethod handle-repaint ((pane pane-repaint-background-mixin) region)
-  (let ((clear (region-intersection 
+  (let ((clear (region-intersection
 		 region
 		 (or (pane-viewport-region pane)
 		     (sheet-region pane)))))
@@ -285,10 +285,10 @@
 (defmacro with-medium-clipping-region ((medium region) &body body)
   `(flet ((with-medium-clipping-region-body (,medium) ,@body))
      (declare (dynamic-extent #'with-medium-clipping-region-body))
-     (invoke-with-medium-clipping-region 
+     (invoke-with-medium-clipping-region
        ,medium #'with-medium-clipping-region-body ,region)))
 
-(defmethod invoke-with-medium-clipping-region 
+(defmethod invoke-with-medium-clipping-region
 	   ((medium basic-medium) continuation region)
   (let ((saved-region (medium-clipping-region medium)))
     (unwind-protect
@@ -403,7 +403,7 @@
 	       merged-text-style merged-text-style-valid) medium
     (if merged-text-style-valid
 	merged-text-style
-	(prog1 
+	(prog1
 	  (setf merged-text-style (merge-text-styles text-style default-text-style))
 	  (setf merged-text-style-valid t)))))
 
@@ -412,7 +412,7 @@
   (default-output-stream medium with-text-style)
   `(flet ((with-text-style-body (,medium) ,@body))
      (declare (dynamic-extent #'with-text-style-body))
-     (invoke-with-text-style 
+     (invoke-with-text-style
        ,medium #'with-text-style-body ,style ,medium)))
 
 (defmacro with-text-family ((medium family) &body body)
@@ -424,9 +424,9 @@
 (defmacro with-text-size ((medium size) &body body)
   `(with-text-style (,medium (make-text-style nil nil ,size)) ,@body))
 
-(defoperation invoke-with-text-style medium-protocol 
+(defoperation invoke-with-text-style medium-protocol
   ((medium medium) style continuation original-stream))
-	      
+
 (defmethod invoke-with-text-style ((medium basic-medium)
 				   continuation style original-stream)
   (if (or (null style) (eq style *null-text-style*))

@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.88 1995/05/17 19:50:04 colin Exp $
+;; $fiHeader: xm-gadgets.lisp,v 1.89 1995/10/17 05:03:41 colin Exp $
 
 (in-package :xm-silica)
 
@@ -2120,11 +2120,26 @@
 	(tk::xm_change_color m (decode-color ink medium))
 	(tk::set-values m :foreground fg)))))
 
+#+ics
+(defmethod gadget-needs-font-set-p ((sheet t))
+  nil)
+
+#+ics
+(defmethod gadget-needs-font-set-p ((sheet motif-text-field))
+  t)
+
+#+ics
+(defmethod gadget-needs-font-set-p ((sheet motif-text-editor))
+  t)
+
 (defmethod find-widget-resource-initargs-for-sheet :around
     ((port motif-port) (sheet t) &key text-style)
-  (let ((initargs (call-next-method))
-	(text-style (or text-style
-			(sheet-text-style port sheet))))
-    `(:font-list ,(text-style-mapping port text-style)
-		 ,@initargs)))
+  (let* ((initargs (call-next-method))
+	 (text-style (or text-style
+			 (sheet-text-style port sheet)))
+	 (font-list (text-style-mapping port text-style #+ics nil)))
+    #+ics (when (gadget-needs-font-set-p sheet)
+	    (setq font-list
+	      (font-set-from-font-list port font-list)))
+    `(:font-list ,font-list ,@initargs)))
 

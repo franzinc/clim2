@@ -1,6 +1,6 @@
 (in-package :clim-user)
 
-;; $fiHeader: test-demos.lisp,v 1.7 1993/09/17 19:06:25 cer Exp $
+;; $fiHeader: test-demos.lisp,v 1.8 1993/11/18 18:45:07 cer Exp $
 
 
 
@@ -302,6 +302,58 @@
   (clim-graphics-editor::com-quit)
   )
 
+;; japanese-graphics-editor
+
+#+ics
+(clim-test:define-frame-test test-japanese-graphics-editor (japanese-graphics-editor::graphics-editor :width 800 :height 600)
+  (
+   ;;-- These work only because of a timing error.
+   ;;-- They should be press, move, release.
+   
+   (:press japanese-graphics-editor::display 30 30)
+   (:release japanese-graphics-editor::display 70 70)
+   
+   (japanese-graphics-editor::com-clear)
+
+   (:press japanese-graphics-editor::display 30 30)
+   (:release japanese-graphics-editor::display 70 70)
+
+   
+   (:press japanese-graphics-editor::display 100 100)
+   (:release japanese-graphics-editor::display 150 200)
+   
+   (:press japanese-graphics-editor::display 300 100)
+   (:release japanese-graphics-editor::display 400 200)
+   
+   (japanese-graphics-editor::com-redisplay)
+   
+   (:presentation-click japanese-graphics-editor::display
+			japanese-graphics-editor::box)
+   (:presentation-click japanese-graphics-editor::display
+			japanese-graphics-editor::box)
+   (:presentation-click japanese-graphics-editor::display
+			japanese-graphics-editor::box)
+   
+   ;; try moving one
+
+   (:presentation-press japanese-graphics-editor::display
+			japanese-graphics-editor::box
+			:gesture :describe)
+   
+   (:release japanese-graphics-editor::display 200 200)
+   (japanese-graphics-editor::com-deselect-object)
+   
+   (:presentation-click japanese-graphics-editor::display
+			japanese-graphics-editor::box
+			:gesture :delete)
+
+   (:presentation-click japanese-graphics-editor::display
+			japanese-graphics-editor::box
+			:gesture :delete)
+   
+   )
+  (japanese-graphics-editor::com-quit)
+  )
 
 
 

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: dev-load-1.lisp,v 1.35 1994/11/23 23:28:50 smh Exp $
+;; $fiHeader: dev-load-1.lisp,v 1.36 1995/05/17 19:48:50 colin Exp $
 
 ;;;; This should not matter
 ;;;; (setq *ignore-package-name-case* t)
@@ -57,6 +57,11 @@
 	(load "clim2:;climol.fasl")
 	(load "clim2:;clim-debug.fasl")
 	(load "clim2:;clim-debugol.fasl")))
+
+     #+ics
+     (tenuring
+      (load "clim2:;climwnn.fasl")
+      (load "clim2:;clim-debugwnn.fasl"))
 
      (tenuring
       (load "clim2:;climps.fasl")

@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-silica.lisp,v 1.43 1994/12/05 00:02:00 colin Exp $
+;; $fiHeader: xm-silica.lisp,v 1.44 1995/10/17 05:03:45 colin Exp $
 
 (in-package :xm-silica)
 
@@ -215,3 +215,9 @@
     (when (typep m 'xt::xm-bulletin-board)
       (tk::set-values m :default-position nil :x x :y y))))
 
+#+ics
+(defmethod text-style-to-font-list ((port motif-port) text-style)
+  (let ((result nil))
+    (dotimes (i 4)
+      (push (cons i (text-style-mapping port text-style i)) result))
+    (nreverse result)))

@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-frames.lisp,v 1.68 1995/05/17 19:50:01 colin Exp $
+;; $fiHeader: xm-frames.lisp,v 1.69 1995/10/17 05:03:35 colin Exp $
 
 (in-package :xm-silica)
 
@@ -158,7 +158,8 @@
 			 port
 			 (if item-text-style
 			     (merge-text-styles item-text-style menu-text-style)
-			   menu-text-style))
+			   menu-text-style)
+			 #+ics nil)
 			initargs)))
 
 	     (set-button-attributes (button options &optional keystroke)
@@ -402,7 +403,8 @@
 			 port
 			 (if text-style
 			     (merge-text-styles text-style menu-text-style)
-			   menu-text-style))
+			   menu-text-style)
+			 #+ics nil)
 			initargs))))
       (apply #'make-instance 'xt::xm-separator
 	     :managed nil
@@ -422,7 +424,7 @@
 				  :managed nil
 				  :label-string (princ-to-string (menu-item-display item))
 				  (list* :font-list
-					 (text-style-mapping port text-style)
+					 (text-style-mapping port text-style #+ics nil)
 					 options))
 			 (let* ((pixmap (pixmap-from-menu-item
 					 associated-window
@@ -467,7 +469,8 @@
 						(if item-text-style
 						    (merge-text-styles item-text-style
 								       menu-text-style)
-						  menu-text-style))
+						  menu-text-style)
+						#+ics nil)
 					       initargs))))
 			      (:item
 			       (if (clim-internals::menu-item-items item)

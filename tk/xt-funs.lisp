@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-funs.lisp,v 1.25 1994/12/05 00:01:29 colin Exp $
+;; $fiHeader: xt-funs.lisp,v 1.26 1995/10/17 05:03:23 colin Exp $
 
 
 ;;
@@ -450,8 +450,6 @@
     :entry-point (ff:convert-to-lang "XtParseAcceleratorTable")
     :return-type :unsigned-integer)
 
-
-
 (ff:defforeign 'xt_app_set_fallback_resources
     :call-direct t
     :arguments '(foreign-address foreign-address)
@@ -466,5 +464,54 @@
     :entry-point (ff:convert-to-lang "xt_widget_num_popups")
     :return-type :fixnum)
 
+(ff:defforeign 'xt_set_language_proc
+    :call-direct t
+    :arguments '(foreign-address foreign-address foreign-address)
+    :arg-checking nil
+    :entry-point (ff:convert-to-lang "XtSetLanguageProc")
+    :return-type :void)
+
+;; this isn't part of Xt but is useful for debugging. The locale
+;; handling is all done through XtSetLanguageProc above
+
+(ff:defforeign 'setlocale-1
+    :call-direct t
+    :arg-checking nil
+    :entry-point (ff:convert-to-lang "setlocale")
+    :arguments '(integer integer)
+    :return-type :unsigned-integer)
+
+#+debug
+(progn
+
+(ff:defforeign 'xlc-current-lc
+    :call-direct t
+    :arguments nil
+    :arg-checking nil
+    :entry-point (ff:convert-to-lang "_XlcCurrentLC")
+    :return-type :unsigned-integer)
+
+(ff:defforeign 'init-font-set
+    :call-direct t
+    :arguments '(foreign-address)
+    :arg-checking nil
+    :entry-point (ff:convert-to-lang "initFontSet")
+    :return-type :unsigned-integer)
 
 
+(ff:defforeign 'islower
+    :call-direct t
+    :arguments '(foreign-address)
+    :arg-checking nil
+    :entry-point (ff:convert-to-lang "islower")
+    :return-type :unsigned-integer)
+
+
+(ff:defforeign 'toupper
+    :call-direct t
+    :arguments '(foreign-address)
+    :arg-checking nil
+    :entry-point (ff:convert-to-lang "toupper")
+    :return-type :unsigned-integer)
+
+) ;;progn

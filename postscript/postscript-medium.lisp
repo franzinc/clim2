@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: POSTSCRIPT-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: postscript-medium.lisp,v 1.17 1994/12/05 00:00:05 colin Exp $
+;; $fiHeader: postscript-medium.lisp,v 1.18 1995/10/17 05:02:14 colin Exp $
 
 (in-package :postscript-clim)
 
@@ -475,8 +475,8 @@
 (defmacro with-postscript-glyph-for-character (&body body)
   `(macrolet ((port-glyph-for-character (port character style &optional our-font)
 		`(multiple-value-bind (character-set index)
-		     (char-character-set-and-index ,character)
-		   (declare (ignore character-set))
+ 		     (char-character-set-and-index ,character)
+ 		   (declare (ignore character-set))
 		   ;; For now we are asserting that each string passed to WRITE-STRING will
 		   ;; have no style changes within it.  This is what our-font is all
 		   ;; about.

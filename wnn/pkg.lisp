@@ -1,7 +1,9 @@
 ;; -*- mode: common-lisp; package: cl-user -*-
+;;
+;;				-[Thu Aug 12 09:55:10 1993 by layer]-
 ;; 
-;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
-;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
+;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
+;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -18,20 +20,28 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: pkg.lisp,v 1.13 1994/12/05 00:01:52 colin Exp $
+;; $fiHeader:$
 
-;;; --- the motif v openlook definitions should be in separate package
-;;; definition files
-
-(defpackage :tk-silica
-  (:nicknames :xm-silica :xt-silica)
-  (:use :clim-lisp :clim-utils :clim :silica :tk)
+(defpackage :wnn
+  (:use :clim-lisp :clim-utils :clim :silica :ff)
   (:import-from :excl #:if*)
   (:export
-   *xt-font-families*
-   *xt-logical-size-alist*
-   *xt-cursor-type-alist*
+   #:jserver
+   #:jserver-login
+   #:jserver-host
+   #:jserver-lang
+   #:*jserver-timeout*
+   #:open-jserver
+   #:bunsetu-suu
+   #:get-kanji
+   #:get-yomi
+   #:*wnn-unique*
+   #:select-bunsetu
+   #:bunsetu-kouho-suu
+   #:get-kouho-kanji
+   #:get-zenkouho-kanji
+   #:henkan-begin
+   #:henkan-end
    ))
 
-
-(setf (package-definition-lock (find-package :tk-silica)) t)
+(setf (package-definition-lock (find-package :wnn)) t)

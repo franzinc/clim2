@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sysdcl.lisp,v 1.46 1994/12/18 06:44:51 duane Exp $
+;; $fiHeader: sysdcl.lisp,v 1.47 1995/05/17 19:49:12 colin Exp $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :cl-user)
 
@@ -223,6 +223,7 @@
    ;; Input editing
    ("interactive-protocol" (:load-before-compile "clim-defs"))
    "input-editor-commands"
+   #+ics "japanese-input-editor"
 
    ;; Incremental redisplay
    ("incremental-redisplay" (:load-before-compile "clim-defs" "recording-protocol"))
@@ -309,6 +310,17 @@
    ))
 
 #+Allegro
+(defsystem wnn
+    (:default-pathname "clim2:;wnn;")
+  (:serial
+   clim-standalone
+   "pkg"
+   "load-wnn"
+   "jl-defs"
+   "jl-funs"
+   "jserver"))
+
+#+Allegro
 (macrolet ((define-xt-system (name file &rest modules)
 	       `(defsystem ,name
 		    (:default-pathname "clim2:;tk;")
@@ -365,7 +377,6 @@
   (:serial
    clim-standalone
    xm-tk
-
    ("pkg")
    ("xt-silica")
    ("xt-stipples")

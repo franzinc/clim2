@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: compile-1.lisp,v 1.26 1994/11/23 23:28:48 smh Exp $
+;; $fiHeader: compile-1.lisp,v 1.27 1994/12/04 23:59:48 colin Exp $
 
 (in-package :user)
 
@@ -44,7 +44,7 @@
 		    (declare (ignore safety size debug))
 		    (> speed 2))))
 
-(setf (sys:gsgc-parameter :print) nil)
+(setf (sys:gsgc-parameter :print) t)
 
 ;(unless (find-package 'clim-defsystem)
 ;  (compile-file-if-needed "sys/defsystem")
@@ -59,8 +59,13 @@
     (tenuring
      (excl:load-system sys))
 
+    #+ics
+    (progn
+      (excl:compile-system 'wnn :include-components t)
+      (excl:load-system 'wnn))
+
     (excl:compile-system 'clim-homegrown)
-    
+
     (load "clim2:;postscript;sysdcl")
     (excl:compile-system 'postscript-clim :include-components t)
     (excl:load-system 'postscript-clim)

@@ -17,7 +17,7 @@
  * 52.227-19 or DOD FAR Supplement 252 52.227-7013 (c) (1) (ii), as
  * applicable.
  *
- * $fiHeader: xlibsupport.c,v 1.4 1993/07/27 01:59:28 colin Exp $
+ * $fiHeader: xlibsupport.c,v 1.5 1994/12/05 00:02:50 colin Exp $
  */
 
 /************************************************************************/
@@ -37,4 +37,13 @@ lisp_XDrawString(dpy, d, gc, x, y, string, start, end)
     XDrawString(dpy, d, gc, x, y, &string[start], end - start);
 }
 
-
+lisp_XDrawString16(dpy, d, gc, x, y, string, start, end)
+    register Display *dpy;
+    Drawable d;
+    GC gc;
+    int x, y;
+    register XChar2b *string;
+    register int start, end;
+{
+    XDrawString16(dpy, d, gc, x, y, &string[start], end - start);
+}

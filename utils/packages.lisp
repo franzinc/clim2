@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: packages.lisp,v 1.65 1995/05/17 19:50:36 colin Exp $
+;; $fiHeader: packages.lisp,v 1.66 1995/10/17 05:04:13 colin Exp $
 
 (in-package :common-lisp-user)
 
@@ -1545,6 +1545,7 @@
 
     ;; Windowing substrate
     *default-server-path*
+    #+ics *default-kanji-server-path*
     +control-key+
     +hyper-key+
     +meta-key+
@@ -1558,6 +1559,7 @@
     basic-medium
     basic-pane
     basic-port
+    #+ics basic-kanji-server
     basic-sheet
     bursting-input-queuer
     bury-sheet
@@ -1572,6 +1574,7 @@
     delete-watcher
     destroy-mirror
     destroy-port
+    #+ics destroy-kanji-server
     device-clipping-region
     device-event
     device-transformation
@@ -1600,6 +1603,7 @@
     fetch-clipping-region
     find-graft
     find-port
+    #+ics find-kanji-server
     focus-event
     focus-in-event
     focus-out-event
@@ -1629,6 +1633,7 @@
     make-standard-sheet
     map-over-grafts
     map-over-ports
+    #+ics map-over-kanji-servers
     map-over-sheets
     map-over-sheets-containing-position
     map-over-sheets-overlapping-region
@@ -1688,6 +1693,7 @@
     pointer-motion-event
     poll-pointer
     port
+    #+ics kanji-server
     port-alive-p
     port-keyboard-input-focus
     port-modifier-state
@@ -1695,9 +1701,12 @@
     port-pointer
     port-properties
     port-server-path
+    #+ics kanji-server-path
     port-set-pointer-cursor
     port-type
+    #+ics kanji-server-type
     portp
+    #+ics kanji-server-p
     presentation-event
     primitive-sheet-output-mixin
     process-next-event
@@ -1800,7 +1809,6 @@
     *default-text-style*
     *undefined-text-style*
     invoke-with-text-style
-    make-device-font-text-style
     make-text-style
     merge-text-styles
     parse-text-style
@@ -2569,6 +2577,9 @@
     frame-standard-output
     frame-state
     frame-top-level-sheet
+    frame-menu-translator-documentation
+    frame-pointer-buttons-documentation
+    frame-modifier-keys-documentation
     generate-panes
     get-frame-pane
     interactor-pane
@@ -2789,6 +2800,12 @@
     ;; PostScript
     new-page
     with-output-to-postscript-stream)
+
+  #+ics
+  (:export
+   jie-begin-kanji-conversion
+   jie-get-kanji
+   jie-end-kanji-conversion)
 
   #+Allegro
   (:export
@@ -3238,8 +3255,8 @@
     *null-text-style*
     *pointer-buttons*
     *ports*
+    #+ics *kanji-servers*
     *standard-character-set*
-    *undefined-text-style*
     +highlighting-line-style+
     activate-gadget-event
     add-sheet-callbacks
@@ -3280,6 +3297,7 @@
     drag-gadget-event
     draw-gadget-label
     find-port-type
+    #+ics find-kanji-server-type
     fit-region*-in-region*
     focus-gadget
     focus-in-gadget-event
@@ -3323,6 +3341,7 @@
     layout-mixin
     line-editor-pane
     list-pane-selected-item-p
+    make-device-font
     make-frame-manager
     make-medium
     make-pane-arglist
@@ -3392,7 +3411,6 @@
     port-set-sheet-grabbed-pointer-cursor
     port-terminated
     port-trace-thing
-    port-undefined-text-style
     process-event-locally
     pull-down-menu
     pull-down-menu-button

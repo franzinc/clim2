@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: foreign.lisp,v 1.16 1993/10/25 16:16:25 cer Exp $
+;; $fiHeader: foreign.lisp,v 1.17 1994/12/05 00:00:56 colin Exp $
 
 (in-package :tk)
 
@@ -67,7 +67,16 @@
 	       (unwind-protect
 		   (progn (setf (mp:process-quantum mp:*current-process*) *large-connection-quantum*)
 			  (mp:process-allow-schedule)
-			  (xt_open_display context (or host 0) application-name application-class options
+			  (xt_open_display context
+					   (if host
+					       #+ics (fat-string-to-string8 host)
+					       #-ics host
+					     0)
+					   #+ics (fat-string-to-string8 application-name)
+					   #-ics application-name
+					   #+ics (fat-string-to-string8 application-class)
+					   #-ics application-class
+					   options
 					   num-options argc argv))
 		 (setf (mp:process-quantum mp:*current-process*) temp)
 		 (mp:process-allow-schedule))))))

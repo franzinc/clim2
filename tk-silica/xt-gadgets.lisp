@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-gadgets.lisp,v 1.41 1995/05/17 19:50:11 colin Exp $
+;; $fiHeader: xt-gadgets.lisp,v 1.42 1995/10/17 05:03:47 colin Exp $
 
 (in-package :xm-silica)
 
@@ -210,7 +210,7 @@
 (defun convert-scroll-bar-value-out (scroll-bar value)
   (multiple-value-bind
       (smin smax) (gadget-range* scroll-bar)
-    (fix-coordinate
+    (floor
      (compute-symmetric-value
       smin smax value 0 1000))))
 

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: widget.lisp,v 1.36 1994/12/05 00:01:12 colin Exp $
+;; $fiHeader: widget.lisp,v 1.37 1995/05/17 19:49:34 colin Exp $
 
 (in-package :tk)
 
@@ -38,14 +38,16 @@
 	 (apply #'make-instance
 		class
 		:foreign-address
-		(xt_app_create_shell application-name
-				     application-class
+		(xt_app_create_shell #+ics (fat-string-to-string8 application-name)
+		                     #-ics application-name
+				     #+ics (fat-string-to-string8 application-class)
+				     #-ics application-class
 				     handle
 				     display
 				     arglist
 				     (truncate (length arglist) 2))
-		:display display
-		args)))))
+				     :display display
+				     args)))))
 
 ;; These are so we don't need the foreign functions at run time.
 
@@ -69,14 +71,14 @@
 	 #'xt-create-managed-widget name widget-class parent
 	 args))
 
-
 (defun create-widget-1 (fn name widget-class parent &rest args)
   (assert parent)
   (with-malloced-objects
       (let* ((class (find-class-maybe widget-class))
 	     (handle (class-handle class))
 	     (arglist (make-arglist-for-class class parent args)))
-	(funcall fn name
+	(funcall fn
+		 (note-malloced-object (string-to-char* name))
 		 handle
 		 parent
 		 arglist
@@ -172,7 +174,6 @@
        (remf args :parent)
        (setf (foreign-pointer-address w)
 	 (apply #'make-widget w (tkify-lisp-name name) parent args))))))
-
 
 
 (defmethod destroy-widget-cleanup ((widget xt-root-class))
@@ -274,6 +275,7 @@
 
 (defvar *fallback-resources* '("clim*dragInitiatorProtocolStyle: DRAG_NONE"
 			       "clim*dragreceiverprotocolstyle:	DRAG_NONE"
+			       #+ics "clim*xnlLanguage: ja_JP.EUC"
 			       )
   "A list of resource specification strings")
 
@@ -281,7 +283,7 @@
 ;; XtToolkitInitialize. This is closer to XtAppInitialize
 
 (defun initialize-toolkit (&rest args)
-  (let* ((context (create-application-context)))
+  (let ((context (create-application-context)))
     (when *fallback-resources*
       (xt_app_set_fallback_resources
        context
@@ -291,6 +293,7 @@
 	   (setf (aref v i) (ff:string-to-char* (nth i *fallback-resources*))))
 	 (setf (aref v n) 0)
 	 v)))
+    #+ics (xt_set_language_proc context 0 0)
     (let* ((display (apply #'make-instance 'display
 			   :context context
 			   args))
@@ -299,7 +302,6 @@
 		       :widget-class 'application-shell
 		       args)))
       (values context display app))))
-
 
 (defun xt-name (w) (char*-to-string (xt_name w)))
 (defun xt-class (w) (char*-to-string (xt-class-name (xt_class w))))

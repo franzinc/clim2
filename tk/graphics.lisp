@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: graphics.lisp,v 1.15 1993/09/17 19:06:42 cer Exp $
+;; $fiHeader: graphics.lisp,v 1.16 1993/10/25 16:16:28 cer Exp $
 
 (in-package :tk)
 
@@ -175,11 +175,23 @@
    drawable
    gc
    x y 
-   string
+   #+ics (fat-string-to-string8 string)
+   #-ics string
    start
    end))
 
-
+(defun draw-string16 (drawable gc x y string &optional (start 0) end)
+  (unless start (setq start 0))
+  (unless end (setq end (length string)))
+  (x11:lisp-xdrawstring16
+   (object-display drawable)
+   drawable
+   gc
+   x y 
+   #+ics (fat-string-to-string16 string)
+   #-ics string
+   start
+   end))
 
 (defun draw-image-string (drawable gc x y string 
 			  &optional (length (length string)))

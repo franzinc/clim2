@@ -45,7 +45,7 @@
 ;;      OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION
 ;;      WITH THE USE OR PERFORMANCE OF THIS OBJECT CODE.
 
-;;; $fiHeader: xlib-funs.lisp,v 1.15 1994/12/05 00:02:47 colin Exp $
+;;; $fiHeader: xlib-funs.lisp,v 1.16 1995/10/17 05:04:21 colin Exp $
 
 (in-package :x11)
 
@@ -1800,6 +1800,16 @@
    (start fixnum-int)
    (end fixnum-int))
 
+(def-exported-foreign-function (lisp-xdrawstring16 (:name "lisp_XDrawString16"))
+   (dpy (:pointer display))
+   (d fixnum-drawable)
+   (gc gc)
+   (x fixnum-int)
+   (y fixnum-int)
+   (string (:pointer xchar2b))
+   (start fixnum-int)
+   (end fixnum-int))
+
 (def-exported-foreign-function
   (xpermalloc (:return-type (:pointer char))
 	      (:name "Xpermalloc"))
@@ -2014,12 +2024,42 @@
     (class int)
     (vinfo-return (:pointer visual-info)))
 
-
 (def-exported-foreign-function (_xflushgccache (:name "_XFlushGCCache"))
    (dpy (:pointer display))
-  (gc gc))
+   (gc gc))
+
+#+ics
+(def-exported-foreign-function (xopenim (:return-type xim) (:name "XOpenIM"))
+    (dpy (:pointer display))
+    (db xrmdatabase)
+    (res-name (:pointer char))
+    (res-class (:pointer char)))
+
+#+ics
+(def-exported-foreign-function (xcreatefontset (:return-type xfontset) (:name "XCreateFontSet"))
+    (dpy (:pointer display))
+    (base-names (:pointer char))
+    (missing-list (:pointer (:pointer (:pointer char))))
+    (missing-count (:pointer int))
+    (default-string (:pointer (:pointer char))))
+
+#+ics
+(def-exported-foreign-function (xfontsoffontset (:return-type int) (:name "XFontsOfFontSet"))
+    (font-set xfontset)
+    (font-struct-list (:pointer (:pointer (:pointer xfontstruct))))
+    (font-name-list (:pointer (:pointer (:pointer char)))))
+
+
+#+ics
+(def-exported-foreign-function (xmbtextextents (:return-type int)
+					       (:name "XmbTextExtents"))
+    (font-set xfontset)
+    (string (:pointer char))
+    (num-bytes int)
+    (overall-ink-return (:pointer xrectangle))
+    (overall-logical-return (:pointer xrectangle)))
 
 (def-exported-foreign-function (_xgetbitsperpixel (:return-type int)
 						  (:name "_XGetBitsPerPixel"))
     (dpy (:pointer display))
-  (depth int))
+    (depth int))

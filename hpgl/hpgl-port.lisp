@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: hpgl-clim; Base: 10; Lowercase: Yes -*-
 
-;;; $fiHeader: hpgl-port.lisp,v 1.3 93/04/07 09:07:07 cer Exp $
+;;; $fiHeader: hpgl-port.lisp,v 1.4 1993/07/27 01:47:24 colin Exp $
 
 "Copyright (c) 1991 by International Lisp Associates.  All rights reserved."
 "Portions copyright (c) 1992 Franz Inc. All rights reserved"
@@ -499,7 +499,7 @@
       
       (dolist (family *hpgl-font-translate-data* (error "dont know how to set up undefined-text-style"))
 	(when (text-style-mapping-exists-p display-device `(,(second family) :roman 10))
-	  (setf (text-style-mapping display-device (port-undefined-text-style display-device)) 
+	  (setf (text-style-mapping display-device *undefined-text-style*) 
 	    (make-text-style (second family) :roman 10))
 	  (return nil))))))
 	

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: port.lisp,v 1.33 1994/12/05 00:00:27 colin Exp $
+;; $fiHeader: port.lisp,v 1.34 1995/10/17 05:02:40 colin Exp $
 
 (in-package :silica)
 
@@ -271,4 +271,54 @@
 (defmethod graft ((graft standard-graft)) graft)
 
 (defmethod graft ((object t)) nil)
+
+;;; ics kanji server support - we put this here for convenience
+
+#+ics
+(progn
+
+(define-protocol-class kanji-server ())
+
+(defclass basic-kanji-server (kanji-server) 
+  ((server-path :reader kanji-server-path)))
+
+(defvar *default-kanji-server-path* '(:jserver))
+
+(defvar *kanji-servers* nil)
+
+(defun map-over-kanji-servers (function)
+  (declare (dynamic-extent function))
+  (mapc function *kanji-servers*))
+
+(defun find-kanji-server
+    (&rest initargs &key (server-path *default-kanji-server-path*)
+     &allow-other-keys) 
+  (declare (dynamic-extent initargs))
+  (map-over-kanji-servers #'(lambda (kanji-server)
+			      (when (kanji-server-match kanji-server
+							server-path) 
+				(return-from find-kanji-server kanji-server))))
+  (with-keywords-removed (initargs initargs '(:server-path))
+    (apply #'make-kanji-server :server-path server-path initargs)))
+
+(defun kanji-server-match (kanji-server server-path)
+  (equal (kanji-server-path kanji-server) server-path))
+
+(defun make-kanji-server (&rest keys &key server-path &allow-other-keys)
+  (declare (dynamic-extent keys))
+  (apply #'make-instance (find-kanji-server-type (car server-path)) keys))
+
+(defgeneric find-kanji-server-type (type))
+(defmethod find-kanji-server-type (x)
+  (error "Cannot find kanji-server type: ~S" x))
+
+(defgeneric kanji-server-type (kanji-server))
+
+(defmethod initialize-instance :around
+	   ((kanji-server basic-kanji-server) &key server-path)
+  (setf (slot-value kanji-server 'server-path) (copy-list server-path))
+  (call-next-method)
+  (setq *kanji-servers* (nconc *kanji-servers* (list kanji-server))))
+
+)					;#+ics
 

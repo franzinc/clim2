@@ -1,7 +1,7 @@
 ;; -*- mode: common-lisp; package: tk -*-
 ;;
 ;;				-[Mon Sep 26 02:02:28 1994 by smh]-
-;; 
+;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
 ;;
@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: foreign-obj.lisp,v 1.11 92/05/13 17:10:12 cer Exp $
+;; $fiHeader: foreign-obj.lisp,v 1.13 1994/11/23 23:29:13 smh Exp $
 
 (in-package :tk)
 
@@ -43,7 +43,7 @@
 
 (defun find-object-from-handle (handle table errorp)
   (cond ((gethash handle table))
-	(errorp 
+	(errorp
 	 (error "Cannot find object from handle: ~S" handle))))
 
 (defun register-address (object &optional (handle (foreign-pointer-address object)))
@@ -63,22 +63,22 @@
   object)
 
 (defun intern-object-address (handle class &rest initargs)
-  (apply #'intern-object-1 
+  (apply #'intern-object-1
 	 *address->object-mapping*
-	 handle 
-	 class 
+	 handle
+	 class
 	 initargs))
 
 (defun unintern-object-address (handle)
-  (unintern-object-1 
+  (unintern-object-1
 	 *address->object-mapping*
 	 handle))
 
 (defun intern-object-xid (handle class display &rest initargs)
-  (apply #'intern-object-1 
+  (apply #'intern-object-1
 	 (display-xid->object-mapping display)
-	 handle 
-	 class 
+	 handle
+	 class
 	 initargs))
 
 (defun unintern-object-1 (table handle)
@@ -87,23 +87,60 @@
 (defun intern-object-1 (table handle class &rest initargs)
   (let ((x (find-object-from-handle handle table nil)))
     (cond ((null x)
-	   (values 
+	   (values
 	    (setf (gethash handle table)
-	      (apply #'make-instance 
-		     class 
+	      (apply #'make-instance
+		     class
 		     :foreign-address handle
 		     initargs))
 	    t))
-	  ((typep x class) 
+	  ((typep x class)
 	   (values x nil))
 	  (t
 	   (cerror "Make a new one"
 		   "~s has the wrong class: ~s"
 		   x class)
-	   (values 
+	   (values
 	    (setf (gethash handle table)
-	      (apply #'make-instance 
-		     class 
+	      (apply #'make-instance
+		     class
 		     :foreign-address handle
 		     initargs))
 	    t)))))
+
+#+ics
+(defun fat-string-to-string8 (string)
+  (let* ((length (length string))
+	 (string8 (make-array (1+ length) :element-type '(unsigned-byte 8))))
+    (dotimes (i length)
+      (setf (aref string8 i)
+	(logand (char-code (char string i)) #xff)))
+    (setf (aref string8 length) 0)
+    string8))
+
+#+ics
+(defun fat-string-to-string16 (string)
+  (let* ((length (length string))
+	 (string16 (make-array (1+ length) :element-type '(unsigned-byte 16))))
+    (dotimes (i length)
+      (setf (aref string16 i)
+	(xchar-code (char string i))))
+    (setf (aref string16 length) 0)
+    string16))
+
+#+ics
+(defun xchar-code (char)
+  (let ((code (char-code char)))
+    (logand code
+	    (if (logbitp 15 code)
+		;; jis-x208 and gaiji
+		#x7f7f
+	      ;; ascii and jis-x201
+	      #xff))))
+
+(defun setlocale (&optional (category 0) locale)
+  (let ((r (setlocale-1 category (or (and locale
+					(ff:string-to-char* locale))
+				   0))))
+    (unless (zerop r)
+      (ff:char*-to-string r))))
