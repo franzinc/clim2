@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-class.lisp,v 1.14.22.1 2000/07/13 18:19:00 cley Exp $
+;; $Id: acl-class.lisp,v 1.14.22.2 2000/07/13 18:52:21 cley Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -865,7 +865,7 @@
     (setf *hwnd* window)
     ;; FYI: Spy++ does a better job of tracing messages,
     ;; though it doesn't report everything.
-    (mformat *msg-trace-output*
+    (mformat *windows-message-trace-output*
 	     "~A In clim-wind-proc msg=~a sheet=~s lparam=~a~%"
 	     *level*
 	     (msg-name msg) 
@@ -939,7 +939,7 @@
       (otherwise
        (message-default window msg wparam lparam)))
     (setf result *win-result*)
-    (mformat *msg-trace-output*
+    (mformat *windows-message-trace-output*
 	     "~A Out clim-wind-proc msg=~a sheet=~s result=~s~%"
 	       *level*
 	       (msg-name msg) 
