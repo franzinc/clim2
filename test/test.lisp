@@ -134,3 +134,22 @@
 					   
 					   (object)
 					   (list object))
+
+
+(define-application-frame test-frame4 ()
+  (a b c)
+  (:command-table test-frame)
+  (:pane 
+   (vertically ()
+	       (realize-pane 'silica::push-button :label "Press me")
+	       (realize-pane 'silica::toggle-button)
+	       (realize-pane 'silica::slider)
+	       (realize-pane 'silica::text-field)
+	       (silica::scrolling
+		()
+		(silica::realize-pane
+		 'interactor-pane
+		 :width 300
+		 :max-width +fill+
+		 :height 300
+		 :max-height +fill+)))))

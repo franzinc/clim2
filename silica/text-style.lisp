@@ -19,7 +19,7 @@
 ;; applicable.
 ;;
 
-;; $fiHeader: text-style.lisp,v 1.1 91/08/30 15:16:23 cer Exp $
+;; $fiHeader: text-style.cl,v 1.1 91/11/25 10:01:59 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -579,7 +579,20 @@ Copyright (c) 1991, Franz Inc. All rights reserved
       (if *allow-loose-text-style-size-mapping*
 	  (let ((fonts (gethash (list family face) mapping-table)))
 	    (setf (gethash (list family face) mapping-table)
-	      (merge 'list fonts (list (list style result))
+	      (merge 'list 
+		     (list (list style result))
+		     (multiple-value-bind
+			 (a b c)
+			 (text-style-components style)
+			 (delete-if #'(lambda (old)
+					(multiple-value-bind
+					    (x y z)
+					    (text-style-components
+					     (car old))
+					  (and (equal x a)
+					       (equal y b)
+					       (= z c))))
+				    fonts))
 		     #'(lambda (one two)
 			 (< (slot-value (car one) 'size)
 			    (slot-value (car two) 'size))))))

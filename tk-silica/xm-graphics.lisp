@@ -1,4 +1,4 @@
-(in-package :xm-silica)
+;; -*- mode: common-lisp; package: xm-silica -*-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
@@ -18,6 +18,10 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
+;; $fiHeader$
+
+(in-package :xm-silica)
+
 
 (defmethod make-medium ((port motif-port) sheet)
   (make-instance 'motif-medium
@@ -64,7 +68,6 @@
 	   (tk::gcontext-foreground flipping-gcontext)
 	   (logxor foreground-pixel background-pixel)))))
       
-      
 
 
 (defmethod (setf medium-background) :after (ink (medium motif-medium))
@@ -104,26 +107,39 @@
 (defmethod clx-decode-ink ((ink contrasting-ink) stream)
   (clx-decode-ink (make-color-for-contrasting-ink ink) stream))
 
-(defmethod clx-decode-color :around ((medium motif-medium) color)
-  (or (gethash color (port-color-cache (port medium)))
-      (setf (gethash color (port-color-cache (port medium)))
-	(call-next-method))))
+      
+
+(defmethod clx-decode-color ((medium motif-medium) (x (eql +foreground+)))
+  (with-slots (foreground-gcontext) medium
+    (tk::gcontext-foreground foreground-gcontext)))
+
+(defmethod clx-decode-color ((medium motif-medium) (x (eql +background+)))
+  (with-slots (background-gcontext) medium
+    (tk::gcontext-foreground background-gcontext)))
+
+
+(defmethod clx-decode-color ((stream motif-medium) (ink standard-opacity))
+  (if (> (slot-value ink 'clim-utils::value) 0.5)
+      (clx-decode-color stream +foreground+)
+    (clx-decode-color stream +background+)))
 
 (defmethod clx-decode-color ((medium motif-medium) (ink color))
-  (multiple-value-bind
-      (red green blue)
-      (color-rgb ink)
-    (tk::allocate-color
-     (tk::default-colormap (port-display (port medium)))
-     (make-instance 'tk::color
-		    :red (truncate (* 65356 red))
-		    :green (truncate (* 65356 green))
-		    :blue (truncate (* 65356 blue))))))
+  (or (gethash ink (port-color-cache (port medium)))
+      (setf (gethash ink (port-color-cache (port medium)))
+	(multiple-value-bind
+	    (red green blue)
+	    (color-rgb ink)
+	  (tk::allocate-color
+	   (tk::default-colormap (port-display (port medium)))
+	   (make-instance 'tk::color
+			  :red (truncate (* 65356 red))
+			  :green (truncate (* 65356 green))
+			  :blue (truncate (* 65356 blue))))))))
 
 
-(defmethod clx-adjust-ink ((medium motif-medium) gc ink line-style)
+(defmethod clx-adjust-ink ((medium motif-medium) gc ink line-style x-origin y-origin)
   ;; This is used to adjust for the line-style
-  (declare (ignore ink line-style))
+  (declare (ignore ink))
 
   (let ((thickness (silica::line-style-thickness line-style)))
     (if (< thickness 2)
@@ -142,6 +158,12 @@
       ((:miter :none) :miter)
       (:bevel :bevel)
       (:round :round)))
+  
+  
+  (when (eq (tk::gcontext-fill-style gc) :tiled)
+    (setf (tk::gcontext-ts-x-origin gc) x-origin
+	  (tk::gcontext-ts-y-origin gc) y-origin))
+  
   gc)
 
 (defmethod clx-decode-ink :around ((ink t) (medium motif-medium))
@@ -165,6 +187,11 @@
       (transform-point* transform x y))
   (values (truncate x) (truncate y)))
 
+(defun devicize-distance (transform x y)
+  (multiple-value-setq (x y)
+      (transform-distance transform x y))
+  (values (truncate x) (truncate y)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
@@ -182,7 +209,9 @@
    (clx-adjust-ink medium
 		   (clx-decode-ink (medium-ink medium) medium)
 		   (medium-ink medium)
-		   (medium-line-style medium))
+		   (medium-line-style medium)
+		   (min x1 x2)
+		   (min y1 y2))
    x1
    y1
    x2
@@ -203,9 +232,11 @@
 	  (tk::draw-rectangle
 	   (tk::widget-window (sheet-mirror sheet))
 	   (clx-adjust-ink medium
-		   (clx-decode-ink (medium-ink medium) medium)
-		   (medium-ink medium)
-		   (medium-line-style medium)) 
+			   (clx-decode-ink (medium-ink medium) medium)
+			   (medium-ink medium)
+			   (medium-line-style medium)
+			   (min x1 x2)
+			   (min y1 y2))
 	   (min x1 x2)
 	   (min y1 y2)
 	   (abs (- x2 x1))
@@ -301,27 +332,56 @@
 (defmethod port-beep ((port motif-port) (sheet t))
   (x11:xbell (tk::display-handle (port-display port)) 100))
 
-(defmethod silica::port-draw-circle* ((port motif-port)
-				      sheet
-				      medium
-				      center-x
-				      center-y
-				      radius
-				      filled)
+
+(defmethod silica::port-draw-ellipse* ((port motif-port)
+				       sheet
+				       medium
+				       center-x
+				       center-y
+				       radius-1-dx 
+				       radius-1-dy 
+				       radius-2-dx
+				       radius-2-dy 
+				       start-angle 
+				       end-angle 
+				       filled)
   (let ((transform (compose-transformations
 		    (medium-transformation medium)
 		    (sheet-device-transformation sheet))))
     (multiple-value-setq (center-x center-y) 
       (devicize-point transform center-x center-y))
-    (tk::draw-circle
+    
+
+    (multiple-value-setq (radius-1-dx radius-1-dy) 
+      (devicize-distance transform  radius-1-dx radius-1-dy))
+    
+
+    (multiple-value-setq (radius-2-dx radius-2-dy) 
+      (devicize-distance transform radius-2-dx
+		       radius-2-dy))
+    
+    (tk::draw-ellipse
      (tk::widget-window (sheet-mirror sheet))
      (clx-adjust-ink medium
-		   (clx-decode-ink (medium-ink medium) medium)
-		   (medium-ink medium)
-		   (medium-line-style medium))
+		     (clx-decode-ink (medium-ink medium) medium)
+		     (medium-ink medium)
+		     (medium-line-style medium)
+		     (- center-x 
+			(if (zerop radius-1-dx)
+			    radius-2-dx
+			  radius-1-dx))
+		     (- center-y 
+			(if (zerop radius-1-dy)
+			    radius-2-dy
+			  radius-1-dy)))
      center-x
      center-y
-     radius
+     radius-1-dx 
+     radius-1-dy 
+     radius-2-dx
+     radius-2-dy 
+     start-angle 
+     end-angle 
      filled)))
    
 (ff::def-c-type (xpoint-array :in-foreign-space) 2 x11::xpoint)
@@ -341,7 +401,9 @@
 			((and closed (not filled))
 			 (incf npoints))
 			(t npoints)))))
-	 (window (tk::widget-window (sheet-mirror sheet))))
+	 (window (tk::widget-window (sheet-mirror sheet)))
+	 (minx most-positive-fixnum)
+	 (miny most-positive-fixnum))
 		 
     (do ((ps list-of-x-and-ys (cddr ps))
 	 (i 0 (1+ i))
@@ -351,6 +413,8 @@
       (multiple-value-bind
 	  (x y)
 	  (devicize-point transform (car ps) (cadr ps))
+	(minf minx x)
+	(minf miny y)
 	(setf (xpoint-array-x points i) x
 	      (xpoint-array-y points i) y)))
     
@@ -365,7 +429,9 @@
 	 (tk::object-handle (clx-adjust-ink medium
 					    (clx-decode-ink (medium-ink medium) medium)
 					    (medium-ink medium)
-					    (medium-line-style medium)))
+					    (medium-line-style medium)
+					    minx
+					    miny))
 	 points
 	 npoints
 	 x11:complex
@@ -376,10 +442,62 @@
        (tk::object-handle (clx-adjust-ink medium
 					  (clx-decode-ink (medium-ink medium) medium)
 					  (medium-ink medium)
-					  (medium-line-style medium)))
+					  (medium-line-style medium)
+					  minx
+					  miny))
        points
        npoints
        x11:coordmodeorigin))))
-      
+
+
+(defmethod clx-decode-ink ((ink rectangular-tile) medium)
+  (multiple-value-bind (pattern width height)
+      (decode-rectangular-tile ink)
+    (clx-decode-pattern pattern medium width height t)))
+
+(defmethod clx-decode-ink ((ink pattern) medium)
+  (clx-decode-pattern ink medium))
     
-    
+(defmethod clx-decode-pattern ((pattern pattern) medium &optional width height tiled-p)    
+  (let ((ink-table (slot-value medium 'ink-table)))
+    (or  (gethash pattern ink-table)
+	 (setf (gethash pattern ink-table)
+	   (multiple-value-bind
+	       (array designs)
+	       (decode-pattern pattern)
+	     (let ((image-data (make-array (array-dimensions array))))
+	       (dotimes (w (array-dimension array 1))
+		 (dotimes (h (array-dimension array 0))
+		   (setf (aref image-data h w)
+		     (clx-decode-color medium 
+				       (elt designs (aref array h w))))))
+	       (let* ((pattern-height (array-dimension array 0))
+		      (pattern-width (array-dimension array 1))
+		      (image (make-instance 
+			      'tk::image
+			      :width pattern-width
+			      :height pattern-height
+			      :data image-data
+			      :depth 8 ;; hardwire
+			      ))
+		      (gc 
+		       (make-instance 'tk::gcontext
+				      :drawable (tk::display-root-window 
+						 (port-display (port
+								medium)))))
+		      (pixmap 
+		       (make-instance 'tk::pixmap
+				      :drawable (tk::display-root-window 
+						 (port-display (port
+								medium)))
+				    
+				      :width pattern-width
+				      :height pattern-height
+				      :depth 8)))
+		 (tk::put-image pixmap gc image :x 0 :y 0)
+		 (setf (tk::gcontext-tile gc) pixmap
+		       (tk::gcontext-fill-style gc) :tiled)
+		 gc)))))))
+		
+		
+	     

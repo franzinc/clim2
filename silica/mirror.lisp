@@ -1,4 +1,4 @@
-(in-package :silica)
+;; -*- mode: common-lisp; package: silica -*-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
@@ -18,6 +18,10 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
+;; $fiHeader$
+
+(in-package :silica)
+
 
 ;;;; sheet-device-transformation - transformation from sheets
 ;;;; coordinate space to its mirror

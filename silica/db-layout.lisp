@@ -147,20 +147,55 @@
 ;;; 
 
 (defclass space-req-mixin (layout-mixin)
-    ((space-req :reader pane-space-req)))
+	  ((initial-space-req :reader pane-initial-space-req)
+	   (space-req :reader pane-space-req)))
 
 (defmethod initialize-instance :after 
 	   ((pane space-req-mixin) 
+	    &rest args
 	    &key  
-	    (width 0) (max-width width) (min-width width)
-	    (height 0) (max-height height) (min-height height))
-  (setf (slot-value pane 'space-req)
-    (make-space-req :width width 
-		    :height height 
-		    :max-width max-width 
-		    :min-width min-width 
-		    :max-height max-height
-		    :min-height min-height)))
+	    width max-width min-width
+	    height max-height min-height)
+  (declare (ignore width min-width max-width
+		   height min-height max-height))
+  (multiple-value-bind
+      (width min-width max-width
+       height min-height max-height)
+      (apply #'default-space-requirements 
+	     pane 
+	     :allow-other-keys t
+	     args)
+    (setf (slot-value pane 'space-req)
+      (make-space-req :width width 
+		      :height height 
+		      :max-width max-width 
+		      :min-width min-width 
+		      :max-height max-height
+		      :min-height min-height)
+      (slot-value pane 'initial-space-req)
+      (make-space-req :width width 
+		      :height height 
+		      :max-width max-width 
+		      :min-width min-width 
+		      :max-height max-height
+		      :min-height min-height))))
+
+(defmethod default-space-requirements ((pane space-req-mixin) 
+				       &key 
+				       (width 0)
+				       (min-width width)
+				       (max-width width)
+				       (height 0)
+				       (min-height height)
+				       (max-height height))
+  (values width
+	  min-width
+	  max-width
+	  height
+	  min-height
+	  max-height))
+	  
+	  
 
 (defmethod compose-space ((pane space-req-mixin))
   (slot-value pane 'space-req))
@@ -190,7 +225,7 @@
 		      :max-height (or max-height height +fill+)
 		      :min-height (or min-height height 0)))))
 
-(defmethod compose-space ((pane client-space-req-mixin))
+(defmethod compose-space :around ((pane client-space-req-mixin))
   (or (slot-value pane 'client-space-req)
       (call-next-method)))
 
@@ -306,10 +341,10 @@
   (clear-space-req-cache pane))
 
 (defun clear-space-req-caches-in-tree (sheet)
-  (walk-tree #'(lambda (sheet depth nth) 
-		 (declare (ignore depth nth))
-		 (clear-space-req-cache sheet))
-	     sheet))
+  (clim-internals::map-over-sheets
+   #'(lambda (sheet) 
+       (clear-space-req-cache sheet))
+   sheet))
 
 (defun clear-space-req-caching-in-ancestors (menu)
   (do ((parent (sheet-parent menu) (sheet-parent parent)))
@@ -427,3 +462,13 @@
 	    (decf extra used))
 	    (push alloc sizes)))
       (nreverse sizes))))
+
+;;; Most of the layout panes should inherit from this
+
+(defclass layout-pane (mute-input-mixin
+		       pane-background-mixin
+		       composite-pane 
+		       space-req-cache-mixin
+		       sheet-permanently-enabled-mixin)
+	  ())
+

@@ -16,3 +16,15 @@ FRC :
 
 swm-tape:
 	tar cf $(DEVICE) `find misc $(SOMEDIRS) '(' -name "*.cl" -o -name "*.lisp" ')' -print`
+
+xm-composer:
+	cd tk ; $(MAKE) xm-composer
+
+xm-dcl:
+	cd tk ; $(MAKE) xm-dcl
+
+# For the day the make dist happens.
+
+echo_src_files:
+	@find . '(' -name '*.cl' -o -name '*.lisp' ')' -print
+

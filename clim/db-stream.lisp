@@ -82,9 +82,22 @@
 				 )
 	  ()
   (:default-initargs :medium t 
-		     :max-width +fill+ :min-width 0 :max-height +fill+ :min-height 0))
+    ;;:max-width +fill+ :min-width 0 :max-height +fill+ :min-height 0
+    ))
 
+(defmethod silica::default-space-requirements ((pane extended-stream-sheet)
+					       &key
+					       (width 0 widthp)
+					       (min-width width)
+					       (max-width
+						(if widthp width
+						  +fill+))
+					       (height 0 heightp)
+					       (min-height height)
+					       (max-height
+						(if heightp height +fill+)))
 
+  (values width min-width max-width height min-height max-height))
 
 ;;; We should straighten this out so that this can be
 ;;; subclass of LEAF-PANE.  Then it would get
@@ -151,7 +164,10 @@
     (apply #'call-next-method pane :width (max width history-width) :height (max height history-height) keys)))
 
 (defclass basic-clim-interactor (extended-stream-pane) 
-	  ((display-function :initarg :display-function
+	  ((incremental-redisplay-p
+	    :initarg :incremental-redisplay
+	    :initform nil)
+	   (display-function :initarg :display-function
 			     :initform nil
 			     :reader pane-display-function)
 	   (display-time :initarg :display-time

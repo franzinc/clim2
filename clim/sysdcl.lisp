@@ -98,6 +98,8 @@
    :load-before-compile ("clim-defs" "incremental-redisplay"))
 
   ("menus")
+  ("surround-output")
+  ("graph-formatting")
   ("text-formatting")
   ("stream-trampolines"
    :load-before-compile ("defprotocol" "stream-defprotocols")

@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: regions.lisp,v 1.1 91/08/30 13:57:50 cer Exp Locker: cer $
+;; $fiHeader: regions.lisp,v 1.1 91/11/25 10:01:45 cer Exp Locker: cer $
 
 (in-package :clim-utils)
 
@@ -873,7 +873,9 @@
 ;; not axis-aligned.  It's not worth computing anything tighter because
 ;; the refined highlighting test will be faster than the computation of
 ;; a tighter box.
-(defun elliptical-arc-box (center-x center-y radius-1-dx radius-1-dy radius-2-dx radius-2-dy
+
+(defun elliptical-arc-box (center-x center-y 
+			   radius-1-dx radius-1-dy radius-2-dx radius-2-dy
 			   theta-1 theta-2 thickness)
   (let* ((filled (null thickness))
 	 (thickness (or thickness 0))
@@ -888,35 +890,46 @@
     (setq theta-1 (mod theta-1 2pi)
 	  theta-2 (mod theta-2 2pi))
     ;;--- Fix the NYI stuff some year
-    (let* ((x-radius (cond ((zerop radius-1-dx) radius-2-dx)
-			   ((zerop radius-2-dx) radius-1-dx)
-			   (t (nyi))))
-	   (y-radius (cond ((zerop radius-1-dy) radius-2-dy)
-			   ((zerop radius-2-dy) radius-1-dy)
-			   (t (nyi))))
-	   (x1 (+ center-x (* x-radius (cos theta-1))))
-	   (y1 (+ center-y (* y-radius (sin theta-1))))
-	   (x2 (+ center-x (* x-radius (cos theta-2))))
-	   (y2 (+ center-y (* y-radius (sin theta-2))))
-	   (left (min x1 x2))
-	   (top (min y1 y2))
-	   (right (max x1 x2))
-	   (bottom (max y1 y2)))
-      (when (angle-between-angles-p pi-single-float theta-1 theta-2)
-	(minf left (- center-x x-radius)))
-      (when (angle-between-angles-p (* pi-single-float 3/2) theta-1 theta-2)
-	(minf top (- center-y y-radius)))
-      (when (angle-between-angles-p 0 theta-1 theta-2)
-	(maxf right (+ center-x x-radius)))
-      (when (angle-between-angles-p pi/2 theta-1 theta-2)
-	(maxf bottom (+ center-y y-radius)))
-      (when filled
-	(minf left center-x)
-	(minf top center-y)
-	(maxf right center-x)
-	(maxf bottom center-y))
-      (fix-rectangle (- left lthickness) (- top lthickness)
-		     (+ right rthickness) (+ bottom rthickness)))))
+    
+    (multiple-value-bind (x-radius y-radius)
+	(cond ((and (= radius-1-dx 0) (= radius-2-dy 0))
+	       (values (abs radius-2-dx) (abs radius-1-dy)))
+	      ((and (= radius-2-dx 0) (= radius-1-dy 0))
+	       (values (abs radius-1-dx) (abs radius-2-dy)))
+	      (t
+	       (let ((s-1 (+ (* radius-1-dx radius-1-dx) 
+			     (* radius-1-dy radius-1-dy)))
+		     (s-2 (+ (* radius-2-dx radius-2-dx) 
+			     (* radius-2-dy radius-2-dy))))
+		 (if (= s-1 s-2)
+		     (let ((r (truncate (sqrt s-1))))
+		       (values r r))
+		   ;; Degrade to drawing a rectilinear ellipse
+		   (values (truncate (sqrt s-1)) 
+			   (truncate (sqrt s-2)))))))
+      (let* ((x1 (+ center-x (* x-radius (cos theta-1))))
+	     (y1 (+ center-y (* y-radius (sin theta-1))))
+	     (x2 (+ center-x (* x-radius (cos theta-2))))
+	     (y2 (+ center-y (* y-radius (sin theta-2))))
+	     (left (min x1 x2))
+	     (top (min y1 y2))
+	     (right (max x1 x2))
+	     (bottom (max y1 y2)))
+	(when (angle-between-angles-p pi-single-float theta-1 theta-2)
+	  (minf left (- center-x x-radius)))
+	(when (angle-between-angles-p (* pi-single-float 3/2) theta-1 theta-2)
+	  (minf top (- center-y y-radius)))
+	(when (angle-between-angles-p 0 theta-1 theta-2)
+	  (maxf right (+ center-x x-radius)))
+	(when (angle-between-angles-p pi/2 theta-1 theta-2)
+	  (maxf bottom (+ center-y y-radius)))
+	(when filled
+	  (minf left center-x)
+	  (minf top center-y)
+	  (maxf right center-x)
+	  (maxf bottom center-y))
+	(fix-rectangle (- left lthickness) (- top lthickness)
+		       (+ right rthickness) (+ bottom rthickness))))))
 
 (defun angle-between-angles-p (theta theta-1 theta-2)
   (unless (< theta-1 theta-2)

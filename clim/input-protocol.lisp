@@ -101,7 +101,7 @@
 
 (defmethod stream-set-cursor-position* :after ((stream input-protocol-mixin)
 					       x y)
-  (when (minusp x) (break "dunno"))
+  (when (minusp x) (warn "negative cursor x"))
   (let ((cursor (stream-text-cursor stream)))
     (when cursor
       (entity-set-position cursor x y))))
@@ -450,7 +450,10 @@
 ;;; Ok, there's still an issue.  Just how do we want to handle this, given
 ;;; that it's non-trivial to turn a character back into a key-press event.
 ;;; This issue is still pending.
-#+Ignore
+
+(warn "bogus")
+(defparameter *abort-characters* '(#\control-z #\^z))
+
 (defmethod receive-gesture :around ((stream input-protocol-mixin) (gesture character))
   (when (member gesture *abort-characters*)
     (abort))

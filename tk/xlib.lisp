@@ -1,3 +1,27 @@
+;; -*- mode: common-lisp; package: tk -*-
+;;
+;;				-[]-
+;; 
+;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
+;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
+;;
+;; The software, data and information contained herein are proprietary
+;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
+;; given in confidence by Franz, Inc. pursuant to a written license
+;; agreement, and may be stored and used only in accordance with the terms
+;; of such license.
+;;
+;; Restricted Rights Legend
+;; ------------------------
+;; Use, duplication, and disclosure of the software, data and information
+;; contained herein by any agency, department or entity of the U.S.
+;; Government are subject to restrictions of Restricted Rights for
+;; Commercial Software developed at private expense as specified in FAR
+;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
+;; applicable.
+;;
+;; $fiHeader$
+
 (in-package :tk)
 
 ;;; Pathetic clos interface to Xlib
@@ -15,11 +39,29 @@
 
 
 
-(defclass window (display-object handle-class)
+(defclass drawable (display-object handle-class)
+	  ())
+	  
+(defclass window (drawable)
 	  ())
 
+(defclass pixmap (drawable)
+	  ())
 
+(defforeign 'x_create_pixmap
+    :entry-point "_XCreatePixmap")
 
+(defmethod initialize-instance :after ((p pixmap) &key width height
+						       depth drawable)
+  (setf (slot-value p 'handle)
+    (x_create_pixmap
+     (display-handle display)
+     (object-handle drawable)
+     width
+     height
+     depth))
+  (register-address p))
+		   
 (defun-c-callable x-error-handler (display (x :unsigned-long))
   (error "x-error:~S" 
 	 (get-error-text (x11:xerrorevent-error-code x))))
@@ -252,3 +294,58 @@
 	compose-status)
        (char*-to-string buffer)
        (aref keysym 0)))))
+
+(defclass image (handle-class)
+	  ((width :reader image-width :initarg :width)
+	   (height :reader image-height :initarg :height)))
+
+
+(defforeign 'x_create_image
+    :entry-point "_XCreateImage")
+
+(defmethod initialize-instance :after ((i image) &key width height data depth)
+  (let (v)
+    (ecase depth
+      (8 
+       (setq v (excl::malloc (* width height)))
+       (dotimes (w width)
+	 (dotimes (h height)
+	   (setf (sys::memref-int v (+ (* h width) w) 0 :unsigned-byte)
+	     (aref data h w))))))
+    (let* ((bytes-per-line 0)
+	   (bitmap-pad 8) ;;; Why is this 8 - if 0 get signal 8!
+	   (visual (x11:screen-root-visual
+		    (display-default-screen display)))
+	   (format x11:zpixmap)
+	   (offset 0)
+	   (x (x_create_image
+	       (display-handle display)
+	       visual
+	       depth
+	       format
+	       offset
+	       v
+	       width
+	       height
+	       bitmap-pad
+	       bytes-per-line)))
+      (setf (slot-value i 'handle) x))))
+
+
+(defforeign 'x_put_image
+    :entry-point "_XPutImage")
+
+(defmethod put-image (pixmap gc image &key x y)
+  (x_put_image
+   (display-handle display)
+   (object-handle pixmap)
+   (object-handle gc)
+   (object-handle image)
+   0 ;; src-x
+   0 ;; src-t
+   0 ;; dest-x
+   0 ;; dest-y
+   (image-width image)
+   (image-height image)))
+   
+  

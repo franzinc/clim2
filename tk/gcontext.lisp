@@ -1,3 +1,27 @@
+;; -*- mode: common-lisp; package: tk -*-
+;;
+;;				-[]-
+;; 
+;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
+;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
+;;
+;; The software, data and information contained herein are proprietary
+;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
+;; given in confidence by Franz, Inc. pursuant to a written license
+;; agreement, and may be stored and used only in accordance with the terms
+;; of such license.
+;;
+;; Restricted Rights Legend
+;; ------------------------
+;; Use, duplication, and disclosure of the software, data and information
+;; contained herein by any agency, department or entity of the U.S.
+;; Government are subject to restrictions of Restricted Rights for
+;; Commercial Software developed at private expense as specified in FAR
+;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
+;; applicable.
+;;
+;; $fiHeader$
+
 (in-package :tk)
 
 (eval-when (compile load eval)
@@ -15,8 +39,8 @@
 	       (arc-mode :int)
 	       (tile :pixmap)
 	       (stipple :pixmap)
-	       (ts-x :int)
-	       (ts-y :int)
+	       (ts-x-origin :int)
+	       (ts-y-origin :int)
 	       (font x-font)
 	       (subwindow-mode :int)
 	       (exposures :boolean)
@@ -29,7 +53,7 @@
 	   (defconstant *gcontext-bit-mask*
 	     '(function plane-mask foreground background
 			line-width line-style cap-style join-style fill-style
-			fill-rule tile stipple ts-x ts-y font subwindow-mode
+			fill-rule tile stipple ts-x-origin ts-y-origin font subwindow-mode
 			exposures clip-x clip-y clip-mask dash-offset dashes
 			arc-mode)))
 
@@ -126,14 +150,15 @@
 	 (x11:xchangegc
 	  (display-handle (object-display gc))
 	  (object-handle gc)
-	  ,(ash 1 (position name *gcontext-bit-mask*))
+	  ,(ash 1 (or (position name *gcontext-bit-mask*)
+		      (error "Cannot find ~S in gcontext components" name)))
 	  gc-values)
 	 nv))))
 
 (defmacro define-gc-reader (name decoder &rest args)
   `(defmethod ,(intern (format nil "~A-~A" 'gcontext name)) (gc)
     (,decoder 
-     (,(intern (format nil "~A~A" 'xgcvalues- name) :x11)
+     (,(intern (format nil "~A~A" '_xgc-values- name) :x11)
       (object-handle gc))
      ,@args)))
 
@@ -152,10 +177,10 @@
 ;(define-gc-accessor background  (encode-pixel decode-pixel))
 
 (defmethod gcontext-foreground ((gc gcontext))
-  (decode-pixel (x11:xgcvalues-foreground (object-handle gc))))
+  (decode-pixel (x11::_xgc-values-foreground (object-handle gc))))
 
 (defmethod gcontext-background ((gc gcontext))
-  (decode-pixel (x11:xgcvalues-background (object-handle gc))))
+  (decode-pixel (x11::_xgc-values-background (object-handle gc))))
 
 (defmethod (setf gcontext-foreground) (nv (gc gcontext))
   (x11:xsetforeground 
@@ -177,10 +202,13 @@
 (define-gc-accessor tile  (encode-pixmap decode-pixmap))
 (define-gc-accessor stipple  (encode-pixmap decode-pixmap))
 
+(defun encode-pixmap (x)
+  (object-handle x))
 
-(define-gc-accessor ts-x (encode-int16 decode-int16))
-(define-gc-accessor ts-y (encode-int16  decode-int16))
+(define-gc-accessor ts-x-origin (encode-int16 decode-int16))
+(define-gc-accessor ts-y-origin (encode-int16  decode-int16))
 
+   
 (define-gc-accessor font (encode-font decode-font))
 (define-gc-accessor line-style  (encode-enum decode-enum) '(:solid :dash :double-dash))
 (define-gc-accessor cap-style (encode-enum decode-enum) '(:not-last :butt :round :projecting))
@@ -327,6 +355,8 @@
 
 (defmethod encode-pixel ((x integer))
   x)
+
+(defun decode-pixel (x) x)
 (defmethod encode-pixel ((x color))
   (allocate-color (default-colormap display 0) x))
 

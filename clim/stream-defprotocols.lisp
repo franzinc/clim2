@@ -19,7 +19,7 @@
 ;; applicable.
 ;;
 
-;; $fiHeader: stream-defprotocols.lisp,v 1.7 91/08/05 14:35:33 cer Exp $
+;; $fiHeader: stream-defprotocols.lisp,v 1.1 91/11/25 10:01:16 cer Exp Locker: cer $
 
 (in-package :clim)
 
@@ -309,7 +309,26 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 	      ((stream drawing-state-mixin) function &rest x))
 
 (defoperation silica::medium-draw-line* drawing-state-mixin
-	      ((stream drawing-state-mixin) from-x from-y to-x to-y))
+  ((stream drawing-state-mixin) from-x from-y to-x to-y))
+
+(defoperation silica::medium-draw-polygon* drawing-state-mixin
+  ((stream drawing-state-mixin) list-of-x-and-ys closed filled))
+
+(defoperation silica::medium-draw-ellipse* drawing-state-mixin
+  ((stream drawing-state-mixin)  center-x center-y 
+				       radius-1-dx 
+				       radius-1-dy 
+				       radius-2-dx
+				       radius-2-dy 
+				       start-angle 
+				       end-angle 
+				       filled))
+
+(defoperation silica::medium-draw-rectangle* drawing-state-mixin
+  ((stream drawing-state-mixin)   from-x from-y to-x to-y filled))
+
+
+
 
 
 

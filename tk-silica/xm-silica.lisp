@@ -1,4 +1,4 @@
-(in-package :xm-silica)
+;; -*- mode: common-lisp; package: xm-silica -*-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
@@ -18,6 +18,10 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
+;; $fiHeader$
+
+(in-package :xm-silica)
+
 
 (defmethod find-port-type ((type (eql ':motif)))
   'motif-port)
@@ -75,16 +79,14 @@
   
   (let* ()
     (flet ((font->text-style (font family)
-	     (let* ((tokens (disassemble-x-font-name (tk::font-name font)))
+	     (let* ((tokens (disassemble-x-font-name font))
 		    (italic (member (fifth tokens) '("i" "o") :test #'equalp))
 		    (bold (equalp (fourth tokens) "Bold"))
 		    (face (if italic
 			      (if bold '(:bold :italic) :italic)
 			    (if bold :bold :roman)))
-		    (designed-point-size (or (tk::font-property font :POINT_SIZE)
-					     (parse-integer (ninth tokens))))
-		    (designed-y-resolution (or (tk::font-property font :RESOLUTION_Y)
-					       (parse-integer (nth 10 tokens))))
+		    (designed-point-size (parse-integer (ninth tokens)))
+		    (designed-y-resolution (parse-integer (nth 10 tokens)))
 		    (point-size (float designed-point-size))
 		    (size (/ point-size 10)))
 	       (make-text-style family face size))))
@@ -92,17 +94,13 @@
 	(let ((family (car family-stuff)))
 	  (dolist (font-pattern (cdr family-stuff))
 	    (dolist (xfont (tk::list-font-names display font-pattern))
-	      (let ((xfont (make-instance
-						   'tk::font 
-						   :display display
-						   :name xfont)))
 	      (let ((text-style (font->text-style xfont family)))
 		;; prefer first font satisfying this text style, so
 		;; don't override if we've already defined one.
 		(unless (silica::text-style-mapping-exists-p
 			 display-device *standard-character-set* text-style t)
 		  (silica::add-text-style-mapping display-device *standard-character-set*
-					  text-style xfont))))))
+					  text-style xfont)))))
 	  ;; Now build the logical size alist for the family
 	  
 	  
@@ -328,7 +326,7 @@
       (sheet-mirror ma))))
 
 (defmethod find-shell-class-and-initargs (port sheet)
-  (values 'top-level-shell '()))
+  (values 'top-level-shell nil))
 
 (defmethod enable-mirror (port sheet)
   (declare (ignore port))
@@ -454,6 +452,23 @@
   
 (defmethod realize-text-style (port font)
   (silica::text-style-mapping port nil font nil))
+
+
+
+(defmethod text-style-mapping :around ((device motif-port)
+				       character-set 
+				       text-style 
+				       etc)
+  (declare (ignore etc))
+  (let ((font (call-next-method)))
+    (when (or (stringp font) (symbolp font))
+      (let* ((font-name (string font)))
+	(setf font (make-instance 'tk::font 
+				    :display (port-display device)
+				    :name font-name))
+	(add-text-style-mapping
+	  device character-set (parse-text-style text-style) font)))
+    font))
 
 
 (defmethod silica::text-style-width ((text-style text-style) medium)

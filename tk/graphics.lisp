@@ -1,3 +1,27 @@
+;; -*- mode: common-lisp; package: tk -*-
+;;
+;;				-[]-
+;; 
+;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
+;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
+;;
+;; The software, data and information contained herein are proprietary
+;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
+;; given in confidence by Franz, Inc. pursuant to a written license
+;; agreement, and may be stored and used only in accordance with the terms
+;; of such license.
+;;
+;; Restricted Rights Legend
+;; ------------------------
+;; Use, duplication, and disclosure of the software, data and information
+;; contained herein by any agency, department or entity of the U.S.
+;; Government are subject to restrictions of Restricted Rights for
+;; Commercial Software developed at private expense as specified in FAR
+;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
+;; applicable.
+;;
+;; $fiHeader$
+
 (in-package :tk)
 
 (defun draw-point (drawable gcontext x y)
@@ -26,6 +50,53 @@
    x2
    y2))
 
+
+(defun draw-ellipse (drawable gcontext center-x 
+		     center-y
+		     radius-1-dx 
+		     radius-1-dy 
+		     radius-2-dx
+		     radius-2-dy 
+		     start-angle 
+		     end-angle 
+		     filled)
+  (multiple-value-bind (x-radius y-radius)
+      (cond ((and (= radius-1-dx 0) (= radius-2-dy 0))
+	     (values (abs radius-2-dx) (abs radius-1-dy)))
+	    ((and (= radius-2-dx 0) (= radius-1-dy 0))
+	     (values (abs radius-1-dx) (abs radius-2-dy)))
+	    (t
+	     (let ((s-1 (+ (* radius-1-dx radius-1-dx) 
+			   (* radius-1-dy radius-1-dy)))
+		   (s-2 (+ (* radius-2-dx radius-2-dx) 
+			   (* radius-2-dy radius-2-dy))))
+	       (if (= s-1 s-2)
+		   (let ((r (truncate (sqrt s-1))))
+		     (values r r))
+		 ;; Degrade to drawing a rectilinear ellipse
+		 (values (truncate (sqrt s-1)) 
+			 (truncate (sqrt s-2)))))))
+    (if filled
+	(x11:xfillarc
+	 (display-handle (object-display drawable))
+	 (object-handle drawable)
+	 (object-handle gcontext)
+	 (- center-x x-radius)
+	 (- center-y y-radius)
+	 (* 2 x-radius)
+	 (* 2 y-radius)
+	 0
+	 (* 360 64))
+      (x11:xdrawarc
+       (display-handle (object-display drawable))
+       (object-handle drawable)
+       (object-handle gcontext)
+       (- center-x x-radius)
+       (- center-y y-radius)
+       (* 2 x-radius)
+       (* 2 y-radius)
+       0
+       (* 360 64)))))
 
 (defstub draw-lines (drawable gcontext points &key relative-p fill-p
 			    (shape :complex))

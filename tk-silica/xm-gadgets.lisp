@@ -29,11 +29,11 @@
 					     (push-button motif-push-button)
 					     (canvas motif-drawing-area)
 					     (text-field motif-text-field)
-					     (toggle-button
-					      motif-toggle-button)
+					     (toggle-button motif-toggle-button)
 					     (silica::menubar motif-menubar)
-					     ;;; One day
 					     (silica::viewport xm-viewport)
+					     
+					     ;; One day
 					     (line-editor-pane)
 					     (label-button-pane)
 					     (radio-button-pane)
@@ -229,7 +229,7 @@
 (defclass motif-scrollbar (motif-leaf-pane 
 			   silica::sheet-permanently-enabled-mixin
 			   gadget
-			   #+ignore motif-value-pane) 
+			   silica::scrollbar)
 	  ((orientation :initarg :orientation))
   (:default-initargs :orientation :horizontal))
 
@@ -344,8 +344,8 @@
 		    sheet))
 
 (defmethod allocate-space ((sheet motif-top-level-sheet) width height)
-  (allocate-space (car (sheet-children sheet)) width
-			  height))
+  (silica::resize-sheet*  (car (sheet-children sheet)) 
+			  width height))
 
 (defmethod compose-space ((sheet motif-top-level-sheet))
   (compose-space (car (sheet-children sheet))))
@@ -529,6 +529,10 @@
   (setf (slot-value vp 'viewport)
     (make-bounding-rectangle 0 0 (sheet-width vp) (sheet-height vp))))
 
+(defmethod allocate-space ((vp xm-viewport) width height)
+  ;; We do nothing to the child of a viewport
+  nil)
+
 (defmethod allocate-space :after ((vp xm-viewport) width height)
   (bounding-rectangle-set-size
    (silica::xm-viewport-viewport vp)
@@ -559,11 +563,11 @@
 	  '(:scrolling-policy :application-defined
 	    :scroll-bar-display-policy :static)))
 
-
-(defmethod realize-mirror :around ((port motif-port) (sheet xm-viewport))
-  (let* ((m (call-next-method)))
-    (tk::set-values (sheet-mirror (silica::sheet-parent sheet)) :work-window m)
-    m))
+; From the days when the parent used to be a motif scroll window
+;(defmethod realize-mirror :around ((port motif-port) (sheet xm-viewport))
+;  (let* ((m (call-next-method)))
+;    (tk::set-values (sheet-mirror (silica::sheet-parent sheet)) :work-window m)
+;    m))
 
 
 (defmethod add-sheet-callbacks  ((port motif-port) (sheet xm-viewport) widget)
@@ -616,16 +620,19 @@
   (clim::pane-scroller-sheet x))
 
 (defun clim::update-region (stream width height &key no-repaint)
-  (setf (sheet-region stream)
-    (make-bounding-rectangle  0 0 
-			      (max (bounding-rectangle-width stream) width)
-			      (max (bounding-rectangle-height stream) height))))
+  (when (or (> width (bounding-rectangle-width stream))
+	    (> height (bounding-rectangle-height stream)))
+    (setf (sheet-region stream)
+      (make-bounding-rectangle  0 0 
+				(max (bounding-rectangle-width stream) width)
+				(max (bounding-rectangle-height stream) height)))))
 
 (defun clim::scroll-extent (stream &key (x 0) (y 0))
 
   ;; This should copy-area and then do a repaint of the new stuff.
   ;; Perhaps for the time being we can just clear the current area and
   ;; then repaint the whole thing
+  #+ignore-why-is-this-here
   (setq y (min y (max (- (bounding-rectangle-height stream)
 			 (bounding-rectangle-height
 			  (clim::pane-viewport stream)))

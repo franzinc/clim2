@@ -1,13 +1,13 @@
 ;;; -*- Mode: LISP; Syntax: Common-lisp; Package: CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graph-formatting.lisp,v 1.7 91/08/05 14:29:31 cer Exp $
+;; $fiHeader: graph-formatting.cl,v 1.1 91/12/17 13:58:42 cer Exp Locker: cer $
 
 (in-package :clim)
 
 "Copyright (c) 1989, 1990 International Lisp Associates.  All rights reserved."
 "Copyright (c) 1991, Franz Inc. All rights reserved"
 
-(defclass graph-output-record (linear-output-record)
+(defclass graph-output-record (standard-sequence-output-record)
      ((orientation :initarg :orientation)
       (generation-separation :initarg :generation-separation)
       (within-generation-separation :initarg :within-generation-separation)
@@ -18,14 +18,14 @@
 ;;--- This really needs its own AUGMENT-DRAW-SET method.
 (defmethod elements-never-overlap-p ((record graph-output-record)) t)
 
-(defclass graph-node-output-record (linear-output-record)
+(defclass graph-node-output-record (standard-sequence-output-record)
      ((node-children :accessor graph-node-children)
       (node-parent :accessor graph-node-parent))
   (:default-initargs :size 5))
 
 (define-output-record-constructor graph-node-output-record
-				  (&key x-position y-position (size 25))
-  :x-position x-position :y-position y-position :size size)
+				  (&key (size 25))
+   :size size)
 
 ;;; (Copy of the comment in table-formatting)
 ;;; Cells have been positioned manually, probably.
@@ -184,10 +184,11 @@
 (defun layout-graph-edges (graph stream)
   (let ((orientation (slot-value graph 'orientation)))
     (with-output-recording-options (stream :draw-p nil :record-p t)
-      (with-new-output-record (stream 'linear-output-record nil
+      (with-new-output-record (stream 'standard-sequence-output-record nil
 			       :parent graph)
 	(multiple-value-bind (xoff yoff)
-	    (convert-from-relative-to-absolute-coordinates
+	    (values 0 0)
+	    #+ignore(convert-from-relative-to-absolute-coordinates
 	      stream (output-record-parent graph))
 	  (labels ((draw-edges (parent)
 		     (multiple-value-bind (parent-x parent-y)

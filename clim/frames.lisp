@@ -38,8 +38,8 @@
    (panes :initarg :panes :accessor frame-panes)
    (top-level-sheet :accessor frame-top-level-sheet :initform nil)
    (shell :accessor frame-shell)
-   (state :initform :disabled :accessor frame-state 
-	  :type (member :disabled :enable :disabled :shrunk))
+   (state :initform :disowned :accessor frame-state 
+	  :type (member :disowned :disabled :enabled :shrunk))
    (command-table :initarg :command-table 
 		  :initform (find-command-table 'user-command-table)
 		  :accessor frame-command-table)
@@ -154,9 +154,21 @@
   (ecase (frame-state frame)
     (:enabled)
     ((:disabled :disowned)
-     (setf (frame-state frame) :enabled)
-     (layout-frame frame)
-     (note-frame-enabled (frame-manager frame) frame))))
+     (let ((old (frame-state frame)))
+       (setf (frame-state frame) :enabled)
+       ;; IF this is a new frame then if the user specified a width
+       ;; then we should be using that
+       ;; IF the frame already exists then we probably should be using
+       ;; the top level sheet size
+       (multiple-value-call
+	   #'layout-frame 
+	 frame
+	 (ecase old
+	   (:disowned (values))
+	   (:disabled
+	    (bounding-rectangle-size
+	     (frame-top-level-sheet frame)))))
+       (note-frame-enabled (frame-manager frame) frame)))))
 
 (defmethod disable-frame ((frame application-frame))
   (ecase (frame-state frame)
@@ -166,15 +178,16 @@
      (note-frame-disabled (frame-manager frame) frame))))
 
 (defmethod layout-frame ((frame application-frame) &optional width height)
-  (unless (and width height)
-    (let ((sr (compose-space (frame-panes frame))))
-      (setq width (silica::space-req-width sr)
-	    height (silica::space-req-height sr))))
-  (allocate-space (frame-panes frame) width height)
-  #+shouldwebedoingthiskindofthing?
-  (when (frame-top-level-sheet frame)
-    (silica::resize-sheet* (frame-top-level-sheet frame)
-			   width height)))
+  (when (frame-panes frame)
+    (unless (and width height)
+      (let ((sr (compose-space (frame-panes frame))))
+	(setq width (silica::space-req-width sr)
+	      height (silica::space-req-height sr))))
+    (allocate-space (frame-panes frame) width height)
+    ;; This is quite likely not going to work
+    (when (frame-top-level-sheet frame)
+      (silica::resize-sheet* (frame-top-level-sheet frame)
+			     width height))))
 
 (defun make-application-frame (class &rest options &key enable &allow-other-keys)
   (with-rem-keywords (options options '(:enable))
@@ -194,18 +207,22 @@
       (call-next-method))))
 
 (defmethod run-frame-top-level ((frame application-frame))
-  (unless (eq (frame-state frame) :enabled)
-    (enable-frame frame))
-  (let ((tl (frame-top-level frame)))
-    (if (atom tl)
-	(funcall tl frame)
-      (apply (car tl) frame (cdr tl)))))
+  (unwind-protect
+      (progn
+	(let ((tl (frame-top-level frame)))
+	  (if (atom tl)
+	      (funcall tl frame)
+	    (apply (car tl) frame (cdr tl)))))
+    (disable-frame frame)))
 
 (defun command-enabled-p (command frame) t)
 				
 (defmethod default-frame-top-level (frame
 				    &key command-parser command-unparser partial-command-parser
 					 (prompt "Command: "))
+  
+  (unless (eq (frame-state frame) :enabled)
+    (enable-frame frame))
   (let* ((*standard-output* (or (frame-standard-output frame) *standard-output*))
 	 (*query-io* (or (frame-query-io frame) *query-io*))
 	 (interactor (find-frame-pane-of-type frame 'interactor-pane))
@@ -224,18 +241,19 @@
 		  #'command-line-read-remaining-arguments-for-partial-command
 		#'menu-only-read-remaining-arguments-for-partial-command))))
     (loop
-      (redisplay-frame-panes frame)
-      (when interactor
-	(fresh-line *standard-input*)
-	(if (stringp prompt)
-	    (write-string prompt *standard-input*)
-	  (funcall prompt *standard-input* frame)))
-      (let ((command (read-frame-command frame :stream *standard-input*)))
+      (clim-utils::with-simple-abort-restart ("Abort Command")
+	(redisplay-frame-panes frame)
 	(when interactor
-	  (terpri *standard-input*))
-	;; Need this check in case the user aborted out of a command menu
-	(when command
-	  (execute-frame-command frame command))))))
+	  (fresh-line *standard-input*)
+	  (if (stringp prompt)
+	      (write-string prompt *standard-input*)
+	    (funcall prompt *standard-input* frame)))
+	(let ((command (read-frame-command frame :stream *standard-input*)))
+	  (when interactor
+	    (terpri *standard-input*))
+	  ;; Need this check in case the user aborted out of a command menu
+	  (when command
+	    (execute-frame-command frame command)))))))
 
 (defmethod redisplay-frame-panes (frame &key force-p)
   (map-over-sheets #'(lambda (sheet)
@@ -245,9 +263,23 @@
 		   (frame-top-level-sheet frame)))
 
 (defun redisplay-frame-pane (frame pane &key force-p)
-  (declare (ignore frame force-p))
   (when (pane-display-function pane)
-    (invoke-pane-redisplay-function frame pane)))
+    (let* ((ird (slot-value pane 'incremental-redisplay-p))
+	   (history 
+	    (and ird 
+		 (output-recording-stream-output-record pane)))
+	   (record (and history
+			(> (output-record-count history) 0)
+			(output-record-element history 0))))
+      (cond ((and ird (or force-p (null record)))
+	     (when force-p
+	       (window-clear pane))
+	     (updating-output (pane)
+			      (invoke-pane-redisplay-function frame pane)))
+	    (ird
+	     (redisplay record pane))
+	    (t
+	     (invoke-pane-redisplay-function frame pane))))))
 
 (defun invoke-pane-redisplay-function (frame pane)
   (let ((fn (pane-display-function pane)))
@@ -256,7 +288,9 @@
       (apply (car fn) frame pane (cdr fn)))))
 			 
 (defun execute-frame-command (frame command)
+  (declare (ignore frame))
   (apply (command-name command) (command-arguments command)))
+
 
 (defun frame-find-innermost-applicable-presentation (frame
 							   input-context 

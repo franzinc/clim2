@@ -256,7 +256,7 @@
     (cond ((and old-output-history-info
 		(setq old-menu-contents (pop old-output-history-info))
 		(funcall cache-value-test old-output-history-info cache-value))
-	   (add-output-record menu old-menu-contents))
+	   (stream-add-output-record menu old-menu-contents))
 	  (t
 	   ;; "Draw" into deexposed menu for sizing only
 	   (with-output-recording-options (menu :draw-p nil :record-p t)
@@ -470,5 +470,25 @@
 	(setf y (max min-y (min y (- max-y height))))))
     (move-frame frame x y)))
 
+(warn "where should these be")
+
 (defmethod clim-internals::window-refresh (window)
   (warn "What does this do???"))
+
+
+(defmethod window-viewport-position* (window)
+  (bounding-rectangle*
+   (pane-viewport-region window)))
+
+
+(defmethod window-set-viewport-position* (window x y)
+  (scroll-extent window :x x :y y))
+
+(defmethod window-inside-size (window)
+  (bounding-rectangle-size (pane-viewport-region window)))
+
+(defun windowp (x)
+  (typep x 'silica::sheet))
+
+(defmethod (setf window-label) (nv window)
+  nil)

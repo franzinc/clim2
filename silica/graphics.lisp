@@ -1,4 +1,4 @@
-(in-package :silica)
+;; -*- mode: common-lisp; package: silica -*-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
@@ -18,6 +18,10 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
+;; $fiHeader$
+
+(in-package :silica)
+
 
 (defclass sheet-with-graphics-state ()
 	  ((foreground :initform +black+ :accessor sheet-foreground)
@@ -55,6 +59,11 @@
 	      x
 	    (push argname unspread-argument-names)
 	    (ecase type
+	      (point-sequence
+	       (destructuring-bind
+		   (new-name) names
+		 (push `(unspread-point-sequence ,argname) spread-arguments)
+		 (push new-name spread-argument-names)))
 	      (point
 	       (destructuring-bind 
 		   (x y) names
@@ -84,7 +93,8 @@
 			   x)
 			 'keyword))
 		    keyword))))
-	 )
+)					; eval-when
+
 	 
 (defmacro define-graphics-function (name arguments &body stuff)
   (let* ((spread-name (intern (format nil "~A*" name)))
@@ -97,7 +107,8 @@
 	    line-thickness
 	    line-unit
 	    line-dashes
-	    line-cap-shape))
+	    line-cap-shape
+	    line-joint-shape))
 	 (medium-graphics-function-name
 	  (intern (format nil "~A~A*" 'medium- name)))
 	 (port-function-name
@@ -171,19 +182,28 @@
 ;; draw-points
 ;; draw-polygon
 
-(define-graphics-function draw-ellipse ((center point center-x center-y)
-					radius-dx-1
-					radius-dy-1
-					radius-dx-2
-					radius-dy-2
+(define-graphics-function draw-polygon ((points point-sequence list-of-x-and-ys)
 					&key 
-					(filled t)
-					start-angle
-					end-angle))
+					(closed t)
+					(filled t)))
 
-(define-graphics-function draw-circle ((center point center-x center-y)
-				       radius
-				       &key (filled t)))
+
+
+(define-graphics-function draw-ellipse ((center point center-x center-y)
+					radius-1-dx
+					radius-1-dy
+					radius-2-dx
+					radius-2-dy
+					&key 
+					(start-angle 0)
+					(end-angle 2pi)
+					(filled t)))
+
+(defun draw-circle (medium center radius &rest args)
+  (apply #'draw-ellipse medium center 0 radius radius 0 args))
+
+(defun draw-circle* (medium center-x center-y radius &rest args)
+  (apply #'draw-ellipse* medium center-x center-y 0 radius radius 0 args))
 
 (define-graphics-function draw-text (string-or-char
 				     (point point x y)

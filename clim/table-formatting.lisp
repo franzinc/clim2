@@ -19,7 +19,7 @@
 ;; applicable.
 ;;
 
-;; $fiHeader: table-formatting.lisp,v 1.9 91/08/05 14:35:38 cer Exp $
+;; $fiHeader: table-formatting.lisp,v 1.1 91/11/25 10:01:17 cer Exp Locker: cer $
 
 (in-package :clim)
 
@@ -468,31 +468,37 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 				       multiple-columns multiple-columns-inter-column-spacing
 				       equalize-column-widths
 				       (move-cursor t))
-  (let ((table (with-new-output-record (stream record-type nil
-					:inter-row-spacing
-					  (or (process-spacing-arg stream inter-row-spacing
-								   'formatting-table
-								   ':inter-row-spacing)
-					      (stream-vsp stream))
-					:inter-column-spacing
-					  (or (process-spacing-arg stream inter-column-spacing
-								   'formatting-table
-								   ':inter-column-spacing)
-					      (stream-string-width stream " "))
-					:equalize-column-widths equalize-column-widths)
-		 (with-output-recording-options (stream :draw-p nil :record-p t)
-		   (with-end-of-line-action (:allow stream)
-		     (with-end-of-page-action (:allow stream)
-		       (funcall continuation stream)))))))
-    (adjust-table-cells table)
-    (when multiple-columns
-      (adjust-multiple-columns table stream
-			       (and (numberp multiple-columns) multiple-columns)
-			       (and multiple-columns multiple-columns-inter-column-spacing)))
-    (replay table stream)
-    (when move-cursor
-      (move-cursor-beyond-output-record stream table))
-    table))
+  (multiple-value-bind
+      (x y)
+      (stream-cursor-position* stream)
+    (let ((table (with-new-output-record (stream record-type nil
+						 :inter-row-spacing
+						 (or (process-spacing-arg stream inter-row-spacing
+									  'formatting-table
+									  ':inter-row-spacing)
+						     (stream-vsp stream))
+						 :inter-column-spacing
+						 (or (process-spacing-arg stream inter-column-spacing
+									  'formatting-table
+									  ':inter-column-spacing)
+						     (stream-string-width stream " "))
+						 :equalize-column-widths equalize-column-widths)
+		   (with-output-recording-options (stream :draw-p nil :record-p t)
+		     (with-end-of-line-action (:allow stream)
+		       (with-end-of-page-action (:allow stream)
+			 (funcall continuation stream)))))))
+      (adjust-table-cells table)
+      (when multiple-columns
+	(adjust-multiple-columns table stream
+				 (and (numberp multiple-columns) multiple-columns)
+				 (and multiple-columns
+				      multiple-columns-inter-column-spacing)))
+      ;; Added ??
+      (output-record-set-position* table x y)
+      (replay table stream)
+      (when move-cursor
+	(move-cursor-beyond-output-record stream table))
+      table)))
 
 ;; FORMATTING-CELL macro in FORMATTED-OUTPUT-DEFS
 (defmethod formatting-cell-internal ((stream output-protocol-mixin) continuation
@@ -759,29 +765,33 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 					   max-width max-height
 					   stream-width stream-height
 					   (move-cursor t))
-  (let ((menu (with-new-output-record (stream record-type nil
-				       :n-columns n-columns :n-rows n-rows
-				       :max-width max-width :max-height max-height
-				       :stream-width stream-width :stream-height stream-height
-				       :inter-row-spacing
-				         (or (process-spacing-arg stream inter-row-spacing
-								  'formatting-item-list
-								  ':inter-row-spacing)
-					     (stream-vsp stream))
-				       :inter-column-spacing
-				         (process-spacing-arg stream inter-column-spacing
-							      'formatting-item-list
-							      ':inter-column-spacing)
-				       :no-initial-spacing no-initial-spacing)
-		(with-output-recording-options (stream :draw-p nil :record-p t)
-		  (with-end-of-line-action (:allow stream)
-		    (with-end-of-page-action (:allow stream)
-		      (funcall continuation stream)))))))
-    (adjust-table-cells menu)
-    (replay menu stream)
-    (when move-cursor
-      (move-cursor-beyond-output-record stream menu))
-    menu))
+  (multiple-value-bind
+      (x y)
+      (stream-cursor-position* stream)
+    (let ((menu (with-new-output-record (stream record-type nil
+						:n-columns n-columns :n-rows n-rows
+						:max-width max-width :max-height max-height
+						:stream-width stream-width :stream-height stream-height
+						:inter-row-spacing
+						(or (process-spacing-arg stream inter-row-spacing
+									 'formatting-item-list
+									 ':inter-row-spacing)
+						    (stream-vsp stream))
+						:inter-column-spacing
+						(process-spacing-arg stream inter-column-spacing
+								     'formatting-item-list
+								     ':inter-column-spacing)
+						:no-initial-spacing no-initial-spacing)
+		  (with-output-recording-options (stream :draw-p nil :record-p t)
+		    (with-end-of-line-action (:allow stream)
+		      (with-end-of-page-action (:allow stream)
+			(funcall continuation stream)))))))
+      (adjust-table-cells menu)
+      #+ignoremaybe(output-record-set-position* menu x y)
+      (replay menu stream)
+      (when move-cursor
+	(move-cursor-beyond-output-record stream menu))
+      menu)))
 
 (defun format-items (item-list &key (stream *standard-output*) printer presentation-type
 				    inter-row-spacing inter-column-spacing

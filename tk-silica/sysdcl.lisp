@@ -1,4 +1,4 @@
-(in-package :cl-user)
+;; -*- mode: common-lisp; package: cl-user -*-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
@@ -18,12 +18,16 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
+;; $fiHeader$
+
+(in-package :cl-user)
 
 (defsys::defsystem :xm-silica
-  (:default-pathname (frob-pathname "xm-silica"))
+    (:default-pathname (frob-pathname "xm-silica"))
   ("pkg")
   ("xm-silica")
-  ("xm-graphics"))
+  ("xm-graphics")
+  ("image"))
 
 (defsys::defsystem :xm-ws
   (:default-pathname (frob-pathname "xm-silica"))

@@ -1,4 +1,4 @@
-(in-package :silica)
+;; -*- mode: common-lisp; package: silica -*-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
@@ -18,6 +18,9 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
+;; $fiHeader$
+
+(in-package :silica)
 
 (defmethod engraft-medium (medium port sheet)
   (declare (ignore sheet port))
@@ -56,7 +59,34 @@
 			  :sheet sheet)))
 			  
 
-(defun %make-line-style (&rest x) :line-style)
+(defclass line-style ()
+	  ((unit :type (member :normal :point)
+		 :initform :normal :initarg :unit
+		 :reader line-style-unit)
+	   (thickness :type real
+		      :initform 1 :initarg :thickness
+		      :reader line-style-thickness)
+	   (joint-shape :type (member :miter :bevel :round :none)
+			:initform :miter :initarg :joint-shape
+			:reader line-style-joint-shape)
+	   (cap-shape :type (member :butt :square :round :no-end-point)
+		      :initform :butt :initarg :cap-shape
+		      :reader line-style-cap-shape)
+	   (dashes :initform nil :initarg :dashes
+		   :reader line-style-dashes)
+	   ))
+
+(defun make-line-style-1 (line-unit line-thickness line-dashes
+			  line-joint-shape line-cap-shape)
+  (make-instance 'line-style
+		 :unit line-unit
+		 :thickness line-thickness
+		 :dashes line-dashes
+		 :joint-shape line-joint-shape
+		 :cap-shape line-cap-shape))
+
+(defun %make-line-style (&rest x) 
+  (apply #'make-instance 'line-style x))
 
 (defmethod invoke-with-drawing-options ((sheet sheet) function &rest options)
   (declare (dynamic-extent options))
@@ -67,39 +97,115 @@
 	  function
 	  options)))
 
+
+
+(defmethod invoke-with-drawing-options
+	   ((medium medium) continuation
+	    &key ink clipping-region transformation
+		 line-style line-unit line-thickness (line-dashes nil dashes-p)
+		 line-joint-shape line-cap-shape
+		 (text-style nil text-style-p) (text-family nil text-family-p)
+		 (text-face nil text-face-p) (text-size nil text-size-p))
+  (with-slots ((medium-ink ink)
+	       (medium-transformation transformation)
+	       (transformed-clipping-region region)
+	       (medium-line-style line-style)) medium
+    ;; Close the current output record if the drawing ink is changing
+    #+ignore-do-we-have-to-do-this
+    (unless (eq medium-ink ink)
+      (close-current-text-output-record medium))
+    (let* ((saved-ink medium-ink)
+	   (saved-transformation medium-transformation)
+	   (saved-clipping-region transformed-clipping-region)
+	   (saved-line-style medium-line-style))
+      (unwind-protect
+	  (progn
+	    (when ink
+	      (setf medium-ink ink))
+	    (when transformation
+	      (setf medium-transformation
+		    (compose-transformations saved-transformation transformation)))
+	    (when clipping-region
+	      (setf transformed-clipping-region
+		    (region-intersection saved-clipping-region
+					 (transform-region medium-transformation
+							   clipping-region))))
+	    (cond ((or line-unit line-thickness line-joint-shape line-cap-shape dashes-p)
+		   (when (null line-style)
+		     (setf line-style saved-line-style))
+		   (setf medium-line-style
+			 (make-line-style-1
+			   (or line-unit (line-style-unit line-style))
+			   (or line-thickness (line-style-thickness line-style))
+			   (if dashes-p line-dashes (line-style-dashes line-style))
+			   (or line-joint-shape (line-style-joint-shape line-style))
+			   (or line-cap-shape (line-style-cap-shape line-style)))))
+		  (line-style
+		   (setf medium-line-style line-style)))
+	    (when (or text-family-p text-face-p text-size-p)
+	      (if text-style-p
+		  (setq text-style (with-stack-list (style text-family text-face text-size)
+				     (merge-text-styles style text-style)))
+		  (setq text-style (make-text-style text-family text-face text-size)
+			text-style-p t)))
+	    (if text-style-p
+		(flet ((call-continuation (stream)
+			 (declare (ignore stream))
+			 (funcall continuation)))
+		  (declare (dynamic-extent #'call-continuation))
+		  (with-text-style-internal medium text-style #'call-continuation medium))
+	        (funcall continuation)))
+	(setf medium-line-style saved-line-style)
+	(setf transformed-clipping-region saved-clipping-region)
+	(setf medium-transformation saved-transformation)
+	(setf medium-ink saved-ink)))))
+
+#+ignore
 (defmethod invoke-with-drawing-options ((medium medium) function 
+					&rest args
 					&key 
+					(line-cap-shape nil line-cap-shape-p)
+					(line-joint-shape nil line-joint-shape-p)
+					(line-dashes nil line-dashes-p) 
 					(line-thickness nil line-thickness-p)
+					(line-unit nil line-unit-p)
+					(line-style nil line-style-p)
 					(ink nil ink-p)
-					(text-style nil text-style-p)
 					(transformation nil trans-p)
 					(clipping-region nil clipping-region-p)
-					(line-style nil line-style-p)
 					(text-family nil text-family-p)
 					(text-face nil text-face-p)
-					(text-size nil text-size-p))
-  (when (or text-size-p text-face-p text-family-p line-style-p
-	    clipping-region-p)
-    (warn "unhandled option to invoke-with-drawing-options"))
+					(text-size nil text-size-p)
+					(text-style nil text-style-p))
+
+  (with-rem-keywords (new args '(:ink :text-style :line-style :transformation))
+    (when new
+      (warn "unhandled option to invoke-with-drawing-options ~S" new)))
   
   (let ((old-ink (if ink-p (medium-ink medium)))
 	(old-trans (if trans-p (medium-transformation medium)))
-	(old-text-style (if text-style-p (medium-text-style medium))))
+	(old-text-style (if text-style-p (medium-text-style medium)))
+	(old-line-style (if line-style-p (medium-line-style medium))))
     (unwind-protect
 	(progn
 	  (when ink-p 
 	    (setf (medium-ink medium) ink))
+	  ;; Should we not compose
 	  (when trans-p
 	    (setf (medium-transformation medium) transformation))
 	  (when text-style-p
 	    (setf (medium-text-style medium) text-style))
+	  (when line-style-p
+	    (setf (medium-line-style medium) line-style))
 	  (funcall function))
       (when ink-p
 	(setf (medium-ink medium) old-ink))
       (when trans-p
 	(setf (medium-transformation medium) old-trans))
       (when text-style-p
-	(setf (medium-text-style medium) old-text-style)))))
+	(setf (medium-text-style medium) old-text-style))
+      (when line-style-p
+	(setf  (medium-line-style medium) old-line-style)))))
 
 (defmethod allocate-medium (port sheet)
   (or (pop (port-media-cache port))

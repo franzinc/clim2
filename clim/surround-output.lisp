@@ -1,6 +1,6 @@
-;;; -*- Mode: LISP; Syntax: Common-lisp; Package: CLIM; Base: 10; Lowercase: Yes -*-
+;;; -*- Mode: LISP; Syntax: Common-lisp; Package: clim; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: surround-output.lisp,v 1.3 91/08/05 14:35:37 cer Exp $
+;; $fiHeader: surround-output.cl,v 1.1 91/12/17 13:38:51 cer Exp Locker: cer $
 
 (in-package :clim)
 
@@ -33,12 +33,12 @@
 	       (setq *border-shape-drawer-alist*
 		     (nconc *border-shape-drawer-alist* (list (list ',shape ',name))))))))))
 
-(defclass border-output-record (linear-output-record)
+(defclass border-output-record (standard-sequence-output-record)
     ((shape :initarg :shape)))
 
 (define-output-record-constructor border-output-record
-				  (&key x-position y-position (size 5) shape)
-  :x-position x-position :y-position y-position :size size :shape shape)
+				  (&key (size 5) shape)
+  :size size :shape shape)
 
 
 (define-border-type :rectangle (stream left top right bottom)
@@ -68,6 +68,7 @@
     (draw-line* stream left top right top)))
 
 ;; SURROUNDING-OUTPUT-WITH-BORDER macro in FORMATTED-OUTPUT-DEFS
+
 (defun surrounding-output-with-border-1 (stream shape continuation &key (move-cursor t))
   (let* ((body nil)				;the record containing the body
 	 (border-record				;the entire bordered output record
@@ -76,12 +77,16 @@
 	     (setq body (with-output-to-output-record (stream)
 			  (funcall continuation stream))))))
     (with-bounding-rectangle* (left top right bottom) body
-      (multiple-value-bind (xoff yoff)
-	  (convert-from-relative-to-absolute-coordinates
-	    stream (output-record-parent (output-record-parent body)))
-	(translate-fixnum-positions xoff yoff left top right bottom))
+
+			      #+ignore-should-do-something?
+			      (multiple-value-bind (xoff yoff)
+				  (convert-from-relative-to-absolute-coordinates
+				   stream (output-record-parent (output-record-parent body)))
+				(translate-fixnum-positions xoff yoff left top right
+							    bottom))
+			      
       (with-output-recording-options (stream :draw-p nil :record-p t)
-	(with-new-output-record (stream 'linear-output-record nil
+	(with-new-output-record (stream 'standard-sequence-output-record nil
 				 :parent border-record)
 	  (if (funcallable-p shape)
 	      (funcall shape stream body left top right bottom)

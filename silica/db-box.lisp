@@ -28,11 +28,9 @@
 ;;; Boxing Panes
 ;;;
 
-(defclass box-pane (mute-input-mixin
-		    pane-background-mixin
-		    composite-pane 
-		    #+ignore list-contents-mixin
-		    space-req-cache-mixin)
+
+
+(defclass box-pane (layout-pane)
 	  ((space :initform 1 :initarg :space)
 	   contents))
 

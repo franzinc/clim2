@@ -51,10 +51,6 @@
 (defsys::compile-system :xm-silica)
 (defsys::load-system :xm-silica)
 
-;(load "ws/sysdcl")
-;(defsys::compile-system :ws)
-;(defsys::load-system :ws)
-
 (defsys::compile-system :xm-ws)
 (defsys::load-system :xm-ws)
 
@@ -64,3 +60,7 @@
   )
 
 (load "test/test")
+
+(excl::compile-file-if-needed "test/test-suite")
+(load "test/test-suite")
+

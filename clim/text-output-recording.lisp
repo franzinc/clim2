@@ -101,6 +101,7 @@
 	 (color (slot-value record 'ink)))
     (declare (fixnum start end baseline))
     (with-sheet-medium (medium stream)
+      	     (letf-globally (( (medium-transformation medium) +identity-transformation+))
      (macrolet
       ((do-it (end-position)
 	 `(loop
@@ -135,7 +136,7 @@
 		(incf start))))))
       (multiple-value-bind (cursor-x cursor-y) (output-record-position* record)
 	(declare (fixnum cursor-x cursor-y))
-	(do-it end))))))
+	(do-it end)))))))
 
 (defmethod replay-output-record ((record styled-text-displayed-output-record) stream &optional region)
   (declare (ignore region))
@@ -148,6 +149,7 @@
 	 (color (slot-value record 'ink)))
     (declare (fixnum start end baseline))
     (with-sheet-medium (medium stream)
+            	     (letf-globally (( (medium-transformation medium) +identity-transformation+))
      (macrolet
       ((do-it (end-position)
 	 `(loop
@@ -186,7 +188,7 @@
 	    (do-it change-position)
 	    (setf text-style new-text-style
 		  start change-position)))
-	(do-it end))))))
+	(do-it end)))))))
 
 (defmethod add-string-output-to-text-record ((record text-displayed-output-record)
 					     text-string start end text-style
@@ -342,7 +344,12 @@
 			  (slot-value match 'text-style-changes)))
 	  (setf (output-record-contents-ok text) t)
 	  ;; make sure that old bounding-rect is the same relative position from
-	  ;; old-start-position as the bounding-rect is from start-position
+	  ;; old-start-position as the bounding-rect is from
+	  ;; start-position
+	  (multiple-value-bind (old-start-x old-start-y)
+		(bounding-rectangle-position* match)
+	      (output-record-set-old-start-position* text old-start-x old-start-y))
+	  #+ignore
 	  (multiple-value-bind (delta-x delta-y)
 	      (multiple-value-bind (ex ey) (bounding-rectangle-position* text)
 		(declare (fixnum ex ey))
@@ -362,23 +369,22 @@
   (let ((baseline 0)
 	(style (medium-default-text-style stream)))
     (declare (fixnum baseline))
-    (labels ((find-or-recurse (element y-offset)
-	       (declare (fixnum y-offset))
+    (labels ((find-or-recurse (element)
 	       (typecase element
 		 (styled-text-displayed-output-record
-		   (maxf baseline (the fixnum (+ y-offset (slot-value element 'baseline)))))
+		   (maxf baseline (the fixnum (+ (bounding-rectangle-min-y element) (slot-value element 'baseline)))))
 		 (text-displayed-output-record
 		   (maxf baseline
-			 (the fixnum (+ y-offset (- (text-style-height style stream)
+			 (the fixnum (+ (bounding-rectangle-min-y element)
+					 (- (text-style-height style stream)
 						    (text-style-descent style stream))))))
 		 (t
-		   (multiple-value-bind (xoff yoff) (output-record-position* element)
-		     (declare (fixnum yoff))
-		     (declare (ignore xoff))
-		     (map-over-output-record-elements element
-		       #'find-or-recurse 0 0 (the fixnum (+ yoff y-offset))))))))
+		  (map-over-output-record-children
+		   #'find-or-recurse
+		   element
+		   +everywhere+)))))
       (declare (dynamic-extent #'find-or-recurse))
-      (find-or-recurse record 0))
+      (find-or-recurse record))
     baseline))
 
 

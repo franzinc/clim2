@@ -57,7 +57,8 @@
 			  :accessor stream-end-of-page-action)
       
       (text-margin :initarg :text-margin)
-      (default-text-margin :accessor stream-default-text-margin)
+      (default-text-margin :accessor stream-default-text-margin
+	:initform most-positive-fixnum)
 
       ;; TSTYLE
       ;; delete these 

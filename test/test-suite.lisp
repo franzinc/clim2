@@ -1,6 +1,6 @@
 ;;; -*- Syntax: Common-Lisp; Base: 10; Package: CLIM; Mode: LISP; Lowercase: T -*-
 
-;; $fiHeader: test-suite.cl,v 1.1 91/12/10 16:57:32 cer Exp Locker: cer $
+;; $fiHeader: test-suite.cl,v 1.2 91/12/13 10:36:59 cer Exp Locker: cer $
 
 (in-package :clim)
 
@@ -633,10 +633,32 @@ people, shall not perish from the earth.
 	 ,@body))))
 
 (defparameter *basic-shapes* `(
-  ("Rectangle" draw-rectangle* 0 0 90 100)
+ ("Rectangle" draw-rectangle* 0 0 90 100)
   ("Triangle" draw-polygon* (0 0 45 100 100 0))
   ("Circle" draw-circle* 50 50 50)
-  ("Polygon" draw-polygon* (0 0 10 100 50 50 90 100 100 10))))
+  ("Polygon" draw-polygon* (0 0 10 100 50 50 90 100 100 10))
+  ))
+
+#+ignore(define-test (basic-graphics-shapes graphics) (stream)
+  "Test basic graphics shapes"
+  (formatting-table 
+   (stream)
+   (formatting-row (stream)
+		   (formatting-cell (stream)
+				    (draw-polygon* stream '(0 0 45 100
+							    100 0) :ink +red+)))
+   (formatting-row (stream)
+		   (formatting-cell (stream)
+				    (draw-rectangle* stream 0 0 90 100)
+				    ))
+   (formatting-row (stream)
+		   (formatting-cell (stream)
+				    (draw-circle* stream 50 50 50)))
+   (formatting-row (stream)
+		   (formatting-cell (stream)
+				    (draw-polygon* stream '(0 0 10 100 50 50 90 100 100 10))
+				    ))
+   ))
 
 (define-test (basic-graphics-shapes graphics) (stream)
   "Test basic graphics shapes"
@@ -1322,6 +1344,8 @@ Luke Luck licks the lakes Luke's duck likes."))
       (multiple-value-bind (xoff yoff)
 	  ;; damn, we have to convert because we want to draw in table-cell relative
 	  ;; coordinates.
+	  (values 0 0)
+	#+ignore
 	  (#-Silica clim::convert-from-absolute-to-relative-coordinates
 	   #+Silica ci::convert-from-absolute-to-relative-coordinates 
 	    stream (output-record-parent record))
@@ -1339,6 +1363,8 @@ Luke Luck licks the lakes Luke's duck likes."))
       (multiple-value-bind (xoff yoff)
 	  ;; damn, we have to convert because we want to draw in table-cell relative
 	  ;; coordinates.
+	  (values 0 0)
+	#+ignore
 	  (#-Silica clim::convert-from-absolute-to-relative-coordinates
 	   #+Silica ci::convert-from-absolute-to-relative-coordinates
 	    stream (output-record-parent record))
@@ -1930,7 +1956,7 @@ Luke Luck licks the lakes Luke's duck likes."))
   (let ((data
 	  (clim-utils:with-standard-io-environment
 	    (let ((data nil)
-		  (*package* (or (find-package "COMMON-LISP-USER")
+		  (*package* (or (find-package :common-lisp-user)
 				 (error "Package COMMON-LISP-USER not found"))))
 	      (dolist (name-and-pathname specs)
 		(let* ((short-name (pop name-and-pathname))
@@ -2885,11 +2911,11 @@ Luke Luck licks the lakes Luke's duck likes."))
   (:command-definer nil)
   (:pane (with-slots (caption-pane display-pane) *application-frame*
 	     (silica::vertically ()
-				 (silica::scrolling
-				  ()
-				  (setf caption-pane
+				 (setf caption-pane
 				    (silica::realize-pane
-				     'application-pane)))
+				     'application-pane
+				     :height 50
+				     ))
 				 (silica::scrolling
 				  ()
 				  (setf display-pane

@@ -19,7 +19,7 @@
 ;; applicable.
 ;;
 
-;; $fiHeader: accept-values.lisp,v 1.10 91/08/05 13:25:15 cer Exp $
+;; $fiHeader: accept-values.lisp,v 1.1 91/11/25 10:00:56 cer Exp Locker: cer $
 
 (in-package :clim)
 
@@ -190,6 +190,23 @@ Copyright (c) 1991, Franz Inc. All rights reserved
   (:top-level (accept-values-top-level))
   (:command-definer t))
 
+(define-application-frame accept-values-own-window (accept-values)
+  ()
+  (:pane 
+   (with-slots (stream own-window) *application-frame*
+     (silica::scrolling ()
+			(progn
+			  (setq stream
+			    (make-instance 'avv-stream
+					   :stream
+					   (setf own-window
+					     (silica::realize-pane 'extended-stream-pane
+								   :initial-cursor-visibility nil
+								   ))))
+			  own-window))))
+  (:command-table accept-values)
+  (:command-definer nil))
+
 ;; So the continuation can run with the proper value of *APPLICATION-FRAME*
 (defvar *avv-calling-frame*)
 
@@ -202,69 +219,46 @@ Copyright (c) 1991, Franz Inc. All rights reserved
   (let ((the-own-window nil)
 	(right-margin 10)
 	(bottom-margin 10))
-    (unwind-protect
-	(progn
-	  (when own-window
-	    #+Silica
-	    (error "Own-window AVV not supported yet.")
-	    (setq the-own-window
-		  (allocate-resource 'menu stream (window-root stream)))
-	    ;;--- make the window big.  We shouldn't have to do this.
-	    (multiple-value-bind (width height)
-		(window-inside-size (slot-value the-own-window 'parent))
-	      (bounding-rectangle-set-size the-own-window width height))
-	    (setf (window-label the-own-window) label)
-	    (when (listp own-window)
-	      (setf right-margin
-		    (process-spacing-arg the-own-window (getf own-window :right-margin 10)
-					 'accepting-values :right-margin))
-	      (setf bottom-margin
-		    (process-spacing-arg the-own-window (getf own-window :bottom-margin 10)
-					 'accepting-values :bottom-margin))))
-	  
-	  (clim-utils::using-resource (avv-stream avv-stream (or the-own-window stream))
-	    ;;--- This should resource the AVV application frame, too
-	    (let ((frame 
-		    #+Silica
-		    (make-application-frame (or frame-class 'accept-values)
-					    :stream avv-stream
-					    :continuation continuation
-					    :exit-boxes exit-boxes
-					    :own-window the-own-window
-					    :x-position x-position
-					    :y-position y-position
-					    :right-margin right-margin
-					    :bottom-margin bottom-margin
-					    :initially-select-query-identifier
-					      initially-select-query-identifier
-					    :resynchronize-every-pass
-					      resynchronize-every-pass
-					    :check-overlapping check-overlapping)
-		    #-Silica
-		    (make-application-frame 'accept-values
-					    :parent (slot-value avv-stream 'stream)
-					    :frame-class frame-class
-					    :stream avv-stream
-					    :exit-boxes exit-boxes
-					    :continuation continuation
-					    :own-window the-own-window
-					    :x-position x-position
-					    :y-position y-position
-					    :right-margin right-margin
-					    :bottom-margin bottom-margin
-					    :initially-select-query-identifier
-					      initially-select-query-identifier
-					    :resynchronize-every-pass
-					      resynchronize-every-pass
-					    :check-overlapping check-overlapping)))
-	      (when (silica::frame-top-level-sheet frame)
-		(window-expose (frame-top-level-window frame)))
-	      ;; Run the AVV and return its values
-	      (let ((*avv-calling-frame* *application-frame*))
-		(run-frame-top-level frame)))))
-      (when (and the-own-window (windowp the-own-window))
-	;; Deallocate menu resources deexposes them for us
-	(deallocate-resource 'menu the-own-window)))))
+    (if own-window
+	(let ((frame (make-application-frame (or frame-class 'accept-values-own-window)
+						 :continuation continuation
+						 :exit-boxes exit-boxes
+						 :own-window the-own-window
+						 :x-position x-position
+						 :y-position y-position
+						 :right-margin right-margin
+						 :bottom-margin bottom-margin
+						 :initially-select-query-identifier
+						 initially-select-query-identifier
+						 :resynchronize-every-pass
+						 resynchronize-every-pass
+						 :check-overlapping
+						 check-overlapping)))
+	  ;; What do we do about sizing?????
+	  ;; What do we do about positioning????
+	  (let ((*avv-calling-frame* *application-frame*))
+	    (run-frame-top-level frame)))
+      (clim-utils::using-resource (avv-stream avv-stream (or the-own-window stream))
+				  ;;--- This should resource the AVV application frame, too
+				  (let ((frame 
+					 (make-application-frame (or frame-class 'accept-values)
+								 :stream avv-stream
+								 :continuation continuation
+								 :exit-boxes exit-boxes
+								 :own-window the-own-window
+								 :x-position x-position
+								 :y-position y-position
+								 :right-margin right-margin
+								 :bottom-margin bottom-margin
+								 :initially-select-query-identifier
+								 initially-select-query-identifier
+								 :resynchronize-every-pass
+								 resynchronize-every-pass
+								 :check-overlapping
+								 check-overlapping)))
+				    ;; Run the AVV and return its values
+				    (let ((*avv-calling-frame* *application-frame*))
+				      (run-frame-top-level frame)))))))
 
 (defmethod accept-values-top-level ((frame accept-values) &rest args)
   (declare (ignore args))
@@ -327,6 +321,7 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 						  (with-end-of-page-action (:allow stream)
 						    (with-new-output-record (stream 'avv-output-record avv-record)
 						      (run-continuation stream avv-record)))))))
+			   #+ignore
 			   (replay avv stream)
 			   (unwind-protect
 			       (cond (own-window

@@ -1,4 +1,4 @@
-(in-package :xm-silica)
+;; -*- mode: common-lisp; package: xm-silica -*-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
@@ -18,6 +18,10 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
+;; $fiHeader$
+
+(in-package :xm-silica)
+
 
 (defclass motif-frame-manager (frame-manager) 
 	  ())
@@ -204,11 +208,24 @@ Can the basic motif stuff support lazy realization?
      'frame-wm-protocol-callback
      frame)))
 
+(defclass window-manager-event (event)
+	  ())
+
+(defclass wm-delete-window-event (window-manager-event)
+	  ((sheet :initarg :sheet :reader silica::event-sheet))
+  )
+
+(defmethod silica::handle-event (sheet (event wm-delete-window-event))
+  (clim::frame-exit clim::*application-frame*))
+
 (defun frame-wm-protocol-callback (widget frame)
   ;; Invoked when the Wm close function has been selected
   ;; We want to queue an "event" somewhere so that we can
   ;; synchronously quit from the frame
-  )
+  (distribute-event
+   (port frame)
+   (make-instance 'wm-delete-window-event
+		  :sheet (frame-top-level-sheet frame))))
 
 
 

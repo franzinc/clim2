@@ -30,10 +30,7 @@
 
 
 
-(defclass table-pane (mute-input-mixin
-		      pane-background-mixin
-		      composite-pane 
-		      space-req-cache-mixin)
+(defclass table-pane (layout-pane)
 	  (row-space-reqs column-space-reqs contents))
 
 
@@ -74,7 +71,7 @@
       (dotimes (row (array-dimension contents 0))
 	(let ((min-h 0)
 	      (h 0)
-	      (max-h 0))
+	      (max-h nil))
 	  (dotimes (column (array-dimension contents 1))
 	    (let ((item (aref contents row column)))
 	      (when item
@@ -82,7 +79,10 @@
 		  ;; Max the heights
 		  (maxf h (space-req-height isr))
 		  (maxf min-h (space-req-min-height isr))
-		  (maxf max-h (space-req-max-height isr))))))
+		  ;; should this be min or max
+		  (if max-h
+		      (minf max-h (space-req-max-height isr))
+		    (setf max-h (space-req-max-height isr)))))))
 
 	  (push
 	   (make-space-req
@@ -102,7 +102,7 @@
       (dotimes (column (array-dimension contents 1))
 	(let ((min-w 0)
 	      (w 0)
-	      (max-w 0))
+	      (max-w nil))
 	
 	  (dotimes (row (array-dimension contents 0))
 	    (let ((item (aref contents row column)))
@@ -111,7 +111,10 @@
 		  ;; Max the widths
 		  (maxf w (space-req-width isr))
 		  (maxf min-w (space-req-min-width isr))
-		  (maxf max-w (space-req-max-width isr))))))
+		  ;; Should this be min or max???
+		  (if max-w
+		      (minf max-w (space-req-max-width isr))
+		    (setf max-w (space-req-max-width isr)))))))
 
 	  (push
 	   (make-space-req

@@ -397,3 +397,16 @@
 			  :transformation (make-rotation-transformation ,angle
 									,@(if origin-p `(,origin) nil)))
      ,@body))
+
+(defmacro with-local-coordinates ((&optional stream) &body body)
+  (default-output-stream stream with-local-coordinates)
+  (let (( x '#:x)  ( y '#:y)
+	(tx '#:tx) (ty '#:ty))
+    `(multiple-value-bind (,x ,y)
+	 (stream-cursor-position* ,stream)
+       (multiple-value-bind (,tx ,ty)
+	   (transform-point* (medium-transformation ,stream) 0 0)
+	 (with-drawing-options
+	     (,stream :transformation (make-translation-transformation
+					(- ,x ,tx) (- ,y ,ty)))
+	   ,@body)))))
