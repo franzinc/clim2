@@ -5,6 +5,7 @@
 "Copyright (c) 1990, 1991 Symbolics, Inc.  All rights reserved.
  Portions copyright (c) 1989, 1990 International Lisp Associates."
 
+;;; $fiHeader$
 ;;; All of this is taken from the STREAM-DEFINITION-BY-USER proposal to
 ;;; the X3J13 committee, made by David Gray of TI on 22 March 1989.  No
 ;;; Lisp implementation yet supports this proposal, so we implement it

@@ -21,6 +21,7 @@
 
 (in-package :lucid)
 
+;;; $fiHeader$
 ;;; kludge to check for the presence of NEWCHED
 #+ignore
 (when (boundp '*minimum-os-time-quantum*)
