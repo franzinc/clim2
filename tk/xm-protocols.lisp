@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-protocols.lisp,v 1.7 92/04/28 09:25:10 cer Exp Locker: cer $
+;; $fiHeader: xm-protocols.lisp,v 1.8 92/05/13 17:10:32 cer Exp $
 
 (in-package :tk)
 
@@ -29,6 +29,7 @@
 					     (call-data
 					      :unsigned-long))
 
+  (declare (ignore something-weird-widget))
   ;;-- Seems that the first argument is not a widget but a pointer to
   ;;-- one of the above, and that the protocol component is the widget
   #+debug

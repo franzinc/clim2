@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: make-widget.lisp,v 1.5 92/04/03 12:04:04 cer Exp $
+;; $fiHeader: make-widget.lisp,v 1.6 92/07/27 19:29:08 cer Exp $
 
 (in-package :tk)
 
@@ -38,6 +38,7 @@
       (apply #'create-widget name class parent args))))
 
 (defmethod make-widget ((w shell) &rest args &key parent (name "") &allow-other-keys)
+  (declare (ignore args parent name))
   (error "shells not made this way"))
 
 

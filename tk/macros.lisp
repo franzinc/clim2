@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: macros.lisp,v 1.10 92/05/13 17:10:21 cer Exp $
+;; $fiHeader: macros.lisp,v 1.11 92/07/01 15:44:32 cer Exp $
 
 (in-package :tk)
 
@@ -30,7 +30,7 @@
   (if (null bindings)
       `(progn ,@body)
     (destructuring-bind
-	((var value &optional (type :signed-long)) &rest more-bindings) bindings
+	((var value) &rest more-bindings) bindings
       (let ((val (gensym)))
 	`(let ((,val ,value)
 	       (,var (or (pop *temp-with-ref-par*)
