@@ -1,4 +1,4 @@
-# $Header: /repo/cvs.copy/clim2/Makefile.generic,v 1.44 1998/02/04 22:22:19 layer Exp $
+# $Header: /repo/cvs.copy/clim2/Makefile.generic,v 1.45 1998/02/13 21:04:44 layer Exp $
 #
 #  Makefile.generic for CLIM 2.0
 #
@@ -136,8 +136,11 @@ $(CLIM): FORCE $(PRODUCT-OBJS) $(ICS-PRODUCT-OBJS)
 	       (setq sys::*libwnn-pathname* \"$(WNNLIB)\") \
 	       (load \"misc/dev-load-1.lisp\") \
 	       (load-it '$(SYSTEM)))) \
+	   :autoload-warning nil \
 	   :image-only t \
 	   :purify nil \
+	   :debug-on-error t \
+	   :internal-debug \"build-clim.out\" \
 	   :shlib-warning nil \
 	   :libfasl-warning nil \
 	   :record-source-file-info t :load-source-file-info t \
@@ -222,7 +225,7 @@ clean:
 	find . -name '*.fasl' -print | xargs rm -f
 	rm -f *.o *.$(SHARED_EXT) *.a slim \
 	  	stub-motif.c stub-olit.c stub-xt.c stub-x.c stub-wnn.c
-	rm -f *.z *.Z *.gz *.ilt *.out
+	rm -f *.z *.Z *.gz *.ilt *.out so_locations
 
 clean-notes:
 	cd notes ; find . -name '*.lisp' -print | xargs rm -f

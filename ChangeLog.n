@@ -11,6 +11,31 @@ Tests for new features:	<`no new features', `no tests for new features', or
 	* <changes go here...>
 
 *******************************************************************************
+2.2.1.6 (merge from 2.2.1.5 branch)
+
+*******************************************************************************
+2.2.1.5.2
+
+Thu Feb 12 19:54:57 1998  Kevin Layer  <layer@ultra>
+
+	* Makefile.generic: add to `clean'
+
+Wed Feb 11 16:53:04 1998    <layer@HOBART>
+
+	* demo/README: fix instructions
+
+*******************************************************************************
+2.2.1.5.1
+
+Fri Feb  6 17:24:48 1998  Kevin Layer  <layer@ultra>
+
+	* Makefile.sgi4d-svr4: -n32, etc
+
+Thu Feb  5 10:15:13 1998  Kevin Layer  <layer@ultra>
+
+	* Makefile.generic: disable the autoload warning
+
+*******************************************************************************
 2.2.1.5
 
 Documentation changes:	none
