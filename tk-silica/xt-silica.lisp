@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xt-silica.lisp,v 1.112.34.5 2001/05/23 19:49:14 duane Exp $
+;; $Id: xt-silica.lisp,v 1.112.34.6 2001/10/22 16:18:54 layer Exp $
 
 (in-package :xm-silica)
 
@@ -718,10 +718,22 @@ setup."
 	    ;; Inform lisp but don't feed event back to X.
 	    (*suppress-xevents* t))
 	(declare (special *suppress-xevents*))
+	;; spr24753
+	;; Call note-frame-iconified and note-frame-deiconifed
+	;; rather than simply setting the frame-state to :shrunk
+	;; and :enabled respectively.  (This happens on the
+	;; respective :after methods in silica/framem.lisp.)
+	;; Note that according to the documenation, calling 
+	;; these methods also directly iconify/deiconify the
+	;; frame (by calling the functions x11:xmapwindow
+	;; and x11:xiconifywindow and  --see tk-silica/xt-frames.lisp.)
+	;; We are depending on the fact that the windows-system
+	;; won't try to re-iconify an already iconfied window, etc.
 	(case (tk::event-type event)
 	  (:map-notify
 	   (when (eq state :shrunk)
-	     (setf (frame-state frame) :enabled)))
+	     (note-frame-deiconified (frame-manager frame) frame) 
+	     ))
 	  (:unmap-notify
 	   ;; spr17465
 	   ;; On Sparc in CDE (common desktop environment),
@@ -732,7 +744,8 @@ setup."
 	   ;; response, since it is not only unnecessary, it is detrimental.
 	   ;; That is the purpose of *suppress-xevents*.
 	   (when (eq state :enabled)
-	     (setf (frame-state frame) :shrunk))))))))
+	     (note-frame-iconified (frame-manager frame) frame) 
+	     )))))))
 
 (defmethod find-widget-class-and-name-for-sheet
     ((port xt-port) (parent t) (sheet basic-sheet))
@@ -1716,10 +1729,41 @@ the geometry of the children. Instead the parent has control. "))
 	(return-from port-canonicalize-gesture-spec nil))
       (cons (xt-keysym->keysym x-keysym) shifts))))
 
-
+;;; spr24597
+;;; Change call from port-set-pointer-position-1
+;;; to port-set-pointer-position-root so that we don't
+;;; worry about which sheet we are over.
 (defmethod port-set-pointer-position ((port xt-port) pointer x y)
   (let* ((sheet (pointer-sheet pointer)))
     (port-set-pointer-position-1 port sheet x y)))
+
+(defmethod port-set-pointer-position ((port xt-port) pointer x y)
+  (let* ((sheet (pointer-sheet pointer)))
+    (port-set-pointer-position-root port sheet x y)))
+
+;;; New function.  Put near port-set-pointer-position-1 in tk-silica/xt-silica.lisp
+;;; On motif, port-set-pointer-position used to
+;;; call port-set-pointer-position-1, which sets the pointer
+;;; based on the underlying sheet.  
+;;; We need a function which sets it explicitly relatibe
+;;; to the root.
+(defun port-set-pointer-position-root (port sheet x y)
+  (let ((m (and
+	    sheet
+	    (port sheet)
+	    (sheet-mirror sheet))))
+    (when m
+      (let ((display (port-display port)))
+	(x11:xwarppointer
+	 display
+	 0				; src
+	 (tk::display-root-window display) ; dest
+	 0				; src-x
+	 0				; src-y
+	 0				; src-width
+	 0				; src-height
+	 (fix-coordinate x)
+	 (fix-coordinate y))))))
 
 (defun port-set-pointer-position-1 (port sheet x y)
   (let ((m (and (port sheet) (sheet-mirror sheet))))
@@ -1742,10 +1786,20 @@ the geometry of the children. Instead the parent has control. "))
 (defmethod raise-mirror ((port xt-port) sheet)
   (x11:xraisewindow (port-display port) (tk::widget-window (sheet-mirror sheet))))
 
+;;; From: /net/beast/within/home/pnc/clim-sparc/acl6.0/clim2/tk-silica/xt-silica.lisp
+;;; bug11288
+;;; There is an X-related race-condition here.  Specifically
+;;; if raise-frame is called immediately after the frame is
+;;; created, then the X-side might not be ready yet.
+;;; In particular, the call to widget-window will fail.
+;;; So, if the call fails, we now re-try a few times.
+;;; Eventually we time-out so that we don't risk an 
+;;; infinite-loop.
 (defmethod raise-mirror ((port xt-port) (sheet top-level-sheet))
   ;; Compensate for the top-level-sheet's mirror not being the right window.
   (x11:xraisewindow (port-display port)
-		    (tk::widget-window (tk::widget-parent (sheet-mirror sheet)))))
+		    (tk::widget-window-with-retry
+		     (tk::widget-parent (sheet-mirror sheet)))))
 
 (defmethod bury-mirror ((port xt-port) sheet)
   (x11:xlowerwindow (port-display port) (tk::widget-window (sheet-mirror sheet))))

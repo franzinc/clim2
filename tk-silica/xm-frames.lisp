@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xm-frames.lisp,v 1.79 2000/05/01 21:43:36 layer Exp $
+;; $Id: xm-frames.lisp,v 1.79.24.1 2001/10/22 16:18:54 layer Exp $
 
 (in-package :xm-silica)
 
@@ -131,6 +131,239 @@
 ;;; If would be nice if we could abstract this and use it for the OLIT
 ;;; port
 
+;;; ************************************************************
+;;;  For spr24205
+;;;
+;;;  In brief:  Changing an item on a command-table menu on an
+;;;  existing frame will cause a seg-fault the next time an
+;;;  item on the frame's menu is selected (on motif platforms;
+;;;  no such problem appears on the Windows machines).
+;;;  
+;;;  The basic problem is that a callback-closure is defined in a
+;;;  labels-form and cached away.  A seg-fault occurs when closure calls
+;;;  other "sibling" labels-functions.
+;;;  
+;;;  (Note also that the callback-closure is called during a
+;;;  foreign-function callback by a motif-gadget, in the Motif process.)
+;;;  
+;;;  Some details:
+;;;  
+;;;  1] The following method is called to create a new item for a
+;;;  (motif-specific) menubar.
+;;;  
+;;;  2] One of the things it does is to define a "popup-callback".
+;;;  (See the call to xt::add-callback in make-submenu .)
+;;;  
+;;;  This callback is called when the when the menu is popped-up
+;;;  (as a result of being clicked on).  For the present case, the
+;;;  important thing that it does is to see if the command-table
+;;;  has changed, and the menu needs to be updated.
+;;;  
+;;;  (See the "t" clause in the cond statement in the closure
+;;;  defined by the xt::add-callback in make-submenu .)
+;;;  
+;;;  To do this, it calls the labels-fuction make-menu-for-command-table
+;;;  
+;;;  3] make-menu-for-command-table in turn uses
+;;;  map-over-command-table-menu to call a closure which contains a call to
+;;;  the labels-function item-initargs.
+;;;  
+;;;  The seg-fault occurs when item-initargs is called.
+;;;  
+;;;  (That is, the arguments to the function are correct, etc.  Likewise,
+;;;  the body of the function is not entered.  Simply calling the function
+;;;  causes the seg-fault.)
+;;;  
+;;;  4] Note: If, for example the code is changed to skip this call to
+;;;  item-initarg, the system will crash at the next call to a sibling
+;;;  labels-function.  (For example at the subsequent call to
+;;;  make-command-button.)
+;;;  
+;;;  
+;;;  The fix:
+;;;  The labels-functions in the method have been re-written
+;;;  as a collection of "regular" functions.
+;;;  (Unfortunately, this entails passing around a lot more
+;;;  args to compensate for the lexical variables.)
+
+;;;(defmethod realize-mirror :around ((port motif-port) (sheet motif-menu-bar))
+;;;
+;;;  ;; This code fills the menu-bar. If top level items do not have
+;;;  ;; submenus then it creates one with a menu of its own
+;;;
+;;;  (let* ((mirror (call-next-method))
+;;;	 (initargs
+;;;	  #-ignore `(:background ,(tk::get-values mirror :background)
+;;;		     :foreground ,(tk::get-values mirror :foreground))
+;;;	  ;; I'd prefer to use the code below but unfortunately menu-bars
+;;;	  ;; sometimes choose to ignore the background resource given
+;;;	  ;; to them so it's safer to get the actual value from the
+;;;	  ;; widget (cim 5/10/95)
+;;;	  #+ignore (remove-keywords
+;;;		    (find-widget-resource-initargs-for-sheet port sheet)
+;;;		    '(:font-list)))
+;;;	 ;; menu-text-style used to be (pane-text-style sheet)
+;;;	 ;; changed 28May97 -tjm
+;;;	 ;; changed back 14Sep98 JPM 
+;;;	 ;; (X resource database should provide default text styles - spr18064)
+;;;	 (menu-text-style (pane-text-style sheet) 
+;;;			  #+ignore clim-internals::*default-menu-text-style*)
+;;;	 (frame (pane-frame sheet))
+;;;	 (top-command-table (or (menu-bar-command-table sheet)
+;;;				(frame-command-table frame)))
+;;;	 (flatp (flat-command-table-menu-p top-command-table)))
+;;;    (labels ((item-initargs (item)
+;;;	       (let ((item-text-style (getf (command-menu-item-options item)
+;;;					    :text-style)))
+;;;		 (list* :font-list
+;;;			(text-style-mapping
+;;;			 port
+;;;			 (if item-text-style
+;;;			     (merge-text-styles item-text-style menu-text-style)
+;;;			   menu-text-style)
+;;;			 *all-character-sets*)
+;;;			initargs)))
+;;;
+;;;	     (set-button-attributes (button options &optional keystroke)
+;;;	       (add-documentation-callbacks
+;;;		frame button (getf options :documentation))
+;;;	       (when (eq (getf options :button-type) :help)
+;;;		 (tk::set-values mirror :menu-help-widget button))
+;;;	       (unless flatp
+;;;		 (set-button-mnemonic sheet button (getf options :mnemonic))
+;;;		 (let ((accelerator-text (getf options :accelerator-text)))
+;;;		   (when (or keystroke accelerator-text)
+;;;		     (set-button-accelerator-from-keystroke
+;;;		      sheet button keystroke accelerator-text)))))
+;;;
+;;;	     (make-command-button (parent menu keystroke item command-table)
+;;;	       (let* ((command-name (car (command-menu-item-value item)))
+;;;		      (options (command-menu-item-options item))
+;;;		      (button (apply #'make-instance 'xt::xm-push-button
+;;;				     :label-string menu
+;;;				     :managed t
+;;;				     :parent parent
+;;;				     :sensitive (command-enabled command-name frame)
+;;;				     (item-initargs item))))
+;;;
+;;;		 (push (cons command-name button)
+;;;		       (menu-bar-command-name-to-button-table sheet))
+;;;
+;;;		 (set-button-attributes button options keystroke)
+;;;
+;;;		 (tk::add-callback button
+;;;				   :activate-callback
+;;;				   'command-button-callback
+;;;				   frame
+;;;				   command-table
+;;;				   item)
+;;;		 button))
+;;;
+;;;	     (update-menu-item-sensitivity (commands-and-buttons)
+;;;	       (dolist (cb commands-and-buttons)
+;;;		 (destructuring-bind (item button) cb
+;;;		   (tk::set-sensitive button
+;;;				      (command-enabled
+;;;				       (car (command-menu-item-value item))
+;;;				       frame)))))
+;;;
+;;;	     (make-submenu (parent menu item)
+;;;	       (let* ((options (command-menu-item-options item))
+;;;		      (initargs (item-initargs item))
+;;;		      (submenu (apply #'make-instance
+;;;				      'tk::xm-pulldown-menu
+;;;				      :managed nil
+;;;				      :parent parent
+;;;				      initargs))
+;;;		      (cb (apply #'make-instance 'xt::xm-cascade-button
+;;;				 :parent parent
+;;;				 :label-string menu
+;;;				 :sub-menu-id submenu
+;;;				 initargs)))
+;;;
+;;;		 (set-button-attributes cb options)
+;;;
+;;;		 (let* ((sub-command-table (find-command-table
+;;;					    (command-menu-item-value item)))
+;;;			(tick (slot-value sub-command-table 'clim-internals::menu-tick))
+;;;			(commands-and-buttons
+;;;			 (make-menu-for-command-table sub-command-table submenu)))
+;;;		   (xt::add-callback (tk::widget-parent submenu) :popup-callback
+;;;		    #'(lambda (shell)
+;;;			(declare (ignore shell))
+;;;			(cond
+;;;			 ((= tick
+;;;			     (setq tick
+;;;			       (slot-value sub-command-table
+;;;					   'clim-internals::menu-tick)))
+;;;			  ;; nothing changed except possibly the sensitivity
+;;;			  (update-menu-item-sensitivity commands-and-buttons))
+;;;			 (t
+;;;			  ;; no need to update the sensitivity here because
+;;;			  ;; the menu is freshly remade.
+;;;			  (tk::unmanage-children (tk::widget-children submenu))
+;;;			  (setq commands-and-buttons
+;;;			    (make-menu-for-command-table sub-command-table submenu))
+;;;			  ;; not doing this gives a memory leak - the reason
+;;;			  ;; we don't is that it seems to break accelerators
+;;;			  ;; on the new children (cim 5/12/95)
+;;;			  #+ignore (mapc #'tk::destroy-widget children))))))))
+;;;
+;;;	     (make-menu-for-command-table (command-table parent)
+;;;	       (let ((commands-and-buttons nil))
+;;;		 (map-over-command-table-menu-items
+;;;		  #'(lambda (menu keystroke item)
+;;;		      (let ((initargs (item-initargs item)))
+;;;			(ecase (command-menu-item-type item)
+;;;			  (:divider
+;;;			   (ecase (command-menu-item-value item)
+;;;			     (:label
+;;;			      (apply #'make-instance 'tk::xm-label
+;;;				     :label-string menu
+;;;				     :parent parent
+;;;				     initargs))
+;;;			     ((nil :line)
+;;;			      (apply #'make-instance 'tk::xm-separator
+;;;				     :parent parent
+;;;				     initargs))))
+;;;			  (:function
+;;;			   ;;--- Not yet implemented
+;;;			   )
+;;;			  (:menu
+;;;			   (make-submenu parent menu item))
+;;;			  (:command
+;;;			   (multiple-value-bind (button-parent cb)
+;;;			       (if (and (not flatp)
+;;;					(eq command-table top-command-table))
+;;;				   (let* ((submenu (apply #'make-instance
+;;;							  'tk::xm-pulldown-menu
+;;;							  :managed nil
+;;;							  :parent parent
+;;;							  initargs))
+;;;					  (cb (apply #'make-instance 'xt::xm-cascade-button
+;;;						     :parent parent
+;;;						     :label-string menu
+;;;						     :sub-menu-id submenu
+;;;						     initargs)))
+;;;				     (values submenu cb))
+;;;				 parent)
+;;;			     (push (list item
+;;;					 (make-command-button button-parent
+;;;							      menu keystroke item
+;;;							      command-table))
+;;;				   commands-and-buttons)
+;;;			     ;; this is done after creating the command-button so
+;;;			     ;; that the help widget is correctly set to be the
+;;;			     ;; cascade-button rather than the command button
+;;;			     ;; (cim 5/10/95)
+;;;			     (when cb
+;;;			       (set-button-attributes
+;;;				cb (command-menu-item-options item))))))))
+;;;		  command-table)
+;;;		 commands-and-buttons)))
+;;;      (make-menu-for-command-table top-command-table mirror))
+;;;    mirror))
+
 (defmethod realize-mirror :around ((port motif-port) (sheet motif-menu-bar))
 
   ;; This code fills the menu-bar. If top level items do not have
@@ -139,7 +372,7 @@
   (let* ((mirror (call-next-method))
 	 (initargs
 	  #-ignore `(:background ,(tk::get-values mirror :background)
-		     :foreground ,(tk::get-values mirror :foreground))
+				 :foreground ,(tk::get-values mirror :foreground))
 	  ;; I'd prefer to use the code below but unfortunately menu-bars
 	  ;; sometimes choose to ignore the background resource given
 	  ;; to them so it's safer to get the actual value from the
@@ -157,157 +390,241 @@
 	 (top-command-table (or (menu-bar-command-table sheet)
 				(frame-command-table frame)))
 	 (flatp (flat-command-table-menu-p top-command-table)))
-    (labels ((item-initargs (item)
-	       (let ((item-text-style (getf (command-menu-item-options item)
-					    :text-style)))
-		 (list* :font-list
-			(text-style-mapping
-			 port
-			 (if item-text-style
-			     (merge-text-styles item-text-style menu-text-style)
-			   menu-text-style)
-			 *all-character-sets*)
-			initargs)))
-
-	     (set-button-attributes (button options &optional keystroke)
-	       (add-documentation-callbacks
-		frame button (getf options :documentation))
-	       (when (eq (getf options :button-type) :help)
-		 (tk::set-values mirror :menu-help-widget button))
-	       (unless flatp
-		 (set-button-mnemonic sheet button (getf options :mnemonic))
-		 (let ((accelerator-text (getf options :accelerator-text)))
-		   (when (or keystroke accelerator-text)
-		     (set-button-accelerator-from-keystroke
-		      sheet button keystroke accelerator-text)))))
-
-	     (make-command-button (parent menu keystroke item command-table)
-	       (let* ((command-name (car (command-menu-item-value item)))
-		      (options (command-menu-item-options item))
-		      (button (apply #'make-instance 'xt::xm-push-button
-				     :label-string menu
-				     :managed t
-				     :parent parent
-				     :sensitive (command-enabled command-name frame)
-				     (item-initargs item))))
-
-		 (push (cons command-name button)
-		       (menu-bar-command-name-to-button-table sheet))
-
-		 (set-button-attributes button options keystroke)
-
-		 (tk::add-callback button
-				   :activate-callback
-				   'command-button-callback
-				   frame
-				   command-table
-				   item)
-		 button))
-
-	     (update-menu-item-sensitivity (commands-and-buttons)
-	       (dolist (cb commands-and-buttons)
-		 (destructuring-bind (item button) cb
-		   (tk::set-sensitive button
-				      (command-enabled
-				       (car (command-menu-item-value item))
-				       frame)))))
-
-	     (make-submenu (parent menu item)
-	       (let* ((options (command-menu-item-options item))
-		      (initargs (item-initargs item))
-		      (submenu (apply #'make-instance
-				      'tk::xm-pulldown-menu
-				      :managed nil
-				      :parent parent
-				      initargs))
-		      (cb (apply #'make-instance 'xt::xm-cascade-button
-				 :parent parent
-				 :label-string menu
-				 :sub-menu-id submenu
-				 initargs)))
-
-		 (set-button-attributes cb options)
-
-		 (let* ((sub-command-table (find-command-table
-					    (command-menu-item-value item)))
-			(tick (slot-value sub-command-table 'clim-internals::menu-tick))
-			(commands-and-buttons
-			 (make-menu-for-command-table sub-command-table submenu)))
-		   (xt::add-callback (tk::widget-parent submenu) :popup-callback
-		    #'(lambda (shell)
-			(declare (ignore shell))
-			(cond
-			 ((= tick
-			     (setq tick
-			       (slot-value sub-command-table
-					   'clim-internals::menu-tick)))
-			  ;; nothing changed except possibly the sensitivity
-			  (update-menu-item-sensitivity commands-and-buttons))
-			 (t
-			  ;; no need to update the sensitivity here because
-			  ;; the menu is freshly remade.
-			  (tk::unmanage-children (tk::widget-children submenu))
-			  (setq commands-and-buttons
-			    (make-menu-for-command-table sub-command-table submenu))
-			  ;; not doing this gives a memory leak - the reason
-			  ;; we don't is that it seems to break accelerators
-			  ;; on the new children (cim 5/12/95)
-			  #+ignore (mapc #'tk::destroy-widget children))))))))
-
-	     (make-menu-for-command-table (command-table parent)
-	       (let ((commands-and-buttons nil))
-		 (map-over-command-table-menu-items
-		  #'(lambda (menu keystroke item)
-		      (let ((initargs (item-initargs item)))
-			(ecase (command-menu-item-type item)
-			  (:divider
-			   (ecase (command-menu-item-value item)
-			     (:label
-			      (apply #'make-instance 'tk::xm-label
-				     :label-string menu
-				     :parent parent
-				     initargs))
-			     ((nil :line)
-			      (apply #'make-instance 'tk::xm-separator
-				     :parent parent
-				     initargs))))
-			  (:function
-			   ;;--- Not yet implemented
-			   )
-			  (:menu
-			   (make-submenu parent menu item))
-			  (:command
-			   (multiple-value-bind (button-parent cb)
-			       (if (and (not flatp)
-					(eq command-table top-command-table))
-				   (let* ((submenu (apply #'make-instance
-							  'tk::xm-pulldown-menu
-							  :managed nil
-							  :parent parent
-							  initargs))
-					  (cb (apply #'make-instance 'xt::xm-cascade-button
-						     :parent parent
-						     :label-string menu
-						     :sub-menu-id submenu
-						     initargs)))
-				     (values submenu cb))
-				 parent)
-			     (push (list item
-					 (make-command-button button-parent
-							      menu keystroke item
-							      command-table))
-				   commands-and-buttons)
-			     ;; this is done after creating the command-button so
-			     ;; that the help widget is correctly set to be the
-			     ;; cascade-button rather than the command button
-			     ;; (cim 5/10/95)
-			     (when cb
-			       (set-button-attributes
-				cb (command-menu-item-options item))))))))
-		  command-table)
-		 commands-and-buttons)))
-      (make-menu-for-command-table top-command-table mirror))
+    (rmfp-make-menu-for-command-table top-command-table mirror
+				     ;; new args
+				     flatp top-command-table
+				     port menu-text-style initargs
+				     frame mirror sheet
+				     )
     mirror))
+
+(defun rmfp-item-initargs (item
+			   ;; New args
+			   port menu-text-style initargs)
+  (let ((item-text-style (getf (command-menu-item-options item)
+			       :text-style)))
+    (list* :font-list
+	   (text-style-mapping
+	    port
+	    (if item-text-style
+		(merge-text-styles item-text-style menu-text-style)
+	      menu-text-style)
+	    *all-character-sets*)
+	   initargs)))
+
+(defun rmfp-set-button-attributes (button options 
+				   ;; keystroke no long optional
+				   keystroke
+				   ;; new args
+				   frame mirror flatp sheet
+				   )
+  (add-documentation-callbacks
+   frame button (getf options :documentation))
+  (when (eq (getf options :button-type) :help)
+    (tk::set-values mirror :menu-help-widget button))
+  (unless flatp
+    (set-button-mnemonic sheet button (getf options :mnemonic))
+    (let ((accelerator-text (getf options :accelerator-text)))
+      (when (or keystroke accelerator-text)
+	(set-button-accelerator-from-keystroke
+	 sheet button keystroke accelerator-text)))))
+
+(defun rmfp-update-menu-item-sensitivity (commands-and-buttons
+					  ;; new args
+					  frame)
+  (dolist (cb commands-and-buttons)
+    (destructuring-bind (item button) cb
+      (tk::set-sensitive button
+			 (command-enabled
+			  (car (command-menu-item-value item))
+			  frame)))))
+
+(defun rmfp-make-command-button (parent menu keystroke item command-table
+				 ;; new args
+				 frame sheet
+				 ;; new args for item-initargs
+				 port menu-text-style initargs 
+				 ;; new args to support set-button-attributes
+				 mirror flatp
+				 ;; new args to support make-command-button 
+				 ;; already supplied
+				 )
+  (let* ((command-name (car (command-menu-item-value item)))
+	 (options (command-menu-item-options item))
+	 (button (apply #'make-instance 'xt::xm-push-button
+			:label-string menu
+			:managed t
+			:parent parent
+			:sensitive (command-enabled command-name frame)
+			(rmfp-item-initargs item
+					    ;; new args
+					    port menu-text-style initargs))))
+
+    (push (cons command-name button)
+	  (menu-bar-command-name-to-button-table sheet))
+
+    (rmfp-set-button-attributes button options keystroke
+				;; new args 
+				frame mirror flatp sheet)
+
+    (tk::add-callback button
+		      :activate-callback
+		      'command-button-callback
+		      frame
+		      command-table
+		      item)
+    button))
+
+(defun rmfp-make-submenu (parent menu item
+			  ;; new args to support item-initargs 
+			  port menu-text-style initargs
+			  ;; new arg to support update-menu-item-sensitivity
+			  frame
+			  ;; new args to support set-button-attributes 
+			  mirror flatp sheet
+			  ;; new args to support make-menu-for-commandtable
+			  top-command-table)
+  (let* ((options (command-menu-item-options item))
+	 (initargs (rmfp-item-initargs item
+				       ;; new args 
+				       port menu-text-style initargs))
+	 (submenu (apply #'make-instance
+			 'tk::xm-pulldown-menu
+			 :managed nil
+			 :parent parent
+			 initargs))
+	 (cb (apply #'make-instance 'xt::xm-cascade-button
+		    :parent parent
+		    :label-string menu
+		    :sub-menu-id submenu
+		    initargs)))
+
+    (rmfp-set-button-attributes cb options
+				;; arg (keystroke) no longer optional
+				nil
+				;; new args 
+				frame mirror flatp sheet
+				)
+
+    (let* ((sub-command-table (find-command-table
+			       (command-menu-item-value item)))
+	   (tick (slot-value sub-command-table 'clim-internals::menu-tick))
+	   (commands-and-buttons
+	    (rmfp-make-menu-for-command-table sub-command-table submenu
+					      ;; new args
+					      flatp top-command-table
+					      port menu-text-style initargs
+					      frame mirror sheet)))
+      (xt::add-callback (tk::widget-parent submenu) :popup-callback
+			#'(lambda (shell)
+			    (declare (ignore shell))
+			    (cond
+			     ((= tick
+				 (setq tick
+				   (slot-value sub-command-table
+					       'clim-internals::menu-tick)))
+			      ;; nothing changed except possibly the sensitivity
+			      (rmfp-update-menu-item-sensitivity commands-and-buttons
+								 ;; new arg
+								 frame))
+			     (t
+			      ;; no need to update the sensitivity here because
+			      ;; the menu is freshly remade.
+			      (tk::unmanage-children (tk::widget-children submenu))
+			      (setq commands-and-buttons
+				(rmfp-make-menu-for-command-table sub-command-table submenu
+								  ;; new args
+								  flatp top-command-table
+								  port menu-text-style initargs 
+								  frame mirror sheet 
+								  ))
+			      ;; not doing this gives a memory leak - the reason
+			      ;; we don't is that it seems to break accelerators
+			      ;; on the new children (cim 5/12/95)
+			      #+ignore (mapc #'tk::destroy-widget children))))))))
+
+(defun rmfp-make-menu-for-command-table (command-table parent
+					 ;; new args
+					 flatp top-command-table
+					 ;; additional args to support item-initargs 
+					 port menu-text-style initargs
+					 ;; args to support set-button-attributes
+					 frame mirror sheet
+					 ;; args to support make-submenu already supplied
+					 )
+  (let ((commands-and-buttons nil))
+    (map-over-command-table-menu-items
+     #'(lambda (menu keystroke item)
+	 (let ((initargs (rmfp-item-initargs item
+					     ;; new args
+					     port menu-text-style initargs
+					     )))
+	   (ecase (command-menu-item-type item)
+	     (:divider
+	      (ecase (command-menu-item-value item)
+		(:label
+		 (apply #'make-instance 'tk::xm-label
+			:label-string menu
+			:parent parent
+			initargs))
+		((nil :line)
+		 (apply #'make-instance 'tk::xm-separator
+			:parent parent
+			initargs))))
+	     (:function
+	      ;;--- Not yet implemented
+	      )
+	     (:menu
+	      (rmfp-make-submenu parent menu item
+				 ;; new args 
+				 port menu-text-style initargs
+				 frame
+				 mirror flatp sheet 
+				 top-command-table))
+	     (:command
+	      (multiple-value-bind (button-parent cb)
+		  (if (and (not flatp)
+			   (eq command-table top-command-table))
+		      (let* ((submenu (apply #'make-instance
+					     'tk::xm-pulldown-menu
+					     :managed nil
+					     :parent parent
+					     initargs))
+			     (cb (apply #'make-instance 'xt::xm-cascade-button
+					:parent parent
+					:label-string menu
+					:sub-menu-id submenu
+					initargs)))
+			(values submenu cb))
+		    parent)
+		(push (list item
+			    (rmfp-make-command-button button-parent
+						      menu keystroke item
+						      command-table
+						      ;; new args
+						      frame sheet
+						      port menu-text-style initargs 
+						      mirror flatp
+						      ))
+		      commands-and-buttons)
+		;; this is done after creating the command-button so
+		;; that the help widget is correctly set to be the
+		;; cascade-button rather than the command button
+		;; (cim 5/10/95)
+		(when cb
+		  (rmfp-set-button-attributes
+		   cb (command-menu-item-options item)
+		   ;; arg (keystroke) no longer optional
+		   nil
+		   ;; new args
+		   frame mirror flatp sheet
+		   )))))))
+     command-table)
+    commands-and-buttons))
+;;;
+;;;  For spr24205
+;;; ************************************************************
+
 
 ;; get rid of get-accelerator-text and clean this function up!
 

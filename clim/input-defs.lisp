@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: input-defs.lisp,v 1.25 1999/07/19 22:25:13 layer Exp $
+;; $Id: input-defs.lisp,v 1.25.34.1 2001/10/22 16:18:53 layer Exp $
 
 (in-package :clim-internals)
 
@@ -65,15 +65,24 @@
     (port-set-pointer-cursor (port pointer) pointer cursor)
     (setf (slot-value pointer 'cursor) cursor)))
 
+;;; spr24597
+;;; The documentation says 
+;;; "This function returns the position (two coordinate values)
+;;; of the pointer in the coordinate system of the sheet that 
+;;; the pointer is currently over."
+;;;
+;;; Before this fix it has returned the position relative to the 
+;;; root-window  If you want that value, use pointer-native-position.
 (defmethod pointer-position ((pointer standard-pointer))
-  (if (pointer-valid-p pointer)
-      (with-slots (x-position y-position sheet) pointer
-        (transform-position (sheet-delta-transformation sheet nil)
-                            x-position y-position))
+  (unless (pointer-valid-p pointer)
     (multiple-value-bind (x y native-x native-y root-x root-y)
         (port-query-pointer (port pointer) (graft pointer))
       (declare (ignore x y native-x native-y))
-      (values root-x root-y))))
+      (return-from pointer-position (values root-x root-y))))
+  ;;-- This is the wrong values. These are just some mirror values
+  ;;rather than graft values
+  (with-slots (native-x-position native-y-position) pointer
+    (values native-x-position native-y-position)))
 
 (defmethod sheet-pointer-position ((sheet basic-sheet) pointer)
   ;; If its not valid then need to do a query-pointer
@@ -137,13 +146,21 @@
   (pointer-set-position pointer x y))
 
 ;; X and Y are in stream coordinates
+;;; spr24597
+;;; The documentation says:
+;;; "This function changes the position of the pointer 
+;;; to be (x,y). x and y are in the coordinate system of the
+;;; sheet that the pointer is currently over."
+;;;
+;;; Before this fix the method moved the pointer relative to the
+;;; root-window.  If you want that behavior, use pointer-set-native-position. 
 (defmethod pointer-set-position ((pointer standard-pointer) x y
-                                                            &optional port-did-it)
+				 &optional port-did-it)
   (with-slots (x-position y-position position-changed
-                          sheet native-x-position native-y-position valid) pointer
+	       sheet native-x-position native-y-position valid) pointer
     (when sheet
       (multiple-value-bind (x y)
-          (untransform-position (sheet-delta-transformation sheet nil) x y)
+	  (transform-position (sheet-delta-transformation sheet nil) x y)
         (let ((x (coordinate x))
               (y (coordinate y)))
           (setf x-position x
@@ -155,26 +172,44 @@
               (transform-position (sheet-device-transformation sheet) x y)
             (setf native-x-position native-x
                   native-y-position native-y)
-            (port-set-pointer-position (port pointer) pointer native-x native-y)))))
+	    (port-set-pointer-position (port pointer) pointer native-x native-y)
+	    ))))
     (values x y)))
 
+
 ;;--  What is this meant to do?
-(defmethod pointer-native-position ((pointer standard-pointer))
-  (unless (pointer-valid-p pointer)
+;;--  What is this meant to do?
+;;; spr24597
+;;; The documentation says 
+;;; "This function returns the position (two coordinate values) 
+;;; of the pointer in the coordinate system of the port's graft 
+;;; (that is, its root window)."
+;;;
+;;; Before this fix it has returned the position relative to the underlying
+;;; sheet.  If you want that value, use pointer-position.
+(defmethod pointer-native-position ((pointer standard-pointer))  
+  (if (pointer-valid-p pointer)
+      (with-slots (x-position y-position sheet) pointer
+        (transform-position (sheet-delta-transformation sheet nil)
+                            x-position y-position))
     (multiple-value-bind (x y native-x native-y root-x root-y)
         (port-query-pointer (port pointer) (graft pointer))
       (declare (ignore x y native-x native-y))
-      (return-from pointer-native-position (values root-x root-y))))
-  ;;-- This is the wrong values. These are just some mirror values
-  ;;rather than graft values
-  (with-slots (native-x-position native-y-position) pointer
-    (values native-x-position native-y-position)))
+      (values root-x root-y))))
 
 (defgeneric* (setf pointer-native-position) (x y pointer))
 (defmethod* (setf pointer-native-position) (x y (pointer standard-pointer))
   (pointer-set-native-position pointer x y))
 
 ;; X and Y are in native (device) coordinates
+;;; spr24597
+;;; The documentation says:
+;;; " This function changes the position of the pointer to 
+;;; be (x,y). x and y are in the coordinate system of the 
+;;; port's graft (that is, its root window)."
+;;;
+;;; Before this fix the method moved the pointer relative to the
+;;; underlying sheet  If you want that behavior, use pointer-set-position.
 (defmethod pointer-set-native-position ((pointer standard-pointer) x y
                                         &optional port-did-it)
   (with-slots (x-position y-position position-changed
@@ -190,8 +225,10 @@
           (untransform-position (sheet-device-transformation sheet) x y)
         (setf x-position sheet-x
               y-position sheet-y)
-        (port-set-pointer-position (port pointer) pointer x y)))
+	(port-set-pointer-position (port pointer) pointer x y)
+	))
     (values x y)))
+
 
 (defmethod (setf pointer-sheet) :before (new-value (pointer standard-pointer))
   (let ((sheet (slot-value pointer 'sheet)))

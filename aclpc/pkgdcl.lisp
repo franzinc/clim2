@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: pkgdcl.lisp,v 1.6.24.1 2000/10/05 18:02:11 layer Exp $
+;; $Id: pkgdcl.lisp,v 1.6.24.2 2001/10/22 16:18:53 layer Exp $
 
 (in-package :common-lisp-user)
 
@@ -25,7 +25,8 @@
 ;; Invite everybody to the party.
 (eval-when (compile load eval)
   (require :climg)
-  (require :ffcompat)
+  ;; [rfe4951]: not needed anymore:
+  ;; (require :ffcompat)
   (require :aclwffi)			; for ctypes (CT) package
   ;;(require :for)			; for FOR macro
   (require :winapi)

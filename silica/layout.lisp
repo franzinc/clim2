@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: layout.lisp,v 1.39 2000/05/01 21:43:32 layer Exp $
+;; $Id: layout.lisp,v 1.39.24.1 2001/10/22 16:18:53 layer Exp $
 
 (in-package :silica)
 
@@ -389,6 +389,48 @@
 
 (defmethod window-refresh ((sheet top-level-sheet))
   nil)
+
+;;; spr24242:
+;;; Note:
+;;; The following methods are specified in the Clim documentation 
+;;; (at the end of Sec 19.5.2).
+;;; 
+;;; These are methods are basically copies of methods on the class 
+;;; clim-stream-sheet (in clim/db-stream.lisp).
+(defmethod window-expose ((stream top-level-sheet))
+  (setf (window-visibility stream) t))
+
+(defmethod (setf window-visibility) (visibility (stream top-level-sheet))
+  (let ((frame (pane-frame stream)))
+    (if frame
+        (if visibility
+            (enable-frame frame)
+          (disable-frame frame))
+      (setf (sheet-enabled-p stream) visibility))))
+
+(defmethod window-visibility ((stream top-level-sheet))
+  ;;mm: Is the Unix code more correct???
+  #+(or aclpc acl86win32)
+  (mirror-visible-p (port stream) stream)
+  #-(or aclpc acl86win32)
+  (let ((frame (pane-frame stream)))
+    (and (if frame 
+             (eq (frame-state frame) :enabled)
+           (sheet-enabled-p stream))
+         (mirror-visible-p (port stream) stream)))
+  )
+
+(defmethod window-stack-on-top ((stream top-level-sheet))
+  (raise-sheet (window-top-level-window stream)))
+
+(defmethod window-stack-on-bottom ((stream top-level-sheet))
+  (bury-sheet (window-top-level-window stream)))
+
+(defmethod window-inside-edges ((stream top-level-sheet))
+  (bounding-rectangle* (sheet-region (or (pane-viewport stream) stream))))
+
+(defmethod window-inside-size ((stream top-level-sheet))
+  (bounding-rectangle-size (sheet-region (or (pane-viewport stream) stream))))
 
 ;;--- Needed methods include:
 ;;---   INVOKE-WITH-RECORDING-OPTIONS

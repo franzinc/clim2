@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $Id: test-suite.lisp,v 1.87.34.2 2000/09/05 19:06:41 layer Exp $
+;; $Id: test-suite.lisp,v 1.87.34.3 2001/10/22 16:18:53 layer Exp $
 
 (in-package :clim-user)
 
@@ -2492,8 +2492,11 @@ Luke Luck licks the lakes Luke's duck likes."))
 
 (define-test (select-file-test menus-and-dialogs) (stream)
   "A simple test of SELECT-FILE."
-  (write-string
-   (namestring (select-file (pane-frame stream)))))
+  (let ((sel-file (select-file (pane-frame stream))))
+    (cond (sel-file 
+	   (write-string (namestring sel-file)))
+	  (t
+	   (write-string "[cancel]")))))
 
 
 ;;;; Benchmarks
@@ -2506,8 +2509,10 @@ Luke Luck licks the lakes Luke's duck likes."))
                             &body body)
   #+genera (declare (zwei:indentation 2 1))
   (check-type caption (or null string))
-  (let ((function-name (intern (format nil "~A-~A" 'benchmark name)
-                               (symbol-package 'define-benchmark))))
+  (let ((function-name #+IGNORE (intern (format nil "~A-~A" 'benchmark name)
+					(symbol-package 'define-benchmark))
+		       (clim-utils::package-fintern (symbol-package 'define-benchmark)
+						    "~A-~A" 'benchmark name)))
     `(progn
        (defun ,function-name (&key (careful nil))
          (labels ((body (,stream) ,@body))
@@ -2661,8 +2666,11 @@ Luke Luck licks the lakes Luke's duck likes."))
 (defun run-benchmarks-internal (pathname comment)
   (let ((data nil))
     (dolist (benchmark (reverse *benchmarks*))
-      (let ((function (intern (format nil "~A-~A" 'benchmark (first benchmark))
-                              (symbol-package 'run-benchmarks-internal))))
+      (let ((function #+IGNORE (intern (format nil "~A-~A" 'benchmark (first benchmark))
+				       (symbol-package 'run-benchmarks-internal))
+		      (clim-utils::package-fintern
+		       (symbol-package 'run-benchmarks-internal)
+		       "~A-~A" 'benchmark (first benchmark))))
         (let ((time (funcall function :careful t)))
           (push (list (first benchmark) time) data))))
     (setq data (reverse data))
