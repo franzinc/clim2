@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: widget.lisp,v 1.47.34.2 2000/09/05 19:06:44 layer Exp $
+;; $Id: widget.lisp,v 1.47.34.2.24.1 2001/09/21 21:55:37 layer Exp $
 
 (in-package :tk)
 
@@ -134,6 +134,35 @@
 (defun find-class-maybe (x)
   (if (typep x 'class) x
     (find-class x)))
+
+;;; pnc - bug11288:
+;;; There is an X-related race-condition associate with widget-window.
+;;; For example in this bug (bug11288) raise-frame was called too soon
+;;; after the frame was created; i.e. before the X-server had finished
+;;; setting things up (the specify bug was that xt_window was
+;;; returning 0).  See (raise-mirror (xt-port top-level-sheet)) in
+;;; tk-silica/xt-silica.lisp. 
+;;; 
+;;; The following method provides a "retry-loop" around the call to
+;;; widget-window until the X-side frame is actually ready to go.
+(defmethod widget-window-with-retry (widget &optional (num-retries 50) (sleep-time 0.5))
+  (let ((val nil))
+    (loop for count from 0
+	do 
+	  (let ((widg-wind (tk::widget-window widget nil)))
+	    (cond (widg-wind 
+		   (setq val widg-wind)
+		   (loop-finish))))
+	  (cond ((null num-retries)
+		 (error "X-widget not found for widget (~S)."
+			widget))
+		((and (numberp num-retries)
+		      (< num-retries count))
+		 (error "X-widget not found for widget (~S) after ~S re-tries"
+			widget
+			count))) 
+	  (sleep sleep-time))
+    val))
 
 (defmethod widget-window (widget &optional (errorp t) peek)
   (with-slots (window-cache) widget

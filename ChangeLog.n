@@ -11,6 +11,17 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.3.12
+
+2001-09-21  Nichael Cramer  <ncramer@pointnclick.com>
+
+    from pnc:
+        * tk/widget.lisp
+          tk-silica/xt-silica.lisp
+          bug11288: Correct bug (in clim-demo) where raise-frame
+          is called before the X-resources are ready.
+
+*******************************************************************************
 2.3.11
 
 2001-09-19  Nichael Cramer  <ncramer@pointnclick.com>

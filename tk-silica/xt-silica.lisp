@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xt-silica.lisp,v 1.112.34.5.6.2 2001/09/18 16:35:36 layer Exp $
+;; $Id: xt-silica.lisp,v 1.112.34.5.6.3 2001/09/21 21:55:37 layer Exp $
 
 (in-package :xm-silica)
 
@@ -1786,10 +1786,20 @@ the geometry of the children. Instead the parent has control. "))
 (defmethod raise-mirror ((port xt-port) sheet)
   (x11:xraisewindow (port-display port) (tk::widget-window (sheet-mirror sheet))))
 
+;;; From: /net/beast/within/home/pnc/clim-sparc/acl6.0/clim2/tk-silica/xt-silica.lisp
+;;; bug11288
+;;; There is an X-related race-condition here.  Specifically
+;;; if raise-frame is called immediately after the frame is
+;;; created, then the X-side might not be ready yet.
+;;; In particular, the call to widget-window will fail.
+;;; So, if the call fails, we now re-try a few times.
+;;; Eventually we time-out so that we don't risk an 
+;;; infinite-loop.
 (defmethod raise-mirror ((port xt-port) (sheet top-level-sheet))
   ;; Compensate for the top-level-sheet's mirror not being the right window.
   (x11:xraisewindow (port-display port)
-		    (tk::widget-window (tk::widget-parent (sheet-mirror sheet)))))
+		    (tk::widget-window-with-retry
+		     (tk::widget-parent (sheet-mirror sheet)))))
 
 (defmethod bury-mirror ((port xt-port) sheet)
   (x11:xlowerwindow (port-display port) (tk::widget-window (sheet-mirror sheet))))
