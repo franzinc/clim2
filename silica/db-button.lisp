@@ -3,6 +3,8 @@
 "Copyright (c) 1990, 1991 International Lisp Associates.
  Portions copyright (c) 1991, 1992 by Symbolics, Inc.  All rights reserved."
 
+;; $fiHeader$
+
 (in-package :silica)
 
 
