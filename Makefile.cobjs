@@ -71,6 +71,7 @@ makemainxm: $(ACL_MAIN_OBJ) $(PRODUCT-GENERIC-OBJS) $(STATIC-XM-OBJS)
 	(eval '$(SET_LIBRARY_PATH)' ; \
 	ld -r $(LDFLAGS) -o $(MAIN_OBJ) \
 		$(ACL_MAIN_OBJ) \
+		xtsupport.o xlibsupport.o xmsupport.o \
 		stub-xt.o stub-x.o stub-motif.o \
 		$(TKLIB) $(XTLIB) $(XLIB) $(MOTIFXTRAS))
 

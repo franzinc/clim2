@@ -1,4 +1,12 @@
 *******************************************************************************
+4.3
+
+Mon Apr 22 14:57:12 1996  George Jacob  <georgej@lava.franz.com (George Jacob)>
+
+	* Makefile.cobjs: Add xtsupport, xlibsupport, xmsupport to
+	mainxm.o, for SunOS4 build.
+
+*******************************************************************************
 4.3.devel.17
 
 Sat Mar 23 17:46:14 1996  Duane Rettig  (duane at clay)
