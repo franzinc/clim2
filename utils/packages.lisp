@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: packages.lisp,v 1.106.2.2.8.4 2000/08/16 23:58:58 cley Exp $
+;; $Id: packages.lisp,v 1.106.2.2.8.5 2000/08/18 00:59:22 cley Exp $
 
 (in-package :common-lisp-user)
 
@@ -3308,7 +3308,7 @@
 (cl:defvar *clim-major-version* 2)
 (cl:defvar *clim-minor-version* 2)
 (cl:defvar *clim-generation-version* 2)
-(cl:defvar *clim-build-version* "21.5.2")
+(cl:defvar *clim-build-version* "21.5.3")
 
 (cl:defparameter *clim-version*
     (cl:format () "~d.~d.~d.~a"

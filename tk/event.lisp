@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: event.lisp,v 1.30 1999/02/25 08:23:42 layer Exp $
+;; $Id: event.lisp,v 1.30.42.1 2000/08/18 00:59:20 cley Exp $
 
 (in-package :tk)
 
@@ -90,9 +90,9 @@
 
 (defvar *sequence-matching-data*)
 
-(defun-c-callable match-event-sequence-and-types ((display :unsigned-long)
-						  (event :unsigned-long)
-						  (arg :unsigned-long))
+(defun-c-callable match-event-sequence-and-types ((display :unsigned-natural)
+						  (event :unsigned-natural)
+						  (arg :unsigned-natural))
   (declare (ignore arg))
   ;; Arg points to a n element (unsigned-byte 32) vector, where the first
   ;; element is the display, the second is the sequence number, and
@@ -159,11 +159,11 @@
 
 (defvar *event* nil)
 
-(defun-c-callable event-handler ((widget :unsigned-long)
-				 (client-data :unsigned-long)
-				 (event :unsigned-long)
+(defun-c-callable event-handler ((widget :unsigned-natural)
+				 (client-data :unsigned-natural)
+				 (event :unsigned-natural)
 				 (continue-to-dispatch
-				  :unsigned-long))
+				  :unsigned-natural))
   (declare (ignore continue-to-dispatch))
 
   #+ignore (print (event-type event) excl:*initial-terminal-io*)

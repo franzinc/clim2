@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: ol-gadgets.lisp,v 1.72.34.1.14.1 2000/08/11 00:03:55 cley Exp $
+;; $Id: ol-gadgets.lisp,v 1.72.34.1.14.2 2000/08/18 00:59:21 cley Exp $
 
 (in-package :xm-silica)
 
@@ -1579,8 +1579,9 @@
 	:width width :min-width min-width :max-width max-width
 	:height height :min-height min-height :max-height max-height))))
 
-(ff:defun-c-callable scrolling-window-geometry-function ((content :unsigned-long)
-							 (geometries :unsigned-long))
+(ff:defun-c-callable scrolling-window-geometry-function 
+    ((content :unsigned-natural)
+     (geometries :unsigned-natural))
   (let* ((viewport (find-sheet-from-widget-address content))
 	 (scrolling-window (sheet-parent viewport)))
     (multiple-value-bind
