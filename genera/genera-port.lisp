@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: GENERA-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: genera-port.lisp,v 1.15 92/10/28 11:32:43 cer Exp Locker: cer $
+;; $fiHeader: genera-port.lisp,v 1.16 92/11/05 17:15:46 cer Exp $
 
 (in-package :genera-clim)
 
@@ -38,11 +38,11 @@
 ;;--- Eventually do better than this
 (defclass genera-palette (basic-palette) ())
 
-(defmethod make-palette ((port genera-port) &key color-p mutable-p)
+(defmethod make-palette ((port genera-port) &key color-p dynamic-p)
   (make-instance 'genera-palette
     :port port 
     :color-p color-p
-    :mutable-p mutable-p))
+    :dynamic-p dynamic-p))
 
 
 (defmethod initialize-instance :after ((port genera-port) &key server-path)

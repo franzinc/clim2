@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clim-streams.lisp,v 1.6 92/09/08 15:16:57 cer Exp $
+;; $fiHeader: clim-streams.lisp,v 1.7 92/10/02 15:18:40 cer Exp $
 
 (in-package :clim-utils)
 
@@ -20,6 +20,12 @@
     ((stream :initarg :stream
 	     :reader encapsulating-stream-stream))
   #+Allegro (:default-initargs :element-type 'character))
+
+;; Return the encapsulated stream corresponding to STREAM.
+;; If you change GENERATE-STREAM-PROTOCOL-TRAMPOLINES to maintain a more complex
+;; mapping than a simple binding of *ORIGINAL-STREAM*, change this too.
+(defmacro encapsulated-stream (stream &optional (encapsulated-stream '*original-stream*))
+  `(or ,encapsulated-stream ,stream))
 
 
 ;;; Shadow this for all Lisp implementations

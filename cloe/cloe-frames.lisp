@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLOE-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: cloe-frames.lisp,v 1.1 92/10/01 10:03:49 cer Exp $
+;; $fiHeader: cloe-frames.lisp,v 1.2 92/10/28 11:32:23 cer Exp $
 
 (in-package :cloe-clim)
 
@@ -11,8 +11,8 @@
     ()
   (:default-initargs :dialog-view +textual-dialog-view+))
 
-(defmethod make-frame-manager ((port cloe-port) &key)
-  (make-instance 'cloe-frame-manager :port port))
+(defmethod make-frame-manager ((port cloe-port) &key palette)
+  (make-instance 'cloe-frame-manager :port port :palette palette))
 
 (defmethod frame-wrapper ((framem cloe-frame-manager) 
 			  (frame standard-application-frame) pane)

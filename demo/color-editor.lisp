@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: color-editor.lisp,v 1.8 92/10/28 11:32:53 cer Exp $
+;; $fiHeader: color-editor.lisp,v 1.9 92/10/29 16:55:25 cer Exp $
 
 (in-package :clim-demo)
 
@@ -83,7 +83,7 @@
     (setf dynamic-p (palette-dynamic-p (frame-palette frame))
 	  color (if dynamic-p
 		    (make-dynamic-color +black+)
-		  +black+))))
+		    +black+))))
 
 (defmethod color ((frame color-chooser))
   (with-slots (color dynamic-p) frame

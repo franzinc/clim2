@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: regions.lisp,v 1.13 92/07/20 15:59:45 cer Exp $
+;; $fiHeader: regions.lisp,v 1.14 92/08/18 17:24:15 cer Exp $
 
 (in-package :clim-utils)
 
@@ -193,7 +193,7 @@
      (y :initarg :y :accessor point-y :type coordinate)))
 
 (define-constructor make-point-1 standard-point (x y)
-		    :x x :y y)
+  :x x :y y)
 
 (defun make-point (x y)
   (declare (type real x y))
@@ -304,7 +304,8 @@
      (max-y :initarg :max-y :reader rectangle-max-y :type coordinate)
      (points :initarg :points :type simple-vector :reader polygon-points)))
 
-(define-constructor make-rectangle-1 standard-rectangle (min-x min-y max-x max-y points)
+(define-constructor make-rectangle-1 standard-rectangle 
+		    (min-x min-y max-x max-y points)
   :min-x min-x :min-y min-y :max-x max-x :max-y max-y :points points)
 
 (defun make-rectangle (min-point max-point)
@@ -318,7 +319,8 @@
 			(vector min-point (make-point min-x max-y)
 				max-point (make-point max-x min-y))))))
 
-(define-constructor make-rectangle*-1 standard-rectangle (x1 y1 x2 y2)
+(define-constructor make-rectangle*-1 standard-rectangle
+		    (x1 y1 x2 y2)
   :min-x x1 :min-y y1 :max-x x2 :max-y y2)
 
 (defun make-rectangle* (x1 y1 x2 y2)

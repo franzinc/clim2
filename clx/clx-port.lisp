@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLX-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clx-port.lisp,v 1.16 92/10/02 15:19:06 cer Exp $
+;; $fiHeader: clx-port.lisp,v 1.17 92/10/28 11:31:16 cer Exp $
 
 (in-package :clx-clim)
 
@@ -46,11 +46,11 @@
 ;;--- Eventually do better than this
 (defclass clx-palette (basic-palette) ())
 
-(defmethod make-palette ((port clx-port) &key color-p mutable-p)
+(defmethod make-palette ((port clx-port) &key color-p dynamic-p)
   (make-instance 'clx-palette
     :port port 
     :color-p color-p
-    :mutable-p mutable-p))
+    :dynamic-p dynamic-p))
 
 
 (defmethod initialize-instance :after ((port clx-port) &key server-path)
@@ -86,7 +86,7 @@
 			     :background (xlib:screen-white-pixel screen)))
 	  (setf (slot-value port 'silica::default-palette) 
 		(make-palette port :color-p color-p
-				   :mutable-p (and (member vic '(:gray-scale
+				   :dynamic-p (and (member vic '(:gray-scale
 								 :pseudo-color
 								 :direct-color))
 						   t))))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: genera-prefill.lisp,v 1.5 92/09/08 15:18:56 cer Exp $
+;; $fiHeader: genera-prefill.lisp,v 1.6 92/10/28 11:32:44 cer Exp $
 
 (in-package :clim-internals)
 
@@ -216,7 +216,7 @@
   (genera-clim::initialize-genera-port
     (genera-clim::genera-port))
   (initialize-menu
-    (genera-clim::genera-port clim-stream-pane t))
+    (genera-clim::genera-port clim-stream-pane))
   (make-frame-manager
     (genera-clim::genera-port))
   (make-medium

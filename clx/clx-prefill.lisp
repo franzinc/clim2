@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clx-prefill.lisp,v 1.5 92/09/08 15:17:17 cer Exp $
+;; $fiHeader: clx-prefill.lisp,v 1.6 92/10/28 11:31:17 cer Exp $
 
 (in-package :clim-internals)
 
@@ -207,7 +207,7 @@
   (clx-clim::initialize-clx-port
     (clx-clim::clx-port))
   (initialize-menu
-    (clx-clim::clx-port clim-stream-pane t))
+    (clx-clim::clx-port clim-stream-pane))
   (make-frame-manager
     (clx-clim::clx-port))
   (make-medium

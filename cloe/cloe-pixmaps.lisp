@@ -1,22 +1,25 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLOE-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: cloe-pixmaps.lisp,v 1.1 92/10/01 10:03:55 cer Exp $
+;; $fiHeader: cloe-pixmaps.lisp,v 1.2 92/10/28 11:32:30 cer Exp $
 
 (in-package :cloe-clim)
 
 "Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved."
 
 
-(defmethod medium-copy-area ((from-medium cloe-medium) from-x from-y width height
-			     (to-medium cloe-medium) to-x to-y)
+(defmethod medium-copy-area ((from-medium cloe-window-medium) from-x from-y width height
+			     (to-medium cloe-window-medium) to-x to-y)
   (unless (eq from-medium to-medium)
     (error "Can't copy."))
+  (when (select-cloe-dc from-medium)
   (let ((transform (sheet-device-transformation (medium-sheet from-medium))))
     (convert-to-device-coordinates transform from-x from-y to-x to-y)
     (convert-to-device-distances transform width height)
-    (let ((x-delta (- to-x from-x))		;can be negative
-	  (y-delta (- to-y from-y)))		;can be negative
-      (win::scroll-dc (medium-drawable from-medium)
-		      x-delta y-delta
-		      from-x from-y (+ from-x width) (+ from-y height) 
-		      0 0 width height))))
+    (let ((left (min from-x to-x))
+	  (top (min from-y to-y))
+	  (right (+ (max from-x to-x) width))
+	  (bottom (+ (max from-y to-y) height)))
+      (win::scroll-dc *dc*
+		      (- to-x from-x) (- to-y from-y)
+		      left top right bottom
+		      left top right bottom)))))

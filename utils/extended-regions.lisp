@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: extended-regions.lisp,v 1.3 92/05/07 13:11:37 cer Exp $
+;; $fiHeader: extended-regions.lisp,v 1.4 92/10/02 15:18:48 cer Exp $
 
 (in-package :clim-utils)
 
@@ -18,7 +18,7 @@
      (points :type simple-vector :initarg :points :reader polygon-points)))
 
 (define-constructor make-line-1 standard-line (start-x start-y end-x end-y points)
-		    :start-x start-x :start-y start-y :end-x end-x :end-y end-y :points points)
+  :start-x start-x :start-y start-y :end-x end-x :end-y end-y :points points)
 
 (defun make-line (start-point end-point)
   (make-line-1 (point-x start-point) (point-y start-point)
@@ -26,7 +26,7 @@
 	       (vector start-point end-point)))
 
 (define-constructor make-line*-1 standard-line (start-x start-y end-x end-y)
-		    :start-x start-x :start-y start-y :end-x end-x :end-y end-y)
+  :start-x start-x :start-y start-y :end-x end-x :end-y end-y)
 
 (defun make-line* (start-x start-y end-x end-y)
   (declare (type real start-x start-y end-x end-y))
@@ -219,10 +219,10 @@
     ((closed :initarg :closed :reader polyline-closed)))
 
 (define-constructor make-polyline standard-polyline (point-seq &key closed)
-		    :points (coerce point-seq 'vector) :closed closed)
+  :points (coerce point-seq 'vector) :closed closed)
 
 (define-constructor make-polyline* standard-polyline (coord-seq &key closed)
-		    :coords (coerce coord-seq 'vector) :closed closed)
+  :coords (coerce coord-seq 'vector) :closed closed)
 
 (defmethod make-load-form ((polyline standard-polyline))
   (with-slots (closed) polyline
@@ -243,10 +243,10 @@
 (defclass standard-polygon (polygon-mixin polygon) ())
 
 (define-constructor make-polygon standard-polygon (point-seq)
-		    :points (coerce point-seq 'vector))
+  :points (coerce point-seq 'vector))
 
 (define-constructor make-polygon* standard-polygon (coord-seq)
-		    :coords (coerce coord-seq 'vector))
+  :coords (coerce coord-seq 'vector))
 
 (defmethod make-load-form ((polygon standard-polygon))
   `(make-polygon ',(polygon-points polygon)))
@@ -296,8 +296,8 @@
 (defclass standard-elliptical-arc (ellipse-mixin elliptical-arc) ())
 
 (define-constructor make-elliptical-arc standard-elliptical-arc
-  (center-point radius-1-dx radius-1-dy radius-2-dx radius-2-dy
-		&key start-angle end-angle)
+		    (center-point radius-1-dx radius-1-dy radius-2-dx radius-2-dy
+		     &key start-angle end-angle)
   :center-point center-point :center-x (point-x center-point) :center-y (point-y center-point)
   :radius-1-dx (coordinate radius-1-dx) :radius-1-dy (coordinate radius-1-dy)
   :radius-2-dx (coordinate radius-2-dx) :radius-2-dy (coordinate radius-2-dy)
@@ -309,8 +309,8 @@
 		   (t nil)))
 
 (define-constructor make-elliptical-arc* standard-elliptical-arc
-  (center-x center-y radius-1-dx radius-1-dy radius-2-dx radius-2-dy
-	    &key start-angle end-angle)
+		    (center-x center-y radius-1-dx radius-1-dy radius-2-dx radius-2-dy
+		     &key start-angle end-angle)
   :center-x center-x :center-y center-y
   :radius-1-dx (coordinate radius-1-dx) :radius-1-dy (coordinate radius-1-dy)
   :radius-2-dx (coordinate radius-2-dx) :radius-2-dy (coordinate radius-2-dy)
@@ -352,8 +352,8 @@
 (defclass standard-ellipse (ellipse-mixin ellipse) ())
 
 (define-constructor make-ellipse standard-ellipse
-  (center-point radius-1-dx radius-1-dy radius-2-dx radius-2-dy
-		&key start-angle end-angle)
+		    (center-point radius-1-dx radius-1-dy radius-2-dx radius-2-dy
+		     &key start-angle end-angle)
   :center-point center-point :center-x (point-x center-point) :center-y (point-y center-point)
   :radius-1-dx (coordinate radius-1-dx) :radius-1-dy (coordinate radius-1-dy)
   :radius-2-dx (coordinate radius-2-dx) :radius-2-dy (coordinate radius-2-dy)
@@ -365,8 +365,8 @@
 		   (t nil)))
 
 (define-constructor make-ellipse* standard-ellipse
-  (center-x center-y radius-1-dx radius-1-dy radius-2-dx radius-2-dy
-	    &key start-angle end-angle)
+		    (center-x center-y radius-1-dx radius-1-dy radius-2-dx radius-2-dy
+		     &key start-angle end-angle)
   :center-x center-x :center-y center-y
   :radius-1-dx (coordinate radius-1-dx) :radius-1-dy (coordinate radius-1-dy)
   :radius-2-dx (coordinate radius-2-dx) :radius-2-dy (coordinate radius-2-dy)

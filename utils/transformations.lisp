@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: transformations.lisp,v 1.8 92/07/08 16:29:37 cer Exp $
+;; $fiHeader: transformations.lisp,v 1.9 92/08/18 17:24:17 cer Exp $
 
 (in-package :clim-utils)
 
@@ -64,7 +64,7 @@
      (ty :type single-float :initarg :ty)))
 
 (define-constructor make-translation-transformation-1 translation-transformation
-  (tx ty)
+		    (tx ty)
   :tx tx :ty ty)
 
 (defmethod print-object ((transform translation-transformation) stream)
@@ -91,7 +91,7 @@
      (ty :type single-float :initarg :ty)))
 
 (define-constructor make-standard-transformation-1 standard-transformation
-  (mxx mxy myx myy tx ty)
+		    (mxx mxy myx myy tx ty)
   :mxx mxx :mxy mxy :myx myx :myy myy :tx tx :ty ty)
 
 (defmethod make-load-form ((transform standard-transformation))

@@ -1,42 +1,26 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLOE-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: cloe-dc.lisp,v 1.1 92/10/01 10:03:56 cer Exp $
+;; $fiHeader: cloe-dc.lisp,v 1.1 92/10/28 09:24:09 cer Exp $
 
 (in-package :cloe-clim)
 
 "Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved."
 
-
-(eval-when (compile load eval)
-;; Define the new key chars for Cloe CLIM.  Regular Cloe defines 0-127, we define
-;; 128-139 as the F-keys (F1 thru F12), 140 for c-sh-A, and 141 as c-sh-V
-(sys::define-character-name "F1" 128)
-(sys::define-character-name "F2" 129)
-(sys::define-character-name "F3" 130)
-(sys::define-character-name "F4" 131)
-(sys::define-character-name "F5" 132)
-(sys::define-character-name "F6" 133)
-(sys::define-character-name "F7" 134)
-(sys::define-character-name "F8" 135)
-(sys::define-character-name "F9" 136)
-;; Note windows traps F10 as alt-space. Why?
-(sys::define-character-name "F10" 137)
-(sys::define-character-name "F11" 138)
-(sys::define-character-name "F12" 139)
-(sys::define-character-name "Arglist" 140)
-(sys::define-character-name "ShowValue" 141)
-)	;eval-when
-
-;;;
-
+(defvar *dummy-window*)
 (defvar *dc*)
 
+(defvar *current-window*)
 (defvar *current-pen*)
 (defvar *current-brush*)
 (defvar *current-rop2*)
 (defvar *current-background-color*)
 (defvar *current-text-color*)
 (defvar *current-font*)
+(defvar *current-region*)
+(defvar *current-left*)
+(defvar *current-top*)
+(defvar *current-right*)
+(defvar *current-bottom*)
 
 ;;; Stock objects
 (defvar *null-pen*)
@@ -51,8 +35,8 @@
 (defvar *color-to-image* (make-hash-table))
 (defvar *black-image*)
 (defvar *white-image*)
-
 (defvar *ink-to-image* (make-hash-table))
+(defvar *rectangle-to-region* (make-hash-table :test #'equal))
 
 
 (defstruct (dc-image (:predicate nil))
@@ -68,7 +52,10 @@
   (unless win::*windows-channel*
     (win::connect-to-winfe))
   ;; Dummy window to represent class.
-  (setf *dc* (win::create-window "Vanilla" "CLIM" win::ws_popup 0 0 0 0 0 0 0 "arg"))
+  (setf *dummy-window*
+	(win::create-window "Vanilla" "CLIM" win::ws_popup 0 0 0 0 0 0 0 "arg"))
+  (setf *current-window* *dummy-window*)
+  (setf *dc* (win::get-dc *dummy-window*))
 
   ;; Stock objects
   (setf *null-pen* (win::get-stock-object win::null_pen))
@@ -85,7 +72,15 @@
   (setf *current-background-color* #xffffff)
   (setf *current-text-color* #x000000)
   (setf *current-font* nil)
+  (setf *current-region* nil)
+  (setf *current-left* nil)
+  (setf *current-top* nil)
+  (setf *current-right* nil)
+  (setf *current-bottom* nil)
 
+  (clrhash *color-to-image*)
+  (clrhash *ink-to-image*)
+  (clrhash *rectangle-to-region*)
   (setf *black-image*
 	(make-dc-image :solid-1-pen *black-pen* :brush *black-brush*
 		       :text-color #x000000 :background-color nil))
@@ -97,6 +92,45 @@
   )
 
 ;;;
+
+(defun select-window (window)
+  (unless (eql *current-window* window)
+    (win::release-dc *dc*)
+    (setf *dc* (win::get-dc window))
+    (setf *current-window* window)
+    (setf *current-region* nil)			;???
+    (setf *current-left* nil))			;???
+  *dc*)
+
+#||
+(defun select-clip-rectangle (left top right bottom)
+  (unless (and (eql *current-left* left)
+	       (eql *current-top* top)
+	       (eql *current-right* right)
+	       (eql *current-bottom* bottom))
+    #||
+    (when *current-left*
+      (win::release-dc *dc*)
+      (setf *dc* (win::get-dc *current-window*)))
+    (win::intersect-clip-rect *dc* left top right bottom)
+    ||#
+    (setf *current-left* left)
+    (setf *current-top* top)
+    (setf *current-right* right)
+    (setf *current-bottom* bottom)))
+||#
+
+(defun select-clip-rectangle (left top right bottom)
+  (select-region (with-stack-list (key left top right bottom)
+		   (or (gethash key *rectangle-to-region*)
+		       (setf (gethash (copy-list key) *rectangle-to-region*)
+			     (win::create-rect-rgn left top right bottom))))))  
+
+(defun select-region (region)
+  (unless (eql *current-region* region)
+    (win::select-region *dc* region)
+    (setf *current-region* region))
+  region)  
 
 (defun select-pen (pen)
   (unless (eql *current-pen* pen)
