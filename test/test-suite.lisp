@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: test-suite.lisp,v 1.53 93/01/11 15:45:28 colin Exp $
+;; $fiHeader: test-suite.lisp,v 1.54 93/01/18 13:57:57 cer Exp $
 
 (in-package :clim-user)
 
@@ -708,6 +708,7 @@ people, shall not perish from the earth.
       (draw-text* stream "Some fox jumped over something" 200 200
 		  :towards-x 0 :towards-y 200
 		  :text-style '(nil :bold :large)))
+    
     (with-output-as-presentation (stream 4 'form) 
       (draw-text* stream "Some fox jumped over something" 200 200
 		  :towards-x 200 :towards-y 0

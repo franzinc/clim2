@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-frames.lisp,v 1.46 93/01/21 14:59:19 cer Exp $
+;; $fiHeader: xm-frames.lisp,v 1.47 93/02/08 15:58:07 cer Exp $
 
 (in-package :xm-silica)
 
@@ -357,7 +357,7 @@
 					   (#.+pointer-left-button+ "<Btn1Down>")
 					   (#.+pointer-middle-button+ "<Btn2Down>")
 					   (#.+pointer-right-button+ "<Btn3Down>")
-					   (t "<Btn1Down>"))
+					   (t "<Btn3Down>"))
 			      :managed nil))
 	 (font (and text-style (text-style-mapping (port framem) text-style)))
 	 (font-list (and (or label simplep) font (list :font-list (list font)))))

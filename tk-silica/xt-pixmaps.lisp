@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-pixmaps.lisp,v 1.13 92/12/03 10:30:26 cer Exp $
+;; $fiHeader: xt-pixmaps.lisp,v 1.14 93/02/08 15:58:17 cer Exp $
 
 
 (in-package :xm-silica)
@@ -36,7 +36,7 @@
       :depth (tk::drawable-depth root))))
 
 (defmethod port-deallocate-pixmap ((port xt-port) (pixmap tk::pixmap))
-  (x11:xfreepixmap pixmap))
+  (x11:xfreepixmap (port-display port) pixmap))
 
 (defmethod pixmap-width ((pixmap tk::pixmap))
   (tk::pixmap-width pixmap))

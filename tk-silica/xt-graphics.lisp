@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.61 93/01/11 15:46:28 colin Exp $
+;; $fiHeader: xt-graphics.lisp,v 1.62 93/01/21 14:59:31 cer Exp $
 
 (in-package :tk-silica)
 
@@ -1728,10 +1728,24 @@ and on color servers, unless using white or black")
 	       (oy y))
 	  (declare (ignore oy)
 		   (ignore ox))
+
 	  (setf (tk::gcontext-clip-mask gcontext) pixmap)
 	  (setf (ink-gcontext-last-medium-clip-mask gcontext) nil)
 	  (unless start (setq start 0))
 	  (unless end (setq end (length string)))
+	  
+	  #+debug
+	  (tk::copy-area pixmap gcontext 0 0 
+			 (tk::pixmap-width pixmap)
+			 (tk::pixmap-height pixmap)
+			 drawable 0 0)
+	  #+debug
+	  (progn
+	    (setf (tk::gcontext-clip-x-origin gcontext) 0
+		  (tk::gcontext-clip-y-origin gcontext) 70)
+	    (tk::draw-rectangle drawable gcontext 0 70 256 256 t))
+	  
+	  #-debug
 	  (dotimes (i (- end start))
 	    (let* ((char (char-int (aref string (+ start i))))
 		   (char-width (xt::char-width font char))
@@ -1749,14 +1763,6 @@ and on color servers, unless using white or black")
 	      (multiple-value-bind
 		  (clip-x clip-y)
 		  (compute-clip-x-and-clip-y char char-width cx cy)
-		#+debug
-		(setf (tk::gcontext-clip-x-origin gcontext) 0
-		      (tk::gcontext-clip-y-origin gcontext) 70
-		      )
-		#+debug
-		(tk::draw-rectangle drawable gcontext 
-				    0 70 256 256 
-				    t)
 		#+debug
 		(format t "CLip-x, clip-y ~D,~D~%" clip-x clip-y)
 		(setf (tk::gcontext-clip-x-origin gcontext) clip-x

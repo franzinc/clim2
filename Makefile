@@ -1,4 +1,4 @@
-# $fiHeader: Makefile,v 1.72 93/01/11 15:44:38 colin Exp $
+# $fiHeader: Makefile,v 1.73 93/01/18 13:54:08 cer Exp $
 #
 #  Makefile for CLIM 2.0
 #
@@ -776,17 +776,17 @@ dcl	:
 	cd $(CL_SRC) ; /bin/rm -f ucl ;\
 	make dcl	
 
-clim-motif.o	: stub-motif.o $(MOTIFLIB)
-	ld -r $(LDFLAGS) -o clim-motif.o stub-motif.o $(MOTIFLIB)
+clim-motif.o	: stub-motif.o stub-xt.o $(MOTIFLIB)
+	ld -r $(LDFLAGS) -o clim-motif.o stub-motif.o stub-xt.o $(MOTIFLIB)
 
-clim-olit.o	: stub-olit.o $(LIBXOL)
-	ld -r $(LDFLAGS) -o clim-olit.o stub-olit.o $(LIBXOL)
+clim-olit.o	: stub-olit.o stub-xt.o $(LIBXOL)
+	ld -r $(LDFLAGS) -o clim-olit.o stub-olit.o stub-xt.o $(LIBXOL)
 
-clim-motif_d.o	: stub-motif.o $(MOTIFLIB_d)
-	ld -r  $(LDFLAGS) -o clim-motif_d.o stub-motif.o $(MOTIFLIB_d)
+clim-motif_d.o	: stub-motif.o stub-xt.o $(MOTIFLIB_d)
+	ld -r  $(LDFLAGS) -o clim-motif_d.o stub-motif.o stub-xt.o $(MOTIFLIB_d)
 
-clim-olit_d.o	: stub-olit.o $(LIBXOL_d)
-	ld -r $(LDFLAGS) -o clim-olit_d.o stub-olit.o $(LIBXOL_d)
+clim-olit_d.o	: stub-olit.o  stub-xt.o $(LIBXOL_d)
+	ld -r $(LDFLAGS) -o clim-olit_d.o stub-olit.o stub-xt.o $(LIBXOL_d)
 
 
 stub-motif.c	:  $(XT_UNDEFS)  $(XMC_UNDEFS) $(XM_UNDEFS) misc/make-stub-file misc/make-stub-file1
