@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: frames.lisp,v 1.88.8.7 1999/03/01 17:48:00 layer Exp $
+;; $Id: frames.lisp,v 1.88.8.8 1999/03/31 18:49:31 layer Exp $
 
 (in-package :clim-internals)
 
@@ -862,7 +862,8 @@
 			  (frame-standard-output frame))))
 	      (typecase si
 		(output-protocol-mixin si)
-		(t (frame-top-level-sheet frame))))))
+		(t (frame-top-level-sheet frame)))))
+	   (*avv-refreshed* nil))
       ;; The read-eval-print loop for applications...
       (letf-globally (((frame-actual-pointer-documentation-pane frame)
 		       *pointer-documentation-output*))
@@ -870,6 +871,12 @@
 	  ;; Redisplay all the panes
 	  (catch-abort-gestures ("Return to ~A command level" (frame-pretty-name frame))
 	    (redisplay-frame-panes frame)
+	    (when (not *avv-refreshed*) 
+	      ;;; This needs to happen after the 
+	      ;;; call to redisplay-frame-panes
+	      ;;; but only do it the first time.
+	      (force-refresh-avv-streams FRAME)
+	      (setq *avv-refreshed* t))
 	    (when interactor
 	      (fresh-line *standard-input*)
 	      (if (stringp prompt)
@@ -881,6 +888,25 @@
 	      ;; Need this check in case the user aborted out of a command menu
 	      (when command
 		(execute-frame-command frame command)))))))))
+
+(defmethod force-refresh-avv-streams (FRAME)
+  ;;; NOTE:  Not using get-frame-pane-to-avv-stream-table.
+  ;;; Don't create the hashtable if it's not already there.
+  (let ((HT (frame-pane-to-avv-stream-table FRAME)))
+    (when HT
+      (maphash #'(lambda (PANE PAIR) 
+		   PANE
+		   (let ((AVV-STREAM (car PAIR))
+			 (AVV-RECORD (cdr PAIR)))
+		     (and AVV-STREAM
+			  AVV-RECORD
+			  (redisplay AVV-RECORD
+				     AVV-STREAM
+				     :check-overlapping t)
+			  )
+		     )
+		   )
+	       HT))))
   
 ;; Generic because someone might want :BEFORE or :AFTER
 (defmethod frame-exit ((frame standard-application-frame))
@@ -1147,15 +1173,11 @@
   #-mswindows (declare (ignore frame))
   #-mswindows `(progn ,@body)
   #+mswindows
-  (let ((previously-disabled-commands (gensym)))
-    `(let ((,previously-disabled-commands nil))
-       (unwind-protect 
-	   (progn 
-	     (setq ,previously-disabled-commands
-	       (disable-all-menu-items ,frame))
-	     ,@body)
-	 (re-enable-menu-items 
-	  ,frame ,previously-disabled-commands)))))
+  `(unwind-protect 
+       (progn 
+	 (disable-all-menu-items ,frame)
+	 ,@body)
+     (re-enable-menu-items ,frame)))
 
 (defmethod execute-frame-command ((frame standard-application-frame) command)
   (with-menu-disabled frame

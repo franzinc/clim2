@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-medium.lisp,v 1.6.8.12 1999/03/01 17:47:57 layer Exp $
+;; $Id: acl-medium.lisp,v 1.6.8.13 1999/03/31 18:49:26 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -89,9 +89,6 @@
   (with-slots (window) medium
     (setf window nil))
   nil)
-
-;; changed the select-acl-dc method to specialize on acl-medium rather
-;; than acl-window-medium (sdj 9/27/96)
 
 (defmethod select-acl-dc ((medium acl-medium) window dc)
   (declare (ignore window))
@@ -186,13 +183,13 @@
 	(setf (gethash ink cache)
 	  (let ((color (color->wincolor ink medium)))
 	    (declare (fixnum color))
-	    (let ((pen (win:createPen win:ps_solid 1 color))
-		  (brush (win:createSolidBrush color)))
+	    (let ((pen (win:CreatePen win:ps_solid 1 color))
+		  (brush (win:CreateSolidBrush color)))
 	      (make-dc-image :solid-1-pen pen
 			     :brush brush
 			     :text-color color 
 			     :background-color nil
-			     :rop2 win:r2_copypen
+			     :rop2 win:R2_COPYPEN
 			     )))))))
 
 ;;; ink for opacities, regions, etc
@@ -239,20 +236,21 @@
 	 (bcolor (color->wincolor bink medium))
 	 (width (array-dimension array 1))
 	 (height (array-dimension array 0))
-	 (into (make-pixel-map width height 256)))
+	 (bits-per-pixel 8)
+	 (into (make-pixel-map width height (expt 2 bits-per-pixel))))
     (dotimes (i height)
       (dotimes (j width)
 	(setf (aref into i j) (aref array i j))))
     (setf *bitmap-array* into)
-    (with-medium-dc (medium dc)
-      (let* ((bitmapinfo (get-bitmapinfo medium dc-image into designs))
-	     (bitmap (get-texture dc into bitmapinfo)))	
-	;; To Do: replace BITMAP with INTO and just use 
-	;; device-independent bitmap operations.
-	(setf (dc-image-bitmap dc-image) bitmap
-	      *created-bitmap* bitmap)
-	(setf (dc-image-background-color dc-image) bcolor)
-	(setf (dc-image-text-color dc-image) tcolor)))
+    (let* ((bitmapinfo (get-bitmapinfo medium dc-image into designs))
+	   (dc (win:GetDC 0))
+	   (bitmap (get-texture dc into bitmapinfo)))	
+      ;; To Do: replace BITMAP with INTO and just use 
+      ;; device-independent bitmap operations.
+      (setf (dc-image-bitmap dc-image) bitmap
+	    *created-bitmap* bitmap)
+      (setf (dc-image-background-color dc-image) bcolor)
+      (setf (dc-image-text-color dc-image) tcolor))
     dc-image))
 
 (defun dc-image-for-transparent-pattern (medium ink array designs)
@@ -265,7 +263,8 @@
 	 (bcolor (color->wincolor bink medium))
 	 (width (array-dimension array 1))
 	 (height (array-dimension array 0))
-	 (into (make-pixel-map width height 256)))
+	 (bits-per-pixel 8)
+	 (into (make-pixel-map width height (expt 2 bits-per-pixel))))
     (when (eq tink +transparent-ink+)
       (rotatef tink bink)
       (rotatef tcolor bcolor))
@@ -273,23 +272,23 @@
       (dotimes (j width)
 	(setf (aref into i j) (aref array i j))))
     (setf *bitmap-array* into)
-    (with-medium-dc (medium dc)
-      (let* ((bitmapinfo (get-bitmapinfo medium dc-image into designs))
-	     (bitmap (get-texture dc into bitmapinfo)))	
-	;; To Do: replace BITMAP with INTO and just use 
-	;; device-independent bitmap operations.
-	(setf (dc-image-bitmap dc-image) bitmap
-	      *created-bitmap* bitmap)
-	(setf (dc-image-background-color dc-image) bcolor)
-	(setf (dc-image-text-color dc-image) tcolor)))
+    (let* ((bitmapinfo (get-bitmapinfo medium dc-image into designs))
+	   (dc (win:GetDC 0))
+	   (bitmap (get-texture dc into bitmapinfo)))	
+      ;; To Do: replace BITMAP with INTO and just use 
+      ;; device-independent bitmap operations.
+      (setf (dc-image-bitmap dc-image) bitmap
+	    *created-bitmap* bitmap)
+      (setf (dc-image-background-color dc-image) bcolor)
+      (setf (dc-image-text-color dc-image) tcolor))
     dc-image))
 
 (defun byte-align-pixmap (a)
-  ;; Pad the pixmap so that the y dimension is a multiple of 8.
+  ;; Pad the pixmap so that the y dimension is a multiple of 4.
   ;; This copies the array, so you oughta cache the result.
   (let* ((x-dim (array-dimension a 0))
          (y-dim (array-dimension a 1))
-         (new-y-dim (* 8 (floor (/ (+ y-dim 7) 8))))
+         (new-y-dim (* 4 (ceiling y-dim 4)))
          (b nil))
     (cond ((= y-dim new-y-dim) a)	; already aligned
 	  (t
@@ -300,25 +299,11 @@
 		 (if (>= y y-dim) 0 (aref a x y)))))
 	   b))))
 
-(defun byte-align-bits (a)
-  ;; Pad the pixmap so that the y dimension is a multiple of 8.
-  ;; This copies the array, so you oughta cache the result.
-  (let* ((x-dim (array-dimension a 0))
-         (y-dim (array-dimension a 1))
-         (new-y-dim (* 8 (floor (/ (+ y-dim 7) 8))))
-         (b (make-array (list x-dim new-y-dim) 
-			:element-type 'bit
-			:initial-element 0)))
-    (dotimes (col new-y-dim)
-      (dotimes (row x-dim)
-	(setf (aref b row col)
-	  (if (>= col y-dim) 0 (if (zerop (aref a row col)) 0 1)))))
-    b))
-
 (defun pattern-to-hatchbrush (pattern)
   (multiple-value-bind (array designs) (decode-pattern pattern)
-    (let* ((tcolor (position-if #'(lambda (ink) (not (eq ink +transparent-ink+)))
-				designs))
+    (let* ((tcolor (position-if 
+		    #'(lambda (ink) (not (eq ink +transparent-ink+)))
+		    designs))
 	   (style nil))
       (unless tcolor (return-from pattern-to-hatchbrush nil))
       (when (and (> (array-dimension array 0) 1)
@@ -421,15 +406,12 @@ draw icons and mouse cursors on the screen.
 			   (null (dc-image-bitmap image1))
 			   (null (dc-image-bitmap image2)))
 		(nyi))
-	      (let ((pen (win:createPen win:ps_solid 1 color))
-		    (brush (win:createSolidBrush color)))
+	      (let ((pen (win:CreatePen win:PS_SOLID 1 color))
+		    (brush (win:CreateSolidBrush color)))
 		(make-dc-image :solid-1-pen pen
 			       :brush brush
-			       :rop2 win:r2_xorpen
-			       ;; I don't know why but text drawn
-			       ;; in this ink is invisible if you
-			       ;; use COLOR as the text color.  JPM 7/98.
-			       :text-color 0 ;color 
+			       :rop2 win:R2_XORPEN
+			       :text-color color 
 			       :background-color nil))))))))
 
 (defmethod dc-image-for-ink ((medium acl-medium) (ink contrasting-ink))
@@ -601,7 +583,9 @@ draw icons and mouse cursors on the screen.
 (defmethod medium-draw-polygon* ((medium acl-medium)
 				 position-seq closed filled)
   (let ((window (medium-drawable medium))
+	(length (length position-seq))
 	(old nil))
+    (assert (evenp length))
     (with-medium-dc (medium dc)
       (setq old (select-acl-dc medium window dc))
       (when old
@@ -611,34 +595,41 @@ draw icons and mouse cursors on the screen.
 	       (line-style (and (not filled) (medium-line-style medium)))
 	       (length (length position-seq))
 	       (numpoints (floor length 2))
-	       (extra (and closed line-style))
-	       (point-vector (ct:callocate (:long *) :size 512))) ;  limit?
-	  ;; These really are fixnums, since we're fixing coordinates below
-	  ;; (declare (type fixnum minx miny))
-	  (with-stack-array (points (if extra (+ length 2) length))
-	    (declare (type simple-vector points))
-	    (replace points position-seq) ;set up the initial contents
-	    (do ((i 0 (+ i 2))
-		 (j 0 (+ j 1)))
-		((>= i length))
-	      (let ((x (svref points i))
-		    (y (svref points (1+ i))))
-		(convert-to-device-coordinates transform x y)
-		(ct:cset (:long 512) point-vector ((fixnum (* j 2))) x)
-		(ct:cset (:long 512) point-vector ((fixnum (+ 1 (* j 2)))) y)
-		(when (and (= j 0) extra)
-		  (ct:cset (:long 512) point-vector ((fixnum (* numpoints 2))) x)
-		  (ct:cset (:long 512) point-vector ((fixnum (+ 1 (* numpoints 2)))) y)
-		  ))))
+	       (point-vector nil)
+	       (i 0))
+	  (when (and closed (not filled))
+	    (incf length 2)
+	    (incf numpoints))
+	  (setq point-vector (ff:allocate-fobject `(:array :long ,length)))
+	  (silica:map-position-sequence
+	   #'(lambda (x y)
+	       (convert-to-device-coordinates transform x y)
+	       (setf (ff:fslot-value-typed '(:array :long 1) :foreign
+					   point-vector i) 
+		 (truncate x))
+	       (incf i)
+	       (setf (ff:fslot-value-typed '(:array :long 1) :foreign
+					   point-vector i)
+		 (truncate y))
+	       (incf i))
+	   position-seq)
+	  (when (and closed (not filled))
+	    (setf (ff:fslot-value-typed '(:array :long 1) :foreign
+					point-vector i)
+	      (ff:fslot-value-typed '(:array :long 1) :foreign
+				    point-vector 0))
+	    (incf i)
+	    (setf (ff:fslot-value-typed '(:array :long 1) :foreign
+					point-vector i)
+	      (ff:fslot-value-typed '(:array :long 1) :foreign
+				    point-vector 1))
+	    (incf i))
 	  (set-dc-for-ink dc medium ink line-style)
-	  (if (null line-style)
+	  (if filled
 	      (win:polygon dc point-vector numpoints)
-	    (win:polyline dc
-			  point-vector
-			  (if (and closed line-style)
-			      (+ numpoints 1)
-			    numpoints)))
-	  (selectobject dc old))))))
+	    (win:polyline dc point-vector numpoints))
+	  (selectobject dc old)
+	  t)))))
 
 (defconstant *ft* 0.0001)
 (defun-inline fl-= (x y) (< (abs (- x y)) *ft*))
@@ -714,44 +705,133 @@ draw icons and mouse cursors on the screen.
   ;; This is not supposed to try to draw multiline text.
   ;; For that, use WRITE-STRING.
   (declare (ignore transform-glyphs))
-  (let ((window (medium-drawable medium))
-	(old nil))
+  (unless end (setq end (length string)))
+  (let* ((transform (sheet-device-transformation (medium-sheet medium))))
+    (convert-to-device-coordinates transform x y)
+    (when towards-x
+      (convert-to-device-coordinates transform towards-x towards-y)))
+  (let* ((port (port medium))
+	 (text-style (medium-merged-text-style medium))
+	 (font (text-style-mapping port text-style))
+	 (window (medium-drawable medium))
+	 (ink (medium-ink medium))
+	 (old nil)
+	 (font-angle (pos-to-font-angle x y towards-x towards-y))
+	 (x-adjust 
+	  (compute-text-x-adjustment align-x medium 
+				     string text-style start end))
+	 (y-adjust
+	  (compute-text-y-adjustment align-y (acl-font-descent font) 
+				     (acl-font-ascent font) (acl-font-height font))))
+    (incf x x-adjust)
+    (incf y y-adjust)
+    (when towards-x
+      (incf towards-x x-adjust)
+      (incf towards-y y-adjust))
+    (cond ((zerop font-angle) 
+	   (decf y (acl-font-ascent font))) ;text is positioned by its top left 
+	  (t
+	   (setq font
+	     (port-find-rotated-font port font font-angle))))
+    (if (typep ink 'clim-utils:flipping-ink)
+	(medium-draw-inverted-string* medium string x y start end font text-style)
+      (with-medium-dc (medium dc)
+	(setq old (select-acl-dc medium window dc))
+	(when old
+	  (with-temporary-substring (substring string start end)
+	    (set-dc-for-text dc medium ink (acl-font-index font))
+	    (multiple-value-bind (cstr len)
+		(silica::xlat-newline-return substring)
+	      (or (win:TextOut dc x y cstr len)
+		  (check-last-error "TextOut" :action :warn))))
+	  (selectobject dc old))))))
+
+(defmethod medium-draw-inverted-string* ((medium acl-medium)
+					 string x y start end font text-style)
+  ;; This function should be used when the ink is flipping-ink.
+  ;; Strings cannot be drawn by calling (SetROP2 dc R2_XORPEN).
+  ;; This has no effect on TextOut.  To get the same effect,
+  ;; draw the string into a bitmap and draw the bitmap onto the screen.
+  (let (old
+	(window (medium-drawable medium))
+	(width 100)
+	(height 100))
+    (multiple-value-setq (width height) 
+      (text-size medium string :text-style text-style
+		 :start start :end end))
     (with-medium-dc (medium dc)
       (setq old (select-acl-dc medium window dc))
       (when old
-	(let* ((sheet (medium-sheet medium))
-	       (transform (sheet-device-transformation sheet))
-	       (ink (medium-ink medium))
-	       (text-style (medium-merged-text-style medium)))
-	  (convert-to-device-coordinates transform x y)
-	  (when towards-x
-	    (convert-to-device-coordinates transform towards-x towards-y))
-	  (unless end
-	    (setq end (length string)))
-	  (with-temporary-substring (substring string start end)
-	    (let* ((font (text-style-mapping (port medium) text-style))
-		   (height (acl-font-height font))
-		   (descent (acl-font-descent font))
-		   (ascent (acl-font-ascent font)))
-	      (let ((x-adjust 
-		     (compute-text-x-adjustment align-x medium 
-						string text-style start end))
-		    (y-adjust
-		     (compute-text-y-adjustment align-y descent 
-						ascent height)))
-		(incf x x-adjust)
-		(incf y y-adjust)
-		(when towards-x
-		  (incf towards-x x-adjust)
-		  (incf towards-y y-adjust)))
-	      (decf y ascent)  ;;text is positioned by its top left 
-	      (set-dc-for-text dc medium ink (acl-font-index font))
-	      (multiple-value-bind (cstr len)
-		  (silica::xlat-newline-return substring)
-		(or (win:textOut dc x y cstr len)
-		    (check-last-error "TextOut" :action :warn))
-		)))
-	  (selectobject dc old))))))
+	(with-temporary-substring (substring string start end)
+	  (let* ((cdc (win:CreateCompatibleDC dc))
+		 (hbm (win:CreateCompatibleBitmap cdc width height))
+		 (oldbm nil))
+	    (setq oldbm (win:SelectObject cdc hbm))
+	    ;; Set the bitmap to black, then draw the text in white.
+	    (set-dc-for-text cdc medium +black+ (acl-font-index font))
+	    (win:rectangle cdc 0 0 width height)
+	    (win:SetTextColor dc 0)	; white
+	    (set-dc-for-text cdc medium +white+ (acl-font-index font))
+	    (multiple-value-bind (cstr len)
+		(silica::xlat-newline-return substring)
+	      (or (win:TextOut cdc 0 0 cstr len)
+		  (check-last-error "TextOut" :action :warn))
+	      )
+	    ;; Copy bitmap from memory dc to screen dc
+	    (win:BitBlt dc x y width height
+			cdc 0 0 win:SRCINVERT)
+	    ;; Restore the old bitmap
+	    (win:SelectObject cdc oldbm)
+	    ;; Delete the bitmap
+	    (win:DeleteObject hbm)
+	    ;; Delete memory dc
+	    (win:DeleteDC cdc)))
+	(selectobject dc old)))
+    nil))
+
+;;; Enhance the bounding-box calculation for rotated text.
+(defmethod clim-internals::medium-text-bounding-box :around
+	   ((medium acl-window-medium) string x y
+	    start end align-x align-y text-style
+	    towards-x towards-y transform-glyphs transformation)
+  align-x align-y transform-glyphs transformation
+  (let ((font-angle nil))
+    (cond ((and (or towards-x towards-y)
+		(not (= (setq font-angle
+			  (pos-to-font-angle x y 
+					     (or towards-x x)
+					     (or towards-y y)))
+			0)))
+	   ;;; This is sort of expecnsive, but it
+	   ;;; should only happen when the text is 
+	   ;;; drawn the first time.
+	   (setq towards-x (or towards-x x))
+	   (setq towards-y (or towards-y y))
+	   ;;; Recall, font-angle is in 1/10 dgs.
+	   (let* ((font-angle-rad (* font-angle #.(/ pi (* -180 10))))
+		  (width (stream-string-width (medium-sheet medium) string
+					      :start start :end end
+					      :text-style text-style))
+		  (ascent (text-style-ascent text-style medium))
+		  (descent (text-style-descent text-style medium))
+		  (height (+ ascent descent))
+		  (transf (make-rotation-transformation* font-angle-rad x y)))
+	     (multiple-value-bind (xtr ytr)	;;; top-right corner
+		 (transform-position transf (+ x width) y)
+	       (multiple-value-bind (xbr ybr) ;;; bottom-right corner	     
+		   (transform-position transf (+ x width) (+ y height))
+		 (multiple-value-bind (xbl ybl)	;;; bottom-left corner	     
+		     (transform-position transf x (+ y height))
+		   (values (coordinate (min x xtr xbr xbl))
+			   (coordinate (min y ytr ybr ybl))
+			   (coordinate (max x xtr xbr xbl))
+			   (coordinate (max y ytr ybr ybl))
+			   ;;; None of the following seems to be
+			   ;;; used, but...
+			   (coordinate x) (coordinate y)
+			   towards-x towards-y))))))
+	  (t 
+	   (call-next-method)))))
 
 (defmethod medium-draw-character* ((medium acl-medium)
 				   char x y align-x align-y

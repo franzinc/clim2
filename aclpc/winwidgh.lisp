@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: winwidgh.lisp,v 1.1.22.5 1998/12/17 00:19:00 layer Exp $
+;; $Id: winwidgh.lisp,v 1.1.22.6 1999/03/31 18:49:30 layer Exp $
 
 (in-package :acl-clim)
 
@@ -94,4 +94,8 @@
 
 (ff:def-foreign-call (CallNextHookEx "CallNextHookExA")
     ((a :int) (b :int) (c :int) (d :int))
+  :returning :int)
+
+(ff:def-foreign-call memcpy
+    ((to (* :char)) (from (* :char)) (nbytes :int))
   :returning :int)

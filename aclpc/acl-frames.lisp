@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-frames.lisp,v 1.5.8.13 1999/03/01 17:47:56 layer Exp $
+;; $Id: acl-frames.lisp,v 1.5.8.14 1999/03/31 18:49:26 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -194,47 +194,65 @@
 ;;; This last condition worries about any commands that
 ;;; have been actively enabled since the corresponding
 ;;; call to DISABLE-ALL-MENU-ITEMS.
+
 (defun clim-internals::disable-all-menu-items (frame)
-  (let ((prev-disabled-commands nil))
-    (with-slots (clim-internals::disabled-commands) frame
-      ;;; Remember the previously disabled-commands.
-      (setq prev-disabled-commands
-	(copy-list clim-internals::disabled-commands))
-      ;;; Clear out the disabled-commands.
-      (setq clim-internals::disabled-commands nil))
-    
-    ;;; Now, disable all the current-commands.
-    (map-command-menu-ids
-     frame
-     #'(lambda (menuid)
-	 (let ((command-name (second (aref *menu-id->command-table* menuid))))
-	   (with-slots (clim-internals::disabled-commands) frame
-	     (push command-name clim-internals::disabled-commands)))))
-    
-    ;;; Return the list of previously disabled-commands
-    prev-disabled-commands))
+  ;;; Called before a command is executed.
+  ;;;
+  ;;; Push all the commands on top of the 
+  ;;; previously-disabled commands.
+  ;;;
+  ;;; In particular note that any previously-disabled
+  ;;; command will appear in the list of disabled-commands
+  ;;; two (or possibly more) times.
+  ;;;
+  ;;; See the subequent clean-up below in 
+  ;;; clim-internals::re-enable-menu-items.
+  (map-command-menu-ids
+   frame
+   #'(lambda (menuid)
+       (let ((command-name (second (aref *menu-id->command-table* menuid))))
+	 (with-slots (clim-internals::disabled-commands) frame
+	   (push command-name clim-internals::disabled-commands)))))
+  )
 
 ;;; See the comment for DISABLE-ALL-MENU-ITEMS
-(defun clim-internals::re-enable-menu-items (frame prev-disabled-commands)
-  (let ((current-disabled-commands nil)
-	(new-disabled-commands nil))
+(defun clim-internals::re-enable-menu-items (frame)
+  (let ((new-disabled-commands nil))
     (with-slots (clim-internals::disabled-commands) frame
-      ;;; Remember the currently disabled-commands.
-      (setq current-disabled-commands
-	(copy-list clim-internals::disabled-commands))
-      ;;; Prepare to disable the command, if 
-      ;;;  1] it was previously disabled and 
-      ;;;  2] it is currently disabled.
-      ;;; This second condition worries about any commands that
-      ;;; have been actively enabled since the corresponding
-      ;;; call to DISABLE-ALL-MENU-ITEMS.
-      (loop for prev-com-name in prev-disabled-commands
-	  do (when (member prev-com-name current-disabled-commands)
-	       (push prev-com-name new-disabled-commands)))
+      
+      ;;; Called after a command has finished executing.
+      ;;; (See set-up above in clim-internals::disable-all-menu-items.)
+      ;;;
+      ;;; Re-Disable a command if and only if it appears
+      ;;; in the list of disabled-commands twice.
+      ;;; 
+      ;;; 1] If a command has been actively enabled during
+      ;;;    the execution of the present-command, all 
+      ;;;    appearances in the list of disabled-commands
+      ;;;    will have been removed.
+      ;;; 2] If a command has been actively disabled during
+      ;;;    the execution of the present-command, it
+      ;;;    will appear in the list two (or more) times.
+      ;;; 3] If a command was disabled before the 
+      ;;;    presently-exectuted command began, it should
+      ;;;    appear in the list two (or more) time.
+      ;;;
+      ;;; Note that this scheme loses if the presently-executing
+      ;;; command first actively enables a command and then
+      ;;; actively disables it (i.e. at the end the command
+      ;;; will appear in the list only once, and so not be
+      ;;; disabled here).
+      ;;;
+      ;;; Note also this assume that the commands are being
+      ;;; en/dis-abled throught the standard (setf command-enabled)
+      ;;; mechanism.  I.e. the user's code hasn't been
+      ;;; directly munging the disabled-command slot.
+      (loop for (com . rest) on clim-internals::disabled-commands
+	  do (when (member com rest)
+	       (pushnew com new-disabled-commands)))
       
       (setq clim-internals::disabled-commands
-	new-disabled-commands))))
-      
+	new-disabled-commands))))      
 
 ;;; Either of these would be nicer, but redisplay of the menu bar causes them to not
 ;;; always get repainted in their ungrayed state at the end.  pr Aug97
@@ -1505,12 +1523,14 @@ in a second Lisp process.  This frame cannot be reused."
 	;; ----
 	;; Actually, the code below repaints the entire frame. 
 	;; Shouldn't we free wrect? JPM.
+	;; ---
+	;; Don't signal errors for UpdateWindow, just warn. JPM 3/19/99.
 	(or (win:getClientRect handle wrect)
 	    (acl-clim::check-last-error "GetClientRect"))
 	(or (win:InvalidateRect handle wrect 1)
 	    (acl-clim::check-last-error "InvalidateRect"))
 	(or (win:UpdateWindow handle)
-	    (acl-clim::check-last-error "UpdateWindow"))))))
+	    (acl-clim::check-last-error "UpdateWindow" :action :warn))))))
 
 ;; Obsolete I think.
 (defun clean-frame (frame)

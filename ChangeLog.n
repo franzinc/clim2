@@ -11,6 +11,23 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.2.1.50
+
+1999-03-31  Jeff Morrill  <jmorrill@pointnclick.com> 
+
+* aclpc/acl-frames: Fix (setf command-enabled) again
+* aclpc/acl-medium: Fixes for medium-draw-polygon*, rotated text
+* aclpc/acl-mirror: Don't error for UpdateWindow, just warn.
+* aclpc/acl-port: Rotated font support
+* aclpc/acl-prel: Try to address occasional failures of CreateDIBitmap
+* aclpc/winwidgh: add memcopy
+* silica/graphics: Fix map-endpoint-sequence to fix presentation highlighting
+* clim/frames: Fix accepting-values panes for the case of recycled frames
+* clim/accept-values: Fix updating-output breakage in avv buttons
+* test/test-suite: Add test for flipping-ink
+* demo/bitmap-editor: Clean up a bit
+
+*******************************************************************************
 2.2.1.49
 
 1999-03-30    <layer@OMEGA>

@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-prel.lisp,v 1.4.8.9 1998/12/17 00:18:59 layer Exp $
+;; $Id: acl-prel.lisp,v 1.4.8.10 1999/03/31 18:49:29 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -363,21 +363,63 @@
     (values bmi win:DIB_RGB_COLORS)))
 
 (defmethod get-texture (device-context pixel-map bitmapinfo)
+  (declare (ignore device-context))
   ;; The value of this function becomes the dc-image-bitmap.
   ;; It gets applied to the device context using SELECT-OBJECT.
-  (unless (and device-context (not (zerop device-context)))
-    (error "Device context not valid"))
-  (let* (texture-handle)
-    ;; Create nondiscardable Device Dependent Bitmap.
-    ;; The Windows docs suggest we should be using device independent bitmaps.
-    (setq texture-handle
-      (win:CreateDIBitmap
-       device-context
-       bitmapinfo 
-       win:CBM_INIT			; initialize bitmap bits
-       pixel-map
-       bitmapinfo 
-       win:DIB_RGB_COLORS))
+  ;; Pixel-map is an array of integers.  The element type is
+  ;; specific to bits-per-pixel specified in the BMP file.
+  ;;
+  ;; Create nondiscardable Device Dependent Bitmap.
+  ;; The Windows docs suggest we should be using device independent bitmaps.
+  (let* ((dc (win:GetDC 0))
+	 (texture-handle
+	  (win:CreateDIBitmap
+	   dc
+	   bitmapinfo 
+	   win:CBM_INIT			; initialize bitmap bits
+	   pixel-map
+	   bitmapinfo 
+	   win:DIB_RGB_COLORS)))
+    (when (zerop texture-handle)
+      ;;Below is Charley Cox's May 6 message from bug5991 (common graphics)
+      ;;
+      ;;The workaround I have installed to open-texture (the only place that
+      ;;calls CreateDIBitmap) occurs when an initial call to CreateDIBitmap
+      ;;fails.  If a failure occurs, open-texture does an on-the-spot copy of
+      ;;the pixmap array into a malloc'd block and then tries calling
+      ;;CreateDIBitmap again.  Afterwards, it frees the malloc'd block.
+      ;;
+      ;;This workaround has fixed all the failure cases I was able to
+      ;;reproduce, and I have not seen any failures since its installation.  I
+      ;;have also since not seen any StretchDIBits failures.
+      ;;
+      ;;I'm not really happy not knowing what was causing CreateDIBitmap's
+      ;;failure.  The GetLastError code was not being set, and single stepping
+      ;;all the way through did not reveal anything.  It's possible we may
+      ;;revisit this in the future.
+      (let (width height bits-per-pixel)
+	(let ((d (array-dimensions pixel-map)))
+	  (setq width (first d) height (second d)))
+	(setq bits-per-pixel 8)		; kludge
+	(let* ((image-size
+		;; Formula from msdn document: SAMPLE: DIBs and Their Uses
+		(* (ash
+		    (logand (+ (* width bits-per-pixel) 31)
+			    #.(lognot 31))
+		    -3)
+		   height))
+	       (malloc-texture-array
+		(ff:allocate-fobject `(:array :char ,image-size) :c)))
+	  (unless (zerop malloc-texture-array)
+	    (memcpy malloc-texture-array pixel-map image-size))
+	  (setq texture-handle
+	    (win:CreateDIBitmap
+	     device-context
+	     bitmapinfo 
+	     win:CBM_INIT		; initialize bitmap bits
+	     pixel-map
+	     bitmapinfo 
+	     win:DIB_RGB_COLORS)))))
     (when (zerop texture-handle)
       (check-last-error "CreateDIBitmap"))
     texture-handle))
@@ -485,3 +527,4 @@
 		   (values (funcall parser string) string))))
 	(win:CloseClipboard))
     (check-last-error "OpenClipboard")))
+

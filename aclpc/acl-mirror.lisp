@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-mirror.lisp,v 1.4.22.10 1999/03/01 17:47:57 layer Exp $
+;; $Id: acl-mirror.lisp,v 1.4.22.11 1999/03/31 18:49:29 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -295,8 +295,10 @@
   (let ((window (sheet-mirror sheet)))
     (unless *in-layout-avp*
       (win:ShowWindow window win:SW_SHOW) ; returns NIL if it was already visible.
+      ;; Don't signal errors for UpdateWindow, just warn. JPM 3/19/99.
       (or (win:UpdateWindow window)	; send a WM_PAINT message
-	  (check-last-error "UpdateWindow")))))
+	  (check-last-error "UpdateWindow" :action :warn))
+      )))
 
 (defmethod disable-mirror ((port acl-port) sheet)
   (win:ShowWindow (sheet-mirror sheet) win:SW_HIDE))
