@@ -11,6 +11,11 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.2.2.21.14
+merge from cley7 branch
+next merge tag: cley7_to_acl6_merge1
+
+*******************************************************************************
 <no version change>
 
 2000-10-03  Kevin Layer  <layer@ultra>
@@ -62,6 +67,32 @@ next merge tag: cley6_to_layer6_merge1
 merge from cley6 branch (tag cley6_merge1)
 (should have been version 2.2.2.21.4)
 next merge tag: cley6_to_acl60beta_merge2
+
+*******************************************************************************
+2.2.2.21.5.8
+
+2000-10-03 tfb@cley.com (Tim Bradshaw)
+
+	* tk/silica/xt-silica.lisp: added a default event case which warns,
+	  rather than throwing an error.  This should allow CLIM to carry on
+	  if it gets completely unrecognised X events.
+
+*******************************************************************************
+2.2.2.21.5.7
+
+2000-09-12 tfb@cley.com (Tim Bradshaw)
+
+	* aclpc/acl-widget.lisp: added support for word-wrap.
+
+*******************************************************************************
+2.2.2.21.5.6
+
+2000-09-20 tfb@cley.com (Tim Bradshaw)
+
+	* aclpc/acl-port.lisp: provide SETF methods for text-style-mapping, 
+	  and the semi-documented function make-windows-font-named.
+	* aclpc/pkgdcl.lisp: export make-windows-font-named from the acl-clim
+	  package
 
 *******************************************************************************
 2.2.2.21.5.1
