@@ -15,15 +15,15 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xt-graphics.lisp,v 1.96 1998/08/06 23:17:27 layer Exp $
+;; $Id: xt-graphics.lisp,v 1.97 1998/09/29 21:02:37 duane Exp $
 
 (in-package :tk-silica)
 
 (defclass ink-gcontext (tk::gcontext)
-  ((last-clip-region-tick :initform nil clos::fixed-index 2)
-   (last-line-style :initform nil clos::fixed-index 3)
-   (shift-tile-origin :initform nil clos::fixed-index 4)
-   (ink-clip-region :initform nil clos::fixed-index 5)))
+  ((last-clip-region-tick :initform nil excl::fixed-index 2)
+   (last-line-style :initform nil excl::fixed-index 3)
+   (shift-tile-origin :initform nil excl::fixed-index 4)
+   (ink-clip-region :initform nil excl::fixed-index 5)))
 
 (defmacro ink-gcontext-last-clip-region-tick (gcontext)
   `(locally (declare (optimize (speed 3) (safety 0)))

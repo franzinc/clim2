@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $Id: test-suite.lisp,v 1.83 1998/08/06 23:17:11 layer Exp $
+;; $Id: test-suite.lisp,v 1.84 1998/09/29 21:02:34 duane Exp $
 
 (in-package :clim-user)
 
@@ -1412,14 +1412,14 @@ people, shall not perish from the earth.
   (let ((color (make-gray-color 0.7)))
     (format-graph-from-roots
      ;; dependee-mixin no longer exported -- smh 18may93
-     (mapcar #'find-class '(clos:metaobject clos::dependee-mixin))
+     (mapcar #'find-class '(clos:metaobject excl::dependee-mixin))
      #'(lambda (o s)
-         (let ((text (format nil "~A" (clos::class-name o))))
+         (let ((text (format nil "~A" (excl::class-name o))))
            (multiple-value-bind (width height) (text-size s text)
              (with-new-output-record (s)
                (draw-rectangle* s 0 0 width height :filled t :ink color)
                (draw-text* s text 0 0 :align-x :left :align-y :top)))))
-     #'clos::class-direct-subclasses
+     #'clos:class-direct-subclasses
      :stream stream
      :merge-duplicates t)))
 
@@ -1430,17 +1430,17 @@ people, shall not perish from the earth.
       (formatting-item-list (stream)
         (dolist (center-nodes '(nil t))
           (formatting-cell (stream)
-            (format-graph-from-roots 
+            (format-graph-from-roots
              ;; dependee-mixin no longer exported -- smh 18may93
              (mapcar #'find-class '(number))
              #'(lambda (o s)
-                 (let ((text (format nil "~A" (#-aclpc clos::class-name
+                 (let ((text (format nil "~A" (#-aclpc excl::class-name
                                                #+aclpc cl:class-name o))))
                    (multiple-value-bind (width height) (text-size s text)
                      (with-new-output-record (s)
                        (draw-rectangle* s 0 0 width height :filled t :ink color)
-                       (draw-text* s text 0 0 :align-x :left :align-y :top))))) 
-             #-aclpc #'clos::class-direct-subclasses
+                       (draw-text* s text 0 0 :align-x :left :align-y :top)))))
+             #-aclpc #'clos:class-direct-subclasses
              #+aclpc #'cl::class-direct-subclasses
              :stream stream
              :center-nodes center-nodes

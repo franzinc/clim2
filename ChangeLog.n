@@ -11,6 +11,25 @@ Tests for new features:	<`no new features', `no tests for new features', or
 	* <changes go here...>
 
 *******************************************************************************
+2.2.2.2
+
+Tue Sep 29 10:45:59 1998  Duane Rettig  <duane@beta>
+
+	* clim/ptypes.lisp:
+	* test/test-suite.lisp:
+	* tk/foreign-obj.lisp:
+	* tk/gcontext.lisp:
+	* tk/make-classes.lisp:
+	* tk/meta-tk.lisp:
+	* tk/widget.lisp:
+	* tk/xlib.lisp:
+	* tk-silica/xt-grapics.lisp:
+	* utils/autoconstructor.lisp:
+	* utils/clos.lisp:
+	* utils/defun.lisp: Move clos internals to excl package; rename
+	clos package to acl-mop (nicknames mop and clos)
+	
+*******************************************************************************
 2.2.2.1 -- join from acl50 branch
 next merge tag: acl50_merge2
 

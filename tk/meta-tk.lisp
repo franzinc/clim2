@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: meta-tk.lisp,v 1.15 1998/08/06 23:17:16 layer Exp $
+;; $Id: meta-tk.lisp,v 1.16 1998/09/29 21:02:35 duane Exp $
 
 (in-package :tk)
 
@@ -48,9 +48,9 @@
 	    (ff:foreign-pointer-address class))))
 
 (defmethod class-handle ((class xt-class))
-  (unless (clos::class-finalized-p class)
-    (clos::finalize-inheritance class))
-  (dolist (c (clos::class-precedence-list class)
+  (unless (clos:class-finalized-p class)
+    (clos:finalize-inheritance class))
+  (dolist (c (clos:class-precedence-list class)
 	    (error "Cannot get handle for class" class))
     (when (and (typep c 'xt-class)
 	       (not (zerop (ff:foreign-pointer-address c))))

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: gcontext.lisp,v 1.33 1998/08/06 23:17:15 layer Exp $
+;; $Id: gcontext.lisp,v 1.34 1998/09/29 21:02:35 duane Exp $
 
 (in-package :tk)
 
@@ -121,7 +121,7 @@
        ',name)))
 
 (defclass gcontext (display-object)
-  ((cached-clip-mask :initform nil clos::fixed-index 1)))
+  ((cached-clip-mask :initform nil excl::fixed-index 1)))
 
 (defmethod initialize-instance :after ((gcontext gcontext)
 				       &key

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: defun.lisp,v 1.14 1998/08/06 23:17:32 layer Exp $
+;; $Id: defun.lisp,v 1.15 1998/09/29 21:02:38 duane Exp $
 
 (in-package :clim-utils)
 
@@ -316,7 +316,7 @@
 
 
 (defparameter *defgeneric* #+PCL 'pcl::defgeneric
-			   #+Allegro 'clos::defgeneric
+			   #+Allegro 'clos:defgeneric
 			   #+aclpc 'cl:defgeneric
 			   #-(or Allegro aclpc PCL) 'clos:defgeneric)
 
@@ -331,7 +331,7 @@
 
 ;;; DEFMETHOD needs to handle the DYNAMIC-EXTENT declaration, too.
 (defparameter *defmethod* #+PCL 'pcl::defmethod
-			  #+Allegro 'clos::defmethod
+			  #+Allegro 'clos:defmethod
 			  #+aclpc 'cl:defmethod
 			  #-(or Allegro PCL aclpc) 'clos:defmethod)
 

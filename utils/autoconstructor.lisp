@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: autoconstructor.lisp,v 1.8 1998/08/06 23:17:30 layer Exp $
+;; $Id: autoconstructor.lisp,v 1.9 1998/09/29 21:02:38 duane Exp $
 
 ;;;
 ;;; Copyright (c) 1990 by Xerox Corporation.  All rights reserved.
@@ -52,7 +52,7 @@
 (defvar %constructors-p t)
 (defun autoconstructor (class)
   (or
-    (and %constructors-p (clos::class-autoconstructor 
+    (and %constructors-p (excl::class-autoconstructor
 			   (if (symbolp class) (find-class class) class)))
     #'(lambda (&rest args)
 	(declare (dynamic-extent args))
@@ -75,7 +75,7 @@
 #+Allegro-v4.0-constructors
 (defmacro defautoconstructor (name class &optional extra-args)
   (when  extra-args "Extra args to autocontructor ~S,~S,~S" name class extra-args)
-  `(clos::defautoconstructor ,name ,class))
+  `(excl::defautoconstructor ,name ,class))
 
 #-(or PCL Allegro-v4.0-constructors)
 (defmacro defautoconstructor (name class &optional extra-args)
@@ -87,7 +87,7 @@
 ;;;
 
 #+PCL
-(import '(pcl::class-slots			
+(import '(pcl::class-slots
 	  pcl::class-default-initargs
 	  pcl::method-lambda-list
 	  pcl::slotd-name
@@ -117,7 +117,7 @@
 	 (declare (dynamic-extent args)
 		  (ignore args))
 	 (error "Constructor ~S not loaded." ',name))
-       
+
        ;; Register auto constructor name
        (setf (autoconstructor ',class-name) ',name)
 
@@ -127,7 +127,7 @@
 	     ',class-name
 	     ',(class-name (class-of class))
 	     ',name
-	   
+
 	     ;; No initargs in the constructor
 	     ;; Established later
 	     nil;;',supplied-initarg-names
@@ -140,7 +140,7 @@
 	     ;; functions which return the actual constructor code.  The
 	     ;; constructor code is usually a closures over the arguments
 	     ;; to the generator.
-	     ,(make-automatic-constructor-code-generators 
+	     ,(make-automatic-constructor-code-generators
 		class name extra-args))))))
 
 (defmethod make-automatic-constructor-code-generators
@@ -169,14 +169,14 @@
     `(function
       (lambda (class .wrapper. defaults init shared)
        (let ((.extra-args. ',extra-args))
-	 (funcall 
+	 (funcall
 	  (if ;;; the automatic arglist and hence supplied initargs have
 	      ;;  not changed since the call to this generator generator,
 	      (or (null *clim-development-flag*)
-		  (equal ',arglist 
+		  (equal ',arglist
 			 (automatic-generator-1 class .extra-args. t)))
 	      ;;  THEN just continue to use the general generator
-	      ,(funcall (cadr 
+	      ,(funcall (cadr
 			 (assoc 'pcl::general
 				pcl::*constructor-code-types*))
 			class name arglist
@@ -199,7 +199,7 @@
 (defun automatic-generator-1 (class extra-args &optional just-arg-list)
   (let* ((arg-specs (nconc (copy-list extra-args)
 			   (find-constructor-args class)))
-	 (supplied-initargs 
+	 (supplied-initargs
 	  (unless just-arg-list
 	    (with-collection
 		(dolist (spec arg-specs)
@@ -228,7 +228,7 @@
 
 
 (defvar *debug-constructor-hax* nil)
-  
+
 (defun arg-spec-key (val) (if (listp val) (car val) val))
 
 (defun grope-for-pcl-data (class)
@@ -249,7 +249,7 @@
 	 (dolist (m (compute-applicable-methods
 		     #'initialize-instance
 		     (list (class-prototype class))))
-		  
+
 	   (let ((keys (get-keys (method-lambda-list m))))
 	     (when keys
 	       (setq all-keys (nconc all-keys keys)))))
@@ -258,7 +258,7 @@
        (delete-duplicates
 	(with-collection
 	    (dolist (default defaults)
-	      (collect 
+	      (collect
 	       (list (intern (string (car default)) package)
 		     (caddr default)))))
 	:from-end t
@@ -272,7 +272,7 @@
 		     (form (slotd-initform slotd))
 		     (initargs (slotd-initargs slotd)))
 		(when initargs
-		  (collect 
+		  (collect
 		   (list name
 			 form
 			 (remove-duplicates initargs :from-end t)))))))
@@ -284,16 +284,16 @@
   (unless (classp class)
     (setq class (find-class class)))
   (setq package (symbol-package (class-name class)))
-  
+
   (multiple-value-bind (arg-specs defaults slots)
       (grope-for-pcl-data class)
-    
+
     (when *debug-constructor-hax*
       (format t "~%Having Groped, discovered ... ~%")
       (pprint (list arg-specs defaults slots))
       (terpri))
-    
-    (setq 
+
+    (setq
      arg-specs
      (nconc arg-specs
 	    (with-collection
@@ -316,28 +316,28 @@
 		      (when (eq iform pcl::*slotd-unsupplied*)
 			(setq iform 'pcl::*slot-unbound*))
 		      (if (= (length iargs) 1)
-			  (collect 
+			  (collect
 			   (list (intern (string (car iargs)) package) iform))
 
 			  ;;
 			  (progn
 			    (when *debug-constructor-hax*
-			      (warn "Multiple initargs for ~s -> ~s" 
+			      (warn "Multiple initargs for ~s -> ~s"
 				    class
 				    (car slot)))
 			    (dolist (iarg iargs)
-			      (collect 
+			      (collect
 			       (list (intern (string iarg) package)
 				     iform)))))))))
       (unless (member (arg-spec-key iarg-spec) arg-specs
 		      :key #'arg-spec-key)
 	(setq arg-specs (nconc arg-specs (list iarg-spec)))))
-    
+
     (when *debug-constructor-hax*
       (format t "~%Consolidated into: ~%")
       (pprint arg-specs)
       (terpri))
-    
+
     arg-specs))
 
 

@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xlib.lisp,v 1.61 1998/08/06 23:17:19 layer Exp $
+;; $Id: xlib.lisp,v 1.62 1998/09/29 21:02:35 duane Exp $
 
 (in-package :tk)
 
@@ -37,7 +37,7 @@
 
 (defclass display-object (ff:foreign-pointer)
   ((display :initarg :display
-	    clos::fixed-index 0)))
+	    excl::fixed-index 0)))
 
 (defclass screen (display-object) ())
 

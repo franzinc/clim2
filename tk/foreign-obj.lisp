@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: foreign-obj.lisp,v 1.18 1998/08/06 23:17:15 layer Exp $
+;; $Id: foreign-obj.lisp,v 1.19 1998/09/29 21:02:35 duane Exp $
 
 (in-package :tk)
 
@@ -25,7 +25,7 @@
 (defclass display (ff:foreign-pointer)
   ((context :initarg :context :reader display-context)
    (xid->object-mapping :initform (make-hash-table :test #'equal)
-			clos::fixed-index 0)))
+			excl::fixed-index 0)))
 
 (defmacro display-xid->object-mapping (object)
   `(locally (declare (optimize (speed 3) (safety 0)))

@@ -16,15 +16,18 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: clos.lisp,v 1.14 1998/08/06 23:17:32 layer Exp $
+;; $Id: clos.lisp,v 1.15 1998/09/29 21:02:38 duane Exp $
 
 ;;;
-;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
-;;; 
+;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved.
+;;;
 ;;; SILICA CLOS Extensions - adaptations of CLOS to meet SILICA's needs.
-;;; 
+;;;
 
 (in-package :clim-utils)
+
+#+Allegro-v4.0-constructors
+(require :constructor "sys:;clos;constructor")
 
 ;;; ----------------
 ;;; Constructors
@@ -42,7 +45,7 @@
 
 #+Allegro-v4.0-constructors
 (defmacro define-constructor (name class lambda-list &body initargs)
-  `(clos::defconstructor ,name ,class ,lambda-list ,@initargs))
+  `(excl::defconstructor ,name ,class ,lambda-list ,@initargs))
 
 #-(or PCL Allegro-v4.0-constructors)
 ;; NB: any &REST argument is declared to have dynamic extent!
@@ -121,11 +124,11 @@
 ;
 ;(eval-when (compile load eval) (proclaim '(inline %make-standard-class)))
 ;(defun %make-standard-class (name supers)
-;  
+;
 ;  #+Lucid
 ;  ;; Jonl thinks this is okay, but I personally find it pretty gross. -- RR
 ;  (eval `(defclass ,name ,supers ()))
-;  
+;
 ;  #-Lucid
 ;  ;; by which we mean PCL and Genera CLOS, at this point
 ;  (let ((class (make-instance 'standard-class :direct-superclasses supers)))
@@ -142,13 +145,13 @@
 ;      (when (not #-PCL (typep (car tail) 'standard-class)
 ;		 #+PCL (classp (car tail)))
 ;	(setf (car tail) (find-class (car tail))))))
-;      
+;
 ;  (or (gethash supers *dynamic-classes*)
 ;      ;;
 ;      ;;  If there is no entry for a dynamic class with these supers
 ;      ;;  then we have to create one.  This involves creating the class,
 ;      ;;  setting its supers and adding the entry to *dynamic-classes*.
-;      ;;  
+;      ;;
 ;      (let ((supers (copy-list supers)))
 ;	(setf (gethash supers *dynamic-classes*)
 ;	      (%make-standard-class
@@ -220,7 +223,7 @@
 
 (defun collect-root-classes (&optional package)
   (w::with-collection
-    (let ((classes (mapcar #'find-class (classes-in-package 
+    (let ((classes (mapcar #'find-class (classes-in-package
 					  (or package :silica) t))))
       (dolist (class classes)
 	(if (not (intersection (pcl::class-local-supers class)
@@ -254,7 +257,7 @@
 	    (setf old-p t))))
       (return-from make-setf*-function-name (values writer old-p)))
     (values (setf (get accessor-name 'setf-function-name)
-		  (intern (format nil "~A ~A:~A" 
+		  (intern (format nil "~A ~A:~A"
 			    'setf*
 			    (package-name (symbol-package accessor-name))
 			    accessor-name)

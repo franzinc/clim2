@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: make-classes.lisp,v 1.47 1998/08/06 23:17:16 layer Exp $
+;; $Id: make-classes.lisp,v 1.48 1998/09/29 21:02:35 duane Exp $
 
 (in-package :tk)
 
@@ -198,7 +198,7 @@
 	#+ignore
 	(format excl:*initial-terminal-io* ";; Initializing class ~s~%" class-ep)
 	(let ((class
-	       (clos::ensure-class
+	       (clos:ensure-class
 		(lispify-class-name (widget-class-name handle))
 		:direct-superclasses (list (if (zerop (xt-class-superclass handle))
 					       'xt-root-class
@@ -341,7 +341,7 @@
 ;; This is a terrible hack used to compensate for bugs/inconsistencies
 ;; in the XM and OLIT toolkits.
 (defun add-resource-to-class (class resource)
-  (clos::map-over-subclasses
+  (excl::map-over-subclasses
    #'(lambda (c)
        (pushnew resource (slot-value c 'specially-hacked-resources))
        (with-slots (cached-resources get-values-cache set-values-cache
@@ -355,8 +355,8 @@
 #+(version>= 5 0)
 (defun fixup-class-entry-points ()
   (let ((root (find-class 'xt-root-class)))
-    (clos::map-over-subclasses #'tk::unregister-address root)
-    (clos::map-over-subclasses
+    (excl::map-over-subclasses #'tk::unregister-address root)
+    (excl::map-over-subclasses
      #'(lambda (class)
 	 (let* ((old-addr (and (typep class 'xt-class)
 			       (ff::foreign-pointer-address class)))
@@ -375,8 +375,8 @@
 #+(and (not (version>= 5 0)) dlfcn)
 (defun fixup-class-entry-points ()
   (let ((root (find-class 'xt-root-class)))
-    (clos::map-over-subclasses #'tk::unregister-address root)
-    (clos::map-over-subclasses
+    (excl::map-over-subclasses #'tk::unregister-address root)
+    (excl::map-over-subclasses
      #'(lambda (class)
 	 (let* ((old-addr (and (typep class 'xt-class)
 			       (ff::foreign-pointer-address class)))

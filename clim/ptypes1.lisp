@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: ptypes1.lisp,v 1.30 1998/08/06 23:16:03 layer Exp $
+;; $Id: ptypes1.lisp,v 1.31 1998/09/29 21:02:32 duane Exp $
 
 (in-package :clim-internals)
 
@@ -415,7 +415,7 @@
   #-aclpc (second (class-name class))
   #+aclpc (gethash class *presentation-class-name-table*)
 )
-  
+
 (defmethod class-presentation-type-name ((class class) &optional environment)
   (class-proper-name class environment))
 
@@ -424,13 +424,13 @@
 
 (defun-inline find-class-prototype (class)
   (cond #+Allegro
-        ((eq class clos::*the-class-t*)
+        ((eq class excl::*the-class-t*)
          *class-prototype-for-t*)
         (t
          ;; Finalization is necessary according to AMOP. -smh 18may93
-         (unless (#-aclpc clos:class-finalized-p 
+         (unless (#-aclpc clos:class-finalized-p
                   #+aclpc acl:class-finalized-p class)
-           (#-aclpc clos:finalize-inheritance 
+           (#-aclpc clos:finalize-inheritance
             #+aclpc acl:finalize-inheritance class))
          (class-prototype class))))
 
@@ -440,9 +440,9 @@
   ;; can come up with structure classes
   #+Symbolics (find-class-prototype class)
   ;; Finalization is necessary according to AMOP. -smh 18may93
-  (unless (#-aclpc clos:class-finalized-p 
+  (unless (#-aclpc clos:class-finalized-p
            #+aclpc acl:class-finalized-p class)
-    (#-aclpc clos:finalize-inheritance 
+    (#-aclpc clos:finalize-inheritance
      #+aclpc acl:finalize-inheritance class))
   (class-precedence-list class))
 
@@ -798,9 +798,9 @@
         (clos:structure-class
           (setq direct-supertypes 'clos:structure-object))
         #+Allegro
-        (clos::structure-class
+        (structure-class
           (setq direct-supertypes 'common-lisp:structure-object))
-        #+CCL-2 
+        #+CCL-2
         (structure-class
           (setq direct-supertypes 'structure-object))
         #+aclpc
@@ -809,7 +809,7 @@
         (t
           (setq direct-supertypes 'standard-object)))))
   (with-warnings-for-definition name define-presentation-type
-    (let* ((supertypes-list (if (listp direct-supertypes) 
+    (let* ((supertypes-list (if (listp direct-supertypes)
                                 direct-supertypes
                                 (list direct-supertypes)))
            (direct-superclasses (mapcar #'(lambda (name)
@@ -832,7 +832,7 @@
              (let ((ptype-package (find-package :registered-presentation-classes))
                    (*package* (find-package :lisp)))
                (intern (lisp:format nil "~A ~S" 'ptype name) ptype-package))))
-  
+
       ;; If both a regular class and a presentation type class exist,
       ;; get rid of the presentation type class, with a warning
       (when (and (not (compile-file-environment-p environment))
@@ -867,7 +867,7 @@
                           (clos:structure-class 'defstruct)
                           #+CCL-2 (structure-class 'defstruct)
                           #+aclpc (cl:structure-class 'defstruct)
-                          #+Allegro (clos::structure-class 'defstruct))
+                          #+Allegro (structure-class 'defstruct))
                         name)))
              (let ((class-name `(presentation-type ,name)))
                (setq class
@@ -921,7 +921,7 @@
                     ;;--- Should the following be done at compile time?  It's unclear.
                     (find-class registered-class-name) class)
       #+aclpc (setf (gethash class *presentation-class-name-table*)
-                    name) 
+                    name)
 
       ;; Always put the class into the table, even if FIND-CLASS could find it, for better
       ;; virtual memory locality in systems where FIND-CLASS uses the property list.
@@ -1386,7 +1386,7 @@
 #-CLIM-extends-CLOS
 (defun generate-presentation-type-inheritance-methods
     (name class parameters-var options-var &optional environment)
-  (let ((superclasses 
+  (let ((superclasses
          #-(or Allegro aclpc) (cdr (class-precedence-list class))
          #+aclpc
           (progn
@@ -1878,7 +1878,7 @@
                             ,(cond ((eq kind ':default) `t)
                                    ((eq (class-name class) presentation-type-name)
                                     presentation-type-name)
-                                   (t 
+                                   (t
                                     #+(or CCL-2 aclpc) (gethash class *presentation-class-type-table*)
                                     #-(or CCL-2 aclpc) class))))
                 (type-class `(,type-class-var

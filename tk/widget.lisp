@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: widget.lisp,v 1.45 1998/08/06 23:17:19 layer Exp $
+;; $Id: widget.lisp,v 1.46 1998/09/29 21:02:35 duane Exp $
 
 (in-package :tk)
 
@@ -132,7 +132,7 @@
 				 n)))))
 
 (defun find-class-maybe (x)
-  (if (typep x 'clos::class) x
+  (if (typep x 'class) x
     (find-class x)))
 
 (defmethod widget-window (widget &optional (errorp t) peek)
@@ -286,7 +286,7 @@
 (defparameter *fallback-resources*
     `("clim*dragInitiatorProtocolStyle: DRAG_NONE"
       "clim*dragreceiverprotocolstyle:	DRAG_NONE"
-      #+ignore 
+      #+ignore
       ,@(excl:ics-target-case
 	 (:+ics '("clim*xnlLanguage: japanese"))))
   "A list of resource specification strings")
