@@ -1,4 +1,5 @@
-# $Header: /repo/cvs.copy/clim2/Makefile,v 1.89 2000/03/04 05:13:48 duane Exp $
+# $Header: /repo/cvs.copy/clim2/Makefile,v 1.89.18.1 2000/06/07 17:05:39 layer Exp $
+##### added on test1 branch
 
 # If ../makefile.top doesn't exist, then you must specify HOST=xxx on the
 # `make' command line.
