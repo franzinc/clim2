@@ -13,6 +13,14 @@ If there are user-visible changes in this commit, then list the
 *******************************************************************************
 post release patches:
 
+2001-09-18  Kevin Layer  <layer@crikey>
+
+    from pnc:
+        * aclpc/acl-class.lisp,
+        * tk-silica/xt-silica.lisp:
+          note-frame-iconified and note-frame-deiconified called
+          when frame is de/iconified by window-manager."
+
 2001-08-27  Kevin Layer  <layer@crikey>
 
     from pnc (obviously!):

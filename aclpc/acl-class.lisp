@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-class.lisp,v 1.14.24.2 2000/09/05 19:06:37 layer Exp $
+;; $Id: acl-class.lisp,v 1.14.24.2.12.1 2001/09/18 16:36:45 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -389,15 +389,35 @@
 ;; This message is sent when the user selects something in
 ;; the window menu like minimize or restore.
 (defun onsyscommand (window msg wparam lparam)
+  ;; spr24753
+  ;; Call note-frame-iconified and note-frame-deiconified
+  ;; rather than simply setting the frame-state to :shrunk
+  ;; and :enabled respectively.  (This happens on the
+  ;; respective :after methods in silica/framem.lisp.)
+  ;; Note that according to the documentation, calling
+  ;; these methods also directly iconify/deiconify the
+  ;; frame (by calling the functions win:CloseWindow
+  ;; and win:OpenIcon --see aclpc/acl-frames.lisp)
+  ;; We are depending on the fact that the windows-system
+  ;; won't try to re-iconify an already iconified window, etc.
   (case wparam
     (#.win:SC_MINIMIZE			; iconify
      (let* ((sheet (mirror->sheet *acl-port* window))
 	    (frame (when sheet (pane-frame sheet))))
-       (when frame (setf (frame-state frame) :shrunk))))
+       (when frame 
+	 (let ((framem (clim::frame-manager frame)))
+	   (note-frame-iconified framem frame)) 
+	 #+old (when frame (setf (frame-state frame) :shrunk))
+	 )))
     (#.win:SC_RESTORE			; deiconify
      (let* ((sheet (mirror->sheet *acl-port* window))
 	    (frame (when sheet (pane-frame sheet))))
-       (when frame (setf (frame-state frame) :enabled)))))
+       (when frame
+	 (let ((framem (clim::frame-manager frame)))
+	   (note-frame-deiconified framem frame))
+	 #+old (when frame (setf (frame-state frame) :enabled))
+	 )))
+    )
   (message-default window msg wparam lparam))
 
 ;; Process WM_VSCROLL
