@@ -21,6 +21,8 @@
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
 ;;;
+;; $fiHeader$
+
 
 (in-package :silica)
 

@@ -1,3 +1,5 @@
+# $fiHeader$
+
 SOMEDIRS=utils silica clim ws xm-silica
 DIRS=$(SOMEDIRS) xlib tk
 DEVICE=/dev/null

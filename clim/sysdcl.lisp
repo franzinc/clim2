@@ -1,4 +1,4 @@
-(defsys::defsystem :clim
+;; -*- mode: common-lisp; package: user -*-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
@@ -18,6 +18,9 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
+;; $fiHeader$
+
+(defsys::defsystem :clim
     (:default-pathname (frob-pathname "clim"))
   ("pkg")
   ("gestures")
@@ -36,6 +39,8 @@
   
   ("input-protocol")
   ("output-protocol")
+
+
 
   ;; 
 
@@ -66,7 +71,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   
   
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ("window-stream")
   
 
@@ -86,7 +91,7 @@
   
   ("db-stream")
   
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   
   ("incremental-redisplay"
    :load-before-compile ("clim-defs" "output-recording-protocol"))

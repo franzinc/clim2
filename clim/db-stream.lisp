@@ -21,6 +21,8 @@
 ;;;
 ;;; Copyright (c) 1990 by Xerox Corporations.  All rights reserved.
 ;;;
+;; $fiHeader$
+
 
 (in-package :clim-internals)
 
