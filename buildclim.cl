@@ -1,5 +1,5 @@
 ;; Load this file to make a clim image.
-;; $Id: buildclim.cl,v 1.5.34.2 2001/04/24 19:53:20 layer Exp $
+;; $Id: buildclim.cl,v 1.5.34.3 2002/01/29 17:45:24 layer Exp $
 
 (excl:build-lisp-image
  #+ics "sys:clim.dxl" #-ics "sys:clim8.dxl"
@@ -18,9 +18,7 @@
    )
  :autoload-warning nil
  :runtime nil
- :debug-on-error t
- :internal-debug (namestring
-		  (translate-logical-pathname "sys:buildclim.out"))
+ :build-input (namestring (translate-logical-pathname "sys:buildclim.out"))
  :discard-local-name-info t
  :discard-source-file-info t
  :discard-xref-info t)

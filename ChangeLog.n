@@ -11,6 +11,13 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+<no version change>
+
+2002-01-28  Kevin Layer  <layer@crikey>
+
+	* buildclim.cl: b-l-i keyword arg changes
+
+*******************************************************************************
 2.3.14
 
 2001-12-11  Kevin Layer  <layer@crikey>
