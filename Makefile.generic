@@ -1,4 +1,4 @@
-# $fiHeader: Makefile.generic,v 1.34 1996/03/01 05:41:30 colin Exp $
+# $fiHeader: Makefile.generic,v 1.35 1996/03/13 09:55:10 colin Exp $
 #
 #  Makefile.generic for CLIM 2.0
 #
@@ -239,7 +239,7 @@ echo_src_files:
 	@echo $(PRODUCT_SRC_FILES)
 
 
-################## Lower level Makefile stuff
+################## Lower level make-dist stuff
 
 xm-dcl	: stub-x.o stub-xt.o stub-motif.o \
 		 xlibsupport.o xtsupport.o xmsupport.o
@@ -250,13 +250,12 @@ xm-dcl	: stub-x.o stub-xt.o stub-motif.o \
 		user_objects='$(PWD)/stub-x.o $(PWD)/stub-xt.o $(PWD)/stub-motif.o \
 		$(PWD)/xlibsupport.o $(PWD)/xmsupport.o $(PWD)/xtsupport.o \
 		$(CL_SRC)/code/excldep.o $(CL_SRC)/code/socket.o \
-		$(TKLIB) $(XTLIB) $(XLIB)' dcl ;\
-	/bin/mv dcl xm-dcl ; \
+		$(TKLIB) $(XTLIB) $(XLIB) $(MOTIFXTRAS)' dcl ;\
+	/bin/mv dcl xm-dcl ; /bin/mv ucl ucl.clim ;\
 	/bin/mv dcl.climsave dcl ; /bin/mv ucl.climsave ucl; $(RESTEXP)
 
-
 xm-dcli	: stub-x.o stub-xt.o stub-motif.o stub-wnn.o \
-		 xlibsupport.o xtsupport.o xmsupport.o
+		 xlibsupport.o xtsupport.o xmsupport.o libwnn.a
 	cd $(CL_SRC) ; \
 	/bin/mv dcli dcli.climsave ; /bin/mv ucli ucli.climsave ; $(SAVEEXPI) ; \
 	make initial_oldspace=$(OLDSPACE) oldspace=$(OLDSPACE) \
@@ -265,30 +264,9 @@ xm-dcli	: stub-x.o stub-xt.o stub-motif.o stub-wnn.o \
 		$(PWD)/stub-wnn.o \
 		$(PWD)/xlibsupport.o $(PWD)/xmsupport.o $(PWD)/xtsupport.o \
 		$(CL_SRC)/code/excldep.o $(CL_SRC)/code/socket.o \
-		$(TKLIB) $(XTLIB) $(XLIB) $(PWD)/libwnn.a' dcli ;\
-	/bin/mv dcli xm-dcli ; \
+		$(TKLIB) $(XTLIB) $(XLIB) $(PWD)/libwnn.a $(MOTIFXTRAS)' dcli ;\
+	/bin/mv dcli xm-dcli ; /bin/mv ucli ucli.clim ;\
 	/bin/mv dcli.climsave dcli ; /bin/mv ucli.climsave ucli; $(RESTEXPI)
-
-ucl.clim: stub-x.o stub-xt.o stub-motif.o \
-		 xlibsupport.o xtsupport.o xmsupport.o
-	cd $(CL_SRC) ; /bin/mv ucl ucl.climsave ; $(SAVEEXP) ; \
-	make stubs=$(stubs) \
-		user_objects=' \
-		$(PWD)/stub-x.o $(PWD)/stub-xt.o $(PWD)/stub-motif.o \
-		$(PWD)/xlibsupport.o $(PWD)/xmsupport.o $(PWD)/xtsupport.o \
-		$(TKLIB) $(XTLIB) $(XLIB) $(MOTIFXTRAS)' ucl ;\
-	/bin/mv ucl ucl.clim ; $(RESTEXP) ; /bin/mv ucl.climsave ucl
-
-ucli.clim: stub-x.o stub-xt.o stub-motif.o stub-wnn.o \
-		 xlibsupport.o xtsupport.o xmsupport.o
-	cd $(CL_SRC) ; /bin/mv ucli ucli.climsave ; $(SAVEEXPI) ; \
-	make stubs=$(stubs) \
-		user_objects=' \
-		$(PWD)/stub-x.o $(PWD)/stub-xt.o $(PWD)/stub-motif.o \
-		$(PWD)/stub-wnn.o \
-		$(PWD)/xlibsupport.o $(PWD)/xmsupport.o $(PWD)/xtsupport.o \
-		$(TKLIB) $(XTLIB) $(XLIB) $(PWD)/libwnn.a $(MOTIFXTRAS)' ucli ;\
-	/bin/mv ucli ucli.clim ; $(RESTEXPI) ; /bin/mv ucli.climsave ucli
 
 ################## End of make-dist stuff
 

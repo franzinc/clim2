@@ -1,4 +1,4 @@
-# $fiHeader: Makefile.cobjs,v 1.12 1995/11/08 06:11:10 georgej Exp $
+# $fiHeader: Makefile.cobjs,v 1.13 1996/03/13 09:55:07 colin Exp $
 #
 #  Makefile.cobj for CLIM 2.0
 #
@@ -67,10 +67,64 @@ climol.so: xlibsupport.o xtsupport.o olsupport.o
 # mainxm.o contains foreign code from the libraries X11,Xt and Xm
 # required by Motif version of CLIM statically linked
 
-mainxm.o: $(ACL_MAIN_OBJ) $(PRODUCT-GENERIC-OBJS) $(STATIC-XM-OBJS) 
+makemainxm: $(ACL_MAIN_OBJ) $(PRODUCT-GENERIC-OBJS) $(STATIC-XM-OBJS) 
 	(eval '$(SET_LIBRARY_PATH)' ; \
-	ld -r $(LDFLAGS) -o mainxm.o \
+	ld -r $(LDFLAGS) -o $(MAIN_OBJ) \
 		$(ACL_MAIN_OBJ) \
 		stub-xt.o stub-x.o stub-motif.o \
 		$(TKLIB) $(XTLIB) $(XLIB) $(MOTIFXTRAS))
 
+# Here's the deal on the CLIM cobjs. (cim 3/13/96)
+# 
+# 1. Objects that contain CLIM's C support code. When building a CLIM image
+# these should always be linked in to the initial executable if possible.
+# NB they are still required even if mainxm.o is being used.
+# 
+# 	xtsupport.o
+# 	xlibsupport.o
+# 	xmsupport.o
+# 
+# If they're not linked in then when climxm is loaded they will be
+# loaded individually or in the case of dlfcn 
+# 
+# 	climxm.so
+# 
+# (a shared library made from all of the above) will be loaded.
+# 
+# 2. Stub files that define what we need from the X libraries - 
+# 
+# 	stub-xt.o
+# 	stub-x.o
+# 	stub-motif.o
+# 
+# These also should always be linked in to the initial executable if
+# possible. They are not required if mainxm.o is being used but using
+# them will not do any harm as long as
+# 
+# 3. All of the required functionality from the X libraries put into a
+# single .o (with main for licensing restrictions on SunOS)
+# 
+# 	mainxm.o
+#	ics_mainxm.o
+# 
+# ics_mainxm.o is identical to mainxm.o except that it's built from a
+# ci/main.o rather than a c/main.o 
+#
+# in the distn
+#	 mainxm.o -> dist-clim2/build/c/mainxm.o 
+#    ics_mainxm.o -> dist-clim2-ics/build/ci/mainxm.o
+#              
+# This needs to be used where the libraries are not available on the
+# machine on which CLIM is being installed. If this is not available
+# then the 3 stub files must be used.
+# 
+# 4. Stub files + library for wnn
+# 
+# 	stub-wnn.o
+# 	libwnn.a
+# 
+# Use both of these in creating the initial executable - the stub-wnn.o
+# must come before the libwnn.a in the list of cobjs. 
+# 
+# On dlfcn we _have_ to link into the initial executable because we
+# don't currently have a shared version of libwnn

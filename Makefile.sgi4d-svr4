@@ -1,4 +1,4 @@
-# $fiHeader: Makefile.sgi4d-svr4,v 1.7 1995/10/20 17:36:12 colin Exp $
+# $fiHeader: Makefile.sgi4d-svr4,v 1.8 1996/03/13 09:55:15 colin Exp $
 #
 #  Makefile.sigi4d-svr4 for CLIM 2.0
 #
@@ -18,5 +18,7 @@ PRODUCT-OBJS= $(PRODUCT-GENERIC-OBJS) $(STATIC-XM-OBJS) $(SHARED-XM-OBJS)
 PICFLAGS = -KPIC
 SHAREFLAGS = -shared -all
 MAKE_SHARED = ld
+STD_DEFINES = -DSVR4
+AR = /usr/bin/ar cq
 
 include Makefile.generic

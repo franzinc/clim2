@@ -1,4 +1,4 @@
-# $fiHeader: Makefile.rs6000,v 1.4 1995/10/20 17:36:10 colin Exp $
+# $fiHeader: Makefile.rs6000,v 1.5 1996/03/13 09:55:14 colin Exp $
 #
 #  Makefile.rs6000 for CLIM 2.0
 #
@@ -17,6 +17,8 @@ XINCLUDES= -I/usr/include
 
 PRODUCT-OBJS= $(PRODUCT-GENERIC-OBJS) $(STATIC-XM-OBJS) $(SHARED-XM-OBJS)
 MAKE_SHARED = make_shared
+STD_DEFINES = -DSYSV -DAIXV3
+AR = ar clq
 
 CL= ../src/xm-dcl
 

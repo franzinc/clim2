@@ -17,24 +17,19 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $fiHeader: load-xm.lisp,v 1.36 1995/11/08 06:14:05 georgej Exp $
+;; $fiHeader: load-xm.lisp,v 1.37 1996/03/13 09:56:03 colin Exp $
 
 (in-package :user)
 
 (require :climg)
 
 #+dlfcn
-(progn
-
-(defvar sys::*toolkit-static*
-    (or (ff:get-entry-point (ff:convert-to-lang "XmCreateMyDrawingArea")
+(unless (ff:get-entry-point (ff:convert-to-lang "XmCreateMyDrawingArea")
 			    :note-shared-library-references nil)
-	(prog1 nil
-	  (let ((ff::*dlopen-mode* (excl:ics-target-case
-				    (:+ics #x102)
-				    (:-ics ff::*dlopen-mode*))))
-	    (load "clim2:;climxm.so")))))
-)
+  (let ((ff::*dlopen-mode* (excl:ics-target-case
+			    (:+ics #x102)
+			    (:-ics ff::*dlopen-mode*))))
+    (load "clim2:;climxm.so")))
 
 #-dlfcn
 (progn

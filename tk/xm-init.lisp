@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $fiHeader: xm-init.lisp,v 1.14 1995/06/21 21:24:22 georgej Exp $
+;; $fiHeader: xm-init.lisp,v 1.16 1995/11/08 06:15:03 georgej Exp $
 
 (in-package :tk)
 
@@ -33,14 +33,23 @@
   (setq *xm-done* t))
 
 
+;; We only want to reinitialize if the toolkit was linked in shared.
+;; Unfortunately there doesn't appear to be anyway of reliably
+;; finding this out. Experience would indicate that the default is
+;; to always link in the shared libraries except on rs6k (cim 3/14/96)
+
+#+dlfcn
+(defparameter *toolkit-static*
+    #+rs6000 t
+    #-rs6000 nil)
 
 #+dlfcn
 (defun reinitialize-toolkit ()
-  (xt_toolkit_initialize)
-  (setup-error-handlers)
-  (fixup-class-entry-points))
+  (unless *toolkit-static*
+    (xt_toolkit_initialize)
+    (setup-error-handlers)
+    (fixup-class-entry-points)))
 
 #+dlfcn
-(unless sys::*toolkit-static*
-  (push 'reinitialize-toolkit excl::*restart-actions*))
+(push 'reinitialize-toolkit excl::*restart-actions*)
 

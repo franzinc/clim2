@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sysdcl.lisp,v 1.50 1996/03/01 05:43:02 colin Exp $
+;; $fiHeader: sysdcl.lisp,v 1.51 1996/03/13 09:55:53 colin Exp $
 
 (in-package :cl-user)
 
@@ -12,7 +12,7 @@
   (export '(excl::codeset-0 excl::codeset-1 excl::codeset-2 excl::codeset-3
 	    excl::string-to-euc excl::euc-to-string)
 	  (find-package :excl))
-  (export '(ff::euc-to-char* ff::char*-to-euc) (find-package :ff)))
+  (export '(ff::euc-to-char* ff::char*-to-euc ff::wchar*-to-string) (find-package :ff)))
 
 "Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved."
 

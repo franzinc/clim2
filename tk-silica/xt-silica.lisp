@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.101 1996/03/01 05:44:25 colin Exp $
+;; $fiHeader: xt-silica.lisp,v 1.102 1996/03/13 09:56:15 colin Exp $
 
 (in-package :xm-silica)
 
@@ -944,7 +944,7 @@
 	(let ((mapping (text-style-mapping port text-style c)))
 	  (when mapping
 	    (push (cons c mapping) mappings))))
-      (reverse mappings)))))
+      (reverse mappings))))
 
 (defmethod font-set-from-font-list ((port xt-port) font-list)
   (let ((name ""))
@@ -958,7 +958,7 @@
 	    (setf (gethash name font-cache)
 	      (make-instance 'tk::font-set
 		:display (port-display port)
-		:base-names name)))))))
+		:base-names name))))))))
 
 (:-ics
 

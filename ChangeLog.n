@@ -1,3 +1,37 @@
+*************************************************************
+
+Thu Mar 14 21:11:06 PST 1996 Colin Meldrum (colin@vapor)
+
+Makefile.cobjs
+	replaced mainxm.o rule with makemainxm and added MAIN_OBJ
+	ACL_MAIN_OBJ to allow the one rule to be used for making both
+	mainxm.o and ics_mainxm.o
+	added a commentary on CLIM's current use of .o, .a and .so files
+
+Makefile.generic
+	removed ucl.clim and ucli.clim rules 
+	made xm-dcl and xm-dcli rules create a ucl.clim (or ucli.clim) as well
+
+Makefile.sgi4d-svr4, Makefile.sun4, Makefile.rs6000
+	added STD_DEFINES and AR defns for making Wnn/jlib.
+
+demo/japanese-graphics-editor.lisp
+	renamed functions with fat characters in them to use only plain
+	characters
+	this avoids spurious warnings when loading the demos into a non-ics 
+	lisp
+
+tk/load-xm.lisp, tk/xm-init.lisp
+	now we simply always assume shared on all dlfcn archs except for rs6k
+
+tk-silica/xt-silica.lisp
+	fixed bracketting typo which was breaking font-set-from-font-list
+	from working correctly
+
+wnn/load-wnn.lisp
+	Put in error message to trap if someone tries to dynamically load
+	it on a dlfcn arch - they can't because we don't have a shared
+	libwnn 
 
 *************************************************************
 

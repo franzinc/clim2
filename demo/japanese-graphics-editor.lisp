@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: JAPANESE-GRAPHICS-EDITOR; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: japanese-graphics-editor.lisp,v 1.2 1996/03/01 05:42:32 colin Exp $
+;; $fiHeader: japanese-graphics-editor.lisp,v 1.3 1996/03/13 09:55:40 colin Exp $
 
 (in-package :japanese-graphics-editor)
 
@@ -474,7 +474,7 @@
   (dolist (object (slot-value frame 'objects))
     (draw-object object stream)))
 
-(define-graphics-editor-command (com-ボックスの成作)
+(define-graphics-editor-command (com-create-box :name "ボックスの成作")
     ((left 'integer)
      (top 'integer))
   (com-deselect-object)
@@ -531,7 +531,7 @@
 	       (setq box (make-box left top right bottom label style shape))
 	       (return-from track-pointer)))
 	   (beep stream)
-	   (return-from com-ボックスの成作)))))
+	   (return-from com-create-box)))))
     (when box
       (setf (slot-value *application-frame* 'objects)
 	    (append (slot-value *application-frame* 'objects) (list box)))
@@ -544,13 +544,13 @@
 
 ;; A mouse click over blank area creates a new box.
 (define-presentation-to-command-translator create-box
-    (blank-area com-ボックスの成作 graphics-editor
+    (blank-area com-create-box graphics-editor
      :gesture :select :menu nil)
     (x y)
   (list x y))
 
 ;; Select an object by clicking "select" (Mouse-Left) on it.
-(define-graphics-editor-command com-ボックスの選択
+(define-graphics-editor-command (com-select-box :name "ボックスの選択")
     ((object 'box :gesture :select))
   (select-object *application-frame* object)
   (setf (slot-value *application-frame* 'style) (object-style object)
@@ -566,7 +566,7 @@
     (deselect-object *application-frame* (frame-selected-object *application-frame*))))
 
 ;; Move an object by clicking Mouse-Middle on it and dragging the mouse.
-(define-graphics-editor-command com-ボックスの移動
+(define-graphics-editor-command (com-move-object :name "ボックスの移動")
     ((object 'box :gesture :describe))
   (let ((stream (get-frame-pane *application-frame* 'display)))
     (with-bounding-rectangle* (left top right bottom) object
