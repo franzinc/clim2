@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.8 92/02/05 21:45:26 cer Exp Locker: cer $
+;; $fiHeader: xm-gadgets.lisp,v 1.9 92/02/08 14:51:40 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -105,7 +105,9 @@
 
 
 
-(defmethod find-widget-class-and-initargs-for-sheet (port (sheet motif-push-button))
+(defmethod find-widget-class-and-initargs-for-sheet (port
+						     (parent t)
+						     (sheet motif-push-button))
   (declare (ignore port))
   (with-accessors ((label silica::gadget-label)) sheet
     (values 'tk::xm-push-button 
@@ -146,6 +148,7 @@
 	  ())
 
 (defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
+						     (parent t)
 						     (sheet motif-drawing-area))
   (values 'tk::xm-drawing-area (list :margin-width 0 
 				     :resize-policy :none
@@ -163,7 +166,9 @@
 	  ())
 
 
-(defmethod find-widget-class-and-initargs-for-sheet ((port motif-port) (sheet motif-slider))
+(defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
+						     (parent t)
+						     (sheet motif-slider))
   (with-accessors ((orientation silica::gadget-orientation)
 		   (label silica::gadget-label)
 		   (value gadget-value)) sheet
@@ -200,6 +205,7 @@
 	  ())
 
 (defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
+						     (parent t)
 						     (sheet motif-scrollbar))
   (with-accessors ((orientation silica::gadget-orientation)) sheet
 		  (values 'tk::xm-scroll-bar 
@@ -279,31 +285,8 @@
 
 (defmethod add-sheet-callbacks :after ((port motif-port) 
 				       (sheet motif-top-level-sheet)
-				       widget)
+				       (widget tk::xm-drawing-area))
 
-;  (tk::add-callback widget 
-;		    :expose-callback 
-;		    'sheet-mirror-exposed-callback
-;		    sheet)
-;  (tk::add-callback widget 
-;		    :input-callback 
-;		    'sheet-mirror-input-callback
-;		    sheet)
-;  (tk::add-event-handler widget
-;			 '(:enter-window 
-;			   :leave-window
-;			   :pointer-motion-hint
-;			   :pointer-motion
-;			   :button1-motion
-;			   :button2-motion
-;			   :button3-motion
-;			   :button4-motion
-;			   :button5-motion
-;			   :button-motion
-;			   )
-;			 0
-;			 'sheet-mirror-event-handler
-;			 sheet)
   (tk::add-callback widget 
 		    :resize-callback 
 		    'sheet-mirror-resized-callback
@@ -315,13 +298,50 @@
 
 (defmethod compose-space ((sheet motif-top-level-sheet) &key width height)
   (compose-space (car (sheet-children sheet)) :width width :height height))
+;;;-- Test whether this is a dialog box or 
+
+
 
 (defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
-						     (sheet motif-top-level-sheet))
-  (values 'tk::xm-drawing-area 
-	  (list :resize-policy :none
-		:margin-width 0 :margin-height 0)))
+						     (parent t)
+						     (sheet
+						      motif-top-level-sheet))
+  (cond 
+   ;;--- hack alert
+   ;; Seems that we need to use a bulletin board so that everything
+   ;; comes up in the right place.
+   ((popup-frame-p sheet)
+    (values 'tk::xm-bulletin-board
+	    nil))
+   (t
+    (values 'tk::xm-drawing-area 
+	    (list :resize-policy :none
+		  :margin-width 0 :margin-height 0)))))
 
+;;; 
+
+(defmethod add-sheet-callbacks :after ((port motif-port) (sheet t) (widget tk::xm-bulletin-board))
+  (tk::add-event-handler widget
+			 '(:enter-window 
+			   :leave-window
+			   :pointer-motion-hint
+			   :pointer-motion
+			   :button1-motion
+			   :button2-motion
+			   :button3-motion
+			   :button4-motion
+			   :button5-motion
+			   :button-motion
+			   :exposure
+			   :structure-notify
+			   :key-press
+			   :key-release
+			   :button-press
+			   :button-release
+      			   )
+			 0
+			 'sheet-mirror-event-handler
+			 sheet))
 
 ;;;; text field
 
@@ -331,6 +351,7 @@
 	  ())
 
 (defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
+						     (parent t)
 						     (sheet motif-text-field))
   (with-accessors ((value gadget-value)) sheet
     (values 'tk::xm-text-field 
@@ -346,6 +367,7 @@
 	  ())
 
 (defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
+						     (parent t)
 						     (sheet motif-toggle-button))
   (with-accessors ((set gadget-value)
 		   (label silica::gadget-label)
@@ -369,32 +391,8 @@
 
 (defmethod xm-silica::add-sheet-callbacks :after ((port motif-port) 
 						  (sheet clim-internals::extended-stream-sheet)
-						  (widget t))
-  (declare (ignore sheet))
-;  (tk::add-callback widget 
-;		    :expose-callback 
-;		    'sheet-mirror-exposed-callback
-;		    sheet)
-;  (tk::add-callback widget 
-;		    :input-callback 
-;		    'sheet-mirror-input-callback
-;		    sheet)
-;  (tk::add-event-handler widget
-;			 '(:enter-window 
-;			   :leave-window
-;			   :pointer-motion-hint
-;			   :pointer-motion
-;			   :button1-motion
-;			   :button2-motion
-;			   :button3-motion
-;			   :button4-motion
-;			   :button5-motion
-;			   :button-motion
-;			   )
-;			 0
-;			 'sheet-mirror-event-handler
-;			 sheet)
-  ;; It would suprise me if we needed this.
+						  (widget tk::xm-drawing-area))
+  ;;---- It would suprise me if we needed this.
   (tk::add-callback widget 
 		    :resize-callback 
 		    'sheet-mirror-resized-callback
@@ -463,45 +461,25 @@
    vp))
 
 
-(defmethod find-widget-class-and-initargs-for-sheet ((port motif-port) (sheet xm-viewport))
+(defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
+						     (parent t)
+						     (sheet xm-viewport))
   (values 'tk::xm-drawing-area
 	  '(:scrolling-policy :application-defined
 	    :margin-width 0 :margin-height 0
 	    :resize-policy :none
 	    :scroll-bar-display-policy :static)))
 
-(defmethod add-sheet-callbacks  :after ((port motif-port) (sheet xm-viewport) widget)
-  ;; I wonder whether this is needed since it should not be resized by
+(defmethod add-sheet-callbacks  :after ((port motif-port) 
+					(sheet xm-viewport)
+					(widget tk::xm-drawing-area))
+  ;;--- I wonder whether this is needed since it should not be resized by
   ;; the toolkit and only as part of the goe management code that will
   ;; recurse to children anyway
   (tk::add-callback widget 
 		    :resize-callback 
 		    'sheet-mirror-resized-callback
-		    sheet)
-;  (tk::add-callback widget 
-;		    :expose-callback 
-;		    'sheet-mirror-exposed-callback
-;		    sheet)
-;  (tk::add-callback widget 
-;		    :input-callback 
-;		    'sheet-mirror-input-callback
-;		    sheet)
-;  (tk::add-event-handler widget
-;			 '(:enter-window 
-;			   :leave-window
-;			   :pointer-motion-hint
-;			   :pointer-motion
-;			   :button1-motion
-;			   :button2-motion
-;			   :button3-motion
-;			   :button4-motion
-;			   :button5-motion
-;			   :button-motion
-;			   )
-;			 0
-;			 'sheet-mirror-event-handler
-;			 sheet)
-  )
+		    sheet))
 
 (defclass  motif-radio-box (motif-geometry-manager
 			    mirrored-sheet-mixin
@@ -516,6 +494,7 @@
   (setf (gadget-client child) gadget))
 
 (defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
+						     (parent t)
 						     (sheet motif-radio-box))
   
   (with-accessors ((orientation silica::gadget-orientation)) sheet
@@ -544,6 +523,7 @@
 	  ())
 
 (defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
+						     (parent t)
 						     (sheet motif-frame-pane))
   (values 'tk::xm-frame nil))
 	  

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: event.cl,v 1.2 92/01/02 15:08:38 cer Exp $
+;; $fiHeader: event.lisp,v 1.3 92/01/31 14:54:23 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -34,6 +34,11 @@
 (defun simple-event-loop (context)
   (loop 
       (process-one-event context)))
+
+(defconstant *xt-im-xevent*		1)
+(defconstant *xt-im-timer*		2)
+(defconstant *xt-im-alternate-input*	4)
+(defconstant *xt-im-all* (logior *xt-im-xevent*  *xt-im-timer*  *xt-im-alternate-input*))
 
 (defun process-one-event (context &key timeout wait-function)
   (let (mask
@@ -59,7 +64,11 @@
 			#'wait-function))))
       (mapc #'multiprocessing::mpunwatchfor fds))
     (cond ((plusp mask)
-	   (app-process-event context mask)
+	   (app-process-event 
+	    context 
+	    ;; Because of a feature in the OLIT toolkit we need to
+	    ;; give preference to events rather than timer events
+	    (if (logtest mask *xt-im-xevent*) *xt-im-xevent* mask))
 	   t)
 	  (reason :wait-function)
 	  (t :timeout))))

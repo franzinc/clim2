@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.4 92/02/05 21:45:32 cer Exp Locker: cer $
+;; $fiHeader: xt-silica.lisp,v 1.5 92/02/08 14:51:43 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -165,15 +165,16 @@
   (tk::destroy-widget (sheet-direct-mirror sheet)))
 
 (defmethod realize-mirror ((port xt-port) sheet)
-  (multiple-value-bind
-      (class initargs)
-      (find-widget-class-and-initargs-for-sheet port sheet)
-    (let ((widget (apply #'make-instance class
-			 :parent (find-widget-parent port sheet)
-			 :managed (sheet-enabled-p sheet)
-			 initargs)))
-      (add-sheet-callbacks port sheet widget)
-      widget)))
+  (let ((parent (find-widget-parent port sheet)))
+    (multiple-value-bind
+	(class initargs)
+	(find-widget-class-and-initargs-for-sheet port parent sheet)
+      (let ((widget (apply #'make-instance class
+			   :parent parent
+			   :managed (sheet-enabled-p sheet)
+			   initargs)))
+	(add-sheet-callbacks port sheet widget)
+	widget))))
 
 (defmethod add-sheet-callbacks ((port xt-port) sheet (widget t))
   (declare (ignore sheet)))
@@ -185,74 +186,90 @@
     (declare (ignore same-p root child root-x root-y))
     (let ((modifiers (logand #16rff mask))
 	  (button (ash mask -8)))
-      (distribute-event
-       (sheet-port sheet)
-       (ecase (tk::event-type event)
-	 (:key-press
-	  (multiple-value-bind
-	       (ignore character keysym)
-	       (tk::lookup-string event)
-	     (declare (ignore ignore))
-	     (make-instance 'key-press-event
-			    :key-name keysym
-			    :character (and (= (length character) 1)
-					    (aref character 0))
-			    :sheet sheet
-			    :modifiers (x11::xkeyevent-state event))))
+      (let ((clim-event
+	     (ecase (tk::event-type event)
+	       ((:map-notify :unmap-notify)
+		nil)
+	       (:configure-notify
+		(sheet-mirror-resized-callback
+		 widget nil event sheet)
+		nil)
+	       (:expose
+		(sheet-mirror-exposed-callback
+		 widget 
+		 nil ; window
+		 event
+		 sheet)
+		nil)
+	       (:key-press
+		(multiple-value-bind
+		    (ignore character keysym)
+		    (tk::lookup-string event)
+		  (declare (ignore ignore))
+		  (make-instance 'key-press-event
+				 :key-name keysym
+				 :character (and (= (length character) 1)
+						 (aref character 0))
+				 :sheet sheet
+				 :modifiers (x11::xkeyevent-state event))))
     
-	 (:key-release
-	  (multiple-value-bind
-	       (ignore character keysym)
-	       (tk::lookup-string event)
-	     (declare (ignore ignore))
-	     (make-instance 'key-release-event
-			    :key-name keysym
-			    :character (and (= (length character) 1)
-					    (aref character 0))
-			    :sheet sheet
-			    :modifiers (x11::xkeyevent-state event))))
+	       (:key-release
+		(multiple-value-bind
+		    (ignore character keysym)
+		    (tk::lookup-string event)
+		  (declare (ignore ignore))
+		  (make-instance 'key-release-event
+				 :key-name keysym
+				 :character (and (= (length character) 1)
+						 (aref character 0))
+				 :sheet sheet
+				 :modifiers (x11::xkeyevent-state event))))
     
-	 (:button-press
-	  (make-instance 'pointer-button-press-event
-			  :sheet sheet
-			  :x :??
-			  :y :??
-			  :modifiers (x11::xkeyevent-state event)
-			  :button (x-button->silica-button 
-				   (x11::xbuttonevent-button event))
-			  :native-x (x11::xbuttonevent-x event)
-			  :native-y (x11::xbuttonevent-y event)))
-	 (:button-release
-	  (make-instance 'pointer-button-release-event
-			  :sheet sheet
-			  :x :??
-			  :y :??
-			  :modifiers (x11::xkeyevent-state event)
-			  :button (x-button->silica-button 
-				   (x11::xbuttonevent-button event))
-			  :native-x (x11::xbuttonevent-x event)
-			  :native-y (x11::xbuttonevent-y event)))
-	 (:leave-notify
-	  (make-instance 'pointer-exit-event
-			 :native-x native-x
-			 :native-y native-y
-			 :button (x-button->silica-button button)
-			 :modifiers modifiers
-			 :sheet sheet))
-	 (:enter-notify
-	  (make-instance 'pointer-enter-event
-			 :native-x native-x
-			 :native-y native-y
-			 :button (x-button->silica-button button)
-			 :modifiers modifiers
-			 :sheet sheet))
-	 (:motion-notify
-	  (make-instance 'pointer-motion-event
-			 :native-x native-x
-			 :native-y native-y
-			 :button (x-button->silica-button button)
-			 :modifiers modifiers
-			 :sheet sheet)))))))
+	       (:button-press
+		(make-instance 'pointer-button-press-event
+			       :sheet sheet
+			       :x :??
+			       :y :??
+			       :modifiers (x11::xkeyevent-state event)
+			       :button (x-button->silica-button 
+					(x11::xbuttonevent-button event))
+			       :native-x (x11::xbuttonevent-x event)
+			       :native-y (x11::xbuttonevent-y event)))
+	       (:button-release
+		(make-instance 'pointer-button-release-event
+			       :sheet sheet
+			       :x :??
+			       :y :??
+			       :modifiers (x11::xkeyevent-state event)
+			       :button (x-button->silica-button 
+					(x11::xbuttonevent-button event))
+			       :native-x (x11::xbuttonevent-x event)
+			       :native-y (x11::xbuttonevent-y event)))
+	       (:leave-notify
+		(make-instance 'pointer-exit-event
+			       :native-x native-x
+			       :native-y native-y
+			       :button (x-button->silica-button button)
+			       :modifiers modifiers
+			       :sheet sheet))
+	       (:enter-notify
+		(make-instance 'pointer-enter-event
+			       :native-x native-x
+			       :native-y native-y
+			       :button (x-button->silica-button button)
+			       :modifiers modifiers
+			       :sheet sheet))
+	       (:motion-notify
+		(make-instance 'pointer-motion-event
+			       :native-x native-x
+			       :native-y native-y
+			       :button (x-button->silica-button button)
+			       :modifiers modifiers
+			       :sheet sheet)))))
+	(when clim-event
+	  (distribute-event
+	   (sheet-port sheet)
+	   clim-event))))))
 
 (defun x-button->silica-button (button)
   (ecase button
@@ -351,20 +368,24 @@
 		     :native-x (x11::xbuttonevent-x event)
 		     :native-y (x11::xbuttonevent-y event))))))
 
-(defmethod find-widget-class-and-initargs-for-sheet (port (sheet sheet))
+(defmethod find-widget-class-and-initargs-for-sheet (port
+						     (parent t)
+						     (sheet sheet))
   (declare (ignore port))
   (values 'xm-drawing-area (list :resize-policy :grow)))
 
-(defmethod find-widget-class-and-initargs-for-sheet :around (port (sheet sheet))
+(defmethod find-widget-class-and-initargs-for-sheet :around (port
+							     (parent t)
+							     (sheet sheet))
   (declare (ignore port))
   (multiple-value-bind
       (class initargs)
       (call-next-method)
-    (setq initargs (set-mirror-geometry sheet initargs))
+    (setq initargs (set-mirror-geometry parent sheet initargs))
     (values class initargs)))
 
 
-(defmethod set-mirror-geometry (sheet initargs)
+(defmethod set-mirror-geometry (parent sheet initargs)
   ;;--- Should we pass in the size of the sheet even though it is
   ;; liable to be quite stupid
   ;; We really want to just create the gadgets and then let the layout
@@ -373,9 +394,12 @@
     (multiple-value-bind
 	(left top right bottom)
 	(sheet-actual-native-edges sheet)
-      (setf (getf initargs :x) (floor left)
-	    (getf initargs :y) (floor top)
-	    (getf initargs :width) (floor (- right left))
+      ;;--- We do not want to specify the x,y if this is a top-level
+      ;;sheet.
+      (unless (typep parent 'tk::shell)
+	(setf (getf initargs :x) (floor left)
+	      (getf initargs :y) (floor top)))
+      (setf (getf initargs :width) (floor (- right left))
 	    (getf initargs :height) (floor (- bottom top)))))
   initargs)
 
@@ -389,23 +413,42 @@
 	    (class initargs)
 	    (find-shell-class-and-initargs port sheet)
 	  (apply #'make-instance class
-		 :parent (port-application-shell port)
+		 :parent (find-shell-parent port sheet)
 		 initargs))
       (sheet-mirror ma))))
 
+(defmethod find-shell-of-calling-frame ((sheet sheet))
+  (find-shell-of-calling-frame (pane-frame sheet)))
+
+(defmethod find-shell-of-calling-frame ((frame application-frame))
+  (let (cf)
+    (and (setq cf (clim-internals::frame-calling-frame frame))
+	 (sheet-shell (frame-top-level-sheet cf)))))
+
+(defmethod find-shell-parent (port sheet)
+  (or (and  ;;--- hack alert
+       (popup-frame-p sheet)
+       (find-shell-of-calling-frame sheet))
+      (port-application-shell port)))
+
+
 (defmethod find-shell-class-and-initargs (port sheet)
+  (declare (ignore port))
   (values 'top-level-shell 
 	  ;; Need this so that an interactive pane can have children
 	  ;; but still accept the focus
 	  '(:keyboard-focus-policy :pointer)))
+
+
+
 
 (defmethod enable-mirror (port sheet)
   (declare (ignore port))
   (let ((mirror (sheet-mirror sheet)))
     (typecase (widget-parent mirror)
       (null)
-      (top-level-shell
-       ;; this is a nasty hack just to make sure that the child is managed.
+      ((or top-level-shell tk::xm-dialog-shell)
+       ;;--- this is a nasty hack just to make sure that the child is managed.
        ;; top-level-sheets are created unmanaged because they are
        ;; disabled to we have to do not!
        (manage-child mirror)
@@ -476,6 +519,8 @@
 	  w (floor w)
 	  h (floor h))
     (change-widget-geometry
+     ;;--- For top level sheets the sheet-parent is the graft whose
+     ;; mirror is the application shell
      (sheet-mirror (sheet-parent sheet))
      (sheet-direct-mirror sheet)
      :x target-left
@@ -589,3 +634,15 @@
 
 (defmethod clim-internals::port-finish-output ((port xt-port))
   nil)
+
+(defmethod change-widget-geometry (parent child &rest args)
+  (declare (ignore parent))
+  ;; In this case let the parent deal with it
+  (apply #'tk::set-values child args))
+
+
+(defmethod popup-frame-p ((frame application-frame))
+  (typep frame '(or clim-internals::menu-frame clim-internals::accept-values-own-window)))
+
+(defmethod popup-frame-p ((sheet sheet))
+  (popup-frame-p (pane-frame sheet)))

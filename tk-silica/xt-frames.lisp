@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-frames.cl,v 1.1 92/01/17 17:48:17 cer Exp $
+;; $fiHeader: xt-frames.lisp,v 1.2 92/01/31 14:56:37 cer Exp Locker: cer $
 
 
 (in-package :xm-silica)
@@ -51,3 +51,43 @@
       (setf (frame-top-level-sheet frame) sheet
 	    (frame-shell frame) (sheet-shell sheet))
       (sheet-adopt-child sheet (frame-panes frame)))))
+
+
+(defmethod clim-internals::frame-wrapper ((frame t) (framem xt-frame-manager) pane)
+  (declare (ignore pane))
+  (let ((mb (slot-value frame 'clim-internals::menu-bar)))
+    (if mb
+	(with-look-and-feel-realization (framem frame)
+	  (vertically ()
+		      (realize-pane 'menu-bar
+				    :command-table (if (eq mb t)
+						       (frame-command-table frame)
+						     (find-command-table mb)))
+		      (call-next-method)))
+      (call-next-method))))
+
+;;; 
+
+(defclass presentation-event (event)
+	  ((value :initarg :value :reader presentation-event-value)
+	   (sheet :initarg :sheet :reader event-sheet)))
+
+(defmethod handle-event (sheet (event presentation-event))
+  (throw-highlighted-presentation
+   (make-instance 'standard-presentation
+		  :object (presentation-event-value event)
+		  :type 'command)
+   *input-context*
+   (make-instance 'pointer-button-press-event
+		  :sheet sheet
+		  :x 0
+		  :y 0
+		  :modifiers 0
+		  :button 256)))
+
+(defun command-button-callback (button dunno frame item)
+  (distribute-event
+   (sheet-port frame)
+   (make-instance 'presentation-event
+		  :sheet (frame-top-level-sheet frame)
+		  :value (second item))))

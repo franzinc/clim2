@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-gadgets.lisp,v 1.2 92/01/31 14:56:15 cer Exp Locker: cer $
+;; $fiHeader: ol-gadgets.lisp,v 1.3 92/02/05 21:45:22 cer Exp Locker: cer $
 
 
 (in-package :xm-silica)
@@ -59,7 +59,9 @@
 			   silica::scrollbar)
 	  ())
 
-(defmethod find-widget-class-and-initargs-for-sheet ((port openlook-port)
+(defmethod find-widget-class-and-initargs-for-sheet ((port
+						      openlook-port)
+						     (parent t)
 						     (sheet openlook-scrollbar))
   (with-accessors ((orientation silica::gadget-orientation)) sheet
 		  (values 'tk::scrollbar
@@ -158,6 +160,11 @@
 		    'sheet-mirror-resized-callback
 		    sheet))
 
+(warn "This is really bogus")
+
+(defmethod stream-read-char-no-hang ((x openlook-top-level-sheet))
+  nil)
+
 (defmethod allocate-space ((sheet openlook-top-level-sheet) width height)
   (silica::resize-sheet*  (car (sheet-children sheet)) 
 			  width height))
@@ -165,7 +172,9 @@
 (defmethod compose-space ((sheet openlook-top-level-sheet) &key width height)
   (compose-space (car (sheet-children sheet))))
 
-(defmethod find-widget-class-and-initargs-for-sheet ((port openlook-port)
+(defmethod find-widget-class-and-initargs-for-sheet ((port
+						      openlook-port)
+						     (parent t)
 						     (sheet openlook-top-level-sheet))
   (values 'tk::draw-area
 	  (list :layout :ignore)))
@@ -201,7 +210,9 @@
    vp))
 
 
-(defmethod find-widget-class-and-initargs-for-sheet ((port openlook-port) (sheet ol-viewport))
+(defmethod find-widget-class-and-initargs-for-sheet ((port
+						      openlook-port)
+						     (parent t)(sheet ol-viewport))
   (values 'tk::draw-area
 	  '(:layout :ignore)))
 
@@ -237,3 +248,57 @@
 ;			 'sheet-mirror-event-handler
 ;			 sheet)
   )
+
+(defclass openlook-menu-bar (xt-leaf-pane) 
+	  ((command-table :initarg :command-table)))
+
+(defmethod find-widget-class-and-initargs-for-sheet (port
+						     (parent t)
+						     (sheet openlook-menu-bar))
+  (values 'tk::control nil))
+
+(defmethod realize-mirror :around ((port openlook-port) (sheet openlook-menu-bar))
+
+  ;; This code fills the menu-bar. If top level items do not have
+  ;; submenus then it creates one with a menu of its own
+  
+  (let ((mirror (call-next-method)))
+    (labels ((make-menu-for-command-table (command-table parent top)
+	       (map-over-command-table-menu-items
+		#'(lambda (menu keystroke item)
+		    (declare (ignore keystroke))
+		    (let ((type (command-menu-item-type item)))
+		      (case type
+			(:divider)
+			(:function
+			 ;;--- Do this sometime
+			 )
+			(:menu
+			 (let* ((mb (make-instance 'tk::menu-button
+						  :parent parent
+						  :label menu)))
+			   (make-menu-for-command-table
+			    (find-command-table (second item))
+			    (tk::get-values mb :menu-pane)
+			    nil)))
+			(t
+			 (let ((button 
+				(make-instance 'tk::oblong-button
+					       :label menu
+					       :managed t
+					       :parent parent)))
+			   (tk::add-callback
+			    button
+			    :select
+			    'command-button-callback-ol
+			    (slot-value sheet 'silica::frame)
+			    item))))))
+		command-table)))
+      (make-menu-for-command-table
+       (slot-value sheet 'command-table)
+       mirror
+       t))
+    mirror))
+
+(defun command-button-callback-ol (button frame item)
+  (command-button-callback button nil frame item))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept-values.lisp,v 1.5 92/01/31 14:57:29 cer Exp Locker: cer $
+;; $fiHeader: accept-values.lisp,v 1.6 92/02/05 21:45:37 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -161,37 +161,43 @@
 	query))))
 
 (define-application-frame accept-values ()
-    ((stream :initarg :stream)
-     (continuation :initarg :continuation)
-     (own-window :initform nil :initarg :own-window)
-     (own-window-x-position :initform nil :initarg :x-position)
-     (own-window-y-position :initform nil :initarg :y-position)
-     (own-window-width :initform nil :initarg :width)
-     (own-window-height :initform nil :initarg :height)
-     (own-window-right-margin :initform nil :initarg :right-margin)
-     (own-window-bottom-margin :initform nil :initarg :bottom-margin)
-     (exit-boxes :initform nil :initarg :exit-boxes)
-     (selected-item :initform nil)
-     ;;--- Do this through RUN-FRAME-TOP-LEVEL?
-     (initially-select-query-identifier :initform nil
-					:initarg :initially-select-query-identifier)
-     (resynchronize-every-pass :initform nil :initarg :resynchronize-every-pass)
-     (check-overlapping :initform t :initarg :check-overlapping))
+  ((stream :initarg :stream)
+   exit-button-stream
+   (calling-frame :reader frame-calling-frame
+		  :initarg :calling-frame)
+   (continuation :initarg :continuation)
+   (own-window :initform nil :initarg :own-window)
+   (own-window-x-position :initform nil :initarg :x-position)
+   (own-window-y-position :initform nil :initarg :y-position)
+   (own-window-width :initform nil :initarg :width)
+   (own-window-height :initform nil :initarg :height)
+   (own-window-right-margin :initform nil :initarg :right-margin)
+   (own-window-bottom-margin :initform nil :initarg :bottom-margin)
+   (exit-boxes :initform nil :initarg :exit-boxes)
+   (selected-item :initform nil)
+   ;;--- Do this through RUN-FRAME-TOP-LEVEL?
+   (initially-select-query-identifier :initform nil
+				      :initarg :initially-select-query-identifier)
+   (resynchronize-every-pass :initform nil :initarg :resynchronize-every-pass)
+   (check-overlapping :initform t :initarg :check-overlapping))
   (:top-level (accept-values-top-level))
   (:command-definer t))
 
 (define-application-frame accept-values-own-window (accept-values)
     ()
   (:pane 
-   (with-slots (stream own-window) *application-frame*
-     (scrolling ()
-       (progn
-	 (setq stream
-	   (make-instance 'accept-values-stream
-			  :stream (setf own-window
-				        (realize-pane 'extended-stream-pane
-						      :initial-cursor-visibility nil))))
-	 own-window))))
+   (with-slots (stream own-window exit-button-stream) *application-frame*
+     (vertically ()
+		 (progn
+		   (setq stream
+		     (make-instance 'accept-values-stream
+				    :stream (setf own-window
+					      (realize-pane 'extended-stream-pane
+							    :initial-cursor-visibility nil))))
+		   own-window)
+		 (setf exit-button-stream
+			      (realize-pane 'extended-stream-pane
+					    :initial-cursor-visibility nil)))))
   (:menu-bar nil)
   (:command-table accept-values)
   (:command-definer nil))
@@ -270,19 +276,20 @@
 	 (bottom-margin 10))
      (if own-window
 	 (let ((frame (make-application-frame (or frame-class 'accept-values-own-window)
-						  :continuation continuation
-						  :exit-boxes exit-boxes
-						  :own-window the-own-window
-						  :x-position x-position
-						  :y-position y-position
-						  :right-margin right-margin
-						  :bottom-margin bottom-margin
-						  :initially-select-query-identifier
-						    initially-select-query-identifier
-						  :resynchronize-every-pass
-						    resynchronize-every-pass
-						  :check-overlapping
-						    check-overlapping)))
+					      :calling-frame *application-frame*
+					      :continuation continuation
+					      :exit-boxes exit-boxes
+					      :own-window the-own-window
+					      :x-position x-position
+					      :y-position y-position
+					      :right-margin right-margin
+					      :bottom-margin bottom-margin
+					      :initially-select-query-identifier
+					      initially-select-query-identifier
+					      :resynchronize-every-pass
+					      resynchronize-every-pass
+					      :check-overlapping
+					      check-overlapping)))
 	   ;; What do we do about sizing?????
 	   ;; What do we do about positioning????
 	   (let ((*avv-calling-frame* *application-frame*))
@@ -317,11 +324,13 @@
 	       selected-item initially-select-query-identifier
 	       own-window own-window-x-position own-window-y-position
 	       own-window-width own-window-height
-	       own-window-right-margin own-window-bottom-margin) frame
+	       own-window-right-margin own-window-bottom-margin
+	       exit-button-stream) frame
     (let ((command-table (frame-command-table frame))
 	  (original-view (stream-default-view stream))
 	  (return-values nil)
 	  (initial-query nil)
+	  exit-button-stuff
 	  avv avv-record)
       (letf-globally (((stream-default-view stream) 
 		       (port-dialog-view (sheet-port stream))))
@@ -330,9 +339,13 @@
 		 (setf (slot-value stream 'avv-frame) frame)
 		 (with-output-recording-options (stream :draw nil :record t)
 		   (setq return-values (multiple-value-list
-					 (let ((*application-frame* *avv-calling-frame*))
-					   (funcall continuation stream))))
-		   (display-exit-boxes frame stream (stream-default-view stream))))
+					   (let ((*application-frame* *avv-calling-frame*))
+					     (funcall continuation
+						      stream)))))
+		 (unless own-window
+		   (display-exit-boxes frame 
+				       stream
+				       (stream-default-view stream))))
 	       (run-avv ()
 		 (when (and initially-select-query-identifier
 			    (setq initial-query
@@ -360,6 +373,8 @@
 		     (with-output-recording-options (stream :draw nil)
 		       (redisplay avv stream :check-overlapping check-overlapping)))
 		   (setf (slot-value avv-record 'resynchronize) nil)
+		   (when exit-button-stuff
+		     (redisplay exit-button-stuff exit-button-stream))
 		   (redisplay avv stream :check-overlapping check-overlapping))))
 	  (declare (dynamic-extent #'run-continuation #'run-avv))
 	  (with-simple-restart (frame-exit "Exit from the ACCEPT-VALUES dialog")
@@ -370,9 +385,23 @@
 			    (with-end-of-page-action (stream :allow)
 			      (with-new-output-record
 				  (stream 'accept-values-output-record avv-record)
-				(run-continuation stream avv-record)))))))
+				(run-continuation stream
+						  avv-record)))))))
+
+	    ;; In own window dialogs the buttons are displayed
+	    ;; separately
+	    
+	    (when own-window
+	      (setq exit-button-stuff 
+		    (updating-output (exit-button-stream)
+				     (with-end-of-line-action (exit-button-stream :allow)
+				       (with-end-of-page-action (exit-button-stream :allow)
+					 (display-exit-boxes frame 
+							     exit-button-stream
+							     (stream-default-view stream)))))))
 	    (unwind-protect
 		(cond (own-window
+		       (size-menu-appropriately exit-button-stream)
 		       (size-menu-appropriately own-window
 						:width own-window-width
 						:height own-window-height
@@ -390,6 +419,7 @@
 			 (position-window-near-carefully own-window x y))
 		       (window-expose own-window)
 		       (with-input-focus (own-window)
+			 (replay exit-button-stuff exit-button-stream)
 			 (replay avv stream)
 			 (run-avv)))
 		      (t

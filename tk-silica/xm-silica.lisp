@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-silica.lisp,v 1.6 92/01/31 14:56:35 cer Exp Locker: cer $
+;; $fiHeader: xm-silica.lisp,v 1.7 92/02/08 14:51:41 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -50,17 +50,24 @@
   (setf (silica::port-keyboard-focus port) 
     (and new stream)))
 
-
-(defmethod change-widget-geometry (parent child &rest args)
-  (declare (ignore parent))
-  ;; In this case let the parent deal with it
-  (apply #'tk::set-values child args))
-		 
 (defmethod change-widget-geometry ((parent tk::xm-drawing-area) child
 				   &rest args
 				   &key x y width height)
   (declare (ignore x y width height))
   (apply #'tk::configure-widget child args))
+
+(defmethod change-widget-geometry ((parent tk::xm-bulletin-board) child
+				   &rest args
+				   &key x y width height)
+  (declare (ignore x y width height))
+  (apply #'tk::configure-widget child args))
+
+(defmethod change-widget-geometry ((parent tk::shell) child
+				   &rest args
+				   &key x y width height)
+  (declare (ignore x y args))
+  ;;-- shells decide where windows are positioned!
+  (tk::set-values child :width width :height height))
 
 (defclass motif-geometry-manager ()
 	  ;; --- This is probably all
@@ -95,3 +102,15 @@ about their children"))
 (defmethod update-geo-manager-sheet-children (geo-manager)
   (dolist (child (sheet-children geo-manager))
     (mirror-region-updated (sheet-port geo-manager) child)))
+
+(defmethod find-shell-class-and-initargs ((port motif-port) sheet)
+  (declare (ignore port))
+  (cond ( ;;--- hack alert
+	 (popup-frame-p sheet)
+	 (values 'xm-dialog-shell
+		 (append
+		  (let ((x (find-shell-of-calling-frame sheet)))
+		    (and x `(:transient-for ,x)))
+		  '(:keyboard-focus-policy :pointer))))
+	(t
+	 (call-next-method))))

@@ -224,7 +224,7 @@
      (letf-globally (((stream-default-view stream)
 		      (if textual-view 
 			  +textual-dialog-view+
-			+gadget-dialog-view+)))
+			(stream-default-view stream))))
      (setq a (accept 'boolean  
 		     :stream stream
 		     :default a
@@ -246,6 +246,7 @@
 		     :prompt "d"
 		     :default d))
      (terpri stream)
+     #+ignore
      (accept-values-command-button (stream)
 				   "Press me"
 				   (setq a t b nil c :normal))))

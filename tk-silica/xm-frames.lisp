@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-frames.lisp,v 1.6 92/01/31 14:56:27 cer Exp Locker: cer $
+;; $fiHeader: xm-frames.lisp,v 1.7 92/02/05 21:45:25 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -144,22 +144,14 @@
 
 
 
-(defmethod clim-internals::frame-wrapper ((frame t) (framem motif-frame-manager) pane)
-  (let ((mb (slot-value frame 'clim-internals::menu-bar)))
-    (if mb
-	(with-look-and-feel-realization (framem frame)
-	  (vertically ()
-		      (realize-pane 'menu-bar
-				    :command-table (if (eq mb t)
-						       (frame-command-table frame)
-						     (find-command-table mb)))
-		      (call-next-method)))
-      (call-next-method))))
+
 
 (defclass motif-menu-bar (xt-leaf-pane) 
 	  ((command-table :initarg :command-table)))
 
-(defmethod find-widget-class-and-initargs-for-sheet (port (sheet motif-menu-bar))
+(defmethod find-widget-class-and-initargs-for-sheet (port
+						     (parent t)
+						     (sheet motif-menu-bar))
   (values 'tk::xm-menu-bar 
 	  (list :resize-height t
 		:resize-width t)))
@@ -227,29 +219,7 @@
        t))
     mirror))
 
-(defclass presentation-event (event)
-	  ((value :initarg :value :reader presentation-event-value)
-	   (sheet :initarg :sheet :reader event-sheet)))
 
-(defmethod handle-event (sheet (event presentation-event))
-  (throw-highlighted-presentation
-   (make-instance 'standard-presentation
-		  :object (presentation-event-value event)
-		  :type 'command)
-   *input-context*
-   (make-instance 'pointer-button-press-event
-		  :sheet sheet
-		  :x 0
-		  :y 0
-		  :modifiers 0
-		  :button 256)))
-
-(defun command-button-callback (button dunno frame item)
-  (distribute-event
-   (sheet-port frame)
-   (make-instance 'presentation-event
-		  :sheet (frame-top-level-sheet frame)
-		  :value (second item))))
 
 (defmethod port-dialog-view ((port motif-port))
   +gadget-dialog-view+)

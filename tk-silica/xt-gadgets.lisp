@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-gadgets.lisp,v 1.2 92/01/31 14:56:38 cer Exp Locker: cer $
+;; $fiHeader: xt-gadgets.lisp,v 1.3 92/02/05 21:45:29 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -58,6 +58,7 @@
 (defmethod find-widget-class-and-initargs-for-sheet 
     :around
     ((port xt-port)
+     (parent t)
      (sheet 
       silica::foreground-background-and-text-style-mixin))
   (multiple-value-bind
@@ -135,6 +136,7 @@
 
 (defun clim-internals::scroll-extent (stream &key (x 0) (y 0))
   (let ((vp (clim-internals::pane-viewport stream)))
+    (when vp
     (with-bounding-rectangle* (left top right bottom) 
                               (clim-internals::pane-viewport-region stream)
       ;;;---- This should actually bash the sheet-transformation
@@ -180,7 +182,7 @@
 	  (replay
 	   (stream-output-history stream)
 	   stream
-	   (silica::xm-viewport-viewport vp))))))))
+	   (silica::xm-viewport-viewport vp)))))))))
 
 (defclass xt-pane (silica::pane) ())
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: menus.lisp,v 1.7 92/01/31 14:58:22 cer Exp Locker: cer $
+;; $fiHeader: menus.lisp,v 1.8 92/02/05 21:45:43 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -20,6 +20,8 @@
 					 nil)))))
   (:menu-bar nil))
 
+(defmethod frame-calling-frame ((frame menu-frame))
+  *application-frame*)
 
 (defun get-menu (&key server-path)
   (let ((frame (make-application-frame 'menu-frame)))
@@ -110,23 +112,18 @@
 	     (gh (bounding-rectangle-height (sheet-region graft)))
 	     (width (min gw (+ (- maxx minx) right-margin)))
 	     (height (min gh (+ (- maxy miny) bottom-margin))))
-	(change-space-requirement menu :width width :height height)
-	;; --- Damn.  How do we get this to propagate the size change up
-	;; the tree so that the whole frame gets re-size to the pane?
-	;; For now, kludge it by setting the frame size directly.
-	;; Allow for scroll bar width
-	
-	(layout-frame (pane-frame menu))
-	
-	;; (when vw (change-space-requirement vw :hs width :vs height))
-	;; (resize-sheet* menu width height)
-	(silica::clear-space-requirement-caching-in-ancestors menu)
-	;; --- RR needs to fix this at some point.
-	;; --- It has to do with the viewport having a bad scrolling transform
-	;; after a resize.
-	#+ignore
-	(setf (sheet-transformation (sheet-parent menu))
-	      (make-translation-transformation 0 0))))))
+	(window-set-inside-size menu width height)
+	(window-set-viewport-position* menu minx miny)))))
+
+;;;---- should be somewhere else
+
+(defmethod (setf window-label) (nv window)
+  nil)
+
+(defun window-set-inside-size (menu width height)
+  (change-space-requirement menu :width width :height height)
+  (silica::clear-space-requirement-caching-in-ancestors menu)
+  (layout-frame (pane-frame menu)))
 
 #-Silica
 (defun position-window-near-carefully (window x y)

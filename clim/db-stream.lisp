@@ -21,7 +21,7 @@
 ;;;
 ;;; Copyright (c) 1990 by Xerox Corporations.  All rights reserved.
 ;;;
-;; $fiHeader: db-stream.lisp,v 1.5 92/01/06 20:44:18 cer Exp $
+;; $fiHeader: db-stream.lisp,v 1.6 92/01/31 14:57:47 cer Exp Locker: cer $
 
 
 (in-package :clim-internals)
@@ -42,11 +42,12 @@
 
 ;;; Communicate with output-protocol what the new text constraints are.
 
-(defmethod note-sheet-region-changed ((pane clim-pane-stream-mixin) &key &allow-other-keys)
+(defmethod note-sheet-region-changed :after  ((pane clim-pane-stream-mixin) &key &allow-other-keys)
   (let ((viewport (pane-viewport pane)))
-    (when viewport
-	  (setf (stream-default-text-margin pane)
-	    (bounding-rectangle-width (sheet-region (pane-viewport pane)))))))
+    (setf (stream-default-text-margin pane)
+      (if viewport
+	  (bounding-rectangle-width (sheet-region (pane-viewport pane)))
+	(bounding-rectangle-width pane)))))
 
 ;;; Communicate with output-protocol what the new text constraints are.
 

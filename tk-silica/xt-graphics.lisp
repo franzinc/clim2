@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.4 92/01/31 16:22:09 cer Exp Locker: cer $
+;; $fiHeader: xt-graphics.lisp,v 1.5 92/02/05 21:45:30 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -542,7 +542,7 @@
 	       (width (- from-right from-left))
 	       (height (- from-bottom from-top))
 	       (copy-gc (port-copy-gc port)))
-	  (when (and from-medium to-medium)
+	  (when (and from-window to-window)
 	    (tk::copy-area 
 	     from-window
 	     copy-gc from-left from-top width height to-window to-left to-top)))))))
