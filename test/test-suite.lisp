@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: test-suite.lisp,v 1.59 93/04/07 17:23:55 cer Exp $
+;; $fiHeader: test-suite.lisp,v 1.60 93/04/08 13:18:17 colin Exp $
 
 (in-package :clim-user)
 
@@ -1006,7 +1006,7 @@ people, shall not perish from the earth.
     (circle  75 100 40 2)
     (circle 125 100 40 3))
   (stream-set-cursor-position stream 0 150)
-  (format stream "~S" (accept 'integer :stream stream)))
+  (format stream "~&~S" (accept 'integer :stream stream)))
 
 (define-test (ordering-test-2a output-recording) (stream)
   "The three overlapping rectangles should have the correct sensitivity."
@@ -1017,7 +1017,7 @@ people, shall not perish from the earth.
     (rect   0   0 100 100 2)
     (rect  25  25 125 125 3))
   (stream-set-cursor-position stream 0 160)
-  (format stream "~S" (accept 'integer :stream stream)))
+  (format stream "~&~S" (accept 'integer :stream stream)))
 
 (define-test (ordering-test-2b output-recording) (stream)
   "The three overlapping rectangles should have the correct sensitivity."
@@ -1028,7 +1028,7 @@ people, shall not perish from the earth.
     (rect   0   0 100 100 2)
     (rect  50  50 150 150 3))
   (stream-set-cursor-position stream 0 240)
-  (format stream "~S" (accept 'integer :stream stream)))
+  (format stream "~&~S" (accept 'integer :stream stream)))
 
 (define-test (cursorpos-table output-recording) (stream)
   "Write some strings separated by horizontal cursor motion.  After refreshing, the output should look the same."
@@ -1877,7 +1877,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 	       (dolist (point '((n 0 -30) (s 0 30) (e 30 0) (w -30 0)))
 		 (apply #'draw-compass-point stream ptype point)))))
     #+ignore (declare (dynamic-extent #'draw-compass-point #'draw-compass))
-    (with-menu (menu stream :scroll-bars nil)
+    (with-menu (menu stream :scroll-bars nil :label "Compass point")
       #-silica (setf (window-label menu) "Compass point")
       (format stream "~S" (menu-choose-from-drawer menu 'menu-item #'draw-compass)))))
 
@@ -2132,7 +2132,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 	(accepts (a (member :red :blue :green))
 		 (b (subset :red :blue :green))
 		 (c boolean)
-		 (d (float 0 1) :view '(slider-view  :decimal-places 2))
+		 (d (float 0 1) :view '(slider-view  :width 100 :decimal-places 2))
 		 (e (integer 0 10) :view +slider-view+)
 		 (f (member :red :blue :green) :view +text-field-view+)
 		 (g (integer 0 10) :view +text-field-view+)
@@ -2566,7 +2566,7 @@ Luke Luck licks the lakes Luke's duck likes."))
       (terpri stream))))
 
 (define-benchmark (clipped-text-output :iterations 3) (stream)
-  "Draw lines through a clipping region"
+  "Draw text through a clipping region"
   (with-drawing-options (stream :clipping-region *chess-board-clip-region*)
     (repeat 5
       (write-string "Four" stream)

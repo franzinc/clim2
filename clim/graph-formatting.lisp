@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graph-formatting.lisp,v 1.27 93/04/02 18:40:58 cer Exp $
+;; $fiHeader: graph-formatting.lisp,v 1.28 93/04/07 09:06:37 cer Exp $
 
 (in-package :clim-internals)
 
@@ -943,3 +943,34 @@ circular graphs without accounting for this case.
     (map nil #'(lambda (root)
 		 (traverse nil nil root max-depth))
 	 root-objects)))
+
+;;-- This is a version that searches all of the old children.
+;;-- Graph-output records can loose reorder children quite easily and
+;;-- it seems worthwhile searching.
+
+(defmethod find-child-output-record
+    ((record basic-graph-output-record) use-old-children record-type
+					&rest initargs &key unique-id id-test &allow-other-keys)
+  (declare (dynamic-extent initargs))
+  (flet ((do-match (candidate)
+	   ;; (class-name (class-of ...)) should just be type-of, but not in PCL.
+	   (and (eq record-type (class-name (class-of candidate)))
+		(apply #'match-output-records candidate initargs))))
+    (let ((elts-to-find (when use-old-children (output-record-old-children record))))
+      (if use-old-children
+	  (let ((found-record
+		 (if unique-id
+		     (find-with-test unique-id elts-to-find
+				     #'output-record-unique-id id-test)
+		   ;; UNIQUE-ID can be NIL when we are coming through
+		   ;; INVOKE-WITH-NEW-OUTPUT-RECORD to create new records
+		   (or (and (do-match (first elts-to-find))
+			    (first elts-to-find))
+		       (dolist (child (output-record-old-children record))
+			   (when (do-match child)
+			     (return child)))))))
+	    (when found-record
+	      (setf (output-record-old-children record)
+		(delete found-record (output-record-old-children record)))
+	      found-record))
+	(call-next-method)))))

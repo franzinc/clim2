@@ -20,13 +20,21 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: train.lisp,v 1.4 93/03/19 09:44:22 cer Exp $
+;; $fiHeader: train.lisp,v 1.5 93/04/02 13:36:34 cer Exp $
 
-(defun train-clim (&key (train-times 2) (psview nil) (frame-tests t) (errorp t) (hpglview nil))
+(defun train-clim (&key (train-times 2) 
+			(psview nil)
+			(frame-tests t)
+			(errorp t)
+			(hpglview nil)
+			(compile t))
   (setq *global-gc-behavior* nil)
-  (load
-   "test/test.lisp") 
-  (clim-user::with-test-reporting ()
+  (load "test/test.lisp")
+  (clim-user::with-test-reporting (:file (if (excl::featurep :clim-motif) 
+					     "test-suite-reportxm.lisp"
+					   "test-suite-reportol.lisp"))
+    (when compile
+      (load (compile-file "test/test-suite")))
     (when frame-tests
       (clim-user::train-clim-2 train-times) 
       (clim-user::do-frame-tests errorp))

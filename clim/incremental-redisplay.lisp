@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: incremental-redisplay.lisp,v 1.17 93/03/31 10:38:40 cer Exp $
+;; $fiHeader: incremental-redisplay.lisp,v 1.18 93/04/07 09:06:42 cer Exp $
 
 (in-package :clim-internals)
 
@@ -946,7 +946,6 @@
 	  ;;--- since we have to do the erase first
 	  ;;--- Anyway things are screwed up when the parent has changed
 	  ;;--- Since we dont know where things are.
-	  
 	  ((and old-parent
 		(not (eq (output-record-parent record) old-parent))
 		(not (eq (output-record-generation-tick old-parent) *generation-tick*)))

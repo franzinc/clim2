@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-gadgets.lisp,v 1.42 93/03/31 10:40:12 cer Exp $
+;; $fiHeader: ol-gadgets.lisp,v 1.43 93/04/02 13:37:17 cer Exp $
 
 
 (in-package :xm-silica)
@@ -187,8 +187,11 @@
 			       basic-pane)
 	  ())
 
-(defmethod initialize-instance :after ((fr openlook-frame-pane) &key frame frame-manager contents thickness)
-  (declare (ignore frame frame-manager thickness))
+(defmethod initialize-instance :after ((fr openlook-frame-pane) &key
+								frame frame-manager contents thickness
+								background)
+  (declare (ignore frame frame-manager thickness)
+	   (ignore background))
   (sheet-adopt-child fr contents))
 
 ;; OpenLook viewport
@@ -441,6 +444,7 @@
 ;;; Push button
 
 (defclass openlook-push-button (push-button
+				openlook-labelled-gadget
 				openlook-action-pane
 				xt-leaf-pane) 
 	  ())
@@ -451,8 +455,7 @@
 						     (parent t)
 						     (sheet openlook-push-button))
   (with-accessors ((label gadget-label)) sheet
-    (values 'tk::oblong-button 
-	    (and label (list :label label)))))
+    (values 'tk::oblong-button nil)))
 
 ;;
 
@@ -746,13 +749,13 @@
 	  (incf sum-w width)
 	  (incf sum-h height)
 	  (maxf max-w width)))
-      (case orientation
-	(:horizontal (make-space-requirement 
-		      :width (+ sum-w (* spacing (1- (length children))))
-		      :height max-h))
-	(:vertical (make-space-requirement 
-		    :width max-w 
-		    :height (+ sum-h (* spacing (1- (length children))))))))))
+      (ecase orientation
+	(:fixedrows (make-space-requirement 
+		     :width (+ sum-w (* spacing (1- (length children))))
+		     :height max-h))
+	(:fixedcols (make-space-requirement 
+			:width max-w 
+			:height (+ sum-h (* spacing (1- (length children))))))))))
 
 ;;;
 
@@ -823,6 +826,7 @@
 	    (mmax 100))
 	(values (if editablep 'tk::slider 'tk::gauge)
 		(append
+		 (list :drag-c-b-type :release)
 		 #+dunno
 		 (and label (list :title-string label))
 		 (list :slider-min mmin
@@ -935,19 +939,16 @@
   (normalize-space-for-text-field-or-label
    sheet sr))
 
-(defun process-width-specification (sheet width)
-  (break "Make me work")
+(defmethod process-width-specification (sheet width)
   (when (numberp width) (return-from process-width-specification width))
   (let ((chars (etypecase width
 		 (list
 		  (assert (eq (second width) :character))
 		  (first width))
 		 (string (length width)))))
-    (multiple-value-bind (font left-margin right-margin)
-	(tk::get-values (sheet-direct-mirror sheet)
-			:font :left-margin :right-margin)
+    (let ((font (tk::get-values (sheet-direct-mirror sheet) :font)))
       (let ((font-width (font-list-max-width-and-height font)))
-	(+ (* 2 (+ left-margin right-margin)) (* font-width chars))))))
+	(* font-width chars)))))
 
 (defun font-list-max-width-and-height (font)
   (values (tk::font-width font) (tk::font-height font)))
@@ -962,9 +963,8 @@
 		  (first width))
 		 (string (length width)))))
     (multiple-value-bind (font top-margin bottom-margin)
-	(tk::get-values (sheet-direct-mirror sheet)
-			:font :top-margin :bottom-margin)
-      (let ((font-height (nth-value 1 (font-list-max-width-and-height font-list))))
+	(tk::get-values (sheet-direct-mirror sheet) :font :top-margin :bottom-margin)
+      (let ((font-height (nth-value 1 (font-list-max-width-and-height font))))
 	(+ top-margin bottom-margin (* font-height chars))))))
 
 
@@ -1011,6 +1011,18 @@
 	     (and nlines (list :lines-visible nlines))
 	     (and value `(:source ,value))
 	     (list :wrap-mode (if word-wrap :wrap-white-space :wrap-off))))))
+
+(defmethod process-width-specification ((sheet openlook-text-editor) width)
+  (when (numberp width) (return-from process-width-specification width))
+  (let ((chars (etypecase width
+		 (list
+		  (assert (eq (second width) :character))
+		  (first width))
+		 (string (length width)))))
+    (multiple-value-bind (font left-margin right-margin)
+	(tk::get-values (sheet-direct-mirror sheet) :font :left-margin :right-margin)
+      (let ((font-width (font-list-max-width-and-height font)))
+	(+ left-margin right-margin (* font-width chars))))))
 
 (defmethod (setf gadget-word-wrap) :after (nv (gadget openlook-text-editor))
   (tk::set-values (sheet-direct-mirror gadget) 
@@ -1471,7 +1483,7 @@
 		   (test set-gadget-test)) sheet
     (let ((item (find nv items :test test :key value-key)))
       (assert item)
-      (let ((button (find item (option-menu-buttons sheet) :key #'second)))
+      (let ((button (car (find item (option-menu-buttons sheet) :key #'second))))
 	(with-no-value-changed-callbacks
 	    (tk::set-values button :default t))))))
 

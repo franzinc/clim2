@@ -1,4 +1,4 @@
-# $fiHeader: Makefile.defs,v 1.4 93/03/15 08:27:09 cer Exp $
+# $fiHeader: Makefile.defs,v 1.6 93/04/16 09:26:13 layer Exp $
 #
 #  Makefile.defs for CLIM 2.0
 #
@@ -22,12 +22,14 @@ TRAIN_TIMES=2
 # view, file, print
 PSVIEW=:file
 HPGLVIEW=:file
+TRAIN_COMPILE=t
 
 FRAME_TESTS=t
 
 TRAIN_LISP= \
 	(load \"misc/train.lisp\") \
-	(train-clim :frame-tests $(FRAME_TESTS) :train-times $(TRAIN_TIMES) :psview $(PSVIEW) :hpglview $(HPGLVIEW)) \
+	(train-clim :frame-tests $(FRAME_TESTS) :train-times $(TRAIN_TIMES)\
+		:compile $(TRAIN_COMPILE) :psview $(PSVIEW) :hpglview $(HPGLVIEW)) \
 	(exit 0)
 
 TRAIN_TEXT = \
@@ -270,7 +272,7 @@ CLIM-STANDALONE-OBJS = clim/gestures.fasl \
                         clim/stream-trampolines.fasl
 
 GENERIC-GADGETS = clim/db-menu.fasl clim/db-list.fasl clim/db-text.fasl silica/db-button.fasl \
-	    silica/db-slider.fasl silica/scroll-pane.fasl
+	    silica/db-slider.fasl silica/scroll-pane.fasl silica/db-label.fasl
 
 XLIB-CLIM-OBJS = xlib/pkg.fasl xlib/load-xlib.fasl
 
@@ -388,6 +390,7 @@ ALL_SRC =	   utils/excl-verification.lisp \
                     silica/db-border.lisp \
                     silica/db-scroll.lisp \
                     silica/db-button.lisp \
+		    silica/db-label.lisp \
                     silica/db-slider.lisp \
 			clim/gestures.lisp \
                         clim/defprotocol.lisp \

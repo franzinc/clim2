@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-silica.lisp,v 1.33 93/04/02 13:37:30 cer Exp $
+;; $fiHeader: xm-silica.lisp,v 1.34 93/04/07 09:07:25 cer Exp $
 
 (in-package :xm-silica)
 
@@ -56,14 +56,6 @@
   (tk::set-values child :width width :height height))
 
 (defclass motif-geometry-manager (xt-geometry-manager) ())
-
-
-(defmethod change-widget-geometry ((parent tk::xm-dialog-shell) child
-				   &rest args
-				   &key x y width height)
-  (declare (ignore x y args))
-  (tk::set-values child :width width :height height :x x :y y))
-
 
 (defmethod find-shell-class-and-initargs ((port motif-port) sheet)
   (if (popup-frame-p sheet)

@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: test.lisp,v 1.45 93/03/19 09:46:41 cer Exp $
+;; $fiHeader: test.lisp,v 1.46 93/03/31 10:39:54 cer Exp $
 
 (in-package :clim-user)
 
@@ -89,7 +89,7 @@
 		     x)
 		   (list +red+ +green+)))
   (:pointer-documentation t)
-  (:geometry :width 300 :height 300))
+  (:geometry :width 800 :height 800))
 
 
 ;;; More frames

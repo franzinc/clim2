@@ -44,7 +44,8 @@
 (defun handler-invocation-debugger-hook (invocation condition)
   (format excl:*initial-terminal-io* "The following error occurred: ~A~%" condition))
 
-(defun wait-for-clim-input-state (invocation &optional (timeout 300))
+(defvar *default-input-state-timeout* 300)
+(defun wait-for-clim-input-state (invocation &optional (timeout *default-input-state-timeout*))
   (let ((process (invocation-process invocation)))
     (mp:process-allow-schedule)
     (if timeout
@@ -183,27 +184,27 @@
   (when *test-successes*
     (push test (cdr *test-successes*))))
 
-(defmacro with-test-reporting ((&rest options &key) &body body)
+(defmacro with-test-reporting ((&rest options &key file) &body body)
   `(invoke-with-test-reporting #'(lambda () ,@body) ,@options))
 
-(defun invoke-with-test-reporting (continuation)
+(defun invoke-with-test-reporting (continuation &rest options)
   (let ((*test-successes* (list nil))
 	(*test-failures* (list nil)))
     (funcall continuation)
     (pop *test-successes*)
     (pop *test-failures*)
-    (generate-test-report)))
+    (apply #'generate-test-report options)))
 
-(defun generate-test-report ()
+(defun generate-test-report (&key file)
   (format t "~4%")
   (when *test-failures*
     (format t "The following tests failed:~%")
     (dolist (x *test-failures*)
       (format t "~10t~A : ~A~%" (car x) (cdr x))))
     
-  (when (probe-file "test-suite-report.lisp")
+  (when (probe-file file)
     (let (old-successes old-failures)
-      (with-open-file (*standard-input* "test-suite-report.lisp")
+      (with-open-file (*standard-input* file)
 	(let ((*package* (find-package :clim-user)))
 	  (setq old-successes (read) old-failures (read))))
 	
@@ -237,7 +238,7 @@
       (format t "~10t~A ~%" x)))
     
 
-  (with-open-file (*standard-output* "test-suite-report.lisp"
+  (with-open-file (*standard-output* file
 		   :direction :output :if-exists :supersede)
     (let ((*package* (find-package :clim-user)))
       (print *test-successes*)

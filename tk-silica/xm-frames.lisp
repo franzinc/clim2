@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-frames.lisp,v 1.52 93/04/02 13:37:20 cer Exp $
+;; $fiHeader: xm-frames.lisp,v 1.53 93/04/08 13:19:00 colin Exp $
 
 (in-package :xm-silica)
 
@@ -273,56 +273,6 @@
 
 ;;--- Perhaps port-update-frame-settings ?
 
-(defmethod update-frame-settings ((framem motif-frame-manager) (frame t))
-  ;;--- Lets see how this works out
-  (let ((shell (sheet-shell (frame-top-level-sheet frame))))
-    (let ((sr (compose-space (frame-top-level-sheet frame))))
-      (tk::set-values shell
-		      :min-width (fix-coordinate (space-requirement-min-width sr))
-		      :min-height (fix-coordinate (space-requirement-min-height sr))))
-
-    (let ((geo (clim-internals::frame-geometry frame)))
-      (destructuring-bind
-	  (&key left top width height &allow-other-keys) geo
-	;;-- what about width and height
-	(when (and width height)
-	  (tk::set-values shell :width (fix-coordinate width) 
-			  :height (fix-coordinate height)))
-	(when (and left top)
-	  (tk::set-values shell 
-			  :x (fix-coordinate left)
-			  :y (fix-coordinate top)))))
-    
-    (tk::set-values shell :title (frame-pretty-name frame))
-    (let ((icon (clim-internals::frame-icon frame)))
-      (flet ((decode-pixmap (x)
-	       (etypecase x
-		 (string x)
-		 (pattern 
-		  (let ((sheet (frame-top-level-sheet frame)))
-		    (with-sheet-medium (medium sheet)
-		      (second 
-		       (decode-gadget-background medium sheet x))))))))
-	(destructuring-bind
-	    (&key (name (frame-pretty-name frame)) pixmap clipping-mask) icon
-	  ;;-- Dialog shells do not have :icon-name resource
-	  (when (typep shell 'tk::top-level-shell)
-	    (tk::set-values shell :icon-name name))
-	  (when pixmap
-	    (tk::set-values shell :icon-pixmap (decode-pixmap pixmap)))
-	  (when clipping-mask
-	    (tk::set-values shell :clip-mask (decode-pixmap clipping-mask))))))))
-
-(defmethod frame-manager-note-pretty-name-changed ((framem motif-frame-manager) 
-						   (frame standard-application-frame))
-  (let ((shell (frame-shell frame)))
-    (tk::set-values shell :title (frame-pretty-name frame))
-    (when (typep shell 'tk::top-level-shell)
-      (destructuring-bind (&key name &allow-other-keys) (clim-internals::frame-icon frame)
-	;;-- Dialog shells do not have :icon-name resource
-	(tk::set-values shell :icon-name (or name (frame-pretty-name frame)))))))
-	
-
 ;;;
 
 (defmethod frame-manager-construct-menu 
@@ -576,9 +526,12 @@
 
   (:menu-bar nil))
 
-(defmethod clim-internals::frame-manager-get-menu ((framem motif-frame-manager) &key scroll-bars)
+(defmethod clim-internals::frame-manager-get-menu ((framem
+						    motif-frame-manager) &key scroll-bars
+						    label)
   (let ((frame (make-application-frame 'motif-menu-frame
 				       :scroll-bars scroll-bars
+				       :label label
 				       :frame-manager framem
 				       :save-under t)))
     ;; This so that ports can do something interesting with popped-up

@@ -3,7 +3,7 @@
 ;;; Simple extensible browser
 ;;; Scott McKay
 
-;; $fiHeader: browser.lisp,v 1.19 93/03/19 09:44:09 cer Exp $
+;; $fiHeader: browser.lisp,v 1.20 93/04/07 09:07:01 cer Exp $
 
 (in-package :clim-browser)
 
@@ -1345,8 +1345,8 @@
 (define-browser-command (com-show-snapshots :menu t) ()
   (with-slots (snapshots) *application-frame*
     (dolist (snapshot snapshots)
-      (fresh-line)
-      (present snapshot 'snapshot))))
+      (fresh-line *query-io*)
+      (present snapshot 'snapshot :stream *query-io*))))
 
 (define-browser-command (com-recover-snapshot :menu t)
     ((snapshot (with-slots (snapshots) *application-frame*
