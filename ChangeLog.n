@@ -11,6 +11,16 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.3.13
+
+2001-10-02  Nichael Cramer  <ncramer@pointnclick.com>
+
+    from pnc:
+        * tk/widget.lisp
+          bug11282: Race-condition on Irix platform
+                    Replace error with cerror in widget-window-with-retry.
+
+*******************************************************************************
 2.3.12
 
 2001-09-21  Nichael Cramer  <ncramer@pointnclick.com>

@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: widget.lisp,v 1.47.34.2.24.1 2001/09/21 21:55:37 layer Exp $
+;; $Id: widget.lisp,v 1.47.34.2.24.2 2001/10/02 20:24:56 layer Exp $
 
 (in-package :tk)
 
@@ -65,8 +65,27 @@
 	 #'xt-create-managed-widget name widget-class parent
 	 args))
 
+;;; bug11282 --pnc 
+;;; We are running into a somewhat rare race-condition here on the irix platform.
+;;; (Specifically it shows up when you run the benchmarks-to-dummy-file
+;;; in the test-suite.  The breakage occurs when the simple-dialog benchmark
+;;; runs.  This benchmarks draws 20 text-gadgets inside an accepting-values.
+;;; This appears to be breaking the first time we try to create a text-field
+;;; widget.  Unfortunately this seems to occur only in this context, and only
+;;; on the irix machine.  The particular break is in the funcall below
+;;; where fn is xt-create-widget .)
+;;; It seems pretty clear it is a race-condition (for example, if you re-start
+;;; the call to this function on the error-stack, it continues successfully).
+;;; It appears that we are trying to insert the new text-gadget into the
+;;; X-side tree before it is ready for it.
+;;; Unfortunately, we can't find out specifically what it is that is not ready.
+;;; The following seems to work, but is at best a work-around.
 (defun create-widget-1 (fn name widget-class parent &rest args)
   (assert parent)
+  #+irix6  ;; bug11282 -- see comment
+  (when (typep parent 'tk::xm-my-drawing-area)
+    (let ((disp (slot-value parent 'tk::display)))
+      (x11:xsync disp 0)))  ; second arg 0 means don't flush pending events.
   (with-malloced-objects
       (let* ((class (find-class-maybe widget-class))
 	     (handle (class-handle class)))
@@ -145,23 +164,41 @@
 ;;; 
 ;;; The following method provides a "retry-loop" around the call to
 ;;; widget-window until the X-side frame is actually ready to go.
+;;;
+;;; num-retries = <num> : retry n times.
+;;; num-retries = nil : No retries.
+;;; num-retries = t : Retry until success.
+;;;
+;;; If we fail (after a specified number of retries) we call a cerror,
+;;; giving the user a chance to try again.  (The idea here is that
+;;; the pause for the error should have given the X-side enough time
+;;; to have caught up.)
+;;;
+;;; Note: Perhaps we should replace the sleep with a call to x11:xsync ?
 (defmethod widget-window-with-retry (widget &optional (num-retries 50) (sleep-time 0.5))
-  (let ((val nil))
-    (loop for count from 0
-	do 
-	  (let ((widg-wind (tk::widget-window widget nil)))
-	    (cond (widg-wind 
-		   (setq val widg-wind)
-		   (loop-finish))))
-	  (cond ((null num-retries)
-		 (error "X-widget not found for widget (~S)."
-			widget))
-		((and (numberp num-retries)
-		      (< num-retries count))
-		 (error "X-widget not found for widget (~S) after ~S re-tries"
-			widget
-			count))) 
-	  (sleep sleep-time))
+  (let ((val nil)
+	(count 0))
+    (loop while t
+	for widg-wind = (tk::widget-window widget nil)
+	do (when widg-wind 
+	     (setq val widg-wind)
+	     (loop-finish))
+	   (cond ((null num-retries)
+		  (cerror "Continue, trying again."
+			  "X-widget not found for widget (~S)."
+			  widget)
+		  ;; If continue, try again.
+		  )
+		 ((and (numberp num-retries)
+		       (<= num-retries count))
+		  (cerror "Continue, re-trying."
+			 "X-widget not found for widget (~S) after ~S re-tries"
+			 widget
+			 count)
+		  ;; If continue, start over.
+		  (setq count -1)))
+	   (sleep sleep-time)
+	   (setq count (+ count 1)))
     val))
 
 (defmethod widget-window (widget &optional (errorp t) peek)
