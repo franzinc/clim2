@@ -11,6 +11,15 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.2.1.68
+
+1999-06-24  Jeff
+
+	* aclpc/acl-medium.lisp,
+	* aclpc/acl-widget.lisp,
+	* clim/surround-output.lisp: fixes from Jeff
+
+*******************************************************************************
 2.2.1.67
 
 1999-06-23    <layer@HOBART>

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-medium.lisp,v 1.6.8.22 1999/06/23 18:28:36 layer Exp $
+;; $Id: acl-medium.lisp,v 1.6.8.23 1999/06/24 18:32:34 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -454,18 +454,13 @@
 			   created-mask-bitmap)))
 		(t
 		 (setq array (byte-align-pixmap array))
-		 (let ((dc-image nil)
-		       (created-bitmap nil))
-		   (multiple-value-setq (dc-image created-bitmap)
-		     (dc-image-for-multi-color-pattern medium ink array designs))
+		 (let ((dc-image (dc-image-for-multi-color-pattern medium ink array designs)))
 		   (setf (dc-image-brush dc-image)
 		     (win:CreatePatternBrush (dc-image-bitmap dc-image)))
-		   ;; Don't want to do this, if the 
-		   ;; image's bitmap may be deleted.
-		   (and (null created-bitmap) 
-			(setf (gethash ink cache) dc-image))
-		   (values dc-image
-			   created-bitmap)
+		   ;; Cache it now.  There is a bug that caching a pattern that
+		   ;; depends on foreground-ink or background-ink will cause
+		   ;; those settings to get captured permanently.
+		   (setf (gethash ink cache) dc-image)
 		   )))))))
 
 #|
@@ -520,13 +515,13 @@ draw icons and mouse cursors on the screen.
 		   ;; work right now, so lets use a Windows hatchbrush
 		   ;; for now.  We can cache a hatchbrush I think.
 		   (dolist (dci image)
-		     (setf (dc-image-background-color dci) -1); transparent
+		     (setf (dc-image-background-color dci) -1) ; transparent
 		     (setf (dc-image-brush dci) 
 		       (pattern-to-hatchbrush pattern)))
-		   (setf (gethash ink cache) image)))
-	    (values image 
-		    created-bitmap
-		    created-mask-bitmap))))))
+		   (setf (gethash ink cache) image)
+		   (setq created-bitmap nil)
+		   (setq created-mask-bitmap nil)))
+	    (values image created-bitmap created-mask-bitmap))))))
 
 (defun nyi ()
   (error "This NT CLIM operation is NYI (Not Yet Implemented)."))

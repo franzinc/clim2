@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-widget.lisp,v 1.7.8.21 1999/06/23 18:28:36 layer Exp $
+;; $Id: acl-widget.lisp,v 1.7.8.22 1999/06/24 18:32:36 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -77,8 +77,6 @@
       (setf index (acl-clim::frame-send-message (pane-frame pane)
 				      mirror win:LB_GETCURSEL 0 0))
       (with-slots (items value mode value-key name-key) pane
-	;;mm: 11Jan95 - we need to invoke the callback so that list-pane-view 
-	;;              will return a value.
 	(ecase mode
 	  (:exclusive
 	   (setf (gadget-value pane :invoke-callback t)
@@ -286,6 +284,13 @@
 	   (+ border margin h margin border)))))
     (otherwise height)))
 
+;; Kludge.  Sorry.  This is a workaround for the fact that
+;; the min height in a +text-field-view+ is zero.  At some
+;; point, lets try modifying +text-field-view+ and 
+;; +text-editor-view+ to supply better default sizes.
+(defvar *min-text-field-width* 75)
+(defvar *min-text-field-height* 25)
+
 (defmethod compose-space ((pane mswin-text-edit) &key width height)
   (declare (ignore width height))
   ;; Note that text-editors are scrolled by  being given 
@@ -305,7 +310,7 @@
 	       ;; This is where accepting-values views factors in.
 	       (setq w (max (process-width-specification 
 			     pane (space-requirement-width initial-space-requirement))
-			    75)))
+			    *min-text-field-width*)))
 	      (ncolumns
 	       (setq w (process-width-specification pane `(,ncolumns :character))))
 	      ((stringp value)
@@ -324,7 +329,7 @@
 	       ;; This is where accepting-values views factors in.
 	       (setq h (max (process-height-specification 
 			     pane (space-requirement-height initial-space-requirement))
-			    25)))
+			    *min-text-field-height*)))
 	      (nlines
 	       (setq h (process-height-specification pane `(,nlines :line))))
 	      ((stringp value)
@@ -424,8 +429,10 @@
 	(acl-clim::frame-send-message
 	 (pane-frame pane) mirror win:WM_SETREDRAW 0 0)
 	;; Here's the text:
+	#+broken ; dies when string contains newline/return
 	(excl:with-native-string (s1 (xlat-newline-return new))
 	  (win:SetWindowText mirror s1))
+	(win:SetWindowText mirror (xlat-newline-return new))
 	;; Try to preserve the scroll position:
 	(acl-clim::frame-send-message
 	 (pane-frame pane) mirror win:EM_LINESCROLL leftchar topline)
@@ -558,7 +565,7 @@
 	       ;; This is where accepting-values views factors in.
 	       (setq w (max (process-width-specification 
 			     pane (space-requirement-width initial-space-requirement))
-			    75)))
+			    *min-text-field-width*)))
 	      (ncolumns
 	       (setq w (process-width-specification pane `(,ncolumns :character))))
 	      ((stringp value)
@@ -574,7 +581,7 @@
 	       ;; This is where accepting-values views factors in.
 	       (setq h (max (process-height-specification 
 			     pane (space-requirement-height initial-space-requirement))
-			    25)))
+			    *min-text-field-height*)))
 	      (nlines
 	       (setq h (process-height-specification pane `(,nlines :line))))
 	      ((stringp value)
