@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: db-scroll.lisp,v 1.60.34.1 2002/02/08 19:11:23 layer Exp $
+;; $Id: db-scroll.lisp,v 1.60.34.1.6.1 2003/07/16 22:25:57 mm Exp $
 
 ;;;"Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
 ;;; Portions copyright(c) 1991, 1992 International Lisp Associates.
@@ -100,8 +100,17 @@
        (when viewport
          (update-scroll-bars viewport)))))
 
+;; bug12946 - new variable bound by run-frame-top-level
+(defvar clim-internals::*throw-to-frame-top-level* nil)
+
+
 (defun update-scroll-bars (viewport)
-  (unless *inhibit-updating-scroll-bars*
+  (unless (or *inhibit-updating-scroll-bars*
+	      
+	      ;; bug12946 - dont do anything during the throw to change layouts
+	      (eq :new-layout clim-internals::*throw-to-frame-top-level*)
+	      
+	      )
     ;;--- This is not the most efficient thing in the world
     (let ((scroller (viewport-scroller-pane viewport))
 	  (contents (viewport-contents-extent viewport)))

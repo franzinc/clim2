@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-widget.lisp,v 1.15.6.3 2002/02/08 19:11:20 layer Exp $
+;; $Id: acl-widget.lisp,v 1.15.6.3.6.1 2003/07/16 22:25:57 mm Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -630,6 +630,22 @@
 	     (pane-frame sheet)
 	     window win:WM_SETFONT 
 			     (acl-clim::acl-font-index font) 0))))
+
+      ;; bug12693 SPR26749
+      ;; If Echo-character is specified, set it explicitly
+      ;; See also (text-edit-flags mswin-text-field)
+      (when (typep sheet 'mswin-text-field)
+	(let ((echo-char (text-field-echo-character sheet)))
+	  (when echo-char
+	    (if (not (characterp echo-char))
+		(setq echo-char #\*))
+	    (let ((code (char-code echo-char)))
+	      (acl-clim::frame-send-message (pane-frame sheet)
+					    window
+					    win:EM_SETPASSWORDCHAR
+					    code 0)))))
+      
+
       ;; Don't know how to set the y margins, but they look pretty good anyway.
       (with-slots (x-margin) sheet
 	(acl-clim::frame-send-message
@@ -678,7 +694,13 @@
 (defmethod text-edit-flags ((sheet mswin-text-field))
   (logior 
    (if (gadget-editable-p sheet) 0 win:ES_READONLY)
-   win:ES_AUTOHSCROLL win:ES_LEFT win:WS_BORDER))
+   win:ES_AUTOHSCROLL win:ES_LEFT win:WS_BORDER
+   
+   ;; bug12693 spr26749
+   ;; If Echo-character is set, make this a password field.
+   (if (text-field-echo-character sheet) win:ES_PASSWORD 0)
+   
+   ))
 
 (defmethod isa-viewport ((object t)) nil)
 (defmethod isa-viewport ((object viewport)) t)
@@ -1148,7 +1170,9 @@
 	   (value nil)
 	   (width (- right left))
 	   (height (- bottom top))
-	   gadget-id)
+	   gadget-id
+	   (button-label-justify (gadget-button-label-justify sheet)) ; bug12221
+	   )
       (assert (eq parent parent2) () "parents don't match!")
       (setq gadget-id (silica::allocate-gadget-id sheet))
       (setq value (slot-value sheet 'silica::value))
@@ -1192,7 +1216,9 @@
 				  left top width height 
 				  :buttonstyle buttonstyle
 				  :value value
-				  :label label)))
+				  :label label
+				  :button-label-justify button-label-justify  ; bug12221
+				  )))
       (setf (sheet-native-transformation sheet)
 	(sheet-native-transformation (sheet-parent sheet)))
       (setf (silica::gadget-id->window sheet gadget-id) window)

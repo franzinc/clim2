@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: gadgets.lisp,v 1.69.6.1 2002/02/08 19:11:23 layer Exp $
+;; $Id: gadgets.lisp,v 1.69.6.1.6.1 2003/07/16 22:25:57 mm Exp $
 
 ;;;"Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
 ;;; Portions copyright (c) 1992 by Symbolics, Inc.	 All rights reserved."
@@ -427,11 +427,24 @@
 
 
 ;;; Toggle button
+(defvar +hbutton-pane-default-button-label-justify+ nil)
 (defclass toggle-button 
 	  (value-gadget labelled-gadget-mixin)
     ((indicator-type :initarg :indicator-type :initform :some-of
 		     :type (member :some-of :one-of)
-		     :reader gadget-indicator-type)))
+		     :reader gadget-indicator-type)
+   ;; bug12221/SPR24998 -pnc
+   ;; On Unix the default is:    <label> [X]
+   ;; On Windows the default is: [X] <label>
+   ;; If button-label-justify has a value of :left, the order is like on Unix.
+   ;; If button-label-justify is nil, just do the platform-specific default.
+   ;; NOTE:  This option is currently supported only on Windows.
+   ;; (see hpbutton-pane in aclpc/acl-widget.lisp)
+   (button-label-justify :initarg :button-label-justify 
+			 :initform +hbutton-pane-default-button-label-justify+
+			 :reader gadget-button-label-justify)
+     
+     ))
 
 
 ;;; Menu button

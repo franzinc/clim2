@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-frames.lisp,v 1.12.24.3.6.1 2002/06/03 15:51:33 layer Exp $
+;; $Id: acl-frames.lisp,v 1.12.24.3.6.2 2003/07/16 22:25:57 mm Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -274,9 +274,16 @@
 		  (:control "CTRL+")
 		  (:meta    "ALT+")))
 	 (keypress (first gesture-spec))
-	 (nlist (list (format nil "~:C" (if (member :shift gesture-spec)
+
+	 ;; bug13218 Menu accelerator is not always a character
+	 (char (keysym->char keypress))
+	 (nlist (list (if char
+                          (format nil "~:C" (if (member :shift gesture-spec)
 					    (keysym->char keypress)
-					  (char-downcase (keysym->char keypress)))))))
+					  (char-downcase (keysym->char keypress))))
+			keypress)))
+	 
+	 )
     (dolist (shift alist)
       (when (member (first shift) (rest gesture-spec))
 	(push (second shift) nlist)))
@@ -624,6 +631,26 @@ Windows does not allow a window created in one thread
 to be run from another."
 	     thread))))
 
+
+;; Following var macro and function are part of bug12221 mods.
+(defvar +batch-menubar-refresh+ nil)
+;;; An effeciency work-around.
+;;; Refresh the menubar once (rather than each time
+;;; the command-button is enabled/disabled).
+(defmacro with-batch-menubar-refresh ((frame) &body body)
+  `(let ((+batch-menubar-refresh+ t))
+     (progn ,@body)
+     (menubar-refresh-1 ,frame)
+     ))
+(defun menubar-refresh-1 (frame)
+  (let* ((top (frame-top-level-sheet frame))
+	 (mirror (sheet-mirror top))
+	 (menu-handle (win:GetMenu mirror)))
+    (when menu-handle
+      (win:DrawMenuBar mirror))))
+
+
+
 ;;--- Should "ungray" the command button, if there is one
 (defmethod note-command-enabled ((framem acl-frame-manager) frame command)
   (when (consp command) (setf command (car command)))
@@ -633,7 +660,23 @@ to be run from another."
          (command-id (find-command-menu-item-id command frame))
          (flag win:MF_ENABLED))
     (when menu-handle
-      (win:EnableMenuItem menu-handle command-id flag))))
+      (win:EnableMenuItem menu-handle command-id flag)
+
+      ;; bug12221/spr24998
+      ;; If this is a button, make sure the "ungray"
+      ;; is immediately seen.
+      
+;;; Note from docs for Windows function DrawMenuBar.
+;;; The DrawMenuBar function redraws the menu bar of the specified
+;;; window. If the menu bar changes after Windows has created the
+;;; window, this function must be called to draw the changed menu bar.
+      
+      ;; (Unfortunately, there doesn't seem to be any
+      ;; simpler way than refreshing the entire menubar.)
+      (when (not +batch-menubar-refresh+)
+	(win:DrawMenuBar mirror))
+
+      )))
 
 ;;--- Should "gray" the command button, if there is one
 (defmethod note-command-disabled ((framem acl-frame-manager) frame command)
@@ -644,7 +687,17 @@ to be run from another."
          (command-id (find-command-menu-item-id command frame))
          (flag win:MF_GRAYED))
     (when menu-handle
-      (win:EnableMenuItem menu-handle command-id flag))))
+      (win:EnableMenuItem menu-handle command-id flag)
+      
+      ;; bug12221/spr24998
+      ;; If this is a button, make sure the "ungray"
+      ;; is immediately seen.
+      ;; (Unfortunately, there doesn't seem to be any
+      ;; simpler way than refreshing the entire menubar.)
+      (when (not +batch-menubar-refresh+)
+	(win:DrawMenuBar mirror))
+      
+      )))
 
 (defmethod note-frame-enabled ((framem acl-frame-manager) frame)
   (declare (ignore frame))
@@ -915,7 +968,9 @@ to be run from another."
 				 p-i)))))))
       (values tick alist submenus))))
 
+
 ;; Gets rid of scroll bars if possible.
+
 (defmethod frame-manager-menu-choose
     ((framem acl-frame-manager) items &rest keys
      &key printer
@@ -934,7 +989,10 @@ to be run from another."
 	  n-rows
 	  x-position
 	  y-position
-	  scroll-bars)
+	  scroll-bars
+	  
+	  default-item ;; bug12221/spr25238
+	  )
   ;; The basic theory of ignoring is that we ignore arguments
   ;; that don't contribute functionality and just bring up
   ;; the native menu without any fluff.
@@ -966,7 +1024,16 @@ to be run from another."
 	  (or (win:GetCursorPos point)
 	      (check-last-error "GetCursorPos"))
 	  (setq x-position (ct:cref win:point point x))
-	  (setq y-position (ct:cref win:point point y))))
+	  (setq y-position (ct:cref win:point point y))
+
+	  ;; spr25238
+	  (multiple-value-setq (x-position y-position)
+	    (calculate-mswin-menu-pos framem
+				x-position y-position
+				items
+				default-item)
+	    )))
+
       (setq x-position (truncate x-position))
       (setq y-position (truncate y-position))
       (map nil #'(lambda (item)
@@ -990,6 +1057,81 @@ to be run from another."
 	     (let ((x (assoc code alist)))
 	       (values (second x) (third x) :unknown-gesture))
 	     )))))
+
+;;; bug12221/spr25238
+;;; New method:  Make native menus appear with pointer on :default-item.
+(defun calculate-mswin-menu-pos (framem 
+				 init-cursor-x init-cursor-y			   
+				 items
+				 default-item)
+  (let ((menu-left init-cursor-x)
+	(menu-top init-cursor-y))
+
+    (let ((default-item-pos (and default-item
+				 (position default-item items))))
+      (when default-item-pos
+	(let ((line-hei 17) ;; A good guess at the height of a menu-item
+	      (bottom-buffer 10) ;; Put a buffer at the bottom, in case the line-hei is not perfect.
+	      (cursor-x nil)
+	      (cursor-y nil))
+	  (multiple-value-bind (graft-width graft-height)
+	      (bounding-rectangle-size (graft framem))
+	    graft-width
+	    (let ((item-offset-x 3)
+		  (item-offset-y (+ (* default-item-pos line-hei) 5))
+		  (menu-hei (* (length items) line-hei)))
+	      (cond ((< (- graft-height bottom-buffer)
+			menu-hei)
+		     ;; The menu is taller than the screen
+		     ;; First, shift the offset, because of the 
+		     ;; scroll-gadget at the top of the menu.
+		     (setq item-offset-y (+ item-offset-y line-hei))
+		     ;; Now, place the menu against the top of the screen...
+		     (setq menu-left init-cursor-x
+			   menu-top 0)
+		     ;; ... and try to place the pointer on the default-item.
+		     (setq cursor-x (+ init-cursor-x item-offset-x)
+			   cursor-y (min (+ menu-top item-offset-y)
+					 (- graft-height bottom-buffer))))
+		    ((< (- graft-height bottom-buffer) 
+			(+ (- init-cursor-y item-offset-y) menu-hei))
+		     ;; We are bumping against the bottom.
+		     ;; So place the menu at the bottom of the screen...
+		     (setq menu-left init-cursor-x
+			   menu-top (- (- graft-height bottom-buffer) menu-hei))
+		     ;; ... and place the pointer on the default-item.
+		     (setq cursor-x (+ init-cursor-x item-offset-x)
+			   cursor-y (+ menu-top item-offset-y))
+		     )
+		    ((< init-cursor-y item-offset-y)
+		     ;; We are bumping against the top of the screen.
+		     ;; So place the menu at the top...
+		     (setq menu-left init-cursor-x
+			   menu-top 0)
+		     ;; ... and place the pointer on the default-item.
+		     (setq cursor-x (+ init-cursor-x item-offset-x)
+			   cursor-y (+ menu-top item-offset-y))) 
+		    (t
+		     ;; The normal case-- everything fits on the screen
+		     ;; So position the menu so the the default item
+		     ;; comes up under the pointer.
+		     (setq menu-left (- init-cursor-x item-offset-x)
+			   menu-top  (- init-cursor-y item-offset-y))
+		     ;; Warp the pointer slightly, 
+		     ;; so that the item highlights properly 
+		     (setq cursor-x (+ init-cursor-x 1)
+			   cursor-y (+ init-cursor-y 1))))
+
+	      ;; Finally, warp the pointer
+	      (when (and cursor-x cursor-y) 
+		(win:SetCursorPos cursor-x 
+				  (max 0
+				       (min cursor-y
+					    (- graft-height bottom-buffer))))))))))
+    (values  menu-left
+	     menu-top)))
+
+
 
 (defun make-filter-string (dotted-pair)
   (let ((*print-circle* nil))
@@ -1834,3 +1976,50 @@ in a second Lisp process.  This frame cannot be reused."
       ;(clim:draw-line* stream 0 0 100 100)
       ;(clim:draw-line* stream 0 100 100 0)
       (clim:draw-text* stream "Tester" 50 50))))
+
+
+
+(defmethod popup-frame-p ((frame application-frame))
+  (typep frame '(or clim-internals::menu-frame
+		 clim-internals::accept-values-own-window)))
+
+;;; New method aclpc/acl-frames.lisp
+;;; bug12221/spr24998 -pnc
+;;; Make pop-ups appear relative to the their calling frame.
+;;; Motif seems to do this automatically.  Windows does
+;;; it relative to the main-screen.  So, here we just
+;;; do it all by hand.
+(defmethod clim-internals::frame-manager-position-dialog 
+    ((framem acl-clim::acl-frame-manager)
+     frame
+     own-window-x-position own-window-y-position)
+  ;; This definition overrides the more general method in clim/accept-values.lisp
+  (let ((calling-frame nil))
+    (multiple-value-bind (x y) 
+	(cond ((and own-window-x-position own-window-y-position)
+	       ;; If value is specified, use that.
+	       (values own-window-x-position own-window-y-position))
+	      ((and (setq calling-frame (frame-calling-frame frame))
+		    (popup-frame-p frame))
+	       ;; If frame is a designated pop-up, 
+	       ;; try to center over the calling frame.
+	       (let ((calling-frame-top-level-sheet (frame-top-level-sheet calling-frame))
+		     (frame-top-level-sheet (frame-top-level-sheet frame)))
+		 (multiple-value-bind (calling-frame-left calling-frame-top calling-frame-width)
+		     (bounding-rectangle* calling-frame-top-level-sheet)
+		   (let ((frame-width (bounding-rectangle-size frame-top-level-sheet)))
+		     (let ((offset (/ (- calling-frame-width frame-width) 2))) 
+		       (multiple-value-bind (new-x new-y) 
+			   (transform-position 
+			    (sheet-delta-transformation calling-frame-top-level-sheet nil) 
+					       calling-frame-left calling-frame-top) 
+			 (values (+ new-x offset)
+				 (+ new-y 10))))))))
+	      (t
+	       ;; Otherwise, just pick a default.
+	       (values clim-internals::+frame-manager-position-dialog-default-x+
+		       clim-internals::+frame-manager-position-dialog-default-y+)))
+      (position-sheet-carefully
+       (frame-top-level-sheet frame) x y))))
+
+

@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xt-frames.lisp,v 1.49.36.1 2002/02/08 19:11:25 layer Exp $
+;; $Id: xt-frames.lisp,v 1.49.36.1.6.1 2003/07/16 22:25:57 mm Exp $
 
 (in-package :xm-silica)
 
@@ -109,7 +109,11 @@
 	  n-rows
 	  x-position
 	  y-position
-	  scroll-bars)
+	  scroll-bars
+	  
+	  default-item  ;; bug12221/spr25238
+	  
+	  )
   (declare (values value chosen-item gesture))
   ;; let's degrade to CLIM 1 style menus if we need scroll-bars
   (if scroll-bars
@@ -162,7 +166,18 @@
 				(port-display port)))
 	  (declare (ignore ignore win1 win2 x y))
 	  (setq x-position root-x
-		y-position root-y)))
+		y-position root-y)
+	  
+	  ;; bug12221/spr25238
+	  (multiple-value-setq (x-position y-position)
+	    (calculate-xm-menu-pos framem
+				   x-position y-position
+				   items
+				   default-item
+				   label
+				   ))
+	  
+	  ))
 
       (tk::set-values menu :x x-position :y y-position)
       (let ((aborted t))
@@ -194,6 +209,82 @@
 	      (framem-destroy-menu framem menu)))
 	  (port-force-output port)
 	  (values-list (nth-value 1 (funcall closure))))))))
+
+
+(defun calculate-xm-menu-pos (framem 
+			      init-cursor-x init-cursor-y
+			      items
+			      default-item
+			      label)
+  framem items default-item
+  (let ((menu-left init-cursor-x)
+	(menu-top init-cursor-y))
+
+    (let ((default-item-pos (and default-item
+				 (position default-item items))))
+      (when default-item-pos
+	(when label
+	  (setq default-item-pos (+ default-item-pos 1)))
+	(let ((line-hei 20) ;; A good guess at the height of a menu-item
+	      (bottom-buffer 10) ;; Put a buffer at the bottom, in case the line-hei is not perfect.
+	      (cursor-x nil)
+	      (cursor-y nil))
+	  (multiple-value-bind (graft-width graft-height)
+	      (bounding-rectangle-size (graft framem))
+	    graft-width
+	    (let ((item-offset-x 6)
+		  (item-offset-y (+ (* default-item-pos line-hei) 10))
+		  (menu-hei (* (length items) line-hei)))
+	      (cond  
+	       ((< (- graft-height bottom-buffer)
+		   menu-hei)
+		;; Now, place the menu against the top of the screen...
+		(setq menu-left init-cursor-x
+		      menu-top 0)
+		;; ... and try to place the pointer on the default-item.
+		(setq cursor-x (+ init-cursor-x item-offset-x)
+		      cursor-y (min (+ menu-top item-offset-y)
+				    (- graft-height bottom-buffer))))
+	       ((< (- graft-height bottom-buffer) 
+		   (+ (- init-cursor-y item-offset-y) menu-hei))
+		;; We are bumping against the bottom.
+		;; So place the menu at the bottom of the screen...
+		(setq menu-left init-cursor-x
+		      menu-top (- (- graft-height bottom-buffer) menu-hei))
+		;; ... and place the pointer on the default-item.
+		(setq cursor-x (+ init-cursor-x item-offset-x)
+		      cursor-y (+ menu-top item-offset-y))
+		)
+	       ((< init-cursor-y item-offset-y)
+		;; We are bumping against the top of the screen.
+		;; So place the menu at the top...
+		(setq menu-left init-cursor-x
+		      menu-top 0)
+		;; ... and place the pointer on the default-item.
+		(setq cursor-x (+ init-cursor-x item-offset-x)
+		      cursor-y (+ menu-top item-offset-y))) 
+	       (t
+		;; The normal case-- everything fits on the screen
+		;; So position the menu so the the default item
+		;; comes up under the pointer.
+		(setq menu-left (- init-cursor-x item-offset-x)
+		      menu-top  (- init-cursor-y item-offset-y))
+		;; Warp the pointer slightly, 
+		;; so that the item highlights properly 
+		(setq cursor-x (+ init-cursor-x 1)
+		      cursor-y (+ init-cursor-y 1))))
+
+	      ;; Finally, warp the pointer
+	      (when (and cursor-x cursor-y)
+		(let ((port (port framem)))
+		  (let ((pntr (port-pointer port)))
+		    (setf (clim-internals::pointer-native-position pntr)
+		      (values cursor-x cursor-y))))))))))
+    (values  menu-left
+	     menu-top)))
+
+
+
 
 (defmethod frame-manager-allows-menu-caching ((framem xt-frame-manager))
   t)
