@@ -11,6 +11,14 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.2.1.77
+
+2000-04-24 tfb@cley.com
+
+* misc/compile-1.lisp: make compile-it not load systems by default to
+  try to fix the redefinition-warnings Kevin is seeing.
+
+*******************************************************************************
 2.2.1.76
 
 2000-04-21 tfb@cley.com

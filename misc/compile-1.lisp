@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: compile-1.lisp,v 1.33.22.10 2000/04/19 23:32:27 layer Exp $
+;; $Id: compile-1.lisp,v 1.33.22.11 2000/04/25 15:55:39 layer Exp $
 
 (in-package :user)
 
@@ -310,12 +310,14 @@
 
 (defun compile-it (sys)
   (flet ((cl (s &key (include-components t)
-		     (ignore-if-unknown nil))
+		     (ignore-if-unknown nil)
+		     (load-too nil))
 	   (cond ((ignore-errors (excl:find-system s))
 		  (excl:compile-system s 
 				       :include-components include-components)
-		  (excl:tenuring
-		   (excl:load-system s)))
+		  (when load-too
+		    (excl:tenuring
+		     (excl:load-system s))))
 		 ((not ignore-if-unknown)
 		  (error "System ~S not known" sys))
 		 (t nil))))
