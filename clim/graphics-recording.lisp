@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics-recording.lisp,v 1.7 92/05/22 19:27:59 cer Exp Locker: cer $
+;; $fiHeader: graphics-recording.lisp,v 1.8 92/06/16 15:01:47 cer Exp $
 
 (in-package :clim-internals)
 
@@ -8,32 +8,36 @@
  Portions copyright (c) 1991, 1992 Franz, Inc.  All rights reserved.
  Portions copyright (c) 1989, 1990 International Lisp Associates."
 
-(defmacro define-output-recorder (class name medium-components 
-				  &key bounding-rectangle
-				       highlighting-test
-				       highlighting-function)
+(defmacro define-graphics-recording (name medium-components 
+				     &key bounding-rectangle
+					  highlighting-test
+					  highlighting-function
+				     &environment env)
   (destructuring-bind (function-args
-		       &key points-to-transform point-sequences-to-transform
-			    optional-points-to-transform distances-to-transform
+		       &key positions-to-transform position-sequences-to-transform
+			    optional-positions-to-transform distances-to-transform
 		       &allow-other-keys)
       (get-drawing-function-description name)
     ;; Gross me right out!
     (setq function-args
 	  (mapcar #'(lambda (x) (intern (symbol-name x) *package*))
 		  function-args))
-    (setq points-to-transform
+    (setq positions-to-transform
 	  (mapcar #'(lambda (x) (intern (symbol-name x) *package*))
-		  points-to-transform))
-    (setq point-sequences-to-transform
+		  positions-to-transform))
+    (setq position-sequences-to-transform
 	  (mapcar #'(lambda (x) (intern (symbol-name x) *package*))
-		  point-sequences-to-transform))
-    (setq optional-points-to-transform
+		  position-sequences-to-transform))
+    (setq optional-positions-to-transform
 	  (mapcar #'(lambda (x) (intern (symbol-name x) *package*))
-		  optional-points-to-transform))
+		  optional-positions-to-transform))
     (setq distances-to-transform
 	  (mapcar #'(lambda (x) (intern (symbol-name x) *package*))
 		  distances-to-transform))
-    (let* ((medium-graphics-function*
+    (let* ((class 
+	     (intern (format nil "~A-~A"
+		       (remove-word-from-string "DRAW-" name) 'output-record)))
+	   (medium-graphics-function*
 	     (intern (format nil "~A~A*" 'medium- name)))
 	   (superclasses '(output-record-element-mixin 
 			   graphics-displayed-output-record))
@@ -47,38 +51,44 @@
 	 (defclass ,class ,superclasses ,slot-descs)
 	 ;;--- Need to define a speedy constructor
 	 (defmethod ,medium-graphics-function* :around
-		    ((medium output-recording-mixin) ,@function-args)
-	   (when (stream-recording-p medium)
-	     (let ((transformation (medium-transformation medium))
-		   ,@(mapcar #'(lambda (medium-component)
-					  (list medium-component
-						`(,(fintern"~A~A" 'medium- medium-component)
-						  medium)))
-			     medium-components))
+		    ((stream output-recording-mixin) ,@function-args)
+	   (when (stream-recording-p stream)
+	     ;; It's safe to call SHEET-MEDIUM because output recording
+	     ;; streams always have a medium
+	     (let* ((medium (sheet-medium stream))
+		    (transformation (medium-transformation medium))
+		    ,@(mapcar #'(lambda (medium-component)
+				  (list medium-component
+					`(,(fintern"~A~A" 'medium- medium-component)
+					  medium)))
+			      medium-components))
 	       ;; Overload FILLED and LINE-STYLE -- when FILLED is T,
 	       ;; the LINE-STYLE is ignored and must be NIL
 	       ,@(when (and (member 'filled function-args)
 			    (member 'line-style medium-components))
 		   `((when filled (setq line-style nil))))
 	       (multiple-value-bind (abs-x abs-y)
-		   (point-position (stream-output-history-position medium))
+		   (point-position (stream-output-history-position stream))
 		 (declare (type coordinate abs-x abs-y))
+		 ;; Be sure to cons new point sequences, since they
+		 ;; get stored in the output record
 		 ,@(mapcar #'(lambda (p)
-			       `(setq ,p (transform-position-sequence transformation ,p)))
-			   point-sequences-to-transform)
-		 ,@(do ((pts points-to-transform (cddr pts))
+			       `(setq ,p (transform-position-sequence
+					   transformation ,p t)))
+			   position-sequences-to-transform)
+		 ,@(do ((pts positions-to-transform (cddr pts))
 			(r nil))
 		       ((null pts)
 			(nreverse r))
 		     (push 
-		       (if (member (first pts) optional-points-to-transform)
+		       (if (member (first pts) optional-positions-to-transform)
 			   `(when ,(first pts)
-			      (transform-positions (transformation)
+			      (transform-positions transformation
 				,(first pts) ,(second pts)))
-			   `(transform-positions (transformation)
+			   `(transform-positions transformation
 			      ,(first pts) ,(second pts)))
 		       r))
-		 (transform-distances (transformation) ,@distances-to-transform)
+		 (transform-distances transformation ,@distances-to-transform)
 		 (let ((record
 			 (make-instance ',class
 			   ,@(mapcan #'(lambda (x)
@@ -89,7 +99,7 @@
 		     (declare (type coordinate lf tp rt bt))
 		     (bounding-rectangle-set-edges record
 		       (- lf abs-x) (- tp abs-y) (- rt abs-x) (- bt abs-y))
-		     (multiple-value-bind (cx cy) (stream-cursor-position medium)
+		     (multiple-value-bind (cx cy) (stream-cursor-position stream)
 		       (declare (type coordinate cx cy))
 		       ;; Doing this directly beats calling
 		       ;; OUTPUT-RECORD-SET-START-CURSOR-POSITION
@@ -99,22 +109,22 @@
 		     ;; Adjust the stored coordinates by the current cursor position
 		     ,@(mapcar #'(lambda (p)
 				   `(with-slots (,p) record
-				      (setf ,p (adjust-point-sequence ,p abs-x abs-y))))
-			       point-sequences-to-transform)
-		     ,@(when points-to-transform
-			 `((with-slots ,points-to-transform record
-			     ,@(do ((p points-to-transform (cddr p))
+				      (setf ,p (adjust-position-sequence ,p abs-x abs-y))))
+			       position-sequences-to-transform)
+		     ,@(when positions-to-transform
+			 `((with-slots ,positions-to-transform record
+			     ,@(do ((p positions-to-transform (cddr p))
 				    r)
 				   ((null p) (nreverse r))
 				 (let ((b `(setf ,(first p)  (- ,(first p) abs-x)
 						 ,(second p) (- ,(second p) abs-y))))
 				   (push
-				     (if (member (car p) optional-points-to-transform)
+				     (if (member (car p) optional-positions-to-transform)
 					 `(when ,(car p) ,b)
 					 b) 
 				     r)))))))
-		   (stream-add-output-record medium record)))))
-	   (when (stream-drawing-p medium)
+		   (stream-add-output-record stream record)))))
+	   (when (stream-drawing-p stream)
 	     (call-next-method)))
 
 	 (defmethod replay-output-record ((record ,class) stream 
@@ -124,7 +134,9 @@
 	   (declare (type coordinate x-offset y-offset))
 	   (declare (ignore region))
 	   (with-slots (,@slots) record
-	     (with-sheet-medium (medium stream)
+	     ;; We can call SHEET-MEDIUM because stream will be an output
+	     ;; recording stream or an encapsulating stream
+	     (let ((medium (sheet-medium stream)))
 	       (letf-globally (((medium-transformation medium) +identity-transformation+))
 		 (with-drawing-options 
 		     (medium ,@(mapcan #'(lambda (medium-component)
@@ -136,20 +148,20 @@
 				      (member 'line-style medium-components))
 			     `((filled (not line-style))))
 			 ,@(mapcar #'(lambda (p) (list p p))
-				   points-to-transform)
+				   positions-to-transform)
 			 ,@(mapcar #'(lambda (p) (list p p))
-				   point-sequences-to-transform))
+				   position-sequences-to-transform))
 		     ,@(mapcar #'(lambda (p)
-				   `(setq ,p (adjust-point-sequence 
+				   `(setq ,p (adjust-position-sequence 
 					       ,p (- x-offset) (- y-offset))))
-			       point-sequences-to-transform)
-		     ,@(do ((p points-to-transform (cddr p))
+			       position-sequences-to-transform)
+		     ,@(do ((p positions-to-transform (cddr p))
 			    r)
 			   ((null p) (nreverse r))
 			 (let ((b `(setf ,(first p) (+ ,(first p) x-offset)
 					 ,(second p) (+ ,(second p) y-offset))))
 			   (push
-			     (if (member (car p) optional-points-to-transform)
+			     (if (member (car p) optional-positions-to-transform)
 				 `(when ,(car p) ,b)
 				 b)
 			     r)))
@@ -158,14 +170,24 @@
 	 ,@(when highlighting-test
 	     (let ((args (first highlighting-test))
 		   (body (rest highlighting-test)))
-	       `((defmethod output-record-refined-sensitivity-test ((record ,class) ,@args)
-		   ,@body))))
+	       (multiple-value-bind (doc-string declarations body)
+		   (extract-declarations body env)
+		 (declare (ignore doc-string))
+		 `((defmethod output-record-refined-sensitivity-test ((record ,class) ,@args)
+		     ,@declarations
+		     (block highlighting-test
+		       ,@body))))))
 
 	 ,@(when highlighting-function
 	     (let ((args (first highlighting-function))
 		   (body (rest highlighting-function)))
-	       `((defmethod highlight-output-record-1 ((record ,class) ,@args)
-		   ,@body))))))))
+	       (multiple-value-bind (doc-string declarations body)
+		   (extract-declarations body env)
+		 (declare (ignore doc-string))
+		 `((defmethod highlight-output-record-1 ((record ,class) ,@args)
+		     ,@declarations
+		     (block highlighting-function
+		       ,@body))))))))))
 
 (defmacro with-half-thickness ((lthickness rthickness) line-style &body body)
   (let ((ls '#:line-style)
@@ -177,75 +199,7 @@
        ,@body)))
 
 
-;;; Designs
-
-(defun make-design-from-output-record (record)
-  (multiple-value-bind (xoff yoff) (compute-output-record-offsets record)
-    (make-design-from-output-record-1 record xoff yoff)))
-
-(defmethod make-design-from-output-record-1
-	   ((record output-record-mixin) x-offset y-offset)
-  (let ((designs nil))
-    (flet ((make-design (record)
-	     (multiple-value-bind (xoff yoff) (output-record-position record)
-	       (declare (type coordinate xoff yoff))
-	       (let ((design
-		       (make-design-from-output-record-1
-			 record
-			 (+ x-offset xoff) (+ y-offset yoff))))
-		 (when design (push design designs))))))
-      (declare (dynamic-extent #'make-design))
-      (map-over-output-records #'make-design record))
-    (make-instance 'composite-over :designs (apply #'vector designs))))
-
-(defgeneric draw-design (design stream &rest args)
-  (declare (arglist design stream &key . #.(all-drawing-options-lambda-list nil))))
-
-
-;;; Simple composite designs
-(defmethod draw-design ((composite composite-over) stream &rest args)
-  (declare (dynamic-extent args))
-  (with-slots ((designs clim-utils::designs)) composite
-    (dovector (design designs :from-end t)
-      (apply #'draw-design design stream args))))
-
-(defmethod draw-design ((composite composite-in) stream &rest args &key ink &allow-other-keys)
-  (declare (dynamic-extent args))
-  (with-slots ((designs clim-utils::designs)) composite
-    (let ((ink (or ink (aref designs 0)))	;should be COMPOSE-OVER
-	  (design (aref designs 1)))
-      ;; Clips INK to the inside of DESIGN.
-      (apply #'draw-design design stream :ink ink args))))
-
-(defmethod draw-design ((composite composite-out) stream &rest args &key ink &allow-other-keys)
-  (declare (dynamic-extent args))
-  (with-slots ((designs clim-utils::designs)) composite
-    (let ((ink (or ink (aref designs 0)))	;should be COMPOSE-OVER
-	  (design (aref designs 1)))
-      ;;--- Should clip INK to the outside of DESIGN, but I don't know how
-      (nyi))))
-
-(defmethod draw-design ((region standard-region-union) stream &rest args)
-  (declare (dynamic-extent args))
-  (with-slots ((regions clim-utils::regions)) region
-    (dolist (region regions)
-      (apply #'draw-design region stream args))))
-
-(defmethod draw-design ((region standard-region-intersection) stream &rest args)
-  (declare (dynamic-extent args))
-  (with-slots ((regions clim-utils::regions)) region
-    ;;--- Should draw just the intersection, but I dunno how to do that in general
-    (nyi)))
-
-(defmethod draw-design ((region standard-region-difference) stream &rest args)
-  (declare (dynamic-extent args))
-  (with-slots ((region1 clim-utils::region1)
-	       (region2 clim-utils::region2)) region
-    ;;--- Should draw just the difference, but I dunno how to do that in general
-    (nyi)))
-
-
-(define-output-recorder point-output-record draw-point (ink line-style)
+(define-graphics-recording draw-point (ink line-style)
   :bounding-rectangle 
     (with-half-thickness (lthickness rthickness) line-style
       (values (- x lthickness)
@@ -253,21 +207,42 @@
 	      (+ x rthickness)
 	      (+ y rthickness))))
 
-(defmethod make-design-from-output-record-1
-	   ((point point-output-record) x-offset y-offset)
-  (with-slots (x y ink) point
-    (compose-in
-      ink
-      (make-point (+ x x-offset) (+ y y-offset)))))
-
-(defmethod draw-design ((point standard-point) stream &rest args &key ink line-style)
-  (declare (dynamic-extent args)
-	   (ignore ink line-style))
-  (multiple-value-bind (x y) (point-position point)
-    (apply #'draw-point* stream x y args)))
+(define-graphics-recording draw-points (ink line-style)
+  :bounding-rectangle 
+    (position-sequence-bounding-rectangle 
+      position-seq line-style)
+  :highlighting-test
+    ((x y)
+     (let ((position-seq (slot-value record 'position-seq))
+	   (line-style (slot-value record 'line-style)))
+       (with-half-thickness (lthickness rthickness) line-style
+	 (map-position-sequence
+	   #'(lambda (px py)
+	       (when (ltrb-contains-position-p (- px lthickness) (- py lthickness)
+					       (+ px rthickness) (+ py rthickness)
+					       x y)
+		 (return-from highlighting-test t)))
+	   position-seq))))
+  :highlighting-function
+    ((stream state)
+     (declare (ignore state))			;for now.
+     (multiple-value-bind (xoff yoff)
+	 (convert-from-relative-to-absolute-coordinates
+	   stream (output-record-parent record))
+       (let ((position-seq (slot-value record 'position-seq))
+	     (line-style (slot-value record 'line-style)))
+	 (with-half-thickness (lthickness rthickness) line-style
+	   (map-position-sequence
+	     #'(lambda (px py)
+		 (draw-rectangle* stream
+				  (+ (- px lthickness) xoff) (+ (- py lthickness) yoff)
+				  (+ (+ px rthickness) xoff) (+ (+ py rthickness) yoff)
+				  :ink +flipping-ink+
+				  :line-style +highlighting-line-style+))
+	     position-seq))))))
 
 
-(define-output-recorder line-output-record draw-line (ink line-style)
+(define-graphics-recording draw-line (ink line-style)
   :bounding-rectangle 
     (with-half-thickness (lthickness rthickness) line-style
       (values (- (min x1 x2) lthickness)
@@ -288,20 +263,34 @@
 	 (outline-line-with-hexagon stream xoff yoff
 				    x1 y1 x2 y2 (line-style-thickness line-style))))))
 
-(defmethod make-design-from-output-record-1
-	   ((line line-output-record) x-offset y-offset)
-  (with-slots (x1 x2 y1 y2 ink) line
-    (compose-in
-      ink
-      (make-line* (+ x1 x-offset) (+ y1 y-offset)
-		  (+ x2 x-offset) (+ y2 y-offset)))))
-
-(defmethod draw-design ((line standard-line) stream &rest args &key ink line-style)
-  (declare (dynamic-extent args)
-	   (ignore ink line-style))
-  (multiple-value-bind (x1 y1) (line-start-point* line)
-    (multiple-value-bind (x2 y2) (line-end-point* line)
-      (apply #'draw-line* stream x1 y1 x2 y2 args))))
+(define-graphics-recording draw-lines (ink line-style)
+  :bounding-rectangle 
+    (position-sequence-bounding-rectangle 
+      position-seq line-style)
+  :highlighting-test
+    ((x y)
+     (let* ((position-seq (slot-value record 'position-seq))
+	    (line-style (slot-value record 'line-style))
+	    (thickness (line-style-thickness line-style)))
+       (map-endpoint-sequence
+	 #'(lambda (x1 y1 x2 y2)
+	     (when (point-close-to-line-p x y x1 y1 x2 y2 thickness)
+	       (return-from highlighting-test t)))
+	 position-seq)))
+  :highlighting-function
+    ((stream state)
+     (declare (ignore state))			;for now.
+     (multiple-value-bind (xoff yoff)
+	 (convert-from-relative-to-absolute-coordinates
+	   stream (output-record-parent record))
+       (let* ((position-seq (slot-value record 'position-seq))
+	      (line-style (slot-value record 'line-style))
+	      (thickness (line-style-thickness line-style)))
+	 (map-endpoint-sequence
+	   #'(lambda (x1 y1 x2 y2)
+	       (outline-line-with-hexagon stream xoff yoff
+					  x1 y1 x2 y2 thickness))
+	   position-seq)))))
 
 (defun outline-line-with-hexagon (stream xoff yoff
 				  from-x from-y to-x to-y &optional (thickness 1))
@@ -338,7 +327,7 @@
 	  (line x6 y6 x1 y1))))))
 
 
-(define-output-recorder rectangle-output-record draw-rectangle (ink line-style)
+(define-graphics-recording draw-rectangle (ink line-style)
   :bounding-rectangle
     (with-half-thickness (lthickness rthickness) line-style
       (values (- (min x1 x2) lthickness)
@@ -369,108 +358,85 @@
 	       (+ x2 rthickness 1) (+ y2 rthickness 1)
 	       +flipping-ink+ +highlighting-line-style+)))))))
 
-(defmethod make-design-from-output-record-1
-	   ((rectangle rectangle-output-record) x-offset y-offset)
-  (with-slots (x1 x2 y1 y2 line-style ink) rectangle
-    (compose-in
-      ink
-      (if (null line-style)
-	  (make-rectangle* (+ x1 x-offset) (+ y1 y-offset)
-			   (+ x2 x-offset) (+ y2 y-offset))
-          (make-polyline* (list (+ x1 x-offset) (+ y1 y-offset)
-				(+ x2 x-offset) (+ y1 y-offset)
-				(+ x2 x-offset) (+ y2 y-offset)
-				(+ x1 x-offset) (+ y2 y-offset))
-			  :closed t)))))
-
-(defmethod draw-design ((rectangle standard-rectangle) stream &rest args &key ink line-style)
-  (declare (dynamic-extent args)
-	   (ignore ink line-style))
-  (multiple-value-bind (x1 y1 x2 y2) (rectangle-edges* rectangle)
-    (apply #'draw-rectangle* stream x1 y1 x2 y2 :filled t args))) 
+(define-graphics-recording draw-rectangles (ink line-style)
+  :bounding-rectangle 
+    (position-sequence-bounding-rectangle 
+      position-seq line-style)
+  :highlighting-test
+    ((x y)
+     (let ((position-seq (slot-value record 'position-seq))
+	   (line-style (slot-value record 'line-style)))
+       (map-endpoint-sequence
+	 #'(lambda (x1 y1 x2 y2)
+	     (when (if (null line-style)
+		       (ltrb-contains-position-p x1 y1 x2 y2 x y)
+		       (with-half-thickness (lthickness rthickness) line-style
+			 (not (and (<= (+ x1 rthickness) x)
+				   (<= (+ y1 rthickness) y)
+				   (>= (- x2 lthickness) x)
+				   (>= (- y2 lthickness) y)))))
+	       (return-from highlighting-test t)))
+	 position-seq)))
+  :highlighting-function
+    ((stream state)
+     (declare (ignore state))			;for now.
+     (multiple-value-bind (xoff yoff)
+	 (convert-from-relative-to-absolute-coordinates
+	   stream (output-record-parent record))
+       (let ((position-seq (slot-value record 'position-seq))
+	     (line-style (slot-value record 'line-style)))
+	 (with-half-thickness (lthickness rthickness) line-style
+	   (map-endpoint-sequence
+	     #'(lambda (x1 y1 x2 y2)
+		 (draw-rectangle-internal
+		   stream xoff yoff
+		   (- x1 lthickness 1) (- y1 lthickness 1)
+		   (+ x2 rthickness 1) (+ y2 rthickness 1)
+		   +flipping-ink+ +highlighting-line-style+))
+	     position-seq))))))
 
 
 ;;--- This needs a :HIGHLIGHTING-TEST and :HIGHLIGHTING-FUNCTION
-(define-output-recorder polygon-output-record draw-polygon (ink line-style)
+;;--- Note that POSITION-SEQ will be a vector in those methods
+(define-graphics-recording draw-polygon (ink line-style)
   :bounding-rectangle
-    (point-sequence-bounding-rectangle 
-     list-of-x-and-ys line-style))
+    (position-sequence-bounding-rectangle 
+      position-seq line-style))
 
-(define-output-recorder lines-output-record draw-lines (ink line-style)
-  :bounding-rectangle
-    (point-sequence-bounding-rectangle 
-     points line-style))
-
-
-(defmethod make-design-from-output-record-1
-	   ((polygon polygon-output-record) x-offset y-offset)
-  (with-slots (list-of-xs-and-ys closed line-style ink) polygon
-    (let ((coords (copy-list list-of-xs-and-ys)))
-      (translate-position-sequence x-offset y-offset coords)
-      (compose-in
-	ink
-	(if (null line-style)
-	    (make-polygon* coords)
-            (make-polyline* coords :closed closed))))))
-
-(defmethod draw-design ((polygon standard-polygon) stream &rest args &key ink line-style)
-  (declare (dynamic-extent args)
-	   (ignore ink line-style))
-  (apply #'draw-polygon* stream (coerce (slot-value polygon 'clim-utils::coords) 'list)
-			 :closed t :filled t args))
-
-(defmethod draw-design ((polyline standard-polyline) stream &rest args &key ink line-style)
-  (declare (dynamic-extent args)
-	   (ignore ink line-style))
-  (apply #'draw-polygon* stream (coerce (slot-value polyline 'clim-utils::coords) 'list)
-			 :closed (polyline-closed polyline) :filled nil args))
-
-(defun point-sequence-bounding-rectangle (list-of-x-and-ys line-style)
-  (let* ((minx (elt list-of-x-and-ys 0))
-	 (miny (elt list-of-x-and-ys 1))
+(defun position-sequence-bounding-rectangle (position-seq line-style)
+  (let* ((minx (elt position-seq 0))
+	 (miny (elt position-seq 1))
 	 (maxx minx)
 	 (maxy miny))
-    (map-point-sequence
+    (map-position-sequence
       #'(lambda (x y)
 	  (minf minx x)
 	  (minf miny y)
 	  (maxf maxx x)
 	  (maxf maxy y))
-      list-of-x-and-ys)
+      position-seq)
     (with-half-thickness (lthickness rthickness) line-style
       (values (- minx lthickness)
 	      (- miny lthickness)
 	      (+ maxx rthickness)
 	      (+ maxy rthickness)))))
 
-(defun map-point-sequence (fn seq-of-x-and-ys)
-  (if (arrayp seq-of-x-and-ys)
-      (do* ((len (length seq-of-x-and-ys))
-	    (i 0 (+ i 2)))
-	  ((>= i len))
-	(funcall fn (aref seq-of-x-and-ys i)
-		 (aref seq-of-x-and-ys (1+ i))))
-    (do ((p seq-of-x-and-ys (cddr p)))
-	((null p))
-      (funcall fn (car p) (cadr p)))))
-
-(defun adjust-point-sequence (seq-of-x-and-ys dx dy)
-  ;;-- Perhaps we could declare everthing to be of type coordinate
-  ;;--- and make a coordinate array
+(defun adjust-position-sequence (position-seq dx dy)
   (if (and (zerop dx) (zerop dy))
-      seq-of-x-and-ys
-    (let ((r (make-array (length seq-of-x-and-ys)))
-	  (i 0))
-      (map-point-sequence
-       #'(lambda (x y)
-	   (setf (aref r i) (- x dx)
-		 (aref r (1+ i)) (- y dy)
-		 i (+ i 2)))
-       seq-of-x-and-ys)
-      r)))
+      position-seq
+      (let ((result (make-array (length position-seq)))
+	    (i 0))
+	(declare (type simple-vector result))
+	(map-position-sequence
+	  #'(lambda (x y)
+	      (setf (svref result i) (- x dx)
+		    (svref result (1+ i)) (- y dy)
+		    i (+ i 2)))
+	  position-seq)
+	result)))
 
 
-(define-output-recorder ellipse-output-record draw-ellipse (ink line-style)
+(define-graphics-recording draw-ellipse (ink line-style)
   :bounding-rectangle
     (multiple-value-bind (left top right bottom)
 	(elliptical-arc-box
@@ -522,71 +488,29 @@
 		 start-angle end-angle
 		 +flipping-ink+ +highlighting-line-style+))))))))
 
-(defmethod make-design-from-output-record-1
-	   ((ellipse ellipse-output-record) x-offset y-offset)
-  (with-slots (center-x center-y radius-1-dx radius-1-dy radius-2-dx radius-2-dy
-	       start-angle end-angle line-style ink) ellipse
-    (compose-in
-      ink
-      (if (null line-style)
-	  (make-ellipse* (+ center-x x-offset) (+ center-y y-offset)
-			 radius-1-dx radius-1-dy radius-2-dx radius-2-dy
-			 :start-angle start-angle :end-angle end-angle)
-          (make-elliptical-arc* (+ center-x x-offset) (+ center-y y-offset)
-				radius-1-dx radius-1-dy radius-2-dx radius-2-dy
-				:start-angle start-angle :end-angle end-angle)))))
-
-(defmethod draw-design ((ellipse standard-ellipse) stream &rest args &key ink line-style)
-  (declare (dynamic-extent args)
-	   (ignore ink line-style))
-  (multiple-value-bind (center-x center-y)
-      (ellipse-center-point* ellipse)
-    (multiple-value-bind (radius-1-dx radius-1-dy radius-2-dx radius-2-dy)
-	(ellipse-radii ellipse)
-      (apply #'draw-ellipse* stream center-x center-y
-			     radius-1-dx radius-1-dy radius-2-dx radius-2-dy
-			     :start-angle (ellipse-start-angle ellipse)
-			     :end-angle (ellipse-end-angle ellipse)
-			     :filled t args))))
-
-(defmethod draw-design ((ellipse standard-elliptical-arc) stream &rest args &key ink line-style)
-  (declare (dynamic-extent args)
-	   (ignore ink line-style))
-  (multiple-value-bind (center-x center-y)
-      (ellipse-center-point* ellipse)
-    (multiple-value-bind (radius-1-dx radius-1-dy radius-2-dx radius-2-dy)
-	(ellipse-radii ellipse)
-      (apply #'draw-ellipse* stream center-x center-y
-			     radius-1-dx radius-1-dy radius-2-dx radius-2-dy
-			     :start-angle (ellipse-start-angle ellipse)
-			     :end-angle (ellipse-end-angle ellipse)
-			     :filled nil args))))
-
 
-;;--- Where is DRAW-TEXT?  and/or DRAW-STRING and DRAW-CHARACTER?
-
-(define-output-recorder text-output-record draw-text (text-style ink)
+(define-graphics-recording draw-text (ink text-style)
   :bounding-rectangle
-    (text-bounding-box medium transformation string-or-char x y 
-		       start end align-x align-y text-style
-		       towards-x towards-y transform-glyphs))
+    (medium-text-bounding-box medium string-or-char x y
+			      start end align-x align-y text-style
+			      towards-x towards-y transform-glyphs transformation))
 
-(defun text-bounding-box (stream transformation string x y
-			  start end align-x align-y text-style
-			  towards-x towards-y transform-glyphs)
-  (port-text-bounding-box (port stream) stream string x y 
-			  start end align-x align-y text-style
-			  towards-x towards-y transform-glyphs))
+(defmethod medium-text-bounding-box ((sheet standard-sheet-output-mixin) string x y
+				     start end align-x align-y text-style
+				     towards-x towards-y transform-glyphs transformation)
+  (medium-text-bounding-box (sheet-medium sheet) string x y
+			    start end align-x align-y text-style
+			    towards-x towards-y transform-glyphs transformation))
 
-(defmethod port-text-bounding-box ((port port) stream string x y
-				   start end align-x align-y text-style
- 				   towards-x towards-y transform-glyphs)
-  (declare (ignore towards-x towards-y transform-glyphs))
-  (let* ((width (stream-string-width stream string
+(defmethod medium-text-bounding-box ((medium basic-medium) string x y
+				     start end align-x align-y text-style
+				     towards-x towards-y transform-glyphs transformation)
+  (declare (ignore towards-x towards-y transform-glyphs transformation))
+  (let* ((width (stream-string-width (medium-sheet medium) string
  				     :start start :end end
  				     :text-style text-style))
- 	 (ascent (text-style-ascent text-style (port stream)))
- 	 (descent (text-style-descent text-style (port stream)))
+ 	 (ascent (text-style-ascent text-style medium))
+ 	 (descent (text-style-descent text-style medium))
  	 (height (+ ascent descent))
  	 vx vt vr vb)
     (ecase align-x

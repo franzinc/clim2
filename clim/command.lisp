@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: command.lisp,v 1.8 92/05/07 13:12:02 cer Exp $
+;; $fiHeader: command.lisp,v 1.9 92/05/22 19:27:45 cer Exp $
 
 (in-package :clim-internals)
 
@@ -122,8 +122,8 @@
 	((nil)
 	 (remhash name *all-command-tables*))))
     (setq command-table (make-instance 'standard-command-table
-				       :name name
-				       :inherit-from inherit-from))
+			  :name name
+			  :inherit-from inherit-from))
     (process-command-table-menu command-table menu)
     (setf (gethash name *all-command-tables*) command-table)
     command-table))
@@ -515,6 +515,10 @@
 	   :format-string "Menu name ~S has no menu item present in ~S"
 	   :format-args (list menu-name command-table))))
 
+(defparameter *command-table-menu-text-style*
+	      (parse-text-style '(:sans-serif :roman :large)))
+(defparameter *command-table-menu-gray* (make-gray-color 1/2))
+
 (define-presentation-type command-menu-element ())
 
 ;; This should never be called with :ACCEPTABLY T
@@ -543,12 +547,10 @@
       (with-text-style (stream text-style)
 	(if (and command
 		 (not (command-enabled (command-name command) *application-frame*)))
-	    (with-text-style (stream '(nil :italic :smaller))
+	    (with-drawing-options (stream :ink *command-table-menu-gray*
+					  :text-face :bold)
 	      (body stream))
 	    (body stream))))))
-
-(defparameter *command-table-menu-text-style*
-	      (parse-text-style '(:sans-serif :roman :large)))
 
 (defun display-command-table-menu (command-table stream
 				   &key max-width max-height
@@ -581,8 +583,15 @@
 						    :align-y cell-align-y)
 			     (write-string (first element) stream)))))
 		     (null
-		       ;;--- Draw a dividing line
-		       )))
+		       (let* ((options (command-menu-item-options (third element)))
+			      (width (getf options :width 50))
+			      (thickness (getf options :thickness 2))
+			      (ink (getf options :ink *command-table-menu-gray*)))
+			 (formatting-cell (stream :align-x cell-align-x
+						  :align-y :center)
+			   (with-local-coordinates (stream)
+			     (draw-line* stream 0 0 width 0 
+					 :line-thickness thickness :ink ink)))))))
 		  ((first element)
 		   (formatting-cell (stream :align-x cell-align-x :align-y cell-align-y)
 		     (present element 'command-menu-element
@@ -653,8 +662,15 @@
 		     (formatting-cell (stream)
 		       (write-string (first item) stream)))))
 	       (null
-		 ;;--- Draw a dividing line
-		 )))
+		 (let* ((options (command-menu-item-options (third item)))
+			(width (getf options :width 50))
+			(thickness (getf options :thickness 2))
+			(ink (getf options :ink *command-table-menu-gray*)))
+		   (formatting-cell (stream :align-x :left
+					    :align-y :center)
+		     (with-local-coordinates (stream)
+		       (draw-line* stream 0 0 width 0 
+				   :line-thickness thickness :ink ink)))))))
 	    ((first item)
 	     (formatting-cell (stream)
 	       (if type

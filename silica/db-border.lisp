@@ -5,7 +5,7 @@
 
 (in-package :silica)
 
-;; $fiHeader: db-border.lisp,v 1.6 92/04/15 11:44:58 cer Exp $
+;; $fiHeader: db-border.lisp,v 1.7 92/05/07 13:11:09 cer Exp $
 
 ;;; Border Panes
 (defclass border-pane (layout-pane)
@@ -15,22 +15,24 @@
   (sheet-adopt-child pane contents))
 
 (defmethod compose-space ((pane border-pane) &key width height)
-  (with-slots (thickness) pane
-    (let ((child (sheet-child pane)))
-      (space-requirement+
-	(compose-space child :width width :height height)
-	(make-space-requirement 
-	  :width (* 2 thickness)
-	  :height (* 2 thickness))))))
+  (let ((thickness (slot-value pane 'thickness))
+	(child (sheet-child pane)))
+    (space-requirement+
+      (compose-space child :width width :height height)
+      (make-space-requirement 
+	:width (* 2 thickness)
+	:height (* 2 thickness)))))
 
 (defmethod allocate-space ((pane border-pane) width height)
-  (with-slots (thickness) pane
+  (let ((thickness (slot-value pane 'thickness)))
     (move-and-resize-sheet* (sheet-child pane)
 			    thickness thickness
 			    (- width (* 2 thickness))
 			    (- height (* 2 thickness)))))
   
-(defmacro bordering (options &body contents)
+(defmacro bordering ((&rest options &key thickness &allow-other-keys)
+		     &body contents)
+  (declare (ignore thickness))
   `(make-pane 'border-pane
 	      :contents ,@contents
 	      ,@options))
@@ -50,7 +52,9 @@
 			 :line-thickness thickness :filled nil
 			 :ink (pane-background pane))))))
 
-(defmacro outlining (options &body contents)
+(defmacro outlining ((&rest options &key thickness &allow-other-keys)
+		     &body contents)
+  (declare (ignore thickness))
   `(make-pane 'outlined-pane
 	      :contents ,@contents
 	      ,@options))
@@ -59,7 +63,8 @@
 (defclass spacing-pane (border-pane) ()
   (:default-initargs :thickness 2))
 
-(defmacro spacing (options &body contents)
+(defmacro spacing ((&rest options &key thickness &allow-other-keys) &body contents)
+  (declare (ignore thickness))
   `(make-pane 'spacing-pane
 	      :contents ,@contents
 	      ,@options))

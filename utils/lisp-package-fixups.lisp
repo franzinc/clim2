@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: USER; Base: 10 -*-
 
-;; $fiHeader: lisp-package-fixups.lisp,v 1.4 92/02/24 13:05:39 cer Exp $
+;; $fiHeader: lisp-package-fixups.lisp,v 1.5 92/05/22 19:27:13 cer Exp $
 
 #+ANSI-90 (in-package :cl-user)
 
@@ -44,10 +44,10 @@
 		 (rename-package 
 		   pack (package-name pack)
 		   (list* add-name (package-nicknames pack))))))))
-    (fix-package "COMMON-LISP" "LISP")
-    (fix-package "COMMON-LISP" "CL") ;; ??
-    (fix-package "COMMON-LISP-USER" "USER")
-    (fix-package "COMMON-LISP-USER" "CL-USER")) ;; ??
+    (fix-package :common-lisp :lisp)
+    (fix-package :common-lisp :cl)		;--- ??
+    (fix-package :common-lisp-user :user)
+    (fix-package :common-lisp-user :cl-user))	;--- ??
   (when (null (find-package :system))
     (defpackage system))
 )	;eval-when

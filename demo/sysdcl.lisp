@@ -1,8 +1,8 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sysdcl.lisp,v 1.9 92/05/07 13:13:39 cer Exp $
+;; $fiHeader: sysdcl.lisp,v 1.10 92/05/22 19:29:10 cer Exp $
 
-(in-package #-ANSI-90 :user #+ANSI-90 :common-lisp-user)
+(in-package #-ansi-90 :user #+ansi-90 :common-lisp-user)
 
 "Copyright (c) 1990, 1991 Symbolics, Inc.  All rights reserved.
  Portions copyright (c) 1988, 1989, 1990 International Lisp Associates."
@@ -11,34 +11,34 @@
   (:default-pathname #+Genera "SYS:CLIM;REL-2;DEMO;"
 		     #+Minima "SYS:CLIM;REL-2;DEMO;"
 		     #+Cloe-Runtime "\\clim\\rel-2\\demo\\"
-		     #+Lucid "/home/hornig/clim/rel-2/demo/"
-		     #+Allegro (frob-pathname "demo")
+		     #+allegro (frob-pathname "demo")
+		     #+Lucid (frob-pathname "demo")
 		     #+CMU "/home/hornig/clim/rel-2/demo/"
 		     #+CCL-2 "ccl;clim-2.0:demo:"
    :default-binary-pathname #+Genera "SYS:CLIM;REL-2;DEMO;"
 			    #+Minima "SYS:CLIM;REL-2;DEMO;"
 			    #+Cloe-Runtime "\\clim\\rel-2\\bin\\"
-			    #+Lucid "/home/hornig/clim/rel-2/lcl4/"
-			    #+Allegro (frob-pathname "demo")
+			    #+allegro (frob-pathname "demo")
+			    #+Lucid (frob-pathname "demo")
 			    #+CMU "/home/hornig/clim/rel-2/cmu/"
 			    #+CCL-2 "ccl;clim-2.0:fasls:"
    ;;--- :needed-systems (clim-standalone)
    )
 
   ("packages")
-  ("aaai-demo-driver" :load-before-compile ("packages"))
-  ("listener"       :load-before-compile ("aaai-demo-driver" "packages"))
-  ("graphics-demos" :load-before-compile ("aaai-demo-driver" "packages")
+  ("demo-driver"    :load-before-compile ("packages"))
+  ("listener"       :load-before-compile ("demo-driver" "packages"))
+  ("graphics-demos" :load-before-compile ("demo-driver" "packages")
 		    :features (not Minima))
-  ("cad-demo"	    :load-before-compile ("aaai-demo-driver" "packages")
+  ("cad-demo"	    :load-before-compile ("demo-driver" "packages")
 		    :features (not Minima))
   ("navdata"	    :load-before-compile ("packages")
 		    :features (not Minima))
-  ("navfun"         :load-before-compile ("aaai-demo-driver" "navdata" "packages")
+  ("navfun"         :load-before-compile ("demo-driver" "navdata" "packages")
 		    :features (not Minima))
-  ("puzzle"         :load-before-compile ("aaai-demo-driver" "packages"))
-  ("address-book"   :load-before-compile ("aaai-demo-driver" "packages"))
-  ("thinkadot"      :load-before-compile ("aaai-demo-driver" "packages"))
+  ("puzzle"         :load-before-compile ("demo-driver" "packages"))
+  ("address-book"   :load-before-compile ("demo-driver" "packages"))
+  ("thinkadot"      :load-before-compile ("demo-driver" "packages"))
   ("demo-prefill" :features (or Genera Cloe-Runtime)))
 
 #+Genera

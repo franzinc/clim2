@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept.lisp,v 1.6 92/04/15 11:46:05 cer Exp $
+;; $fiHeader: accept.lisp,v 1.7 92/05/07 13:11:56 cer Exp $
 
 (in-package :clim-internals)
 
@@ -84,13 +84,19 @@
     (when insert-default
       (setq accept-args `(:default ,default :default-type ,default-type ,@accept-args))))
 
+  (typecase view
+    (null)
+    (symbol (setq view (make-instance view)))
+    (cons   (setq view (apply #'make-instance view))))
+
   ;; Call methods to do the work
-  (with-keywords-removed (accept-args accept-args '(:stream))
+  (with-keywords-removed (accept-args accept-args '(:stream :view))
     (let ((query-identifier
-	   (apply #'prompt-for-accept
-		  (or *original-stream* stream) type view accept-args)))
+	    (apply #'prompt-for-accept
+		   (or *original-stream* stream) type view accept-args)))
       (apply #'stream-accept (or *original-stream* stream) type
-			     :query-identifier query-identifier accept-args))))
+			     :view view :query-identifier query-identifier
+			     accept-args))))
 
 (defmethod stream-accept ((stream input-protocol-mixin) type &rest accept-args)
   (declare (dynamic-extent accept-args))
@@ -328,7 +334,7 @@
   (let ((index start))
     (multiple-value-bind (the-object the-type)
 	(with-input-from-string (stream string :start start :end end :index index)
-	  (handler-bind ((simple-parse-error
+	  (handler-bind ((parse-error
 			   #'(lambda (error)
 			       ;; This private version of CHECK-FOR-DEFAULT is
 			       ;; enough for string and string streams to do a

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: text-recording.lisp,v 1.5 92/05/07 13:13:08 cer Exp $
+;; $fiHeader: text-recording.lisp,v 1.6 92/05/22 19:28:33 cer Exp $
 
 (in-package :clim-internals)
 
@@ -69,18 +69,17 @@
 				 &optional region 
 					   (x-offset (coordinate 0)) (y-offset (coordinate 0)))
   (declare (type coordinate x-offset y-offset))
-  (declare (ignore region))
-  (let* ((string (slot-value record 'string))
-	 (start 0)
-	 (end (length string))
-	 (text-style (medium-default-text-style stream))
-	 (port (port stream))
-	 (baseline (- (text-style-height text-style port)
-		      (text-style-descent text-style port)))
-	 (glyph-buffer (stream-output-glyph-buffer stream))
-	 (color (slot-value record 'ink)))
-    (declare (type fixnum start end))
-    (with-sheet-medium (medium stream)
+  (declare (ignore region)) 
+  (with-sheet-medium (medium stream)
+    (let* ((string (slot-value record 'string))
+	   (start 0)
+	   (end (length string))
+	   (text-style (medium-default-text-style stream))
+	   (baseline (- (text-style-height text-style medium)
+			(text-style-descent text-style medium)))
+	   (glyph-buffer (stream-output-glyph-buffer stream))
+	   (color (slot-value record 'ink)))
+      (declare (type fixnum start end))
       (macrolet
 	((do-it (end-position)
 	   `(loop
@@ -289,6 +288,7 @@
 
 (defun text-recompute-contents-id-test (id1 id2)
   (or (eql id1 id2)
+      #-Lucid					;--- is this right in general?
       (and (stringp id2)
 	   (string= id1 id2))))
 
@@ -400,11 +400,10 @@
 (defmethod stylize-text-output-record ((record standard-text-output-record) style stream)
   (with-slots (ink string wrapped-p left top right bottom
 	       start-x start-y end-x end-y) record
-    (let* ((port (port stream))
-	   (new-record (make-styled-text-output-record-1
-			 ink string wrapped-p
-			 style (- (text-style-height style port)
-				  (text-style-descent style port)))))
+    (let ((new-record (make-styled-text-output-record-1
+			ink string wrapped-p
+			style (- (text-style-height style stream)
+				 (text-style-descent style stream)))))
       (with-slots ((new-left left) (new-top top) (new-right right) (new-bottom bottom)
 		   (new-sx start-x) (new-sy start-y) (new-ex end-x) (new-ey end-y)
 		   (new-wrapped-p wrapped-p)) new-record
@@ -424,8 +423,7 @@
   ;; This finds the lowest baseline of the text in RECORD, which will be slower than, say,
   ;; the first baseline but more likely to look good with misaligned things.
   (let ((baseline (coordinate 0))
-	(style (medium-default-text-style stream))
-	(port (port stream)))
+	(style (medium-default-text-style stream)))
     (declare (type coordinate baseline))
     (labels ((find-or-recurse (record y-offset)
 	       (declare (type coordinate y-offset))
@@ -435,8 +433,8 @@
 		 (standard-text-output-record
 		   (maxf baseline
 			 (+ y-offset 
-			    (- (text-style-height style port)
-			       (text-style-descent style port)))))
+			    (- (text-style-height style stream)
+			       (text-style-descent style stream)))))
 		 (t
 		   (multiple-value-bind (xoff yoff) (output-record-position record)
 		     (declare (type coordinate yoff))

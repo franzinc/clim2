@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: transformations.lisp,v 1.5 92/04/15 11:45:39 cer Exp $
+;; $fiHeader: transformations.lisp,v 1.6 92/05/07 13:11:46 cer Exp $
 
 (in-package :clim-utils)
 
@@ -116,6 +116,14 @@
     (declare (type single-float mxx mxy myx myy tx ty))
     `(make-standard-transformation-1 ,mxx ,mxy ,myx ,myy ,tx ,ty)))
 
+(defmethod print-object ((transform standard-transformation) stream)
+  (print-unreadable-object (transform stream :type t :identity t)
+    (with-slots (mxx mxy myx myy tx ty) transform
+      (declare (single-float mxx mxy myx myy tx ty))
+      (if (and (zerop mxy) (zerop myx))
+	  (format stream "scale (~D,~D) translate (~D,~D)" mxx myy tx ty)
+	  (format stream "[~D ~D ~D ~D] ~D ~D)" mxx mxy myx myy tx ty)))))
+
 
 ;;; Conditions
 
@@ -215,8 +223,6 @@
 	+identity-transformation+
 	(make-translation-transformation-1 delta-x delta-y))))
 
-;;--- There may be a low level numerics function that computes sin and cos more
-;;--- efficiently than two separate calls?
 (defun make-rotation-transformation* (angle origin-x origin-y)
   (declare (type real angle origin-x origin-y))
   #+Genera (declare lt:(side-effects simple reducible))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: menus.lisp,v 1.24 92/06/16 15:01:52 cer Exp Locker: cer $
+;; $fiHeader: menus.lisp,v 1.25 92/06/23 08:19:50 cer Exp $
 
 (in-package :clim-internals)
 
@@ -38,7 +38,7 @@
   ;; Horrible kludge in the case where no associated window is passed in.
   :matcher (eq (port menu) (port root)))
 
-(defmethod initialize-menu ((port port) window associated-window)
+(defmethod initialize-menu ((port basic-port) window associated-window)
   (declare (ignore window associated-window))
   )
 
@@ -47,29 +47,30 @@
 					  (size-setter #'window-set-inside-size))
   (with-slots (output-record) menu
     (with-bounding-rectangle* (left top right bottom) output-record
-      (let* ((graft (graft menu))
+      (let* ((graft (or (graft menu)
+			(find-graft)))		;--- is this right?
 	     (gw (bounding-rectangle-width (sheet-region graft)))
 	     (gh (bounding-rectangle-height (sheet-region graft)))
+	     ;;--- Does this need to account for the size of window decorations?
 	     (width (min gw (+ (or width (- right left)) right-margin)))
 	     (height (min gh (+ (or height (- bottom top)) bottom-margin))))
 	(funcall size-setter menu width height)
 	(window-set-viewport-position menu left top)))))
 
 (defun position-window-near-carefully (window x y)
-  #-Silica
+  #+++ignore
   (multiple-value-bind (width height) (bounding-rectangle-size window)
-    (multiple-value-bind (parent-width parent-height)
-	(window-inside-size (window-parent window))
+    (multiple-value-bind (graft-width graft-height)
+	(bounding-rectangle-size (or (graft window) (find-graft)))
       (let* ((left x)
 	     (top y)
 	     (right (+ left width))
 	     (bottom (+ top height)))
-	(when (> right parent-width)
-	  (setq left (- parent-width width)))
-	(when (> bottom parent-height)
-	  (setq top (- parent-height height)))
-	(bounding-rectangle-set-position window
-					 (max 0 left) (max 0 top))))))
+	(when (> right graft-width)
+	  (setq left (- graft-width width)))
+	(when (> bottom graft-height)
+	  (setq top (- graft-height height)))
+	(move-sheet* window (max 0 left) (max 0 top))))))
 
 (defun position-window-near-pointer (window &optional x y)
   (unless (and x y)
@@ -92,13 +93,11 @@
 	  ((atom (setq rest (cdr menu-item))) rest)
 	  (t (getf rest :value (first menu-item))))))
 
-;; There is a semantic reason this is a macro: we don't want DEFAULT to get
-;; evaluated before it is needed
-(defmacro menu-item-getf (menu-item indicator &optional default)
-  `(let (rest)
-     (cond ((atom ,menu-item) nil)
-	   ((atom (setq rest (cdr ,menu-item))) ,default)
-	   (t (getf rest ,indicator ,default)))))
+(defun menu-item-getf (menu-item indicator &optional default)
+  (let (rest)
+    (cond ((atom menu-item) default)
+	  ((atom (setq rest (cdr menu-item))) default)
+	  (t (getf rest indicator default)))))
 
 (defun menu-item-style (menu-item)
   (menu-item-getf menu-item :style))
@@ -114,9 +113,9 @@
   (or (atom menu-item)
       (menu-item-getf menu-item :active t)))
 
-;; Item list can be a general sequence...
-(defun menu-item-item-list (menu-item)
-  (menu-item-getf menu-item :item-list))
+;; A submenu, which can be a general sequence...
+(defun menu-item-items (menu-item)
+  (menu-item-getf menu-item :items))
 
 ;; Perhaps misguided attempt at allowing performance win if you use
 ;; simple unique-ids.
@@ -124,21 +123,24 @@
 	(cons (make-hash-table :test #'eql)
 	      (make-hash-table :test #'equal)))
 
+(defvar *load-time-eql* #'eql)
+(defvar *load-time-equal* #'equal)
+
 (defun get-from-output-history-cache (unique-id id-test)
   (let ((table (cond ((or (eq id-test 'eql)
-			  (eq id-test (load-time-value #'eql)))
+			  (eq id-test *load-time-eql*))
 		      (car *menu-choose-output-history-caches*))
 		     ((or (eq id-test 'equal)
-			  (eq id-test (load-time-value #'equal)))
+			  (eq id-test *load-time-equal*))
 		      (cdr *menu-choose-output-history-caches*)))))
   (gethash unique-id table)))
 
 (defun set-output-history-cache (unique-id id-test new-value)
   (let ((table (cond ((or (eq id-test 'eql)
-			  (eq id-test (load-time-value #'eql)))
+			  (eq id-test *load-time-eql*))
 		      (car *menu-choose-output-history-caches*))
 		     ((or (eq id-test 'equal)
-			  (eq id-test (load-time-value #'equal)))
+			  (eq id-test *load-time-equal*))
 		      (cdr *menu-choose-output-history-caches*)))))
     (setf (gethash unique-id table) new-value)))
 
@@ -305,11 +307,11 @@
 		      :unique-id unique-id :id-test id-test
 		      :cache-value cache-value :cache-test cache-test
 		      :pointer-documentation pointer-documentation))
-		(cond ((menu-item-item-list item)
+		(cond ((menu-item-items item)
 		       ;; Set the new item list, then go back through the loop.
 		       ;; Don't cache, because that will cause us to see the same
 		       ;; menu items again and again.
-		       (setq items (menu-item-item-list item)
+		       (setq items (menu-item-items item)
 			     default-item nil
 			     cache nil)
 		       (clear-output-history menu))
@@ -361,6 +363,7 @@
 	 (*delimiter-gestures* nil)
 	 (*activation-gestures* nil)
 	 (*accelerator-gestures* nil)
+	 (*accelerator-numeric-argument* nil)
 	 (*input-context* nil)
 	 (*accept-help* nil)
 	 (*assume-all-commands-enabled* nil)
@@ -401,10 +404,9 @@
 	(with-menu-as-popup (menu)
 	  (position-window-near-pointer menu x-position y-position)
 	  (window-expose menu)
-	  ;;--- IF we have windows with backing store then we dont get
-	  ;;--- exposure event and so nothing appears
-	  (replay (stream-output-history menu) menu)
-	  ;;;
+ 	  ;;--- If we have windows with backing store then we dont get
+ 	  ;;--- exposure event and so nothing appears
+ 	  #+Allegro (replay (stream-output-history menu) menu)
 	  #+Cloe-Runtime (stream-set-input-focus menu)
 	  (when default-presentation
 	    (with-bounding-rectangle* (left top right bottom) default-presentation
@@ -487,12 +489,12 @@
 		  :cache cache
 		  :unique-id unique-id :id-test id-test
 		  :cache-value cache-value :cache-test cache-test))
-	    (cond ((menu-item-item-list item)
+	    (cond ((menu-item-items item)
 		   (with-bounding-rectangle* (ml mt mr mb) menu
 		     (declare (ignore ml mb))
 		     ;;--- How to pass on LABEL, PRINTER, and PRESENTATION-TYPE?
 		     (hierarchical-menu-choose
-		       (menu-item-item-list item)
+		       (menu-item-items item)
 		       :associated-window associated-window
 		       :default-style default-style
 		       :x-position mr :y-position mt
@@ -552,17 +554,18 @@
 				       menu 'menu-item items default-item
 				       :item-printer item-printer
 				       drawer-args)))))))))))
-    (make-instance 'static-menu :name name
-				:menu-contents menu-contents
-				:default-presentation default-presentation
-				:root-window root-window
-				;; Save this in case we have to rebuild the menu
-				:items items
-				:default-item default-item
-				:default-style default-style
-				:printer printer
-				:presentation-type presentation-type
-				:drawer-args drawer-args)))
+    (make-instance 'static-menu
+      :name name
+      :menu-contents menu-contents
+      :default-presentation default-presentation
+      :root-window root-window
+      ;; Save this in case we have to rebuild the menu
+      :items items
+      :default-item default-item
+      :default-style default-style
+      :printer printer
+      :presentation-type presentation-type
+      :drawer-args drawer-args)))
 
 ;;--- How to get FRAME-MANAGER-MENU-CHOOSE into the act here?
 (defmethod menu-choose ((static-menu static-menu)
@@ -601,9 +604,9 @@
 	      :cache-value menu-contents
 	      :default-presentation default-presentation
 	      :pointer-documentation pointer-documentation)
-	  (cond ((menu-item-item-list item)
+	  (cond ((menu-item-items item)
 		 (with-keywords-removed (keys keys '(:default-item))
-		   (apply #'menu-choose (menu-item-item-list item) keys)))
+		   (apply #'menu-choose (menu-item-items item) keys)))
 		(t
 		 (return-from menu-choose
 		   (values (menu-item-value item) item gesture)))))))))

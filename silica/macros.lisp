@@ -16,10 +16,10 @@
 ;; contained herein by any agency, department or entity of the U.S.
 ;; Government are subject to restrictions of Restricted Rights for
 ;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
+;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: macros.lisp,v 1.9 92/04/15 11:45:15 cer Exp $
+;; $fiHeader: macros.lisp,v 1.10 92/05/07 13:11:23 cer Exp $
 
 (in-package :silica)
 

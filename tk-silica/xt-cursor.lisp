@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-cursor.lisp,v 1.9 92/05/13 17:11:21 cer Exp $
+;; $fiHeader: xt-cursor.lisp,v 1.10 92/05/26 14:33:28 cer Exp $
 
 (in-package :xm-silica)
 
@@ -52,7 +52,7 @@
 ;;--- Also, rather than using set-values to position it we should use
 ;;--- XtMoveWidget
 
-(defmethod ensure-blinker-for-cursor (port sheet mirror cursor)
+(defmethod ensure-blinker-for-cursor ((port xt-port) sheet mirror cursor)
   ;; Make sure that is the widget for the cursor
   ;;----- This is going to fail in all kinds of ways
   ;;----- For example if the window is ungrafted and then regrafted

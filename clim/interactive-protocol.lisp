@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: interactive-protocol.lisp,v 1.9 92/05/22 19:28:08 cer Exp Locker: cer $
+;; $fiHeader: interactive-protocol.lisp,v 1.10 92/06/23 08:19:48 cer Exp $
 
 (in-package :clim-internals)
 
@@ -399,8 +399,6 @@
     ;; from the underlying stream, which can complain if it wants to.
     (stream-unread-gesture stream gesture)))
 
-(defvar *input-buffer-empty* t)
-
 (defmethod stream-read-gesture ((istream input-editing-stream-mixin)
 				&key timeout peek-p
 				     (input-wait-test *input-wait-test*)
@@ -454,12 +452,11 @@
 
       (setf rescanning-p nil)
       (multiple-value-bind (thing type)
-	  (let* ((*accelerator-numeric-argument*
-		 (or numeric-argument 1))
-		(*input-buffer-empty* (zerop (fill-pointer input-buffer)))
-		(*accelerator-gestures*
-		  ;; If there's anything in the input buffer, disallow accelerators
-		 (and  *input-buffer-empty* *accelerator-gestures*)))
+	  (let* ((*input-buffer-empty* (zerop (fill-pointer input-buffer)))
+		 (*accelerator-numeric-argument* (or numeric-argument 1))
+		 (*accelerator-gestures*
+		   ;; If there's anything in the input buffer, disallow accelerators
+		   (and *input-buffer-empty* *accelerator-gestures*)))
 	    (stream-read-gesture stream
 	      :timeout timeout :peek-p peek-p
 	      :input-wait-test input-wait-test

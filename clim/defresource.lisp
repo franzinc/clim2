@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: defresource.lisp,v 1.6 92/03/10 10:12:30 cer Exp $
+;; $fiHeader: defresource.lisp,v 1.7 92/05/07 13:12:11 cer Exp $
 
 (in-package :clim-internals)
 
@@ -56,6 +56,7 @@
 		(cdr (os-use-cons object-storage)))))))
 
 (defun map-resource (function resource)
+  (declare (dynamic-extent function))
   (with-resource-rd (resource rd)
     (let ((objects (rd-objects rd)))
       (doseq (object-storage objects)
@@ -128,7 +129,7 @@
   (let ((rd (or (lookup-resource-descriptor name) (make-resource-descriptor name))))
     (with-lock-held ((rd-lock rd) "Resource lock")
       (unless (rd-objects rd)
-	(setf (rd-objects rd) (make-array (* 2 (or initial-copies 10))
+	(setf (rd-objects rd) (make-array (* 2 (max (or initial-copies 10) 10))
 					  :fill-pointer 0))
 	(when initial-copies
 	  (repeat initial-copies

@@ -15,10 +15,10 @@
 ;; contained herein by any agency, department or entity of the U.S.
 ;; Government are subject to restrictions of Restricted Rights for
 ;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
+;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.34 92/06/23 08:20:15 cer Exp Locker: cer $
+;; $fiHeader: xm-gadgets.lisp,v 1.35 92/06/29 14:05:13 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -269,7 +269,7 @@
       (let ((mmin 0) 
 	    (mmax 100)
 	    (decimal-points 0)
-	    (decimal-places (silica::slider-decimal-places sheet)))
+	    (decimal-places (slider-decimal-places sheet)))
 	(cond ((and (zerop decimal-places)
 		    (typep smin '(signed-byte 32))
 		    (typep smax '(signed-byte 32)))
@@ -337,13 +337,13 @@
 						     (parent t)
 						     (sheet motif-scroll-bar))
   (values 'tk::xm-scroll-bar nil))
-	  
 
-(defmethod (setf silica::scroll-bar-size) (nv (sb motif-scroll-bar))
+
+(defmethod (setf scroll-bar-size) (nv (sb motif-scroll-bar))
   (tk::set-values (sheet-direct-mirror sb) :slider-size (floor nv))
   nv)
 
-(defmethod (setf silica::scroll-bar-value) (nv (sb motif-scroll-bar))
+(defmethod (setf scroll-bar-value) (nv (sb motif-scroll-bar))
   (tk::set-values (sheet-direct-mirror sb) :value nv)
   nv)
 
@@ -363,7 +363,6 @@
 	   :value real-value))))))
 
 
-   
 (defmethod add-sheet-callbacks :after ((port motif-port) (sheet motif-scroll-bar) (widget t))
   (tk::add-callback widget
 		    :value-changed-callback
@@ -524,13 +523,6 @@
     (setf (space-requirement-max-width sr) +fill+
 	  (space-requirement-max-height sr) +fill+)
     sr))
-
-
-#+ignore
-(defmethod silica::gadget-supplied-scrolling (frame-manager frame (contents motif-text-editor) &rest ignore)
-  (declare (ignore ignore))
-  (with-look-and-feel-realization (frame-manager frame)
-    (make-pane 'motif-scrolling-window :contents contents)))
 
 ;;; Toggle button
 
@@ -877,13 +869,6 @@
        (tk::add-callback widget :multiple-selection-callback 
 			 'list-pane-multiple-selection-callback sheet))))
 
-#+ignore
-(defmethod silica::gadget-supplied-scrolling (frame-manager frame
-					      (contents motif-list-pane)
-					      &rest ignore)
-  (declare (ignore ignore))
-  (with-look-and-feel-realization (frame-manager frame)
-    (make-pane 'motif-scrolling-window :contents contents)))
 
 (defmethod (setf gadget-value) :after (nv (l motif-list-pane) &key invoke-callback)
   (declare (ignore invoke-callback))
@@ -1210,7 +1195,7 @@
 	   :pane-maximum (space-requirement-max-height csr)))
 	(setq sr 
 	  (if sr
-	      (silica::space-requirement+ (silica::space-requirement+* sr :height 10) csr)
+	      (space-requirement+ (space-requirement+* sr :height 10) csr)
 	    csr))))))
 
 ;;; Basically this gadget does not do anything sensible with its

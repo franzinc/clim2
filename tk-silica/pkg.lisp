@@ -15,14 +15,14 @@
 ;; contained herein by any agency, department or entity of the U.S.
 ;; Government are subject to restrictions of Restricted Rights for
 ;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
+;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: pkg.lisp,v 1.4 92/02/24 13:06:14 cer Exp $
+;; $fiHeader: pkg.lisp,v 1.5 92/04/21 20:28:29 cer Exp $
 
-(defpackage :tk-silica
-  (:nicknames :xm-silica)
+(defpackage tk-silica
+  (:nicknames xm-silica)
   (:use clim-lisp clim-utils clim silica tk)
-  (:import-from :excl #:if*))
+  (:import-from excl #:if*))
 
   

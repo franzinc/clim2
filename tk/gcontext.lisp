@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: gcontext.lisp,v 1.17 92/05/26 14:32:53 cer Exp $
+;; $fiHeader: gcontext.lisp,v 1.18 92/06/16 19:10:48 cer Exp $
 
 (in-package :tk)
 
@@ -292,7 +292,7 @@
 		#.boole-c1 #.boole-orc1 #.boole-nand #.boole-set))
 
 (defun encode-function (gc x)
-  (declare (ignore gc))
+   (declare (ignore gc))
   (or (position x *boole-vector*)
       (error "Cannot encode gc function: ~S" x)))
 
@@ -329,7 +329,6 @@
    (object-display gc)
    gc
    nv))
-
 
 (defmethod (setf gcontext-clip-mask) ((nv cons) (gc gcontext))
   (let ((r (x11:make-xrectangle)))
@@ -458,7 +457,6 @@
 
 
 ;;;;;;;;;;;;;;;;;;;
-
 #|
 
 (defparameter *temp-gc-stack* nil)
@@ -501,8 +499,8 @@
   (x11:xfreegc (object-display gc) gc)
   (setf (ff:foreign-pointer-address gc) 0)
   nil)
-
 |#
+
 
 #|
 (with-gcontext (gc :function foo :font bar)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-scroll.lisp,v 1.22 92/05/26 14:32:58 cer Exp Locker: cer $
+;; $fiHeader: db-scroll.lisp,v 1.23 92/06/29 14:04:31 cer Exp Locker: cer $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright(c) 1991, 1992 International Lisp Associates.
@@ -133,9 +133,9 @@
        scroller changedp
        hscroll-bar hscroll-bar-enabled-p 
        vscroll-bar vscroll-bar-enabled-p t))
-    (with-bounding-rectangle* (minx miny maxx maxy) 
+    (with-bounding-rectangle* (left top right bottom) 
       (viewport-contents-extent viewport)
-      (with-bounding-rectangle* (vminx vminy vmaxx vmaxy)
+      (with-bounding-rectangle* (vleft vtop vright vbottom)
 	(viewport-viewport-region viewport)
 	(with-accessors ((horizontal-scroll-bar scroller-pane-horizontal-scroll-bar)
 			 (vertical-scroll-bar scroller-pane-vertical-scroll-bar))
@@ -146,6 +146,32 @@
 	  (when horizontal-scroll-bar
 	    (update-scroll-bar horizontal-scroll-bar
 			       minx maxx vminx vmaxx)))))))
+
+(defun update-scroll-bars (viewport)
+  ;;--- This is not the most efficient thing in the world
+  (let ((scroller (viewport-scroller-pane viewport)))
+    (multiple-value-bind (changedp
+			  hscroll-bar hscroll-bar-enabled-p
+			  vscroll-bar vscroll-bar-enabled-p)
+	(compute-dynamic-scroll-bar-values scroller)
+      (update-dynamic-scroll-bars
+       scroller changedp
+       hscroll-bar hscroll-bar-enabled-p 
+       vscroll-bar vscroll-bar-enabled-p t))
+    (with-bounding-rectangle* (left top right bottom) 
+      (viewport-contents-extent viewport)
+      (with-bounding-rectangle* (vleft vtop vright vbottom)
+	(viewport-viewport-region viewport)
+	(let* ((vertical-scroll-bar (scroller-pane-vertical-scroll-bar scroller))
+	       (horizontal-scroll-bar (scroller-pane-horizontal-scroll-bar scroller)))
+	  (when vertical-scroll-bar
+	    (update-scroll-bar vertical-scroll-bar
+			       top bottom vtop vbottom))
+	  (when horizontal-scroll-bar
+	    (update-scroll-bar horizontal-scroll-bar
+			       left right vleft vright)))))))
+
+
 
 ;;--- In the case where the viewport is bigger than the window this
 ;;--- code gets things wrong. Check out the thinkadot demo.  It's
@@ -169,9 +195,9 @@
 			  (the single-float
 			    (if (= max min)
 				1.0
-			      (min 1.0 (the single-float
-					 (/ (float (- vmax vmin) 0.0s0)
-					    (float (- max min) 0.0s0)))))))))
+				(min 1.0 (the single-float
+					      (/ (float (- vmax vmin) 0.0s0)
+						 (float (- max min) 0.0s0)))))))))
 	       (pos (the single-float
 		      (min 1.0
 			   (the single-float
@@ -179,9 +205,9 @@
 				  (the single-float
 				    (if (zerop (- (- max min) (- vmax vmin)))
 					0.0
-				      (the single-float 
-					(/ (float (- vmin min) 0.0s0)
-					   (float (- (- max min) (- vmax vmin)) 0.0s0))))))))))
+					(the single-float 
+					     (/ (float (- vmin min) 0.0s0)
+						(float (- (- max min) (- vmax vmin)) 0.0s0))))))))))
 	       (value (+ (gadget-min-value scroll-bar)
 			 (* (- range size) pos))))
 	  (declare (type single-float pos size))
@@ -219,8 +245,8 @@
 			       (bounding-rectangle-height region)))
 		     (if (= size (gadget-range sheet))
 			 0
-		       (/ (- value (gadget-min-value sheet))
-			  (- (gadget-range sheet) size)))))))
+			 (/ (- value (gadget-min-value sheet))
+			    (- (gadget-range sheet) size)))))))
 	(:horizontal
 	  (scroll-extent
 	    contents
@@ -228,8 +254,8 @@
 			    (bounding-rectangle-width region)))
 		  (if (= size (gadget-range sheet))
 		      0
-		    (/ (- value (gadget-min-value sheet))
- 		       (- (gadget-range sheet) size))))
+		      (/ (- value (gadget-min-value sheet))
+			 (- (gadget-range sheet) size))))
 	    :y (bounding-rectangle-min-y region)))))))
 
 (defun update-region (stream nleft ntop nright nbottom &key no-repaint)
@@ -258,12 +284,9 @@
 				     (max (bounding-rectangle-width  stream) width)
 				     (max (bounding-rectangle-height stream) height))))))
 
-(eval-when (compile)
-  (warn "This isn't really right"))
-
 (defun scroll-extent (stream &key (x 0) (y 0))
-  (setq x (fix-coordinate x))
-  (setq y (fix-coordinate y))
+  ;;--- CER says that this really isn't right...
+  (fix-coordinates x y)
   (let ((viewport (pane-viewport stream)))
     (when viewport
       (with-bounding-rectangle* (left top right bottom) 
@@ -279,38 +302,36 @@
 	  ;;--- Do we really want to do this here??
 	  (update-region stream nleft ntop nright nbottom)
 	  (cond
-	   ;; If some of the stuff that was previously on display is still on
-	   ;; display, bitblt it into the proper place and redraw the rest.
-	   ((ltrb-overlaps-ltrb-p left top right bottom
-				  nleft ntop nright nbottom)
-	    ;; move the old stuff to the new position
-	    (window-shift-visible-region stream 
-					 left top right bottom
-					 nleft ntop nright nbottom)
-	    (let ((rectangles (ltrb-difference nleft ntop nright nbottom
-					       left top right bottom)))
-	      (with-sheet-medium (medium stream)
-		(dolist (region rectangles)
-		  (with-medium-clipping-region (medium region)
-		    (multiple-value-call #'draw-rectangle*
-		      medium
-		      (bounding-rectangle* region)
-		      :ink +background-ink+ :filled t)
-		    (when (typep stream 'clim-internals::output-recording-mixin)
-		      (replay (stream-output-history stream) stream region)))))))
-	   ;; otherwise, just redraw the whole visible viewport
-	   ;; adjust for the left and top margins by hand so clear-area doesn't erase
-	   ;; the margin components.
-	   ((typep stream 'clim-internals::output-recording-mixin)
-	    (let ((region (viewport-viewport-region viewport)))
-	      ;;---- we should make the sheet-region bigger at this point
-	      ;; perhaps we do a union of the sheet-region and the viewport
-	      (with-sheet-medium (medium stream)
-		(multiple-value-call #'draw-rectangle* 
-		  medium
-		  (bounding-rectangle* region)
-		  :ink +background-ink+ :filled t))
-	      (replay (stream-output-history stream) stream region)))))
+	    ;; If some of the stuff that was previously on display is still on
+	    ;; display, BITBLT it into the proper place and redraw the rest.
+	    ((ltrb-overlaps-ltrb-p left top right bottom
+				   nleft ntop nright nbottom)
+	     ;; Move the old stuff to the new position
+	     (window-shift-visible-region stream 
+					  left top right bottom
+					  nleft ntop nright nbottom)
+	     (let ((rectangles (ltrb-difference nleft ntop nright nbottom
+						left top right bottom)))
+	       (with-sheet-medium (medium stream)
+		 (dolist (region rectangles)
+		   (with-medium-clipping-region (medium region)
+		     (multiple-value-call #'draw-rectangle*
+		       medium (bounding-rectangle* region)
+		       :ink +background-ink+ :filled t)
+		     (when (output-recording-stream-p stream)
+		       (replay (stream-output-history stream) stream region)))))))
+	    ;; Otherwise, just redraw the whole visible viewport
+	    ;; adjust for the left and top margins by hand so clear-area doesn't erase
+	    ;; the margin components.
+	    ((output-recording-stream-p stream)
+	     (let ((region (viewport-viewport-region viewport)))
+	       ;;--- We should make the sheet-region bigger at this point.
+	       ;;--- Perhaps we do a union of the sheet-region and the viewport.
+	       (with-sheet-medium (medium stream)
+		 (multiple-value-call #'draw-rectangle* 
+		   medium (bounding-rectangle* region)
+		   :ink +background-ink+ :filled t))
+	       (replay (stream-output-history stream) stream region)))))
 	(when (and (/= left x) (/= top y))
 	  (note-viewport-position-changed (pane-frame stream) stream))))))
 
@@ -320,7 +341,9 @@
 
 ;;; Home-grown scroll bars
 
-;;--- orientation, min-value, max-value, unit-increment, page-increment.
+(defparameter *scroll-shaft-thickness-ink* 12)
+
+;;--- unit-increment, page-increment.
 (defclass scroll-bar-pane
 	  (scroll-bar
 	   ;;--- Add IMMEDIATE-SHEET-INPUT-MIXIN so that scroll bars
@@ -336,7 +359,7 @@
      (max-target-pane :initform nil)
      (shaft-pane :initform nil))
   (:default-initargs :value 0
-		     :shaft-thickness 10))
+		     :shaft-thickness *scroll-shaft-thickness-ink*))
 
 ;;--- There should really be a small border around scroll bars so that
 ;;--- they don't butt right up against the viewport's drawing area
@@ -391,6 +414,41 @@
 				       :height shaft-thickness))))))))
 	(sheet-adopt-child pane inferiors)))))
 
+(defmethod scroll-up-page-callback ((scroll-bar scroll-bar-pane) client id)
+  (with-slots (current-size current-value port) scroll-bar
+    (with-slots (viewport contents) client
+      (let* ((contents-max-y (bounding-rectangle-max-y contents))
+	     (line-value (/ (text-style-height (medium-text-style contents) contents)
+			    contents-max-y))
+	     (new-value (max 0.0 (- current-value line-value))))	
+	(scroll-bar-value-changed-callback scroll-bar client id new-value current-size)))))
+
+(defmethod scroll-up-line-callback ((scroll-bar scroll-bar-pane) client id)
+  (with-slots (current-size current-value) scroll-bar
+    (with-slots (viewport contents) client
+      (let* ((contents-max-y (bounding-rectangle-max-y contents))
+	     (viewport-max-y (bounding-rectangle-max-y viewport))
+	     (page-value (/ viewport-max-y contents-max-y))
+	     (new-value (max 0.0 (- current-value page-value))))	
+	(scroll-bar-value-changed-callback scroll-bar client id new-value current-size)))))
+
+(defmethod scroll-down-page-callback ((scroll-bar scroll-bar-pane) client id)
+  (with-slots (current-size current-value) scroll-bar
+    (with-slots (viewport contents) client
+      (let* ((contents-max-y (bounding-rectangle-max-y contents))
+	     (viewport-max-y (bounding-rectangle-max-y viewport))
+	     (page-value (/ viewport-max-y contents-max-y))
+	     (new-value (min 1.0 (+ current-value page-value))))
+	(scroll-bar-value-changed-callback scroll-bar client id new-value current-size)))))
+
+(defmethod scroll-to-top-callback ((scroll-bar scroll-bar-pane) client id)
+  (with-slots (current-size current-value) scroll-bar
+    (scroll-bar-value-changed-callback scroll-bar client id 0 current-size)))
+
+(defmethod scroll-to-bottom-callback ((scroll-bar scroll-bar-pane) client id)
+  (with-slots (current-size current-value) scroll-bar
+    (scroll-bar-value-changed-callback scroll-bar client id 1 current-size)))
+
 (defmethod change-scroll-bar-values ((scroll-bar scroll-bar-pane)
 				     &key slider-size value)
   ;;--- Set the indicator to the proper size and location
@@ -399,6 +457,7 @@
 
 (defclass scroll-bar-target-pane 
 	  (space-requirement-mixin
+	   sheet-single-child-mixin
 	   leaf-pane)
     ((end :initarg :end)
      (scroll-bar :initarg :scroll-bar)
@@ -442,9 +501,9 @@
 (defmethod repaint-sheet ((pane scroll-bar-target-pane) region)
   (declare (ignore region))
   (with-sheet-medium (medium pane)
-    (multiple-value-call #'draw-rectangle*
-      medium (bounding-rectangle* (sheet-region pane))
-      :filled nil)
+    (with-bounding-rectangle* (left top right bottom) (sheet-region pane)
+      (draw-rectangle* medium left top (1- right) (1- bottom)
+		       :filled nil))
     (draw-target pane medium)))
 
 ;;; You can pass :filled T to this in order to highlight the target when clicked on...
@@ -455,28 +514,31 @@
       (let ((identity (sheet-cursor pane)))
 	(setq coord-cache
 	      (setf (slot-value pane 'coord-cache)
-		    (with-bounding-rectangle* (minx miny maxx maxy) (sheet-region pane)
+		    (with-bounding-rectangle* (left top right bottom) (sheet-region pane)
+		      (decf right)
+		      (decf bottom)
 		      (ecase identity
 			(:scroll-up
-			  (list minx miny
-				(+ minx (/ (- maxx minx) 2)) maxy
-				maxx miny))
+			  (list left top
+				(+ left (/ (- right left) 2)) bottom
+				right top))
 			(:scroll-down
-			  (list minx maxy
-				(+ minx (/ (- maxx minx) 2)) miny
-				maxx maxy))
+			  (list left bottom
+				(+ left (/ (- right left) 2)) top
+				right bottom))
 			(:scroll-left
-			  (list maxx miny
-				minx (/ (+ miny maxy) 2)
-				maxx maxy))
+			  (list right top
+				left (/ (+ top bottom) 2)
+				right bottom))
 			(:scroll-right
-			  (list minx miny
-				maxx (/ (+ miny maxy) 2)
-				minx maxy))))))))
+			  (list left top
+				right (/ (+ top bottom) 2)
+				left bottom))))))))
     (draw-polygon* medium coord-cache :filled filled :ink ink)))
 
 (defclass scroll-bar-shaft-pane
 	  (space-requirement-mixin
+	   sheet-single-child-mixin
 	   leaf-pane)
     ((scroll-bar :initarg :scroll-bar)
      (needs-erase :initform nil)))
@@ -492,12 +554,15 @@
 (defmethod repaint-sheet ((pane scroll-bar-shaft-pane) region)
   (declare (ignore region))
   (with-sheet-medium (medium pane)
-    (multiple-value-call #'draw-rectangle*
-      medium (bounding-rectangle* (sheet-region pane))
-      :filled nil)
+    (with-bounding-rectangle* (left top right bottom) (sheet-region pane)
+      (draw-rectangle* medium left top (1- right) (1- bottom)
+		       :filled nil))
     (draw-thumb pane medium)))
 
-(defvar +33%-gray+ (make-gray-color 1/3))
+(defparameter *scroll-bar-thumb-ink* (make-gray-color 2/3))
+(defparameter *scroll-bar-box-thickness* 1)
+(defparameter *scroll-bar-cable-thickness* 1)
+(defparameter *scroll-bar-minimum-thumb-size* 8)
 
 (defmethod draw-thumb ((pane scroll-bar-shaft-pane) medium
 		       &key (ink +foreground-ink+))
@@ -508,17 +573,15 @@
       (return-from draw-thumb (values))))
   (let* ((scroll-bar (slot-value pane 'scroll-bar))
 	 (current-value (gadget-value scroll-bar))
-	 (max-value #---ignore 100 #+++ignore (scroll-bar-max-value scroll-bar))
-	 (min-value #---ignore   0 #+++ignore (scroll-bar-min-value scroll-bar))
+	 (min-value (gadget-min-value scroll-bar))
+	 (max-value (gadget-max-value scroll-bar))
 	 (identity (sheet-cursor pane)))
-    (setf (slot-value pane 'needs-erase) (not (eq ink +background-ink+)))
     (flet ((draw-car (medium left top right bottom)
-	     (draw-rectangle* medium left top right bottom
+	     (draw-rectangle* medium left top (1- right) (1- bottom)
 			      :filled t
-			      :ink (if (eq ink +foreground-ink+) +33%-gray+ ink))
-	     (draw-rectangle* medium left top right bottom
-			      :filled nil
-			      :ink ink)))
+			      :ink (if (eq ink +foreground-ink+) *scroll-bar-thumb-ink* ink))
+	     (draw-rectangle* medium left top (1- right) (1- bottom)
+			      :filled nil :ink ink)))
       (declare (dynamic-extent #'draw-car))
       (with-bounding-rectangle* (x1 y1 x2 y2) (sheet-region pane)
 	(let ((height (- y2 y1))
@@ -532,12 +595,12 @@
 	    (ecase identity
 	      (:vertical-scroll
 		(draw-car medium
-			  (1+ x1)           (- y2 elevator-top)
-			  (+ x1 width 1) (- y2 elevator-bottom)))
+			  x1           (+ y1 elevator-top)
+			  (+ x1 width) (+ y1 elevator-bottom)))
 	      (:horizontal-scroll
 		(draw-car medium
-			  elevator-top      (+ y1 2)
-			  elevator-bottom   (+ y1 height 1))))))))))
+			  elevator-top      (+ y1 1)
+			  elevator-bottom   (+ y1 height))))))))))
 
 (defun compute-symmetric-value (min1 max1 value1 min2 max2)
   (declare (values value2))
@@ -549,9 +612,9 @@
 (defmethod handle-event :around ((pane scroll-bar-target-pane) 
 				 (event pointer-button-press-event))
   (with-sheet-medium (medium pane)
-    (draw-target pane medium :filled T :ink +foreground-ink+)
+    (draw-target pane medium :filled t :ink +foreground-ink+)
     (call-next-method)
-    (draw-target pane medium :filled T :ink +background-ink+)
+    (draw-target pane medium :filled t :ink +background-ink+)
     (draw-target pane medium :filled nil)))
 
 ;;; The interface to our scroll bars is that if you click left in the targets
@@ -595,13 +658,13 @@
      (let ((x (pointer-event-x event))
 	   (y (pointer-event-x event))
 	   (scroll-bar (slot-value pane 'scroll-bar)))
-       (with-bounding-rectangle* (minx miny maxx maxy) (sheet-region pane)
+       (with-bounding-rectangle* (left top right bottom) (sheet-region pane)
 	 (ecase (gadget-orientation scroll-bar)
 	   (:vertical
-	     ;; this (- maxy y) is here because we want y=0 to be at the bottom.
-	     (update-scroll-bar-value pane scroll-bar (- maxy y) miny maxy))
+	     ;; this (- bottom y) is here because we want y=0 to be at the bottom.
+	     (update-scroll-bar-value pane scroll-bar (- bottom y) top bottom))
 	   (:horizontal
-	     (update-scroll-bar-value pane scroll-bar x minx maxx))))))))
+	     (update-scroll-bar-value pane scroll-bar x left right))))))))
 
 (defmethod handle-event ((pane scroll-bar-shaft-pane) (event pointer-enter-event))
   ;;--- Change the mouse cursor
@@ -612,8 +675,8 @@
   )
 
 (defmethod update-scroll-bar-value ((pane scroll-bar-shaft-pane) scroll-bar coord min max)
-  (let* ((max-value #---ignore 100 #+++ignore (slot-value scroll-bar 'max-value))
-	 (min-value #---ignore   0 #+++ignore (slot-value scroll-bar 'min-value))
+  (let* ((min-value (gadget-min-value scroll-bar))
+	 (max-value (gadget-max-value scroll-bar))
 	 (value (compute-symmetric-value min max coord min-value max-value)))
     (setf (gadget-value scroll-bar) value)))
 

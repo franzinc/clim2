@@ -20,11 +20,11 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: macros.lisp,v 1.9 92/03/30 17:51:41 cer Exp $
+;; $fiHeader: macros.lisp,v 1.10 92/05/13 17:10:21 cer Exp $
 
 (in-package :tk)
 
-(defvar *with-ref-par-resource* nil)
+(defvar *temp-with-ref-par* nil)
 
 (defmacro with-ref-par (bindings &body body)
   (if (null bindings)
@@ -33,13 +33,13 @@
 	((var value &optional (type :signed-long)) &rest more-bindings) bindings
       (let ((val (gensym)))
 	`(let ((,val ,value)
-	       (,var (or (pop *with-ref-par-resource*)
+	       (,var (or (pop *temp-with-ref-par*)
 			 (make-array 1 :element-type '(unsigned-byte 32)))))
 	   (declare (type (simple-array (unsigned-byte 32) (1)) ,var))
 	   (setf (aref ,var 0) ,val)
 	   (multiple-value-prog1
 	       (with-ref-par ,more-bindings ,@body)
-	     (push ,var *with-ref-par-resource*)))))))
+	     (push ,var *temp-with-ref-par*)))))))
 
 
 (defmacro object-display (object)

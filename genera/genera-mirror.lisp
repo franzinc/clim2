@@ -1,11 +1,15 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: GENERA-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: genera-mirror.lisp,v 1.4 92/05/07 13:13:28 cer Exp $
+;; $fiHeader: genera-mirror.lisp,v 1.5 92/05/22 19:28:56 cer Exp $
 
 (in-package :genera-clim)
 
 "Copyright (c) 1992 Symbolics, Inc.  All rights reserved.
  Portions copyright (c) 1991, 1992 International Lisp Associates."
+
+
+;;--- This isn't really right, figure out what to do
+(defmethod sheet-shell (sheet) sheet)
 
 
 (defvar *clim-window-count* 0)
@@ -327,9 +331,9 @@
       sheet
       (let ((region (mirror-region port sheet)))
 	(make-instance 'window-configuration-event
-		       :native-region region
-		       :region (untransform-region (sheet-native-transformation sheet) region)
-		       :sheet sheet)))))
+	  :native-region region
+	  :region (untransform-region (sheet-native-transformation sheet) region)
+	  :sheet sheet)))))
 
 ;;--- Problem: we disable the viewport that corresponds to the Genera
 ;;--- window, but that leaves the window stream enabled.  Should en/disable
@@ -405,7 +409,7 @@
 		  (tv:mouse-last-y mouse))
 	  (values (tv:mouse-x mouse)
 		  (tv:mouse-y mouse)))
-    (without-interrupts
+    (without-scheduling
       (let* ((old-buttons *mouse-buttons*)
 	     (new-buttons tv:mouse-last-buttons)
 	     (buttons-up (buttons-up old-buttons new-buttons))
@@ -433,7 +437,7 @@
 (si:compile-advice 'tv:mouse-set-blinker-cursorpos-internal)
 
 (scl:defmethod (:mouse-moves genera-window :after) (x y)
-  (without-interrupts
+  (without-scheduling
     (let* ((old-buttons *mouse-buttons*)
 	   (new-buttons tv:mouse-last-buttons)
 	   (buttons-up (buttons-up old-buttons new-buttons))
@@ -457,7 +461,7 @@
 
 (scl:defmethod (:handle-mouse genera-window :before) ()
   (scl:send scl:self :select)			;---why??
-  (without-interrupts
+  (without-scheduling
     (setq *mouse-window* scl:self
 	  *mouse-moved* ':enter-notify
 	  *mouse-x* -1
@@ -471,7 +475,7 @@
 	     (window (find-if #'(lambda (window) (member window exposed))
 			      tv:previously-selected-windows)))
 	(when window (scl:send window :select)))))
-  (without-interrupts
+  (without-scheduling
     (setq *mouse-window* scl:self		;--- Which window is this notification for?
 	  *mouse-moved* ':leave-notify
 	  *mouse-x* -1
@@ -553,38 +557,38 @@
 		   (let ((sheet (and mouse-window (genera-window-sheet mouse-window))))
 		     (when sheet
 		       (distribute-event
-			 (port sheet)
+			 port			;(EQ PORT (PORT-SHEET)) ==> T
 			 (make-instance 'pointer-motion-event
-					:x mouse-x
-					:y mouse-y
-					:native-x native-x
-					:native-y native-y
-					:button (and (not (zerop mouse-buttons))
-						     (genera-button-number->standard-button-name
-						       (ash mouse-buttons -1)))
-					:modifiers (current-modifier-state
-						     (make-state-from-buttons mouse-buttons)
-						     (tv:sheet-mouse mouse-window))
-					:pointer (port-pointer port)
-					:sheet sheet)))))
+			   :x mouse-x
+			   :y mouse-y
+			   :native-x native-x
+			   :native-y native-y
+			   :button (and (not (zerop mouse-buttons))
+					(genera-button-number->standard-button-name
+					  (ash mouse-buttons -1)))
+			   :modifiers (current-modifier-state
+					(make-state-from-buttons mouse-buttons)
+					(tv:sheet-mouse mouse-window))
+			   :pointer (port-pointer port)
+			   :sheet sheet)))))
 		 (when mouse-button-released
 		   (let ((sheet (and mouse-window (genera-window-sheet mouse-window))))
 		     ;; hmm?
 		     (when sheet
 		       (distribute-event
-			 (port sheet)
+			 port
 			 (make-instance 'pointer-button-release-event
-					:x mouse-x
-					:y mouse-y
-					:native-x native-x
-					:native-y native-y
-					:button (genera-button-number->standard-button-name
-						  (ash mouse-button-released -1))
-					:modifiers (current-modifier-state
-						     (make-state-from-buttons mouse-buttons)
-						     (tv:sheet-mouse mouse-window))
-					:pointer (port-pointer port)
-					:sheet sheet)))))))))
+			   :x mouse-x
+			   :y mouse-y
+			   :native-x native-x
+			   :native-y native-y
+			   :button (genera-button-number->standard-button-name
+				     (ash mouse-button-released -1))
+			   :modifiers (current-modifier-state
+					(make-state-from-buttons mouse-buttons)
+					(tv:sheet-mouse mouse-window))
+			   :pointer (port-pointer port)
+			   :sheet sheet)))))))))
 	  ;; Handle shift press and release events
 	  ((or shifts-up shifts-down)
 	   (when (typep tv:selected-window 'genera-window)
@@ -630,21 +634,21 @@
 			 (char thing))
 		     (when keysym
 		       (distribute-event
-			 (port sheet)
+			 port
 			 (make-instance 'key-press-event
-					:key-name keysym
-					:character char
-					:modifiers (current-modifier-state 
-						     0 (tv:sheet-mouse genera-window))
-					:sheet sheet))
+			   :key-name keysym
+			   :character char
+			   :modifiers (current-modifier-state 
+					0 (tv:sheet-mouse genera-window))
+			   :sheet sheet))
 		       (distribute-event
-			 (port sheet)
+			 port
 			 (make-instance 'key-release-event
-					:key-name keysym
-					:character char
-					:modifiers (current-modifier-state 
-						     0 (tv:sheet-mouse genera-window))
-					:sheet sheet))))))
+			   :key-name keysym
+			   :character char
+			   :modifiers (current-modifier-state 
+					0 (tv:sheet-mouse genera-window))
+			   :sheet sheet))))))
 	       ;; See if it is a button-click blip
 	       (list
 		 (when (eq (first thing) ':mouse-button)
@@ -662,17 +666,17 @@
 			 (let ((native-x (- mouse-x left))
 			       (native-y (- mouse-y top)))
 			   (distribute-event
-			     (port sheet)
+			     port
 			     (make-instance 'pointer-button-press-event
-					    :x mouse-x
-					    :y mouse-y
-					    :native-x native-x
-					    :native-y native-y
-					    :button button
-					    :modifiers (current-modifier-state
-							 0 (tv:sheet-mouse window))
-					    :pointer (port-pointer port)
-					    :sheet sheet))))))))))))))
+			       :x mouse-x
+			       :y mouse-y
+			       :native-x native-x
+			       :native-y native-y
+			       :button button
+			       :modifiers (current-modifier-state
+					    0 (tv:sheet-mouse window))
+			       :pointer (port-pointer port)
+			       :sheet sheet))))))))))))))
 
 ;; See general comments about sheet-native-native-region* and
 ;; sheet-native-region* about functions vs macros, etc.

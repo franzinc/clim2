@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: defprotocol.lisp,v 1.3 92/01/31 14:57:49 cer Exp $
+;; $fiHeader: defprotocol.lisp,v 1.4 92/02/24 13:07:21 cer Exp $
 
 (in-package :clim-internals)
 
@@ -29,10 +29,9 @@
        nil)
      (defmethod ,method-name ((object ,class-name))
        t)
-     (defmethod ,method-name ((encapsulating-stream standard-encapsulating-stream))
+     (defmethod ,method-name ((stream standard-encapsulating-stream))
        ;; pass it on.
-       (with-slots (stream) encapsulating-stream
-	 (,method-name stream)))))
+       (,method-name (slot-value stream 'stream)))))
 
 (defmacro define-stream-protocol-class (class-name superclass-names)
   (let ((predicate-name (if (find #\- (string class-name))

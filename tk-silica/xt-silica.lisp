@@ -20,11 +20,11 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.32 92/06/23 08:20:20 cer Exp Locker: cer $
+;; $fiHeader: xt-silica.lisp,v 1.33 92/06/29 14:05:17 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
-(defclass xt-port (port)
+(defclass xt-port (basic-port)
     ((application-shell :reader port-application-shell)
      (display :reader port-display)
      (context :reader port-context)     
@@ -55,15 +55,15 @@
 
 
 (defmethod restart-port ((port xt-port))
-  (let ((process (silica::port-process port)))
+  (let ((process (port-process port)))
     (when process
-      (clim-sys:destroy-process process)))
-  (setf (silica::port-process port)
+      (destroy-process process)))
+  (setf (port-process port)
     (mp:process-run-restartable-function
      (list :name (format nil "CLIM Event Dispatcher for ~A"
 			 (port-server-path port))
 	   :priority 1000)
-     #'silica::port-event-loop port)))
+     #'port-event-loop port)))
 
 (defmacro destructure-x-server-path ((&key display) path &body body)
   ;;-- Of course the port ends up with an unspecified server-path.
@@ -129,7 +129,7 @@
 (defvar *xt-fallback-font* "8x13"
   "When non NIL and nothing better exists use this as the fallback font")
 
-(defmethod initialize-xlib-port (port display)
+(defmethod initialize-xlib-port ((port xt-port) display)
   (setf (port-undefined-text-style port)
 	(standardize-text-style 
 	  port (make-text-style :stand-in-for-undefined-style :roman 10)))
@@ -288,17 +288,17 @@
 
 
 
-(defmethod destroy-mirror ((port xt-port) (sheet silica::mirrored-sheet-mixin))
+(defmethod destroy-mirror ((port xt-port) (sheet mirrored-sheet-mixin))
   ;; Only do this if its the top most widget being destroyed or we are
   ;; screwing around with the tree in someway
   (tk::destroy-widget (sheet-direct-mirror sheet)))
 
-(defmethod destroy-mirror :after ((port xt-port) (sheet silica::sheet-parent-mixin))
+(defmethod destroy-mirror :after ((port xt-port) (sheet sheet-parent-mixin))
   (labels ((loose-em (sheet)
 	   (dolist (child (sheet-children sheet))
 	     (when (sheet-direct-mirror child)
 	       (setf (sheet-direct-mirror child) nil))
-	     (when (typep child 'silica::sheet-parent-mixin)
+	     (when (typep child 'sheet-parent-mixin)
 	       (loose-em child)))))
     (loose-em sheet)))
 
@@ -360,8 +360,8 @@
 	       (:graphics-expose
 		;; Tricky!
 		(setf (port-safe-backing-store (port sheet)) nil))
-	       (:expose
 		;; This gets called only for an XmBulletinBoard widget.
+	       (:expose
 		(sheet-mirror-exposed-callback
 		 widget 
 		 nil ; window
@@ -596,7 +596,7 @@
 	 (setq cf (frame-top-level-sheet cf))
 	 (sheet-shell cf))))
 
-(defmethod find-shell-parent (port sheet)
+(defmethod find-shell-parent ((port xt-port) sheet)
   (or (and  ;;--- hack alert
        (popup-frame-p sheet)
        (find-shell-of-calling-frame sheet))
@@ -768,37 +768,21 @@
 	    origin-x origin-y bb-x bb-y)))
 
 
-(defmethod text-style-mapping :around ((device xt-port) text-style
+(defmethod text-style-mapping :around ((port xt-port) text-style
 				       &optional (character-set *standard-character-set*) etc)
   (declare (ignore etc))
   (let ((font (call-next-method)))
     (when (or (stringp font) (symbolp font))
       (let* ((font-name (string font)))
 	(setf font (make-instance 'tk::font 
-				  :display (port-display device)
+				  :display (port-display port)
 				  :name font-name))
-	(setf (text-style-mapping device (parse-text-style text-style) character-set)
+	(setf (text-style-mapping port (parse-text-style text-style) character-set)
 	      font)))
     font))
 
 
-(defmethod text-style-width ((text-style standard-text-style) (port xt-port))
-  (tk::font-width (text-style-mapping port text-style)))
-
-(defmethod text-style-height ((text-style standard-text-style) (port xt-port))
-  (+ (text-style-ascent text-style port)
-     (text-style-descent text-style port)))
-
-(defmethod text-style-ascent ((text-style standard-text-style) (port xt-port))
-  (tk::font-ascent (text-style-mapping port text-style)))
-					
-(defmethod text-style-descent ((text-style standard-text-style) (port xt-port))
-  (tk::font-descent (text-style-mapping port text-style)))
-					
 (defmethod stream-set-input-focus (stream)
-  nil)
-
-(defmethod port-finish-output ((port xt-port))
   nil)
 
 (defmethod change-widget-geometry (parent child &rest args)
@@ -1039,6 +1023,7 @@
 ;  (default-from-mirror-resources port pane))
 
 
+;;--- Why is medium class-specialized on T here?  --SWM
 (defmethod engraft-medium :before ((medium t) (port xt-port) 
 				   (pane clim-internals::output-protocol-mixin))
   (default-from-mirror-resources port pane))
@@ -1102,9 +1087,10 @@
       (xt::set-sensitive widget nil))
     widget))
 
-
+;; No longer a protocol function, but we need it internally
 (defmethod port-force-output ((port xt-port))
   (x11:xflush (port-display port)))
+
 
 
 

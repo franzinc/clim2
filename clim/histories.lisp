@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: histories.lisp,v 1.5 92/04/15 11:46:42 cer Exp $
+;; $fiHeader: histories.lisp,v 1.6 92/05/07 13:12:26 cer Exp $
 
 (in-package :clim-internals)
 
@@ -100,7 +100,7 @@
   (declare (values element index))
   (let ((delta 0))
     (with-slots (elements current-length temporary-element) history
-      (without-interrupts
+      (without-scheduling
 	(when temporary-element
 	  (when (or (zerop index) (and fixup-p (minusp index)))
 	    (return-from history-element (values temporary-element 0)))
@@ -200,7 +200,7 @@
 ;; Push an element onto the front of the history and extend its length.
 (defmethod push-history-element ((history basic-history) element)
   (with-slots (current-length maximum-length elements rotation temporary-element) history
-    (without-interrupts
+    (without-scheduling
       ;; Save space: don't push the new element on top if it is equal
       ;; to the element currently on top
       (unless (history-elements-equal history element (history-top-element history))
@@ -219,7 +219,7 @@
 (defmethod pop-history-element ((history basic-history))
   (with-slots (current-length elements) history
     (when (and current-length (plusp current-length))
-      (without-interrupts
+      (without-scheduling
 	(decf current-length)
 	(prog1 (car elements)
 	       (setq elements (cdr elements)))))))
@@ -373,8 +373,8 @@
 			   (with-output-to-string (s)
 			     (describe-presentation-type type-name s nil)))))
     (make-instance 'presentation-history
-		   :name history-name :type type-name
-		   :maximum-length maximum-length)))
+      :name history-name :type type-name
+      :maximum-length maximum-length)))
 
 (defmethod history-elements-equal ((history presentation-history) element1 element2)
   ;; Match by the object and its type, the view doesn't matter

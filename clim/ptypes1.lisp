@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: ptypes1.lisp,v 1.11 92/05/07 13:12:51 cer Exp $
+;; $fiHeader: ptypes1.lisp,v 1.12 92/05/22 19:28:22 cer Exp $
 
 (in-package :clim-internals)
 
@@ -788,7 +788,7 @@
 			   ;; The above does not work in Lucid 4.0, so do it this way
 			   ;; instead, on JonL's advice.  We can't set the name here
 		           ;; because only symbols are accepted as names.
-			   #+Lucid (clos-sys:common-add-named-class 
+			   #+Lucid (clos::common-add-named-class 
 				     (class-prototype (find-class 'presentation-type-class))
 				     nil			;name
 				     direct-superclasses	;superclasses

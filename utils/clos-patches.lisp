@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clos-patches.lisp,v 1.3 92/02/24 13:05:21 cer Exp $
+;; $fiHeader: clos-patches.lisp,v 1.4 92/03/04 16:20:06 cer Exp $
 
 (in-package :clim-utils)
 
@@ -38,31 +38,8 @@
       t
       (ccl::compile-file-environment-p environment)))
 
-#+(or Lucid (and Allegro (not (version>= 4 1))))
+#+(and Allegro (not (version>= 4 1)))
 (defgeneric make-load-form (object))
-
-#+Lucid
-;; Lucid 4.0 doesn't have MAKE-LOAD-FORM, so add it (with advice from JonL)
-(lucid-common-lisp:defadvice (clos::standard-reconstructor-list support-make-load-form)
-			     (object)
-  (if (clos:compute-applicable-methods #'make-load-form (list object))
-      (multiple-value-bind (form1 form2)
-	  (make-load-form object)
-	(when form2
-	  (error "MAKE-LOAD-FORM with two values is not supported yet.~@
-		  (MAKE-LOAD-FORM ~S) => ~S ~S"
-		 object form1 form2))
-	;; We have to return not a form, but a cons of a function and arguments
-	(unless (and (consp form1)
-		     (symbolp (first form1))
-		     (not (special-form-p (first form1)))
-		     (not (macro-function (first form1)))
-		     (every #'constantp (rest form1)))
-	  (error "MAKE-LOAD-FORM is too complicated.~@
-		  (MAKE-LOAD-FORM ~S) => ~S ~S"
-		 object form1 form2))
-	(cons (first form1) (mapcar #'eval (rest form1))))
-      (lucid-common-lisp:advice-continue object)))
 
 #+(and Allegro (not (version>= 4 1 40)))	; 40 is arbitrary, I mean > beta.
 ;; Allegro CL doesn't have MAKE-LOAD-FORM, so add it (with advice from Foderaro)
@@ -95,6 +72,23 @@
 	(first args)	;return the class
 	answer)))
 
+#+Lucid
+(lcl:defadvice (clos::ensure-generic-function-internal allow-genera-decls)
+    (fn-spec initial-methods-action caller &rest keys)
+  (loop with declare = (getf keys :declare)
+	for decl in declare
+	for decl-head = (car decl)
+	do (when (or (eq decl-head 'values)
+		     (eq decl-head 'arglist)
+		     (eq decl-head 'dynamic-extent))
+	     (warn "Ignoring ~S declaration in ~S" decl 'defgeneric)
+	     (setf declare (remove decl declare :test #'equal)))
+	finally
+	  (if declare
+	      (setf (getf keys :declare) declare)
+	      (remf keys :declare)))
+  (lcl:apply-advice-continue fn-spec initial-methods-action caller keys))
+
 #+(and Allegro (not (version>= 4 0)))
 ;;; This is needed to prevent a MAKE-LOAD-FORM form from being evaluated before
 ;;; an earlier top-level form, says Foderaro.  Even the forward reference allowed
@@ -106,9 +100,9 @@
 
 
 ;;; Go through this rigamarole because WITH-SLOTS doesn't accept declarations
-;;; on Lucid and Franz Allegro
+;;; on old versions of Lucid and Franz Allegro
 
-#+(or Lucid (and Allegro (or :rs6000 (not (version>= 4 1)))))
+#+(and Allegro (or :rs6000 (not (version>= 4 1))))
 (lisp:defun slot-value-alist (body)
   (declare (values real-body alist))
   (let ((alist nil))
@@ -124,19 +118,19 @@
 	  (dolist (var vars)
 	    (push (cons var type) alist)))))))
 
-#+(or Lucid (and Allegro (or :rs6000 (not (version>= 4 1)))))
+#+(and Allegro (or :rs6000 (not (version>= 4 1))))
 (defparameter *with-slots*
 	      #+PCL 'pcl::with-slots 
 	      #+(and Allegro (or :rs6000 (not (version>= 4 1)))) 'clos::with-slots
               #-(or (and Allegro (or :rs6000 (not (version>= 4 1)))) PCL) 'clos:with-slots)
 
-#+(or Lucid (and Allegro (or :rs6000 (not (version>= 4 1)))))
+#+(and Allegro (or :rs6000 (not (version>= 4 1))))
 (defparameter *slot-value*
 	      #+PCL 'pcl::slot-value
 	      #+(and Allegro (or :rs6000 (not (version>= 4 1)))) 'clos::slot-value
 	      #-(or (and Allegro (or :rs6000 (not (version>= 4 1)))) PCL) 'clos:slot-value)
 
-#+(or Lucid (and Allegro (or :rs6000 (not (version>= 4 1)))))
+#+(and Allegro (or :rs6000 (not (version>= 4 1))))
 (defmacro with-slots (slot-entries instance-form &body body &environment environment)
   (multiple-value-bind (real-body alist) (slot-value-alist body)
     (let ((expansion (macroexpand `(,*with-slots* ,slot-entries ,instance-form

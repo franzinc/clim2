@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: presentations.lisp,v 1.9 92/05/07 13:12:50 cer Exp $
+;; $fiHeader: presentations.lisp,v 1.10 92/05/22 19:28:19 cer Exp $
 
 (in-package :clim-internals)
 
@@ -114,8 +114,8 @@
 
 ;;; This is the presentation you get if you click while not over anything...
 (setq *null-presentation*
-      (let ((null-presentation (make-instance 'standard-presentation
-					      :object nil :type 'blank-area)))
+      (let ((null-presentation 
+	      (make-instance 'standard-presentation :object nil :type 'blank-area)))
 	(setf (presentation-object null-presentation) null-presentation)
 	null-presentation))
 
@@ -440,7 +440,7 @@
 (defun find-appropriate-window (stream)
   ;;--- how do we hack multiple pointers?
   (let* ((pointer (stream-primary-pointer stream))
-	 (window (pointer-window pointer)))
+	 (window (pointer-sheet pointer)))
     ;; It ain't no good if it doesn't have a history.
     (when (and window
 	       (port window)

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-frames.lisp,v 1.4 92/05/22 19:29:24 cer Exp Locker: cer $
+;; $fiHeader: ol-frames.lisp,v 1.5 92/06/29 14:05:08 cer Exp Locker: cer $
 
 
 (in-package :xm-silica)
@@ -130,7 +130,7 @@
 						 :string (string
 								(menu-item-display item))))
 			      (:item
-			       (if (clim-internals::menu-item-item-list item)
+			       (if (clim-internals::menu-item-items item)
 				   (let* ((menu-button
 					   (make-menu-button item 
 							     'xt::menu-button
@@ -138,7 +138,7 @@
 					  (submenu (tk::get-values menu-button :menu-pane)))
 				     (construct-menu-from-items 
 				      submenu 
-				      (clim-internals::menu-item-item-list item)))
+				      (clim-internals::menu-item-items item)))
 				 (let ((menu-button
 					(make-menu-button item 'xt::oblong-button menu))
 				       (value (menu-item-value item)))
@@ -177,3 +177,4 @@
 (defmethod framem-menu-active-p ((framem openlook-frame-manager) menu)
   (declare (ignore t))
   t)
+

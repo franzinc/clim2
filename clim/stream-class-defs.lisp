@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: stream-class-defs.lisp,v 1.6 92/05/07 13:13:02 cer Exp $
+;; $fiHeader: stream-class-defs.lisp,v 1.7 92/05/22 19:28:28 cer Exp $
 
 (in-package :clim-internals)
 
@@ -25,16 +25,13 @@
 
 
 (defmethod input-stream-p ((stream standard-encapsulating-stream))
-  (with-slots (stream) stream
-    (input-stream-p stream)))
+  (input-stream-p (slot-value stream 'stream)))
 
 (defmethod output-stream-p ((stream standard-encapsulating-stream))
-  (with-slots (stream) stream
-    (output-stream-p stream)))
+  (output-stream-p (slot-value stream 'stream)))
 
 (defmethod stream-element-type ((stream standard-encapsulating-stream))
-  (with-slots (stream) stream
-    (stream-element-type stream)))
+  (stream-element-type (slot-value stream 'stream)))
 
 
 

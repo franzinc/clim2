@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: test-suite.lisp,v 1.24 92/06/23 08:19:53 cer Exp Locker: cer $
+;; $fiHeader: test-suite.lisp,v 1.25 92/06/29 14:04:52 cer Exp Locker: cer $
 
 (in-package :clim-user)
 
@@ -30,7 +30,7 @@ What about environment issue?
 (defmacro repeat (n &body body)
   (let ((i '#:i))
     `(dotimes (,i ,n)
-       #-(or Minima Genera allegro) (declare (ignore i))
+       #-(or Minima Genera Allegro) (declare (ignore i))
        ,@body)))
 
 (defmacro with-display-pane ((stream) &body body)
@@ -79,18 +79,14 @@ What about environment issue?
 
 ;; Try to get millimeters
 (defun window-mm-transformation (window)
-  (with-bounding-rectangle* (wl wt wr wb) #-ignore (window-viewport window)
-					  #+ignore (sheet-region window)
+  (with-bounding-rectangle* (wl wt wr wb) (window-viewport window)
     (make-transformation 3.4 0 0 -3.4 (floor (- wr wl) 2) (floor (- wb wt) 2))))
 
 (defmacro with-mm-transformation ((window -x -y +x +y) &body body)
   `(let ((transform (window-mm-transformation ,window)))
      (with-drawing-options (,window :transformation transform)
        (with-bounding-rectangle* (,-x ,-y ,+x ,+y)
-				 (untransform-region 
-				   transform
-				   #-ignore (window-viewport ,window)
-				   #+ignore (bounding-rectangle (sheet-region ,window)))
+				 (untransform-region transform (window-viewport ,window))
 	 ,@body))))
 
 (defun draw-grid (stream)
@@ -110,7 +106,7 @@ What about environment issue?
 	    (draw-line* stream -x y +x y :line-thickness 1)
 	    (draw-line* stream -1 y +1 y :line-thickness 1))))))
 
-(defun draw-some-rectangles (stream &optional (size 10) (sx 0) (sy 0))
+(defun draw-multiple-rectangles (stream &optional (size 10) (sx 0) (sy 0))
   (with-mm-transformation (stream -x -y +x +y)
     (let ((x sx)
 	  (y sy))
@@ -130,10 +126,10 @@ What about environment issue?
 
 
 
-(define-test (draw-rectangles graphics) (stream)
+(define-test (draw-some-rectangles graphics) (stream)
   "Draw some rectangles, wait a few seconds, and refresh the window."
   (draw-grid stream)
-  (draw-some-rectangles stream)
+  (draw-multiple-rectangles stream)
   (sleep 2)
   (window-refresh stream))
 
@@ -142,16 +138,16 @@ What about environment issue?
   (draw-grid stream)
   (with-scaling (stream 2 3)
     (with-rotation (stream (float (/ pi 6.0) 1.0))
-      (draw-some-rectangles stream))))
+      (draw-multiple-rectangles stream))))
 
 (define-test (scaled-rotated-rectangles graphics) (stream)
   "Draw some rectangles, first scaled then rotated, wait a few seconds, then refresh."
   (draw-grid stream)
   (with-rotation (stream (float (/ pi 6.0) 1.0))
     (with-scaling (stream 2 3)
-      (draw-some-rectangles stream))))
+      (draw-multiple-rectangles stream))))
 
-(defun draw-some-circles (stream &optional (size 10) (sx 0) (sy 0))
+(defun draw-multiple-circles (stream &optional (size 10) (sx 0) (sy 0))
   (with-mm-transformation (stream -x -y +x +y)
     (let ((x sx)
 	  (y sy))
@@ -169,52 +165,47 @@ What about environment issue?
 	(setq x sx)
 	(incf y (+ size 10))))))
 
-(define-test (draw-circles graphics) (stream)
+(define-test (draw-some-circles graphics) (stream)
   "Draw some circles, wait a few seconds, and refresh the window."
   (draw-grid stream)
-  (draw-some-circles stream)
+  (draw-multiple-circles stream)
   (sleep 2)
   (window-refresh stream))
-
-(define-test (draw-some-arcs graphics) (stream)
-  "Draw some arcs, wait a few seconds, and refresh the window."
-  (formatting-table (stream)
-      (dolist (angles `((0 ,(* 2 pi))
-			(0 ,(* 0.5 pi))
-			(,(* 0.5 pi) ,pi)
-			(,pi ,(* 1.5 pi))
-			(,(* 1.5 pi) ,(* 2 pi))
-			))
-	(formatting-row (stream)
-	    (formatting-cell (stream)
-		(format stream "Arc from ~3f to ~3f" (car angles) (second angles)))
-	  (formatting-cell (stream)
-	      (draw-circle* stream  0 0 50 
-			    :ink +red+
-			    :filled t
-			    :start-angle (car angles)
-			    :end-angle (second angles)))
-	  (formatting-cell (stream)
-	      (draw-circle* stream  0 0 50 
-			    :ink +green+
-			    :filled t
-			    :start-angle (second angles)
-			    :end-angle (car angles)))))))
-
 
 (define-test (rotated-scaled-circles graphics) (stream)
   "Draw some circles, first rotated then scaled, wait a few seconds, then refresh."
   (draw-grid stream)
   (with-scaling (stream 2 3)
     (with-rotation (stream (float (/ pi 6.0) 1.0))
-      (draw-some-circles stream))))
+      (draw-multiple-circles stream))))
 
 (define-test (scaled-rotated-circles graphics) (stream)
   "Draw some circles, first scaled then rotated, wait a few seconds, then refresh."
   (draw-grid stream)
   (with-rotation (stream (float (/ pi 6.0) 1.0))
     (with-scaling (stream 2 3)
-      (draw-some-circles stream))))
+      (draw-multiple-circles stream))))
+
+(define-test (draw-some-arcs graphics) (stream)
+  "Draw some arcs, wait a few seconds, and refresh the window."
+  (formatting-table (stream)
+    (dolist (angles `((0 ,(* 2 pi))
+		      (0 ,(* 0.5 pi))
+		      (,(* 0.5 pi) ,pi)
+		      (,pi ,(* 1.5 pi))
+		      (,(* 1.5 pi) ,(* 2 pi))))
+      (formatting-row (stream)
+	(formatting-cell (stream)
+	  (format stream "Arc from ~3F to ~3F" (car angles) (second angles)))
+	(formatting-cell (stream)
+	  (draw-circle* stream 0 0 50 
+			:ink +red+ :filled t
+			:start-angle (car angles) :end-angle (second angles)))
+	(formatting-cell (stream)
+	  (draw-circle* stream 0 0 50 
+			:ink +green+ :filled t
+			:start-angle (second angles) :end-angle (car angles)))))))
+
 
 (defparameter *gettysburg-address*
 	      "
@@ -339,10 +330,6 @@ people, shall not perish from the earth.
 		(make-rectangle* 0 0 10 10)
 		(make-rectangle* 10 10 20 20)))
 
-(define-presentation-type form-to-evaluate ())
-
-
-
 (define-test (region-equal-tests graphics) (stream)
   "Exercise REGION-EQUAL."
   (formatting-table (stream :x-spacing "  ")
@@ -357,10 +344,9 @@ people, shall not perish from the earth.
 	  (formatting-cell (stream :align-x :center)
 	    (let ((result (region-equal (eval region1) (eval region2)))
 		  (correct-result (equal region1 region2)))
-	      (with-output-as-presentation (stream
-					    `(region-equal ,region1 ,region2)
-					     'form-to-evaluate
-					    :single-box t)
+	      (with-output-as-presentation 
+		  (stream `(region-equal ,region1 ,region2) 'form
+		   :single-box t)
 		(if (eq result correct-result)
 		    (format stream "~A" result)
 		  (with-text-face (stream :bold)
@@ -415,10 +401,9 @@ people, shall not perish from the earth.
 				*test-regions-for-region-contains-position-p*))
 		  (x (first position))
 		  (y (second position)))
-	      (with-output-as-presentation ( stream
-					     `(region-contains-position-p ,region ,x ,y)
-					     'form-to-evaluate
-					    :single-box t)
+	      (with-output-as-presentation 
+		  (stream `(region-contains-position-p ,region ,x ,y) 'form
+		   :single-box t)
 		(formatting-cell (stream :align-x :center)
 		  (when res
 		    (let* ((correct-result (third res))
@@ -472,10 +457,9 @@ people, shall not perish from the earth.
 	      (with-text-face (stream :italic)
 		(format stream "~A" region1)))
 	    (dolist (region2 regions)
-	      (with-output-as-presentation ( stream
-					     `(region-contains-region-p ,region1 ,region2) 
-					     'form-to-evaluate
-					    :single-box t)
+	      (with-output-as-presentation 
+		  (stream `(region-contains-region-p ,region1 ,region2) 'form
+		   :single-box t)
 		(formatting-cell (stream :align-x :center)
 		  (let ((res (lookup-result region1 region2))
 			(result (region-contains-region-p (eval region1) (eval region2))))
@@ -532,10 +516,9 @@ people, shall not perish from the earth.
 	      (with-text-face (stream :italic)
 		(format stream "~A" region1)))
 	    (dolist (region2 regions)
-	      (with-output-as-presentation ( stream
-					     `(region-intersects-region-p ,region1 ,region2)
-					     'form-to-evaluate
-					    :single-box t)
+	      (with-output-as-presentation 
+		  (stream `(region-intersects-region-p ,region1 ,region2) 'form
+		   :single-box t)
 		(formatting-cell (stream :align-x :center)
 		  (let ((res (lookup-result region1 region2))
 			(result (region-intersects-region-p (eval region1) (eval region2))))
@@ -1046,16 +1029,6 @@ people, shall not perish from the earth.
 			    :orientation :vertical
 			    :stream stream)))
 
-#+allegro
-(define-test (clos-metaobjects-graph formatted-output) (stream)
-  "Draw a graph showing part of the CLOS class hierarchy"
-  (format-graph-from-roots 
-   (mapcar #'find-class '(clos:metaobject clos:dependee-mixin))
-   #'(lambda (o s) (format s "~A" (clos::class-name o))) 
-   #'clos::class-direct-subclasses
-   :stream stream
-   :merge-duplicates t))
-
 (define-test (offset-table formatted-output) (stream)
   "Draw a table offset in the window.  After refreshing, it should look the same."
   (stream-set-cursor-position stream 20 20)
@@ -1070,6 +1043,16 @@ people, shall not perish from the earth.
 	  (format stream "~D" (* i i i))))))
   (sleep 2)
   (window-refresh stream))
+
+#+Allegro
+(define-test (clos-metaobjects-graph formatted-output) (stream)
+  "Draw a graph showing part of the CLOS class hierarchy"
+  (format-graph-from-roots 
+    (mapcar #'find-class '(clos:metaobject clos:dependee-mixin))
+    #'(lambda (o s) (format s "~A" (clos::class-name o))) 
+    #'clos::class-direct-subclasses
+    :stream stream
+    :merge-duplicates t))
 
 (define-test (offset-graph formatted-output) (stream)
   "Draw a graph offset in the window.  After refreshing, it should look the same."
@@ -1587,7 +1570,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 	       (apply #'draw-compass-point stream ptype point))))
     #+ignore (declare (dynamic-extent #'draw-compass-point #'draw-compass))
     (with-menu (menu stream)
-      #-silica (setf (window-label menu) "Compass point")
+      #-Silica (setf (window-label menu) "Compass point")
       (format stream "~S" (menu-choose-from-drawer menu 'menu-item #'draw-compass)))))
 
 
@@ -1975,7 +1958,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 
 (define-benchmark (clipped-line-drawing :iterations 10) (stream)
   "Draw lines through a clipping region"
-  (with-drawing-options (stream :clipping-region (make-rectangle* 50 50 250 250))
+  (with-drawing-options (stream :clipping-region (make-bounding-rectangle 50 50 250 250))
     (line-drawing-kernel stream 50)))
 
 (defun shape-drawing-kernel (stream n-shapes filled-p &key (clear t))
@@ -2040,7 +2023,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 
 (define-benchmark (clipped-shape-drawing :iterations 5) (stream)
   "Draw shapes through a clipping region"
-  (with-drawing-options (stream :clipping-region (make-rectangle* 50 50 250 250))
+  (with-drawing-options (stream :clipping-region (make-bounding-rectangle 50 50 250 250))
     (shape-drawing-kernel stream 10 nil)))
 
 ;;; Text benchmarks
@@ -2557,8 +2540,8 @@ Luke Luck licks the lakes Luke's duck likes."))
 (define-benchmark (simple-menu-choose :iterations 10) (stream)
   "Pop up a simple menu of colors"
   (without-clim-input
-    (if #+allegro (typep (port stream) 'xm-silica::xt-port)
-	#-allegro nil
+    (if #+Allegro (typep (port stream) 'xm-silica::xt-port)
+	#-Allegro nil
 	(sleep 1) ;; Avoid division by zero!
 	(menu-choose '(("Red" :value +red+)
 		       ("Green" :value +green+)
@@ -2575,8 +2558,8 @@ Luke Luck licks the lakes Luke's duck likes."))
 (define-benchmark (cached-menu-choose :iterations 10) (stream)
   "Pop up a cached menu of colors"
   (without-clim-input
-    (if #+allegro (typep (port stream) 'xm-silica::xt-port)
-	#-allegro nil
+    (if #+Allegro (typep (port stream) 'xm-silica::xt-port)
+	#-Allegro nil
 	(sleep 1) ;; Avoid division by zero!
 	(menu-choose '(("Red" :value +red+)
 		       ("Green" :value +green+)
@@ -2681,40 +2664,6 @@ Luke Luck licks the lakes Luke's duck likes."))
 			    :line-cap-shape :round)))))))))
 
 
-#-silica
-(define-application-frame clim-tests ()
-    ()
-  (:command-table (clim-tests
-		   :inherit-from (graphics
-				  output-recording
-				  formatted-output
-				  redisplay
-				  presentations
-				  menus-and-dialogs
-				  benchmarks)
-		   :menu (("Graphics" :menu graphics)
-			  ("Output Recording" :menu output-recording)
-			  ("Formatted Output" :menu formatted-output)
-			  ("Redisplay" :menu redisplay)
-			  ("Presentations" :menu presentations)
-			  ("Menus and Dialogs" :menu menus-and-dialogs)
-			  ("Benchmarks" :menu benchmarks)
-			  ("Exit" :command (exit-clim-tests)))))
-  (:command-definer nil)
-  (:panes ((command-pane :command-menu
-	    :default-text-style '(:sans-serif :roman :normal))
-	   (caption-pane :application
-	    :scroll-bars nil
-	    :default-text-style '(:sans-serif :roman :small))
-	   (display-pane :application
-	    :scroll-bars :both)))
-  (:layout ((default
-	      (:column 1
-	       (command-pane :compute)
-	       (caption-pane 1/10)
-	       (display-pane :rest))))))
-
-#+silica
 (define-application-frame clim-tests ()
     ()
   (:command-table (clim-tests
@@ -2749,48 +2698,21 @@ Luke Luck licks the lakes Luke's duck likes."))
 
 (defmethod frame-standard-output ((frame clim-tests))
   (get-frame-pane frame 'display-pane))
-
-(define-presentation-action evaluate-form 
-    (form-to-evaluate command clim-tests)
-  (object)
-  (format t "~%The result of evaluating ~S is ~S" object (eval object)))
-
+    
 #+Genera
 (define-genera-application clim-tests :select-key #\Circle
 			   :width 600 :height 420)
 
+(define-command (evaluate-form :command-table clim-tests)
+    ((form 'form :gesture :select))
+  (format t "~%The result of evaluating ~S is ~S" form (eval form)))
+
 (define-command (exit-clim-tests :command-table clim-tests :menu t)
     ()
-  #+(and Genera (not silica))
-  (setf (window-visibility (frame-top-level-window *application-frame*)) nil)
   (frame-exit *application-frame*))
 
 (defvar *test-suite-frame* nil)
 
-#-silica
-(defvar *test-root* nil)
-
-#-silica
-(defun do-test-suite (&optional (root *test-root*))
-  (unless root
-    (lisp:format t "~&No current value for *TEST-ROOT*.  Use what value? ")
-    (setq root (eval (lisp:read)))
-    (setq *test-root* root))
-  (let* ((entry (assoc root *test-suite-frame*))
-	 (test (cdr entry)))
-    (when (null test)
-      ;; The canonical test suite has a canonical size, on every kind of platform
-      (let* ((width 600)
-	     (height 420))
-	(setq test (make-application-frame 'clim-tests
-					   :parent root
-					   :width width :height height))))
-    (if entry
-	(setf (cdr entry) test)
-        (push (cons root test) *test-suite-frame*))
-    (run-frame-top-level test)))
-
-#+silica
 (defun do-test-suite ()
   (let* ((width 600)
 	 (height 420)

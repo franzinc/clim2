@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: packages.lisp,v 1.18 92/06/16 15:01:22 cer Exp Locker: cer $
+;; $fiHeader: packages.lisp,v 1.19 92/06/23 08:19:34 cer Exp $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :common-lisp-user)
 
@@ -8,22 +8,22 @@
 
 ;; Define the CLIM-LISP package, a package designed to mimic ANSI Common Lisp
 ;; as closely as possible (including CLOS).
-(#-ANSI-90 clim-lisp::defpackage #+ANSI-90 defpackage CLIM-LISP
+(#-(or ANSI-90 Lucid) clim-lisp::defpackage #+(or ANSI-90 Lucid) defpackage clim-lisp
 
- (:use #-ANSI-90 LISP #+ANSI-90 COMMON-LISP
-       #+Allegro CLOS
-       #+(and CLIM-uses-lisp-stream-classes Allegro) STREAM)
+ (:use #-ANSI-90 lisp #+ANSI-90 common-lisp
+       #+Allegro clos
+       #+(and CLIM-uses-lisp-stream-classes Allegro) stream)
  
  #-ANSI-90
- (:shadowing-import-from #+PCL PCL
-			 #+(and (not PCL) (or Genera Cloe-Runtime)) CLOS-INTERNALS
-			 #+(and (not PCL) (not (or Genera Cloe-Runtime))) CLOS
+ (:shadowing-import-from #+PCL pcl
+			 #+(and (not PCL) (or Genera Cloe-Runtime)) clos-internals
+			 #+(and (not PCL) (not (or Genera Cloe-Runtime))) clos
    defstruct
    documentation
    setf)
 
  #-ANSI-90
- (:import-from #+PCL PCL #-PCL CLOS
+ (:import-from #+PCL pcl #-PCL clos
    add-method
    allocate-instance
    built-in-class
@@ -37,12 +37,14 @@
    class-of
    class-precedence-list
    class-prototype
+   class-slots
    #+PCL classp
    compute-applicable-methods
    defclass
    defgeneric
    define-method-combination
    defmethod
+   describe-object
    ensure-generic-function
    find-class
    find-method
@@ -56,6 +58,7 @@
    make-instance
    make-instances-obsolete
    make-load-form
+   make-load-form-saving-slots
    make-method
    method
    method-combination
@@ -79,6 +82,7 @@
    standard-generic-function
    standard-method
    standard-object
+   standard-slot-definition
    structure-class
    structure-object
    symbol-macrolet
@@ -88,7 +92,7 @@
    with-slots)
 
  #+(and ANSI-90 (not CCL-2))
- (:import-from #+PCL PCL #-PCL CLOS
+ (:import-from #+PCL pcl #-PCL clos
    class-direct-subclasses 
    class-direct-superclasses 
    class-precedence-list 
@@ -96,23 +100,23 @@
    funcallable-standard-class)
 
  #+CCL-2
- (:import-from CCL
+ (:import-from ccl
+   class
    class-direct-subclasses
    class-direct-superclasses
    class-precedence-list
-   class-prototype
-   class)
+   class-prototype)
 
  #-ANSI-90
- (:shadowing-import-from #+Lucid LUCID-COMMON-LISP 
-			 #+Allegro COMMON-LISP
-			 #-(or Lucid Allegro) CONDITIONS
+ (:shadowing-import-from #+Lucid lucid-common-lisp 
+			 #+Allegro common-lisp
+			 #-(or Lucid Allegro) conditions
    *break-on-signals*
    *debugger-hook*
    abort
+   arithmetic-error
    arithmetic-error-operands
    arithmetic-error-operation
-   arithmetic-error
    assert
    break
    ccase
@@ -131,8 +135,8 @@
    end-of-file
    error
    etypecase
-   file-error-pathname
    file-error
+   #-Lucid file-error-pathname
    find-restart
    floating-point-inexact
    floating-point-invalid-operation
@@ -142,365 +146,282 @@
    handler-case
    ignore-errors
    invoke-debugger
-   invoke-restart-interactively
    invoke-restart
+   invoke-restart-interactively
    make-condition
    muffle-warning
-   package-error-package
    package-error
-   parse-error
-   print-not-readable-object
-   print-not-readable
+   package-error-package
+   #-Lucid parse-error
+   #-Lucid print-not-readable
+   #-Lucid print-not-readable-object
    program-error
+   #-Lucid restart
    restart-bind
    restart-case
    restart-name
-   restart
    serious-condition
    signal
-   simple-condition-format-arguments
-   #-ANSI-90 simple-condition-format-string
-   #+ANSI-90 simple-condition-format-control
    simple-condition
+   simple-condition-format-arguments
+   #+ANSI-90 simple-condition-format-control
+   #-ANSI-90 simple-condition-format-string
    simple-error
    simple-type-error
    simple-warning
    storage-condition
    store-value
-   stream-error-stream
    stream-error
-   style-warning
-   type-error-datum
-   type-error-expected-type
+   stream-error-stream
+   #-Lucid style-warning
    type-error
-   unbound-slot-instance
-   unbound-slot
+   #-Lucid type-error-datum
+   #-Lucid type-error-expected-type
+   #-Lucid unbound-slot
+   #-Lucid unbound-slot-instance
    unbound-variable
    undefined-function
    use-value
-   warning
    warn
+   warning
    with-simple-restart)
 
  #+Lucid (:shadow define-condition)
 
  #+(and Genera (not ANSI-90))
- (:import-from FUTURE-COMMON-LISP
+ (:import-from future-common-lisp
+   *print-readably*
+   *read-eval*
    declaim
    define-compiler-macro
    defpackage
    dynamic-extent
    print-unreadable-object
-   *print-readably*
-   *read-eval*
    real
    with-standard-io-syntax)
 
+ #+Genera
+ (:import-from future-common-lisp
+   *compile-file-pathname*
+   *compile-print*
+   *compile-verbose*
+   *gensym-counter*
+   *load-pathname*
+   *load-print*
+   *load-truename*
+   *print-lines*
+   *print-miser-width*
+   *print-pprint-dispatch*
+   *print-right-margin*
+   base-string
+   broadcast-stream
+   broadcast-stream-streams
+   compile-file-pathname
+   compiler-macro-function
+   concatenated-stream
+   concatenated-stream-streams
+   copy-pprint-dispatch
+   debug
+   destructuring-bind
+   echo-stream
+   echo-stream-input-stream
+   echo-stream-output-stream
+   fdefinition
+   file-stream
+   file-string-length
+   formatter
+   load-logical-pathname-translations
+   load-time-value
+   logical-pathname
+   logical-pathname-translations
+   loop-finish 
+   nth-value
+   pathname-match-p
+   pprint-dispatch
+   pprint-exit-if-list-exhausted
+   pprint-fill
+   pprint-indent
+   pprint-linear
+   pprint-logical-block
+   pprint-newline
+   pprint-pop
+   pprint-tab
+   pprint-tabular
+   readtable-case
+   row-major-aref
+   set-pprint-dispatch
+   simple-base-string
+   stream-external-format
+   string-stream
+   synonym-stream
+   synonym-stream-symbol
+   translate-logical-pathname
+   translate-pathname
+   two-way-stream
+   two-way-stream-input-stream
+   two-way-stream-output-stream
+   upgraded-array-element-type
+   upgraded-complex-part-type
+   wild-pathname-p
+   with-compilation-unit
+   with-condition-restarts
+   with-hash-table-iterator
+   with-package-iterator)
+
  #+Symbolics
- (:import-from CLOS-INTERNALS
+ (:import-from clos-internals
    compile-file-environment-p)
 
  #+Cloe-Runtime
- (:import-from CLOE
+ (:import-from cloe
    with-standard-io-syntax)
 
  #+Lucid
- (:import-from LUCID-COMMON-LISP
+ (:import-from lucid-common-lisp
    dynamic-extent)
 
  #+Allegro
- (:import-from EXCL
+ (:import-from excl
    dynamic-extent)
 
  #+Cloe-Runtime
- (:import-from SYSTEM
-  stream-read-char
-  stream-unread-char
-  stream-read-char-no-hang
-  stream-peek-char
-  stream-listen
-  stream-read-line
-  stream-clear-input
-
-  stream-write-char
-  stream-line-column
-  stream-start-line-p
-  stream-write-string
-  stream-terpri
-  stream-fresh-line
-  stream-finish-output
-  stream-force-output
-  stream-clear-output
-  stream-advance-to-column
-
-  stream-read-byte
-  stream-write-byte
-  )
+ (:import-from system
+   stream-advance-to-column
+   stream-clear-input
+   stream-clear-output
+   stream-finish-output
+   stream-force-output
+   stream-fresh-line
+   stream-line-column
+   stream-listen
+   stream-peek-char
+   stream-read-byte
+   stream-read-char
+   stream-read-char-no-hang
+   stream-read-line
+   stream-start-line-p
+   stream-terpri
+   stream-unread-char
+   stream-write-byte
+   stream-write-char
+   stream-write-string)
 
  #+Minima
- (:import-from MINIMA-INTERNALS
-  stream-read-char
-  stream-unread-char
-  stream-read-char-no-hang
-  stream-peek-char
-  stream-listen
-  stream-read-line
-  stream-clear-input
-
-  stream-write-char
-  stream-line-column
-  stream-start-line-p
-  stream-write-string
-  stream-terpri
-  stream-fresh-line
-  stream-finish-output
-  stream-force-output
-  stream-clear-output
-  stream-advance-to-column
-
-  stream-read-byte
-  stream-write-byte
-  )
+ (:import-from minima-internals
+   stream-advance-to-column
+   stream-clear-input
+   stream-clear-output
+   stream-finish-output
+   stream-force-output
+   stream-fresh-line
+   stream-line-column
+   stream-listen
+   stream-peek-char
+   stream-read-byte
+   stream-read-char
+   stream-read-char-no-hang
+   stream-read-line
+   stream-start-line-p
+   stream-terpri
+   stream-unread-char
+   stream-write-byte
+   stream-write-char
+   stream-write-string)
 
  ;; Stream Proposal -- Classes and class predicates.
  #-CLIM-uses-Lisp-stream-classes
  (:shadow
-   ;; Class names
-   fundamental-stream
-   fundamental-input-stream
-   fundamental-output-stream
-   fundamental-character-stream
+   fundamental-binary-input-stream
+   fundamental-binary-output-stream
    fundamental-binary-stream
    fundamental-character-input-stream
    fundamental-character-output-stream
-   fundamental-binary-input-stream
-   fundamental-binary-output-stream
-
-   ;; Function names
+   fundamental-character-stream
+   fundamental-input-stream
+   fundamental-output-stream
+   fundamental-stream
    input-stream-p
-   output-stream-p
    open-stream-p
+   output-stream-p
    streamp)
 
- #-CLIM-uses-Lisp-stream-functions
+ #-(or CLIM-uses-Lisp-stream-functions Lucid)
  (:shadow
-   ;; CL stream input functions
+   clear-input
+   clear-output
+   close
+   finish-output
+   force-output
+   format
+   fresh-line
+   listen
+   pathname 
+   peek-char
    read-byte
    read-char
-   unread-char
    read-char-no-hang
-   peek-char
-   listen
    read-line
-   clear-input
-   ;; CL stream output functions
+   stream-element-type
+   terpri
+   truename
+   unread-char
+   with-open-stream
    write-byte
    write-char
-   write-string
-   terpri
-   fresh-line
-   force-output
-   finish-output
+   write-string)
+
+  #+Lucid
+ (:import-from common-lisp
+   clear-input
    clear-output
+   finish-output
+   force-output
    format
-   ;; Miscellaneous CL stream functions and macros
-   stream-element-type
-   close
-   with-open-stream
-   pathname 
-   truename)
+   fresh-line
+   listen
+   peek-char
+   read-byte
+   read-char
+   read-char-no-hang
+   read-line
+   terpri
+   unread-char
+   write-byte
+   write-char
+   write-string)
 
  ;; Import these symbols so that we can define methods for them.
  #+CCL-2
- (:import-from CCL
-  stream-force-output
-  stream-clear-input
-  stream-fresh-line
-  stream-listen)
+ (:import-from ccl
+   stream-clear-input
+   stream-force-output
+   stream-fresh-line
+   stream-listen)
 
  #+Genera
- (:shadow stream-element-type close with-open-stream pathname truename)
+ (:shadow
+   close
+   pathname
+   stream-element-type
+   truename
+   with-open-stream)
 
  #+Allegro
- (:shadow pathname truename)
+ (:shadow 
+   pathname
+   truename)
+
+ #+Lucid
+ (:shadow		
+   close
+   stream-element-type
+   with-open-stream)
+
+ ;; Shadow this everywhere to make it a generic function
+ (:shadow
+   interactive-stream-p)
 
  (:export   
-   ;; ANSI Common Lisp
-   *print-readably*
-   *read-eval*
-   define-compiler-macro
-   defpackage
-   dynamic-extent
-   print-unreadable-object
-   real
-   with-standard-io-syntax
-
-   ;; Condition system
-   *break-on-signals*
-   *debugger-hook*
-   abort
-   arithmetic-error-operands
-   arithmetic-error-operation
-   arithmetic-error
-   cell-error-name
-   cell-error
-   compute-restarts
-   condition
-   continue
-   control-error
-   define-condition
-   division-by-zero
-   end-of-file
-   file-error-pathname
-   file-error
-   find-restart
-   floating-point-inexact
-   floating-point-invalid-operation
-   floating-point-overflow
-   floating-point-underflow
-   handler-bind
-   handler-case
-   ignore-errors
-   invoke-debugger
-   invoke-restart-interactively
-   invoke-restart
-   make-condition
-   muffle-warning
-   package-error-package
-   package-error
-   parse-error
-   print-not-readable-object
-   print-not-readable
-   program-error
-   restart-bind
-   restart-case
-   restart-name
-   restart
-   serious-condition
-   signal
-   simple-condition-format-arguments
-   #-ANSI-90 simple-condition-format-string
-   #+ANSI-90 simple-condition-format-control
-   simple-condition
-   simple-error
-   simple-type-error
-   simple-warning
-   storage-condition
-   store-value
-   stream-error-stream
-   stream-error
-   style-warning
-   type-error-datum
-   type-error-expected-type
-   type-error
-   unbound-slot-instance
-   unbound-slot
-   unbound-variable
-   undefined-function
-   use-value
-   warning
-   with-simple-restart
-
-   ;; Stream Proposal
-   fundamental-stream
-   fundamental-input-stream
-   fundamental-output-stream
-   fundamental-character-stream
-   fundamental-binary-stream
-   fundamental-character-input-stream
-   fundamental-character-output-stream
-   fundamental-binary-input-stream
-   fundamental-binary-output-stream
-
-   stream-read-char
-   stream-unread-char
-   stream-read-char-no-hang
-   stream-peek-char
-   stream-listen
-   stream-read-line
-   stream-clear-input
-
-   stream-write-char
-   stream-line-column
-   stream-start-line-p
-   stream-write-string
-   stream-terpri
-   stream-fresh-line
-   stream-finish-output
-   stream-force-output
-   stream-clear-output
-   stream-advance-to-column
-
-   stream-read-byte
-   stream-write-byte
-   
-   ;; CLOS
-   ;; Symbols from chapter 2
-   add-method
-   allocate-instance
-   built-in-class
-   call-method
-   call-next-method
-   change-class
-   class
-   class-name
-   class-of
-   compute-applicable-methods
-   defclass
-   defgeneric
-   define-method-combination
-   defmethod
-   documentation
-   ensure-generic-function
-   find-class
-   find-method
-   function-keywords
-   generic-flet
-   generic-function
-   generic-labels
-   initialize-instance
-   invalid-method-error
-   make-instance
-   make-instances-obsolete
-   make-method
-   method-combination-error
-   method-qualifiers
-   next-method-p
-   no-applicable-method
-   no-next-method
-   print-object
-   reinitialize-instance
-   remove-method
-   shared-initialize
-   slot-boundp
-   slot-exists-p
-   slot-makunbound
-   slot-missing
-   slot-unbound
-   slot-value
-   standard-class
-   standard-generic-function
-   symbol-macrolet
-   update-instance-for-different-class
-   update-instance-for-redefined-class
-   with-accessors
-   with-slots
-   ;; Post-88-002R additions that would have been in chapter 2
-   describe-object
-   make-load-form
-   make-load-form-saving-slots
-   ;; Not in Hornig's Chapter 2 list (?) but in both PCL and Genera CLOS, and
-   ;; used by Silica
-   class-direct-subclasses
-   class-direct-superclasses
-   class-precedence-list
-   class-prototype
-   funcallable-standard-class
-   ;; Somehow missing from the above
-   standard-object
-   compile-file-environment-p
-
-   ;; CLtL
    &allow-other-keys
    &aux
    &body
@@ -512,10 +433,20 @@
    *
    **
    ***
+   *break-on-signals*
+   *compile-file-pathname*
+   *compile-file-truename*
+   *compile-print*
+   *compile-verbose*
    *debug-io*
+   *debugger-hook*
    *default-pathname-defaults*
    *error-output*
    *features*
+   *gensym-counter*
+   *load-pathname*
+   *load-print*
+   *load-truename*
    *load-verbose*
    *macroexpand-hook*
    *package*
@@ -527,12 +458,18 @@
    *print-gensym*
    *print-length*
    *print-level*
+   *print-lines*
+   *print-miser-width*
+   *print-pprint-dispatch*
    *print-pretty*
    *print-radix*
+   *print-readably*
+   *print-right-margin*
    *query-io*
    *random-state*
    *read-base*
    *read-default-float-format*
+   *read-eval*
    *read-suppress*
    *readtable*
    *standard-input*
@@ -543,10 +480,10 @@
    ++
    +++
    -
+   /
    //
    ///
    /=
-   /
    1+
    1-
    <
@@ -554,13 +491,16 @@
    =
    >
    >=
+   abort
    abs
    acons
    acos
    acosh
+   add-method
    adjoin
    adjust-array
    adjustable-array-p
+   allocate-instance
    alpha-char-p
    alphanumericp
    and
@@ -569,42 +509,74 @@
    apropos
    apropos-list
    aref
+   arithmetic-error
+   arithmetic-error-operands
+   arithmetic-error-operation
+   array
    array-dimension
    array-dimension-limit
    array-dimensions
+   array-displacement
    array-element-type
    array-has-fill-pointer-p
    array-in-bounds-p
-   array-rank-limit
    array-rank
+   array-rank-limit
    array-row-major-index
-   array-total-size-limit
    array-total-size
+   array-total-size-limit
    arrayp
-   array
    ash 
    asin
    asinh
    assert
+   assoc
    assoc-if
    assoc-if-not
-   assoc
-   atanh
    atan
+   atanh
    atom
+   base-char
+   base-string
    bignum
-   bit-and bit-ior bit-xor bit-eqv bit-nand bit-nor
-   bit-andc1 bit-andc2 bit-orc1 bit-orc2 bit-not
-   bit-vector-p
-   bit-vector
    bit
+   bit-and
+   bit-andc1
+   bit-andc2
+   bit-eqv
+   bit-ior
+   bit-nand
+   bit-nor
+   bit-not
+   bit-orc1
+   bit-orc2
+   bit-vector
+   bit-vector-p
+   bit-xor
    block
-   boole-clr boole-set boole-1 boole-2 boole-c1 boole-c2 boole-and boole-ior
-   boole-xor boole-eqv boole-nand boole-nor boole-andc1 boole-andc2 boole-orc1 boole-orc2
    boole
+   boole-1
+   boole-2
+   boole-and
+   boole-andc1
+   boole-andc2
+   boole-c1
+   boole-c2
+   boole-clr
+   boole-eqv
+   boole-ior
+   boole-nand
+   boole-nor
+   boole-orc1
+   boole-orc2
+   boole-set
+   boole-xor
    both-case-p
    boundp
    break
+   broadcast-stream
+   broadcast-stream-streams
+   built-in-class
    butlast
    byte
    byte-position
@@ -624,6 +596,8 @@
    caddr
    cadr
    call-arguments-limit
+   call-method
+   call-next-method
    car
    case
    catch
@@ -644,7 +618,11 @@
    cddr
    cdr
    ceiling
+   cell-error
+   cell-error-name
    cerror
+   change-class
+   char
    char-code
    char-code-limit
    char-downcase
@@ -665,9 +643,16 @@
    char>=
    character
    characterp
-   char
    check-type
    cis
+   class
+   class-direct-subclasses
+   class-direct-superclasses
+   class-name
+   class-of
+   class-precedence-list
+   class-prototype
+   #+PCL classp
    clear-input
    clear-output
    close
@@ -677,20 +662,35 @@
    compilation-speed
    compile
    compile-file
-   compiled-function-p
+   compile-file-environment-p
+   compile-file-pathname
    compiled-function
+   compiled-function-p
+   compiler-macro
+   compiler-macro-function
+   complement
    complex
    complexp
+   compute-applicable-methods
+   compute-restarts
    concatenate
+   concatenated-stream
+   concatenated-stream-streams
    cond
+   condition
    conjugate
    cons
    consp
+   constantly
    constantp
+   continue
+   control-error
    copy-alist
    copy-list
+   copy-pprint-dispatch
    copy-readtable
    copy-seq
+   copy-structure
    copy-symbol
    copy-tree
    cos
@@ -699,35 +699,48 @@
    count-if
    count-if-not
    ctypecase
+   debug
    decf
    declaim
    declaration
    declare
    decode-float
    decode-universal-time
+   defclass
    defconstant
+   defgeneric
+   define-compiler-macro
+   define-condition
+   define-method-combination
    define-modify-macro
-   define-setf-method
+   #+ANSI-90 define-setf-expander
+   #-ANSI-90 define-setf-method
    defmacro
+   defmethod
+   defpackage
    defparameter
    defsetf
    defstruct
    deftype
    defun
    defvar
+   delete
    delete-duplicates
    delete-file
    delete-if
    delete-if-not
-   delete
+   delete-package
    denominator
    deposit-field
    describe
+   describe-object
+   destructuring-bind
    digit-char
    digit-char-p
-   directory-namestring
    directory
+   directory-namestring
    disassemble
+   division-by-zero
    do
    do*
    do-all-symbols
@@ -736,22 +749,28 @@
    documentation
    dolist
    dotimes
+   double-float
    double-float-epsilon
    double-float-negative-epsilon
-   double-float
    dpb
    dribble
+   dynamic-extent
    ecase
+   echo-stream
+   echo-stream-input-stream
+   echo-stream-output-stream
    ed
    eighth 
    elt
    encode-universal-time
+   end-of-file
    endp
    enough-namestring
+   ensure-generic-function
    eq
    eql
-   equalp
    equal
+   equalp
    error
    etypecase
    eval
@@ -761,48 +780,69 @@
    exp
    export
    expt
+   extended-char
    fboundp
    fceiling
+   fdefinition
    ffloor
    fifth
    file-author
+   file-error
+   file-error-pathname
    file-length
    file-namestring
    file-position
+   file-stream
+   file-string-length
    file-write-date
    fill
    fill-pointer
    find
    find-all-symbols
+   find-class
    find-if
    find-if-not
+   find-method
    find-package
+   find-restart
    find-symbol
    finish-output
    first
    fixnum
    flet
+   float
    float-digits
    float-precision
    float-radix
    float-sign
+   floating-point-inexact
+   floating-point-invalid-operation
+   floating-point-overflow
+   floating-point-underflow
    floatp
-   float
    floor
    fmakunbound
    force-output
    format
+   formatter
    fourth
    fresh-line
    fround
    ftruncate
    ftype
    funcall
+   funcallable-standard-class
    function
+   function-keywords
+   function-lambda-expression
    functionp
    gcd
+   generic-flet
+   generic-function
+   generic-labels
    gensym
    gentemp
+   get
    get-decoded-time 
    get-dispatch-macro-character
    get-internal-real-time
@@ -810,38 +850,52 @@
    get-macro-character
    get-output-stream-string
    get-properties
-   get-setf-method
-   get-setf-method-multiple-value
+   #+ANSI-90 get-setf-expansion
+   #-ANSI-90 get-setf-method
+   #-ANSI-90 get-setf-method-multiple-value
    get-universal-time
    getf
    gethash
-   get
    go
    graphic-char-p
+   handler-bind
+   handler-case
+   hash-table
    hash-table-count
    hash-table-p
-   hash-table
+   hash-table-rehash-size
+   hash-table-rehash-threshold
+   hash-table-size
+   hash-table-test
    host-namestring
    identity
    if
+   ignorable
    ignore
+   ignore-errors
    imagpart
    import
    in-package
    incf
+   initialize-instance
    inline
    input-stream-p
    inspect
+   integer
    integer-decode-float
    integer-length
    integerp
-   integer
-   internal-time-units-per-second
+   interactive-stream-p
    intern
+   internal-time-units-per-second
    intersection
+   invalid-method-error
+   invoke-debugger
+   invoke-restart
+   invoke-restart-interactively
    isqrt
-   keywordp
    keyword
+   keywordp
    labels
    lambda
    lambda-list-keywords
@@ -853,10 +907,18 @@
    ldiff
    least-negative-double-float
    least-negative-long-float
+   least-negative-normalized-double-float
+   least-negative-normalized-long-float
+   least-negative-normalized-short-float
+   least-negative-normalized-single-float
    least-negative-short-float
    least-negative-single-float
    least-positive-double-float
    least-positive-long-float
+   least-positive-normalized-double-float
+   least-positive-normalized-long-float
+   least-positive-normalized-short-float
+   least-positive-normalized-single-float
    least-positive-short-float
    least-positive-single-float
    length
@@ -871,13 +933,18 @@
    listen
    listp
    load
+   load-logical-pathname-translations
+   load-time-value
    locally
+   log
+   logand
    logandc1
    logandc2
-   logand
    logbitp
    logcount
    logeqv
+   logical-pathname
+   logical-pathname-translations
    logior
    lognand
    lognor
@@ -886,27 +953,33 @@
    logorc2
    logtest
    logxor
-   log
+   long-float
    long-float-epsilon
    long-float-negative-epsilon
-   long-float
    long-site-name
    loop
+   loop-finish 
    lower-case-p
    machine-instance
    machine-type
    machine-version
    macro-function
-   macroexpand-1
    macroexpand
+   macroexpand-1
    macrolet
    make-array
    make-broadcast-stream
    make-concatenated-stream
+   make-condition
    make-dispatch-macro-character
    make-echo-stream
    make-hash-table
+   make-instance
+   make-instances-obsolete
    make-list
+   make-load-form
+   make-load-form-saving-slots
+   make-method
    make-package
    make-pathname
    make-random-state
@@ -918,21 +991,26 @@
    make-synonym-stream
    make-two-way-stream
    makunbound
+   map
+   map-into
    mapc
    mapcan
    mapcar
    mapcon
    maphash
-   maplist
    mapl
-   map
+   maplist
    mask-field
    max
+   member
    member-if
    member-if-not
-   member
    merge
    merge-pathnames
+   method
+   method-combination
+   method-combination-error
+   method-qualifiers
    min
    minusp
    mismatch
@@ -947,6 +1025,7 @@
    most-positive-long-float
    most-positive-short-float
    most-positive-single-float
+   muffle-warning
    multiple-value-bind
    multiple-value-call
    multiple-value-list
@@ -957,9 +1036,12 @@
    namestring
    nbutlast
    nconc
+   next-method-p
    nil
    nintersection
    ninth
+   no-applicable-method
+   no-next-method
    not
    notany
    notevery
@@ -972,43 +1054,49 @@
    nstring-downcase
    nstring-upcase
    nsublis
+   nsubst
    nsubst-if
    nsubst-if-not
    nsubstitute
    nsubstitute-if
    nsubstitute-if-not
-   nsubst
    nth
+   nth-value
    nthcdr
    null
-   numberp
    number
+   numberp
    numerator
    nunion
    oddp
    open
+   open-stream-p
    optimize
    or
    otherwise
    output-stream-p
+   package
+   package-error
+   package-error-package
    package-name
    package-nicknames
    package-shadowing-symbols
    package-use-list
    package-used-by-list
    packagep
-   package
    pairlis
+   parse-error
    parse-integer
    parse-namestring
+   pathname
    pathname-device
    pathname-directory
    pathname-host
+   pathname-match-p
    pathname-name
    pathname-type
    pathname-version
    pathnamep
-   pathname
    peek-char
    phase
    pi
@@ -1018,11 +1106,25 @@
    position-if
    position-if-not
    pprint
-   prin1-to-string
+   pprint-dispatch
+   pprint-exit-if-list-exhausted
+   pprint-fill
+   pprint-indent
+   pprint-linear
+   pprint-logical-block
+   pprint-newline
+   pprint-pop
+   pprint-tab
+   pprint-tabular
    prin1
-   princ-to-string
+   prin1-to-string
    princ
+   princ-to-string
    print
+   print-not-readable
+   print-not-readable-object
+   print-object
+   print-unreadable-object
    probe-file
    proclaim
    prog
@@ -1030,6 +1132,7 @@
    prog1
    prog2
    progn
+   program-error
    progv
    provide
    psetf
@@ -1038,15 +1141,16 @@
    pushnew
    quote
    random
-   random-state-p
    random-state
+   random-state-p
+   rassoc
    rassoc-if
    rassoc-if-not
-   rassoc
+   ratio
+   rational
    rationalize
    rationalp
-   rational
-   ratio
+   read
    read-byte
    read-char
    read-char-no-hang
@@ -1054,31 +1158,41 @@
    read-from-string
    read-line
    read-preserving-whitespace
-   readtablep
+   reader-error
    readtable
-   read
+   readtable-case
+   readtablep
+   real
+   realp
    realpart
    reduce
+   reinitialize-instance
+   rem
    remf
    remhash
+   remove
    remove-duplicates
    remove-if 
    remove-if-not
-   remove
+   remove-method
    remprop
-   rem
    rename-file
    rename-package
    replace
    require
    rest
-   return-from
+   restart
+   restart-bind
+   restart-case
+   restart-name
    return
+   return-from
    revappend
    reverse
    room
    rotatef
    round
+   row-major-aref
    rplaca
    rplacd
    safety
@@ -1089,54 +1203,81 @@
    search
    second 
    sequence
+   serious-condition
    set
    set-difference
    set-dispatch-macro-character
    set-exclusive-or
    set-macro-character
+   set-pprint-dispatch
    set-syntax-from-char
    setf
    setq
    seventh
    shadow
    shadowing-import
+   shared-initialize
    shiftf
+   short-float
    short-float-epsilon
    short-float-negative-epsilon
-   short-float
    short-site-name
+   signal
    signed-byte
    signum
    simple-array
-   simple-bit-vector-p
+   simple-base-string
    simple-bit-vector
-   simple-string-p
+   simple-bit-vector-p
+   simple-condition
+   simple-condition-format-arguments
+   #+ANSI-90 simple-condition-format-control
+   #-ANSI-90 simple-condition-format-string
+   simple-error
    simple-string
-   simple-vector-p
+   simple-string-p
+   simple-type-error
    simple-vector
+   simple-vector-p
+   simple-warning
    sin
+   single-float
    single-float-epsilon
    single-float-negative-epsilon
-   single-float
    sinh
    sixth
    sleep
+   slot-boundp
+   slot-exists-p
+   slot-makunbound
+   slot-missing
+   slot-unbound
+   slot-value
    software-type
    software-version
    some
    sort
    space
-   special-form-p
    special
+   special-operator-p
    speed
    sqrt
    stable-sort
-   standard-char-p
    standard-char
+   standard-char-p
+   standard-class
+   standard-generic-function
+   standard-method 
+   standard-object
    step
-   stream-element-type
-   streamp
+   storage-condition
+   store-value
    stream
+   stream-element-type
+   stream-error
+   stream-error-stream
+   stream-external-format
+   streamp
    string
    string-capitalize
    string-downcase
@@ -1148,6 +1289,7 @@
    string-not-greaterp
    string-not-lessp
    string-right-trim
+   string-stream
    string-trim
    string-upcase
    string/=
@@ -1158,25 +1300,31 @@
    string>=
    stringp
    structure
+   structure-class
+   structure-object
+   style-warning
    sublis
    subseq
    subsetp
+   subst
    subst-if
    subst-if-not
    substitute
    substitute-if
    substitute-if-not
-   subst
    subtypep
    svref
    sxhash
+   symbol
    symbol-function
+   symbol-macrolet
    symbol-name
    symbol-package
    symbol-plist
    symbol-value
    symbolp
-   symbol
+   synonym-stream
+   synonym-stream-symbol
    t
    tagbody
    tailp
@@ -1189,13 +1337,25 @@
    throw
    time
    trace
+   translate-logical-pathname
+   translate-pathname
    tree-equal
    truename
    truncate
+   two-way-stream
+   two-way-stream-input-stream
+   two-way-stream-output-stream
+   type
+   type-error
+   type-error-datum
+   type-error-expected-type
    type-of
    typecase
    typep
-   type
+   unbound-slot
+   unbound-slot-instance
+   unbound-variable
+   undefined-function
    unexport
    unintern
    union
@@ -1205,23 +1365,38 @@
    untrace
    unuse-package
    unwind-protect
+   update-instance-for-different-class
+   update-instance-for-redefined-class
+   upgraded-array-element-type
+   upgraded-complex-part-type
    upper-case-p
    use-package
+   use-value
    user-homedir-pathname
    values
    values-list
    variable
    vector
    vector-pop
-   vector-push-extend
    vector-push
+   vector-push-extend
    vectorp
    warn
+   warning
    when
+   wild-pathname-p
+   with-accessors
+   with-compilation-unit
+   with-condition-restarts
+   with-hash-table-iterator
    with-input-from-string
    with-open-file
    with-open-stream
    with-output-to-string
+   with-package-iterator
+   with-simple-restart
+   with-slots
+   with-standard-io-syntax
    write
    write-byte
    write-char
@@ -1232,162 +1407,41 @@
    yes-or-no-p
    zerop)
 
- #+Genera
- (:import-from FUTURE-COMMON-LISP
-   base-string
-   broadcast-stream
-   broadcast-stream-streams
-   *compile-file-pathname*
-   compile-file-pathname
-   *compile-print*
-   compiler-macro-function
-   *compile-verbose*
-   concatenated-stream
-   concatenated-stream-streams
-   copy-pprint-dispatch
-   debug
-   destructuring-bind
-   echo-stream
-   echo-stream-input-stream
-   echo-stream-output-stream
-   ;ENCAPSULATED
-   fdefinition
-   file-stream
-   file-string-length
-   formatter
-   *gensym-counter*
-   load-logical-pathname-translations
-   *load-pathname*
-   *load-print*
-   load-time-value
-   *load-truename*
-   logical-pathname
-   logical-pathname-translations
-   loop-finish 
-   nth-value
-   pathname-match-p
-   pprint-dispatch
-   pprint-exit-if-list-exhausted
-   pprint-fill
-   pprint-indent
-   pprint-linear
-   pprint-logical-block
-   pprint-newline
-   pprint-pop
-   pprint-tab
-   pprint-tabular
-   *print-lines*
-   *print-miser-width*
-   *print-pprint-dispatch*
-   *print-right-margin*
-   readtable-case
-   row-major-aref
-   set-pprint-dispatch
-   ;SIMPLE-ARRAY-BASE-CHARACTER
-   simple-base-string
-   stream-external-format
-   string-stream
-   synonym-stream
-   synonym-stream-symbol
-   translate-logical-pathname
-   translate-pathname
-   two-way-stream
-   two-way-stream-input-stream
-   two-way-stream-output-stream
-   upgraded-array-element-type
-   upgraded-complex-part-type
-   wild-pathname-p
-   with-compilation-unit
-   with-condition-restarts
-   with-hash-table-iterator
-   with-package-iterator)
-
- ;; more ANSI exports.  Why were these not exported?
- (:export 
-   ;; why not exported here?
-   open-stream-p
-   ;; not supported in Genera yet, but not used by clim either!
-   ;with-added-methods
-   structure-class
-   standard-method 
-   method-combination
-   method
-   #+PCL classp
-   augment-environment
-   base-string
-   broadcast-stream
-   broadcast-stream-streams
-   *compile-file-pathname*
-   compile-file-pathname
-   *compile-print*
-   compiler-macroexpand
-   compiler-macroexpand-1
-   compiler-macro-function
-   *compile-verbose*
-   concatenated-stream
-   concatenated-stream-streams
-   copy-pprint-dispatch
-   debug
-   destructuring-bind
-   echo-stream
-   echo-stream-input-stream
-   echo-stream-output-stream
-   ;encapsulated
-   fdefinition
-   file-stream
-   file-string-length
-   formatter
-   *gensym-counter*
-   load-logical-pathname-translations
-   *load-pathname*
-   *load-print*
-   load-time-value
-   *load-truename*
-   logical-pathname
-   logical-pathname-translations
-   loop-finish 
-   nth-value
-   pathname-match-p
-   pprint-dispatch
-   pprint-exit-if-list-exhausted
-   pprint-fill
-   pprint-indent
-   pprint-linear
-   pprint-logical-block
-   pprint-newline
-   pprint-pop
-   pprint-tab
-   pprint-tabular
-   *print-lines*
-   *print-miser-width*
-   *print-pprint-dispatch*
-   *print-right-margin*
-   readtable-case
-   row-major-aref
-   set-pprint-dispatch
-   simple-array-base-character
-   simple-base-string
-   stream-external-format
-   string-stream
-   synonym-stream
-   synonym-stream-symbol
-   translate-logical-pathname
-   translate-pathname
-   two-way-stream
-   two-way-stream-input-stream
-   two-way-stream-output-stream
-   upgraded-array-element-type
-   upgraded-complex-part-type
-   wild-pathname-p
-   with-compilation-unit
-   with-condition-restarts
-   with-hash-table-iterator
-   with-package-iterator))
+ ;; Export symbols from Gray stream proposal, sigh
+ (:export
+   fundamental-binary-input-stream
+   fundamental-binary-output-stream
+   fundamental-binary-stream
+   fundamental-character-input-stream
+   fundamental-character-output-stream
+   fundamental-character-stream
+   fundamental-input-stream
+   fundamental-output-stream
+   fundamental-stream
+   stream-advance-to-column
+   stream-clear-input
+   stream-clear-output
+   stream-finish-output
+   stream-force-output
+   stream-fresh-line
+   stream-line-column
+   stream-listen
+   stream-peek-char
+   stream-read-byte
+   stream-read-char
+   stream-read-char-no-hang
+   stream-read-line
+   stream-start-line-p
+   stream-terpri
+   stream-unread-char
+   stream-write-byte
+   stream-write-char
+   stream-write-string))
 
 ;; Get around a CCL-2 bug with DEFPACKAGE
 #+CCL-2
 (eval-when (eval compile load)
-  (export '(()) "CLIM-LISP"))
+  (export '(()) (find-package :clim-lisp)))
 
 #+(and Genera lock-CLIM-packages) (setf (si:pkg-locked (find-package :clim-lisp)) t)
 
@@ -1395,7 +1449,7 @@
 
 
 ;; Define the CLIM-SYS package
-(#-ANSI-90 clim-lisp::defpackage #+ANSI-90 defpackage CLIM-SYS
+(#-(or ANSI-90 Lucid) clim-lisp::defpackage #+(or ANSI-90 Lucid) defpackage clim-sys
   (:use)				;use nothing
   (:export
     ;; Resources
@@ -1432,15 +1486,16 @@
 
 
 ;; Define the CLIM package
-(#-ANSI-90 clim-lisp::defpackage #+ANSI-90 defpackage CLIM
+(#-(or ANSI-90 Lucid) clim-lisp::defpackage #+(or ANSI-90 Lucid) defpackage clim
   (:use)				;use nothing
-  (:import-from CLIM-LISP
+  (:import-from clim-lisp
     and
     character
     close
     complex
     float
     integer
+    interactive-stream-p
     keyword
     member
     nil
@@ -1640,6 +1695,8 @@
     +super-key+
     add-watcher
     allocate-medium
+    basic-medium
+    basic-port
     bursting-input-queuer
     bury-sheet
     child-containing-position
@@ -1762,8 +1819,8 @@
     port-server-path
     port-type
     portp
-    primitive-sheet-output-mixin
     presentation-event
+    primitive-sheet-output-mixin
     process-next-event
     queue-event
     queue-input
@@ -1811,6 +1868,7 @@
     sheet-y-inverting-transformation-mixin
     sheetp
     standard-event-distributor
+    standard-graft
     standard-input-contract
     standard-repainting-mixin
     standard-sheet-input-mixin
@@ -1910,8 +1968,14 @@
     draw-polygon*
     draw-rectangle
     draw-rectangle*
+    draw-rectangles
+    draw-rectangles*
     draw-text
     draw-text*
+    medium-copy-area
+    medium-copy-from-pixmap
+    medium-copy-to-pixmap
+    medium-draw-character*
     medium-draw-ellipse*
     medium-draw-line*
     medium-draw-lines*
@@ -1919,19 +1983,11 @@
     medium-draw-points*
     medium-draw-polygon*
     medium-draw-rectangle*
+    medium-draw-rectangles*
+    medium-draw-string*
     medium-draw-text*
     pixmap-height
     pixmap-width
-    port-draw-character*
-    port-draw-ellipse*
-    port-draw-line*
-    port-draw-lines*
-    port-draw-point*
-    port-draw-points*
-    port-draw-polygon*
-    port-draw-rectangle*
-    port-draw-string*
-    port-draw-text*
     with-output-to-pixmap
     
     ;; Colors
@@ -2182,7 +2238,6 @@
     pointer
     pointer-buttons
     pointer-cursor
-    pointer-port
     pointer-position
     pointer-sheet
     pointerp
@@ -2226,6 +2281,8 @@
     accept-method
     accept-present-default
     accept-present-default-method
+    accept-values-pane
+    accept-values-pane-displayer
     apply-presentation-generic-function
     and
     blank-area
@@ -2562,7 +2619,7 @@
     window-viewport-position
     with-application-frame
     with-frame-manager
-    with-frame
+    
     ;; Progress notes
     *current-progress-note*
     dolist-noting-progress
@@ -2590,6 +2647,8 @@
     label-pane
     labelled
     lowering
+    make-clim-application-pane
+    make-clim-interactor-pane
     make-clim-stream-pane
     make-pane
     make-pane-1
@@ -2852,7 +2911,7 @@
     +white-smoke+
     +yellow-green+)
 
-  ;; Need to export these since we don't hack SETF* yet
+  ;; Need to export these since not everybody hacks SETF* yet
   (:export
     cursor-set-position
     output-record-set-position
@@ -2879,8 +2938,9 @@
     fix-coordinate
     fix-coordinates
     iconic-view
-    open-root-window
-    open-window-stream
+    pointer-input-rectangle
+    pointer-input-rectangle*
+    pointer-place-rubber-band-line*
     position-window-near-carefully
     stream-pointer-position-in-window-coordinates
     translate-coordinates
@@ -2949,6 +3009,7 @@
     map-over-output-record-elements-containing-point*
     map-over-output-record-elements-overlapping-region
     menu-view
+    open-window-stream
     output-record-end-position*
     output-record-position*
     output-record-set-position*
@@ -2982,26 +3043,26 @@
 
 
 ;; Now define all of the implementation packages
-(#-ANSI-90 clim-lisp::defpackage #+ANSI-90 defpackage CLIM-UTILS
-  (:use	CLIM-LISP CLIM-SYS CLIM)
+(#-(or ANSI-90 Lucid) clim-lisp::defpackage #+(or ANSI-90 Lucid) defpackage clim-utils
+  (:use	clim-lisp clim-sys clim)
 
   #+Genera
-  (:import-from SYSTEM
+  (:import-from system
     arglist)
   #+Genera
-  (:import-from ZWEI
+  (:import-from zwei
     indentation)
 
   #+Cloe-Runtime
-  (:import-from CLOE
+  (:import-from cloe
     arglist)
  
   #+Lucid
-  (:import-from SYSTEM
+  (:import-from system
     arglist)
 
   #+Allegro
-  (:import-from EXCL
+  (:import-from excl
     arglist)
 
   #+(or Genera (not ANSI-90))
@@ -3010,12 +3071,12 @@
     flet labels
     defgeneric defmethod)
 
-  ;; Lucid and Allegro don't hack declarations properly for WITH-SLOTS
-  ;; They do now except on some older versions
-  #+(or Lucid (and Allegro (or :rs6000 (not (version>= 4 1)))))
+  ;; Older versions of Lucid and Allegro don't hack declarations properly
+  ;; for WITH-SLOTS
+  #+(and Allegro (or :rs6000 (not (version>= 4 1))))
   (:shadow
     with-slots)
-  #+(or Lucid (and Allegro (or :rs6000 (not (version>= 4 1)))))
+  #+(and Allegro (or :rs6000 (not (version>= 4 1))))
   (:export
     with-slots)
 
@@ -3035,11 +3096,11 @@
     alpha-char-p)
 
   #+(and ANSI-90 Genera)
-  (:import-from LISP
+  (:import-from lisp
     string-char
     char-bits)
   #+Allegro
-  (:shadowing-import-from CLTL1
+  (:shadowing-import-from cltl1
     string-char
     char-bits)
   #+(or Allegro (and ANSI-90 Genera))
@@ -3125,7 +3186,6 @@
     with-stack-list*
     with-standard-io-environment 
     with-warnings-for-definition
-    without-interrupts
     writing-clauses
 
     ;; From CLOS
@@ -3134,6 +3194,7 @@
     ;; From QUEUE
     locking-queue
     make-queue
+    make-locking-queue
     map-over-queue
     queue 
     queue-contents-list
@@ -3213,6 +3274,7 @@
     bounding-rectangle-set-size
     bounding-rectangle-shift-position
     bounding-rectangle-size-equal
+    bounding-rectangle-center
     position-difference
 
     ;; LTRBs
@@ -3253,6 +3315,7 @@
     flipping-ink
     flipping-ink
     gray-color
+    gray-color-luminosity
     ihs-color
     make-color-for-contrasting-ink
     make-design-from-output-record
@@ -3266,27 +3329,27 @@
     stencil
     stencil-array))
 
-(#-ANSI-90 clim-lisp::defpackage #+ANSI-90 defpackage CLIM-SILICA
-  (:nicknames SILICA)
-  (:use	CLIM-LISP CLIM-SYS CLIM CLIM-UTILS)
+(#-(or ANSI-90 Lucid) clim-lisp::defpackage #+(or ANSI-90 Lucid) defpackage clim-silica
+  (:nicknames silica pyrex)
+  (:use	clim-lisp clim-sys clim clim-utils)
 
   #+CCL-2
-  (:shadowing-import-from CLIM-UTILS
+  (:shadowing-import-from clim-utils
     char=
     standard-char-p
     graphic-char-p
     alpha-char-p)
 
   #-CCL-2
-  (:shadowing-import-from CLIM-UTILS
+  (:shadowing-import-from clim-utils
     defun
     flet labels
     defgeneric defmethod
     dynamic-extent
-    #-Allegro non-dynamic-extent)
+    #-(or Allegro Lucid) non-dynamic-extent)
 
-  #+(or Lucid (and Allegro (or :rs6000 (not (version>= 4 1)))))
-  (:shadowing-import-from CLIM-UTILS
+  #+(and Allegro (or :rs6000 (not (version>= 4 1))))
+  (:shadowing-import-from clim-utils
     with-slots)
 
   (:export
@@ -3294,6 +3357,7 @@
     *modifier-keys*
     *null-text-style*
     *pointer-buttons*
+    *ports*
     *standard-character-set* 
     *undefined-text-style* 
     +highlighting-line-style+
@@ -3303,12 +3367,17 @@
     bury-mirror
     canvas
     change-scroll-bar-values
+    change-space-requirements-to
+    change-space-requirements-to-default
     char-character-set-and-index
     char-width
+    clear-space-requirement-cache
     clear-space-requirement-caching-in-ancestors
     clear-space-requirement-caches-in-tree
     click-event
     client-overridability-mixin
+    compute-gadget-label-size
+    compute-list-pane-selected-items
     compute-symmetric-value
     copy-event
     copy-space-requirement
@@ -3317,31 +3386,55 @@
     define-character-face-added-mappings
     define-character-face-class
     define-display-device
-    define-graphics-function
+    define-graphics-generic
+    define-graphics-method
     define-text-style-mappings
     define-text-style-mappings-1 
     diacritic-char-p
     display-device 
+    distribute-event-1
     find-port-type
     fit-region*-in-region*
     foreground-background-and-text-style-mixin
+    frame-manager-clear-progress-note
+    frame-manager-default-exit-boxes
+    frame-manager-display-progress-note
+    frame-manager-display-pointer-documentation
+    frame-manager-exit-box-labels
     frame-shell
     frame-wrapper
     gadget-alignment
+    gadget-event
+    gadget-supplied-scrolling
     get-drawing-function-description
     get-port-canonical-gesture-spec
+    graft-mm-height
+    graft-mm-width
+    graft-pixel-height
+    graft-pixel-width
     grid-pane
     intern-text-style
     invoke-callback-function
+    invoke-with-sheet-medium
     label-button-pane
     layout-mixin
     line-editor-pane
+    list-pane-selected-item-p
     make-frame-manager
     make-medium
+    make-pane-arglist
+    make-pane-class
+    map-endpoint-sequence
+    map-position-sequence
     medium-+y-upward-p
+    medium-beep
+    medium-finish-output
+    medium-force-output
     medium-merged-text-style-valid
+    medium-text-bounding-box
     menu-bar-pane
     merged-text-style 
+    mirror->sheet
     mirror-inside-edges*
     mirror-native-edges*
     mirror-region
@@ -3353,6 +3446,7 @@
     move-sheet*
     mute-repainting-mixin
     non-drawing-option-keywords
+    note-layout-mixin-region-changed
     one-of-pane
     option-pane
     parse-gesture-spec
@@ -3360,41 +3454,51 @@
     pointer-press-event
     pointer-release-event
     port-allocate-pixmap
-    port-beep
     port-canonical-gesture-spec
-    port-copy-area
     port-color-cache
-    port-copy-from-pixmap
-    port-copy-to-pixmap
     port-cursor
     port-display
+    port-event-loop
     port-event-wait
-    port-finish-output
-    port-force-output
     port-glyph-for-character
+    port-graft-class
+    port-grafts
+    port-mirror->sheet-table
     port-modifier-state
     port-note-cursor-change
     port-note-gadget-activated
     port-note-gadget-deactivated
     port-pointer
     port-process
+    port-trace-thing
     port-undefined-text-style
     process-event-locally
     radio-button-pane
     raise-mirror
     resize-sheet*
+    scroll-bar-size
+    scroll-bar-shaft-pane
+    scroll-bar-target-pane
+    scroll-bar-value
     scroll-bar-value-changed-callback
     scroll-extent
     scrollable-pane
     set-sheet-mirror-edges*
     shadow-pane
     sheet-actual-native-edges*
+    sheet-cached-device-region
+    sheet-cached-device-transformation
+    sheet-cursor
     sheet-mute-input-mixin
+    sheet-parent-mixin
     sheet-permanently-enabled-mixin
     sheet-shell
     sheet-top-level-mirror
     sheet-with-graphics-state-mixin
+    slider-decimal-places
+    space-requirement+
     space-requirement+*
+    space-requirement-combine
     space-requirement-components
     space-requirement-mixin
     standard-sheet
@@ -3405,44 +3509,50 @@
     stream-scan-string-for-writing
     string-height 
     string-width 
-    text-style-scale 
+    text-style-index
+    text-style-mapping*
+    text-style-scale
     transform-distances
     transform-position-sequence
     transform-positions
+    update-frame-settings
     update-region
     update-scroll-bars
+    update-scroll-bar-value
+    update-slider-value
     value-changed-gadget-event
     viewport-region-changed
     window-configuration-event
     window-repaint-event
     window-shift-visible-region
+    with-medium-clipping-region
     wrapping-space-mixin))
 
-(#-ANSI-90 clim-lisp::defpackage #+ANSI-90 defpackage CLIM-INTERNALS
-  (:use	CLIM-LISP CLIM-SYS CLIM CLIM-UTILS CLIM-SILICA)  
+(#-(or ANSI-90 Lucid) clim-lisp::defpackage #+(or ANSI-90 Lucid) defpackage clim-internals
+  (:use	clim-lisp clim-sys clim clim-utils clim-silica)
 
   #+CCL-2
-  (:shadowing-import-from CLIM-UTILS
+  (:shadowing-import-from clim-utils
     char=
     standard-char-p
     graphic-char-p
     alpha-char-p)
 
   #-CCL-2
-  (:shadowing-import-from CLIM-UTILS
+  (:shadowing-import-from clim-utils
     defun
     flet labels
     defgeneric defmethod
     dynamic-extent
-    #-Allegro non-dynamic-extent)
+    #-(or Allegro Lucid) non-dynamic-extent)
 
-  #+(or Lucid (and Allegro (or :rs6000 (not (version>= 4 1)))))
-  (:shadowing-import-from CLIM-UTILS
+  #+(and Allegro (or :rs6000 (not (version>= 4 1))))
+  (:shadowing-import-from clim-utils
     with-slots))
 
 #+Genera (pushnew (find-package :clim-internals) si:*reasonable-packages*)
 
 
 ;; A package for casual use...
-(#-ANSI-90 clim-lisp::defpackage #+ANSI-90 defpackage CLIM-USER
-  (:use CLIM-LISP CLIM))
+(#-(or ANSI-90 Lucid) clim-lisp::defpackage #+(or ANSI-90 Lucid) defpackage clim-user
+  (:use clim-lisp clim))

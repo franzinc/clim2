@@ -16,10 +16,10 @@
 ;; contained herein by any agency, department or entity of the U.S.
 ;; Government are subject to restrictions of Restricted Rights for
 ;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
+;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: mirror.lisp,v 1.19 92/05/22 19:26:58 cer Exp Locker: cer $
+;; $fiHeader: mirror.lisp,v 1.20 92/06/23 08:19:26 cer Exp $
 
 (in-package :silica)
 
@@ -41,7 +41,7 @@
 
 (defgeneric realize-mirror (port sheet))
 (defgeneric destroy-mirror (port sheet))
-(defgeneric enable-mirror (port sheet))
+(defgeneric enable-mirror  (port sheet))
 (defgeneric disable-mirror (port sheet))
 
 (defmethod sheet-direct-mirror ((sheet sheet)) nil)
@@ -130,7 +130,7 @@
 ;; Sets the mirror's region in its parents coordinate space
 (defgeneric set-mirror-edges* (port sheet minx miny maxx maxy))
 
-(defmethod mirror-origin ((port port) (sheet sheet))
+(defmethod mirror-origin ((port basic-port) (sheet sheet))
   :nw)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -142,7 +142,6 @@
     (sheet-mirrored-ancestor sheet)))
 
 (defgeneric sheet-mirrored-ancestor (sheet))
-
 (defmethod sheet-mirrored-ancestor ((sheet sheet))
   (cond ((sheet-direct-mirror sheet)
 	 sheet)
@@ -151,16 +150,20 @@
 		sheet))
 	(t
 	 (sheet-mirrored-ancestor
-	  (sheet-parent sheet)))))
+	   (sheet-parent sheet)))))
 
+(defun-inline mirror->sheet (port mirror)
+  (gethash mirror (port-mirror->sheet-table port)))
 
+(defun  (setf mirror->sheet) (sheet port mirror)
+  (setf (gethash mirror (port-mirror->sheet-table port)) sheet))
 
-(defmethod realize-mirror :around ((port port) (sheet mirrored-sheet-mixin))
+(defmethod realize-mirror :around ((port basic-port) (sheet mirrored-sheet-mixin))
   (let ((mirror
 	  (or (sheet-direct-mirror sheet)
 	      (setf (sheet-direct-mirror sheet)
 		    (call-next-method)))))
-    (setf (gethash mirror (port-mirror->sheet-table port)) sheet)
+    (setf (mirror->sheet port mirror) sheet)
     ;;--- What is the right thing do here?
     ;;--- In the Motif port we note specify the width and height of
     ;;--- widgets when we make them.  We rely on the layout protocol
@@ -169,7 +172,7 @@
     #---ignore (setf (sheet-native-transformation sheet) +identity-transformation+)
     mirror))
 
-(defmethod destroy-mirror :around ((port port) (sheet mirrored-sheet-mixin))
+(defmethod destroy-mirror :around ((port basic-port) (sheet mirrored-sheet-mixin))
   (call-next-method)
   (setf (sheet-direct-mirror sheet) nil))
 
@@ -190,18 +193,14 @@
   (when (sheet-direct-mirror sheet)
     (disable-mirror (port sheet) sheet)))
 
-
-;;; We need this method becuase if we change a transformation this
-;;; moves the sheet
-
+;; We need this because if we change a transformation, the sheet gets moved
 (defmethod invalidate-cached-transformations :after ((sheet mirrored-sheet-mixin))
   (when (sheet-direct-mirror sheet)
     (update-mirror-region (port sheet) sheet)))
 
-;;; There is not an invalidate-cached-region method because the only
-;;; time the region changes is when we change it directly.
-;;; But we do need this method
-
+;; There is not an INVALIDATE-CACHED-REGION method because the only
+;; time the region changes is when we change it directly, but we do
+;; need this method.
 (defmethod note-sheet-region-changed :after ((sheet mirrored-sheet-mixin) 
 					     &key port-did-it)
   (when (sheet-direct-mirror sheet)
@@ -221,11 +220,11 @@
 ;;; This actual returns coordinates in the mirrors parents space
 ;;; rather than
 
-(defmethod update-mirror-region ((port port) (sheet mirrored-sheet-mixin))
+(defmethod update-mirror-region ((port basic-port) (sheet mirrored-sheet-mixin))
   ;; If the sheet-region is changed this updates the mirrors region  accordingly
   (update-mirror-region-1 port sheet (sheet-parent sheet)))
   
-(defmethod update-mirror-region-1 ((port port) sheet parent)
+(defmethod update-mirror-region-1 ((port basic-port) sheet parent)
   (declare (ignore parent))
   ;; Coordinates in parent space
   (multiple-value-bind (target-left target-top target-right target-bottom)
@@ -238,13 +237,13 @@
 	  target-left target-top target-right target-bottom))))
   (update-mirror-transformation port sheet))
 
-(defmethod update-mirror-transformation ((port port) (sheet mirrored-sheet-mixin))
+(defmethod update-mirror-transformation ((port basic-port) (sheet mirrored-sheet-mixin))
   ;; Compute transformation from sheet-region to mirror cordinates.
   (update-mirror-transformation-1 port sheet (sheet-parent sheet)))
 
 (defvar *check-mirror-transformation* nil)
 
-(defmethod update-mirror-transformation-1 ((port port) sheet parent)
+(defmethod update-mirror-transformation-1 ((port basic-port) sheet parent)
   (declare (ignore parent))
   ;; would imagine that a lot of the time this would be identity
   (multiple-value-bind (mirror-left mirror-top mirror-right mirror-bottom)
@@ -291,7 +290,7 @@
 
 (defgeneric set-mirror-region* (port sheet minx miny maxx maxy))
 
-(defmethod mirror-region-updated ((port port) (sheet mirrored-sheet-mixin))
+(defmethod mirror-region-updated ((port basic-port) (sheet mirrored-sheet-mixin))
   (let* ((native-region (mirror-region port sheet))
 	 (region (sheet-region sheet))
 	 (parent (sheet-parent sheet))

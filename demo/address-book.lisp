@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: address-book.lisp,v 1.7 92/05/22 19:29:02 cer Exp $
+;; $fiHeader: address-book.lisp,v 1.8 92/06/16 15:02:03 cer Exp $
 
 (in-package :clim-demo)
 
@@ -200,11 +200,8 @@
 (defun address-book (&key reinit root)
   (let ((book (cdr (assoc root *address-books*))))
     (when (or (null book) reinit)
-      (multiple-value-bind (left top right bottom)
-	  (size-demo-frame root 100 100 500 400)
-	(setq book (make-application-frame 'address-book :parent root
-					   :width (- right left)
-					   :height (- bottom top))))
+      (setq book (make-application-frame 'address-book 
+					 :width 400 :height 300))
       (push (cons root book) *address-books*))
     (run-frame-top-level book)))
 

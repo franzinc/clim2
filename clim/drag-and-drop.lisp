@@ -1,8 +1,8 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-(in-package :clim-internals)
+;; $fiHeader: drag-and-drop.lisp,v 1.2 92/05/22 19:27:51 cer Exp $
 
-;;; $fiHeader$
+(in-package :clim-internals)
 
 "Copyright (c) 1991, 1992 Symbolics, Inc.  All rights reserved."
 
@@ -170,8 +170,7 @@
       (declare (dynamic-extent #'find-translator))
       (macrolet ((feedback (x y state)
 		   `(funcall feedback frame from-presentation window 
-
-			     initial-x initial-y ,x ,y ,state))
+				      initial-x initial-y ,x ,y ,state))
 		 (highlight (presentation state)
 		   `(when ,presentation
 		      (funcall highlighting frame ,presentation window 

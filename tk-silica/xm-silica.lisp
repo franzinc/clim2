@@ -15,10 +15,10 @@
 ;; contained herein by any agency, department or entity of the U.S.
 ;; Government are subject to restrictions of Restricted Rights for
 ;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
+;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-silica.lisp,v 1.20 92/06/16 15:02:23 cer Exp Locker: cer $
+;; $fiHeader: xm-silica.lisp,v 1.21 92/06/29 14:05:16 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -116,6 +116,7 @@
 			    (tk::xt-widget-geometry-height intended)
 			    (space-requirement-max-height sr)))))
       (return-from my-drawing-area-query-geometry tk::xt-geometry-no))
+
       
     (when (and (logtest rm x11:cwheight) (logtest rm x11:cwwidth))
       (return-from my-drawing-area-query-geometry tk::xt-geometry-yes))
@@ -126,5 +127,7 @@
 						   (space-requirement-height sr))
 	  (tk::xt-widget-geometry-request-mode desired) (logior x11:cwwidth x11:cwheight))
 
+
     (return-from my-drawing-area-query-geometry tk::xt-geometry-almost)))
+
 

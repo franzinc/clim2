@@ -5,7 +5,7 @@
 "Copyright (c) 1990, 1991 Symbolics, Inc.  All rights reserved.
  Portions copyright (c) 1989, 1990 International Lisp Associates."
 
-;;; $fiHeader: lucid-stream-functions.lisp,v 1.4 92/03/04 16:20:18 cer Exp $
+;;; $fiHeader: lucid-stream-functions.lisp,v 1.5 92/05/22 19:27:15 cer Exp $
 ;;; All of this is taken from the STREAM-DEFINITION-BY-USER proposal to
 ;;; the X3J13 committee, made by David Gray of TI on 22 March 1989.  No
 ;;; Lisp implementation yet supports this proposal, so we implement it
@@ -179,7 +179,7 @@
 
 ;;; Make CLIM-LISP:FORMAT do something useful on CLIM windows.
 
-#|
+#||
 (defun format (stream format-control &rest format-args)
   (when (null stream)
     (return-from format
@@ -192,7 +192,8 @@
 	 (write-string (apply #'lisp:format nil format-control format-args) stream)
 	 nil)
 	(t
-	 (apply #'lisp:format stream format-control format-args))))|#
+	 (apply #'lisp:format stream format-control format-args))))
+||#
 
 
 

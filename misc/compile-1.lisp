@@ -20,11 +20,11 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: compile-1.lisp,v 1.6 92/05/13 17:11:07 cer Exp Locker: cer $
+;; $fiHeader: compile-1.lisp,v 1.7 92/05/22 19:29:21 cer Exp $
 
 (in-package :user)
 
-;;This should not matter
+;;;; This should not matter
 ;;;; (setq *ignore-package-name-case* t)
 
 (set-case-mode :case-insensitive-lower)

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-callbacks.lisp,v 1.7 92/05/22 19:26:26 cer Exp Locker: cer $
+;; $fiHeader: ol-callbacks.lisp,v 1.8 92/06/23 08:19:10 cer Exp $
 
 (in-package :tk)
 
@@ -57,7 +57,6 @@
 (defmethod spread-callback-data (widget data (type (eql 'slider-moved)))
   (values))
 
-
 (defun add-ol-callback (widget name type function &rest args)
   (ol_add_callback widget name *callback-handler-address*
 		   (caar (push
@@ -75,3 +74,4 @@
 
 (defmethod spread-callback-data ((widget ol-list) data (type (eql 'ol-list-item-make-current)))
   data)
+

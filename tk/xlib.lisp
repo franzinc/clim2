@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xlib.lisp,v 1.20 92/06/16 19:10:55 cer Exp Locker: cer $
+;; $fiHeader: xlib.lisp,v 1.21 92/06/23 08:19:19 cer Exp $
 
 (in-package :tk)
 
@@ -29,8 +29,6 @@
 (deftype card29 () '(unsigned-byte 29))
 
 (deftype card24 () '(unsigned-byte 24))
-
-(deftype card16 () '(unsigned-byte 16))
 
 (deftype card8 () '(unsigned-byte 8))
 
@@ -520,3 +518,4 @@
 
 (defun destroy-image (image)
   (x11:xdestroyimage image))
+

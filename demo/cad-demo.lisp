@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: cad-demo.lisp,v 1.9 92/06/03 18:18:47 cer Exp $
+;; $fiHeader: cad-demo.lisp,v 1.10 92/06/16 15:02:04 cer Exp $
 
 (in-package :clim-demo)
 
@@ -280,8 +280,8 @@
 ;; Why the hell can't Genera draw half circles in :ALU :FLIP?
 ;; Note the superb attention to detail in the selection of the
 ;; *ONLY* magic numbers that appear to work.
-(defvar *component-start-angle* (+ #+genera .00001 (* pi 3/2)))
-(defvar *component-end-angle* (+ #+genera .000001 (* pi 1/2)))
+(defvar *component-start-angle* (+ #+Genera .00001 (* pi 3/2)))
+(defvar *component-end-angle* (+ #+Genera .000001 (* pi 1/2)))
 
 ;;; Default body is a half-circle
 (defmethod draw-body ((comp component) stream &key (ink +foreground-ink+))
@@ -460,8 +460,8 @@
 ;; Why the hell can't Genera draw half circles in :ALU :FLIP?
 ;; Note the superb attention to detail in the selection of the
 ;; *ONLY* magic numbers that appear to work.
-(defvar *or-gate-start-angle* (+ #+genera .00001 (* pi 3/2) -0.3))
-(defvar *or-gate-end-angle* (+ #+genera .000001 (* pi 1/2) 0.3))
+(defvar *or-gate-start-angle* (+ #+Genera .00001 (* pi 3/2) -0.3))
+(defvar *or-gate-end-angle* (+ #+Genera .000001 (* pi 1/2) 0.3))
 
 ;;; Default body is an almost-half-circle, so we get a different look
 ;;; for OR gates.  Looks marginal and XOR's funny under Genera.
@@ -679,7 +679,7 @@
 		 (with-output-as-presentation (menu icon presentation-type)
 		   (formatting-row (menu)
 		     (formatting-cell (menu)
-		       (progn ;; (with-user-coordinates (menu) ..)
+		       (progn ;; (with-user-coordinates (menu) ...)
 			 (draw-self icon menu)
 			 (multiple-value-bind (x y)
 			     (stream-cursor-position menu)

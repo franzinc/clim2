@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-gadgets.lisp,v 1.14 92/06/23 08:20:08 cer Exp Locker: cer $
+;; $fiHeader: ol-gadgets.lisp,v 1.15 92/06/29 14:05:10 cer Exp Locker: cer $
 
 
 (in-package :xm-silica)
@@ -60,14 +60,13 @@
 		  (values 'tk::scrollbar
 			  (list :orientation orientation))))
 
-(defmethod (setf silica::scroll-bar-size) (nv (sb openlook-scroll-bar))
+(defmethod (setf scroll-bar-size) (nv (sb openlook-scroll-bar))
   ;; (tk::set-values (sheet-direct-mirror sb) :slider-size nv)
   nv)
 
-(defmethod (setf silica::scroll-bar-value) (nv (sb openlook-scroll-bar))
+(defmethod (setf scroll-bar-value) (nv (sb openlook-scroll-bar))
   (tk::set-values (sheet-direct-mirror sb) :slider-value nv)
   nv)
-
 
 (defmethod change-scroll-bar-values ((sb openlook-scroll-bar) &key slider-size value)
   (let ((mirror (sheet-direct-mirror sb)))
@@ -955,8 +954,9 @@
 	   (token-list :accessor list-pane-token-list)
 	   (current-tokens :initform nil :accessor list-pane-current-tokens)))
 
-(defmethod gadget-includes-scrollbars-p ((contents openlook-list-pane))
-  contents)
+
+(defmethod gadget-includes-scrollbars-p ((gadget openlook-list-pane))
+  gadget)
 
 (defmethod find-widget-class-and-initargs-for-sheet ((port openlook-port)
 						     (parent t)
@@ -983,7 +983,7 @@
 		     (name-key set-gadget-name-key)) sheet
       (dolist (item items)
 	(let ((x (tk::make-ol-list-item :in-foreign-space t))
-	      (selected-p (silica::list-pane-selected-item-p sheet item)))
+	      (selected-p (list-pane-selected-item-p sheet item)))
 	  (setf (tk::ol-list-item-label-type x) tk::ol-string
 		(tk::ol-list-item-label x) (tk::string-to-char* (funcall name-key item))
 		(tk::ol-list-item-mnemonic x) 0

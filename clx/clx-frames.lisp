@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLX-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clx-frames.lisp,v 1.5 92/04/15 11:45:49 cer Exp $
+;; $fiHeader: clx-frames.lisp,v 1.6 92/05/22 19:27:29 cer Exp $
 
 (in-package :clx-clim)
 
@@ -20,6 +20,7 @@
 	(with-look-and-feel-realization (framem frame)
 	  (vertically ()
 	    (outlining ()
+	      ;;--- Incremental redisplay, too
 	      (make-pane 'command-menu-pane
 			 :display-function 
 			   `(display-command-menu :command-table ,menu-bar)
@@ -27,17 +28,6 @@
 			 :width :compute :height :compute))
 	    pane))
 	pane)))
-
-(defmethod frame-manager-dialog-view ((framem clx-frame-manager))
-  +textual-dialog-view+)
-  
-;;--- Should "ungray" the command button, if there is one
-(defmethod note-command-enabled ((framem clx-frame-manager) frame command)
-  (declare (ignore frame command)))
-
-;;--- Should "gray" the command button, if there is one
-(defmethod note-command-disabled ((framem clx-frame-manager) frame command)
-  (declare (ignore frame command)))
 
 (defmethod frame-manager-notify-user
 	   ((framem clx-frame-manager) message-string 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: incremental-redisplay.lisp,v 1.7 92/05/22 19:28:01 cer Exp Locker: cer $
+;; $fiHeader: incremental-redisplay.lisp,v 1.8 92/06/16 15:01:48 cer Exp $
 
 (in-package :clim-internals)
 
@@ -156,20 +156,12 @@
 	  init-args))
 
 (defun find-with-test (item sequence key test)
-  ;;--- Allegro blows up mysteriously in the call to FIND below, so
-  ;;--- instead use this "by hand" code.
   (flet ((robust-test (item1 item2)
 	   ;; Suppose someone has some IDs that are numbers and others
 	   ;; that are strings, and one of the ID tests is STRING-EQUAL?
 	   (and (eq (class-of item1) (class-of item2))
 		(funcall test item1 item2))))
     (declare (dynamic-extent #'robust-test))
-    #+ignore
-    (block work-around-franz-find-bug
-      (dolist (candidate sequence)
-	(when (funcall (if test #'robust-test #'eql) item (funcall key candidate))
-	  (return-from work-around-franz-find-bug candidate))))
-    #-ignore
     (if test
 	(find item sequence :key key :test #'robust-test)
         (find item sequence :key key))))
@@ -223,7 +215,9 @@
 		(if unique-id
 		    (if id-test #'unique-id-test #'unique-id-no-id-test)
 		    #'no-unique-id) 
-		record)))))))
+		record)
+	      ;; None found, return NIL
+	      nil))))))
 
 (defmethod decache-child-output-record
 	   ((record output-record-mixin) child use-old-children)

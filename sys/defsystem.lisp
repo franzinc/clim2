@@ -27,7 +27,7 @@
 ;;;
 ;;;-----------------------------------------------------------
 
-;; $fiHeader: defsystem.lisp,v 1.10 92/05/07 13:13:12 cer Exp $
+;; $fiHeader: defsystem.lisp,v 1.11 92/05/22 19:28:40 cer Exp $
 
 ;; Add a feature for ANSI-adhering Lisps.  So far, only Apple's
 ;; version 2.0 tries to do adhere to the ANSI spec instead of CLtL rev 1.
@@ -46,9 +46,9 @@
       (pushnew :ansi-90 *features*))))
 
 #+ANSI-90
-(defpackage :clim-defsystem
-  (:use :common-lisp)
-  (:nicknames :clim-defsys :clim-ds)
+(defpackage clim-defsystem
+  (:use common-lisp)
+  (:nicknames clim-defsys clim-ds)
   (:export
     *current-system*
     *defsystem-version*
@@ -70,16 +70,16 @@
 (in-package :clim-defsystem)
 
 #+(or Genera-Release-8-0 Genera-Release-8-1)
-(lisp:in-package :clim-defsystem
-		 :use '(:lisp)
-		 :nicknames '(:clim-defsys))
+(lisp:in-package "CLIM-DEFSYSTEM"
+		 :use '("LISP")
+		 :nicknames '("CLIM-DEFSYS"))
 
 #-(or ANSI-90 Genera-Release-8-0 Genera-Release-8-1)
 (lisp:in-package #-(or lispworks ANSI-90) :clim-defsystem 
-            #+lispworks :pdefsys
-            #+ANSI-90 :clim-defsystem
-            #-ANSI-90 :use #-ANSI-90 '(:lisp)
-            #-ANSI-90 :nicknames #-ANSI-90 '(:clim-defsys))
+		 #+lispworks :pdefsys
+		 #+ANSI-90 :clim-defsystem
+		 #-ANSI-90 :use #-ANSI-90 '(:lisp)
+		 #-ANSI-90 :nicknames #-ANSI-90 '(:clim-defsys))
 
 #-ANSI-90
 (export '(*current-system*
@@ -97,7 +97,7 @@
 	  undefsystem
 	  with-compiler-options
 	  with-delayed-compiler-warnings)
-	:clim-defsystem)
+	(find-package :clim-defsystem))
 
 ;;; *** A temporary workaround, easier than fixing all references to
 ;;; *** LISP:<foo>.  --RWK 20.Nov.90
@@ -114,11 +114,12 @@
 		   pack (package-name pack)
 		   (list* add-name (package-nicknames pack))))))))
     (fix-package :common-lisp :lisp)
-    (fix-package :common-lisp :cl) ;; ??
+    (fix-package :common-lisp :cl)		;--- ??
     (fix-package :common-lisp-user :user)
-    (fix-package :common-lisp-user :cl-user)) ;; ??
+    (fix-package :common-lisp-user :cl-user))	;--- ??
   (when (null (find-package :system))
-    (defpackage system)))
+    (defpackage system))
+)	;eval-when
 
 
 ;;;
@@ -593,7 +594,7 @@
     (unless (probe-file tmp-o-file)
       (unless (probe-file tmp-lsp-file)
 	(with-open-file (s tmp-lsp-file :direction :output)
-	  (print '(in-package "USER") s)))
+	  (print '(in-package :user) s)))
       (compile-file tmp-lsp-file :output-file tmp-o-file))
     (system:faslink tmp-o-file (format nil "~a" binary-pathname)))
   #+(and Allegro unix)

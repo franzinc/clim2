@@ -16,10 +16,10 @@
 ;; contained herein by any agency, department or entity of the U.S.
 ;; Government are subject to restrictions of Restricted Rights for
 ;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
+;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: port.lisp,v 1.12 92/05/07 13:11:29 cer Exp $
+;; $fiHeader: port.lisp,v 1.13 92/05/22 19:26:59 cer Exp $
 
 (in-package :silica)
 
@@ -27,7 +27,7 @@
 ;; Ports and grafts
 
 (defvar *default-server-path* #+Allegro '(:motif)
-			      #+Lucid '(:openlook)
+			      #+Lucid '(:clx)
 			      #+Genera `(:genera :host ,net:*local-host*
 						 :screen ,tv:main-screen)
 			      #-(or Allegro Lucid Genera) nil)
@@ -48,21 +48,24 @@
   (declare (dynamic-extent keys))
   (apply #'make-instance (find-port-type (car server-path)) keys))
 
-(defgeneric find-port-type (type)
-  (:method (x)
-   (error "Cannot find port type: ~S" x)))
+(defgeneric find-port-type (type))
+(defmethod find-port-type (x)
+  (error "Cannot find port type: ~S" x))
 
 
-(defmethod initialize-instance :around ((port port) &key server-path)
+(defmethod initialize-instance :around ((port basic-port) &key server-path)
   (setf (slot-value port 'server-path) (copy-list server-path))
   (call-next-method)
   (push port *ports*)
   (restart-port port))
 
 
-(defgeneric port (x)
-  (:method ((port port)) port)
-  (:method ((object t)) nil))
+(defgeneric port (x))
+
+(defmethod port ((port port)) port)
+
+(defmethod port ((object t)) nil)
+
 
 (defgeneric port-properties (port))
 
@@ -74,7 +77,7 @@
 
 (defgeneric restart-port (port))
 
-(defmethod restart-port ((port port))
+(defmethod restart-port ((port basic-port))
   (when (port-process port)
     (destroy-process (port-process port)))
   (setf (port-process port)
@@ -82,10 +85,10 @@
 		      :name (format nil "CLIM Event Dispatcher for ~A"
 			      (port-server-path port)))))
 
-(defgeneric port-event-loop (port)
-  (:method ((port port))
-   (loop
-     (process-next-event port))))
+(defgeneric port-event-loop (port))
+(defmethod port-event-loop ((port port))
+  (loop
+    (process-next-event port)))
 
 
 (defgeneric destroy-port (port))
@@ -98,12 +101,14 @@
 
 ;;;;;;;;;;;;;;;;
 
-;;--- Make a GRAFT protocol class, and call this STANDARD-GRAFT
-(defclass graft 
-	  (mirrored-sheet-mixin
-	   sheet-multiple-child-mixin
-	   sheet-transformation-mixin
-	   sheet)
+(define-protocol-class graft ())
+
+(defclass standard-graft 
+    (mirrored-sheet-mixin
+     sheet-multiple-child-mixin
+     sheet-transformation-mixin
+     sheet
+     graft)
     ((port :initarg :port :reader port)
      (lock :initform (make-lock "a graft lock") :reader graft-lock)
      (orientation :reader graft-orientation :initarg :orientation)
@@ -113,10 +118,6 @@
      (mm-width :reader graft-mm-width)
      (mm-height :reader graft-mm-height)
      (pixels-per-point :reader graft-pixels-per-point)))
-
-(defgeneric graftp (x)
-  (:method ((x graft)) t)
-  (:method ((x t)) nil))
 
 (defun find-graft (&key (server-path *default-server-path*)
 			(port (find-port :server-path server-path))
@@ -129,22 +130,23 @@
 			 (return-from find-graft graft)))
 		   port)
   (make-instance (port-graft-class port)
-		 :port port
-		 :orientation orientation 
-		 :units units))
+    :port port
+    :orientation orientation 
+    :units units))
 
-(defun graft-matches-spec (graft orientation units)
+(defmethod graft-matches-spec ((graft standard-graft) orientation units)
   t)
 
-(defmethod initialize-instance :after ((graft graft) &key port)
+(defmethod initialize-instance :after ((graft standard-graft) &key port)
+  (setf (slot-value graft 'graft) graft)
   (pushnew graft (port-grafts port))
   (realize-graft port graft))
 
-(defmethod update-mirror-region ((port port) (sheet graft))
+(defmethod update-mirror-region ((port basic-port) (sheet standard-graft))
   ;;--- I don't think we ever change the region of a graft...
   )
 
-(defmethod update-mirror-transformation ((port port) (sheet graft))
+(defmethod update-mirror-transformation ((port basic-port) (sheet standard-graft))
   ;;--- I don't think we ever change the transformation of a graft...
   )
 
@@ -188,12 +190,13 @@
 	(setq adjusted-p t)))
     (values left1 top1 right1 bottom1 adjusted-p)))
 
-(defgeneric port-graft-class (port)
-  (:method ((port port)) 'graft))
+(defgeneric port-graft-class (port))
+(defmethod port-graft-class ((port basic-port)) 'standard-graft)
 
-(defgeneric graft (x)
-  (:method ((graft graft)) graft)
-  (:method ((object t)) nil))
+
+(defgeneric graft (x))
+(defmethod graft ((object t)) nil)
+
 
 (defun map-over-grafts (function port)
   (declare (dynamic-extent function))

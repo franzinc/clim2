@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: GENERA-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: genera-frames.lisp,v 1.5 92/05/07 13:13:24 cer Exp $
+;; $fiHeader: genera-frames.lisp,v 1.6 92/05/22 19:28:54 cer Exp $
 
 (in-package :genera-clim)
 
@@ -20,6 +20,7 @@
 	(with-look-and-feel-realization (framem frame)
 	  (vertically ()
 	    (outlining ()
+	      ;;--- Incremental redisplay, too
 	      (make-pane 'command-menu-pane
 			 :display-function 
 			   `(display-command-menu :command-table ,menu-bar)
@@ -27,17 +28,6 @@
 			 :width :compute :height :compute))
 	    pane))
 	pane)))
-
-(defmethod frame-manager-dialog-view ((framem genera-frame-manager))
-  +textual-dialog-view+)
-  
-;;--- Should "ungray" the command button, if there is one
-(defmethod note-command-enabled ((framem genera-frame-manager) frame command)
-  (declare (ignore frame command)))
-
-;;--- Should "gray" the command button, if there is one
-(defmethod note-command-disabled ((framem genera-frame-manager) frame command)
-  (declare (ignore frame command)))
 
 ;;--- We can do better than this at some point
 (defmethod frame-manager-notify-user
@@ -83,13 +73,13 @@
 		 (tv:get-who-line-field ,field)))))
      ,@body))
 
-(defmethod clim-internals::frame-manager-clear-progress-note 
+(defmethod frame-manager-clear-progress-note 
 	   ((framem genera-frame-manager) (note clim-internals::progress-note))
   (with-who-line-stream (stream (slot-value note 'clim-internals::frame) :file-state)
     (when stream
       (scl:send stream :clear-window))))
 
-(defmethod clim-internals::frame-manager-display-progress-note
+(defmethod frame-manager-display-progress-note
 	   ((framem genera-frame-manager) (note clim-internals::progress-note))
   (with-who-line-stream (stream (slot-value note 'clim-internals::frame) :file-state)
     (with-slots clim-internals::(name-displayed bar-length) note
@@ -115,7 +105,7 @@
 (defvar *pointer-documentation-buffer*
 	(make-array 80 :element-type 'string-char :fill-pointer 0 :adjustable t))
 
-(defmethod clim-internals::frame-manager-display-pointer-documentation
+(defmethod frame-manager-display-pointer-documentation
 	   ((framem genera-frame-manager)
 	    frame presentation input-context window x y stream)
   (declare (ignore stream))

@@ -16,13 +16,13 @@
 ;; contained herein by any agency, department or entity of the U.S.
 ;; Government are subject to restrictions of Restricted Rights for
 ;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
+;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
 ;;;
-;; $fiHeader: db-box.lisp,v 1.15 92/05/22 19:26:42 cer Exp Locker: cer $
+;; $fiHeader: db-box.lisp,v 1.16 92/06/29 14:04:29 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -50,12 +50,12 @@
 		     (panep (second child)))
 	  (error "Invalid box child: ~S" contents))
 	(sheet-adopt-child pane (second child)))))
-  (with-slots ((c contents)) pane
-    (setf c contents)))
+  (setf (slot-value pane 'contents) contents))
 
-(defun compose-box (box-pane
-		    fn-major fn-major+ fn-major- fn-minor fn-minor+ fn-minor- width-or-height
-		    keys)
+(defmethod compose-box 
+	   ((box-pane box-pane)
+	    fn-major fn-major+ fn-major- fn-minor fn-minor+ fn-minor- width-or-height
+	    keys)
   (with-slots (contents space) box-pane
     (if (null contents) 
 	(make-space-requirement)

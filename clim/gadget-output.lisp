@@ -19,14 +19,14 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: gadget-output.lisp,v 1.16 92/05/12 18:25:02 cer Exp Locker: cer $
+;; $fiHeader: gadget-output.lisp,v 1.17 92/05/22 19:27:54 cer Exp $
 
 (in-package :clim-internals)
 
 
 ;;; Implementation of output-records that are tied to gadgets.
-;;; Why are they output-record-mixins.
 
+;;--- Why are these OUTPUT-RECORD-MIXINs?
 (defclass gadget-output-record 
     	  (output-record-mixin output-record-element-mixin output-record)
     ((gadget :initform nil
@@ -43,7 +43,7 @@
   (let ((sr (compose-space gadget)))
     (multiple-value-bind (abs-x abs-y)
 	(point-position
-	 (stream-output-history-position stream))
+	  (stream-output-history-position stream))
       (decf x abs-x)
       (decf y abs-y)
       (multiple-value-bind (cx cy)
@@ -62,9 +62,6 @@
       (update-gadget-position record)
       (setf (sheet-enabled-p gadget) t))))
 
-(defmethod tree-recompute-extent-1 ((record gadget-output-record))
-  (bounding-rectangle* record))
-
 ;; Three ways
 
 (defmethod note-output-record-moved ((record gadget-output-record) dx1 dy1 dx2 dy2)
@@ -76,7 +73,6 @@
   (declare (ignore left top right bottom))
   (update-gadget-position record))
 
-
 (defmethod bounding-rectangle-set-position :after ((record gadget-output-record) x y)
   (declare (ignore x y))
   (update-gadget-position record))
@@ -85,8 +81,11 @@
   (declare (ignore width height))
   (update-gadget-position record))
 
+(defmethod tree-recompute-extent-1 ((record gadget-output-record))
+  (bounding-rectangle* record))
+
 #+++ignore
-(defmethod update-gadget-position (record) 
+(defmethod update-gadget-position ((record gadget-output-record)) 
   (let ((gadget (output-record-gadget record)))
     (when gadget
       (with-bounding-rectangle* (left top right bottom) record
@@ -100,7 +99,7 @@
 				  (- right left) (- bottom top)))))))
 
 #---ignore
-(defmethod update-gadget-position (record) 
+(defmethod update-gadget-position ((record gadget-output-record))
   (let ((gadget (output-record-gadget record)))
     (when gadget
       (multiple-value-bind (xoff yoff)
@@ -111,6 +110,15 @@
 	  (move-and-resize-sheet* gadget
 				  (+ left xoff) (+ top yoff)
 				  (- right left) (- bottom top)))))))
+
+;;--- Flush this when REPLAY-OUTPUT-RECORD calls itself recursively
+(defmethod note-output-record-replayed ((record gadget-output-record) stream
+					&optional region x-offset y-offset)
+  (declare (ignore stream x-offset y-offset))
+  (let ((gadget (output-record-gadget record)))
+    (with-sheet-medium (medium gadget)
+      (handle-repaint gadget medium region))))
+
 
 ;; Need to add the gadget to the stream
 
@@ -124,8 +132,7 @@
     (sheet-disown-child window child)))
   
 
-(defmacro with-output-as-gadget ((stream &rest args) 
-				 &body body)
+(defmacro with-output-as-gadget ((stream &rest args) &body body)
   (default-output-stream stream)
   (let ((fm (gensym))
 	(f (gensym)))
@@ -145,15 +152,15 @@
     (multiple-value-bind (x y) (stream-cursor-position stream)
       (let* (gadget
 	     (record
-	      (with-new-output-record (stream 'gadget-output-record record)
-		;;--- Do we really need to do this?  Under what
-		;;--- situations does this happen and why can't we
-		;;--- release the gadget?
-		(unless (setq gadget (output-record-gadget record))
-		  (associate-record-and-gadget
-		    record
-		    (setq gadget (funcall continuation framem frame))
-		    stream x y)))))
+	       (with-new-output-record (stream 'gadget-output-record record)
+		 ;;--- Do we really need to do this?  Under what
+		 ;;--- situations does this happen and why can't we
+		 ;;--- release the gadget?
+		 (unless (setq gadget (output-record-gadget record))
+		   (associate-record-and-gadget
+		     record
+		     (setq gadget (funcall continuation framem frame))
+		     stream x y)))))
 	(move-cursor-beyond-output-record stream record)
 	(values gadget record)))))
 	    
@@ -167,10 +174,10 @@
       (let* (new
 	     gadget
 	     (record
-	      (with-new-output-record (stream 'gadget-output-record record)
-		(unless (setq gadget (output-record-gadget record))
-		  (setq gadget (funcall continuation framem frame)
-			new t)))))
+	       (with-new-output-record (stream 'gadget-output-record record)
+		 (unless (setq gadget (output-record-gadget record))
+		   (setq gadget (funcall continuation framem frame)
+			 new t)))))
 	(when new 
 	  (associate-record-and-gadget record gadget stream x y))
 	(move-cursor-beyond-output-record stream record)
@@ -214,6 +221,8 @@
 
 (defvar *with-deferred-gadget-updates* nil)
 
+;;;--- This aint pretty but neither are you.
+
 (defmacro with-deferred-gadget-updates (&body body)
   `(flet ((with-deferred-gadget-updates-body ()
 	    ,@body))
@@ -241,67 +250,72 @@
 ;;; Completion gadget
 
 ;;--- Gadget currently does not include prompt
-(define-presentation-method accept-present-default ((type completion) 
-						    stream
-						    (view gadget-dialog-view)
-						    default default-supplied-p
-						    present-p query-identifier
-						    &key (prompt t))
+(define-presentation-method accept-present-default 
+			    ((type completion) stream (view gadget-dialog-view)
+			     default default-supplied-p present-p query-identifier
+			     &key (prompt t))
   (declare (ignore present-p))
-  (with-output-as-gadget (stream)
-    (let* (gadget frame-pane)
-      (setq frame-pane
-	    (outlining ()
-	      (setq gadget
-		    (make-pane 'radio-box 
-			       :label (and (stringp prompt) prompt)
-			       :client stream :id query-identifier
-			       :value-changed-callback
-			         (make-accept-values-value-changed-callback
-				   stream query-identifier)))))
-      (dolist (element (reverse sequence))
-	(make-pane 'toggle-button 
-		   :label (funcall name-key element)
-		   :indicator-type :one-of
-		   :value (and default-supplied-p
-			       (funcall test 
-					(funcall value-key element)
-					(funcall value-key default)))
-		   :id element
-		   :parent gadget))
-      frame-pane)))
+  (let ((current-selection nil))
+    (with-output-as-gadget (stream)
+      (let ((buttons
+	      (map 'list
+		   #'(lambda (element)
+		       (let ((button
+			       (make-pane 'toggle-button 
+				 :label (funcall name-key element)
+				 :indicator-type :one-of
+				 :value (and default-supplied-p
+					     (funcall test 
+						      (funcall value-key element)
+						      (funcall value-key default)))
+				 :id element)))
+			 (when (and default-supplied-p
+				    (funcall test 
+					     (funcall value-key element)
+					     (funcall value-key default)))
+			   (setq current-selection button))
+			 button))
+		   sequence)))
+	(outlining ()
+	  (make-pane 'radio-box 
+	    :label (and (stringp prompt) prompt)
+	    :choices buttons
+	    :selection current-selection
+	    :client stream :id query-identifier
+	    :value-changed-callback
+	      (make-accept-values-value-changed-callback
+		stream query-identifier)))))))
 
 
 ;;; Subset completion gadget
 
-(define-presentation-method accept-present-default ((type subset-completion) 
-						    stream
- 						    (view gadget-dialog-view)
- 						    default default-supplied-p
- 						    present-p query-identifier
- 						    &key (prompt t))
+(define-presentation-method accept-present-default 
+			    ((type subset-completion) stream (view gadget-dialog-view)
+			     default default-supplied-p present-p query-identifier
+			     &key (prompt t))
   (declare (ignore present-p))
   (with-output-as-gadget (stream)
-    (let* (gadget frame-pane)
-      (setq frame-pane
-	    (outlining ()
-	      (setq gadget
-		    (make-pane 'check-box 
-			       :label (and (stringp prompt) prompt)
-			       :client stream :id query-identifier
-			       :value-changed-callback
-			         (make-accept-values-value-changed-callback
-				   stream query-identifier)))))
-      (dolist (element (reverse sequence))
- 	(make-pane 'toggle-button 
- 		   :label (funcall name-key element)
- 		   :indicator-type :some-of
- 		   :value (and default-supplied-p
- 			       (member (funcall value-key default) sequence
- 				       :test test :key value-key))
- 		   :id element
- 		   :parent gadget))
-      frame-pane)))
+    (let ((buttons
+	    (map 'list
+		 #'(lambda (element)
+		     (let ((button
+			     (make-pane 'toggle-button 
+			       :label (funcall name-key element)
+			       :indicator-type :some-of
+			       :value (and default-supplied-p
+					   (member (funcall value-key default) sequence
+						   :test test :key value-key))
+			       :id element)))
+		       button))
+		 sequence)))
+      (outlining ()
+	(make-pane 'check-box 
+	  :label (and (stringp prompt) prompt)
+	  :choices buttons
+	  :client stream :id query-identifier
+	  :value-changed-callback
+	    (make-accept-values-value-changed-callback
+	      stream query-identifier))))))
 
 
 ;;; Boolean gadget
@@ -310,56 +324,66 @@
 			    ((type boolean) (stream t) (view gadget-view))
   t)
 
-(define-presentation-method accept-present-default ((type boolean) 
-						    stream
-						    (view gadget-dialog-view)
-						    default default-supplied-p
-						    present-p query-identifier
-						    &key (prompt t))
+(define-presentation-method accept-present-default 
+			    ((type boolean) stream (view gadget-dialog-view)
+			     default default-supplied-p present-p query-identifier
+			     &key (prompt t))
   (declare (ignore default-supplied-p present-p))
-  (let (gadget)
-    (with-output-as-gadget (stream)
-      (outlining ()
-	(setq gadget
-	      (make-pane 'toggle-button
-			 :label (and (stringp prompt) prompt)
-			 :value default
-			 :client stream :id query-identifier
-			 :value-changed-callback
-		           (make-accept-values-value-changed-callback
-			     stream query-identifier)))))
-    ;;--- We end up not making a new gadget sometimes, I think because we
-    ;;--- find a gadget already in the record so we need to modify the value!
-    ;;--- I am no longer sure that this is true because the graphics dialog
-    ;;--- in the test suite seems to work fine.
-    #+++ignore
-    (setf (gadget-value gadget) default)))
+  (with-output-as-gadget (stream)
+    (outlining ()
+      (make-pane 'toggle-button
+        :label (and (stringp prompt) prompt)
+	:value default
+	:client stream :id query-identifier
+	:value-changed-callback
+	  (make-accept-values-value-changed-callback
+	    stream query-identifier)))))
 
 
 ;;; Numeric gadgets
 
-#+++ignore
+(defclass slider-view (slider gadget-view) ())
+
 (define-presentation-method gadget-includes-prompt-p
-			    ((type integer) (stream t) (view gadget-view))
+			    ((type real) (stream t) (view slider-view))
   t)
 
-#+++ignore
-(define-presentation-method accept-present-default ((type integer)
-						    stream
-						    (view gadget-dialog-view)
-						    default default-supplied-p
-						    present-p query-identifier
-						    &key (prompt t))
+(define-presentation-method accept-present-default 
+			    ((type real) stream (view slider-view)
+			     default default-supplied-p present-p query-identifier
+			     &key (prompt t))
   (declare (ignore present-p))
   (with-output-as-gadget (stream)
     (outlining ()
+      ;;--- What other initargs do we pass along from the view?
       (make-pane 'slider
-		 :label (and (stringp prompt) prompt)
-		 :value (if default-supplied-p default 0)
-		 :client stream :id query-identifier
-		 :value-changed-callback
-		   (make-accept-values-value-changed-callback
-		     stream query-identifier)))))
+        :label (and (stringp prompt) prompt)
+	:value (if default-supplied-p default (if (eq low '*) 0 low))
+	:min-value (if (eq low '*) 0 low) :max-value (if (eq high '*) 100 high)
+	:orientation (gadget-orientation view)
+	:decimal-places 1
+	:client stream :id query-identifier
+	:value-changed-callback
+	  (make-accept-values-value-changed-callback
+	    stream query-identifier)))))
+
+(define-presentation-method accept-present-default 
+			    ((type integer) stream (view slider-view)
+			     default default-supplied-p present-p query-identifier
+			     &key (prompt t))
+  (declare (ignore present-p))
+  (with-output-as-gadget (stream)
+    (outlining ()
+      ;;--- What other initargs do we pass along from the view?
+      (make-pane 'slider
+        :label (and (stringp prompt) prompt)
+	:value (if default-supplied-p default (if (eq low '*) 0 low))
+	:min-value (if (eq low '*) 0 low) :max-value (if (eq high '*) 100 high)
+	:orientation (gadget-orientation view)
+	:client stream :id query-identifier
+	:value-changed-callback
+	  (make-accept-values-value-changed-callback
+	    stream query-identifier)))))
 
 
 ;;--- These should be defined in the standard DEFOPERATION way...

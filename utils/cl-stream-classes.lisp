@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: cl-stream-classes.lisp,v 1.3 92/02/24 13:05:09 cer Exp $
+;; $fiHeader: cl-stream-classes.lisp,v 1.4 92/05/22 19:27:05 cer Exp $
 
 (in-package :clim-utils)
 
@@ -34,8 +34,8 @@
 			      ;; #+Genera *Sigh*.  OPEN-STREAM-P is in
 			      ;; FUTURE-COMMON-LISP only.  Of course, it's
 			      ;; not defined yet, but at least it's exported.
-			      #+Genera "FUTURE-COMMON-LISP"
-			      #-Genera "COMMON-LISP"))))
+			      #+Genera (find-package :future-common-lisp)
+			      #-Genera (find-package :common-lisp)))))
     (when (null lisp-predicate)
       (error "No symbol ~S found in the Common-Lisp package." predicate-name))
     `(clim-utils:define-group ,predicate-name define-stream-predicate-trampoline

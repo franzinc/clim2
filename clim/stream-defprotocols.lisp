@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: stream-defprotocols.lisp,v 1.7 92/05/07 13:13:03 cer Exp $
+;; $fiHeader: stream-defprotocols.lisp,v 1.8 92/05/22 19:28:29 cer Exp $
 
 (in-package :clim-internals)
 
@@ -233,23 +233,29 @@
   stream-output-glyph-buffer)
 
 (defoperation text-style-height basic-extended-output-protocol
-  (text-style (stream basic-extended-output-protocol)))
+  (text-style (stream basic-extended-output-protocol))
+  (:no-defgeneric t))
 
 (defoperation text-style-width basic-extended-output-protocol
-  (text-style (stream basic-extended-output-protocol)))
+  (text-style (stream basic-extended-output-protocol))
+  (:no-defgeneric t))
 
 (defoperation text-style-ascent basic-extended-output-protocol
-  (text-style (stream basic-extended-output-protocol)))
+  (text-style (stream basic-extended-output-protocol))
+  (:no-defgeneric t))
 
 (defoperation text-style-descent basic-extended-output-protocol
-  (text-style (stream basic-extended-output-protocol)))
+  (text-style (stream basic-extended-output-protocol))
+  (:no-defgeneric t))
 
 (defoperation text-style-fixed-width-p basic-extended-output-protocol
-  (text-style (stream basic-extended-output-protocol)))
+  (text-style (stream basic-extended-output-protocol))
+  (:no-defgeneric t))
 
 (defoperation text-size basic-extended-output-protocol
   ((stream basic-extended-output-protocol) string &key text-style start end)
-  (declare (values largest-x total-height last-x last-y baseline)))
+  (declare (values largest-x total-height last-x last-y baseline))
+  (:no-defgeneric t))
 
 #+CLIM-1-compatibility
 (define-compatibility-function (stream-vsp stream-vertical-spacing)
@@ -326,20 +332,45 @@
 (defoperation invoke-with-drawing-options drawing-state-mixin
   ((stream drawing-state-mixin) function &rest options))
 
-;;--- This should get done by define-graphics-operation!
+
+;;--- These should get done by define-graphics-operation!
+(defoperation medium-draw-point* drawing-state-mixin
+  ((stream drawing-state-mixin) x y))
+
+(defoperation medium-draw-points* drawing-state-mixin
+  ((stream drawing-state-mixin) position-seq))
+
 (defoperation medium-draw-line* drawing-state-mixin
-  ((stream drawing-state-mixin) from-x from-y to-x to-y))
+  ((stream drawing-state-mixin) x1 y1 x2 y2))
 
-(defoperation medium-draw-polygon* drawing-state-mixin
-  ((stream drawing-state-mixin) list-of-x-and-ys closed filled))
-
-(defoperation medium-draw-ellipse* drawing-state-mixin
-  ((stream drawing-state-mixin)  center-x center-y 
-				 radius-1-dx radius-1-dy radius-2-dx radius-2-dy 
-				 start-angle end-angle filled))
+(defoperation medium-draw-lines* drawing-state-mixin
+  ((stream drawing-state-mixin) position-seq))
 
 (defoperation medium-draw-rectangle* drawing-state-mixin
-  ((stream drawing-state-mixin)  from-x from-y to-x to-y filled))
+  ((stream drawing-state-mixin) x1 y1 x2 y2 filled))
+
+(defoperation medium-draw-rectangles* drawing-state-mixin
+  ((stream drawing-state-mixin) position-seq filled))
+
+(defoperation medium-draw-polygon* drawing-state-mixin
+  ((stream drawing-state-mixin) position-seq closed filled))
+
+(defoperation medium-draw-ellipse* drawing-state-mixin
+  ((stream drawing-state-mixin) 
+   center-x center-y radius-1-dx radius-1-dy radius-2-dx radius-2-dy 
+   start-angle end-angle filled))
+
+(defoperation medium-draw-text* drawing-state-mixin
+  ((stream drawing-state-mixin)
+   string-or-char x y start end align-x align-y towards-x towards-y transform-glyphs))
+
+(defoperation medium-draw-character* drawing-state-mixin
+  ((stream drawing-state-mixin)
+   char x y align-x align-y towards-x towards-y transform-glyphs))
+
+(defoperation medium-draw-string* drawing-state-mixin
+  ((stream drawing-state-mixin)
+   string x y start end align-x align-y towards-x towards-y transform-glyphs))
 
 
 ;;; window protocol

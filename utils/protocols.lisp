@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: protocols.lisp,v 1.2 92/01/31 14:52:45 cer Exp $
+;; $fiHeader: protocols.lisp,v 1.3 92/02/24 13:05:50 cer Exp $
 
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
@@ -111,10 +111,11 @@
        #-VDPCL ,@defgeneric			;PCL's defgeneric fails.
        (let* ((protocol (find-protocol ',protocol))
 	      (operation
-		(make-instance 'operation :name ',name
-			       :required-args ',required-args
-			       :specs ',specs
-			       :extra-args ',trampoline-extra-args)))
+		(make-instance 'operation
+		  :name ',name
+		  :required-args ',required-args
+		  :specs ',specs
+		  :extra-args ',trampoline-extra-args)))
 	 ;; Just simple now.
 	 (push-unique operation (protocol-operations protocol) 
 		      :key #'operation-name)))))

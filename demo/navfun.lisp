@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: navfun.lisp,v 1.10 92/06/03 18:18:53 cer Exp $
+;; $fiHeader: navfun.lisp,v 1.11 92/06/16 15:02:08 cer Exp $
 
 (in-package :clim-demo)
 
@@ -1060,9 +1060,9 @@
     (setf fp-window
 	  (open-window-stream :parent (window-root (frame-top-level-sheet fp))
 			      :left 50 :top 50 :width 750 :height 350
-			      :save-under t))))
+			      :save-under T))))
 
-(defmethod  enable-frame :after ((fp flight-planner))
+(defmethod enable-frame :after ((fp flight-planner))
   (let ((*application-frame* fp)
 	(*standard-output* (frame-standard-output fp)))
     (redraw-display)))
@@ -1317,7 +1317,7 @@
     ((route 'route :prompt "Route"))
   (let* (plan
 	 (plane (or *last-plane* (first *aircraft-list*)))
-	 (type 'VFR)
+	 (type 'vfr)
 	 (equip (or (and plane (aircraft-type plane)) "C172/U"))
 	 (airsp (or (and plane (aircraft-normal-cruise-speed plane)) 110))
 	 (orig (route-segment-at (first (route-legs route))))
@@ -1331,7 +1331,7 @@
 	 (souls 1)
 	 color)
     (accepting-values (*query-io* :own-window t)
-      (setq type (accept '(member VFR IFR DVFR) :prompt "Type"
+      (setq type (accept '(member vfr ifr dvfr) :prompt "Type"
 			 :default type))
       (terpri *query-io*)
       (multiple-value-bind (new-plane ptype changed)
@@ -1429,7 +1429,7 @@
 
 (defun geodesic (k m l n)			;arguments are in degrees
   (let* ((cc 0.0033901)
-	 (o 3443.95594)				;semi major axis of earth
+	 (o 3443.95594)				;semi major axis of Earth
 	 (a (atan (* (- 1 cc) (tan (radian k)))))	;radians
 	 (cosa (cos a))
 	 (sina (sin a))
@@ -1453,7 +1453,7 @@
 	 (v (+ d (* h (/ 1 (tan (/ (* 180 j) pi)))) 
 	       (* (square h) ff (+ (* 8 d (- (* i ff) d)) (- 1 (* 2 (square (abs ff))))))))
 	 (p (+ g (* (/ (square cc) (* 16 h)) (+ (* 8 (square j) (- i 1) v) (* h j)))))
-	 (r (* (- 1 cc) o p))			;r is distance
+	 (r (* (- 1 cc) o p))			;R is distance
 
 	 (a1 (* j (+ cc (square cc))))
 	 (a3 (+ (* (/ (* d cc) (* 2 h)) (square (abs h))) (* 2 (square (abs j)))))
@@ -1468,7 +1468,7 @@
 	 (z (if (< e 0) (+ y pi) y)))
     (if (and (zerop z) (< l k)) (setq z pi))
     (values r (degree z))))
-;    (list A B D E FF S TT H I J G V P 'dist R a1 a3 a2 q u w x a4 y 'dir z)))
+;    (list a b d e ff s tt h i j g v p 'dist r a1 a3 a2 q u w x a4 y 'dir z)))
 
 ;;; A position on the Geodesic globe.
 ;;; Miscellaneous functions
@@ -1509,69 +1509,57 @@
 ;(true-heading-and-groundspeed 229 125 270 14)
 ;(true-heading-and-groundspeed 229 125 0 0)
 
-;;; Crosswind components
+;;; Crosswind components (unused)
 
-#+ignore
+#+++ignore
+(progn
+
 (defun wind-components (wind-angle wind-speed)
   (let ((angle (radian wind-angle)))
     (values (* (cos angle) wind-speed)		;The headwind component
 	    (* (sin angle) wind-speed))))	;The crosswind component
 
-;(wind-components 45 50)
-
-#+ignore
 (defun density-altitude (pressure-altitude temperature)
   (* 145426 (- 1 (expt (/ (expt (/ (- 288.16 (* pressure-altitude 0.001981)) 288.16) 5.2563)
 			  (/ (+ 273.16 temperature) 288.16))
 		       0.235))))
 
-;(density-altitude 11000 10)
-
-#+ignore
 (defun feet-per-minute (feet-per-mile ground-speed)
   (* feet-per-mile (/ ground-speed 60.0)))
 
-#+ignore
 (defun true-airspeed (indicated-airspeed altitude temperature)
-  (let ((D (/ altitude (- 63691.776 (* 0.2190731712 altitude)))))
-    (* indicated-airspeed (sqrt (/ (+ 273.16 temperature) (/ 288 (expt 10 D)))))))
+  (let ((d (/ altitude (- 63691.776 (* 0.2190731712 altitude)))))
+    (* indicated-airspeed (sqrt (/ (+ 273.16 temperature) (/ 288 (expt 10 d)))))))
 
-#+ignore
 ;; mach = mach number, temperature is true OAT Celcius
 (defun mach-to-true-airspeed (mach temperature)
   (* 38.967 mach (sqrt (+ 273.16 temperature))))
 
-#+ignore
 (defun leg-time (leg-distance leg-speed)
   (/ leg-distance leg-speed))
 
-#+ignore
 (defun leg-speed (leg-distance leg-time)
   (/ leg-distance leg-time))
 
-#+ignore
 (defun leg-distance (leg-speed leg-time)
   (* leg-speed leg-time))
 
-#+ignore
 (defun bank-angle-for-standard-rate-turn (speed)
   (degree (atan (/ (* speed 9.2177478 1.15) 3860))))
 
-#+ignore
-(defun G-force-in-bank (bank-angle)
+(defun g-force-in-bank (bank-angle)
   (/ 1 (cos (radian bank-angle))))
 
-#+ignore
-(defun diameter-of-turn (TAS bank-angle)
-  (/ (square TAS) (* 34208 (tan (radian bank-angle)))))
+(defun diameter-of-turn (tas bank-angle)
+  (/ (square tas) (* 34208 (tan (radian bank-angle)))))
 
-#+ignore
 (defun wind-correction-angle (wa ws tas)
   (degree (asin (/ (* ws (sin (radian wa))) tas))))
 
-#+ignore
 (defun speed-loss-due-to-crabbing (tas wca tas)
   (- tas (* tas (cos (radian wca)))))
+
+)	;#+++ignore
 
 
 ;;; A simple cheat setup database

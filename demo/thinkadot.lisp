@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: thinkadot.lisp,v 1.8 92/06/02 13:31:13 cer Exp $
+;; $fiHeader: thinkadot.lisp,v 1.9 92/06/16 15:02:13 cer Exp $
 
 (in-package :clim-demo)
 
@@ -182,7 +182,7 @@
   (let ((tdt (cdr (assoc root *thinkadots*))))
     (when (or (null tdt) reinit)
       (setq tdt (make-application-frame 'thinkadot :parent root
-					    :width 300 :height 340))
+					:width 300 :height 340))
       (push (cons root tdt) *thinkadots*))
     (run-frame-top-level tdt)))
 

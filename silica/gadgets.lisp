@@ -1,6 +1,6 @@
 ;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadgets.lisp,v 1.24 92/06/23 08:19:24 cer Exp Locker: cer $
+;; $fiHeader: gadgets.lisp,v 1.25 92/06/29 14:04:36 cer Exp Locker: cer $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
@@ -143,23 +143,23 @@
 		:accessor gadget-alignment))
   (:default-initargs :label "" :align-x :center))
 
-;;--- Do the right thing
-#---ignore
 (defmethod compute-gadget-label-size ((pane labelled-gadget-mixin))
-  (values 50 20))
-
-#+++ignore
-(defun compute-gadget-label-size ((pane labelled-gadget-mixin))
-  (let ((text (gadget-label pane))
+  (let ((label (or (gadget-label pane) "Label"))
 	(text-style (slot-value pane 'text-style)))
+    #+++ignore
     (with-sheet-medium (medium pane)
-      (values (+ 4 (stream-string-width text text-style medium))
+      (multiple-value-bind (width height)
+	  (text-size medium label :text-style text-style)
+	(value (+ width 8) (+ height 4))))
+    #---ignore
+    (with-sheet-medium (medium pane)
+      (values (+ 8 (* (length label) (text-style-width text-style medium)))
 	      (+ 4 (text-style-height text-style medium))))))
 
 ;;--- We might want a way of changing the range and the value together.
 (defclass range-gadget-mixin ()
     ((min-value :initarg :min-value :accessor gadget-min-value)
-     (max-value :initarg  :max-value :accessor gadget-max-value))
+     (max-value :initarg :max-value :accessor gadget-max-value))
   (:default-initargs :min-value 0.0 :max-value 1.0))
 
 (defmethod gadget-range ((gadget range-gadget-mixin))
@@ -207,7 +207,6 @@
 (defmethod destroy-mirror :after  ((port port) (sheet scroll-bar))
   ;; This invalidates any caching that is going on
   (setf (scroll-bar-current-size sheet) nil))
-	
 
 (defmethod drag-callback :around ((gadget scroll-bar) (client t) (id t) value)
   (let ((callback (scroll-bar-drag-callback gadget)))
@@ -264,16 +263,18 @@
   (let ((frame (pane-frame rb)))
     (with-look-and-feel-realization ((frame-manager frame) frame)
       (dolist (choice choices)
-	(unless (panep choice)
+	(if (panep choice)
+	    (sheet-adopt-child rb choice)
 	  ;; Sometimes the user calls MAKE-PANE within a call to
 	  ;; WITH-RADIO-BOX, so don't mess up
 	  (make-pane 'toggle-button 
 		     :value (equal (radio-box-current-selection rb) choice)
 		     :label (if (stringp choice)
 				(string choice)
-				(gadget-label choice))
+			      (gadget-label choice))
 		     :id choice
 		     :parent rb))))))
+
 
 
 ;;; Check-box
@@ -291,14 +292,15 @@
   (let ((frame (pane-frame cb)))
     (with-look-and-feel-realization ((frame-manager frame) frame)
       (dolist (choice choices)
-	(unless (panep choice)
+	(if (panep choice)
+	    (sheet-adopt-child cb choice)
 	  ;; Sometimes the user calls MAKE-PANE within a call to
 	  ;; WITH-RADIO-BOX, so don't mess up
 	  (make-pane 'toggle-button 
 		     :value (equal (check-box-current-selection cb) choice)
 		     :label (if (stringp choice)
 				(string choice)
-				(gadget-label choice))
+			      (gadget-label choice))
 		     :indicator-type :some-of
 		     :id choice
 		     :parent cb))))))
@@ -363,12 +365,24 @@
     sr))
 
 (defmethod allocate-space :after ((viewport viewport) width height)
-  (bounding-rectangle-set-size
-    (viewport-viewport-region viewport) width height)
-  ;; At this point  it might make sense to move the viewport if it is
-  ;; big enough to contain the contents
-  (update-scroll-bars viewport)
-  (viewport-region-changed (sheet-child viewport) viewport))
+  (let ((vr (viewport-viewport-region viewport)))
+    (multiple-value-bind (owidth oheight) (bounding-rectangle-size vr)
+      (bounding-rectangle-set-size vr width height)
+      ;; If previously it was too small to display the entire contents
+      ;; but now it is large enough, scroll the window
+      (multiple-value-bind (ox oy) (bounding-rectangle-position vr)
+	(with-bounding-rectangle* (cleft ctop cright cbottom)
+	  (viewport-contents-extent viewport)
+	  (let ((cw (- cright cleft))
+		(ch (- cbottom ctop)))
+	    (let ((x ox) (y oy))
+	      (when (and (< owidth cw) (<= cw width)) (setq x cleft))
+	      (when (and (< oheight ch) (<= ch height)) (setq y ctop))
+	      (if (or (/= x ox) (/= y oy))
+		  (scroll-extent (sheet-child viewport) :x x  :y y)
+		(progn
+		  (update-scroll-bars viewport)
+		  (viewport-region-changed (sheet-child viewport) viewport))))))))))
 
 ;;--- Work on this
 #+++ignore
@@ -441,10 +455,11 @@
 		nvenp))))
         (values nil nil nil nil nil))))
 
+
 (defun viewport-contents-extent (viewport)
   (let ((contents (sheet-child viewport)))
-    (if (output-recording-stream-p contents)
-	(stream-output-history contents)
+    (or (and (output-recording-stream-p contents)
+	     (stream-output-history contents))
         contents)))
 
 ;;; Then there is the layout stuff and scrolling macros
@@ -453,13 +468,6 @@
   `(make-pane 'generic-scroller-pane
 	      :contents ,@contents
 	      ,@options))
-
-(defmethod make-pane-1 ((framem standard-frame-manager) frame name &rest options)
-  (declare (dynamic-extent options))
-  (apply #'make-instance 
-	 name
-	 :frame frame :frame-manager framem
-	 options))
 
 
 ;;; List panes and option menus
@@ -474,11 +482,13 @@
 		     :value-key #'identity
 		     :name-key #'princ-to-string))
  
+
 (defclass list-pane (set-gadget-mixin value-gadget)
+    ;;--- Should this be :ONE-OF/:SOME-OF, as radio boxes are?
     ((mode :initarg :mode :type (member :exclusive :nonexclusive)
 	   :accessor list-pane-mode))
   (:default-initargs :mode :exclusive))
-
+ 
 (defun compute-list-pane-selected-items (sheet value)
   (with-accessors ((items set-gadget-items)
 		   (value-key set-gadget-value-key)
@@ -487,14 +497,13 @@
 		   (name-key set-gadget-name-key)) sheet
     (ecase mode
       (:exclusive
-       (let ((x (find value items :test test :key value-key)))
-	 (and x (list (funcall name-key x)))))
+	(let ((x (find value items :test test :key value-key)))
+	  (and x (list (funcall name-key x)))))
       (:nonexclusive
-       (mapcar name-key 
-	       (remove-if-not #'(lambda (item)
-				  (member (funcall value-key item) value :test test))
-			      items))))))
-
+	(mapcar name-key
+		(remove-if-not #'(lambda (item)
+				   (member (funcall value-key item) value :test test))
+			       items))))))
 
 (defun list-pane-selected-item-p (sheet item)
   (with-accessors ((items set-gadget-items)
@@ -505,14 +514,14 @@
 		   (name-key set-gadget-name-key)) sheet
     (ecase mode
       (:exclusive
-       (funcall test (funcall value-key item) value))
+	(funcall test (funcall value-key item) value))
       (:nonexclusive
-       (member (funcall value-key item) value :test test)))))
+	(member (funcall value-key item) value :test test)))))
 
 
 (defclass option-pane (set-gadget-mixin 
-		       value-gadget 
-		       labelled-gadget-mixin)
+		       labelled-gadget-mixin
+		       value-gadget)
     ())
 
 

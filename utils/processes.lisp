@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: processes.lisp,v 1.3 92/02/24 13:05:49 cer Exp $
+;; $fiHeader: processes.lisp,v 1.4 92/04/21 20:27:59 cer Exp $
 
 (in-package :clim-utils)
 
@@ -247,8 +247,7 @@
   #{
   Lucid     (lcl:interrupt-process process closure)
   Allegro   (mp:process-interrupt process closure)
-  ;; ---    Is Lispworks' the same as Allegro?
-  ;; ---    It is for everything else except ALL-PROCESSES.
+  lispworks (mp:process-interrupt process closure)
   Genera    (scl:process-interrupt process closure)
   CCL-2     (let ((*current-process* :interrupt))
 	      (funcall closure))

@@ -16,15 +16,18 @@
 ;; contained herein by any agency, department or entity of the U.S.
 ;; Government are subject to restrictions of Restricted Rights for
 ;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
+;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: classes.lisp,v 1.8 92/05/07 13:11:07 cer Exp Locker: cer $
+;; $fiHeader: classes.lisp,v 1.9 92/05/22 19:26:38 cer Exp $
 
 (in-package :silica)
 
-;;--- Make a PORT protocol class, and call this BASIC-PORT
-(defclass port () 
+(define-protocol-class port ())
+
+;; This is called BASIC-PORT rather than STANDARD-PORT because the class
+;; cannot be used as-is.  It has to be specialized for each implementation.
+(defclass basic-port (port) 
     ((server-path :reader port-server-path)
      (properties :initform nil :accessor port-properties)
      (lock :initform (make-lock "a port lock") :reader port-lock)
@@ -43,7 +46,8 @@
      (cursor :initform nil :accessor port-cursor)
      (event-resource :initform (make-event-resource) :reader port-event-resource)
      (mapping-table :initform (make-hash-table :test #'equal))
-     (undefined-text-style :initform nil :accessor port-undefined-text-style)
+     (undefined-text-style :initform *undefined-text-style*
+			   :accessor port-undefined-text-style)
      ;; When this is true, the text style -> device font mapping is done
      ;; loosely.  That is, the actual screen size of the font need not be
      ;; exactly what the user has asked for.  Instead the closest fit is
@@ -54,8 +58,9 @@
      ;; Thus each bucket is a list of fonts with the same family and face,
      ;; but different sizes.  They are kept sorted small to large.
      (allow-loose-text-style-size-mapping 
-      :initform nil :initarg :allow-loose-text-style-size-mapping)
-     (framems :initform nil :accessor port-frame-manager)))
+       :initform nil :initarg :allow-loose-text-style-size-mapping)
+     (framem :initform nil :accessor port-frame-manager)))
+
 
 ;;--- Make a SHEET protocol class, and call this BASIC-SHEET
 (defclass sheet ()
@@ -67,8 +72,12 @@
 	     :accessor sheet-region)
      (enabledp :initform nil :accessor sheet-enabled-p)))
 
-;;--- Make a MEDIUM protocol class, and call this BASIC-MEDIUM
-(defclass medium ()
+
+(define-protocol-class medium ())
+
+;; This is called BASIC-MEDIUM rather than STANDARD-MEDIUM because the class
+;; cannot be used as-is.  It has to be specialized for each implementation.
+(defclass basic-medium (medium)
     ((port :initarg :port :reader port)
      (sheet :initarg :sheet :initform nil :accessor medium-sheet)
      (foreground :initform +black+ :accessor medium-foreground)
@@ -112,7 +121,7 @@
 (define-event-class device-event (event) 
   ((sheet :reader event-sheet :initarg :sheet)
    (modifier-state :reader event-modifier-state
-		   :initarg :modifiers)))
+		   :initform 0 :initarg :modifiers)))
 
 
 (define-event-class keyboard-event (device-event)
@@ -159,6 +168,11 @@
    (mirrored-sheet :reader window-event-mirrored-sheet
 		   :reader event-sheet
 		   :initarg :sheet)))
+
+(defmethod print-object ((event window-event) stream)
+  (with-bounding-rectangle* (left top right bottom) (window-event-region event)
+    (print-unreadable-object (event stream :type t)
+      (format stream "/x ~D:~D y ~D:~D/" left right top bottom))))
 
 (define-event-class window-configuration-event (window-event) ())
 (define-event-class window-repaint-event (window-event) ())

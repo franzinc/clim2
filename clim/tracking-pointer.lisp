@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: tracking-pointer.lisp,v 1.7 92/04/15 11:47:30 cer Exp $
+;; $fiHeader: tracking-pointer.lisp,v 1.8 92/05/22 19:28:35 cer Exp $
 
 (in-package :clim-internals)
 
@@ -151,9 +151,9 @@
 	       (multiple-value-bind (px py) (pointer-position pointer)
 		 (let ((event (make-instance 'pointer-button-release-event
 				:sheet window
+				:x px :y py
 				:button buttons
-				:modifiers (tv:mouse-chord-shifts genera-mouse)
-				:x px :y py)))
+				:modifiers (tv:mouse-chord-shifts genera-mouse))))
 		   (when transformp
 		     (multiple-value-bind (tx ty)
 			 (transform-position (medium-transformation window) px py)
@@ -174,13 +174,13 @@
 	      (block handle-simple-motion
 		(when (or motion-function presentation-motion-function highlight)
 		  (when multiple-window
-		    (setq current-window (or (pointer-window pointer) (pointer-root pointer))))
+		    (setq current-window (or (pointer-sheet pointer) (graft pointer))))
 		  (multiple-value-bind (x y) (pointer-position pointer)
 		    (when moved-p
 		      (setq moved-p nil)
 		      (setq last-x x last-y y
 			    last-window current-window)
-		      ;; Pointer position is in root coordinates
+		      ;; Pointer position is in root (graft) coordinates
 		      (when (or presentation-motion-function highlight)
 			(let ((presentation
 				(frame-find-innermost-applicable-presentation
@@ -199,8 +199,8 @@
 		      (when motion-function
 			(when transformp
 			  (multiple-value-bind (tx ty)
-			      (transform-position (medium-transformation current-window)
-						  x y)
+			      (transform-position
+				(medium-transformation current-window) x y)
 			    (setq x (coordinate tx)
 				  y (coordinate ty))))
 			(funcall motion-function current-window x y))))))
@@ -209,11 +209,10 @@
 		  ;; Handle any clicks or characters, otherwise wait for something
 		  ;; interesting to happen.
 		  (when multiple-window
-		    (setq current-window (or (pointer-window pointer)
-					     (pointer-root pointer))))
+		    (setq current-window (or (pointer-sheet pointer) (graft pointer))))
 		  (flet ((pointer-motion-pending (window)
 			   (when (and (or multiple-window
-					  (eq current-window (pointer-window pointer)))
+					  (eq current-window (pointer-sheet pointer)))
 				      (eq (stream-primary-pointer window) pointer))
 			     (multiple-value-setq (moved-p last-window last-x last-y)
 			       (pointer-state-changed pointer last-window last-x last-y))
@@ -256,8 +255,8 @@
 				    (wy py))
 			       (when transformp
 				 (multiple-value-bind (tx ty)
-				     (transform-position (medium-transformation current-window)
-							 px py)
+				     (transform-position
+				       (medium-transformation current-window) px py)
 				   (setq wx (coordinate tx)
 					 wy (coordinate ty))))
 			       (typecase gesture

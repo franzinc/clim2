@@ -16,10 +16,10 @@
 ;; contained herein by any agency, department or entity of the U.S.
 ;; Government are subject to restrictions of Restricted Rights for
 ;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
+;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: event.lisp,v 1.13 92/06/02 13:30:42 cer Exp Locker: cer $
+;; $fiHeader: event.lisp,v 1.14 92/06/23 08:19:23 cer Exp $
 
 (in-package :silica)
 
@@ -31,12 +31,6 @@
 (defgeneric handle-event (client event))
 
 (defgeneric port-keyboard-input-focus (port))
-
-(defmethod print-object ((event window-repaint-event) stream)
-  (with-slots (region) event
-    (with-bounding-rectangle* (left top right bottom) region
-      (print-unreadable-object (event stream :type t)
-	(format stream "/x ~A:~A y ~A:~A/" left right top bottom)))))
 
 (defmethod handle-event (client (event window-repaint-event))
   (handle-repaint client nil 
@@ -57,42 +51,42 @@
 		  (return (sheet-event-queue sheet))))
 	      (make-queue)))))
 
-(defgeneric queue-event (client event)
-  (:method ((sheet sheet-with-event-queue-mixin) event)
-   (queue-put (sheet-event-queue sheet) event)))
+(defgeneric queue-event (client event))
+(defmethod queue-event ((sheet sheet-with-event-queue-mixin) event)
+  (queue-put (sheet-event-queue sheet) event))
 
-(defgeneric event-read (client)
-  (:method ((sheet sheet-with-event-queue-mixin))
-   (let ((queue (sheet-event-queue sheet)))
-     (loop
-       (process-wait "Event" #'(lambda ()
-				 (not (queue-empty-p queue))))
-       (let ((event (queue-get queue)))
-	 (when event (return event)))))))
+(defgeneric event-read (client))
+(defmethod event-read ((sheet sheet-with-event-queue-mixin))
+  (let ((queue (sheet-event-queue sheet)))
+    (loop
+      (process-wait "Event" #'(lambda ()
+				(not (queue-empty-p queue))))
+      (let ((event (queue-get queue)))
+	(when event (return event))))))
 
 
-(defgeneric event-read-no-hang (client)
-  (:method ((sheet sheet-with-event-queue-mixin))
-   (queue-get (sheet-event-queue sheet) nil)))
+(defgeneric event-read-no-hang (client))
+(defmethod event-read-no-hang ((sheet sheet-with-event-queue-mixin))
+  (queue-get (sheet-event-queue sheet) nil))
 
-(defgeneric event-peek (client &optional event-type)
-  (:method ((sheet sheet-with-event-queue-mixin) &optional event-type)
-   (loop
-     (let ((event (event-read sheet)))
-       (when (or (null event-type)
-		 (typep event event-type))
-	 (event-unread sheet event)
-	 (return-from event-peek event))))))
+(defgeneric event-peek (client &optional event-type))
+(defmethod event-peek ((sheet sheet-with-event-queue-mixin) &optional event-type)
+  (loop
+    (let ((event (event-read sheet)))
+      (when (or (null event-type)
+		(typep event event-type))
+	(event-unread sheet event)
+	(return-from event-peek event)))))
 
 ;; Is there a lock here?
 
-(defgeneric event-unread (sheet event)
-  (:method ((sheet sheet-with-event-queue-mixin) event)
-   (queue-unget (sheet-event-queue sheet) event)))
+(defgeneric event-unread (sheet event))
+(defmethod event-unread ((sheet sheet-with-event-queue-mixin) event)
+  (queue-unget (sheet-event-queue sheet) event))
 
-(defgeneric event-listen (client)
-  (:method ((sheet sheet-with-event-queue-mixin))
-   (not (queue-empty-p (sheet-event-queue sheet)))))
+(defgeneric event-listen (client))
+(defmethod event-listen ((sheet sheet-with-event-queue-mixin))
+  (not (queue-empty-p (sheet-event-queue sheet))))
 
 
 
@@ -134,23 +128,23 @@
 
 (defgeneric dispatch-repaint (sheet region))
 
-(defgeneric queue-repaint (sheet region)
-  (:method (sheet region)
-   (queue-event sheet region)))
+(defgeneric queue-repaint (sheet region))
+(defmethod queue-repaint (sheet region)
+  (queue-event sheet region))
 
 (defgeneric handle-repaint (sheet medium region))
-
 (defmethod handle-repaint ((sheet sheet) medium region)
+  (when (null region)				;--- kludge
+    (setq region +everywhere+))
   (with-sheet-medium-bound (sheet medium)
     (repaint-sheet sheet region))
   (when (typep sheet 'sheet-parent-mixin)
     (dolist (child (children-overlapping-region sheet region))
-      (unless (sheet-direct-mirror child) ; If the sheet has a mirror
-					  ; then it will deal with its
-					  ; on repaints
+      ;; If the sheet has a mirror then it will deal with its own repaints
+      (unless (sheet-direct-mirror child)
 	(handle-repaint 
-	 child medium
-	 (untransform-region (sheet-transformation child) region))))))
+	  child medium
+	  (untransform-region (sheet-transformation child) region))))))
 	     
 (defgeneric repaint-sheet (sheet region))
 
@@ -174,60 +168,55 @@
   (declare (ignore region))
   nil)
 
-;;; I think we have fun here to deal generate enter/exit events for un
-;;; mirrored sheets
-;;; Three cases:
-;;; 1. Mouse motion event
-;;; [Last mirrored sheet, position] --> [new mirrored sheet, position]
-;;; 2. Enter: [last-mirrored sheet, position] -> [new sheet]
-;;; 3. Exit: [last-mirrored sheet, position] -> [new sheet]
-
-;;; We boil this down to mouse moved to [new mirrored sheet, position]
-;;; we have a current stack of sheets 0....n
-;;; Find m such that 0.. m - 1 contain mouse
-;;; m...n require exit events
-;;; We can then go deep down inside m sheet generating enter events
-
-;;; Who do we generate motion events for?
-;;; The 0th element of the trace is the mirrored window.
-
-;;; Cases:
-;;; 1. it is the mirrored window
-
-;;; 2. Ancestor: We have gone deeper: perhaps it still counts as exiting
-;;; We should just exit from the innermost sheet that encloses the new mirror
-;;; We should enter/exit intermediate ancestors.
-;;; Ancestor-x,y,z-->Sheet
-
-;;; 3. Child: We have gone shallower: exit from all of the sheets
-;;; We should probably exit from intermediate descendents
-;;; Sheet- x,y,z --> Child
-
-;;; 4. Share a common ancestor: exit from all of the sheets
-
-;;; This code does not deal with cases (2) and (3) correctly.
-;;; It will fail to generate enter/exit events for cases
+;; I think we have fun here to generate enter/exit events for unmirrored sheets
+;; Three cases:
+;; 1. Mouse motion event:
+;;    [Last mirrored sheet, position] --> [new mirrored sheet, position]
+;; 2. Enter: [last-mirrored sheet, position] -> [new sheet]
+;; 3. Exit: [last-mirrored sheet, position] -> [new sheet]
+;;
+;; We boil this down to mouse moved to [new mirrored sheet, position]
+;;  We have a current stack of sheets 0...n
+;;  Find m such that 0...m - 1 contain mouse
+;;  m...n require exit events
+;; We can then go deep down inside m sheet generating enter events
+;;
+;; Who do we generate motion events for?
+;; The 0th element of the trace is the mirrored sheet.
+;;
+;; Cases:
+;; 1. It is the mirrored sheet.
+;; 2. Ancestor: We have gone deeper.  Perhaps it still counts as exiting.
+;;    We should just exit from the innermost sheet that encloses the new mirror.
+;;    We should enter/exit intermediate ancestors.
+;;    Ancestor-x,y,z-->Sheet
+;; 3. Child: We have gone shallower.  Exit from all of the sheets.
+;;    We should probably exit from intermediate descendents.
+;;    Sheet- x,y,z --> Child
+;; 4. Share a common ancestor: exit from all of the sheets.
+;;--- This code does not deal with cases (2) and (3) correctly.
+;;--- It will fail to generate enter/exit events for cases
 (defun generate-crossing-events (port sheet x y modifiers button pointer)
   (macrolet ((generate-enter-event (sheet)
 	       `(let ((sheet ,sheet))
 		  (dispatch-event
 		    sheet
 		    (make-instance 'pointer-enter-event
-				   :sheet sheet
-				   :x x :y y
-				   :button button
-				   :modifiers modifiers
-				   :pointer pointer))))
+		      :sheet sheet
+		      :x x :y y
+		      :button button
+		      :modifiers modifiers
+		      :pointer pointer))))
 	     (generate-exit-event (sheet)
 	       `(let ((sheet ,sheet))
 		  (dispatch-event
 		    sheet
 		    (make-instance 'pointer-exit-event
-				   :sheet sheet
-				   :x x :y y
-				   :button button
-				   :modifiers modifiers
-				   :pointer pointer)))))
+		      :sheet sheet
+		      :x x :y y
+		      :button button
+		      :modifiers modifiers
+		      :pointer pointer)))))
     (let ((v (port-trace-thing port)))
       ;; Pop up the stack of sheets
       (unless (zerop (fill-pointer v))
@@ -289,37 +278,37 @@
 	(dispatch-event
 	  sheet
 	  (make-instance event-type
-			 :sheet sheet
-			 :native-x x :native-y y
-			 :x tx :y ty
-			 :modifiers modifiers
-			 :button button
-			 :pointer pointer))))))
+	    :sheet sheet
+	    :native-x x :native-y y
+	    :x tx :y ty
+	    :modifiers modifiers
+	    :button button
+	    :pointer pointer))))))
+
+(defmethod distribute-event ((port basic-port) event)
+  (distribute-event-1 port event))
 
 (defmethod distribute-event ((port null) (event event))
-  (warn "Got event for NIL port ~S" event))
-
-(defmethod distribute-event ((port port) event)
-  (distribute-event-1 port event))
+  (warn "Got an event for null port ~S" event))
 
 (defgeneric distribute-event-1 (port event))
 
-(defmethod distribute-event-1 ((port port) (event event))
+(defmethod distribute-event-1 ((port basic-port) (event event))
   (dispatch-event (event-sheet event) event))
 
-(defmethod distribute-event-1 ((port port) (event keyboard-event))
+(defmethod distribute-event-1 ((port basic-port) (event keyboard-event))
   (let ((focus (or (port-keyboard-input-focus port)
 		   (event-sheet event))))
     ;;--- Is this correct???
     (setf (slot-value event 'sheet) focus)
     (dispatch-event focus event)))
 
-(defmethod distribute-event-1 ((port port) (event window-event))
+(defmethod distribute-event-1 ((port basic-port) (event window-event))
   (dispatch-event 
     (window-event-mirrored-sheet event)
     event))
 
-(defmethod distribute-event-1 ((port port) (event pointer-event))
+(defmethod distribute-event-1 ((port basic-port) (event pointer-event))
   (distribute-pointer-event
     port
     (event-sheet event)
@@ -327,8 +316,11 @@
       ((or pointer-exit-event pointer-enter-event)
        'pointer-motion-event)
       (t (type-of event)))
-    (pointer-event-native-x event)
-    (pointer-event-native-y event)
+    #-Lucid (pointer-event-native-x event)
+    #-Lucid (pointer-event-native-y event)
+    ;;--- On X at least this appears to want coordinate local to the window
+    #+Lucid (pointer-event-x event)
+    #+Lucid (pointer-event-y event)
     (event-modifier-state event)
     (pointer-event-button event)
     (pointer-event-pointer event)))
@@ -409,7 +401,10 @@
     (loop for (type n) in *resourced-events*
 	  collect (make-event-resource-1 type n))))
 
-(defmethod allocate-event ((port port) event-type &rest initargs)
+;;--- Instead of this circular list stuff, it might be better to
+;;--- have a vector to "pop" off of, and have clients explicitly
+;;--- call a DEALLOCATE-EVENT method.
+(defmethod allocate-event ((port basic-port) event-type &rest initargs)
   (declare (dynamic-extent initargs))
   (let* ((resource (assoc event-type (port-event-resource port)))
 	 (event (and resource (pop (cdr resource)))))
@@ -421,20 +416,24 @@
 	  (t
 	   (apply #'make-instance event-type initargs)))))
 
-#-CCL-2
+#+Symbolics
+(defun-inline copy-event (event)
+  (clos-internals::%allocate-instance-copy event))
+
+#+CCL-2
+(defun copy-event (event)
+  (without-scheduling
+    (ccl::copy-uvector
+      (ccl::%maybe-forwarded-instance event))))
+
+#-(or Symbolics CCL-2)
 (defun copy-event (event)
   (let* ((class (class-of event))
 	 (copy (allocate-instance class)))
     (dolist (slot (clos:class-slots class))
-      (let ((name (clos:slot-definition-name slot)))
-	(setf (slot-value copy name) (slot-value event name))))
-    copy))
-
-#+CCL-2
-(defun copy-event (event)
-  (let* ((class (class-of event))
-	 (copy (allocate-instance class)))
-    (dolist (slot (ccl:class-slots class))
-      (let ((name (ccl:slot-definition-name slot)))
-	(setf (slot-value copy name) (slot-value event name))))
+      (let ((name (clos:slot-definition-name slot))
+	    (allocation (clos:slot-definition-allocation slot)))
+	(when (and (eql allocation :instance)
+		   (slot-boundp event name))
+	  (setf (slot-value copy name) (slot-value event name)))))
     copy))

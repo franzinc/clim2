@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-editor-commands.lisp,v 1.8 92/05/07 13:12:32 cer Exp $
+;; $fiHeader: input-editor-commands.lisp,v 1.9 92/05/22 19:28:03 cer Exp $
 
 (in-package :clim-internals)
 
@@ -30,7 +30,7 @@
 	       (gesture-name-keysym-and-modifiers gesture)
 	     (if (zerop modifier-state)
 		 ;;--- What should this really be?
-		 (member keysym '(:rubout :clear-input :scroll))
+		 (member keysym '(:rubout :clear-input :scroll :refresh))
 		 (logtest modifier-state
 			  #.(logior +control-key+ +meta-key+ +super-key+ +hyper-key+))))))
     (declare (dynamic-extent #'add-aarray-entry #'bucky-char-p))
@@ -238,6 +238,11 @@
 #-Genera
 (defun complete-symbol-name-1 (string)
   nil)
+
+(define-input-editor-command (com-ie-refresh :rescan nil)
+			     (stream)
+  (stream-replay stream)
+  (redraw-input-buffer stream))
 
 (define-input-editor-command (com-ie-scroll-forward :rescan nil)
 			     (stream numeric-argument)
@@ -577,9 +582,11 @@
 		    (return-from doit
 		      (with-input-editor-typeout (stream)
 			#-Cloe-Runtime
-			(format stream "~S: ~A" symbol arglist)
+			(format stream "~S: (~{~A~^ ~})"
+			  symbol arglist)
 			#+Cloe-Runtime
-			(format stream "~S (~A): ~:A" symbol found-p arglist))))))))))
+			(format stream "~S (~A): (~{~:A~^ ~})"
+			  symbol found-p arglist))))))))))
       (beep stream))))
 
 (define-input-editor-command (com-ie-show-value :rescan nil)
@@ -691,6 +698,8 @@
   (:ie-kill-ring-yank	    :\Y  :control)
   (:ie-history-yank	    :\Y  :control :meta)
   (:ie-yank-next	    :\Y  :meta)
+  (:ie-refresh		    :\L  :control)
+  (:ie-refresh		    :refresh)
   (:ie-scroll-forward	    :\V  :control)
   (:ie-scroll-backward	    :\V  :meta)
   (:ie-scroll-forward	    :scroll)
@@ -733,5 +742,6 @@
   com-ie-kill-ring-yank	       :ie-kill-ring-yank
   com-ie-history-yank	       :ie-history-yank
   com-ie-yank-next	       :ie-yank-next
+  com-ie-refresh	       :ie-refresh
   com-ie-scroll-forward	       :ie-scroll-forward
   com-ie-scroll-backward       :ie-scroll-backward)

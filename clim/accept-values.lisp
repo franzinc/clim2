@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept-values.lisp,v 1.22 92/06/16 15:01:33 cer Exp Locker: cer $
+;; $fiHeader: accept-values.lisp,v 1.23 92/06/23 08:19:43 cer Exp $
 
 (in-package :clim-internals)
 
@@ -51,10 +51,10 @@
 		:accessor accept-values-query-active-p))
   (:default-initargs :presentation nil))
 
-(defresource accept-values-stream (encapsulee)
-  :constructor (make-instance 'accept-values-stream :stream encapsulee)
+(defresource accept-values-stream (stream)
+  :constructor (make-instance 'accept-values-stream :stream stream)
   :matcher 't					;any will suffice
-  :initializer (setf (slot-value accept-values-stream 'stream) encapsulee))
+  :initializer (setf (slot-value accept-values-stream 'stream) stream))
 
 (defun find-accept-values-record (output-record)
   (do ((record output-record (output-record-parent record)))
@@ -88,13 +88,22 @@
 				  prompt-args))))
   query-identifier)
 
+(defmethod prompt-for-accept ((stream accept-values-stream) type view
+			      &rest accept-args 
+			      &key query-identifier &allow-other-keys)
+  (declare (ignore accept-args))
+  ;; This does nothing, the gadget ACCEPT methods should provide a label
+  (unless (gadget-includes-prompt-p type stream view)
+    (call-next-method))
+  query-identifier)
+
 (defmethod stream-accept ((stream accept-values-stream) ptype
 			  &key query-identifier (prompt t) (default nil default-supplied-p)
-			       (active-p t)
+			       (view (stream-default-view stream)) (active-p t)
 			  &allow-other-keys)
   ;;--- When ACTIVE-P is NIL, this should do some sort of "graying out"
   (let ((query (find-or-add-query stream query-identifier ptype prompt
-				  default default-supplied-p active-p)))
+				  default default-supplied-p view active-p)))
     (values (accept-values-query-value query)
 	    (accept-values-query-type query)
 	    ;; Set this to NIL so that it appears that nothing has
@@ -104,7 +113,7 @@
 
 ;; Probably should be keyword arguments...
 (defmethod find-or-add-query ((stream accept-values-stream) query-identifier ptype prompt
-			      default default-supplied-p active-p)
+			      default default-supplied-p view active-p)
   (let ((avv-record
 	  #---ignore (slot-value stream 'avv-record)
 	  #+++ignore (find-accept-values-record
@@ -115,9 +124,9 @@
 	  (gethash query-identifier query-table)
 	(unless query
 	  (setq query (make-instance 'accept-values-query 
-				     :presentation-type ptype
-				     :value default
-				     :query-identifier query-identifier)))
+			:presentation-type ptype
+			:value default
+			:query-identifier query-identifier)))
 	(setf (accept-values-query-active-p query) active-p)
 	;;--- Really wants to reuse existing presentation if found and
 	;;--- make sure that that presentation gets re-parented if necessary
@@ -129,12 +138,14 @@
 			  :cache-value (if (accept-values-query-changed-p query)
 					   (accept-values-query-value query)
 					   default)
-			  :cache-test #'equal)
+			  :cache-test #'(lambda (x y)
+					  (unless (accept-values-query-changed-p query)
+					    (equal x y))))
 		;;--- Calling ACCEPT-1 directly bypasses default preprocessing,
 		;;--- is that OK?
 		(cond ((or default-supplied-p (accept-values-query-changed-p query))
 		       (accept-1 stream ptype
-				 :prompt prompt
+				 :view view :prompt prompt
 				 ;; If this field changed, use the value it changed to,
 				 ;; making sure that the query object gets changed, too.
 				 ;; We need to do this because the body of the dialog
@@ -151,7 +162,7 @@
 		       ;; has put something in the query that we now must use as
 		       ;; the default.
 		       (accept-1 stream ptype
-				 :prompt prompt
+				 :view view :prompt prompt
 				 :default (accept-values-query-value query)
 				 :history ptype
 				 :present-p `(accept-values-choice ,query)
@@ -159,7 +170,7 @@
 		      (t
 		       ;; No default supplied, field has never been edited.
 		       (accept-1 stream ptype
-				 :prompt prompt
+				 :view view :prompt prompt
 				 :history ptype :provide-default nil
 				 :present-p `(accept-values-choice ,query)
 				 :query-identifier query)))))
@@ -186,6 +197,7 @@
   (:command-definer t))
 
 ;; Ignore extra initargs...
+;;--- CER commented this out.  Why did we need it in the first place?
 (defmethod initialize-instance :after ((frame accept-values) 
 				       &key own-window
 					    x-position y-position width height
@@ -193,10 +205,6 @@
   (declare (ignore own-window
 		   x-position y-position width height
 		   right-margin bottom-margin)))
-
-#+what-the-\!
-(defmethod frame-top-level-sheet ((frame accept-values))
-  (frame-top-level-sheet (frame-calling-frame frame)))
 
 ;;--- These frames should be resourced
 (define-application-frame accept-values-own-window (accept-values)
@@ -228,18 +236,23 @@
   (:command-table accept-values)
   (:command-definer nil))
 
-;; So the continuation can run with the proper value of *APPLICATION-FRAME*
-(defvar *avv-calling-frame*)
-
 (defmethod frame-manager-default-exit-boxes ((framem standard-frame-manager))
   '((:abort) (:exit)))
+
+(defmethod frame-manager-exit-box-labels ((framem standard-frame-manager) frame)
+  (declare (ignore frame))
+  '((:exit   "<End> uses these values")
+    (:abort  "<Abort> aborts")))
+
+;; So the continuation can run with the proper value of *APPLICATION-FRAME*
+(defvar *avv-calling-frame*)
 
 (defun invoke-accepting-values (stream continuation
 				 &key frame-class own-window 
 				      (exit-boxes 
-				       (frame-manager-default-exit-boxes
-					(frame-manager stream)))
-				      (resize-frame nil)
+					(frame-manager-default-exit-boxes
+					  (frame-manager stream)))
+ 				      (resize-frame nil)
 				      (initially-select-query-identifier nil)
 				      (resynchronize-every-pass nil) (check-overlapping t)
 				      label x-position y-position width height)
@@ -250,24 +263,21 @@
 	 (bottom-margin 10))
      (if own-window
 	 (let ((frame (make-application-frame (or frame-class 'accept-values-own-window)
-					      :calling-frame *application-frame*
-					      :parent *application-frame*
-					      :pretty-name label
-					      :continuation continuation
-					      :exit-boxes exit-boxes
-					      :own-window the-own-window
-					      :width width :height height
-					      :x-position x-position
-					      :y-position y-position
-					      :right-margin right-margin
-					      :bottom-margin bottom-margin
-					      :initially-select-query-identifier
-					        initially-select-query-identifier
-					      :resynchronize-every-pass
-					        resynchronize-every-pass
-					      :check-overlapping
-					        check-overlapping
-					      :resize-frame resize-frame)))
+			:calling-frame *application-frame*
+			:parent *application-frame*
+			:pretty-name label
+			:continuation continuation
+			:exit-boxes exit-boxes
+			:own-window the-own-window
+			:width width :height height
+			:x-position x-position
+			:y-position y-position
+			:right-margin right-margin
+			:bottom-margin bottom-margin
+			:initially-select-query-identifier initially-select-query-identifier
+			:resynchronize-every-pass resynchronize-every-pass
+			:check-overlapping check-overlapping
+			:resize-frame resize-frame)))
 	   ;;--- What do we do about sizing?
 	   ;;--- What do we do about positioning?
 	   (let ((*avv-calling-frame* *application-frame*))
@@ -275,16 +285,17 @@
        (using-resource (avv-stream accept-values-stream (or the-own-window stream))
 	 ;;--- This should resource the AVV application frame, too
 	 (let ((frame (make-application-frame (or frame-class 'accept-values)
-					      :calling-frame *application-frame*
-					      :stream avv-stream
-					      :continuation continuation
-					      :exit-boxes exit-boxes
-					      :initially-select-query-identifier
-						initially-select-query-identifier
-					      :resynchronize-every-pass
-						resynchronize-every-pass
-					      :check-overlapping
-						check-overlapping)))
+			:calling-frame *application-frame*
+			:stream avv-stream
+			:continuation continuation
+			:exit-boxes exit-boxes
+			:initially-select-query-identifier initially-select-query-identifier
+			:resynchronize-every-pass resynchronize-every-pass
+			:check-overlapping check-overlapping
+			;; This frame won't necessarily be adopted, so make
+			;; sure that we share the sheet with the parent frame
+			;; in the case of "inlined" dialogs
+			:top-level-sheet (frame-top-level-sheet *application-frame*))))
 	   ;; Run the AVV and return its values
 	   (let ((*avv-calling-frame* *application-frame*))
 	     (run-frame-top-level frame)))))))
@@ -338,37 +349,35 @@
 			       ;; to what it was before we started.
 			       (letf-globally (((stream-default-view command-stream)
 						original-view))
-					      (read-frame-command
-					       frame :stream command-stream)))))
+				 (read-frame-command frame :stream command-stream)))))
 		       (if (and command (not (keyboard-event-p command)))
 			   (execute-frame-command frame command)
 		       (beep stream)))
 		     (with-deferred-gadget-updates
-		       (when (or resynchronize-every-pass
-				 (slot-value avv-record 'resynchronize))
-			 ;; When the user has asked to resynchronize every pass, that
-			 ;; means we should run the continuation an extra time to see
-			 ;; that all visible stuff is up to date.  That's all!
-			 (with-output-recording-options (stream :draw nil)
-			   (redisplay avv stream :check-overlapping check-overlapping)))
-		     (setf (slot-value avv-record 'resynchronize) nil)
-		     (when exit-button-record
- 		       (redisplay exit-button-record exit-button-stream))
-		     (redisplay avv stream :check-overlapping
-				check-overlapping))
-		     (when (ecase (frame-resizable frame)
-			     ((nil) nil)
-			     ((t) t)
-			     (:grow
-			      (and own-window
-				   (multiple-value-bind (data-w data-h)
-				       (bounding-rectangle-size
-					(stream-output-history own-window))
-				     (multiple-value-bind (v-w v-h)
-					 (bounding-rectangle-size (or (pane-viewport own-window)
-								      own-window))
-				       (or (> data-w v-w) (> data-h v-h)))))))
-		       (size-panes-appropriately))))
+			 (when (or resynchronize-every-pass
+				   (slot-value avv-record 'resynchronize))
+			   ;; When the user has asked to resynchronize every pass, that
+			   ;; means we should run the continuation an extra time to see
+			   ;; that all visible stuff is up to date.  That's all!
+			   (with-output-recording-options (stream :draw nil)
+			     (redisplay avv stream :check-overlapping check-overlapping)))
+		       (setf (slot-value avv-record 'resynchronize) nil)
+		       (when exit-button-record
+			 (redisplay exit-button-record exit-button-stream))
+		       (redisplay avv stream :check-overlapping check-overlapping)
+		       (when (ecase (frame-resizable frame)
+			       ((nil) nil)
+			       ((t) t)
+			       (:grow
+				(and own-window
+				     (multiple-value-bind (width height)
+					 (bounding-rectangle-size
+					  (stream-output-history own-window))
+				       (multiple-value-bind (vwidth vheight)
+					   (bounding-rectangle-size 
+					    (or (pane-viewport own-window) own-window))
+					 (or (> width vwidth) (> height vheight)))))))
+			 (size-panes-appropriately)))))
 	       (size-panes-appropriately ()
 		 (changing-space-requirements ()
 		   ;; We really want to specify the min/max sizes of
@@ -432,7 +441,6 @@
 		(move-cursor-beyond-output-record (slot-value stream 'stream) avv))))
 	  (values-list return-values))))))
 
-
 (defmethod read-frame-command ((frame accept-values) &key (stream *query-io*))
   (read-command (frame-command-table frame)
 		:stream stream
@@ -488,29 +496,33 @@
 
 ;;; Applications can create their own AVV class and specialize this method in
 ;;; order to get different exit boxes.
-
-(defmethod frame-manager-exit-box-labels ((frame t) (framem standard-frame-manager))
-  '(
-    (:exit  "<End> uses these values")
-    (:abort  "<Abort> aborts")))
-
 (defmethod display-exit-boxes ((frame accept-values) stream (view view))
   ;; Do the fresh-line *outside* of the updating-output so that it
   ;; doesn't get repositioned relatively in the X direction if the
   ;; previous line gets longer.  Maybe there should be some better
   ;; way of ensuring this.
   (fresh-line stream)
-  (let ((labels (frame-manager-exit-box-labels frame (frame-manager frame))))
+  (let ((labels (frame-manager-exit-box-labels (frame-manager frame) frame)))
     (updating-output (stream :unique-id stream :cache-value 'exit-boxes)
-		     (with-slots (exit-boxes) frame
-		       (dolist (exit-box exit-boxes)
-			 (let* ((name (if (consp exit-box) (car exit-box) exit-box))
-				(label (or (if (consp exit-box) (second exit-box))
-					   (second (assoc name labels)))))
-			   (with-output-as-presentation (stream name 'accept-values-exit-box)
-			     ;;--- :ccl-2 had some code in here
-			     (write-string label stream))))))))
-
+      (with-slots (exit-boxes) frame
+	(dolist (exit-box exit-boxes)
+	  (let* ((value (if (consp exit-box) (car exit-box) exit-box))
+		 (label (or (and (consp exit-box) (second exit-box))
+			    (second (assoc value labels)))))
+	    (with-output-as-presentation (stream value 'accept-values-exit-box)
+	      #-CCL-2
+	      (write-string label stream)
+	      #+CCL-2
+	      (if (eq value ':abort)
+		  ;; Kludge to print the cloverleaf char in MCL.
+		  ;; Needs an accompanying kludge in STREAM-WRITE-CHAR so that
+		  ;; #\CommandMark doesn't get lozenged.
+		  (progn
+		    (with-text-style (stream '(:mac-menu :roman :normal))
+		      (write-char #\CommandMark stream))
+		    (write-string "-. aborts" stream))
+		  (write-string label stream)))
+	    (write-string " " stream)))))))
 
 ;;--- Get this right
 (defmethod frame-pointer-documentation-output ((frame accept-values-own-window))
@@ -676,13 +688,13 @@
     (accept-values-exit-box (command :command-table accept-values) accept-values
      :tester-definitive t		;just like a to-command translator
      :documentation ((object stream)
-		     (ecase object
-		       (:done (write-string "Exit" stream))
+		     (case object
+		       (:exit (write-string "Exit" stream))
 		       (:abort (write-string "Abort" stream))))
      :gesture :select)
     (object)
-  (ecase object
-    (:done '(com-exit-avv))
+  (case object
+    (:exit '(com-exit-avv))
     (:abort '(com-abort-avv))))
 
 
@@ -728,9 +740,9 @@
 			   :cache-value cache-value :cache-test cache-test)
     (with-output-as-presentation (stream
 				  (make-instance 'accept-values-command-button
-						 :continuation continuation
-						 :documentation documentation
-						 :resynchronize resynchronize)
+				    :continuation continuation
+				    :documentation documentation
+				    :resynchronize resynchronize)
 				  'accept-values-command-button)
       (if (stringp prompt)
 	  (write-string prompt stream)
@@ -912,31 +924,42 @@
 ;; guaranteed that those queries will be valid at all times.
 (defun accept-values-pane-displayer (frame pane
 				     &key displayer
-					  resynchronize-every-pass (check-overlapping t))
-  (let* ((stream-and-record (and (gethash pane *pane-to-avv-stream-table*)))
+					  resynchronize-every-pass
+					  (check-overlapping t)
+					  max-height
+					  max-width)
+  (declare (ignore max-height max-width))
+  (let* ((stream-and-record (and (not *sizing-application-frame*)
+				 (gethash pane *pane-to-avv-stream-table*)))
 	 (avv-stream (car stream-and-record))
 	 (avv-record (cdr stream-and-record)))
     (cond (avv-stream
-	   (letf-globally (((stream-default-view avv-stream) +textual-dialog-view+))
-	     (redisplay avv-record avv-stream :check-overlapping check-overlapping)
-	     (when resynchronize-every-pass
-	       (redisplay avv-record avv-stream :check-overlapping check-overlapping))))
+	   (with-deferred-gadget-updates
+	       (letf-globally (((stream-default-view avv-stream) 
+				(frame-manager-dialog-view (frame-manager frame))))
+			      (redisplay avv-record avv-stream :check-overlapping check-overlapping)
+			      (when resynchronize-every-pass
+				(redisplay avv-record avv-stream :check-overlapping check-overlapping)))))
 	  (t
 	   (accept-values-pane-displayer-1 frame pane displayer)))))
 
 (defun accept-values-pane-displayer-1 (frame pane displayer)
   (let ((avv-stream (make-instance 'accept-values-stream :stream pane))
+	(original-view (stream-default-view pane))
 	(avv-record nil))
-    (letf-globally (((stream-default-view avv-stream) +textual-dialog-view+))
-      (setq avv-record
-	    (updating-output (avv-stream)
-	      (with-new-output-record 
-		  (avv-stream 'accept-values-output-record avv-record)
-		(setf (slot-value avv-stream 'avv-record) avv-record)
-		(funcall displayer frame avv-stream)))))
+    (declare (ignore original-view))
+    (setf (slot-value avv-stream 'avv-frame) frame)
+    (letf-globally (((stream-default-view pane) 
+		     (frame-manager-dialog-view (frame-manager frame))))
+		   (setq avv-record
+		     (updating-output (avv-stream)
+			 (with-new-output-record 
+			     (avv-stream 'accept-values-output-record avv-record)
+			   (setf (slot-value avv-stream 'avv-record) avv-record)
+			   (funcall displayer frame avv-stream)))))
     (unless *sizing-application-frame*
       (setf (gethash pane *pane-to-avv-stream-table*)
-	    (cons avv-stream avv-record)))))
+	(cons avv-stream avv-record)))))
 
 (define-command (com-edit-avv-pane-choice :command-table accept-values-pane)
     ((choice 'accept-values-choice)
@@ -1061,45 +1084,34 @@
       ':rest)))
 
 
-;;; Fancy dialogs...
-
-(defmethod prompt-for-accept ((stream accept-values-stream) type (view gadget-dialog-view)
-			      &rest accept-args 
-			      &key query-identifier &allow-other-keys)
-  (declare (ignore accept-args))
-  ;; This does nothing, the gadget ACCEPT methods should provide a label
-  (unless (gadget-includes-prompt-p type stream view)
-    (call-next-method))
-  query-identifier)
+;;; Fancy gadget-based dialogs...
 
 (defmethod display-exit-boxes ((frame accept-values) stream (view gadget-dialog-view))
   (fresh-line stream)
-  (let ((labels (frame-manager-exit-box-labels frame (frame-manager frame))))
+  (let ((labels (frame-manager-exit-box-labels (frame-manager frame) frame)))
     (with-slots (exit-boxes) frame
       (updating-output (stream :unique-id stream
 			       :cache-value 'exit-boxes)
-	  (formatting-item-list (stream :n-columns (length exit-boxes)
-					:initial-spacing nil)
-	      (dolist (exit-box exit-boxes)
-		(let* ((name (if (consp exit-box) (car exit-box) exit-box))
-		       (label (or (if (consp exit-box) (second exit-box))
-				  (second (assoc name labels)))))
-		  (formatting-cell (stream)
-		      (with-output-as-gadget (stream)
-			(make-pane 'push-button
-				   :label label
-				   :client frame :id name
-				   :activate-callback
-				   #'invoke-avv-gadget-action))))))))))
+	(formatting-item-list (stream :n-columns (length exit-boxes)
+				      :initial-spacing nil)
+	  (dolist (exit-box exit-boxes)
+	    (let* ((value (if (consp exit-box) (car exit-box) exit-box))
+		   (label (or (if (consp exit-box) (second exit-box))
+			      (second (assoc value labels)))))
+	      (formatting-cell (stream)
+		(with-output-as-gadget (stream)
+		  (make-pane 'push-button
+			     :label label
+			     :client frame :id value
+			     :activate-callback #'handle-exit-box-callback))))))))))
 
-(defun invoke-avv-gadget-action (gadget)
+(defun handle-exit-box-callback (gadget)
   (let ((id (gadget-id gadget)))
     (case id
       (:exit (com-exit-avv))
       (:abort (com-abort-avv))
       (t (funcall id)))))
-	    
-	    
+
 ;; It's OK that this is only in the ACCEPT-VALUES command table because
 ;; we're going to execute it manually in the callbacks below
 (define-command (com-change-query :command-table accept-values)
@@ -1114,6 +1126,16 @@
     ;; Only call the callback if the query is still valid
     (do-avv-command new-value stream query)))
 
+(defun do-avv-command (new-value client query)
+  (let ((sheet (slot-value client 'stream)))
+    (process-command-event
+      sheet
+      (make-instance 'presentation-event
+	:sheet sheet
+	:presentation-type 'command
+	:value `(com-change-query ,query ,new-value)
+	:frame (slot-value client 'avv-frame)))))
+
 (defmethod accept-values-value-changed-callback ((gadget radio-box) new-value stream query-id)
   (call-next-method gadget (gadget-id new-value) stream query-id))
 
@@ -1124,17 +1146,6 @@
   ;; We attach a callback function directly now
   `(,#'accept-values-value-changed-callback ,stream ,query))
 
-(defun do-avv-command (new-value client query)
-  (let ((sheet (slot-value client 'stream)))
-    (process-command-event
-     sheet
-     (make-instance 'presentation-event
-		    :sheet sheet
-		    :presentation-type 'command
-		    :value `(com-change-query ,query ,new-value)
-		    :frame (slot-value client 'avv-frame) ))))
-
-     
 ;; This is how we associate an output-record with the button
 (defmethod invoke-accept-values-command-button
     	   (stream continuation (view gadget-dialog-view) prompt
@@ -1152,9 +1163,9 @@
    (with-output-as-gadget (stream)
      (let ((record (stream-current-output-record (slot-value stream 'stream)))
 	   (client (make-instance 'accept-values-command-button
-				  :continuation continuation
-				  :documentation documentation
-				  :resynchronize resynchronize)))
+		     :continuation continuation
+		     :documentation documentation
+		     :resynchronize resynchronize)))
        (make-pane 'push-button
 	 :label prompt
 	 :id record :client client
@@ -1163,14 +1174,12 @@
 	       (when (accept-values-query-valid-p nil record)	;---can't be right
 		 (throw-highlighted-presentation
 		   (make-instance 'standard-presentation
-				  :object `(com-avv-command-button ,client ,record)
-				  :type 'command)
+		     :object `(com-avv-command-button ,client ,record)
+		     :type 'command)
 		   *input-context*
 		   ;;--- It would be nice if we had the real event...
 		   (make-instance 'pointer-button-press-event
-				  :sheet (sheet-parent button)
-				  :x 0
-				  :y 0
-				  :modifiers 0
-				  :button +pointer-left-button+)))))))))
-
+		     :sheet (sheet-parent button)
+		     :x 0 :y 0
+		     :modifiers 0
+		     :button +pointer-left-button+)))))))))

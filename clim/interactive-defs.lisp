@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: interactive-defs.lisp,v 1.9 92/05/22 19:28:07 cer Exp Locker: cer $
+;; $fiHeader: interactive-defs.lisp,v 1.10 92/06/16 15:01:50 cer Exp $
 
 (in-package :clim-internals)
 
@@ -23,6 +23,9 @@
 
 (defvar *accelerator-gestures* nil)
 (defvar *accelerator-numeric-argument* nil)
+
+;;--- Kludge for processing asynchronous presentation events...
+(defvar *input-buffer-empty* t)
 
 (define-gesture-name :newline :keyboard (:newline))
 (define-gesture-name :return  :keyboard (:return))
@@ -89,7 +92,7 @@
      ,@body))
 
 (defun delimiter-gesture-p (gesture)
-  (and (not (typep gesture 'pointer-event))	;---kludge
+  (and (not (typep gesture '(or pointer-event noise-string (member :eof))))	;---kludge
        (dolist (set *delimiter-gestures*)
 	 (when (if (listp set)
 		   (member gesture set 

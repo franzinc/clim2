@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: recording-protocol.lisp,v 1.13 92/06/02 13:30:58 cer Exp Locker: cer $
+;; $fiHeader: recording-protocol.lisp,v 1.14 92/06/29 14:04:48 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -128,6 +128,10 @@
   (declare (type coordinate x y))
   (bounding-rectangle-set-position record (coordinate x) (coordinate y)))
 
+(defgeneric* (setf output-record-position) (x y record))
+(defmethod* (setf output-record-position) (x y (record t))
+  (output-record-set-position record x y))
+
 #+CLIM-1-compatibility
 (define-compatibility-function (output-record-position* output-record-position)
 			       (record)
@@ -158,6 +162,10 @@
 	    (+ left dx) (+ top dy) (+ right dx) (+ bottom dy))
 	  (setf start-x nx start-y ny))))))
 
+(defgeneric* (setf output-record-start-cursor-position) (x y record))
+(defmethod* (setf output-record-start-cursor-position) (x y (record t))
+  (output-record-set-start-cursor-position record x y))
+
 (defmethod output-record-end-cursor-position ((record output-record-element-mixin))
   (with-slots (end-x end-y) record
     (values end-x end-y)))
@@ -167,6 +175,10 @@
   (with-slots (end-x end-y) record
     (setf end-x (coordinate nx))
     (setf end-y (coordinate ny))))
+
+(defgeneric* (setf output-record-end-cursor-position) (x y record))
+(defmethod* (setf output-record-end-cursor-position) (x y (record t))
+  (output-record-set-end-cursor-position record x y))
 
 (defmethod output-record-old-start-cursor-position ((record output-record-element-mixin))
   (with-slots (old-start-x old-start-y) record
@@ -434,7 +446,7 @@
 
 (defmethod bounding-rectangle-set-edges :around ((record output-record-mixin) 
 						 left top right bottom)
-  (declare (ignore  left top right bottom))
+  (declare (ignore left top right bottom))
   (multiple-value-bind (ox oy)
       (output-record-position record)
     (call-next-method)
@@ -686,17 +698,14 @@
 		     (- x-offset) (- y-offset)
 		     (+ x-offset xoff) (+ y-offset yoff))
 		   ;;--- Nasty hack to get around nasty bug caused by
-		   ;;--- doing things this way
-		   ;;--- CER needs this. Dont comment out unless you
-		   ;;--- fixed it
+		   ;;--- doing things this way (namely, gadget output
+		   ;;--- records don't get seen at the right time)
 		   (note-output-record-replayed record stream region x-offset y-offset))
 		 (replay-output-record record stream region x-offset y-offset))))
     (declare (dynamic-extent #'replay-1))
     (replay-1 record x-offset y-offset)))
 
-;;--- cer needs this. Dont comment out unless you have fixed the
-;; problem.
-
+;;--- Flush this when REPLAY-OUTPUT-RECORD calls itself recursively
 (defmethod note-output-record-replayed ((record output-record-mixin) stream
 					&optional region x-offset y-offset)
   (declare (ignore stream region x-offset y-offset))
@@ -1156,7 +1165,7 @@
 	    (replay-output-record text-output-record stream region
 				  (coordinate 0) (coordinate 0))))))))
 
-(defun erase-output-record (output-record stream)	;--- specialize on stream?
+(defun erase-output-record (output-record stream &optional (errorp t))
   (multiple-value-bind (xoff yoff)
       (convert-from-relative-to-absolute-coordinates 
 	;; --- I'm certainly going to forget to use the PARENT at some point!
@@ -1172,7 +1181,7 @@
 				     left top right bottom
 				     +background-ink+ nil)))))
   (when (output-record-parent output-record)
-    (delete-output-record output-record (output-record-parent output-record)))
+    (delete-output-record output-record (output-record-parent output-record) errorp))
   ;; Use the output record itself as the replay region, and replay
   ;; the stuff that might have been obscured by the erased output
   (frame-replay *application-frame* stream output-record))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: GENERA-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: genera-port.lisp,v 1.5 92/05/07 13:13:29 cer Exp $
+;; $fiHeader: genera-port.lisp,v 1.6 92/05/22 19:28:58 cer Exp $
 
 (in-package :genera-clim)
 
@@ -11,7 +11,7 @@
 (defvar *genera-default-server-path* `(:genera :host ,net:*local-host*
 					       :screen ,tv:main-screen))
 
-(defclass genera-port (port)
+(defclass genera-port (basic-port)
     ((screen :initform nil :reader port-display)
      (console :initform nil)
      (color-p :initform nil)
@@ -297,32 +297,6 @@
   (with-genera-glyph-for-character 
     (clim-internals::stream-scan-string-for-writing-body)))
 
-
-(defmethod text-style-width ((text-style standard-text-style) (port genera-port))
-  (let ((font (text-style-mapping port text-style)))
-    (sys:font-char-width font)))
-
-(defmethod text-style-height ((text-style standard-text-style) (port genera-port))
-  (let ((font (text-style-mapping port text-style)))
-    (sys:font-char-height font)))
-
-(defmethod text-style-ascent ((text-style standard-text-style) (port genera-port))
-  (let ((font (text-style-mapping port text-style)))
-    (let* ((height (sys:font-char-height font))
-	   (descent (- height (sys:font-baseline font)))
-	   (ascent (- height descent)))
-      ascent)))
-
-(defmethod text-style-descent ((text-style standard-text-style) (port genera-port))
-  (let ((font (text-style-mapping port text-style)))
-    (let* ((height (sys:font-char-height font))
-	   (descent (- height (sys:font-baseline font))))
-      descent)))
-
-(defmethod text-style-fixed-width-p ((text-style standard-text-style) (port genera-port))
-  (let ((font (text-style-mapping port text-style)))
-      (null (sys:font-char-width-table font))))
-
 
 (defvar *genera-character->keysym-table* (make-hash-table))
 (defvar *keysym->genera-character-table* (make-hash-table))
@@ -527,6 +501,7 @@
 	  (setq x xx y yy)))
       (tv:mouse-set-blinker-definition ':character x y ':on ':set-character char))))
 
+;;--- We need something like PORT-SET-POINTER-POSITION
 (defmethod set-cursor-location ((port genera-port) sheet x y)
   ;; we don't do anything about this yet.
   )
@@ -568,15 +543,6 @@
 (defmethod port-note-cursor-change :after ((port genera-port) cursor stream type old new)
   (declare (ignore type old))
   (ensure-blinker-matches-cursor cursor stream))
-
-
-;;--- Doesn't this need a sheet/stream argument?
-(defmethod port-force-output ((port genera-port))
-  #+++ignore (stream-force-output stream))
-
-;;--- Doesn't this need a sheet/stream argument?
-(defmethod port-finish-output ((port genera-port))
-  #+++ignore (stream-force-output stream))
 
 
 ;;;--- From ILA stream

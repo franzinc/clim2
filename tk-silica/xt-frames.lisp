@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-frames.lisp,v 1.11 92/05/22 19:29:35 cer Exp Locker: cer $
+;; $fiHeader: xt-frames.lisp,v 1.12 92/06/23 08:20:17 cer Exp $
 
 
 (in-package :xm-silica)
@@ -72,7 +72,7 @@
     (make-instance 'presentation-event
 		   :frame frame
 		   :sheet (frame-top-level-sheet frame)
-		   ::presentation-type `(command :command-table ,command-table)
+		   :presentation-type `(command :command-table ,command-table)
 		   :value (second item))))
 
 
@@ -192,10 +192,10 @@
 
 ;;;
 
-(defmethod clim-internals::frame-manager-exit-box-labels ((frame t) (framem xt-frame-manager))
+(defmethod frame-manager-exit-box-labels ((framem xt-frame-manager) (frame t))
   '(
     (:exit  "Ok")
     (:abort  "Cancel")))
 
-(defmethod clim-internals::frame-manager-default-exit-boxes ((framem xt-frame-manager))
+(defmethod frame-manager-default-exit-boxes ((framem xt-frame-manager))
   '((:exit) (:abort)))

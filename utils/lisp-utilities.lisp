@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: lisp-utilities.lisp,v 1.11 92/05/26 14:33:02 cer Exp $
+;; $fiHeader: lisp-utilities.lisp,v 1.12 92/06/16 19:10:59 cer Exp $
 
 (in-package :clim-utils)
 
@@ -10,11 +10,6 @@
 ;;; Define useful tools that don't exist in vanilla CL.
 
 (defvar *keyword-package* (find-package :keyword))
-
-(defmacro without-interrupts (&body body)
-  #+Genera `(sys:without-interrupts ,@body)
-  #+Minima `(minima:with-no-other-processes ,@body)
-  #-(or Genera Minima) `(progn ,@body))
 
 ;;; FUNCTIONP doesn't do what we want and there isn't any other CL function
 ;;; that does. 
@@ -58,7 +53,7 @@
      ,@body))
 
 
-;;; Stuff for dealing weith CLIM coordinates
+;;; Stuff for dealing with CLIM coordinates
 
 (deftype coordinate () 
   #+use-float-coordinates  'single-float
@@ -71,10 +66,8 @@
   #+use-float-coordinates  `(the coordinate (float ,x 0f0))
   #+use-fixnum-coordinates (ecase round-direction
 			     (round
-			      #-Allegro
-			      `(the fixnum (values (floor (+ ,x .5f0))))
-			      #+Allegro
-			      `(the fixnum (round ,x)))
+			       #-Allegro `(the fixnum (values (floor (+ ,x .5f0))))
+			       #+Allegro `(the fixnum (round ,x)))
 			     (floor
 			       `(the fixnum (values (floor ,x))))
 			     (ceiling
@@ -128,11 +121,11 @@
 
 ;; Assume that the value is a fixnum and that the result is a fixnum.
 (defmacro fast-abs (int)
-  (let ((val (gensym)))
-    `(let ((,val ,int))
-       (declare (fixnum ,val))
-       (the fixnum (if (< ,val 0) (the fixnum (- 0 ,val)) ,val)))))
-    
+  (let ((value '#:value))
+    `(let ((,value ,int))
+       (declare (fixnum ,value))
+       (the fixnum (if (< ,value 0) (the fixnum (- 0 ,value)) ,value)))))
+
 
 ;; COORDINATE-PAIRS is a list of pairs of coordinates.
 ;; The coordinates must be of type COORDINATE
@@ -147,12 +140,12 @@
 			  (the coordinate (+ ,(second pts) ,y-delta))) forms))
 	   (nreverse forms)))))
 
-;;
-;; Note that this macro evaluates its arguments multiple times.
-;;
+;; Warning: this macro evaluates its position arguments multiple times
 (defmacro convert-to-device-coordinates (transform &body positions)
   (assert (evenp (length positions)) (positions)
-    "There must be an even number of elements in ~S" positions)
+	  "There must be an even number of elements in ~S" positions)
+  (assert (every #'symbolp positions) (positions)
+	  "Each of the positions must be a variable in ~S" positions)
   (let ((forms nil))
     (loop
       (when (null positions)
@@ -162,26 +155,25 @@
 	(push `(progn
 		 (multiple-value-setq (,x ,y) 
 		   (transform-position ,transform ,x ,y))
-		 (setq ,x (fix-coordinate ,x)
-		       ,y (fix-coordinate ,y)))
+		 (fix-coordinates ,x ,y))
 	      forms)))))
 
-;;
-;; Note that this macro evaluates its arguments multiple times.
-;;
-(defmacro convert-to-device-distances (transform &body positions)
-  (assert (evenp (length positions)) (positions)
-	  "There must be an even number of elements in ~S" positions)
+;; Warning: this macro evaluates its position arguments multiple times
+(defmacro convert-to-device-distances (transform &body distances)
+  (assert (evenp (length distances)) (distances)
+	  "There must be an even number of elements in ~S" distances)
+  (assert (every #'symbolp distances) (distances)
+	  "Each of the distances must be a variable in ~S" distances)
   (let ((forms nil))
     (loop
-      (when (null positions)
+      (when (null distances)
 	(return `(progn ,@(nreverse forms))))
-      (let* ((x (pop positions))
-	     (y (pop positions)))
-	(push `(multiple-value-bind (,x ,y) 
-		   (transform-distance ,transform ,x ,y)
-		 (setq ,x (fix-coordinate ,x)
-		       ,y (fix-coordinate ,y)))
+      (let* ((x (pop distances))
+	     (y (pop distances)))
+	(push `(progn
+		 (multiple-value-setq (,x ,y) 
+		   (transform-distance ,transform ,x ,y))
+		 (fix-coordinates ,x ,y))
 	      forms)))))
 
 
@@ -473,16 +465,15 @@
 ;;; Bindings on the stack.  A work in progress.
 ;;; Which Lisps support this?
 
-;; I suppose this could be done through "IMPORT"
-#+(or Genera Cloe-Runtime)
+;; I suppose this could be done with IMPORT
+#+Genera
 (progn
 (defmacro with-stack-list ((var &rest elements) &body body)
-  `(sys::with-stack-list (,var ,@elements) ,@body))
+  `(scl:with-stack-list (,var ,@elements) ,@body))
 
 (defmacro with-stack-list* ((var &rest elements) &body body)
-  `(sys::with-stack-list* (,var ,@elements) ,@body))
+  `(scl:with-stack-list* (,var ,@elements) ,@body))
 
-#+Genera
 (defun-inline evacuate-list (list)
   (if (and (sys:%pointerp list)
 	   (not (or (sys:%pointer-lessp list sys:%control-stack-low)
@@ -492,13 +483,22 @@
 					list))))
       (copy-list list)
       list))
+)	;#+Genera
+
+#+Cloe-Runtime
+(progn
+(defmacro with-stack-list ((var &rest elements) &body body)
+  `(sys::with-stack-list (,var ,@elements) ,@body))
+
+(defmacro with-stack-list* ((var &rest elements) &body body)
+  `(sys::with-stack-list* (,var ,@elements) ,@body))
 
 #+Cloe-Runtime
 (defun-inline evacuate-list (list)
-  (if (= (the fixnum (sys::%tr-type list)) sys::tr$k-cons-s)
+  (if (logtest (the fixnum (sys::gcltype list)) sys::lo$k-_astack)
       (copy-list list)
       list))
-)	;#+(or Genera Cloe-Runtime)
+)	;#+Cloe-Runtime
 
 #+Allegro
 (progn
@@ -758,7 +758,7 @@
 ;; implies an &rest beforehand, otherwise it is impossible to get all
 ;; the keys that are being passed on.  There's also the question of
 ;; whether &allow-other-keys here should put :allow-other-keys in the
-;; passed on calllist.
+;; passed on call list.
 (defun make-pass-on-arglist (arglist)
   (let ((new-arglist nil)
 	(fa (flatten-arglist arglist))
@@ -1187,7 +1187,7 @@
   #-(or Genera Allegro Lucid) (declare (ignore object))
   #-(or Genera Allegro Lucid) (format stream "???"))
 
-#-(or Genera ANSI-90)
+#-(or Genera ANSI-90 Lucid)
 (defvar *print-readably* nil)
 
 #-(or Genera ANSI-90)
@@ -1210,7 +1210,6 @@
 ;;; Genera has it in both SYMBOLICS-COMMON-LISP and FUTURE-COMMON-LISP,
 ;;; but the CLIM-LISP package doesn't use either of those.
 ;;; Last time I checked Franz did not have it
-;;;--- Maybe there is a more efficient way to do this in Allegro
 (defmacro bind-to-list (lambda-list list &body body)
   (cond ((not (constantp list))
 	 #+Genera `(scl:destructuring-bind ,lambda-list ,list

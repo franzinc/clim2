@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: cursor.lisp,v 1.10 92/05/07 13:12:07 cer Exp $
+;; $fiHeader: cursor.lisp,v 1.11 92/05/22 19:27:48 cer Exp $
 
 (in-package :clim-internals)
 
@@ -65,6 +65,16 @@
   (with-slots (x y) cursor
     (values x y)))
 
+(defgeneric* (setf cursor-position) (x y cursor))
+(defmethod* (setf cursor-position) (x y (cursor cursor))
+  (cursor-set-position cursor x y))
+
+#+Silica
+(defmethod cursor-set-position ((cursor text-cursor) nx ny)
+  (with-slots (x y visibility) cursor
+    (setf x (coordinate nx) 
+	  y (coordinate ny))))
+
 #-Silica
 (defmethod cursor-set-position ((cursor text-cursor) nx ny)
   (with-slots (x y visibility) cursor
@@ -76,12 +86,6 @@
 	    y (coordinate ny))
       (when (eq visibility :on)
 	(draw-cursor cursor T)))))
-
-#+Silica
-(defmethod cursor-set-position ((cursor text-cursor) nx ny)
-  (with-slots (x y visibility) cursor
-    (setf x (coordinate nx) 
-	  y (coordinate ny))))
 
 #+CLIM-1-compatibility
 (define-compatibility-function (cursor-position* cursor-position)
@@ -145,12 +149,12 @@
 ;;; state transitions.  For example, the cursor might be getting the focus, and
 ;;; thus change from a hollow rectangle to a filled one (or in Genera, it might
 ;;; start blinking).
-(defmethod port-note-cursor-change :after ((port port) 
+(defmethod port-note-cursor-change :after ((port basic-port) 
 					   cursor stream type old new)
   (declare (ignore old type cursor))
   (setf (port-keyboard-input-focus port) (and new stream)))
 
-(defmethod port-note-cursor-change ((port port) 
+(defmethod port-note-cursor-change ((port basic-port) 
 				    cursor stream (type (eql 'cursor-state)) old new)
   (declare (ignore old))
   (let ((active (cursor-active cursor)))
@@ -160,7 +164,7 @@
 	    (draw-cursor cursor stream x y t)
 	    (draw-cursor cursor stream x y nil))))))
 
-(defmethod port-note-cursor-change ((port port) 
+(defmethod port-note-cursor-change ((port basic-port) 
 				    cursor stream (type (eql 'cursor-active)) old new)
   (declare (ignore old))
   (let ((state (cursor-state cursor)))
@@ -170,7 +174,7 @@
 	    (draw-cursor cursor stream x y t)
 	    (draw-cursor cursor stream x y nil))))))
 
-(defmethod port-note-cursor-change ((port port) 
+(defmethod port-note-cursor-change ((port basic-port) 
 				    cursor stream (type (eql 'cursor-focus)) old new)
   (let ((active (cursor-active cursor))
 	(state (cursor-state cursor)))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-protocol.lisp,v 1.13 92/05/07 13:12:34 cer Exp $
+;; $fiHeader: input-protocol.lisp,v 1.14 92/05/22 19:28:05 cer Exp $
 
 (in-package :clim-internals)
 
@@ -21,6 +21,9 @@
      ())
 
 (define-protocol-p-method extended-input-stream-p basic-extended-input-protocol)
+
+(defmethod interactive-stream-p ((stream basic-extended-input-protocol))
+  nil)
 
 (defmethod stream-read-gesture :around
 	   ((stream basic-extended-input-protocol)
@@ -65,22 +68,26 @@
   (:default-initargs
     :text-cursor (make-instance 'text-cursor)))
 
-(defmethod stream-input-buffer ((x input-protocol-mixin))
-  (sheet-event-queue x))
+;; Use the sheet's event queue as the input buffer.
+;;--- This may not be right...
+(defmethod stream-input-buffer ((stream input-protocol-mixin))
+  (sheet-event-queue stream))
 
 (defmethod stream-primary-pointer ((stream input-protocol-mixin))
   (let ((port (port stream)))
     (when port
       (or (port-pointer port)
-	  (setf (port-pointer port) (make-instance 'standard-pointer
-						   :root (window-root stream)))))))
+	  (setf (port-pointer port) 
+		(make-instance 'standard-pointer 
+		  :graft (window-root stream)
+		  :port port))))))
 
 (defmethod initialize-instance :after ((stream input-protocol-mixin)
 				       &key (initial-cursor-visibility t))
-  (with-slots (text-cursor) stream
-    (when text-cursor
-      (setf (cursor-active text-cursor) initial-cursor-visibility)
-      (setf (cursor-stream text-cursor) stream))))
+  (let ((cursor (slot-value stream 'text-cursor)))
+    (when cursor
+      (setf (cursor-active cursor) initial-cursor-visibility)
+      (setf (cursor-stream cursor) stream))))
 
 ;;--- Cross-protocol violation here because CURSOR-POSITION is a method on
 ;;--- extended-OUTPUT-protocol right now.  Secondly, this should probably be a
@@ -189,7 +196,7 @@
     (pointer-set-native-position pointer 
       (pointer-event-native-x event) (pointer-event-native-y event))
     (setf (pointer-button-state pointer) (event-modifier-state event))
-    (setf (pointer-window pointer) stream)
+    (setf (pointer-sheet pointer) stream)
     (setf (pointer-motion-pending stream pointer) t)))
 
 (defmethod queue-event :after ((stream input-protocol-mixin) (event pointer-enter-event))
@@ -216,7 +223,7 @@
 (defun ensure-pointer-window (window)
   #-Silica
   (dolist (pointer (stream-pointers window))
-    (set-pointer-window-and-location window pointer)))
+    (set-pointer-sheet-and-location window pointer)))
 
 #-Silica
 (defmethod window-set-viewport-position :around ((stream input-protocol-mixin) new-x new-y)
@@ -648,6 +655,10 @@
 
 (defmethod stream-set-pointer-position ((stream input-protocol-mixin) x y &key pointer)
   (set-stream-pointer-position-in-window-coordinates stream x y :pointer pointer))
+
+(defgeneric* (setf stream-pointer-position) (x y stream))
+(defmethod* (setf stream-pointer-position) (x y (stream t))
+  (stream-set-pointer-position stream x y))
 
 #+CLIM-1-compatibility
 (define-compatibility-function (stream-pointer-position* 

@@ -16,10 +16,10 @@
 ;; contained herein by any agency, department or entity of the U.S.
 ;; Government are subject to restrictions of Restricted Rights for
 ;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
+;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: sheet.lisp,v 1.17 92/06/23 08:19:27 cer Exp Locker: cer $
+;; $fiHeader: sheet.lisp,v 1.18 92/06/29 14:04:38 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -104,7 +104,7 @@
     (dolist (child (sheet-children sheet))
       (setf (port child) port))))
 
-(defmethod (setf port) ((port port) sheet &key graft)
+(defmethod (setf port) ((port basic-port) sheet &key graft)
   (setf (slot-value sheet 'port)  port
 	(slot-value sheet 'graft) graft)
   (note-sheet-grafted sheet)
@@ -126,7 +126,7 @@
     (setf (port child) nil))
   (setf (sheet-parent child) nil)
   (setf (sheet-children parent)
-    (remove child (sheet-children parent))))
+	(delete child (sheet-children parent))))
 
 (defmethod sheet-disown-child ((parent sheet-single-child-mixin) child)
   (unless (eq (sheet-parent child) parent)
@@ -140,29 +140,27 @@
 
 ;;; Geometry
 
-(defgeneric map-sheet-position-to-parent (sheet x y)
-  (:method ((sheet sheet) x y)
-   (transform-position (sheet-transformation sheet) x y)))
+(defgeneric map-sheet-position-to-parent (sheet x y))
+(defmethod map-sheet-position-to-parent ((sheet sheet) x y)
+  (transform-position (sheet-transformation sheet) x y))
 
+(defgeneric map-sheet-position-to-child (sheet x y))
+(defmethod map-sheet-position-to-child ((sheet sheet) x y)
+  (untransform-position (sheet-transformation sheet) x y))
 
-(defgeneric map-sheet-position-to-child (sheet x y)
-  (:method ((sheet sheet) x y)
-   (untransform-position (sheet-transformation sheet) x y)))
+(defgeneric map-sheet-rectangle*-to-parent (sheet min-x min-y max-x max-y))
+(defmethod map-sheet-rectangle*-to-parent ((sheet sheet) min-x min-y max-x max-y)
+  (transform-rectangle*
+    (sheet-transformation sheet)
+    min-x min-y max-x max-y))
 
-(defgeneric map-sheet-rectangle*-to-parent (sheet min-x min-y max-x max-y)
-  (:method ((sheet sheet) min-x min-y max-x max-y)
-   (transform-rectangle*
-     (sheet-transformation sheet)
-     min-x min-y max-x max-y)))
-
-(defgeneric map-sheet-rectangle*-to-child (sheet min-x min-y max-x max-y)
-  (:method ((sheet sheet) min-x min-y max-x max-y)
-   (untransform-rectangle*
-     (sheet-transformation sheet)
-     min-x min-y max-x max-y)))
+(defgeneric map-sheet-rectangle*-to-child (sheet min-x min-y max-x max-y))
+(defmethod map-sheet-rectangle*-to-child ((sheet sheet) min-x min-y max-x max-y)
+  (untransform-rectangle*
+    (sheet-transformation sheet)
+    min-x min-y max-x max-y))
 
 (defgeneric child-containing-position (sheet x y))
-
 (defmethod child-containing-position ((sheet sheet) x y)
   (find-if #'(lambda (child)
 	       (and (sheet-enabled-p child)
@@ -171,34 +169,34 @@
 		      (region-contains-position-p (sheet-region child) x y))))
 	   (sheet-children sheet)))
 
-
 (defgeneric children-overlapping-region (sheet region))
-
 (defmethod children-overlapping-region ((sheet sheet) region)
   (remove-if-not #'(lambda (child)
 		     (and (sheet-enabled-p child)
-			  (multiple-value-call #'ltrb-overlaps-ltrb-p
-			    (bounding-rectangle* child)
-			    (bounding-rectangle*
-			      (untransform-region 
-				(sheet-transformation child) region)))))
+			  (or (null region)	;--- kludge
+			      (eq region +everywhere+)
+			      (multiple-value-call #'ltrb-overlaps-ltrb-p
+			        (bounding-rectangle* child)
+				(bounding-rectangle*
+				  (untransform-region 
+				    (sheet-transformation child) region))))))
 		 (sheet-children sheet)))
 
 (defgeneric children-overlapping-rectangle* (sheet min-x min-y max-x max-y))
 
-(defgeneric delta-transformation (sheet ancestor)
-  (:method ((sheet sheet) ancestor)
-   (let ((parent (sheet-parent sheet)))
-     (cond
-       ((eq parent ancestor)
-	(sheet-transformation sheet))
-       ((null parent) 
-	(error "in delta transformation: ~S,~S"
-	       sheet parent))
-       (t
-	(compose-transformations 
-	  (sheet-transformation sheet)
-	  (delta-transformation parent ancestor)))))))
+(defgeneric delta-transformation (sheet ancestor))
+(defmethod delta-transformation ((sheet sheet) ancestor)
+  (let ((parent (sheet-parent sheet)))
+    (cond
+      ((eq parent ancestor)
+       (sheet-transformation sheet))
+      ((null parent) 
+       (error "in delta transformation: ~S,~S"
+	      sheet parent))
+      (t
+       (compose-transformations 
+	 (sheet-transformation sheet)
+	 (delta-transformation parent ancestor))))))
 
 (defgeneric allocated-region (sheet child))
 
@@ -227,75 +225,75 @@
 
 ;;; Notification
 
-(defgeneric note-sheet-adopted (sheet)
-  (:method ((sheet sheet)) nil))
+(defgeneric note-sheet-adopted (sheet))
+(defmethod note-sheet-adopted ((sheet sheet)) nil)
 
-(defgeneric note-sheet-disowned (sheet)
-  (:method ((sheet sheet)) nil))
+(defgeneric note-sheet-disowned (sheet))
+(defmethod note-sheet-disowned ((sheet sheet)) nil)
 
-(defgeneric note-sheet-grafted (sheet)
-  (:method ((sheet sheet)) nil))
+(defgeneric note-sheet-grafted (sheet))
+(defmethod note-sheet-grafted ((sheet sheet)) nil)
 
-(defgeneric note-sheet-degrafted (sheet)
-  (:method ((sheet sheet)) nil))
+(defgeneric note-sheet-degrafted (sheet))
+(defmethod note-sheet-degrafted ((sheet sheet)) nil)
 
-(defgeneric note-sheet-enabled (sheet)
-  (:method ((sheet sheet)) nil))
+(defgeneric note-sheet-enabled (sheet))
+(defmethod note-sheet-enabled ((sheet sheet)) nil)
 
-(defgeneric note-sheet-disabled (sheet)
-  (:method ((sheet sheet)) nil))
+(defgeneric note-sheet-disabled (sheet))
+(defmethod note-sheet-disabled ((sheet sheet)) nil)
 
-(defgeneric sheet-engrafted-p (sheet)
-  (:method ((sheet sheet))
-   (let ((parent (sheet-parent sheet)))
-     (or (graftp parent)
-	 (sheet-engrafted-p parent)))))
-
+(defgeneric sheet-engrafted-p (sheet))
+(defmethod sheet-engrafted-p ((sheet sheet))
+  (let ((parent (sheet-parent sheet)))
+    (or (graftp parent)
+	(sheet-engrafted-p parent))))
 
 (defmethod (setf sheet-region) :after (region (sheet sheet))
   (declare (ignore region))
   (note-sheet-region-changed sheet))
 
-(defgeneric note-sheet-region-changed (sheet &key port-did-it)
-  (:method ((sheet sheet) &key port-did-it)
-   (declare (ignore port-did-it))
-   nil))
+(defgeneric note-sheet-region-changed (sheet &key port-did-it))
+(defmethod note-sheet-region-changed ((sheet sheet) &key port-did-it)
+  (declare (ignore port-did-it))
+  nil)
 
 (defmethod (setf sheet-transformation) :after (transformation (sheet sheet))
   (declare (ignore transformation))
   (note-sheet-transformation-changed sheet))
 
-(defgeneric note-sheet-transformation-changed (sheet &key port-did-it)
-  (:method ((sheet sheet) &key port-did-it)
-   (declare (ignore port-did-it)) 
-   nil))
+(defgeneric note-sheet-transformation-changed (sheet &key port-did-it))
+(defmethod note-sheet-transformation-changed ((sheet sheet) &key port-did-it)
+  (declare (ignore port-did-it)) 
+  nil)
 
-(defgeneric invalidate-cached-regions (sheet)
-  (:method ((sheet sheet)) 
-	   (setf (sheet-cached-device-region sheet) nil))
-  (:method :after ((sheet sheet-parent-mixin))
-	   ;;-- In theory if this sheet has a mirror we dont need to
-	   ;;-- do any more
-	   (unless (sheet-direct-mirror sheet)
-	     (mapc #'invalidate-cached-regions (sheet-children sheet)))))
+(defgeneric invalidate-cached-regions (sheet))
+
+(defmethod invalidate-cached-regions ((sheet sheet)) 
+  (setf (sheet-cached-device-region sheet) nil))
+
+(defmethod invalidate-cached-regions :after ((sheet sheet-parent-mixin))
+  ;;--- In theory if this sheet has a mirror we don't need to do any more
+  (unless (sheet-direct-mirror sheet)
+    (mapc #'invalidate-cached-regions (sheet-children sheet))))
 
 (defmethod note-sheet-region-changed :before ((sheet sheet) &key port-did-it)
   (declare (ignore port-did-it))
   (invalidate-cached-regions sheet))
 
-(defgeneric invalidate-cached-transformations (sheet)
-  (:method ((sheet sheet)) 
-	   (setf (sheet-cached-device-region sheet) nil)
-	   (setf (sheet-cached-device-transformation sheet) nil))
-  (:method :after ((sheet sheet-parent-mixin))
-	   ;;-- In theory if this sheet has a mirror we dont need to
-	   ;;-- do any more
-	   (unless (sheet-direct-mirror sheet)
-	     (mapc #'invalidate-cached-transformations (sheet-children sheet)))))
+(defgeneric invalidate-cached-transformations (sheet))
+
+(defmethod invalidate-cached-transformations ((sheet sheet)) 
+  (setf (sheet-cached-device-region sheet) nil)
+  (setf (sheet-cached-device-transformation sheet) nil))
+
+(defmethod invalidate-cached-transformations :after ((sheet sheet-parent-mixin))
+  ;;--- In theory if this sheet has a mirror we don't need to do any more
+  (unless (sheet-direct-mirror sheet)
+    (mapc #'invalidate-cached-transformations (sheet-children sheet))))
  
 ;;--- Check to see if the call to invalidate-cached-regions is really necessary.
 ;;--- CER thinks we do because regions depend on transformations.
-
 (defmethod note-sheet-transformation-changed :before ((sheet sheet) &key port-did-it)
   (declare (ignore port-did-it))
   (invalidate-cached-transformations sheet)
@@ -329,20 +327,22 @@
     ((medium :initform nil :accessor sheet-medium)
      (medium-type :initarg :medium :initform  t :accessor sheet-medium-type)))
 
-(defmethod invalidate-cached-regions :before ((sheet silica::sheet-with-medium-mixin))
+(defmethod invalidate-cached-regions :before ((sheet sheet-with-medium-mixin))
   (let ((medium (sheet-medium sheet)))
-    (when medium (invalidate-cached-regions medium))))
+    (when medium 
+      (invalidate-cached-regions medium))))
 
-(defmethod invalidate-cached-transformations :before ((sheet silica::sheet-with-medium-mixin))
+(defmethod invalidate-cached-transformations :before ((sheet sheet-with-medium-mixin))
   (let ((medium (sheet-medium sheet)))
-    (when medium (invalidate-cached-transformations medium))))
+    (when medium
+      (invalidate-cached-transformations medium))))
+
 
 (defclass permanent-medium-sheet-output-mixin (sheet-with-medium-mixin) ())
 
-
 (defmethod note-sheet-grafted :around ((sheet permanent-medium-sheet-output-mixin))
-  ;; By making this an around we make sure that the mirror has been
-  ;; realized at this point, if its a mirror sheet. This is pretty
+  ;; By making this an :AROUND method we make sure that the mirror has
+  ;; been realized at this point, if it's a mirrored sheet.  This is pretty
   ;; horrible but it makes sure that things happen in the right order.
   (call-next-method)
   (when (sheet-medium-type sheet)

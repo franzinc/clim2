@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graph-formatting.lisp,v 1.9 92/05/07 13:12:20 cer Exp $
+;; $fiHeader: graph-formatting.lisp,v 1.10 92/05/22 19:27:57 cer Exp $
 
 (in-package :clim-internals)
 
@@ -21,6 +21,7 @@
 
 
 ;; Some graph layout algorithms will want this...
+;;--- What if TEST isn't EQ, EQL, EQUAL, or EQUALP?  Use an alist... 
 (defresource graph-node-hash-table (&key test)
   :constructor (make-hash-table :test test)
   :deinitializer (clrhash graph-node-hash-table))

@@ -1,13 +1,13 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLX-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clx-medium.lisp,v 1.5 92/04/15 11:45:53 cer Exp $
+;; $fiHeader: clx-medium.lisp,v 1.6 92/05/22 19:27:31 cer Exp $
 
 (in-package :clx-clim)
 
 "Copyright (c) 1992 Symbolics, Inc.  All rights reserved."
 
 
-(defclass clx-medium (medium)
+(defclass clx-medium (basic-medium)
   ((drawable :initform nil)
    (color-p :initform nil)			;---
    (foreground-gcontext :initform nil)
@@ -16,12 +16,13 @@
    (background-pixel :initform nil)
    (flipping-gcontext :initform nil)
    (copy-gcontext :initform nil)
+   (clip-mask :initform :none)			;always :NONE at the moment
    (ink-table :initform (make-hash-table :test #'equal))))
 
 (defmethod make-medium ((port clx-port) sheet)
   (make-instance 'clx-medium
-		 :port port
-		 :sheet sheet))
+    :port port
+    :sheet sheet))
 
 (defmethod deallocate-medium :after (port (medium clx-medium))
   (declare (ignore port))
@@ -46,32 +47,36 @@
       (release-gc flipping-gcontext))))
 
 (defmethod recompute-gcs ((medium clx-medium))
-  (with-slots (foreground-gcontext foreground-pixel background-gcontext background-pixel
-	       flipping-gcontext copy-gcontext drawable) medium
-    (unless foreground-gcontext
-      (setf foreground-gcontext (xlib:create-gcontext :drawable drawable)))
-    (unless background-gcontext
-      (setf background-gcontext (xlib:create-gcontext :drawable drawable)))
-    (unless flipping-gcontext
-      (setf flipping-gcontext (xlib:create-gcontext :drawable drawable
-					      :function boole-xor)))
-    (flet ((do-ground (ink gc)
-	     (setf (xlib:gcontext-fill-style gc) :solid)
-	     (setf (xlib:gcontext-foreground gc) (clx-decode-color medium ink))))
-      (setf foreground-pixel
-	    (do-ground (medium-foreground medium) foreground-gcontext))
-      (setf background-pixel
-	    (do-ground (medium-background medium) background-gcontext)))
-    (cond ((and (integerp foreground-pixel) (integerp background-pixel))
-	   (setf (xlib:gcontext-background foreground-gcontext) background-pixel)
-	   (setf (xlib:gcontext-fill-style flipping-gcontext) :solid)
-	   (setf (xlib:gcontext-foreground flipping-gcontext)
-		 (logxor foreground-pixel background-pixel)))
-	  (t (nyi)))
-    (setf (xlib:window-background drawable) background-pixel)
-    (unless copy-gcontext
-      (setq copy-gcontext (xlib:create-gcontext :drawable drawable
-						:exposures :off)))))
+  (with-slots (foreground-gcontext foreground-pixel
+	       background-gcontext background-pixel
+	       flipping-gcontext copy-gcontext) medium
+    (let ((drawable (slot-value medium 'drawable)))
+      (unless foreground-gcontext
+	(setf foreground-gcontext (xlib:create-gcontext :drawable drawable)))
+      (unless background-gcontext
+	(setf background-gcontext (xlib:create-gcontext :drawable drawable)))
+      (unless flipping-gcontext
+	(setf flipping-gcontext (xlib:create-gcontext :drawable drawable
+						      :function boole-xor)))
+      (flet ((do-ground (ink gc)
+	       (setf (xlib:gcontext-fill-style gc) :solid)
+	       (setf (xlib:gcontext-foreground gc) (clx-decode-color medium ink))
+	       #+++ignore (setf (xlib:gcontext-plane-mask gc) #xffffffff)))
+	(setf foreground-pixel
+	      (do-ground (medium-foreground medium) foreground-gcontext))
+	(setf background-pixel
+	      (do-ground (medium-background medium) background-gcontext)))
+      (cond ((and (integerp foreground-pixel) (integerp background-pixel))
+	     (setf (xlib:gcontext-background foreground-gcontext) background-pixel)
+	     (setf (xlib:gcontext-fill-style flipping-gcontext) :solid)
+	     (setf (xlib:gcontext-foreground flipping-gcontext)
+		   (logxor foreground-pixel background-pixel))
+	     #+++ignore (setf (xlib:gcontext-plane-mask flipping-gcontext) #xffffffff))
+	    (t (nyi)))
+      (setf (xlib:window-background drawable) background-pixel)
+      (unless copy-gcontext
+	(setq copy-gcontext (xlib:create-gcontext :drawable drawable
+						  :exposures :off))))))
       
 (defmethod (setf medium-background) :after (ink (medium clx-medium))
   (declare (ignore ink))
@@ -89,7 +94,7 @@
 		     :data (clim-internals::make-stipple-array height width patterns)
 		     :bits-per-pixel 1))
 
-(defvar *clx-luminance-stipples*
+(defvar *clx-luminosity-stipples*
 	(mapcar #'(lambda (entry)
 		    (cons (first entry) (apply #'make-stipple-image (second entry))))
 		'((0.1 (8 16 (#b0111111111111111
@@ -197,16 +202,16 @@
 		
 ;; The xlib:image objects are created at load time to save run time & space.
 ;; Here a '0' means white, '1' black.
-(defun clx-decode-luminance (luminance stipple-p)
+(defun clx-decode-luminosity (luminosity stipple-p)
   (if (not stipple-p)
-      (if (< luminance 0.5) 1 0)
-      (if (< luminance 0.05)
+      (if (< luminosity 0.5) 1 0)
+      (if (< luminosity 0.05)
 	  1
-	  (dolist (entry *clx-luminance-stipples* 0)
+	  (dolist (entry *clx-luminosity-stipples* 0)
 	    (let ((l (car entry))
 		  (stipple (cdr entry)))
-	      (when (< luminance l)
-		(return-from clx-decode-luminance stipple)))))))
+	      (when (< luminosity l)
+		(return-from clx-decode-luminosity stipple)))))))
 
 (defun clx-decode-opacity (opacity)
   (let ((opacities *clx-opacity-stipples*))
@@ -224,22 +229,23 @@
 
 ;; This should only be called on a color screen.
 (defmethod clx-decode-color ((medium clx-medium) (ink color))
-  (with-slots (screen color-p black-pixel) medium
-    (multiple-value-bind (red green blue) (color-rgb ink)
-      ;;--- Should probably use COLOR-P here.  Otherwise if *CLX-USE-COLOR* is NIL,
-      ;;--- colors can still be used for foreground, background, patterns.
-      (handler-case
-	  (xlib:alloc-color (xlib:screen-default-colormap screen)
-			    ;; Either someone has to ensure the the color values in a color
-			    ;; object are floats, or we have to here.
-			    (xlib:make-color :red (float red)
-					     :green (float green)
-					     :blue (float blue)))
-	;;--- Have to handle resource exhaustion better here.  -- jdi
-	(xlib:alloc-error (condition)
-	  (declare (ignore condition))
-	  (warn "No more colors available for ~S, using black instead." ink)
-	  black-pixel)))))
+  (with-slots (port color-p foreground-pixel) medium
+    (let ((screen (slot-value port 'screen)))
+      (multiple-value-bind (red green blue) (color-rgb ink)
+	;;--- Should probably use COLOR-P here.  Otherwise if *CLX-USE-COLOR* is NIL,
+	;;--- colors can still be used for foreground, background, patterns.
+	(handler-case
+	    (xlib:alloc-color (xlib:screen-default-colormap screen)
+			      ;; Either someone has to ensure the the color values in a color
+			      ;; object are floats, or we have to here.
+			      (xlib:make-color :red (float red)
+					       :green (float green)
+					       :blue (float blue)))
+	  ;;--- Have to handle resource exhaustion better here.  -- jdi
+	  (xlib:alloc-error (condition)
+	    (declare (ignore condition))
+	    (warn "No more colors available for ~S, using black instead." ink)
+	    foreground-pixel))))))
 
 (defmethod clx-decode-color ((medium clx-medium) (ink (eql +foreground-ink+)))
   (slot-value medium 'foreground-pixel))
@@ -249,64 +255,70 @@
 
 ;;--- We can surely do better than this
 (defmethod clx-decode-color ((medium clx-medium) (ink standard-opacity))
-  (if (> (slot-value ink 'clim-utils::value) 0.5)
+  (if (> (opacity-value ink) 0.5)
       (slot-value medium 'foreground-pixel)
       (slot-value medium 'background-pixel)))
 
 (defgeneric clx-decode-ink (ink medium))
 
 (defmethod clx-decode-ink ((ink (eql +foreground-ink+)) medium)
-  (slot-value medium 'foreground-gc))
+  (slot-value medium 'foreground-gcontext))
 
 (defmethod clx-decode-ink ((ink (eql +everywhere+)) medium)
-  (slot-value medium 'foreground-gc))
+  (slot-value medium 'foreground-gcontext))
 
 (defmethod clx-decode-ink ((ink (eql +background-ink+)) medium)
-  (slot-value medium 'background-gc))
+  (slot-value medium 'background-gcontext))
 
 (defmethod clx-decode-ink ((ink (eql +flipping-ink+)) medium)
-  (slot-value medium 'flipping-gc))
+  (slot-value medium 'flipping-gcontext))
 
 (defmethod clx-decode-ink ((ink flipping-ink) medium)
   (multiple-value-bind (design1 design2)
       (decode-flipping-ink ink)
     (cond ((or (and (eq design1 +foreground-ink+) (eq design2 +background-ink+))
 	       (and (eq design1 +background-ink+) (eq design2 +foreground-ink+)))
-	   (slot-value medium 'flipping-gc))
+	   (slot-value medium 'flipping-gcontext))
 	  (t (nyi)))))
 
 (defmethod clx-decode-ink ((ink color) medium)
-  (with-slots (foreground-gc color-p black-pixel white-pixel ink-table
-	       drawable screen root) medium
-    (or (gethash ink ink-table)
-	(let ((gc (xlib:create-gcontext :drawable drawable)))
-	  (xlib:copy-gcontext foreground-gc gc)
-	  (cond (color-p
-		 (setf (xlib:gcontext-fill-style gc) :solid
-		       (xlib:gcontext-foreground gc) (clx-decode-color medium ink)))
-		(t
-		 (multiple-value-bind (r g b) (color-rgb ink)
-		   (let* ((luminance (color-luminosity r g b))
-			  (color (clx-decode-luminance luminance t)))
-		     (cond ((eq color 1)
-			    (setf (xlib:gcontext-fill-style gc) :solid
-				  (xlib:gcontext-foreground gc) black-pixel))
-			   ((eq color 0)
-			    (setf (xlib:gcontext-fill-style gc) :solid
-				  (xlib:gcontext-foreground gc) white-pixel))
-			   (t			; color is an image
-			    (setf (xlib:gcontext-fill-style gc) :tiled)
-			    (let ((pixmap (xlib:create-pixmap
-					    :drawable drawable
-					    :width (xlib:image-width color)
-					    :height (xlib:image-height color)
-					    ;;--- is this right?
-					    :depth (xlib:screen-root-depth screen))))
-			      (xlib:put-image pixmap
-					      (slot-value root 'stipple-gc)
-					      color :x 0 :y 0 :bitmap-p t)
-			      (setf (xlib:gcontext-tile gc) pixmap))))))))
-	  (setf (gethash ink ink-table) gc)))))
+  (with-slots (foreground-gcontext color-p foreground-pixel background-pixel
+	       ink-table port sheet) medium
+    (let ((screen (slot-value port 'screen))
+	  (drawable (slot-value medium 'drawable)))
+      (or (gethash ink ink-table)
+	  (let ((gc (xlib:create-gcontext :drawable drawable)))
+	    (xlib:copy-gcontext foreground-gcontext gc)
+	    (cond (color-p
+		   (setf (xlib:gcontext-fill-style gc) :solid)
+		   (setf (xlib:gcontext-foreground gc) (clx-decode-color medium ink))
+		   #+++ignore (setf (xlib:gcontext-plane-mask gc) #xffffffff))
+		  (t
+		   (multiple-value-bind (r g b) (color-rgb ink)
+		     (let* ((luminosity (color-luminosity r g b))
+			    (color (clx-decode-luminosity luminosity t)))
+		       (cond ((eq color 1)
+			      (setf (xlib:gcontext-fill-style gc) :solid)
+			      (setf (xlib:gcontext-foreground gc) foreground-pixel)
+			      #+++ignore (setf (xlib:gcontext-plane-mask gc) #xffffffff))
+			     ((eq color 0)
+			      (setf (xlib:gcontext-fill-style gc) :solid)
+			      (setf (xlib:gcontext-foreground gc) background-pixel)
+			      #+++ignore (setf (xlib:gcontext-plane-mask gc) #xffffffff))
+			     (t			; color is an image
+			      (setf (xlib:gcontext-fill-style gc) :tiled)
+			      (let ((pixmap (xlib:create-pixmap
+					      :drawable drawable
+					      :width (xlib:image-width color)
+					      :height (xlib:image-height color)
+					      ;;--- is this right?
+					      :depth (xlib:screen-root-depth screen))))
+				(xlib:put-image pixmap
+						(slot-value port 'stipple-gc)
+						color :x 0 :y 0 :bitmap-p t)
+				(setf (xlib:gcontext-tile gc) pixmap))))))))
+	    (setf (gethash ink ink-table) gc))))))
+
 
 (defmethod clx-decode-ink ((ink contrasting-ink) medium)
   (clx-decode-ink (make-color-for-contrasting-ink ink) medium))
@@ -343,78 +355,80 @@
 
 (defmethod clx-decode-pattern ((ink pattern) medium &optional width height tiled-p)
   (declare (optimize (speed 3) (safety 0)))
-  (with-slots (foreground-gc foreground-pixel background-gc background-pixel
-	       drawable ink-table screen) medium
-    (or (gethash ink ink-table)
-	(multiple-value-bind (array designs)
-	    (decode-pattern ink)
-	  (let ((pattern-height (array-dimension array 0))
-		(pattern-width  (array-dimension array 1)))
-	    (declare (type xlib::array-index pattern-width pattern-height))
-	    (unless width
-	      (setq width pattern-width))
-	    (unless height
-	      (setq height pattern-height))
-	    #+++ignore
-	    (do ((i 0 (1+ i))
-		 (design))
-		((eq i (length designs)))
-	      (setq design (elt designs i))
-	      (when (and (not (colorp design))
-			 (not (eq design +foreground-ink+))
-			 (not (eq design +background-ink+)))
-		(error "Pattern designs other than colors are not supported yet.")))
-	    (let* ((design-pixels (make-array (length designs)))
-		   (depth (xlib:screen-root-depth screen))
-		   (image-data 
-		     (make-array (list height width)
-				 :element-type
-				   (cond ((= depth 1) 'xlib::pixarray-1-element-type)
-					 ((<= depth 4) 'xlib::pixarray-4-element-type)
-					 ((<= depth 8) 'xlib::pixarray-8-element-type)
-					 ((<= depth 16) 'xlib::pixarray-16-element-type)
-					 ((<= depth 24) 'xlib::pixarray-24-element-type)
-					 (t 'xlib::pixarray-32-element-type)))))
-	      (declare #+Genera (sys:array-register design-pixels)
-		       (simple-vector design-pixels))
-	      ;; Cache the decoded designs from the pattern
-	      (do* ((num-designs (length designs))
-		    (n 0 (1+ n))
-		    design)
-		   ((eq n num-designs))
-		(setq design (elt designs n))
-		(setf (svref design-pixels n) (clx-decode-color medium design)))
-	      (do ((y 0 (1+ y)))
-		  ((eq y (the fixnum height)))
-		(declare (type xlib::array-index y))
-		(do ((x 0 (1+ x)))
-		    ((eq x (the fixnum width)))
-		  (declare (type xlib::array-index x))
-		  (setf (aref image-data y x)
-			(if (or (>= y pattern-height) (>= x pattern-width))
-			    background-pixel
-			    (svref design-pixels (aref array y x))))))
-	      (let ((gc (xlib:create-gcontext :drawable drawable)))
-		(xlib:copy-gcontext foreground-gc gc)
-		(setf (xlib:gcontext-fill-style gc) :tiled)
-		(setf (xlib:gcontext-tile gc)
-		      (let ((image
-			      (xlib:create-image :depth depth
-						 :data image-data
-						 :width width :height height))
-			    (pixmap
-			      (xlib:create-pixmap :width width :height height
-						  :drawable drawable
-						  :depth depth)))
-			(xlib:put-image pixmap gc image :x 0 :y 0)
-			pixmap))
-		(when (not tiled-p)
-		  ;;--- This doesn't work because the clip mask is set below.
-		  ;;--- Anyway, the clip-mask applies to the destination, so
-		  ;;--- the x and y must be set correctly.  -- jdi
-		  (setf (xlib:gcontext-clip-mask gc)
-			(list 0 0 pattern-width pattern-height)))
-		(setf (gethash ink ink-table) gc))))))))
+  (with-slots (foreground-gcontext foreground-pixel
+	       background-gcontext background-pixel
+	       drawable ink-table port screen) medium
+    (with-slots (screen) port
+      (or (gethash ink ink-table)
+	  (multiple-value-bind (array designs)
+	      (decode-pattern ink)
+	    (let ((pattern-height (array-dimension array 0))
+		  (pattern-width  (array-dimension array 1)))
+	      (declare (type xlib::array-index pattern-width pattern-height))
+	      (unless width
+		(setq width pattern-width))
+	      (unless height
+		(setq height pattern-height))
+	      #+++ignore
+	      (do ((i 0 (1+ i))
+		   (design))
+		  ((eq i (length designs)))
+		(setq design (elt designs i))
+		(when (and (not (colorp design))
+			   (not (eq design +foreground-ink+))
+			   (not (eq design +background-ink+)))
+		  (error "Pattern designs other than colors are not supported yet.")))
+	      (let* ((design-pixels (make-array (length designs)))
+		     (depth (xlib:screen-root-depth screen))
+		     (image-data 
+		       (make-array (list height width)
+				   :element-type
+				     (cond ((= depth 1) 'xlib::pixarray-1-element-type)
+					   ((<= depth 4) 'xlib::pixarray-4-element-type)
+					   ((<= depth 8) 'xlib::pixarray-8-element-type)
+					   ((<= depth 16) 'xlib::pixarray-16-element-type)
+					   ((<= depth 24) 'xlib::pixarray-24-element-type)
+					   (t 'xlib::pixarray-32-element-type)))))
+		(declare #+Genera (sys:array-register design-pixels)
+			 (simple-vector design-pixels))
+		;; Cache the decoded designs from the pattern
+		(do* ((num-designs (length designs))
+		      (n 0 (1+ n))
+		      design)
+		     ((eq n num-designs))
+		  (setq design (elt designs n))
+		  (setf (svref design-pixels n) (clx-decode-color medium design)))
+		(do ((y 0 (1+ y)))
+		    ((eq y (the fixnum height)))
+		  (declare (type xlib::array-index y))
+		  (do ((x 0 (1+ x)))
+		      ((eq x (the fixnum width)))
+		    (declare (type xlib::array-index x))
+		    (setf (aref image-data y x)
+			  (if (or (>= y pattern-height) (>= x pattern-width))
+			      background-pixel
+			      (svref design-pixels (aref array y x))))))
+		(let ((gc (xlib:create-gcontext :drawable drawable)))
+		  (xlib:copy-gcontext foreground-gcontext gc)
+		  (setf (xlib:gcontext-fill-style gc) :tiled)
+		  (setf (xlib:gcontext-tile gc)
+			(let ((image
+				(xlib:create-image :depth depth
+						   :data image-data
+						   :width width :height height))
+			      (pixmap
+				(xlib:create-pixmap :width width :height height
+						    :drawable drawable
+						    :depth depth)))
+			  (xlib:put-image pixmap gc image :x 0 :y 0)
+			  pixmap))
+		  (when (not tiled-p)
+		    ;;--- This doesn't work because the clip mask is set below.
+		    ;;--- Anyway, the clip-mask applies to the destination, so
+		    ;;--- the x and y must be set correctly.  -- jdi
+		    (setf (xlib:gcontext-clip-mask gc)
+			  (list 0 0 pattern-width pattern-height)))
+		  (setf (gethash ink ink-table) gc)))))))))
 
 ;;--- It would be nice if we did not have to cons up a new list each
 ;;--- time.  Perhaps we could test if it had changed.  Perhaps the global
@@ -426,19 +440,19 @@
 	  (s-height (bounding-rectangle-height medium)))
       (if (eq clip-mask :none)
 	  (list left top (- s-width right) (- s-height bottom))
-	(let* ((x (pop clip-mask))
-	       (y (pop clip-mask))
-	       (width  (pop clip-mask))
-	       (height (pop clip-mask)))
-	  (let ((new-clip-left (max left x))
-		(new-clip-top (max top y)))
-	    (list new-clip-left new-clip-top
-		  (- (min (+ left (- s-width right))	;clip-right
-			  (+ x width))			;another clip-right
-		     new-clip-left)
-		   (- (min (+ top (- s-height bottom))	;clip-bottom
-			   (+ y height))		;another clip-bottom
-		      new-clip-top))))))))
+ 	  (let* ((x (pop clip-mask))
+ 		 (y (pop clip-mask))
+ 		 (width  (pop clip-mask))
+ 		 (height (pop clip-mask)))
+ 	    (let ((new-clip-left (max left x))
+ 		  (new-clip-top (max top y)))
+ 	      (list new-clip-left new-clip-top
+ 		    (- (min (+ left (- s-width right))	;clip-right
+ 			    (+ x width))		;another clip-right
+ 		       new-clip-left)
+ 		    (- (min (+ top (- s-height bottom))	;clip-bottom
+ 			    (+ y height))		;another clip-bottom
+ 		       new-clip-top))))))))
 
 ;; This is necessary because the GC used for drawing doesn't depend only
 ;; on the ink used, unfortunately.  We have to adjust the clip-mask for
@@ -493,11 +507,12 @@
     ink)) 
 
 
-(defmethod port-draw-point* ((port clx-port) sheet medium x y)
-  (let ((transform (sheet-device-transformation sheet))
-	(ink (medium-ink medium))
-	(line-style (medium-line-style medium))
-	(drawable (slot-value medium 'drawable)))
+(defmethod medium-draw-point* ((medium clx-medium) x y)
+  (let* ((sheet (medium-sheet medium))
+	 (transform (sheet-device-transformation sheet))
+	 (ink (medium-ink medium))
+	 (line-style (medium-line-style medium))
+	 (drawable (slot-value medium 'drawable)))
     (convert-to-device-coordinates transform x y)
     (let ((thickness (line-style-thickness line-style))
 	  (gc (clx-decode-ink ink medium)))
@@ -506,11 +521,21 @@
 	  (let ((thickness (round thickness)))
 	    (xlib:draw-arc drawable gc x y thickness thickness 0 2pi t))))))
 
-(defmethod port-draw-line* ((port clx-port) sheet medium x1 y1 x2 y2)
-  (let ((transform (sheet-device-transformation sheet))
-	(ink (medium-ink medium))
-	(line-style (medium-line-style medium))
-	(drawable (slot-value medium 'drawable)))
+;;--- POSITION-SEQ can be a general sequence!
+(defmethod medium-draw-points* ((medium clx-medium) position-seq)
+  (let* ((sheet (medium-sheet medium))
+	 (transform (sheet-device-transformation sheet))
+	 (ink (medium-ink medium))
+	 (line-style (medium-line-style medium))
+	 (drawable (slot-value medium 'drawable)))
+    ))
+
+(defmethod medium-draw-line* ((medium clx-medium) x1 y1 x2 y2)
+  (let* ((sheet (medium-sheet medium))
+	 (transform (sheet-device-transformation sheet))
+	 (ink (medium-ink medium))
+	 (line-style (medium-line-style medium))
+	 (drawable (slot-value medium 'drawable)))
     (convert-to-device-coordinates transform
       x1 y1 x2 y2)
     (xlib:draw-line drawable
@@ -518,12 +543,22 @@
 				    (min x1 x2) (min y1 y2))
 		    x1 y1 x2 y2)))
 
-(defmethod port-draw-rectangle* ((port clx-port) sheet medium
-				 left top right bottom filled)
-  (let ((transform (sheet-device-transformation sheet))
-	(ink (medium-ink medium))
-	(line-style (medium-line-style medium))
-	(drawable (slot-value medium 'drawable)))
+;;--- POSITION-SEQ can be a general sequence!
+(defmethod medium-draw-lines* ((medium clx-medium) position-seq)
+  (let* ((sheet (medium-sheet medium))
+	 (transform (sheet-device-transformation sheet))
+	 (ink (medium-ink medium))
+	 (line-style (medium-line-style medium))
+	 (drawable (slot-value medium 'drawable)))
+    ))
+
+(defmethod medium-draw-rectangle* ((medium clx-medium)
+				   left top right bottom filled)
+  (let* ((sheet (medium-sheet medium))
+	 (transform (sheet-device-transformation sheet))
+	 (ink (medium-ink medium))
+	 (line-style (medium-line-style medium))
+	 (drawable (slot-value medium 'drawable)))
     (convert-to-device-coordinates transform
       left top right bottom)
     (xlib:draw-rectangle drawable 
@@ -531,14 +566,25 @@
 					 left top)
 			 left top (- right left) (- bottom top) filled)))
 
-(defmethod port-draw-polygon* ((port clx-port) sheet medium points closed filled)
-  (let ((transform (sheet-device-transformation sheet))
-	(ink (medium-ink medium))
-	(line-style (medium-line-style medium))
-	(drawable (slot-value medium 'drawable)))
+;;--- POSITION-SEQ can be a general sequence!
+(defmethod medium-draw-rectangles* ((medium clx-medium) position-seq filled)
+  (let* ((sheet (medium-sheet medium))
+	 (transform (sheet-device-transformation sheet))
+	 (ink (medium-ink medium))
+	 (line-style (medium-line-style medium))
+	 (drawable (slot-value medium 'drawable)))
+    ))
+
+;;--- POSITION-SEQ can be a general sequence!
+(defmethod medium-draw-polygon* ((medium clx-medium) position-seq closed filled)
+  (let* ((sheet (medium-sheet medium))
+	 (transform (sheet-device-transformation sheet))
+	 (ink (medium-ink medium))
+	 (line-style (medium-line-style medium))
+	 (drawable (slot-value medium 'drawable)))
     (let ((minx most-positive-fixnum)
 	  (miny most-positive-fixnum)
-	  (points (copy-list points)))
+	  (points (copy-seq position-seq)))
       ;; These really are fixnums, since we're fixing coordinates below
       (declare (type fixnum minx miny))
       (do* ((points points (cddr points)))
@@ -557,14 +603,15 @@
 				       minx miny)
 		       points :fill-p filled))))
 
-(defmethod port-draw-ellipse* ((port clx-port) sheet medium
-			       center-x center-y
-			       radius-1-dx radius-1-dy radius-2-dx radius-2-dy
-			       start-angle end-angle filled)
-  (let ((transform (sheet-device-transformation sheet))
-	(ink (medium-ink medium))
-	(line-style (medium-line-style medium))
-	(drawable (slot-value medium 'drawable)))
+(defmethod medium-draw-ellipse* ((medium clx-medium)
+				 center-x center-y
+				 radius-1-dx radius-1-dy radius-2-dx radius-2-dy
+				 start-angle end-angle filled)
+  (let* ((sheet (medium-sheet medium))
+	 (transform (sheet-device-transformation sheet))
+	 (ink (medium-ink medium))
+	 (line-style (medium-line-style medium))
+	 (drawable (slot-value medium 'drawable)))
     (convert-to-device-coordinates transform center-x center-y)
     (convert-to-device-distances transform 
       radius-1-dx radius-1-dy radius-2-dx radius-2-dy)
@@ -612,21 +659,22 @@
 		       ;; CLX measures the second angle relative to the first
 		       start-angle angle-size filled)))))
 
-(defmethod port-draw-string* ((port clx-port) sheet medium
-			      string x y start end align-x align-y
-			      towards-x towards-y transform-glyphs)
-  (let ((transform (sheet-device-transformation sheet))
-	(ink (medium-ink medium))
-	(text-style (medium-merged-text-style medium))
-	(drawable (slot-value medium 'drawable)))
+(defmethod medium-draw-string* ((medium clx-medium)
+				string x y start end align-x align-y
+				towards-x towards-y transform-glyphs)
+  (let* ((sheet (medium-sheet medium))
+	 (transform (sheet-device-transformation sheet))
+	 (ink (medium-ink medium))
+	 (text-style (medium-merged-text-style medium))
+	 (drawable (slot-value medium 'drawable)))
     (convert-to-device-coordinates transform x y)
     (when towards-x
       (convert-to-device-coordinates transform towards-x towards-y))
     (unless end
       (setq end (length string)))
     (let* ((font (if text-style
-		     (text-style-mapping port text-style)
-		     (clx-get-default-font port medium)))
+		     (text-style-mapping (port medium) text-style)
+		     (clx-get-default-font (port medium) medium)))
 	   (ascent (xlib:font-ascent font))
 	   (descent (xlib:font-descent font))
 	   (height (+ ascent descent))
@@ -643,19 +691,20 @@
       (setf (xlib:gcontext-font gc) font)
       (xlib:draw-glyphs drawable gc x y string :start start :end end))))
 
-(defmethod port-draw-character* ((port clx-port) sheet medium
-				 character x y align-x align-y
-				 towards-x towards-y transform-glyphs)
-  (let ((transform (sheet-device-transformation sheet))
-	(ink (medium-ink medium))
-	(text-style (medium-merged-text-style medium))
-	(drawable (slot-value medium 'drawable)))
+(defmethod medium-draw-character* ((medium clx-medium)
+				   character x y align-x align-y
+				   towards-x towards-y transform-glyphs)
+  (let* ((sheet (medium-sheet medium))
+	 (transform (sheet-device-transformation sheet))
+	 (ink (medium-ink medium))
+	 (text-style (medium-merged-text-style medium))
+	 (drawable (slot-value medium 'drawable)))
     (convert-to-device-coordinates transform x y)
     (when towards-x
       (convert-to-device-coordinates transform towards-x towards-y))
     (let* ((font (if text-style
-		     (text-style-mapping port text-style)
-		     (clx-get-default-font port medium)))
+		     (text-style-mapping (port medium) text-style)
+		     (clx-get-default-font (port medium) medium)))
 	   (ascent (xlib:font-ascent font))
 	   (descent (xlib:font-descent font))
 	   (height (+ ascent descent))
@@ -672,33 +721,61 @@
       (setf (xlib:gcontext-font gc) font)
       (xlib:draw-glyph drawable gc x y character)))) 
 
-(defmethod port-draw-text* ((port clx-port) sheet medium
-			    string-or-char x y start end
-			    align-x align-y
-			    towards-x towards-y transform-glyphs)
+(defmethod medium-draw-text* ((medium clx-medium)
+			      string-or-char x y start end
+			      align-x align-y
+			      towards-x towards-y transform-glyphs)
   (if (characterp string-or-char)
-      (port-draw-character* port sheet medium
-			    string-or-char x y align-x align-y
-			    towards-x towards-y transform-glyphs)
-      (port-draw-string* port sheet medium
-			 string-or-char x y start end align-x align-y
-			 towards-x towards-y transform-glyphs)))
+      (medium-draw-character* medium string-or-char x y align-x align-y
+			      towards-x towards-y transform-glyphs)
+      (medium-draw-string* medium string-or-char x y start end align-x align-y
+			   towards-x towards-y transform-glyphs)))
 
-(defmethod port-beep ((port clx-port) sheet)
-  (declare (ignore sheet))
-  (xlib:bell (port-display port)))
+
+(defmethod text-style-width ((text-style standard-text-style) (medium clx-medium))
+  (let ((font (text-style-mapping (port medium) text-style)))
+    ;; Disgusting, but probably OK
+    (xlib:char-width font (xlib:char->card8 #\A))))
+
+(defmethod text-style-height ((text-style standard-text-style) (medium clx-medium))
+  (let ((font (text-style-mapping (port medium) text-style)))
+    (let* ((ascent (xlib:font-ascent font))
+	   (descent (xlib:font-descent font))
+	   (height (+ ascent descent)))
+      height)))
+
+(defmethod text-style-ascent ((text-style standard-text-style) (medium clx-medium))
+  (let ((font (text-style-mapping (port medium) text-style)))
+    (xlib:font-ascent font)))
+
+(defmethod text-style-descent ((text-style standard-text-style) (medium clx-medium))
+  (let ((font (text-style-mapping (port medium) text-style)))
+    (xlib:font-descent font)))
+
+(defmethod text-style-fixed-width-p ((text-style standard-text-style) (medium clx-medium))
+  (let ((font (text-style-mapping (port medium) text-style)))
+    ;; Really disgusting, but probably OK
+    (= (xlib:char-width font (xlib:char->card8 #\.))
+       (xlib:char-width font (xlib:char->card8 #\M)))))
+
+
+(defmethod medium-force-output ((medium clx-medium))
+  (xlib:display-force-output (port-display (port medium))))
+
+(defmethod medium-finish-output ((medium clx-medium))
+  (xlib:display-finish-output (port-display (port medium))))
+
+(defmethod medium-beep ((medium clx-medium))
+  (xlib:bell (port-display (port medium))))
 
 
-;;--- FROM-SHEET and TO-SHEET should be mediums, not sheets
-;;--- This needs to be able to copy to/from pixmaps, too
-;;--- arglist s/b FROM-MEDIUM FROM-X FROM-Y TO-MEDIUM TO-X TO-Y WIDTH HEIGHT
-(defmethod port-copy-area ((port clx-port)
-			   from-sheet to-sheet
-			   from-left from-top from-right from-bottom
-			   to-left to-top)
-  (assert (eq from-sheet to-sheet))
+;;--- This needs methods for copying to/from pixmaps, too
+(defmethod medium-copy-area
+	   ((from-medium clx-medium) from-left from-top from-right from-bottom
+	    (to-medium clx-medium) to-left to-top)
+  (assert (eq from-medium to-medium))
   ;; coords in "host" coordinate system
-  (let ((transform (sheet-native-transformation from-sheet)))
+  (let ((transform (sheet-native-transformation (medium-sheet from-medium))))
     (convert-to-device-coordinates transform
        from-left from-top from-right from-bottom to-left to-top)
     (let ((width (- from-right from-left))
@@ -708,14 +785,13 @@
 	(setq width (- (abs width))))
       (when (>= to-top from-top)
 	(setq height (- (abs height))))
-      (with-sheet-medium (medium from-sheet)
-	(let ((width (- from-right from-left))
-	      (height (- from-bottom from-top))
-	      (drawable (slot-value medium 'drawable))
-	      (copy-gc (slot-value medium 'copy-gcontext)))
-	  (xlib:copy-area drawable copy-gc
-			  from-left from-top width height drawable
-			  to-left to-top))))))
+      (let ((width (- from-right from-left))
+	    (height (- from-bottom from-top))
+	    (drawable (slot-value from-medium 'drawable))
+	    (copy-gc (slot-value from-medium 'copy-gcontext)))
+	(xlib:copy-area drawable copy-gc
+			from-left from-top width height drawable
+			to-left to-top)))))
 
 #||
 (defmethod copy-area

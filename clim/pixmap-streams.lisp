@@ -21,7 +21,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: pixmap-streams.lisp,v 1.5 92/05/07 13:12:43 cer Exp $
+;; $fiHeader: pixmap-streams.lisp,v 1.6 92/05/22 19:28:18 cer Exp $
 
 (in-package :clim-internals)
 
@@ -34,18 +34,18 @@
 			 sheet)
 	  ())
 
-(defmethod realize-mirror ((port port) (stream pixmap-stream))
+(defmethod realize-mirror ((port basic-port) (stream pixmap-stream))
   nil)
 
-(defmethod update-mirror-transformation ((port port) (sheet pixmap-stream))
+(defmethod update-mirror-transformation ((port basic-port) (sheet pixmap-stream))
   nil)
 
-(defmethod update-mirror-region ((port port) (sheet pixmap-stream))
+(defmethod update-mirror-region ((port basic-port) (sheet pixmap-stream))
   nil)
 
 (defmethod initialize-instance :after ((stream pixmap-stream) 
 				       &key port sheet pixmap
-				       width height)
+					    width height)
   (setf (sheet-direct-mirror stream) pixmap
 	(port stream) port
 	(sheet-transformation stream) +identity-transformation+
@@ -56,13 +56,12 @@
 
 ;; Interface to this stuff
 
-(defmacro with-output-to-pixmap ((stream sheet . options) &body body)
+(defmacro with-output-to-pixmap ((stream sheet &rest options) &body body)
   (default-output-stream stream with-output-to-pixmap)
   `(flet ((with-output-to-pixmap-body (,stream) ,@body))
      (declare (dynamic-extent #'with-output-to-pixmap-body))
-     (invoke-with-output-to-pixmap ,sheet
-				   #'with-output-to-pixmap-body
-				   ,@options)))
+     (invoke-with-output-to-pixmap 
+       ,sheet #'with-output-to-pixmap-body ,@options)))
 
 (defmethod invoke-with-output-to-pixmap (sheet continuation &key width height)
   (let* ((pixmap (allocate-pixmap sheet width height))
@@ -76,26 +75,22 @@
 
 (defmethod allocate-pixmap-stream (sheet pixmap width height)
   (make-instance 'pixmap-stream 
-		 :default-text-margin width
-		 :pixmap pixmap 
-		 :width width
-		 :height height
-		 :port (port sheet)
-		 :sheet sheet))
+    :default-text-margin width
+    :pixmap pixmap 
+    :width width
+    :height height
+    :port (port sheet)
+    :sheet sheet))
 
 (defun copy-from-pixmap (pixmap pixmap-x pixmap-y width height
-			 stream window-x window-y)
-  (port-copy-from-pixmap
-   (port stream)
-   pixmap pixmap-x pixmap-y width height stream window-x window-y))
+			 medium medium-x medium-y)
+  (medium-copy-from-pixmap pixmap pixmap-x pixmap-y width height
+			   medium medium-x medium-y))
 
-(defun copy-to-pixmap (stream
-		       window-x window-y width height
+(defun copy-to-pixmap (medium medium-x medium-y width height
 		       &optional pixmap (pixmap-x 0) (pixmap-y 0))
   (unless pixmap
-    (setf pixmap (allocate-pixmap stream width height)))
-  (port-copy-to-pixmap (port stream)
-		       stream
-		       window-x window-y width height
-		       pixmap pixmap-x pixmap-y)
+    (setf pixmap (allocate-pixmap medium width height)))
+  (medium-copy-to-pixmap medium medium-x medium-y width height
+			 pixmap pixmap-x pixmap-y)
   pixmap)

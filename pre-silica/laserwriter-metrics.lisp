@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: laserwriter-metrics.lisp,v 1.2 92/02/24 13:08:01 cer Exp $
+;; $fiHeader: laserwriter-metrics.lisp,v 1.3 92/05/18 14:04:00 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 

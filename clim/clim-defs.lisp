@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clim-defs.lisp,v 1.7 92/04/15 11:46:07 cer Exp Locker: cer $
+;; $fiHeader: clim-defs.lisp,v 1.8 92/06/16 15:01:35 cer Exp $
 
 (in-package :clim-internals)
 
@@ -38,39 +38,11 @@
   positions)
 
 
-(defclass io-buffer
-	  ()
-     ((size :accessor io-buffer-size :initarg :size)
-      (buffer :accessor io-buffer-buffer)
-      (input-pointer :accessor io-buffer-input-pointer)
-      (output-pointer :accessor io-buffer-output-pointer)))
-
-(defmacro define-accessors (flavor &body instance-variables)
-  (let ((forms nil))
-    (dolist (iv instance-variables)
-      (let ((name (fintern "~A-~A" flavor iv)))
-	(push `(defmethod ,name ((,flavor ,flavor))
-		 (slot-value ,flavor ',iv))
-	      forms)
-	(push `(defmethod (setf ,name) (new-val (,flavor ,flavor))
-		 (setf (slot-value ,flavor ',iv) new-val))
-	      forms)))
-    `(define-group ,flavor define-accessors 
-       ,@(nreverse forms))))
-
-;;; Implementation defining and managing tools
-
-(defvar *implementations* nil)
-
-(defun define-implementation (name creation-function)
-  (pushnew name *implementations*)
-  (setf (get name 'creation-function) creation-function))
-
-(defun window-type-creation-function (window-stream-type)
-  (let ((cf (get window-stream-type 'creation-function)))
-    (unless cf
-      (error "No window creation function is defined for type ~S" window-stream-type))
-    cf))
+(defclass io-buffer ()
+    ((size :accessor io-buffer-size :initarg :size)
+     (buffer :accessor io-buffer-buffer)
+     (input-pointer :accessor io-buffer-input-pointer)
+     (output-pointer :accessor io-buffer-output-pointer)))
 
 
 (defmacro with-stream-cursor-position-saved ((stream) &body body)
@@ -327,12 +299,11 @@
 
 ;;; Application frame variables
 (defvar *application-frame*)
-(defvar *default-application*)
 (defvar *pointer-documentation-output* nil)
 (defvar *assume-all-commands-enabled* nil)
 (defvar *sizing-application-frame* nil)
 
-(defmacro with-frame ((frame) &body body)
+(defmacro with-application-frame ((frame) &body body)
   `(let ((,frame *application-frame*))
      ,@body))
 

@@ -16,13 +16,13 @@
 ;; contained herein by any agency, department or entity of the U.S.
 ;; Government are subject to restrictions of Restricted Rights for
 ;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
+;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
 ;;;
 ;;; Copyright (c) 1990 by Xerox Corporations.  All rights reserved.
 ;;;
-;; $fiHeader: db-stream.lisp,v 1.19 92/05/26 14:33:12 cer Exp Locker: cer $
+;; $fiHeader: db-stream.lisp,v 1.20 92/06/16 15:01:39 cer Exp $
 
 (in-package :clim-internals)
 
@@ -151,13 +151,14 @@
 			 (eq sr-component :compute))
 		   (multiple-value-bind (width height)
 		       (let ((record
-			       (with-output-to-output-record (pane)
+			      (with-output-to-output-record (pane)
+				(let ((*sizing-application-frame* t))
 				 (invoke-pane-display-function 
 				   (pane-frame pane) pane
 				   ;;--- Are all pane display functions prepared to
 				   ;;--- ignore these arguments?  I think not...
 				   :max-width width
-				   :max-height height))))
+				   :max-height height)))))
 			 (bounding-rectangle-size record))
 		     (do-with-space-req-components progn
 		         sr-component (sr-width sr-min-width sr-max-width)
@@ -231,12 +232,13 @@
 
 (defun process-unit-space-requirement (pane sr)
   (destructuring-bind (number unit) sr
-    (let ((graft (graft pane)))
+    (let ((graft (or (graft pane)
+		     (find-graft))))		;--- is this right?
       (ecase unit
 	(:pixel number)
-	(:mm (* number (/ (silica::graft-pixel-width graft)
-			  (silica::graft-mm-width graft))))
-	(:point (* number (silica::graft-pixels-per-point graft)))
+	(:mm (* number (/ (graft-pixel-width graft)
+			  (graft-mm-width graft))))
+	(:point (* number (graft-pixels-per-point graft)))
 	(:character (* number (stream-string-width pane "M")))
 	(:line (+ (* number (stream-line-height pane))
 		  (* (1- number) (stream-vertical-spacing pane))))))))
@@ -306,6 +308,7 @@
 (defclass application-pane (clim-stream-pane) ())
 (defclass command-menu-pane (clim-stream-pane) ())
 (defclass pointer-documentation-pane (clim-stream-pane) ())
+(defclass accept-values-pane (clim-stream-pane) ())
 
 (defmethod compose-space :before ((pane command-menu-pane) &key width height)
   (declare (ignore width height))
@@ -361,15 +364,12 @@
       ;; Flush the old mouse position relative to this window
       ;; so that we don't get bogus highlighted presentations
       ;; when menus first pop up.
-      #+ignore
+      #+++ignore				;--- what is this trying to do?
       (let ((pointer (stream-primary-pointer stream)))
 	(when pointer
-	  (setf (pointer-window pointer) nil)))
-      ;; Doesn't really need to do force-output.
-      ;; This actually makes an incredible difference. Since on X
-      ;; everything is buffered the window ends up being cleared only
-      ;; a moment before being draw upon
-      #+then-dont
+	  (setf (pointer-sheet pointer) nil)))
+      ;; We need to do a FORCE-OUTPUT in case it is a long time before
+      ;; anything gets drawn on the same stream.
       (force-output stream))))
 
 ;;; Basically a hook for other mixins.
@@ -412,12 +412,15 @@
 (defmethod window-set-viewport-position ((stream clim-stream-sheet) x y)
   (scroll-extent stream :x x :y y))
 
+(defgeneric* (setf window-viewport-position) (x y stream))
+(defmethod* (setf window-viewport-position) (x y (stream clim-stream-sheet))
+  (window-set-viewport-position stream x y))
+
 (defmethod window-inside-size ((stream clim-stream-sheet))
   (bounding-rectangle-size (pane-viewport-region stream)))
 
 (defmethod window-set-inside-size ((stream clim-stream-sheet) width height)
   (change-space-requirements stream :width width :height height :resize-frame t))
-
 
 (defun-inline window-parent (window)
   (sheet-parent window))
@@ -435,13 +438,13 @@
     (when (eq parent-parent t) (return nil))))
 
 (defun beep (&optional (stream *standard-output*))
-  (port-beep (port stream) stream))
+  (medium-beep (sheet-medium stream)))
 
-;; This is called by OUTPUT-RECORDING-MIXIN's whopper on set-viewport-position.
-;; It shifts a region of the "host screen" that's visible to some other visible
-;; location.  It does NOT do any cleaning up after itself.  It does not side-effect
-;; the output history of the window.  It calls COPY-AREA whose contract is to 
-;; do the above, the whole above, and nothing but the above.
+;; This is called by SCROLL-EXTENT.  It shifts a region of the "host screen"
+;; that's visible to some other visible location.  It does NOT do any cleaning
+;; up after itself.  It does not side-effect the output history of the window.
+;; It calls COPY-AREA, whose contract is to do the above, the whole above, and
+;; nothing but the above.
 (defmethod window-shift-visible-region ((window clim-stream-sheet)
 					old-left old-top old-right old-bottom
 					new-left new-top new-right new-bottom)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clim-streams.lisp,v 1.2 92/02/24 13:05:20 cer Exp $
+;; $fiHeader: clim-streams.lisp,v 1.3 92/03/10 10:11:47 cer Exp $
 
 (in-package :clim-utils)
 
@@ -21,4 +21,14 @@
 	     :reader encapsulating-stream-stream))
   #+Allegro (:default-initargs :element-type 'character))
 
+
+;;; Shadow this for all Lisp implementations
 
+(defgeneric interactive-stream-p (stream))
+
+(defmethod interactive-stream-p ((stream t))
+  #+Genera (future-common-lisp:interactive-stream-p stream)
+  #-Genera (lisp:interactive-stream-p stream))
+
+(defmethod interactive-stream-p ((stream encapsulating-stream))
+  (interactive-stream-p (slot-value stream 'stream)))

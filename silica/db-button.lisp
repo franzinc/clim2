@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-button.lisp,v 1.7 92/05/07 13:11:10 cer Exp $
+;; $fiHeader: db-button.lisp,v 1.8 92/05/22 19:26:43 cer Exp $
 
 "Copyright (c) 1990, 1991 International Lisp Associates.
  Portions copyright (c) 1991, 1992 by Symbolics, Inc.  All rights reserved."
@@ -80,13 +80,12 @@
 	  (text-style (slot-value pane 'text-style))
 	  (armed (slot-value pane 'armed))
 	  (region (sheet-region pane)))
-      (multiple-value-call #'draw-rectangle*
-        medium (bounding-rectangle* (sheet-region pane))
-	:filled nil)
-      (draw-text medium text (clim-utils::bounding-rectangle-center region)
+      (with-bounding-rectangle* (left top right bottom) (sheet-region pane)
+	(draw-rectangle* medium left top (1- right) (1- bottom)
+			 :filled nil))
+      (draw-text medium text (bounding-rectangle-center region)
 		 :text-style text-style
-		 ;;--- :align-x ':center :align-y ':center
-		 :align-x ':left :align-y ':center)
+		 :align-x :center :align-y :center)
       (when (eq armed :active)
 	(highlight-button pane medium)))))
 
@@ -118,9 +117,9 @@
 	(draw-circle* medium cx cy radius :filled nil)
 	(draw-circle* medium cx cy (round radius 2)
 		      :ink (if (gadget-value pane) +foreground-ink+ +background-ink+))
-	(draw-text* medium text (+ cx (* radius 2) 5) cy
+	(draw-text* medium text (+ cx radius (text-style-width text-style medium)) cy
 		    :text-style text-style
-		    :align-x ':left :align-y ':center)))))
+		    :align-x :left :align-y :center)))))
 
 ;; This is done in the (SETF GADGET-VALUE) method because that's where it 
 ;; would be done in, say, Motif.  (That is, we'd pass the SET-GADGET-VALUE
@@ -159,7 +158,7 @@
 		     :menu-group nil :show-arrow t))
 
 
-;;; Radio boxes
+;;; Radio boxes and check boxes
 
 (defclass radio-box-pane 
 	  (radio-box
@@ -174,6 +173,7 @@
 ;; When one of the radio-box's managed gadgets gets selected (or deselected)
 ;; we may have to turn on or off some item.  If we turn off the currently selected
 ;; item, we just turn it back on again!
+;;--- Why doesn't the VALUE-CHANGED-CALLBACK for the button get called?
 (defmethod value-changed-callback :after
 	   ((selection toggle-button) (client radio-box-pane) gadget-id new-value)
   (declare (ignore gadget-id))
@@ -202,18 +202,72 @@
 		       :contents choices))))
     (sheet-adopt-child pane inferiors)
     (when selection
+      (setf (gadget-value pane) selection)
       (setf (gadget-value selection) t))))
+
+
+(defclass check-box-pane 
+	  (check-box
+	   wrapping-space-mixin
+	   sheet-permanently-enabled-mixin
+	   sheet-mute-input-mixin
+	   sheet-multiple-child-mixin
+	   space-requirement-mixin
+	   pane)
+    ())
+
+;;--- Why doesn't the VALUE-CHANGED-CALLBACK for the button get called?
+(defmethod value-changed-callback :after
+	   ((selection toggle-button) (client check-box-pane) gadget-id new-value)
+  (declare (ignore gadget-id))
+  (if new-value
+      (pushnew selection (check-box-current-selection client))
+      (setf (check-box-current-selection client)
+	    (delete selection (check-box-current-selection client)))))
+
+(defmethod initialize-instance :after ((pane check-box-pane) 
+				       &key choices selection frame-manager frame)
+  ;;--- This really needs to be more robust
+  (dolist (choice choices)
+    (setf (gadget-client choice) pane))
+  (let ((inferiors
+	  (with-look-and-feel-realization (frame-manager frame)
+	    (make-pane 'hbox-pane
+		       :spacing 5
+		       :contents choices))))
+    (sheet-adopt-child pane inferiors)
+    (when selection
+      (setf (gadget-value pane) (list selection))
+      (setf (gadget-value selection) t))))
+
 
 ;; This macro is just an example of one possible syntax.  The obvious "core"
 ;; syntax is (MAKE-PANE 'RADIO-BOX :CHOICES (LIST ...) :SELECTION ...)
-(defmacro with-radio-box ((&rest options) &body body)
+(defmacro with-radio-box ((&rest options &key (type ':one-of) &allow-other-keys)
+			  &body body)
   (let ((current-selection '#:current-selection)
 	(choices '#:choices))
-    `(let ((,current-selection nil))
-       (macrolet ((radio-box-current-selection (form)
-		    `(setq ,',current-selection ,form)))
-	 (let ((,choices (list ,@body)))
-	   (make-pane 'radio-box
-		      :choices ,choices
-		      :selection ,current-selection
-		      ,@options))))))
+    (with-keywords-removed (options options '(:type))
+      (ecase type
+	(:one-of
+	  `(let ((,current-selection nil))
+	     (macrolet ((radio-box-current-selection (form)
+			  `(setq ,',current-selection ,form)))
+	       (let ((,choices (list ,@body)))
+		 (make-pane 'radio-box
+			    :choices ,choices
+			    :selection ,current-selection
+			    ,@options)))))
+	(:some-of
+	  `(let ((,current-selection nil))
+	     (macrolet ((radio-box-current-selection (form)
+			  `(setq ,',current-selection 
+				 (append ,',current-selection ,form)))
+			(check-box-current-selection (form)
+			  `(setq ,',current-selection 
+				 (append ,',current-selection ,form))))
+	       (let ((,choices (list ,@body)))
+		 (make-pane 'check-box
+			    :choices ,choices
+			    :selection ,current-selection
+			    ,@options)))))))))

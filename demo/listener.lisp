@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: listener.lisp,v 1.11 92/05/22 19:29:06 cer Exp Locker: cer $
+;; $fiHeader: listener.lisp,v 1.12 92/06/03 18:18:50 cer Exp $
 
 (in-package :clim-demo)
 
@@ -45,6 +45,7 @@
   (defvar *current-frame-pointer* nil))
 
 (defvar *lisp-listener-frame*)
+(defvar *lisp-listener-io*)
 
 (defun lisp-listener-top-level (frame)
   "Run a simple Lisp listener using the window provided."
@@ -54,12 +55,12 @@
 	 (command-table (frame-command-table frame))
 	 (presentation-type `(command-or-form :command-table ,command-table)))
     (with-input-focus (window)
-      (terpri window)
-      (let* ((*standard-input* window)
-	     (*standard-output* window)
-	     #+(or allegro Minima) (*error-output* window)
-	     (*query-io* window)
-	     #+Minima (*debug-io* window)
+      (let* ((*lisp-listener-io* window)
+	     (*standard-input* *lisp-listener-io*)
+	     (*standard-output* *lisp-listener-io*)
+	     #+(or Minima allegro) (*error-output* *lisp-listener-io*)
+	     (*query-io* *lisp-listener-io*)
+	     #+Minima (*debug-io* *lisp-listener-io*)
 	     (*package* *package*)
 	     (*listener-depth* (1+ *listener-depth*))
 	     (*** nil) (** nil) (* nil)
@@ -73,6 +74,7 @@
 			 (or (db::find-interesting-frame *top-top-frame-pointer*)
 			     *top-top-frame-pointer*))
 	     #+allegro (*current-frame-pointer* *top-frame-pointer*))
+	(terpri *lisp-listener-io*)
 	(with-command-table-keystrokes (keystrokes command-table)
 	  (condition-restart-loop (#+Genera (sys:error sys:abort)
 				   #-Genera (error)
@@ -159,7 +161,8 @@
 	 (*debugger-condition* condition)
 	 (*debugger-restarts* (compute-restarts)))
     (describe-error *error-output*)
-    (lisp-listener-top-level *application-frame*)))
+    (with-output-recording-options (*lisp-listener-io* :draw t :record t)
+      (lisp-listener-top-level *application-frame*))))
 
 (define-presentation-type restart-name ())
 

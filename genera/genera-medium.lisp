@@ -1,13 +1,13 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: GENERA-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: genera-medium.lisp,v 1.4 92/05/07 13:13:26 cer Exp $
+;; $fiHeader: genera-medium.lisp,v 1.5 92/05/22 19:28:55 cer Exp $
 
 (in-package :genera-clim)
 
 "Copyright (c) 1992 Symbolics, Inc.  All rights reserved."
 
 
-(defclass genera-medium (medium)
+(defclass genera-medium (basic-medium)
     ((window :initform nil)
      (ink-cache :initform (make-ink-cache 16))))
 
@@ -21,8 +21,8 @@
 
 (defmethod make-medium ((port genera-port) sheet)
   (make-instance 'genera-medium
-		 :port port
-		 :sheet sheet))
+    :port port
+    :sheet sheet))
 
 (defmethod deallocate-medium :after (port (medium genera-medium))
   (declare (ignore port))
@@ -44,12 +44,12 @@
   )
 
 (defmethod (setf medium-foreground) :after (ink (medium genera-medium))
-  (with-slots (window) medium	   
+  (let ((window (slot-value medium 'window)))
     (scl:send window :set-char-aluf (genera-decode-color ink medium nil))
     (scl:send window :refresh)))
 
 (defmethod (setf medium-background) :after (ink (medium genera-medium))
-  (with-slots (window) medium	   
+  (let ((window (slot-value medium 'window)))
     (scl:send window :set-erase-aluf (genera-decode-color ink medium nil))
     (scl:send window :refresh)))
 
@@ -93,13 +93,13 @@
   (declare (ignore stipple-p medium))
   (error "Expected ~S to be a color.  This may be due to an implementation limitation." ink))
 
-(defun genera-decode-luminance (luminance stipple-p)
+(defun genera-decode-luminosity (luminosity stipple-p)
   (macrolet ((stipple (height width patterns)
 	       `(quote ((,(graphics::make-stipple height width patterns)
 			 ,boole-set ,boole-clr)))))
     (if (not stipple-p)
-	(if (< luminance 0.5) boole-set boole-clr)
-      (sys:selector luminance <
+	(if (< luminosity 0.5) boole-set boole-clr)
+      (sys:selector luminosity <
 	(0.05 boole-set)
 	(0.1 (stipple 8 16 #b(0111111111111111
 			      1111110111111111
@@ -211,15 +211,16 @@
 (defmethod genera-decode-color ((ink gray-color) medium &optional (stipple-p t))
   (let ((window (slot-value medium 'window))
 	(color-p (slot-value (port medium) 'color-p)))
-    (let ((luminance (slot-value ink 'clim-utils::luminance))
+    (let ((luminosity (gray-color-luminosity ink))
 	  (invert-p (not (funcall (tv:sheet-screen window) :bow-mode))))
-      (cond ((= luminance 0.0) (if invert-p boole-clr boole-set))
-	    ((= luminance 1.0) (if invert-p boole-set boole-clr))
+      (cond ((= luminosity 0.0) (if invert-p boole-clr boole-set))
+	    ((= luminosity 1.0) (if invert-p boole-set boole-clr))
 	    ((not color-p)
-	     (genera-decode-luminance (if invert-p (- 1.0 luminance) luminance) stipple-p))
+	     (genera-decode-luminosity
+	       (if invert-p (- 1.0 luminosity) luminosity) stipple-p))
 	    (t
 	     (funcall (tv:sheet-screen window) :compute-rgb-alu boole-1
-		      luminance luminance luminance (not invert-p)))))))
+		      luminosity luminosity luminosity (not invert-p)))))))
 
 (defmethod genera-decode-color ((ink color) medium &optional (stipple-p t))
   (let ((window (slot-value medium 'window))
@@ -228,8 +229,9 @@
 	(color-rgb ink)
       (let ((invert-p (not (funcall (tv:sheet-screen window) :bow-mode))))
 	(if (not color-p)
-	    (let ((luminance (color-luminosity r g b)))
-	      (genera-decode-luminance (if invert-p (- 1.0 luminance) luminance) stipple-p))
+	    (let ((luminosity (color-luminosity r g b)))
+	      (genera-decode-luminosity
+		(if invert-p (- 1.0 luminosity) luminosity) stipple-p))
 	  (funcall (tv:sheet-screen window) :compute-rgb-alu boole-1
 		   r g b (not invert-p)))))))
 
@@ -254,7 +256,7 @@
 
 (defmethod genera-decode-color ((ink standard-opacity) medium &optional (stipple-p t))
   (declare (ignore medium stipple-p))
-  (if (> (slot-value ink 'clim-utils::value) 0.5) boole-1 boole-2))
+  (if (> (opacity-value ink) 0.5) boole-1 boole-2))
 
 (defun genera-decode-raster (raster &optional width height key tiled-p)
   (multiple-value-bind (swidth sheight)
@@ -334,13 +336,14 @@
   (if (slot-value (port medium) 'color-p)
       (genera-decode-color (make-color-for-contrasting-ink ink) medium)
     ;; More efficient than (GENERA-DECODE-COLOR (MAKE-GRAY-COLOR-FOR-CONTRASTING-INK INK))
-    (let ((luminance (with-slots (clim-utils::which-one clim-utils::how-many) ink
-		       (/ clim-utils::which-one clim-utils::how-many)))
+    (let ((luminosity (with-slots (clim-utils::which-one clim-utils::how-many) ink
+			(/ clim-utils::which-one clim-utils::how-many)))
 	  (invert-p (not (funcall (tv:sheet-screen (slot-value medium 'window)) :bow-mode))))
-      (cond ((= luminance 0.0) (if invert-p boole-clr boole-set))
-	    ((= luminance 1.0) (if invert-p boole-set boole-clr))
+      (cond ((= luminosity 0.0) (if invert-p boole-clr boole-set))
+	    ((= luminosity 1.0) (if invert-p boole-set boole-clr))
 	    (t
-	     (genera-decode-luminance (if invert-p (- 1.0 luminance) luminance) t))))))
+	     (genera-decode-luminosity
+	       (if invert-p (- 1.0 luminosity) luminosity) t))))))
 
 (defmethod genera-decode-ink ((ink pattern) medium)
   (genera-decode-pattern ink medium))
@@ -413,10 +416,10 @@
 ;;; or line style options unsupported by the old Genera window system operations.
 (defmethod with-appropriate-drawing-state
 	   ((medium genera-medium) ink line-style easy hard)
-  (let ((alu (with-slots (ink-cache) medium
-	       (let ((ink (follow-indirect-ink ink medium)))
-		 (or (ink-cache-lookup ink-cache ink)
-		     (ink-cache-replace ink-cache ink (genera-decode-ink ink medium)))))))
+  (let ((alu (let* ((ink-cache (slot-value medium 'ink-cache))
+		    (ink (follow-indirect-ink ink medium)))
+	       (or (ink-cache-lookup ink-cache ink)
+		   (ink-cache-replace ink-cache ink (genera-decode-ink ink medium))))))
     (multiple-value-bind (thickness dashes)
 	(if (null line-style)
 	    (values 0 nil)
@@ -460,7 +463,7 @@
 						  alu boole-2
 						  thickness dashes line-style nil
 						  hard window)))))
-	  (with-slots (window) medium
+	  (let ((window (slot-value medium 'window)))
 	    (let* ((sheet (medium-sheet medium))
 		   (region (sheet-device-region sheet))
 		   (medium-region (medium-clipping-region medium)))
@@ -485,14 +488,17 @@
   (let ((window (slot-value medium 'window)))
     ;; TV:SHEET-OUTPUT-HELD-P, except that temp-locking only delays drawing,
     ;; it doesn't make it impossible, so only look at the output-hold flag
-    (or (zerop (tv:sheet-output-hold-flag window))
-	(tv:sheet-screen-array window))))
+    (and window				;guard against ungrafted mediums
+	 (or (zerop (tv:sheet-output-hold-flag window))
+	     (tv:sheet-screen-array window)))))
 
-(defmethod port-draw-point* ((port genera-port) sheet medium x y)
+
+(defmethod medium-draw-point* ((medium genera-medium) x y)
   (when (medium-drawing-possible medium)
-    (let ((transform (sheet-device-transformation sheet))
-	  (ink (medium-ink medium))
-	  (line-style (medium-line-style medium)))
+    (let* ((sheet (medium-sheet medium))
+	   (transform (sheet-device-transformation sheet))
+	   (ink (medium-ink medium))
+	   (line-style (medium-line-style medium)))
       (convert-to-device-coordinates transform x y)
       (with-appropriate-drawing-state medium ink line-style
 	#'(lambda (window alu)
@@ -502,11 +508,21 @@
 	    (declare (sys:downward-function))
 	    (funcall (flavor:generic graphics:draw-point) window x y))))))
 
-(defmethod port-draw-line* ((port genera-port) sheet medium x1 y1 x2 y2)
+;;--- POSITION-SEQ can be a general sequence!
+(defmethod medium-draw-points* ((medium genera-medium) position-seq)
   (when (medium-drawing-possible medium)
-    (let ((transform (sheet-device-transformation sheet))
-	  (ink (medium-ink medium))
-	  (line-style (medium-line-style medium)))
+    (let* ((sheet (medium-sheet medium))
+	   (transform (sheet-device-transformation sheet))
+	   (ink (medium-ink medium))
+	   (line-style (medium-line-style medium)))
+      )))
+
+(defmethod medium-draw-line* ((medium genera-medium) x1 y1 x2 y2)
+  (when (medium-drawing-possible medium)
+    (let* ((sheet (medium-sheet medium))
+	   (transform (sheet-device-transformation sheet))
+	   (ink (medium-ink medium))
+	   (line-style (medium-line-style medium)))
       (convert-to-device-coordinates transform
 	x1 y1 x2 y2)
       (with-appropriate-drawing-state medium ink line-style
@@ -518,12 +534,22 @@
 	    (funcall (flavor:generic graphics:draw-line)
 		     window x1 y1 x2 y2 ))))))
 
-(defmethod port-draw-rectangle* ((port genera-port) sheet medium 
-				 left top right bottom filled)
+;;--- POSITION-SEQ can be a general sequence!
+(defmethod medium-draw-lines* ((medium genera-medium) position-seq)
   (when (medium-drawing-possible medium)
-    (let ((transform (sheet-device-transformation sheet))
-	  (ink (medium-ink medium))
-	  (line-style (medium-line-style medium)))
+    (let* ((sheet (medium-sheet medium))
+	   (transform (sheet-device-transformation sheet))
+	   (ink (medium-ink medium))
+	   (line-style (medium-line-style medium)))
+      )))
+
+(defmethod medium-draw-rectangle* ((medium genera-medium) 
+				   left top right bottom filled)
+  (when (medium-drawing-possible medium)
+    (let* ((sheet (medium-sheet medium))
+	   (transform (sheet-device-transformation sheet))
+	   (ink (medium-ink medium))
+	   (line-style (medium-line-style medium)))
       (convert-to-device-coordinates transform
 	left top right bottom)
       (if (and filled
@@ -547,8 +573,17 @@
 		(funcall (flavor:generic graphics:draw-rectangle) window left top right bottom
 			 :filled filled)))))))
 
+;;--- POSITION-SEQ can be a general sequence!
+(defmethod medium-draw-rectangles* ((medium genera-medium) position-seq filled)
+  (when (medium-drawing-possible medium)
+    (let* ((sheet (medium-sheet medium))
+	   (transform (sheet-device-transformation sheet))
+	   (ink (medium-ink medium))
+	   (line-style (medium-line-style medium)))
+      )))
+
 ;; Fall back to DRAW-IMAGE.  INK will be a pattern.
-;;--- We have to resort to this because Genera always tiles.  Sigh.
+;; We have to resort to this because Genera always tiles.  Sigh.
 (defmethod draw-icon-internal ((medium genera-medium) left top right bottom ink)
   (with-slots (window ink-cache) medium
     (let* ((width  (- right left))
@@ -563,25 +598,27 @@
 			       :image-right width :image-bottom height
 			       :stream window))))))
 
-(defmethod port-draw-polygon* ((port genera-port) sheet medium points closed filled)
+;;--- POSITION-SEQ can be a general sequence!
+(defmethod medium-draw-polygon* ((medium genera-medium) position-seq closed filled)
   (when (medium-drawing-possible medium)
-    (let ((transform (sheet-device-transformation sheet))
-	  (ink (medium-ink medium))
-	  (line-style (medium-line-style medium))
-	  (npoints (length points)))
+    (let* ((sheet (medium-sheet medium))
+	   (transform (sheet-device-transformation sheet))
+	   (ink (medium-ink medium))
+	   (line-style (medium-line-style medium))
+	   (npoints (length position-seq)))
       (with-appropriate-drawing-state medium ink line-style
 	#'(lambda (window alu)
 	    (declare (sys:downward-function))
 	    (if filled
 		(case npoints
-		  (6 (let* ((p points)
+		  (6 (let* ((p position-seq)
 			    (x1 (pop p)) (y1 (pop p))
 			    (x2 (pop p)) (y2 (pop p))
 			    (x3 (pop p)) (y3 (pop p)))
 		       (convert-to-device-coordinates transform
 			 x1 y1 x2 y2 x3 y3)
 		       (funcall window :draw-triangle x1 y1 x2 y2 x3 y3 alu)))
-		  (8 (let* ((p points)
+		  (8 (let* ((p position-seq)
 			    (x1 (pop p)) (y1 (pop p))
 			    (x2 (pop p)) (y2 (pop p))
 			    (x3 (pop p)) (y3 (pop p))
@@ -591,21 +628,21 @@
 		       (funcall window :draw-triangle x1 y1 x2 y2 x3 y3 alu)
 		       (funcall window :draw-triangle x3 y3 x4 y4 x1 y1 alu)))
 		  (otherwise
-		    (with-stack-array (translated-points npoints)
+		    (with-stack-array (points npoints)
 		      (do ((i 0)
-			   (p points))
+			   (p position-seq))
 			  ((null p))
 			(let* ((x (pop p))
 			       (y (pop p)))
 			  (convert-to-device-coordinates transform x y)
-			  (setf (aref translated-points (shiftf i (1+ i))) x)
-			  (setf (aref translated-points (shiftf i (1+ i))) y)))
+			  (setf (aref points (shiftf i (1+ i))) x)
+			  (setf (aref points (shiftf i (1+ i))) y)))
 		      (graphics::triangulate-polygon
 			#'(lambda (x1 y1 x2 y2 x3 y3)
 			    (funcall window :draw-triangle x1 y1 x2 y2 x3 y3 alu))
-			translated-points))))
+			points))))
 		(with-stack-array (lines (* (+ npoints (if closed 0 -2)) 2))
-		  (let* ((p points)
+		  (let* ((p position-seq)
 			 (i 0)
 			 (initial-x (pop p))
 			 (initial-y (pop p))
@@ -631,29 +668,30 @@
 		  (funcall window :draw-multiple-lines lines alu nil))))
 	#'(lambda (window)
 	    (declare (sys:downward-function))
-	    (with-stack-array (translated-points npoints)
+	    (with-stack-array (points npoints)
 	      (do ((i 0)
-		   (p points))
+		   (p position-seq))
 		  ((null p))
 		(let* ((x (pop p))
 		       (y (pop p)))
 		  (convert-to-device-coordinates transform x y)
-		  (setf (aref translated-points (shiftf i (1+ i))) x)
-		  (setf (aref translated-points (shiftf i (1+ i))) y)))
+		  (setf (aref points (shiftf i (1+ i))) x)
+		  (setf (aref points (shiftf i (1+ i))) y)))
 	      (if (null line-style)
-		  (funcall (flavor:generic graphics:draw-polygon) window translated-points
+		  (funcall (flavor:generic graphics:draw-polygon) window points
 			   :filled t)
-		  (funcall (flavor:generic graphics:draw-lines) window translated-points
+		  (funcall (flavor:generic graphics:draw-lines) window points
 			   :closed closed))))))))
 
-(defmethod port-draw-ellipse* ((port genera-port) sheet medium
-			       center-x center-y
-			       radius-1-dx radius-1-dy radius-2-dx radius-2-dy
-			       start-angle end-angle filled)
+(defmethod medium-draw-ellipse* ((medium genera-medium)
+				 center-x center-y 
+				 radius-1-dx radius-1-dy radius-2-dx radius-2-dy
+				 start-angle end-angle filled)
   (when (medium-drawing-possible medium)
-    (let ((transform (sheet-device-transformation sheet))
-	  (ink (medium-ink medium))
-	  (line-style (medium-line-style medium)))
+    (let* ((sheet (medium-sheet medium))
+	   (transform (sheet-device-transformation sheet))
+	   (ink (medium-ink medium))
+	   (line-style (medium-line-style medium)))
       (convert-to-device-coordinates transform center-x center-y)
       (convert-to-device-distances transform 
 	radius-1-dx radius-1-dy radius-2-dx radius-2-dy)
@@ -666,7 +704,8 @@
 	  (2x2-singular-value-decomposition radius-1-dx radius-2-dx
 					    radius-1-dy radius-2-dy)
 	(declare (ignore pre-stretch-angle))
-	(setq x-radius (abs x-radius) y-radius (abs y-radius))
+	(setq x-radius (fix-coordinate (abs x-radius))
+	      y-radius (fix-coordinate (abs y-radius)))
 	(if (and (= x-radius y-radius) (null start-angle))
 	    ;; It's a complete circle
 	    (with-appropriate-drawing-state medium ink line-style
@@ -695,13 +734,14 @@
 			   :end-angle (or end-angle graphics:2pi)
 			   :filled filled)))))))))
 
-(defmethod port-draw-string* ((port genera-port) sheet medium
-			      string x y start end align-x align-y
-			      towards-x towards-y transform-glyphs)
+(defmethod medium-draw-string* ((medium genera-medium)
+				string x y start end align-x align-y
+				towards-x towards-y transform-glyphs)
   (when (medium-drawing-possible medium)
-    (let ((transform (sheet-device-transformation sheet))
-	  (ink (medium-ink medium))
-	  (text-style (medium-merged-text-style medium)))
+    (let* ((sheet (medium-sheet medium))
+	   (transform (sheet-device-transformation sheet))
+	   (ink (medium-ink medium))
+	   (text-style (medium-merged-text-style medium)))
       (convert-to-device-coordinates transform x y)
       (when towards-x
 	(convert-to-device-coordinates transform towards-x towards-y))
@@ -709,11 +749,11 @@
 	(setq start 0))
       (unless end
 	(setq end (length string)))
-      ;; ---OK to use this in the Genera implementation
+      ;;--- OK to use this in the Genera implementation
       (sys:stack-let ((substring (make-string (- end start))))
 	(replace substring string :start2 start :end2 end)
 	(let* ((font (text-style-mapping 
-		       port text-style *standard-character-set*
+		       (port medium) text-style *standard-character-set*
 		       (slot-value medium 'window)))
 	       (height (sys:font-char-height font))
 	       (descent (- height (sys:font-baseline font)))
@@ -737,18 +777,19 @@
 		  (funcall (flavor:generic graphics:draw-string) window
 			   substring x y :character-style style)))))))))
 
-(defmethod port-draw-character* ((port genera-port) sheet medium
-				 character x y align-x align-y
-				 towards-x towards-y transform-glyphs)
+(defmethod medium-draw-character* ((medium genera-medium)
+				   character x y align-x align-y
+				   towards-x towards-y transform-glyphs)
   (when (medium-drawing-possible medium)
-    (let ((transform (sheet-device-transformation sheet))
-	  (ink (medium-ink medium))
-	  (text-style (medium-merged-text-style medium)))
+    (let* ((sheet (medium-sheet medium))
+	   (transform (sheet-device-transformation sheet))
+	   (ink (medium-ink medium))
+	   (text-style (medium-merged-text-style medium)))
       (convert-to-device-coordinates transform x y)
       (when towards-x
 	(convert-to-device-coordinates transform towards-x towards-y))
       (let* ((font (text-style-mapping 
-		     port text-style *standard-character-set*
+		     (port medium) text-style *standard-character-set*
 		     (slot-value medium 'window)))
 	     (height (sys:font-char-height font))
 	     (descent (- height (sys:font-baseline font)))
@@ -772,32 +813,60 @@
 	      (funcall (flavor:generic graphics:draw-glyph) window
 		       (char-code character) font x y))))))) 
 
-(defmethod port-draw-text* ((port genera-port) sheet medium
-			    string-or-char x y start end
-			    align-x align-y
-			    towards-x towards-y transform-glyphs)
+(defmethod medium-draw-text* ((medium genera-medium)
+			      string-or-char x y start end
+			      align-x align-y
+			      towards-x towards-y transform-glyphs)
   (if (characterp string-or-char)
-      (port-draw-character* port sheet medium
-			    string-or-char x y align-x align-y
-			    towards-x towards-y transform-glyphs)
-      (port-draw-string* port sheet medium
-			 string-or-char x y start end align-x align-y
-			 towards-x towards-y transform-glyphs)))
+      (medium-draw-character* medium string-or-char x y 
+			      align-x align-y towards-x towards-y transform-glyphs)
+      (medium-draw-string* medium string-or-char x y start end 
+			   align-x align-y towards-x towards-y transform-glyphs)))
 
-(defmethod port-beep ((port genera-port) sheet)
-  (scl:beep sheet))
+
+(defmethod text-style-width ((text-style standard-text-style) (medium genera-medium))
+  (let ((font (text-style-mapping (port medium) text-style)))
+    (sys:font-char-width font)))
+
+(defmethod text-style-height ((text-style standard-text-style) (medium genera-medium))
+  (let ((font (text-style-mapping (port medium) text-style)))
+    (sys:font-char-height font)))
+
+(defmethod text-style-ascent ((text-style standard-text-style) (medium genera-medium))
+  (let ((font (text-style-mapping (port medium) text-style)))
+    (let* ((height (sys:font-char-height font))
+	   (descent (- height (sys:font-baseline font)))
+	   (ascent (- height descent)))
+      ascent)))
+
+(defmethod text-style-descent ((text-style standard-text-style) (medium genera-medium))
+  (let ((font (text-style-mapping (port medium) text-style)))
+    (let* ((height (sys:font-char-height font))
+	   (descent (- height (sys:font-baseline font))))
+      descent)))
+
+(defmethod text-style-fixed-width-p ((text-style standard-text-style) (medium genera-medium))
+  (let ((font (text-style-mapping (port medium) text-style)))
+      (null (sys:font-char-width-table font))))
+
+
+(defmethod medium-force-output ((medium genera-medium))
+  (scl:send (slot-value medium 'window) :force-output))
+
+(defmethod medium-finish-output ((medium genera-medium))
+  (scl:send (slot-value medium 'window) :finish-output))
+
+(defmethod medium-beep ((medium genera-medium))
+  (scl:beep nil (slot-value medium 'window)))
 
 
-;;--- FROM-SHEET and TO-SHEET should be mediums, not sheets
-;;--- This needs to be able to copy to/from pixmaps, too
-;;--- arglist s/b FROM-MEDIUM FROM-X FROM-Y TO-MEDIUM TO-X TO-Y WIDTH HEIGHT
-(defmethod port-copy-area ((port genera-port)
-			   from-sheet to-sheet
-			   from-left from-top from-right from-bottom
-			   to-left to-top)
-  (assert (eq from-sheet to-sheet))
+;;--- This needs methods for copying to/from pixmaps, too
+(defmethod medium-copy-area 
+	   ((from-medium genera-medium) from-left from-top from-right from-bottom
+	    (to-medium genera-medium) to-left to-top)
+  (assert (eq from-medium to-medium))
   ;; coords in "host" coordinate system
-  (let ((transform (sheet-native-transformation from-sheet)))
+  (let ((transform (sheet-native-transformation (medium-sheet from-medium))))
     (convert-to-device-coordinates transform
        from-left from-top from-right from-bottom to-left to-top)
     (let ((width (- from-right from-left))
@@ -807,12 +876,11 @@
 	(setq width (- (abs width))))
       (when (>= to-top from-top)
 	(setq height (- (abs height))))
-      (with-sheet-medium (medium from-sheet)
-	(let ((window (slot-value medium 'window)))
-	  (scl:send window :bitblt-within-sheet
-			   tv:alu-seta width height
-			   from-left from-top
-			   to-left to-top))))))
+      (let ((window (slot-value from-medium 'window)))
+	(scl:send window :bitblt-within-sheet
+			 tv:alu-seta width height
+			 from-left from-top
+			 to-left to-top)))))
 
 
 #||

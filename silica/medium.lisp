@@ -1,40 +1,36 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: medium.lisp,v 1.15 92/06/02 13:30:44 cer Exp Locker: cer $
+;; $fiHeader: medium.lisp,v 1.16 92/06/16 15:01:16 cer Exp $
 
 (in-package :silica)
 
 "Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved.
  Portions copyright (c) 1991, 1992 Franz, Inc.  All rights reserved."
 
-(defmethod engraft-medium ((medium medium) port sheet)
+(defmethod engraft-medium ((medium basic-medium) port sheet)
   (declare (ignore sheet port))
   nil)
 
-(defmethod degraft-medium ((medium medium) port sheet)
+(defmethod degraft-medium ((medium basic-medium) port sheet)
   (declare (ignore sheet port))
   nil)
-
 
 (defmethod invoke-with-sheet-medium ((sheet sheet) continuation)
   (let ((medium (sheet-medium sheet)))
     (if medium
 	(funcall continuation medium)
-      (with-temporary-medium (medium sheet)
-	(with-sheet-medium-bound (sheet medium)
-	  (funcall continuation medium))))))
+	(with-temporary-medium (medium sheet)
+	  (with-sheet-medium-bound (sheet medium)
+	    (funcall continuation medium))))))
 
 ;; Special-case the one we know is going to work all the time
-;;--- Not.
-
 (defmethod invoke-with-sheet-medium ((sheet permanent-medium-sheet-output-mixin) continuation)
   (let ((medium (slot-value sheet 'medium)))
     (if medium 
 	(funcall continuation medium)
-      ;;-- Gadgets require a medium when they are being realized. This
-      ;;-- is so they can decode their foreground/background etc etc.
-      ;;-- At this point they do not have medium so we need to get one.
-      (call-next-method))))
+	;; Some gadgets won't have a medium while they are being created.
+	;; Go get one now so that foreground/background can be decoded, etc.
+	(call-next-method))))
 
 ;;--- Use DEFOPERATION
 (defmethod invoke-with-sheet-medium ((x standard-encapsulating-stream) continuation)
@@ -110,8 +106,8 @@
       ;; Cache the common case when only :DASHES and :THICKNESS are provided
       (svref (if dashes +dashed-line-styles+ +undashed-line-styles+) thickness)
       (make-instance 'standard-line-style
-		     :unit unit :thickness thickness :dashes dashes
-		     :joint-shape joint-shape :cap-shape cap-shape)))
+	:unit unit :thickness thickness :dashes dashes
+	:joint-shape joint-shape :cap-shape cap-shape)))
 
 (defun make-line-style (&key (unit :normal) (thickness 1) (dashes nil)
 			     (joint-shape :miter) (cap-shape :butt))
@@ -136,26 +132,24 @@
 
 ;;--- CLIM 1.0 had this stuff that frobbed the clipping region.  Is it right?
 #+++ignore
-(defmethod medium-clipping-region ((medium medium))
+(defmethod medium-clipping-region ((medium basic-medium))
   (with-slots (transformation transformed-clipping-region) medium
     (untransform-region transformation transformed-clipping-region)))
 
 #+++ignore
-(defmethod (setf medium-clipping-region) (clipping-region (medium medium))
+(defmethod (setf medium-clipping-region) (clipping-region (medium basic-medium))
   (with-slots (transformation transformed-clipping-region) medium
     (setf transformed-clipping-region (transform-region transformation clipping-region)))
   clipping-region)
 
-(defmacro with-medium-clipping-region ((medium new-region) &body body)
+(defmacro with-medium-clipping-region ((medium region) &body body)
   `(flet ((with-medium-clipping-region-body (,medium) ,@body))
      (declare (dynamic-extent #'with-medium-clipping-region-body))
-     (invoke-with-medium-clipping-region ,medium
-					 #'with-medium-clipping-region-body
-					 ,new-region)))
+     (invoke-with-medium-clipping-region 
+       ,medium #'with-medium-clipping-region-body ,region)))
 
-(defmethod invoke-with-medium-clipping-region ((medium medium)
-					       continuation
-					       region)
+(defmethod invoke-with-medium-clipping-region 
+	   ((medium basic-medium) continuation region)
   (let ((saved-region (medium-clipping-region medium)))
     (unwind-protect
 	(progn
@@ -163,10 +157,13 @@
 	  (funcall continuation medium))
       (setf (medium-clipping-region medium) saved-region))))
 
+(defmethod invalidate-cached-regions ((medium basic-medium)) nil)
+(defmethod invalidate-cached-transformations ((medium basic-medium)) nil)
+
 ;; NOTE: if you change the keyword arguments accepted by this method, you
 ;; also have to change the list of keywords in *ALL-DRAWING-OPTIONS*
 (defmethod invoke-with-drawing-options
-	   ((medium medium) continuation
+	   ((medium basic-medium) continuation
 	    &key ink clipping-region transformation
 		 line-style line-unit line-thickness (line-dashes nil dashes-p)
 		 line-joint-shape line-cap-shape
@@ -231,6 +228,7 @@
   (push medium (port-medium-cache port)))
 
 
+
 ;; Make sheets do the medium protocol
 
 (defprotocol medium-protocol ()
@@ -252,11 +250,11 @@
    (merged-text-style :accessor medium-merged-text-style)))
 
 
-(defmethod (setf medium-default-text-style) :before (new (stream medium))
+(defmethod (setf medium-default-text-style) :before (new (medium basic-medium))
   (declare (ignore new))
-  (setf (medium-merged-text-style-valid stream) nil))
+  (setf (medium-merged-text-style-valid medium) nil))
 
-(defmethod medium-merged-text-style ((medium medium))
+(defmethod medium-merged-text-style ((medium basic-medium))
   (with-slots (text-style default-text-style
 	       merged-text-style merged-text-style-valid) medium
     (if merged-text-style-valid
@@ -265,34 +263,34 @@
 	  (setf merged-text-style (merge-text-styles text-style default-text-style))
 	  (setf merged-text-style-valid t)))))
 
-(defmacro with-text-style ((stream style) &body body)
-  (default-output-stream stream with-text-style)
-  `(flet ((with-text-style-body (,stream) ,@body))
+(defmacro with-text-style ((medium style) &body body)
+  (default-output-stream medium with-text-style)
+  `(flet ((with-text-style-body (,medium) ,@body))
      (declare (dynamic-extent #'with-text-style-body))
-     (invoke-with-text-style ,stream #'with-text-style-body ,style
-			     ,stream)))
+     (invoke-with-text-style ,medium #'with-text-style-body ,style
+			     ,medium)))
 
-(defmacro with-text-family ((stream family) &body body)
-  `(with-text-style (,stream (make-text-style ,family nil nil)) ,@body))
+(defmacro with-text-family ((medium family) &body body)
+  `(with-text-style (,medium (make-text-style ,family nil nil)) ,@body))
 
-(defmacro with-text-face ((stream face) &body body)
-  `(with-text-style (,stream (make-text-style nil ,face nil)) ,@body))
+(defmacro with-text-face ((medium face) &body body)
+  `(with-text-style (,medium (make-text-style nil ,face nil)) ,@body))
 
-(defmacro with-text-size ((stream size) &body body)
-  `(with-text-style (,stream (make-text-style nil nil ,size)) ,@body))
+(defmacro with-text-size ((medium size) &body body)
+  `(with-text-style (,medium (make-text-style nil nil ,size)) ,@body))
 
 (defoperation invoke-with-text-style medium-protocol 
-  ((stream medium) style continuation original-stream))
+  ((medium medium) style continuation original-stream))
 	      
-(defmethod invoke-with-text-style ((stream medium)
+(defmethod invoke-with-text-style ((medium basic-medium)
 				   continuation style original-stream)
   (if (or (null style) (eq style *null-text-style*))
       (funcall continuation original-stream)
-      (letf-globally (((medium-merged-text-style-valid stream) nil)
-		      ((slot-value stream 'merged-text-style)
-		       (slot-value stream 'merged-text-style))
-		      ((medium-text-style stream)
-		       (merge-text-styles style (medium-text-style stream))))
+      (letf-globally (((medium-merged-text-style-valid medium) nil)
+		      ((slot-value medium 'merged-text-style)
+		       (slot-value medium 'merged-text-style))
+		      ((medium-text-style medium)
+		       (merge-text-styles style (medium-text-style medium))))
 	(funcall continuation original-stream))))
 
 (defmethod invoke-with-text-style ((stream standard-encapsulating-stream)
@@ -306,17 +304,40 @@
   (funcall continuation original-stream))
 
 
-(defmethod graft ((medium medium))
+(defmethod graft ((medium basic-medium))
   (graft (medium-sheet medium)))
 
-(defmethod port ((medium medium))
+(defmethod port ((medium basic-medium))
   (port (medium-sheet medium)))
 
-(defmethod invalidate-cached-regions ((medium medium)) nil)
-(defmethod invalidate-cached-transformations ((medium medium)) nil)
+
+(defoperation text-style-height medium-protocol
+  (text-style (medium medium))
+  (:no-defgeneric t))
+
+(defoperation text-style-width medium-protocol
+  (text-style (medium medium))
+  (:no-defgeneric t))
+
+(defoperation text-style-ascent medium-protocol
+  (text-style (medium medium))
+  (:no-defgeneric t))
+
+(defoperation text-style-descent medium-protocol
+  (text-style (medium medium))
+  (:no-defgeneric t))
+
+(defoperation text-style-fixed-width-p medium-protocol
+  (text-style (medium medium))
+  (:no-defgeneric t))
+
+(defoperation text-size medium-protocol
+  ((medium medium) string &key text-style start end)
+  (declare (values largest-x total-height last-x last-y baseline))
+  (:no-defgeneric t))
+
 
 ;; Generate the sheet->medium trampolines now
 (generate-trampolines medium-protocol medium standard-sheet-output-mixin
 		      `(sheet-medium ,standard-sheet-output-mixin))
-
 

@@ -1,11 +1,15 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLX-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clx-mirror.lisp,v 1.4 92/04/15 11:45:54 cer Exp $
+;; $fiHeader: clx-mirror.lisp,v 1.5 92/05/22 19:27:32 cer Exp $
 
 (in-package :clx-clim)
 
 "Copyright (c) 1992 Symbolics, Inc.  All rights reserved.
  Portions copyright (c) 1991, 1992 International Lisp Associates."
+
+
+;;--- This isn't really right, figure out what to do
+#-Genera (defmethod sheet-shell (sheet) sheet)
 
 
 (defmethod realize-mirror ((port clx-port) sheet)
@@ -37,7 +41,7 @@
 (defmethod destroy-mirror ((port clx-port) sheet)
   (ignore-errors			
     (xlib:destroy-window (sheet-mirror sheet))
-    (port-force-output port)))
+    (xlib:display-force-output (port-display port))))
 
 (defmethod enable-mirror ((port clx-port) sheet)
   (let ((mirror (sheet-mirror sheet)))
@@ -50,19 +54,19 @@
   (let ((mirror (sheet-mirror sheet)))
     (with-slots (display) port
       (xlib:unmap-window mirror)
-      (port-force-output port))))
+      (xlib:display-force-output (port-display port)))))
 
 ;;--- Is this the same as WINDOW-STACK-ON-TOP?
 (defmethod raise-mirror ((port clx-port) (sheet mirrored-sheet-mixin))
   (let ((window (sheet-mirror sheet)))
     (setf (xlib:window-priority window) :above)
-    (port-force-output port)))
+    (xlib:display-force-output (port-display port))))
 
 ;;--- Is this the same as WINDOW-STACK-ON-BOTTOM?
 (defmethod bury-mirror ((port clx-port) (sheet mirrored-sheet-mixin))
   (let ((window (sheet-mirror sheet)))
     (setf (xlib:window-priority window) :below)
-    (port-force-output port)))
+    (xlib:display-force-output (port-display port))))
 
 (defmethod realize-graft ((port clx-port) graft)
   (with-slots (silica::pixels-per-point silica::pixel-width silica::pixel-height
@@ -98,6 +102,7 @@
   (multiple-value-call #'make-bounding-rectangle
     (mirror-region* port sheet)))
 
+#+ignore	;--- nobody seems to use this
 (defmethod clx-mirror-native-edges* ((port clx-port) sheet &optional mirror)
   (let ((mirror (or mirror (sheet-mirror sheet))))
     (multiple-value-bind (width height)
@@ -150,12 +155,26 @@
 	    (xlib:drawable-y mirror) y
 	    (xlib:drawable-width mirror) w
 	    (xlib:drawable-height mirror) h))
-    (port-force-output port)))
+    (xlib:display-force-output (port-display port))))
 
 
+;; Chords aren't supported yet
+(defmacro x-button-code-to-event-button (x-code)
+  `(case ,x-code
+     (1 256)
+     (2 512)
+     (3 1024)))
+
+(defmacro x-button-code-to-event-button (x-code)
+  `(case ,x-code
+     (1 256)
+     (2 512)
+     (3 1024)))
+
 (defmethod process-next-event ((port clx-port)
 			       &key (timeout nil) (wait-function nil)
 				    (state "X Event"))
+  ;; In LCL compiling with this higher safety will add fatal type-checking.
   (declare (optimize (speed 3) (safety 0) (compilation-speed 0)))
   (let ((display (port-display port)))
     (multiple-value-bind (nevents outcome) 
@@ -166,52 +185,54 @@
 				  :timeout nil)
 	  ;; Device Events
 	  ((:motion-notify :enter-notify :leave-notify)
-	   (event-window time) 
-	   (multiple-value-bind (x y same-screen-p child state)
+	   (event-window) 
+	   (multiple-value-bind (x y same-screen-p child state root-x root-y)
 	       (xlib:query-pointer event-window)
 	     (declare (ignore same-screen-p child))
-	     (let ((event-key :pointer-motion)
-		   (sheet (mirror->sheet port event-window)))
+
+	     (let ((sheet (mirror->sheet port event-window))
+		   (modifier-state (state-mask->modifier-state state display)))
 	       (distribute-event
-		 (port sheet)
+		 port				;(EQ PORT (PORT-SHEET)) ==> T
 		 (make-instance 'pointer-motion-event
-				:x mouse-x
-				:y mouse-y
-				:native-x native-x
-				:native-y native-y
-				:button nil	;--- fill this in
-				:modifiers (current-modifier-state
-					     (make-state-from-buttons mouse-buttons)
-					     (tv:sheet-mouse mouse-window))
-				:pointer (port-pointer port)
-				:sheet sheet)))
+		   :x x
+		   :y y
+		   :native-x root-x
+		   :native-y root-y
+		   :button nil			;--- fill this in
+		   :modifiers modifier-state
+		   :pointer (port-pointer port)
+		   :sheet sheet)))
 	     t))
 	  ((:button-press :button-release) 
-	   (event-key event-window x y state time code)
-	   (let ((sheet (mirror->sheet port event-window))
-		 click-type)
-	     (distribute-event
-	       (port sheet)
-	       (make-instance (if (eq event-key :button-press)
-				  'pointer-button-press-event
-				  'pointer-button-release-event)
-			      :x mouse-x
-			      :y mouse-y
-			      :native-x native-x
-			      :native-y native-y
-			      :button button
-			      :modifiers (current-modifier-state
-					   0 (tv:sheet-mouse window))
-			      :pointer (port-pointer port)
-			      :sheet sheet))
+	   (event-key event-window code)
+	   (multiple-value-bind (x y same-screen-p child state root-x root-y)
+	       (xlib:query-pointer event-window)
+	     (declare (ignore same-screen-p child))
+	     (let ((sheet (mirror->sheet port event-window))
+		   (modifier-state (state-mask->modifier-state state display)))
+	       (distribute-event
+		 port 
+		 (make-instance (if (eq event-key :button-press)
+				    'pointer-button-press-event
+				    'pointer-button-release-event)
+		   :x x
+		   :y y
+		   :native-x root-x
+		   :native-y root-y
+		   :button (x-button-code-to-event-button code)
+		   :modifiers modifier-state
+		   :pointer (port-pointer port)
+		   :sheet sheet)))
 	     t))
 	  ((:key-press :key-release)
-	   (event-key event-window x y state time code)
+	   (event-key event-window x y state code)
 	   (let* ((keysym (clx-keysym->keysym
 			    (xlib:keycode->keysym 
 			      display code
 			      (xlib:default-keysym-index display code state))))
-		  (modifier-state (state->modifier-state state))
+		  (sheet (mirror->sheet port event-window))
+		  (modifier-state (state-mask->modifier-state state display))
 		  ;; Canonicalize the only interesting key right here.
 		  ;; If we get a key labelled "Return", we canonicalize it
 		  ;; into #\Newline.
@@ -219,31 +240,36 @@
 		  ;; in the short run.
 		  (char (cond ((and (eq keysym ':return)
 				    (or (zerop modifier-state)
-					(= modifier-state (make-modifier-state :shift))))
+					(= modifier-state #.(make-modifier-state :shift))))
 			       #\Newline)
 			      (t (xlib:keycode->character display code state)))))
-	     (distribute-event
-	       (port sheet)
-	       (make-instance (if (eq event-key :key-press)
-				  'key-press-event
-				  'key-release-event)
-			      :key-name keysym
-			      :character char
-			      :modifiers (current-modifier-state
-					   0 (tv:sheet-mouse window))
-			      :sheet sheet))
+	     (when (characterp char)
+	       (distribute-event
+		 port
+		 (make-instance (if (eq event-key :key-press)
+				    'key-press-event
+				    'key-release-event)
+		   :key-name keysym
+		   :character char
+		   :modifiers modifier-state
+		   :sheet sheet)))
 	     t))
 	  ;; window oriented events.
-	  (:exposure (event-window x y width height)
+	  ((:exposure :graphics-exposure)
+	   (event-window x y width height)
 	   (let ((sheet (mirror->sheet port event-window)))
 	     (when sheet
 	       (multiple-value-bind (min-x min-y max-x max-y)
 		   (untransform-rectangle*
 		     (sheet-native-transformation sheet) 
 		     x y (+ x width) (+ y height))
-		 (queue-repaint sheet
-				(make-rectangle* min-x min-y max-x max-y)))))
-	   t)
+		 (queue-repaint
+		   sheet
+		   (make-instance 'window-repaint-event
+		     :native-region (sheet-native-region sheet)
+		     :region (make-bounding-rectangle min-x min-y max-x max-y)
+		     :sheet sheet))))
+	     t))
 	  (:map-notify (event-window)
 	   (let ((sheet (mirror->sheet port event-window)))
 	     (when sheet 
@@ -267,5 +293,21 @@
 	   t)
 	  ((:reparent-notify :no-exposure ) () 
 	   t)
-	  (otherwise (event-key)
+	  
+	  (:client-message (type data event-window)
+	   (case type
+	     (:wm_protocols
+	       (let ((atom (xlib:atom-name x-display (aref data 0))))
+		 (case atom
+		   (:wm_delete_window
+		     (let* ((sheet (mirror->sheet port event-window))
+			    (frame (pane-frame sheet)))
+		       (if frame
+			   (disown-frame (frame-manager frame) frame)
+			   (format *error-output*
+			       "CLX delete window message for non-frame sheet ~S"
+			     sheet))))
+		   (t (format *error-output*
+			  "Unknown CLX ~S client message data ~S"
+			':wm_protocols atom))))))
 	   t))))))

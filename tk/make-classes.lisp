@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: make-classes.lisp,v 1.20 92/06/16 19:10:50 cer Exp Locker: cer $
+;; $fiHeader: make-classes.lisp,v 1.21 92/06/23 08:19:08 cer Exp $
 
 (in-package :tk)
 
@@ -130,7 +130,6 @@
   (get-resource-list-internal class #'xt_get_constraint_resource_list
 			      'constraint-resource))
 
-
 
 (defclass xt-root-class (display-object)
   ((events :initform nil :accessor widget-event-handler-data)
@@ -173,7 +172,7 @@
 
 (defclass resource (basic-resource)
   ())
-
+			 
 (defclass constraint-resource (basic-resource)
   ())
 
@@ -262,9 +261,9 @@
   (let ((*error-output* excl:*initial-terminal-io*))
     (warn "toolkit warning: ~a" (char*-to-string message))))
 
+
 ;; This is a terrible hack used to compensate for bugs/inconsistencies
 ;; in the XM and OLIT toolkits.
-
 (defun add-resource-to-class (class resource)
   (clos::map-over-subclasses
    #'(lambda (c)

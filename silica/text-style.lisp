@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: text-style.lisp,v 1.6 92/03/10 10:11:44 cer Exp $
+;; $fiHeader: text-style.lisp,v 1.7 92/05/07 13:11:33 cer Exp $
 
 (in-package :silica)
 
@@ -142,8 +142,9 @@
 	  (return-from make-text-style new-style))))))
 
 (defmethod text-style-index ((text-style standard-text-style))
-  (with-slots (index) text-style
-    (when index (return-from text-style-index index))
+  (let ((index (slot-value text-style 'index)))
+    (when index 
+      (return-from text-style-index index))
     (let* ((new-index (with-lock-held (*text-style-lock* "Text style lock")
 			(prog1 *next-text-style-index*
 			       (incf *next-text-style-index*)))))
@@ -151,7 +152,7 @@
 	(error "Too many text style indices; can't assign an index to ~A"
 	       text-style))
       (setf (aref *text-style-index-table* new-index) text-style)
-      (setf index new-index))))
+      (setf (slot-value text-style 'index) new-index))))
 
 (defvar *valid-text-style-sizes*
 	'(:tiny :very-small :small :normal :large :very-large :huge))
@@ -452,8 +453,9 @@
 (defgeneric text-style-ascent (text-style medium))
 (defgeneric text-style-descent (text-style medium))
 (defgeneric text-style-fixed-width-p (text-style medium))
+(defgeneric text-size (medium string &key text-style start end))
 
-(defmethod text-size (medium string
+(defmethod text-size ((medium basic-medium) string
 		      &key (text-style (medium-merged-text-style medium)) (start 0) end)
   (when (characterp string)
     (setq string (string string)
@@ -488,11 +490,10 @@
 ) ;;; End of #+Genera
 
 
-;; See SHEET-GRAPHICS-IMPLEMENTATION for an example of its use...
 (defmacro define-display-device (name class &key font-for-undefined-style)
   `(defvar ,name (make-instance ',class 
-				:name ',name
-				:font-for-undefined-style ',font-for-undefined-style)))
+		   :name ',name
+		   :font-for-undefined-style ',font-for-undefined-style)))
 
 ;;; [ 1/4/90 naha -- determined by reading DEFINE-TEXT-STYLE-MAPPINGS-1]
 ;;; each element of SPECS can be one of
@@ -502,10 +503,10 @@
 ;;;     `(:size ,size ,specs)           ==> recurse on specs for specified size
 ;;;     the name of a font to map the specified text style to.
 
-(defmacro define-text-style-mappings (device character-set &body specs)
-  `(define-text-style-mappings-1 ,device ,character-set ',specs))
+(defmacro define-text-style-mappings (port character-set &body specs)
+  `(define-text-style-mappings-1 ,port ,character-set ',specs))
 
-(defun define-text-style-mappings-1 (device character-set specs)
+(defun define-text-style-mappings-1 (port character-set specs)
   (labels ((load-specs (family face size specs)
 	     (when (and (consp specs) (eq (first specs) :style))
 	       (setf specs (apply #'make-text-style (rest specs))))
@@ -523,7 +524,7 @@
 		   (load-specs family face size rest))
 		 (if (and family face size)
 		     (setf (text-style-mapping 
-			     device (make-text-style family face size) character-set)
+			     port (make-text-style family face size) character-set)
 			   specs)
 		     (error "Can't do [~A.~A.~A]" family face size)))))
     (dolist (spec specs)
@@ -544,16 +545,16 @@
 ;      font-for-undefined-style)))
 
 (defmethod (setf text-style-mapping)
-	   (mapping (device port) style 
+	   (mapping (port basic-port) style 
 	    &optional (character-set *standard-character-set*) window)
   (declare (ignore window))
-  (setq style (standardize-text-style device style character-set))
+  (setq style (standardize-text-style port style character-set))
   (when (listp mapping)
     (assert (eq (first mapping) :style) ()
 	    "Text style mappings must be atomic font names ~
 	     or (:STYLE . (family face size))")
     (setf mapping (parse-text-style (cdr mapping))))
-  (with-slots (mapping-table allow-loose-text-style-size-mapping) device
+  (with-slots (mapping-table allow-loose-text-style-size-mapping) port
     (if allow-loose-text-style-size-mapping
 	(multiple-value-bind (family face size) (text-style-components style)
 	  (declare (ignore size))
@@ -578,49 +579,49 @@
 
 ;;; This is broken up into two methods so any :AROUND method will only
 ;;; be called on the outermost recursion.
-(defmethod text-style-mapping ((device port) style
+(defmethod text-style-mapping ((port basic-port) style
 			       &optional (character-set *standard-character-set*) window)
-  (text-style-mapping* device style character-set window))
+  (text-style-mapping* port style character-set window))
 
-(defmethod text-style-mapping ((device port) (style device-font) 
+(defmethod text-style-mapping ((port basic-port) (style device-font) 
 			       &optional (character-set *standard-character-set*) window)
   (declare (ignore character-set window))
   ;;--- What about character-set when using device fonts?
   ;;--- EQL? TYPE-EQUAL?  This is too restrictive as it stands
-  (unless (eq device (device-font-display-device style))
-    (error "An attempt was made to map device font ~S on device ~S, ~@
-	    but it is defined for device ~S"
-	   style device (device-font-display-device style)))
+  (unless (eq port (device-font-display-device style))
+    (error "An attempt was made to map device font ~S on port ~S, ~@
+	    but it is defined for the port ~S"
+	   style port (device-font-display-device style)))
   (device-font-name style))
 
-(defmethod text-style-mapping* ((device port) style 
+(defmethod text-style-mapping* ((port basic-port) style 
 				&optional (character-set *standard-character-set*) window)
-  (setq style (standardize-text-style device (parse-text-style style) character-set))
-  (let* ((loose (slot-value device 'allow-loose-text-style-size-mapping))
-	 (mapping-table (slot-value device 'mapping-table))
+  (setq style (standardize-text-style port (parse-text-style style) character-set))
+  (let* ((loose (slot-value port 'allow-loose-text-style-size-mapping))
+	 (mapping-table (slot-value port 'mapping-table))
 	 (result 
 	   (or (if loose
 		   (lookup-closest-font style mapping-table)
 		   (gethash style mapping-table))
 	       (if loose
-		   (lookup-closest-font (port-undefined-text-style device) mapping-table)
-		   (gethash (port-undefined-text-style device) mapping-table)))))
+		   (lookup-closest-font (port-undefined-text-style port) mapping-table)
+		   (gethash (port-undefined-text-style port) mapping-table)))))
     (when (text-style-p result)			;logical translations
-      (setf result (text-style-mapping* device result character-set window)))
+      (setf result (text-style-mapping* port result character-set window)))
     result))
 
-(defmethod text-style-mapping-exists-p ((device port) style 
+(defmethod text-style-mapping-exists-p ((port basic-port) style 
 					&optional (character-set *standard-character-set*)
 						  exact-size-required)
-  (setq style (standardize-text-style device (parse-text-style style) character-set))
-  (let* ((loose (slot-value device 'allow-loose-text-style-size-mapping))
-	 (mapping-table (slot-value device 'mapping-table))
+  (setq style (standardize-text-style port (parse-text-style style) character-set))
+  (let* ((loose (slot-value port 'allow-loose-text-style-size-mapping))
+	 (mapping-table (slot-value port 'mapping-table))
 	 (result (if loose
 		     (lookup-closest-font style mapping-table exact-size-required)
 		     (gethash style mapping-table))))
     (cond ((null result) nil)
-	  ((typep result 'text-style)	; logical translations
-	   (text-style-mapping-exists-p device style character-set))
+	  ((typep result 'text-style)	;logical translations
+	   (text-style-mapping-exists-p port style character-set))
 	  (t t))))
 
 (defun lookup-closest-font (style mapping-table &optional exact-size-required)
@@ -647,7 +648,7 @@
 
 ;; This method allows the device to convert logical sizes into point
 ;; sizes, etc.  The default method doesn't do much of anything.
-(defmethod standardize-text-style ((device port) style 
+(defmethod standardize-text-style ((port basic-port) style 
 				   &optional (character-set *standard-character-set*))
   (declare (ignore character-set))
   (unless (numberp (text-style-size style))
@@ -657,7 +658,7 @@
 (defun standardize-text-style-error (style)
   (if (fully-merged-text-style-p style)
       (cerror "Use the undefined text style stand-in instead"
-	      "The size component of ~S is not numeric.  This display-device does not know ~
+	      "The size component of ~S is not numeric.  This port does not know ~
 	       how to map logical text style sizes"
 	      style)
       (cerror "Use the undefined text style stand-in instead"
@@ -666,8 +667,8 @@
   *undefined-text-style*)
 
 ;; For use by more specific STANDARDIZE-TEXT-STYLE methods
-(defun-inline standardize-text-style-1 (display-device style character-set size-alist)
-  (declare (ignore display-device character-set))
+(defun-inline standardize-text-style-1 (port style character-set size-alist)
+  (declare (ignore port character-set))
   (let ((size (text-style-size style)))
     (if (numberp size)
 	style

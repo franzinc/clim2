@@ -1,4 +1,4 @@
-; -*- mode: common-lisp; package: tk -*-
+;; -*- mode: common-lisp; package: tk -*-
 ;;
 ;;				-[]-
 ;; 
@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: resources.lisp,v 1.25 92/06/23 08:19:17 cer Exp Locker: cer $
+;; $fiHeader: resources.lisp,v 1.26 92/06/29 14:04:22 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -36,16 +36,15 @@
        (declare (ignore parent))
        (elt ',elements value))))
 
+
 (defmethod convert-resource-in (class type value)
+  (declare (ignore class))
   (cerror "Try again" "cannot convert-in resource for ~S,~S,~S" class type value)
   (convert-resource-in class type value))
-
-
 
 (defconstant xm_string_default_char_set "")
 
 (defmethod convert-resource-in (class (type (eql 'xm-string)) value)
-  (declare (ignore class))
   (and (not (zerop value))
        (with-ref-par ((string 0))
 	 ;;--- I think we need to read the book about
@@ -53,7 +52,6 @@
 	 ;;-- segment strings
 	 (xm_string_get_l_to_r value xm_string_default_char_set string)
 	 (char*-to-string (aref string 0)))))
-
 
 (define-enumerated-resource separator-type (:no-line 
 					    :single-line
@@ -63,12 +61,15 @@
 					    :shadow-etched-in
 					    :shadow-etched-out))
 
+
 (define-enumerated-resource scrolling-policy (:automatic :application-defined))
+
 
 (define-enumerated-resource dialog-style (:modeless
 					  :primary-application-modal
 					  :full-application-modal
 					  :system-modal))
+
 
 (define-enumerated-resource resize-policy (:none :grow :any))
 
@@ -92,6 +93,8 @@
 (define-enumerated-resource selection-policy (:single-select 
 					      :multiple-select 
 					      :extended-select :browse-select))
+
+
 ;; from OpenLook.h
 
 (defparameter *ol-defines* '(
@@ -256,6 +259,7 @@
   (declare (ignore parent))
   (or (second (find value *ol-defines* :key #'first))
       (call-next-method)))
+  
 
 
 
@@ -392,7 +396,7 @@
     (int nil)
     (function nil)
     (t t)))
-  
+
 (defmethod resource-type-get-memref-type (type)
   (case type
     (short :signed-word)
@@ -412,7 +416,6 @@
     (t :unsigned-long)))
 
 
-
 (defun fill-gv-cache (parent-class class resources)
   (setq resources (copy-list resources)) ; So get-values can declare dynamic-extent
   (let* ((len (length resources))
@@ -559,10 +562,12 @@
   x)
 
 ;;; Accelerator table stuff
+
 (defmethod convert-resource-out (parent (type (eql 'xt::accelerator-table))
 				(value (eql nil)))
   (declare (ignore parent))
   0)
+
 
 
 

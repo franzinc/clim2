@@ -15,10 +15,10 @@
 ;; contained herein by any agency, department or entity of the U.S.
 ;; Government are subject to restrictions of Restricted Rights for
 ;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
+;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-frames.lisp,v 1.20 92/06/16 15:02:20 cer Exp Locker: cer $
+;; $fiHeader: xm-frames.lisp,v 1.21 92/06/23 08:20:13 cer Exp $
 
 (in-package :xm-silica)
 
@@ -43,6 +43,8 @@
       :wm-delete-window
       'frame-wm-protocol-callback
       frame)))
+
+;;; Definitions of the individual classes
 
 (defclass motif-menu-bar (xt-leaf-pane) 
 	  ((command-table :initarg :command-table)))
@@ -201,18 +203,8 @@
 (defmethod frame-manager-dialog-view ((framem motif-frame-manager))
   +gadget-dialog-view+)
   
-;;--- If the command button is visible, right now since everything is
-;;--- in a menu we do not have a problem with this.
 
-;;--- Should "ungray" the command button, if there is one
-(defmethod note-command-enabled ((framem motif-frame-manager) frame command)
-  (declare (ignore frame command)))
-
-;;--- Should "gray" the command button, if there is one
-(defmethod note-command-disabled ((framem motif-frame-manager) frame command)
-  (declare (ignore frame command)))
-
-(defmethod silica::update-frame-settings ((framem motif-frame-manager) (frame t))
+(defmethod update-frame-settings ((framem motif-frame-manager) (frame t))
   ;;--- Lets see how this works out
   (let ((shell (sheet-shell (frame-top-level-sheet frame))))
     (let ((sr (compose-space (frame-top-level-sheet frame))))
@@ -332,7 +324,7 @@
 						 :label-string (string
 								(menu-item-display item))))
 			      (:item
-			       (if (clim-internals::menu-item-item-list item)
+			       (if (clim-internals::menu-item-items item)
 				   (let* ((submenu (make-instance
 						    'tk::xm-pulldown-menu
 						    :managed nil
@@ -345,7 +337,7 @@
 				     (declare (ignore menu-button))
 				     (construct-menu-from-items 
 				      submenu 
-				      (clim-internals::menu-item-item-list item)))
+				      (clim-internals::menu-item-items item)))
 				 (let ((menu-button
 					(make-menu-button item 
 							  'tk::xm-push-button
@@ -387,3 +379,4 @@
 
 (defmethod framem-menu-active-p ((framem motif-frame-manager) menu)
   (tk::is-managed-p menu))
+

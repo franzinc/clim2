@@ -19,27 +19,34 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: test.lisp,v 1.31 92/06/23 08:19:56 cer Exp Locker: cer $
+;; $fiHeader: test.lisp,v 1.32 92/06/29 14:04:56 cer Exp Locker: cer $
 
 (in-package :clim-user)
 
 ;;; Simple little frame
 
-
-
 (define-application-frame test-frame () ()
   (:pane 
     (vertically ()
-      (clim-internals::make-clim-interactor-pane
-	 :foreground +green+
-	 :background +red+)
+      (make-clim-interactor-pane
+	:foreground +green+
+	:background +red+)
       (make-pane 'push-button
         :label "press me"
 	:background +black+
 	:foreground +purple+
 	:text-style (make-text-style :serif :roman 20)))))
 
+
 ;;; Some commands
+
+(define-test-frame-command (com-make-table :name t :menu t) ()
+  (formatting-table (*query-io*)
+    (dotimes (i 10)
+      (formatting-row (*query-io*)
+	(dotimes (j 10)
+	  (formatting-cell (*query-io*)
+	    (present (* i j) 'integer :stream *query-io*)))))))
 
 (define-test-frame-command (com-square-it :name t :menu t)
     ((x 'integer :gesture :select))
@@ -49,37 +56,25 @@
     ((x 'integer :gesture :select))
   (present (+ x x) 'integer :stream *query-io*))
 
-
-(define-test-frame-command (com-clear :name t :menu t)
-    ()
+(define-test-frame-command (com-clear :name t :menu t) ()
   (window-clear *query-io*))
 
-(define-test-frame-command (com-quit :name t :menu ("Quit" :documentation "Word"))
-    ()
+(define-test-frame-command (com-quit :name t :menu ("Quit" :documentation "Word")) ()
   (frame-exit *application-frame*))
 
-(define-test-frame-command (com-make-table :name t :menu t)
-    ()
-  (formatting-table (*query-io*)
-    (dotimes (i 10)
-      (formatting-row (*query-io*)
-	(dotimes (j 10)
-	  (formatting-cell (*query-io*)
-	    (present (* i j) 'integer :stream *query-io*)))))))
-
-(define-test-frame-command (com-show :name t :menu t)
-    ()
+(define-test-frame-command (com-show :name t :menu t) ()
   (terpri *query-io*)
   (display-command-table-menu 
     (frame-command-table *application-frame*) *query-io*
     :move-cursor t)
   (terpri *query-io*))
 
+
 ;;; Simple little frame that specifies an icon
 
 (define-application-frame test-frame0 () ()
   (:command-table test-frame)
-  (:pane (clim-internals::make-clim-interactor-pane))
+  (:pane (make-clim-interactor-pane))
   (:icon :name "foo" 
 	 :pixmap (make-pattern 
 		   (let ((x (make-array '(48 48))))
@@ -94,44 +89,39 @@
 
 ;;; More frames
 
-
-(define-application-frame test-frame4 () 
-  ()
+(define-application-frame test-frame4 () ()
   (:command-table test-frame)
   (:pane 
-   (vertically ()
-       (make-pane 'push-button :label "Press me")
-     (make-pane 'toggle-button)
-     (make-pane 'slider)
-     (make-pane 'text-field)
-     (clim-internals::make-clim-interactor-pane
-      :width 300 :max-width +fill+
-      :height 300 :max-height +fill+))))
+    (vertically ()
+      (make-pane 'push-button :label "Press me")
+      (make-pane 'toggle-button)
+      (make-pane 'slider)
+      (make-pane 'text-field)
+      (make-clim-interactor-pane
+	:width 300 :max-width +fill+
+	:height 300 :max-height +fill+))))
 
-(define-application-frame test-frame5 () 
-  ()
+(define-application-frame test-frame5 () ()
   (:command-table test-frame)
   (:panes
-   (a (horizontally ()
-	  (make-pane 'push-button :label "Press me")
-	(make-pane 'push-button :label "Squeeze me")))
-   (b toggle-button)
-   (c slider)
-   (d text-field)
-   (e :interactor
-      :width 300 :max-width +fill+
-      :height 300 :max-height +fill+))
+    (a (horizontally ()
+	 (make-pane 'push-button :label "Press me")
+	 (make-pane 'push-button :label "Squeeze me")))
+    (b toggle-button)
+    (c slider)
+    (d text-field)
+    (e :interactor
+       :width 300 :max-width +fill+
+       :height 300 :max-height +fill+))
   (:layouts
-   (:default 
-       (vertically ()
-	   a b c e))
-   (:more
-    (vertically ()
-	a e b  d))))
+    (:default 
+      (vertically ()
+	a b c e))
+    (:more
+      (vertically ()
+ 	a e b d))))
 
-
-(define-test-frame-command (com-switch :name t :menu t)
-    ()
+(define-test-frame-command (com-switch :name t :menu t) ()
   (setf (frame-current-layout *application-frame*)
 	(ecase (frame-current-layout *application-frame*)
 	  (:default :more)
@@ -143,25 +133,27 @@
 
 (define-test-frame-command (com-accept :name t :menu t)
     (&key (own-window 'boolean :default nil)
-	  (textual-view 'boolean :default nil))
+	  (view '(member :textual :gadget :default) :default ':default))
   (let ((stream *query-io*)
 	(a t)
 	(b nil)
 	(c :normal)
-	(d 10))
+	(d 10)
+	(e 40.0))
     (accepting-values (stream :own-window own-window)
-      (clim-internals::letf-globally (((stream-default-view stream)
-				       (if textual-view 
-					   +textual-dialog-view+
-					 (stream-default-view stream))))
+      (clim-utils:letf-globally (((stream-default-view stream)
+				  (case view
+				    (:textual +textual-dialog-view+)
+				    (:gadget  +gadget-dialog-view+)
+				    (:default (stream-default-view stream)))))
 	(setq a (accept 'boolean  
 			:stream stream
-			:default a :prompt "a"))
+			:default a :prompt "boolean"))
 	(terpri stream)
 	(unless a
 	  (setq b (accept 'boolean  
 			  :stream stream
-			  :default b :prompt "b"))
+			  :default b :prompt "another boolean"))
 	  (terpri stream))
 	(when a
 	  (setq c (accept '(member :normal :point) :stream stream
@@ -169,14 +161,19 @@
 	  (terpri stream))
 	(setq d (accept '(integer 0 100) 
 			:stream stream
-			:prompt "d" :default d))
+			:prompt "integer" :default d))
+	(terpri stream)
+	(setq e (accept '(real 0 100)
+			:stream stream
+			:prompt "real" :default e
+			:view 'clim-internals::slider-view))
 	(terpri stream)
 	(accept-values-command-button (stream)
 	    "Press me"
 	  (setq a t
 		b nil
 		c :normal))))
-    (format *query-io* "~&Values are ~S ~S ~S ~D" a b c d)))
+    (format *query-io* "~&Values are ~S ~S ~S ~D ~D" a b c d e)))
 
 
 (define-presentation-type some-kinda-gadget ())
@@ -186,47 +183,43 @@
   (write-string "gadget" stream))
 
 (define-test-frame-command (com-make-one :name t :menu t)
-    ((what '(subset :slider :push-button :interactor :radio-box)))
+    ((what '(subset :slider :push-button :interactor :radio-box)
+	   :default '(:slider :push-button :interactor)))
   (let* ((stream *query-io*))
     (when (member :slider what)
       (let ((weird (cons nil nil)))
 	(setf (car weird)
-	  (with-output-as-presentation (stream weird 'some-kinda-gadget)
-	    (surrounding-output-with-border (stream)
-					    (with-output-as-gadget (stream)
-					      (make-pane 'slider)))))))
-    
+	      (with-output-as-presentation (stream weird 'some-kinda-gadget)
+		(surrounding-output-with-border (stream)
+		  (with-output-as-gadget (stream)
+		    (make-pane 'slider)))))))
     (when (member :push-button what)
       (let ((weird (cons nil nil)))
 	(setf (car weird)
-	  (with-output-as-presentation (stream weird 'some-kinda-gadget)
-	    (surrounding-output-with-border (stream)
-					    (with-output-as-gadget (stream)
-					      (make-pane 'push-button
-							 :label "Amazing")))))))
+	      (with-output-as-presentation (stream weird 'some-kinda-gadget)
+		(surrounding-output-with-border (stream)
+		  (with-output-as-gadget (stream)
+		    (make-pane 'push-button
+			       :label "Amazing")))))))
     (when (member :interactor what)
       (let ((weird (cons nil nil)))
 	(setf (car weird)
-	  (with-output-as-presentation (stream weird 'some-kinda-gadget)
-	    (surrounding-output-with-border (stream)
-					    (with-output-as-gadget (stream)
-					      (scrolling ()
-							 (make-pane
-							  'interactor-pane))))))))
+	      (with-output-as-presentation (stream weird 'some-kinda-gadget)
+		(surrounding-output-with-border (stream)
+		  (with-output-as-gadget (stream)
+		    (scrolling ()
+		      (make-pane 'interactor-pane :width 100 :height 40))))))))
     (when (member :radio-box what)
       (let ((weird (cons nil nil)))
 	(setf (car weird)
-	  (with-output-as-presentation (stream weird 'some-kinda-gadget)
-	    (surrounding-output-with-border (stream)
-					    (with-output-as-gadget
-						(stream)
-					      (let ((gadget (make-pane 'radio-box)))
-						(dolist (x '(a b c) gadget)
-						  (make-pane
-						   'toggle-button
-						   :parent gadget
-						   :label (string x))))))))))
-    ))
+	      (with-output-as-presentation (stream weird 'some-kinda-gadget)
+		(surrounding-output-with-border (stream)
+		  (with-output-as-gadget (stream)
+		    (with-radio-box ()
+		      (make-pane 'toggle-button :label "A")
+		      (radio-box-current-selection
+			(make-pane 'toggle-button :label "B"))
+		      (make-pane 'toggle-button :label "C"))))))))))
 
 (define-test-frame-command (com-move-gadget :name t :menu t)
     ((weird 'some-kinda-gadget))
@@ -291,20 +284,30 @@
       (outlining ()
 	(horizontally ()
 	  (make-pane 'toggle-button
-	    :label "T1" 
+	    :label "T1" :width 80 
 	    :value-changed-callback 'toggle-button-callback)
 	  (make-pane 'toggle-button 
-	    :label "T2"
+	    :label "T2" :width 80
 	    :value-changed-callback 'toggle-button-callback)))
       (outlining ()
 	(with-radio-box (:value-changed-callback 'radio-value-changed-callback)
 	  (make-pane 'toggle-button
-	    :label "RT1")
+	    :label "RT1" :width 80)
 	  (radio-box-current-selection
 	    (make-pane 'toggle-button
-	      :label "RT2"))
+	      :label "RT2" :width 80))
 	  (make-pane 'toggle-button
-	    :label "RT3")))
+	    :label "RT3" :width 80)))
+      (outlining ()
+	(with-radio-box (:type :some-of
+			 :value-changed-callback 'radio-value-changed-callback)
+	  (make-pane 'toggle-button
+	    :label "CT1" :width 80)
+	  (radio-box-current-selection
+	    (make-pane 'toggle-button
+	      :label "CT2" :width 80))
+	  (make-pane 'toggle-button
+	    :label "CT3" :width 80)))
       (outlining ()
 	(spacing ()
 	  (make-pane 'slider
@@ -355,6 +358,10 @@
 	  :gesture (nil :menu t)
 	  :prompt "Select an insect"))
   (describe bug))
+
+(define-test-frame-command (com-disable-insect :name t :menu t) ()
+  (setf (command-enabled 'com-describe-insect *application-frame*)
+	(not (command-enabled 'com-describe-insect *application-frame*))))
 
 (clim:define-application-frame tf100 () ()
   (:command-table test-frame)
@@ -514,7 +521,7 @@
     (b :application :width '(50 :mm))
     (c :application :height '(10 :line))
     (d :application :height '(5 :line))
-    (e :interactor :height '( 50 :mm)))
+    (e :interactor :height '(50 :mm)))
   (:layouts
     (:default 
       (vertically ()
@@ -543,7 +550,7 @@
     (b :application :width '(50 :mm))
     (c :application :height '(10 :line))
     (d :application :height '(5 :line))
-    (e :interactor :height '( 50 :mm)))
+    (e :interactor :height '(50 :mm)))
   (:layouts
     (:default 
       (vertically ()
@@ -557,7 +564,7 @@
     (b :application)
     (c :application :height '(10 :line))
     (d :application)
-    (e :interactor :height '( 50 :mm)))
+    (e :interactor :height '(50 :mm)))
   (:layouts
     (:default 
       (vertically ()
@@ -658,6 +665,112 @@
     values))
 
 
+;; This seems to work ok
+
+(define-test-frame-command (com-test-nested-accept :name t :menu t) ()
+  (let ((stream *query-io*))
+    (let ((a 10)
+	  (b 20)
+	  (c 110)
+	  (d 120))
+      (accepting-values (stream)
+	(setq a (accept 'integer :stream stream :prompt "a" :default a))
+	(terpri stream)
+	(setq b (accept 'integer :stream stream :prompt "b" :default b))
+	(terpri stream)
+	(accept-values-command-button (stream)
+	    "Press me"
+	  (restart-case 
+	      (accepting-values (stream  :own-window t :label "inner accept")
+		(setq c (accept 'integer :stream stream :prompt "c" :default c))
+		(terpri stream)
+		(setq d (accept 'integer :stream stream :prompt "d" :default d))
+		(terpri stream))
+	    (abort)
+	    (frame-exit)))))))
+
+(define-application-frame tf101 () ()
+  (:command-table test-frame)
+  (:panes
+    (a :application :height '(10 :line))
+    (b :application :height '(5 :line))
+    (c :interactor))
+  (:layouts
+    (:default
+      (vertically () a b c))
+    (:more
+      (vertically () a b c)
+      (a :height '(5 :line))
+      (b :height '(10 :line)))))
+
+#+Allegro
+(define-application-frame tf102 () ()
+  (:command-table test-frame)
+  (:panes
+    (a :application :height '(10 :line))
+    (b :application :height '(5 :line))
+    (c :interactor)
+    (d :application))
+  (:layouts
+    (:default
+      (vertically ()
+	d
+	(make-pane 'xm-silica::motif-paned-pane
+		   :contents (list a b c))))))
+
+
+#+Allegro
+(define-application-frame tf103 () ()
+  (:command-table test-frame)
+  (:panes
+    (a :application :height '(10 :line))
+    (b :application :height '(5 :line))
+    (c :interactor)
+    (d :application))
+  (:layouts
+    (:default
+      (vertically ()
+	d
+	(make-pane 'xm-silica::motif-rc-pane
+		   :contents (list* a 
+				    b 
+				    c
+				    (let ((r nil))
+				      (dotimes (i 10 (nreverse r))
+					(push 
+					  (make-pane 'push-button
+						     :label (format nil "button ~D" i))
+					  r)))))))))
+
+#+Allegro
+(define-application-frame tf104 () ()
+  (:command-table test-frame)
+  (:panes
+    (a :application :height '(10 :line))
+    (b :application :height '(5 :line))
+    (c :interactor)
+    (d :application))
+  (:layouts
+    (:default
+      (make-pane 'xm-silica::motif-form-pane
+		 :attachments '((0 :left-attachment :form 
+				   :right-attachment :position
+				   :right-position 33
+				   :top-attachment :form
+				   :bottom-attachment :form)
+				(1 :left-attachment :position
+				   :left-position 33
+				   :right-attachment :position
+				   :right-position 66
+				   :top-attachment :form
+				   :bottom-attachment :form)
+				(2 :left-attachment :position
+				   :left-position 66 :right-attachment :form
+				   :top-attachment :form
+				   :bottom-attachment :form))
+		 :contents (list a b c)))))
+
+
 ;; This was from a pkarp mail message
 (defun shift-output-record (stream record dx dy)
   (let ((parent (output-record-parent record)))
@@ -670,116 +783,13 @@
 	(replay-output-record record stream nil x-offset y-offset)
 	(add-output-record record parent)))))
 
+
 (define-test-frame-command (com-shift-gadget :name t :menu t)
     ((weird 'some-kinda-gadget)
      (dx 'integer)
      (dy 'integer))
   (shift-output-record *query-io* (car weird) dx dy))
-
-;; This seems to work ok
-
-(define-test-frame-command (com-test-nested-accept :name t :menu t)
-    ()
-  (let ((stream *query-io*))
-    (let (a b c d)
-      (accepting-values (stream)
-			(setq a (accept 'integer :stream stream :prompt "a" :default a))
-			(terpri stream)
-			(setq b (accept 'integer :stream stream :prompt "b" :default b))
-			(terpri stream)
-			(accept-values-command-button 
-			 (stream)
-			 "Press me"
-			 (restart-case 
-			     (accepting-values (stream  :own-window t :label "inner accept")
-					       (setq c (accept 'integer :stream stream :prompt "c" :default c))
-					       (terpri stream)
-					       (setq d (accept 'integer :stream stream :prompt "d" :default d))
-					       (terpri stream))
-			   (abort)
-			   (frame-exit )))))))
-
-
-(define-application-frame tf101 () ()
-  (:command-table test-frame)
-  (:panes
-   (a :application :height '(10 :line))
-   (b :application :height '(5 :line))
-   (c :interactor))
-  (:layouts
-   (:default
-       (vertically () a b c))
-   (:more
-    (vertically () a b c)
-    (a :height '(5 :line))
-    (b :height '(10 :line)))))
-
-(define-application-frame tf102 () ()
-  (:command-table test-frame)
-  (:panes
-   (a :application :height '(10 :line))
-   (b :application :height '(5 :line))
-   (c :interactor)
-   (d :application))
-  (:layouts
-   (:default
-       (vertically ()
-	   d
-	 (make-pane 'xm-silica::motif-paned-pane
-		    :contents (list a b c))))))
-
-
-(define-application-frame tf103 () ()
-  (:command-table test-frame)
-  (:panes
-   (a :application :height '(10 :line))
-   (b :application :height '(5 :line))
-   (c :interactor)
-   (d :application))
-  (:layouts
-   (:default
-       (vertically ()
-	   d
-	 (make-pane 'xm-silica::motif-rc-pane
-		    :contents (list* a 
-				    b 
-				    c
-				    (let ((r nil))
-				      (dotimes (i 10 (nreverse r))
-					(push 
-					 (make-pane 'push-button
-						    :label (format nil
-								   "button ~D" i))
-					 r)))))))))
-
-(define-application-frame tf104 () ()
-  (:command-table test-frame)
-  (:panes
-   (a :application :height '(10 :line))
-   (b :application :height '(5 :line))
-   (c :interactor)
-   (d :application))
-  (:layouts
-   (:default
-       (make-pane 'xm-silica::motif-form-pane
-		    :attachments '((0 :left-attachment :form 
-				      :right-attachment :position
-				      :right-position 33
-				      :top-attachment :form
-				      :bottom-attachment :form)
-				   (1 :left-attachment :position
-				    :left-position 33
-				    :right-attachment :position
-				    :right-position 66
-				    :top-attachment :form
-				    :bottom-attachment :form)
-				   (2 :left-attachment :position
-				    :left-position 66 :right-attachment :form
-				    :top-attachment :form
-				    :bottom-attachment :form))
-		    :contents (list a b c)))))
-
-;; 
+  
 
 (define-application-frame tf105 () ()
   (:command-table test-frame)
@@ -787,3 +797,93 @@
    (c :interactor :height 200 :width 200))
   (:layouts
    (:default c)))
+
+
+(define-application-frame tf106 () 
+			  ((square-dimension :initform 100)
+			   (draw-circle :initform t)
+			   (draw-square :initform t)
+			   (draw-/-diagonal :initform t)
+			   (draw-\\-diagonal :initform t)
+			   (line-thickness :initform 1)
+			   (line-thickness-units :initform :normal))
+  (:command-table (tf106 :inherit-from (accept-values-pane)))
+  (:panes
+   (d :application 
+      :height :compute
+      :display-function 'display-frame-b)
+   (c :accept-values
+      :height :compute :width :compute
+      :display-function `(accept-values-pane-displayer
+			  :resynchronize-every-pass t
+			  :displayer display-frame-c)))
+  (:layouts
+   (:default (vertically () c d))))
+
+(defun display-frame-b (frame stream &key max-width max-height)
+  (declare (ignore max-width max-height))
+  (window-clear stream)
+  (with-slots (square-dimension 
+	       draw-circle
+	       draw-square
+	       draw-/-diagonal      
+	       draw-\\-diagonal
+	       line-thickness
+	       line-thickness-units) frame
+    (with-room-for-graphics (stream)
+      (let ((radius (/ square-dimension 2)))
+	(with-drawing-options (stream :line-unit line-thickness-units
+				      :line-thickness line-thickness)
+	  (when draw-square
+	    (draw-polygon* stream (list 0 0
+					0 square-dimension
+					square-dimension square-dimension
+					square-dimension 0)
+			   :line-joint-shape :miter
+			   :filled nil))
+	  (when draw-circle
+	    (draw-circle* stream radius radius radius
+			  :filled nil))
+	  (when draw-/-diagonal
+	    (draw-line* stream 0 square-dimension square-dimension 0
+			:line-cap-shape :round))
+	  (when draw-\\-diagonal
+	    (draw-line* stream 0 0 square-dimension square-dimension
+			:line-cap-shape :round)))))))
+      
+(defun display-frame-c (frame stream)
+  (with-slots (square-dimension 
+	       draw-circle
+	       draw-square
+	       draw-/-diagonal      
+	       draw-\\-diagonal
+	       line-thickness
+	       line-thickness-units) frame
+    (setq square-dimension
+      (accept 'number :stream stream
+	      :prompt "Size of square" :default square-dimension))
+    (terpri stream)
+    (setq draw-circle
+      (accept 'boolean :stream stream
+	      :prompt "Draw the circle" :default draw-circle))
+    (terpri stream)
+    (setq draw-square
+      (accept 'boolean :stream stream
+	      :prompt "Draw the square" :default draw-square))
+    (terpri stream)
+    (setq draw-/-diagonal
+      (accept 'boolean :stream stream
+	      :prompt "Draw / diagonal" :default draw-/-diagonal))
+    (terpri stream)
+    (setq draw-\\-diagonal
+      (accept 'boolean :stream stream
+	      :prompt "Draw \\ diagonal" :default draw-\\-diagonal))
+    (terpri stream)
+    (setq line-thickness
+      (accept 'number :stream stream
+	      :prompt "Line thickness" :default line-thickness))
+    (terpri stream)
+    (setq line-thickness-units
+      (accept '(member :normal :point) :stream stream
+	      :prompt "Line style units" :default line-thickness-units))
+    (terpri stream)))

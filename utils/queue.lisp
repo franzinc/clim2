@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: queue.lisp,v 1.2 92/01/31 14:52:46 cer Exp $
+;; $fiHeader: queue.lisp,v 1.3 92/02/24 13:05:52 cer Exp $
 
 ;;;
 ;;; Copyright (c) 1989 by Xerox Corporations.  All rights reserved.
@@ -168,13 +168,15 @@
 (defclass locking-queue (queue)
     ((lock-place :initform (make-lock "a queue lock"))))
   
-(defmacro with-queue-locked (QUEUE &body BODY)
+(define-constructor make-locking-queue queue () )
+
+(defmacro with-queue-locked (queue &body body)
   #+ccl (declare (ignore queue))
   #+ccl `(progn ,@body)
   #-ccl
   `(with-slots (lock-place) ,queue
      (with-lock-held (lock-place "Queue lock") 
-       ,@BODY)))
+       ,@body)))
 
 (defmethod queue-length ((queue locking-queue))
   (with-queue-locked queue 

@@ -16,13 +16,13 @@
 ;; contained herein by any agency, department or entity of the U.S.
 ;; Government are subject to restrictions of Restricted Rights for
 ;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
+;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
 ;;;
-;; $fiHeader: db-layout.lisp,v 1.19 92/06/03 18:18:15 cer Exp Locker: cer $
+;; $fiHeader: db-layout.lisp,v 1.20 92/06/29 14:04:30 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -65,7 +65,6 @@
 
 (defclass layout-mixin () ())
 
-
 (defmethod change-space-requirements ((pane layout-mixin) &key &allow-other-keys)
   nil)
 
@@ -78,28 +77,34 @@
     (allocate-space pane width height)))
 
 
-(defmacro changing-space-requirements ((&rest options &key resize-frame layout) &body body)
-  (declare (ignore resize-frame))
+(defmacro changing-space-requirements ((&rest options &key resize-frame layout) 
+				       &body body)
+  (declare (ignore resize-frame layout))
   `(flet ((changing-space-requirements-body () ,@body))
      (declare (dynamic-extent #'changing-space-requirements-body))
      (invoke-with-changing-space-requirements 
-      #'changing-space-requirements-body ,@options)))
+       #'changing-space-requirements-body ,@options)))
 
 (defmethod change-space-requirements-to ((pane layout-mixin) space-requirement)
-  (multiple-value-bind
-      (width min-width max-width
-       height min-height max-height)
+  (multiple-value-bind (width min-width max-width
+			height min-height max-height)
       (space-requirement-components space-requirement)
-      (change-space-requirements
-       pane :width width :min-width min-width :max-width max-width 
-       :height height :min-height min-height :max-height max-height)))
+    (change-space-requirements 
+      pane
+      :width width :min-width min-width :max-width max-width 
+      :height height :min-height min-height :max-height max-height)))
 
+
+;;--- Do we need this?
 (defmethod change-space-requirements-to-default ((pane pane))
+  nil)
+
+(defmethod change-space-requirements-to-default ((pane layout-mixin))
   nil)
 
 (defvar *inside-changing-space-requirements* nil)
 
-(defun invoke-with-changing-space-requirements (continuation &key resize-frame (layout t))
+(defun invoke-with-changing-space-requirements (continuation &key resize-frame layout)
   (let ((old-inside-changing-space-requirements 
 	  *inside-changing-space-requirements*)
 	(*inside-changing-space-requirements* 
@@ -206,11 +211,7 @@
 
 (defclass space-requirement-mixin (layout-mixin)
     ((initial-space-requirement :reader pane-initial-space-requirements)
-     (space-requirement :reader pane-space-requirement)))
-
-(defmethod change-space-requirements-to-default ((pane space-requirement-mixin))
-  (when (pane-initial-space-requirements pane)
-    (change-space-requirements-to pane (pane-initial-space-requirements pane))))
+     (space-requirement :reader pane-space-requirements)))
 
 (defmethod initialize-instance :after ((pane space-requirement-mixin) 
 				       &rest args
@@ -236,6 +237,10 @@
 				  :min-width min-width 
 				  :max-height max-height
 				  :min-height min-height))))
+
+(defmethod change-space-requirements-to-default ((pane space-requirement-mixin))
+  (when (pane-initial-space-requirements pane)
+    (change-space-requirements-to pane (pane-initial-space-requirements pane))))
 
 (defmethod default-space-requirements ((pane space-requirement-mixin) 
 				       &key (width 0)
@@ -361,8 +366,7 @@
   (declare (ignore width height))
   (with-slots (width height max-width max-height min-width min-height) pane
     (let ((value (call-next-method)))
-      (when (or width height max-width max-height min-width
-		min-height)
+      (when (or width height max-width max-height min-width min-height)
 	(setq value (copy-space-requirement value)))
       (when width   (setf (space-requirement-width value)  width))
       (when height  (setf (space-requirement-height value) height))
@@ -407,7 +411,8 @@
 (defmethod compose-space :around ((pane space-requirement-cache-mixin) &key width height)
   (declare (ignore width height))
   (with-slots (space-requirement) pane
-    (or space-requirement (setf space-requirement (call-next-method)))))
+    (or space-requirement
+	(setf space-requirement (call-next-method)))))
 
 (defmethod clear-space-requirement-cache ((pane layout-mixin))
   nil)
@@ -510,8 +515,8 @@
 ;;; Used all over to satisfy constraints
 
 ;;--- I think that since coordinates are ultimately integers we loose
-;;---- along the way, calling fix-coor on alloc helps a little but we
-;;---- still end up with a gap along the bottom-right edges.
+;;--- along the way, calling FIX-COORDINATE on alloc helps a little but we
+;;--- still end up with a gap along the bottom-right edges.
 #+++ignore
 (defun allocate-space-to-items (given wanted items min-size
 				desired-size max-size item-size)

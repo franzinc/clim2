@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: regions.lisp,v 1.9 92/05/22 19:27:20 cer Exp Locker: cer $
+;; $fiHeader: regions.lisp,v 1.10 92/06/23 08:19:37 cer Exp $
 
 (in-package :clim-utils)
 
@@ -161,7 +161,8 @@
 (defmethod region-contains-region-p ((everywhere everywhere) (region region)) t)
 (defmethod region-contains-region-p ((region region) (everywhere everywhere)) nil)
 
-(define-symmetric-region-method region-intersects-region-p ((everywhere everywhere) (region region))
+(define-symmetric-region-method region-intersects-region-p
+				((everywhere everywhere) (region region))
   (not (eq region +nowhere+)))
 
 (defmethod transform-region (transformation (region everywhere))
@@ -791,6 +792,18 @@
     bottom))
 (define-bounding-rectangle-setf bottom)
 
+(defgeneric* (setf bounding-rectangle*) (left top right bottom region))
+(defmethod* (setf bounding-rectangle*) (left top right bottom (region bounding-rectangle))
+  (bounding-rectangle-set-edges region left top right bottom))
+
+(defgeneric* (setf bounding-rectangle-position) (x y region))
+(defmethod* (setf bounding-rectangle-position) (x y (region bounding-rectangle))
+  (bounding-rectangle-set-position region x y))
+
+(defgeneric* (setf bounding-rectangle-size) (width height region))
+(defmethod* (setf bounding-rectangle-size) (width height (region bounding-rectangle))
+  (bounding-rectangle-set-size region width height))
+
 
 ;;; Region Sets
 
@@ -1008,9 +1021,12 @@
 (defmethod region-contains-region-p ((path path) (area area)) nil)
 (defmethod region-contains-region-p ((line polyline) (arc elliptical-arc)) nil)
 (defmethod region-contains-region-p ((region1 region) (region2 region))
-  (eq region1 region2))
+  (or (eq region1 region2)
+      (error "No ~S method defined between objects of type ~S and ~S"
+	     'region-contains-region-p (type-of region1) (type-of region2))))
 
 ;; Exclude the general cases of REGION-INTERSECTS-REGION-P
 (defmethod region-intersects-region-p ((region1 region) (region2 region))
-  (eq region1 region2))
-
+  (or (eq region1 region2)
+      (error "No ~S method defined between objects of type ~S and ~S"
+	     'region-intersects-region-p (type-of region1) (type-of region2))))

@@ -16,10 +16,10 @@
 ;; contained herein by any agency, department or entity of the U.S.
 ;; Government are subject to restrictions of Restricted Rights for
 ;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
+;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: framem.lisp,v 1.7 92/05/06 15:37:18 cer Exp $
+;; $fiHeader: framem.lisp,v 1.8 92/05/22 19:26:51 cer Exp $
 
 (in-package :silica)
 
@@ -40,42 +40,38 @@
      ,@body))
 
 (defun find-frame-manager (&rest options 
-			   &key port
-			   &allow-other-keys)
+			   &key port &allow-other-keys)
   (declare (dynamic-extent options))
   (unless port 
     (with-keywords-removed (options options '(:port))
       (setq port (apply #'find-port options))))
   (cond 
-   ;; (find-frame-manager) -> default  one
-   ((and (null options) *default-frame-manager*))
-   ;; We specified a port we have to make sure the default on
-   ;; matches it
-   ((and *default-frame-manager*
-	 (framem-matches-options-p
-	  *default-frame-manager*
-	  port options))
-    *default-frame-manager*)
-   ;; Failing that we make one
-   (t
-    (or (port-frame-manager port)
-	(setf (port-frame-manager port)
-	  (make-frame-manager port))))))
+    ;; (find-frame-manager) -> default one
+    ((and (null options) *default-frame-manager*))
+    ;; We specified a port we have to make sure the default on
+    ;; matches it
+    ((and *default-frame-manager*
+	  (frame-manager-matches-options-p
+	    *default-frame-manager*
+	    port options))
+     *default-frame-manager*)
+    ;; Failing that we make one
+    (t
+     (or (port-frame-manager port)
+	 (setf (port-frame-manager port)
+	       (make-frame-manager port))))))
 
-(defmethod framem-matches-options-p ((framem standard-frame-manager) port options)
+(defmethod frame-manager-matches-options-p
+	   ((framem standard-frame-manager) port options)
   (declare (ignore options))
   (eq (port framem) port))
 
-(defmethod make-frame-manager (port)
-  (cerror "Make a default frame manager"
-	  "Couldn't find a frame manager for the port ~S" port)
+(defmethod make-frame-manager ((port basic-port))
   (make-instance 'standard-frame-manager :port port))
 
 
-;;--- We need a "null" frame manager that creates a menu-bar that ends
-;;--- up calling DISPLAY-COMMAND-MENU.  This can't happen for on
-;;--- STANDARD-FRAME-MANAGER, because that will break those port that
-;;--- have real menu bars (and do the displaying in REALIZE-MIRROR).
+;; Things like the Genera and CLX frame managers create a CLIM stream pane
+;; that simply use DISPLAY-COMMAND-MENU.
 (defmethod frame-wrapper ((framem standard-frame-manager) frame pane)
   (declare (ignore frame))
   pane)
@@ -118,4 +114,60 @@
   (setf (sheet-enabled-p (frame-top-level-sheet frame)) nil))
 
 (defmethod update-frame-settings ((framem standard-frame-manager) frame)
+  (declare (ignore frame))
   nil)
+
+;;--- Should "ungray" the command button, if there is one
+(defmethod note-command-enabled ((framem standard-frame-manager) frame command)
+  (declare (ignore frame command)))
+
+;;--- Should "gray" the command button, if there is one
+(defmethod note-command-disabled ((framem standard-frame-manager) frame command)
+  (declare (ignore frame command)))
+
+
+(defmethod make-pane-class ((framem standard-frame-manager) class &rest options)
+  (declare (ignore options))
+  (second (assoc class '((scroll-bar scroll-bar-pane)
+			 (slider slider-pane)
+			 (push-button push-button-pane)
+			 (text-field text-field-pane)
+			 (toggle-button toggle-button-pane)
+			 (menu-bar menu-bar-pane)
+			 (viewport viewport)
+			 (radio-box radio-box-pane)
+			 (check-box check-box-pane)
+			 (frame-pane frame-pane)
+			 (top-level-sheet top-level-sheet)
+			 ;; One day
+			 (line-editor-pane)
+			 (label-button-pane)
+			 (radio-button-pane)
+			 (horizontal-divider-pane)
+			 (vertical-divider-pane)
+			 (label-pane)
+			 ;;
+			 (list-pane)
+			 (caption-pane)
+			 (cascade-button)
+			 ))))
+
+(defmethod make-pane-1 ((framem standard-frame-manager)
+			frame abstract-type &rest options)
+  (declare (dynamic-extent options))
+  (let ((type (apply #'make-pane-class framem abstract-type options)))
+    ;; If there's a mapping from the abstract type to a pane class, use it.
+    ;; Otherwise just try to create a class named by the abstract pane type.
+    (if type
+	(apply #'make-instance type
+	       :frame frame :frame-manager framem
+	       (apply #'make-pane-arglist framem abstract-type options))
+	(apply #'make-instance 
+	       abstract-type
+	       :frame frame :frame-manager framem
+	       options))))
+
+(defmethod make-pane-arglist ((framem standard-frame-manager) type &rest options)
+  (declare (ignore realizer type))
+  (declare (non-dynamic-extent options))
+  options)

@@ -2,14 +2,9 @@
 
 (in-package :clim-internals)
 
-;;; $fiHeader$
+;;; $fiHeader: $
 
 "Copyright (c) 1991, 1992 Symbolics, Inc.  All rights reserved."
-
-;;;; frame-manager-clear-progress-note: called to make it go away
-;;;; frame-manager-display-progress-note: Called to display it and
-;;;; update it.
-;;;; We probably need a frame-manager-make-progress-note also.
 
 (defvar *progress-notes* ())
 (defvar *current-progress-note*)
@@ -39,13 +34,13 @@
   (when (or (null stream) (eq stream 't))
     (setq stream (frame-pointer-documentation-output *application-frame*)))
   (let ((note (make-progress-note name stream *application-frame*)))
-    (without-interrupts
+    (without-scheduling
       (push note *progress-notes*))
     note))
 
 (defun remove-progress-note (note)
   (frame-manager-clear-progress-note (frame-manager (slot-value note 'frame)) note)
-  (without-interrupts
+  (without-scheduling
     (setq *progress-notes* (delete note *progress-notes*))))
 
 (defmethod progress-note-fraction-done ((note progress-note))

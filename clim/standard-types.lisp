@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: standard-types.lisp,v 1.7 92/04/30 09:09:37 cer Exp Locker: cer $
+;; $fiHeader: standard-types.lisp,v 1.8 92/05/07 13:12:58 cer Exp $
 
 (in-package :clim-internals)
 
@@ -176,7 +176,9 @@
 				     low high)))))))))
 
 (define-presentation-method presentation-type-specifier-p ((type real))
-  (macrolet ((realp (object) `(typep ,object '(or rational float))))
+  (macrolet (#-(or Genera ANSI-90)
+	     (realp (object) 
+	       `(typep ,object '(or rational float))))
     (and (if (atom low)
 	     (or (eq low '*)
 		 (realp low))
@@ -431,21 +433,38 @@
 	(fs:complete-pathname default string nil :newest :read)
       (values string success (and success (pathname string)) 1))))
 
-#-CCL-2
-(defun pathname-complete-1 (string action &optional (default *default-pathname-defaults*))
+#+CCL-2
+(defun pathname-complete (string action &optional (default *default-pathname-defaults*))
   (declare (ignore default))			;--- for now
   ;; Slow but accurate
-  ;;--- This still needs to be thoroughly tested in Franz.
-  (let ((pathname (pathname string))
+  (let ((pathname (lisp:pathname string))
 	completions)
+    (cond ((pathname-version pathname)
+	   ;; get around file-system braino I don't know how to resolve
+	   (setq completions (directory pathname)))
+	  (t (setq completions (directory (concatenate 'string string "*")))))
+    (complete-from-possibilities string completions '(#\space)
+				 :action action :name-key #'namestring :value-key #'identity)))
+
+#-(or Genera CCL-2)
+(defun pathname-complete (string action &optional (default *default-pathname-defaults*))
+  (pathname-complete-1 string action default))
+
+#-CCL-2
+(defun pathname-complete-1 (string action &optional (default *default-pathname-defaults*))
+  ;; Slow but accurate
+  ;;--- This still needs to be thoroughly tested in Franz.
+  (let* ((pathname (pathname string))
+	 (merged-pathname (merge-pathnames pathname default))
+	 completions)
     (cond ((pathname-version pathname)
 	   ;; Get around file-system braino I don't know how to resolve
 	   (setq completions (directory pathname)))
 	  (t
 	   (setq completions (directory 
-			       (make-pathname :host (pathname-host pathname)
-					      :device (pathname-device pathname)
-					      :directory (pathname-directory pathname))))))
+			       (make-pathname :host (pathname-host merged-pathname)
+					      :device (pathname-device merged-pathname)
+					      :directory (pathname-directory merged-pathname))))))
     ;; Now prune out all completions that don't start with the string
     (let ((name (pathname-name pathname))
 	  (type (pathname-type pathname)))
@@ -478,23 +497,6 @@
     (complete-from-possibilities string completions '(#\space)
 				 :action action
 				 :name-key #'namestring :value-key #'identity)))
-
-#+CCL-2
-(defun pathname-complete (string action &optional (default *default-pathname-defaults*))
-  (declare (ignore default))			;--- for now
-  ;; Slow but accurate
-  (let ((pathname (lisp:pathname string))
-	completions)
-    (cond ((pathname-version pathname)
-	   ;; get around file-system braino I don't know how to resolve
-	   (setq completions (directory pathname)))
-	  (t (setq completions (directory (concatenate 'string string "*")))))
-    (complete-from-possibilities string completions '(#\space)
-				 :action action :name-key #'namestring :value-key #'identity)))
-
-#-(or Genera CCL-2)
-(defun pathname-complete (string action &optional (default *default-pathname-defaults*))
-  (pathname-complete-1 string action default))
 
 )	;#-Minima
 

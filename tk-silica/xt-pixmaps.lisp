@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-pixmaps.lisp,v 1.4 92/03/04 16:20:45 cer Exp Locker: cer $
+;; $fiHeader: xt-pixmaps.lisp,v 1.5 92/04/15 11:49:01 cer Exp $
 
 
 (in-package :xm-silica)
@@ -38,36 +38,29 @@
 (defmethod fetch-medium-drawable ((sheet clim-internals::pixmap-stream) pixmap)
   pixmap)
 
-(defmethod port-copy-from-pixmap ((port xt-port)
-				  pixmap pixmap-x pixmap-y width height
-				  stream window-x window-y)
-  (convert-to-device-coordinates (sheet-native-transformation stream)
-    window-x window-y)
+(defmethod medium-copy-from-pixmap (pixmap pixmap-x pixmap-y width height
+				    (medium xt-medium) medium-x medium-y)
+  (convert-to-device-coordinates (sheet-native-transformation (medium-sheet medium))
+    medium-x medium-y)
   ;; We are in a bad situation if the native-transformation is
   ;; anything other than a scaling transformation
-  (with-sheet-medium (medium stream)
-    (let* ((drawable (medium-drawable medium))
-	   (copy-gc (make-instance 'tk::gcontext :drawable drawable)))
-      (tk::copy-area 
-       pixmap
-       copy-gc pixmap-x pixmap-y width height drawable
-       window-x window-y))))
+  (let* ((drawable (medium-drawable medium))
+	 (copy-gc (make-instance 'tk::gcontext :drawable drawable)))
+    (tk::copy-area 
+      pixmap copy-gc pixmap-x pixmap-y width height
+      drawable medium-x medium-y)))
 	   
-(defmethod port-copy-to-pixmap ((port xt-port)
-				stream window-x window-y width height
-				pixmap pixmap-x pixmap-y)
-  (convert-to-device-coordinates (sheet-native-transformation stream)
-    window-x window-y)
+(defmethod medium-copy-to-pixmap ((medium xt-medium) medium-x medium-y width height
+				  pixmap pixmap-x pixmap-y)
+  (convert-to-device-coordinates (sheet-native-transformation (medium-sheet medium))
+    medium-x medium-y)
   ;; We are in a bad situation if the native-transformation is
   ;; anything other than a scaling transformation
-  (with-sheet-medium (medium stream)
-    (let* ((drawable (medium-drawable medium))
-	   (copy-gc (make-instance 'tk::gcontext :drawable drawable)))
-      (tk::copy-area 
-	drawable
-	copy-gc 
-	window-x window-y width height pixmap
-	pixmap-x pixmap-y))))
+  (let* ((drawable (medium-drawable medium))
+	 (copy-gc (make-instance 'tk::gcontext :drawable drawable)))
+    (tk::copy-area 
+      drawable copy-gc medium-x medium-y width height 
+      pixmap pixmap-x pixmap-y)))
 
 (defmethod pixmap-height ((pixmap tk::pixmap))
   (tk::pixmap-height pixmap))

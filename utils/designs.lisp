@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: designs.lisp,v 1.2 92/01/31 14:52:35 cer Exp $
+;; $fiHeader: designs.lisp,v 1.3 92/02/24 13:05:33 cer Exp $
 
 (in-package :clim-utils)
 
@@ -46,40 +46,40 @@
 ;;; Gray colors
 
 (defclass gray-color (color)
-    ((luminance :type single-float :initarg :luminance
-		:reader color-luminosity)))
+    ((luminosity :type single-float :initarg :luminosity
+		 :reader gray-color-luminosity)))
 
-(define-constructor make-gray-color-1 gray-color (luminance)
-		    :luminance luminance)
+(define-constructor make-gray-color-1 gray-color (luminosity)
+		    :luminosity luminosity)
 
 (defvar +black+ (make-gray-color-1 0f0))
 (defvar +white+ (make-gray-color-1 1f0))
 
-(defun make-gray-color (luminance)
+(defun make-gray-color (luminosity)
   #+Genera (declare lt:(side-effects simple reducible))
-  (assert (and (numberp luminance) (<= 0 luminance 1)) (luminance)
-	  "The luminance ~S is not a number between 0 and 1" luminance)
-  (cond ((= luminance 0) +black+)
-	((= luminance 1) +white+)
-	(t (make-gray-color-1 (float luminance 0f0)))))
+  (assert (and (numberp luminosity) (<= 0 luminosity 1)) (luminosity)
+	  "The luminosity ~S is not a number between 0 and 1" luminosity)
+  (cond ((= luminosity 0) +black+)
+	((= luminosity 1) +white+)
+	(t (make-gray-color-1 (float luminosity 0f0)))))
 
 (defmethod print-object ((color gray-color) stream)
   (print-unreadable-object (color stream :type t :identity t)
-    (with-slots (luminance) color
-      (cond ((= luminance 0f0)
+    (with-slots (luminosity) color
+      (cond ((= luminosity 0f0)
 	     (format stream "Black"))
-	    ((= luminance 1f0)
+	    ((= luminosity 1f0)
 	     (format stream "White"))
 	    (t
-	     (format stream "~D% Gray" (round (* 100 luminance))))))))
+	     (format stream "~D% Gray" (round (* 100 luminosity))))))))
 
 (defmethod make-load-form ((color gray-color))
-  (with-slots (luminance) color
-    `(make-gray-color ,luminance)))
+  (with-slots (luminosity) color
+    `(make-gray-color ,luminosity)))
 
 (defmethod color-rgb ((color gray-color))
-  (with-slots (luminance) color
-    (values luminance luminance luminance)))
+  (let ((luminosity (slot-value color 'luminosity)))
+    (values luminosity luminosity luminosity)))
 
 
 ;;; Colors
@@ -120,6 +120,27 @@
 (defmethod color-rgb ((color rgb-color))
   (with-slots (red green blue) color
     (values red green blue)))
+
+(defconstant *ihs-rgb-c1* (sqrt (/ 6f0)))
+(defconstant *ihs-rgb-c2* (sqrt (/ 2f0)))
+(defconstant *ihs-rgb-c3* (sqrt (/ 3f0)))
+
+(defmethod color-ihs ((color rgb-color))
+  (let* ((red (slot-value color 'red))
+	 (green (slot-value color 'green))
+	 (blue (slot-value color 'blue))
+	 (x (* *ihs-rgb-c1* (- (+ red red) blue green)))
+	 (y (* *ihs-rgb-c2* (- green blue)))
+	 (z (* *ihs-rgb-c3* (+ red green blue)))
+	 (q (+ (* x x) (* y y)))
+	 (intensity (sqrt (+ q (* z z)))))	;== (sqrt (+ r^2 g^2 b^2))!
+    (if (zerop q)
+	(values intensity 0f0 0f0)		;A totally unsaturated color.
+	(let* ((hue (mod (/ (atan y x) 2pi) 1f0))
+	       (f1 (/ z intensity))
+	       (f2 (sqrt (- 1f0 (* f1 f1))))
+	       (saturation (atan f2 f1)))
+	  (values intensity hue saturation)))))
 
 (defun-inline color-luminosity (r g b)
   ;; From Foley and Van Dam, page 613 (discussion of YIQ color model)...
@@ -260,7 +281,6 @@
 (define-named-color +thistle+		216 191 216)
 
 
-;;--- This implementation of IHS colors is not really correct
 (defclass ihs-color (color)
     ((intensity  :type single-float :initarg :intensity)
      (hue	 :type single-float :initarg :hue)
@@ -298,18 +318,20 @@
       (format stream "i=~F h=~F s=~F>" intensity hue saturation))))
 
 (defmethod color-rgb ((color ihs-color))
-  (with-slots (intensity hue saturation) color
-    (let* ((hh (mod (- hue .5f0) 1.0f0))
-	   (hh (- (* hh 2.0f0 3.1415926535f0) 3.1415926535f0))
-	   (s3 (sin saturation))
-	   (z (* (sqrt (/ 3.0f0)) (cos saturation) intensity))
-	   (x (* (sqrt (/ 6.0f0)) s3 (cos hh) intensity))
-	   (y (* (sqrt (/ 2.0f0)) s3 (sin hh) intensity)))
-      (macrolet ((range (x)
-		   `(max 0.0f0 (min 1.0f0 ,x))))
-	(values (range (+ x x z))
-		(range (+ y z (- x)))
-		(range (- z x y)))))))
+  (let* ((intensity (slot-value color 'intensity))
+	 (hue (slot-value color 'hue))
+	 (saturation (slot-value color 'saturation))
+	 (hh (mod (- hue .5f0) 1.0f0))
+	 (hh (- (* hh 2.0f0 3.1415926535f0) 3.1415926535f0))
+	 (s3 (sin saturation))
+	 (x (* (sqrt *ihs-rgb-c1*) s3 (cos hh) intensity))
+	 (y (* (sqrt *ihs-rgb-c2*) s3 (sin hh) intensity))
+	 (z (* (sqrt *ihs-rgb-c3*) (cos saturation) intensity)))
+    (macrolet ((range (x)
+		 `(max 0.0f0 (min 1.0f0 ,x))))
+      (values (range (+ x x z))
+	      (range (+ y z (- x)))
+	      (range (- z x y))))))
 
 (defmethod color-ihs ((color ihs-color))
   (with-slots (intensity hue saturation) color
@@ -580,8 +602,7 @@
     (flet ((transform (design)
 	     (transform-region transformation design)))
       (declare (dynamic-extent #'transform))
-      (make-instance 'composite-over
-		     :designs (map 'vector #'transform designs)))))
+      (make-instance 'composite-over :designs (map 'vector #'transform designs)))))
 
 (defmethod compose-over (design1 design2)
   (make-instance 'composite-over :designs (vector design1 design2)))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clos.lisp,v 1.5 92/04/15 11:45:25 cer Exp $
+;; $fiHeader: clos.lisp,v 1.6 92/05/22 19:27:07 cer Exp $
 
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
@@ -74,7 +74,7 @@
        (defun ,name (,@args)
 	 (let* ((,proto (or ,proto-var
 			     (setq ,proto-var (make-instance ',class))))
-		(,inst (without-interrupts
+		(,inst (without-scheduling
 			  (ccl::copy-uvector
 			    (ccl::%maybe-forwarded-instance ,proto)))))
 	   ,@(mapcar #'(lambda (tuple)

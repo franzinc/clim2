@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-slider.lisp,v 1.7 92/05/07 13:11:15 cer Exp $
+;; $fiHeader: db-slider.lisp,v 1.8 92/05/22 19:26:48 cer Exp $
 
 "Copyright (c) 1990, 1991 International Lisp Associates.
  Portions copyright (c) 1991, 1992 by Symbolics, Inc.  All rights reserved."
@@ -50,11 +50,11 @@
 	  (:vertical
 	    ;;--- What about the label?
 	    (draw-rectangle* medium 
-			     left top (+ left thickness) bottom
+			     left top (1- (+ left thickness)) (1- bottom)
 			     :filled nil))
 	  (:horizontal
 	    (draw-rectangle* medium 
-			     left top right (+ top thickness)
+			     left top (1- right) (1- (+ top thickness))
 			     :filled nil)
 	    (draw-text* medium text left (+ top thickness 2) 
 			:text-style text-style

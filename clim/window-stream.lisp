@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: window-stream.lisp,v 1.6 92/04/15 11:47:33 cer Exp $
+;; $fiHeader: window-stream.lisp,v 1.7 92/05/22 19:28:37 cer Exp $
 
 (in-package :clim-internals)
 
@@ -13,6 +13,8 @@
       (pointer-list :initform nil :accessor console-pointer-list)))
 
 
+;; A "window" is a CLIM stream pane that supports all the stream and
+;; window operations.
 (define-stream-protocol-class window ())
 
 (defclass window-stream
@@ -25,6 +27,10 @@
 	   output-protocol-mixin
 	   window)
     ())
+
+(defmethod interactive-stream-p ((stream window-stream))
+  nil)
+
 
 #-Silica	;--- no such slots in Silica
 (defmethod print-object ((window window-stream) stream)
@@ -45,22 +51,29 @@
 
 ;;; Creation functions
 
-#+Silica	;--- should we do this?
-(defun open-window-stream (&rest args &key parent left top right bottom width height
-			   &allow-other-keys)
-  (declare (dynamic-extent args))
-  ;; --- incorporate size-hacking stuff from old definition below
-  (assert (not (null parent)) (parent)
-	  "You must supply the ~S option to ~S" ':parent 'open-window-stream)
-  (when width
-    (when right
-      (error "Can't supply both :RIGHT and :WIDTH."))
-    (setq right (+ left width)))
-  (when height
-    (when bottom
-      (error "Can't supply both :BOTTOM and :HEIGHT."))
-    (setq bottom (+ top height)))
-  (make-instance 'window-stream 
-		 :parent parent
-		 :left left :top top
-		 :right right :bottom bottom))
+#+CLIM-1-compatibility
+(defun open-window-stream (&key parent
+				left top right bottom width height
+				(text-style *default-text-style*)
+				(vertical-spacing 2)
+				(end-of-line-action :allow)
+				(end-of-page-action :allow)
+				(background +white+)
+				(foreground +black+)
+				output-history 
+				text-cursor text-margin
+				label save-under 
+				(scroll-bars :vertical)
+				(class 'clim-stream-pane))
+  (with-look-and-feel-realization ()
+    (make-clim-stream-pane :type class
+			   :left left :top top :right right :bottom bottom
+			   :width width :height height
+			   :text-style text-style :vertical-spacing vertical-spacing
+			   :end-of-line-action end-of-line-action 
+			   :end-of-page-action end-of-page-action
+			   :background background :foreground foreground
+			   :output-history output-history
+			   :text-cursor text-cursor :text-margin text-margin
+			   :label label :save-under save-under
+			   :scroll-bars scroll-bars)))

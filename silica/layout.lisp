@@ -16,10 +16,10 @@
 ;; contained herein by any agency, department or entity of the U.S.
 ;; Government are subject to restrictions of Restricted Rights for
 ;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
+;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: layout.lisp,v 1.17 92/05/12 18:24:30 cer Exp Locker: cer $
+;; $fiHeader: layout.lisp,v 1.18 92/05/22 19:26:55 cer Exp $
 
 (in-package :silica)
 
@@ -48,12 +48,12 @@
 (defmethod copy-space-requirement ((sr space-requirement))
   (with-slots (width height max-width max-height min-width min-height) sr
     (make-instance 'space-requirement
-		   :width width
-		   :height height
-		   :max-width max-width
-		   :max-height max-height
-		   :min-width min-width
-		   :min-height min-height)))
+      :width width
+      :height height
+      :max-width max-width
+      :max-height max-height
+      :min-width min-width
+      :min-height min-height)))
 
 (defmethod initialize-instance :after ((sr space-requirement)
 				       &key
@@ -101,13 +101,16 @@
 		  x))
 	  contents))
 
-(defmacro vertically (options &body contents)
+(defmacro vertically ((&rest options &key spacing &allow-other-keys)
+		      &body contents)
+  (declare (ignore spacing))
   `(make-pane 'vbox-pane
 	      :contents (list ,@(parse-box-contents contents))
 	      ,@options))
 
-
-(defmacro horizontally (options &body contents)
+(defmacro horizontally ((&rest options &key spacing &allow-other-keys)
+			&body contents)
+  (declare (ignore spacing))
   `(make-pane 'hbox-pane
 	      :contents (list ,@(parse-box-contents contents))
 	      ,@options))
@@ -124,13 +127,13 @@
 	(if (or (and width (/= owidth width))
 		(and height (/= oheight height)))
 	    (setf (sheet-region sheet)
-	      (make-bounding-rectangle
-	       minx miny
-	       (if width (+ width minx) maxx)
-	       (if height (+ height miny) maxy)))
-	  ;;-- Do this so that we relayout the rest of tree
-	  ;;-- I guess we do not want to do this always but ...
-	  (allocate-space sheet owidth oheight))))))
+		  (make-bounding-rectangle
+		    minx miny
+		    (if width (+ width minx) maxx)
+		    (if height (+ height miny) maxy)))
+	    ;;--- Do this so that we relayout the rest of tree.
+	    ;;--- I guess we do not want to do this always but ...
+	    (allocate-space sheet owidth oheight))))))
 
 (defmethod move-sheet* ((sheet sheet) minx miny)
   (let ((trans (sheet-transformation sheet)))
@@ -154,14 +157,14 @@
 ;;--- What about PANE-FOREGROUND/BACKGROUND vs. MEDIUM-FOREGROUND/BACKGROUND?
 ;;--- Make a PANE protocol class, and call this BASIC-PANE
 (defclass pane 
-    (sheet-transformation-mixin
-     standard-sheet-input-mixin
-     standard-repainting-mixin
-     permanent-medium-sheet-output-mixin
-     sheet)
+	  (sheet-transformation-mixin
+	   standard-sheet-input-mixin
+	   standard-repainting-mixin
+	   permanent-medium-sheet-output-mixin
+	   sheet)
     ((frame :reader pane-frame :initarg :frame)
      (framem :reader frame-manager :initarg :frame-manager)
-     (name :initform nil :initarg :name :accessor  pane-name)))
+     (name :accessor pane-name :initform nil :initarg :name)))
 
 (defmethod panep ((x pane)) t)
 (defmethod panep ((x t)) nil)

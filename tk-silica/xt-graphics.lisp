@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.27 92/06/16 19:11:13 cer Exp Locker: cer $
+;; $fiHeader: xt-graphics.lisp,v 1.28 92/06/23 08:20:18 cer Exp $
 
 (in-package :tk-silica)
 
@@ -28,14 +28,14 @@
   ((last-medium-clip-mask :initform nil)
    (last-line-style :initform nil)))
 
-(defclass xt-medium (medium)
+(defclass xt-medium (basic-medium)
   ((foreground-gcontext :reader medium-foreground-gcontext :initform nil)
    (background-gcontext :reader medium-background-gcontext :initform nil)
    (flipping-gcontext :reader medium-flipping-gcontext :initform nil)
    (drawable :initform nil)
-   (clip-mask :initform nil)		; A cache.
    (color-p)
    (ink-table :initform (make-hash-table :test #'equal))
+   (clip-mask :initform nil)		; A cache.
    (tile-gcontext :initform nil)	; The following don't belong here.
    (white-pixel :initform 0)
    (black-pixel :initform 1)))
@@ -141,6 +141,9 @@
       (loose-gc flipping-gcontext)
       (loose-gc tile-gcontext))))
 
+(defmethod medium-finish-output ((port xt-medium))
+  nil)
+
 (defparameter *use-color* t)		; For debugging monochrome
 (defun color-medium-p (medium)
   (and *use-color*
@@ -183,7 +186,7 @@
 ;;; Colors and their monochrome imposters
 ;;; Much of this is taken from CLX-IMPLEMENTATION
 
-(defvar *luminance-stipples*
+(defvar *luminosity-stipples*
 	(mapcar #'(lambda (entry)
 		    (cons (first entry) (apply #'make-stipple-image (second entry))))
 		'((0.1 (8 16 (#b0111111111111111
@@ -237,16 +240,16 @@
 		
 ;; The tk::image objects are created at load time to save startup time.
 ;; Here a '0' means white, '1' black.
-(defun decode-luminance (luminance stipple-p)
+(defun decode-luminosity (luminosity stipple-p)
   (if (not stipple-p)
-      (if (< luminance 0.5) 1 0)	; Questionable.  XX
-      (if (< luminance 0.05)
+      (if (< luminosity 0.5) 1 0)	; Questionable.  XX
+      (if (< luminosity 0.05)
 	  1
-	  (dolist (entry *luminance-stipples* 0)
+	  (dolist (entry *luminosity-stipples* 0)
 	    (let ((l (car entry))
 		  (stipple (cdr entry)))
-	      (when (< luminance l)
-		(return-from decode-luminance stipple)))))))
+	      (when (< luminosity l)
+		(return-from decode-luminosity stipple)))))))
 
 (defgeneric decode-ink (ink medium))
 
@@ -275,8 +278,8 @@
 		   (decode-color medium ink)))
 		(t
 		 (multiple-value-bind (r g b) (color-rgb ink)
-		   (let* ((luminance (color-luminosity r g b))
-			  (color (decode-luminance luminance t)))
+		   (let* ((luminosity (color-luminosity r g b))
+			  (color (decode-luminosity luminosity t)))
 		     (cond ((eq color 1)
 			    (setf (tk::gcontext-fill-style new-gc) :solid
 				  (tk::gcontext-foreground new-gc) black-pixel))
@@ -341,7 +344,7 @@ and on color servers, unless using white or black")
     (tk::gcontext-foreground background-gcontext)))
 
 (defmethod decode-color ((stream xt-medium) (ink standard-opacity))
-  (if (> (slot-value ink 'clim-utils::value) 0.5)
+  (if (> (opacity-value ink) 0.5)
       (decode-color stream +foreground-ink+)
       (decode-color stream +background-ink+)))
 
@@ -362,9 +365,8 @@ and on color servers, unless using white or black")
 				    :blue (truncate (* x blue)))))))
 		(t
 		 (multiple-value-bind (r g b) (color-rgb ink)
-		   ;; The luminance formula isn't really right.  XXX
-		   (let* ((luminance (/ (+ (* r r) (* g g) (* b b)) 3)))
-		     (if (> luminance .5)
+		   (let ((luminosity (color-luminosity r g b)))
+		     (if (> luminosity .5)
 			 white-pixel
 			 black-pixel)))))))))
 
@@ -548,22 +550,6 @@ and on color servers, unless using white or black")
        (multiple-value-setq (,x1 ,y1 ,x2 ,y2)
 	 (clipper ,x1 ,y1 ,x2 ,y2))))
 
-(defmethod port-draw-line* ((port xt-port) sheet medium x1 y1 x2 y2)
-  (let ((drawable (medium-drawable medium)))
-    (when drawable
-      (let ((ink (medium-ink medium))
-	    (transform (sheet-device-transformation sheet)))
-	(convert-to-device-coordinates transform x1 y1 x2 y2)
-	(clip-invalidate-line x1 y1 x2 y2)
-	(tk::draw-line
-	 drawable
-	 (adjust-ink (decode-ink ink medium)
-		     medium
-		     (medium-line-style medium)
-		     (the fixnum (min (the fixnum x1) (the fixnum x2)))
-		     (the fixnum (min (the fixnum y1) (the fixnum y2))))
-	 x1 y1 x2 y2)))))
-
 ;; Discarding of other illegal graphics
 
 #|
@@ -623,16 +609,17 @@ and on color servers, unless using white or black")
 	  else (error "Coordinate(s) out of (signed-byte 16) range")))))
 
 
-
-(defmethod port-draw-point* ((port xt-port) sheet medium x y)
+ 
+(defmethod medium-draw-point* ((medium xt-medium) x y)
   (let ((drawable (medium-drawable medium)))
     (when drawable
       (let* ((ink (medium-ink medium))
 	     (line-style (medium-line-style medium))
 	     (thickness (line-style-thickness line-style))
+	     (sheet (medium-sheet medium))
 	     (transform (sheet-device-transformation sheet)))
 	(convert-to-device-coordinates transform x y)
-	(discard-illegal-coordinates port-draw-point* x y)
+	(discard-illegal-coordinates medium-draw-point* x y)
 	(cond ((< thickness 1.5)
 	       (tk::draw-point
 		drawable
@@ -657,65 +644,91 @@ and on color servers, unless using white or black")
 		thickness 0 2pi
 		t)))))))
 
-
-
-(defmethod port-draw-lines* ((port xt-port) sheet medium list-of-x-and-ys)
-  (let* ((transform (sheet-device-transformation sheet))
-	 (len (length list-of-x-and-ys))
-	 (npoints (/ len 4))
-	 (points (tk::make-xsegment-array :number npoints))
-	 (window (medium-drawable medium))
-	 ;; These really are fixnums, since we're fixing coordinates below
-	 (minx most-positive-fixnum)
-	 (miny most-positive-fixnum)
-	 ink)
-    (macrolet ((stuff-line-guts (x1 y1 x2 y2)
-		 `(let ((x1 ,x1)
-			(y1 ,y1)
-			(x2 ,x2)
-			(y2 ,y2))
-		    (convert-to-device-coordinates transform x1 y1)
-		    (convert-to-device-coordinates transform x2 y2)
-		    (clip-invalidate-line x1 y1 x2 y2)
-		    (minf minx x1)
-		    (minf miny y1)
-		    (minf minx x2)
-		    (minf miny y2)
-		    (setf (tk::xsegment-array-x1 points i) x1
-			  (tk::xsegment-array-y1 points i) y1
-			  (tk::xsegment-array-x2 points i) x2
-			  (tk::xsegment-array-y2 points i) y2))))
-      (if (listp list-of-x-and-ys)
-	  (do ((ps list-of-x-and-ys)
-	       (i 0 (1+ i)))
-	      ((null ps))
-	    (declare (fixnum i))
-	    (stuff-line-guts (pop ps) (pop ps) (pop ps) (pop ps)))
-	(do ((ps list-of-x-and-ys)
-	     (j 0 (+ 2 j))
-	     (i 0 (+ i 4)))
-	    ((= j len))
-	  (declare (fixnum i j))
-	  (stuff-line-guts (aref ps j) (aref ps (1+ j)) (aref ps (+ 2 j)) (aref ps (+ 3 j)))))
-      (setq ink 
-	(adjust-ink (decode-ink (medium-ink medium) medium) medium
-		    (medium-line-style medium)
-		    minx miny))
-      (when (medium-drawable medium)
-	(x11:xdrawsegments
-	 (tk::object-display window)
-	 window
-	 ink
-	 points
-	 npoints)))))
-
-
-(defmethod port-draw-rectangle* ((port xt-port) sheet medium
-				 x1 y1 x2 y2 filled)
+(defmethod medium-draw-points* ((medium xt-medium) position-seq)
   (let ((drawable (medium-drawable medium)))
     (when drawable
-      (let ((ink (medium-ink medium))
-	    (transform (sheet-device-transformation sheet)))
+      (let* ((ink (medium-ink medium))
+	     (line-style (medium-line-style medium))
+	     (sheet (medium-sheet medium))
+	     (transform (sheet-device-transformation sheet)))
+       ))))
+
+(defmethod medium-draw-line* ((medium xt-medium) x1 y1 x2 y2)
+  (let ((drawable (medium-drawable medium)))
+    (when drawable
+      (let* ((ink (medium-ink medium))
+	     (sheet (medium-sheet medium))
+	     (transform (sheet-device-transformation sheet)))
+	(convert-to-device-coordinates transform x1 y1 x2 y2)
+	(clip-invalidate-line x1 y1 x2 y2)
+	(tk::draw-line
+	 drawable
+	 (adjust-ink (decode-ink ink medium)
+		     medium
+		     (medium-line-style medium)
+		     (the fixnum (min (the fixnum x1) (the fixnum x2)))
+		     (the fixnum (min (the fixnum y1) (the fixnum y2))))
+	 x1 y1 x2 y2)))))
+
+
+(defmethod medium-draw-lines* ((medium xt-medium) position-seq)
+  (let ((drawable (medium-drawable medium)))
+    (when drawable
+      (let* ((sheet (medium-sheet medium))
+	     (transform (sheet-device-transformation sheet))
+	     (len (length position-seq))
+	     (npoints (/ len 4))
+	     (points (tk::make-xsegment-array :number npoints))
+	     ;; These really are fixnums, since we're fixing coordinates below
+	     (minx most-positive-fixnum)
+	     (miny most-positive-fixnum)
+	     ink)
+	(macrolet ((stuff-line-guts (x1 y1 x2 y2)
+		     `(let ((x1 ,x1)
+			    (y1 ,y1)
+			    (x2 ,x2)
+			    (y2 ,y2))
+			(convert-to-device-coordinates transform x1 y1)
+			(convert-to-device-coordinates transform x2 y2)
+			(clip-invalidate-line x1 y1 x2 y2)
+			(minf minx x1)
+			(minf miny y1)
+			(minf minx x2)
+			(minf miny y2)
+			(setf (tk::xsegment-array-x1 points i) x1
+			      (tk::xsegment-array-y1 points i) y1
+			      (tk::xsegment-array-x2 points i) x2
+			      (tk::xsegment-array-y2 points i) y2))))
+	  (if (listp position-seq)
+	      (do ((ps position-seq)
+		   (i 0 (1+ i)))
+		  ((null ps))
+		(declare (fixnum i))
+		(stuff-line-guts (pop ps) (pop ps) (pop ps) (pop ps)))
+	    (do ((ps position-seq)
+		 (j 0 (+ j 4))
+		 (i 0 (1+ i)))
+		((= j len))
+	      (declare (fixnum i j))
+	      (stuff-line-guts (aref ps j) (aref ps (1+ j))
+			       (aref ps (+ 2 j)) (aref ps (+ 3 j)))))
+	  (setq ink 
+	    (adjust-ink (decode-ink (medium-ink medium) medium) medium
+			(medium-line-style medium)
+			minx miny))
+	  (x11:xdrawsegments
+	   (tk::object-display drawable)
+	   drawable
+	   ink
+	   points
+	   npoints))))))
+
+(defmethod medium-draw-rectangle* ((medium xt-medium) x1 y1 x2 y2 filled)
+  (let ((drawable (medium-drawable medium)))
+    (when drawable
+      (let* ((ink (medium-ink medium))
+	     (sheet (medium-sheet medium))
+	     (transform (sheet-device-transformation sheet)))
 	(cond ((rectilinear-transformation-p transform)
 	       (convert-to-device-coordinates transform
 					      x1 y1 x2 y2)
@@ -743,168 +756,166 @@ and on color servers, unless using white or black")
 	       (port-draw-transformed-rectangle*
 		port sheet medium x1 y1 x2 y2 filled)))))))
 
-(defmethod port-draw-polygon* ((port xt-port) sheet medium
-			       list-of-x-and-ys
-			       closed filled)
-  (let* ((transform (sheet-device-transformation sheet))
-	 (len (length list-of-x-and-ys))
-	 (npoints (/ len 2))
-	 (points (xt::make-xpoint-array :number (cond ((and closed (not filled))
-						       (incf npoints))
-						      (t npoints))))
-	 (window (medium-drawable medium))
-	 ;; These really are fixnums, since we're fixing coordinates below
-	 (minx most-positive-fixnum)
-	 (miny most-positive-fixnum)
-	 ink)
-    (if (listp list-of-x-and-ys)
-	(do ((ps list-of-x-and-ys (cddr ps))
-	     (i 0 (1+ i)))
-	    ((null ps))
-	  (let ((x (first ps))
-		(y (second ps)))
-	    (convert-to-device-coordinates transform x y)
-	    (discard-illegal-coordinates port-draw-polygon* x y)
-	    (minf minx x)
-	    (minf miny y)
-	    (setf (tk::xpoint-array-x points i) x
-		  (tk::xpoint-array-y points i) y)))
-      (do ((ps list-of-x-and-ys)
-	   (j 0 (+ 2 j))
-	   (i 0 (1+ i)))
-	  ((= j len))
-	(let ((x (aref ps j))
-	      (y (aref ps (1+ j))))
-	  (convert-to-device-coordinates transform x y)
-	  (discard-illegal-coordinates port-draw-polygon* x y)
-	  (minf minx x)
-	  (minf miny y)
-	  (setf (tk::xpoint-array-x points i) x
-		(tk::xpoint-array-y points i) y))))
-    (when (and closed (not filled))
-      (setf (tk::xpoint-array-x points (- npoints 1)) (tk::xpoint-array-x points 0)
-	    (tk::xpoint-array-y points (- npoints 1)) (tk::xpoint-array-y points 0)))
-    (setq ink 
-      (adjust-ink (decode-ink (medium-ink medium) medium) medium
-		  (medium-line-style medium)
-		  minx miny))
-    (when (medium-drawable medium)
-      (if filled
-	  (x11:xfillpolygon
-	   (tk::object-display window)
-	   window
-	   ink
-	   points
-	   npoints
-	   x11:complex
-	   x11:coordmodeorigin)
-	(x11:xdrawlines
-	  (tk::object-display window)
-	  window
-	  ink
-	  points
-	  npoints
-	  x11:coordmodeorigin)))))
+(defmethod medium-draw-polygon* ((medium xt-medium) position-seq closed filled)
+  (let ((drawable (medium-drawable medium)))
+    (when drawable
+      (let* ((sheet (medium-sheet medium))
+	     (transform (sheet-device-transformation sheet))
+	     (len (length position-seq))
+	     (npoints (/ len 2))
+	     (points (xt::make-xpoint-array :number (cond ((and closed (not filled))
+							   (incf npoints))
+							  (t npoints))))
+	     ;; These really are fixnums, since we're fixing coordinates below
+	     (minx most-positive-fixnum)
+	     (miny most-positive-fixnum)
+	     ink)
+	(if (listp position-seq)
+	    (do ((ps position-seq (cddr ps))
+		 (i 0 (1+ i)))
+		((null ps))
+	      (let ((x (first ps))
+		    (y (second ps)))
+		(convert-to-device-coordinates transform x y)
+		(discard-illegal-coordinates medium-draw-polygon* x y)
+		(minf minx x)
+		(minf miny y)
+		(setf (tk::xpoint-array-x points i) x
+		      (tk::xpoint-array-y points i) y)))
+	  (do ((ps position-seq)
+	       (j 0 (+ 2 j))
+	       (i 0 (1+ i)))
+	      ((= j len))
+	    (let ((x (aref ps j))
+		  (y (aref ps (1+ j))))
+	      (convert-to-device-coordinates transform x y)
+	      (discard-illegal-coordinates medium-draw-polygon* x y)
+	      (minf minx x)
+	      (minf miny y)
+	      (setf (tk::xpoint-array-x points i) x
+		    (tk::xpoint-array-y points i) y))))
+	(when (and closed (not filled))
+	  (setf (tk::xpoint-array-x points (- npoints 1)) (tk::xpoint-array-x points 0)
+		(tk::xpoint-array-y points (- npoints 1)) (tk::xpoint-array-y points 0)))
+	(setq ink 
+	  (adjust-ink (decode-ink (medium-ink medium) medium) medium
+		      (medium-line-style medium)
+		      minx miny))
+	(if filled
+	    (x11:xfillpolygon
+	     (tk::object-display drawable)
+	     drawable
+	     ink
+	     points
+	     npoints
+	     x11:complex
+	     x11:coordmodeorigin)
+	  (x11:xdrawlines
+	    (tk::object-display drawable)
+	    drawable
+	    ink
+	    points
+	    npoints
+	    x11:coordmodeorigin))))))
 
-(defmethod port-draw-ellipse* ((port xt-port) sheet medium
-			       center-x center-y
-			       radius-1-dx radius-1-dy radius-2-dx radius-2-dy 
-			       start-angle end-angle filled)
-  (let ((transform (sheet-device-transformation sheet)))
-    (convert-to-device-coordinates transform center-x center-y)
-    (discard-illegal-coordinates port-draw-ellipse* center-x center-y)
-    (convert-to-device-distances transform 
-      radius-1-dx radius-1-dy radius-2-dx radius-2-dy)
-    (when (medium-drawable medium)
+(defmethod medium-draw-ellipse* ((medium xt-medium)
+				 center-x center-y
+				 radius-1-dx radius-1-dy radius-2-dx radius-2-dy 
+				 start-angle end-angle filled)
+  (let ((drawable (medium-drawable medium)))
+    (when drawable
+      (let* ((sheet (medium-sheet medium))
+	     (transform (sheet-device-transformation sheet)))
+	(convert-to-device-coordinates transform center-x center-y)
+	(discard-illegal-coordinates medium-draw-ellipse* center-x center-y)
+	(convert-to-device-distances transform 
+	  radius-1-dx radius-1-dy radius-2-dx radius-2-dy)
+	;;--- This is some magic that means that things get drawn
+	;;--- correctly.
+	(setq start-angle (- 2pi start-angle)
+	      end-angle (- 2pi end-angle))
+	(rotatef start-angle end-angle)
+	(when (< end-angle start-angle)
+	  (setq end-angle (+ end-angle 2pi)))
+	(tk::draw-ellipse
+	  drawable
+	  (adjust-ink (decode-ink (medium-ink medium) medium)
+		      medium
+		      (medium-line-style medium)
+		      (- center-x 
+			 (if (zerop radius-1-dx) radius-2-dx radius-1-dx))
+		      (- center-y 
+			 (if (zerop radius-1-dy) radius-2-dy radius-1-dy)))
+	  center-x center-y
+	  radius-1-dx radius-1-dy radius-2-dx radius-2-dy 
+	  start-angle end-angle 
+	  filled)))))
 
-      ;;--- This is some magic that means that things get drawn
-      ;;--- correctly.
-      
-      (setq start-angle (- 2pi start-angle)
-	    end-angle (- 2pi end-angle))
-      (rotatef start-angle end-angle)
-      (when (< end-angle start-angle)
-	(setq end-angle (+ end-angle 2pi)))
-      (tk::draw-ellipse
-	(medium-drawable medium)
-	(adjust-ink (decode-ink (medium-ink medium) medium)
-		    medium
-		    (medium-line-style medium)
-		    (- center-x 
-		       (if (zerop radius-1-dx) radius-2-dx radius-1-dx))
-		    (- center-y 
-		       (if (zerop radius-1-dy) radius-2-dy radius-1-dy)))
-	center-x center-y
-	radius-1-dx radius-1-dy radius-2-dx radius-2-dy 
-	start-angle end-angle 
-	filled)))) 
-
-(defmethod port-draw-text* ((port xt-port) sheet medium
-			    string-or-char x y start end
-			    align-x align-y
-			    towards-x towards-y transform-glyphs
-			    )
-  (let* ((transform (sheet-device-transformation sheet))
-	 (font (text-style-mapping port (medium-text-style medium)))
-	 (ascent (tk::font-ascent font)))
-    (convert-to-device-coordinates transform x y)
-    (discard-illegal-coordinates port-draw-text* x y)
-    (when towards-x
-      (convert-to-device-coordinates transform towards-x towards-y))
-    (when (typep string-or-char 'character)
-      (setq string-or-char (string string-or-char)))
-    (ecase align-x
-      (:center 
-       (let ((dx (floor (text-size sheet string-or-char
-				   :text-style (medium-text-style medium)
-				   :start start :end end) 2)))
-	 (when towards-x (decf towards-x dx))
-	 (decf x dx)))
-      (:left nil))
-    (ecase align-y
-      (:center 
-       (let ((dy (- (text-style-descent (medium-text-style medium) port)
-		  (floor (text-style-height (medium-text-style medium) port) 2))))
-	 (decf y dy)
-	 (when towards-y (decf towards-y dy))))
-      (:baseline nil)
-      (:top
-       (when towards-y (incf towards-y ascent))
-       (incf y ascent))) 
-    (when (medium-drawable medium)
-      (let ((gc (adjust-ink
-		 (decode-ink (medium-ink medium) medium)
-		 medium
-		 (medium-line-style medium)
-		 x 
-		 (- y ascent)))
-	    (drawable (medium-drawable medium)))
-	(setf (tk::gcontext-font gc) font)
-	(if (and towards-x towards-y)
-	    (port-draw-rotated-text
-	     port
+(defmethod medium-draw-text* ((medium xt-medium)
+			      string-or-char x y start end
+			      align-x align-y
+			      towards-x towards-y transform-glyphs)
+  (let ((drawable (medium-drawable medium)))
+    (when drawable
+      (let* ((port (port medium))
+	     (sheet (medium-sheet medium))
+	     (transform (sheet-device-transformation sheet))
+	     (font (text-style-mapping port (medium-text-style medium)))
+	     (ascent (tk::font-ascent font)))
+	(convert-to-device-coordinates transform x y)
+	(discard-illegal-coordinates medium-draw-text* x y)
+	(when towards-x
+	  (convert-to-device-coordinates transform towards-x towards-y))
+	(when (typep string-or-char 'character)
+	  (setq string-or-char (string string-or-char)))
+	(ecase align-x
+	  (:center 
+	   (let ((dx (floor (text-size sheet string-or-char
+				       :text-style (medium-text-style medium)
+				       :start start :end end) 2)))
+	     (when towards-x (decf towards-x dx))
+	     (decf x dx)))
+	  (:left nil))
+	(ecase align-y
+	  (:center 
+	   (let ((dy (- (text-style-descent (medium-text-style medium) medium)
+		      (floor (text-style-height (medium-text-style medium) medium) 2))))
+	     (decf y dy)
+	     (when towards-y (decf towards-y dy))))
+	  (:baseline nil)
+	  (:top
+	   (when towards-y (incf towards-y ascent))
+	   (incf y ascent))) 
+        (let ((gc (adjust-ink
+		   (decode-ink (medium-ink medium) medium)
+		   medium
+		   (medium-line-style medium)
+		   x 
+		   (- y ascent))))
+	  (setf (tk::gcontext-font gc) font)
+	  (if (and towards-x towards-y)
+	      (port-draw-rotated-text
+	       port
+	       drawable
+	       gc
+	       x y
+	       string-or-char 
+	       start 
+	       end
+	       font
+	       towards-x towards-y transform-glyphs)
+	    (tk::draw-string
 	     drawable
 	     gc
 	     x y
-	     string-or-char 
-	     start 
-	     end
-	     font
-	     towards-x towards-y transform-glyphs)
-	  (tk::draw-string
-	   drawable
-	   gc
-	   x y
-	   string-or-char start end))))))
+	     string-or-char start end)))))))
 
-(defmethod clim-internals::port-text-bounding-box ((port xt-port)
-						   stream
-						   string x y start end align-x
-						   align-y text-style
-						   towards-x
-						   towards-y
-						   transform-glyphs)
-  (declare (ignore string start end transform-glyphs))
+(defmethod medium-text-bounding-box ((medium xt-medium)
+				     string x y start end align-x
+				     align-y text-style
+				     towards-x towards-y
+				     transform-glyphs transformation)
+  (declare (ignore string start end transform-glyphs transformation))
   (multiple-value-bind
       (left top right bottom) (call-next-method)
     (if (and towards-y towards-x)
@@ -913,12 +924,11 @@ and on color servers, unless using white or black")
 		 (decf towards-y y)
 		 (mod (round (atan towards-y towards-x) (/ pi 2.0))
 		      4)))
-	  (let ((ascent (text-style-ascent text-style (port stream))))
+	  (let ((ascent (text-style-ascent text-style medium)))
 	    (ecase align-y
 	      (:top (incf y ascent)
 		    (incf towards-y ascent))
-	      ;;-- which
-	      ((:baseline :base-line)))
+	      (:baseline))
 	    (ecase align-x
 	      (:left))
 	    (let ((transformation
@@ -1185,66 +1195,83 @@ and on color servers, unless using white or black")
 		 to-left to-top))
 
 
-(defmethod port-beep ((port xt-port) (sheet t))
-  (x11:xbell (port-display port) 100))
+(defmethod text-style-width ((text-style standard-text-style) (medium xt-medium))
+  (tk::font-width (text-style-mapping (port medium) text-style)))
 
+(defmethod text-style-height ((text-style standard-text-style) (medium xt-medium))
+  (+ (text-style-ascent text-style medium)
+     (text-style-descent text-style medium)))
 
+(defmethod text-style-ascent ((text-style standard-text-style) (medium xt-medium))
+  (tk::font-ascent (text-style-mapping (port medium) text-style)))
+					
+(defmethod text-style-descent ((text-style standard-text-style) (medium xt-medium))
+  (tk::font-descent (text-style-mapping (port medium) text-style)))
+					
+
+(defmethod medium-beep ((medium xt-medium))
+  (x11:xbell (port-display (port medium)) 100))
+
+(defmethod medium-force-output ((medium xt-medium))
+  (x11:xflush (port-display (port medium))))
+
+(defmethod medium-finish-output ((medium xt-medium))
+  (x11:xflush (port-display (port medium))))	;--- is this right?
+   
 
-;;--- FROM-SHEET and TO-SHEET should be mediums, not sheets
-;;--- This needs to be able to copy to/from pixmaps, too
-;;--- arglist s/b FROM-MEDIUM FROM-X FROM-Y TO-MEDIUM TO-X TO-Y WIDTH HEIGHT
-(defmethod port-copy-area ((port xt-port)
-			   from-sheet to-sheet
-			   from-left from-top from-right from-bottom
-			   to-left to-top)
+;;--- This needs methods for copying to/from pixmaps, too
+(defmethod medium-copy-area 
+	   ((from-medium xt-medium) from-left from-top from-right from-bottom
+	    (to-medium xt-medium) to-left to-top)
   ;; coords in "host" coordinate system
-  (let ((transform (sheet-native-transformation from-sheet)))
+  (let ((transform (sheet-native-transformation (medium-sheet from-medium))))
     (convert-to-device-coordinates transform
        from-left from-top from-right from-bottom to-left to-top)
-    (with-sheet-medium (from-medium from-sheet)
-      (with-sheet-medium (to-medium to-sheet)
-	(let* ((from-drawable (medium-drawable from-medium))
-	       (to-drawable (medium-drawable to-medium))
-	       (width (- from-right from-left))
-	       (height (- from-bottom from-top))
-	       (copy-gc (port-copy-gc port)))
-	  (when (and from-drawable to-drawable)
-	    (if (port-safe-backing-store port)
-		;; Don't bother with no-expose events.
-		(return-from port-copy-area
-		  (tk::copy-area from-drawable copy-gc from-left from-top
-				 width height to-drawable to-left to-top)))
-	    (with-port-event-lock (port)
-	      (let ((seq-no 0))
-		(without-interrupts
-		  (setq seq-no (x11:xnextrequest (port-display port)))
-		  (tk::copy-area from-drawable copy-gc from-left from-top
-				 width height to-drawable to-left to-top))
-		(let ((event
-		       (tk::get-event-matching-sequence-and-types
-			to-drawable seq-no
-			'(:graphics-expose :no-expose))))
-		  (case (tk::event-type event)
-		    (:no-expose
-		     nil)
-		    (:graphics-expose
-		     (loop
-		       (let* ((minx (x11::xexposeevent-x event))
-			      (miny (x11::xexposeevent-y event))
-			      (width (x11::xexposeevent-width event))
-			      (height (x11::xexposeevent-height event))
-			      (maxx (+ minx width))
-			      (maxy (+ miny height)))
+    (let* ((from-drawable (medium-drawable from-medium))
+	   (to-drawable (medium-drawable to-medium))
+	   (width (- from-right from-left))
+	   (height (- from-bottom from-top))
+	   (port (port from-medium))
+	   (copy-gc (port-copy-gc port)))
+	(when (and from-drawable to-drawable)
+	  (when (port-safe-backing-store port)
+	    ;; Don't bother with no-expose events.
+	    (return-from medium-copy-area
+	      (tk::copy-area from-drawable copy-gc from-left from-top
+			     width height
+			     to-drawable to-left to-top)))
+	  (with-port-event-lock (port)
+	    (let ((seq-no 0))
+	      (clim-sys:without-scheduling
+		(setq seq-no (x11:xnextrequest (port-display port)))
+		(tk::copy-area from-drawable copy-gc from-left from-top
+			       width height to-drawable to-left to-top))
+	      (let ((event
+		     (tk::get-event-matching-sequence-and-types
+		      to-drawable seq-no
+		      '(:graphics-expose :no-expose))))
+		(case (tk::event-type event)
+		  (:no-expose
+		   nil)
+		  (:graphics-expose
+		   (loop
+		     (let* ((minx (x11::xexposeevent-x event))
+			    (miny (x11::xexposeevent-y event))
+			    (width (x11::xexposeevent-width event))
+			    (height (x11::xexposeevent-height event))
+			    (maxx (+ minx width))
+			    (maxy (+ miny height)))
+		       (let ((sheet (medium-sheet to-medium)))
 			 (dispatch-repaint
-			  to-sheet
-			  (make-instance 'window-repaint-event
-			    :native-region (make-bounding-rectangle minx miny maxx maxy)
-			    :region (untransform-region
-				     (sheet-native-transformation to-sheet)
-				     (make-bounding-rectangle minx miny maxx maxy))
-			    :sheet to-sheet)))
-		       (setq event (tk::get-event-matching-sequence-and-types
-				    to-drawable seq-no '(:graphics-expose) 
-				    :block nil))
-		       (unless event
- 			 (return))))))))))))))
+			   sheet
+			   (make-instance 'window-repaint-event
+			     :native-region (make-bounding-rectangle minx miny maxx maxy)
+			     :region (untransform-region
+				       (sheet-native-transformation sheet)
+				       (make-bounding-rectangle minx miny maxx maxy))
+			     :sheet sheet))))
+		     (setq event (tk::get-event-matching-sequence-and-types
+				  to-drawable seq-no '(:graphics-expose) 
+				  :block nil))
+		     (unless event
+		       (return))))))))))))

@@ -1,13 +1,12 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clim-macros.lisp,v 1.3 92/03/04 16:20:03 cer Exp $
+;; $fiHeader: clim-macros.lisp,v 1.4 92/04/15 11:45:24 cer Exp $
 
 (in-package :clim-utils)
 
 "Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved.
  Portions copyright (c) 1988, 1989, 1990 International Lisp Associates."
 
-;;--- These need to be moved into CLIM-UTILS somewhere...
 (defmacro default-output-stream (stream &optional must-be-variable-macro-name)
   `(cond ((member ,stream '(t nil))
 	  (setq ,stream '*standard-output*))

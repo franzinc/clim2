@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLX-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clx-port.lisp,v 1.7 92/05/07 13:11:49 cer Exp $
+;; $fiHeader: clx-port.lisp,v 1.8 92/05/22 19:27:33 cer Exp $
 
 (in-package :clx-clim)
 
@@ -8,12 +8,12 @@
  Portions copyright (c) 1991, 1992 International Lisp Associates."
 
 
-(defclass clx-port (port)
+(defclass clx-port (basic-port)
     ((display :initform nil :reader port-display)
      (screen :initform nil)
      (window :initform nil)
      (cursor-font)
-     (cursor-cache :initform nil :type nil)
+     (cursor-cache :initform nil)
      (stipple-gc)
      (default-grab-cursor :reader default-grab-cursor)
      (context :reader port-context)
@@ -55,15 +55,17 @@
 			   :drawable window
 			   :foreground (xlib:screen-black-pixel screen)
 			   :background (xlib:screen-white-pixel screen)))
-	(setf default-grab-cursor
-	      (xlib:create-glyph-cursor :source-font *cursor-font*
-					:mask-font *cursor-font*
-					;; Northeast arrow
-					:source-char 2
-					:mask-char 3
-					:foreground *clx-black-color*
-					:background *clx-white-color*))))
-    (initialize-clx-port port)))
+ 	(prog1
+	  ;; Do this here in order to compute *CURSOR-FONT*
+	  (initialize-clx-port port)
+ 	  (setf default-grab-cursor
+ 		(xlib:create-glyph-cursor :source-font *cursor-font*
+ 					  :mask-font *cursor-font*
+ 					  ;; Northeast arrow
+ 					  :source-char 2
+ 					  :mask-char 3
+ 					  :foreground *clx-black-color*
+ 					  :background *clx-white-color*)))))))
 
 (defun disassemble-display-spec (display &optional (default-display 0) (default-screen 0))
   (declare (values host display-number nscreen))
@@ -303,32 +305,6 @@
 (defmethod clx-get-default-font ((port clx-port) medium)
   (text-style-mapping port (medium-merged-text-style medium)))
 
-(defmethod text-style-width ((text-style standard-text-style) (port clx-port))
-  (let ((font (text-style-mapping port text-style)))
-    ;; Disgusting, but probably OK
-    (xlib:char-width font (xlib:char->card8 #\A))))
-
-(defmethod text-style-height ((text-style standard-text-style) (port clx-port))
-  (let ((font (text-style-mapping port text-style)))
-    (let* ((ascent (xlib:font-ascent font))
-	   (descent (xlib:font-descent font))
-	   (height (+ ascent descent)))
-      height)))
-
-(defmethod text-style-ascent ((text-style standard-text-style) (port clx-port))
-  (let ((font (text-style-mapping port text-style)))
-    (xlib:font-ascent font)))
-
-(defmethod text-style-descent ((text-style standard-text-style) (port clx-port))
-  (let ((font (text-style-mapping port text-style)))
-    (xlib:font-descent font)))
-
-(defmethod text-style-fixed-width-p ((text-style standard-text-style) (port clx-port))
-  (let ((font (text-style-mapping port text-style)))
-    ;; Really disgusting, but probably OK
-    (= (xlib:char-width font (xlib:char->card8 #\.))
-       (xlib:char-width font (xlib:char->card8 #\M)))))
-
 
 (defvar *clx-keysym->clim-keysym-table*
 	(make-hash-table :test (xlib::keysym->character-map-test)))
@@ -564,17 +540,10 @@
       :foreground (xlib:make-color :red   0.0 :green 0.0 :blue  0.0)
       :background (xlib:make-color :red   1.0 :green 1.0 :blue  1.0))))
 
+;;--- We need something like PORT-SET-POINTER-POSITION
 (defmethod set-cursor-location ((port clx-port) sheet x y)
   (xlib:warp-pointer (sheet-mirror sheet)
 		     (fix-coordinate x) (fix-coordinate y)))
-
-
-;;--- Doesn't this need a sheet/stream argument?
-(defmethod port-force-output ((port clx-port))
-  (xlib:display-force-output (port-display port)))
-
-(defmethod port-finish-output ((port clx-port))
-  (xlib:display-finish-output (port-display port)))
 
 
 ;;; Convert an X keycode into a CLIM modifier state that can be IORed with

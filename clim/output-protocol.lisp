@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: output-protocol.lisp,v 1.13 92/05/07 13:12:41 cer Exp $
+;; $fiHeader: output-protocol.lisp,v 1.14 92/05/22 19:28:16 cer Exp $
 
 (in-package :clim-internals)
 
@@ -21,18 +21,22 @@
 
 (define-protocol-p-method extended-output-stream-p basic-extended-output-protocol)
 
+(defmethod interactive-stream-p ((stream basic-extended-output-protocol))
+  nil)
+
+
 (defclass output-protocol-mixin
 	  (basic-extended-output-protocol)
      ((cursor-x :type coordinate :initform (coordinate 0))
       (cursor-y :type coordinate :initform (coordinate 0))
-      (baseline :accessor stream-baseline
-		:type coordinate :initform (coordinate 0))
       (foreground :initform nil
 		  :accessor medium-foreground
-		  :initarg :stream-foreground)
+		  :initarg :foreground)
       (background :initform nil
 		  :accessor medium-background
-		  :initarg :stream-background)
+		  :initarg :background)
+      (baseline :accessor stream-baseline
+		:type coordinate :initform (coordinate 0))
       (current-line-height :accessor stream-current-line-height
 			   :type coordinate :initform (coordinate 0))
       (vertical-space :accessor stream-vertical-spacing
@@ -100,7 +104,8 @@
     (setq current-text-style (parse-text-style current-text-style))
     (setq merged-text-style-valid nil)))
 
-(defmethod engraft-medium :after ((medium medium) port (stream output-protocol-mixin))
+(defmethod engraft-medium :after
+	   ((medium basic-medium) port (stream output-protocol-mixin))
   (declare (ignore port))
   ;;--- What about text style stuff, too?
   ;; We set the slots directly in order to avoid running any per-port
@@ -108,11 +113,9 @@
   ;; per-port methods on ENGRAFT-MEDIUM.
   (with-slots (silica::foreground silica::background) medium
     (setf silica::foreground (or (medium-foreground stream)
-				 (setf (medium-foreground stream)
-				   +black+))
-	  silica::background (or (medium-background stream)
-				 (setf (medium-background stream)
-				   +white+)))))
+				 (setf (slot-value stream 'foreground) +black+))
+ 	  silica::background (or (medium-background stream)
+ 				 (setf (slot-value stream 'background) +white+)))))
 
 ;;--- I sure don't like having to do this to make string streams work
 (defmethod stream-default-view ((stream t)) +textual-view+)
@@ -197,6 +200,10 @@
 	      baseline (coordinate 0)))
       (setf cursor-y (coordinate y))))
   (stream-ensure-cursor-visible stream x y))
+
+(defgeneric* (setf stream-cursor-position) (x y stream))
+(defmethod* (setf stream-cursor-position) (x y (stream t))
+  (stream-set-cursor-position stream x y))
 
 #+CLIM-1-compatibility
 (define-compatibility-function (stream-cursor-position*
@@ -299,10 +306,10 @@
 
 
 (defmethod stream-force-output ((stream output-protocol-mixin))
-  (port-force-output (port stream)))
+  (medium-force-output (sheet-medium stream)))
 
 (defmethod stream-finish-output ((stream output-protocol-mixin))
-  (port-finish-output (port stream)))
+  (medium-finish-output (sheet-medium stream)))
 
 (defmethod stream-fresh-line ((output-stream output-protocol-mixin))
   (unless (zerop (slot-value output-stream 'cursor-x))
@@ -625,9 +632,8 @@
 (defmethod stream-move-for-line-height-change ((stream output-protocol-mixin)
 					       movement old-height cursor-x cursor-y)
   ;;--- This doesn't appear to work yet, and it's "not cheap"
-  #+++ignore (copy-area stream
-			0 cursor-y
-			cursor-x (+ cursor-y old-height)
+  #+++ignore (copy-area (sheet-medium stream)
+			0 cursor-y cursor-x (+ cursor-y old-height)
 			0 (+ cursor-y movement))
   #+++ignore (window-clear-area stream
 				0 cursor-y
@@ -737,6 +743,23 @@
 				    (medium-merged-text-style stream)))
     (declare (ignore index font escapement-y origin-x origin-y bb-y))
     (coordinate (* (max bb-x escapement-x) 8.))))
+
+;;--- Fallback method, a kludge...
+;;--- This method, and the ones above, should be defined on mediums, too
+(defmethod stream-string-output-size ((medium basic-medium) string
+				      &key (start 0) end text-style)
+  (when (null end)
+    (setq end (length string)))
+  (let ((width (* (- end start) (text-style-width text-style medium)))
+	(height (text-style-height text-style medium)))
+    (values width width height height height)))
+
+;;--- Another fallback method, another kludge...
+(defmethod stream-string-width ((medium basic-medium) string
+				&key (start 0) end text-style)
+  (multiple-value-bind (last-x largest-x)
+      (stream-string-output-size medium string :start start :end end :text-style text-style)
+    (values last-x largest-x)))
 
 
 ;;; A few utilities for string writing.

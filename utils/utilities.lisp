@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: utilities.lisp,v 1.4 92/03/04 16:20:27 cer Exp $
+;; $fiHeader: utilities.lisp,v 1.5 92/04/15 11:45:41 cer Exp $
 
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
@@ -23,26 +23,26 @@
   nil)
 
 (eval-when (compile load eval)
-  (defmacro with-collection (&body body)
-    `(let (($with-collection-result$ nil)
-	   $with-collection-tail$)
-       (macrolet
-	   ((collect (form)
-	      ;;  The FORM is evaluated first so that COLLECT nests
-	      ;; properly, i.e., The test to determine if this is
-	      ;; the first value collected should be done after the
-	      ;; value itself is generated in case it does
-	      ;; collection as well.
-	      `(let (($collectable$ ,form))
-		 (if $with-collection-tail$
-		     (rplacd $with-collection-tail$
-			     (setq $with-collection-tail$
-				   (list $collectable$)))
-		     (setq $with-collection-result$
+(defmacro with-collection (&body body)
+  `(let (($with-collection-result$ nil)
+	 $with-collection-tail$)
+     (macrolet
+	 ((collect (form)
+	    ;;  The FORM is evaluated first so that COLLECT nests
+	    ;; properly, i.e., The test to determine if this is
+	    ;; the first value collected should be done after the
+	    ;; value itself is generated in case it does
+	    ;; collection as well.
+	    `(let (($collectable$ ,form))
+	       (if $with-collection-tail$
+		   (rplacd $with-collection-tail$
 			   (setq $with-collection-tail$
-				 (list $collectable$))))
-		 $with-collection-tail$)))
-	 ,@body $with-collection-result$))))
+				 (list $collectable$)))
+		   (setq $with-collection-result$
+			 (setq $with-collection-tail$
+			       (list $collectable$))))
+	       $with-collection-tail$)))
+       ,@body $with-collection-result$))))
 
 (defmacro with-gensyms ((&rest vars) &body body)
   `(let ,(mapcar #'(lambda (symbol)
