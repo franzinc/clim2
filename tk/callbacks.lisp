@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: callbacks.lisp,v 1.18 92/09/24 09:37:16 cer Exp $
+;; $fiHeader: callbacks.lisp,v 1.19 92/11/09 10:55:55 cer Exp $
 
 (in-package :tk)
 
@@ -118,7 +118,7 @@
 	    ("toTopCallback")         
 	    ("focusCallback")         
 	    ("losingFocusCallback")   
-	    ("modifyVerifyCallback")  
+	    ("modifyVerifyCallback" :modify-verify)
 	    ("motionVerifyCallback")  
 	    ("valueChangedCallback")  
 	    ("noMatchCallback")       
@@ -143,6 +143,8 @@
 	    ("gainPrimaryCallback")     
 	    ("losePrimaryCallback")
 
+	    ;; Motif Callbacks
+	      
 	    ;; OpenLook Callbacks
 	    ("sliderMoved" slider-moved)
 	    ("select")
@@ -160,6 +162,10 @@
 
 (defmethod spread-callback-data (widget data (type (eql :activate)))
   (x-push-button-callback-struct-click-count data))
+
+(defmethod spread-callback-data (widget data (type (eql
+						    :modify-verify)))
+  (xm-text-field-callback-struct-doit data))
 
 (defmethod spread-callback-data (widget call-data (type (eql 'drawing-area)))
   (values (x-drawing-area-callback-window call-data)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: packages.lisp,v 1.36 92/10/29 16:55:06 cer Exp $
+;; $fiHeader: packages.lisp,v 1.37 92/11/06 19:05:10 cer Exp $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :common-lisp-user)
 
@@ -3371,6 +3371,8 @@
     fetch-medium-drawable
     find-port-type
     fit-region*-in-region*
+    focus-in-gadget-event
+    focus-out-gadget-event
     foreground-background-and-text-style-mixin
     frame-input-buffer
     frame-manager-clear-progress-note

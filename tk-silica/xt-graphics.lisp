@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.50 92/11/06 19:04:40 cer Exp $
+;; $fiHeader: xt-graphics.lisp,v 1.51 92/11/09 10:56:14 cer Exp $
 
 (in-package :tk-silica)
 
@@ -130,10 +130,14 @@
 	(setf (gethash name named-color-cache)
 	  (let ((xcolor (tk::lookup-color (palette-colormap palette) name))
 		(x #.(1- (ash 1 16))))
-	    (make-rgb-color (/ (x11:xcolor-red xcolor) x)
-			    (/ (x11:xcolor-green xcolor) x)
-			    (/ (x11:xcolor-blue xcolor) x)))))))
-
+	    (if xcolor
+		(make-rgb-color (/ (x11:xcolor-red xcolor) x)
+				(/ (x11:xcolor-green xcolor) x)
+				(/ (x11:xcolor-blue xcolor) x))
+	      (if errorp
+		  (error 'color-not-found :color name)
+		(return-from find-named-color nil))))))))
+  
 (defmethod update-palette-entry ((palette xt-palette) pixel color)
   (let ((xcolor (get-xcolor color palette)))
     (setf (x11:xcolor-pixel xcolor) pixel)

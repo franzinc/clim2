@@ -1,6 +1,6 @@
 ;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadgets.lisp,v 1.38 92/11/06 19:03:51 cer Exp $
+;; $fiHeader: gadgets.lisp,v 1.39 92/11/13 14:46:44 cer Exp $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
@@ -110,6 +110,29 @@
 (defmethod activate-callback ((gadget action-gadget) (client t) (id t))
   nil)
 
+(defclass focus-gadget (gadget)
+    ((focus-out-callback :initarg :focus-out-callback :initform nil
+			 :reader gadget-focus-out-callback)
+     (focus-in-callback :initarg :focus-in-callback :initform nil
+			:reader gadget-focus-in-callback)))
+
+(defmethod focus-out-callback :around ((gadget focus-gadget) (client t) (id t)) 
+  (let ((callback (gadget-focus-out-callback gadget)))
+    (if callback
+	(invoke-callback-function callback gadget)
+      (call-next-method))))
+
+(defmethod focus-out-callback ((gadget focus-gadget) (client t) (id t))
+  nil)
+
+(defmethod focus-in-callback :around ((gadget focus-gadget) (client t) (id t)) 
+  (let ((callback (gadget-focus-in-callback gadget)))
+    (if callback
+	(invoke-callback-function callback gadget)
+      (call-next-method))))
+
+(defmethod focus-in-callback ((gadget focus-gadget) (client t) (id t))
+  nil)
 
 ;;; Basic gadgets-mixins
 
@@ -349,6 +372,9 @@
 (defmethod value-changed-callback :around 
 	   ((selection gadget) (client radio-box) gadget-id value)
   (declare (ignore gadget-id))
+  ;;--- The following comment is wrong. Perhaps these should be
+  ;; :BEFORE methods since the use could define a more specific around
+  ;; method only.
   ;; This and the one below have to be :AROUND because if the user has
   ;; specified a callback function only :AROUNDs ever get executed.
   (when (eq value t)
@@ -407,7 +433,7 @@
 ;;--- Do we want to specify a binding to commands?
 
 (defclass text-field 
-    (value-gadget action-gadget) 
+    (value-gadget focus-gadget action-gadget) 
     ((editable-p :initarg :editable-p :accessor
 		 gadget-editable-p))
   (:default-initargs :editable-p t))
@@ -646,6 +672,15 @@
 (defmethod handle-event ((gadget action-gadget) (event activate-gadget-event))
   (activate-callback gadget (gadget-client gadget) (gadget-id gadget)))
 
+(defclass focus-out-gadget-event (gadget-event) ())
+
+(defmethod handle-event ((gadget focus-gadget) (event focus-out-gadget-event))
+  (focus-out-callback gadget (gadget-client gadget) (gadget-id gadget)))
+
+(defclass focus-in-gadget-event (gadget-event) ())
+
+(defmethod handle-event ((gadget focus-gadget) (event focus-in-gadget-event))
+  (focus-in-callback gadget (gadget-client gadget) (gadget-id gadget)))
 
 (defclass drag-gadget-event (gadget-event) 
     ((value :initarg :value :reader event-value)))

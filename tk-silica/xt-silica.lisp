@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.56 92/11/06 19:04:44 cer Exp $
+;; $fiHeader: xt-silica.lisp,v 1.57 92/11/13 14:47:27 cer Exp $
 
 (in-package :xm-silica)
 
@@ -1396,6 +1396,22 @@ the geometry of the children. Instead the parent has control. "))
      (allocate-event 'value-changed-gadget-event
 		     :gadget sheet
 		     :value value))))
+
+(defmethod queue-losing-focus-event (widget sheet)
+  (declare (ignore widget))
+  (unless *dont-invoke-callbacks*
+    (distribute-event
+     (port sheet)
+     (allocate-event 'focus-out-gadget-event
+		     :gadget sheet))))
+
+(defmethod queue-gaining-focus-event (widget sheet)
+  (declare (ignore widget))
+  (unless *dont-invoke-callbacks*
+    (distribute-event
+     (port sheet)
+     (allocate-event 'focus-in-gadget-event
+		     :gadget sheet))))
 
 (defmethod queue-drag-event (widget sheet &optional (value (gadget-value sheet)))
   (declare (ignore widget))

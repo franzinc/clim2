@@ -21,7 +21,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: bitmap-editor.lisp,v 1.6 92/10/07 14:43:14 cer Exp $
+;; $fiHeader: bitmap-editor.lisp,v 1.7 92/10/28 11:32:49 cer Exp $
 
 (in-package :clim-demo)
 
@@ -79,7 +79,7 @@
 	    (formatting-cell (stream)
 	      (accept-values-command-button (stream)
 		  "Add Color"
-		(add-color-to-palette frame)))
+		(bitmap-editor-add-color-to-palette frame)))
 	    (formatting-cell (stream)
 	      (accept-values-command-button (stream)
 		  "Edit Color"
@@ -98,7 +98,7 @@
   ;;--- Exercise for the reader
   )
 
-(defun add-color-to-palette (frame)
+(defun bitmap-editor-add-color-to-palette (frame)
   (let ((fr (make-application-frame 'color-chooser)))
     (run-frame-top-level fr)
     (with-slots (colors) frame

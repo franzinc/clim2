@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xlib.lisp,v 1.32 92/10/29 16:54:51 cer Exp $
+;; $fiHeader: xlib.lisp,v 1.33 92/11/06 19:04:21 cer Exp $
 
 (in-package :tk)
 
@@ -311,13 +311,12 @@
 (defun lookup-color (colormap name)
   (let ((exact (x11::make-xcolor :in-foreign-space t))
 	(closest (x11::make-xcolor :in-foreign-space t)))
-    (if (zerop (x11:xlookupcolor
-		(object-display colormap)
-		colormap
-		name
-		exact
-		closest))
-	(error "Could not find ~S in colormap ~S" name colormap)
+    (unless (zerop (x11:xlookupcolor
+		    (object-display colormap)
+		    colormap
+		    name
+		    exact
+		    closest))
       (values (make-instance 'color :foreign-address exact)
 	      (make-instance 'color :foreign-address closest)))))
 

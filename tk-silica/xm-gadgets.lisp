@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.56 92/11/09 19:56:00 cer Exp $
+;; $fiHeader: xm-gadgets.lisp,v 1.57 92/11/13 14:47:16 cer Exp $
 
 (in-package :xm-silica)
 
@@ -68,7 +68,7 @@
 
 ;;; Motif widgets that support the value-changed callback
 
-(defclass motif-value-changed-callback-pane () ())
+(defclass motif-value-changed-callback-pane (motif-value-pane) ())
 
 (defmethod add-sheet-callbacks :after 
            ((port motif-port) (sheet motif-value-changed-callback-pane) (widget t))
@@ -79,13 +79,13 @@
 
 ;;; Motif widgets that support the losing-focus callback
 
-(defclass motif-losing-focus-callback-pane () ())
+(defclass motif-losing-focus-callback-pane (motif-value-pane) ())
 
 (defmethod add-sheet-callbacks :after 
            ((port motif-port) (sheet motif-losing-focus-callback-pane) (widget t))
   (tk::add-callback widget
                     :losing-focus-callback
-                    'queue-value-changed-event
+                    'queue-losing-focus-event
                     sheet))
 
 ;; Gadgets that have a :label initarg
@@ -203,8 +203,7 @@
 
 ;;; range pane mixin
 
-(defclass motif-range-pane (motif-value-pane
-                            motif-value-changed-callback-pane)
+(defclass motif-range-pane (motif-value-changed-callback-pane)
           ())
 
 
@@ -495,8 +494,8 @@
 
 ;;;; text field
 
-(defclass motif-text-field (motif-value-pane 
-                            motif-losing-focus-callback-pane
+(defclass motif-text-field (motif-losing-focus-callback-pane
+			    motif-value-changed-callback-pane
                             motif-action-pane
                             text-field
                             xt-leaf-pane)
@@ -513,10 +512,23 @@
 	     `(:editable ,editable)
              (and value `(:value ,value))))))
 
+#+ignore
+(defmethod add-sheet-callbacks :after
+	   ((port motif-port) (sheet motif-text-field) (widget t))
+  (tk::add-callback widget
+		    :modify-verify-callback
+		    'queue-modify-verify-event
+		    sheet))
+
+#+ignore
+(defmethod queue-modify-verify-event (widget doit sheet)
+  (format excl:*initial-terminal-io* "~&~s,~s,~s" widget doit sheet))
+		    
+		    
+
 ;;; 
 
-(defclass motif-text-editor (motif-value-pane 
-                             motif-losing-focus-callback-pane
+(defclass motif-text-editor (motif-losing-focus-callback-pane
                              motif-action-pane
                              text-editor
                              xt-leaf-pane)
@@ -588,7 +600,6 @@
 ;;; Toggle button
 
 (defclass motif-toggle-button (motif-labelled-gadget
-                               motif-value-pane
                                motif-value-changed-callback-pane
                                toggle-button
                                xt-leaf-pane)
