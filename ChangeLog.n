@@ -19,6 +19,55 @@ If there are user-visible changes in this commit, then list the
 	* Makefile.hpprism: attempt to force clim to use motif 1.2
 
 *******************************************************************************
+2.2.2.20.5
+
+2000-08-08 tfb@cley.com (Tim Bradshaw)
+
+	* aclpc/acl-prel.lisp, aclpc/winwidgh.lisp: changes to cope
+	  with failure of CreateDIBitmap, this time hopefully really
+	  fixing the problem.  This is spr21068, still.
+
+*******************************************************************************
+2.2.2.20.4 
+
+2000-07-17 tfb@cley.com (Tim Bradshaw)
+
+	* utils/last.lisp: make it preload the EUC support to stop the
+	  autoloading happening at messages from happening at a really
+	  bad time.
+
+*******************************************************************************
+2.2.2.20.3
+
+2000-07-13 tfb@cley.com (Tim Bradshaw)
+
+	* aclpc/acl-class.lisp: make it easier to trace windows messages,
+	  and fix a case bug in the stuff that mapped from numbers to
+	  names.  New variable
+	  acl-clim::*windows-message-trace-output* determined where
+	  traced messages go, defaultly it is excl:*initial-terminal-io*.
+
+*******************************************************************************
+2.2.2.20.2
+
+2000-07-12 tfb@cley.com (Tim Bradshaw)
+
+	* clim/interactive-protocol.lisp: tell it that
+	  simple-streams don't support input editing.  This is
+	  obviously wrong, but as far as CLIM is concerned right now,
+	  it's true.
+
+*******************************************************************************
+2.2.2.20.1 
+
+2000-07-11 tfb@cley.com (Tim Bradshaw)
+
+fixes for bug9204, bug9194.
+
+	* test/test-suite.lisp: made without-clim-input work in the presence of 	  multiple processes.
+
+
+*******************************************************************************
 2.2.2.20
 
 Fri Jul  7 21:18:31 PDT 2000  Duane Rettig  <duane@beta>
@@ -55,6 +104,28 @@ next merge tag: cley3_merge1
 
 	* Makefile.generic: use different output files for build and
 	concat of fasls
+
+*******************************************************************************
+2.2.2.15.4 tfb@cley.com (Tim Bradshaw) Mon Jul 10 18:03:30 2000
+
+change char*-to-string and string-to-char* to native-to-string and
+string-to-native pervasively as recommended by Charley.
+
+	* aclpc/acl-frames.lisp, aclpc/acl-prel.lisp,
+	  tk-silica/ol-gadgets.lisp, tk-silica/xm-gadgets.lisp,
+	  tk-silica/xt-silica.lisp, tk/font.lisp, tk/foreign.lisp,
+	  tk/make-classes.lisp, tk/ol-init.lisp, tk/resources.lisp,
+	  tk/widget.lisp, tk/xlib.lisp, tk/xm-widgets.lisp,
+	  wnn/jserver.lisp: as above.
+
+*******************************************************************************
+2.2.2.15.3 tfb@cley.com (Tim Bradshaw) Mon Jul 10 17:59:16 2000
+
+fix rfe4072-induced motif problems.
+
+	* tk-silica/xt-gadgets.lisp: make compute-new-scroll-bar-values deal 
+	  with rounding errors in float->integer conversion which were
+	  causing motif to whine.
 
 *******************************************************************************
 2.2.2.15.2 tfb@cley.com (Tim Bradshaw) Thu Jul  6 15:04:44 2000

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-class.lisp,v 1.14 2000/05/01 21:43:18 layer Exp $
+;; $Id: acl-class.lisp,v 1.14.2.1 2000/08/10 23:33:33 cley Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -59,7 +59,7 @@
 (defun init-msg-names ()
   (setq *msg-names* (make-array 4096))
   (dolist (x (remove-duplicates
-	      (apropos-list 'wm_ (find-package :win))))
+	      (apropos-list "WM_" (find-package :win))))
     (push x (svref *msg-names* (symbol-value x)))))
 
 (defun msg-name (msg)
@@ -843,7 +843,9 @@
   #+optional
   (callnexthookex *next-windows-hook* msg wparam lparam))
 
-(defvar *trace-messages* nil)
+;;; Windows messages get printed to the value of this, if
+;;; *maybe-format* is non-NIL
+(defvar *windows-message-trace-output* excl:*initial-terminal-io*)
 
 ;; CLIM-WIND-PROC
 ;; is the function called by the Windows operating system when
@@ -863,13 +865,12 @@
     (setf *hwnd* window)
     ;; FYI: Spy++ does a better job of tracing messages,
     ;; though it doesn't report everything.
-    (when *maybe-format*
-      (mformat excl:*initial-terminal-io*
-	       "~A In clim-wind-proc msg=~a sheet=~s lparam=~a~%"
-	       *level*
-	       (msg-name msg) 
-	       window
-	       lparam))
+    (mformat *windows-message-trace-output*
+	     "~A In clim-wind-proc msg=~a sheet=~s lparam=~a~%"
+	     *level*
+	     (msg-name msg) 
+	     window
+	     lparam)
     (when (> *level* 40)
       (warn "clim-wind-proc: too deep!"))
     (case msg
@@ -938,13 +939,12 @@
       (otherwise
        (message-default window msg wparam lparam)))
     (setf result *win-result*)
-    (when *maybe-format*
-      (mformat excl:*initial-terminal-io*
-	       "~A Out clim-wind-proc msg=~a sheet=~s result=~s~%"
+    (mformat *windows-message-trace-output*
+	     "~A Out clim-wind-proc msg=~a sheet=~s result=~s~%"
 	       *level*
 	       (msg-name msg) 
 	       window
-	       result))
+	       result)
     result))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

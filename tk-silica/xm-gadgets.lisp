@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xm-gadgets.lisp,v 1.102 2000/07/06 20:46:02 layer Exp $
+;; $Id: xm-gadgets.lisp,v 1.102.10.1 2000/08/10 23:33:37 cley Exp $
 
 (in-package :xm-silica)
 
@@ -812,7 +812,7 @@
     (and m
 	 (let  ((x (tk::xm_text_field_get_selection m)))
 	   (and (not (zerop x))
-		(ff:char*-to-string x))))))
+		(values (excl:native-to-string x)))))))
 
 (defmethod (setf gadget-value) :after
     (nv (gadget motif-text-field) &key invoke-callback)
@@ -839,7 +839,7 @@
 	   (ptr (tk::xm-text-block-rec-ptr text-block))
 	   (text (if (zerop length)
 		     ""
-		   (ff:char*-to-string ptr)))
+		   (excl:native-to-string ptr)))
 	   (start-pos (tk::xm-text-field-callback-struct-start-pos callback-struct))
 	   (end-pos (tk::xm-text-field-callback-struct-end-pos callback-struct)))
       (with-slots (silica::value) sheet
@@ -974,7 +974,7 @@
     (and m
 	 (let  ((x (tk::xm_text_get_selection m)))
 	   (and (not (zerop x))
-		(ff:char*-to-string x))))))
+		(values (excl:native-to-string x)))))))
 
 (defmethod compose-space ((te motif-text-editor) &key width height)
   (declare (ignore width height))

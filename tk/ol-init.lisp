@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: ol-init.lisp,v 1.26 1999/02/25 08:23:42 layer Exp $
+;; $Id: ol-init.lisp,v 1.26.6.1 2000/08/10 23:33:36 cley Exp $
 
 (in-package :tk)
 
@@ -24,21 +24,21 @@
 
 (defun-c-callable ol-error-handler ((message :unsigned-long))
   (let ((*error-output* excl:*initial-terminal-io*))
-    (error "OLit: ~A" (char*-to-string message))))
+    (error "OLit: ~A" (excl:native-to-string message))))
 
 
 (defun-c-callable ol-warning-handler ((message :unsigned-long))
   (let ((*error-output* excl:*initial-terminal-io*))
-    (warn "OLit: ~A" (char*-to-string message))))
+    (warn "OLit: ~A" (excl:native-to-string message))))
 
 (defun-c-callable ol-error-va-handler ((message :unsigned-long))
   (let ((*error-output* excl:*initial-terminal-io*))
-    (error "OLit: ~A" (char*-to-string message))))
+    (error "OLit: ~A" (excl:native-to-string message))))
 
 
 (defun-c-callable ol-warning-va-handler ((message :unsigned-long))
   (let ((*error-output* excl:*initial-terminal-io*))
-    (warn "OLit: ~A" (char*-to-string message))))
+    (warn "OLit: ~A" (excl:native-to-string message))))
 
 
 (defun install-ol-error-handlers ()
