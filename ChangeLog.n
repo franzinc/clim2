@@ -1,3 +1,10 @@
+
+*************************************************************
+Fri Oct 20 11:03:26 PDT 1995	Colin Meldrum (colin@vapor)
+
+misc/train.lisp		#+ignored coverage report code because it doesn't
+			yet work with new excl call-counting
+
 *************************************************************
 Fri Oct 20 10:35:00 PDT 1995	Colin Meldrum (colin@vapor)
 

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: train.lisp,v 1.18 1995/04/07 01:09:12 georgej Exp $
+;; $fiHeader: train.lisp,v 1.19 1995/05/17 19:48:53 colin Exp $
 
 (defun train-clim (&key (train-times 2)
 			(psview nil)
@@ -87,6 +87,9 @@
 
   #-svr4 (excl:shell "ps vaxg")
 
+  ;; coverage reports don't yet work with new call counting scheme
+  ;; cim 10/17/95
+  #+ignore
   (when (fboundp 'generate-coverage-report)
     (with-open-file (*standard-output* (if (excl::featurep :clim-motif)
 					   "notes/coverage-reportxm.lisp"
