@@ -1,5 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLX-CLIM; Base: 10; Lowercase: Yes -*-
 
+;; $fiHeader$
 ;;--- (1) Why does the new CLX port flush WHITE- and BLACK-PIXEL?
 ;;--- (2) What to do about reparenting?
 (defclass clx-window

@@ -1,5 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: GENERA-CLIM; Base: 10; Lowercase: Yes -*-
 
+;; $fiHeader$
 ;;--- We really need to handle this for all the ports
 (defmethod window-visibility ((stream sheet-implementation-mixin))
   (with-slots (window) stream
