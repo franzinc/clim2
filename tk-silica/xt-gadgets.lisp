@@ -20,29 +20,27 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-gadgets.lisp,v 1.4 92/02/14 18:57:46 cer Exp Locker: cer $
+;; $fiHeader: xt-gadgets.lisp,v 1.5 92/02/16 20:55:16 cer Exp $
 
 (in-package :xm-silica)
 
 (defclass ask-widget-for-size-mixin () ())
 
-(defmethod realize-pane-1 ((realizer xt-frame-manager)
+(defmethod realize-pane-1 ((framem xt-frame-manager)
 			   frame abstract-type &rest options)
-  (let ((type (apply #'realize-pane-class realizer abstract-type options)))
+  (let ((type (apply #'realize-pane-class framem abstract-type options)))
     (if type
-	(apply #'make-instance
-	       type 
+	(apply #'make-instance type 
 	       :frame frame
-	       :frame-manager realizer
+	       :frame-manager framem
 	       (apply #'realize-pane-arglist
-		      realizer
-		      abstract-type options))
-      (call-next-method))))
+		      framem abstract-type options))
+	(call-next-method))))
 
 (defmethod compose-space ((pane ask-widget-for-size-mixin) &key width height)
   (multiple-value-bind
       (x y width height borderwidth
-	 care-x care-y care-width care-height care-borderwidth)
+       care-x care-y care-width care-height care-borderwidth)
       (tk::widget-best-geometry (sheet-direct-mirror pane) :width
 				width :height height)
     (declare (ignore x y borderwidth care-x care-y care-width
@@ -55,17 +53,14 @@
 
 ;; Background/foreground/text-style mixin
 
-(defmethod find-widget-class-and-initargs-for-sheet 
-    :around
-    ((port xt-port)
-     (parent t)
-     (sheet 
-      silica::foreground-background-and-text-style-mixin))
+(defmethod find-widget-class-and-initargs-for-sheet :around
+    ((port xt-port) (parent t)
+     (sheet silica::foreground-background-and-text-style-mixin))
   (multiple-value-bind
       (class initargs)
       (call-next-method)
     (with-slots
-	(silica::foreground silica::background silica::text-style)
+	(silica::foreground silica::background text-style)
 	sheet
       
       ;; Background can either be a pixel of a bitmap
@@ -85,9 +80,9 @@
 	    (append (decode-gadget-foreground medium sheet silica::foreground)
 		    initargs))))
 
-      (when silica::text-style
+      (when text-style
 	(setf (getf initargs :font-list)
-	  (realize-text-style port silica::text-style)))
+	  (text-style-mapping port text-style)))
 
       (values class initargs))))
 
@@ -98,89 +93,10 @@
 	(list :background-pixmap (tk::gcontext-tile gc))
       (list :background (tk::gcontext-foreground gc)))))
 
-
 (defmethod decode-gadget-foreground (medium sheet ink)
   (declare (ignore sheet))
   (let ((pixel (decode-color medium ink)))
     (list :foreground pixel)))
-
-
-;; This needs to be somewhere.
-;; It looks like general CLIM code
-
-(defmethod clim-internals::pane-viewport-sheet (x)
-  (and (typep (sheet-parent x) 'silica::viewport)
-       (sheet-parent x)))
-
-(defmethod clim-internals::pane-viewport (x)
-  (clim-internals::pane-viewport-sheet x))
-
-(defmethod clim-internals::pane-viewport-region (x)
-  (let ((vp (clim-internals::pane-viewport-sheet x)))
-    (and vp
-	 (silica::xm-viewport-viewport vp))))
-
-(defun clim-internals::pane-scroller (x)
-  (clim-internals::pane-scroller-sheet x))
-
-(defun clim-internals::update-region (stream width height &key no-repaint)
-  (when (or (> width (bounding-rectangle-width stream))
-	    (> height (bounding-rectangle-height stream)))
-    (setf (sheet-region stream)
-      (make-bounding-rectangle  0 0 
-				(max (bounding-rectangle-width stream) width)
-				(max (bounding-rectangle-height
-				      stream) height)))))
-
-(defun clim-internals::scroll-extent (stream &key (x 0) (y 0))
-  (let ((vp (clim-internals::pane-viewport stream)))
-    (when vp
-    (with-bounding-rectangle* (left top right bottom) 
-                              (clim-internals::pane-viewport-region stream)
-      ;;;---- This should actually bash the sheet-transformation
-      (setf (sheet-transformation stream)
-	    (make-translation-transformation (- x) (- y)))
-      (bounding-rectangle-set-position* (silica::xm-viewport-viewport vp) x y)
-      (with-bounding-rectangle* (nleft ntop nright nbottom) 
-                         	(clim-internals::pane-viewport-region stream)
-        (cond
-	 ;; if some of the stuff that was previously on display is still on display
-	 ;; bitblt it into the proper place and redraw the rest.
-	 ((ltrb-overlaps-ltrb-p left top right bottom
-				nleft ntop nright nbottom)
-	  ;; move the old stuff to the new position
-	  (clim-internals::window-shift-visible-region stream 
-				       left top right bottom
-				       nleft ntop nright nbottom)
-	  (let ((rectangles (ltrb-difference nleft ntop nright nbottom
-					     left top right bottom)))
-	    (dolist (region rectangles)
-	      (with-sheet-medium (medium stream)
-		(multiple-value-call
-		    #'draw-rectangle*
-		  medium
-		  (bounding-rectangle* region)
-		  :ink +background-ink+
-		  :filled t))
-	      (replay (stream-output-history stream) stream region))))
-	 ;; otherwise, just redraw the whole visible viewport
-	 ;; Adjust for the left and top margins by hand so clear-area doesn't erase
-	 ;; the margin components.
-	 (t 
-	  ;;---- We should make the sheet-region bigger at this point
-	  ;; Perhaps we do a union of the sheet-region and the viewport
-	  (with-sheet-medium (medium vp)
-	    (draw-rectangle*
-	     medium
-	     0 0 
-	     (bounding-rectangle-width (silica::xm-viewport-viewport vp))
-	     (bounding-rectangle-height (silica::xm-viewport-viewport vp))
-	     :ink +background-ink+
-	     :filled t))
-	  (replay
-	   (stream-output-history stream)
-	   stream
-	   (silica::xm-viewport-viewport vp)))))))))
 
 (defclass xt-pane (silica::pane) ())
 
@@ -193,10 +109,10 @@
 ;(defclass xt-composite-pane () ())
 
 (defclass xt-leaf-pane (sheet-permanently-enabled-mixin
-			   silica::client-overridability
-			   xt-pane 
-			   mirrored-sheet-mixin 
-			   ask-widget-for-size-mixin)
+			silica::client-overridability
+			xt-pane 
+			mirrored-sheet-mixin 
+			ask-widget-for-size-mixin)
 	  ())
 
 (defmethod sheet-shell (sheet)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: command.lisp,v 1.4 91/03/26 12:47:45 cer Exp $
+;; $fiHeader: command.lisp,v 1.2 92/01/31 14:57:41 cer Exp $
 
 (in-package :clim-internals)
 
@@ -201,7 +201,7 @@
   (when (eql name t)
     (setq name (command-name-from-symbol command-name)))
   (check-type name (or string null))
-  (check-type keystroke (or character null))
+  (check-type keystroke (or character null))	;---gesture spec
   (when (command-present-in-command-table-p command-name command-table)
     (when errorp
       (cerror "Remove the command and proceed"
@@ -396,7 +396,7 @@
 					    text-style (errorp t))
   (check-type string (or string null))
   (check-type type (member :command :function :menu :divider))
-  (check-type keystroke (or character null))
+  (check-type keystroke (or character null))	;---gesture spec
   (check-type documentation (or string null))
   (setq command-table (find-command-table command-table))
   (let ((old-item (and string (find-menu-item string command-table :errorp nil))))
@@ -671,7 +671,7 @@
 
 (defun add-keystroke-to-command-table (command-table character type value
 				       &key documentation (test #'eql) (errorp t))
-  (check-type character character)
+  (check-type character character)		;---gesture spec
   (check-type type (member :command :function :menu))
   (check-type documentation (or string null))
   (setq command-table (find-command-table command-table))
@@ -944,7 +944,7 @@
 	(conditional-keywords nil)
 	(keyword-documentation nil))
     (dolist (keyword-clause arguments)
-      (let ((keyword (intern (string (first keyword-clause)) *keyword-package*))
+      (let ((keyword (intern (symbol-name (first keyword-clause)) *keyword-package*))
 	    (when nil))
 	(do ((l (cddr keyword-clause) (cddr l)))
 	    ((null l))
@@ -988,7 +988,7 @@
       (unless (member keyword '(:view :default :default-type :history :provide-default
 				:prompt :prompt-mode :display-default
 				:activation-gestures :additional-activation-gestures
-				:blip-gestures :additional-blip-gestures))
+				:delimiter-gestures :additional-delimiter-gestures))
 	(warn "The option ~S in the argument description for ~S is unrecognized."
 	      keyword arg-name)))
     `(assign-argument-value ,arg-name
@@ -1074,7 +1074,7 @@
 				  (object)
 				,(if found-key
 				     `(list ,@(unsupplied n-required)
-					    ,(intern (string arg-name) *keyword-package*)
+					    ,(intern (symbol-name arg-name) *keyword-package*)
 					    object)
 				     `(list ,@(unsupplied count)
 					    object

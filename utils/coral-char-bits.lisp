@@ -1,7 +1,7 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
 
-;; $fiHeader$
+;; $fiHeader: coral-char-bits.lisp,v 1.2 92/01/31 15:16:24 cer Exp $
 
 (in-package :clim-utils)
 
@@ -33,7 +33,7 @@
   (= ch1 ch2))
 
 (defmacro shadow-char-p-function (name)
-  (let ((lisp-name (intern (symbol-name name) 'lisp)))
+  (let ((lisp-name (intern (symbol-name name) :lisp)))
     `(defun ,name (char)
        (let ((bits (char-bits char)))
          (cond ((zerop bits)

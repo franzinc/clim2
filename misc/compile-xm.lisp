@@ -20,23 +20,19 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: go-xm.lisp,v 1.2 92/01/31 17:51:10 cer Exp $
+;; $fiHeader: compile-xm.lisp,v 1.1 92/02/16 20:31:27 cer Exp $
 
 (in-package :user)
 
-(unless (fboundp 'common-lisp::provide)
-  (setf (symbol-function 'common-lisp::provide)
-    #'cltl1::provide))
+(setq *ignore-package-name-case* t)
+(set-case-mode :case-insensitive-lower)
 
-(unless (fboundp 'common-lisp::require)
-  (setf (symbol-function 'common-lisp::require)
-    #'cltl1::require))
-
-(load "/usr/tech/cer/temp/boston-tape/misc/defctype.fasl")
+;;(load "/misc/jdi/4.1/src/code/defctype.fasl")
 (setf *load-source-file-info* nil)
 (setf *load-xref-info* nil)
-(setf (sys:gsgc-switch :print) t)
-(setf (sys:gsgc-switch :stats) t)
+(setf *record-xref-info* nil)
+(setf (sys:gsgc-switch :print) nil)
+(setf (sys:gsgc-switch :stats) nil)
 (setq *compile-print* nil)
 (unless (find-package 'excl-defsystem)
   (compile-file-if-needed "sys/defsystem")

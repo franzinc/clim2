@@ -20,25 +20,23 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-gadgets.lisp,v 1.3 92/02/05 21:45:22 cer Exp Locker: cer $
+;; $fiHeader: ol-gadgets.lisp,v 1.4 92/02/14 18:57:38 cer Exp $
 
 
 (in-package :xm-silica)
 
-(defmethod realize-pane-class ((realizer openlook-frame-manager) class &rest options) 
+(defmethod realize-pane-class ((framem openlook-frame-manager) class &rest options) 
   (declare (ignore options))
-  (second (assoc class '(
-			 (scroll-bar openlook-scrollbar)
+  (second (assoc class '((scroll-bar openlook-scrollbar)
 			 (slider openlook-slider)
 			 (push-button openlook-push-button)
-			 (canvas openlook-drawing-area)
 			 (text-field openlook-text-field)
 			 (toggle-button openlook-toggle-button)
 			 (menu-bar openlook-menu-bar)
-			 (silica::viewport ol-viewport)
+			 (viewport ol-viewport)
 			 (radio-box openlook-radio-box)
 			 (frame-pane openlook-frame-pane)
-			 (silica::top-level-sheet openlook-top-level-sheet)
+			 (top-level-sheet openlook-top-level-sheet)
 			 ;; One day
 			 (line-editor-pane)
 			 (label-button-pane)
@@ -59,8 +57,7 @@
 			   silica::scrollbar)
 	  ())
 
-(defmethod find-widget-class-and-initargs-for-sheet ((port
-						      openlook-port)
+(defmethod find-widget-class-and-initargs-for-sheet ((port openlook-port)
 						     (parent t)
 						     (sheet openlook-scrollbar))
   (with-accessors ((orientation silica::gadget-orientation)) sheet
@@ -80,17 +77,17 @@
   (declare (ignore args))
   (tk::set-values
    (sheet-direct-mirror sb)
-   :proportion-length  slider-size
+   :proportion-length slider-size
    :slider-value value))
 
 
 (defmethod add-sheet-callbacks ((port openlook-port) (sheet openlook-scrollbar) (widget t))
   (tk::add-callback widget
 		    :slider-moved
-		    'scrollbar-changed-callback-internal
+		    'scrollbar-changed-callback-1
 		    sheet))
 
-(defmethod scrollbar-changed-callback-internal ((widget t) (sheet openlook-scrollbar))
+(defmethod scrollbar-changed-callback-1 ((widget t) (sheet openlook-scrollbar))
   (multiple-value-bind
       (value size)
       (tk::get-values widget :slider-value :proportion-length)
@@ -103,7 +100,7 @@
 
 (defmethod compose-space ((m openlook-scrollbar) &key width height)
   (let ((x 16))
-    (ecase (silica::gadget-orientation m)
+    (ecase (gadget-orientation m)
       (:vertical
        (make-space-requirement :width x
 			       :min-height x
@@ -145,19 +142,13 @@
 
 ;;; top level sheet
 
-(defclass openlook-top-level-sheet (mirrored-sheet-mixin
-				    sheet-multiple-child-mixin
-				    silica::pane)
-	  ())
-
+(defclass openlook-top-level-sheet (top-level-sheet) ())
 
 (defmethod add-sheet-callbacks :after ((port openlook-port) 
 				       (sheet openlook-top-level-sheet)
 				       widget)
-
   (tk::add-callback widget 
-		    :resize-callback 
-		    'sheet-mirror-resized-callback
+		    :resize-callback 'sheet-mirror-resized-callback
 		    sheet))
 
 (warn "This is really bogus")
@@ -165,15 +156,7 @@
 (defmethod stream-read-char-no-hang ((x openlook-top-level-sheet))
   nil)
 
-(defmethod allocate-space ((sheet openlook-top-level-sheet) width height)
-  (silica::resize-sheet*  (car (sheet-children sheet)) 
-			  width height))
-
-(defmethod compose-space ((sheet openlook-top-level-sheet) &key width height)
-  (compose-space (car (sheet-children sheet))))
-
-(defmethod find-widget-class-and-initargs-for-sheet ((port
-						      openlook-port)
+(defmethod find-widget-class-and-initargs-for-sheet ((port openlook-port)
 						     (parent t)
 						     (sheet openlook-top-level-sheet))
   (values 'tk::draw-area
@@ -182,37 +165,14 @@
 
 ;; OpenLook viewport
 
-(defclass ol-viewport (mirrored-sheet-mixin
-		       silica::sheet-single-child-mixin
-		       sheet-permanently-enabled-mixin
-		       silica::wrapping-space-mixin
-		       silica::pane
-		       silica::viewport)
-	  ;; This describes the region that we are displaying
-	  ((viewport :accessor silica::xm-viewport-viewport))
-  )
+(defclass ol-viewport
+	  (viewport
+	   mirrored-sheet-mixin)
+    ())
 
-(defmethod initialize-instance :after ((vp ol-viewport) &key)
-  (setf (slot-value vp 'viewport)
-    (make-bounding-rectangle 0 0 (sheet-width vp) (sheet-height vp))))
-
-(defmethod allocate-space ((vp ol-viewport) width height)
-  ;; We do nothing to the child of a viewport
-  nil)
-
-(defmethod allocate-space :after ((vp ol-viewport) width height)
-  (bounding-rectangle-set-size
-   (silica::xm-viewport-viewport vp)
-   width height)
-  (update-scrollbars vp)
-  (clim-internals::viewport-region-changed 
-   (car (sheet-children  vp))
-   vp))
-
-
-(defmethod find-widget-class-and-initargs-for-sheet ((port
-						      openlook-port)
-						     (parent t)(sheet ol-viewport))
+(defmethod find-widget-class-and-initargs-for-sheet ((port openlook-port)
+						     (parent t)
+						     (sheet ol-viewport))
   (values 'tk::draw-area
 	  '(:layout :ignore)))
 
@@ -252,7 +212,7 @@
 (defclass openlook-menu-bar (xt-leaf-pane) 
 	  ((command-table :initarg :command-table)))
 
-(defmethod find-widget-class-and-initargs-for-sheet (port
+(defmethod find-widget-class-and-initargs-for-sheet ((port openlook-port)
 						     (parent t)
 						     (sheet openlook-menu-bar))
   (values 'tk::control nil))
@@ -302,3 +262,4 @@
 
 (defun command-button-callback-ol (button frame item)
   (command-button-callback button nil frame item))
+

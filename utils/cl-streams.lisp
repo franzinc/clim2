@@ -19,7 +19,7 @@
 ;; applicable.
 ;;
 
-;; $fiHeader: cl-streams.lisp,v 1.1 91/08/30 13:57:44 cer Exp Locker: cer $
+;; $fiHeader: cl-streams.lisp,v 1.1 91/11/25 10:01:32 cer Exp $
 
 (in-package :clim-lisp)
 
@@ -112,7 +112,7 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 (progn
 
 (defmacro write-forwarding-cl-output-stream-function (name args &key #+Genera message)
-  (let* ((cl-name (find-symbol (symbol-name name) (find-package 'lisp)))
+  (let* ((cl-name (find-symbol (symbol-name name) (find-package :lisp)))
 	 (method-name (intern (lisp:format nil "~A-~A" 'stream (symbol-name name))))
 	 (optional-args (or (member '&optional args) (member '&key args)))
 	 (required-args (ldiff args optional-args))
@@ -196,7 +196,7 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 						     &key eof
 							  #+Genera message
 							  additional-arguments)
-  (let* ((cl-name (find-symbol (symbol-name name) (find-package 'lisp)))
+  (let* ((cl-name (find-symbol (symbol-name name) (find-package :lisp)))
 	 (method-name (intern (lisp:format nil "~A-~A" 'stream (symbol-name name))))
 	 (args (mapcar #'(lambda (var) (if (atom var) var (first var)))
 		       (order-preserving-set-difference lambda-list lambda-list-keywords)))

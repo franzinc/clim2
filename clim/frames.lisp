@@ -1,142 +1,183 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: frames.lisp,v 1.6 92/01/31 14:57:58 cer Exp Locker: cer $
+;; $fiHeader: frames.lisp,v 1.7 92/02/05 21:45:39 cer Exp $
 
 (in-package :clim-internals)
 
-;; 
-;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
-;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
-;;
-;; The software, data and information contained herein are proprietary
-;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
-;; given in confidence by Franz, Inc. pursuant to a written license
-;; agreement, and may be stored and used only in accordance with the terms
-;; of such license.
-;;
-;; Restricted Rights Legend
-;; ------------------------
-;; Use, duplication, and disclosure of the software, data and information
-;; contained herein by any agency, department or entity of the U.S.
-;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
-;;
-;; $fiHeader: frames.lisp,v 1.6 92/01/31 14:57:58 cer Exp Locker: cer $
-
-;; Frame protocol:
-;;   adopt-frame
-;;   enable-frame
-;;   generate-panes
-;;   layout-frame
-;;   make-application-frame
+"Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved.
+ Portions copyright (c) 1989, 1990 International Lisp Associates.
+ Portions copyright (c) 1991, 1992 Franz, Inc.  All rights reserved."
 
 (define-protocol-class application-frame ())
 
+;;--- We should add an input event-queue to frames, so that other
+;;--- processes can queue up requests.  This queue should be managed
+;;--- like other event queues.  It can contains "command" events, too.
 (defclass standard-application-frame (application-frame)
-	  ;;--- Is it right for these to be SHEET accessors??
-	  ((name :initarg :name :accessor frame-name)
-	   (pretty-name :initarg :pretty-name :accessor frame-pretty-name)
-	   (command-table :initarg :command-table 
-			  :initform (find-command-table 'user-command-table)
-			  :accessor frame-command-table)
-	   (disabled-commands :initarg :disabled-commands :initform nil)
-	   ;;--- One of  T, NIL, or a command-table; used by the menu-bar
-	   (menu-bar :initarg :menu-bar :initform t)
-	   (histories :initform nil)
-	   (port :reader sheet-port :initarg :port)
-	   (graft :reader sheet-graft :initarg :graft)
-	   (frame-manager :reader frame-manager :initarg :frame-manager)
-	   (panes :initarg :panes :accessor frame-panes)
-	   (top-level-sheet :accessor frame-top-level-sheet :initform nil)
-	   (shell :accessor frame-shell)
-	   (state :initform :disowned :accessor frame-state 
-		  :type (member :disowned :disabled :enabled :shrunk))
-	   (top-level :initarg :top-level  :accessor frame-top-level)
-	   (current-layout :initarg :default-layout :reader frame-current-layout)
-	   (all-panes :initform nil)
-	   (pane-constructors :initarg :pane-constructors)
-	   (default-size :initform nil :initarg :default-size)
-	   (menu-bar :initarg :menu-bar))
-  (:default-initargs
-      :menu-bar t
-    :top-level 'default-frame-top-level
-    :frame-manager (find-frame-manager)
-    :port (find-port)
-    :graft (find-graft)))
+    ;;--- Is it right for these to be SHEET accessors??
+    ((name :initarg :name :accessor frame-name)
+     (pretty-name :initarg :pretty-name :accessor frame-pretty-name)
+     (command-table :initarg :command-table 
+		    :initform (find-command-table 'user-command-table)
+		    :accessor frame-command-table)
+     (disabled-commands :initarg :disabled-commands :initform nil)
+     ;;--- One of  T, NIL, or a command-table; used by the menu-bar
+     (menu-bar :initarg :menu-bar :initform nil)
+     (histories :initform nil)
+     (frame-manager :reader frame-manager :initarg :frame-manager)
+     (calling-frame :reader frame-calling-frame :initarg :calling-frame)
+     ;;--- How does ALL-PANES differ from PANES?
+     (panes :initarg :panes :accessor frame-panes)
+     (all-panes :initform nil)
+     (current-panes :initform nil :accessor frame-current-panes)
+     (initialized-panes :initform nil)
+     (pane-constructors :initarg :pane-constructors)
+     (top-level-sheet :accessor frame-top-level-sheet :initform nil)
+     (state :initform :disowned :accessor frame-state 
+	    :type (member :disowned :disabled :enabled :shrunk))
+     (top-level :initarg :top-level  :accessor frame-top-level)
+     (current-layout :initarg :default-layout :reader frame-current-layout)
+     (default-size :initform nil :initarg :default-size)
+     (shell :accessor frame-shell)
+     (port :reader sheet-port :initarg :port)
+     (graft :reader sheet-graft :initarg :graft)
+     (properties :initform nil :initarg :properties
+		 :accessor frame-properties))
+  (:default-initargs :top-level 'default-frame-top-level
+		     :frame-manager (find-frame-manager)
+		     :port (find-port)
+		     :graft (find-graft)))
 
-(defvar *frame-managers* nil)
-
-(defun find-frame-manager (&rest options)
-  (let ((port (apply #'find-port options)))
-    (second (or (assoc port *frame-managers*)
-		(car
-		 (push (list port (make-frame-manager port))
-		       *frame-managers*))))))
-
-(defmethod make-frame-manager (port)
-  (cerror "Do it" "Making default frame manager for ~S" port)
-  (make-instance 'frame-manager :port port))
-    
+#+CLIM-1-compatibility
+(define-compatibility-function (frame-top-level-window frame-top-level-sheet)
+			       (frame)
+  (frame-top-level-sheet frame))
 
 (defmethod initialize-instance :after ((frame standard-application-frame) 
 				       &rest args &key frame-manager)
   (declare (ignore args))
   (adopt-frame frame-manager frame))
 
-(defmethod adopt-frame ((framem frame-manager) (frame standard-application-frame))
-  (generate-panes frame framem))
-
-;; what is this???
-
-(defmethod generate-panes ((frame standard-application-frame) (framem frame-manager))
+;; Default method does nothing
+(defmethod generate-panes ((framem standard-frame-manager)
+			   (frame standard-application-frame))
   (setf (frame-panes frame) nil))
 
+(eval-when (eval compile load)
+(defun define-application-frame-1 (name state-variables pane-descriptions
+				   &key top-level layout
+					command-table disabled-commands)
+  (let* ((command-table-name (first command-table)))
+    ;; If we're going to be defining commands for this application frame,
+    ;; make sure there's an command table lying around so that all other
+    ;; code doesn't have to be defensive against its absence.
+    (when command-table
+      (apply #'define-command-table-1 command-table))))
+)	;eval-when
+
 (defmacro define-application-frame (name superclasses slots &rest options)
-  (unless superclasses (setq superclasses '(standard-application-frame))) 
-  (let ((pane (second (assoc :pane options)))
-	(panes (cdr (assoc :panes options)))
-	(layout (cdr (assoc :layout  options)))
-	(menu-bar (assoc :menu-bar options))
-	(command-definer (second (or (assoc :command-definer options)
-				     '(t t))))
-	(command-table (second (or (assoc :command-table options)
-				   '(t t))))
-	(top-level (assoc :top-level options)))
-    
-    (when (and pane panes)
-      (error "Cannot use :pane and :panes together"))
-    
-    (when (or (and panes (null layout))
-	      (and layout (null panes)))
-      (error ":layout and :panes must be used together"))
-    
-    (cond ((null command-table))
-	  ((symbolp command-table)
-	   (setq command-table (list command-table))))
-    
-    (when (eq (car command-table) t)
-      (setq command-table (list* name (rest command-table))))
-	   
-    `(progn
-       (defclass ,name 
-	   ,superclasses 
-	   ,slots
-	 (:default-initargs
-	     ,@(and layout `(:default-layout ',(car (car layout))))
-	   ,@(and menu-bar `(:menu-bar ',(second menu-bar)))
-	   ,@(and top-level `(:top-level ',(second top-level)))
-	   ,@(and panes `(:pane-constructors
-			  ,(compute-pane-constructor-code panes)))
-	   ,@(and command-table
-		  `(:command-table (find-command-table ',(car command-table))))))
-       ,@(when command-table
-	   `((define-command-table ,(first command-table)
-		 ,@(cdr command-table))))
-       ,@(when command-definer
-	   (compute-command-definer-code name command-table))
-       ,@(compute-generate-panes-code name pane panes layout))))
+  #+Genera (declare (zwei:indentation 1 25 2 3 3 1))
+  (with-warnings-for-definition name define-application-frame
+    (let (pane panes layout top-level menu-bar
+	  command-definer command-table disabled-commands)
+      (macrolet ((extract (name keyword default &optional (pair t))
+		   `(let ((entry (assoc ',keyword options)))
+		      (cond ((null entry)
+			     (setq ,name ,default))
+			    (t
+			     ,@(if pair
+				   `((assert (= (length entry) 2) (entry)
+					     "The length of the option ~S must be 2" entry)
+				     (setq ,name (second entry)
+					   options (delete entry options)))
+				   `((assert (listp (rest entry)) (entry)
+					     "The remainder of ~S must be a list" entry)
+				     (setq ,name (rest entry)
+					   options (delete entry options)))))))))
+	(extract pane :pane nil)
+	(extract panes :panes nil nil)
+	(extract layout :layout nil nil)
+	(extract top-level :top-level '(default-frame-top-level))
+	(extract menu-bar :menu-bar t)
+	(extract command-definer :command-definer t)
+	(extract command-table :command-table t)
+	(extract disabled-commands :disabled-commands nil))
+      (check-type name symbol)
+      (check-type superclasses list)
+      (check-type slots list)
+      (check-type pane list)
+      (check-type panes list)
+      (check-type layout list)
+      (check-type top-level list)
+      (check-type disabled-commands list)
+      (when (and pane panes)
+	(error "The ~S and ~S options cannot be used together" :pane :panes))
+      (when (and pane layout)
+	(error "The ~S and ~S options cannot be used together" :pane :layout))
+      (when (or (and panes (null layout))
+		(and layout (null panes)))
+	(error "The ~S and ~S options must be used together" :panes :layout))
+      (when (null superclasses)
+	(setq superclasses '(standard-application-frame)))
+      (when (eq command-definer 't)
+	(setq command-definer (fintern "~A-~A-~A" 'define name 'command)))
+      (check-type command-definer symbol)
+      (cond ((null command-table))
+	    ((symbolp command-table)
+	     (setq command-table (list command-table)))
+	    (t (warn-if-command-table-invalid name command-table)))
+      (when (eq (first command-table) 't)
+	(setq command-table (list* name (rest command-table))))
+    #-Silica (warn-if-pane-descriptions-invalid name pane-descriptions)
+    #-Silica (warn-if-layout-invalid name layout pane-descriptions)
+    (let ((pane-constructors 
+	    (cond (panes
+		   (compute-pane-constructor-code panes))
+		  (pane
+		   (compute-pane-constructor-code `((,name ,pane)))))))
+      `(progn
+	 (eval-when (compile)
+	   (when ',command-table
+	     (setf (compile-time-property ',(first command-table) 'command-table-name) t))
+	   (define-application-frame-1 ',name ',slots ,pane-constructors
+				       :layout ',layout
+				       :top-level ',top-level
+				       :command-table ',command-table))
+	 (define-group ,name define-application-frame
+	   (defclass ,name ,superclasses ,slots
+	     ,@options
+	     (:default-initargs
+	       :menu-bar ',menu-bar
+	       ,@(and command-table `(:command-table ',(car command-table)))
+	       ,@(and top-level `(:top-level ',top-level))
+	       ,@(and panes `(:pane-constructors ,pane-constructors))
+	       ,@(and layout `(:default-layout ',(caar layout)))))
+	   ,@(when command-definer
+	       `((defmacro ,command-definer (command-name arguments &body body)
+		   #+Genera (declare (zwei:indentation 1 3 2 1))
+		   `(define-frame-command ,',(first command-table)
+					  ,command-name ,arguments ,@body))
+		 #+Genera (scl:defprop ,command-definer
+				       define-command
+				       zwei:definition-function-spec-type)
+		 #+Genera (scl:defprop ,command-definer
+				       remove-command
+				       zwei:kill-definition)
+		 #+Genera (scl:defprop ,command-definer
+				       zwei:defselect-function-spec-finder
+				       zwei:definition-function-spec-finder)))
+	   ;;--- Need to handle DISABLED-COMMANDS properly, 
+	   ;;--- which entails doing a COPY-LIST
+	   (define-application-frame-1 ',name ',slots ,pane-constructors
+				       :layout ',layout
+				       :top-level ',top-level
+				       :command-table ',command-table
+				       :disabled-commands ',disabled-commands)
+	   #+Cloe-Runtime
+	   (cloe:define-program ,name ()
+	     :main ,name
+	     :debugger-hook cloe-debugger-hook)
+	   ,@(compute-generate-panes-code name pane panes layout)))))))
 
 #+Genera
 (scl:defprop define-application-frame "CLIM Application Frame" si:definition-type-name)
@@ -156,87 +197,180 @@
 (scl:defun (:property define-frame-command zwei:definition-function-spec-finder) (bp)
   (zwei:defselect-function-spec-finder (zwei:forward-sexp bp 1 t)))
 
-(defun compute-command-definer-code (name command-table)
-  (let ((command-definer (fintern "~A~A~A" `define- name '-command)))
-    `((defmacro ,command-definer (command-name arguments &body body)
-	`(define-frame-command ,',(first command-table)
-				     ,command-name ,arguments ,@body)))))
+#+CLIM-1-compatibility
+(defmacro with-frame-state-variables
+	  ((frame-name &optional (frame '*application-frame*)) &body body)
+  ;; frame descriptor must be findable at compile-time
+  (let* ((descriptor (find-frame-descriptor frame-name))
+	 (state-variables (frame-descriptor-state-variable-names descriptor)))
+    `(with-slots ,state-variables ,frame ,@body)))
 
-
+(defun warn-if-command-table-invalid (frame-name command-table)
+  (cond ((not (and (listp command-table)
+		   (symbolp (first command-table))
+		   (oddp (length command-table))))
+	 (warn "The ~S option for frame ~S, ~S, is invalid.~@
+		It is supposed to be a list of a command table name followed by ~
+		keyword/value pairs."
+	       :command-table frame-name command-table))
+	(t
+	 (do* ((options (cdr command-table) (cddr options))
+	       (keyword (first options) (first options))
+	       (value (second options) (second options)))
+	      ((null options))
+	   (case keyword
+	     (:inherit-from
+	       (if (listp value)
+		   (dolist (item value)
+		     (unless (typep item '(or symbol command-table))
+		       (warn "The ~S keyword in the ~S option for frame ~S~@
+			      is followed by a list containing ~S, which is not a ~
+			      command table nor a command table name."
+			     :inherit-from :command-table frame-name item)))
+		   (warn "The ~S keyword in the ~S option for frame ~S~@
+			  is followed by ~S, which is not a list of command tables ~
+			  or command table names."
+			 :inherit-from :command-table frame-name value)))
+	     (:menu
+	       (if (listp value)
+		   (dolist (clause value)
+		     (unless (and (listp clause)
+				  (>= (length clause) 3)
+				  (oddp (length clause))
+				  (stringp (first clause))
+				  (member (second clause)
+					  '(:command :function :menu :divider)))
+		       (warn "The ~S keyword in the ~S option for frame ~S~@
+			      is followed by a list of menu clauses containing~@
+			      an invalid clause ~S."
+			     :menu :command-table frame-name clause)))
+		   (warn "The ~S keyword in the ~S option for frame ~S~@
+			  is followed by ~S, which is not a list of menu clauses."
+			 :menu :command-table frame-name value)))
+	     (otherwise
+	       (warn "The keyword ~S in the ~S option for frame ~S is invalid.~@
+		      The valid keywords are ~S and ~S."
+		     keyword :command-table frame-name :inherit-from :menu))))))) 
 
 (defun compute-generate-panes-code (name code panes layouts)
   (if panes
       (compute-complex-generate-panes-code name panes layouts)
-    (compute-simple-generate-panes-code name code)))
+      (compute-simple-generate-panes-code name code)))
 
 (defun compute-simple-generate-panes-code (name code)
   (and code
-       (let ((f (gensym))
-	     (fm (gensym)))
-	 `((defmethod generate-panes ((,f ,name) (,fm frame-manager))
-	     (let ((*application-frame* ,f))
-	       (setf (frame-panes ,f)
-		 (frame-wrapper
-		  ,f ,fm
-		  (with-look-and-feel-realization (,fm ,f)
-		    ,code)))))))))
+       (let ((frame '#:frame)
+	     (framem '#:framem))
+	 `((defmethod generate-panes ((,framem standard-frame-manager) (,frame ,name))
+	     (let ((*application-frame* ,frame))
+	       (setf (frame-panes ,frame)
+		     (frame-wrapper ,framem ,frame
+		       (with-look-and-feel-realization (,framem ,frame)
+			 ,code)))))))))
 
 (defun compute-complex-generate-panes-code (name panes layouts)
-  (let ((f (gensym))
-	(fm (gensym)))
-    `((defmethod generate-panes ((,f ,name) (,fm frame-manager))
+  (let ((frame '#:frame)
+	(framem '#:framem))
+    `((defmethod generate-panes ((,framem standard-frame-manager) (,frame ,name))
 	(symbol-macrolet
-	    ,(mapcar #'(lambda (pane-spec)
-			 (destructuring-bind
-			     (name code) pane-spec
-			   `(,name (find-or-make-pane-named ,f
-							    ',name))))
-	      panes)
-
-	  (let ((*application-frame* ,f))
-	    (setf (frame-panes ,f)
-	      (frame-wrapper
-	       ,f ,fm
-	       (with-look-and-feel-realization (,fm ,f)
-		 (ecase (frame-current-layout ,f)
-		   ,@(mapcar #'(lambda (layout-spec)
-				 (destructuring-bind
-				     (name panes) layout-spec
-				   `(,name ,panes)))
-			     layouts)))))))))))
-
-(defun find-or-make-pane-named (frame name)
-  (second (or (assoc name (slot-value frame 'all-panes))
-	      (car (push
-		    (list name 
-			  (funcall (second (assoc name (slot-value frame 'pane-constructors)))
-				   frame (frame-manager frame)))
-		    (slot-value frame 'all-panes))))))
-
-;; The contract of GET-FRAME-PANE is to get a pane upon which we can do normal
-;; I/O operations, that is, a CLIM stream pane
-(defun get-frame-pane (frame pane-name &key (errorp t))
-  (let ((pane (assoc pane-name (slot-value frame 'all-panes))))
-    (when pane
-      (map-over-sheets #'(lambda (sheet)
-			   (when (typep sheet 'clim-pane-stream-mixin)
-			     (return-from get-frame-pane sheet)))
-		       (second pane)))
-    (when errorp
-      (error "There is no pane named ~S in frame ~S" pane-name frame))))
+	  ,(mapcar #'(lambda (pane-spec)
+		       (destructuring-bind (name code) pane-spec
+			 `(,name (find-or-make-pane-named ,frame ',name))))
+		   panes)
+	  (let ((*application-frame* ,frame))
+	    (setf (frame-panes ,frame)
+		  (frame-wrapper ,framem ,frame
+		    (with-look-and-feel-realization (,framem ,frame)
+		      (ecase (frame-current-layout ,frame)
+			,@(mapcar #'(lambda (layout-spec)
+				      (destructuring-bind (name panes) layout-spec
+					`(,name ,panes)))
+				  layouts)))))))))))
 
 (defun compute-pane-constructor-code (panes)
   `(list ,@(mapcar #'(lambda (pane-spec)
-		      (destructuring-bind
-			  (name code) pane-spec
-			`(list ',name
-			       #'(lambda (frame framem)
-				   (with-look-and-feel-realization (framem frame)
-				     ,code)))))
-		  panes)))
+		       (destructuring-bind (name code) pane-spec
+			 `(list ',name
+				#'(lambda (frame framem)
+				    (with-look-and-feel-realization (framem frame)
+				      ,code)))))
+		   panes)))
    
-(defmethod frame-wrapper ((frame t) (framem t) pane)
-  pane)
+(defmethod find-or-make-pane-named ((frame standard-application-frame) name)
+  (with-slots (all-panes pane-constructors) frame
+    (second (or (assoc name all-panes)
+		(car (push (list name 
+				 (funcall (second (assoc name pane-constructors))
+					  frame (frame-manager frame)))
+			   all-panes))))))
+
+(defmethod layout-frame ((frame standard-application-frame) &optional width height)
+  (let ((panes (frame-panes frame)))
+    (when panes
+      (silica::clear-space-requirement-caches-in-tree panes)
+      (unless (and width height)
+	(let ((sr (compose-space panes)))
+	  (setq width  (space-requirement-width sr)
+		height (space-requirement-height sr))))
+      ;;--- Don't bother with this if the size didn't change?
+      (allocate-space panes width height)
+      ;; This is quite likely not going to work
+      (when (frame-top-level-sheet frame)
+	(resize-sheet* (frame-top-level-sheet frame) width height)))))
+
+(defmethod (setf frame-current-layout) (nv (frame standard-application-frame))
+  (unless (eq (frame-current-layout frame) nv)
+    (setf (slot-value frame 'current-layout) nv)
+    ;; First disown all the children
+    (dolist (name-and-pane (slot-value frame 'all-panes))
+      (let ((sheet (second name-and-pane)))
+	(when (sheet-parent sheet)
+	  (sheet-disown-child (sheet-parent sheet) sheet))))
+    (dolist (child (sheet-children (frame-top-level-sheet frame)))
+      (sheet-disown-child (frame-top-level-sheet frame) child))
+    ;; Now we want to give it some new ones
+    (generate-panes (frame-manager frame) frame)
+    (sheet-adopt-child (frame-top-level-sheet frame) (frame-panes frame))
+    (silica::clear-space-requirement-caches-in-tree (frame-panes frame))
+    (multiple-value-call #'layout-frame
+      frame (bounding-rectangle-size (frame-top-level-sheet frame)))
+    (throw 'layout-changed nil)))
+		 
+#+CLIM-1-compatibility
+(define-compatibility-function (set-frame-layout (setf frame-current-layout))
+			       (frame new-layout)
+  (setf (frame-current-layout frame) new-layout))
+
+(defun make-application-frame (frame-name &rest options 
+			       &key frame-class
+				    enable pretty-name
+			            width height
+				    save-under
+			       &allow-other-keys)
+  (declare (dynamic-extent options))
+  (check-type pretty-name (or null string))
+  (when (null frame-class)
+    (setq frame-class frame-name))
+  (with-keywords-removed (options options 
+			  '(:frame-class :pretty-name
+			    :enable :width :height :save-under))
+      (let ((frame (apply #'make-instance frame-class
+			  :name frame-name
+			  :pretty-name (or pretty-name
+					   (title-capitalize (string frame-name)))
+			  :default-size (when (or width height)
+					  (list width height))
+			  :properties `(:save-under ,save-under)
+			  options)))
+	(when enable 
+	  (enable-frame frame))
+	frame)))
+
+(defun title-capitalize (string)
+  (let ((new-string (substitute #\Space #\- string)))
+    (when (eq new-string string)
+      (setq new-string (copy-seq new-string)))
+    (nstring-capitalize new-string)))
 
 (defmethod enable-frame ((frame standard-application-frame))
   (with-slots (default-size) frame
@@ -269,101 +403,125 @@
      (setf (frame-state frame) :disabled)
      (note-frame-disabled (frame-manager frame) frame))))
 
-(defmethod note-frame-enabled ((framem frame-manager) (frame standard-application-frame))
+(defmethod reset-frame ((frame standard-application-frame) &rest ignore)
+  (declare (ignore ignore))
+  nil)
+
+(defmethod note-frame-enabled ((framem standard-frame-manager)
+			       (frame standard-application-frame))
   )
 
-(defmethod note-frame-disabled ((framem frame-manager) (frame standard-application-frame))
+(defmethod note-frame-disabled ((framem standard-frame-manager)
+				(frame standard-application-frame))
   )
-
-(defmethod layout-frame ((frame standard-application-frame) &optional width height)
-  (when (frame-panes frame)
-    (unless (and width height)
-      (let ((sr (compose-space (frame-panes frame))))
-	(setq width (space-requirement-width sr)
-	      height (space-requirement-height sr))))
-    (allocate-space (frame-panes frame) width height)
-    ;; This is quite likely not going to work
-    (when (frame-top-level-sheet frame)
-      (silica::resize-sheet* (frame-top-level-sheet frame)
-			     width height))))
-
-(defun title-capitalize (string)
-  (let ((new-string (substitute #\Space #\- string)))
-    (when (eq new-string string)
-      (setq new-string (copy-seq new-string)))
-    (nstring-capitalize new-string)))
-
-(defun make-application-frame (class &rest options 
-			       &key enable name pretty-name
-			            width height
-			       &allow-other-keys)
-  (declare (dynamic-extent options))
-  (let ((name (or name (format nil "~A" class))))
-    (with-keywords-removed (options options '(:enable :width :height))
-      (let ((frame (apply #'make-instance
-			  class
-			  :name name
-			  :pretty-name (or pretty-name (title-capitalize name))
-			  :default-size (when (or width height)
-					  (list width height))
-			  options)))
-	(when enable 
-	  (enable-frame frame))
-	frame))))
 
 (defmethod run-frame-top-level :around ((frame standard-application-frame))
   (with-simple-restart (frame-exit "Exit ~A" (frame-pretty-name frame))
-    (let ((*application-frame* frame))
-      (call-next-method))))
+    (unwind-protect
+	(let (#-Silica (*frame-layout-changing-p* *frame-layout-changing-p*)
+	      ;; Reset the state of the input editor and the presentation
+	      ;; type system, etc., in case there is an entry into another
+	      ;; application from inside the input editor, such as a Debugger
+	      ;; written using CLIM.
+	      ;;--- This should be done in a more modular way
+	      ;;--- If you change this, change MENU-CHOOSE-FROM-DRAWER
+	      (*original-stream* nil)
+	      (*input-wait-test* nil)
+	      (*input-wait-handler* nil)
+	      (*pointer-button-press-handler* nil)
+	      (*generate-button-release-events* nil)
+	      (*numeric-argument* nil)
+	      (*delimiter-gestures* nil)
+	      (*activation-gestures* nil)
+	      (*accelerator-gestures* nil)
+	      (*input-context* nil)
+	      (*accept-help* nil)
+	      (*assume-all-commands-enabled* nil)
+	      #-Silica (*sizing-application-frame* nil)
+	      (*command-parser* 'command-line-command-parser)
+	      (*command-unparser* 'command-line-command-unparser)
+	      (*partial-command-parser*
+		'command-line-read-remaining-arguments-for-partial-command) 
+	      (*application-frame* frame))
+	  (loop
+	    (with-simple-restart (nil "~A top level" (frame-pretty-name frame))
+	      (loop
+		(catch 'layout-changed
+		  (let ((*application-frame* frame)
+			(*pointer-documentation-output*
+			  (frame-pointer-documentation-output frame)))
+		    ;; We must return the values from CALL-NEXT-METHOD,
+		    ;; or else ACCEPTING-VALUES will return NIL
+		    #-CCL-2
+		    (return-from run-frame-top-level (call-next-method))
+		    ;; The (RETURN-FROM FOO (CALL-NEXT-METHOD)) form above
+		    ;; doesn't work in Coral.  If the "top level" restart
+		    ;; above is taken, the CALL-NEXT-METHOD form blows out
+		    ;; the second time through this code, claiming that it
+		    ;; can't find the next method.  Hoisting the
+		    ;; CALL-NEXT-METHOD out of the RETURN-FROM form seems
+		    ;; to fix it...  So it conses, big deal.
+		    #+CCL-2
+		    (let ((results (multiple-value-list (call-next-method))))
+		      (return-from run-frame-top-level (values-list results)))))))))
+      (disable-frame frame))))
 
 (defmethod run-frame-top-level ((frame standard-application-frame))
-  (unwind-protect
-      (progn
-	(let ((tl (frame-top-level frame)))
-	  (if (atom tl)
-	      (funcall tl frame)
-	    (apply (car tl) frame (cdr tl)))))
-    (disable-frame frame)))
+  (let ((top-level (frame-top-level frame)))
+    (if (atom top-level)
+	(funcall top-level frame)
+        (apply (first top-level) frame (rest top-level)))))
 
-(defmethod default-frame-top-level (frame
-				    &key command-parser command-unparser partial-command-parser
+(defmethod default-frame-top-level ((frame standard-application-frame)
+				    &key command-parser command-unparser
+					 partial-command-parser
 					 (prompt "Command: "))
-  
   (unless (eq (frame-state frame) :enabled)
     (enable-frame frame))
   (loop
     (catch 'layout-changed
-      (let* ((*standard-output* (or (frame-standard-output frame) *standard-output*))
-	     (*query-io* (or (frame-query-io frame) *query-io*))
-	     (interactor (find-frame-pane-of-type frame 'interactor-pane))
-	     (*standard-input* (or interactor *standard-output*))
+      (let* ((*standard-output*
+	       (or (frame-standard-output frame) *standard-output*))
+	     (*standard-input* 
+	       (or (frame-standard-input frame) *standard-output*))
+	     (*query-io* 
+	       (or (frame-query-io frame) *standard-input*))
+	     (*error-output* 
+	       (or (frame-error-output frame) *standard-output*))
+	     (interactor
+	       (not (null (find-frame-pane-of-type frame 'interactor-pane))))
 	     (*command-parser*
-	      (or command-parser
-		  (if interactor
-		      #'command-line-command-parser
-		      #'menu-command-parser)))
+	       (or command-parser
+		   (if interactor
+		       #'command-line-command-parser
+		       #'menu-command-parser)))
 	     (*command-unparser*
-	      (or command-unparser
-		  #'command-line-command-unparser))
-	     (*partial-command-parser*
-	      (or partial-command-parser
-		  (if interactor
-		      #'command-line-read-remaining-arguments-for-partial-command
-		      #'menu-read-remaining-arguments-for-partial-command))))
+	       (or command-unparser 
+		   #'command-line-command-unparser))
+	     (*partial-command-parser* 
+	       (or partial-command-parser
+		   (if interactor
+		       #'command-line-read-remaining-arguments-for-partial-command
+		       #'menu-read-remaining-arguments-for-partial-command))))
+	#+Allegro
 	(unless (typep *standard-input* 'excl::bidirectional-terminal-stream)
 	  (assert (sheet-port *standard-input*)))
+	#+Allegro
 	(unless (typep *standard-output* 'excl::bidirectional-terminal-stream)
 	  (assert (sheet-port *standard-output*)))
+	#+Allegro
 	(unless (typep *query-io* 'excl::bidirectional-terminal-stream)
-	    (assert (sheet-port *query-io*)))
+	  (assert (sheet-port *query-io*)))
+	;; The read-eval-print loop for applications...
 	(loop
+	  ;; Redisplay all the panes
 	  (catch-abort-gestures ("Return to ~A command level" (frame-pretty-name frame))
 	    (redisplay-frame-panes frame)
 	    (when interactor
 	      (fresh-line *standard-input*)
 	      (if (stringp prompt)
 		  (write-string prompt *standard-input*)
-		(funcall prompt *standard-input* frame)))
+		  (funcall prompt *standard-input* frame)))
 	    (let ((command (read-frame-command frame :stream *standard-input*)))
 	      (when interactor
 		(terpri *standard-input*))
@@ -371,39 +529,126 @@
 	      (when command
 		(execute-frame-command frame command)))))))))
 
+;; Generic because someone might want :BEFORE or :AFTER
+(defmethod frame-exit ((frame standard-application-frame))
+  (invoke-restart 'frame-exit))
+
+#-Silica
+(defun display-title (frame stream)
+  (multiple-value-bind (pane desc) (get-frame-pane frame stream)
+    (when (and pane (eq pane stream))
+      (let ((title (getf (pane-descriptor-options desc) :display-string)))
+	(when (and (stringp title)
+		   (not (string-equal title (frame-pretty-name frame))))
+	  ;; On some hosts this will update the title bar 
+	  (setf (frame-pretty-name frame) title))
+	(when (and (eq stream pane) (not (dummy-pane-p pane)))
+	  (multiple-value-bind (width height)
+	      (window-inside-size stream)
+	    (draw-string* stream (or title (frame-pretty-name frame))
+			  (/ width 2) (/ height 2)
+			  :align-x :center :align-y :center))
+	  (force-output stream))
+	(values)))))
+
+#-Silica
+(defun display-command-menu (frame stream &rest keys
+			     &key command-table &allow-other-keys)
+  (declare (dynamic-extent keys))
+  (declare (arglist frame stream &rest keys
+		    &key command-table
+			 ;; Defaults for these provided by DISPLAY-COMMAND-TABLE-MENU
+			 max-width max-height n-rows n-columns
+			 (cell-align-x ':left) (cell-align-y ':top) 
+			 (initial-spacing t)))
+  ;;--- This really wants to get the information from some other place
+  ;;--- than having to find the descriptor each time, which is kludgy at best.
+  (multiple-value-bind (descriptor pane)
+      (do ((panes (frame-panes frame) (cdr panes))
+	   (descriptions (frame-descriptor-pane-descriptions
+			   (find-frame-descriptor frame))
+			 (cdr descriptions)))
+	  ((null panes) nil)
+	(when (eq (first panes) stream)
+	  (return (values (first descriptions) (first panes)))))
+    (when pane
+      (let ((command-table
+	      (find-command-table (or command-table (frame-command-table frame))))
+	    (incremental-redisplay
+	      (getf (pane-descriptor-options descriptor) :incremental-redisplay))
+	    (*application-frame* frame))
+	(with-keywords-removed (keys keys '(:command-table))
+	  (if incremental-redisplay
+	      (apply #'display-command-menu-1 stream command-table keys)
+	      (apply #'display-command-table-menu command-table stream keys)))))))
+
+;; Split out to avoid consing unnecessary closure environments.
+#-Silica
+(defun display-command-menu-1 (stream command-table &rest keys)
+  (declare (dynamic-extent keys))
+  (updating-output (stream :unique-id stream
+			   :cache-value (slot-value command-table 'menu-tick))
+    (apply #'display-command-table-menu command-table stream keys))) 
+
+;; The contract of GET-FRAME-PANE is to get a pane upon which we can do normal
+;; I/O operations, that is, a CLIM stream pane
+(defmethod get-frame-pane ((frame standard-application-frame) pane-name &key (errorp t))
+  (with-slots (all-panes) frame
+    (let ((pane (assoc pane-name all-panes)))
+      (when pane
+	(map-over-sheets #'(lambda (sheet)
+			     (when (typep sheet 'clim-stream-pane)
+			       (return-from get-frame-pane sheet)))
+			 (second pane)))
+      (when errorp
+	(error "There is no pane named ~S in frame ~S" pane-name frame)))))
+
 (defmethod redisplay-frame-panes (frame &key force-p)
   (map-over-sheets #'(lambda (sheet)
-		       (when (typep sheet 'basic-clim-interactor)
+		       (when (typep sheet 'clim-stream-pane)
 			 (redisplay-frame-pane frame sheet :force-p
 					       force-p)))
 		   (frame-top-level-sheet frame)))
 
+;;--- This needs to be more beefy, like in CLIM 1.0
+;;--- And what about CLIM 0.9's PANE-NEEDS-REDISPLAY, etc?
 (defun redisplay-frame-pane (frame pane &key force-p)
   (when (symbolp pane)
     (setq pane (get-frame-pane frame pane)))
   (when (pane-display-function pane)
     (let* ((ird (slot-value pane 'incremental-redisplay-p))
-	   (history 
-	    (and ird 
-		 (stream-output-history pane)))
+	   (history (and ird (stream-output-history pane)))
 	   (record (and history
 			(> (output-record-count history) 0)
 			(output-record-element history 0))))
-      (cond ((and ird (or force-p (null record)))
-	     (when force-p
-	       (window-clear pane))
-	     (updating-output (pane)
-			      (invoke-pane-redisplay-function frame pane)))
-	    (ird
-	     (redisplay record pane))
-	    (t
-	     (invoke-pane-redisplay-function frame pane))))))
+      (with-simple-restart (nil "Skip redisplaying pane ~S" pane)
+	(loop
+	  (with-simple-restart (nil "Retry displaying pane ~S" pane)
+	    (return
+	      (cond ((and ird (or force-p (null record)))
+		     (when force-p
+		       (window-clear pane))
+		     (updating-output (pane)
+		       (invoke-pane-redisplay-function frame pane)))
+		    (ird
+		     (redisplay record pane))
+		    (t
+		     (invoke-pane-redisplay-function frame pane))))))))))
 
-(defun invoke-pane-redisplay-function (frame pane)
-  (let ((fn (pane-display-function pane)))
-    (if (atom fn)
-	(funcall fn frame pane)
-      (apply (car fn) frame pane (cdr fn)))))
+(defun invoke-pane-redisplay-function (frame pane &rest args)
+  (declare (dynamic-extent args))
+  (let* ((df (pane-display-function pane))
+	 (display-args (if (listp df) (rest df) nil))
+	 (display-function (if (listp df) (first df) df)))
+    ;; Cons as little as possible...
+    (cond ((and (null args) (null display-args))
+	   (funcall display-function frame pane))
+	  ((null display-args)
+	   (apply display-function frame pane args))
+	  ((null args)
+	   (apply display-function frame pane display-args))
+	  (t
+	   (apply display-function frame pane (append args display-args))))))
 			 
 (defmethod read-frame-command ((frame standard-application-frame) 
 			       &key (stream *query-io*)		;frame-query-io?
@@ -414,15 +659,6 @@
 
 (defmethod execute-frame-command ((frame standard-application-frame) command)
   (apply (command-name command) (command-arguments command)))
-
-;; Generic because someone might want :BEFORE or :AFTER
-(defmethod frame-exit ((frame standard-application-frame))
-  (invoke-restart 'frame-exit))
-
-;;--- This causes direct-manipulation and menu-driven applications not to
-;;--- maintain histories.  Is there a better heuristic?
-(defmethod frame-maintain-presentation-histories ((frame standard-application-frame))
-  (not (null (find-frame-pane-of-type frame 'interactor-pane))))
 
 (defvar *click-outside-menu-handler* nil)
 
@@ -442,12 +678,26 @@
 	   (push command-name disabled-commands)
 	   (note-command-enabled (frame-manager frame) frame command-name)))))
 
-(defmethod note-command-enabled 
-           ((framem frame-manager) (frame standard-application-frame) command)
+#+CLIM-1-compatibility
+(progn
+(define-compatibility-function (command-enabled-p command-enabled)
+			       (command-name frame)
+  (command-enabled command-name frame))
+
+(define-compatibility-function (enable-command (setf command-enabled))
+			       (command-name frame)
+  (setf (command-enabled command-name frame) t))
+
+(define-compatibility-function (disable-command (setf command-enabled))
+  (setf (command-enabled command-name frame) nil))
+)	;#+CLIM-1-compatibility
+
+(defmethod note-command-enabled ((framem standard-frame-manager)
+				 (frame standard-application-frame) command)
   (declare (ignore command)))
 
-(defmethod note-command-disabled
-           ((framem frame-manager) (frame standard-application-frame) command)
+(defmethod note-command-disabled ((framem standard-frame-manager)
+				  (frame standard-application-frame) command)
   (declare (ignore command)))
 
 ;;; The contract of this is to replay the contents of STREAM within the region.
@@ -515,34 +765,168 @@
 (defmethod frame-error-output ((frame standard-application-frame))
   (frame-standard-output frame))
 
-;; frame-pointer-documentation
-
-(defmethod (setf frame-current-layout) (nv (frame standard-application-frame))
-  (unless (eq (frame-current-layout frame) nv)
-    (setf (slot-value frame 'current-layout) nv)
-    ;; Top level sheet should loose all its child annd then we should 
-
-    (dolist (name-and-pane (slot-value frame 'all-panes))
-      (let ((sheet (second name-and-pane)))
-	(when (sheet-parent sheet)
-	  (sheet-disown-child (sheet-parent sheet) sheet))))
-    
-    (dolist (child (sheet-children (frame-top-level-sheet frame)))
-      (sheet-disown-child (frame-top-level-sheet frame) child))
-    
-    ;; Now we want to give it some new ones
-    (generate-panes frame (frame-manager frame))
-    (sheet-adopt-child (frame-top-level-sheet frame) (frame-panes frame))
-    (silica::clear-space-requirement-caches-in-tree (frame-panes frame))
-    (multiple-value-call #'layout-frame
-      frame
-      (bounding-rectangle-size
-       (frame-top-level-sheet frame)))
-    (print 'throwing excl:*initial-terminal-io*)
-    (throw 'layout-changed nil)))
-		 
-
-(defmethod reset-frame ((frame standard-application-frame) &rest ignore)
-  (declare (ignore ignore))
+;;--- Get this right
+(defmethod frame-pointer-documentation-output ((frame standard-application-frame))
   nil)
 
+;;--- This causes direct-manipulation and menu-driven applications not to
+;;--- maintain histories.  Is there a better heuristic?
+(defmethod frame-maintain-presentation-histories ((frame standard-application-frame))
+  (not (null (find-frame-pane-of-type frame 'interactor-pane))))
+
+
+;;; Pointer documentation
+
+(defvar *pointer-documentation-interval*
+	(max (floor (* 1/10 internal-time-units-per-second)) 1))
+(defvar *last-pointer-documentation-time* 0)
+
+#+Genera
+(defvar *pointer-documentation-buffer*
+	(make-array 80 :element-type 'string-char :fill-pointer 0 :adjustable t))
+
+;;; Produce pointer documentation
+(defmethod frame-document-highlighted-presentation
+	   ((frame standard-application-frame) presentation input-context window x y stream)
+  (let (#+Genera (documentation-window (mouse-documentation-window window)))
+    ;; The documentation should never say anything if we're not over a presentation
+    (when (null presentation) 
+      #+Genera (if documentation-window
+		   (scl:send documentation-window :clear-window)
+		   (window-clear stream))
+      #-Genera (window-clear stream))
+    ;; Cheap test to not do this work too often
+    (let ((old-modifier-state *last-pointer-documentation-modifier-state*)
+	  (modifier-state (window-modifier-state window))
+	  (last-time *last-pointer-documentation-time*)
+	  (time (get-internal-real-time)))
+      (setq *last-pointer-documentation-modifier-state* modifier-state)
+      (when (and (< time (+ last-time *pointer-documentation-interval*))
+		 (= modifier-state old-modifier-state))
+	(return-from frame-document-highlighted-presentation nil))
+      (setq *last-pointer-documentation-time* time))
+    (when presentation
+      #+Genera
+      (when documentation-window
+	(setf (fill-pointer *pointer-documentation-buffer*) 0)
+	(with-output-to-string (stream *pointer-documentation-buffer*)
+	  (scl:send documentation-window :clear-window)
+	  (when (null (frame-document-highlighted-presentation-1
+			frame presentation input-context window x y stream))
+	    (setq *last-pointer-documentation-time* 0))
+	  (scl:send documentation-window :string-out *pointer-documentation-buffer*))
+	(return-from frame-document-highlighted-presentation nil))
+      (with-output-recording-options (stream :record nil)
+	(with-end-of-line-action (stream :allow)
+	  (with-end-of-page-action (stream :allow)
+	    (window-clear stream)
+	    (when (null (frame-document-highlighted-presentation-1
+			  frame presentation input-context window x y stream))
+	      (setq *last-pointer-documentation-time* 0))
+	    (force-output stream)))))))
+
+(defun frame-document-highlighted-presentation-1
+       (frame presentation input-context window x y stream)
+  (let ((modifier-state (window-modifier-state window)))
+    (declare (fixnum modifier-state))
+    (multiple-value-bind (left left-context middle middle-context right right-context)
+	(find-applicable-translators-for-documentation presentation input-context
+						       frame window x y modifier-state)
+      (let* ((*print-length* 3)
+	     (*print-level* 2)
+	     (*print-circle* nil)
+	     (*print-array* nil)
+	     (*print-readably* nil)
+	     (*print-pretty* nil))
+	(flet ((document-translator (translator context-type button-name separator)
+		 ;; Assumes 5 modifier keys and the reverse ordering of *MODIFIER-KEYS*
+		 (let ((bit #o20)
+		       (shift-name '("h-" "s-" "m-" "c-" "sh-")))
+		   (declare (fixnum bit))
+		   (dotimes (i 5)
+		     #-(or Allegro Minima) (declare (ignore i))
+		     (unless (zerop (logand bit modifier-state))
+		       (write-string (car shift-name) stream))
+		     (pop shift-name)
+		     (setq bit (the fixnum (ash bit -1)))))
+		 (write-string button-name stream)
+		 (document-presentation-translator translator presentation context-type
+						   frame nil window x y
+						   :stream stream
+						   :documentation-type :pointer)
+		 (write-string separator stream)))
+	  (declare (dynamic-extent #'document-translator))
+	  (when left
+	    (let ((button-name (cond ((and (eql left middle)
+					   (eql left right))
+				      (setq middle nil
+					    right nil)
+				      "L,M,R: ")
+				     ((eql left middle) 
+				      (setq middle nil)
+				      "L,M: ")
+				     (t "L: "))))
+	      (document-translator left left-context button-name
+				   (if (or middle right) "; " "."))))
+	  (when middle
+	    (let ((button-name (cond ((eql middle right)
+				      (setq right nil)
+				      "M,R: ")
+				     (t "M: "))))
+	      (document-translator middle middle-context button-name
+				   (if right "; " "."))))
+	  (when right
+	    (document-translator right right-context "R: " "."))
+	  ;; Return non-NIL if any pointer documentation was produced
+	  (or left middle right))))))
+
+;; This is derived directly from FIND-APPLICABLE-TRANSLATORS
+(defun find-applicable-translators-for-documentation
+       (presentation input-context frame window x y modifier-state)
+  ;; Assume a maximum of three pointer buttons
+  (let ((left nil)   (left-context nil)
+	(middle nil) (middle-context nil)
+	(right nil)  (right-context nil))
+    (macrolet ((match (translator context-type button)
+		 (let ((button-translator (intern (symbol-name button)))
+		       (button-context (fintern "~A-~A" (symbol-name button) 'context)))
+		   `(when (and (or (null ,button-translator)
+				   (> (presentation-translator-priority ,translator)
+				      (presentation-translator-priority ,button-translator)))
+			       (button-and-modifier-state-matches-gesture-name-p
+				 (button-index ,button) modifier-state
+				 (presentation-translator-gesture-name ,translator)))
+		      (setq ,button-translator ,translator
+			    ,button-context ,context-type)))))
+      (do ((presentation presentation
+			 (parent-presentation-with-shared-box presentation window)))
+	  ((null presentation))
+	(let ((from-type (presentation-type presentation)))
+	  (dolist (context input-context)
+	    (let ((context-type (pop context)))	;input-context-type = first
+	      (let ((translators (find-presentation-translators 
+				   from-type context-type (frame-command-table frame))))
+		(when translators
+		  (dolist (translator translators)
+		    (when (test-presentation-translator translator
+							presentation context-type
+							frame window x y
+							:modifier-state modifier-state)
+		      (match translator context-type :left)
+		      (match translator context-type :middle)
+		      (match translator context-type :right)))))
+	      (when (and (or left middle right)
+			 *presentation-menu-translator*
+			 (test-presentation-translator *presentation-menu-translator*
+						       presentation context-type
+						       frame window x y
+						       :modifier-state modifier-state))
+		(match *presentation-menu-translator* context-type :left)
+		(match *presentation-menu-translator* context-type :middle)
+		(match *presentation-menu-translator* context-type :right)))))))
+    (values left   left-context
+	    middle middle-context
+	    right  right-context)))
+
+#+Genera
+(defmethod mouse-documentation-window ((window window-stream)) nil)

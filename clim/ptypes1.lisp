@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: ptypes1.lisp,v 1.2 92/01/31 14:58:37 cer Exp Locker: cer $
+;; $fiHeader: ptypes1.lisp,v 1.3 92/02/05 21:45:48 cer Exp $
 
 (in-package :clim-internals)
 
@@ -77,7 +77,7 @@
 
 ;;;; Conditions for Parsing Exceptions
 
-#-(or (and ANSI-90 Genera) Allegro Minima)
+#+(or (not ANSI-90) (not (or Genera (and Allegro (version>= 4 1)))))
 (define-condition parse-error (error) ())
 
 (define-condition simple-parse-error (parse-error)
@@ -329,6 +329,7 @@
 
 ;;; Find the class corresponding to the presentation type named name
 (defun find-presentation-type-class (name &optional (errorp t) environment)
+  #+Allegro (setq environment (compile-file-environment-p environment))
   (typecase name
     (symbol
       (or (and (eq name (first *presentation-type-being-defined*))
@@ -336,13 +337,13 @@
 	  (if (compile-file-environment-p environment)
 	      (compile-time-property name 'presentation-type-class)
 	      (gethash name *presentation-type-class-table*))
-	  (let ((class (find-class name nil #-Allegro environment)))
+	  (let ((class (find-class name nil environment)))
 	    (and (acceptable-presentation-type-class class)
 		 class))
 	  (when (compile-file-environment-p environment)
 	    ;; compile-file environment inherits from the run-time environment
 	    (or (gethash name *presentation-type-class-table*)
-		(let ((class (find-class name nil #-Allegro nil)))
+		(let ((class (find-class name nil nil)))
 		  (and (acceptable-presentation-type-class class)
 		       class))))
 	  (and errorp (error "~S is not the name of a presentation type" name))))
@@ -384,12 +385,11 @@
 (defmethod acceptable-presentation-type-class ((class (eql (find-class 't)))) t)
 (defmethod acceptable-presentation-type-class ((class t)) nil)
 
-#+excl
-(progn
-  ;;--- In theory we could cons up a prototype of a structure-class just
-  ;; by calling the constructor
-  (defmethod acceptable-presentation-type-class ((class clos::structure-class)) nil)
-  )
+;;--- In theory we could cons up a prototype of a structure-class just
+;;--- by calling the constructor
+#+Allegro
+(defmethod acceptable-presentation-type-class ((class clos::structure-class)) nil)
+
 ;;; Abstract flavors aren't accepted since CLASS-PROTOTYPE signals an error
 #+Genera
 (defmethod acceptable-presentation-type-class ((class clos-internals::flavor-class))
@@ -738,8 +738,8 @@
 					direct-superclasses))
 	   #+CCL-2
 	   (registered-class-name
-	     (let ((keyword-package (find-package "KEYWORD"))
-		   (*package* (find-package "LISP")))
+	     (let ((keyword-package (find-package :keyword))
+		   (*package* (find-package :lisp)))
 	       (intern (lisp:format nil "~A ~S" 'ptype name) keyword-package))))
   
       ;; If both a regular class and a presentation type class exist,
@@ -935,7 +935,14 @@
 (defun generate-map-over-presentation-type-supertypes-method-if-needed
        (name class function-var parameters-var options-var type-var
 	&optional environment)
-  (let ((superclasses (cdr (class-precedence-list class))))
+  (let ((superclasses
+	  #-Allegro (cdr (class-precedence-list class))
+	  #+Allegro ;; Work around bug in CLOS compilation environments...
+	  (multiple-value-bind (no-errorp result)
+	      (excl:errorset (cdr (class-precedence-list class)) nil)
+	    (if no-errorp
+		result
+		(return-from generate-map-over-presentation-type-supertypes-method-if-needed)))))
     #+Minima (setq superclasses (elide-nonessential-superclasses superclasses))
     (multiple-value-bind (bindings alist)
 	(generate-type-massagers class superclasses parameters-var options-var t environment)
@@ -1270,7 +1277,14 @@
 #-CLIM-extends-CLOS
 (defun generate-presentation-type-inheritance-methods
        (name class parameters-var options-var &optional environment)
-  (let ((superclasses (cdr (class-precedence-list class)))
+  (let ((superclasses 
+	  #-Allegro (cdr (class-precedence-list class))
+	  #+Allegro ;; Work around bug in CLOS compilation environments...
+	  (multiple-value-bind (no-errorp result)
+	      (excl:errorset (cdr (class-precedence-list class)) nil)
+	    (if no-errorp
+		result
+		(return-from generate-presentation-type-inheritance-methods))))
 	(to-type-name-var '#:to-type-name)
 	(from-type-name-var '#:from-type-name))
     #+Minima (setq superclasses (elide-nonessential-superclasses superclasses))

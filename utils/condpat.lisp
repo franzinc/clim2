@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader$
+;; $fiHeader: condpat.lisp,v 1.4 92/01/31 15:07:21 cer Exp $
 
 (in-package :clim-utils)
 
@@ -16,9 +16,9 @@
   (let ((readers nil)
 	(real-slots slots)
 	(trampoline-define-condition
-	  (intern "DEFINE-CONDITION"
-		  (find-package #+Lucid 'lucid-common-lisp
-				#-Lucid 'conditions)))
+	  (intern (symbol-name 'define-condition)
+		  (find-package #+Lucid :lucid-common-lisp
+				#-Lucid :conditions)))
 	(conc-name (format nil "~A-~A-" name 'accessor-for)))
     (unless (keywordp (first slots))
       (setq real-slots nil)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: define-application.lisp,v 1.4 91/03/26 12:47:50 cer Exp $
+;; $fiHeader: define-application.lisp,v 1.1 92/01/31 14:27:46 cer Exp $
 
 (in-package :clim-internals)
 
@@ -1015,7 +1015,7 @@
 		(*pointer-button-press-handler* nil)
 		(*generate-button-release-events* nil)
 		(*numeric-argument* nil)
-		(*blip-gestures* nil)
+		(*delimiter-gestures* nil)
 		(*activation-gestures* nil)
 		(*accelerator-gestures* nil)
 		(*input-context* nil)

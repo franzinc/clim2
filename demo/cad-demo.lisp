@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: new-cad-demo.lisp,v 1.5 91/03/26 12:37:37 cer Exp $
+;; $fiHeader: cad-demo.lisp,v 1.1 92/01/31 14:31:58 cer Exp $
 
 (in-package :clim-demo)
 
@@ -494,15 +494,16 @@
 ;;; Draw the logic "variable" name next to the component, or erase it.
 ;;; ---kludge since we have no draw-glyphs yet
 (defmethod draw-body :after ((lc logic-constant) stream &key (ink +foreground-ink+))
-	   (with-slots (x y name) lc
-	     (when name
-	       (cond ((eq ink +background-ink+)
-		      ;;--- gee, am I getting carried away?
-		      (multiple-value-bind (nx ny)
-			  (drawing-surface-to-viewport-coordinates stream x y)
-			(window-clear-area stream (- nx 10) (- ny 10) nx (+ ny 20))))
-		     (t
-		      (draw-text* stream name (- x 10) (- y 10)))))))
+  (with-slots (x y name) lc
+    (when name
+      (cond ((eq ink +background-ink+)
+	     ;;--- gee, am I getting carried away?
+	     (multiple-value-bind (nx ny)
+		 (drawing-surface-to-viewport-coordinates stream x y)
+	       (decf ny *component-size*)
+	       (window-clear-area stream (- nx 10) (- ny 10) nx (+ ny 20))))
+	    (t
+	     (draw-text* stream name (- x 10) (- y 10)))))))
 
 (defclass logic-one
 	  (logic-constant)
@@ -692,10 +693,10 @@
 			     (- x 20) (+ y *component-size*)))
 			 (write-string (string (class-name (class-of icon))) menu)
 			 )))))))))
-    (with-menu (menu parent)
-      (let ((component (menu-choose-from-drawer
-			 menu 'menu-item #'draw-icon-menu)))
-	(class-name (class-of component))))))
+  (with-menu (menu parent)
+    (let ((component (menu-choose-from-drawer
+		       menu 'menu-item #'draw-icon-menu)))
+      (class-name (class-of component)))))
 
 
 
@@ -846,13 +847,13 @@
     ((component 'component :gesture :select))
   (let ((stream (get-frame-pane *application-frame* 'design-area)))
     (draw-self component stream :ink +background-ink+)
-    (multiple-value-bind (x y)
+    (multiple-value-bind (x y delta-x delta-y)
 	(let ((*draw-connections* nil))
 	  (drag-output-record stream component
 			      :repaint t
 			      :erase #'(lambda (c s)
 					 (draw-body c s :ink +background-ink+))))
-      (move component x y))
+      (move component (- x delta-x) (+ *component-size* (- y delta-y))))
     (draw-self component stream)))
 
 (define-cad-demo-command (com-clear :menu "Clear" :keystroke #\L)

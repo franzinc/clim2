@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: stream-defprotocols.lisp,v 1.4 91/03/26 12:48:55 cer Exp $
+;; $fiHeader: stream-defprotocols.lisp,v 1.3 92/01/31 14:58:47 cer Exp $
 
 (in-package :clim-internals)
 
@@ -62,7 +62,7 @@
 ;; Called from si:with-clim-compatible-input-editing
 (defoperation si:stream-compatible-input-editing fundamental-input-stream
   ((stream fundamental-input-stream)
-   continuation activation-gesture-p blip-gesture-p))
+   continuation activation-gesture-p delimiter-gesture-p))
 
 #+Genera
 ;; READ calls this directly
@@ -121,7 +121,7 @@
   ((stream basic-extended-input-protocol) pointer &key left top right bottom)
   (declare (values left top right bottom)))
 
-(defoperation accept-1 basic-extended-input-protocol
+(defoperation stream-accept basic-extended-input-protocol
   ((stream basic-extended-input-protocol) presentation-type &rest accept-args)
   (declare (values object type)))
 
@@ -173,8 +173,7 @@
   #+CLIM-uses-lisp-stream-functions (:no-defgeneric t))
 
 (defoperation stream-scan-string-for-writing fundamental-character-output-stream
-  ((stream fundamental-character-output-stream)
-   #+Silica medium
+  ((stream fundamental-character-output-stream) #+Silica medium
    string start end style cursor-x max-x &optional glyph-buffer))
 
 (defoperation stream-scan-character-for-writing fundamental-character-output-stream
@@ -217,7 +216,7 @@
   medium-background
   medium-text-style
   medium-default-text-style
-  stream-merged-text-style
+  medium-merged-text-style
   stream-baseline
   stream-current-line-height
   stream-vertical-spacing

@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-graphics.cl,v 1.4 92/01/17 17:49:33 cer Exp $
+;; $fiHeader: xm-graphics.lisp,v 1.5 92/01/31 14:56:31 cer Exp $
 
 (in-package :xm-silica)
 

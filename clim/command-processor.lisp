@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: command-processor.lisp,v 1.4 91/03/26 12:47:44 cer Exp $
+;; $fiHeader: command-processor.lisp,v 1.2 92/01/31 14:57:38 cer Exp $
 
 (in-package :clim-internals)
 
@@ -77,7 +77,7 @@
 
 (defun parse-normal-arg (stream arg-type &rest options)
   (declare (dynamic-extent options))
-  (with-blip-gestures (*command-argument-delimiters*)
+  (with-delimiter-gestures (*command-argument-delimiters*)
     (flet ((command-arg-help (stream action string-so-far)
 	     (declare (ignore action string-so-far))
 	     (write-string "You are being asked to enter " stream)
@@ -521,11 +521,11 @@
 	;; we can just kludge it this way in this presentation type,
 	;; because we can't think of any other presentation types
 	;; that would establish a shadowing context within the one
-	;; established by ACCEPT-2.
+	;; established by ACCEPT-1.
 	(replace-input-p nil))
     (multiple-value-bind (object type)
 	;; We establish a new input context so that clicks throw to us
-	;; rather than to the input context established in ACCEPT-2.
+	;; rather than to the input context established in ACCEPT-1.
 	;; This will let's us handle "partial commands" below.
 	;; The "partial" notion could be extended to apply to all
 	;; presentation-types, but there are so few which need this

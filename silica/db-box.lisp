@@ -1,4 +1,5 @@
-;;; -*- Mode: Lisp; Package: silica; Base: 10.; Syntax: Common-Lisp -*-
+;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
+
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
@@ -21,10 +22,10 @@
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
 ;;;
-;; $fiHeader: db-box.lisp,v 1.6 92/01/31 14:55:31 cer Exp Locker: cer $
-
+;; $fiHeader: db-box.lisp,v 1.7 92/02/05 21:45:11 cer Exp $
 
 (in-package :silica)
+
 
 ;;;
 ;;; Boxing Panes
@@ -33,23 +34,21 @@
 
 
 (defclass box-pane (layout-pane)
-	  ((space :initform 1 :initarg :space)
-	   contents))
+    ((space :initform 1 :initarg :space)
+     contents))
 
 (defmethod initialize-instance :after 
 	   ((pane box-pane) &key contents &allow-other-keys)
   (dolist (child contents)
     (etypecase child
       (number)
-      (pane
-       (sheet-adopt-child pane child))))
+      (pane (sheet-adopt-child pane child))))
   (with-slots ((c contents)) pane
     (setf c contents)))
 
 #+ignore
 (defmethod insert-pane ((lcm box-pane) pane
 			&key position batch-p &allow-other-keys)
-
   (if (panep pane)
       (call-next-method)
       (progn
@@ -68,13 +67,15 @@
 	    (note-space-requirement-changed (sheet-parent lcm) lcm))))))
 
 
-(defmacro compose-box (contract (major major+ major- minor minor+ minor- width-or-height) keys)
-  `(with-slots (contents space) ,contract
-     (if (null contents) (make-space-requirement)
+(defmacro compose-box (box-pane
+		       (major major+ major- minor minor+ minor- width-or-height)
+		       keys)
+  `(with-slots (contents space) ,box-pane
+     (if (null contents) 
+	 (make-space-requirement)
 	 (let ((major 0)
 	       (major+ 0)
 	       (major- 0)
-
 	       (minor 0)  
 	       minor+ minor-
 	       (minor-min 0)
@@ -103,54 +104,11 @@
 	    ,@(mapcan #'(lambda (key val) (list key val))
 		      keys '(major major+ major- minor minor+ minor-)))))))
 
-(defmacro allocate-box (contract alloc-major alloc-minor move-and-resize-entry
-			(major major+ major-))
-  `(with-slots (contents space space-requirement) ,contract
-     (unless space-requirement (compose-space ,contract))
-     (let ((stretch-p (> ,alloc-major (,major space-requirement)))
-	   (pos 0)
-	   give extra used)
-       (if stretch-p
-	   (progn (setq give (,major+ space-requirement))
-		  (setq extra (min (- ,alloc-major (,major space-requirement))
-				   give)))
-	   (progn (setq give (,major- space-requirement))
-		  (setq extra (min (- (,major space-requirement) ,alloc-major)
-				   give))))
-	     
-       ;; Allocate Space to the Children
-       (dolist (entry contents)
-	 (cond ((eq entry :fill) 
-		(when stretch-p 
-		  (setq used (/ (* +fill+ extra) give))
-		  (incf pos used)
-		  (decf give +fill+)
-		  (decf extra used)))
-	       ((numberp entry) (incf pos entry))
-	       (t 
-		(let* ((entry-space-req (compose-space entry))
-		       (alloc (,major entry-space-req)))
-		  (when (> give 0)
-		    (if stretch-p
-			(progn (setq used (/ (* (,major+ entry-space-req)
-						extra)
-					     give))
-			       (incf alloc used)
-			       (decf give (,major+ entry-space-req)))
-			(progn (setq used (/ (* (,major- entry-space-req)
-						extra)
-					     give))
-			       (decf alloc used)
-			       (decf give (,major- entry-space-req))))
-		    (decf extra used))
-		  (,move-and-resize-entry entry pos alloc ,alloc-minor)
-		  (incf pos (+ alloc space)))))))))
 
-(defclass hbox-pane (box-pane)
-    ())
+(defclass hbox-pane (box-pane) ())
 
-(defmethod compose-space ((contract hbox-pane) &key width height)
-  (compose-box contract (space-requirement-width 
+(defmethod compose-space ((box-pane hbox-pane) &key width height)
+  (compose-box box-pane (space-requirement-width 
 			 space-requirement-max-width
 			 space-requirement-min-width
 			 space-requirement-height
@@ -159,23 +117,32 @@
 			 (:height height))
 	       (:width :max-width :min-width :height :max-height :min-height)))
 
-(defmethod allocate-space ((contract hbox-pane) width height)
-  (flet ((move-and-resize-entry (entry min-x width height)
-	   (move-and-resize-sheet* entry min-x 0 width height)))
-    (allocate-box contract width height move-and-resize-entry
-		  (space-requirement-width 
-		   space-requirement-max-width
-		   space-requirement-min-width
-		   #+ignore space-requirement-height
-		   #+ignore space-requirement-max-height
-		   #+ignore space-requirement-min-height))))
+(defmethod allocate-space ((box-pane hbox-pane) width height)
+  (with-slots (contents space space-requirement) box-pane
+    (unless space-requirement 
+      (compose-space box-pane :width width :height height))
+    (let ((sizes 
+	    (allocate-space-to-items
+	      width
+	      space-requirement
+	      contents
+	      #'space-requirement-min-width
+	      #'space-requirement-width
+	      #'space-requirement-max-width
+	      #'(lambda (x) (compose-space x :height height))))
+	  (x 0))
+      (mapc #'(lambda (sheet size)
+		(move-and-resize-sheet* sheet 
+					x 0
+					(frob-size size width x) height)
+		(incf x size))
+	    contents sizes))))
 
-(defclass vbox-pane (box-pane)
-    ()
-  )
 
-(defmethod compose-space ((contract vbox-pane) &key width height)
-  (compose-box contract (space-requirement-height
+(defclass vbox-pane (box-pane) ())
+
+(defmethod compose-space ((box-pane vbox-pane) &key width height)
+  (compose-box box-pane (space-requirement-height
 			 space-requirement-max-height
 			 space-requirement-min-height
 			 space-requirement-width 
@@ -184,29 +151,28 @@
 			 (:width width))
 	       (:height :max-height :min-height :width :max-width :min-width)))
 
-(defmethod allocate-space ((contract vbox-pane) width height)
-  (with-slots (contents space space-requirement) contract
-    (unless space-requirement (compose-space contract))
+(defmethod allocate-space ((box-pane vbox-pane) width height)
+  (with-slots (contents space space-requirement) box-pane
+    (unless space-requirement 
+      (compose-space box-pane :width width :height height))
     (let ((sizes 
-	   (allocate-space-to-items
-	    height
-	    space-requirement
-	    contents
-	    #'space-requirement-min-height
-	    #'space-requirement-height
-	    #'space-requirement-max-height
-	    #'(lambda (x) (compose-space x :width width))))
+	    (allocate-space-to-items
+	      height
+	      space-requirement
+	      contents
+	      #'space-requirement-min-height
+	      #'space-requirement-height
+	      #'space-requirement-max-height
+	      #'(lambda (x) (compose-space x :width width))))
 	  (y 0))
       (mapc #'(lambda (sheet size)
 		(move-and-resize-sheet* sheet 
-					0 
-					y
-					width 
-					(frob-size size height y))
+					0 y
+					width (frob-size size height y))
 		(incf y size))
-	    contents
-	    sizes))))
+	    contents sizes))))
 
+;;--- Yow
 (defun frob-size (wanted-size available where-we-are-now)
   (min wanted-size (1- (- available where-we-are-now))))
 		   

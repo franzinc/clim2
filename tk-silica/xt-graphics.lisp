@@ -1,4 +1,4 @@
-;; -*- mode: common-lisp; package: xm-silica -*-
+U;; -*- mode: common-lisp; package: xm-silica -*-
 ;;
 ;;				-[]-
 ;; 
@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.6 92/02/14 18:57:47 cer Exp Locker: cer $
+;; $fiHeader: xt-graphics.lisp,v 1.7 92/02/16 20:55:18 cer Exp $
 
 (in-package :xm-silica)
 
@@ -28,7 +28,6 @@
   ((foreground-gcontext :reader medium-foreground-gcontext :initform nil)
    (background-gcontext :reader medium-background-gcontext :initform nil)
    (flipping-gcontext :reader medium-flipping-gcontext :initform nil)
-   (sheet :accessor medium-sheet)
    (drawable :initform nil)
    (color-p)
    (ink-table :initform (make-hash-table))
@@ -48,8 +47,8 @@
   (tk::widget-window mirror nil))
 
 (defmethod engraft-medium :after ((medium xt-medium) (port xt-port) sheet)
-  (with-slots (foreground-gcontext background-gcontext flipping-gcontext color-p
-				   drawable stipple-gcontext white-pixel black-pixel)
+   (with-slots (foreground-gcontext background-gcontext flipping-gcontext color-p
+		drawable stipple-gcontext white-pixel black-pixel)
       medium
     (setf (medium-sheet medium) sheet)
     (when (and drawable
@@ -77,11 +76,11 @@
 				 :background white-pixel))
       (recompute-gcs medium))))
 
-(defmethod silica::degraft-medium :after ((medium xt-medium) (port xt-port) sheet)
+(defmethod degraft-medium :after ((medium xt-medium) (port xt-port) sheet)
   (declare (ignore sheet))
   (with-slots 
-      (foreground-gcontext background-gcontext flipping-gcontext stipple-gcontext
-			   drawable)
+       (foreground-gcontext background-gcontext flipping-gcontext stipple-gcontext
+	drawable)
       medium
     (setf drawable nil
 	  (medium-sheet medium) nil)
@@ -118,20 +117,23 @@
       
 (defmethod (setf medium-background) :after (ink (medium xt-medium))
   (declare (ignore ink))
-  (recompute-gcs medium))
+  (recompute-gcs medium)
+  ;;--- Call handle-repaint
+  )
 
 (defmethod (setf medium-foreground) :after (ink (medium xt-medium))
   (declare (ignore ink))
-  (recompute-gcs medium))
+  (recompute-gcs medium)
+  ;;--- Call handle-repaint
+  )
 
 (defmethod (setf medium-ink) :after (ink (medium xt-medium))
   (declare (ignore ink))
   (recompute-gcs medium))
 
-;;;  Below is stuff from implementation
-
 
 ;;; Colors and their monochrome imposters
+;;; Much of this is taken from CLX-IMPLEMENTATION
 
 (defun make-stipple-image (height width patterns)
   (make-instance 'tk::image :width width :height height
@@ -230,7 +232,7 @@
 		  (t
 		   (multiple-value-bind (r g b) (color-rgb ink)
 		   ;; The luminance formula isn't really right.  XXX
-		   (let* ((luminance (/ (+ (* r r) (* g g) (* b b)) 3))
+		   (let* ((luminance (color-luminosity r g b))
 			  (color (decode-luminance luminance t)))
 		     (cond ((eql color 1)
 			    (setf (tk::gcontext-fill-style new-gc) :solid
@@ -333,273 +335,6 @@
 	  (compute-gcontext-clip-mask medium))
     gc))
 
-(defmethod compute-gcontext-clip-mask (medium)
-  (with-bounding-rectangle* 
-   (minx miny maxx maxy)
-   (sheet-device-region (medium-sheet medium))
-   (list (truncate minx)
-	 (truncate miny)
-	 (truncate maxx)
-	 (truncate maxy))))
-      
-(defun devicize-point (transform x y)
-  (multiple-value-setq (x y)
-      (transform-point* transform x y))
-  (values (truncate x) (truncate y)))
-
-(defun devicize-distance (transform x y)
-  (multiple-value-setq (x y)
-      (transform-distance transform x y))
-  (values (truncate x) (truncate y)))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-
-(defmethod port-draw-line* ((port xt-port)
-			    sheet
-			    medium
-			    x1 y1 x2 y2)
-  (let ((transform (sheet-device-transformation sheet)))
-    (multiple-value-setq (x1 y1) (devicize-point transform x1 y1))
-    (multiple-value-setq (x2 y2) (devicize-point transform x2 y2)))
-  (when (medium-drawable medium)
-    (tk::draw-line
-     (medium-drawable medium)
-     (adjust-ink medium
-		     (decode-ink (medium-ink medium) medium)
-		     (medium-ink medium)
-		     (medium-line-style medium)
-		     (min x1 x2)
-		     (min y1 y2))
-     x1
-     y1
-     x2
-     y2)))
-
-
-(defmethod port-draw-rectangle* ((port xt-port)
-				 sheet
-				 medium
-				 x1 y1 x2 y2 filled)
-  (let ((transform (sheet-device-transformation sheet)))
-    (if (rectilinear-transformation-p transform)
-	(progn
-	  (multiple-value-setq (x1 y1) (devicize-point transform x1 y1))
-	  (multiple-value-setq (x2 y2) (devicize-point transform x2 y2))
-	  (when (medium-drawable medium)
-	    (tk::draw-rectangle
-	     (medium-drawable medium)
-	     (adjust-ink medium
-			     (decode-ink (medium-ink medium) medium)
-			     (medium-ink medium)
-			     (medium-line-style medium)
-			     (min x1 x2)
-			     (min y1 y2))
-	     (min x1 x2)
-	     (min y1 y2)
-	     (abs (- x2 x1))
-	     (abs (- y2 y1))
-	     filled)))
-      (port-draw-transformed-rectangle*
-       port sheet medium x1 y1 x2 y2 filled))))
-      
-
-
-(defmethod port-draw-text* ((port xt-port)
-			    sheet medium string-or-char x y start end align-x align-y
-			    ;;towards-point towards-x towards-y
-			    ;;transform-glyphs
-			    )
-  (let ((transform (sheet-device-transformation sheet))
-	(font (realize-text-style port (medium-text-style medium))))
-    
-    (multiple-value-setq (x y) (devicize-point transform x y))
-    (when (typep string-or-char 'character)
-      (setq string-or-char (string string-or-char)))
-    
-    (ecase align-x
-      (:center (decf x (floor (text-size 
-			       sheet
-			       string-or-char
-			       :text-style
-			       (medium-text-style medium)
-			       :start start
-			       :end end)
-			      2)))
-      (:left nil))
-
-    (ecase align-y
-      (:center (decf y (- (text-style-descent  (medium-text-style medium) medium)
-			  (floor (text-style-height  (medium-text-style medium) medium)
-				 2))))
-      (:baseline nil)
-      (:top 
-       (incf y (tk::font-ascent font))))
-    (when (medium-drawable medium)
-      (let ((gc (decode-ink (medium-ink medium) medium)))
-	(setf (tk::gcontext-font gc) font)
-	(tk::draw-string
-	 (medium-drawable medium)
-	 gc
-	 x y
-	 string-or-char
-	 start end)))))
-
-
-(defmethod silica::port-write-string-internal ((port xt-port)
-					       medium
-					       glyph-buffer 
-					       start 
-					       end 
-					       x-font 
-					       color 
-					       x
-					       y)
-  (unless (= start end)
-    (let* ((sheet (medium-sheet medium))
-	   (transform (sheet-device-transformation sheet))
-	   (window (medium-drawable medium))
-	   (font x-font))
-    
-      ;; At one point we checked to see whether the widget is unrealized
-      ;; or not.  Can we draw on disabled sheets?
-    
-      (multiple-value-setq (x y) (devicize-point transform x y))
-    
-      (incf y (tk::font-ascent font))
-      (when (medium-drawable medium)
-	(let ((gc (decode-ink (medium-ink medium) medium)))
-	  (setf (tk::gcontext-font gc) font)
-	  (etypecase glyph-buffer
-	    ((simple-array (unsigned-byte 16))
-	     (x11::xdrawstring16
-	      (tk::display-handle (tk::object-display window))
-	      (tk::object-handle window)
-	      (tk::object-handle gc)
-	      x 
-	      y
-	      glyph-buffer
-	      (- end start)))))))))
-
-
-(defmethod port-beep ((port xt-port) (sheet t))
-  (x11:xbell (tk::display-handle (port-display port)) 100))
-
-
-(defmethod silica::port-draw-ellipse* ((port xt-port)
-				       sheet
-				       medium
-				       center-x
-				       center-y
-				       radius-1-dx 
-				       radius-1-dy 
-				       radius-2-dx
-				       radius-2-dy 
-				       start-angle 
-				       end-angle 
-				       filled)
-  (let ((transform (sheet-device-transformation sheet)))
-    (multiple-value-setq (center-x center-y) 
-      (devicize-point transform center-x center-y))
-    
-
-    (multiple-value-setq (radius-1-dx radius-1-dy) 
-      (devicize-distance transform  radius-1-dx radius-1-dy))
-    
-
-    (multiple-value-setq (radius-2-dx radius-2-dy) 
-      (devicize-distance transform radius-2-dx
-			 radius-2-dy))
-    (when (medium-drawable medium)
-      (tk::draw-ellipse
-       (medium-drawable medium)
-       (adjust-ink medium
-		       (decode-ink (medium-ink medium) medium)
-		       (medium-ink medium)
-		       (medium-line-style medium)
-		       (- center-x 
-			  (if (zerop radius-1-dx)
-			      radius-2-dx
-			    radius-1-dx))
-		       (- center-y 
-			  (if (zerop radius-1-dy)
-			      radius-2-dy
-			    radius-1-dy)))
-       center-x
-       center-y
-       radius-1-dx 
-       radius-1-dy 
-       radius-2-dx
-       radius-2-dy 
-       start-angle 
-       end-angle 
-       filled))))
-   
-(ff::def-c-type (xpoint-array :in-foreign-space) 2 x11::xpoint)
-  
-(defmethod silica::port-draw-polygon* ((port xt-port)
-				       sheet
-				       medium
-				       list-of-x-and-ys
-				       closed
-				       filled)
-  (let* ((transform (sheet-device-transformation sheet))
-	 (npoints (/ (length list-of-x-and-ys) 2))
-	 (points (excl::malloc ;;;------ BUG BUG BUG
-		  (* 4 (cond 
-			((and closed (not filled))
-			 (incf npoints))
-			(t npoints)))))
-	 (window (medium-drawable medium))
-	 ;;--- is this right
-	 (minx most-positive-fixnum)
-	 (miny most-positive-fixnum))
-		 
-    (do ((ps list-of-x-and-ys (cddr ps))
-	 (i 0 (1+ i))
-	 r)
-	((null ps)
-	 (setq list-of-x-and-ys (nreverse r)))
-      (multiple-value-bind
-	  (x y)
-	  (devicize-point transform (car ps) (cadr ps))
-	(minf minx x)
-	(minf miny y)
-	(setf (xpoint-array-x points i) x
-	      (xpoint-array-y points i) y)))
-    
-    (when (and closed (not filled))
-      (setf (xpoint-array-x points (- npoints 1)) (xpoint-array-x points 0)
-	    (xpoint-array-y points (- npoints 1)) (xpoint-array-y points 0)))
-    (when (medium-drawable medium)
-      (if filled
-	  (x11:xfillpolygon
-	   (tk::display-handle (tk::object-display window))
-	   (tk::object-handle window)
-	   (tk::object-handle (adjust-ink medium
-					      (decode-ink (medium-ink medium) medium)
-					      (medium-ink medium)
-					      (medium-line-style medium)
-					      minx
-					      miny))
-	   points
-	   npoints
-	   x11:complex
-	   x11:coordmodeorigin)
-	(x11:xdrawlines
-	 (tk::display-handle (tk::object-display window))
-	 (tk::object-handle window)
-	 (tk::object-handle (adjust-ink medium
-					    (decode-ink (medium-ink medium) medium)
-					    (medium-ink medium)
-					    (medium-line-style medium)
-					    minx
-					    miny))
-	 points
-	 npoints
-	 x11:coordmodeorigin)))))
-
-
 (defmethod decode-ink ((ink rectangular-tile) medium)
   (multiple-value-bind (pattern width height)
       (decode-rectangular-tile ink)
@@ -616,8 +351,7 @@
 	 (depth (tk::drawable-depth drawable)))
     (or  (gethash pattern ink-table)
 	 (setf (gethash pattern ink-table)
-	   (multiple-value-bind
-	       (array designs)
+	   (multiple-value-bind (array designs)
 	       (decode-pattern pattern)
 	     (let ((image-data (make-array (array-dimensions array))))
 	       (dotimes (w (array-dimension array 1))
@@ -644,28 +378,232 @@
 		 (setf (tk::gcontext-tile gc) pixmap
 		       (tk::gcontext-fill-style gc) :tiled)
 		 gc)))))))
-		
 
+(defmethod compute-gcontext-clip-mask (medium)
+  (with-bounding-rectangle* (minx miny maxx maxy)
+      (sheet-device-region (medium-sheet medium))
+    (list (truncate minx)
+	  (truncate miny)
+	  (truncate maxx)
+	  (truncate maxy))))
+      
+
+(defmethod port-draw-point* ((port xt-port) sheet medium x y)
+  (let ((transform (sheet-device-transformation sheet)))
+    (convert-to-device-coordinates transform x y))
+  (when (medium-drawable medium)
+    (let ((thickness (line-style-thickness (medium-line-style medium))))
+      (if (< thickness 2)
+	  (tk::draw-point
+	   (medium-drawable medium)
+	   (adjust-ink medium
+		       (decode-ink (medium-ink medium) medium)
+		       (medium-ink medium)
+		       (medium-line-style medium)
+		       x y)
+	   x y)
+	(let ((thickness (round thickness)))
+	  (tk::draw-ellipse (medium-drawable medium) 
+			    (adjust-ink medium
+					(decode-ink (medium-ink medium) medium)
+					(medium-ink medium)
+					(medium-line-style medium)
+					(- x thickness)
+					(- y thickness))
+			    x y 
+			    0
+			    thickness 
+			    0
+			    thickness 0 2pi
+			    t))))))
+
+(defmethod port-draw-line* ((port xt-port) sheet medium
+			    x1 y1 x2 y2)
+  (let ((transform (sheet-device-transformation sheet)))
+    (convert-to-device-coordinates transform
+      x1 y1 x2 y2))
+  (when (medium-drawable medium)
+    (tk::draw-line
+      (medium-drawable medium)
+      (adjust-ink medium
+		  (decode-ink (medium-ink medium) medium)
+		  (medium-ink medium)
+		  (medium-line-style medium)
+		  (min x1 x2) (min y1 y2))
+      x1 y1 x2 y2)))
+
+(defmethod port-draw-rectangle* ((port xt-port) sheet medium
+				 x1 y1 x2 y2 filled)
+  (let ((transform (sheet-device-transformation sheet)))
+    (if (rectilinear-transformation-p transform)
+	(progn
+	  (convert-to-device-coordinates transform
+	    x1 y1 x2 y2) 
+	  (when (medium-drawable medium)
+	    (tk::draw-rectangle
+	      (medium-drawable medium)
+	      (adjust-ink medium
+			  (decode-ink (medium-ink medium) medium)
+			  (medium-ink medium)
+			  (medium-line-style medium)
+			  (min x1 x2) (min y1 y2))
+	      (min x1 x2) (min y1 y2)
+	      (abs (- x2 x1)) (abs (- y2 y1))
+	      filled)))
+      (port-draw-transformed-rectangle*
+	port sheet medium x1 y1 x2 y2 filled))))
+
+(ff::def-c-type (xpoint-array :in-foreign-space) 2 x11::xpoint)
+  
+(defmethod silica::port-draw-polygon* ((port xt-port) sheet medium
+				       list-of-x-and-ys
+				       closed filled)
+  (let* ((transform (sheet-device-transformation sheet))
+	 (npoints (/ (length list-of-x-and-ys) 2))
+	 (points (excl::malloc ;; BUG BUG BUG
+		  (* 4 (cond ((and closed (not filled))
+			      (incf npoints))
+			     (t npoints)))))
+	 (window (medium-drawable medium))
+	 ;;--- is this right
+	 (minx most-positive-fixnum)
+	 (miny most-positive-fixnum))
+    (do ((ps list-of-x-and-ys (cddr ps))
+	 (i 0 (1+ i))
+	 r)
+	((null ps)
+	 (setq list-of-x-and-ys (nreverse r)))
+      (let ((x (first ps))
+	    (y (second ps)))
+	(convert-to-device-coordinates transform x y)
+	(minf minx x)
+	(minf miny y)
+	(setf (xpoint-array-x points i) x
+	      (xpoint-array-y points i) y)))
+    (when (and closed (not filled))
+      (setf (xpoint-array-x points (- npoints 1)) (xpoint-array-x points 0)
+	    (xpoint-array-y points (- npoints 1)) (xpoint-array-y points 0)))
+    (when (medium-drawable medium)
+      (if filled
+	  (x11:xfillpolygon
+	   (tk::display-handle (tk::object-display window))
+	   (tk::object-handle window)
+	   (tk::object-handle (adjust-ink medium
+					      (decode-ink (medium-ink medium) medium)
+					      (medium-ink medium)
+					      (medium-line-style medium)
+					      minx miny))
+	   points
+	   npoints
+	   x11:complex
+	   x11:coordmodeorigin)
+	(x11:xdrawlines
+	  (tk::display-handle (tk::object-display window))
+	  (tk::object-handle window)
+	  (tk::object-handle (adjust-ink medium
+					 (decode-ink (medium-ink medium) medium)
+					 (medium-ink medium)
+					 (medium-line-style medium)
+					 minx miny))
+	  points
+	  npoints
+	  x11:coordmodeorigin)))))
+
+(defmethod silica::port-draw-ellipse* ((port xt-port) sheet medium
+				       center-x center-y
+				       radius-1-dx radius-1-dy radius-2-dx radius-2-dy 
+				       start-angle end-angle filled)
+  (let ((transform (sheet-device-transformation sheet)))
+    (convert-to-device-coordinates transform center-x center-y)
+    (convert-to-device-distances transform 
+      radius-1-dx radius-1-dy radius-2-dx radius-2-dy)
+    (when (medium-drawable medium)
+      (tk::draw-ellipse
+	(medium-drawable medium)
+	(adjust-ink medium
+		    (decode-ink (medium-ink medium) medium)
+		    (medium-ink medium)
+		    (medium-line-style medium)
+		    (- center-x 
+		       (if (zerop radius-1-dx) radius-2-dx radius-1-dx))
+		    (- center-y 
+		       (if (zerop radius-1-dy) radius-2-dy radius-1-dy)))
+	center-x center-y
+	radius-1-dx radius-1-dy radius-2-dx radius-2-dy 
+	start-angle end-angle 
+	filled)))) 
+
+(defmethod port-draw-text* ((port xt-port) sheet medium
+			    string-or-char x y start end
+			    align-x align-y
+			    ;; towards-point towards-x towards-y
+			    ;; transform-glyphs
+			    )
+  (let ((transform (sheet-device-transformation sheet))
+	(font (text-style-mapping port (medium-text-style medium))))
+    (convert-to-device-coordinates transform x y)
+    (when (typep string-or-char 'character)
+      (setq string-or-char (string string-or-char)))
+    (ecase align-x
+      (:center 
+	(decf x (floor (text-size sheet string-or-char
+				  :text-style (medium-text-style medium)
+				  :start start :end end) 2)))
+      (:left nil))
+    (ecase align-y
+      (:center 
+	(decf y (- (text-style-descent (medium-text-style medium) port)
+		   (floor (text-style-height (medium-text-style medium) port) 2))))
+      (:baseline nil)
+      (:top
+	(incf y (tk::font-ascent font)))) 
+    (when (medium-drawable medium)
+      (let ((gc (decode-ink (medium-ink medium) medium)))
+	(setf (tk::gcontext-font gc) font)
+	(tk::draw-string
+	  (medium-drawable medium)
+	  gc
+	  x y
+	  string-or-char start end)))))
+
+(defmethod silica::port-write-string-1 ((port xt-port) medium
+					glyph-buffer start end 
+					x-font color x y)
+  (unless (= start end)
+    (let* ((sheet (medium-sheet medium))
+	   (transform (sheet-device-transformation sheet))
+	   (window (medium-drawable medium))
+	   (font x-font))
+      ;; At one point we checked to see whether the widget is unrealized
+      ;; or not.  Can we draw on disabled sheets?
+      (convert-to-device-coordinates transform x y)
+      (incf y (tk::font-ascent font))
+      (when (medium-drawable medium)
+	(let ((gc (decode-ink (medium-ink medium) medium)))
+	  (setf (tk::gcontext-font gc) font)
+	  (etypecase glyph-buffer
+	    ((simple-array (unsigned-byte 16))
+	     (x11::xdrawstring16
+	       (tk::display-handle (tk::object-display window))
+	       (tk::object-handle window)
+	       (tk::object-handle gc)
+	       x y
+	       glyph-buffer (- end start)))))))))
+
+
+(defmethod port-beep ((port xt-port) (sheet t))
+  (x11:xbell (tk::display-handle (port-display port)) 100))
+
+   
+
 (defmethod silica::port-copy-area ((port xt-port)
-				   from-sheet
-				   to-sheet
-				   from-left
-				   from-top 
-				   from-right 
-				   from-bottom
-				   to-left
-				   to-top)
+ 				   from-sheet to-sheet
+ 				   from-left from-top from-right from-bottom
+ 				   to-left to-top)
   ;; coords in "host" coordinate system
   (let ((transform (sheet-native-transformation from-sheet)))
-    (multiple-value-setq
-	(from-left from-top)
-      (devicize-point transform from-left from-top))
-    (multiple-value-setq
-	(from-right from-bottom)
-      (devicize-point transform from-right from-bottom))
-    (multiple-value-setq
-	(to-left to-top)
-      (devicize-point transform to-left to-top))
+    (convert-to-device-coordinates transform
+       from-left from-top from-right from-bottom to-left to-top)
     (with-sheet-medium (from-medium from-sheet)
       (with-sheet-medium (to-medium to-sheet)
 	(let* ((from-drawable (medium-drawable from-medium))
@@ -676,6 +614,3 @@
 	  (when (and from-drawable to-drawable)
 	    (tk::copy-area from-drawable copy-gc from-left from-top width height
 			   to-drawable to-left to-top)))))))
-
-
-

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: default-application.lisp,v 1.4 91/03/26 12:47:50 cer Exp $
+;; $fiHeader: default-application.lisp,v 1.1 92/01/31 14:27:45 cer Exp $
 
 (in-package :clim-internals)
 
@@ -19,11 +19,16 @@
 (defmethod frame-input-context-button-press-handler
 	   ((frame standard-application-frame) stream button-press-event)
   (declare (ignore stream))
-  (let* ((window (event-window button-press-event))
+  (let* ((window (event-sheet button-press-event))
 	 (x (pointer-event-x button-press-event))
 	 (y (pointer-event-y button-press-event))
 	 (highlighted-presentation (highlighted-presentation window nil))
 	 (input-context *input-context*))
+    #+Allegro
+    (when (and *click-outside-menu-handler*
+		(output-recording-stream-p window)
+		(not (region-contains-point*-p (stream-output-history window) x y)))
+      (funcall *click-outside-menu-handler*))
     (when highlighted-presentation
       ;; Unhighlight on the way out.
       ;; But only unhighlight the window that the click is from. 
@@ -165,7 +170,7 @@
 		   `(when (and (or (null ,button-translator)
 				   (> (presentation-translator-priority ,translator)
 				      (presentation-translator-priority ,button-translator)))
-			       (button-and-modifier-state-matches-gesture-name
+			       (button-and-modifier-state-matches-gesture-name-p
 				 (button-index ,button) modifier-state
 				 (presentation-translator-gesture-name ,translator)))
 		      (setq ,button-translator ,translator

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graph-formatting.lisp,v 1.4 92/01/31 15:07:38 cer Exp Locker: cer $
+;; $fiHeader: graph-formatting.lisp,v 1.4 92/01/31 15:07:38 cer Exp $
 
 (in-package :clim-internals)
 
@@ -195,14 +195,8 @@
 		   (dolist (child (graph-node-children this-node))
 		     (setf (graph-node-parents child) (list this-node)))
 		   this-node))))
-      (map nil #'format-node root-objects)
-      (let ((root-nodes nil))
-	(map-over-output-records 
-	  #'(lambda (node)
-	      (when (null (graph-node-parents node))
-		(push node root-nodes)))
-	  graph)
-	(setf (graph-root-nodes graph) (nreverse root-nodes)))))
+      (setf (graph-root-nodes graph) 
+	    (map 'list #'format-node root-objects))))
   graph)
 
 (defmethod layout-graph-nodes ((graph tree-graph-output-record) stream)
@@ -368,7 +362,8 @@
     (let ((root-nodes nil))
       (maphash #'(lambda (key node)
 		   (declare (ignore key))
-		   (when (null (graph-node-parents node))
+		   (when (and (graph-node-output-record-p node)
+			      (null (graph-node-parents node)))
 		     (push node root-nodes)))
 	       hash-table)
       (setf (graph-root-nodes graph) (nreverse root-nodes))))
@@ -406,10 +401,7 @@
 	      ((:horizontal :right :left)
 	       (values #'bounding-rectangle-height #'bounding-rectangle-width
 		       #'yx-output-record-set-position* start-y start-x)))
-	  (macrolet ((traverse (new-node-function &optional
-						  (old-node-function
-						   '#'(lambda (&rest
-							       x) nil)))
+	  (macrolet ((traverse (new-node-function &optional (old-node-function '#'false))
 		       `(traverse-graph root-nodes #'inferior-mapper 
 					hash-table #'identity
 					,new-node-function ,old-node-function))

@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader$
+;; $fiHeader: logical-gestures.lisp,v 1.2 92/01/02 15:33:22 cer Exp $
 
 
 (in-package :clim-internals)

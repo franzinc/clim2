@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: loadit.cl,v 1.2 92/01/02 15:08:50 cer Exp $
+;; $fiHeader: loadit.lisp,v 1.3 92/01/31 14:54:52 cer Exp $
 
 (load "pkg")
 (load "foreign-obj")

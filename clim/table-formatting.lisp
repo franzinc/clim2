@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: table-formatting.lisp,v 1.5 91/03/26 12:48:57 cer Exp $
+;; $fiHeader: table-formatting.lisp,v 1.3 92/01/31 14:58:51 cer Exp $
 
 (in-package :clim-internals)
 
@@ -461,7 +461,7 @@
 	       (number (first spacing)))
 	   (case units
 	     (:point (round (* number (implementation-pixels-per-point stream))))
-	     (:pixel number)
+	     ((:pixel :device) number)
 	     ;; Which character?  Width or height?
 	     (:character (* number (stream-character-width stream #\W)))
 	     (:line (+ (* number (stream-line-height stream))

@@ -18,10 +18,10 @@
 ;;; 
 ;;; $Author: cer $
 ;;; $Source: /repo/cvs.copy/clim2/sys/defsystem.lisp,v $
-;;; $Revision: 1.3 $
-;;; $Date: 1992/02/16 20:55:38 $
+;;; $Revision: 1.4 $
+;;; $Date: 1992/02/24 13:09:00 $
 ;;;
-;;; $Revision: 1.3 $
+;;; $Revision: 1.4 $
 ;;; Hacked by smL to convert it to lisp from C.
 ;;; No, seriously folks.  Lots of changes here.  Added support for multiple
 ;;;  source file-types.  Cleaned up a *lot* of code.
@@ -30,19 +30,19 @@
 ;;; Added support for different modules applicable only in certain features.
 ;;; -smL 17-April-89
 ;;;
-;;; $Revision: 1.3 $
+;;; $Revision: 1.4 $
 ;;; Added support for sysdcl files.
 ;;; -smL
 ;;;
-;;; $Revision: 1.3 $
+;;; $Revision: 1.4 $
 ;;; Cleaned up a lot of syntax.  Made some fields of the defsystem macro be eval'ed.
 ;;; -smL
 ;;;
-;;; $Revision: 1.3 $
+;;; $Revision: 1.4 $
 ;;; Added "temporary" hack *load-all-before-compile*.
 ;;; -smL
 ;;;
-;;; $Revision: 1.3 $
+;;; $Revision: 1.4 $
 ;;; Incorporated changes from Bill York @ ILA to deal with Genera.
 ;;; Added the :default-binary-pathname option to defsystem and :binary-pathname
 ;;;  to each module.
@@ -55,12 +55,12 @@
 ;;; Fixed the spelling of "propagate".
 ;;; -smL
 ;;;
-;;; $Revision: 1.3 $
+;;; $Revision: 1.4 $
 ;;; Fixed a bug that caused many too many calls to file-write-date during a
 ;;;  load-system.
 ;;; -smL
 ;;;
-;;; $Revision: 1.3 $
+;;; $Revision: 1.4 $
 ;;; Incorporated changes from Bill York <york@ila-west.dialnet.symbolics.com>
 ;;;  to make string --> pathname coersion cleaner under Genera.
 ;;; Also made some trivial changes to the messages printed out when *tracep*
@@ -75,7 +75,7 @@
 ;;; load-system and compile-system now return the system name.
 ;;; -smL
 ;;;
-;;; $Revision: 1.3 $
+;;; $Revision: 1.4 $
 ;;; Fixed bug with pretty-pathname-component.  Added message when compiling a
 ;;;  file in Genera, since it doesn't print one by default.  Fixed a small bug
 ;;;  with handling of *features*.  Fixed a bug with *tracep*.
@@ -91,7 +91,7 @@
 ;;;
 ;;;-----------------------------------------------------------
 
-;; $fiHeader: defsystem.lisp,v 1.2 92/02/08 14:59:27 cer Exp $
+;; $fiHeader: defsystem.lisp,v 1.6 91/03/26 12:59:59 cer Exp $
 
 ;; Add a feature for ANSI-adhering Lisps.  So far, only Apple's
 ;; version 2.0 tries to do adhere to the ANSI spec instead of CLtL rev 1.
@@ -100,8 +100,8 @@
 
 #+Allegro
 (eval-when (compile load eval)
-  (when (and (find-package 'defsys)
-	     (not (find-package 'excl-defsystem)))
+  (when (and (find-package :defsys)
+	     (not (find-package :excl-defsystem)))
     (let ((excl::*enable-package-locked-errors* nil))
       (rename-package 'defsys 'excl-defsystem))))
  
@@ -188,15 +188,15 @@
 ;;; Pathname stuff
 ;;;
 
-#-Minima
+#-(or Minima Genera)
 (eval-when (eval load compile)
-  (shadow (list (intern '#:make-pathname "LISP")
-		(intern '#:pathname-directory "LISP"))))
+  (shadow (list (intern (symbol-name :make-pathname) :lisp)
+		(intern (symbol-name :pathname-directory) :lisp))))
 
-#-Minima
+#-(or Minima Genera)
 (eval-when (eval load compile)
-  (export (list (intern '#:make-pathname "DEFSYSTEM")
-                (intern '#:pathname-directory "DEFSYSTEM"))))
+  (export (list (intern (symbol-name :make-pathname) :defsystem)
+		(intern (symbol-name :pathname-directory) :defsystem))))
 
 ;;
 ;; The implementations of PATHNAME-DIRECTORY and MAKE-PATHNAME use two
@@ -210,11 +210,11 @@
 ;; by the Lisp as a kosher pathname-directory.
 ;;
 
-#-Minima
+#-(or Minima Genera)
 (defun pathname-directory (pathname)
   (externalize-directory (lisp:pathname-directory pathname)))
 
-#-Minima
+#-(or Minima Genera)
 (defun make-pathname (&rest options
 			    &key host device directory name type version defaults)
   (declare (ignore host device name type version))
@@ -1541,9 +1541,9 @@ verify that each already loaded subsystem is up-to-date, reloading it if need be
 			    ,@(and old-safety ,safety `((safety ,old-safety))))))))
 
 
-#|
 ;;; Write (Franz only?) Makefile description for constructiong big FASL
 ;;; from system definition.  20-21 August 1990 by Richard Lamson
+
 (defun write-Makefile-for-system (system)
   (unless (system-p system)
     (setf system (find-system system)))
@@ -1615,4 +1615,4 @@ verify that each already loaded subsystem is up-to-date, reloading it if need be
 			   (and pfp
 				(format nil "~VT~A.~A" indentation pfp bin-type))))
 		 (list file-list-name)))))
-|#
+

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clim-defs.lisp,v 1.4 91/03/26 12:47:12 cer Exp $
+;; $fiHeader: clim-defs.lisp,v 1.5 92/01/31 14:57:36 cer Exp $
 
 (in-package :clim-internals)
 
@@ -15,32 +15,32 @@
   (values (+ x dx)
 	  (+ y dy)))
 
-(defmacro translate-positions (x-delta y-delta &body points)
+(defmacro translate-positions (x-delta y-delta &body coordinate-pairs)
   (once-only (x-delta y-delta)
     `(progn
        ,@(let ((forms nil))
-	   (dorest (pts points cddr)
+	   (dorest (pts coordinate-pairs cddr)
 	     (push `(incf ,(first pts)  ,x-delta) forms)
 	     (push `(incf ,(second pts) ,y-delta) forms))
 	   (nreverse forms)))))
 
 #-Silica
 ;;--- Use COORDINATEs here...
-(defmacro translate-fixnum-positions (x-delta y-delta &body points)
+(defmacro translate-fixnum-positions (x-delta y-delta &body coordinate-pairs)
   (once-only (x-delta y-delta)
     `(progn
        ,@(let ((forms nil))
-	   (dorest (pts points cddr)
+	   (dorest (pts coordinate-pairs cddr)
 	     (push `(setf ,(first pts)  (the fixnum (+ ,(first pts)  ,x-delta))) forms)
 	     (push `(setf ,(second pts) (the fixnum (+ ,(second pts) ,y-delta))) forms))
 	   (nreverse forms)))))
 
 #+Silica
-(defmacro translate-fixnum-positions (x-delta y-delta &body points)
+(defmacro translate-fixnum-positions (x-delta y-delta &body coordinate-pairs)
   (once-only (x-delta y-delta)
     `(progn
        ,@(let ((forms nil))
-	   (dorest (pts points cddr)
+	   (dorest (pts coordinate-pairs cddr)
 	     (push `(setf ,(first pts)  (+ ,(first pts)  ,x-delta)) forms)
 	     (push `(setf ,(second pts) (+ ,(second pts) ,y-delta)) forms))
 	   (nreverse forms)))))

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader$
+;; $fiHeader: color-ed.cl,v 1.1 92/01/30 10:17:27 cer Exp $
 
 
 (in-package :clim)

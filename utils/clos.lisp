@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clos.lisp,v 1.4 91/03/26 12:03:07 cer Exp $
+;; $fiHeader: clos.lisp,v 1.2 92/01/31 14:52:26 cer Exp $
 
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
@@ -132,7 +132,7 @@
       (let ((supers (copy-list supers)))
 	(setf (gethash supers *dynamic-classes*)
 	      (%make-standard-class
-		(intern (funcall name-fn) (find-package 'silica))
+		(intern (funcall name-fn) (find-package :silica))
 		supers)))))
 
 (defun add-mixin (object mixin-class)
@@ -210,4 +210,84 @@
 
 ||#
 
+
+;;; Multiple value SETFs, aka SETF*
 
+(defun make-setf-function-name (accessor-name)
+  (values `(setf ,accessor-name) t))
+
+(defun make-setf*-function-name (accessor-name)
+  (declare (values setf-function-name defsetf-done-p))
+  (let ((writer (get accessor-name 'setf-function-name))
+	(old-p nil))
+    (when writer
+      (ignore-errors
+	(multiple-value-bind (vars vals store-vars store-form access-form)
+	    (#-Allegro lisp:get-setf-method-multiple-value
+	     #+Allegro cltl1:get-setf-method-multiple-value
+	      `(,accessor-name foo))
+	  (declare (ignore vars vals store-vars access-form))
+	  (when (or (equal (first store-form) writer)
+		    (and (eql (first store-form) 'funcall)
+			 (eql (first (second store-form)) 'function)
+			 (equal (second (second store-form)) writer)))
+	    (setf old-p t))))
+      (return-from make-setf*-function-name (values writer old-p)))
+    (values (setf (get accessor-name 'setf-function-name)
+		  (intern (format nil "~A ~A:~A" 
+			    'setf*
+			    (package-name (symbol-package accessor-name))
+			    accessor-name)
+			  (find-package 'clim-utils)))
+	    nil)))
+
+(defun expand-defsetf-for-defmethod*
+       (accessor-name accessor-arg real-arglist setf-function-name)
+  `(#-Allegro lisp:define-setf-method
+    #+Allegro cltl1:define-setf-method
+     ,accessor-name (,accessor-arg)	;Only last one is real.
+     (flet ((make-temp (name) (gensymbol name 'temp)))
+       (let ((temps (list (make-temp ',accessor-arg)))
+	     (store-temps (mapcar #'make-temp ',(butlast real-arglist))))
+	 (values temps (list ,accessor-arg) store-temps
+		 `(funcall #',',setf-function-name ,@store-temps ,@temps)
+		 `(,',accessor-name ,@temps))))))
+
+;; For example, (DEFGENERIC* (SETF POSITION*) (X Y OBJECT))
+(defmacro defgeneric* (function-spec lambda-list &body options)
+  (assert (and (listp function-spec)
+	       (eql (first function-spec) 'setf)
+	       (null (cddr function-spec)))
+	  ()
+	  "Syntax error in ~S: This only works on ~S generic functions" 'defgeneric* 'setf)
+  (let* ((accessor-name (second function-spec))
+	 (accessor-arg (first (last lambda-list)))
+	 (setf-function-name (make-setf*-function-name accessor-name)))
+    `(define-group ,function-spec defgeneric*
+       (defgeneric ,function-spec ,lambda-list ,@options)
+       ,(expand-defsetf-for-defmethod* accessor-name accessor-arg
+				       lambda-list setf-function-name))))
+
+;; For example, (DEFMETHOD* (SETF POSITION*) (NX NY (OBJECT T)) ...)
+;; Then (SETF (POSITION* object) (VALUES nx ny))
+(defmacro defmethod* (name &body quals-lambda-list-and-body)
+  (declare (arglist name [qualifiers]* lambda-list &body body))
+  #+Genera (declare (zwei:indentation . zwei:indent-for-clos-defmethod))
+  (assert (and (listp name) (eql (first name) 'setf) (null (cddr name))) ()
+	  "Syntax error in ~S: This only works on ~S methods" 'defmethod* 'setf)
+  (let (qualifiers real-arglist body accessor-arg
+	(accessor-name (second name)))
+    (multiple-value-bind (setf-function-name old-p)
+	(make-setf*-function-name accessor-name)
+      (do ((qllab quals-lambda-list-and-body (cdr qllab)))
+	  ((not (symbolp (first qllab)))
+	   (setf qualifiers (nreverse qualifiers)
+		 real-arglist (first qllab)
+		 accessor-arg (let ((arg (first (last real-arglist))))
+				(if (listp arg) (first arg) arg))
+		 body (cdr qllab)))
+	(push (first qllab) qualifiers))
+      `(progn ,(unless old-p			;Don't write same SETF method again.
+		 (expand-defsetf-for-defmethod* accessor-name accessor-arg
+						real-arglist setf-function-name))
+	      (defmethod ,setf-function-name ,@qualifiers ,real-arglist ,@body)))))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: window-stream.lisp,v 1.6 91/03/26 12:49:08 cer Exp $
+;; $fiHeader: window-stream.lisp,v 1.3 92/01/31 14:59:02 cer Exp $
 
 (in-package :clim-internals)
 
@@ -12,6 +12,7 @@
      ((key-table :accessor console-key-table)
       (pointer-list :initform nil :accessor console-pointer-list)))
 
+#-Silica (progn
 ;;; Table to associate host windows with their CLIM window "owners".
 (defvar *host-window-to-clim-window-mapping* (make-hash-table))
 
@@ -26,6 +27,10 @@
 	    (error "Could not find CLIM window associated with ~S" host-window)
 	    nil)
 	clim-window)))
+)	;#-Silica
+
+#+Silica
+(define-stream-protocol-class window ())
 
 ;;; Anything to be gained by the CLX drawable/window distinction?
 (defclass window-stream
@@ -44,56 +49,21 @@
 	   output-recording-mixin
 	   #-Silica graphics-mixin
 	   input-protocol-mixin
-	   output-protocol-mixin)
+	   output-protocol-mixin
+	   #+Silica window)
      ())
+
+#-Silica	;no such slots in Silica
+(defmethod print-object ((window window-stream) stream)
+  (print-unreadable-object (window stream :type t :identity t)
+    (let ((left (safe-slot-value window 'left))
+	  (top (safe-slot-value window 'top))
+	  (right (safe-slot-value window 'right))
+	  (bottom (safe-slot-value window 'bottom)))
+      (format stream "/x ~D:~D y ~D:~D/" left right top bottom))))
 
 (defmethod window-stream-class-name ((window-stream window-stream))
   (class-name (class-of window-stream)))
-
-;;; --- maybe move this somewhere?
-#+Silica
-(defun erase-viewport (stream)
-  ;; Just repaint the viewport, which has been set up with a
-  ;; background color.
-  (let ((viewport (pane-viewport stream)))
-    ;; --- what if no viewport?  Just revert to draw-rectangle?  No,
-    ;; there has to be a viewport to insulate the ancestors from the
-    ;; size changes of the stream pane's output history.
-    (when viewport
-      (repaint-sheet viewport (sheet-region viewport)))))
-
-;;; Temporary replacement for "window-clear".
-#+Silica
-(defmethod window-clear ((stream window-stream))
-  (with-sheet-medium (medium stream)
-    (letf-globally (((medium-transformation medium) +identity-transformation+))
-      (clear-output-history stream)
-      (repaint-sheet stream +everywhere+)
-      (stream-set-cursor-position* stream 0 0)
-      ;; Flush the old mouse position relative to this window
-      ;; so that we don't get bogus highlighted presentations
-      ;; when menus first pop up.
-      (let ((pointer (stream-primary-pointer stream)))
-	(when pointer
-	  (setf (pointer-window pointer) nil)))
-      ;; doesn't really need to do force-output.
-      (force-output stream)
-      (values))))
-
-#+Silica
-(defmethod window-refresh :after ((stream window-stream))
-  (frame-replay *application-frame* stream)
-  (let ((text-record (stream-text-output-record stream)))
-    (when text-record (replay text-record stream))))
-
-#+Silica
-(defmethod window-erase-viewport ((stream window-stream))
-  (with-output-recording-options (stream :record nil)
-    (multiple-value-call
-	#'draw-rectangle*
-      stream
-      (bounding-rectangle* (pane-viewport-region stream))
-      :ink +background-ink+)))
 
 #+Silica
 (defmethod window-modifier-state ((window window-stream))
@@ -169,12 +139,13 @@
 	  "The implementation type supplied, ~S, is not one of~{ ~S~}"
 	  port-type *port-types*)
   (let ((port-type (second (assoc port-type *port-types*))))
-    (let ((port (apply #'silica:find-port :port-type port-type creation-args)))
-      (values (silica:find-graft :port port :origin :nw) port))))
+    (let ((port (apply #'find-port :port-type port-type creation-args)))
+      (values (find-graft :port port :origin :nw) port))))
 
 #+Silica
 (defun open-window-stream (&rest args &key parent left top right bottom width height
 			   &allow-other-keys)
+  (declare (dynamic-extent args))
   ;; --- incorporate size-hacking stuff from old definition below
   (assert (not (null parent)) (parent)
 	  "You must supply the ~S option to ~S" ':parent 'open-window-stream)
@@ -189,35 +160,32 @@
   (make-instance 'window-stream :parent parent :min-x left :min-y top :max-x right :max-y bottom))
 
 
+#-Silica (progn
+
 ;;; For hooking up with host window decorations.
-#-Silica
 (defmethod window-set-viewport-position* :after ((window window-stream) new-x new-y)
   (declare (ignore new-x new-y))
   (redisplay-decorations window))
 
-#-Silica
 (defmethod bounding-rectangle-set-edges :after ((window window-stream) left top right bottom)
   (declare (ignore left top right bottom))
   (redisplay-decorations window))
 
-#-Silica
 (defmethod bounding-rectangle-set-position* :after ((window window-stream) left top)
   (declare (ignore left top))
   (redisplay-decorations window))
 
-#-Silica
 (defmethod bounding-rectangle-set-size :after ((window window-stream) width height)
   (declare (ignore width height))
   (redisplay-decorations window))
 
-#-Silica
 (defmethod window-clear :after ((window window-stream))
   (redisplay-decorations window))
 
-#-Silica
 (defmethod window-refresh :after ((window window-stream))
   (redisplay-decorations window))
 
-#-Silica
 (defmethod redisplay-decorations ((window window-stream))
   )
+
+)	;#-Silica

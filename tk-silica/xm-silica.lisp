@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-silica.lisp,v 1.7 92/02/08 14:51:41 cer Exp Locker: cer $
+;; $fiHeader: xm-silica.lisp,v 1.8 92/02/14 18:57:43 cer Exp $
 
 (in-package :xm-silica)
 
@@ -34,21 +34,19 @@
     :entry-point "_XmProcessTraversal")
 
 (defmethod port-note-cursor-change ((port motif-port)
-				    cursor
-				    stream
-				    type
-				    old
-				    new)
+				    cursor stream type old new)
   (declare (ignore old type cursor))
   (call-next-method)
   (when new
     (xmprocesstraversal (tk::object-handle (sheet-mirror stream)) 0)
     #+ignore
-    (xtsetkeyboardfocus #+ignroe(tk::object-handle (sheet-mirror (sheet-top-level-mirror stream)))
+    (xtsetkeyboardfocus #+ignore
+			(tk::object-handle (sheet-mirror (sheet-top-level-mirror stream)))
 			(tk::object-handle (sheet-mirror stream))
 			(tk::object-handle (sheet-mirror stream))))
-  (setf (silica::port-keyboard-focus port) 
-    (and new stream)))
+  ;;--- Where should this be, really?
+  (setf (port-keyboard-input-focus port) 
+	(and new stream)))
 
 (defmethod change-widget-geometry ((parent tk::xm-drawing-area) child
 				   &rest args
@@ -77,26 +75,24 @@
 about their children"))
 
 
-(defmethod silica::update-mirror-transformation-1 ((port port) sheet 
-						   (parent
-						    motif-geometry-manager))
+(defmethod update-mirror-transformation-1 ((port port) sheet 
+					   (parent motif-geometry-manager))
   nil)
 
-(defmethod silica::update-mirror-region-1 ((port port) sheet 
-						   (parent
-						    motif-geometry-manager))
+(defmethod update-mirror-region-1 ((port port) sheet 
+				   (parent motif-geometry-manager))
   nil)
 	    
 
-(defmethod silica::update-mirror-transformation-1 :after  ((port port)
-							   (sheet motif-geometry-manager)
-							   (parent t))
+(defmethod update-mirror-transformation-1 :after ((port port)
+						  (sheet motif-geometry-manager)
+						  (parent t))
   (update-geo-manager-sheet-children sheet))
 
 
-(defmethod silica::update-mirror-region-1 :after  ((port port)
-						   (sheet motif-geometry-manager)
-						   (parent t))
+(defmethod update-mirror-region-1 :after ((port port)
+					  (sheet motif-geometry-manager)
+					  (parent t))
   (update-geo-manager-sheet-children sheet))
 
 (defmethod update-geo-manager-sheet-children (geo-manager)

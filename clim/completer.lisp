@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: completer.lisp,v 1.4 91/03/26 12:47:47 cer Exp $
+;; $fiHeader: completer.lisp,v 1.2 92/01/31 14:57:44 cer Exp $
 
 (in-package :clim-internals)
 
@@ -29,7 +29,7 @@
   (declare (dynamic-extent function))
   (declare (values answer-object success string))
   (with-temporary-string (stuff-so-far :length 100 :adjustable t)
-   (with-blip-gestures (partial-completers)
+   (with-delimiter-gestures (partial-completers)
     (with-activation-gestures (*magic-completion-gestures*)
      (flet ((completion-help (stream action string-so-far)
 	      (declare (ignore string-so-far))
@@ -74,7 +74,7 @@
 			  (setq completion-mode ':complete-limited
 				unread t extend t return 'if-completed))
 			 ;; What about "overloaded" partial completers??
-			 ((blip-gesture-p ch)
+			 ((delimiter-gesture-p ch)
 			  (setq completion-mode (if allow-any-input nil ':complete)
 				unread t extend t return t))
 			 ((activation-gesture-p ch)
@@ -288,8 +288,8 @@
 			    (string-equal string completion))
 		   (return-from complete-from-possibilities
 		     (values completion t object 1)))
-		 (multiple-value-setq (best-completion best-length best-object
-				       nmatches possibilities)
+		 (multiple-value-setq
+		     (best-completion best-length best-object nmatches possibilities)
 		   (chunkwise-complete-string string completion object action delimiters
 					      best-completion best-length best-object
 					      nmatches possibilities))))))
@@ -324,7 +324,8 @@
 			  (string-equal string completion))
 		 (return-from complete-from-generator
 		   (values completion t object 1)))
-	       (multiple-value-setq (best-completion best-length best-object nmatches possibilities)
+	       (multiple-value-setq
+		   (best-completion best-length best-object nmatches possibilities)
 		 (chunkwise-complete-string string completion object action delimiters
 					    best-completion best-length best-object
 					    nmatches possibilities)))))

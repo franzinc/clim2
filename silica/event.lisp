@@ -1,4 +1,5 @@
-;; -*- mode: common-lisp; package: silica -*-
+;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
+
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
@@ -18,51 +19,44 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: event.cl,v 1.3 92/01/06 20:43:53 cer Exp $
+;; $fiHeader: event.lisp,v 1.4 92/01/31 14:55:37 cer Exp $
 
 (in-package :silica)
 
+
 ;;; Event stuff
 
-;;; How important are these actual values?
-
+;;--- How important are these actual values?
+;;--- Just flush them?
 (deftype button-name ()
-  ""
   '(member :left :middle :right))
 					; Button and Modifier State Masks
 (deftype shift-keysym ()
-  ""
   '(member :left-shift :right-shift))
 
 (deftype control-keysym ()
-  ""
   '(member :left-control :right-control))
 
 (deftype meta-keysym ()
-  ""
   '(member :left-meta :right-meta))
 
 (deftype super-keysym ()
-  ""
   '(member :left-super :right-super))
 
 (deftype hyper-keysym ()
-  ""
   '(member :left-hyper :right-hyper))
 
 (deftype lock-keysym ()
-  ""
   '(member :caps-lock :shift-lock :mode-lock))
 
 
 (deftype modifier-keysym ()
-  ""
   '(or shift-keysym control-keysym meta-keysym super-keysym
     hyper-keysym lock-keysym))
 
 (defun-inline state->shift-mask (state)
   ;; Get just the shift-mask part of state
-	      (logand state #xFF))
+  (logand state #xFF))
 
 (defconstant +pointer-left-button+   (ash 1 8))
 (defconstant +pointer-middle-button+ (ash 1 9))
@@ -81,7 +75,7 @@
 	   (,m ,modifier-state))
        (declare (ignore-if-unused ,b ,m))
        ,(compile-kbms-clauses
-	 b m `(and ,@clauses)))))
+	  b m `(and ,@clauses)))))
 
 (defun compile-kbms-clauses (button modifier clause)
   (if (atomp clause)
@@ -94,29 +88,27 @@
 	(:meta `(logtest ,modifier +meta-key+))
 	(:super `(logtest ,modifier +super-key+))
 	(:hyper `(logtest ,modifier +hyper-key+)))
-    (ecase (car clause)
-      (and `(and ,@(mapcar #'(lambda (c)
+      (ecase (car clause)
+	(and `(and ,@(mapcar #'(lambda (c)
+				 (compile-kbms-clauses button modifier c))
+			     (cdr clause))))
+	(or `(or ,@(mapcar #'(lambda (c)
 			       (compile-kbms-clauses button modifier c))
 			   (cdr clause))))
-      (or `(or ,@(mapcar #'(lambda (c)
-			     (compile-kbms-clauses button modifier c))
-			 (cdr clause))))
-      (not `(not ,(compile-kbms-clauses button modifier (second clause)))))))
+	(not `(not ,(compile-kbms-clauses button modifier (second clause)))))))
 
 
 (defun parse-gesture-spec (gesture-spec)
   (if (or (atom gesture-spec) 
 	  (and (cdr gesture-spec)
 	       (atom (cdr gesture-spec))))
-      
       gesture-spec
       (let ((button (find-if-not #'shift-code gesture-spec)))
 	(unless button
 	  (cerror "Assume :LEFT and go on."
 		  "Gesture spec missing a keysym: ~S" gesture-spec)
 	  (setq button ':left))
-	(cons button (apply #'make-shift-mask (delete button
-						      gesture-spec))))))
+	(cons button (apply #'make-shift-mask (delete button gesture-spec))))))
 
 (defvar symbolic->mask `(:left    ,+pointer-left-button+
 			 :right   ,+pointer-right-button+
@@ -150,29 +142,22 @@
 
 ;;; 
 
-(defgeneric process-next-event (port &key wait-function timeout)
-  )
+(defgeneric process-next-event (port &key wait-function timeout))
 
-(defgeneric port-keyboard-focus (port)
-  )
+(defgeneric distribute-event (port event))
+(defgeneric dispatch-event (client event))
+(defgeneric handle-event (client event))
 
-(defgeneric distribute-event (port event)
-  )
-
-(defgeneric dispatch-event (client event)
-  )
-
-(defgeneric handle-event (client event)
-  )
+(defgeneric port-keyboard-input-focus (port))
 
 (defmethod handle-event (client (event window-repaint-event))
   (handle-repaint client nil 
 		  (window-event-region event)))
 
 (defclass sheet-with-event-queue ()
-	  ((event-queue :initform nil
-			:initarg :event-queue
-			:accessor sheet-event-queue)))
+    ((event-queue :initform nil
+		  :initarg :event-queue
+		  :accessor sheet-event-queue)))
 
 (defmethod note-sheet-grafted :after ((sheet sheet-with-event-queue))
   (unless (sheet-event-queue sheet)
@@ -186,60 +171,57 @@
 
 (defgeneric queue-event (client event)
   (:method ((sheet sheet-with-event-queue) event)
-	   (queue-put (sheet-event-queue sheet) event)))
+   (queue-put (sheet-event-queue sheet) event)))
 
 (defgeneric event-read (client)
   (:method ((sheet sheet-with-event-queue))
-	   (let ((queue (sheet-event-queue sheet)))
-	     (loop
-		 (mp::process-wait ""
-				   #'(lambda ()
-				    (not (queue-empty-p queue))))
-	      (let ((event (queue-get queue)))
-		(when event (return event)))))))
+   (let ((queue (sheet-event-queue sheet)))
+     (loop
+       (process-wait "Event" #'(lambda ()
+				 (not (queue-empty-p queue))))
+       (let ((event (queue-get queue)))
+	 (when event (return event)))))))
 
 
 (defgeneric event-read-no-hang (client)
   (:method ((sheet sheet-with-event-queue))
-	   (queue-get (sheet-event-queue sheet) nil)))
+   (queue-get (sheet-event-queue sheet) nil)))
 
 (defgeneric event-peek (client &optional event-type)
   (:method ((sheet sheet-with-event-queue) &optional event-type)
-	   (loop
-	    (let ((event (event-read sheet)))
-	      (when (or (null event-type)
-			(typep event event-type))
-		(event-unread sheet event)
-		(return-from event-peek event))))))
+   (loop
+     (let ((event (event-read sheet)))
+       (when (or (null event-type)
+		 (typep event event-type))
+	 (event-unread sheet event)
+	 (return-from event-peek event))))))
 
 ;; Is there a lock here?
 
 (defgeneric event-unread (sheet event)
   (:method ((sheet sheet-with-event-queue) event)
-	   (queue-unget (sheet-event-queue sheet) event)))
+   (queue-unget (sheet-event-queue sheet) event)))
 
 (defgeneric event-listen (client)
   (:method ((sheet sheet-with-event-queue))
-	   (not (queue-empty-p (sheet-event-queue sheet)))))
+   (not (queue-empty-p (sheet-event-queue sheet)))))
 
 
 
 ;; Standard 
 
-(defclass standard-sheet-input-mixin (sheet-with-event-queue)
-	  ())
+(defclass standard-sheet-input-mixin (sheet-with-event-queue) ())
 
 (defmethod dispatch-event ((sheet standard-sheet-input-mixin) event)
   (queue-event sheet event))
 
-(defmethod dispatch-event ((sheet standard-sheet-input-mixin) (event window-configuration-event))
+(defmethod dispatch-event ((sheet standard-sheet-input-mixin)
+			   (event window-configuration-event))
   (handle-event sheet event))
 
 ;;; Immediate
 
-(defclass immediate-sheet-input-mixin ()
-	  ()
-	  )
+(defclass immediate-sheet-input-mixin () ())
 
 (defmethod dispatch-event ((sheet immediate-sheet-input-mixin) event)
   (handle-event sheet event))
@@ -248,7 +230,7 @@
 ;; delegate
 
 (defclass delegate-sheet-input-mixin ()
-	  ((delegate :accessor delegate-sheet-delegate)))
+    ((delegate :accessor delegate-sheet-delegate)))
 
 (defmethod dispatch-event ((sheet delegate-sheet-input-mixin) event)
   (dispatch-event (delegate-sheet-delegate sheet) event))
@@ -260,28 +242,23 @@
 
 ;;; Repaint protocol
 
-(defgeneric dispatch-repaint (sheet repaint-region)
-  )
+(defgeneric dispatch-repaint (sheet region))
 
-(defgeneric queue-repaint (sheet repaint-region)
-  (:method (sheet repaint-region)
-	   (queue-event sheet repaint-region)))
+(defgeneric queue-repaint (sheet region)
+  (:method (sheet region)
+   (queue-event sheet region)))
 
-(defgeneric handle-repaint (sheet medium repaint-region)
-  (:method (sheet medium repaint-region)
-	   (with-sheet-medium-bound (sheet medium)
-				    (repaint-sheet sheet repaint-region))
-	   (when (typep sheet 'sheet-parent-mixin)
-	     (dolist (child (children-overlapping-region sheet repaint-region))
-	       (handle-repaint child
-			       medium
-			       (untransform-region
-				(sheet-transformation child)
-				repaint-region))))))
+(defgeneric handle-repaint (sheet medium region)
+  (:method (sheet medium region)
+   (with-sheet-medium-bound (sheet medium)
+     (repaint-sheet sheet region))
+   (when (typep sheet 'sheet-parent-mixin)
+     (dolist (child (children-overlapping-region sheet region))
+       (handle-repaint 
+	 child medium
+	 (untransform-region (sheet-transformation child) region))))))
 	     
-
-(defgeneric repaint-sheet (sheet repaint-region)
-  )
+(defgeneric repaint-sheet (sheet region))
 
 
 (defclass standard-repainting-medium () ())
@@ -340,92 +317,68 @@
 
 
 (defun generate-crossing-events (port sheet x y modifiers button)
-  
   (macrolet ((generate-enter-event (sheet)
-				   `(let ((sheet ,sheet))
-				      (dispatch-event
-				       sheet
-				       (make-instance 'pointer-enter-event
-						      :x x
-						      :y y
-						      :button button
-						      :sheet sheet
-						      :modifiers modifiers))))
+	       `(let ((sheet ,sheet))
+		  (dispatch-event
+		    sheet
+		    (make-instance 'pointer-enter-event
+				   :x x
+				   :y y
+				   :button button
+				   :sheet sheet
+				   :modifiers modifiers))))
 	     (generate-exit-event (sheet)
-				  `(let ((sheet ,sheet))
-				     (dispatch-event
-				      sheet
-				      (make-instance 'pointer-exit-event
-						     :x x
-						     :y y
-						     :button button
-						     :sheet sheet
-						     :modifiers modifiers)))))
-    
-	    (let ((v (port-trace-thing port)))
-	      
-	      ;; Pop up the stack of sheets
-
-	      
-	      (unless (zerop (fill-pointer v))
-		(let ((m (if (eq (aref v 0) sheet)
-			     (let ((new-x x)
-				   (new-y y))
-			       (dotimes (i (fill-pointer v) (fill-pointer v))
-				 (unless (zerop i)
-				   (multiple-value-setq
-				       (new-x new-y)
-				     (map-sheet-point*-to-child 
-					(aref v i)
-					new-x new-y)))
-				 (unless (region-contains-point*-p 
-					  (sheet-region (aref v i))
-					  new-x new-y)
-				   (return i))))
-			   0)))
-      
-
-		  (do ((i (1- (fill-pointer v)) (1- i)))
-		      ((< i m))
-		    (generate-exit-event (aref v i))
-		    (unless (zerop i)
-		      (generate-enter-event (aref v (1- i)))))
-      
-		  (setf (fill-pointer v) m)))
-
-	      ;; If its empty initialize it
-	      
-	      
-	      (when (region-contains-point*-p
-		     (sheet-region sheet)
-		     x y)
-		(when (zerop (fill-pointer v))
-		  (vector-push-extend sheet v)
-		  (generate-enter-event sheet))
-
-		;; Add children
-		
-		(let ((new-x x)
-		      (new-y y)
-		      (sheet (aref v (1- (fill-pointer v))))
-		      child)
-		  (loop
-		   (unless (typep sheet 'sheet-parent-mixin) (return nil))
-		   (setq child (child-containing-point* sheet new-x new-y))
-		   (unless child (return nil))
-		   (generate-exit-event sheet)
-		   (generate-enter-event child)
-		   (multiple-value-setq
-		       (new-x new-y)
-		       (map-sheet-point*-to-child
-			child
-			new-x new-y))
-		   (setq sheet child)
-		    (vector-push-extend child v)))))))
-	    
-	  
-	      
-	
+	       `(let ((sheet ,sheet))
+		  (dispatch-event
+		    sheet
+		    (make-instance 'pointer-exit-event
+				   :x x
+				   :y y
+				   :button button
+				   :sheet sheet
+				   :modifiers modifiers)))))
+    (let ((v (port-trace-thing port)))
+      ;; Pop up the stack of sheets
+      (unless (zerop (fill-pointer v))
+	(let ((m (if (eq (aref v 0) sheet)
+		     (let ((new-x x)
+			   (new-y y))
+		       (dotimes (i (fill-pointer v) (fill-pointer v))
+			 (unless (zerop i)
+			   (multiple-value-setq (new-x new-y)
+			     (map-sheet-point*-to-child 
+			       (aref v i) new-x new-y)))
+			 (unless (region-contains-point*-p 
+				   (sheet-region (aref v i)) new-x new-y)
+			   (return i))))
+		     0)))
+	  (do ((i (1- (fill-pointer v)) (1- i)))
+	      ((< i m))
+	    (generate-exit-event (aref v i))
+	    (unless (zerop i)
+	      (generate-enter-event (aref v (1- i)))))
+	  (setf (fill-pointer v) m)))
+      ;; If its empty initialize it
+      (when (region-contains-point*-p
+	      (sheet-region sheet) x y)
+	(when (zerop (fill-pointer v))
+	  (vector-push-extend sheet v)
+	  (generate-enter-event sheet))
+	;; Add children
+	(let ((new-x x)
+	      (new-y y)
+	      (sheet (aref v (1- (fill-pointer v))))
+	      child)
+	  (loop
+	    (unless (typep sheet 'sheet-parent-mixin) (return nil))
+	    (setq child (child-containing-point* sheet new-x new-y))
+	    (unless child (return nil))
+	    (generate-exit-event sheet)
+	    (generate-enter-event child)
+	    (multiple-value-setq (new-x new-y)
+	      (map-sheet-point*-to-child child new-x new-y))
+	    (setq sheet child)
+	    (vector-push-extend child v)))))))
       
       
 (warn "Checking for port")
@@ -438,57 +391,59 @@
 		 (and (not (zerop (fill-pointer v)))
 		      (aref v (1- (fill-pointer v)))))))
     (when (and sheet (sheet-port sheet))
-      (multiple-value-bind
-	  (tx ty)
+      (multiple-value-bind (tx ty)
 	  (untransform-point*
-	   (sheet-device-transformation sheet)
-	   x y)
+	    (sheet-device-transformation sheet) x y)
 	(dispatch-event
-	 sheet
-	 (make-instance event-type
-			:sheet sheet
-			:native-x x
-			:native-y y
-			:x tx
-			:y ty
-			:modifiers modifiers
-			:button button))))))
+	  sheet
+	  (make-instance event-type
+			 :sheet sheet
+			 :native-x x
+			 :native-y y
+			 :x tx
+			 :y ty
+			 :modifiers modifiers
+			 :button button))))))
 
 (defmethod distribute-event (port event)
   (distribute-event-1 port event))
 
 (defgeneric distribute-event-1 (port event)
   (:method (port event)
-	   (dispatch-event (event-sheet event) event))
+   (dispatch-event (event-sheet event) event))
   (:method (port (event keyboard-event))
-	   (let ((focus (or (port-keyboard-focus port)
-			    (event-sheet event))))
-	     (dispatch-event focus event)))
+   (let ((focus (or (port-keyboard-input-focus port)
+		    (event-sheet event))))
+     (dispatch-event focus event)))
   (:method (port (event window-event))
-	   (dispatch-event 
-	    (window-event-mirrored-sheet event)
-	    event))
+   (dispatch-event 
+     (window-event-mirrored-sheet event)
+     event))
   (:method (port (event pointer-event))
-	   (distribute-pointer-event
-	    port
-	    (event-sheet event)
-	    (typecase event
-		      ((or pointer-exit-event pointer-enter-event)
-		       'pointer-motion-event)
-		      (t (type-of event)))
-	    (pointer-event-native-x event)
-	    (pointer-event-native-y event)
-	    (event-modifier-state event)
-	    (pointer-event-button event))))
+   (distribute-pointer-event
+     port
+     (event-sheet event)
+     (typecase event
+       ((or pointer-exit-event pointer-enter-event)
+	'pointer-motion-event)
+       (t (type-of event)))
+     (pointer-event-native-x event)
+     (pointer-event-native-y event)
+     (event-modifier-state event)
+     (pointer-event-button event))))
 	    
 ;;; Local event processing
 
 (defun process-event-locally (sheet event)
+  (declare (ignore sheet))
   (handle-event (event-sheet event) event))
 
 (defun local-event-loop (sheet)
   (loop (process-event-locally sheet (event-read sheet))))
 
-(defun port-event-wait (port waiter &key (wait-reason "CLIM Input") timeout)
+(defun port-event-wait (port waiter 
+			&key (wait-reason #+Genera si:*whostate-awaiting-user-input*
+					  #-Genera "CLIM Input")
+			     timeout)
   (process-wait-with-timeout wait-reason timeout waiter) 
   (values))

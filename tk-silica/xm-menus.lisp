@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-menus.lisp,v 1.2 92/01/31 15:07:32 cer Exp Locker: cer $
+;; $fiHeader: xm-menus.lisp,v 1.3 92/02/05 21:45:28 cer Exp $
 
 
 (in-package :xm-silica)
@@ -111,10 +111,11 @@
       (multiple-value-bind
 	  (width height)
 	  (bounding-rectangle-size rec)
-	(clim-internals::with-output-to-pixmap-stream (s associated-window :width width :height height)
-	  (multiple-value-call #'draw-rectangle* s 0 0 (bounding-rectangle-size s) :ink +background-ink+)
+	(with-output-to-pixmap (s associated-window :width width :height height)
+	  (multiple-value-call #'draw-rectangle* 
+	    s 0 0 (bounding-rectangle-size s) :ink +background-ink+)
 	  (replay-output-record 
-	   rec s +everywhere+
-	   (- (bounding-rectangle-min-x rec))
-	   (- (bounding-rectangle-min-y rec))))))))
+	    rec s +everywhere+
+	    (- (bounding-rectangle-min-x rec))
+	    (- (bounding-rectangle-min-y rec))))))))
   

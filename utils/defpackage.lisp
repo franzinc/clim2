@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: (CLIM-LISP :USE LISP :COLON-MODE :EXTERNAL); Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: defpackage.lisp,v 1.7 91/04/09 14:40:17 cer Exp $
+;; $fiHeader: defpackage.lisp,v 1.2 92/01/31 14:52:29 cer Exp $
 
 "Copyright (c) 1989, 1990, 1991 by International Lisp Associates.  All Rights Reserved."
 
@@ -8,7 +8,7 @@
 
 #-Allegro
 (eval-when (compile load eval)
-  (unless (find-package "CLIM-LISP")
+  (unless (find-package :clim-lisp)
     (make-package "CLIM-LISP" :use '("COMMON-LISP"))))
 
 (in-package :clim-lisp)
@@ -85,7 +85,8 @@
 		   `(export-1 ',option-arg ,package-var)
 		   #+ignore
 		   `(progn ,@(mapcar #'(lambda (x)
-					 `(export (list (intern ',x ,package-var)) ,package-var))
+					 `(export (list (intern ',x ,package-var))
+						  ,package-var))
 				     (stringify option-arg)))))
 
 	   ,package-var)))))
@@ -116,7 +117,7 @@
 (defun perform-package-operation (operation symbol-names from-package into-package)
   (flet ((intern-symbol (name)
 	   (if from-package
-	       (intern (string name) from-package)
+	       (intern (symbol-name name) from-package)
 	       (string name))))
     (setf symbol-names
 	    (if (listp symbol-names)

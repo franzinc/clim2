@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: autoconstructor.lisp,v 1.4 91/03/26 12:03:04 cer Exp $
+;; $fiHeader: autoconstructor.lisp,v 1.2 92/01/31 14:52:23 cer Exp $
 
 ;;;
 ;;; Copyright (c) 1990 by Xerox Corporation.  All rights reserved.

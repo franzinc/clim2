@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: basic-translators.lisp,v 1.4 91/03/26 12:47:05 cer Exp $
+;; $fiHeader: basic-translators.lisp,v 1.2 92/01/31 14:57:34 cer Exp $
 
 (in-package :clim-internals)
 
@@ -29,18 +29,18 @@
     (with-presentation-type-decoded (context-name context-parameters) context-type
       (if (eq type-name 'blank-area)
 	  (eq context-name 'blank-area)
-	;; Let MENU-ITEM-IDENTITY (defined later) take care of pure menu items
+	;; Let MENU-ITEM-IDENTITY take care of pure menu items
 	(unless (and (eq type-name 'menu-item)
 		     (eq context-name 'menu-item))
 	  ;; Either the types definitely match, or the types nominally match
 	  ;; and the object must be validated.
 	  (or (presentation-subtypep type context-type)
 	      (and (not (null context-parameters))
-		   ;; Can't blithely call PRESENTATION-SUBTYPEP on the type name
-		   ;; when that type requires parameters
-		   (not (member type-name *presentation-type-parameters-are-types*))
-		   (or (presentation-subtypep type-name context-name)
-		       (presentation-typep object context-type)))))))))
+		   (or (presentation-typep object context-type)
+		       ;; Can't blithely call PRESENTATION-SUBTYPEP on the type name
+		       ;; when that type requires parameters
+		       (and (not (member type-name *presentation-type-parameters-are-types*))
+			    (presentation-subtypep type-name context-name))))))))))
 
 ;; Only the PRESENTATION-MENU translator lives in this
 (make-command-table 'presentation-menu-command-table :inherit-from nil)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics-generics.lisp,v 1.4 91/03/26 12:48:01 cer Exp $
+;; $fiHeader: graphics-generics.lisp,v 1.1 92/01/31 14:27:54 cer Exp $
 
 (in-package :clim-internals)
 
@@ -353,7 +353,7 @@
     (with-transformed-arguments
       (draw-string-internal stream 0 0
 			    string x y start end align-x align-y
-			    (stream-merged-text-style stream)
+			    (medium-merged-text-style stream)
 			    (medium-ink stream))))
 
 (define-graphics-operation draw-character (character x y
@@ -365,7 +365,7 @@
     (with-transformed-arguments
       (draw-character-internal stream 0 0
 			       character x y align-x align-y
-			       (stream-merged-text-style stream)
+			       (medium-merged-text-style stream)
 			       (medium-ink stream))))
 
 (defun draw-text (stream text point &rest args)

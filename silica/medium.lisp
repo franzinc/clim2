@@ -1,26 +1,11 @@
-;; -*- mode: common-lisp; package: silica -*-
-;; 
-;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
-;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
-;;
-;; The software, data and information contained herein are proprietary
-;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
-;; given in confidence by Franz, Inc. pursuant to a written license
-;; agreement, and may be stored and used only in accordance with the terms
-;; of such license.
-;;
-;; Restricted Rights Legend
-;; ------------------------
-;; Use, duplication, and disclosure of the software, data and information
-;; contained herein by any agency, department or entity of the U.S.
-;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
-;;
-;; $fiHeader: medium.cl,v 1.4 92/01/06 20:43:54 cer Exp $
+;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
+
+;; $fiHeader: medium.lisp,v 1.5 92/01/31 14:55:44 cer Exp $
 
 (in-package :silica)
+
+"Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved.
+ Portions copyright (c) 1991, 1992 Franz, Inc.  All rights reserved."
 
 (defmethod engraft-medium (medium port sheet)
   (declare (ignore sheet port))
@@ -30,39 +15,31 @@
   (declare (ignore sheet port))
   nil)
 
-
-
-(defun with-sheet-medium-1 (sheet continuation)
+(defun invoke-with-sheet-medium (sheet continuation)
   (if (sheet-medium sheet)
       (funcall continuation (sheet-medium sheet))
-    (with-temporary-medium 
-     (medium sheet)
-     (with-sheet-medium-bound (sheet medium)
-			      (funcall continuation medium)))))
+      (with-temporary-medium (medium sheet)
+	(with-sheet-medium-bound (sheet medium)
+	  (funcall continuation medium)))))
 
-(defun with-sheet-medium-bound-1 (sheet medium continuation)
+(defun invoke-with-sheet-medium-bound (sheet medium continuation)
   (cond ((sheet-medium sheet)
 	 (funcall continuation))
 	(medium
 	 (letf-globally (((sheet-medium sheet) medium))
-			(engraft-medium medium (sheet-port sheet) sheet)
-			(funcall continuation)))
+	   (engraft-medium medium (sheet-port sheet) sheet)
+	   (funcall continuation)))
 	(t
-	 (with-sheet-medium-1
-	  sheet
-	  #'(lambda (medium) 
-	      (declare (ignore medium))
-	      (funcall continuation))))))
+	 (invoke-with-sheet-medium
+	   sheet #'(lambda (medium) 
+		     (declare (ignore medium))
+		     (funcall continuation))))))
 
-
-(defgeneric make-medium (port sheet)
-  ;; make the right kind of medium for a sheet
-  (:method (port sheet)
-	   (make-instance 'medium
-			  :port port
-			  :sheet sheet)))
+(defgeneric make-medium (port sheet))
 			  
 
+;;; Line styles
+
 (define-protocol-class line-style ())
 
 (defclass standard-line-style (line-style)
@@ -123,7 +100,6 @@
   #+Genera (declare lt:(side-effects simple reducible))
   (make-line-style-1 unit thickness dashes joint-shape cap-shape))
 
-
 (defvar +highlighting-line-style+ (make-line-style :thickness 1))
 
 (defmethod make-load-form ((line-style standard-line-style))
@@ -135,13 +111,16 @@
 		      ,@(unless (eq dashes nil) `(:dashes ,dashes)))))
 
 
-(defmethod invoke-with-drawing-options ((sheet sheet) function &rest options)
+(defmethod invoke-with-drawing-options ((sheet sheet) continuation
+					&rest options
+					&key ink &allow-other-keys)
   (declare (dynamic-extent options))
   (with-sheet-medium (medium sheet)
-    (apply #'invoke-with-drawing-options medium function options)))
+    (apply #'invoke-with-drawing-options medium continuation options)))
 
 ;; NOTE: if you change the keyword arguments accepted by this method, you
 ;; also have to change the list of keywords in *ALL-DRAWING-OPTIONS*
+;;--- CLIM 1.0 had some stuff that frobbed the clipping region.  Was it right?
 (defmethod invoke-with-drawing-options
 	   ((medium medium) continuation
 	    &key ink clipping-region transformation
@@ -153,12 +132,6 @@
 	       (medium-transformation transformation)
 	       (transformed-clipping-region region)
 	       (medium-line-style line-style)) medium
-    ;; Close the current output record if the drawing ink is changing
-    #-Silica 
-    ;;--- Uh-oh, we need to close the stream's text output record, but
-    ;;--- at this point we have only a medium.  Add a sheet trampoline.
-    (unless (eq medium-ink ink)
-      (stream-close-text-output-record medium))
     (let* ((saved-ink medium-ink)
 	   (saved-transformation medium-transformation)
 	   (saved-clipping-region transformed-clipping-region)
@@ -205,6 +178,7 @@
 	(setf medium-transformation saved-transformation)
 	(setf medium-ink saved-ink)))))
 
+
 (defmethod allocate-medium (port sheet)
   (or (pop (port-media-cache port))
       (make-medium port sheet)))
@@ -223,16 +197,15 @@
    (background :accessor medium-background)
    (ink :accessor medium-ink)
 
+   (line-style :accessor medium-line-style)
+   (clipping-region :accessor medium-clipping-region)
+   (transformation :accessor medium-transformation)
+   (+y-upward-p :initform nil :accessor medium-+y-upward-p)
+
    (medium-text-style :accessor medium-text-style)
    (default-text-style :accessor medium-default-text-style)
    (merged-text-style-valid :accessor medium-merged-text-style-valid)
-   (merged-text-style :accessor medium-merged-text-style)
-   
-   (line-size :accessor line-size)
-   (line-style :accessor medium-line-style)
-   (clipping-region :accessor medium-clipping-region)
-   (+y-upward-p :initform nil :accessor medium-+y-upward-p)
-   (transformation :accessor medium-transformation)))
+   (merged-text-style :accessor medium-merged-text-style)))
 
 
 (defmethod (setf medium-default-text-style) :before (new (stream medium))
@@ -288,6 +261,7 @@
   (declare (ignore style))
   (funcall continuation original-stream))
 
+;;--- This surely doesn't belong here... 
 (generate-trampolines medium-protocol medium standard-sheet-output-mixin
 		      `(sheet-medium ,standard-sheet-output-mixin))
 

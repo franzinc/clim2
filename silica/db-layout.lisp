@@ -1,4 +1,5 @@
-;;; -*- Mode: Lisp; Package: silica; Base: 10.; Syntax: Common-Lisp -*-
+;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
+
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
@@ -21,26 +22,23 @@
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
 ;;;
-;; $fiHeader: db-layout.lisp,v 1.6 92/01/31 14:55:32 cer Exp Locker: cer $
-
+;; $fiHeader: db-layout.lisp,v 1.7 92/02/05 21:45:12 cer Exp $
 
 (in-package :silica)
+
 
 ;;;
 ;;; Layout Protocol
 ;;;
 
 (defgeneric compose-space (pane &key width height)
-  (:documentation
-    "<Pane> should calculate how much space it wants."))
+  (:documentation "<Pane> should calculate how much space it wants."))
 
 (defgeneric allocate-space (pane width height)
-  (:documentation
-    "<Pane> should allocate given space amongst itself and children"))
+  (:documentation "<Pane> should allocate given space amongst itself and children"))
 
 (defgeneric note-space-requirement-changed (composite child)
-  (:documentation
-    "Tells the composite that the child's shape has changed"))
+  (:documentation "Tells the composite that the child's shape has changed"))
 
 ;;;
 ;;; Default Methods for Layout Protocol
@@ -69,10 +67,7 @@
 ;;; Layout Mixin
 ;;;
 
-(defclass layout-mixin ()
-    ())
-
-
+(defclass layout-mixin () ())
 
 (defmethod change-space-requirement ((pane layout-mixin) &key &allow-other-keys)
   nil)
@@ -80,11 +75,17 @@
 (defmethod change-space-requirement :after
 	   ((pane layout-mixin) &key resize-frame &allow-other-keys)
   (if resize-frame
-      (relayout-frame (pane-frame pane))
-    (note-space-requirement-changed (sheet-parent pane) pane)))
+      (layout-frame (pane-frame pane))
+      (note-space-requirement-changed (sheet-parent pane) pane)))
 
 (defmethod note-space-requirement-changed (parent child)
   nil)
+
+(defmethod note-sheet-region-changed :after ((pane layout-mixin) &key port)
+  (declare (ignore port))
+  (multiple-value-bind (width height) (bounding-rectangle-size pane)
+    (allocate-space pane width height)))
+
 
 #||
 
@@ -125,13 +126,13 @@
 			  :height (funcall fn (space-requirement-height sr1)
 					      (space-requirement-height sr2))
 			  :max-width (funcall fn (space-requirement-max-width sr1)
-					         (space-requirement-max-width sr2))
+						 (space-requirement-max-width sr2))
 			  :min-width (funcall fn (space-requirement-min-width sr1)
-					         (space-requirement-min-width sr2))
+						 (space-requirement-min-width sr2))
 			  :max-height (funcall fn (space-requirement-max-height sr1)
-					          (space-requirement-max-height sr2))
+						  (space-requirement-max-height sr2))
 			  :min-height (funcall fn (space-requirement-min-height sr1)
-					          (space-requirement-min-height sr2))))
+						  (space-requirement-min-height sr2))))
 
 (defun space-requirement+ (sr1 sr2)
   (space-requirement-combine #'+ sr1 sr2))
@@ -157,47 +158,41 @@
 ;;; 
 
 (defclass space-requirement-mixin (layout-mixin)
-	  ((initial-space-requirement :reader pane-initial-space-requirement)
-	   (space-requirement :reader pane-space-requirement)))
+    ((initial-space-requirement :reader pane-initial-space-requirement)
+     (space-requirement :reader pane-space-requirement)))
 
-(defmethod initialize-instance :after 
-	   ((pane space-requirement-mixin) 
-	    &rest args
-	    &key  
-	    width max-width min-width
-	    height max-height min-height)
+(defmethod initialize-instance :after ((pane space-requirement-mixin) 
+				       &rest args
+				       &key width max-width min-width
+					    height max-height min-height)
+  (declare (dynamic-extent args))
   (declare (ignore width min-width max-width
 		   height min-height max-height))
-  (multiple-value-bind
-      (width min-width max-width
-       height min-height max-height)
-      (apply #'default-space-requirements 
-	     pane 
-	     :allow-other-keys t
-	     args)
+  (multiple-value-bind (width min-width max-width
+			height min-height max-height)
+      (apply #'default-space-requirements pane :allow-other-keys t args)
     (setf (slot-value pane 'space-requirement)
-      (make-space-requirement :width width 
-			      :height height 
-			      :max-width max-width 
-			      :min-width min-width 
-			      :max-height max-height
-			      :min-height min-height)
-      (slot-value pane 'initial-space-requirement)
-      (make-space-requirement :width width 
-			      :height height 
-			      :max-width max-width 
-			      :min-width min-width 
-			      :max-height max-height
-			      :min-height min-height))))
+	  (make-space-requirement :width width 
+				  :height height 
+				  :max-width max-width 
+				  :min-width min-width 
+				  :max-height max-height
+				  :min-height min-height)
+	  (slot-value pane 'initial-space-requirement)
+	  (make-space-requirement :width width 
+				  :height height 
+				  :max-width max-width 
+				  :min-width min-width 
+				  :max-height max-height
+				  :min-height min-height))))
 
 (defmethod default-space-requirements ((pane space-requirement-mixin) 
-				       &key 
-				       (width 0)
-				       (min-width width)
-				       (max-width width)
-				       (height 0)
-				       (min-height height)
-				       (max-height height))
+				       &key (width 0)
+					    (min-width width)
+					    (max-width width)
+					    (height 0)
+					    (min-height height)
+					    (max-height height))
   (values width
 	  min-width
 	  max-width
@@ -222,7 +217,7 @@
 ;;;
 
 (defclass basic-client-space-requirement-mixin (layout-mixin)
-	  ((client-space-requirement :initform nil))
+    ((client-space-requirement :initform nil))
   (:documentation "User can specify a value for the client-space-requirement
 slot that defaults to NIL"))
 
@@ -233,30 +228,27 @@ slot that defaults to NIL"))
   (with-slots (client-space-requirement) pane
     (apply #'%set-space-requirement client-space-requirement keys)))
 
-(defmethod initialize-instance :after 
-	   ((pane basic-client-space-requirement-mixin) 
-	    &rest args
-	    &key width max-width min-width height max-height min-height)
+(defmethod initialize-instance :after ((pane basic-client-space-requirement-mixin) 
+				       &rest args
+				       &key width max-width min-width 
+					    height max-height min-height)
+  (declare (dynamic-extent args))
   (when (or width max-width min-width height max-height min-height)
-    (multiple-value-bind
-	(width min-width max-width
-	 height min-height max-height)
-	(apply #'default-space-requirements 
-	       pane 
-	       :allow-other-keys t
-	       args)
+    (multiple-value-bind (width min-width max-width
+			  height min-height max-height)
+	(apply #'default-space-requirements pane :allow-other-keys t args)
       (setf (slot-value pane 'client-space-requirement)
-	(make-space-requirement :width width :height height 
-				:max-width max-width
-				:min-width min-width
-				:max-height max-height
-				:min-height min-height)))))
+	    (make-space-requirement :width width :height height 
+				    :max-width max-width
+				    :min-width min-width
+				    :max-height max-height
+				    :min-height min-height)))))
 
 ;;;;
 
 (defclass client-space-requirement-mixin (basic-client-space-requirement-mixin)
-	  ()
-    (:documentation "If the user specifies some space requirements then
+    ()
+  (:documentation "If the user specifies some space requirements then
 use it otherwise use other value"))
 
 (defmethod compose-space :around ((pane client-space-requirement-mixin) &key width height)
@@ -288,7 +280,7 @@ use it otherwise use other value"))
 ;    ((max-width :initform nil :initarg :max-width)
 ;     (max-height :initform nil :initarg :max-height)))
 ;
-;(defmethod compose-space :around ((pane client-stretchability))
+;(defmethod compose-space :around ((pane client-stretchability) &key width height)
 ;  (with-slots (max-width max-height) pane
 ;    (let ((value (call-next-method)))
 ;      (when max-width (setf (space-requirement-max-width value) max-width))
@@ -300,12 +292,12 @@ use it otherwise use other value"))
 ;;;
 
 (defclass client-overridability (layout-mixin)
-	  ((width :initform nil :initarg :width)
-	   (height :initform nil :initarg :height)
-	   (max-width :initform nil :initarg :max-width)
-	   (max-height :initform nil :initarg :max-height)
-	   (min-width :initform nil :initarg :min-width)
-	   (min-height :initform nil :initarg :min-height))
+    ((width :initform nil :initarg :width)
+     (height :initform nil :initarg :height)
+     (max-width :initform nil :initarg :max-width)
+     (max-height :initform nil :initarg :max-height)
+     (min-width :initform nil :initarg :min-width)
+     (min-height :initform nil :initarg :min-height))
   (:documentation "Client can specify values that override those
 provided elsewhere"))
 
@@ -332,7 +324,7 @@ provided elsewhere"))
 ;				space-requirement-cache-mixin)
 ;    ((space-demand-p :initform t :initarg :space-demand-p)))
 ;  
-;(defmethod compose-space ((pane client-demandability))
+;(defmethod compose-space ((pane client-demandability) &key width height)
 ;  (with-slots (client-space-requirement space-demand-p) pane
 ;    (if space-demand-p 
 ;	(or client-space-requirement (compose-space (sheet-child pane)))
@@ -369,15 +361,16 @@ provided elsewhere"))
   (with-slots (space-requirement) pane
     (setf space-requirement nil)))
 
-(defmethod note-space-requirement-changed :before (composite (pane space-requirement-cache-mixin))
+(defmethod note-space-requirement-changed :before
+	   (composite (pane space-requirement-cache-mixin))
   (declare (ignore composite))
   (clear-space-requirement-cache pane))
 
 (defun clear-space-requirement-caches-in-tree (sheet)
   (clim-internals::map-over-sheets
-   #'(lambda (sheet) 
-       (clear-space-requirement-cache sheet))
-   sheet))
+    #'(lambda (sheet) 
+	(clear-space-requirement-cache sheet))
+    sheet))
 
 (defun clear-space-requirement-caching-in-ancestors (menu)
   (do ((parent (sheet-parent menu) (sheet-parent parent)))
@@ -416,7 +409,7 @@ provided elsewhere"))
 ;	(untransform-dimensions (sheet-transformation child) width height)
 ;      (resize-sheet* child width height))))
 ;  
-;(defmethod compose-space ((pane simple-transforming-wrapping-space-mixin))
+;(defmethod compose-space ((pane simple-transforming-wrapping-space-mixin) &key width height)
 ;  (let* ((child (sheet-child pane))
 ;	 (xform (sheet-transformation child))
 ;	 (req   (compose-space child))
@@ -441,15 +434,15 @@ provided elsewhere"))
 ;;; Use this wrapping composite to not allow note-space-requirement-changeds to propagate up.
 
 (defclass restrainer-pane (composite-pane 
-				    simple-wrapper-mixin
-				    wrapping-space-mixin
-				    mute-input-mixin)
-  ())
+			   simple-wrapper-mixin
+			   wrapping-space-mixin
+			   mute-input-mixin)
+    ())
 
 (defmethod note-space-requirement-changed ((pane restrainer-pane) inner)
   (declare (ignore inner))
-  (allocate-space pane (bounding-rectangle-width pane) 
-		  (bounding-rectangle-height pane)))
+  (allocate-space pane 
+		  (bounding-rectangle-width pane) (bounding-rectangle-height pane)))
 
 
 
@@ -464,13 +457,11 @@ provided elsewhere"))
 	 (item-size (x) (funcall item-size x)))
     (let ((stretch-p (>= given (desired-size wanted)))
 	  extra give used sizes)
-      
       (if stretch-p
 	  (setq give (- (max-size wanted) (desired-size wanted))
 		extra (min (- given (desired-size wanted)) give))
-	(setq give (- (desired-size wanted) (min-size wanted))
-	      extra (min (- (desired-size wanted) given) give)))
-      
+	  (setq give (- (desired-size wanted) (min-size wanted))
+		extra (min (- (desired-size wanted) given) give)))
       (dolist (item items)
 	(let* ((item-size (item-size item))
 	       (alloc (desired-size item-size)))
@@ -484,16 +475,16 @@ provided elsewhere"))
 		  (incf alloc used)
 		  (decf give (- (max-size item-size)
 				(desired-size item-size))))
-	      (progn
-		(setq used (/ (* (- (desired-size item-size)
-				    (min-size item-size))
-				 extra)
-			      give))
-		(decf alloc used)
-		(decf give (- (desired-size item-size)
-			      (min-size item-size)))))
+		(progn
+		  (setq used (/ (* (- (desired-size item-size)
+				      (min-size item-size))
+				   extra)
+				give))
+		  (decf alloc used)
+		  (decf give (- (desired-size item-size)
+				(min-size item-size)))))
 	    (decf extra used))
-	    (push alloc sizes)))
+	  (push alloc sizes)))
       (nreverse sizes))))
 	
 ;;; Most of the layout panes should inherit from this
@@ -503,5 +494,5 @@ provided elsewhere"))
 		       composite-pane 
 		       space-requirement-cache-mixin
 		       sheet-permanently-enabled-mixin)
-	  ())
+    ())
 

@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader$
+;; $fiHeader: test.lisp,v 1.12 92/02/16 20:55:45 cer Exp $
 
 (in-package :clim-internals)
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-protocol.lisp,v 1.5 91/03/29 18:00:57 cer Exp $
+;; $fiHeader: input-protocol.lisp,v 1.5 92/01/31 14:58:16 cer Exp $
 
 (in-package :clim-internals)
 
@@ -70,7 +70,8 @@
   (let ((port (sheet-port stream)))
     (when port
       (or (port-pointer port)
-	  (setf (port-pointer port) (make-instance 'standard-pointer))))))
+	  (setf (port-pointer port) (make-instance 'standard-pointer
+						   :root (window-root stream)))))))
 
 (defmethod initialize-instance :after ((stream input-protocol-mixin)
 				       &key 
@@ -109,7 +110,7 @@
       (setf (cursor-active cursor) nil))))
 
 #+Silica
-(defmethod handle-repaint :after ((stream input-protocol-mixin) medium (region clim-utils::nowhere))
+(defmethod handle-repaint :after ((stream input-protocol-mixin) medium (region nowhere))
   (declare (ignore medium))
   ;; Repainting nowhere, don't repaint the cursor
   )
@@ -320,7 +321,19 @@
 	      #+Silica
 	      (let ((gesture (queue-get (stream-input-buffer stream))))
 		(when gesture
-		  (let ((new-gesture (receive-gesture (or *original-stream* stream) gesture)))
+		  ;;--- What we *should* do is to reinstate a separate input
+		  ;;--- buffer for the stream, then this should loop doing
+		  ;;--- HANDLE-EVENT until something gets inserted into the
+		  ;;--- stream's input buffer.  Then this should read and
+		  ;;--- process the gesture in the input buffer.
+		  (let* ((sheet (and (typep gesture 'device-event)
+				     (event-sheet gesture)))
+			 (new-gesture 
+			   (receive-gesture
+			     (if (or (null sheet) (eql sheet stream))
+				 (or *original-stream* stream)
+				 sheet)
+			     gesture)))
 		    (when new-gesture
 		      (when peek-p (queue-unget (stream-input-buffer stream) gesture))
 		      (return-from stream-read-gesture new-gesture)))))
@@ -351,32 +364,38 @@
 			   (error 'abort-gesture :event gesture))
 			  (t (return-from stream-read-gesture gesture)))))))))))))
 
-(defmethod receive-gesture ((stream standard-encapsulating-stream) gesture)
+(defmethod receive-gesture
+	   ((stream standard-encapsulating-stream) gesture)
   (receive-gesture (slot-value stream 'stream) gesture))
 
 ;; Presentation translators have probably already run...
-(defmethod receive-gesture ((stream input-protocol-mixin) (gesture pointer-button-press-event))
+(defmethod receive-gesture
+	   ((stream input-protocol-mixin) (gesture pointer-button-press-event))
   (when *pointer-button-press-handler*
     ;; This may throw or something, but otherwise we will return the gesture
     (funcall *pointer-button-press-handler* stream gesture))
   gesture)
 
-(defmethod receive-gesture ((stream input-protocol-mixin) (gesture (eql ':resynchronize)))
+(defmethod receive-gesture
+	   ((stream input-protocol-mixin) (gesture (eql ':resynchronize)))
   (throw 'resynchronize t))
 
-(defmethod receive-gesture ((stream input-protocol-mixin) (gesture list))
+(defmethod receive-gesture
+	   ((stream input-protocol-mixin) (gesture list))
   (let ((*original-stream* nil))
     (receive-list-gesture stream (first gesture) (rest gesture)))
   ;; Don't return this gesture to the higher level
   nil)
 
-(defmethod receive-list-gesture ((stream input-protocol-mixin) (type (eql 'redisplay-pane)) args)
+(defmethod receive-list-gesture
+	   ((stream input-protocol-mixin) (type (eql 'redisplay-pane)) args)
   (redisplay-frame-pane (first args)))
 
 ;;--- This needs to be looked at carefully!
-(defmethod receive-list-gesture ((stream input-protocol-mixin) (type (eql 'execute-frame-command)) command)
+(defmethod receive-list-gesture
+	   ((stream input-protocol-mixin) (type (eql 'execute-frame-command)) command)
   ;; Instead of executing here, we throw to the command catch tag if there is one
-  (let ((command-function (first (second command))))
+  (let ((command-function (command-name (second command))))
     (dolist (this-context *input-context*)
       (let* ((context (first this-context))
 	     (tag (second this-context)))
@@ -389,31 +408,43 @@
     ;; should signal, though
     (throw 'command-executed t)))
 
-(defmethod receive-list-gesture ((stream input-protocol-mixin) (type (eql 'stop-frame)) args)
+(defmethod receive-list-gesture
+	   ((stream input-protocol-mixin) (type (eql 'stop-frame)) args)
   (apply #'stop-frame args))
 
-(defmethod receive-gesture ((stream input-protocol-mixin) (gesture window-repaint-event))
+(defmethod receive-gesture
+	   ((stream input-protocol-mixin) (gesture window-repaint-event))
   ;; Handle synchronous repaint request
   (handle-repaint (event-sheet gesture) nil (window-event-region gesture))
   ;; don't return.
   nil)
 
-(defmethod receive-gesture ((stream input-protocol-mixin) (gesture pointer-enter-event))
+(defmethod receive-gesture 
+	   ((stream input-protocol-mixin) (gesture pointer-enter-event))
   nil)
 
-(defmethod receive-gesture ((stream input-protocol-mixin) (gesture pointer-exit-event))
+(defmethod receive-gesture
+	   ((stream input-protocol-mixin) (gesture pointer-exit-event))
   nil)
 
 ;;; default method
+(defmethod receive-gesture (stream (gesture event))
+  (process-event-locally stream gesture)
+  nil)
+
+;;--- We need this to deal with XM-SILICA::PRESENTATION-EVENTs.   Perhaps that
+;;--- method class just needs a RECEIVE-GESTURE method instead.
 (defmethod receive-gesture ((stream input-protocol-mixin) (gesture event))
   (process-event-locally stream gesture)
   nil)
   
-(defmethod receive-gesture ((stream input-protocol-mixin) gesture)
+(defmethod receive-gesture
+	   ((stream input-protocol-mixin) gesture)
   ;; don't translate it
   gesture)
 
-(defmethod receive-gesture :around ((stream input-protocol-mixin) (gesture character))
+(defmethod receive-gesture :around
+	   ((stream input-protocol-mixin) (gesture character))
   (cond ((member gesture *accelerator-gestures*)
 	 (signal 'accelerator-gesture
 		 :event gesture
@@ -427,7 +458,8 @@
 	 (error 'abort-gesture :event gesture))
 	(t (call-next-method))))
 
-(defmethod receive-gesture :around ((stream input-protocol-mixin) (gesture key-press-event))
+(defmethod receive-gesture :around
+	   ((stream input-protocol-mixin) (gesture key-press-event))
   ;;--- What about Abort gestures that aren't characters?
   (call-next-method))
  
@@ -510,12 +542,15 @@
       (unless (eql ch :eof)
 	(loop
 	  ;; Process the character
-	  (cond ((or (eql ch #\newline)
+	  (cond ((or (eql ch #\Newline)
 		     (eql ch :eof))
 		 (return-from stream-read-line
 		   (evacuate-temporary-string result)))
 		(t
-		 (vector-push-extend ch result)))
+		 ;; Be robust against weird characters
+		 (if (ordinary-char-p ch)
+		     (vector-push-extend ch result)
+		     (beep stream))))
 	  (setq ch (stream-read-char stream)))))))
 
 (defmethod stream-clear-input ((stream input-protocol-mixin))
@@ -619,15 +654,17 @@
 		(let ((activation (si:input-editor-option :activation)))
 		  (and activation
 		       (apply (car activation) character (cdr activation)))))
-	   ;; When called from WITH-CLIM-COMPATIBLE-INPUT-EDITING, turn activation characters
-	   ;; into the appropriate blips to be compatible with the Genera input editor.
+	   ;; When called from WITH-CLIM-COMPATIBLE-INPUT-EDITING, turn activation
+	   ;; characters into the appropriate blips to be compatible with the
+	   ;; Genera input editor.
 	   (si:ie-make-blip :activation character nil))
 	  ((and (characterp character)
 		(let ((blip-gesture (si:input-editor-option :blip-character)))
 		  (and blip-gesture
 		       (apply (car blip-gesture) character (cdr blip-gesture)))))
-	   ;; When called from WITH-CLIM-COMPATIBLE-INPUT-EDITING, turn blip characters
-	   ;; into the appropriate blips to be compatible with the Genera input editor.
+	   ;; When called from WITH-CLIM-COMPATIBLE-INPUT-EDITING, turn blip
+	   ;; characters into the appropriate blips to be compatible with the
+	   ;; Genera input editor.
 	   (si:ie-make-blip :blip-character character nil))
 	  (t character))))
 
@@ -717,7 +754,10 @@
 	       ;;--- Coerce to COORDINATE
 	       (make-button-release-event stream x y button modifier-state))))
 
-;;; required methods:
-;;;   STREAM-EVENT-HANDLER
-;;;   STREAM-RESTORE-INPUT-FOCUS
-;;;   STREAM-SET-INPUT-FOCUS
+#+Silica
+(defmethod stream-set-input-focus ((stream input-protocol-mixin))
+  (setf (port-keyboard-input-focus (sheet-port stream)) stream))
+
+#+Silica
+(defmethod stream-restore-input-focus ((stream input-protocol-mixin) old-focus)
+  (setf (port-keyboard-input-focus (sheet-port stream)) old-focus))

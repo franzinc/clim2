@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: image.cl,v 1.2 92/01/02 15:09:40 cer Exp $
+;; $fiHeader: image.lisp,v 1.3 92/01/31 14:55:58 cer Exp $
 
 
 (in-package :xm-silica)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: thinkadot.lisp,v 1.4 91/03/26 12:37:43 cer Exp $
+;; $fiHeader: thinkadot.lisp,v 1.1 92/01/31 14:32:12 cer Exp $
 
 (in-package :clim-demo)
 

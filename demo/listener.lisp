@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: listener.lisp,v 1.4 91/03/26 12:37:34 cer Exp $
+;; $fiHeader: listener.lisp,v 1.1 92/01/31 14:32:03 cer Exp $
 
 (in-package :clim-demo)
 
@@ -15,7 +15,7 @@
 	   (documentation :pointer-documentation)))
   #+Silica
   (:pane (scrolling ()
-           (realize-pane 'clim-internals::interactor-pane)))
+           (realize-pane 'interactor-pane)))
   (:command-table (lisp-listener :inherit-from (user-command-table)))
   (:command-definer t)
   (:top-level (lisp-listener-top-level)))
@@ -305,29 +305,31 @@
     (fresh-line stream)
     (formatting-table (stream :x-spacing "   ")
       (dolist (pathname pathnames)
-	(let* (#-Genera (file-stream (open pathname :direction :input))
-	       (size #+Genera (getf (rest pathname) :length-in-bytes)
-		     #-Genera (file-length file-stream))
-	       (creation-date #+Genera (getf (rest pathname) :modification-date)
-			      #-Genera (file-write-date file-stream))
-	       (author #+Genera (getf (rest pathname) :author)
-		       #-Genera (file-author file-stream))
-	       #+Genera (pathname (first pathname)))
-	(with-output-as-presentation (stream pathname 'pathname
-				      :single-box t)
-	  (formatting-row (stream)
-	    (formatting-cell (stream)
-	      (format stream "  ~A" (file-namestring pathname)))
-	    (formatting-cell (stream :align-x :right)
-	      (format stream "~D" size))
-	    (formatting-cell (stream :align-x :right)
-	      (when creation-date
-		(multiple-value-bind (secs minutes hours day month year)
-		    (decode-universal-time creation-date)
-		  (format stream "~D/~2,'0D/~D ~2,'0D:~2,'0D:~2,'0D"
-		    month day year hours minutes secs))))
-	    (formatting-cell (stream)
-	      (write-string author stream)))))))))
+	(let (size creation-date author)
+	  #-genera
+	  (with-open-file (file-stream pathname :direction :input) 
+	    (setf size (file-length file-stream)
+		  creation-date (file-write-date file-stream)
+		  author (file-author file-stream)))
+	  #+genera
+	  (setf size (getf (rest pathname) :length-in-bytes)
+		creation-date (getf (rest pathname) :modification-date)
+		author (getf (rest pathname) :author))
+	  (with-output-as-presentation (stream pathname 'pathname
+					:single-box t)
+	    (formatting-row (stream)
+	      (formatting-cell (stream)
+		(format stream "  ~A" (file-namestring pathname)))
+	      (formatting-cell (stream :align-x :right)
+		(format stream "~D" size))
+	      (formatting-cell (stream :align-x :right)
+		(when creation-date
+		  (multiple-value-bind (secs minutes hours day month year)
+		      (decode-universal-time creation-date)
+		    (format stream "~D/~2,'0D/~D ~2,'0D:~2,'0D:~2,'0D"
+		      month day year hours minutes secs))))
+	      (formatting-cell (stream)
+		(write-string author stream)))))))))
 
 (define-lisp-listener-command (com-show-file :name t)
     ((pathname 'pathname :gesture :select :prompt "file"))

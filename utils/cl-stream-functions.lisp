@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader$
+;; $fiHeader: cl-stream-functions.lisp,v 1.2 92/01/31 15:07:19 cer Exp $
 
 (in-package :clim-utils)
 
@@ -22,8 +22,8 @@
 ;;; Output functions
 
 (defmacro write-forwarding-cl-output-stream-function (name args)
-  (let* ((cl-name (find-symbol (symbol-name name) (find-package 'lisp)))
-	 (method-name (intern (lisp:format nil "STREAM-~A" (symbol-name name))))
+  (let* ((cl-name (find-symbol (symbol-name name) (find-package :lisp)))
+	 (method-name (intern (lisp:format nil "~A-~A" 'stream (symbol-name name))))
 	 (optional-args (or (member '&optional args) (member '&key args)))
 	 (required-args (ldiff args optional-args))
 	 (optional-parameters (mapcan #'(lambda (arg)
@@ -41,7 +41,7 @@
 			(mapcan #'(lambda (arg)
 				    (unless (atom arg)
 				      (setq arg (car arg)))
-				    (list (intern (string arg) "KEYWORD") arg))
+				    (list (intern (string arg) :keyword) arg))
 				(cdr optional-args))
 			optional-parameters)))
     (when (eq (first optional-args) '&optional)
@@ -83,8 +83,8 @@
 (defmacro write-forwarding-cl-input-stream-function (name lambda-list
 						     &key eof
 							  additional-arguments)
-  (let* ((cl-name (find-symbol (symbol-name name) (find-package 'lisp)))
-	 (method-name (intern (lisp:format nil "STREAM-~A" (symbol-name name))))
+  (let* ((cl-name (find-symbol (symbol-name name) (find-package :lisp)))
+	 (method-name (intern (lisp:format nil "~A-~A" 'stream (symbol-name name))))
 	 (method-lambda-list (remove 'stream lambda-list))
 	 (args (mapcar #'(lambda (var) (if (atom var) var (first var)))
 		       (remove-if #'(lambda (x) (member x lambda-list-keywords))

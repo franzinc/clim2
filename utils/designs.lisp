@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: designs.lisp,v 1.5 91/03/26 12:03:10 cer Exp $
+;; $fiHeader: designs.lisp,v 1.2 92/01/31 14:52:35 cer Exp $
 
 (in-package :clim-utils)
 
@@ -46,7 +46,8 @@
 ;;; Gray colors
 
 (defclass gray-color (color)
-    ((luminance :type single-float :initarg :luminance)))
+    ((luminance :type single-float :initarg :luminance
+		:reader color-luminosity)))
 
 (define-constructor make-gray-color-1 gray-color (luminance)
 		    :luminance luminance)

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-pixmaps.lisp,v 1.1 92/02/08 15:01:14 cer Exp $
+;; $fiHeader: xt-pixmaps.lisp,v 1.2 92/02/16 20:55:19 cer Exp $
 
 
 (in-package :xm-silica)
@@ -83,13 +83,13 @@
        window-x window-y width height pixmap
        pixmap-x pixmap-y))))
 
-(defmethod clim-internals::pixmap-height ((pixmap tk::pixmap))
+(defmethod pixmap-height ((pixmap tk::pixmap))
   (tk::pixmap-height pixmap))
 
-(defmethod clim-internals::pixmap-width ((pixmap tk::pixmap))
+(defmethod pixmap-width ((pixmap tk::pixmap))
   (tk::pixmap-width pixmap))
 
-(defmethod clim-internals::deallocate-pixmap ((pixmap tk::pixmap))
+(defmethod deallocate-pixmap ((pixmap tk::pixmap))
   (break "implement me"))
 
 

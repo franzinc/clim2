@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: foreign-obj.cl,v 1.4 92/01/17 17:49:10 cer Exp $
+;; $fiHeader: foreign-obj.lisp,v 1.5 92/01/31 14:54:32 cer Exp $
 
 (in-package :tk)
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-editor-commands.lisp,v 1.7 91/03/29 18:00:55 cer Exp $
+;; $fiHeader: input-editor-commands.lisp,v 1.2 92/01/31 14:58:14 cer Exp $
 
 (in-package :clim-internals)
 
@@ -40,7 +40,7 @@
 		     (add-aarray-entry prefix function aarray)
 		     (let ((subaarray (second (find prefix aarray :key #'first))))
 		       (when (null subaarray)
-			 (setq subaarray (make-array 20 :fill-pointer 0))
+			 (setq subaarray (make-array 40 :fill-pointer 0))
 			 (add-aarray-entry prefix subaarray aarray))
 		       (setq aarray subaarray))))))))))
 
@@ -145,7 +145,8 @@
     (cond ((characterp gesture)
 	   ;; The COMMAND-STATE slot holds the current IE command aarray,
 	   ;; and gets updated when we see a prefix characters (e.g., ESC)
-	   (let ((command (lookup-input-editor-command gesture command-state)))
+	   (let ((command (unless (activation-gesture-p gesture)
+			    (lookup-input-editor-command gesture command-state))))
 	     (cond ((numberp command)
 		    (cond ((null numeric-argument)
 			   (setq numeric-argument command))
@@ -541,7 +542,8 @@
 	     (and word-start
 		  (or (forward-or-backward string (1+ word-start) nil
 					   #'atom-break-char-p)
-		      (fill-pointer string))))
+		      (let ((fp (fill-pointer string)))
+			(and (> fp (1+ word-start)) fp)))))
 	   (colon
 	     (and word-start word-end
 		  (position #\: string
@@ -753,7 +755,7 @@
   com-ie-scroll-forward	       #\Control-\v
   com-ie-scroll-backward       #\Meta-\v)
 
-#+Allegro
+#+(and Allegro (not Silica))
 ;; Like above but lowercase characters
 (assign-input-editor-key-bindings
   com-ie-ctrl-g		       #\c-\g
@@ -800,6 +802,8 @@
   com-ie-next-line	       #\^n
   com-ie-previous-line	       #\^p
   com-ie-rubout		       #\rubout
+  com-ie-rubout                #\backspace
+  com-ie-rubout                #\c-\h
   com-ie-delete-character      #\^d
   com-ie-rubout-word	       #\meta-rubout
   com-ie-delete-word	       #\meta-d

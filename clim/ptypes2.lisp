@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: ptypes2.lisp,v 1.2 92/01/31 14:58:39 cer Exp Locker: cer $
+;; $fiHeader: ptypes2.lisp,v 1.2 92/01/31 14:58:39 cer Exp $
 
 (in-package :clim-internals)
 
@@ -362,6 +362,9 @@
 ;;; Called when ACCEPT turns into PRESENT
 (defun accept-present-default (presentation-type stream view default default-supplied-p
 			       present-p query-identifier &key (prompt t))
+  ;;--- This is not the correct place to put this, so why did CER do it?
+  (prompt-for-accept-1 stream presentation-type
+		       :prompt prompt)
   (call-presentation-generic-function accept-present-default
     presentation-type stream view default default-supplied-p present-p query-identifier
     :prompt prompt))
@@ -370,11 +373,7 @@
 							    default default-supplied-p
 							    present-p query-identifier
 							    &key prompt &allow-other-keys)
-  (declare (ignore query-identifier))
-  ;;;---- This is not the correct place to put this
-  (prompt-for-accept-1 stream 
-		       presentation-type
-		       :prompt prompt)
+  (declare (ignore query-identifier prompt))
   (with-output-as-presentation (stream (second present-p) (first present-p))
     (if default-supplied-p
 	(present default presentation-type :stream stream :view view)

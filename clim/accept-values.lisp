@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept-values.lisp,v 1.6 92/02/05 21:45:37 cer Exp Locker: cer $
+;; $fiHeader: accept-values.lisp,v 1.7 92/02/14 18:57:56 cer Exp $
 
 (in-package :clim-internals)
 
@@ -83,9 +83,9 @@
 				  prompt-args))))
   query-identifier)
 
-(defmethod accept-1 ((stream accept-values-stream) ptype
-		     &key query-identifier (prompt t) (default nil default-supplied-p)
-		     &allow-other-keys)
+(defmethod stream-accept ((stream accept-values-stream) ptype
+			  &key query-identifier (prompt t) (default nil default-supplied-p)
+			  &allow-other-keys)
   (let ((query (find-or-add-query stream query-identifier ptype prompt
 				  default default-supplied-p)))
     (values (accept-values-query-value query)
@@ -122,10 +122,10 @@
 					   (accept-values-query-value query)
 					   default)
 			  :cache-test #'equal)
-		;;--- Calling ACCEPT-2 directly bypasses default preprocessing,
+		;;--- Calling ACCEPT-1 directly bypasses default preprocessing,
 		;;--- is that OK?
 		(cond ((or default-supplied-p (accept-values-query-changed-p query))
-		       (accept-2 stream ptype
+		       (accept-1 stream ptype
 				 :prompt prompt
 				 ;; If this field changed, use the value it changed to,
 				 ;; making sure that the query object gets changed, too.
@@ -141,7 +141,7 @@
 		       ;; The programmer supplied no default, but a previous edit
 		       ;; has put something in the query that we now must use as
 		       ;; the default.
-		       (accept-2 stream ptype
+		       (accept-1 stream ptype
 				 :prompt prompt
 				 :default (accept-values-query-value query)
 				 :history ptype
@@ -149,7 +149,7 @@
 				 :query-identifier query))
 		      (t
 		       ;; No default supplied, field has never been edited.
-		       (accept-2 stream ptype
+		       (accept-1 stream ptype
 				 :prompt prompt
 				 :history ptype :provide-default nil
 				 :present-p `(accept-values-choice ,query)
@@ -161,43 +161,42 @@
 	query))))
 
 (define-application-frame accept-values ()
-  ((stream :initarg :stream)
-   exit-button-stream
-   (calling-frame :reader frame-calling-frame
-		  :initarg :calling-frame)
-   (continuation :initarg :continuation)
-   (own-window :initform nil :initarg :own-window)
-   (own-window-x-position :initform nil :initarg :x-position)
-   (own-window-y-position :initform nil :initarg :y-position)
-   (own-window-width :initform nil :initarg :width)
-   (own-window-height :initform nil :initarg :height)
-   (own-window-right-margin :initform nil :initarg :right-margin)
-   (own-window-bottom-margin :initform nil :initarg :bottom-margin)
-   (exit-boxes :initform nil :initarg :exit-boxes)
-   (selected-item :initform nil)
-   ;;--- Do this through RUN-FRAME-TOP-LEVEL?
-   (initially-select-query-identifier :initform nil
-				      :initarg :initially-select-query-identifier)
-   (resynchronize-every-pass :initform nil :initarg :resynchronize-every-pass)
-   (check-overlapping :initform t :initarg :check-overlapping))
+    ((stream :initarg :stream)
+     (exit-button-stream :initarg :exit-button-stream)
+     (continuation :initarg :continuation)
+     (own-window :initform nil :initarg :own-window)
+     (own-window-x-position :initform nil :initarg :x-position)
+     (own-window-y-position :initform nil :initarg :y-position)
+     (own-window-width :initform nil :initarg :width)
+     (own-window-height :initform nil :initarg :height)
+     (own-window-right-margin :initform nil :initarg :right-margin)
+     (own-window-bottom-margin :initform nil :initarg :bottom-margin)
+     (exit-boxes :initform nil :initarg :exit-boxes)
+     (selected-item :initform nil)
+     ;;--- Do this through RUN-FRAME-TOP-LEVEL?
+     (initially-select-query-identifier :initform nil
+					:initarg :initially-select-query-identifier)
+     (resynchronize-every-pass :initform nil :initarg :resynchronize-every-pass)
+     (check-overlapping :initform t :initarg :check-overlapping))
   (:top-level (accept-values-top-level))
   (:command-definer t))
 
 (define-application-frame accept-values-own-window (accept-values)
     ()
   (:pane 
-   (with-slots (stream own-window exit-button-stream) *application-frame*
-     (vertically ()
-		 (progn
-		   (setq stream
-		     (make-instance 'accept-values-stream
-				    :stream (setf own-window
-					      (realize-pane 'extended-stream-pane
-							    :initial-cursor-visibility nil))))
-		   own-window)
-		 (setf exit-button-stream
-			      (realize-pane 'extended-stream-pane
-					    :initial-cursor-visibility nil)))))
+    (with-slots (stream own-window  exit-button-stream) *application-frame*
+      (vertically ()
+	(scrolling ()
+	  (progn
+	    (setq stream
+		  (make-instance 'accept-values-stream
+				 :stream (setf own-window
+					       (realize-pane 'clim-stream-pane
+							     :initial-cursor-visibility nil))))
+	    own-window))
+	(setf exit-button-stream
+	      (realize-pane 'clim-stream-pane
+			    :initial-cursor-visibility nil)))))
   (:menu-bar nil)
   (:command-table accept-values)
   (:command-definer nil))
@@ -285,9 +284,9 @@
 					      :right-margin right-margin
 					      :bottom-margin bottom-margin
 					      :initially-select-query-identifier
-					      initially-select-query-identifier
+					        initially-select-query-identifier
 					      :resynchronize-every-pass
-					      resynchronize-every-pass
+					        resynchronize-every-pass
 					      :check-overlapping
 					      check-overlapping)))
 	   ;; What do we do about sizing?????
@@ -297,6 +296,7 @@
        (using-resource (avv-stream accept-values-stream (or the-own-window stream))
 	 ;;--- This should resource the AVV application frame, too
 	 (let ((frame (make-application-frame (or frame-class 'accept-values)
+					      :calling-frame *application-frame*
 					      :stream avv-stream
 					      :continuation continuation
 					      :exit-boxes exit-boxes
@@ -330,7 +330,7 @@
 	  (original-view (stream-default-view stream))
 	  (return-values nil)
 	  (initial-query nil)
-	  exit-button-stuff
+	  exit-button-record
 	  avv avv-record)
       (letf-globally (((stream-default-view stream) 
 		       (port-dialog-view (sheet-port stream))))
@@ -339,13 +339,11 @@
 		 (setf (slot-value stream 'avv-frame) frame)
 		 (with-output-recording-options (stream :draw nil :record t)
 		   (setq return-values (multiple-value-list
-					   (let ((*application-frame* *avv-calling-frame*))
-					     (funcall continuation
-						      stream)))))
-		 (unless own-window
-		   (display-exit-boxes frame 
-				       stream
-				       (stream-default-view stream))))
+					 (let ((*application-frame* *avv-calling-frame*))
+					   (funcall continuation stream))))
+		   (unless own-window
+		     (display-exit-boxes frame stream
+					 (stream-default-view stream)))))
 	       (run-avv ()
 		 (when (and initially-select-query-identifier
 			    (setq initial-query
@@ -373,8 +371,8 @@
 		     (with-output-recording-options (stream :draw nil)
 		       (redisplay avv stream :check-overlapping check-overlapping)))
 		   (setf (slot-value avv-record 'resynchronize) nil)
-		   (when exit-button-stuff
-		     (redisplay exit-button-stuff exit-button-stream))
+		   (when exit-button-record
+		     (redisplay exit-button-record exit-button-stream))
 		   (redisplay avv stream :check-overlapping check-overlapping))))
 	  (declare (dynamic-extent #'run-continuation #'run-avv))
 	  (with-simple-restart (frame-exit "Exit from the ACCEPT-VALUES dialog")
@@ -385,20 +383,15 @@
 			    (with-end-of-page-action (stream :allow)
 			      (with-new-output-record
 				  (stream 'accept-values-output-record avv-record)
-				(run-continuation stream
-						  avv-record)))))))
-
-	    ;; In own window dialogs the buttons are displayed
-	    ;; separately
-	    
+				(run-continuation stream avv-record)))))))
+	    ;; In own window dialogs the buttons are displayed separately
 	    (when own-window
-	      (setq exit-button-stuff 
+	      (setq exit-button-record
 		    (updating-output (exit-button-stream)
-				     (with-end-of-line-action (exit-button-stream :allow)
-				       (with-end-of-page-action (exit-button-stream :allow)
-					 (display-exit-boxes frame 
-							     exit-button-stream
-							     (stream-default-view stream)))))))
+		      (with-end-of-line-action (exit-button-stream :allow)
+			(with-end-of-page-action (exit-button-stream :allow)
+			  (display-exit-boxes frame exit-button-stream
+					      (stream-default-view stream)))))))
 	    (unwind-protect
 		(cond (own-window
 		       (size-menu-appropriately exit-button-stream)
@@ -419,7 +412,7 @@
 			 (position-window-near-carefully own-window x y))
 		       (window-expose own-window)
 		       (with-input-focus (own-window)
-			 (replay exit-button-stuff exit-button-stream)
+			 (replay exit-button-record exit-button-stream)
 			 (replay avv stream)
 			 (run-avv)))
 		      (t
@@ -478,17 +471,9 @@
 	(with-output-as-presentation (stream ':done 'accept-values-exit-box)
 	  (write-string exit stream))))))
 
+;;--- Get this right
 (defmethod frame-pointer-documentation-output ((frame accept-values))
-  (with-slots (own-window stream) frame
-    (cond (own-window
-	   #+Genera (typep own-window 'sheet-window-stream)
-	   #-Genera nil)
-	  (t
-	   ;;--- This should ask the "frame manager" what the parent frame is
-	   ;;--- and use the pointer documentation window for that.
-	   (let ((parent (slot-value stream 'stream)))
-	     #+Genera (typep parent 'sheet-window-stream)
-	     #-Genera nil)))))
+  nil)
 
 
 (define-presentation-type accept-values-choice ())
@@ -920,6 +905,7 @@
      :documentation "Edit this field"
      :pointer-documentation "Edit this field"
      :gesture :select
+     :priority 1	;prefer this to IDENTITY when in COMMAND-OR-FORM context
      :echo nil)
     (object window)
   (list object window))
@@ -935,6 +921,7 @@
      :documentation "Modify this field"
      :pointer-documentation "Modify this field"
      :gesture :describe
+     :priority 1	;prefer this to IDENTITY when in COMMAND-OR-FORM context
      :echo nil)
     (object window)
   (list object window))
@@ -948,6 +935,7 @@
      :documentation "Remove this field"
      :pointer-documentation "Remove this field"
      :gesture :delete
+     :priority 1	;prefer this to IDENTITY when in COMMAND-OR-FORM context
      :echo nil)
     (object)
   (list object))
@@ -970,6 +958,7 @@
      :documentation document-command-button
      :pointer-documentation document-command-button
      :gesture :select
+     :priority 1	;prefer this to IDENTITY when in COMMAND-OR-FORM context
      :echo nil)
     (object window)
   (list object window))
@@ -983,6 +972,7 @@
      :documentation "Select this value"
      :pointer-documentation "Select this value"
      :gesture :select
+     :priority 1	;prefer this to IDENTITY when in COMMAND-OR-FORM context
      :echo nil)
     (object)
   (list object))
@@ -996,6 +986,7 @@
      :documentation "De/Select this value"
      :pointer-documentation "De/Select this value"
      :gesture :select
+     :priority 1	;prefer this to IDENTITY when in COMMAND-OR-FORM context
      :echo nil)
     (object)
   (list object))
@@ -1117,30 +1108,29 @@
    (stream :unique-id query-identifier :id-test #'equal
 	   :cache-value cache-value :cache-test cache-test)
    (with-output-as-gadget (stream)
-     (realize-pane 
-      'push-button
-      :label prompt
-      :id (stream-current-output-record (slot-value stream 'stream))
-      :client (make-instance 'accept-values-command-button
-			     :continuation continuation
-			     :documentation documentation
-			     :resynchronize resynchronize)))))
+     (realize-pane 'push-button
+		   :label prompt
+		   :id (stream-current-output-record (slot-value stream 'stream))
+		   :client (make-instance 'accept-values-command-button
+					  :continuation continuation
+					  :documentation documentation
+					  :resynchronize resynchronize)))))
 
 (defmethod activate-callback ((pb push-button)
 			      (client accept-values-command-button)
 			      id)
   (when (accept-values-query-valid-p id)
     (throw-highlighted-presentation
-     (make-instance 'standard-presentation
-		    :object `(com-avv-command-button ,client ,id)
-		    :type 'command)
-     *input-context*
-     (make-instance 'pointer-button-press-event
-		    :sheet (sheet-parent pb)
-		    :x 0
-		    :y 0
-		    :modifiers 0
-		    :button 256))))
+      (make-instance 'standard-presentation
+		     :object `(com-avv-command-button ,client ,id)
+		     :type 'command)
+      *input-context*
+      (make-instance 'pointer-button-press-event
+		     :sheet (sheet-parent pb)
+		     :x 0
+		     :y 0
+		     :modifiers 0
+		     :button 256))))
 
 (defmethod activate-callback ((pb push-button)
 			      (client accept-values)

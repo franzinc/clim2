@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: widget.lisp,v 1.9 92/02/05 21:45:07 cer Exp Locker: cer $
+;; $fiHeader: widget.lisp,v 1.10 92/02/08 14:51:34 cer Exp $
 
 (in-package :tk)
 
@@ -225,9 +225,9 @@
      (if (or width height)
 	 (let ((x (make-xt-widget-geometry)))
 	   (when width
-	     (setf (xt-widget-geometry-width x) width))
+	     (setf (xt-widget-geometry-width x) (round width)))
 	   (when height
-	     (setf (xt-widget-geometry-height x) height))
+	     (setf (xt-widget-geometry-height x) (round height)))
 	   (setf (xt-widget-geometry-request-mode x)
 	     (logior
 	      (if width x11:cwwidth 0)

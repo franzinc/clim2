@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: histories.lisp,v 1.8 91/03/29 18:21:39 cer Exp $
+;; $fiHeader: histories.lisp,v 1.2 92/01/31 14:58:05 cer Exp $
 
 (in-package :clim-internals)
 
@@ -359,6 +359,14 @@
   ;; Cache the printed representation for a particular view
   (string nil)
   (view nil))
+
+#+Allegro
+(eval-when (compile load)
+  (setf (find-class 'presentation-history-element) nil))
+
+#+Allegro
+(eval-when (compile)
+  (warn "~S structure hacked for bug2419" 'presentation-history-element))
 
 (defun make-presentation-type-history (type &key (maximum-length *default-history-length*)
 						 history-name)

@@ -18,24 +18,22 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.9 92/02/08 14:51:40 cer Exp Locker: cer $
+;; $fiHeader: xm-gadgets.lisp,v 1.10 92/02/14 18:57:42 cer Exp $
 
 (in-package :xm-silica)
 
-(defmethod realize-pane-class ((realizer motif-frame-manager) class &rest options) 
+(defmethod realize-pane-class ((framem motif-frame-manager) class &rest options) 
   (declare (ignore options))
-  (second (assoc class '(
-			 (scroll-bar motif-scrollbar)
+  (second (assoc class '((scroll-bar motif-scrollbar)
 			 (slider motif-slider)
 			 (push-button motif-push-button)
-			 (canvas motif-drawing-area)
 			 (text-field motif-text-field)
 			 (toggle-button motif-toggle-button)
 			 (menu-bar motif-menu-bar)
-			 (silica::viewport xm-viewport)
+			 (viewport xm-viewport)
 			 (radio-box motif-radio-box)
 			 (frame-pane motif-frame-pane)
-			 (silica::top-level-sheet motif-top-level-sheet)
+			 (top-level-sheet motif-top-level-sheet)
 			 ;; One day
 			 (line-editor-pane)
 			 (label-button-pane)
@@ -98,18 +96,18 @@
 
 ;;; Push button
 
-(defclass motif-push-button (xt-leaf-pane 
+(defclass motif-push-button (xt-leaf-pane
 			     push-button
 			     motif-action-pane) 
 	  ())
 
 
 
-(defmethod find-widget-class-and-initargs-for-sheet (port
+(defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
 						     (parent t)
 						     (sheet motif-push-button))
   (declare (ignore port))
-  (with-accessors ((label silica::gadget-label)) sheet
+  (with-accessors ((label gadget-label)) sheet
     (values 'tk::xm-push-button 
 	    (list :label-string label))))
 
@@ -169,8 +167,8 @@
 (defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
 						     (parent t)
 						     (sheet motif-slider))
-  (with-accessors ((orientation silica::gadget-orientation)
-		   (label silica::gadget-label)
+  (with-accessors ((orientation gadget-orientation)
+		   (label gadget-label)
 		   (value gadget-value)) sheet
     (values 'tk::xm-scale 
 	    (append
@@ -181,14 +179,14 @@
 
 (defmethod compose-space ((m motif-slider) &key width height)
   (let ((x 16))
-    (ecase (silica::gadget-orientation m)
+    (ecase (gadget-orientation m)
       (:vertical
        (make-space-requirement :width x
 			       :min-height x
 			       :height (* 2 x)
 			       :max-height +fill+))
       (:horizontal
-       (make-space-requirement :height (if (silica::gadget-label m) ;
+       (make-space-requirement :height (if (gadget-label m) ;
 								    ;Should ask the label how big
 								    ;it wants to be and add that in
 					   (+ x 20)
@@ -207,7 +205,7 @@
 (defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
 						     (parent t)
 						     (sheet motif-scrollbar))
-  (with-accessors ((orientation silica::gadget-orientation)) sheet
+  (with-accessors ((orientation gadget-orientation)) sheet
 		  (values 'tk::xm-scroll-bar 
 			  (list :orientation orientation))))
 
@@ -229,11 +227,11 @@
 (defmethod add-sheet-callbacks ((port motif-port) (sheet motif-scrollbar) (widget t))
   (tk::add-callback widget
 		    :value-changed-callback
-		    'scrollbar-changed-callback-internal
+		    'scrollbar-changed-callback-1
 		    sheet))
 
 
-(defun scrollbar-changed-callback-internal (widget sheet)
+(defun scrollbar-changed-callback-1 (widget sheet)
   (multiple-value-bind
       (value size)
       (tk::get-values widget :value :slider-size)
@@ -247,7 +245,7 @@
 
 (defmethod compose-space ((m motif-scrollbar) &key width height)
   (let ((x 16))
-    (ecase (silica::gadget-orientation m)
+    (ecase (gadget-orientation m)
       (:vertical
        (make-space-requirement :width x
 			       :min-height x
@@ -264,19 +262,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-(defclass motif-top-level-sheet (
-				 #+ignore sheet
-				 mirrored-sheet-mixin
-				 sheet-multiple-child-mixin
-
-				 #+ignore sheet-transformation-mixin
-				 #+ignore standard-repainting-medium
-				 #+ignore standard-sheet-input-mixin
-				 #+ignore permanent-medium-sheet-output-mixin
-				 #+ignore mute-repainting-mixin
-				 
-				 silica::pane)
-	  ())
+(defclass motif-top-level-sheet (top-level-sheet) ())
 
 (warn "This is really bogus")
 
@@ -286,26 +272,13 @@
 (defmethod add-sheet-callbacks :after ((port motif-port) 
 				       (sheet motif-top-level-sheet)
 				       (widget tk::xm-drawing-area))
-
   (tk::add-callback widget 
-		    :resize-callback 
-		    'sheet-mirror-resized-callback
+		    :resize-callback 'sheet-mirror-resized-callback
 		    sheet))
-
-(defmethod allocate-space ((sheet motif-top-level-sheet) width height)
-  (silica::resize-sheet*  (car (sheet-children sheet)) 
-			  width height))
-
-(defmethod compose-space ((sheet motif-top-level-sheet) &key width height)
-  (compose-space (car (sheet-children sheet)) :width width :height height))
-;;;-- Test whether this is a dialog box or 
-
-
 
 (defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
 						     (parent t)
-						     (sheet
-						      motif-top-level-sheet))
+						     (sheet motif-top-level-sheet))
   (cond 
    ;;--- hack alert
    ;; Seems that we need to use a bulletin board so that everything
@@ -343,10 +316,12 @@
 			 'sheet-mirror-event-handler
 			 sheet))
 
+
 ;;;; text field
 
 (defclass motif-text-field (xt-leaf-pane
-			    motif-value-pane motif-action-pane
+			    motif-value-pane 
+			    motif-action-pane
 			    text-field)
 	  ())
 
@@ -370,7 +345,7 @@
 						     (parent t)
 						     (sheet motif-toggle-button))
   (with-accessors ((set gadget-value)
-		   (label silica::gadget-label)
+		   (label gadget-label)
 		   (indicator-type silica::gadget-indicator-type)) sheet
     (values 'tk::xm-toggle-button 
 	    (append (list :set set)
@@ -390,7 +365,7 @@
     (tk::set-values (sheet-mirror gadget) :set nv)))
 
 (defmethod xm-silica::add-sheet-callbacks :after ((port motif-port) 
-						  (sheet clim-internals::extended-stream-sheet)
+						  (sheet clim-stream-sheet)
 						  (widget tk::xm-drawing-area))
   ;;---- It would suprise me if we needed this.
   (tk::add-callback widget 
@@ -401,65 +376,39 @@
 
 (defun scrollbar-changed-callback (widget which scroller)
   (let* ((vp (silica::sheet-child scroller))
-	 (viewport (silica::xm-viewport-viewport vp))
+	 (viewport (viewport-viewport-region vp))
 	 (extent (stream-output-history (sheet-child vp))))
     (multiple-value-bind
-	(value size)
+      (value size)
 	(tk::get-values widget :value :slider-size)
       (case which
 	(:vertical
-	 (clim-internals::scroll-extent
-	  (sheet-child vp)
-	  :x (bounding-rectangle-min-x viewport)
-	  :y (truncate
-	      (* (max 0 (- (bounding-rectangle-height extent)
-			   (bounding-rectangle-height viewport)))
-		 (if (= size 100)
-		     0
-		   (/ value (- 100 size)))))))
+	  (scroll-extent
+	    (sheet-child vp)
+	    :x (bounding-rectangle-min-x viewport)
+	    :y (truncate
+		 (* (max 0 (- (bounding-rectangle-height extent)
+			      (bounding-rectangle-height viewport)))
+		    (if (= size 100)
+			0
+			(/ value (- 100 size)))))))
 	(:horizontal
-	 (clim-internals::scroll-extent
-	  (silica::sheet-child vp)
-	  :x (truncate
-	      (* (max 0 (- (bounding-rectangle-width extent)
-			   (bounding-rectangle-width viewport)))
-		 (if (= size 100)
-		     0
-		   (/ value (- 100 size)))))
-	  :y (bounding-rectangle-min-y viewport)))))))
+	  (scroll-extent
+	    (silica::sheet-child vp)
+	    :x (truncate
+		 (* (max 0 (- (bounding-rectangle-width extent)
+			      (bounding-rectangle-width viewport)))
+		    (if (= size 100)
+			0
+			(/ value (- 100 size)))))
+	    :y (bounding-rectangle-min-y viewport)))))))
 	
 ;;;;;;;;;;;;;;;
 
-(defclass xm-viewport (mirrored-sheet-mixin
-		       silica::sheet-single-child-mixin
-		       sheet-permanently-enabled-mixin
-		       silica::wrapping-space-mixin
-		       silica::pane
-		       silica::viewport)
-	  ;; This describes the region that we are displaying
-	  ((viewport :accessor silica::xm-viewport-viewport))
-  )
-
-
-
-
-(defmethod initialize-instance :after ((vp xm-viewport) &key)
-  (setf (slot-value vp 'viewport)
-    (make-bounding-rectangle 0 0 (sheet-width vp) (sheet-height vp))))
-
-(defmethod allocate-space ((vp xm-viewport) width height)
-  ;; We do nothing to the child of a viewport
-  nil)
-
-(defmethod allocate-space :after ((vp xm-viewport) width height)
-  (bounding-rectangle-set-size
-   (silica::xm-viewport-viewport vp)
-   width height)
-  (update-scrollbars vp)
-  (clim-internals::viewport-region-changed 
-   (silica::sheet-child vp)
-   vp))
-
+(defclass xm-viewport
+	  (viewport
+	   mirrored-sheet-mixin)
+    ())
 
 (defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
 						     (parent t)
@@ -497,7 +446,7 @@
 						     (parent t)
 						     (sheet motif-radio-box))
   
-  (with-accessors ((orientation silica::gadget-orientation)) sheet
+  (with-accessors ((orientation gadget-orientation)) sheet
     (values 'tk::xm-radio-box
 	    (list :orientation orientation))))
 

@@ -1,6 +1,6 @@
-;;; -*- Syntax: Common-Lisp; Base: 10; Package: CLIM-USER; Mode: LISP; Lowercase: T -*-
+;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: test-suite.lisp,v 1.8 92/02/05 21:45:54 cer Exp Locker: cer $
+;; $fiHeader: test-suite.lisp,v 1.7 92/01/31 14:59:04 cer Exp Locker: cer $
 
 (in-package :clim-user)
 
@@ -33,12 +33,8 @@ What about environment issue?
        #-excl (declare (ignore ,i))
        ,@body)))
 
-(defun find-pane-named (pane-name)
-  #-old-Silica (get-frame-pane *application-frame* pane-name)
-  #+old-Silica (slot-value *frame* pane-name))
-
 (defmacro with-display-pane ((stream) &body body)
-  `(let ((,stream (find-pane-named 'display-pane)))
+  `(let ((,stream (get-frame-pane *application-frame* 'display-pane)))
      (window-clear ,stream)
      ,@body))
 
@@ -49,26 +45,13 @@ What about environment issue?
   (check-type caption (or null string))
   `(progn
     (pushnew ',name *all-the-tests*)
-    #-Old-Silica
     (define-command (,name :command-table ,command-table :menu t) ()
        (write-test-caption ,caption)
        (with-display-pane (,stream)
-	 ,@body))
-    #+Old-Silica
-    (define-command ,name ()
-      (write-test-caption ,caption)
-      (with-display-pane (,stream)
-	,@body))
-    #+Old-Silica
-    (add-command-to-command-table
-      (string ',name) ',name ',command-table)
-    #+Old-Silica
-    (add-menu-group-entry
-      (ws::find-menu-group-prototype ',command-table :if-does-not-exist :create)
-      (string ',name) :command '(,name) :if-exists :supersede)))
+	 ,@body))))
 
 (defun write-test-caption (caption)
-  (let ((stream (find-pane-named 'caption-pane)))
+  (let ((stream (get-frame-pane *application-frame* 'caption-pane)))
     (window-clear stream)
     (when caption
       (filling-output (stream :fill-width '(80 :character))
@@ -104,10 +87,10 @@ What about environment issue?
   `(let ((transform (window-mm-transformation ,window)))
      (with-drawing-options (,window :transformation transform)
        (with-bounding-rectangle* (,-x ,-y ,+x ,+y)
-				 (untransform-region transform
-						     #-Silica (window-viewport ,window)
-						     #+Silica (bounding-rectangle
-								(sheet-region ,window)))
+				 (untransform-region 
+				   transform
+				   #-Silica (window-viewport ,window)
+				   #+Silica (bounding-rectangle (sheet-region ,window)))
 	 ,@body))))
 
 (defun draw-grid (stream)
@@ -1133,7 +1116,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 
 (defun table-graphics-test (caption case continuation)
   (with-display-pane (stream)
-    (let ((documentation (find-pane-named 'caption-pane)))
+    (let ((documentation (get-frame-pane *application-frame* 'caption-pane)))
       (let* ((entry (nth case *table-graphics-tests*))
 	     (name (first entry))
 	     (doc-string (third entry)))
@@ -1224,7 +1207,7 @@ Luke Luck licks the lakes Luke's duck likes."))
   (write-string "foo" stream)
   (draw-rectangle* stream 20 20 30 30))
 
-(define-table-cell-test surrounding-output "ci::surrounding-output-with-border"
+(define-table-cell-test surrounding-output "surrounding-output-with-border"
   (surrounding-output-with-border (stream)
     (write-string "Foobar" stream)))
 
@@ -1240,8 +1223,7 @@ Luke Luck licks the lakes Luke's duck likes."))
       (multiple-value-bind (xoff yoff)
 	  ;; damn, we have to convert because we want to draw in table-cell relative
 	  ;; coordinates.
-	  (#-Old-Silica clim::convert-from-absolute-to-relative-coordinates
-	   #+Old-Silica ci::convert-from-absolute-to-relative-coordinates 
+	  (convert-from-absolute-to-relative-coordinates
 	    stream (output-record-parent record))
 	(decf left xoff)
 	(decf right xoff)
@@ -1257,8 +1239,7 @@ Luke Luck licks the lakes Luke's duck likes."))
       (multiple-value-bind (xoff yoff)
 	  ;; damn, we have to convert because we want to draw in table-cell relative
 	  ;; coordinates.
-	  (#-Old-Silica clim::convert-from-absolute-to-relative-coordinates
-	   #+Old-Silica ci::convert-from-absolute-to-relative-coordinates
+	  (convert-from-absolute-to-relative-coordinates
 	    stream (output-record-parent record))
 	(decf left xoff)
 	(decf right xoff)
@@ -1306,11 +1287,10 @@ Luke Luck licks the lakes Luke's duck likes."))
 							    i
 							    'integer)
 			       (format stream "[~D] = ~D" i (aref array i)))))))))))
-    (catch 'abort-gesture-seen			;for the benefit of Silica
-      (loop
-	(fresh-line stream)
-	(redisplay record stream)
-	(incf (aref array (accept '(integer 0 3) :stream stream)))))))
+    (loop
+      (fresh-line stream)
+      (redisplay record stream)
+      (incf (aref array (accept '(integer 0 3) :stream stream))))))
 
 (define-test (graphics-redisplay-1 redisplay) (stream)
   "Redisplay of non-overlapping graphics."
@@ -1495,10 +1475,9 @@ Luke Luck licks the lakes Luke's duck likes."))
 		      (draw-circle* stream 50 10 10)))
 	(incf delta-y 30))
       (stream-set-cursor-position* stream 0 delta-y)))
-  (catch 'abort-gesture-seen			;for the benefit of Silica
-    (loop
-      (accept 'integer :stream stream)
-      (fresh-line stream))))
+  (loop
+    (accept 'integer :stream stream)
+    (fresh-line stream)))
 
 
 ;;; Menus
@@ -1601,7 +1580,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 	(draw-\\-diagonal t)
 	(line-thickness 1)
 	(line-thickness-units :normal))
-    (accepting-values (stream :own-window t)
+    (accepting-values (stream)
       (setq square-dimension
 	    (accept 'number :stream stream
 		    :prompt "Size of square" :default square-dimension))
@@ -1632,7 +1611,7 @@ Luke Luck licks the lakes Luke's duck likes."))
       (terpri stream)
       (with-room-for-graphics (stream)
 	(let ((radius (/ square-dimension 2)))
-	  (with-drawing-options (stream #-Old-Silica :line-unit #-Old-Silica line-thickness-units
+	  (with-drawing-options (stream :line-unit line-thickness-units
 					:line-thickness line-thickness)
 	    (when draw-square
 	      (draw-polygon* stream (list 0 0
@@ -1668,21 +1647,9 @@ Luke Luck licks the lakes Luke's duck likes."))
        (defun ,function-name (&key (careful nil))
 	 (labels ((body (,stream) ,@body))
 	   (time-continuation ',name ,iterations #'body :careful careful)))
-       #-Old-Silica
        (define-command (,name :command-table benchmarks :menu t) ()
 	 (write-test-caption ,caption)
-	 (,function-name :careful nil))
-       #+Old-Silica
-       (define-command ,name ()
-	  (write-test-caption ,caption)
-	  (,function-name :careful nil))
-       #+Old-Silica
-       (add-command-to-command-table
-	 (string ',name) ',name 'benchmarks)
-       #+Old-Silica
-       (add-menu-group-entry
-	 (ws::find-menu-group-prototype 'benchmarks :if-does-not-exist :create)
-	 (string ',name) :command '(,name) :if-exists :supersede)     
+	 (,function-name :careful nil))     
        (pushnew (list ',name ',caption) *benchmarks* :test #'eq :key #'car))))
 
 ;;--- It would be nice if we could measure consing, too
@@ -1723,7 +1690,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 		 (first vresults)
 	       (let ((results (rest (butlast (sort vresults #'<)))))
 		 (/ (apply #'+ results) (length results))))))
-	(format (find-pane-named 'caption-pane)
+	(format (get-frame-pane *application-frame* 'caption-pane)
 	    "~%Each run of ~A took an average of ~3$ real, ~3$ virtual, ~3$ v/r seconds"
 	    name 
 	    time
@@ -1779,11 +1746,10 @@ Luke Luck licks the lakes Luke's duck likes."))
    window-dialog
    compound-dialog)))
 
-(define-command #-Old-Silica (run-benchmarks :command-table benchmarks :menu t)
-		#+Old-Silica run-benchmarks
+(define-command (run-benchmarks :command-table benchmarks :menu t)
     ()
   (multiple-value-bind (pathname comment)
-      (let ((stream (find-pane-named 'display-pane)))
+      (let ((stream (get-frame-pane *application-frame* 'display-pane)))
 	(window-clear stream)
 	(accepting-values (stream)
 	  (values (progn
@@ -1793,11 +1759,6 @@ Luke Luck licks the lakes Luke's duck likes."))
 		    (terpri stream)
 		    (accept 'string :prompt "Comment describing this run" :stream stream)))))
     (run-benchmarks-internal pathname comment)))
-
-#+Old-Silica (add-command-to-command-table "Run Benchmarks" 'run-benchmarks 'benchmarks)
-#+Old-Silica (add-menu-group-entry
-	   (ws::find-menu-group-prototype 'benchmarks :if-does-not-exist :create)
-	   "Run Benchmarks" :command '(run-benchmarks) :if-exists :supersede)
 
 (defun run-benchmarks-internal (pathname comment)
   (let ((data nil))
@@ -1813,14 +1774,13 @@ Luke Luck licks the lakes Luke's duck likes."))
       (when comment (format s ";~A~%" comment))
       (print data s))))
 
-(define-command #-Old-Silica (generate-report :command-table benchmarks :menu t)
-		#+Old-Silica generate-report
+(define-command (generate-report :command-table benchmarks :menu t)
     ()
   (let ((pathname nil)
 	(specs nil))
-    (let ((stream (find-pane-named 'display-pane)))
+    (let ((stream (get-frame-pane *application-frame* 'display-pane)))
       (window-clear stream)
-      (accepting-values (stream #-Old-Silica :resynchronize-every-pass #-Old-Silica t)
+      (accepting-values (stream :resynchronize-every-pass t)
 	(terpri stream)
 	(setq pathname (accept 'pathname :prompt "Pathname for report" :stream stream))
 	(dolist (s specs)
@@ -1834,11 +1794,6 @@ Luke Luck licks the lakes Luke's duck likes."))
 	  (when (not (eq spec default))
 	    (setq specs (nconc specs (list (coerce spec 'list))))))))
     (generate-report-internal specs pathname)))
-
-#+Old-Silica (add-command-to-command-table "Generate Report" 'generate-report 'benchmarks)
-#+Old-Silica (add-menu-group-entry
-	   (ws::find-menu-group-prototype 'benchmarks :if-does-not-exist :create)
-	   "Generate Report" :command '(generate-report) :if-exists :supersede)
 
 (defun generate-report-internal (specs pathname)
   ;; First collect the data files
@@ -2030,11 +1985,10 @@ Luke Luck licks the lakes Luke's duck likes."))
 (define-benchmark (stippled-shape-drawing :iterations 5) (stream)
   "Draw stippled shapes"
   (with-drawing-options (stream
-			  :ink #-Old-Silica (make-rectangular-tile
-					  (make-pattern #2a((0 1) (1 0))
-							(list +background-ink+ +foreground-ink+))
-					  2 2)
-			       #+Old-Silica (ci::make-stipple 2 2 '(#2r01 #2r10)))
+			  :ink (make-rectangular-tile
+				 (make-pattern #2a((0 1) (1 0))
+					       (list +background-ink+ +foreground-ink+))
+				 2 2))
     (shape-drawing-kernel stream 10 t)))
 
 (define-benchmark (clipped-shape-drawing :iterations 5) (stream)
@@ -2151,25 +2105,11 @@ Luke Luck licks the lakes Luke's duck likes."))
 
 ;;; Mouse sensitivity benchmarks
 
-#-Old-Silica
-(progn
 (define-presentation-type shape ())
 (define-presentation-type rect () :inherit-from 'shape)
 (define-presentation-type square () :inherit-from 'rect)
 (define-presentation-type circle () :inherit-from 'shape)
 (define-presentation-type triangle () :inherit-from 'shape)
-)	;#-Old-Silica
-
-
-#+Old-Silica
-;;--- Silica does not conform to the specification here
-(progn
-(define-presentation-type shape ())
-(define-presentation-type rect () :expander 'shape)
-(define-presentation-type square () :expander 'rect)
-(define-presentation-type circle () :expander 'shape)
-(define-presentation-type triangle () :expander 'shape)
-)	;#+Old-Silica
 
 (defun shape-presenting-kernel (stream n-shapes)
   (let ((delta (floor 400 n-shapes)))
@@ -2217,28 +2157,6 @@ Luke Luck licks the lakes Luke's duck likes."))
 	(write-string "This represents a circle" stream))
       (write-string "  " stream))))
 
-#+Old-Silica
-(defun find-innermost-applicable-presentation (input-context stream x y)
-  (flet ((predicate (presentation)
-	   #+Genera (declare (sys:downward-function))
-	   (if (atom input-context)
-	       (ci::presentation-type-applies-for-type
-		 ;; can we translate the presentation's object into the context type?
-		 (presentation-type presentation)
-		 input-context presentation x y stream nil 0)
-	       (dolist (context input-context)
-		 ;; --- handle old and new styles for the time being
-		 (let ((context (if (atom context) context (first context))))
-		   (when
-		     (ci::presentation-type-applies-for-type
-		       ;; can we translate the presentation's object
-		       ;; into the context type?
-		       (presentation-type presentation) context presentation x y
-		       stream nil 0)
-		     (return t)))))))
-    #+ignore (declare (dynamic-extent #'predicate))
-    (frame-find-presentation *frame* stream input-context x y #'predicate)))
-
 (defun make-fake-input-context (presentation-type)
   (let ((type (list presentation-type)))
     (list type (list 'catch-tag type))))
@@ -2252,10 +2170,6 @@ Luke Luck licks the lakes Luke's duck likes."))
       (do ((x 0 (+ x 10)))
 	  ((>= x 450))
 	(find-innermost-applicable-presentation input-context stream x y)))))
-
-#+Old-Silica
-(defun set-highlighted-presentation (stream presentation &optional (prefer t))
-  (ci::set-highlighted-presentation stream presentation prefer))
 
 (define-benchmark (highlight-shape-presentations) (stream)
   "Highlight graphical presentations"
@@ -2283,15 +2197,14 @@ Luke Luck licks the lakes Luke's duck likes."))
   "Highlight textual presentations"
   (text-presenting-kernel stream)
   (let ((input-context (make-fake-input-context 'shape))
-	#-Old-Silica (clim::*pointer-documentation-output* nil))
+	(*pointer-documentation-output* nil))
     (do ((y 0 (+ y 15)))
 	((>= y 200))
       (do ((x 0 (+ x 15)))
 	  ((>= x 450))
 	(stream-set-pointer-position* stream x y)
-	#-Old-Silica (highlight-applicable-presentation
-		   *application-frame* stream input-context nil)
-	#+Old-Silica (ci::highlight-presentation-of-type stream input-context nil)))))
+	 (highlight-applicable-presentation
+	   *application-frame* stream input-context nil)))))
 
 (define-presentation-type benchmark-menu-item ())
 
@@ -2313,8 +2226,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 				       'benchmark-menu-item
 				      :single-box t)
 	  (formatting-cell (stream)
-	    #-Old-Silica (print-menu-item item stream)
-	    #+Old-Silica (ci::print-menu-item item stream)))))
+	    (print-menu-item item stream)))))
     (fresh-line stream)
     (force-output stream)
     (multiple-value-bind (x1 y1)
@@ -2327,14 +2239,13 @@ Luke Luck licks the lakes Luke's duck likes."))
   (multiple-value-bind (y0 y1)
       (draw-menu-benchmark stream)
     (let ((input-context (make-fake-input-context 'benchmark-menu-item))
-	  #-Old-Silica (clim::*pointer-documentation-output* nil))
+	  (*pointer-documentation-output* nil))
       (repeat 10
 	(do ((y y0 (+ y 3)))
 	    ((>= y y1))
 	  (stream-set-pointer-position* stream 20 y)
-	  #-Old-Silica (highlight-applicable-presentation
-		     *application-frame* stream input-context nil)
-	  #+Old-Silica (ci::highlight-presentation-of-type stream input-context nil))))))
+	  (highlight-applicable-presentation
+	    *application-frame* stream input-context nil))))))
 
 
 ;;; Formatting benchmarks
@@ -2652,7 +2563,7 @@ Luke Luck licks the lakes Luke's duck likes."))
       (setf (aref table i) (* i 123)))
     (without-clim-input
       (accepting-values (stream :own-window t
-				#-Old-Silica :label #-Old-Silica "Enter some numbers")
+				:label "Enter some numbers")
 	(dotimes (i 20)
 	  (setf (aref table i) (accept 'integer :stream stream
 				       :query-identifier i
@@ -2701,7 +2612,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 	(terpri stream)
 	(with-room-for-graphics (stream)
 	  (let ((radius (/ square-dimension 2)))
-	    (with-drawing-options (stream #-Old-Silica :line-unit #-Old-Silica line-thickness-units
+	    (with-drawing-options (stream :line-unit line-thickness-units
 					  :line-thickness line-thickness)
 	      (when draw-square
 		(draw-polygon* stream (list 0 0
@@ -2756,7 +2667,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 
 #+Silica
 (define-application-frame clim-tests ()
-  (caption-pane display-pane)
+    ()
   (:command-table (clim-tests
 		   :inherit-from (graphics
 				  output-recording
@@ -2776,78 +2687,40 @@ Luke Luck licks the lakes Luke's duck likes."))
   (:command-definer nil)
   (:panes 
    (caption-pane
-    (silica::scrolling
-     ()
-     (silica::realize-pane
-      'clim-internals::application-pane
-      :height 50
-      )))
+    (scrolling ()
+      (realize-pane 'application-pane :height 50)))
    (display-pane 
-    (silica::scrolling
-     ()
-     (silica::realize-pane
-      'clim-internals::application-pane))))
+    (scrolling ()
+      (realize-pane 'application-pane))))
   (:layout
    (:default
-       (vertically () caption-pane display-pane))))
+     (vertically () caption-pane display-pane))))
 
-#-Old-Silica
 (defmethod frame-standard-output ((frame clim-tests))
   (get-frame-pane frame 'display-pane))
     
-#+(and Genera (not Old-Silica))
+#+Genera
 (define-genera-application clim-tests :select-key #\Circle
 			   :width 600 :height 420)
 
-#+Old-Silica
-(define-application-frame clim-tests ()
-    ((caption-pane)
-     (display-pane))
-  (:menu-group clim-tests-menu)
-  ;; Why do we need this?
-  (:command-definer T)
-  (:pane 
-    (with-frame-slots (caption-pane display-pane)
-      (vertically ()
-	(make-clim-pane (caption-pane :vs 50 :vs+ 0)
-			:default-text-style '(:sans-serif :roman :small))
-	(make-clim-pane (display-pane)))))
-  (:top-level (clim-top-level)))
-
-#+Old-Silica
-(define-menu-group clim-tests-menu
-  (("Graphics" :menu-group 'graphics)
-   ("Output Recording" :menu-group 'output-recording)
-   ("Formatted Output" :menu-group 'formatted-output)
-   ("Redisplay" :menu-group 'redisplay)
-   ("Presentations" :menu-group 'presentations)
-   ("Menus and Dialogs" :menu-group 'menus-and-dialogs)
-   ("Benchmarks" :menu-group 'benchmarks)
-   ("Exit" :command '(exit-clim-tests))))
-
-(define-command #-Old-Silica (exit-clim-tests :command-table clim-tests)
-		#+Old-Silica exit-clim-tests
+(define-command (exit-clim-tests :command-table clim-tests)
     ()
-  #+(and Genera (not Old-Silica)) (setf (window-visibility
-				      (frame-top-level-window *application-frame*)) nil)
-  #-(or Genera Old-Silica) (frame-exit *application-frame*)
-  #+Old-Silica (with-frame (frame) (stop-frame frame)))
+  #+(and Genera (not Silica))
+  (setf (window-visibility (frame-top-level-window *application-frame*)) nil)
+  (frame-exit *application-frame*))
 
-#+Old-Silica (add-command-to-command-table "Exit" 'exit-clim-tests 'clim-tests)
+(defvar *test-suite-frame* nil)
 
-#-(or Genera Old-Silica)
-(defvar *test-suite-frames* nil)
-
-#-(or Genera Old-Silica)
+#-Silica
 (defvar *test-root* nil)
 
-#-(or Genera Old-Silica)
+#-Silica
 (defun do-test-suite (&optional (root *test-root*))
   (unless root
     (lisp:format t "~&No current value for *TEST-ROOT*.  Use what value? ")
     (setq root (eval (lisp:read)))
     (setq *test-root* root))
-  (let* ((entry (assoc root *test-suite-frames*))
+  (let* ((entry (assoc root *test-suite-frame*))
 	 (test (cdr entry)))
     (when (null test)
       ;; The canonical test suite has a canonical size, on every kind of platform
@@ -2858,9 +2731,15 @@ Luke Luck licks the lakes Luke's duck likes."))
 					   :width width :height height))))
     (if entry
 	(setf (cdr entry) test)
-        (push (cons root test) *test-suite-frames*))
+        (push (cons root test) *test-suite-frame*))
     (run-frame-top-level test)))
 
-#+Old-Silica
+#+Silica
 (defun do-test-suite ()
-  (launch-frame 'clim-tests :wait-until-done T :width 600 :height 420 :create t))
+  (let* ((width 600)
+	 (height 420)
+	 (test (or *test-suite-frame*
+		   (make-application-frame 'clim-tests
+					   :width width :height height))))
+    (setq *test-suite-frame* test)
+    (run-frame-top-level test)))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: postscript-implementation.lisp,v 1.5 91/03/26 12:48:27 cer Exp $
+;; $fiHeader: postscript-implementation.lisp,v 1.1 92/01/31 14:28:01 cer Exp $
 
 (in-package :clim-internals)
 
@@ -192,13 +192,12 @@
 	       (psname (second famdat)))
 	  `(,psname ,face ,points)))))
 
-(defun keywordify-style-face (n)
-  (let ((tem (face-code->face n)))
-    (cond ((eq tem ':roman) nil)
-	  ((atom tem) tem)
-	  ((equal tem '(:bold :italic)) :bold-italic)
-	  ((equal tem '(:italic :bold)) :bold-italic)
-	  (t (list :numeric-code n)))))
+(defun keywordify-style-face (face)
+  (cond ((eq face ':roman) nil)
+	((atom face) face)
+	((equal face '(:bold :italic)) :bold-italic)
+	((equal face '(:italic :bold)) :bold-italic)
+	(t (list :numeric-code face))))
 
 (defun point-size-for-size-keyword (size-keyword family-data)
   (nth (or (position size-keyword *psftd-keywords*)
@@ -837,7 +836,7 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
   (unless end
     (setq end (length string)))
   (unless text-style
-    (setq text-style (stream-merged-text-style stream)))
+    (setq text-style (medium-merged-text-style stream)))
   (translate-positions x-offset y-offset x y)
   (let* ((fcs (get-font-compat-str stream text-style))
 	 (height (round-up (psfck-clim-height fcs)))
@@ -1032,16 +1031,6 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
 			(error "No info for PostScript family ~A face ~A." psfam face))))
  	 (cname (first info)))
     (numberp cname)))
-
-(defmethod text-size ((stream postscript-implementation-mixin) string
-		      &key (text-style (stream-merged-text-style stream)) (start 0) end)
-  (when (characterp string)
-    (setq string (string string)
-	  start 0
-	  end nil))
-  (multiple-value-bind (last-x largest-x last-y total-height baseline)
-      (stream-string-output-size stream string :text-style text-style :start start :end end)
-    (values largest-x total-height last-x last-y baseline)))
 
 
 (defclass postscript-device (display-device)

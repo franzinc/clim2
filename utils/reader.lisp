@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader$
+;; $fiHeader: reader.lisp,v 1.4 92/01/31 15:07:27 cer Exp $
 
 (in-package :clim-utils)
 
@@ -27,8 +27,7 @@
 			;; Also check to see if there's a keyword
 			;; feature of the same name.
 			(and (symbolp feature)
-			     (member (intern (symbol-name feature)
-					     (find-package 'keyword))
+			     (member (intern (symbol-name feature) :keyword)
 				     *features*))))
 		   ((eq (first feature) 'not)
 		    (not (feature-p (cadr feature))))

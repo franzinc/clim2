@@ -1,4 +1,5 @@
-;; -*- mode: common-lisp; package: silica -*-
+;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
+
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
@@ -18,29 +19,29 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: macros.cl,v 1.2 92/01/02 15:32:54 cer Exp $
+;; $fiHeader: macros.lisp,v 1.3 92/01/31 14:55:43 cer Exp $
 
 (in-package :silica)
 
 
 (defmacro with-sheet-medium ((medium sheet) &body body)
-  `(with-sheet-medium-1 
-    ,sheet 
-    #'(lambda (,medium) ,@body)))
+  `(flet ((with-sheet-medium-body (,medium) ,@body))
+     (declare (dynamic-extent #'with-sheet-medium-body))
+     (invoke-with-sheet-medium ,sheet #'with-sheet-medium-body)))
 
 (defmacro with-sheet-medium-bound ((sheet medium) &body body)
-  `(with-sheet-medium-bound-1
-    ,sheet
-    ,medium
-    #'(lambda () ,@body)))
+  `(flet ((with-sheet-medium-bound-body () ,@body))
+     (declare (dynamic-extent #'with-sheet-medium-bound-body))
+     (invoke-with-sheet-medium-bound ,sheet ,medium 
+				     #'with-sheet-medium-bound-body)))
 
 (defmacro with-temporary-medium ((medium sheet) &body body)
-  (let ((s (gensym)))
-    `(let* ((,s ,sheet)
-	    (,medium (allocate-medium (sheet-port ,s) ,s)))
+  (let ((sheet-var '#:sheet))
+    `(let* ((,sheet-var ,sheet)
+	    (,medium (allocate-medium (sheet-port ,sheet-var) ,sheet-var)))
        (unwind-protect
 	   (progn ,@body)
-	 (deallocate-medium (sheet-port ,s) ,medium)))))
+	 (deallocate-medium (sheet-port ,sheet-var) ,medium)))))
 
 
 (defmacro with-port-locked ((port) &body body)
@@ -48,11 +49,11 @@
      ,@body))
 
 (defmacro with-graft-locked ((graft) &body body)
-  `(with-lock-held ((graft-lock (sheet-graft graft)))
+  `(with-lock-held ((graft-lock (sheet-graft ,graft)))
      ,@body))
 
 
-(defmacro with-look-and-feel-realization ((realizer frame) &rest forms)
-  `(macrolet ((realize-pane (&rest foo)
-		`(realize-pane-1 ,',realizer ,',frame ,@foo)))
+(defmacro with-look-and-feel-realization ((frame-manager frame) &body forms)
+  `(macrolet ((realize-pane (&rest args)
+		`(realize-pane-1 ,',frame-manager ,',frame ,@args)))
      ,@forms))

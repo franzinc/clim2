@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-frames.cl,v 1.1 92/01/17 17:46:52 cer Exp $
+;; $fiHeader: ol-frames.lisp,v 1.2 92/01/31 14:56:00 cer Exp $
 
 
 (in-package :xm-silica)
@@ -29,4 +29,4 @@
 	  ())
 
 (defmethod make-frame-manager ((port openlook-port))
-  (make-instance ' openlook-frame-manager :port port))
+  (make-instance 'openlook-frame-manager :port port))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: regions.lisp,v 1.6 91/03/29 18:02:06 cer Exp $
+;; $fiHeader: regions.lisp,v 1.3 92/01/31 14:52:53 cer Exp $
 
 (in-package :clim-utils)
 
@@ -274,121 +274,6 @@
       (multiple-value-bind (end-x end-y) (line-end-point* line)
 	(format stream "(~D,~D)->(~D,~D)" start-x start-y end-x end-y)))))
 
-
-(defclass standard-line (line)
-    ((start-x :initarg :start-x :type real)
-     (start-y :initarg :start-y :type real)
-     (end-x :initarg :end-x :type real)
-     (end-y :initarg :end-y :type real)
-     (points :type simple-vector :initarg :points :reader polygon-points)))
-
-(define-constructor make-line-1 standard-line (start-x start-y end-x end-y points)
-		    :start-x start-x :start-y start-y :end-x end-x :end-y end-y :points points)
-
-(defun make-line (start-point end-point)
-  (make-line-1 (point-x start-point) (point-y start-point)
-	       (point-x end-point) (point-y end-point)
-	       (vector start-point end-point)))
-
-(define-constructor make-line*-1 standard-line (start-x start-y end-x end-y)
-		    :start-x start-x :start-y start-y :end-x end-x :end-y end-y)
-
-(defun make-line* (start-x start-y end-x end-y)
-  (make-line*-1 start-x start-y end-x end-y))
-
-(defmethod make-load-form ((line standard-line))
-  `(make-line ',(line-start-point line) ',(line-end-point line)))
-
-(defmethod slot-unbound (class (line standard-line) (slot (eql 'points)))
-  (declare (ignore class))
-  (with-slots (points start-x start-y end-x end-y) line
-    (setf points (vector (make-point start-x start-y) (make-point end-x end-y)))))
-
-(defmethod line-start-point ((line standard-line))
-  (with-slots (points) line
-    (svref points 0)))
-
-(defmethod line-start-point* ((line standard-line))
-  (with-slots (start-x start-y) line
-    (values start-x start-y)))
-
-(defmethod line-end-point ((line standard-line))
-  (with-slots (points) line
-    (svref points 1)))
-
-(defmethod line-end-point* ((line standard-line))
-  (with-slots (end-x end-y) line
-    (values end-x end-y)))
-
-(defmethod polyline-closed ((line standard-line))
-  nil)
-
-(defmethod map-over-polygon-coordinates (function (line standard-line))
-  (with-slots (start-x start-y end-x end-y) line
-    (funcall function start-x start-y)
-    (funcall function end-x end-y)
-    nil))
-
-(defmethod map-over-polygon-segments (function (line standard-line))
-  (with-slots (start-x start-y end-x end-y) line
-    (funcall function start-x start-y end-x end-y)
-    nil))
-
-(defmethod region-equal ((line1 standard-line) (line2 standard-line))
-  (with-slots ((sx1 start-x) (sy1 start-y) (ex1 end-x) (ey1 end-y)) line1
-    (with-slots ((sx2 start-x) (sy2 start-y) (ex2 end-x) (ey2 end-y)) line2
-      (or (and (= sx1 sx2) (= sy1 sy2) (= ex1 ex2) (= ey1 ey2))
-	  (and (= sx1 ex2) (= sy1 ey2) (= ex1 sx2) (= ey1 sy2))))))
-
-;; By using perpendicular-distance from line instead of slope and intercept
-;; we don't have to worry about divide by zero in slope and we're also more
-;; robust against roundoff error.
-(defmethod region-contains-point*-p ((line standard-line) x y)
-  (with-slots (start-x start-y end-x end-y) line
-    (let ((x1 start-x) (y1 start-y) (x2 end-x) (y2 end-y))
-      (when (or (<= x1 x x2)
-		(>= x1 x x2))
-	(= (+ (* (- y2 y1) x)
-	      (* (- x1 x2) y))
-	   (- (* x1 y2) (* x2 y1)))))))
-
-(defmethod region-contains-region-p ((line1 standard-line) (line2 standard-line))
-  (with-slots (start-x start-y end-x end-y) line2
-    (and (region-contains-point*-p line1 start-x start-y)
-	 (region-contains-point*-p line1 end-x end-y))))
-
-(defmethod region-intersects-region-p ((line1 standard-line) (line2 standard-line))
-  (with-slots ((sx1 start-x) (sy1 start-y) (ex1 end-x) (ey1 end-y)) line1
-    (with-slots ((sx2 start-x) (sy2 start-y) (ex2 end-x) (ey2 end-y)) line2
-      (let ((sx1 sx1) (sy1 sy1) (ex1 ex1) (ey1 ey1)
-	    (sx2 sx2) (sy2 sy2) (ex2 ex2) (ey2 ey2))
-	(and (>= (max sx2 ex2) (min sx1 ex1))
-	     (>= (max sx1 ex1) (min sx2 ex2))
-	     (let ((dx1 (- ex1 sx1)) (dy1 (- ey1 sy1))
-		   (dx2 (- ex2 sx2)) (dy2 (- ey2 sy2)))
-	       (and (= (* dx1 dy2) (* dx2 dy1)) ;slopes equal
-		    (= (* dx1 (- sy1 sy2)) (* dy1 (- sx1 sx2))))))))))
-
-(defmethod region-intersection ((line1 standard-line) (line2 standard-line))
-  (if (region-intersects-region-p line1 line2)
-      (with-slots ((sx1 start-x) (sy1 start-y) (ex1 end-x) (ey1 end-y)) line1
-	(with-slots ((sx2 start-x) (sy2 start-y) (ex2 end-x) (ey2 end-y)) line2
-	  (make-line* (max sx1 sx2) (max sy1 sy2) (min ex1 ex2) (min ey1 ey2))))
-      +nowhere+))
-
-(defmethod transform-region (transformation (line standard-line))
-  (with-slots (start-x start-y end-x end-y) line
-    (multiple-value-bind (sx sy)
-	(transform-point* transformation start-x start-y)
-      (multiple-value-bind (ex ey)
-	  (transform-point* transformation end-x end-y)
-	(make-line* sx sy ex ey)))))
-
-(defmethod bounding-rectangle* ((line standard-line))
-  (with-slots (start-x start-y end-x end-y) line
-    (fix-rectangle (min start-x end-x) (min start-y end-y)
-		   (max start-x end-x) (max start-y end-y))))
-
 
 ;;; Areas
 
@@ -404,6 +289,8 @@
 	(rectangle-edges* rectangle)
       (format stream "/x ~D:~D y ~D:~D/" left right top bottom))))
 
+
+;;; Rectangles
 
 (defclass standard-rectangle (rectangle)
     ((min-x :initarg :min-x :reader rectangle-min-x :type real)
@@ -424,8 +311,8 @@
 			(vector min-point (make-point min-x max-y)
 				max-point (make-point max-x min-y))))))
 
-(define-constructor make-rectangle*-1 standard-rectangle (min-x min-y max-x max-y)
-  :min-x min-x :min-y min-y :max-x max-x :max-y max-y)
+(define-constructor make-rectangle*-1 standard-rectangle (x1 y1 x2 y2)
+  :min-x x1 :min-y y1 :max-x x2 :max-y y2)
 
 (defun make-rectangle* (x1 y1 x2 y2)
   (when (> x1 x2) (rotatef x1 x2))
@@ -435,6 +322,10 @@
 (defmethod make-load-form ((rectangle standard-rectangle))
   `(make-rectangle* ,(rectangle-min-x rectangle) ,(rectangle-min-y rectangle)
 		    ,(rectangle-max-x rectangle) ,(rectangle-max-y rectangle)))
+
+(defmethod rectangle-edges* ((rectangle standard-rectangle))
+  (with-slots (min-x min-y max-x max-y) rectangle
+    (values min-x min-y max-x max-y)))
 
 (defmethod slot-unbound (class (rectangle standard-rectangle) (slot (eql 'points)))
   (declare (ignore class))
@@ -449,10 +340,6 @@
 (defmethod rectangle-max-point ((rectangle standard-rectangle))
   (with-slots (points) rectangle
     (svref points 2)))
-
-(defmethod rectangle-edges* ((rectangle standard-rectangle))
-  (with-slots (min-x min-y max-x max-y) rectangle
-    (values min-x min-y max-x max-y)))
 
 (defmethod rectangle-width ((rectangle standard-rectangle))
   (with-slots (min-x max-x) rectangle
@@ -527,117 +414,6 @@
     (fix-rectangle (min min-x max-x) (min min-y max-y)
 		   (max min-x max-x) (max min-y max-y))))
 
-
-;;; General polygons
-
-(defclass polygon-mixin ()
-    ((coords :type vector :initarg :coords)
-     (points :type vector :initarg :points :reader polygon-points)))
-
-(defmethod map-over-polygon-coordinates (function (polygon polygon-mixin))
-  (with-slots (coords points) polygon
-    (if (slot-boundp polygon 'coords)
-	(let ((ncoords (1- (length coords)))
-	      (i -1))
-	  (loop
-	    (funcall function (aref coords (incf i)) (aref coords (incf i)))
-	    (when (= i ncoords) (return)))
-	  nil)
-	(flet ((map-coordinates (point)
-		 (funcall function (point-x point) (point-y point))))
-	  (declare (dynamic-extent #'map-coordinates))
-	  (map nil #'map-coordinates points))))
-  nil)
-
-(defmethod map-over-polygon-segments (function (polygon polygon-mixin))
-  (with-slots (coords points) polygon
-    (if (slot-boundp polygon 'coords)
-	(let* ((ncoords (1- (length coords)))
-	       (x1 (aref coords 0))
-	       (y1 (aref coords 1))
-	       (x x1)
-	       (y y1)
-	       (i 1))
-	  (loop
-	    (funcall function x y
-		     (setf x (aref coords (incf i))) (setf x (aref coords (incf i))))
-	    (when (= i ncoords) (return)))
-	  (when (polyline-closed polygon)
-	    (funcall function x y x1 y1)))
-	(multiple-value-bind (x1 y1)
-	    (point-position* (aref points 0))
-	  (let ((x x1) (y y1))
-	    (dotimes (i (1- (length points)))
-	      (multiple-value-bind (nx ny)
-		  (point-position* (aref points (1+ i)))
-		(funcall function x y nx ny)
-		(psetf x nx y ny)))
-	    (when (polyline-closed polygon)
-	      (funcall function x y x1 y1)))))
-    nil))
-
-(defmethod bounding-rectangle* ((polygon polygon-mixin))
-  (let ((min-x nil) (min-y nil) (max-x nil) (max-y nil))
-    (flet ((add-coord (x y)
-	     (minf-or min-x x)
-	     (minf-or min-y y)
-	     (maxf-or max-x x)
-	     (maxf-or max-y y)))
-      (declare (dynamic-extent #'add-coord))
-      (map-over-polygon-coordinates #'add-coord polygon))
-    (fix-rectangle min-x min-y max-x max-y)))
-
-
-(defclass standard-polyline (polygon-mixin polyline)
-    ((closed :initarg :closed :reader polyline-closed)))
-
-(define-constructor make-polyline standard-polyline (point-seq &key closed)
-		    :points (coerce point-seq 'vector) :closed closed)
-
-(define-constructor make-polyline* standard-polyline (coord-seq &key closed)
-		    :coords (coerce coord-seq 'vector) :closed closed)
-
-(defmethod make-load-form ((polyline standard-polyline))
-  (with-slots (closed) polyline
-    `(make-polyline ',(polygon-points polyline) :closed ,closed)))
-
-(defmethod transform-region (transformation (polyline standard-polyline))
-  (let ((coords nil))
-    (flet ((transform-coord (x y)
-	     (multiple-value-bind (nx ny)
-		 (transform-point* transformation x y)
-	       (push ny coords)
-	       (push nx coords))))
-      (declare (dynamic-extent #'transform-coord))
-      (map-over-polygon-coordinates #'transform-coord polyline))
-    (make-polyline* (nreverse coords) :closed (slot-value polyline 'closed))))
-
-
-(defclass standard-polygon (polygon-mixin polygon) ())
-
-(define-constructor make-polygon standard-polygon (point-seq)
-		    :points (coerce point-seq 'vector))
-
-(define-constructor make-polygon* standard-polygon (coord-seq)
-		    :coords (coerce coord-seq 'vector))
-
-(defmethod make-load-form ((polygon standard-polygon))
-  `(make-polygon ',(polygon-points polygon)))
-
-(defmethod polyline-closed ((polygon standard-polygon))
-  t)
-
-(defmethod transform-region (transformation (polygon standard-polygon))
-  (let ((coords nil))
-    (flet ((transform-coord (x y)
-	     (multiple-value-bind (nx ny)
-		 (transform-point* transformation x y)
-	       (push ny coords)
-	       (push nx coords))))
-      (declare (dynamic-extent #'transform-coord))
-      (map-over-polygon-coordinates #'transform-coord polygon))
-    (make-polygon* (nreverse coords))))
-
 
 ;;; General ellipses
 
@@ -645,290 +421,13 @@
 
 (define-protocol-class ellipse (area))
 
-
-(defclass ellipse-mixin ()
-    ((center-point :type point :initarg :center-point :reader ellipse-center-point)
-     (center-x :initarg :center-x :type real)
-     (center-y :initarg :center-y :type real)
-     (radius-1-dx :initarg :radius-1-dx :type real)
-     (radius-1-dy :initarg :radius-1-dy :type real)
-     (radius-2-dx :initarg :radius-2-dx :type real)
-     (radius-2-dy :initarg :radius-2-dy :type real)
-     (start-angle :initarg :start-angle :reader ellipse-start-angle :type single-float)
-     (end-angle :initarg :end-angle :reader ellipse-end-angle :type single-float)))
-
-(defmethod slot-unbound (class (ellipse ellipse-mixin) (slot (eql 'ellipse-center-point)))
-  (declare (ignore class))
-  (with-slots (center-point center-x center-y) ellipse
-    (setf center-point (make-point center-x center-y))))
-
-(defmethod ellipse-center-point* ((ellipse ellipse-mixin))
-  (with-slots (center-x center-y) ellipse
-    (values center-x center-y)))
-
-(defmethod ellipse-radii ((ellipse ellipse-mixin))
-  (with-slots (radius-1-dx radius-1-dy radius-2-dx radius-2-dy) ellipse
-    (values radius-1-dx radius-1-dy radius-2-dx radius-2-dy)))
-
-
-(defclass standard-elliptical-arc (ellipse-mixin elliptical-arc) ())
-
-(define-constructor make-elliptical-arc standard-elliptical-arc
-  (center-point radius-1-dx radius-1-dy radius-2-dx radius-2-dy
-		&key start-angle end-angle)
-  :center-point center-point :center-x (point-x center-point) :center-y (point-y center-point)
-  :radius-1-dx radius-1-dx :radius-1-dy radius-1-dy
-  :radius-2-dx radius-2-dx :radius-2-dy radius-2-dy
-  :start-angle (cond (start-angle (float start-angle 0f0))
-		     (end-angle 0f0)
-		     (t nil))
-  :end-angle (cond (end-angle (float end-angle 0f0))
-		   (start-angle (float (* 2 pi) 0f0))
-		   (t nil)))
-
-(define-constructor make-elliptical-arc* standard-elliptical-arc
-  (center-x center-y radius-1-dx radius-1-dy radius-2-dx radius-2-dy
-	    &key start-angle end-angle)
-  :center-x center-x :center-y center-y
-  :radius-1-dx radius-1-dx :radius-1-dy radius-1-dy
-  :radius-2-dx radius-2-dx :radius-2-dy radius-2-dy
-  :start-angle (cond (start-angle (float start-angle 0f0))
-		     (end-angle 0f0)
-		     (t nil))
-  :end-angle (cond (end-angle (float end-angle 0f0))
-		   (start-angle (float (* 2 pi) 0f0))
-		   (t nil)))
-
-(defmethod make-load-form ((ellipse standard-elliptical-arc))
-  (with-slots (center-point radius-1-dx radius-1-dy radius-2-dx radius-2-dy
-	       start-angle end-angle) ellipse
-    `(make-elliptical-arc ',center-point
-			  ,radius-1-dx ,radius-1-dy ,radius-2-dx ,radius-2-dy
-			  ,@(when start-angle `(:start-angle ,start-angle))
-			  ,@(when end-angle `(:end-angle ,end-angle)))))
-
-(defmethod transform-region (transformation (ellipse standard-elliptical-arc))
-  (with-slots (center-x center-y radius-1-dx radius-1-dy radius-2-dx radius-2-dy
-	       start-angle end-angle) ellipse
-    (multiple-value-bind (cx cy)
-	(transform-point* transformation center-x center-y)
-      (multiple-value-bind (r1-dx r1-dy)
-	  (transform-distance transformation radius-1-dx radius-1-dy)
-	(multiple-value-bind (r2-dx r2-dy)
-	    (transform-distance transformation radius-2-dx radius-2-dy)
-	  (make-elliptical-arc* cx cy r1-dx r1-dy r2-dx r2-dy
-				;;--- How to transform start and end angles?
-				:start-angle start-angle :end-angle end-angle))))))
-
-(defmethod bounding-rectangle* ((ellipse standard-elliptical-arc))
-  (with-slots (center-x center-y radius-1-dx radius-1-dy radius-2-dx radius-2-dy
-	       start-angle end-angle) ellipse
-    (elliptical-arc-box center-x center-y radius-1-dx radius-1-dy radius-2-dx radius-2-dy
-			start-angle end-angle 0)))
-
-
-(defclass standard-ellipse (ellipse-mixin ellipse) ())
-
-(define-constructor make-ellipse standard-ellipse
-  (center-point radius-1-dx radius-1-dy radius-2-dx radius-2-dy
-		&key start-angle end-angle)
-  :center-point center-point :center-x (point-x center-point) :center-y (point-y center-point)
-  :radius-1-dx radius-1-dx :radius-1-dy radius-1-dy
-  :radius-2-dx radius-2-dx :radius-2-dy radius-2-dy
-  :start-angle (cond (start-angle (float start-angle 0f0))
-		     (end-angle 0f0)
-		     (t nil))
-  :end-angle (cond (end-angle (float end-angle 0f0))
-		   (start-angle (float (* 2 pi) 0f0))
-		   (t nil)))
-
-(define-constructor make-ellipse* standard-ellipse
-  (center-x center-y radius-1-dx radius-1-dy radius-2-dx radius-2-dy
-	    &key start-angle end-angle)
-  :center-x center-x :center-y center-y
-  :radius-1-dx radius-1-dx :radius-1-dy radius-1-dy
-  :radius-2-dx radius-2-dx :radius-2-dy radius-2-dy
-  :start-angle (cond (start-angle (float start-angle 0f0))
-		     (end-angle 0f0)
-		     (t nil))
-  :end-angle (cond (end-angle (float end-angle 0f0))
-		   (start-angle (float (* 2 pi) 0f0))
-		   (t nil)))
-
-(defmethod make-load-form ((ellipse standard-ellipse))
-  (with-slots (center-point radius-1-dx radius-1-dy radius-2-dx radius-2-dy
-			    start-angle end-angle) ellipse
-    `(make-ellipse ',center-point
-		   ,radius-1-dx ,radius-1-dy ,radius-2-dx ,radius-2-dy
-		   ,@(when start-angle `(:start-angle ,start-angle))
-		   ,@(when end-angle `(:end-angle ,end-angle)))))
-
-(defmethod transform-region (transformation (ellipse standard-ellipse))
-  (with-slots (center-x center-y radius-1-dx radius-1-dy radius-2-dx radius-2-dy
-	       start-angle end-angle) ellipse
-    (multiple-value-bind (cx cy)
-	(transform-point* transformation center-x center-y)
-      (multiple-value-bind (r1-dx r1-dy)
-	  (transform-distance transformation radius-1-dx radius-1-dy)
-	(multiple-value-bind (r2-dx r2-dy)
-	    (transform-distance transformation radius-2-dx radius-2-dy)
-	  (make-ellipse* cx cy r1-dx r1-dy r2-dx r2-dy
-			 ;;--- How to transform start and end angles?
-			 :start-angle start-angle :end-angle end-angle))))))
-
-(defmethod bounding-rectangle* ((ellipse standard-ellipse))
-  (with-slots (center-x center-y radius-1-dx radius-1-dy radius-2-dx radius-2-dy
-	       start-angle end-angle) ellipse
-    (elliptical-arc-box center-x center-y radius-1-dx radius-1-dy radius-2-dx radius-2-dy
-			start-angle end-angle nil)))
-
-
-;;; Geometry utilities
-
-(defconstant pi-single-float (coerce pi 'single-float))
-(defconstant  2pi (coerce (* pi-single-float 2) 'single-float))
-(defconstant pi/2 (coerce (/ pi-single-float 2) 'single-float))
-
-(defun radians->degrees (radians)
-  (* radians (/ 360 2pi)))
-
-(defun degrees->radians (degrees)
-  (* degrees (/ 2pi 360)))
-
-;; This macro wouldn't be necessary if we could count on (expt (expression) 2)
-;; being optimized properly
-(defmacro square (expression)
-  (if (symbolp expression)
-      `(* ,expression ,expression)
-      (let ((var (gensymbol)))
-	`(let ((,var ,expression))
-	   (* ,var ,var)))))
-
-;; This runs when we already know that the point is inside the bounding box.
-(defun point-close-to-line-p (x y from-x from-y to-x to-y &optional (thickness 1))
-  (let ((distance (1+ (ceiling thickness 2)))
-	(dx (- to-x from-x))
-	(dy (- to-y from-y)))
-    (or (and (zerop dx) (zerop dy))
-	(<= (square (- (* y dx) (* x dy) (- (* from-y to-x) (* from-x to-y))))
-	    (* (square distance) (+ (square dx) (square dy)))))))
-
-;; Computes whether a point is inside an ellipse whose center is (0,0).
-;; This calculation is exact.
-(defun point-inside-ellipse-p (x y radius-1-dx radius-1-dy radius-2-dx radius-2-dy)
-  (<= (+ (square (- (* radius-2-dy x) (* radius-2-dx y)))
-	 (square (- (* radius-1-dx y) (* radius-1-dy x))))
-      (square (- (* radius-1-dx radius-2-dy) (* radius-1-dy radius-2-dx)))))
-
-;; Computes whether a point is on a stroked ellipse whose center is (0,0).
-;; This calculation is not exact - the envelope of an ellipse is not an ellipse
-;; and an "average radius" is used - but it should be ok for thickness small
-;; compared to radii.  The calculation is exact for circles.
-(defun point-on-thick-ellipse-p (x y radius-1-dx radius-1-dy radius-2-dx radius-2-dy
-				 half-thickness)
-  (let* ((det (- (* radius-1-dx radius-2-dy) (* radius-1-dy radius-2-dx)))
-	 (avrad*delta (* (sqrt (abs det)) half-thickness)))
-    (<= (square (- det avrad*delta))
-	(+ (square (- (* radius-2-dy x) (* radius-2-dx y)))
-	   (square (- (* radius-1-dx y) (* radius-1-dy x))))
-	(square (+ det avrad*delta)))))
-
-;; Find the singular value decomposition of a 2 by 2 matrix: M = R1.D.R2
-;; where R's are rotations and D is diagonal.  The four values returned
-;; are the first angle, the two diagonal elements, and the second angle.
-;; Used to convert CLIM's representation of ellipses to various window
-;; systems' representations.
-(defun 2x2-singular-value-decomposition (a b c d)
-  (cond ((and (zerop b) (zerop c))
-	 (values 0.0 a d 0.0))
-	((and (zerop a) (zerop d))
-	 (values pi/2 b (- c) 0.0))
-	(T
-	 (let* ((d+a (+ d a)) (a-d (- a d))
-		(c+b (+ c b)) (c-b (- c b))
-		(sx+sy (sqrt (+ (square d+a) (square c-b))))
-		(sx-sy (sqrt (+ (square a-d) (square c+b))))
-		(sx (* 0.5 (+ sx+sy sx-sy)))
-		(sy (* 0.5 (- sx+sy sx-sy)))
-		(t1+t2 (if (and (zerop c-b) (zerop d+a)) 0.0 (atan c-b d+a)))
-		(t1-t2 (if (and (zerop c+b) (zerop a-d)) 0.0 (atan c+b a-d)))
-		(t1 (* 0.5 (+ t1+t2 t1-t2)))
-		(t2 (* 0.5 (- t1+t2 t1-t2))))
-	   (values t2 sx sy t1)))))
-
-;; For a complete ellipse, the box is actually the rectangle that bounds
-;; the parallelogram that bounds the ellipse.  That means it's a little
-;; bigger than the tightest possible bounding box when the ellipse is
-;; not axis-aligned.  It's not worth computing anything tighter because
-;; the refined highlighting test will be faster than the computation of
-;; a tighter box.
-(defun elliptical-arc-box (center-x center-y radius-1-dx radius-1-dy radius-2-dx radius-2-dy
-			   theta-1 theta-2 thickness)
-  (let* ((filled (null thickness))
-	 (thickness (or thickness 0))
-	 (lthickness (floor thickness 2))
-	 (rthickness (- thickness lthickness)))
-    (when (null theta-1)
-      (return-from elliptical-arc-box
-	(let ((dx (+ (abs radius-1-dx) (abs radius-2-dx)))
-	      (dy (+ (abs radius-1-dy) (abs radius-2-dy))))
-	  (fix-rectangle (- center-x dx lthickness) (- center-y dy lthickness)
-			 (+ center-x dx rthickness) (+ center-y dy rthickness)))))
-    (setq theta-1 (mod theta-1 2pi)
-	  theta-2 (mod theta-2 2pi))
-    (multiple-value-bind (x-radius y-radius)
-	(cond ((and (= radius-1-dx 0) (= radius-2-dy 0))
-	       (values (abs radius-2-dx) (abs radius-1-dy)))
-	      ((and (= radius-2-dx 0) (= radius-1-dy 0))
-	       (values (abs radius-1-dx) (abs radius-2-dy)))
-	      (t
-	       (let ((s-1 (+ (* radius-1-dx radius-1-dx) 
-			     (* radius-1-dy radius-1-dy)))
-		     (s-2 (+ (* radius-2-dx radius-2-dx) 
-			     (* radius-2-dy radius-2-dy))))
-		 (if (= s-1 s-2)
-		     (let ((r (truncate (sqrt s-1))))
-		       (values r r))
-		   ;; Degrade to drawing a rectilinear ellipse
-		   (values (truncate (sqrt s-1)) 
-			   (truncate (sqrt s-2)))))))
-      (let* ((x1 (+ center-x (* x-radius (cos theta-1))))
-	     (y1 (+ center-y (* y-radius (sin theta-1))))
-	     (x2 (+ center-x (* x-radius (cos theta-2))))
-	     (y2 (+ center-y (* y-radius (sin theta-2))))
-	     (left (min x1 x2))
-	     (top (min y1 y2))
-	     (right (max x1 x2))
-	     (bottom (max y1 y2)))
-	(when (angle-between-angles-p pi-single-float theta-1 theta-2)
-	  (minf left (- center-x x-radius)))
-	(when (angle-between-angles-p (* pi-single-float 3/2) theta-1 theta-2)
-	  (minf top (- center-y y-radius)))
-	(when (angle-between-angles-p 0 theta-1 theta-2)
-	  (maxf right (+ center-x x-radius)))
-	(when (angle-between-angles-p pi/2 theta-1 theta-2)
-	  (maxf bottom (+ center-y y-radius)))
-	(when filled
-	  (minf left center-x)
-	  (minf top center-y)
-	  (maxf right center-x)
-	  (maxf bottom center-y))
-	(fix-rectangle (- left lthickness) (- top lthickness)
-		       (+ right rthickness) (+ bottom rthickness))))))
-
-(defun angle-between-angles-p (theta theta-1 theta-2)
-  (unless (< theta-1 theta-2)
-    (incf theta-2 2pi))
-  (unless (< theta-1 theta)
-    (incf theta 2pi))
-  (< theta theta-2))
-
 
 ;;; Bounding rectangles
 
 ;; Bounding rectangles live in the "ground" coordinate system, such that
 ;; LEFT = MIN-X, RIGHT = MAX-X, TOP = MIN-Y, AND BOTTOM = MAX-Y.
-;; We use these slot names to avoid colliding with the slot names in STANDARD-RECTANGLE.
+;;--- Can we simply inherit from STANDARD-RECTANGLE and flush some
+;;--- of the methods below?
 (defclass standard-bounding-rectangle (region bounding-rectangle)
     ((left   :initarg :left   :accessor rectangle-min-x)
      (top    :initarg :top    :accessor rectangle-min-y)
@@ -948,26 +447,26 @@
   :left left :top top :right right :bottom bottom)
 
 #-Silica
-(defun make-bounding-rectangle (left top right bottom)
-  (let ((x1 (floor left))
-	(y1 (floor top))
-	(x2 (floor right))
-	(y2 (floor bottom)))
+(defun make-bounding-rectangle (x1 y1 x2 y2)
+  (let ((x1 (floor x1))
+	(y1 (floor y1))
+	(x2 (floor x2))
+	(y2 (floor y2)))
     (declare (type coordinate x1 y1 x2 y2))
     (when (> x1 x2) (rotatef x1 x2))
     (when (> y1 y2) (rotatef y1 y2))
     (make-bounding-rectangle-1 x1 y1 x2 y2)))
 
 #+Silica
-(defun make-bounding-rectangle (left top right bottom)
-  (let ((x1 (float left 0f0))
-	(y1 (float top 0f0))
-	(x2 (float right 0f0))
-	(y2 (float bottom 0f0)))
+(defun make-bounding-rectangle (x1 y1 x2 y2)
+  (let ((x1 (float x1 0f0))
+	(y1 (float y1 0f0))
+	(x2 (float x2 0f0))
+	(y2 (float y2 0f0)))
     (declare (type coordinate x1 y1 x2 y2))
-    (when (> left right) (rotatef left right))
-    (when (> top bottom) (rotatef top bottom))
-    (make-bounding-rectangle-1 left top right bottom)))
+    (when (> x1 x2) (rotatef x1 x2))
+    (when (> y1 y2) (rotatef y1 y2))
+    (make-bounding-rectangle-1 x1 y1 x2 y2)))
 
 (defmethod make-load-form ((rectangle standard-bounding-rectangle))
   (with-slots (left top right bottom) rectangle
@@ -975,13 +474,9 @@
 
 (defmethod transform-region (transformation (rectangle standard-bounding-rectangle))
   (with-slots (left top right bottom) rectangle
-    (if (rectilinear-transformation-p transformation)
-	(multiple-value-bind (x1 y1)
-	    (transform-point* transformation left top)
-	  (multiple-value-bind (x2 y2)
-	      (transform-point* transformation right bottom)
-	    (make-bounding-rectangle x1 y1 x2 y2)))
-        (error "You can only transform bounding-rectangles rectilinearly"))))
+    (multiple-value-bind (x1 y1 x2 y2)
+	(transform-rectangle* transformation left top right bottom)
+      (make-bounding-rectangle x1 y1 x2 y2))))
 
 (defmethod rectangle-max-point ((rectangle standard-bounding-rectangle))
   (make-point (slot-value rectangle 'right) (slot-value rectangle 'bottom)))
@@ -1332,6 +827,147 @@
       (declare (dynamic-extent #'add-region))
       (map-over-region-set-regions #'add-region region-set))
     (values left top right bottom)))
+
+
+;;; Geometry utilities
+
+(defconstant pi-single-float (coerce pi 'single-float))
+(defconstant  2pi (coerce (* pi-single-float 2) 'single-float))
+(defconstant pi/2 (coerce (/ pi-single-float 2) 'single-float))
+
+(defun radians->degrees (radians)
+  (* radians (/ 360 2pi)))
+
+(defun degrees->radians (degrees)
+  (* degrees (/ 2pi 360)))
+
+;; This macro wouldn't be necessary if we could count on (expt (expression) 2)
+;; being optimized properly
+(defmacro square (expression)
+  (if (symbolp expression)
+      `(* ,expression ,expression)
+      (let ((var (gensymbol)))
+	`(let ((,var ,expression))
+	   (* ,var ,var)))))
+
+;; This runs when we already know that the point is inside the bounding box.
+(defun point-close-to-line-p (x y from-x from-y to-x to-y &optional (thickness 1))
+  (let ((distance (1+ (ceiling thickness 2)))
+	(dx (- to-x from-x))
+	(dy (- to-y from-y)))
+    (or (and (zerop dx) (zerop dy))
+	(<= (square (- (* y dx) (* x dy) (- (* from-y to-x) (* from-x to-y))))
+	    (* (square distance) (+ (square dx) (square dy)))))))
+
+;; Computes whether a point is inside an ellipse whose center is (0,0).
+;; This calculation is exact.
+(defun point-inside-ellipse-p (x y radius-1-dx radius-1-dy radius-2-dx radius-2-dy)
+  (<= (+ (square (- (* radius-2-dy x) (* radius-2-dx y)))
+	 (square (- (* radius-1-dx y) (* radius-1-dy x))))
+      (square (- (* radius-1-dx radius-2-dy) (* radius-1-dy radius-2-dx)))))
+
+;; Computes whether a point is on a stroked ellipse whose center is (0,0).
+;; This calculation is not exact - the envelope of an ellipse is not an ellipse
+;; and an "average radius" is used - but it should be ok for thickness small
+;; compared to radii.  The calculation is exact for circles.
+(defun point-on-thick-ellipse-p (x y radius-1-dx radius-1-dy radius-2-dx radius-2-dy
+				 half-thickness)
+  (let* ((det (- (* radius-1-dx radius-2-dy) (* radius-1-dy radius-2-dx)))
+	 (avrad*delta (* (sqrt (abs det)) half-thickness)))
+    (<= (square (- det avrad*delta))
+	(+ (square (- (* radius-2-dy x) (* radius-2-dx y)))
+	   (square (- (* radius-1-dx y) (* radius-1-dy x))))
+	(square (+ det avrad*delta)))))
+
+;; Find the singular value decomposition of a 2 by 2 matrix: M = R1.D.R2
+;; where R's are rotations and D is diagonal.  The four values returned
+;; are the first angle, the two diagonal elements, and the second angle.
+;; Used to convert CLIM's representation of ellipses to various window
+;; systems' representations.
+(defun 2x2-singular-value-decomposition (a b c d)
+  (cond ((and (zerop b) (zerop c))
+	 (values 0.0 a d 0.0))
+	((and (zerop a) (zerop d))
+	 (values pi/2 b (- c) 0.0))
+	(T
+	 (let* ((d+a (+ d a)) (a-d (- a d))
+		(c+b (+ c b)) (c-b (- c b))
+		(sx+sy (sqrt (+ (square d+a) (square c-b))))
+		(sx-sy (sqrt (+ (square a-d) (square c+b))))
+		(sx (* 0.5 (+ sx+sy sx-sy)))
+		(sy (* 0.5 (- sx+sy sx-sy)))
+		(t1+t2 (if (and (zerop c-b) (zerop d+a)) 0.0 (atan c-b d+a)))
+		(t1-t2 (if (and (zerop c+b) (zerop a-d)) 0.0 (atan c+b a-d)))
+		(t1 (* 0.5 (+ t1+t2 t1-t2)))
+		(t2 (* 0.5 (- t1+t2 t1-t2))))
+	   (values t2 sx sy t1)))))
+
+;; For a complete ellipse, the box is actually the rectangle that bounds
+;; the parallelogram that bounds the ellipse.  That means it's a little
+;; bigger than the tightest possible bounding box when the ellipse is
+;; not axis-aligned.  It's not worth computing anything tighter because
+;; the refined highlighting test will be faster than the computation of
+;; a tighter box.
+(defun elliptical-arc-box (center-x center-y radius-1-dx radius-1-dy radius-2-dx radius-2-dy
+			   theta-1 theta-2 thickness)
+  (let* ((filled (null thickness))
+	 (thickness (or thickness 0))
+	 (lthickness (floor thickness 2))
+	 (rthickness (- thickness lthickness)))
+    (when (null theta-1)
+      (return-from elliptical-arc-box
+	(let ((dx (+ (abs radius-1-dx) (abs radius-2-dx)))
+	      (dy (+ (abs radius-1-dy) (abs radius-2-dy))))
+	  (fix-rectangle (- center-x dx lthickness) (- center-y dy lthickness)
+			 (+ center-x dx rthickness) (+ center-y dy rthickness)))))
+    (setq theta-1 (mod theta-1 2pi)
+	  theta-2 (mod theta-2 2pi))
+    (multiple-value-bind (x-radius y-radius)
+	(cond ((and (= radius-1-dx 0) (= radius-2-dy 0))
+	       (values (abs radius-2-dx) (abs radius-1-dy)))
+	      ((and (= radius-2-dx 0) (= radius-1-dy 0))
+	       (values (abs radius-1-dx) (abs radius-2-dy)))
+	      (t
+	       (let ((s-1 (+ (* radius-1-dx radius-1-dx) 
+			     (* radius-1-dy radius-1-dy)))
+		     (s-2 (+ (* radius-2-dx radius-2-dx) 
+			     (* radius-2-dy radius-2-dy))))
+		 (if (= s-1 s-2)
+		     (let ((r (truncate (sqrt s-1))))
+		       (values r r))
+		   ;; Degrade to drawing a rectilinear ellipse
+		   (values (truncate (sqrt s-1)) 
+			   (truncate (sqrt s-2)))))))
+      (let* ((x1 (+ center-x (* x-radius (cos theta-1))))
+	     (y1 (+ center-y (* y-radius (sin theta-1))))
+	     (x2 (+ center-x (* x-radius (cos theta-2))))
+	     (y2 (+ center-y (* y-radius (sin theta-2))))
+	     (left (min x1 x2))
+	     (top (min y1 y2))
+	     (right (max x1 x2))
+	     (bottom (max y1 y2)))
+	(when (angle-between-angles-p pi-single-float theta-1 theta-2)
+	  (minf left (- center-x x-radius)))
+	(when (angle-between-angles-p (* pi-single-float 3/2) theta-1 theta-2)
+	  (minf top (- center-y y-radius)))
+	(when (angle-between-angles-p 0 theta-1 theta-2)
+	  (maxf right (+ center-x x-radius)))
+	(when (angle-between-angles-p pi/2 theta-1 theta-2)
+	  (maxf bottom (+ center-y y-radius)))
+	(when filled
+	  (minf left center-x)
+	  (minf top center-y)
+	  (maxf right center-x)
+	  (maxf bottom center-y))
+	(fix-rectangle (- left lthickness) (- top lthickness)
+		       (+ right rthickness) (+ bottom rthickness))))))
+
+(defun angle-between-angles-p (theta theta-1 theta-2)
+  (unless (< theta-1 theta-2)
+    (incf theta-2 2pi))
+  (unless (< theta-1 theta)
+    (incf theta 2pi))
+  (< theta theta-2))
 
 
 ;; Exclude the general cases of REGION-EQUAL

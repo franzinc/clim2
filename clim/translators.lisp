@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: translators.lisp,v 1.4 91/03/26 12:49:03 cer Exp $
+;; $fiHeader: translators.lisp,v 1.2 92/01/31 14:58:59 cer Exp $
 
 (in-package :clim-internals)
 
@@ -438,16 +438,8 @@
     (or (eq gesture-name t)
 	for-menu
 	(if (null event)
-	    (modifier-state-matches-gesture-name modifier-state gesture-name)
-	    (button-press-event-matches-gesture-name event gesture-name)))))
-
-(defun button-press-event-matches-gesture-name (event gesture-name)
-  (let ((button (pointer-event-button event))
-	(modifier-state (event-modifier-state event)))
-    (declare (fixnum button modifier-state))
-    (button-and-modifier-state-matches-gesture-name
-      (- (integer-length button) #.(integer-length +pointer-left-button+))
-      modifier-state gesture-name)))
+	    (modifier-state-matches-gesture-name-p modifier-state gesture-name)
+	    (button-press-event-matches-gesture-name-p event gesture-name)))))
 
 (defvar *presentation-menu-translator* nil)
 

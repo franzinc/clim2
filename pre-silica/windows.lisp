@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: windows.lisp,v 1.4 91/03/26 12:49:09 cer Exp $
+;; $fiHeader: windows.lisp,v 1.1 92/01/31 14:28:15 cer Exp $
 
 (in-package :win)
 

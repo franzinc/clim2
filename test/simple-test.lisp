@@ -1,4 +1,4 @@
-;; -*- mode: common-lisp; package: silica -*-
+;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 ;;
 ;;				-[]-
 ;; 
@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader$
+;; $fiHeader: simple-test.lisp,v 1.3 92/02/16 20:55:44 cer Exp $
 
 
 (in-package :silica)

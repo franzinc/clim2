@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: interactive-protocol.lisp,v 1.6 91/03/26 12:48:09 cer Exp $
+;; $fiHeader: interactive-protocol.lisp,v 1.3 92/01/31 14:58:20 cer Exp $
 
 (in-package :clim-internals)
 
@@ -67,7 +67,7 @@
 ;; Perhaps the input-editor command table [or alist] should be a conceptual
 ;; "slot" in the so that specific implementations can add commands.  More
 ;; thought may be needed.
-(defvar *input-editor-command-aarray* (make-array 40 :fill-pointer 0))
+(defvar *input-editor-command-aarray* (make-array 50 :fill-pointer 0))
 
 (defmethod initialize-input-editing-stream ((istream input-editing-stream-mixin))
   (with-slots (input-buffer scan-pointer insertion-pointer
@@ -210,8 +210,8 @@
 		 (with-text-style (istream *noise-string-style*)
 		   (write-string (noise-string-display-string noise-string) istream))))))))
 
-(defmethod accept-1 ((istream input-editing-stream-mixin)
-		     type &rest args &key query-identifier &allow-other-keys)
+(defmethod stream-accept ((istream input-editing-stream-mixin)
+			  type &rest args &key query-identifier &allow-other-keys)
   (declare (dynamic-extent args))
   (with-slots (input-buffer scan-pointer insertion-pointer
 	       previous-history previous-insertion-pointer) istream
@@ -227,7 +227,7 @@
 	     (incf scan-pointer)
 	     (values (accept-result-presentation-object next-char)
 		     (accept-result-presentation-type next-char)))
-	    (t (apply #'accept-2 (or *original-stream* istream) type args))))))
+	    (t (apply #'accept-1 (or *original-stream* istream) type args))))))
 
 (defmethod input-buffer-input-position->cursor-position* ((istream input-editing-stream-mixin)
 							  &optional position)
@@ -405,7 +405,8 @@
 				&key timeout peek-p
 				     (input-wait-test *input-wait-test*)
 				     (input-wait-handler *input-wait-handler*)
-				     (pointer-button-press-handler *pointer-button-press-handler*))
+				     (pointer-button-press-handler
+				       *pointer-button-press-handler*))
   (rescan-if-necessary istream)
   (with-slots (stream input-buffer scan-pointer insertion-pointer
 	       activation-gesture rescanning-p
@@ -525,8 +526,9 @@
 (defun ordinary-char-p (char)
   (and #+Allegro (zerop (char-bits char))
        (or (graphic-char-p char)
-	   (char= char #\Newline)
-	   (char= char #\Tab))))
+	   (eql char #\Newline)
+	   (eql char #\Return)
+	   (eql char #\Tab))))
 
 ;; Move the cursor forward or backward in an input buffer until PREDICATE
 ;; returns true.  PREDICATE has to be prepared to interact with ACCEPT-RESULTs
@@ -555,7 +557,11 @@
 			    (1+ position)
 			    position))))))
 	(when (= position limit)
-	  (return position))
+	  ;;--- Necessary for the case where the forward part of the token
+	  ;;--- token search bumps into the fill pointer.  This makes me
+	  ;;--- nervous because it compensates for the pointer adjusting
+	  ;;--- the callers do.
+	  (return (if reverse-p position (1+ position))))
 	(incf position adjustment)))))
 
 ;; KILL-RING should be NIL, T, or :MERGE
@@ -696,7 +702,7 @@
 				   :acceptably t :view view
 				   :for-context-type for-context-type))
 	    (error ()
-	      ;; Can't present it the normal way, so make a blip to hold it
+	      ;; Can't present it the normal way, so make a "blip" to hold it
 	      (let ((blip (make-accept-result :unique-id query-identifier
 					      :presentation-type type
 					      :presentation-object object)))
@@ -885,13 +891,13 @@
 #+Genera
 (defmethod si:stream-compatible-input-editing
 	   ((stream input-protocol-mixin)
-	    continuation activation-gesture-p blip-gesture-p)
+	    continuation activation-gesture-p delimiter-gesture-p)
   ;; If there's a prompt, for now just print it once before entering the input editor
   (si:display-prompt-option stream (si:input-editor-option :prompt) nil :prompt)
   ;; Enter the CLIM input editor in a way compatible with the Genera input editor
   (with-input-editing (stream)
     (with-activation-gestures (activation-gesture-p)
-      (with-blip-gestures (blip-gesture-p)
+      (with-delimiter-gestures (delimiter-gesture-p)
 	(multiple-value-prog1
 	  (handler-bind ((sys:parse-error
 			   #'(lambda (error)
@@ -917,11 +923,11 @@
 #+Genera
 (defmethod si:stream-compatible-input-editing
 	   ((stream input-editing-stream-mixin)
-	    continuation activation-gesture-p blip-gesture-p)
+	    continuation activation-gesture-p delimiter-gesture-p)
   ;; We are already in the CLIM input editor, but still need to establish compatibility
   ;; with the Genera input editor
   (with-activation-gestures (activation-gesture-p)
-    (with-blip-gestures (blip-gesture-p)
+    (with-delimiter-gestures (delimiter-gesture-p)
       (handler-bind ((sys:parse-error
 		       #'(lambda (error)
 			   (beep stream)

@@ -1,4 +1,5 @@
-;;; -*- Mode: Lisp; Package: silica; Base: 10.; Syntax: Common-Lisp -*-
+;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
+
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
@@ -21,19 +22,19 @@
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved.
 ;;;
-;; $fiHeader: db-table.lisp,v 1.5 92/01/31 14:55:35 cer Exp Locker: cer $
-
+;; $fiHeader: db-table.lisp,v 1.6 92/02/05 21:45:17 cer Exp $
 
 (in-package :silica)
+
 
 ;;;
 ;;; Table
 ;;;
 
-
-
 (defclass table-pane (layout-pane)
-	  (row-space-requirements column-space-requirements contents))
+    (row-space-requirements
+     column-space-requirements
+     contents))
 
 
 (defmethod initialize-instance :after ((pane table-pane) &key contents)
@@ -47,15 +48,10 @@
       (when d (sheet-adopt-child pane d)))))
 
 
-(defmacro tabling (options &rest contents)
+(defmacro tabling (options &body contents)
   `(realize-pane 'table-pane
 		 :contents (list ,@(mapcar #'(lambda (x) `(list ,@x)) contents))
 		 ,@options))
-
-#+ignore
-(tabling (:space space)
-		 (vscrollbar viewport)
-		 (nil        hscrollbar))
 
 (defmethod compose-space ((x table-pane) &key width height)
   (with-slots (contents) x
@@ -67,9 +63,7 @@
 	  (omax-w 0)
 	  row-srs
 	  column-srs)
-
       ;; Iterate over the rows, determining the height of each
-      
       (dotimes (row (array-dimension contents 0))
 	(let ((min-h 0)
 	      (h 0)
@@ -84,28 +78,21 @@
 		  ;; should this be min or max
 		  (if max-h
 		      (minf max-h (space-requirement-max-height isr))
-		    (setf max-h (space-requirement-max-height isr)))))))
-
-	  (push
-	   (make-space-requirement
-	    :width 0
-	    :min-height min-h :height h :max-height max-h)
-	   row-srs)
-	  
+		      (setf max-h (space-requirement-max-height isr)))))))
+	  (push (make-space-requirement
+		  :width 0
+		  :min-height min-h :height h :max-height max-h)
+		row-srs)
 	  ;; Add the heights
 	  (incf oh h)
 	  (incf omin-h min-h)
 	  (incf omax-h max-h)))
-      
       (setf (slot-value x 'row-space-requirements) (nreverse row-srs))
-      
       ;; Iterate over the columns determing the widths of each
-            
       (dotimes (column (array-dimension contents 1))
 	(let ((min-w 0)
 	      (w 0)
 	      (max-w nil))
-	
 	  (dotimes (row (array-dimension contents 0))
 	    (let ((item (aref contents row column)))
 	      (when item
@@ -116,48 +103,42 @@
 		  ;; Should this be min or max???
 		  (if max-w
 		      (minf max-w (space-requirement-max-width isr))
-		    (setf max-w (space-requirement-max-width isr)))))))
-
-	  (push
-	   (make-space-requirement
-	    :min-width min-w :width w :max-width max-w
-	    :height 0)
-	   column-srs)
-	
+		      (setf max-w (space-requirement-max-width isr)))))))
+	  (push (make-space-requirement
+		  :min-width min-w :width w :max-width max-w
+		  :height 0)
+		column-srs)
 	  (incf ow w)
 	  (incf omin-w min-w)
 	  (incf omax-w max-w)))
-      
-      
       (setf (slot-value x 'column-space-requirements) (nreverse column-srs))
-      
       (make-space-requirement
-       :min-width omin-w :width ow :max-width omax-w
-       :min-height omin-h :height oh :max-height omax-h))))
+	:min-width omin-w :width ow :max-width omax-w
+	:min-height omin-h :height oh :max-height omax-h))))
 
 (defmethod allocate-space ((x table-pane) width height)
   (with-slots (contents space-requirement
 	       column-space-requirements row-space-requirements) x
-    (unless space-requirement (compose-space x))
-    
+    (unless space-requirement 
+      (compose-space x :width width :height height))
     (let ((row-heights
-	   (allocate-space-to-items
-	    height
-	    space-requirement
-	    row-space-requirements
-	    #'space-requirement-min-height
-	    #'space-requirement-height
-	    #'space-requirement-max-height
-	    #'identity))
+	    (allocate-space-to-items
+	      height
+	      space-requirement
+	      row-space-requirements
+	      #'space-requirement-min-height
+	      #'space-requirement-height
+	      #'space-requirement-max-height
+	      #'identity))
 	  (column-widths
-	   (allocate-space-to-items
-	    width
-	    space-requirement
-	    column-space-requirements
-	    #'space-requirement-min-width
-	    #'space-requirement-width
-	    #'space-requirement-max-width
-	    #'identity))
+	    (allocate-space-to-items
+	      width
+	      space-requirement
+	      column-space-requirements
+	      #'space-requirement-min-width
+	      #'space-requirement-width
+	      #'space-requirement-max-width
+	      #'identity))
 	  (y 0))
       (dotimes (row (array-dimension contents 0))
 	(let ((row-height (pop row-heights))
@@ -168,8 +149,8 @@
 		  (item (aref contents row column)))
 	      (when item
 		(move-and-resize-sheet*
-		 item x y 
-		 (min column-width (1- (- width x)))
-		 (min row-height (1- (- height y)))))
+		  item x y 
+		  (min column-width (1- (- width x)))
+		  (min row-height (1- (- height y)))))
 	      (incf x column-width)))
 	  (incf y row-height))))))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: standard-types.lisp,v 1.4 91/03/26 12:48:51 cer Exp $
+;; $fiHeader: standard-types.lisp,v 1.2 92/01/31 14:58:41 cer Exp $
 
 (in-package :clim-internals)
 
@@ -24,7 +24,7 @@
   ;; Only allow the user to click on things if he did not supply any
   ;; ACCEPT method for the type.  This is a perfectly reasonable thing
   ;; to do in direct-manipulation user interfaces.
-  (with-blip-gestures (() :override t)
+  (with-delimiter-gestures (() :override t)
     (read-token stream :click-only t)))
 
 
@@ -93,7 +93,7 @@
   :history symbol)
 
 (define-presentation-method accept ((type keyword) stream (view textual-view) &key)
-  (values (intern (read-token stream) "KEYWORD")))
+  (values (intern (read-token stream) *keyword-package*)))
 
 ;;; This is needed because KEYWORD is not a built-in-class
 (define-presentation-method presentation-typep (object (type keyword))
@@ -484,7 +484,7 @@
 (defun pathname-complete (string action &optional (default *default-pathname-defaults*))
   (declare (ignore default))			;--- for now
   ;; Slow but accurate
-  (let ((pathname (lisp::pathname string))
+  (let ((pathname (lisp:pathname string))
 	completions)
     (cond ((pathname-version pathname)
 	   ;; get around file-system braino I don't know how to resolve
@@ -693,7 +693,7 @@
 	      (make-array 2 :initial-contents (list separator #\space)))))
     (loop
       (let ((element
-	      (with-blip-gestures (separators)
+	      (with-delimiter-gestures (separators)
 		(completing-from-suggestions
 		    (stream :partial-completers partial-completers
 			    :possibility-printer
@@ -974,7 +974,7 @@
   (declare (values object object-type))
   (multiple-value-bind (object object-type)
       (with-input-context (element-type) (object object-type)
-	   (with-blip-gestures (separators)
+	   (with-delimiter-gestures (separators)
 	     (let* ((history (presentation-type-history element-default-type))
 		    (*presentation-type-for-yanking*
 		      (if history element-default-type *presentation-type-for-yanking*))
@@ -1425,7 +1425,7 @@
 	   (cond ((and (activation-gesture-p char) (not desired-delimiter))
 		  (unread-char char stream)
 		  (return))
-		 ((and (blip-gesture-p char) (not desired-delimiter))
+		 ((and (delimiter-gesture-p char) (not desired-delimiter))
 		  (beep stream))
 		 ((not (ordinary-char-p char))
 		  (beep stream))
@@ -1457,7 +1457,8 @@
 	 ;; And into the buffer we ourselves are maintaining
 	 (let ((n (length *read-recursive-objects*)))
 	   (setq *read-recursive-objects* (nconc *read-recursive-objects* (list object)))
-	   (doseq (char (format nil " #.(LISP:NTH ~D CLIM-INTERNALS::*READ-RECURSIVE-OBJECTS*) " n))
+	   (doseq (char (format nil " #.(~S ~D ~S) "
+			  'nth n '*read-recursive-objects*))
 	     (vector-push-extend char input-buffer)))
 	 (unless desired-delimiter (return))))))
 

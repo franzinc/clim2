@@ -20,74 +20,53 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-frames.lisp,v 1.2 92/01/31 14:56:37 cer Exp Locker: cer $
+;; $fiHeader: xt-frames.lisp,v 1.3 92/02/14 18:57:45 cer Exp $
 
 
 (in-package :xm-silica)
 
 ;; Basic intrinsics frame-manager
 
-(defclass xt-frame-manager (frame-manager) 
-	  ())
+(defclass xt-frame-manager (standard-frame-manager) 
+    ())
 
-(defmethod note-frame-enabled :after ((framem xt-frame-manager) frame)
-  ;; Perhaps we want to resize the top leve sheet if there is one
-  (when (frame-top-level-sheet frame)
-    (setf (sheet-enabled-p (frame-top-level-sheet frame)) t)))
-
-(defmethod note-frame-disabled :after ((framem xt-frame-manager) frame)
-  (setf (sheet-enabled-p (frame-top-level-sheet frame)) nil))
-
-(defmethod adopt-frame ((framem xt-frame-manager) (frame standard-application-frame))
-  (call-next-method)
-  (when (frame-panes frame)
-    (let* ((top-pane (frame-panes frame))
-	   (sheet (with-look-and-feel-realization (framem frame)
-		    (realize-pane 'silica::top-level-sheet 
-				  :region (make-bounding-rectangle
-					   0 0 (sheet-width top-pane) 
-					   (sheet-height top-pane))
-				  :parent (find-graft)))))
-      (setf (frame-top-level-sheet frame) sheet
-	    (frame-shell frame) (sheet-shell sheet))
-      (sheet-adopt-child sheet (frame-panes frame)))))
-
-
-(defmethod clim-internals::frame-wrapper ((frame t) (framem xt-frame-manager) pane)
+(defmethod frame-wrapper ((framem xt-frame-manager) 
+			  (frame standard-application-frame) pane)
   (declare (ignore pane))
-  (let ((mb (slot-value frame 'clim-internals::menu-bar)))
-    (if mb
+  (let ((menu-bar (slot-value frame 'menu-bar)))
+    (if menu-bar
 	(with-look-and-feel-realization (framem frame)
 	  (vertically ()
-		      (realize-pane 'menu-bar
-				    :command-table (if (eq mb t)
-						       (frame-command-table frame)
-						     (find-command-table mb)))
-		      (call-next-method)))
-      (call-next-method))))
+	    (realize-pane 'menu-bar
+			  :command-table (if (eq menu-bar t)
+					     (frame-command-table frame)
+					     (find-command-table menu-bar)))
+	    (call-next-method)))
+	(call-next-method))))
 
-;;; 
+;;;
 
 (defclass presentation-event (event)
-	  ((value :initarg :value :reader presentation-event-value)
-	   (sheet :initarg :sheet :reader event-sheet)))
+    ((value :initarg :value :reader presentation-event-value)
+     (sheet :initarg :sheet :reader event-sheet)))
 
 (defmethod handle-event (sheet (event presentation-event))
   (throw-highlighted-presentation
-   (make-instance 'standard-presentation
-		  :object (presentation-event-value event)
-		  :type 'command)
-   *input-context*
-   (make-instance 'pointer-button-press-event
-		  :sheet sheet
-		  :x 0
-		  :y 0
-		  :modifiers 0
-		  :button 256)))
+    (make-instance 'standard-presentation
+		   :object (presentation-event-value event)
+		   :type 'command)
+    *input-context*
+    (make-instance 'pointer-button-press-event
+		   :sheet sheet
+		   :x 0
+		   :y 0
+		   :modifiers 0
+		   :button 256)))
 
 (defun command-button-callback (button dunno frame item)
   (distribute-event
-   (sheet-port frame)
-   (make-instance 'presentation-event
-		  :sheet (frame-top-level-sheet frame)
-		  :value (second item))))
+    (sheet-port frame)
+    (make-instance 'presentation-event
+		   :sheet (frame-top-level-sheet frame)
+		   :value (second item))))
+

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: packages.lisp,v 1.8 91/04/09 14:40:20 cer Exp $
+;; $fiHeader: packages.lisp,v 1.3 92/01/31 14:52:42 cer Exp $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :common-lisp-user)
 
@@ -322,7 +322,7 @@
  (:shadow stream-element-type close with-open-stream pathname truename)
 
  #+Allegro
- (:shadow close with-open-stream pathname truename)
+ (:shadow pathname truename)
 
  (:export   
    ;; ANSI Common Lisp
@@ -1389,9 +1389,9 @@
 (eval-when (eval compile load)
   (export '(()) "CLIM-LISP"))
 
-#+(and Genera lock-CLIM-packages) (setf (si:pkg-locked (find-package "CLIM-LISP")) t)
+#+(and Genera lock-CLIM-packages) (setf (si:pkg-locked (find-package :clim-lisp)) t)
 
-#+Genera (pushnew (find-package "CLIM-LISP") si:*reasonable-packages*)
+#+Genera (pushnew (find-package :clim-lisp) si:*reasonable-packages*)
 
 
 ;; Define the CLIM-SYS package
@@ -1404,6 +1404,8 @@
     clear-resource
     current-process
     deallocate-resource
+    defgeneric*
+    defmethod*
     defresource
     destroy-process
     make-lock
@@ -1413,12 +1415,13 @@
     process-wait
     process-wait-with-timeout
     process-yield
+    setf*
     using-resource
     with-lock-held
     with-recursive-lock-held
     without-scheduling))
 
-#+(and Genera lock-CLIM-packages) (setf (si:pkg-locked (find-package "CLIM-SYS")) t)
+#+(and Genera lock-CLIM-packages) (setf (si:pkg-locked (find-package :clim-sys)) t)
 
 
 ;; Define the CLIM package
@@ -1638,6 +1641,7 @@
     delegate-sheet-delegate
     delegate-sheet-input-mixin
     delete-watcher
+    destroy-mirror
     destroy-port
     device-clipping-region
     device-event
@@ -1667,12 +1671,15 @@
     fetch-clipping-region
     find-graft
     find-port
+    graft
     graft-height
     graft-orientation
     graft-pixels-per-inch
     graft-pixels-per-millimeter
+    graft-pixels-per-point
     graft-units
     graft-width
+    graftp
     handle-event
     handle-repaint
     immediate-repainting-mixin
@@ -1702,6 +1709,7 @@
     medium-ink
     medium-line-style
     medium-merged-text-style
+    medium-sheet
     medium-text-style
     medium-transformation
     mediump
@@ -1736,9 +1744,11 @@
     pointer-exit-event
     pointer-motion-event
     poll-pointer
+    port
     port-keyboard-input-focus
     port-properties
     port-server-path
+    portp
     primitive-sheet-output-mixin
     process-next-event
     queue-event
@@ -1773,6 +1783,7 @@
     sheet-mirrored-ancestor
     sheet-multiple-child-mixin
     sheet-native-region
+    sheet-native-region*
     sheet-native-transformation
     sheet-occluding-sheets
     sheet-parent
@@ -1795,9 +1806,15 @@
     standard-sheet-output-mixin
     temporary-medium-sheet-output-mixin
     timer-event
+    update-mirror-region
+    update-mirror-region-1
+    update-mirror-transformation
+    update-mirror-transformation-1
     using-display-medium
     window-configuration-event
     window-event
+    window-manager-delete-event
+    window-manager-event
     
     window-event-mirrored-sheet
     window-event-native-region
@@ -1821,15 +1838,6 @@
     line-style-unit
     make-contrasting-dash-patterns
     make-line-style
-    medium-background
-    medium-clipping-region
-    medium-current-text-style
-    medium-default-text-style
-    medium-foreground
-    medium-ink
-    medium-line-style
-    medium-text-style
-    medium-transformation
     standard-line-style
     with-drawing-options
     with-first-quadrant-coordinates
@@ -1856,6 +1864,7 @@
     text-style-fixed-width-p
     text-style-height
     text-style-mapping
+    text-style-mapping-exists-p
     text-style-p
     text-style-size
     text-style-width
@@ -1888,6 +1897,7 @@
     draw-points*
     draw-polygon
     draw-polygon*
+    draw-rectangle
     draw-rectangle*
     draw-text
     draw-text*
@@ -1910,7 +1920,8 @@
     port-draw-polygon*
     port-draw-rectangle*
     port-draw-string*
-    with-output-to-pixmap-stream
+    port-draw-text*
+    with-output-to-pixmap
     
     ;; Color
     +background-ink+
@@ -1971,6 +1982,7 @@
     stream-line-column
     stream-line-height
     stream-start-line-p
+    stream-string-output-size
     stream-string-width
     stream-terpri
     stream-text-cursor
@@ -1995,6 +2007,7 @@
     graphics-displayed-output-record
     graphics-displayed-output-record-p
     highlight-output-record
+    highlight-output-record-1
     invoke-with-new-output-record
     invoke-with-output-recording-options
     invoke-with-output-to-output-record
@@ -2074,6 +2087,8 @@
     table-output-record-p
     
     ;; Graph formatting
+    *default-generation-separation*
+    *default-within-generation-separation*
     define-graph-type
     format-graph-from-root
     format-graph-from-roots
@@ -2307,18 +2322,18 @@
     ;; Input editing and completion
     *abort-gestures*
     *activation-gestures*
-    *blip-gestures*
     *completion-gestures*
+    *delimiter-gestures*
     *help-gestures*
     *possibilities-gestures*
     *standard-activation-gestures*
     abort-gesture
     activation-gesture-p
-    blip-gesture-p
     complete-from-generator
     complete-from-possibilities
     complete-input
     completing-from-suggestions
+    delimiter-gesture-p
     erase-input-buffer
     immediate-rescan
     input-editing-stream
@@ -2344,7 +2359,7 @@
     suggest
     with-accept-help
     with-activation-gestures
-    with-blip-gestures
+    with-delimiter-gestures
     with-input-editing
     with-input-editor-typeout
     write-token
@@ -2455,6 +2470,7 @@
     execute-frame-command
     find-frame-manager
     find-pane-for-frame
+    frame-calling-frame
     frame-click-and-drag-feedback
     frame-click-and-drag-highlighting
     frame-command-table
@@ -2504,6 +2520,7 @@
     run-frame-top-level
     shrink-frame
     standard-application-frame
+    standard-frame-manager
     window-clear
     window-erase-viewport
     window-refresh
@@ -2514,15 +2531,13 @@
     
     ;; Panes
     +fill+
-    basic-clim-pane
-    basic-stream-pane
     bboard-pane
     border-pane
     bordering
     change-space-requirement
     changing-space-requirements
-    depressing
-    extended-stream-pane
+    clim-stream-pane
+    clim-stream-sheet
     grid-pane
     hbox-pane
     horizontal-divider
@@ -2533,7 +2548,8 @@
     labelled
     line-editor-pane
     list-pane
-    making-application-pane
+    lowering
+    make-clim-pane
     one-of-pane
     outlined-pane
     pane-background
@@ -2552,9 +2568,11 @@
     table-pane
     tabling
     text-stream-pane
+    top-level-sheet
     vbox-pane
     vertical-divider
     vertically
+    viewport
     vrack-pane
     with-look-and-feel-realization
     
@@ -2565,8 +2583,11 @@
     button-text-style
     cascade-button-menu-group
     deactivate-gadget
+    gadget
     gadget-client
     gadget-id
+    gadget-label
+    gadget-orientation
     gadget-value
     menu-bar
     note-gadget-activated
@@ -2774,13 +2795,10 @@
     draw-triangle
     draw-triangle*
     drawing-surface-to-viewport-coordinates
-    highlight-output-record-1
     iconic-view
-    make-rectangle-set
     open-root-window
     open-window-stream
     position-window-near-carefully
-    standard-rectangle-set
     stream-pointer-position-in-window-coordinates
     translate-positions
     viewport-to-drawing-surface-coordinates
@@ -2860,7 +2878,7 @@
     with-blip-characters
     with-frame-state-variables))
 
-#+(and Genera lock-CLIM-packages) (setf (si:pkg-locked (find-package "CLIM")) t)
+#+(and Genera lock-CLIM-packages) (setf (si:pkg-locked (find-package :clim)) t)
 
 
 ;; Now define all of the implementation packages
@@ -2960,8 +2978,11 @@
     follow-synonym-stream
     fintern
     gensymbol 
+    convert-to-device-coordinates
+    convert-to-device-distances
     coordinate
     integerize-coordinate
+    integerize-coordinates
     extended-char
     remove-word-from-string
     push-unique
@@ -3064,9 +3085,13 @@
 
     ;; From REGIONS
     left top right bottom
+    everywhere
     fix-rectangle
+    make-rectangle-set
+    nowhere
     opacity
     standard-opacity
+    standard-rectangle-set
 
     ;; Additional bounding rectangle stuff
     bounding-rectangle-set-edges
@@ -3154,105 +3179,107 @@
     with-slots)
 
   (:export
-   *default-text-style*
-   *null-text-style*
-   *standard-character-set* 
-   *undefined-text-style* 
-   +highlighting-line-style+
-   action-gadget
-   activate-gadget-event
-   allocate-space
-   canvas
-   char-character-set-and-index
-   char-width
-   click-event
-   compose-space
-   define-character-face
-   define-character-face-added-mappings
-   define-character-face-class
-   define-display-device
-   define-text-style-mappings 
-   diacritic-char-p
-   display-device 
-   engraft-medium
-   event-modifier-key-state
-   event-sheet
-   find-graft
-   find-port
-   find-port-type
-   frame-manager
-   frame-name
-   frame-panes
-   frame-shell
-   gadget
-   get-port-canonical-gesture-spec
-   graft
-   graftp
-   handle-repaint
-   intern-text-style
-   make-frame-manager
-   make-medium
-   make-rectangle*
-   medium
-   merged-text-style 
-   mirror-inside-edges*
-   mirror-native-edges*
-   mirror-region
-   mirror-region*
-   mirror-region-updated
-   mirrored-sheet-mixin
-   modifier-keysym
-   mute-repainting-mixin
-   parse-gesture-spec
-   permanent-medium-sheet-output-mixin
-   pointer-press-event
-   pointer-release-event
-   port
-   port-color-cache
-   port-draw-line*
-   port-draw-rectangle*
-   port-draw-text*
-   port-event-wait
-   port-force-output
-   port-glyph-for-character
-   port-pointer
-   process-next-event
-   process-event-locally
-   push-button
-   queue-event
-   repaint-sheet
-   set-sheet-mirror-edges*
-   sheet-actual-native-edges
-   sheet-direct-mirror
-   sheet-height
-   sheet-mute-input-mixin
-   sheet-permanently-enabled-mixin
-   sheet-width
-   slider
-   standard-sheet
-   standard-sheet-input-mixin
-   standarize-style
-   stream-glyph-for-character
-   string-height 
-   string-width 
-   text-field
-   text-style-scale 
-   toggle-button
-   value-changed-gadget-event
-   value-gadget
-   window-configuration-event
-   window-repaint-event
-   with-sheet-medium
-   stream-write-string-1
-   port-note-cursor-change
-   update-scrollbars
-   event
-   pointer-event-button
-   medium-+y-upward-p
-   scroller-pane
-   medium-merged-text-style-valid
-   port-beep
-   port-server-path))
+    *all-drawing-options*
+    *default-text-style*
+    *null-text-style*
+    *standard-character-set* 
+    *undefined-text-style* 
+    +highlighting-line-style+
+    action-gadget
+    activate-gadget-event
+    all-drawing-options-lambda-list
+    bury-mirror
+    canvas
+    char-character-set-and-index
+    char-width
+    click-event
+    define-character-face
+    define-character-face-added-mappings
+    define-character-face-class
+    define-display-device
+    define-graphics-function
+    define-text-style-mappings
+    define-text-style-mappings-1 
+    degraft-medium
+    device-undefined-text-style
+    diacritic-char-p
+    display-device 
+    engraft-medium
+    event-modifier-key-state
+    find-port-type
+    fit-region*-in-region*
+    frame-manager-frames
+    frame-shell
+    frame-wrapper
+    get-drawing-function-description
+    get-port-canonical-gesture-spec
+    intern-text-style
+    make-frame-manager
+    make-medium
+    merged-text-style 
+    mirror-inside-edges*
+    mirror-native-edges*
+    mirror-region
+    mirror-region*
+    mirror-region-updated
+    mirrored-sheet-mixin
+    modifier-keysym
+    move-sheet*
+    move-and-resize-sheet*
+    mute-repainting-mixin
+    non-drawing-option-keywords
+    pane-scroller
+    pane-viewport
+    pane-viewport-region
+    parse-gesture-spec
+    permanent-medium-sheet-output-mixin
+    pointer-press-event
+    pointer-release-event
+    port-color-cache
+    port-event-wait
+    port-finish-output
+    port-force-output
+    port-glyph-for-character
+    port-pointer
+    process-event-locally
+    raise-mirror
+    resize-sheet*
+    scroll-extent
+    set-sheet-mirror-edges*
+    sheet-actual-native-edges*
+    sheet-mute-input-mixin
+    sheet-permanently-enabled-mixin
+    sheet-shell
+    sheet-top-level-mirror
+    sheet-with-graphics-state
+    standard-sheet
+    standard-sheet-input-mixin
+    standardize-text-style 
+    standardize-text-style-1
+    stream-glyph-for-character
+    stream-scan-string-for-writing
+    string-height 
+    string-width 
+    text-field
+    text-style-scale 
+    transform-distances
+    transform-points
+    transform-point-sequence
+    value-changed-gadget-event
+    value-gadget
+    window-configuration-event
+    window-repaint-event
+    stream-write-string-1
+    port-note-cursor-change
+    update-region
+    update-scrollbars
+    event
+    medium-+y-upward-p
+    scroller-pane
+    medium-merged-text-style-valid
+    port-beep
+    port-server-path
+    viewport-viewport-region))
 
 (#-ANSI-90 clim-lisp::defpackage #+ANSI-90 defpackage CLIM-INTERNALS
   (:use	CLIM-LISP CLIM-SYS CLIM CLIM-UTILS CLIM-SILICA)  
@@ -3275,6 +3302,8 @@
   #+(or Lucid (and Allegro (or :rs6000 (not (version>= 4 1)))))
   (:shadowing-import-from CLIM-UTILS
     with-slots))
+
+#+Genera (pushnew (find-package :clim-internals) si:*reasonable-packages*)
 
 
 ;; A package for casual use...

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept.lisp,v 1.4 91/03/26 12:47:04 cer Exp $
+;; $fiHeader: accept.lisp,v 1.2 92/01/31 14:57:31 cer Exp $
 
 (in-package :clim-internals)
 
@@ -19,8 +19,8 @@
 		    (query-identifier nil)
 		    (activation-gestures nil)
 		    (additional-activation-gestures nil)
-		    (blip-gestures nil)
-		    (additional-blip-gestures nil)
+		    (delimiter-gestures nil)
+		    (additional-delimiter-gestures nil)
 		    #+CLIM-1-compatibility (activation-characters nil)
 		    #+CLIM-1-compatibility (additional-activation-characters nil)
 		    #+CLIM-1-compatibility (blip-characters nil)
@@ -31,7 +31,7 @@
   (declare (values object type))
   (declare (ignore prompt-mode display-default query-identifier
 		   activation-gestures additional-activation-gestures
-		   blip-gestures additional-blip-gestures 
+		   delimiter-gestures additional-delimiter-gestures 
 		   #+CLIM-1-compatibility activation-characters
 		   #+CLIM-1-compatibility additional-activation-characters
 		   #+CLIM-1-compatibility blip-characters
@@ -89,12 +89,12 @@
     (let ((query-identifier
 	   (apply #'prompt-for-accept
 		  (or *original-stream* stream) type view accept-args)))
-      (apply #'accept-1 (or *original-stream* stream) type
-			:query-identifier query-identifier accept-args))))
+      (apply #'stream-accept (or *original-stream* stream) type
+			     :query-identifier query-identifier accept-args))))
 
-(defmethod accept-1 ((stream input-protocol-mixin) type &rest accept-args)
+(defmethod stream-accept ((stream input-protocol-mixin) type &rest accept-args)
   (declare (dynamic-extent accept-args))
-  (apply #'accept-2 (or *original-stream* stream) type accept-args))
+  (apply #'accept-1 (or *original-stream* stream) type accept-args))
 
 (defmethod prompt-for-accept ((stream input-protocol-mixin) type (view view)
 			      &rest accept-args
@@ -123,7 +123,7 @@
     (when (or prompt (and display-default default-supplied-p))
       (write-string ": " stream))))
 
-(defun accept-2 (stream type
+(defun accept-1 (stream type
 		 &key (view (stream-default-view stream))
 		      (default nil default-supplied-p)
 		      (default-type type)
@@ -134,8 +134,8 @@
 		      (query-identifier nil)
 		      (activation-gestures nil)
 		      (additional-activation-gestures nil)
-		      (blip-gestures nil)
-		      (additional-blip-gestures nil)
+		      (delimiter-gestures nil)
+		      (additional-delimiter-gestures nil)
 		      #+CLIM-1-compatibility (activation-characters nil)
 		      #+CLIM-1-compatibility (additional-activation-characters nil)
 		      #+CLIM-1-compatibility (blip-characters nil)
@@ -147,8 +147,8 @@
 	    blip-characters additional-blip-characters)
     (setq activation-gestures activation-characters
 	  additional-activation-gestures additional-activation-characters
-	  blip-gestures blip-characters
-	  additional-blip-gestures additional-blip-characters))
+	  delimiter-gestures blip-characters
+	  additional-delimiter-gestures additional-blip-characters))
 
   ;; Set up the input editing environment
   (let ((the-object nil)
@@ -164,7 +164,7 @@
 
     ;; Inside ACCEPTING-VALUES, ACCEPT can turn into PRESENT
     (when present-p
-      (return-from accept-2
+      (return-from accept-1
 	(accept-present-default type stream view default default-supplied-p
 				present-p query-identifier :prompt prompt)))
 
@@ -187,9 +187,9 @@
 					     additional-activation-gestures
 					     *standard-activation-gestures*)
 					 :override (not (null activation-gestures)))
-		(with-blip-gestures ((or blip-gestures
-					 additional-blip-gestures)
-				     :override (not (null blip-gestures)))
+		(with-delimiter-gestures ((or delimiter-gestures
+					      additional-delimiter-gestures)
+					  :override (not (null delimiter-gestures)))
 		  (handler-bind ((parse-error
 				   #'(lambda (error)
 				       (declare (ignore error))
@@ -284,16 +284,16 @@
   (loop
     (let ((char (read-gesture :stream stream)))
       (when (or (not (characterp char))
-		(blip-gesture-p char)
+		(delimiter-gesture-p char)
 		(not (whitespace-character-p char)))
-	;; If we got some kind of mouse gesture or a blip character or
-	;; a printing character, then put it back and check to see if
+	;; If we got some kind of mouse gesture or a delimiter or a
+	;; printing character, then put it back and check to see if
 	;; we should insert the default.
 	(unread-gesture char :stream stream)
 	(setf (input-position stream) location)
 	(when (or (null char)
 		  (activation-gesture-p char)
-		  (blip-gesture-p char))
+		  (delimiter-gesture-p char))
 	  ;; Insert the default if we got a character that will terminate
 	  ;; the current call to ACCEPT
 	  (unless (rescanning-p stream)
@@ -338,12 +338,12 @@
 				        (loop
 					  (let ((char (read-char stream nil :eof)))
 					    (when (or (not (characterp char))
-						      (blip-gesture-p char)
+						      (delimiter-gesture-p char)
 						      (not (whitespace-character-p char)))
 					      (unread-char char stream)
 					      (when (or (eql char :eof)
 							(activation-gesture-p char)
-							(blip-gesture-p char))
+							(delimiter-gesture-p char))
 						(return-from check-for-default t))
 					      (return-from check-for-default nil))))))
 				 (declare (dynamic-extent #'check-for-default))
@@ -377,9 +377,9 @@
     (check-type gesture character)
     (stream-unread-char stream gesture)))
 
-(defmethod accept-1 ((stream t) type &rest accept-args)
+(defmethod stream-accept ((stream t) type &rest accept-args)
   (declare (dynamic-extent accept-args))
-  (apply #'accept-2 (or *original-stream* stream) type accept-args))
+  (apply #'accept-1 (or *original-stream* stream) type accept-args))
 
 (defmethod prompt-for-accept ((stream t) type (view view) 
 			      &key query-identifier &allow-other-keys)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: utilities.lisp,v 1.4 91/03/26 12:03:19 cer Exp $
+;; $fiHeader: utilities.lisp,v 1.2 92/01/31 14:52:58 cer Exp $
 
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
@@ -91,117 +91,6 @@
      (progn ,@internal-variables nil)
      (macrolet ,macros
        ,@body)))))
-
-
-#||
-;;;
-;;; Multiple value SETFs
-;;;
-
-#+PCL
-(defun make-setf-function-name (accessor-name)
-  (pcl::get-setf-function-name accessor-name))
-
-#-PCL
-(defun make-setf-function-name (accessor-name)
-  (values `(setf ,accessor-name)
-	  T))
-
-#-PCL
-(defun make-setf*-function-name (accessor-name)
-  (declare (values setf-function-name defsetf-done-p))
-  (let ((writer (get accessor-name 'setf-function-name))
-	(old-p nil))
-      (when writer
-	(ignore-errors
-	  (multiple-value-bind (vars vals store-vars store-form access-form)
-	      (get-setf-method-multiple-value `(,accessor-name foo))
-	    (declare (ignore vars vals store-vars access-form))
-	    (when (or (equal (first store-form) writer)
-		      (and (eql (first store-form) 'funcall)
-			   (eql (first (second store-form)) 'function)
-			   (equal (second (second store-form)) writer)))
-	      (setf old-p t))))
-	(return-from make-setf*-function-name (values writer old-p)))
-      (values (setf (get accessor-name 'setf-function-name)
-		    (intern (format nil "~A ~A:~S" 
-			      'setf*
-			      (package-name (symbol-package accessor-name))
-			      accessor-name)
-                            (find-package 'clim-utils))
-		    ;; --- There appears to be a Genera bug in that
-		    ;; --- if you define a method named (setf foo) it goes
-		    ;; --- ahead and redefines the SETF method for FOO.
-		    #+Ignore
-		    `(setf ,accessor-name))
-	      nil)))
-
-#+PCL
-(defun make-setf*-function-name (accessor-name)
-  (declare (values setf-function-name defsetf-done-p))
-  (values (pcl::get-setf-function-name accessor-name)
-	  (pcl::setfboundp accessor-name)))
-
-(defmacro defgeneric* (function-spec lambda-list &body options)
-  (assert (and (listp function-spec)
-	       (eql (first function-spec) 'setf)
-	       (null (cddr function-spec)))
-	  ()
-	  "Syntax error in ~S: This only works on ~S generic functions" 'defgeneric* 'setf)
-  (let* ((accessor-name (second function-spec))
-	 (accessor-arg (first (last lambda-list)))
-	 (setf-function-name (make-setf*-function-name accessor-name)))
-    `(define-group ,function-spec defgeneric*
-       (defgeneric ,function-spec ,lambda-list ,@options)
-       ,(expand-defsetf-for-defmethod* accessor-name accessor-arg
-				       lambda-list setf-function-name))))
-
-(defmacro defmethod* (name &body quals-lambda-list-and-body)
-  (declare (arglist name [qualifiers]* lambda-list &body body))
-  #+Genera (declare (zwei:indentation . #-PCL zwei:indent-for-clos-defmethod
-					#+PCL pcl::indent-clos-defmethod))
-  (assert (and (listp name) (eql (first name) 'setf) (null (cddr name))) ()
-	  "Syntax error in ~S: This only works on ~S methods" 'defmethod* 'setf)
-  (let (qualifiers real-arglist body accessor-arg
-		   (accessor-name (second name)))
-    (multiple-value-bind (setf-function-name old-p)
-	(make-setf*-function-name accessor-name)
-      (do ((qllab quals-lambda-list-and-body (cdr qllab)))
-	  ((not (symbolp (first qllab)))
-	   (setf qualifiers (nreverse qualifiers)
-		 real-arglist (first qllab)
-		 accessor-arg (let ((arg (first (last real-arglist))))
-				(if (listp arg) (first arg) arg))
-		 body (cdr qllab)))
-	(push (first qllab) qualifiers))
-      `(progn ,(unless old-p		;Don't write same SETF method again.
-		 (expand-defsetf-for-defmethod* accessor-name accessor-arg
-						real-arglist setf-function-name))
-	      (defmethod ,setf-function-name ,@qualifiers ,real-arglist ,@body)))))
-
-(defun expand-defsetf-for-defmethod*
-       (accessor-name accessor-arg real-arglist setf-function-name)
-  `(define-setf-method ,accessor-name (,accessor-arg)	;Only last one is real.
-     (flet ((make-temp (name) (gensymbol name 'temp)))
-       (let ((temps (list (make-temp ',accessor-arg)))
-	     (store-temps (mapcar #'make-temp ',(butlast real-arglist))))
-	 (values temps (list ,accessor-arg) store-temps
-		 `(funcall #',',setf-function-name ,@store-temps ,@temps)
-		 `(,',accessor-name ,@temps))))))
-
-(defmacro setf* (place expr &rest more-pairs)
-  (if more-pairs
-      `(progn 
-	 (setf* ,place ,expr)
-	 (setf* ,@more-pairs))
-      (multiple-value-bind (tvars vals svars store access)
-	  (get-setf-method-multiple-value place)
-	(declare (ignore access))
-	`(let* (,@(mapcar #'list tvars vals))
-	   (multiple-value-bind ,svars
-	       ,expr
-	     ,store)))))
-||#
 
 
 ;;;

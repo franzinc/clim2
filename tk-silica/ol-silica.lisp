@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-silica.lisp,v 1.3 92/02/05 21:45:23 cer Exp Locker: cer $
+;; $fiHeader: ol-silica.lisp,v 1.4 92/02/14 18:57:39 cer Exp $
 
 (in-package :xm-silica)
 
@@ -31,16 +31,12 @@
   'openlook-port)
 
 (warn "Changing the default server path to ~S"
-      (setq silica::*default-server-path* '(:openlook :display "localhost:0")))
+      (setq *default-server-path* '(:openlook :display "localhost:0")))
 
 (defmethod port-note-cursor-change ((port openlook-port)
-				    cursor
-				    stream
-				    type
-				    old
-				    new)
+				    cursor stream type old new)
   (declare (ignore old type cursor))
   (call-next-method)
   ;;--- This is in both xm and ol to perhaps should be an after on xt
-  (setf (silica::port-keyboard-focus port) 
-    (and new stream)))
+  (setf (port-keyboard-input-focus port) 
+	(and new stream)))

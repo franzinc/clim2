@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: interactive-defs.lisp,v 1.4 91/03/26 12:48:08 cer Exp $
+;; $fiHeader: interactive-defs.lisp,v 1.3 92/01/31 14:58:18 cer Exp $
 
 (in-package :clim-internals)
 
@@ -65,39 +65,39 @@
 )	;#+CLIM-1-compatibility
 
 
-;; Blip gestures terminate a field in an input line.  They are usually
+;; Delimiter gestures terminate a field in an input line.  They are usually
 ;; printing characters such as Space or Tab
-(defvar *blip-gestures* nil)
+(defvar *delimiter-gestures* nil)
 
-(defmacro with-blip-gestures ((additional-gestures &key override) &body body)
+(defmacro with-delimiter-gestures ((additional-gestures &key override) &body body)
   (when (characterp additional-gestures)
     (setq additional-gestures `'(,additional-gestures)))
-  `(with-stack-list* (*blip-gestures*
+  `(with-stack-list* (*delimiter-gestures*
 		       ,additional-gestures
 		       ,(cond ((constantp override)
-			       (if (null override) '*blip-gestures* nil))
+			       (if (null override) '*delimiter-gestures* nil))
 			      (t
-			       `(unless ,override *blip-gestures*))))
+			       `(unless ,override *delimiter-gestures*))))
      ,@body))
 
-(defun blip-gesture-p (gesture)
-  (dolist (set *blip-gestures*)
+(defun delimiter-gesture-p (gesture)
+  (dolist (set *delimiter-gestures*)
     (when (if (listp set)
 	      (member gesture set)
 	      (funcall set gesture))
-      (return-from blip-gesture-p t))))
+      (return-from delimiter-gesture-p t))))
 
 #+CLIM-1-compatibility
 (progn
 (defmacro with-blip-characters ((additional-characters &key override) &body body)
   (warn "The function ~S is now obsolete, use ~S instead.~%~
 	 Compatibility code is being generated for the time being."
-	'with-blip-characters 'with-blip-gestures)
-  `(with-blip-gestures (,additional-characters :override ,override) ,@body))
+	'with-blip-characters 'with-delimiter-gestures)
+  `(with-delimiter-gestures (,additional-characters :override ,override) ,@body))
 
-(define-compatibility-function (blip-character-p blip-gesture-p)
+(define-compatibility-function (blip-character-p delimiter-gesture-p)
 			       (character)
-  (blip-gesture-p character))
+  (delimiter-gesture-p character))
 )	;#+CLIM-1-compatibility
 
 
@@ -106,15 +106,15 @@
 (defparameter *quotation-character* #\")
 
 ;; READ-TOKEN reads characters until it encounters an activation character,
-;; a blip character, or something else (like a mouse click).
+;; a delimiter character, or something else (like a mouse click).
 (defun read-token (stream &key input-wait-handler pointer-button-press-handler 
 			       click-only timeout)
   (with-temporary-string (string :length 50 :adjustable t)
     (let* ((gesture nil)
 	   (gesture-type nil)
 	   (quote-seen nil)
-	   (old-blip-gestures *blip-gestures*)
-	   (*blip-gestures* *blip-gestures*))
+	   (old-delimiters *delimiter-gestures*)
+	   (*delimiter-gestures* *delimiter-gestures*))
       (flet ((return-token (&optional unread)
 	       (when unread
 		 (unread-gesture unread :stream stream))
@@ -146,14 +146,14 @@
 		 (cond ((and (zerop (fill-pointer string))
 			     (eql gesture *quotation-character*))
 			(setq quote-seen t)
-			(setq *blip-gestures* nil))
+			(setq *delimiter-gestures* nil))
 		       ((and quote-seen
 			     (eql gesture *quotation-character*))
 			(setq quote-seen nil)
-			(setq *blip-gestures* old-blip-gestures))
+			(setq *delimiter-gestures* old-delimiters))
 		       ((activation-gesture-p gesture)
 			(return-token gesture))
-		       ((blip-gesture-p gesture)
+		       ((delimiter-gesture-p gesture)
 			;; ditto?
 			(return-token gesture))
 		       ((ordinary-char-p gesture)
@@ -164,7 +164,7 @@
 		(t (return-token gesture))))))))
 
 (defun write-token (token stream &key acceptably)
-  (cond ((and acceptably (some #'blip-gesture-p token))
+  (cond ((and acceptably (some #'delimiter-gesture-p token))
 	 (write-char *quotation-character* stream)
 	 (write-string token stream)
 	 (write-char *quotation-character* stream))

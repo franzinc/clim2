@@ -1,4 +1,5 @@
-;; -*- mode: common-lisp; package: silica -*-
+;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
+
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
@@ -18,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: layout.cl,v 1.5 92/01/08 14:59:04 cer Exp $
+;; $fiHeader: layout.lisp,v 1.6 92/01/31 14:55:41 cer Exp $
 
 (in-package :silica)
 
@@ -31,27 +32,30 @@
      (max-height :accessor space-requirement-max-height)
      (min-height :accessor space-requirement-min-height)))
 
-(defmethod print-object ((o space-requirement) s)
-  (print-unreadable-object 
-      (o s :type t)
-    (with-slots (min-width width  max-width min-height height
-			   max-height) o
-	(format s "~D,~D,~D ~D,~D,~D"
-		min-width width  max-width 
-		min-height height
-		max-height))))
+(defmethod space-requirement-components ((sr space-requirement))
+  (with-slots (width min-width max-width
+	       height min-height max-height) sr
+    (values width min-width max-width
+	    height min-height max-height)))
+
+(defmethod print-object ((object space-requirement) stream)
+  (print-unreadable-object (object stream :type t)
+    (with-slots (min-width width max-width min-height height max-height) object
+      (format stream "~D,~D,~D ~D,~D,~D"
+	min-width width  max-width 
+	min-height height max-height))))
 
 (defmethod copy-space-requirement ((sr space-requirement))
   (with-slots (width height max-width max-height min-width min-height) sr
-      (make-instance 'space-requirement
-		     :width width
-		     :height height
-		     :max-width max-width
-		     :max-height max-height
-		     :min-width min-width
-		     :min-height min-height)))
+    (make-instance 'space-requirement
+		   :width width
+		   :height height
+		   :max-width max-width
+		   :max-height max-height
+		   :min-width min-width
+		   :min-height min-height)))
 
-(defmethod initialize-instance :after ((s space-requirement)
+(defmethod initialize-instance :after ((sr space-requirement)
 				       &key
 				       (width (error "width not specified"))
 				       (min-width width)
@@ -59,116 +63,125 @@
 				       (height (error "height not specified"))
 				       (max-height height)
 				       (min-height height))
-  (setf (slot-value s 'min-height) min-height
-	(slot-value s 'max-height) max-height
-	(slot-value s 'min-width) min-width
-	(slot-value s 'max-width) max-width))
+  (setf (slot-value sr 'min-height) min-height
+	(slot-value sr 'max-height) max-height
+	(slot-value sr 'min-width) min-width
+	(slot-value sr 'max-width) max-width))
 
-(defun make-space-requirement (&rest args)
+(defun-inline make-space-requirement (&rest args)
+  (declare (dynamic-extent args))
   (apply #'make-instance 'space-requirement args))
 
 (defconstant +fill+ (/ (expt 10 (floor (log most-positive-fixnum 10))) 100))
 
-
-(defmethod sheet-width (sheet)
-  (with-bounding-rectangle*
-   (minx miny maxx maxy) (sheet-region sheet)
-   (- maxx minx)))
-
-(defmethod sheet-height (sheet)
-  (with-bounding-rectangle*
-   (minx miny maxx maxy) (sheet-region sheet)
-   (- maxy miny)))
-
+
 ;;; Layout protocol
 
 ;(defgeneric compose-space (sheet)
 ;  )
 ;
 ;(defmethod compose-space (sheet)
-;  (make-instance 'space-requirement
-;		 :width (sheet-width sheet)
-;		 :height (sheet-height sheet)))
+;  (multiple-value-bind (width height)
+;      (bounding-rectangle-size sheet)
+;    (make-instance 'space-requirement
+;		   :width width
+;		   :height height)))
 ;
 ;(defgeneric allocate-space (sheet width height))
 ;
 ;(defmethod allocate-space (sheet width height)
 ;  (declare (ignore sheet width height)))
 
-(defmacro vertically (options &rest contents)
+(defmacro vertically (options &body contents)
   `(realize-pane 'vbox-pane
-		 :contents (list ,@contents) ,@options))
+		 :contents (list ,@contents)
+		 ,@options))
 
 
-(defmacro horizontally (options &rest contents)
+(defmacro horizontally (options &body contents)
   `(realize-pane 'hbox-pane
-		 :contents (list ,@contents) ,@options))
+		 :contents (list ,@contents)
+		 ,@options))
 
 
 (defmethod resize-sheet* ((sheet sheet) width height)
   (when (or width height)
     (with-bounding-rectangle* (minx miny maxx maxy) sheet
-			      (when (or (and width (/= (- maxx minx) width))
-					(and height (/= (- maxy miny) height)))
-				(setf (sheet-region sheet)
-				  (make-bounding-rectangle
-				   minx 
-				   miny
-				   (if width (+ width minx) maxx)
-				   (if height (+ height miny) maxy)))))))
+      (when (or (and width (/= (- maxx minx) width))
+		(and height (/= (- maxy miny) height)))
+	(setf (sheet-region sheet)
+	      (make-bounding-rectangle
+		minx miny
+		(if width (+ width minx) maxx)
+		(if height (+ height miny) maxy)))))))
 
 (defmethod move-and-resize-sheet* ((sheet sheet) minx miny width height)
   (resize-sheet* sheet width height)
   (let ((trans (sheet-transformation sheet)))
-    (multiple-value-bind
-	(x y) (transform-point* trans 0 0)
+    (multiple-value-bind (x y)
+	(transform-point* trans 0 0)
       (when (or (and minx (/= x minx))
 		(and miny (/= y miny)))
 	(setf (sheet-transformation sheet)
-	  (compose-translation-with-transformation
-	   trans
-	   (if minx (- minx x) 0)
-	   (if miny (- miny y) 0)))))))
-
+	      (compose-translation-with-transformation
+		trans
+		(if minx (- minx x) 0)
+		(if miny (- miny y) 0)))))))
 
 (defmethod move-sheet* ((sheet sheet) minx miny)
   (let ((trans (sheet-transformation sheet)))
-    (multiple-value-bind
-	(x y) (transform-point* trans 0 0)
+    (multiple-value-bind (x y)
+	(transform-point* trans 0 0)
       (when (or (/= x minx)
 		(/= y miny))
 	(setf (sheet-transformation sheet)
-	  (compose-translation-transformation
-	   trans
-	   (- minx x)
-	   (- miny y)))))))
+	      (compose-translation-with-transformation
+		trans
+		(- minx x)
+		(- miny y)))))))
 
 
 ;; Various
 
-(defclass pane (sheet 
-		sheet-transformation-mixin
-		standard-sheet-input-mixin
-		standard-repainting-medium
-		permanent-medium-sheet-output-mixin
-		mute-repainting-mixin)
-	  ((frame :reader pane-frame :initarg :frame)
-	   (framem :reader pane-frame-mamager :initarg :frame-manager)))
-
-
-(defmethod note-sheet-region-changed :after ((sheet pane) &key port)
-  (declare (ignore port))
-  (allocate-space sheet
-		  (sheet-width sheet) 
-		  (sheet-height sheet)))
+;;--- What about PANE-FOREGROUND/BACKGROUND vs. MEDIUM-FOREGROUND/BACKGROUND?
+(defclass pane 
+	  (sheet 
+	   sheet-transformation-mixin
+	   standard-sheet-input-mixin
+	   standard-repainting-medium
+	   permanent-medium-sheet-output-mixin
+	   mute-repainting-mixin)
+    ((frame :reader pane-frame :initarg :frame)
+     (framem :reader pane-frame-manager :initarg :frame-manager)))
 
 (defmethod panep ((x pane)) t)
 (defmethod panep ((x t)) nil)
 
+;;--- This is suspicious - it should either be on a composite-pane or
+;;--- on a top-level sheet
+#+++ignore
+(defmethod note-sheet-region-changed :after ((sheet pane) &key port)
+  (declare (ignore port))
+  (multiple-value-bind (width height) (bounding-rectangle-size sheet)
+    (allocate-space sheet width height)))
+
+(defmethod pane-frame ((x sheet)) nil)
+
 (defclass leaf-mixin (sheet-leaf-mixin) ())
 (defclass composite-pane (pane sheet-multiple-child-mixin) ())
 (defclass mute-input-mixin (sheet-mute-input-mixin) ())
-(defclass pane-background-mixin () ())
+
+(defclass pane-background-mixin () 
+    ((background :initform +white+ :accessor pane-background)))
+
+;;--- This is conceptually what we need, but it hasn't been tested.
+;;--- Look carefully at who uses PANE-BACKGROUND-MIXIN first...
+#+++ignore
+(defmethod repaint-sheet ((pane pane-background-mixin) region)
+  (with-sheet-medium (medium pane)
+    (multiple-value-call #'draw-rectangle*
+      medium (bounding-rectangle* (sheet-region pane))
+      :ink (pane-background pane))))
 
 ;(defclass list-contents-mixin ()
 ;    ((contents :initform nil)
@@ -276,4 +289,26 @@
 ;    (setf nslots (length contents))))
 
 
+
+;;--- CLIM 0.9 has some other methods on top-level sheets -- do we want them?
+(defclass top-level-sheet 
+	  (silica::pane
+	   wrapping-space-mixin
+	   mirrored-sheet-mixin
+	   sheet-multiple-child-mixin)
+    ())
+
+(defmethod allocate-space ((sheet top-level-sheet) width height)
+  (resize-sheet* (first (sheet-children sheet)) width height))
+
+(defmethod compose-space ((sheet top-level-sheet) &key width height)
+  (compose-space (first (sheet-children sheet)) :width width :height height))
+
+
+(defclass leaf-pane 
+	  (sheet-permanently-enabled-mixin
+	   client-overridability
+	   pane)
+    ((cursor :initarg :cursor :initform nil
+	     :accessor sheet-cursor)))
 

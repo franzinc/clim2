@@ -1,4 +1,5 @@
-;; -*- mode: common-lisp; package: clim-internals -*-
+;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
+
 ;;
 ;;				-[]-
 ;; 
@@ -20,26 +21,26 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader$
+;; $fiHeader: pixmap-streams.lisp,v 1.1 92/02/08 15:00:46 cer Exp $
 
 (in-package :clim-internals)
 
-(defclass pixmap-stream (input-protocol-mixin
+(defclass pixmap-stream (sheet
+			 input-protocol-mixin
 			 output-protocol-mixin
-			 sheet-permanently-enabled-mixin
 			 mirrored-sheet-mixin
+			 sheet-permanently-enabled-mixin
 			 permanent-medium-sheet-output-mixin
-			 sheet-transformation-mixin
-			 sheet)
+			 sheet-transformation-mixin)
 	  ())
 
 (defmethod realize-mirror ((port port) (stream pixmap-stream))
   nil)
 
-(defmethod silica::update-mirror-transformation ((port port) (sheet pixmap-stream))
+(defmethod update-mirror-transformation ((port port) (sheet pixmap-stream))
   nil)
 
-(defmethod silica::update-mirror-region ((port port) (sheet pixmap-stream))
+(defmethod update-mirror-region ((port port) (sheet pixmap-stream))
   nil)
 
 (defmethod initialize-instance :after ((stream pixmap-stream) &key 
@@ -54,8 +55,8 @@
 
 ;; Interface to this stuff
 
-(defmacro with-output-to-pixmap-stream ((stream sheet . options) &body body)
-  (clim-utils::default-output-stream stream with-output-to-pixmap-stream)
+(defmacro with-output-to-pixmap ((stream sheet . options) &body body)
+  (default-output-stream stream with-output-to-pixmap)
   `(flet ((with-output-to-pixmap-body (,stream) ,@body))
      (declare (dynamic-extent #'with-output-to-pixmap-body))
      (invoke-with-output-to-pixmap ,sheet

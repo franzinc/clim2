@@ -18,34 +18,34 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-frames.lisp,v 1.7 92/02/05 21:45:25 cer Exp Locker: cer $
+;; $fiHeader: xm-frames.lisp,v 1.8 92/02/14 18:57:40 cer Exp $
 
 (in-package :xm-silica)
 
 ;; Motif stuff
 
 (defclass motif-frame-manager (xt-frame-manager)
-	  ())
+    ())
 
 (defmethod make-frame-manager ((port motif-port))
-  (make-instance ' motif-frame-manager :port port))
+  (make-instance 'motif-frame-manager :port port))
 
-(defmethod adopt-frame :after ((framem motif-frame-manager) (frame standard-application-frame))
+(defmethod adopt-frame :after ((framem motif-frame-manager) 
+			       (frame standard-application-frame))
   (when (frame-panes frame)
     (establish-wm-protocol-callbacks framem frame)))
 
 (defmethod establish-wm-protocol-callbacks ((framem motif-frame-manager) frame)
   (let ((shell (frame-shell frame)))
     (tk::set-values shell 
-		    :icon-name (frame-name frame)
-		    :title (frame-name frame)
+		    :icon-name (frame-pretty-name frame)
+		    :title (frame-pretty-name frame)
 		    :delete-response :do-nothing)
-		    
     (tk::add-wm-protocol-callback
-     shell 
-     :wm-delete-window
-     'frame-wm-protocol-callback
-     frame)))
+      shell 
+      :wm-delete-window
+      'frame-wm-protocol-callback
+      frame)))
 
 ;;; Definitions of the individual classes
 
@@ -123,14 +123,7 @@
 ;		      (realize-mirror port (cascade-button-submenu sheet))))
 ;    m))
 
-(defclass window-manager-event (event)
-	  ())
-
-(defclass wm-delete-window-event (window-manager-event)
-	  ((sheet :initarg :sheet :reader event-sheet))
-  )
-
-(defmethod handle-event (sheet (event wm-delete-window-event))
+(defmethod handle-event (sheet (event window-manager-delete-event))
   (frame-exit *application-frame*))
 
 (defun frame-wm-protocol-callback (widget frame)
@@ -139,19 +132,15 @@
   ;; synchronously quit from the frame
   (distribute-event
    (sheet-port frame)
-   (make-instance 'wm-delete-window-event
+   (make-instance 'window-manager-delete-event
 		  :sheet (frame-top-level-sheet frame))))
-
-
-
 
 
 (defclass motif-menu-bar (xt-leaf-pane) 
 	  ((command-table :initarg :command-table)))
 
-(defmethod find-widget-class-and-initargs-for-sheet (port
-						     (parent t)
-						     (sheet motif-menu-bar))
+(defmethod find-widget-class-and-initargs-for-sheet 
+	   ((port motif-port) (parent t) (sheet motif-menu-bar))
   (values 'tk::xm-menu-bar 
 	  (list :resize-height t
 		:resize-width t)))
@@ -218,8 +207,6 @@
        mirror
        t))
     mirror))
-
-
 
 (defmethod port-dialog-view ((port motif-port))
   +gadget-dialog-view+)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: transformations.lisp,v 1.4 91/03/26 12:03:18 cer Exp $
+;; $fiHeader: transformations.lisp,v 1.2 92/01/31 14:52:56 cer Exp $
 
 (in-package :clim-utils)
 
@@ -34,6 +34,11 @@
   (declare (values dx dy)))
 (defgeneric untransform-distance (transform dx dy)
   (declare (values dx dy)))
+
+(defgeneric transform-rectangle* (transform x1 y1 x2 y2)
+  (declare (values x1 y1 x2 y2)))
+(defgeneric untransform-rectangle* (transform x1 y1 x2 y2)
+  (declare (values x1 y1 x2 y2)))
 
 #+CLIM-1-compatibility 
 (progn
@@ -745,3 +750,55 @@
 (defmethod untransform-distance ((transform standard-transformation) dx dy)
   (declare (type real dx dy))
   (transform-distance (slot-value transform 'inverse) dx dy))
+
+
+;;; Transforming and untransforming of points
+
+(defmethod transform-rectangle* ((transform identity-transformation) x1 y1 x2 y2)
+  (values x1 y1 x2 y2))
+
+(defmethod transform-rectangle* ((transform translation-transformation) x1 y1 x2 y2)
+  (declare (type real x1 y1 x2 y2))
+  (let ((x1 (float x1 0f0))
+	(y1 (float y1 0f0))
+	(x2 (float x2 0f0))
+	(y2 (float y2 0f0)))
+    (declare (type single-float x1 y1 x2 y2))
+    (with-slots (tx ty) transform
+      (declare (type single-float tx ty))
+      (values (+ x1 tx) (+ y1 ty) (+ x2 tx) (+ y2 ty)))))
+
+(defmethod transform-rectangle* ((transform standard-transformation) x1 y1 x2 y2)
+  (declare (type real x1 y1 x2 y2))
+  (assert (rectilinear-transformation-p transform) (transform)
+	  "Bounding rectangles can only be transformed by a rectilinear transformation")
+  (let ((x1 (float x1 0f0))
+	(y1 (float y1 0f0))
+	(x2 (float x2 0f0))
+	(y2 (float y2 0f0)))
+    (declare (type single-float x1 y1 x2 y2))
+    (with-slots (mxx mxy myx myy tx ty) transform
+      (declare (type single-float mxx mxy myx myy tx ty))
+      (values (+ (* x1 mxx) (* y1 mxy) tx)
+	      (+ (* x1 myx) (* y1 myy) ty)
+	      (+ (* x2 mxx) (* y2 mxy) tx)
+	      (+ (* x2 myx) (* y2 myy) ty)))))
+
+
+(defmethod untransform-rectangle* ((transform identity-transformation) x1 y1 x2 y2)
+  (values x1 y1 x2 y2))
+
+(defmethod untransform-rectangle* ((transform translation-transformation) x1 y1 x2 y2)
+  (declare (type real x1 y1 x2 y2))
+  (let ((x1 (float x1 0f0))
+	(y1 (float y1 0f0))
+	(x2 (float x2 0f0))
+	(y2 (float y2 0f0)))
+    (declare (type single-float x1 y1 x2 y2))
+    (with-slots (tx ty) transform
+      (declare (type single-float tx ty))
+      (values (- x1 tx) (- y1 ty) (- x2 tx) (- y2 ty)))))
+
+(defmethod untransform-rectangle* ((transform standard-transformation) x1 y1 x2 y2)
+  (declare (type real x1 y1 x2 y2))
+  (transform-rectangle* (slot-value transform 'inverse) x1 y1 x2 y2))

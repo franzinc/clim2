@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clos-patches.lisp,v 1.6 91/03/26 12:03:06 cer Exp $
+;; $fiHeader: clos-patches.lisp,v 1.2 92/01/31 14:52:25 cer Exp $
 
 (in-package :clim-utils)
 
@@ -17,12 +17,20 @@
 			     (new-value symbol &optional errorp)
   (if (null symbol) nil (lucid-common-lisp:advice-continue new-value symbol errorp)))
 
-#+(or Lucid Allegro)
+#+Lucid
 ;; I can't figure out how to do this, so for now we will not try to keep the
 ;; compilation and run-time environments properly separated.
 (defun compile-file-environment-p (environment)
   (declare (ignore environment))
   nil)
+
+#+Allegro
+(defun compile-file-environment-p (environment)
+  excl::*compiler-environment*)
+
+#+Allegro
+(eval-when (compile)
+  (warn "~S hacked for lack of environment support in 4.1" 'compile-file-environment-p))
 
 #+CCL-2
 (defun compile-file-environment-p (environment)
@@ -30,7 +38,7 @@
       t
       (ccl::compile-file-environment-p environment)))
 
-#+(or Lucid Allegro)
+#+(or Lucid (and Allegro (not (version>= 4 1))))
 (defgeneric make-load-form (object))
 
 #+Lucid
@@ -56,7 +64,7 @@
 	(cons (first form1) (mapcar #'eval (rest form1))))
       (lucid-common-lisp:advice-continue object)))
 
-#+Allegro
+#+(and Allegro (not (version>= 4 1 40)))	; 40 is arbitrary, I mean > beta.
 ;; Allegro CL doesn't have MAKE-LOAD-FORM, so add it (with advice from Foderaro)
 (excl:defadvice comp::wfasl-lispobj (implement-make-load-form :before)
   (let ((object (first excl:arglist)))
@@ -71,7 +79,8 @@
  	  (apply #'comp::wfasl-lispobj
  		 (cons compiler::*eval-when-load-marker* form1)
 		 (rest excl:arglist)))))))
-#+Allegro
+
+#+(and Allegro (not (version>= 4 1 40)))
 (excl:compile-advice 'comp::wfasl-lispobj)
 
 #+Lucid
@@ -110,7 +119,7 @@
 		 (t (error "~S is not a legal specializer." spec)))))
     (mapcar #'parse specializers)))
 
-#+Allegro
+#+(and Allegro (not (version>= 4 0)))
 ;;; This is needed to prevent a MAKE-LOAD-FORM form from being evaluated before
 ;;; an earlier top-level form, says Foderaro.  Even the forward reference allowed
 ;;; by load-reference-to-presentation-type-class isn't sufficient without this,
@@ -140,14 +149,16 @@
 	    (push (cons var type) alist)))))))
 
 #+(or Lucid (and Allegro (or :rs6000 (not (version>= 4 1)))))
-(defparameter *with-slots* #+PCL 'pcl::with-slots 
-			   #+Allegro 'clos::with-slots
-			   #-(or Allegro PCL) 'clos:with-slots)
+(defparameter *with-slots*
+	      #+PCL 'pcl::with-slots 
+	      #+(and Allegro (or :rs6000 (not (version>= 4 1)))) 'clos::with-slots
+              #-(or (and Allegro (or :rs6000 (not (version>= 4 1)))) PCL) 'clos:with-slots)
 
 #+(or Lucid (and Allegro (or :rs6000 (not (version>= 4 1)))))
-(defparameter *slot-value* #+PCL 'pcl::slot-value
-			   #+Allegro 'clos::slot-value
-			   #-(or Allegro PCL) 'clos:slot-value)
+(defparameter *slot-value*
+	      #+PCL 'pcl::slot-value
+	      #+(and Allegro (or :rs6000 (not (version>= 4 1)))) 'clos::slot-value
+	      #-(or (and Allegro (or :rs6000 (not (version>= 4 1)))) PCL) 'clos:slot-value)
 
 #+(or Lucid (and Allegro (or :rs6000 (not (version>= 4 1)))))
 (defmacro with-slots (slot-entries instance-form &body body &environment environment)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: genera-implementation.lisp,v 1.4 91/03/26 12:48:48 cer Exp $
+;; $fiHeader: genera-implementation.lisp,v 1.1 92/01/31 14:27:52 cer Exp $
 
 (in-package :clim-internals)
 
@@ -149,17 +149,17 @@
 
       (setq label-text-style
 	    (cond ((stringp label-spec)
-		   (stream-merged-text-style stream))
+		   (medium-merged-text-style stream))
 		  ((getf (rest label-spec) :text-style))
-		  (t (stream-merged-text-style stream))))
+		  (t (medium-merged-text-style stream))))
 
       (setq character-style
 	    (si:intern-character-style :device-font
 				       (tv:font-name 
 					 (text-style-mapping
 					   (slot-value stream 'display-device-type)
-					   *standard-character-set*
 					   label-text-style
+					   *standard-character-set*
 					   (slot-value stream 'window)))
 				       :normal))
       `(:string ,label :character-style ,character-style))))
@@ -811,7 +811,7 @@
     (sys:stack-let ((substring (make-string (- end start))))
       (replace substring string :start2 start :end2 end)
       (let* ((font (text-style-mapping (slot-value stream 'display-device-type)
-				       *standard-character-set* text-style
+				       text-style *standard-character-set*
 				       (slot-value stream 'window)))
 	     (height (sys:font-char-height font))
 	     (descent (- height (sys:font-baseline font)))
@@ -836,7 +836,7 @@
     (round-points x y)
     (translate-positions x-offset y-offset x y)
     (let* ((font (text-style-mapping (slot-value stream 'display-device-type)
-				     *standard-character-set* text-style
+				     text-style *standard-character-set*
 				     (slot-value stream 'window)))
 	   (height (sys:font-char-height font))
 	   (descent (- height (sys:font-baseline font)))
@@ -869,8 +869,8 @@
 		     ;; have no style changes within it.  This is what our-font is all
 		     ;; about.
 		     (let* ((font (or our-font (text-style-mapping
-						 display-device-type character-set
-						 ,style nil)))
+						 display-device-type ,style
+						 character-set nil)))
 			    (FIT (sys:font-indexing-table font))
 			    (LKT (sys:font-left-kern-table font))
 			    (CWT (sys:font-char-width-table font))
@@ -947,21 +947,21 @@
 			      (stream sheet-implementation-mixin))
   (with-slots (display-device-type window) stream
     (let ((font (text-style-mapping
-		  display-device-type *standard-character-set* text-style window)))
+		  display-device-type text-style *standard-character-set* window)))
       (sys:font-char-height font))))
 
 (defmethod text-style-width ((text-style standard-text-style)
 			     (stream sheet-implementation-mixin))
   (with-slots (display-device-type window) stream
     (let ((font (text-style-mapping
-		  display-device-type *standard-character-set* text-style window)))
+		  display-device-type text-style *standard-character-set* window)))
       (sys:font-char-width font))))
 
 (defmethod text-style-ascent ((text-style standard-text-style)
 			      (stream sheet-implementation-mixin))
   (with-slots (display-device-type window) stream
     (let ((font (text-style-mapping
-		  display-device-type *standard-character-set* text-style window)))
+		  display-device-type text-style *standard-character-set* window)))
       (let* ((height (sys:font-char-height font))
 	     (descent (- height (sys:font-baseline font)))
 	     (ascent (- height descent)))
@@ -971,7 +971,7 @@
 			       (stream sheet-implementation-mixin))
   (with-slots (display-device-type window) stream
     (let ((font (text-style-mapping
-		  display-device-type *standard-character-set* text-style window)))
+		  display-device-type text-style *standard-character-set* window)))
       (let* ((height (sys:font-char-height font))
 	     (descent (- height (sys:font-baseline font))))
 	descent))))
@@ -980,18 +980,8 @@
 				     (stream sheet-implementation-mixin))
   (with-slots (display-device-type window) stream
     (let ((font (text-style-mapping
-		  display-device-type *standard-character-set* text-style window)))
+		  display-device-type text-style *standard-character-set* window)))
       (null (sys:font-char-width-table font)))))
-
-(defmethod text-size ((stream sheet-implementation-mixin) string
-		      &key (text-style (stream-merged-text-style stream)) (start 0) end)
-  (when (characterp string)
-    (setq string (string string)
-	  start 0
-	  end nil))
-  (multiple-value-bind (last-x largest-x last-y total-height baseline)
-      (stream-string-output-size stream string :text-style text-style :start start :end end)
-    (values largest-x total-height last-x last-y baseline)))
 
 
 ;;; This whole file is #+Genera, right?
@@ -1033,7 +1023,7 @@
 ;;; Interface to Genera scroll bars.
 (scl:defmethod (:y-scroll-position clim-sheet) ()
   (declare (values top-displayed height-displayed minimum-y maximum-y))
-  (let* ((stream (clim-window-for-host-window scl:self :error-if-no-match nil))
+  (let* ((stream (sheet-for-genera-window scl:self :error-if-no-match nil))
 	 (history (and stream (stream-output-history stream)))
 	 (viewport (and stream (window-viewport stream))))
     (cond ((and viewport history)
@@ -1045,7 +1035,7 @@
 	  (t (values 0 0 0 0)))))
 
 (scl:defmethod (:x-scroll-position clim-sheet) ()
-  (let* ((stream (clim-window-for-host-window scl:self :error-if-no-match nil))
+  (let* ((stream (sheet-for-genera-window scl:self :error-if-no-match nil))
 	 (history (and stream (stream-output-history stream)))
 	 (viewport (and stream (window-viewport stream))))
     (cond ((and viewport history)
@@ -1120,7 +1110,7 @@
 		    (bounding-rectangle-top viewport))))))))
 
 (scl:defmethod (:y-scroll-to clim-sheet) (position type)
-  (let* ((stream (clim-window-for-host-window scl:self))
+  (let* ((stream (sheet-for-genera-window scl:self))
 	 (history (stream-output-history stream))
 	 (left (bounding-rectangle-left (window-viewport stream))))
     (multiple-value-bind (ignore top)
@@ -1133,7 +1123,7 @@
       (window-set-viewport-position* stream left top))))
 
 (scl:defmethod (:x-scroll-to clim-sheet) (position type)
-  (let* ((stream (clim-window-for-host-window scl:self))
+  (let* ((stream (sheet-for-genera-window scl:self))
 	 (history (stream-output-history stream))
 	 (top (bounding-rectangle-top (window-viewport stream))))
     (let ((left (calculate-new-viewport-position stream :x type position)))
@@ -1151,7 +1141,7 @@
       scl:self))
 
 (scl:defmethod (:name-for-selection clim-sheet) ()
-  (or (let ((frame (window-stream-to-frame (clim-window-for-host-window scl:self))))
+  (or (let ((frame (window-stream-to-frame (sheet-for-genera-window scl:self))))
 	(and frame (frame-pretty-name frame)))
       (let ((label (scl:send scl:self :label)))
 	(and label (scl:string-search-not-char #\sp label) label))
@@ -1165,7 +1155,7 @@
 	   (scl:lexpr-send selected-inferior :select args))
 	  ((and (null selected-inferior)
 		tv:inferiors
-		(let ((frame (window-stream-to-frame (clim-window-for-host-window scl:self))))
+		(let ((frame (window-stream-to-frame (sheet-for-genera-window scl:self))))
 		  (when frame
 		    ;; This is a frame whose input focus has not yet been directed to any pane
 		    ;; Choose the interactor pane by default
@@ -1204,7 +1194,7 @@
     (scl:send inferior :select-relative)))
 
 (scl:defmethod (tv:refresh-rectangle clim-sheet) (left top right bottom)
-  (let ((window (clim-window-for-host-window scl:self)))
+  (let ((window (sheet-for-genera-window scl:self)))
     (setf (slot-value window 'highlighted-presentation) nil)
     (multiple-value-bind (viewport-x viewport-y)
 	(bounding-rectangle-position* (window-viewport window))
@@ -1228,12 +1218,12 @@
 		     (and (= old-x tv:x-offset) (= old-y tv:y-offset)))
 	   (scl:send scl:self :force-kbd-input
 		     (make-window-size-or-position-change-event
-		       (clim-window-for-host-window scl:self)
+		       (sheet-for-genera-window scl:self)
 		       nil nil nil nil))))))))
 
 (scl:defmethod (:refresh clim-sheet :before) (&optional (type :complete-redisplay))
   (declare (ignore type))
-  (let ((stream (clim-window-for-host-window scl:self)))
+  (let ((stream (sheet-for-genera-window scl:self)))
     ;; Invalidate all cached inks, so they'll be redecoded taking into account any
     ;; changed parameters such as reversed video.
     (let ((cache (slot-value stream 'ink-cache)))
@@ -1246,7 +1236,7 @@
 
 (scl:defmethod (:refresh clim-sheet :after) (&optional (type :complete-redisplay))
   (declare (ignore type))
-  (let ((window (clim-window-for-host-window scl:self)))
+  (let ((window (sheet-for-genera-window scl:self)))
     (setf (slot-value window 'highlighted-presentation) nil)
     (unless *sizing-application-frame*		;avoid replaying twice
       (frame-replay *application-frame* window (window-viewport window)))))
@@ -1260,7 +1250,7 @@
 		       (= old-width tv:width) (= old-height tv:height)))
 	(scl:send scl:self :force-kbd-input
 		  (make-window-size-or-position-change-event
-		    (clim-window-for-host-window scl:self)
+		    (sheet-for-genera-window scl:self)
 		    nil nil nil nil))))))
 
 (scl:defwhopper (:set-reverse-video-p clim-sheet) (reverse-video-p)
@@ -1275,7 +1265,7 @@
 		   (dolist (window (window-children window))
 		     (switch-inks window))))
 	  (declare (dynamic-extent #'switch-inks))
-	  (switch-inks (clim-window-for-host-window scl:self))
+	  (switch-inks (sheet-for-genera-window scl:self))
 	  (scl:send scl:self :refresh))))))
 
 (scl:defmethod (:convert-mouse-coords clim-sheet) (x y in-or-out)
@@ -1314,7 +1304,10 @@
 		       #+IMach
 		       ((and (find-package 'mtb)
 			     (typep device
-				    (intern "SMALL-SCREEN-GENERA-FONTS-MAC-DISPLAY-DEVICE" 'mtb)))
+				    (intern 
+				      (symbol-name 
+					'small-screen-genera-fonts-mac-display-device)
+				      :mtb)))
 			*small-sheet-device*)
 		       (t *sheet-device*)))))
 
@@ -1375,7 +1368,7 @@
 		       (sheet-decode-color (medium-foreground stream) stream nil))
 	     (scl:send sheet :set-erase-aluf
 		       (sheet-decode-color (medium-background stream) stream nil))))))
-  (associate-clim-window-with-host-window (slot-value stream 'window) stream))
+  (associate-sheet-with-genera-window (slot-value stream 'window) stream))
 
 ;;; The margin stuff seems to have changed.
 (defmethod initialize-instance :around ((stream sheet-window-stream) &key label)
@@ -1458,7 +1451,7 @@
 (defmethod set-pointer-window-and-location ((stream sheet-window-stream) pointer)
   (let ((mouse (tv:sheet-mouse (slot-value stream 'window))))
     (setf (pointer-window pointer)
-	  (clim-window-for-host-window (tv:window-under-mouse-internal mouse)
+	  (sheet-for-genera-window (tv:window-under-mouse-internal mouse)
 				       :error-if-no-match nil))
     (pointer-set-position* pointer (tv:mouse-x mouse) (tv:mouse-y mouse))))
 
@@ -1484,7 +1477,7 @@
 		     (/= old-buttons (tv:mouse-last-buttons mouse))
 		     (/= old-x (mouse-x))
 		     (/= old-y (mouse-y))
-		     (not (eql old-window (clim-window-for-host-window
+		     (not (eql old-window (sheet-for-genera-window
 					    (tv:window-under-mouse-internal mouse)
 					    :error-if-no-match nil)))))
 	       (something-pending (sheet)
@@ -1514,7 +1507,7 @@
 	  (:listen
 	    (let ((character (scl:send window :any-tyi)))
 	      (cond ((typep character 'window-size-or-position-change-event)
-		     (let* ((window (event-window character))
+		     (let* ((window (event-sheet character))
 			    (window-win (slot-value window 'window))
 			    (parent (window-parent window))
 			    (parent-win (slot-value parent 'window)))
@@ -1535,7 +1528,7 @@
 				 (tv:mouse-last-buttons mouse))
 			   ;; we don't need to translate x and y by the root-offsets
 			   ;; because they're already in window coordinates...
-			   (let ((pw (clim-window-for-host-window mouse-window)))
+			   (let ((pw (sheet-for-genera-window mouse-window)))
 			     (setf (pointer-window pointer) pw)
 			     (multiple-value-bind (xm ym) (scl:send mouse-window :margins)
 			       ;; X and Y are presumed to be fixnums here
@@ -1547,7 +1540,7 @@
 	  (:mouse-motion
 	    ;; ---
 	    (pointer-set-position* pointer (mouse-x) (mouse-y))
-	    (let ((window (clim-window-for-host-window (tv:window-under-mouse-internal mouse)
+	    (let ((window (sheet-for-genera-window (tv:window-under-mouse-internal mouse)
 						       :error-if-no-match nil)))
 	      (setf (pointer-window pointer) window)
 	      (when window
@@ -1596,8 +1589,9 @@
 
 (defclass sheet-device (display-device) ())
 
-(defmethod text-style-mapping :around
-	   ((display-device sheet-device) character-set style &optional window)
+(defmethod text-style-mapping :around ((display-device sheet-device) style
+				       &optional (character-set *standard-character-set*)
+						 window)
   (declare (ignore window))
   (let* ((font-symbol (call-next-method))
 	 (font (if (symbolp font-symbol) (symbol-value font-symbol) font-symbol)))
@@ -1615,7 +1609,8 @@
 		(:very-large 20)
 		(:huge	     24)))
 
-(defmethod standardize-text-style ((display-device sheet-device) character-set style)
+(defmethod standardize-text-style ((display-device sheet-device) style
+				   &optional (character-set *standard-character-set*))
   (standardize-text-style-1
     display-device style character-set *sheet-logical-size-alist*))
 
@@ -1711,7 +1706,8 @@
 		(:huge	     24)))
 
 #+IMach
-(defmethod standardize-text-style ((display-device small-sheet-device) character-set style)
+(defmethod standardize-text-style ((display-device small-sheet-device) style
+				   &optional (character-set *standard-character-set*))
   (standardize-text-style-1
     display-device style character-set *small-sheet-logical-size-alist*))
 

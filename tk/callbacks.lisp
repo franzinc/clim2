@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: callbacks.lisp,v 1.5 92/01/31 14:54:14 cer Exp Locker: cer $
+;; $fiHeader: callbacks.lisp,v 1.6 92/02/14 18:57:30 cer Exp $
 
 (in-package :tk)
 

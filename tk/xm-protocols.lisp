@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-protocols.cl,v 1.2 92/01/02 15:09:03 cer Exp $
+;; $fiHeader: xm-protocols.lisp,v 1.3 92/01/31 14:55:18 cer Exp $
 
 (in-package :tk)
 

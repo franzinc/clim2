@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: USER; Base: 10 -*-
 
-;; $fiHeader: lisp-package-fixups.lisp,v 1.2 92/01/31 15:07:24 cer Exp $
+;; $fiHeader: lisp-package-fixups.lisp,v 1.3 92/02/16 20:55:12 cer Exp $
 
 #+ANSI-90 (in-package :cl-user)
 
@@ -40,14 +40,15 @@
 	     (assert (not (null pack)) ()
 		     "Attempting to add the name ~S to package ~S, which doesn't exist")
 	     (when (null (find-package add-name))
-	       (let (#+excl(excl::*enable-package-locked-errors* nil))
-		 (rename-package pack (package-name pack)
-				 (list* add-name (package-nicknames pack))))))))
+	       (let (#+Allegro (excl::*enable-package-locked-errors* nil))
+		 (rename-package 
+		   pack (package-name pack)
+		   (list* add-name (package-nicknames pack))))))))
     (fix-package "COMMON-LISP" "LISP")
     (fix-package "COMMON-LISP" "CL") ;; ??
     (fix-package "COMMON-LISP-USER" "USER")
     (fix-package "COMMON-LISP-USER" "CL-USER")) ;; ??
-  (when (null (find-package "SYSTEM"))
+  (when (null (find-package :system))
     (defpackage system))
 )	;eval-when
 
@@ -61,12 +62,13 @@
 			       (find-package primary-name)))
 		  (old-name (package-name package))
 		  (old-nicknames (package-nicknames package)))
-	     (let ((excl::*enable-package-locked-errors* nil))
-	       (rename-package package primary-name
-			       (remove primary-name (union (cons old-name old-nicknames)
-							   required-nicknames
-							   :test #'string-equal)
-				       :test #'string-equal))))))
+	     (let (#+Allegro (excl::*enable-package-locked-errors* nil))
+	       (rename-package 
+		 package primary-name
+		 (remove primary-name
+			 (union (cons old-name old-nicknames) required-nicknames
+				:test #'string-equal)
+			 :test #'string-equal))))))
     (clean-up-package "LISP" "COMMON-LISP" '("CL"))
     (clean-up-package "USER" "COMMON-LISP-USER" '("CL-USER")))
-  )					;eval-when
+  )	;eval-when

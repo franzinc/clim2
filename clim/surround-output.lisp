@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: surround-output.lisp,v 1.4 91/03/26 12:48:56 cer Exp $
+;; $fiHeader: surround-output.lisp,v 1.3 92/01/31 14:58:50 cer Exp $
 
 (in-package :clim-internals)
 
@@ -18,6 +18,7 @@
 
 )
 
+;;--- The arglist should allow room for drawing options
 (defmacro define-border-type (shape arglist &body body)
   (assert (symbolp shape))
   (let ((name (fintern "~A-~A" shape 'border-drawer)))
@@ -54,7 +55,7 @@
   (let ((offset 2))
     (draw-oval* stream
 		(floor (+ left right) 2) (floor (+ top bottom) 2)
-		(floor (+ (- right left) offset) 2) (floor (+ (- bottom top) offset) 2)
+		(+ (floor (+ (- right left) offset) 2) 2) (floor (+ (- bottom top) offset) 2)
 		:filled nil)))
 
 (defvar +drop-shadow-line-style+ (make-line-style :thickness 3 :joint-shape :miter))

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: go-xm.lisp,v 1.2 92/01/31 17:51:10 cer Exp $
+;; $fiHeader: dump.lisp,v 1.1 92/02/16 20:31:29 cer Exp $
 
 ;; Assuming CLIM is loaded, dump it into /usr/tmp/clim.temp_$USER.
 (room t)
@@ -29,3 +29,4 @@
 (dumplisp :name (concatenate 'simple-string "/usr/tmp/clim.temp_"
 			     (sys:getenv "USER"))
 	  :checkpoint nil)
+

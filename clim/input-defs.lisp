@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-defs.lisp,v 1.4 91/03/26 12:48:05 cer Exp $
+;; $fiHeader: input-defs.lisp,v 1.4 92/01/31 14:58:12 cer Exp $
 
 (in-package :clim-internals)
 
@@ -12,6 +12,7 @@
 
 (defclass standard-pointer 
 	  (pointer)
+    ;;--- Shouldn't this be POINTER-PORT?
     ((root :accessor pointer-root :initform nil :initarg :root)
      (window :accessor pointer-window :initform nil)
      ;; Position in root coordinates 
@@ -79,7 +80,7 @@
       (let ((native-x-position (pointer-native-x-position pointer))
 	    (native-y-position (pointer-native-y-position pointer)))
 	(multiple-value-setq (native-x-position native-y-position)
-	  (untransform-point* (fetch-native-transformation window) 
+	  (untransform-point* (sheet-native-transformation window) 
 			      native-x-position native-y-position))
 	(setf (pointer-x-position pointer) native-x-position
 	      (pointer-y-position pointer) native-y-position)))))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: tracking-pointer.lisp,v 1.4 91/03/26 12:49:02 cer Exp $
+;; $fiHeader: tracking-pointer.lisp,v 1.3 92/01/31 14:58:57 cer Exp $
 
 (in-package :clim-internals)
 
@@ -108,6 +108,7 @@
 	 ;; Genera's sheet window system, do it right here.
 	 (*generate-button-release-events*
 	   (or button-release-function presentation-release-function))
+	 ;;--- This actually needs to check for a Genera port...
 	 #+Genera (generate-release-events
 		    (and *generate-button-release-events*
 			 (typep stream 'sheet-window-stream)))
@@ -281,7 +282,7 @@
 					      (setq genera-mouse-buttons
 						    (pointer-event-button gesture)))
 				   (when presentation-press-function
-				     (let* ((window (event-window gesture))
+				     (let* ((window (event-sheet gesture))
 					    (presentation
 					      (frame-find-innermost-applicable-presentation
 						*application-frame* *input-context*
@@ -295,7 +296,7 @@
 				   (return-from process-gesture))
 				 (t		;pointer-button-release-event
 				   (when presentation-release-function
-				     (let* ((window (event-window gesture))
+				     (let* ((window (event-sheet gesture))
 					    (presentation
 					      (frame-find-innermost-applicable-presentation
 						*application-frame* *input-context*
@@ -332,7 +333,7 @@
       (:pointer-button-press (event)
        (let ((x (pointer-event-x event))
 	     (y (pointer-event-y event))
-	     (window (event-window event)))
+	     (window (event-sheet event)))
 	 (when (eql window stream)
 	   (cond (start-x
 		  (with-output-recording-options (window :draw t :record nil)
@@ -384,7 +385,7 @@
 			      :filled nil :ink +flipping-ink+)
 	     (setq rectangle-drawn t))))
 	(:pointer-button-press (event)
-	 (if (eql (event-window event) stream)
+	 (if (eql (event-sheet event) stream)
 	     (cond ((null left)
 		    (setq left (pointer-event-x event))
 		    (setq top (pointer-event-y event)))

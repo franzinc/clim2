@@ -1,6 +1,5 @@
-;; -*- mode: common-lisp; package: clim-internals -*-
-;;
-;;				-[]-
+;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
+
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -20,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: gadget-output.lisp,v 1.4 92/01/31 14:58:00 cer Exp Locker: cer $
+;; $fiHeader: gadget-output.lisp,v 1.5 92/02/08 14:51:48 cer Exp $
 
 (in-package :clim-internals)
 
@@ -79,11 +78,9 @@
 		(output-record-position* parent)
 	      (incf xoff x)
 	      (incf yoff y)))
-	  (silica::move-and-resize-sheet* 
-	   gadget
-	   (+ left xoff) (+ top yoff)
-	   (- right left) (- bottom top)))))))
-
+	  (move-and-resize-sheet* gadget
+				  (+ left xoff) (+ top yoff)
+				  (- right left) (- bottom top)))))))
 
 #+This-almost-works-with-the-other-definition
 (defmethod update-gadget-position (record) 
@@ -95,10 +92,9 @@
 	   (output-record-stream record)
 	   (output-record-parent record))
 	(with-bounding-rectangle* (left top right bottom) record
-				  (silica::move-and-resize-sheet* 
-				   gadget
-				   (+ left xoff) (+ top yoff)
-				   (- right left) (- bottom top)))))))
+	  (move-and-resize-sheet* gadget
+				  (+ left xoff) (+ top yoff)
+				  (- right left) (- bottom top)))))))
 
 ;; Need to add the gadget to the stream
 
@@ -107,7 +103,7 @@
 ;; We want to enable/disable panes as they become (in)visible
 
 
-(defmethod window-clear :after ((window extended-stream-sheet))
+(defmethod window-clear :after ((window clim-stream-sheet))
   (dolist (child (sheet-children window))
     (sheet-disown-child window child)))
   
@@ -140,8 +136,7 @@
 		   stream x y)))))
 	(move-cursor-beyond-output-record stream record)
 	(values gadget record)))))
-
-
+	    
 #+This-almost-works-with-the-other-definition
 (defmethod invoke-with-output-as-gadget (stream continuation &key)
   (let* ((frame (pane-frame stream))
@@ -207,27 +202,20 @@
   (declare (ignore present-p))
   ;; value-key, test, sequence
   (with-output-as-gadget (stream)
-    (let* (
-	   #+ignore
-	   (frame-pane
-	    (realize-pane 'frame-pane))
-	   (gadget
-	    (realize-pane 'radio-box 
-			  :client stream
-			  :id query-identifier
-			  #+ignore :parent 
-			  #+ignore frame-pane)))
+    (let* ((gadget
+	     (realize-pane 'radio-box 
+			   :client stream
+			   :id query-identifier)))
       (dolist (element sequence)
 	(realize-pane 'toggle-button 
 		      :value (and default-supplied-p
-				(funcall test 
-					 (funcall value-key element)
-					 (funcall value-key default)))
+				  (funcall test 
+					   (funcall value-key element)
+					   (funcall value-key default)))
 		      :label (princ-to-string element)
 		      :id element
 		      :parent gadget))
-      gadget
-      #+ignore frame-pane)))
+      gadget)))
 
 (define-presentation-method accept-present-default ((type boolean) 
 						    stream
@@ -266,7 +254,7 @@
   (sheet-medium (slot-value x 'stream)))
 
 (defmethod sheet-port ((x standard-encapsulating-stream))
-  (clim::sheet-port (slot-value x 'stream)))
+  (sheet-port (slot-value x 'stream)))
 
 (defmethod sheet-graft ((stream standard-encapsulating-stream))
   (sheet-graft (slot-value stream 'stream)))

@@ -1,6 +1,6 @@
  ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: lisp-utilities.lisp,v 1.2 92/01/31 14:52:39 cer Exp $
+;; $fiHeader: lisp-utilities.lisp,v 1.3 92/02/16 20:55:13 cer Exp $
 
 (in-package :clim-utils)
 
@@ -28,6 +28,7 @@
   ;;--- Turn this into 'SINGLE-FLOAT
   #+Silica 't)
 
+;;--- Should this use FLOAT or ROUND
 (defmacro integerize-single-float-coordinate (coord)
   `(the fixnum (values (floor (+ (the single-float ,coord) .5f0)))))
 
@@ -44,7 +45,6 @@
       (integerize-single-float-coordinate coord))
     (double-float
       (integerize-double-float-coordinate coord))
-    #-Imach
     (float
       (integerize-float-coordinate coord))
     (ratio
@@ -52,6 +52,43 @@
     ;; disallow bignums and other types of numbers
     ))
 
+(defmacro integerize-coordinates (&body coords)
+  `(progn
+     ,@(mapcar #'(lambda (x)
+		   `(setq ,x (integerize-coordinate ,x)))
+	       coords)))
+
+(defmacro convert-to-device-coordinates (transform &body positions)
+  (assert (evenp (length positions)) (positions)
+	  "There must be an even number of elements in ~S" positions)
+  (let ((forms nil))
+    (loop
+      (when (null positions)
+	(return `(progn ,@(nreverse forms))))
+      (let* ((x (pop positions))
+	     (y (pop positions)))
+	(push `(multiple-value-setq (,x ,y)
+		 (multiple-value-bind (nx ny) 
+		     (transform-point* ,transform ,x ,y)
+		   (values (integerize-coordinate nx) (integerize-coordinate ny))))
+	      forms)))))
+
+(defmacro convert-to-device-distances (transform &body positions)
+  (assert (evenp (length positions)) (positions)
+	  "There must be an even number of elements in ~S" positions)
+  (let ((forms nil))
+    (loop
+      (when (null positions)
+	(return `(progn ,@(nreverse forms))))
+      (let* ((x (pop positions))
+	     (y (pop positions)))
+	(push `(multiple-value-setq (,x ,y)
+		 (multiple-value-bind (nx ny) 
+		     (transform-distance ,transform ,x ,y)
+		   (values (integerize-coordinate nx) (integerize-coordinate ny))))
+	      forms)))))
+
+
 ;;--- Yes, this is a kludge.  I promise we'll fix it.
 (deftype extended-char ()
   #+(or Minima CCL-2) 'character
@@ -68,7 +105,7 @@
     (setq *standard-io-environment-val-cache*
 	  (list 10				;*read-base*
 		(copy-readtable nil)		;*readtable*
-		(find-package "user")		;*package*
+		(find-package :user)		;*package*
 		t				;*print-escape*
 		nil				;*print-pretty*
 		nil				;*print-radix*
@@ -326,9 +363,9 @@
 
 #+(and Allegro (version>= 4 1))
 (defmacro define-group (name type &body body)
-  `(prog1
-     (progn ,@body)
-     (excl::record-source-file ',name :type ',type)))
+  `(progn
+     (excl::record-source-file ',name :type ',type)
+     ,@body))
 
 #-(or Genera (and Allegro (version>= 4 1)))
 (defmacro define-group (name type &body body)
@@ -405,7 +442,7 @@
 (eval-when (eval compile)
   comp::(def-qc-ll-fcn qc-ll_<u :<u
 	  (with-u-computed
-	      (qc-boolean-compare :ltu u target cc))))
+	    (qc-boolean-compare :ltu u target cc))))
 
 #+(and (target-class r t) (version>= 4 1))
 (defun-inline evacuate-list (list)
@@ -856,7 +893,7 @@
 		   (return-from process-specs class-name)))
 	       (let* ((first-spec (first specs))
 		      (keyword (first first-spec))
-		      (variable-name (intern (string keyword)))
+		      (variable-name (intern (symbol-name keyword)))
 		      (rest (rest first-spec)))
 		 (pushnew variable-name keywords)
 		 (assert (consp rest) ()
@@ -1028,7 +1065,6 @@
   value)
 
 #-(or Genera (and ansi-90 (not (and Allegro (or :rs6000 (not (version>= 4 1)))))))
-;; Allegro 4.0 doesn't comply with this.
 (defmacro define-compiler-macro (name lambda-list &body body &environment env)
   env
   #+Allegro `(excl::defcmacro ,name ,lambda-list ,@body)
@@ -1132,22 +1168,18 @@
 ;;;--- Maybe there is a more efficient way to do this in Allegro
 (defmacro bind-to-list (lambda-list list &body body)
   (cond ((not (constantp list))
-	 #+Genera 
-	 `(scl:destructuring-bind ,lambda-list ,list
-	    ,(ignore-arglist lambda-list)
-	    ,@body)
-	 #+Cloe-Runtime
-	 `(cloe:destructuring-bind ,lambda-list ,list
-	    ,(ignore-arglist lambda-list)
-	    ,@body)
-	 #+Minima
-	 `(destructuring-bind ,lambda-list ,list
-	    ,(ignore-arglist lambda-list)
-	    ,@body)
-	 #+Lucid 
-	 `(lucid-common-lisp:destructuring-bind ,lambda-list ,list
-	    ,(ignore-arglist lambda-list)
-	    ,@body)
+	 #+Genera `(scl:destructuring-bind ,lambda-list ,list
+		     ,(ignore-arglist lambda-list)
+		     ,@body)
+	 #+Cloe-Runtime `(cloe:destructuring-bind ,lambda-list ,list
+			   ,(ignore-arglist lambda-list)
+			   ,@body)
+	 #+Minima `(destructuring-bind ,lambda-list ,list
+		     ,(ignore-arglist lambda-list)
+		     ,@body)
+	 #+Lucid `(lucid-common-lisp:destructuring-bind ,lambda-list ,list
+		    ,(ignore-arglist lambda-list)
+		    ,@body)
  	 #+Allegro `(destructuring-bind ,lambda-list ,list
  		      ,(ignore-arglist lambda-list)
  		      ,@body)
@@ -1256,9 +1288,9 @@
 ;;; Get the keyword argument name from an &KEY parameter specifier
 (defun parameter-specifier-keyword (spec)
   (cond ((atom spec)
-	 (intern (symbol-name spec) "KEYWORD"))
+	 (intern (symbol-name spec) *keyword-package*))
 	((atom (car spec))
-	 (intern (symbol-name (car spec)) "KEYWORD"))
+	 (intern (symbol-name (car spec)) *keyword-package*))
 	(t (caar spec))))
 
 ;;; This is needed because FIND-CLASS in the compile-file environment doesn't look
@@ -1267,13 +1299,21 @@
 ;;; In Lucid 4.0 this produces spurious wrong number of arguments warnings for the calls
 ;;; to FIND-CLASS.  There is no run-time error, it really does accept three arguments.
 (defun find-class-that-works (name &optional (errorp t) environment)
-  #+CCL-2 (when (eql environment 'compile-file)
+  #+ccl-2 (when (eql environment 'compile-file)
             (setq environment ccl::*fcomp-compilation-environment*))
-  #+Allegro (find-class name errorp)
+  #+Allegro (let ((environment (compile-file-environment-p environment)))
+	      (if environment
+	          (or (find-class name nil environment)
+		      (find-class name errorp nil))
+	          (find-class name errorp)))
   #-Allegro (if (compile-file-environment-p environment)
-		(or (find-class name nil environment)
+	        (or (find-class name nil environment)
 		    (find-class name errorp nil))
-		(find-class name errorp environment)))
+	        (find-class name errorp environment)))
+
+#+Allegro
+(eval-when (compile)
+  (warn "~S hacked for lack of environment support in 4.1" 'find-class-that-works))
 
 
 ;;; F-ers

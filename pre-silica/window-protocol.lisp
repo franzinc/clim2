@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: window-protocol.lisp,v 1.1 92/01/31 14:28:13 cer Exp Locker: cer $
+;; $fiHeader: window-protocol.lisp,v 1.2 92/02/05 21:45:52 cer Exp $
 
 (in-package :clim-internals)
 
@@ -12,9 +12,6 @@
 (defvar *synchronous-window-operation-being-processed* nil)
 
 (define-stream-protocol-class window ())
-
-#-Silica
-(progn
 
 (defclass window-mixin
 	  (standard-bounding-rectangle window)
@@ -55,10 +52,10 @@
     ;; Make initial viewport the same size as the window rooted at the origin.
     ;; (window edges are in parent's coordinate system, while viewport edges are in window's)
 
-    ;; --- Is this right?  At least it works...
+    ;;--- Is this right?  At least it works...
     (multiple-value-bind (width height) (window-inside-size window)
       (setf viewport (make-bounding-rectangle 0 0 width height))
-      ; --- cross protocol violation, but we're moving to Silica anyway
+      ;;--- Cross protocol violation
       (when (extended-output-stream-p window)
 	(setf (stream-default-text-margin window)
 	      width)))))
@@ -112,27 +109,20 @@
 		   (funcall continuation))
 	  (bounding-rectangle-set-position* viewport x y))))))
 
-)	;#-Silica
-
-(defmethod window-clear ((window #-Silica window-mixin #+Silica t))
-  #-Silica
+(defmethod window-clear ((window window-mixin))
   (window-erase-viewport window)
   (when (extended-output-stream-p window)	;can we assume this?
     (stream-set-cursor-position* window 0 0)
     (setf (stream-baseline window) 0
 	  (stream-current-line-height window) 0))
-  #-Silica
-  (bounding-rectangle-set-position* (window-viewport window) 0 0)
-  #+Ignore
-  (window-set-viewport-position* window 0 0))
+  (bounding-rectangle-set-position* (window-viewport window) 0 0))
 
 ;;; Basically a hook for other mixins.
-(defmethod window-refresh ((window #-Silica window-mixin #+Silica t))
+(defmethod window-refresh ((window window-mixin))
   (window-erase-viewport window))
 
-(defmethod window-expose ((window #-Silica window-mixin #+Silica t))
+(defmethod window-expose ((window window-mixin))
   (setf (window-visibility window) t)
-  #-Silica
   (window-stack-on-top window))
 
 
@@ -145,15 +135,10 @@
 
 (defun window-size-viewport-to-fit (window)
   (multiple-value-bind (w h) (window-inside-size window)
-    (multiple-value-bind (lm rm tm bm) (window-margins window)
-      (declare (ignore lm tm))
-      (bounding-rectangle-set-size (window-viewport window) (- w rm) (- h bm)))))
+    (bounding-rectangle-set-size (window-viewport window) w h)))
 
 
 ;;; Coordinate translations
-
-#-Silica
-(progn
 
 ;;;--- FIXNUM stuff
 
@@ -211,11 +196,6 @@
       (values (the fixnum (- (the fixnum (+ x vx)) ml))
 	      (the fixnum (- (the fixnum (+ y vy)) mt))))))
 
-)	;#-Silica
-
-#-Silica
-(progn
-
 ;;;--- FIXNUM stuff
 ;;; Hmm.
 (defmethod bounding-rectangle-set-edges :after ((window window-mixin) left top right bottom)
@@ -234,21 +214,25 @@
     (values (the fixnum (- right left)) (the fixnum (- bottom top)))))
 
 (defmethod window-inside-edges ((stream window-mixin))
-  (multiple-value-bind (lm tm rm bm) (host-window-margins stream)
-    (declare (fixnum lm tm rm bm))
-    (with-bounding-rectangle* (left top right bottom) stream
-      (values (the fixnum (+ left lm))  (the fixnum (+ top tm))
-	      (the fixnum (- right rm)) (the fixnum (- bottom bm))))))
+  (multiple-value-bind (lom tom rom bom) (host-window-margins stream)
+    (declare (fixnum lom tom rom bom))
+    (multiple-value-bind (lim tim rim bim) (window-margins stream)
+      (declare (fixnum lim tim rim bim))
+      (with-bounding-rectangle* (left top right bottom) stream
+	(values (the fixnum (+ left lom lim))  (the fixnum (+ top tom tim))
+		(the fixnum (- right rom rim)) (the fixnum (- bottom bom bim)))))))
 
 (defmethod window-set-inside-edges ((stream window-mixin) 
 				    new-left new-top new-right new-bottom)
   (declare (fixnum new-left new-top new-right new-bottom))
-  (multiple-value-bind (lm tm rm bm) (host-window-margins stream)
-    (declare (fixnum lm tm rm bm))
-    (bounding-rectangle-set-edges
-      stream
-      (the fixnum (- new-left lm))  (the fixnum (- new-top tm))
-      (the fixnum (+ new-right rm)) (the fixnum (+ new-bottom bm)))))
+  (multiple-value-bind (lom tom rom bom) (host-window-margins stream)
+    (declare (fixnum lom tom rom bom))
+    (multiple-value-bind (lim tim rim bim) (window-margins stream)
+      (declare (fixnum lim tim rim bim))
+      (bounding-rectangle-set-edges
+       stream
+       (the fixnum (- new-left lom lim))  (the fixnum (- new-top tom tim))
+       (the fixnum (+ new-right rom rim)) (the fixnum (+ new-bottom bom bim))))))
 
 ;; the port needs to define host-window-margins
 
@@ -282,8 +266,6 @@
      (or inside-width-cache
 	 (setf inside-width-cache (call-next-method)))))
 
-)	;#-Silica
-
 #+Genera
 (defgeneric stream-compatible-inside-size (window)
   (:selector :inside-size))
@@ -297,8 +279,8 @@
   (:selector :visible-cursorpos-limits))
 
 #+Genera
-(defmethod stream-compatible-visible-cursorpos-limits ((window window-mixin)
-						       &optional (unit ':pixel))
+(defmethod stream-compatible-visible-cursorpos-limits 
+	   ((window window-mixin) &optional (unit ':pixel))
   (with-bounding-rectangle* (left top right bottom) (window-viewport window)
     (ecase unit
       (:pixel (values left top right bottom))
@@ -318,9 +300,6 @@
 	  (line-height (stream-line-height window)))
       (values (floor (- right left) char-width)
 	      (floor (- bottom top) line-height)))))
-
-#-Silica
-(progn
 
 (defmethod window-label-size ((window window-mixin) &optional (label (window-label window)))
   (declare (ignore label))
@@ -355,14 +334,12 @@
 	  (setq y-offset (the fixnum (+ y-offset y mt))))))
     (values x-offset y-offset)))
 
-)	;#-Silica
-
 ;; This is called by OUTPUT-RECORDING-MIXIN's whopper on set-viewport-position*.
 ;; It shifts a region of the "host screen" that's visible to some other visible
 ;; location.  It does NOT do any cleaning up after itself.  It does not side-effect
 ;; the output history of the window.  It calls COPY-AREA whose contract is to 
 ;; do the above, the whole above, and nothing but the above.
-(defmethod window-shift-visible-region ((window #-Silica window-mixin #+Silica t)
+(defmethod window-shift-visible-region ((window window-mixin)
 					old-left old-top old-right old-bottom
 					new-left new-top new-right new-bottom)
   (declare (type coordinate new-left new-top new-right new-bottom))
@@ -370,8 +347,7 @@
   (let ((delta-x (- old-left new-left))
 	(delta-y (- old-top new-top)))
     (multiple-value-bind (stream-width stream-height)
-	#-Silica (window-inside-size window)
-	#+Silica (bounding-rectangle-size (pane-viewport-region window))
+	(window-inside-size window)
       (declare (type coordinate stream-width stream-height))
       (let (from-x from-y)
 	(cond ((and (>= delta-x 0)
@@ -395,33 +371,13 @@
 	(let ((width (- stream-width (abs delta-x)))
 	      (height (- stream-height (abs delta-y))))
 	  (multiple-value-bind (ml mt) 
-	      #+Silica (values 0 0)
-	      #-Silica (window-margins window)
+	      (window-margins window)
 	    (declare (type coordinate ml mt))
 	    (translate-fixnum-positions ml mt from-x from-y)
-	    (let ((tf (sheet-native-transformation window)))
-	      (multiple-value-call 
-		  #'copy-area 
-		window
-		(untransform-point* tf from-x from-y)
-		(untransform-point* tf (+ from-x width) (+ from-y height))
-		(untransform-point* tf (+ from-x delta-x) (+ from-y delta-y))))))))))
-
-
-#+Silica
-(defun window-viewport-position* (stream)
-  (bounding-rectangle-position* (pane-viewport-region stream)))
-
-#+Silica
-(defun window-set-viewport-position* (stream x y)
-  (scroll-extent stream :x x :y y))
-
-
-
-
-#+Silica
-(defun-inline window-parent (window)
-  (sheet-parent window))
+	    (copy-area window
+		       from-x from-y
+		       (+ from-x width) (+ from-y height)
+		       (+ from-x delta-x) (+ from-y delta-y))))))))
 
 (defun window-root (window)
   (do ((win window (window-parent win)))
@@ -434,9 +390,6 @@
 	(parent-parent (if parent (window-parent parent) T) (window-parent parent)))
        ((null parent-parent) win)
     (when (eql parent-parent T) (return nil))))
-
-#-Silica
-(progn
 
 ;;; Make sure cursor is always visible.
 (defmethod stream-advance-cursor-line :after ((stream output-and-window-protocol-intermediary))
@@ -472,12 +425,7 @@
 	(when (or new-x new-y)
 	  (window-set-viewport-position* stream (or new-x vleft) (or new-y vtop)))))))
 
-)	;#-Silica
-
-;;; rudimentary audio
-
-#-Silica
-(progn
+;;; Rudimentary audio
 
 (defmethod window-beep ((stream t))
   #+Genera (scl:beep)
@@ -491,13 +439,3 @@
   #-Genera (declare (ignore direction))
   #+Genera (compiler:inhibit-style-warnings (dbg:whistle :direction direction))
   #-Genera (dotimes (i 3) (beep)))
-
-)	;#-Silica
-
-#+Silica
-(defun beep (&optional (stream *standard-output*))
-  (silica::sheet-beep stream))
-
-
-(defun window-inside-size (w)
-  (bounding-rectangle-size (pane-viewport-region w)))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: dragging-output.lisp,v 1.4 91/03/26 12:47:55 cer Exp $
+;; $fiHeader: dragging-output.lisp,v 1.3 92/01/31 14:57:54 cer Exp $
 
 (in-package :clim-internals)
 
@@ -58,7 +58,7 @@
 		     (tree-recompute-extent output-record))
 		   (replay-output-record output-record stream nil x-offset y-offset))
 		 (return-from drag-output-record
-		   (values x y))))
+		   (values x y delta-x delta-y))))
 	  (declare (dynamic-extent #'finish))
 	  (with-output-recording-options (stream :record nil :draw t)
 	    (when feedback

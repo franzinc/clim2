@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: output-protocol.lisp,v 1.5 92/01/31 14:58:25 cer Exp Locker: cer $
+;; $fiHeader: output-protocol.lisp,v 1.6 92/02/05 21:45:44 cer Exp $
 
 (in-package :clim-internals)
 
@@ -125,8 +125,12 @@
 				  (stream output-protocol-mixin))
   (declare (ignore port))
   ;;--- What about text style stuff, too?
-  (setf (medium-foreground medium) (medium-foreground stream)
-	(medium-background medium) (medium-background stream)))
+  ;; We set the slots directly in order to avoid running any per-port
+  ;; :AFTER methods (or whatever).  That work should be done by similar
+  ;; per-port methods on ENGRAFT-MEDIUM.
+  (with-slots (silica::foreground silica::background) medium
+    (setf silica::foreground (medium-foreground stream)
+	  silica::background (medium-background stream))))
 
 ;;--- I sure don't like having to do this to make string streams work
 (defmethod stream-default-view ((stream t)) +textual-view+)
@@ -478,7 +482,8 @@
 		 height baseline))
 	     ;;; We always want to update the cursor -- it will be put back if only recording.
 	     (encode-stream-after-writing stream new-cursor-x cursor-y baseline height)))
-	  ((eql character #\Newline)
+	  ((or (eql character #\Newline)
+	       (eql character #\Return))
 	   ;; STREAM-ADVANCE-CURSOR-LINE will close the current text record.
 	   (stream-advance-cursor-line stream))
 	  (t
@@ -551,10 +556,9 @@
 	      (draw-text* stream name (+ lozenge-left 1) (+ lozenge-top 2)
 			  :align-y :top :text-style text-style :ink ink)
 	      (macrolet ((line (x1 y1 x2 y2)
-			   `(draw-line* stream 
-						,x1 ,y1 ,x2 ,y2
-						:ink ink
-						:line-style +highlighting-line-style+)))
+			   `(draw-line* stream ,x1 ,y1 ,x2 ,y2
+					:ink ink
+					:line-style +highlighting-line-style+)))
 		(line lozenge-left lozenge-top lozenge-right lozenge-top)
 		(line lozenge-left lozenge-bottom lozenge-right lozenge-bottom)
 		(line lozenge-left lozenge-top lozenge-left-point lozenge-y-point)
@@ -568,7 +572,8 @@
   (when (>= start end)				;No promises to keep
     (return-from stream-write-string string))
   #+(or Cloe-Runtime XLIB)			;--- Figure this out!!! Cloe bug?
-  (when (char= (aref string start) #\Newline)
+  (when (or (eql (aref string start) #\Newline)
+	    (eql (aref string start) #\Return))
     (incf start)
     (terpri stream)
     (when (= start end)
@@ -585,7 +590,8 @@
       (loop
 	(multiple-value-bind (write-char next-char-index
 			      new-cursor-x new-baseline new-height font)
-	    (stream-scan-string-for-writing stream #+Silica medium string start end style
+	    (stream-scan-string-for-writing stream #+Silica medium
+					    string start end style
 					    cursor-x max-x glyph-buffer)
 	  (declare (type coordinate new-cursor-x new-baseline new-height))
 	  (when record-p
@@ -673,7 +679,8 @@
       (loop
 	(when (>= start end) (return))
 	(multiple-value-bind (write-char next-char-index new-cursor-x new-baseline new-height)
-	    (stream-scan-string-for-writing stream #+Silica medium string start end style
+	    (stream-scan-string-for-writing stream #+Silica medium
+					    string start end style
 					    ;;--- MOST-POSITIVE-FIXNUM will
 					    ;;--- lose, use a big single-float
 					    cursor-x most-positive-fixnum)
@@ -696,7 +703,8 @@
 		     (maxf baseline new-baseline)
 		     (maxf height new-height)
 		     (setf cursor-x new-cursor-x)))
-		  ((eql write-char #\Newline)
+		  ((or (eql write-char #\Newline)
+		       (eql write-char #\Return))
 		   (setf cursor-x 0)
 		   (incf cursor-y height)
 		   (setf baseline 0
@@ -732,9 +740,11 @@
 	       (stream-glyph-for-character stream character style)
 	     (declare (ignore index font escapement-x escapement-y origin-x origin-y))
 	     (values bb-x bb-y)))
-	  ((eql character #\newline) (values (- (stream-cursor-position* stream))
-					     (stream-line-height stream style)))
-	  ((eql character #\tab)
+	  ((or (eql character #\Newline)
+	       (eql character #\Return))
+	   (values (- (stream-cursor-position* stream))
+		   (stream-line-height stream style)))
+	  ((eql character #\Tab)
 	   (let ((here (stream-cursor-position* stream)))
 	     (- (stream-next-tab-column stream here style) here)))
 	  (t (cerror "Continue without drawing the character"
@@ -849,14 +859,17 @@
 ;;; there is more time. ---+++---
 
 ;;; 13 November 1989:
-;;; The body of this method is abstracted out into this macro because we are about to replace
-;;; stream-glyph-for-char with a per-implementation macro.  Of course, the vanilla method for
-;;; this generic function will continue to call the generic function of that name. -- rsl 
-;;; WARNING: ALL methods for stream-scan-string-for-writing MUST take the same argument list,
-;;; with the arguments named exactly the same.  This technology depends on this...
-;;; Note that there is a convention that if the stream's glyph-buffer slot is NIL, no
-;;; character-to-glyph-index translation is done, and STREAM-WRITE-STRING-1 will
-;;; be called with the original string, not the glyph buffer.
+
+;;; The body of this method is abstracted out into this macro because we are
+;;; about to replace stream-glyph-for-char with a per-implementation macro.
+;;; Of course, the vanilla method for this generic function will continue to
+;;; call the generic function of that name. -- RSL 
+;;; WARNING: *All* methods for STREAM-SCAN-STRING-FOR-WRITING *must* take the
+;;; same argument list, with the arguments named exactly the same.  This
+;;; technology depends on this...  Note that there is a convention that if
+;;; the stream's glyph-buffer slot is NIL, no character-to-glyph-index
+;;; translation is done, and STREAM-WRITE-STRING-1 will be called with the
+;;; original string, not the glyph buffer.
 (defmacro stream-scan-string-for-writing-body ()
   '(let ((baseline 0)
 	 (height 0)
@@ -868,7 +881,7 @@
 	 (string string)
 	 #+(or Genera Minima)				;For array-register binding only.
 	 (glyph-buffer (or glyph-buffer #())))	;Array-register declaration requires array.
-    (declare (type coordinate baseline height next-glyph))
+    (declare (type coordinate baseline height))
     (declare (type fixnum next-glyph))
      #+Genera (declare (sys:array-register string glyph-buffer))
      #+Minima (declare (type vector string glyph-buffer))
@@ -887,8 +900,7 @@
 	     ;; eliminate a call to TEXT-STYLE-MAPPING within 
 	     ;; STREAM-GLYPH-FOR-CHARACTER, which saves a >lot< of time.
 	     (stream-glyph-for-character
-	       #+Silica medium
-	       #-Silica stream
+	       #-Silica stream #+Silica medium 
 	       character style our-font)
 	   (declare (ignore escapement-y origin-x bb-x))
 	   (declare (fixnum index))
@@ -944,10 +956,9 @@
 	   (setf our-font font)
 	   (setq start (the fixnum (+ start 1))))))))
 
-(defmethod stream-scan-string-for-writing ((stream output-protocol-mixin)
-					   #+Silica medium string start end
-					   style cursor-x max-x
-					   &optional glyph-buffer)
+(defmethod stream-scan-string-for-writing ((stream output-protocol-mixin) #+Silica medium
+					   string start end style
+					   cursor-x max-x &optional glyph-buffer)
   (declare (values write-char next-char-index new-cursor-x new-baseline new-height font))
   (declare (type coordinate cursor-x max-x))
   (declare (fixnum start end))
@@ -1062,7 +1073,8 @@
     (loop
       (when (>= start end) (return (values cursor-x cursor-y height baseline)))
       (multiple-value-bind (write-char next-char-index new-cursor-x new-baseline new-height)
-	  (stream-scan-string-for-writing stream #+Silica medium string start end style
+	  (stream-scan-string-for-writing stream #+Silica medium
+					  string start end style
 					  cursor-x max-x)
 	(maxf height new-height)
 	(maxf baseline new-baseline) 
@@ -1073,12 +1085,15 @@
 	(setf cursor-x new-cursor-x)
 	(cond ((null write-char))		;Nothing to do for this char.
 	      ((or (graphic-char-p write-char)	;Must have wrapped
-		   (char= write-char #\Newline))
+		   (eql write-char #\Newline)
+		   (eql write-char #\Return))
 	       (incf cursor-y (+ height vsp))
 	       (setf height 0 cursor-x 0 baseline 0)
 	       ;; If we wrapped, rescan the character normally, but if this is a newline
 	       ;; we're done with it.
-	       (when (char= write-char #\Newline) (incf start)))
+	       (when (or (eql write-char #\Newline)
+			 (eql write-char #\Return))
+		 (incf start)))
 	      ;; Tabs are a little inefficient in that they call the continuation an
 	      ;; extra time when they could be folded into the rest of the string, but
 	      ;; I don't think anybody will notice, especially since the callers of

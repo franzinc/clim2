@@ -1,9 +1,9 @@
-# $fiHeader: Makefile,v 1.9 92/01/31 17:52:53 cer Exp $
+# $fiHeader: Makefile,v 1.10 92/02/16 20:55:48 cer Exp $
 # 
 #  Makefile for CLIM 2.0
 #
-CL	= /misc/jdi/cl
-DUMP-CL	= /misc/jdi/cl
+CL	= /net/sparky/usr/tech/jdi/4.1/src/dcl
+DUMP-CL	= $(CL)
 CLOPTS	= -qq
 
 # Lisp optimization for compiling
@@ -14,14 +14,16 @@ SAFETY	= 1
 CLIM	= ./slim
 CLIM-SMALL	= ./slim-small
 
-PUBDIRS	= sys utils silica clim demo test
-DIRS	= $(PUBDIRS) xlib tk xm-silica misc
+PUBDIRS	= sys utils silica clim demo test genera clx
+DIRS0	=  tk xm-silica misc
+DIRS	= $(PUBDIRS) xlib $(DIRS0)
+CHEAP_CLEAN	= $(PUBDIRS) $(DIRS0)
 
 DEVICE	= /dev/null
 RM	= /bin/rm
 CAT	= /bin/cat
 ECHO	= /bin/echo
-MV	= /usr/fi/mv-nfs
+MV	= mv
 TAGS	= /usr/fi/lib/emacs/etc/etags
 TMP	= /usr/tmp
 
@@ -72,7 +74,7 @@ CLIM-SILICA-OBJS = silica/classes.fasl \
                     silica/gadgets.fasl \
                     silica/db-scroll.fasl
 
-CLIM-STANDALONE-OBJS = clim/shift-mask.fasl \
+CLIM-STANDALONE-OBJS = clim/gestures.fasl \
                         clim/defprotocol.fasl \
                         clim/stream-defprotocols.fasl \
                         clim/defresource.fasl \
@@ -87,8 +89,9 @@ CLIM-STANDALONE-OBJS = clim/shift-mask.fasl \
                         clim/input-protocol.fasl \
                         clim/output-protocol.fasl \
                         clim/window-protocol.fasl \
-                        clim/output-recording-protocol.fasl \
-                        clim/output-recording-defs.fasl \
+                        clim/recording-protocol.fasl \
+			clim/text-recording.fasl \
+			clim/graphics-recording.fasl \
                         clim/interactive-protocol.fasl \
                         clim/input-editor-commands.fasl \
                         clim/formatted-output-defs.fasl \
@@ -191,6 +194,8 @@ OPENLOOK-OBJS = $(CLIM-UTILS-OBJS) $(CLIM-SILICA-OBJS) \
 		$(CLIM-STANDALONE-OBJS) $(XLIB-CLIM-OBJS) $(XT-CLIM-OBJS) \
 		$(OL-CLIM-OBJS) $(OPENLOOK-CLIM-OBJS)
 
+default: compile clim
+
 all:	compile cat clim
 
 compile:	FORCE
@@ -202,11 +207,11 @@ compile:	FORCE
 
 clim.fasl:	$(MOTIF-OBJS)
 	$(CAT) $(MOTIF-OBJS) > $(TMP)/clim.fasl_`whoami`
-	mv-nfs $(TMP)/clim.fasl_`whoami` clim.fasl
+	$(MV) $(TMP)/clim.fasl_`whoami` clim.fasl
 
 clim-debug.fasl:	$(MOTIF-OBJS)
 	$(CAT) $(DEBUG-OBJS) > $(TMP)/clim-debug.fasl_`whoami`
-	mv-nfs $(TMP)/clim-debug.fasl_`whoami` clim-debug.fasl
+	($(MV) $(TMP)/clim-debug.fasl_`whoami` clim-debug.fasl
 
 cat:	clim.fasl clim-debug.fasl
 
@@ -233,7 +238,11 @@ xm-dcl:
 	cd tk ; $(MAKE) xm-dcl
 
 clean:
-	find $(DIRS) -name "*.fasl" -ls | xargs rm -f ; rm -f clim.fasl
+	find $(DIRS) -name "*.fasl" -print | xargs rm -f ; rm -f clim.fasl
+
+cheapclean:
+	find $(CHEAP_CLEAN) -name "*.fasl" -print | xargs rm -f
+
 
 tags:
 	$(TAGS) `find $(DIRS) '(' -name "*.cl" -o -name "*.lisp" ')' -print`
@@ -242,9 +251,9 @@ swm-tape:
 	tar cf $(DEVICE) `find $(PUBDIRS) '(' -name "*.cl" -o -name "*.lisp" ')' -print`
 
 dist:
-	gtar -z -cf - \
-	*/*.lisp *.lisp Makefile \
-	> Dist/src.tar.Z
+	tar -cf - \
+	*/*.lisp *.lisp Makefile */Makefile \
+	| compress >  /home/s1/1/franz/clim-2.0/Dist/src.tar.Z
 
 rcscheck:
 	rcscheck $(DIRS) | grep -v .fasl

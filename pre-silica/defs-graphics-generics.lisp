@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: defs-graphics-generics.lisp,v 1.4 91/03/26 12:47:54 cer Exp $
+;; $fiHeader: defs-graphics-generics.lisp,v 1.1 92/01/31 14:27:48 cer Exp $
 
 (in-package :clim-internals)
 
@@ -34,8 +34,8 @@
        (non-drawing-option-keywords nil)
        k)
       ((null l) non-drawing-option-keywords)
-    (setq k (cond ((atom (car l)) (intern (string (car l)) "KEYWORD"))
-		  ((atom (caar l)) (intern (string (caar l)) "KEYWORD"))
+    (setq k (cond ((atom (car l)) (intern (symbol-name (car l)) :keyword))
+		  ((atom (caar l)) (intern (symbol-name (caar l)) :keyword))
 		  (t (caaar l))))
     (unless (member k *all-drawing-options*)
       (push k non-drawing-option-keywords))))
@@ -43,7 +43,7 @@
 ;;; Caller must stick &key in front
 ;;; If drawing-options isn't nil, it's a list of the option keywords accepted.
 (defun all-drawing-options-lambda-list (drawing-options)
-  (mapcar #'(lambda (keyword) (intern (string keyword)))
+  (mapcar #'(lambda (keyword) (intern (symbol-name keyword)))
 	  (cond ((null drawing-options) *all-drawing-options*)
 		((atom drawing-options)
 		 (append (or (cdr (assoc drawing-options *drawing-option-subsets*))
@@ -94,23 +94,24 @@
 	  (values)))
 
 (defmacro transform-points ((transform) &rest points)
-  (assert (evenp (length points)) ()
-	  "Points must be x/y pairs.  There are an odd number of elements in ~S"
-	  points)
-  (let ((xform '#:transform))
-    `(let ((,xform ,transform))
-       ,@(do* ((points points (cddr points))
-	       (x (first points) (first points))
-	       (y (second points) (second points))
-	       (forms nil))
-	      ((null points) (nreverse forms))
-	   (push `(multiple-value-setq (,x ,y)
-		    (transform-point* ,xform ,x ,y))
-		 forms))
-       (values))))
+  (when points
+    (assert (evenp (length points)) ()
+	    "Points must be x/y pairs.  There are an odd number of elements in ~S"
+	    points)
+    (let ((xform '#:transform))
+      `(let ((,xform ,transform))
+	 ,@(do* ((points points (cddr points))
+		 (x (first points) (first points))
+		 (y (second points) (second points))
+		 (forms nil))
+		((null points) (nreverse forms))
+	     (push `(multiple-value-setq (,x ,y)
+		      (transform-point* ,xform ,x ,y))
+		   forms))
+	 (values)))))
 
 ;;; Update the points list in the reference.
-(defmacro transform-point-sequence (transform points-reference)
+(defmacro transform-point-sequence ((transform) points-reference)
   (let ((pts-sequence '#:points-sequence)
 	(pts-temp '#:points)
 	(original-pts-temp '#:original-points)
@@ -134,23 +135,24 @@
 			   (car ,pts-temp) ny
 			   ,pts-temp (cdr ,pts-temp)))))
 	       ,original-pts-temp))
-	    (values))))
+       (values))))
 
 (defmacro transform-distances ((transform) &rest distances)
-  (assert (evenp (length distances)) ()
-	  "Distances must be dx/dy pairs.  There are an odd number of elements in ~S"
-	  distances)
-  (let ((xform '#:transform))
-    `(let ((,xform ,transform))
-       ,@(do* ((distances distances (cddr distances))
-	       (dx (first distances) (first distances))
-	       (dy (second distances) (second distances))
-	       (forms nil))
-	      ((null distances) (nreverse forms))
-	   (push `(multiple-value-setq (,dx ,dy)
-		    (transform-distance ,xform ,dx ,dy))
-		 forms))
-       (values))))
+  (when distances
+    (assert (evenp (length distances)) ()
+	    "Distances must be dx/dy pairs.  There are an odd number of elements in ~S"
+	    distances)
+    (let ((xform '#:transform))
+      `(let ((,xform ,transform))
+	 ,@(do* ((distances distances (cddr distances))
+		 (dx (first distances) (first distances))
+		 (dy (second distances) (second distances))
+		 (forms nil))
+		((null distances) (nreverse forms))
+	     (push `(multiple-value-setq (,dx ,dy)
+		      (transform-distance ,xform ,dx ,dy))
+		   forms))
+	 (values)))))
 
 
 ;;; Macro to write all the version of a drawing function
@@ -205,7 +207,7 @@
 	  ;; Elements of REST are references containing lists of points.
 	  (dolist (ps (rest spec))
 	    ;; No compile-time ASSERTion.
-	    (push `(transform-point-sequence ,transform ,ps)
+	    (push `(transform-point-sequence (,transform) ,ps)
 		  clauses)))
 	(distance
 	  ;; The rest of the spec is a list of dx/dy pairs indicating a distance

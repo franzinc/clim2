@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: cloe-implementation.lisp,v 1.4 91/03/26 12:47:15 cer Exp $
+;; $fiHeader: cloe-implementation.lisp,v 1.1 92/01/31 14:27:40 cer Exp $
 
 (in-package :clim-internals)
 
@@ -709,7 +709,7 @@
 	(char-character-set-and-index character)
       (let* ((cloe-font (or our-font
 			    (text-style-mapping
-			      display-device-type character-set style window)))
+			      display-device-type style character-set window)))
 	     (origin-x 0)
 	     (origin-y (cloe-font-ascent cloe-font))
 	     (average-w (cloe-font-average-character-width cloe-font))
@@ -751,8 +751,8 @@
   (translate-positions x-offset y-offset x y)
   (with-temporary-substring (substring string start end)
     (with-slots (window display-device-type) stream
-      (let* ((font (text-style-mapping
-		     display-device-type *standard-character-set* text-style window))
+      (let* ((font (text-style-mapping 
+		     display-device-type text-style *standard-character-set* window))
 	     (height (cloe-font-height font))
              (descent (cloe-font-descent font))
              (ascent (cloe-font-ascent font)))
@@ -769,8 +769,8 @@
   (fix-points x y)
   (translate-positions x-offset y-offset x y)
   (with-slots (window display-device-type) stream
-    (let* ((font (text-style-mapping
-		   display-device-type *standard-character-set* text-style window))
+    (let* ((font (text-style-mapping 
+		   display-device-type text-style *standard-character-set* window))
 	   (height (cloe-font-height font))
 	   (descent (cloe-font-descent font))
 	   (ascent (cloe-font-ascent font)))
@@ -787,52 +787,43 @@
 
 (defmethod text-style-height ((text-style standard-text-style) (stream cloe-window-stream))
   (with-slots (window display-device-type) stream
-    (let ((font (text-style-mapping
-		  display-device-type *standard-character-set* text-style window)))
+    (let ((font (text-style-mapping 
+		  display-device-type text-style *standard-character-set* window)))
       (cloe-font-height font))))
 
 (defmethod text-style-width ((text-style standard-text-style) (stream cloe-window-stream))
   (with-slots (window display-device-type) stream
-    (let ((font (text-style-mapping
-		  display-device-type *standard-character-set* text-style window)))
+    (let ((font (text-style-mapping 
+		  display-device-type text-style *standard-character-set* window)))
       (cloe-font-average-character-width font))))
 
 (defmethod text-style-ascent ((text-style standard-text-style) (stream cloe-window-stream))
   (with-slots (window display-device-type) stream
     (let ((font (text-style-mapping
-		  display-device-type *standard-character-set* text-style window)))
+		  display-device-type text-style *standard-character-set* window)))
       (cloe-font-ascent font))))
 
 (defmethod text-style-descent ((text-style standard-text-style) (stream cloe-window-stream))
   (with-slots (window display-device-type) stream
     (let ((font (text-style-mapping
-		  display-device-type *standard-character-set* text-style window)))
+		  display-device-type text-style *standard-character-set* window)))
       (cloe-font-descent font))))
 
 (defmethod text-style-fixed-width-p ((text-style standard-text-style) (stream cloe-window-stream))
   (with-slots (window display-device-type) stream
     (let ((font (text-style-mapping
-		  display-device-type *standard-character-set* text-style window)))
+		  display-device-type text-style *standard-character-set* window)))
       ;; Really disgusting, but probably OK
       (= (cloe-font-average-character-width font)
 	 (cloe-font-maximum-character-width font)))))
-
-(defmethod text-size ((stream cloe-window-stream) string
-		      &key (text-style (stream-merged-text-style stream)) (start 0) end)
-  (when (characterp string)
-    (setq string (string string)
-	  start 0
-	  end nil))
-  (multiple-value-bind (last-x largest-x last-y total-height baseline)
-      (stream-string-output-size stream string :text-style text-style :start start :end end)
-    (values largest-x total-height last-x last-y baseline)))
 
 
 (defclass cloe-device (display-device)
      ((font->cloe-font-mapping :initform (make-hash-table))))
 
-(defmethod text-style-mapping :around
-	   ((device cloe-device) character-set style &optional window)
+(defmethod text-style-mapping :around ((device cloe-device) style
+				       &optional (character-set *standard-character-set*)
+						 window)
   (let ((font-name (call-next-method))
 	(hash-table (slot-value device 'font->cloe-font-mapping)))
     (or (gethash font-name hash-table)
@@ -975,7 +966,8 @@
 		(:large	     16)
 		(:very-large 22)))
 
-(defmethod standardize-text-style ((display-device cloe-device) character-set style)
+(defmethod standardize-text-style ((display-device cloe-device) style 
+				   &optional (character-set *standard-character-set*))
   (standardize-text-style-1
     display-device style character-set *cloe-logical-size-alist*))
 

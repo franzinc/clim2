@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: cloe-events.lisp,v 1.4 91/03/26 12:47:14 cer Exp $
+;; $fiHeader: cloe-events.lisp,v 1.1 92/01/31 14:27:38 cer Exp $
 
 (in-package :clim-internals)
 
@@ -140,8 +140,8 @@
 (defun windows-mask->modifier-state (mask)
   (let ((modifier-state 0))
     (macrolet ((do-shift (shift)
-		 `(when (logtest ,(intern (format nil "MK_~A" (symbol-name shift))
-					  (find-package 'win))
+		 `(when (logtest ,(intern (format nil "~A_~A" 'mk (symbol-name shift))
+					  (find-package :win))
 				 mask)
 		    (let ((bit (modifier-key-index ,shift)))
 		      (setf modifier-state (dpb 1 (byte 1 bit) modifier-state))))))

@@ -21,7 +21,7 @@
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
 ;;;
-;; $fiHeader$
+;; $fiHeader: db-border.lisp,v 1.2 92/01/02 15:33:03 cer Exp $
 
 
 (in-package :silica)
