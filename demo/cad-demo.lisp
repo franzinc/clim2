@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: cad-demo.lisp,v 1.17 92/09/22 19:37:44 cer Exp $
+;; $fiHeader: cad-demo.lisp,v 1.18 92/10/02 15:20:33 cer Exp $
 
 (in-package :clim-demo)
 
@@ -297,7 +297,7 @@
     ;; Not (- X SIZE) because the component is a half-circle
     (values x (- y size) (+ x size) (+ y size))))
 
-(defmethod output-record-set-position ((thing basic-thing) new-x new-y)
+(defmethod output-record-set-position ((thing component) new-x new-y)
   (with-slots (x y size) thing
     (setf x (coordinate new-x)
 	  y (coordinate (+ new-y size)))))

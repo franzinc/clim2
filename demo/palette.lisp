@@ -21,7 +21,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: palette.lisp,v 1.1 92/07/06 19:59:16 cer Exp $
+;; $fiHeader: palette.lisp,v 1.2 92/07/20 16:01:33 cer Exp $
 
 
 (in-package :clim-demo)

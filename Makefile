@@ -1,4 +1,4 @@
-# $fiHeader: Makefile,v 1.52 92/10/04 14:16:44 cer Exp $
+# $fiHeader: Makefile,v 1.53 92/10/05 10:08:19 cer Exp $
 # 
 #  Makefile for CLIM 2.0
 #
@@ -111,12 +111,12 @@ OL_UNDEFS=misc/undefinedsymbols.olit
 CLIMFASLS= climg.fasl climol.fasl climxm.fasl clim-debug.fasl clim-debugol.fasl \
 	   clim-debugxm.fasl climps.fasl climgg.fasl # clim1compat.fasl
 
-PUBLIC_OBJS=  stub-xt.o stub-x.o \
+PUBLIC_OBJS=  stub-xt.o stub-x.o stub-olit.o stub-motif.o \
 	  xlibsupport.o MyDrawingA.o \
 	  olsupport.o xtsupport.o
 
-OL_LICENSED_OBJS=clim-olit.o clim-olit_d.o
-XM_LICENSED_OBJS=clim-motif_d.o  clim-motif.o 
+OL_LICENSED_OBJS = clim-olit.o clim-olit_d.o
+XM_LICENSED_OBJS = clim-motif_d.o clim-motif.o 
 
 CLIMOBJS=$(PUBLIC_OBJS) $(XM_LICENSED_OBJS) $(OL_LICENSED_OBJS)
 
@@ -126,9 +126,9 @@ INSTALLED_CLIMOBJS=$(PUBLIC_OBJS) $(XM_LICENSED_OBJS) $(OL_LICENSED_OBJS)
 # These are linked into the distribution
 # `pwd`/clim-olit_d.o \ `pwd`/clim-olit.o \
 
-FCLIMOBJS= `pwd`/clim-motif_d.o `pwd`/clim-motif.o \
-	    `pwd`/stub-xt.o `pwd`/stub-x.o \
-	   `pwd`/xlibsupport.o `pwd`/MyDrawingA.o `pwd`/olsupport.o `pwd`/xtsupport.o
+#FCLIMOBJS= `pwd`/clim-motif_d.o `pwd`/clim-motif.o \
+#	    `pwd`/stub-xt.o `pwd`/stub-x.o \
+#	   `pwd`/xlibsupport.o `pwd`/MyDrawingA.o `pwd`/olsupport.o `pwd`/xtsupport.o
 
 # These are built into xm-dcl and ol-dcl.
 COMPOSEROBJS= /scm/4.1/sparc/src/code/excldep.o /scm/4.1/sparc/src/code/socket.o \
@@ -726,14 +726,15 @@ makeclimolfasls	: compile-ol cat-ol
 
 
 install_clim	:
-	cp $(INSTALLED_CLIMOBJS) $(CLIMFASLS) $(DEST)
+	cp $(CLIMFASLS) $(DEST)
+	cp $(INSTALLED_CLIMOBJS) $(DEST)
 
 # Link in the libraries & distribution object files with standard names
 
 link-objects	:
 	ln -s $(XTLIB) $(DEST)/libXt.a
 	ln -s $(XLIB) $(DEST)/libX11.a
-	ln -s $(FCLIMOBJS) $(DEST)
+#	ln -s $(INSTALLED_CLIMOBJS) $(DEST)
 
 # Backwards compatibility...
 link-motif-libraries:	link-objects

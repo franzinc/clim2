@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: packages.lisp,v 1.7 92/07/01 15:47:48 cer Exp $
+;; $fiHeader: packages.lisp,v 1.8 92/07/20 16:01:30 cer Exp $
 
 (in-package #-ansi-90 :user #+ansi-90 :common-lisp-user)
 

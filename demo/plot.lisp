@@ -21,7 +21,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: plot.lisp,v 1.10 92/09/30 11:45:25 cer Exp Locker: cer $
+;; $fiHeader: plot.lisp,v 1.11 92/10/02 15:20:43 cer Exp $
 
 (in-package :clim-demo)
 
@@ -641,8 +641,12 @@
 		(+ top (max 0 (- cheight vheight))))))))
 
 #+allegro
+(eval-when (compile load eval)
+  (require :climps))
+
+#+allegro
 (define-plot-demo-command (com-print-graph :name t :menu t)
-    ((printer '(member :lw :lw2 :lw3)
+    ((printer '(member :|lw| :|lw2| :|lw3|)
 	      :display-default t
 	      :default :lw2))
   (with-open-stream (pipe (excl:run-shell-command  (format nil "lpr -P~A" printer)
@@ -706,12 +710,6 @@
 			(get-frame-pane *application-frame*
 					'data-window)
 			:force-p t))
-
-(define-plot-demo-command (com-change-background :name t) ()
-  (with-sheet-medium (medium (get-frame-pane *application-frame* 'graph-window))
-    (setf (medium-background medium) 
-      (nth (random 3) (list +pink+ +khaki+ +blue-violet+)))))
-      
 
 (define-plot-demo-command (com-add-new-column :name t) ()
   (with-slots (plot-data y-labels) *application-frame*

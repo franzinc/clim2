@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: navfun.lisp,v 1.16 92/09/30 11:45:22 cer Exp Locker: cer $
+;; $fiHeader: navfun.lisp,v 1.17 92/10/02 15:20:39 cer Exp $
 
 (in-package :clim-demo)
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: demo-driver.lisp,v 1.13 92/08/19 10:24:12 cer Exp Locker: cer $
+;; $fiHeader: demo-driver.lisp,v 1.14 92/09/30 11:45:21 cer Exp $
 
 (in-package :clim-demo)
 

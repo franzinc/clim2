@@ -3,7 +3,7 @@
 ;;; Simple extensible browser
 ;;; Scott McKay
 
-;; $fiHeader: browser.lisp,v 1.12 92/10/02 09:13:24 cer Exp $
+;; $fiHeader: browser.lisp,v 1.13 92/10/02 09:22:05 cer Exp $
 
 (in-package :clim-browser)
 

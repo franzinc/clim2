@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: ico.lisp,v 1.8 92/10/02 15:20:37 cer Exp Locker: cer $
+;; $fiHeader: ico.lisp,v 1.9 92/10/04 14:16:40 cer Exp $
 
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
