@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader$
+;; $fiHeader: xm-gadgets.cl,v 1.3 92/01/02 15:32:57 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -67,19 +67,26 @@
 
 ;;; We now need a lot of classes that mirror the xm classes.
 
-(defclass motif-pane (silica::pane) (resources))
 
 (defmethod allocate-space ((p motif-pane) width height)
   (when (sheet-mirror p)
     (tk::set-values (sheet-mirror p) :width width :height height)))
 
+(defclass motif-pane (silica::pane) (#+ignoreresources))
+
+
+#+ignore
 (defmethod initialize-instance :after ((x motif-pane) &rest args)
   (setf (slot-value x 'resources) args))
 
+#+ignore
 (defmethod  find-widget-class-and-initargs-for-sheet :around (port (sheet motif-pane))
   (multiple-value-bind
       (x y) (call-next-method)
-    (values x (append y (slot-value sheet 'resources)))))
+    (clos::doplist (key value) (slot-value sheet 'resources)
+		   (unless (getf y key)
+		     (setf (getf y key) value)))
+    (values x y)))
 
 (defclass motif-composite-pane () ())
 
@@ -135,17 +142,24 @@
 
 ;;; Push button
 
-(defclass motif-push-button (motif-leaf-pane action-gadget motif-action-pane) ())
+(defclass motif-push-button (motif-leaf-pane 
+			     action-gadget
+			     motif-action-pane
+			     sheet-permanently-enabled-mixin
+			     silica::foreground-background-and-text-style-mixin
+			     silica::push-button) 
+	  ((label-string :initarg :label-string :initform "")))
 
 (defmethod realize-pane-arglist (realizer (type (eql 'push-button))
 				 &rest args 
 				 &key (label ""))
   (list* :label-string label
 	 (with-rem-keywords (args args '(:label))
-			    (apply #'call-next-method args))))
+	   (apply #'call-next-method realizer type args))))
 
 (defmethod find-widget-class-and-initargs-for-sheet (port (sheet motif-push-button))
-  (values 'tk::xm-push-button nil))
+  (values 'tk::xm-push-button 
+	  (list :label-string (slot-value sheet 'label-string))))
 
 ;;; This widget knows how big it wants to be so asking it returns a
 ;;; meaningful answer. ie.  Something other than the current size.
@@ -168,8 +182,9 @@
 			      mute-repainting-mixin) ())
 
 (defmethod find-widget-class-and-initargs-for-sheet (port (sheet motif-drawing-area))
-  (values 'tk::xm-drawing-area (list :margin-width 0 :margin-height
-				     0)))
+  (values 'tk::xm-drawing-area (list :margin-width 0 
+				     :resize-policy :none
+				     :margin-height 0)))
 
 (defmethod add-sheet-callbacks :after ((port motif-port) (sheet motif-drawing-area) widget)
   (tk::add-callback widget 
@@ -199,14 +214,16 @@
 
 ;;; Slider
 
-(defclass motif-slider (motif-leaf-pane value-gadget motif-value-pane)
+(defclass motif-slider (motif-leaf-pane 
+			sheet-permanently-enabled-mixin
+			value-gadget motif-value-pane)
 	  ((orientation :initarg :orientation))  
   (:default-initargs :orientation :horizontal))
 
 (defmethod realize-pane-arglist (realizer (type (eql 'slider)) &rest args &key orientation)
   (append (and orientation (list :orientation orientation))
 	  (with-rem-keywords (args args '(:orientation))
-	    (apply #'call-next-method args))))
+	    (apply #'call-next-method realizer type args))))
 
 (defmethod find-widget-class-and-initargs-for-sheet (port (sheet motif-slider))
   (values 'tk::xm-scale nil))
@@ -241,7 +258,7 @@
 				 &rest args &key orientation)
   (list* :orientation orientation
 	 (with-rem-keywords (args args '(:orientation))
-			    (apply #'call-next-method args))))
+			    (apply #'call-next-method realizer type args))))
 
 (defmethod find-widget-class-and-initargs-for-sheet (port (sheet motif-scrollbar))
   (values 'tk::xm-scroll-bar nil))
@@ -301,7 +318,7 @@
 				 #+ignore sheet
 				 mirrored-sheet-mixin
 				 sheet-multiple-child-mixin
-				 
+
 				 #+ignore sheet-transformation-mixin
 				 #+ignore standard-repainting-medium
 				 #+ignore standard-sheet-input-mixin
@@ -355,12 +372,15 @@
   (compose-space (car (sheet-children sheet))))
 
 (defmethod find-widget-class-and-initargs-for-sheet (port (sheet motif-top-level-sheet))
-  (values 'tk::xm-drawing-area (list :margin-width 0 :margin-height 0)))
+  (values 'tk::xm-drawing-area 
+	  (list :resize-policy :none
+		:margin-width 0 :margin-height 0)))
 
 
 ;;;; text field
 
 (defclass motif-text-field (motif-leaf-pane value-gadget
+			    sheet-permanently-enabled-mixin
 			    motif-value-pane motif-action-pane) ())
 
 (defmethod find-widget-class-and-initargs-for-sheet (port (sheet motif-text-field))
@@ -368,7 +388,10 @@
 
 ;;; Toggle button
 
-(defclass motif-toggle-button (motif-leaf-pane motif-value-pane value-gadget) 
+(defclass motif-toggle-button (motif-leaf-pane 
+			       sheet-permanently-enabled-mixin
+			       motif-value-pane 
+			       value-gadget) 
 	  ())
 
 (defmethod find-widget-class-and-initargs-for-sheet (port (sheet motif-toggle-button))
@@ -513,6 +536,7 @@
 
 		       mirrored-sheet-mixin
 		       silica::sheet-single-child-mixin
+		       sheet-permanently-enabled-mixin
 		       
 		       #+ignore sheet-transformation-mixin
 		       #+ignore standard-repainting-medium
@@ -565,6 +589,8 @@
 (defmethod find-widget-class-and-initargs-for-sheet (port (sheet xm-viewport))
   (values 'tk::xm-drawing-area
 	  '(:scrolling-policy :application-defined
+	    :margin-width 0 :margin-height 0
+	    :resize-policy :none
 	    :scroll-bar-display-policy :static)))
 
 ; From the days when the parent used to be a motif scroll window
@@ -659,3 +685,52 @@
      stream
      (silica::xm-viewport-viewport vp))))
 
+
+(defmethod find-widget-class-and-initargs-for-sheet 
+    ((port motif-port)
+     (sheet 
+      silica::foreground-background-and-text-style-mixin))
+  (multiple-value-bind
+      (class initargs)
+      (call-next-method)
+    (with-slots
+	(silica::foreground silica::background silica::text-style)
+	sheet
+      
+      ;; Background can either be a pixel of a bitmap
+      ;; Foreground has to be a pixel
+      ;; clx-decode-gadget-background
+      ;; clx-decode-gadget-foreground
+      
+      (when silica::background
+	(with-sheet-medium (medium sheet)
+	  (setf initargs
+	    (append (clx-decode-gadget-background medium sheet silica::background) 
+		    initargs))))
+      
+      (when silica::foreground
+	(with-sheet-medium (medium sheet)
+	  (setf initargs
+	    (append (clx-decode-gadget-foreground medium sheet silica::foreground)
+		    initargs))))
+
+      (when silica::text-style
+	(setf (getf initargs :font-list)
+	  (realize-text-style port silica::text-style)))
+
+      (values class initargs))))
+
+(defmethod clx-decode-gadget-background (medium sheet ink)
+  (declare (ignore sheet))
+  (let ((gc (clx-decode-ink ink medium)))
+    (if (tk::gcontext-tile gc)
+	(list :background-pixmap (tk::gcontext-tile gc))
+      (list :background (tk::gcontext-foreground gc)))))
+
+
+(defmethod clx-decode-gadget-foreground (medium sheet ink)
+  (declare (ignore sheet))
+  (let ((gc (clx-decode-ink ink medium)))
+    (if (tk::gcontext-tile gc)
+	(error "Gadget foreground cannot be pixmap")
+      (list :foreground (tk::gcontext-foreground gc)))))

@@ -34,7 +34,7 @@
 	   sheet)
 	 :display 'gr-sheet-display
 	 :gnode-class 'sheet-gnode
-	 :title "Sheet hierarchy"
+	 :title "Output History"
 
 	 :children-fn #'(lambda (x)
 			  (clim-internals::output-record-children x))

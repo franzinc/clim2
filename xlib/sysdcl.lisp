@@ -1,4 +1,4 @@
-(defsys::defsystem :xlib
+;; -*- mode: common-lisp; package: user -*-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
@@ -18,11 +18,15 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-    (:default-pathname (frob-pathname "xlib"))
+;; $fiHeader$
 
+
+(defsys::defsystem :xlib
+    (:default-pathname (frob-pathname "xlib"))
   (|pkg|)
   (|ffi|)
   (|xlib|)
-  (|x11-keysyms|))
+  (|x11-keysyms|)
+  (|last|))
 
 

@@ -88,13 +88,40 @@
 	(ignore type indicies) type
 	`(,@indicies ,type))))))
 
+#+ignore
 (defmacro def-exported-foreign-function ((name &rest options) &rest args)
   `(progn
      (export ',name :x11)
      (foreign-functions:defforeign 
 	 ',name 
 	 :arguments ',(mapcar #'(lambda (x) x t) args)
-      :entry-point ,(second (assoc :name options)))))
+	 :entry-point ,(second (assoc :name options)))))
+
+
+;; delay version
+
+(defmacro def-exported-foreign-function ((name &rest options) &rest args)
+  `(progn
+     (export ',name :x11)
+     (eval-when (compile eval)
+       (delayed-defforeign
+	',name 
+	:arguments ',(mapcar #'(lambda (x) x t) args)
+	:entry-point ,(second (assoc :name options))))))
+
+(defparameter *defforeigned-functions* nil
+  "A list of name and defforeign arguments")
+
+(defun delayed-defforeign (name &rest arguments)
+  (setf *defforeigned-functions*
+    (delete name *defforeigned-functions* :key #'car))
+  (push (cons name arguments) *defforeigned-functions*))
+  
+
+(defmacro defforeign-functions-now ()
+  `(ff:defforeign-list ',*defforeigned-functions*))
+
+;;; End of delay version
 
 (defmacro def-exported-foreign-macro ((name &rest options) &rest args)
   `(def-exported-foreign-function (,name  ,@options) ,@args))

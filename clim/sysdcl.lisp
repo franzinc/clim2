@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader$
+;; $fiHeader: sysdcl.cl,v 1.4 92/01/02 15:33:34 cer Exp Locker: cer $
 
 (defsys::defsystem :clim
     (:default-pathname (frob-pathname "clim"))
@@ -106,6 +106,10 @@
   ("surround-output")
   ("graph-formatting")
   ("text-formatting")
+  
+  ;; This is the future
+  ("gadget-output")
+  
   ("stream-trampolines"
    :load-before-compile ("defprotocol" "stream-defprotocols")
    ))

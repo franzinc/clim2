@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader$
+;; $fiHeader: gcontext.cl,v 1.2 92/01/02 15:08:43 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -132,6 +132,14 @@
   (when dash-offset (setf (gcontext-dash-offset gcontext) dash-offset))
   (when dashes (setf (gcontext-dashes gcontext) dashes))
   gcontext)
+
+
+
+(defun free-gcontext (gc)
+  (x11:xfreegc 
+   (display-handle (object-display gc))
+   (object-handle gc))
+  (unregister-address gc))
 
 (defun lispify-function-name (name)
   (intern (substitute #\_ #\- (symbol-name (lispify-tk-name name)))))
@@ -293,7 +301,12 @@
       (or font
 	  (query-font display x)))))
 
-(defun decode-pixmap (x) x)
+(defun decode-pixmap (x) 
+  (and (/= #16rffffffff x)
+       (intern-object-xid
+	x
+	'pixmap)))
+
 (defun decode-clip-mask (x) x)
 (defun decode-enum (x y)
   (or (elt y x)

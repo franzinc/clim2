@@ -21,15 +21,33 @@
 (in-package :clim)
 
 (define-application-frame test-frame ()
-			  (a b c)
-			  (:pane 
-			   (vertically ()
-				       (silica::scrolling
-					()
-					(setq aaa
-					  (silica::realize-pane
-					   'interactor-pane)))
-				       (realize-pane 'slider))))
+  (a b c)
+  (:pane 
+   (vertically ()
+	       (silica::scrolling
+		()
+		(setq aaa
+		  (silica::realize-pane
+		   'interactor-pane
+		   :foreground +green+
+		   :background +red+)))
+	       (realize-pane
+		'silica::push-button
+		:label "press me"
+		:background (make-pattern #2A((0 0 0 1 1 0 0 0)
+					      (0 0 1 1 1 1 0 0)
+					      (0 1 1 1 1 1 1 0)
+					      (1 1 1 1 1 1 1 1)
+					      (1 1 1 1 1 1 1 1)
+					      (0 1 1 1 1 1 1 0)
+					      (0 0 1 1 1 1 0 0)
+					      (0 0 0 1 1 0 0 0))
+					  (list +red+ +green+))
+		:foreground +purple+
+		:text-style
+
+		(make-text-style
+		 :serif :roman 20)))))
 
 (define-application-frame test-frame2 ()
   (a b c)
@@ -153,3 +171,70 @@
 		 :max-width +fill+
 		 :height 300
 		 :max-height +fill+)))))
+
+
+(define-application-frame test-frame5 ()
+  ()
+  (:command-table test-frame)
+  (:panes
+   (a (silica::horizontally
+       ()
+       (realize-pane 'silica::push-button :label "Press me")
+       (realize-pane 'silica::push-button :label "Squeeze me")))
+   (b (realize-pane 'silica::toggle-button))
+   (c (realize-pane 'silica::slider))
+   (d (realize-pane 'silica::text-field))
+   (e (silica::realize-pane
+       'interactor-pane
+       :width 300
+       :max-width +fill+
+       :height 300
+       :max-height +fill+)))
+  (:layout
+   (:default 
+       (vertically
+	()
+	a b c (silica::scrolling () e)))
+   (:more
+    (vertically
+     ()
+     a  (silica::scrolling () e) b  d))))
+
+
+
+(define-test-frame-command (com-switch :name t :menu t)
+    ()
+  (setf (frame-current-layout *application-frame*)
+    (ecase (frame-current-layout *application-frame*)
+      (:default :more)
+      (:more :default))))
+	 
+
+(define-test-frame-command (com-make-button :name t :menu t)
+    ()
+  (let* ((stream *query-io*))
+    (flet ((make-it (i)
+	     (with-output-as-gadget (:stream stream)
+	       (realize-pane 
+		'silica::push-button
+		:label (format nil "Amazing ~D" i)))))
+      (format-graph-from-root
+       '(a (c (x) (y)))
+       #'(lambda (node s)
+	   (declare (ignore s))
+	   (make-it (if (consp node) (car node) node)))
+       #'cdr
+       :stream stream))))
+
+
+#+ignore
+(formatting-table (stream)
+		  (dotimes (i 3)
+		    (formatting-row (stream)
+				    (dotimes (j 3)
+				      (formatting-cell (stream)
+						       (make-it (+ (* i 3) j)))))))
+
+
+
+

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader$
+;; $fiHeader: db-scroll.cl,v 1.1 92/01/02 15:31:50 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -74,10 +74,6 @@
 
 (defmethod compose-space ((pane scroller-pane))
   (compose-space (sheet-child pane)))
-
-(defclass scrollbar ()
-	  ((current-value :initform nil)
-	   (current-size :initform nil)))
 
 (defun update-scrollbars (vp)
   (with-bounding-rectangle* (minx miny maxx maxy)

@@ -21,7 +21,7 @@
 ;;;
 ;;; Copyright (c) 1990 by Xerox Corporations.  All rights reserved.
 ;;;
-;; $fiHeader$
+;; $fiHeader: db-stream.lisp,v 1.4 92/01/02 15:33:09 cer Exp Locker: cer $
 
 
 (in-package :clim-internals)
@@ -70,9 +70,10 @@
 				 silica::pane
 				 sheet-permanently-enabled-mixin
 				 sheet-mute-input-mixin
-
+				 sheet-multiple-child-mixin
+				 
 					;sheet
-					;sheet-multiple-child-mixin
+					
 					;sheet-transformation-mixin
 					;standard-repainting-medium
 					;standard-sheet-input-mixin

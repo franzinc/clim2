@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader$
+;; $fiHeader: xm-silica.cl,v 1.2 92/01/02 15:09:47 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -150,6 +150,8 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defmethod silica::destroy-mirror ((port motif-port) sheet)
+  (tk::destroy-widget (sheet-direct-mirror sheet)))
 
 (defmethod realize-mirror ((port motif-port) sheet)
   (multiple-value-bind
@@ -157,6 +159,7 @@
       (find-widget-class-and-initargs-for-sheet port sheet)
     (let ((widget (apply #'make-instance class
 			 :parent (find-widget-parent port sheet)
+			 :managed (sheet-enabled-p sheet)
 			 initargs)))
       (add-sheet-callbacks port sheet widget)
       widget)))
@@ -326,7 +329,10 @@
       (sheet-mirror ma))))
 
 (defmethod find-shell-class-and-initargs (port sheet)
-  (values 'top-level-shell nil))
+  (values 'top-level-shell 
+	  ;; Need this so that an interactive pane can have children
+	  ;; but still accept the focus
+	  '(:keyboard-focus-policy :pointer)))
 
 (defmethod enable-mirror (port sheet)
   (declare (ignore port))
@@ -334,6 +340,10 @@
     (typecase (widget-parent mirror)
       (null)
       (top-level-shell
+       ;; this is a nasty hack just to make sure that the child is managed.
+       ;; top-level-sheets are created unmanaged because they are
+       ;; disabled to we have to do not!
+       (manage-child mirror)
        (popup (widget-parent mirror)))
       (t
        (manage-child mirror)))))
@@ -406,7 +416,8 @@
 		(/= target-top ny)
 		(/= w nw)
 		(/= h nh))
-	(warn "Geo set fail, ~S,~S"
+	(warn "Geo set fail, ~S, ~S,~S"
+	      sheet
 	       (list  target-left  target-top w h)
 	       (list nx ny nw nh))))))
 

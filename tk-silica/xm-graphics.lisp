@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader$
+;; $fiHeader: xm-graphics.cl,v 1.2 92/01/02 15:09:46 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -53,6 +53,18 @@
 			     :drawable drawable)))
       (recompute-gcs medium))))
 
+(defmethod silica::degraft-medium :after (medium (port motif-port) sheet)
+  (declare (ignore sheet))
+  (with-slots 
+      (foreground-gcontext background-gcontext flipping-gcontext)
+      medium
+    (macrolet ((loose-gc (gc)
+		 `(when ,gc
+		    (tk::free-gcontext ,gc)
+		    (setf ,gc nil))))
+      (loose-gc foreground-gcontext)
+      (loose-gc background-gcontext)
+      (loose-gc flipping-gcontext))))
 
 (defun recompute-gcs (medium)
   (with-slots 

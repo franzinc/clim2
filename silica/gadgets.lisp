@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader$
+;; $fiHeader: gadgets.cl,v 1.3 92/01/02 15:33:15 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -29,7 +29,7 @@
 
 (defclass value-gadget (gadget) ())
 
-(defmethod value-changed-callback ((v value-gadget) (client t) (id t) (value t))
+(defmethod value-changed-callback ((v gadget) (client t) (id t) (value t))
   ())
 
 (defgeneric gadget-value (gadget))
@@ -38,14 +38,25 @@
 
 (defclass action-gadget (gadget) ())
 
-(defmethod activate-callback ((v action-gadget) (client t) (id t))
+(defmethod activate-callback ((v gadget) (client t) (id t))
   ())
 
+;;;;;;;;;;;;;;;;;;;; The intent is that the real implementations
+;;;;;;;;;;;;;;;;;;;; inherit from these
 
 ;; slider
 ;; push-button
+
+(defclass silica::push-button () ())
+
 ;; toggle-button
 ;; scroll-bar
+
+
+(defclass scrollbar ()
+	  ((current-value :initform nil)
+	   (current-size :initform nil)))
+
 ;; Caption
 ;; option menu
 ;; label
@@ -144,3 +155,9 @@
 (defmethod handle-event ((gadget  action-gadget) (event activate-gadget-event))
   (activate-callback gadget (gadget-client gadget) (gadget-id gadget)))
 
+;; Does this make sense
+
+(defclass foreground-background-and-text-style-mixin ()
+	  ((foreground :initform nil :initarg :foreground)
+	   (background :initform nil :initarg :background)
+	   (text-style :initform nil :initarg :text-style)))

@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader$
+;; $fiHeader: input-defs.lisp,v 1.2 92/01/02 15:33:17 cer Exp Locker: cer $
 
 
 (in-package :clim-internals)
@@ -143,13 +143,15 @@
 	(setf (pointer-x-position pointer) native-x-position
 	      (pointer-y-position pointer) native-y-position)))))
 
+(warn "Checking for port")
+
 (defmethod (setf pointer-window) :before (new-value (pointer pointer))
    (with-slots (window) pointer
      (unless (eql new-value window)
        (when window
 	 ;; --- horrible cross-protocol modularity violation here
 	 ;; but it's hours before AAAI
-	 (when (output-recording-stream-p window)
+	 (when (and (port window) (output-recording-stream-p window))
 	   (set-highlighted-presentation window nil))))))
 
 (defmethod query-pointer ((pointer pointer))

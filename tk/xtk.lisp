@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader$
+;; $fiHeader: xtk.cl,v 1.2 92/01/02 15:09:05 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -57,7 +57,7 @@
 
 (defforeign 'initialize-widget-class :entry-point "_XtInitializeWidgetClass")
 
-(defforeign 'x-free :entry-point "_XtFree")
+(defforeign 'xt_free :entry-point "_XtFree")
 
 (defforeign 'toolkit-initialize
     :entry-point "_XtToolkitInitialize")

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader$
+;; $fiHeader: resources.cl,v 1.2 92/01/02 15:08:58 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -119,9 +119,11 @@
   (cerror "Try again" "cannot convert-in resource for ~S,~S,~S" class type value)
   (convert-resource-in class type value))
 
+(defconstant xm_string_default_char_set "")
+
 (defmethod convert-resource-in (class (type (eql 'xm-string)) value)
   (with-ref-par ((string 0))
-		(string_get_l_to_r value "" string)
+		(string_get_l_to_r value xm_string_default_char_set string)
 		(char*-to-string (aref string 0))))
 
 (defmethod convert-resource-out ((parent t) (type (eql 'separator-type)) value)
@@ -277,3 +279,7 @@
   
 
 
+(defmethod convert-resource-out ((parent t) (type (eql 'xm-background-pixmap)) value)
+  (etypecase value
+    (pixmap
+     (encode-pixmap value))))

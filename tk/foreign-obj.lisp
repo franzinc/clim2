@@ -20,12 +20,16 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader$
+;; $fiHeader: foreign-obj.cl,v 1.2 92/01/02 15:08:42 cer Exp Locker: cer $
 
 (in-package :tk)
 
 (defclass handle-class ()
 	  ((handle :initarg :handle :reader object-handle)))
+
+(defmethod invalidate-object-handle ((object handle-class) handle)
+  (declare (ignore handle))
+  (slot-makunbound object 'handle))
 
 
 ;;; There should be multiple mappings:
@@ -49,6 +53,10 @@
 (defun register-address (object &optional (handle (object-handle object)))
   (setf (gethash handle *address->object-mapping*) object)
   object)
+
+(defun unregister-address (object &optional (handle (object-handle object)))
+  (remhash handle *address->object-mapping*)
+  (invalidate-object-handle object handle))
 
 (defun register-xid (object &optional (handle (object-handle object)))
   (setf (gethash handle *xid->object-mapping*) object)

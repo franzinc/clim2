@@ -19,7 +19,7 @@
 ;; applicable.
 ;;
 
-;; $fiHeader: presentations.lisp,v 1.1 91/11/25 10:01:12 cer Exp Locker: cer $
+;; $fiHeader: presentations.lisp,v 1.2 91/12/13 10:36:54 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -427,10 +427,14 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 	  (highlight-output-record history-window highlighted-presentation :unhighlight)
 	  (setf highlighted-presentation nil))))))
 
+(warn "Checking for port")
+
 (defun find-appropriate-window (stream)
   ;;--- how do we hack multiple pointers?
   (let* ((pointer (stream-primary-pointer stream))
 	 (window (pointer-window pointer)))
     ;; It ain't no good if it doesn't have a history.
-    (when (output-recording-stream-p window)
+    (when (and window
+	       (silica::port window)
+	       (output-recording-stream-p window))
       window)))

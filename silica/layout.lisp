@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader$
+;; $fiHeader: layout.cl,v 1.3 92/01/02 15:33:21 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -108,6 +108,7 @@
 				   (if height (+ height miny) maxy)))))))
 
 (defmethod move-and-resize-sheet* ((sheet sheet) minx miny width height)
+  (resize-sheet* sheet width height)
   (let ((trans (sheet-transformation sheet)))
     (multiple-value-bind
 	(x y) (transform-point* trans 0 0)
@@ -117,8 +118,21 @@
 	  (compose-translation-transformation
 	   trans
 	   (if minx (- minx x) 0)
-	   (if miny (- miny y) 0))))
-      (resize-sheet* sheet width height))))
+	   (if miny (- miny y) 0)))))))
+
+
+(defmethod move-sheet* ((sheet sheet) minx miny)
+  (let ((trans (sheet-transformation sheet)))
+    (multiple-value-bind
+	(x y) (transform-point* trans 0 0)
+      (when (or (/= x minx)
+		(/= y miny))
+	(setf (sheet-transformation sheet)
+	  (compose-translation-transformation
+	   trans
+	   (- minx x)
+	   (- miny y)))))))
+
 
 ;; Various
 

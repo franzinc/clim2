@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader$
+;; $fiHeader: frames.cl,v 1.4 92/01/02 15:33:14 cer Exp Locker: cer $
 
 (in-package :clim)
 
@@ -48,6 +48,9 @@
 		  :initform (find-command-table 'user-command-table)
 		  :accessor frame-command-table)
    (top-level :initarg :top-level  :accessor frame-top-level)
+   (current-layout :initarg :default-layout :reader frame-current-layout)
+   (all-panes :initform nil)
+   (pane-constructors :initarg :pane-constructors)
    )
   (:default-initargs
    :top-level 'default-frame-top-level
@@ -80,7 +83,9 @@
 
 (defmethod adopt-frame ((framem frame-manager) (frame application-frame))
   (generate-panes frame framem))
-  
+
+;; what is this???
+
 (defmethod generate-panes ((frame application-frame) (framem
 						      frame-manager))
   (setf (frame-panes frame) nil))
@@ -90,11 +95,21 @@
 (defmacro define-application-frame (name superclasses slots &rest options)
   (unless superclasses (setq superclasses '(application-frame))) 
   (let ((pane (second (assoc :pane options)))
+	(panes (cdr (assoc :panes options)))
+	(layout (cdr (assoc :layout  options)))
 	(command-definer (second (or (assoc :command-definer options)
 				     '(t t))))
 	(command-table (second (or (assoc :command-table options)
 				   '(t t))))
 	(top-level (assoc :top-level options)))
+    
+    (when (and pane panes)
+      (error "Cannot use :pane and :panes together"))
+    
+    (when (or (and panes (null layout))
+	      (and layout (null panes)))
+      (error ":layout and :panes must be used together"))
+    
     (cond ((null command-table))
 	  ((symbolp command-table)
 	   (setq command-table (list command-table))))
@@ -107,15 +122,18 @@
 	   ,superclasses 
 	   ,slots
 	 (:default-initargs
-	  ,@(and top-level `(:top-level ',(second top-level)))
-	  ,@(and command-table
-		 `(:command-table (clim-internals::find-command-table ',(car command-table))))))
+	     ,@(and layout `(:default-layout ',(car (car layout))))
+	   ,@(and top-level `(:top-level ',(second top-level)))
+	   ,@(and panes `(:pane-constructors
+			  ,(compute-pane-constructor-code panes)))
+	   ,@(and command-table
+		  `(:command-table (clim-internals::find-command-table ',(car command-table))))))
        ,@(when command-table
 	   `((define-command-table ,(first command-table)
-					 ,@(cdr command-table))))
+		 ,@(cdr command-table))))
        ,@(when command-definer
 	   (compute-command-definer-code name command-table))
-       ,@(compute-generate-panes-code name pane))))
+       ,@(compute-generate-panes-code name pane panes layout))))
 
 (defmacro define-frame-command (command-table-name name-and-options arguments &body body)
   (multiple-value-bind (command-name command-options)
@@ -132,7 +150,12 @@
 
 
 
-(defun compute-generate-panes-code (name code)
+(defun compute-generate-panes-code (name code panes layouts)
+  (if panes
+      (compute-complex-generate-panes-code name panes layouts)
+    (compute-simple-generate-panes-code name code)))
+
+(defun compute-simple-generate-panes-code (name code)
   (and code
        (let ((f (gensym))
 	     (fm (gensym)))
@@ -145,6 +168,51 @@
 		      (,fm ,f)
 		    ,code)))))))))
 
+(defun compute-complex-generate-panes-code (name panes layouts)
+  (let ((f (gensym))
+	(fm (gensym)))
+    `((defmethod generate-panes ((,f ,name) (,fm frame-manager))
+	(symbol-macrolet
+	    ,(mapcar #'(lambda (pane-spec)
+			 (destructuring-bind
+			     (name code) pane-spec
+			   `(,name (find-or-make-pane-named ,f
+							    ',name))))
+	      panes)
+
+	  (let ((*application-frame* ,f))
+	    (setf (frame-panes ,f)
+	      (frame-wrapper
+	       ,f ,fm
+	       (with-look-and-feel-realization 
+		   (,fm ,f)
+		 (ecase (frame-current-layout ,f)
+		   ,@(mapcar #'(lambda (layout-spec)
+				 (destructuring-bind
+				     (name panes) layout-spec
+				   `(,name ,panes)))
+			     layouts)))))))))))
+
+(defun find-or-make-pane-named (frame name)
+  (second (or (assoc name (slot-value frame 'all-panes))
+	      (car (push
+		    (list name 
+			  (funcall (second (assoc name (slot-value frame 'pane-constructors)))
+				   frame
+				   (frame-manager frame)))
+		    (slot-value frame 'all-panes))))))
+
+(defun compute-pane-constructor-code (panes)
+  `(list ,@(mapcar #'(lambda (pane-spec)
+		      (destructuring-bind
+			  (name code) pane-spec
+			`(list ',name
+			       #'(lambda (frame framem)
+				   (with-look-and-feel-realization
+				       (framem frame)
+				     ,code)))))
+		  panes)))
+   
 (defmethod frame-wrapper ((frame t) (framem t) pane)
   pane)
 
@@ -176,7 +244,7 @@
 
 (defmethod disable-frame ((frame application-frame))
   (ecase (frame-state frame)
-    (:disabled)
+    ((:disowned :disabled))
     ((:enabled :shrunk)
      (setf (frame-state frame) :disabled)
      (note-frame-disabled (frame-manager frame) frame))))
@@ -227,37 +295,45 @@
   
   (unless (eq (frame-state frame) :enabled)
     (enable-frame frame))
-  (let* ((*standard-output* (or (frame-standard-output frame) *standard-output*))
-	 (*query-io* (or (frame-query-io frame) *query-io*))
-	 (interactor (find-frame-pane-of-type frame 'interactor-pane))
-	 (*standard-input* (or interactor *standard-output*))
-	 (*command-parser*
-	  (or command-parser
-	      (if interactor
-		  #'command-line-command-parser
-		#'menu-only-command-parser)))
-	 (*command-unparser*
-	  (or command-unparser
-	      #'command-line-command-unparser))
-	 (*partial-command-parser*
-	  (or partial-command-parser
-	      (if interactor
-		  #'command-line-read-remaining-arguments-for-partial-command
-		#'menu-only-read-remaining-arguments-for-partial-command))))
-    (loop
-      (clim-utils::with-simple-abort-restart ("Abort Command")
-	(redisplay-frame-panes frame)
-	(when interactor
-	  (fresh-line *standard-input*)
-	  (if (stringp prompt)
-	      (write-string prompt *standard-input*)
-	    (funcall prompt *standard-input* frame)))
-	(let ((command (read-frame-command frame :stream *standard-input*)))
-	  (when interactor
-	    (terpri *standard-input*))
-	  ;; Need this check in case the user aborted out of a command menu
-	  (when command
-	    (execute-frame-command frame command)))))))
+  (loop
+    (catch 'layout-changed
+      (let* ((*standard-output* (or (frame-standard-output frame) *standard-output*))
+	     (*query-io* (or (frame-query-io frame) *query-io*))
+	     (interactor (find-frame-pane-of-type frame 'interactor-pane))
+	     (*standard-input* (or interactor *standard-output*))
+	     (*command-parser*
+	      (or command-parser
+		  (if interactor
+		      #'command-line-command-parser
+		    #'menu-only-command-parser)))
+	     (*command-unparser*
+	      (or command-unparser
+		  #'command-line-command-unparser))
+	     (*partial-command-parser*
+	      (or partial-command-parser
+		  (if interactor
+		      #'command-line-read-remaining-arguments-for-partial-command
+		    #'menu-only-read-remaining-arguments-for-partial-command))))
+	(unless (typep *standard-input* 'excl::bidirectional-terminal-stream)
+	  (assert (port *standard-input*)))
+	(unless (typep *standard-output* 'excl::bidirectional-terminal-stream)
+	  (assert (port *standard-output*)))
+	(unless (typep *query-io* 'excl::bidirectional-terminal-stream)
+	    (assert (port *query-io*)))
+	(loop
+	  (clim-utils::with-simple-abort-restart ("Abort Command")
+	    (redisplay-frame-panes frame)
+	    (when interactor
+	      (fresh-line *standard-input*)
+	      (if (stringp prompt)
+		  (write-string prompt *standard-input*)
+		(funcall prompt *standard-input* frame)))
+	    (let ((command (read-frame-command frame :stream *standard-input*)))
+	      (when interactor
+		(terpri *standard-input*))
+	      ;; Need this check in case the user aborted out of a command menu
+	      (when command
+		(execute-frame-command frame command)))))))))
 
 (defmethod redisplay-frame-panes (frame &key force-p)
   (map-over-sheets #'(lambda (sheet)
@@ -371,3 +447,29 @@
 
 (defmethod frame-exit ((frame application-frame))
   (invoke-restart 'frame-exit))
+
+(defmethod (setf frame-current-layout) (nv (frame application-frame))
+  (unless (eq (frame-current-layout frame) nv)
+    (setf (slot-value frame 'current-layout) nv)
+    ;; Top level sheet should loose all its child annd then we should 
+
+    (dolist (name-and-pane (slot-value frame 'all-panes))
+      (let ((sheet (second name-and-pane)))
+	(when (silica::sheet-parent sheet)
+	  (silica::disown-child (silica::sheet-parent sheet) sheet))))
+    
+    (dolist (child (sheet-children (frame-top-level-sheet frame)))
+      (silica::disown-child (frame-top-level-sheet frame) child))
+    
+    ;; Now we want to give it some new ones
+    (generate-panes frame (frame-manager frame))
+    (adopt-child (frame-top-level-sheet frame) (frame-panes frame))
+    (silica::clear-space-req-caches-in-tree (frame-panes frame))
+    (multiple-value-call #'layout-frame
+      frame
+      (bounding-rectangle-size
+       (frame-top-level-sheet frame)))
+    (print 'throwing excl:*initial-terminal-io*)
+    (throw 'layout-changed nil)))
+		 
+

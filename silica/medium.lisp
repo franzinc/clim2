@@ -18,11 +18,15 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader$
+;; $fiHeader: medium.cl,v 1.3 92/01/02 15:09:13 cer Exp Locker: cer $
 
 (in-package :silica)
 
 (defmethod engraft-medium (medium port sheet)
+  (declare (ignore sheet port))
+  nil)
+
+(defmethod degraft-medium (medium port sheet)
   (declare (ignore sheet port))
   nil)
 

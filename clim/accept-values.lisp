@@ -19,7 +19,7 @@
 ;; applicable.
 ;;
 
-;; $fiHeader: accept-values.lisp,v 1.1 91/11/25 10:00:56 cer Exp Locker: cer $
+;; $fiHeader: accept-values.lisp,v 1.2 92/01/02 15:11:54 cer Exp Locker: cer $
 
 (in-package :clim)
 
@@ -276,7 +276,8 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 	    (return-values nil)
 	    (initial-query nil)
 	    avv avv-record)
-	(letf-globally (((stream-default-view stream) +dialog-view+))
+	(letf-globally (((stream-default-view stream) 
+			 (port-dialog-view (port stream))))
 		       (flet ((run-continuation (stream avv-record)
 				(setf (slot-value stream 'avv-record) avv-record)
 				(with-output-recording-options (stream :draw-p nil :record-p t)
@@ -321,8 +322,6 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 						  (with-end-of-page-action (:allow stream)
 						    (with-new-output-record (stream 'avv-output-record avv-record)
 						      (run-continuation stream avv-record)))))))
-			   #+ignore
-			   (replay avv stream)
 			   (unwind-protect
 			       (cond (own-window
 				      (size-menu-appropriately own-window
@@ -336,12 +335,15 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 					(position-window-near-carefully own-window x y))
 				      (window-expose own-window)
 				      (with-input-focus (own-window)
+					(replay avv stream)
 					(run-avv)))
 				     (t
 				      ;; Ensure that bottom of the AVV is visible.  I think that
 				      ;; this is OK even if the AVV is bigger than the viewport.
 				      (move-cursor-beyond-output-record (slot-value stream 'stream) avv)
-				      (stream-ensure-cursor-visible stream)
+				      (stream-ensure-cursor-visible
+				       stream)
+				      (replay avv stream)
 				      (run-avv)))
 			     (unless own-window
 			       (move-cursor-beyond-output-record (slot-value stream 'stream) avv))))
@@ -351,6 +353,7 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 
 ;;; Applications can create their own AVV class and specialize this method in
 ;;; order to get different exit boxes.
+
 (defmethod display-exit-boxes ((frame accept-values) stream)
   ;; Do the fresh-line *outside* of the updating-output so that it
   ;; doesn't get repositioned relatively in the X direction if the

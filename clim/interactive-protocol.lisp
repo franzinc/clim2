@@ -19,7 +19,7 @@
 ;; applicable.
 ;;
 
-;; $fiHeader: interactive-protocol.lisp,v 1.1 91/09/09 12:47:22 cer Exp Locker: cer $
+;; $fiHeader: interactive-protocol.lisp,v 1.1 91/11/25 10:01:09 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -891,7 +891,11 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 #-excl
 (defmethod stream-supports-input-editing ((stream t)) nil)
 #+excl
-(defmethod stream-supports-input-editing ((stream excl::string-input-stream)) nil)
+(defmethod stream-supports-input-editing ((stream
+					   excl::string-input-stream))
+  nil)
+#+excl
+(defmethod stream-supports-input-editing ((stream excl::bidirectional-terminal-stream)) nil)
 
 #+Genera
 (defmethod si:stream-compatible-input-editing

@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader$
+;; $fiHeader: cursor.lisp,v 1.2 92/01/02 15:33:02 cer Exp Locker: cer $
 
 
 (in-package :clim-internals)
@@ -157,10 +157,12 @@
   (values (slot-value cursor 'width)
 	  (stream-line-height (slot-value cursor 'stream))))
 
+(warn "Checking for port")
+
 (defmethod note-cursor-change ((cursor text-cursor) type old new)
   ;;; type is currently one of CURSOR-ACTIVE, -FOCUS, or -STATE
   (let ((stream (slot-value cursor 'stream)))
-    (when stream
+    (when (and stream (port stream))
       (port-note-cursor-change (port stream) cursor stream type old new))))
 
 ;;; The port needs to know about state transitions.  We originally had one

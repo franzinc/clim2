@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader$
+;; $fiHeader: make-classes.cl,v 1.2 92/01/02 15:08:52 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -64,7 +64,7 @@
 	       :type (lispify-resource-type 
 		      (char*-to-string (x-resource-type (x-resource-list resources i)))))
 	      r))
-      (x-free resources)
+      (xt_free resources)
       r)))
       
 (defun get-resource-list (class) 

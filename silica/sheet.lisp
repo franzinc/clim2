@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader$
+;; $fiHeader: sheet.cl,v 1.3 92/01/02 15:09:23 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -121,8 +121,9 @@
   (declare (ignore graft))
   (note-sheet-degrafted sheet)
   (setf (slot-value sheet 'port) port)
-  (dolist (child (sheet-children sheet))
-    (setf (port child) port)))
+  (when (typep sheet 'sheet-parent-mixin)
+    (dolist (child (sheet-children sheet))
+      (setf (port child) port))))
 
 (defmethod (setf port) ((port port) sheet &key graft)
   (setf (slot-value sheet 'port) port
@@ -131,6 +132,27 @@
   (when (typep sheet 'sheet-parent-mixin)
     (dolist (child (sheet-children sheet))
       (setf (port child :graft graft) port))))
+
+(defmethod disown-child ((parent sheet-multiple-child-mixin) child)
+  (unless (eq (sheet-parent child) parent)
+    (error "~S is not child of ~S" child parent))
+  (setf (sheet-parent child) nil)
+  (setf  (sheet-children parent)
+    (delete child (sheet-children parent)))
+  (note-sheet-disowned child)
+  (when (port parent)
+    (setf (port child) nil)))
+
+
+(defmethod disown-child ((parent sheet-single-child-mixin) child)
+  (unless (eq (sheet-parent child) parent)
+    (error "~S is not child of ~S" child parent))
+  (setf (sheet-parent child) nil
+	(sheet-child parent) nil)
+  (note-sheet-disowned child)
+  (when (port parent)
+    (setf (port child) nil)))
+
 
 ;;;;
 
@@ -335,13 +357,19 @@
 
 (defmethod note-sheet-degrafted ((sheet permanent-medium-sheet-output-mixin))
   (when (sheet-medium sheet)
-    (error "do something")))
+    (degraft-medium (sheet-medium sheet) (port sheet) sheet)
+    (setf (sheet-medium sheet) nil)))
 
 
 (defclass temporary-medium-sheet-output-mixin (sheet-with-medium)
   ())
 
-(defclass sheet-permanently-enabled-mixin () ())
+;; This is badly named since it merely specifies the default
 
-(defmethod initialize-instance :after ((sheet sheet-permanently-enabled-mixin) &key)
-  (setf (sheet-enabled-p sheet) t))
+(defclass sheet-permanently-enabled-mixin () 
+	  ()
+  (:default-initargs :enabled t))
+
+(defmethod initialize-instance :after ((sheet sheet-permanently-enabled-mixin) 
+				       &key enabled)
+  (setf (sheet-enabled-p sheet) enabled))

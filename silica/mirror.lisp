@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader$
+;; $fiHeader: mirror.cl,v 1.3 92/01/02 15:09:15 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -156,8 +156,16 @@
     (update-mirror-transformation port sheet)
     mirror))
 
+(defmethod destroy-mirror :around ((port port) (sheet mirrored-sheet-mixin))
+  (call-next-method)
+  (setf (sheet-direct-mirror sheet) nil))
+
 (defmethod note-sheet-grafted :after ((sheet mirrored-sheet-mixin))
   (realize-mirror (port sheet) sheet))
+
+(defmethod note-sheet-degrafted :after ((sheet mirrored-sheet-mixin))
+  (when (sheet-direct-mirror sheet)
+    (destroy-mirror (port sheet) sheet)))
 
 (defmethod note-sheet-enabled ((sheet mirrored-sheet-mixin))
   (call-next-method)

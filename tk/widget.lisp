@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader$
+;; $fiHeader: widget.cl,v 1.4 92/01/02 15:32:53 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -89,6 +89,12 @@
 (defun unmanage-child (child)
   (unmanage_child (object-handle child)))
 
+
+(defforeign 'destroy_widget
+    :entry-point "_XtDestroyWidget")
+
+(defun destroy-widget (widget)
+  (destroy_widget (object-handle widget)))
 
 (defforeign 'create_popup_shell 
     :entry-point "_XtCreatePopupShell")

@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader$
+;; $fiHeader: event.cl,v 1.2 92/01/02 15:09:11 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -429,6 +429,8 @@
 	
       
       
+(warn "Checking for port")
+
 (defun distribute-pointer-event (port mirrored-sheet event-type x y modifiers button)
   ;; Generate all the correct enter/exit events
   (generate-crossing-events port mirrored-sheet x y modifiers button)
@@ -436,7 +438,7 @@
   (let ((sheet (let ((v (port-trace-thing port)))
 		 (and (not (zerop (fill-pointer v)))
 		      (aref v (1- (fill-pointer v)))))))
-    (when sheet
+    (when (and sheet (port sheet))
       (multiple-value-bind
 	  (tx ty)
 	  (untransform-point*

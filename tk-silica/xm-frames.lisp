@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader$
+;; $fiHeader: xm-frames.cl,v 1.2 92/01/02 15:09:43 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -238,7 +238,8 @@ Can the basic motif stuff support lazy realization?
 					      (clim-internals::frame-command-table frame))
 			pane)))
 
-(defclass motif-menubar (motif-leaf-pane) 
+(defclass motif-menubar (motif-leaf-pane
+			 sheet-permanently-enabled-mixin) 
 	  ((command-table :initarg :command-table)))
 
 (defmethod find-widget-class-and-initargs-for-sheet (port (sheet motif-menubar))
@@ -329,3 +330,7 @@ Can the basic motif stuff support lazy realization?
    (make-instance 'presentation-event
 		  :sheet (frame-top-level-sheet frame)
 		  :value (second item))))
+
+(defmethod clim-internals::port-dialog-view ((port motif-port))
+  clim::+gadget-dialog-view+)
+  

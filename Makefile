@@ -1,7 +1,7 @@
-# $fiHeader$
+# $fiHeader: Makefile,v 1.4 92/01/02 15:33:41 cer Exp Locker: cer $
 
-SOMEDIRS=utils silica clim ws xm-silica
-DIRS=$(SOMEDIRS) xlib tk
+SOMEDIRS=utils silica clim ws 
+DIRS=$(SOMEDIRS) xlib tk xm-silica
 DEVICE=/dev/null
 CL=/usr/composer2/composer2
 

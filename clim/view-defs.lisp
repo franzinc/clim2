@@ -19,7 +19,7 @@
 ;; applicable.
 ;;
 
-;; $fiHeader: view-defs.lisp,v 1.7 91/08/05 14:35:50 cer Exp $
+;; $fiHeader: view-defs.lisp,v 1.1 91/11/25 10:01:19 cer Exp Locker: cer $
 
 (in-package :clim)
 
@@ -43,3 +43,23 @@
 (defvar +dialog-view+ (make-instance 'dialog-view))
 (defvar +menu-view+ (make-instance 'menu-view))
 (defvar +iconic-view+ (make-instance 'iconic-view))
+
+(defmethod stream-default-view ((stream t)) +textual-view+)
+(defmethod stream-record-p ((stream t)) nil)
+(defmethod stream-draw-p ((stream t)) nil)
+;(defmethod with-output-recording-options-internal ((stream t)
+;						   record-p
+;						   draw-p 
+;						   continuation)
+;  (funcall continuation))
+;(defmethod stream-cursor-position* ((stream t)) (values 0 0))
+
+
+(defmethod port-dialog-view ((port t))
+  +dialog-view+)
+
+
+(defclass gadget-dialog-view (dialog-view)
+	  ())
+
+(defvar +gadget-dialog-view+ (make-instance 'gadget-dialog-view))

@@ -21,7 +21,7 @@
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
 ;;;
-;; $fiHeader$
+;; $fiHeader: db-box.lisp,v 1.4 92/01/02 15:33:04 cer Exp Locker: cer $
 
 
 (in-package :silica)
@@ -156,28 +156,6 @@
 			 space-req-max-height
 			 space-req-min-height)
 	       (:width :max-width :min-width :height :max-height :min-height)))
-
-
-(defmethod allocate-space ((contract hbox-pane) width height)
-  (with-slots (contents space space-req) contract
-    (unless space-req (compose-space contract))
-    (let ((sizes 
-	   (allocate-space-to-items
-	    width
-	    space-req
-	    contents
-	    #'space-req-min-width
-	    #'space-req-width
-	    #'space-req-max-width
-	    #'compose-space))
-	  (x 0))
-      (mapc #'(lambda (sheet size)
-		(move-and-resize-sheet* 
-		 sheet x 0 (frob-size size width x) height)
-		(incf x size))
-	    contents
-	    sizes))))
-
 
 (defmethod allocate-space ((contract hbox-pane) width height)
   (flet ((move-and-resize-entry (entry min-x width height)

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader$
+;; $fiHeader: xlib.cl,v 1.2 92/01/02 15:09:01 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -51,16 +51,20 @@
 (defforeign 'x_create_pixmap
     :entry-point "_XCreatePixmap")
 
-(defmethod initialize-instance :after ((p pixmap) &key width height
-						       depth drawable)
-  (setf (slot-value p 'handle)
-    (x_create_pixmap
-     (display-handle display)
-     (object-handle drawable)
-     width
-     height
-     depth))
-  (register-address p))
+(defmethod initialize-instance :after ((p pixmap) &key handle 
+						       width 
+						       height
+						       depth 
+						       drawable)
+  (unless handle
+    (setf (slot-value p 'handle)
+      (x_create_pixmap
+       (display-handle display)
+       (object-handle drawable)
+       width
+       height
+       depth))
+    (register-xid p)))
 		   
 (defun-c-callable x-error-handler (display (x :unsigned-long))
   (error "x-error:~S" 

@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader$
+;; $fiHeader: output-recording-protocol.cl,v 1.3 92/01/02 15:33:28 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -31,10 +31,11 @@
 	   (contents-ok :initform nil :accessor
 			output-record-contents-ok)
 	   
-     (start-cursor-x :initform 0)
-     (start-cursor-y :initform 0)
-     (end-cursor-x :initform 0)
-     (end-cursor-y :initform 0)))
+	   (start-cursor-x :initform 0)
+	   (start-cursor-y :initform 0)
+	   (end-cursor-x :initform 0)
+	   (end-cursor-y :initform 0)
+	   (stream :initform nil :accessor output-record-stream)))
 
 
 (defmethod output-record-set-start-cursor-position* ((r output-record-mixin)
@@ -228,7 +229,21 @@
 
 (defmethod add-output-record :after (child (record output-record))
   (setf (output-record-parent child) record)
-  (recompute-extent-for-new-child record child))
+  (recompute-extent-for-new-child record child)
+  (when (output-record-stream record)
+    (note-output-record-attached child (output-record-stream record))))
+
+
+(defmethod note-output-record-attached ((element output-record-mixin) stream)
+  (setf (output-record-stream element) stream))
+
+(defmethod note-output-record-attached :after ((element output-record) stream)
+  (map-over-output-record-children
+   #'(lambda (rec)
+       (note-output-record-attached rec stream))
+   element
+   +everywhere+))
+
 
 (defmethod remove-output-record (child (record output-record))
   (error "cannot remove an output record: ~S,~S" child record))
@@ -240,8 +255,32 @@
     record
     child
     (bounding-rectangle* child)))
-    
 
+(defmethod remove-output-record :around (child (record output-record))
+  (let ((stream (output-record-stream child)))
+    (multiple-value-prog1
+	(call-next-method)
+      (when stream
+	(note-output-record-detached child)))))
+
+
+(defmethod note-output-record-detached ((element output-record-mixin))
+  (setf (output-record-stream element) nil))
+
+(defmethod note-output-record-detached :after ((element output-record))
+  (map-over-output-record-children
+   #'note-output-record-detached
+   element
+   +everywhere+))
+
+
+(defmethod clear-output-record :around ((record output-record))
+  (when (output-record-stream record)
+    (map-over-output-record-children
+     #'note-output-record-detached
+     record
+     +everywhere+))
+  (call-next-method))
 
 (defmethod clear-output-record :after ((record output-record))
   (bounding-rectangle-set-edges record  0 0 0 0))

@@ -39,9 +39,11 @@
 (defsys::load-system :clim)
 
 
+
 (load "xlib/sysdcl")
 (defsys::compile-system :xlib)
-(defsys::load-system :xlib)
+(tenuring (defsys::load-system :xlib))
+
 
 (load "tk/defsys.cl")
 (defsys::compile-system :xm-tk)
@@ -56,7 +58,8 @@
 
 #+:composer
 (progn
-  (load "draw-sheets.cl")
+  (excl::compile-file-if-needed "draw-sheets.cl")
+  (load "draw-sheets")
   )
 
 (load "test/test")
