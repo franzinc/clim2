@@ -1,2 +1,2 @@
-;; $Header: /repo/cvs.copy/clim2/clx/clx-gadgets.lisp,v 1.8 1997/02/05 01:46:27 tomj Exp $
+;; $Id: clx-gadgets.lisp,v 1.8.22.1 1998/07/06 23:09:17 layer Exp $
 ;; The contents of this file have been moves into silica/framem.lisp

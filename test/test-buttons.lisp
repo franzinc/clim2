@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/test/test-buttons.lisp,v 1.6 1997/02/05 01:52:09 tomj Exp $
+;; $Id: test-buttons.lisp,v 1.6.22.1 1998/07/06 23:10:05 layer Exp $
 
 (in-package :clim-user)
 

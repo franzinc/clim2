@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: wnn -*-
 ;;
-;;				-[Thu Nov 10 19:28:13 1994 by smh]-
+;;				-[Mon Jul  6 15:35:41 1998 by layer]-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1992 Franz Inc, Berkeley, CA  All rights reserved.
@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/wnn/jl-defs.lisp,v 1.2 1997/02/05 01:55:40 tomj Exp $
+;; $Id: jl-defs.lisp,v 1.2.22.1 1998/07/06 23:10:35 layer Exp $
 
 (in-package :wnn)
 

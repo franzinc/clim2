@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: user -*-
 ;;
-;;				-[Tue Jun  2 14:10:35 1998 by layer]-
+;;				-[Mon Jul  6 15:36:40 1998 by layer]-
 ;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/misc/compile-1.lisp,v 1.33.22.3 1998/06/10 07:19:37 layer Exp $
+;; $Id: compile-1.lisp,v 1.33.22.4 1998/07/06 23:09:40 layer Exp $
 
 (in-package :user)
 

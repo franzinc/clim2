@@ -1,6 +1,6 @@
 (in-package :win)
 
-;; $Header: /repo/cvs.copy/clim2/cloe/patch.lisp,v 1.3 1997/02/05 01:46:08 tomj Exp $
+;; $Id: patch.lisp,v 1.3.22.1 1998/07/06 23:09:14 layer Exp $
 
 (DEFCONSTANT WM_SYSKEYDOWN #x0104)
 (DEFCONSTANT WM_SYSKEYUP #x0105)

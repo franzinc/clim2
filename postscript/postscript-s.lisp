@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: postscript-clim -*-
 ;;
-;;				-[]-
+;;				-[Mon Jul  6 15:36:37 1998 by layer]-
 ;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1992 Franz Inc, Berkeley, CA  All rights reserved.
@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/postscript/postscript-s.lisp,v 1.4 1997/02/05 01:49:41 tomj Exp $
+;; $Id: postscript-s.lisp,v 1.4.22.1 1998/07/06 23:09:44 layer Exp $
 
 
 (in-package :postscript-clim)

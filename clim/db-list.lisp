@@ -1,8 +1,24 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
+;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
+;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
+;;
+;; The software, data and information contained herein are proprietary
+;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
+;; given in confidence by Franz, Inc. pursuant to a written license
+;; agreement, and may be stored and used only in accordance with the terms
+;; of such license.
+;;
+;; Restricted Rights Legend
+;; ------------------------
+;; Use, duplication, and disclosure of the software, data and information
+;; contained herein by any agency, department or entity of the U.S.
+;; Government are subject to restrictions of Restricted Rights for
+;; Commercial Software developed at private expense as specified in
+;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
+;;
+;; $Id: db-list.lisp,v 1.6.22.3 1998/07/06 23:08:56 layer Exp $
 
-;; $Header: /repo/cvs.copy/clim2/clim/db-list.lisp,v 1.6.22.2 1998/07/06 21:44:52 layer Exp $
-
-"Copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
+;;;"Copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
 
 ;;; This file also exists in clim2/homegrown. The homegrown directory
 ;;; contains files to implement CLIM's generic gadgets. Native backends

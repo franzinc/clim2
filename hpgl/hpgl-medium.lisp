@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: hpgl-clim; Base: 10; Lowercase: Yes -*-
 
-;;; $Header: /repo/cvs.copy/clim2/hpgl/hpgl-medium.lisp,v 1.4.22.1 1998/06/01 23:07:26 layer Exp $
+;;; $Id: hpgl-medium.lisp,v 1.4.22.2 1998/07/06 23:09:38 layer Exp $
 
 "Copyright (c) 1991 by International Lisp Associates.  All rights reserved."
 "Portions copyright (c) 1992 Franz Inc. All rights reserved"

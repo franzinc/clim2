@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/homegrown/db-text.lisp,v 1.2 1997/02/05 01:48:41 tomj Exp $
+;; $Id: db-text.lisp,v 1.2.22.1 1998/07/06 23:09:36 layer Exp $
 
 "Copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
 

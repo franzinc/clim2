@@ -1,9 +1,25 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
+;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
+;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
+;;
+;; The software, data and information contained herein are proprietary
+;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
+;; given in confidence by Franz, Inc. pursuant to a written license
+;; agreement, and may be stored and used only in accordance with the terms
+;; of such license.
+;;
+;; Restricted Rights Legend
+;; ------------------------
+;; Use, duplication, and disclosure of the software, data and information
+;; contained herein by any agency, department or entity of the U.S.
+;; Government are subject to restrictions of Restricted Rights for
+;; Commercial Software developed at private expense as specified in
+;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
+;;
+;; $Id: db-border.lisp,v 1.24.22.3 1998/07/06 23:09:53 layer Exp $
 
-;; $Header: /repo/cvs.copy/clim2/silica/db-border.lisp,v 1.24.22.2 1998/06/22 21:49:50 layer Exp $
-
-"Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved.
- Portions copyright (c) 1991, 1992 by Symbolics, Inc.  All rights reserved."
+;;;"Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved.
+;;; Portions copyright (c) 1991, 1992 by Symbolics, Inc.  All rights reserved."
 
 (in-package :silica)
 

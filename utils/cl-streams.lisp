@@ -1,7 +1,6 @@
 ;;; -*- Mode: LISP; Syntax: Common-lisp; Package: CLIM-LISP; Base: 10; Lowercase: Yes -*-
-;;
-;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
-;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
+;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
+;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -17,14 +16,13 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-
-;; $Header: /repo/cvs.copy/clim2/utils/cl-streams.lisp,v 1.5.22.1 1998/05/19 01:05:21 layer Exp $
+;; $Id: cl-streams.lisp,v 1.5.22.2 1998/07/06 23:10:26 layer Exp $
 
 (in-package :clim-lisp)
 
-"Copyright (c) 1990, 1991 Symbolics, Inc.  All rights reserved.
-Copyright (c) 1991, Franz Inc. All rights reserved
- Portions copyright (c) 1989, 1990 International Lisp Associates."
+;;;"Copyright (c) 1990, 1991 Symbolics, Inc.  All rights reserved.
+;;;Copyright (c) 1991, Franz Inc. All rights reserved
+;;; Portions copyright (c) 1989, 1990 International Lisp Associates."
 
 ;;; All of this is taken from the STREAM-DEFINITION-BY-USER proposal to
 ;;; the X3J13 committee, made by David Gray of TI on 22 March 1989.  No

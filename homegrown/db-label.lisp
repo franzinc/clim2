@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: silica -*-
 ;;
-;;				-[Thu Jul 22 17:16:08 1993 by colin]-
+;;				-[Mon Jul  6 15:36:42 1998 by layer]-
 ;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1992 Franz Inc, Berkeley, CA  All rights reserved.
@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/homegrown/db-label.lisp,v 1.3 1997/02/05 01:48:34 tomj Exp $
+;; $Id: db-label.lisp,v 1.3.22.1 1998/07/06 23:09:35 layer Exp $
 
 (in-package :silica)
 

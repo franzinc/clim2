@@ -1,8 +1,5 @@
-;; -*- mode: common-lisp; package: x11 -*-
-;;; (c) Copyright  1990 Sun Microsystems, Inc.  All Rights Reserved.
-;;
-;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
-;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
+;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
+;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -18,8 +15,9 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;;; $Header: /repo/cvs.copy/clim2/xlib/xlib-defs.lisp,v 1.13 1997/02/05 01:56:07 tomj Exp $
+;; $Id: xlib-defs.lisp,v 1.13.22.1 1998/07/06 23:10:38 layer Exp $
 
+;;; (c) Copyright  1990 Sun Microsystems, Inc.  All Rights Reserved.
 ;;      (c) Copyright 1989, 1990, 1991 Sun Microsystems, Inc. Sun design
 ;;      patents pending in the U.S. and foreign countries. OPEN LOOK is a
 ;;      registered trademark of USL. Used by written permission of the owners.

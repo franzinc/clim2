@@ -1,9 +1,5 @@
-;; -*- mode: common-lisp; package: xm-silica -*-
-;;
-;;				-[Fri Jul 30 16:12:45 1993 by colin]-
-;;
-;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
-;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
+;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
+;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -19,8 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/tk-silica/ol-gadgets.lisp,v 1.69.22.1 1998/05/19 01:05:13 layer Exp $
-
+;; $Id: ol-gadgets.lisp,v 1.69.22.2 1998/07/06 23:10:19 layer Exp $
 
 (in-package :xm-silica)
 

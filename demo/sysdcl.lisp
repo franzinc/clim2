@@ -1,11 +1,27 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
-
-;; $Header: /repo/cvs.copy/clim2/demo/sysdcl.lisp,v 1.28.22.1 1998/05/19 01:04:52 layer Exp $
+;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
+;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
+;;
+;; The software, data and information contained herein are proprietary
+;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
+;; given in confidence by Franz, Inc. pursuant to a written license
+;; agreement, and may be stored and used only in accordance with the terms
+;; of such license.
+;;
+;; Restricted Rights Legend
+;; ------------------------
+;; Use, duplication, and disclosure of the software, data and information
+;; contained herein by any agency, department or entity of the U.S.
+;; Government are subject to restrictions of Restricted Rights for
+;; Commercial Software developed at private expense as specified in
+;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
+;;
+;; $Id: sysdcl.lisp,v 1.28.22.2 1998/07/06 23:09:28 layer Exp $
 
 (in-package #-ansi-90 :user #+ansi-90 :common-lisp-user)
 
-"Copyright (c) 1990, 1991 Symbolics, Inc.  All rights reserved.
- Portions copyright (c) 1988, 1989, 1990 International Lisp Associates."
+;;;"Copyright (c) 1990, 1991 Symbolics, Inc.  All rights reserved.
+;;; Portions copyright (c) 1988, 1989, 1990 International Lisp Associates."
 
 ;; see sys/sysdcl.lisp for the package-module defn (cim 2/28/96)
 

@@ -1,7 +1,5 @@
-;; -*- mode: common-lisp; package: cl-user -*-
-;;
-;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
-;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
+;; copyright (c) 1985,1986 Franz Inc, Alameda, Ca.
+;; copyright (c) 1986-1998 Franz Inc, Berkeley, CA  - All rights reserved.
 ;;
 ;; The software, data and information contained herein are proprietary
 ;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
@@ -17,8 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/xlib/pkg.lisp,v 1.13 1997/02/05 01:56:02 tomj Exp $
-
+;; $Id: pkg.lisp,v 1.13.22.1 1998/07/06 23:10:37 layer Exp $
 
 (defpackage :x11
   ;; These next two import symbols when loading from clim.fasl.

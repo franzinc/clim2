@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/utils/lucid-stream-functions.lisp,v 1.11.22.1 1998/05/19 01:05:25 layer Exp $
+;; $Id: lucid-stream-functions.lisp,v 1.11.22.2 1998/07/06 23:10:30 layer Exp $
 
 (in-package :clim-utils)
 

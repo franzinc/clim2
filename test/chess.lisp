@@ -1,7 +1,7 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
 ;;
-;;				-[]-
+;;				-[Mon Jul  6 15:36:03 1998 by layer]-
 ;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -20,7 +20,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/test/chess.lisp,v 1.13 1997/02/05 01:51:59 tomj Exp $
+;; $Id: chess.lisp,v 1.13.22.1 1998/07/06 23:10:04 layer Exp $
 
 
 (in-package :clim-user)

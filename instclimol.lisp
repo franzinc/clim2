@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: system -*-
 ;;
-;;				-[Fri Apr 16 11:55:09 1993 by layer]-
+;;				-[Mon Jul  6 15:37:15 1998 by layer]-
 ;;
 ;; copyright (c) 1991 Franz Inc, Berkeley, CA  All rights reserved.
 ;;
@@ -19,7 +19,7 @@
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
 
-;; $Header: /repo/cvs.copy/clim2/Attic/instclimol.lisp,v 1.10 1997/02/05 01:42:20 tomj Exp $
+;; $Id: instclimol.lisp,v 1.10.22.1 1998/07/06 23:08:46 layer Exp $
 
 ;;
 ;; Load the OpenLook version of CLIM

@@ -13,8 +13,13 @@ Tests for new features:	<`no new features', `no tests for new features', or
 *******************************************************************************
 2.2.1.25
 
+Mon Jul  6 16:07:31 1998  Kevin Layer  <layer@ultra>
+
+	fix copyright notices
+
 Mon Jul 06 14:45:24 1998    <layer@HOBART>
 
+	* tk-silica/gc-cursor.cl: start of gc hook fix
 	* Makefile.generic: fix tags rule
 	* aclpc/acl-frames.lisp: bug7092: package qualify some
 	check-last-error calls

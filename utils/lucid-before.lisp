@@ -21,7 +21,7 @@
 
 (in-package :lucid)
 
-;;; $Header: /repo/cvs.copy/clim2/utils/lucid-before.lisp,v 1.6.22.1 1998/05/19 01:05:25 layer Exp $
+;;; $Id: lucid-before.lisp,v 1.6.22.2 1998/07/06 23:10:30 layer Exp $
 
 ;;; The advice is preventing the compiler from expanding it at compile time.
 (remove-advice 'defstruct)
