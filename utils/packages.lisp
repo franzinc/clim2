@@ -1,51 +1,29 @@
-;;; -*- Mode: LISP; Syntax: ANSI-Common-Lisp; Base: 10; Package: CL-USER; Lowercase: Yes -*-
-;; 
-;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
-;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
-;;
-;; The software, data and information contained herein are proprietary
-;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
-;; given in confidence by Franz, Inc. pursuant to a written license
-;; agreement, and may be stored and used only in accordance with the terms
-;; of such license.
-;;
-;; Restricted Rights Legend
-;; ------------------------
-;; Use, duplication, and disclosure of the software, data and information
-;; contained herein by any agency, department or entity of the U.S.
-;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
-;;
+;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: packages.lisp,v 1.1 91/11/25 10:01:42 cer Exp Locker: cer $
+;; $fiHeader: packages.lisp,v 1.8 91/04/09 14:40:20 cer Exp $
 
-(in-package #-ansi-90 :user #+ansi-90 :common-lisp-user)
+(in-package #-ANSI-90 :user #+ANSI-90 :common-lisp-user)
 
-"Copyright (c) 1990, 1991 Symbolics, Inc.  All rights reserved.
-Copyright (c) 1991, Franz Inc. All rights reserved
- Portions copyright (c) 1990 International Lisp Associates."
+"Copyright (c) 1991 Symbolics, Inc.  All rights reserved."
 
-;;; define the clim-lisp package, a package designed to mimic ansi common lisp
-;;; as closely as possible (including clos).
+;; Define the CLIM-LISP package, a package designed to mimic ANSI Common Lisp
+;; as closely as possible (including CLOS).
+(#-ANSI-90 clim-lisp::defpackage #+ANSI-90 defpackage CLIM-LISP
 
-(#-ansi-90 clim-lisp::defpackage #+ansi-90 defpackage :clim-lisp
-
- (:use #-ansi-90 :lisp #+ansi-90 :common-lisp
-       #+excl :clos
-       #+(and clim-uses-lisp-streams excl) :stream)
+ (:use #-ANSI-90 LISP #+ANSI-90 COMMON-LISP
+       #+Allegro CLOS
+       #+(and CLIM-uses-lisp-stream-classes Allegro) STREAM)
  
- #-ansi-90
- (:shadowing-import-from #+pcl :pcl
-			 #+(and (not pcl) (or genera cloe-runtime)) :clos-internals
-			 #+(and (not pcl) (not (or genera cloe-runtime))) :clos
+ #-ANSI-90
+ (:shadowing-import-from #+PCL PCL
+			 #+(and (not PCL) (or Genera Cloe-Runtime)) CLOS-INTERNALS
+			 #+(and (not PCL) (not (or Genera Cloe-Runtime))) CLOS
    defstruct
    documentation
    setf)
 
- #-ansi-90
- (:import-from #+pcl :pcl #-pcl :clos
+ #-ANSI-90
+ (:import-from #+PCL PCL #-PCL CLOS
    add-method
    allocate-instance
    built-in-class
@@ -59,7 +37,7 @@ Copyright (c) 1991, Franz Inc. All rights reserved
    class-of
    class-precedence-list
    class-prototype
-   #+pcl classp
+   #+PCL classp
    compute-applicable-methods
    defclass
    defgeneric
@@ -109,105 +87,105 @@ Copyright (c) 1991, Franz Inc. All rights reserved
    with-accessors
    with-slots)
 
- #+(and ansi-90 (not ccl-2))
- (:import-from #+pcl pcl #-pcl clos
+ #+(and ANSI-90 (not CCL-2))
+ (:import-from #+PCL PCL #-PCL CLOS
    class-direct-subclasses 
    class-direct-superclasses 
    class-precedence-list 
    class-prototype
    funcallable-standard-class)
 
- #+ccl-2
- (:import-from ccl
+ #+CCL-2
+ (:import-from CCL
    class-direct-subclasses
    class-direct-superclasses
    class-precedence-list
    class-prototype
    class)
 
- #-ansi-90
- (:shadowing-import-from #+lcl4.0 lucid-common-lisp 
-			 #+excl common-lisp
-			 #-(or excl lcl4.0) conditions
-   *break-on-signals*				;conditions v18
-   *debugger-hook*				;conditions v18
-   abort					;conditions v18
-   arithmetic-error-operands			;conditions v18
-   arithmetic-error-operation			;conditions v18
-   arithmetic-error				;conditions v18
-   assert					;conditions v18 (supersedes cltl)
-   break					;conditions v18 (supersedes cltl)
-   ccase					;conditions v18 (supersedes cltl)
-   cell-error					;conditions v18
-   cell-error-name				;conditions v18
-   cerror					;conditions v18 (supersedes cltl)
-   check-type					;conditions v18 (supersedes cltl)
-   compute-restarts				;conditions v18
-   condition					;conditions v18
-   continue					;conditions v18
-   control-error				;conditions v18
-   ctypecase					;conditions v18 (supersedes cltl)
-   #-lucid define-condition			;conditions v18
-   division-by-zero				;conditions v18
-   ecase					;conditions v18 (supersedes cltl)
-   end-of-file					;conditions v18
-   error					;conditions v18 (supersedes cltl)
-   etypecase					;conditions v18 (supersedes cltl)
-   file-error-pathname				;conditions v18
-   file-error					;conditions v18
-   find-restart					;conditions v18
-   floating-point-inexact			;issue floating-point-condition-names
-   floating-point-invalid-operation		;issue floating-point-condition-names
-   floating-point-overflow			;conditions v18
-   floating-point-underflow			;conditions v18
-   handler-bind					;conditions v18
-   handler-case					;conditions v18
-   ignore-errors				;conditions v18
-   invoke-debugger				;conditions v18
-   invoke-restart-interactively			;conditions v18
-   invoke-restart				;conditions v18
-   make-condition				;conditions v18
-   muffle-warning				;conditions v18
-   package-error-package			;conditions v18
-   package-error				;conditions v18
-   parse-error					;issue reader-error
-   print-not-readable-object			;issue data-io
-   print-not-readable				;issue data-io
-   program-error				;conditions v18
-   restart-bind					;conditions v18
-   restart-case					;conditions v18
-   restart-name					;conditions v18
-   restart					;conditions v18
-   serious-condition				;conditions v18
-   signal					;conditions v18
-   simple-condition-format-arguments		;conditions v18
-   #-ansi-90 simple-condition-format-string
-   #+ansi-90 simple-condition-format-control
-   simple-condition				;conditions v18
-   simple-error					;conditions v18
-   simple-type-error				;conditions v18
-   simple-warning				;conditions v18
-   storage-condition				;conditions v18
-   store-value					;conditions v18
-   stream-error-stream				;conditions v18
-   stream-error					;conditions v18
-   style-warning				;issue compiler-diagnostics
-   type-error-datum				;conditions v18
-   type-error-expected-type			;conditions v18
-   type-error					;conditions v18
-   unbound-slot-instance			;issue undefined-variables-and-functions
-   unbound-slot					;issue undefined-variables-and-functions
-   unbound-variable				;conditions v18
-   undefined-function				;conditions v18
-   use-value					;conditions v18
-   warning					;conditions v18
-   warn						;conditions v18 (supersedes cltl)
-   with-simple-restart)				;conditions v18
+ #-ANSI-90
+ (:shadowing-import-from #+Lucid LUCID-COMMON-LISP 
+			 #+Allegro COMMON-LISP
+			 #-(or Lucid Allegro) CONDITIONS
+   *break-on-signals*
+   *debugger-hook*
+   abort
+   arithmetic-error-operands
+   arithmetic-error-operation
+   arithmetic-error
+   assert
+   break
+   ccase
+   cell-error
+   cell-error-name
+   cerror
+   check-type
+   compute-restarts
+   condition
+   continue
+   control-error
+   ctypecase
+   #-Lucid define-condition
+   division-by-zero
+   ecase
+   end-of-file
+   error
+   etypecase
+   file-error-pathname
+   file-error
+   find-restart
+   floating-point-inexact
+   floating-point-invalid-operation
+   floating-point-overflow
+   floating-point-underflow
+   handler-bind
+   handler-case
+   ignore-errors
+   invoke-debugger
+   invoke-restart-interactively
+   invoke-restart
+   make-condition
+   muffle-warning
+   package-error-package
+   package-error
+   parse-error
+   print-not-readable-object
+   print-not-readable
+   program-error
+   restart-bind
+   restart-case
+   restart-name
+   restart
+   serious-condition
+   signal
+   simple-condition-format-arguments
+   #-ANSI-90 simple-condition-format-string
+   #+ANSI-90 simple-condition-format-control
+   simple-condition
+   simple-error
+   simple-type-error
+   simple-warning
+   storage-condition
+   store-value
+   stream-error-stream
+   stream-error
+   style-warning
+   type-error-datum
+   type-error-expected-type
+   type-error
+   unbound-slot-instance
+   unbound-slot
+   unbound-variable
+   undefined-function
+   use-value
+   warning
+   warn
+   with-simple-restart)
 
- #+lucid (:shadow define-condition)
+ #+Lucid (:shadow define-condition)
 
- #+(and genera (not ansi-90))
- (:import-from future-common-lisp
+ #+(and Genera (not ANSI-90))
+ (:import-from FUTURE-COMMON-LISP
    declaim
    define-compiler-macro
    defpackage
@@ -218,85 +196,24 @@ Copyright (c) 1991, Franz Inc. All rights reserved
    real
    with-standard-io-syntax)
 
- #+(or genera cloe-runtime)
- (:import-from clos-internals
+ #+Symbolics
+ (:import-from CLOS-INTERNALS
    compile-file-environment-p)
 
- #+cloe-runtime
- (:import-from cloe
+ #+Cloe-Runtime
+ (:import-from CLOE
    with-standard-io-syntax)
 
- #+lcl4.0
- (:import-from lucid-common-lisp
+ #+Lucid
+ (:import-from LUCID-COMMON-LISP
    dynamic-extent)
 
- #+excl
- (:import-from excl
+ #+Allegro
+ (:import-from EXCL
    dynamic-extent)
 
- ;; stream proposal
- #+(and (not cloe-runtime) (not clim-uses-lisp-streams))
- (:shadow
-   input-stream-p
-   output-stream-p
-   open-stream-p
-   streamp
-   stream-element-type
-   close
-   pathname
-   truename)
-
- ;; stream proposal
- #+excl
- (:shadow
-   pathname
-   truename)
-
- #+(and clim-uses-lisp-streams ccl-2)
- (:shadow
-   input-stream-p
-   output-stream-p
-   open-stream-p
-   streamp
-   ;; stream-element-type
-   close
-   pathname
-   truename)
-
- ;; in genera and cloe the i/o functions are integrated, don't shadow
- #-(or genera cloe-runtime clim-uses-lisp-streams)
- (:shadow
-   ;; cl stream input functions
-   read-byte
-   read-char
-   unread-char
-   read-char-no-hang
-   peek-char
-   listen
-   read-line
-   clear-input
-   ;; cl stream output functions
-   write-byte
-   write-char
-   write-string
-   terpri
-   fresh-line
-   force-output
-   finish-output
-   clear-output
-   format
-   with-open-stream)
-
- ;; import these symbols so that we can define methods for them.
- #+(and clim-uses-lisp-streams ccl-2)
- (:import-from ccl
-  stream-force-output
-  stream-clear-input
-  stream-fresh-line
-  stream-listen)
-
- #+cloe-runtime
- (:import-from system 
+ #+Cloe-Runtime
+ (:import-from SYSTEM
   stream-read-char
   stream-unread-char
   stream-read-char-no-hang
@@ -317,10 +234,98 @@ Copyright (c) 1991, Franz Inc. All rights reserved
   stream-advance-to-column
 
   stream-read-byte
-  stream-write-byte)
+  stream-write-byte
+  )
+
+ #+Minima
+ (:import-from MINIMA-INTERNALS
+  stream-read-char
+  stream-unread-char
+  stream-read-char-no-hang
+  stream-peek-char
+  stream-listen
+  stream-read-line
+  stream-clear-input
+
+  stream-write-char
+  stream-line-column
+  stream-start-line-p
+  stream-write-string
+  stream-terpri
+  stream-fresh-line
+  stream-finish-output
+  stream-force-output
+  stream-clear-output
+  stream-advance-to-column
+
+  stream-read-byte
+  stream-write-byte
+  )
+
+ ;; Stream Proposal -- Classes and class predicates.
+ #-CLIM-uses-Lisp-stream-classes
+ (:shadow
+   ;; Class names
+   fundamental-stream
+   fundamental-input-stream
+   fundamental-output-stream
+   fundamental-character-stream
+   fundamental-binary-stream
+   fundamental-character-input-stream
+   fundamental-character-output-stream
+   fundamental-binary-input-stream
+   fundamental-binary-output-stream
+
+   ;; Function names
+   input-stream-p
+   output-stream-p
+   open-stream-p
+   streamp)
+
+ #-CLIM-uses-Lisp-stream-functions
+ (:shadow
+   ;; CL stream input functions
+   read-byte
+   read-char
+   unread-char
+   read-char-no-hang
+   peek-char
+   listen
+   read-line
+   clear-input
+   ;; CL stream output functions
+   write-byte
+   write-char
+   write-string
+   terpri
+   fresh-line
+   force-output
+   finish-output
+   clear-output
+   format
+   ;; Miscellaneous CL stream functions and macros
+   stream-element-type
+   close
+   with-open-stream
+   pathname 
+   truename)
+
+ ;; Import these symbols so that we can define methods for them.
+ #+CCL-2
+ (:import-from CCL
+  stream-force-output
+  stream-clear-input
+  stream-fresh-line
+  stream-listen)
+
+ #+Genera
+ (:shadow stream-element-type close with-open-stream pathname truename)
+
+ #+Allegro
+ (:shadow close with-open-stream pathname truename)
 
  (:export   
-   ;; ansi common lisp
+   ;; ANSI Common Lisp
    *print-readably*
    *read-eval*
    define-compiler-macro
@@ -330,73 +335,73 @@ Copyright (c) 1991, Franz Inc. All rights reserved
    real
    with-standard-io-syntax
 
-   ;; condition system
-   *break-on-signals*				;conditions v18
-   *debugger-hook*				;conditions v18
-   abort					;conditions v18
-   arithmetic-error-operands			;conditions v18
-   arithmetic-error-operation			;conditions v18
-   arithmetic-error				;conditions v18
-   cell-error-name				;conditions v18
-   cell-error					;conditions v18
-   compute-restarts				;conditions v18
-   condition					;conditions v18
-   continue					;conditions v18
-   control-error				;conditions v18
-   define-condition				;conditions v18
-   division-by-zero				;conditions v18
-   end-of-file					;conditions v18
-   file-error-pathname				;conditions v18
-   file-error					;conditions v18
-   find-restart					;conditions v18
-   floating-point-inexact			;issue floating-point-condition-names
-   floating-point-invalid-operation		;issue floating-point-condition-names
-   floating-point-overflow			;conditions v18
-   floating-point-underflow			;conditions v18
-   handler-bind					;conditions v18
-   handler-case					;conditions v18
-   ignore-errors				;conditions v18
-   invoke-debugger				;conditions v18
-   invoke-restart-interactively			;conditions v18
-   invoke-restart				;conditions v18
-   make-condition				;conditions v18
-   muffle-warning				;conditions v18
-   package-error-package			;conditions v18
-   package-error				;conditions v18
-   parse-error					;issue reader-error
-   print-not-readable-object			;issue data-io
-   print-not-readable				;issue data-io
-   program-error				;conditions v18
-   restart-bind					;conditions v18
-   restart-case					;conditions v18
-   restart-name					;conditions v18
-   restart					;conditions v18
-   serious-condition				;conditions v18
-   signal					;conditions v18
-   simple-condition-format-arguments		;conditions v18
-   #-ansi-90 simple-condition-format-string
-   #+ansi-90 simple-condition-format-control
-   simple-condition				;conditions v18
-   simple-error					;conditions v18
-   simple-type-error				;conditions v18
-   simple-warning				;conditions v18
-   storage-condition				;conditions v18
-   store-value					;conditions v18
-   stream-error-stream				;conditions v18
-   stream-error					;conditions v18
-   style-warning				;issue compiler-diagnostics
-   type-error-datum				;conditions v18
-   type-error-expected-type			;conditions v18
-   type-error					;conditions v18
-   unbound-slot-instance			;issue undefined-variables-and-functions
-   unbound-slot					;issue undefined-variables-and-functions
-   unbound-variable				;conditions v18
-   undefined-function				;conditions v18
-   use-value					;conditions v18
-   warning					;conditions v18
-   with-simple-restart				;conditions v18
+   ;; Condition system
+   *break-on-signals*
+   *debugger-hook*
+   abort
+   arithmetic-error-operands
+   arithmetic-error-operation
+   arithmetic-error
+   cell-error-name
+   cell-error
+   compute-restarts
+   condition
+   continue
+   control-error
+   define-condition
+   division-by-zero
+   end-of-file
+   file-error-pathname
+   file-error
+   find-restart
+   floating-point-inexact
+   floating-point-invalid-operation
+   floating-point-overflow
+   floating-point-underflow
+   handler-bind
+   handler-case
+   ignore-errors
+   invoke-debugger
+   invoke-restart-interactively
+   invoke-restart
+   make-condition
+   muffle-warning
+   package-error-package
+   package-error
+   parse-error
+   print-not-readable-object
+   print-not-readable
+   program-error
+   restart-bind
+   restart-case
+   restart-name
+   restart
+   serious-condition
+   signal
+   simple-condition-format-arguments
+   #-ANSI-90 simple-condition-format-string
+   #+ANSI-90 simple-condition-format-control
+   simple-condition
+   simple-error
+   simple-type-error
+   simple-warning
+   storage-condition
+   store-value
+   stream-error-stream
+   stream-error
+   style-warning
+   type-error-datum
+   type-error-expected-type
+   type-error
+   unbound-slot-instance
+   unbound-slot
+   unbound-variable
+   undefined-function
+   use-value
+   warning
+   with-simple-restart
 
-   ;; stream proposal
+   ;; Stream Proposal
    fundamental-stream
    fundamental-input-stream
    fundamental-output-stream
@@ -429,8 +434,8 @@ Copyright (c) 1991, Franz Inc. All rights reserved
    stream-read-byte
    stream-write-byte
    
-   ;; clos
-   ;; symbols from chapter 2
+   ;; CLOS
+   ;; Symbols from chapter 2
    add-method
    allocate-instance
    built-in-class
@@ -480,22 +485,22 @@ Copyright (c) 1991, Franz Inc. All rights reserved
    update-instance-for-redefined-class
    with-accessors
    with-slots
-   ;; post-88-002r additions that would have been in chapter 2
+   ;; Post-88-002R additions that would have been in chapter 2
    describe-object
    make-load-form
    make-load-form-saving-slots
-   ;; not in hornig's chapter 2 list (?) but in both pcl and genera clos, and
-   ;; used by silica
+   ;; Not in Hornig's Chapter 2 list (?) but in both PCL and Genera CLOS, and
+   ;; used by Silica
    class-direct-subclasses
    class-direct-superclasses
    class-precedence-list
    class-prototype
    funcallable-standard-class
-   ;; somehow missing from the above
+   ;; Somehow missing from the above
    standard-object
    compile-file-environment-p
 
-   ;; cltl
+   ;; CLtL
    &allow-other-keys
    &aux
    &body
@@ -507,16 +512,12 @@ Copyright (c) 1991, Franz Inc. All rights reserved
    *
    **
    ***
-   #-ansi-90 *applyhook*
-   #-ansi-90 *break-on-warnings*
    *debug-io*
    *default-pathname-defaults*
    *error-output*
-   #-ansi-90 *evalhook*
    *features*
    *load-verbose*
    *macroexpand-hook*
-   #-ansi-90 *modules*
    *package*
    *print-array*
    *print-base*
@@ -564,7 +565,6 @@ Copyright (c) 1991, Franz Inc. All rights reserved
    alphanumericp
    and
    append
-   #-ansi-90 applyhook
    apply
    apropos
    apropos-list
@@ -645,26 +645,17 @@ Copyright (c) 1991, Franz Inc. All rights reserved
    cdr
    ceiling
    cerror
-   #-ansi-90 char-bit
-   #-ansi-90 char-bits
-   #-ansi-90 char-bits-limit
    char-code
    char-code-limit
-   #-ansi-90 char-control-bit
    char-downcase
    char-equal
-   #-ansi-90 char-font
-   #-ansi-90 char-font-limit
    char-greaterp
-   #-ansi-90 char-hyper-bit
    char-int
    char-lessp
-   #-ansi-90 char-meta-bit
    char-name
    char-not-equal
    char-not-greaterp
    char-not-lessp
-   #-ansi-90 char-super-bit
    char-upcase
    char/=
    char<
@@ -683,14 +674,11 @@ Copyright (c) 1991, Franz Inc. All rights reserved
    clrhash
    code-char
    coerce
-   #-ansi-90 commonp
-   #-ansi-90 common
    compilation-speed
    compile
    compile-file
    compiled-function-p
    compiled-function
-   #-ansi-90 compiler-let
    complex
    complexp
    concatenate
@@ -768,13 +756,11 @@ Copyright (c) 1991, Franz Inc. All rights reserved
    etypecase
    eval
    eval-when
-   #-ansi-90 evalhook
    evenp
    every
    exp
    export
    expt
-   extended-char
    fboundp
    fceiling
    ffloor
@@ -846,7 +832,6 @@ Copyright (c) 1991, Franz Inc. All rights reserved
    inline
    input-stream-p
    inspect
-   #-ansi-90 int-char
    integer-decode-float
    integer-length
    integerp
@@ -917,7 +902,6 @@ Copyright (c) 1991, Franz Inc. All rights reserved
    macrolet
    make-array
    make-broadcast-stream
-   #-ansi-90 make-char
    make-concatenated-stream
    make-dispatch-macro-character
    make-echo-stream
@@ -1047,7 +1031,7 @@ Copyright (c) 1991, Franz Inc. All rights reserved
    prog2
    progn
    progv
-   #-ansi-90 provide
+   provide
    psetf
    psetq
    push
@@ -1086,7 +1070,7 @@ Copyright (c) 1991, Franz Inc. All rights reserved
    rename-file
    rename-package
    replace
-   #-ansi-90 require
+   require
    rest
    return-from
    return
@@ -1106,7 +1090,6 @@ Copyright (c) 1991, Franz Inc. All rights reserved
    second 
    sequence
    set
-   #-ansi-90 set-char-bit
    set-difference
    set-dispatch-macro-character
    set-exclusive-or
@@ -1156,8 +1139,6 @@ Copyright (c) 1991, Franz Inc. All rights reserved
    stream
    string
    string-capitalize
-   #-ansi-90 string-char
-   #-ansi-90 string-char-p
    string-downcase
    string-equal
    string-greaterp
@@ -1251,8 +1232,8 @@ Copyright (c) 1991, Franz Inc. All rights reserved
    yes-or-no-p
    zerop)
 
- #+genera
- (:import-from future-common-lisp
+ #+Genera
+ (:import-from FUTURE-COMMON-LISP
    base-string
    broadcast-stream
    broadcast-stream-streams
@@ -1269,7 +1250,7 @@ Copyright (c) 1991, Franz Inc. All rights reserved
    echo-stream
    echo-stream-input-stream
    echo-stream-output-stream
-   ;encapsulated
+   ;ENCAPSULATED
    fdefinition
    file-stream
    file-string-length
@@ -1302,7 +1283,7 @@ Copyright (c) 1991, Franz Inc. All rights reserved
    readtable-case
    row-major-aref
    set-pprint-dispatch
-   ;simple-array-base-character
+   ;SIMPLE-ARRAY-BASE-CHARACTER
    simple-base-string
    stream-external-format
    string-stream
@@ -1321,17 +1302,17 @@ Copyright (c) 1991, Franz Inc. All rights reserved
    with-hash-table-iterator
    with-package-iterator)
 
- ;; more ansi exports.  why were these not exported?
+ ;; more ANSI exports.  Why were these not exported?
  (:export 
    ;; why not exported here?
    open-stream-p
-   ;; not supported in genera yet, but not used by clim either!
+   ;; not supported in Genera yet, but not used by clim either!
    ;with-added-methods
    structure-class
    standard-method 
    method-combination
    method
-   #+pcl classp
+   #+PCL classp
    augment-environment
    base-string
    broadcast-stream
@@ -1403,155 +1384,1575 @@ Copyright (c) 1991, Franz Inc. All rights reserved
    with-hash-table-iterator
    with-package-iterator))
 
-;;; get around a ccl-2 bug with defpackage
-#+ccl-2
+;; Get around a CCL-2 bug with DEFPACKAGE
+#+CCL-2
 (eval-when (eval compile load)
-  (export '(()) :clim-lisp))
+  (export '(()) "CLIM-LISP"))
+
+#+(and Genera lock-CLIM-packages) (setf (si:pkg-locked (find-package "CLIM-LISP")) t)
+
+#+Genera (pushnew (find-package "CLIM-LISP") si:*reasonable-packages*)
 
 
-#+genera
-(pushnew (find-package :clim-lisp) si:*reasonable-packages*)
+;; Define the CLIM-SYS package
+(#-ANSI-90 clim-lisp::defpackage #+ANSI-90 defpackage CLIM-SYS
+  (:use)				;use nothing
+  (:export
+    ;; CLIM-SYS
+    all-processes
+    allocate-resource
+    clear-resource
+    current-process
+    deallocate-resource
+    defresource
+    destroy-process
+    make-lock
+    make-process
+    make-recursive-lock
+    process-interrupt
+    process-wait
+    process-wait-with-timeout
+    process-yield
+    using-resource
+    with-lock-held
+    with-recursive-lock-held
+    without-scheduling))
 
-(clim-lisp::defpackage :clim-utils
-  (:use :clim-lisp)
+#+(and Genera lock-CLIM-packages) (setf (si:pkg-locked (find-package "CLIM-SYS")) t)
 
-  #+genera (:import-from :system
-	     arglist)
-  #+genera (:import-from :zwei
-	     indentation)
-  #+cloe-runtime (:import-from :cloe
-		   arglist)
+
+;; Define the CLIM package
+(#-ANSI-90 clim-lisp::defpackage #+ANSI-90 defpackage CLIM
+  (:use)				;use nothing
+  (:import-from CLIM-LISP
+    and
+    character
+    close
+    complex
+    float
+    integer
+    keyword
+    member
+    nil
+    null
+    number
+    or
+    pathname 
+    ratio
+    rational
+    real 
+    sequence
+    stream-advance-to-column
+    stream-clear-input
+    stream-clear-output
+    stream-element-type
+    stream-finish-output
+    stream-force-output
+    stream-fresh-line
+    stream-line-column
+    stream-listen
+    stream-peek-char
+    stream-read-byte
+    stream-read-char
+    stream-read-char-no-hang
+    stream-read-line
+    stream-start-line-p
+    stream-terpri
+    stream-unread-char
+    stream-write-byte
+    stream-write-char
+    stream-write-string
+    string
+    symbol
+    t
+    truename
+    with-open-stream)
 
-  #+lcl3.0 (:import-from :lcl
-	     arglist)
-  #+(and lucid (not :lcl3.0)) (:import-from :system
-			       arglist)
+  (:export
+    ;; Geometry
+    +everywhere+
+    +nowhere+
+    area
+    areap
+    ellipse
+    ellipse-center-point
+    ellipse-center-point*
+    ellipse-end-angle
+    ellipse-radii
+    ellipse-start-angle
+    ellipsep
+    elliptical-arc
+    elliptical-arc-p
+    line
+    line-end-point
+    line-end-point*
+    line-start-point
+    line-start-point*
+    linep
+    make-ellipse
+    make-ellipse*
+    make-elliptical-arc
+    make-elliptical-arc*
+    make-line
+    make-line*
+    make-point
+    make-polygon
+    make-polygon*
+    make-polyline
+    make-polyline*
+    make-rectangle
+    make-rectangle*
+    map-over-polygon-coordinates
+    map-over-polygon-segments
+    map-over-region-set-regions
+    path
+    pathp
+    point
+    point-position*
+    point-x
+    point-y
+    pointp
+    polygon
+    polygon-points
+    polygonp
+    polyline
+    polyline-closed
+    polylinep
+    rectangle
+    rectangle-edges*
+    rectangle-height
+    rectangle-max-point
+    rectangle-max-x
+    rectangle-max-y
+    rectangle-min-point
+    rectangle-min-x
+    rectangle-min-y
+    rectangle-size
+    rectangle-width
+    rectanglep
+    region
+    region-contains-point*-p
+    region-contains-region-p
+    region-difference
+    region-equal
+    region-intersection
+    region-intersects-region-p
+    region-set
+    region-set-p
+    region-set-regions
+    region-union
+    regionp
+    standard-ellipse
+    standard-elliptical-arc
+    standard-line
+    standard-point
+    standard-polygon
+    standard-polyline
+    standard-rectangle
+    standard-region-difference
+    standard-region-intersection
+    standard-region-union
 
-  #+excl (:import-from :excl arglist)
+    ;; Bounding rectangles
+    bounding-rectangle
+    bounding-rectangle*
+    bounding-rectangle-height
+    bounding-rectangle-max-x
+    bounding-rectangle-max-y
+    bounding-rectangle-min-x
+    bounding-rectangle-min-y
+    bounding-rectangle-p
+    bounding-rectangle-position*
+    bounding-rectangle-size
+    bounding-rectangle-width
+    bounding-rectangle-left
+    bounding-rectangle-top
+    bounding-rectangle-right
+    bounding-rectangle-bottom
+    make-bounding-rectangle
+    standard-bounding-rectangle
+    with-bounding-rectangle*
+    
+    ;; Transformations
+    +identity-transformation+
+    compose-rotation-with-transformation
+    compose-scaling-with-transformation
+    compose-transformation-with-rotation
+    compose-transformation-with-scaling
+    compose-transformation-with-translation
+    compose-transformations
+    compose-translation-with-transformation
+    even-scaling-transformation-p
+    identity-transformation-p
+    invert-transformation
+    invertible-transformation-p
+    make-3-point-transformation
+    make-3-point-transformation*
+    make-reflection-transformation
+    make-reflection-transformation*
+    make-rotation-transformation
+    make-rotation-transformation*
+    make-scaling-transformation
+    make-scaling-transformation*
+    make-transformation
+    make-translation-transformation
+    rectilinear-transformation-p
+    reflection-transformation-p
+    reflection-underspecified
+    rigid-transformation-p
+    scaling-transformation-p
+    singular-transformation
+    transform-distance
+    transform-point*
+    transform-rectangle*
+    transform-region
+    transformation
+    transformation-equal
+    transformation-error
+    transformation-underspecified
+    transformationp
+    translation-transformation-p
+    untransform-distance
+    untransform-point*
+    untransform-rectangle*
+    untransform-region
+    
+    ;; Windowing substrate
+    *default-server-path*
+    +control-key+
+    +hyper-key+
+    +meta-key+
+    +pointer-left-button+
+    +pointer-middle-button+
+    +pointer-right-button+
+    +shift-key+
+    +super-key+
+    add-watcher
+    bursting-input-queuer
+    bury-sheet
+    child-containing-point
+    child-containing-point*
+    children-overlapping-rectangle*
+    children-overlapping-region
+    define-sheet-class
+    delegate-sheet-delegate
+    delegate-sheet-input-mixin
+    delete-watcher
+    destroy-port
+    device-clipping-region
+    device-event
+    device-transformation
+    disable-mirror
+    dispatch-crossing-event
+    dispatch-device-event
+    dispatch-event
+    dispatch-repaint
+    display-medium
+    distribute-device-event
+    distribute-event
+    enable-mirror
+    enter-region
+    event
+    event-listen
+    event-modifier-state
+    event-peek
+    event-read
+    event-read-no-hang
+    event-sheet
+    event-timestamp
+    event-type
+    event-unread
+    eventp
+    exit-region
+    fetch-clipping-region
+    find-graft
+    find-port
+    graft-height
+    graft-orientation
+    graft-pixels-per-inch
+    graft-pixels-per-millimeter
+    graft-units
+    graft-width
+    handle-event
+    handle-repaint
+    immediate-repainting-mixin
+    immediate-sheet-input-mixin
+    invalidate-cached-regions
+    invalidate-cached-transformations
+    invoking-input-contract
+    key-modifier-state-match-p
+    key-press-event
+    key-release-event
+    keyboard-event
+    keyboard-event-character
+    keyboard-event-key-name
+    make-sheet
+    make-standard-sheet
+    map-over-grafts
+    map-over-ports
+    map-sheet-bounding-rectangle*-to-child
+    map-sheet-bounding-rectangle*-to-parent
+    map-sheet-point*-to-child
+    map-sheet-point*-to-parent
+    medium
+    medium-background
+    medium-clipping-region
+    medium-default-text-style
+    medium-foreground
+    medium-ink
+    medium-line-style
+    medium-merged-text-style
+    medium-text-style
+    medium-transformation
+    mediump
+    mute-input-contract
+    mute-repainting-mixin
+    mute-sheet-input-mixin
+    mute-sheet-output-mixin
+    note-sheet-adopted
+    note-sheet-degrafted
+    note-sheet-disabled
+    note-sheet-disowned
+    note-sheet-enabled
+    note-sheet-grafted
+    note-sheet-region-changed
+    note-sheet-transformation-changed
+    permanent-medium-sheet-output-mixin
+    pointer-button-event
+    pointer-button-hold-event
+    pointer-button-press-event
+    pointer-button-release-event
+    pointer-click-event
+    pointer-click-hold-event
+    pointer-double-click-event
+    pointer-enter-event
+    pointer-event
+    pointer-event-button
+    pointer-event-native-x
+    pointer-event-native-y
+    pointer-event-pointer
+    pointer-event-x
+    pointer-event-y
+    pointer-exit-event
+    pointer-motion-event
+    poll-pointer
+    port-keyboard-input-focus
+    port-properties
+    port-server-path
+    primitive-sheet-output-mixin
+    process-next-event
+    queue-event
+    queue-input
+    queue-repaint
+    raise-sheet
+    realize-graft
+    realize-mirror
+    reorder-sheets
+    repaint-sheet
+    reset-watcher
+    restart-port
+    sheet
+    sheet-adopt-child
+    sheet-allocated-region
+    sheet-ancestor-p
+    sheet-children
+    sheet-delta-transformation
+    sheet-device-region
+    sheet-device-transformation
+    sheet-direct-mirror
+    sheet-disown-child
+    sheet-enabled-children
+    sheet-enabled-p
+    sheet-event-queue
+    sheet-graft
+    sheet-grafted-p
+    sheet-identity-transformation-mixin
+    sheet-leaf-mixin
+    sheet-medium
+    sheet-mirror
+    sheet-mirrored-ancestor
+    sheet-multiple-child-mixin
+    sheet-native-region
+    sheet-native-transformation
+    sheet-occluding-sheets
+    sheet-parent
+    sheet-port
+    sheet-region
+    sheet-siblings
+    sheet-single-child-mixin
+    sheet-transformation
+    sheet-transformation-mixin
+    sheet-translation-mixin
+    sheet-viewable-p
+    sheet-y-inverting-transformation-mixin
+    sheetp
+    silica-clipping-region
+    silica-medium-transformation
+    standard-event-distributor
+    standard-input-contract
+    standard-repainting-mixin
+    standard-sheet-input-mixin
+    standard-sheet-output-mixin
+    temporary-medium-sheet-output-mixin
+    timer-event
+    using-display-medium
+    window-configuration-event
+    window-event
+    
+    window-event-mirrored-sheet
+    window-event-native-region
+    window-event-region
+    window-repaint-event
+    with-graft-locked
+    with-output-protection
+    with-port-locked
+    with-sheet-medium
+    with-sheet-medium-bound
+    
+    ;; Drawing options
+    contrasting-dash-pattern-limit
+    invoke-with-drawing-options
+    line-style
+    line-style-cap-shape
+    line-style-dashes
+    line-style-joint-shape
+    line-style-p
+    line-style-thickness
+    line-style-unit
+    make-contrasting-dash-patterns
+    make-line-style
+    medium-background
+    medium-clipping-region
+    medium-current-text-style
+    medium-default-text-style
+    medium-foreground
+    medium-ink
+    medium-line-style
+    medium-text-style
+    medium-transformation
+    standard-line-style
+    with-drawing-options
+    with-first-quadrant-coordinates
+    with-local-coordinates
+    with-rotation
+    with-scaling
+    with-translation
+    
+    ;; Text styles
+    *default-text-style*
+    invoke-with-text-style
+    make-device-font-text-style
+    make-text-style
+    merge-text-styles
+    parse-text-style
+    standard-text-style
+    text-size
+    text-style
+    text-style-ascent
+    text-style-components
+    text-style-descent
+    text-style-face
+    text-style-family
+    text-style-fixed-width-p
+    text-style-height
+    text-style-mapping
+    text-style-p
+    text-style-size
+    text-style-width
+    with-text-face
+    with-text-family
+    with-text-size
+    with-text-style
+    
+    ;; Graphics
+    allocate-pixmap
+    copy-area
+    copy-from-pixmap
+    copy-to-pixmap
+    deallocate-pixmap
+    draw-arrow
+    draw-arrow*
+    draw-circle
+    draw-circle*
+    draw-ellipse
+    draw-ellipse*
+    draw-line
+    draw-line*
+    draw-lines
+    draw-lines*
+    draw-oval
+    draw-oval*
+    draw-point
+    draw-point*
+    draw-points
+    draw-points*
+    draw-polygon
+    draw-polygon*
+    draw-rectangle*
+    draw-text
+    draw-text*
+    medium-draw-ellipse*
+    medium-draw-line*
+    medium-draw-lines*
+    medium-draw-point*
+    medium-draw-points*
+    medium-draw-polygon*
+    medium-draw-rectangle*
+    medium-draw-text*
+    pixmap-height
+    pixmap-width
+    port-draw-character*
+    port-draw-ellipse*
+    port-draw-line*
+    port-draw-lines*
+    port-draw-point*
+    port-draw-points*
+    port-draw-polygon*
+    port-draw-rectangle*
+    port-draw-string*
+    with-output-to-pixmap-stream
+    
+    ;; Color
+    +background-ink+
+    +flipping-ink+
+    +foreground-ink+
+    color
+    color-ihs
+    color-rgb
+    colorp
+    contrasting-inks-limit
+    design
+    designp
+    make-contrasting-inks
+    make-flipping-ink
+    make-gray-color
+    make-ihs-color
+    make-opacity
+    make-rgb-color
+    opacity
+    opacity-value
+    opacityp
+    
+    ;; Patterns
+    compose-in
+    compose-out
+    compose-over
+    draw-design
+    draw-pattern*
+    make-pattern
+    make-rectangular-tile
+    make-stencil
+    
+    ;; Extended output
+    beep
+    cursor
+    cursor-position*
+    cursor-sheet
+    cursor-visibility
+    cursorp
+    display-cursor
+    extended-output-stream
+    extended-output-stream-p
+    sheet-buffering-output-p
+    standard-extended-output-stream
+    standard-output-stream
+    standard-text-cursor
+    stream-advance-to-column
+    stream-baseline
+    stream-character-width
+    stream-clear-output
+    stream-cursor-position*
+    stream-end-of-line-action
+    stream-end-of-page-action
+    stream-finish-output
+    stream-force-output
+    stream-fresh-line
+    stream-increment-cursor-position*
+    stream-line-column
+    stream-line-height
+    stream-start-line-p
+    stream-string-width
+    stream-terpri
+    stream-text-cursor
+    stream-text-margin
+    stream-vertical-spacing
+    stream-write-char
+    stream-write-string
+    with-end-of-line-action
+    with-end-of-page-action
+    with-output-buffered
+    with-room-for-graphics
+    
+    ;; Output recording
+    add-character-output-to-text-record
+    add-output-record
+    add-string-output-to-text-record
+    clear-output-record
+    delete-output-record
+    displayed-output-record
+    displayed-output-record-p
+    erase-output-record
+    graphics-displayed-output-record
+    graphics-displayed-output-record-p
+    highlight-output-record
+    invoke-with-new-output-record
+    invoke-with-output-recording-options
+    invoke-with-output-to-output-record
+    make-design-from-output-record
+    map-over-output-records-containing-point*
+    map-over-output-records-overlapping-region
+    output-record
+    output-record-children
+    output-record-count
+    output-record-end-cursor-position*
+    output-record-hit-detection-rectangle*
+    output-record-p
+    output-record-parent
+    output-record-position*
+    output-record-refined-sensitivity-test
+    output-record-start-cursor-position*
+    output-recording-stream
+    output-recording-stream-p
+    recompute-extent-for-changed-child
+    recompute-extent-for-new-child
+    replay
+    replay-output-record
+    standard-output-recording-stream
+    standard-sequence-output-record
+    standard-tree-output-history
+    standard-tree-output-record
+    stream-add-character-output
+    stream-add-output-record
+    stream-add-string-output
+    stream-close-text-output-record
+    stream-current-output-record
+    stream-drawing-p
+    stream-output-history
+    stream-output-history-mixin
+    stream-replay
+    stream-recording-p
+    stream-text-output-record
+    text-displayed-output-record
+    text-displayed-output-record-p
+    text-displayed-output-record-string
+    tree-recompute-extent
+    with-new-output-record
+    with-output-recording-options
+    with-output-to-output-record
+    
+    ;; Table formatting
+    adjust-item-list-cells
+    adjust-multiple-columns
+    adjust-table-cells
+    cell-align-x
+    cell-align-y
+    cell-min-height
+    cell-min-width
+    cell-output-record
+    cell-output-record-p
+    column-output-record
+    column-output-record-p
+    format-items
+    formatting-cell
+    formatting-column
+    formatting-item-list
+    formatting-row
+    formatting-table
+    item-list-output-record
+    item-list-output-record-p
+    map-over-item-list-cells
+    map-over-row-cells
+    map-over-table-elements
+    row-output-record
+    row-output-record-p
+    standard-cell-output-record
+    standard-column-output-record
+    standard-item-list-output-record
+    standard-row-output-record
+    standard-table-output-record
+    table-output-record
+    table-output-record-p
+    
+    ;; Graph formatting
+    define-graph-type
+    format-graph-from-root
+    format-graph-from-roots
+    generate-graph-nodes
+    graph-node-children
+    graph-node-object
+    graph-node-output-record
+    graph-node-output-record-p
+    graph-node-parents
+    graph-output-record
+    graph-output-record-p
+    graph-root-nodes
+    layout-graph-edges
+    layout-graph-nodes
+    standard-graph-node-output-record
+    standard-graph-output-record
+    
+    ;; Bordered output
+    define-border-type
+    surrounding-output-with-border
+    
+    ;; Text formatting
+    filling-output
+    format-textual-list
+    indenting-output
+    
+    ;; Incremental redisplay
+    augment-draw-set
+    cache-output-record
+    compute-differences
+    decache-inferior-output-record
+    find-cached-output-record
+    find-inferior-output-record
+    incremental-redisplay
+    inferior-output-record-changed
+    match-output-records
+    new-output-records
+    output-record-cache-value
+    output-record-contents-ok
+    output-record-displayer
+    output-record-fixed-position
+    output-record-unique-id
+    propagate-inferior-output-record-changes-p
+    propagate-output-record-changes
+    recompute-contents-ok
+    redisplay
+    redisplay-output-record
+    standard-updating-output-record
+    redisplayable-stream-p
+    updating-output
+    updating-output-record
+    updating-output-record-p
+    
+    ;; Extended input
+    *input-wait-handler*
+    *input-wait-test*
+    *pointer-button-press-handler*
+    add-gesture-name
+    define-gesture-name
+    delete-gesture-name
+    drag-output-record
+    dragging-output
+    event-matches-gesture-name-p
+    extended-input-stream
+    extended-input-stream-p
+    gesture-processing-handler
+    modifier-state-matches-gesture-name-p
+    pointer
+    pointer-buttons
+    pointer-cursor
+    pointer-port
+    pointer-position*
+    pointer-sheet
+    pointerp
+    read-gesture
+    standard-extended-input-stream
+    standard-input-stream
+    standard-pointer
+    stream-clear-input
+    stream-input-buffer
+    stream-input-wait
+    stream-listen
+    stream-peek-char
+    stream-pointer-position*
+    stream-pointers
+    stream-primary-pointer
+    stream-read-char
+    stream-read-char-no-hang
+    stream-read-gesture
+    stream-read-line
+    stream-restore-input-focus
+    stream-set-input-focus
+    stream-unread-char
+    stream-unread-gesture
+    tracking-pointer
+    unread-gesture
+    with-input-focus
+    
+    ;; Presentation types
+    *input-context*
+    *null-presentation*
+    +gadget-dialog-view+
+    +gadget-menu-view+
+    +gadget-view+
+    +pointer-documentation-view+
+    +textual-dialog-view+
+    +textual-menu-view+
+    +textual-view+
+    accept
+    accept-from-string
+    accept-1
+    accept-method
+    accept-present-default
+    accept-present-default-method
+    and
+    blank-area
+    boolean
+    call-presentation-generic-function
+    call-presentation-menu
+    call-presentation-translator
+    character
+    class-presentation-type-name
+    completion
+    complex
+    default-describe-presentation-type
+    define-click-and-drag-translator
+    define-default-presentation-method
+    define-presentation-action
+    define-presentation-generic-function
+    define-presentation-method
+    define-presentation-to-command-translator
+    define-presentation-translator
+    define-presentation-type
+    define-presentation-type-abbreviation
+    describe-presentation-type
+    describe-presentation-type-method
+    document-presentation-translator
+    expand-presentation-type-abbreviation
+    expand-presentation-type-abbreviation-1
+    expression
+    find-applicable-translators
+    find-innermost-applicable-presentation
+    find-presentation-translators
+    find-presentation-type-class
+    float
+    form
+    frame-document-highlighted-presentation
+    gadget-dialog-view
+    gadget-menu-view
+    gadget-view
+    highlight-applicable-presentation
+    highlight-presentation
+    highlight-presentation-method
+    integer
+    keyword
+    make-presentation-type-specifier
+    map-over-presentation-type-supertypes
+    map-over-presentation-type-supertypes-method
+    member
+    member-alist
+    member-sequence
+    nil
+    null
+    null-or-type
+    number
+    or
+    pathname
+    pointer-documentation-view
+    port-dialog-view
+    present
+    present-method
+    present-to-string
+    presentation
+    presentation-default-preprocessor
+    presentation-default-preprocessor-method
+    presentation-matches-context-type
+    presentation-modifier
+    presentation-object
+    presentation-refined-position-test
+    presentation-single-box
+    presentation-subtypep
+    presentation-subtypep-method
+    presentation-type
+    presentation-type-direct-supertypes
+    presentation-type-history
+    presentation-type-history-method
+    presentation-type-of
+    presentation-type-name
+    presentation-type-options
+    presentation-type-parameters
+    presentation-type-specifier-p
+    presentation-type-specifier-p-method
+    presentation-typep
+    presentation-typep-method
+    presentationp
+    prompt-for-accept
+    prompt-for-accept-1
+    ratio
+    rational
+    real
+    sequence
+    sequence-enumerated
+    set-highlighted-presentation
+    standard-presentation
+    stream-accept
+    stream-default-view
+    stream-present
+    string
+    subset
+    subset-alist
+    subset-completion
+    subset-sequence
+    symbol
+    t
+    test-presentation-translator
+    textual-dialog-view
+    textual-menu-view
+    textual-view
+    throw-highlighted-presentation
+    token-or-type
+    type-or-string
+    unhighlight-highlighted-presentation
+    view
+    viewp
+    with-input-context
+    with-output-as-presentation
+    with-presentation-type-decoded
+    with-presentation-type-options
+    with-presentation-type-parameters
+    
+    ;; Input editing and completion
+    *abort-gestures*
+    *activation-gestures*
+    *blip-gestures*
+    *completion-gestures*
+    *help-gestures*
+    *possibilities-gestures*
+    *standard-activation-gestures*
+    abort-gesture
+    activation-gesture-p
+    blip-gesture-p
+    complete-from-generator
+    complete-from-possibilities
+    complete-input
+    completing-from-suggestions
+    erase-input-buffer
+    immediate-rescan
+    input-editing-stream
+    input-editing-stream-p
+    input-editor-buffer
+    input-not-of-required-type
+    interactive-stream-p
+    presentation-replace-input
+    queue-rescan
+    read-token
+    redraw-input-buffer
+    replace-input
+    rescan-if-necessary
+    reset-scan-pointer
+    simple-parse-error
+    standard-input-editing-stream
+    stream-insertion-pointer
+    stream-process-gesture
+    stream-read-gesture
+    stream-rescanning-p
+    stream-scan-pointer
+    stream-unread-gesture
+    suggest
+    with-accept-help
+    with-activation-gestures
+    with-blip-gestures
+    with-input-editing
+    with-input-editor-typeout
+    write-token
+    
+    ;; Menus
+    menu-choose
+    menu-choose-from-drawer
+    menu-item
+    menu-item-display
+    menu-item-options
+    menu-item-value
+    port-menu-choose
+    print-menu-item
+    with-menu
+    
+    ;; Dialogs
+    accept-values
+    accept-values-command-button
+    accept-values-resynchronize
+    accepting-values
+    display-exit-boxes
+    
+    ;; Command processor
+    *command-argument-delimiters*
+    *command-dispatchers*
+    *command-name-delimiters*
+    *command-parser*
+    *command-unparser*
+    *numeric-argument-marker*
+    *partial-command-parser*
+    *unsupplied-argument-marker*
+    add-command-to-command-table
+    add-keystroke-to-command-table
+    add-menu-item-to-command-table
+    add-presentation-translator-to-command-table
+    command
+    command-accessible-in-command-table-p
+    command-already-present
+    command-arguments
+    command-line-command-parser
+    command-line-command-unparser
+    command-line-name-for-command
+    command-line-read-remaining-arguments-for-partial-command
+    command-menu-item-options
+    command-menu-item-type
+    command-menu-item-value
+    command-name
+    command-not-accessible
+    command-not-present
+    command-or-form
+    command-present-in-command-table-p
+    command-table
+    command-table-already-exists
+    command-table-error
+    command-table-inherit-from
+    command-table-name
+    command-table-not-found
+    command-table-p
+    define-command
+    define-command-table
+    display-command-table-menu
+    do-command-table-inheritance
+    find-command-from-command-line-name
+    find-command-table
+    find-keystroke-item
+    find-menu-item
+    find-presentation-translator
+    global-command-table
+    lookup-keystroke-command-item
+    lookup-keystroke-item
+    make-command-table
+    map-over-command-table-commands
+    map-over-command-table-keystrokes
+    map-over-command-table-menu-items
+    map-over-command-table-names
+    map-over-command-table-translators
+    menu-choose-command-from-command-table
+    menu-command-parser
+    menu-read-remaining-arguments-for-partial-command
+    partial-command-p
+    read-command
+    read-command-using-keystrokes
+    remove-command-from-command-table
+    remove-keystroke-from-command-table
+    remove-menu-item-from-command-table
+    remove-presentation-translator-from-command-table
+    standard-command-table
+    substitute-numeric-argument-marker
+    user-command-table
+    with-command-table-keystrokes
+    
+    ;; Application frames
+    *application-frame*
+    *default-frame-manager*
+    *pointer-documentation-output*
+    adopt-frame
+    application-frame
+    application-frame-p
+    application-pane
+    client-setting
+    command-enabled
+    default-frame-top-level
+    define-application-frame
+    disable-frame
+    disown-frame
+    display-command-menu
+    enable-frame
+    execute-frame-command
+    find-frame-manager
+    find-pane-for-frame
+    frame-click-and-drag-feedback
+    frame-click-and-drag-highlighting
+    frame-command-table
+    frame-current-layout
+    frame-current-panes
+    frame-document-highlighted-presentation
+    frame-error-output
+    frame-exit
+    frame-find-innermost-applicable-presentation
+    frame-input-context-button-press-handler
+    frame-maintain-presentation-histories
+    frame-manager
+    frame-name
+    frame-named-panes
+    frame-pane
+    frame-pane-name
+    frame-panes
+    frame-pointer-documentation-output
+    frame-pretty-name
+    frame-properties
+    frame-query-io
+    frame-replay
+    frame-standard-input
+    frame-standard-output
+    frame-state
+    frame-top-level-sheet
+    generate-panes
+    get-frame-pane
+    interactor-pane
+    layout-frame
+    layout-frame-panes
+    make-application-frame
+    note-command-disabled
+    note-command-enabled
+    note-frame-disabled
+    note-frame-enabled
+    notify-user
+    pane-frame
+    pane-needs-redisplay
+    panes-need-redisplay
+    read-frame-command
+    reconfigure-frame
+    redisplay-frame-command-menu
+    redisplay-frame-pane
+    redisplay-frame-panes
+    reset-frame
+    run-frame-top-level
+    shrink-frame
+    standard-application-frame
+    window-clear
+    window-erase-viewport
+    window-refresh
+    window-viewport
+    window-viewport-position*
+    with-application-frame
+    with-frame-manager
+    
+    ;; Panes
+    +fill+
+    basic-clim-pane
+    basic-stream-pane
+    bboard-pane
+    border-pane
+    bordering
+    change-space-requirement
+    changing-space-requirements
+    depressing
+    extended-stream-pane
+    grid-pane
+    hbox-pane
+    horizontal-divider
+    horizontally
+    hrack-pane
+    label-button-pane
+    label-pane
+    labelled
+    line-editor-pane
+    list-pane
+    making-application-pane
+    one-of-pane
+    outlined-pane
+    pane-background
+    pane-foreground
+    radio-button-pane
+    raising
+    realize-pane
+    realize-pane-1
+    restraining
+    restraining-pane
+    scrollable-pane
+    scrolling
+    shadow-pane
+    spacer-pane
+    spacing
+    table-pane
+    tabling
+    text-stream-pane
+    vbox-pane
+    vertical-divider
+    vertically
+    vrack-pane
+    with-look-and-feel-realization
+    
+    ;; Adaptive toolkit
+    activate-callback
+    activate-gadget
+    button-label
+    button-text-style
+    cascade-button-menu-group
+    deactivate-gadget
+    gadget-client
+    gadget-id
+    gadget-value
+    menu-bar
+    note-gadget-activated
+    note-gadget-deactivated
+    push-button
+    push-button-show-as-default-p
+    radio-box
+    radio-box-current-selection
+    scroll-bar
+    scroll-bar-max-value
+    scroll-bar-min-value
+    scroll-bar-orientation
+    scroll-bar-page-increment
+    scroll-bar-unit-increment
+    slider
+    slider-max-value
+    slider-min-value
+    slider-orientation
+    slider-show-value-p
+    text-field
+    toggle-button
+    toggle-button-indicator-type
+    value-changed-callback
+    
+    ;; Pane layout
+    allocate-space
+    compose-space
+    make-space-requirement
+    note-space-requirement-changed
+    space-requirement-height
+    space-requirement-max-height
+    space-requirement-max-width
+    space-requirement-min-height
+    space-requirement-min-width
+    space-requirement-width
+    
+    ;; Encapsulating streams
+    *original-stream*
+    encapsulating-stream
+    encapsulating-stream-p
+    encapsulating-stream-stream
+    standard-encapsulating-stream)
 
-  #+(or genera (not ansi-90))
+  ;; Primary colors
+  (:export
+    +red+
+    +green+
+    +blue+
+    +cyan+
+    +magenta+
+    +yellow+
+    +black+
+    +white+)
+  
+  ;; Stupid CLX color names
+  (:export
+    +alice-blue+
+    +antique-white+
+    +aquamarine+
+    +azure+
+    +beige+
+    +bisque+
+    +black+
+    +blanched-almond+
+    +blue-violet+
+    +brown+
+    +burlywood+
+    +cadet-blue+
+    +chartreuse+
+    +chocolate+
+    +coral+
+    +cornflower-blue+
+    +cornsilk+
+    +dark-goldenrod+
+    +dark-green+
+    +dark-khaki+
+    +dark-olive-green+
+    +dark-orange+
+    +dark-orchid+
+    +dark-salmon+
+    +dark-sea-green+
+    +dark-slate-blue+
+    +dark-slate-gray+
+    +dark-turquoise+
+    +dark-violet+
+    +deep-pink+
+    +deep-sky-blue+
+    +dim-gray+
+    +dodger-blue+
+    +firebrick+
+    +floral-white+
+    +forest-green+
+    +gainsboro+
+    +ghost-white+
+    +gold+
+    +goldenrod+
+    +gray+
+    +green-yellow+
+    +honeydew+
+    +hot-pink+
+    +indian-red+
+    +ivory+
+    +khaki+
+    +lavender+
+    +lavender-blush+
+    +lawn-green+
+    +lemon-chiffon+
+    +light-blue+
+    +light-coral+
+    +light-cyan+
+    +light-goldenrod+
+    +light-goldenrod-yellow+
+    +light-gray+
+    +light-pink+
+    +light-salmon+
+    +light-sea-green+
+    +light-sky-blue+
+    +light-slate-blue+
+    +light-slate-gray+
+    +light-steel-blue+
+    +light-yellow+
+    +lime-green+
+    +linen+
+    +maroon+
+    +medium-aquamarine+
+    +medium-blue+
+    +medium-orchid+
+    +medium-purple+
+    +medium-sea-green+
+    +medium-slate-blue+
+    +medium-spring-green+
+    +medium-turquoise+
+    +medium-violet-red+
+    +midnight-blue+
+    +mint-cream+
+    +misty-rose+
+    +moccasin+
+    +navajo-white+
+    +navy-blue+
+    +old-lace+
+    +olive-drab+
+    +orange+
+    +orange-red+
+    +orchid+
+    +pale-goldenrod+
+    +pale-green+
+    +pale-turquoise+
+    +pale-violet-red+
+    +papaya-whip+
+    +peach-puff+
+    +peru+
+    +pink+
+    +plum+
+    +powder-blue+
+    +purple+
+    +rosy-brown+
+    +royal-blue+
+    +saddle-brown+
+    +salmon+
+    +sandy-brown+
+    +sea-green+
+    +seashell+
+    +sienna+
+    +sky-blue+
+    +slate-blue+
+    +slate-gray+
+    +snow+
+    +spring-green+
+    +steel-blue+
+    +tan+
+    +thistle+
+    +tomato+
+    +turquoise+
+    +violet+
+    +violet-red+
+    +wheat+
+    +white+
+    +white-smoke+
+    +yellow-green+)
+
+  ;; Need to export these since we don't hack SETF* yet
+  (:export
+    output-record-set-position*
+    stream-set-cursor-position*
+    stream-set-pointer-position*
+    window-set-viewport-position*)
+
+  ;; Some extensions until we decide what to do...
+  (:export
+    *accelerator-gestures*
+    +iconic-view+
+    accelerator-gesture
+    accelerator-gesture-event
+    accelerator-gesture-numeric-argument
+    accept-values-command-parser
+    catch-abort-gestures
+    convert-from-absolute-to-relative-coordinates
+    convert-from-ancestor-to-descendant-coordinates
+    convert-from-descendant-to-ancestor-coordinates
+    convert-from-relative-to-absolute-coordinates
+    convert-to-stream-coordinates
+    copy-textual-output-history
+    #+Genera define-genera-application
+    draw-standard-menu
+    draw-triangle
+    draw-triangle*
+    drawing-surface-to-viewport-coordinates
+    highlight-output-record-1
+    iconic-view
+    make-rectangle-set
+    open-root-window
+    open-window-stream
+    position-window-near-carefully
+    standard-rectangle-set
+    stream-pointer-position-in-window-coordinates
+    translate-positions
+    viewport-to-drawing-surface-coordinates
+    window-children
+    window-clear-area
+    window-expose
+    window-inside-bottom
+    window-inside-edges
+    window-inside-height
+    window-inside-left
+    window-inside-right
+    window-inside-size
+    window-inside-top
+    window-inside-width
+    window-label
+    window-label-size
+    window-margins
+    window-name
+    window-parent
+    window-root
+    window-set-inside-edges
+    window-set-inside-size
+    window-stack-on-bottom
+    window-stack-on-top
+    window-stream-p
+    window-visibility
+    windowp
+    window-top-level-window
+    with-temporary-string)
+
+  ;; CLIM 1.0 compatibility stubs
+  #+CLIM-1-compatibility
+  (:export
+    *unsupplied-argument*
+    +background-ink+
+    +dialog-view+
+    +foreground-ink+
+    +menu-view+
+    activation-character-p
+    add-output-record-element
+    add-text-style-mapping
+    blip-character-p
+    command-enabled-p
+    compose-rotation-transformation
+    compose-scaling-tansformation
+    compose-translation-transformation
+    delete-output-record-element
+    dialog-view
+    disable-command
+    dragging-output-record
+    draw-character
+    draw-character*
+    draw-string
+    draw-string*
+    enable-command
+    frame-top-level-window
+    make-color-ihs
+    make-color-rgb
+    map-over-output-record-elements
+    map-over-output-record-elements-containing-point*
+    map-over-output-record-elements-overlapping-region
+    menu-view
+    output-record-end-position*
+    output-record-set-end-position*
+    output-record-set-start-position*
+    output-record-start-position
+    output-record-start-position*
+    output-recording-stream-current-output-record-stack
+    output-recording-stream-output-history
+    output-recording-stream-replay
+    pointer-event-shift-mask
+    set-frame-layout
+    stream-draw-p
+    stream-record-p
+    stream-vsp
+    with-activation-characters
+    with-blip-characters
+    with-frame-state-variables))
+
+#+(and Genera lock-CLIM-packages) (setf (si:pkg-locked (find-package "CLIM")) t)
+
+
+;; Now define all of the implementation packages
+(#-ANSI-90 clim-lisp::defpackage #+ANSI-90 defpackage CLIM-UTILS
+  (:use	CLIM-LISP CLIM-SYS CLIM)
+
+  #+Genera
+  (:import-from SYSTEM
+    arglist)
+  #+Genera
+  (:import-from ZWEI
+    indentation)
+
+  #+Cloe-Runtime
+  (:import-from CLOE
+    arglist)
+ 
+  #+Lucid
+  (:import-from SYSTEM
+    arglist)
+
+  #+Allegro
+  (:import-from EXCL
+    arglist)
+
+  #+(or Genera (not ANSI-90))
   (:shadow
     defun
     flet labels
     defgeneric defmethod)
 
-  ;; lucid and franz don't hack declarations properly for with-slots
-  #+(or lucid (and excl (or :rs6000 (not (version>= 4 1)))))
+  ;; Lucid and Allegro don't hack declarations properly for WITH-SLOTS
+  ;; They do now except on some older versions
+  #+(or Lucid (and Allegro (or :rs6000 (not (version>= 4 1)))))
   (:shadow
     with-slots)
-  #+(or lucid (and excl (or :rs6000 (not (version>= 4 1)))))
+  #+(or Lucid (and Allegro (or :rs6000 (not (version>= 4 1)))))
   (:export
     with-slots)
 
-  ;; fix char-bits and friends as best we can
-  #+ccl-2
+  ;; Fix CHAR-BITS and friends as best we can
+  #+CCL-2
   (:shadow
     char=
     standard-char-p
     graphic-char-p
     alpha-char-p)
-  #+ccl-2
+  #+CCL-2
   (:export
-    char=
-    standard-char-p
-    graphic-char-p
-    alpha-char-p)
-
-  #+(and ansi-90 genera)
-  (:import-from :lisp
-    string-char
-    char-bits)
-  #+excl
-  (:shadowing-import-from :cltl1
-    string-char
-    char-bits)
-  #+(or excl (and ansi-90 genera))
-  (:export
-    string-char
-    char-bits)
-
-  #+excl
-  (:import-from :cltl1
-    *applyhook*
-    *break-on-warnings*
-    *evalhook*
-    *modules*
-    applyhook
-    char-bit
-    char-bits-limit
-    char-control-bit
-    char-font
-    char-font-limit
-    char-hyper-bit
-    char-meta-bit
-    char-super-bit
-    ;common   ; ^%$!@# franz
-    ;commonp
-    compiler-let
-    evalhook
-    int-char
-    make-char
-    provide
-    require
-    set-char-bit
-    string-char-p)
-  
-  #+excl
-  (:export
-    *applyhook*
-    *break-on-warnings*
-    *evalhook*
-    *modules*
-    applyhook
     char-bits
-    char-bits-limit
-    char-control-bit
-    char-font
-    char-font-limit
-    char-hyper-bit
-    char-meta-bit
-    char-super-bit
-    ;common   ; ^%$!@# franz
-    ;commonp
-    compiler-let
-    evalhook
-    int-char
-    make-char
-    provide
-    require
-    set-char-bit
-    string-char-p)
+    char=
+    standard-char-p
+    graphic-char-p
+    alpha-char-p)
 
+  #+(and ANSI-90 Genera)
+  (:import-from LISP
+    string-char
+    char-bits)
+  #+Allegro
+  (:shadowing-import-from CLTL1
+    string-char
+    char-bits)
+  #+(or Allegro (and ANSI-90 Genera))
+  (:export
+    string-char
+    char-bits)
+  
   (:export
     arglist
 
-    ;; from defun
+    ;; From DEFUN
     *keyword-package*
     extract-declarations
 
-    ;; from utilities
+    ;; From UTILITIES
     boolean
-    with-collection collect
+    with-collection
+    collect
     with-gensyms
-    integerize-coordinate
     with-fast-vector-references
     ignore-errors
     def-property-slot-macros
     def-property-slot-accessors
     define-unimplemented-protocol-method
     unimplemented warn-obsolete
-    with-lockf initial-lock-value
-    with-recursive-lockf initial-recursive-lock-value
-    without-scheduling 
     *multiprocessing-p*
-    make-process destroy-process
-    processp
-    current-process all-processes
-    process-yield process-wait process-wait-with-timeout
-    show-processes
     make-setf-function-name
+    #+CLIM-1-compatibility define-compatibility-function
+    safe-slot-value
 
-    ;; from lisp-utilities
+    ;; From LISP-UTILITIES
     without-interrupts
     funcallable-p
     standard-io-environment-vars-and-vals 
@@ -1559,6 +2960,8 @@ Copyright (c) 1991, Franz Inc. All rights reserved
     follow-synonym-stream
     fintern
     gensymbol 
+    coordinate
+    integerize-coordinate
     extended-char
     remove-word-from-string
     push-unique
@@ -1570,8 +2973,8 @@ Copyright (c) 1991, Franz Inc. All rights reserved
     with-stack-list*
     evacuate-list
     with-stack-array
-    with-rem-keywords
-    rem-keywords
+    with-keywords-removed
+    remove-keywords
     with-stack-copy-of-list
     define-keywords
     dovector
@@ -1593,8 +2996,7 @@ Copyright (c) 1991, Franz Inc. All rights reserved
     get-compile-time-local-property
     compile-time-property
     define-constructor
-    with-lock-held
-    make-lock
+    define-constructor-using-prototype-instance
     once-only
     trap-on-error
     bind-to-list
@@ -1605,10 +3007,10 @@ Copyright (c) 1991, Franz Inc. All rights reserved
     simple-vector-push-extend
     simple-vector-insert-element
 
-    ;; from clos
+    ;; From CLOS
     find-dynamic-class
 
-    ;; from queue
+    ;; From QUEUE
     locking-queue
     make-queue
     queue 
@@ -1629,174 +3031,55 @@ Copyright (c) 1991, Franz Inc. All rights reserved
     queue-unget
     with-queue-locked
 
-    ;; from protocols
-    protocol role operation find-protocol find-role 
+    ;; From PROTOCOLS
+    protocol defprotocol find-protocol
     protocol-name protocol-roles protocol-operations
+    role defrole find-role 
     role-slots
-    operation-name 
-    operation-required-args operation-specs operation-extra-args
-    defprotocol defrole defoperation
+    operation defoperation
+    operation-name operation-required-args operation-specs operation-extra-args
     *outer-self*
     generate-trampolines
     define-trampoline-template define-slot-trampoline-template
+    define-protocol-class
+    stream
 
-    ;; from autoconstructor
+    ;; From AUTOCONSTRUCTOR
     make-instance-with-constructor
     defautoconstructor
     autoconstructor
     disable-autoconstructors
     enable-autoconstructors
 
-    ;; from transformations
-    +identity-transformation+
-    compose-rotation-transformation
-    compose-scaling-transformation
-    compose-transformations
-    compose-translation-transformation
-    even-scaling-transformation-p
-    identity-transformation-p
-    invert-transformation
-    invertible-transformation-p
-    make-3-point-transformation
-    make-3-point-transformation*
-    make-reflection-transformation
-    make-reflection-transformation*
-    make-rotation-transformation
-    make-rotation-transformation*
-    make-scaling-transformation
-    make-scaling-transformation*
-    make-transformation
-    make-translation-transformation
-    rectilinear-transformation-p
-    reflection-transformation-p
-    rigid-transformation-p
-    scaling-transformation-p
-    transform-distance
-    transform-point*
-    transformation
+    ;; From CLIM-MACROS
+    default-input-stream
+    default-output-stream
+    default-query-stream
+    with-identity-transformation
+
+    ;; From TRANSFORMATIONS
     standard-transformation
     identity-transformation
     translation-transformation
-    transformation-equal
-    translation-transformation-p
-    untransform-distance
-    untransform-point*
-    singular-transformation
-    transformation-underspecified
 
-    ;; from regions
-    fix-rectangle
-    +everywhere+
-    +nowhere+
-    area
-    design
-    ellipse
-    ellipse-center-point
-    ellipse-center-point*
-    ellipse-end-angle
-    ellipse-radii
-    ellipse-start-angle
-    elliptical-arc
-    line
-    line-end-point
-    line-end-point*
-    line-start-point
-    line-start-point*
-    make-ellipse
-    make-ellipse*
-    make-elliptical-arc
-    make-elliptical-arc*
-    make-line
-    make-line*
-    make-point
-    make-polygon
-    make-polygon*
-    make-polyline
-    make-polyline*
-    make-rectangle
-    make-rectangle*
-    map-over-polygon-coordinates
-    map-over-polygon-segments
-    map-over-region-set-regions
-    opacity
-    opacity-value
-    standard-opacity
-    path
-    point
-    point-position*
-    point-x
-    point-y
-    polygon
-    polygon-points
-    polyline
-    polyline-closed
-    rectangle
-    rectangle-edges*
-    rectangle-height
-    rectangle-max-point
-    rectangle-max-x
-    rectangle-max-y
-    rectangle-min-point
-    rectangle-min-x
-    rectangle-min-y
-    rectangle-size
-    rectangle-width
-    region
-    region-contains-point*-p
-    region-contains-region-p
-    region-difference
-    region-equal
-    region-intersection
-    region-intersects-region-p
-    region-set
-    region-set-function
-    region-set-regions
-    region-union
-    standard-ellipse
-    standard-elliptical-arc
-    standard-line
-    standard-point
-    standard-polygon
-    standard-polyline
-    standard-rectangle
-    standard-rectangle-set
-    transform-region
-    untransform-region
-
-    ;; bounding rectangle protocols
+    ;; From REGIONS
     left top right bottom
-    make-bounding-rectangle
-    bounding-rectangle
-    bounding-rectangle*
+    fix-rectangle
+    opacity
+    standard-opacity
+
+    ;; Additional bounding rectangle stuff
     bounding-rectangle-set-edges
-    with-bounding-rectangle*
-    bounding-rectangle-min-x
-    bounding-rectangle-min-y
-    bounding-rectangle-max-x
-    bounding-rectangle-max-y
-    bounding-rectangle-position
-    bounding-rectangle-position*
     bounding-rectangle-set-position*
     bounding-rectangle-shift-position
     bounding-rectangle-position-difference
     bounding-rectangle-position-equal
     bounding-rectangle-edges-equal
-    bounding-rectangle-width
-    bounding-rectangle-height
-    bounding-rectangle-size
     bounding-rectangle-set-size
     bounding-rectangle-size-equal
-    bounding-rectangle-center
-    bounding-rectangle-center*
-    bounding-rectangle-ltrb
-    with-bounding-rectangle-ltrb
-    bounding-rectangle-left
-    bounding-rectangle-top
-    bounding-rectangle-right
-    bounding-rectangle-bottom
     position-difference*
 
-    ;; ltrbs
+    ;; LTRBs
     ltrb-well-formed-p
     ltrb-equals-ltrb-p
     ltrb-size-equal
@@ -1807,7 +3090,7 @@ Copyright (c) 1991, Franz Inc. All rights reserved
     ltrb-intersection
     ltrb-difference
 
-    ;; some random geometry
+    ;; Some random geometry
     pi-single-float
     2pi
     pi/2
@@ -1820,30 +3103,16 @@ Copyright (c) 1991, Franz Inc. All rights reserved
     angle-between-angles-p
     2x2-singular-value-decomposition
 
-    ;; from designs
-    +foreground+
-    +background+
-    +flipping-ink+
-    +black+
-    +white+
-    +red+
-    +blue+
-    +green+
-    +cyan+
-    +magenta+
-    +yellow+
-    color
+    ;; From DESIGNS
     gray-color
     rgb-color
-    color-ihs
-    color-rgb
-    compose-in
-    compose-out
-    compose-over
+    ihs-color
+    flipping-ink
+    contrasting-ink
+    color-luminosity
     composite-in
     composite-out
     composite-over
-    contrasting-ink
     contrasting-ink-index
     make-color-for-contrasting-ink
     make-gray-color-for-contrasting-ink
@@ -1854,1093 +3123,160 @@ Copyright (c) 1991, Franz Inc. All rights reserved
     decode-rectangular-tile
     decode-tile-as-stipple
     flipping-ink
-    make-color-ihs
-    make-color-rgb
-    make-contrasting-inks
-    make-contrasting-dash-patterns
     make-design-from-output-record
     make-flipping-ink
-    make-gray-color
-    make-opacity
-    make-pattern
-    make-rectangular-tile
-    make-stencil
-    opacity-value
     pattern
     rectangular-tile
     stencil
-    stencil-array
+    stencil-array))
 
-    ;; stupid colors
-    +alice-blue+
-    +antique-white+
-    +aquamarine+
-    +azure+
-    +beige+
-    +bisque+
-    +black+
-    +blanched-almond+
-    +blue-violet+
-    +brown+
-    +burlywood+
-    +cadet-blue+
-    +chartreuse+
-    +chocolate+
-    +coral+
-    +cornflower-blue+
-    +cornsilk+
-    +dark-goldenrod+
-    +dark-green+
-    +dark-khaki+
-    +dark-olive-green+
-    +dark-orange+
-    +dark-orchid+
-    +dark-salmon+
-    +dark-sea-green+
-    +dark-slate-blue+
-    +dark-slate-gray+
-    +dark-turquoise+
-    +dark-violet+
-    +deep-pink+
-    +deep-sky-blue+
-    +dim-gray+
-    +dodger-blue+
-    +firebrick+
-    +floral-white+
-    +forest-green+
-    +gainsboro+
-    +ghost-white+
-    +gold+
-    +goldenrod+
-    +gray+
-    +green-yellow+
-    +honeydew+
-    +hot-pink+
-    +indian-red+
-    +ivory+
-    +khaki+
-    +lavender+
-    +lavender-blush+
-    +lawn-green+
-    +lemon-chiffon+
-    +light-blue+
-    +light-coral+
-    +light-cyan+
-    +light-goldenrod+
-    +light-goldenrod-yellow+
-    +light-gray+
-    +light-pink+
-    +light-salmon+
-    +light-sea-green+
-    +light-sky-blue+
-    +light-slate-blue+
-    +light-slate-gray+
-    +light-steel-blue+
-    +light-yellow+
-    +lime-green+
-    +linen+
-    +maroon+
-    +medium-aquamarine+
-    +medium-blue+
-    +medium-orchid+
-    +medium-purple+
-    +medium-sea-green+
-    +medium-slate-blue+
-    +medium-spring-green+
-    +medium-turquoise+
-    +medium-violet-red+
-    +midnight-blue+
-    +mint-cream+
-    +misty-rose+
-    +moccasin+
-    +navajo-white+
-    +navy-blue+
-    +old-lace+
-    +olive-drab+
-    +orange+
-    +orange-red+
-    +orchid+
-    +pale-goldenrod+
-    +pale-green+
-    +pale-turquoise+
-    +pale-violet-red+
-    +papaya-whip+
-    +peach-puff+
-    +peru+
-    +pink+
-    +plum+
-    +powder-blue+
-    +purple+
-    +rosy-brown+
-    +royal-blue+
-    +saddle-brown+
-    +salmon+
-    +sandy-brown+
-    +sea-green+
-    +seashell+
-    +sienna+
-    +sky-blue+
-    +slate-blue+
-    +slate-gray+
-    +snow+
-    +spring-green+
-    +steel-blue+
-    +tan+
-    +thistle+
-    +tomato+
-    +turquoise+
-    +violet+
-    +violet-red+
-    +wheat+
-    +white+
-    +white-smoke+
-    +yellow-green+))
+(#-ANSI-90 clim-lisp::defpackage #+ANSI-90 defpackage CLIM-SILICA
+  (:nicknames SILICA)
+  (:use	CLIM-LISP CLIM-SYS CLIM CLIM-UTILS)
 
-
-;;; now we define the clim package.
-
-#+ignore-this-for-now
-(clim-lisp::defpackage :clim
-  (:use	:clim-lisp :clim-utils
-   #+silica :silica
-   #+silica :windshield)
-
-  #+ccl-2
-  (:shadowing-import-from :clim-utils
+  #+CCL-2
+  (:shadowing-import-from CLIM-UTILS
     char=
     standard-char-p
     graphic-char-p
     alpha-char-p)
 
-  #-ccl-2
-  (:shadowing-import-from :clim-utils
+  #-CCL-2
+  (:shadowing-import-from CLIM-UTILS
     defun
     flet labels
     defgeneric defmethod
     dynamic-extent
-    #-excl non-dynamic-extent)
+    #-Allegro non-dynamic-extent)
 
-  #+(or lucid (and excl (or :rs6000 (not (version>= 4 1)))))
-  (:shadowing-import-from :clim-utils
+  #+(or Lucid (and Allegro (or :rs6000 (not (version>= 4 1)))))
+  (:shadowing-import-from CLIM-UTILS
     with-slots)
 
   (:export
-    ;; stream proposal
-    input-stream-p
-    output-stream-p
-    open-stream-p
-    streamp
-    stream-element-type
-    close
-    pathname
-    truename
-    format
-    ;; cl stream input functions
-    read-byte
-    read-char
-    unread-char
-    read-char-no-hang
-    peek-char
-    listen
-    read-line
-    clear-input
-    ;; cl stream output functions
-    write-byte
-    write-char
-    write-string
-    terpri
-    fresh-line
-    force-output
-    finish-output
-    clear-output
-    ;; stream generics of the same
-    stream-read-char
-    stream-unread-char
-    stream-read-char-no-hang
-    stream-peek-char
-    stream-listen
-    stream-read-line
-    stream-clear-input
-    stream-write-char
-    stream-line-column
-    stream-start-line-p
-    stream-write-string
-    stream-terpri
-    stream-fresh-line
-    stream-finish-output
-    stream-force-output
-    stream-clear-output
-    stream-advance-to-column
-    stream-read-byte
-    stream-write-byte
+   *default-text-style*
+   *null-text-style*
+   *standard-character-set* 
+   *undefined-text-style* 
+   +highlighting-line-style+
+   action-gadget
+   activate-gadget-event
+   allocate-space
+   canvas
+   char-character-set-and-index
+   char-width
+   click-event
+   compose-space
+   define-character-face
+   define-character-face-added-mappings
+   define-character-face-class
+   define-display-device
+   define-text-style-mappings 
+   diacritic-char-p
+   display-device 
+   engraft-medium
+   event-modifier-key-state
+   event-sheet
+   find-graft
+   find-port
+   find-port-type
+   frame-manager
+   frame-name
+   frame-panes
+   frame-shell
+   gadget
+   get-port-canonical-gesture-spec
+   graft
+   graftp
+   handle-repaint
+   intern-text-style
+   make-frame-manager
+   make-medium
+   make-rectangle*
+   medium
+   merged-text-style 
+   mirror-inside-edges*
+   mirror-native-edges*
+   mirror-region
+   mirror-region*
+   mirror-region-updated
+   mirrored-sheet-mixin
+   modifier-keysym
+   mute-repainting-mixin
+   parse-gesture-spec
+   permanent-medium-sheet-output-mixin
+   pointer-press-event
+   pointer-release-event
+   port
+   port-color-cache
+   port-draw-line*
+   port-draw-rectangle*
+   port-draw-text*
+   port-event-wait
+   port-force-output
+   port-glyph-for-character
+   port-pointer
+   process-next-event
+   process-event-locally
+   push-button
+   queue-event
+   repaint-sheet
+   set-sheet-mirror-edges*
+   sheet-actual-native-edges
+   sheet-direct-mirror
+   sheet-height
+   sheet-mute-input-mixin
+   sheet-permanently-enabled-mixin
+   sheet-width
+   slider
+   standard-sheet
+   standard-sheet-input-mixin
+   standarize-style
+   stream-glyph-for-character
+   string-height 
+   string-width 
+   text-field
+   text-style-scale 
+   toggle-button
+   value-changed-gadget-event
+   value-gadget
+   window-configuration-event
+   window-repaint-event
+   with-sheet-medium
+   stream-write-string-1
+   port-note-cursor-change
+   update-scrollbars
+   event
+   pointer-event-button
+   medium-+y-upward-p
+   scroller-pane
+   medium-merged-text-style-valid
+   port-beep
+   port-server-path))
 
-    ;; geometry
-    ;; from transformations
-    +identity-transformation+
-    compose-rotation-transformation
-    compose-scaling-transformation
-    compose-transformations
-    compose-translation-transformation
-    even-scaling-transformation-p
-    identity-transformation-p
-    invert-transformation
-    invertible-transformation-p
-    make-3-point-transformation
-    make-3-point-transformation*
-    make-reflection-transformation
-    make-reflection-transformation*
-    make-rotation-transformation
-    make-rotation-transformation*
-    make-scaling-transformation
-    make-scaling-transformation*
-    make-transformation
-    make-translation-transformation
-    rectilinear-transformation-p
-    reflection-transformation-p
-    rigid-transformation-p
-    scaling-transformation-p
-    transform-distance
-    transform-point*
-    transformation
-    standard-transformation
-    transformation-equal
-    translation-transformation-p
-    untransform-distance
-    untransform-point*
-    singular-transformation
-    transformation-underspecified
+(#-ANSI-90 clim-lisp::defpackage #+ANSI-90 defpackage CLIM-INTERNALS
+  (:use	CLIM-LISP CLIM-SYS CLIM CLIM-UTILS CLIM-SILICA)  
 
-    ;; from regions
-    +everywhere+
-    +nowhere+
-    area
-    design
-    ellipse
-    ellipse-center-point
-    ellipse-center-point*
-    ellipse-end-angle
-    ellipse-radii
-    ellipse-start-angle
-    elliptical-arc
-    line
-    line-end-point
-    line-end-point*
-    line-start-point
-    line-start-point*
-    make-ellipse
-    make-ellipse*
-    make-elliptical-arc
-    make-elliptical-arc*
-    make-line
-    make-line*
-    make-point
-    make-polygon
-    make-polygon*
-    make-polyline
-    make-polyline*
-    make-rectangle
-    make-rectangle*
-    map-over-polygon-coordinates
-    map-over-polygon-segments
-    map-over-region-set-regions
-    opacity
-    opacity-value
-    path
-    point
-    point-position*
-    point-x
-    point-y
-    polygon
-    polygon-points
-    polyline
-    polyline-closed
-    rectangle
-    rectangle-edges*
-    rectangle-height
-    rectangle-max-point
-    rectangle-max-x
-    rectangle-max-y
-    rectangle-min-point
-    rectangle-min-x
-    rectangle-min-y
-    rectangle-size
-    rectangle-width
-    region
-    region-contains-point*-p
-    region-contains-region-p
-    region-difference
-    region-equal
-    region-intersection
-    region-intersects-region-p
-    region-set
-    region-set-function
-    region-set-regions
-    region-union
-    standard-ellipse
-    standard-elliptical-arc
-    standard-line
-    standard-point
-    standard-polygon
-    standard-polyline
-    standard-rectangle
-    transform-region
-    untransform-region
+  #+CCL-2
+  (:shadowing-import-from CLIM-UTILS
+    char=
+    standard-char-p
+    graphic-char-p
+    alpha-char-p)
 
-    ;; from designs
-    +foreground+
-    +background+
-    +flipping-ink+
-    +black+
-    +white+
-    +red+
-    +blue+
-    +green+
-    +cyan+
-    +magenta+
-    +yellow+
-    color
-    color-ihs
-    color-rgb
-    compose-in
-    compose-out
-    compose-over
-    make-color-ihs
-    make-color-rgb
-    make-contrasting-inks
-    make-contrasting-dash-patterns
-    make-design-from-output-record
-    make-flipping-ink
-    make-gray-color
-    make-opacity
-    make-pattern
-    make-rectangular-tile
-    make-stencil
+  #-CCL-2
+  (:shadowing-import-from CLIM-UTILS
+    defun
+    flet labels
+    defgeneric defmethod
+    dynamic-extent
+    #-Allegro non-dynamic-extent)
 
-    ;; stupid colors
-    +alice-blue+
-    +antique-white+
-    +aquamarine+
-    +azure+
-    +beige+
-    +bisque+
-    +black+
-    +blanched-almond+
-    +blue-violet+
-    +brown+
-    +burlywood+
-    +cadet-blue+
-    +chartreuse+
-    +chocolate+
-    +coral+
-    +cornflower-blue+
-    +cornsilk+
-    +dark-goldenrod+
-    +dark-green+
-    +dark-khaki+
-    +dark-olive-green+
-    +dark-orange+
-    +dark-orchid+
-    +dark-salmon+
-    +dark-sea-green+
-    +dark-slate-blue+
-    +dark-slate-gray+
-    +dark-turquoise+
-    +dark-violet+
-    +deep-pink+
-    +deep-sky-blue+
-    +dim-gray+
-    +dodger-blue+
-    +firebrick+
-    +floral-white+
-    +forest-green+
-    +gainsboro+
-    +ghost-white+
-    +gold+
-    +goldenrod+
-    +gray+
-    +green-yellow+
-    +honeydew+
-    +hot-pink+
-    +indian-red+
-    +ivory+
-    +khaki+
-    +lavender+
-    +lavender-blush+
-    +lawn-green+
-    +lemon-chiffon+
-    +light-blue+
-    +light-coral+
-    +light-cyan+
-    +light-goldenrod+
-    +light-goldenrod-yellow+
-    +light-gray+
-    +light-pink+
-    +light-salmon+
-    +light-sea-green+
-    +light-sky-blue+
-    +light-slate-blue+
-    +light-slate-gray+
-    +light-steel-blue+
-    +light-yellow+
-    +lime-green+
-    +linen+
-    +maroon+
-    +medium-aquamarine+
-    +medium-blue+
-    +medium-orchid+
-    +medium-purple+
-    +medium-sea-green+
-    +medium-slate-blue+
-    +medium-spring-green+
-    +medium-turquoise+
-    +medium-violet-red+
-    +midnight-blue+
-    +mint-cream+
-    +misty-rose+
-    +moccasin+
-    +navajo-white+
-    +navy-blue+
-    +old-lace+
-    +olive-drab+
-    +orange+
-    +orange-red+
-    +orchid+
-    +pale-goldenrod+
-    +pale-green+
-    +pale-turquoise+
-    +pale-violet-red+
-    +papaya-whip+
-    +peach-puff+
-    +peru+
-    +pink+
-    +plum+
-    +powder-blue+
-    +purple+
-    +rosy-brown+
-    +royal-blue+
-    +saddle-brown+
-    +salmon+
-    +sandy-brown+
-    +sea-green+
-    +seashell+
-    +sienna+
-    +sky-blue+
-    +slate-blue+
-    +slate-gray+
-    +snow+
-    +spring-green+
-    +steel-blue+
-    +tan+
-    +thistle+
-    +tomato+
-    +turquoise+
-    +violet+
-    +violet-red+
-    +wheat+
-    +white+
-    +white-smoke+
-    +yellow-green+
+  #+(or Lucid (and Allegro (or :rs6000 (not (version>= 4 1)))))
+  (:shadowing-import-from CLIM-UTILS
+    with-slots))
 
-    ;; drawing options
-    line-style
-    line-style-cap-shape
-    line-style-dashes
-    line-style-initial-dash-phase
-    line-style-joint-shape
-    line-style-thickness
-    line-style-unit
-    make-line-style
-    medium-background
-    medium-clipping-region
-    medium-foreground
-    medium-ink
-    medium-line-style
-    medium-transformation
-    with-drawing-options
-    with-clipping-region
-    with-translation
-    with-scaling
-    with-rotation
-    with-local-coordinates
-    with-first-quadrant-coordinates
-    with-room-for-graphics
-
-    ;; bounding rectangle protocol
-    make-bounding-rectangle
-    bounding-rectangle
-    bounding-rectangle*
-    with-bounding-rectangle*
-    bounding-rectangle-min-x
-    bounding-rectangle-min-y
-    bounding-rectangle-max-x
-    bounding-rectangle-max-y
-    bounding-rectangle-position
-    bounding-rectangle-position*
-    bounding-rectangle-width
-    bounding-rectangle-height
-    bounding-rectangle-size
-    bounding-rectangle-center
-    bounding-rectangle-center*
-
-    ;; extended bounding rectangle protocol
-    bounding-rectangle-ltrb
-    with-bounding-rectangle-ltrb
-    bounding-rectangle-left
-    bounding-rectangle-top
-    bounding-rectangle-right
-    bounding-rectangle-bottom
-
-    ;; protocol stuff
-    window-stream-p				;???
-    encapsulating-stream-p
-    extended-input-stream-p
-    extended-output-stream-p
-    graphics-stream-p
-    interactive-stream-p
-    output-recording-stream-p
-    windowp
-
-    ;; events
-    device-event
-    event-window
-    keyboard-event
-    keyboard-event-char
-    key-press-event
-    key-release-event
-    pointer-event
-    pointer-event-x
-    pointer-event-y
-    pointer-button-event
-    pointer-event-button
-    pointer-event-shift-mask
-    pointer-button-press-event
-    pointer-button-release-event
-    pointer-click-hold-event
-    pointer-double-click-event
-    pointer-motion-event
-    pointer-enter-event
-    pointer-exit-event
-    window-event
-    window-size-or-position-change-event
-
-    ;; window stuff.
-    open-root-window
-    open-window-stream
-    window-name
-    window-parent
-    window-children
-    window-label
-    window-label-size
-    window-inside-width
-    window-inside-height
-    window-inside-size
-    window-inside-left
-    window-inside-top
-    window-inside-right
-    window-inside-bottom
-    window-inside-edges
-    window-clear
-    window-expose
-    window-visibility
-    window-stack-on-top
-    window-stack-on-bottom
-    window-refresh
-    window-margins
-    stream-set-input-focus			;???
-    stream-restore-input-focus			;???
-    window-viewport
-    window-erase-viewport
-    window-viewport-position*
-    window-set-viewport-position*
-    window-root
-    window-top-level-window
-
-    ;; window-stream-clear-history
-
-    ;; window-stream-pointers ; not yet implemented
-
-    stream-record-p
-    stream-draw-p
-    output-recording-stream-output-record
-    output-recording-stream-replay
-    with-output-to-output-record
-    with-new-output-record
-    with-output-recording-options
-    surrounding-output-with-border
-    define-border-type
-
-    with-end-of-page-action with-end-of-line-action 
-    medium-default-text-style medium-text-style
-    stream-merged-text-style 
-    with-text-style 
-    with-text-family with-text-face with-text-size
-    text-style-family text-style-face text-style-size
-    text-style-height text-style-width
-    text-style-ascent text-style-descent
-    text-style-fixed-width-p
-    text-size
-
-    ;; extended input protocol
-    basic-extended-input-protocol
-    stream-input-wait
-    stream-input-buffer
-    stream-pointers
-    stream-primary-pointer
-    stream-pointer-position*
-    stream-set-pointer-position*
-    stream-read-gesture
-    stream-unread-gesture
-    pointer-input-rectangle
-    pointer-input-rectangle*
-
-    ;; extended output protocol
-    stream-cursor-position*
-    stream-set-cursor-position*
-    stream-increment-cursor-position*
-    stream-string-width
-    stream-character-width
-    stream-line-height
-    stream-text-margin
-    stream-default-view
-
-    stream-end-of-line-action
-    stream-end-of-page-action
-
-    draw-point
-    draw-point*
-    draw-points
-    draw-points*
-    draw-line
-    draw-line*
-    draw-lines
-    draw-lines*
-    draw-polygon
-    draw-polygon*
-    draw-regular-polygon
-    draw-regular-polygon*
-    draw-rectangle
-    draw-rectangle*
-    draw-triangle
-    draw-triangle*
-    draw-ellipse
-    draw-ellipse*
-    draw-circle
-    draw-circle*
-    draw-string
-    draw-string*
-    draw-character
-    draw-character*
-    draw-text
-    draw-text*
-    draw-vertical-string
-    draw-vertical-string*
-    draw-icon
-    draw-design
-    make-design-from-output-record
-
-    beep
-
-    parse-text-style make-text-style
-    merge-text-styles define-character-face-class
-    define-character-face-added-mappings define-character-face
-    merged-text-style text-style-components
-    display-device define-display-device
-    define-text-style-mappings add-text-style-mapping
-    text-style-mapping
-    diacritic-char-p
-    *standard-character-set* *null-text-style*
-    *undefined-text-style* *default-text-style*
-
-    ;; output records
-    fundamental-output-recording
-    output-record
-    output-record-p
-    output-record-element
-    output-record-element-p
-    displayed-output-record-element
-    displayed-output-record-element-p
-    replay
-    replay-1
-    output-record-position*
-    output-record-set-position*
-    output-record-start-position*
-    output-record-end-position*
-    output-record-parent
-    output-record-refined-sensitivity-test
-    add-output-record
-    add-output-record-element
-    delete-output-record-element
-    clear-output-record
-    map-over-output-record-elements
-    map-over-output-record-elements-overlapping-region
-    map-over-output-record-elements-containing-point*
-    highlight-output-record
-    highlight-output-record-1
-    tree-recompute-extent
-    tree-recompute-extent-1
-    convert-from-relative-to-absolute-coordinates
-    convert-from-absolute-to-relative-coordinates
-    convert-from-ancestor-to-descendant-coordinates
-    convert-from-descendant-to-ancestor-coordinates
-    copy-textual-output-history
-
-    defstipple
-    make-stipple
-    *hearts-stipple*
-    *parquet-stipple*
-    *bricks-stipple*
-
-    ;; uims
-    read-gesture
-    unread-gesture
-    read-token
-    write-token
-    abort-gesture
-    parse-error
-    simple-parse-error
-    input-not-of-required-type
-    with-blip-characters
-    *blip-characters*
-    with-activation-characters
-    *activation-characters*
-    *standard-activation-characters*
-    complete-input
-    completing-from-suggestions
-    complete-from-possibilities
-    complete-from-generator
-    suggest
-    *complete-characters*
-    *possibilities-characters*
-    *help-characters*
-    accept
-    accept-from-string
-    present
-    present-to-string
-    replace-input
-    presentation-replace-input
-    with-output-as-presentation
-    with-input-editing
-    with-input-editor-typeout
-    with-input-focus
-    with-input-context
-    *input-context*
-    with-accept-help
-
-    ;; avvs (dialogs)
-    accepting-values
-    accept-values
-    accept-values-command-button
-    accept-values-pane
-    accept-values-pane-displayer
-
-    presentation
-    presentationp
-    presentation-object
-    presentation-type
-    presentation-single-box
-    standard-presentation
-
-    accept-present-default
-    class-presentation-type-name
-    default-describe-presentation-type
-    define-presentation-type
-    define-presentation-generic-function
-    call-presentation-generic-function
-    define-presentation-method
-    define-default-presentation-method
-    describe-presentation-type
-    define-presentation-type-abbreviation
-    expand-presentation-type-abbreviation
-    expand-presentation-type-abbreviation-1
-    find-presentation-type-class
-    highlight-presentation
-    make-presentation-type-specifier
-    map-over-presentation-type-supertypes
-    presentation-subtypep
-    presentation-type-direct-supertypes
-    presentation-type-history
-    presentation-type-name
-    presentation-type-options
-    presentation-type-parameters
-    presentation-type-specifier-p
-    presentation-typep
-    with-presentation-type-decoded
-    with-presentation-type-options
-    with-presentation-type-parameters
-
-    textual-view
-    dialog-view
-    menu-view
-    iconic-view
-    +textual-view+
-    +dialog-view+
-    +menu-view+
-    +iconic-view+
-
-    blank-area
-    *null-presentation*
-
-    define-presentation-translator
-    define-presentation-to-command-translator
-    define-presentation-action
-    define-click-and-drag-translator
-    find-presentation-translators
-    test-presentation-translator
-    presentation-matches-context-type
-    find-applicable-translators
-    call-presentation-translator
-    document-presentation-translator
-    call-presentation-menu
-
-    find-innermost-applicable-presentation
-    throw-highlighted-presentation
-    highlight-applicable-presentation
-    set-highlighted-presentation
-    unhighlight-highlighted-presentation
-
-    add-pointer-gesture-name
-    remove-pointer-gesture-name
-    define-gesture-name
-
-    formatting-table
-    formatting-row
-    formatting-column
-    formatting-cell
-    formatting-item-list
-    format-items
-    format-graph-from-root
-    *default-generation-separation*
-    *default-within-generation-separation*
-    cell-output-record
-    row-output-record
-    table-output-record
-    item-list-output-record
-    adjust-table-cells
-    filling-output
-    indenting-output
-    format-textual-list
-
-    ;; presentation type names
-    t
-    null
-    boolean
-    symbol
-    keyword
-    number
-    complex
-    real
-    rational
-    integer
-    ratio
-    float
-    character
-    string
-    pathname
-    completion
-    member
-    member-sequence
-    member-alist
-    subset-completion
-    subset
-    subset-sequence
-    subset-alist
-    sequence
-    sequence-enumerated
-    or
-    and
-    not
-    satisfies
-    token-or-type
-    null-or-type
-    type-or-string
-    expression
-    form
-
-    ;; incremental redisplay
-    redisplay
-    redisplay-1
-    updating-output
-    inferior-output-record-changed
-    compute-differences
-    output-record-fixed-position
-    output-record-unique-id
-    match-output-records
-    find-inferior-output-record
-    recompute-contents-ok
-    cache-output-record
-    find-cached-output-record
-    new-output-records
-    stream-redisplayable-p
-    incremental-redisplay
-    erase-output-record
-
-    *abort-menus-when-buried*
-    menu-choose
-    hierarchical-menu-choose
-    menu-choose-from-drawer
-    draw-standard-menu
-    define-static-menu
-    with-menu
-    menu-item
-    menu-item-value
-    menu-item-display
-    menu-item-style
-    menu-item-item-list
-    print-menu-item
-
-    tracking-pointer
-    dragging-output
-    dragging-output-record
-
-    ;; the command processor and its friends
-    define-command
-    ;; command tables
-    command-table
-    command-table-name
-    command-table-inherit-from
-    command-table-not-found
-    command-table-already-exists
-    define-command-table
-    find-command-table
-    make-command-table
-    global-command-table
-    user-command-table
-    ;; commands
-    command-not-present
-    command-already-present
-    command-not-accessible
-    command-accessible-in-command-table-p
-    command-present-in-command-table-p
-    add-command-to-command-table
-    remove-command-from-command-table
-    do-command-table-inheritance
-    map-over-command-table-commands
-    map-over-command-table-names
-    find-command-from-command-line-name
-    command-line-name-for-command
-    ;; command menus
-    add-menu-item-to-command-table
-    remove-menu-item-from-command-table    
-    map-over-command-table-menu-items
-    find-menu-item
-    command-menu-item-type
-    command-menu-item-value
-    command-menu-item-options
-    menu-choose-command-from-command-table
-    display-command-table-menu
-    display-command-menu
-    ;; keystroke accelerators
-    add-keystroke-to-command-table
-    remove-keystroke-from-command-table
-    map-over-command-table-keystrokes
-    find-keystroke-item
-    lookup-keystroke-item
-    lookup-keystroke-command-item
-    ;; presentation translators
-    add-presentation-translator-to-command-table
-    remove-presentation-translator-from-command-table
-    map-over-command-table-translators
-    find-presentation-translator
-
-    ;; the command processor itself
-    command
-    command-name
-    command-or-form
-    command-arguments
-    *unsupplied-argument*
-    *command-name-delimiters*
-    *command-argument-delimiters*
-    *command-dispatchers*
-    *command-previewers*
-    read-command
-    with-command-table-keystrokes
-    read-command-using-keystrokes
-    *command-parser*
-    *command-unparser*
-    *partial-command-parser*
-    command-line-parser
-    command-line-unparser
-    command-line-read-remaining-arguments-for-partial-command
-    accept-values-command-parser
-    menu-command-parser
-    menu-read-remaining-arguments-for-partial-command
-    invoke-command-parser-and-collect
-    partial-command-p
-
-    ;; application frames
-    *application-frame*
-    application-frame
-    define-application-frame
-    #+genera define-genera-application
-    make-application-frame
-    with-frame-state-variables
-    frame-command-table
-    run-frame-top-level
-    default-frame-top-level
-    panes-need-redisplay
-    pane-needs-redisplay
-    redisplay-frame-pane
-    redisplay-frame-panes
-    redisplay-frame-command-menu
-    read-frame-command
-    execute-frame-command
-    enable-command
-    disable-command
-    command-enabled-p
-    frame-name
-    frame-pretty-name
-    frame-panes
-    frame-current-panes
-    frame-top-level-window
-    frame-current-layout
-    frame-standard-input
-    frame-standard-output
-    frame-query-io
-    frame-maintain-presentation-histories
-    frame-input-context-button-press-handler
-    frame-find-innermost-applicable-presentation
-    frame-replay
-    frame-exit
-    get-frame-pane
-    set-frame-layout
-    size-frame-pane
-    layout-frame-panes
-    notify-user
-    *pointer-documentation-output*
-
-    ;; postscript support
-    with-output-to-postscript-stream
-
-    #||
-    ;;--- these are the new silica-ish guys
-    incremental-redisplay-display-function
-    pane-display-function
-    pane-display-time
-    clim-top-level
-
-    ;; frame manager stuff
-    frame-manager *frame-manager* frame-manager-p 
-    find-frame-manager with-frame-manager
-    frame framep frame-state frame-pane pane-frame
-    adopt-frame disown-frame
-    enable-frame disable-frame shrink-frame
-    frame-properties-mixin frame-properties
-
-    clim-stream-pane
-    ||#
-    ))
-
-;; any symbol exported by the clim package should have a home package of clim
-;; in preference to clim-lisp or clim-utils, so it will print nicely, and to
-;; aid in preparing documentation.
-;; astoundingly, common lisp doesn't allow setf of symbol-package, so this has
-;; to be conditionalized to the systems that support the extension.
-#+(or genera lucid)
-(funcall #'(lambda ()
-	     (let ((clim (find-package :clim))
-		   (clim-lisp (find-package :clim-lisp))
-		   (clim-utils (find-package :clim-utils)))
-	       (do-external-symbols (sym clim)
-		 (let ((pkg (symbol-package sym)))
-		   (when (or (eq pkg clim-lisp) (eq pkg clim-utils))
-		     (setf (symbol-package sym) clim)))))))
+
+;; A package for casual use...
+(#-ANSI-90 clim-lisp::defpackage #+ANSI-90 defpackage CLIM-USER
+  (:use CLIM-LISP CLIM))

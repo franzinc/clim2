@@ -1,29 +1,9 @@
-;;; -*- Mode: Lisp; Package: CLIM-UTILS; Base: 10.; Syntax: Common-Lisp; Lowercase: Yes -*-
-;; 
-;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
-;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
-;;
-;; The software, data and information contained herein are proprietary
-;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
-;; given in confidence by Franz, Inc. pursuant to a written license
-;; agreement, and may be stored and used only in accordance with the terms
-;; of such license.
-;;
-;; Restricted Rights Legend
-;; ------------------------
-;; Use, duplication, and disclosure of the software, data and information
-;; contained herein by any agency, department or entity of the U.S.
-;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
-;;
+;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: utilities.lisp,v 1.1 91/08/30 13:57:51 cer Exp Locker: cer $
+;; $fiHeader: utilities.lisp,v 1.4 91/03/26 12:03:19 cer Exp $
 
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
-;;; Copyright (c) 1991, Franz Inc. All rights reserved
 ;;;
 
 (in-package :clim-utils)
@@ -70,65 +50,32 @@
 		 vars)
      ,@body))
 
-(defmacro integerize-single-float-coordinate (coord)
-  ;; DCPL doesn't know the best way to declare things, so he goes all out
-  (let ((coord+.5 `(+ (the single-float ,coord) .5f0)))
-    `(the fixnum
-	  (let ()
-	    (declare (optimize (speed 3) (safety 0) (compilation-speed 0)))
-	    #+(and excl foo-knows-what) (progn
-		     #+(target-class r) (comp::ll :single-to-fixnum ,coord+.5)
-		     #-(target-class r) (values (floor ,coord+.5)))
-	    #-(and excl foo-knows-what) (values (floor ,coord+.5))))))
-
-(defmacro integerize-double-float-coordinate (coord)
-  `(the fixnum (values (floor (+ (the double-float ,coord) .5d0)))))
-
-(defmacro integerize-float-coordinate (coord)
-  `(the fixnum (values (floor (+ (the float ,coord) .5)))))
-
-;; replaces my-round
-(defun integerize-coordinate (coord)
-  (etypecase coord
-    (fixnum coord)
-    (single-float
-      (integerize-single-float-coordinate coord))
-    (double-float
-      (integerize-double-float-coordinate coord))
-    #-Imach
-    (float
-      (integerize-float-coordinate coord))
-    (ratio
-      (values (floor (+ coord 1/2))))
-    ;; disallow bignums and other types of numbers
-    ))
-
 (defmacro with-fast-vector-references ((&rest macros-and-arrays) &body body)
   (flet ((simple-part-accessor (array)
 	   ;; Allegro only allows SVREF on simple T vectors.
-	   #+excl `(let ((temp ,array))
-		     (etypecase temp
-		       (simple-vector temp)
-		       ((vector t) (let ((temp2 (excl::ah_data temp)))
-				     (setq temp2 (if (consp temp2)
-						     (cdr temp2)
-						   temp2))
-				     (assert (and 
-					       (zerop (the fixnum
-							   (excl::ah_displacement temp)))
-					       (typep temp2 'simple-vector))
-					     ()
-					     "Arrays passed to ~S must be non-displaced"
-					     'with-fast-vector-references)
-				     temp2))))
+	   #+Allegro `(let ((temp ,array))
+			(etypecase temp
+			  (simple-vector temp)
+			  ((vector t) (let ((temp2 (excl::ah_data temp)))
+					(setq temp2 (if (consp temp2)
+							(cdr temp2)
+						      temp2))
+					(assert (and 
+						  (zerop (the fixnum
+							      (excl::ah_displacement temp)))
+						  (typep temp2 'simple-vector))
+						()
+						"Arrays passed to ~S must be non-displaced"
+						'with-fast-vector-references)
+					temp2))))
 	   #+Genera array
-	   #-(or excl Genera) array)
+	   #-(or Allegro Genera) array)
 	 (internal-binding-declarations (variables)
-	   #+excl `(declare (simple-vector ,@variables))
+	   #+Allegro `(declare (simple-vector ,@variables))
 	   #+Genera `(declare (sys:array-register ,@variables))
-	   #-(or excl Genera) `(declare)))
-    (let* ((aref #+(or excl Genera) 'svref
-		 #-(or excl Genera) 'aref)
+	   #-(or Allegro Genera) `(declare)))
+    (let* ((aref #+(or Allegro Genera) 'svref
+		 #-(or Allegro Genera) 'aref)
 	   (macro-names (mapcar #'first macros-and-arrays))
 	   (internal-variables (mapcar #'gensymbol macro-names))
 	   (arrays (mapcar #'second macros-and-arrays))
@@ -158,7 +105,7 @@
 #-PCL
 (defun make-setf-function-name (accessor-name)
   (values `(setf ,accessor-name)
-	  t))
+	  T))
 
 #-PCL
 (defun make-setf*-function-name (accessor-name)
@@ -177,9 +124,10 @@
 	      (setf old-p t))))
 	(return-from make-setf*-function-name (values writer old-p)))
       (values (setf (get accessor-name 'setf-function-name)
-		    (intern (format nil "SETF* ~A:~S" 
-                                    (package-name (symbol-package accessor-name))
-                                    accessor-name)
+		    (intern (format nil "~A ~A:~S" 
+			      'setf*
+			      (package-name (symbol-package accessor-name))
+			      accessor-name)
                             (find-package 'clim-utils))
 		    ;; --- There appears to be a Genera bug in that
 		    ;; --- if you define a method named (setf foo) it goes
@@ -308,252 +256,19 @@
 (defun warn-obsolete (fn)
   (warn "Obsoleted Call: ~a" fn))
 
+#+CLIM-1-compatibility
+(defmacro define-compatibility-function ((old-name new-name) arglist &body body)
+  `(progn
+     (define-compiler-macro ,old-name (&whole form)
+       (warn "The function ~S is now obsolete, use ~S instead.~%~
+	      Compatibility code is being generated for the time being."
+	     ',old-name ',new-name)
+       form)
+     (defun-inline ,old-name ,arglist
+       ,@body)))
+
 
-;;;
-;;; PROCESS & SYNCHRONIZATION
-;;;
-
-(defvar *multiprocessing-p* 
-  #{
-    (or excl Genera Lucid Lispworks) t
-    otherwise nil
-    }
-    )
-  
-#+excl
-(unless (excl::scheduler-running-p)
-  (mp:start-scheduler))
-
-(defmacro with-lockf ((place &optional state) &body forms)
-  #+(or excl Xerox Genera ccl)
-  (declare (ignore state #+ccl place))
-  #{
-    excl	`(mp:with-process-lock (,place) ,@forms)
-    Lucid	`(lcl:with-process-lock (,place ,@(if state (cons state nil)))
-		   ,@forms)
-    lispworks	`(mp::with-lock (,place) ,@forms)
-    Xerox	`(il:with.monitor ,place ,@forms)
-    Cloe-Runtime `(progn ,@forms)
-    Genera	`(process:with-lock (,place) ,@forms)
-    Coral	`(progn ,@forms)
-    }
-  )
-
-(defun initial-lock-value (&optional (lock-name "a Silica lock"))
-  #-Genera (declare (ignore lock-name))
-  #{
-    excl	(mp::make-process-lock)
-    lispworks	(mp::make-lock)
-    Lucid	nil
-    Coral	nil
-    Xerox	(il:create.monitorlock)
-    Cloe-Runtime nil
-    Genera	(process:make-lock lock-name)
-   }
-  )
-
-;;; A lock that CAN be relocked by the same process.
-#-Genera
-(defmacro with-simple-recursive-lock ((lock &optional (state "Unlock")) &body forms)
-  `(flet ((foo () ,@forms))
-     (declare (dynamic-extent #'foo))
-     (invoke-with-simple-recursive-lock
-       ,lock
-       ,state
-       #'foo)))
-
-#-Genera
-(defun invoke-with-simple-recursive-lock (place state continuation)
-  (let ((store-value (current-process))
-	(place-value (first place)))
-    (if (and place-value (eql place-value store-value))
-	(funcall continuation)
-	(progn
-	  (unless (null place-value)
-	    (flet ((waiter ()
-		     (null (first place))))
-	      (declare (dynamic-extent #'waiter))
-	      (process-wait state #'waiter)))
-	  (unwind-protect
-	      (progn (rplaca place store-value)
-		     (funcall continuation))
-	    (rplaca place nil))))))
-
-(defmacro with-recursive-lockf ((place &optional state) &body forms)
-  #+(or excl Xerox Genera ccl)
-  (declare (ignore state #+ccl place))
-  #{Genera `(process:with-lock (,place) ,@forms)
-    Coral `(progn ,@forms)
-    otherwise `(with-simple-recursive-lock (,place ,state) ,@forms)
-    }
-  )
-
-(defun initial-recursive-lock-value (&optional (lock-name "a recursive Silica lock"))
-  #-Genera (declare (ignore lock-name))
-  #{coral nil
-    Genera (process:make-lock lock-name :recursive t)
-    otherwise (cons nil nil)
-   }
-  )
-
-(defmacro without-scheduling (&body forms)
-  "Evaluate the forms w/o letting any other process run."
-  #{
-    excl       `(mp:without-scheduling ,@forms)
-    lispworks  `(sys::without-scheduling ,@forms)
-    Lucid      `(lcl:with-scheduling-inhibited ,@forms)
-    Xerox      `(progn ,@forms)
-    Cloe-Runtime `(progn ,@forms)
-    ;; should be process:with-no-other-processes if this is used as
-    ;; a global locking mechanism
-    Genera     `(scl:without-interrupts ,@forms)
-    Coral      `(ccl:without-interrupts ,@forms) ; slh
-   }
-   )
-
-(defun make-process (function &key name)
-  #+(or ccl) (declare (ignore function name))
-  (when *multiprocessing-p*
-    #{
-    lispworks  (mp:process-run-function name nil function)
-    Lucid      (lcl:make-process :function function :name name)
-    excl       (mp:process-run-function name function)
-    Xerox      (il:add.process (funcall function) 'il:name name)
-    Genera     (scl:process-run-function name function)
-    otherwise  (warn "No implementation of MAKE-PROCESS for this system.")
-    }))
-
-(eval-when (compile load eval)
-  (proclaim '(inline processp)))
-(defun processp (object)
-  #{
-  ccl        (member object '(:user :event :interrupt))
-  Lucid	     (lcl:processp object)
-  excl	     (mp::process-p object)
-  lispworks  (mp::process-p object)
-  ;; In 7.3 and after it is `(process:process-p ,object)
-  Genera     (scheduler-compatibility:process-p object)
-  otherwise  (progn (warn "No implementation of PROCESSP for this system.")
-		    nil)
-  }
-  )
-
-(defun destroy-process (p)
-  #+(or ccl) (declare (ignore p))
-  #{
-  Lucid      (lcl:kill-process p)
-  excl	     (mp:process-kill p)
-  lispworks  (mp:process-kill p)
-  Xerox	     (il:del.process p)
-  Genera     (scl:process-kill p)
-  Coral	     nil
-  otherwise  (warn "No implementation of DESTROY-PROCESS for this system.")
-  }
-  )
-
-#+coral
-(defvar *current-process* :user)
-
-(eval-when (compile load eval)
-  (proclaim '(inline current-process)))
-(defun current-process ()
-  #{
-  Lucid      lcl:*current-process*
-  excl	     mp:*current-process*
-  lispworks  mp:*current-process*
-  Xerox	     (il:this.process)
-  Genera     scl:*current-process*
-  coral	     *current-process*
-  Cloe-Runtime nil
-  }
-  )
-
-(eval-when (compile load eval)
-  (proclaim '(inline all-processes)))
-(defun all-processes ()
-  #{
-  Lucid      lcl:*all-processes*
-  excl	     mp:*all-processes*
-  lispworks  (mp::list-all-processes)
-  Genera     sys:all-processes
-  Coral	     (adjoin *current-process* '(:user))
-  Cloe-Runtime nil
-  }
-  )
-
-(defun show-processes ()
-  #{
-       Lucid	  (lcl::show-processes)
-       Genera	  (si:com-show-processes)
-       otherwise  (all-processes)
-  }
-  )
-  
-(eval-when (compile load eval)
-  (proclaim '(inline process-yield)))
-
-(defun process-yield ()
-  #+Lucid      (lcl:process-allow-schedule)
-  #+excl	     (mp:process-allow-schedule)
-  #+lispworks  (mp::process-allow-scheduling)
-  #+Xerox	     (il:block)
-  #+Genera     (scl:process-allow-schedule)
-  #+Coral	     (ccl:event-dispatch)
-  #+Cloe-Runtime nil
-  )
-
-(defun process-wait (wait-reason predicate)
-  "Cause the current process to go to sleep until the predicate returns TRUE."
-  #{
-  Lucid      (lcl:process-wait wait-reason predicate)
-  excl	     (mp:process-wait wait-reason predicate)
-  lispworks  (mp:process-wait wait-reason predicate)
-  Xerox	     (let ((il:*who-line-state* wait-reason))
-	       (loop
-		 (il:block)
-		 (when (and (funcall predicate))
-		   (return))))
-  Genera     (scl:process-wait wait-reason predicate)
-  Coral	     (ccl::process-wait wait-reason predicate)
-  Cloe-Runtime nil
-  otherwise  (progn (compile-time-warn "Need an implementation for PROCESS-WAIT")
-		    (error "~S doesn't have a definition.  Args are ~S ~S"
-			   'process-wait wait-reason predicate))
-  }
-  )
-
-(defun process-wait-with-timeout (wait-reason timeout predicate)
-  "Cause the current process to go to sleep until the predicate returns TRUE or
-   timeout seconds have gone by." 
-  (when (null timeout)
-    ;; ensure genera semantics, timeout = NIL means indefinite timeout
-    (return-from process-wait-with-timeout
-      (process-wait wait-reason predicate)))
-  #{
-  excl	     (mp:process-wait-with-timeout wait-reason timeout predicate)
-  lispworks  (mp:process-wait-with-timeout wait-reason timeout predicate)
-  Lucid	     (lcl:process-wait-with-timeout wait-reason timeout predicate)
-  Genera     (sys:process-wait-with-timeout wait-reason (* timeout 60.) predicate)
-  Coral	     (ccl::process-wait-with-timeout wait-reason timeout predicate)
-  otherwise  (progn (compile-time-warn "Need an implementation for process-wait-with-timeout")
-		    (error "~S doesn't have a definition.  Args are ~S ~S ~S"
-			   'process-wait-with-timeout timeout wait-reason predicate))
-  }
-  )
-
-(defun process-interrupt (process closure)
-  (declare #+Coral (ignore process))
-  #{
-  lucid     (lcl:interrupt-process process closure)
-  excl	    (mp:process-interrupt process closure)
-  ;; ---    Is Lispworks' the same as Allegro?
-  ;; ---    It is for everything else except ALL-PROCESSES.
-  Genera    (scl:process-interrupt process closure)
-  Coral     (let ((*current-process* :interrupt))
-	      (funcall closure))
-  otherwise (progn
-	      (compile-time-warn "Need an implementation for process-interrupt")
-	      (error "~S doesn't have a definition.  Args are ~S ~S"
-		     'process-interrupt process closure))
-  }
-  )
+(defun safe-slot-value (instance slot-name)
+  (if (slot-boundp instance slot-name)
+      (slot-value instance slot-name)
+      "Unbound"))

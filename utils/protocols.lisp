@@ -1,29 +1,9 @@
-;;; -*- Mode: Lisp; Package: CLIM-UTILS; Base: 10.; Syntax: Common-Lisp; Lowercase: Yes -*-
-;; 
-;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
-;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
-;;
-;; The software, data and information contained herein are proprietary
-;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
-;; given in confidence by Franz, Inc. pursuant to a written license
-;; agreement, and may be stored and used only in accordance with the terms
-;; of such license.
-;;
-;; Restricted Rights Legend
-;; ------------------------
-;; Use, duplication, and disclosure of the software, data and information
-;; contained herein by any agency, department or entity of the U.S.
-;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
-;;
+;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: protocols.lisp,v 1.1 91/08/30 13:57:49 cer Exp Locker: cer $
+;; $fiHeader: protocols.lisp,v 1.4 91/03/26 12:03:14 cer Exp $
 
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
-;;; Copyright (c) 1991, Franz Inc. All rights reserved
 ;;;
 
 (in-package :clim-utils)
@@ -42,6 +22,17 @@
   (print-unreadable-object (protocol stream :type t :identity t)
     (write (protocol-name protocol) :stream stream :escape nil)))
 
+(defvar *protocols* nil)
+(defun-inline find-protocol (name) (getf *protocols* name))
+(defsetf find-protocol (name) (value) `(setf (getf *protocols* ,name) ,value))
+
+(defmacro defprotocol (name supers &rest options)
+  (declare (ignore supers options))
+  `(eval-when (compile eval load)
+     (setf (find-protocol ',name)
+	   (make-instance 'protocol :name ',name))))
+
+
 (defclass role ()
     ((name :initarg :name :accessor role-name)
      (slots :initarg :slots :accessor role-slots)))
@@ -50,30 +41,10 @@
   (print-unreadable-object (role stream :type t :identity t)
     (write (role-name role) :stream stream :escape nil)))
 
-(defclass operation ()
-    ((name :initarg :name :accessor operation-name)
-     (required-args :initarg :required-args :accessor operation-required-args)
-     (specs :initarg :specs :accessor operation-specs)
-     (extra-args :initarg :extra-args :accessor operation-extra-args)))
-
-(defmethod print-object ((operation operation) stream)
-  (print-unreadable-object (operation stream :type t :identity t)
-    (write (operation-name operation) :stream stream :escape nil)))
-			 
-(defvar *protocols* nil)
-(defmacro find-protocol (name) `(getf *protocols* ,name))
-(defsetf find-protocol (name) (value) `(setf (getf *protocols* ,name) ,value))
-
 (defvar *roles* nil)
-(defmacro find-role (name) `(getf *roles* ,name))
+(defun-inline find-role (name) (getf *roles* name))
 (defsetf find-role (name) (value) `(setf (getf *roles* ,name) ,value))
   
-(defmacro defprotocol (name supers &rest options)
-  (declare (ignore supers options))
-  `(eval-when (compile eval load)
-     (setf (find-protocol ',name)
-	     (make-instance 'protocol :name ',name))))
-
 (defmacro defrole (class supers slots &rest options)
   (declare (ignore supers options))
   `(eval-when (compile eval load)
@@ -90,9 +61,20 @@
 			   (collect val)))))
 		 slots))
      (setf (find-role ',class)
-	     (make-instance 'role :name ',class :slots ',slots))))
+	   (make-instance 'role :name ',class :slots ',slots))))
 
-(defmacro defoperation (name protocol arg-specs &body rest)
+
+(defclass operation ()
+    ((name :initarg :name :accessor operation-name)
+     (required-args :initarg :required-args :accessor operation-required-args)
+     (specs :initarg :specs :accessor operation-specs)
+     (extra-args :initarg :extra-args :accessor operation-extra-args)))
+
+(defmethod print-object ((operation operation) stream)
+  (print-unreadable-object (operation stream :type t :identity t)
+    (write (operation-name operation) :stream stream :escape nil)))
+			 
+(defmacro defoperation (name protocol arg-specs &body options)
   #+Genera (declare (zwei:indentation 2 1))
   (let* ((pos (position-if #'(lambda (x) (member x '(&key &optional &rest)))
 			   arg-specs))
@@ -110,20 +92,23 @@
 			required-arg-specs))
 	 (extra-args (and pos (subseq arg-specs pos)))
 	 (trampoline-extra-args extra-args)
-	 (keyword-args (member '&key extra-args)))
+	 (keyword-args (member '&key extra-args))
+	 (defgeneric
+	   ;; Kludge to inhibit doing the DEFGENERIC...
+	   (unless (second (assoc :no-defgeneric options))
+	     `((defgeneric ,name (,@required-args
+				  ,@(mapcar #'(lambda (arg)
+						(cond ((atom arg) arg)
+						      ((atom (first arg)) (first arg))
+						      (t (first (first arg)))))
+					    extra-args))
+		 ,@options)))))
     (when keyword-args
       (setq trampoline-extra-args (append (ldiff extra-args keyword-args)
 					  (unless (member '&rest extra-args)
 					    `(&rest keyword-arguments)))))
     `(eval-when (compile eval load)
-       #-VDPCL					;PCL's defgeneric fails.
-       (defgeneric ,name (,@required-args
-			  ,@(mapcar #'(lambda (arg)
-					(cond ((atom arg) arg)
-					      ((atom (first arg)) (first arg))
-					      (t (first (first arg)))))
-				    extra-args))
-	 ,@rest)
+       #-VDPCL ,@defgeneric			;PCL's defgeneric fails.
        (let* ((protocol (find-protocol ',protocol))
 	      (operation
 		(make-instance 'operation :name ',name
@@ -133,6 +118,7 @@
 	 ;; Just simple now.
 	 (push-unique operation (protocol-operations protocol) 
 		      :key #'operation-name)))))
+
 
 ;; This gets bound to the outermost player
 (defvar *outer-self* nil)
@@ -213,9 +199,19 @@
   `(progn
      (define-trampoline-template ,protocol-name ,role-name ,role-player
 				 (,role-player body) ,outer-self
-				 `(let ((,',role-player ,,delegate-form))
-				    ,@body))
+       `(let ((,',role-player ,,delegate-form))
+	  ,@body))
      (define-slot-trampoline-template ,protocol-name ,role-name ,role-player
 				      (,role-player body) ,outer-self
-				      `(let ((,',role-player ,,delegate-form))
-					 ,@body))))
+       `(let ((,',role-player ,,delegate-form))
+	  ,@body))))
+
+(defmacro define-protocol-class (class-name superclass-names)
+  (let ((predicate-name (if (find #\- (string class-name))
+			    (fintern "~A-~A" class-name 'p)
+			    (fintern "~A~A" class-name 'p))))
+    `(progn
+       (defclass ,class-name ,superclass-names ())
+       (defgeneric ,predicate-name (object))
+       (defmethod ,predicate-name ((object t)) nil)
+       (defmethod ,predicate-name ((object ,class-name)) t))))

@@ -1,30 +1,10 @@
-;;; -*- Mode: LISP; Syntax: Common-lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
-;; 
-;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
-;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
-;;
-;; The software, data and information contained herein are proprietary
-;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
-;; given in confidence by Franz, Inc. pursuant to a written license
-;; agreement, and may be stored and used only in accordance with the terms
-;; of such license.
-;;
-;; Restricted Rights Legend
-;; ------------------------
-;; Use, duplication, and disclosure of the software, data and information
-;; contained herein by any agency, department or entity of the U.S.
-;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
-;;
+;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: designs.lisp,v 1.1 91/08/30 13:57:46 cer Exp Locker: cer $
+;; $fiHeader: designs.lisp,v 1.5 91/03/26 12:03:10 cer Exp $
 
 (in-package :clim-utils)
 
-"Copyright (c) 1990, 1991 Symbolics, Inc.  All rights reserved."
-"Copyright (c) 1991, Franz Inc. All rights reserved"
+"Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved."
 
 ;;; Designs
 
@@ -52,8 +32,8 @@
 
 (defun make-opacity (opacity)
   #+Genera (declare lt:(side-effects simple reducible))
-  (assert (and (numberp opacity) (<= 0 opacity 1))
-	  (opacity) "The opacity ~S is not a number between 0 and 1" opacity)
+  (assert (and (numberp opacity) (<= 0 opacity 1)) (opacity)
+	  "The opacity ~S is not a number between 0 and 1" opacity)
   (cond ((= opacity 0) +nowhere+)
 	((= opacity 1) +everywhere+)
 	(t (make-standard-opacity-1 opacity))))
@@ -71,23 +51,23 @@
 (define-constructor make-gray-color-1 gray-color (luminance)
 		    :luminance luminance)
 
-(defvar +black+ (make-gray-color-1 0s0))
-(defvar +white+ (make-gray-color-1 1s0))
+(defvar +black+ (make-gray-color-1 0f0))
+(defvar +white+ (make-gray-color-1 1f0))
 
 (defun make-gray-color (luminance)
   #+Genera (declare lt:(side-effects simple reducible))
-  (assert (and (numberp luminance) (<= 0 luminance 1))
-	  (luminance) "The luminance ~S is not a number between 0 and 1" luminance)
+  (assert (and (numberp luminance) (<= 0 luminance 1)) (luminance)
+	  "The luminance ~S is not a number between 0 and 1" luminance)
   (cond ((= luminance 0) +black+)
 	((= luminance 1) +white+)
-	(t (make-gray-color-1 (float luminance 0s0)))))
+	(t (make-gray-color-1 (float luminance 0f0)))))
 
 (defmethod print-object ((color gray-color) stream)
   (print-unreadable-object (color stream :type t :identity t)
     (with-slots (luminance) color
-      (cond ((= luminance 0s0)
+      (cond ((= luminance 0f0)
 	     (format stream "Black"))
-	    ((= luminance 1s0)
+	    ((= luminance 1f0)
 	     (format stream "White"))
 	    (t
 	     (format stream "~D% Gray" (round (* 100 luminance))))))))
@@ -104,23 +84,28 @@
 ;;; Colors
 
 (defclass rgb-color (color)
-    ((red :type single-float :initarg :red)
+    ((red   :type single-float :initarg :red)
      (green :type single-float :initarg :green)
-     (blue :type single-float :initarg :blue)))
+     (blue  :type single-float :initarg :blue)))
 
 (define-constructor make-rgb-color-1 rgb-color (red green blue)
   :red red :green green :blue blue)
 
-(defun make-color-rgb (red green blue)
-  (assert (and (numberp red) (<= 0 red 1))
-	  (red) "The red value ~S is not a number between 0 and 1" red)
-  (assert (and (numberp green) (<= 0 green 1))
-	  (green) "The green value ~S is not a number between 0 and 1" green)
-  (assert (and (numberp blue) (<= 0 blue 1))
-	  (blue) "The blue value ~S is not a number between 0 and 1" blue)
+(defun make-rgb-color (red green blue)
+  (assert (and (numberp red) (<= 0 red 1)) (red)
+	  "The red value ~S is not a number between 0 and 1" red)
+  (assert (and (numberp green) (<= 0 green 1)) (green)
+	  "The green value ~S is not a number between 0 and 1" green)
+  (assert (and (numberp blue) (<= 0 blue 1)) (blue)
+	  "The blue value ~S is not a number between 0 and 1" blue)
   (if (= red green blue)
       (make-gray-color red)
-      (make-rgb-color-1 (float red 0s0) (float green 0s0) (float blue 0s0))))
+      (make-rgb-color-1 (float red 0f0) (float green 0f0) (float blue 0f0))))
+
+#+CLIM-1-compatibility
+(define-compatibility-function (make-color-rgb make-rgb-color)
+			       (red green blue)
+  (make-rgb-color red green blue))
 
 (defmethod print-object ((color rgb-color) stream)
   (print-unreadable-object (color stream :type t :identity t)
@@ -129,14 +114,18 @@
 
 (defmethod make-load-form ((color rgb-color))
   (with-slots (red green blue) color
-    `(make-color-rgb ,red ,green ,blue)))
+    `(make-rgb-color ,red ,green ,blue)))
 
 (defmethod color-rgb ((color rgb-color))
   (with-slots (red green blue) color
     (values red green blue)))
 
+(defun-inline color-luminosity (r g b)
+  ;; From Foley and Van Dam, page 613 (discussion of YIQ color model)...
+  (+ (* 0.299f0 r) (* 0.587f0 g) (* 0.114f0 b)))
+
 (defmacro define-named-color (color r g b)
-  `(defvar ,color (make-color-rgb ,(/ r 255.0) ,(/ g 255.0) ,(/ b 255.0))))
+  `(defvar ,color (make-rgb-color ,(/ r 255.0) ,(/ g 255.0) ,(/ b 255.0))))
 
 ;; The primary colors
 (define-named-color +red+     255   0   0)
@@ -272,8 +261,8 @@
 
 ;;--- This implementation of IHS colors is not really correct
 (defclass ihs-color (color)
-    ((intensity :type single-float :initarg :intensity)
-     (hue :type single-float :initarg :hue)
+    ((intensity  :type single-float :initarg :intensity)
+     (hue	 :type single-float :initarg :hue)
      (saturation :type single-float :initarg :saturation)))
 
 (define-constructor make-ihs-color-1 ihs-color (intensity hue saturation)
@@ -281,21 +270,26 @@
 
 (defconstant sqrt3 (sqrt 3))
 
-(defun make-color-ihs (intensity hue saturation)
+(defun make-ihs-color (intensity hue saturation)
   #+Genera (declare lt:(side-effects simple reducible))
-  (assert (and (numberp intensity) (<= 0 intensity sqrt3))
-	  (intensity) "The intensity value ~S is not a number between 0 and (SQRT 3)" intensity)
-  (assert (and (numberp hue) (<= 0 hue 1))
-	  (hue) "The hue value ~S is not a number between 0 and 1" hue)
-  (assert (and (numberp saturation) (<= 0 saturation 1))
-	  (saturation) "The saturation value ~S is not a number between 0 and 1" saturation)
+  (assert (and (numberp intensity) (<= 0 intensity sqrt3)) (intensity)
+	  "The intensity value ~S is not a number between 0 and (SQRT 3)" intensity)
+  (assert (and (numberp hue) (<= 0 hue 1)) (hue)
+	  "The hue value ~S is not a number between 0 and 1" hue)
+  (assert (and (numberp saturation) (<= 0 saturation 1)) (saturation)
+	  "The saturation value ~S is not a number between 0 and 1" saturation)
   (cond ((= intensity 0) +black+)
 	(t
-	 (make-ihs-color-1 (float intensity 0s0) (float hue 0s0) (float saturation 0s0)))))
+	 (make-ihs-color-1 (float intensity 0f0) (float hue 0f0) (float saturation 0f0)))))
+
+#+CLIM-1-compatibility
+(define-compatibility-function (make-color-ihs make-ihs-color)
+			       (intensity hue saturation)
+  (make-ihs-color intensity hue saturation))
 
 (defmethod make-load-form ((color ihs-color))
   (with-slots (intensity hue saturation) color
-    `(make-color-ihs ,intensity ,hue ,saturation)))
+    `(make-ihs-color ,intensity ,hue ,saturation)))
 
 (defmethod print-object ((color ihs-color) stream)
   (print-unreadable-object (color stream :type t :identity t)
@@ -304,14 +298,14 @@
 
 (defmethod color-rgb ((color ihs-color))
   (with-slots (intensity hue saturation) color
-    (let* ((hh (mod (- hue .5s0) 1.0s0))
-	   (hh (- (* hh 2.0s0 3.1415926535s0) 3.1415926535s0))
+    (let* ((hh (mod (- hue .5f0) 1.0f0))
+	   (hh (- (* hh 2.0f0 3.1415926535f0) 3.1415926535f0))
 	   (s3 (sin saturation))
-	   (z (* (sqrt (/ 3.0s0)) (cos saturation) intensity))
-	   (x (* (sqrt (/ 6.0s0)) s3 (cos hh) intensity))
-	   (y (* (sqrt (/ 2.0s0)) s3 (sin hh) intensity)))
+	   (z (* (sqrt (/ 3.0f0)) (cos saturation) intensity))
+	   (x (* (sqrt (/ 6.0f0)) s3 (cos hh) intensity))
+	   (y (* (sqrt (/ 2.0f0)) s3 (sin hh) intensity)))
       (macrolet ((range (x)
-			`(max 0.0s0 (min 1.0s0 ,x))))
+		   `(max 0.0f0 (min 1.0f0 ,x))))
 	(values (range (+ x x z))
 		(range (+ y z (- x)))
 		(range (- z x y)))))))
@@ -323,23 +317,28 @@
 
 ;;; Foreground and background (indirect) inks
 
-(defvar +foreground+ (make-instance 'design))
+(defvar +foreground-ink+ (make-instance 'design))
 
-(defmethod make-load-form ((design (eql +foreground+)))
-  '+foreground+)
+#+CLIM-1-compatibility
+(defvar +foreground+ +foreground-ink+)
 
-(defmethod print-object ((design (eql +foreground+)) stream)
+(defmethod make-load-form ((design (eql +foreground-ink+)))
+  '+foreground-ink+)
+
+(defmethod print-object ((design (eql +foreground-ink+)) stream)
   (print-unreadable-object (design stream)
     (write-string "CLIM Foreground" stream)))
 
-;;;
 
-(defvar +background+ (make-instance 'design))
+(defvar +background-ink+ (make-instance 'design))
 
-(defmethod make-load-form ((design (eql +background+)))
-  '+background+)
+#+CLIM-1-compatibility
+(defvar +background+ +background-ink+)
 
-(defmethod print-object ((design (eql +background+)) stream)
+(defmethod make-load-form ((design (eql +background-ink+)))
+  '+background-ink+)
+
+(defmethod print-object ((design (eql +background-ink+)) stream)
   (print-unreadable-object (design stream)
     (write-string "CLIM Background" stream)))
 
@@ -362,13 +361,13 @@
   (with-slots (design1 design2) design
     `(make-flipping-ink ',design1 ',design2)))
 
-(defvar +flipping-ink+ (make-flipping-ink-1 +foreground+ +background+))
+(defvar +flipping-ink+ (make-flipping-ink-1 +foreground-ink+ +background-ink+))
 
 (defmethod make-flipping-ink (design1 design2)
   (cond ((eq design1 design2)
 	 +nowhere+)
-	((or (and (eq design1 +foreground+) (eq design2 +background+))
-	     (and (eq design2 +foreground+) (eq design1 +background+)))
+	((or (and (eq design1 +foreground-ink+) (eq design2 +background-ink+))
+	     (and (eq design2 +foreground-ink+) (eq design1 +background-ink+)))
 	 +flipping-ink+)
 	(t
 	 (make-flipping-ink-1 design1 design2))))
@@ -381,7 +380,7 @@
 ;;; Contrasting inks
 
 (defclass contrasting-ink (design)
-    ((how-many :type integer :initarg :how-many)
+    ((how-many  :type integer :initarg :how-many)
      (which-one :type integer :initarg :which-one)))
 
 (define-constructor make-contrasting-ink-1 contrasting-ink (which-one how-many)
@@ -459,8 +458,8 @@
 ;;; Patterns
 
 (defclass pattern (design)
-    ((array :type (array * (* *)) :initarg :array)
-     (designs :type vector :initarg :designs)))
+    ((array   :type (array * (* *)) :initarg :array)
+     (designs :type vector	    :initarg :designs)))
 
 (defun make-pattern (array designs)
   #+Genera (declare lt:(side-effects simple reducible))
@@ -515,8 +514,8 @@
 
 (defclass rectangular-tile (design)
     ((design :type design :initarg :design)
-     (width :type real :initarg :width)
-     (height :type real :initarg :height)))
+     (width  :type real   :initarg :width)
+     (height :type real   :initarg :height)))
 
 (defun make-rectangular-tile (design width height)
   #+Genera (declare lt:(side-effects simple reducible))
@@ -552,8 +551,8 @@
 	(when (and (= width (array-dimension array 1))
 		   (= height (array-dimension array 0))
 		   (= (length designs) 2)
-		   (eq (aref designs 0) +background+)
-		   (eq (aref designs 1) +foreground+))
+		   (eq (aref designs 0) +background-ink+)
+		   (eq (aref designs 1) +foreground-ink+))
 	  (values array width height))))))
 
 
@@ -586,6 +585,9 @@
 (defmethod compose-over (design1 design2)
   (make-instance 'composite-over :designs (vector design1 design2)))
 
+(defmethod compose-over ((region1 region) (region2 region))
+  (region-union region2 region1))
+
 
 (defclass composite-in (design)
     ((designs :type vector :initarg :designs)))
@@ -611,7 +613,9 @@
 (defmethod compose-in (ink design)
   (make-instance 'composite-in :designs (vector ink design)))
 
-;;;
+(defmethod compose-in ((region1 region) (region2 region))
+  (region-intersection region2 region1))
+
 
 (defclass composite-out (design)
     ((designs :type vector :initarg :designs)))
@@ -626,7 +630,7 @@
 
 (defmethod make-load-form ((design composite-out))
   (with-slots (designs) design
-    (values '(make-outstance 'composite-out)
+    (values '(make-instance 'composite-out)
 	    `(setf (slot-value ',design 'designs) ',designs))))
 
 (defmethod transform-region ((transformation transformation) (design composite-out))
@@ -636,3 +640,6 @@
 
 (defmethod compose-out (ink design)
   (make-instance 'composite-out :designs (vector ink design)))
+
+(defmethod compose-out ((region1 region) (region2 region))
+  (region-difference region2 region1))

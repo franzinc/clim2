@@ -1,29 +1,10 @@
-;;; -*- Mode: LISP; Syntax: Common-lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
-;; 
-;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
-;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
-;;
-;; The software, data and information contained herein are proprietary
-;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
-;; given in confidence by Franz, Inc. pursuant to a written license
-;; agreement, and may be stored and used only in accordance with the terms
-;; of such license.
-;;
-;; Restricted Rights Legend
-;; ------------------------
-;; Use, duplication, and disclosure of the software, data and information
-;; contained herein by any agency, department or entity of the U.S.
-;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
-;;
-;; $fiHeader: regions.lisp,v 1.1 91/11/25 10:01:45 cer Exp Locker: cer $
+;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
+
+;; $fiHeader: regions.lisp,v 1.6 91/03/29 18:02:06 cer Exp $
 
 (in-package :clim-utils)
 
-"Copyright (c) 1990, 1991 Symbolics, Inc.  All rights reserved."
-"Copyright (c) 1991, Franz Inc. All rights reserved"
+"Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved."
 
 ;;; Generic Functions
 
@@ -98,17 +79,27 @@
      (defmethod ,name (,region1 ,region2) ,@body)
      (defmethod ,name (,region2 ,region1) ,@body)))
 
+#-Silica
 (defmacro fix-rectangle (left top right bottom)
   `(values (the fixnum (floor ,left))
 	   (the fixnum (floor ,top))
 	   (the fixnum (ceiling ,right))
 	   (the fixnum (ceiling ,bottom))))
 
+#+Silica
+(defmacro fix-rectangle (left top right bottom)
+  `(values (float ,left 0f0)
+	   (float ,top 0f0)
+	   (float ,right 0f0)
+	   (float ,bottom 0f0)))
+
 
-(defclass design () ())
+;;; The basic design protocol classes
+
+(define-protocol-class design ())
 
 
-(defclass opacity (design) ())
+(define-protocol-class opacity (design))
 
 (defmethod print-object ((design opacity) stream)
   (print-unreadable-object (design stream :type t :identity t)
@@ -118,15 +109,15 @@
 (defmethod transform-region ((transformation transformation) (opacity opacity)) opacity)
 
 
-(defclass color (design) ())
+(define-protocol-class color (design))
 
 ;; Colors are unbounded and uniform, so transformations are a no-op
 (defmethod transform-region ((transformation transformation) (color color)) color)
 
 
-;;; Regions
+;;; The basic regions protocol classes
 
-(defclass region (design) ())
+(define-protocol-class region (design))
 
 (defmethod transform-region ((transformation identity-transformation) region) region)
 
@@ -161,7 +152,7 @@
   (declare (ignore transformation))
   region)
 
-(defmethod opacity-value ((design nowhere)) 0s0)
+(defmethod opacity-value ((design nowhere)) 0f0)
 
 (defvar +nowhere+ (make-instance 'nowhere))
 
@@ -190,14 +181,17 @@
   (declare (ignore transformation))
   region)
 
-(defmethod opacity-value ((design everywhere)) 1s0)
+(defmethod opacity-value ((design everywhere)) 1f0)
 
 (defvar +everywhere+ (make-instance 'everywhere))
+
+
+(define-protocol-class bounding-rectangle ())
 
 
 ;;; Points
 
-(defclass point (region) ())
+(define-protocol-class point (region bounding-rectangle))
 
 (defmethod print-object ((point point) stream)
   (print-unreadable-object (point stream :type t :identity t)
@@ -268,13 +262,11 @@
 
 ;;; Paths
 
-(defclass path (region) ())
+(define-protocol-class path (region bounding-rectangle))
 
+(define-protocol-class polyline (path))
 
-(defclass polyline (path) ())
-
-
-(defclass line (polyline) ())
+(define-protocol-class line (polyline))
 
 (defmethod print-object ((line line) stream)
   (print-unreadable-object (line stream :type t :identity t)
@@ -400,13 +392,11 @@
 
 ;;; Areas
 
-(defclass area (region) ())
+(define-protocol-class area (region bounding-rectangle))
 
+(define-protocol-class polygon (area))
 
-(defclass polygon (area) ())
-
-
-(defclass rectangle (polygon) ())
+(define-protocol-class rectangle (polygon))
 
 (defmethod print-object ((rectangle rectangle) stream)
   (print-unreadable-object (rectangle stream :type t :identity t)
@@ -437,10 +427,10 @@
 (define-constructor make-rectangle*-1 standard-rectangle (min-x min-y max-x max-y)
   :min-x min-x :min-y min-y :max-x max-x :max-y max-y)
 
-(defun make-rectangle* (min-x min-y max-x max-y)
-  (assert (<= min-x max-x))
-  (assert (<= min-y max-y))
-  (make-rectangle*-1 min-x min-y max-x max-y))
+(defun make-rectangle* (x1 y1 x2 y2)
+  (when (> x1 x2) (rotatef x1 x2))
+  (when (> y1 y2) (rotatef y1 y2))
+  (make-rectangle*-1 x1 y1 x2 y2))
 
 (defmethod make-load-form ((rectangle standard-rectangle))
   `(make-rectangle* ,(rectangle-min-x rectangle) ,(rectangle-min-y rectangle)
@@ -651,10 +641,9 @@
 
 ;;; General ellipses
 
-(defclass elliptical-arc (path) ())
+(define-protocol-class elliptical-arc (path))
 
-
-(defclass ellipse (area) ())
+(define-protocol-class ellipse (area))
 
 
 (defclass ellipse-mixin ()
@@ -690,11 +679,11 @@
   :center-point center-point :center-x (point-x center-point) :center-y (point-y center-point)
   :radius-1-dx radius-1-dx :radius-1-dy radius-1-dy
   :radius-2-dx radius-2-dx :radius-2-dy radius-2-dy
-  :start-angle (cond (start-angle (float start-angle 0s0))
-		     (end-angle 0s0)
+  :start-angle (cond (start-angle (float start-angle 0f0))
+		     (end-angle 0f0)
 		     (t nil))
-  :end-angle (cond (end-angle (float end-angle 0s0))
-		   (start-angle (float (* 2 pi) 0s0))
+  :end-angle (cond (end-angle (float end-angle 0f0))
+		   (start-angle (float (* 2 pi) 0f0))
 		   (t nil)))
 
 (define-constructor make-elliptical-arc* standard-elliptical-arc
@@ -703,11 +692,11 @@
   :center-x center-x :center-y center-y
   :radius-1-dx radius-1-dx :radius-1-dy radius-1-dy
   :radius-2-dx radius-2-dx :radius-2-dy radius-2-dy
-  :start-angle (cond (start-angle (float start-angle 0s0))
-		     (end-angle 0s0)
+  :start-angle (cond (start-angle (float start-angle 0f0))
+		     (end-angle 0f0)
 		     (t nil))
-  :end-angle (cond (end-angle (float end-angle 0s0))
-		   (start-angle (float (* 2 pi) 0s0))
+  :end-angle (cond (end-angle (float end-angle 0f0))
+		   (start-angle (float (* 2 pi) 0f0))
 		   (t nil)))
 
 (defmethod make-load-form ((ellipse standard-elliptical-arc))
@@ -746,11 +735,11 @@
   :center-point center-point :center-x (point-x center-point) :center-y (point-y center-point)
   :radius-1-dx radius-1-dx :radius-1-dy radius-1-dy
   :radius-2-dx radius-2-dx :radius-2-dy radius-2-dy
-  :start-angle (cond (start-angle (float start-angle 0s0))
-		     (end-angle 0s0)
+  :start-angle (cond (start-angle (float start-angle 0f0))
+		     (end-angle 0f0)
 		     (t nil))
-  :end-angle (cond (end-angle (float end-angle 0s0))
-		   (start-angle (float (* 2 pi) 0s0))
+  :end-angle (cond (end-angle (float end-angle 0f0))
+		   (start-angle (float (* 2 pi) 0f0))
 		   (t nil)))
 
 (define-constructor make-ellipse* standard-ellipse
@@ -759,11 +748,11 @@
   :center-x center-x :center-y center-y
   :radius-1-dx radius-1-dx :radius-1-dy radius-1-dy
   :radius-2-dx radius-2-dx :radius-2-dy radius-2-dy
-  :start-angle (cond (start-angle (float start-angle 0s0))
-		     (end-angle 0s0)
+  :start-angle (cond (start-angle (float start-angle 0f0))
+		     (end-angle 0f0)
 		     (t nil))
-  :end-angle (cond (end-angle (float end-angle 0s0))
-		   (start-angle (float (* 2 pi) 0s0))
+  :end-angle (cond (end-angle (float end-angle 0f0))
+		   (start-angle (float (* 2 pi) 0f0))
 		   (t nil)))
 
 (defmethod make-load-form ((ellipse standard-ellipse))
@@ -854,7 +843,7 @@
 	 (values 0.0 a d 0.0))
 	((and (zerop a) (zerop d))
 	 (values pi/2 b (- c) 0.0))
-	(t
+	(T
 	 (let* ((d+a (+ d a)) (a-d (- a d))
 		(c+b (+ c b)) (c-b (- c b))
 		(sx+sy (sqrt (+ (square d+a) (square c-b))))
@@ -873,9 +862,7 @@
 ;; not axis-aligned.  It's not worth computing anything tighter because
 ;; the refined highlighting test will be faster than the computation of
 ;; a tighter box.
-
-(defun elliptical-arc-box (center-x center-y 
-			   radius-1-dx radius-1-dy radius-2-dx radius-2-dy
+(defun elliptical-arc-box (center-x center-y radius-1-dx radius-1-dy radius-2-dx radius-2-dy
 			   theta-1 theta-2 thickness)
   (let* ((filled (null thickness))
 	 (thickness (or thickness 0))
@@ -889,8 +876,6 @@
 			 (+ center-x dx rthickness) (+ center-y dy rthickness)))))
     (setq theta-1 (mod theta-1 2pi)
 	  theta-2 (mod theta-2 2pi))
-    ;;--- Fix the NYI stuff some year
-    
     (multiple-value-bind (x-radius y-radius)
 	(cond ((and (= radius-1-dx 0) (= radius-2-dy 0))
 	       (values (abs radius-2-dx) (abs radius-1-dy)))
@@ -944,61 +929,84 @@
 ;; Bounding rectangles live in the "ground" coordinate system, such that
 ;; LEFT = MIN-X, RIGHT = MAX-X, TOP = MIN-Y, AND BOTTOM = MAX-Y.
 ;; We use these slot names to avoid colliding with the slot names in STANDARD-RECTANGLE.
-(defclass bounding-rectangle (rectangle)
-    ((left   :initarg :left   :accessor rectangle-min-x :type fixnum)
-     (top    :initarg :top    :accessor rectangle-min-y :type fixnum)
-     (right  :initarg :right  :accessor rectangle-max-x :type fixnum)
-     (bottom :initarg :bottom :accessor rectangle-max-y :type fixnum)))
+(defclass standard-bounding-rectangle (region bounding-rectangle)
+    ((left   :initarg :left   :accessor rectangle-min-x)
+     (top    :initarg :top    :accessor rectangle-min-y)
+     (right  :initarg :right  :accessor rectangle-max-x)
+     (bottom :initarg :bottom :accessor rectangle-max-y)))
 
-(define-constructor make-bounding-rectangle-1 bounding-rectangle (left top right bottom)
-		    :left left :top top :right right :bottom bottom)
+(defmethod print-object ((object standard-bounding-rectangle) stream)
+  (print-unreadable-object (object stream :type t :identity t)
+    (format stream "/x ~A:~A y ~A:~A/"
+	    (safe-slot-value object 'left)
+	    (safe-slot-value object 'right)
+	    (safe-slot-value object 'top)
+	    (safe-slot-value object 'bottom))))
 
+(define-constructor make-bounding-rectangle-1 standard-bounding-rectangle
+		    (left top right bottom)
+  :left left :top top :right right :bottom bottom)
+
+#-Silica
 (defun make-bounding-rectangle (left top right bottom)
-  (make-bounding-rectangle-1 (floor left)    (floor top)
-			     (ceiling right) (ceiling bottom)))
+  (let ((x1 (floor left))
+	(y1 (floor top))
+	(x2 (floor right))
+	(y2 (floor bottom)))
+    (declare (type coordinate x1 y1 x2 y2))
+    (when (> x1 x2) (rotatef x1 x2))
+    (when (> y1 y2) (rotatef y1 y2))
+    (make-bounding-rectangle-1 x1 y1 x2 y2)))
 
-(defmethod make-load-form ((rectangle bounding-rectangle))
+#+Silica
+(defun make-bounding-rectangle (left top right bottom)
+  (let ((x1 (float left 0f0))
+	(y1 (float top 0f0))
+	(x2 (float right 0f0))
+	(y2 (float bottom 0f0)))
+    (declare (type coordinate x1 y1 x2 y2))
+    (when (> left right) (rotatef left right))
+    (when (> top bottom) (rotatef top bottom))
+    (make-bounding-rectangle-1 left top right bottom)))
+
+(defmethod make-load-form ((rectangle standard-bounding-rectangle))
   (with-slots (left top right bottom) rectangle
     `(make-bounding-rectangle ,left ,top ,right ,bottom)))
 
-(defmethod transform-region (transformation (rectangle bounding-rectangle))
+(defmethod transform-region (transformation (rectangle standard-bounding-rectangle))
   (with-slots (left top right bottom) rectangle
     (if (rectilinear-transformation-p transformation)
 	(multiple-value-bind (x1 y1)
 	    (transform-point* transformation left top)
 	  (multiple-value-bind (x2 y2)
 	      (transform-point* transformation right bottom)
-	    ;; The transform could have been a reflection, so make sure
-	    ;; that the bounding rectangle stays in canonical form
-	    (when (> x1 x2) (rotatef x1 x2))
-	    (when (> y1 y2) (rotatef y1 y2))
 	    (make-bounding-rectangle x1 y1 x2 y2)))
         (error "You can only transform bounding-rectangles rectilinearly"))))
 
-(defmethod rectangle-max-point ((rectangle bounding-rectangle))
+(defmethod rectangle-max-point ((rectangle standard-bounding-rectangle))
   (make-point (slot-value rectangle 'right) (slot-value rectangle 'bottom)))
 
-(defmethod rectangle-edges* ((rectangle bounding-rectangle))
+(defmethod rectangle-edges* ((rectangle standard-bounding-rectangle))
   (with-slots (left top right bottom) rectangle
     (values left top right bottom)))
 
-(defmethod rectangle-width ((rectangle bounding-rectangle))
+(defmethod rectangle-width ((rectangle standard-bounding-rectangle))
   (with-slots (left right) rectangle
-    (declare (fixnum left right))
-    (the fixnum (- right left))))
+    (declare (type coordinate left right))
+    (- right left)))
 
-(defmethod rectangle-height ((rectangle bounding-rectangle))
+(defmethod rectangle-height ((rectangle standard-bounding-rectangle))
   (with-slots (top bottom) rectangle
-    (declare (fixnum top bottom))
-    (the fixnum (- bottom top))))
+    (declare (type coordinate top bottom))
+    (- bottom top)))
 
-(defmethod rectangle-size ((rectangle bounding-rectangle))
+(defmethod rectangle-size ((rectangle standard-bounding-rectangle))
   (with-slots (left top right bottom) rectangle
-    (declare (fixnum left top right bottom))
-    (values (the fixnum (- right left))
-	    (the fixnum (- bottom top)))))
+    (declare (type coordinate left top right bottom))
+    (values (- right left)
+	    (- bottom top))))
 
-(defmethod map-over-polygon-coordinates (function (rectangle bounding-rectangle))
+(defmethod map-over-polygon-coordinates (function (rectangle standard-bounding-rectangle))
   (with-slots (left top right bottom) rectangle
     (funcall function left top)
     (funcall function left bottom)
@@ -1006,7 +1014,7 @@
     (funcall function right top)
     nil))
 
-(defmethod map-over-polygon-segments (function (rectangle bounding-rectangle))
+(defmethod map-over-polygon-segments (function (rectangle standard-bounding-rectangle))
   (with-slots (left top right bottom) rectangle
     (funcall function left top left bottom)
     (funcall function left bottom right bottom)
@@ -1016,35 +1024,39 @@
 
 ;; This and the next three can also serve for output records, which are built
 ;; on top of BOUNDING-RECTANGLE.
-(defmethod region-equal ((rect1 bounding-rectangle) (rect2 bounding-rectangle))
+(defmethod region-equal ((rect1 standard-bounding-rectangle) 
+			 (rect2 standard-bounding-rectangle))
   (with-slots ((sx1 left) (sy1 top) (ex1 right) (ey1 bottom)) rect1
     (with-slots ((sx2 left) (sy2 top) (ex2 right) (ey2 bottom)) rect2
       (ltrb-equals-ltrb-p sx1 sy1 ex1 ey1
 			  sx2 sy2 ex2 ey2))))
 
-(defmethod region-contains-point*-p ((rectangle bounding-rectangle) x y)
+(defmethod region-contains-point*-p ((rectangle standard-bounding-rectangle) x y)
   (with-slots (left top right bottom) rectangle
     (ltrb-contains-point*-p left top right bottom x y)))
 
-(defmethod region-contains-region-p ((rect1 bounding-rectangle) (rect2 bounding-rectangle))
+(defmethod region-contains-region-p ((rect1 standard-bounding-rectangle) 
+				     (rect2 standard-bounding-rectangle))
   (with-slots ((sx1 left) (sy1 top) (ex1 right) (ey1 bottom)) rect1
     (with-slots ((sx2 left) (sy2 top) (ex2 right) (ey2 bottom)) rect2
       (ltrb-contains-ltrb-p sx1 sy1 ex1 ey1
 			    sx2 sy2 ex2 ey2))))
 
-(defmethod region-intersects-region-p ((rect1 bounding-rectangle) (rect2 bounding-rectangle))
+(defmethod region-intersects-region-p ((rect1 standard-bounding-rectangle) 
+				       (rect2 standard-bounding-rectangle))
   (with-slots ((sx1 left) (sy1 top) (ex1 right) (ey1 bottom)) rect1
     (with-slots ((sx2 left) (sy2 top) (ex2 right) (ey2 bottom)) rect2
       (ltrb-overlaps-ltrb-p sx1 sy1 ex1 ey1
 			    sx2 sy2 ex2 ey2))))
 
-(defmacro with-bounding-rectangle* ((left top &optional right bottom) region &body body)
-  `(multiple-value-bind (,left ,top ,@(when right (list right bottom)))
+(defmacro with-bounding-rectangle* ((left top right bottom) region &body body)
+  #+Genera (declare (zwei:indentation 1 3 2 1))
+  `(multiple-value-bind (,left ,top ,right ,bottom)
        (bounding-rectangle* ,region) 
-     (declare (fixnum ,left ,top ,@(when right (list right bottom))))
+     (declare (type coordinate ,left ,top ,right ,bottom))
      ,@body))
 
-(defmethod bounding-rectangle* ((rectangle bounding-rectangle))
+(defmethod bounding-rectangle* ((rectangle standard-bounding-rectangle))
   (with-slots (left top right bottom) rectangle
     (values left top right bottom)))
 
@@ -1061,9 +1073,10 @@
 	   (make-bounding-rectangle left top right bottom)))))
 
 ;; Set the edges of the rectangle, and return the rectangle as the value
-;; LEFT, TOP, RIGHT, and BOTTOM had better be fixnums
-(defmethod bounding-rectangle-set-edges ((rectangle bounding-rectangle) left top right bottom)
-  (declare (fixnum left top right bottom))
+;; LEFT, TOP, RIGHT, and BOTTOM had better be of type COORDINATE
+(defmethod bounding-rectangle-set-edges ((rectangle standard-bounding-rectangle)
+					 left top right bottom)
+  (declare (type coordinate left top right bottom))
   #+ignore (assert (<= left right))
   #+ignore (assert (<= top bottom))
   (with-slots ((bl left) (bt top) (br right) (bb bottom)) rectangle
@@ -1078,7 +1091,7 @@
   (let* ((fspec (fintern "~A-~A" 'bounding-rectangle name))
 	 (new (fintern "~A-~A" 'new name))
 	 (edges '(left top right bottom)))
-    ;; The new value had better be a fixnum
+    ;; The new value had better be of type COORDINATE
     `(defsetf ,fspec (region) (,new)
        `(with-bounding-rectangle* ,',edges ,region
 	  (setq ,',accessor ,,new)
@@ -1086,14 +1099,14 @@
 	  ,,new))))
 
 (defun-inline bounding-rectangle-min-x (region)
-  (with-bounding-rectangle* (min-x min-y) region
-    (declare (ignore min-y))
+  (with-bounding-rectangle* (min-x min-y max-x max-y) region
+    (declare (ignore min-y max-x max-y))
     min-x))
 (define-bounding-rectangle-setf min-x left)
 
 (defun-inline bounding-rectangle-min-y (region)
-  (with-bounding-rectangle* (min-x min-y) region
-    (declare (ignore min-x))
+  (with-bounding-rectangle* (min-x min-y max-x max-y) region
+    (declare (ignore min-x max-x max-y))
     min-y))
 (define-bounding-rectangle-setf min-y top)
 
@@ -1110,7 +1123,8 @@
 (define-bounding-rectangle-setf max-y bottom)
 
 (defun bounding-rectangle-min-point (region)
-  (with-bounding-rectangle* (min-x min-y) region 
+  (with-bounding-rectangle* (min-x min-y max-x max-y) region 
+    (declare (ignore max-x max-y))
     (make-point min-x min-y)))
 
 (defun bounding-rectangle-max-point (region)
@@ -1119,35 +1133,37 @@
     (make-point max-x max-y)))
 
 (defun-inline bounding-rectangle-position* (region)
-  (with-bounding-rectangle* (left top) region 
+  (with-bounding-rectangle* (left top right bottom) region 
+    (declare (ignore right bottom))
     (values left top)))
 
 (defun bounding-rectangle-position (region)
-  (with-bounding-rectangle* (left top) region 
+  (with-bounding-rectangle* (left top right bottom) region 
+    (declare (ignore right bottom))
     (make-point left top)))
 
 ;; Set the position of the rectangle, and return the rectangle as the value
-(defmethod bounding-rectangle-set-position* ((rectangle bounding-rectangle) x y)
-  (declare (fixnum x y))
+(defmethod bounding-rectangle-set-position* ((rectangle standard-bounding-rectangle) x y)
+  (declare (type coordinate x y))
   (with-slots (left top right bottom) rectangle
-    (declare (fixnum left top right bottom))
-    (let ((width (the fixnum (- right left)))
-	  (height (the fixnum (- bottom top))))
-      (declare (fixnum width height))
+    (declare (type coordinate left top right bottom))
+    (let ((width (- right left))
+	  (height (- bottom top)))
+      (declare (type coordinate width height))
       (setq left   x
 	    top    y
-	    right  (the fixnum (+ x width))
-	    bottom (the fixnum (+ y  height)))))
+	    right  (+ x width)
+	    bottom (+ y  height))))
   rectangle)
 
 ;; Make a new bounding rectangle for the region, and shift its position by DX,DY,
 ;; and return the new rectangle.
 (defun bounding-rectangle-shift-position (region dx dy &optional reuse-rectangle)
   (declare (values region))
-  (declare (fixnum dx dy))
+  (declare (type coordinate dx dy))
   (let ((rectangle (bounding-rectangle region reuse-rectangle)))
     (with-slots (left top right bottom) rectangle
-      (declare (fixnum left top right bottom))
+      (declare (type coordinate left top right bottom))
       (incf left   dx)
       (incf top    dy)
       (incf right  dx)
@@ -1156,9 +1172,9 @@
 
 (defun bounding-rectangle-position-equal (region1 region2)
   (multiple-value-bind (x1 y1) (bounding-rectangle-position* region1)
-    (declare (fixnum x1 y1))
+    (declare (type coordinate x1 y1))
     (multiple-value-bind (x2 y2) (bounding-rectangle-position* region2)
-      (declare (fixnum x2 y2))
+      (declare (type coordinate x2 y2))
       (and (= x1 x2)
 	   (= y1 y2)))))
 
@@ -1170,42 +1186,40 @@
 	   (= right1 right2)
 	   (= bottom1 bottom2)))))
 
-;; This should only be used to compare fixnum positions!
+;; This should only be used to compare COORDINATEs
 (defun-inline position-difference* (x1 y1 x2 y2)
-  (declare (fixnum x1 y1 x2 y2))
-  (values (the fixnum (- x1 x2))
-	  (the fixnum (- y1 y2))))
+  (declare (type coordinate x1 y1 x2 y2))
+  (values (- x1 x2) (- y1 y2)))
 
 (defun bounding-rectangle-position-difference (region1 region2)
   (multiple-value-bind (x1 y1) (bounding-rectangle-position* region1)
-    (declare (fixnum x1 y1))
+    (declare (type coordinate x1 y1))
     (multiple-value-bind (x2 y2) (bounding-rectangle-position* region2)
-      (declare (fixnum x2 y2))
+      (declare (type coordinate x2 y2))
       (position-difference* x1 y1 x2 y2))))
 
 (defun-inline bounding-rectangle-width (region)
   (with-bounding-rectangle* (left top right bottom) region
     (declare (ignore top bottom))
-    (the fixnum (- right left))))
+    (- right left)))
 
 (defun-inline bounding-rectangle-height (region)
   (with-bounding-rectangle* (left top right bottom) region 
     (declare (ignore left right))
-    (the fixnum (- bottom top))))
+    (- bottom top)))
 
 (defun-inline bounding-rectangle-size (region)
   (declare (values width height))
   (with-bounding-rectangle* (left top right bottom) region 
-    (values (the fixnum (- right left))
-	    (the fixnum (- bottom top)))))
+    (values (- right left) (- bottom top))))
 
 ;; Set the size of the rectangle, and return the rectangle as the value
-(defmethod bounding-rectangle-set-size ((rectangle bounding-rectangle) width height)
-  (declare (fixnum width height))
+(defmethod bounding-rectangle-set-size ((rectangle standard-bounding-rectangle) width height)
+  (declare (type coordinate width height))
   (with-slots (left top right bottom) rectangle
-    (declare (fixnum left top right bottom))
-    (let ((new-right  (the fixnum (+ left width)))
-	  (new-bottom (the fixnum (+ top height))))
+    (declare (type coordinate left top right bottom))
+    (let ((new-right  (+ left width))
+	  (new-bottom (+ top height)))
       (setq right  new-right
 	    bottom new-bottom)))
   rectangle)
@@ -1218,32 +1232,32 @@
 
 (defun bounding-rectangle-center (region)
   (with-bounding-rectangle* (left top right bottom) region
-    (make-point (+ left (floor (- right left) 2))
-		(+ top (floor (- bottom top) 2)))))
+    (make-point (+ left (/ (- right left) 2))
+		(+ top (/ (- bottom top) 2)))))
 
 (defun bounding-rectangle-center* (region)
   (with-bounding-rectangle* (left top right bottom) region
-    (values (+ left (floor (- right left) 2))
-	    (+ top (floor (- bottom top) 2)))))
+    (values (+ left (/ (- right left) 2))
+	    (+ top (/ (- bottom top) 2)))))
 
 (defun bounding-rectangle-ltrb (region)
   (declare (values left top right bottom))
   (with-bounding-rectangle* (left top right bottom) region
     (values left top right bottom)))
 
-(defmacro with-bounding-rectangle-ltrb ((left top &optional right bottom) region &body body)
-  `(with-bounding-rectangle* (,left ,top ,@(when right (list right bottom))) ,region
+(defmacro with-bounding-rectangle-ltrb ((left top right bottom) region &body body)
+  `(with-bounding-rectangle* (,left ,top ,right ,bottom) ,region
      ,@body))
 
 (defun-inline bounding-rectangle-left (region)
-  (with-bounding-rectangle-ltrb (left top) region
-    (declare (ignore top))
+  (with-bounding-rectangle-ltrb (left top right bottom) region
+    (declare (ignore top right bottom))
     left))
 (define-bounding-rectangle-setf left)
 
 (defun-inline bounding-rectangle-top (region)
-  (with-bounding-rectangle-ltrb (left top) region
-    (declare (ignore left))
+  (with-bounding-rectangle-ltrb (left top right bottom) region
+    (declare (ignore left right bottom))
     top))
 (define-bounding-rectangle-setf top)
 
@@ -1262,7 +1276,7 @@
 
 ;;; Region Sets
 
-(defclass region-set (region) ())
+(define-protocol-class region-set (region bounding-rectangle))
 
 ;;; Some default methods.
 
@@ -1340,11 +1354,4 @@
 ;; Exclude the general cases of REGION-INTERSECTS-REGION-P
 (defmethod region-intersects-region-p ((region1 region) (region2 region))
   (eql region1 region2))
-
-
-(define-symmetric-region-method region-intersects-region-p
-				((r1 bounding-rectangle) (r2 standard-rectangle))
- (with-bounding-rectangle* (a b c d) r1				
-			   (with-bounding-rectangle* (w x y z) r2
-						     (ltrb-overlaps-ltrb-p a b c d w x y z))))
 

@@ -1,29 +1,9 @@
-;;; -*- Mode: Lisp; Package: CLIM-UTILS; Base: 10.; Syntax: Common-Lisp; Lowercase: Yes -*-
-;; 
-;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
-;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
-;;
-;; The software, data and information contained herein are proprietary
-;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
-;; given in confidence by Franz, Inc. pursuant to a written license
-;; agreement, and may be stored and used only in accordance with the terms
-;; of such license.
-;;
-;; Restricted Rights Legend
-;; ------------------------
-;; Use, duplication, and disclosure of the software, data and information
-;; contained herein by any agency, department or entity of the U.S.
-;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
-;;
+;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: queue.lisp,v 1.1 91/08/30 13:57:49 cer Exp Locker: cer $
+;; $fiHeader: queue.lisp,v 1.4 91/03/26 12:03:14 cer Exp $
 
 ;;;
 ;;; Copyright (c) 1989 by Xerox Corporations.  All rights reserved.
-;;; Copyright (c) 1991, Franz Inc. All rights reserved
 ;;;
 ;;; This code was taken from the ARIA code which is copyrighted by MCC, Xerox,
 ;;; and Franz, Inc.   It was further modified by Ramana Rao.    
@@ -186,15 +166,15 @@
 ;;;
 
 (defclass locking-queue (queue)
-    ((lock-place :initform (initial-lock-value))))
+    ((lock-place :initform (make-lock "a queue lock"))))
   
-(defmacro with-queue-locked (queue &body body)
+(defmacro with-queue-locked (QUEUE &body BODY)
   #+ccl (declare (ignore queue))
   #+ccl `(progn ,@body)
   #-ccl
   `(with-slots (lock-place) ,queue
-     (with-lockf (lock-place "Queue lock") 
-       ,@body)))
+     (with-lock-held (lock-place "Queue lock") 
+       ,@BODY)))
 
 (defmethod queue-length ((queue locking-queue))
   (with-queue-locked queue 

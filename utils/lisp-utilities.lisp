@@ -1,30 +1,10 @@
-;;; -*- Mode: LISP; Syntax: Common-lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
-;; 
-;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
-;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
-;;
-;; The software, data and information contained herein are proprietary
-;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
-;; given in confidence by Franz, Inc. pursuant to a written license
-;; agreement, and may be stored and used only in accordance with the terms
-;; of such license.
-;;
-;; Restricted Rights Legend
-;; ------------------------
-;; Use, duplication, and disclosure of the software, data and information
-;; contained herein by any agency, department or entity of the U.S.
-;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
-;;
+ ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: lisp-utilities.lisp,v 1.1 91/08/30 13:57:47 cer Exp Locker: cer $
+;; $fiHeader: lisp-utilities.lisp,v 1.10 91/04/15 15:43:01 cer Exp $
 
 (in-package :clim-utils)
 
-"Copyright (c) 1990, 1991 Symbolics, Inc.  All rights reserved.
-Copyright (c) 1991, Franz Inc. All rights reserved
+"Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved.
  Portions copyright (c) 1988, 1989, 1990 International Lisp Associates."
 
 ;;; Define useful tools that don't exist in vanilla CL.
@@ -33,25 +13,56 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 
 (defmacro without-interrupts (&body body)
   #+Genera `(sys:without-interrupts ,@body)
-  #-(or Genera) `(progn ,@body))
+  #+Minima `(minima:with-no-other-processes ,@body)
+  #-(or Genera Minima) `(progn ,@body))
 
-;;; functionp doesn't do what we want and there isn't any other CL function
+;;; FUNCTIONP doesn't do what we want and there isn't any other CL function
 ;;; that does. 
 (defun funcallable-p (thing)
   (etypecase thing
     (symbol (fboundp thing))
     (function t)))
 
+(deftype coordinate () 
+  #-Silica 'fixnum
+  ;;--- Turn this into 'SINGLE-FLOAT
+  #+Silica 't)
+
+(defmacro integerize-single-float-coordinate (coord)
+  `(the fixnum (values (floor (+ (the single-float ,coord) .5f0)))))
+
+(defmacro integerize-double-float-coordinate (coord)
+  `(the fixnum (values (floor (+ (the double-float ,coord) .5d0)))))
+
+(defmacro integerize-float-coordinate (coord)
+  `(the fixnum (values (floor (+ (the float ,coord) .5)))))
+
+(defun integerize-coordinate (coord)
+  (etypecase coord
+    (fixnum coord)
+    (single-float
+      (integerize-single-float-coordinate coord))
+    (double-float
+      (integerize-double-float-coordinate coord))
+    #-Imach
+    (float
+      (integerize-float-coordinate coord))
+    (ratio
+      (values (floor (+ coord 1/2))))
+    ;; disallow bignums and other types of numbers
+    ))
+
+;;--- Yes, this is a kludge.  I promise we'll fix it.
 (deftype extended-char ()
-  #+ccl-2 'character
-  #-ccl-2 'string-char)
+  #+(or Minima CCL-2) 'character
+  #-(or Minima CCL-2) 'string-char)
 
 ;;; Make sure we don't get screwed by environments like Coral's that
 ;;; have *print-case* set to :downcase by default.
-#-ansi-90
+#-ANSI-90
 (defvar *standard-io-environment-val-cache* nil)
 
-#-ansi-90
+#-ANSI-90
 (defun standard-io-environment-vars-and-vals ()
   (unless *standard-io-environment-val-cache*
     (setq *standard-io-environment-val-cache*
@@ -76,15 +87,15 @@ Copyright (c) 1991, Franz Inc. All rights reserved
     *standard-io-environment-val-cache*))
 
 (defmacro with-standard-io-environment (&body body)
-  #-ansi-90
+  #-ANSI-90
   `(multiple-value-bind (vars vals)
        (standard-io-environment-vars-and-vals)
      (progv vars vals
        ,@body))
-  #+ansi-90
+  #+ANSI-90
   `(with-standard-io-syntax ,@body))
 
-#-(or ansi-90 Genera)
+#-(or ANSI-90 Genera)
 (defmacro with-standard-io-syntax (&body body)
   `(with-standard-io-environment ,@body))
 
@@ -103,7 +114,9 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 ;;; have as small a timing window, and to be as semantically correct as possible. 
 ;;; --- rsl 5 February 1991.
 
-#-(or Genera Cloe-Runtime clim-uses-lisp-streams)
+#+(or (not CLIM-uses-Lisp-stream-functions)	;Do this if we provide CLOSE function
+      Genera					; Sigh.  CLOSE also shadowed for Genera.
+      CCL-2)					; Sigh.  CLOSE also shadowed for CCL-2.
 (defmacro with-open-stream ((stream-variable construction-form) &body body &environment env)
   (let ((aborted-variable (gensymbol 'aborted-p))
 	(temporary-stream-variable (gensymbol 'stream)))
@@ -124,13 +137,13 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 
 (defun follow-synonym-stream (stream)
   #+Genera (si:follow-syn-stream stream)
-  #+(and ansi-90 (not Genera)) (typecase stream
+  #+(and ANSI-90 (not Genera)) (typecase stream
 				 (synonym-stream
 				   (symbol-value (synonym-stream-symbol stream)))
 				 (t stream))
-  #-(or Genera ansi-90) stream)
+  #-(or Genera ANSI-90) stream)
 
-#-(or genera ansi-90) 
+#-(or Genera ANSI-90) 
 (eval-when (compile)
   (warn "You haven't defined ~S for this implementation.  A stub has been provided."
 	'follow-synonym-stream))
@@ -151,7 +164,8 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 ;;; For macro writers; you can have your GENSYMBOLs start at 1.  Use
 ;;; this in the macro, not in its expansion...
 (defmacro with-related-gensymbols (&body body)
-  `(let ((*gensymbol* 0)) ,@body))
+  `(let ((*gensymbol* 0))
+     ,@body))
 
 ;; Used in generating internal function and method names.
 ;; (remove-word-from-string "com-" 'com-show-file) => "SHOW-FILE"
@@ -247,11 +261,11 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 		    ,@body)
 	   (when ,condition-value (setf ,@unwind-forms)))))))
 
-#-(and ansi-90 (not excl) (not Symbolics))
+#-(and ANSI-90 (not Allegro) (not Symbolics))
 (eval-when (compile load eval)
   (proclaim '(declaration non-dynamic-extent)))
 
-#+(and ansi-90 (not excl) (not Symbolics))
+#+(and ANSI-90 (not Allegro) (not Symbolics))
 (define-declaration non-dynamic-extent (spec env)
   (let ((vars (rest spec))
         (result nil))
@@ -310,13 +324,13 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 (defmacro define-group (name type &body body)
   `(sys:multiple-definition ,name ,type ,@body))
 
-#+(and excl (version>= 4 1))
+#+(and Allegro (version>= 4 1))
 (defmacro define-group (name type &body body)
   `(prog1
      (progn ,@body)
      (excl::record-source-file ',name :type ',type)))
 
-#-(or Genera (and excl (version>= 4 1)))
+#-(or Genera (and Allegro (version>= 4 1)))
 (defmacro define-group (name type &body body)
   (declare (ignore name type))
   `(progn ,@body))
@@ -336,9 +350,10 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 #+Genera
 (progn
   (setf (get 'defun-inline 'zwei:definition-function-spec-parser)
-	#'(:property cl:defun zwei:definition-function-spec-parser))
-  (setf (get 'defun-inline 'zwei:definition-function-spec-type) 'cl:defun)
-  (setf (get 'defun-inline 'gprint::formatter) #'(:property cl:defun gprint::formatter))
+	(zl:::scl:function (:property zl:::scl:defun zwei:definition-function-spec-parser)))
+  (setf (get 'defun-inline 'zwei:definition-function-spec-type) 'zl:::scl:defun)
+  (setf (get 'defun-inline 'gprint::formatter) 
+	(zl:::scl:function (:property zl:::scl:defun gprint::formatter)))
   (push 'defun-inline zwei:*irrelevant-functions*)
   (push 'defun-inline zwei:*irrelevant-defining-forms*))
 
@@ -373,7 +388,7 @@ Copyright (c) 1991, Franz Inc. All rights reserved
       list))
 )	;#+(or Genera Cloe-Runtime)
 
-#+excl
+#+Allegro
 (progn
 (defmacro with-stack-list ((var &rest elements) &body body)
   `(let ((,var (list ,@elements)))
@@ -394,9 +409,9 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 #-(and (not :rs6000) (version>= 4 1))
 (defun-inline evacuate-list (list) `,list)
 
-)	;#+excl
+)	;#+Allegro
 
-#+ccl-2
+#+CCL-2
 (progn
 (defmacro with-stack-list ((var &rest elements) &body body)
   `(let ((,var (list ,@elements)))
@@ -415,9 +430,9 @@ Copyright (c) 1991, Franz Inc. All rights reserved
               (listp list))
          (copy-list list))
         (t list)))
-)	;#+ccl-2
+)	;#+CCL-2
 
-#-(or Genera Cloe-Runtime excl ccl-2)
+#-(or Genera Cloe-Runtime Allegro CCL-2)
 (progn
 (defmacro with-stack-list ((var &rest elements) &body body)
   `(let ((,var (list ,@elements)))
@@ -428,10 +443,10 @@ Copyright (c) 1991, Franz Inc. All rights reserved
      ,@body))
 
 ;; Since with-stack-list does nothing, this doesn't either.
-;; When stack-consing works for non-Genera/CLOE, make this do something.
+;; When stack-consing works for non-Genera/Cloe, make this do something.
 (defmacro evacuate-list (list)
   `,list)
-)	;#-(or Genera Cloe-Runtime excl)
+)	;#-(or Genera Cloe-Runtime Allegro)
 
 #+Genera
 (defmacro with-stack-array ((name size &rest options) &body body)
@@ -447,22 +462,22 @@ Copyright (c) 1991, Franz Inc. All rights reserved
   (declare (dynamic-extent options))
   (apply #'make-array size options))
 
-#+(or Genera CLOE-Runtime)
-(defmacro with-rem-keywords ((new-list list keywords-to-remove) &body body)
+#+(or Genera Cloe-Runtime)
+(defmacro with-keywords-removed ((new-list list keywords-to-remove) &body body)
   `(si::with-rem-keywords (,new-list ,list ,keywords-to-remove)
      ,@body))
 
-#+(or Genera CLOE-Runtime)
-(defun rem-keywords (list keywords-to-remove)
+#+(or Genera Cloe-Runtime)
+(defun remove-keywords (list keywords-to-remove)
   (si::rem-keywords list keywords-to-remove))
 
 #-(or Genera Cloe-Runtime)
 (progn 
-(defmacro with-rem-keywords ((new-list list keywords-to-remove) &body body)
-  `(let ((,new-list (rem-keywords ,list ,keywords-to-remove)))
+(defmacro with-keywords-removed ((new-list list keywords-to-remove) &body body)
+  `(let ((,new-list (remove-keywords ,list ,keywords-to-remove)))
      ,@body))
 
-(defun rem-keywords (list keywords)
+(defun remove-keywords (list keywords)
   (macrolet ((kernel (predicate)
 	       `(let ((head nil)
 		      (tail nil))
@@ -540,24 +555,26 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 	(endd    '#:end)
 	(limit   '#:limit)
 	(variable (if (atom var) var (first var)))
-	(count    (if (atom var) '#:count (second var)))
+	(index    (if (atom var) '#:index (second var)))
 	(aref (if simple-p 'svref 'aref)))
     `(block nil
        (let* ((,fvector ,vector)
 	      (,startd ,start)
 	      (,endd ,(if simple-p `,end `(or ,end (length ,fvector))))
-	      (,count (if ,from-end (1- ,endd) ,startd))
+	      (,index (if ,from-end (1- ,endd) ,startd))
 	      (,limit (if ,from-end (1- ,startd) ,endd)))
-	 (declare (fixnum ,endd ,count ,limit)
+	 (declare (fixnum ,endd ,index ,limit)
 		  ;; Turn on the afterburners...
 		  (optimize (speed 3) (safety 0))
 		  ,@(and simple-p `((type simple-vector ,fvector)))
-		  #+genera (sys:array-register ,fvector))
+		  #+ANSI-90 ,@(and (not simple-p)
+				   `((type vector ,fvector)))
+		  #+Genera (sys:array-register ,fvector))
 	 (loop
-	   (when (= ,count ,limit) (return))
-	   (let ((,variable (,aref ,fvector ,count)))
+	   (when (= ,index ,limit) (return))
+	   (let ((,variable (,aref ,fvector ,index)))
 	     ,@body)
-	   (,(if from-end 'decf 'incf) ,count))))))
+	   (,(if from-end 'decf 'incf) ,index))))))
 
 (defmacro doseq ((var sequence) &body body)
   (let ((fcn (gensymbol 'doseq)))
@@ -744,7 +761,7 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 ;;; and a constructor which will do what you want, namely give you
 ;;; objects which have the right properties flavors mixed in.
 (defmacro define-class-mixture-and-resource (name (&key initializer initial-copies)
-					 &body specs)
+					     &body specs)
   (let ((matcher-function-name (make-symbol (lisp:format nil "~A-MATCHER" name)))
 	(constructor-function-name (make-symbol (lisp:format nil "~A-CONSTRUCTOR" name))))
     `(define-group ,name define-class-mixture-and-resource
@@ -873,7 +890,7 @@ Copyright (c) 1991, Franz Inc. All rights reserved
   (unless (eql property :property)
     (warn "Using ~S to define a function named ~S, which is not a property"
 	  'defun-property (list property symbol indicator)))
-  `(defun (:property ,symbol ,indicator) ,lambda-list ,@body))
+  `(zl:::scl:defun (:property ,symbol ,indicator) ,lambda-list ,@body))
 
 #-Genera
 (defmacro defun-property ((property symbol indicator) lambda-list &body body)
@@ -964,14 +981,20 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 ;;; Retrieve information from a database that only lasts through COMPILE-FILE
 ;;; Symbol doesn't have to be a symbol, it can be a class object
 (defun compile-time-property (symbol indicator &optional default)
-  #+(or Genera Cloe-Runtime)
-  (when (progn #+Cloe-runtime system::*file-declaration-environment*
-	       #+Genera t)
+  #+Genera
+  (multiple-value-bind (value flag)
+      (compiler:file-declaration symbol indicator)
+    (if flag value default))
+  #+Cloe-Runtime
+  (when system::*file-declaration-environment*
     (multiple-value-bind (value flag)
-	(#+Genera compiler:file-declaration #+Cloe-Runtime clos-internals::file-declaration
-	 symbol indicator)
+	(clos-internals::file-declaration symbol indicator)
       (if flag value default)))
-  #-(or Genera Cloe-Runtime)
+  #+Minima-Developer
+  (multiple-value-bind (value flag)
+      (zl:::compiler:file-declaration symbol indicator)
+    (if flag value default))
+  #-(or Genera Cloe-Runtime Minima-Developer)
   ;; For anything else, do it the dumb way that doesn't reset after compilation
   (let ((table (gethash indicator *compile-time-property-table*)))
     (unless table
@@ -987,33 +1010,34 @@ Copyright (c) 1991, Franz Inc. All rights reserved
   #+Cloe-Runtime
   (when system::*file-declaration-environment*
     (setf (clos-internals::file-declaration symbol indicator) value))
-  #-Cloe-Runtime
+  #+Minima-Developer
+  (zl:::compiler:file-declare symbol indicator value)
+  #-(or Cloe-Runtime Minima-Developer)
   (let ((table (gethash indicator *compile-time-property-table*)))
     (unless table
       (setf (gethash indicator *compile-time-property-table*)
 	    (setq table (make-hash-table))))
-    (setf (gethash symbol table) value)))
+    (setf (gethash symbol table) value))
+  value)
 
-#-(or Genera (and ansi-90 (not (and excl (or :rs6000 (not (version>= 4 1)))))))
-					; Allegro 4.0 doesn't comply with this.
-					; but 4.1 does so lets hope
-					; the logic is correct
+#-(or Genera (and ansi-90 (not (and Allegro (or :rs6000 (not (version>= 4 1)))))))
+;; Allegro 4.0 doesn't comply with this.
 (defmacro define-compiler-macro (name lambda-list &body body &environment env)
   env
-  #+excl `(excl::defcmacro ,name ,lambda-list ,@body)
-  #-(or Genera excl) (progn name lambda-list body env nil))	;Suppress compiler warnings.
+  #+Allegro `(excl::defcmacro ,name ,lambda-list ,@body)
+  #-(or Genera Allegro) (progn name lambda-list body env nil))	;Suppress compiler warnings.
 
 #+Genera
 ;;; Support (proclaim '(function ...)) and (proclaim '(ftype ...)).
 ;;; This is part of deleting spurious multiple-definition warnings about constructors.
 ;;; Of course, who knows if this will work in other lisps.
-(defun (:property ftype lisp:proclaim) (decl compile-time)
+(zl:::scl:defun (:property ftype zl:::scl:proclaim) (decl compile-time)
   (declare (ignore compile-time))		;Do it at load time as well.
   (mapc #'compiler:function-defined (cdr decl)))
 
 
 
-#-(or Genera ansi-90)
+#-(or Genera ANSI-90)
 (defmacro print-unreadable-object ((object stream &key type identity) &body body)
   `(flet ((print-unreadable-object-body () ,@body))
      (declare (dynamic-extent #'print-unreadable-object-body))
@@ -1021,7 +1045,7 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 				#'print-unreadable-object-body
 				',(not (null body)))))
 
-#-(or Genera ansi-90)
+#-(or Genera ANSI-90)
 ;;; EXTRA-SPACE-REQUIRED is optional because old compiled code didn't always supply it.
 (defun print-unreadable-object-1 (object stream type identity continuation
 					 &optional (extra-space-required t))
@@ -1036,25 +1060,25 @@ Copyright (c) 1991, Franz Inc. All rights reserved
      object stream))
   (write-string ">" stream))
 
-#-(or PCL Genera ansi-90)
+#-(or PCL Genera ANSI-90)
 (defun print-unreadable-object-identity (object stream)
   #+Genera (format stream "~O" (sys:%pointer object))
-  #+excl (format stream "@~X" (excl::pointer-to-fixnum object))
+  #+Allegro (format stream "@~X" (excl::pointer-to-fixnum object))
   ;; Lucid prints its addresses out in Hex.
   #+Lucid (format stream "~X" (sys:%pointer object))
-  ;; Probably aren't any #+(and (not Genera) (not excl) (not PCL) (not ansi-90))
+  ;; Probably aren't any #+(and (not Genera) (not Allegro) (not PCL) (not ANSI-90))
   ;; implementations (actually, this is false: Lispworks).
-  #-(or Genera excl Lucid) (declare (ignore object))
-  #-(or Genera excl Lucid) (format stream "???"))
+  #-(or Genera Allegro Lucid) (declare (ignore object))
+  #-(or Genera Allegro Lucid) (format stream "???"))
 
-#-(or Genera ansi-90)
+#-(or Genera ANSI-90)
 (defvar *print-readably* nil)
 
-#-(or Genera ansi-90)
+#-(or Genera ANSI-90)
 (deftype real (&optional (min '*) (max '*))
   (labels ((convert (limit floatp)
 	     (typecase limit
-	       (number (if floatp (float limit 0s0) (rational limit)))
+	       (number (if floatp (float limit 0f0) (rational limit)))
 	       (list (map 'list #'convert limit))
 	       (otherwise limit))))
     `(or (float ,(convert min t) ,(convert max t))
@@ -1101,22 +1125,30 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 ;;;--- Maybe there is a more efficient way to do this in Allegro
 (defmacro bind-to-list (lambda-list list &body body)
   (cond ((not (constantp list))
-	 #+Genera `(scl:destructuring-bind ,lambda-list ,list
-		     ,(ignore-arglist lambda-list)
-		     ,@body)
+	 #+Genera 
+	 `(scl:destructuring-bind ,lambda-list ,list
+	    ,(ignore-arglist lambda-list)
+	    ,@body)
 	 #+Cloe-Runtime
 	 `(cloe:destructuring-bind ,lambda-list ,list
 	    ,(ignore-arglist lambda-list)
 	    ,@body)
-	 #+Lucid `(lucid-common-lisp:destructuring-bind ,lambda-list ,list
-		    ,(ignore-arglist lambda-list)
-		    ,@body)
-	 #+excl `(destructuring-bind ,lambda-list ,list
-		   ,(ignore-arglist lambda-list)
-		   ,@body)
+	 #+Minima
+	 `(destructuring-bind ,lambda-list ,list
+	    ,(ignore-arglist lambda-list)
+	    ,@body)
+	 #+Lucid 
+	 `(lucid-common-lisp:destructuring-bind ,lambda-list ,list
+	    ,(ignore-arglist lambda-list)
+	    ,@body)
+ 	 #+Allegro `(destructuring-bind ,lambda-list ,list
+ 		      ,(ignore-arglist lambda-list)
+ 		      ,@body)
 	 ;; For the other systems, I guess we'll just give up and do it the slow way
-	 #-(or Genera Lucid Cloe-Runtime excl)
+	 #-(or Genera Cloe-Runtime Minima Lucid Allegro)
 	 `(flet ((bind-to-list-body ,lambda-list
+		   ,@(when (member '&rest lambda-list)
+		       `((declare (dynamic-extent ,(second (member '&rest lambda-list))))))
 		   ,(ignore-arglist lambda-list)
 		   ,@body))
 	    (declare (dynamic-extent #'bind-to-list-body))
@@ -1127,44 +1159,44 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 	 ;; for the default value forms in the lambda-list
 	 (setq list (eval list))
 	 `(symbol-macrolet
-	      ,(do ((item)
-		    (result nil)
-		    (mode nil))
-		   ((null lambda-list) (nreverse result))
-		 (setq item (pop lambda-list))
-		 (cond ((member item '(&optional &rest &key &aux))
-			(setq mode item))
-		       ((member item lambda-list-keywords))
-		       ((eq mode '&rest)
-			(push `(,item ',list) result))
-		       ((eq mode '&key)
-			(multiple-value-bind (variable default supplied-p)
-			    (if (atom item) (values item nil nil)
-			      (values (if (atom (car item)) (car item) (cadar item))
-				      (second item) (third item)))
-			  (do ((l list (cddr l))
-			       (k (parameter-specifier-keyword item)))
-			      ((null l)
+	    ,(do ((item)
+		  (result nil)
+		  (mode nil))
+		 ((null lambda-list) (nreverse result))
+	       (setq item (pop lambda-list))
+	       (cond ((member item '(&optional &rest &key &aux))
+		      (setq mode item))
+		     ((member item lambda-list-keywords))
+		     ((eq mode '&rest)
+		      (push `(,item ',list) result))
+		     ((eq mode '&key)
+		      (multiple-value-bind (variable default supplied-p)
+			  (if (atom item) (values item nil nil)
+			    (values (if (atom (car item)) (car item) (cadar item))
+				    (second item) (third item)))
+			(do ((l list (cddr l))
+			     (k (parameter-specifier-keyword item)))
+			    ((null l)
+			     (push `(,variable ,default) result)
+			     (when supplied-p
+			       (push `(,supplied-p 'nil) result)))
+			  (when (eq (first l) k)
+			    (push `(,variable ',(second l)) result)
+			    (when supplied-p
+			      (push `(,supplied-p 't) result))
+			    (return)))))
+		     (t
+		      (multiple-value-bind (variable default supplied-p)
+			  (if (atom item) (values item nil nil)
+			    (values (first item) (second item) (third item)))
+			(cond ((null list)
 			       (push `(,variable ,default) result)
 			       (when supplied-p
 				 (push `(,supplied-p 'nil) result)))
-			    (when (eq (first l) k)
-			      (push `(,variable ',(second l)) result)
-			      (when supplied-p
-				(push `(,supplied-p 't) result))
-			      (return)))))
-		       (t
-			(multiple-value-bind (variable default supplied-p)
-			    (if (atom item) (values item nil nil)
-			      (values (first item) (second item) (third item)))
-			  (cond ((null list)
-				 (push `(,variable ,default) result)
-				 (when supplied-p
-				   (push `(,supplied-p 'nil) result)))
-				(t
-				 (push `(,variable ',(pop list)) result)
-				 (when supplied-p
-				   (push `(,supplied-p 't) result))))))))
+			      (t
+			       (push `(,variable ',(pop list)) result)
+			       (when supplied-p
+				 (push `(,supplied-p 't) result))))))))
 	    ,@body))))
 
 ;;; Optimization to not bother with destructuring bind if none of the variables
@@ -1217,9 +1249,9 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 ;;; Get the keyword argument name from an &KEY parameter specifier
 (defun parameter-specifier-keyword (spec)
   (cond ((atom spec)
-	 (intern (symbol-name spec) :keyword))
+	 (intern (symbol-name spec) "KEYWORD"))
 	((atom (car spec))
-	 (intern (symbol-name (car spec)) :keyword))
+	 (intern (symbol-name (car spec)) "KEYWORD"))
 	(t (caar spec))))
 
 ;;; This is needed because FIND-CLASS in the compile-file environment doesn't look
@@ -1228,11 +1260,13 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 ;;; In Lucid 4.0 this produces spurious wrong number of arguments warnings for the calls
 ;;; to FIND-CLASS.  There is no run-time error, it really does accept three arguments.
 (defun find-class-that-works (name &optional (errorp t) environment)
-  #+excl (find-class name errorp)
-  #-excl (if (compile-file-environment-p environment)
-	     (or (find-class name nil environment)
-		 (find-class name errorp nil))
-	     (find-class name errorp environment)))
+  #+CCL-2 (when (eql environment 'compile-file)
+            (setq environment ccl::*fcomp-compilation-environment*))
+  #+Allegro (find-class name errorp)
+  #-Allegro (if (compile-file-environment-p environment)
+		(or (find-class name nil environment)
+		    (find-class name errorp nil))
+		(find-class name errorp environment)))
 
 
 ;;; F-ers
@@ -1260,7 +1294,7 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 	       #+Genera (to-vector to-vector))
 	   (declare #+Genera (sys:array-register from-vector to-vector))
 	   (dotimes (i length)
-	     #-excl (declare (ignore i))
+	     #-(or Allegro Minima) (declare (ignore i))
 	     (setf (svref to-vector to-start) (svref from-vector from-start))
 	     (incf from-start)
 	     (incf to-start))))
@@ -1303,8 +1337,9 @@ Copyright (c) 1991, Franz Inc. All rights reserved
 	     (setq vector new-vector)))
 	  (t
 	   ;; Leave a hole for the new element
-	   (let (#+Genera (vector vector))
+	   (let (#+(or Genera Minima) (vector vector))
 	     #+Genera (declare (sys:array-register vector))
+	     #+Minima (declare (type vector vector))
 	     (do ((i fill-pointer (1- i)))
 		 ((= i index))
 	       (declare (fixnum i)

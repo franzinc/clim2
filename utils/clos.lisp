@@ -1,29 +1,9 @@
-;;; -*- Mode: Lisp; Package: CLIM-UTILS; Syntax: Common-Lisp -*-
-;; 
-;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
-;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
-;;
-;; The software, data and information contained herein are proprietary
-;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
-;; given in confidence by Franz, Inc. pursuant to a written license
-;; agreement, and may be stored and used only in accordance with the terms
-;; of such license.
-;;
-;; Restricted Rights Legend
-;; ------------------------
-;; Use, duplication, and disclosure of the software, data and information
-;; contained herein by any agency, department or entity of the U.S.
-;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
-;;
+;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clos.lisp,v 1.1 91/08/30 13:57:44 cer Exp Locker: cer $
+;; $fiHeader: clos.lisp,v 1.4 91/03/26 12:03:07 cer Exp $
 
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
-;;; Copyright (c) 1991, Franz Inc. All rights reserved
 ;;; 
 ;;; SILICA CLOS Extensions - adaptations of CLOS to meet SILICA's needs.
 ;;; 
@@ -34,7 +14,7 @@
 ;;; Constructors
 ;;;
 ;;; PCL supports a much more efficient mechanism for initializing
-;;; instances than simply calling make-instance.  We need a portable
+;;; instances than simply calling MAKE-INSTANCE.  We need a portable
 ;;; hook into that mechanism.
 
 #+PCL
@@ -50,12 +30,66 @@
 
 #-(or PCL Allegro-v4.0-constructors)
 (defmacro define-constructor (name class lambda-list &rest initialization-arguments)
-  `(defun-inline ,name ,lambda-list
-     (make-instance ',class ,@initialization-arguments)))
+  `(progn
+     (eval-when (compile load eval) (proclaim '(inline ,name)))
+     (defun ,name ,lambda-list
+       (make-instance ',class ,@initialization-arguments))))
 
 #+(and Genera PCL)
 (scl:defmethod (:fasd-form #-VDPCL pcl::std-instance #+VDPCL pcl::iwmc-class) ()
   (make-load-form scl:self))
+
+
+;; DEFINE-CONSTRUCTOR-USING-PROTOTYPE-INSTANCE can be used when creating an
+;; instance can be copied from another instance of the same type, the init
+;; args exist solely to initialize slots, and any possible
+;; INITIALIZE-INSTANCE or SHARED-INITIALIZE methods don't do anything that
+;; would prevent a valid create by copying and setting.  This is true of
+;; graphics output records and text output records.
+
+;; The syntax is a little bizarre in order to avoid having to do FIND-CLASS
+;; at compile time and depend on that working.  Each tuple consists of three
+;; required components: the slot name is the first element, the initarg is
+;; the second element (in a form that is evaluated, in the event it isn't a
+;; keyword), and the value is the third element, again, in a form that is
+;; evaluated.  The "optional" fourth argument is the value that should be used
+;; in the slot in the prototype instance.  For example,
+;;   (define-constructor-using-prototype-instance
+;;     make-foo foo (up over)
+;;     (slot-1 :slot-1 up)
+;;     (slot-2 'slot-2 (1+ over)))
+;; will initialize SLOT-1 with the value of UP, initializing it either using
+;; SLOT-VALUE with 'SLOT-1 or MAKE-INSTANCE with :SLOT-1, and will
+;; initialize SLOT-2 with value of (1+ OVER) using SLOT-VALUE with 'SLOT-2
+;; or MAKE-INSTANCE with 'SLOT-2.
+
+#+CCL-2
+(defmacro define-constructor-using-prototype-instance
+	  (name class args &body tuples)
+  (let ((proto-var (make-symbol (format nil "*a ~A*" class)))
+	(proto '#:prototype-instance)
+	(inst  '#:instance))
+    `(define-group ,name define-constructor-using-prototype-instance
+       (defvar ,proto-var nil)
+       (defun ,name (,@args)
+	 (let* ((,proto (or ,proto-var
+			     (setq ,proto-var (make-instance ',class))))
+		(,inst (without-interrupts
+			  (ccl::copy-uvector
+			    (ccl::%maybe-forwarded-instance ,proto)))))
+	   ,@(mapcar #'(lambda (tuple)
+			 `(setf (slot-value ,inst ',(first tuple)) ,(third tuple)))
+		     tuples)
+	   ,inst)))))
+
+#-CCL-2
+(defmacro define-constructor-using-prototype-instance
+	  (name class args &body tuples)
+  `(define-group ,name define-constructor-using-prototype-instance
+     (define-constructor ,name ,class ,args
+			 ,@(mapcan #'(lambda (tuple)
+				       (list (second tuple) (third tuple)))
+				   tuples))))
 
 
 
@@ -65,7 +99,8 @@
 
 (defvar *dynamic-classes* (make-hash-table :test #'equal))
 
-(defun-inline %make-standard-class (name supers)
+(eval-when (compile load eval) (proclaim '(inline %make-standard-class)))
+(defun %make-standard-class (name supers)
   
   #+Lucid
   ;; Jonl thinks this is okay, but I personally find it pretty gross. -- RR

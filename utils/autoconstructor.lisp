@@ -1,29 +1,9 @@
-;;; -*- Mode: Lisp; Package: CLIM-UTILS; Base: 10.; Syntax: Common-Lisp; Lowercase: Yes -*-
-;; 
-;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
-;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
-;;
-;; The software, data and information contained herein are proprietary
-;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
-;; given in confidence by Franz, Inc. pursuant to a written license
-;; agreement, and may be stored and used only in accordance with the terms
-;; of such license.
-;;
-;; Restricted Rights Legend
-;; ------------------------
-;; Use, duplication, and disclosure of the software, data and information
-;; contained herein by any agency, department or entity of the U.S.
-;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
-;;
+;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: autoconstructor.lisp,v 1.1 91/08/30 13:57:43 cer Exp Locker: cer $
+;; $fiHeader: autoconstructor.lisp,v 1.4 91/03/26 12:03:04 cer Exp $
 
 ;;;
 ;;; Copyright (c) 1990 by Xerox Corporation.  All rights reserved.
-;;; Copyright (c) 1991, Franz Inc. All rights reserved
 ;;;
 
 (in-package :clim-utils)
@@ -31,13 +11,6 @@
 ;;;
 ;;; Automatic Constructor Lookup
 ;;;
-
-(eval-when (compile load eval)
-  (export '(fast-make-instance
-	    defautoconstructor
-	    autoconstructor
-	    disable-autoconstructors
-	    enable-autoconstructors)))
 
 (defvar *constructor-table* (make-hash-table :test #'eq))
 
@@ -176,7 +149,7 @@
   (unless (pcl::class-finalized-p class)
     (pcl::finalize-inheritance class))
   (multiple-value-bind (arglist supplied-initarg-names supplied-initargs)
-      (automatic-generator-internal class extra-args)
+      (automatic-generator-1 class extra-args)
     `(function
       (lambda (class .wrapper. defaults init shared)
        (let ((.extra-args. ',extra-args))
@@ -185,7 +158,7 @@
 	      ;;  not changed since the call to this generator generator,
 	      (or (null *clim-development-flag*)
 		  (equal ',arglist 
-			 (automatic-generator-internal class .extra-args. t)))
+			 (automatic-generator-1 class .extra-args. t)))
 	      ;;  THEN just continue to use the general generator
 	      ,(funcall (cadr 
 			 (assoc 'pcl::general
@@ -207,7 +180,7 @@
 	  generator)
     generator))
 
-(defun automatic-generator-internal (class extra-args &optional just-arg-list)
+(defun automatic-generator-1 (class extra-args &optional just-arg-list)
   (let* ((arg-specs (nconc (copy-list extra-args)
 			   (find-constructor-args class)))
 	 (supplied-initargs 

@@ -1,30 +1,10 @@
-;;; -*- Mode: LISP; Syntax: Common-lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
-;; 
-;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
-;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
-;;
-;; The software, data and information contained herein are proprietary
-;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
-;; given in confidence by Franz, Inc. pursuant to a written license
-;; agreement, and may be stored and used only in accordance with the terms
-;; of such license.
-;;
-;; Restricted Rights Legend
-;; ------------------------
-;; Use, duplication, and disclosure of the software, data and information
-;; contained herein by any agency, department or entity of the U.S.
-;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
-;;
+;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: transformations.lisp,v 1.1 91/08/30 13:57:51 cer Exp Locker: cer $
+;; $fiHeader: transformations.lisp,v 1.4 91/03/26 12:03:18 cer Exp $
 
 (in-package :clim-utils)
 
-"Copyright (c) 1990, 1991 Symbolics, Inc.  All rights reserved."
-"Copyright (c) 1991, Franz Inc. All rights reserved"
+"Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved."
 
 ;;; Generic Functions
 
@@ -41,9 +21,9 @@
 
 (defgeneric compose-transformations (transform1 transform2))
 (defgeneric invert-transformation (transform))
-(defgeneric compose-translation-transformation (transform dx dy))
-(defgeneric compose-scaling-transformation (transform mx my &optional origin))
-(defgeneric compose-rotation-transformation (transform angle &optional origin))
+(defgeneric compose-translation-with-transformation (transform dx dy))
+(defgeneric compose-scaling-with-transformation (transform mx my &optional origin))
+(defgeneric compose-rotation-with-transformation (transform angle &optional origin))
 
 (defgeneric transform-point* (transform x y)
   (declare (values x y)))
@@ -55,10 +35,28 @@
 (defgeneric untransform-distance (transform dx dy)
   (declare (values dx dy)))
 
+#+CLIM-1-compatibility 
+(progn
+(define-compatibility-function (compose-translation-transformation
+				compose-translation-with-transformation)
+			       (transform dx dy)
+  (compose-translation-with-transformation transform dx dy))
+
+(define-compatibility-function (compose-scaling-transformation
+				compose-scaling-with-transformation)
+			       (transform mx my &optional origin)
+  (compose-scaling-with-transformation transform mx my origin))
+
+(define-compatibility-function (compose-rotation-transformation
+				compose-rotation-with-transformation)
+			       (transform angle &optional origin)
+  (compose-rotation-with-transformation transform angle origin))
+)	;#+CLIM-1-compatibility
+
 
 ;;; Transformations
 
-(defclass transformation () ())
+(define-protocol-class transformation ())
 
 ;;; This class is not part of the advertised interface.
 ;;; It exists because EQL specializers are slow in PCL.
@@ -84,12 +82,12 @@
 (defmethod print-object ((transform translation-transformation) stream)
   (print-unreadable-object (transform stream :type t :identity t)
     (with-slots (tx ty) transform
-      (declare (single-float tx ty))
+      (declare (type single-float tx ty))
       (format stream "(~D,~D)" tx ty))))
 
 (defmethod make-load-form ((transform translation-transformation))
   (with-slots (tx ty) transform
-    (declare (single-float tx ty))
+    (declare (type single-float tx ty))
     `(make-translation-transformation-1 ,tx ,ty)))
 
 
@@ -110,7 +108,7 @@
 
 (defmethod make-load-form ((transform standard-transformation))
   (with-slots (mxx mxy myx myy tx ty) transform
-    (declare (single-float mxx mxy myx myy tx ty))
+    (declare (type single-float mxx mxy myx myy tx ty))
     `(make-standard-transformation-1 ,mxx ,mxy ,myx ,myy ,tx ,ty)))
 
 
@@ -131,6 +129,16 @@
 	(nth 4 (transformation-underspecified-points condition))
 	(nth 5 (transformation-underspecified-points condition))))))
 
+(define-condition reflection-underspecified (transformation-underspecified) ()
+  (:report
+    (lambda (condition stream)
+      (format stream "You can't make a reflection from the two coincident points ~@
+		     (~D,~D) and (~D,~D)"
+	(nth 0 (transformation-underspecified-points condition))
+	(nth 1 (transformation-underspecified-points condition))
+	(nth 2 (transformation-underspecified-points condition))
+	(nth 3 (transformation-underspecified-points condition))))))
+
 (define-condition singular-transformation (transformation-error)
   ((transformation :reader singular-transformation-transformation :initarg :transformation))
   (:report
@@ -142,25 +150,24 @@
 ;;; Constructors
 
 (defun-inline make-transformation-1 (mxx mxy myx myy tx ty)
-  (declare (single-float mxx mxy myx myy tx ty))
-  (cond ((not (and (= mxx 1s0) (= mxy 0s0) (= myx 0s0) (= myy 1s0)))
+  (declare (type single-float mxx mxy myx myy tx ty))
+  (cond ((not (and (= mxx 1f0) (= mxy 0f0) (= myx 0f0) (= myy 1f0)))
 	 (make-standard-transformation-1 mxx mxy myx myy tx ty))
-	((not (and (= tx 0s0) (= ty 0s0)))
+	((not (and (= tx 0f0) (= ty 0f0)))
 	 (make-translation-transformation-1 tx ty))
-	(t
-	 +identity-transformation+)))
+	(t +identity-transformation+)))
 
 (defun make-transformation (mxx mxy myx myy tx ty)
   (declare (type real mxx mxy myx myy tx ty))
   #+Genera (declare lt:(side-effects simple reducible))
-  (make-transformation-1 (float mxx 0s0) (float mxy 0s0)
-			 (float myx 0s0) (float myy 0s0)
-			 (float tx 0s0) (float ty 0s0)))
+  (make-transformation-1 (float mxx 0f0) (float mxy 0f0)
+			 (float myx 0f0) (float myy 0f0)
+			 (float tx 0f0) (float ty 0f0)))
 
-(defun make-3-point-transformation* (x1 y1 x1-image y1-image
-				     x2 y2 x2-image y2-image
-				     x3 y3 x3-image y3-image)
-  (declare (type real x1 y1 x1-image y1-image x2 y2 x2-image y2-image x3 y3 x3-image y3-image))
+(defun make-3-point-transformation* (x1 y1 x2 y2 x3 y3
+				     x1-image y1-image x2-image y2-image x3-image y3-image)
+  (declare (type real x1 y1 x2 y2 x3 y3 
+		      x1-image y1-image x2-image y2-image x3-image y3-image))
   #+Genera (declare lt:(side-effects simple reducible))
   (let* ((x1y2 (* x1 y2)) (x2y1 (* x2 y1))
 	 (x2y3 (* x2 y3)) (x3y2 (* x3 y2))
@@ -183,24 +190,23 @@
 	(* (+ (* x1-image x2y3-x3y2) (* x2-image x3y1-x1y3) (* x3-image x1y2-x2y1)) 1/det)
 	(* (+ (* y1-image x2y3-x3y2) (* y2-image x3y1-x1y3) (* y3-image x1y2-x2y1)) 1/det)))))
 
-(defun make-3-point-transformation (point-1 point-1-image
-					    point-2 point-2-image
-					    point-3 point-3-image)
+(defun make-3-point-transformation (point-1 point-2 point-3
+				    point-1-image point-2-image point-3-image)
   #+Genera (declare lt:(side-effects simple reducible))
   (make-3-point-transformation* (point-x point-1) (point-y point-1)
-				(point-x point-1-image) (point-y point-1-image)
 				(point-x point-2) (point-y point-2)
-				(point-x point-2-image) (point-y point-2-image)
 				(point-x point-3) (point-y point-3)
+				(point-x point-1-image) (point-y point-1-image)
+				(point-x point-2-image) (point-y point-2-image)
 				(point-x point-3-image) (point-y point-3-image)))
 
 (defun make-translation-transformation (delta-x delta-y)
   (declare (type real delta-x delta-y))
   #+Genera (declare lt:(side-effects simple reducible))
-  (let ((delta-x (float delta-x 0s0))
-	(delta-y (float delta-y 0s0)))
-    (declare (single-float delta-x delta-y))
-    (if (and (= delta-x 0s0) (= delta-y 0s0))
+  (let ((delta-x (float delta-x 0f0))
+	(delta-y (float delta-y 0f0)))
+    (declare (type single-float delta-x delta-y))
+    (if (and (= delta-x 0f0) (= delta-y 0f0))
 	+identity-transformation+
 	(make-translation-transformation-1 delta-x delta-y))))
 
@@ -209,19 +215,19 @@
 (defun make-rotation-transformation* (angle origin-x origin-y)
   (declare (type real angle origin-x origin-y))
   #+Genera (declare lt:(side-effects simple reducible))
-  (let ((angle (mod (float angle 0s0) (float (* 2 pi) 0s0))))
-    (declare (single-float angle))
-    (if (= angle 0s0)
+  (let ((angle (mod (float angle 0f0) (float (* 2 pi) 0f0))))
+    (declare (type single-float angle))
+    (if (= angle 0f0)
 	+identity-transformation+
 	(let* ((c (cos angle))
 	       (s (sin angle))
-	       (1-c (- 1s0 c))
-	       (origin-x (float origin-x 0s0))
-	       (origin-y (float origin-y 0s0)))
-	  (declare (single-float c s 1-c origin-x origin-y))
+	       (1-cc (- 1f0 c))
+	       (origin-x (float origin-x 0f0))
+	       (origin-y (float origin-y 0f0)))
+	  (declare (type single-float c s 1-cc origin-x origin-y))
 	  (make-standard-transformation-1 c (- s) s c
-					  (+ (* 1-c origin-x) (* s origin-y))
-					  (- (* 1-c origin-y) (* s origin-x)))))))
+					  (+ (* 1-cc origin-x) (* s origin-y))
+					  (- (* 1-cc origin-y) (* s origin-x)))))))
 
 (defun-inline make-rotation-transformation (angle &optional (origin nil origin-p))
   #+Genera (declare lt:(side-effects simple reducible))
@@ -232,14 +238,14 @@
 (defun make-scaling-transformation* (mx my origin-x origin-y)
   (declare (type real mx my origin-x origin-y))
   #+Genera (declare lt:(side-effects simple reducible))
-  (let ((mx (float mx 0s0))
-	(my (float my 0s0)))
-    (declare (single-float mx my))
-    (if (and (= mx 1s0) (= my 1s0))
+  (let ((mx (float mx 0f0))
+	(my (float my 0f0)))
+    (declare (type single-float mx my))
+    (if (and (= mx 1f0) (= my 1f0))
 	+identity-transformation+
-	(make-standard-transformation-1 mx 0s0 0s0 my
-					(* (- 1s0 mx) (float origin-x 0s0))
-					(* (- 1s0 my) (float origin-y 0s0))))))
+	(make-standard-transformation-1 mx 0f0 0f0 my
+					(* (- 1f0 mx) (float origin-x 0f0))
+					(* (- 1f0 my) (float origin-y 0f0))))))
 
 (defun-inline make-scaling-transformation (mx my &optional (origin nil origin-p))
   #+Genera (declare lt:(side-effects simple reducible))
@@ -250,20 +256,22 @@
 (defun make-reflection-transformation* (x1 y1 x2 y2)
   (declare (type real x1 y1 x2 y2))
   #+Genera (declare lt:(side-effects simple reducible))
-  (let* ((x1 (float x1 0s0))
-	 (y1 (float y1 0s0))
-	 (x2 (float x2 0s0))
-	 (y2 (float y2 0s0))
+  (when (and (= x1 x2) (= y1 y2))
+    (error 'reflection-underspecified :points (list x1 y1 x2 y2)))
+  (let* ((x1 (float x1 0f0))
+	 (y1 (float y1 0f0))
+	 (x2 (float x2 0f0))
+	 (y2 (float y2 0f0))
 	 (nx (- y1 y2))
 	 (ny (- x2 x1))
 	 (nxx (* nx nx))
 	 (nxy (- (* nx ny)))
 	 (nyy (* ny ny)))
-    (declare (single-float x1 y1 x2 y2 nx ny nxx nxy nyy))
-    (let ((norm (/ 2s0 (+ nxx nyy))))
-      (declare (single-float norm))
+    (declare (type single-float x1 y1 x2 y2 nx ny nxx nxy nyy))
+    (let ((norm (/ 2f0 (+ nxx nyy))))
+      (declare (type single-float norm))
       (setq nxx (* nxx norm) nxy (* nxy norm) nyy (* nyy norm)))
-    (make-standard-transformation-1 (- 1s0 nxx) nxy nxy (- 1s0 nyy)
+    (make-standard-transformation-1 (- 1f0 nxx) nxy nxy (- 1f0 nyy)
 				    (- (* nxx x1) (* nxy y1))
 				    (- (* nyy y1) (* nxy x1)))))
 
@@ -282,17 +290,17 @@
 (defmethod transformation-equal
 	   ((transform1 translation-transformation) (transform2 translation-transformation))
   (with-slots ((tx1 tx) (ty1 ty)) transform1
-    (declare (single-float tx1 ty1))
+    (declare (type single-float tx1 ty1))
     (with-slots ((tx2 tx) (ty2 ty)) transform2
-      (declare (single-float tx2 ty2))
+      (declare (type single-float tx2 ty2))
       (and (= tx1 tx2) (= ty1 ty2)))))
 
 (defmethod transformation-equal
 	   ((transform1 standard-transformation) (transform2 standard-transformation))
   (with-slots ((mxx1 mxx) (mxy1 mxy) (myx1 myx) (myy1 myy) (tx1 tx) (ty1 ty)) transform1
-    (declare (single-float mxx1 mxy1 myx1 myy1 tx1 ty1))
+    (declare (type single-float mxx1 mxy1 myx1 myy1 tx1 ty1))
     (with-slots ((mxx2 mxx) (mxy2 mxy) (myx2 myx) (myy2 myy) (tx2 tx) (ty2 ty)) transform2
-      (declare (single-float mxx2 mxy2 myx2 myy2 tx2 ty2))
+      (declare (type single-float mxx2 mxy2 myx2 myy2 tx2 ty2))
       (and (= mxx1 mxx2)
 	   (= mxy1 mxy2)
 	   (= myx1 myx2)
@@ -356,7 +364,7 @@
 
 (defmethod invertible-transformation-p ((transform standard-transformation))
   (with-slots (mxx mxy myx myy) transform
-    (declare (single-float mxx mxy myx myy))
+    (declare (type single-float mxx mxy myx myy))
     (not (zerop (- (* mxx myy) (* mxy myx))))))
 
 
@@ -369,7 +377,7 @@
 
 (defmethod reflection-transformation-p ((transform standard-transformation))
   (with-slots (mxx mxy myx myy) transform
-    (declare (single-float mxx mxy myx myy))
+    (declare (type single-float mxx mxy myx myy))
     (minusp (- (* mxx myy) (* mxy myx)))))
 
 
@@ -382,10 +390,10 @@
 
 (defmethod rigid-transformation-p ((transform standard-transformation))
   (with-slots (mxx mxy myx myy) transform
-    (declare (single-float mxx mxy myx myy))
-    (and (= (- (* mxx myy) (* mxy myx)) 1s0)
-	 (= (+ (* mxx mxy) (* myx myy)) 1s0)
-	 (= (+ (expt mxx 2) (expt myx 2)) 1s0))))
+    (declare (type single-float mxx mxy myx myy))
+    (and (= (- (* mxx myy) (* mxy myx)) 1f0)
+	 (= (+ (* mxx mxy) (* myx myy)) 1f0)
+	 (= (+ (expt mxx 2) (expt myx 2)) 1f0))))
 
 
 ;;; Even scaling transformation?
@@ -397,8 +405,8 @@
 
 (defmethod even-scaling-transformation-p ((transform standard-transformation))
   (with-slots (mxx mxy myx myy) transform
-    (declare (single-float mxx mxy myx myy))
-    (and (= mxy 0s0) (= myx 0s0)
+    (declare (type single-float mxx mxy myx myy))
+    (and (= mxy 0f0) (= myx 0f0)
 	 (= mxx myy))))
 
 
@@ -411,8 +419,8 @@
 
 (defmethod scaling-transformation-p ((transform standard-transformation))
   (with-slots (mxy myx) transform
-    (declare (single-float mxy myx))
-    (and (= mxy 0s0) (= myx 0s0))))
+    (declare (type single-float mxy myx))
+    (and (= mxy 0f0) (= myx 0f0))))
 
 
 ;;; Rectilinear transformation?
@@ -424,9 +432,9 @@
 
 (defmethod rectilinear-transformation-p ((transform standard-transformation))
   (with-slots (mxx mxy myx myy) transform
-    (declare (single-float mxx mxy myx myy))
-    (or (and (= mxy 0s0) (= myx 0s0))
-	(and (= mxx 0s0) (= myy 0s0)))))
+    (declare (type single-float mxx mxy myx myy))
+    (or (and (= mxy 0f0) (= myx 0f0))
+	(and (= mxx 0f0) (= myy 0f0)))))
 
 
 ;;; Complex constructors
@@ -437,24 +445,28 @@
 (defmethod slot-unbound (class (transform translation-transformation) (slot (eql 'inverse)))
   (declare (ignore class))
   (with-slots (tx ty inverse) transform
-    (declare (single-float tx ty))
-    (setf inverse (make-translation-transformation-1 (- tx) (- ty)))))
+    (declare (type single-float tx ty))
+    (let ((i (make-translation-transformation-1 (- tx) (- ty))))
+      (setf (slot-value i 'inverse) transform)
+      (setf inverse i))))
 
 (defmethod slot-unbound (class (transform standard-transformation) (slot (eql 'inverse)))
   (declare (ignore class))
   (with-slots (mxx mxy myx myy tx ty inverse) transform
-    (declare (single-float mxx mxy myx myy tx ty))
+    (declare (type single-float mxx mxy myx myy tx ty))
     (let ((1/det (- (* mxx myy) (* mxy myx))))
       (when (zerop 1/det)
 	(error 'singular-transformation :transformation transform))
       (setq 1/det (/ 1/det))
-      (setf inverse
-	    (make-standard-transformation-1 (* myy 1/det)
-					    (* (- mxy) 1/det)
-					    (* (- myx) 1/det)
-					    (* mxx 1/det)
-					    (* (- (* mxy ty) (* myy tx)) 1/det)
-					    (* (- (* myx tx) (* mxx ty)) 1/det))))))
+      (let ((i (make-standard-transformation-1 (* myy 1/det)
+					       (* (- mxy) 1/det)
+					       (* (- myx) 1/det)
+					       (* mxx 1/det)
+					       (* (- (* mxy ty) (* myy tx)) 1/det)
+					       (* (- (* myx tx) (* mxx ty)) 1/det))))
+	;; Link the transformation to its inverse
+	(setf (slot-value i 'inverse) transform)
+	(setf inverse i)))))
 
 
 ;;; Composition operators
@@ -470,22 +482,22 @@
 (defmethod compose-transformations
 	   ((transform1 translation-transformation) (transform2 translation-transformation))
   (with-slots ((tx1 tx) (ty1 ty)) transform1
-    (declare (single-float tx1 ty1))
+    (declare (type single-float tx1 ty1))
     (with-slots ((tx2 tx) (ty2 ty)) transform2
-      (declare (single-float tx2 ty2))
+      (declare (type single-float tx2 ty2))
       (let ((tx (+ tx1 tx2))
 	    (ty (+ ty1 ty2)))
-	(declare (single-float tx ty))
-	(if (and (= tx 0s0) (= ty 0s0))
+	(declare (type single-float tx ty))
+	(if (and (= tx 0f0) (= ty 0f0))
 	    +identity-transformation+
 	    (make-translation-transformation-1 tx ty))))))
 
 (defmethod compose-transformations
 	   ((transform1 standard-transformation) (transform2 standard-transformation))
   (with-slots ((mxx1 mxx) (mxy1 mxy) (myx1 myx) (myy1 myy) (tx1 tx) (ty1 ty)) transform1
-    (declare (single-float mxx1 mxy1 myx1 myy1 tx1 ty1))
+    (declare (type single-float mxx1 mxy1 myx1 myy1 tx1 ty1))
     (with-slots ((mxx2 mxx) (mxy2 mxy) (myx2 myx) (myy2 myy) (tx2 tx) (ty2 ty)) transform2
-      (declare (single-float mxx2 mxy2 myx2 myy2 tx2 ty2))
+      (declare (type single-float mxx2 mxy2 myx2 myy2 tx2 ty2))
       (make-transformation-1 (+ (* mxx1 mxx2) (* mxy1 myx2))
 			     (+ (* mxx1 mxy2) (* mxy1 myy2))
 			     (+ (* myx1 mxx2) (* myy1 myx2))
@@ -496,7 +508,7 @@
 (defmethod compose-transformations
 	   ((transform1 standard-transformation) (transform2 translation-transformation))
   (with-slots ((mxx1 mxx) (mxy1 mxy) (myx1 myx) (myy1 myy) (tx1 tx) (ty1 ty)) transform1
-    (declare (single-float mxx1 mxy1 myx1 myy1 tx1 ty1))
+    (declare (type single-float mxx1 mxy1 myx1 myy1 tx1 ty1))
     (with-slots ((tx2 tx) (ty2 ty)) transform2
       (make-standard-transformation-1 mxx1 mxy1 myx1 myy1
 				      (+ tx1 (* mxx1 tx2) (* mxy1 ty2))
@@ -505,48 +517,51 @@
 (defmethod compose-transformations
 	   ((transform1 translation-transformation) (transform2 standard-transformation))
   (with-slots ((tx1 tx) (ty1 ty)) transform1
-    (declare (single-float tx1 ty1))
+    (declare (type single-float tx1 ty1))
     (with-slots ((mxx2 mxx) (mxy2 mxy) (myx2 myx) (myy2 myy) (tx2 tx) (ty2 ty)) transform2
-      (declare (single-float mxx2 mxy2 myx2 myy2 tx2 ty2))
+      (declare (type single-float mxx2 mxy2 myx2 myy2 tx2 ty2))
       (make-standard-transformation-1 mxx2 mxy2 myx2 myy2 (+ tx1 tx2) (+ ty1 ty2)))))
 
 
 ;;; Translation composition operators
 
-(defmethod compose-translation-transformation ((transform identity-transformation) dx dy)
+(defmethod compose-translation-with-transformation
+	   ((transform identity-transformation) dx dy)
   (declare (type real dx dy))
-  (let ((dx (float dx 0s0))
-	(dy (float dy 0s0)))
-    (declare (single-float dx dy))
-    (if (and (= dx 0s0) (= dy 0s0))
+  (let ((dx (float dx 0f0))
+	(dy (float dy 0f0)))
+    (declare (type single-float dx dy))
+    (if (and (= dx 0f0) (= dy 0f0))
 	transform
 	(make-translation-transformation-1 dx dy))))
 
-(defmethod compose-translation-transformation ((transform translation-transformation) dx dy)
+(defmethod compose-translation-with-transformation
+	   ((transform translation-transformation) dx dy)
   (declare (type real dx dy))
-  (let ((dx (float dx 0s0))
-	(dy (float dy 0s0)))
-    (declare (single-float dx dy))
-    (if (and (= dx 0s0) (= dy 0s0))
+  (let ((dx (float dx 0f0))
+	(dy (float dy 0f0)))
+    (declare (type single-float dx dy))
+    (if (and (= dx 0f0) (= dy 0f0))
 	transform
 	(with-slots (tx ty) transform
-	  (declare (single-float tx ty))
+	  (declare (type single-float tx ty))
 	  (let ((tx (+ dx tx))
 		(ty (+ dy ty)))
-	    (declare (single-float tx ty))
-	    (if (and (= tx 0s0) (= ty 0s0))
+	    (declare (type single-float tx ty))
+	    (if (and (= tx 0f0) (= ty 0f0))
 		+identity-transformation+
 		(make-translation-transformation-1 tx ty)))))))
 
-(defmethod compose-translation-transformation ((transform standard-transformation) dx dy)
+(defmethod compose-translation-with-transformation
+	   ((transform standard-transformation) dx dy)
   (declare (type real dx dy))
-  (let ((dx (float dx 0s0))
-	(dy (float dy 0s0)))
-    (declare (single-float dx dy))
-    (if (and (= dx 0s0) (= dy 0s0))
+  (let ((dx (float dx 0f0))
+	(dy (float dy 0f0)))
+    (declare (type single-float dx dy))
+    (if (and (= dx 0f0) (= dy 0f0))
 	transform
 	(with-slots (mxx mxy myx myy tx ty) transform
-	  (declare (single-float mxx mxy myx myy tx ty))
+	  (declare (type single-float mxx mxy myx myy tx ty))
 	  (make-standard-transformation-1 mxx mxy myx myy
 					  (+ tx (* mxx dx) (* mxy dy))
 					  (+ ty (* myx dx) (* myy dy)))))))
@@ -555,43 +570,43 @@
 
 ;;; Scaling composition operators
 
-(defmethod compose-scaling-transformation
+(defmethod compose-scaling-with-transformation
 	   ((transform identity-transformation) mx my &optional (origin nil origin-p))
   (declare (type real mx my))
   (if origin-p
       (make-scaling-transformation mx my origin)
       (make-scaling-transformation mx my)))
 
-(defmethod compose-scaling-transformation
+(defmethod compose-scaling-with-transformation
 	   ((transform translation-transformation) mx my &optional (origin nil origin-p))
   (declare (type real mx my))
-  (let ((mx (float mx 0s0))
-	(my (float my 0s0)))
-    (declare (single-float mx my))
-    (if (and (= mx 1s0) (= my 1s0))
+  (let ((mx (float mx 0f0))
+	(my (float my 0f0)))
+    (declare (type single-float mx my))
+    (if (and (= mx 1f0) (= my 1f0))
 	transform
 	(with-slots (tx ty) transform
-	  (declare (single-float tx ty))
+	  (declare (type single-float tx ty))
 	  (if origin-p
-	      (make-transformation-1 mx 0s0 0s0 my
-				     (+ tx (* (- 1s0 mx) (float (point-x origin) 0s0)))
-				     (+ ty (* (- 1s0 my) (float (point-y origin) 0s0))))
-	      (make-transformation-1 mx 0s0 0s0 my tx ty))))))
+	      (make-transformation-1 mx 0f0 0f0 my
+				     (+ tx (* (- 1f0 mx) (float (point-x origin) 0f0)))
+				     (+ ty (* (- 1f0 my) (float (point-y origin) 0f0))))
+	      (make-transformation-1 mx 0f0 0f0 my tx ty))))))
 
-(defmethod compose-scaling-transformation
+(defmethod compose-scaling-with-transformation
 	   ((transform standard-transformation) mx my &optional (origin nil origin-p))
   (declare (type real mx my))
-  (let ((mx (float mx 0s0))
-	(my (float my 0s0)))
-    (declare (single-float mx my))
-    (if (and (= mx 1s0) (= my 1s0))
+  (let ((mx (float mx 0f0))
+	(my (float my 0f0)))
+    (declare (type single-float mx my))
+    (if (and (= mx 1f0) (= my 1f0))
 	transform
 	(with-slots ((mxx1 mxx) (mxy1 mxy) (myx1 myx) (myy1 myy) (tx1 tx) (ty1 ty)) transform
-	  (declare (single-float mxx1 mxy1 myx1 myy1 tx1 ty1))
+	  (declare (type single-float mxx1 mxy1 myx1 myy1 tx1 ty1))
 	  (if origin-p
-	      (let ((tx2 (* (- 1s0 mx) (float (point-x origin) 0s0)))
-		    (ty2 (* (- 1s0 my) (float (point-y origin) 0s0))))
-		(declare (single-float tx2 ty2))
+	      (let ((tx2 (* (- 1f0 mx) (float (point-x origin) 0f0)))
+		    (ty2 (* (- 1f0 my) (float (point-y origin) 0f0))))
+		(declare (type single-float tx2 ty2))
 		(make-transformation-1 (* mxx1 mx) (* mxy1 my) (* myx1 mx) (* myy1 my)
 				       (+ tx1 (* mxx1 tx2) (* mxy1 ty2))
 				       (+ ty1 (* myx1 tx2) (* myy1 ty2))))
@@ -601,57 +616,59 @@
 
 ;;; Rotation composition operators
 
-(defmethod compose-rotation-transformation
+(defmethod compose-rotation-with-transformation
 	   ((transform identity-transformation) angle &optional (origin nil origin-p))
   (declare (type real angle))
   (if origin-p
       (make-rotation-transformation angle origin)
       (make-rotation-transformation angle)))
 
-(defmethod compose-rotation-transformation
+(defmethod compose-rotation-with-transformation
 	   ((transform translation-transformation) angle &optional (origin nil origin-p))
-  (let ((angle (mod (float angle 0s0) (float (* 2 pi) 0s0))))
-    (declare (single-float angle))
-    (if (= angle 0s0)
+  (let ((angle (mod (float angle 0f0) (float (* 2 pi) 0f0))))
+    (declare (type single-float angle))
+    (if (= angle 0f0)
 	transform
 	(with-slots ((tx1 tx) (ty1 ty)) transform
-	  (declare (single-float tx1 ty1))
+	  (declare (type single-float tx1 ty1))
 	  (let* ((c (cos angle))
 		 (s (sin angle))
-		 (1-c (- 1s0 c)))
-	    (declare (single-float c s 1-c))
+		 (1-cc (- 1f0 c)))
+	    (declare (type single-float c s 1-cc))
 	    (if origin-p
 		(let ((origin-x (point-x origin))
 		      (origin-y (point-y origin)))
-		  (declare (single-float origin-x origin-y))
-		  (make-standard-transformation-1 c (- s) s c
-						  (+ tx1 (* 1-c origin-x) (* s origin-y))
-						  (+ ty1 (- (* 1-c origin-y) (* s origin-x)))))
+		  (declare (type single-float origin-x origin-y))
+		  (make-standard-transformation-1
+		    c (- s) s c
+		    (+ tx1 (* 1-cc origin-x) (* s origin-y))
+		    (+ ty1 (- (* 1-cc origin-y) (* s origin-x)))))
 		(make-standard-transformation-1 c (- s) s c tx1 ty1)))))))
 
-(defmethod compose-rotation-transformation
+(defmethod compose-rotation-with-transformation
 	   ((transform standard-transformation) angle &optional (origin nil origin-p))
-  (let ((angle (mod (float angle 0s0) (float (* 2 pi) 0s0))))
-    (declare (single-float angle))
-    (if (= angle 0s0)
+  (let ((angle (mod (float angle 0f0) (float (* 2 pi) 0f0))))
+    (declare (type single-float angle))
+    (if (= angle 0f0)
 	transform
-	(with-slots ((mxx1 mxx) (mxy1 mxy) (myx1 myx) (myy1 myy) (tx1 tx) (ty1 ty)) transform
-	  (declare (single-float mxx1 mxy1 myx1 myy1 tx1 ty1))
+        (with-slots ((mxx1 mxx) (mxy1 mxy) (myx1 myx) (myy1 myy) (tx1 tx) (ty1 ty))
+	            transform
+	  (declare (type single-float mxx1 mxy1 myx1 myy1 tx1 ty1))
 	  (let* ((c (cos angle))
 		 (s (sin angle))
-		 (1-c (- 1s0 c))
+		 (1-cc (- 1f0 c))
 		 (mxx (+ (* mxx1 c) (* mxy1 s)))
 		 (mxy (- (* mxy1 c) (* mxx1 s)))
 		 (myx (+ (* myx1 c) (* myy1 s)))
 		 (myy (- (* myy1 c) (* myx1 s))))
-	    (declare (single-float c s 1-c mxx mxy myx myy))
+	    (declare (type single-float c s 1-cc mxx mxy myx myy))
 	    (if origin-p
 		(let ((origin-x (point-x origin))
 		      (origin-y (point-y origin)))
-		  (declare (single-float origin-x origin-y))
-		  (let ((tx2 (+ (* 1-c origin-x) (* s origin-y)))
-			(ty2 (- (* 1-c origin-y) (* s origin-x))))
-		    (declare (single-float tx2 ty2))
+		  (declare (type single-float origin-x origin-y))
+		  (let ((tx2 (+ (* 1-cc origin-x) (* s origin-y)))
+			(ty2 (- (* 1-cc origin-y) (* s origin-x))))
+		    (declare (type single-float tx2 ty2))
 		    (make-transformation-1 mxx mxy myx myy
 					   (+ tx1 (* mxx1 tx2) (* mxy1 ty2))
 					   (+ ty1 (* myx1 tx2) (* myy1 ty2)))))
@@ -665,20 +682,20 @@
 
 (defmethod transform-point* ((transform translation-transformation) x y)
   (declare (type real x y))
-  (let ((x (float x 0s0))
-	(y (float y 0s0)))
-    (declare (single-float x y))
+  (let ((x (float x 0f0))
+	(y (float y 0f0)))
+    (declare (type single-float x y))
     (with-slots (tx ty) transform
-      (declare (single-float tx ty))
+      (declare (type single-float tx ty))
       (values (+ x tx) (+ y ty)))))
 
 (defmethod transform-point* ((transform standard-transformation) x y)
   (declare (type real x y))
-  (let ((x (float x 0s0))
-	(y (float y 0s0)))
-    (declare (single-float x y))
+  (let ((x (float x 0f0))
+	(y (float y 0f0)))
+    (declare (type single-float x y))
     (with-slots (mxx mxy myx myy tx ty) transform
-      (declare (single-float mxx mxy myx myy tx ty))
+      (declare (type single-float mxx mxy myx myy tx ty))
       (values (+ (* x mxx) (* y mxy) tx)
 	      (+ (* x myx) (* y myy) ty)))))
 
@@ -688,11 +705,11 @@
 
 (defmethod untransform-point* ((transform translation-transformation) x y)
   (declare (type real x y))
-  (let ((x (float x 0s0))
-	(y (float y 0s0)))
-    (declare (single-float x y))
+  (let ((x (float x 0f0))
+	(y (float y 0f0)))
+    (declare (type single-float x y))
     (with-slots (tx ty) transform
-      (declare (single-float tx ty))
+      (declare (type single-float tx ty))
       (values (- x tx) (- y ty)))))
 
 (defmethod untransform-point* ((transform standard-transformation) x y)
@@ -710,11 +727,11 @@
 
 (defmethod transform-distance ((transform standard-transformation) dx dy)
   (declare (type real dx dy))
-  (let ((dx (float dx 0s0))
-	(dy (float dy 0s0)))
-    (declare (single-float dx dy))
+  (let ((dx (float dx 0f0))
+	(dy (float dy 0f0)))
+    (declare (type single-float dx dy))
     (with-slots (mxx mxy myx myy tx ty) transform
-      (declare (single-float mxx mxy myx myy tx ty))
+      (declare (type single-float mxx mxy myx myy tx ty))
       (values (+ (* dx mxx) (* dy mxy))
 	      (+ (* dx myx) (* dy myy))))))
 

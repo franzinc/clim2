@@ -1,30 +1,10 @@
-;;; -*- Mode: LISP; Syntax: Common-lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
-;; 
-;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
-;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
-;;
-;; The software, data and information contained herein are proprietary
-;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
-;; given in confidence by Franz, Inc. pursuant to a written license
-;; agreement, and may be stored and used only in accordance with the terms
-;; of such license.
-;;
-;; Restricted Rights Legend
-;; ------------------------
-;; Use, duplication, and disclosure of the software, data and information
-;; contained herein by any agency, department or entity of the U.S.
-;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
-;;
+;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clos-patches.lisp,v 1.1 91/08/30 13:57:44 cer Exp Locker: cer $
+;; $fiHeader: clos-patches.lisp,v 1.6 91/03/26 12:03:06 cer Exp $
 
 (in-package :clim-utils)
 
-"Copyright (c) 1990, 1991 Symbolics, Inc.  All rights reserved."
-"Copyright (c) 1991, Franz Inc. All rights reserved"
+"Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved."
 
 ;;; This file contains various patches to get around current deficiencies
 ;;; in various CLOS implementations
@@ -37,20 +17,20 @@
 			     (new-value symbol &optional errorp)
   (if (null symbol) nil (lucid-common-lisp:advice-continue new-value symbol errorp)))
 
-#+(or Lucid excl)
+#+(or Lucid Allegro)
 ;; I can't figure out how to do this, so for now we will not try to keep the
 ;; compilation and run-time environments properly separated.
 (defun compile-file-environment-p (environment)
   (declare (ignore environment))
   nil)
 
-#+ccl-2
+#+CCL-2
 (defun compile-file-environment-p (environment)
   (if (eq environment 'compile-file)
       t
       (ccl::compile-file-environment-p environment)))
 
-#+(or Lucid (and excl (not (version>= 4 1))))
+#+(or Lucid Allegro)
 (defgeneric make-load-form (object))
 
 #+Lucid
@@ -76,9 +56,7 @@
 	(cons (first form1) (mapcar #'eval (rest form1))))
       (lucid-common-lisp:advice-continue object)))
 
-;; this should be (not (version>= 4 1)) except of bug2008
-
-#+excl 
+#+Allegro
 ;; Allegro CL doesn't have MAKE-LOAD-FORM, so add it (with advice from Foderaro)
 (excl:defadvice comp::wfasl-lispobj (implement-make-load-form :before)
   (let ((object (first excl:arglist)))
@@ -93,10 +71,7 @@
  	  (apply #'comp::wfasl-lispobj
  		 (cons compiler::*eval-when-load-marker* form1)
 		 (rest excl:arglist)))))))
-
-;; this should be (not (version>= 4 1)) except of bug2008
-
-#+excl
+#+Allegro
 (excl:compile-advice 'comp::wfasl-lispobj)
 
 #+Lucid
@@ -135,7 +110,7 @@
 		 (t (error "~S is not a legal specializer." spec)))))
     (mapcar #'parse specializers)))
 
-#+(and excl (not (version>= 4 0)))
+#+Allegro
 ;;; This is needed to prevent a MAKE-LOAD-FORM form from being evaluated before
 ;;; an earlier top-level form, says Foderaro.  Even the forward reference allowed
 ;;; by load-reference-to-presentation-type-class isn't sufficient without this,
@@ -146,9 +121,9 @@
 
 
 ;;; Go through this rigamarole because WITH-SLOTS doesn't accept declarations
-;;; on Lucid and Franz
+;;; on Lucid and Franz Allegro
 
-#+(or Lucid (and excl (or :rs6000 (not (version>= 4 1)))))
+#+(or Lucid (and Allegro (or :rs6000 (not (version>= 4 1)))))
 (lisp:defun slot-value-alist (body)
   (declare (values real-body alist))
   (let ((alist nil))
@@ -159,21 +134,22 @@
 			(eq (first form) 'declare))))
 	  (values real-body alist))
       (dolist (spec (rest form))
-	(let ((type (first spec)))
-	  (dolist (var (rest spec))
+	(let ((type (if (eql (first spec) 'type) (second spec) (first spec)))
+	      (vars (if (eql (first spec) 'type) (cddr spec) (cdr spec))))
+	  (dolist (var vars)
 	    (push (cons var type) alist)))))))
 
-#+(or Lucid (and excl (or :rs6000 (not (version>= 4 1)))))
+#+(or Lucid (and Allegro (or :rs6000 (not (version>= 4 1)))))
 (defparameter *with-slots* #+PCL 'pcl::with-slots 
-			   #+(and excl (or :rs6000 (not (version>= 4 1)))) 'clos::with-slots
-			   #-(or (and excl (or :rs6000 (not (version>= 4 1)))) PCL) 'clos:with-slots)
+			   #+Allegro 'clos::with-slots
+			   #-(or Allegro PCL) 'clos:with-slots)
 
-#+(or Lucid (and excl (or :rs6000 (not (version>= 4 1)))))
+#+(or Lucid (and Allegro (or :rs6000 (not (version>= 4 1)))))
 (defparameter *slot-value* #+PCL 'pcl::slot-value
-			   #+(and excl (or :rs6000 (not (version>= 4 1)))) 'clos::slot-value
-			   #-(or (and excl (or :rs6000 (not (version>= 4 1)))) PCL) 'clos:slot-value)
+			   #+Allegro 'clos::slot-value
+			   #-(or Allegro PCL) 'clos:slot-value)
 
-#+(or Lucid (and excl (or :rs6000 (not (version>= 4 1)))))
+#+(or Lucid (and Allegro (or :rs6000 (not (version>= 4 1)))))
 (defmacro with-slots (slot-entries instance-form &body body &environment environment)
   (multiple-value-bind (real-body alist) (slot-value-alist body)
     (let ((expansion (macroexpand `(,*with-slots* ,slot-entries ,instance-form
