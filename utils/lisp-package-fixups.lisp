@@ -1,5 +1,7 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: USER; Base: 10 -*-
 
+;; $fiHeader$
+
 #+ANSI-90 (in-package :cl-user)
 
 #-ANSI-90 (in-package :user)
