@@ -11,6 +11,29 @@ Tests for new features:	<`no new features', `no tests for new features', or
 	* <changes go here...>
 
 *******************************************************************************
+2.2.1.28
+
+Mon Jul 20 12:00:00 1998  Jeff Morrill <jmorrill@pointnclick.com>
+
+        * misc/compile-1: don't compile systems that are obsolete or broken
+        * tk-silica/xm-silica: resolve spr17831 & spr17939 regarding 
+           destroying a widget that is already destroyed
+        * utils/last: provide :climnt for #+mswindows
+        * tk-silica/gc-cursor: implement reinitialize-gc-cursor
+	* silica/db-label: repaint generic label panes correctly
+        * silica/db-scroll: use method dispatch rather than typep and
+           confused reader conditionalizations
+        * aclpc/acl-widget: don't divide by zero when scrolling
+        * aclpc/acl-scroll: lots of scroll bar fixes
+        * aclpc/acl-prel: be more careful when printing warnings
+           in order to avoid recursive warning loop
+        * aclpc/acl-port: better font mapping
+        * aclpc/acl-medium: fixes for flipping-ink, pixmaps
+        * aclpc/acl-frames: fixes for menu-choose, select-file, noting-progress
+        * aclpc/acl-dc: various changes to device context handling
+        * aclpc/acl-class: two fixes for better handling of OnCommand events.
+
+*******************************************************************************
 2.2.1.27
 
 Sat Jul 11 08:42:42 1998  Kevin Layer  <layer@ultra>

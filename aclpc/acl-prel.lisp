@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-prel.lisp,v 1.4.8.5 1998/07/06 23:08:50 layer Exp $
+;; $Id: acl-prel.lisp,v 1.4.8.6 1998/07/20 21:57:19 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -423,7 +423,10 @@
 	  ((eq action :error)
 	   (error "~A: (error ~A) ~A" name code (errno-to-text code)))
 	  ((eq action :warn)
-	   (warn "~A: (error ~A) ~A" name code (errno-to-text code))
+	   ;; Printing warnings on clim windows risks recursive
+	   ;; warning loop.
+	   (format *trace-output*
+		   "~&Warning: ~A: (error ~A) ~A~%" name code (errno-to-text code))
 	   code)
 	  (t code))))
 

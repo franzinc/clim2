@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: db-menu.lisp,v 1.9.22.3 1998/07/06 23:08:56 layer Exp $
+;; $Id: db-menu.lisp,v 1.9.22.4 1998/07/20 21:57:20 layer Exp $
 
 ;;;"Copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
 
@@ -221,7 +221,7 @@
              (plusp (pointer-event-y event)))
     (setf (pull-down-menu-entered pane) t)))
 
-#-(or aclpc acl86win32)
+#+broken
 (defmethod handle-event ((pane pull-down-menu) (event pointer-exit-event))
   ;; Don't punt if we've never entered the menu, or if we are entering
   ;; one of the buttons within the menu
@@ -244,25 +244,20 @@
 ;;; Menu bars
 
 #+(or aclpc acl86win32)
-(defclass menu-bar-pane (menu-bar)
-    ())
-
+(defclass menu-bar-pane (menu-bar) ())
 
 ;;mm: add  this to allow multiple functions to value of command-table slot
-#+(or aclpc acl86win32)
 (defun default-command-table-p (command-table)
    (and command-table (not (or (listp command-table) 
                                (typep command-table 'command-table)))))
 
 ;;--- What about when the command menu tick changes?
 ;;--- What about graying of disabled commands?
-#+(or aclpc acl86win32)
 (defun compute-menu-bar-pane (frame command-table)
   (outlining ()
     (setf (slot-value frame 'menu-bar)
       (compute-menu-bar-pane-1 frame command-table))))
 
-#+(or aclpc acl86win32)
 (defun compute-menu-bar-pane-1 (frame command-table)
   ;; Returns an hbox-pane containing a row of buttons.
   (let* ((command-table 

@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xm-silica.lisp,v 1.48.22.2 1998/07/06 23:10:20 layer Exp $
+;; $Id: xm-silica.lisp,v 1.48.22.3 1998/07/20 21:57:31 layer Exp $
 
 (in-package :xm-silica)
 
@@ -160,7 +160,11 @@
 	 (plist (and cursor
 		     (slot-value cursor 'clim-internals::plist)))
 	 (input-widget (getf plist :input-widget)))
-    (when input-widget
+    (when (and input-widget
+	       ;; JPM 7/98: Don't destroy something already destroyed.
+	       ;; spr17831 and spr17939.  Apparently the motif-top-level-sheet
+	       ;; may have already destroyed it.  
+	       (tk::find-object-from-address (ff:foreign-pointer-address input-widget) nil))
       (tk::destroy-widget input-widget))))
 
 (defmethod port-note-cursor-change :after

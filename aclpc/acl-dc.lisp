@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-dc.lisp,v 1.4.8.5 1998/07/06 23:08:48 layer Exp $
+;; $Id: acl-dc.lisp,v 1.4.8.6 1998/07/20 21:57:16 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -177,43 +177,14 @@
    (height :initarg :height :reader pixmap-height)
    (original-bitmap :initarg :original-bitmap)))
 
-#+ignore ; old version, new below supports with output to pixmap
-(defmacro with-dc ((window dc) &rest body)
-  `(let ((,dc nil))
-    (unwind-protect
-     (progn
-       (setf ,dc (win:getDc ,window))
-       ,@body)
-     (release-objects ,window ,dc))))
-
-#+++ignore
-(defmacro with-dc ((window dc) &rest body)
-  `(let ((,dc nil))
-     (if (typep ,window 'acl-pixmap)
-       (with-slots (cdc for-medium) ,window
-	 (let ((,dc cdc)
-	       (medium for-medium))
-	   (progn
-	     ,@body)
-	 ))
-       (unwind-protect
-	 (progn
-	   (setf ,dc (win:getDc ,window))
-	   ,@body)
-	 (release-objects ,window ,dc))       
-       )))
-
 ;; The call to GetDC will cons a bignum (16 bytes).
 ;; We should probably try to optimize this some how
 ;; since it is called constantly during simple
 ;; things like repaint.
 (defmacro with-dc ((window dc) &rest body)
-  `(if (typep ,window 'acl-pixmap)
-       (with-slots (cdc for-medium) ,window
-	 (let ((,dc cdc)
-	       (medium for-medium))
-	   medium
-	   ,@body))
+  `(if (typep ,window 'acl-pixmap-medium)
+       (let ((,dc (pixmap-cdc (medium-drawable ,window))))
+	 ,@body)
      ;; It was my intention to rewrite this to
      ;; cache the DC, in combination with setting
      ;; CS_OWNDC.
@@ -222,16 +193,12 @@
 	   (progn
 	     (setq ,dc (getDc ,window))
 	     ,@body)
-	 (release-objects ,window ,dc))       
-       )))
+	 (release-objects ,window ,dc)))))
 
 (defmacro with-medium-dc ((medium dc) &rest body)
-  `(if (typep ,medium 'acl-pixmap)
-       (with-slots (cdc for-medium) ,medium
-	 (let ((,dc cdc)
-	       (medium for-medium))
-	   medium
-	   ,@body))
+  `(if (typep ,medium 'acl-pixmap-medium)
+       (let ((,dc (pixmap-cdc (medium-drawable ,medium))))
+	 ,@body)
      ;; It was my intention to rewrite this to
      ;; cache the DC, in combination with setting
      ;; CS_OWNDC.
@@ -241,7 +208,6 @@
 	     (setq ,dc (getDc (medium-drawable ,medium)))
 	     ,@body)
 	 (release-objects (medium-drawable ,medium) ,dc)))))
-
 
 (defmacro with-compatible-dc ((dc cdc) &rest body)
   `(let ((,cdc nil))
@@ -341,8 +307,10 @@
   (let* ((image (dc-image-for-ink medium ink))
 	 (text-color (dc-image-text-color image))
 	 (background-color (dc-image-background-color image))
-	 (oldfont nil))
-    (setq oldfont (selectobject dc font))
+	 (brush (dc-image-brush image))
+	 (pen (dc-image-solid-1-pen image))
+	 (rop2 (dc-image-rop2 image)))
+    (when font (selectobject dc font))
     (cond ((not background-color)
 	   (win:setBkMode dc win:transparent))
 	  ((minusp background-color)
@@ -350,9 +318,10 @@
 	  (t
 	   (win:setbkmode dc win:OPAQUE)
 	   (win:setBkColor dc background-color)))
-    (win:setTextColor dc text-color)
-    (unless *original-font* (setf *original-font* oldfont))
-    (win:setRop2 dc (dc-image-rop2 image))))
+    (when text-color (win:setTextColor dc text-color))
+    (when brush (win:selectobject dc brush))
+    (when pen (win:selectobject dc pen))
+    (when rop2 (win:setRop2 dc rop2))))
 
 (defgeneric dc-image-for-ink (medium ink))
 

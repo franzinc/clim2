@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-class.lisp,v 1.7.8.7 1998/07/06 23:08:47 layer Exp $
+;; $Id: acl-class.lisp,v 1.7.8.8 1998/07/20 21:57:15 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -330,15 +330,15 @@
     (declare (special *gadget-id->window*))
     (when pointer
       (flush-pointer-motion *acl-port*))
-    (cond ((and (= lparam 0)		; menu item
-		(= whiword 0))		; otherwise control (or accelerator)
+    (cond ((and (zerop lparam)		; menu item
+		(zerop whiword))	; otherwise control (or accelerator)
 	   (let* ((frame (pane-frame sheet))
-		  (command-table (frame-command-table frame))
 		  (command (cdr (aref *menu-id->command-table* wloword))))
 	     ;; pr Aug97
 	     (with-slots (clim-internals::disabled-commands) frame
 	       (if (member (car command) clim-internals::disabled-commands)
 		   (win:messagebeep 200)
+		 #+old
 		 (queue-put (slot-value *acl-port* 'event-queue)
 			    (allocate-event 
 			     'presentation-event
@@ -346,7 +346,10 @@
 			     :sheet (frame-top-level-sheet frame)
 			     :presentation-type
 			     `(command :command-table ,command-table)
-			     :value command))))))
+			     :value command))
+		 (execute-command-in-frame 
+		  frame command)
+		 ))))
 	  (t
 	   (setf (ct:handle-value win:hwnd hwnd) lparam)
 	   ;;mm: for the moment, the following seems superfluous
@@ -606,16 +609,17 @@
 	      (cond ((and (eql msg win:wm_keydown)
 			  (setq command 
 			    (lookup-accelerator frame keysym modstate)))
-		     (let ((command-table (frame-command-table frame)))
-		       (queue-put 
-			event-queue
-			(allocate-event 'presentation-event
-					:frame frame
-					:sheet (frame-top-level-sheet frame)
-					:presentation-type
-					`(command :command-table ,command-table)
-					:value command)
-			)))
+		     #+old
+		     (queue-put 
+		      event-queue
+		      (allocate-event 'presentation-event
+				      :frame frame
+				      :sheet (frame-top-level-sheet frame)
+				      :presentation-type
+				      `(command :command-table ,command-table)
+				      :value command))
+		     (execute-command-in-frame
+		      frame command))
 		    ((and (eql msg win:wm_keydown)
 			  (eql keysym :newline)
 			  (find-default-gadget frame))
@@ -646,12 +650,14 @@
 
 (defun find-default-gadget (frame)
   ;; Look for a button that is "show-as-default"
-  (let ((gadget nil)
-	(input-context *input-context*))
+  (let* ((gadget nil)
+	 (input-context *input-context*)
+	 (this-context (first input-context))
+	 (context-type (when this-context (input-context-type this-context))))
     ;; If we are not accepting a command, then forget about
-    ;; activating the default gadget.  Is this the right test?  
-    ;; JPM 6/30/98.
-    (when (eq (caar input-context) 'command-name)
+    ;; activating the default gadget.  JPM 6/30/98.
+    (when (and (consp context-type)
+	       (eq (first context-type) 'command-name))
       (flet ((look (s)
 	       (when (and (typep s 'push-button)
 			  (push-button-show-as-default s))

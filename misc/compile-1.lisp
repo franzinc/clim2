@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: compile-1.lisp,v 1.33.22.4 1998/07/06 23:09:40 layer Exp $
+;; $Id: compile-1.lisp,v 1.33.22.5 1998/07/20 21:57:23 layer Exp $
 
 (in-package :user)
 
@@ -55,11 +55,12 @@
       (tenuring
        (excl:load-system sys))
 
+      #+ignore
       (progn
 	(excl:compile-system 'wnn :include-components t)
 	(excl:load-system 'wnn))
 
-      (excl:compile-system 'clim-homegrown)
+      ;;(excl:compile-system 'clim-homegrown)
 
       (load "clim2:;postscript;sysdcl")
       (excl:compile-system 'postscript-clim :include-components t)
@@ -86,9 +87,9 @@
       #+ignore (load "compatibility/sysdcl.lisp")
       #+ignore (excl:compile-system 'clim-compatibility :include-components t)
 
-      (load "clim2:;hpgl;sysdcl")
-      (excl:compile-system 'hpgl-clim :include-components t)
-      (excl:load-system 'hpgl-clim)
+      ;;(load "clim2:;hpgl;sysdcl")
+      ;;(excl:compile-system 'hpgl-clim :include-components t)
+      ;;(excl:load-system 'hpgl-clim)
 
       )))
 

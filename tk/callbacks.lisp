@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: callbacks.lisp,v 1.28.22.2 1998/07/06 23:10:09 layer Exp $
+;; $Id: callbacks.lisp,v 1.28.22.3 1998/07/20 21:57:27 layer Exp $
 
 (in-package :tk)
 
@@ -28,8 +28,8 @@
 				    (call-data :unsigned-long))
   (callback-handler-1 widget client-data call-data))
 
-(defun callback-handler-1 (widget client-data call-data)
-  (let* ((widget (find-object-from-address widget))
+(defun callback-handler-1 (address client-data call-data)
+  (let* ((widget (find-object-from-address address))
 	 (callback-info (or (assoc client-data (widget-callback-data widget))
 			    (error "Cannot find callback info ~S,~S"
 				   widget client-data))))

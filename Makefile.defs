@@ -1,4 +1,4 @@
-# $Id: Makefile.defs,v 1.45.10.2 1998/06/10 07:19:32 layer Exp $
+# $Id: Makefile.defs,v 1.45.10.3 1998/07/20 21:57:14 layer Exp $
 #
 #  Makefile.defs for CLIM 2.0
 
@@ -144,7 +144,7 @@ GENERIC-FASLS= \
 	clim/db-stream.fasl clim/gadget-output.fasl clim/accept.fasl \
 	clim/present.fasl clim/command.fasl clim/command-processor.fasl \
 	clim/basic-translators.fasl clim/frames.fasl clim/panes.fasl \
-	clim/default-frame.fasl clim/activities.fasl \
+	clim/default-frame.fasl clim/activities.fasl clim/db-menu.fasl \
 	clim/noting-progress.fasl clim/menus.fasl clim/accept-values.fasl \
 	clim/drag-and-drop.fasl clim/item-list-manager.fasl \
 	postscript/pkgdcl.fasl postscript/postscript-s.fasl \

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: sysdcl.lisp,v 1.56.22.2 1998/07/06 23:10:02 layer Exp $
+;; $Id: sysdcl.lisp,v 1.56.22.3 1998/07/20 21:57:27 layer Exp $
 
 (in-package :cl-user)
 
@@ -293,7 +293,7 @@
    ("panes" (:load-before-compile "frames"))
    ("default-frame" (:load-before-compile "frames"))
    ("activities" (:load-before-compile "frames"))
-   #+acl86win32 ("db-menu" (:load-before-compile "frames"))
+   ("db-menu" (:load-before-compile "frames"))
    #+acl86win32 ("db-list" (:load-before-compile "db-menu"))
    #+acl86win32 ("db-text" (:load-before-compile "frames"))
    ("noting-progress" (:load-before-compile "frames"))

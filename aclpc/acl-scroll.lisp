@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-scroll.lisp,v 1.4.8.4 1998/07/06 23:08:51 layer Exp $
+;; $Id: acl-scroll.lisp,v 1.4.8.5 1998/07/20 21:57:19 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -42,24 +42,30 @@
 ) ;; eval-when
 
 (defmethod handle-event ((pane mswin-scroll-bar) 
-			       (event silica::scrollbar-event))
+			 (event silica::scrollbar-event))
   (with-slots (silica::orientation silica::action silica::amount) event
-      (assert (eql silica::orientation (gadget-orientation pane)))
-      (multiple-value-bind (min max) (gadget-range* pane)
-        (setf (gadget-value pane)
-          (max min 
-               (min (- max (scroll-bar-size pane))
-	              (case silica::action
-	                (:relative-jump  ; press arrows
-                        (+ (gadget-value pane) 
-                           (* (scroll-bar-size pane) silica::amount)))
-	                (:screenful   ; click near thumb
-                        (+ (gadget-value pane) 
-                           (* (scroll-bar-size pane) silica::amount)))
-  	                (:percentage  ; drag thumb
-                        (+ min
-                           (* (- max min (scroll-bar-size pane)) 
-                              (/ silica::amount (float acl-clim::*win-scroll-grain*))))))))))))
+    (assert (eql silica::orientation (gadget-orientation pane)))
+    (multiple-value-bind (min max) (gadget-range* pane)
+      (let ((new
+	     (max min 
+		  (min (- max (scroll-bar-size pane))
+		       (case silica::action
+			 (:relative-jump ; press arrows
+			  (+ (gadget-value pane) 
+			     (* (scroll-bar-size pane) silica::amount)))
+			 (:screenful	; click near thumb
+			  (+ (gadget-value pane) 
+			     (* (scroll-bar-size pane) silica::amount)))
+			 (:percentage	; drag thumb
+			  (+ min
+			     (* (- max min (scroll-bar-size pane)) 
+				(/ silica::amount 
+				   (float acl-clim::*win-scroll-grain*))))))))))
+	#+ignore
+        (setf (gadget-value pane) new)
+	(value-changed-callback pane (gadget-client pane) 
+				(gadget-id pane) new)
+	))))
 
 (define-event-resource scrollbar-event 10)
 
@@ -167,7 +173,8 @@
 ;;--- In the case where the viewport is bigger than the window this
 ;;--- code gets things wrong.  Check out the thinkadot demo.  It's
 ;;--- because (- (--) (- vmin)) is negative.
-(defun update-mswin-sbar (scroll-bar min max vmin vmax orientation)
+(defmethod update-scroll-bar ((scroll-bar silica::mswin-scroller-pane) 
+			      min max vmin vmax orientation)
   (declare (optimize (safety 0) (speed 3)))
   ;;-- Is this really the right thing to do?
   ;;-- If in an interactor some draws at -ve coordinates but the
@@ -191,7 +198,7 @@
       (declare (type single-float range gmin gmax))
       (when (and (and current-size (= (the single-float current-size) range))
 		 (= min vmin) (> (- vmax vmin) (- max min)))
-	(return-from update-mswin-sbar))
+	(return-from update-scroll-bar))
       ;; The elevator size in 01 units - calculated from the contents
       (let* ((contents-range (float (- max min) 0.0s0))
 	     (viewport-range (float (- vmax vmin) 0.0s0))
@@ -247,18 +254,7 @@
 	  ;;-- It would be nice if we could do this at the point of scrolling
 	  #+foo (cerror "foo" "pos=~a size=~a min=~a max=~a vmin=~a vmax=~a contents-range=~a"
 			pos size min max vmin vmax contents-range)
-	  #+ignore
-	  (let* ((line-scroll1 (line-scroll-amount
-				scroll-bar orientation :down)
-			       #||(line-scroll-amount (slot-value scroll-bar 'client)
-						      orientation nil)||#)
-		 (line-scroll (if (zerop contents-range)
-				  0	;-- Who knows
-				(* range (/ line-scroll1 contents-range)))))
-	    (change-scroll-bar-values scroll-bar 
-				      :slider-size size
-				      :value pos
-				      :line-increment line-scroll)))))))
+	  )))))
 
 
 (defmethod contents-range ((scroller mswin-scroller-pane) orientation)
@@ -413,7 +409,11 @@
 				(event scrollbar-event))
   (deallocate-event event))
 
-(defvar *win-border-thick* 2) ;; ???
+;; The way this is used, it has to be the width of two borders.
+;; If it is too small, then when you scroll, you will get 
+;; garbage pixels.  JPM.
+(defparameter *win-border-thick* 4)
+
 ;; this used to be hardwired to 18 -tjm 17Jul97
 (defun win-scroll-thick (x-or-y)
   (+ *win-border-thick*

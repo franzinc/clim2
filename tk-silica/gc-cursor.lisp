@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: gc-cursor.lisp,v 1.8.14.2 1998/07/06 23:10:18 layer Exp $
+;; $Id: gc-cursor.lisp,v 1.8.14.3 1998/07/20 21:57:30 layer Exp $
 
 (in-package :xm-silica)
 
@@ -47,12 +47,12 @@
 			   (sheet-pointer-cursor sheet)))
 	(tk::set_clim_gc_cursor_widget 0 0)))))
 
-#+not-yet
 (defun reinitialize-gc-cursor ()
-  (init-gc-cursor .......where do we get the frame???
-		  t))
+  ;; Force init-gc-cursor to go through its initialization
+  ;; code the next time it is called.
+  (setq *gc-before* nil)
+  (setq *gc-after* nil))
 
-#+not-yet
 (pushnew 'reinitialize-gc-cursor excl::*restart-actions*)
 
 (defmethod (setf sheet-pointer-cursor) :after (cursor (sheet xt-top-level-sheet))

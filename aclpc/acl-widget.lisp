@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-widget.lisp,v 1.7.8.6 1998/07/06 23:08:51 layer Exp $
+;; $Id: acl-widget.lisp,v 1.7.8.7 1998/07/20 21:57:19 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -898,10 +898,14 @@
 	       (win-id win:SB_CTL)	; a control (decoupled from other panes)
 	       (range (- max min))
 	       (win-size (floor (* acl-clim::*win-scroll-grain* 
-				   (/ slider-size (+ range slider-size)))))
+				   ;; Don't divide zero by zero
+				   (if (zerop slider-size) slider-size
+				     (/ slider-size (+ range slider-size))))))
 	       (win-pos (floor (* (- acl-clim::*win-scroll-grain* 
 				     slider-size)
-				  (/ (- value min) (- range slider-size))))))
+				  ;; Don't divide zero by zero
+				  (if (= value min) 0
+				    (/ (- value min) (- range slider-size)))))))
 	  (ct:csets
 	   win:scrollinfo scrollinfo-struct
 	   win::cbSize (ct:sizeof win:scrollinfo)

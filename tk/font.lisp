@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: font.lisp,v 1.21.22.1 1998/07/06 23:10:09 layer Exp $
+;; $Id: font.lisp,v 1.21.22.2 1998/07/20 21:57:29 layer Exp $
 
 (in-package :tk)
 
@@ -131,7 +131,7 @@
 	    (setf (elt seq i) (char*-to-string (xfontname-list names i))))
 	(x11::xfreefontnames names)))))
 
-
+#+broken
 (defun list-font-names-with-info (display pattern &key (max-fonts 65535) (result-type 'list))
   (with-ref-par ((n 0 :int)
 		 (fonts 0 *))

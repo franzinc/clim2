@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-port.lisp,v 1.5.8.6 1998/07/06 23:08:50 layer Exp $
+;; $Id: acl-port.lisp,v 1.5.8.7 1998/07/20 21:57:19 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -329,11 +329,11 @@
 	    (multiple-value-bind (family face-name)
 		(case (text-style-family style)
 		  (:fix (values (logior win:FIXED_PITCH win:FF_MODERN) 
-				#+ignore "courier"))
+				"courier"))
 		  (:serif (values (logior win:VARIABLE_PITCH win:FF_ROMAN)
-				  #+ignore "times new roman"))
+				  "times new roman"))
 		  (:sans-serif (values (logior win:VARIABLE_PITCH win:FF_SWISS)
-				       #+ignore "arial"))
+				       "arial"))
 		  ;;--- some of these specify ugly ugly linedrawn fonts
 		  (otherwise (values (logior win:DEFAULT_PITCH win:FF_DONTCARE)
 				     (string (text-style-family style)))))

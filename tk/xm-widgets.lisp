@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xm-widgets.lisp,v 1.28.22.1 1998/07/06 23:10:15 layer Exp $
+;; $Id: xm-widgets.lisp,v 1.28.22.2 1998/07/20 21:57:29 layer Exp $
 
 (in-package :tk)
 
@@ -91,6 +91,7 @@
 (defmethod convert-resource-in ((parent t) (type (eql 'xm-string-table)) value)
   value)
 
+#+broken
 (defun convert-xm-string-table-in (parent table n)
   (let ((r nil))
     (dotimes (i n (nreverse r))

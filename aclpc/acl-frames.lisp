@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-frames.lisp,v 1.5.8.7 1998/07/06 23:08:48 layer Exp $
+;; $Id: acl-frames.lisp,v 1.5.8.8 1998/07/20 21:57:16 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -667,37 +667,38 @@ to be run from another."
 	    (write-string message-string stream)))))))
 
 (defun do-one-menu-item (popmenu item printer tick alist submenus)
-  (flet ((print-item (item)
-	   (silica::xlat-newline-return 
-	    (with-output-to-string (stream)
-	      (funcall (or printer #'print-menu-item) item stream)))))
-    (declare (dynamic-extent #'print-item))
-    (incf tick)
-    (ecase (clim-internals::menu-item-type item)
-      (:divider
-       (win:appendmenu popmenu win:MF_SEPARATOR tick 0))
-      (:label
-       (win:appendmenu popmenu win:MF_DISABLED tick 
-		       (print-item item)))
-      (:item
-       (if (clim-internals::menu-item-items item)
-	   (let ((submenu (win:createpopupmenu)))
-	     (push submenu submenus)
-	     ;; submenu
-	     (win:appendmenu popmenu win:MF_POPUP submenu
-			     (print-item item))
-	     (map nil
-	       #'(lambda (it)
-		   (multiple-value-setq (tick alist submenus)
-		     (do-one-menu-item submenu it printer
-				       tick alist submenus)))
-	       (clim-internals::menu-item-items item)))
-	 (progn
-	   (push (list tick (menu-item-value item))
-		 alist)
-	   (win:appendmenu popmenu win:MF_ENABLED tick 
-			   (print-item item))))))
-    (values tick alist submenus)))
+  (let ((*print-circle* nil))
+    (flet ((print-item (item)
+	     (silica::xlat-newline-return 
+	      (with-output-to-string (stream)
+		(funcall (or printer #'print-menu-item) item stream)))))
+      (declare (dynamic-extent #'print-item))
+      (incf tick)
+      (ecase (clim-internals::menu-item-type item)
+	(:divider
+	 (win:appendmenu popmenu win:MF_SEPARATOR tick 0))
+	(:label
+	 (win:appendmenu popmenu win:MF_DISABLED tick 
+			 (print-item item)))
+	(:item
+	 (if (clim-internals::menu-item-items item)
+	     (let ((submenu (win:createpopupmenu)))
+	       (push submenu submenus)
+	       ;; submenu
+	       (win:appendmenu popmenu win:MF_POPUP submenu
+			       (print-item item))
+	       (map nil
+		 #'(lambda (it)
+		     (multiple-value-setq (tick alist submenus)
+		       (do-one-menu-item submenu it printer
+					 tick alist submenus)))
+		 (clim-internals::menu-item-items item)))
+	   (progn
+	     (push (list tick (menu-item-value item))
+		   alist)
+	     (win:appendmenu popmenu win:MF_ENABLED tick 
+			     (print-item item))))))
+      (values tick alist submenus))))
 
 ;; Gets rid of scroll bars if possible.
 (defmethod frame-manager-menu-choose
@@ -719,11 +720,15 @@ to be run from another."
 	  x-position
 	  y-position
 	  scroll-bars)
+  ;; The basic theory of ignoring is that we ignore arguments
+  ;; that don't contribute functionality and just bring up
+  ;; the native menu without any fluff.
   (declare (ignore text-style cache
 		   cache-test cache-value
-		   id-test unique-id label))
-  (if (or presentation-type foreground background row-wise 
-	  n-columns n-rows scroll-bars)
+		   id-test unique-id label
+		   foreground background))
+  (if (or presentation-type ;; foreground background  
+	  row-wise n-columns n-rows scroll-bars)
       (call-next-method)
     #+simple-but-sure
     (apply #'call-next-method framem items :scroll-bars nil keys)
@@ -1000,8 +1005,6 @@ to be run from another."
 		   file-search-proc documentation))
   (unless pattern 
     (setq pattern ""))
-  (unless directory 
-    (setq directory (namestring (excl:current-directory))))
   (when default-p
     (let ((name (pathname-name default))
 	  (type (pathname-type default))
@@ -1018,6 +1021,14 @@ to be run from another."
 	  (namestring (make-pathname :name nil
 				     :directory dir
 				     :device device))))))
+  ;; Massage the directory to make sure, in particular,
+  ;; that it has a device.  Expensive, but worth it to 
+  ;; avoid a segmentation violation.  JPM.
+  (if directory
+      (setq directory
+	(namestring (merge-pathnames (pathname directory)
+				     (excl:current-directory))))
+    (setq directory (namestring (excl:current-directory))))
   (let* ((stream associated-window)
 	 (save-p nil)
 	 (directory-p nil))
@@ -1100,7 +1111,8 @@ to be run from another."
 (defmethod display-note ((frame nt-working-dialog) stream)
   "The pane display function for the DISPLAY pane."
   (window-clear stream)
-  (draw-text* stream (work-note frame) 0 40)
+  (stream-set-cursor-position stream 0 40)
+  (write-string (work-note frame) stream)
   (force-output stream))
 
 (defmethod display-thermometer ((frame nt-working-dialog) stream)
@@ -1179,11 +1191,12 @@ to be run from another."
 (defun wait-demo (&key (time 10.0) (N 100))
   (let ((*application-frame* (car (frame-manager-frames 
 				   (find-frame-manager))))
+	(note (format nil "Men at work. ~%Please wait."))
 	(wtime (/ time N)))
     (with-simple-restart (abort "Abort Wait Demo")
       (clim-internals::frame-manager-invoke-with-noting-progress
        (find-frame-manager)
-       (clim-internals::add-progress-note "Men at work. Please wait." t)
+       (clim-internals::add-progress-note note t)
        #'(lambda (note)
 	   (let ((*current-progress-note* note))
 	     (dotimes (i N)

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-medium.lisp,v 1.6.8.6 1998/07/06 23:08:50 layer Exp $
+;; $Id: acl-medium.lisp,v 1.6.8.7 1998/07/20 21:57:19 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -130,22 +130,10 @@
   (color-rgb (wincolor->color (win:getSysColor win:COLOR_BTNFACE))))
 
 (defmethod dc-image-for-ink ((medium acl-medium) (ink (eql +foreground-ink+)))
-  #+ignore
-  (slot-value medium 'foreground-dc-image)
   (dc-image-for-ink medium (medium-foreground medium)))
 
 (defmethod dc-image-for-ink ((medium acl-medium) (ink (eql +background-ink+)))
-  #+ignore
-  (slot-value medium 'background-dc-image)
   (dc-image-for-ink medium (medium-background medium)))
-
-#+obsolete
-(defmethod dc-image-for-ink ((medium acl-medium) (ink (eql +black+)))
-  *black-image*)
-
-#+obsolete
-(defmethod dc-image-for-ink ((medium acl-medium) (ink (eql +white+)))
-  *white-image*)
 
 ;; changing the conversion as follows makes CLIM gray colors 1/4, 1/2
 ;; and 3/4 gray colors map to the corresponding windows solid system
@@ -174,16 +162,18 @@
 	color))))
 
 (defun wincolor->color (color)
-  (flet ((convert (x)
-	   (if (eql x #xff)
-	       1.0
-	     (float (/ x 256)))))
-    (let ((red (ldb (byte 8 0) color))
-	  (green (ldb (byte 8 8) color))
-	  (blue (ldb (byte 8 16) color)))
-      (make-rgb-color (convert red)
-		      (convert green)
-		      (convert blue)))))
+  (if (= color -1)
+      +transparent-ink+
+    (flet ((convert (x)
+	     (if (eql x #xff)
+		 1.0
+	       (float (/ x 256)))))
+      (let ((red (ldb (byte 8 0) color))
+	    (green (ldb (byte 8 8) color))
+	    (blue (ldb (byte 8 16) color)))
+	(make-rgb-color (convert red)
+			(convert green)
+			(convert blue))))))
 
 (defmethod dc-image-for-ink ((medium acl-medium) (ink color))
   (let ((cache (port-dc-cache (port medium))))
@@ -325,8 +315,8 @@
       (unless (= (length designs) 2)
 	(error "Only 2-color stipples are currently supported."))
       (setq array (byte-align-pixmap array))
+      #+old
       (dc-image-for-ink medium (aref designs 1))
-      #+broken
       (let ((dc-image 
 	     (dc-image-for-two-color-pattern medium array designs)))
 	(setf (dc-image-brush dc-image) 
@@ -356,7 +346,10 @@
 		(make-dc-image :solid-1-pen pen
 			       :brush brush
 			       :rop2 win:r2_xorpen
-			       :text-color color 
+			       ;; I don't know why but text drawn
+			       ;; in this ink is invisible if you
+			       ;; use COLOR as the text color.  JPM 7/98.
+			       :text-color 0 ;color 
 			       :background-color nil))))))))
 
 (defmethod dc-image-for-ink ((medium acl-medium) (ink contrasting-ink))
@@ -475,8 +468,10 @@
 		     (win:bitblt dc left top width height
 				 cdc 0 0 win:srccopy))))
 		(t
+		 ;; dc=0 for acl-pixmap-medium...FIXME.
 		 (let ((*the-dc* dc))
-		   (set-dc-for-ink dc medium ink line-style))
+		   (set-dc-for-ink dc medium ink 
+				   (if filled nil line-style)))
 		 (if filled
 		     (win:rectangle dc left top (1+ right) (1+ bottom))
 		   (win:rectangle dc left top right bottom))))
@@ -643,6 +638,8 @@
 (defmethod medium-draw-string* ((medium acl-medium)
 				string x y start end align-x align-y
 				towards-x towards-y transform-glyphs)
+  ;; This is not supposed to try to draw multiline text.
+  ;; For that, use WRITE-STRING.
   (declare (ignore transform-glyphs))
   (let ((window (medium-drawable medium))
 	(old nil))
@@ -669,21 +666,18 @@
 		    (y-adjust
 		     (compute-text-y-adjustment align-y descent 
 						ascent height)))
-		;; There is a bug that these adjustments may be wrong.
-		;; It is probably due to an incorrect understanding
-		;; of TEXT-SIZE for some fonts.  :CENTER, for example,
-		;; puts the text too far to the left for font
-		;; (:FIX :ROMAN 10).  JPM 6/98.
 		(incf x x-adjust)
 		(incf y y-adjust)
 		(when towards-x
 		  (incf towards-x x-adjust)
 		  (incf towards-y y-adjust)))
-	      (decf y ascent)  ;;text is positioned by its top left on acl
+	      (decf y ascent)  ;;text is positioned by its top left 
 	      (set-dc-for-text dc medium ink (acl-font-index font))
 	      (multiple-value-bind (cstr len)
 		  (silica::xlat-newline-return substring)
-		(win:textOut dc x y cstr len))))
+		(or (win:textOut dc x y cstr len)
+		    (check-last-error "TextOut" :action :warn))
+		)))
 	  (selectobject dc old))))))
 
 (defmethod medium-draw-character* ((medium acl-medium)
@@ -719,7 +713,8 @@
 	    (set-dc-for-text dc medium ink (acl-font-index font))
 	    (let ((cstr (ct:callocate (:char *) :size 2)))
 	      (ct:cset (:char 2) cstr 0 (char-int char))
-	      (win:textOut dc x y cstr 1))))
+	      (or (win:textOut dc x y cstr 1)
+		  (check-last-error "TextOut" :action :warn)))))
 	(selectobject dc old)))))
 
 (defmethod medium-draw-text* ((medium acl-medium)
@@ -733,22 +728,6 @@
 			 towards-x towards-y transform-glyphs)))
 
 (defmethod medium-clear-area ((medium acl-medium) left top right bottom)
-  #+old
-  (let ((window (medium-drawable medium))
-	(old nil))
-    (with-medium-dc (medium dc)
-      (setq old (select-acl-dc medium window dc))
-      (when old
-	(with-slots (background-dc-image) medium
-	  (let* ((sheet (medium-sheet medium))
-		 (transform (sheet-device-transformation sheet)))
-	    (convert-to-device-coordinates transform
-					   left top right bottom)
-	    (when (< right left) (rotatef right left))
-	    (when (< bottom top) (rotatef bottom top))
-	    (set-dc-for-filling dc background-dc-image)
-	    (win:rectangle dc left top (1+ right) (1+ bottom))))
-	(selectobject dc old))))
   (with-drawing-options (medium :ink (medium-background medium))
     (medium-draw-rectangle* medium left top right bottom t)))
 

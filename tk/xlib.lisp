@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xlib.lisp,v 1.59.22.4 1998/07/06 23:10:14 layer Exp $
+;; $Id: xlib.lisp,v 1.59.22.5 1998/07/20 21:57:29 layer Exp $
 
 (in-package :tk)
 
@@ -127,6 +127,7 @@
 (define-window-reader depth)
 (define-window-reader map-state decode-window-map-state)
 
+#+obsolete
 (define-window-accessor cursor nil)
 
 (defun decode-window-map-state (x)

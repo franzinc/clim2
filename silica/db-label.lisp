@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: db-label.lisp,v 1.4.22.2 1998/07/06 23:09:53 layer Exp $
+;; $Id: db-label.lisp,v 1.4.22.3 1998/07/20 21:57:23 layer Exp $
 
 ;;; This file also exists in clim2/homegrown. The homegrown directory
 ;;; contains files to implement CLIM's generic gadgets. Native backends
@@ -44,6 +44,7 @@
 (defmethod handle-repaint ((pane generic-label-pane) region)
   (declare (ignore region))                        ;not worth checking
   (with-sheet-medium (medium pane)
+    (window-clear medium)
     (with-bounding-rectangle* (left top right bottom) (sheet-region pane)
       (declare (ignore bottom))
       ;; fixed bug when :align-x not :left (cim 10/14/96)
