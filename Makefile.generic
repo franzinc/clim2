@@ -1,4 +1,4 @@
-# $fiHeader: Makefile,v 1.74 93/02/10 10:04:04 cer Exp $
+# $fiHeader: Makefile.generic,v 1.1 93/03/01 14:26:10 cer Exp $
 #
 #  Makefile.generic for CLIM 2.0
 #
@@ -221,7 +221,7 @@ FORCE:
 
 ################## Make-dist stuff
 
-makeclimfasls	: makeclimxmfasls makeclimolfasls
+makeclimfasls	: $(CLIM_FASLS_TO_MAKE)
 makeclimxmfasls	: compile-xm cat-xm
 makeclimolfasls	: compile-ol cat-ol
 

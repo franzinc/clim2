@@ -1,4 +1,4 @@
-# $fiHeader: Makefile,v 1.74 93/02/10 10:04:04 cer Exp $
+# $fiHeader: Makefile.defs,v 1.1 93/03/01 14:26:08 cer Exp $
 #
 #  Makefile.defs for CLIM 2.0
 #
@@ -105,23 +105,30 @@ OLC_UNDEFS=misc/undefinedsymbols.colit
 
 # These are the fasls and the .o that form the product
 
-CLIMFASLS= climg.fasl climol.fasl climxm.fasl clim-debug.fasl clim-debugol.fasl \
-	   clim-debugxm.fasl climps.fasl climgg.fasl # clim1compat.fasl
+CLIM_GENERIC_FASLS=climg.fasl  clim-debug.fasl climps.fasl climgg.fasl
+CLIM_OL_FASLS= climol.fasl clim-debugol.fasl
+CLIM_XM_FASLS= climxm.fasl clim-debugxm.fasl
+# clim1compat.fasl
 
-PUBLIC_OBJS=  stub-xt.o stub-x.o stub-olit.o stub-motif.o \
-	  xlibsupport.o MyDrawingA.o \
-	  olsupport.o xtsupport.o
+CLIMFASLS=  $(CLIM_GENERIC_FASLS) $(CLIM_OL_FASLS) $(CLIM_XM_FASLS)
 
+
+GENERIC_PUBLIC_OBJS= stub-xt.o stub-x.o xlibsupport.o xtsupport.o
+XM_PUBLIC_OBJS= stub-motif.o MyDrawingA.o
+OL_PUBLIC_OBJS= stub-olit.o olsupport.o
+
+PUBLIC_OBJS= $(GENERIC_PUBLIC_OBJS) $(XM_PUBLIC_OBJS) $(OL_PUBLIC_OBJS)
 OL_LICENSED_OBJS = clim-olit.o clim-olit_d.o
 XM_LICENSED_OBJS = clim-motif_d.o clim-motif.o 
 
-MOTIF_OBJS= clim-motif_d.o clim-motif.o xtsupport.o stub-xt.o stub-x.o stub-x.o  xlibsupport.o MyDrawingA.o
-OPENLOOK_OBJS= clim-olit_d.o clim-olit.o xtsupport.o stub-xt.o stub-x.o stub-x.o olsupport.o  xlibsupport.o
+MOTIF_OBJS= $(GENERIC_PUBLIC_OBJS) $(XM_PUBLIC_OBJS) $(XM_LICENSED_OBJS)
+OPENLOOK_OBJS= $(GENERIC_PUBLIC_OBJS) $(OL_PUBLIC_OBJS) $(OL_LICENSED_OBJS)
 
 CLIMOBJS=$(PUBLIC_OBJS) $(XM_LICENSED_OBJS) $(OL_LICENSED_OBJS)
 
 INSTALLED_CLIMOBJS=$(PUBLIC_OBJS) $(XM_LICENSED_OBJS) $(OL_LICENSED_OBJS)
 
+CLIM_FASLS_TO_MAKE = makeclimxmfasls makeclimolfasls
 
 # These are linked into the distribution
 # `pwd`/clim-olit_d.o \ `pwd`/clim-olit.o \

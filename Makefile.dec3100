@@ -1,4 +1,4 @@
-# $fiHeader: Makefile,v 1.74 93/02/10 10:04:04 cer Exp $
+# $fiHeader: Makefile.dec3100,v 1.1 93/03/01 14:26:06 cer Exp $
 #
 #  Makefile.dec3100 for CLIM 2.0
 #
@@ -12,5 +12,9 @@ XLIB=/usr/lib/libX11.a
 MV=mv 
 XINCLUDES=-I/usr/lib/DXM/lib -I/usr/lib/DXM/lib/Xt
 TMP=.
+CLIM_FASLS_TO_MAKE = makeclimxmfasls
+CLIMOBJS=$(GENERIC_PUBLIC_OBJS) $(XM_PUBLIC_OBJS) $(XM_LICENSED_OBJS)
+CLIMFASLS= $(CLIM_XM_FASLS) $(CLIM_GENERIC_FASLS)
+INSTALLED_CLIMOBJS=$(GENERIC_PUBLIC_OBJS) $(XM_PUBLIC_OBJS) $(XM_LICENSED_OBJS)
 
 include Makefile.generic
