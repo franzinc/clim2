@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-funs.lisp,v 1.4 92/05/07 13:11:03 cer Exp $
+;; $fiHeader: xt-funs.lisp,v 1.5 92/05/22 19:26:34 cer Exp Locker: cer $
 
 ;;
 ;; This file contains compile time only code -- put in clim-debug.fasl.
@@ -121,5 +121,7 @@
 (defforeign 'xt_build_event_mask :entry-point "_XtBuildEventMask")
 
 (defforeign 'xt_add_callback :entry-point "_XtAddCallback")
+(defforeign 'xt_remove_all_callbacks :entry-point "_XtRemoveAllCallbacks")
+
 (defforeign 'xt_has_callbacks :entry-point "_XtHasCallbacks")
 (defforeign 'xtsetsensitive :entry-point "_XtSetSensitive")

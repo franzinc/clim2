@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: navfun.lisp,v 1.9 92/06/02 13:31:07 cer Exp Locker: cer $
+;; $fiHeader: navfun.lisp,v 1.10 92/06/03 18:18:53 cer Exp $
 
 (in-package :clim-demo)
 
@@ -255,19 +255,19 @@
 (defclass waypoint (named-position) ())
 
 #-allegro
-(defclass VOR (named-position) ())
+(defclass vor (named-position) ())
 
 #+allegro
 (eval-when (compile load eval)
   (defclass waypoint (named-position) ())
-  (defclass VOR (named-position) ()))
+  (defclass vor (named-position) ()))
 
-(defmethod describe-position-object ((VOR VOR) stream)
-  (with-slots (name longname) VOR
+(defmethod describe-position-object ((vor vor) stream)
+  (with-slots (name longname) vor
     (format stream "VOR ~A ~A" name longname)))
 
-(defmethod draw-position ((VOR VOR) stream &optional label)
-  (with-slots (longitude latitude) VOR
+(defmethod draw-position ((vor vor) stream &optional label)
+  (with-slots (longitude latitude) vor
     (multiple-value-bind (x y) (scale-coordinates longitude latitude)
       (let ((xx (+ x (/ 3 (tan (radian 30)))))
 	    (color-args (and (color-stream-p stream)
@@ -299,14 +299,14 @@
       (setq x1 x2 y1 y2 x2 x3 y2 y3))))
 
 #-allegro
-(defclass NDB (named-position) ())
+(defclass ndb (named-position) ())
 
 #+allegro
 (eval-when (compile load eval)
-  (defclass NDB (named-position) ()))
+  (defclass ndb (named-position) ()))
 
-(defmethod describe-position-object ((NDB NDB) stream)
-  (with-slots (name longname) NDB
+(defmethod describe-position-object ((ndb ndb) stream)
+  (with-slots (name longname) ndb
     (format stream "NDB ~A ~A" name longname)))
 
 #-allegro
@@ -371,9 +371,9 @@
 
 (define-presentation-type airport ())
 
-(define-presentation-type VOR ())
+(define-presentation-type vor ())
 
-(define-presentation-type NDB ())
+(define-presentation-type ndb ())
 
 (define-presentation-type named-intersection ())
 
@@ -733,8 +733,8 @@
       (format fp-stream "].~%")
       (format fp-stream  "~&Plane: ~A ~A.~%"
 	(aircraft-identification plane) (aircraft-type plane))
-      (let ((Total-Distance 0)
-	    (Total-Time-Enroute 0))
+      (let ((total-distance 0)
+	    (total-time-enroute 0))
 	(do* ((currently-at start)
 	      (route-to (cdr leg-list) (cdr route-to)))
 	     ((null route-to) nil)
@@ -763,7 +763,7 @@
 		(formatting-cell (fp-stream :align-x :right) (write-string "ETA" fp-stream))
 		(formatting-cell (fp-stream :align-x :right) (write-string "FUEL" fp-stream)))))
 	  (setq total-time-enroute 0)
-	  (do* ((Currently-At start)
+	  (do* ((currently-at start)
 		(rem total-distance)
 		(route-to (cdr leg-list) (cdr route-to)))	       
 	       ((null route-to) nil)
@@ -777,11 +777,11 @@
 		     (cruising-speed (aircraft-normal-cruise-speed plane))
 		     (fuel-rate (aircraft-fuel-consumption-at-normal-cruise plane))
 		     (deviation (position-deviation (route-segment-at currently-at)))
-		     (MC (+ leg-true-course deviation)))
+		     (mc (+ leg-true-course deviation)))
 		(multiple-value-bind (th gs)
 		    (true-heading-and-groundspeed leg-true-course cruising-speed 
 						  (car estimated-wind) (cadr estimated-wind))
-		  (let* ((MH (+ th deviation))
+		  (let* ((mh (+ th deviation))
 			 (leg-time (/ leg-distance gs))
 			 (eta 
 			   (+ total-time-enroute leg-time (flight-plan-departure-time plan)))
@@ -801,18 +801,18 @@
 		      (formatting-cell (fp-stream :align-x :right)	;Rem
 			(format fp-stream "~1,1F" rem))
 		      (formatting-cell (fp-stream :align-x :right)	;MC
-			(format fp-stream "~D" (floor MC)))
+			(format fp-stream "~D" (floor mc)))
 		      (formatting-cell (fp-stream :align-x :right)	;MH
-			(format fp-stream "~D" (floor MH)))
+			(format fp-stream "~D" (floor mh)))
 		      (formatting-cell (fp-stream :align-x :right)	;GS
-			(format fp-stream "~D" (floor GS)))
+			(format fp-stream "~D" (floor gs)))
 		      (formatting-cell (fp-stream :align-x :right)	;ETE
 			(format fp-stream "~A" (time-hhmm leg-time)))
 		      (formatting-cell (fp-stream :align-x :right)	;ETA
-			(format fp-stream "~A" (time-hhmm ETA)))
+			(format fp-stream "~A" (time-hhmm eta)))
 		      (formatting-cell (fp-stream :align-x :right)	;Fuel
-			(format fp-stream "~1,1F" Fuel))))))
-	      (setq Currently-at  (car route-to) rem (setq rem (- rem leg-distance))))))
+			(format fp-stream "~1,1F" fuel))))))
+	      (setq currently-at  (car route-to) rem (setq rem (- rem leg-distance))))))
 	(format fp-stream "~%")
 	(formatting-table (fp-stream)
 	  (formatting-row (fp-stream)
@@ -822,14 +822,14 @@
 	      (format fp-stream "~A" (route-segment-position-name end)))))
 	(format fp-stream "~%")
 	(let* ((departure-time (flight-plan-departure-time plan))
-	       (final-eta (+ Total-time-enroute (flight-plan-departure-time plan)))
+	       (final-eta (+ total-time-enroute (flight-plan-departure-time plan)))
 	       (fuel-on-board (flight-plan-fuel-on-board plan))
 	       (fuel-consumption-at-cruise (aircraft-fuel-consumption-at-normal-cruise plane))
 	       (total-fuel-used
 		 (+ (aircraft-taxi-fuel plane)
 		    (* total-time-enroute fuel-consumption-at-cruise)))
 	       (average-fuel-usage 
-		 (/ (* total-time-enroute fuel-consumption-at-cruise) Total-time-enroute))
+		 (/ (* total-time-enroute fuel-consumption-at-cruise) total-time-enroute))
 	       (cruising-altitude (flight-plan-cruising-alt plan))
 	       (reserve-fuel (- fuel-on-board total-fuel-used))
 	       (reserve-time (/ reserve-fuel fuel-consumption-at-cruise))
@@ -846,7 +846,7 @@
 	      (formatting-cell (fp-stream) 
 		(format fp-stream "Depart at ~A" (time-hhmm departure-time)))
 	      (formatting-cell (fp-stream) 
-		(format fp-stream "Total Time ~A" (time-hhmm Total-time-enroute)))
+		(format fp-stream "Total Time ~A" (time-hhmm total-time-enroute)))
 	      (setf (flight-plan-ete plan) total-time-enroute)
 	      (formatting-cell (fp-stream) 
 		(format fp-stream "Final ETA ~A" (time-hhmm final-eta))))
@@ -859,9 +859,9 @@
 		(format fp-stream "Average fuel usage ~1,1F/hr" average-fuel-usage)))
 	    (formatting-row (fp-stream)
 	      (formatting-cell (fp-stream) 
-		(format fp-stream "Total Distance ~1,1F nm" Total-distance))
+		(format fp-stream "Total Distance ~1,1F nm" total-distance))
 	      (formatting-cell (fp-stream) 
-		(format fp-stream "Total Time ~A" (time-hhmm Total-time-enroute)))	;+++
+		(format fp-stream "Total Time ~A" (time-hhmm total-time-enroute)))	;+++
 	      (formatting-cell (fp-stream) 
 		(format fp-stream "Total Fuel ~1,1F gallons" total-fuel-used)))	;+++
 	    (formatting-row (fp-stream)
@@ -1020,7 +1020,7 @@
 
 ;;; Flight-Planner user interface
 
-(define-application-frame Flight-Planner
+(define-application-frame flight-planner
 			  ()
     ((fp-window))
   (:panes 
@@ -1032,7 +1032,7 @@
  	(scrolling () display)
  	(scrolling () interactor)))))
 
-(define-Flight-Planner-command (com-Zoom-In :name t :menu t) ()
+(define-flight-planner-command (com-zoom-in :name t :menu t) ()
   (multiple-value-bind (longitude latitude)
       (get-display-center)
     (setf *magnifier* (* *magnifier* 1.5))
@@ -1040,7 +1040,7 @@
     (set-display-center longitude latitude)
     (redraw-display)))
 
-(define-Flight-Planner-command (com-Zoom-Out :name t :menu t) ()
+(define-flight-planner-command (com-zoom-out :name t :menu t) ()
   (multiple-value-bind (longitude latitude)
       (get-display-center)
     (setf *magnifier* (/ *magnifier* 1.5))
@@ -1048,7 +1048,7 @@
     (set-display-center longitude latitude)
     (redraw-display)))
 
-(define-Flight-planner-command (com-Show-Map :name t :menu t)
+(define-flight-planner-command (com-show-map :name t :menu t)
     ()
   (window-clear *standard-output*)
   (redraw-display))
@@ -1060,7 +1060,7 @@
     (setf fp-window
 	  (open-window-stream :parent (window-root (frame-top-level-sheet fp))
 			      :left 50 :top 50 :width 750 :height 350
-			      :save-under T))))
+			      :save-under t))))
 
 (defmethod  enable-frame :after ((fp flight-planner))
   (let ((*application-frame* fp)
@@ -1073,7 +1073,7 @@
 (defmethod frame-query-io ((p flight-planner))
   (get-frame-pane p 'interactor))
 
-(define-Flight-Planner-command (com-Exit-Flight-Planner :name t :menu "Exit")
+(define-flight-planner-command (com-exit-flight-planner :name t :menu "Exit")
     ()
   ;; assume called via run-flight-planner
   (frame-exit *application-frame*))
@@ -1112,13 +1112,13 @@
   '(or airport named-intersection vor))
 
 ;;; Add <kind>
-(define-Flight-Planner-command (com-Add-Object :name t :menu "Add")
+(define-flight-planner-command (com-add-object :name t :menu "Add")
     ((object '(member ground-position route victor-airway aircraft) ;; :confirm t
 	     :prompt "Object")
      ;;--- what about keywords?
      (route-start '(null-or-type route-start-object)
 		  :default nil
-		  #+Ignore :when #+Ignore (eq object 'route)))
+		  #+ignore :when #+ignore (eq object 'route)))
   (ecase object
     (ground-position
       (let ((new-position (query-new-position)))
@@ -1254,7 +1254,7 @@
   '(or aircraft victor-airway route named-position ground-position))
 
 ;;; Delete <object>
-(define-Flight-Planner-command (com-Delete-Object :name t :menu "Delete")
+(define-flight-planner-command (com-delete-object :name t :menu "Delete")
     ((object 'concrete-object :prompt "Object")
      &key
      (presentation 't :default nil)
@@ -1287,7 +1287,7 @@
   (list object :presentation presentation :window window))
 
 ;;; Describe <object>
-(define-Flight-Planner-command (com-Describe-Object :name t :menu "Describe")
+(define-flight-planner-command (com-describe-object :name t :menu "Describe")
     ((object 'concrete-object :prompt "Object"))
   (let ((stream *query-io*))
     (fresh-line stream)
@@ -1302,7 +1302,7 @@
   (list object))
 
 ;;; Edit <object>
-(define-Flight-Planner-command (com-Edit-Object :name t :menu "Edit")
+(define-flight-planner-command (com-edit-object :name t :menu "Edit")
     ((argument 'aircraft ;; :confirm t
 	       :prompt "Object"))
   (edit-aircraft argument))
@@ -1313,7 +1313,7 @@
     (object)
   (list object))
 
-(define-flight-planner-command (com-Flight-Plan :name t :menu "Plan Flight")
+(define-flight-planner-command (com-flight-plan :name t :menu "Plan Flight")
     ((route 'route :prompt "Route"))
   (let* (plan
 	 (plane (or *last-plane* (first *aircraft-list*)))
@@ -1331,7 +1331,7 @@
 	 (souls 1)
 	 color)
     (accepting-values (*query-io* :own-window t)
-      (setq type (accept '(member VFR IFR DVFR) :Prompt "Type"
+      (setq type (accept '(member VFR IFR DVFR) :prompt "Type"
 			 :default type))
       (terpri *query-io*)
       (multiple-value-bind (new-plane ptype changed)
@@ -1407,7 +1407,7 @@
     (object)
   (list object))
 
-(define-Flight-Planner-command (com-Show-Distance :name t :menu t)
+(define-flight-planner-command (com-show-distance :name t :menu t)
     ((start 'route-start-object :gesture :select)
      (end 'route-start-object))
   (multiple-value-bind (distance tc)
@@ -1427,47 +1427,47 @@
 (defun radian (degrees) (* degrees (/ pi 180)))
 (defun degree (radians) (* radians (/ 180 pi)))
 
-(defun Geodesic (K M L N)			;arguments are in degrees
-  (let* ((CC 0.0033901)
-	 (O 3443.95594)				;semi major axis of Earth
-	 (A (atan (* (- 1 CC) (tan (radian K)))))	;radians
-	 (COSA (cos A))
-	 (SINA (sin A))
-	 (B (atan (* (- 1 CC) (tan (radian L)))))	;radians
-	 (COSB (cos B))
-	 (SINB (sin B))
-	 (D (* SINA SINB))
-	 (E (radian (- M N)))			;radians
-	 (ABSE (abs E))
-	 (COSE (cos E))
-	 (SINABSE (sin ABSE))
-	 (FF (+ (* SINA SINB) (* COSA COSB COSE)))
-	 (S (* (square SINABSE) (square COSB)))
-	 (TT (square (- (* SINB COSA) (* SINA COSB COSE))))
-	 (H (sqrt (+ S TT)))
-	 (I (/ (- (square H)
-		  (* (square SINABSE) (square COSA) (square COSB)))
-	       (square H)))
-	 (J (* (atan (/ H FF))))		;radian
-	 (G (+ J (* (/ (+ (square CC) CC) 2) (+ (* J (- 2 I)) (* H (- (* 2 D) (* I CC)))))))
-	 (V (+ D (* H (/ 1 (tan (/ (* 180 J) pi)))) 
-	       (* (square H) FF (+ (* 8 D (- (* I FF) D)) (- 1 (* 2 (square (abs FF))))))))
-	 (P (+ G (* (/ (square CC) (* 16 H)) (+ (* 8 (square J) (- I 1) V) (* H J)))))
-	 (R (* (- 1 CC) O P))			;R is distance
+(defun geodesic (k m l n)			;arguments are in degrees
+  (let* ((cc 0.0033901)
+	 (o 3443.95594)				;semi major axis of earth
+	 (a (atan (* (- 1 cc) (tan (radian k)))))	;radians
+	 (cosa (cos a))
+	 (sina (sin a))
+	 (b (atan (* (- 1 cc) (tan (radian l)))))	;radians
+	 (cosb (cos b))
+	 (sinb (sin b))
+	 (d (* sina sinb))
+	 (e (radian (- m n)))			;radians
+	 (abse (abs e))
+	 (cose (cos e))
+	 (sinabse (sin abse))
+	 (ff (+ (* sina sinb) (* cosa cosb cose)))
+	 (s (* (square sinabse) (square cosb)))
+	 (tt (square (- (* sinb cosa) (* sina cosb cose))))
+	 (h (sqrt (+ s tt)))
+	 (i (/ (- (square h)
+		  (* (square sinabse) (square cosa) (square cosb)))
+	       (square h)))
+	 (j (* (atan (/ h ff))))		;radian
+	 (g (+ j (* (/ (+ (square cc) cc) 2) (+ (* j (- 2 i)) (* h (- (* 2 d) (* i cc)))))))
+	 (v (+ d (* h (/ 1 (tan (/ (* 180 j) pi)))) 
+	       (* (square h) ff (+ (* 8 d (- (* i ff) d)) (- 1 (* 2 (square (abs ff))))))))
+	 (p (+ g (* (/ (square cc) (* 16 h)) (+ (* 8 (square j) (- i 1) v) (* h j)))))
+	 (r (* (- 1 cc) o p))			;r is distance
 
-	 (A1 (* J (+ CC (square CC))))
-	 (A3 (+ (* (/ (* D CC) (* 2 H)) (square (abs H))) (* 2 (square (abs J)))))
-	 (A2 (* (/ (* I (square CC)) 4) (+ (* H FF) (* -5 J) 
-				       (* 4 (square (abs J)) (/ 1 (tan J))))))
-	 (Q (+ A1 (- A2) A3))
-	 (U (+ (* (/ (* (sin E) COSA COSB) H) Q) E))
-	 (W (- (* SINB COSA) (* (cos U) SINA COSB)))
-	 (X (* (sin U) COSB))
-	 (A4 (atan (/ X W)))
-	 (Y (if (< A4 0) (+ A4 pi) A4))
-	 (Z (if (< E 0) (+ Y pi) Y)))
-    (if (and (zerop Z) (< L K)) (setq Z pi))
-    (values R (degree Z))))
+	 (a1 (* j (+ cc (square cc))))
+	 (a3 (+ (* (/ (* d cc) (* 2 h)) (square (abs h))) (* 2 (square (abs j)))))
+	 (a2 (* (/ (* i (square cc)) 4) (+ (* h ff) (* -5 j) 
+				       (* 4 (square (abs j)) (/ 1 (tan j))))))
+	 (q (+ a1 (- a2) a3))
+	 (u (+ (* (/ (* (sin e) cosa cosb) h) q) e))
+	 (w (- (* sinb cosa) (* (cos u) sina cosb)))
+	 (x (* (sin u) cosb))
+	 (a4 (atan (/ x w)))
+	 (y (if (< a4 0) (+ a4 pi) a4))
+	 (z (if (< e 0) (+ y pi) y)))
+    (if (and (zerop z) (< l k)) (setq z pi))
+    (values r (degree z))))
 ;    (list A B D E FF S TT H I J G V P 'dist R a1 a3 a2 q u w x a4 y 'dir z)))
 
 ;;; A position on the Geodesic globe.

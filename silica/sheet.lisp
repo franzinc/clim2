@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: sheet.lisp,v 1.14 92/05/14 11:03:48 cer Exp Locker: cer $
+;; $fiHeader: sheet.lisp,v 1.15 92/05/22 19:27:01 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -269,7 +269,10 @@
   (:method ((sheet sheet)) 
 	   (setf (sheet-cached-device-region sheet) nil))
   (:method :after ((sheet sheet-parent-mixin))
-    (mapc #'invalidate-cached-regions (sheet-children sheet))))
+	   ;;-- In theory if this sheet has a mirror we dont need to
+	   ;;-- do any more
+	   (unless (sheet-direct-mirror sheet)
+	     (mapc #'invalidate-cached-regions (sheet-children sheet)))))
 
 (defmethod note-sheet-region-changed :before ((sheet sheet) &key port-did-it)
   (declare (ignore port-did-it))
@@ -277,10 +280,13 @@
 
 (defgeneric invalidate-cached-transformations (sheet)
   (:method ((sheet sheet)) 
-   (setf (sheet-cached-device-region sheet) nil)
-   (setf (sheet-cached-device-transformation sheet) nil))
+	   (setf (sheet-cached-device-region sheet) nil)
+	   (setf (sheet-cached-device-transformation sheet) nil))
   (:method :after ((sheet sheet-parent-mixin))
-    (mapc #'invalidate-cached-transformations (sheet-children sheet))))
+	   ;;-- In theory if this sheet has a mirror we dont need to
+	   ;;-- do any more
+	   (unless (sheet-direct-mirror sheet)
+	     (mapc #'invalidate-cached-transformations (sheet-children sheet)))))
  
 ;;--- Check to see if the call to invalidate-cached-regions is really necessary.
 ;;--- CER thinks we do because regions depend on transformations.

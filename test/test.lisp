@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: test.lisp,v 1.28 92/06/02 13:31:01 cer Exp Locker: cer $
+;; $fiHeader: test.lisp,v 1.29 92/06/03 18:18:39 cer Exp Locker: cer $
 
 (in-package :clim-user)
 
@@ -79,9 +79,7 @@
 
 (define-application-frame test-frame0 () ()
   (:command-table test-frame)
-  (:pane 
-    (scrolling ()
-      (make-pane 'interactor-pane)))
+  (:pane (clim-internals::make-clim-interactor-pane))
   (:icon :name "foo" 
 	 :pixmap (make-pattern 
 		   (let ((x (make-array '(48 48))))
@@ -697,4 +695,83 @@
 					       (terpri stream))
 			   (abort)
 			   (frame-exit )))))))
-						     
+
+
+(define-application-frame tf101 () ()
+  (:command-table test-frame)
+  (:panes
+   (a :application :height '(10 :line))
+   (b :application :height '(5 :line))
+   (c :interactor))
+  (:layouts
+   (:default
+       (vertically () a b c))
+   (:more
+    (vertically () a b c)
+    (a :height '(5 :line))
+    (b :height '(10 :line)))))
+
+(define-application-frame tf102 () ()
+  (:command-table test-frame)
+  (:panes
+   (a :application :height '(10 :line))
+   (b :application :height '(5 :line))
+   (c :interactor)
+   (d :application))
+  (:layouts
+   (:default
+       (vertically ()
+	   d
+	 (make-pane 'xm-silica::motif-paned-pane
+		    :contents (list a b c))))))
+
+
+(define-application-frame tf103 () ()
+  (:command-table test-frame)
+  (:panes
+   (a :application :height '(10 :line))
+   (b :application :height '(5 :line))
+   (c :interactor)
+   (d :application))
+  (:layouts
+   (:default
+       (vertically ()
+	   d
+	 (make-pane 'xm-silica::motif-rc-pane
+		    :contents (list* a 
+				    b 
+				    c
+				    (let ((r nil))
+				      (dotimes (i 10 (nreverse r))
+					(push 
+					 (make-pane 'push-button
+						    :label (format nil
+								   "button ~D" i))
+					 r)))))))))
+
+(define-application-frame tf104 () ()
+  (:command-table test-frame)
+  (:panes
+   (a :application :height '(10 :line))
+   (b :application :height '(5 :line))
+   (c :interactor)
+   (d :application))
+  (:layouts
+   (:default
+       (make-pane 'xm-silica::motif-form-pane
+		    :attachments '((0 :left-attachment :form 
+				      :right-attachment :position
+				      :right-position 33
+				      :top-attachment :form
+				      :bottom-attachment :form)
+				   (1 :left-attachment :position
+				    :left-position 33
+				    :right-attachment :position
+				    :right-position 66
+				    :top-attachment :form
+				    :bottom-attachment :form)
+				   (2 :left-attachment :position
+				    :left-position 66 :right-attachment :form
+				    :top-attachment :form
+				    :bottom-attachment :form))
+		    :contents (list a b c)))))

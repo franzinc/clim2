@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: menus.lisp,v 1.22 92/05/07 13:12:39 cer Exp $
+;; $fiHeader: menus.lisp,v 1.23 92/05/22 19:28:12 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -401,6 +401,10 @@
 	(with-menu-as-popup (menu)
 	  (position-window-near-pointer menu x-position y-position)
 	  (window-expose menu)
+	  ;;--- IF we have windows with backing store then we dont get
+	  ;;--- exposure event and so nothing appears
+	  (replay (stream-output-history menu) menu)
+	  ;;;
 	  #+Cloe-Runtime (stream-set-input-focus menu)
 	  (when default-presentation
 	    (with-bounding-rectangle* (left top right bottom) default-presentation

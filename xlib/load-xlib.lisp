@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: load-xlib.lisp,v 1.4 92/05/22 19:27:24 cer Exp $
+;; $fiHeader: load-xlib.lisp,v 1.5 92/06/02 13:30:50 cer Exp Locker: cer $
 
 (in-package :x11)
 
@@ -39,6 +39,7 @@
 	 (entry-points (make-array n :element-type '(unsigned-byte 32))))
     (declare (type (simple-array (unsigned-byte 32) (*))))
     (when (> (ff:get-entry-points names entry-points) 0)
+      #+ignore
       (dotimes (i n) 
 	    (when (= (aref entry-points i)
 			sys::*impossible-load-address*)

@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.31 92/05/22 19:29:30 cer Exp Locker: cer $
+;; $fiHeader: xm-gadgets.lisp,v 1.32 92/05/26 14:33:26 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -704,29 +704,30 @@
 
 ;; Frame-viewport that we need because a sheet can have
 
-(defclass xm-frame-viewport (sheet-single-child-mixin
-			     sheet-permanently-enabled-mixin
-			     wrapping-space-mixin
-			     mirrored-sheet-mixin
-			     pane)
+(defclass xm-frame-viewport-mixin (sheet-single-child-mixin
+				   sheet-permanently-enabled-mixin
+				   wrapping-space-mixin
+				   mirrored-sheet-mixin
+				   pane)
 	  ())
 
+(defclass xm-frame-viewport (xm-frame-viewport-mixin) ())
 
 (defmethod find-widget-class-and-initargs-for-sheet
-    ((port xt-port) (parent t) (sheet xm-frame-viewport))
+    ((port xt-port) (parent t) (sheet xm-frame-viewport-mixin))
   (values 'tk::xm-my-drawing-area 
 	  ;;---  These are duplicated
 	  (list :margin-width 0 
 		:resize-policy :none
 		:margin-height 0)))
 
-;(defmethod allocate-space ((fr xm-frame-viewport) width height)
+;(defmethod allocate-space ((fr xm-frame-viewport-mixin) width height)
 ;  ;;-- Is this what wrapping space mixin should do???
 ;  (move-and-resize-sheet* (sheet-child fr) 0 0 width height))
 
 
 (defmethod add-sheet-callbacks :after ((port motif-port) 
-				       (sheet xm-frame-viewport)
+				       (sheet xm-frame-viewport-mixin)
 				       (widget tk::xm-my-drawing-area))
   (tk::add-callback widget 
 		    :resize-callback 
@@ -1164,4 +1165,168 @@
 	(tk::widget-callback-data dialog))
   *file-search-proc-callback-address*)
 
-;;;
+;;; What follows is mostly an experiment in integrating motif and CLIM
+;;; geometry management
+
+(defclass motif-paned-pane (motif-geometry-manager
+			    mirrored-sheet-mixin
+			    sheet-multiple-child-mixin
+			    sheet-permanently-enabled-mixin
+			    layout-mixin
+			    pane)
+	  ((thickness :initform nil :initarg :thickness)))
+
+(defmethod initialize-instance :after ((pane motif-paned-pane) &key
+							       frame-manager frame
+							       contents)
+  (dolist (child contents)
+    (if (typep child 'mirrored-sheet-mixin)
+	(sheet-adopt-child pane child)
+      (let ((viewport (with-look-and-feel-realization (frame-manager frame)
+			(make-pane 'xm-paned-viewport))))
+	(sheet-adopt-child pane viewport)
+	(sheet-adopt-child viewport child)))))
+
+(defclass xm-paned-viewport (xm-frame-viewport-mixin) ())
+
+
+(defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
+						     (parent t)
+						     (sheet motif-paned-pane))
+  (values 'xt::xm-paned-window 
+	  '(:margin-height 0 :margin-width 0)))
+
+
+(defmethod compose-space ((fr motif-paned-pane) &key width height)
+  (declare (ignore height))
+  (let ((sr nil))
+    (dolist (child (sheet-children fr) sr)
+      (let ((csr (compose-space child :width width))
+	    (m (sheet-direct-mirror child)))
+	(when m
+	  #+ignore
+	  (tk::set-values 
+	   m 
+	   :pane-minimum (space-requirement-min-height csr)
+	   :pane-maximum (space-requirement-max-height csr)))
+	(setq sr 
+	  (if sr
+	      (silica::space-requirement+ (silica::space-requirement+* sr :height 10) csr)
+	    csr))))))
+
+;;; Basically this gadget does not do anything sensible with its
+;;; children except that when it is resized.  The onus seems to be on
+;;; the children to determine their own sizes.
+
+;;; We can only call compose-space after the tree has been completely mirrored
+
+(defmethod (setf port) :around ((port motif-port) (sheet motif-paned-pane) &key graft)
+  (declare (ignore graft))
+  (call-next-method)
+  ;; At this point we should have dealt mirrored the whole tree
+  ;;--- Perhaps at this point we need to add resize-callbacks if there
+  ;;--- not any
+  (dolist (child (sheet-children sheet))
+    (let ((csr (compose-space child))
+	  (width (bounding-rectangle-width child))
+	  (m (sheet-direct-mirror child)))
+      (when m
+	(tk::set-values 
+	 m 
+	 :width width
+	 :height (fix-coordinate (space-requirement-height csr))
+	 :pane-minimum (fix-coordinate (space-requirement-min-height csr))
+	 :pane-maximum (fix-coordinate (space-requirement-max-height csr)))))))
+
+(defmethod allocate-space ((fr motif-paned-pane) width height)
+  (declare (ignore height))
+  (dolist (child (sheet-children fr))
+    (tk::set-values (sheet-direct-mirror child) :width (fix-coordinate width))))
+
+;; If one of these gadgets tries to change its size the drawing area
+;; might very well let it.
+
+;; Perhaps in my drawing area the code to respond to geometry requests
+;; needs to be in Lisp also, or perhaps it just needs to refuse all
+;; geometry requests.....?????
+;; It actually looks like that is happening.
+
+;; Row column
+
+(defclass motif-rc-pane (motif-geometry-manager
+			 ask-widget-for-size-mixin
+			 mirrored-sheet-mixin
+			 sheet-multiple-child-mixin
+			 sheet-permanently-enabled-mixin
+			 layout-mixin
+			 pane)
+	  ((thickness :initform nil :initarg :thickness)))
+
+(defmethod initialize-instance :after ((pane motif-rc-pane) &key
+							       frame-manager frame
+							       contents)
+  (dolist (child contents)
+    (if (typep child 'mirrored-sheet-mixin)
+	(sheet-adopt-child pane child)
+      (let ((viewport (with-look-and-feel-realization (frame-manager frame)
+			(make-pane 'xm-paned-viewport))))
+	(sheet-adopt-child pane viewport)
+	(sheet-adopt-child viewport child)))))
+
+(defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
+						     (parent t)
+						     (sheet motif-rc-pane))
+  (values 'xt::xm-row-column nil))
+
+
+;; Form
+
+
+(defclass motif-form-pane (motif-geometry-manager
+			   ask-widget-for-size-mixin
+			   mirrored-sheet-mixin
+			   sheet-multiple-child-mixin
+			   sheet-permanently-enabled-mixin
+			   layout-mixin
+			   pane)
+	  ((attachments :initform nil :initarg :attachments)))
+
+(defmethod initialize-instance :after ((pane motif-form-pane) &key
+							       frame-manager frame
+							       contents)
+  (dolist (child contents)
+    (if (typep child 'mirrored-sheet-mixin)
+	(sheet-adopt-child pane child)
+      (let ((viewport (with-look-and-feel-realization (frame-manager frame)
+			(make-pane 'xm-paned-viewport))))
+	(sheet-adopt-child pane viewport)
+	(sheet-adopt-child viewport child)))))
+
+
+
+
+(defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
+						     (parent t)
+						     (sheet motif-form-pane))
+  (values 'xt::xm-form nil))
+
+
+(defmethod (setf port) :around ((port motif-port) (sheet motif-form-pane) &key graft)
+  (declare (ignore graft))
+  (call-next-method)
+  ;; At this point we should have dealt mirrored the whole tree
+  ;;--- Perhaps at this point we need to add resize-callbacks if there
+  ;;--- not any
+
+  (dolist (attachment (slot-value sheet 'attachments))
+    (apply #'tk::set-values (sheet-mirror (nth (car attachment) (sheet-children sheet)))
+	   (cdr attachment)))
+	       
+  (dolist (child (sheet-children sheet))
+    (let ((csr (compose-space child))
+	  (m (sheet-direct-mirror child)))
+      (when m
+	(tk::set-values 
+	 m 
+	 :width (fix-coordinate (space-requirement-width csr))
+	 :height (fix-coordinate (space-requirement-height csr)))))))

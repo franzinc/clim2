@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics.lisp,v 1.11 92/05/07 13:11:21 cer Exp $
+;; $fiHeader: graphics.lisp,v 1.12 92/05/22 19:26:54 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -121,7 +121,7 @@
 	  (point-sequence
 	    (destructuring-bind (new-name) names
 	      (values argname
-		      (list `(unspread-point-sequence ,argname))
+		      (list `(spread-point-sequence ,argname))
 		      (list new-name))))
 	  (point
 	    (destructuring-bind (x y) names
@@ -262,21 +262,39 @@
 	 (values)))))
 
 ;;; Update the positions list in the reference.
-(defmacro transform-position-sequence ((transform) positions-reference)
-  (let ((pts-sequence '#:position-sequence)
-	(pts-temp '#:positions)
-	(original-pts-temp '#:original-positions)
-	(xform '#:transform))
-    ;;--- is a run-time error check worth it?
-    `(let ((,pts-sequence ,positions-reference)
-	   (,xform ,transform))
-       (assert (evenp (length ,pts-sequence)) ()
-	       "Positions must be x/y pairs.  There are an odd number of elements in ~S"
-	       ,pts-sequence)
-       (setf ,positions-reference
-	     (let* ((,pts-temp (copy-list ,pts-sequence))
-		    (,original-pts-temp ,pts-temp))
-	       (dorest (pt ,pts-sequence cddr)
+
+(defun transform-position-sequence (transform positions-reference)
+  (if (eq transform +identity-transformation+)
+      positions-reference
+    (let* ((len (length positions-reference))
+	   (new (make-array len)))
+      (declare (simple-vector new)
+	       (optimize (speed 3) (safety 0)))
+      (do ((i 0 (+ 2 i)))
+	  ((= i len))
+	(multiple-value-bind
+	    (x y) (transform-position transform 
+				      (elt positions-reference i)
+				      (elt positions-reference (1+ i)))
+	  (setf (elt new i) x
+		(elt new (1+ i)) y)))
+      new)))
+    
+#+ignore				    
+(let ((pts-sequence '#:position-sequence)
+      (pts-temp '#:positions)
+      (original-pts-temp '#:original-positions)
+      (xform '#:transform))
+  ;;--- is a run-time error check worth it?
+  `(let ((,pts-sequence ,positions-reference)
+	 (,xform ,transform))
+     (assert (evenp (length ,pts-sequence)) ()
+       "Positions must be x/y pairs.  There are an odd number of elements in ~S"
+       ,pts-sequence)
+     (setf ,positions-reference
+       (let* ((,pts-temp (copy-seq ,pts-sequence))
+	      (,original-pts-temp ,pts-temp))
+	 (dorest (pt ,pts-sequence cddr)
 		 (let ((x (first pt))
 		       (y (second pt)))
 		   (multiple-value-bind (nx ny)
@@ -285,8 +303,8 @@
 			   ,pts-temp (cdr ,pts-temp)
 			   (car ,pts-temp) ny
 			   ,pts-temp (cdr ,pts-temp)))))
-	       ,original-pts-temp))
-       (values))))
+	 ,original-pts-temp))
+     (values)))
 
 (defmacro transform-distances ((transform) &rest distances)
   (when distances
@@ -408,9 +426,10 @@
 			((medium-transformation medium))
 			,@distances-to-transform)))
 	     ,@(mapcar #'(lambda (seq)
-			   `(transform-position-sequence
-			      ((medium-transformation medium)) 
-			      ,seq))
+			   `(setq ,seq
+			      (transform-position-sequence
+			      (medium-transformation medium) 
+			      ,seq)))
 		       point-sequences-to-transform)
 	     (,port-function-name (port medium)
 				  sheet medium
@@ -481,6 +500,8 @@
   :points-to-transform (x1 y1 x2 y2))
 
 ;;--- Not really satisfactory
+
+#+ ignore
 (defun draw-lines (medium point-seq &rest args)
   (declare (dynamic-extent args))
   (declare (arglist medium point-seq &key . #.(all-drawing-options-lambda-list :line-cap)))
@@ -490,14 +511,14 @@
 		 (when (null point-seq) (return))
 		 (let* ((point1 (pop point-seq))
 			(point2 (pop point-seq)))
-		   (draw-line-method medium
+		   (draw-line* medium
 				     (point-x point1) (point-y point1)
 				     (point-x point2) (point-y point2))))
 	     (do ((i 0 (+ i 2)))
 		 ((= i (length point-seq)))
 	       (let* ((point1 (aref point-seq i))
 		      (point2 (aref point-seq (1+ i))))
-		 (draw-line-method medium
+		 (draw-line* medium
 				   (point-x point1) (point-y point1)
 				   (point-x point2) (point-y point2)))))))
     (declare (dynamic-extent #'trampoline))
@@ -505,7 +526,27 @@
 	(apply #'invoke-with-drawing-options medium #'trampoline args)
 	(trampoline))))
 
+
+(define-graphics-function draw-lines ((points point-sequence points))
+  :drawing-options :line-cap
+  :point-sequences-to-transform (points))
+
+
+(defun spread-point-sequence (sequence)
+  (declare (optimize (speed 3) (safety 0)))
+  (let* ((len (length sequence))
+	 (new (make-array (* 2 len))))
+    (declare (simple-vector new))
+    (do ((i 0 (+ 2 i))
+	 (j 0 (1+ j)))
+	((= len j) new)
+      (let ((p (elt sequence j)))
+	(setf (svref new i) (point-x p)
+	      (svref new (1+ i)) (point-y p))))))
+
 ;;--- Not really satisfactory
+
+#+ignore
 (defun draw-lines* (medium coord-seq &rest args)
   (declare (dynamic-extent args))
   (declare (arglist medium coord-seq &key . #.(all-drawing-options-lambda-list :line-cap)))
@@ -513,12 +554,12 @@
 	   (if (listp coord-seq)
 	       (loop
 		 (when (null coord-seq) (return))
-		 (draw-line-method medium
+		 (draw-line* medium
 				   (pop coord-seq) (pop coord-seq)
 				   (pop coord-seq) (pop coord-seq)))
 	     (do ((i 0 (+ i 4)))
 		 ((= i (length coord-seq)))
-	       (draw-line-method medium
+	       (draw-line* medium
 				 (aref coord-seq i) (aref coord-seq (1+ i))
 				 (aref coord-seq (+ i 2)) (aref coord-seq (+ i 3)))))))
     (declare (dynamic-extent #'trampoline))
@@ -682,3 +723,6 @@
   (port-copy-area (port sheet) 
 		  sheet sheet
 		  from-left from-top from-right from-bottom to-left to-top))
+
+(defmethod port-beep ((port null) (sheet t))
+  nil)

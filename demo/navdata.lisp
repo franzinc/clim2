@@ -1,10 +1,10 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: navdata.lisp,v 1.1 92/01/31 14:32:04 cer Exp $
+;; $fiHeader: navdata.lisp,v 1.2 92/02/24 13:09:26 cer Exp $
 
 (in-package :clim-demo)
 
-(DEFPARAMETER *DEFAULT-NAV-DATA* '(
+(defparameter *default-nav-data* '(
 ( 5 "0B6"   A    122.8  "Chatham, CT          " 41 41.3   69 59.3  15.0 W   72 )
 ( 6 "22B"   A    122.8  "Burlington,CT Jnycak " 41 46.4   73  0.7  13.0 W 1020 )
 ( 7 "3B9"   A    122.8  "Chester, CT          " 41 23.0   72 30.3  13.0 W  416 )

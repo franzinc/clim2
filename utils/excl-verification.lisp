@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: excl-verification.lisp,v 1.10 92/05/22 19:27:11 cer Exp Locker: cer $
+;; $fiHeader: excl-verification.lisp,v 1.11 92/06/03 18:18:20 cer Exp Locker: cer $
 
 (in-package :sys)
 
@@ -58,6 +58,24 @@ You do not have patches ~{~S ~}"
 	   needed-patches
 	   dont-have)))
 
-(si::rcsnote
- "CLIM 2.0.alpha.0"
- "$fiHeader: excl-verification.lisp,v 1.10 92/05/22 19:27:11 cer Exp Locker: cer $")
+(defvar *clim-version* 
+    '(
+      "CLIM 2.0.alpha.0"
+      "$fiHeader: excl-verification.lisp,v 1.11 92/06/03 18:18:20 cer Exp Locker: cer $"))
+
+
+(si::rcsnote (first *clim-version*) (second *clim-version*))
+
+
+(in-package :clos)
+
+;;; This one does not really intern.
+;;; Lets see what effect this has
+
+(defun intern-slot-name-lists (slot-name-lists)
+  (flet ((inner (x) 
+	   (or (gethash x *slot-name-lists-inner*)
+	       (setf (gethash x *slot-name-lists-inner*) (copy-list x))))
+	 (outer (x) 
+	   (make-isl (copy-list x))))
+    (outer (mapcar #'inner slot-name-lists))))

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-defs.lisp,v 1.2 92/04/21 20:27:50 cer Exp $
+;; $fiHeader: xt-defs.lisp,v 1.3 92/05/13 17:10:33 cer Exp Locker: cer $
 
 ;;
 ;; This file contains compile time only code -- put in clim-debug.fasl.
@@ -160,3 +160,4 @@
   (stack-mode :int))
 
 (def-c-type (xpoint-array :no-defuns) 1 x11::xpoint)
+(def-c-type (xsegment-array :no-defuns) 1 x11::xsegment)

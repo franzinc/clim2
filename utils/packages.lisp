@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: packages.lisp,v 1.16 92/05/13 17:10:42 cer Exp Locker: cer $
+;; $fiHeader: packages.lisp,v 1.17 92/05/22 19:27:16 cer Exp Locker: cer $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :common-lisp-user)
 
@@ -2558,7 +2558,7 @@
     window-viewport-position
     with-application-frame
     with-frame-manager
-    
+    with-frame
     ;; Progress notes
     *current-progress-note*
     dolist-noting-progress

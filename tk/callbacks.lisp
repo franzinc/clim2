@@ -20,12 +20,12 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: callbacks.lisp,v 1.13 92/05/13 17:10:11 cer Exp Locker: cer $
+;; $fiHeader: callbacks.lisp,v 1.14 92/05/22 19:26:15 cer Exp Locker: cer $
 
 (in-package :tk)
 
 (defun has-callbacks-p (w name)
-  (not (zerop (xt_has_callbacks w name))))
+  (> (xt_has_callbacks w name) 1))
 
 (defun-c-callable callback-handler ((widget :unsigned-long)
 				    (client-data :unsigned-long)
@@ -64,6 +64,9 @@
      (caar (push
 	    (list (new-callback-id) (cons function args) type)
 	    (widget-callback-data widget))))))
+
+(defun remove-all-callbacks (widget callback-name)
+  (xt_remove_all_callbacks widget (convert-callback-name callback-name)))
 
 (defvar *callback-ids* 0)
 (defun new-callback-id ()

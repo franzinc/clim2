@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics-demos.lisp,v 1.5 92/05/22 19:29:05 cer Exp $
+;; $fiHeader: graphics-demos.lisp,v 1.6 92/06/02 13:31:06 cer Exp $
 
 (in-package :clim-demo)
 
@@ -11,7 +11,9 @@
     ()
   ()
   (:panes (demo (scrolling ()
-		  (make-pane 'application-pane)))
+			   (make-pane 'application-pane 
+				      :min-width 200 :min-height 100
+				      :width 800 :height 600)))
 	  (explanation (scrolling ()
 		         (make-pane 'application-pane
 				    :height 100))))

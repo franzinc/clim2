@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: address-book.lisp,v 1.6 92/05/07 13:13:33 cer Exp $
+;; $fiHeader: address-book.lisp,v 1.7 92/05/22 19:29:02 cer Exp $
 
 (in-package :clim-demo)
 
@@ -22,7 +22,7 @@
 
 ;;; A support utility.
 (defun last-name (name)
-  (subseq name (1+ (or (position #\Space name :test #'char-equal :from-end T) -1))))
+  (subseq name (1+ (or (position #\Space name :test #'char-equal :from-end t) -1))))
 
 ;;; And a function which operates on the address class.
 (defun address-last-name (address)

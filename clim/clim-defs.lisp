@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clim-defs.lisp,v 1.6 92/02/24 13:06:56 cer Exp $
+;; $fiHeader: clim-defs.lisp,v 1.7 92/04/15 11:46:07 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -332,6 +332,9 @@
 (defvar *assume-all-commands-enabled* nil)
 (defvar *sizing-application-frame* nil)
 
+(defmacro with-frame ((frame) &body body)
+  `(let ((,frame *application-frame*))
+     ,@body))
 
 ;;; Command processor variables
 (defvar *command-parser* 'command-line-command-parser)

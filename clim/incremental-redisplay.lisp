@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: incremental-redisplay.lisp,v 1.6 92/05/07 13:12:28 cer Exp $
+;; $fiHeader: incremental-redisplay.lisp,v 1.7 92/05/22 19:28:01 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -164,12 +164,12 @@
 	   (and (eq (class-of item1) (class-of item2))
 		(funcall test item1 item2))))
     (declare (dynamic-extent #'robust-test))
-    #+Allegro
+    #+ignore
     (block work-around-franz-find-bug
       (dolist (candidate sequence)
 	(when (funcall (if test #'robust-test #'eql) item (funcall key candidate))
 	  (return-from work-around-franz-find-bug candidate))))
-    #-Allegro
+    #-ignore
     (if test
 	(find item sequence :key key :test #'robust-test)
         (find item sequence :key key))))

@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-frames.lisp,v 1.18 92/05/22 19:29:29 cer Exp $
+;; $fiHeader: xm-frames.lisp,v 1.19 92/06/02 13:31:25 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -91,7 +91,9 @@
 						  top)
 		 (let ((commands-and-buttons
 			(make-menu-for-command-table-1 command-table parent top)))
-		   ;; We should call
+		   ;; We might have add-callbacks for a different set
+		   ;; of children which are now destroyed
+		   (tk::remove-all-callbacks parent :map-callback)
 		   (tk::add-callback parent :map-callback
 				     #'update-menu-item-sensitivity 
 				     (pane-frame sheet)

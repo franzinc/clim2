@@ -17,13 +17,39 @@
  * 52.227-19 or DOD FAR Supplement 252 52.227-7013 (c) (1) (ii), as
  * applicable.
  *
- * $fiHeader$
+ * $fiHeader: MyDrawingA.c,v 1.1 92/05/13 08:54:21 cer Exp Locker: cer $
  */
 
 
 #include <Xm/XmP.h>
 #include "MyDrawingAP.h"
 
+
+/******************************************************************************/
+/* This sucks */
+
+static int (*querygeometryfunction) () = 0;
+
+QueryGeometry (da, intended, desired)
+            XmDrawingAreaWidget da ;
+            XtWidgetGeometry * intended ;
+            XtWidgetGeometry * desired ;
+{
+    /* call out to lisp to get the result */
+    if (querygeometryfunction)
+	return ((*querygeometryfunction)(da, intended, desired));
+    else
+	return (XtGeometryYes);
+}
+
+InitializeMyDrawingAreaQueryGeometry(fn)
+char *fn;
+{
+    querygeometryfunction = fn;
+}
+
+
+/******************************************************************************/
 
 externaldef( xmmydrawingareaclassrec) XmMyDrawingAreaClassRec
                      xmMyDrawingAreaClassRec =
@@ -58,7 +84,7 @@ externaldef( xmmydrawingareaclassrec) XmMyDrawingAreaClassRec
       XtVersion,				/* version            */
       NULL,					/* callback_private   */
       XtInheritTranslations,			/* tm_table           */
-      XtInheritQueryGeometry,                   /* query_geometry     */
+      QueryGeometry,                            /* query_geometry     */
       NULL,             	                /* display_accelerator*/
       NULL,                                     /* extension          */
    },
@@ -124,3 +150,4 @@ XmCreateMyDrawingArea(
 
     return( XtCreateWidget( name, xmMyDrawingAreaWidgetClass, p, args, n)) ;
 }
+

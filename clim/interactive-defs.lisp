@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: interactive-defs.lisp,v 1.8 92/05/07 13:12:36 cer Exp $
+;; $fiHeader: interactive-defs.lisp,v 1.9 92/05/22 19:28:07 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -51,7 +51,7 @@
      ,@body))
 
 (defun activation-gesture-p (gesture)
-  (and (not (typep gesture 'pointer-event))	;--- kludge
+  (and (not (typep gesture '(or pointer-event noise-string (member :eof))))	;--- kludge
        (dolist (set *activation-gestures*)
 	 (when (if (listp set)
 		   (member gesture set 

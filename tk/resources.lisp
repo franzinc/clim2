@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: resources.lisp,v 1.21 92/05/13 17:10:25 cer Exp Locker: cer $
+;; $fiHeader: resources.lisp,v 1.22 92/05/22 19:26:30 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -261,14 +261,18 @@
 ;; Note that the current set-values implemenation only works for resources
 ;; that fit in a 32bit word.  You were warned!
 
-(defun fill-sv-cache (class resources)
+(defun fill-sv-cache (parent-class class resources)
   (let* ((len (length resources))
 	 (class-resources (class-resources class))
+	 (constraint-resources (and parent-class (class-constraint-resources parent-class)))
 	 (arglist (make-xt-arglist :number len))
 	 (rds nil)
+	 (constraint-resource-used nil)
 	 (i 0))
     (dolist (r resources)
-      (let ((resource (find r class-resources :key #'resource-name :test #'eq)))
+      (let ((resource (or (find r class-resources :key #'resource-name :test #'eq)
+			  (psetq constraint-resource-used t)
+			  (find r constraint-resources :key #'resource-name :test #'eq))))
 	(unless resource
 	  (error "No such resource ~S for widget of class ~S "
 		 r class))
@@ -278,8 +282,11 @@
 		rds))
 	(setf (xt-arglist-name arglist i) (resource-original-name resource))
 	(incf i)))
-    (setf (gethash resources (class-set-values-cache class))
-      (list* arglist len (nreverse rds)))))
+    (let ((r (list* arglist len (nreverse rds))))
+      (if constraint-resource-used
+	  r
+	(setf (gethash resources (class-set-values-cache class)) r)))))
+
 
 (defun set-values (widget &rest resources-and-values)
   (declare (optimize (speed 3))
@@ -294,11 +301,13 @@
     (setq values (nreverse values))
     (excl::without-interrupts
       ;; We don't really want anyone else to grab the same cache entry.
-      (let* ((class (class-of widget))
-	     (entry (gethash resources (class-set-values-cache class))))
+	(let* ((class (class-of widget))
+	       (parent-class (let ((p (tk::widget-parent widget)))
+			       (and p (class-of p))))
+	       (entry (gethash resources (class-set-values-cache class))))
 	(declare (optimize (safety 0)))
 	(unless entry
-	  (setf entry (fill-sv-cache class resources)))
+	  (setf entry (fill-sv-cache parent-class class resources)))
     
 	(destructuring-bind (arglist length &rest resource-descriptions)
 	    entry
@@ -362,11 +371,13 @@
     (cardinal nil)
     (pixel nil)
     (int nil)
+    (short nil)
     (t t)))
 
 (defmethod resource-type-set-conversion-p (type)
   (case type
     (position nil)
+    (short nil)
     (vertical-position nil)
     (horizontal-position nil)
     (shell-vert-pos nil)
@@ -386,6 +397,7 @@
   
 (defmethod resource-type-get-memref-type (type)
   (case type
+    (short :signed-word)
     (position :signed-word)
     (vertical-position :signed-word)
     (horizontal-position :signed-word)
@@ -399,21 +411,25 @@
     (int :signed-long)
     (boolean :unsigned-byte)
     (ol-define :unsigned-word)
-   (t :unsigned-long)))
+    (t :unsigned-long)))
 
 
 
-(defun fill-gv-cache (class resources)
+(defun fill-gv-cache (parent-class class resources)
   (setq resources (copy-list resources)) ; So get-values can declare dynamic-extent
   (let* ((len (length resources))
 	 (class-resources (class-resources class))
+	 (constraint-resources (and parent-class (class-constraint-resources parent-class)))
 	 (arglist (make-xt-arglist :number len))
 	 (rds nil)
+	 (constraint-resource-used nil)
 	 (i 0))
     (dotimes (j len)
       (setf (xt-arglist-value arglist j) (excl::malloc 8))) ; A crock...
     (dolist (r resources)
-      (let ((resource (find r class-resources :key #'resource-name :test #'eq)))
+      (let ((resource (or (find r class-resources :key #'resource-name :test #'eq)
+			  (psetq constraint-resource-used t)
+			  (find r constraint-resources :key #'resource-name :test #'eq))))
 	(unless resource
 	  (error "No such resource ~S for widget of class ~S "
 		 r class))
@@ -424,19 +440,23 @@
 		rds))
 	(setf (xt-arglist-name arglist i) (resource-original-name resource))
 	(incf i)))
-    (setf (gethash resources (class-get-values-cache class))
-      (list* arglist len (nreverse rds)))))
+    (let ((r (list* arglist len (nreverse rds))))
+      (if constraint-resource-used
+	  r
+	(setf (gethash resources (class-get-values-cache class)) r)))))
     
 (defun get-values (widget &rest resources)
   (declare (optimize (speed 3))
 	   (dynamic-extent resources))
   (excl::without-interrupts
     ;; We don't really want anyone else to grab the same cache entry.
-    (let* ((class (class-of widget))
-	   (entry (gethash resources (class-get-values-cache class))))
+      (let* ((class (class-of widget))
+	     (parent-class (let ((p (tk::widget-parent widget)))
+			       (and p (class-of p))))
+	     (entry (gethash resources (class-get-values-cache class))))
       (declare (optimize (safety 0)))
       (unless entry
-	(setf entry (fill-gv-cache class resources)))
+	(setf entry (fill-gv-cache parent-class class resources)))
     
       (destructuring-bind (arglist length &rest resource-descriptions)
 	  entry
@@ -606,6 +626,10 @@
     ;;-- Should check to see if its registered
     (integer value)))
 
+
+(define-enumerated-resource attachment (:none :form :opposite-form
+					      :widget :opposite-widget
+					      :position :self))
 
 ;;;--- Dont ask this is what OLIT sez the label-image of a oblong
 ;;;--- button is. I know why! its because its a f*cking image (rather

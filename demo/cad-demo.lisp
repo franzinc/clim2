@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: cad-demo.lisp,v 1.8 92/05/22 19:29:03 cer Exp Locker: cer $
+;; $fiHeader: cad-demo.lisp,v 1.9 92/06/03 18:18:47 cer Exp $
 
 (in-package :clim-demo)
 
@@ -819,7 +819,7 @@
   (let* ((window (get-frame-pane *application-frame* 'design-area))
 	 (type (menu-choose *component-types*
 			    :associated-window (window-root window)
-			    :cache T :unique-id 'component-types))
+			    :cache t :unique-id 'component-types))
 	 (position (accept 'cad-position :stream window :prompt nil))
 	 (object (make-instance type :x (car position) :y (cdr position))))
     (add-new-object *application-frame* object)

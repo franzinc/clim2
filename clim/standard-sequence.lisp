@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader$
+;; $fiHeader: standard-sequence.lisp,v 1.2 92/01/02 15:33:30 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -149,5 +149,12 @@
 			(otherwise
 			 (when (region-contains-point*-p elements x y)
 			   (funcall continuation elements))))
+
 	      nil))
 
+	      
+;; This looks kinda useful
+
+(defclass standard-sequence-output-history
+    (stream-output-history-mixin standard-sequence-output-record)
+    ())

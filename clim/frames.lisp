@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: frames.lisp,v 1.23 92/06/02 13:30:56 cer Exp Locker: cer $
+;; $fiHeader: frames.lisp,v 1.24 92/06/03 18:18:29 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -50,9 +50,9 @@
 		 :accessor frame-properties)
      (resizable :initarg :resize-frame
 		:reader frame-resizable)
-     (layout :initarg :layout :reader frame-layouts))
+     (layout :initarg :layouts :reader frame-layouts))
   (:default-initargs :pointer-documentation nil
-    :layout nil
+    :layouts nil
     :resize-frame nil
     :top-level 'default-frame-top-level))
 
@@ -151,6 +151,9 @@
       (when (and pane layouts)
 	(error "The ~S and ~S options cannot be used together" :pane :layouts))
       (when (or (and panes (null layouts))
+		;; I thing you can have multiple :layouts that dont
+		;; share any panes
+		#+ignore
 		(and layouts (null panes)))
 	(error "The ~S and ~S options must be used together" :panes :layouts))
       (when (null superclasses)
@@ -167,28 +170,41 @@
     #-Silica (warn-if-pane-descriptions-invalid name pane-descriptions)
     #-Silica (warn-if-layouts-invalid name layouts pane-descriptions)
     (let ((pane-constructors 
-	    (cond (panes
+	    (cond (layouts
 		   (compute-pane-constructor-code panes))
 		  (pane
-		   (compute-pane-constructor-code `((,name ,pane)))))))
+		   (compute-pane-constructor-code `((,name ,pane))))))
+	  (layout-value
+	   `(list ,@(mapcar
+		     #'(lambda (layout)
+			 (destructuring-bind
+			     (name panes . sizes) layout
+			   (if sizes
+			       `(list ',name ',panes 
+				      ,@(mapcar #'(lambda (pane-and-size)
+						    `(list ',(car pane-and-size)
+							   ,@(cdr pane-and-size)))
+						sizes))
+			     `',layout)))
+		     layouts))))
       `(progn
 	 (eval-when (compile)
 	   (when ',command-table
 	     (setf (compile-time-property ',(first command-table) 'command-table-name) t))
 	   (define-application-frame-1 ',name ',slots ,pane-constructors
-				       :layouts ',layouts
+				       :layouts ,layout-value
 				       :top-level ',top-level
 				       :command-table ',command-table))
 	 (define-group ,name define-application-frame
 	   (defclass ,name ,superclasses ,slots
 	     ,@options
 	     (:default-initargs
-		:layout ',layouts
+		 :layouts ,layout-value
 	       :menu-bar ',menu-bar
 	       :pointer-documentation ',pointer-documentation
 	       ,@(and command-table `(:command-table ',(car command-table)))
 	       ,@(and top-level `(:top-level ',top-level))
-	       ,@(and panes `(:pane-constructors ,pane-constructors))
+	       ,@(and layouts `(:pane-constructors ,pane-constructors))
 	       ,@(and layouts `(:default-layout ',(caar layouts)))
 	       ,@(and icon `(:icon (list ,@icon)))
 	       ,@(and geometry `(:geometry (list ,@geometry)))
@@ -210,7 +226,7 @@
 	   ;;--- Need to handle DISABLED-COMMANDS properly, 
 	   ;;--- which entails doing a COPY-LIST
 	   (define-application-frame-1 ',name ',slots ,pane-constructors
-				       :layouts ',layouts
+				       :layouts ',layout-value
 				       :top-level ',top-level
 				       :command-table ',command-table
 				       :disabled-commands ',disabled-commands)
@@ -294,7 +310,7 @@
 		     keyword :command-table frame-name :inherit-from :menu))))))) 
 
 (defun compute-generate-panes-code (name code panes layouts)
-  (if panes
+  (if layouts
       (compute-complex-generate-panes-code name panes layouts)
       (compute-simple-generate-panes-code name code)))
 
@@ -325,7 +341,8 @@
 		    (with-look-and-feel-realization (,framem ,frame)
 		      (ecase (frame-current-layout ,frame)
 			,@(mapcar #'(lambda (layout-spec)
-				      (destructuring-bind (name panes) layout-spec
+				      (destructuring-bind (name panes . ignore) layout-spec
+					(declare (ignore ignore))
 					`(,name ,panes)))
 				  layouts)))))))))))
 

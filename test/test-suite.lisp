@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: test-suite.lisp,v 1.21 92/05/22 19:28:48 cer Exp Locker: cer $
+;; $fiHeader: test-suite.lisp,v 1.22 92/06/03 18:18:35 cer Exp Locker: cer $
 
 (in-package :clim-user)
 
@@ -2714,7 +2714,7 @@ Luke Luck licks the lakes Luke's duck likes."))
 (define-genera-application clim-tests :select-key #\Circle
 			   :width 600 :height 420)
 
-(define-command (exit-clim-tests :command-table clim-tests)
+(define-command (exit-clim-tests :command-table clim-tests :menu t)
     ()
   #+(and Genera (not silica))
   (setf (window-visibility (frame-top-level-window *application-frame*)) nil)

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.24 92/05/26 14:33:31 cer Exp Locker: cer $
+;; $fiHeader: xt-graphics.lisp,v 1.25 92/06/03 18:19:11 cer Exp Locker: cer $
 
 (in-package :tk-silica)
 
@@ -515,6 +515,103 @@ and on color servers, unless using white or black")
 		     (the fixnum (min (the fixnum y1) (the fixnum y2))))
 	 x1 y1 x2 y2)))))
 
+
+(defmethod port-draw-lines* ((port xt-port) sheet medium list-of-x-and-ys)
+  ;;-- We should decide which version to use.
+  ;;-- We also need to deal with line clipping.
+  (let* ((transform (sheet-device-transformation sheet))
+	 (len (length list-of-x-and-ys))
+	 (npoints (/ len 4))
+	 (points (tk::make-xsegment-array :number npoints))
+	 (window (medium-drawable medium))
+	 ;; These really are fixnums, since we're fixing coordinates below
+	 (minx most-positive-fixnum)
+	 (miny most-positive-fixnum)
+	 ink)
+    (if (listp list-of-x-and-ys)
+	(do ((ps list-of-x-and-ys)
+	     (i 0 (1+ i)))
+	    ((null ps))
+	  (declare (fixnum i))
+	  (let ((x (pop ps))
+		(y (pop  ps)))
+	    (convert-to-device-coordinates transform x y)
+	    (minf minx x)
+	    (minf miny y)
+	    (setf (tk::xsegment-array-x1 points i) x
+		  (tk::xsegment-array-y1 points i) y))
+	  (let ((x (pop ps))
+		(y (pop ps)))
+	    (convert-to-device-coordinates transform x y)
+	    (minf minx x)
+	    (minf miny y)
+	    (setf (tk::xsegment-array-x2 points i) x
+		  (tk::xsegment-array-y2 points i) y)))
+      (do ((ps list-of-x-and-ys)
+	   (j 0 (+ 2 j))
+	   (i 0 (+ i 4)))
+	  ((= j len))
+	(declare (fixnum i j))
+	(let ((x (aref ps j))
+	      (y (aref ps (1+ j))))
+	  (convert-to-device-coordinates transform x y)
+	  (minf minx x)
+	  (minf miny y)
+	  (setf (tk::xsegment-array-x1 points i) x
+		(tk::xsegment-array-y1 points i) y))
+	
+	(let ((x (aref ps (+ 2 j)))
+	      (y (aref ps (+ 3 j))))
+	  (convert-to-device-coordinates transform x y)
+	  (minf minx x)
+	  (minf miny y)
+	  (setf (tk::xsegment-array-x2 points i) x
+		(tk::xsegment-array-y2 points i) y))))
+    (setq ink 
+      (adjust-ink (decode-ink (medium-ink medium) medium) medium
+		  (medium-line-style medium)
+		  minx miny))
+    (when (medium-drawable medium)
+      (x11:xdrawsegments
+	 (tk::object-display window)
+	 window
+	 ink
+	 points
+	 npoints)))
+  #+ignore
+  (let ((drawable (medium-drawable medium)))
+    (when drawable
+      (let* ((ink (medium-ink medium))
+	     (transform (sheet-device-transformation sheet))
+	     (gc 
+	      (adjust-ink (decode-ink ink medium)
+			  medium
+			  (medium-line-style medium)
+			  0 0))
+	     (len (length list-of-x-and-ys))
+	     (lines list-of-x-and-ys))
+	(if (arrayp lines)
+	    (do ((i 0 (+ 4 i)))
+		((= i len))
+	      (let ((x1 (aref lines i))
+		    (y1 (aref lines (1+ i)))
+		    (x2 (aref lines (+ 2 i)))
+		    (y2 (aref lines (+ 3 i))))
+		(convert-to-device-coordinates transform x1 y1 x2 y2)
+		(tk::draw-line
+		 drawable gc
+		 x1 y1 x2 y2)))
+	  (loop
+	    (when (null lines) (return nil))
+	    (let ((x1 (pop lines))
+		  (y1 (pop lines))
+		  (x2 (pop lines))
+		  (y2 (pop lines)))
+	      (convert-to-device-coordinates transform x1 y1 x2 y2)
+	      (tk::draw-line
+	       drawable gc
+	       x1 y1 x2 y2))))))))
+
 (defmethod port-draw-rectangle* ((port xt-port) sheet medium
 				 x1 y1 x2 y2 filled)
   (let ((drawable (medium-drawable medium)))
@@ -545,7 +642,8 @@ and on color servers, unless using white or black")
 			       list-of-x-and-ys
 			       closed filled)
   (let* ((transform (sheet-device-transformation sheet))
-	 (npoints (/ (length list-of-x-and-ys) 2))
+	 (len (length list-of-x-and-ys))
+	 (npoints (/ len 2))
 	 (points (xt::make-xpoint-array :number (cond ((and closed (not filled))
 						       (incf npoints))
 						      (t npoints))))
@@ -554,18 +652,28 @@ and on color servers, unless using white or black")
 	 (minx most-positive-fixnum)
 	 (miny most-positive-fixnum)
 	 ink)
-    (do ((ps list-of-x-and-ys (cddr ps))
-	 (i 0 (1+ i))
-	 r)
-	((null ps)
-	 (setq list-of-x-and-ys (nreverse r)))
-      (let ((x (first ps))
-	    (y (second ps)))
-	(convert-to-device-coordinates transform x y)
-	(minf minx x)
-	(minf miny y)
-	(setf (tk::xpoint-array-x points i) x
-	      (tk::xpoint-array-y points i) y)))
+    (if (listp list-of-x-and-ys)
+	(do ((ps list-of-x-and-ys (cddr ps))
+	     (i 0 (1+ i)))
+	    ((null ps))
+	  (let ((x (first ps))
+		(y (second ps)))
+	    (convert-to-device-coordinates transform x y)
+	    (minf minx x)
+	    (minf miny y)
+	    (setf (tk::xpoint-array-x points i) x
+		  (tk::xpoint-array-y points i) y)))
+      (do ((ps list-of-x-and-ys)
+	   (j 0 (+ 2 j))
+	   (i 0 (1+ i)))
+	  ((= j len))
+	(let ((x (aref ps j))
+	      (y (aref ps (1+ j))))
+	  (convert-to-device-coordinates transform x y)
+	  (minf minx x)
+	  (minf miny y)
+	  (setf (tk::xpoint-array-x points i) x
+		(tk::xpoint-array-y points i) y))))
     (when (and closed (not filled))
       (setf (tk::xpoint-array-x points (- npoints 1)) (tk::xpoint-array-x points 0)
 	    (tk::xpoint-array-y points (- npoints 1)) (tk::xpoint-array-y points 0)))
@@ -962,7 +1070,7 @@ and on color servers, unless using white or black")
 (defmethod port-beep ((port xt-port) (sheet t))
   (x11:xbell (port-display port) 100))
 
-   
+
 
 ;;--- FROM-SHEET and TO-SHEET should be mediums, not sheets
 ;;--- This needs to be able to copy to/from pixmaps, too

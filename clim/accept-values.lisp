@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept-values.lisp,v 1.20 92/05/07 13:11:54 cer Exp $
+;; $fiHeader: accept-values.lisp,v 1.21 92/05/22 19:27:38 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -239,7 +239,7 @@
 				      (exit-boxes 
 				       (frame-manager-default-exit-boxes
 					(frame-manager stream)))
-				      (resize-frame t)
+				      (resize-frame nil)
 				      (initially-select-query-identifier nil)
 				      (resynchronize-every-pass nil) (check-overlapping t)
 				      label x-position y-position width height)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics-recording.lisp,v 1.6 92/05/07 13:12:25 cer Exp $
+;; $fiHeader: graphics-recording.lisp,v 1.7 92/05/22 19:27:59 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -64,7 +64,7 @@
 		   (point-position (stream-output-history-position medium))
 		 (declare (type coordinate abs-x abs-y))
 		 ,@(mapcar #'(lambda (p)
-			       `(transform-position-sequence (transformation) ,p))
+			       `(setq ,p (transform-position-sequence transformation ,p)))
 			   point-sequences-to-transform)
 		 ,@(do ((pts points-to-transform (cddr pts))
 			(r nil))
@@ -394,7 +394,13 @@
 (define-output-recorder polygon-output-record draw-polygon (ink line-style)
   :bounding-rectangle
     (point-sequence-bounding-rectangle 
-      list-of-x-and-ys line-style))
+     list-of-x-and-ys line-style))
+
+(define-output-recorder lines-output-record draw-lines (ink line-style)
+  :bounding-rectangle
+    (point-sequence-bounding-rectangle 
+     points line-style))
+
 
 (defmethod make-design-from-output-record-1
 	   ((polygon polygon-output-record) x-offset y-offset)
@@ -420,8 +426,8 @@
 			 :closed (polyline-closed polyline) :filled nil args))
 
 (defun point-sequence-bounding-rectangle (list-of-x-and-ys line-style)
-  (let* ((minx (car list-of-x-and-ys))
-	 (miny (second list-of-x-and-ys))
+  (let* ((minx (elt list-of-x-and-ys 0))
+	 (miny (elt list-of-x-and-ys 1))
 	 (maxx minx)
 	 (maxy miny))
     (map-point-sequence
@@ -437,19 +443,31 @@
 	      (+ maxx rthickness)
 	      (+ maxy rthickness)))))
 
-(defun map-point-sequence (fn list-of-x-and-ys)
-  (do ((p list-of-x-and-ys (cddr p)))
-      ((null p))
-    (funcall fn (car p) (cadr p))))
+(defun map-point-sequence (fn seq-of-x-and-ys)
+  (if (arrayp seq-of-x-and-ys)
+      (do* ((len (length seq-of-x-and-ys))
+	    (i 0 (+ i 2)))
+	  ((>= i len))
+	(funcall fn (aref seq-of-x-and-ys i)
+		 (aref seq-of-x-and-ys (1+ i))))
+    (do ((p seq-of-x-and-ys (cddr p)))
+	((null p))
+      (funcall fn (car p) (cadr p)))))
 
-(defun adjust-point-sequence (list-of-x-and-ys dx dy)
-  (let (r)
-    (map-point-sequence
-     #'(lambda (x y)
-	 (push (- x dx) r)
-	 (push (- y dy) r))
-     list-of-x-and-ys)
-    (nreverse r)))
+(defun adjust-point-sequence (seq-of-x-and-ys dx dy)
+  ;;-- Perhaps we could declare everthing to be of type coordinate
+  ;;--- and make a coordinate array
+  (if (and (zerop dx) (zerop dy))
+      seq-of-x-and-ys
+    (let ((r (make-array (length seq-of-x-and-ys)))
+	  (i 0))
+      (map-point-sequence
+       #'(lambda (x y)
+	   (setf (aref r i) (- x dx)
+		 (aref r (1+ i)) (- y dy)
+		 i (+ i 2)))
+       seq-of-x-and-ys)
+      r)))
 
 
 (define-output-recorder ellipse-output-record draw-ellipse (ink line-style)

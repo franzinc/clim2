@@ -1,4 +1,4 @@
-K%%  $fiHeader: clim.todo,v 1.13 92/03/24 19:37:35 cer Exp Locker: cer $
+%%  $fiHeader: clim.todo,v 1.14 92/04/03 12:04:26 cer Exp Locker: cer $
 
 %% ****************************************** SWM things
 
@@ -157,125 +157,27 @@ K%%  $fiHeader: clim.todo,v 1.13 92/03/24 19:37:35 cer Exp Locker: cer $
     - What else?
 
 
-%% ********************************************* CER things 
+
 
-% Silica back-ends
-
-
-% Holes to fill in
- * [cer,1d] INPUT-PROTOCOL and the HANDLE-EVENT problem
-    - Why does INPUT-PROTOCOL-MIXIN define an input buffer?  What's wrong with the
-      sheet event queue?
-    - What we really need to do is maintain a separate input buffer for the stream,
-      then STREAM-READ-GESTURE should loop doing HANDLE-EVENT until something gets
-      inserted into the stream's input buffer.  When there is something in input
-      buffer, STREAM-READ-GESTURE should then process it.
-  * [cer,0.5d] Define cursor protocol
-  * [cer,0.5d] Rename DEFSYS package to CLIM-DEFSYS.
-  * Sheet protocol.
-    - [cer,1d] How do we deal with the case where a sheet has one children and its
-      mirror allows one children only but the sheet actually has two children,
-      e.g., (FRAME (HORIZONTALLY () () ())).
-  * [cer,1d] Multiple layouts need to allow different size reqs for the sheets.
-  * [cer,1d] The code for switching layouts needs to be cleaned up.
-  * [cer,0.5d] Protocol to compute to the WM the desired geometry of the frame.
-  * [cer,0.5d] When the viewport is resized in might need to be moved, for example, if
-    it becomes big enough to display the entire window: in the ALLOCATE-SPACE for
-    viewport. 
-  * [cer,0.5d] Pointer documentation panes and other pane types,
-  * [cer,0.5d] Gadget enable/disable protocol.
-  * [cer,0.5] On-demand scrollbars.
-  * [cer,1d] Complete layout protocol
-  * [cer,1d] Complete set of layout gadgets.
-  * [cer,1d] notify-user
-  * [cer,1d] Sort out the whole server path mechanism and make sure we can
-    windows where we want.
-  * [cer,0.5d] What's the problem with radio-boxes and move-cursor-after.  The
-    alternative definitions almost work except for exit-buttons.  I think the
-    bounding rectangle of gadget output records is computed incorrectly and that
-    it works because the UPDATE-GADGET-POSITION is broken to match. 
-  * [cer,0.5d] When default-text-margin slot yet bound, drawing on a unexposed window
-    can cause problems. 
-  * [cer,0.5d] command parser uses the variable stream, + others rather
-    than gensyms
-  * [cer, 0.5d] perhaps max widths ending up smaller than widths!
-	  * [cer,0.5d] replay-output-record is not called on output-record-mixin!
-    See the method in recording-output-protocol.lisp
-  * [cer,0.1d] I suspect that replay needs to intersect the region with the
-    viewport
-  * [cer,0.5d] why in the without-as-gadget code does the stream-redisplay
-    cause us to resuse an old output record and gadget.  in
-    accept-present-default results in gadgets with the (old) wrong
-    value being used.
-  * Menu enhancements
-    - separators in menus
-    - In active menu items
-    - Labels in menus
-    - Hierarchical menus
-  * Locking
-  * check for duplicate pane names.
-
-
-%% ******************************************* JDI things
-
-% Holes to fill in
-  * [jdi,5d,d] Design and implement a colormap scheme
-    - Poll the CLIM@BBN.COM mailing list to see what the requirements are.
-
-%% **************************************** UNASSIGNED things
+%%%%%%%%%%%%%%%%% Unassigned things
 
 % Silica back-ends
   * [???] PostScript
 
 % Cleanups
-  * Make the CLIM-LISP package conform exactly to the exports in X3J13.
+ 
 
 % Holes to fill in
-  * Implement pixmap mediums.  Check out the use of MEDIUM-TYPE in ILA CLIM.
-  * Verify that :MENU-BAR fully subsumes ILA CLIM's :MENU-GROUP.
-  * [all] Layout for gadgets within ACCEPTING-VALUES.
-  * [all] ACCEPTING-VALUES :OWN-WINDOW architecture that allows integration with
-    toolkit dialogs.
-  * [all] Implement clean interface to THROW-HIGHLIGHTED-PRESENTATION.
-    - SWM claims that it is already clean.  Why do SWM and CER disagree?
-  * [all] Interprocess communication, i.e., one process to another to execute a
-    frame command. 
   * Temporary-medium sheets.
     - Medium accessors on a sheet with no medium?
     - [all] Temporary medium need to have their state decached.  This looks like
       it should be a method on deallocate-medium since the medium is not
       degrafted.  Just not associated with a window.  This does not seem nice:
       engraft, degraft, deallocate? 
-  * Sheet protocol.
-    - [all] Where do event queues come from?
-    - [all] Repaint protocol: who clears the area and sets the clipping region when
-      doing the repaint?
-    - [all] What is the precise value returned by EVENT-SHEET?  Does the
-       EVENT-SHEET accessor return the sheet that the event was dispatched to? 
-       We had to do this for correct distribution of keyboard events. 
-  * Event protocol:
-    - Consider design of DISTRIBUTE-EVENT.
-    - [all] Timestamp.
-    - [all] Native region.
-  * [all] Should we do "stream relative" coordinates (as opposed to the current
-    "parent relative" scheme) for output records?  It solves some problems, but
-    introduces others. 
-
-% Final spec conformance checking
-% Beefing up the test suites.
-% Final testing and bug fixing
 
 % Performance
-  * [all] Meet CLIM 1.0 performance goals.
-  * [all] Surpass CLIM 1.0 performance goals.
-  * Add port-level (graft-level? medium-level?) caches for inks.
 
 % Performance things
-  * Why does text-style-mapping need to call standardize-text-style -
-    in particular this interns like hell.
-  * transformers for draw-circle* and perhaps others.
-  * automagic replay-output-record to do with with-medium earlier on and use
-    that all the way through
 
 % User Guide.
 

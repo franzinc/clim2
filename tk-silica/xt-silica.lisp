@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.28 92/05/22 19:29:39 cer Exp Locker: cer $
+;; $fiHeader: xt-silica.lisp,v 1.29 92/05/26 14:33:35 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -280,7 +280,7 @@
 (defmethod realize-mirror ((port xt-port) sheet)
   (let ((parent (find-widget-parent port sheet)))
     (multiple-value-bind (class initargs)
-	(find-widget-class-and-initargs-for-sheet port parent sheet)
+	(find-widget-class-and-initargs-for-sheet port (sheet-parent sheet) sheet)
       (let ((widget (apply #'make-instance class
 			   :parent parent
 			   :managed (sheet-enabled-p sheet)
@@ -1051,29 +1051,38 @@
 
 
 
-;;;
-
+;;; Tricky ground ahead!
 
 (defclass xt-geometry-manager ()
 	  ;; --- This is probably all
 	  ;; composites excepts drawing-area and shell
 	  ()
   (:documentation "These are all parents that have strong feelings
-about their children"))
+about their children. What this means is that CLIM does not control
+the geometry of the children. Instead the parent has control. "))
 
 
-(defmethod update-mirror-transformation-1 ((port port) sheet 
-					   (parent xt-geometry-manager))
+;;; If you get the urge to change the geometry of the children dont.
+
+(defmethod update-mirror-transformation-1 ((port port) sheet (parent xt-geometry-manager))
+  ;; This gets called by the mirror-region-updated code.
+  ;; There is probably no harm in doing this anyway
   nil)
 
-(defmethod update-mirror-region-1 ((port port) sheet 
-				   (parent xt-geometry-manager))
+(defmethod update-mirror-region-1 ((port port) sheet (parent xt-geometry-manager))
+  ;;--- This gets called by the invalidate-cached .. code.
+  ;;---  Surely if a sheet is mirrored then you do not need to
+  ;;--- invalidate any caches below that point
   nil)
 	    
 
-(defmethod update-mirror-transformation-1 :after ((port port)
-						  (sheet xt-geometry-manager)
-						  (parent t))
+;; Instead if the geometry of the parent has changed, I guess this
+;; suggests that the children have changed shape and that we need to
+;; update their geometry.  
+;;;--- This seems quite bogus and what we actually need to have a
+;;;--- configure-notify event handlers that deal with this.
+
+(defmethod update-mirror-transformation-1 :after ((port port) (sheet xt-geometry-manager) (parent t))
   (update-geo-manager-sheet-children sheet))
 
 
@@ -1083,7 +1092,33 @@ about their children"))
   (update-geo-manager-sheet-children sheet))
 
 (defmethod update-geo-manager-sheet-children (geo-manager)
+  ;;--- Should this really do anything???????
+  #+ignore
   (dolist (child (sheet-children geo-manager))
     ;;--- Yuck!
     (when (typep child 'mirrored-sheet-mixin)
       (mirror-region-updated (port geo-manager) child))))
+
+#|
+;;
+
+
+;; note-space-space-requirements-changed seems to do absolutely
+;; nothing except recurse all of the way to the top.
+
+(defmethod note-space-requirements-changed ((parent xt-geometry-manager) child)
+  ;; We should now ask the parent to relayout the children
+  ;; (compose-space child)
+  ;; (xt-make-geometry-request), or make-resize-request...
+  )
+
+;; We want XtQueryGeometry to call out to Lisp do a compose-space and
+;; return something meaningful.
+
+;; If the parents QueryGeometry does the right thing and asks the
+;; child then we are winning because we get the right numbers, except
+;; this does not take into account min/max stuff.
+  
+|#
+
+

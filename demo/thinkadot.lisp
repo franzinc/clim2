@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: thinkadot.lisp,v 1.7 92/05/22 19:29:12 cer Exp $
+;; $fiHeader: thinkadot.lisp,v 1.8 92/06/02 13:31:13 cer Exp $
 
 (in-package :clim-demo)
 
@@ -160,7 +160,7 @@
     (dolist (node all-nodes)
       (setf (td-node-direction node) nil))))
 
-(define-thinkadot-command (com-exit :menu T) ()
+(define-thinkadot-command (com-exit :menu t) ()
   (frame-exit *application-frame*))
 
 

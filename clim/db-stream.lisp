@@ -22,7 +22,7 @@
 ;;;
 ;;; Copyright (c) 1990 by Xerox Corporations.  All rights reserved.
 ;;;
-;; $fiHeader: db-stream.lisp,v 1.18 92/05/22 19:27:49 cer Exp Locker: cer $
+;; $fiHeader: db-stream.lisp,v 1.19 92/05/26 14:33:12 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -152,7 +152,7 @@
 		   (multiple-value-bind (width height)
 		       (let ((record
 			       (with-output-to-output-record (pane)
-				 (invoke-pane-redisplay-function 
+				 (invoke-pane-display-function 
 				   (pane-frame pane) pane
 				   ;;--- Are all pane display functions prepared to
 				   ;;--- ignore these arguments?  I think not...
