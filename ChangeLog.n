@@ -13,6 +13,10 @@ Tests for new features:	<`no new features', `no tests for new features', or
 *******************************************************************************
 2.2.1.5.2
 
+Thu Feb 12 19:54:57 1998  Kevin Layer  <layer@ultra>
+
+	* Makefile.generic: add to `clean'
+
 Wed Feb 11 16:53:04 1998    <layer@HOBART>
 
 	* demo/README: fix instructions

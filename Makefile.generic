@@ -1,4 +1,4 @@
-# $Header: /repo/cvs.copy/clim2/Makefile.generic,v 1.44.2.1 1998/02/05 18:16:34 layer Exp $
+# $Header: /repo/cvs.copy/clim2/Makefile.generic,v 1.44.2.2 1998/02/13 03:55:34 layer Exp $
 #
 #  Makefile.generic for CLIM 2.0
 #
@@ -225,7 +225,7 @@ clean:
 	find . -name '*.fasl' -print | xargs rm -f
 	rm -f *.o *.$(SHARED_EXT) *.a slim \
 	  	stub-motif.c stub-olit.c stub-xt.c stub-x.c stub-wnn.c
-	rm -f *.z *.Z *.gz *.ilt *.out
+	rm -f *.z *.Z *.gz *.ilt *.out so_locations
 
 clean-notes:
 	cd notes ; find . -name '*.lisp' -print | xargs rm -f
