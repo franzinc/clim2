@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-GRAPHICS-EDITOR; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics-editor.lisp,v 1.17 93/04/23 09:17:53 cer Exp $
+;; $fiHeader: graphics-editor.lisp,v 1.18 93/04/27 14:35:44 cer Exp $
 
 (in-package :clim-graphics-editor)
 
@@ -275,7 +275,7 @@
 	     :display-function 'display-objects
 	     :scroll-bars :both)
     (horizontal-options :accept-values
-			:height :compute :max-height :compute
+			:min-height :compute :height :compute :max-height :compute
 			:display-function
 			  `(accept-values-pane-displayer 
 			     :displayer ,#'(lambda (frame stream)
@@ -283,7 +283,7 @@
 					       frame stream
 					       :orientation :horizontal))))
     (vertical-options :accept-values
-		      :width :compute :max-width :compute
+		      :min-width :compute :width :compute :max-width :compute
 		      :display-function
 		        `(accept-values-pane-displayer 
 			   :displayer ,#'(lambda (frame stream)
@@ -601,7 +601,7 @@
 	       (setq frame (make-application-frame 'graphics-editor
 						   :frame-manager framem
 						   :left 100 :top 100
-						   :width 700 :height 500)))
+						   :width 800 :height 500)))
 	     (if entry 
 		 (setf (cdr entry) frame)
 		 (push (cons port frame) *graphics-editors*))
