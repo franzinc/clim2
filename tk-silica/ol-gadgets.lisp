@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-gadgets.lisp,v 1.19 92/07/08 16:31:50 cer Exp $
+;; $fiHeader: ol-gadgets.lisp,v 1.20 92/07/20 16:01:49 cer Exp Locker: cer $
 
 
 (in-package :xm-silica)
@@ -300,6 +300,8 @@
 					       :label menu
 					       :managed t
 					       :parent parent)))
+			   (set-button-accelerator-from-keystroke button keystroke)
+			   
 			   (tk::add-callback
 			    button
 			    :select

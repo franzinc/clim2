@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: layout.lisp,v 1.19 92/07/01 15:45:06 cer Exp $
+;; $fiHeader: layout.lisp,v 1.20 92/07/20 15:59:21 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -171,6 +171,18 @@
     ((frame :reader pane-frame :initarg :frame)
      (framem :reader frame-manager :initarg :frame-manager)
      (name :accessor pane-name :initform nil :initarg :name)))
+
+;;;--- This should be elsewhere
+(defmethod frame-manager ((stream standard-encapsulating-stream))
+  (frame-manager (slot-value stream 'stream)))
+
+(defmethod frame-manager ((stream t))
+  (cond (*application-frame* (frame-manager *application-frame*))
+	(t (find-frame-manager))))
+
+(defmethod print-object ((p pane) stream)
+  (print-unreadable-object (p stream :type t :identity t)
+    (when (slot-boundp p 'name) (format stream "~S" (slot-value p 'name)))))
 
 (defmethod panep ((x pane)) t)
 (defmethod panep ((x t)) nil)

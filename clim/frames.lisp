@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: frames.lisp,v 1.31 92/07/08 16:30:09 cer Exp $
+;; $fiHeader: frames.lisp,v 1.32 92/07/20 16:00:16 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -45,7 +45,6 @@
      (shell :accessor frame-shell)
      (pointer-documentation-p :initarg :pointer-documentation
 			      :reader frame-pointer-documentation-p)
-     (pointer-documentation-pane :initform nil)
      (properties :initform nil :initarg :properties
 		 :accessor frame-properties)
      (resizable :initarg :resize-frame
@@ -408,7 +407,10 @@
 (define-pane-type :accept-values (&rest options &key (scroll-bars :vertical))
   (declare (non-dynamic-extent options))
   `(make-clim-stream-pane :type 'accept-values-pane
-			  :scroll-bars ,scroll-bars ,@options))
+			  :scroll-bars ,scroll-bars
+			  :end-of-page-action :allow
+			  :end-of-line-action :allow
+			  ,@options))
 
 ;;--- :default-text-style '(:sans-serif :bold :normal)
 ;;--- :display-after-commands nil
@@ -667,9 +669,7 @@
 	      (with-simple-restart (nil "~A top level" (frame-pretty-name frame))
 		(loop
 		  (catch 'layout-changed
-		    (let ((*application-frame* frame)
-			  (*pointer-documentation-output*
-			    (frame-pointer-documentation-output frame)))
+		    (let ((*application-frame* frame))
 		      ;; We must return the values from CALL-NEXT-METHOD,
 		      ;; or else ACCEPTING-VALUES will return NIL
 		      #-CCL-2
@@ -712,8 +712,7 @@
   (unless (eq (frame-state frame) :enabled)
     (enable-frame frame))
   (loop
-    (catch 'layout-changed
-      (let* ((*standard-output*
+    (let* ((*standard-output*
 	       (or (frame-standard-output frame) *standard-output*))
 	     (*standard-input* 
 	       (or (frame-standard-input frame) *standard-output*))
@@ -736,6 +735,8 @@
 		   (if interactor
 		       #'command-line-read-remaining-arguments-for-partial-command
 		       #'menu-read-remaining-arguments-for-partial-command)))
+	     (*pointer-documentation-output*
+	      (frame-pointer-documentation-output frame))
 	     (command-stream
 	       ;;--- We have to ask the frame since we do not want to
 	       ;;--- just pick up a stream from the dynamic environment
@@ -769,7 +770,7 @@
 		(terpri *standard-input*))
 	      ;; Need this check in case the user aborted out of a command menu
 	      (when command
-		(execute-frame-command frame command)))))))))
+		(execute-frame-command frame command))))))))
 
 ;; Generic because someone might want :BEFORE or :AFTER
 (defmethod frame-exit ((frame standard-application-frame))
@@ -818,7 +819,7 @@
 (defun position-sheet-near-pointer (sheet &optional x y)
   (unless (and x y)
     (multiple-value-setq (x y)
-      (pointer-native-position (port-pointer (port sheet)))))
+      (pointer-native-position (stream-primary-pointer sheet))))
   (position-sheet-carefully sheet x y))
 
 #+CLIM-1-compatibility
@@ -1148,8 +1149,7 @@
   (frame-standard-output frame))
 
 (defmethod frame-pointer-documentation-output ((frame standard-application-frame))
-  (with-slots (pointer-documentation-pane) frame
-    pointer-documentation-pane))
+  (find-frame-pane-of-type frame 'pointer-documentation-pane))
 
 ;;--- This causes direct-manipulation and menu-driven applications not to
 ;;--- maintain histories.  Is there a better heuristic?

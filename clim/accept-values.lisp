@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept-values.lisp,v 1.25 92/07/08 16:29:51 cer Exp $
+;; $fiHeader: accept-values.lisp,v 1.26 92/07/20 15:59:58 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -327,7 +327,8 @@
 				  function help-window own-window stream args)))
 		 *accept-help-displayer*)))
       (letf-globally (((stream-default-view stream) 
-		       (frame-manager-dialog-view (frame-manager frame))))
+		       (frame-manager-dialog-view (frame-manager frame)))
+		      ((cursor-visibility (stream-text-cursor stream)) :off))
 	(labels ((run-continuation (stream avv-record)
 		   (setf (slot-value stream 'avv-record) avv-record)
 		   (setf (slot-value stream 'avv-frame) frame)
@@ -591,7 +592,7 @@
 		  (setq new-value
 			;; The text cursor should be visible while this ACCEPT is
 			;; waiting for input to be typed into this field
-			(letf-globally (((cursor-visibility (stream-text-cursor stream)) :off))
+			(letf-globally (((cursor-visibility (stream-text-cursor stream)) :on))
 			  (accept presentation-type
 				  :stream stream :prompt nil :default value
 				  :insert-default modify)))))
@@ -603,6 +604,11 @@
 	    (process-delimiter stream))
 	  (setf value new-value
 		changed-p t))))))
+
+;;--- This should be somewhere else.
+
+(defmethod stream-text-cursor ((stream standard-encapsulating-stream))
+  (stream-text-cursor (slot-value stream 'stream)))
 
 (defun map-over-accept-values-queries (avv-record continuation)
   (declare (dynamic-extent continuation))

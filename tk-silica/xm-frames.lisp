@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-frames.lisp,v 1.22 92/07/01 15:48:03 cer Exp $
+;; $fiHeader: xm-frames.lisp,v 1.23 92/07/20 16:01:51 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -106,7 +106,7 @@
 				'tk::xm-pulldown-menu
 				:managed nil
 				:parent parent))
-		      (cb (make-instance 'tk::xm-cascade-button
+		      (cb (make-instance 'xt::xm-cascade-button-gadget
 					 :parent parent
 					 :label-string menu
 					 :sub-menu-id submenu)))
@@ -139,10 +139,12 @@
 	       (let ((commands-and-buttons nil))
 		 (map-over-command-table-menu-items
 		  #'(lambda (menu keystroke item)
-		      (declare (ignore keystroke))
 		      (let ((type (command-menu-item-type item)))
 			(case type
-			  (:divider)
+			  (:divider
+			   (make-instance 'tk::xm-separator
+					      :managed nil
+					      :parent menu))
 			  (:function
 			   ;;--- Do this sometime
 			   )
@@ -155,7 +157,7 @@
 						'tk::xm-pulldown-menu
 						:managed nil
 						:parent parent))
-				      (cb (make-instance 'tk::xm-cascade-button
+				      (cb (make-instance 'xt::xm-cascade-button-gadget
 							 :parent parent
 							 :label-string menu
 							 :sub-menu-id
@@ -163,12 +165,14 @@
 				 (declare (ignore cb))
 				 (setq parent submenu)))
 			     (let ((button 
-				    (make-instance 'tk::xm-push-button
+				    (make-instance 'xt::xm-push-button-gadget
 						   :label-string menu
 						   :managed t
 						   :parent parent)))
 			       (push (list item button)
 				     commands-and-buttons)
+			       
+			       (set-button-accelerator-from-keystroke button keystroke)
 			       
 			       (when (getf (command-menu-item-options
 					    item) :documentation)
@@ -266,11 +270,11 @@
 					  (port-application-shell port))
 			      :managed nil)))
     (when label
-      (make-instance 'tk::xm-label
+      (make-instance 'xt::xm-label
 		     :parent menu
 		     :managed nil
 		     :label-string label)
-      (make-instance 'tk::xm-separator
+      (make-instance 'xt::xm-separator
 		     :managed nil
 		     :separator-type :double-line
 		     :parent menu))
@@ -312,11 +316,11 @@
 	       (map nil #'(lambda (item)
 			    (ecase (clim-internals::menu-item-type item)
 			      (:separator
-			       (make-instance 'tk::xm-separator
+			       (make-instance 'xt::xm-separator
 					      :managed nil
 					      :parent menu))
 			      (:label
-				  (make-instance 'tk::xm-label
+				  (make-instance 'xt::xm-label
 						 :parent menu
 						 :managed nil
 						 :label-string (string
@@ -329,7 +333,7 @@
 						    :parent menu))
 					  (menu-button
 					   (make-menu-button item 
-							     'tk::xm-cascade-button
+							     'xt::xm-cascade-button
 							     menu
 							     :sub-menu-id submenu)))
 				     (declare (ignore menu-button))
@@ -338,7 +342,7 @@
 				      (clim-internals::menu-item-items item)))
 				 (let ((menu-button
 					(make-menu-button item 
-							  'tk::xm-push-button
+							  'xt::xm-push-button
 							  menu))
 				       (value (menu-item-value item)))
 				   (tk::add-callback

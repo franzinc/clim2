@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xlib.lisp,v 1.21 92/06/23 08:19:19 cer Exp $
+;; $fiHeader: xlib.lisp,v 1.22 92/07/01 15:44:38 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -188,6 +188,8 @@
 (defun get-error-text (code display-handle)
   (let ((s (make-string 1000)))
     (x11::xgeterrortext display-handle code s 1000)
+    (let ((n (position (cltl1::int-char 0) s)))
+      (when n (setq s (subseq s 0 n))))
     s))
       
 (defun setup-error-handlers ()

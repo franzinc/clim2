@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-frames.lisp,v 1.13 92/07/01 15:48:12 cer Exp $
+;; $fiHeader: xt-frames.lisp,v 1.14 92/07/20 16:01:55 cer Exp Locker: cer $
 
 
 (in-package :xm-silica)
@@ -47,12 +47,11 @@
 	   (pointer-doc-pane
 	     ;;--- Don't like these forward references
 	     (and (clim-internals::frame-pointer-documentation-p frame)
-		  (setf (slot-value frame 'clim-internals::pointer-documentation-pane)
-			(make-pane
-			  'clim-internals::pointer-documentation-pane
-			  :max-width +fill+
-			  ;;--- This should be one line height in some text style
-			  :height 15))))
+		  (make-pane
+		   'clim-internals::pointer-documentation-pane
+		   :max-width +fill+
+		   ;;--- This should be one line height in some text style
+		   :height 15)))
 	   (application-panes (call-next-method)))
       (cond ((and menu-bar-pane pointer-doc-pane)
 	     (vertically () menu-bar-pane application-panes pointer-doc-pane))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-editor-commands.lisp,v 1.11 92/07/08 16:30:35 cer Exp $
+;; $fiHeader: input-editor-commands.lisp,v 1.12 92/07/20 16:00:25 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -61,8 +61,11 @@
 ;; something like COMPLETE-INPUT will do it for us.
 (defvar *ie-help-enabled* t)
 
-(define-gesture-name :complete :keyboard (:tab))
+
 (define-gesture-name :complete :keyboard (:complete))
+;;;--- Do we need this anymore?
+(add-gesture-name ':complete ':keyboard '(:tab) :unique nil)
+;;
 (define-gesture-name :help     :keyboard (:help))
 ;;--- Both of these because of a bug in KEYBOARD-EVENT-MATCHES-GESTURE-NAME-P
 ;;--- that causes control-? not to match sometimes

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept.lisp,v 1.7 92/05/07 13:11:56 cer Exp $
+;; $fiHeader: accept.lisp,v 1.8 92/07/01 15:46:08 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -89,6 +89,8 @@
     (symbol (setq view (make-instance view)))
     (cons   (setq view (apply #'make-instance view))))
 
+  (setq view (decode-indirect-view view (frame-manager stream) type))
+  
   ;; Call methods to do the work
   (with-keywords-removed (accept-args accept-args '(:stream :view))
     (let ((query-identifier
@@ -97,6 +99,16 @@
       (apply #'stream-accept (or *original-stream* stream) type
 			     :view view :query-identifier query-identifier
 			     accept-args))))
+
+(defun decode-indirect-view (view framem type)
+  (funcall-presentation-generic-function
+   decode-indirect-view view framem type))
+
+(define-presentation-method decode-indirect-view
+    ((view view) (framem standard-frame-manager) (type t))
+  view)
+ 
+
 
 (defmethod stream-accept ((stream input-protocol-mixin) type &rest accept-args)
   (declare (dynamic-extent accept-args))
@@ -346,7 +358,8 @@
 					    (when (or (not (characterp char))
 						      (delimiter-gesture-p char)
 						      (not (whitespace-char-p char)))
-					      (unread-char char stream)
+					      (unless (eq char :eof)
+						(unread-char char stream))
 					      (when (or (eq char :eof)
 							(activation-gesture-p char)
 							(delimiter-gesture-p char))

@@ -20,32 +20,37 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-cursor.lisp,v 1.10 92/05/26 14:33:28 cer Exp $
+;; $fiHeader: xt-cursor.lisp,v 1.11 92/07/01 15:48:10 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
 (defmethod port-note-cursor-change ((port xt-port) cursor stream type
-				    old new)
+						   old new)
   (declare (ignore new old type))
   (let ((active (cursor-active cursor))
 	(state (cursor-state cursor))
 	(focus (cursor-focus cursor)))
-    (let* ((mirror (sheet-mirror stream))
-	   (blinker (ensure-blinker-for-cursor port stream mirror cursor)))
-      (when blinker
-	(let ((transformation (sheet-native-transformation stream)))
-	  (multiple-value-bind (x y) (bounding-rectangle* cursor)
-	    (convert-to-device-coordinates transformation x y)
-	    (cond ((and active state focus)
-		   (tk::set-values blinker :x x :y y)
-		   ;;--- This should indicate that we do not have focus
-		   (tk::manage-child blinker))
-		  ((and active state)
-		   (tk::set-values blinker :x x :y y)
-		   ;;--- This should indicate that we do have focus
-		   (tk::manage-child blinker))
-		  (t 
-		   (tk::unmanage-child blinker)))))))))
+    (let* ((mirror (sheet-mirror stream)))
+      ;;--- It seems that we can attempt to manipulate the cursor
+      ;;--- This is swm performance hacks in cursor-set-position
+      ;;--- before the widget has been realized. Consequently, trying
+      ;;--- to make the cursor widget fails horribly
+      (when (tk::widget-window mirror nil)
+	(let ((blinker (ensure-blinker-for-cursor port stream mirror cursor)))
+	  (when blinker
+	    (let ((transformation (sheet-native-transformation stream)))
+	      (multiple-value-bind (x y) (bounding-rectangle* cursor)
+		(convert-to-device-coordinates transformation x y)
+		(cond ((and active state focus)
+		       (tk::set-values blinker :x x :y y)
+		       ;;--- This should indicate that we do not have focus
+		       (tk::manage-child blinker))
+		      ((and active state)
+		       (tk::set-values blinker :x x :y y)
+		       ;;--- This should indicate that we do have focus
+		       (tk::manage-child blinker))
+		      (t 
+		       (tk::unmanage-child blinker)))))))))))
 
 ;;--- Whenever the sheet-native-region changes we have to move the
 ;;--- cursor. Perhaps unmanaging it if its not visible.

@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: sheet.lisp,v 1.21 92/07/08 16:29:23 cer Exp $
+;; $fiHeader: sheet.lisp,v 1.22 92/07/20 15:59:32 cer Exp Locker: cer $
 
 (in-package :silica)
 

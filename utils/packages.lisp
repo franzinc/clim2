@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: packages.lisp,v 1.21 92/07/08 16:29:30 cer Exp $
+;; $fiHeader: packages.lisp,v 1.22 92/07/20 15:59:39 cer Exp Locker: cer $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :common-lisp-user)
 
@@ -1543,6 +1543,7 @@
     area
     areap
     coordinate
+    decode-indirect-view
     ellipse
     ellipse-center-point
     ellipse-center-point*

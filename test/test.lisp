@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: test.lisp,v 1.34 92/07/08 16:31:23 cer Exp $
+;; $fiHeader: test.lisp,v 1.35 92/07/20 16:00:56 cer Exp Locker: cer $
 
 (in-package :clim-user)
 
@@ -620,6 +620,35 @@
 		  (50 60 2)
 		  (0.0 1.0 2))))))
 
+(define-test-frame-command (com-test-accepting-subset :menu t :name t)
+    ()
+  (let ((x '(a c))
+	(stream *query-io*))
+    (accepting-values (stream)
+		      (setq x (accept '(subset a b c) 
+				      :default x 
+				      :stream stream
+				      :prompt "foo")))
+    (print x)))
+
+
+(define-test-frame-command (com-test-accepting-boolean :menu t :name t)
+    ()
+  (let ((x 0)
+	(y nil)
+	(stream *query-io*))
+    (accepting-values (stream :resynchronize-every-pass t ) 
+		      (setq x (accept 'integer
+				      :default x 
+				      :stream stream
+				      :prompt "foo"))
+		      (terpri stream)
+		      (setq y (accept 'boolean
+				      :default (oddp x)
+				      :stream stream
+				      :prompt "bar")))))
+
+
 (define-test-frame-command (com-test-accepting-values :menu t :name t)
     (&key
      (own-window 'boolean :default t)
@@ -887,3 +916,13 @@
       (accept '(member :normal :point) :stream stream
 	      :prompt "Line style units" :default line-thickness-units))
     (terpri stream)))
+
+(define-presentation-type junk ())
+
+(define-test-frame-command (com-accept-or-junk :name t :menu t)
+    ()
+  (accept '(or junk)))
+
+(define-test-frame-command (com-accept-junk :name t :menu t)
+    ()
+  (accept 'junk))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-protocol.lisp,v 1.17 92/07/08 16:30:37 cer Exp $
+;; $fiHeader: input-protocol.lisp,v 1.18 92/07/20 16:00:27 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -162,12 +162,15 @@
 	   (queue-put (stream-input-buffer stream) char))
 	  ((and keysym (not (typep keysym 'modifier-keysym)))
 	   (queue-put (stream-input-buffer stream) (copy-event event)))
+	  #+ignore
 	  (keysym
-	   ;; Must be a shift keysym, so update the modifier state.
 	   (let ((port (port stream)))
 	     (when port
 	       (setf (port-modifier-state port) (event-modifier-state event))))))))
 
+;;--- The event handling code has already updated the state.
+
+#+ignore
 (defmethod queue-event ((stream input-protocol-mixin) (event key-release-event))
   ;;--- key state table?  Not unless all sheets are helping maintain it.
   (let ((keysym (keyboard-event-key-name event)))

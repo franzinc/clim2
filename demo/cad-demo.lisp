@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: cad-demo.lisp,v 1.12 92/07/06 18:52:02 cer Exp $
+;; $fiHeader: cad-demo.lisp,v 1.13 92/07/20 16:01:16 cer Exp Locker: cer $
 
 (in-package :clim-demo)
 
@@ -813,15 +813,16 @@
     #+ignore ((type `((menu-alist ,*component-types*)))
 	      (position 'cad-position))
     #-ignore ()
-  ;; ... so we do it in the command body.
-  (let* ((window (get-frame-pane *application-frame* 'design-area))
-	 (type (menu-choose *component-types*
-			    :associated-window (window-root window)
-			    :cache t :unique-id 'component-types))
-	 (position (accept 'cad-position :stream window :prompt nil))
-	 (object (make-instance type :x (car position) :y (cdr position))))
-    (add-new-object *application-frame* object)
-    (draw-self object window)))
+    ;; ... so we do it in the command body.
+    (let* ((window (get-frame-pane *application-frame* 'design-area))
+	   (type (menu-choose *component-types*
+			      :associated-window (window-root window)
+			      :cache t :unique-id 'component-types)))
+      (when type
+	(let* ((position (accept 'cad-position :stream window :prompt nil))
+	       (object (make-instance type :x (car position) :y (cdr position))))
+	  (add-new-object *application-frame* object)
+	  (draw-self object window)))))
 
 ;;; Takes two operands, an input terminal and an output terminal
 ;;; --- This needs to propagate value changes down the line, or

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.35 92/07/06 18:52:25 cer Exp $
+;; $fiHeader: xt-silica.lisp,v 1.36 92/07/20 16:02:02 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -643,7 +643,8 @@
     (enable-xt-widget (widget-parent mirror) mirror)))
 
 (defmethod enable-xt-widget ((parent t) (mirror t))
-  (manage-child mirror))
+  (unless (xt::is-managed-p mirror)
+    (manage-child mirror)))
 
 (defmethod enable-xt-widget ((parent top-level-shell) (mirror t))
   (manage-child mirror)

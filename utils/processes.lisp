@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: processes.lisp,v 1.5 92/07/01 15:45:42 cer Exp $
+;; $fiHeader: processes.lisp,v 1.6 92/07/20 15:59:42 cer Exp Locker: cer $
 
 (in-package :clim-utils)
 
@@ -99,7 +99,8 @@
 (defmacro without-scheduling (&body forms)
   "Evaluate the forms w/o letting any other process run."
   #{
-    Allegro    `(mp:without-scheduling ,@forms)
+  ;; Need to do this crap because without scheduling returns one value
+  Allegro `(values-list (mp:without-scheduling (multiple-value-list (progn ,@forms)))) 
     lispworks  `(sys::without-scheduling ,@forms)
     Lucid      `(lcl:with-scheduling-inhibited ,@forms)
     Xerox      `(progn ,@forms)

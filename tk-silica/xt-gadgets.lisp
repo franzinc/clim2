@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-gadgets.lisp,v 1.15 92/07/01 15:48:13 cer Exp Locker: cer $
+;; $fiHeader: xt-gadgets.lisp,v 1.16 92/07/20 16:01:57 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -136,9 +136,10 @@
      (fix-coordinate
       (compute-symmetric-value
        smin smax (* value (- 1 slider-size)) mmin mmax))
-     (fix-coordinate
-      (compute-symmetric-value
-       smin smax slider-size mmin mmax)))))
+     (max 1
+	  (fix-coordinate
+	   (compute-symmetric-value
+	    smin smax slider-size mmin mmax))))))
 
 (defun wait-for-callback-invocation (port predicate &optional (whostate "Waiting for callback"))
   (if (eq mp:*current-process* (port-process port))
@@ -147,3 +148,11 @@
 	  (when (funcall predicate) (return nil))
 	  (process-next-event port)))
     (mp:process-wait whostate predicate)))
+
+
+(defun set-button-accelerator-from-keystroke (button keystroke)
+  ;;-- Somehow we have to convert the keystroke into some text and
+  ;;-- some character so that pressing it will have an effect
+  (when keystroke 
+    (tk::set-values button 
+		    :accelerator-text (princ-to-string keystroke))))

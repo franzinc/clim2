@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: histories.lisp,v 1.7 92/07/01 15:46:29 cer Exp $
+;; $fiHeader: histories.lisp,v 1.8 92/07/08 16:30:32 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -174,12 +174,13 @@
   (with-slots (yank-position rotation) history
     (when (zerop index)
       (error "Zero should have been handled at a higher level"))
-    (let ((old-element (history-element history yank-position)))
-      (do-history-elements (history element idx
-			    :index (1+ yank-position) :offset index :test test)
-	(unless (history-elements-equal history element old-element)
-	  (setq rotation (setq yank-position idx))
-	  (return-from yank-next-from-history element))))))
+    (when yank-position
+      (let ((old-element (history-element history yank-position)))
+	(do-history-elements (history element idx
+				      :index (1+ yank-position) :offset index :test test)
+	  (unless (history-elements-equal history element old-element)
+	    (setq rotation (setq yank-position idx))
+	    (return-from yank-next-from-history element)))))))
 
 ;; This allows m-Y to work after doing a "random access" yank from the mouse.
 (defmethod history-note-element-yanked ((history basic-history) element)

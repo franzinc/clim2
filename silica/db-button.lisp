@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-button.lisp,v 1.10 92/07/08 16:28:58 cer Exp $
+;; $fiHeader: db-button.lisp,v 1.11 92/07/20 15:59:07 cer Exp Locker: cer $
 
 "Copyright (c) 1990, 1991 International Lisp Associates.
  Portions copyright (c) 1991, 1992 by Symbolics, Inc.  All rights reserved."
@@ -967,21 +967,21 @@ toggle button base. This way they can share the draw code.
 ;; we may have to turn on or off some item.  If we turn off the currently selected
 ;; item, we just turn it back on again!
 ;;--- Why doesn't the VALUE-CHANGED-CALLBACK for the button get called?
-(defmethod value-changed-callback :after
-	   ((selection toggle-button) (client radio-box-pane) gadget-id new-value)
-  (declare (ignore gadget-id))
-  (let ((old-selection (radio-box-current-selection client)))
-    ;;--- Note the the Motif version of this sets the current selection
-    ;;--- to the ID, *not* the new value.  Howcum?
-    (cond ((eql selection old-selection)
-	   (setf (radio-box-current-selection client) (and new-value selection)))
-	  (old-selection
-	   (setf (gadget-value old-selection :invoke-callback t) nil)
-	   ;; We could just SETF RADIO-BOX-CURRENT-SELECTION, but this
-	   ;; way we get the right callback behavior...
-	   (setf (gadget-value client :invoke-callback t) (and new-value selection)))
-	  (t
-	   (setf (gadget-value client :invoke-callback t) (and new-value selection))))))
+;(defmethod value-changed-callback :after
+;	   ((selection toggle-button) (client radio-box-pane) gadget-id new-value)
+;  (declare (ignore gadget-id))
+;  (let ((old-selection (radio-box-current-selection client)))
+;    ;;--- Note the the Motif version of this sets the current selection
+;    ;;--- to the ID, *not* the new value.  Howcum?
+;    (cond ((eql selection old-selection)
+;	   (setf (radio-box-current-selection client) (and new-value selection)))
+;	  (old-selection
+;	   (setf (gadget-value old-selection :invoke-callback t) nil)
+;	   ;; We could just SETF RADIO-BOX-CURRENT-SELECTION, but this
+;	   ;; way we get the right callback behavior...
+;	   (setf (gadget-value client :invoke-callback t) (and new-value selection)))
+;	  (t
+;	   (setf (gadget-value client :invoke-callback t) (and new-value selection))))))
 
 (defmethod initialize-instance :after ((pane radio-box-pane) 
 				       &key choices selection frame-manager frame)
@@ -1013,13 +1013,13 @@ toggle button base. This way they can share the draw code.
     ())
 
 ;;--- Why doesn't the VALUE-CHANGED-CALLBACK for the button get called?
-(defmethod value-changed-callback :after
-	   ((selection toggle-button) (client check-box-pane) gadget-id new-value)
-  (declare (ignore gadget-id))
-  (if new-value
-      (pushnew selection (check-box-current-selection client))
-      (setf (check-box-current-selection client)
-	    (delete selection (check-box-current-selection client)))))
+;(defmethod value-changed-callback :after
+;	   ((selection toggle-button) (client check-box-pane) gadget-id new-value)
+;  (declare (ignore gadget-id))
+;  (if new-value
+;      (pushnew selection (check-box-current-selection client))
+;      (setf (check-box-current-selection client)
+;	    (delete selection (check-box-current-selection client)))))
 
 (defmethod initialize-instance :after ((pane check-box-pane) 
 				       &key choices selection frame-manager frame)

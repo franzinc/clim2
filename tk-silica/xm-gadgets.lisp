@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.37 92/07/08 16:31:53 cer Exp $
+;; $fiHeader: xm-gadgets.lisp,v 1.38 92/07/20 16:01:53 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -66,8 +66,9 @@
 
 (defmethod (setf gadget-value) (nv (gadget motif-value-pane) &key invoke-callback)
   (declare (ignore invoke-callback))
-  (when (sheet-direct-mirror gadget)
-    (tk::set-values (sheet-mirror gadget) :value nv)))
+  (let ((m (sheet-direct-mirror gadget)))
+    (when (and m (not (equal nv (tk::get-values m :value))))
+      (tk::set-values m :value nv))))
 
 ;; Gadgets that have a :label initarg
 
@@ -543,7 +544,7 @@
 						     (sheet motif-toggle-button))
   (with-accessors ((set gadget-value)
 		   (indicator-type gadget-indicator-type)) sheet
-    (values 'tk::xm-toggle-button 
+    (values 'xt::xm-toggle-button
 	    (append (list :set set)
 		    (list :indicator-type 
 			  (ecase indicator-type
@@ -557,8 +558,9 @@
 
 (defmethod (setf gadget-value) (nv (gadget motif-toggle-button) &key invoke-callback)
   (declare (ignore invoke-callback))
-  (when (sheet-direct-mirror gadget)
-    (tk::set-values (sheet-mirror gadget) :set nv)))
+  (let ((m (sheet-direct-mirror gadget)))
+    (when (and m (not (equal nv (tk::get-values m :set))))
+      (tk::set-values m :set nv))))
 
 #+ignore
 (defmethod add-sheet-callbacks :after ((port motif-port) 
@@ -635,19 +637,7 @@
 						     (sheet motif-radio-box))
   (values 'tk::xm-radio-box nil))
 
-(defmethod value-changed-callback :around ((v gadget)
-					   (client motif-radio-box)
-					   (id t)
-					   (value t))
-  ;; This and the one below have to be around because of the user has
-  ;; specified a callback function only arounds ever get executed.
-  (when (eq value t)
-    (setf (radio-box-current-selection client) v)
-    (value-changed-callback client 
-			    (gadget-client client)
-			    (gadget-id client) 
-			    v))
-  (call-next-method))
+
 
 (defclass motif-check-box (motif-geometry-manager
 			   mirrored-sheet-mixin
@@ -668,21 +658,7 @@
   
   (values 'tk::xm-row-column nil))
 
-(defmethod value-changed-callback :around ((v gadget)
-					   (client motif-check-box)
-					   (id t)
-					   (value t))
-  ;; This and the one below have to be around because of the user has
-  ;; specified a callback function only arounds ever get executed.
-  (if (eq value t)
-      (push v (check-box-current-selection client))
-    (setf (check-box-current-selection client)
-      (delete v (check-box-current-selection client))))
-  (value-changed-callback client 
-			  (gadget-client client)
-			  (gadget-id client) 
-			  (check-box-current-selection client))
-  (call-next-method))
+
 
 ;; Frame-viewport that we need because a sheet can have
 
@@ -1389,9 +1365,12 @@
   (typecase widget
     (tk::xm-my-drawing-area
      (tk::add-callback widget 
-      :resize-callback 
-      'sheet-mirror-resized-callback
-      sheet))
+		       :resize-callback 
+		       'sheet-mirror-resized-callback
+		       sheet))
+    (xt::xm-gadget
+     (break "gadget"))			; I dont think you can do this
+					; with gadgets
     (t
      (tk::add-event-handler widget
 			    '(:structure-notify)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: ptypes1.lisp,v 1.12 92/05/22 19:28:22 cer Exp $
+;; $fiHeader: ptypes1.lisp,v 1.13 92/07/01 15:46:54 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -1402,11 +1402,21 @@
 	      `(apply #',generic-function-name)
 	      `(,generic-function-name))
 	,(ecase (second info)
-	   (type-key `(class-prototype (find-presentation-type-class ,type-name-var)))
+	   (type-key `(find-class-prototype (find-presentation-type-class ,type-name-var)))
 	   (type-class `(find-presentation-type-class ,type-name-var)))
 	,@(when parameters-var `(,parameters-var))
 	,@(when options-var `(,options-var))
 	,@arguments))))
+
+#+Allegro
+(progn
+  (defstruct class-prototype-for-t)
+  (defvar *class-prototype-for-t* (make-class-prototype-for-t)))
+
+(defun find-class-prototype (class)
+  (cond #+Allegro
+	((eq class clos::*the-class-t*) *class-prototype-for-t*)
+	(t (class-prototype class))))
 
 (defmacro funcall-presentation-generic-function (presentation-function-name &body arguments)
   `(call-presentation-generic-function ,presentation-function-name ,@arguments))
@@ -1611,6 +1621,10 @@
 				      highlight-presentation
   (type-key parameters options type
 	    record stream state))
+
+(define-presentation-generic-function decode-indirect-view-method
+                                      decode-indirect-view
+  (type-key parameters options view framem type))
 
 
 ;;;; Presentation Methods

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-stream.lisp,v 1.23 92/07/08 16:30:00 cer Exp $
+;; $fiHeader: db-stream.lisp,v 1.24 92/07/20 16:00:10 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -423,7 +423,7 @@
       (return nil))))
 
 (defun beep (&optional (stream *standard-output*))
-  (when (typep stream 'sheet)
+  (when (typep stream '(or standard-encapsulating-stream sheet))
     (medium-beep (sheet-medium stream))))
 
 ;; This is called by SCROLL-EXTENT.  It shifts a region of the "host screen"
