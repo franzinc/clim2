@@ -11,6 +11,37 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.2.2.21.5
+merge from cley6 branch
+next merge tag: cley6_merge1
+
+*******************************************************************************
+2.2.2.23.2 (should have been version 2.2.2.21.4)
+
+2000-08-16 tfb@cley.com (Tim Bradshaw)
+
+	* tk/xm-widgets.lisp: changed XM-FONT-LIST-DEFAULT-TAG to be a
+	  native string which is what Motif is expecting.  I am not
+	  sure how this worked without this change.  In due course it
+	  would perhaps be better to change the definitions of the
+          XM_STRING_* functions to know that some of their arguments
+	  are strings.  The whole Motif compound string stuff probably needs 
+	  attention actually.
+
+*******************************************************************************
+2.2.2.23.1 (should have been version 2.2.2.21.3)
+
+2000-08-15 tfb@cley.com (Tim Bradshaw)
+
+	* tk-silica/xt-silica.lisp: Change initialize-xlib-port to better
+	  cope with X servers with missing or messed-up fonts.  In particular
+	  warn if the fallback font for a character set that has other
+	  mappings is not loadable, as things will likely go wrong
+	  later in this case.  If the fallback is not loadable, but the
+	  character set has no other mappings, then just ignore it.  This
+	  may still not be right, but it is better, I think.
+
+*******************************************************************************
 <no version change--patch made to 6.0.beta.1(rc2)>
 
 2000-08-06  Kevin Layer  <layer@ultra>
@@ -18,7 +49,7 @@ If there are user-visible changes in this commit, then list the
 	* Makefile.rs6000: from duane: cleanup and make ready for AIX 4.3.2
 
 *******************************************************************************
-2.2.2.23
+2.2.2.23 (should have been version 2.2.2.21.2)
 
 2000-07-27  Kevin Layer  <layer@ultra>
 
@@ -26,15 +57,25 @@ If there are user-visible changes in this commit, then list the
 
 *******************************************************************************
 2.2.2.22 -- join from cley4 branch
+(should have been version 2.2.2.21.1)
 next merge tag: cley4_merge1
 
 *******************************************************************************
-2.2.2.21
+2.2.2.21 (acl6 branch taken here)
 
 2000-07-17  Kevin Layer  <layer@ultra>
 
 	* Makefile: remove SIXTYFOURBIT variable
 	* Makefile.hpprism: attempt to force clim to use motif 1.2
+
+*******************************************************************************
+2.2.2.20.5
+
+2000-08-08 tfb@cley.com (Tim Bradshaw)
+
+	* aclpc/acl-prel.lisp, aclpc/winwidgh.lisp: changes to cope
+	  with failure of CreateDIBitmap, this time hopefully really
+	  fixing the problem.  This is spr21068, still.
 
 *******************************************************************************
 2.2.2.20.4 

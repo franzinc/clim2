@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: winwidgh.lisp,v 1.7 1999/07/19 22:25:10 layer Exp $
+;; $Id: winwidgh.lisp,v 1.7.38.1 2000/08/15 15:19:12 layer Exp $
 
 (in-package :acl-clim)
 
@@ -134,6 +134,28 @@
     ((a :int) (b :int) (c :int) (d :int))
   :returning :int)
 
+;;; These are used only in the CreateDIBitmap code
+;;;
+
 (ff:def-foreign-call memcpy
-    ((to (* :char)) (from (* :char)) (nbytes :int))
+    ((to (* :void)) (from (* :void)) (nbytes :int))
+  ;; really returns (* :void) but can't hack that (why?)
   :returning :int)
+
+(ff:def-foreign-call (system-malloc "malloc")
+    ((bytes :int))
+  ;; really (* :void)
+  :returning :int)
+
+(ff:def-foreign-call (system-free "free")
+    ((address (* :void)))
+  :returning :void)
+
+(defmacro with-malloced-space ((address-var bytes) &body body)
+  ;; Ensure the space is freed
+  `(let ((,address-var (system-malloc ,bytes)))
+     (when (zerop ,address-var)
+       (error "Failed to malloc ~A bytes" ,bytes))
+     (unwind-protect
+	 (progn ,@body)
+       (system-free ,address-var))))

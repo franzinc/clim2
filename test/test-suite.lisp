@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $Id: test-suite.lisp,v 1.87.34.1 2000/07/19 18:53:10 layer Exp $
+;; $Id: test-suite.lisp,v 1.87.34.1.10.1 2000/08/15 15:19:13 layer Exp $
 
 (in-package :clim-user)
 

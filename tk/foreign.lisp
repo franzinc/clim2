@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: foreign.lisp,v 1.24.36.1 2000/07/19 18:53:11 layer Exp $
+;; $Id: foreign.lisp,v 1.24.36.1.10.1 2000/08/15 15:19:14 layer Exp $
 
 (in-package :tk)
 

@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: ol-gadgets.lisp,v 1.72.34.1 2000/07/19 18:53:13 layer Exp $
+;; $Id: ol-gadgets.lisp,v 1.72.34.1.10.1 2000/08/15 15:19:16 layer Exp $
 
 (in-package :xm-silica)
 

@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xt-silica.lisp,v 1.112.34.1 2000/07/19 18:53:14 layer Exp $
+;; $Id: xt-silica.lisp,v 1.112.34.1.10.1 2000/08/15 15:19:17 layer Exp $
 
 (in-package :xm-silica)
 
@@ -228,24 +228,67 @@
 				  (eql point-size 0)
 				  (eql average-width 0)))
 		   (make-text-style family face (/ corrected-point-size 10)))))))
+      ;; Setup font mappings.  This is made hairy by trying to deal
+      ;; elegantly with possibly missing mappings and messed-up X font
+      ;; setups.  It seems to be the case that XListFonts can return
+      ;; things even when XLoadFont will fail to load the font: I
+      ;; think XListFonts only probes the fonts.alias file (or
+      ;; equivalent).  There seems to be no way to tell if a font is
+      ;; loadable other than by loading it, which is far too expensive
+      ;; to do for every font.  So what this does is check the
+      ;; fallback font carefully, and complain if something is wrong
+      ;; with it, but otherwise don't check.  This should mean that if
+      ;; this doesn't warn then things will basically run, as the
+      ;; fallback exists for each character set, at least.
       (dolist (per-charset *xt-font-families*)
 	(destructuring-bind (character-set fallback &rest families) per-charset
-	  (dolist (per-family families)
-	    (destructuring-bind (family &rest patterns) per-family
-	      (dolist (font-pattern patterns)
-		(dolist (xfont (tk::list-font-names display font-pattern))
-		  ;; this hack overcomes a bug with hp's scalable fonts
-		  (unless (find #\* xfont)
-		    (let ((text-style (font->text-style xfont family)))
-		      ;; prefer first font satisfying this text style, so
-		      ;; don't override if we've already defined one.
-		      (when text-style
-			(unless (text-style-mapping-exists-p
-				 port text-style character-set t)
-			  (setf (text-style-mapping port text-style character-set)
-			    xfont)))))))))
-	  (setf (text-style-mapping port *undefined-text-style* character-set)
-	    fallback)))))
+	  (let* ((matchesp nil)		;do any non-fallback fonts match?
+		 (fallback-matches-p	;any fallback matches?
+		  (not (null (tk::list-font-names display fallback))))
+		 (fallback-loadable-p	;fallback actually loadable?
+		  (and fallback-matches-p
+		       (excl:with-native-string (nfn fallback)
+			 (let ((x (x11:xloadqueryfont display nfn)))
+			   (if (not (zerop x))
+			       (progn
+				 (x11:xfreefont display x)
+				 t)
+			       nil))))))
+	    (dolist (per-family families)
+	      (destructuring-bind (family &rest patterns) per-family
+		(dolist (font-pattern patterns)
+		  (dolist (xfont (tk::list-font-names display font-pattern))
+		    ;; this hack overcomes a bug with hp's scalable fonts
+		    (unless (find #\* xfont)
+		      (setf matchesp t) ;there was at least one match
+		      (let ((text-style (font->text-style xfont family)))
+			;; prefer first font satisfying this text style, so
+			;; don't override if we've already defined one.
+			(when text-style
+			  (unless (text-style-mapping-exists-p
+				   port text-style character-set t)
+			    (setf (text-style-mapping port text-style
+						      character-set)
+			      xfont)))))))))
+	    ;; Set up the fallback if it looks like there is one, and
+	    ;; complain if things look bad.  Things look bad if there were
+	    ;; matches but the fallback is not loadable.  If there were
+	    ;; no matches then don't complain even if there appears to be
+	    ;; something wrong with the fallback, just silently don't load it
+	    ;; (and thus define no mappings for the character set).
+	    (cond 
+	     (fallback-loadable-p	;all is well
+	      (setf (text-style-mapping port *undefined-text-style* 
+					character-set)
+		fallback))
+	     ((and matchesp fallback-matches-p)
+	      (warn "Fallback font ~A, for character set ~A, matches with XListFonts, 
+but is not loadable by XLoadQueryFont.  Something may be wrong with the X font
+setup."
+		    fallback character-set))
+	     (matchesp
+	      (warn "Fallback font ~A not loadable for character set ~A."
+		    fallback character-set))))))))
   (setup-stipples port display))
 
 (defparameter *xt-logical-size-alist*
