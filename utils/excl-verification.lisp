@@ -1,7 +1,7 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SYS; Base: 10; Lowercase: Yes -*-
 ;;
 ;;				-[Tue Apr 27 18:31:42 1993 by layer]-
-;; 
+;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1992 Franz Inc, Berkeley, CA  All rights reserved.
 ;;
@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: excl-verification.lisp,v 1.16 93/04/28 17:19:31 layer Exp $
+;; $Header: /repo/cvs.copy/clim2/utils/excl-verification.lisp,v 1.19 1995/06/21 21:24:34 georgej Exp $
 
 (in-package :sys)
 
@@ -31,7 +31,7 @@
 (eval-when (compile load eval)
   (pushnew :clim *features*)
   (pushnew :clim-2 *features*)
-  (pushnew :clim-2.0 *features*)
+  (pushnew :clim-2.1 *features*)
   (pushnew :silica *features*)
   (pushnew :ansi-90 *features*))
 
@@ -48,7 +48,7 @@
 			    (find-symbol (string '*patches*) patch-package)))
        (patches (and patches-symbol (symbol-value patches-symbol)))
        (needed-patches '(26. 27. 46. 50.))
-       (dont-have (remove-if 
+       (dont-have (remove-if
 		   #'(lambda (pn)
 		       (assoc pn patches))
 		   needed-patches)))
@@ -58,8 +58,8 @@ You do not have patches ~{~S ~}"
 	   needed-patches
 	   dont-have)))
 
-(defvar *clim-version* 
-    '("CLIM 2.0"
-      "$fiHeader: excl-verification.lisp,v 1.16 93/04/28 17:19:31 layer Exp $"))
+(defvar *clim-version*
+    '("CLIM 2.1.alpha"
+      "$Header: /repo/cvs.copy/clim2/utils/excl-verification.lisp,v 1.19 1995/06/21 21:24:34 georgej Exp $"))
 
 (si::rcsnote (first *clim-version*) (second *clim-version*))

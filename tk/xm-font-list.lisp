@@ -1,7 +1,7 @@
 ;; -*- mode: common-lisp; package: tk -*-
 ;;
 ;;				-[Fri Dec 16 17:15:52 1994 by duane]-
-;; 
+;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
 ;;
@@ -45,12 +45,12 @@
 				  (car value))))))
     (dolist (font (cdr value))
       (setq font-list
-	(xm_font_list_append_entry font-list 
+	(xm_font_list_append_entry font-list
 				   (note-malloced-object (xm_font_list_entry_create
 							  ""
 							  xm-font-is-font
 							  font)))))
-    (note-malloced-object font-list 
+    (note-malloced-object font-list
 			  #'free-font-list)))
 
 #+:dec3100
@@ -74,8 +74,8 @@
 	  (when (zerop entry)
 	    (return nil))
 	  (setf (aref type 0) 0)
-	  (push (list 
-		 xm_string_default_char_set
+	  (push (list
+		 ""
 		 (let ((font (xm_font_list_entry_get_font entry type)))
 		   (assert (= (aref type 0) 0))
 		   (intern-object-address

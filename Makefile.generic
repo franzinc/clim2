@@ -141,7 +141,6 @@ train: FORCE
 load-train: FORCE
 	(eval '$(SET_LIBRARY_PATH)' ; \
 	$(ECHO) " \
-	(progn \
 	  (setf (logical-pathname-translations \"clim2\") \
 	    \`((\";**;*.*\" ,(current-directory)))) \
 	  #+ignore (load-logical-pathname-translations \"clim2\") \
@@ -154,8 +153,8 @@ load-train: FORCE
 	  (train-clim :frame-tests $(FRAME_TESTS) :train-times $(TRAIN_TIMES) \
 		:benchmarkp $(TRAIN_BM) :profilep $(TRAIN_PROFILEP) \
 		:compile $(TRAIN_COMPILE) :psview $(PSVIEW) \
-		:hpglview $(HPGLVIEW) :report-file \"$(REPORT_FILE)\")
-	  (clim-test::generate-pretty-test-report :file \"$(REPORT_FILE)\"))" \
+		:hpglview $(HPGLVIEW) :report-file \"$(REPORT_FILE)\") \
+	  (clim-test::generate-pretty-test-report :file \"$(REPORT_FILE)\")" \
 	| $(CL) $(CLOPTS))
 
 generate_test_report: FORCE
@@ -204,6 +203,9 @@ echo_XTLIB:
 echo_XLIB:
 	@echo $(XLIB)
 
+echo_TKLIB:
+	@echo $(TKLIB)
+
 makeclimfasls: compile cat
 
 install_obj:
@@ -220,25 +222,24 @@ makeclimobjs: $(PRODUCT-GENERIC-OBJS) $(PRODUCT-TK-OBJS)
 ################## Lower level Makefile stuff
 
 xm-dcl	: stub-x.o stub-xt.o stub-motif.o xlibsupport.o xtsupport.o xmsupport.o
-	cd $(CL_SRC)
-	/bin/mv ucl ucl.climsave ; $(SAVEEXP)
+	cd $(CL_SRC) ; /bin/mv ucl ucl.climsave ; $(SAVEEXP) ;\
 	make initial_oldspace=$(OLDSPACE) oldspace=$(OLDSPACE) \
 		newspace=$(NEWSPACE) premallocs=$(PREMALLOCS) stubs=$(stubs) \
 		user_objects='$(PWD)/stub-x.o $(PWD)/stub-xt.o \
 		$(PWD)/stub-motif.o $(PWD)/xlibsupport.o $(PWD)/xmsupport.o \
 		$(PWD)/xtsupport.o $(CL_SRC)/code/excldep.o $(CL_SRC)/code/socket.o \
-		$(MOTIFLIB) $(XTLIB) $(XLIB)' dcl ;\
+		$(TKLIB) $(XTLIB) $(XLIB)' dcl ;\
 	/bin/mv ucl.climsave ucl; $(RESTEXP)
 
 ucl.clim: stub-x.o stub-xt.o stub-motif.o xlibsupport.o xtsupport.o xmsupport.o
-	cd $(CL_SRC)
-	/bin/mv ucl ucl.climsave ; /bin/mv dcl dcl.climsave ; $(SAVEEXP)
+	cd $(CL_SRC) ; /bin/mv ucl ucl.climsave ;\
+	/bin/mv dcl dcl.climsave ; $(SAVEEXP) ;\
 	make stubs=$(stubs) \
 		user_objects=' \
 		$(PWD)/stub-x.o $(PWD)/stub-xt.o $(PWD)/stub-motif.o \
 		$(PWD)/xlibsupport.o $(PWD)/xmsupport.o $(PWD)/xtsupport.o \
 		$(TKLIB) $(XTLIB) $(XLIB) $(MOTIFXTRAS)' ucl ;\
-	/bin/mv ucl ucl.clim ; $(RESTEXP) ; /bin/mv ucl.climsave ucl
+	/bin/mv ucl ucl.clim ; $(RESTEXP) ; /bin/mv ucl.climsave ucl ; \
 	/bin/mv dcl.climsave dcl
 
 ################## End of make-dist stuff

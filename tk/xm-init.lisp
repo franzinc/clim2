@@ -35,12 +35,13 @@
 
 
 
+#+dlfcn
+(defun reinitialize-toolkit ()
+  (xt_toolkit_initialize)
+  (setup-error-handlers)
+  (fixup-class-entry-points))
 
 #+dlfcn
-(when sys::*toolkit-shared*
-  (defun reinitialize-toolkit ()
-    (xt_toolkit_initialize)
-    (setup-error-handlers)
-    (fixup-class-entry-points))
+(unless sys::*toolkit-static*
   (push '(:eval reinitialize-toolkit) excl::*restart-actions*))
 

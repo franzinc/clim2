@@ -1,7 +1,7 @@
 ;; -*- mode: common-lisp; package: xm-silica -*-
 ;;
 ;;				-[Fri Nov 11 15:11:52 1994 by smh]-
-;; 
+;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1992 Franz Inc, Berkeley, CA  All rights reserved.
 ;;
@@ -33,10 +33,7 @@
   (when *use-clim-gc-cursor*
     (unless *gc-before*			; Do just once.
       (let ((vec (vector nil nil)))
-	(format excl:*initial-terminal-io* "~&Vec before ~s~%" vec)
 	(tk::init_clim_gc_cursor_stuff vec)
-	(format excl:*initial-terminal-io* "~&Vec after  ~s~%" vec)
-	(force-output excl:*initial-terminal-io*)
 	(setq *gc-before* (svref vec 0)
 	      *gc-after*  (svref vec 1))
 	(pushnew *gc-before* (excl::gc-before-hooks))
@@ -45,9 +42,9 @@
     (let* ((sheet (frame-top-level-sheet frame))
 	   (mirror (and sheet (sheet-direct-mirror sheet))))
       (if mirror
-	  (tk::set_clim_gc_cursor_widget 
+	  (tk::set_clim_gc_cursor_widget
 	   mirror
-	   (realize-cursor (port sheet) 
+	   (realize-cursor (port sheet)
 			   sheet
 			   (sheet-pointer-cursor sheet)))
 	(tk::set_clim_gc_cursor_widget 0 0)))))
@@ -56,7 +53,7 @@
   (declare (ignore cursor))
   (init-gc-cursor (pane-frame sheet)))
 
-(defmethod clim-internals::receive-gesture :after ((stream xt-top-level-sheet) 
+(defmethod clim-internals::receive-gesture :after ((stream xt-top-level-sheet)
 						   (gesture pointer-enter-event))
   ;; If the top level window has a cursor we need to pass that in somehow
   ;; so that it gets restored appropriately.

@@ -83,6 +83,8 @@
 ;; when you merge in the ICS version of this make sure you don't break
 ;; the rs6k - see patch3344.cl
 
+(defconstant xm-font-list-default-tag "FONTLIST_DEFAULT_TAG_STRING")
+
 (defmethod convert-resource-in ((parent t) (type (eql 'xm-string)) value)
   (and (not (zerop value))
        (with-ref-par ((string 0))

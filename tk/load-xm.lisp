@@ -26,12 +26,11 @@
 
 #+dlfcn
 (progn
-  (defvar sys::*toolkit-shared* nil)
+  (defvar sys::*toolkit-static* nil)
 
   (unless (ff:get-entry-point (ff:convert-to-lang "XmCreateMyDrawingArea")
 			      :note-shared-library-references nil)
-    (load "clim2:;climxm.so")
-    (setq sys::*toolkit-shared* t)))
+    (load "clim2:;climxm.so")))
 
 #-dlfcn
 (progn

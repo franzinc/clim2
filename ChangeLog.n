@@ -1,3 +1,25 @@
+*************************************************************
+4.3.devel.4 (aka 4.3.alpha.0)
+
+Wed Jun 21 11:10:05 1995  George Jacob  (georgej@lava)
+
+* Makefile.generic: 	use TKLIB instead of MOTIFLIB
+
+* tk/load-xm.lisp: 	replace toolkit-shared with toolkit-static
+
+* tk/xm-defs.lisp:	remove defconstant
+* tk/xm-widgets.lisp:	add defconstant
+
+* tk/xm-font-list.lisp:	
+
+* tk/xm-init.lisp:	reinitialize toolkit by default for DLFCN
+			ports
+
+* tk-silica/gc-cursor.lisp:	remove debugging comments
+
+* utils/excl-verification.lisp:	update *clim-version* (to 2.1)
+
+
 Tue May 16 23:23:13 PDT 1995	Colin Meldrum (colin@vapor)
 
 Makefile.cobj-svr4	REMOVED - dlfcn and non-dlfcn both now handled in

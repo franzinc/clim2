@@ -1,7 +1,7 @@
 ;; -*- mode: common-lisp; package: tk -*-
 ;;
 ;;				-[]-
-;; 
+;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1992 Franz Inc, Berkeley, CA  All rights reserved.
 ;;
@@ -70,9 +70,8 @@
 	    (selected-item-count :int)
 	    (selected-item-positions * :int)
 	    (selection-type :int))
-	    
+
 (def-c-type (xm-selected-position-array :no-defuns) 1 :int)
 
 (def-c-type (xm-string-table :no-defuns) 1 * :char)
 
-(defconstant xm-font-list-default-tag "FONTLIST_DEFAULT_TAG_STRING")
