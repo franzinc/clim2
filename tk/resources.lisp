@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: resources.lisp,v 1.63 2000/03/04 05:13:48 duane Exp $
+;; $Id: resources.lisp,v 1.63.26.1 2000/07/10 17:09:14 cley Exp $
 
 (in-package :tk)
 
@@ -670,7 +670,7 @@
     (excl:ics-target-case
      (:+ics (let ((euc (ff:char*-to-euc value)))
 	      (excl:euc-to-string euc)))
-     (:-ics (char*-to-string value)))))
+     (:-ics (values (excl:native-to-string value))))))
 
 (defmethod convert-resource-in ((parent t) (type (eql 'boolean)) value)
   (not (zerop value)))
@@ -784,7 +784,7 @@
 
 (defmethod convert-resource-in ((parent t) (type (eql 'ol-str)) value)
   (unless (zerop value)
-    (char*-to-string value)))
+    (values (excl:native-to-string value))))
 
 
 (defmethod convert-resource-out ((parent t) (type (eql 'ol-font)) value)

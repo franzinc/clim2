@@ -11,7 +11,21 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
-2.2.2.15.3 tfb@cley.com (Tim Bradshaw) Mon Jul 10 17:59:16 2000
+2.2.2.15.4 tfb@cley.com (Tim Bradshaw) Mon Jul 10 18:03:30 2000
+
+change char*-to-string and string-to-char* to native-to-string and
+string-to-native pervasively as recommended by Charley.
+
+	* aclpc/acl-frames.lisp, aclpc/acl-prel.lisp,
+	  tk-silica/ol-gadgets.lisp, tk-silica/xm-gadgets.lisp,
+	  tk-silica/xt-silica.lisp, tk/font.lisp, tk/foreign.lisp,
+	  tk/make-classes.lisp, tk/ol-init.lisp, tk/resources.lisp,
+	  tk/widget.lisp, tk/xlib.lisp, tk/xm-widgets.lisp,
+	  wnn/jserver.lisp: as above.
+
+*******************************************************************************
+	  2.2.2.15.3 tfb@cley.com (Tim Bradshaw) Mon Jul 10 17:59:16
+	  2000
 
 fix rfe4072-induced motif problems.
 

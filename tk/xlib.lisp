@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xlib.lisp,v 1.65 2000/05/01 21:43:35 layer Exp $
+;; $Id: xlib.lisp,v 1.65.16.1 2000/07/10 17:09:14 cley Exp $
 
 (in-package :tk)
 
@@ -201,11 +201,11 @@
 					 (lisp-string-to-string8 name)
 					 (lisp-string-to-string8 class)
 					 &type xrmvalue))
-	(let ((type (char*-to-string type)))
+	(let ((type (excl:native-to-string type)))
 	  (values
 	   (cond
 	    ((equal type "String")
-	     (char*-to-string (x11:xrmvalue-addr xrmvalue)))
+	     (excl:native-to-string (x11:xrmvalue-addr xrmvalue)))
 	    ((equal type "Pixel")
 	     (sys::memref-int (x11:xrmvalue-addr xrmvalue) 0 0
 			      :unsigned-natural))
@@ -258,7 +258,7 @@
 		(x11:xgeterrordatabasetext display "XRequest" request-cstring
 					   0 s 1000)
 		(prog1
-		    (ff:char*-to-string s)
+		    (excl:native-to-string s)
 		  (clim-utils::system-free s))))
 	    resourceid)))
 
@@ -279,7 +279,7 @@
 (defun report-x-connection-lost (condition stream)
     (let ((display (x-error-display condition)))
       (format stream "Xlib: Connection to X11 server '~a' lost"
-	      (ff:char*-to-string (x11:display-display-name display)))))
+	      (excl:native-to-string (x11:display-display-name display)))))
 
 (defvar *x-io-error-hook* nil)
 
@@ -292,7 +292,7 @@
   (let ((s (excl::malloc 1000)))
     (x11::xgeterrortext display-handle code s 1000)
     (prog1
-	(ff:char*-to-string s)
+	(excl:native-to-string s)
       (clim-utils::system-free s))))
 
 (defvar *x-error-handler-address* nil)
@@ -857,4 +857,4 @@
        &nitems
        &bytes-after
        &prop)
-      (char*-to-string prop))))
+      (values (excl:native-to-string prop)))))

@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-prel.lisp,v 1.12 2000/06/08 19:16:51 layer Exp $
+;; $Id: acl-prel.lisp,v 1.12.4.1 2000/07/10 17:09:06 cley Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -449,7 +449,8 @@
 			       0 errno 0 
 			       pointer 0 0)))
     (values (if (plusp chars)
-		(nsubstitute #\space #\return (ff:char*-to-string (aref pointer 0)))
+		(nsubstitute #\space #\return 
+			     (excl:native-to-string (aref pointer 0)))
 	      "unidentified system error")
 	    chars)))
 
@@ -522,7 +523,7 @@
 	    (cond ((zerop string) (values nil nil))
 		  (t
 		   (when (integerp string)
-		     (setq string (ff:char*-to-string string)))
+		     (setq string (excl:native-to-string string)))
 		   (values (funcall parser string) string))))
 	(win:CloseClipboard))
     (check-last-error "OpenClipboard")))
