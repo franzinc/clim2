@@ -1,4 +1,4 @@
-%%  $fiHeader: clim.todo,v 1.10 92/03/09 17:41:38 cer Exp Locker: cer $
+%%  $fiHeader: clim.todo,v 1.11 92/03/12 13:41:57 cer Exp Locker: cer $
 
 %% ****************************************** SWM things
 
@@ -215,7 +215,10 @@
     See the method in recording-output-protocol.lisp
   * [cer] I suspect that replay needs to intersect the region with the
     viewport
-
+  * [cer] why in the without-as-gadget code does the stream-redisplay
+    cause us to resuse an old output record and gadget.  in
+    accept-present-default results in gadgets with the (old) wrong
+    value being used.
 
 %% ******************************************* JDI things
 
