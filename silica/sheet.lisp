@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sheet.lisp,v 1.26 92/09/22 19:36:50 cer Exp Locker: cer $
+;; $fiHeader: sheet.lisp,v 1.27 92/09/24 09:37:51 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -125,6 +125,14 @@
     (setf (port child) nil))
   (setf (sheet-parent child) nil
 	(sheet-children parent) nil))
+
+(defun sheet-top-level-sheet (sheet)
+  (do* ((s sheet parent)
+	(parent (sheet-parent s) parent-parent)
+	(parent-parent (if parent (sheet-parent parent) t) (sheet-parent parent)))
+      ((null parent-parent) s)
+    (when (eq parent-parent t)
+      (return nil))))
 
 
 ;;; Raising and lowering

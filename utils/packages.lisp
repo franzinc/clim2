@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: packages.lisp,v 1.29 92/09/24 09:38:03 cer Exp Locker: cer $
+;; $fiHeader: packages.lisp,v 1.30 92/09/30 11:44:46 cer Exp Locker: cer $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :common-lisp-user)
 
@@ -1489,7 +1489,7 @@
 
 
 ;; Define the CLIM package
-(#-(or ANSI-90 Lucid) clim-lisp::defpackage #+(or ANSI-90 Lucid) defpackage clim
+(#-(Or ANSI-90 Lucid) clim-lisp::defpackage #+(or ANSI-90 Lucid) defpackage clim
   (:use)				;use nothing
   (:import-from clim-lisp
     and
@@ -2031,6 +2031,50 @@
     opacity
     opacity-value
     opacityp
+    
+    
+    named-color
+    make-named-color
+    named-color-name
+   
+    palette
+    *all-palettes*
+    basic-palette
+    make-palette
+    default-palette
+    port-default-palette
+    palette-color-cache
+    palette-mutable-color-cache
+    palette-color-group-cache
+    palette-delayed-mutations
+    color-cache
+    mutable-color-cache
+    color-group-cache
+    update-palette-entry
+    update-palette-entries
+    medium-palette
+    frame-manager-palette
+    
+    mutable-color
+    make-mutable-color
+    mutable-color-color
+    mutable-color-palettes
+    mutate-color
+    with-delayed-mutations
+    *doing-delayed-mutations*
+    
+    color-group
+    color-group-layers
+    color-group-cache
+    color-group-mutable-array
+
+    map-over-group-colors
+    group-color
+    group-color-group
+    group-color-layers
+    make-color-group
+    make-group-color
+    mutables
     
     ;; Designs
     compose-in

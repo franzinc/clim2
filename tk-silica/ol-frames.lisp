@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-frames.lisp,v 1.12 92/09/08 15:19:12 cer Exp Locker: cer $
+;; $fiHeader: ol-frames.lisp,v 1.13 92/09/30 11:45:33 cer Exp Locker: cer $
 
 
 (in-package :xm-silica)
@@ -29,19 +29,20 @@
     ()
   (:default-initargs :dialog-view +gadget-dialog-view+))
 
-(defmethod make-frame-manager ((port openlook-port) &key)
-  (make-instance 'openlook-frame-manager :port port))
+(defmethod make-frame-manager ((port openlook-port) &key palette &allow-other-keys)
+  (make-instance 'openlook-frame-manager :port port :palette palette))
 
 ;;-- Port-note-frame-adopted
 
 (defmethod port-note-frame-adopted :after ((port openlook-port) (frame standard-application-frame))
-  (let ((shell (frame-shell frame)))
-    (tk::add-ol-callback
-     shell 
-     (ff::string-to-char* "wmProtocol")
-     :wm-protocol
-     'ol-frame-wm-protocol-callback
-     frame)))
+  (when (frame-panes frame)
+    (let ((shell (frame-shell frame)))
+      (tk::add-ol-callback
+       shell 
+       (ff::string-to-char* "wmProtocol")
+       :wm-protocol
+       'ol-frame-wm-protocol-callback
+       frame))))
 
 (defun ol-frame-wm-protocol-callback (shell value frame)
   (when (eq value :wm-delete-window)

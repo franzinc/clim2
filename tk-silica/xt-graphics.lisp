@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.40 92/09/24 09:40:30 cer Exp Locker: cer $
+;; $fiHeader: xt-graphics.lisp,v 1.41 92/09/30 11:45:41 cer Exp Locker: cer $
 
 (in-package :tk-silica)
 
@@ -54,13 +54,81 @@
    (background-gcontext :reader medium-background-gcontext :initform nil)
    (flipping-gcontext :reader medium-flipping-gcontext :initform nil)
    (drawable :initform nil)
-   (color-p)
    (ink-table :initform (make-hash-table :test #'equal))
    (clip-mask :initform nil)		; A cache.
    (indirect-inks :initform nil)
-   (tile-gcontext :initform nil)	; The following don't belong here.
-   (white-pixel :initform 0)
-   (black-pixel :initform 1)))
+   (tile-gcontext :initform nil)))
+
+
+;;; Palette handling stuff
+
+(defclass xt-palette (basic-palette)
+  ((colormap :reader palette-colormap :initarg :colormap)
+   (color-p :initarg :color-p)
+   (white-pixel :initarg :white-pixel)
+   (black-pixel :initarg :black-pixel)))
+
+(defmethod make-palette ((port xt-port) &key colormap)
+  (let* ((display (port-display port))
+	 (screen (tk::display-screen-number display)))
+    (unless colormap
+      (setq colormap (tk::create-colormap display screen)))
+    (make-instance 'xt-palette
+		   :port port
+		   :colormap colormap
+		   :color-p (port-color-p port)
+		   :white-pixel (x11:xwhitepixel display screen)
+		   :black-pixel (x11:xblackpixel display screen))))
+
+#+ignore
+(defmethod (setf frame-manager-palette) :after 
+	   ((palette xt-palette) (framem standard-frame-manager))
+  (let ((colormap (palette-colormap palette)))
+    (dolist (frame (frame-manager-frames framem))
+      (let ((window (tk::widget-window 
+		     (sheet-direct-mirror (frame-top-level-sheet
+					   frame)))))
+	(setf (tk::window-colormap window) colormap)))))
+
+(defmethod medium-palette ((medium xt-medium))
+  (frame-manager-palette 
+   (frame-manager (pane-frame (medium-sheet medium)))))
+   
+(defmethod update-palette-entry ((palette xt-palette) pixel color)
+  (let ((xcolor (cdr (decode-true-color palette color))))
+    (with-slots (colormap) palette
+      (tk::store-color
+       colormap
+       xcolor))))
+
+(defmethod update-palette-entry ((palette xt-palette) pixel (color named-color))
+  (with-slots (colormap) palette
+    (tk::store-named-color
+     colormap
+     (named-color-name color)
+     pixel
+     #.(logior x11:dored x11:dogreen x11:doblue))))
+
+(defmethod update-palette-entries ((palette xt-palette) updates)
+  (with-slots (colormap) palette
+    (let* ((n (ash (length updates) -1))
+	   (xcolors (tk::get-xcolor-array n))
+	   (j 0))
+      (dotimes (i n)
+	(let ((pixel (aref updates j))
+	      (color (aref updates (1+ j))))
+	  (let ((xcolor (cdr (decode-true-color palette color))))
+	    (declare (ignore ignore))
+	    (setf (x11:xcolor-array-red xcolors i) (x11:xcolor-red xcolor)
+		  (x11:xcolor-array-green xcolors i) (x11:xcolor-green xcolor)
+		  (x11:xcolor-array-blue xcolors i) (x11:xcolor-blue xcolor)
+		  (x11:xcolor-array-pixel xcolors i) pixel
+		  (x11:xcolor-array-flags xcolors i)
+		  #.(logior x11:dored x11:dogreen x11:doblue))))
+	(incf j 2))
+      (tk::store-colors colormap xcolors n))))
+
+;;;
 
 (defmethod medium-drawable ((medium xt-medium))
   (with-slots (drawable sheet) medium
@@ -118,41 +186,42 @@
 
 (defmethod engraft-medium :after ((medium xt-medium) (port xt-port) sheet)
   (with-slots (foreground-gcontext background-gcontext
-				   flipping-gcontext color-p
+				   flipping-gcontext
 				   indirect-inks
-				   drawable tile-gcontext white-pixel black-pixel clip-mask)
+				   drawable tile-gcontext clip-mask)
       medium
-    (setf indirect-inks nil)
-    (setf clip-mask nil)
-    (setf (medium-sheet medium) sheet)
-    (when (and drawable
-	       (not (eq (port-display port)
-			(tk::object-display drawable))))
-      (error "drawable and display do not match"))
-    (let* ((display (port-display port))
-	   (screen (tk::display-screen-number display))
-	   (drawable (or drawable
-			 (tk::display-root-window display))))
-      (unless foreground-gcontext
-	(setf foreground-gcontext (tk::make-instance 'fast-gcontext
-						     :drawable drawable)))
-      (unless background-gcontext
-	(setf background-gcontext (tk::make-instance 'fast-gcontext
-						     :drawable drawable)))
-      (unless flipping-gcontext
-	(setf flipping-gcontext
-	  (tk::make-instance 'fast-gcontext 
-			     :drawable drawable
-			     :function boole-xor)))
-      (unless tile-gcontext
-	(setf color-p (port-color-p (port medium)))
-	(setf white-pixel (x11:xwhitepixel display screen))
-	(setf black-pixel (x11:xblackpixel display screen))
-	(setf tile-gcontext (make-instance 'fast-gcontext
-					   :drawable drawable
-					   :foreground black-pixel
-					   :background white-pixel)))
-      (recompute-gcs medium))))
+    (let ((palette (medium-palette medium)))
+      (with-slots (white-pixel black-pixel)
+	  palette
+	(setf indirect-inks nil)
+	(setf clip-mask nil)
+	(setf (medium-sheet medium) sheet)
+	(when (and drawable
+		   (not (eq (port-display port)
+			    (tk::object-display drawable))))
+	  (error "drawable and display do not match"))
+	(let* ((display (port-display port))
+	       (screen (tk::display-screen-number display))
+	       (drawable (or drawable
+			     (tk::display-root-window display))))
+	  (unless foreground-gcontext
+	    (setf foreground-gcontext (tk::make-instance 'fast-gcontext
+							 :drawable drawable)))
+	  (unless background-gcontext
+	    (setf background-gcontext (tk::make-instance 'fast-gcontext
+							 :drawable drawable)))
+	  (unless flipping-gcontext
+	    (setf flipping-gcontext
+	      (tk::make-instance 'fast-gcontext 
+				 :drawable drawable
+				 :function boole-xor)))
+	  (unless tile-gcontext
+	    (setf tile-gcontext (make-instance 'fast-gcontext
+					       :drawable drawable
+					       :foreground black-pixel
+					       :background white-pixel)))
+	  (recompute-gcs medium))))))
+
 
 (defmethod degraft-medium :after ((medium xt-medium) (port xt-port) sheet)
   (declare (ignore sheet))
@@ -193,20 +262,25 @@
 	      (tk::gcontext-foreground flipping-gcontext)
 	      (logxor foreground-pixel background-pixel))
 	(dolist (ink indirect-inks)
+	  (tk::free-gcontext (gethash ink ink-table))
 	  (remhash ink ink-table))
 	(setf indirect-inks nil)))))
-
-
 
 (defmethod (setf medium-background) :after (ink (medium xt-medium))
   (declare (ignore ink))
   (recompute-gcs medium)
   ;;--- This should be a in silica method
+  ;;--- This breaks the default-from-mirror-resource code when you
+  ;;--- change the layout of a sheet
+  #+ignore
   (repaint-sheet (medium-sheet medium) medium +everywhere+))
+
 
 (defmethod (setf medium-foreground) :after (ink (medium xt-medium))
   (declare (ignore ink))
-  (recompute-gcs medium))
+  (recompute-gcs medium)
+  ;;-- The documentation sez we should repaint-the sheet here also
+  )
 
 (defmethod (setf medium-ink) :after (ink (medium xt-medium))
   (declare (ignore ink))
@@ -290,6 +364,7 @@
 (defgeneric indirect-ink-p (ink))
 
 (defmethod indirect-ink-p (ink)
+  (declare (ignore ink))
   nil)
 
 (defmethod indirect-ink-p ((ink (eql +foreground-ink+)))
@@ -306,6 +381,26 @@
     
 (defgeneric decode-ink (ink medium))
 
+;;; the default decode-ink method. If it's in the table get gc from
+;;; there otherwise make a gc using decode-color to get the foreground
+;;; pixel value
+
+;;--- This is really on color, named-color, mutable-color, and group-color.
+;;--- Perhaps there should be a class like basic-color?
+
+(defmethod decode-ink ((ink design) (medium xt-medium))
+  (with-slots (ink-table sheet drawable) medium
+    (or (gethash ink ink-table)
+	(let* ((drawable (or drawable
+			     (tk::display-root-window (port-display (port sheet)))))
+	       (new-gc (make-instance 'fast-gcontext :drawable drawable)))
+	  (multiple-value-bind (pixel mask)
+	      (decode-color medium ink)
+	    (setf (tk::gcontext-foreground new-gc) pixel)
+	    (when mask
+	      (setf (tk::gcontext-plane-mask new-gc) mask)))
+	  (setf (gethash ink ink-table) new-gc)))))
+
 (defmethod decode-ink ((ink (eql +everywhere+)) medium)
   (slot-value medium 'foreground-gcontext))
 
@@ -319,63 +414,66 @@
   (slot-value stream 'flipping-gcontext))
 
 (defmethod decode-ink ((ink flipping-ink) (medium xt-medium))
-  (with-slots (ink-table sheet tile-gcontext white-pixel black-pixel drawable
-			 color-p indirect-inks)
-      medium
-    (or (gethash ink ink-table)
-	(let* ((drawable (or drawable
-			     (tk::display-root-window (port-display (port sheet)))))
-	       (new-gc (make-instance 'fast-gcontext 
-				      :drawable drawable
-				      :function boole-xor)))
-	  (multiple-value-bind (color1 color2)
-	      (clim-utils:decode-flipping-ink ink)
-	    (cond (color-p
-		   (setf (tk::gcontext-foreground new-gc)
-		     (logxor (decode-color medium color1)
-			     (decode-color medium color2))))
-		  ;;-- support gray-scale here
-		  (t
-		   ;; in a monochrome context there is only one
-		   ;; flipping ink availiable ie white <-> black
-		   (slot-value medium 'flipping-gcontext)))
-	    (when (indirect-ink-p ink)
-	      (push ink indirect-inks))
-	    (setf (gethash ink ink-table) new-gc))))))
-		 
+  (let ((palette (medium-palette medium)))
+    (with-slots (color-p) palette
+      (with-slots (ink-table sheet tile-gcontext drawable indirect-inks)
+	  medium
+	(or (gethash ink ink-table)
+	    (let* ((drawable (or drawable
+				 (tk::display-root-window (port-display (port sheet)))))
+		   (new-gc (make-instance 'fast-gcontext 
+					  :drawable drawable
+					  :function boole-xor)))
+	      (multiple-value-bind (color1 color2)
+		  (clim-utils:decode-flipping-ink ink)
+		(cond (color-p
+		       (setf (tk::gcontext-foreground new-gc)
+			 (logxor (decode-color medium color1)
+				 (decode-color medium color2))))
+		      ;;-- support gray-scale here
+		      (t
+		       ;; in a monochrome context there is only one
+		       ;; flipping ink availiable ie white <-> black
+		       (slot-value medium 'flipping-gcontext)))
+		(when (indirect-ink-p ink)
+		  (push ink indirect-inks))
+		(setf (gethash ink ink-table) new-gc))))))))
 
+		 
 (defmethod decode-ink ((ink color) (medium xt-medium))
-  (with-slots (ink-table sheet tile-gcontext white-pixel black-pixel drawable
-			 color-p)
-      medium
-    (or (gethash ink ink-table)
-	(let* ((drawable (or drawable
-			     (tk::display-root-window (port-display (port sheet)))))
-	       (new-gc (make-instance 'fast-gcontext :drawable drawable)))
-	  (cond (color-p
-		 (setf (tk::gcontext-foreground new-gc)
-		   (decode-color medium ink)))
-		;;-- support gray-scale here
-		(t
-		 (multiple-value-bind (r g b) (color-rgb ink)
-		   (let* ((luminosity (color-luminosity r g b))
-			  (color (decode-luminosity luminosity t)))
-		     (cond ((eq color 1)
-			    (setf (tk::gcontext-fill-style new-gc) :solid
-				  (tk::gcontext-foreground new-gc) black-pixel))
-			   ((eq color 0)
-			    (setf (tk::gcontext-fill-style new-gc) :solid
-				  (tk::gcontext-foreground new-gc) white-pixel))
-			   (t		; color is an image
-			    (setf (tk::gcontext-fill-style new-gc) :tiled)
-			    (let ((pixmap (make-instance 'tk::pixmap
-							 :drawable drawable
-							 :width (tk::image-width color)
-							 :height (tk::image-height color)
-							 :depth (tk::drawable-depth drawable))))
-			      (tk::put-image pixmap tile-gcontext color)
-			      (setf (tk::gcontext-tile new-gc) pixmap))))))))
-	  (setf (gethash ink ink-table) new-gc)))))
+  (let ((palette (medium-palette medium)))
+    (with-slots (white-pixel black-pixel color-p) palette
+      (with-slots (ink-table sheet tile-gcontext drawable)
+	  medium
+	(or (gethash ink ink-table)
+	    (let* ((drawable (or drawable
+				 (tk::display-root-window (port-display (port sheet)))))
+		   (new-gc (make-instance 'fast-gcontext :drawable drawable)))
+	      (cond (color-p
+		     (setf (tk::gcontext-foreground new-gc)
+		       (decode-color medium ink)))
+		    ;;-- support gray-scale here
+		    (t
+		     (multiple-value-bind (r g b) (color-rgb ink)
+		       (let* ((luminosity (color-luminosity r g b))
+			      (color (decode-luminosity luminosity t)))
+			 (cond ((eq color 1)
+				(setf (tk::gcontext-fill-style new-gc) :solid
+				      (tk::gcontext-foreground new-gc) black-pixel))
+			       ((eq color 0)
+				(setf (tk::gcontext-fill-style new-gc) :solid
+				      (tk::gcontext-foreground new-gc) white-pixel))
+			       (t	; color is an image
+				(setf (tk::gcontext-fill-style new-gc) :tiled)
+				(let ((pixmap (make-instance 'tk::pixmap
+							     :drawable drawable
+							     :width (tk::image-width color)
+							     :height (tk::image-height color)
+							     :depth (tk::drawable-depth drawable))))
+				  (tk::put-image pixmap tile-gcontext color)
+				  (setf (tk::gcontext-tile new-gc) pixmap))))))))
+	      (setf (gethash ink ink-table) new-gc)))))))
+
 
 (defmethod decode-ink ((ink (eql +nowhere+)) medium)
   (decode-ink-opacity ink medium))
@@ -384,8 +482,8 @@
   (decode-ink-opacity ink medium))
 
 (defmethod decode-ink-opacity (opacity medium)
-  (with-slots (ink-table sheet tile-gcontext white-pixel black-pixel drawable
-			 foreground-gcontext color-p ink-table)
+  (with-slots (ink-table sheet tile-gcontext drawable
+			 foreground-gcontext ink-table)
       medium
     (let ((key (cons opacity foreground-gcontext)))
       (or (gethash key ink-table)
@@ -403,9 +501,13 @@ and on color servers, unless using white or black")
 		  (tk::gcontext-fill-style new-gc) :stippled)
 	    (setf (gethash key ink-table) new-gc))))))
   
- 
-(defmethod decode-ink ((ink contrasting-ink) stream)
-  (decode-ink (make-color-for-contrasting-ink ink) stream))
+(defmethod decode-ink ((ink contrasting-ink) medium)
+  (let ((palette (medium-palette medium)))
+    (with-slots (color-p) palette
+      (decode-ink (if color-p
+		      (make-color-for-contrasting-ink ink)
+		    (make-gray-color-for-contrasting-ink ink))
+		  medium))))
 
 (defmethod decode-ink ((ink rectangular-tile) medium)
   (multiple-value-bind (pattern width height)
@@ -428,28 +530,133 @@ and on color servers, unless using white or black")
       (decode-color stream +foreground-ink+)
       (decode-color stream +background-ink+)))
 
-(defmethod decode-color ((medium xt-medium) (ink color))
-  (let ((port (port medium)))
-    (with-slots (color-p white-pixel black-pixel) medium
-      (or (gethash ink (port-color-cache port))
-	  (setf (gethash ink (port-color-cache port))
+(defmethod decode-color ((medium xt-medium) (color color))
+  (car (decode-true-color (medium-palette medium) color)))
+
+(defmethod decode-color ((medium xt-medium) (color named-color))
+  (car (decode-true-color (medium-palette medium) color)))
+
+;;; in this context a true-color means a named or and rgb (or equiv
+;;; ihs) color
+
+(defmethod decode-true-color ((palette xt-palette) (color color))
+  (let ((color-cache (palette-color-cache palette)))
+    (or (gethash color color-cache)
+	(setf (gethash color color-cache)
+	  (with-slots (color-p white-pixel black-pixel) palette
 	    (cond (color-p
 		   (multiple-value-bind (red green blue)
-		       (color-rgb ink)
-		     (tk::allocate-color
-		      (tk::default-colormap (port-display port))
-		      (let ((x #.(1- (ash 1 16))))
-			(make-instance 'tk::color
-				       :red (truncate (* x red))
-				       :green (truncate (* x green))
-				       :blue (truncate (* x blue)))))))
+		       (color-rgb color)
+		     (let* ((x #.(1- (ash 1 16)))
+			    (xcolor (make-instance 'tk::color
+						   :red (truncate (* x red))
+						   :green (truncate (* x green))
+						   :blue (truncate (* x blue)))))
+		       (cons (tk::allocate-color
+			      (palette-colormap palette) xcolor)
+			     xcolor))))
 		  ;;-- support gray-scale here
 		  (t
-		   (multiple-value-bind (r g b) (color-rgb ink)
+		   (multiple-value-bind (r g b) (color-rgb color)
 		     (let ((luminosity (color-luminosity r g b)))
-		       (if (> luminosity .5)
-			   white-pixel
-			 black-pixel))))))))))
+		       (list
+			(if (> luminosity .5)
+			    white-pixel
+			  black-pixel)))))))))))
+
+(defmethod decode-true-color ((palette xt-palette) (color named-color))
+  (let ((color-cache (palette-color-cache palette)))
+    (or (gethash color color-cache)
+	(setf (gethash color color-cache)
+	   (let* ((colormap (palette-colormap palette))
+		  (xcolor (tk::lookup-color colormap
+					    (named-color-name color))))
+	     (cons (tk::allocate-color colormap xcolor)
+		   xcolor))))))
+
+(defmethod decode-color ((medium xt-medium) (color mutable-color))
+  (let* ((palette (medium-palette medium))
+	 (mutable-color-cache (palette-mutable-color-cache palette)))
+    (or (gethash color mutable-color-cache)
+	(let ((pixel (aref (tk::alloc-color-cells
+			     (palette-colormap palette) 1 0)
+			   0)))
+	  (update-palette-entry palette pixel (mutable-color-color color))
+	  (push palette (mutable-color-palettes color))
+	  (setf (gethash color mutable-color-cache) pixel)))))
+
+(defmethod decode-color ((medium xt-medium) (color group-color))
+  (let* ((palette (medium-palette medium))
+	 (color-group-cache (palette-color-group-cache palette)))
+    (values-list
+     (or (gethash color color-group-cache)
+	 (setf (gethash color color-group-cache)
+	   (let* ((group (group-color-group color))
+		  (pixel-planes (gethash group (palette-color-group-cache palette)))) 
+	     (unless pixel-planes
+	       (setq pixel-planes (decode-color-group group palette)))
+	     (multiple-value-list 
+		 (decode-group-color (group-color-layers color) pixel-planes))))))))
+
+(defun decode-group-color (layers pixel-planes)
+  (let ((pixel (car pixel-planes))
+	(planes (cdr pixel-planes))
+	(mask 0)) 
+    (dolist (layer layers)
+      (let ((plane-masks (pop planes)))
+	(if layer
+	    (dolist (plane-mask plane-masks)
+	      (when (zerop layer)
+		(return))
+	      (when (oddp layer)
+		(setq pixel (logior pixel plane-mask)))
+	      (setq layer (ash layer -1)))
+	  (dolist (plane-mask plane-masks)
+	    (setq mask (logior mask plane-mask))))))
+    (values pixel (lognot mask))))
+
+(defun decode-color-group (group palette)
+  (let ((color-group-cache (palette-color-group-cache palette))
+	(mutable-color-cache (palette-mutable-color-cache palette))
+	(layers (color-group-layers group))
+	(mutable-array (color-group-mutable-array group))
+	layer-nplanes
+	(total-nplanes 0))
+    (dolist (layer layers)
+      (let ((nplanes (floor (log layer 2))))
+	(push nplanes layer-nplanes)
+	(incf total-nplanes nplanes)))
+    (multiple-value-bind (pixels masks)
+	(tk::alloc-color-cells
+	 (palette-colormap palette) 1 total-nplanes)
+      (let ((pixel (aref pixels 0))
+	    (count 0)
+	    (planes nil))
+	(dolist (nplanes layer-nplanes)
+	  (let ((plane-masks nil))
+	    (dotimes (i nplanes)
+	      (push (aref masks count) plane-masks)
+	      (incf count))
+	    (push plane-masks planes)))
+	(let ((pixel-planes (cons pixel planes)))
+	  (map-over-group-colors 
+	   #'(lambda (dimensions)
+	       (let ((mutable-color (apply #'aref mutable-array dimensions))
+		     (pixel (decode-group-color dimensions
+						pixel-planes)))
+		 (setf (gethash mutable-color mutable-color-cache) pixel)
+		 (update-palette-entry palette pixel (mutable-color-color mutable-color))
+		 (push palette (mutable-color-palettes mutable-color))))
+	   group)
+	  (setf (gethash group color-group-cache) pixel-planes))))))
+	    
+(defmethod decode-color ((medium xt-medium) (ink contrasting-ink))
+  (let ((palette (medium-palette medium)))
+    (with-slots (color-p) palette
+      (decode-color medium
+		    (if color-p
+			(make-color-for-contrasting-ink ink)
+		      (make-gray-color-for-contrasting-ink ink))))))
 
 (defvar *default-dashes* '(4 4))
 

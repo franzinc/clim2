@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xlib.lisp,v 1.26 92/09/09 11:44:28 cer Exp Locker: cer $
+;; $fiHeader: xlib.lisp,v 1.27 92/09/22 19:36:40 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -262,44 +262,60 @@
 
 (defclass colormap (display-object) ())
 
+
+(define-window-accessor colormap ())
+
+(defun create-colormap (display &optional (screen (display-screen-number display)))
+  (intern-object-xid
+   (x11:xcreatecolormap
+    display                
+    (x11:xrootwindow display screen)     
+    (x11:xdefaultvisual display screen)
+    x11:allocnone)
+   'colormap
+   display
+   :display display))
+
 (defun default-colormap (display &optional (screen (display-screen-number display)))
   (intern-object-xid
    (x11:xdefaultcolormap display screen)
    'colormap
    display
-   :display 
-   display))
+   :display display))
 
 (defclass color (ff:foreign-pointer) ())
 
-(defmethod initialize-instance :after ((x color) &key foreign-address red green blue)
+(defmethod initialize-instance :after 
+	   ((x color) &key foreign-address red green blue (pixel 0))
   (unless foreign-address
     (setq foreign-address (x11::make-xcolor :in-foreign-space t))
     (setf (x11::xcolor-red foreign-address) red
 	  (x11:xcolor-green foreign-address) green
 	  (x11:xcolor-blue foreign-address) blue
-	  (x11:xcolor-flags foreign-address) 255)
+	  (x11:xcolor-flags foreign-address) 255
+	  (x11:xcolor-pixel foreign-address) pixel)
     (setf (foreign-pointer-address x) foreign-address)))
 
 (defmethod print-object ((o color) s)
   (print-unreadable-object 
    (o s :type t :identity t)
    (let ((cm o))
-     (format s "~D,~D,~D"
+     (format s "~D:~D,~D,~D"
+	     (x11:xcolor-pixel cm)
 	     (x11:xcolor-red cm)
 	     (x11:xcolor-green cm)
 	     (x11:xcolor-blue cm)))))
 
-(defun lookup-color (colormap color-name)
+(defun lookup-color (colormap name)
   (let ((exact (x11::make-xcolor :in-foreign-space t))
 	(closest (x11::make-xcolor :in-foreign-space t)))
     (if (zerop (x11:xlookupcolor
 		(object-display colormap)
 		colormap
-		color-name
+		name
 		exact
 		closest))
-	(error "Could not find ~S in colormap ~S" color-name colormap)
+	(error "Could not find ~S in colormap ~S" name colormap)
       (values (make-instance 'color :foreign-address exact)
 	      (make-instance 'color :foreign-address closest)))))
 
@@ -321,6 +337,18 @@
       (values (x11:xcolor-pixel y)
 	      (make-instance 'color :foreign-address y)))))
 
+(defun allocate-named-color (colormap name)
+  (let ((exact (x11::make-xcolor :in-foreign-space t))
+	(closest (x11::make-xcolor :in-foreign-space t)))
+    (if (zerop (x11:xallocnamedcolor
+		(object-display colormap)
+		colormap
+		name
+		closest
+		exact))
+	(error "Could not find ~S in colormap ~S" name colormap)
+      (x11:xcolor-pixel closest))))
+
 
 (defun query-color (colormap x)
   ;;--- Resource time
@@ -334,6 +362,54 @@
      (x11:xcolor-red y)
      (x11:xcolor-green y)
      (x11:xcolor-blue y))))
+
+(defun store-color (colormap color)
+  (x11:xstorecolor
+   (object-display colormap)
+   colormap
+   color))
+
+(defun store-named-color (colormap name pixel flags)
+  (x11:xstorenamedcolor
+   (object-display colormap)
+   colormap
+   name
+   pixel
+   flags))
+
+(defvar *xcolor-array* (x11:make-xcolor-array :number 16))
+(defvar *xcolor-array-size* 16)
+
+(defun get-xcolor-array (n)
+  (when (> n *xcolor-array-size*)
+    (setq *xcolor-array-size* n
+	  *xcolor-array* (x11:make-xcolor-array :number n)))
+  *xcolor-array*)
+
+(defun store-colors (colormap colors ncolors)
+  (x11:xstorecolors
+   (object-display colormap)
+   colormap
+   colors
+   ncolors))
+
+(defun alloc-color-cells (colormap ncolors nplanes)
+  (let* ((masks (make-array nplanes 
+			    :initial-element 0 :element-type '(unsigned-byte 32)))
+	 (pixels (make-array ncolors 
+			     :initial-element 0 :element-type '(unsigned-byte 32)))
+	 (z (x11:xalloccolorcells
+	     (object-display colormap)
+	     colormap
+	     0
+	     masks
+	     nplanes
+	     pixels
+	     ncolors)))
+    (when (zerop z)
+      (error "Could not allocate color cells ~D,~D" ncolors nplanes))
+    (values pixels masks)))
+   
 
 (defun default-screen (display)
   (intern-object-address

@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;;; $fiHeader: xlib-defs.lisp,v 1.3 92/04/21 20:28:04 cer Exp $
+;;; $fiHeader: xlib-defs.lisp,v 1.4 92/07/27 19:29:32 cer Exp $
 
 ;;      (c) Copyright 1989, 1990, 1991 Sun Microsystems, Inc. Sun design
 ;;      patents pending in the U.S. and foreign countries. OPEN LOOK is a
@@ -827,6 +827,14 @@
   (blue :type unsigned-short)
   (flags :type unsigned-char)
   (pad :type unsigned-char))
+
+;; anyone fancy doing a def-exported-foreign-array??
+
+(ff::def-c-type (xcolor-array :no-defuns) 1 xcolor)
+(eval-when (compile load eval)
+  (export '(xcolor-array-pixel xcolor-array-red xcolor-array-green
+	    xcolor-array-blue xcolor-array-flags xcolor-array-pad
+	    xcolor-array make-xcolor-array)))
 
 (def-exported-foreign-struct xsegment
   (x1 :type short) 

@@ -1,12 +1,13 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: packages.lisp,v 1.1 92/08/19 10:28:38 cer Exp $
+;; $fiHeader: packages.lisp,v 1.2 92/09/08 15:19:35 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
 "Copyright (c) 1992 Symbolics, Inc.  All rights reserved."
 
 
+(eval-when (compile load eval)
 (defvar *clim-1-symbols*
 	'(*abort-characters*
 	  *activation-characters*
@@ -95,7 +96,7 @@
 	  window-set-viewport-position*
 	  with-activation-characters
 	  with-blip-characters
-	  with-frame-state-variables))
+	  with-frame-state-variables)))
 
 #+Genera
 (defmacro with-package-unlocked ((package) &body body)

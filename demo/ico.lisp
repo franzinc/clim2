@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: ico.lisp,v 1.5 92/08/18 17:26:20 cer Exp Locker: cer $
+;; $fiHeader: ico.lisp,v 1.6 92/09/22 19:37:47 cer Exp Locker: cer $
 
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
@@ -25,7 +25,8 @@
      (ico-line-style :initform :thin)
      (draw-edges :initform t)
      (draw-faces :initform nil)
-     (ico-process :initform nil :accessor ico-process))
+     (ico-process :initform nil :accessor ico-process)
+     (ico-color-group :initform nil :accessor ico-color-group))
   (:command-table (ico-frame :inherit-from (accept-values-pane)))
   (:panes
     (target :application :width 400 :height 400)
@@ -77,6 +78,8 @@
   (catch-ball frame))
 
 (defmethod throw-ball ((frame ico-frame))
+  (unless (ico-color-group frame)
+    (setf (ico-color-group frame) (make-color-group 4 4)))
   (unless (ico-process frame)
     (setf (ico-process frame)
 	  (clim-sys:make-process #'(lambda ()
@@ -121,8 +124,15 @@
 (defun run-ico (frame &optional (count 1000000))
   (let* ((pane  (frame-target frame))
 	 (medium (sheet-medium pane))
-	 (fg (medium-foreground medium))
-	 (bg (medium-background medium))
+	 (group (ico-color-group frame))
+	 (i0 (vector (group-color group 0 nil) (group-color group nil 0)))
+	 (i1 (vector (group-color group 1 nil) (group-color group nil 1)))
+	 (i2 (vector (group-color group 2 nil) (group-color group nil 2)))
+	 (i3 (vector (group-color group 3 nil) (group-color group nil 3)))
+	 (background-color +black+)
+	 (line-color +white+)
+	 (face1-color +red+)
+	 (face2-color +green+)
 	 (win-w (bounding-rectangle-width pane))
 	 (win-h (bounding-rectangle-height pane))
 	 (ico-x (floor (* (- win-w ico-w) 128) 256))
@@ -160,85 +170,79 @@
 	  (setq drawable (medium-drawable medium))))
 
       (window-clear pane)
+      (draw-rectangle* medium 0 0 win-w win-h :ink (group-color group 0 0))
       (dotimes (i count)
-	#+ignore
-	(cond (draw-edges
-	       (do* ((minx (car edges))
-		     (miny (cadr edges))
-		     (maxx minx)
-		     (maxy miny)
-		     (edges  (cddr edges)  (cddr edges)))
-		    ((null edges)
-		     (when (and minx miny maxx maxy)
-		       (draw-rectangle* medium 
-					(1- minx) (1- miny)
-					(1+ maxx) (1+ maxy)
-					:ink bg :filled t)))
-		 (let ((x (car edges))
-		       (y (second edges)))
-		   (clim-utils:minf minx x)
-		   (clim-utils:minf miny y)
-		   (clim-utils:maxf maxx x)
-		   (clim-utils:maxf maxy y)))))
+	(let* ((buffer (mod i 2)))
+	  (multiple-value-setq (edges face-list)
+	    (calculate-ico ico-x ico-y draw-edges draw-faces edges face-list))
 
-	(multiple-value-setq (edges face-list)
-	  (calculate-ico ico-x ico-y draw-edges draw-faces edges face-list))
+	  ;; Draw ICO
+	  (ecase *ico-mode*
+	    #+clim
+	    (:clim
+	     
+	     (draw-rectangle* medium 0 0 win-w win-h :ink (svref i0
+								 buffer) :filled t)
+	     	     
 
-	;; Draw ICO
-	(ecase *ico-mode*
-	  #+clim
-	  (:clim
-	    (draw-rectangle* medium 0 0 win-w win-h :ink bg :filled t)
-	    (when draw-edges
-	      (draw-lines* medium edges :ink +black+
-			   :line-thickness 
-			     (ecase (slot-value frame 'ico-line-style)
-			       (:thick 5)
-			       (:thin nil))))
-	    (when draw-faces
-	      (do ((f face-list (cdr (cdddr (cdddr f)))))
-		  ((null f))
-		(draw-polygon* medium (subseq f 1 7)
-			       :closed t
-			       :filled t
-			       :ink (if (oddp (car f)) +red+ +green+))))
-	    (silica:medium-force-output medium))
-	  #+xlib-ignore
-	  (:clx 
-	    (setf (xlib:gcontext-foreground gcontext) white)
-	    (xlib:draw-rectangle drawable gcontext prev-x prev-y 
-				 (1+ ico-w) (1+ ico-h) t)
-	    (setf (xlib:gcontext-foreground gcontext) black)
-	    (xlib:draw-segments drawable gcontext
-				(mapcan
+	     (when draw-edges
+	       (draw-lines* medium edges :ink (svref i1 buffer)
+			    :line-thickness 
+			    (ecase (slot-value frame 'ico-line-style)
+			      (:thick 5)
+			      (:thin nil))))
+	     (when draw-faces
+	       (do ((f face-list (cdr (cdddr (cdddr f)))))
+		   ((null f))
+		 (draw-polygon* medium (subseq f 1 7)
+				:closed t
+				:filled t
+				:ink (if (oddp (car f))
+					 (svref i2 buffer)
+				       (svref i3 buffer)))))
+	     (with-delayed-mutations
+	       (mutate-color (svref i0 buffer) background-color)
+	       (mutate-color (svref i1 buffer) line-color)
+	       (mutate-color (svref i2 buffer) face1-color)
+	       (mutate-color (svref i3 buffer) face2-color))
+	     #+ignore
+	     (silica:medium-force-output medium))
+	    #+xlib-ignore
+	    (:clx 
+	     (setf (xlib:gcontext-foreground gcontext) white)
+	     (xlib:draw-rectangle drawable gcontext prev-x prev-y 
+				  (1+ ico-w) (1+ ico-h) t)
+	     (setf (xlib:gcontext-foreground gcontext) black)
+	     (xlib:draw-segments drawable gcontext
+				 (mapcan
 				  #'(lambda (point)
 				      (list (round (ico-point-x point)) 
 					    (round (ico-point-y point))))
 				  edges))
-	    (xlib:display-force-output display))
-	  #+genera
-	  (:genera
-	    (scl:send drawable :draw-rectangle
-			       (1+ ico-w) (1+ ico-h) prev-x prev-y
-			       :erase)
-	    (apply #'scl:send drawable :draw-lines :draw
-			      (mapcan
-				#'(lambda (point)
-				    (list (round (ico-point-x point)) 
-					  (round (ico-point-y point))))
-				edges)))
-	  (:dont))
+	     (xlib:display-force-output display))
+	    #+genera
+	    (:genera
+	     (scl:send drawable :draw-rectangle
+		       (1+ ico-w) (1+ ico-h) prev-x prev-y
+		       :erase)
+	     (apply #'scl:send drawable :draw-lines :draw
+		    (mapcan
+		     #'(lambda (point)
+			 (list (round (ico-point-x point)) 
+			       (round (ico-point-y point))))
+		     edges)))
+	    (:dont))
 
-	(setq prev-x ico-x
-	      prev-y ico-y)
-	(incf ico-x ico-dx)
-	(when (or (< ico-x 0) (> ico-x xtop))
-	  (decf ico-x (* ico-dx 2))
-	  (setq ico-dx (- ico-dx)))
-	(incf ico-y ico-dy)
-	(when (or (< ico-y 0) (> ico-y ytop))
-	  (decf ico-y (* ico-dy 2))
-	  (setq ico-dy (- ico-dy)))))))
+	  (setq prev-x ico-x
+		prev-y ico-y)
+	  (incf ico-x ico-dx)
+	  (when (or (< ico-x 0) (> ico-x xtop))
+	    (decf ico-x (* ico-dx 2))
+	    (setq ico-dx (- ico-dx)))
+	  (incf ico-y ico-dy)
+	  (when (or (< ico-y 0) (> ico-y ytop))
+	    (decf ico-y (* ico-dy 2))
+	    (setq ico-dy (- ico-dy))))))))
 
 
 ;;;

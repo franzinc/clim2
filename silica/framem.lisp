@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: framem.lisp,v 1.16 92/09/24 09:37:39 cer Exp Locker: cer $
+;; $fiHeader: framem.lisp,v 1.17 92/09/30 11:44:38 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -12,6 +12,7 @@
 
 (defclass standard-frame-manager (frame-manager) 
     ((port :reader port :initarg :port)
+     (palette :accessor frame-manager-palette :initarg :palette)
      (frames :accessor frame-manager-frames :initform nil)
      (dialog-view :accessor frame-manager-dialog-view :initarg :dialog-view)))
 
@@ -26,12 +27,14 @@
      ,@body))
 
 (defun find-frame-manager (&rest options 
-			   &key port (server-path *default-server-path*)
+			   &key port palette (server-path *default-server-path*)
 			   &allow-other-keys)
   (declare (dynamic-extent options))
-  (with-keywords-removed (options options '(:port :server-path))
+  (with-keywords-removed (options options '(:port :server-path :palette))
     (unless port 
       (setq port (find-port :server-path server-path)))
+    (unless palette
+      (setq palette (port-default-palette port)))
     (cond 
       ;; (find-frame-manager) -> default one
       ((and (null options) *default-frame-manager*))
@@ -43,9 +46,11 @@
       ;; No default, look for one in the port, or create a new one
       (t
        (dolist (framem (port-frame-managers port))
-	 (when (apply #'frame-manager-matches-options-p framem port options)
+	 (when (apply #'frame-manager-matches-options-p 
+		      framem port :palette palette options)
 	   (return-from find-frame-manager framem)))
-       (let ((framem (apply #'make-frame-manager port options)))
+       (let ((framem (apply #'make-frame-manager 
+			    port :palette palette options)))
 	 (setf (port-frame-managers port)
 	       (nconc (port-frame-managers port) (list framem)))
 	 framem)))))
@@ -56,12 +61,14 @@
      (setq *default-frame-manager* nil))
   '(before-cold))
 
-(defmethod make-frame-manager ((port basic-port) &key)
-  (make-instance 'standard-frame-manager :port port))
+(defmethod make-frame-manager 
+    ((port basic-port) &key palette &allow-other-keys)
+  (make-instance 'standard-frame-manager :port port :palette palette))
 
 (defmethod frame-manager-matches-options-p
-	   ((framem standard-frame-manager) port &key)
-  (eq (port framem) port))
+	   ((framem standard-frame-manager) port &key palette &allow-other-keys)
+  (and (eq (port framem) port)
+       (eq (frame-manager-palette framem) palette)))
 
 
 (defun map-over-frames (function &key port frame-manager)
@@ -93,7 +100,7 @@
 
 (defmethod adopt-frame ((framem standard-frame-manager) frame)
   (generate-panes framem frame)
-  (when (frame-panes frame)
+  (when (frame-p?anes frame)
     (let* ((top-pane (frame-panes frame))
 	   (sheet (with-look-and-feel-realization (framem frame)
 		    (make-pane 'top-level-sheet

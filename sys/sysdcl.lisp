@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sysdcl.lisp,v 1.26 92/09/22 19:37:32 cer Exp Locker: cer $
+;; $fiHeader: sysdcl.lisp,v 1.27 92/09/24 09:39:37 cer Exp Locker: cer $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :cl-user)
 
@@ -152,6 +152,7 @@
   ("regions")
   ("region-arithmetic")
   ("extended-regions")
+  ("base-designs")
   ("designs"))
 
 (clim-defsys:defsystem clim-silica

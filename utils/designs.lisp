@@ -1,34 +1,24 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: designs.lisp,v 1.4 92/07/01 15:45:30 cer Exp $
+;; $fiHeader: designs.lisp,v 1.5 92/08/18 17:24:05 cer Exp $
 
 (in-package :clim-utils)
 
 "Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved."
+"Portions Copyright (c) 1992 Franz, Inc.  All rights reserved."
 
 ;;; Designs
 
 ;;; The DESIGN and OPACITY classes are already defined.
 
-;;; Generic Functions
+(defconstant ihs-rgb-c1 (sqrt (/ 6f0)))
+(defconstant ihs-rgb-c2 (sqrt (/ 2f0)))
+(defconstant ihs-rgb-c3 (sqrt (/ 3f0)))
 
-(defgeneric color-rgb (color))
-(defgeneric color-ihs (color))
-
-(defgeneric compose-over (design1 design2))
-(defgeneric compose-in (design1 design2))
-(defgeneric compose-out (design1 design2))
-
-(defgeneric make-flipping-ink (design1 design2))
+(defconstant sqrt3 (sqrt 3))
 
 
 ;;; Opacity
-
-(defclass standard-opacity (opacity)
-    ((value :type single-float :initarg :value :reader opacity-value)))
-
-(define-constructor make-standard-opacity-1 standard-opacity (value)
-		    :value value)
 
 (defun make-opacity (opacity)
   #+Genera (declare lt:(side-effects simple reducible))
@@ -38,29 +28,66 @@
 	((= opacity 1) +everywhere+)
 	(t (make-standard-opacity-1 opacity))))
 
-(defmethod make-load-form ((design standard-opacity))
-  (with-slots (value) design
-    `(make-opacity ,value)))
+
+;;; Named Colors
+
+(defmethod print-object ((color named-color) stream)
+  (print-unreadable-object (color stream :type t :identity t)
+    (princ (named-color-name color) stream)))
+
+(defmacro define-named-color (color)
+  (let* ((sym (symbol-name color))
+	 (name (substitute #\space #\-
+			   (string-downcase
+			    (subseq sym 1 (1- (length sym)))))))
+    `(defconstant ,color
+	 (make-named-color ,name))))
+			 
+(defmacro define-named-colors (&rest colors)
+  `(progn
+     ,@(mapcar #'(lambda (color)
+		   `(define-named-color ,color)) colors)))
+
+(define-named-colors
+    +black+ +white+ +red+ +green+ +blue+ +cyan+ +magenta+ +yellow+
+    +snow+ +ghost-white+ +white-smoke+ +gainsboro+ +floral-white+
+    +old-lace+ +linen+ +antique-white+ +papaya-whip+ +blanched-almond+
+    +bisque+ +peach-puff+ +navajo-white+ +moccasin+ +cornsilk+ +ivory+
+    +lemon-chiffon+ +seashell+ +honeydew+ +mint-cream+ +azure+
+    +alice-blue+ +lavender+ +lavender-blush+ +misty-rose+
+    +dark-slate-gray+ +dim-gray+ +slate-gray+ +light-slate-gray+ +gray+
+    +light-gray+ +midnight-blue+ +navy-blue+ +cornflower-blue+
+    +dark-slate-blue+ +slate-blue+ +medium-slate-blue+ +light-slate-blue+
+    +medium-blue+ +royal-blue+ +dodger-blue+ +deep-sky-blue+ +sky-blue+
+    +light-sky-blue+ +steel-blue+ +light-steel-blue+ +light-blue+
+    +powder-blue+ +pale-turquoise+ +dark-turquoise+ +medium-turquoise+
+    +turquoise+ +light-cyan+ +cadet-blue+ +medium-aquamarine+ +aquamarine+
+    +dark-green+ +dark-olive-green+ +dark-sea-green+ +sea-green+
+    +medium-sea-green+ +light-sea-green+ +pale-green+ +spring-green+
+    +lawn-green+ +chartreuse+ +medium-spring-green+ +green-yellow+
+    +lime-green+ +yellow-green+ +forest-green+ +olive-drab+ +dark-khaki+
+    +khaki+ +pale-goldenrod+ +light-goldenrod-yellow+ +light-yellow+
+    +gold+ +light-goldenrod+ +goldenrod+ +dark-goldenrod+ +rosy-brown+
+    +indian-red+ +saddle-brown+ +sienna+ +peru+ +burlywood+ +beige+
+    +wheat+ +sandy-brown+ +tan+ +chocolate+ +firebrick+ +brown+
+    +dark-salmon+ +salmon+ +light-salmon+ +orange+ +dark-orange+ +coral+
+    +light-coral+ +tomato+ +orange-red+ +hot-pink+ +deep-pink+ +pink+
+    +light-pink+ +pale-violet-red+ +maroon+ +medium-violet-red+
+    +violet-red+ +violet+ +plum+ +orchid+ +medium-orchid+ +dark-orchid+
+    +dark-violet+ +blue-violet+ +purple+ +medium-purple+ +thistle+)
 
 
 ;;; Gray colors
 
-(defclass gray-color (color)
-    ((luminosity :type single-float :initarg :luminosity
-		 :reader gray-color-luminosity)))
-
-(define-constructor make-gray-color-1 gray-color (luminosity)
-		    :luminosity luminosity)
-
-(defvar +black+ (make-gray-color-1 0f0))
-(defvar +white+ (make-gray-color-1 1f0))
+(defconstant rgb-black (make-gray-color-1 0f0))
+(defconstant rgb-white (make-gray-color-1 1f0))
 
 (defun make-gray-color (luminosity)
   #+Genera (declare lt:(side-effects simple reducible))
   (assert (and (numberp luminosity) (<= 0 luminosity 1)) (luminosity)
-	  "The luminosity ~S is not a number between 0 and 1" luminosity)
-  (cond ((= luminosity 0) +black+)
-	((= luminosity 1) +white+)
+    "The luminosity ~S is not a number between 0 and 1" luminosity)
+  (cond ((= luminosity 0) rgb-black)
+	((= luminosity 1) rgb-white)
 	(t (make-gray-color-1 (float luminosity 0f0)))))
 
 (defmethod print-object ((color gray-color) stream)
@@ -73,29 +100,17 @@
 	    (t
 	     (format stream "~D% Gray" (round (* 100 luminosity))))))))
 
-(defmethod make-load-form ((color gray-color))
-  (with-slots (luminosity) color
-    `(make-gray-color ,luminosity)))
-
 (defmethod color-rgb ((color gray-color))
   (let ((luminosity (slot-value color 'luminosity)))
     (values luminosity luminosity luminosity)))
 
 (defmethod color-ihs ((color gray-color))
   (let* ((luminosity (slot-value color 'luminosity))
-	 (intensity (* *ihs-rgb-c3* (+ luminosity luminosity luminosity))))
+	 (intensity (* ihs-rgb-c3 (+ luminosity luminosity luminosity))))
     (values intensity 0f0 0f0)))
 
 
 ;;; Colors
-
-(defclass rgb-color (color)
-    ((red   :type single-float :initarg :red)
-     (green :type single-float :initarg :green)
-     (blue  :type single-float :initarg :blue)))
-
-(define-constructor make-rgb-color-1 rgb-color (red green blue)
-  :red red :green green :blue blue)
 
 (defun make-rgb-color (red green blue)
   (assert (and (numberp red) (<= 0 red 1)) (red)
@@ -113,25 +128,17 @@
     (with-slots (red green blue) color
       (format stream "R=~F G=~F B=~F" red green blue))))
 
-(defmethod make-load-form ((color rgb-color))
-  (with-slots (red green blue) color
-    `(make-rgb-color ,red ,green ,blue)))
-
 (defmethod color-rgb ((color rgb-color))
   (with-slots (red green blue) color
     (values red green blue)))
-
-(defconstant *ihs-rgb-c1* (sqrt (/ 6f0)))
-(defconstant *ihs-rgb-c2* (sqrt (/ 2f0)))
-(defconstant *ihs-rgb-c3* (sqrt (/ 3f0)))
 
 (defmethod color-ihs ((color rgb-color))
   (let* ((red (slot-value color 'red))
 	 (green (slot-value color 'green))
 	 (blue (slot-value color 'blue))
-	 (x (* *ihs-rgb-c1* (- (+ red red) blue green)))
-	 (y (* *ihs-rgb-c2* (- green blue)))
-	 (z (* *ihs-rgb-c3* (+ red green blue)))
+	 (x (* ihs-rgb-c1 (- (+ red red) blue green)))
+	 (y (* ihs-rgb-c2 (- green blue)))
+	 (z (* ihs-rgb-c3 (+ red green blue)))
 	 (q (+ (* x x) (* y y)))
 	 (intensity (sqrt (+ q (* z z)))))	;== (sqrt (+ r^2 g^2 b^2))!
     (if (zerop q)
@@ -146,151 +153,7 @@
   ;; From Foley and Van Dam, page 613 (discussion of YIQ color model)...
   (+ (* 0.299f0 r) (* 0.587f0 g) (* 0.114f0 b)))
 
-(defmacro define-named-color (color r g b)
-  `(defvar ,color (make-rgb-color ,(/ r 255.0) ,(/ g 255.0) ,(/ b 255.0))))
-
-;; The primary colors
-(define-named-color +red+     255   0   0)
-(define-named-color +green+     0 255   0)
-(define-named-color +blue+      0   0 255)
-(define-named-color +cyan+      0 255 255)
-(define-named-color +magenta+ 255   0 255)
-(define-named-color +yellow+  255 255   0)
-
-;; The hairy X colors
-(define-named-color +snow+              255 250 250)
-(define-named-color +ghost-white+	248 248 255)
-(define-named-color +white-smoke+	245 245 245)
-(define-named-color +gainsboro+		220 220 220)
-(define-named-color +floral-white+	255 250 240)
-(define-named-color +old-lace+		253 245 230)
-(define-named-color +linen+		250 240 230)
-(define-named-color +antique-white+	250 235 215)
-(define-named-color +papaya-whip+	255 239 213)
-(define-named-color +blanched-almond+	255 235 205)
-(define-named-color +bisque+		255 228 196)
-(define-named-color +peach-puff+	255 218 185)
-(define-named-color +navajo-white+	255 222 173)
-(define-named-color +moccasin+		255 228 181)
-(define-named-color +cornsilk+		255 248 220)
-(define-named-color +ivory+		255 255 240)
-(define-named-color +lemon-chiffon+	255 250 205)
-(define-named-color +seashell+		255 245 238)
-(define-named-color +honeydew+		240 255 240)
-(define-named-color +mint-cream+	245 255 250)
-(define-named-color +azure+		240 255 255)
-(define-named-color +alice-blue+	240 248 255)
-(define-named-color +lavender+		230 230 250)
-(define-named-color +lavender-blush+	255 240 245)
-(define-named-color +misty-rose+	255 228 225)
-(define-named-color +dark-slate-gray+	 47  79  79)
-(define-named-color +dim-gray+		105 105 105)
-(define-named-color +slate-gray+	112 128 144)
-(define-named-color +light-slate-gray+	119 136 153)
-(define-named-color +gray+		192 192 192)
-(define-named-color +light-gray+	211 211 211)
-(define-named-color +midnight-blue+      25  25 112)
-(define-named-color +navy-blue+		  0   0 128)
-(define-named-color +cornflower-blue+   100 149 237)
-(define-named-color +dark-slate-blue+    72  61 139)
-(define-named-color +slate-blue+        106  90 205)
-(define-named-color +medium-slate-blue+ 123 104 238)
-(define-named-color +light-slate-blue+	132 112 255)
-(define-named-color +medium-blue+	  0   0 205)
-(define-named-color +royal-blue+	 65 105 225)
-(define-named-color +dodger-blue+	 30 144 255)
-(define-named-color +deep-sky-blue+	  0 191 255)
-(define-named-color +sky-blue+		135 206 235)
-(define-named-color +light-sky-blue+	135 206 250)
-(define-named-color +steel-blue+	 70 130 180)
-(define-named-color +light-steel-blue+	176 196 222)
-(define-named-color +light-blue+	173 216 230)
-(define-named-color +powder-blue+	176 224 230)
-(define-named-color +pale-turquoise+	175 238 238)
-(define-named-color +dark-turquoise+	  0 206 209)
-(define-named-color +medium-turquoise+	 72 209 204)
-(define-named-color +turquoise+		 64 224 208)
-(define-named-color +light-cyan+	224 255 255)
-(define-named-color +cadet-blue+	 95 158 160)
-(define-named-color +medium-aquamarine+	102 205 170)
-(define-named-color +aquamarine+	127 255 212)
-(define-named-color +dark-green+	  0 100   0)
-(define-named-color +dark-olive-green+	 85 107  47)
-(define-named-color +dark-sea-green+	143 188 143)
-(define-named-color +sea-green+		 46 139  87)
-(define-named-color +medium-sea-green+	 60 179 113)
-(define-named-color +light-sea-green+	 32 178 170)
-(define-named-color +pale-green+	152 251 152)
-(define-named-color +spring-green+	  0 255 127)
-(define-named-color +lawn-green+	124 252   0)
-(define-named-color +chartreuse+	127 255   0)
-(define-named-color +medium-spring-green+ 0 250 154)
-(define-named-color +green-yellow+	173 255  47)
-(define-named-color +lime-green+	 50 205  50)
-(define-named-color +yellow-green+	154 205  50)
-(define-named-color +forest-green+	 34 139  34)
-(define-named-color +olive-drab+	107 142  35)
-(define-named-color +dark-khaki+	189 183 107)
-(define-named-color +khaki+		240 230 140)
-(define-named-color +pale-goldenrod+	238 232 170)
-(define-named-color +light-goldenrod-yellow+ 250 250 210)
-(define-named-color +light-yellow+      255 255 224)
-(define-named-color +gold+		255 215   0)
-(define-named-color +light-goldenrod+	238 221 130)
-(define-named-color +goldenrod+		218 165  32)
-(define-named-color +dark-goldenrod+	184 134  11)
-(define-named-color +rosy-brown+	188 143 143)
-(define-named-color +indian-red+	205  92  92)
-(define-named-color +saddle-brown+	139  69  19)
-(define-named-color +sienna+		160  82  45)
-(define-named-color +peru+		205 133  63)
-(define-named-color +burlywood+		222 184 135)
-(define-named-color +beige+		245 245 220)
-(define-named-color +wheat+		245 222 179)
-(define-named-color +sandy-brown+	244 164  96)
-(define-named-color +tan+		210 180 140)
-(define-named-color +chocolate+		210 105  30)
-(define-named-color +firebrick+		178  34  34)
-(define-named-color +brown+		165  42  42)
-(define-named-color +dark-salmon+	233 150 122)
-(define-named-color +salmon+		250 128 114)
-(define-named-color +light-salmon+	255 160 122)
-(define-named-color +orange+		255 165   0)
-(define-named-color +dark-orange+	255 140   0)
-(define-named-color +coral+		255 127  80)
-(define-named-color +light-coral+	240 128 128)
-(define-named-color +tomato+		255  99  71)
-(define-named-color +orange-red+	255  69   0)
-(define-named-color +hot-pink+		255 105 180)
-(define-named-color +deep-pink+		255  20 147)
-(define-named-color +pink+		255 192 203)
-(define-named-color +light-pink+	255 182 193)
-(define-named-color +pale-violet-red+	219 112 147)
-(define-named-color +maroon+		176  48  96)
-(define-named-color +medium-violet-red+ 199  21 133)
-(define-named-color +violet-red+	208  32 144)
-(define-named-color +violet+		238 130 238)
-(define-named-color +plum+		221 160 221)
-(define-named-color +orchid+		218 112 214)
-(define-named-color +medium-orchid+	186  85 211)
-(define-named-color +dark-orchid+	153  50 204)
-(define-named-color +dark-violet+	148   0 211)
-(define-named-color +blue-violet+	138  43 226)
-(define-named-color +purple+		160  32 240)
-(define-named-color +medium-purple+	147 112 219)
-(define-named-color +thistle+		216 191 216)
-
 
-(defclass ihs-color (color)
-    ((intensity  :type single-float :initarg :intensity)
-     (hue	 :type single-float :initarg :hue)
-     (saturation :type single-float :initarg :saturation)))
-
-(define-constructor make-ihs-color-1 ihs-color (intensity hue saturation)
-		    :intensity intensity :hue hue :saturation saturation)
-
-(defconstant sqrt3 (sqrt 3))
-
 (defun make-ihs-color (intensity hue saturation)
   #+Genera (declare lt:(side-effects simple reducible))
   (assert (and (numberp intensity) (<= 0 intensity sqrt3)) (intensity)
@@ -299,13 +162,9 @@
 	  "The hue value ~S is not a number between 0 and 1" hue)
   (assert (and (numberp saturation) (<= 0 saturation 1)) (saturation)
 	  "The saturation value ~S is not a number between 0 and 1" saturation)
-  (cond ((= intensity 0) +black+)
+  (cond ((= intensity 0) rgb-black)
 	(t
 	 (make-ihs-color-1 (float intensity 0f0) (float hue 0f0) (float saturation 0f0)))))
-
-(defmethod make-load-form ((color ihs-color))
-  (with-slots (intensity hue saturation) color
-    `(make-ihs-color ,intensity ,hue ,saturation)))
 
 (defmethod print-object ((color ihs-color) stream)
   (print-unreadable-object (color stream :type t :identity t)
@@ -319,9 +178,9 @@
 	 (hh (mod (- hue .5f0) 1.0f0))
 	 (hh (- (* hh 2.0f0 3.1415926535f0) 3.1415926535f0))
 	 (s3 (sin saturation))
-	 (x (* (sqrt *ihs-rgb-c1*) s3 (cos hh) intensity))
-	 (y (* (sqrt *ihs-rgb-c2*) s3 (sin hh) intensity))
-	 (z (* (sqrt *ihs-rgb-c3*) (cos saturation) intensity)))
+	 (x (* (sqrt ihs-rgb-c1) s3 (cos hh) intensity))
+	 (y (* (sqrt ihs-rgb-c2) s3 (sin hh) intensity))
+	 (z (* (sqrt ihs-rgb-c3) (cos saturation) intensity)))
     (macrolet ((range (x)
 		 `(max 0.0f0 (min 1.0f0 ,x))))
       (values (range (+ x x z))
@@ -333,9 +192,123 @@
     (values intensity hue saturation)))
 
 
+;;; Mutable Colors 
+
+(defun make-mutable-color (&key (color +black+))
+  (make-mutable-color-1 (ensure-color color)))
+
+(defmethod print-object ((color mutable-color) stream)
+  (print-unreadable-object (color stream :type t :identity t)
+    (princ (mutable-color-color color) stream)))
+
+(defvar *doing-delayed-mutations* nil)
+
+(defun mutate-mutable (mutable color)
+  (if *doing-delayed-mutations*
+      (dolist (palette (mutable-color-palettes mutable))
+	(let ((cell (gethash mutable (palette-mutable-color-cache palette)))
+	      (mutations (palette-delayed-mutations palette)))
+	  (vector-push-extend cell mutations)
+	  (vector-push-extend color mutations)))
+    (dolist (palette (mutable-color-palettes mutable))
+      (let ((cell (gethash mutable (palette-mutable-color-cache palette))))
+	(update-palette-entry palette cell color)))))
+
+(defun ensure-color (color)
+  (assert (or (typep color 'color)
+	      (typep color 'named-color))
+      (color)
+    "~S is not of type ~S or ~S" color 'color 'named-color)
+  color)
+
+(defmethod (setf mutable-color-color) :before (color (mutable mutable-color))
+  (let ((color (ensure-color color)))
+    (mutate-mutable mutable color)))
+
+(defmethod mutate-color ((mutable mutable-color) color)
+  (let ((color (ensure-color color)))
+    (setf (slot-value mutable 'color) color)
+    (mutate-mutable mutable color)))
+
+;;; note that the actual color mutation occurs on exiting the outermost
+;;; with-delayed-mutations
+
+(defmacro with-delayed-mutations (&body body)
+  (let ((outer-doing-delayed-mutations '#:outer-doing-delayed-mutations)
+	(palette '#:palette)
+	(mutations '#:mutations))
+    `(let ((,outer-doing-delayed-mutations *doing-delayed-mutations*)
+	   (*doing-delayed-mutations* t))
+       (unwind-protect
+	   ,@body
+	 (progn
+	   (unless ,outer-doing-delayed-mutations
+	     (dolist (,palette *all-palettes*)
+	       (let ((,mutations (palette-delayed-mutations ,palette)))
+		 (update-palette-entries ,palette ,mutations)
+		 (setf (fill-pointer ,mutations) 0)))))))))
+
+
+;;; Color Groups
+
+(defmethod initialize-instance :after ((group color-group) &key mutable-array)
+  (map-over-group-colors
+   #'(lambda (dimensions)
+       (setf (apply #'aref mutable-array dimensions)
+	 (make-mutable-color-1 +black+)))
+   group))
+
+(defmethod group-color ((color-group color-group) &rest layers)
+  (let ((cache (color-group-cache color-group)))
+    (or (gethash layers cache)
+	(setf (gethash layers cache)
+	  (make-group-color color-group layers)))))
+
+(defmethod mutate-color ((group-color group-color) color)
+  (let ((color (ensure-color color)))
+    (with-delayed-mutations
+	(dolist (mutable (group-color-mutables group-color))
+	  (mutate-mutable mutable color)))))
+
+;;; group-color-mutables should not be exported to the user. It is important
+;;; that these mutables are not drawn with. Instead the fully specified group
+;;; colors should be used 
+
+(defmethod group-color-mutables ((group-color group-color))
+  (with-slots (group layers mutables) group-color
+    (or mutables
+	(setf mutables
+	  (let ((mutable-array (color-group-mutable-array group))
+		mutables)
+	    (map-over-group-colors #'(lambda (dimensions)
+				       (push (apply #'aref mutable-array dimensions)
+					     mutables))
+				   group
+				   layers)
+	    mutables)))))
+
+(defun map-over-group-colors (function group &optional layers)
+  (let ((group-layers (color-group-layers group)))
+    ;; it would be nice if this didn't cons so much
+    (labels ((iterate (layers group-layers dimensions)
+	       (if group-layers
+		   (let ((layer (car layers))
+			 (group-layer (car group-layers)))
+		     (if layer
+			 (iterate (cdr layers) 
+				  (cdr group-layers) 
+				  (cons layer dimensions))
+		       (dotimes (i group-layer)
+			 (iterate (cdr layers)
+				  (cdr group-layers)
+				  (cons i dimensions)))))
+		 (funcall function dimensions))))
+      (iterate (reverse layers) (reverse group-layers) nil))))
+
+
 ;;; Foreground and background (indirect) inks
 
-(defvar +foreground-ink+ (make-instance 'design))
+(defconstant +foreground-ink+ (make-instance 'design))
 
 (defmethod make-load-form ((design (eql +foreground-ink+)))
   '+foreground-ink+)
@@ -344,8 +317,7 @@
   (print-unreadable-object (design stream)
     (write-string "CLIM Foreground" stream)))
 
-
-(defvar +background-ink+ (make-instance 'design))
+(defconstant +background-ink+ (make-instance 'design))
 
 (defmethod make-load-form ((design (eql +background-ink+)))
   '+background-ink+)
@@ -357,23 +329,13 @@
 
 ;;; Flipping inks
 
-(defclass flipping-ink (design)
-    ((design1 :type design :initarg :design1)
-     (design2 :type design :initarg :design2)))
-
-(define-constructor make-flipping-ink-1 flipping-ink (design1 design2)
-		    :design1 design1 :design2 design2)
-
 (defmethod print-object ((design flipping-ink) stream)
   (print-unreadable-object (design stream :type t :identity t)
     (with-slots (design1 design2) design
       (format stream "~A and ~A" design1 design2))))
 
-(defmethod make-load-form ((design flipping-ink))
-  (with-slots (design1 design2) design
-    `(make-flipping-ink ',design1 ',design2)))
-
-(defvar +flipping-ink+ (make-flipping-ink-1 +foreground-ink+ +background-ink+))
+(defconstant +flipping-ink+ 
+    (make-flipping-ink-1 +foreground-ink+ +background-ink+))
 
 (defmethod make-flipping-ink (design1 design2)
   (cond ((eq design1 design2)
@@ -391,12 +353,9 @@
 
 ;;; Contrasting inks
 
-(defclass contrasting-ink (design)
-    ((how-many  :type integer :initarg :how-many)
-     (which-one :type integer :initarg :which-one)))
-
-(define-constructor make-contrasting-ink-1 contrasting-ink (which-one how-many)
-		    :which-one which-one :how-many how-many)
+(defmethod contrasting-inks-limit (port)
+  (declare (ignore port))
+  8)
 
 (defun make-contrasting-inks (n &optional k)
   (check-type n (integer 2 8))			;--- 8 is pretty small
@@ -415,16 +374,12 @@
     (with-slots (which-one how-many) design
       (format stream "~D of ~D" which-one how-many))))
 
-(defmethod make-load-form ((design contrasting-ink))
-  (with-slots (which-one how-many) design
-    `(make-contrasting-inks ,how-many ,which-one)))
-
 (defmethod contrasting-ink-index ((ink contrasting-ink))
   (with-slots (how-many which-one) ink
     (values which-one how-many)))
 
-(defvar *contrasting-inks*
-	(list +red+ +blue+ +green+ +yellow+ +cyan+ +magenta+ +black+ +white+))
+(defparameter *contrasting-inks*
+    (list +red+ +blue+ +green+ +yellow+ +cyan+ +magenta+ +black+ +white+))
 
 (defmethod make-color-for-contrasting-ink ((ink contrasting-ink))
   (with-slots (which-one) ink
@@ -432,7 +387,7 @@
 
 (defmethod make-gray-color-for-contrasting-ink ((ink contrasting-ink))
   (with-slots (how-many which-one) ink
-    (make-gray-color (/ which-one how-many))))
+    (make-gray-color (/ which-one (1- how-many)))))
 
 
 ;;; Contrasting dash patterns
@@ -469,25 +424,12 @@
 
 ;;; Patterns
 
-(defclass pattern (design)
-    ((array   :type (array * (* *)) :initarg :array)
-     (designs :type vector	    :initarg :designs)))
-
-(defun make-pattern (array designs)
-  #+Genera (declare lt:(side-effects simple reducible))
-  (check-type array (array * (* *)))
-  (make-instance 'pattern :array array :designs (coerce designs 'vector)))
 
 (defmethod print-object ((design pattern) stream)
   (print-unreadable-object (design stream :type t :identity t)
     (with-slots (array designs) design
       (format stream "~Dx~D n=~D"
 	      (array-dimension array 1) (array-dimension array 0) (length designs)))))
-
-(defmethod make-load-form ((design pattern))
-  (with-slots (array designs) design
-    (values `(make-instance 'pattern :array ',array)
-	    `(setf (slot-value ',design 'designs) ',designs))))
 
 (defmethod decode-pattern ((pattern pattern))
   (with-slots (array designs) pattern
@@ -504,30 +446,13 @@
 
 ;;; Stencils
 
-(defclass stencil (design)
-    ((array :type (array * (* *)) :initarg :array :reader stencil-array)))
-
-(defun make-stencil (array)
-  #+Genera (declare lt:(side-effects simple reducible))
-  (check-type array (array * (* *)))
-  (make-instance 'stencil :array array))
-
 (defmethod print-object ((design stencil) stream)
   (print-unreadable-object (design stream :type t :identity t)
     (with-slots (array) design
       (format stream "~Dx~D" (array-dimension array 1) (array-dimension array 0)))))
 
-(defmethod make-load-form ((design stencil))
-  (with-slots (array) design
-    `(make-stencil ',array)))
-
 
 ;;; Tiles
-
-(defclass rectangular-tile (design)
-    ((design :type design :initarg :design)
-     (width  :type real   :initarg :width)
-     (height :type real   :initarg :height)))
 
 (defun make-rectangular-tile (design width height)
   #+Genera (declare lt:(side-effects simple reducible))
@@ -541,11 +466,6 @@
       (format stream "~Dx~D of " width height)
       (write design :stream stream))))
 
-(defmethod make-load-form ((tile rectangular-tile))
-  (with-slots (design width height) tile
-    (values `(make-instance 'rectangular-tile :width ,width :height ,height)
-	    `(setf (slot-value ',tile 'design) ',design))))
-
 (defmethod decode-rectangular-tile ((tile rectangular-tile))
   (with-slots (design width height) tile
     (values design width height)))
@@ -553,6 +473,7 @@
 ;;; Compatibility with the old stipple feature, perhaps temporary until
 ;;; rendering of tiles and patterns is fully implemented
 ;;; This could be done with methods, but there is very little point to that
+
 (defun decode-tile-as-stipple (rectangular-tile)
   (declare (values array width height))
   (multiple-value-bind (pattern width height)
@@ -570,9 +491,6 @@
 
 ;;; Composite designs
 
-(defclass composite-over (design)
-    ((designs :type vector :initarg :designs)))
-
 (defmethod print-object ((design composite-over) stream)
   (print-unreadable-object (design stream :type t :identity t)
     (with-slots (designs) design
@@ -580,11 +498,6 @@
 		   (write-char #\space stream)
 		   (write design :stream stream))
 	   designs))))
-
-(defmethod make-load-form ((design composite-over))
-  (with-slots (designs) design
-    (values '(make-instance 'composite-over)
-	    `(setf (slot-value ',design 'designs) ',designs))))
 
 (defmethod transform-region ((transformation transformation) (design composite-over))
   (with-slots (designs) design
@@ -600,9 +513,6 @@
   (region-union region2 region1))
 
 
-(defclass composite-in (design)
-    ((designs :type vector :initarg :designs)))
-
 (defmethod print-object ((design composite-in) stream)
   (print-unreadable-object (design stream :type t :identity t)
     (with-slots (designs) design
@@ -610,11 +520,6 @@
 		   (write-char #\space stream)
 		   (write design :stream stream))
 	   designs))))
-
-(defmethod make-load-form ((design composite-in))
-  (with-slots (designs) design
-    (values '(make-instance 'composite-in)
-	    `(setf (slot-value ',design 'designs) ',designs))))
 
 (defmethod transform-region ((transformation transformation) (design composite-in))
   (with-slots (designs) design
@@ -628,9 +533,6 @@
   (region-intersection region2 region1))
 
 
-(defclass composite-out (design)
-    ((designs :type vector :initarg :designs)))
-
 (defmethod print-object ((design composite-out) stream)
   (print-unreadable-object (design stream :type t :identity t)
     (with-slots (designs) design
@@ -638,11 +540,6 @@
 		   (write-char #\space stream)
 		   (write design :stream stream))
 	   designs))))
-
-(defmethod make-load-form ((design composite-out))
-  (with-slots (designs) design
-    (values '(make-instance 'composite-out)
-	    `(setf (slot-value ',design 'designs) ',designs))))
 
 (defmethod transform-region ((transformation transformation) (design composite-out))
   (with-slots (designs) design

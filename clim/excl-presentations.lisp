@@ -21,7 +21,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: excl-presentations.lisp,v 1.11 92/09/08 15:17:42 cer Exp Locker: cer $
+;; $fiHeader: excl-presentations.lisp,v 1.12 92/09/30 11:44:58 cer Exp Locker: cer $
 
 
 (in-package :clim-internals)
@@ -83,7 +83,7 @@
   (let ((current-output-position 
 	 (stream-output-history-position stream))) 
     (destructuring-bind (parent abs-x abs-y)
-	(stream-excl-presentation-stack stream)
+	(pop (stream-excl-presentation-stack stream))
       (unless parent 
 	(setq parent (stream-output-history stream)))
       (multiple-value-bind (end-x end-y)

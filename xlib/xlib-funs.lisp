@@ -45,7 +45,7 @@
 ;;      OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION
 ;;      WITH THE USE OR PERFORMANCE OF THIS OBJECT CODE.
 
-;;; $fiHeader: xlib-funs.lisp,v 1.6 92/05/13 17:10:48 cer Exp $
+;;; $fiHeader: xlib-funs.lisp,v 1.7 92/07/27 19:29:37 cer Exp $
 
 (in-package :x11)
 
@@ -53,10 +53,12 @@
    (dpy (:pointer display))
    (cmap colormap)
    (contig int)
-   (ncolors unsigned-int)
-   (nplanes unsigned-int)
    (masks (:pointer unsigned-long))
-   (pixels (:pointer unsigned-long)))
+   (nplanes unsigned-int)
+   (pixels (:pointer unsigned-long))
+   (ncolors unsigned-int))
+
+(x11::defforeign-functions-now)
 
 (def-exported-foreign-function (xalloccolorplanes (:return-type int) (:name "_XAllocColorPlanes")) 
    (dpy (:pointer display))
@@ -1436,8 +1438,8 @@
 (def-exported-foreign-function (xstorenamedcolor (:return-type int) (:name "_XStoreNamedColor")) 
    (dpy (:pointer display))
    (cmap colormap)
-   (pixel unsigned-long)
    (name (:pointer char))
+   (pixel unsigned-long)
    (flags int))
 
 (def-exported-foreign-function (xstorename (:return-type int) (:name "_XStoreName")) 

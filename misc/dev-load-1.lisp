@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: dev-load-1.lisp,v 1.13 92/09/22 19:37:59 cer Exp Locker: cer $
+;; $fiHeader: dev-load-1.lisp,v 1.14 92/09/30 11:45:31 cer Exp Locker: cer $
 
 ;;;; This should not matter
 ;;;; (setq *ignore-package-name-case* t)
@@ -65,8 +65,7 @@
   ;;-- been loaded
 
   (tenuring
-   (load "postscript/sysdcl")
-   (clim-defsys::load-system 'postscript-clim))
+   (load "postscript/sysdcl"))
   
 
   (tenuring

@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-frames.lisp,v 1.31 92/09/24 09:40:23 cer Exp Locker: cer $
+;; $fiHeader: xm-frames.lisp,v 1.32 92/09/30 11:45:36 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -28,8 +28,9 @@
     ()
   (:default-initargs :dialog-view +gadget-dialog-view+))
 
-(defmethod make-frame-manager ((port motif-port) &key)
-  (make-instance 'motif-frame-manager :port port))
+(defmethod make-frame-manager
+    ((port motif-port) &key palette &allow-other-keys)
+  (make-instance 'motif-frame-manager :port port :palette palette))
 
 (defmethod port-note-frame-adopted :after ((port motif-port) (frame standard-application-frame))
   (when (frame-panes frame)

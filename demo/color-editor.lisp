@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: color-editor.lisp,v 1.1 92/08/19 10:27:23 cer Exp $
+;; $fiHeader: color-editor.lisp,v 1.2 92/09/08 15:19:00 cer Exp $
 
 (in-package :clim-demo)
 

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: cload-demos.lisp,v 1.1 92/06/02 08:26:29 cer Exp Locker: cer $
+;; $fiHeader: cload-demos.lisp,v 1.2 92/09/30 11:45:20 cer Exp Locker: cer $
 
 (defvar *demo-files* 
     '("packages"
@@ -38,7 +38,8 @@
       "graphics-editor"
       "bitmap-editor"
       "ico"
-      "process-browser"))
+      "process-browser"
+      "demo-activity"))
 
 (defun compile-and-load-demos (&key forcep 
 				    (directory

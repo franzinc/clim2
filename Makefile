@@ -1,4 +1,4 @@
-# $fiHeader: Makefile,v 1.47 92/09/24 09:40:17 cer Exp Locker: cer $
+# $fiHeader: Makefile,v 1.48 92/09/30 11:45:28 cer Exp Locker: cer $
 # 
 #  Makefile for CLIM 2.0
 #
@@ -99,7 +99,7 @@ OL_UNDEFS=misc/undefinedsymbols.olit
 # These are the fasls and the .o that form the product
 
 CLIMFASLS= climg.fasl climol.fasl climxm.fasl clim-debug.fasl clim-debugol.fasl \
-	   clim-debugxm.fasl climps.fasl climgg.fasl
+	   clim-debugxm.fasl climps.fasl climgg.fasl # clim1compat.fasl
 
 CLIMOBJS= clim-motif_d.o clim-olit_d.o  clim-motif.o clim-olit.o stub-xt.o stub-x.o \
 	  xlibsupport.o MyDrawingA.o \
@@ -163,6 +163,7 @@ CLIM-UTILS-OBJS = utils/excl-verification.fasl \
                    utils/regions.fasl \
                    utils/region-arithmetic.fasl \
                    utils/extended-regions.fasl \
+		   utils/base-designs.fasl \
                    utils/designs.fasl
 
 CLIM-SILICA-OBJS = silica/classes.fasl \
@@ -526,7 +527,7 @@ compile-ol:	$(CLIMOBJS) FORCE
 # Concatenation
 
 cat:	cat-xm cat-ol
-cat-g:	climg.fasl clim-debug.fasl climps.fasl climgg.fasl
+cat-g:	climg.fasl clim-debug.fasl climps.fasl climgg.fasl # clim1compat.fasl
 cat-xm:	cat-g climxm.fasl clim-debugxm.fasl 
 cat-ol:	cat-g climol.fasl clim-debugol.fasl 
 
@@ -579,7 +580,15 @@ clim-debugol.fasl:	$(OL-DEBUG-OBJS)
 climps.fasl: 	$(POSTSCRIPT_CLIM)
 	$(CAT) $(POSTSCRIPT_CLIM) > $(TMP)/climps.fasl_`whoami`
 	$(MV) $(TMP)/climps.fasl_`whoami` climps.fasl
-	
+
+CLIM1COMPAT= compatibility/packages.fasl compatibility/clim1-compatibility.fasl
+
+clim1compat.fasl : $(CLIM1COMPAT)
+	$(CAT) $(CLIM1COMPAT) > $(TMP)/clim1compat.fasl_`whoami`
+	$(MV) $(TMP)/clim1compat.fasl_`whoami` clim1compat.fasl
+	ls -lt clim1compat.fasl >> Clim-sizes.n
+	ls -lt clim1compat.fasl
+
 # We should only run these rules when
 # We do this because we because we might have only compiled one port
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-GRAPHICS-EDITOR; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics-editor.lisp,v 1.8 92/09/22 19:37:46 cer Exp Locker: cer $
+;; $fiHeader: graphics-editor.lisp,v 1.9 92/09/24 09:40:07 cer Exp Locker: cer $
 
 (in-package :clim-graphics-editor)
 
@@ -143,6 +143,30 @@
 	  (make-handle object right top :ne)
 	  (make-handle object left  bottom :sw)
 	  (make-handle object right bottom :se))))
+
+
+    
+(defparameter *box-highlighting-ink*
+    (make-flipping-ink +background-ink+ +red+))
+
+(defparameter *box-highlighting-line-style*
+    (make-line-style :thickness 2))
+
+(define-presentation-method highlight-presentation 
+    ((type box) record stream state)
+  (declare (ignore state))
+  (multiple-value-bind (xoff yoff)
+      (convert-from-relative-to-absolute-coordinates stream
+						     (output-record-parent record))
+    (with-bounding-rectangle* (left top right bottom) record
+      (draw-rectangle* stream 
+		       (+ xoff (- left 3)) (+ yoff (- top 3))
+		       (+ xoff right 3) (+ yoff bottom 3)
+		       :ink *box-highlighting-ink*
+		       :line-style *box-highlighting-line-style*
+		       :filled nil))))
+
+  
 
 (defmethod draw-object ((object box) stream)
   (with-bounding-rectangle* (left top right bottom) object
@@ -406,7 +430,7 @@
 	(last-box (slot-value *application-frame* 'last-box))
 	(style (slot-value *application-frame* 'style))
 	(shape (slot-value *application-frame* 'shape))
-	(flipping-ink +flipping-ink+))
+	(flipping-ink (make-flipping-ink +blue+ +background-ink+)))
     ;;--- Zdrava supplies primitives to input basic objects such as
     ;;--- points, lines, rectangles and polygons, circles and ellipses,
     ;;--- and so forth.  Using Zdrava, the following code would be a

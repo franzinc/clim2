@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: present.lisp,v 1.5 92/05/07 13:12:48 cer Exp $
+;; $fiHeader: present.lisp,v 1.6 92/08/18 17:25:24 cer Exp $
 
 (in-package :clim-internals)
 
@@ -68,6 +68,21 @@
 	 (with-output-to-string (stream)
 	   (present object presentation-type :stream stream :view view
 		    :acceptably acceptably :for-context-type for-context-type)))))
+
+(defmethod stream-present ((stream basic-extended-output-protocol) 
+			   object type 
+			   &key (view (stream-default-view stream))
+			   (modifier nil) (acceptably nil)
+			   (for-context-type type) (single-box nil)
+			   ;;--- should these next two default to
+			   ;;*allow-sensitive-inferiors*? 
+			   (allow-sensitive-inferiors t) (sensitive t)
+			   (record-type 'standard-presentation))
+  (present object type :stream stream :view view :modifier modifier
+	   :acceptably acceptably :for-context-type for-context-type
+	   :single-box single-box 
+	   :allow-sensitive-inferiors allow-sensitive-inferiors 
+	   :sensitive sensitive :record-type record-type))
 
 ;; Like WITH-OUTPUT-TO-STRING, but stream is a full output-recording
 ;; protocol stream so all CLIM operations "just work", rather than having

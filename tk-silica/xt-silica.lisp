@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.46 92/09/24 09:40:32 cer Exp Locker: cer $
+;; $fiHeader: xt-silica.lisp,v 1.47 92/09/30 11:45:43 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -102,7 +102,11 @@
 	  (apply #'tk::initialize-toolkit args)
 	(setf (slot-value port 'application-shell) application-shell
 	      (slot-value port 'context) context
-	      (slot-value port 'display) display)
+	      (slot-value port 'display) display
+	      (port-depth port) (x11:xdefaultdepth display (tk::display-screen-number display))
+	      (port-visual-class port) (tk::screen-root-visual-class (tk::default-screen display))
+	      (slot-value port 'default-palette) 
+	      (make-palette port :colormap (tk::default-colormap (port-display port))))
 	(let* ((screen (x11:xdefaultscreenofdisplay display))
 	       (bs-p (not (zerop (x11::screen-backing-store screen))))
 	       (su-p (not (zerop (x11::screen-save-unders screen))))
@@ -112,11 +116,7 @@
 		   (not (search "Network Computing Devices" vendor))
 		   (not (search "Tektronix" vendor)))
 	      (setf (slot-value port 'safe-backing-store) t)))
-	(initialize-xlib-port port display)))
-    ;;
-    (let ((display (port-display port)))
-      (setf (port-depth port) (x11:xdefaultdepth display (tk::display-screen-number display))
-	    (port-visual-class port) (tk::screen-root-visual-class (tk::default-screen display))))))
+	(initialize-xlib-port port display)))))
 
 (defmethod port-color-p ((port xt-port))
   (and *use-color*
@@ -719,12 +719,14 @@
 	  `(:keyboard-focus-policy :pointer)))
 
 (defmethod find-shell-class-and-initargs :around ((port xt-port) (sheet pane))
-  (multiple-value-bind
-      (class initargs)
-      (call-next-method)
-    (values class
-	    `(:allow-shell-resize ,(clim-internals::frame-resizable (pane-frame sheet))
-				  ,@initargs))))
+  (let ((colormap (palette-colormap 
+		   (frame-manager-palette (frame-manager (pane-frame sheet))))))
+    (multiple-value-bind
+	(class initargs)
+	(call-next-method)
+      (values class
+	      `(:allow-shell-resize ,(clim-internals::frame-resizable (pane-frame sheet))
+				    ,@initargs :colormap ,colormap)))))
 
 (defmethod enable-mirror ((port xt-port) (sheet t))
   (let ((mirror (sheet-mirror sheet)))
