@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-class.lisp,v 1.10 1998/10/08 18:36:19 layer Exp $
+;; $Id: acl-class.lisp,v 1.11 1999/02/25 08:23:24 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -91,8 +91,10 @@
 (defvar *ctlmodstate* (make-modstate))
 (defvar *win-result* 0)
 
-(defparameter arrow-cursor (ct:callocate win:hcursor))
-(defparameter application-icon (ct:callocate win:hicon))
+(defparameter arrow-cursor 
+    (ff:allocate-fobject 'win:hcursor :foreign-static-gc nil))
+(defparameter application-icon 
+    (ff:allocate-fobject 'win:hicon  :foreign-static-gc nil))
 
 ;; window procedure unwinding state
 (defvar *window-proc-return-reason* nil)
@@ -100,7 +102,7 @@
 (defvar *window-proc-return-value* nil)
 (defvar *window-proc-return-other-values* nil)
 ;; window procedure args, rebound in each call to window proc
-(defvar *hwnd* (ct:null-handle hwnd))
+(defvar *hwnd* 0)
 (defvar *msg* win:WM_NULL)
 (defvar *wparam* 0)
 (defvar *lparam* (ct:callocate :long))
@@ -189,10 +191,10 @@
     ;; Each time the mouse moves, Windows sets the cursor back
     ;; to the default for the class and then sends a WM_SETCURSOR
     ;; message where we get a chance to SetCursor again.  
-    (win:setClassLong (sheet-mirror sheet) 
+    (win:SetClassLong (sheet-mirror sheet) 
 		      -12		; GCL_HCURSOR
 		      wincursor)
-    (win:setcursor wincursor)
+    (win:SetCursor wincursor)
     t))
 
 (defun maybe-set-cursor (sheet)
@@ -242,17 +244,17 @@
     (declare (ignore keys))
     (setq *win-result*
       (if (or (not sheet) (note-pointer-motion *acl-port* sheet mx my))
-	  (win:defwindowproc window msg wparam lparam)
-	win:false))))
+	  (win:DefWindowProc window msg wparam lparam)
+	win:FALSE))))
 
 ;; Process WM_SETCURSOR
 (defun onsetcursor (window msg wparam lparam)
   ;; There is a bug that you get these messages even
   ;; when the cursor is not moving.  JPM 5/98.
   (let* ((hit-code (loword lparam)))
-    (cond ((eql hit-code win:htclient)
+    (cond ((eql hit-code win:HTCLIENT)
 	   (maybe-set-cursor (mirror->sheet *acl-port* window))
-	   (setq *win-result* win:true))
+	   (setq *win-result* win:TRUE))
 	  (t 
 	   (setf (pointer-cursor (port-pointer *acl-port*)) :default)
 	   ;; If the hit-code is not HTCLIENT, then its not CLIM's problem.
@@ -263,23 +265,29 @@
 	   (message-default window msg wparam lparam)))))
 
 ;; Process WM_PAINT
+;; Note: this can be quite excessive when "Show window contents while dragging"
+;; is turned on in the Display control panel.  The top-level sheet gets
+;; completely repainted every time the mouse moves.
 (defun onpaint (window msg wparam lparam)
   (declare (ignore wparam msg lparam))
   (let ((sheet (mirror->sheet *acl-port* window)))
-    (let* ((udrect (ct:ccallocate win:rect))
+    (let* ((udrect (ff:allocate-fobject 'win:rect :foreign-static-gc nil))
 	   (berase 0)
-	   (update (win:getUpdateRect window udrect berase))
+	   (update (win:GetUpdateRect window udrect berase))
 	   ;; +++rl added to validate everything because of multiple
 	   ;; (continuous) repaints with maximized window
-	   (vdrect (ct:ccallocate win:rect)))
+	   (vdrect (ff:allocate-fobject 'win:rect :foreign-static-gc nil)))
       ;; +++rl same as comment above
-      (win:getClientRect window vdrect)
+      (win:GetClientRect window vdrect)
       (if update
 	  (let ((ilef (ct:cref win:rect udrect left))
 		(itop (ct:cref win:rect udrect top))
 		(irig (ct:cref win:rect udrect right))
 		(ibot (ct:cref win:rect udrect bottom)))
-	    (win:validateRect window vdrect) ; needed?
+	    (win:ValidateRect window vdrect) ; needed?
+	    #+debug
+	    (format *trace-output* "~A ~A ~A ~A ~A~%" 
+		    ilef itop irig ibot sheet)
 	    (unless (or (= ilef irig) (= itop ibot)) ;does this happen alot?
 	      (when sheet
 		(handle-event
@@ -321,7 +329,7 @@
          (when (and (typep sheet 'silica::hpbutton-pane)
                     (slot-value sheet 'silica::pixmap))
            (let ((rect (ct:ccallocate win:rect)))
-	     (win:getclientrect hwnd rect)
+	     (win:GetClientRect hwnd rect)
 	     (silica::draw-picture-button sheet 0 hdc rect)))
 	 
 	 (setf *win-result* (adjust-gadget-colors sheet hdc))))))
@@ -344,7 +352,7 @@
 	     (when command
 	       (with-slots (clim-internals::disabled-commands) frame
 		 (if (member (car command) clim-internals::disabled-commands)
-		     (win:messagebeep 200)
+		     (win:MessageBeep 200)
 		   (execute-command-in-frame frame command))))))
 	  (sheet
 	   ;; User clicked on a control.
@@ -372,65 +380,80 @@
 		    :button +pointer-left-button+
 		    :modifier-state modifier-state
 		    :pointer pointer
-		    :sheet sheet
+		    :sheet sheet ;;gadget
 		    :mswin-control gadget))))))
 
+;; Process WM_SYSCOMMAND.
+;; This message is sent when the user selects something in
+;; the window menu like minimize or restore.
+(defun onsyscommand (window msg wparam lparam)
+  (case wparam
+    (#.win:SC_MINIMIZE			; iconify
+     (let* ((sheet (mirror->sheet *acl-port* window))
+	    (frame (when sheet (pane-frame sheet))))
+       (when frame (setf (frame-state frame) :shrunk))))
+    (#.win:SC_RESTORE			; deiconify
+     (let* ((sheet (mirror->sheet *acl-port* window))
+	    (frame (when sheet (pane-frame sheet))))
+       (when frame (setf (frame-state frame) :enabled)))))
+  (message-default window msg wparam lparam))
+
 ;; Process WM_VSCROLL
-(defun OnVScroll (window msg wparam lparam)
+(defun onvscroll (window msg wparam lparam)
   (let* ((scrollcode (loword wparam))
 	 (position (hiword wparam))
 	 (hwnd (if (zerop lparam) window lparam)) ; JPM for rfe353
-	 (message (cond ((eql msg win:wm_hscroll) :horizontal)
-			((eql msg win:wm_vscroll) :vertical)))
+	 (message (cond ((eql msg win:WM_HSCROLL) :horizontal)
+			((eql msg win:WM_VSCROLL) :vertical)))
 	 (sheet (mirror->sheet *acl-port* hwnd))
-	 (bar (cond ((gadgetp sheet) win:sb_ctl)
-		    ((eql msg win:wm_hscroll) win:sb_horz)
-		    ((eql msg win:wm_vscroll) win:sb_vert)))
+	 (bar (cond ((gadgetp sheet) win:SB_CTL)
+		    ((eql msg win:WM_HSCROLL) win:SB_HORZ)
+		    ((eql msg win:WM_VSCROLL) win:SB_VERT)))
 	 (redraw 1))
     (declare (fixnum action position))
     ;; By convention, scroll bar values should always have a range of 
     ;; 0 to *win-scroll-grain*.
     (multiple-value-bind (action amount)
 	(case scrollcode
-	  (#.win:sb_bottom
+	  (#.win:SB_BOTTOM
 	   ;; Scroll to lower right
-	   (win:setScrollPos window bar *win-scroll-grain* redraw)
+	   (win:SetScrollPos window bar *win-scroll-grain* redraw)
 	   (values :percentage *win-scroll-grain*))
-	  ((#.win:sb_linedown #.win:sb_lineright)
+	  ((#.win:SB_LINEDOWN #.win:SB_LINERIGHT)
 	   ;; Scroll down/right one unit
-	   (win:setScrollPos window bar
-			     (+ (win:getScrollPos window bar) 1) 
+	   (win:SetScrollPos window bar
+			     (+ (win:GetScrollPos window bar) 1) 
 			     redraw)
 	   (values :relative-jump +1))
-	  ((#.win:sb_lineup #.win:sb_lineleft)
+	  ((#.win:SB_LINEUP #.win:SB_LINELEFT)
 	   ;; Scroll up/left one unit
-	   (win:setScrollPos window bar
-			     (- (win:getScrollPos window bar) 1) 
+	   (win:SetScrollPos window bar
+			     (- (win:GetScrollPos window bar) 1) 
 			     redraw)
 	   (values :relative-jump -1))
-	  ((#.win:sb_pagedown #.win:sb_pageright)
+	  ((#.win:SB_PAGEDOWN #.win:SB_PAGERIGHT)
 	   ;; Scroll down/right by width of window.
-	   (win:setScrollPos window bar
-			     (+ (win:getScrollPos window bar) 1) 
+	   (win:SetScrollPos window bar
+			     (+ (win:GetScrollPos window bar) 1) 
 			     redraw)
 	   (values :screenful +1))
-	  ((#.win:sb_pageup #.win:sb_pageleft)
+	  ((#.win:SB_PAGEUP #.win:SB_PAGELEFT)
 	   ;; Scroll up/left by width of window.
-	   (win:setScrollPos window bar
-			     (- (win:getScrollPos window bar) 1) 
+	   (win:SetScrollPos window bar
+			     (- (win:GetScrollPos window bar) 1) 
 			     redraw)
 	   (values :screenful -1))
-	  (#.win:sb_thumbposition
+	  (#.win:SB_THUMBPOSITION
 	   ;; Scroll to absolute position.
-	   (win:setScrollPos window bar position redraw)
+	   (win:SetScrollPos window bar position redraw)
 	   (values :percentage position))
-	  (#.win:sb_thumbtrack
+	  (#.win:SB_THUMBTRACK
 	   ;; Scroll to absolute position.
-	   (win:setScrollPos window bar position redraw)
+	   (win:SetScrollPos window bar position redraw)
 	   (values :percentage position))
-	  (#.win:sb_top
+	  (#.win:SB_TOP
 	   ;; Scroll to upper left
-	   (win:setScrollPos window bar 0 redraw)
+	   (win:SetScrollPos window bar 0 redraw)
 	   (values :percentage 0))
 	  )
       (when (and action sheet)
@@ -445,40 +468,42 @@
     (clear-winproc-result *win-result*)
     *win-result*))
 
-(declaim (special *setting-sheet-mirror-edges*))
+(defun frame-initialization-time (frame)
+  ;; We need to know when the frame is not fully initialized.
+  (or (not frame) (not (frame-top-level-sheet frame))))
 
 ;; Process WM_MOVE
-(defun OnMove (window msg wparam lparam)
+(defun onmove (window msg wparam lparam)
   (let ((sheet (mirror->sheet *acl-port* window)))
     (if (and sheet
-	     (not (eq sheet *setting-sheet-mirror-edges*))
-	     (not (win:IsIconic window)))
+	     (not (win:IsIconic window))
+	     (not (frame-initialization-time (pane-frame sheet))))
 	(progn
 	  (handle-event
 	   sheet
 	   (allocate-event 'window-configuration-event :sheet sheet))
 	  ;; set return value to 0
 	  (clear-winproc-result *win-result*))
-      (setq *win-result* (win:defwindowproc window msg wparam lparam)))
+      (setq *win-result* (win:DefWindowProc window msg wparam lparam)))
     *win-result*))
 
 ;; Process WM_SIZE
-(defun OnSize (window msg wparam lparam)
-  (let ((sheet (mirror->sheet *acl-port* window)))
+(defun onsize (window msg wparam lparam)
+  (let* ((sheet (mirror->sheet *acl-port* window)))
     (if (and sheet
-	     (not (eq sheet *setting-sheet-mirror-edges*))
-	     (not (win:IsIconic window)))
+	     (not (win:IsIconic window))
+	     (not (frame-initialization-time (pane-frame sheet))))
 	(progn
 	  (handle-event
 	   sheet
 	   (allocate-event 'window-configuration-event :sheet sheet))
 	  ;; set return value to 0
 	  (clear-winproc-result *win-result*))
-      (setq *win-result* (win:defwindowproc window msg wparam lparam)))
+      (setq *win-result* (win:DefWindowProc window msg wparam lparam)))
     *win-result*))
 
 ;; Process WM_GETMINMAXINFO
-(defun OnGetMinMaxInfo (window msg wparam lparam)
+(defun ongetminmaxinfo (window msg wparam lparam)
   (let ((sheet (mirror->sheet *acl-port* window)))
     (if (typep sheet 'acl-top-level-sheet)
 	(let ((min-width (acl-top-min-width sheet))
@@ -489,11 +514,11 @@
 	    (setf (sys:memref-int lparam 0 24 :unsigned-long) min-width
 		  (sys:memref-int lparam 0 28 :unsigned-long) min-height)
 	    (clear-winproc-result *win-result*)))
-      (setq *win-result* (win:defwindowproc window msg wparam lparam)))
+      (setq *win-result* (win:DefWindowProc window msg wparam lparam)))
     *win-result*))
 
 ;; PROCESS EN_UPDATE
-(defun OnUpdateText (window msg wparam lparam)
+(defun onupdatetext (window msg wparam lparam)
   ;; An edit control is about to display modified text.
   ;; Resize the edit control, if necessary.
   (declare (ignore msg wparam lparam))
@@ -514,17 +539,17 @@
   (let* ((code wparam)
 	 (pass nil)
 	 (vk (ldb (byte 8 0) code)))
-    (when (or (eql code win:vk_capital)
-	      (eql code win:vk_numlock)
-	      (eql code win:vk_shift)
-	      (eql code win:vk_control)
-	      (eql code win:vk_menu))
+    (when (or (eql code win:VK_CAPITAL)
+	      (eql code win:VK_NUMLOCK)
+	      (eql code win:VK_SHIFT)
+	      (eql code win:VK_CONTROL)
+	      (eql code win:VK_MENU))
       (setq pass t))
-    (let* ((capstate (win:getKeyState win:vk_capital))
-	   (numstate (win:getKeyState win:vk_numlock))
-	   (shiftstate (win:getKeyState win:vk_shift))
-	   (controlstate (win:getKeyState win:vk_control))
-	   (metastate (win:getKeyState win:vk_menu)))
+    (let* ((capstate (win:GetKeyState win:VK_CAPITAL))
+	   (numstate (win:GetKeyState win:VK_NUMLOCK))
+	   (shiftstate (win:GetKeyState win:VK_SHIFT))
+	   (controlstate (win:GetKeyState win:VK_CONTROL))
+	   (metastate (win:GetKeyState win:VK_MENU)))
       (setf (modstate-control *modstate*)
 	(or (minusp controlstate) (not (zerop (ash controlstate -15)))))
       (setf (modstate-meta *modstate*)
@@ -542,7 +567,7 @@
     (if pass
 	(progn
 	  (setq pass nil)
-	  (setq *win-result* (win:defwindowproc window msg wparam lparam))
+	  (setq *win-result* (win:DefWindowProc window msg wparam lparam))
 	  ;;added this so that port modifier state is always updated, 
 	  ;; even on passed characters. -- KR
 	  (setf (port-modifier-state *acl-port*)
@@ -572,11 +597,11 @@
 	      (setf keysym (char->keysym keysym)))
 	    (let ((frame (pane-frame sheet))
 		  (command nil))
-	      (cond ((and (eql msg win:wm_keydown)
+	      (cond ((and (eql msg win:WM_KEYDOWN)
 			  (setq command 
 			    (lookup-accelerator frame keysym modstate)))
 		     (execute-command-in-frame frame command))
-		    ((and (eql msg win:wm_keydown)
+		    ((and (eql msg win:WM_KEYDOWN)
 			  (eql keysym :newline)
 			  (find-default-gadget frame))
 		     (activate-default-gadget frame))
@@ -584,11 +609,11 @@
 		     (setf (port-modifier-state *acl-port*) modstate)
 		     (queue-put event-queue
 				(allocate-event
-				 (cond ((or (eql msg win:wm_keydown)
-					    (eql msg win:wm_syskeydown))
+				 (cond ((or (eql msg win:WM_KEYDOWN)
+					    (eql msg win:WM_SYSKEYDOWN))
 					'key-press-event)
-				       ((or (eql msg win:wm_keyup)
-					    (eql msg win:wm_syskeyup))
+				       ((or (eql msg win:WM_KEYUP)
+					    (eql msg win:WM_SYSKEYUP))
 					'key-release-event))
 				 :key-name keysym
 				 :character char
@@ -641,13 +666,13 @@
       (clim:beep))))
 
 ;; Process WM_LBUTTONDOWN
-(defun OnButtonDown (window msg wparam lparam)
+(defun onbuttondown (window msg wparam lparam)
   ;; added the following so that clicking on a blank area will
   ;; move the focus away from any text-fields and cause their
   ;; value to be correctly updated  - this was copied from the
   ;; handle-event on key-press-event for mswin-text-edit in
   ;; acl-widg (cim 9/17/96)
-  (win:setfocus (win:getactivewindow))
+  (win:SetFocus (win:GetActiveWindow))
   (let* ((pointer (port-pointer *acl-port*))
 	 (sheet (mirror->sheet *acl-port* window))
 	 (modifier-state (windows-mask->modifier-state wparam)))
@@ -655,22 +680,22 @@
       (flush-pointer-motion *acl-port*)
       (setf (port-modifier-state *acl-port*) modifier-state)
       (multiple-value-bind (key button)
-	  (cond ((eql msg win:wm_lbuttondown)
+	  (cond ((eql msg win:WM_LBUTTONDOWN)
 		 (values 'pointer-button-press-event
 			 +pointer-left-button+))
-		((eql msg win:wm_mbuttondown)
+		((eql msg win:WM_MBUTTONDOWN)
 		 (values 'pointer-button-press-event
 			 +pointer-middle-button+))
-		((eql msg win:wm_rbuttondown)
+		((eql msg win:WM_RBUTTONDOWN)
 		 (values 'pointer-button-press-event
 			 +pointer-right-button+))
-		((eql msg win:wm_lbuttonup)
+		((eql msg win:WM_LBUTTONUP)
 		 (values 'pointer-button-release-event
 			 +pointer-left-button+))
-		((eql msg win:wm_mbuttonup)
+		((eql msg win:WM_MBUTTONUP)
 		 (values 'pointer-button-release-event
 			 +pointer-middle-button+))
-		((eql msg win:wm_rbuttonup)
+		((eql msg win:WM_RBUTTONUP)
 		 (values 'pointer-button-release-event
 			 +pointer-right-button+)))
 	(with-slots (event-queue) *acl-port*
@@ -686,11 +711,11 @@
   *win-result*)
 
 ;; Process WM_LBUTTONDBLCLK
-(defun OnButtonDblClk (window msg wparam lparam)
+(defun onbuttondblclk (window msg wparam lparam)
   ;; A double click will actually generate four events:
   ;; down, up, dblclk, up.  This function handles the 
   ;; double click, the other three are handled by OnButtonDown.
-  (win:setfocus (win:getactivewindow))
+  (win:SetFocus (win:GetActiveWindow))
   (let* ((pointer (port-pointer *acl-port*))
 	 (sheet (mirror->sheet *acl-port* window))
 	 (modifier-state (windows-mask->modifier-state wparam t)))
@@ -698,13 +723,13 @@
       (flush-pointer-motion *acl-port*)
       (setf (port-modifier-state *acl-port*) modifier-state)
       (multiple-value-bind (key button)
-	  (cond ((eql msg win:wm_lbuttondblclk)
+	  (cond ((eql msg win:WM_LBUTTONDBLCLK)
 		 (values 'pointer-button-press-event
 			 +pointer-left-button+))
-		((eql msg win:wm_mbuttondblclk)
+		((eql msg win:WM_MBUTTONDBLCLK)
 		 (values 'pointer-button-press-event
 			 +pointer-middle-button+))
-		((eql msg win:wm_rbuttondblclk)
+		((eql msg win:WM_RBUTTONDBLCLK)
 		 (values 'pointer-button-press-event
 			 +pointer-right-button+)))
 	(with-slots (event-queue) *acl-port*
@@ -720,7 +745,7 @@
   *win-result*)
 
 ;; Process WM_ACTIVATE
-(defun OnActivate (window msg wparam lparam)
+(defun onactivate (window msg wparam lparam)
   ;; A window or a control is being activated.
   ;; If user is activating with a mouse click, 
   ;; OnMouseActivate is also called.
@@ -743,7 +768,7 @@
 	  ((and frame menup)
 	   (let ((menu (slot-value frame 'clim-internals::menu)))
 	     (setf (window-visibility menu) nil)))
-	  ((eql msg win:wm_close)
+	  ((eql msg win:WM_CLOSE)
 	   (with-slots (event-queue) *acl-port*
 	     (queue-put event-queue
 			(allocate-event 'silica::window-close-event
@@ -753,7 +778,7 @@
     *win-result*))
 
 ;; Process WM_INITMENUPOPUP
-(defun OnInitMenuPopup (window msg wparam lparam)
+(defun oninitmenupopup (window msg wparam lparam)
   ;; Sent when a drop-down menu or submenu is about to become active.
   ;; We use it to activate/deactivate menu items and to update
   ;; menus in response to add/remove menu-item-from-command-table.
@@ -770,35 +795,37 @@
       *win-result*)))
 
 ;; Process WM_NCHITTEST
-(defun OnNcHitTest (window msg wparam lparam)
+(defun onnchittest (window msg wparam lparam)
   ;; Called on the object that contains the cursor
   ;; every time the mouse moves.
-  (setq *win-result* (win:defwindowproc window msg wparam lparam)))
+  (setq *win-result* (win:DefWindowProc window msg wparam lparam)))
 
 ;; Allow Windows to provide default message processing.
 (defun message-default (window msg wparam lparam)
   (clear-winproc-result *win-result*)
-  (setq *win-result* (win:defwindowproc window msg wparam lparam))
+  (setq *win-result* (win:DefWindowProc window msg wparam lparam))
   *win-result*)
+
+(defvar wres  (ct:callocate :long))
+(defvar wmsg  (ct:ccallocate win:msg))
 
 ;; Refer to the windows documentation on Tooltip controls.
 ;; The message stream needs to be relayed to the tooltip 
 ;; control for it to know when and where to display tool tips.
 (ff:defun-c-callable tooltip-relay (window msg wparam lparam)
   (declare (:convention :stdcall) (:unwind 0)
-	   (special wmsg)
 	   (optimize (safety 0) (speed 3)))
   (case msg
-    ((#.win:wm_mousemove 
-      #.win:wm_lbuttondown
-      #.win:wm_lbuttonup
-      #.win:wm_rbuttondown
-      #.win:wm_rbuttonup)
+    ((#.win:WM_MOUSEMOVE 
+      #.win:WM_LBUTTONDOWN
+      #.win:WM_LBUTTONUP
+      #.win:WM_RBUTTONDOWN
+      #.win:WM_RBUTTONUP)
      (let* ((sheet (mirror->sheet *acl-port* window))
 	    (frame (pane-frame sheet))
 	    (top (frame-top-level-sheet frame))
 	    (tt (tooltip-control top))
-	    (ttm_relayevent #.(+ win:wm_user 7))
+	    (ttm_relayevent #.(+ win:WM_USER 7))
 	    (relay wmsg))
        (when tt
 	 (ct:csets win:msg relay
@@ -806,7 +833,7 @@
 		   wparam wparam
 		   message msg
 		   hwnd window)
-	 (or (plusp (win:sendmessage tt TTM_RELAYEVENT 0 relay))
+	 (or (plusp (win:SendMessage tt ttm_relayevent 0 relay))
 	     (check-last-error "TTM_RELAYEVENT" :Action :warn))))))
   #+optional
   (callnexthookex *next-windows-hook* msg wparam lparam))
@@ -839,19 +866,19 @@
 	       window
 	       lparam))
     (when (> *level* 40)
-      (break "too deep!"))
+      (warn "clim-wind-proc: too deep!"))
     (case msg
-      (#.win:wm_mousemove
+      (#.win:WM_MOUSEMOVE
        (onmousemove window msg wparam lparam))
-      (#.win:wm_setcursor
+      (#.win:WM_SETCURSOR
        (onsetcursor window msg wparam lparam))
-      (#.win:wm_paint
+      (#.win:WM_PAINT
        (onpaint window msg wparam lparam))
-      (#.win:wm_drawitem
+      (#.win:WM_DRAWITEM
        (ondrawitem window msg wparam lparam))
-      ((#.win:wm_ctlcoloredit
-	#.win:wm_ctlcolorlistbox
-	#.win:wm_ctlcolorbtn
+      ((#.win:WM_CTLCOLOREDIT
+	#.win:WM_CTLCOLORLISTBOX
+	#.win:WM_CTLCOLORBTN
 	;; couldn't get the colors to change for the following
 	;; wm_ctlcolorxx messages -  so we're not using them for the
 	;; moment (cim 10/11/96)
@@ -861,45 +888,47 @@
 	;; #.win:wm_ctlcolorstatic
 	)
        (onctlcoloredit window msg wparam lparam))
-      (#.win:wm_command
+      (#.win:WM_COMMAND
        (oncommand window msg wparam lparam))
-      ((#.win:wm_hscroll #.win:wm_vscroll)
+      (#.win:WM_SYSCOMMAND
+       (onsyscommand window msg wparam lparam))
+      ((#.win:WM_HSCROLL #.win:WM_VSCROLL)
        (onvscroll window msg wparam lparam))
-      (#.win:wm_move
+      (#.win:WM_MOVE
        (onmove window msg wparam lparam))
-      (#.win:wm_size
+      (#.win:WM_SIZE
        (onsize window msg wparam lparam))
-      (#.win:wm_getminmaxinfo
+      (#.win:WM_GETMINMAXINFO
        (ongetminmaxinfo window msg wparam lparam))
-      (#.win:en_update
+      (#.win:EN_UPDATE
        (OnUpdateText window msg wparam lparam))
       ;; character typed
-      ((#.win:wm_keydown 
-	#.win:wm_syskeydown
-	#.win:wm_keyup
-	#.win:wm_syskeyup)
+      ((#.win:WM_KEYDOWN 
+	#.win:WM_SYSKEYDOWN
+	#.win:WM_KEYUP
+	#.win:WM_SYSKEYUP)
        (onkeydown window msg wparam lparam))
-      ((#.win:wm_lbuttondown
-	#.win:wm_rbuttondown
-	#.win:wm_mbuttondown
-	#.win:wm_lbuttonup
-	#.win:wm_rbuttonup
-	#.win:wm_mbuttonup)
+      ((#.win:WM_LBUTTONDOWN
+	#.win:WM_RBUTTONDOWN
+	#.win:WM_MBUTTONDOWN
+	#.win:WM_LBUTTONUP
+	#.win:WM_RBUTTONUP
+	#.win:WM_MBUTTONUP)
        (onbuttondown window msg wparam lparam))
-      ((#.win:wm_lbuttondblclk
-	#.win:wm_lbuttondblclk
-	#.win:wm_lbuttondblclk)
+      ((#.win:WM_LBUTTONDBLCLK
+	#.win:WM_LBUTTONDBLCLK
+	#.win:WM_LBUTTONDBLCLK)
        (onbuttondblclk window msg wparam lparam))
-      (#.win:wm_activate
+      (#.win:WM_ACTIVATE
        (onactivate window msg wparam lparam))
-      ((#.win:wm_killfocus
-	#.win:wm_close)
+      ((#.win:WM_KILLFOCUS
+	#.win:WM_CLOSE)
        (onkillfocus window msg wparam lparam))
-      (#.win:wm_initmenupopup
+      (#.win:WM_INITMENUPOPUP
        (oninitmenupopup window msg wparam lparam))
-      (#.win:wm_nchittest
+      (#.win:WM_NCHITTEST
        (OnNcHitTest window msg wparam lparam))
-      (#.win:wm_notify
+      (#.win:WM_NOTIFY
        (message-default window msg wparam lparam))
       (otherwise
        (message-default window msg wparam lparam)))
@@ -928,26 +957,26 @@
     (let ((result 0))
       (cond
        ;; character typed
-       ((or (eql msg win:wm_keydown)
-	    (eql msg win:wm_syskeydown)
-	    (eql msg win:wm_keyup)
-	    (eql msg win:wm_syskeyup)
-	    (eql msg win:wm_char))
+       ((or (eql msg win:WM_KEYDOWN)
+	    (eql msg win:WM_SYSKEYDOWN)
+	    (eql msg win:WM_KEYUP)
+	    (eql msg win:WM_SYSKEYUP)
+	    (eql msg win:WM_CHAR))
 	(flush-pointer-motion *acl-port*)
 	(let* ((code wparam)
 	       (pass t)			; !!!
 	       (vk (ldb (byte 8 0) code)))
-	  (when (or (eql code win:vk_capital)
-		    (eql code win:vk_numlock)
-		    (eql code win:vk_shift)
-		    (eql code win:vk_control)
-		    (eql code win:vk_menu))
+	  (when (or (eql code win:VK_CAPITAL)
+		    (eql code win:VK_NUMLOCK)
+		    (eql code win:VK_SHIFT)
+		    (eql code win:VK_CONTROL)
+		    (eql code win:VK_MENU))
 	    (setq pass t))
-	  (let* ((capstate (win:getKeyState win:vk_capital))
-		 (numstate (win:getKeyState win:vk_numlock))
-		 (shiftstate (win:getKeyState win:vk_shift))
-		 (controlstate (win:getKeyState win:vk_control))
-		 (metastate (win:getKeyState win:vk_menu)))
+	  (let* ((capstate (win:GetKeyState win:VK_CAPITAL))
+		 (numstate (win:GetKeyState win:VK_NUMLOCK))
+		 (shiftstate (win:GetKeyState win:VK_SHIFT))
+		 (controlstate (win:GetKeyState win:VK_CONTROL))
+		 (metastate (win:GetKeyState win:VK_MENU)))
 	    (setf (modstate-control *ctlmodstate*)
 	      (or (minusp controlstate) (not (zerop (ash controlstate -15)))))
 	    (setf (modstate-meta *ctlmodstate*)
@@ -993,7 +1022,7 @@
 		  (progn
 		    (setq pass nil)
 		    (setq *win-result* 
-		      (win:callwindowproc std-ctrl-proc-address
+		      (win:CallWindowProc std-ctrl-proc-address
 					  window msg wparam lparam))
 		    *win-result*)
 		(progn
@@ -1001,12 +1030,12 @@
 		  (handle-event
 		   sheet
 		   (allocate-event
-		    (cond ((or (eql msg win:wm_keydown)
-			       (eql msg win:wm_syskeydown)
-			       (eql msg win:wm_char))
+		    (cond ((or (eql msg win:WM_KEYDOWN)
+			       (eql msg win:WM_SYSKEYDOWN)
+			       (eql msg win:WM_CHAR))
 			   'key-press-event)
-			  ((or (eql msg win:wm_keyup)
-			       (eql msg win:wm_syskeyup))
+			  ((or (eql msg win:WM_KEYUP)
+			       (eql msg win:WM_SYSKEYUP))
 			   'key-release-event))
 		    :key-name keysym
 		    :character char
@@ -1020,7 +1049,7 @@
 	;; This is where we let the control do its own thing.  Most
 	;; messages come through here.
 	(clear-winproc-result *win-result*)
-	(setq *win-result* (win:callwindowproc std-ctrl-proc-address
+	(setq *win-result* (win:CallWindowProc std-ctrl-proc-address
 					       window msg wparam lparam))
         *win-result*))
       (setf result *win-result*)
@@ -1080,8 +1109,7 @@
     ;;
     (declare (ignore type))
   
-    (ff:allocate-fobject `(:array :unsigned-char ,length)
-		      #-allegro-v4.3 :lisp)))
+    (ff:allocate-fobject `(:array :unsigned-char ,length) :lisp)))
 
 (defun ensure-clim-initialized ()
   (unless *clim-initialized*
@@ -1100,28 +1128,50 @@
   ;; It creates a (single) Windows window class for all clim windows.
   (unless *wndclass-registered*
     (init-clim-win-proc clim-window-proc-address #.(make-cstructure 0 16))
-    (let ((class (ct:ccallocate win:wndclassex))
+    (let ((class (ff:allocate-fobject 'win:wndclassex 
+				      :foreign-static-gc nil))
 	  (icon (win:LoadIcon 0 win:IDI_APPLICATION)) ; (get-clim-icon)
 	  (reg nil))
-      (ct:csets win:wndclassex class
-		cbSize (ct:sizeof win:wndclassex)
-		style (logior win:CS_DBLCLKS
-			      win:CS_BYTEALIGNCLIENT
-			      win:CS_BYTEALIGNWINDOW
-			      ;; win:CS_SAVEBITS ; Can we afford this?
-			      ;; win:CS_OWNDC
-			      )
-		lpfnwndproc clim-window-proc-address 
-		cbClsExtra 0
-		cbWndExtra 0
-		hinstance  *hinst*
-		hicon icon 
-		hcursor hcursor
-		hbrbackground (1+ win:color_btnface)
-		lpszmenuname ct:hnull	;*menu-name*
-		lpszclassname (ff:string-to-char* *clim-class*)
-		hIconSm icon)
-      (setq reg (win:registerclassex class))
+      (setf (ff:fslot-value-typed 'win:wndclassex 
+				  :foreign class :cbSize)
+	(ff:sizeof-fobject 'win:wndclassex))
+      (setf (ff:fslot-value-typed 'win:wndclassex 
+				  :foreign class :style)
+	(logior win:CS_DBLCLKS
+		win:CS_BYTEALIGNCLIENT
+		win:CS_BYTEALIGNWINDOW))
+      (setf (ff:fslot-value-typed 'win:wndclassex 
+				  :foreign class :lpfnWndProc)
+	clim-window-proc-address)
+      (setf (ff:fslot-value-typed 'win:wndclassex 
+				  :foreign class :cbClsExtra) 
+	0)
+      (setf (ff:fslot-value-typed 'win:wndclassex 
+				  :foreign class :cbWndExtra) 
+	0)
+      (setf (ff:fslot-value-typed 'win:wndclassex 
+				  :foreign class :hInstance) 
+	*hinst*)
+      (setf (ff:fslot-value-typed 'win:wndclassex 
+				  :foreign class :hIcon) 
+	icon)
+      (setf (ff:fslot-value-typed 'win:wndclassex 
+				  :foreign class :hCursor)
+	hcursor)
+      (setf (ff:fslot-value-typed 'win:wndclassex 
+				  :foreign class :hbrBackground)
+	(1+ win:COLOR_BTNFACE))
+      (setf (ff:fslot-value-typed 'win:wndclassex 
+				  :foreign class :lpszMenuName) 
+	0)
+      (setf (ff:fslot-value-typed 'win:wndclassex 
+				  :foreign class :lpszClassName) 
+	(string-to-foreign *clim-class*))
+	  
+      (setf (ff:fslot-value-typed 'win:wndclassex 
+				  :foreign class :hIconSm) 
+	icon)
+      (setq reg (win:RegisterClassEx class))
       (when (zerop reg)
 	(check-last-error "RegisterClassEx"))
       (setq *wndclass-registered* t)
@@ -1145,27 +1195,27 @@
   ;; Most frames come in here.
   (let ((winstyle 
 	 (logior 
-	  win:ws_clipsiblings
-	  win:ws_caption
-	  win:ws_sysmenu
-	  win:ws_overlapped
+	  win:WS_CLIPSIBLINGS
+	  win:WS_CAPTION
+	  win:WS_SYSMENU
+	  win:WS_OVERLAPPED
 	  (if (or (eql scroll :both) (eql scroll :vertical))
-	      win:ws_vscroll 0)
+	      win:WS_VSCROLL 0)
 	  (if (or (eql scroll :both) (eql scroll :horizontal))
-	      win:ws_hscroll 0)
-	  win:ws_clipchildren
+	      win:WS_HSCROLL 0)
+	  win:WS_CLIPCHILDREN
 	  ))
 	(exstyle
 	 (logior
-	  win:ws_ex_left
-	  win:ws_ex_ltrreading
-	  win:ws_ex_rightscrollbar
-	  win:ws_ex_windowedge
-	  win:ws_ex_controlparent	; tab btwn controls
+	  win:WS_EX_LEFT
+	  win:WS_EX_LTRREADING
+	  win:WS_EX_RIGHTSCROLLBAR
+	  win:WS_EX_WINDOWEDGE
+	  win:WS_EX_CONTROLPARENT	; TAB BTWN CONTROLS
 	  ))
         (*win-name* *win-name*)
 	(menu
-	 (if menubar (win:CreateMenu) (ct:null-handle win:hmenu)))
+	 (if menubar (win:CreateMenu) 0))
 	(window nil))
     (when pretty
       (setq *win-name* pretty))
@@ -1176,24 +1226,23 @@
 	   ;; sizeable.
 	   (setq winstyle
 	     (logior winstyle
-		     win:ws_thickframe
-		     win:ws_popup
-		     (if parent win:ds_modalframe 0)
-		     win:ds_3dlook
-		     win:ws_clipchildren))
+		     win:WS_THICKFRAME
+		     win:WS_POPUP
+		     (if parent win:DS_MODALFRAME 0)
+		     win:DS_3DLOOK
+		     win:WS_CLIPCHILDREN))
 	   (setq exstyle
 	     (logior exstyle
-		     win:ws_ex_dlgmodalframe
-		     win:ws_ex_controlparent
+		     win:WS_EX_DLGMODALFRAME
 		     )))
 	  (t
 	   (setq winstyle
 	     (logior winstyle 
-		     win:ws_thickframe
-		     win:ws_minimizebox
-		     win:ws_maximizebox))))
+		     win:WS_THICKFRAME
+		     win:WS_MINIMIZEBOX
+		     win:WS_MAXIMIZEBOX))))
     (setq window
-      (win:createWindowEx exstyle
+      (win:CreateWindowEx exstyle
 			  *clim-class*
 			  *win-name*
 			  winstyle
@@ -1212,28 +1261,28 @@
   (declare (ignore modal))
   ;; MENU-FRAME comes in here.
   (let* ((overlap (if ovl
-		      (logior win:ws_caption win:ws_sysmenu) ; not a menu
-		    (logior win:ws_thickframe win:ws_dlgframe) ; its a menu
+		      (logior win:WS_CAPTION win:WS_SYSMENU) ; NOT A MENU
+		    (logior win:WS_THICKFRAME win:WS_DLGFRAME) ; its a menu
 		    ))
          (winstyle (logior overlap
-			   win:ws_popup
+			   win:WS_POPUP
 			   (if (or (eql scroll :both)(eql scroll :vertical))
-			       win:ws_vscroll 0)
+			       win:WS_VSCROLL 0)
 			   (if (or (eql scroll :both)(eql scroll :horizontal))
-			       win:ws_hscroll 0)
-			   win:ws_clipchildren
+			       win:WS_HSCROLL 0)
+			   win:WS_CLIPCHILDREN
 			   ))
          (*win-name* *win-name*))
     (when pretty
       (setq *win-name* pretty))
-    (let ((window (win:createWindowEx
-		   (if ovl 0 win:ws_ex_toolwindow)
+    (let ((window (win:CreateWindowEx
+		   (if ovl 0 win:WS_EX_TOOLWINDOW)
 		   *clim-class*
 		   *win-name*
 		   winstyle
 		   left top width height
 		   parent
-		   (ct:null-handle win:hmenu)
+		   0
 		   *hinst*
 		   *win-x*)))
       (when (zerop window)
@@ -1242,32 +1291,32 @@
 
 (defun create-child-window (parent pretty scroll left top width height)
   ;; Application pane comes in here.
-  (let ((winstyle (logior win:ws_clipchildren
-                          win:ws_child
+  (let ((winstyle (logior win:WS_CLIPCHILDREN
+                          win:WS_CHILD
 			  (if (member scroll '(t :both :dynamic :vertical))
-			    win:ws_vscroll 0)
+			    win:WS_VSCROLL 0)
 			  (if (member scroll '(t :both :dynamic :horizontal))
-			    win:ws_hscroll 0)
-			  win:ws_clipsiblings))
-	(exstyle (logior win:ws_ex_left
-			 win:ws_ex_ltrreading
-			 win:ws_ex_rightscrollbar
-			 win:ws_ex_controlparent ; tab btwn controls
+			    win:WS_HSCROLL 0)
+			  win:WS_CLIPSIBLINGS))
+	(exstyle (logior win:WS_EX_LEFT
+			 win:WS_EX_LTRREADING
+			 win:WS_EX_RIGHTSCROLLBAR
+			 win:WS_EX_CONTROLPARENT ; tab btwn controls
 			 ;; You get an "edge" if you use (outlining () ...)
 			 ;; OR if you have scroll bars.  This one is purely
 			 ;; aesthetic but I think it's almost always appropriate.
 			 ;; JPM 6/98.
-			 (if scroll win:ws_ex_clientedge 0)
+			 (if scroll win:WS_EX_CLIENTEDGE 0)
 			 ))
 	;; You can ask for a menu bar on a child window,
 	;; but Windows will not give you one.  
-	(menu (ct:null-handle win:hmenu))
+	(menu 0)
         (*win-name* *win-name*)
 	(window nil))
     (when pretty
       (setq *win-name* pretty))
     (setq window
-	  (win:createWindowEx exstyle
+	  (win:CreateWindowEx exstyle
 		*clim-class*
 		*win-name*
 		winstyle
@@ -1279,17 +1328,16 @@
     (when (zerop window)
       (check-last-error "CreateWindowEx"))
     (if (or (eql scroll :both)(eql scroll :vertical))
-      (win:setScrollRange window win:SB_VERT 0 *win-scroll-grain* 1))
+      (win:SetScrollRange window win:SB_VERT 0 *win-scroll-grain* 1))
     (if (or (eql scroll :both)(eql scroll :horizontal))
-      (win:setScrollRange window win:SB_HORZ 0 *win-scroll-grain* 1))
+      (win:SetScrollRange window win:SB_HORZ 0 *win-scroll-grain* 1))
     window))
 
-(defvar wres  (ct:callocate :long))
-(defvar wmsg  (ct:ccallocate win:msg))
+;; wres and wmsg move up in file to remove compile-time warning
 
 (defun wait-for-event ()
   (when (prog1
-            (win:peekMessage wmsg (ct:null-handle win:hwnd) 0 0
+            (win:PeekMessage wmsg 0 0 0
 			     (logior win:PM_NOYIELD win:PM_NOREMOVE))
 	  (not (and (zerop (hiword wres)) (zerop (loword wres)))))
     t))
@@ -1297,18 +1345,20 @@
 (defvar msg (ct:ccallocate win:msg))
 (defvar res (ct:callocate :long))
 
-;;--- this never gets called on NT because we do a
-;;--- sys::process-pending-events instead.
-(defun await-response (waitp)
-  (if waitp
-      (progn
-        (win:getMessage msg (ct:null-handle win:hwnd) 0 0)
-        (win:TranslateMessage msg)
-        (win:dispatchMessage msg)
-	msg)
-    (let* ((ret (win:peekMessage msg (ct:null-handle win:hwnd) 
-				 0 0 win:PM_REMOVE))
-	   (do-it ret))
-      (when do-it
-	(win:TranslateMessage msg)
-	(win:dispatchMessage msg)))))
+;; This is the prototypical way to get and process 
+;; a windows message from the windows message queue. 
+;; Note that TAB will not select the next control in
+;; a group of controls if we never call IsDialogMessage.
+(defun process-pending-messages (nonblocking hwnd)
+  (declare (optimize (speed 3) (safety 0)))
+  ;;(when hwnd (assert (win:IsWindow hwnd)))
+  (loop
+    (let ((gotmessage
+	   (if nonblocking
+	       (win:PeekMessage msg 0 0 0 win:PM_REMOVE) 
+	     (win:GetMessage msg 0 0 0))))
+      (cond ((not gotmessage) (return t))
+	    ((and hwnd (win:IsDialogMessage hwnd msg)))
+	    (t 
+	     (win:TranslateMessage msg)
+	     (win:DispatchMessage msg))))))

@@ -16,13 +16,17 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: winwidgh.lisp,v 1.4 1998/10/08 18:36:21 layer Exp $
+;; $Id: winwidgh.lisp,v 1.5 1999/02/25 08:23:27 layer Exp $
 
 (in-package :acl-clim)
 
 ;; These seem to be missing from winapi-dev
 (defconstant LBS_DISABLENOSCROLL #x1000)
 (defconstant CB_SETTOPINDEX #x015c)
+(defconstant TTN_FIRST -520)
+(defconstant TTN_NEEDTEXTA TTN_FIRST)	; ascii
+(defconstant TTN_NEEDTEXTW (- TTN_FIRST 10)); unicode
+(defconstant TTN_NEEDTEXT TTN_NEEDTEXTA)
 
 (ff:def-foreign-type browseinfo
     (:struct (hwndOwner win:hwnd)
@@ -84,10 +88,10 @@
   :call-direct t
   :returning :int)
 
-(ff:def-foreign-call (setwindowshookex "SetWindowsHookExA")
+(ff:def-foreign-call (SetWindowsHookEx "SetWindowsHookExA")
     ((a :int) (b :int) (c :int) (d :int))
   :returning :int)
 
-(ff:def-foreign-call (callnexthookex "CallNextHookExA")
+(ff:def-foreign-call (CallNextHookEx "CallNextHookExA")
     ((a :int) (b :int) (c :int) (d :int))
   :returning :int)

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: gcontext.lisp,v 1.34 1998/09/29 21:02:35 duane Exp $
+;; $Id: gcontext.lisp,v 1.35 1999/02/25 08:23:42 layer Exp $
 
 (in-package :tk)
 
@@ -54,7 +54,8 @@
 	graphics-exposures clip-x-origin clip-y-origin clip-mask dash-offset dashes
 	arc-mode)))
 
-
+(defun make-xgcvalues ()
+  (clim-utils::allocate-cstruct 'x11::xgcvalues :initialize t))
 
 (eval-when (compile eval)
   #+ignore
@@ -81,7 +82,7 @@
     `(progn
        (defmethod (setf ,(intern (format nil "~A-~A" 'gcontext name)))
 	   (nv (gc gcontext))
-	 (let ((gc-values (x11::make-xgcvalues)))
+	 (let ((gc-values (make-xgcvalues)))
 	   (setf (,(intern (format nil "~A~A"
 				   'xgcvalues-
 				   name)
@@ -362,7 +363,7 @@
 ;; granted, this isn't the right thing to do, but it saves us from some
 ;; nasty consing -tjm 11Apr97
 (defmethod (setf gcontext-clip-mask) ((nv clim-utils::standard-bounding-rectangle) (gc gcontext))
-  (let ((rs (x11:make-xrectangle-array :number 1)))
+  (let ((rs (make-xrectangle-array :number 1)))
     (clim-utils::with-bounding-rectangle* (left top right bottom) nv
       (setf (x11:xrectangle-array-x rs 0) (clim-utils::fix-coordinate left)
 	    (x11:xrectangle-array-y rs 0) (clim-utils::fix-coordinate top)
@@ -380,7 +381,7 @@
 (defmethod (setf gcontext-clip-mask) ((nv clim-utils::standard-rectangle-set) (gc gcontext))
   (let* ((rectangles (clim-utils::region-set-regions nv))
 	 (n (length rectangles))
-	 (rs (x11:make-xrectangle-array :number n)))
+	 (rs (make-xrectangle-array :number n)))
     (dotimes (i n)
       (let ((r (nth i rectangles)))
 	(clim-utils::with-bounding-rectangle* (left top right bottom) r
@@ -399,7 +400,7 @@
 
 (defmethod (setf gcontext-clip-mask) ((nv list) (gc gcontext))
   (let* ((n (length nv))
-	 (rs (x11:make-xrectangle-array :number n)))
+	 (rs (make-xrectangle-array :number n)))
     (dotimes (i n)
       (let ((r (pop nv)))
 	(setf (x11:xrectangle-array-x rs i) (first r)

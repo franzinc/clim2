@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: resources.lisp,v 1.61 1998/08/06 23:17:19 layer Exp $
+;; $Id: resources.lisp,v 1.62 1999/02/25 08:23:42 layer Exp $
 
 (in-package :tk)
 
@@ -277,6 +277,10 @@
 
 
 
+(defun make-xt-arglist (&key (number 1))
+  (clim-utils::allocate-cstruct 'xt-arglist
+				:number number :initialize t))
+
 (defun fill-sv-cache (parent-class class resources)
   (let* ((len (length resources))
 	 (arglist (make-xt-arglist :number len))
@@ -348,7 +352,7 @@
       ((null args)
        (let* ((new-args (nreverse new-args))
 	      (n (truncate (length new-args) 2))
-	      (arglist (make-xt-arglist :number n :in-foreign-space nil)))
+	      (arglist (make-xt-arglist :number n)))
 	 (dotimes (i n)
 	   (setf (xt-arglist-name arglist i) (pop new-args)
 		 (xt-arglist-value arglist i) (pop new-args)))
@@ -451,9 +455,13 @@
 	 (rds nil)
 	 (constraint-resource-used nil)
 	 (i 0))
+    ;; For XtGetValues, the value must be a pointer.  The result
+    ;; of the call is to set the pointer to point to the real value.
+    ;; This differs from XtSetValues, where the value is not a
+    ;; pointer but is really just the value.
     (dotimes (j len)
       (setf (xt-arglist-value arglist j)
-	(excl::malloc 8)))	;--- A crock...
+	(clim-utils::allocate-memory 8 0)))	
     (dolist (r resources)
       (let ((resource (or (find-class-resource class r)
 			  (psetq constraint-resource-used t)
@@ -593,9 +601,22 @@
 (defmethod convert-resource-out ((parent  t) (type (eql 'string)) value)
   (note-malloced-object
    (excl:ics-target-case
-    (:+ics (let ((euc (excl:string-to-euc value)))
-	     (ff:euc-to-char* euc)))
-    (:-ics (string-to-char* value)))))
+    (:+ics 
+     ;; JPM 1/99. We know this EUC stuff is wrong for two reasons: 
+     ;; 1.  We free everything with SYSTEM-FREE, which can't free
+     ;;     things created via excl:aclmalloc.  Therefore, 
+     ;;     EUC-TO-CHAR* is not viable in CLIM.  You'll get SEGV on Linux.
+     ;; 2.  It doesn't handle Japanese character sets correctly anyway.
+     ;;     Contrast with the convert-resource-out method for
+     ;;     type xm-string, which works.
+     ;; If you make a change here, you can test it by creating
+     ;; a text-field pane whose :value is an international string.
+     #+ignore
+     (let ((euc (excl:string-to-euc value)))
+       (ff:euc-to-char* euc))
+     (clim-utils:string-to-foreign value); sorry
+     )
+    (:-ics (clim-utils:string-to-foreign value)))))
 
 (defvar *font-counter* 0)
 (defmethod convert-resource-out ((parent t) (type (eql 'font-struct)) value)
@@ -697,7 +718,7 @@
   (char-int value))
 
 (defmethod convert-resource-in ((parent t) (typep (eql 'key-sym)) value)
-  (cltl1:int-char value))
+  (code-char value))
 
 (defmethod convert-resource-out ((parent t) (typep (eql 'colormap)) value)
   value)
@@ -711,7 +732,7 @@
   (char-int value))
 
 (defmethod convert-resource-in ((parent t) (typep (eql 'char)) value)
-  (cltl1:int-char (ash value -24)))
+  (code-char (ash value -24)))
 
 (defmethod convert-resource-in ((parent t) (typep (eql 'font-struct)) value)
   (make-instance 'font
@@ -759,7 +780,7 @@
 
 (defmethod convert-resource-out ((parent  t) (type (eql 'ol-str)) value)
   (note-malloced-object
-   (string-to-char* value)))
+   (clim-utils:string-to-foreign value)))
 
 (defmethod convert-resource-in ((parent t) (type (eql 'ol-str)) value)
   (unless (zerop value)

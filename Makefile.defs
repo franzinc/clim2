@@ -1,4 +1,4 @@
-# $Id: Makefile.defs,v 1.47 1998/08/06 23:15:35 layer Exp $
+# $Id: Makefile.defs,v 1.48 1999/02/25 08:23:21 layer Exp $
 #
 #  Makefile.defs for CLIM 2.0
 
@@ -149,7 +149,7 @@ GENERIC-FASLS= \
 	clim/drag-and-drop.fasl clim/item-list-manager.fasl \
 	postscript/pkgdcl.fasl postscript/postscript-s.fasl \
 	clim/stream-trampolines.fasl \
-	xlib/pkg.fasl xlib/load-xlib.fasl
+	xlib/pkg.fasl xlib/load-xlib.fasl xlib/xlib-defs.fasl
 
 DEMO-FASLS= \
 	demo/packages.fasl demo/demo-driver.fasl demo/listener.fasl \
@@ -170,7 +170,8 @@ DEMO-FASLS= \
 #	homegrown/db-label.fasl homegrown/last.fasl
 
 GENERIC-XT-FASLS= \
-	tk/pkg.fasl tk/foreign-obj.fasl tk/macros.fasl tk/xlib.fasl \
+	tk/pkg.fasl tk/foreign-obj.fasl tk/macros.fasl tk/xt-defs.fasl \
+	tk/xlib.fasl \
 	tk/font.fasl tk/gcontext.fasl tk/graphics.fasl tk/meta-tk.fasl \
 	tk/make-classes.fasl tk/foreign.fasl tk/widget.fasl \
 	tk/resources.fasl tk/event.fasl tk/callbacks.fasl \
@@ -181,6 +182,7 @@ XM-FASLS= \
 	tk/xm-classes.fasl tk/xm-callbacks.fasl tk/xm-init.fasl \
 	tk/xm-widgets.fasl tk/xm-font-list.fasl tk/xm-protocols.fasl \
 	tk/convenience.fasl tk/make-widget.fasl \
+	tk/xm-defs.fasl \
 	tk-silica/pkg.fasl tk-silica/xt-silica.fasl \
 	tk-silica/xt-stipples.fasl tk-silica/xm-silica.fasl \
 	tk-silica/xt-graphics.fasl tk-silica/image.fasl \
@@ -223,7 +225,7 @@ DEBUG-FASLS = \
 	xlib/x11-keysyms.fasl tk/xt-defs.fasl tk/xt-funs.fasl \
 	xlib/last.fasl
 
-XM-DEBUG-FASLS = tk/xm-defs.fasl tk/xm-funs.fasl 
+XM-DEBUG-FASLS = tk/xm-funs.fasl 
 OL-DEBUG-FASLS = tk/ol-defs.fasl tk/ol-funs.fasl
 
 WNN-DEBUG-FASLS = wnn/jl-defs.fasl wnn/jl-funs.fasl

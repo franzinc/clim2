@@ -1,7 +1,7 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
 ;;
-;;				-[Mon Jul  6 15:36:03 1998 by layer]-
+;;				-[Tue Feb 23 15:27:24 1999 by layer]-
 ;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -20,7 +20,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: chess.lisp,v 1.14 1998/08/06 23:17:09 layer Exp $
+;; $Id: chess.lisp,v 1.15 1999/02/25 08:23:40 layer Exp $
 
 
 (in-package :clim-user)
@@ -120,10 +120,12 @@
 
 (defun encode-position (x)
   (destructuring-bind (row col) x
-    (coerce (list
-	      (cltl1::int-char (+ (char-int #\a) col))
-	      (digit-char (- 8 row)))
-	    'cltl1::string)))
+    (make-array 2
+		:element-type 'character
+		:initial-contents
+		(list
+		 (code-char (+ (char-int #\a) col))
+		 (digit-char (- 8 row))))))
 
 (defun decode-position (position)
   (list (- 8 (digit-char-p (aref position 1))) ;; row

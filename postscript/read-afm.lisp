@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: postscript-clim -*-
 ;;
-;;				-[Mon Jul  6 15:36:37 1998 by layer]-
+;;				-[Tue Feb 23 15:27:02 1999 by layer]-
 ;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1992 Franz Inc, Berkeley, CA  All rights reserved.
@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: read-afm.lisp,v 1.5 1998/08/06 23:16:47 layer Exp $
+;; $Id: read-afm.lisp,v 1.6 1999/02/25 08:23:35 layer Exp $
 
 (in-package :postscript-clim)
 
@@ -29,7 +29,8 @@
 		 (eq char #\space)
 		 (eq char #\newline)))
 	   (read-keyname ()
-	     (let ((chars (make-array 0 :element-type 'string-char :fill-pointer 0 :adjustable t)))
+	     (let ((chars (make-array 0 :element-type 'character
+				      :fill-pointer 0 :adjustable t)))
 	       (loop
 		 (let ((char (read-char)))
 		   (when (afm-whitespace-char-p char)

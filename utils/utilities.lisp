@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: utilities.lisp,v 1.13 1998/08/06 23:17:37 layer Exp $
+;; $Id: utilities.lisp,v 1.14 1999/02/25 08:23:48 layer Exp $
 
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
@@ -31,11 +31,6 @@
 ;;;
 ;;; COMMONLISP Extensions
 ;;; 
-
-;; now we have cl:boolean we don't need this (cim 2/24/94)
-;;mm: except in aclpc  28-Dec-94
-#+aclpc ;; was #+(or aclpc acl86win32) -tjm 23May97
-(deftype boolean nil '(member nil t))
 
 (defmacro compile-time-warn (warn-string)
   (warn warn-string)

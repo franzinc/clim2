@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: processes.lisp,v 1.22 1998/08/06 23:17:36 layer Exp $
+;; $Id: processes.lisp,v 1.23 1999/02/25 08:23:48 layer Exp $
 
 (in-package :clim-utils)
 
@@ -25,9 +25,8 @@
 ;;; Portions copyright (c) 1992, 1993 Franz, Inc."
 
 
-;;; Locks
+;;; Locks 
 
-#+allegro
 (eval-when (compile load eval)
 ;;;  (require :mdproc)
   (require :process))
@@ -297,6 +296,7 @@
   }
   )
 
+#-mswindows
 (defun process-wait (wait-reason predicate)
   #+(or Genera Minima) (declare (dynamic-extent predicate))
   "Cause the current process to go to sleep until the predicate returns TRUE."

@@ -1,7 +1,5 @@
 ;; -*- mode: common-lisp; package: user -*-
 ;;
-;;				-[Thu Aug  6 14:41:46 1998 by layer]-
-;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
 ;;
@@ -19,18 +17,17 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: compile-1.lisp,v 1.35 1998/08/06 23:16:43 layer Exp $
+;; $Id: compile-1.lisp,v 1.36 1999/02/25 08:23:33 layer Exp $
 
 (in-package :user)
+
+(set-case-mode :case-insensitive-upper)
 
 ;;;; This should not matter
 ;;;; (setq *ignore-package-name-case* t)
 
 ;; Forgive them, lord, for they know not what they do.
 (pushnew :ansi-90 *features*)
-
-(setq *print-case* :downcase)
-(set-case-mode :case-insensitive-lower)
 
 (setq comp:generate-call-count-code-switch
   (named-function |(> debug 1)|
@@ -49,6 +46,14 @@
 (defun compile-it (sys)
   (with-compilation-unit ()
     (let ((excl::*update-entry-points* nil))
+      (setf (logical-pathname-translations "clim2")
+	(list (list ";**;*.*" 
+		    (format nil "~A/**/*.*" 
+			    #.(directory-namestring 
+			       (make-pathname
+				:directory
+				(butlast (pathname-directory 
+					  *load-pathname*))))))))
       (unless (ignore-errors (excl:find-system 'sys))
 	(load "clim2:;sys;sysdcl"))
       (excl:compile-system sys :include-components t)

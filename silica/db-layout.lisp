@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: db-layout.lisp,v 1.40 1998/08/06 23:16:57 layer Exp $
+;; $Id: db-layout.lisp,v 1.41 1999/02/25 08:23:36 layer Exp $
 
 (in-package :silica)
 
@@ -286,7 +286,7 @@
   sr)
 
 (defmethod compose-space :around ((pane client-overridability-mixin) &key width height)
-#-aclpc  (declare (ignore width height))
+  (declare (ignore width height))
   (with-slots (space-requirement) pane
     (multiple-value-bind (width1 min-width1 max-width1 height1 min-height1 max-height1) 
         (space-requirement-components (normalize-space-requirement pane space-requirement))
@@ -298,13 +298,20 @@
                  (or x (and y z (max y z)) y z)))
           (let ((height (or height1 height2))
                 (width (or width1 width2)))
-            (make-space-requirement
-             :width width
-             :min-width (or (mmin min-width1 width1 min-width2) width)
-             :max-width (or (mmax max-width1 width1 max-width2) width)
-             :height height
-             :min-height (or (mmin min-height1 height1 min-height2) height)
-             :max-height (or (mmax max-height1 height1 max-height2) height))))))))
+	    ;; Ensure space requirements remain normalized.  JPM spr18629 11/98.
+	    (when width
+	      (when (and min-width1 (< width min-width1)) (setq width min-width1))
+	      (when (and max-width1 (> width max-width1)) (setq width max-width1)))
+	    (when height
+	      (when (and min-height1 (< height min-height1)) (setq height min-height1))
+	      (when (and max-height1 (> height max-height1)) (setq height max-height1)))
+	    (make-space-requirement
+	     :width width
+	     :min-width (or (mmin min-width1 width1 min-width2) width)
+	     :max-width (or (mmax max-width1 width1 max-width2) width)
+	     :height height
+	     :min-height (or (mmin min-height1 height1 min-height2) height)
+	     :max-height (or (mmax max-height1 height1 max-height2) height))))))))
 
 ;; A more correct version. This was implemented to make :max-height
 ;; override the :visible-items in list-panes. This is "more correct"
@@ -369,7 +376,7 @@
     ((space-requirement-cache :initform nil)))
 
 (defmethod compose-space :around ((pane space-requirement-cache-mixin) &key width height)
-#-aclpc  (declare (ignore width height))
+  (declare (ignore width height))
   (with-slots (space-requirement-cache) pane
     (or space-requirement-cache
         (setf space-requirement-cache (call-next-method)))))

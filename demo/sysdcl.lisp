@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: sysdcl.lisp,v 1.30 1998/08/06 23:16:30 layer Exp $
+;; $Id: sysdcl.lisp,v 1.31 1999/02/25 08:23:31 layer Exp $
 
 (in-package #-ansi-90 :user #+ansi-90 :common-lisp-user)
 
@@ -52,16 +52,14 @@
 					      #+ics compile-always)
 			       (:load-before-compile "demo-driver" "packages"))
 
-   #-acl86win32
+   ;;#-acl86win32
    ("bitmap-editor"   (:load-before-compile "demo-driver" "packages"))
    ("ico"	     (:load-before-compile "demo-driver" "packages"))
    ("browser"	     (:load-before-compile "demo-driver" "packages"))
    ("peek-frame"      (:load-before-compile "demo-driver" "packages"))
-   #+Allegro
    ("process-browser" (:load-before-compile "demo-driver" "packages"))
    ("custom-records"  (:load-before-compile "demo-driver" "packages"))
    ("demo-activity"   (:load-before-compile "demo-driver" "packages"))
-   #+Allegro
    ("demo-last")
    #+(or Genera Cloe-Runtime) ("demo-prefill")
    ))

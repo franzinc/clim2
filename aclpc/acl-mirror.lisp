@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-mirror.lisp,v 1.7 1998/10/08 18:36:21 layer Exp $
+;; $Id: acl-mirror.lisp,v 1.8 1999/02/25 08:23:25 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -50,8 +50,8 @@
    (with-dc (*screen* dc) 
     (let ((screen-width (win:GetSystemMetrics win:SM_CXSCREEN)) 
 	  (screen-height (win:GetSystemMetrics win:SM_CYSCREEN))
-	  (logpixelsx (win:getDeviceCaps dc win:logpixelsx))
-	  (logpixelsy (win:getDeviceCaps dc win:logpixelsy)))
+	  (logpixelsx (win:GetDeviceCaps dc win:LOGPIXELSX))
+	  (logpixelsy (win:GetDeviceCaps dc win:LOGPIXELSY)))
 	(setf silica::pixel-width  screen-width
 	      silica::pixel-height screen-height
 	      silica::mm-width     (round (* screen-width 25.4s0) logpixelsx)
@@ -91,7 +91,6 @@
 	   (childwin nil)
 	   (control nil)
            (buttonstyle nil)
-           (editstyle nil)
 	   (value nil)
 	   (items nil)
 	   (width (- right left))
@@ -143,16 +142,6 @@
 	       (if (push-button-show-as-default sheet)
 			     win:BS_DEFPUSHBUTTON
 			     win:BS_PUSHBUTTON)))
-	    ((typep sheet 'silica::mswin-text-edit)
-	     (setq control :hedit)
-	     ;;mm: allocate gadget-id per parent
-             (setq gadget-id (silica::allocate-gadget-id sheet))
-	     (setq value (slot-value sheet 'silica::value))
-	     (setf editstyle
-	       (logior win:ES_AUTOHSCROLL win:ES_LEFT win:WS_BORDER))
-	     (unless (typep sheet 'silica::mswin-text-field)
-               (setf editstyle 
-		 (logior editstyle win:ES_MULTILINE win:ES_AUTOVSCROLL))))
 	    ((typep sheet 'silica::hbutton-pane)
 	     (setq control :hbutt)
 	     ;;mm: allocate gadget-id per parent
@@ -162,7 +151,7 @@
 	       (ecase (gadget-indicator-type sheet)
 		 (:one-of win:BS_RADIOBUTTON)
 		 (:some-of win:BS_CHECKBOX)))))
-      (when (or (eq control :hbutt) (eq control :hedit))
+      (when (eq control :hbutt)
 	(multiple-value-bind (cwidth cheight)
               (compute-gadget-label-size sheet)
 	  (setq top (+ top (* gadget-id 25)))
@@ -191,18 +180,6 @@
 				   :buttonstyle buttonstyle
 				   :value value
 				   :label label)))
-	      ((eq control :hedit)
-	       (setq childwin t)
-	       (hedit-open parent gadget-id
-			       left top width height 
-			       :editstyle editstyle
-			       :value value
-			       :scroll-mode 
-			       (let ((p (sheet-parent sheet)))
-				 (and (typep p 'silica::scroller-pane)
-				      (silica::scroller-pane-scroll-bar-policy p)))
-			       )
-	       )
 	      ((eq control :hlist)
 	       (setq childwin t)
 	       (hlist-open parent gadget-id
@@ -253,8 +230,8 @@
 		      mirror)
 		  nullparent)
 		pretty-name scroll 
-		win:cw_usedefault
-		win:cw_usedefault
+		win:CW_USEDEFAULT
+		win:CW_USEDEFAULT
 		width height
 		(and (getf (frame-properties frame) :native-menu)
 		     (slot-value frame 'menu-bar))
@@ -274,38 +251,26 @@
 	(unless *dc-initialized* (initialize-dc))
 	(with-dc (window dc)
           (with-slots (logpixelsy) port
-            (setf logpixelsy (win:getDeviceCaps dc win:logpixelsy)))))
+            (setf logpixelsy (win:GetDeviceCaps dc win:LOGPIXELSY)))))
 
       ;; added (cim 10/11/96)
       (when control
 	(let ((text-style (pane-text-style sheet)))
 	  (when text-style
 	    (let ((font (text-style-mapping port text-style)))
-	      (win:sendmessage window win:wm_setfont 
+	      (win:SendMessage window win:WM_SETFONT 
 			       (acl-font-index font) 0)))))
-      (sheet-region sheet) ;;+++ debug only
       (when (and childwin (sheet-enabled-p sheet))
-	(win:showWindow window win:sw_show))
+	;; It's too soon for this.  Need to do this later, 
+	;; after the layout has been processed, but where?
+	(win:ShowWindow window win:SW_SHOW))
       window)))
-
-;; added this method so that the default positioning of frames works
-;; properly (cim 10/3/96)
-
-(defmethod realize-mirror :around ((port acl-port) (sheet top-level-sheet))
-  (let ((mirror (call-next-method)))
-    (setf (clim-internals::sheet-thread sheet) (current-process))
-    (with-slots ((uspp silica::user-specified-position-p)) sheet
-      (when (eq uspp :unspecified)
-	(multiple-value-bind (left top)
-	    (mirror-region* port sheet)
-	  (move-sheet sheet left top))))
-    mirror))
 
 (defmethod realize-mirror :around ((port acl-port) (sheet basic-gadget))
   (let ((window (call-next-method))
 	(false 0))
     (unless (gadget-active-p sheet)
-      (win:enablewindow window false)
+      (win:EnableWindow window false)
       (check-last-error "EnableWindow" :action :warn))
     window))
 
@@ -315,32 +280,26 @@
   ;;
   ;; Called by note-sheet-degrafted, which is
   ;; called by (setf port) which is called by sheet-disown-child.
-  ;; This is used when the frame layout changes or by disown-frame,
-  ;; among other times.
+  ;; This is applied to frame panes the frame layout changes, or
+  ;; by disown-frame, among other times.  It is apparently never
+  ;; called on a top-level-sheet, presumably in case you want
+  ;; to reuse the associated frame.
   (let ((mirror (sheet-direct-mirror sheet)))
-    (when mirror
-      (win:destroyWindow mirror))))
-
-(defmethod note-sheet-tree-grafted ((port acl-port) (sheet top-level-sheet))
-  ;; This method is invoked when the sheet and its descendents have
-  ;; been mirrored
-  (let* ((frame (pane-frame sheet))
-	 (native (getf (frame-properties frame) :native-menu))
-	 (command-table (frame-command-table frame)))
-    (when (and native command-table)
-      (acl-clim::compute-msmenu-bar-pane frame sheet command-table))))
+    (when mirror 
+      (win:DestroyWindow mirror)
+      (setf (sheet-direct-mirror sheet) nil))))
 
 (defvar *in-layout-avp* nil)
 
 (defmethod enable-mirror ((port acl-port) sheet)
   (let ((window (sheet-mirror sheet)))
     (unless *in-layout-avp*
-      (win:showWindow window win:sw_show) ; returns NIL if it was already visible.
-      (or (win:updateWindow window)	; send a WM_PAINT message
+      (win:ShowWindow window win:SW_SHOW) ; returns NIL if it was already visible.
+      (or (win:UpdateWindow window)	; send a WM_PAINT message
 	  (check-last-error "UpdateWindow")))))
 
 (defmethod disable-mirror ((port acl-port) sheet)
-  (win:showWindow (sheet-mirror sheet) win:sw_hide))
+  (win:ShowWindow (sheet-mirror sheet) win:SW_HIDE))
 
 (defmethod raise-mirror ((port acl-port) (sheet mirrored-sheet-mixin))
   ;; On Windows95, SetForegroundWindow often fails (returns NIL).
@@ -353,33 +312,28 @@
   t)
 
 (defmethod bury-mirror ((port acl-port) (sheet mirrored-sheet-mixin))
-  (win:setWindowPos (sheet-mirror sheet) 
+  (win:SetWindowPos (sheet-mirror sheet) 
 		    win:HWND_BOTTOM
 		    0 0 0 0		; x y width height
-		    (logior win:swp_noactivate
-			    win:swp_nomove ; ignore x y
-			    win:swp_nosize ; ignore width height
+		    (logior win:SWP_NOACTIVATE
+			    win:SWP_NOMOVE ; IGNORE X Y
+			    win:SWP_NOSIZE ; IGNORE WIDTH HEIGHT
 			    )))
 
 (defmethod mirror-visible-p ((port acl-port) sheet)
-  (win:isWindowVisible (sheet-mirror sheet)))
+  (win:IsWindowVisible (sheet-mirror sheet)))
 
-;; specialized Returns left,top,right,bottom
-(defmethod mirror-region* ((port acl-port) (sheet silica::top-level-sheet))
+(defmethod mirror-client-region-internal* ((port acl-port) mirror target)
   (let ((wrect (ct:ccallocate win:rect))
 	(topleft (ct:ccallocate win:point))
-	(botright (ct:ccallocate win:point))
-	(handle (sheet-direct-mirror sheet))
-	)
-    ;;mm: Use the CLient values and map to screen coordinates
-    (win:getClientRect handle wrect)
+	(botright (ct:ccallocate win:point)))
+    (win:GetWindowRect mirror wrect)
     (setf (ct:cref win:point topleft win::x) (ct:cref win:rect wrect win::left))
     (setf (ct:cref win:point topleft win::y) (ct:cref win:rect wrect win::top))
     (setf (ct:cref win:point botright win::x) (ct:cref win:rect wrect win::right))
     (setf (ct:cref win:point botright win::y) (ct:cref win:rect wrect win::bottom))
-    (win:clientToScreen handle topleft)
-    (win:clientToScreen handle botright)
-
+    (win:ScreenToClient target topleft)
+    (win:ScreenToClient target botright)
     (let ((wleft (ct:cref win:point topleft win::x))
 	  (wtop (ct:cref win:point topleft win::y))
 	  (wright (ct:cref win:point botright win::x)) 
@@ -387,28 +341,21 @@
       (values (coordinate wleft) (coordinate wtop)
 	      (coordinate wright) (coordinate wbottom)))))
 
-
-;;; unspecialized (not top)
 (defmethod mirror-region* ((port acl-port) sheet)
   (let ((mirror (sheet-mirror sheet))
         (target (sheet-mirror (sheet-parent sheet))))
     (mirror-client-region-internal* port mirror target)))
 
-
-;; Returns x,y,width,height
 (defmethod mirror-inside-region* ((port acl-port) sheet)
-  (let ((crect (ct:ccallocate win:rect)))
-    (win:getClientRect (sheet-mirror sheet) crect) ; 0 0 width height
-    (let ((cwidth (ct:cref win:rect crect win::right)) 
-	  (cheight (ct:cref win:rect crect win::bottom)))      
-      (values (coordinate 0) (coordinate 0)
-	      (coordinate cwidth)
-	      (coordinate cheight)))))
+  (multiple-value-bind (minx miny maxx maxy)
+      (mirror-region* port sheet)
+    ;; Returns 0,0,width,height
+    (values (coordinate 0) (coordinate 0)
+	    (- maxx minx) (- maxy miny))))
 
-;;--- Shouldn't this be the same as MIRROR-REGION*?
 (defmethod mirror-native-edges* ((port acl-port) sheet)
   (let ((wrect (ct:ccallocate win:rect)))
-    (win:getWindowRect (sheet-direct-mirror sheet) wrect)
+    (win:GetWindowRect (sheet-direct-mirror sheet) wrect)
     (let ((wleft (ct:cref win:rect wrect win::left))
           (wtop (ct:cref win:rect wrect win::top))
 	  (wright (ct:cref win:rect wrect win::right)) 
@@ -417,33 +364,150 @@
 	      (coordinate wright) (coordinate wbottom)))))
 
 (defmethod mirror-inside-edges* ((port acl-port) sheet)
-  (let ((crect (ct:ccallocate win:rect)))
-    (win:getClientRect (sheet-mirror sheet) crect) ; 0 0 width height
-    (let ((cwidth (ct:cref win:rect crect win::right)) 
-	  (cheight (ct:cref win:rect crect win::bottom)))      
-      (values (coordinate 0) (coordinate 0)
-	      (coordinate cwidth)
-	      (coordinate cheight)))))
+  (multiple-value-bind (a b c d)
+      (mirror-native-edges* port sheet)
+    ;; Returns 0,0,width,height
+    (values (coordinate 0) (coordinate 0)
+	    (- c a) (- d b))))
 
-;;mm: compute the offset and size deltas between frame and client area.
+(defmethod set-sheet-mirror-edges* ((port acl-port) sheet
+				    left top right bottom)
+  ;; unspecialized (not top)
+  (fix-coordinates left top right bottom)
+  (win:SetWindowPos (sheet-mirror sheet)
+		    0 ; we really want win:HWND_TOP
+		    left top (- right left) (- bottom top)
+		    (logior win:SWP_NOACTIVATE
+			    win:SWP_NOZORDER)))
+
+(defvar *port-mirror-sheet-alist* nil)
+
+(defun mirror->sheet (port mirror)
+  (declare (ignore port))
+  (cdr (assoc mirror *port-mirror-sheet-alist* 
+	      :test #'equal)))
+
+(defun (setf mirror->sheet) (sheet port mirror)
+  (declare (ignore port))
+  (push (cons mirror sheet) *port-mirror-sheet-alist*)
+  sheet)
+
+(defmethod sheet-native-transformation ((sheet basic-sheet))
+  (compose-transformations 
+    (sheet-transformation sheet)
+    (sheet-native-transformation (sheet-parent sheet))))
+
+(defmethod clim-utils::stream-encapsulates-stream-p (s1 s2) 
+  (declare (ignore s1 s2))
+  nil)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; 
+;;; A TOP-LEVEL-SHEET FOR WINDOWS
+;;;
+
+(defclass acl-top-level-sheet (top-level-sheet)
+  ((min-width :accessor acl-top-min-width :initform nil)
+   (min-height :accessor acl-top-min-height :initform nil)
+   (accelerator-gestures :initform nil :reader top-level-sheet-accelerator-gestures)
+   (sheet-thread :initform nil :accessor clim-internals::sheet-thread)
+   (tooltip-control :initform nil :accessor tooltip-control)
+   ))
+
+(defmethod initialize-instance :after ((sheet acl-top-level-sheet) &key background)
+  ;; to cause make-instance to accept :background initializer
+  (declare (ignore background))
+  nil)
+
+(defmethod repaint-sheet :around ((sheet acl-top-level-sheet) region)
+  (declare (ignore region) (special silica::*clim-icon-pattern*))
+  (when (port sheet)
+    (call-next-method)
+    (let ((mirror (sheet-direct-mirror sheet))
+	  (pattern silica::*clim-icon-pattern*)
+	  frame icon)
+      (when (and mirror (win:IsIconic mirror))
+	(setf frame (pane-frame sheet))
+	(setf icon (clim-internals::frame-icon frame))
+	(with-sheet-medium (medium sheet)
+	  (when icon
+	    (destructuring-bind (&key name pixmap clipping-mask) icon
+	      (declare (ignore name clipping-mask))
+	      (setf pattern pixmap)))
+	  (when pattern
+	    (clim:draw-pattern* medium pattern 3 3)))
+	#+ignore
+	(multiple-value-bind (left top right bottom)
+	    (mirror-native-edges* *acl-port* sheet)
+	  (declare (special *clim-icon*))
+	  (let ((dc (GetDc mirror)))
+	    (win:DrawIcon dc 0 0 *clim-icon*)
+	    (win:ReleaseDC mirror dc)))
+	))))
+
+(defmethod realize-mirror :around ((port acl-port) 
+				   (sheet acl-top-level-sheet))
+  ;; added this method so that the default positioning 
+  ;; of frames works (cim 10/3/96)
+  (let ((mirror (call-next-method)))
+    (setf (clim-internals::sheet-thread sheet) (current-process))
+    (with-slots ((uspp silica::user-specified-position-p)) sheet
+      (when (eq uspp :unspecified)
+	(multiple-value-bind (left top)
+	    (mirror-region* port sheet)
+	  (move-sheet sheet left top))))
+    mirror))
+
+(defmethod note-sheet-tree-grafted ((port acl-port) 
+				    (sheet acl-top-level-sheet))
+  ;; This method is invoked when the sheet and its descendents have
+  ;; been mirrored
+  (let* ((frame (pane-frame sheet))
+	 (native (getf (frame-properties frame) :native-menu))
+	 (command-table (frame-command-table frame)))
+    (when (and native command-table)
+      (compute-msmenu-bar-pane frame sheet command-table))))
+
+(defmethod mirror-region* ((port acl-port) (sheet acl-top-level-sheet))
+  ;; Get the "inside" size of a top-level sheet.
+  (let ((wrect (ct:ccallocate win:rect))
+	(topleft (ct:ccallocate win:point))
+	(botright (ct:ccallocate win:point))
+	(handle (sheet-direct-mirror sheet)))
+    ;;mm: Use the CLient values and map to screen coordinates
+    (win:GetClientRect handle wrect)
+    (setf (ct:cref win:point topleft win::x) (ct:cref win:rect wrect win::left))
+    (setf (ct:cref win:point topleft win::y) (ct:cref win:rect wrect win::top))
+    (setf (ct:cref win:point botright win::x) (ct:cref win:rect wrect win::right))
+    (setf (ct:cref win:point botright win::y) (ct:cref win:rect wrect win::bottom))
+    (win:ClientToScreen handle topleft)
+    (win:ClientToScreen handle botright)
+    (let ((wleft (ct:cref win:point topleft win::x))
+	  (wtop (ct:cref win:point topleft win::y))
+	  (wright (ct:cref win:point botright win::x)) 
+	  (wbottom (ct:cref win:point botright win::y)))      
+      (values (coordinate wleft) (coordinate wtop)
+	      (coordinate wright) (coordinate wbottom)))))
+
 (defun get-nonclient-deltas (sheet)
+  "Calculates the difference between the window edges and the 'client' area"
+  ;; Gives you sizes of title bar and window handles.
   (let ((wrect (ct:ccallocate win:rect))
 	(crect (ct:ccallocate win:rect))
 	(topleft (ct:ccallocate win:point))
 	(botright (ct:ccallocate win:point))
-        (handle (sheet-direct-mirror sheet))
-        )
-    (unless (and handle (win:iswindow handle))
+        (handle (sheet-direct-mirror sheet)))
+    (unless (and handle (win:IsWindow handle))
       ;; No need to plunge ahead in this case...
       (error "Sheet no longer has a valid window handle: ~S" handle))
-    (win:getWindowRect handle wrect)
-    (win:getClientRect handle crect)	; 0 0 width height
+    (win:GetWindowRect handle wrect)	; in screen coordinates
+    (win:GetClientRect handle crect)	; 0 0 width height
     (setf (ct:cref win:point topleft win::x) (ct:cref win:rect crect win::left))
     (setf (ct:cref win:point topleft win::y) (ct:cref win:rect crect win::top))
     (setf (ct:cref win:point botright win::x) (ct:cref win:rect crect win::right))
     (setf (ct:cref win:point botright win::y) (ct:cref win:rect crect win::bottom))
-    (win:clientToScreen handle topleft)
-    (win::clientToScreen handle botright)
+    (win:ClientToScreen handle topleft)
+    (win:ClientToScreen handle botright)
 
     (let ((ctop (ct:cref win:point topleft win::y)) 
 	  (cleft (ct:cref win:point topleft win::x))
@@ -459,157 +523,26 @@
        (- (- wbottom wtop) (- cbottom ctop))
        ))))
 
-
-(defun clim-internals::bounding-rectangle-inside-size (top-sheet)
-  (let ((crect (ct:ccallocate win:rect)))
-    (win:getClientRect (sheet-mirror top-sheet) crect) ; 0 0 width height
-    (let ((cwidth (ct:cref win:rect crect win::right)) 
-	  (cheight (ct:cref win:rect crect win::bottom)))      
-      (values (coordinate cwidth)
-	      (coordinate cheight)))))
-
-(defmethod mirror-client-region-internal* ((port acl-port) mirror target)
-  (let ((wrect (ct:ccallocate win:rect))
-	(topleft (ct:ccallocate win:point))
-	(botright (ct:ccallocate win:point))
-	)
-    (win:getWindowRect mirror wrect)
-    (setf (ct:cref win::point topleft win::x) (ct:cref win:rect wrect win::left))
-    (setf (ct:cref win:point topleft win::y) (ct:cref win:rect wrect win::top))
-    (setf (ct:cref win:point botright win::x) (ct:cref win:rect wrect win::right))
-    (setf (ct:cref win:point botright win::y) (ct:cref win:rect wrect win::bottom))
-    (win:screenToClient target topleft)
-    (win:screenToClient target botright)
-    (let ((wleft (ct:cref win:point topleft win::x))
-	  (wtop (ct:cref win:point topleft win::y))
-	  (wright (ct:cref win:point botright win::x)) 
-	  (wbottom (ct:cref win:point botright win::y)))      
-      (values (coordinate wleft) (coordinate wtop)
-	      (coordinate wright) (coordinate wbottom)))))
-
-(defvar *setting-sheet-mirror-edges* nil)
-
-(declaim (special *use-native-menubar*))
-
-;;; specialized
-;;; aclpc\acl-mirr
 (defmethod set-sheet-mirror-edges* ((port acl-port)
-				    (sheet silica::top-level-sheet)
+				    (sheet acl-top-level-sheet)
 				    left top right bottom)
+  ;; Set the "inside" size of a top-level sheet.
+  ;; Top-level sheet has to account for sizes of window decorations.
   (fix-coordinates left top right bottom)
+  (multiple-value-bind (wleft wtop wright wbottom) (mirror-region* port
+sheet)
+    (when (and (= left wleft) (= top wtop)
+	       (= right wright) (= bottom wbottom))
+      ;; We seem to get infinite recursion if we don't check for this.
+      (return-from set-sheet-mirror-edges* t)))
   (multiple-value-bind (dl dt dw dh) (get-nonclient-deltas sheet)
     ;;mm: map the client coordinates to frame coordinates
-    (let* ((pldl (+ left dl))
-	   (ptdt (+ top dt)))
-      ;; rl: +++kludge, why doesn't it know the size of the menu bar
-      ;;     in the first pass?, so add 19 for now
-      (win:setWindowPos (sheet-mirror sheet)
-		      #+aclpc (ct:null-handle win:hwnd) ; we really want win:HWND_TOP
-		      #+acl86win32 0
-		      pldl
-		      ptdt
-		      (+ (- right left) dw)
-		      (+ (- bottom top) dh
-			 ;; kludge added back in -tjm Aug97
-			 (if (and *use-native-menubar*
-				  ;; is this how to verify that sheet's frame has a
-				  ;; menu bar? -tjm
-				  (slot-value (slot-value sheet 'silica::frame) 'silica::menu-bar)
-				  (zerop (+ (win:GetSystemMetrics win:SM_CYCAPTION)
-					    (win:GetSystemMetrics win:SM_CYFRAME)
-					    dt)))
-			     (win:GetSystemMetrics win:SM_CYMENU) 0)
-			 ;; got rid of the menu-bar kludge factor -
-			 ;; doesn't seem to be needed anymore
-			 ;; (cim 10/3/96)  
-			 #+ignore 
-			 (if (and (minusp ptdt) (> ptdt -30)) 19 0))
-		      (logior
-		       win:swp_noactivate
-		       win:swp_nozorder)))))
+    (let* ((winleft   (+ left dl))
+	   (wintop    (+ top dt))
+	   (winwidth  (+ (- right left) dw))
+	   (winheight (+ (- bottom top) dh)))
+      (win:SetWindowPos (sheet-mirror sheet) 0
+			winleft	wintop winwidth	winheight
+			(logior win:SWP_NOACTIVATE
+				win:SWP_NOZORDER)))))
 
-;;; unspecialized (not top)
-(defmethod set-sheet-mirror-edges* ((port acl-port) sheet
-				    left top right bottom)
-  (fix-coordinates left top right bottom)
-  (win:setWindowPos (sheet-mirror sheet)
-		    (ct:null-handle win:hwnd) ; we really want win:HWND_TOP
-		    left top
-		    (- right left)
-		    (- bottom top)
-		    (logior win:swp_noactivate
-			    win:swp_nozorder)))
-
-(defmethod set-sheet-mirror-edges* :around ((port acl-port)
-					     sheet 
-					    left top right bottom)
-  (declare (ignore bottom right top left))
-  (let ((*setting-sheet-mirror-edges* sheet))
-    (call-next-method)))
-
-
-(in-package :silica)
-
-;;; from silica\mirror.lsp
-(defvar *port-mirror-sheet-alist* nil)
-
-(eval-when (compile load eval)
-  (proclaim '(notinline mirror->sheet)))
-
-(defun mirror->sheet (port mirror)
-  (declare (ignore port))
-  (cdr (assoc mirror *port-mirror-sheet-alist* 
-	      :test #'equal)))
-
-(defun (setf mirror->sheet) (sheet port mirror)
-  (declare (ignore port))
-  (push (cons mirror sheet) *port-mirror-sheet-alist*)
-  sheet)
-
-;;; silica\mirror ; ignored before, but we need it with deep mirroring
-(defmethod sheet-native-transformation ((sheet basic-sheet))
-  (compose-transformations 
-    (sheet-transformation sheet)
-    (sheet-native-transformation (sheet-parent sheet))))
-
-
-;;;  problem with interactor pane as first argument
-(defmethod clim-utils::stream-encapsulates-stream-p (s1 s2) 
-  (declare (ignore s1 s2))
-  nil)
-
-
-;;; silica\medium.lsp  ;;; to make aclpc accept :background initializer
-
-
-(defmethod initialize-instance :after ((sheet top-level-sheet) &key background)
-  (declare (ignore background))
-  nil)
-
-(declaim (special *clim-icon-pattern*))
-
-(defmethod repaint-sheet :around ((sheet top-level-sheet) region)
-  (declare (ignore region))
-  (when (port sheet)
-    (call-next-method)
-    (when (typep sheet 'top-level-sheet)
-      (let ((mirror (sheet-direct-mirror sheet))
-	    (pattern *clim-icon-pattern*)
-	    frame icon)
-	(when (and mirror (win:IsIconic mirror))
-	  (setf frame (pane-frame sheet))
-	  (setf icon (clim-internals::frame-icon frame))
-	  (with-sheet-medium (medium sheet)
-	    (when icon
-	      (destructuring-bind (&key name pixmap clipping-mask) icon
-		(declare (ignore name clipping-mask))
-		(setf pattern pixmap)))
-	    (when pattern
-	      (clim:draw-pattern* medium pattern 3 3)))
-	  #+ignore
-	  (multiple-value-bind (left top right bottom)
-	      (mirror-native-edges* acl-clim::*acl-port* sheet)
-	    (let ((dc (GetDc mirror)))
-	      (win:DrawIcon dc 0 0 *clim-icon*)
-	      (win:releaseDC mirror dc)))
-	  )))))

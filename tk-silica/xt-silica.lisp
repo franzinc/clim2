@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xt-silica.lisp,v 1.110 1998/08/06 23:17:28 layer Exp $
+;; $Id: xt-silica.lisp,v 1.111 1999/02/25 08:23:46 layer Exp $
 
 (in-package :xm-silica)
 
@@ -39,7 +39,7 @@
      (cursor-font :initform nil)
      (cursor-cache :initform nil)
      (font-cache :initform (make-hash-table :test #'equal))
-     (compose-status :initform (x11:make-xcomposestatus)
+     (compose-status :initform (make-xcomposestatus)
 		     :reader port-compose-status)
      #+ignore ;; figure out how to get this translation
      (fm-ornamentation-offset :initform nil
@@ -47,6 +47,9 @@
   (:default-initargs :allow-loose-text-style-size-mapping t
 		     :deep-mirroring t)
   (:documentation "The port for X intrinsics based ports"))
+
+(defun make-xcomposestatus ()
+  (clim-utils::allocate-cstruct 'x11::xcomposestatus :initialize t))
 
 (defmethod port-type ((port xt-port))
   ':xt)
@@ -324,6 +327,9 @@
 (defmethod add-sheet-callbacks ((port xt-port) sheet (widget t))
   (declare (ignore sheet)))
 
+(defvar *last-click-time* 0)
+(defvar *double-click-time* 300) ;; .3 seconds
+
 (defmethod sheet-mirror-event-handler (widget event sheet)
   #+ignore
   (format excl:*initial-terminal-io* "Got event ~s~%" (tk::event-type event))
@@ -368,8 +374,8 @@
 			       :character character
 			       :modifier-state
 			       (logior
-				  (state->modifiers (x11::xkeyevent-state event))
-				  keysym-shift-mask)))))
+				(state->modifiers (x11::xkeyevent-state event))
+				keysym-shift-mask)))))
 	  (:key-release
 	   (multiple-value-bind (character keysym)
 	       (lookup-character-and-keysym sheet widget event)
@@ -389,12 +395,24 @@
 			       :character character
 			       :modifier-state
 			       (logandc2
-				  (state->modifiers (x11::xkeyevent-state event))
-				  keysym-shift-mask)))))
+				(state->modifiers (x11::xkeyevent-state event))
+				keysym-shift-mask)))))
 	  (:button-press
+	   ;; It would appear this code never runs.  See sheet-mirror-input-handler.
 	   (let ((button (x-button->silica-button
 			  (x11::xbuttonevent-button event)))
-		 (pointer (port-pointer port)))
+		 (pointer (port-pointer port))
+		 (then *last-click-time*)
+		 (now (get-internal-real-time))
+		 (state (state->modifiers
+			 (x11::xbuttonevent-state event))))
+	     (setq *last-click-time* now)
+	     (when (<= (- now then) *double-click-time*)
+	       ;; A double-click is actually four events:
+	       ;; press, release, press, release.  Unlike Windows,
+	       ;; in X there is no explicit double-click event.
+	       ;; So we do it ourselves, here.
+	       (setq state (logior state (make-modifier-state :double))))
 	     (allocate-event 'pointer-button-press-event
 			     :sheet sheet
 			     :pointer pointer
@@ -402,9 +420,7 @@
 			     :native-x (x11::xbuttonevent-x event)
 			     :native-y (x11::xbuttonevent-y event)
 			     :x :?? :y :??
-			     :modifier-state
-			     (state->modifiers
-				(x11::xbuttonevent-state event)))))
+			     :modifier-state state)))
 	  (:button-release
 	   (let ((button (x-button->silica-button
 			  (x11::xbuttonevent-button event)))
@@ -418,7 +434,7 @@
 			     :x :?? :y :??
 			     :modifier-state
 			     (state->modifiers
-				(x11::xkeyevent-state event)))))
+			      (x11::xkeyevent-state event)))))
 	  (:leave-notify
 	   (allocate-event 'pointer-exit-event
 			   :sheet sheet
@@ -589,7 +605,19 @@
       (:button-press
        (let ((button (x-button->silica-button
 		      (x11::xbuttonevent-button event)))
-	     (pointer (port-pointer port)))
+	     (pointer (port-pointer port))
+	     (then *last-click-time*)
+	     (now (get-internal-real-time))
+	     (state (state->modifiers
+		     (x11::xbuttonevent-state event))))
+	 (setq *last-click-time* now)
+	 (when (<= (- now then) *double-click-time*)
+	   ;; A double-click is actually four events:
+	   ;; press, release, press, release.  Unlike Windows,
+	   ;; in X there is no explicit double-click event.
+	   ;; So we do it ourselves, here.
+	   (setq state (logior state (make-modifier-state :double))))
+
 	 #+debug
 	 (format excl:*initial-terminal-io*
 		 "~%event ~s type: ~s button: ~s x: ~s y: ~s"
@@ -608,8 +636,7 @@
 			  :native-y (x11::xbuttonevent-y event)
 			  ;;-- Filled in by distributor
 			  :x :?? :y :??
-			  :modifier-state (state->modifiers
-					     (x11::xbuttonevent-state event))))))
+			  :modifier-state state))))
       (:button-release
        (let ((button (x-button->silica-button
 		      (x11::xbuttonevent-button event)))
@@ -625,7 +652,7 @@
 			  :native-y (x11::xbuttonevent-y event)
 			  :x :?? :y :??
 			  :modifier-state (state->modifiers
-					     (x11::xbuttonevent-state event))))))
+					   (x11::xbuttonevent-state event))))))
       )))
 
 (defmethod sheet-mirror-map-callback (event sheet)
@@ -646,7 +673,7 @@
 	   ;; message.  Iconifying a window also sends an UnmapNotify
 	   ;; message.  There is apparently no way to tell the difference.
 	   ;; The right thing to do is to stop calling XIconifyWindow in
-	   ;; response, since it is not only unnecessary, it is detrimental.  
+	   ;; response, since it is not only unnecessary, it is detrimental.
 	   ;; That is the purpose of *suppress-xevents*.
 	   (when (eq state :enabled)
 	     (setf (frame-state frame) :shrunk))))))))
@@ -977,7 +1004,13 @@
     (if (stringp mapping)
 	(setf (text-style-mapping port text-style character-set)
 	  (find-named-font port mapping character-set))
-      mapping))))
+      mapping)))
+
+(defmethod font-set-from-font-list ((port xt-port) font-list)
+  (declare (ignore font-list))
+  (error "not yet implemented for non-ics lisp"))
+
+) ;; :-ics
 
 ) ;; ics-target-case
 
@@ -1276,9 +1309,6 @@
 			     0))
       (setq character (and (= (length (the simple-string character)) 1)
 			   (aref (the simple-string character) 0)))
-      ;;--- Map the asci control-characters into the common lisp
-      ;;--- control characters except where they are special!
-      ;; Also deal with the modifier bits
       ;; This gets stuff wrong because for example to type-< you have to
       ;; use the shift key and so instead for m-< you aget m-sh-<
       ;; Perhaps there is a way of checking to see whether shifting
@@ -1286,31 +1316,34 @@
       (when character
 	(let ((x (state->modifiers
 		  (x11::xkeyevent-state event))))
-	  (setq character (cltl1:make-char
-			   (if (and (<= (char-int character) 26)
-				    (not (member character
-						 '(#\return
-						   #\tab
-						   #\page
-						   #\backspace
-						   #\linefeed
-						   #\escape)
-						 :test #'eq)))
-			       (cltl1::int-char
-				(+ (cltl1::char-int character)
-				   (1- (if (logtest x +shift-key+)
-					   (char-int #\A)
-					 (char-int #\a)))))
-			     character)
-			   (logior
-			    (if (logtest x +control-key+)
-				cltl1:char-control-bit 0)
-			    (if (logtest x +meta-key+)
-				cltl1:char-meta-bit 0)
-			    (if (logtest x +super-key+)
-				cltl1:char-super-bit 0)
-			    (if (logtest x +hyper-key+)
-				cltl1:char-hyper-bit 0))))))
+	  (setq character 
+	     (if (and (<= (char-int character) 26)
+		      (not (member character
+				   '(#\return
+				     #\tab
+				     #\page
+				     #\backspace
+				     #\linefeed
+				     #\escape)
+				   :test #'eq)))
+		 (code-char
+		  (+ (char-code character)
+		     (1- (if (logtest x +shift-key+)
+			     (char-int #\A)
+			   (char-int #\a)))))
+	       character))
+	  ;; I believe this use of character bit attributes
+	  ;; is unnecessary because all that information is 
+	  ;; in the keysym.  JPM 1/13/99.
+	  #+ignore
+	  (setq character 
+	    (cltl1:make-char
+	     character
+	     (logior
+	      (if (logtest x +control-key+) 1 0)
+	      (if (logtest x +meta-key+)    2 0)
+	      (if (logtest x +super-key+)	  4 0)
+	      (if (logtest x +hyper-key+)	  8 0))))))
       (values character (xt-keysym->keysym keysym)))))
 
 

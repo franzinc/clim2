@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: browser.lisp,v 1.27 1998/08/06 23:16:23 layer Exp $
+;; $Id: browser.lisp,v 1.28 1999/02/25 08:23:31 layer Exp $
 
 ;;; Simple extensible browser
 ;;; Scott McKay
@@ -1147,7 +1147,7 @@
 	   :default (make-pathname :name "GRAPH-HARDCOPY"
 				   :type "PS"
 				   :defaults (user-homedir-pathname)
-				   #+ANSI-90 :case #+ANSI-90 :common)
+				   :case :common)
 	   :documentation "File in which to put the PostScript result")
 	  (orientation '(member :landscape :portrait)
 	   :default :portrait
@@ -1172,6 +1172,10 @@
 	  (orientation '(member :landscape :portrait)
 		       :default :portrait
 		       :documentation "Orientation to use on the paper"))
+  #+mswindows (declare (ignore printer orientation))
+  #+mswindows
+  (notify-user *application-frame* "Not implemented for this platform")
+  #+unix
   (with-open-stream 
       (pipe (excl:run-shell-command  (format nil "lpr -P~A" printer) :input :stream :wait nil))
     (with-output-to-postscript-stream (stream pipe 

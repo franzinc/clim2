@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: db-button.lisp,v 1.24 1998/08/06 23:16:57 layer Exp $
+;; $Id: db-button.lisp,v 1.25 1999/02/25 08:23:36 layer Exp $
 
 ;;;"Copyright (c) 1991, 1992 by Symbolics, Inc.  All rights reserved.
 ;;; Portions copyright (c) 1990, 1991 International Lisp Associates."
@@ -995,25 +995,72 @@ toggle button base. This way they can share the draw code.
     ())
 
 (defmethod initialize-instance :after ((pane radio-box-pane) 
-                                       &key choices selection frame-manager frame)
+                                       &key choices selection 
+					    frame-manager frame)
   (declare (ignore choices))
-  ;; Set the button's client and disown it from the radio box so
-  ;; that we can do layout, below.
+  ;; Set the button's client and disown it from the radio box so that
+  ;; we can do layout, below.
   (let ((buttons (copy-list (sheet-children pane))))
     (dolist (button buttons)
       (setf (gadget-client button) pane)
       (sheet-disown-child pane button))
-    (let ((inferiors
-            (with-look-and-feel-realization (frame-manager frame)
-              (make-pane (ecase (gadget-orientation pane)
-                           (:horizontal 'hbox-pane)
-                           (:vertical 'vbox-pane))
-                :spacing 5
-                :contents buttons))))
-      (sheet-adopt-child pane inferiors)))
-  (when selection
-    (setf (gadget-value pane) selection)
-    (setf (gadget-value selection) t)))
+    (let ((orientation (gadget-orientation pane))
+	  (rows (gadget-rows pane))
+	  (columns (gadget-columns pane)))
+      (let ((inferiors (box-pane-layout frame-manager frame buttons
+					orientation rows columns)))
+	(sheet-adopt-child pane inferiors)))
+    (when selection
+      (setf (gadget-value pane) selection)
+      (setf (gadget-value selection) t))))
+
+(defun box-pane-layout (frame-manager frame buttons orientation numrows
+			numcols)
+  (cond ((and buttons  ;; If no buttons, let orientation handle it.
+	      (or numrows numcols))
+	 (let ((cols-list (columnize-list buttons numrows numcols)))
+	   (with-look-and-feel-realization (frame-manager frame)
+	     (let ((hbox-contents 
+		    (loop for col-elems in cols-list
+			for vbox-contents =
+			  (loop for cell in col-elems
+			      collecting (or cell
+					     (make-pane 'clim:label-pane
+							:label " ")))
+			collecting (make-pane 'vbox-pane
+					      :spacing 5
+					      :contents vbox-contents))))
+	       (make-pane 'hbox-pane
+			  :spacing 5
+			  :contents hbox-contents)))))
+	(t
+	 (with-look-and-feel-realization (frame-manager frame)
+	   (make-pane (ecase orientation
+			(:horizontal 'hbox-pane)
+			(:vertical 'vbox-pane))
+		      :spacing 5
+		      :contents buttons)))))
+
+(defun columnize-list (list numrows numcols)
+  (let ((listsize (length list)))
+    (cond ((and numrows numcols)
+	   (if (< (* numrows numcols) listsize)
+	       ;; if too small, increase the number of rows.
+	       (setq numrows (ceiling listsize numcols))))
+	  (numcols
+	   (setq numcols (max numcols 1))
+	   (setq numrows (ceiling listsize numcols)))
+	  (t
+	   (if (null numrows)
+	       (setq numrows 1))
+	   (setq numrows (max numrows 1))
+	   (setq numcols (ceiling listsize numrows))))
+    (loop for col below numcols
+	for first-elem-index from 0
+	collecting (loop for row below numrows
+		       for elem-index from first-elem-index by numcols
+		       collecting (nth elem-index list)))
+    ))
 
 (defmethod value-changed-callback :around
            ((selection toggle-button) (client radio-box-pane) gadget-id value)
@@ -1047,20 +1094,18 @@ toggle button base. This way they can share the draw code.
 
 (defmethod initialize-instance :after ((pane check-box-pane) 
                                        &key choices current-selection
-                                       frame-manager frame)
+					    frame-manager frame)
   (declare (ignore choices))
   (let ((buttons (copy-list (sheet-children pane))))
     (dolist (button buttons)
       (setf (gadget-client button) pane)
       (sheet-disown-child pane button))
-    (let ((inferiors
-            (with-look-and-feel-realization (frame-manager frame)
-              (make-pane (ecase (gadget-orientation pane)
-                           (:horizontal 'hbox-pane)
-                           (:vertical 'vbox-pane))
-                :spacing 5
-                :contents buttons))))
-      (sheet-adopt-child pane inferiors)))
+    (let ((orientation (gadget-orientation pane))
+	  (rows (gadget-rows pane))
+	  (columns (gadget-columns pane)))
+      (let ((inferiors (box-pane-layout frame-manager frame buttons
+					orientation rows columns)))
+	(sheet-adopt-child pane inferiors))))
   (when current-selection
     (setf (gadget-value pane) current-selection)
     (dolist (selection current-selection)

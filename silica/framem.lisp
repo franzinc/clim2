@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: framem.lisp,v 1.36 1998/08/06 23:16:58 layer Exp $
+;; $Id: framem.lisp,v 1.37 1999/02/25 08:23:37 layer Exp $
 
 (in-package :silica)
 
@@ -157,42 +157,11 @@
         (slot-value frame 'clim-internals::initialized-panes) nil
         (frame-panes frame) nil))
 
-#+(or aclpc acl86win32)
-(progn
-  (defmethod note-frame-enabled (framem frame)
-    (declare (ignore framem frame))
-    nil)
-  (defmethod note-frame-disabled (framem frame)
-    (declare (ignore framem frame))
-    nil)
-  (defmethod note-frame-iconified (framem frame)
-    (declare (ignore framem frame))
-    nil)
-  (defmethod note-frame-deiconified (framem frame)
-    (declare (ignore framem frame))
-    nil)
-  )
-
-#+(or aclpc acl86win32) ;; pr Aug97 added acl86win32
-(defvar *in-layout-frame* nil)
-
-#+aclpc
-(defclass accept-values-pane (clim-stream-pane) ())
-
 (defmethod note-frame-enabled :after ((framem standard-frame-manager) frame)
   (update-frame-settings framem frame)
   ;;--- Perhaps we want to resize the top level sheet if there is one
-  (let (#+(or aclpc acl86win32) (avp nil)
-        #+(or aclpc acl86win32) (*in-layout-frame* *in-layout-frame*))    
-    (when (frame-top-level-sheet frame)
-      #+(or aclpc acl86win32)
-      (map-over-sheets #'(lambda (sheet)
-                           (when (typep sheet 'accept-values-pane)
-                             (setf avp t)))
-                       (frame-top-level-sheet frame))
-      #+(or aclpc acl86win32)
-      (setf *in-layout-frame* avp)
-      (setf (sheet-enabled-p (frame-top-level-sheet frame)) t))))
+  (when (frame-top-level-sheet frame)
+    (setf (sheet-enabled-p (frame-top-level-sheet frame)) t)))
 
 (defmethod note-frame-disabled :after ((framem standard-frame-manager) frame)
   (setf (sheet-enabled-p (frame-top-level-sheet frame)) nil))
@@ -267,6 +236,5 @@
                options))))
 
 (defmethod make-pane-arglist ((framem standard-frame-manager) type &rest options)
-  #-aclpc (declare (ignore type))
-  #-aclpc (declare (non-dynamic-extent options))
+  (declare (ignore type) (non-dynamic-extent options))
   options)

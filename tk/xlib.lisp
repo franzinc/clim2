@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xlib.lisp,v 1.62 1998/09/29 21:02:35 duane Exp $
+;; $Id: xlib.lisp,v 1.63 1999/02/25 08:23:42 layer Exp $
 
 (in-package :tk)
 
@@ -56,11 +56,17 @@
   (defconstant *window-configure-bit-mask*
       '(x y width height border-width sibling stacking-mode)))
 
+(defun make-xsetwindowattributes ()
+  (clim-utils::allocate-cstruct 'x11::xsetwindowattributes :initialize t))
+
+(defun make-xwindowattributes ()
+  (clim-utils::allocate-cstruct 'x11::xwindowattributes :initialize t))
+
 (eval-when (compile eval)
   (defmacro define-window-reader (name &optional decoder &rest args)
     `(defmethod ,(intern (format nil "~A-~A" 'window name)) ((window window))
        ,(let ((body
-	       `(let ((attrs (x11:make-xwindowattributes)))
+	       `(let ((attrs (make-xwindowattributes)))
 		  (x11:xgetwindowattributes (object-display window)
 					    window
 					    attrs)
@@ -73,7 +79,7 @@
     `(progn
        (defmethod (setf ,(intern (format nil "~A-~A" 'window name)))
 	   (nv (window window))
-	 (let ((attrs (x11::make-xsetwindowattributes)))
+	 (let ((attrs (make-xsetwindowattributes)))
 	   (setf (,(intern (format nil "~a-~a" 'xsetwindowattributes name) :x11)
 		  attrs)
 	     ,(if encoder
@@ -185,9 +191,12 @@
   (unless foreign-address
     (setf (foreign-pointer-address db) (x11:xrmgetstringdatabase ""))))
 
+(defun make-xrmvalue ()
+  (clim-utils::allocate-cstruct 'x11::xrmvalue :initialize t))
+
 (defun get-resource (db name class)
   (with-ref-par ((type 0 *))
-    (let ((xrmvalue (x11:make-xrmvalue)))
+    (let ((xrmvalue (make-xrmvalue)))
       (unless (zerop (x11:xrmgetresource db
 					 (lisp-string-to-string8 name)
 					 (lisp-string-to-string8 class)
@@ -205,12 +214,12 @@
 	   type))))))
 
 (defun convert-string (widget string to-type)
-  (let ((from (x11:make-xrmvalue))
-	(to-in-out (x11:make-xrmvalue)))
+  (let ((from (make-xrmvalue))
+	(to-in-out (make-xrmvalue)))
     (setf (x11:xrmvalue-size from) (1+ (length string))
 	  (x11:xrmvalue-addr from)
 	  (note-malloced-object
-	   (string-to-char* string))
+	   (clim-utils:string-to-foreign string))
 	  (x11:xrmvalue-addr to-in-out) 0)
     (unless (zerop (xt::xt_convert_and_store widget "String" from to-type
 				      to-in-out))
@@ -250,7 +259,7 @@
 					   0 s 1000)
 		(prog1
 		    (ff:char*-to-string s)
-		  (excl::free s))))
+		  (clim-utils::system-free s))))
 	    resourceid)))
 
 (defun-c-callable x-error-handler ((display :unsigned-long) (event :unsigned-long))
@@ -284,7 +293,7 @@
     (x11::xgeterrortext display-handle code s 1000)
     (prog1
 	(ff:char*-to-string s)
-      (excl::free s))))
+      (clim-utils::system-free s))))
 
 (defvar *x-error-handler-address* nil)
 (defvar *x-io-error-handler-address* nil)
@@ -340,12 +349,15 @@
 
 (defclass color (ff:foreign-pointer) ())
 
+(defun make-xcolor (&key in-foreign-space (number 1))
+  (declare (ignore in-foreign-space))
+  (clim-utils::allocate-cstruct 'x11::xcolor 
+				:number number :initialize t))
+
 (defmethod initialize-instance :after
 	   ((x color) &key foreign-address (in-foreign-space t) red green blue (pixel 0))
   (unless foreign-address
-    (setq foreign-address (if in-foreign-space
-			      (x11::make-xcolor :in-foreign-space t)
-			    (x11::make-xcolor :in-foreign-space nil)))
+    (setq foreign-address (make-xcolor :in-foreign-space in-foreign-space))
     (setf (x11::xcolor-red foreign-address) red
 	  (x11:xcolor-green foreign-address) green
 	  (x11:xcolor-blue foreign-address) blue
@@ -364,8 +376,8 @@
 	     (x11:xcolor-blue cm)))))
 
 (defun lookup-color (colormap name)
-  (let ((exact (x11::make-xcolor :in-foreign-space t))
-	(closest (x11::make-xcolor :in-foreign-space t)))
+  (let ((exact (make-xcolor))
+	(closest (make-xcolor)))
     (unless (zerop (x11:xlookupcolor
 		    (object-display colormap)
 		    colormap
@@ -376,7 +388,7 @@
 	      (make-instance 'color :foreign-address closest)))))
 
 (defun parse-color (colormap name)
-  (let ((exact (x11::make-xcolor :in-foreign-space t)))
+  (let ((exact (make-xcolor :in-foreign-space t)))
     (unless (zerop (x11:xparsecolor
 		    (object-display colormap)
 		    colormap
@@ -385,7 +397,7 @@
       (values (make-instance 'color :foreign-address exact)))))
 
 (defun allocate-color (colormap x)
-  (let ((y (x11::make-xcolor :in-foreign-space t))
+  (let ((y (make-xcolor))
 	(x x))
     (setf (x11:xcolor-red y) (x11:xcolor-red x)
 	  (x11:xcolor-green y) (x11:xcolor-green x)
@@ -400,7 +412,9 @@
       (if (zerop z)
 	  (error 'x-colormap-full)
 	(values (x11:xcolor-pixel y)
-		(make-instance 'color :foreign-address y))))))
+		(make-instance 'color 
+		  :in-foreign-space t
+		  :foreign-address y))))))
 
 (defun free-color-cells (colormap pixel planes)
   (with-unsigned-long-array (pixels 1)
@@ -413,8 +427,8 @@
      planes)))
 
 (defun allocate-named-color (colormap name)
-  (let ((exact (x11::make-xcolor :in-foreign-space t))
-	(closest (x11::make-xcolor :in-foreign-space t)))
+  (let ((exact (make-xcolor))
+	(closest (make-xcolor)))
     (if (zerop (x11:xallocnamedcolor
 		(object-display colormap)
 		colormap
@@ -426,7 +440,7 @@
 
 (defun query-color (colormap x)
   ;;--- Resource time
-  (let ((y (x11::make-xcolor)))
+  (let ((y (make-xcolor)))
     (setf (x11:xcolor-pixel y) x)
     (x11:xquerycolor
      (object-display colormap)
@@ -463,11 +477,36 @@
 	  (let ((,var (cdr ,var)))
 	    ,@body)))))
 
-(def-foreign-array-resource xcolor-array x11:make-xcolor-array)
-(def-foreign-array-resource xsegment-array x11:make-xsegment-array)
-(def-foreign-array-resource xpoint-array x11:make-xpoint-array)
-(def-foreign-array-resource xrectangle-array x11:make-xrectangle-array)
-(def-foreign-array-resource xarc-array x11:make-xarc-array)
+(defun make-xcolor-array (&key (number 1) in-foreign-space (initialize t))
+  (declare (ignore in-foreign-space))
+  (clim-utils::allocate-cstruct 'x11::xcolor-array 
+				:number number :initialize initialize))
+
+(defun make-xsegment-array (&key (number 1) in-foreign-space (initialize t))
+  (declare (ignore in-foreign-space))
+  (clim-utils::allocate-cstruct 'x11::xsegment-array 
+				:number number :initialize initialize))
+
+(defun make-xpoint-array (&key (number 1) in-foreign-space (initialize t))
+  (declare (ignore in-foreign-space))
+  (clim-utils::allocate-cstruct 'x11::xpoint-array 
+				:number number :initialize initialize))
+
+(defun make-xrectangle-array (&key (number 1) in-foreign-space (initialize t))
+  (declare (ignore in-foreign-space))
+  (clim-utils::allocate-cstruct 'x11::xrectangle-array 
+				:number number :initialize initialize))
+
+(defun make-xarc-array (&key (number 1) in-foreign-space (initialize t))
+  (declare (ignore in-foreign-space))
+  (clim-utils::allocate-cstruct 'x11::xarc-array 
+				:number number :initialize initialize))
+
+(def-foreign-array-resource xcolor-array make-xcolor-array)
+(def-foreign-array-resource xsegment-array make-xsegment-array)
+(def-foreign-array-resource xpoint-array make-xpoint-array)
+(def-foreign-array-resource xrectangle-array make-xrectangle-array)
+(def-foreign-array-resource xarc-array Make-xarc-array)
 
 (defun store-colors (colormap colors ncolors)
   (x11:xstorecolors

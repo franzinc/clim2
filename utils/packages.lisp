@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: packages.lisp,v 1.89 1998/11/10 22:03:20 layer Exp $
+;; $Id: packages.lisp,v 1.90 1999/02/25 08:23:46 layer Exp $
 
 (in-package :common-lisp-user)
 
@@ -988,7 +988,6 @@
    use-package
    use-value
    user-homedir-pathname
-   #+aclpc validate-superclass
    values
    values-list
    variable
@@ -1022,12 +1021,6 @@
    y-or-n-p
    yes-or-no-p
    zerop)
-
-  #+aclpc
- (:import-from allegro
-   acl::dynamic-extent
-   synonym-stream
-   )
 
  ;; Stream Proposal -- Classes and class predicates.
  #-clim-uses-lisp-stream-classes
@@ -2739,20 +2732,6 @@
   #+Allegro (:import-from excl
     arglist)
 
-  #+aclpc
-  (:shadow
-    defun
-    flet labels
-    defgeneric defmethod)
-
-  #+Allegro (:shadowing-import-from cltl1
-    string-char
-    char-bits)
-
-  (:export
-    string-char
-    char-bits)
-
   (:export
     arglist
 
@@ -2820,6 +2799,7 @@
     simple-vector-insert-element
     simple-vector-push-extend
     standard-io-environment-vars-and-vals
+    string-to-foreign
     time-elapsed-p
     trap-on-error
     whitespace-char-p
@@ -3284,13 +3264,7 @@
   (:use        :clim-lisp :clim-sys :clim :clim-utils :clim-silica)
   #+Allegro (:implementation-packages :clim-internals :xt-silica)
   #+Allegro
-  (:import-from :excl #:non-dynamic-extent)
-  #+aclpc
-  (:shadowing-import-from clim-utils
-    defun
-    flet labels
-    defgeneric defmethod
-    dynamic-extent))
+  (:import-from :excl #:non-dynamic-extent))
 
 
 ;; A package for casual use...
@@ -3315,7 +3289,7 @@
 (cl:defvar *clim-major-version* 2)
 (cl:defvar *clim-minor-version* 2)
 (cl:defvar *clim-generation-version* 2)
-(cl:defvar *clim-build-version* 4)
+(cl:defvar *clim-build-version* 5)
 
 (cl:defparameter *clim-version*
     (cl:format () "~d.~d.~d.~a"

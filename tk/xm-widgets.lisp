@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xm-widgets.lisp,v 1.29 1998/08/06 23:17:20 layer Exp $
+;; $Id: xm-widgets.lisp,v 1.30 1999/02/25 08:23:42 layer Exp $
 
 (in-package :tk)
 
@@ -42,7 +42,7 @@
 					  :name :delete-response
 					  :type 'tk::delete-response
 					  :original-name
-					  (string-to-char*
+					  (ff:string-to-char*
 					   "deleteResponse")))
 
 (tk::add-resource-to-class (find-class 'xm-text)
@@ -50,7 +50,7 @@
 					  :name :font-list
 					  :type 'font-list
 					  :original-name
-					  (string-to-char*
+					  (ff:string-to-char*
 					   "fontList")))
 
 (tk::add-resource-to-class (find-class 'vendor-shell)
@@ -58,7 +58,7 @@
 					  :name :keyboard-focus-policy
 					  :type 'tk::keyboard-focus-policy
 					  :original-name
-					  (string-to-char*
+					  (ff:string-to-char*
 					   "keyboardFocusPolicy")))
 
 
@@ -67,7 +67,7 @@
 					  :name :label-type
 					  :type 'tk::label-type
 					  :original-name
-					  (string-to-char*
+					  (ff:string-to-char*
 					   "labelType")))
 
 
@@ -146,15 +146,15 @@
 	(or result
 	    *empty-compound-string*
 	    (setq *empty-compound-string*
-	      (xm_string_create_l_to_r (string-to-char* "")
-				       (string-to-char* xm-font-list-default-tag))))))))
+	      (xm_string_create_l_to_r (clim-utils:string-to-foreign "")
+				       (clim-utils:string-to-foreign xm-font-list-default-tag))))))))
 
  (:-ics
   (defmethod convert-resource-out ((parent t) (type (eql 'xm-string)) value)
     (note-malloced-object
      (xm_string_create_l_to_r
-      (note-malloced-object (string-to-char* value))
-      (note-malloced-object (string-to-char* "")))))))
+      (note-malloced-object (clim-utils:string-to-foreign value))
+      (note-malloced-object (clim-utils:string-to-foreign "")))))))
 
 (defmethod convert-resource-out ((parent t) (type (eql 'xm-background-pixmap)) value)
   (etypecase value
@@ -197,13 +197,16 @@
 (defmethod convert-resource-out ((parent t) (type (eql 'default-button-type)) value)
   (encode-box-child value))
 
+;; JPM: Use FF:string-to-char* at compile time for strings that will
+;; never get freed, use string-to-foreign at run time for strings
+;; that will get freed.
 
 (tk::add-resource-to-class (find-class 'xm-text)
 			   (make-instance 'resource
 					  :name :scroll-horizontal
 					  :type 'tk::boolean
 					  :original-name
-					  (string-to-char*
+					  (ff:string-to-char*
 					   "scrollHorizontal")))
 
 (tk::add-resource-to-class (find-class 'xm-text)
@@ -211,7 +214,7 @@
 					  :name :scroll-vertical
 					  :type 'tk::boolean
 					  :original-name
-					  (string-to-char*
+					  (ff:string-to-char*
 					   "scrollVertical")))
 
 (tk::add-resource-to-class (find-class 'xm-text)
@@ -219,14 +222,18 @@
 					  :name :word-wrap
 					  :type 'tk::boolean
 					  :original-name
-					  (string-to-char*
+					  (ff:string-to-char*
 					   "wordWrap")))
+
+(defun make-xm-string-table (&key (number 1))
+  (clim-utils::allocate-cstruct 'xm-string-table
+				:number number :initialize t))
 
 (defmethod convert-resource-out ((parent t) (type (eql 'xm-string-table)) value)
   (if value
       (do* ((n (length value))
 	    (r (note-malloced-object
-		(make-xm-string-table :number n :in-foreign-space t)))
+		(make-xm-string-table :number n)))
 	    (v value (cdr v))
 	    (i 0 (1+ i)))
 	  ((null v)

@@ -3,12 +3,19 @@ For more detailed instructions on filling in the ChangeLog form, see
 *******************************************************************************
 <version for this commit> (incf *clim-build-version* in utils/packages.lisp)
 
-Documentation changes:	<`none' or give pointer to them>
-Tests for new features:	<`no new features', `no tests for new features', or
-			 give pointer to test files>
+If there are user-visible changes in this commit, then list the
+  new ../RELNOTES entries, which include bug and/or RFE references:
+	<...>
 
 <standard changelog date stamp>
 	* <changes go here...>
+
+*******************************************************************************
+2.2.2.5 -- join from acl50 branch
+
+- changes from 2.2.1.34 to 2.2.1.44
+- cvs command: cvs update -d -j acl50_merge4 -j acl50
+- next merge tag: acl50_merge5
 
 *******************************************************************************
 2.2.2.4 -- join from acl50 branch (version 2.2.1.33)
@@ -50,6 +57,241 @@ next merge tag: acl50_merge2
 2.2.1.17 -- join from acl50 branch (versions 2.2.1.13 to 2.2.1.16)
 (this should have been version 2.2.2.0, but was 2.2.1.17 instead)
 next merge tag: acl50_merge1
+
+*******************************************************************************
+2.2.1.44
+
+1999-01-30  Kevin Layer  <layer@ultra>
+
+    removed files:
+	* Makefile.win32: no longer used
+    changed files:
+	* Makefile.alpha: use make_shared in ../src/bin
+	* Makefile.rs6000: use make_shared in ../src/bin
+	* sys/compile.lisp: add bitmap-editor.lisp for windows
+
+*******************************************************************************
+2.2.1.43
+
+1999-01-28  Jeff Morrill  <jmorrill@pointnclick.com> 
+
+* aclpc/acl-mirror: Try to prevent infinite recursion setting edges of
+  top-level sheet
+
+*******************************************************************************
+2.2.1.42
+
+1999-01-28  Jeff Morrill  <jmorrill@pointnclick.com> 
+
+* aclpc/acl-class: Remove breakpoint to allow for deeper stacks
+* aclpc/acl-scroll: Try to prevent scroll panes from sizing children
+   to have negative width or height
+* demo/bitmap-editor: Make it work on windows
+* demo/sysdcl: activate the bitmap-editor for windows
+
+*******************************************************************************
+2.2.1.41
+
+1999-01-27  Jeff Morrill  <jmorrill@pointnclick.com> 
+
+Possible candidate for Release 5.0.1 beta.
+
+* demo/cad-demo: prevent infinite recursion due to circular diagrams
+* tk-silica/xt-silica: reinstate lost double-click patch
+* aclpc/acl-widget: toggle buttons should not inherit from button-pane-mixin
+
+*******************************************************************************
+2.2.1.40
+
+1999-01-25  Jeff Morrill  <jmorrill@pointnclick.com> 
+
+* tk/xm-widgets: be careful to use aclmalloc rather than malloc
+  at compile time
+* silica/gadgets: remove repaint-sheet method that is conditionally
+  compiled for mswindows but that is not needed at all
+* silica/mirror: fix apparent timing problem with events on windows
+
+*******************************************************************************
+2.2.1.39
+
+Thu Jan 21 19:48:47 1999  Duane Rettig  <duane@beta>
+
+	* Makefile: Fix for linuxppc and freebsd
+	* Makefile.wnn: Add crypt lib for linuxppc
+	* tk-silica/xt-silica.lisp: Format change only
+	* utils/packages.lisp: Increment version
+
+*******************************************************************************
+2.2.1.38
+
+1999-01-14  Kevin Layer  <layer@ultra> (this is really from Jeff)
+
+	* aclpc/acl-widget.lisp: remove default-window-procedure slot from
+	mswin-text-edit class
+	* demo/browser.lisp: take care of warnings
+	* demo/peek-frame.lisp: take care of warnings
+	* demo/plot.lisp: take care of warnings
+	* demo/printer.lisp: take care of warnings
+	* tk/font.lisp: #+ignore text-extents
+	* tk/resources.lisp: fix for ics
+
+*******************************************************************************
+2.2.1.37
+
+1999-01-14  Jeff Morrill <jmorrill@pointnclick.com>
+
+* Remove dependence on CLTL1
+  utils/defun, utils/clos, tk-silica/xt-silica, tk-silica/xt-graphics,
+  tk/resources, test/chess, aclpc/pkgdcl
+* Enable ":width (4 :character)" style widths on win32 text-editor
+  to be consistent with UNIX and to fix problem in demos.
+  aclpc/acl-widget
+* Reword error message regarding ownership of a window by a thread
+  aclpc/acl-frames
+* Dont run UNIX shell commands on windows
+  demo/browser, demo/peek-frame, demo/plot, demo/printer
+* Reduce warning messages
+  aclpc/acl-medium, tk-silica/xt-silica
+  
+
+*******************************************************************************
+2.2.1.36
+
+1999-01-11  Jeff Morrill <jmorrill@pointnclick.com>
+
+* Pathname completion fixed and problems noted with the use of
+  Tab as the completion character.  
+  clim/completer
+  clim/standard-types
+* Remaining callers of excl::aclmalloc rewritten
+  tk/event
+  tk/font
+  tk/gcontext
+  tk/xlib
+  tk-silica/ol-silica
+  tk-silica/xt-graphics.lisp
+  tk-silica/xt-silica.lisp
+* Warp mouse pointer to notify-user dialog box via new keyword
+  tk-silica/xm-gadgets.lisp
+
+*******************************************************************************
+2.2.1.35
+
+1999-01-07  Kevin Layer  <layer@ultra>
+
+	* Makefile.wnn: for redhat 5
+
+	* silica/classes.lisp: fix compile-time warning
+	* tk/font.lisp: fix compile-time warning
+	* utils/defun-utilities.lisp: fix compile-time warning
+
+	* aclpc/acl-class.lisp: fix compile-time warnings
+	* silica/scroll-pane.lisp: fix compile-time warnings
+	* utils/processes.lisp: fix compile-time warnings
+
+	* Makefile.hpprism: add depend on climxm.sl--why didn't this come
+	up before??
+
+*******************************************************************************
+2.2.1.34
+
+Wed Dec 9 12:00:00 1998 Jeff Morrill  <jmorrill@pointnclick.com>
+
+     * MORE changes to the following files move sources toward the 
+       goal of compiling in :case-insensitive-upper mode, or for
+       removing obsolete cases such as #+aclpc 
+       (making the code simpler and easier to maintain).
+        utils/utilities
+        utils/packages
+        utils/excl-verification
+        sys/sysdcl
+        sys/sysdcl-pc
+        misc/compile-1
+        clim/standard-types
+        clim/prefill
+     * Syntactic cleanup and removal of compiler warnings:
+        silica/gadgets
+        silica/db-layout
+        clim/output-protocol
+        clim/input-protocol
+        clim/frames
+     * Enhance radio-boxes to enable multicolumn layout
+        silica/db-button
+     * Enable arrow keys on NT
+        clim/input-editor-commands
+     * Make sure all foreign structures are allocated in :C space
+       so that it is safe to call free() on them.
+        utils/lisp-utilities
+        tk-silica/xm-gadgets
+        tk-silica/ol-gadgets
+        tk-silica/ol-frames
+        tk-silica/image
+        tk/xt-defs
+        tk/xm-widgets
+        tk/xm-font-list
+        tk/xm-defs
+        tk/xlib
+        tk/widget
+        tk/resources
+        tk/ol-widgets
+        tk/ol-init
+        tk/macros
+        tk/graphics
+        tk/font
+        tk/convenience
+      * aclpc/*.lisp
+        Large number of changes to move toward case-sensitive lisp.
+        Many bug fixes including printing from a button callback,
+        scroll bars in text fields, arrow keys, support of pixmap-3
+        unix file format, etc.
+
+Wed Nov 4 12:00:00 1998 Jeff Morrill  <jmorrill@pointnclick.com>
+
+     * Changes to the following files move sources toward the 
+       goal of working in :case-sensitive-lower mode, or for
+       removing obsolete cases such as #+aclpc and #+ansi-90
+       (making the code simpler and easier to maintain).
+        utils/processes
+        utils/packages
+        utils/lisp-utilities
+        utils/excl-verification
+        utils/defun
+        utils/clos
+        sys/sysdcl
+        silica/scroll-pane
+        silica/gadgets
+        silica/framem
+        silica/db-box
+        demo/browser
+        compatibility/browser
+        clx/sysdcl
+        clx/pkgdcl
+        cloe/sysdcl
+        cloe/pkgdcl
+        clim/text-recording
+        clim/text-formatting
+        clim/temp-strings
+        clim/standard-types
+        clim/ptypes1
+        clim/present
+        clim/frames
+     * tk/font: need definition of fonts-of-font-set when #-ics
+     * test/test-suite: fix bug that matters for #+mswindows but not #+unix
+     * sys/compile: clean this up and make it more sensible 
+     * silica/mirror, aclpc/acl-mirror: fix set-sheet-mirror-edges*
+     * silica/layout: fix bug switching layouts under #+mswindows
+     * silica/db-slider: fix bug repainting sliders
+     * silica/db-scroll: fix bug repainting after scrolling
+     * silica/db-layout: fix bug enforcing max-height constraint (spr18629)
+     * demo/winlisp: moved demo stuff here from aclpc
+     * clim/output-protocol: fix bug with text wrapping (spr18586)
+     * clim/activities: fix bad interaction between AVV frames and 
+        activity frames
+     * clim/accept-values: fix binding of *application-frame*
+     * Lots of changes to the #+mswindows port to clean up the mess
+        and to fix another batch of problems (starting scheduler,
+        event loop, event distribution, mirror size and position,
+        reading BMP files, frame deiconification, noting-progress hanging)
 
 *******************************************************************************
 2.2.1.33

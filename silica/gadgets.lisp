@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: gadgets.lisp,v 1.67 1998/08/06 23:16:58 layer Exp $
+;; $Id: gadgets.lisp,v 1.68 1999/02/25 08:23:37 layer Exp $
 
 ;;;"Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
 ;;; Portions copyright (c) 1992 by Symbolics, Inc.	 All rights reserved."
@@ -620,15 +620,15 @@
 (defmethod viewportp ((x viewport)) t)
 
 (defmethod compose-space ((viewport viewport) &key width height)
-  #-aclpc (declare (ignore width height))
+  (declare (ignore width height))
   (let ((sr (call-next-method)))
-    (multiple-value-bind (width min-width max-width
-			  height min-height max-height)
+    (multiple-value-bind (w min-width max-width
+			  h min-height max-height)
 	(space-requirement-components sr)
       (declare (ignore min-width min-height))
       (make-space-requirement
-	:width width :min-width 0 :max-width max-width
-	:height height :min-height 0 :max-height max-height))))
+	:width w :min-width 0 :max-width max-width
+	:height h :min-height 0 :max-height max-height))))
 
 ;;;#+(or aclpc acl86win32)
 ;;;(eval-when (compile load eval)
@@ -705,13 +705,6 @@
 	  (unless (eq +nowhere+ rect)
 	    (with-bounding-rectangle* (left top right bottom) rect
 	      (draw-rectangle* medium left top right bottom))))))))
-
-#+(or acl86win32 aclpc)
-(defmethod repaint-sheet ((sheet viewport) region)
-  (with-sheet-medium (medium sheet)
-    (with-bounding-rectangle* (left top right bottom) region
-      (draw-rectangle* medium left top right bottom
-		       :ink +background-ink+))))
 
 (defmethod note-space-requirements-changed ((pane viewport) inner)
   (declare (ignore inner))

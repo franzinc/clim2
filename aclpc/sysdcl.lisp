@@ -16,34 +16,10 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: sysdcl.lisp,v 1.4 1998/08/06 23:15:46 layer Exp $
+;; $Id: sysdcl.lisp,v 1.5 1999/02/25 08:23:27 layer Exp $
 
-(in-package #-ANSI-90 :user #+ANSI-90 :cl-user)
+(in-package :cl-user)
 
-#+aclpc
-(clim-defsys:defsystem aclpc-clim
-    (:default-pathname #+Genera "SYS:CLIM;REL-2;ACLPC;"
-		       #-Genera (frob-pathname "aclpc")
-     :default-binary-pathname #+Genera "SYS:CLIM;REL-2;aclpc;"
-			      #-Genera (frob-pathname "aclpc")
-     :needed-systems (clim-standalone)
-     :load-before-compile (clim-standalone))
-  ("pkgdcl")
-  ("winwidgh")
-  ("climpat")
-  ("acl-prel")
-  ("acl-class")
-  ("acl-dc")
-  ("acl-port")
-  ("acl-mirror")
-  ("acl-medium")
-  ("acl-pixmaps")
-  ("acl-frames")
-  ("acl-widget")
-  ("acl-scroll")
-)
-
-#+acl86win32
 (defsystem aclnt-clim
     (:default-pathname "clim2:;aclpc;")
   (:serial
@@ -62,8 +38,3 @@
    "acl-widget"
    "acl-scroll"
    ("clim2:;utils;last")))
-
-#+Genera
-(clim-defsys:import-into-sct 'aclpc-clim
-  :pretty-name "aclpc CLIM"
-  :default-pathname "SYS:CLIM;REL-2;aclpc;")

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: macros.lisp,v 1.22 1998/08/06 23:17:16 layer Exp $
+;; $Id: macros.lisp,v 1.23 1999/02/25 08:23:42 layer Exp $
 
 (in-package :tk)
 
@@ -74,7 +74,7 @@
 
 (defvar *malloced-objects*)
 
-(defun note-malloced-object (obj &optional (free #'excl::free))
+(defun note-malloced-object (obj &optional (free #'clim-utils::system-free))
   (push (cons free obj) *malloced-objects*)
   obj)
 

@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: printer.lisp,v 1.2 1998/08/06 23:16:30 layer Exp $
+;; $Id: printer.lisp,v 1.3 1999/02/25 08:23:31 layer Exp $
 
 (in-package :clim-user)
 
@@ -51,6 +51,10 @@
   (invoke-with-output-to-printer #'(lambda (,stream) ,@body) ,@options))
 
 (defun invoke-with-output-to-printer (continuation &rest options)
+  #+mswindows (declare (ignore continuation options))
+  #+mswindows
+  (notify-user *application-frame* "Not implemented on this platform")
+  #+unix
   (multiple-value-bind (printer copies orrientation multi-page send-mail)
       (apply #'get-printer-options options)
     (with-open-stream 

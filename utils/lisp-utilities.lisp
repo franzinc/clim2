@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: lisp-utilities.lisp,v 1.39 1998/08/06 23:17:34 layer Exp $
+;; $Id: lisp-utilities.lisp,v 1.40 1999/02/25 08:23:46 layer Exp $
 
 (in-package :clim-utils)
 
@@ -138,8 +138,8 @@
   #+use-float-coordinates `(the coordinate (float ,x 0f0))
   #+use-fixnum-coordinates (ecase round-direction
 			     (round
-			       #+(or Allegro Lucid) `(the fixnum (round ,x))
-			       #-(or Allegro Lucid) `(the fixnum (values (floor (+ ,x .5f0)))))
+			       #+(or allegro Lucid) `(the fixnum (round ,x))
+			       #-(or allegro Lucid) `(the fixnum (values (floor (+ ,x .5f0)))))
 			     (floor
 			       `(the fixnum (values (floor ,x))))
 			     (ceiling
@@ -148,9 +148,9 @@
 
 #-(or aclpc acl86win32)
 (defconstant +largest-coordinate+
-	     #+use-float-coordinates (float (expt 10 (floor (log most-positive-fixnum 10))) 0f0)
-	     #+use-fixnum-coordinates most-positive-fixnum
-	     #-(or use-float-coordinates use-fixnum-coordinates) most-positive-fixnum)
+    #+use-float-coordinates (float (expt 10 (floor (log most-positive-fixnum 10))) 0f0)
+    #+use-fixnum-coordinates most-positive-fixnum
+    #-(or use-float-coordinates use-fixnum-coordinates) most-positive-fixnum)
 
 #+(or aclpc acl86win32)
 (defconstant +largest-coordinate+
@@ -158,7 +158,6 @@
   #+use-fixnum-coordinates (* 3 (expt 10 (floor (log most-positive-fixnum 10))))
   #-(or use-float-coordinates use-fixnum-coordinates)
   (* 3 (expt 10 (floor (log most-positive-fixnum 10)))))
-
 
 (defmacro integerize-single-float-coordinate (coord)
   `(the fixnum (values (floor (+ (the single-float ,coord) .5f0)))))
@@ -175,11 +174,11 @@
       coord
       (the fixnum (values (floor (+ coord .5f0))))))
 
-#+Allegro
+#+allegro
 (defmacro fix-coordinate (coord)
   `(the fixnum (fixit ,coord)))
 
-#+Allegro
+#+allegro
 (defun fixit (coord)
   (declare (optimize speed))
   (typecase coord
@@ -194,7 +193,7 @@
     (t
      (values (floor (+ coord .5f0))))))
 
-#-(or Genera Minima Allegro)
+#-(or Genera Minima allegro)
 (defun fix-coordinate (coord)
   (etypecase coord
     (fixnum coord)
@@ -275,7 +274,7 @@
 ;;; Characters that are ordinary text rather than potential input editor commands.
 ;;; Note that GRAPHIC-CHAR-P is true of #\Space
 (defun ordinary-char-p (char)
-  (and #+Allegro (zerop (char-bits char))
+  (and (eql char (code-char (char-code char))) ; false for #\control-c
        (or (graphic-char-p char)
 	   ;; For characters, CHAR= and EQL are the same.  Not true of EQ!
 	   (eql char #\Newline)
@@ -334,7 +333,7 @@
 (defmacro repeat (n &body body)
   (let ((i '#:i))
     `(dotimes (,i ,n)
-       #-(or Minima Genera Allegro) (declare (ignore i))
+       #-(or Minima Genera allegro) (declare (ignore i))
        ,@body)))
 
 
@@ -501,7 +500,7 @@
 		    ,@body)
 	   (when ,condition-value (setf ,@unwind-forms)))))))
 
-#-(and ANSI-90 (not Allegro) (not Symbolics))
+#-(and ANSI-90 (not allegro) (not Symbolics))
 (eval-when (compile load eval)
   (proclaim '(declaration non-dynamic-extent)))
 
@@ -509,7 +508,7 @@
 (eval-when (compile load eval)
   (proclaim '(declaration non-dynamic-extent ignorable)))
 
-#+(and ANSI-90 (not Allegro) (not aclpc) (not Symbolics))
+#+(and ANSI-90 (not allegro) (not aclpc) (not Symbolics))
 (define-declaration non-dynamic-extent (spec env)
   (let ((vars (rest spec))
         (result nil))
@@ -598,7 +597,7 @@
       list))
 )	;#+Cloe-Runtime
 
-#+Allegro
+#+allegro
 (progn
 (defmacro with-stack-list ((var &rest elements) &body body)
   `(let ((,var (list ,@elements)))
@@ -639,7 +638,7 @@
         (t list)))
 )	;#+CCL-2
 
-#-(or Genera Cloe-Runtime Allegro CCL-2)
+#-(or Genera Cloe-Runtime allegro CCL-2)
 (progn
 (defmacro with-stack-list ((var &rest elements) &body body)
   `(let ((,var (list ,@elements)))
@@ -653,7 +652,7 @@
 ;; When stack-consing works for non-Genera/Cloe, make this do something.
 (defmacro evacuate-list (list)
   `,list)
-)	;#-(or Genera Cloe-Runtime Allegro)
+)	;#-(or Genera Cloe-Runtime allegro)
 
 #+Genera
 (defmacro with-stack-array ((name size &rest options) &body body)
@@ -1037,7 +1036,7 @@
     (setf (gethash symbol table) value))
   value)
 
-#+Allegro
+#+allegro
 (defmacro define-dynamic-extent-args (name lambda-list &rest de-args)
   (flet ((lambda-vars (lambda-list)
 	   (let ((vars nil))
@@ -1069,11 +1068,11 @@
 					     ,arglist)))))))))
 
 
-#-(or Genera (and ansi-90 (not (and Allegro (not (version>= 4 1))))))
+#-(or Genera (and ansi-90 (not (and allegro (not (version>= 4 1))))))
 (defmacro define-compiler-macro (name lambda-list &body body &environment env)
   env
-  #+Allegro `(excl::defcmacro ,name ,lambda-list ,@body)
-  #-(or Genera Allegro) (progn name lambda-list body env nil))	;Suppress compiler warnings.
+  #+allegro `(excl::defcmacro ,name ,lambda-list ,@body)
+  #-(or Genera allegro) (progn name lambda-list body env nil))	;Suppress compiler warnings.
 
 #+aclpc
 (defmacro define-compiler-macro (name lambda-list &body body &environment env)
@@ -1115,13 +1114,13 @@
 #-(or PCL Genera ANSI-90)
 (defun print-unreadable-object-identity (object stream)
   #+Genera (format stream "~O" (sys:%pointer object))
-  #+Allegro (format stream "@~X" (excl::pointer-to-address object))
+  #+allegro (format stream "@~X" (excl::pointer-to-address object))
   ;; Lucid prints its addresses out in Hex.
   #+Lucid (format stream "~X" (sys:%pointer object))
-  ;; Probably aren't any #+(and (not Genera) (not Allegro) (not PCL) (not ANSI-90))
+  ;; Probably aren't any #+(and (not Genera) (not allegro) (not PCL) (not ANSI-90))
   ;; implementations (actually, this is false: Lispworks).
-  #-(or Genera Allegro Lucid) (declare (ignore object))
-  #-(or Genera Allegro Lucid) (format stream "???"))
+  #-(or Genera allegro Lucid) (declare (ignore object))
+  #-(or Genera allegro Lucid) (format stream "???"))
 
 #-(or Genera ANSI-90 Lucid)
 (defvar *print-readably* nil)
@@ -1173,11 +1172,11 @@
 	 #+Lucid `(lucid-common-lisp:destructuring-bind ,lambda-list ,list
 		    ,(ignore-arglist lambda-list)
 		    ,@body)
- 	 #+Allegro `(destructuring-bind ,lambda-list ,list
+ 	 #+allegro `(destructuring-bind ,lambda-list ,list
  		      ,(ignore-arglist lambda-list)
  		      ,@body)
 	 ;; For the other systems, I guess we'll just give up and do it the slow way
-	 #-(or Genera Cloe-Runtime Minima Lucid Allegro)
+	 #-(or Genera Cloe-Runtime Minima Lucid allegro)
 	 `(flet ((bind-to-list-body ,lambda-list
 		   ,@(when (member '&rest lambda-list)
 		       `((declare (dynamic-extent ,(second (member '&rest lambda-list))))))
@@ -1286,10 +1285,6 @@
 	 (intern (symbol-name (car spec)) *keyword-package*))
 	(t (caar spec))))
 
-
-#+aclpc
-(defun compile-file-environment-p (env) nil)
-
 ;;; This is needed because FIND-CLASS in the compile-file environment doesn't look
 ;;; also in the run-time environment, at least in Symbolics CLOS, which is pretty
 ;;; embarrassing when we can't find the class T.
@@ -1299,19 +1294,19 @@
   #+Genera (declare (inline compile-file-environment-p))
   #+ccl-2 (when (eq environment 'compile-file)
             (setq environment ccl::*fcomp-compilation-environment*))
-  #+Allegro (let ((environment (compile-file-environment-p environment)))
+  #+allegro (let ((environment (compile-file-environment-p environment)))
 	      (if environment
 	          (or (find-class name nil environment)
 		      (find-class name errorp nil))
 	          (find-class name errorp)))
   #+aclpc (find-class name errorp environment)
-  #-(or Allegro aclpc)
+  #-(or allegro aclpc)
           (if (compile-file-environment-p environment)
 	        (or (find-class name nil environment)
 		    (find-class name errorp nil))
 	        (find-class name errorp environment)))
 
-#+(and Allegro never-never-and-never)
+#+(and allegro never-never-and-never)
 (eval-when (compile)
   (warn "~S hacked for lack of environment support in 4.1" 'find-class-that-works))
 
@@ -1585,3 +1580,71 @@
 
 ||#
 
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;; Foreign Structure Constructors
+;;;
+
+(eval-when (compile)
+  (ff:def-foreign-call (_malloc "malloc")
+      ((data :int))
+    :call-direct t
+    :arg-checking nil
+    :returning :int)
+  (ff:def-foreign-call (_free "free")
+      ((data (* :char)))
+    :call-direct t
+    :arg-checking nil
+    :returning :void))
+
+;;; This is here to limit need for FF package to compile time.
+(defun system-free (x) (_free x))
+
+;;; ALLOCATE-CSTRUCT was adapted from ff:make-cstruct.
+;;; We aren't using ff:make-cstruct because it uses excl:aclmalloc.
+#-mswindows
+(defun allocate-cstruct (name &key 
+			      (number 1)
+			      (initialize
+			       (ff::cstruct-property-initialize
+				(ff::cstruct-prop name)))
+			      )
+  (declare (optimize (speed 3)))
+  (let* ((prop (ff::cstruct-prop name))
+	 (size (* number (ff::cstruct-property-length prop))))
+    (when initialize (setq initialize 0))
+    (allocate-memory size initialize)))
+
+(defun allocate-memory (size init)
+  ;; Used only by ALLOCATE-CSTRUCT.
+  (let ((pointer (_malloc size)))
+    (when init
+      (do ((i 0 (+ i 4)))
+	  ((>= i size))
+	(declare (fixnum i))
+	(setf (sys:memref-int pointer i 0 :unsigned-long) 0)))
+    pointer))
+
+;; Adapted from FF:STRING-TO-CHAR*. 
+;;; We aren't using FF:STRING-TO-CHAR* because it uses excl:aclmalloc.
+(defun string-to-foreign (string &optional address)
+  "Convert a Lisp string to a C string, by copying."
+  (declare (optimize (speed 3))
+	   (type string string)
+	   (type integer address))
+  (unless (stringp string)
+    (excl::.type-error string 'string))
+  (let* ((length (length string)))
+    (declare (optimize (safety 0))
+	     (type fixnum length))
+    (unless address
+      (setq address (_malloc (1+ length))))
+    (dotimes (i length)
+      (declare (fixnum i))
+      (setf (sys:memref-int address 0 i :unsigned-byte)
+	(char-code (char string i))))
+    (setf (sys:memref-int address 0 length :unsigned-byte) 0)
+    address))

@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: ol-silica.lisp,v 1.28 1998/08/06 23:17:25 layer Exp $
+;; $Id: ol-silica.lisp,v 1.29 1999/02/25 08:23:44 layer Exp $
 
 (in-package :xm-silica)
 
@@ -106,6 +106,9 @@
 (defun ol-get-focus-widget (widget)
   (tk::intern-widget (tk::ol_get_current_focus_widget widget)))
 
+(defun make-xevent ()
+  (clim-utils::allocate-cstruct 'x11::xevent :initialize t))
+
 (defmethod process-an-event ((port openlook-port) mask reason)
   (with-slots (context) port
     ;; Because of a feature in the OLIT toolkit we need to
@@ -113,7 +116,7 @@
 
     #+debug
     (when (logtest mask tk::*xt-im-xevent*)
-      (let ((event (x11:make-xevent)))
+      (let ((event (make-xevent)))
 	(unless (zerop (tk::xt_app_peek_event context event))
 	  (print (tk::event-type event) excl:*initial-terminal-io*))))
 

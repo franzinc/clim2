@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-prel.lisp,v 1.7 1998/10/08 18:36:21 layer Exp $
+;; $Id: acl-prel.lisp,v 1.8 1999/02/25 08:23:25 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -80,8 +80,8 @@
 	    (incf index)
 	    (win:SendMessage hwnd win:CB_INSERTSTRING index item-name)
 	    ))
-	(win:sendMessage hwnd win:CB_SETCURSEL (or value 0) 0)
-	(win:sendMessage hwnd CB_SETTOPINDEX (or value 0) 0)))
+	(win:SendMessage hwnd win:CB_SETCURSEL (or value 0) 0)
+	(win:SendMessage hwnd CB_SETTOPINDEX (or value 0) 0)))
     hwnd))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -119,7 +119,7 @@
 	     0)
 	   win:WS_CLIPCHILDREN 
 	   win:WS_CLIPSIBLINGS))
-	 (exstyle win:ws_ex_clientedge)
+	 (exstyle win:WS_EX_CLIENTEDGE)
 	 (hwnd
 	  (win:CreateWindowEx exstyle
 			      "LISTBOX"	; classname
@@ -157,7 +157,7 @@
 	(if (eq mode :nonexclusive)
 	    (let ((i 0))
 	      (dolist (item items)
-		(win:sendMessage
+		(win:SendMessage
 		 ;; what's the "correct" way of passing
 		 ;; both lo and hi parts without
 		 ;; combining them with an ash? (cim 9/20/96)
@@ -171,13 +171,13 @@
 	  (let ((i (position value items
 			     :key value-key :test test)))
 	    (when i 
-	      (win:sendMessage 
+	      (win:SendMessage 
 	       hwnd win:LB_SETCURSEL i 0))))
 
 	;; we put in the 20% hack because
 	;; compute-set-gadget-dimensions in acl-widg is
 	;; inherently wrong - see the comment (cim 9/25/96)
-	(win:sendMessage hwnd win:LB_SETHORIZONTALEXTENT
+	(win:SendMessage hwnd win:LB_SETHORIZONTALEXTENT
 			 (floor (* horizontal-extent 1.2)) 0)))
     hwnd))
 
@@ -227,6 +227,7 @@
 			  (nobutton nil)
 			  (label ""))
   (declare (ignore nobutton id))
+  ;; Both push buttons and radio buttons are created here.
   (let* ((nlabel (cleanup-button-label label))
 	 (hwnd
 	  (win:CreateWindowEx 0
@@ -250,10 +251,7 @@
 	(win:SetWindowPos hwnd (ct:null-handle hwnd) 
 			  left top width height
 			  #.(logior win:SWP_NOACTIVATE win:SWP_NOZORDER))
-	(when value
-	  (win:sendmessage hwnd
-			   win:bm_setcheck
-			   1 0))))
+	(win:SendMessage hwnd win:BM_SETCHECK (if value 1 0) 0)))
     hwnd))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -296,15 +294,15 @@
       ;; else succeed if we can init the DC
       (progn
 	(if (stringp value)
-	    (win:setWindowText 
+	    (win:SetWindowText 
 	     hwnd 
 	     (silica::xlat-newline-return value)))
 	;; Override the default window proc.
 	(progn				;+++
 	  (setf std-ctrl-proc-address
-	    (win:GETWINDOWLONG hwnd WINDOWS::GWL_WNDPROC))
-	  (win:SETWINDOWLONG hwnd
-			     WINDOWS::GWL_WNDPROC
+	    (win:GetWindowLong hwnd win:GWL_WNDPROC))
+	  (win:SetWindowLong hwnd
+			     win:GWL_WNDPROC
 			     clim-ctrl-proc-address))
 	(win:SetWindowPos hwnd (ct:null-handle hwnd) 
 		      left top width height
@@ -316,25 +314,25 @@
 (defconstant +bits-per-pixel+ 8)
 (defconstant +maxcolors+ (expt 2 +bits-per-pixel+))
 (defconstant +bitmapinfosize+ (+ (ct:sizeof win:bitmapinfoheader)
-				 (* +maxcolors+ (ct:sizeof win:RgbQuad))))
+				 (* +maxcolors+ (ct:sizeof win:rgbquad))))
 
 ;; The use of this prevents bitmap drawing from being reentrant.  JPM 5/98.
 (defconstant +rgb-bitmapinfo+
     (ct:callocate win:bitmapinfo :size +bitmapinfosize+))
 
 (defun acl-bitmapinfo (colors width height medium)
-  (assert (< (length colors) +maxcolors+))
+  (assert (<= (length colors) +maxcolors+))
   ;; returns the appropriate bitmapinfo and DIB_XXX_COLORS constant
   (let ((bitcount +bits-per-pixel+)
 	(bmi +rgb-bitmapinfo+))
     (ct:csets win:bitmapinfoheader bmi
-	      bisize (ct:sizeof win:bitmapinfoheader)
-	      biwidth width
-	      biheight (- height)	; if negative, flips image
-	      biplanes 1		; must be 1
-	      bibitcount bitcount
-	      bicompression win:BI_RGB	; no compression
-	      bisizeimage 0		; zero for BI_RGB images
+	      biSize (ct:sizeof win:bitmapinfoheader)
+	      biWidth width
+	      biHeight (- height)	; if negative, flips image
+	      biPlanes 1		; must be 1
+	      biBitCount bitcount
+	      biCompression win:BI_RGB	; no compression
+	      biSizeImage 0		; zero for BI_RGB images
 	      biXPelsPerMeter 0
 	      biYPelsPerMeter 0
 	      biClrUsed (length colors)
@@ -421,7 +419,7 @@
   ;; back from the system calls.  Sometimes, however,
   ;; it is more appropriate to warn about the problem 
   ;; than to signal an error.
-  (let* ((code (win:getlasterror)))
+  (let* ((code (win:GetLastError)))
     (cond ((zerop code) nil)
 	  ((eq action :error)
 	   (error "~A: (error ~A) ~A" name code (errno-to-text code)))
@@ -454,12 +452,12 @@
 						win:GMEM_DDESHARE)
 					(1+ l)))
 		 (mem (win:GlobalLock hmem)))
-	    (setq cstring (ff:string-to-char* string mem))
+	    (setq cstring (string-to-foreign string mem))
 	    (win:GlobalUnlock hmem)
 	    ;; After calling SetClipboardData, the
 	    ;; clipboard owns hMem.  It must not be 
 	    ;; modified or freed.
-	    (or (win:emptyclipboard)
+	    (or (win:EmptyClipboard)
 		(check-last-error "EmptyClipboard"))
 	    (win:SetClipboardData format hmem)
 	    (ff:free-fobject-c cstring)

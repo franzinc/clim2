@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: prefill.lisp,v 1.19 1998/08/06 23:16:02 layer Exp $
+;; $Id: prefill.lisp,v 1.20 1999/02/25 08:23:29 layer Exp $
 
 (in-package :clim-internals)
 
@@ -53,8 +53,7 @@
         (generate-all-prefill-dispatch-caches))
       (let ((*print-pretty* t)
             (*print-length* nil)
-            (*print-level* nil)
-            (*print-case* :downcase))
+            (*print-level* nil))
         (flet ((print-form (form result)
                  (format t "~2%;;; ~(~S~)~2%" form)
                  (format t "(~S" (first result))

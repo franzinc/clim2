@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: temp-strings.lisp,v 1.11 1998/08/06 23:16:06 layer Exp $
+;; $Id: temp-strings.lisp,v 1.12 1999/02/25 08:23:30 layer Exp $
 
 (in-package :clim-internals)
 
@@ -31,7 +31,7 @@
 (defresource temporary-string
              (&key (length 100) (adjustable t))
   :constructor (make-array length
-                           :element-type #+ANSI-90 'character #-ANSI-90 'string-char
+                           :element-type 'character
                            :fill-pointer 0
                            :adjustable adjustable)
   :matcher (and (eq adjustable (adjustable-array-p temporary-string))
@@ -53,7 +53,7 @@
 (defmacro evacuate-temporary-string (string-var)
   `(if (temporary-string-p ,string-var)
        (make-array (length ,string-var)
-                   :element-type #+ANSI-90 'character #-ANSI-90 'string-char
+                   :element-type 'character
                    :fill-pointer (length ,string-var)
                    :initial-contents ,string-var)
        ,string-var))

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: ptypes1.lisp,v 1.31 1998/09/29 21:02:32 duane Exp $
+;; $Id: ptypes1.lisp,v 1.32 1999/02/25 08:23:30 layer Exp $
 
 (in-package :clim-internals)
 
@@ -100,9 +100,6 @@
 
 
 ;;;; Conditions for Parsing Exceptions
-
-#+(or (not ANSI-90) (not (or aclpc acl86win32 Genera (and Allegro (version>= 4 1)))))
-(define-condition parse-error (anerror) ())
 
 (define-condition simple-parse-error (parse-error)
   ((format-string :initarg :format-string

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-widget.lisp,v 1.10 1998/10/08 18:36:21 layer Exp $
+;; $Id: acl-widget.lisp,v 1.11 1999/02/25 08:23:25 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -44,13 +44,13 @@
 					 (gadget acl-gadget-id-mixin))
   (let (m)
     (when (setq m (sheet-direct-mirror gadget))
-      (win:enablewindow m 1))))
+      (win:EnableWindow m 1))))
 
 (defmethod note-gadget-deactivated :after ((client t)
 					   (gadget acl-gadget-id-mixin))
   (let (m)
     (when (setq m (sheet-direct-mirror gadget))
-      (win:enablewindow m 0))))
+      (win:EnableWindow m 0))))
 
 
 
@@ -80,7 +80,7 @@
   (let ((mirror (sheet-direct-mirror pane))
 	(index 0))
     (when mirror
-      (setf index (win:sendmessage mirror win:lb_getcursel 0 0))
+      (setf index (win:SendMessage mirror win:LB_GETCURSEL 0 0))
       (with-slots (items value mode value-key name-key) pane
 	;;mm: 11Jan95 - we need to invoke the callback so that list-pane-view 
 	;;              will return a value.
@@ -104,7 +104,7 @@
 	(if (eq mode :nonexclusive)
 	    (let ((i 0))
 	      (dolist (item items)
-		(win:sendMessage
+		(win:SendMessage
 		 ;; what's the "correct" way of passing
 		 ;; both lo and hi parts without
 		 ;; combining them with an ash? (cim 9/20/96)
@@ -118,7 +118,7 @@
 	  (let ((i (position value items
 			     :key value-key :test test)))
 	    (when i 
-	      (win:sendMessage 
+	      (win:SendMessage 
 	       hwnd win:LB_SETCURSEL i 0))))
 	))))
 
@@ -179,14 +179,14 @@
 	      (pos (position item items)))
 	  ;;(break "insert gadget item [~a @ ~a]" str pos)
 	  (win:SendMessage mirror win:LB_INSERTSTRING pos str)))
-      (win:InvalidateRect mirror ct:hnull win:true)))) ;; make sure it updates
+      (win:InvalidateRect mirror ct:hnull win:TRUE)))) ;; make sure it updates
 
-(defmethod acl-clim::command-event :around ((gadget silica::hlist-pane) 
+(defmethod acl-clim::command-event :around ((gadget hlist-pane) 
 					    port sheet wparam lparam)
   (let ((notifycode (acl-clim::hiword wparam)))
-    (when (= notifycode win:lbn_selchange)
+    (when (= notifycode win:LBN_SELCHANGE)
       ;; Selection in list box is about to change.
-      (win:setfocus (sheet-mirror sheet))
+      (win:SetFocus (sheet-mirror sheet))
       (call-next-method gadget port sheet wparam lparam))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -202,7 +202,6 @@
    (depth :initarg :depth)
    (x-margin :initarg :x-margin)
    (y-margin :initarg :y-margin)
-   (default-window-procedure :initform (ct:callocate (:void *)))
    ;; needed for text-editor
    (ncolumns :initarg :ncolumns
 	     :accessor gadget-columns)
@@ -214,116 +213,101 @@
       :text-style nil
     :background +white+
     :external-label nil
-    :x-margin 2 :y-margin 0
+    :x-margin 2 :y-margin 2
     ;; needed for text-editor
     :ncolumns nil
     :nlines nil
     :editable-p t
     :word-wrap nil))
 
-
 (defmethod handle-repaint ((pane mswin-text-edit) region)
   (declare (ignore region))
   nil)
 
+;; text-editor is one of the few things that you can specify:
+;;    :width '(4 :character)
+(defun process-width-specification (sheet width)
+  (typecase width
+    (cons
+     (assert (eq (second width) :character))
+     (with-sheet-medium (medium sheet)
+       (let* ((nchars (first width))
+	      (style (medium-default-text-style medium))
+	      (style-width (text-style-width style medium))
+	      (margin (slot-value sheet 'x-margin))
+	      (border 2))
+	 (+ border margin (* style-width nchars) margin border))))
+    (string 
+     (with-sheet-medium (medium sheet)
+       (let ((w 
+	      (text-size sheet width
+			 :text-style (medium-default-text-style medium)))
+	     (border 2)
+	     (margin (slot-value sheet 'x-margin)))
+	 (+ border margin w margin border))))
+    (otherwise width)))
 
-(defclass mswin-text-field (mswin-text-edit)
-  ()
-  (:default-initargs 
-      :text-style nil
-      :external-label nil
-      :x-margin 2 :y-margin 0))
-
-
-(defmethod initialize-instance :after ((sheet mswin-text-edit) &key background label) 
-  (declare (ignore background label))
-  nil)
-
-(defmethod compute-gadget-label-size ((pane mswin-text-edit))
-  (values 50 25))
+;; text-editor is one of the few things that you can specify:
+;;    :height '(4 :line)
+(defun process-height-specification (sheet height)
+  (typecase height
+    (cons
+     (assert (eq (second height) :line))
+     (with-sheet-medium (medium sheet)
+       (let* ((nlines (first height))
+	      (style (medium-default-text-style medium))
+	      (style-height (text-style-height style medium))
+	      (margin (slot-value sheet 'y-margin))
+	      (border 2))
+	 (+ border margin (* style-height nlines) margin border))))
+    (string 
+     (with-sheet-medium (medium sheet)
+       (multiple-value-bind (w h) 
+	   (text-size sheet height
+		      :text-style (medium-default-text-style medium))
+	 (declare (ignore w))
+	 (let ((border 2)
+	       (margin (slot-value sheet 'y-margin)))
+	   (+ border margin h margin border)))))
+    (otherwise height)))
 
 (defmethod compose-space ((pane mswin-text-edit) &key width height)
-  (declare (ignore width height))
-  (with-slots (external-label x-margin y-margin initial-space-requirement
-	       ncolumns nlines text-style) pane
-    (let* ((p (sheet-parent pane))
-	   (ext-label-width 0)
-	   (ext-label-height 0)
-	   (tswid 20)
-	   (tshgt 20)
-	   (space-for-scrollbars
-	    (if (and (typep p 'silica::scroller-pane) 
-		     (silica::scroller-pane-scroll-bar-policy p)) 
-		2 0))
-	   (iwid (or (space-requirement-width initial-space-requirement) 0))
-	   (ihgt (or (space-requirement-height initial-space-requirement) 0)))
-      (when (port pane)
-	(with-sheet-medium (medium pane)
-	  (multiple-value-setq (tswid tshgt)
-	    (text-size medium "W" :text-style text-style))))
-      (if (numberp ncolumns) 
-	  (setq iwid (max iwid (* (+ space-for-scrollbars ncolumns) tswid))))
-      (if (numberp nlines) 
-	  (setq ihgt (max ihgt (* (+ space-for-scrollbars nlines) tshgt))))
-      (when (and external-label (port pane))
-	(let ((text-style (slot-value pane 'text-style)))
-	  (with-sheet-medium (medium pane)
-	    (multiple-value-bind (w h)
-		(text-size medium external-label :text-style text-style)
-	      (setq ext-label-width (+ w (text-style-width text-style medium))
-		    ext-label-height (+ h (floor
-					   (text-style-height 
-					    text-style medium) 
-					   2)))))))
-      (multiple-value-bind (width height)
-	  (compute-gadget-label-size pane)
-	(when (member (acl-clim::get-system-version) 
-		      ;;mm: Windows NT seems to look better too this way
-		      '(:win31 :winnt))
-	  (setq width (floor (* width 4) 3)))
-	(let ((w (+ x-margin ext-label-width width x-margin))
-	      (h (+ y-margin (max ext-label-height height) y-margin)))
-	  (make-space-requirement
-	   :width  (max iwid w) :min-width w
-	   :height (max ihgt h) :min-height h)))
-      )))
+  (with-slots (x-margin y-margin initial-space-requirement) pane
+    ;; WIDTH
+    (unless width
+      ;; width from text-field-view comes in here
+      (setq width (space-requirement-width initial-space-requirement)))
+    (setq width (process-width-specification pane width))
+    (when (and width (< width 1)) (setq width nil))
+    (unless width
+      (let ((twidth (process-width-specification 
+		     pane (or (gadget-value pane) '(20 :character)))))
+	(setq width (max 50 twidth))))
+    ;; HEIGHT
+    (unless height
+      ;; height from text-field-view comes in here
+      (setq height (space-requirement-height initial-space-requirement)))
+    (setq height (process-height-specification pane height))
+    (when (and height (< height 1)) (setq height nil))
+    (unless height
+      (let ((theight (process-height-specification 
+		      pane (or (gadget-value pane) '(1 :line)))))
+	(setq height (max 25 theight))))
+    ;; FINALLY...
+    (make-space-requirement
+     :width  width
+     :height height)))
 
-(defmethod compose-space ((pane mswin-text-field) &key width height)
-  (declare (ignore width height))
-  (with-slots (external-label x-margin y-margin initial-space-requirement) pane
-    (let* ((ext-label-width 0)
-	   (ext-label-height 0)
-           (iwid (or (space-requirement-width initial-space-requirement) 0))
-	   )
-      (when external-label
-	(let ((text-style (slot-value pane 'text-style)))
-	  (with-sheet-medium (medium pane)
-	    (multiple-value-bind (w h)
-		(text-size medium external-label :text-style text-style)
-	      (setq ext-label-width (+ w (text-style-width text-style medium))
-		    ext-label-height (+ h (floor
-					    (text-style-height 
-					     text-style medium) 
-					    2)))))))
-      (multiple-value-bind (width height)
-          (compute-gadget-label-size pane)
-         (when (member (acl-clim::get-system-version) 
-		       '(:win31 :winnt))
-	    (setq width (floor (* width 4) 3)))
-	(let ((w (+ x-margin ext-label-width width x-margin))
-              (h (+ y-margin (max ext-label-height height) y-margin)))
-          (make-space-requirement
-	    :width  (if (numberp iwid) (max iwid w) w) :min-width w
-	    :height h :min-height h)))
-      )))
-
-(defvar *event* nil)
+(defmethod initialize-instance :after ((sheet mswin-text-edit) 
+				       &key background label) 
+  (declare (ignore background label))
+  nil)
 
 (defmethod handle-event ((pane mswin-text-edit) (event key-press-event))
   (let ((mirror (sheet-direct-mirror pane)))
     (declare (ignore mirror))
     ;; Give up the focus
-    (win:setfocus (win:getactivewindow))))
+    (win:SetFocus (win:GetActiveWindow))))
 
 (defmethod handle-event ((pane mswin-text-edit) (event window-change-event))
   (let ((mirror (sheet-direct-mirror pane)))
@@ -377,39 +361,106 @@
 	(incf pos)))
     cstr))
 
-;; added back with mods by pr 1May97 (from whence?) -tjm 23May97
-(defmethod (setf gadget-value) :before (str (pane mswin-text-edit) 
+(defmethod (setf gadget-value) :before (new (pane mswin-text-edit) 
 					&key invoke-callback)
   (declare (ignore invoke-callback))
-  (with-slots (mirror value) pane
-    (setq value str)			; Moved outside conditional - smh 26Nov96
-    (when mirror
-      (win:setWindowText
-       mirror (xlat-newline-return str)))))
+  (let ((mirror (sheet-direct-mirror pane))
+	(topline 0)
+	(leftchar 0))
+    (with-slots (value) pane
+      (setq value new)
+      (when mirror
+	;; How do I get leftchar?
+	(setq topline (win:SendMessage mirror win:EM_GETFIRSTVISIBLELINE 0 0))
+	;; Don't redraw till I tell you:
+	(win:SendMessage mirror win:WM_SETREDRAW 0 0)
+	;; Here's the text:
+	(win:SetWindowText mirror (xlat-newline-return new))
+	;; Try to preserve the scroll position:
+	(win:SendMessage mirror win:EM_LINESCROLL leftchar topline)
+	;; Redraw now:
+	(win:SendMessage mirror win:WM_SETREDRAW 1 0)
+	))))
 
 (defmethod gadget-value ((pane mswin-text-edit))
   (with-slots (mirror value) pane
-    (if mirror				; else clause added - smh 26Nov96
+    (if mirror	
 	(let* ((wl (win:SendMessage mirror 
-				     win:WM_GETTEXTLENGTH 
-				     0 0))
-	     (teb (make-string wl))
-	     (tlen (win:GetWindowText mirror teb (1+ wl))))
-	(declare (ignorable tlen))
-	(setf teb (unxlat-newline-return teb)) ;; pr Aug97
-        (setf value teb)
-        ;; By the way, does anyone know why the second value is returned? -smh
-	(values teb (length teb)))
-      ;;this used to be (values value (length value)) which I believe is
-      ;;right -- K. Reti
+				    win:WM_GETTEXTLENGTH 
+				    0 0))
+	       (teb (make-string wl))
+	       (tlen (win:GetWindowText mirror teb (1+ wl))))
+	  (declare (ignorable tlen))
+	  (setf teb (unxlat-newline-return teb)) 
+	  (setf value teb)
+	  ;; By the way, does anyone know why 
+	  ;; the second value is returned? -smh
+	  (values teb (length teb)))
       (values value (if (listp value) (length value) 0)))))
 
-(defmethod acl-clim::command-event :around ((gadget silica::mswin-text-edit) 
+(defmethod acl-clim::command-event :around ((gadget mswin-text-edit) 
 					    port sheet wparam lparam)
   (let ((notifycode (acl-clim::hiword wparam)))
-    (when (= notifycode win:en_killfocus)
-      ;; Edit control just lost keyboard focus.
+    (when (= notifycode win:EN_KILLFOCUS)
+      ;; Don't (setf gadget-value) with every keystroke.
+      ;; Only when edit control loses keyboard focus.
       (call-next-method gadget port sheet wparam lparam))))
+
+(defmethod text-edit-flags ((sheet mswin-text-edit))
+  (logior win:ES_AUTOHSCROLL win:ES_LEFT win:WS_BORDER
+	  win:ES_MULTILINE win:ES_AUTOVSCROLL))
+
+(defmethod realize-mirror ((port acl-clim::acl-port) (sheet mswin-text-edit))
+  (declare (special *hbutton-width* *hbutton-height*))
+  (multiple-value-bind (left top right bottom)
+      (sheet-native-region* sheet)
+    (fix-coordinates left top right bottom)
+    (let* ((parent (sheet-mirror sheet))
+	   (parent2 (sheet-mirror (sheet-parent sheet)))
+	   (window nil)
+	   (width (- right left))
+	   (height (- bottom top))
+	   (gadget-id (allocate-gadget-id sheet)))
+      (assert (eq parent parent2) () "parents don't match!")
+      (setq window
+	(acl-clim::hedit-open parent gadget-id
+			      left top width height 
+			      :editstyle (text-edit-flags sheet)
+			      :value (slot-value sheet 'value)
+			      :scroll-mode 
+			      (let ((p (sheet-parent sheet)))
+				(and (typep p 'scroller-pane)
+				     (scroller-pane-scroll-bar-policy p)))
+			      ))
+      (setf (sheet-native-transformation sheet)
+	(sheet-native-transformation (sheet-parent sheet)))
+      (setf (gadget-id->window sheet gadget-id) window)
+      (let ((text-style (pane-text-style sheet)))
+	(when text-style
+	  (let ((font (text-style-mapping port text-style)))
+	    (win:SendMessage window win:WM_SETFONT 
+			     (acl-clim::acl-font-index font) 0))))
+      ;; Don't know how to set the y margins.
+      (with-slots (x-margin) sheet
+	(win:SendMessage window #xD3	; win:EM_SETMARGINS
+			 (logior 1	;win:EC_LEFTMARGIN 
+				 2	;win:EC_RIGHTMARGIN
+				 )
+			 x-margin))
+      ;; It's too soon for this.  Need to do this later, 
+      ;; after the layout has been processed, but where?
+      (win:ShowWindow window win:SW_SHOW)
+      window)))
+
+(defclass mswin-text-field (mswin-text-edit)
+  ()
+  (:default-initargs 
+      :text-style nil
+      :external-label nil
+      :x-margin 2 :y-margin 2))
+
+(defmethod text-edit-flags ((sheet mswin-text-field))
+  (logior win:ES_AUTOHSCROLL win:ES_LEFT win:WS_BORDER))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; buttons
@@ -420,7 +471,16 @@
 (defclass hpbutton-pane (acl-gadget-id-mixin 
 			 mirrored-sheet-mixin 
 			 push-button 
-			 button-pane-mixin
+			 ;; JPM: button-pane-mixin is for push buttons,
+			 ;; not toggle buttons, because it applies 
+			 ;; ACTIVATE-CALLBACK to the object.  Toggle buttons
+			 ;; do not and should not support that function,
+			 ;; they use VALUE-CHANGED-CALLBACK instead.
+			 ;; I hope we aren't losing some useful behavior
+			 ;; by turning this off...
+			 ;;button-pane-mixin
+			 space-requirement-mixin
+			 leaf-pane
 			 )
   ((external-label :initarg :external-label)
    (depth :initarg :depth)
@@ -484,7 +544,7 @@
 	   (height (pixmap-height pixmap))
 	   (x (floor (- bwidth width) 2))
 	   (y (floor (- bheight height) 2))
-	   (selected (logtest state win:ods_selected)))
+	   (selected (logtest state win:ODS_SELECTED)))
       (when selected
 	(incf x)
 	(incf y))
@@ -494,7 +554,7 @@
 			 win:BDR_SUNKEN
 		       win:BDR_RAISED)
 		     (+ win:BF_RECT win:BF_MIDDLE))
-      (win:bitblt hdc x y width height (acl-clim::pixmap-cdc pixmap) 0 0
+      (win:BitBlt hdc x y width height (acl-clim::pixmap-cdc pixmap) 0 0
 		   (acl-clim::bop->winop op)))))
 
 ;; deallocate and pixmap associated with a picture button when it's
@@ -522,14 +582,14 @@
 ;; bugs in the handling of push-button events. (cim 9/17/96)
 
 (defmethod handle-event ((pane hpbutton-pane) 
-			 ;; use window-change-event to workaround bug
-			 ;; with bad redirection of pointer-events -
-			 ;; see comment in silica/event.lisp (cim 9/17/96)
 			 (event window-change-event))
-  ;; removed the armed test that came from db-button.lisp - not
-  ;; applicable for built in gadgets - check for other gadget classes
-  ;; (cim 9/17/96) 
-  (activate-callback pane (gadget-client pane) (gadget-id pane)))
+  ;; SPR18779.  This code runs as a result of pushing a button.
+  ;; Turn on output recording in case the callback does any
+  ;; output.  Output recording is otherwise turned off by 
+  ;; clim-internals::invoke-with-input-editing at this point.
+  ;; JPM 11/98.
+  (with-output-recording-options (*standard-input* :record t)
+    (activate-callback pane (gadget-client pane) (gadget-id pane))))
 
 ;; let's shadow generic db-butto methods (cim 9/18/96) - this needs
 ;; some more work
@@ -546,7 +606,7 @@
 (defmethod (setf gadget-label) :after (str (pane hpbutton-pane))
   (with-slots (mirror) pane
     (when mirror
-      (win:setWindowText mirror str))))
+      (win:SetWindowText mirror str))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -574,7 +634,7 @@
 	   (height (pixmap-height pixmap))
 	   (x (floor (- bwidth width) 2))
 	   (y (floor (- bheight height) 2))
-	   (selected (logtest state win:ods_selected)))
+	   (selected (logtest state win:ODS_SELECTED)))
       (when selected
 	(incf x)
 	(incf y))
@@ -584,7 +644,7 @@
 			 win:BDR_SUNKEN
 		       win:BDR_RAISED)
 		     (+ win:BF_RECT win:BF_MIDDLE))
-      (win:bitblt hdc x y width height (acl-clim::pixmap-cdc pixmap) 0 0
+      (win:BitBlt hdc x y width height (acl-clim::pixmap-cdc pixmap) 0 0
 		   (acl-clim::bop->winop op)))))
 
 (defmethod compose-space ((pane hbutton-pane) &key width height)
@@ -626,11 +686,11 @@
 
 ;;; When an hbutton is set, update its checkmark appropriately.
 (defmethod (setf gadget-value) :before (value (pane hbutton-pane) 
-				       &key invoke-callback)
+					&key invoke-callback)
   (declare (ignore invoke-callback))
   (with-slots (mirror) pane
     (when mirror
-      (win:sendmessage mirror win:BM_SETCHECK (if value 1 0) 0))))
+      (win:SendMessage mirror win:BM_SETCHECK (if value 1 0) 0))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; option panes
@@ -644,33 +704,34 @@
 ;;; Combo Box
 
 (defclass mswin-combo-box-pane
-	  (
-	   ;;mm: to keep track of Windows gadget ids
-	   acl-gadget-id-mixin   
+	  (acl-gadget-id-mixin   
            mirrored-sheet-mixin
 	   option-pane
 	   sheet-permanently-enabled-mixin
-	   ; try without this sheet-mute-input-mixin
 	   space-requirement-mixin
 	   basic-pane)
   ()
   (:default-initargs :background +white+))
 
-(defmethod initialize-instance :after ((sheet mswin-combo-box-pane) &key visible-items) 
+(defmethod initialize-instance :after ((sheet mswin-combo-box-pane) 
+				       &key visible-items) 
   (declare (ignore visible-items))
   nil)
 
-(defmethod initialize-instance :after ((sheet application-pane) &key foreground) 
+(defmethod initialize-instance :after ((sheet application-pane) 
+				       &key foreground) 
   (declare (ignore foreground))
   nil)
 
-(defmethod handle-event ((pane mswin-combo-box-pane) (event window-change-event))
+(defmethod handle-event ((pane mswin-combo-box-pane) 
+			 (event window-change-event))
   (let ((mirror (sheet-direct-mirror pane))
 	(index 0))
     (with-slots (items value mode value-key) pane
       (when (and mirror items)
-        (setf index (win:sendmessage mirror win:cb_getcursel 0 0))
-        (setf (gadget-value pane :invoke-callback t) (funcall value-key (elt items index)))))))
+        (setf index (win:SendMessage mirror win:CB_GETCURSEL 0 0))
+        (setf (gadget-value pane :invoke-callback t) 
+	  (funcall value-key (elt items index)))))))
 
 (defmethod (setf gadget-value) :before
 	   (value (pane mswin-combo-box-pane) &key invoke-callback)
@@ -680,9 +741,10 @@
 	  (i (position value items
 		       :key value-key :test test)))
       (when (and hwnd i)
-	(win:sendMessage hwnd win:CB_SETCURSEL i 0)))))
+	(win:SendMessage hwnd win:CB_SETCURSEL i 0)))))
 
-(defmethod handle-event :after ((pane mswin-combo-box-pane) (event pointer-event))
+(defmethod handle-event :after ((pane mswin-combo-box-pane) 
+				(event pointer-event))
   (deallocate-event event))
 
 (defmethod compose-space ((pane mswin-combo-box-pane) &key width height)
@@ -699,51 +761,43 @@
       ;; this specifies the regular size, not the dropped-down size
       (setq name-height tsh)
       (make-space-requirement
-       :width (+ name-width 20)
-       :height (+ name-height 7)))))
+       :width (+ name-width 27)
+       :height (+ name-height 10)))))
 
-(defmethod acl-clim::command-event ((gadget silica::mswin-combo-box-pane) 
+(defmethod acl-clim::command-event ((gadget mswin-combo-box-pane) 
 				    port sheet wparam lparam)
   (let ((notifycode (acl-clim::hiword wparam)))
-    (when (= notifycode win:cbn_closeup)
+    (when (= notifycode win:CBN_CLOSEUP)
       ;; List box of a combo box has been closed.
       (call-next-method gadget port sheet wparam lparam))))
 
-(in-package :acl-clim)
+(defvar *combo-box-maximum-height* 300)
 
-;;; This controls the space allocated to a combo-box control.  Space is
-;;; allocated on the basis of its closed up size, but the control is sized
-;;; to its dropped down size per windows usage.  +++ currently the dropped
-;;; down size is set to a constant 250 pixels -- we can do better!
-
-;;; it now makes an attempt to calculate the drop down size - not
-;;; quite right but it errs on the large size (cim 9/25/96)
-
-;;; the previous version of set-sheet-mirror-edges* appeared to be a
-;;; modified version of the method specialized for top-level-sheet (in
-;;; acl-mirr). This seems like the wrong thing to use - in particular
-;;; it was breaking scrolling of combo boxes - changed it to be based
-;;; on the method for non top-level-sheet (cim 9/25/96) 
-
-(defmethod set-sheet-mirror-edges* ((port acl-port) 
-				    (sheet silica::mswin-combo-box-pane)
+;;; This next method controls the space allocated to a combo-box control.  
+;;; Height is the dropped-down height, i.e. the number of list
+;;; items multiplied by the line height.  We set an upper limit
+;;; on height in case the height exceeds the height of the display.
+;;; If there are more items than will fit within the selected
+;;; height, a scroll bar should automatically appear.
+(defmethod set-sheet-mirror-edges* ((port acl-clim::acl-port) 
+				    (sheet mswin-combo-box-pane)
 				    left top right bottom)
   (fix-coordinates left top right bottom)
   (let* ((hwnd (sheet-mirror sheet))
-	 (height (* (+ 2 (win:sendMessage hwnd win:CB_GETCOUNT 0 0))
-		    ;; I'd have expected the wparam to be 0 here
-		    ;; according to the docs but this doesn't work
-		    ;; right (cim 9/25/96)
-		    (win:sendMessage hwnd win:CB_GETITEMHEIGHT -1 0))))
-    (win:setWindowPos hwnd
-		       (ct:null-handle win:hwnd) ; we really want win:HWND_TOP
-		       left top
-		       (- right left)
-		       height #| (- bottom top) |#
-		       (logior win:swp_noactivate
-			       win:swp_nozorder))))
-
-(in-package :silica)
+	 (height (min
+		  (* (+ 2 (win:SendMessage hwnd win:CB_GETCOUNT 0 0))
+		     ;; I'd have expected the wparam to be 0 here
+		     ;; according to the docs but this doesn't work
+		     ;; right (cim 9/25/96)
+		     (win:SendMessage hwnd win:CB_GETITEMHEIGHT -1 0))
+		  *combo-box-maximum-height*)))
+    (win:SetWindowPos hwnd
+		      (ct:null-handle win:HWND) ; we really want win:HWND_TOP
+		      left top
+		      (- right left)
+		      height 
+		      (logior win:SWP_NOACTIVATE
+			      win:SWP_NOZORDER))))
 
 ;;; When items are set in an combo-pane the  mirror must be
 ;;; made to update its appearance appropriately.
@@ -757,7 +811,7 @@
 	  ;;(break "insert gadget item [~a @ ~a]" str pos)
 	  (win:SendMessage mirror win:CB_INSERTSTRING pos str)))
       ;; make sure it updates
-      (win:InvalidateRect mirror ct:hnull win:true)
+      (win:InvalidateRect mirror ct:hnull win:TRUE)
       (note-sheet-region-changed pane))))
 
 
@@ -792,7 +846,7 @@
 				       &rest options
 				       &key command-table frame)
   (when (and frame command-table)
-    (let ((inferiors (silica::compute-menu-bar-pane-1 frame command-table)))
+    (let ((inferiors (compute-menu-bar-pane-1 frame command-table)))
       (sheet-adopt-child object inferiors))))
 
 (defclass mswin-menu-bar-button (hpbutton-pane)
@@ -841,18 +895,26 @@
 ;; to an application pane.  This is a naked scroll-bar gadget that
 ;; acts like a slider gadget.
 
-(defclass mswin-scroll-bar (silica::acl-gadget-id-mixin 
+(defclass mswin-scroll-bar (acl-gadget-id-mixin 
                             mirrored-sheet-mixin 
 			    scroll-bar
-                            sheet-permanently-enabled-mixin
                             space-requirement-mixin
-                            basic-pane)
+                            leaf-pane 
+			    ;;sheet-permanently-enabled-mixin basic-pane
+			    )
   ())
 
-(defmethod initialize-instance :after ((object mswin-scroll-bar) &key &allow-other-keys)
+(defmethod initialize-instance :after ((object mswin-scroll-bar) 
+				       &key &allow-other-keys)
    ;; It is a mystery to me how size is 1.0 at this point.
    ;; This is in my opinion a poor default value.
-   ;; The slot has NIL as its initform, and (SETF SCROLL-BAR-SIZE) is not called.
+  ;; The slot has NIL as its initform, 
+  ;; and (SETF SCROLL-BAR-SIZE) is not called.
+  (assert (not (null (gadget-min-value object))))
+  (assert (not (null (gadget-max-value object))))
+  (unless (gadget-value object) 
+    (setf (slot-value object 'silica::value) (gadget-min-value object)))
+  (assert (not (null (gadget-value object))))
   (setf (scroll-bar-size object) (float (/ (gadget-range object) 10))))
 
 (defmethod realize-mirror ((port acl-clim::acl-port) (sheet mswin-scroll-bar))
@@ -865,14 +927,14 @@
            (orientation (gadget-orientation sheet))
 	   (width (- right left))
 	   (height (- bottom top))
-           (gadget-id (silica::allocate-gadget-id sheet)))
+           (gadget-id (allocate-gadget-id sheet)))
       (assert (eq parent parent2) () "parents don't match!")
       (setq window
 	(acl-clim::scrollbar-open parent left top width height orientation))
       (setf (sheet-native-transformation sheet)
 	(sheet-native-transformation (sheet-parent sheet)))
-      (setf (silica::gadget-id->window sheet gadget-id) window)
-      (win:showWindow window win:sw_show)
+      (setf (gadget-id->window sheet gadget-id) window)
+      (win:ShowWindow window win:SW_SHOW)
       (setf (sheet-direct-mirror sheet) window) ; needed only to initialize
       (change-scroll-bar-values sheet)	; initialize
       window)))
@@ -882,13 +944,13 @@
   (let (x)
     (ecase (gadget-orientation m)
       (:vertical 
-       (setq x (silica::win-scroll-thick :y))
+       (setq x (win-scroll-thick :y))
        (make-space-requirement :width x
                                :min-height x
                                :height (* 2 x)
                                :max-height +fill+))
       (:horizontal
-       (setq x (silica::win-scroll-thick :x))
+       (setq x (win-scroll-thick :x))
        (make-space-requirement :height x
                                :min-width x
                                :width (* 2 x)
@@ -910,7 +972,7 @@
       (multiple-value-bind (min max) (gadget-range* sb)
 	(setf value (max min (min max value))); sanity check
 	(decf value min)
-	(let* ((struct (ct:ccallocate win:scrollinfo))
+	(let* ((struct (ct:ccallocate win:SCROLLINFO))
 	       (page
 		(floor 
 		 (* acl-clim::*win-scroll-grain* 
@@ -1009,6 +1071,8 @@
               (ct:lhandle-value y)))
         (t (equal x y))))
 
+(defvar acl-clim::*generic-gadgets* nil)
+
 ;;; +++ needs work for integration: *generic-gadgets*
 ;;; clim\db-menu
 (defmethod handle-event ((pane pull-down-menu) (event pointer-exit-event))
@@ -1069,7 +1133,7 @@
     ;; Wait for an event and then handle it
 
     ;; make sure that the pulldown has the focus
-    (win:setFocus mirror)
+    (win:SetFocus mirror)
     (setf (acl-clim::acl-port-mirror-with-focus
             acl-clim::*acl-port*) mirror)
     
@@ -1199,12 +1263,12 @@
 (defmethod adjust-gadget-colors (pane hdc)
   (let* ((bg (color->wincolor (pane-background pane)))
 	 (fg (color->wincolor (pane-foreground pane)))
-	 (new-brush (win:createSolidBrush bg))
+	 (new-brush (win:CreateSolidBrush bg))
 	 (old-brush *background-brush*))
-    (win:setBkColor hdc bg)
-    (win:setTextColor hdc fg)
+    (win:SetBkColor hdc bg)
+    (win:SetTextColor hdc fg)
     (when old-brush
-      (win:deleteObject old-brush))
+      (win:DeleteObject old-brush))
     (setq *background-brush* new-brush)
     new-brush))
 
@@ -1226,7 +1290,7 @@
   (or *windows-system-text-style*
       (setq *windows-system-text-style* 
 	#+ignore
-	(make-device-font-text-style *acl-port* win:system_font)
+	(make-device-font-text-style *acl-port* win:SYSTEM_FONT)
 	#-ignore
 	(make-text-style :sans-serif :roman :small)
 	;; this should get the real system font but I device fonts don't
@@ -1261,7 +1325,7 @@
 	(exstyle win:WS_EX_CLIENTEDGE)
 	(window nil))
     (setq window
-      (win:createWindowEx exstyle
+      (win:CreateWindowEx exstyle
 			  *clim-class*
 			  *win-name*
 			  winstyle
@@ -1290,7 +1354,7 @@
       (setf (sheet-native-transformation sheet)
 	(sheet-native-transformation (sheet-parent sheet)))
       (setf (silica::gadget-id->window sheet gadget-id) window)
-      (win:showWindow window win:sw_show)
+      (win:ShowWindow window win:SW_SHOW)
       (setf (sheet-direct-mirror sheet) window)
       window)))
 

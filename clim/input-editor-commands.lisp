@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: input-editor-commands.lisp,v 1.37 1998/08/06 23:15:58 layer Exp $
+;; $Id: input-editor-commands.lisp,v 1.38 1999/02/25 08:23:29 layer Exp $
 
 (in-package :clim-internals)
 
@@ -1486,7 +1486,7 @@ This may confused the input editor" gestures))
 
 )        ;#+Genera
 
-#+(and Allegro (not acl86win32))
+#+Allegro
 (progn
   (define-input-editor-gestures
       (:left-arrow :left-arrow)

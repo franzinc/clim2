@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: graphics.lisp,v 1.23 1998/08/06 23:17:15 layer Exp $
+;; $Id: graphics.lisp,v 1.24 1999/02/25 08:23:42 layer Exp $
 
 (in-package :tk)
 
@@ -137,7 +137,7 @@
 		(let ((overall (make-x-char-struct)))
 		  (x11:xtextextents
 		   font
-		   (+ start (string-to-char* sequence))
+		   (+ start (clim-utils:string-to-foreign sequence))
 		   (- end start)
 		   &direction
 		   &ascent
@@ -159,7 +159,7 @@
 (defun text-width (font sequence &key (start 0) end translate)
   (unless end (setq end (length sequence)))
   (x11:xtextwidth font
-		  (+ start (string-to-char* sequence))
+		  (+ start (clim-utils:string-to-foreign sequence))
 		  (- end start)))
 
 

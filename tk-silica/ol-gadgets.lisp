@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: ol-gadgets.lisp,v 1.71 1998/08/06 23:17:24 layer Exp $
+;; $Id: ol-gadgets.lisp,v 1.72 1999/02/25 08:23:44 layer Exp $
 
 (in-package :xm-silica)
 
@@ -1678,7 +1678,7 @@
 	(let ((x (tk::make-ol-list-item :in-foreign-space t))
 	      (selected-p (list-pane-selected-item-p sheet item)))
 	  (setf (tk::ol-list-item-label-type x) tk::ol-string
-		(tk::ol-list-item-label x) (tk::string-to-char* (funcall name-key item))
+		(tk::ol-list-item-label x) (clim-utils:string-to-foreign (funcall name-key item))
 		(tk::ol-list-item-mnemonic x) 0
 		(tk::ol-list-item-attr x)
 		(dpb (if selected-p 1 0)

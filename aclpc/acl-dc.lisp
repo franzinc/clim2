@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-dc.lisp,v 1.7 1998/10/08 18:36:21 layer Exp $
+;; $Id: acl-dc.lisp,v 1.8 1999/02/25 08:23:24 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -78,7 +78,7 @@
   (bitmap nil)				; bits of unmasked bitmap
   solid-1-pen				; style, width, and color of lines
   brush					; color/stipple used to fill polygons
-  (rop2 win:r2_copypen)			; set the foreground mix mode
+  (rop2 win:R2_COPYPEN)			; set the foreground mix mode
   text-color				; foreground color
   background-color			; background color
   and-bitmap				; AND part of masked bitmap (monochrome)
@@ -86,20 +86,20 @@
   )
 
 (defun initialize-dc ()
-  (unless (win:iswindow *current-window*)
+  (unless (win:IsWindow *current-window*)
     (error "No Window: ~S" *current-window*))
   ;; Stock objects
-  (setf *null-pen* (win:getStockObject win:null_pen))
-  (setf *black-pen* (win:getStockObject win:black_pen))
-  (setf *white-pen* (win:getStockObject win:white_pen))
+  (setf *null-pen* (win:GetStockObject win:NULL_PEN))
+  (setf *black-pen* (win:GetStockObject win:BLACK_PEN))
+  (setf *white-pen* (win:GetStockObject win:WHITE_PEN))
   (setf *ltgray-pen* 
-    (createPen win:ps_solid 1 (win:getSysColor win:COLOR_BTNFACE)))
+    (createPen win:PS_SOLID 1 (win:GetSysColor win:COLOR_BTNFACE)))
   ;;
-  (setf *null-brush* (win:getStockObject win:null_brush))
-  (setf *black-brush* (win:getStockObject win:black_brush))
-  (setf *white-brush* (win:getStockObject win:white_brush))
+  (setf *null-brush* (win:GetStockObject win:NULL_BRUSH))
+  (setf *black-brush* (win:GetStockObject win:BLACK_BRUSH))
+  (setf *white-brush* (win:GetStockObject win:WHITE_BRUSH))
   (setf *ltgray-brush* 
-    (win:createSolidBrush (win:getSysColor win:COLOR_BTNFACE)))
+    (win:CreateSolidBrush (win:GetSysColor win:COLOR_BTNFACE)))
   ;;
   #+obsolete
   (setf *black-image*
@@ -107,33 +107,33 @@
 		   :brush *black-brush*
 		   :text-color #x000000
 		   :background-color nil
-		   :rop2 win:r2_copypen))
+		   :rop2 win:R2_COPYPEN))
   #+obsolete
   (setf *white-image*
     (make-dc-image :solid-1-pen *white-pen*
 		   :brush *white-brush*
 		   :text-color #xffffff
 		   :background-color nil
-		   :rop2 win:r2_copypen))
+		   :rop2 win:R2_COPYPEN))
   (setf *blank-image*
     #+possibly
     (make-dc-image :solid-1-pen *black-pen* 
 		   :brush *black-brush*
 		   :text-color #xffffffff ; see CLR_NONE
                    :background-color nil
-		   :rop2 win:r2_mergepen )
+		   :rop2 win:R2_MERGEPEN )
     (make-dc-image :solid-1-pen *black-pen*
 		   :brush *black-brush*
 		   :text-color #x000000 
 		   :background-color nil
-		   :rop2 win:r2_nop ))
+		   :rop2 win:R2_NOP ))
   ;;
   (setf *ltgray-image*
     (make-dc-image :solid-1-pen *ltgray-pen* 
                    :brush *ltgray-brush*
-                   :text-color (win:getSysColor win:COLOR_BTNFACE)
+                   :text-color (win:GetSysColor win:COLOR_BTNFACE)
                    :background-color nil
-		   :rop2 win:r2_copypen))
+		   :rop2 win:R2_COPYPEN))
   ;;
   (setq *dc-initialized* t)
   )
@@ -146,31 +146,31 @@
 (defun release-objects (window dc)
   (when *created-pen*
     (selectobject dc *black-pen*)
-    (win:deleteObject *created-pen*)
+    (win:DeleteObject *created-pen*)
     (setq *created-pen* nil))
   (when *created-brush*
     (selectobject dc *white-brush*)
-    (win:deleteObject *created-brush*)
+    (win:DeleteObject *created-brush*)
     (setq *created-brush* nil))
   (when *created-tile*
-    (win:deleteObject *created-tile*)
+    (win:DeleteObject *created-tile*)
     (setq *created-tile* nil))
   (when *created-region*
-    (selectobject dc (ct::null-handle win:hrgn))
-    (win:deleteObject *created-region*)
+    (selectobject dc (ct::null-handle win:HRGN))
+    (win:DeleteObject *created-region*)
     (setq *created-region* nil))
   (when (and *created-font* *original-font*)
     (selectobject dc *original-font*)
-    (win:deleteObject *created-font*)
+    (win:DeleteObject *created-font*)
     (setq *created-font* nil))     
   (when (and *created-bitmap* *original-bitmap*)
     (selectobject dc *original-bitmap*)
-    (win:deleteObject *created-bitmap*)
+    (win:DeleteObject *created-bitmap*)
     (setq *created-bitmap* nil))
   (dolist (xtra *extra-objects*)
-	(win:deleteObject xtra))
+	(win:DeleteObject xtra))
   (setq *extra-objects* nil)
-  (win:releaseDc window dc))
+  (win:ReleaseDC window dc))
 
 (defclass acl-pixmap (pixmap)
   ((bitmap :initarg :bitmap)
@@ -216,14 +216,14 @@
   `(let ((,cdc nil))
      (unwind-protect
 	 (progn
-	   (setf ,cdc (win:createCompatibleDC ,dc))
+	   (setf ,cdc (win:CreateCompatibleDC ,dc))
 	   ,@body)
        (selectobject ,cdc *original-bitmap*)
        (when (and *created-bitmap*
 		  (not (ct::null-handle-p win:hbitmap *created-bitmap*)))
-	 (win:deleteObject *created-bitmap*))
+	 (win:DeleteObject *created-bitmap*))
        (setf *created-bitmap* nil)
-       (win:deleteDc ,cdc))))
+       (win:DeleteDC ,cdc))))
 
 (defun set-dc-for-drawing (dc image line-style)
   ;; Note: DASHES may be a list, i.e. (5 2).  CreatePen
@@ -245,19 +245,19 @@
 	;; CreatePen does not support this combination.
 	;; So render dashes with thickness=1.
 	(setq thickness 1))
-      (when (= rop2 win:r2_xorpen)
+      (when (= rop2 win:R2_XORPEN)
 	(setq color #xffffff))		; black
       (setq pen
 	(setq *created-pen*
-	  (createPen (if dashes win:ps_dash win:ps_solid)
+	  (createPen (if dashes win:PS_DASH win:PS_SOLID)
 		     thickness
 		     color))))
     (selectobject dc pen)
     (if dashes
-	(win:setBkMode dc win:TRANSPARENT)
-      (win:setBkMode dc win:OPAQUE))
+	(win:SetBkMode dc win:TRANSPARENT)
+      (win:SetBkMode dc win:OPAQUE))
     (selectobject dc brush)
-    (when rop2 (win:setRop2 dc rop2))
+    (when rop2 (win:SetRop2 dc rop2))
     t))
 
 (defun set-dc-for-filling (dc image &optional xorg yorg)
@@ -270,17 +270,17 @@
     (when background-color
       (cond ((minusp background-color)
 	     ;; This affects brushes created with CreateHatchBrush.
-	     (win:setBkMode dc win:TRANSPARENT))
+	     (win:SetBkMode dc win:TRANSPARENT))
 	    (t
-	     (win:setBkMode dc win:OPAQUE)
-	     (win:setBkColor dc background-color))))
-    (when text-color (win:setTextColor dc text-color))
+	     (win:SetBkMode dc win:OPAQUE)
+	     (win:SetBkColor dc background-color))))
+    (when text-color (win:SetTextColor dc text-color))
     (when brush 
       (when (and xorg yorg)
 	;; Is this working?  JPM.
-	(win:setbrushorgex dc xorg yorg 0))
+	(win:SetBrushOrgEx dc xorg yorg 0))
       (selectobject dc brush))
-    (when rop2  (win:setRop2 dc rop2))
+    (when rop2  (win:SetRop2 dc rop2))
     t))
 
 (defun set-dc-for-ink (dc medium ink line-style &optional xorg yorg)
@@ -313,14 +313,14 @@
 	      (text-color (dc-image-text-color image)))
 	  (cond ((not background-color))
 		((minusp background-color)
-		 (win:setbkmode dc win:TRANSPARENT))
+		 (win:SetBkMode dc win:TRANSPARENT))
 		(t
-		 (win:setbkmode dc win:OPAQUE)
-		 (win:setBkColor dc background-color)))
+		 (win:SetBkMode dc win:OPAQUE)
+		 (win:SetBkColor dc background-color)))
 	  (when text-color
-	    (win:setTextColor dc text-color)))
-	(win:setRop2 dc (dc-image-rop2 image))))
-    win:srccopy))
+	    (win:SetTextColor dc text-color)))
+	(win:SetRop2 dc (dc-image-rop2 image))))
+    win:SRCCOPY))
 
 (defun set-dc-for-text (dc medium ink font)
   (let* ((image (dc-image-for-ink medium ink))
@@ -329,19 +329,19 @@
 	 (brush (dc-image-brush image))
 	 (pen (dc-image-solid-1-pen image))
 	 (rop2 (dc-image-rop2 image)))
-    (win:setmapmode dc win:MM_TEXT)
+    (win:SetMapMode dc win:MM_TEXT)
     (when font (selectobject dc font))
     (cond ((not background-color)
-	   (win:setBkMode dc win:transparent))
+	   (win:SetBkMode dc win:TRANSPARENT))
 	  ((minusp background-color)
-	   (win:setBkMode dc win:transparent))
+	   (win:SetBkMode dc win:TRANSPARENT))
 	  (t
-	   (win:setbkmode dc win:OPAQUE)
-	   (win:setBkColor dc background-color)))
+	   (win:SetBkMode dc win:OPAQUE)
+	   (win:SetBkColor dc background-color)))
     (when text-color (win:setTextColor dc text-color))
-    (when brush (win:selectobject dc brush))
-    (when pen (win:selectobject dc pen))
-    (when rop2 (win:setRop2 dc rop2))))
+    (when brush (win:SelectObject dc brush))
+    (when pen (win:SelectObject dc pen))
+    (when rop2 (win:SetRop2 dc rop2))))
 
 (defgeneric dc-image-for-ink (medium ink))
 

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-medium.lisp,v 1.9 1998/10/08 18:36:21 layer Exp $
+;; $Id: acl-medium.lisp,v 1.10 1999/02/25 08:23:24 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -963,7 +963,7 @@ device-independent bitmap, an icon, nor a cursor."))
        (setq width (read-byte stream)
              height (read-byte stream))
        (setq number-of-colors-used (read-byte stream))
-       (read-byte stream)	; reserved
+       (read-byte stream)		; reserved
        (setq hotspot-x (bm-read-word stream)) ; bit-planes for icon
        (setq hotspot-y (bm-read-word stream)) ; bits-per-pixel for icon
        (setq image-size (bm-read-long stream))
@@ -1026,9 +1026,9 @@ device-independent bitmap, an icon, nor a cursor."))
 		  (rgb-red rgb) (read-byte stream))
 	  (setf (aref palette-array j)
 	    (make-rgb :blue (read-byte stream)
-			  :green (read-byte stream)
-			  :red (read-byte stream))))
-	(read-byte stream))	; reserved = 0
+		      :green (read-byte stream)
+		      :red (read-byte stream))))
+	(read-byte stream))		; reserved = 0
       )					; end reading color table
 
     (setq texture-info
@@ -1037,11 +1037,9 @@ device-independent bitmap, an icon, nor a cursor."))
 			 :bits-per-pixel bits-per-pixel
 			 :colors palette-array
 			 :invert-p nil)) ;; <18>
-      
-    ;; Read pixel values.
     (setq pixmap (make-pixel-map
-		  file-width	;; multiple of 32 bits wide
 		  height
+		  width	
 		  (expt 2 bits-per-pixel))) ;; "palette size"
     (dotimes (y height)
       #-runtime-system
@@ -1053,29 +1051,47 @@ device-independent bitmap, an icon, nor a cursor."))
 	(format *trace-output* "Reading pixmap row ~a of ~a"
 		(1+ y) height))
       (setq real-y (- (1- height) y))
-      (case bits-per-pixel
+      (case bits-per-pixel 
 	(1				; monochrome
 	 (dotimes (x (* 4 (ceiling width 32)))
 	   (setq pixel-byte (read-byte stream))
 	   (setq byte-num (* x 8))
 	   (dotimes (bit-num 8)
-	     (pixel-map-set pixmap (+ byte-num bit-num) real-y
-			    (if (logbitp (- 7 bit-num) pixel-byte)
-				1 0)))))
+	     ;; If this location is outside the pixmap,
+	     ;; drop it on the floor (after having read the
+	     ;; the PIXEL-BYTE from the stream).
+	     (let ((real-x (+ byte-num bit-num)))
+	       (if (< real-x width)
+		   (pixel-map-set pixmap real-x real-y
+				  (if (logbitp (- 7 bit-num) pixel-byte)
+				      1 0))))
+	     )))
 	(4
 	 ;; rows are padded to word boundary even in the file apparently
 	 ;; so read 8 nibbles from each 4-byte section of the row
 	 (dotimes (x (* 4 (ceiling width 8)))
 	   (setq pixel-byte (read-byte stream))
 	   (setq byte-num (* x 2))
-	   (pixel-map-set pixmap byte-num real-y
-			  (ash pixel-byte -4)) ; high nibble
-	   (pixel-map-set pixmap (1+ byte-num) real-y
-			  (logand pixel-byte 15)))) ; low nibble
+	   ;; If this location is outside the pixmap,
+	   ;; drop it on the floor (after having read the
+	   ;; the PIXEL-BYTE from the stream).
+	   (if (< byte-num width)
+	       (pixel-map-set pixmap byte-num real-y
+			      (ash pixel-byte -4))) ; high nibble
+	   (if (< (1+ byte-num) width)
+	       (pixel-map-set pixmap (1+ byte-num) real-y
+			      (logand pixel-byte 15))) ; low nibble
+	   ))
 	(8
 	 (dotimes (x (* 4 (ceiling width 4)))
-	   (pixel-map-set pixmap x real-y
-			  (read-byte stream))))
+	   ;; If this location is outside the pixmap,
+	   ;; drop it on the floor (after having read the
+	   ;; the PIXEL-BYTE from the stream).
+	   (let ((REAL-BYTE (read-byte stream)))
+	     (if (< x width)
+		 (pixel-map-set pixmap x real-y
+				REAL-BYTE)))
+	   ))
 	(24 (error "24-bit (direct-color) pixmaps are not implemented."))))
     ;; Return the objects that were read.
     hotspot-x hotspot-y image-size file-size number-of-resources
@@ -1114,8 +1130,8 @@ device-independent bitmap, an icon, nor a cursor."))
 (defun make-pattern-from-bitmap-file
     (path &key designs (format :bitmap) (port (find-port)))
   ;; give reasonable error msg:
-  (assert (member format '(:xbm :xpm :ico :bmp :cur)))
-  (if (member format '(:xbm :xpm))
+  (assert (member format '(:xbm :xpm :xpm3 :ico :bmp :cur)))
+  (if (member format '(:xbm :xpm :xpm3))
       (multiple-value-bind (array designs-from-file)
 	  (read-xbitmap-file path :format format :port port)
 	(make-pattern array (or designs designs-from-file)))
@@ -1295,6 +1311,144 @@ device-independent bitmap, an icon, nor a cursor."))
 	   (incf i)))
 	(values array designs)))))
 
+(defun read-xpm-v3-file (stream palette)
+  (labels ((ensure-next-char (c)
+	     (assert (eql c (skip-whitespace)) () "Expected ~S" c)
+	     (read-char stream))
+	   (read-a-token (predicate &optional (stream stream))
+	     (skip-whitespace)
+	     (let ((chars (make-array 0 :fill-pointer 0
+				      :adjustable t
+				      :element-type 'character)))
+	       (loop
+		 (let ((c (peek-char nil stream nil nil)))
+		   (unless (and c (funcall predicate c))
+		     (return (coerce chars 'simple-string)))
+		   (vector-push-extend c chars))
+		 (read-char stream))))
+	   (skip-comment ()
+	     (when (eql #\/ (skip-whitespace))
+	       (read-char stream)	; /
+	       (read-char stream)	; *
+	       (loop
+		 (peek-char #\* stream)
+		 (read-char stream)
+		 (when (eql #\/ (read-char stream))
+		   (return)))))
+	   (skip-trailing-crap ()
+	     (loop
+	       (case (skip-whitespace)
+		 (#\, (read-char stream))
+		 (#\/ (skip-comment))
+		 (t (return)))))
+	   (read-a-string ()
+	     (read stream))
+	   (skip-whitespace ()
+	     (let (c)
+	       (loop
+		 (unless  (eql (setq c (peek-char t stream)) #\newline)
+		   (return c))))))
+
+    (let (width height ncolors pixels colors cpp)
+
+      (assert (eql #\/ (skip-whitespace)) () "File must begin with a comment")
+
+      (skip-comment)
+      (assert (string= (read-a-token #'alpha-char-p) "static")
+	  () "Expected static keyword")
+      (assert (string= (read-a-token #'alpha-char-p) "char")
+	  () "Expected char keyword" )
+      (ensure-next-char #\*)
+
+      (read-a-token #'(lambda (c) (or (alphanumericp c) (eql c #\_))))
+
+      (ensure-next-char #\[)
+      (ensure-next-char #\])
+      (ensure-next-char #\=)
+      (ensure-next-char #\{)
+
+      (skip-comment)
+
+      (let ((values (read-a-string)))
+	(with-input-from-string (s values)
+	  (setq width (read s)
+		height (read s)
+		ncolors (read s)
+		cpp (read s))))
+
+      (skip-trailing-crap)
+
+      (let ((array (make-array (list height width))))
+
+	(dotimes (i ncolors)
+	  (let* ((string (prog1 (read-a-string) (skip-trailing-crap)))
+		 (chars (subseq string 0 cpp))
+		 (values nil))
+	    (with-input-from-string (s string :start cpp)
+	      (loop
+		(let ((key (read s nil nil)))
+		  (when (eq key nil) (return))
+		  (assert (member key '(m s g4 g c) :test #'string-equal)
+		      () "Expected either m, s, g4, g or . Got ~S" key)
+		  (push (cons key
+			      (case (peek-char t s)
+				(#\#	; rgb
+				 (read-char s)
+				 (let* ((number (read-a-token #'(lambda (c) (digit-char-p c 16)) s))
+					(color-string-length (length number)))
+				   (assert (or (= color-string-length 12)
+					       (= color-string-length 6)) ()
+				     "Expected 6 or 12 character hex string. Got ~S" number)
+				   (let ((comp-length (/ color-string-length 3)))
+				     (flet ((get-integer (i)
+					      (/ (parse-integer number
+								:start (* i comp-length)
+								:end (* (1+ i) comp-length)
+								:radix 16)
+						 (if (= comp-length 2) 255 65535))))
+				       (make-rgb-color
+					(get-integer 0)
+					(get-integer 1)
+					(get-integer 2))))))
+				(#\%	; hsv
+				 (read-char s)
+				 (error "HSV color spec not implemented")
+				 )
+				(t	; color-name
+				 (read s))))
+			values))))
+	    (assert values () "Expected  key,color for ~S" chars)
+	    (push (cons chars values) colors)))
+
+
+	(setq pixels (nreverse pixels))
+
+	(dotimes (i height)
+	  (let ((string (read-a-string)))
+	    (skip-trailing-crap)
+	    (dotimes (j width)
+	      (setf (aref array i j)
+		(position
+		 (let ((index (* cpp j)))
+		   (subseq string index (+ index cpp)))
+		 colors
+		 :key #'car
+		 :test #'string=)))))
+
+	(values array
+		(mapcar #'(lambda (name-and-versions)
+			    (let ((color (or (cdr (assoc "c" (cdr name-and-versions)
+							 :test #'string-equal))
+					     (cdr (car (cdr name-and-versions))))))
+			      (etypecase color
+				(color color)
+				(symbol (cond ((string-equal color 'none)
+					       +transparent-ink+)
+					      (palette
+					       (find-named-color (string color) palette))
+					      (t color))))))
+			colors))))))
+
 (defmethod read-image-file ((format (eql :xbm)) pathname palette)
   (declare (ignore palette))
   (if (streamp pathname)
@@ -1308,9 +1462,15 @@ device-independent bitmap, an icon, nor a cursor."))
     (with-open-file (fstream pathname :direction :input)
       (read-xpm-file fstream palette))))
 
+(defmethod read-image-file ((format (eql :xpm3)) pathname palette)
+  (if (streamp pathname)
+      (read-xpm-v3-file pathname palette)
+    (with-open-file (fstream pathname :direction :input)
+      (read-xpm-v3-file fstream palette))))
+
 (defun read-xbitmap-file (pathname &key (format :xbm) (port (find-port)))
   (declare (type (or pathname string stream) pathname))
-  (assert (member format '(:xbm :xpm)))	; give caller reasonable error msg
+  (assert (member format '(:xbm :xpm :xpm3)))	; give caller reasonable error msg
   (let ((palette (and port (port-default-palette port))))
     (read-image-file format pathname palette)))
 
@@ -1358,3 +1518,7 @@ device-independent bitmap, an icon, nor a cursor."))
 
 (eval-when (load eval)
   (initialize-named-colors))
+
+(defun clim-internals::kana-process-gesture (istream gesture type)
+  (declare (ignore istream gesture type))
+  (error "Not yet implemented for this platform."))

@@ -1,4 +1,4 @@
-# $Header: /repo/cvs.copy/clim2/Makefile,v 1.86 1998/08/06 23:15:35 layer Exp $
+# $Header: /repo/cvs.copy/clim2/Makefile,v 1.87 1999/02/25 08:23:20 layer Exp $
 
 # If ../makefile.top doesn't exist, then you must specify HOST=xxx on the
 # `make' command line.
@@ -14,6 +14,13 @@ endif
 
 ifeq ($(OS_NAME),linux)
 HOST = linux
+ifeq ($(MACHINE),ppc)
+HOST = linuxppc
+endif
+endif
+
+ifeq ($(OS_NAME),freebsd)
+HOST = freebsd
 endif
 
 ifeq ($(OS_NAME),hp-ux)

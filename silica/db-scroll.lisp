@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: db-scroll.lisp,v 1.59 1998/08/06 23:16:57 layer Exp $
+;; $Id: db-scroll.lisp,v 1.60 1999/02/25 08:23:36 layer Exp $
 
 ;;;"Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
 ;;; Portions copyright(c) 1991, 1992 International Lisp Associates.
@@ -257,27 +257,31 @@
     (when viewport
       (with-bounding-rectangle* (left top right bottom)
           (pane-viewport-region sheet)
-        ;; Optimize this case, since the rest of this code can be
-        ;; quite expensive, especially on servers that require COPY-AREA
-        ;; to be synchronous
-         (unless (and (= x left) (= y top))
-          ;;--- This should actually bash the sheet-transformation
+	;; Optimize this case, since the rest of this code can be
+	;; quite expensive, especially on servers that require COPY-AREA
+	;; to be synchronous
+	(unless (and (= x left) (= y top))
+	  ;;--- This should actually bash the sheet-transformation
           (setf (sheet-transformation sheet)
             (make-translation-transformation (- x) (- y)))
           (bounding-rectangle-set-position (viewport-viewport-region viewport) x y)
           (with-bounding-rectangle* (nleft ntop nright nbottom)
               (pane-viewport-region sheet)
-            ;; If we are scrolling programatically then this might
-            ;; reveal more of the sheet than currently exists
+	    ;; If we are scrolling programatically then this might
+	    ;; reveal more of the sheet than currently exists
             (update-region sheet nleft ntop nright nbottom)
-            ;; Must go after bounding-rectangle-set-position
+	    ;; Must go after bounding-rectangle-set-position
             (update-scroll-bars viewport)
             (if (ltrb-overlaps-ltrb-p left top right bottom nleft ntop nright nbottom)
                 (progn
-                  ;; Move the old stuff to the new position
+		  ;; Move the old stuff to the new position
                   (window-shift-visible-region sheet
                                                left top right bottom
                                                nleft ntop nright nbottom)
+		  ;; After we have finished shifting/copying, grow 
+		  ;; the "replay area" by one pixel up and to the left.
+		  (setq nleft (1- nleft)
+			ntop (1- ntop))
                   (let ((rectangles (ltrb-difference nleft ntop nright nbottom
                                                      left top right bottom)))
                     (with-sheet-medium (medium sheet)
@@ -289,8 +293,8 @@
                               (replay (stream-output-history sheet) sheet region)
                             (repaint-sheet sheet region)))))))
               (let ((region (viewport-viewport-region viewport)))
-                ;;--- We should make the sheet-region bigger at this point.
-                ;;--- Perhaps we do a union of the sheet-region and the viewport.
+		;;--- We should make the sheet-region bigger at this point.
+		;;--- Perhaps we do a union of the sheet-region and the viewport.
                 (with-sheet-medium (medium sheet)
                   (multiple-value-call #'medium-clear-area
                     medium (bounding-rectangle* region)))

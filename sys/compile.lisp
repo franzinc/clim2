@@ -15,98 +15,74 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: compile.lisp,v 1.7 1998/08/06 23:17:05 layer Exp $
+;; $Id: compile.lisp,v 1.8 1999/02/25 08:23:39 layer Exp $
 
 (in-package :user)
 
-#+allegro
-(eval-when (compile eval load)
-  (when (eq :case-sensitive-lower excl:*current-case-mode*)
-    (setq *print-case* :downcase)
-    (set-case-mode :case-insensitive-lower)))
+(set-case-mode :case-insensitive-upper)
 
-#+(and Allegro (or microsoft-32 mswindows))
-(eval-when (compile load eval) (push :acl86win32 *features*))
+#+(and allegro microsoft-32)
+(eval-when (compile load eval) 
+  (pushnew :acl86win32 *features*))
 
-#+acl86win32
+#+microsoft-32
 (let ((excl::*enable-package-locked-errors* nil))
   (when (not (fboundp 'system::rcsnote))
     (defun system::rcsnote (&rest args)
       nil)))
 
-#+acl86win32
-(setq comp:trust-dynamic-extent-declarations-switch nil)
-
-#+acl86win32
 (defvar *clim-root* (make-pathname 
                        :device (pathname-device *load-pathname*)
                        :directory (butlast (pathname-directory *load-pathname*))))
 
-#+acl86win32 ;; aclpc gets climpath in do.lisp
 (defun climpath (sub) (merge-pathnames sub *clim-root*))
-
-;; if you turn on this feature be sure to add appropriate forms below
-#+acl86win32-uses-clim-defsystem (compile-file-if-needed (climpath "sys\\defsystem.lisp"))
-#+acl86win32-uses-clim-defsystem (load (climpath "sys\\defsystem.fasl"))
 
 ;; should probably change ANSI-90 to ANSI-CL throughout the CLIM code but
 ;; until then... (aclpc gets this feature in defsystem)
-#+acl86win32 (pushnew :ansi-90 *features*)
-#+acl86win32
-(setf (logical-pathname-translations "clim2")
-  `((";**;*.*" ,*clim-root*)))
-
-#+acl86win32 (load (climpath "sys\\sysdcl.lisp"))
+(eval-when (compile load eval)
+  (pushnew :ansi-90 *features*)
+  (setf (logical-pathname-translations "clim2")
+    `((";**;*.*" ,*clim-root*)))
+  (load "clim2:;sys;sysdcl.lisp"))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (with-compilation-unit ()
-(let ((excl::*enable-package-locked-errors* nil))
+  (let ((excl::*enable-package-locked-errors* nil))
+    #+mswindows
+    (progn
+      (load (climpath "aclpc\\sysdcl.lisp"))
+      (compile-system 'aclnt-clim :include-components t)
+      (let ((excl:*redefinition-warnings* nil)
+	    (excl::*defconstant-redefinition-check* nil))
+	(load-system 'aclnt-clim)))
 
-(load (climpath "aclpc\\sysdcl.lisp"))
+    ;; postscript backend 
+    (progn
+      (load (climpath "postscript\\sysdcl.lisp"))
+      (compile-system 'postscript-clim)
+      (let ((excl:*redefinition-warnings* nil)
+	    (excl::*defconstant-redefinition-check* nil))
+	(load-system 'postscript-clim)))
 
-(let ((excl::*update-entry-points* nil))
-  (compile-system 'aclnt-clim :include-components t)
-  (let ((excl:*redefinition-warnings* nil)
-	(excl::*defconstant-redefinition-check* nil))
-    (load-system 'aclnt-clim)))
+    (compile-file-if-needed (climpath "test\\test-suite.lisp"))
+    (load (climpath "test\\test-suite.fasl"))
 
-;;;+++ why must we do this?  Without this, for some reason,
-;;; create-overlapped-window fails on second invocations!
-(load (climpath "aclpc\\acl-class.fasl"))
+    (let ((excl:*redefinition-warnings* nil))
+      (load (climpath "demo\\sysdcl.lisp"))
+      (compile-system 'clim-demo))
 
-;; postscript backend 
-(load (climpath "postscript\\sysdcl.lisp"))
-(compile-system 'postscript-clim)
-(let ((excl:*redefinition-warnings* nil)
-      (excl::*defconstant-redefinition-check* nil))
-  (load-system 'postscript-clim))
+)) ;; with-compilation-unit
 
-;;; to make a non-demo-loaded version, comment the following
-(compile-file-if-needed (climpath "test\\test-suite.lisp"))
-(load (climpath "test\\test-suite.fasl"))
-
-(let ((excl:*redefinition-warnings* nil)
-;;;      (*record-source-file-info* nil) ;; too many damn warnings
-;;;      (*load-source-file-info* nil)
-      )
-  (load (climpath "demo\\sysdcl.lisp"))
-  (compile-system 'clim-demo))
-
-) ;; end let #+acl86win32 (excl::*enable-package-locked-errors* nil)
-
-) ;; with-compilation-unit
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (in-package :clim-user)
-
-#+acl86win32x (setq mp::*default-process-quantum* 0.6)
 
 (defun run-tests ()
   (let ((frame (make-application-frame 'clim-tests)))
     (raise-frame frame)
     (run-frame-top-level frame)))
 
-#+acl86win32
+#+mswindows
 (flet ((append-files (input-files output-file)
 	 (format t "~%;; Making ~a...~%" output-file)
 	 (with-open-file (s output-file
@@ -140,6 +116,7 @@
 		  "demo/listener.fasl"
 		  "demo/graphics-demos.fasl"
 		  "demo/cad-demo.fasl"
+		  "demo/bitmap-editor.fasl"
 		  "demo/navdata.fasl"
 		  "demo/navfun.fasl"
 		  "demo/puzzle.fasl"

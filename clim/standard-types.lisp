@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: standard-types.lisp,v 1.40 1998/08/06 23:16:04 layer Exp $
+;; $Id: standard-types.lisp,v 1.41 1999/02/25 08:23:30 layer Exp $
 
 (in-package :clim-internals)
 
@@ -224,20 +224,17 @@
                                      low high)))))))))
 
 (define-presentation-method presentation-type-specifier-p ((type real))
-  (macrolet (#-(or Genera ANSI-90)
-             (realp (object)
-               `(typep ,object '(or rational float))))
-    (and (if (atom low)
-             (or (eq low '*)
-                 (realp low))
-             (and (realp (car low))
-                  (null (cdr low))))
-         (if (atom high)
-             (or (eq high '*)
-                 (realp high))
-             (and (realp (car high))
-                  (null (cdr high))))
-         (typep base '(integer 2 36)))))
+  (and (if (atom low)
+	   (or (eq low '*)
+	       (realp low))
+	 (and (realp (car low))
+	      (null (cdr low))))
+       (if (atom high)
+	   (or (eq high '*)
+	       (realp high))
+	 (and (realp (car high))
+	      (null (cdr high))))
+       (typep base '(integer 2 36))))
 
 (define-presentation-method presentation-typep (object (type real))
   (and (rangecase low
@@ -497,8 +494,9 @@
   ;; Slow but accurate
   (let* ((pathname (pathname string))
          (merged-pathname (merge-pathnames pathname default))
+	 (version (pathname-version pathname))
          completions)
-    (cond ((pathname-version pathname)
+    (cond ((and version (not (eq version :unspecific)))
            ;; Get around file-system braino I don't know how to resolve
            (setq completions (directory pathname)))
           (t
@@ -511,7 +509,7 @@
           (type (pathname-type pathname)))
       (setq completions
             (delete-if-not
-              #'(lambda (pn)
+	     #'(lambda (pn)
                   (let* ((pn-name (pathname-name pn))
                          (pn-type (pathname-type pn)))
                     (cond (type
@@ -520,7 +518,7 @@
                              (let ((s (search type pn-type :test #'char-equal)))
                                (and s (zerop s)))))
                           (t
-                           (let ((s (search name (pathname-name pn)
+                           (let ((s (search name pn-name
                                             :test #'char-equal)))
                              (if (eq action :apropos-possibilities)
                                  (not (null s))
@@ -1612,7 +1610,6 @@
                              #+ignore (radix *print-radix*)
                              #+ignore (base *print-base*)
                              #+ignore (escape *print-escape*)
-                             #+ignore (case *print-case*)
                              #+ignore (gensym *print-gensym*)
                              #+ignore (array *print-array*))
   (let ((*print-length* length)
@@ -1621,7 +1618,6 @@
         #+ignore (*print-radix* radix)
         #+ignore (*print-base* base)
         #+ignore (*print-escape* escape)
-        #+ignore (*print-case* case)
         #+ignore (*print-gensym* gensym)
         #+ignore (*print-array* array))
     (print-recursive-1 object stream length level make-presentation)))

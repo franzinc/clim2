@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: ol-init.lisp,v 1.25 1998/08/06 23:17:17 layer Exp $
+;; $Id: ol-init.lisp,v 1.26 1999/02/25 08:23:42 layer Exp $
 
 (in-package :tk)
 
@@ -72,7 +72,7 @@
 					  :name :menu-pane
 					  :type 'widget
 					  :original-name
-					  (string-to-char*
+					  (clim-utils:string-to-foreign
 					   "menuPane")))
 
 (add-resource-to-class (find-class 'abbrev-menu-button)
@@ -80,7 +80,7 @@
 				      :name :menu-pane
 				      :type 'widget
 				      :original-name
-				      (string-to-char*
+				      (clim-utils:string-to-foreign
 				       "menuPane")))
 
 #+dlfcn

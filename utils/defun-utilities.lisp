@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: defun-utilities.lisp,v 1.14 1998/08/06 23:17:32 layer Exp $
+;; $Id: defun-utilities.lisp,v 1.15 1999/02/25 08:23:46 layer Exp $
 
 (in-package :clim-utils)
 
@@ -99,7 +99,10 @@
   #-Genera `(let () ,@body))
 
 (defmacro defun-inline (name lambda-list &body body)
-  `(define-group ,name defun-inline
+  `(progn ;; define-group ,name defun-inline
+;;;; don't use define-group, because it does a excl::record-source-file,
+;;;; which will be also done by defun!  This causes duplicate definition in
+;;;; file warnings.
      (eval-when (compile load eval) (proclaim '(inline ,name)))
      (defun ,name ,lambda-list
        ,@body)))

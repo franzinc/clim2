@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: frames.lisp,v 1.91 1998/10/08 18:36:22 layer Exp $
+;; $Id: frames.lisp,v 1.92 1999/02/25 08:23:29 layer Exp $
 
 (in-package :clim-internals)
 
@@ -827,91 +827,60 @@
                                     &key command-parser command-unparser
                                          partial-command-parser
                                          (prompt "Command: "))
-  (let #-(or aclpc acl86win32) ()
-       #+(or aclpc acl86win32) (orig-x orig-y new-x new-y)
-    #-(or aclpc acl86win32) ;; Enable the frame now
-    (unless (eq (frame-state frame) :enabled)
-      (enable-frame frame))
-    #+(or aclpc acl86win32) ;; pr Aug97
-    ;;--- looks like he wants to do the ugly growing far off-screen
-    ;;--- and then move the window back in.  Hacky but effective. -tjm
-    (unless (eq (frame-state frame) :enabled)
-      (multiple-value-setq (orig-x orig-y) (frame-find-position frame))
-      (when (and orig-x orig-y)
-        (frame-set-position frame (+ orig-x 10000) (+ orig-y 10000)))
-      ;;(move-sheet (frame-top-level-sheet frame) (+ orig-x 10000) (+ orig-y 10000))
-      (multiple-value-setq (new-x new-y) (frame-find-position frame))
-      (when (and orig-x orig-y new-x new-y 
-                 (not (= new-x (+ orig-x 10000))) (not (= new-y (+ orig-y 10000))))
-        (frame-set-position frame orig-x orig-y)
-        (setf new-x nil new-y nil))
-      (enable-frame frame))
-    (loop
-      (let* ((*standard-output*
-	      (or (frame-standard-output frame) *standard-output*))
-	     (*standard-input*
-	      (or (frame-standard-input frame) *standard-output*))
-	     (*query-io*
-	      (or (frame-query-io frame) *standard-input*))
-	     (*error-output*
-	      (or (frame-error-output frame) *standard-output*))
-	     (*pointer-documentation-output*
-	      (frame-pointer-documentation-output frame))
-	     (interactor
-	      (not (null (find-frame-pane-of-type frame 'interactor-pane))))
-	     (*command-parser*
-	      (or command-parser
-		  (if interactor
-		      #'command-line-command-parser
-		    #'menu-command-parser)))
-	     (*command-unparser*
-	      (or command-unparser
-		  #'command-line-command-unparser))
-	     (*partial-command-parser*
-	      (or partial-command-parser
-		  (if interactor
-		      #'command-line-read-remaining-arguments-for-partial-command
-		    #'menu-read-remaining-arguments-for-partial-command)))
-	     (command-stream
-	      ;;--- We have to ask the frame since we do not want to
-	      ;;--- just pick up a stream from the dynamic environment
-	      (let ((si (or (frame-standard-input frame)
-			    (frame-standard-output frame))))
-		(typecase si
-		  (output-protocol-mixin si)
-		  (t (frame-top-level-sheet frame)))))
-	     #+(or aclpc acl86win32) ;; pr Aug97
-	     (iterations 0))
-	;; The read-eval-print loop for applications...
-	(letf-globally (((frame-actual-pointer-documentation-pane frame)
-			 *pointer-documentation-output*))
-	  (loop
-	    ;; Redisplay all the panes
-	    (catch-abort-gestures ("Return to ~A command level" (frame-pretty-name frame))
-	      (redisplay-frame-panes frame)
+  (unless (eq (frame-state frame) :enabled)
+    (enable-frame frame))
+  (loop
+    (let* ((*standard-output*
+	    (or (frame-standard-output frame) *standard-output*))
+	   (*standard-input*
+	    (or (frame-standard-input frame) *standard-output*))
+	   (*query-io*
+	    (or (frame-query-io frame) *standard-input*))
+	   (*error-output*
+	    (or (frame-error-output frame) *standard-output*))
+	   (*pointer-documentation-output*
+	    (frame-pointer-documentation-output frame))
+	   (interactor
+	    (not (null (find-frame-pane-of-type frame 'interactor-pane))))
+	   (*command-parser*
+	    (or command-parser
+		(if interactor
+		    #'command-line-command-parser
+		  #'menu-command-parser)))
+	   (*command-unparser*
+	    (or command-unparser
+		#'command-line-command-unparser))
+	   (*partial-command-parser*
+	    (or partial-command-parser
+		(if interactor
+		    #'command-line-read-remaining-arguments-for-partial-command
+		  #'menu-read-remaining-arguments-for-partial-command)))
+	   (command-stream
+	    ;;--- We have to ask the frame since we do not want to
+	    ;;--- just pick up a stream from the dynamic environment
+	    (let ((si (or (frame-standard-input frame)
+			  (frame-standard-output frame))))
+	      (typecase si
+		(output-protocol-mixin si)
+		(t (frame-top-level-sheet frame))))))
+      ;; The read-eval-print loop for applications...
+      (letf-globally (((frame-actual-pointer-documentation-pane frame)
+		       *pointer-documentation-output*))
+	(loop
+	  ;; Redisplay all the panes
+	  (catch-abort-gestures ("Return to ~A command level" (frame-pretty-name frame))
+	    (redisplay-frame-panes frame)
+	    (when interactor
+	      (fresh-line *standard-input*)
+	      (if (stringp prompt)
+		  (write-string prompt *standard-input*)
+		(funcall prompt *standard-input* frame)))
+	    (let ((command (read-frame-command frame :stream command-stream)))
 	      (when interactor
-		(fresh-line *standard-input*)
-		(if (stringp prompt)
-		    (write-string prompt *standard-input*)
-		  (funcall prompt *standard-input* frame)))
-	      #+(or aclpc acl86win32) ;; pr Aug97
-	      ;;--- looks like he wants to do the ugly growing far off-screen
-	      ;;--- and then move the window back in.  Hacky but effective. -tjm
-	      (when (= 1 (incf iterations))
-		(multiple-value-bind (x y) (frame-find-position frame)
-		  (when (and x y new-x new-y (> x 9900))
-		    #-ignore (frame-set-position frame (max 0 (- x 10000)) (max 0 (- y 10000)))
-		    #+ignore (move-sheet (frame-top-level-sheet frame) (- x 10000) (- y 10000))))
-		(clean-frame frame)
-		#+no (setf (sheet-enabled-p (frame-top-level-sheet frame)) nil)
-		(unless (eq (frame-state frame) :enabled)
-		  (enable-frame frame)))
-	      (let ((command (read-frame-command frame :stream command-stream)))
-		(when interactor
-		  (terpri *standard-input*))
-		;; Need this check in case the user aborted out of a command menu
-		(when command
-		  (execute-frame-command frame command))))))))))
+		(terpri *standard-input*))
+	      ;; Need this check in case the user aborted out of a command menu
+	      (when command
+		(execute-frame-command frame command)))))))))
   
 ;; Generic because someone might want :BEFORE or :AFTER
 (defmethod frame-exit ((frame standard-application-frame))
@@ -962,7 +931,8 @@
           (setq left (- graft-width width)))
         (when (> bottom graft-height)
           (setq top (- graft-height height)))
-        (port-move-frame (port sheet) (pane-frame sheet) (max 0 left) (max 0 top))))))
+        (port-move-frame (port sheet) (pane-frame sheet) 
+			 (max 0 left) (max 0 top))))))
 
 (defmethod port-move-frame ((port basic-port) frame x y)
   (move-sheet (frame-top-level-sheet frame) x y))
@@ -1177,43 +1147,34 @@
 #+(or aclpc acl86win32)
 (defvar *frame*)
 
-;;; This is the wrong modularity... Bury calls in commands for acl case later.
-;;;-- pr Aug97
 (defmacro with-menu-disabled (frame &body body)
-  #-acl86win32 (declare (ignore frame))
-  #+(or aclpc acl86win32)
+  #-mswindows (declare (ignore frame))
+  #+mswindows
   `(unwind-protect 
-      (progn (enable-menu-items ,frame nil) ,@body)
-	  (progn
-		(enable-menu-items ,frame t)
-		(setq *frame* ,frame)))
-  #-acl86win32 `(progn ,@body))
+       (progn (enable-menu-items ,frame nil) ,@body)
+     (enable-menu-items ,frame t)
+     (setq *frame* ,frame))
+  #-mswindows `(progn ,@body))
 
-#+(or aclpc acl86win32)
 (defmethod execute-frame-command ((frame standard-application-frame) command)
-  (with-menu-disabled frame ;; pr Aug97
+  (with-menu-disabled frame
     (apply (command-name command) (command-arguments command))))
 
-#-(or aclpc acl86win32)
-(defmethod execute-frame-command ((frame standard-application-frame) command)
-  (apply (command-name command) (command-arguments command)))
-
-(defmethod execute-frame-command :around ((frame standard-application-frame) command)
+(defmethod execute-frame-command :around ((frame standard-application-frame) 
+					  command)
   (let ((top-level-process (slot-value frame 'top-level-process))
         activity)
-    (if #+(or aclpc acl86win32) (not *multiprocessing-p*)
-        #-(or aclpc acl86win32) nil
-      (call-next-method) ;  treat single proc as top-level-process
-      (if (or (and top-level-process
-                   (eq top-level-process (current-process)))
-              (and (typep frame 'activity-frame)
-                   (setq activity (frame-activity frame))
-                   (eq (slot-value activity 'top-level-process) (current-process))))
-          ;; If we're in the process for the frame, just execute the command
-          ;; Or the process for the frames activity
-          (call-next-method)
-          ;; Otherwise arrange to run the command in the frame's process
-          (execute-command-in-frame frame command :queuep t)))))
+    (if (or (and top-level-process
+		 (eq top-level-process (current-process)))
+	    (and (typep frame 'activity-frame)
+		 (setq activity (frame-activity frame))
+		 (eq (slot-value activity 'top-level-process)
+		     (current-process))))
+	;; If we're in the process for the frame, just execute the command
+	;; Or the process for the frames activity
+	(call-next-method)
+      ;; Otherwise arrange to run the command in the frame's process
+      (execute-command-in-frame frame command :queuep t))))
 
 (defmethod command-defined-p ((frame standard-application-frame) command)
   (or (not (symbolp command))
@@ -1474,7 +1435,6 @@
   (declare (ignore frame))
   stream)
 
-#+(or aclpc acl86win32); unqualified first
 (defmethod frame-manager-display-pointer-documentation
 	   ((framem standard-frame-manager)
 	    frame presentation input-context window x y stream)
@@ -1492,7 +1452,7 @@
 (defmethod frame-manager-display-pointer-documentation :around
 	   ((framem standard-frame-manager)
 	    frame presentation input-context window x y stream)
-  #-aclpc (declare (ignore input-context x y))
+  (declare (ignore x y input-context))
   (when (frame-manager-pointer-documentation-stream framem frame stream)
     ;; The documentation should never say anything if we're not over a presentation
     (when (null presentation)
@@ -1509,21 +1469,6 @@
 	(return-from frame-manager-display-pointer-documentation nil))
       (setq *last-pointer-documentation-time* time))
     (call-next-method)))
-
-#-(or aclpc acl86win32)
-(defmethod frame-manager-display-pointer-documentation
-	   ((framem standard-frame-manager)
-	    frame presentation input-context window x y stream)
-  (let ((stream (frame-manager-pointer-documentation-stream framem frame stream)))
-    (when presentation
-      (with-output-recording-options (stream :record nil)
-	(with-end-of-line-action (stream :allow)
-	  (with-end-of-page-action (stream :allow)
-	    (window-clear stream)
-	    (when (null (frame-document-highlighted-presentation-1
-			  frame presentation input-context window x y stream))
-	      (setq *last-pointer-documentation-time* 0))
-	    (force-output stream)))))))
 
 (defmethod frame-manager-display-pointer-documentation-string 
 	   ((framem standard-frame-manager) frame stream string)

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-frames.lisp,v 1.8 1998/10/08 18:36:21 layer Exp $
+;; $Id: acl-frames.lisp,v 1.9 1999/02/25 08:23:24 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -32,6 +32,7 @@
 (in-package :acl-clim)
 
 (defvar *use-native-menubar* t)
+(defvar *in-layout-frame* nil)
 
 (defclass acl-frame-manager (standard-frame-manager)
     ((msmenubart :initarg :msmenubart :reader msmenubart))
@@ -85,14 +86,6 @@
 	     (vertically () pane pointer-doc-pane))
 	    (t pane)))))
 
-(defclass acl-top-level-sheet (top-level-sheet)
-  ((min-width :accessor acl-top-min-width :initform nil)
-   (min-height :accessor acl-top-min-height :initform nil)
-   (accelerator-gestures :initform nil :reader top-level-sheet-accelerator-gestures)
-   (sheet-thread :initform nil :accessor clim-internals::sheet-thread)
-   (tooltip-control :initform nil :accessor tooltip-control)
-   ))
-
 (defun record-accelerator (frame keysym command &optional sheet)
   (unless sheet
     (setq sheet (frame-top-level-sheet frame)))
@@ -112,30 +105,36 @@
 (defun modstateeql (a b) (eql a b))
 
 (defun lookup-accelerator (frame keysym modstate)
-  (let* ((sheet (frame-top-level-sheet frame))
-	 (gestures (top-level-sheet-accelerator-gestures sheet)))
-    (loop with gkeysym and gmodstate
-	for gesture-and-command in gestures
-	for (gesture) = gesture-and-command
-	do (multiple-value-setq (gkeysym gmodstate)
-	     (parse-gesture-spec gesture))
-	when (and (keysymeql keysym gkeysym)
-		  (modstateeql modstate gmodstate))
-	return (cdr gesture-and-command))))
+  (when clim-internals::*input-buffer-empty* 
+    ;; Ensure that command-accelerators are only enabled
+    ;; when we are not in the middle of an input-editor context.
+    ;; spr18494
+    (let* ((sheet (frame-top-level-sheet frame))
+	   (gestures (top-level-sheet-accelerator-gestures sheet)))
+      (loop with gkeysym and gmodstate
+	  for gesture-and-command in gestures
+	  for (gesture) = gesture-and-command
+	  do (multiple-value-setq (gkeysym gmodstate)
+	       (parse-gesture-spec gesture))
+	  when (and (keysymeql keysym gkeysym)
+		    (modstateeql modstate gmodstate))
+	  return (cdr gesture-and-command)))))
 
 (defmethod update-frame-settings ((framem acl-frame-manager) 
 				  (frame t))
-  (let* ((sheet (frame-top-level-sheet frame))
-	 (sr (compose-space sheet))
-	 (width (space-requirement-min-width sr))
-	 (height (space-requirement-min-height sr)))
-    (clim-internals::limit-size-to-graft width height (graft framem))
-    (multiple-value-bind (dl dt dw dh) (get-nonclient-deltas sheet)
-      (declare (ignore dl dt))
-      (setf (acl-top-min-width sheet) (fix-coordinate (+ width dw))
-	    (acl-top-min-height sheet) (fix-coordinate (+ height
-							  dh))))
-    (values width height)))
+  (let* ((sheet (frame-top-level-sheet frame)))
+    (when sheet
+      (let* ((sr (compose-space sheet))
+	     (width (space-requirement-min-width sr))
+	     (height (space-requirement-min-height sr)))
+	(clim-internals::limit-size-to-graft width height (graft framem))
+	(multiple-value-bind (dl dt dw dh) (get-nonclient-deltas sheet)
+	  (declare (ignore dl dt))
+	  (setf (acl-top-min-width sheet) 
+	    (fix-coordinate (+ width dw)))
+	  (setf (acl-top-min-height sheet)
+	    (fix-coordinate (+ height dh))))
+	(values width height)))))
 
 ;; added the following two methods so that the default labels are the
 ;; same as for the Xt port (cim 9/25/96)
@@ -268,9 +267,9 @@
   (if (< index (length string))
       (etypecase string
 	((simple-array character (*))
-	 (setf (schar string index) (cltl1:int-char new)))
+	 (setf (schar string index) (code-char new)))
 	(array
-	 (setf (aref string index) (cltl1:int-char new)))
+	 (setf (aref string index) (code-char new)))
 	))
   new)
 
@@ -334,7 +333,7 @@
 (defun make-menu-for-command-table (command-table menuhand frame 
 				    &optional top-level-sheet top-level-p)
   (unless top-level-sheet
-    (setq top-level-sheet (clim:frame-top-level-sheet frame)))
+    (setq top-level-sheet (frame-top-level-sheet frame)))
   ;; (re)initialize
   (let ((count (win:getmenuitemcount menuhand)))
     (when (plusp count)
@@ -516,8 +515,8 @@
     (unless (eq thread (current-process))
       ;; Lisp may hang badly if you proceed.
       (cerror "I don't care if the application crashes or hangs" 
-	      "This window was created in thread ~S,
-which is not its creator.
+              "An attempt was made to display a window in thread ~S,
+which is not the thread in which the window was created.
 Windows does not allow a window created in one thread 
 to be run from another."
 	     thread))))
@@ -544,13 +543,24 @@ to be run from another."
     (when menu-handle
       (win:EnableMenuItem menu-handle command-id flag))))
 
+(defmethod note-frame-enabled ((framem acl-frame-manager) frame)
+  (declare (ignore frame))
+  nil)
+
+(defmethod note-frame-disabled ((framem acl-frame-manager) frame)
+  (declare (ignore frame))
+  nil)
+
+(defmethod note-frame-iconified ((framem acl-frame-manager) frame)
+  (win:closewindow (sheet-mirror (frame-top-level-sheet frame))))
+
+(defmethod note-frame-deiconified ((framem acl-frame-manager) frame)
+  (win:openicon (sheet-mirror (frame-top-level-sheet frame))))
+
 (defmethod note-frame-enabled :around ((framem acl-frame-manager) frame)
   (call-next-method)
   (let ((*in-layout-avp* *in-layout-avp*)
 	(sheet (frame-top-level-sheet frame))
-	#+nevermind
-	(parent (and *application-frame*
-		     (frame-top-level-sheet *application-frame*)))
 	(avp nil))
     (when sheet
       (map-over-sheets #'(lambda (sheet)
@@ -559,23 +569,20 @@ to be run from another."
 		       sheet)
       (setf *in-layout-avp* avp)
       (setf (sheet-enabled-p sheet) t)
-      ;; Put the window somewhere other than the bottom of the Z order.
-      ;; Avoid putting the window on top of all windows, if possible,
-      ;; to avoid de-selecting another activity that the user 
-      ;; is trying to keep selected.  This window probably ought to
-      ;; be the topmost clim window but not necessarily the topmost
-      ;; of all windows.
-      #+nevermind
-      (win:setWindowPos (sheet-mirror sheet) 
-			(cond ((not parent) win:HWND_TOP)
-			      ((typep frame 'clim-internals::menu-frame) 
-			       win:HWND_TOPMOST)
-			      (t (sheet-mirror parent)))
-			0 0 0 0		; x y width height
-			(logior win:swp_nomove ; ignore x y
-				win:swp_nosize ; ignore width height
-				))
       (raise-sheet sheet))))
+
+(defmethod note-frame-enabled :after ((framem acl-frame-manager) frame)
+  (update-frame-settings framem frame)
+  ;;--- Perhaps we want to resize the top level sheet if there is one
+  (let ((avp nil)
+        (*in-layout-frame* *in-layout-frame*))    
+    (when (frame-top-level-sheet frame)
+      (map-over-sheets #'(lambda (sheet)
+                           (when (typep sheet 'accept-values-pane)
+                             (setf avp t)))
+                       (frame-top-level-sheet frame))
+      (setf *in-layout-frame* avp)
+      (setf (sheet-enabled-p (frame-top-level-sheet frame)) t))))
 
 (defmethod note-frame-layout-changed :after ((framem acl-frame-manager) frame)
   ;; added this to workaround some bugs with new layouts not being
@@ -602,8 +609,7 @@ to be run from another."
 	    (subsize (length name)))
         (dotimes (i subsize)
           (ct:cset (:char 256) cstr ((fixnum i)) (char-int (char name i))))
-	(ct:cset (:char 256) cstr ((fixnum subsize)) 
-		  #-aclpc (char-int #\NULL) #+aclpc 0)
+	(ct:cset (:char 256) cstr ((fixnum subsize)) (char-int #\NULL))
 	(or (win:SetWindowText win cstr)
 	    (check-last-error "SetWindowText"))))))
 
@@ -990,24 +996,34 @@ to be run from another."
    (#x5000 . ccerr_choosecolorcodes)
    ))
 
+(defun get-pathname-flags (save-p multiple-p warn-if-exists-p)
+  (logior
+   (if multiple-p win:OFN_ALLOWMULTISELECT 0)
+   (if save-p 0 win:OFN_FILEMUSTEXIST)
+   ;; This is only relevant if save-p:
+   (if warn-if-exists-p win:OFN_OVERWRITEPROMPT 0)
+   win:OFN_NOCHANGEDIR
+   win:OFN_HIDEREADONLY))
+
 (defun get-pathname (prompt directory stream allowed-types initial-name
 		     save-p multiple-p warn-if-exists-p)
   (flet ((fill-c-string (string)
 	   (let ((c-string (ff:allocate-fobject-c '(:array :char 256)))
 		 (length (length string)))
-	     (dotimes (i length (setf (ff:fslot-value-c '(:array :char 1)
-							 c-string
-							 length) 0))
+	     (assert (< length 255))
+	     (dotimes (i length)
 	       (setf (ff:fslot-value-c '(:array char 1) c-string i)
 		 (char-int (aref string i))))
+	     (setf (ff:fslot-value-c '(:array :char 1) c-string length)
+	       0)
 	     c-string)))
     (let* ((open-file-struct (ct:ccallocate win:openfilename))
 	   (file-filter-string 
 	    (fill-c-string
 	     (apply #'concatenate 'string
 		    (mapcar #'make-filter-string allowed-types))))
-	   (initial-dir-string (ff:string-to-char* directory))
-	   (prompt-string (fill-c-string prompt)))
+	   (initial-dir-string (fill-c-string (string directory)))
+	   (prompt-string (fill-c-string (string prompt))))
       (ct:csets win:openfilename open-file-struct
 		lstructsize (ct:sizeof win:openfilename)
 		hwndowner (or (and stream (sheet-mirror stream))
@@ -1024,14 +1040,7 @@ to be run from another."
 		nmaxfiletitle 0
 		lpstrinitialdir initial-dir-string
 		lpstrtitle prompt-string
-		flags (logior
-		       (if multiple-p win:ofn_allowmultiselect 0)
-		       (if save-p 0 win:ofn_filemustexist)
-		       ;; This is only relevant if save-p:
-		       (if warn-if-exists-p win:ofn_overwriteprompt 0)
-		       win:ofn_nochangedir
-		       win:ofn_hidereadonly
-		       )
+		flags (get-pathname-flags save-p multiple-p warn-if-exists-p)
 		nfileoffset 0
 		nfileextension 0 
 		lpstrdefext 0
@@ -1070,7 +1079,7 @@ to be run from another."
 	      hwndowner (or (and sheet (sheet-mirror sheet)) 0)
 	      pidlroot 0
 	      pszDisplayName 0
-	      lpszTitle (ff:string-to-char* title)
+	      lpszTitle (string-to-foreign title)
 	      ulflags 0
 	      lpfn 0
 	      lparam 0
@@ -1208,7 +1217,10 @@ to be run from another."
 		       :fill
 		       cancel)))))))
 
-(defmethod modal-frame-p ((frame nt-working-dialog)) t)
+;; Perhaps we hang if we set this to T.  I guess that
+;; means we aren't doing application-modal dialog boxes
+;; correctly yet.  10/98 JPM.
+(defmethod modal-frame-p ((frame nt-working-dialog)) nil)
 
 (defmethod display-note ((frame nt-working-dialog) stream)
   "The pane display function for the DISPLAY pane."
@@ -1225,6 +1237,7 @@ to be run from another."
 			      t))))
 
 (defvar *working-dialog* nil)
+(defvar *noting-progress-enable-cancel* t); set/bind to nil to disable cancel
 
 (defmethod clim-internals::frame-manager-invoke-with-noting-progress
     ((framem acl-frame-manager)
@@ -1242,6 +1255,7 @@ to be run from another."
 	  (setf (fraction *working-dialog*) old-value)
 	  (redisplay-frame-panes *working-dialog*)))
     (let ((frame nil)
+	  (cancellable *noting-progress-enable-cancel*)
 	  (parent-frame *application-frame*)
 	  (*working-dialog* nil)
 	  (worker (current-process))
@@ -1255,7 +1269,7 @@ to be run from another."
 		   (let ((*application-frame* parent-frame)) ; for application-modal
 		     (setq frame (make-application-frame
 				  'nt-working-dialog
-				  :cancellable t
+				  :cancellable cancellable
 				  :note (string (progress-note-name note))
 				  :pretty-name ""
 				  :left 200 :top 200
@@ -1264,7 +1278,7 @@ to be run from another."
 		     (setf (work-process frame) worker)
 		     (run-frame-top-level frame)))))
 	    (process-wait
-	     "Synchronize"
+	     "Synchronize In"
 	     #'(lambda () 
 		 (and frame 
 		      (eq (frame-state frame) :enabled))))
@@ -1272,7 +1286,17 @@ to be run from another."
 	    (clim-internals::frame-manager-invoke-with-noting-progress
 	     framem note continuation))
 	(when waiter
-	  (mp:process-kill waiter)
+	  (mp:process-interrupt waiter #'frame-exit frame)
+	  ;; It is possible to hang all of Lisp if you don't
+	  ;; slow down here.  Don't ask me why.  Perhaps
+	  ;; it also helps if FRAME is not modal-frame-p. 
+	  ;; JPM 10/98.
+	  (mp:process-allow-schedule waiter)
+	  (process-wait
+	   "Synchronize Out"
+	   #'(lambda () 
+	       (and frame 
+		    (not (eq (frame-state frame) :enabled)))))
 	  (setq *working-dialog* nil))))))
 
 (defmethod clim-internals::frame-manager-display-progress-note
@@ -1305,46 +1329,30 @@ to be run from another."
 	       (sleep wtime)
 	       (note-progress i N))))))))
 
-;;; ms-windows style command menu support
+(defmethod port-move-frame ((port acl-port) frame x y)
+  (let ((sheet (frame-top-level-sheet frame)))
+    (fix-coordinates x y)
+    (or (win:setWindowPos (sheet-mirror sheet)
+			  (ct:null-handle win:hwnd) ; we really want win:HWND_TOP
+			  x y 0 0
+			  (logior win:swp_noactivate
+				  win:swp_nozorder
+				  win:swp_nosize))
+	(acl-clim::check-last-error "SetWindowPos"))))
 
-(define-command-table mswin-file-commands
-  :menu (("Exit" :command (com-exit))))
+(defmethod handle-event ((pane sheet) (event silica::window-close-event))
+  (let ((frame (pane-frame pane)))
+    (cond ((not frame))
+	  ((typep frame 'clim-internals::accept-values-own-window)
+	   ;; A window-close-event is supposed to equate to a "cancel" gesture.
+	   (abort))
+	  (t (frame-exit frame)))))
 
-(define-command-table mswin-edit-commands
-  :menu (("Copy" :command (com-copy-object))
-	 ("Paste" :command (com-paste))))
-
-(define-command-table mswin-help-commands
-  :menu (("About" :command (com-about))))
-
-(define-command (com-exit :name "Exit"
-			  :command-table mswin-file-commands
-			  :menu ("Exit" :documentation "Quit application"))
-  ()
-  #+ignore
-  (format *terminal-io* "~%Quitting ~S" clim:*application-frame*)
-  (clim:frame-exit clim:*application-frame*))
-
-;;; gadget switching support
-
-(defvar *generic-gadgets* nil)
+(defmethod distribute-event-1 ((port basic-port) (event silica::window-close-event))
+  (declare (optimize (speed 3)))
+  (dispatch-event (window-event-mirrored-sheet event) event))
 
 (in-package :silica)
-
-(defmethod handle-event ((pane sheet) (event window-close-event))
-  (let* ((frame (pane-frame pane)))
-    (when frame
-      (frame-exit frame))
-    ;; this was breaking things when closing a menu - instead now deal
-    ;; with closing of menus in the windows event handler directly
-    ;; (cim 9/12/96)
-    #+ignore
-    (destroy-mirror acl-clim::*acl-port* pane)))
-
-(defmethod distribute-event-1 ((port basic-port) (event window-close-event))
-  (declare (optimize (speed 3)))
-  (with-slots (mirrored-sheet) event
-    (dispatch-event mirrored-sheet event)))
 
 (defparameter *mswin-pane-classes*
     '((scroll-bar mswin-scroll-bar)
@@ -1377,49 +1385,12 @@ to be run from another."
   (declare (ignore options))
   (second (assoc class *mswin-pane-classes*)))
 
-;; modulor the frame-background/foreground hacks this is identical to
-;; the default method for standard-frame-manager in silica/framem -
-;; the bg/fg hacks should no longer be necessary so I'm commenting
-;; this out (cim 10/11/96)
-
-#+ignore
-(defmethod adopt-frame ((framem acl-clim::acl-frame-manager) frame)
-  (generate-panes framem frame)
-  (unless (frame-background frame)
-    (setf (frame-background frame) +white+)) ;  added this
-  (when (frame-panes frame)
-    (let* ((top-pane (frame-panes frame))
-	   (sheet (with-look-and-feel-realization (framem frame)
-		    (make-pane 'top-level-sheet
-			       :event-queue (frame-input-buffer frame)
-			       :user-specified-position-p (frame-user-specified-position-p frame)
-			       :user-specified-size-p (frame-user-specified-size-p frame)
-			       :region (multiple-value-bind (width height)
-					   (bounding-rectangle-size top-pane)
-					 (make-bounding-rectangle 0 0 width height))
-			       :background (frame-background frame)))))
-      (sheet-adopt-child (find-graft :port (port frame)) sheet)
-      (setf (frame-top-level-sheet frame) sheet
-	    (frame-shell frame) (sheet-shell sheet))
-	    (sheet-adopt-child sheet top-pane))))
-
-
-(defmethod port-move-frame ((port acl-clim::acl-port) frame x y)
-  (let ((sheet (frame-top-level-sheet frame)))
-    (fix-coordinates x y)
-    (or (win:setWindowPos (sheet-mirror sheet)
-			  (ct:null-handle win:hwnd) ; we really want win:HWND_TOP
-			  x y 0 0
-			  (logior win:swp_noactivate
-				  win:swp_nozorder
-				  win:swp_nosize))
-	(acl-clim::check-last-error "SetWindowPos"))))
-
 (in-package :clim-internals)
 
 ;; TO DO: Check for the case of a frame enabled in one thread and
-;; then run-frame-top-level in another thread.  Should be an error.
-;; Lisp will hang.
+;; then run-frame-top-level in another thread.  Signal an error,
+;; otherwise Lisp will probably hang when the first thread ever exits,
+;; because the OS considers the first thread to "own" the window.
 
 (defmethod enable-frame :before ((frame standard-application-frame))
   (let* ((sheet (frame-top-level-sheet frame))
@@ -1477,9 +1448,8 @@ in a second Lisp process.  This frame cannot be reused."
 	;;; The code below makes sure that the frame grows or shrinks
 	;;; when the user resizes the frame window.
 	;; ----
-	;; Actually, the code below repaints the entire frame,
-	;; which isn't good because, while resizing with the mouse,
-	;; we end up doing this each time the mouse moves.  JPM.
+	;; Actually, the code below repaints the entire frame. 
+	;; Shouldn't we free wrect? JPM.
 	(or (win:getClientRect handle wrect)
 	    (acl-clim::check-last-error "GetClientRect"))
 	(or (win:InvalidateRect handle wrect 1)
@@ -1487,12 +1457,14 @@ in a second Lisp process.  This frame cannot be reused."
 	(or (win:UpdateWindow handle)
 	    (acl-clim::check-last-error "UpdateWindow"))))))
 
+;; Obsolete I think.
 (defun clean-frame (frame)
   (declare (ignore frame))
   ;; (disable-frame frame)
   ;; (enable-frame frame)
   nil)
 
+;; Obsolete I think.
 (defun frame-find-position (frame)
   (when frame 
     (let* ((wrect (ct:ccallocate win:rect))
@@ -1503,9 +1475,10 @@ in a second Lisp process.  This frame cannot be reused."
 	(values (ct:cref win:rect wrect left) 
 		(ct:cref win:rect wrect top))))))
 
+;; Obsolete I think.
 (defun frame-set-position (frame x y)
   (win:setWindowPos (sheet-mirror (frame-top-level-sheet frame))
-     (ct:null-handle win:hwnd) ; we really want win:HWND_TOP
+     0					; we really want win:HWND_TOP
      x y 0 0
      (logior win:swp_noactivate
 	     win:swp_nozorder
