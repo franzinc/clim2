@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: default-frame-top-level.lisp,v 1.4.26.1 2000/06/21 20:54:24 cley Exp $
+;; $Id: default-frame-top-level.lisp,v 1.4.26.2 2000/06/26 17:31:01 cley Exp $
 
 (in-package :clim-internals)
 
@@ -31,11 +31,11 @@
     (let* ((*standard-output*
 	    (or (frame-standard-output frame) *standard-output*))
 	   (*standard-input*
-	    (or (frame-standard-input frame) *standard-output*))
+	    (or (frame-standard-input frame) *standard-input*))
 	   (*query-io*
-	    (or (frame-query-io frame) *standard-input*))
+	    (or (frame-query-io frame) *query-io*))
 	   (*error-output*
-	    (or (frame-error-output frame) *standard-output*))
+	    (or (frame-error-output frame) *error-output*))
 	   (*pointer-documentation-output*
 	    (frame-pointer-documentation-output frame))
 	   (interactor
@@ -60,14 +60,7 @@
 			  (frame-standard-output frame))))
 	      (typecase si
 		(output-protocol-mixin si)
-		(t (frame-top-level-sheet frame)))))
-	   #+allegro
-	   ;; stop autoload messages getting splattered all over CLIM
-	   ;; windows.
-	   (excl::*print-autoload* nil)
-	   #+allegro
-	   ;; ... same
-	   (*load-verbose* nil))
+		(t (frame-top-level-sheet frame))))))
       ;; The read-eval-print loop for applications...
       (letf-globally (((frame-actual-pointer-documentation-pane frame)
 		       *pointer-documentation-output*))

@@ -11,6 +11,31 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.2.2.14 Tim Bradshaw <tfb@cley.com>
+
+	Changes to try and make it easy to get CLIM not to take over all the
+	standard streams, and defaultly not to take over
+	*error-output*.
+
+	* clim/frames.lisp: back out change in 2.2.2.13, add new
+	  slot to standard-application-frame, changes to
+	  default-frame-top-level, changes to frame-<stream> methods
+	  on standard-application-frame.
+	* demo/default-frame-top-level: change to be compatible with
+	  version in clim/frames.lisp
+	* RELNOTES: explanation of how it is meant to work.
+
+	Image improvements
+
+	* tk-silica/image.lisp: make this slightly safer, merge
+	  changes from acl50 branch
+
+	Doc changes
+
+	* specs/: add epsf figures, update TeX files (brought over from
+	  acl50).  This should now go through latex to make the clim spec.
+
+*******************************************************************************
 2.2.2.13 Tim Bradshaw <tfb@cley.com>
 
 	* clim/frames.lisp, demo/default-frame-top-level.lisp: partly
