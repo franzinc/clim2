@@ -1,4 +1,4 @@
-# $fiHeader: Makefile,v 1.56 92/10/28 13:17:39 cer Exp Locker: cer $
+# $fiHeader: Makefile,v 1.57 92/11/05 17:15:53 cer Exp $
 # 
 #  Makefile for CLIM 2.0
 #
@@ -93,7 +93,7 @@ XLIB= /x11/R4/sun4-lib/libX11$(DEBUGLIB).a
 XTLIB=/x11/R4/sun4-lib/libXt$(DEBUGLIB).a
 XLIBS= $(XTLIB) $(XLIB)
 
-OLCOPYLIB=/usr/tech/cer/stuff/clim-2.0/tk/lib3/sun4
+OLCOPYLIB=/vapor/x11/olit-3.0/lib3/sun4
 OLXLIBS=$(OLCOPYLIB)/libXt.a $(OLCOPYLIB)/libX11.a
 LIBXOL=$(OLCOPYLIB)/libXol.a
 LIBXOL_d=$(LIBXOL)
