@@ -11,6 +11,16 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.3.11
+
+2001-09-19  Nichael Cramer  <ncramer@pointnclick.com>
+
+    from pnc:
+        * test/test-suite.lisp:
+          bug10987: Correct bug where selecting "Cancel" in
+          the file-chooser in the test-suite caused an error.
+
+*******************************************************************************
 2.3.10
 
 2001-09-18  Kevin Layer  <layer@crikey>
