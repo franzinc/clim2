@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: interactive-protocol.lisp,v 1.32 1993/11/23 19:58:38 cer Exp $
+;; $fiHeader: interactive-protocol.lisp,v 1.33 1994/12/04 23:57:54 colin Exp $
 
 (in-package :clim-internals)
 
@@ -32,8 +32,8 @@
   (declare (ignore new-input start end buffer-start rescan))
   nil)
 
-(defmethod presentation-replace-input 
-	   ((stream t) object type view 
+(defmethod presentation-replace-input
+	   ((stream t) object type view
 	    &key rescan buffer-start query-identifier for-context-type)
   (declare (ignore object type view rescan buffer-start query-identifier for-context-type))
   nil)
@@ -59,6 +59,8 @@
       ;; A buffer for an activation gesture to process.  Conceptually,
       ;; the activation gesture lives at the end of the input buffer.
       (activation-gesture :initform nil)
+      ;; top level command state
+      (command-mode :initform nil)
       ;; State for prefixed commands, holds a command aarray
       (command-state :initform nil)
       ;; Numeric argument for input editing commands
@@ -69,19 +71,30 @@
       ;; For deciding whether to do kill-ring merging, etc.
       (last-command-type :initform nil)
       ;; A mark that we can set
-      (mark :initform nil)))
+      (mark :initform nil)
+      ;; State for romaji-kana conversion
+      #+ics
+      ;; romaji-kana state transition
+      (kana-state :initform nil)
+      #+ics
+      ;; kana->kanji convertor
+      (kanji-server :initform nil :initarg :kanji-server)))
 
 ;; The structure of *INPUT-EDITOR-COMMAND-AARRAY* is an alist that
 ;; associates a gesture with either an input editor command, in the case
 ;; of a "prefix", another alist.  Perhaps the input-editor command table
 ;; [or alist] should be a conceptual "slot" in the so that specific
 ;; implementations can add commands.  More thought may be needed.
-(defvar *input-editor-command-aarray* 
+(defvar *input-editor-command-aarray*
 	(make-array 80 :fill-pointer 0 :adjustable t))
+
+#+ics
+(defvar *kana-input-editor-command-aarray*
+    (make-array 80 :fill-pointer 0 :adjustable t))
 
 (defmethod initialize-input-editing-stream ((istream input-editing-stream-mixin))
   (with-slots (input-buffer scan-pointer insertion-pointer
-	       activation-gesture rescanning-p rescan-queued
+	       activation-gesture rescanning-p rescan-queued command-mode
 	       command-state numeric-argument mark last-command-type
 	       previous-history previous-insertion-pointer)
 	      istream
@@ -91,6 +104,7 @@
 	  rescanning-p nil
 	  rescan-queued nil
 	  activation-gesture nil
+	  command-mode *input-editor-command-aarray*
 	  command-state *input-editor-command-aarray*
 	  numeric-argument nil
 	  mark nil
@@ -117,7 +131,7 @@
 	   (,end-var (or ,end (length ,input-buffer)))
 	   (,end-index-var 0)
 	   (,next-var nil))
-       (loop 
+       (loop
 	 (setq ,next-var (position-if #'noise-string-p ,input-buffer
 				      :start ,start-index-var :end ,end-var))
 	 (setf ,end-index-var (or ,next-var ,end-var))
@@ -194,7 +208,7 @@
 		   #+++ignore (error "Trying to make a noise string while rescanning")
 		   (return-from prompt-for-accept (values)))
 		 (setq noise-string
-		       (make-noise-string 
+		       (make-noise-string
 			 :display-string
 			   (concatenate 'string
 			     (if (eq prompt-mode ':normal) "(" "")
@@ -235,7 +249,7 @@
 	       (incf scan-pointer)
 	       (values (accept-result-presentation-object next-char)
 		       (accept-result-presentation-type next-char)))
-	      (t (apply #'accept-1 (encapsulating-stream istream) type 
+	      (t (apply #'accept-1 (encapsulating-stream istream) type
 				   :query-identifier query-identifier
 				   accept-args)))))))
 
@@ -249,12 +263,27 @@
       ;; Return only the first two values.
       (values cursor-x cursor-y)))
 
+
+(defmethod ie-set-cursor-position ((istream input-editing-stream-mixin)
+				   x-pos y-pos)
+  (with-slots (input-buffer stream insertion-pointer) istream
+    (let ((cursor (stream-text-cursor stream)))
+      (when cursor
+	(setf (slot-value cursor 'width)
+	  (stream-character-width stream
+				  (if (< insertion-pointer
+					 (fill-pointer input-buffer))
+				      (aref input-buffer
+					    insertion-pointer)
+				    #\space)))
+	(stream-set-cursor-position stream x-pos y-pos)))))
+
 (defmethod redraw-input-buffer ((istream input-editing-stream-mixin)
 				&optional (start-position 0))
   (with-slots (input-buffer stream insertion-pointer) istream
     (multiple-value-bind (x-pos y-pos)
 	(input-buffer-input-position->cursor-position istream start-position)
-      (stream-set-cursor-position stream x-pos y-pos))
+      (ie-set-cursor-position istream x-pos y-pos))
     (macrolet ((do-part (from &optional to)
 		 `(do-input-buffer-pieces (input-buffer :start ,from :end ,to)
 					  (start-index end-index noise-string)
@@ -280,7 +309,7 @@
 	(multiple-value-bind (x-pos y-pos) (stream-cursor-position istream)
 	  (do-part ip)
 	  ;; And put it there.
-	  (stream-set-cursor-position stream x-pos y-pos))))
+	  (ie-set-cursor-position istream x-pos y-pos))))
     (force-output stream)))
 
 ;;--- Too bad this never gets called...
@@ -440,7 +469,7 @@
 		 ;; at this point.
 		 )))
 
-      ;; If we're about to go to the stream but there's an activation 
+      ;; If we're about to go to the stream but there's an activation
       ;; character buffered, return it instead.
       (when activation-gesture
 	(return-from stream-read-gesture
@@ -460,7 +489,7 @@
 	  ;; This prevents the input editor from scrolling the window after
 	  ;; the user has scrolled it back until the cursor position actually changes.
 	  (unless (and (= cx x-pos) (= cy y-pos))
-	    (stream-set-cursor-position stream x-pos y-pos))))
+	    (ie-set-cursor-position istream x-pos y-pos))))
 
       (setf rescanning-p nil)
       (multiple-value-bind (thing type)
@@ -517,7 +546,7 @@
 				(write-char new-thing istream))))
 		     (setq numeric-argument nil
 			   previous-history nil)
-		     (if immediate-rescan 
+		     (if immediate-rescan
 			 (immediate-rescan istream)
 			 (rescan-if-necessary istream t))
 		     (return-from stream-read-gesture
@@ -548,7 +577,7 @@
 			   ;; cause us to return just yet, since IE commands don't
 			   ;; count as real gestures.
 			   (beep istream)))))))))))
-	
+
 ;; Move the cursor forward or backward in an input buffer until PREDICATE
 ;; returns true.  PREDICATE has to be prepared to interact with ACCEPT-RESULTs
 ;; because to the user they behave as big characters.  NOISE-STRINGs, on the
@@ -577,7 +606,7 @@
 			    position))))))
 	(when (= position limit)
 	  ;; Necessary for the case where the forward part of the token
-	  ;; token search bumps into the fill pointer.  
+	  ;; token search bumps into the fill pointer.
 	  ;;--- This makes me nervous because it compensates for the pointer
 	  ;;--- adjusting the callers do.
 	  (return (if reverse-p position (1+ position))))
@@ -872,13 +901,13 @@
     (fresh-line stream)
     (terpri stream)))
 
-(defmethod input-editor-format ((istream standard-input-editing-stream) 
+(defmethod input-editor-format ((istream standard-input-editing-stream)
 				format-string &rest format-args)
   (declare (dynamic-extent format-args))
   (with-slots (input-buffer scan-pointer insertion-pointer) istream
     (unless (stream-rescanning-p istream)
       (let* ((string (apply #'format nil format-string format-args))
-	     (noise-string 
+	     (noise-string
 	       (make-noise-string
 		 :display-string string
 		 :unique-id string
@@ -921,7 +950,7 @@
 		       (loop
 			 (catch 'rescan
 			   (reset-scan-pointer stream)
-			   (handler-bind 
+			   (handler-bind
 			       ((parse-error
 				 #'(lambda (error)
 				     (display-input-editor-error stream error))))
@@ -1006,7 +1035,7 @@
 
 
 
-(defmethod frame-manager-display-input-editor-error 
+(defmethod frame-manager-display-input-editor-error
 	   ((framem standard-frame-manager) frame (stream standard-input-editing-stream) error)
   ;;--- Resignal the error so the user can handle it
   ;;--- (in lieu of HANDLER-BIND-DEFAULT)
@@ -1022,7 +1051,7 @@
   ;; Wait until the user forces a rescan by typing an input editing command
   (loop (read-gesture :stream stream)))
 
-(defmethod frame-manager-display-help 
+(defmethod frame-manager-display-help
     (framem frame (stream standard-input-editing-stream) continuation)
   (declare (dynamic-extent continuation))
   (declare (ignore framem frame))
@@ -1062,10 +1091,10 @@
 		       format-string args))
 
 
-(defmethod excl::stream-y-or-n-or-newline-p ((stream input-protocol-mixin) 
+(defmethod excl::stream-y-or-n-or-newline-p ((stream input-protocol-mixin)
 					     &optional format-string &rest args)
   (stream-yay-or-nay-p stream
 		       '(member-alist (("Y" :value t) ("N" :value nil)))
 		       format-string args
-		       :display-default nil 
+		       :display-default nil
 		       :default t))

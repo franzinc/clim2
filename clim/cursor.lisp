@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: cursor.lisp,v 1.26 1994/12/04 23:57:26 colin Exp $
+;; $fiHeader: cursor.lisp,v 1.27 1995/05/17 19:47:44 colin Exp $
 
 (in-package :clim-internals)
 
@@ -193,13 +193,11 @@
 	 (unless abort-p
 	   (setf (cursor-active cursor) old-active))))))
 
-(defmethod cursor-width-and-height-pending-protocol ((cursor t))
-  (values 8 12))
-
-(defmethod cursor-width-and-height-pending-protocol ((cursor standard-text-cursor))
-  (values (slot-value cursor 'width)
-	  (let ((stream (slot-value cursor 'stream)))
-	    (+ (stream-line-height stream) (stream-vertical-spacing stream)))))
+(defmethod cursor-width-and-height-pending-protocol
+    ((cursor standard-text-cursor))
+  (with-slots (width stream) cursor
+    (values width
+	    (stream-line-height stream))))
 
 (defmethod note-cursor-change ((cursor standard-text-cursor) type old new)
   ;;; type is currently one of CURSOR-ACTIVE, -FOCUS, or -STATE

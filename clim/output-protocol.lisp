@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: output-protocol.lisp,v 1.39 1993/09/07 21:46:04 colin Exp $
+;; $fiHeader: output-protocol.lisp,v 1.40 1993/09/17 19:05:16 cer Exp $
 
 (in-package :clim-internals)
 
@@ -324,6 +324,9 @@
 (defparameter *character-wrap-indicator-width* 3)
 
 (defmethod stream-write-char ((stream output-protocol-mixin) character)
+  (stream-write-char-1 stream character))
+
+(defun stream-write-char-1 (stream character)
   (with-cursor-state (stream nil)
     (multiple-value-bind (cursor-x cursor-y baseline height style 
 			  max-x record-p draw-p)
@@ -466,6 +469,10 @@
 	(values new-cursor-x cursor-y new-baseline new-line-height)))))
 
 (defmethod stream-write-string ((stream output-protocol-mixin) string &optional (start 0) end)
+  (stream-write-string-1 stream string start end))
+
+(defun stream-write-string-1 (stream string start end)
+  (block stream-write-string
   (unless end (setf end (length string)))
   (when (>= start end)				;No promises to keep
     (return-from stream-write-string string))
@@ -528,7 +535,7 @@
 		(return-from stream-write-string string))
 	      (multiple-value-setq (cursor-x cursor-y baseline height)
 		(decode-stream-for-writing stream t))	;and find out what happened
-	      )))))))
+	      ))))))))
 
 (defmethod stream-note-line-height-change ((stream output-protocol-mixin)
 					   old-baseline new-baseline old-height
@@ -764,92 +771,6 @@
 ;;; equivalent if it is cases 1 or 2, and the index of where in the
 ;;; string to start scanning again (which is one past the character
 ;;; which must be WRITE-CHARed).
-(defmacro stream-scan-string-for-writing-1 
-	  (stream medium string start end style cursor-x max-x &optional glyph-buffer)
-  (declare (ignore stream))
-  `(block stream-scan-string-for-writing
-     (let ((baseline (coordinate 0))
-	   (height (coordinate 0))
-	   (our-font nil)
-	   (next-glyph (if (and ,glyph-buffer (array-has-fill-pointer-p ,glyph-buffer))
-			   (fill-pointer ,glyph-buffer)
-			   0))
-	   (max-glyph (and ,glyph-buffer (array-dimension ,glyph-buffer 0)))
-	   (,glyph-buffer (or ,glyph-buffer #()))
-	   #+(or Genera Minima) (,string ,string))
-      (declare (type coordinate baseline height))
-      (declare (type vector ,string ,glyph-buffer)
-	       (type fixnum next-glyph))
-       (loop
-	 (when (>= ,start ,end)
-	   (return-from stream-scan-string-for-writing
-	     (values nil ,start ,cursor-x baseline height our-font)))
-	 (let ((character (aref ,string ,start)))
-	   (unless (or (graphic-char-p character) (diacritic-char-p character))
-	     (return-from stream-scan-string-for-writing
-	       (values character ,start ,cursor-x baseline height our-font)))
-	   (multiple-value-bind (index font escapement-x escapement-y
-				 origin-x origin-y bb-x bb-y fixed-width-font-p)
-	       ;;--- For now we are asserting that each string passed to WRITE-STRING
-	       ;;--- will have no character style changes within it.  So, we can
-	       ;;--- eliminate a call to TEXT-STYLE-MAPPING within 
-	       ;;--- PORT-GLYPH-FOR-CHARACTER, which saves a lot of time.
-	       (port-glyph-for-character (port ,medium) character ,style our-font)
-	     (declare (ignore escapement-y origin-x bb-x))
-	     (declare (type fixnum index))
-	    (let ((origin-y (coordinate origin-y))
-		  (bb-y (coordinate bb-y)))
-	      (declare (type coordinate origin-y bb-y))
-	     (when fixed-width-font-p
-	       (let* ((room-left (- ,max-x ,cursor-x *character-wrap-indicator-width*))
-		      (spaces-left (if (zerop escapement-x) 
-				       room-left	;diacritic chars have no width
-				       (floor room-left escapement-x)))
-		      (chars-left (- ,end ,start))
-		      (glyphs-left
-			(if max-glyph (- max-glyph next-glyph) most-positive-fixnum))
-		      (chars-to-do (min spaces-left chars-left glyphs-left))
-		      (chars-done 0)
-		      (offset (the fixnum (- index (char-code character)))))
-		 ;; Assumption: character glyphs are at the same offset within the font
-		 ;; that they are within the character set.
-		 (block scan-for-newlines-etc
-		   (dotimes (i chars-to-do)
-		     (let* ((char (aref ,string (the fixnum (+ ,start i)))))
-		       ;; Stop when we get to an unusual character (e.g. Newline)
-		       (unless (graphic-char-p char)	;excludes diacritics
-			 (return-from scan-for-newlines-etc))
-		       ;; When a glyph-buffer was supplied, store the glyph index into it
-		       (when max-glyph
-			 (setf (aref ,glyph-buffer next-glyph)
-			       (the fixnum (- (char-code char) offset)))
-			 (setq next-glyph (the fixnum (+ next-glyph 1))))
-		       ;; count the non-unusual chars
-		       (setq chars-done (the fixnum (+ chars-done 1))))))
-		 (return-from stream-scan-string-for-writing
-		   (values (and (< chars-done chars-left)
-				(aref ,string (the fixnum (+ ,start chars-done))))
-			   (the fixnum (+ ,start chars-done))
-			   (+ ,cursor-x (* chars-done escapement-x))
-			   origin-y bb-y font))))
-	     (when (> (+ ,cursor-x escapement-x *character-wrap-indicator-width*)
-		      ,max-x)
-	       (return-from stream-scan-string-for-writing
-		 (values character ,start ,cursor-x baseline height our-font)))
-	     (when (and our-font (not (eq font our-font)))
-	       (return-from stream-scan-string-for-writing
-		 (values nil ,start ,cursor-x baseline height our-font)))
-	     (when max-glyph			;We are recording glyph indices
-	       (when (>= next-glyph max-glyph)	;Too many -- write out the ones we have.
-		 (return-from stream-scan-string-for-writing
-		   (values nil ,start ,cursor-x baseline height our-font)))
-	       (setf (aref ,glyph-buffer next-glyph) index)
-	       (setq next-glyph (the fixnum (+ next-glyph 1))))
-	     (setq ,cursor-x (+ ,cursor-x escapement-x))
-	     (maxf baseline origin-y)
-	     (maxf height bb-y)
-	     (setf our-font font)
-	     (setq ,start (the fixnum (+ ,start 1))))))))))
 
 (defmethod stream-scan-string-for-writing ((stream output-protocol-mixin) medium
 					   string start end style
@@ -857,8 +778,89 @@
   (declare (values write-char next-char-index new-cursor-x new-baseline new-height font))
   (declare (type coordinate cursor-x max-x))
   (declare (type fixnum start end))
-  (stream-scan-string-for-writing-1
-    stream medium string start end style cursor-x max-x glyph-buffer))
+  (block stream-scan-string-for-writing
+    (let ((baseline (coordinate 0))
+	  (height (coordinate 0))
+	  (our-font nil)
+	  (next-glyph (if (and glyph-buffer (array-has-fill-pointer-p glyph-buffer))
+			  (fill-pointer glyph-buffer)
+			0))
+	  (max-glyph (and glyph-buffer (array-dimension glyph-buffer 0)))
+	  (glyph-buffer (or glyph-buffer #()))
+	  #+(or Genera Minima) (string string))
+      (declare (type coordinate baseline height))
+      (declare (type vector string glyph-buffer)
+	       (type fixnum next-glyph))
+      (loop
+	(when (>= start end)
+	  (return-from stream-scan-string-for-writing
+	    (values nil start cursor-x baseline height our-font)))
+	(let ((character (aref string start)))
+	  (unless (or (graphic-char-p character) (diacritic-char-p character))
+	    (return-from stream-scan-string-for-writing
+	      (values character start cursor-x baseline height our-font)))
+	  (multiple-value-bind (index font escapement-x escapement-y
+				origin-x origin-y bb-x bb-y fixed-width-font-p)
+	      ;;--- For now we are asserting that each string passed to WRITE-STRING
+	      ;;--- will have no character style changes within it.  So, we can
+	      ;;--- eliminate a call to TEXT-STYLE-MAPPING within 
+	      ;;--- PORT-GLYPH-FOR-CHARACTER, which saves a lot of time.
+	      (port-glyph-for-character (port medium) character style our-font)
+	    (declare (ignore escapement-y origin-x bb-x))
+	    (declare (type fixnum index))
+	    (let ((origin-y (coordinate origin-y))
+		  (bb-y (coordinate bb-y)))
+	      (declare (type coordinate origin-y bb-y))
+	      (when fixed-width-font-p
+		(let* ((room-left (- max-x cursor-x *character-wrap-indicator-width*))
+		       (spaces-left (if (zerop escapement-x) 
+					room-left ;diacritic chars have no width
+				      (floor room-left escapement-x)))
+		       (chars-left (- end start))
+		       (glyphs-left
+			(if max-glyph (- max-glyph next-glyph) most-positive-fixnum))
+		       (chars-to-do (min spaces-left chars-left glyphs-left))
+		       (chars-done 0)
+		       (offset (the fixnum (- index (char-code character)))))
+		  ;; Assumption: character glyphs are at the same offset within the font
+		  ;; that they are within the character set.
+		  (block scan-for-newlines-etc
+		    (dotimes (i chars-to-do)
+		      (let* ((char (aref string (the fixnum (+ start i)))))
+			;; Stop when we get to an unusual character (e.g. Newline)
+			(unless (graphic-char-p char) ;excludes diacritics
+			  (return-from scan-for-newlines-etc))
+			;; When a glyph-buffer was supplied, store the glyph index into it
+			(when max-glyph
+			  (setf (aref glyph-buffer next-glyph)
+			    (the fixnum (- (char-code char) offset)))
+			  (setq next-glyph (the fixnum (+ next-glyph 1))))
+			;; count the non-unusual chars
+			(setq chars-done (the fixnum (+ chars-done 1))))))
+		  (return-from stream-scan-string-for-writing
+		    (values (and (< chars-done chars-left)
+				 (aref string (the fixnum (+ start chars-done))))
+			    (the fixnum (+ start chars-done))
+			    (+ cursor-x (* chars-done escapement-x))
+			    origin-y bb-y font))))
+	      (when (> (+ cursor-x escapement-x *character-wrap-indicator-width*)
+		       max-x)
+		(return-from stream-scan-string-for-writing
+		  (values character start cursor-x baseline height our-font)))
+	      (when (and our-font (not (eq font our-font)))
+		(return-from stream-scan-string-for-writing
+		  (values nil start cursor-x baseline height our-font)))
+	      (when max-glyph		;We are recording glyph indices
+		(when (>= next-glyph max-glyph) ;Too many -- write out the ones we have.
+		  (return-from stream-scan-string-for-writing
+		    (values nil start cursor-x baseline height our-font)))
+		(setf (aref glyph-buffer next-glyph) index)
+		(setq next-glyph (the fixnum (+ next-glyph 1))))
+	      (setq cursor-x (+ cursor-x escapement-x))
+	      (maxf baseline origin-y)
+	      (maxf height bb-y)
+	      (setf our-font font)
+	      (setq start (the fixnum (+ start 1))))))))))
 
 ;;; This function returns NIL as its first value if the character won't
 ;;; fit on the current line.  It is never called on non-graphic

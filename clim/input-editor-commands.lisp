@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-editor-commands.lisp,v 1.28 1993/07/22 15:38:00 cer Exp $
+;; $fiHeader: input-editor-commands.lisp,v 1.29 1993/08/12 16:03:04 cer Exp $
 
 (in-package :clim-internals)
 
@@ -37,7 +37,9 @@
       :\\ :\] :\^ :\_ :\` :\{ :\| :\}
       :\~))
 
-(defun add-input-editor-command (gestures function)
+(defun add-input-editor-command (gestures function
+				 &optional (command-array
+					    *input-editor-command-aarray*))
   (flet ((add-aarray-entry (gesture thing aarray)
 	   (let ((old (find gesture aarray :key #'first)))
 	     (if old
@@ -58,14 +60,14 @@
 	   (unless (bucky-char-p gestures)
 	     (warn "~S does not correspond to non-printing gesture. ~
 This may confused the input editor" gestures))
-	   (add-aarray-entry gestures function *input-editor-command-aarray*))
+	   (add-aarray-entry gestures function command-array))
 	  (t
 	   (assert (> (length gestures) 1))
 	   (assert (bucky-char-p (first gestures)) (gestures)
 	     "~S does not correspond to non-printing gesture" gestures)
 	   ;; We've got a command that wil be bound to a sequence of gestures,
 	   ;; so set up the prefix tables.
-	   (let ((aarray *input-editor-command-aarray*))
+	   (let ((aarray command-array))
 	     (dorest (rest gestures)
 		     (let* ((prefix (first rest))
 			    (rest (rest rest)))
@@ -159,8 +161,13 @@ This may confused the input editor" gestures))
 ;; read a prefix character
 (defmethod stream-process-gesture ((istream input-editing-stream-mixin)
 				   (gesture character) type)
-  (with-slots (numeric-argument last-command-type command-state) istream
-    (cond ((eq command-state *input-editor-command-aarray*)
+  (with-slots (numeric-argument last-command-type command-state
+				command-mode) istream
+    (cond #+ics
+	  ((eq command-mode *kana-input-editor-command-aarray*)
+	   (setq last-command-type 'character)
+	   (kana-process-gesture istream gesture type))
+	  ((eq command-state command-mode)
 	   (setq last-command-type 'character)
 	   (values gesture type))
 	  (t
@@ -178,19 +185,20 @@ This may confused the input editor" gestures))
 		   (command
 		    (let ((argument (or numeric-argument 1)))
 		      (setq numeric-argument nil
-			    command-state *input-editor-command-aarray*)
+			    command-state command-mode)
 		      (funcall command
 			       istream (slot-value istream 'input-buffer) gesture argument)))
 		   (t
 		    (beep istream)
 		    (setq numeric-argument nil
-			  command-state *input-editor-command-aarray*)))
+			  command-state command-mode)))
 	     (deallocate-event gesture)
 	     nil)))))
 
 (defmethod stream-process-gesture ((istream input-editing-stream-mixin) 
 				   (gesture key-press-event) type)
-  (with-slots (numeric-argument last-command-type command-state) istream
+  (with-slots (numeric-argument last-command-type command-state
+				command-mode) istream
     ;; The COMMAND-STATE slot holds the current IE command aarray, and
     ;; gets updated when we see a prefix (such as ESC or c-X)
     (let ((command (unless (activation-gesture-p gesture)
@@ -211,19 +219,20 @@ This may confused the input editor" gestures))
 	    (command
 	     (let ((argument (or numeric-argument 1)))
 	       (setq numeric-argument nil
-		     command-state *input-editor-command-aarray*)
+		     command-state command-mode)
 	       (funcall command
 			istream (slot-value istream 'input-buffer) gesture argument))
 	     (return-from stream-process-gesture nil))
-	    ((not (eq command-state *input-editor-command-aarray*))
+	    ((eq command-state command-mode)
+	     (setq last-command-type 'character
+		   command-state command-mode)
+	     (return-from stream-process-gesture
+	       (values gesture type)))
+	    (t
 	     (beep istream)
 	     (setq numeric-argument nil
-		   command-state *input-editor-command-aarray*)
-	     (return-from stream-process-gesture nil))
-	    (t
-	     (setq last-command-type 'character
-		   command-state *input-editor-command-aarray*)))))
-  (values gesture type))
+		   command-state command-mode)
+	     (return-from stream-process-gesture nil))))))
 
 ;;--- This method never gets run because STREAM-READ-CHAR just gives up
 ;;--- Maybe it would be better to use a BLANK-AREA translator while in
@@ -354,7 +363,7 @@ This may confused the input editor" gestures))
     (formatting-table (stream :x-spacing "  "
 			      :multiple-columns t
 			      :multiple-columns-x-spacing "    ")
-      (dovector (entry *input-editor-command-aarray*)
+      (dovector (entry (slot-value stream 'command-mode))
 	(let ((gesture-name (first entry))
 	      (command (second entry)))
 	  (when (symbolp command)
@@ -559,9 +568,9 @@ This may confused the input editor" gestures))
 (define-input-editor-command (com-ie-ctrl-g :rescan nil)
 			     (stream)
   "Abort the command"
-  (with-slots (numeric-argument command-state) stream
+  (with-slots (numeric-argument command-state command-mode) stream
     (setq numeric-argument nil
-	  command-state *input-editor-command-aarray*))
+	  command-state command-mode))
   (beep stream))
 
 

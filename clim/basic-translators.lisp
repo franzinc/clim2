@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: basic-translators.lisp,v 1.17 1993/07/27 01:38:19 colin Exp $
+;; $fiHeader: basic-translators.lisp,v 1.18 1993/11/18 18:44:08 cer Exp $
 
 (in-package :clim-internals)
 
@@ -49,7 +49,9 @@
      ;; are any applicable translators.  That's not necessary because
      ;; FIND-APPLICABLE-TRANSLATORS and PRESENTATION-MATCHES-CONTEXT-TYPE
      ;; treat this translator as a special case.
-     :documentation "Menu"
+       :documentation ((frame stream) 
+		       (format stream
+			       (frame-menu-translator-documentation frame)))
      :menu nil				;this doesn't go into any menu
      :gesture :menu)
     (presentation frame window x y)
