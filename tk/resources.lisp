@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: resources.lisp,v 1.60.22.2 1998/07/06 23:10:13 layer Exp $
+;; $Id: resources.lisp,v 1.60.22.3 1998/12/17 00:19:47 layer Exp $
 
 (in-package :tk)
 
@@ -277,6 +277,10 @@
 
 
 
+(defun make-xt-arglist (&key (number 1))
+  (clim-utils::allocate-cstruct 'xt-arglist
+				:number number :initialize t))
+
 (defun fill-sv-cache (parent-class class resources)
   (let* ((len (length resources))
 	 (arglist (make-xt-arglist :number len))
@@ -348,7 +352,7 @@
       ((null args)
        (let* ((new-args (nreverse new-args))
 	      (n (truncate (length new-args) 2))
-	      (arglist (make-xt-arglist :number n :in-foreign-space nil)))
+	      (arglist (make-xt-arglist :number n)))
 	 (dotimes (i n)
 	   (setf (xt-arglist-name arglist i) (pop new-args)
 		 (xt-arglist-value arglist i) (pop new-args)))
@@ -451,9 +455,13 @@
 	 (rds nil)
 	 (constraint-resource-used nil)
 	 (i 0))
+    ;; For XtGetValues, the value must be a pointer.  The result
+    ;; of the call is to set the pointer to point to the real value.
+    ;; This differs from XtSetValues, where the value is not a
+    ;; pointer but is really just the value.
     (dotimes (j len)
       (setf (xt-arglist-value arglist j)
-	(excl::malloc 8)))	;--- A crock...
+	(clim-utils::allocate-memory 8 0)))	
     (dolist (r resources)
       (let ((resource (or (find-class-resource class r)
 			  (psetq constraint-resource-used t)
@@ -595,7 +603,7 @@
    (excl:ics-target-case
     (:+ics (let ((euc (excl:string-to-euc value)))
 	     (ff:euc-to-char* euc)))
-    (:-ics (string-to-char* value)))))
+    (:-ics (clim-utils:string-to-foreign value)))))
 
 (defvar *font-counter* 0)
 (defmethod convert-resource-out ((parent t) (type (eql 'font-struct)) value)
@@ -759,7 +767,7 @@
 
 (defmethod convert-resource-out ((parent  t) (type (eql 'ol-str)) value)
   (note-malloced-object
-   (string-to-char* value)))
+   (clim-utils:string-to-foreign value)))
 
 (defmethod convert-resource-in ((parent t) (type (eql 'ol-str)) value)
   (unless (zerop value)

@@ -1,4 +1,4 @@
-# $Id: Makefile.defs,v 1.45.10.4 1998/07/21 02:54:45 layer Exp $
+# $Id: Makefile.defs,v 1.45.10.5 1998/12/17 00:18:49 layer Exp $
 #
 #  Makefile.defs for CLIM 2.0
 
@@ -170,7 +170,8 @@ DEMO-FASLS= \
 #	homegrown/db-label.fasl homegrown/last.fasl
 
 GENERIC-XT-FASLS= \
-	tk/pkg.fasl tk/foreign-obj.fasl tk/macros.fasl tk/xlib.fasl \
+	tk/pkg.fasl tk/foreign-obj.fasl tk/macros.fasl tk/xt-defs.fasl \
+	tk/xlib.fasl \
 	tk/font.fasl tk/gcontext.fasl tk/graphics.fasl tk/meta-tk.fasl \
 	tk/make-classes.fasl tk/foreign.fasl tk/widget.fasl \
 	tk/resources.fasl tk/event.fasl tk/callbacks.fasl \

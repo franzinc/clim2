@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: activities.lisp,v 1.15.22.2 1998/07/06 23:08:54 layer Exp $
+;; $Id: activities.lisp,v 1.15.22.3 1998/12/17 00:19:06 layer Exp $
 
 (in-package :clim-internals)
 
@@ -262,7 +262,8 @@
            ((stream top-level-sheet) (gesture pointer-enter-event))
   (unless (eq (pointer-boundary-event-kind gesture) :inferior)
     (let ((frame (pane-frame stream)))
-      (when (typep frame 'activity-frame)
+      (when (and (typep frame 'activity-frame)
+		 (typep *application-frame* 'activity-frame))
         (activity-frame-window-select frame)))))
 
 ;; This function is called when the window manager of the host's display

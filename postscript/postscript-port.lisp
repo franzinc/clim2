@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: POSTSCRIPT-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $Id: postscript-port.lisp,v 1.28.8.1 1998/07/06 23:09:43 layer Exp $
+;; $Id: postscript-port.lisp,v 1.28.8.2 1998/12/17 00:19:28 layer Exp $
 
 (provide :climps)
 
@@ -263,8 +263,7 @@
    (current-color :initform nil) ;for decoding stippled inks
    (features-sent :initform nil)
    (curfont :initform nil)	;a psfck structure
-   (ch1buf :initform (make-array 1 :element-type #+ANSI-90 'character
-				 #-ANSI-90 'string-char))
+   (ch1buf :initform (make-array 1 :element-type 'character))
    (current-line-style :initform nil)
    (current-clip-region :initform nil)))
 
@@ -372,8 +371,7 @@
 		  (negative-p nil))
 	      (when (minusp n)
 		(setq negative-p t))
-	      (with-stack-array (string from :element-type #+ANSI-90 'character
-							   #-ANSI-90 'string-char)
+	      (with-stack-array (string from :element-type 'character)
 		(macrolet ((add-char (char)
 			     `(setf (aref string (decf from)) ,char)))
 		  (when (/= frac 0)
@@ -549,7 +547,7 @@ end } def
 		    "newpath ~D ~D moveto ~D ~D lineto stroke~%"
 		    llx lly urx ury)))
 
-	(format printer-stream "%%Creator: CLIM 2.0~%")
+	(format printer-stream "%%Creator: Clim ~A~%" clim::*clim-version*)
 	(let ((title (getf header-comments :title)))
 	  (when title
 	    (format printer-stream "%%Title: ~A~%" title)))

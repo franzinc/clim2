@@ -16,9 +16,9 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: sysdcl.lisp,v 1.6.22.1 1998/07/06 23:09:21 layer Exp $
+;; $Id: sysdcl.lisp,v 1.6.22.2 1998/12/17 00:19:19 layer Exp $
 
-(in-package #-ANSI-90 :user #+ANSI-90 :cl-user)
+(in-package :cl-user)
 
 ;;;"Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved."
 

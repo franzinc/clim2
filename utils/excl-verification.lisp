@@ -15,10 +15,11 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: excl-verification.lisp,v 1.22.22.2 1998/07/06 23:10:28 layer Exp $
+;; $Id: excl-verification.lisp,v 1.22.22.3 1998/12/17 00:19:56 layer Exp $
 
 (in-package :sys)
 
+#+ignore
 (eval-when (compile)
   (assert (member excl::*current-case-mode*
 		  '(:case-insensitive-lower :case-insensitive-upper))))

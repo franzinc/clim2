@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: present.lisp,v 1.15.22.2 1998/07/06 23:09:04 layer Exp $
+;; $Id: present.lisp,v 1.15.22.3 1998/12/17 00:19:13 layer Exp $
 
 (in-package :clim-internals)
 
@@ -144,7 +144,7 @@
 (defmacro with-presentations-to-string 
           ((stream &optional string
                    &rest options
-                   &key (element-type #+ANSI-90 ''character #-ANSI-90 ''string-char)
+                   &key (element-type ''character)
                         (end-of-line-action ':allow) (end-of-page-action ':allow))
            &body body)
   (declare (ignore element-type end-of-line-action end-of-page-action))
@@ -156,7 +156,7 @@
 
 (defun invoke-with-presentations-to-string 
        (stream continuation string
-        &key (element-type #+ANSI-90 'character #-ANSI-90 'string-char) 
+        &key (element-type 'character) 
              (end-of-line-action ':allow) (end-of-page-action ':allow))
   (let ((record
           (with-end-of-line-action (stream end-of-line-action)

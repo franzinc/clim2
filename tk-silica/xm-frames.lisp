@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xm-frames.lisp,v 1.75.22.3 1998/09/24 15:58:56 layer Exp $
+;; $Id: xm-frames.lisp,v 1.75.22.4 1998/12/17 00:19:52 layer Exp $
 
 (in-package :xm-silica)
 

@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: ol-widgets.lisp,v 1.10.22.1 1998/07/06 23:10:13 layer Exp $
+;; $Id: ol-widgets.lisp,v 1.10.22.2 1998/12/17 00:19:46 layer Exp $
 
 (in-package :xt)
 
@@ -33,7 +33,7 @@
 					  :name :menu-pane
 					  :type 'tk::widget
 					  :original-name
-					  (string-to-char*
+					  (clim-utils:string-to-foreign
 					   "menuPane")))
 
 
@@ -42,7 +42,7 @@
 					  :name :source
 					  :type 'string
 					  :original-name
-					  (string-to-char* "source")))
+					  (clim-utils:string-to-foreign "source")))
 
 
 (tk::add-resource-to-class (find-class 'ol-list)
@@ -50,7 +50,7 @@
 					  :name :appl-add-item
 					  :type 'function
 					  :original-name
-					  (string-to-char*
+					  (clim-utils:string-to-foreign
 					   "applAddItem")))
 
 (tk::add-resource-to-class (find-class 'ol-list)
@@ -58,14 +58,14 @@
 					  :name :appl-touch-item
 					  :type 'function
 					  :original-name
-					  (string-to-char* "applTouchItem")))
+					  (clim-utils:string-to-foreign "applTouchItem")))
 
 (tk::add-resource-to-class (find-class 'ol-list)
 			   (make-instance 'resource
 					  :name :appl-delete-item
 					  :type 'function
 					  :original-name
-					  (string-to-char*
+					  (clim-utils:string-to-foreign
 					   "applDeleteItem")))
 
 (tk::add-resource-to-class (find-class 'ol-list)
@@ -73,7 +73,7 @@
 					  :name :view-height
 					  :type 'dimension
 					  :original-name
-					  (string-to-char*
+					  (clim-utils:string-to-foreign
 					   "viewHeight")))
 
 (tk::add-resource-to-class (find-class 'ol-list)
@@ -81,25 +81,25 @@
 					  :name :recompute-width
 					  :type 'boolean
 					  :original-name
-					  (string-to-char* "recomputeWidth")))
+					  (clim-utils:string-to-foreign "recomputeWidth")))
 
 (tk::add-resource-to-class (find-class 'vendor-shell)
 			   (make-instance 'resource
 					  :name :busy
 					  :type 'boolean
 					  :original-name
-					  (string-to-char* "busy")))
+					  (clim-utils:string-to-foreign "busy")))
 
 (tk::add-resource-to-class (find-class 'text-field)
 			   (make-instance 'resource
 					  :name :font-color
 					  :type 'pixel
 					  :original-name
-					  (string-to-char* "fontColor")))
+					  (clim-utils:string-to-foreign "fontColor")))
 
 (tk::add-resource-to-class (find-class 'notice-shell)
 			   (make-instance 'resource
 					  :name :focus-widget
 					  :type 'widget
 					  :original-name
-					  (string-to-char* "focusWidget")))
+					  (clim-utils:string-to-foreign "focusWidget")))

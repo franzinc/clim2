@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: read-afm.lisp,v 1.4.22.1 1998/07/06 23:09:44 layer Exp $
+;; $Id: read-afm.lisp,v 1.4.22.2 1998/12/17 00:19:29 layer Exp $
 
 (in-package :postscript-clim)
 
@@ -29,7 +29,8 @@
 		 (eq char #\space)
 		 (eq char #\newline)))
 	   (read-keyname ()
-	     (let ((chars (make-array 0 :element-type 'string-char :fill-pointer 0 :adjustable t)))
+	     (let ((chars (make-array 0 :element-type 'character
+				      :fill-pointer 0 :adjustable t)))
 	       (loop
 		 (let ((char (read-char)))
 		   (when (afm-whitespace-char-p char)

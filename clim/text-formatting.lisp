@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: text-formatting.lisp,v 1.17.22.3 1998/07/06 23:09:07 layer Exp $
+;; $Id: text-formatting.lisp,v 1.17.22.4 1998/12/17 00:19:14 layer Exp $
 
 (in-package :clim-internals)
 
@@ -212,7 +212,7 @@
 (defresource filling-stream (stream fill-width break-characters prefix prefix-width)
   :constructor
     (make-instance 'filling-stream
-      :buffer (make-array 100 :element-type #+ANSI-90 'character #-ANSI-90 'string-char
+      :buffer (make-array 100 :element-type 'character
                           :fill-pointer 0
                           :adjustable t))
   :matcher 't

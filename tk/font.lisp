@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: font.lisp,v 1.21.22.2 1998/07/20 21:57:29 layer Exp $
+;; $Id: font.lisp,v 1.21.22.3 1998/12/17 00:19:45 layer Exp $
 
 (in-package :tk)
 
@@ -168,7 +168,7 @@
 		 (missing-count 0 :int)
 		 (def-string 0 *))
     (let ((font-set (x11:xcreatefontset display
-					(ff:string-to-char* base-font-names)
+					(clim-utils:string-to-foreign base-font-names)
 					&missing-list
 					&missing-count
 					&def-string))
@@ -227,5 +227,12 @@
 	     length
 	     overall-ink-return
 	     overall-logical-return))))
+
+)
+
+(:-ics
+(defun fonts-of-font-set (font-set)
+   ;; Generate a meaningful error message
+  (error "A non-ICS lisp that uses 7-bit characters does not support this operation.")) 
 
 )) ;; ics-target-case

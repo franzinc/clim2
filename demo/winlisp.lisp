@@ -16,12 +16,29 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: winlisp.lisp,v 1.2.22.2 1998/07/06 23:09:29 layer Exp $
+;; $Id: winlisp.lisp,v 1.2.22.3 1998/12/17 00:19:22 layer Exp $
 
 (in-package :clim-demo)
 
 ;;"Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved."
 
+(define-command-table mswin-file-commands
+  :menu (("Exit" :command (com-exit))))
+
+(define-command-table mswin-edit-commands
+  :menu (("Copy" :command (com-copy-object))
+	 ("Paste" :command (com-paste))))
+
+(define-command-table mswin-help-commands
+  :menu (("About" :command (com-about))))
+
+(define-command (com-exit :name "Exit"
+			  :command-table mswin-file-commands
+			  :menu ("Exit" :documentation "Quit application"))
+  ()
+  #+ignore
+  (format *terminal-io* "~%Quitting ~S" clim:*application-frame*)
+  (clim:frame-exit clim:*application-frame*))
 
 (define-command-table wlistener-file
   :inherit-from (acl-clim::mswin-file-commands)

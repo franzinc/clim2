@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: text-recording.lisp,v 1.22.22.2 1998/07/06 23:09:07 layer Exp $
+;; $Id: text-recording.lisp,v 1.22.22.3 1998/12/17 00:19:14 layer Exp $
 
 (in-package :clim-internals)
 
@@ -418,7 +418,7 @@
                    (not (typep record 'styled-text-output-record)))
           (setq record (stylize-text-output-record record default-style stream)))
         (return-from get-text-output-record record)))
-    (let* ((string (make-array 16 :element-type #+ANSI-90 'character #-ANSI-90 'string-char
+    (let* ((string (make-array 16 :element-type 'character
                                   :fill-pointer 0 :adjustable t))
            (record (if (eq style default-style)
 		     (make-standard-text-output-record

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: db-slider.lisp,v 1.19.22.2 1998/07/06 23:09:54 layer Exp $
+;; $Id: db-slider.lisp,v 1.19.22.3 1998/12/17 00:19:33 layer Exp $
 
 ;;;"Copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
 
@@ -187,6 +187,7 @@
 (defmethod handle-repaint ((pane slider-pane) region)
   (declare (ignore region))
   (with-sheet-medium (medium pane)
+    (setf (slot-value pane 'background-saved-p) nil)
     (draw-slider-rail pane medium)
     (draw-slider-indicator pane medium :draw)
     (draw-slider-label pane medium)
@@ -316,20 +317,24 @@
                        (floor pattern-width 2)))))
         (ecase action
           (:draw
-            (when (null saved-background)
-              (setq saved-background 
-                    (allocate-pixmap medium pattern-width pattern-height)))
-            (copy-to-pixmap medium x y pattern-width pattern-height
-                            saved-background)
-            (setq background-saved-p t)
-            (draw-pattern* medium slider-button-pattern x y))
+	   #+ignore			; by JPM 10/98 'cause it leaves turds
+	   (unless background-saved-p
+	     (setq saved-background 
+	       (allocate-pixmap medium pattern-width pattern-height))
+	     (copy-to-pixmap medium x y pattern-width pattern-height
+			     saved-background)
+	     (setq background-saved-p t))
+	   (draw-pattern* medium slider-button-pattern x y))
           (:erase
-            (if background-saved-p
-                (progn
-                  (copy-from-pixmap saved-background 0 0 pattern-width pattern-height
-                                    medium x y)
-                  (setq background-saved-p nil))
-                (draw-slider-rail pane medium))))))))
+            (cond (background-saved-p
+		   (copy-from-pixmap saved-background 0 0 pattern-width pattern-height
+				     medium x y)
+		   (setq background-saved-p nil))
+		  (t
+		   (draw-rectangle* (sheet-medium pane) 
+				    x y (+ x pattern-width) (+ y pattern-height)
+				    :filled t :ink +background-ink+)
+		   (draw-slider-rail pane medium)))))))))
 
 (defmethod draw-slider-label ((pane slider-pane) medium)
   (with-slots (label-height margin) pane
@@ -484,13 +489,16 @@
       (setf (gadget-value pane) value))))
 
 (defmethod (setf gadget-value) :around (value (pane slider-pane) &key invoke-callback)
-#-aclpc  (declare (ignore value invoke-callback))
+  (declare (ignore invoke-callback))
   (if (port pane)
       (with-sheet-medium (medium pane)
-        (draw-slider-indicator pane medium :erase)
-        (call-next-method)
-        (draw-slider-indicator pane medium :draw)
-        (when (slot-value pane 'show-value-p)
-          (draw-visible-value pane medium)))
+	(let ((old (gadget-value pane)))
+	  (when (not (equal old value))
+	    (draw-slider-indicator pane medium :erase))
+	  (call-next-method)
+	  (when (not (equal old value))
+	    (draw-slider-indicator pane medium :draw))
+	  (when (slot-value pane 'show-value-p)
+	    (draw-visible-value pane medium))))
       (call-next-method)))
 

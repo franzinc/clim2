@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xm-gadgets.lisp,v 1.97.8.3 1998/07/06 23:10:20 layer Exp $
+;; $Id: xm-gadgets.lisp,v 1.97.8.4 1998/12/17 00:19:52 layer Exp $
 
 (in-package :xm-silica)
 
@@ -803,7 +803,7 @@
 	    (subseq silica::value end-pos))))
       (unless (zerop length)
 	(setf (tk::xm-text-block-rec-ptr text-block)
-	  (ff:string-to-char* (text-field-echoed-value sheet text)))))))
+	  (clim-utils:string-to-foreign (text-field-echoed-value sheet text)))))))
 
 
 ;;; New definitions to support specifying width and height in terms of

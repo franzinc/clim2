@@ -11,6 +11,107 @@ Tests for new features:	<`no new features', `no tests for new features', or
 	* <changes go here...>
 
 *******************************************************************************
+2.2.1.34
+
+Wed Dec 9 12:00:00 1998 Jeff Morrill  <jmorrill@pointnclick.com>
+
+     * MORE changes to the following files move sources toward the 
+       goal of compiling in :case-insensitive-upper mode, or for
+       removing obsolete cases such as #+aclpc 
+       (making the code simpler and easier to maintain).
+        utils/utilities
+        utils/packages
+        utils/excl-verification
+        sys/sysdcl
+        sys/sysdcl-pc
+        misc/compile-1
+        clim/standard-types
+        clim/prefill
+     * Syntactic cleanup and removal of compiler warnings:
+        silica/gadgets
+        silica/db-layout
+        clim/output-protocol
+        clim/input-protocol
+        clim/frames
+     * Enhance radio-boxes to enable multicolumn layout
+        silica/db-button
+     * Enable arrow keys on NT
+        clim/input-editor-commands
+     * Make sure all foreign structures are allocated in :C space
+       so that it is safe to call free() on them.
+        utils/lisp-utilities
+        tk-silica/xm-gadgets
+        tk-silica/ol-gadgets
+        tk-silica/ol-frames
+        tk-silica/image
+        tk/xt-defs
+        tk/xm-widgets
+        tk/xm-font-list
+        tk/xm-defs
+        tk/xlib
+        tk/widget
+        tk/resources
+        tk/ol-widgets
+        tk/ol-init
+        tk/macros
+        tk/graphics
+        tk/font
+        tk/convenience
+      * aclpc/*.lisp
+        Large number of changes to move toward case-sensitive lisp.
+        Many bug fixes including printing from a button callback,
+        scroll bars in text fields, arrow keys, support of pixmap-3
+        unix file format, etc.
+
+Wed Nov 4 12:00:00 1998 Jeff Morrill  <jmorrill@pointnclick.com>
+
+     * Changes to the following files move sources toward the 
+       goal of working in :case-sensitive-lower mode, or for
+       removing obsolete cases such as #+aclpc and #+ansi-90
+       (making the code simpler and easier to maintain).
+        utils/processes
+        utils/packages
+        utils/lisp-utilities
+        utils/excl-verification
+        utils/defun
+        utils/clos
+        sys/sysdcl
+        silica/scroll-pane
+        silica/gadgets
+        silica/framem
+        silica/db-box
+        demo/browser
+        compatibility/browser
+        clx/sysdcl
+        clx/pkgdcl
+        cloe/sysdcl
+        cloe/pkgdcl
+        clim/text-recording
+        clim/text-formatting
+        clim/temp-strings
+        clim/standard-types
+        clim/ptypes1
+        clim/present
+        clim/frames
+     * tk/font: need definition of fonts-of-font-set when #-ics
+     * test/test-suite: fix bug that matters for #+mswindows but not #+unix
+     * sys/compile: clean this up and make it more sensible 
+     * silica/mirror, aclpc/acl-mirror: fix set-sheet-mirror-edges*
+     * silica/layout: fix bug switching layouts under #+mswindows
+     * silica/db-slider: fix bug repainting sliders
+     * silica/db-scroll: fix bug repainting after scrolling
+     * silica/db-layout: fix bug enforcing max-height constraint (spr18629)
+     * demo/winlisp: moved demo stuff here from aclpc
+     * clim/output-protocol: fix bug with text wrapping (spr18586)
+     * clim/activities: fix bad interaction between AVV frames and 
+        activity frames
+     * clim/accept-values: fix binding of *application-frame*
+     * Lots of changes to the #+mswindows port to clean up the mess
+        and to fix another batch of problems (starting scheduler,
+        event loop, event distribution, mirror size and position,
+        reading BMP files, frame deiconification, noting-progress hanging)
+
+*******************************************************************************
 2.2.1.33
 
 1998-11-03    <layer@HOBART>

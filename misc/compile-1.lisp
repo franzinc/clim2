@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: user -*-
 ;;
-;;				-[Mon Jul 20 16:33:30 1998 by layer]-
+;;				-[Thu Dec 10 11:07:38 1998 by layer]-
 ;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -19,18 +19,17 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: compile-1.lisp,v 1.33.22.6 1998/07/21 02:54:49 layer Exp $
+;; $Id: compile-1.lisp,v 1.33.22.7 1998/12/17 00:19:25 layer Exp $
 
 (in-package :user)
+
+(set-case-mode :case-insensitive-upper)
 
 ;;;; This should not matter
 ;;;; (setq *ignore-package-name-case* t)
 
 ;; Forgive them, lord, for they know not what they do.
 (pushnew :ansi-90 *features*)
-
-(setq *print-case* :downcase)
-(set-case-mode :case-insensitive-lower)
 
 (setq comp:generate-call-count-code-switch
   (named-function |(> debug 1)|

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-port.lisp,v 1.5.8.9 1998/09/24 15:58:52 layer Exp $
+;; $Id: acl-port.lisp,v 1.5.8.10 1998/12/17 00:18:58 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -56,10 +56,10 @@
 		(#x22 :page-down :scroll)
 		(#x23 :end)
 		(#x24 :home)
-		(#x25 :left)
-		(#x26 :up)
-		(#x27 :right)
-		(#x28 :down)
+		(#x25 :left-arrow)
+		(#x26 :up-arrow)
+		(#x27 :right-arrow)
+		(#x28 :down-arrow)
 		(#x29 :select)
 		(#x2b :execute)
 		(#x2c :print-screen)
@@ -239,9 +239,11 @@
 
 (defmethod initialize-instance :after ((port acl-port) &key)
   (with-slots (silica::default-palette silica::deep-mirroring vk->keysym) port
+    ;; Start the scheduler as a workaround to bug7305.  Eventually,
+    ;; we probably won't need this.  JPM 10/98.
+    (mp:start-scheduler)
     (setf silica::default-palette (make-palette port :color-p t))
     (setf silica::deep-mirroring t)
-    ;;add default cursor to window class -- K Reti
     (register-window-class (realize-cursor port :default))
     ;;(get-clim-icon) +++
     (let ((res (ct:callocate :long)))
@@ -250,7 +252,7 @@
       (loop for code from (char-code #\!) to (char-code #\~)
 	  for char = (code-char code)
 	  do
-	    (let ((scan (loword (win:VkKeyscan code))))
+	    (let ((scan (loword (win:VkKeyScan code))))
 	      (push char (gethash scan vk->keysym))))
       )
     ;; Panes that have a direct mirror will get initialized from
@@ -259,7 +261,7 @@
       `(:background 
 	,+ltgray+
 	:foreground
-	,(wincolor->color (win:getSysColor win:color_windowtext))))
+	,(wincolor->color (win:GetSysColor win:COLOR_WINDOWTEXT))))
     ;; Panes that don't have a direct mirror will use this as
     ;; the default background:
     (setq silica:*default-pane-background* +ltgray+)
@@ -701,15 +703,15 @@
 ;;; Convert a MS Windows shift mask into a CLIM modifier-state
 (defun windows-mask->modifier-state (mask &optional double)
   (let ((state 
-	 (if (logtest win:mk_shift mask)
-	     (if (logtest win:mk_control mask)
-		 #.(make-modifier-state :shift :control)
-	       #.(make-modifier-state :shift))
-	   (if (logtest win:mk_control mask)
-	       #.(make-modifier-state :control)
-	     #.(make-modifier-state)))))
+	 (if (logtest win:MK_SHIFT mask)
+	     (if (logtest win:MK_CONTROL mask)
+		 (make-modifier-state :shift :control)
+	       (make-modifier-state :shift))
+	   (if (logtest win:MK_CONTROL mask)
+	       (make-modifier-state :control)
+	     (make-modifier-state)))))
     (if double 
-	(logior state #.(make-modifier-state :double))
+	(logior state (make-modifier-state :double))
       state)))
 
 (defmethod event-handler ((port acl-port) args)
@@ -717,8 +719,23 @@
   (cerror "Go on" "What isn't firing?")
   nil)
 
+;; The fact that we need this method gives me the uneasy feeling
+;; that we have addressed the symptom and not the cause.  The
+;; default method does some port-trace-thing which sometimes
+;; generates the wrong sheet.  There are no comments regarding
+;; port-trace-thing, so there no way to know if it is broken.  
+;; For example, SHEET might be a spacing pane, which is unable
+;; to queue an event and therefore fails to distribute it.
+;; JPM 10/98.
+(defmethod silica::distribute-event-1 ((port acl-port) 
+				       (event silica::window-change-event))
+  (declare (optimize (speed 3)))
+  (let ((sheet (or (silica::event-mswin-control event) (event-sheet event))))
+    (silica::dispatch-pointer-event-to-sheet port event sheet)))
+
 ;; what's with this hacked queue-get?? (cim 9/16/96)
 
+#+obsolete
 (defmethod queue-get ((queue acl-event-queue) &optional default)
   "return the element at the head of the queue
    deleteing it from the queue"
@@ -768,16 +785,16 @@
 				    (state "Windows Event"))
   (with-slots (event-queue motion-pending) port
     (let ((event (queue-get event-queue))
+	  (sheet (frame-top-level-sheet *application-frame*))
 	  (reason nil))
       (unless event 
 	(flet ((wait-for-event ()
-		 ;;(await-response t)
-		 (sys::process-pending-events 
-		  ;; Arg is "check-pending"; if T, don't block.
-		  t)
+		 (process-pending-messages t (and sheet (sheet-mirror sheet)))
+		 ;;(sys::process-pending-events t)
 		 (when motion-pending
 		   (flush-pointer-motion port))
-		 (or (setq event (queue-get event-queue))
+		 (or event
+		     (setq event (queue-get event-queue))
 		     (and wait-function
 			  (funcall wait-function)
 			  (setq reason :wait-function)))))
@@ -826,8 +843,6 @@
 
 ;;; gestures for handling middle button with two button mice
 
-#+(or aclpc acl86win32)
 (define-gesture-name :describe :pointer-button (:right :control) :unique nil)
-#+(or aclpc acl86win32)
 (define-gesture-name :delete :pointer-button (:right :control :shift) :unique nil)
 

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: output-protocol.lisp,v 1.46.22.4 1998/09/24 15:58:55 layer Exp $
+;; $Id: output-protocol.lisp,v 1.46.22.5 1998/12/17 00:19:11 layer Exp $
 
 (in-package :clim-internals)
 
@@ -66,13 +66,20 @@
                     :accessor stream-default-view))
   (:default-initargs :end-of-line-action :wrap
                      :end-of-page-action :scroll
-                     ;;--- Is this really appropriate?
-                     :default-text-margin +largest-coordinate+
+                     :default-text-margin (default-default-text-margin)
                      :output-glyph-buffer
                      #-who-needs-it nil
                      #+who-needs-it (make-array 512 :element-type '(unsigned-byte 16)
                                                           :initial-element 0)
                      :text-margin nil))
+
+(defun default-default-text-margin ()
+  (let ((graft (or (graft *application-frame*)
+		   (find-graft))))
+    ;; There is no way the text margin will be any bigger than
+    ;; the width of the screen.  spr18586.
+    (cond (graft (values (bounding-rectangle-size graft)))
+	  (t +largest-coordinate+))))
 
 (defmethod initialize-instance :after ((stream output-protocol-mixin)
                                        &key text-margin)
@@ -359,17 +366,14 @@
   (stream-write-char-1 stream #-aclpc character
                               #+aclpc char))
 
-(defun stream-write-char-1 (stream #-aclpc character
-                                   #+aclpc char)
+(defun stream-write-char-1 (stream character)
   (with-cursor-state (stream nil)
     (multiple-value-bind (cursor-x cursor-y baseline height style
                           max-x record-p draw-p)
         (decode-stream-for-writing stream)
       (declare (type coordinate cursor-x cursor-y baseline height max-x))
-      (cond ((or (graphic-char-p #-aclpc character
-                                 #+aclpc char)
-                 (diacritic-char-p #-aclpc character
-                                   #+aclpc char)
+      (cond ((or (graphic-char-p character)
+                 (diacritic-char-p character)
                  ;; Special case so that we don't lozenge this.  It is up to
                  ;; the caller to have established the correct text style.
                  #+CCL-2 (eql character #\CommandMark))
@@ -378,15 +382,13 @@
                  (multiple-value-bind (no-wrap new-cursor-x new-baseline new-height
                                        font index)
                      (stream-scan-character-for-writing 
-                       stream medium #-aclpc character
-                       #+aclpc char style cursor-x max-x)
+                       stream medium character style cursor-x max-x)
                    (declare (type coordinate new-cursor-x new-baseline new-height))
                    (declare (ignore index font))
                    (when no-wrap
                      (when record-p
                        (stream-add-character-output
-                         stream #-aclpc character
-                         #+aclpc char style (- new-cursor-x cursor-x)
+                         stream character style (- new-cursor-x cursor-x)
                          new-height new-baseline))
                      (when draw-p
                        (when (< baseline new-baseline)
@@ -396,8 +398,7 @@
                        ;;--- Need DRAW-GLYPHS, which will take a port-specific font
                        ;;--- object, as well as the :INK option.
                        (with-identity-transformation (medium)
-                         (draw-text* medium #-aclpc character
-                                     #+aclpc char        ; (code-char index)??
+                         (draw-text* medium character        ; (code-char index)??
                                      cursor-x (+ cursor-y (- baseline new-baseline))
                                      :text-style style
                                      :align-x :left :align-y :top)))
@@ -410,10 +411,8 @@
                           (stream-handle-line-wrap
                             stream cursor-y height max-x draw-p record-p)))
                      (1 (error "Couldn't fit character ~S into window"
-                               #-aclpc character
-                               #+aclpc char)))))))
-            ((eql #-aclpc character
-                  #+aclpc char #\Tab)
+			       character)))))))
+            ((eql character #\Tab)
              (let ((new-cursor-x (stream-next-tab-column stream cursor-x style)))
                (declare (type coordinate new-cursor-x))
                (when (> (+ new-cursor-x *character-wrap-indicator-width*) max-x)
@@ -423,48 +422,40 @@
                (setf new-cursor-x (stream-next-tab-column stream cursor-x style))
                (when record-p
                  (stream-add-character-output        ;Have to handle tabs in output record
-                   stream 
-                   #-aclpc character 
-                   #+aclpc char 
+                   stream  character  
                    style (- new-cursor-x cursor-x)
                    height baseline))
                ;; We always want to update the cursor -- it will be put back
                ;; if only recording.
                (encode-stream-after-writing 
                  stream new-cursor-x cursor-y baseline height)))
-            ((or (eql #-aclpc character
-                      #+aclpc char #\Newline)
-                 (eql #-aclpc character 
-                      #+aclpc char #\Return)
+            ((or (eql character #\Newline)
+                 (eql character #\Return)
 		 #+aclpc (eql char #\Linefeed))
              ;; STREAM-ADVANCE-CURSOR-LINE will close the current text record.
              (stream-advance-cursor-line stream))
             (t
              (multiple-value-bind (new-cursor-x new-cursor-y new-baseline new-height)
                  (stream-draw-lozenged-character
-                   stream 
-                   #-aclpc character 
-                   #+aclpc char 
+                   stream character  
                    cursor-x cursor-y baseline
                    height style max-x record-p draw-p)
                (encode-stream-after-writing
                  stream new-cursor-x new-cursor-y new-baseline new-height))))))
-   #-aclpc character 
-   #+aclpc char) ;Return the right value
+   character) ;Return the right value
 
 ;;--- Hack COORDINATEs correctly here...
-(defmethod stream-draw-lozenged-character ((stream output-protocol-mixin) #-aclpc character #+aclpc char
+(defmethod stream-draw-lozenged-character ((stream output-protocol-mixin) character
                                            cursor-x cursor-y baseline height style
                                            max-x record-p draw-p)
   (let ((text-style (merge-text-styles '(nil nil :very-small) 
                                        *default-text-style*))
         (ink (medium-ink stream))
-        (name (char-name #-aclpc character #+aclpc char)))
+        (name (char-name character)))
     (setq name (if name
                    (string-upcase name)
                    #+Genera (format nil "~O" (char-code character))
-                   #-Genera (format nil "~X" (char-code #-aclpc character
-							#+aclpc char))))
+                   #-Genera (format nil "~X" (char-code character))))
     (multiple-value-bind (last-x largest-x last-y total-height lozenge-baseline)
         (stream-string-output-size stream name :text-style text-style)
       (declare (ignore largest-x last-y lozenge-baseline))
@@ -498,7 +489,7 @@
                 new-cursor-x (+ lozenge-right-point 1)))
         (when record-p
           (stream-add-character-output
-            stream #-aclpc character #+aclpc char style
+            stream character style
             (- new-cursor-x cursor-x) new-line-height new-baseline))
         (when draw-p
           (when (< baseline new-baseline)

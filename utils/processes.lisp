@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: processes.lisp,v 1.20.22.2 1998/07/06 23:10:30 layer Exp $
+;; $Id: processes.lisp,v 1.20.22.3 1998/12/17 00:19:57 layer Exp $
 
 (in-package :clim-utils)
 
@@ -25,9 +25,8 @@
 ;;; Portions copyright (c) 1992, 1993 Franz, Inc."
 
 
-;;; Locks
+;;; Locks 
 
-#+allegro
 (eval-when (compile load eval)
 ;;;  (require :mdproc)
   (require :process))

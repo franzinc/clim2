@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xm-widgets.lisp,v 1.28.22.2 1998/07/20 21:57:29 layer Exp $
+;; $Id: xm-widgets.lisp,v 1.28.22.3 1998/12/17 00:19:48 layer Exp $
 
 (in-package :tk)
 
@@ -42,7 +42,7 @@
 					  :name :delete-response
 					  :type 'tk::delete-response
 					  :original-name
-					  (string-to-char*
+					  (clim-utils:string-to-foreign
 					   "deleteResponse")))
 
 (tk::add-resource-to-class (find-class 'xm-text)
@@ -50,7 +50,7 @@
 					  :name :font-list
 					  :type 'font-list
 					  :original-name
-					  (string-to-char*
+					  (clim-utils:string-to-foreign
 					   "fontList")))
 
 (tk::add-resource-to-class (find-class 'vendor-shell)
@@ -58,7 +58,7 @@
 					  :name :keyboard-focus-policy
 					  :type 'tk::keyboard-focus-policy
 					  :original-name
-					  (string-to-char*
+					  (clim-utils:string-to-foreign
 					   "keyboardFocusPolicy")))
 
 
@@ -67,7 +67,7 @@
 					  :name :label-type
 					  :type 'tk::label-type
 					  :original-name
-					  (string-to-char*
+					  (clim-utils:string-to-foreign
 					   "labelType")))
 
 
@@ -146,15 +146,15 @@
 	(or result
 	    *empty-compound-string*
 	    (setq *empty-compound-string*
-	      (xm_string_create_l_to_r (string-to-char* "")
-				       (string-to-char* xm-font-list-default-tag))))))))
+	      (xm_string_create_l_to_r (clim-utils:string-to-foreign "")
+				       (clim-utils:string-to-foreign xm-font-list-default-tag))))))))
 
  (:-ics
   (defmethod convert-resource-out ((parent t) (type (eql 'xm-string)) value)
     (note-malloced-object
      (xm_string_create_l_to_r
-      (note-malloced-object (string-to-char* value))
-      (note-malloced-object (string-to-char* "")))))))
+      (note-malloced-object (clim-utils:string-to-foreign value))
+      (note-malloced-object (clim-utils:string-to-foreign "")))))))
 
 (defmethod convert-resource-out ((parent t) (type (eql 'xm-background-pixmap)) value)
   (etypecase value
@@ -203,7 +203,7 @@
 					  :name :scroll-horizontal
 					  :type 'tk::boolean
 					  :original-name
-					  (string-to-char*
+					  (clim-utils:string-to-foreign
 					   "scrollHorizontal")))
 
 (tk::add-resource-to-class (find-class 'xm-text)
@@ -211,7 +211,7 @@
 					  :name :scroll-vertical
 					  :type 'tk::boolean
 					  :original-name
-					  (string-to-char*
+					  (clim-utils:string-to-foreign
 					   "scrollVertical")))
 
 (tk::add-resource-to-class (find-class 'xm-text)
@@ -219,14 +219,18 @@
 					  :name :word-wrap
 					  :type 'tk::boolean
 					  :original-name
-					  (string-to-char*
+					  (clim-utils:string-to-foreign
 					   "wordWrap")))
+
+(defun make-xm-string-table (&key (number 1))
+  (clim-utils::allocate-cstruct 'xm-string-table
+				:number number :initialize t))
 
 (defmethod convert-resource-out ((parent t) (type (eql 'xm-string-table)) value)
   (if value
       (do* ((n (length value))
 	    (r (note-malloced-object
-		(make-xm-string-table :number n :in-foreign-space t)))
+		(make-xm-string-table :number n)))
 	    (v value (cdr v))
 	    (i 0 (1+ i)))
 	  ((null v)

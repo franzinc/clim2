@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: image.lisp,v 1.23.22.3 1998/07/06 23:10:18 layer Exp $
+;; $Id: image.lisp,v 1.23.22.4 1998/12/17 00:19:51 layer Exp $
 
 (in-package :xm-silica)
 
@@ -409,7 +409,7 @@
 	     (skip-whitespace)
 	     (let ((chars (make-array 0 :fill-pointer 0
 				      :adjustable t
-				      :element-type 'string-char)))
+				      :element-type 'character)))
 	       (loop
 		 (let ((c (peek-char nil stream nil nil)))
 		   (unless (and c (funcall predicate c))
@@ -418,8 +418,8 @@
 		 (read-char stream))))
 	   (skip-comment ()
 	     (when (eql #\/ (skip-whitespace))
-	       (read-char stream) ; /
-	       (read-char stream) ; *
+	       (read-char stream)	; /
+	       (read-char stream)	; *
 	       (loop
 		 (peek-char #\* stream)
 		 (read-char stream)
@@ -439,7 +439,7 @@
 		 (unless  (eql (setq c (peek-char t stream)) #\newline)
 		   (return c))))))
 
-    (let (#+ignore name width height ncolors pixels colors cpp)
+    (let (width height ncolors pixels colors cpp)
 
       (assert (eql #\/ (skip-whitespace)) () "File must begin with a comment")
 
@@ -450,8 +450,7 @@
 	  () "Expected char keyword" )
       (ensure-next-char #\*)
 
-      #+ignore
-      (setq name (read-a-token #'(lambda (c) (or (alphanumericp c) (eql c #\_)))))
+      (read-a-token #'(lambda (c) (or (alphanumericp c) (eql c #\_))))
 
       (ensure-next-char #\[)
       (ensure-next-char #\])
@@ -473,8 +472,8 @@
 
 	(dotimes (i ncolors)
 	  (let* ((string (prog1 (read-a-string) (skip-trailing-crap)))
-		    (chars (subseq string 0 cpp))
-		  (values nil))
+		 (chars (subseq string 0 cpp))
+		 (values nil))
 	    (with-input-from-string (s string :start cpp)
 	      (loop
 		(let ((key (read s nil nil)))
@@ -483,7 +482,7 @@
 		      () "Expected either m, s, g4, g or . Got ~S" key)
 		  (push (cons key
 			      (case (peek-char t s)
-				(#\# ; rgb
+				(#\#	; rgb
 				 (read-char s)
 				 (let* ((number (read-a-token #'(lambda (c) (digit-char-p c 16)) s))
 					(color-string-length (length number)))
@@ -501,11 +500,11 @@
 					(get-integer 0)
 					(get-integer 1)
 					(get-integer 2))))))
-				(#\% ; hsv
+				(#\%	; hsv
 				 (read-char s)
 				 (error "HSV color spec not implemented")
 				 )
-				(t ; color-name
+				(t	; color-name
 				 (read s))))
 			values))))
 	    (assert values () "Expected  key,color for ~S" chars)
@@ -536,7 +535,7 @@
 				(symbol (cond ((string-equal color 'none)
 					       +transparent-ink+)
 					      (palette
-						(find-named-color color palette))
+					       (find-named-color (string color) palette))
 					      (t color))))))
 			colors))))))
 

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: mirror.lisp,v 1.36.22.2 1998/07/06 23:09:57 layer Exp $
+;; $Id: mirror.lisp,v 1.36.22.3 1998/12/17 00:19:35 layer Exp $
 (in-package :silica)
 
 ;;;"Copyright (c) 1991, 1992 Franz, Inc.  All rights reserved.
@@ -82,11 +82,6 @@
 
 ;; for some reason on the windows port cached transformations are
 ;; screwing things up leading to the "ufo" sightings (cim 9/24/96)
-
-;; the *setting-sheet-mirror-edges* check in acl-mirr and acl-clas
-;; seems to remove the need for disabling use of cached device
-;; transformations on the windows port - for the moment leave the
-;; switch in (cim 9/26/96)
 
 (defvar *use-cached-device-transformation* t)
 
@@ -201,7 +196,7 @@
 ;; mirror itself.  That is, it will return 0,0,WIDTH,HEIGHT for most
 ;; known window systems
 (defgeneric mirror-inside-region* (port sheet)
-  #-aclpc (declare (values left top right bottom)))
+  (declare (values left top right bottom)))
 
 (defgeneric mirror-native-edges* (port sheet))
 (defgeneric mirror-inside-edges* (port sheet))

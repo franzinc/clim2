@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xt-defs.lisp,v 1.15.22.1 1998/07/06 23:10:15 layer Exp $
+;; $Id: xt-defs.lisp,v 1.15.22.2 1998/12/17 00:19:48 layer Exp $
 
 ;;
 ;; This file contains compile time only code -- put in clim-debug.fasl.
@@ -39,7 +39,7 @@
 (def-c-typedef xt-dimension :unsigned-short)
 (def-c-typedef xt-pointer * char)
 
-(def-c-type (xt-class :no-defuns) :struct
+(def-c-type (xt-class :no-defuns :no-constructor) :struct
 	    (superclass :long)
 	    (name * :char)
 	    (widget-size :cardinal)
@@ -69,7 +69,7 @@
 	    (version xt-version-type)
 	    (callback-private * :char))
 
-(def-c-type (xt-resource :no-defuns) :struct
+(def-c-type (xt-resource :no-defuns :no-constructor) :struct
   (name * :char)
   (class * :char)
   (type * :char)
@@ -81,7 +81,7 @@
 
 ;; Horrible internal stuff
 
-(def-c-type (xt-offset-rec :no-defuns) :struct
+(def-c-type (xt-offset-rec :no-defuns :no-constructor) :struct
 	    (next * :char)
 	    (name xrm-quark)
 	    (offset :int))
@@ -94,44 +94,44 @@
       (push (list (xt-offset-rec-name x)
 		  (xt-offset-rec-offset x)) r))))
 
-(def-c-type (xt-widget :no-defuns) :struct
+(def-c-type (xt-widget :no-defuns :no-constructor) :struct
   (self :unsigned-long)
   (widget-class :unsigned-long)
   )
 
-(def-c-type (xt-resource-list :in-foreign-space :no-defuns) 1 xt-resource)
+(def-c-type (xt-resource-list :in-foreign-space :no-defuns :no-constructor) 1 xt-resource)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(def-c-type (x-push-button-callback-struct :no-defuns) :struct
+(def-c-type (x-push-button-callback-struct :no-defuns :no-constructor) :struct
   (reason :int)
   (event * x11:xevent)
   (click-count :int))
 
-(def-c-type (x-drawing-area-callback :no-defuns) :struct
+(def-c-type (x-drawing-area-callback :no-defuns :no-constructor) :struct
   (reason :int)
   (event * x11:xevent)
   (window x11:window))
 
-(def-c-type (xcharstruct-vector :no-defuns) 1 x11:xcharstruct)
+(def-c-type (xcharstruct-vector :no-defuns :no-constructor) 1 x11:xcharstruct)
 
-(def-c-type (xfontname-list :no-defuns) 1 * :char)
+(def-c-type (xfontname-list :no-defuns :no-constructor) 1 * :char)
 
-(def-c-type (xfontstruct-array :no-defuns) 1 x11::xfontstruct)
+(def-c-type (xfontstruct-array :no-defuns :no-constructor) 1 x11::xfontstruct)
 
-(def-c-type (class-array :no-defuns) 1 :unsigned-long)
+(def-c-type (class-array :no-defuns :no-constructor) 1 :unsigned-long)
 
-(def-c-type (xt-arg-val :no-defuns) :long)
+(def-c-type (xt-arg-val :no-defuns :no-constructor) :long)
 
-(def-c-type (xt-arg :in-foreign-space :no-defuns) :struct
+(def-c-type (xt-arg :in-foreign-space :no-defuns :no-constructor) :struct
   (name  * :char)
   (value xt-arg-val))
 
-(def-c-type (xt-arglist :in-foreign-space :no-defuns) 1 xt-arg)
+(def-c-type (xt-arglist :in-foreign-space :no-defuns :no-constructor) 1 xt-arg)
 
-(def-c-type (xt-widget-list :no-defuns) 1 * xt-widget)
+(def-c-type (xt-widget-list :no-defuns :no-constructor) 1 * xt-widget)
 
-(def-c-type (xt-widget-geometry :no-defuns) :struct
+(def-c-type (xt-widget-geometry :no-defuns :no-constructor) :struct
   (request-mode xt-geometry-mask)
   (x xt-position)
   (y xt-position)
@@ -144,5 +144,5 @@
 
 ;; general pointer-array
 
-(def-c-type (pointer-array :no-defuns) 1 * char)
+(def-c-type (pointer-array :no-defuns :no-constructor) 1 * char)
 

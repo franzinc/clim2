@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-pixmaps.lisp,v 1.3.22.4 1998/07/06 23:08:50 layer Exp $
+;; $Id: acl-pixmaps.lisp,v 1.3.22.5 1998/12/17 00:18:58 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -57,9 +57,9 @@
             (setf (ct:cref win:rect cliprect win::right) rright)
             (setf (ct:cref win:rect scrollrect win::bottom) rbottom)
             (setf (ct:cref win:rect cliprect win::bottom) rbottom)
-            (win::scrollDc dc (- to-x from-x) (- to-y from-y)
+            (win:ScrollDC dc (- to-x from-x) (- to-y from-y)
 		          scrollrect cliprect (ct:null-handle win::hrgn)
-			  #+aclpc ct:null #-aclpc 0)
+			  0)
 		      )))))))
 
 ;; changed bop->winop to return the val let variable rather than the
@@ -84,7 +84,7 @@
    ((eq bop boole-andc2) #x440328)	; srcerase
    ((eq bop boole-orc1)  #xbb0226)	; mergepaint 
    ((eq bop boole-orc2)  #xdd0228)	;
-   (t win:srccopy)
+   (t win:SRCCOPY)
    ))
 
 ;;; consider caching instance in port
@@ -95,8 +95,8 @@
         (cdc nil)
 	(window (medium-drawable medium)))
     (with-dc (window dc)
-      (setq cdc (win:createCompatibleDC dc))
-      (setq bitmap (win:createCompatibleBitmap dc width height))
+      (setq cdc (win:CreateCompatibleDC dc))
+      (setq bitmap (win:CreateCompatibleBitmap dc width height))
       (setf obitmap (selectobject cdc bitmap)))
     (make-instance 'acl-pixmap 
       :bitmap bitmap
@@ -109,11 +109,11 @@
 (defmethod port-deallocate-pixmap ((port acl-port) (pixmap acl-pixmap))
   (with-slots (bitmap cdc original-bitmap) pixmap
     (when bitmap
-      (win:deleteObject bitmap)
+      (win:DeleteObject bitmap)
       (setq bitmap nil))
     (when cdc
       (selectobject cdc original-bitmap)
-      (win:deleteDC cdc)
+      (win:DeleteDC cdc)
       (setq bitmap nil cdc nil))))
 
 (defmethod port ((pixmap acl-pixmap))
@@ -143,7 +143,7 @@
     (convert-to-device-distances transform width height)
     (with-dc (window dc)
       (when (select-acl-dc from-medium window dc)
-	(win:bitblt cdc to-x to-y width height dc from-x from-y 
+	(win:BitBlt cdc to-x to-y width height dc from-x from-y 
 		    (bop->winop alu))))))
 
 (defmethod medium-copy-area 
@@ -155,7 +155,7 @@
     (convert-to-device-coordinates transform to-x to-y)
     (with-dc (window dc)
       (when (select-acl-dc to-medium window dc)
-        (win:bitblt dc to-x to-y width height cdc from-x from-y 
+        (win:BitBlt dc to-x to-y width height cdc from-x from-y 
 	            (bop->winop alu))))))
 
 (defmethod medium-copy-area 
@@ -168,7 +168,7 @@
     (convert-to-device-distances transform width height)
     (with-dc (window dc)
       (when (select-acl-dc from-medium window dc)
-	(win:bitblt cdc to-x to-y width height dc from-x from-y 
+	(win:BitBlt cdc to-x to-y width height dc from-x from-y 
 		    (bop->winop alu))))))
 
 (defmethod medium-copy-area 
@@ -180,7 +180,7 @@
     (convert-to-device-coordinates transform to-x to-y)
     (with-dc (window dc)
       (when (select-acl-dc to-medium window dc)
-        (win:bitblt dc to-x to-y width height cdc from-x from-y 
+        (win:BitBlt dc to-x to-y width height cdc from-x from-y 
 	            (bop->winop alu))))))
 
 (defmethod medium-draw-pixmap* ((medium acl-medium) pixmap x y

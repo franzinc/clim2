@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: input-protocol.lisp,v 1.51.22.2 1998/07/06 23:09:02 layer Exp $
+;; $Id: input-protocol.lisp,v 1.51.22.3 1998/12/17 00:19:10 layer Exp $
 
 (in-package :clim-internals)
 
@@ -265,15 +265,7 @@
                      ;(when (typep gesture 'window-change-event)
                      ;  (setq *wce* gesture)
                      ;  (break "look at *wce* = ~a" *wce*))
-                     (let* ((sheet (and (or 
-                                          (typep gesture 'device-event)
-                                          #+(or acl86win32 aclpc)
-                                          ;; why is this here?
-                                          ;; window-change-event is a
-                                          ;; subclass of device-event
-                                          ;; - am i missing something
-                                          ;; (cim 9/17/96)?
-                                          (typep gesture 'silica::window-change-event))
+                     (let* ((sheet (and (typep gesture 'device-event)
                                         (event-sheet gesture)))
                             (new-gesture 
                              (receive-gesture

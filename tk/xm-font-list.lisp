@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xm-font-list.lisp,v 1.20.22.1 1998/07/06 23:10:14 layer Exp $
+;; $Id: xm-font-list.lisp,v 1.20.22.2 1998/12/17 00:19:48 layer Exp $
 
 (in-package :tk)
 
@@ -34,10 +34,10 @@
 (excl:ics-target-case
  (:+ics
   (defvar *font-list-tags*
-      (vector (string-to-char* "ascii")
-	      (string-to-char* "kanji")
-	      (string-to-char* "katakana")
-	      (string-to-char* "gaiji")))))
+      (vector (clim-utils:string-to-foreign "ascii")
+	      (clim-utils:string-to-foreign "kanji")
+	      (clim-utils:string-to-foreign "katakana")
+	      (clim-utils:string-to-foreign "gaiji")))))
 
 (defun export-font-list (value)
   (when (atom value)

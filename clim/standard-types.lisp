@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: standard-types.lisp,v 1.38.22.2 1998/07/06 23:09:06 layer Exp $
+;; $Id: standard-types.lisp,v 1.38.22.3 1998/12/17 00:19:13 layer Exp $
 
 (in-package :clim-internals)
 
@@ -224,20 +224,17 @@
                                      low high)))))))))
 
 (define-presentation-method presentation-type-specifier-p ((type real))
-  (macrolet (#-(or Genera ANSI-90)
-             (realp (object)
-               `(typep ,object '(or rational float))))
-    (and (if (atom low)
-             (or (eq low '*)
-                 (realp low))
-             (and (realp (car low))
-                  (null (cdr low))))
-         (if (atom high)
-             (or (eq high '*)
-                 (realp high))
-             (and (realp (car high))
-                  (null (cdr high))))
-         (typep base '(integer 2 36)))))
+  (and (if (atom low)
+	   (or (eq low '*)
+	       (realp low))
+	 (and (realp (car low))
+	      (null (cdr low))))
+       (if (atom high)
+	   (or (eq high '*)
+	       (realp high))
+	 (and (realp (car high))
+	      (null (cdr high))))
+       (typep base '(integer 2 36))))
 
 (define-presentation-method presentation-typep (object (type real))
   (and (rangecase low
@@ -1612,7 +1609,6 @@
                              #+ignore (radix *print-radix*)
                              #+ignore (base *print-base*)
                              #+ignore (escape *print-escape*)
-                             #+ignore (case *print-case*)
                              #+ignore (gensym *print-gensym*)
                              #+ignore (array *print-array*))
   (let ((*print-length* length)
@@ -1621,7 +1617,6 @@
         #+ignore (*print-radix* radix)
         #+ignore (*print-base* base)
         #+ignore (*print-escape* escape)
-        #+ignore (*print-case* case)
         #+ignore (*print-gensym* gensym)
         #+ignore (*print-array* array))
     (print-recursive-1 object stream length level make-presentation)))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $Id: test-suite.lisp,v 1.82.22.1 1998/07/06 23:10:06 layer Exp $
+;; $Id: test-suite.lisp,v 1.82.22.2 1998/12/17 00:19:43 layer Exp $
 
 (in-package :clim-user)
 
@@ -2178,9 +2178,7 @@ Luke Luck licks the lakes Luke's duck likes."))
               (accept `((completion (:foreground :red :green :blue))
                         :name-key ,#'identity
                         :printer ,#'display-color)
-                      :view #+allegro '(radio-box-view
-                                         :toggle-button-options (:indicator-type nil))
-                            #-allegro (stream-default-view stream)
+                      :view '(radio-box-view)
                       :stream stream
                       :prompt "Color" :default color-name))
         (terpri stream)

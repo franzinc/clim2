@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: ol-frames.lisp,v 1.31.22.2 1998/07/06 23:10:19 layer Exp $
+;; $Id: ol-frames.lisp,v 1.31.22.3 1998/12/17 00:19:51 layer Exp $
 
 (in-package :xm-silica)
 
@@ -33,7 +33,7 @@
     (let ((shell (frame-shell frame)))
       (tk::add-ol-callback
        shell
-       (ff::string-to-char* "wmProtocol")
+       (clim-utils:string-to-foreign "wmProtocol")
        :wm-protocol
        'ol-frame-wm-protocol-callback
        frame))))

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: convenience.lisp,v 1.20.22.1 1998/07/06 23:10:09 layer Exp $
+;; $Id: convenience.lisp,v 1.20.22.2 1998/12/17 00:19:45 layer Exp $
 
 (in-package :tk)
 
@@ -47,7 +47,7 @@
 					   args)
 	       (let ((o (,c-function-name
 			 parent
-			 (note-malloced-object (string-to-char* name))
+			 (note-malloced-object (clim-utils:string-to-foreign name))
 			 arglist
 			 n)))
 		 (when managed

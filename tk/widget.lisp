@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: widget.lisp,v 1.44.22.2 1998/07/06 23:10:14 layer Exp $
+;; $Id: widget.lisp,v 1.44.22.3 1998/12/17 00:19:47 layer Exp $
 
 (in-package :tk)
 
@@ -73,7 +73,7 @@
 	(multiple-value-bind (arglist n)
 	    (make-arglist-for-class class parent args)
 	  (funcall fn
-		   (note-malloced-object (string-to-char* name))
+		   (note-malloced-object (clim-utils:string-to-foreign name))
 		   handle
 		   parent
 		   arglist
@@ -125,7 +125,7 @@
 	(multiple-value-bind (arglist n)
 	    (make-arglist-for-class class parent args)
 	  (incf *widget-count*)
-	  (xt_create_popup_shell (note-malloced-object (string-to-char* name))
+	  (xt_create_popup_shell (note-malloced-object (clim-utils:string-to-foreign name))
 				 handle
 				 parent
 				 arglist
@@ -216,7 +216,9 @@
 (defconstant xt-geometry-almost 2)
 (defconstant xt-geometry-done 3)
 
-
+(defun make-xt-widget-geometry ()
+  (clim-utils::allocate-cstruct 'xt-widget-geometry
+				:number 1 :initialize t))
 
 (defmethod widget-best-geometry (widget &key width height)
   (let ((preferred (make-xt-widget-geometry)))
@@ -276,7 +278,7 @@
  (:+ics
   (defun setlocale (&optional (category 0) locale)
     (let ((r (setlocale-1 category (or (and locale
-					    (ff:string-to-char* locale))
+					    (clim-utils:string-to-foreign locale))
 				       0))))
       (unless (zerop r)
 	(ff:char*-to-string r))))))
@@ -303,7 +305,7 @@
 	 (with-*-array (v (1+ n))
 	   (dotimes (i n)
 	     (setf (*-array v i)
-	       (ff:string-to-char* (nth i *fallback-resources*))))
+	       (clim-utils:string-to-foreign (nth i *fallback-resources*))))
 	   (setf (*-array v n) 0)
 	   v))))
     #+ignore (excl:ics-target-case

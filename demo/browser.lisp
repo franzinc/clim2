@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: browser.lisp,v 1.25.22.2 1998/07/06 23:09:23 layer Exp $
+;; $Id: browser.lisp,v 1.25.22.3 1998/12/17 00:19:21 layer Exp $
 
 ;;; Simple extensible browser
 ;;; Scott McKay
@@ -1147,7 +1147,7 @@
 	   :default (make-pathname :name "GRAPH-HARDCOPY"
 				   :type "PS"
 				   :defaults (user-homedir-pathname)
-				   #+ANSI-90 :case #+ANSI-90 :common)
+				   :case :common)
 	   :documentation "File in which to put the PostScript result")
 	  (orientation '(member :landscape :portrait)
 	   :default :portrait

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: gestures.lisp,v 1.25.22.3 1998/09/24 15:58:53 layer Exp $
+;; $Id: gestures.lisp,v 1.25.22.4 1998/12/17 00:19:09 layer Exp $
 
 (in-package :clim-internals)
 

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-scroll.lisp,v 1.4.8.7 1998/09/24 15:58:52 layer Exp $
+;; $Id: acl-scroll.lisp,v 1.4.8.8 1998/12/17 00:18:59 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -135,39 +135,43 @@
 
 (defmethod scroll-bar-value-changed-callback
     (sheet (client scroller-pane) id value size)
-  (with-slots (viewport contents) client
-    (let* ((extent (viewport-contents-extent viewport))
-           (region (viewport-viewport-region viewport)))
-      (case id
-	(:vertical
-	 (let ((amount
-		(+ (bounding-rectangle-min-y extent)
-		   (* (bounding-rectangle-height extent)
-		      (if (= size (gadget-range sheet))
-			  0
-			(/ (- value (gadget-min-value sheet))
-			   (gadget-range sheet)))))))
-	   ;;--- used to skip this if (zerop amount)
-	   (scroll-extent
-	    contents
-	    (bounding-rectangle-min-x region)
-	    amount)))
-	(:horizontal
-	 (let ((amount 
-		(+ (bounding-rectangle-min-x extent)
-		   (* (bounding-rectangle-width extent)
-		      (if (= size (gadget-range sheet))
-			  0
-			(/ (- value (gadget-min-value sheet))
-			   (gadget-range sheet)))))))
-	   (scroll-extent
-	    contents
-	    amount
-	    (bounding-rectangle-min-y region))))
-	;;-- Yuck
-	(clim-internals::maybe-redraw-input-editor-stream
-	 contents
-	 (pane-viewport-region contents))))))
+  (cond ((scroller-pane-gadget-supplies-scrolling-p client) 
+	 ;; FIXME - child is a text-editor
+	 nil)
+	(t
+	 (with-slots (viewport contents) client
+	   (let* ((extent (viewport-contents-extent viewport))
+		  (region (viewport-viewport-region viewport)))
+	     (case id
+	       (:vertical
+		(let ((amount
+		       (+ (bounding-rectangle-min-y extent)
+			  (* (bounding-rectangle-height extent)
+			     (if (= size (gadget-range sheet))
+				 0
+			       (/ (- value (gadget-min-value sheet))
+				  (gadget-range sheet)))))))
+		  ;;--- used to skip this if (zerop amount)
+		  (scroll-extent
+		   contents
+		   (bounding-rectangle-min-x region)
+		   amount)))
+	       (:horizontal
+		(let ((amount 
+		       (+ (bounding-rectangle-min-x extent)
+			  (* (bounding-rectangle-width extent)
+			     (if (= size (gadget-range sheet))
+				 0
+			       (/ (- value (gadget-min-value sheet))
+				  (gadget-range sheet)))))))
+		  (scroll-extent
+		   contents
+		   amount
+		   (bounding-rectangle-min-y region))))
+	       ;;-- Yuck
+	       (clim-internals::maybe-redraw-input-editor-stream
+		contents
+		(pane-viewport-region contents))))))))
 
 
 ;;--- In the case where the viewport is bigger than the window this
@@ -256,32 +260,39 @@
 	     (setf (scroller-current-horizontal-value scroll-bar) pos)))
 	  )))))
 
-
 (defmethod contents-range ((scroller mswin-scroller-pane) orientation)
-  (with-slots (viewport) scroller
-    (with-bounding-rectangle* (left top right bottom) 
-	(viewport-contents-extent viewport)
-      (ecase orientation
-	(:horizontal (- right left))
-	(:vertical (- bottom top))))))
+  (cond ((scroller-pane-gadget-supplies-scrolling-p scroller) 
+	 ;; FIXME - child is a text-editor
+	 0)
+	(t
+	 (with-slots (viewport) scroller
+	   (with-bounding-rectangle* (left top right bottom) 
+	       (viewport-contents-extent viewport)
+	     (ecase orientation
+	       (:horizontal (- right left))
+	       (:vertical (- bottom top))))))))
 
 (defmethod viewport-range ((scroller mswin-scroller-pane) orientation)
-  (with-slots (viewport) scroller
-    (with-bounding-rectangle* (left top right bottom) 
-	(viewport-viewport-region viewport)
-      (ecase orientation
-	(:horizontal (- right left))
-	(:vertical (- bottom top))))))
+  (cond ((scroller-pane-gadget-supplies-scrolling-p scroller) 
+	 ;; FIXME - child is a text-editor
+	 0)
+	(t
+	 (with-slots (viewport) scroller
+	   (with-bounding-rectangle* (left top right bottom) 
+	       (viewport-viewport-region viewport)
+	     (ecase orientation
+	       (:horizontal (- right left))
+	       (:vertical (- bottom top))))))))
 
 (defmethod scroll-up-line ((scroller-pane mswin-scroller-pane) orientation)
   (with-slots (current-vertical-size current-vertical-value
 	       current-horizontal-size current-horizontal-value
-	       viewport contents) scroller-pane
+	       contents) scroller-pane
     (let* ((window (sheet-mirror scroller-pane))
 	   (flag (case orientation
-		   (:vertical win:sb_vert)
-		   (:horizontal win:sb_horz)))
-	   (current-value (/ (win:getScrollPos window flag)
+		   (:vertical win:SB_VERT)
+		   (:horizontal win:SB_HORZ)))
+	   (current-value (/ (win:GetScrollPos window flag)
 			     (float acl-clim::*win-scroll-grain*)))
 	   (current-size (case orientation
 			   (:horizontal current-horizontal-size)
@@ -303,12 +314,12 @@
 (defmethod scroll-down-line ((scroller-pane mswin-scroller-pane) orientation)
   (with-slots (current-vertical-size current-vertical-value
 	       current-horizontal-size current-horizontal-value
-	       viewport contents) scroller-pane
+	       contents) scroller-pane
     (let* ((flag (case orientation
-		   (:vertical win:sb_vert)
-		   (:horizontal win:sb_horz)))
+		   (:vertical win:SB_VERT)
+		   (:horizontal win:SB_HORZ)))
 	   (window (sheet-mirror scroller-pane))
-	   (current-value (/ (win:getScrollPos window flag)
+	   (current-value (/ (win:GetScrollPos window flag)
 			     (float acl-clim::*win-scroll-grain*)))
 	   (current-size (case orientation
 			   (:horizontal current-horizontal-size)
@@ -333,10 +344,10 @@
 	       current-horizontal-size current-horizontal-value
 	       viewport contents) scroller-pane
     (let* ((flag (case orientation
-		   (:vertical win:sb_vert)
-		   (:horizontal win:sb_horz)))
+		   (:vertical win:SB_VERT)
+		   (:horizontal win:SB_HORZ)))
 	   (window (sheet-mirror scroller-pane))
-	   (current-value (/ (win:getScrollPos window flag)
+	   (current-value (/ (win:GetScrollPos window flag)
 			     (float acl-clim::*win-scroll-grain*)))
 	   (current-size (case orientation
 			   (:horizontal current-horizontal-size)
@@ -358,10 +369,10 @@
 	       current-horizontal-size current-horizontal-value
 	       viewport contents) scroller-pane
     (let* ((flag (case orientation
-		   (:vertical win:sb_vert)
-		   (:horizontal win:sb_horz)))
+		   (:vertical win:SB_VERT)
+		   (:horizontal win:SB_HORZ)))
 	   (window (sheet-mirror scroller-pane))
-	   (current-value (/ (win:getScrollPos window flag)
+	   (current-value (/ (win:GetScrollPos window flag)
 			     (float acl-clim::*win-scroll-grain*)))
 	   (current-size (case orientation
 			   (:horizontal current-horizontal-size)
@@ -384,7 +395,7 @@
 			       orientation pos)
   (with-slots (current-vertical-size current-vertical-value
 	       current-horizontal-size current-horizontal-value
-	       viewport contents) scroller-pane
+	       contents) scroller-pane
     (let* ((current-size (case orientation
 			   (:horizontal current-horizontal-size)
 			   (:vertical  current-vertical-size)))

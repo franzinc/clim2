@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: db-box.lisp,v 1.28.22.2 1998/07/06 23:09:53 layer Exp $
+;; $Id: db-box.lisp,v 1.28.22.3 1998/12/17 00:19:32 layer Exp $
 
 (in-package :silica)
 
@@ -147,7 +147,7 @@
       (flet ((compose (x)
 	       (cond ((atom x) (compose-space x :height height))
 		     ((eq (car x) :fill) :fill)
-		     (t (car x) #+ignore (make-space-requirement :height 0 :width (* (car x) width))))))
+		     (t (car x)))))
 	(declare (dynamic-extent #'compose))
 	(let* ((adjust (* spacing (1- (length (sheet-children box-pane)))))
 	       (sizes 
@@ -193,7 +193,7 @@
       (flet ((compose (x)
 	       (cond ((atom x) (compose-space x :width width))
 		     ((eq (car x) :fill) :fill)
-		     (t (car x) #+ignore (make-space-requirement :width 0 :height (* (car x) height))))))
+		     (t (car x)))))
 	(declare (dynamic-extent #'compose))
 	(let* ((adjust (* spacing (1- (length (sheet-children box-pane)))))
 	       (sizes 

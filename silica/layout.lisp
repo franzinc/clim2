@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: layout.lisp,v 1.35.22.2 1998/07/06 23:09:56 layer Exp $
+;; $Id: layout.lisp,v 1.35.22.3 1998/12/17 00:19:35 layer Exp $
 
 (in-package :silica)
 
@@ -171,7 +171,7 @@
       (if (or (/= owidth width)
               (/= oheight height)
               #+Allegro
-              (mirror-needs-resizing-p sheet width height))
+              (mirror-needs-changing-p sheet left top width height))
           ;; It should be safe to modify the sheet's region, since
           ;; each sheet gets a fresh region when it is created
           (let ((region (sheet-region sheet)))
@@ -187,34 +187,37 @@
 ;;;-- This sucks but it seems to get round the problem of the mirror
 ;;;-- geometry being completely wrong after the layout has been changed
 
-#+Allegro
-(defmethod mirror-needs-resizing-p ((sheet sheet) width height)
-  (declare (ignore width height))
+(defmethod mirror-needs-changing-p ((sheet sheet) left top width height)
+  (declare (ignore left top width height))
   nil)
 
 
-#+Allegro
-(defmethod mirror-needs-resizing-p ((sheet mirrored-sheet-mixin) width height)
+(defmethod mirror-needs-changing-p ((sheet mirrored-sheet-mixin) 
+				    left top width height)
   (and (sheet-direct-mirror sheet)
-       (multiple-value-bind (left top right bottom)
+       (multiple-value-bind (mleft mtop mright mbottom)
            (mirror-region* (port sheet) sheet)
-         (or (/= width (- right left))
-             (/= height (- bottom top))))))
+         (or (/= left mleft)
+	     (/= top mtop)
+	     (/= width (- mright mleft))
+             (/= height (- mbottom mtop))))))
 
 
 (defmethod move-sheet ((sheet basic-sheet) x y)
   (let ((transform (sheet-transformation sheet)))
     (multiple-value-bind (old-x old-y)
         (transform-position transform 0 0)
-      (when (or (and x (/= old-x x))
-                (and y (/= old-y y)))
-        ;; We would like to use volatile transformations here, but it's
-        ;; not really safe, since the current implementation of transformations
-        ;; is likely to cause them to be shared
-        (setf (sheet-transformation sheet)
-              (compose-translation-with-transformation
-                transform
-                (if x (- x old-x) 0) (if y (- y old-y) 0)))))))
+      (with-bounding-rectangle* (left top right bottom) sheet
+	(when (or (and x (/= old-x x))
+		  (and y (/= old-y y))
+		  (mirror-needs-changing-p sheet x y (- right left) (- bottom top)))
+	  ;; We would like to use volatile transformations here, but it's
+	  ;; not really safe, since the current implementation of transformations
+	  ;; is likely to cause them to be shared
+	  (setf (sheet-transformation sheet)
+	    (compose-translation-with-transformation
+	     transform
+	     (if x (- x old-x) 0) (if y (- y old-y) 0))))))))
 
 (defmethod move-and-resize-sheet ((sheet basic-sheet) x y width height)
   (resize-sheet sheet width height)
@@ -393,15 +396,17 @@
 ;;---   STREAM-READ-GESTURE
 
 (defmethod note-layout-mixin-region-changed ((pane top-level-sheet) &key port)
-  (if (and port (pane-frame pane))
-      ;; We do this because if the WM has resized us then we want to
-      ;; do the complete LAYOUT-FRAME thing including clearing caches
-      ;; etc etc.
-      (multiple-value-call #'layout-frame
-        (pane-frame pane) 
-        (bounding-rectangle-size pane))
+  (let ((frame (pane-frame pane)))
+    (if (and port frame (frame-top-level-sheet frame))
+	;; We do this because if the WM has resized us then we want to
+	;; do the complete LAYOUT-FRAME thing including clearing caches
+	;; etc etc.  Don't do this if the frame doesn't own this top-level
+	;; sheet yet (still initializing).
+	(multiple-value-call #'layout-frame
+	  (pane-frame pane) 
+	  (bounding-rectangle-size pane))
       ;; Otherwise just call ALLOCATE-SPACE etc
-      (call-next-method)))
+      (call-next-method))))
 
 #+++ignore
 (defmethod allocate-space ((sheet top-level-sheet) width height)

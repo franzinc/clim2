@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: scroll-pane.lisp,v 1.8.8.2 1998/07/06 23:09:58 layer Exp $
+;; $Id: scroll-pane.lisp,v 1.8.8.3 1998/12/17 00:19:35 layer Exp $
 
 ;;;"Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
 ;;; Portions copyright(c) 1991, 1992 International Lisp Associates.
@@ -65,7 +65,6 @@
   )
 
 (defmethod compose-space ((scroller generic-scroller-pane) &key width height)
-  #-aclpc (declare (ignore width height))
   (let ((sr (call-next-method)))
     (multiple-value-bind (width min-width max-width
                           height min-height max-height)

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: defun.lisp,v 1.12.22.3 1998/07/08 23:20:39 layer Exp $
+;; $Id: defun.lisp,v 1.12.22.4 1998/12/17 00:19:56 layer Exp $
 
 (in-package :clim-utils)
 
@@ -206,7 +206,7 @@
 (lisp:defun generate-downward-rest-declarations (args)
   #+Cloe-Runtime (declare (ignore args))
   `(#+Cloe-Runtime (sys:downward-rest-argument)
-    #+(or Genera Allegro Lucid) (dynamic-extent ,@args)))
+    #+(or Genera allegro Lucid) (dynamic-extent ,@args)))
 
 #+Genera (defparameter *warn-about-copied-rest-args* t)
 
@@ -246,7 +246,7 @@
 
 (defmacro defun (name lambda-list &body body &environment env)
   (with-new-function (ll b) (lambda-list body :environment env :function-name name)
-    `( #+aclpc cl:defun #-aclpc ,(lintern 'defun) ,name ,ll ,@b)))
+    `(,(lintern 'defun) ,name ,ll ,@b)))
 
 #+Genera
 (progn
@@ -302,23 +302,24 @@
   #---ignore (declare (ignore functions))
   #+++ignore `((declare (dynamic-extent ,@(mapcar #'(lambda (fn) `#',fn) functions)))))
 
+#+ignore
 (defmacro flet (functions &body body &environment env)
-  (construct-local-function-body #+aclpc 'cl:flet #-aclpc (lintern 'flet) functions body env))
+  (construct-local-function-body (lintern 'flet) functions body env))
 
 #+Genera
 (pushnew 'flet zwei:*definition-list-functions*)
 
+#+ignore
 (defmacro labels (functions &body body &environment env)
-  (construct-local-function-body #+aclpc 'cl:labels #-aclpc (lintern 'labels) functions body env))
+  (construct-local-function-body (lintern 'labels) functions body env))
 
 #+Genera
 (pushnew 'labels zwei:*definition-list-functions*)
 
 
 (defparameter *defgeneric* #+PCL 'pcl::defgeneric
-			   #+Allegro 'clos::defgeneric
-			   #+aclpc 'cl:defgeneric
-			   #-(or Allegro aclpc PCL) 'clos:defgeneric)
+			   #+allegro 'lisp::defgeneric
+			   #-(or allegro PCL) 'clos:defgeneric)
 
 (defmacro defgeneric (name lambda-list &body options &environment env)
   (multiple-value-bind (new-ll new-body)
@@ -331,9 +332,8 @@
 
 ;;; DEFMETHOD needs to handle the DYNAMIC-EXTENT declaration, too.
 (defparameter *defmethod* #+PCL 'pcl::defmethod
-			  #+Allegro 'clos::defmethod
-			  #+aclpc 'cl:defmethod
-			  #-(or Allegro PCL aclpc) 'clos:defmethod)
+			  #+allegro 'clos::defmethod
+			  #-(or allegro PCL) 'clos:defmethod)
 
 (defmacro defmethod (&whole form name &rest args &environment env)
   (declare (arglist name {method-qualifier}* specialized-lambda-list &body body)
@@ -370,11 +370,11 @@
 		 (return (nreverse result)))
 	       (push type result)))))
     #+PCL `(pcl::method ,function-name ,@qualifiers ,specifier-list)
-    #-PCL `(#-aclpc clos:method #+aclpc cl:method ,function-name ,specifier-list ,@qualifiers)))
+    #-PCL `(cl:method ,function-name ,specifier-list ,@qualifiers)))
 
-#+(and Allegro (not acl86win32) (version>= 4 1))
+#+(and allegro (not acl86win32) (version>= 4 1))
 (eval-when (compile load eval) (cltl1::require :scm))
-#+(and Allegro (not acl86win32) (version>= 4 1))
+#+(and allegro (not acl86win32) (version>= 4 1))
 (excl::define-simple-parser defmethod scm::defmethod-parser)
 
 #+Genera

@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xlib.lisp,v 1.59.22.5 1998/07/20 21:57:29 layer Exp $
+;; $Id: xlib.lisp,v 1.59.22.6 1998/12/17 00:19:48 layer Exp $
 
 (in-package :tk)
 
@@ -210,7 +210,7 @@
     (setf (x11:xrmvalue-size from) (1+ (length string))
 	  (x11:xrmvalue-addr from)
 	  (note-malloced-object
-	   (string-to-char* string))
+	   (clim-utils:string-to-foreign string))
 	  (x11:xrmvalue-addr to-in-out) 0)
     (unless (zerop (xt::xt_convert_and_store widget "String" from to-type
 				      to-in-out))
@@ -250,7 +250,7 @@
 					   0 s 1000)
 		(prog1
 		    (ff:char*-to-string s)
-		  (excl::free s))))
+		  (clim-utils::system-free s))))
 	    resourceid)))
 
 (defun-c-callable x-error-handler ((display :unsigned-long) (event :unsigned-long))
@@ -284,7 +284,7 @@
     (x11::xgeterrortext display-handle code s 1000)
     (prog1
 	(ff:char*-to-string s)
-      (excl::free s))))
+      (clim-utils::system-free s))))
 
 (defvar *x-error-handler-address* nil)
 (defvar *x-io-error-handler-address* nil)

@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: classes.lisp,v 1.39.22.4 1998/09/24 15:58:55 layer Exp $
+;; $Id: classes.lisp,v 1.39.22.5 1998/12/17 00:19:32 layer Exp $
 
 (in-package :silica)
 

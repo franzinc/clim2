@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: accept-values.lisp,v 1.82.22.2 1998/07/06 23:08:54 layer Exp $
+;; $Id: accept-values.lisp,v 1.82.22.3 1998/12/17 00:19:04 layer Exp $
 
 (in-package :clim-internals)
 
@@ -475,7 +475,7 @@
   (with-slots (stream continuation resynchronize-every-pass check-overlapping
                selected-item initially-select-query-identifier
                own-window own-window-properties exit-button-stream
-                      #-(or aclpc acl86win32) view) frame
+	       #-(or aclpc acl86win32) view) frame
     (let* ((original-view (stream-default-view stream))
            (return-values nil)
            (initial-query nil)
@@ -490,7 +490,8 @@
            (own-window-right-margin  (pop properties))
            (own-window-bottom-margin (pop properties))
            (view 
-            (or #-(or aclpc acl86win32) view #+(or aclpc acl86win32) (slot-value frame 'view)
+            (or #-(or aclpc acl86win32) view 
+		#+(or aclpc acl86win32) (slot-value frame 'view)
                 (frame-manager-dialog-view (frame-manager frame))))
            (*editting-field-p* nil))
       (letf-globally (((stream-default-view stream) view)
@@ -499,22 +500,25 @@
                    (setf (slot-value stream 'avv-record) avv-record)
                    (setf (slot-value stream 'avv-frame) frame)
                    (with-output-recording-options (stream :draw nil :record t)
-                     (let ((*application-frame* *avv-calling-frame*))
+                     (let ((*application-frame*
+			    #+old *avv-calling-frame*
+			    #-old (if own-window frame
+				    *avv-calling-frame*)))
                        (if align-prompts
-                           ;; Use of FORMATTING-TABLE here implies that
-                           ;; no output should be done by the user code
-                           ;; outside of calls to FORMATTING-ROW and
-                           ;; FORMATTING-CELL.  Too bad.
+			   ;; Use of FORMATTING-TABLE here implies that
+			   ;; no output should be done by the user code
+			   ;; outside of calls to FORMATTING-ROW and
+			   ;; FORMATTING-CELL.  Too bad.
                            (formatting-table (stream)
                              (setq return-values
-                                   (multiple-value-list
-                                       (funcall continuation
-                                                stream))))
+			       (multiple-value-list
+				   (funcall continuation
+					    stream))))
                          (progn
                            (display-view-background stream view)
                            (setq return-values
-                                 (multiple-value-list
-                                   (funcall continuation stream))))))
+			     (multiple-value-list
+				 (funcall continuation stream))))))
                      (unless own-window
                        (display-exit-boxes frame stream
                                            (stream-default-view stream)))))
@@ -526,29 +530,29 @@
                         (move-focus-to-query stream
                                              initial-query
                                              (not (cdr initially-select-query-identifier)))
-                        ;; only do the redisplay if move-focus-to-query
-                        ;; returns t - ie for the non-gadget case
+			;; only do the redisplay if move-focus-to-query
+			;; returns t - ie for the non-gadget case
                         (redisplay avv stream :check-overlapping check-overlapping))
                    (loop
                      (let ((command
-                             (let ((command-stream (encapsulating-stream-stream stream)))
-                               ;; While we're reading commands, restore the view
-                               ;; to what it was before we started.
-                               (letf-globally (((stream-default-view command-stream)
-                                                original-view))
-                                 (read-frame-command frame :stream command-stream)))))
+			    (let ((command-stream (encapsulating-stream-stream stream)))
+			      ;; While we're reading commands, restore the view
+			      ;; to what it was before we started.
+			      (letf-globally (((stream-default-view command-stream)
+					       original-view))
+				(read-frame-command frame :stream command-stream)))))
                        (if (and command (not (keyboard-event-p command)))
                            (execute-frame-command frame command)
-                           (beep stream)))
+			 (beep stream)))
                      (with-deferred-gadget-updates
-                       (when (or resynchronize-every-pass
-                                 (slot-value avv-record 'resynchronize))
-                         ;; When the user has asked to resynchronize every pass, that
-                         ;; means we should run the continuation an extra time to see
-                         ;; that all visible stuff is up to date.  That's all!
-                         (with-output-recording-options (stream :draw nil)
-                           (redisplay avv stream :check-overlapping
-                                      check-overlapping)))
+			 (when (or resynchronize-every-pass
+				   (slot-value avv-record 'resynchronize))
+			   ;; When the user has asked to resynchronize every pass, that
+			   ;; means we should run the continuation an extra time to see
+			   ;; that all visible stuff is up to date.  That's all!
+			   (with-output-recording-options (stream :draw nil)
+			     (redisplay avv stream :check-overlapping
+					check-overlapping)))
                        (setf (slot-value avv-record 'resynchronize) nil)
                        (when exit-button-record
                          (redisplay exit-button-record exit-button-stream))
@@ -559,67 +563,67 @@
                                 (and own-window
                                      (multiple-value-bind (width height)
                                          (bounding-rectangle-size
-                                           (stream-output-history own-window))
+					  (stream-output-history own-window))
                                        (multiple-value-bind (vwidth vheight)
                                            (bounding-rectangle-size
-                                             (window-viewport own-window))
+					    (window-viewport own-window))
                                          (if (eq (frame-resizable frame) :grow)
                                              (or (> width vwidth) (> height vheight))
-                                             (or (/= width vwidth) (/= height vheight))))))))
+					   (or (/= width vwidth) (/= height vheight))))))))
                          (size-panes-appropriately)))))
                  (size-panes-appropriately ()
                    (changing-space-requirements (:layout t)
-                     ;; We really want to specify the min/max sizes of
-                     ;; the exit-button pane also
+		     ;; We really want to specify the min/max sizes of
+		     ;; the exit-button pane also
                      (when exit-button-stream
                        (size-frame-from-contents exit-button-stream
-                         :size-setter
-                         #'(lambda (pane w h)
-                             (setf w (max w 1) h (max h 1))
-                             (change-space-requirements pane
-                               :width w :min-width w :max-width w
-                               :height h :min-height h :max-height h))
-                         :right-margin 0
-                         :bottom-margin 0))
+						 :size-setter
+						 #'(lambda (pane w h)
+						     (setf w (max w 1) h (max h 1))
+						     (change-space-requirements pane
+										:width w :min-width w :max-width w
+										:height h :min-height h :max-height h))
+						 :right-margin 0
+						 :bottom-margin 0))
                      (when own-window
                        (size-frame-from-contents own-window
-                         :size-setter
-			 #'(lambda (pane w h)
-                             (change-space-requirements
-			      pane
-			      ;; only use the min-xxx if explicitly specified
-			      ;; in call to accepting-values (cim 7/12/96)
-			      :width w :min-width (and own-window-width w)
-			      :height h	:min-height (and own-window-height h)
-			      :resize-frame t))
-			 :width own-window-width
-                         :height own-window-height
-                         :right-margin own-window-right-margin
-                         :bottom-margin own-window-bottom-margin)))))
+						 :size-setter
+						 #'(lambda (pane w h)
+						     (change-space-requirements
+						      pane
+						      ;; only use the min-xxx if explicitly specified
+						      ;; in call to accepting-values (cim 7/12/96)
+						      :width w :min-width (and own-window-width w)
+						      :height h	:min-height (and own-window-height h)
+						      :resize-frame t))
+						 :width own-window-width
+						 :height own-window-height
+						 :right-margin own-window-right-margin
+						 :bottom-margin own-window-bottom-margin)))))
           (declare (dynamic-extent #'run-continuation #'run-avv
                                    #'size-panes-appropriately))
           (handler-bind ((frame-exit
-                           #'(lambda (condition)
-                               (let ((exit-frame (frame-exit-frame condition)))
-                                 (when (eq frame exit-frame)
-                                   (return-from accept-values-top-level
-                                     (values-list return-values)))))))
+			  #'(lambda (condition)
+			      (let ((exit-frame (frame-exit-frame condition)))
+				(when (eq frame exit-frame)
+				  (return-from accept-values-top-level
+				    (values-list return-values)))))))
             (setq avv
-                  (updating-output (stream)
-                    (setq avv-record
-                          (with-end-of-line-action (stream :allow)
-                            (with-end-of-page-action (stream :allow)
-                              (with-new-output-record
-                                  (stream 'accept-values-output-record avv-record)
-                                (run-continuation stream avv-record)))))))
-            ;; In own window dialogs the buttons are displayed separately
+	      (updating-output (stream)
+		(setq avv-record
+		  (with-end-of-line-action (stream :allow)
+		    (with-end-of-page-action (stream :allow)
+		      (with-new-output-record
+			  (stream 'accept-values-output-record avv-record)
+			(run-continuation stream avv-record)))))))
+	    ;; In own window dialogs the buttons are displayed separately
             (when (and own-window exit-button-stream)
               (setq exit-button-record
-                    (updating-output (exit-button-stream)
-                      (with-end-of-line-action (exit-button-stream :allow)
-                        (with-end-of-page-action (exit-button-stream :allow)
-                          (display-exit-boxes frame exit-button-stream
-                                              (stream-default-view stream)))))))
+		(updating-output (exit-button-stream)
+		  (with-end-of-line-action (exit-button-stream :allow)
+		    (with-end-of-page-action (exit-button-stream :allow)
+		      (display-exit-boxes frame exit-button-stream
+					  (stream-default-view stream)))))))
             (unwind-protect
                 (cond (own-window
                        (size-panes-appropriately)
@@ -634,10 +638,10 @@
                          (replay avv stream)
                          (run-avv)))
                       (t
-                       ;; Ensure that bottom of the AVV is visible.  I think that
-                       ;; this is OK even if the AVV is bigger than the viewport.
+		       ;; Ensure that bottom of the AVV is visible.  I think that
+		       ;; this is OK even if the AVV is bigger than the viewport.
                        (move-cursor-beyond-output-record
-                         (encapsulating-stream-stream stream) avv)
+			(encapsulating-stream-stream stream) avv)
                        (stream-ensure-cursor-visible stream)
                        (replay avv stream)
                        (run-avv)))
@@ -645,7 +649,6 @@
                 (deactivate-all-gadgets avv-record)
                 (move-cursor-beyond-output-record
                  (encapsulating-stream-stream stream) avv)))))))))
-
 
 (defun find-query-gadget (query)
   (let ((record (accept-values-query-presentation query)))
