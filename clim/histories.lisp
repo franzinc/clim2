@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: histories.lisp,v 1.14 92/12/03 10:26:51 cer Exp $
+;; $fiHeader: histories.lisp,v 1.15 92/12/14 15:02:10 cer Exp $
 
 (in-package :clim-internals)
 
@@ -571,7 +571,7 @@
 		       (write-string "(End of history.)" stream))
 		      (t
 		       (with-output-as-presentation (stream
-						     (list history max-displayed-index nil)
+						     (list history max-displayed-index nil stream)
 						     'display-rest-of-history)
 			 (format stream "(~D more item~:P in history.)"
 			   (- current-length max-displayed-index)))))))

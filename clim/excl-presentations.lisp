@@ -21,13 +21,25 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: excl-presentations.lisp,v 1.13 92/09/30 18:03:43 cer Exp $
+;; $fiHeader: excl-presentations.lisp,v 1.14 92/10/28 11:31:34 cer Exp $
 
 
 (in-package :clim-internals)
 
+(defmacro with-excl-presentations ((stream &optional (state t)) &body body)
+  `(flet ((with-excl-presentations-body (,stream)
+	    ,@body))
+     (declare (dynamic-extent #'with-excl-presentations-body))
+     (invoke-with-excl-presentations ,stream ,state #'with-excl-presentations-body)))
+
+
+(defmethod invoke-with-excl-presentations (stream state continuation)
+  (letf-globally (((stream-excl-recording-p stream) state))
+    (funcall continuation stream)))
+
 (defmethod excl::stream-recording-p ((stream output-recording-mixin))
-  (stream-recording-p stream))
+  (and (stream-recording-p stream)
+       (stream-excl-recording-p stream)))
 
 (defmethod excl::stream-io-record-type ((stream output-recording-mixin))
   nil)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: layout.lisp,v 1.27 92/09/30 11:44:39 cer Exp Locker: cer $
+;; $fiHeader: layout.lisp,v 1.28 92/10/02 15:18:26 cer Exp $
 
 (in-package :silica)
 
@@ -150,7 +150,9 @@
       (let ((owidth (- right left))
 	    (oheight (- bottom top)))
 	(if (or (and width (/= owidth width))
-		(and height (/= oheight height)))
+		(and height (/= oheight height))
+		#+Allegro
+		(mirror-needs-resizing-p sheet width height))
 	    ;; It should be safe to modify the sheet's region, since
 	    ;; each sheet gets a fresh region when it is created
 	    (let ((region (sheet-region sheet)))
@@ -162,6 +164,24 @@
 	    ;;--- Do this so that we relayout the rest of tree.
 	    ;;--- I guess we do not want to do this always but ...
 	    (allocate-space sheet owidth oheight))))))
+
+;;;-- This sucks but it seems to get round the problem of the mirror
+;;;-- geometry being completely wrong after the layout has been changed
+
+#+Allegro
+(defmethod mirror-needs-resizing-p ((sheet sheet) width height)
+  (declare (ignore width height))
+  nil)
+
+
+#+Allegro
+(defmethod mirror-needs-resizing-p ((sheet mirrored-sheet-mixin) width height)
+  (and (sheet-direct-mirror sheet)
+       (multiple-value-bind (left top right bottom)
+	   (mirror-region* (port sheet) sheet)
+	 (or (/= width (- right left))
+	     (/= height (- bottom top))))))
+
 
 (defmethod move-sheet ((sheet basic-sheet) x y)
   (let ((transform (sheet-transformation sheet)))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: stream-class-defs.lisp,v 1.10 92/09/08 15:18:35 cer Exp Locker: cer $
+;; $fiHeader: stream-class-defs.lisp,v 1.11 92/09/30 11:45:05 cer Exp $
 
 (in-package :clim-internals)
 
@@ -68,8 +68,14 @@
      #+Allegro
      ;; Support for allegro presentations
      (excl-presentation-stack :initform nil
-			      :accessor stream-excl-presentation-stack))
+			      :accessor
+			      stream-excl-presentation-stack)
+     #+Allegro
+     (excl-recording-p :accessor stream-excl-recording-p
+		       :initform nil
+		       :initarg :excl-recording-p))
   (:default-initargs :draw-p t :record-p t	;!!!
+
 		     :output-record (make-instance 'standard-tree-output-history)))
 
 

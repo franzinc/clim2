@@ -1,20 +1,21 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: listener.lisp,v 1.27 92/12/14 15:02:40 cer Exp $
+;; $fiHeader: listener.lisp,v 1.28 92/12/16 16:47:41 cer Exp $
 
 (in-package :clim-demo)
 
 "Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved."
 
 (define-application-frame lisp-listener ()
-    ()
+			  ()
   (:command-table (lisp-listener :inherit-from (user-command-table)))
   (:command-definer t)
   (:menu-bar nil)
   (:top-level (lisp-listener-top-level))
   (:panes
-    (interactor :interactor 
-		:scroll-bars :both))
+   (interactor :interactor 
+	       #+allegro :excl-recording-p #+allegro t
+	       :scroll-bars :both))
   (:layouts (default interactor)))
 
 (defmethod frame-maintain-presentation-histories ((frame lisp-listener)) t)

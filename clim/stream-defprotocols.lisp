@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: stream-defprotocols.lisp,v 1.13 92/11/18 15:44:49 colin Exp $
+;; $fiHeader: stream-defprotocols.lisp,v 1.14 92/12/03 10:27:53 cer Exp $
 
 (in-package :clim-internals)
 
@@ -92,7 +92,9 @@
   stream-input-buffer
   stream-pointers
   stream-primary-pointer
-  stream-text-cursor)
+  stream-text-cursor
+  stream-read-gesture-cursor-state
+  )
 
 (defoperation stream-read-gesture basic-extended-input-protocol
   ((stream basic-extended-input-protocol)
