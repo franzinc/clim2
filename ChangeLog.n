@@ -12,6 +12,15 @@ Tests for new features:	<`no new features', `no tests for new features', or
 	* <changes go here...>
 
 *******************************************************************************
+Mon May  5 15:33:46 1997  Kevin Layer  <layer@ultra>
+
+	* Makefile.defs: use ../src/lisp -I ... instead of ../src/dcl
+	* Makefile.generic: fix typo
+	* tk/load-ol.lisp: conditionalize for 5.0 ffi
+	* tk/load-xm.lisp: conditionalize for 5.0 ffi
+	* tk/make-classes.lisp: conditionalize for 5.0 ffi
+
+*******************************************************************************
 Thu Apr 24 10:30:00 EST 1997  Paul Robertson <probertson@doll.com>
 
 	* aclpc/acl-pixmaps.lisp

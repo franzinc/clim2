@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/tk/load-xm.lisp,v 1.39 1997/02/05 01:52:49 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/tk/load-xm.lisp,v 1.40 1997/05/05 22:35:17 layer Exp $
 
 (in-package :user)
 
@@ -25,7 +25,8 @@
 
 #+dlfcn
 (unless (ff:get-entry-point (ff:convert-to-lang "XmCreateMyDrawingArea")
-			    :note-shared-library-references nil)
+			    #-(version>= 5 0) :note-shared-library-references
+			    #-(version>= 5 0) nil)
   (let ((ff::*dlopen-mode* (excl:ics-target-case
 			    (:+ics #x102)
 			    (:-ics ff::*dlopen-mode*))))

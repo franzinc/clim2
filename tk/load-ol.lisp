@@ -17,7 +17,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/tk/load-ol.lisp,v 1.29 1997/02/05 01:52:47 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/tk/load-ol.lisp,v 1.30 1997/05/05 22:35:17 layer Exp $
 
 (in-package :user)
 
@@ -28,7 +28,8 @@
   (defvar sys::*toolkit-shared* nil)
 
   (unless (ff:get-entry-point (ff:convert-to-lang "ol_appl_add_item")
-			      :note-shared-library-references nil)
+			      #-(version>= 5 0) :note-shared-library-references
+			      #-(version>= 5 0) nil)
     (load "clim2:;climol.so")
     (setq sys::*toolkit-shared* t)))
 

@@ -1,4 +1,4 @@
-# $Header: /repo/cvs.copy/clim2/Makefile.generic,v 1.39 1997/02/05 01:41:54 tomj Exp $
+# $Header: /repo/cvs.copy/clim2/Makefile.generic,v 1.40 1997/05/05 22:35:16 layer Exp $
 #
 #  Makefile.generic for CLIM 2.0
 #
@@ -23,8 +23,9 @@ compile: FORCE $(PRODUCT-OBJS) $(ICS-PRODUCT-OBJS)
 	  (setq sys::*libwnn-pathname* \"$(WNNLIB)\") \
 	  (load \"misc/compile-1.lisp\") \
 	  (proclaim '(optimize (speed $(SPEED)) (debug $(DEBUG)) (safety $(SAFETY)))) \
-	  (let ((*compile-print $(COMPILE_PRINT)) \
+	  (let ((*compile-print* $(COMPILE_PRINT)) \
 		(*compile-verbose* t) \
+		(setf (sys:gsgc-switch :print) nil) \
 		(excl:*redefinition-warnings* t) \
 		(excl:*record-source-file-info* $(RECORD_SOURCE_FILE_INFO)) \
 		(excl:*load-source-file-info* $(LOAD_SOURCE_FILE_INFO)) \
