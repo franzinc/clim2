@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: test-clim.lisp,v 1.8 1993/06/02 18:42:01 cer Exp $
+;; $fiHeader: test-clim.lisp,v 1.9 1993/06/04 16:06:46 cer Exp $
 
 
 (in-package :clim-user)
@@ -609,14 +609,14 @@
 		  (exit-clim-tests))))
   (define-profile-clim-tests))
 
-(defun run-profile-clim-tests ()
+(defun run-profile-clim-tests (&optional (prefix "notes/profiles"))
   (let ((prof::*hidden-packages* nil)
 	(prof::*significance-threshold* 0.001)
 	(prof::*fractional-significance-threshold* .002))
     (with-test-success-expected ('run-profile-clim-tests-time)
-      (do-frame-test-with-profiling 'profile-clim-tests  :type :time))
+      (do-frame-test-with-profiling 'profile-clim-tests  :prefix prefix :type :time))
     (with-test-success-expected ('run-profile-clim-tests-space)
-      (do-frame-test-with-profiling 'profile-clim-tests :type :space))))
+      (do-frame-test-with-profiling 'profile-clim-tests :prefix prefix :type :space))))
 
 
 ;;

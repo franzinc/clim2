@@ -740,7 +740,7 @@
 (eval-when (compile load eval)
   (require :prof))
 
-(defun do-frame-test-with-profiling (test &key (type :time))
+(defun do-frame-test-with-profiling (test &key (type :time) prefix)
   (flet ((profiling-hook (invocation command continuation)
 	   ;;-- it would be nice to restrict it to the invocation process
 	   (if (or (atom command)
@@ -752,10 +752,10 @@
 		     (prof::start-profiler :type type :verbose nil)
 		     (funcall continuation))
 		 (profiler:stop-profiler))
-	       (with-open-file (*standard-output* (format nil "notes/profiles/~A.~A-tree.lisp" (car command) type)
+	       (with-open-file (*standard-output* (format nil "~A/~A.~A-tree.lisp" prefix (car command) type)
 				:direction :output :if-exists :supersede)
 		 (prof:show-call-graph))
-	       (with-open-file (*standard-output* (format nil "notes/profiles/~A.~A-flat.lisp" (car command) type)
+	       (with-open-file (*standard-output* (format nil "~A/~A.~A-flat.lisp" prefix (car command) type)
 				:direction :output :if-exists :supersede)
 		 (prof:show-flat-profile))))))
     (let ((*execute-one-command-hook* #'profiling-hook))
