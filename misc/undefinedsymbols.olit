@@ -1,5 +1,9 @@
 OlAddCallback
+OlCallAcceptFocus
+OlCanAcceptFocus
+OlGetCurrentFocusWidget
 OlMenuPopdown
+OlMoveFocus
 OlMenuPost
 OlRegisterHelp
 OlSetErrorHandler
