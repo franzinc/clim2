@@ -11,6 +11,19 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.2.2.21.19
+
+2001-05-29  Kevin Layer  <layer@crikey>
+
+    new files:
+	* k14.pcf
+	* k14.txt
+    changed files:
+	* Makefile.hp64,
+	* Makefile.hpprism: use abs path on CC so PATH doesn't matter
+	* demo/winlisp.lisp: get rid of warnings
+
+*******************************************************************************
 2.2.2.21.18
 
 Wed May 22 12:41:21 PDT 2001  Duane Rettig  <duane@beta>
