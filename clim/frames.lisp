@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: frames.lisp,v 1.88.8.6 1998/12/17 00:19:08 layer Exp $
+;; $Id: frames.lisp,v 1.88.8.7 1999/03/01 17:48:00 layer Exp $
 
 (in-package :clim-internals)
 
@@ -1143,18 +1143,19 @@
                                )
   (read-command (frame-command-table frame) :stream stream))
 
-
-#+(or aclpc acl86win32)
-(defvar *frame*)
-
 (defmacro with-menu-disabled (frame &body body)
   #-mswindows (declare (ignore frame))
+  #-mswindows `(progn ,@body)
   #+mswindows
-  `(unwind-protect 
-       (progn (enable-menu-items ,frame nil) ,@body)
-     (enable-menu-items ,frame t)
-     (setq *frame* ,frame))
-  #-mswindows `(progn ,@body))
+  (let ((previously-disabled-commands (gensym)))
+    `(let ((,previously-disabled-commands nil))
+       (unwind-protect 
+	   (progn 
+	     (setq ,previously-disabled-commands
+	       (disable-all-menu-items ,frame))
+	     ,@body)
+	 (re-enable-menu-items 
+	  ,frame ,previously-disabled-commands)))))
 
 (defmethod execute-frame-command ((frame standard-application-frame) command)
   (with-menu-disabled frame

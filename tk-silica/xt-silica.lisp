@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xt-silica.lisp,v 1.108.22.10 1999/01/28 03:16:38 layer Exp $
+;; $Id: xt-silica.lisp,v 1.108.22.11 1999/03/01 17:48:04 layer Exp $
 
 (in-package :xm-silica)
 
@@ -1332,20 +1332,21 @@
 			     (char-int #\A)
 			   (char-int #\a)))))
 	       character))
-	  ;; I believe this use of character bit attributes
-	  ;; is unnecessary because all that information is 
-	  ;; in the keysym.  JPM 1/13/99.
-	  #+ignore
 	  (setq character 
-	    (cltl1:make-char
+	    (clim-make-char
 	     character
 	     (logior
 	      (if (logtest x +control-key+) 1 0)
 	      (if (logtest x +meta-key+)    2 0)
-	      (if (logtest x +super-key+)	  4 0)
-	      (if (logtest x +hyper-key+)	  8 0))))))
+	      (if (logtest x +super-key+)   4 0)
+	      (if (logtest x +hyper-key+)   8 0))))))
       (values character (xt-keysym->keysym keysym)))))
 
+(defun clim-make-char (character &optional (bits 0))
+  ;; Like cltl1:make-char but prevents the need to (require :cltl1)
+  (if (zerop bits)
+      character
+    (code-char (char-code character) bits)))
 
 (defun state->modifiers (x)
   (declare (optimize (speed 3) (safety 0))

@@ -11,6 +11,21 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.2.1.45
+
+1999-02-24  Jeff Morrill  <jmorrill@pointnclick.com> 
+
+* aclpc/acl-frames: Fix (setf command-enabled) so it sticks, fix menu-choose
+  so it can disable menu items and so it will return three values.
+* aclpc/acl-medium: Fix medium-draw-lines* so it works
+* aclpc/acl-mirror: Try to prevent infinite recursion setting edges of
+   top-level sheet ("too deep!")
+* clim/frames: Fix (setf command-enabled) so it sticks
+* tk-silica/xt-graphics: Fix port-draw-rotated-text to rotate the correct angle
+* tk-silica/xt-silica: Don't lose character bits (control, meta)
+* utils/designs: More helpful error message for palette-full condition.
+
+*******************************************************************************
 2.2.1.44
 
 1999-01-30  Kevin Layer  <layer@ultra>

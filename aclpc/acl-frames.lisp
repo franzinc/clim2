@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-frames.lisp,v 1.5.8.12 1999/01/14 19:04:07 layer Exp $
+;; $Id: acl-frames.lisp,v 1.5.8.13 1999/03/01 17:47:56 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -171,7 +171,6 @@
 		(eq c command)))))
    *menu-id->command-table*))
 
-;; pr Aug97
 (defun map-command-menu-ids (frame func &rest args)
   (dotimes (id (fill-pointer *menu-id->command-table*))
     (let ((x (aref *menu-id->command-table* id)))
@@ -179,17 +178,63 @@
 	(let ((f (first x)))
 	  (if (eq f frame) (apply func id args)))))))
 
-;;; Disable all menu items.
-(defun clim-internals::enable-menu-items (frame enablep)
-  (map-command-menu-ids
-   frame
-   #'(lambda (menuid)
-       (let ((command-name (second (aref *menu-id->command-table* menuid))))
-	 (with-slots (clim-internals::disabled-commands) frame
-	   (if enablep
-	       (setf clim-internals::disabled-commands
-		 (delete command-name clim-internals::disabled-commands))
-	     (push command-name clim-internals::disabled-commands)))))))
+;;; The following two methods are called as a pair (see
+;;; CLIM-INTERNALS::WITH-MENU-DISABLED).
+;;;
+;;; In DISABLE-ALL-MENU-ITEMS:
+;;;  1] Remember the previously disabled-commands;
+;;;  2] Disable all the defined commands;
+;;;  3] Return the list of the previously disabled-commands.
+;;; 
+;;; In RE-ENABLE-MENU-ITEMS:
+;;;  1] Record the currently disabled-commands;
+;;;  2] re-Disable all the commands that were previously
+;;;     disabled if and only if they are still disabled.
+;;;
+;;; This last condition worries about any commands that
+;;; have been actively enabled since the corresponding
+;;; call to DISABLE-ALL-MENU-ITEMS.
+(defun clim-internals::disable-all-menu-items (frame)
+  (let ((prev-disabled-commands nil))
+    (with-slots (clim-internals::disabled-commands) frame
+      ;;; Remember the previously disabled-commands.
+      (setq prev-disabled-commands
+	(copy-list clim-internals::disabled-commands))
+      ;;; Clear out the disabled-commands.
+      (setq clim-internals::disabled-commands nil))
+    
+    ;;; Now, disable all the current-commands.
+    (map-command-menu-ids
+     frame
+     #'(lambda (menuid)
+	 (let ((command-name (second (aref *menu-id->command-table* menuid))))
+	   (with-slots (clim-internals::disabled-commands) frame
+	     (push command-name clim-internals::disabled-commands)))))
+    
+    ;;; Return the list of previously disabled-commands
+    prev-disabled-commands))
+
+;;; See the comment for DISABLE-ALL-MENU-ITEMS
+(defun clim-internals::re-enable-menu-items (frame prev-disabled-commands)
+  (let ((current-disabled-commands nil)
+	(new-disabled-commands nil))
+    (with-slots (clim-internals::disabled-commands) frame
+      ;;; Remember the currently disabled-commands.
+      (setq current-disabled-commands
+	(copy-list clim-internals::disabled-commands))
+      ;;; Prepare to disable the command, if 
+      ;;;  1] it was previously disabled and 
+      ;;;  2] it is currently disabled.
+      ;;; This second condition worries about any commands that
+      ;;; have been actively enabled since the corresponding
+      ;;; call to DISABLE-ALL-MENU-ITEMS.
+      (loop for prev-com-name in prev-disabled-commands
+	  do (when (member prev-com-name current-disabled-commands)
+	       (push prev-com-name new-disabled-commands)))
+      
+      (setq clim-internals::disabled-commands
+	new-disabled-commands))))
+      
 
 ;;; Either of these would be nicer, but redisplay of the menu bar causes them to not
 ;;; always get repainted in their ungrayed state at the end.  pr Aug97
@@ -423,7 +468,8 @@
 	 (ticknow (when tickthen (slot-value (find-command-table command-table)
 					     'clim-internals::menu-tick))))
     (when (and tickthen ticknow (not (= tickthen ticknow)))
-      (make-menu-for-command-table command-table menuhand frame t)
+      (make-menu-for-command-table command-table menuhand frame 
+				   (frame-top-level-sheet frame) t)
       t)))
 
 (defun update-menu-item-sensitivities (hmenu)
@@ -799,8 +845,15 @@ to be run from another."
 	   (progn
 	     (push (list tick (menu-item-value item))
 		   alist)
-	     (win:appendmenu popmenu win:MF_ENABLED tick 
-			     (print-item item))))))
+	     
+	     (if (clim-internals::menu-item-active item)
+		 (win:appendmenu popmenu win:MF_ENABLED tick 
+				 (print-item item))
+	       ;;; Use win:MF_GRAYED rather than win:MF_DISABLED.
+	       ;;; The latter will also disable the command, but
+	       ;;; doesn't seem to affect the appearance.	       
+	       (win:appendmenu popmenu win:MF_GRAYED tick 
+			       (print-item item)))))))
       (values tick alist submenus))))
 
 ;; Gets rid of scroll bars if possible.
@@ -875,7 +928,9 @@ to be run from another."
       (cond ((zerop code)		; no item is selected
 	     nil)
 	    (t
-	     (second (assoc code alist)))))))
+	     (let ((x (assoc code alist)))
+	       (values (second x) (third x) :unknown-gesture))
+	     )))))
 
 (defun make-filter-string (dotted-pair)
   (let ((*print-circle* nil))

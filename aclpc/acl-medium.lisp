@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-medium.lisp,v 1.6.8.11 1999/01/14 19:04:07 layer Exp $
+;; $Id: acl-medium.lisp,v 1.6.8.12 1999/03/01 17:47:57 layer Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -498,6 +498,14 @@ draw icons and mouse cursors on the screen.
 	  (selectobject dc old))))))
 
 (defmethod medium-draw-lines* ((medium acl-medium) position-seq)
+  #+slow-but-sure
+  (let (oldx oldy)
+    (silica:map-position-sequence
+     #'(lambda (x y)
+	 (when oldx
+	   (clim:medium-draw-line* medium oldx oldy x y))
+	 (setq oldx x oldy y))
+     position-seq))
   (let ((window (medium-drawable medium))
 	(old nil))
     (with-medium-dc (medium dc)
@@ -508,18 +516,16 @@ draw icons and mouse cursors on the screen.
 	       (ink (medium-ink medium))
 	       (line-style (medium-line-style medium)))
           (set-dc-for-ink dc medium ink line-style)
-	  (do ((i 0 (+ i 4))
-               (j 1 (+ j 4))
-	       (k 2 (+ k 4))
-	       (l 3 (+ l 4)))
-            ((>= i (length position-seq)))
-            (let ((x1 (elt position-seq i))
-	          (y1 (elt position-seq j))
-		  (x2 (elt position-seq k))
-	          (y2 (elt position-seq l)))
-	      (convert-to-device-coordinates transform x1 y1 x2 y2)
-              (win:moveToEx dc x1 y1 null)
-              (win:lineTo dc x2 y2)))
+	  (let ((init t))
+	    (silica:map-position-sequence
+	     #'(lambda (x y)
+		 (convert-to-device-coordinates transform x y)
+		 (cond (init
+			(win:moveToEx dc x y null)
+			(setq init nil))
+		       (t
+			(win:lineTo dc x y))))
+	     position-seq))
 	  (selectobject dc old))))))
 
 (defmethod medium-draw-rectangle* ((medium acl-medium)
