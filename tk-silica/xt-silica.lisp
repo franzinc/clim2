@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.77 93/04/08 13:19:27 colin Exp $
+;; $fiHeader: xt-silica.lisp,v 1.78 93/04/08 15:15:05 colin Exp $
 
 (in-package :xm-silica)
 
@@ -469,10 +469,12 @@
   ;; This isn't really the right place to do this, but it's better than
   ;; in ensure-blinker-for-cursor.
   (declare (ignore window))
-  (let ((window (tk::widget-window widget)))
-    (unless (getf (window-property-list window) 'backing-store-on)
-      (setf (getf (window-property-list window) 'backing-store-on) t
-	    (xt::window-backing-store window)                      t)))
+  (when (let ((port (port sheet)))
+	  (and port (port-safe-backing-store port)))
+    (let ((window (tk::widget-window widget)))
+      (unless (getf (window-property-list window) 'backing-store-on)
+	(setf (getf (window-property-list window) 'backing-store-on) t
+	      (xt::window-backing-store window)                      t))))
   (let* ((minx (x11::xexposeevent-x event))
 	 (miny (x11::xexposeevent-y event))
 	 (width (x11::xexposeevent-width event))
@@ -483,13 +485,13 @@
     (format excl:*initial-terminal-io* "Got expose event ~s~%"
 	    (tk::event-type event))
     (queue-repaint
-      sheet
-      (allocate-event 'window-repaint-event
-	:native-region (make-bounding-rectangle minx miny maxx maxy)
-	:region (untransform-region
-		  (sheet-native-transformation sheet)
-		  (make-bounding-rectangle minx miny maxx maxy))
-	:sheet sheet))))
+     sheet
+     (allocate-event 'window-repaint-event
+		     :native-region (make-bounding-rectangle minx miny maxx maxy)
+		     :region (untransform-region
+			      (sheet-native-transformation sheet)
+			      (make-bounding-rectangle minx miny maxx maxy))
+		     :sheet sheet))))
 
 (defmethod sheet-mirror-input-callback (widget window event sheet)
   (declare (ignore window))
