@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: lisp-utilities.lisp,v 1.45.6.1 2001/10/22 16:18:54 layer Exp $
+;; $Id: lisp-utilities.lisp,v 1.45.6.2 2001/12/12 01:01:07 layer Exp $
 
 (in-package :clim-utils)
 
@@ -407,14 +407,6 @@
 					then (symbol-name x)
 					else x))
 				 format-args)))))
-	  package))
-(defun package-fintern (package format-string &rest format-args)
-  ;; this argument order is unfortunate.
-  (declare (dynamic-extent format-args))
-  (intern (let ((pkg *package*))
-	    (with-standard-io-environment
-	      (let ((*package* pkg))
-		(apply #'lisp:format () format-string format-args))))
 	  package))
 
 (defun fintern (format-string &rest format-args)

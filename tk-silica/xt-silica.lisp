@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xt-silica.lisp,v 1.112.34.6 2001/10/22 16:18:54 layer Exp $
+;; $Id: xt-silica.lisp,v 1.112.34.7 2001/12/12 01:01:07 layer Exp $
 
 (in-package :xm-silica)
 
@@ -1733,9 +1733,6 @@ the geometry of the children. Instead the parent has control. "))
 ;;; Change call from port-set-pointer-position-1
 ;;; to port-set-pointer-position-root so that we don't
 ;;; worry about which sheet we are over.
-(defmethod port-set-pointer-position ((port xt-port) pointer x y)
-  (let* ((sheet (pointer-sheet pointer)))
-    (port-set-pointer-position-1 port sheet x y)))
 
 (defmethod port-set-pointer-position ((port xt-port) pointer x y)
   (let* ((sheet (pointer-sheet pointer)))
