@@ -12,7 +12,6 @@
   (require :winapi)
   (require :winapi-dev)
   (load "user32.dll")  
-  (setq excl::*enable-package-locked-errors* nil)
   )
 
 (defpackage acl-clim

@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: xm-silica -*-
 ;;
-;;				-[Sat May 30 09:10:58 1998 by layer]-
+;;				-[Tue Jun  2 16:31:06 1998 by layer]-
 ;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/tk-silica/xt-silica.lisp,v 1.108.22.3 1998/06/01 23:07:34 layer Exp $
+;; $Header: /repo/cvs.copy/clim2/tk-silica/xt-silica.lisp,v 1.108.22.4 1998/06/10 07:19:44 layer Exp $
 
 (in-package :xm-silica)
 
@@ -637,12 +637,12 @@
       )))
 
 (defmethod sheet-mirror-map-callback (event sheet)
-  (declare (special *suppress-xevents*))
   (let ((frame (pane-frame sheet)))
     (when frame
       (let ((state (frame-state frame))
 	    ;; Inform lisp but don't feed event back to X.
 	    (*suppress-xevents* t))
+	(declare (special *suppress-xevents*))
 	(case (tk::event-type event)
 	  (:map-notify
 	   (when (eq state :shrunk)

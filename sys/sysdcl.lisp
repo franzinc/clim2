@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/sys/sysdcl.lisp,v 1.56 1997/10/13 20:29:35 layer Exp $
+;; $Header: /repo/cvs.copy/clim2/sys/sysdcl.lisp,v 1.56.22.1 1998/06/10 07:19:39 layer Exp $
 
 (in-package :cl-user)
 
@@ -383,6 +383,10 @@
   ("ol-callbacks")
   ("make-widget")))
 
+#+allegro
+(defsystem last (:default-pathname "clim2:;utils;")
+  (:serial ("last")))
+
 #+(and Allegro (not acl86win32))
 (defsystem motif-clim
     (:default-pathname "clim2:;tk-silica;")
@@ -402,7 +406,7 @@
    ("xm-gadgets")
    ("xt-pixmaps")
    ("gc-cursor")
-   ("last")))
+   last))
 
 #+(and Allegro (not acl86win32))
 (defsystem openlook-clim
@@ -423,7 +427,7 @@
    ("ol-gadgets")
    ("xt-pixmaps")
    ("gc-cursor")
-   ("last")))
+   last))
 
 #+aclpc ;; keep in mind that for now, aclpc loads sysdcl-pc, not this file. -tjm 23May97
 (defun frob-pathname (subdir

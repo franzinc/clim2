@@ -44,7 +44,7 @@
 ;;      OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION
 ;;      WITH THE USE OR PERFORMANCE OF THIS OBJECT CODE.
 
-;;; $Header: /repo/cvs.copy/clim2/xlib/xlib-funs.lisp,v 1.20 1997/02/05 01:56:10 tomj Exp $
+;;; $Header: /repo/cvs.copy/clim2/xlib/xlib-funs.lisp,v 1.20.22.1 1998/06/10 07:19:46 layer Exp $
 
 (in-package :x11)
 
@@ -1580,7 +1580,12 @@
    (attributes (:pointer xsetwindowattributes)))
 
 (def-exported-foreign-function (xfree (:name "XFree"))
-   (data (:pointer char)))
+    (data (:pointer char)))
+
+(def-exported-foreign-function (system-malloc
+				(:return-type (:pointer char))
+				(:name "malloc"))
+   (size int))
 
 
 (def-exported-foreign-function (xcreateimage (:return-type (:pointer ximage))

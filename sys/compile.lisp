@@ -109,7 +109,8 @@
 		  "aclpc/acl-pixmaps.fasl"
 		  "aclpc/acl-frames.fasl"
 		  "aclpc/acl-widget.fasl"
-		  "aclpc/acl-scroll.fasl")
+		  "aclpc/acl-scroll.fasl"
+		  "utils/last.fasl")
 		"climnt.fasl")
   (append-files '("postscript/postscript-port.fasl"
 		  "postscript/postscript-medium.fasl"

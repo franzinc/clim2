@@ -1,4 +1,4 @@
-# $Id: Makefile.defs,v 1.45.10.1 1998/05/19 01:04:14 layer Exp $
+# $Id: Makefile.defs,v 1.45.10.2 1998/06/10 07:19:32 layer Exp $
 #
 #  Makefile.defs for CLIM 2.0
 
@@ -187,7 +187,8 @@ XM-FASLS= \
 	tk-silica/xt-frames.fasl tk-silica/xm-frames.fasl \
 	tk-silica/xm-dialogs.fasl tk-silica/xt-gadgets.fasl \
 	tk-silica/xm-gadgets.fasl tk-silica/xt-pixmaps.fasl \
-	tk-silica/gc-cursor.fasl tk-silica/last.fasl
+	tk-silica/gc-cursor.fasl \
+	utils/last.fasl
 
 OL-FASLS= \
 	tk/load-ol.fasl $(GENERIC-XT-FASLS) \

@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: user -*-
 ;;
-;;				-[Thu Nov 10 11:24:22 1994 by smh]-
+;;				-[Tue Jun  2 14:10:55 1998 by layer]-
 ;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/misc/dev-load-1.lisp,v 1.39 1997/02/05 01:49:07 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/misc/dev-load-1.lisp,v 1.39.22.1 1998/06/10 07:19:37 layer Exp $
 
 ;;;; This should not matter
 ;;;; (setq *ignore-package-name-case* t)
@@ -33,8 +33,6 @@
  (let ((*load-source-file-info* t)
        (*record-source-file-info* t)
        (*load-xref-info* nil))
-   #+never (let ((*enable-package-locked-errors* nil))
-	     (load "sys/defsystem"))
    (load "clim2:;sys;sysdcl")))
 
 (defun load-it (sys &key load-composer)

@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: user -*-
 ;;
-;;				-[Sat May 30 09:18:22 1998 by layer]-
+;;				-[Tue Jun  2 14:10:35 1998 by layer]-
 ;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/misc/compile-1.lisp,v 1.33.22.2 1998/06/01 23:07:28 layer Exp $
+;; $Header: /repo/cvs.copy/clim2/misc/compile-1.lisp,v 1.33.22.3 1998/06/10 07:19:37 layer Exp $
 
 (in-package :user)
 
@@ -45,11 +45,6 @@
 		    (> speed 2))))
 
 (setf (sys:gsgc-parameter :print) t)
-
-;(unless (find-package 'clim-defsystem)
-;  (compile-file-if-needed "sys/defsystem")
-;  (let ((*enable-package-locked-errors* nil))
-;    (load "sys/defsystem")))
 
 (defun compile-it (sys)
   (with-compilation-unit ()

@@ -30,8 +30,6 @@
     (:default-pathname "clim2:;aclpc;")
   (:serial
    clim-standalone
-   ;;"winapi"
-   ;;"cgapi"
    "pkgdcl"
    "winwidgh"
    "climpat"
@@ -44,7 +42,8 @@
    "acl-pixmaps"
    "acl-frames"
    "acl-widget"
-   "acl-scroll"))
+   "acl-scroll"
+   ("clim2:;utils;last")))
 
 #+Genera
 (clim-defsys:import-into-sct 'aclpc-clim

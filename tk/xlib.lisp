@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: tk -*-
 ;;
-;;				-[Sat May 30 09:09:06 1998 by layer]-
+;;				-[Wed Jun  3 08:25:07 1998 by layer]-
 ;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/tk/xlib.lisp,v 1.59.22.2 1998/06/01 23:07:31 layer Exp $
+;; $Header: /repo/cvs.copy/clim2/tk/xlib.lisp,v 1.59.22.3 1998/06/10 07:19:41 layer Exp $
 
 (in-package :tk)
 
@@ -682,7 +682,7 @@
 	     (padded-bits-per-line (* bitmap-pad
 				      (ceiling bits-per-line bitmap-pad)))
 	     (bytes-per-line (/ padded-bits-per-line 8))
-	     (v (excl::malloc (* bytes-per-line height)))
+	     (v (x11::system-malloc (* bytes-per-line height)))
 	     (visual (x11:screen-root-visual
 		      (x11:xdefaultscreenofdisplay display)))
 	     (offset 0)
