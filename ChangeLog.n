@@ -11,6 +11,35 @@ Tests for new features:	<`no new features', `no tests for new features', or
 <standard changelog date stamp>
 	* <changes go here...>
 *******************************************************************************
+Thu Feb  6 16:18:21 PST 1997  Tom McClure  <tomj@romeo>
+
+	* clim/drag-and-drop.lisp
+		- changed finish-on-release to be default
+		- colin's fix for pointer documentation introduced bug
+		  with gestures, now fixed (patch3514-01)
+		- patch3514-02, a hack to counter for pointer-cursor
+                  getting corrupted if drop triggers an
+                  accepting-vaules (see comments in code)
+	* clim/input-editor-commands.lisp
+		- added :backspace functionality for folks without DEL
+	* clim/surround-output.lisp
+		- patch3515-01, fixes anomalies in surrounding-output-with-border
+		  :rectangle
+		- moved drawing-option processing into
+		  invoke-surrounding-output-with-border (simplifies
+		  define-border-type definitions)
+	* tk-silica/xt-silica.lisp
+		- spr15550, fixed sheet-mirror-map-callback
+		  race-condition; no patch
+	* Makefile.alpha
+		- added default CLIM_HOME; consider moving this into
+		  Makefile.defs or Makefile.generic?
+	* clim/r-tree.lisp
+		- smh changes, see patch3512-01
+	* clim/graphics-recording.lisp, utils/regions.lisp
+		- smh changes, see patch3513-01
+
+*******************************************************************************
 Thu Feb  6 15:41:07 PST 1997  Tom McClure  <tomj@romeo>
 
 	* This slipped through the last commit (of Paul Robertson's tree)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/clim/input-editor-commands.lisp,v 1.32 1997/02/05 01:43:54 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/input-editor-commands.lisp,v 1.33 1997/02/07 00:20:53 tomj Exp $
 
 (in-package :clim-internals)
 
@@ -1290,16 +1290,22 @@ This may confused the input editor" gestures))
   (:ie-show-value            :v   :meta :shift)
   (:ie-show-documentation   :d   :meta :shift))
 
+#+Allegro
+(define-input-editor-gestures
+  (:ie-rubout-character     :backspace)
+  (:ie-rubout-word	    :backspace :meta)
+  (:ie-rubout-sexp	    :backspace :control :meta))
+
 #+Cloe-Runtime
 (define-input-editor-gestures
   (:ie-rubout-character     :backspace)
-  (:ie-rubout-word            :backspace :meta)
-  (:ie-rubout-sexp            :backspace :control :meta)
-  (:ie-clear-input            :clear)
-  (:ie-scroll-forward            :page-down)
-  (:ie-scroll-backward            :page-up)
-  (:ie-scroll-left            :page-up :super)
-  (:ie-scroll-right            :page-down :super))
+  (:ie-rubout-word	    :backspace :meta)
+  (:ie-rubout-sexp	    :backspace :control :meta)
+  (:ie-clear-input	    :clear)
+  (:ie-scroll-forward	    :page-down)
+  (:ie-scroll-backward	    :page-up)
+  (:ie-scroll-left	    :page-up :super)
+  (:ie-scroll-right	    :page-down :super))
 
 #+(or aclpc acl86win32)
 (define-input-editor-gestures

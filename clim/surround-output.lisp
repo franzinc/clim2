@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/clim/surround-output.lisp,v 1.12 1997/02/05 01:45:03 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/surround-output.lisp,v 1.13 1997/02/07 00:20:58 tomj Exp $
 
 (in-package :clim-internals)
 
@@ -46,63 +46,60 @@
 
 
 (define-border-type :rectangle (stream left top right bottom
-                                       &rest drawing-options &key (filled nil) &allow-other-keys)
-  (declare (dynamic-extent drawing-options))
-  (let ((offset 2))
-    (apply #'draw-rectangle* stream
-           (- left offset) (- top offset)
-           (+ right offset) (+ bottom offset)
-           :filled filled drawing-options))
-  ;; Y offset for text cursor is 3
-  3)
+				       &key (filled nil) 
+				       &allow-other-keys)
+  (let ((line-style (medium-line-style stream)))
+    (unless filled 
+      (with-half-thickness (lthickness rthickness) line-style
+			   (setq left (- left rthickness)
+				 top (- top rthickness)
+				 right (+ right lthickness)
+				 bottom (+ bottom lthickness))))
+    (let ((offset (if filled 2 1)))
+      (draw-rectangle* stream
+		       (- left offset) (- top offset)
+		       (+ right offset) (+ bottom offset)
+		       :filled filled))
+    ;; Y offset for text cursor is 3 if filled else 2 + line thickness
+    (if filled 3 (+ 2 (line-style-thickness line-style)))))
 
 (define-border-type :oval (stream left top right bottom
-                           &rest drawing-options &key (filled nil) &allow-other-keys)
-  (declare (dynamic-extent drawing-options))
+				  &key (filled nil) &allow-other-keys)
   (let* ((offset 2)
          (center-x  (floor (+ left right) 2))
          (center-y (floor (+ top bottom) 2))
          (radius-x (+ (floor (+ (- right left) offset) 2) 2))
          (radius-y (floor (+ (- bottom top) offset) 2)))
     (cond ((> radius-x radius-y)
-           (incf radius-x radius-y))
-          ((> radius-y radius-x)
-           (incf radius-y radius-x)))
-    (apply #'draw-oval* stream
-           center-x center-y 
-           radius-x
-           radius-y
-           :filled filled drawing-options))
+	   (incf radius-x radius-y))
+	  ((> radius-y radius-x)
+	   (incf radius-y radius-x)))
+    (draw-oval* stream center-x center-y radius-x radius-y :filled filled))
   ;; Y offset for text cursor is 3
   3)
 
 (defvar +drop-shadow-line-style+ (make-line-style :thickness 3 :joint-shape :miter))
-(define-border-type :drop-shadow (stream left top right bottom &rest drawing-options)
-  (declare (dynamic-extent drawing-options))
+(define-border-type :drop-shadow (stream left top right bottom)
   (let* ((offset 2)
-         (x1 (- left offset))
-         (y1 (- top offset))
-         (x2 (+ right offset))
-         (y2 (+ bottom offset)))
-    (flet ((draw ()
-             (draw-line* stream x1 y1 x2 y1)
-             (draw-line* stream x1 y1 x1 y2)
-             (draw-polygon* stream (list x2 y1 x2 y2 x1 y2)
-                            :closed nil :filled nil :line-style +drop-shadow-line-style+)))
-      (declare (dynamic-extent #'draw))
-      (apply #'invoke-with-drawing-options stream #'draw drawing-options)))
+	 (x1 (- left offset))
+	 (y1 (- top offset))
+	 (x2 (+ right offset))
+	 (y2 (+ bottom offset)))
+    (draw-line* stream x1 y1 x2 y1)
+    (draw-line* stream x1 y1 x1 y2)
+    (draw-polygon* stream (list x2 y1 x2 y2 x1 y2)
+		   :closed nil :filled nil :line-style +drop-shadow-line-style+))
   ;; Y offset for text cursor is 4
   4)
 
-(define-border-type :underline (stream record left top right #+(or aclpc acl86win32) bottom
-                                 &rest drawing-options)
-  (declare (dynamic-extent drawing-options))
+(define-border-type :underline (stream record left top right #+(or aclpc acl86win32) bottom)
   (let ((baseline (find-text-baseline record stream)))
     (incf top baseline)
-    (apply #'draw-line* stream
-           left #-(or aclpc acl86win32) top #+(or aclpc acl86win32) bottom
-           right #-(or aclpc acl86win32) top #+(or aclpc acl86win32) bottom
-           drawing-options))
+    (draw-line* stream
+		;; can't get the baseline correctly on windows?  when we
+		;; can we should remember to switch this back --tjm
+		left #-(or aclpc acl86win32) top #+(or aclpc acl86win32) bottom
+		right #-(or aclpc acl86win32) top #+(or aclpc acl86win32) bottom))
   ;; Y offset for text cursor is 0
   0)
 
@@ -126,18 +123,23 @@
             stream (output-record-parent (output-record-parent body)))
         (translate-coordinates xoff yoff left top right bottom))
       (with-output-recording-options (stream :draw nil :record t)
-        (with-new-output-record (stream 'standard-sequence-output-record nil
-                                 :parent border-record)
-          (setq offset
-                (if (funcallable-p shape)
-                    (funcall shape stream body left top right bottom)
-                    (let ((function (second (assoc shape *border-shape-drawer-alist*))))
-                      (if (null function)
-                          (error "The shape ~S is not a defined border shape" shape)
-                          (with-keywords-removed 
-                              (drawing-options drawing-options '(:move-cursor))
-                            (apply function stream body left top right bottom
-                                            drawing-options)))))))))
+	(with-new-output-record (stream 'standard-sequence-output-record nil
+				 :parent border-record)
+	  (setq offset
+		(if (funcallable-p shape)
+		    (funcall shape stream body left top right bottom)
+		    (let ((function (second (assoc shape *border-shape-drawer-alist*))))
+		      (if (null function)
+			  (error "The shape ~S is not a defined border shape" shape)
+			  (with-keywords-removed 
+			      (drawing-options drawing-options '(:move-cursor))
+			    (flet ((draw-surrounding-border ()
+				     (apply function stream body left top right bottom
+					    ;; probably should still pass drawing-options
+					    drawing-options)))
+			      (declare (dynamic-extent #'draw-surrounding-border))
+			      (apply #'invoke-with-drawing-options stream
+				     #'draw-surrounding-border drawing-options))))))))))
     ;;--- This shocking kludge is to get the border underneath the
     ;;--- output that it is bordering.  Yuck!
     (let ((elements (slot-value border-record 'elements)))

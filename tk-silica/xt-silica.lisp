@@ -19,7 +19,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Header: /repo/cvs.copy/clim2/tk-silica/xt-silica.lisp,v 1.105 1997/02/05 01:54:19 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/tk-silica/xt-silica.lisp,v 1.106 1997/02/07 00:21:04 tomj Exp $
 
 (in-package :xm-silica)
 
@@ -640,9 +640,13 @@
 	(case (tk::event-type event)
 	  (:map-notify
 	   (when (eq state :shrunk)
+	     (setf (frame-state frame) :enabled)
+	     #+ignore
 	     (note-frame-deiconified (frame-manager frame) frame)))
 	  (:unmap-notify
 	   (when (eq state :enabled)
+	     (setf (frame-state frame) :shrunk)
+	     #+ignore
 	     (note-frame-iconified (frame-manager frame) frame))))))))
 
 (defmethod find-widget-class-and-name-for-sheet

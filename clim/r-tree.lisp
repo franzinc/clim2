@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/clim/r-tree.lisp,v 1.5 1997/02/05 01:44:44 tomj Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/r-tree.lisp,v 1.6 1997/02/07 00:20:56 tomj Exp $
 
 (in-package :clim-internals)
 
@@ -476,6 +476,7 @@
                          (map nil #'repatriate inferiors)
                          ;; Find a node down the tree for insertion
                          (loop
+			   (when (= (length inferiors) 0) (return)) ; KRA 16OCT96:
                            (let ((orphan-node (vector-pop inferiors)))
                              (when (null orphan-node) (return))
                              (let ((sub-node root))
