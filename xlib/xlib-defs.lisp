@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;;; $fiHeader: xlib-defs.lisp,v 1.1 92/03/06 17:06:59 cer Exp $
+;;; $fiHeader: xlib-defs.lisp,v 1.3 92/04/21 20:28:04 cer Exp $
 
 ;;      (c) Copyright 1989, 1990, 1991 Sun Microsystems, Inc. Sun design
 ;;      patents pending in the U.S. and foreign countries. OPEN LOOK is a
@@ -1474,6 +1474,36 @@ typedef union { Display *display;
 (def-exported-constant ZoomState 2)          ;; #define ZoomState 2	
 (def-exported-constant InactiveState 4)      ;; #define InactiveState 4	
 
+(def-exported-foreign-struct xsizehints
+  (flags :type long)
+  (x :type int)				; Obsolete
+  (y :type int)				; Obsolete
+  (width :type int)			; Obsolete
+  (height :type int)			; Obsolete
+  (min-width :type int)
+  (min-height :type int)
+  (max-width :type int)
+  (max-height :type int)
+  (width-inc :type int)
+  (height-inc :type int)
+  (min-aspect-x :type int)
+  (min-aspect-y :type int)
+  (max-aspect-x :type int)
+  (max-aspect-y :type int)
+  (base-width :type int)
+  (base-height :type int)
+  (win-gravity :type int))
+
+(def-exported-constant uspositionhint 1)
+(def-exported-constant ussizehint 2)
+(def-exported-constant ppositionhint 4)
+(def-exported-constant psizehint 8)
+(def-exported-constant pminsizehint 16)
+(def-exported-constant pmaxsizehint 32)
+(def-exported-constant presizeincint 64)
+(def-exported-constant paspecthint 128)
+(def-exported-constant pbasesizehint 256)
+(def-exported-constant pwingravityhint 512)
 
 (def-exported-constant xcsuccess 0)  ;; #define XCSUCCESS 0
 (def-exported-constant xcnomem   1)  ;; #define XCNOMEM   1

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: widget.lisp,v 1.21 92/06/23 08:19:18 cer Exp Locker: cer $
+;; $fiHeader: widget.lisp,v 1.22 92/06/29 14:04:24 cer Exp $
 
 (in-package :tk)
 
@@ -150,7 +150,7 @@
     (register-widget
      w
      (progn
-       (remf :foreign-address args)
+       (remf args :foreign-address)
        (setf (foreign-pointer-address w)
 	 (apply #'make-widget w args))))))
 

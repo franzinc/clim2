@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: convenience.lisp,v 1.9 92/04/28 09:24:58 cer Exp $
+;; $fiHeader: convenience.lisp,v 1.10 92/06/16 19:10:47 cer Exp $
 
 (in-package :tk)
 
@@ -37,9 +37,9 @@
 	 (defmethod make-widget ((w ,class) &rest args &key (managed t)
 					    (name "") 
 					    parent &allow-other-keys)
-	   (remf :name args)
-	   (remf :parent args)
-	   (remf :managed args)
+	   (remf args :name)
+	   (remf args :parent)
+	   (remf args :managed)
 	   (let* ((arglist (make-arglist-for-class
 			    (find-class ',class)
 			    parent

@@ -1,4 +1,86 @@
 --------------------------------------------------------------------------------
+from jdi: Mon Jul 27 19:28:33 PDT 1992
+
+NOTES
+    1: Delete files:
+	clim/output-recording-protocol.lisp
+	clim/output-recording-defs.lisp
+
+    2: New directory malloclib.  Contains debugging version of malloc &
+       friends.  To turn on, uncomment appropriate lines in Makefile
+
+    3: This time, you want most of my changes to the Makefile.  I tried to
+	edit out the unnecessary ones.
+--
+
+	Makefile
+		-- Added optional malloclib support.  Added source rule
+		   so TAGS file is correct.
+
+	clim/frames
+		-- Added support for use-specified-{size,position}-p frame
+		   and their default processing in make-application-frame.
+
+	clim/graphics-recording
+		-- Fixed problem where point sequence wasn't always copied,
+		   leading to death because the original was stack allocated.
+
+	clim/input-protocol
+		-- Turn off highlighted presentation on leave event.
+
+	clim/menus
+		-- Send the beep to a CLIM window.
+
+	misc/dev-load-1
+		-- take out malloc & bogus update-package form
+
+	misc/load-xm
+		-- take out malloc
+
+	misc/undefinedsymbols
+		-- add X{Get,Set}WMNormalHints
+
+	silica/framem
+	silica/layout
+		-- more user-specified hacking
+
+	tk/convenience
+	tk/make-widget
+	tk/ol-init
+	tk/ol-widgets
+	tk/xm-widgets
+	tk/widget
+		-- remf had args reversed
+
+	tk/load-ol
+	tk/load-xm
+	tk/load-xt
+	xlib/load-xlib
+		-- remove-entry-point no longer necessary
+
+	tk/make-classes
+		-- resource not found error now caught at higher level.
+
+	tk/pkg
+		-- export realize-widget
+
+	tk-silica/xt-graphics
+		-- finish output needs to XSync, not XFlush
+
+	tk-silica/xt-silica
+		-- sheet-mirror-event-handler rewritten.  Now doesn't have
+		   to incur server roundtrip for each event.
+		   Button handling code rewritten.
+		-- new enable-mirror method for user-specified stuff
+		-- misc other stuff
+
+	xlib/xlib-defs
+		-- added xsizehints definition
+	xlib/xlib-fnus
+		-- added xallocsizehints, xsetwmnormalhints, xgetwmnormalhints
+
+
+--------------------------------------------------------------------------------
 from swm: Mon Jul 20 13:49:12 PDT 1992
 
 General bug fixing

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: load-xm.lisp,v 1.15 92/07/01 15:44:31 cer Exp Locker: cer $
+;; $fiHeader: load-xm.lisp,v 1.16 92/07/06 18:51:19 cer Exp $
 
 (in-package :tk)
 
@@ -30,18 +30,17 @@
 
 (defun load-from-xm ()
   (unless (ff:get-entry-point (ff:convert-to-lang "XmCreateMyDrawingArea"))
-    (mapc #'ff::remove-entry-point
-	  '("__unpack_quadruple" 
-	    "__prod_b10000" 
-	    "__carry_out_b10000" 
-	    "__prod_65536_b10000"
-	    ;; got these when compiling on ox
-	    "__pack_integer"
-	    "_class_double"
-	    "_class_single"
-	    "_class_extended"
-	    "__unpack_integer"
-	    ))
+    #+ignore (mapc #'ff::remove-entry-point
+		   '("__unpack_quadruple" 
+		     "__prod_b10000" 
+		     "__carry_out_b10000" 
+		     "__prod_65536_b10000"
+		     ;; got these when compiling on ox
+		     "__pack_integer"
+		     "_class_double"
+		     "_class_single"
+		     "_class_extended"
+		     "__unpack_integer"))
     (load "MyDrawingA.o"
 	  :system-libraries (list sys::*libxm-pathname* 
 				  sys::*libxt-pathname*
@@ -52,20 +51,20 @@
    (x11::symbols-from-file 
     "misc/undefinedsymbols.xt"
     "misc/undefinedsymbols.motif")
-    '("__unpack_quadruple" 
-      "__prod_b10000" 
-      "__carry_out_b10000" 
-      "__prod_65536_b10000"
-      ;; got these when compiling on ox
-      "__pack_integer"
-      "_class_double"
-      "_class_single"
-      "_class_extended"
-      "__unpack_integer"
-      )
-    (list sys::*libxm-pathname*
-	  sys::*libxt-pathname*
-	  sys::*libx11-pathname*)))
+   #+ignore '("__unpack_quadruple" 
+	      "__prod_b10000" 
+	      "__carry_out_b10000" 
+	      "__prod_65536_b10000"
+	      ;; got these when compiling on ox
+	      "__pack_integer"
+	      "_class_double"
+	      "_class_single"
+	      "_class_extended"
+	      "__unpack_integer")
+   #-ignore nil
+   (list sys::*libxm-pathname*
+	 sys::*libxt-pathname*
+	 sys::*libx11-pathname*)))
 
 (load-from-xm)
 

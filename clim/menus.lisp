@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: menus.lisp,v 1.28 92/07/20 16:00:30 cer Exp $
+;; $fiHeader: menus.lisp,v 1.29 92/07/27 11:02:40 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -411,11 +411,10 @@
 		   (when *abort-menus-when-buried*
 		     #-Silica (wait-for-window-exposed menu))
 		   (with-mouse-grabbed-in-window (menu)
-		     (loop
-		       (read-gesture :stream menu
-				     :input-wait-test #'input-wait-test
-				     :input-wait-handler #'input-wait-handler)
-		       (beep menu))))
+		     (loop (read-gesture :stream menu
+					 :input-wait-test #'input-wait-test
+					 :input-wait-handler #'input-wait-handler)
+			   (beep menu))))
 	       (t (values object gesture)))))
       (unless leave-menu-visible
 	(setf (window-visibility menu) nil))

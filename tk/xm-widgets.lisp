@@ -20,28 +20,28 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-widgets.lisp,v 1.5 92/02/24 13:04:08 cer Exp $
+;; $fiHeader: xm-widgets.lisp,v 1.6 92/04/21 20:27:49 cer Exp $
 
 (in-package :tk)
 
 (defmethod make-widget ((w xm-gadget) 
 			&rest args &key parent (managed t) (name "") &allow-other-keys)
-  (remf :managed args)
-  (remf :name args)
-  (remf :parent args)
+  (remf args :managed)
+  (remf args :name)
+  (remf args :parent)
   (let ((class (class-of w)))
     (if managed
 	(apply #'create-managed-widget name class parent args)
       (apply #'create-widget name class parent args))))
 
 (defmethod make-widget ((w xm-dialog-shell) &rest args &key parent (name "") &allow-other-keys)
-  (remf :parent args)
-  (remf :name args)
+  (remf args :parent)
+  (remf args :name)
   (apply #'create-popup-shell name (class-of w) parent args))
 
 (defmethod make-widget ((w xm-menu-shell) &rest args &key parent (name "") &allow-other-keys)
-  (remf :parent args)
-  (remf :name args)
+  (remf args :parent)
+  (remf args :name)
   (apply #'create-popup-shell name (class-of w) parent args))
 
 (tk::add-resource-to-class (find-class 'vendor-shell)

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: make-classes.lisp,v 1.21 92/06/23 08:19:08 cer Exp $
+;; $fiHeader: make-classes.lisp,v 1.22 92/07/01 15:44:34 cer Exp $
 
 (in-package :tk)
 
@@ -36,30 +36,32 @@
 ;; This is only called to fill in the cache, so it can be (real) slow.
 (defun get-resource-internal (class fn resource-class resource-name)
   (let ((x (make-array 1 :element-type '(unsigned-byte 32)))
-	(y (make-array 1 :element-type '(unsigned-byte 32))))
+	(y (make-array 1 :element-type '(unsigned-byte 32)))
+	result)
     (funcall fn (class-handle class) x y)
     (let ((resources (aref x 0))
 	  (n (aref y 0)))
-      (dotimes (i n)
-	(let* ((res (x-resource-list resources i))
-	       (original-name (x-resource-name res))
-	       (name (lispify-resource-name (char*-to-string original-name))))
-	  (if (equal name resource-name)
-	      (let ((*package* (find-package :tk)))
-		(return-from get-resource-internal
-		  (make-instance
-		      resource-class
-		    :original-name original-name
-		    :name name
-		    :class (lispify-resource-class 
-			    (char*-to-string (x-resource-class res)))
-		    :type (lispify-resource-type 
-			   (char*-to-string (x-resource-type res)))))))))))
-  #+ignore
-  (error "No resource named ~s found for class ~s" resource-name class)
-  ;; Error is actually caught in calling functions.
-  #-ignore
-  nil)
+      (setq result
+	(dotimes (i n)
+	  (let* ((res (x-resource-list resources i))
+		 (original-name (x-resource-name res))
+		 (name (lispify-resource-name (char*-to-string original-name))))
+	    (if (equal name resource-name)
+		(let ((*package* (find-package :tk)))
+		  (return (make-instance resource-class
+			    :original-name original-name
+			    :name name
+			    :class (lispify-resource-class 
+				    (char*-to-string (x-resource-class res)))
+			    :type (lispify-resource-type 
+				   (char*-to-string (x-resource-type res))))))))))
+      (xt_free resources))
+    #+ignore
+    (unless result
+      ;; Error is actually caught in calling functions.
+      (error "No resource named ~s found for class ~s" resource-name class))
+    result))
+    
 
 (defmethod find-class-resource ((class xt-class) resource-name)
   (declare (optimize (speed 3) (safety 0)))

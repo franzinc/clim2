@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: load-xlib.lisp,v 1.5 92/06/02 13:30:50 cer Exp Locker: cer $
+;; $fiHeader: load-xlib.lisp,v 1.6 92/06/16 15:01:26 cer Exp $
 
 (in-package :x11)
 
@@ -57,9 +57,11 @@
 (x11::load-undefined-symbols-from-library
  "stub-x.o"
  (x11::symbols-from-file "misc/undefinedsymbols")
- '("__unpack_quadruple" 
-   "__prod_b10000" 
-   "__carry_out_b10000" 
-   "__prod_65536_b10000")
+ ;; This was only needed when bogus removesyms was done.
+ #+ignore '("__unpack_quadruple" 
+	    "__prod_b10000" 
+	    "__carry_out_b10000" 
+	    "__prod_65536_b10000")
+ #-ignore nil
  (list sys::*libx11-pathname*))
 

@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: framem.lisp,v 1.10 92/07/08 16:29:08 cer Exp $
+;; $fiHeader: framem.lisp,v 1.11 92/07/20 15:59:16 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -88,11 +88,13 @@
   (when (frame-panes frame)
     (let* ((top-pane (frame-panes frame))
 	   (sheet (with-look-and-feel-realization (framem frame)
-		    (make-pane 'top-level-sheet 
-		      :region (multiple-value-bind (width height)
-				  (bounding-rectangle-size top-pane)
-				(make-bounding-rectangle 0 0 width height))
-		      :parent (find-graft :port (port frame))))))
+		    (make-pane 'top-level-sheet
+			       :user-specified-position-p (clim-internals::frame-user-specified-position-p frame)
+			       :user-specified-size-p (clim-internals::frame-user-specified-size-p frame)
+			       :region (multiple-value-bind (width height)
+					   (bounding-rectangle-size top-pane)
+					 (make-bounding-rectangle 0 0 width height))
+			       :parent (find-graft :port (port frame))))))
       (setf (frame-top-level-sheet frame) sheet
 	    (frame-shell frame) (sheet-shell sheet))
       (sheet-adopt-child sheet (frame-panes frame)))))

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.30 92/07/08 16:31:58 cer Exp Locker: cer $
+;; $fiHeader: xt-graphics.lisp,v 1.31 92/07/20 16:01:58 cer Exp Locker: cer $
 
 (in-package :tk-silica)
 
@@ -141,9 +141,6 @@
       (loose-gc background-gcontext)
       (loose-gc flipping-gcontext)
       (loose-gc tile-gcontext))))
-
-(defmethod medium-finish-output ((port xt-medium))
-  nil)
 
 (defparameter *use-color* t)		; For debugging monochrome
 (defun color-medium-p (medium)
@@ -1217,5 +1214,5 @@ and on color servers, unless using white or black")
   (x11:xflush (port-display (port medium))))
 
 (defmethod medium-finish-output ((medium xt-medium))
-  (x11:xflush (port-display (port medium))))	;--- is this right?
+  (x11:xsync (port-display (port medium))))
    

@@ -20,20 +20,20 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-widgets.lisp,v 1.1 92/05/26 09:08:11 cer Exp Locker: cer $
+;; $fiHeader: ol-widgets.lisp,v 1.2 92/06/23 08:19:15 cer Exp $
 
 (in-package :xt)
 
 
 (defmethod make-widget ((w menu-shell) &rest args &key parent (name "") &allow-other-keys)
-  (remf :parent args)
-  (remf :name args)
+  (remf args :parent)
+  (remf args :name)
   (apply #'create-popup-shell name (class-of w) parent args))
 
 
 (defmethod make-widget ((w transient-shell) &rest args &key parent (name "") &allow-other-keys)
-  (remf :parent args)
-  (remf :name args)
+  (remf args :parent)
+  (remf args :name)
   (apply #'create-popup-shell name (class-of w) parent args))
 
 

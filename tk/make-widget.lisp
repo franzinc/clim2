@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: make-widget.lisp,v 1.4 92/02/24 13:03:30 cer Exp Locker: cer $
+;; $fiHeader: make-widget.lisp,v 1.5 92/04/03 12:04:04 cer Exp $
 
 (in-package :tk)
 
@@ -29,9 +29,9 @@
   )
 
 (defmethod make-widget ((w core) &rest args &key parent (managed t) (name "") &allow-other-keys)
-  (remf :managed args)
-  (remf :name args)
-  (remf :parent args)
+  (remf args :managed)
+  (remf args :name)
+  (remf args :parent)
   (let ((class (class-of w)))
     (if managed
 	(apply #'create-managed-widget name class parent args)
@@ -42,8 +42,8 @@
 
 
 (defmethod make-widget ((w top-level-shell) &rest args &key parent (name "") &allow-other-keys)
-  (remf :parent args)
-  (remf :name args)
+  (remf args :parent)
+  (remf args :name)
   (apply #'create-popup-shell name (class-of w) parent args))
 
 

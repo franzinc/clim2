@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics-recording.lisp,v 1.9 92/07/01 15:46:28 cer Exp $
+;; $fiHeader: graphics-recording.lisp,v 1.10 92/07/08 16:30:28 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -47,7 +47,8 @@
 	   (slot-descs 
 	     (mapcar #'(lambda (x)
 			 (list x :initarg (intern (symbol-name x) *keyword-package*)))
-			 slots)))
+		     slots))
+	   (points (gensym)))
       `(progn
 	 (defclass ,class ,superclasses ,slot-descs)
 	 (define-constructor-using-prototype-instance
@@ -110,7 +111,9 @@
 		     ;; Adjust the stored coordinates by the current cursor position
 		     ,@(mapcar #'(lambda (p)
 				   `(with-slots (,p) record
-				      (setf ,p (adjust-position-sequence ,p abs-x abs-y))))
+				      (let ((,points ,p))
+ 					(setf ,p
+					  (adjust-position-sequence ,points abs-x abs-y t)))))
 			       position-sequences-to-transform)
 		     ,@(when positions-to-transform
 			 `((with-slots ,positions-to-transform record
@@ -422,19 +425,21 @@
 	      (+ maxx rthickness)
 	      (+ maxy rthickness)))))
 
-(defun adjust-position-sequence (position-seq dx dy)
+(defun adjust-position-sequence (position-seq dx dy &optional copy-p)
   (if (and (zerop dx) (zerop dy))
-      position-seq
-      (let ((result (make-array (length position-seq)))
-	    (i 0))
-	(declare (type simple-vector result))
-	(map-position-sequence
-	  #'(lambda (x y)
-	      (setf (svref result i) (- x dx)
-		    (svref result (1+ i)) (- y dy)
-		    i (+ i 2)))
-	  position-seq)
-	result)))
+      (if copy-p 
+	  (make-array (length position-seq) :initial-contents position-seq)
+	position-seq)
+    (let ((result (make-array (length position-seq)))
+	  (i 0))
+      (declare (type simple-vector result))
+      (map-position-sequence
+       #'(lambda (x y)
+	   (setf (svref result i) (- x dx)
+		 (svref result (1+ i)) (- y dy)
+		 i (+ i 2)))
+       position-seq)
+      result)))
 
 
 (define-graphics-recording draw-ellipse (ink line-style)

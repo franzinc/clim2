@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: layout.lisp,v 1.20 92/07/20 15:59:21 cer Exp Locker: cer $
+;; $fiHeader: layout.lisp,v 1.21 92/07/24 10:53:56 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -322,16 +322,17 @@
 
 ;;--- CLIM 0.9 has some other methods on top-level sheets -- do we want them?
 (defclass top-level-sheet 
-	  (;;--- Temporary kludge until we get the protocols correct
-	   ;;--- so that ACCEPT works correctly on a raw sheet
-	   clim-internals::window-stream
-	   wrapping-space-mixin
-	   sheet-multiple-child-mixin
-	   mirrored-sheet-mixin
-	   pane)
-    ()
-    ;;--- More of same...
-    (:default-initargs :text-cursor nil :text-margin 10))
+    (;;--- Temporary kludge until we get the protocols correct
+     ;;--- so that ACCEPT works correctly on a raw sheet
+     clim-internals::window-stream
+     wrapping-space-mixin
+     sheet-multiple-child-mixin
+     mirrored-sheet-mixin
+     pane)
+  ((user-specified-size-p :initform :unspecified :initarg :user-specified-size-p)
+   (user-specified-position-p :initform :unspecified  :initarg :user-specified-position-p))
+  ;;--- More of same...
+  (:default-initargs :text-cursor nil :text-margin 10))
 
 ;;--- Needed methods include:
 ;;---   INVOKE-WITH-RECORDING-OPTIONS

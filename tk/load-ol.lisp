@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: load-ol.lisp,v 1.11 92/06/02 13:30:35 cer Exp Locker: cer $
+;; $fiHeader: load-ol.lisp,v 1.12 92/06/23 08:19:07 cer Exp $
 
 (in-package :tk)
 
@@ -29,19 +29,18 @@
 
 (defun load-from-ol ()
   (unless (ff:get-entry-point (ff:convert-to-lang "ol_appl_add_item"))
-    (mapc #'ff::remove-entry-point
-	  '("__unpack_quadruple" 
-	    "__prod_b10000" 
-	    "__carry_out_b10000" 
-	    "__prod_65536_b10000"
-	    "__unpacked_to_decimal"
-	    ;; got these when compiling on ox
-	    "__pack_integer"
-	    "_class_double"
-	    "_class_single"
-	    "_class_extended"
-	    "__unpack_integer"
-	    ))
+    #+ignore (mapc #'ff::remove-entry-point
+		   '("__unpack_quadruple" 
+		     "__prod_b10000" 
+		     "__carry_out_b10000" 
+		     "__prod_65536_b10000"
+		     "__unpacked_to_decimal"
+		     ;; got these when compiling on ox
+		     "__pack_integer"
+		     "_class_double"
+		     "_class_single"
+		     "_class_extended"
+		     "__unpack_integer"))
     (load "olsupport.o"
 	  :system-libraries (list sys::*libxol-pathname*
 				  sys::*libxt-pathname*
@@ -52,18 +51,18 @@
    (x11::symbols-from-file 
     "misc/undefinedsymbols.xt"
     "misc/undefinedsymbols.olit")
-   '("__unpack_quadruple" 
-     "__unpacked_to_decimal"
-     "__prod_b10000" 
-     "__carry_out_b10000" 
-     "__prod_65536_b10000"
-     ;; got these when compiling on ox
-     "__pack_integer"
-     "_class_double"
-     "_class_single"
-     "_class_extended"
-     "__unpack_integer"
-     )
+   #+ignore '("__unpack_quadruple" 
+	      "__unpacked_to_decimal"
+	      "__prod_b10000" 
+	      "__carry_out_b10000" 
+	      "__prod_65536_b10000"
+	      ;; got these when compiling on ox
+	      "__pack_integer"
+	      "_class_double"
+	      "_class_single"
+	      "_class_extended"
+	      "__unpack_integer")
+   #-ignore nil
    (list sys::*libxol-pathname*
 	 sys::*libxt-pathname*
 	 sys::*libx11-pathname*)))

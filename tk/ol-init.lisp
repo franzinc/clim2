@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-init.lisp,v 1.13 92/05/22 19:26:29 cer Exp $
+;; $fiHeader: ol-init.lisp,v 1.14 92/06/02 13:30:39 cer Exp $
 
 
 (in-package :tk)
@@ -78,9 +78,9 @@
 
 (defmethod make-widget ((w event) 
 			&rest args &key parent (managed t) (name "") &allow-other-keys)
-  (remf :managed args)
-  (remf :name args)
-  (remf :parent args)
+  (remf args :managed)
+  (remf args :name)
+  (remf args :parent)
   (let ((class (class-of w)))
     (if managed
 	(apply #'create-managed-widget name class parent args)

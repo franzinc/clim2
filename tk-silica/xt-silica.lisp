@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.37 92/07/24 10:55:08 cer Exp Locker: cer $
+;; $fiHeader: xt-silica.lisp,v 1.38 92/07/27 11:03:50 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -1246,4 +1246,38 @@ the geometry of the children. Instead the parent has control. "))
        (fix-coordinate x)
        (fix-coordinate y)))))
 
+
+(defmethod enable-mirror ((port xt-port) (sheet top-level-sheet))
+   (let* ((mirror (sheet-mirror sheet))
+ 	 (parent (widget-parent mirror)))
+     (manage-child mirror)
+     (xt:realize-widget parent)		; Make sure widget is realized.
+     (let ((ussp (slot-value sheet 'silica::user-specified-size-p))
+ 	  (uspp (slot-value sheet 'silica::user-specified-position-p)))
+       (unless (and (eq ussp :unspecified)
+ 		   (eq uspp :unspecified))
+ 	(let* ((window (tk::widget-window parent))
+ 	       (display (tk::widget-display parent))
+ 	       (size-hints (x11::xallocsizehints)))
+ 	  (tk::with-ref-par ((supplied 0))
+ 	    (when (zerop
+ 		   (x11::xgetwmnormalhints display window size-hints supplied))
+ 	      (warn "top-level-sheet had no size hints?!")
+ 	      (return-from enable-mirror))
+ 	    (let ((flags (x11::xsizehints-flags size-hints)))
+ 	      (if* (and uspp (not (eq uspp :unspecified)))
+ 		 then (setf flags (logior flags x11::uspositionhint))
+ 	       elseif (null uspp)
+ 		 then (setf flags (logandc2 flags x11::uspositionhint)))
+ 	      (if* (and ussp (not (eq ussp :unspecified)))
+ 		 then (setf flags (logior flags x11::ussizehint))
+ 	       elseif (null ussp)
+ 		 then (setf flags (logandc2 flags x11::ussizehint)))
+ 	      (setf (x11::xsizehints-flags size-hints) flags))
+ 	    (x11::xsetwmnormalhints display window size-hints)))))
+     (popup parent)))
+ 
+ (defmethod enable-xt-widget ((parent top-level-shell) (mirror t))
+   (manage-child mirror)
+   (popup (widget-parent mirror)))
 

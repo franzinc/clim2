@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: frames.lisp,v 1.33 92/07/24 10:54:21 cer Exp Locker: cer $
+;; $fiHeader: frames.lisp,v 1.34 92/07/27 11:02:21 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -41,6 +41,12 @@
      (current-layout :initarg :default-layout :initform nil
 		     :reader frame-current-layout)
      (geometry :initform nil :initarg :geometry :reader frame-geometry)
+     (user-specified-position-p :initform :unspecified
+				:initarg :user-specified-position-p
+				:reader frame-user-specified-position-p)
+     (user-specified-size-p :initform :unspecified
+			    :initarg :user-specified-size-p
+			    :reader frame-user-specified-size-p)
      (icon :initform nil :initarg :icon :reader frame-icon)
      (shell :accessor frame-shell)
      (pointer-documentation-p :initarg :pointer-documentation
@@ -494,18 +500,19 @@
 	(*application-frame* frame))
     (when panes
       (clear-space-requirement-caches-in-tree panes)
-      (multiple-value-bind (graft-width graft-height) 
-	  (bounding-rectangle-size (graft frame))
-	(cond ((and width height)
-	       (minf width graft-width) 
-	       (minf height graft-height))
-	      (t
-	       (let ((sr (compose-space panes)))
-		 (setq width  (space-requirement-width sr)
-		       height (space-requirement-height sr))
-		 ;;--- This formula looks dubious  --SWM
-		 (minf width (* 0.9 graft-width))
-		 (minf height (* 0.9 graft-height))))))
+      (unless (and width height)
+	(let ((sr (compose-space panes)))
+	  (unless width
+	    (setq width  (space-requirement-width sr)))
+	  (unless height
+	    (setq height (space-requirement-height sr)))
+	  ;;--- This looks dubious  --SWM
+	  (multiple-value-bind (gw gh)
+	      (bounding-rectangle-size (graft frame))
+	    (unless width
+	      (minf width (* 0.9 gw)))
+	    (unless height
+	      (minf height (* 0.9 gh))))))
       ;;--- Don't bother with this if the size didn't change?
       (let ((top-sheet (or (frame-top-level-sheet frame) panes)))
 	(if (and (sheet-enabled-p top-sheet)
@@ -552,11 +559,23 @@
 				    enable pretty-name
 			            left top right bottom width height
 				    save-under
+				    (user-specified-position-p :unspecified)
+				    (user-specified-size-p :unspecified)
 			       &allow-other-keys)
   (declare (dynamic-extent options))
   (check-type pretty-name (or null string))
   (when (null frame-class)
     (setq frame-class frame-name))
+  (when (eq user-specified-position-p :unspecified)
+    (if (or (and (getf (getf options :geometry) :left)
+ 		 (getf (getf options :geometry) :top))
+ 	    (and left top))
+ 	(setf user-specified-position-p t)))
+  (when (eq user-specified-size-p :unspecified)
+    (if (or (and (getf (getf options :geometry) :width)
+ 		 (getf (getf options :geometry) :height))
+ 	    (and width height))
+ 	(setf user-specified-size-p t)))
   (when (or left top right bottom width height)
     (when (getf options :geometry)
       (error "Cannot specify ~S and ~S, S, ~S, ~S, ~S, or ~S at the same time"
@@ -584,19 +603,33 @@
 		  (and height `(:height ,height)))))
   (with-keywords-removed (options options 
 			  '(:frame-class :pretty-name :enable :save-under
-			    :left :top :right :bottom :width :height))
-      (let ((frame (apply #'make-instance
-			  frame-class
-			  :name frame-name
-			  ;;--- Perhaps this should be a default-initarg?
-			  :pretty-name (or pretty-name
-					   (title-capitalize (string frame-name)))
-			  :properties `(:save-under ,save-under)
-			  options)))
-	(when enable 
-	  (enable-frame frame))
-	frame)))
+			    :left :top :right :bottom :width :height
+			    :user-specified-position-p
+ 			    :user-specified-size-p))
+    (let ((frame (apply #'make-instance
+			frame-class
+			:name frame-name
+			;;--- Perhaps this should be a default-initarg?
+			:pretty-name (or pretty-name
+					 (title-capitalize (string frame-name)))
+			:properties `(:save-under ,save-under)
+			:user-specified-size-p user-specified-size-p
+			:user-specified-position-p user-specified-position-p
+			options)))
+      (when enable 
+	(enable-frame frame))
+      frame)))
 
+<<<<<<< frames.lisp
+
+(defun title-capitalize (string)
+  (let ((new-string (substitute #\Space #\- string)))
+    (when (eq new-string string)
+      (setq new-string (copy-seq new-string)))
+    (nstring-capitalize new-string)))
+
+=======
+>>>>>>> 1.34
 (defmethod enable-frame ((frame standard-application-frame))
   (unless (frame-manager frame)
     (error "Cannot enable a disowned frame ~S" frame))
@@ -615,9 +648,7 @@
 	   frame
 	   (ecase old
 	     (:disowned 
- 	       (if (and width height)
-		   (values width height)
-		   (values)))
+	      (values width height))
 	     (:disabled
 	       (bounding-rectangle-size
 		 (frame-top-level-sheet frame)))))

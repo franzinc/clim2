@@ -45,7 +45,7 @@
 ;;      OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION
 ;;      WITH THE USE OR PERFORMANCE OF THIS OBJECT CODE.
 
-;;; $fiHeader: xlib-funs.lisp,v 1.5 92/04/21 20:28:07 cer Exp $
+;;; $fiHeader: xlib-funs.lisp,v 1.6 92/05/13 17:10:48 cer Exp $
 
 (in-package :x11)
 
@@ -1956,6 +1956,23 @@
 					    (:name "_XGetWMHints"))
   (display (:pointer display))
   (window window))
+
+(def-exported-foreign-function (xallocsizehints
+				(:name "_XAllocSizeHints")
+				(:return-type (:pointer xsizehints))))
+  
+(def-exported-foreign-function (xsetwmnormalhints (:return-type void)
+						  (:name "_XSetWMNormalHints"))
+  (display (:pointer display))
+  (window window)
+  (sizehints (:pointer xsizehints)))
+
+(def-exported-foreign-function (xgetwmnormalhints (:return-type int)
+						  (:name "_XGetWMNormalHints"))
+  (display (:pointer display))
+  (window window)
+  (hints-return (:pointer xsizehints))
+  (supplied-return (:pointer long)))
 
 
 (def-exported-foreign-function (xsavecontext (:return-type fixnum-int)

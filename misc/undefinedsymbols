@@ -163,6 +163,7 @@ _XGetSubImage
 _XGetWMHints
 _XGetWindowAttributes
 _XGetWindowProperty
+_XGetWMNormalHints
 _XGrabButton
 _XGrabKey
 _XGrabKeyboard
@@ -290,6 +291,7 @@ _XSetWindowBorder
 _XSetWindowBorderPixmap
 _XSetWindowBorderWidth
 _XSetWindowColormap
+_XSetWMNormalHints
 _XStoreColor
 _XStoreColors
 _XStoreName

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-protocol.lisp,v 1.19 92/07/24 10:54:32 cer Exp Locker: cer $
+;; $fiHeader: input-protocol.lisp,v 1.20 92/07/27 11:02:33 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -204,8 +204,9 @@
     (when text-cursor 
       (setf (cursor-focus text-cursor) t))))
 
-(defmethod queue-event :before ((stream input-protocol-mixin) (event pointer-exit-event))
-  ;; what about unhighlighting highlighted presentations?
+(defmethod queue-event :before ((stream input-protocol-mixin)
+				(event pointer-exit-event))
+  (when (port stream) (unhighlight-highlighted-presentation stream))
   (let ((text-cursor (stream-text-cursor stream)))
     (when text-cursor
       (setf (cursor-focus text-cursor) nil))))
