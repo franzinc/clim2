@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.73 1993/05/05 01:40:32 cer Exp $
+;; $fiHeader: xm-gadgets.lisp,v 1.74 93/05/13 16:25:00 cer Exp $
 
 (in-package :xm-silica)
 
@@ -196,10 +196,10 @@
                     :expose-callback 
                     'sheet-mirror-exposed-callback
                     sheet)
-  (tk::add-callback widget 
-                    :input-callback 
-                    'sheet-mirror-input-callback
-                    sheet)
+  (tk::add-callback widget
+		    :input-callback 
+		    'sheet-mirror-input-callback
+		    sheet)
   (tk::add-event-handler widget
                          '(:enter-window 
                            :leave-window
@@ -215,6 +215,7 @@
                          1
                          'sheet-mirror-event-handler
                          sheet))
+
 
 ;;-- This is identical to the method for label
 
@@ -483,6 +484,7 @@
 (defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
                                                      (parent t)
                                                      (sheet top-level-sheet))
+
   (cond 
    ;;--- hack alert
    ;; Seems that we need to use a bulletin board so that everything
@@ -1723,7 +1725,7 @@
       ;;-- ignored too but there does not appear to be an easy way
       ;;-- of going from the osf name to the keysym that we need to ignore
       ;;--  osfMenuBar
-      (member (keyboard-event-key-name event) '(:f10))))
+      (member (keyboard-event-key-name event) '(:f10 :tab))))
 
 
 (defmethod set-button-accelerator-from-keystroke ((menubar motif-menu-bar) button keystroke)
@@ -1743,3 +1745,5 @@
       (tk::set-values button 
                       :accelerator accel
                       :accelerator-text accel-text))))
+
+

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-funs.lisp,v 1.8 93/04/27 14:36:00 cer Exp $
+;; $fiHeader: xm-funs.lisp,v 1.9 93/05/05 01:40:21 cer Exp $
 
 ;;
 ;; This file contains compile time only code -- put in clim-debug.fasl.
@@ -156,8 +156,19 @@
     :arg-checking nil
     :return-type :void)
 
+(defforeign 'xm_get_focus_widget
+    :entry-point (ff:convert-to-lang "XmGetFocusWidget")
+    :call-direct t
+    :arguments '(foreign-address)
+    :arg-checking nil
+    :return-type :unsigned-integer)
 
-
+(defforeign 'xm_is_traversable
+    :entry-point (ff:convert-to-lang "XmIsTraversable")
+    :call-direct t
+    :arguments '(foreign-address)
+    :arg-checking nil
+    :return-type :unsigned-integer)
 
 (defforeign 'xm_font_list_append_entry
     :entry-point (ff:convert-to-lang "XmFontListAppendEntry")
@@ -174,8 +185,6 @@
     :arguments '(foreign-address foreign-address foreign-address)
     :arg-checking nil
     :return-type :unsigned-integer)
-
-
 
 (defforeign 'xm_font_list_entry_get_font
     :entry-point (ff:convert-to-lang "XmFontListEntryGetFont")

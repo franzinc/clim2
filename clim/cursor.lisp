@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: cursor.lisp,v 1.22 93/01/21 14:57:42 cer Exp $
+;; $fiHeader: cursor.lisp,v 1.23 93/03/04 18:59:47 colin Exp $
 
 (in-package :clim-internals)
 
@@ -42,6 +42,8 @@
 
 (defmethod bounding-rectangle* ((cursor standard-text-cursor))
   (with-slots (x y width) cursor
+    ;; this is surely wrong (ie what about height) - but frankly who
+    ;; cares?? --CIM  
     (values x y (+ x width) (+ y width))))
 
 (defconstant cursor_active (byte 1 0))
@@ -67,31 +69,30 @@
   (cursor-set-position cursor x y))
 
 (defmethod cursor-set-position ((cursor standard-text-cursor) nx ny &optional fastp)
-  (with-slots (x y flags stream) cursor
+  (with-slots (x y stream) cursor
     (unless (and (= x (coordinate nx))
 		 (= y (coordinate ny)))
-      (if (or fastp (not (cursor-state cursor)))
-	  (setf x (coordinate nx)
-		y (coordinate ny))
-	  (let ((active (cursor-active cursor))) 
-	    ;; Turn it off and then turn it on to make it move
-	    (unwind-protect
-		(progn
-		  (when active
-		    (setf (cursor-active cursor) nil))
-		  (setf x (coordinate nx)
-			y (coordinate ny)))
-	      (when active
-		(setf (cursor-active cursor) active))))))))
-
+      (let ((state (cursor-state cursor))
+	    (active (cursor-active cursor)))
+	(if (or fastp 
+		(not (and state active)))
+	    (setf x (coordinate nx)
+		  y (coordinate ny))
+	  ;; Turn it off and then turn it on to make it move
+	  (unwind-protect
+	      (progn
+		(setf (cursor-active cursor) nil)
+		(setf x (coordinate nx)
+		      y (coordinate ny)))
+	    (setf (cursor-active cursor) t)))))))
+  
 (defmethod (setf cursor-state) (new-state (cursor standard-text-cursor))
   (with-slots (flags) cursor
     (multiple-value-bind (active state focus)
 	(decode-cursor-flags flags)
       (declare (ignore active focus))
       (setf (ldb cursor_state flags) (if new-state 1 0))
-      (unless (eq state new-state)
-	(note-cursor-change cursor 'cursor-state state new-state)))))
+      (note-cursor-change cursor 'cursor-state state new-state))))
 
 (defmethod cursor-state ((cursor standard-text-cursor))
   (ldb-test cursor_state (slot-value cursor 'flags)))
@@ -102,8 +103,7 @@
 	(decode-cursor-flags flags)
       (declare (ignore state focus))
       (setf (ldb cursor_active flags) (if new-active 1 0))
-      (unless (eq active new-active)
-	(note-cursor-change cursor 'cursor-active active new-active)))))
+      (note-cursor-change cursor 'cursor-active active new-active))))
 
 (defmethod cursor-active ((cursor standard-text-cursor))
   (ldb-test cursor_active (slot-value cursor 'flags)))
@@ -114,14 +114,16 @@
 	(decode-cursor-flags flags)
       (declare (ignore active state))
       (setf (ldb cursor_focus flags) (if new-focus 1 0))
-      (unless (eq focus new-focus)
-	(note-cursor-change cursor 'cursor-focus focus new-focus)))))
+      (note-cursor-change cursor 'cursor-focus focus new-focus))))
 
 (defmethod cursor-focus ((cursor standard-text-cursor))
   (ldb-test cursor_focus (slot-value cursor 'flags)))
 
 (defmethod cursor-visibility ((cursor standard-text-cursor))
-  (cursor-active cursor))
+  (and (cursor-active cursor)
+       (if (cursor-state cursor)
+	   :on
+	 :off)))
  
 (defmethod (setf cursor-visibility) (visibility (cursor standard-text-cursor))
   (setf (cursor-state cursor) 
@@ -152,6 +154,23 @@
 	 (unless abort-p
 	   (setf (cursor-state cursor) old-state))))))
 
+(defmacro with-cursor-active ((stream active) &body body)
+  (default-input-stream stream)
+  `(let* ((cursor (and (extended-input-stream-p ,stream)
+		       (stream-text-cursor ,stream)))
+	  (old-active (and cursor (cursor-active cursor)))
+	  (abort-p t))
+     (unwind-protect
+	 (progn (when cursor
+		  (cond ((eq old-active ,active))
+			(t
+			 (setf (cursor-active cursor) ,active)
+			 (setf abort-p nil))))
+		,@body)
+       (when cursor
+	 (unless abort-p
+	   (setf (cursor-active cursor) old-active))))))
+
 (defmethod cursor-width-and-height-pending-protocol ((cursor t))
   (values 8 12))
 
@@ -172,61 +191,61 @@
 ;;; state transitions.  For example, the cursor might be getting the focus, and
 ;;; thus change from a hollow rectangle to a filled one (or in Genera, it might
 ;;; start blinking).
-(defmethod port-note-cursor-change :after ((port basic-port) 
-					   cursor stream (type (eql 'cursor-focus)) old new)
-  (declare (ignore old cursor))
-  ;;--- This should really only do this when PORT-INPUT-FOCUS-SELECTION
-  ;;--- is :SHEET-UNDER-POINTER, since this causes the "wrong" thing to
-  ;;--- happen from the perspective of Genera users.  But where do we
-  ;;--- implement the :CLICK-TO-SELECT behavior?
-  (setf (port-keyboard-input-focus port) (and new stream)))
 
 (defmethod port-note-cursor-change ((port basic-port) 
 				    cursor stream (type (eql 'cursor-state)) old new)
-  (declare (ignore old))
-  (let ((active (cursor-active cursor)))
+  (let ((active (cursor-active cursor))
+	(focus (cursor-focus cursor)))
     (when active
       (multiple-value-bind (x y) (bounding-rectangle* cursor)
-	(if new
-	    (port-draw-cursor port cursor stream x y t)
-	    (port-draw-cursor port cursor stream x y nil))))))
+	(port-draw-cursor port cursor stream x y old new focus)))))
 
 (defmethod port-note-cursor-change ((port basic-port) 
 				    cursor stream (type (eql 'cursor-active)) old new)
-  (declare (ignore old))
-  (let ((state (cursor-state cursor)))
+  (let ((state (cursor-state cursor))
+	(focus (cursor-focus cursor)))
     (when state
       (multiple-value-bind (x y) (bounding-rectangle* cursor)
-	(if new
-	    (port-draw-cursor port cursor stream x y t)
-	    (port-draw-cursor port cursor stream x y nil))))))
+	(port-draw-cursor port cursor stream x y old new focus)))))
 
 (defmethod port-note-cursor-change ((port basic-port) 
 				    cursor stream (type (eql 'cursor-focus)) old new)
   (let ((active (cursor-active cursor))
 	(state (cursor-state cursor)))
-    (declare (ignore focus))
-    (when (and active state)
+    (when (and active 
+	       state
+	       (not (eq old new)))
       (multiple-value-bind (x y) (bounding-rectangle* cursor)
 	;; erase it with old-focus
-	(port-draw-cursor port cursor stream x y nil old)
+	(port-draw-cursor port cursor stream x y t nil old)
 	;; draw it with new-focus
-	(port-draw-cursor port cursor stream x y t new)))))
+	(port-draw-cursor port cursor stream x y nil t new)))))
 
 ;; PORT-DRAW-CURSOR is invoked to draw or erase the cursor.
 (defmethod port-draw-cursor
-	   ((port basic-port) (cursor standard-text-cursor) stream x y on-p
-	    &optional (focus nil focus-p))
-  #---ignore (declare (ignore on-p))
+    ((port basic-port) (cursor standard-text-cursor) stream x1 y1 old new focus)
   ;;--- protocol violations:  output recording protocol (with-output-recording-options)
   ;;---                       graphics protocol (draw-rectangle*)
   ;;---                       output protocol (stream-line-height)
   (let ((height (stream-line-height stream))
 	(width (slot-value cursor 'width)))
-    (unless focus-p (setq focus (cursor-focus cursor)))
-    (with-output-recording-options (stream :record nil)
-      (draw-rectangle* stream x y (+ x width) (+ y height)
-		       :filled focus
-		       :ink #+++ignore (if on-p +foreground-ink+ +background-ink+)
-			    #---ignore +flipping-ink+))
-    (force-output stream)))
+    (unless (eq old new)
+      (with-output-recording-options (stream :record nil)
+	(with-drawing-options (stream :ink +flipping-ink+)
+	  (let ((x2 (+ x1 width))
+		(y2 (+ y1 height)))
+	    (if focus
+		(draw-rectangle* stream x1 y1 (1+ x2) (1+ y2)
+				 :filled t)
+	      (progn
+		(draw-line* stream x1 y1 x2 y1)
+		(draw-line* stream x1 y2 x2 y2)
+		(draw-line* stream x1 (1+ y1) x1 (1- y2))
+		(draw-line* stream x2 (1+ y1) x2 (1- y2))))))
+	(force-output stream)))))
+
+
+
+
+
+

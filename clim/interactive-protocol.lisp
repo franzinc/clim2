@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: interactive-protocol.lisp,v 1.25 1993/05/05 01:38:40 cer Exp $
+;; $fiHeader: interactive-protocol.lisp,v 1.26 93/05/13 16:23:19 cer Exp $
 
 (in-package :clim-internals)
 
@@ -469,10 +469,11 @@
 		   ;; If there's anything in the input buffer, disallow accelerators
 		   (and *input-buffer-empty* *accelerator-gestures*)))
 	    (stream-read-gesture stream
-	      :timeout timeout :peek-p peek-p
-	      :input-wait-test input-wait-test
-	      :input-wait-handler input-wait-handler
-	      :pointer-button-press-handler pointer-button-press-handler))
+				 :timeout timeout :peek-p peek-p
+				 :input-wait-test input-wait-test
+				 :input-wait-handler input-wait-handler
+				 :pointer-button-press-handler
+				 pointer-button-press-handler))
 	(cond ((eq type ':timeout)
 	       (return-from stream-read-gesture
 		 (values thing type)))

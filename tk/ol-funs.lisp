@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-funs.lisp,v 1.8 92/12/14 15:03:59 cer Exp $
+;; $fiHeader: ol-funs.lisp,v 1.9 93/03/31 10:40:00 cer Exp $
 
 ;;
 ;; This file contains compile time only code -- put in clim-debug.fasl.
@@ -70,12 +70,40 @@
     :arg-checking nil
     :return-type :void)
 
+(defforeign 'ol_call_accept_focus
+    :entry-point (ff:convert-to-lang "OlCallAcceptFocus")
+    :call-direct t
+    :arguments '(foreign-address integer)
+    :arg-checking nil
+    :return-type :unsigned-integer)
+
+(defforeign 'ol_can_accept_focus
+    :entry-point (ff:convert-to-lang "OlCanAcceptFocus")
+    :call-direct t
+    :arguments '(foreign-address integer)
+    :arg-checking nil
+    :return-type :unsigned-integer)
+
 (defforeign 'ol_set_input_focus
     :entry-point (ff:convert-to-lang "OlSetInputFocus")
     :call-direct t
     :arguments '(foreign-address fixnum integer)
     :arg-checking nil
     :return-type :void)
+
+(defforeign 'ol_move_focus
+    :entry-point (ff:convert-to-lang "OlMoveFocus")
+    :call-direct t
+    :arguments '(foreign-address fixnum integer)
+    :arg-checking nil
+    :return-type :void)
+
+(defforeign 'ol_get_current_focus_widget
+    :entry-point (ff:convert-to-lang "OlGetCurrentFocusWidget")
+    :call-direct t
+    :arguments '(foreign-address)
+    :arg-checking nil
+    :return-type :unsigned-integer)
 
 (defforeign 'ol_menu_post
     :entry-point (ff:convert-to-lang "OlMenuPost")

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: packages.lisp,v 1.52 93/04/02 18:41:13 cer Exp $
+;; $fiHeader: packages.lisp,v 1.53 93/04/27 14:36:16 cer Exp $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :common-lisp-user)
 
@@ -1760,6 +1760,9 @@
     fetch-clipping-region
     find-graft
     find-port
+    focus-event
+    focus-in-event
+    focus-out-event
     graft
     graft-height
     graft-orientation
@@ -1819,6 +1822,8 @@
     note-sheet-disowned
     note-sheet-enabled
     note-sheet-grafted
+    note-sheet-gain-focus
+    note-sheet-lose-focus
     note-sheet-region-changed
     note-sheet-transformation-changed
     permanent-medium-sheet-output-mixin
@@ -2071,7 +2076,7 @@
     pattern-width
     
     ;; Palettes
-    add-color-to-palette
+    add-colors-to-palette
     frame-manager-palette
     frame-palette
     make-palette
@@ -2081,7 +2086,7 @@
     palette-full
     palettep
     port-default-palette
-    remove-color-from-palette
+    remove-colors-from-palette
 
     ;; Extended output
     beep

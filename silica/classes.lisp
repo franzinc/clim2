@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: classes.lisp,v 1.31 93/03/04 19:01:04 colin Exp $
+;; $fiHeader: classes.lisp,v 1.32 93/03/25 15:40:19 colin Exp $
 
 (in-package :silica)
 
@@ -27,7 +27,7 @@
      (mirror->sheet-table :initform (make-hash-table) 
 			  :reader port-mirror->sheet-table)
      (focus :initform nil :accessor port-keyboard-input-focus)
-     (focus-selection :initform :sheet-under-pointer :initarg :focus-selection
+     (focus-selection :initform :click-to-select :initarg :focus-selection
 		      :accessor port-input-focus-selection
 		      :type (member :sheet-under-pointer :click-to-select))
      (trace-thing :initform (make-array 10 :fill-pointer 0 :adjustable t)
@@ -170,7 +170,6 @@
 (define-event-class pointer-exit-event (pointer-boundary-event) ())
 (define-event-class pointer-enter-event (pointer-boundary-event) ())
 
-
 (define-event-class window-event (event)
   ((region :reader window-event-region :initarg :region)
    (native-region :reader window-event-native-region :initarg :native-region)
@@ -194,6 +193,12 @@
 
 
 (define-event-class timer-event (event) ())
+
+(define-event-class focus-event (event)
+  ((sheet :reader event-sheet :initarg :sheet)))
+
+(define-event-class focus-in-event (focus-event) ())
+(define-event-class focus-out-event (focus-event) ())
 
 
 ;;; Values used in event objects

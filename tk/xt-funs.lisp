@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-funs.lisp,v 1.16 93/01/11 15:46:02 colin Exp $
+;; $fiHeader: xt-funs.lisp,v 1.17 93/05/13 16:24:42 cer Exp $
 
 ;;
 ;; This file contains compile time only code -- put in clim-debug.fasl.
@@ -369,6 +369,12 @@
     :arg-checking nil
     :return-type :unsigned-integer)
 
+(defforeign 'xt_set_keyboard_focus
+    :entry-point (ff:convert-to-lang "XtSetKeyboardFocus")
+    :call-direct t
+    :arguments '(foreign-address foreign-address)
+    :arg-checking nil
+    :return-type :unsigned-integer)
 
 (ff:defforeign 'init_clim_gc_cursor_stuff
     :call-direct t

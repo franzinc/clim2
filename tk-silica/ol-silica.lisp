@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-silica.lisp,v 1.18 93/04/27 14:36:07 cer Exp $
+;; $fiHeader: ol-silica.lisp,v 1.19 93/05/13 16:24:56 cer Exp $
 
 (in-package :xm-silica)
 
@@ -35,17 +35,9 @@
 
 (setq *default-server-path* '(:openlook))
 
-(defmethod make-cursor-widget-for-port ((port openlook-port) parent)
-  (make-instance 'tk::draw-area
-		 :parent parent
-		 :background (tk::get-values parent :foreground)
-		 :width 2
-		 :height 11
-		 :managed t))
-
-(defmethod port-note-cursor-change :after ((port openlook-port)
-					   cursor stream type old new)
-  (declare (ignore old type cursor))
+(defmethod port-note-cursor-change :after
+    ((port openlook-port) cursor stream (type (eql 'cursor-focus)) old new)
+  (declare (ignore cursor old))
   (when new 
     (let ((mirror (sheet-mirror stream)))
       (when mirror 
@@ -94,7 +86,6 @@
 		 (append
 		  (let ((x (find-shell-of-calling-frame sheet)))
 		    (and x `(:transient-for ,x)))
-		  '(:keyboard-focus-policy :pointer)
 		  (and (typep (pane-frame sheet)
 			   'clim-internals::menu-frame)
 		    '(:override-redirect t)))))
@@ -112,3 +103,6 @@
   ;; Only do this if its the top most widget being destroyed or we are
   ;; screwing around with the tree in someway
   (xt::unmanage-child (sheet-direct-mirror sheet)))
+
+(defun ol-get-focus-widget (widget)
+  (tk::intern-widget (tk::ol_get_current_focus_widget widget)))

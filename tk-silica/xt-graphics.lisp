@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.71 93/04/12 21:22:25 colin Exp $
+;; $fiHeader: xt-graphics.lisp,v 1.72 93/05/13 16:25:03 cer Exp $
 
 (in-package :tk-silica)
 
@@ -99,22 +99,22 @@
    (white-pixel :initarg :white-pixel)
    (black-pixel :initarg :black-pixel)))
 
-(defun make-xt-palette (port colormap)
+
+(defmethod make-palette ((port xt-port) &key colormap)
   (let* ((display (port-display port))
 	 (screen (tk::display-screen-number display)))
     (make-instance 'xt-palette
-		   :port port
-		   :colormap colormap
-		   :dynamic-p (and 
-			       (member (port-visual-class port)
-				       '(:gray-scale :pseudo-color :direct-color))
-			       t)
-		   :color-p (port-color-p port)
-		   :white-pixel (x11:xwhitepixel display screen)
-		   :black-pixel (x11:xblackpixel display screen))))
+      :port port
+      :colormap (or colormap
+		    (tk::create-colormap (port-display port)))
+      :dynamic-p (and 
+		  (member (port-visual-class port)
+			  '(:gray-scale :pseudo-color :direct-color))
+		  t)
+      :color-p (port-color-p port)
+      :white-pixel (x11:xwhitepixel display screen)
+      :black-pixel (x11:xblackpixel display screen))))
 
-(defmethod make-palette ((port xt-port) &key)
-  (make-xt-palette port (tk::create-colormap (port-display port))))
 
 (defmethod medium-palette ((medium xt-medium))
   (let ((frame (pane-frame (medium-sheet medium))))

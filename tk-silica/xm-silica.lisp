@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-silica.lisp,v 1.34 93/04/07 09:07:25 cer Exp $
+;; $fiHeader: xm-silica.lisp,v 1.35 93/04/16 09:46:02 cer Exp $
 
 (in-package :xm-silica)
 
@@ -57,36 +57,29 @@
 
 (defclass motif-geometry-manager (xt-geometry-manager) ())
 
+
+(defmethod change-widget-geometry ((parent tk::xm-dialog-shell) child
+				   &rest args
+				   &key x y width height)
+  (declare (ignore x y args))
+  (tk::set-values child :width width :height height :x x :y y))
+
 (defmethod find-shell-class-and-initargs ((port motif-port) sheet)
-  (if (popup-frame-p sheet)
-      (values 'tk::xm-dialog-shell
-	      (append
-	       (let ((x (find-shell-of-calling-frame sheet)))
-		 (and x `(:transient-for ,x)))
-	       '(:keyboard-focus-policy :pointer)
-	       (and (typep (pane-frame sheet)
-			   'clim-internals::menu-frame)
-		    '(:override-redirect t))))
-    (call-next-method)))
-
-(defmethod make-cursor-widget-for-port ((port motif-port) parent)
-  (make-instance 'tk::xm-my-drawing-area
-		 :parent parent
-		 :background (tk::get-values parent :foreground)
-		 :width 2
-		 :height 11
-		 :managed t))
-
-#+ignore 
-(ff:defforeign 'xmprocesstraversal
-    :entry-point (ff:convert-to-lang "_XmProcessTraversal"))
-
-#+ignore 
-(defmethod port-note-cursor-change :after ((port motif-port)
-					   cursor stream type old new)
-  (declare (ignore old type cursor))
-  (when new
-    (xmprocesstraversal (sheet-mirror stream) 0)))
+  (multiple-value-bind (class initargs)
+      (if (popup-frame-p sheet)
+	  (values 'tk::xm-dialog-shell
+		  (append
+		   (let ((x (find-shell-of-calling-frame sheet)))
+		     (and x `(:transient-for ,x)))
+		   (and (typep (pane-frame sheet)
+			       'clim-internals::menu-frame)
+			'(:override-redirect t))))
+	(call-next-method))
+    (values class `(:keyboard-focus-policy 
+		    ,(ecase (port-input-focus-selection port)
+		       (:click-to-select :explicit)
+		       (:sheet-under-pointer :pointer))
+		    ,@initargs))))
 
 (defmethod enable-xt-widget ((parent tk::xm-dialog-shell) (mirror t))
   ;; this is a nasty hack just to make sure that the child is managed.
@@ -94,7 +87,6 @@
   ;; disabled to we have to do not!
   (manage-child mirror)
   (popup (widget-parent mirror)))
-
 
 
 (ff:defun-c-callable my-drawing-area-query-geometry-stub ((widget :unsigned-long)
@@ -135,5 +127,56 @@
 
 
     (return-from my-drawing-area-query-geometry tk::xt-geometry-almost)))
+
+
+;;; hacks for explicit focus
+
+(defmethod note-sheet-tree-grafted :after ((port motif-port)
+					   (sheet clim-stream-sheet))
+  ;; this is a hack which enables this child widget to take input
+  ;; events in the presence of explicit focus.
+  (let ((cursor (stream-text-cursor sheet))
+	(widget (sheet-mirror sheet)))
+    (when cursor
+      (let ((input-widget (make-instance 'tk::xm-my-drawing-area
+					 :parent widget
+					 :background (tk::get-values widget
+								     :background)
+					 :width 1
+					 :height 1
+					 :managed (cursor-active cursor))))
+	(with-slots (clim-internals::plist) cursor
+	  (setf (getf clim-internals::plist :input-widget) input-widget)
+	  (tk::add-callback input-widget
+			    :input-callback 
+			    'sheet-mirror-input-callback
+			    sheet)
+	  (tk::add-event-handler input-widget
+				 '(:focus-change)
+				 1
+				 'sheet-mirror-event-handler
+				 sheet))))))
+
+(defmethod port-note-cursor-change :after 
+	   ((port motif-port) cursor stream (type (eql 'cursor-active)) old new)
+  (declare (ignore stream old))
+  (let* ((plist (slot-value cursor 'clim-internals::plist))
+	 (input-widget (getf plist :input-widget)))
+    (when input-widget
+      (if new
+	  (tk::manage-child input-widget)
+	(tk::unmanage-child input-widget)))))
+
+(defmethod port-note-cursor-change :after
+	   ((port motif-port) cursor stream (type (eql 'cursor-focus)) old new)
+  (declare (ignore stream old))
+  (when new
+    (let* ((plist (slot-value cursor 'clim-internals::plist))
+	   (input-widget (getf plist :input-widget)))
+      (when input-widget
+	(tk::xm_process_traversal input-widget 0)))))
+
+(defun xm-get-focus-widget (widget)
+  (tk::intern-widget (tk::xm_get_focus_widget widget)))
 
 

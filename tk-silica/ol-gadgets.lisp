@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-gadgets.lisp,v 1.48 1993/05/05 01:40:28 cer Exp $
+;; $fiHeader: ol-gadgets.lisp,v 1.49 93/05/13 16:24:53 cer Exp $
 
 
 (in-package :xm-silica)
@@ -587,9 +587,6 @@
       (tk::add-event-handler edit-widget
 			     '(:focus-change)
 			     1
-			     ;; this should eventually be
-			     ;; sheet-mirror-event-handler once all
-			     ;; the focus stuff works
 			     'openlook-text-field-event-handler
 			     sheet))))
 
@@ -1795,10 +1792,11 @@
 		      :accelerator-text accel-text))))
 
 (defmethod discard-accelerator-event-p ((port openlook-port) (event t))
-  ;;-- There are a whole bunch of other keysyms that need to be ignored.
-  ;;-- Perhaps in OLIT there is a way of getting the actual keysym.
-  ;;-- Perhaps we need a way of representing them in the clim world
-  (call-next-method))
+  (or (call-next-method)
+      ;;-- There are a whole bunch of other keysyms that need to be ignored.
+      ;;-- Perhaps in OLIT there is a way of getting the actual keysym.
+      ;;-- Perhaps we need a way of representing them in the clim world
+      (member (keyboard-event-key-name event) '(:tab))))
 
 (defmethod frame-manager-notify-user ((framem openlook-frame-manager)
 				      message-string 

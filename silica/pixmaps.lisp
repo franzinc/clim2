@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: pixmaps.lisp,v 1.15 93/02/08 15:57:36 cer Exp $
+;; $fiHeader: pixmaps.lisp,v 1.16 93/03/25 15:40:37 colin Exp $
 
 (in-package :silica)
 
@@ -10,11 +10,14 @@
 
 ;;; Pixmaps
 
-(defclass pixmap () ())
+(defclass pixmap () 
+  ((port :reader pixmap-port :initarg :port)))
 
 (defgeneric pixmap-width (pixmap))
 (defgeneric pixmap-height (pixmap))
 
+(defmethod port ((pixmap pixmap))
+  (pixmap-port pixmap))
 
 ;;; Pixmap mediums
 
@@ -40,18 +43,33 @@
     (medium-copy-area medium from-x from-y width height
 		      medium to-x to-y)))
 
-(defun copy-from-pixmap (pixmap pixmap-x pixmap-y width height
-			 medium medium-x medium-y)
+(defmethod copy-from-pixmap (pixmap pixmap-x pixmap-y width height
+			     (medium basic-medium) medium-x medium-y)
   (medium-copy-area pixmap pixmap-x pixmap-y width height
 		    medium medium-x medium-y))
 
-(defun copy-to-pixmap (medium medium-x medium-y width height
+(defmethod copy-from-pixmap (pixmap pixmap-x pixmap-y width height
+			     (sheet basic-sheet) medium-x medium-y)
+  (with-sheet-medium (medium sheet)
+    (medium-copy-area pixmap pixmap-x pixmap-y width height
+		      medium medium-x medium-y)))
+
+(defmethod copy-to-pixmap ((medium basic-medium) medium-x medium-y width height
 		       &optional pixmap (pixmap-x 0) (pixmap-y 0))
   (unless pixmap
     (setf pixmap (allocate-pixmap medium width height)))
   (medium-copy-area medium medium-x medium-y width height
 		    pixmap pixmap-x pixmap-y)
   pixmap)
+
+(defmethod copy-to-pixmap ((sheet basic-sheet) medium-x medium-y width height
+		       &optional pixmap (pixmap-x 0) (pixmap-y 0))
+  (with-sheet-medium (medium sheet)
+    (unless pixmap
+      (setf pixmap (allocate-pixmap medium width height)))
+    (medium-copy-area medium medium-x medium-y width height
+		      pixmap pixmap-x pixmap-y)
+    pixmap))
 
 
 ;;; Pixmap sheets

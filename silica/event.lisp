@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: event.lisp,v 1.34 93/03/31 10:39:34 cer Exp $
+;; $fiHeader: event.lisp,v 1.35 93/05/05 01:39:44 cer Exp $
 
 (in-package :silica)
 
@@ -23,7 +23,22 @@
   #+++ignore (warn "Ignoring event ~S on sheet ~S" sheet event)
   nil)
 
+(defgeneric port-input-focus-selection (port))
 (defgeneric port-keyboard-input-focus (port))
+
+(defgeneric note-sheet-gain-focus (sheet))
+(defgeneric note-sheet-lose-focus (sheet))
+
+(defmethod note-sheet-gain-focus ((sheet basic-sheet)) nil)
+(defmethod note-sheet-lose-focus ((sheet basic-sheet)) nil)
+
+(defmethod (setf port-keyboard-input-focus) :before (focus (port basic-port))
+  (let ((old-focus (port-keyboard-input-focus port)))
+    (when (and old-focus
+	       (not (eq focus old-focus)))
+      (note-sheet-lose-focus old-focus))
+    (when focus
+      (note-sheet-gain-focus focus))))
 
 (defclass sheet-with-event-queue-mixin ()
     ((event-queue :initform nil :initarg :event-queue
@@ -207,6 +222,8 @@
 	     (push sheet sheets))))
     (macrolet ((generate-enter-event (sheet kind)
 		 `(let ((sheet ,sheet))
+		    (when (eq (port-input-focus-selection port) :sheet-under-pointer)
+		      (setf (port-keyboard-input-focus port) sheet))
 		    (dispatch-event
 		      sheet
 		      (allocate-event 'pointer-enter-event
@@ -218,6 +235,10 @@
 			:pointer pointer))))
 	       (generate-exit-event (sheet kind)
 		 `(let ((sheet ,sheet))
+		    (when (and (eq (port-input-focus-selection port)
+				   :sheet-under-pointer)
+			       (eq (port-keyboard-input-focus port) sheet))
+		      (setf (port-keyboard-input-focus port) nil))
 		    (dispatch-event
 		      sheet
 		      (allocate-event 'pointer-exit-event
@@ -346,6 +367,8 @@
 	 (pointer (pointer-event-pointer event)))
     (macrolet ((generate-enter-event (sheet kind)
 		 `(let ((sheet ,sheet))
+		    (when (eq (port-input-focus-selection port) :sheet-under-pointer)
+		      (setf (port-keyboard-input-focus port) sheet))
 		    (dispatch-event
 		      sheet
 		      (allocate-event 'pointer-enter-event
@@ -357,6 +380,10 @@
 			:pointer pointer))))
 	       (generate-exit-event (sheet kind)
 		 `(let ((sheet ,sheet))
+		    (when (and (eq (port-input-focus-selection port)
+				   :sheet-under-pointer)
+			       (eq (port-keyboard-input-focus port) sheet))
+		      (setf (port-keyboard-input-focus port) nil))
 		    (dispatch-event
 		      sheet
 		      (allocate-event 'pointer-exit-event
@@ -469,7 +496,7 @@
 (defmethod distribute-event :before ((port basic-port) (event pointer-button-press-event))
   (let ((pointer (pointer-event-pointer event)))
     (setf (pointer-button-state pointer) 
-	  (logior (pointer-button-state pointer) (pointer-event-button event)))))
+      (logior (pointer-button-state pointer) (pointer-event-button event)))))
 
 (defmethod distribute-event :before ((port basic-port) (event pointer-button-release-event))
   (let ((pointer (pointer-event-pointer event)))
@@ -490,11 +517,17 @@
   (dispatch-event (event-sheet event) event))
 
 (defmethod distribute-event-1 ((port basic-port) (event keyboard-event))
-  (let ((focus (or (port-keyboard-input-focus port)
-		   (event-sheet event))))
-    ;;--- Is this correct???
-    (setf (slot-value event 'sheet) focus)
-    (dispatch-event focus event)))
+  (let ((sheet (port-keyboard-input-focus port)))
+    ;;---is it ok to setf an event's sheet??
+    (when sheet
+      (setf (slot-value event 'sheet) sheet)
+      (dispatch-event sheet event))))
+
+(defmethod distribute-event-1 ((port basic-port) (event focus-in-event))
+  (setf (port-keyboard-input-focus port) (event-sheet event)))
+
+(defmethod distribute-event-1 ((port basic-port) (event focus-out-event))
+  (setf (port-keyboard-input-focus port) nil))
 
 (defmethod distribute-event-1 ((port basic-port) (event window-event))
   (dispatch-event 
@@ -519,8 +552,14 @@
 		      (aref v (1- (fill-pointer v)))))))
     (dispatch-pointer-event-to-sheet port event sheet)))
 
-(defun dispatch-pointer-event-to-sheet (port event sheet)
-  (declare (ignore port))
+(defmethod dispatch-pointer-event-to-sheet :before 
+	   ((port basic-port) (event pointer-button-press-event) sheet)
+  (let ((button (pointer-event-button event)))
+    (when (and (eq (port-input-focus-selection port) :click-to-select)
+	       (eq button +pointer-left-button+))
+      (setf (port-keyboard-input-focus port) sheet))))
+  
+(defmethod dispatch-pointer-event-to-sheet ((port basic-port) (event event) sheet)
   (let ((event-type (class-name (class-of event)))
 	(x (pointer-event-native-x event))
 	(y (pointer-event-native-y event))

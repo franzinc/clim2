@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clim-defs.lisp,v 1.21 92/12/07 12:14:08 cer Exp $
+;; $fiHeader: clim-defs.lisp,v 1.22 92/12/16 16:46:05 cer Exp $
 
 (in-package :clim-internals)
 
@@ -233,12 +233,14 @@
 	 (expand-presentation-type-abbreviation ,type) ,override
 	 #'body-continuation #'context-continuation))))
 
-(defmacro with-input-focus ((stream) &body body)
+(defmacro with-input-focus ((stream &optional (doit t)) &body body)
   (let ((old-input-focus '#:old-input-focus))
     `(let ((,old-input-focus nil))
        (unwind-protect
-	   (progn (setq ,old-input-focus (stream-set-input-focus ,stream))
-		  ,@body)
+	   (progn
+	     (when ,doit
+	       (setq ,old-input-focus (stream-set-input-focus ,stream)))
+	     ,@body)
 	 (when ,old-input-focus
 	   (stream-restore-input-focus ,stream ,old-input-focus))))))
 

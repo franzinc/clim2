@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadget-output.lisp,v 1.48 1993/05/05 01:38:27 cer Exp $
+;; $fiHeader: gadget-output.lisp,v 1.49 93/05/13 16:23:07 cer Exp $
 
 (in-package :clim-internals)
 
@@ -312,9 +312,7 @@
 		   (when (typep sheet 'toggle-button)
 		     (when (setf (gadget-value sheet)
 				 (and default-supplied-p
-				      (funcall test 
-					       (funcall value-key (gadget-id sheet))
-					       (funcall value-key default))))
+				      (funcall test (gadget-id sheet) default)))
 		       (setf (radio-box-current-selection radio-box) sheet))))
 	       radio-box)))
       (with-output-as-gadget (stream :cache-value type :update-gadget #'update-gadget)
@@ -328,24 +326,20 @@
 			  (let* ((value (funcall value-key element))
 				 (button
 				  (apply #'make-pane 'toggle-button 
-				    :label 
-				      (let ((name (funcall name-key element)))
-					(if (eq printer #'write-token)
-					    name
-					    (pixmap-from-menu-item stream name printer nil)))
-				    :indicator-type
-				      (getf toggle-options :indicator-type :one-of)
-				    :value
-				      (and default-supplied-p
-					   (funcall test 
-						    value
-						    (funcall value-key default)))
-				    :id value
-				    toggle-options)))
+					 :label 
+					 (let ((name (funcall name-key element)))
+					   (if (eq printer #'write-token)
+					       name
+					     (pixmap-from-menu-item stream name printer nil)))
+					 :indicator-type
+					 (getf toggle-options :indicator-type :one-of)
+					 :value
+					 (and default-supplied-p
+					      (funcall test value default))
+					 :id value
+					 toggle-options)))
 			    (when (and default-supplied-p
-				       (funcall test 
-						value
-						(funcall value-key default)))
+				       (funcall test value default))
 			      (setq current-selection button))
 			    button))
 		      sequence))
@@ -404,9 +398,7 @@
 		     (let ((value 
 			     (and default-supplied-p
 				  (member (gadget-id sheet) default
-					  :test test 
-					  ;;--- Should the value-key be used?
-					  :key value-key) 
+					  :test test)
 				  t)))
 		       (when value (push sheet current-selection))
 		       (setf (gadget-value sheet) value))))
@@ -424,9 +416,7 @@
 			(let* ((value (funcall value-key element))
 			       (actual-value (and default-supplied-p
 						  (member value default
-							  :test test 
-							  ;;--- Should the value-key be used?
-							  :key value-key)
+							  :test test)
 						  t))
 			       (button
 				 (apply #'make-pane 'toggle-button

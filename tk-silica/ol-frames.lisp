@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-frames.lisp,v 1.22 93/03/31 10:40:10 cer Exp $
+;; $fiHeader: ol-frames.lisp,v 1.23 93/04/08 13:18:52 colin Exp $
 
 
 (in-package :xm-silica)
@@ -63,7 +63,7 @@
 	    row-wise
 	    n-columns
 	    n-rows)
-  (declare (ignore gesture))
+  (declare (ignore gesture row-wise n-columns n-rows))
   (let* (value-returned 
 	 return-value
 	 (simplep (and (null printer)

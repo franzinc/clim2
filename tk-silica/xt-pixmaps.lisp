@@ -20,31 +20,35 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-pixmaps.lisp,v 1.14 93/02/08 15:58:17 cer Exp $
+;; $fiHeader: xt-pixmaps.lisp,v 1.15 93/02/10 10:04:31 cer Exp $
 
 
 (in-package :xm-silica)
+
+(defclass xt-pixmap (tk::pixmap pixmap)
+  ())
 
 (defmethod port-allocate-pixmap ((port xt-port) medium width height)
   (declare (ignore medium))
   (fix-coordinates width height)
   (let ((root (tk::display-root-window (port-display port))))
-    (make-instance 'tk::pixmap
+    (make-instance 'xt-pixmap
       :drawable root
       :width width
       :height height
-      :depth (tk::drawable-depth root))))
+      :depth (tk::drawable-depth root)
+      :port port)))
 
-(defmethod port-deallocate-pixmap ((port xt-port) (pixmap tk::pixmap))
+(defmethod port-deallocate-pixmap ((port xt-port) (pixmap xt-pixmap))
   (x11:xfreepixmap (port-display port) pixmap))
 
-(defmethod pixmap-width ((pixmap tk::pixmap))
+(defmethod pixmap-width ((pixmap xt-pixmap))
   (tk::pixmap-width pixmap))
 
-(defmethod pixmap-height ((pixmap tk::pixmap))
+(defmethod pixmap-height ((pixmap xt-pixmap))
   (tk::pixmap-height pixmap))
 
-(defmethod pixmap-depth ((pixmap tk::pixmap))
+(defmethod pixmap-depth ((pixmap xt-pixmap))
   (tk::pixmap-depth pixmap))
 
 
@@ -116,7 +120,7 @@
 
 
 (defmethod medium-copy-area 
-	   ((pixmap tk::pixmap) from-x from-y width height
+	   ((pixmap xt-pixmap) from-x from-y width height
 	    (to-medium xt-medium) to-x to-y)
   (let ((transform (sheet-native-transformation (medium-sheet to-medium))))
     (convert-to-device-coordinates transform to-x to-y)
@@ -129,7 +133,7 @@
 
 (defmethod medium-copy-area 
 	   ((from-medium xt-medium) from-x from-y width height
-				    (pixmap tk::pixmap) to-x to-y)
+				    (pixmap xt-pixmap) to-x to-y)
   ;;; What about the graphics exposure event problem
   (let ((transform (sheet-native-transformation (medium-sheet from-medium))))
     (convert-to-device-coordinates transform from-x from-y)
@@ -140,30 +144,4 @@
 	window copy-gc from-x from-y width height 
 	pixmap to-x to-y))))
 
-;;; I dont understand the need for these methods
-;;; Also what is the xt-pixmap class below.
 
-#+ignore
-(defmethod medium-copy-area 
-	   ((from-medium xt-medium) from-x from-y width height
-	    (pixmap tk::pixmap) to-x to-y)
-  (let ((transform (sheet-native-transformation (medium-sheet from-medium))))
-    (convert-to-device-coordinates transform from-x from-y)
-    (convert-to-device-distances transform width height)
-    (let ((window (medium-drawable from-medium))
-	  (copy-gc (make-instance 'tk::gcontext :drawable window)))
-      (tk::copy-area 
-	window copy-gc from-x from-y width height 
-	pixmap to-x to-y))))
-
-#+ignore
-(defmethod medium-copy-area 
-	   ((pixmap tk::pixmap) from-x from-y width height
-	    (to-medium xt-medium) to-x to-y)
-  (let ((transform (sheet-native-transformation (medium-sheet to-medium))))
-    (convert-to-device-coordinates transform to-x to-y)
-    (let ((window (medium-drawable to-medium))
-	  (copy-gc (make-instance 'tk::gcontext :drawable window)))
-      (tk::copy-area 
-	pixmap copy-gc from-x from-y width height
-	window to-x to-y))))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: designs.lisp,v 1.13 92/11/19 14:25:41 cer Exp $
+;; $fiHeader: designs.lisp,v 1.14 92/12/03 10:30:37 cer Exp $
 
 (in-package :clim-utils)
 
@@ -320,7 +320,7 @@
 	       (palette-full-palette condition)))))
 )	;eval-when
 
-(defmethod add-color-to-palette ((palette basic-palette) &rest colors)
+(defmethod add-colors-to-palette ((palette basic-palette) &rest colors)
   (declare (dynamic-extent colors))
   (let ((colors-done nil))
     (dolist (color colors)
@@ -333,7 +333,7 @@
 	   (deallocate-color color palette))
 	 (error condition))))))
 
-(defmethod remove-color-from-palette ((palette basic-palette) &rest colors)
+(defmethod remove-colors-from-palette ((palette basic-palette) &rest colors)
   (declare (dynamic-extent colors))
   (dolist (color colors)
     (deallocate-color color palette)))

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.81 1993/05/05 01:40:38 cer Exp $
+;; $fiHeader: xt-silica.lisp,v 1.82 93/05/13 16:25:07 cer Exp $
 
 (in-package :xm-silica)
 
@@ -126,7 +126,8 @@
 		  (port-depth port) (x11:xdefaultdepth display (tk::display-screen-number display))
 		  (port-visual-class port) (tk::screen-root-visual-class (tk::default-screen display))
 		  (slot-value port 'silica::default-palette) 
-		  (make-xt-palette port (tk::default-colormap (port-display port))))
+		  (make-palette port :colormap 
+				(tk::default-colormap (port-display port))))
 	    (let* ((screen (x11:xdefaultscreenofdisplay display))
 		   (bs-p (not (zerop (x11::screen-backing-store screen))))
 		   (su-p (not (zerop (x11::screen-save-unders screen))))
@@ -432,7 +433,11 @@
 			     :native-x native-x
 			     :native-y native-y
 			     :modifier-state 
-			     (state->modifiers state)))))))
+			     (state->modifiers state))))
+	  (:focus-in
+	   (allocate-event 'focus-in-event :sheet sheet))
+	  (:focus-out
+	   (allocate-event 'focus-out-event :sheet sheet)))))
     (when clim-event
       (distribute-event port clim-event))))
 
@@ -608,6 +613,10 @@
 	    (getf initargs :height) (fix-coordinate (- bottom top)))))
   initargs)
 
+(defmethod initialize-shell ((port xt-port) sheet widget)
+  (declare (ignore sheet widget))
+  nil)
+
 ;; If we are creating a top level sheet then we have to create a shell for it
 (defmethod find-widget-parent ((port xt-port) sheet)
   (let ((ma (sheet-mirrored-ancestor sheet)))
@@ -617,9 +626,13 @@
 	  (let ((frame (pane-frame sheet)))
 	    (when frame
 	      (setf (getf initargs :name) (string (frame-name frame))
-		    (getf initargs :title) (frame-pretty-name frame))))
-	  (apply #'make-instance class :parent (find-shell-parent port sheet) initargs))
-        (sheet-mirror-for-parenting ma))))
+		    (getf initargs :title) (frame-pretty-name
+					    frame)))
+	    (let ((shell (apply #'make-instance class 
+				:parent (find-shell-parent port sheet) initargs)))
+	      (initialize-shell port sheet shell)
+	      shell)))
+      (sheet-mirror-for-parenting ma))))
 
 (defmethod sheet-mirror-for-parenting ((sheet basic-sheet))
   ;; There might be a situation where a sheet is mirrored by a whil
@@ -646,21 +659,19 @@
 
 (defmethod find-shell-class-and-initargs ((port xt-port) (sheet t))
   (values 'top-level-shell 
-	  ;; Need this so that an interactive pane can have children
-	  ;; but still accept the focus
-	  `(:keyboard-focus-policy :pointer)))
+	  '(:input t)))
 
 (defmethod find-shell-class-and-initargs :around ((port xt-port) (sheet pane))
   (let* ((palette (frame-manager-palette (frame-manager (pane-frame sheet)))))
-    (multiple-value-bind
-	(class initargs)
+    (multiple-value-bind (class initargs)
 	(call-next-method)
       (values class
-	      `(:allow-shell-resize ,(and (pane-frame sheet)
-					  (clim-internals::frame-resizable (pane-frame sheet)))
-				    ,@initargs 
-				    ,@(and (not (eq (port-default-palette port) palette))
-					   `(:colormap ,(palette-colormap palette))))))))
+	      `(:allow-shell-resize 
+		,(and (pane-frame sheet)
+		      (clim-internals::frame-resizable (pane-frame sheet)))
+		,@(and (not (eq (port-default-palette port) palette))
+		       `(:colormap ,(palette-colormap palette)))
+		,@initargs)))))
 
 
 (defmethod enable-mirror ((port xt-port) (sheet t))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: text-style.lisp,v 1.17 92/12/07 12:15:24 cer Exp $
+;; $fiHeader: text-style.lisp,v 1.18 92/12/16 16:49:52 cer Exp $
 
 (in-package :silica)
 
@@ -664,15 +664,15 @@
 	  (let ((font-size (text-style-size (car tuple))))
 	    (if exact-size-required
 		(when (= size font-size)
-		  (return (cdr tuple)))
-		(when (<= size font-size)
-		  ;; Know which one to pick.
-		  (cond ((null last-tuple)
-			 (return (cadr tuple)))
-			((< (abs (- size font-size)) (abs (- size last-size)))
-			 (return (cadr tuple)))
-			(t
-			 (return (cadr last-tuple))))))
+		  (return (cadr tuple)))
+	      (when (<= size font-size)
+		;; Know which one to pick.
+		(cond ((null last-tuple)
+		       (return (cadr tuple)))
+		      ((< (abs (- size font-size)) (abs (- size last-size)))
+		       (return (cadr tuple)))
+		      (t
+		       (return (cadr last-tuple))))))
 	    (setq last-tuple tuple)
 	    (setq last-size font-size)))))))
 

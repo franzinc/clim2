@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xlib.lisp,v 1.44 1993/05/05 01:40:19 cer Exp $
+;; $fiHeader: xlib.lisp,v 1.45 93/05/13 16:24:40 cer Exp $
 
 (in-package :tk)
 
@@ -490,6 +490,17 @@
     display)
    'screen
    :display display))
+
+(defun get-input-focus (display)
+  (with-ref-par
+      ((focus 0)
+       (revert-to 0))
+    (x11:xgetinputfocus display focus revert-to)
+    (values (aref focus 0) (aref revert-to 0))))
+
+(defun set-input-focus (display focus &optional (revert-to 0) (time 0))
+  (x11:xsetinputfocus display focus revert-to time))
+
 
 (defun query-pointer (window)
   (with-ref-par 

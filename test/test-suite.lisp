@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: test-suite.lisp,v 1.62 93/04/23 09:18:17 cer Exp $
+;; $fiHeader: test-suite.lisp,v 1.63 93/05/13 16:24:24 cer Exp $
 
 (in-package :clim-user)
 
@@ -761,13 +761,16 @@ people, shall not perish from the earth.
 		      (draw-text* ps "hello" 10 50)))))
       (dotimes (i 5)
 	(sleep 0.25)
-	(copy-from-pixmap pixmap 0 0 100 100 medium (* i 100) (* i 100))))
+	(copy-from-pixmap pixmap 0 0 100 100 stream (* i 100) (* i 100)))
+      (deallocate-pixmap pixmap))
     (dotimes (j 5)
       (let ((pixmap (copy-to-pixmap medium (* j 100) (* j 100) 100 100)))
 	(dotimes (i 5)
 	  (unless (= i j)
 	    (sleep 0.25)
-	    (copy-from-pixmap pixmap 0 0 100 100 medium (* j 100) (* i 100))))))))
+	    (copy-from-pixmap pixmap 0 0 100 100 medium (* j 100) (* i 100))))
+	(deallocate-pixmap pixmap)))))
+
 
 #+allegro
 (define-test (read-image-test graphics) (stream)
@@ -2033,6 +2036,16 @@ Luke Luck licks the lakes Luke's duck likes."))
 		      :stream stream
 		      :default x))
       (terpri stream))))
+
+(define-test (window-stream menus-and-dialogs) (stream)
+  "Simple test of open-window-stream"
+  (declare (ignore stream))
+  (let ((w (open-window-stream)))
+    (window-expose w)
+    (sleep 0.1)				; so why do I need this?
+    (write-string "A window stream" w)
+    (sleep 2)
+    (destroy-frame (pane-frame w))))
 
 (define-test (slider-dialog menus-and-dialogs) (stream)
   "Various sliders"

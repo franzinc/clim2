@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-protocol.lisp,v 1.40 1993/05/05 01:38:37 cer Exp $
+;; $fiHeader: input-protocol.lisp,v 1.41 93/05/13 16:23:13 cer Exp $
 
 (in-package :clim-internals)
 
@@ -66,7 +66,7 @@
      (pointer-motion-pending :initform nil)
      (text-cursor :accessor stream-text-cursor
 		  :initarg :text-cursor)
-     (read-gesture-cursor-state :initarg :read-gesture-cursor-state 
+     (read-gesture-cursor-state :initarg :read-gesture-cursor-state
 				:accessor stream-read-gesture-cursor-state))
   (:default-initargs
       :text-cursor (make-instance 'standard-text-cursor)
@@ -102,14 +102,11 @@
       ;; Assumes that the cursors are all off for the stream
       (cursor-set-position cursor x y t))))
 
-
 (defmethod initialize-menu :before (port (menu input-protocol-mixin) &key label)
   (declare (ignore port label))
   (let ((cursor (stream-text-cursor menu)))
     (when cursor
       (setf (cursor-active cursor) nil))))
-
-(defvar *cursor-repaint-rectangle* (make-bounding-rectangle 0 0 0 0))
 
 (defmethod repaint-sheet :after ((stream input-protocol-mixin) (region nowhere))
   ;; Repainting nowhere, don't repaint the cursor
@@ -120,15 +117,18 @@
 	(viewport (pane-viewport stream)))
     (when (and cursor viewport)
       (when (and (cursor-active cursor)
-		 (cursor-state cursor)
-		 (cursor-focus cursor))
+		 (cursor-state cursor))
 	(multiple-value-bind (x y) (cursor-position cursor)
 	  (multiple-value-bind (width height)
 	      (cursor-width-and-height-pending-protocol cursor)
 	    (with-bounding-rectangle* (left top right bottom) region
 	      (when (ltrb-overlaps-ltrb-p left top right bottom
-					  x y (+ x width) (+ y height))
-		(note-cursor-change cursor 'cursor-active t t)))))))))
+					  x y (+ x width) (+ y
+							     height))
+		(with-sheet-medium (medium stream)
+		  (with-medium-clipping-region (medium region)
+		    (declare (ignore medium))
+		    (note-cursor-change cursor 'cursor-active nil t)))))))))))
 
 (defmethod pointer-motion-pending ((stream input-protocol-mixin)
 				   &optional
@@ -191,16 +191,6 @@
   (let ((pointer (stream-primary-pointer stream)))
     (setf (pointer-motion-pending stream pointer) t)))
 
-(defmethod queue-event :after ((stream input-protocol-mixin) (event pointer-enter-event))
-  (let ((text-cursor (stream-text-cursor stream)))
-    (when text-cursor 
-      (setf (cursor-focus text-cursor) t))))
-
-(defmethod queue-event :before ((stream input-protocol-mixin) (event pointer-exit-event))
-  (let ((text-cursor (stream-text-cursor stream)))
-    (when text-cursor
-      (setf (cursor-focus text-cursor) nil))))
-
 (defmethod queue-event ((stream input-protocol-mixin) (event pointer-exit-event))
   (queue-put (stream-input-buffer stream) (copy-event event)))
 
@@ -242,39 +232,41 @@
   (declare (ignore pointer-button-press-handler))
   (let ((read-gesture-cursor-state (stream-read-gesture-cursor-state stream)))
     (with-cursor-state (stream read-gesture-cursor-state)
-      (loop
-	(multiple-value-bind (input-happened flag)
-	    (stream-input-wait
-	     stream
-	     :timeout timeout :input-wait-test input-wait-test)
-	  (case flag
-	    (:timeout
-	     (return-from stream-read-gesture (values nil :timeout)))
-	    (:input-wait-test
-	     ;; only call the input-wait-handler if we didn't get a first-rate
-	     ;; gesture back from stream-input-wait.
-	     (when input-wait-handler
-	       (funcall input-wait-handler stream)))
-	    (otherwise 
-	     (when input-happened
-	       (let ((gesture (queue-get (stream-input-buffer stream))))
-		 (when gesture
-		   ;;--- What we *should* do is to reinstate a separate input
-		   ;;--- buffer for the stream, then this should loop doing
-		   ;;--- HANDLE-EVENT until something gets inserted into the
-		   ;;--- stream's input buffer.  Then this should read and
-		   ;;--- process the gesture in the input buffer.
-		   (let* ((sheet (and (typep gesture 'device-event)
-				      (event-sheet gesture)))
-			  (new-gesture 
-			   (receive-gesture
-			    (if (or (null sheet) (eq sheet stream))
-				(encapsulated-stream stream)
-			      sheet)
-			    gesture)))
-		     (when new-gesture
-		       (when peek-p (queue-unget (stream-input-buffer stream) gesture))
-		       (return-from stream-read-gesture new-gesture)))))))))))))
+      (with-input-focus (stream read-gesture-cursor-state)
+	(loop
+	  (multiple-value-bind (input-happened flag)
+	      (stream-input-wait
+	       stream
+	       :timeout timeout :input-wait-test input-wait-test)
+	    (case flag
+	      (:timeout
+	       (return-from stream-read-gesture (values nil :timeout)))
+	      (:input-wait-test
+	       ;; only call the input-wait-handler if we didn't get a first-rate
+	       ;; gesture back from stream-input-wait.
+	       (when input-wait-handler
+		 (funcall input-wait-handler stream)))
+	      (otherwise 
+	       (when input-happened
+		 (let ((gesture (queue-get (stream-input-buffer stream))))
+		   (when gesture
+		     ;;--- What we *should* do is to reinstate a separate input
+		     ;;--- buffer for the stream, then this should loop doing
+		     ;;--- HANDLE-EVENT until something gets inserted into the
+		     ;;--- stream's input buffer.  Then this should read and
+		     ;;--- process the gesture in the input buffer.
+		     (let* ((sheet (and (typep gesture 'device-event)
+					(event-sheet gesture)))
+			    (new-gesture 
+			     (receive-gesture
+			      (if (or (null sheet) (eq sheet stream))
+				  (encapsulated-stream stream)
+				sheet)
+			      gesture)))
+		       (when new-gesture
+			 (when peek-p
+			   (queue-unget (stream-input-buffer stream) gesture))
+			 (return-from stream-read-gesture new-gesture))))))))))))))
 
 ;; Presentation translators have probably already run...
 (defmethod receive-gesture
@@ -672,3 +664,15 @@
 
 (defmethod stream-restore-input-focus ((stream input-protocol-mixin) old-focus)
   (setf (port-keyboard-input-focus (port stream)) old-focus))
+
+(defmethod note-sheet-gain-focus ((sheet input-protocol-mixin))
+  (let ((text-cursor (stream-text-cursor sheet)))
+    (when text-cursor
+      (setf (cursor-focus text-cursor) t))))
+
+(defmethod note-sheet-lose-focus ((sheet input-protocol-mixin))
+  (let ((text-cursor (stream-text-cursor sheet)))
+    (when text-cursor
+      (setf (cursor-focus text-cursor) nil))))
+
+

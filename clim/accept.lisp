@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept.lisp,v 1.21 92/12/03 10:25:56 cer Exp $
+;; $fiHeader: accept.lisp,v 1.22 92/12/16 16:45:56 cer Exp $
 
 (in-package :clim-internals)
 
@@ -95,12 +95,12 @@
 (defmethod stream-accept ((stream input-protocol-mixin) type &rest accept-args
 			  &key view &allow-other-keys)
   (declare (dynamic-extent accept-args))
-  (let ((query-identifier
-	  (apply #'prompt-for-accept
-		 (encapsulated-stream stream) type view accept-args)))
-    (apply #'accept-1 (encapsulated-stream stream) type
-		      :query-identifier query-identifier
-		      accept-args)))
+  (let* ((stream (encapsulated-stream stream))
+	 (query-identifier (apply #'prompt-for-accept
+				  stream type view accept-args)))
+    (apply #'accept-1 stream type
+	   :query-identifier query-identifier
+	   accept-args)))
 
 (defmethod prompt-for-accept ((stream input-protocol-mixin) type (view view)
 			      &rest accept-args

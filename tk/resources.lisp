@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: resources.lisp,v 1.44 93/04/16 09:45:49 cer Exp $
+;; $fiHeader: resources.lisp,v 1.45 93/05/13 16:24:38 cer Exp $
 
 (in-package :tk)
 
@@ -560,6 +560,12 @@
        (xm_get_pixmap screen value white black)))))
 
 (defmethod convert-resource-out ((parent t) (type (eql 'boolean)) value)
+  (if value 1 0))
+
+;; so why does ol descide to call this resource type boolean rather
+;; than bool? Who knows? -cim
+
+(defmethod convert-resource-out ((parent t) (type (eql 'bool)) value)
   (if value 1 0))
 
 (defmethod convert-resource-out ((parent  t) (type (eql 'string)) value)
