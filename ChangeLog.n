@@ -13,6 +13,11 @@ Tests for new features:	<`no new features', `no tests for new features', or
 *******************************************************************************
 2.2.1.18 -- public release on ACL 5.0.beta
 
+1998-05-27    <layer@HOBART>
+
+	* makedist.sh: tweaks
+	* readme.win32: changes from Jeff Morrill
+
 1998-05-26    <layer@HOBART>
 
     new files
