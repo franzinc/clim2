@@ -1,3 +1,22 @@
+(for 4.3.devel.2 merge):
+
+Mon May 15 00:07:55 1995  Duane Rettig  (duane at clay)
+
+	* Makefile.defs: Remove CLIM_OL_FASLS from CLIMFASLS; remove
+	composer .o files from xm-dcl build
+
+	* Makefile.hpprism:
+	* Makefile.sgi4d-svr4:
+	* Makefile.sun4-svr4: Give SAVEEXP and RESTEXP a non-null command
+
+	* demo/listener.lisp: debug::newest-frame -> excl::int-newest-frame 
+
+	* tk/gcontext.lisp: excl:make-static-array n ->
+	make-array n :allocation :static
+
+	* tk/load-xm.lisp: Load climxm.so via logical pathname
+
+
 Thu Mar 23 16:20:50 1995  George Jacob  (georgej@lava)
 
 	* Makefile.defs (TRAIN_TEXT): Changed TRAIN_LISP to call

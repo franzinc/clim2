@@ -30,7 +30,8 @@ INSTALLED_CLIMOBJS=$(GENERIC_PUBLIC_OBJS) $(XM_PUBLIC_OBJS) $(XM_LICENSED_OBJS)
 # To keep make from complaining about syntax:
 MAIN_OBJ = mainxm.o
 
-SAVEEXP = 
-RESTEXP = 
+# This is needed on the HP, because it doesn't like double semicolons:
+SAVEEXP = echo no exports file in this port
+RESTEXP = echo no exports file in this port
 
 include Makefile.generic

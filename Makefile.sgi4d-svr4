@@ -45,7 +45,7 @@ IMPORTS =
 PWD = .
 ###############################################################################
 
-SAVEEXP = 
-RESTEXP = 
+SAVEEXP = echo no exports file in this port
+RESTEXP = echo no exports file in this port
 
 include Makefile.generic

@@ -27,7 +27,7 @@
 #+dlfcn
 (unless (ff:get-entry-point (ff:convert-to-lang "XmCreateMyDrawingArea")
 			    :note-shared-library-references nil)
-  (load "climxm.so")
+  (load "clim2:;climxm.so")
   (defun reinitialize-toolkit ()
     (xt_toolkit_initialize)
     (setup-error-handlers)

@@ -105,7 +105,7 @@
 	     (- nil)
 	     #+allegro (*tpl-current-stack-group* sys::*current-stack-group*)
 	     #+allegro (*top-top-frame-pointer*
-			 (debug::newest-frame si::*current-stack-group* :visible-only-p nil))
+			 (excl::int-newest-frame si::*current-stack-group* :visible-only-p nil))
 	     #+allegro (*top-frame-pointer*
 			 (or (db::find-interesting-frame *top-top-frame-pointer*)
 			     *top-top-frame-pointer*))

@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: tk -*-
 ;;
-;;				-[Mon Sep 26 02:02:53 1994 by smh]-
+;;				-[Thu May 11 02:24:34 1995 by duane]-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -411,7 +411,7 @@
   (declare (optimize (speed 3) (safety 0))
 	   (ignore gc))
   (let* ((n (length nv))
-	 (v (excl:make-static-array n :element-type '(unsigned-byte 8))))
+	 (v (make-array n :allocation :static :element-type '(unsigned-byte 8))))
     (declare (fixnum n)
 	     (type (simple-array (unsigned-byte 8) (*)) v))
     (etypecase nv

@@ -109,7 +109,7 @@ CLIM_GENERIC_FASLS=climg.fasl  clim-debug.fasl climps.fasl climgg.fasl climhpgl.
 CLIM_OL_FASLS= climol.fasl clim-debugol.fasl
 CLIM_XM_FASLS= climxm.fasl clim-debugxm.fasl
 
-CLIMFASLS=  $(CLIM_GENERIC_FASLS) $(CLIM_OL_FASLS) $(CLIM_XM_FASLS)
+CLIMFASLS=  $(CLIM_GENERIC_FASLS) $(CLIM_XM_FASLS)
 
 
 GENERIC_PUBLIC_OBJS= stub-xt.o stub-x.o xlibsupport.o xtsupport.o
@@ -133,10 +133,11 @@ CLIM_FASLS_TO_MAKE = makeclimxmfasls $(CLIM_OLFASLS_TO_MAKE)
 
 # These are built into xm-dcl and ol-dcl.
 COMPOSEROBJS= $(CL_SRC)/code/excldep.o $(CL_SRC)/code/socket.o \
-	      $(CL_SRC)/code/gc_cursor.o \
-	      $(CL_SRC)/code/unixsocket.o \
-	      $(CL_SRC)/code/io.o $(CL_SRC)/code/exclio.o \
-	      $(CL_SRC)/code/RunStatus.o
+
+#	      $(CL_SRC)/code/gc_cursor.o \
+#	      $(CL_SRC)/code/unixsocket.o \
+#	      $(CL_SRC)/code/io.o $(CL_SRC)/code/exclio.o \
+#	      $(CL_SRC)/code/RunStatus.o
 
 # "Compile time objects" -- these go into clim-debug.fasl
 #
