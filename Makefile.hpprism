@@ -1,4 +1,4 @@
-# $Header: /repo/cvs.copy/clim2/Makefile.hpprism,v 1.15 1997/12/23 22:44:50 duane Exp $
+# $Header: /repo/cvs.copy/clim2/Makefile.hpprism,v 1.15.20.1 1999/01/08 15:51:35 layer Exp $
 #
 #  Makefile.hpprism for CLIM 2.0
 #
@@ -31,5 +31,7 @@ MOTIFXTRAS=-lc
 PICFLAGS = +Z
 SHAREFLAGS = 
 MAKE_SHARED = ld -b
+
+PRODUCT-OBJS= $(PRODUCT-GENERIC-OBJS) $(STATIC-XM-OBJS) $(SHARED-XM-OBJS)
 
 include Makefile.generic

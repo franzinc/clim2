@@ -25,6 +25,9 @@ Tests for new features:	<`no new features', `no tests for new features', or
 	* silica/scroll-pane.lisp: fix compile-time warnings
 	* utils/processes.lisp: fix compile-time warnings
 
+	* Makefile.hpprism: add depend on climxm.sl--why didn't this come
+	up before??
+
 *******************************************************************************
 2.2.1.34
 
