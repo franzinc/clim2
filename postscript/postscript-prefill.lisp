@@ -2,5 +2,7 @@
 
 (in-package :clim-postscript)
 
+;;; $fiHeader$
+
 "Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved."
 

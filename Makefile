@@ -1,4 +1,4 @@
-# $fiHeader: Makefile,v 1.35 92/07/01 16:20:12 cer Exp Locker: cer $
+# $fiHeader: Makefile,v 1.36 92/07/06 18:52:20 cer Exp Locker: cer $
 # 
 #  Makefile for CLIM 2.0
 #
@@ -440,6 +440,7 @@ link-motif-libraries	:
 	ln -s $(XTLIB) $(DEST)/libXt.a
 	ln -s $(XLIB) $(DEST)/libX11.a
 	ln -s $(FCLIMOBJS) $(DEST)
+	ln -s $(LIBXOL) $(DEST)
 
 echo_src_files:
 	@ls $(SRC_FILES) | cat
