@@ -1,3 +1,4 @@
+;; -*- mode: common-lisp; package: x11 -*-
 ;;; (c) Copyright  1990 Sun Microsystems, Inc.  All Rights Reserved.
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
@@ -33,6 +34,8 @@
 ;;; Rights in Technical Data and Computer Software Clause at DFARS 252.227-7013
 ;;; (Oct. 1988) and FAR 52.227-19(c) (June 1987) Sun Microsystems, Inc. 2550
 ;;; Garcia Avenue, Mountain View, California 94043.
+;; $fiHeader$
+
 
 ;;;@(#)x11-keysym.lisp	1.3 11/29/90
 
