@@ -11,6 +11,13 @@ Tests for new features:	<`no new features', `no tests for new features', or
 	* <changes go here...>
 
 *******************************************************************************
+2.2.1.35
+
+1999-01-07  Kevin Layer  <layer@ultra>
+
+	* Makefile.wnn: for redhat 5
+
+*******************************************************************************
 2.2.1.34
 
 Wed Dec 9 12:00:00 1998 Jeff Morrill  <jmorrill@pointnclick.com>

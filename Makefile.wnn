@@ -1,4 +1,4 @@
-# $Header: /repo/cvs.copy/clim2/Makefile.wnn,v 1.4 1997/10/13 20:29:33 layer Exp $
+# $Header: /repo/cvs.copy/clim2/Makefile.wnn,v 1.4.22.1 1999/01/08 02:15:21 layer Exp $
 #
 #  Makefile.wnn for CLIM 2.0
 #
@@ -71,5 +71,10 @@ rk_vars.o : wnn/rk_vars.c
 libwnn.a: $(WNN_OBJS)
 	$(AR) $@ $(WNN_OBJS)
 
+ifeq ($(REDHAT),5)
+REDHATLIBS = -lcrypt
+endif
+
 wnn.$(SHARED_EXT): $(WNN_OBJS)
-	$(MAKE_SHARED) $(SHAREFLAGS) -o wnn.$(SHARED_EXT) $(WNN_OBJS)
+	$(MAKE_SHARED) $(SHAREFLAGS) -o wnn.$(SHARED_EXT) $(WNN_OBJS) \
+		$(REDHATLIBS)
