@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: widget.lisp,v 1.27 92/12/14 15:04:04 cer Exp $
+;; $fiHeader: widget.lisp,v 1.28 93/01/11 15:45:51 colin Exp $
 
 (in-package :tk)
 
@@ -278,12 +278,12 @@
 (defun xt-class (w) (char*-to-string (xt-class-name (xt_class w))))
 
 (defun widget-resource-name-and-class (w)
-  (do* ((name "" (concatenate 'string (xt-name w) "." name))
-	(class "" (concatenate 'string (xt-class w) "." class))
+  (do* ((names nil (cons (xt-name w) names))
+	(classes nil (cons (xt-class w) classes))
 	(w w parent)
 	(parent (widget-parent w) (widget-parent w)))
       ((null parent)
        (multiple-value-bind (app-name app-class)
 	   (get-application-name-and-class (widget-display w))
-	 (values (concatenate 'string app-name "." name)
-		 (concatenate 'string app-class "." class))))))
+	 (values (cons app-name names)
+		 (cons app-class classes))))))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-menu.lisp,v 1.5 92/11/19 14:17:17 cer Exp $
+;; $fiHeader: db-menu.lisp,v 1.6 92/12/03 10:26:19 cer Exp $
 
 "Copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
 
@@ -198,7 +198,7 @@
 
 (defun make-pull-down-menu (&key port)
   (let ((frame (make-application-frame 'pull-down-menu-frame
-				       :parent port
+				       :frame-manager (find-frame-manager :port port)
 				       :save-under t)))
     (values (slot-value frame 'menu) frame)))
 

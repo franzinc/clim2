@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sheet.lisp,v 1.34 92/12/16 16:49:48 cer Exp $
+;; $fiHeader: sheet.lisp,v 1.35 93/02/08 15:57:40 cer Exp $
 
 (in-package :silica)
 
@@ -420,28 +420,23 @@
     (when medium
       (invalidate-cached-transformations medium))))
 
-
 (defclass permanent-medium-sheet-output-mixin (sheet-with-medium-mixin) ())
 
-(defmethod note-sheet-grafted :around ((sheet permanent-medium-sheet-output-mixin))
-  ;; By making this an :AROUND method we make sure that the mirror has
-  ;; been realized at this point, if it's a mirrored sheet.  This is pretty
-  ;; horrible but it makes sure that things happen in the right order.
-  (call-next-method)
+(defmethod (setf port) :after
+	   ((port basic-port) (sheet permanent-medium-sheet-output-mixin) &key)
   (let ((medium-type (sheet-medium-type sheet)))
     (when medium-type
       (setf (sheet-medium sheet)
-	    (if (mediump medium-type)
-		medium-type
-		(make-medium (port sheet) sheet)))
-      (when (port sheet)
-	(engraft-medium (sheet-medium sheet) (port sheet) sheet)))))
+	(if (mediump medium-type)
+	    medium-type
+	  (make-medium port sheet)))
+      (engraft-medium (sheet-medium sheet) (port sheet) sheet))))
 
-(defmethod note-sheet-degrafted ((sheet permanent-medium-sheet-output-mixin))
+(defmethod (setf port) :after
+	   ((port null) (sheet permanent-medium-sheet-output-mixin) &key)
   (when (sheet-medium sheet)
-    (degraft-medium (sheet-medium sheet) (port sheet) sheet)
+    (degraft-medium (sheet-medium sheet) port sheet)
     (setf (sheet-medium sheet) nil)))
-
 
 (defclass temporary-medium-sheet-output-mixin (sheet-with-medium-mixin) ())
 
@@ -452,8 +447,8 @@
 (defclass shared-medium-sheet-output-mixin (sheet-with-medium-mixin)
     ((shared-medium-sheet :initform nil :initarg :shared-medium-sheet)))
 
-(defmethod note-sheet-grafted :around ((sheet shared-medium-sheet-output-mixin))
-  (call-next-method)
+(defmethod (setf port) :after
+	   ((port basic-port) (sheet shared-medium-sheet-output-mixin) &key)
   (with-slots (shared-medium-sheet) sheet
     (when shared-medium-sheet
       (setf (sheet-medium sheet) (sheet-medium shared-medium-sheet)))))

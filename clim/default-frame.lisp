@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: default-frame.lisp,v 1.4 92/10/02 15:19:22 cer Exp $
+;; $fiHeader: default-frame.lisp,v 1.5 92/12/03 10:26:27 cer Exp $
 
 (in-package :clim-internals)
 
@@ -15,7 +15,7 @@
   (:top-level nil))
 
 (defvar *default-application-frame*
-	(make-application-frame 'default-application :parent nil))
+	(make-application-frame 'default-application :frame-manager nil))
 
 ;; We keep a global binding of *APPLICATION-FRAME* because it can make
 ;; life easier for people debugging applications
