@@ -131,13 +131,12 @@
 ;; a global id counter and the association list should be kept on a
 ;; per application-frame basis. 
 
-(defun get-command-menu-item-id (command frame)
+(defun assign-command-menu-item-id (command frame)
+  ;; We should probably allow COMMAND to be NIL.
+  ;; It is allowed for the UNIX port, apparently.
+  (when (atom command) (setq command (list command)))
   (prog1
     (fill-pointer *menu-id->command-table*)
-    #+ignore
-    (when (= (fill-pointer *menu-id->command-table*)
-	     (array-total-size *menu-id->command-table*))
-      (cerror "Continue" "Too many menu items"))
     (vector-push-extend (cons frame command) *menu-id->command-table*
 			256)))
 
@@ -145,9 +144,8 @@
   (position-if
    #'(lambda (x)
        (when x
-	 (destructuring-bind (f c &rest args)
-	     x
-	   (declare (ignore args))
+	 (let ((f (first x))
+	       (c (second x)))
 	   (and (eq f frame)
 		(eq c command)))))
    *menu-id->command-table*))
@@ -157,8 +155,7 @@
   (dotimes (id (fill-pointer *menu-id->command-table*))
     (let ((x (aref *menu-id->command-table* id)))
       (when x
-	(destructuring-bind (f c &rest xargs) x
-	  (declare (ignore xargs c))
+	(let ((f (first x)))
 	  (if (eq f frame) (apply func id args)))))))
 
 ;;; Disable all menu items.
@@ -313,87 +310,82 @@
 			 newtext))))
 
 (defun compute-msmenu-bar-pane (frame top command-table)
-  (let* (#+ignore
-	 (text-style
-	   (and (listp command-table)
-		(getf (cdr command-table) :text-style)
-		`(:text-style ,(getf (cdr command-table) :text-style))))
-	 (mirror (sheet-mirror top))
+  (let* ((mirror (sheet-mirror top))
 	 (menu-handle (win:GetMenu mirror))
 	 (command-table
-	   (if (listp command-table) (car command-table) command-table)))
-    (when
-        ;; command-table arg comes from menu-bar slot of frame
-        ;; and may be NIL T=menu-hbox-pane command-table-arg
-        (silica::default-command-table-p command-table)
+	  (if (listp command-table) (car command-table) command-table)))
+    (when (silica::default-command-table-p command-table)
+	;; command-table arg comes from menu-bar slot of frame
+	;; and may be NIL T=menu-hbox-pane command-table-arg
       (setq command-table (frame-command-table frame)))
     (with-look-and-feel-realization ((frame-manager frame) frame)
       (labels
-	((make-command-table-buttons (command-table menuhand top-level)
-	   (let ((menu-item-ids nil))
-	     (map-over-command-table-menu-items
-	      #'(lambda (menu keystroke item)
-		  (let* ((type (command-menu-item-type item))
-			 (value (command-menu-item-value item))
-			 (menu-item-available-p 
-			  (or (not (eq type :command))
-			      (command-enabled (car value) frame)))
-			 (menu-item-selected-p nil)
-			 (acckey (and (not top-level) keystroke))
-			 (flags (logior
-				 win:MF_STRING
-				 (if menu-item-available-p
-				     win:MF_ENABLED win:MF_GRAYED)
-				 (if menu-item-selected-p
-				     win:MF_CHECKED win:MF_UNCHECKED)))
-			 (smflags (logior flags win:MF_POPUP)))
-		    (case type
-		      (:command
-		       (when acckey
-			 (record-accelerator top acckey value))
-		       (let ((menu-item-id (get-command-menu-item-id value frame)))
-			 (win:AppendMenu
-			  menuhand
-			  flags
-			  menu-item-id
-			  (make-menu-text menu acckey item))
-			 (push menu-item-id menu-item-ids)))
-		      (:function
-		       ;; do something here
-		       )
-		      (:menu
-		       (let* ((popmenu (win::CreatePopupMenu))
-			      (hmenu (ct:handle-value 'win::hmenu popmenu))
-			      (menutext (make-menu-text menu acckey item)))
-			 (win::AppendMenu menuhand
-					  smflags
-					  hmenu
-					  menutext)
-			 (setf (gethash hmenu *popup-menu->menu-item-ids*)
-			   (make-command-table-buttons value popmenu nil))))
-		      (:divider
-		       (unless top-level
-			 (win::AppendMenu menuhand
-					  win:MF_SEPARATOR
-					  0
-					  "x")
-			 )))))
-	      command-table)
-	     menu-item-ids)))
+	  ((make-command-table-buttons (command-table menuhand top-level)
+	     (let ((menu-item-ids nil))
+	       (map-over-command-table-menu-items
+		#'(lambda (menu keystroke item)
+		    (let* ((type (command-menu-item-type item))
+			   (value (command-menu-item-value item))
+			   (menu-item-available-p 
+			    (or (not (eq type :command))
+				(command-enabled (car value) frame)))
+			   (menu-item-selected-p nil)
+			   (acckey (and (not top-level) keystroke))
+			   (flags (logior
+				   win:MF_STRING
+				   (if menu-item-available-p
+				       win:MF_ENABLED win:MF_GRAYED)
+				   (if menu-item-selected-p
+				       win:MF_CHECKED win:MF_UNCHECKED)))
+			   (smflags (logior flags win:MF_POPUP)))
+		      (case type
+			(:command
+			 (when acckey
+			   (record-accelerator top acckey value))
+			 (let ((menu-item-id
+				(assign-command-menu-item-id value frame)))
+			   (win:AppendMenu
+			    menuhand
+			    flags
+			    menu-item-id
+			    (make-menu-text menu acckey item))
+			   (push menu-item-id menu-item-ids)))
+			(:function
+			 (warn ":function not yet implemented in menu bars")
+			 )
+			(:menu
+			 (let* ((popmenu (win::CreatePopupMenu))
+				(hmenu (ct:handle-value 'win::hmenu popmenu))
+				(menutext (make-menu-text menu acckey item)))
+			   (win::AppendMenu menuhand
+					    smflags
+					    hmenu
+					    menutext)
+			   (setf (gethash hmenu *popup-menu->menu-item-ids*)
+			     (make-command-table-buttons value popmenu nil))))
+			(:divider
+			 (unless top-level
+			   (win::AppendMenu menuhand
+					    win:MF_SEPARATOR
+					    0
+					    "x")
+			   )))))
+		command-table)
+	       menu-item-ids)))
 	(make-command-table-buttons command-table menu-handle t)))))
 
 (defun update-menu-item-sensitivities (hmenu)
   (dolist (menu-item-id (gethash hmenu *popup-menu->menu-item-ids*))
-    (destructuring-bind (frame command &rest args)
-	(aref *menu-id->command-table* menu-item-id)
-      (declare (ignore args))
-      (let* ((top (frame-top-level-sheet frame))
-	     (mirror (sheet-mirror top))
-	     (menu-handle (win::GetMenu mirror)))
-	(win::EnableMenuItem menu-handle menu-item-id
-			     (if (command-enabled command frame)
-				 win:MF_ENABLED
-			       win:MF_GRAYED))))))
+    (let* ((item (aref *menu-id->command-table* menu-item-id))
+	   (frame (first item))
+	   (command (second item))
+	   (top (frame-top-level-sheet frame))
+	   (mirror (sheet-mirror top))
+	   (menu-handle (win::GetMenu mirror)))
+      (win::EnableMenuItem menu-handle menu-item-id
+			   (if (command-enabled command frame)
+			       win:MF_ENABLED
+			     win:MF_GRAYED)))))
 
 (defmethod redisplay-frame-panes :around ((frame standard-application-frame)
 					  &key force-p)
@@ -1064,13 +1056,10 @@ to be run from another."
     (setf (thermopane *application-frame*)
       (make-pane 'application-pane
 		 :min-width 250 :width 250
-		 :foreground #+ignore +blue+
-		 (make-device-color 
-		  (port-default-palette (port *application-frame*))
-		  (win:getSysColor win:color_activecaption))
 		 :display-function 'display-thermometer
 		 :initial-cursor-visibility nil
 		 :record-p nil		;performance hack
+		 :foreground +blue+
 		 )))
    (cancel
     (setf (cancel-button *application-frame*)

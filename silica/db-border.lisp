@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/silica/db-border.lisp,v 1.24.22.1 1998/05/19 01:04:57 layer Exp $
+;; $Header: /repo/cvs.copy/clim2/silica/db-border.lisp,v 1.24.22.2 1998/06/22 21:49:50 layer Exp $
 
 "Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved.
  Portions copyright (c) 1991, 1992 by Symbolics, Inc.  All rights reserved."
@@ -45,19 +45,17 @@
 (defun repaint-border-pane (pane)
   (with-sheet-medium (medium pane)
     (with-bounding-rectangle* (left top right bottom) 
-      (sheet-region pane)
+	(sheet-region pane)
       (let* ((thickness (slot-value pane 'thickness))
-             ;; this used to be ceiling but it sometimes caused
-             ;; borders to overwrite the child pane - which played
-             ;; havoc with the flipping-ink mechanism used to draw the
-             ;; cursor (cim 9/14/95)
+	     ;; this used to be ceiling but it sometimes caused
+	     ;; borders to overwrite the child pane - which played
+	     ;; havoc with the flipping-ink mechanism used to draw the
+	     ;; cursor (cim 9/14/95)
              (ht (floor thickness 2)))
-        (when #-(or aclpc acl86win32) t
-              #+(or aclpc acl86win32) (> thickness 1)
-          (incf left ht)
-          (incf top ht)
-          (decf right ht)
-          (decf bottom ht))
+	(incf left ht)
+	(incf top ht)
+	(decf right ht)
+	(decf bottom ht)
         (draw-rectangle* medium left top right bottom
                          :line-thickness thickness :filled nil
                          :ink (border-color pane))))))
@@ -133,14 +131,14 @@
        ,(if (constantp label-alignment #+(or Genera Minima) env)
             (ecase (eval label-alignment #+(or Genera Minima-Developer) env)
               (:bottom
-                `(vertically () ,cvar #+acl86win32 :fill ,lvar))
+                `(vertically () ,cvar ,lvar))
               (:top
-                `(vertically () ,lvar #+acl86win32 :fill ,cvar)))
+                `(vertically () ,lvar ,cvar)))
             `(ecase ,label-alignment
                (:bottom
-                 (vertically () ,cvar #+acl86win32 :fill ,lvar))
+                 (vertically () ,cvar ,lvar))
                (:top
-                 (vertically () ,lvar #+acl86win32 :fill ,cvar)))))))
+                 (vertically () ,lvar ,cvar)))))))
 
 
 

@@ -94,12 +94,17 @@
         (win:LoadCursor
 	  (ct:null-handle win::hinst)
 	  (ct:ccallocate (char *) :initial-value win:IDC_ARROW)))
+  (when (zerop arrow-cursor)
+    (check-last-error "LoadCursor"))
   ;; this just does the icon now - the cursor stuff is all handled in
   ;; realize-cursor methods in acl-port (cim 9/12/96)
   (setf application-icon
 	(win:LoadIcon
 	  (ct:null-handle win::hinst)
-	  (ct:ccallocate (char *) :initial-value win:IDI_APPLICATION))))
+	  (ct:ccallocate (char *) :initial-value win:IDI_APPLICATION)))
+  (when (zerop application-icon)
+    (check-last-error "LoadIcon"))
+  t)
 
 ;;; Gather up the argument information and invoke the window procedure.
 ;;; +++ at some point merge this in with the cg mechanism for lisp
@@ -238,29 +243,30 @@
 ;; Process WM_PAINT
 (defun onpaint (window msg wparam lparam)
   (declare (ignore wparam msg lparam))
-  (let* ((udrect (ct:ccallocate win:rect))
-	 (berase 0)			;  (ct:ccallocate win:bool)
-	 (update (win:getUpdateRect window udrect berase))
-	 (sheet (mirror->sheet *acl-port* window))
-	 ;; +++rl added to validate everything because of multiple
-	 ;; (continuous) repaints with maximized window
-	 (vdrect (ct:ccallocate win:rect)))
-    ;; +++rl same as comment above
-    (win:getClientRect window vdrect)
-    (if update
-	(let ((ilef (ct:cref win:rect udrect left))
-	      (itop (ct:cref win:rect udrect top))
-	      (irig (ct:cref win:rect udrect right))
-	      (ibot (ct:cref win:rect udrect bottom)))
-	  (win:validateRect window vdrect) ; needed?
-	  (unless (or (= ilef irig) (= itop ibot)) ;does this happen alot?
-	    (when sheet
-	      (handle-event
-	       sheet
-	       (allocate-event 'window-repaint-event
-			       :native-region (sheet-native-region sheet)
-			       :region (make-bounding-rectangle ilef itop irig ibot)
-			       :sheet sheet))))))))
+  (let ((sheet (mirror->sheet *acl-port* window)))
+    (let* ((udrect (ct:ccallocate win:rect))
+	   (berase 0)
+	   (update (win:getUpdateRect window udrect berase))
+	   ;; +++rl added to validate everything because of multiple
+	   ;; (continuous) repaints with maximized window
+	   (vdrect (ct:ccallocate win:rect)))
+      ;; +++rl same as comment above
+      (win:getClientRect window vdrect)
+      (if update
+	  (let ((ilef (ct:cref win:rect udrect left))
+		(itop (ct:cref win:rect udrect top))
+		(irig (ct:cref win:rect udrect right))
+		(ibot (ct:cref win:rect udrect bottom)))
+	    (win:validateRect window vdrect) ; needed?
+	    (unless (or (= ilef irig) (= itop ibot)) ;does this happen alot?
+	      (when sheet
+		(handle-event
+		 sheet
+		 (allocate-event 
+		  'window-repaint-event
+		  :native-region (sheet-native-region sheet)
+		  :region (make-bounding-rectangle ilef itop irig ibot)
+		  :sheet sheet)))))))))
 
 ;; Process WM_DRAWITEM
 (defun ondrawitem (window msg wparam lparam)
@@ -951,39 +957,24 @@
       result)))
 
 (defvar *clim-class* "ClimClass")
-
-#+aclpc
-(defvar *win-name* (ct:ccallocate win:lpstr :size 5))
-#+aclpc
-(ct:cset (:char *) *win-name* nil "CLIM" (string 4))
-#+aclpc
-(defvar *menu-name* (ct:ccallocate win:lpstr :initial-value 0)) ; "ClimMenu"
-
-#+acl86win32
 (defvar *win-name* "CLIM")
-#+acl86win32
 (defvar *menu-name* "ClimMenu")
-
-(defvar *win-arg* (ct:ccallocate win:lpvoid))
 (defvar *win-x* "x")
-
 (defvar *wndclass-registered* nil)
-
 (defvar clim-window-proc-address nil)
 (defvar clim-ctrl-proc-address nil)
 (defvar std-ctrl-proc-address nil)
+(defvar *clim-initialized* nil)
+(defvar lpcmdline "")
+(defvar *hinst* 0) 
+(defvar *hprevinst* 0) 
+(defvar *screen-device* nil)
+
 
 (defun initialize-clim (&optional (mp t))
   (declare (ignore mp))
   (warn "~s deprecated - CLIM is automatically initialized"
 	'initialize-clim))
-
-(defvar *clim-initialized* nil)
-
-(defvar lpcmdline "")
-(defvar *hinst* 0) 
-(defvar *hprevinst* 0) 
-(defvar *screen-device* nil)
 
 ;; CLIM makes one of these, gets the slot value, and then
 ;; throws the rest of it away.
@@ -1064,7 +1055,7 @@
 ;;;(      lpctstr lpctstr dword int int int int hwnd hmenu handle lpstr) hwnd 351 %oscall)
 
 (defun create-overlapped-window (parent pretty scroll
-				 left top width height native 
+				 left top width height menubar 
 				 &optional modal)
   ;; Most frames come in here.
   (let ((winstyle 
@@ -1089,9 +1080,7 @@
 	  ))
         (*win-name* *win-name*)
 	(menu
-	 (if native
-	     (win:CreateMenu)
-	   (ct:null-handle win:hmenu)))
+	 (if menubar (win:CreateMenu) (ct:null-handle win:hmenu)))
 	(window nil))
     (when pretty
       (setq *win-name* pretty))
@@ -1165,7 +1154,6 @@
   ;; Application pane comes in here.
   (let ((winstyle (logior win:ws_clipchildren
                           win:ws_child
-			  ;;win:ws_border
 			  (if (member scroll '(t :both :dynamic :vertical))
 			    win:ws_vscroll 0)
 			  (if (member scroll '(t :both :dynamic :horizontal))
@@ -1174,8 +1162,16 @@
 	(exstyle (logior win:ws_ex_left
 			 win:ws_ex_ltrreading
 			 win:ws_ex_rightscrollbar
-			 ;;win:ws_ex_clientedge
+			 win:ws_ex_controlparent ; tab btwn controls
+			 ;; You get an "edge" if you use (outlining () ...)
+			 ;; OR if you have scroll bars.  This one is purely
+			 ;; aesthetic but I think it's almost always appropriate.
+			 ;; JPM 6/98.
+			 (if scroll win:ws_ex_clientedge 0)
 			 ))
+	;; You can ask for a menu bar on a child window,
+	;; but Windows will not give you one.  
+	(menu (ct:null-handle win:hmenu))
         (*win-name* *win-name*)
 	(window nil))
     (when pretty
@@ -1187,7 +1183,7 @@
 		winstyle
 		left top width height
 		parent
-		(ct:null-handle win:hmenu)
+		menu
 		*hinst*
 		*win-x*))
     (when (zerop window)

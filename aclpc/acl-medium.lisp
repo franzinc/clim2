@@ -176,6 +176,7 @@
 
 ;;; ink for opacities, regions, etc
 
+;;; +transparent-ink+ is also known as +nowhere+.
 (defmethod dc-image-for-ink ((medium acl-medium) (ink (eql +transparent-ink+)))
   *blank-image*)
 
@@ -222,23 +223,6 @@
     dc-image))
 
 (defun dc-image-for-two-color-pattern (medium array designs)
-  #+broken
-  (let* ((dc-image (copy-dc-image
-		    (slot-value medium 'foreground-dc-image)))
-	 (bink (aref designs 0))
-	 (tink (aref designs 1))
-	 (tcolor (color->wincolor tink medium))
-	 (bcolor (color->wincolor bink medium))
-	 (width (array-dimension array 1))
-	 (height (array-dimension array 0))
-	 (into (byte-align-bits array)))
-    (setf *bitmap-array* into)
-    (let ((bitmap (win:createBitmap width height 1 1 into)))
-      (setf (dc-image-bitmap dc-image) bitmap)
-      (setf (dc-image-background-color dc-image) bcolor)
-      (setf (dc-image-text-color dc-image) tcolor))
-    dc-image)
-
   (let* ((dc-image (copy-dc-image
 		    (slot-value medium 'foreground-dc-image)))
 	 (tink (aref designs 1))
@@ -306,38 +290,21 @@
 
 (defmethod dc-image-for-ink ((medium acl-medium) (ink rectangular-tile))
   ;; The only case we handle right now is stipples
-  (multiple-value-bind (array width height)
-      (decode-tile-as-stipple ink)
-    (unless array
-      (error 
-       "Rectangular tiles other than stipples are not supported yet."))
-    ;; I don't know why width and height are wrong, but they are. JPM 8/25/97
-    (setq width (array-dimension array 1))
-    (setq height (array-dimension array 0))
-    (let* ((into (make-array `(,bmdim ,bmdim) :element-type 'bit
-			     :initial-element 0))
-	   (pattern (decode-rectangular-tile ink))
-	   (designs (pattern-designs pattern))
-	   dc-image background-dc foreground-dc)
+  (let ((pattern (decode-rectangular-tile ink)))
+    (multiple-value-bind (array designs)
+	(decode-pattern pattern)
+      (unless array
+	(error 
+	 "Rectangular tiles other than stipples are not supported yet."))
       (unless (= (length designs) 2)
 	(error "Only 2-color stipples are currently supported."))
-      (setq background-dc (dc-image-for-ink medium (svref designs 0)))
-      (setq foreground-dc (dc-image-for-ink medium (svref designs 1)))
-      (setq dc-image (copy-dc-image foreground-dc))
-      (dotimes (i bmdim)
-	(dotimes (j bmdim)
-	  (setf (aref into i j)
-	    (logand 1 (lognot (aref array (mod i height)
-				    (mod j width)))))))
-      (let* ((bitmap (win:createBitmap bmdim bmdim 1 1 into))
-	     (brush (win:createPatternBrush bitmap)))
-	(setf (dc-image-brush dc-image) brush)
-	;; Setting ROP2 helps when +transparent-ink+ is the background ink.
-	(setf (dc-image-rop2 dc-image) (dc-image-rop2 background-dc))
-	(setf (dc-image-background-color dc-image)
-	  (dc-image-text-color background-dc))
-	(setf (dc-image-text-color dc-image) 
-	  (dc-image-text-color foreground-dc))
+      (setq array (byte-align-pixmap array))
+      (dc-image-for-ink medium (aref designs 1))
+      #+broken
+      (let ((dc-image 
+	     (dc-image-for-two-color-pattern medium array designs)))
+	(setf (dc-image-brush dc-image) 
+	  (win:createPatternBrush (dc-image-bitmap dc-image)))
 	dc-image))))
 
 (defun nyi ()
@@ -484,9 +451,6 @@
 		(t
 		 (let ((*the-dc* dc))
 		   (set-dc-for-ink dc medium ink line-style))
-		 #+ignore
-		 (if (typep ink 'rectangular-tile)
-		     (cerror "Go" "Stop ~S" ink))
 		 (if filled
 		     (win:rectangle dc left top (1+ right) (1+ bottom))
 		   (win:rectangle dc left top right bottom))))
@@ -674,19 +638,26 @@
 		   (descent (acl-font-descent font))
 		   (ascent (acl-font-ascent font)))
 	      (let ((x-adjust 
-		     (compute-text-x-adjustment align-x medium string text-style start end))
+		     (compute-text-x-adjustment align-x medium 
+						string text-style start end))
 		    (y-adjust
-		     (compute-text-y-adjustment align-y descent ascent height)))
+		     (compute-text-y-adjustment align-y descent 
+						ascent height)))
+		;; There is a bug that these adjustments may be wrong.
+		;; It is probably due to an incorrect understanding
+		;; of TEXT-SIZE for some fonts.  :CENTER, for example,
+		;; puts the text too far to the left for font
+		;; (:FIX :ROMAN 10).  JPM 6/98.
 		(incf x x-adjust)
 		(incf y y-adjust)
 		(when towards-x
 		  (incf towards-x x-adjust)
 		  (incf towards-y y-adjust)))
-	      (decf y ascent)		;text is positioned by its top left on acl
+	      (decf y ascent)  ;;text is positioned by its top left on acl
 	      (set-dc-for-text dc medium ink (acl-font-index font))
-	      (win:textOut dc x y 
-			   substring
-			   (length substring))))
+	      (multiple-value-bind (cstr len)
+		  (silica::xlat-newline-return substring)
+		(win:textOut dc x y cstr len))))
 	  (win:selectobject dc old))))))
 
 (defmethod medium-draw-character* ((medium acl-medium)
@@ -1196,7 +1167,7 @@ device-independent bitmap, an icon, nor a cursor."))
 			(dpb byte
 			     (byte 8 offset-in-pixel)
 			     (aref data i pixel-offset)))))))))))
-      (values data (list +black+ +white+)))))
+      (values data (list +background-ink+ +foreground-ink+)))))
 
 (defun read-xpm-file (fstream palette)
   (multiple-value-bind (width height depth left-pad format

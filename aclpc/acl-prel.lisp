@@ -27,17 +27,23 @@
 			 (scroll-mode (combobox-scroll-bars items)))
   (declare (ignore id))
   (let* ((hwnd
-	  (win:CreateWindowEx 0		; extended-style
-			      "COMBOBOX" ; classname
-			      (nstringify label) ; windowname
-			      (logior
-			       (if (member scroll-mode '(:vertical :both)) win:WS_VSCROLL 0)
-			       (if (member scroll-mode '(:horizontal :both)) win:WS_HSCROLL 0)
-			       win:WS_CHILD
-			       win:CBS_DROPDOWNLIST)
-			      0 0 0 0
-			      parent (ct::null-handle win::hmenu)
-			      *hinst* (symbol-name (gensym)))))
+	  (win:CreateWindowEx 
+	   0				; extended-style
+	   "COMBOBOX"			; classname
+	   (nstringify label)		; windowname
+	   (logior
+	    (if (member scroll-mode '(:vertical :both t :dynamic)) 
+		win:WS_VSCROLL
+	      0)
+	    (if (member scroll-mode '(:horizontal :both t :dynamic)) 
+		win:WS_HSCROLL
+	      0)
+	    win:WS_CHILD
+	    win:WS_TABSTOP
+	    win:CBS_DROPDOWNLIST)
+	   0 0 0 0
+	   parent (ct::null-handle win::hmenu)
+	   *hinst* (symbol-name (gensym)))))
     (if (ct:null-handle-p hwnd hwnd)
 	;; failed
 	(cerror "proceed" "failed")
@@ -75,47 +81,44 @@
 			(label "")
 			(horizontal-extent 0))
   (declare (ignore border3d id))
-  (let* ((hwnd
-	  (win:CreateWindowEx 0		; extended-style
-			  "LISTBOX"	; classname
-			  (nstringify label) ; windowname
-			  (logior
-			   win:LBS_NOINTEGRALHEIGHT ; partial item displayed at bottom
-			   win:LBS_NOTIFY
-			   win:LBS_USETABSTOPS ; Expands tab characters in items
-			   (if sorted win:LBS_SORT 0)
-			   (if (eq mode :nonexclusive) win:LBS_MULTIPLESEL 0)
-			   win:WS_CHILD
-			   win:WS_BORDER
-			   (if (member scroll-mode '(:horizontal :both t :dynamic))
-			       win:WS_HSCROLL
-			     0)
-			   (if (member scroll-mode '(:vertical :both t :dynamic))
-			       win:WS_VSCROLL
-			     0)
-			   (if (member scroll-mode '(:horizontal :vertical :both t))
-			       win:LBS_DISABLENOSCROLL
-			     0)
-			   win:WS_CLIPCHILDREN 
-			   win:WS_CLIPSIBLINGS) ; style
-			  0 0 0 0
-			  parent
-			  #+acl86win32 (ct::null-handle win::hmenu)
-			  #-acl86win32 (let ((hmenu (ccallocate hmenu)))
-					 (setf (handle-value hmenu hmenu) id)
-					; (or id (next-child-id parent))
-					 hmenu)
-			  *hinst*
-			  #+acl86win32 (symbol-name (gensym))
-			  #+aclpc acl-clim::*win-arg*)))
+  (let* ((style
+ 	  (logior
+	   win:LBS_NOINTEGRALHEIGHT	; partial item displayed at bottom
+	   win:LBS_NOTIFY
+	   win:LBS_USETABSTOPS		; Expands tab characters in items
+	   (if sorted win:LBS_SORT 0)
+	   (if (eq mode :nonexclusive) win:LBS_MULTIPLESEL 0)
+	   win:WS_CHILD
+	   (if (member scroll-mode '(:horizontal :both t :dynamic))
+	       win:WS_HSCROLL
+	     0)
+	   (if (member scroll-mode '(:vertical :both t :dynamic))
+	       win:WS_VSCROLL
+	     0)
+	   (if (member scroll-mode '(:horizontal :vertical :both t))
+	       win:LBS_DISABLENOSCROLL
+	     0)
+	   win:WS_CLIPCHILDREN 
+	   win:WS_CLIPSIBLINGS))
+	 (exstyle win:ws_ex_clientedge)
+	 (hwnd
+	  (win:CreateWindowEx exstyle
+			      "LISTBOX"	; classname
+			      (nstringify label) ; windowname
+			      style
+			      0 0 0 0
+			      parent
+			      (ct::null-handle win::hmenu)
+			      *hinst*
+			      (symbol-name (gensym)))))
     (if (ct:null-handle-p hwnd hwnd)
 	;; failed
 	(cerror "proceed" "failed")
       ;; else succeed if we can init the DC
       (progn
 	(win:SetWindowPos hwnd (ct:null-handle hwnd) 
-		      left top width height
-		      #.(logior win:SWP_NOACTIVATE win:SWP_NOZORDER))
+			  left top width height
+			  #.(logior win:SWP_NOACTIVATE win:SWP_NOZORDER))
 	(let* ((index -1)
 	       (item-name "")
 	       ;;(cstr (ct::callocate (:char *) :size 256))
@@ -322,6 +325,8 @@
 	(cond ((eq rgb +foreground-ink+)
 	       (setq rgb (medium-foreground medium)))
 	      ((eq rgb +background-ink+)
+	       (setq rgb (medium-background medium)))
+	      ((eq rgb +transparent-ink+)
 	       (setq rgb (medium-background medium))))
 	(multiple-value-bind (red green blue) (color-rgb rgb)
 	  (ct:cset windows:bitmapinfo bmi
@@ -354,7 +359,7 @@
 	 bitmapinfo 
 	 dib-mode))
       (when (zerop texture-handle)
-	(error "CreateDIBitmap: error"))
+	(check-last-error "CreateDIBitmap"))
       texture-handle)))
 
 ;;; about box support
@@ -368,15 +373,45 @@
 		    :title (format nil "About ~A" 
 				   (clim-internals::frame-pretty-name frame))))
 
+(ff:def-foreign-call (FormatMessage "FormatMessageA")
+    ((flags :int) (source :int) (messageid :int)
+		  (languageid :int) (buffer :int)
+		  (size :int) (arguments :int))
+  :arg-checking nil
+  :returning :int)
+
+(defun errno-to-text (errno)
+  (let* ((pointer (make-array 1 
+			      :element-type '(unsigned-byte 32)
+			      :initial-element 0))
+	 (flags (logior #x100		; format_message_allocate_buffer
+			#x1000		; format_message_from_system
+			))
+	 ;; Unfortunately, most of the interesting error codes are not
+	 ;; in the system's message table.  Where are they?  If we had
+	 ;; a handle to the relevant module, we could specify that
+	 ;; to FormatMessage in order to search a module's message table.
+	 (chars (formatmessage flags
+			       0 errno 0 
+			       pointer 0 0)))
+    (values (if (plusp chars)
+		(nsubstitute #\space #\return (ff:char*-to-string (aref pointer 0)))
+	      "unidentified system error")
+	    chars)))
+
 (defun check-last-error (name &key (action :error))
-  ;; All the calls to GetLastError should probably
-  ;; be changed to go through here.
-  (let ((code (win:getlasterror)))
+  ;; Check the value of GetLastError.  It is quite
+  ;; impossible to ensure correct operation of CLIM
+  ;; without paying attention to the errors that come
+  ;; back from the system calls.  Sometimes, however,
+  ;; it is more appropriate to warn about the problem 
+  ;; than to signal an error.
+  (let* ((code (win:getlasterror)))
     (cond ((zerop code) nil)
 	  ((eq action :error)
-	   (error "~A: system error ~A" name code))
+	   (error "~A: (error ~A) ~A" name code (errno-to-text code)))
 	  ((eq action :warn)
-	   (warn "~A: system error ~A" name code)
+	   (warn "~A: (error ~A) ~A" name code (errno-to-text code))
 	   code)
 	  (t code))))
 

@@ -311,6 +311,8 @@
   (focus-out-callback pane (gadget-client pane) (gadget-id pane)))
 
 (defun xlat-newline-return (str)
+  ;; Given a Lisp string, create an equivalent C string.
+  ;; Replace Newline with Return&Newline.
   (let* ((subsize (length str))
 	 (nnl (let ((nl 0))
 		(dotimes (i subsize)
@@ -327,10 +329,11 @@
       (incf pos))
     ;; terminate with null
     (ct:cset (:char 256) cstr ((fixnum pos)) 0)
-    cstr))
+    (values cstr pos)))
 
-;; pr Aug97
 (defun unxlat-newline-return (str)
+  ;; Given a C string, create an equivalent Lisp string.
+  ;; Replace Return&Newline with Newline.
   (let* ((subsize (length str))
 	 (nnl (let ((nl 0))
 		(dotimes (i subsize)
@@ -906,8 +909,58 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; widget button Menu bars
 
-(defclass mswin-menu-bar-pane (menu-bar)
+;;; Windoz will not give you a menu bar anywhere but the
+;;; top level.  Period.  To implement this, we have to
+;;; use "non-native" menu bars.
+
+(defclass mswin-menu-bar-pane (mirrored-sheet-mixin 
+			       menu-bar
+			       sheet-permanently-enabled-mixin
+			       space-requirement-mixin
+			       basic-pane)
     ())
+
+(defmethod compose-space ((pane mswin-menu-bar-pane) &key width height)
+  ;; Total guess.
+  (unless width (setq width 150))
+  (unless height (setq height 25))
+  (make-space-requirement
+   :width (max width 40)
+   :min-width 40
+   :height (max height 25)
+   :min-height 25))
+
+;; TODO: make this unmirrored.  Create buttons using
+;; compute-menu-bar-pane from within initialize-instance :after.
+;; compute-menu-bar-pane needs to be modified to take the
+;; relevant pane as its argument.
+
+(defmethod realize-mirror ((port acl-clim::acl-port) 
+			   (sheet mswin-menu-bar-pane))
+  (multiple-value-bind (left top right bottom)
+      (sheet-native-region* sheet)
+    (fix-coordinates left top right bottom)
+    (let* ((parent (sheet-mirror sheet))
+           (window nil)
+	   (width (- right left))
+	   (height (- bottom top)))
+      (setq window
+	(acl-clim::create-child-window 
+	 parent nil nil left top width height))
+      (setf (sheet-native-transformation sheet)
+	(sheet-native-transformation (sheet-parent sheet)))
+      (win:showWindow window win:sw_show)
+      (setf (sheet-direct-mirror sheet) window)
+      window)))
+
+(defmethod note-sheet-tree-grafted ((port acl-clim::acl-port) 
+				    (sheet mswin-menu-bar-pane))
+  ;; This method is invoked when the sheet and its descendents have
+  ;; been mirrored
+  (let* ((frame (pane-frame sheet))
+	 (command-table (menu-bar-command-table sheet)))
+    (when command-table
+      (acl-clim::compute-msmenu-bar-pane frame sheet command-table))))
 
 (defclass mswin-menu-bar-button (hpbutton-pane)
     ((next-menu :initform nil :initarg :next-menu)))

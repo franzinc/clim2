@@ -122,11 +122,9 @@
 	     ;;mm: allocate gadget-id per parent
              (setq gadget-id (silica::allocate-gadget-id sheet))
 	     (setf buttonstyle
-	       (logior
-		0			; win:BS_TEXT
-		(if (push-button-show-as-default sheet)
-		    win:BS_DEFPUSHBUTTON
-		  win:BS_PUSHBUTTON))))
+	       (if (push-button-show-as-default sheet)
+			     win:BS_DEFPUSHBUTTON
+			     win:BS_PUSHBUTTON)))
 	    ((typep sheet 'silica::mswin-text-edit)
 	     (setq control :hedit)
 	     ;;mm: allocate gadget-id per parent
@@ -218,6 +216,9 @@
 			    0 0 0 0	; left top width height 
 			    :items items
 			    :value value
+			    ;; Give vertical scroll bars in case
+			    ;; its a long list.
+			    :scroll-mode :vertical
 			    :name-key
 			    (slot-value sheet 'silica::name-key)))
 	      ((not (eql parent *screen*))

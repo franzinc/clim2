@@ -300,33 +300,38 @@
 	      (let ((face (text-style-face style)))
 		(typecase face
 		  (cons
-		   (values (if (member :bold face) 700 400)
+		   (values (if (member :bold face) win:FW_BOLD win:FW_NORMAL)
 			   (member :italic face)))
 		  (otherwise
 		   (case face
-		     (:roman (values 400 nil))
-		     (:bold (values 700 nil))
-		     (:italic (values 400 t))
-		     (otherwise (values 400 nil))))))
+		     (:roman (values win:FW_NORMAL nil))
+		     (:bold (values win:FW_BOLD nil))
+		     (:italic (values win:FW_NORMAL t))
+		     (otherwise (values win:FW_BOLD nil))))))
 	    (multiple-value-bind (family face-name)
 		(case (text-style-family style)
-		  (:fix (values 0 "courier"))
-		  (:serif (values 0 "times new roman"))
-		  (:sans-serif (values 0 "arial"))
+		  (:fix (values (logior win:FIXED_PITCH win:FF_MODERN) 
+				#+ignore "courier"))
+		  (:serif (values (logior win:VARIABLE_PITCH win:FF_ROMAN)
+				  #+ignore "times new roman"))
+		  (:sans-serif (values (logior win:VARIABLE_PITCH win:FF_SWISS)
+				       #+ignore "arial"))
 		  ;;--- some of these specify ugly ugly linedrawn fonts
-		  (otherwise (values 0 nil)))
+		  (otherwise (values (logior win:DEFAULT_PITCH win:FF_DONTCARE)
+				     (string (text-style-family style)))))
 	      (let ((point-size
 		     (let ((size (text-style-size style)))
 		       (typecase size
-			 (number
-			  size)
+			 (number size)
 			 (otherwise
-			  (or (second (assoc size *acl-logical-size-alist*)) 12))))))
+			  (or (second (assoc size *acl-logical-size-alist*)) 
+			      12))))))
 		(make-windows-font 
-		 (- (round (* point-size (slot-value port 'logpixelsy))
-			   72))
-		 :weight weight :italic italic
-		 :pitch-and-family family :face face-name))))))))
+		 (- (round (* point-size (slot-value port 'logpixelsy)) 72))
+		 :weight weight 
+		 :italic italic
+		 :pitch-and-family family 
+		 :face face-name))))))))
 
 (defmethod text-style-mapping
     ((device acl-port) (style silica::device-font)
@@ -350,36 +355,53 @@
 	  (let ((name (silica::device-font-name style)))
 	    (make-device-font (win:getstockobject name)))))))
 
-(defvar *fwt* nil)
-
-(defun make-font-width-table (dc last-character first-character)
+(defun make-font-width-table (dc last-character first-character default-width)
   (let* ((tepsize (ct:ccallocate win::size))
 	 (string (make-string 1) )
 	 (array (make-array (1+ last-character))))
     (loop for i from first-character to last-character do
 	  (setf (char string 0) (code-char i))
-	  (win:getTextExtentPoint dc string 1 tepsize)
-	  (setf (aref array i) (ct:cref win::size tepsize win::cx)))
-    (setq *fwt* array)))
+	  (cond ((win:getTextExtentPoint dc string 1 tepsize)
+		 (setf (aref array i) (ct:cref win:size tepsize cx)))
+		(t
+		 ;; Why does this clause ever run?  getlasterror=10035.
+		 (check-last-error "GetTextExtentPoint" :action :warn)
+		 (setf (aref array i) default-width))))
+    array))
 
 (defun make-system-font ()
   (make-device-font (win:getstockobject win:system_font)))
 
 (defun make-windows-font
     (height &key (width 0) (escapement 0) (orientation 0)
-		 (weight 400) (italic nil) (underline nil) (strikeout nil)
-		 (charset 0) (output-precision 0) (clip-precision 0)
-		 (quality 2) ;; ie PROOF_QUALITY
-		 (pitch-and-family 0) (face nil) win-font) 
+		 (weight win:FW_NORMAL) 
+		 (italic nil) (underline nil) (strikeout nil)
+		 (charset win:ANSI_CHARSET) 
+		 (output-precision WIN:OUT_DEFAULT_PRECIS) 
+		 (clip-precision WIN:CLIP_DEFAULT_PRECIS)
+		 (quality win:PROOF_QUALITY) 
+		 (pitch-and-family (logior win:DEFAULT_PITCH win:FF_DONTCARE)) 
+		 (face nil) 
+		 win-font) 
   (let ((win-font 
 	 (or win-font
-	     (win:createFont height width escapement orientation weight
-			     (if italic 1 0) (if underline 1 0)
-			     (if strikeout 1 0) charset
-			     output-precision clip-precision quality
-			     pitch-and-family (or face "")))))
+	     (win:createFont height	; logical height
+			     width	; logical average width
+			     escapement ; angle of escapement (tenths of degrees)
+			     orientation; normally the same as escapement
+			     weight	; font weight (FW_NORMAL=400, FW_BOLD=700)
+			     (if italic 1 0) 
+			     (if underline 1 0)
+			     (if strikeout 1 0) 
+			     charset	; if you want chinese or greek
+			     output-precision
+			     clip-precision
+			     quality
+			     pitch-and-family 
+			     (or face "")
+			     ))))
     (when (zerop win-font)
-      (error "CreateFont: system error ~s" (win:getlasterror)))
+      (check-last-error "CreateFont"))
     (make-device-font win-font)))
 
 (defun make-device-font (win-font) 
@@ -388,9 +410,20 @@
 		 (sheet-mirror (frame-top-level-sheet *application-frame*))))
 	(tmstruct (ct:ccallocate win:textmetric)))
     (unless cw (setf cw *current-window*))
+    (unless (win:iswindow cw) 
+      ;; This clause is for the rare case that you are doing drawing
+      ;; from a background process the first time you attempt to use
+      ;; this font.  It doesn't really matter which frame you pick.
+      (let* ((framem (find-frame-manager))
+	     (frame (when framem (first (frame-manager-frames framem)))))
+	(when frame
+	  (setq cw (sheet-mirror (frame-top-level-sheet frame))))))
+    (unless (win:iswindow cw) 
+      (error "No window found for calculating text font metrics."))
     (with-dc (cw dc)
       (win:selectObject dc win-font)
-      (win:getTextMetrics dc tmstruct)
+      (or (win:getTextMetrics dc tmstruct)
+	  (check-last-error "GetTextMetrics"))
       (let ((average-character-width
 	     (ct:cref win:textmetric tmstruct tmavecharwidth))
 	    (maximum-character-width
@@ -400,7 +433,8 @@
 	    (font-width-array-or-nil nil))
 	(setq font-width-array-or-nil
 	  (and (/= average-character-width maximum-character-width)
-	       (make-font-width-table dc last-character first-character)))
+	       (make-font-width-table dc last-character first-character
+				      maximum-character-width)))
 	(make-acl-font
 	 :index win-font 
 	 :height (ct:cref win:textmetric tmstruct tmheight)
@@ -503,7 +537,10 @@
       (setq result 
 	(win:LoadCursor 0 cursor))
       (when (zerop result)
-	(error "LoadCursor: system error ~s" (win:getlasterror)))
+	;; Suppress the error for now to be compatible with
+	;; previous versions of CLIM.  It would be nice to
+	;; figure out what is causing this and fix it.  JPM 6/98.
+	(check-last-error "LoadCursor" :action :warn))
       (push (list cursor result) *loaded-cursors*))
     result))
 
@@ -533,13 +570,13 @@
   (declare (ignore pointer))
   (fix-coordinates x y)
   (or (win:setCursorPos x y)
-      (error "SetCursorPos: system error ~S" (win:getlasterror))))
+      (check-last-error "SetCursorPos")))
 
 (defmethod clim-internals::port-query-pointer ((port acl-port) sheet)
   (let ((point (ct:ccallocate win:point))
 	(native-x 0)(native-y 0))
     (or (win:getCursorPos point)
-	(error "GetCursorPos: system error ~s" (win:getlasterror)))
+	(check-last-error "GetCursorPos"))
     (let ((root-x (ct:cref win:point point x))
 	  (root-y (ct:cref win:point point y)))
       (multiple-value-bind (x y)

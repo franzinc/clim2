@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $Header: /repo/cvs.copy/clim2/clim/output-protocol.lisp,v 1.46.22.1 1998/05/19 01:04:34 layer Exp $
+;; $Header: /repo/cvs.copy/clim2/clim/output-protocol.lisp,v 1.46.22.2 1998/06/22 21:49:48 layer Exp $
 
 (in-package :clim-internals)
 
@@ -214,10 +214,14 @@
 
 
 (defmethod stream-force-output ((stream output-protocol-mixin))
-  (medium-force-output (sheet-medium stream)))
+  (let ((medium (sheet-medium stream)))
+    ;; null medium is a transient initial state we should tolerate.
+    (when medium (medium-force-output medium))))
 
 (defmethod stream-finish-output ((stream output-protocol-mixin))
-  (medium-finish-output (sheet-medium stream)))
+  (let ((medium (sheet-medium stream)))
+    ;; null medium is a transient initial state we should tolerate.
+    (when medium (medium-finish-output medium))))
 
 (defmethod stream-terpri ((output-stream output-protocol-mixin))
   (stream-write-char output-stream #\Newline)

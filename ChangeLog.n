@@ -11,6 +11,24 @@ Tests for new features:	<`no new features', `no tests for new features', or
 	* <changes go here...>
 
 *******************************************************************************
+2.2.1.22
+
+Mon Jun 22  1998  
+
+        * aclpc/acl-class: mostly just cleanup
+        * aclpc/acl-frames: fix command-table bugs for BBN
+        * aclpc/acl-medium: fix medium-draw-string* for newline,
+          make draw-pattern sorta work for stipples
+        * aclpc/acl-mirror: improved look & feel
+        * aclpc/acl-port: fix text-size problems
+        * aclpc/acl-prel: improved look & feel, improved error messages
+        * aclpc/acl-widget: work on menu-bar widgets for BBN
+        * clim/output-protocol: null medium is a transient initial state
+          we should tolerate
+        * silica/db-border: fix bug in macro LABELLING (#+microsoft-32)
+	* utils/packages: bump version id
+
+*******************************************************************************
 2.2.1.21
 
 Tue Jun  9 23:55:40 1998  Kevin Layer  <layer@ultra>
