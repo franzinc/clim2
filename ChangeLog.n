@@ -11,6 +11,11 @@ Tests for new features:	<`no new features', `no tests for new features', or
 	* <changes go here...>
 
 *******************************************************************************
+Sun Apr  5 20:59:41 1998  Kevin Layer  <layer@ultra>
+
+	* Makefile: set default host for HP
+
+*******************************************************************************
 Documentation changes:	none
 Tests for new features:	no new features
 
