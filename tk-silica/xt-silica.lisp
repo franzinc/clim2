@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.76 93/04/07 09:07:31 cer Exp $
+;; $fiHeader: xt-silica.lisp,v 1.77 93/04/08 13:19:27 colin Exp $
 
 (in-package :xm-silica)
 
@@ -147,13 +147,14 @@
 	       '(:static-color :true-color :pseudo-color :direct-color))
        t))
 
-(defvar *xt-font-families* '((:fix "-*-courier-*-*-*-*-*-*-*-*-*-*-*-*")
-			     (:sans-serif "-*-helvetica-*-*-*-*-*-*-*-*-*-*-*-*")
-			     (:serif 
-			      ;; This causes problems on OpenWindows 3.0!
-			      ;; "-*-charter-*-*-*-*-*-*-*-*-*-*-*-*"
-			      "-*-new century schoolbook-*-*-*-*-*-*-*-*-*-*-*-*"
-			      "-*-times-*-*-*-*-*-*-*-*-*-*-*-*")))
+(defparameter *xt-font-families*
+    '((:fix "-*-courier-*-*-*-*-*-*-*-*-*-*-*-*")
+      (:sans-serif "-*-helvetica-*-*-*-*-*-*-*-*-*-*-*-*")
+      (:serif 
+       ;; This causes problems on OpenWindows 3.0!
+       ;; "-*-charter-*-*-*-*-*-*-*-*-*-*-*-*"
+       "-*-new century schoolbook-*-*-*-*-*-*-*-*-*-*-*-*"
+       "-*-times-*-*-*-*-*-*-*-*-*-*-*-*")))
 
 (defun disassemble-x-font-name (name)
   (let ((cpos 0)
@@ -189,7 +190,7 @@
 			      (if bold '(:bold :italic) :italic)
 			    (if bold :bold :roman)))
 		    (designed-point-size (parse-integer (ninth tokens)))
-		    (designed-y-resolution (parse-integer (nth 11 tokens)))
+		    (designed-y-resolution (parse-integer (nth 10 tokens)))
 		    (point-size (* (float designed-point-size)
 				   (/ designed-y-resolution
 				      screen-pixels-per-inch)))
