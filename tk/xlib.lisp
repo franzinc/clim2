@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xlib.lisp,v 1.30 92/10/28 11:30:39 cer Exp Locker: cer $
+;; $fiHeader: xlib.lisp,v 1.31 92/10/28 13:17:01 cer Exp $
 
 (in-package :tk)
 
@@ -247,7 +247,7 @@
 (eval-when (load)
   (setup-error-handlers))
 
-(define-condition x-colormap-error (serious-condition) ())
+(define-condition x-colormap-full (serious-condition) ())
 
 ;;--
 
@@ -335,7 +335,7 @@
       ;;-- Perhaps the colormap code should enable the user to
       ;;-- intercept this or we should just resort to some kind of stippling
       (if (zerop z)
-	  (error 'x-colormap-error)
+	  (error 'x-colormap-full)
 	(values (x11:xcolor-pixel y)
 		(make-instance 'color :foreign-address y))))))
 
@@ -421,7 +421,7 @@
 	     pixels
 	     ncolors)))
     (when (zerop z)
-      (error 'x-colormap-error))
+      (error 'x-colormap-full))
     (values pixels masks)))
 
    

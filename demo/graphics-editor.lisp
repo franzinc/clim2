@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-GRAPHICS-EDITOR; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics-editor.lisp,v 1.12 92/10/28 11:32:57 cer Exp Locker: cer $
+;; $fiHeader: graphics-editor.lisp,v 1.13 92/10/28 13:17:33 cer Exp $
 
 (in-package :clim-graphics-editor)
 
@@ -163,14 +163,6 @@
 		  (+ top 2) :align-x :center :align-y :top))))
 
 #+allegro
-(defparameter *box-highlighting-ink*
-	      (make-flipping-ink +background-ink+ +red+))
-
-#+allegro
-(defparameter *box-highlighting-line-style*
-	      (make-line-style :thickness 2))
-
-#+allegro
 (define-presentation-method highlight-presentation ((type box) record stream state)
   (declare (ignore state))
   (multiple-value-bind (xoff yoff)
@@ -180,8 +172,13 @@
       (draw-rectangle* stream 
 		       (+ xoff (- left 3)) (+ yoff (- top 3))
 		       (+ xoff right 3) (+ yoff bottom 3)
-		       :ink *box-highlighting-ink*
-		       :line-style *box-highlighting-line-style*
+		       :ink (make-flipping-ink 
+			     (if (palette-color-p
+				  (frame-palette (pane-frame stream)))
+				 +red+
+			       +foreground-ink+)
+			     +background-ink+)
+		       :line-style (make-line-style :thickness 2) 
 		       :filled nil))))
 
 (defmethod move-object :after ((object box) x y)
@@ -428,7 +425,12 @@
 	(last-box (slot-value *application-frame* 'last-box))
 	(style (slot-value *application-frame* 'style))
 	(shape (slot-value *application-frame* 'shape))
-	(flipping-ink #+allegro (make-flipping-ink +blue+ +background-ink+)
+	(flipping-ink #+allegro 
+		      (make-flipping-ink (if (palette-color-p
+					      (frame-palette *application-frame*))
+					     +blue+
+					   +foreground-ink+) 
+					 +background-ink+)
 		      #-allegro +flipping-ink+))
     ;;--- Zdrava supplies primitives to input basic objects such as
     ;;--- points, lines, rectangles and polygons, circles and ellipses,

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.46 92/10/28 11:33:22 cer Exp Locker: cer $
+;; $fiHeader: xt-graphics.lisp,v 1.47 92/10/28 13:17:45 cer Exp $
 
 (in-package :tk-silica)
 
@@ -82,7 +82,7 @@
     (make-instance 'xt-palette
 		   :port port
 		   :colormap colormap
-		   :mutable-p (and 
+		   :dynamic-p (and 
 			       (member (port-visual-class port)
 				       '(:gray-scale :pseudo-color :direct-color))
 			       t)
@@ -92,6 +92,14 @@
 
 (defmethod make-palette ((port xt-port) &key)
   (make-xt-palette port (tk::create-colormap (port-display port))))
+
+(defmethod medium-palette ((medium xt-medium))
+  (let* ((sheet (medium-sheet medium))
+	 (frame (pane-frame sheet))
+	 (framem (and frame (frame-manager frame))))
+    (if framem
+	(frame-manager-palette framem)
+      (port-default-palette (port sheet)))))
 
 #+ignore
 (defmethod (setf frame-manager-palette) :after 
@@ -157,30 +165,23 @@
 
 ;;; things we can install in a palete
 ;;; 1 - color (rgb etc)
-;;; 2 - mutable-color
-;;; 3 - color-group or group-color or both ??
+;;; 2 - dynamic-color
+;;; 3 - layered-color
 
-(defmethod allocate-color :around (color (palette xt-palette))
-  (declare (ignore color))
-  (handler-case
-      (call-next-method)
-    (tk::x-colormap-error ()
-      (error 'palette-full))))
-  
 (defmethod allocate-color ((color color) (palette xt-palette))
   (unless (gethash color (palette-color-cache palette))
     (decode-color-in-palette color palette)))
 
-(defmethod allocate-color ((color mutable-color) (palette xt-palette))
-  (unless (gethash color (palette-mutable-color-cache palette))
+(defmethod allocate-color ((color dynamic-color) (palette xt-palette))
+  (unless (gethash color (palette-dynamic-color-cache palette))
     (decode-color-in-palette color palette)))
 
-(defmethod allocate-color ((group color-group) (palette xt-palette))
-  (unless (gethash group (palette-color-group-cache palette))
-    (decode-color-group group palette)))
+(defmethod allocate-color ((set layered-color-set) (palette xt-palette))
+  (unless (gethash set (palette-layered-color-cache palette))
+    (decode-layered-color-set set palette)))
 
-(defmethod allocate-color ((color group-color) (palette xt-palette))
-  (allocate-color (group-color-group color) palette))
+(defmethod allocate-color ((color layered-color) (palette xt-palette))
+  (allocate-color (layered-color-set color) palette))
 
 (defmethod free-color ((color color) (palette xt-palette))
   (let* ((color-cache (palette-color-cache palette))
@@ -189,22 +190,22 @@
       (tk::free-color-cells (palette-colormap palette) pixel 0)
       (remhash color color-cache))))
 
-(defmethod free-color ((color mutable-color) (palette xt-palette))
-  (let* ((mutable-color-cache (palette-mutable-color-cache palette))
-	 (pixel (gethash color mutable-color-cache)))
+(defmethod free-color ((color dynamic-color) (palette xt-palette))
+  (let* ((dynamic-color-cache (palette-dynamic-color-cache palette))
+	 (pixel (gethash color dynamic-color-cache)))
     (when pixel
       (tk::free-color-cells (palette-colormap palette) pixel 0)
-      (remhash color mutable-color-cache))))
+      (remhash color dynamic-color-cache))))
 
-(defmethod free-color ((color group-color) (palette xt-palette))
-  (free-color (group-color-group color) palette))
+(defmethod free-color ((color layered-color) (palette xt-palette))
+  (free-color (layered-color-set color) palette))
 
-(defmethod free-color ((group color-group) (palette xt-palette))
-  (let* ((color-group-cache (palette-color-group-cache palette))
-	 (pixel-planes (gethash group color-group-cache)))
+(defmethod free-color ((set layered-color-set) (palette xt-palette))
+  (let* ((layered-color-cache (palette-layered-color-cache palette))
+	 (pixel-planes (gethash set layered-color-cache)))
     (when pixel-planes
-      (let ((mutable-color-cache (palette-mutable-color-cache palette))
-	    (mutable-array (color-group-mutable-array group))
+      (let ((dynamic-color-cache (palette-dynamic-color-cache palette))
+	    (dynamic-array (layered-color-set-dynamic-array set))
 	    (planes 0))
 	(dolist (plane-masks (cdr pixel-planes))
 	  (dolist (plane-mask plane-masks)
@@ -212,28 +213,20 @@
 	(tk::free-color-cells (palette-colormap palette)
 			      (car pixel-planes)
 			      planes)
-	(map-over-group-colors
+	(map-over-layered-colors
 	 #'(lambda (dimensions)
-	     (let ((mutable-color (apply #'aref mutable-array dimensions)))
-	       (remhash mutable-color mutable-color-cache)
-	       (setf (mutable-color-palettes mutable-color)
-		 (delete palette (mutable-color-palettes mutable-color)))))
-	 group)
-	(maphash #'(lambda (group-color pixel-mask)
+	     (let ((dynamic-color (apply #'aref dynamic-array dimensions)))
+	       (remhash dynamic-color dynamic-color-cache)
+	       (setf (dynamic-color-palettes dynamic-color)
+		 (delete palette (dynamic-color-palettes dynamic-color)))))
+	 set)
+	(maphash #'(lambda (layered-color pixel-mask)
 		     (declare (ignore pixel-mask))
-		     (when (and (typep group-color 'group-color)
-				(eq (group-color-group group-color) group))
-		       (remhash group-color color-group-cache)))
-		 color-group-cache)
-	(remhash group color-group-cache)))))
-;;;
-
-(defmethod medium-drawable ((medium xt-medium))
-  (with-slots (drawable sheet) medium
-    (or drawable
-	(setf drawable (fetch-medium-drawable 
-			sheet
-			(sheet-mirror sheet))))))
+		     (when (and (typep layered-color 'layered-color)
+				(eq (layered-color-set layered-color) set))
+		       (remhash layered-color layered-color-cache)))
+		 layered-color-cache)
+	(remhash set layered-color-cache)))))
 
 
 ;;
@@ -482,7 +475,7 @@
 ;;; there otherwise make a gc using decode-color-in-palette to get the
 ;;; pixel value
 
-;;--- This is really on color, mutable-color, and group-color.
+;;--- This is really on color, dynamic-color, and layered-color.
 ;;--- Perhaps there should be a class like basic-color?
 
 (defmethod decode-ink ((ink design) (medium xt-medium))
@@ -512,34 +505,33 @@
 
 (defmethod decode-ink ((ink flipping-ink) (medium xt-medium))
   (let ((palette (medium-palette medium)))
-    (with-slots (color-p) palette
-      (with-slots (ink-table sheet tile-gcontext drawable indirect-inks)
-	  medium
-	(or (gethash ink ink-table)
-	    (let* ((drawable (or drawable
-				 (tk::display-root-window (port-display (port sheet)))))
-		   (new-gc (make-instance 'fast-gcontext 
-					  :drawable drawable
-					  :function boole-xor)))
-	      (multiple-value-bind (color1 color2)
-		  (decode-flipping-ink ink)
-		(cond (color-p
-		       (setf (tk::gcontext-foreground new-gc)
-			 (logxor (decode-color color1 medium)
-				 (decode-color color2 medium))))
-		      ;;-- support gray-scale here
-		      (t
-		       ;; in a monochrome context there is only one
-		       ;; flipping ink availiable ie white <-> black
-		       (slot-value medium 'flipping-gcontext)))
-		(when (indirect-ink-p ink)
-		  (push ink indirect-inks))
-		(setf (gethash ink ink-table) new-gc))))))))
+    (with-slots (ink-table sheet tile-gcontext drawable indirect-inks)
+	medium
+      (or (gethash ink ink-table)
+	  (let* ((drawable (or drawable
+			       (tk::display-root-window (port-display (port sheet)))))
+		 (new-gc (make-instance 'fast-gcontext 
+					:drawable drawable
+					:function boole-xor)))
+	    (multiple-value-bind (color1 color2)
+		(decode-flipping-ink ink)
+	      (cond ((palette-color-p palette)
+		     (setf (tk::gcontext-foreground new-gc)
+		       (logxor (decode-color color1 medium)
+			       (decode-color color2 medium))))
+		    ;;-- support gray-scale here
+		    (t
+		     ;; in a monochrome context there is only one
+		     ;; flipping ink availiable ie white <-> black
+		     (slot-value medium 'flipping-gcontext)))
+	      (when (indirect-ink-p ink)
+		(push ink indirect-inks))
+	      (setf (gethash ink ink-table) new-gc)))))))
 		 
 
 (defmethod decode-ink ((ink color) (medium xt-medium))
   (let ((palette (medium-palette medium)))
-    (with-slots (white-pixel black-pixel color-p) palette
+    (with-slots (white-pixel black-pixel) palette
       (with-slots (ink-table sheet tile-gcontext drawable) medium
 	(or (gethash ink ink-table)
 	    (let* ((drawable 
@@ -645,37 +637,43 @@ and on color servers, unless using white or black")
 	(setf (gethash color color-cache)
 	  (with-slots (white-pixel black-pixel) palette
 	    (cond ((palette-color-p palette)
-		   (tk::allocate-color
-		    (palette-colormap palette) (get-xcolor color palette)))
+		   (handler-case
+		       (tk::allocate-color
+			(palette-colormap palette) (get-xcolor color palette))
+		     (tk::x-colormap-error ()
+		       (error 'palette-full))))
 		  ;;-- support gray-scale here
 		  (t
 		   (multiple-value-bind (r g b) (color-rgb color)
 		     (let ((luminosity (color-luminosity r g b)))
 		       (if (> luminosity .5) white-pixel black-pixel))))))))))
 
-(defmethod decode-color-in-palette ((color mutable-color) (palette xt-palette))
-  (let ((mutable-color-cache (palette-mutable-color-cache palette)))
-    (or (gethash color mutable-color-cache)
-	(let ((pixel (aref (tk::alloc-color-cells
-			     (palette-colormap palette) 1 0)
+(defmethod decode-color-in-palette ((color dynamic-color) (palette xt-palette))
+  (let ((dynamic-color-cache (palette-dynamic-color-cache palette)))
+    (or (gethash color dynamic-color-cache)
+	(let ((pixel (aref (handler-case
+			       (tk::alloc-color-cells
+				(palette-colormap palette) 1 0)
+			     (tk::x-colormap-error ()
+			       (error 'palette-full)))
 			   0)))
-	  (update-palette-entry palette pixel (mutable-color-color color))
-	  (push palette (mutable-color-palettes color))
-	  (setf (gethash color mutable-color-cache) pixel)))))
+	  (update-palette-entry palette pixel (dynamic-color-color color))
+	  (push palette (dynamic-color-palettes color))
+	  (setf (gethash color dynamic-color-cache) pixel)))))
 
-(defmethod decode-color-in-palette ((color group-color) (palette xt-palette))
-  (let ((color-group-cache (palette-color-group-cache palette)))
+(defmethod decode-color-in-palette ((color layered-color) (palette xt-palette))
+  (let ((layered-color-cache (palette-layered-color-cache palette)))
     (values-list
-     (or (gethash color color-group-cache)
-	 (setf (gethash color color-group-cache)
-	   (let* ((group (group-color-group color))
-		  (pixel-planes (gethash group color-group-cache))) 
+     (or (gethash color layered-color-cache)
+	 (setf (gethash color layered-color-cache)
+	   (let* ((set (layered-color-set color))
+		  (pixel-planes (gethash set layered-color-cache))) 
 	     (unless pixel-planes
-	       (setq pixel-planes (decode-color-group group palette)))
+	       (setq pixel-planes (decode-layered-color-set set palette)))
 	     (multiple-value-list 
-		 (decode-group-color (group-color-layers color) pixel-planes))))))))
+		 (decode-layered-color (layered-color-layers color) pixel-planes))))))))
 
-(defun decode-group-color (layers pixel-planes)
+(defun decode-layered-color (layers pixel-planes)
   (let ((pixel (car pixel-planes))
 	(planes (cdr pixel-planes))
 	(mask 0)) 
@@ -692,11 +690,11 @@ and on color servers, unless using white or black")
 	    (setq mask (logior mask plane-mask))))))
     (values pixel (lognot mask))))
 
-(defun decode-color-group (group palette)
-  (let ((color-group-cache (palette-color-group-cache palette))
-	(mutable-color-cache (palette-mutable-color-cache palette))
-	(layers (color-group-layers group))
-	(mutable-array (color-group-mutable-array group))
+(defun decode-layered-color-set (set palette)
+  (let ((layered-color-cache (palette-layered-color-cache palette))
+	(dynamic-color-cache (palette-dynamic-color-cache palette))
+	(layers (layered-color-set-layers set))
+	(dynamic-array (layered-color-set-dynamic-array set))
 	layer-nplanes
 	(total-nplanes 0))
     (dolist (layer layers)
@@ -704,8 +702,11 @@ and on color servers, unless using white or black")
 	(push nplanes layer-nplanes)
 	(incf total-nplanes nplanes)))
     (multiple-value-bind (pixels masks)
-	(tk::alloc-color-cells
-	 (palette-colormap palette) 1 total-nplanes)
+	(handler-case
+	    (tk::alloc-color-cells
+	     (palette-colormap palette) 1 total-nplanes)
+	  (tk::x-colormap-error ()
+	    (error 'palette-full)))
       (let ((pixel (aref pixels 0))
 	    (count 0)
 	    (planes nil))
@@ -716,23 +717,22 @@ and on color servers, unless using white or black")
 	      (incf count))
 	    (push plane-masks planes)))
 	(let ((pixel-planes (cons pixel planes)))
-	  (map-over-group-colors 
+	  (map-over-layered-colors 
 	   #'(lambda (dimensions)
-	       (let ((mutable-color (apply #'aref mutable-array dimensions))
-		     (pixel (decode-group-color dimensions
-						pixel-planes)))
-		 (setf (gethash mutable-color mutable-color-cache) pixel)
-		 (update-palette-entry palette pixel (mutable-color-color mutable-color))
-		 (push palette (mutable-color-palettes mutable-color))))
-	   group)
-	  (setf (gethash group color-group-cache) pixel-planes))))))
+	       (let ((dynamic-color (apply #'aref dynamic-array dimensions))
+		     (pixel (decode-layered-color dimensions
+						  pixel-planes)))
+		 (setf (gethash dynamic-color dynamic-color-cache) pixel)
+		 (update-palette-entry palette pixel (dynamic-color-color dynamic-color))
+		 (push palette (dynamic-color-palettes dynamic-color))))
+	   set)
+	  (setf (gethash set layered-color-cache) pixel-planes))))))
 	    
 (defmethod decode-color ((ink contrasting-ink) (medium xt-medium))
   (let ((palette (medium-palette medium)))
-    (with-slots (color-p) palette
-      (decode-color (if color-p
-			(make-color-for-contrasting-ink ink)
-		      (make-gray-color-for-contrasting-ink ink)) medium))))
+    (decode-color (if (palette-color-p palette)
+		      (make-color-for-contrasting-ink ink)
+		    (make-gray-color-for-contrasting-ink ink)) medium)))
 
 (defvar *default-dashes* '(4 4))
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: base-designs.lisp,v 1.2 92/10/04 14:16:12 cer Exp $
+;; $fiHeader: base-designs.lisp,v 1.3 92/10/28 11:30:57 cer Exp $
 
 (in-package :clim-utils)
 
@@ -64,7 +64,6 @@
   (with-slots (red green blue) color
     `(make-rgb-color ,red ,green ,blue)))
 
-
 (defclass ihs-color (color)
     ((intensity  :type single-float :initarg :intensity)
      (hue	 :type single-float :initarg :hue)
@@ -85,14 +84,14 @@
 (defclass basic-palette (palette)
     ((port :reader palette-port :initarg :port)
      (color-p :reader palette-color-p :initarg :color-p)
-     (mutable-p :reader palette-mutable-p :initarg :mutable-p)
+     (dynamic-p :reader palette-dynamic-p :initarg :dynamic-p)
      (color-cache :reader palette-color-cache :initform (make-hash-table))
-     (mutable-color-cache :reader palette-mutable-color-cache
+     (dynamic-color-cache :reader palette-dynamic-color-cache
 			  :initform (make-hash-table))
-     (color-group-cache :reader palette-color-group-cache
-			:initform (make-hash-table))
-     (delayed-mutations :reader palette-delayed-mutations
-			:initform (make-array 32 :adjustable t :fill-pointer 0))))
+     (layered-color-cache :reader palette-layered-color-cache
+			  :initform (make-hash-table))
+     (delayed-recolors :reader palette-delayed-recolors
+			  :initform (make-array 32 :adjustable t :fill-pointer 0))))
 
 (defgeneric make-palette (port &key))
 
@@ -105,42 +104,42 @@
 (defgeneric update-palette-entries (palette updates))
 
 
-;;; Mutable Colors 
+;;; Dynamic Colors 
 
-(defclass mutable-color (color)
-    ((color :accessor mutable-color-color :initarg :color)
+(defclass dynamic-color (color)
+    ((color :accessor dynamic-color-color :initarg :color)
      (palettes :type list 
 	       :initform nil
-	       :accessor mutable-color-palettes)))
+	       :accessor dynamic-color-palettes)))
 
-(define-constructor make-mutable-color-1 mutable-color (color) 
+(define-constructor make-dynamic-color dynamic-color (color) 
 		    :color color)
 
-(defmethod make-load-form ((color mutable-color))
+(defmethod make-load-form ((color dynamic-color))
   (with-slots (color) color
-    `(make-mutable-color ,color)))
+    `(make-dynamic-color ,color)))
 
 
-;;; Color Groups
+;;; Layered Colors
 
-(defclass color-group ()
-    ((layers :initform nil :reader color-group-layers :initarg :layers)
-     (cache :initform (make-hash-table :test #'equal) :reader color-group-cache)
-     (mutable-array :reader color-group-mutable-array :initarg :mutable-array)))
+(defclass layered-color-set ()
+    ((layers :initform nil :reader layered-color-set-layers :initarg :layers)
+     (cache :initform (make-hash-table :test #'equal) :reader layered-color-set-cache)
+     (dynamic-array :reader layered-color-set-dynamic-array :initarg :dynamic-array)))
 
-(define-constructor make-color-group color-group (&rest layers)
+(define-constructor make-layered-color-set layered-color-set (&rest layers)
 		    :layers layers
-		    :mutable-array (make-array layers))
+		    :dynamic-array (make-array layers))
 
-(defgeneric group-color (color-group &rest layers))
+(defgeneric layered-color (layered-color-set &rest layers))
 
-(defclass group-color (design)
-    ((group :reader group-color-group :initarg :group)
-     (layers :initform nil :reader group-color-layers :initarg :layers)
-     (mutables :initform nil))) 
+(defclass layered-color (design)
+    ((set :reader layered-color-set :initarg :set)
+     (layers :initform nil :reader layered-color-layers :initarg :layers)
+     (dynamics :initform nil))) 
    
-(define-constructor make-group-color group-color (group layers)
-		    :group group :layers layers)
+(define-constructor make-layered-color layered-color (set layers)
+		    :set set :layers layers)
 
 
 ;;; Foreground and background (indirect) inks

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: designs.lisp,v 1.8 92/10/28 11:31:04 cer Exp Locker: cer $
+;; $fiHeader: designs.lisp,v 1.9 92/10/28 13:17:12 cer Exp $
 
 (in-package :clim-utils)
 
@@ -294,140 +294,134 @@
 (defmethod color-ihs ((color ihs-color))
   (with-slots (intensity hue saturation) color
     (values intensity hue saturation)))
+
+;;; Palettes 
+
+(define-condition palette-full (serious-condition) ())
+
+(defmethod add-to-palette ((palette basic-palette) &rest colors)
+  (let ((colors-done nil))
+    (dolist (color colors)
+      (handler-case
+	  (progn
+	    (push color colors-done)
+	    (allocate-color color palette))
+	(palette-full (condition)
+	  (dolist (color colors-done)
+	    (free-color color palette))
+	  (error condition))))))
+
+(defmethod remove-from-palette ((palette basic-palette) &rest colors)
+  (dolist (color colors)
+    (free-color color palette)))
 
 
-;;; Mutable Colors 
+;;; Dynamic Colors 
 
-(defun make-mutable-color (color)
-  (make-mutable-color-1 color))
-
-(defmethod print-object ((color mutable-color) stream)
+(defmethod print-object ((color dynamic-color) stream)
   (print-unreadable-object (color stream :type t :identity t)
-    (princ (mutable-color-color color) stream)))
+    (princ (dynamic-color-color color) stream)))
 
-(defmethod color-rgb ((color mutable-color))
-  (color-rgb (mutable-color-color color)))
+(defmethod color-rgb ((color dynamic-color))
+  (color-rgb (dynamic-color-color color)))
 
-(defmethod color-ihs ((color mutable-color))
-  (color-ihs (mutable-color-color color)))
+(defmethod color-ihs ((color dynamic-color))
+  (color-ihs (dynamic-color-color color)))
 
-(defvar *doing-delayed-mutations* nil)
+(defvar *doing-delayed-recolors* nil)
 
-(defmethod mutate-mutable ((mutable mutable-color) (color color))
-  (if *doing-delayed-mutations*
-      (dolist (palette (mutable-color-palettes mutable))
-	(let ((cell (gethash mutable (palette-mutable-color-cache palette)))
-	      (mutations (palette-delayed-mutations palette)))
+(defmethod recolor-dynamic ((dynamic-color dynamic-color) (color color))
+  (if *doing-delayed-recolors*
+      (dolist (palette (dynamic-color-palettes dynamic-color))
+	(let ((cell (gethash dynamic-color (palette-dynamic-color-cache palette)))
+	      (recolors (palette-delayed-recolors palette)))
 	  (without-scheduling
-	    (vector-push-extend cell mutations)
-	    (vector-push-extend color mutations))))
-      (dolist (palette (mutable-color-palettes mutable))
-	(let ((cell (gethash mutable (palette-mutable-color-cache palette))))
-	  (update-palette-entry palette cell color)))))
+	    (vector-push-extend cell recolors)
+	    (vector-push-extend color recolors))))
+    (dolist (palette (dynamic-color-palettes dynamic-color))
+      (let ((cell (gethash dynamic-color (palette-dynamic-color-cache palette))))
+	(update-palette-entry palette cell color)))))
 
-(defmethod (setf mutable-color-color) :after ((color color) (mutable mutable-color))
-  (mutate-mutable mutable color))
+(defmethod (setf dynamic-color-color) :after
+	   ((color color) (dynamic-color dynamic-color))
+  (recolor-dynamic dynamic-color color))
 
-(defmethod mutate-color ((mutable mutable-color) (color color))
-  (setf (slot-value mutable 'color) color)
-  (mutate-mutable mutable color))
-
-;; Note that the actual color mutation occurs on exiting the outermost
-;; call to WITH-DELAYED-MUTATIONS
-(defmacro with-delayed-mutations (&body body)
-  (let ((outer-doing-delayed-mutations '#:outer-doing-delayed-mutations)
+;; Note that the actual color recoloring occurs on exiting the outermost
+;; call to WITH-DELAYED-RECOLORING
+(defmacro with-delayed-recoloring (&body body)
+  (let ((outer-doing-delayed-recolors '#:outer-doing-delayed-recolors)
 	(palette '#:palette)
-	(mutations '#:mutations))
-    `(let ((,outer-doing-delayed-mutations *doing-delayed-mutations*)
-	   (*doing-delayed-mutations* t))
+	(recolors '#:recolors))
+    `(let ((,outer-doing-delayed-recolors *doing-delayed-recolors*)
+	   (*doing-delayed-recolors* t))
        (unwind-protect
 	   ,@body
 	 (progn
-	   (unless ,outer-doing-delayed-mutations
+	   (unless ,outer-doing-delayed-recolors
 	     (dolist (,palette *all-palettes*)
-	       (let ((,mutations (palette-delayed-mutations ,palette)))
-		 (update-palette-entries ,palette ,mutations)
-		 (setf (fill-pointer ,mutations) 0)))))))))
+	       (let ((,recolors (palette-delayed-recolors ,palette)))
+		 (update-palette-entries ,palette ,recolors)
+		 (setf (fill-pointer ,recolors) 0)))))))))
 
 
-;;; Color Groups
+;;; Layered Colors
 
-(defun map-over-group-colors (function group &optional layers)
-  (declare (dynamic-extent function))
-  (let ((group-layers (color-group-layers group)))
-    ;; It would be nice if this didn't cons so much
-    (labels ((iterate (layers group-layers dimensions)
-	       (if group-layers
-		   (let ((layer (car layers))
-			 (group-layer (car group-layers)))
-		     (if layer
-			 (iterate (cdr layers) 
-				  (cdr group-layers) 
-				  (cons layer dimensions))
-			 (dotimes (i group-layer)
-			   (iterate (cdr layers)
-				    (cdr group-layers)
-				    (cons i dimensions)))))
-		   (funcall function dimensions))))
-      (iterate (reverse layers) (reverse group-layers) nil))))
-
-(defmethod initialize-instance :after ((group color-group) &key mutable-array)
-  (map-over-group-colors
-    #'(lambda (dimensions)
-	(setf (apply #'aref mutable-array dimensions)
-	      (make-mutable-color-1 +black+)))
-    group))
-
-(defmethod group-color ((color-group color-group) &rest layers)
-  (declare (dynamic-extent layers))
-  (let ((cache (color-group-cache color-group)))
-    (or (gethash layers cache)
-	(let ((layers (copy-list layers)))
-	  (setf (gethash layers cache)
-		(make-group-color color-group layers))))))
-
-(defmethod mutate-color ((group-color group-color) (color color))
-  (with-delayed-mutations
-      (dolist (mutable (group-color-mutables group-color))
-	(mutate-color mutable color))))
-
-
-;; GROUP-COLOR-MUTABLES should not be exported to the user.  It is important
-;; that these mutables are not drawn with.  Instead the fully specified group
-;; colors should be used
-(defmethod group-color-mutables ((group-color group-color))
-  (with-slots (group layers mutables) group-color
-    (or mutables
-	(setf mutables
-	      (let ((mutable-array (color-group-mutable-array group))
-		    mutables)
-		(map-over-group-colors #'(lambda (dimensions)
-					   (push (apply #'aref mutable-array dimensions)
-						 mutables))
-				       group
-				       layers)
-		mutables)))))
-
-
-(defun map-over-group-colors (function group &optional layers)
-  (let* ((group-layers (color-group-layers group))
-	 (dimensions (make-list (length group-layers))))
-    (labels ((iterate (layers group-layers dims)
-	       (if group-layers
+(defun map-over-layered-colors (function set &optional layers)
+  (let* ((set-layers (layered-color-set-layers set))
+	 (dimensions (make-list (length set-layers))))
+    (labels ((iterate (layers set-layers dims)
+	       (if set-layers
 		   (let ((layer (car layers))
 			 (rest-layers (cdr layers))
-			 (group-layer (car group-layers))
-			 (rest-group-layers (cdr group-layers))
+			 (set-layer (car set-layers))
+			 (rest-set-layers (cdr set-layers))
 			 (rest-dims (cdr dims)))
 		     (if layer
 			 (progn 
 			   (setf (car dims) layer)
-			   (iterate rest-layers rest-group-layers rest-dims))
-		       (dotimes (i group-layer)
+			   (iterate rest-layers rest-set-layers rest-dims))
+		       (dotimes (i set-layer)
 			 (setf (car dims) i)
-			 (iterate rest-layers rest-group-layers rest-dims))))
+			 (iterate rest-layers rest-set-layers rest-dims))))
 		 (funcall function dimensions))))
-      (iterate layers group-layers dimensions))))
+      (iterate layers set-layers dimensions))))
+
+(defmethod initialize-instance :after ((set layered-color-set) &key dynamic-array)
+  (map-over-layered-colors
+    #'(lambda (dimensions)
+	(setf (apply #'aref dynamic-array dimensions)
+	      (make-dynamic-color +black+)))
+    set))
+
+(defmethod layered-color ((set layered-color-set) &rest layers)
+  (declare (dynamic-extent layers))
+  (let ((cache (layered-color-set-cache set)))
+    (or (gethash layers cache)
+	(let ((layers (copy-list layers)))
+	  (setf (gethash layers cache)
+		(make-layered-color set layers))))))
+
+(defmethod (setf layered-color-color) 
+    ((color color) (layered-color layered-color))
+  (with-delayed-recoloring
+      (dolist (dynamic-color (layered-color-dynamics layered-color))
+	(setf (dynamic-color-color dynamic-color) color))))
+  
+;; LAYERED-COLOR-DYNAMICS should not be exported to the user.  It is important
+;; that these dynamics are not drawn with.  Instead the fully specified layered
+;; colors should be used
+(defmethod layered-color-dynamics ((layered-color layered-color))
+  (with-slots (set layers dynamics) layered-color
+    (or dynamics
+	(setf dynamics
+	  (let ((dynamic-array (layered-color-set-dynamic-array set))
+		dynamics)
+	    (map-over-layered-colors 
+	     #'(lambda (dimensions)
+		 (push (apply #'aref dynamic-array dimensions) dynamics))
+	     set
+	     layers)
+	    dynamics)))))
 
 
 ;;; Foreground and background (indirect) inks

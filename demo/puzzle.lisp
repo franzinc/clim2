@@ -1,28 +1,25 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: puzzle.lisp,v 1.19 92/10/07 14:43:50 cer Exp $
+;; $fiHeader: puzzle.lisp,v 1.20 92/10/28 11:33:08 cer Exp Locker: cer $
 
 (in-package :clim-demo)
 
 "Copyright (c) 1989, 1990, 1991, 1992 Symbolics, Inc.  All rights reserved."
 
 (define-application-frame puzzle ()
-    ((puzzle :initform (make-array '(4 4))
-	     :accessor puzzle-puzzle))
+			  ((puzzle :initform (make-array '(4 4))
+				   :accessor puzzle-puzzle))
   (:panes
-    (display :application
-	     :text-cursor nil
-	     :width :compute
-	     :max-width +fill+
-	     :height :compute
-	     :max-height +fill+
-	     :end-of-page-action :allow
-	     :end-of-line-action :allow
-	     :text-style '(:fix :bold :very-large)
-	     :incremental-redisplay t
-	     :display-function 'draw-puzzle))
+   (display :application
+	    :display-function 'draw-puzzle
+	    :text-style '(:fix :bold :very-large)
+	    :incremental-redisplay t
+	    :text-cursor nil
+	    :width :compute :height :compute
+	    :end-of-page-action :allow
+	    :end-of-line-action :allow))
   (:layouts
-    (:default display)))
+   (:default display)))
 
 (defmethod frame-standard-input ((puzzle puzzle))
   (get-frame-pane puzzle 'display))
@@ -72,22 +69,19 @@
 (defmethod draw-puzzle ((puzzle puzzle) stream &key max-width max-height)
   (declare (ignore max-width max-height))
   (let ((puzzle-array (puzzle-puzzle puzzle)))
-    ;; I'm not sure why the table sometimes draws in the wrong place if I don't do this
-    (stream-set-cursor-position stream 0 0)
-    (updating-output (stream)
-      (formatting-table (stream)
+    (formatting-table (stream)
 	(dotimes (row 4)
 	  (formatting-row (stream)
-	    (dotimes (column 4)
-	      (let* ((value (aref puzzle-array row column))
-		     (cell-id (encode-puzzle-cell row column)))
-		(updating-output (stream :unique-id cell-id 
-					 :cache-value value)
-		  (formatting-cell (stream :align-x :right)
-		    (unless (zerop value)
-		      (with-output-as-presentation 
-			  (stream cell-id 'puzzle-cell)
-			(format stream "~2D" value)))))))))))))
+	      (dotimes (column 4)
+		(let* ((value (aref puzzle-array row column))
+		       (cell-id (encode-puzzle-cell row column)))
+		  (updating-output (stream :unique-id cell-id 
+					   :cache-value value)
+		      (formatting-cell (stream :align-x :right)
+			  (unless (zerop value)
+			    (with-output-as-presentation 
+				(stream cell-id 'puzzle-cell)
+			      (format stream "~2D" value))))))))))))
 
 (defun find-open-cell (puzzle)
   (dotimes (row 4)

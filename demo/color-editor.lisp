@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: color-editor.lisp,v 1.7 92/10/07 14:43:21 cer Exp $
+;; $fiHeader: color-editor.lisp,v 1.8 92/10/28 11:32:53 cer Exp $
 
 (in-package :clim-demo)
 
@@ -14,7 +14,7 @@
   (display-color (pane-frame stream) stream))
 
 (define-application-frame color-chooser ()
-    (color mutable-p
+    (color dynamic-p
      red blue green
      intensity hue saturation)
   (:menu-bar nil)
@@ -79,21 +79,22 @@
 	rgb ihs))))
 
 (defmethod run-frame-top-level :before ((frame color-chooser) &key)
-  (with-slots (color mutable-p) frame
-    (setf color (if (setf mutable-p (palette-color-p (frame-palette frame)))
-		    (make-mutable-color +black+)
-		    +black+))))
+  (with-slots (color dynamic-p) frame
+    (setf dynamic-p (palette-dynamic-p (frame-palette frame))
+	  color (if dynamic-p
+		    (make-dynamic-color +black+)
+		  +black+))))
 
 (defmethod color ((frame color-chooser))
-  (with-slots (color mutable-p) frame
-    (if mutable-p
-	(mutable-color-color color)
+  (with-slots (color dynamic-p) frame
+    (if dynamic-p
+	(dynamic-color-color color)
 	color)))
 
 (defmethod (setf color) (new-color (frame color-chooser))
-  (with-slots (color mutable-p) frame
-    (if mutable-p
-	(setf (mutable-color-color color) new-color)
+  (with-slots (color dynamic-p) frame
+    (if dynamic-p
+	(setf (dynamic-color-color color) new-color)
 	(setf color new-color))))
 
 (defmethod display-color ((frame color-chooser) stream)
@@ -167,8 +168,8 @@
 (defmethod value-changed-callback :after ((slider slider) (client (eql 'color)) id value)
   (declare (ignore id value))
   (let ((frame (pane-frame slider)))
-    (with-slots (mutable-p) frame
-      (unless mutable-p
+    (with-slots (dynamic-p) frame
+      (unless dynamic-p
 	;; Redisplay the color swatch only if we haven't done so
 	;; by changing the color in-place
 	(redisplay-frame-pane (pane-frame slider) 'display)))))

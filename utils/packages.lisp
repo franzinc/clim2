@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: packages.lisp,v 1.34 92/10/28 11:31:08 cer Exp Locker: cer $
+;; $fiHeader: packages.lisp,v 1.35 92/10/28 13:17:14 cer Exp $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :common-lisp-user)
 
@@ -2029,38 +2029,22 @@
     design
     designp
     find-named-color
-    group-color
-    make-color-group
+    layered-color
+    layered-color-color
+    make-layered-color-set
     make-contrasting-inks
     make-flipping-ink
     make-gray-color
     make-ihs-color
-    make-mutable-color
+    make-dynamic-color
     make-opacity
     make-rgb-color
-    mutable-color-color
-    mutate-color
+    dynamic-color-color
     opacity
     opacity-value
     opacityp
-    with-delayed-mutations
+    with-delayed-recoloring
     
-
-    palette
-    palette-color-p
-    palette-mutable-p
-    palettep
-    make-palette
-    port-default-palette
-    medium-palette
-    sheet-palette
-    frame-palette
-    frame-manager-palette
-
-    palette-full
-    add-to-palette
-    remove-from-palette
-
     ;; Designs
     compose-in
     compose-out
@@ -2077,14 +2061,15 @@
     frame-manager-palette
     frame-palette
     make-palette
-    medium-palette
     palette
     palette-color-p
-    palette-mutable-p
+    palette-dynamic-p
     palettep
     port-default-palette
-    sheet-palette
-
+    palette-full
+    add-to-palette
+    remove-from-palette
+    
     ;; Extended output
     beep
     cursor
@@ -3261,10 +3246,11 @@
 
     ;; From BASE-DESIGNS and DESIGNS
     *all-palettes*
+    allocate-color
     basic-palette
-    color-group
-    color-group-layers
-    color-group-mutable-array
+    layered-color-set
+    layered-color-set-layers
+    layered-color-set-dynamic-array
     color-luminosity
     composite-in
     composite-out
@@ -3276,23 +3262,23 @@
     decode-rectangular-tile
     decode-tile-as-stipple
     flipping-ink
-    flipping-ink
+    flipping-ink 
+    free-color
     gray-color
     gray-color-luminosity
-    group-color-group
-    group-color-layers
+    layered-color-layers
     ihs-color
     make-color-for-contrasting-ink
     make-design-from-output-record
     make-flipping-ink
     make-gray-color-for-contrasting-ink
-    map-over-group-colors    
-    mutable-color
-    mutable-color-palettes
+    map-over-layered-colors    
+    dynamic-color
+    dynamic-color-palettes
     palette-color-cache
-    palette-mutable-color-cache
-    palette-color-group-cache
-    palette-delayed-mutations
+    palette-dynamic-color-cache
+    palette-layered-color-cache
+    palette-delayed-recolors
     pattern
     rectangular-tile
     rgb-color
@@ -3346,7 +3332,6 @@
     activate-gadget-event
     add-sheet-callbacks
     all-drawing-options-lambda-list
-    allocate-color
     allocate-event
     basic-pixmap-medium
     bury-mirror
@@ -3398,7 +3383,6 @@
     frame-user-specified-position-p
     frame-user-specified-size-p
     frame-wrapper
-    free-color
     gadget-alignment
     gadget-columns
     gadget-editable-p

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: ico.lisp,v 1.11 92/10/28 11:32:58 cer Exp Locker: cer $
+;; $fiHeader: ico.lisp,v 1.12 92/10/28 13:17:35 cer Exp $
 
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
@@ -29,8 +29,8 @@
     ((ico-time-p :initform t)
      (ico-line-style :initform :thin)
      (ico-buffers :initform 1)
-     (ico-color-group2 :initform nil)
-     (ico-color-group3 :initform nil)
+     (ico-color-set2 :initform nil)
+     (ico-color-set3 :initform nil)
      (inks0 :initform (vector *background-color*))
      (inks1 :initform (vector *line-color*))
      (inks2 :initform (vector *face1-color*))
@@ -70,63 +70,54 @@
 				     :default ico-line-style
 				     :stream pane
 				     :prompt "Line style")))
+      (when (palette-dynamic-p (frame-palette frame))
 	(formatting-cell (pane)
-	    (let ((x (append (and draw-faces '(:faces))
-			     (and draw-edges '(:edges)))))
-	      (setf x (accept '(subset :faces :edges) :default x :stream pane :prompt "Choose"))
-	      (setf draw-edges (and (member :edges x) t)
-		    draw-faces (and (member :faces x) t))))
-	(formatting-cell (pane)
-	    (setf ico-line-style (accept '(member :thin :thick)
-					 :default ico-line-style
-					 :stream pane
-					 :prompt "Line Style")))
-	(when (palette-mutable-p (frame-palette frame))
-	  (formatting-cell (pane)
-	      (multiple-value-bind (buffering ptype changed)
-		  (accept '(member :single :double :triple)
-			  :default (svref #(:single :double :triple) (1- ico-buffers))
-			  :stream pane
-			  :prompt "Buffering")
-		(declare (ignore ptype))
-		(when changed
-		  (with-slots (ico-color-group2 ico-color-group3
-						inks0 inks1 inks2 inks3) frame    
-		    (case buffering
-		      (:single 
-		       (setf ico-buffers 1
-			     inks0 (vector *background-color*)
-			     inks1 (vector *line-color*)
-			     inks2 (vector *face1-color*)
-			     inks3 (vector *face2-color*)))
-		      (:double
-		       (let ((g (or ico-color-group2
-				    (setf ico-color-group2 (make-color-group 4 4)))))
-			 (setf ico-buffers 2
-			       inks0 (vector (group-color g 0 nil)
-					     (group-color g nil 0))
-			       inks1 (vector (group-color g 1 nil)
-					     (group-color g nil 1))
-			       inks2 (vector (group-color g 2 nil)
-					     (group-color g nil 2))
-			       inks3 (vector (group-color g 3 nil)
-					     (group-color g nil 3)))))
-		      (:triple
-		       (let ((g (or ico-color-group3
-				    (setf ico-color-group3 (make-color-group 4 4 4)))))
-			 (setf ico-buffers 3
-			       inks0 (vector (group-color g 0 nil nil)
-					     (group-color g nil 0 nil)
-					     (group-color g nil nil 0))
-			       inks1 (vector (group-color g 1 nil nil)
-					     (group-color g nil 1 nil)
-					     (group-color g nil nil 1))
-			       inks2 (vector (group-color g 2 nil nil)
-					     (group-color g nil 2 nil)
-					     (group-color g nil nil 2))
-			       inks3 (vector (group-color g 3 nil nil)
-					     (group-color g nil 3 nil)
-					     (group-color g nil nil 3))))))))))))))
+	    (multiple-value-bind (buffering ptype changed)
+		(accept '(member :single :double :triple)
+			:default (svref #(:single :double :triple) (1- ico-buffers))
+			:stream pane
+			:prompt "Buffering")
+	      (declare (ignore ptype))
+	      (when changed
+		(with-slots (ico-color-set2 ico-color-set3
+					    inks0 inks1 inks2 inks3) frame    
+		  (case buffering
+		    (:single 
+		     (setf ico-buffers 1
+			   inks0 (vector *background-color*)
+			   inks1 (vector *line-color*)
+			   inks2 (vector *face1-color*)
+			   inks3 (vector *face2-color*)))
+		    (:double
+		     (let ((g (or ico-color-set2
+				  (setf ico-color-set2 
+				    (make-layered-color-set 4 4)))))
+		       (setf ico-buffers 2
+			     inks0 (vector (layered-color g 0 nil)
+					   (layered-color g nil 0))
+			     inks1 (vector (layered-color g 1 nil)
+					   (layered-color g nil 1))
+			     inks2 (vector (layered-color g 2 nil)
+					   (layered-color g nil 2))
+			     inks3 (vector (layered-color g 3 nil)
+					   (layered-color g nil 3)))))
+		    (:triple
+		     (let ((g (or ico-color-set3
+				  (setf ico-color-set3
+				    (make-layered-color-set 4 4 4)))))
+		       (setf ico-buffers 3
+			     inks0 (vector (layered-color g 0 nil nil)
+					   (layered-color g nil 0 nil)
+					   (layered-color g nil nil 0))
+			     inks1 (vector (layered-color g 1 nil nil)
+					   (layered-color g nil 1 nil)
+					   (layered-color g nil nil 1))
+			     inks2 (vector (layered-color g 2 nil nil)
+					   (layered-color g nil 2 nil)
+					   (layered-color g nil nil 2))
+			     inks3 (vector (layered-color g 3 nil nil)
+					   (layered-color g nil 3 nil)
+					   (layered-color g nil nil 3))))))))))))))
 
 (define-ico-frame-command (com-ico-throw-ball :menu "Throw ball" :keystroke #\t) ()
   (with-application-frame (frame)
@@ -138,8 +129,16 @@
 
 (define-ico-frame-command (com-ico-quit :menu "Quit" :keystroke #\q) ()
   (with-application-frame (frame)
-    (catch-ball frame)
-    (frame-exit frame)))
+    (with-slots (ico-color-set2 ico-color-set3) frame
+      (let ((palette (frame-palette frame)))
+	(catch-ball frame)
+	(when ico-color-set2
+	  (remove-from-palette palette ico-color-set2)
+	  (setf ico-color-set2 nil))
+	(when ico-color-set3
+	  (remove-from-palette palette ico-color-set3)
+	  (setf ico-color-set3 nil))
+	(frame-exit frame)))))
 
 (defmethod disable-frame :after ((frame ico-frame))
   (catch-ball frame))
@@ -256,11 +255,11 @@
 					  (svref inks2 buffer)
 					  (svref inks3 buffer)))))
 	      (when (> ico-buffers 1)
-		(with-delayed-mutations
-		  (mutate-color (svref inks0 buffer) *background-color*)
-		  (mutate-color (svref inks1 buffer) *line-color*)
-		  (mutate-color (svref inks2 buffer) *face1-color*)
-		  (mutate-color (svref inks3 buffer) *face2-color*)))
+		(with-delayed-recoloring
+		  (setf (layered-color-color (svref inks0 buffer)) *background-color*
+			(layered-color-color (svref inks1 buffer)) *line-color*
+			(layered-color-color (svref inks2 buffer)) *face1-color*
+			(layered-color-color (svref inks3 buffer)) *face2-color*)))
 	      (silica:medium-force-output medium))
 	    
 	    #+xlib-ignore

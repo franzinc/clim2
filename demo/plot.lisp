@@ -21,7 +21,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: plot.lisp,v 1.13 92/10/28 11:33:05 cer Exp Locker: cer $
+;; $fiHeader: plot.lisp,v 1.14 92/10/29 15:02:50 cer Exp Locker: cer $
 
 (in-package :clim-demo)
 

@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-silica.lisp,v 1.25 92/08/18 17:54:31 cer Exp $
+;; $fiHeader: xm-silica.lisp,v 1.26 92/10/02 15:21:04 cer Exp $
 
 (in-package :xm-silica)
 
@@ -75,13 +75,16 @@
 		 :height 11
 		 :managed t))
 
-;(ff:defforeign 'xmprocesstraversal
-;    :entry-point "_XmProcessTraversal")
-;(defmethod port-note-cursor-change :after ((port motif-port)
-;					   cursor stream type old new)
-;  (declare (ignore old type cursor))
-;  (when new
-;    (xmprocesstraversal (sheet-mirror stream) 0)))
+#+ignore 
+(ff:defforeign 'xmprocesstraversal
+    :entry-point "_XmProcessTraversal")
+
+#+ignore 
+(defmethod port-note-cursor-change :after ((port motif-port)
+					   cursor stream type old new)
+  (declare (ignore old type cursor))
+  (when new
+    (xmprocesstraversal (sheet-mirror stream) 0)))
 
 (defmethod enable-xt-widget ((parent tk::xm-dialog-shell) (mirror t))
   ;; this is a nasty hack just to make sure that the child is managed.
