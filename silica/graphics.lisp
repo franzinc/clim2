@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics.lisp,v 1.25 92/12/03 10:29:27 cer Exp $
+;; $fiHeader: graphics.lisp,v 1.26 92/12/16 16:49:30 cer Exp $
 
 (in-package :silica)
 
@@ -837,7 +837,8 @@
 	  (elt position-seq (+ 6 i)) (elt position-seq (+ 7 i))
 	  distance)
 	(collect (elt position-seq (+ 6 i)) (elt position-seq (+ 7 i)))))
-    (medium-draw-polygon* medium (cdr head) nil filled)))
+    (with-identity-transformation (medium)
+      (medium-draw-polygon* medium (cdr head) nil filled))))
 
 (defun render-bezier-curve (function x0 y0 x1 y1 x2 y2 x3 y3 distance)
   (flet ((split-bezier-curve (x0 y0 x1 y1 x2 y2 x3 y3)
