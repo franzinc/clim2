@@ -1,3 +1,26 @@
+For more detailed instructions on filling in the ChangeLog form, see 
+`/fi/doc/procedures/changelogs.txt'.
+Thu Nov 14 08:23:23 1996  Sean Foderaro  <jkf@tiger.franz.com>
+
+	* code/syscall.cl - separate out microsoft code correctly
+	* test/t-proc.cl - do test so that failure shows up in final count
+
+*******************************************************************************
+<version for this commit, if applicable>
+
+Documentation changes:	<`none' or give pointer to them>
+Bootstrapping needed:	<`none' or give pointer to instructions>
+Tests for new features:	<`no new features', `no tests for new features', or
+			 give pointer to test files>
+
+<standard changelog date stamp>
+	* <changes go here...>
+
+*******************************************************************************
+Wed Nov 20 14:51:37 1996  Kevin Layer  <layer@ultra>
+
+	* RelNotes.txt: new file
+
 *******************************************************************************
 4.3.2.pre-beta.6
 
