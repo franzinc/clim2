@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: color-editor.lisp,v 1.2 92/09/08 15:19:00 cer Exp $
+;; $fiHeader: color-editor.lisp,v 1.3 92/09/30 18:04:10 cer Exp Locker: cer $
 
 (in-package :clim-demo)
 
@@ -8,7 +8,7 @@
 
 
 (define-application-frame color-chooser ()
-    ((color :accessor color :initform +black+)
+    ((color :accessor color :initform (make-rgb-color 0 0 0))
      red blue green
      intensity hue saturation)
   (:menu-bar nil)
@@ -73,9 +73,8 @@
 
 (defmethod display-color ((frame color-chooser) stream)
   (with-bounding-rectangle* (left top right bottom) (window-viewport stream)
-    (with-output-recording-options (stream :record nil)
-      (draw-rectangle* stream left top right bottom
-		       :filled t :ink (color frame)))))
+    (draw-rectangle* stream left top right bottom
+		       :filled t :ink (color frame))))
 
 (defmacro define-rgb-callbacks (color)
   (check-type color (member red green blue))

@@ -3,7 +3,7 @@
 ;;; Simple extensible browser
 ;;; Scott McKay
 
-;; $fiHeader: browser.lisp,v 1.11 92/09/30 11:45:18 cer Exp Locker: cer $
+;; $fiHeader: browser.lisp,v 1.12 92/10/02 09:13:24 cer Exp $
 
 (in-package :clim-browser)
 
@@ -155,7 +155,7 @@
 
 ;; Let the "to" node contribute to the drawing of the arc to it.
 (defmethod node-arc-drawer ((node basic-call-node))
-  (values #'draw-arrow* nil))
+  (values #'draw-arrow-arc nil))
 
 (defmethod node-generate-inferior-objects ((node basic-call-node) subtype)
   (declare (ignore subtype))
@@ -190,7 +190,7 @@
   nil)
 
 (defmethod node-arc-drawer ((node call-subnode))
-  (values #'draw-arrow* '(:line-dashes #(2 2))))
+  (values #'draw-arrow-arc '(:line-dashes #(2 2))))
 
 
 ;; Ellipsis nodes
@@ -275,9 +275,9 @@
 (define-browser-type :function expression :graphical
     ()
   (:callees make-function-call-node function-browser-make-root
-	    (:arc-drawer draw-arrow*))
+	    (:arc-drawer draw-arrow-arc))
   (:callers make-function-call-node function-browser-make-root
-	    (:arc-drawer draw-arrow* :arc-drawing-options (:from-head t :to-head nil))))
+	    (:arc-drawer draw-arrow-arc :arc-drawing-options (:from-head t :to-head nil))))
 
 (defun function-browser-make-root (object)
   (typecase object
@@ -396,9 +396,9 @@
 (define-browser-type :class class :graphical
     ()
   (:superclasses make-class-call-node clos-browser-make-root
-		 (:arc-drawer draw-arrow* :arc-drawing-options (:from-head t :to-head nil)))
+		 (:arc-drawer draw-arrow-arc :arc-drawing-options (:from-head t :to-head nil)))
   (:subclasses make-class-call-node clos-browser-make-root
-	       (:arc-drawer draw-arrow*)))
+	       (:arc-drawer draw-arrow-arc)))
 
 (defun clos-browser-make-root (object)
   (typecase object
@@ -504,9 +504,9 @@
 (define-browser-type :package package :graphical
     ()
   (:uses make-package-call-node package-browser-make-root
-	 (:arc-drawer draw-arrow* :arc-drawing-options (:from-head t :to-head nil)))
+	 (:arc-drawer draw-arrow-arc :arc-drawing-options (:from-head t :to-head nil)))
   (:used-by make-package-call-node package-browser-make-root
-	    (:arc-drawer draw-arrow*)))
+	    (:arc-drawer draw-arrow-arc)))
 
 (defun package-browser-make-root (object)
   (typecase object
@@ -655,7 +655,7 @@
 (define-browser-type :lisp-object expression :graphical
     ()
   (:objects make-lisp-object-call-node lisp-object-browser-make-root
-	    (:arc-drawer draw-arrow*)))
+	    (:arc-drawer draw-arrow-arc)))
 
 (defun lisp-object-browser-make-root (object)
   (make-lisp-object-call-node
@@ -814,7 +814,7 @@
 				(orientation :horizontal)
 				(center-nodes nil)
 				(merge-duplicates nil)
-				(arc-drawer #'draw-line*)
+				(arc-drawer #'draw-line-arc)
 				(arc-drawing-options nil)
 				(generation-separation 
 				  *default-generation-separation*)
@@ -836,6 +836,16 @@
 			     :arc-drawing-options arc-drawing-options
 			     :generation-separation generation-separation
 			     :within-generation-separation within-generation-separation)))
+
+(defun draw-line-arc (stream from-node to-node x1 y1 x2 y2 &rest drawing-options)
+  (declare (dynamic-extent drawing-options))
+  (declare (ignore from-node to-node))
+  (apply #'draw-line* stream x1 y1 x2 y2 drawing-options))
+
+(defun draw-arrow-arc (stream from-node to-node x1 y1 x2 y2 &rest drawing-options)
+  (declare (dynamic-extent drawing-options))
+  (declare (ignore from-node to-node))
+  (apply #'draw-arrow* stream x1 y1 x2 y2 drawing-options))
 
 (define-graph-displayer :graphical (browser stream)
   (with-slots (root-nodes merge-duplicate-nodes browser-options grapher-args) browser
@@ -1098,7 +1108,7 @@
 	   :default (make-pathname :name "GRAPH-HARDCOPY"
 				   :type "PS"
 				   :defaults (user-homedir-pathname)
-				   :case :common)
+				   #+ANSI-90 :case #+ANSI-90 :common)
 	   :documentation "File in which to put the PostScript result")
 	  (orientation '(member :landscape :portrait)
 	   :default :portrait
@@ -1431,3 +1441,4 @@
     (run-frame-top-level frame)))
 
 (define-demo "Graphical Browser" do-browser)
+
