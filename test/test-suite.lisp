@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: test-suite.lisp,v 1.51 92/12/16 16:50:14 cer Exp $
+;; $fiHeader: test-suite.lisp,v 1.52 92/12/17 15:33:30 cer Exp $
 
 (in-package :clim-user)
 
@@ -875,7 +875,7 @@ people, shall not perish from the earth.
 				:ink (generate-stipple +red+ +yellow+))
 	(format-graphics-sample stream "Green/Transparent" sample
 				:ink (generate-stipple +green+ (make-opacity 0.1)))))
-    (let ((sample '(draw-polygon* (0 0 45 100 100 0))))
+    (let ((sample '(draw-polygon* (0 0 0 100 100 50))))
       (formatting-graphics-samples (stream "Colored patterns")
 	(format-graphics-sample stream "Black/White" sample
 				:ink (generate-image +white+ +black+ +white+ +black+))

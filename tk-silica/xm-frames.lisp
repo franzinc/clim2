@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-frames.lisp,v 1.43 92/12/07 12:15:56 cer Exp $
+;; $fiHeader: xm-frames.lisp,v 1.44 92/12/14 15:04:33 cer Exp $
 
 (in-package :xm-silica)
 
@@ -94,8 +94,26 @@
   
   (let* ((mirror (call-next-method))
 	 (text-style (menu-bar-text-style sheet))
-	 (font-list (and text-style
-			 (list :font-list (list (text-style-mapping port text-style)))))
+	 (font-list 
+	  (if text-style
+	      (list :font-list (text-style-mapping port text-style))
+	    (multiple-value-bind (name class)
+		(xt::widget-resource-name-and-class mirror)
+	      (let* ((display (silica::port-display port))
+		     (db (tk::display-database display))
+		     (text-style (xt::get-resource db name "textStyle"
+						   class "TextStyle")))
+		(when text-style
+		  (let ((spec (read-from-string text-style)))
+		    (list :font-list
+			  (etypecase spec
+			    (cons
+			     (text-style-mapping port (parse-text-style spec)))
+			    (string
+			     (make-instance 'tk::font 
+					    :display display
+					    :name (car (tk::list-font-names
+							display spec))))))))))))
 	 (options font-list))
     (labels ((update-menu-item-sensitivity (widget frame commands)
 	       (declare (ignore widget))

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.59 92/12/16 16:50:54 cer Exp $
+;; $fiHeader: xt-graphics.lisp,v 1.60 92/12/17 15:33:46 cer Exp $
 
 (in-package :tk-silica)
 
@@ -149,7 +149,10 @@
     (setq name (substitute #\space #\- (string name)))
     (or (gethash name named-color-cache)
 	(setf (gethash name named-color-cache)
-	  (let ((xcolor (tk::lookup-color (palette-colormap palette) name))
+	  ;; we use parse-color rather than lookup-color here because
+	  ;; it also understands about #rgb format. in R5 we should
+	  ;; change this to lookup-color
+	  (let ((xcolor (tk::parse-color (palette-colormap palette) name))
 		(x #.(1- (ash 1 16))))
 	    (if xcolor
 		(make-rgb-color (/ (x11:xcolor-red xcolor) x)
@@ -158,7 +161,6 @@
 	      (if errorp
 		  (error 'color-not-found :color name)
 		(return-from find-named-color nil))))))))
-
 
 (defmethod update-palette-entry ((palette xt-palette) pixel color)
   (let ((xcolor (get-xcolor color palette)))
@@ -338,9 +340,6 @@
 					       :foreground black-pixel
 					       :background white-pixel)))
 	  (recompute-gcs medium))))))
-
-
-
 
 (defmethod degraft-medium :after ((medium xt-medium) (port xt-port) sheet)
   (declare (ignore sheet))
@@ -615,14 +614,14 @@ and on color servers, unless using white or black")
 	    (setf (tk::gcontext-stipple new-gc) (decode-opacity opacity port)
 		  (tk::gcontext-fill-style new-gc) :stippled)
 	    (setf (gethash key ink-table) new-gc))))))
-  
+
+(defmethod decode-contrasting-ink ((ink contrasting-ink) medium)
+  (if (palette-color-p (medium-palette medium))
+      (make-color-for-contrasting-ink ink)
+    (make-gray-color-for-contrasting-ink ink)))
  
 (defmethod decode-ink ((ink contrasting-ink) medium)
-  (let ((palette (medium-palette medium)))
-    (decode-ink (if (palette-color-p palette)
-		    (make-color-for-contrasting-ink ink)
-		    (make-gray-color-for-contrasting-ink ink))
-		medium)))
+  (decode-ink (decode-contrasting-ink ink medium) medium))
 
 (defmethod decode-ink ((ink pattern) medium)
   (with-slots (ink-table) medium
@@ -647,6 +646,9 @@ and on color servers, unless using white or black")
       (decode-color +foreground-ink+ medium)
       (decode-color +background-ink+ medium)))
 
+(defmethod decode-color ((ink contrasting-ink) (medium xt-medium))
+  (decode-color (decode-contrasting-ink ink medium) medium))
+
 (defmethod decode-color-in-palette ((design design) (palette xt-palette))
   (error "Drawing with design: ~A not yet implemented" design))
 
@@ -659,13 +661,13 @@ and on color servers, unless using white or black")
 		   (handler-case
 		       (tk::allocate-color
 			(palette-colormap palette) (get-xcolor color palette))
-		     (tk::x-colormap-error ()
+		     (tk::x-colormap-full ()
 		       (error 'palette-full))))
 		  ;;-- support gray-scale here
 		  (t
 		   (multiple-value-bind (r g b) (color-rgb color)
 		     (let ((luminosity (color-luminosity r g b)))
-		       (if (> luminosity .5) white-pixel black-pixel))))))))))
+		       (if (< luminosity 0.5) black-pixel white-pixel))))))))))
 
 (defmethod decode-color-in-palette ((color dynamic-color) (palette xt-palette))
   (let ((dynamic-color-cache (palette-dynamic-color-cache palette)))
@@ -673,7 +675,7 @@ and on color servers, unless using white or black")
 	(let ((pixel (aref (handler-case
 			       (tk::alloc-color-cells
 				(palette-colormap palette) 1 0)
-			     (tk::x-colormap-error ()
+			     (tk::x-colormap-full ()
 			       (error 'palette-full)))
 			   0)))
 	  (update-palette-entry palette pixel (dynamic-color-color color))
@@ -724,7 +726,7 @@ and on color servers, unless using white or black")
 	(handler-case
 	    (tk::alloc-color-cells
 	     (palette-colormap palette) 1 total-nplanes)
-	  (tk::x-colormap-error ()
+	  (tk::x-colormap-full ()
 	    (error 'palette-full)))
       (let ((pixel (aref pixels 0))
 	    (count 0)
@@ -746,13 +748,6 @@ and on color servers, unless using white or black")
 		 (push palette (dynamic-color-palettes dynamic-color))))
 	   set)
 	  (setf (gethash set layered-color-cache) pixel-planes))))))
-	    
-(defmethod decode-color ((ink contrasting-ink) (medium xt-medium))
-  (let ((palette (medium-palette medium)))
-    (decode-color (if (palette-color-p palette)
-		      (make-color-for-contrasting-ink ink)
-		    (make-gray-color-for-contrasting-ink ink)) medium)))
-
 
 (defvar *default-dashes* '(4 4))
 
@@ -1916,17 +1911,17 @@ and on color servers, unless using white or black")
 		 to-left to-top))
 
 
-(defmethod text-style-width ((text-style standard-text-style) (medium xt-medium))
+(defmethod text-style-width ((text-style t) (medium xt-medium))
   (tk::font-width (text-style-mapping (port medium) text-style)))
 
-(defmethod text-style-height ((text-style standard-text-style) (medium xt-medium))
+(defmethod text-style-height ((text-style t) (medium xt-medium))
   ;; Optimization
   (tk::font-height (text-style-mapping (port medium) text-style)))
 
-(defmethod text-style-ascent ((text-style standard-text-style) (medium xt-medium))
+(defmethod text-style-ascent ((text-style t) (medium xt-medium))
   (tk::font-ascent (text-style-mapping (port medium) text-style)))
 					
-(defmethod text-style-descent ((text-style standard-text-style) (medium xt-medium))
+(defmethod text-style-descent ((text-style t) (medium xt-medium))
   (tk::font-descent (text-style-mapping (port medium) text-style)))
 					
 

@@ -20,13 +20,13 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: widget.lisp,v 1.26 92/12/01 09:46:53 cer Exp $
+;; $fiHeader: widget.lisp,v 1.27 92/12/14 15:04:04 cer Exp $
 
 (in-package :tk)
 
 (defun app-create-shell (&rest args
-			       &key (application-name 0)
-			       (application-class 0)
+			       &key (application-name "clim")
+			       (application-class "Clim")
 			       (widget-class (error "Class not specified"))
 			       (display (error "Display not specifie"))
 			       &allow-other-keys)
@@ -259,12 +259,31 @@
 
 ;; Could not think of anywhere better!
 
+;; note that this is different from xt-initialize which calls
+;; XtToolkitInitialize. This is closer to XtAppInitialize
+
 (defun initialize-toolkit (&rest args)
   (let* ((context (create-application-context))
 	 (display (apply #'make-instance 'display 
 			 :context context
 			 args))
-	 (app (app-create-shell :display display
-				:widget-class 'application-shell)))
+	 (app (apply #'app-create-shell 
+		     :display display
+		     :widget-class 'application-shell
+		     args)))
     (values context display app)))
 
+
+(defun xt-name (w) (char*-to-string (xt_name w)))
+(defun xt-class (w) (char*-to-string (xt-class-name (xt_class w))))
+
+(defun widget-resource-name-and-class (w)
+  (do* ((name "" (concatenate 'string (xt-name w) "." name))
+	(class "" (concatenate 'string (xt-class w) "." class))
+	(w w parent)
+	(parent (widget-parent w) (widget-parent w)))
+      ((null parent)
+       (multiple-value-bind (app-name app-class)
+	   (get-application-name-and-class (widget-display w))
+	 (values (concatenate 'string app-name "." name)
+		 (concatenate 'string app-class "." class))))))

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: resources.lisp,v 1.38 92/11/20 08:46:16 cer Exp $
+;; $fiHeader: resources.lisp,v 1.39 92/12/17 15:33:40 cer Exp $
 
 (in-package :tk)
 
@@ -501,6 +501,12 @@
     (:center 1)
     (:beginning 0)
     (:end 2)))
+
+(defmethod convert-resource-in ((parent t) (type (eql 'alignment)) value)
+  (ecase value
+    (1 :center)
+    (0 :beginning)
+    (2 :end)))
 
 (defmethod convert-resource-out ((parent t) (type (eql 'prim-foreground-pixmap)) value)
   (convert-pixmap-out parent value))

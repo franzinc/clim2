@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xlib.lisp,v 1.36 92/12/07 12:15:45 cer Exp $
+;; $fiHeader: xlib.lisp,v 1.37 92/12/16 16:50:29 cer Exp $
 
 (in-package :tk)
 
@@ -180,6 +180,34 @@
 	 depth))
       (register-xid p display))))
 
+(defclass resource-database (ff:foreign-pointer) ())
+
+(defmethod initialize-instance :after
+	   ((db resource-database) &key foreign-address)
+  (unless foreign-address
+    (setf (foreign-pointer-address db) (x11:xrmgetstringdatabase ""))))
+
+(defun get-resource (db name resource-name class resource-class)
+  (with-ref-par ((type 0))
+    (let ((xrmvalue (x11:make-xrmvalue)))
+      (unless (zerop (x11:xrmgetresource db 
+					 (concatenate 'string name resource-name)
+					 (concatenate 'string class resource-class)
+					 type xrmvalue))
+	(values (char*-to-string (x11:xrmvalue-addr xrmvalue))
+		(char*-to-string (aref type 0)))))))
+
+(defun convert-string (widget string to-type)
+  (let ((from (x11:make-xrmvalue))
+	(to-in-out (x11:make-xrmvalue)))
+    (setf (x11:xrmvalue-size from) (1+ (length string))
+	  (x11:xrmvalue-addr from) (string-to-char* string)
+	  (x11:xrmvalue-addr to-in-out) 0)
+    (unless (zerop (xt::xt_convert_and_store widget "String" from to-type
+				      to-in-out))
+      (values (x11:xrmvalue-size to-in-out)
+	      (x11:xrmvalue-addr to-in-out)))))
+
 ;; --
 ;; Error handling
 
@@ -239,6 +267,7 @@
 (defun-c-callable x-io-error-handler ((display :unsigned-long))
   (let ((*error-output* excl:*initial-terminal-io*))
     (error 'x-connection-lost :display display)))
+
 
 
 (defun get-error-text (code display-handle)
@@ -327,6 +356,15 @@
 		    closest))
       (values (make-instance 'color :foreign-address exact)
 	      (make-instance 'color :foreign-address closest)))))
+
+(defun parse-color (colormap name)
+  (let ((exact (x11::make-xcolor :in-foreign-space t)))
+    (unless (zerop (x11:xparsecolor
+		    (object-display colormap)
+		    colormap
+		    name
+		    exact))
+      (values (make-instance 'color :foreign-address exact)))))
 
 (defun allocate-color (colormap x)
   (let ((y (x11::make-xcolor :in-foreign-space t))

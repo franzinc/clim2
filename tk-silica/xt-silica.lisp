@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.65 92/12/16 16:50:58 cer Exp $
+;; $fiHeader: xt-silica.lisp,v 1.66 92/12/17 15:33:50 cer Exp $
 
 (in-package :xm-silica)
 
@@ -668,7 +668,12 @@
 	   ((port xt-port) (parent t) (sheet basic-sheet))
   (multiple-value-bind (class initargs)
       (call-next-method)
-    (setq initargs (compute-initial-mirror-geometry parent sheet initargs))
+    (setq initargs (compute-initial-mirror-geometry parent sheet
+						    initargs)) 
+    ;;; it seems that xt or motif or someone doesn't know about
+    ;;; ParentRelative and tries to give treat this as a pixmap
+    ;;; and put it into a gcontext tile
+    #+ignore (setf (getf initargs :background-pixmap) x11:parentrelative)
     (values class initargs)))
 
 
@@ -1118,12 +1123,18 @@
 (define-xt-keysym (keysym 255 097) :refresh)
 (define-xt-keysym (keysym 255 011) :clear-input)
 
+(define-xt-keysym (keysym 255 #x51) :left)
+(define-xt-keysym (keysym 255 #x52) :up)
+(define-xt-keysym (keysym 255 #x53) :right)
+(define-xt-keysym (keysym 255 #x54) :down)
+
+
 ;;;
 
 
 ;;; Some nonstandard keys
 
-(define-xt-keysym (keysym 255 #xb3) :f1)
+(define-xt-keysym (keysym 255 #xbe) :f1)
 (define-xt-keysym (keysym 255 #xbf) :f2)
 (define-xt-keysym (keysym 255 #xc0) :f3)
 (define-xt-keysym (keysym 255 #xc1) :f4)
@@ -1155,6 +1166,11 @@
 (define-xt-keysym (keysym 255 #xd9) :r8)
 (define-xt-keysym (keysym 255 #xda) :r9)
 (define-xt-keysym (keysym 255 #xdb) :r10)
+(define-xt-keysym (keysym 255 #xdc) :r11)
+(define-xt-keysym (keysym 255 #xdd) :r12)
+(define-xt-keysym (keysym 255 #xde) :r13)
+(define-xt-keysym (keysym 255 #xdf) :r14)
+(define-xt-keysym (keysym 255 #xe0) :r15)
 
 ;; Finally, the shifts
 ;; snarfed from translate.cl
@@ -1246,19 +1262,19 @@
 ;;;---- This is just an experiment
 
 ;(defmethod engraft-medium :before ((medium t) (port xt-port) (pane clim-stream-pane))
-;  (default-from-mirror-resources port pane))
+;  (default-from-resources medium port pane))
 ;
 ;(defmethod engraft-medium :before ((medium t) (port xt-port) (pane top-level-sheet))
-;  (default-from-mirror-resources port pane))
+;  (default-from-resources medium port pane))
 
 
 ;;--- Why is medium class-specialized on T here?  --SWM
 (defmethod engraft-medium :before ((medium t) (port xt-port) 
 				   (pane clim-internals::output-protocol-mixin))
-  (default-from-mirror-resources port pane))
+  (default-from-resources medium port pane))
 
 (defmethod engraft-medium :before ((medium t) (port xt-port) (pane viewport))
-  (default-from-mirror-resources port pane))
+  (default-from-resources medium port pane))
 
 ;; whats wrong with this?
 ;; Well I think there is some dreadful method combination order
@@ -1266,7 +1282,7 @@
 
 #+ignore
 (defmethod engraft-medium :before ((medium t) (port xt-port) (pane standard-sheet-output-mixin))
-  (default-from-mirror-resources port pane))
+  (default-from-resources medium port pane))
 
 
 ;;-- What do we do about pixmap streams. I guess they should inherit
@@ -1279,34 +1295,42 @@
 ;; If we wanted to get a font then we are in trouble because there is
 ;; not such resource here
 
-(defun default-from-mirror-resources (port pane)
-  (unless (and (medium-foreground pane)
-	       (medium-background pane))
-    (let* ((w (sheet-mirror pane))
-	   (shellp (typep w 'tk::shell)))
-      ;;; Make sure we dont have a pixmp
-      (when (typep w 'xt::xt-root-class)
-	;;-- What about the case when there is a pixmap
-	(multiple-value-bind
-	    (foreground background)
-	    (if shellp
-		(values nil (tk::get-values w :background))
-	      (tk::get-values w :foreground :background))
-	  ;; Now we have to convert into CLIM colors.
-	  (flet ((ccm (x)
-		   (multiple-value-bind
-		       (r g b)
-		       (tk::query-color (tk::default-colormap (port-display port)) x)
-		     (let ((x #.(1- (ash 1 16))))
-		       (make-rgb-color 
-			(/ r x)
-			(/ g x)
-			(/ b x))))))
-	    (when foreground
-	      (unless (medium-foreground pane)
-		(setf (medium-foreground pane) (ccm foreground))))
+(defun default-from-resources (medium port pane)
+  (let* ((w (sheet-mirror pane))
+	 (display (silica::port-display port))
+	 (db (tk::display-database display))
+	 (palette (medium-palette medium)))
+    ;; Make sure we dont have a pixmp
+    ;;-- What about the case when there is a pixmap
+    (when (typep w 'xt::xt-root-class)
+      (multiple-value-bind (name class)
+	  (xt::widget-resource-name-and-class w)
+	(let ((background (xt::get-resource db name "background"
+					    class "Background"))
+	      (foreground (xt::get-resource db name "foreground" 
+					    class "Foreground"))
+	      (text-style (xt::get-resource db name "textStyle"
+					    class "TextStyle")))
+	  (when text-style
+	    (unless (medium-default-text-style pane)
+	      (setf (medium-text-style pane) 
+		(let ((spec (read-from-string text-style)))
+		  (etypecase spec
+		    (cons (parse-text-style spec))
+		    (string (silica::make-device-font 
+			     port 
+			     (make-instance 'tk::font 
+					    :display display
+					    :name (car (tk::list-font-names
+							display spec))))))))))
+	  (when foreground
+	    (unless (medium-foreground pane)
+	      (setf (medium-foreground pane)
+		(find-named-color foreground palette))))
+	  (when background
 	    (unless (medium-background pane)
-	      (setf (medium-background pane) (ccm background)))))))))
+	      (setf (medium-background pane)
+		(find-named-color background palette)))))))))
 
 ;;;--- Gadget activation deactivate
 

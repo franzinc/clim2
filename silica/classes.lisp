@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: classes.lisp,v 1.28 92/12/14 15:03:28 cer Exp $
+;; $fiHeader: classes.lisp,v 1.29 92/12/16 16:48:28 cer Exp $
 
 (in-package :silica)
 
@@ -182,9 +182,10 @@
 		   :initarg :sheet :initarg :mirrored-sheet)))
 
 (defmethod print-object ((event window-event) stream)
-  (with-bounding-rectangle* (left top right bottom) (window-event-region event)
-    (print-unreadable-object (event stream :type t)
-      (format stream "/x ~D:~D y ~D:~D/" left right top bottom))))
+  (print-unreadable-object (event stream :type t)
+    (when (slot-boundp event 'region)
+      (with-bounding-rectangle* (left top right bottom) (window-event-region event)
+         (format stream "/x ~D:~D y ~D:~D/" left right top bottom)))))
 
 (define-event-class window-configuration-event (window-event) ())
 (define-event-class window-repaint-event (window-event) ())

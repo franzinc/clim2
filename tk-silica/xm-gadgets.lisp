@@ -18,18 +18,15 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.59 92/11/20 08:46:44 cer Exp $
+;; $fiHeader: xm-gadgets.lisp,v 1.60 92/12/14 15:04:36 cer Exp $
 
 (in-package :xm-silica)
 
 (defmethod make-pane-class ((framem motif-frame-manager) class &rest options) 
   (declare (ignore options))
-  (second (assoc class '(
-                         ;; Another experiment
-                         ;; experiment
+  (second (assoc class '((scroller-pane motif-scroller-pane)
                          (outlined-pane motif-frame-pane)
                          (silica::separator motif-separator)
-                         ;;
                          (scroll-bar motif-scroll-bar)
                          (slider motif-slider)
                          (push-button motif-push-button)
@@ -688,10 +685,11 @@
                                                      (parent t)
                                                      (sheet xm-viewport))
   (values 'tk::xm-my-drawing-area
-          '(:scrolling-policy :application-defined
+          `(:scrolling-policy :application-defined
             :margin-width 0 :margin-height 0
             :resize-policy :none
-            :scroll-bar-display-policy :static)))
+            :scroll-bar-display-policy :static
+	    :name ,(string (pane-name (car (sheet-children sheet)))))))
 
 
 (defclass motif-radio-box (motif-geometry-manager
@@ -1425,6 +1423,7 @@
 ;; Utilize a motif scrolling window to provide the scrollbars and
 ;; geometry management
 
+#+ignore ;; added this to assoc list in make-pane-class at top of file
 (defmethod make-pane-class ((framem motif-frame-manager) 
                             (class (eql 'scroller-pane)) 
                             &rest options) 

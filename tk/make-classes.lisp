@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: make-classes.lisp,v 1.26 92/09/30 11:44:34 cer Exp $
+;; $fiHeader: make-classes.lisp,v 1.27 92/12/14 15:03:53 cer Exp $
 
 (in-package :tk)
 
@@ -40,8 +40,8 @@
 	  (n (aref y 0)))
       (setq result
 	(dotimes (i n)
-	  (let* ((res (x-resource-list resources i))
-		 (original-name (x-resource-name res))
+	  (let* ((res (xt-resource-list resources i))
+		 (original-name (xt-resource-name res))
 		 (name (lispify-resource-name (char*-to-string original-name))))
 	    (if (equal name resource-name)
 		(let ((*package* (find-package :tk)))
@@ -49,9 +49,9 @@
 			    :original-name original-name
 			    :name name
 			    :class (lispify-resource-class 
-				    (char*-to-string (x-resource-class res)))
+				    (char*-to-string (xt-resource-class res)))
 			    :type (lispify-resource-type 
-				   (char*-to-string (x-resource-type res))))))))))
+				   (char*-to-string (xt-resource-type res))))))))))
       (xt_free resources))
     #+ignore
     (unless result
@@ -117,12 +117,12 @@
       (dotimes (i n)
 	(push (make-instance
 	       resource-class
-	       :original-name (x-resource-name (x-resource-list resources i))
-	       :name (lispify-resource-name (char*-to-string (x-resource-name (x-resource-list resources i))))
+	       :original-name (xt-resource-name (xt-resource-list resources i))
+	       :name (lispify-resource-name (char*-to-string (xt-resource-name (xt-resource-list resources i))))
 	       :class (lispify-resource-class 
-		       (char*-to-string (x-resource-class (x-resource-list resources i))))
+		       (char*-to-string (xt-resource-class (xt-resource-list resources i))))
 	       :type (lispify-resource-type 
-		      (char*-to-string (x-resource-type (x-resource-list resources i)))))
+		      (char*-to-string (xt-resource-type (xt-resource-list resources i)))))
 	      r))
       (xt_free resources)
       r)))

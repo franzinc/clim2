@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: medium.lisp,v 1.30 92/12/02 13:31:06 colin Exp $
+;; $fiHeader: medium.lisp,v 1.31 92/12/16 16:49:35 cer Exp $
 
 (in-package :silica)
 
@@ -99,7 +99,8 @@
 		 :accessor pane-foreground)
      (background :initform nil :initarg :background
 		 :accessor pane-background)
-     (text-style :initform *default-text-style* :initarg :text-style
+     (text-style :initform #+allegro nil #-allegro *default-text-style*
+		 :initarg :text-style
 		 :accessor pane-text-style)))
 
 (defmethod initialize-instance :after ((pane foreground-background-and-text-style-mixin)

@@ -1,4 +1,4 @@
-# $fiHeader: Makefile,v 1.70 92/12/07 12:13:43 cer Exp $
+# $fiHeader: Makefile,v 1.71 92/12/14 15:01:50 cer Exp $
 #
 #  Makefile for CLIM 2.0
 #
@@ -7,6 +7,14 @@ CL	= /net/vapor/scm2/4.2.beta/src/dcl
 PWD	= /usr/tech/cer/stuff/clim-2.0
 DUMP-CL	= $(CL)
 CLOPTS	= -qq
+
+DEVICE	= /dev/null
+RM	= /bin/rm
+CAT	= /bin/cat
+ECHO	= /bin/echo
+MV	= /usr/fi/mv-nfs
+TAGS	= /usr/fi/lib/emacs/etc/etags
+TMP	= /tmp
 
 # Training
 
@@ -40,18 +48,12 @@ SAFETY	= 1
 DEBUG   = 2
 
 COMPILE_PRINT=nil 
-# Name of dumped lisp
+# Where to dump all clim images
+DUMP-CLIM = $(TMP)/clim.temp_`whoami`
+# Where images are then move to (can be same as DUMP-CLIM)
 CLIM	= ./slim
 CLIMOL= $(CLIM)
 CLIMXM= $(CLIM)
-
-make = make SPEED=${SPEED} SAFETY=${SAFETY} DEBUG=${DEBUG} \
-	LOAD_SOURCE_FILE_INFO=${LOAD_SOURCE_FILE_INFO} \
-	RECORD_SOURCE_FILE_INFO=${RECORD_SOURCE_FILE_INFO} \
-	LOAD_XREF_INFO=${LOAD_XREF_INFO} \
-	RECORD_XREF_INFO=${RECORD_XREF_INFO} \
-	CLIM=${CLIM} CLIMOL=${CLIMOL} CLIMXM=${CLIMXM} \
-	COMPILE_PRINT=${COMPILE_PRINT}
 
 XINCLUDES=-I/x11/motif-1.1/lib
 
@@ -67,14 +69,6 @@ PUBDIRS	= sys utils silica clim demo test genera clx pre-silica postscript compa
 DIRS0	=  tk tk-silica misc cloe climtoys
 DIRS	= $(PUBDIRS) xlib $(DIRS0)
 CHEAP_CLEAN	= $(PUBDIRS) $(DIRS0)
-
-DEVICE	= /dev/null
-RM	= /bin/rm
-CAT	= /bin/cat
-ECHO	= /bin/echo
-MV	= /usr/fi/mv-nfs
-TAGS	= /usr/fi/lib/emacs/etc/etags
-TMP	= /tmp
 
 SRC_FILES = */*.lisp *.lisp Makefile misc/make-stub-file \
 	    misc/undefinedsymbols misc/undefinedsymbols.olit misc/undefinedsymbols.colit \
@@ -514,6 +508,14 @@ GENERIC-OBJS= $(CLIM-UTILS-OBJS) $(CLIM-SILICA-OBJS) $(CLIM-STANDALONE-OBJS)
 MOTIF-OBJS = $(LOAD-XM-OBJS) $(XT-TK-OBJS) $(XM-TK-OBJS) $(MOTIF-CLIM-OBJS) 
 OPENLOOK-OBJS = $(LOAD-OL-OBJS) $(XT-TK-OBJS) $(OL-CLIM-OBJS) $(OPENLOOK-CLIM-OBJS)
 
+make = make SPEED=${SPEED} SAFETY=${SAFETY} DEBUG=${DEBUG} \
+	LOAD_SOURCE_FILE_INFO=${LOAD_SOURCE_FILE_INFO} \
+	RECORD_SOURCE_FILE_INFO=${RECORD_SOURCE_FILE_INFO} \
+	LOAD_XREF_INFO=${LOAD_XREF_INFO} \
+	RECORD_XREF_INFO=${RECORD_XREF_INFO} \
+	CLIM=${CLIM} CLIMOL=${CLIMOL} CLIMXM=${CLIMXM} DUMP-CLIM=${DUMP-CLIM} \
+	COMPILE_PRINT=${COMPILE_PRINT}
+
 default: all-xm
 
 trained-clim-xm:	
@@ -644,8 +646,9 @@ clim-xm:	FORCE $(MOTIF_OBJS)
 	        (setq sys::*clim-motif-pathname* \"clim-motif$(DEBUGLIB).o\") \
 		(load \"misc/dev-load-1.lisp\") \
 		(load-it 'motif-clim) \
+		(setq sys::*clim-dump-name* \"$(DUMP-CLIM)\") \
 		(load \"misc/dump.lisp\")" | $(DUMP-CL) $(CLOPTS) -batch
-	$(MV) $(TMP)/clim.temp_`whoami` $(CLIMXM)
+	$(MV) $(DUMP-CLIM) $(CLIMXM)
 	ls -lLt $(CLIMXM) >> Clim-sizes.n
 	size $(CLIMXM) >> Clim-sizes.n
 	ls -lLt $(CLIMXM)
@@ -659,8 +662,9 @@ clim-ol:	FORCE $(OPENLOOK_OBJS)
 	        (setq sys::*clim-olit-pathname* \"clim-olit$(DEBUGLIB).o\") \
 		(load \"misc/dev-load-1.lisp\") \
 		(load-it 'openlook-clim) \
+		(setq sys::*clim-dump-name* \"$(DUMP-CLIM)\") \
 		(load \"misc/dump.lisp\")" | $(DUMP-CL) $(CLOPTS) -batch
-	$(MV) $(TMP)/clim.temp_`whoami` $(CLIMOL)
+	$(MV) $(DUMP-CLIM) $(CLIMOL)
 	ls -lLt $(CLIMOL) >> Clim-sizes.n
 	size $(CLIMOL) >> Clim-sizes.n
 	ls -lLt $(CLIMOL)
@@ -669,8 +673,9 @@ clim-ol:	FORCE $(OPENLOOK_OBJS)
 clim-small:	FORCE
 	$(ECHO) " \
 		(load \"misc/load-xm.lisp\") \
+		(setq sys::*clim-dump-name* \"$(DUMP-CLIM)\") \
 		(load \"misc/dump.lisp\")" | $(DUMP-CL) $(CLOPTS) -batch
-	$(MV) $(TMP)/clim.temp_`whoami` $(CLIM-SMALL)
+	$(MV) $(DUMP-CLIM) $(CLIM-SMALL)
 	ls -lt $(CLIM-SMALL) >> Clim-sizes.n
 	size $(CLIM-SMALL) >> Clim-sizes.n
 	ls -lt $(CLIM-SMALL)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: output-protocol.lisp,v 1.30 92/12/03 10:27:20 cer Exp $
+;; $fiHeader: output-protocol.lisp,v 1.31 92/12/16 16:46:48 cer Exp $
 
 (in-package :clim-internals)
 
@@ -117,7 +117,8 @@
 				  (setf (slot-value stream 'default-text-style)
 					(port-default-text-style port))))
 	  silica::text-style 
-	    (parse-text-style silica::default-text-style)
+	    (or (medium-text-style stream)
+		(parse-text-style silica::default-text-style))
 	  silica::merged-text-style-valid nil)))
 
 ;;--- I sure don't like having to do this to make string streams work
