@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: make-classes.lisp,v 1.30 93/04/16 09:26:36 layer Exp $
+;; $fiHeader: make-classes.lisp,v 1.31 93/04/23 09:18:30 cer Exp $
 
 (in-package :tk)
 
@@ -230,7 +230,7 @@
   (let ((name (lispify-tk-name x)))
     (case name
       ;; Openlook
-      (list 'ol-list)
+      ((list scrolling-list) 'ol-list)
       (event-obj 'event)
       (t name))))
   

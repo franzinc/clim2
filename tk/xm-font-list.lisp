@@ -20,24 +20,34 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-font-list.lisp,v 1.8 92/11/20 08:46:19 cer Exp $
+;; $fiHeader: xm-font-list.lisp,v 1.9 93/03/01 14:26:30 cer Exp $
 
 (in-package :tk)
 
+(defconstant xm-font-is-font 0)
+(defconstant xm-font-list-default-tag "XmFONTLIST_DEFAULT_TAG_STRING")
+
 (defmethod convert-resource-out (parent (type (eql 'font-list)) value)
   (declare (ignore parent))
+  (export-font-list value))
+
+(defun export-font-list (value)
   (when (atom value)
     (setq value (list value)))
-  (let* ((charset xm_string_default_char_set)
-	 (font-list
-	  (xm_font_list_create 
-	   (car value)
-	   charset)))
+  (let* ((font-list
+	  (xm_font_list_append_entry
+	   0			; old entry
+	   (xm_font_list_entry_create
+	    xm-font-list-default-tag
+	    xm-font-is-font
+	    (car value)))))
     (dolist (font (cdr value))
       (setq font-list
-	(xm_font_list_add font-list 
-			  font
-			  charset)))
+	(xm_font_list_append_entry font-list 
+				   (xm_font_list_entry_create
+				    ""
+				    xm-font-is-font
+				    font))))
     font-list))
 
 #+:dec3100
@@ -55,26 +65,21 @@
 	   (aref context 0)))
 	(res nil))
     (with-ref-par
-	((char-set 0)
-	 (font 0))
+	((type 0))
       (loop
-	(when (zerop 
-	       (xm_font_list_get_next_font
-		context
-		char-set
-		font))
-	  (return nil))
-	(push (list (let ((x (aref char-set 0)))
-		      (prog1
-			  (ff:char*-to-string x)
-		      (xt_free x)))
-		    (let ((x (aref font 0)))
-		      (intern-object-address
-		       x
-		       'font
-		       :name :unknown!)))
-	      res))
+	(let ((entry (xm_font_list_next_entry context)))
+	  (when (zerop entry)
+	    (return nil))
+	  (setf (aref type 0) 0)
+	  (push (list 
+		 xm_string_default_char_set
+		 (let ((font (xm_font_list_entry_get_font entry type)))
+		   (assert (= (aref type 0) 0))
+		   (intern-object-address
+		    font
+		    'font
+		    :name :unknown!)))
+		res)))
       (xm_font_list_free_font_context context)
       res)))
-	
 

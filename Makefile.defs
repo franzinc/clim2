@@ -1,4 +1,4 @@
-# $fiHeader: Makefile.defs,v 1.6 93/04/16 09:26:13 layer Exp $
+# $fiHeader: Makefile.defs,v 1.7 93/04/16 09:44:41 cer Exp $
 #
 #  Makefile.defs for CLIM 2.0
 #
@@ -68,7 +68,7 @@ PREMALLOCS = '-m 401408'
 CLIM-SMALL	= ./slim-small
 
 PUBDIRS	= sys utils silica clim demo test genera clx pre-silica postscript compatibility
-DIRS0	=  tk tk-silica misc cloe climtoys
+DIRS0	=  tk tk-silica misc cloe climtoys hpgl
 DIRS	= $(PUBDIRS) xlib $(DIRS0)
 CHEAP_CLEAN	= $(PUBDIRS) $(DIRS0)
 
@@ -147,17 +147,18 @@ COMPOSEROBJS= /scm/4.1/sparc/src/code/excldep.o /scm/4.1/sparc/src/code/socket.o
 	      /scm/4.1/sparc/src/code/io.o /scm/4.1/sparc/src/code/exclio.o \
 	      /scm/4.1/sparc/src/code/RunStatus.o
 
-MALLOCOBJS =
-# Uncomment to enable malloc debugging.
-#
-# MALLOCOBJS= $(PWD)/malloclib/malloc.o $(PWD)/malloclib/free.o $(PWD)/malloclib/realloc.o \
-#	    $(PWD)/malloclib/calloc.o $(PWD)/malloclib/string.o \
-#	    $(PWD)/malloclib/malloc_chk.o $(PWD)/malloclib/malloc_chn.o \
-#	    $(PWD)/malloclib/memory.o $(PWD)/malloclib/tostring.o \
-#	    $(PWD)/malloclib/m_perror.o $(PWD)/malloclib/m_init.o \
-#	    $(PWD)/malloclib/mallopt.o $(PWD)/malloclib/dump.o $(PWD)/malloclib/leak.o
 
-#
+
+ALLMALLOCOBJS= $(PWD)/malloclib/malloc.o $(PWD)/malloclib/free.o $(PWD)/malloclib/realloc.o \
+	    $(PWD)/malloclib/calloc.o $(PWD)/malloclib/string.o \
+	    $(PWD)/malloclib/malloc_chk.o $(PWD)/malloclib/malloc_chn.o \
+	    $(PWD)/malloclib/memory.o $(PWD)/malloclib/tostring.o \
+	    $(PWD)/malloclib/m_perror.o $(PWD)/malloclib/m_init.o \
+	    $(PWD)/malloclib/mallopt.o $(PWD)/malloclib/dump.o $(PWD)/malloclib/leak.o
+# Uncomment to enable malloc debugging.
+#MALLOCOBJS =ALLMALLOCOBJS=
+MALLOCOBJS =
+
 # "Compile time objects" -- these go into clim-debug.fasl
 #
 DEBUG-OBJS = xlib/ffi.fasl xlib/xlib-defs.fasl xlib/xlib-funs.fasl \

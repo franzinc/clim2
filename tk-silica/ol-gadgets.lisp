@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-gadgets.lisp,v 1.45 93/04/23 09:18:40 cer Exp $
+;; $fiHeader: ol-gadgets.lisp,v 1.46 93/04/26 20:18:30 colin Exp $
 
 
 (in-package :xm-silica)
@@ -322,9 +322,13 @@
   
   (let* ((mirror (call-next-method))
 	(text-style (pane-text-style sheet))
-	(font-list (list :font (text-style-mapping port text-style)))
-	(options font-list))
-    (labels ((update-menu-item-sensitivity (widget frame commands)
+	(font-list (list :font (text-style-mapping port text-style))))
+    (labels ((compute-options (item)
+	       (let ((text-style (getf (command-menu-item-options item) :text-style)))
+		 (if text-style
+		     (list :font (text-style-mapping port text-style))
+		   font-list)))
+	     (update-menu-item-sensitivity (widget frame commands)
 	       (declare (ignore widget))
 	       (dolist (cbs commands)
 		 (tk::set-sensitive (second cbs)
@@ -350,6 +354,23 @@
 				     widget)
 				  (assert widget))))
 		     
+		     #-ignore
+		     (setf (tk::widget-create-popup-child-proc shell)
+		       #'(lambda (shell)
+			   (declare (ignore shell))
+			   (let ((children
+				  (tk::widget-children menu-pane)))
+			     (when (or (null children)
+				       (/= tick
+					   (setq tick
+					     (slot-value ct 'clim-internals::menu-tick))))
+			       (tk::unmanage-children children)
+			       #+should-we-do-this-since-olit-has-problems
+			       (mapc #'tk::destroy-widget children)
+			       (make-command-for-command-table-1 mb item)))))
+		     
+		     ;;--- This does not get called.
+		     #+ignore
 		     (xt::add-callback 
 		      shell :popup-callback
 		      #'(lambda (shell)
@@ -383,8 +404,10 @@
 			   (unless top
 			     (apply #'make-instance 'xt::static-text
 					    :parent parent
-					    :string " "
-					    options)))
+					    :string (ecase (command-menu-item-value item)
+						      ((nil :divider) " ")
+						      (:label menu))
+					    (compute-options item))))
 			  (:function
 			   ;;--- Do this sometime
 			   )
@@ -393,7 +416,7 @@
 			      (apply #'make-instance 'tk::menu-button
 						     :parent parent
 						     :label menu
-						     options) 
+						     (compute-options item))
 			      item))
 
 			  (t
@@ -405,7 +428,7 @@
 						 :sensitive (command-enabled
 							     (car (command-menu-item-value item))
 							     (slot-value sheet 'silica::frame))
-						 options)))
+						 (compute-options item))))
 			     
 			     (when top
 			       (push (cons (car (command-menu-item-value item)) button)

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-funs.lisp,v 1.6 92/08/18 17:53:50 cer Exp $
+;; $fiHeader: xm-funs.lisp,v 1.7 92/12/14 15:04:09 cer Exp $
 
 ;;
 ;; This file contains compile time only code -- put in clim-debug.fasl.
@@ -149,3 +149,39 @@
     :arg-checking nil
     :return-type :void)
 
+
+
+
+(defforeign 'xm_font_list_append_entry
+    :entry-point (ff:convert-to-lang "XmFontListAppendEntry")
+    :call-direct t
+    :callback nil
+    :arguments '(foreign-address foreign-address)
+    :arg-checking nil
+    :return-type :unsigned-integer)
+
+(defforeign 'xm_font_list_entry_create
+    :entry-point (ff:convert-to-lang "XmFontListEntryCreate")
+    :call-direct t
+    :callback nil
+    :arguments '(foreign-address foreign-address foreign-address)
+    :arg-checking nil
+    :return-type :unsigned-integer)
+
+
+
+(defforeign 'xm_font_list_entry_get_font
+    :entry-point (ff:convert-to-lang "XmFontListEntryGetFont")
+    :call-direct t
+    :callback nil
+    :arguments '(foreign-address foreign-address)
+    :arg-checking nil
+    :return-type :unsigned-integer)
+
+(defforeign 'xm_font_list_next_entry
+    :entry-point (ff:convert-to-lang "XmFontListNextEntry")
+    :call-direct t
+    :callback nil
+    :arguments '(foreign-address)
+    :arg-checking nil
+    :return-type :unsigned-integer)

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-silica.lisp,v 1.16 92/11/13 14:47:13 cer Exp $
+;; $fiHeader: ol-silica.lisp,v 1.17 93/04/23 09:18:43 cer Exp $
 
 (in-package :xm-silica)
 
@@ -49,20 +49,21 @@
   (when new 
     (let ((mirror (sheet-mirror stream)))
       (when mirror 
-	(let ((window (tk::widget-window mirror)))
-	  (with-port-event-lock (port)
-	    (excl:without-interrupts
-	      (let ((display (port-display port)))
-		(tk:with-server-grabbed (display)
-		  (when (eq (tk::window-map-state window) :viewable)
-		    ;;--- There could very well be a race condition involving
-		    ;;--- a couple of processes.  Another process could have made
-		    ;;--- this window go away at this point
-		    (tk::ol_set_input_focus 
-		     mirror
-		     2			; RevertToParent
-		     ;;-- This is not exact but it might work better.
-		     (xt::xt-last-timestamp-processed display))))))))))))
+	(let ((window (tk::widget-window mirror nil)))
+	  (when window
+	    (with-port-event-lock (port)
+	      (excl:without-interrupts
+		(let ((display (port-display port)))
+		  (tk:with-server-grabbed (display)
+		    (when (eq (tk::window-map-state window) :viewable)
+		      ;;--- There could very well be a race condition involving
+		      ;;--- a couple of processes.  Another process could have made
+		      ;;--- this window go away at this point
+		      (tk::ol_set_input_focus 
+		       mirror
+		       2	; RevertToParent
+		       ;;-- This is not exact but it might work better.
+		       (xt::xt-last-timestamp-processed display)))))))))))))
 
 (defmethod change-widget-geometry ((parent tk::draw-area) child
 				   &rest args

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: incremental-redisplay.lisp,v 1.18 93/04/07 09:06:42 cer Exp $
+;; $fiHeader: incremental-redisplay.lisp,v 1.19 93/04/16 09:44:52 cer Exp $
 
 (in-package :clim-internals)
 
@@ -925,6 +925,7 @@
   (with-slots (all-new old-bounding-rectangle contents-ok old-parent) record
     ;; if it's all-new, don't bother walking the hierarchy, just redraw.
     (cond (all-new
+	   (setf all-new nil)
 	   (values nil nil
 		   (list (list record
 			       (bounding-rectangle-shift-position

@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-frames.lisp,v 1.54 93/04/16 09:45:56 cer Exp $
+;; $fiHeader: xm-frames.lisp,v 1.55 93/04/23 09:18:45 cer Exp $
 
 (in-package :xm-silica)
 
@@ -124,10 +124,14 @@
   (let* ((mirror (call-next-method))
 	 (text-style (pane-text-style sheet))
 	 (font-list (list :font-list (text-style-mapping port text-style)))
-	 (options font-list)
 	 (ct (menu-bar-command-table sheet))
 	 (flatp (flat-command-table-menu-p ct)))
-    (labels ((update-menu-item-sensitivity (widget frame commands)
+    (labels ((compute-options (item)
+	       (let ((text-style (getf (command-menu-item-options item) :text-style)))
+		 (if text-style
+		     (list :font-list (text-style-mapping port text-style))
+		   font-list)))
+	     (update-menu-item-sensitivity (widget frame commands)
 	       (declare (ignore widget))
 	       (dolist (cbs commands)
 		 (tk::set-sensitive (second cbs)
@@ -167,7 +171,7 @@
 					 :parent parent
 					 :label-string menu
 					 :sub-menu-id submenu
-					 options)))
+					 (compute-options item))))
 		 (unless flatp
 		   (set-button-mnemonic sheet
 					cb (getf (command-menu-item-options item) :mnemonic)))
@@ -200,7 +204,14 @@
 		      (let ((type (command-menu-item-type item)))
 			(case type
 			  (:divider
-			   (make-instance 'tk::xm-separator :parent parent))
+			   (ecase (command-menu-item-value item)
+			     (:label 
+			      (apply #'make-instance 'tk::xm-label
+				     :label-string menu
+				     :parent parent
+				     (compute-options item)))
+			     ((nil :divider)
+			      (make-instance 'tk::xm-separator :parent parent))))
 			  (:function
 			   ;;--- Do this sometime
 			   )
@@ -218,7 +229,7 @@
 						 :label-string menu
 						 :sub-menu-id
 						 submenu
-						 options)))
+						 (compute-options item))))
 				 (declare (ignore cb))
 				 (setq parent submenu)))
 			     (let ((button 
@@ -229,7 +240,7 @@
 					   :sensitive (command-enabled
 						       (car (command-menu-item-value item))
 						       (slot-value sheet 'silica::frame))
-					   options)))
+					   (compute-options item))))
 			       (push (list item button)
 				     commands-and-buttons)
 			       
