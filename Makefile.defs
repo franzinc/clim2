@@ -3,7 +3,7 @@
 #  Makefile.defs for CLIM 2.0
 #
 
-CL	= /net/vapor/scm2/4.2.beta/src/dcl
+CL	= /net/hyper/qa/4.2.beta2.0/temp-images/sol2_bin/lisp
 PWD	= /usr/tech/cer/stuff/clim-2.0
 DUMP-CL	= $(CL)
 CLOPTS	= -qq

@@ -39,30 +39,30 @@
 			   &key port palette (server-path *default-server-path*)
 			   &allow-other-keys)
   (declare (dynamic-extent options))
-  (with-keywords-removed (new-options options '(:port :palette :server-path))
-    (unless port 
-      (setq port (find-port :server-path server-path)))
-    (unless palette
-      (setq palette (port-default-palette port)))
-    (cond 
-      ;; (find-frame-manager) -> default one
-      ((and (null options) *default-frame-manager*))
-      ;; We specified a port and perhaps other options so make sure the default framem matches it
-      ((and *default-frame-manager*
-	    (apply #'frame-manager-matches-options-p
-		   *default-frame-manager* port :palette palette new-options))
-       *default-frame-manager*)
-      ;; No default, look for one in the port, or create a new one
-      (t
-       (dolist (framem (port-frame-managers port))
-	 (when (apply #'frame-manager-matches-options-p 
-		      framem port :palette palette new-options)
-	   (return-from find-frame-manager framem)))
-       (let ((framem (apply #'make-frame-manager 
-			    port :palette palette new-options)))
-	 (setf (port-frame-managers port)
-	       (nconc (port-frame-managers port) (list framem)))
-	 framem)))))
+  (or (and (null options) *default-frame-manager*) ; (find-frame-manager)
+      (with-keywords-removed (new-options options '(:port :palette :server-path))
+	(unless port 
+	  (setq port (find-port :server-path server-path)))
+	(unless palette
+	  (setq palette (port-default-palette port)))
+	(cond 
+	 ;; We specified a port and perhaps other options so make sure
+	 ;; the default framem matches it 
+	 ((and *default-frame-manager*
+	       (apply #'frame-manager-matches-options-p
+		      *default-frame-manager* port :palette palette new-options))
+	  *default-frame-manager*)
+	 ;; No default, look for one in the port, or create a new one
+	 (t
+	  (dolist (framem (port-frame-managers port))
+	    (when (apply #'frame-manager-matches-options-p 
+			 framem port :palette palette new-options)
+	      (return-from find-frame-manager framem)))
+	  (let ((framem (apply #'make-frame-manager 
+			       port :palette palette new-options)))
+	    (setf (port-frame-managers port)
+	      (nconc (port-frame-managers port) (list framem)))
+	    framem))))))
 
 #+Genera
 (scl:add-initialization "Reset frame managers"

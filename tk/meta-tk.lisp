@@ -28,6 +28,7 @@
 
 (defclass xt-class (standard-class ff:foreign-pointer)
   ((entry-point :initarg :entry-point
+		:initform nil
 		:reader class-entry-point)
    ;; Resources are now looked up on the fly, and cached lazily one by one.
    ;; Note that direct resources and direct constraint resources are no
@@ -44,6 +45,12 @@
    (set-values-cache :initform (make-hash-table :test #'equal)
 		     :type hash-table
 		     :reader class-set-values-cache)))
+
+(defmethod describe-object :after ((class xt-class) stream)
+  (with-slots (entry-point) class
+    (format stream "The entry point is ~A,~X~%" 
+	    (and (slot-boundp class 'entry-point) entry-point)
+	    (ff:foreign-pointer-address class))))
 
 (defmethod class-handle ((class xt-class))
   (unless (clos::class-finalized-p class)

@@ -38,7 +38,7 @@ OLCOPYLIB=not-used-xxxxx
 OLXLIBS=/usr/openwin/lib/libXt.a /usr/openwin/lib/libX11.a
 LIBXOL=/usr/openwin/lib/libXol.a
 LIBXOL_d=$(LIBXOL)
-CL = ../src/dcl
+CL = /usr/fi/dcl-4.2.beta2.0
 PWD = .
 
 include Makefile.generic

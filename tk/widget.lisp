@@ -28,7 +28,7 @@
 			       &key (application-name "clim")
 			       (application-class "Clim")
 			       (widget-class (error "Class not specified"))
-			       (display (error "Display not specifie"))
+			       (display (error "Display not specified"))
 			       &allow-other-keys)
   (let* ((class (find-class widget-class))
 	 (handle (class-handle class))

@@ -154,8 +154,8 @@
   (object-display object))
 
 
-(defclass rect (xt-root-class) ())
-(defclass un-named-obj (rect) ())
+(defclass rect (xt-root-class) () (:metaclass xt-class))
+(defclass un-named-obj (rect) () (:metaclass xt-class))
 
 (defclass basic-resource ()
   ((name :initarg :name :reader resource-name)
@@ -232,6 +232,7 @@
       ;; Openlook
       ((list scrolling-list) 'ol-list)
       (event-obj 'event)
+      (control-pane 'control)
       (t name))))
   
 (defun lispify-tk-name (string &key 
@@ -287,3 +288,19 @@
 	 (clrhash set-values-cache)
 	 (clrhash cached-constraint-resources)))
    class))
+
+#+:svr4
+(defun fixup-class-entry-points ()
+  (clos::map-over-subclasses
+   #'(lambda (class)
+       (let* ((old-addr (and (typep class 'xt-class)
+			     (ff::foreign-pointer-address class)))
+	      (entry-point (and (typep class 'xt-class)
+				(slot-boundp class 'entry-point)
+				(slot-value class 'entry-point)))
+	      (new-addr (and entry-point
+			     (get-foreign-variable-value entry-point))))
+	 (if entry-point
+	     (unless (equal old-addr new-addr)
+	       (setf (ff::foreign-pointer-address class) new-addr)))))
+   (find-class 'xt-root-class)))

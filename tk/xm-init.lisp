@@ -33,3 +33,15 @@
       *motif-classes*)
   (setq *xm-done* t))
 
+
+#+:svr4
+(progn
+  (defun reinitialize-toolkit ()
+    (xt_toolkit_initialize)
+    (setup-error-handlers)
+    (fixup-class-entry-points))
+  (push '(:eval reinitialize-toolkit) excl::*restart-actions*)
+  )
+
+
+
