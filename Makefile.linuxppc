@@ -1,0 +1,25 @@
+# $Id: Makefile.linuxppc,v 1.1.2.1 1999/01/23 00:44:20 duane Exp $
+
+include Makefile.defs
+
+Makefile=Makefile.linuxppc
+
+XINCLUDES=-I/usr/X11R6/include
+
+TKLIB=-lXm -lXpm -lXext
+XTLIB=-lXt -lSM -lICE
+XLIB=-lX11
+
+SET_LIBRARY_PATH = LD_RUN_PATH=/usr/X11R6/lib:/lib:/usr/lib:/usr/local/lib; export LD_RUN_PATH
+
+PRODUCT-OBJS= $(PRODUCT-GENERIC-OBJS) $(STATIC-XM-OBJS) $(SHARED-XM-OBJS)
+
+#MOTIFXTRAS=-lgen
+
+PICFLAGS = -fPIC
+SHAREFLAGS = 
+MAKE_SHARED = ld -shared -L/usr/X11R6/lib -L/usr/local/lib
+STD_DEFINES = -DSVR4 -DSYSV
+AR = ar cq
+
+include Makefile.generic

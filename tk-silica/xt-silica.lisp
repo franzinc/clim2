@@ -15,7 +15,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: xt-silica.lisp,v 1.108.22.8 1999/01/14 19:04:18 layer Exp $
+;; $Id: xt-silica.lisp,v 1.108.22.9 1999/01/23 00:44:21 duane Exp $
 
 (in-package :xm-silica)
 
@@ -649,7 +649,7 @@
 	   ;; message.  Iconifying a window also sends an UnmapNotify
 	   ;; message.  There is apparently no way to tell the difference.
 	   ;; The right thing to do is to stop calling XIconifyWindow in
-	   ;; response, since it is not only unnecessary, it is detrimental.  
+	   ;; response, since it is not only unnecessary, it is detrimental.
 	   ;; That is the purpose of *suppress-xevents*.
 	   (when (eq state :enabled)
 	     (setf (frame-state frame) :shrunk))))))))

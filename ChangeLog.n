@@ -11,6 +11,16 @@ Tests for new features:	<`no new features', `no tests for new features', or
 	* <changes go here...>
 
 *******************************************************************************
+2.2.1.39
+
+Thu Jan 21 19:48:47 1999  Duane Rettig  <duane@beta>
+
+	* Makefile: Fix for linuxppc and freebsd
+	* Makefile.wnn: Add crypt lib for linuxppc
+	* tk-silica/xt-silica.lisp: Format change only
+	* utils/packages.lisp: Increment version
+
+*******************************************************************************
 2.2.1.38
 
 1999-01-14  Kevin Layer  <layer@ultra> (this is really from Jeff)
