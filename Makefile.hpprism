@@ -9,6 +9,8 @@ Makefile=Makefile.hp700
 
 CL=/usr/fi/dcl-devel
 
+CFLAGS	= -O -D_NO_PROTO -DSTRINGS_ALIGNED -DNO_REGEX -DNO_ISDIR -DUSE_RE_COMP -DUSER_GETWD -Wp,-H1280000
+
 # 
 
 MOTIFLIB=/usr/lib/Motif1.2/libXm.a

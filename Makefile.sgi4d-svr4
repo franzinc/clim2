@@ -2,23 +2,16 @@
 
 include Makefile.defs
 
-Makefile=Makefile.sun4-svr4
+Makefile=Makefile.sgi4d-svr4
 
-MOTIFHOME=/net/vapor/3rd/motif-1.2.2-sol2/ICS/Motif
-MOTIFLIB=$(MOTIFHOME)/usr/lib/libXm$(DEBUGLIB).a
+MOTIFHOME=
+MOTIFLIB=
 MOTIFLIB_d=$(MOTIFHOME)/usr/lib/libXm.a
 XLIB=$(MOTIFHOME)/usr/lib/libX11$(DEBUGLIB).a 
 XTLIB=$(MOTIFHOME)/usr/lib/libXt$(DEBUGLIB).a
 XINCLUDES=-I$(MOTIFHOME)/usr/include
 XMINCLUDES=-I$(MOTIFHOME)/usr/include
 MOTIFXTRAOS=
-
-XTSUPPORTINCLUDES=-I/net/vapor/x11/R5/src/mit/lib/Xt
-
-OPENLOOKHOME=/usr/openwin
-OLXLIB= $(OPENLOOKHOME)/lib/libX11.a
-OLXTLIB=$(OPENLOOKHOME)/lib/libXt.a
-OLINCLUDES=-I$(OPENLOOKHOME)/include
 
 ###############################################################################
 setup_LLP = /net/vapor/scm/bin/setup_LLP
@@ -34,15 +27,14 @@ PUBLIC_OBJS =
 OL_LICENSED_OBJS =
 XM_LICENSED_OBJS =
 MOTIF_OBJS = climxm.so
-OPENLOOK_OBJS = climol.so
-CLIMOBJS= climxm.so climol.so
+OPENLOOK_OBJS = 
+CLIMOBJS= climxm.so
+CLIMFASLS= $(CLIM_XM_FASLS) $(CLIM_GENERIC_FASLS)
 INSTALLED_CLIMXMOBJS = MyDrawingA.o climxm.so
-INSTALLED_CLIMOLOBJS = olsupport.o climol.so
-INSTALLED_CLIMOBJS= xlibsupport.o xtsupport.o \
-	$(INSTALLED_CLIMOLOBJS) $(INSTALLED_CLIMXMOBJS)
+INSTALLED_CLIMOBJS= xlibsupport.o xtsupport.o $(INSTALLED_CLIMXMOBJS)
 
-PICFLAGS = -K pic
-SHAREFLAGS = -G
+PICFLAGS = -KPIC
+SHAREFLAGS = -shared -all
 
 PWD = .
 ###############################################################################

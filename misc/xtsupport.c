@@ -4,8 +4,8 @@
 
 #include <signal.h>
 #include <stdio.h>
-#include "IntrinsicP.h"
-#include "CoreP.h"
+#include <X11/IntrinsicP.h>
+#include <X11/CoreP.h>
 
 #ifdef sparc
 #include "IntrinsicI.h"

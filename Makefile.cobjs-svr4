@@ -2,30 +2,34 @@
 
 climol.so:	xlibsupport.o xtsupport.o olsupport.o
 	(test -f $(setup_LLP) && eval `$(setup_LLP) openlook`; \
-	 ld -G -o climol.so xlibsupport.o xtsupport.o olsupport.o \
+	 ld $(SHAREFLAGS) -o climol.so xlibsupport.o xtsupport.o olsupport.o \
 		-lXol -lXt -lX11)
 
 climxm.so:	xlibsupport.o xtsupport.o MyDrawingA.o
 	(test -f $(setup_LLP) && eval `$(setup_LLP) motif`; \
-	 ld -G -o climxm.so xlibsupport.o xtsupport.o MyDrawingA.o \
+	 ld $(SHAREFLAGS) -o climxm.so xlibsupport.o xtsupport.o MyDrawingA.o \
 		-lXm -lXt -lX11 -lgen)
 
 xlibsupport.o	: xlib/xlibsupport.c 
-	$(CC) -c -K pic $(CFLAGS) $(XINCLUDES) -o xlibsupport.o \
+	$(CC) -c $(PICFLAGS) $(CFLAGS) $(XINCLUDES) -o xlibsupport.o \
 		xlib/xlibsupport.c
 
 xtsupport.o: misc/xtsupport.c
-	$(CC) -c -K pic $(CFLAGS) $(XINCLUDES) $(XTSUPPORTINCLUDES)\
+	$(CC) -c $(PICFLAGS) $(CFLAGS) $(XINCLUDES) $(XTSUPPORTINCLUDES)\
 		-o xtsupport.o misc/xtsupport.c
 
 MyDrawingA.o: misc/MyDrawingA.c misc/climgccursor.c
-	$(CC) -c -K pic $(CFLAGS) $(XMINCLUDES) -o MyDrawingA.o \
+	$(CC) -c $(PICFLAGS) $(CFLAGS) $(XMINCLUDES) -o MyDrawingA.o \
 		misc/MyDrawingA.c
 
 olsupport.o: misc/olsupport.c misc/climgccursor.c
-	$(CC) -c -K pic $(CFLAGS) $(OLINCLUDES) -o olsupport.o misc/olsupport.c
+	$(CC) -c $(PICFLAGS) $(CFLAGS) $(OLINCLUDES) -o olsupport.o misc/olsupport.c
 
-$(MAIN_OBJ):	stub-motif.o stub-xt.o stub-x.o
-	ld -r $(LDFLAGS) -o $(MAIN_OBJ) $(ACL_MAIN_OBJ) \
-		xlibsupport.o xtsupport.o MyDrawingA.o stub-motif.o stub-xt.o \
-		stub-x.o -lXm -lXt -lX11 -lgen
+# not needed for svr4?
+# $(MAIN_OBJ):	stub-motif.o stub-xt.o stub-x.o
+# 	ld -r $(LDFLAGS) -o $(MAIN_OBJ) $(ACL_MAIN_OBJ) \
+# 		xlibsupport.o xtsupport.o MyDrawingA.o stub-motif.o stub-xt.o \
+# 		stub-x.o -lXm -lXt -lX11 -lgen
+
+$(MAIN_OBJ):
+	cp $(ACL_MAIN_OBJ) $(MAIN_OBJ)
