@@ -41,7 +41,7 @@
 
 (defmethod initialize-instance :after ((inv frame-invocation) &key class initargs frame)
   (let ((process nil))
-    (if frame 
+    (if frame
       (setq process (clim-internals::frame-top-level-process frame))
       (setq frame (apply #'make-application-frame class initargs)))
     (setf (invocation-frame inv) frame)
@@ -81,7 +81,7 @@
     (unless process
       (setq process (mp:process-run-function
 		     (format nil "~A Test process for" frame)
-		     #'run-frame-top-level-almost 
+		     #'run-frame-top-level-almost
 		     frame)))
     (setf (invocation-process inv) process)
     (wait-for-clim-input-state inv)))
@@ -99,27 +99,27 @@
       (when port #-acl86win32 (xm-silica::port-finish-output port)))
     (mp:process-allow-schedule)
     (flet ((input-state-p (process)
-	     (or #-target=os-threads
+	     (or #-os-threads
 		 (not (mp::process-stack-group process))
-		 #+target=os-threads
+		 #+os-threads
 		 (not (mp:process-thread process))
-		 (member  (mp::process-whostate process) 
-			  '("Returned value" 
+		 (member  (mp::process-whostate process)
+			  '("Returned value"
 			    "Waiting for dialog"
 			    "CLIM Input")
 			  :test #'string-equal))))
       (if timeout
 	  (let ((done nil))
-	    (mp:process-wait-with-timeout 
+	    (mp:process-wait-with-timeout
 	     "Waiting for process to sleep"
 	     timeout
-	     #'(lambda () 
+	     #'(lambda ()
 		 (setq done (input-state-p process))))
 	    (unless done
 	      (error "Timed out after ~D seconds" timeout)))
-	(mp:process-wait 
+	(mp:process-wait
 	 "Waiting for process to sleep"
-	 #'(lambda () 
+	 #'(lambda ()
 	     (input-state-p process)))))))
 
 (defvar *death-timeout* 30)
@@ -128,9 +128,9 @@
   (with-slots (process) invocation
     (write-line "Terminating frame")
     (unless (progn
-	      #-target=os-threads
+	      #-os-threads
 	      (mp::process-stack-group process)
-	      #+target=os-threads
+	      #+os-threads
 	      (mp::process-thread process))
       (error "Frame terminated abnormally"))
     (execute-one-command invocation exit-command)
@@ -140,13 +140,13 @@
 (defun wait-for-death (process)
   (let (done)
     (mp:process-wait-with-timeout
-     "Waiting for death" 
+     "Waiting for death"
      *death-timeout*
      #'(lambda ()
 	 (setq done
 	   (not
-	    #-target=os-threads (mp::process-stack-group process)
-	    #+target=os-threads (mp::process-thread process)))))
+	    #-os-threads (mp::process-stack-group process)
+	    #+os-threads (mp::process-thread process)))))
     done))
 
 (defvar *execute-one-command-hook* nil)
@@ -184,7 +184,7 @@
   `(let ((,frame (with-slots (process avv-frame) invocation
 		  (or avv-frame (invocation-frame invocation)))))
     ,@body))
-		    
+
 
 (define-test-step character-event (x)
   (with-invocation-sheet (sheet)
@@ -210,7 +210,7 @@
 				     (make-instance 'key-press-event
 						    :sheet sheet
 						    :character nil
-						    :key-name keysym 
+						    :key-name keysym
 						    :modifier-state modifiers))))))))
 
 (defun execute-a-command (command)
@@ -237,7 +237,7 @@
 	 (:presentation-click
 	  (apply #'click-on-presentation (cdr command)))
 	 (:presentation-press
-	  (apply #'click-on-presentation 
+	  (apply #'click-on-presentation
 		 (second command) (third command) :release nil (cdddr command)))
 	 (:click
 	  (apply #'click-on-window (cdr command)))
@@ -266,11 +266,11 @@
 	   (note-test-succeeded ,tname))))))
 
 
-(defun exercise-frame (test-name 
-						class 
-						initargs 
-						command-continuation 
-						exit-command 
+(defun exercise-frame (test-name
+						class
+						initargs
+						command-continuation
+						exit-command
 						&key (#+acl86win32 anerror #-acl86win32 error *catch-errors-in-tests*)
 						(invocation-class 'frame-invocation))
   (flet ((doit ()
@@ -280,7 +280,7 @@
 					 (etypecase command-continuation
 					   (null (sleep 5))
 					   (list
-						 (execute-commands-in-invocation 
+						 (execute-commands-in-invocation
 						   invocation command-continuation))
 					   (function (funcall command-continuation)))
 					 (unwind-protect
@@ -293,26 +293,26 @@
 		(with-test-success-expected (test-name)
 		  (doit))
 		(doit))
-	
+
 	#+ignore
 	(progn
 	  (format t "Port mapping ~S~%" (silica::port-mirror->sheet-table (clim:find-port)))
-	  
+
 	  #+verbose
-	  (maphash #'(lambda  (x y) 
+	  (maphash #'(lambda  (x y)
 				   (print y))
 			   (silica::port-mirror->sheet-table (clim:find-port)))
-	  
+
 	  (format t "Port framem ~S~%" (find-frame-manager :port (clim:find-port)))
 	  (format t "Port framem frames ~S~%" (frame-manager-frames
 											(find-frame-manager :port (clim:find-port))))
-	  
+
 	  (format t " Address mapping ~S~%" tk::*address->object-mapping*)
-	  
+
 	  #+verbose
 	  (maphash #'(lambda  (x y) (print y))
 			   tk::*address->object-mapping*))
-	
+
 	))
 
 
@@ -347,13 +347,13 @@
     (format t "The following tests failed:~%")
     (dolist (x *test-failures*)
       (format t "~10t~A : ~A~%" (car x) (cdr x))))
-    
+
   (when (probe-file file)
     (let (old-successes old-failures)
       (with-open-file (*standard-input* file)
 	(let ((*package* (find-package :clim-user)))
 	  (setq old-successes (read) old-failures (read))))
-	
+
       (let ((first t))
 	(dolist (x *test-failures*)
 	  (when (member (car x) old-successes)
@@ -361,7 +361,7 @@
 	      (format t "The following tests have for failed the first time:~%")
 	      (setq first nil))
 	    (format t "~10t~A : ~A~%" (car x) (cdr x)))))
-	
+
       (let ((first t))
 	(dolist (x *test-failures*)
 	  (when (member (car x) old-failures)
@@ -369,7 +369,7 @@
 	      (format t "The following tests have failed again:~%")
 	      (setq first nil))
 	    (format t "~10t~A : ~A~%" (car x) (cdr x)))))
-	
+
       (let ((first t))
 	(dolist (x *test-successes*)
 	  (when (member x old-failures)
@@ -377,12 +377,12 @@
 	      (format t "The following tests have succeeded finally:~%")
 	      (setq first nil))
 	    (format t "~10t~A~%" x))))))
-    
+
   (when *test-successes*
     (format t "The following tests succeeded:~%")
     (dolist (x *test-successes*)
       (format t "~10t~A ~%" x)))
-    
+
 
   (with-open-file (*standard-output* file
 		   :direction :output :if-exists :supersede)
@@ -397,9 +397,9 @@
 	(with-open-file (*standard-input* file)
 	  (values (read) (read)))
       (let ((expected-failures nil))
-	(let ((unexpected-failures 
+	(let ((unexpected-failures
 	       (set-difference failures expected-failures))
-	      (unexpected-successes 
+	      (unexpected-successes
 	       (intersection successes expected-failures)))
 	  ;; use *error-output* so it goes to stderr and is seen even
 	  ;; though make-dist redirects stdout to a file
@@ -411,15 +411,15 @@
 		    "~D CLIM 2.0 tests failed unexpectedly:~{~20t~A~%~}~%"
 		    (length unexpected-failures)
 		    unexpected-failures))
-	
+
 	  (when unexpected-successes
 	    (format *error-output*
 		    "~D tests succeeded unexpectedly: ~{~20t~A~%~}~%"
 		    (length unexpected-successes)
 		    unexpected-successes)))))))
 
-	  
-	  
+
+
 (defun walk-over-presentations (function output-record)
   (labels ((find-object-1 (record x-offset y-offset)
 	     (with-bounding-rectangle* (left top right bottom) record
@@ -446,8 +446,8 @@
 (define-condition cannot-find-presentation-error (simple-error) ())
 
 (define-test-step click-on-presentation (pane-name
-					 presentation-type 
-					 &key gesture 
+					 presentation-type
+					 &key gesture
 					 (press t)
 					 (release t)
 					 (modifier 0)
@@ -465,7 +465,7 @@
 	  (expanded-presentation-type
 	   (expand-presentation-type-abbreviation presentation-type)))
       (flet ((doit (record left top right bottom)
-	       (when (and (presentation-subtypep 
+	       (when (and (presentation-subtypep
 			   (presentation-type record)
 			   expanded-presentation-type)
 			  (funcall test record))
@@ -505,7 +505,7 @@
 	      (warp-the-pointer pane (+ left x-offset)
 				(+ top y-offset))
 	      (wait-for-clim-input-state invocation)
-	      (when (clim-internals::stream-highlighted-presentation pane) 
+	      (when (clim-internals::stream-highlighted-presentation pane)
 		(return))
 	      (warp-the-pointer pane (+ left 1 x-offset) (+ top 1 y-offset))
 	      (sleep 1))
@@ -559,7 +559,7 @@
   (apply #'button-event-on-window invocation pane-name left top
 	 :up t :down nil args))
 
-(defun button-event-on-window (invocation pane-name left top 
+(defun button-event-on-window (invocation pane-name left top
 			       &key gesture (modifier 0) (button +pointer-left-button+)
 				    up down)
   (with-slots (process) invocation
@@ -587,7 +587,7 @@
 					     :x :?? :y :??
 					     :modifier-state modifier)))
 	  (when up
-	    (distribute-event port 
+	    (distribute-event port
 			      (make-instance 'pointer-button-release-event
 					     :sheet ma
 					     :pointer (port-pointer port)
@@ -602,15 +602,15 @@
 
 
 (defun simulate-accept (invocation pane-name presentation-type &key
-								  stream 
-								  default provide-default 
+								  stream
+								  default provide-default
 								  x-offset y-offset &allow-other-keys)
   ;; We a choice.
   ;; 1. Send the characters or
   ;; 2. Click on a presentation
   (declare (ignore provide-default default stream invocation))
   (assert (click-on-presentation pane-name
-				 presentation-type 
+				 presentation-type
 				 :x-offset x-offset
 				 :y-offset y-offset)
       () "Clicking failed"))
@@ -620,13 +620,13 @@
   (when delim
     (execute-one-command invocation " ")))
 
-(define-test-step test-a-command (pane-name command &key colon-prefix 
+(define-test-step test-a-command (pane-name command &key colon-prefix
 							 (x-offset 0)
 							 (y-offset 0))
   (with-slots (process) invocation
     (let ((stream (get-invocation-pane invocation pane-name)))
       (flet ((accept-function (stream presentation-type &rest args)
-	       (apply #'simulate-accept invocation pane-name 
+	       (apply #'simulate-accept invocation pane-name
 		      presentation-type :stream stream :x-offset x-offset :y-offset y-offset args))
 	     (send-it-function (x)
 	       (send-it invocation x)))
@@ -654,7 +654,7 @@
   `(progn
      (pushnew ',name *frame-tests*)
      (defun ,name ()
-       (exercise-frame ',name ',class ',initargs 
+       (exercise-frame ',name ',class ',initargs
 		       ',commands
 		       ',exit-command))))
 
@@ -662,7 +662,7 @@
   `(progn
      (pushnew ',name *frame-tests*)
      (defun ,name ()
-       (exercise-frame ',name ',class ',initargs 
+       (exercise-frame ',name ',class ',initargs
 		       ',commands
 		       ',exit-command
 		       :invocation-class 'activity-invocation))))
@@ -676,7 +676,7 @@
     (format t "Doing test ~A~%" test)
     (if errorp
 	(handler-case (funcall test)
-	  (error (c) 
+	  (error (c)
 	    (format t "~&The following error occurred in ~S: ~A~%" test
 		    c)))
       (funcall test))))
@@ -700,7 +700,7 @@
   (exercise-frame 'test-it
 		  'clim-user::clim-tests
 		  '(:width 600 :height 400 :left 0 :top 0)
-		  `(((clim-user::run-benchmarks 
+		  `(((clim-user::run-benchmarks
 		      :pathname ,pathname) :timeout 1800))
 		  `(clim-user::exit-clim-tests)
 		  #+acl86win32 :anerror #-acl86win32 :error errorp))
@@ -715,7 +715,7 @@
 	       (declare (dynamic-extent args))
 	       ;; This code is to handle the case where a partial command has been
 	       ;; passed in.  PARSE-NORMAL-ARG needs to be called with a :DEFAULT of
-	       ;; the appropriate element of the partial command structure.  
+	       ;; the appropriate element of the partial command structure.
 	       (let* ((default (if copy-partial-command
 				   (pop copy-partial-command)
 				 *unsupplied-argument-marker*)))
@@ -726,7 +726,7 @@
 						command-table)))
 		     (return-from arg-parser (values command-name presentation-type)))
 		   (cond ((not (clim-internals::unsupplied-argument-p default))
-			  (cond ((eq type-name 'keyword-argument-name) 
+			  (cond ((eq type-name 'keyword-argument-name)
 				 default)
 				(t (handler-case (apply #'parse-normal-arg
 							stream presentation-type
@@ -739,7 +739,7 @@
 			  (let ((name (intern (symbol-name (caar parameters)) clim-internals::*keyword-package*)))
 			    (send-it name)
 			    name))
-			 (t 
+			 (t
 			  (apply #'parse-normal-arg
 				 stream presentation-type
 				 :provide-default nil args))))))
@@ -810,7 +810,7 @@
   (with-slots (process avv-frame) invocation
     (let ((query (find-avv-query (if pane-name
 				     (car (gethash (get-invocation-pane invocation pane-name)
-						   (clim-internals::frame-pane-to-avv-stream-table 
+						   (clim-internals::frame-pane-to-avv-stream-table
 						    (invocation-frame invocation))))
 				   (slot-value avv-frame 'stream))
 				 prompt)))
@@ -863,7 +863,7 @@
 	       (funcall continuation)
 	     (progn
 	       (unwind-protect
-		   (progn 
+		   (progn
 		     (prof::start-profiler :type type :verbose nil)
 		     (funcall continuation))
 		 (profiler:stop-profiler))
@@ -876,8 +876,8 @@
     (let ((*execute-one-command-hook* #'profiling-hook))
       (funcall test))))
 
-(defun wait-for-frame (&key (type t) 
-			      (framem (find-frame-manager)) 
+(defun wait-for-frame (&key (type t)
+			      (framem (find-frame-manager))
 			      timeout
 			    (state :enabled)
 			    (errorp t))
@@ -892,8 +892,8 @@
       frame)))
 
 
-(defun find-frame (&key (type t) 
-			(framem (find-frame-manager)) 
+(defun find-frame (&key (type t)
+			(framem (find-frame-manager))
 			(state :enabled))
   (find-if #'(lambda (frame)
 	       (and (typep frame type)
@@ -932,7 +932,7 @@
     (map-over-sheets #'(lambda (sheet)
 			 (dotimes (i n)
 			   (when (and (not (nth i result))
-				      (sheet-matches-specification-p 
+				      (sheet-matches-specification-p
 				       sheet (nth i specifications)))
 			     (setf (nth i result) sheet))))
 		     (frame-top-level-sheet frame))
@@ -993,7 +993,7 @@
 	   ((null clauses)
 	    `(case ,which ,@(reverse res)))
 	  (let ((clause (car clauses)))
-	 (push `(,(incf i) 
+	 (push `(,(incf i)
 		     (destructuring-bind ,(second clause) ,result
 			,@(cddr clause)))
 	       res))))))
@@ -1003,7 +1003,7 @@
 ;;; make the training selective.
 
 (locally (declare (special si::*clos-preload-packages*))
-  (setq si::*clos-preload-packages* 
+  (setq si::*clos-preload-packages*
     (mapcar #'find-package
 	    '(:clim :clim-utils :clim-internals :silica :tk #-acl86win32 :xm-silica))))
 

@@ -1,11 +1,10 @@
-# $Header: /repo/cvs.copy/clim2/Makefile.alpha,v 1.4 1997/02/07 00:20:43 tomj Exp $
+# $Header: /repo/cvs.copy/clim2/Makefile.alpha,v 1.5 1998/03/17 23:32:03 duane Exp $
 #
 #  Makefile.alpha for CLIM 2.0
 #
 
 include Makefile.defs
-CL_HOME=/fi/scm/4.3/dec/src
-CL=$(CL_HOME)/dcl
+
 CLIM_HOME=$(CL_HOME)
 
 Makefile=Makefile.alpha

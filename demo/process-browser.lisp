@@ -1,5 +1,5 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
-;; $Header: /repo/cvs.copy/clim2/demo/process-browser.lisp,v 1.11 1997/10/20 23:11:02 layer Exp $
+;; $Header: /repo/cvs.copy/clim2/demo/process-browser.lisp,v 1.12 1998/03/17 23:32:03 duane Exp $
 
 (in-package :clim-demo)
 
@@ -16,7 +16,7 @@
   (:default-initargs :delay 5))
 
 (defmethod read-frame-command :around ((frame process-browser) &key)
-  (with-accessors ((timer process-browser-timer)) frame 
+  (with-accessors ((timer process-browser-timer)) frame
     (unwind-protect
 	(progn
 	  (install-process-browser-timer frame)
@@ -25,7 +25,7 @@
 
 (defun install-process-browser-timer (frame)
   (with-accessors ((timer process-browser-timer)
-		   (delay process-browser-delay)) frame 
+		   (delay process-browser-delay)) frame
     (when timer (clim-utils:delete-timer timer))
     (setq timer (clim-internals::make-command-timer
 		  frame '(com-update-process-browser)
@@ -37,7 +37,7 @@
     (with-accessors ((timer process-browser-timer)
 		     (delay process-browser-delay)) frame
       (accepting-values (*query-io* :own-window t)
-	(setf delay (accept '(integer 1 *) 
+	(setf delay (accept '(integer 1 *)
 			    :prompt "Enter new delay"
 			    :default delay
 			    :stream *query-io*))
@@ -89,16 +89,16 @@
 		       #'>= :key #'caddr)))
 	  (dolist (p processes)
 	    (destructuring-bind (times-resumed msec-used msec-used-d . process) p
-	      (let ((profilep 
-		     #-target=os-threads
+	      (let ((profilep
+		     #-os-threads
 		     (let ((stack-group (mp::process-stack-group process)))
 		       (and stack-group
 			    (mp::profile-stack-group-p stack-group)))
-		     #+target=os-threads
+		     #+os-threads
 		     (mp:profile-process-p process)))
-		(updating-output (t :unique-id process 
+		(updating-output (t :unique-id process
 				    :cache-test #'equal
-				    :cache-value 
+				    :cache-value
 				    (list p
 					  profilep
 					  (mp::process-active-p process)
