@@ -11,6 +11,11 @@ Tests for new features:	<`no new features', `no tests for new features', or
 	* <changes go here...>
 
 *******************************************************************************
+Tue Sep 29 22:55:00 1998  Duane Rettig  <duane@beta>
+
+	* utils/clos.lisp: fix require
+
+*******************************************************************************
 2.2.2.2
 
 Tue Sep 29 10:45:59 1998  Duane Rettig  <duane@beta>
