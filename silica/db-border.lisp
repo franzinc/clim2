@@ -5,7 +5,7 @@
 
 (in-package :silica)
 
-;; $fiHeader: db-border.lisp,v 1.9 92/07/20 15:59:04 cer Exp $
+;; $fiHeader: db-border.lisp,v 1.10 92/08/18 17:23:25 cer Exp Locker: cer $
 
 ;;; Border Panes
 
@@ -77,7 +77,9 @@
 ;;; Label panes
 
 (defparameter *default-label-text-style* 
-	      (make-text-style :sans-serif :italic :small))
+    ;;--- This defeats the resource mechanism
+    #-ignore nil
+    #+ignore (make-text-style :sans-serif :italic :small))
 
 (defclass label-pane (foreground-background-and-text-style-mixin labelled-gadget-mixin)
     ()

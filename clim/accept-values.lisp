@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept-values.lisp,v 1.30 92/08/19 18:04:40 cer Exp Locker: cer $
+;; $fiHeader: accept-values.lisp,v 1.31 92/08/21 16:33:42 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -244,6 +244,9 @@
 ;; So the continuation can run with the proper value of *APPLICATION-FRAME*
 (defvar *avv-calling-frame*)
 
+(defmethod frame-manager-accepting-values-frame-class ((framem standard-frame-manager))
+  'accept-values-own-window)
+
 (defun invoke-accepting-values (stream continuation
 				 &key frame-class command-table own-window 
 				      (exit-boxes 
@@ -260,7 +263,9 @@
 	 (right-margin 10)
 	 (bottom-margin 10))
      (if own-window
-	 (let ((frame (make-application-frame (or frame-class 'accept-values-own-window)
+	 (let ((frame (make-application-frame (or frame-class 
+						  (frame-manager-accepting-values-frame-class
+						   (frame-manager *application-frame*)))
 			:calling-frame *application-frame*
 			:parent *application-frame*
 			:pretty-name label
@@ -344,15 +349,15 @@
 		     (redisplay avv stream :check-overlapping check-overlapping))
 		   (loop
 		     (let ((command
-			     (let ((command-stream (slot-value stream 'stream)))
-			       ;; While we're reading commands, restore the view
-			       ;; to what it was before we started.
-			       (letf-globally (((stream-default-view command-stream)
-						original-view))
-				 (read-frame-command frame :stream command-stream)))))
-		       (if (and command (not (keyboard-event-p command)))
-			   (execute-frame-command frame command)
-		       (beep stream)))
+			      (let ((command-stream (slot-value stream 'stream)))
+				;; While we're reading commands, restore the view
+				;; to what it was before we started.
+				(letf-globally (((stream-default-view command-stream)
+						 original-view))
+				  (read-frame-command frame :stream command-stream)))))
+			 (if (and command (not (keyboard-event-p command)))
+			     (execute-frame-command frame command)
+			   (beep stream)))
 		     (with-deferred-gadget-updates
 		       (when (or resynchronize-every-pass
 				 (slot-value avv-record 'resynchronize))
@@ -380,20 +385,24 @@
 		       (size-panes-appropriately)))))
 	       (size-panes-appropriately ()
 		 (changing-space-requirements ()
-		   ;; We really want to specify the min/max sizes of
-		   ;; the exit-button pane also
-		   (size-frame-from-contents exit-button-stream
- 		     :size-setter
- 		       #'(lambda (pane w h)
-			   (change-space-requirements pane 
-			     :width w :min-width w :max-width w
-			     :height h :min-height h :max-height h)))
+		     ;; We really want to specify the min/max sizes of
+		     ;; the exit-button pane
+		     ;; also
+		     (when exit-button-stream
+
+		       (size-frame-from-contents exit-button-stream
+						 :size-setter
+						 #'(lambda (pane w h)
+						     (change-space-requirements 
+						      pane 
+						      :width w :min-width w :max-width w
+						      :height h :min-height h :max-height h))))
 		   (when own-window
 		     (size-frame-from-contents own-window
-		       :width own-window-width
-		       :height own-window-height
-		       :right-margin own-window-right-margin
-		       :bottom-margin own-window-bottom-margin)))))
+					       :width own-window-width
+					       :height own-window-height
+					       :right-margin own-window-right-margin
+					       :bottom-margin own-window-bottom-margin)))))
 	  (declare (dynamic-extent #'run-continuation #'run-avv
 				   #'size-panes-appropriately))
 	  (with-simple-restart (frame-exit "Exit from the ACCEPT-VALUES dialog")
@@ -406,7 +415,7 @@
 				  (stream 'accept-values-output-record avv-record)
 				(run-continuation stream avv-record)))))))
 	    ;; In own window dialogs the buttons are displayed separately
-	    (when own-window
+	    (when (and own-window exit-button-stream)
 	      (setq exit-button-record
 		    (updating-output (exit-button-stream)
 		      (with-end-of-line-action (exit-button-stream :allow)
@@ -426,7 +435,8 @@
 			   (frame-top-level-sheet (pane-frame own-window)) x y))
 		       (window-expose own-window)
 		       (with-input-focus (own-window)
-			 (replay exit-button-record exit-button-stream)
+			 (when exit-button-record
+			   (replay exit-button-record exit-button-stream))
 			 (replay avv stream)
 			 (run-avv)))
 		      (t
@@ -472,6 +482,22 @@
 	  (with-input-focus (help-window)
 	    (read-gesture :stream help-window))
 	(setf (window-visibility help-window) nil)))))
+
+(defmethod frame-manager-display-input-editor-error ((framem standard-frame-manager)
+						     (frame accept-values) stream error)
+  ;;--- Resignal the error so the user can handle it
+  ;;--- (in lieu of HANDLER-BIND-DEFAULT)
+  (notify-user frame (princ-to-string error) 
+	       :title "Input error"
+	       :style :error :exit-boxes '(:exit))
+  ;;  (beep stream)
+  (remove-activation-gesture stream)
+  ;;  (with-input-editor-typeout (stream :erase t)
+  ;;    (format stream "~A~%Please edit your input." error))
+  ;; Now wait until the user forces a rescan by typing
+  ;; an input editing command
+  (loop (read-gesture :stream stream)))
+
 
 (defmethod accept-values-top-level :around ((frame accept-values-own-window) &rest args)
   (declare (ignore args))
@@ -1103,18 +1129,18 @@
     (with-slots (exit-boxes) frame
       (updating-output (stream :unique-id stream
 			       :cache-value 'exit-boxes)
-	(formatting-item-list (stream :n-columns (length exit-boxes)
-				      :initial-spacing nil)
-	  (dolist (exit-box exit-boxes)
-	    (let* ((value (if (consp exit-box) (car exit-box) exit-box))
-		   (label (or (if (consp exit-box) (second exit-box))
-			      (second (assoc value labels)))))
-	      (formatting-cell (stream)
-		(with-output-as-gadget (stream)
-		  (make-pane 'push-button
-		    :label label
-		    :client frame :id value
-		    :activate-callback #'handle-exit-box-callback))))))))))
+	  (formatting-table (stream :equalize-column-widths nil)
+	      (dolist (exit-box exit-boxes)
+		(formatting-column (stream)
+		    (let* ((value (if (consp exit-box) (car exit-box) exit-box))
+			   (label (or (if (consp exit-box) (second exit-box))
+				      (second (assoc value labels)))))
+		      (formatting-cell (stream)
+			  (with-output-as-gadget (stream)
+			    (make-pane 'push-button
+				       :label label
+				       :client frame :id value
+				       :activate-callback #'handle-exit-box-callback)))))))))))
 
 (defun handle-exit-box-callback (gadget)
   (let ((id (gadget-id gadget)))

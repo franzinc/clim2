@@ -20,27 +20,37 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: chess.lisp,v 1.6 92/05/22 19:28:47 cer Exp $
+;; $fiHeader: chess.lisp,v 1.7 92/07/01 15:47:18 cer Exp Locker: cer $
 
 
 (in-package :clim-user)
 
 (define-application-frame chess-board ()
-    ((board :initform (make-array '(8 8)
-				  :initial-contents
-				  (make-chess-board-initial-state)))
-     (bitmaps :initform nil :allocation :class)
-     (subprocess :initform (create-chess-subprocess)))
+			  ((board :initform (make-array '(8 8)
+							:initial-contents
+							(make-chess-board-initial-state)))
+			   (bitmaps :initform nil :allocation :class)
+			   (subprocess :initform (create-chess-subprocess)))
   (:command-table chess-commands)
   (:panes
-    (board :application
-	   :incremental-redisplay t
-	   :scroll-bars :dynamic
-	   :width :compute :height :compute
-	   :max-width :compute :max-height :compute
-	   :display-function 'draw-chess-board))
+   (board :application
+	  :incremental-redisplay '(t :check-overlapping nil)
+	  :scroll-bars :dynamic
+	  :width :compute :height :compute
+	  :max-width :compute :max-height :compute
+	  :display-function 'draw-chess-board)
+   (status :application :scroll-bars nil :height '(1 :line)))
   (:layouts
-    (:default board)))
+   (:default (vertically () status board))))
+
+(defmethod update-status (frame message)
+  (let ((pane (get-frame-pane frame 'status)))
+    (window-clear pane)
+    (with-text-face (pane :bold)
+      (write-string message pane))))
+
+(defmethod read-frame-command :before  ((frame chess-board) &key)
+  (update-status frame "Your move"))
 
 (define-presentation-type chess-square ())
 
@@ -84,6 +94,7 @@
 	(apply #'aref board from)
 	(apply #'aref board from) nil)
       (redisplay-frame-pane *application-frame* (frame-standard-output *application-frame*))
+      (update-status *application-frame* "My Move......")
       (let ((res (read-chess-move-from-subprocess subprocess)))
 	(multiple-value-bind
 	    (from to)
@@ -127,6 +138,7 @@
   (list object *unsupplied-argument-marker*))
 
 (defmethod draw-chess-board (frame stream &key &allow-other-keys)
+  (stream-set-cursor-position stream 0 0)
   (formatting-table (stream)
       (dotimes (row 8)
 	(formatting-row (stream)

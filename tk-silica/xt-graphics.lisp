@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.34 92/08/18 17:54:32 cer Exp Locker: cer $
+;; $fiHeader: xt-graphics.lisp,v 1.35 92/08/19 10:24:25 cer Exp Locker: cer $
 
 (in-package :tk-silica)
 
@@ -173,6 +173,7 @@
 
 (defparameter *use-color* t)		; For debugging monochrome
 (defun color-medium-p (medium)
+  ;;-- This should just look at this port
   (and *use-color*
        (let ((display (port-display (port (medium-sheet medium)))))
 	 (> (x11:xdefaultdepth display (tk::display-screen-number display)) 2))))

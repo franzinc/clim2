@@ -1,6 +1,6 @@
 ;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadgets.lisp,v 1.31 92/08/18 17:23:42 cer Exp Locker: cer $
+;; $fiHeader: gadgets.lisp,v 1.32 92/08/19 18:04:24 cer Exp Locker: cer $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
@@ -21,6 +21,7 @@
   (with-slots (text-style) pane
     ;; Convert the text style if necesary
     (etypecase text-style
+      (null)
       (cons (setq text-style (parse-text-style text-style)))
       (text-style nil))))
 
@@ -227,6 +228,10 @@
 (defparameter *default-slider-range-label-text-style*
 	      (make-text-style :sans-serif :bold :very-small))
 
+;;; Separator
+
+(defclass separator (oriented-gadget-mixin) ())
+
 ;;; Slider
 (defclass slider
 	  (value-gadget oriented-gadget-mixin range-gadget-mixin labelled-gadget-mixin)
@@ -415,11 +420,12 @@
     ())
 
 (defclass text-editor (text-field) 
-    ((ncolumns :initarg :ncolumns
-	       :accessor gadget-columns)
-     (nlines :initarg :nlines
-	     :accessor gadget-lines))
-  (:default-initargs :ncolumns 1 :nlines 1))
+	  ((ncolumns :initarg :ncolumns
+		     :accessor gadget-columns)
+	   (nlines :initarg :nlines
+		   :accessor gadget-lines)
+	   (editable-p :initarg :editable-p :accessor silica::gadget-editable-p))
+  (:default-initargs :ncolumns 1 :nlines 1 :editable-p t))
 
 
 ;;; Viewport
@@ -588,8 +594,9 @@
 (defclass list-pane (set-gadget-mixin value-gadget)
     ;;--- Should this be :ONE-OF/:SOME-OF, as radio boxes are?
     ((mode :initarg :mode :type (member :exclusive :nonexclusive)
-	   :accessor list-pane-mode))
-  (:default-initargs :mode :exclusive))
+	   :accessor list-pane-mode)
+     (visible-items :initarg :visible-items :reader gadget-visible-items))
+  (:default-initargs :mode :exclusive :visible-items nil))
  
 (defun compute-list-pane-selected-items (sheet value)
   (with-accessors ((items set-gadget-items)
@@ -624,7 +631,8 @@
 (defclass option-pane (set-gadget-mixin 
 		       labelled-gadget-mixin
 		       value-gadget)
-    ())
+	  ((printer :initarg :printer :reader option-pane-printer))
+  (:default-initargs :printer nil))
 
 
 ;; Callbacks on widgets generate these events

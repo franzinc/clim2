@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.40 92/08/18 17:26:44 cer Exp Locker: cer $
+;; $fiHeader: xt-silica.lisp,v 1.41 92/08/18 17:54:34 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -626,7 +626,11 @@
 	  (let ((frame (pane-frame sheet)))
 	    (when frame (setf (getf initargs :name) (string (frame-name frame)))))
 	  (apply #'make-instance class :parent (find-shell-parent port sheet) initargs))
-        (sheet-mirror ma))))
+        (sheet-mirror-for-parenting ma))))
+
+(defmethod sheet-mirror-for-parenting ((sheet sheet))
+  ;; There might be a situation where a sheet is mirrored by a whil
+  (sheet-mirror sheet))
 
 (defmethod find-shell-of-calling-frame ((sheet sheet))
   (find-shell-of-calling-frame (pane-frame sheet)))
@@ -1208,13 +1212,16 @@ the geometry of the children. Instead the parent has control. "))
 |#
 
 
+(defvar *dont-invoke-callbacks* nil)
+
 (defmethod queue-value-changed-event (widget sheet &optional (value (gadget-value sheet)))
   (declare (ignore widget))
-  (distribute-event
-   (port sheet)
-   (allocate-event 'value-changed-gadget-event
-     :gadget sheet
-     :value value)))
+  (unless *dont-invoke-callbacks*
+    (distribute-event
+     (port sheet)
+     (allocate-event 'value-changed-gadget-event
+		     :gadget sheet
+		     :value value))))
 
 
 (defmethod queue-drag-event (widget sheet &optional (value (gadget-value sheet)))
@@ -1244,18 +1251,34 @@ the geometry of the children. Instead the parent has control. "))
 	   silica::*ports*))
 
 
-(defmethod port-canonicalize-gesture-spec ((port xt-port) keysym &optional shifts)
-  (declare (optimize (speed 3) (safety 0)))
-  ;; Here, we must take the gesture spec, turn it back into
-  ;; a keycode, then see what the keysyms are for that keycode
-  (let ((x-keysym (if (and (characterp keysym) (standard-char-p keysym))
-		      (keysym->xt-keysym (xt-keysym->keysym (char-code keysym)))
-		    (keysym->xt-keysym keysym)))
-	(x-keycode nil))
-    (unless x-keysym 
-      (return-from port-canonicalize-gesture-spec nil))
-    (cons keysym shifts)))
+;(defmethod port-canonicalize-gesture-spec ((port xt-port) keysym &optional shifts)
+;  (declare (optimize (speed 3) (safety 0)))
+;  ;; Here, we must take the gesture spec, turn it back into
+;  ;; a keycode, then see what the keysyms are for that keycode
+;  (let ((x-keysym (if (and (characterp keysym) (standard-char-p keysym))
+;		      (keysym->xt-keysym (xt-keysym->keysym (char-code keysym)))
+;		    (keysym->xt-keysym keysym)))
+;	(x-keycode nil))
+;    (unless x-keysym 
+;      (return-from port-canonicalize-gesture-spec nil))
+;    (cons keysym shifts)))
 
+(defmethod port-canonicalize-gesture-spec 
+	   ((port xt-port) gesture-spec &optional modifier-state)
+  (declare (optimize (speed 3) (safety 0)))
+  (multiple-value-bind (keysym shifts)
+      (if modifier-state
+	  (values gesture-spec modifier-state)
+	  (parse-gesture-spec gesture-spec))
+    ;; Here, we must take the gesture spec, turn it back into
+    ;; a keycode, then see what the keysyms are for that keycode
+    (let ((x-keysym (if (and (characterp keysym) (standard-char-p keysym))
+			(keysym->xt-keysym (xt-keysym->keysym (char-code keysym)))
+			(keysym->xt-keysym keysym)))
+	  (x-keycode nil))
+      (unless x-keysym 
+	(return-from port-canonicalize-gesture-spec nil))
+      (cons keysym shifts))))
 
 (defmethod port-set-pointer-position ((port xt-port) pointer x y)
   (let* ((sheet (pointer-sheet pointer))

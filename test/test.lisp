@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: test.lisp,v 1.36 92/07/24 10:54:39 cer Exp $
+;; $fiHeader: test.lisp,v 1.37 92/08/18 17:25:55 cer Exp Locker: cer $
 
 (in-package :clim-user)
 
@@ -823,9 +823,14 @@
   (:layouts
    (:default c)))
 
-
 (define-application-frame tf106 () 
-			  ((square-dimension :initform 100)
+			  (
+			   (s :initform "hello")
+			   (r :initform "hello")
+			   (w :initform :oval)
+			   (v :initform nil)
+			   (u :initform :xxx)
+			   (square-dimension :initform 100)
 			   (draw-circle :initform t)
 			   (draw-square :initform t)
 			   (draw-/-diagonal :initform t)
@@ -841,9 +846,13 @@
       :height :compute :width :compute
       :display-function `(accept-values-pane-displayer
 			  :resynchronize-every-pass t
-			  :displayer display-frame-c)))
+			  :displayer display-frame-c))
+   (e :accept-values
+      :height :compute :width :compute
+      :display-function `(accept-values-pane-displayer
+			  :displayer display-frame-e)))
   (:layouts
-   (:default (vertically () c d))))
+   (:default (vertically () c d e))))
 
 (defun display-frame-b (frame stream &key max-width max-height)
   (declare (ignore max-width max-height))
@@ -912,3 +921,35 @@
       (accept '(member :normal :point) :stream stream
 	      :prompt "Line style units" :default line-thickness-units))
     (terpri stream)))
+
+
+(defun display-frame-e (frame stream)
+  (with-slots (s r w v u) frame
+    (setq s (accept 'string :stream stream
+		    :prompt "bar"
+		    :default s))
+    (terpri stream)
+    (setq r  (accept 'string :stream stream
+		     :prompt "foo"
+		     :view '(clim-internals::text-editor-view 
+			     :ncolumns 30
+			     :nlines 5)
+		     :default r))
+    (terpri stream)
+    (setq u (accept '(member :xxx :yyy :zyy)
+		    :view clim-internals::+list-pane-view+
+		    :stream stream
+		    :prompt "baz"
+		    :default u))
+    (terpri stream)
+    (setq w (accept '(member :oval :rectangle)
+		    :view clim-internals::+option-pane-view+
+		    :stream stream
+		    :prompt "bazzy"
+		    :default w))
+    (terpri stream)
+    (setq v (accept '(subset :x :y :z)
+		    :view clim-internals::+list-pane-view+
+		    :stream stream
+		    :prompt "barf"
+		    :default v))))

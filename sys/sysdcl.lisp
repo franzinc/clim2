@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sysdcl.lisp,v 1.22 92/08/18 17:54:12 cer Exp $
+;; $fiHeader: sysdcl.lisp,v 1.23 92/08/21 16:34:02 cer Exp Locker: cer $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :cl-user)
 
@@ -130,6 +130,7 @@
   ("lisp-utilities")
   ("processes")
   ("queue")
+  ("timers" :load-before-compile ("queue" "processes"))
   ("protocols")
   ("autoconstructor")
 
@@ -421,6 +422,7 @@
   ("image")
   ("xt-frames")
   ("xm-frames")
+  ("xm-dialogs")
   ("xt-gadgets")
   ("xm-gadgets")
   ("xm-menus")

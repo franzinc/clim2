@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: frames.lisp,v 1.37 92/08/18 17:54:10 cer Exp Locker: cer $
+;; $fiHeader: frames.lisp,v 1.38 92/08/19 10:23:59 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -271,6 +271,7 @@
 	       (value (second options) (second options)))
 	      ((null options))
 	   (case keyword
+	     (:inherit-menu)
 	     (:inherit-from
 	       (if (listp value)
 		   (dolist (item value)
@@ -516,7 +517,8 @@
 	    (resize-sheet top-sheet width height))))))
 
 (defmethod (setf frame-current-layout) (layout (frame standard-application-frame))
-  (unless (eq (frame-current-layout frame) layout)
+  (unless (or (eq (frame-current-layout frame) layout)
+	      (null (frame-top-level-sheet frame)))
     (setf (slot-value frame 'current-layout) layout)
     ;; First disown all the children
     (dolist (name-and-pane (slot-value frame 'all-panes))
@@ -531,17 +533,18 @@
     (multiple-value-call #'layout-frame
       frame (bounding-rectangle-size (frame-top-level-sheet frame)))
     (let ((layout-space-requirements 
-	    (cddr (assoc layout (frame-layouts frame)))))
+	   (cddr (assoc layout (frame-layouts frame)))))
       (changing-space-requirements (:layout nil)
-	(flet ((adjust-layout (sheet)
-		 (change-space-requirements-to-default sheet)
-		 (let ((x (and (panep sheet)
-			       (assoc (pane-name sheet) layout-space-requirements))))
-		   (when x (apply #'change-space-requirements sheet (cdr x))))))
-	  (declare (dynamic-extent #'adjust-layout))
-	  (map-over-sheets #'adjust-layout (frame-top-level-sheet frame)))))
+	  (flet ((adjust-layout (sheet)
+		   (change-space-requirements-to-default sheet)
+		   (let ((x (and (panep sheet)
+				 (assoc (pane-name sheet) layout-space-requirements))))
+		     (when x (apply #'change-space-requirements sheet (cdr x))))))
+	    (declare (dynamic-extent #'adjust-layout))
+	    (map-over-sheets #'adjust-layout (frame-top-level-sheet frame)))))
     ;;--- Don't throw, just recompute stream bindings in a principled way
-    (throw 'layout-changed nil)))
+    (handler-case (throw 'layout-changed nil)
+      (error () nil))))
 
 (defmethod frame-all-layouts ((frame standard-application-frame))
   (mapcar #'first (frame-layouts frame)))
@@ -628,19 +631,19 @@
 	 ;; then we should be using that
 	 ;; If the frame already exists then we probably should be using
 	 ;; the top level sheet size
-	 (multiple-value-call #'layout-frame 
-	   frame
-	   (ecase old
-	     (:disowned 
- 	       (if (and width height)
-		   (values width height)
-		   (values)))
-	     (:disabled
-	       (bounding-rectangle-size
-		 (frame-top-level-sheet frame)))))
-	 (when (and left top)
-	   (move-sheet (frame-top-level-sheet frame) left top))
-	 (note-frame-enabled (frame-manager frame) frame))))))
+	 (multiple-value-bind (w h)
+	     (ecase old
+	       (:disowned 
+		(if (and width height)
+		    (values width height)
+		  (values)))
+	       (:disabled
+		(bounding-rectangle-size
+		 (frame-top-level-sheet frame))))  
+	   (layout-frame frame w h)
+	   (when (and left top)
+	     (move-sheet (frame-top-level-sheet frame) left top))
+	   (note-frame-enabled (frame-manager frame) frame)))))))
 
 (defmethod destroy-frame ((frame standard-application-frame))
   (when (eq (frame-state frame) :enabled)
@@ -1042,12 +1045,15 @@
 			       (synchronous-command-event-command c)))))
 	  (call-next-method)))))
 	
-;; Actually this should be treated as a command event
+;;--- Actually this should be named command-event
+
 (defclass presentation-event (event)
-    ((value :initarg :value :reader presentation-event-value)
-     (sheet :initarg :sheet :reader event-sheet)
-     (frame :initarg :frame :reader event-frame)
-     (presentation-type :initarg :presentation-type :reader event-presentation-type)))
+	  ((value :initarg :value :reader presentation-event-value)
+	   (sheet :initarg :sheet :reader event-sheet)
+	   (frame :initarg :frame :reader event-frame)
+	   (queuep :initarg :queuep :initform nil)
+	   (presentation-type :initarg :presentation-type :reader event-presentation-type))
+  (:default-initargs :presentation-type 'command))
 
 (defmethod handle-event (sheet (event presentation-event))
   (process-command-event sheet event))
@@ -1057,35 +1063,58 @@
   (let ((command (presentation-event-value event)))
     (if (partial-command-p command)
 	(throw-highlighted-presentation
-	  (make-instance 'standard-presentation
-	    :object command
-	    :type (event-presentation-type event))
-	  *input-context*
-	  (allocate-event 'pointer-button-press-event
-	    :sheet sheet
-	    :x 0 :y 0
-	    :modifier-state 0
-	    :button +pointer-left-button+))
-	(progn
-	  (when (and *input-buffer-empty*
-		     (eq *application-frame* (event-frame event)))
-	    (signal 'synchronous-command-event
-		    :command command))
-	  ;; Perhaps if this results directly from a user action then either
-	  ;; we should do it right away, ie. loose the input buffer or beep if
-	  ;; it has to be deffered,
-	  (queue-frame-command (event-frame event) (presentation-event-value event))))))
+	 (make-instance 'standard-presentation
+			:object command
+			:type (event-presentation-type event))
+	 *input-context*
+	 (allocate-event 'pointer-button-press-event
+			 :sheet sheet
+			 :x 0 :y 0
+			 :modifier-state 0
+			 :button +pointer-left-button+))
+      (progn
+	(when (and *input-buffer-empty*
+		   (eq *application-frame* (event-frame event)))
+	  (signal 'synchronous-command-event
+		  :command command))
+	;; Perhaps if this results directly from a user action then either
+	;; we should do it right away, ie. loose the input buffer or beep if
+	;; it has to be deffered,
+	(if (slot-value event 'queuep)
+	    (queue-frame-command (event-frame event) (presentation-event-value event))
+	  (beep sheet))))))
 
 (defun queue-frame-command (frame command)
   (queue-push (frame-command-queue frame) command))
 
-(defmethod execute-command-in-frame ((frame standard-application-frame) command)
+(defmethod execute-command-in-frame ((frame standard-application-frame) 
+				     command &rest initargs)
   (distribute-event
     (port frame)
-    (allocate-event 'presentation-event
-      :frame frame
-      :sheet (frame-top-level-sheet frame)
-      :value command)))
+    (apply #'allocate-event 
+	   'presentation-event 
+	   :frame frame
+	   :sheet (frame-top-level-sheet frame) 
+	   :value command 
+	   initargs)))
+
+(defun make-command-timer (frame 
+			   command arguments delay 
+			   &key repeat
+				(command-table (frame-command-table frame)))
+  (flet ((queue-command-event (timer)
+	   (declare (ignore timer))
+	   (execute-command-in-frame
+	    frame
+	    (cons command arguments)
+	    :queuep t
+	    :presentation-type `(command :command-table ,command-table))))
+    (let ((timer 
+	   (make-instance 'clim-utils::timer 
+			  :function #'queue-command-event
+			  :delay delay :repeat repeat)))
+      (clim-utils::add-timer timer)
+      timer)))
 
 
 ;;; The contract of this is to find an "appropriate" presentation; i.e., one
@@ -1317,3 +1346,6 @@
     (values left   left-presentation   left-context
 	    middle middle-presentation middle-context
 	    right  right-presentation  right-context)))
+
+
+

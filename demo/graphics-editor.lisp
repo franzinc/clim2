@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-GRAPHICS-EDITOR; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics-editor.lisp,v 1.4 92/08/19 10:24:14 cer Exp Locker: cer $
+;; $fiHeader: graphics-editor.lisp,v 1.5 92/08/21 16:34:09 cer Exp Locker: cer $
 
 (in-package :clim-graphics-editor)
 
@@ -220,31 +220,66 @@
 
 ;;; The application itself
 
+(define-command-table graphics-editor-file-commands)
+(define-command-table graphics-editor-edit-commands)
+(define-command-table graphics-editor-option-commands)
+
 (define-application-frame graphics-editor (selected-object-mixin) 
-    ((objects :initform nil)
-     (counter :initform 0)
-     (last-box :initform nil)
-     (style :initform (make-line-style :thickness 1 :dashes nil))
-     (shape :initform :rectangle))
+			  ((objects :initform nil)
+			   (counter :initform 0)
+			   (last-box :initform nil)
+			   (style :initform (make-line-style :thickness 1 :dashes nil))
+			   (shape :initform :rectangle))
   (:command-definer define-graphics-editor-command)
-  (:command-table (graphics-editor :inherit-from (accept-values-pane)))
+  (:command-table (graphics-editor :inherit-from (accept-values-pane
+						  graphics-editor-file-commands
+						  graphics-editor-edit-commands
+						  graphics-editor-option-commands
+						  			  )
+				   ;;-- Should be inherit-keystrokes.
+				   ;;	   :inherit-menu t
+	   :menu (("File" :menu graphics-editor-file-commands :mnemonic #\F)
+		  ("Edit" :menu graphics-editor-edit-commands :mnemonic #\E )
+		  ("Options" :menu graphics-editor-option-commands  :mnemonic #\O))))
   (:pointer-documentation t)
   ;; Three panes: a display pane, and command menu, and a modeless 
   ;; dialog containing the line style options
   (:panes
-    (display :application
-	     :incremental-redisplay t
-	     :display-after-commands t
-	     :display-function 'display-objects
-	     :scroll-bars :both)
-    (options :accept-values
-	     :display-function '(accept-values-pane-displayer 
-				  :displayer accept-graphics-editor-options)))
+   (display :application
+	    :incremental-redisplay t
+	    :display-after-commands t
+	    :display-function 'display-objects
+	    :scroll-bars :both)
+   (horizontal-options :accept-values
+		       :width :compute
+	    :display-function '(accept-values-pane-displayer 
+				:displayer (lambda (frame stream)
+					     (accept-graphics-editor-options frame stream
+						       :direction :horizontal))))
+   (vertical-options :accept-values
+		     :display-function '(accept-values-pane-displayer 
+					 :displayer (lambda (frame stream)
+						      (accept-graphics-editor-options 
+						       frame stream
+						       :direction :vertical)))))
   (:layouts
-    (default 
-      (vertically () 
-	(1/5 options)
-	(:fill display)))))
+   (default 
+       (vertically () 
+	   (1/5 horizontal-options)
+	 (:fill display)))
+   (other
+    (horizontally () 
+	(1/5 vertical-options)
+      (:fill display)))))
+
+(defmethod read-frame-command ((frame graphics-editor) 
+			       &key (stream *query-io*)		;frame-query-io?
+			       ;; should the rest of the *command-parser*
+			       ;; etc. variables be passed as keywords or bound?
+			       )
+  (read-command (frame-command-table frame) :use-keystrokes t :stream stream))
+
+;;; Presentation types
 
 (define-presentation-type-abbreviation line-thickness ()
   '((member 1 2 3 4) :name-key identity
@@ -262,46 +297,100 @@
 
 (defun highlight-line-thickness (continuation object stream)
   (surrounding-output-with-border (stream)
+      (funcall continuation object stream)))
+
+
+(define-presentation-type-abbreviation line-style-type ()
+  '((member :solid :dashed) :name-key identity
+			    :printer present-line-style
+			    :highlighter highlight-line-style))
+
+(defun present-line-style (object stream &key acceptably)
+  (declare (ignore acceptably))
+  (let ((y (stream-line-height stream)))
+    (with-room-for-graphics (stream)
+      (draw-rectangle* stream 0 2 16 (- y 2)
+		       :filled nil :ink +background-ink+)
+      (draw-line* stream 0 (floor y 2) 16 (floor y 2)
+		  :line-dashes (eq object :dashed)))))
+
+(defun highlight-line-style (continuation object stream)
+  (surrounding-output-with-border (stream)
+      (funcall continuation object stream)))
+
+
+
+(define-presentation-type-abbreviation object-shape ()
+  '((member :oval :rectangle) :name-key identity
+			      :printer present-object-shape
+			      :highlighter highlight-object-shape))
+
+(defun present-object-shape (object stream &key acceptably)
+  (declare (ignore acceptably))
+  (let ((y (stream-line-height stream)))
+    (multiple-value-bind (left top bottom right)
+	(values 0 2 16 (- y 2))
+      (with-room-for-graphics (stream)
+	(ecase object
+	  (:rectangle
+	   (draw-rectangle* stream left top (* 2 bottom) (* 2 right) :filled nil))
+	  (:oval
+	   (draw-oval* stream 
+		       (/ (+ left right) 2)
+		       (/ (+ top bottom) 2)
+		       (/ (abs (- right left)) 2)
+		       (/ (abs (- bottom top)) 2) :filled nil)))))))
+
+(defun highlight-object-shape (continuation object stream)
+  (surrounding-output-with-border (stream)
     (funcall continuation object stream)))
 
-(defmethod accept-graphics-editor-options ((frame graphics-editor) stream)
+
+;;; 
+(defmethod accept-graphics-editor-options ((frame graphics-editor) stream &key (direction :horizontal))
   (with-slots (style shape) frame
     (flet ((accept (type default prompt query-id 
 		    &optional (view (stream-default-view stream)))
 	     (let (object ignore changed)
-	       (formatting-cell (stream :align-x :center)
-		 (multiple-value-setq (object ignore changed)
-		   (accept type
-			   :stream stream :default default
-			   :query-identifier query-id :prompt prompt
-			   :view view)))
+	       (formatting-cell (stream :align-x (ecase direction
+						   (:horizontal :center)
+						   (:vertical :left)))
+		   (multiple-value-setq (object ignore changed)
+		     (accept type
+			     :stream stream :default default
+			     :query-identifier query-id :prompt prompt
+			     :view view)))
 	       (values object changed))))
       (declare (dynamic-extent #'accept))
       (terpri stream)
       (terpri stream)
       (formatting-table (stream :x-spacing '(3 :character))
-	(formatting-row (stream)
-	  (let ((thickness (line-style-thickness style))
-		(dashes (line-style-dashes style)))
-	    (multiple-value-bind (thickness thickness-changed)
-		(accept 'line-thickness thickness "Thickness" 'thickness)
-	      (declare (ignore ignore))
-	      (multiple-value-bind (dashes dashes-changed)
-		  (accept 'boolean dashes "Dashed" 'dashes)
-		(declare (ignore ignore))
-		(multiple-value-bind (new-shape shape-changed)
-		    (accept '(member :oval :rectangle) shape "Shape" 'shape)
-		  (when (or thickness-changed dashes-changed shape-changed)
-		    (setq style (make-line-style :thickness thickness
-						 :dashes dashes))
-		    (setq shape new-shape)
-		    (when (frame-selected-object frame)
-		      (setf (object-style (frame-selected-object frame))
-			(slot-value frame 'style))
-		      (setf (box-shape (frame-selected-object frame))
-			(slot-value frame 'shape))
-		      (tick-object (frame-selected-object frame))
-		      (redisplay-frame-pane frame 'display))))))))))))
+	  (flet ((do-body (stream)
+		   (let ((thickness (line-style-thickness style))
+			 (dashes (line-style-dashes style)))
+		     (multiple-value-bind (thickness thickness-changed)
+			 (accept 'line-thickness thickness "Thickness" 'thickness)
+		       (declare (ignore ignore))
+		       (multiple-value-bind (dashes dashes-changed)
+			   (accept 'line-style-type (if dashes :dashed :solid) "Line Style" 'dashes)
+			 (declare (ignore ignore))
+			 (setq dashes (eq dashes :dashed))
+			 (multiple-value-bind (new-shape shape-changed)
+			     (accept 'object-shape shape "Shape" 'shape)
+			   (when (or thickness-changed dashes-changed shape-changed)
+			     (setq style (make-line-style :thickness thickness
+							  :dashes dashes))
+			     (setq shape new-shape)
+			     (when (frame-selected-object frame)
+			       (setf (object-style (frame-selected-object frame))
+				 (slot-value frame 'style))
+			       (setf (box-shape (frame-selected-object frame))
+				 (slot-value frame 'shape))
+			       (tick-object (frame-selected-object frame))
+			       (redisplay-frame-pane frame 'display)))))))))
+	    (ecase direction
+	      (:horizontal (formatting-row (stream) (do-body stream)))
+	      (:vertical (formatting-column (stream) (do-body stream)))))))))
 
 (defmethod display-objects ((frame graphics-editor) stream)
   (dolist (object (slot-value frame 'objects))
@@ -381,16 +470,17 @@
 
 ;; Select an object by clicking "select" (Mouse-Left) on it.
 (define-graphics-editor-command com-select-object
-    ((object 'basic-object :gesture :select))
+    ((object 'box :gesture :select))
   (select-object *application-frame* object)
   (setf (slot-value *application-frame* 'style) (object-style object)
 	(slot-value *application-frame* 'shape) (box-shape object)))
 
 ;; Deselect an object by clicking the Deselect menu button, or by
 ;; clicking over blank area without moving the mouse.
-(define-graphics-editor-command (com-deselect-object :menu "Deselect") ()
-  (when (frame-selected-object *application-frame*)
-    (deselect-object *application-frame* (frame-selected-object *application-frame*))))
+
+(define-command (com-deselect-object :command-table graphics-editor-edit-commands :menu "Deselect") nil
+                (when (frame-selected-object *application-frame*)
+                  (deselect-object *application-frame* (frame-selected-object *application-frame*))))
 
 ;; Move an object by clicking Mouse-Middle on it and dragging the mouse.
 (define-graphics-editor-command com-move-object
@@ -448,25 +538,42 @@
 	(move-handle handle (- x dx) (- y dy))))))
 
 ;; OK, I added a menu button to clear the window.
-(define-graphics-editor-command (com-clear :menu t) ()
-  (with-slots (objects selected-object last-box) *application-frame*
-    (setq objects nil
-	  selected-object nil
-	  last-box nil)
-    (window-clear (get-frame-pane *application-frame* 'display))))
+
+(define-command (com-clear :command-table graphics-editor-edit-commands :menu t) nil
+                (with-slots (objects selected-object last-box) *application-frame*
+                            (setq objects nil selected-object nil last-box nil)
+                            (window-clear (get-frame-pane
+					   *application-frame* 'display))))
+
 
 ;; OK, I added a menu button to redisplay the window, too, although
 ;; it's only here for debugging.
-(define-graphics-editor-command (com-redisplay :menu t) ()
+
+(define-command (com-redisplay :command-table
+			       graphics-editor-edit-commands 
+			       :keystroke (:r :meta)
+			       :menu t) 
+    nil
   (redisplay-frame-pane *application-frame* 'display :force-p t))
 
-(define-graphics-editor-command (com-quit :menu t) ()
+(define-command (com-quit :command-table graphics-editor-file-commands
+			  :keystroke (:x :meta)
+			  :menu t) ()
   (frame-exit *application-frame*))
+
+(define-command (com-change-layout :command-table
+				   graphics-editor-option-commands 
+				   :keystroke (:l :meta)
+				   :menu t) ()
+  (let ((layouts (frame-all-layouts *application-frame*)))
+    (setf (frame-current-layout *application-frame*)
+      (or (second (member (frame-current-layout *application-frame*) layouts))
+	  (car layouts)))))
 
 
 (defvar *graphics-editors* nil)
 
-(defun do-graphics-editor (&key (port (find-port)) (force nil))
+(defun do-graphics-editor (&key (port (find-port)) (force t))
   (let* ((framem (find-frame-manager :port port))
 	 (frame 
 	   (let* ((entry (assoc port *graphics-editors*))

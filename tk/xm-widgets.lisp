@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-widgets.lisp,v 1.7 92/07/27 19:29:20 cer Exp $
+;; $fiHeader: xm-widgets.lisp,v 1.8 92/08/18 17:53:51 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -52,6 +52,14 @@
 					  (string-to-char*
 					   "deleteResponse")))
 
+(tk::add-resource-to-class (find-class 'xm-text)
+			   (make-instance 'resource
+					  :name :font-list
+					  :type 'font-list
+					  :original-name 
+					  (string-to-char*
+					   "fontList")))
+
 
 (tk::add-resource-to-class (find-class 'vendor-shell)
 			   (make-instance 'resource
@@ -60,6 +68,14 @@
 					  :original-name 
 					  (string-to-char*
 					   "keyboardFocusPolicy")))
+
+(tk::add-resource-to-class (find-class 'xm-cascade-button-gadget)
+			   (make-instance 'resource
+					  :name :label-type
+					  :type 'tk::label-type
+					  :original-name 
+					  (string-to-char*
+					   "labelType")))
 
 
 ;; Moved here as to be after loading xm-funs.

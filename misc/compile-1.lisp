@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: compile-1.lisp,v 1.8 92/07/01 15:47:55 cer Exp Locker: cer $
+;; $fiHeader: compile-1.lisp,v 1.9 92/08/21 16:34:17 cer Exp Locker: cer $
 
 (in-package :user)
 
@@ -28,6 +28,13 @@
 ;;;; (setq *ignore-package-name-case* t)
 
 (set-case-mode :case-insensitive-lower)
+
+#+ignore
+(progn
+  (compile-file "~/stuff/misc/new-slot-opt.cl")
+  (load "~/stuff/misc/new-slot-opt.fasl")
+  )
+
 (setf (sys:gsgc-switch :print) t)
 (setf (sys:gsgc-switch :stats) t)
 
@@ -59,6 +66,7 @@
    (clim-defsys::load-system sys))
   (load "postscript/sysdcl")
   (clim-defsys::compile-system 'postscript-clim :propagate t)
+  (clim-defsys::load-system 'postscript-clim)
   (compile-file-if-needed "test/test-suite")
   (load "demo/sysdcl")
   (clim-defsys::compile-system 'clim-demo :propagate t))

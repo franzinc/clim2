@@ -21,7 +21,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: plot.lisp,v 1.5 92/07/27 11:03:34 cer Exp $
+;; $fiHeader: plot.lisp,v 1.6 92/08/18 17:26:23 cer Exp Locker: cer $
 
 (in-package :clim-demo)
 
@@ -550,6 +550,19 @@
     (setf (nth i (slot-value frame 'x-labels))
 	  (accept 'string
 		  :default (nth i (slot-value frame 'x-labels))))))
+
+
+#+allegro
+(define-plot-demo-command (com-print-graph :name t :menu t)
+    ((printer '(member :lw :lw2 :lw3)
+	      :display-default t
+	      :default :lw2))
+  (with-open-stream (pipe (excl:run-shell-command  (format nil "lpr -P~A" printer)
+						   :input :stream :wait nil))
+    (with-output-to-postscript-stream (stream pipe :multi-page t)
+      (display-graph *application-frame* stream))))
+
+
 
 (define-plot-demo-command (com-edit-y-label :name t :menu t)
     ((i 'y-label :gesture :select))

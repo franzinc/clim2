@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-gadgets.lisp,v 1.17 92/07/24 10:55:03 cer Exp $
+;; $fiHeader: xt-gadgets.lisp,v 1.18 92/08/18 17:26:38 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -100,8 +100,20 @@
   (let ((pixel (decode-color medium ink)))
     (list :foreground pixel)))
 
-(defclass xt-pane (pane) ())
+(defclass xt-pane (pane) 
+	  ;;--- Is this useful a hack enabling things to be passed through
+	  ;;--- to the mirror
+	  ((silica::mirror-initargs  :initarg :mirror-initargs))
+  (:default-initargs :mirror-initargs nil))
 
+(defmethod find-widget-class-and-initargs-for-sheet :around ((port xt-port)
+							     (parent t)
+							     (sheet xt-pane))
+  (multiple-value-bind
+      (class initargs)
+      (call-next-method)
+    (values class (append (slot-value sheet 'silica::mirror-initargs) initargs))))
+	    
 (defmethod note-gadget-activated :after ((client t) (gadget xt-pane))
   (let (m)
     (when (setq m (sheet-direct-mirror gadget))
@@ -120,6 +132,8 @@
 			ask-widget-for-size-mixin
 			xt-pane)
 	  ())
+
+
 
 ;;--- This isn't really right.  Genera and CLX ports have kludges
 ;;--- for the time being, too.
@@ -151,8 +165,19 @@
 
 
 (defun set-button-accelerator-from-keystroke (button keystroke)
-  ;;-- Somehow we have to convert the keystroke into some text and
-  ;;-- some character so that pressing it will have an effect
   (when keystroke 
-    (tk::set-values button 
-		    :accelerator-text (princ-to-string keystroke))))
+    (let ((accel (format nil "<Key>~A" (car keystroke)))
+	  (accel-text (format nil "~A" (car keystroke))))
+      (dolist (modifier (cdr keystroke))
+	(setq accel-text
+	  (concatenate 'string 
+	    (case modifier (:control "Ctrl+") (:meta "Alt+") (t ""))
+	    accel-text))
+	(setq accel
+	  (concatenate 'string 
+	    (case modifier (:control "Ctrl") (:meta "Mod1") (t ""))
+	    accel)))
+      (tk::set-values button 
+		      :accelerator accel
+		      :accelerator-text accel-text))))
+

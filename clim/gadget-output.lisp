@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadget-output.lisp,v 1.24 92/08/18 17:24:55 cer Exp Locker: cer $
+;; $fiHeader: gadget-output.lisp,v 1.25 92/08/21 16:33:48 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -269,57 +269,70 @@
   ;;--- number of items, etc.
   +radio-box-view+)
 
-;;--- Gadget currently does not include prompt
+
+(define-presentation-method gadget-includes-prompt-p 
+			    ((type completion) (stream t) (view radio-box-view))
+  t)
+
 (define-presentation-method accept-present-default 
-			    ((type completion) stream (view radio-box-view)
-			     default default-supplied-p present-p query-identifier
-			     &key (prompt t))
+    ((type completion) stream (view radio-box-view)
+		       default default-supplied-p present-p query-identifier
+		       &key (prompt t))
   (declare (ignore present-p))
   (let ((current-selection nil))
     (flet ((update-gadget (record gadget radio-box)
 	     (declare (ignore gadget record))
 	     (map-over-sheets
-	       #'(lambda (sheet)
-		   (when (typep sheet 'toggle-button)
-		     (when (setf (gadget-value sheet)
-				 (and default-supplied-p
-				      (funcall test 
-					       (funcall value-key (gadget-id sheet))
-					       (funcall value-key default))))
-		       (setf (radio-box-current-selection radio-box) sheet))))
-	       radio-box)))
+	      #'(lambda (sheet)
+		  (when (typep sheet 'toggle-button)
+		    (when (setf (gadget-value sheet)
+			    (and default-supplied-p
+				 (funcall test 
+					  (funcall value-key (gadget-id sheet))
+					  (funcall value-key default))))
+		      (setf (radio-box-current-selection radio-box) sheet))))
+	      radio-box)))
       (with-output-as-gadget (stream :cache-value type :update-gadget #'update-gadget)
-	(let* ((buttons
-		 (map 'list
-		      #'(lambda (element)
-			  (let ((button
-				  (make-pane 'toggle-button 
-					     :label (let ((name (funcall name-key element)))
-						      (if (eq printer #'write-token)
-							  name
-							(pixmap-from-menu-item stream name printer nil)))
-				    :indicator-type :one-of
-				    :value (and default-supplied-p
-						(funcall test 
-							 (funcall value-key element)
-							 (funcall value-key default)))
-				    :id element)))
-			    (when (and default-supplied-p
-				       (funcall test 
-						(funcall value-key element)
-						(funcall value-key default)))
-			      (setq current-selection button))
-			    button))
-		      sequence))
-	       (radio-box (make-pane-from-view 'radio-box view
-			    :label (and (stringp prompt) prompt)
-			    :choices buttons
-			    :selection current-selection
-			    :client stream :id query-identifier
-			    :value-changed-callback
-			      (make-accept-values-value-changed-callback
-				stream query-identifier))))
-	  (values (outlining () radio-box) radio-box))))))
+	(let* ((toggle-options (getf (view-gadget-initargs view) :toggle-button-options))
+	       (buttons
+		(map 'list
+		  #'(lambda (element)
+		      (let ((button
+			     (apply #'make-pane 'toggle-button 
+					:label (let ((name (funcall name-key element)))
+						 (if (eq printer #'write-token)
+						     name
+						   (pixmap-from-menu-item stream name printer nil)))
+					:indicator-type (getf toggle-options :indicator-type :one-of)
+					:value (and default-supplied-p
+						    (funcall test 
+							     (funcall value-key element)
+							     (funcall value-key default)))
+					:id element
+					toggle-options)))
+			(when (and default-supplied-p
+				   (funcall test 
+					    (funcall value-key element)
+					    (funcall value-key default)))
+			  (setq current-selection button))
+			button))
+		  sequence))
+	       (radio-box (apply #'make-pane 'radio-box
+				 (append (with-keywords-removed 
+					     (args (view-gadget-initargs view) '(:toggle-button-options))
+					   args)
+					   (list :label (and (stringp prompt) prompt)
+					       :choices buttons :selection
+					       current-selection 
+					       :client stream
+					       :id query-identifier 
+					       :value-changed-callback
+					       (make-accept-values-value-changed-callback stream query-identifier))
+					 ))))
+	  (values (vertically ()
+		      (make-pane 'label-pane :label prompt)
+		    (outlining () radio-box))
+		  radio-box))))))
 
 
 ;;; Subset completion gadget
@@ -327,6 +340,10 @@
 (define-presentation-method decode-indirect-view
 			    ((type subset-completion) (view gadget-dialog-view) (framem standard-frame-manager))
   +check-box-view+)
+
+(define-presentation-method gadget-includes-prompt-p 
+			    ((type subset-completion) (stream t) (view check-box-view))
+  t)
 
 (define-presentation-method accept-present-default 
 			    ((type subset-completion) stream (view check-box-view)
@@ -347,31 +364,39 @@
 			      t))))
 	     check-box)))
     (with-output-as-gadget (stream :cache-value type :update-gadget #'update-gadget)
-      (let* ((buttons
+      (let* ((toggle-options (getf (view-gadget-initargs view) :toggle-button-options))
+	     (buttons
 	       (map 'list
 		    #'(lambda (element)
 			(let* ((value (funcall value-key element))
 			       (button
 				 (make-pane 'toggle-button 
 				   :label (funcall name-key element)
-				   :indicator-type :some-of
+				   :indicator-type (getf toggle-options :indicator-type :some-of)
 				   :value (and default-supplied-p
 					       (member value default
 						       :test test 
 						       ;;--- Should the value-key be used?
 						       :key value-key) 
 					       t)
-				   :id value)))
+				   :id value
+				   toggle-options)))
 			  button))
 		    sequence))
-	     (check-box (make-pane-from-view 'check-box view
-			  :label (and (stringp prompt) prompt)
-			  :choices buttons
-			  :client stream :id query-identifier
-			  :value-changed-callback
-			    (make-accept-values-value-changed-callback
-			      stream query-identifier))))
-	(values (outlining () check-box) check-box)))))
+	     (check-box (apply #'make-pane 'check-box
+			       (append (with-keywords-removed 
+					     (args (view-gadget-initargs view) '(:toggle-button-options))
+					   args)
+				       (list :label (and (stringp prompt) prompt)
+					     :choices buttons
+					     :client stream 
+					     :id query-identifier
+					     :value-changed-callback
+					     (make-accept-values-value-changed-callback stream query-identifier))))))
+	(values (vertically ()
+		      (make-pane 'label-pane :label prompt)
+		  (outlining () check-box)) 
+		check-box)))))
 
 
 ;;; Boolean gadget
@@ -462,6 +487,157 @@
 		    (make-accept-values-value-changed-callback
 		      stream query-identifier))))
 	  (values (outlining () slider) slider))))))
+
+
+(define-presentation-method accept-present-default 
+			    ((type t) stream (view text-field-view)
+			     default default-supplied-p present-p query-identifier
+			     &key (prompt t))
+  (declare (ignore default-supplied-p present-p))
+  (flet ((update-gadget (record gadget text-field)
+ 	   (declare (ignore record gadget))
+ 	   (setf (gadget-value text-field) (present-to-string default type))))
+    (with-output-as-gadget (stream :cache-value type :update-gadget #'update-gadget)
+      (let ((text-field (make-pane-from-view 'text-field view
+			   :label (and (stringp prompt) prompt)
+			   :value (present-to-string default type)
+			   :client stream :id query-identifier
+			   :value-changed-callback
+			   `(accept-values-string-field-changed-callback ,stream ,query-identifier))))
+ 	(values text-field text-field)))))
+
+;;;--- This is mostly nonsense. If we enter something that is an error then
+;;;--- the field value is unchanged. What is the right thing to do?
+
+(defmethod accept-values-string-field-changed-callback ((gadget text-field) new-value stream query)
+  (when (accept-values-query-valid-p query (accept-values-query-presentation query))
+    ;; Only call the callback if the query is still valid
+    (handler-case (multiple-value-bind (object type index)
+		      (accept-from-string (accept-values-query-type query) new-value)
+		    (declare (ignore type))
+		    (assert (= index (length new-value)))
+		    object)
+      (error ())
+      (:no-error (object)
+	(do-avv-command object stream query)))))
+
+;;; The string case is straightforward
+
+
+(define-presentation-method decode-indirect-view
+			    ((type string) (view gadget-dialog-view) (framem standard-frame-manager))
+  +text-field-view+)
+
+(define-presentation-method accept-present-default 
+			    ((type string) stream (view text-field-view)
+			     default default-supplied-p present-p query-identifier
+			     &key (prompt t))
+  (declare (ignore default-supplied-p present-p))
+  (flet ((update-gadget (record gadget button)
+ 	   (declare (ignore record gadget))
+ 	   (setf (gadget-value button) default)))
+    (with-output-as-gadget (stream :cache-value type :update-gadget #'update-gadget)
+      (let ((text-field (make-pane-from-view 'text-field view
+			   :label (and (stringp prompt) prompt)
+			   :value default
+			   :client stream :id query-identifier
+			   :value-changed-callback
+			   (make-accept-values-value-changed-callback
+			    stream query-identifier))))
+ 	(values text-field text-field)))))
+
+;;;; Text-editor
+
+(define-presentation-method accept-present-default 
+			    ((type string) stream (view text-editor-view)
+			     default default-supplied-p present-p query-identifier
+			     &key (prompt t))
+  (declare (ignore default-supplied-p present-p))
+  (flet ((update-gadget (record gadget button)
+ 	   (declare (ignore record gadget))
+ 	   (setf (gadget-value button) default)))
+    (with-output-as-gadget (stream :cache-value type :update-gadget #'update-gadget)
+      (let ((text-field (make-pane-from-view 'text-editor view
+			   :label (and (stringp prompt) prompt)
+			   :value default
+			   :client stream :id query-identifier
+			   :value-changed-callback
+			   (make-accept-values-value-changed-callback
+			    stream query-identifier))))
+ 	(values (scrolling () text-field) text-field)))))
+
+;;;; List-pane
+
+(define-presentation-method accept-present-default 
+    ((type completion) stream (view list-pane-view)
+		       default default-supplied-p present-p query-identifier
+		       &key (prompt t))
+  (declare (ignore present-p default-supplied-p prompt))
+  (make-list/option-pane-for-ptype 'list-pane
+				   stream view sequence name-key value-key
+				   test default query-identifier type
+				   printer
+				   :exclusive))
+
+(define-presentation-method accept-present-default 
+    ((type subset-completion) stream (view list-pane-view)
+			      default default-supplied-p present-p query-identifier
+			      &key (prompt t))
+  (declare (ignore present-p default-supplied-p prompt))
+  (make-list/option-pane-for-ptype 'list-pane stream view sequence name-key value-key
+			    test default query-identifier type printer :nonexclusive))
+
+(defun make-list/option-pane-for-ptype (pane-type stream view sequence name-key
+				 value-key test default
+					query-identifier type printer mode)
+  (flet ((update-gadget (record gadget list-pane)
+	   (declare (ignore gadget record))
+	   (setf (gadget-value list-pane) default)
+	   list-pane))
+    (with-output-as-gadget (stream :cache-value type :update-gadget #'update-gadget)
+      (let* ((pane (if (eq pane-type 'option-pane)
+		       (make-pane-from-view pane-type view
+					    :items sequence
+					     :name-key name-key
+					     :value-key value-key
+					     :test test
+					     :printer printer
+					     :value default
+					     :client stream :id query-identifier
+					     :mode mode
+					     :visible-items (min 10 (length sequence))
+					     :value-changed-callback
+					     (make-accept-values-value-changed-callback
+					      stream
+					      query-identifier))
+		     
+		       (make-pane-from-view pane-type view
+					     :items sequence
+					     :name-key name-key
+					     :value-key value-key
+					     :test test
+					     :value default
+					     :client stream :id query-identifier
+					     :mode mode
+					     :visible-items (min 10 (length sequence))
+					     :value-changed-callback
+					     (make-accept-values-value-changed-callback
+					      stream query-identifier)))))
+	(values (if (eq pane-type 'list-pane) (scrolling () pane) pane)
+		pane)))))
+
+(define-presentation-method accept-present-default 
+    ((type completion) stream (view option-pane-view)
+		       default default-supplied-p present-p query-identifier
+		       &key (prompt t))
+  (declare (ignore present-p default-supplied-p prompt))
+  (make-list/option-pane-for-ptype 'option-pane
+				   stream view sequence name-key value-key
+				   test default query-identifier type 
+				   printer
+				   :exclusive))
+
+;;;; Option-menu-view
 
 
 ;;--- These should be defined in the standard DEFOPERATION way...

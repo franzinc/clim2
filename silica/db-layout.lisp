@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-layout.lisp,v 1.22 92/07/20 15:59:09 cer Exp $
+;; $fiHeader: db-layout.lisp,v 1.23 92/08/18 17:23:30 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -411,13 +411,13 @@
 ;;;
 
 (defclass space-requirement-cache-mixin (layout-mixin)
-    ((space-requirement :initform nil)))
+    ((space-requirement-cache :initform nil)))
 
 (defmethod compose-space :around ((pane space-requirement-cache-mixin) &key width height)
   (declare (ignore width height))
-  (with-slots (space-requirement) pane
-    (or space-requirement
-	(setf space-requirement (call-next-method)))))
+  (with-slots (space-requirement-cache) pane
+    (or space-requirement-cache
+	(setf space-requirement-cache (call-next-method)))))
 
 (defmethod clear-space-requirement-cache ((pane layout-mixin))
   nil)
@@ -426,8 +426,8 @@
   nil)
 
 (defmethod clear-space-requirement-cache ((pane space-requirement-cache-mixin))
-  (with-slots (space-requirement) pane
-    (setf space-requirement nil)))
+  (with-slots (space-requirement-cache) pane
+    (setf space-requirement-cache nil)))
 
 (defmethod change-space-requirements :before ((pane space-requirement-cache-mixin) &key)
   (clear-space-requirement-cache pane))
@@ -651,6 +651,7 @@
 (defclass layout-pane (sheet-mute-input-mixin
 		       pane-background-mixin
 		       space-requirement-cache-mixin
+		       space-requirement-mixin
 		       sheet-permanently-enabled-mixin
 		       composite-pane)
     ())

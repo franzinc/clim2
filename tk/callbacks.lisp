@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: callbacks.lisp,v 1.15 92/06/16 15:01:05 cer Exp Locker: cer $
+;; $fiHeader: callbacks.lisp,v 1.16 92/06/23 08:19:06 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -65,6 +65,27 @@
 	    (list (new-callback-id) (cons function args) type)
 	    (widget-callback-data widget))))))
 
+
+(defun-c-callable create-popup-child-proc-function  ((widget :unsigned-long))
+  (create-popup-child-proc-function-1 widget))
+
+(defun create-popup-child-proc-function-1 (widget)
+  (let* ((widget (find-object-from-address widget))
+	 (function (or (cdr (assoc :create-popup-child-proc (widget-callback-data widget)))
+		       (error "cannot find create-popup-childp-proc ~S" widget))))
+    (funcall function widget)))
+
+
+(defvar *create-popup-child-proc-function-address* 
+    (ff:register-function 'create-popup-child-proc-function))
+
+(defun (setf widget-create-popup-child-proc) (function widget)
+  (push
+   (cons :create-popup-child-proc function)
+   (widget-callback-data widget))
+  (set-values widget :create-popup-child-proc *create-popup-child-proc-function-address*)
+  function)
+  
 (defun remove-all-callbacks (widget callback-name)
   (xt_remove_all_callbacks widget (convert-callback-name callback-name)))
 
@@ -81,7 +102,7 @@
 
 (defparameter *callback-name-alist* 
     (mapcar #'process-callback-alist-component
-	  '(
+	    '(
 	    ("activateCallback" :activate)
 	    ("armCallback")           
 	    ("disarmCallback")        
@@ -144,3 +165,5 @@
   (values (x-drawing-area-callback-window call-data)
 	  (x-drawing-area-callback-event call-data)))
 
+
+  

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: test-suite.lisp,v 1.30 92/08/19 10:24:06 cer Exp Locker: cer $
+;; $fiHeader: test-suite.lisp,v 1.31 92/08/21 16:34:04 cer Exp Locker: cer $
 
 (in-package :clim-user)
 
@@ -523,13 +523,17 @@ people, shall not perish from the earth.
 		  (stream `(region-intersects-region-p ,region1 ,region2) 'form
 		   :single-box t)
 		(formatting-cell (stream :align-x :center)
-		  (let ((res (lookup-result region1 region2))
+		    (handler-case 
+			(let ((res (lookup-result region1 region2))
 			(result (region-intersects-region-p (eval region1) (eval region2))))
 		    (if (eq res :none)
 			(write-char #\space stream)	;the presentation demands some ink
 		      (with-text-face (stream
 				       (if (eq res result) nil :bold))
-			(format stream "~A" result)))))))))))
+			(format stream "~A" result))))
+		      (error ()
+			(with-text-face (stream :bold)
+			  (write-string "Error signalled")))))))))))
     (region-test-comment stream)))
 
 
@@ -1645,62 +1649,72 @@ Luke Luck licks the lakes Luke's duck likes."))
 	(line-thickness 1)
 	(line-thickness-units :normal))
     (accepting-values (stream :own-window own-window)
-      (setq square-dimension
-	    (accept 'number :stream stream
-		    :prompt "Size of square" :default square-dimension))
-      (terpri stream)
-      (setq draw-circle
-	    (accept 'boolean :stream stream
-		    :prompt "Draw the circle" :default draw-circle))
-      (terpri stream)
-      (setq draw-square
-	    (accept 'boolean :stream stream
-		    :prompt "Draw the square" :default draw-square))
-      (terpri stream)
-      (setq draw-point
-	    (accept 'boolean :stream stream
-		    :prompt "Draw point" :default draw-point))
-      (terpri stream)
-      (setq draw-/-diagonal
-	    (accept 'boolean :stream stream
-		    :prompt "Draw / diagonal" :default draw-/-diagonal))
-      (terpri stream)
-      (setq draw-\\-diagonal
-	    (accept 'boolean :stream stream
-		    :prompt "Draw \\ diagonal" :default draw-\\-diagonal))
-      (terpri stream)
-      (setq line-thickness
-	    (accept 'number :stream stream
-		    :prompt "Line thickness" :default line-thickness))
-      (terpri stream)
-      (setq line-thickness-units
-	    (accept '(member :normal :point) :stream stream
-		    :prompt "Line style units" :default line-thickness-units))
-      (terpri stream)
-      (with-room-for-graphics (stream)
-	(let ((radius (/ square-dimension 2)))
-	  (with-drawing-options (stream :line-unit line-thickness-units
-					:line-thickness line-thickness)
-	    (when draw-square
-	      (draw-polygon* stream (list 0 0
-					  0 square-dimension
-					  square-dimension square-dimension
-					  square-dimension 0)
-			     :line-joint-shape :miter
-			     :filled nil))
-	    (when draw-circle
-	      (draw-circle* stream radius radius radius
-			    :filled nil))
-	    (when draw-point
-	      (draw-point* stream 
-			   (/ square-dimension 4)
-			   (/ square-dimension 2)))
-	    (when draw-/-diagonal
-	      (draw-line* stream 0 square-dimension square-dimension 0
-			  :line-cap-shape :round))
-	    (when draw-\\-diagonal
-	      (draw-line* stream 0 0 square-dimension square-dimension
-			  :line-cap-shape :round))))))))
+	(formatting-item-list (stream :n-columns 2)
+	    (formatting-cell (stream)
+		(setq square-dimension
+		  (accept 'number :stream stream
+			  :prompt "Size of square" :default square-dimension))
+	      (terpri stream)
+	      (setq draw-circle
+		(accept 'boolean :stream stream
+			:prompt "Draw the circle" :default draw-circle))
+	      (terpri stream)
+	      (setq draw-square
+		(accept 'boolean :stream stream
+			:prompt "Draw the square" :default draw-square))
+	      (terpri stream)
+	      (setq draw-point
+		(accept 'boolean :stream stream
+			:prompt "Draw point" :default draw-point))
+	      (terpri stream)
+	      (setq draw-/-diagonal
+		(accept 'boolean :stream stream
+			:prompt "Draw / diagonal" :default draw-/-diagonal))
+	      (terpri stream)
+	      (setq draw-\\-diagonal
+		(accept 'boolean :stream stream
+			:prompt "Draw \\ diagonal" :default draw-\\-diagonal))
+	      (terpri stream)
+	      (setq line-thickness
+		(accept 'number :stream stream
+			:prompt "Line thickness" :default line-thickness))
+	      (terpri stream)
+	      (setq line-thickness-units
+		(accept '(member :normal :point) :stream stream
+			:prompt "Line style units" :default line-thickness-units))
+	      (terpri stream))
+	  (formatting-cell (stream)
+	      (let (s)
+		(with-output-as-gadget (stream)
+		  (multiple-value-bind (sheets stream)
+		      (make-clim-application-pane :scroll-bars :both :width 150 :height 150)
+		    (setq s stream)
+		    sheets))
+		(let ((stream s))
+		  (with-room-for-graphics (stream :move-cursor nil)
+		    (let ((radius (/ square-dimension 2)))
+		      (with-drawing-options (stream :line-unit line-thickness-units
+						    :line-thickness line-thickness)
+			(when draw-square
+			  (draw-polygon* stream (list 0 0
+						      0 square-dimension
+						      square-dimension square-dimension
+						      square-dimension 0)
+					 :line-joint-shape :miter
+					 :filled nil))
+			(when draw-circle
+			  (draw-circle* stream radius radius radius
+					:filled nil))
+			(when draw-point
+			  (draw-point* stream 
+				       (/ square-dimension 4)
+				       (/ square-dimension 2)))
+			(when draw-/-diagonal
+			  (draw-line* stream 0 square-dimension square-dimension 0
+				      :line-cap-shape :round))
+			(when draw-\\-diagonal
+			  (draw-line* stream 0 0 square-dimension square-dimension
+				      :line-cap-shape :round))))))))))))
 
 
 ;;;; Benchmarks
@@ -1845,11 +1859,13 @@ Luke Luck licks the lakes Luke's duck likes."))
 	(let ((time (funcall function :careful t)))
 	  (push (list (first benchmark) time) data))))
     (setq data (reverse data))
-    (with-open-file (s pathname :direction :output)
-      (format s ";Speed of ~A ~A" (lisp-implementation-type) (lisp-implementation-version))
-      (format s "~%;on ~A ~A.~%" (machine-type) (machine-instance))
-      (when comment (format s ";~A~%" comment))
-      (print data s))))
+    (let ((*package* (or (find-package :common-lisp-user)
+			 (error "Package COMMON-LISP-USER not found"))))
+      (with-open-file (s pathname :direction :output)
+	(format s ";Speed of ~A ~A" (lisp-implementation-type) (lisp-implementation-version))
+	(format s "~%;on ~A ~A.~%" (machine-type) (machine-instance))
+	(when comment (format s ";~A~%" comment))
+	(print data s)))))
 
 (define-command (generate-report :command-table benchmarks :menu t)
     ()
@@ -1914,16 +1930,25 @@ Luke Luck licks the lakes Luke's duck likes."))
       (flet ((print-out (description results)
 	       (when results
 		 (format s "~2%~A" description)
-		 (do ((name-and-number results (cdr name-and-number))
-		      (column 0 (1+ column)))
-		     ((null name-and-number))
-		   (let ((short-name (first (car name-and-number)))
-			 (number (second (car name-and-number))))
-		     (when (zerop (mod column 4))
-		       (format s "~%  "))
-		     (if number
-			 (format s "~22@<~A ~2$ ~>" short-name number)
-		         (format s "~22@T")))))))
+		 (let ((min nil))
+		   (do ((name-and-number results (cdr name-and-number)))
+		       ((null name-and-number))
+		     (let ((number (second (car name-and-number))))
+		       (when number
+			 (setq min (if min (min number min) number)))))
+		   (do ((name-and-number results (cdr name-and-number))
+			(column 0 (1+ column)))
+		       ((null name-and-number))
+		     (let ((short-name (first (car name-and-number)))
+			   (number (second (car name-and-number))))
+		       (when (zerop (mod column 4))
+			 (format s "~%  "))
+		       (if number
+			   (format s "~22@<~A ~2$ (~2$)~>" 
+				   short-name
+				   number
+				   (float (/ number min)))
+		         (format s "~22@T"))))))))
 	;; Print out the summaries
 	(format s "~&~%Summary results (geometric means of a number of relevant tests):~%~%Category~28T")
 	(dolist (short-name data)

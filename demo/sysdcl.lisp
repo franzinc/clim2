@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sysdcl.lisp,v 1.14 92/07/27 11:03:36 cer Exp $
+;; $fiHeader: sysdcl.lisp,v 1.15 92/08/18 17:26:25 cer Exp Locker: cer $
 
 (in-package #-ansi-90 :user #+ansi-90 :common-lisp-user)
 
@@ -33,7 +33,11 @@
   ("graphics-editor" :load-before-compile ("demo-driver" "packages"))
   ("ico"	     :load-before-compile ("demo-driver" "packages"))
   ("browser"	     :load-before-compile ("demo-driver" "packages"))
-  ("demo-prefill"    :features (or Genera Cloe-Runtime)))
+  #+Allegro
+  ("process-browser" :load-before-compile ("demo-driver" "packages"))
+  ("bitmap-editor"    :load-before-compile ("demo-driver" "packages"))
+ 
+ ("demo-prefill"    :features (or Genera Cloe-Runtime)))
 
 #+Genera
 (clim-defsys:import-into-sct 'clim-demo 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: interactive-defs.lisp,v 1.12 92/07/27 11:02:35 cer Exp $
+;; $fiHeader: interactive-defs.lisp,v 1.13 92/08/18 17:25:11 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -244,6 +244,27 @@
 	      (t (display-help-clauses top-level-help-clauses)))
 	(when subhelp-clauses
 	  (display-help-clauses subhelp-clauses))))))
+
+(defun display-input-editor-error (stream error)
+  ;;-- The reason for using *application-frame* instead of (pane-frame
+  ;;stream) is because for own-window nil avv the pane-frame is the
+  ;;calling frame rather than the accept-values frame
+  (frame-manager-display-input-editor-error
+   (frame-manager *application-frame*) 
+   *application-frame* stream error))
+
+(defmethod frame-manager-display-input-editor-error ((framem standard-frame-manager)
+						     (frame t) stream error)
+  ;;--- Resignal the error so the user can handle it
+  ;;--- (in lieu of HANDLER-BIND-DEFAULT)
+  (beep stream)
+  (remove-activation-gesture stream)
+  (with-input-editor-typeout (stream :erase t)
+    (format stream "~A~%Please edit your input." error))
+  ;; Now wait until the user forces a rescan by typing
+  ;; an input editing command
+  (loop (read-gesture :stream stream)))
+
 
 ;; OPTIONS is a list of a help type followed by a help string (or a function
 ;; of two arguments, a stream and the help string so far) A "help type" is

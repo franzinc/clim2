@@ -20,12 +20,19 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: dev-load-1.lisp,v 1.9 92/07/27 19:30:16 cer Exp Locker: cer $
+;; $fiHeader: dev-load-1.lisp,v 1.10 92/08/21 16:34:21 cer Exp Locker: cer $
 
 ;;;; This should not matter
 ;;;; (setq *ignore-package-name-case* t)
 
 (set-case-mode :case-insensitive-lower)
+
+
+#+ignore
+(progn
+(compile-file "~/stuff/misc/new-slot-opt.cl")
+(load "~/stuff/misc/new-slot-opt.fasl")
+)
 
 (tenuring
    (let ((*load-source-file-info* t)
@@ -56,8 +63,7 @@
   ;;-- been loaded
   
   (tenuring
-   (load "postscript/sysdcl")
-   (clim-defsys::load-system 'postscript-clim))
+   (load "climps.fasl"))
 
   (compile-file-if-needed "test/test-suite")
 
@@ -72,6 +78,7 @@
      #-ignore
      (clim-defsys::load-system 'clim-demo)))
   
+
   (when (probe-file "/scm/4.1/sparc/src/code/")
     (let ((sys::*require-search-list*
 	   (cons (make-pathname :directory "/scm/4.1/sparc/src/code/"
@@ -83,7 +90,7 @@
 	    sys::*load-search-list*)))
       (tenuring (require :composer)))
   
-    (set (intern :*clm-binary-directory* ':xtk) "/scm/4.1/sparc/src/")
+    (set (intern :*clm-binary-directory* ':xtk) "/scm/4.1/sparc/src/"))
 
-    (tenuring
-     (load "misc/clos-preload.fasl" :if-does-not-exist nil))))
+  (tenuring
+   (load "misc/clos-preload.fasl" :if-does-not-exist nil)))

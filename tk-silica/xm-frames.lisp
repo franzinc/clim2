@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-frames.lisp,v 1.26 92/08/19 18:05:33 cer Exp Locker: cer $
+;; $fiHeader: xm-frames.lisp,v 1.27 92/08/21 16:34:29 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -58,6 +58,9 @@
 	      (list :orientation :horizontal))
     (values 
      'tk::xm-menu-bar 
+     ;;---- This seems important but why
+     ;;---- At a guess I would say its because the query-geometry gets
+     ;;---- all stupid if these resources are NIL
      (list :resize-height t
 	   :resize-width t))))
 
@@ -101,35 +104,47 @@
 				     (pane-frame sheet)
 				     commands-and-buttons))))
 	     (make-submenu (parent menu item)
-	       (let* ((submenu (make-instance
-				'tk::xm-pulldown-menu
-				:managed nil
-				:parent parent))
+	       (let* ((shell (make-instance 'xt::xm-menu-shell 
+					    :width 5 ; This widget is
+						     ; realized when
+						     ; it is created
+						     ; so we have to
+						     ; specify a size!
+					    :height 5
+					    :allow-shell-resize t
+					    :override-redirect t
+					    :parent parent))
+
+		      (submenu (make-instance 'xt::xm-row-column
+					      :managed nil
+					      :parent shell
+					      :row-column-type :menu-pulldown))
 		      (cb (make-instance 'xt::xm-cascade-button-gadget
 					 :parent parent
 					 :label-string menu
 					 :sub-menu-id submenu)))
 		 (declare (ignore cb))
-		 ;;-- At this point should write the code to lazily
-		 ;;-- create menus and update them if the table has
-		 ;;-- changed.
+		 (let ((mnem (getf (command-menu-item-options item) :mnemonic)))
+		   (when mnem (tk::set-values cb :mnemonic mnem)))
 		 (let* ((ct (find-command-table (second item)))
 			(tick (slot-value ct 'clim-internals::menu-tick)))
-		   (tk::add-callback (tk::widget-parent submenu)
-				     :popup-callback
-				     #'(lambda (ignore)
-					 (declare (ignore ignore))
-					 (let ((children
-						(tk::widget-children submenu)))
-					   (when (or (null children)
-						     (/= tick
-							 (setq tick
-							   (slot-value ct 'clim-internals::menu-tick))))
-					     (mapc #'tk::destroy-widget children)
-					     (make-menu-for-command-table
-					      ct
-					      submenu
-					      nil))))))))
+		   (make-menu-for-command-table ct submenu nil)
+		   ;;-- This is what we wanted to do but looses
+		   ;;-- because of the shared shell
+		  (setf (tk::widget-create-popup-child-proc shell)
+		    #'(lambda (shell)
+			(declare (ignore shell))
+			(let ((children
+			       (tk::widget-children submenu)))
+			  (when (or (null children)
+				    (/= tick
+					(setq tick
+					  (slot-value ct 'clim-internals::menu-tick))))
+			    (mapc #'tk::destroy-widget children)
+			    (make-menu-for-command-table
+			     ct
+			     submenu
+			     nil))))))))
 	     (make-menu-for-command-table-1 (command-table parent top)
 	       ;; Unless we are at the top level we want to have a
 	       ;; map-before callback that sets the sensitivity of
@@ -171,10 +186,13 @@
 			       (push (list item button)
 				     commands-and-buttons)
 			       
-			       (set-button-accelerator-from-keystroke button keystroke)
-			       
-			       (when (getf (command-menu-item-options
-					    item) :documentation)
+			       (set-button-accelerator-from-keystroke 
+				button keystroke)
+			
+			       (let ((mnem (getf (command-menu-item-options item) :mnemonic)))
+				 (when mnem (tk::set-values button :mnemonic mnem)))
+
+			       (when (getf (command-menu-item-options item) :documentation)
 				 (tk::add-callback
 				  button
 				  :help-callback
@@ -379,4 +397,6 @@
 
 (defmethod framem-menu-active-p ((framem motif-frame-manager) menu)
   (tk::is-managed-p menu))
+
+;;;; 
 

@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.43 92/08/19 10:24:22 cer Exp Locker: cer $
+;; $fiHeader: xm-gadgets.lisp,v 1.44 92/08/21 16:34:30 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -28,6 +28,7 @@
 			 ;; Another experiment
 			 ;; experiment
 			 (outlined-pane motif-frame-pane)
+			 (silica::separator motif-separator)
 			 ;;
 			 (scroll-bar motif-scroll-bar)
 			 (slider motif-slider)
@@ -68,7 +69,8 @@
   (declare (ignore invoke-callback))
   (let ((m (sheet-direct-mirror gadget)))
     (when (and m (not (equal nv (tk::get-values m :value))))
-      (tk::set-values m :value nv))))
+      (let ((*dont-invoke-callbacks* t))
+	(tk::set-values m :value nv)))))
 
 ;; Gadgets that have a :label initarg
 
@@ -252,10 +254,23 @@
 	(multiple-value-bind
 	    (mmin mmax)
 	    (tk::get-values mirror :minimum :maximum)
-	  (tk::set-values mirror
-			  :value (fix-coordinate 
-				  (compute-symmetric-value
-				   smin smax nv mmin mmax))))))))
+	  (let ((*dont-invoke-callbacks* t))
+	    (tk::set-values mirror
+			    :value (fix-coordinate 
+				    (compute-symmetric-value
+				     smin smax nv mmin mmax)))))))))
+
+;;; 
+
+(defclass motif-separator (motif-oriented-gadget
+			   xt-leaf-pane
+			   silica::separator)
+	  ())
+
+(defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
+						     (parent t)
+						     (sheet motif-separator))
+  (values 'tk::xm-separator nil))
 
 ;;; Slider
 
@@ -513,13 +528,19 @@
 						      motif-text-editor))
   (with-accessors ((value gadget-value)
 		   (ncolumns silica::gadget-columns)
+		   (editable silica::gadget-editable-p)
 		   (nlines silica::gadget-lines)) sheet
     (values 'tk::xm-text
 	    (append
+	     (list :editable editable)
 	     (list :edit-mode :multi-line)
 	     (and ncolumns (list :columns ncolumns))
 	     (and nlines (list :rows nlines))
 	     (and value `(:value ,value))))))
+
+(defmethod (setf gadget-editable-p) :after (nv (te motif-text-editor))
+  (let ((m (sheet-direct-mirror m)))
+    (tk::set-values m :editable nv)))
 
 ;(defmethod compute-initial-mirror-geometry (parent (sheet motif-text-editor) initargs)
 ;  (multiple-value-bind (left top right bottom)
@@ -535,6 +556,7 @@
 ;	    (getf initargs :y) (floor top))
 ;    initargs))
 
+#+ignore
 (defmethod compose-space ((te motif-text-editor) &key width height)
   (declare (ignore width height))
   (let ((sr (call-next-method)))
@@ -547,7 +569,20 @@
 	:width width :min-width min-width :max-width +fill+
 	:height height :min-height min-height :max-height +fill+))))
 
-
+(defmethod compose-space ((te motif-text-editor) &key width height)
+  (declare (ignore width height))
+  (multiple-value-bind (font-list margin-height margin-width)
+      (tk::get-values (sheet-direct-mirror te) :font-list
+		      :margin-height :margin-width)
+    (let* ((max-width most-negative-fixnum)
+	   (max-height most-negative-fixnum))
+      (assert font-list)
+      (dolist (font font-list)
+	(let ((font (second font)))
+	  (maxf max-height (tk::font-height font))
+	  (maxf max-width (tk::font-width font))))
+      (make-space-requirement :width (+ (* 2 margin-width) (* max-width (silica::gadget-columns te)))
+			      :height (+ (* 2 margin-height) (* max-height (silica::gadget-lines te)))))))
 ;;; Toggle button
 
 (defclass motif-toggle-button (motif-labelled-gadget
@@ -563,10 +598,11 @@
 		   (indicator-type gadget-indicator-type)) sheet
     (values 'xt::xm-toggle-button 
 	    (append (list :set set)
-		    (list :indicator-type 
-			  (ecase indicator-type
-			    (:one-of :one-of-many)
-			    (:some-of :n-of-many)))))))
+		    (ecase indicator-type
+		      ;;--- How can we deal with this portably
+		      ((nil) (list :indicator-on nil :shadow-thickness 2))
+		      (:one-of (list :indicator-type :one-of-many))
+		      (:some-of (list :indicator-type :n-of-many)))))))
 
 (defmethod gadget-value ((gadget motif-toggle-button))
   (if (sheet-direct-mirror gadget)
@@ -577,7 +613,8 @@
   (declare (ignore invoke-callback))
   (let ((m (sheet-direct-mirror gadget)))
     (when (and m (not (equal nv (tk::get-values m :set))))
-      (tk::set-values m :set nv))))
+      (let ((*dont-invoke-callbacks* t))
+	(tk::set-values m :set nv)))))
 
 #+ignore
 (defmethod add-sheet-callbacks :after ((port motif-port) 
@@ -836,6 +873,7 @@
 		   (value-key set-gadget-value-key)
 		   (test set-gadget-test)
 		   (mode list-pane-mode)
+		   (visible-items silica::gadget-visible-items)
 		   (name-key set-gadget-name-key)) sheet
     (let ((selected-items
 	   (compute-list-pane-selected-items sheet value)))
@@ -848,6 +886,7 @@
 		,(ecase mode
 		   (:exclusive :single-select)
 		   (:nonexclusive :multiple-select))
+		,@(and visible-items `(:visible-item-count ,visible-items))
 		:items ,(mapcar name-key items) 
 		:item-count ,(length items))))))
 
@@ -885,9 +924,10 @@
   (when (sheet-direct-mirror l)
     (let ((selected-items
 	   (compute-list-pane-selected-items l nv)))
-      (tk::set-values (sheet-direct-mirror l)
-		      :selected-item-count (length selected-items)
-		      :selected-items selected-items))))
+      (let ((*dont-invoke-callbacks* t))
+	(tk::set-values (sheet-direct-mirror l)
+			:selected-item-count (length selected-items)
+			:selected-items selected-items)))))
 
 ;;; Option buttons
 
@@ -899,14 +939,24 @@
 						     (sheet motif-option-pane))
   (with-accessors ((items set-gadget-items)
 		   (name-key set-gadget-name-key)
+		   (printer silica::option-pane-printer)
 		   (value-key set-gadget-value-key)) sheet
     (let ((pdm (make-instance 'xt::xm-pulldown-menu :managed nil :parent parent)))
       (setf (motif-option-menu-buttons sheet)
 	(mapcar #'(lambda (item)
-		    (let ((button 
-			   (make-instance 'tk::xm-push-button 
-					  :label-string (funcall name-key item)
-					  :parent pdm)))
+		    (let* ((name (funcall name-key item))
+			   (pixmap (unless (or (null printer) (eq printer #'write-token))
+				     (clim-internals::pixmap-from-menu-item 
+				      sheet name printer nil)))
+			   (button 
+			    (if (null pixmap)
+				(make-instance 'tk::xm-push-button 
+					       :label-string name
+					       :parent pdm)
+			      (make-instance 'tk::xm-push-button 
+					     :label-pixmap pixmap
+					     :label-type :pixmap
+					     :parent pdm))))
 		      (tk::add-callback  
 		       button
 		       :activate-callback
@@ -924,7 +974,8 @@
 
 (defmethod (setf gadget-value) :after (nv (gadget motif-option-pane) &key invoke-callback)
   (declare (ignore invoke-callback)) 
-  (set-option-menu-value gadget nv))
+  (let ((*dont-invoke-callbacks* t))
+    (set-option-menu-value gadget nv)))
 
 (defmethod realize-mirror :around ((port motif-port) (pane motif-option-pane))
   (prog1 (call-next-method)
@@ -934,14 +985,21 @@
   (with-accessors ((items set-gadget-items)
 		   (value-key set-gadget-value-key)
 		   (test set-gadget-test)
+		   (printer silica::option-pane-printer)
 		   (name-key set-gadget-name-key)) gadget
     (when (sheet-direct-mirror gadget)
       (let* ((x (position nv items :test test :key value-key))
 	     (widget (sheet-direct-mirror gadget)))
 	(when x
 	  (tk::set-values widget :menu-history (nth x (motif-option-menu-buttons gadget)))
-	  (tk::set-values (tk::intern-widget (tk::xm_option_button_gadget widget))
-			  :label-string (funcall name-key (nth x items))))))))
+	  (let* ((name (funcall name-key (nth x items)))
+		 (pixmap (unless (or (null printer) (eq printer #'write-token))
+			   (clim-internals::pixmap-from-menu-item 
+			    gadget name printer nil)))
+		 (widget (tk::intern-widget (tk::xm_option_button_gadget widget))))
+	    (if pixmap
+		(tk::set-values widget :label-pixmap pixmap :label-type :pixmap)
+	      (tk::set-values widget :label-string name))))))))
 
 (defmethod frame-manager-notify-user ((framem motif-frame-manager)
 				      message-string 
@@ -1227,15 +1285,14 @@
       (when m
 	(tk::set-values 
 	 m 
-	 :width width
-	 :height (fix-coordinate (space-requirement-height csr))
 	 :pane-minimum (fix-coordinate (space-requirement-min-height csr))
 	 :pane-maximum (fix-coordinate (space-requirement-max-height csr)))))))
 
 (defmethod allocate-space ((fr motif-paned-pane) width height)
   (declare (ignore height))
   (dolist (child (sheet-children fr))
-    (tk::set-values (sheet-direct-mirror child) :width (fix-coordinate width))))
+    (let ((m (sheet-direct-mirror child)))
+      (when m (tk::set-values m :width (fix-coordinate width))))))
 
 ;; If one of these gadgets tries to change its size the drawing area
 ;; might very well let it.
@@ -1283,7 +1340,8 @@
 			   sheet-permanently-enabled-mixin
 			   layout-mixin
 			   pane)
-	  ((attachments :initform nil :initarg :attachments)))
+	  ((attachments :initform nil :initarg :attachments)
+	   (fraction-base :initform nil :initarg :fraction-base)))
 
 (defmethod initialize-instance :after ((pane motif-form-pane) &key
 							       frame-manager frame
@@ -1302,7 +1360,9 @@
 (defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
 						     (parent t)
 						     (sheet motif-form-pane))
-  (values 'xt::xm-form nil))
+  (with-slots (fraction-base) sheet
+    (values 'xt::xm-form 
+	    (and fraction-base (list :fraction-base fraction-base )))))
 
 
 (defmethod (setf port) :around ((port motif-port) (sheet motif-form-pane) &key graft)

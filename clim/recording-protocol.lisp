@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: recording-protocol.lisp,v 1.18 92/07/27 11:02:54 cer Exp $
+;; $fiHeader: recording-protocol.lisp,v 1.19 92/08/18 17:25:32 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -1035,8 +1035,8 @@
 	(let* ((stream (output-record-stream record))
 	       (viewport (pane-viewport stream)))
 	  (when viewport
-	    (update-scroll-bars viewport))
-	  (update-region stream nleft ntop nright nbottom))))))
+	    (update-scroll-bars viewport)
+	    (update-region stream nleft ntop nright nbottom)))))))
 
 ;;; DEFCLASS of OUTPUT-RECORDING-MIXIN, etc. is in STREAM-CLASS-DEFS
 (defmethod initialize-instance :after ((stream output-recording-mixin) &rest args)

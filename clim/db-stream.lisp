@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-stream.lisp,v 1.26 92/07/27 11:02:19 cer Exp $
+;; $fiHeader: db-stream.lisp,v 1.27 92/08/18 17:24:49 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -20,6 +20,7 @@
 	   sheet-permanently-enabled-mixin
 	   sheet-mute-input-mixin
 	   sheet-multiple-child-mixin
+	   silica::space-requirement-cache-mixin
 	   space-requirement-mixin
 	   permanent-medium-sheet-output-mixin
 	   pane)
@@ -128,14 +129,21 @@
 			 (eq sr-component :compute))
 		   (multiple-value-bind (width height)
 		       (let ((record
+			      ;;--- can we really do this
+			      (if (and (stream-output-history pane)
+				       (> (output-record-count (stream-output-history pane)) 0))
+				  (stream-output-history pane)
 			       (let ((*sizing-application-frame* t))
 				 (with-output-to-output-record (pane)
-				   (invoke-pane-display-function 
+				   (funcall 
+				    (if (slot-value pane 'incremental-redisplay-p)
+					#'invoke-pane-redisplay-function 
+					#'invoke-pane-display-function)
 				     (pane-frame pane) pane
 				     ;;--- Are all pane display functions prepared to
 				     ;;--- ignore these arguments?  I think not...
 				     :max-width width
-				     :max-height height)))))
+				     :max-height height))))))
 			 (bounding-rectangle-size record))
 		     (do-with-space-req-components progn
 		         sr-component (sr-width sr-min-width sr-max-width)
@@ -297,18 +305,22 @@
       (setf-unless :height 100)
       (setf-unless :min-height 0)
       (setf-unless :max-height +fill+))
-    (let ((pane `(make-pane ,type ,@options)))
+    (let* ((stream (gensym))
+	   (pane `(setq ,stream (make-pane ,type ,@options))))
       (when scroll-bars
 	(setq pane `(scrolling (:scroll-bars ,scroll-bars)
-		      ,pane)))
+			       ,pane)))
       (when label
 	(setq pane `(vertically ()
-		      ,pane
+			,pane
 		      (make-pane 'label-pane 
-			:label ,label
-			:max-width +fill+))))
-      `(outlining (:thickness 1)
-	 ,pane))))
+				 :label ,label
+				 :max-width +fill+))))
+      `(let (,stream)
+	 (values 
+	  (outlining (:thickness 1)
+		     ,pane)
+	  ,stream)))))
 
 (defmacro make-clim-interactor-pane (&rest options)
   `(make-clim-stream-pane :type 'interactor-pane ,@options))

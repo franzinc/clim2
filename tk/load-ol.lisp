@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: load-ol.lisp,v 1.15 92/08/19 10:23:33 cer Exp $
+;; $fiHeader: load-ol.lisp,v 1.16 92/08/21 16:33:32 cer Exp Locker: cer $
 
 (in-package :user)
 
@@ -40,7 +40,7 @@
 				sys::*libx11-pathname*)
 	:print t))
 
-(unless (ff:get-entry-point (ff:convert-to-lang "_XtAppIntervalNextTimer"))
+(unless (ff:get-entry-point (ff:convert-to-lang "XtAppIntervalNextTimer"))
     (load "xtsupport.o"
 	  :system-libraries (list sys::*libxt-pathname*
 				  sys::*libx11-pathname*)

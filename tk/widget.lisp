@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: widget.lisp,v 1.23 92/07/27 19:29:18 cer Exp $
+;; $fiHeader: widget.lisp,v 1.24 92/08/18 17:53:46 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -240,12 +240,16 @@
 
 
 (defun describe-widget (w)
-  (dolist (r (class-resources (class-of w)))
-    (format t "~S : ~S~%"
-	    (resource-name r)
-	    (handler-case
-		(get-values w (intern (resource-name r) :keyword))
-	      (error (c) c "Get-values failed!")))))
+  (flet ((describe-resources (resources)
+	   (dolist (r resources)
+	     (format t "~S : ~S~%"
+		     (resource-name r)
+		     (handler-case
+			 (get-values w (intern (resource-name r) :keyword))
+		       (error (c) c "Get-values failed!"))))))
+    (describe-resources (class-resources (class-of w)))
+    (when (tk::widget-parent w)
+      (describe-resources (class-constraint-resources (class-of (tk::widget-parent w)))))))
 
 (defun set-sensitive (widget value)
   (xt_set_sensitive widget (if value 1 0)))

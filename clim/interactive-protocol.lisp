@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: interactive-protocol.lisp,v 1.14 92/08/18 17:25:13 cer Exp Locker: cer $
+;; $fiHeader: interactive-protocol.lisp,v 1.15 92/08/21 16:33:56 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -874,16 +874,8 @@
 		       (reset-scan-pointer stream)
 		       (handler-bind 
 			   ((parse-error
-			      #'(lambda (error)
-				  ;;--- Resignal the error so the user can handle it
-				  ;;--- (in lieu of HANDLER-BIND-DEFAULT)
-				  (beep stream)
-				  (remove-activation-gesture stream)
-				  (with-input-editor-typeout (stream :erase t)
-				    (format stream "~A~%Please edit your input." error))
-				  ;; Now wait until the user forces a rescan by typing
-				  ;; an input editing command
-				  (loop (read-gesture :stream stream)))))
+			     #'(lambda (error)
+				 (display-input-editor-error stream error))))
 			 (return
 			   (let #+Genera ((sys:rubout-handler :read)) #-Genera ()
 			     (with-input-context (context) ()

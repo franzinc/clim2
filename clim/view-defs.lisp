@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: view-defs.lisp,v 1.8 92/07/27 11:03:04 cer Exp $
+;; $fiHeader: view-defs.lisp,v 1.9 92/08/18 17:25:47 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -62,11 +62,13 @@
        ',name)))
 
 (define-gadget-view toggle-button)
-
 (define-gadget-view radio-box)
 (define-gadget-view check-box)
-
 (define-gadget-view slider)
+(define-gadget-view text-field)
+(define-gadget-view list-pane)
+(define-gadget-view option-pane)
+(define-gadget-view text-editor)
 
 ;;--- These three methods are the result of not including the
 ;;--- gadget class as a superclass of view class...

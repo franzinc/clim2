@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-frames.lisp,v 1.15 92/07/24 10:55:01 cer Exp Locker: cer $
+;; $fiHeader: xt-frames.lisp,v 1.16 92/08/21 16:34:32 cer Exp Locker: cer $
 
 
 (in-package :xm-silica)
@@ -66,13 +66,9 @@
 ;;;
 
 (defun command-button-callback (button dunno frame command-table item)
-  (distribute-event
-    (port frame)
-    (allocate-event 'presentation-event
-      :frame frame
-      :sheet (frame-top-level-sheet frame)
-      :presentation-type `(command :command-table ,command-table)
-      :value (second item))))
+  (execute-command-in-frame
+   frame (second item)
+   :presentation-type `(command :command-table ,command-table)))
 
 
 (defun frame-wm-protocol-callback (widget frame)

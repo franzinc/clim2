@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: packages.lisp,v 1.24 92/07/27 11:01:52 cer Exp $
+;; $fiHeader: packages.lisp,v 1.25 92/08/18 17:24:11 cer Exp Locker: cer $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :common-lisp-user)
 
@@ -2287,13 +2287,21 @@
     ;; Presentation types
     *input-context*
     *null-presentation*
+    +check-box-view+
     +gadget-dialog-view+
     +gadget-menu-view+
     +gadget-view+
+    +list-pane-view+
+    +option-pane-view+
     +pointer-documentation-view+
+    +radio-box-view+
+    +slider-view+
+    +text-field-view+
+    +text-editor-view+
     +textual-dialog-view+
     +textual-menu-view+
     +textual-view+
+    +toggle-button-view+
     accept
     accept-from-string
     accept-1
@@ -2629,6 +2637,7 @@
     interactor-pane
     layout-frame
     make-application-frame
+    make-command-timer
     note-command-disabled
     note-command-enabled
     note-frame-disabled
@@ -2741,6 +2750,7 @@
     check-box-current-selection
     check-box-pane
     check-box-selections
+    check-box-view
     deactivate-gadget
     disarmed-callback
     drag-callback
@@ -2768,6 +2778,7 @@
     labelled-gadget-mixin
     list-pane
     list-pane-mode
+    list-pane-view
     menu-bar
     menu-bar-command-table
     menu-button
@@ -2775,6 +2786,7 @@
     note-gadget-activated
     note-gadget-deactivated
     option-pane
+    option-pane-view
     oriented-gadget-mixin
     push-button
     push-button-pane
@@ -2783,11 +2795,13 @@
     radio-box-current-selection
     radio-box-pane
     radio-box-selections
+    radio-box-view
     scroll-bar
     scroll-bar-current-size
     scroll-bar-current-value
     scroll-bar-drag-callback
     scroll-bar-pane
+    separator
     set-gadget-items
     set-gadget-name-key
     set-gadget-test
@@ -2795,13 +2809,17 @@
     slider
     slider-decimal-places
     slider-pane
+    slider-view
     text-editor
     text-editor-pane
+    text-editor-view
     text-field
     text-field-pane
+    text-field-view
     toggle-button
     toggle-button-indicator-type
     toggle-button-pane
+    toggle-button-view
     value-changed-callback
     value-gadget
     with-output-as-gadget

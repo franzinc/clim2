@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xlib.lisp,v 1.23 92/07/24 10:53:40 cer Exp $
+;; $fiHeader: xlib.lisp,v 1.24 92/08/18 17:53:48 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -579,3 +579,14 @@
 	  (values-list (cdr result)))
        (x11:xungrabserver .display.)
        (x11:xflush .display.))))
+
+;;; Visuals
+
+(defun screen-root-visual-class (screen)
+  (ecase (x11::visual-class (x11::screen-root-visual screen))
+    (0 :static-gray)
+    (2 :static-color)
+    (4 :true-color)
+    (1 :gray-scale)
+    (3 :pseudo-color)
+    (5 :direct-color)))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: output-protocol.lisp,v 1.18 92/08/18 17:25:17 cer Exp Locker: cer $
+;; $fiHeader: output-protocol.lisp,v 1.19 92/08/19 18:04:58 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -373,7 +373,8 @@
 					(* 4 (stream-character-width stream #\0))))))))
 	;; If the cursor moves outside the current region, expand
 	;; it to include the new cursor position.
-	(when (> cy (bounding-rectangle-height stream))
+	(when (and viewport
+		   (> cy (bounding-rectangle-height stream)))
 	  (multiple-value-bind (sx sy) (bounding-rectangle-position stream)
 	    (update-region stream 
 			   sx sy cx cy

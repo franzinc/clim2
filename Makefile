@@ -1,4 +1,4 @@
-# $fiHeader: Makefile,v 1.43 92/08/19 10:24:17 cer Exp Locker: cer $
+# $fiHeader: Makefile,v 1.44 92/08/21 16:34:13 cer Exp Locker: cer $
 # 
 #  Makefile for CLIM 2.0
 #
@@ -143,6 +143,7 @@ CLIM-UTILS-OBJS = utils/excl-verification.fasl \
                    utils/lisp-utilities.fasl \
                    utils/processes.fasl \
                    utils/queue.fasl \
+		   utils/timers.fasl \
                    utils/protocols.fasl \
                    utils/autoconstructor.fasl \
                    utils/clim-streams.fasl \
@@ -275,6 +276,7 @@ MOTIF-CLIM-OBJS = tk-silica/pkg.fasl \
                    tk-silica/image.fasl \
                    tk-silica/xt-frames.fasl \
                    tk-silica/xm-frames.fasl \
+                   tk-silica/xm-dialogs.fasl \
                    tk-silica/xt-gadgets.fasl \
                    tk-silica/xm-gadgets.fasl \
                    tk-silica/xm-menus.fasl \

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-box.lisp,v 1.19 92/07/20 15:59:05 cer Exp $
+;; $fiHeader: db-box.lisp,v 1.20 92/08/18 17:23:26 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -102,16 +102,16 @@
 	       '(:width :max-width :min-width :height :max-height :min-height)))
 
 (defmethod allocate-space ((box-pane hbox-pane) width height)
-  (with-slots (contents space space-requirement) box-pane
-    (unless space-requirement 
-      (compose-space box-pane :width width :height height))
-    (flet ((compose (x)
-	     (cond ((atom x) (compose-space x :height height))
-		   ((eq (car x) :fill) :fill)
-		   (t (make-space-requirement :height 0 :width (* (car x) width))))))
-      (declare (dynamic-extent #'compose))
-      (let ((sizes 
-	      (allocate-space-to-items
+  (with-slots (contents space) box-pane
+    (let ((space-requirement
+	   (compose-space box-pane :width width :height height)))
+      (flet ((compose (x)
+	       (cond ((atom x) (compose-space x :height height))
+		     ((eq (car x) :fill) :fill)
+		     (t (make-space-requirement :height 0 :width (* (car x) width))))))
+	(declare (dynamic-extent #'compose))
+	(let ((sizes 
+	       (allocate-space-to-items
 		width
 		space-requirement
 		contents
@@ -119,16 +119,16 @@
 		#'space-requirement-width
 		#'space-requirement-max-width
 		#'compose))
-	    (x 0))
-	(mapc #'(lambda (sheet size)
-		  (when (or (panep sheet)
-			    (and (consp sheet)
-				 (panep (second sheet))
-				 (setq sheet (second sheet))))
-		    (move-and-resize-sheet 
-		      sheet x 0 (frob-size size width x) height))
-		  (incf x size))
-	      contents sizes)))))
+	      (x 0))
+	  (mapc #'(lambda (sheet size)
+		    (when (or (panep sheet)
+			      (and (consp sheet)
+				   (panep (second sheet))
+				   (setq sheet (second sheet))))
+		      (move-and-resize-sheet 
+		       sheet x 0 (frob-size size width x) height))
+		    (incf x size))
+		contents sizes))))))
 
 
 (defclass vbox-pane (box-pane) ())
@@ -146,16 +146,16 @@
 	       `(:height :max-height :min-height :width :max-width :min-width)))
 
 (defmethod allocate-space ((box-pane vbox-pane) width height)
-  (with-slots (contents space space-requirement) box-pane
-    (unless space-requirement 
-      (compose-space box-pane :width width :height height))
-    (flet ((compose (x)
-	     (cond ((atom x) (compose-space x :width width))
-		   ((eq (car x) :fill) :fill)
-		   (t (make-space-requirement :width 0 :height (* (car x) height))))))
-      (declare (dynamic-extent #'compose))
-      (let ((sizes 
-	      (allocate-space-to-items
+  (with-slots (contents space) box-pane
+    (let ((space-requirement
+	   (compose-space box-pane :width width :height height)))
+      (flet ((compose (x)
+	       (cond ((atom x) (compose-space x :width width))
+		     ((eq (car x) :fill) :fill)
+		     (t (make-space-requirement :width 0 :height (* (car x) height))))))
+	(declare (dynamic-extent #'compose))
+	(let ((sizes 
+	       (allocate-space-to-items
 		height
 		space-requirement
 		contents
@@ -163,16 +163,16 @@
 		#'space-requirement-height
 		#'space-requirement-max-height
 		#'compose))
-	    (y 0))
-	(mapc #'(lambda (sheet size)
-		  (when (or (panep sheet)
-			    (and (consp sheet)
-				 (panep (second sheet))
-				 (setq sheet (second sheet))))
-		    (move-and-resize-sheet
-		      sheet 0 y width (frob-size size height y)))
-		  (incf y size))
-	      contents sizes)))))
+	      (y 0))
+	  (mapc #'(lambda (sheet size)
+		    (when (or (panep sheet)
+			      (and (consp sheet)
+				   (panep (second sheet))
+				   (setq sheet (second sheet))))
+		      (move-and-resize-sheet
+		       sheet 0 y width (frob-size size height y)))
+		    (incf y size))
+		contents sizes))))))
 
 ;;--- In theory this should work OK.
 (defun frob-size (wanted-size available where-we-are-now)

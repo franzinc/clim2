@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: pixmaps.lisp,v 1.6 92/08/19 10:23:43 cer Exp Locker: cer $
+;; $fiHeader: pixmaps.lisp,v 1.7 92/08/21 16:33:34 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -118,8 +118,9 @@
 			 :port (port sheet)
 			 :medium pixmap-medium
 			 :width width :height height)))
-    (setf (medium-foreground pixmap-medium) (medium-foreground stream)
-	  (medium-background pixmap-medium) (medium-background stream))
+    (with-sheet-medium (medium sheet)
+      (setf (medium-foreground pixmap-medium) (medium-foreground medium)
+	    (medium-background pixmap-medium) (medium-background medium)))
     (funcall continuation pixmap-sheet)
     (slot-value pixmap-medium 'pixmap)))
 

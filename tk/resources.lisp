@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: resources.lisp,v 1.28 92/07/08 16:28:50 cer Exp $
+;; $fiHeader: resources.lisp,v 1.29 92/08/18 17:53:44 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -72,6 +72,13 @@
 				     :tight
 				     :column
 				     :none))
+
+(define-enumerated-resource row-column-type (:work-area 
+					     :menu-bar 
+					     :menu-pulldown
+					     :menu-popup
+					     :menu-option))
+
 
 (define-enumerated-resource edit-mode (:multi-line :single-line))
 
@@ -597,4 +604,11 @@
 
 (defmethod convert-resource-out ((parent t) (typep (eql 'pointer)) value)
   value)
-				 
+
+;;;			 
+
+(defmethod convert-resource-out ((parent t) (typep (eql 'key-sym)) value)
+  (char-int value))
+
+(defmethod convert-resource-in ((parent t) (typep (eql 'key-sym)) value)
+  (cltl1:int-char value))
