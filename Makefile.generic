@@ -1,4 +1,4 @@
-# $Header: /repo/cvs.copy/clim2/Makefile.generic,v 1.45 1998/02/13 21:04:44 layer Exp $
+# $Header: /repo/cvs.copy/clim2/Makefile.generic,v 1.46 1998/03/06 19:06:39 layer Exp $
 #
 #  Makefile.generic for CLIM 2.0
 #
@@ -138,7 +138,7 @@ $(CLIM): FORCE $(PRODUCT-OBJS) $(ICS-PRODUCT-OBJS)
 	       (load-it '$(SYSTEM)))) \
 	   :autoload-warning nil \
 	   :image-only t \
-	   :purify nil \
+	   :purify t \
 	   :debug-on-error t \
 	   :internal-debug \"build-clim.out\" \
 	   :shlib-warning nil \

@@ -11,6 +11,18 @@ Tests for new features:	<`no new features', `no tests for new features', or
 	* <changes go here...>
 
 *******************************************************************************
+2.2.1.8
+
+Documentation changes:	none
+Tests for new features:	no new features
+
+Fri Mar 06 09:13:49 1998    <layer@HOBART>
+
+	* Makefile.defs: CLIM defaults to climi.dxl
+	* Makefile.generic: :purify back to `t' since lisp bug fixed
+	* demo/README: cosmetic
+
+*******************************************************************************
 2.2.1.7
 
 Sat Feb 28 15:18:45 1998  Duane Rettig  <duane@beta>
