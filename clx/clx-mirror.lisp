@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLX-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clx-mirror.lisp,v 1.8 92/07/20 15:59:50 cer Exp $
+;; $fiHeader: clx-mirror.lisp,v 1.9 92/07/27 11:01:59 cer Exp $
 
 (in-package :clx-clim)
 
@@ -47,6 +47,7 @@
 	  :program-specified-position-p t
 	  :program-specified-size-p t
 	  ;; pre-X11R5 uses "user" instead of "program"
+	  ;;--- We should get these from the top-level sheet
 	  :user-specified-size-p t 
 	  :user-specified-position-p t
 	  ;; Some X11R3 servers want the next four
@@ -56,6 +57,14 @@
 	  :allow-other-keys t)
 	(setf (xlib:wm-protocols mirror) '(:wm_delete_window))
 	(setf (xlib:wm-client-machine mirror) (short-site-name))
+	;; Doing the following means that users may add lines to a resources
+	;; file (such as .Xdefaults) to control what the window manager does
+	;; with clim windows, e.g.,
+	;;   olwm.MinimalDecor: clim
+	;; Also, users can write standard XLIB calls in C that do interesting
+	;; things to CLIM windows, such as changing the mouse cursor of CLIM
+	;; windows to a wristwatch during GC operations.
+	(xlib:set-wm-class mirror "clim" "clim")
 	mirror))))
 
 (defmethod destroy-mirror ((port clx-port) sheet)
@@ -116,46 +125,53 @@
       (setf (sheet-direct-mirror graft) window)
       (update-mirror-transformation port graft))))
 
-(defmethod mirror-region* ((port clx-port) sheet)
-  (let* ((mirror (sheet-mirror sheet))
-	 (x (and mirror (xlib:drawable-x mirror)))
-	 (y (and mirror (xlib:drawable-y mirror))))
-    (when mirror
-      (values x y 
-	      (+ x (xlib:drawable-width mirror))
-	      (+ y (xlib:drawable-height mirror))))))
-
-;;--- Is this really the same as MIRROR-INSIDE-EDGES*?
-(defmethod mirror-inside-region* ((port clx-port) sheet)
-  (mirror-inside-edges* port sheet))
-
-;;--- Is this really the same as MIRROR-REGION*?
-(defmethod mirror-native-edges* ((port clx-port) sheet)
-  (mirror-region* port sheet))
-
-(defmethod mirror-inside-edges* ((port clx-port) sheet)
-  (let* ((mirror (sheet-mirror sheet))
+(defmethod clx-mirror-native-edges* ((port clx-port) sheet &optional mirror)
+  (let* ((mirror (or mirror (sheet-mirror sheet)))
+	 (x (xlib::drawable-x mirror))
+	 (y (xlib::drawable-y mirror))
+	 (width (xlib::drawable-width mirror))
+	 (height (xlib::drawable-height mirror))
 	 (parent-mirror (sheet-mirror (sheet-parent sheet)))
 	 ;; Is this really the only way to get parent?
 	 (x-parent (multiple-value-bind (windows parent root)
 		       (xlib:query-tree mirror)
 		     (declare (ignore windows root))
-		     parent))
-	 (x (xlib::drawable-x mirror))
-	 (y (xlib::drawable-y mirror))
-	 (width (xlib::drawable-width mirror))
-	 (height (xlib::drawable-height mirror)))
+		     parent)))
     ;; Can deal with reparenting window managers
     (when (not (eq parent-mirror x-parent))
       (multiple-value-setq (x y)
 	(xlib:translate-coordinates
 	  x-parent x y parent-mirror)))
-    (values x y
-	    (+ x width) (+ y height))))
+    (values (coordinate x) (coordinate y)
+	    (coordinate (+ x width)) (coordinate (+ y height)))))
+
+;; Returns left,top,right,bottom
+(defmethod mirror-region* ((port clx-port) sheet)
+  (let ((mirror (sheet-mirror sheet)))
+    (when mirror
+      (clx-mirror-native-edges* port sheet mirror))))
+
+;; Returns x,y,width,height
+(defmethod mirror-inside-region* ((port clx-port) sheet)
+  (multiple-value-bind (left top right bottom)
+      (mirror-region* port sheet)
+    (values (coordinate 0) (coordinate 0)
+	    (- right left) (- bottom top))))
+
+;;--- Shouldn't this be the same as MIRROR-REGION*?
+(defmethod mirror-native-edges* ((port clx-port) sheet)
+  (let ((mirror (sheet-direct-mirror sheet)))
+    (clx-mirror-native-edges* port sheet mirror)))
+
+(defmethod mirror-inside-edges* ((port clx-port) sheet)
+  (multiple-value-bind (left top right bottom)
+      (mirror-native-edges* port sheet)
+    (values (coordinate 0) (coordinate 0)
+	    (- right left) (- bottom top))))
  
 (defmethod set-sheet-mirror-edges* ((port clx-port) sheet 
 				    left top right bottom)
-  (let* ((mirror (sheet-mirror sheet))
+  (let* ((mirror (sheet-direct-mirror sheet))
 	 (display (port-display port))
 	 (width (fix-coordinate (- right left)))
 	 (height (fix-coordinate (- bottom top)))

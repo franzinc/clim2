@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-editor-commands.lisp,v 1.13 92/07/24 10:54:29 cer Exp Locker: cer $
+;; $fiHeader: input-editor-commands.lisp,v 1.14 92/07/27 11:02:31 cer Exp $
 
 (in-package :clim-internals)
 
@@ -303,8 +303,9 @@
 
 #+Genera
 (defun complete-symbol-name-1 (string)
-  (complete-from-possibilities string (scl:g-l-p zwei:*zmacs-completion-aarray*) '(#\-)
-			       :action :complete-maximal))
+  (complete-from-possibilities 
+    string (scl:g-l-p zwei:*zmacs-completion-aarray*) '(#\-)
+    :action :complete-maximal))
 
 #-Genera
 (defun complete-symbol-name-1 (string)
@@ -374,6 +375,25 @@
 	(and position
 	     (min position (fill-pointer buffer)))))))
 
+(defun move-over-sexp (buffer start-position reverse-p)
+  (labels ((atom-character-p (thing)
+	     (when (and (characterp thing)
+			(or (alphanumericp thing)
+			    (member thing '(#\- #\* #\+ #\:))))
+	       (values t t)))
+	   (atom-break-character-p (thing)
+	     (unless (atom-character-p thing)
+	       (values t t))))
+    (declare (dynamic-extent #'atom-break-character-p #'atom-character-p))
+    (setq start-position
+	  (forward-or-backward buffer start-position reverse-p #'atom-character-p))
+    (when start-position
+      (let ((position
+	      (forward-or-backward buffer start-position reverse-p 
+				   #'atom-break-character-p)))
+	(and position
+	     (min position (fill-pointer buffer)))))))
+
 
 ;;; The basic input editing commands...
 
@@ -408,6 +428,15 @@
 	  (setf (stream-insertion-pointer stream) p)
 	  (return (beep stream))))))
 
+(define-input-editor-command (com-ie-forward-sexp :rescan nil)
+			     (stream input-buffer numeric-argument)
+  (repeat (abs numeric-argument)
+    (let ((p (move-over-sexp input-buffer (stream-insertion-pointer stream) 
+			     (minusp numeric-argument))))
+      (if p
+	  (setf (stream-insertion-pointer stream) p)
+	  (return (beep stream))))))
+
 (define-input-editor-command (com-ie-backward-character :rescan nil)
 			     (stream input-buffer numeric-argument)
   (repeat (abs numeric-argument)
@@ -421,6 +450,15 @@
 			     (stream input-buffer numeric-argument)
   (repeat (abs numeric-argument)
     (let ((p (move-over-word input-buffer (stream-insertion-pointer stream)
+			     (plusp numeric-argument))))
+      (if p
+	  (setf (stream-insertion-pointer stream) p)
+	  (return (beep stream))))))
+
+(define-input-editor-command (com-ie-backward-sexp :rescan nil)
+			     (stream input-buffer numeric-argument)
+  (repeat (abs numeric-argument)
+    (let ((p (move-over-sexp input-buffer (stream-insertion-pointer stream)
 			     (plusp numeric-argument))))
       (if p
 	  (setf (stream-insertion-pointer stream) p)
@@ -455,7 +493,7 @@
   (unless (zerop (stream-insertion-pointer stream))
     (ie-next-previous stream input-buffer (- numeric-argument))))
 
-;;; +ve = next, -ve = previous
+;; positive = next, negative = previous
 (defun ie-next-previous (stream input-buffer numeric-argument)
   (unless (zerop numeric-argument)
     (let* ((pointer (stream-insertion-pointer stream))
@@ -491,7 +529,7 @@
 			     (stream input-buffer numeric-argument)
   (ie-rub-del stream input-buffer numeric-argument))
 
-;;; +ve = delete, -ve = rubout
+;; positive = delete, negative = rubout
 (defun ie-rub-del (stream input-buffer numeric-argument)
   (let* ((p1 (stream-insertion-pointer stream))
 	 (p2 p1)
@@ -520,13 +558,35 @@
 			     (stream input-buffer numeric-argument)
   (ie-rub-del-word stream input-buffer numeric-argument))
 
-;;; +ve = delete, -ve = rubout
+;; positive = next, negative = previous
 (defun ie-rub-del-word (stream input-buffer numeric-argument)
   (let* ((p1 (stream-insertion-pointer stream))
 	 (p2 p1)
 	 (reverse-p (minusp numeric-argument))) 
     (repeat (abs numeric-argument)
       (let ((p3 (move-over-word input-buffer p2 reverse-p)))
+	(if p3 (setq p2 p3) (return))))
+    (if (/= p1 p2)
+	(ie-kill stream input-buffer
+		 (if (eq (slot-value stream 'last-command-type) 'kill) :merge t)
+		 p2 p1 reverse-p)
+        (beep stream))))
+
+(define-input-editor-command (com-ie-rubout-sexp :type kill)
+			     (stream input-buffer numeric-argument)
+  (ie-rub-del-sexp stream input-buffer (- numeric-argument)))
+
+(define-input-editor-command (com-ie-delete-sexp :type kill)
+			     (stream input-buffer numeric-argument)
+  (ie-rub-del-sexp stream input-buffer numeric-argument))
+
+;; positive = next, negative = previous
+(defun ie-rub-del-sexp (stream input-buffer numeric-argument)
+  (let* ((p1 (stream-insertion-pointer stream))
+	 (p2 p1)
+	 (reverse-p (minusp numeric-argument))) 
+    (repeat (abs numeric-argument)
+      (let ((p3 (move-over-sexp input-buffer p2 reverse-p)))
 	(if p3 (setq p2 p3) (return))))
     (if (/= p1 p2)
 	(ie-kill stream input-buffer
@@ -706,7 +766,6 @@
 		  ;; because that can cause premature activation.  What
 		  ;; we do is queue a rescan for later, and when the user
 		  ;; hits <End> the rescan is done if necessary.
-		  ;;--- I don't like this, see comment on RESCAN-FOR-ACTIVATION
 		  (queue-rescan istream ':activation))
 		 (t (beep istream)))))
 	(t
@@ -750,35 +809,39 @@
 	       gestures)))
 
 (define-input-editor-gestures
-  (:ie-abort                :\G  :control)
-  (:ie-universal-argument   :\U  :control)
-  (:ie-forward-character    :\F  :control)
-  (:ie-forward-word	    :\F  :meta)
-  (:ie-backward-character   :\B  :control)
-  (:ie-backward-word	    :\B  :meta)
+  (:ie-abort                :g   :control)
+  (:ie-universal-argument   :u   :control)
+  (:ie-forward-character    :f   :control)
+  (:ie-forward-word	    :f   :meta)
+  (:ie-forward-sexp	    :f   :control :meta)
+  (:ie-backward-character   :b   :control)
+  (:ie-backward-word	    :b   :meta)
+  (:ie-backward-sexp	    :b   :control :meta)
   (:ie-beginning-of-buffer  :\<  :meta)
   (:ie-end-of-buffer	    :\>  :meta)
-  (:ie-beginning-of-line    :\A  :control)
-  (:ie-end-of-line	    :\E  :control)
-  (:ie-next-line	    :\N  :control)
-  (:ie-previous-line	    :\P  :control)
-  (:ie-delete-character	    :\D  :control)
-  (:ie-delete-word	    :\D  :meta)
+  (:ie-beginning-of-line    :a   :control)
+  (:ie-end-of-line	    :e   :control)
+  (:ie-next-line	    :n   :control)
+  (:ie-previous-line	    :p   :control)
+  (:ie-delete-character	    :d   :control)
+  (:ie-delete-word	    :d   :meta)
+  (:ie-delete-sexp	    :k   :control :meta)
   (:ie-rubout-character     :rubout)
   (:ie-rubout-word	    :rubout :meta)
-  (:ie-kill-line	    :\K  :control)
+  (:ie-rubout-sexp	    :rubout :control :meta)
+  (:ie-kill-line	    :k   :control)
   (:ie-clear-input	    :clear-input)
-  (:ie-make-room	    :\O  :control)
-  (:ie-transpose-characters :\T  :control)
-  (:ie-show-arglist	    :\A  :control :shift)
-  (:ie-show-value	    :\V  :control :shift)
-  (:ie-kill-ring-yank	    :\Y  :control)
-  (:ie-history-yank	    :\Y  :control :meta)
-  (:ie-yank-next	    :\Y  :meta)
-  (:ie-refresh		    :\L  :control)
+  (:ie-make-room	    :o   :control)
+  (:ie-transpose-characters :t   :control)
+  (:ie-show-arglist	    :a   :control :shift)
+  (:ie-show-value	    :v   :control :shift)
+  (:ie-kill-ring-yank	    :y   :control)
+  (:ie-history-yank	    :y   :control :meta)
+  (:ie-yank-next	    :y   :meta)
+  (:ie-refresh		    :l   :control)
   (:ie-refresh		    :refresh)
-  (:ie-scroll-forward	    :\V  :control)
-  (:ie-scroll-backward	    :\V  :meta)
+  (:ie-scroll-forward	    :v   :control)
+  (:ie-scroll-backward	    :v   :meta)
   (:ie-scroll-forward	    :scroll)
   (:ie-scroll-backward	    :scroll :meta))
 
@@ -798,8 +861,10 @@
   com-ie-universal-argument    :ie-universal-argument
   com-ie-forward-character     :ie-forward-character
   com-ie-forward-word	       :ie-forward-word
+  com-ie-forward-sexp	       :ie-forward-sexp
   com-ie-backward-character    :ie-backward-character
   com-ie-backward-word	       :ie-backward-word
+  com-ie-backward-sexp	       :ie-backward-sexp
   com-ie-beginning-of-buffer   :ie-beginning-of-buffer
   com-ie-end-of-buffer	       :ie-end-of-buffer
   com-ie-beginning-of-line     :ie-beginning-of-line
@@ -808,8 +873,10 @@
   com-ie-previous-line	       :ie-previous-line
   com-ie-delete-character      :ie-delete-character
   com-ie-delete-word	       :ie-delete-word
+  com-ie-delete-sexp	       :ie-delete-sexp
   com-ie-rubout		       :ie-rubout-character
   com-ie-rubout-word	       :ie-rubout-word
+  com-ie-rubout-sexp	       :ie-rubout-sexp
   com-ie-clear-input	       :ie-clear-input
   com-ie-kill-line	       :ie-kill-line
   com-ie-make-room	       :ie-make-room
@@ -826,21 +893,21 @@
 #+(or Allegro Lucid)
 (define-input-editor-gestures
   (:ie-escape-1 :escape)
-  (:ie-escape-2 :\X :control))
+  (:ie-escape-2 :x :control))
 
 #+(or Allegro Lucid)
 (assign-input-editor-key-bindings
-  com-ie-forward-word	       (:ie-escape-1 :\F)
-  com-ie-backward-word	       (:ie-escape-1 :\B)
+  com-ie-forward-word	       (:ie-escape-1 :f)
+  com-ie-backward-word	       (:ie-escape-1 :b)
   com-ie-beginning-of-buffer   (:ie-escape-1 :\<)
   com-ie-end-of-buffer	       (:ie-escape-1 :\>)
-  com-ie-delete-word	       (:ie-escape-1 :\D)
+  com-ie-delete-word	       (:ie-escape-1 :d)
   com-ie-rubout-word	       (:ie-escape-1 :rubout)
-  com-ie-history-yank	       (:ie-escape-1 (:\Y :control))
-  com-ie-yank-next	       (:ie-escape-1 :\Y)
-  com-ie-scroll-backward       (:ie-escape-1 :\V)
-  com-ie-show-arglist	       (:ie-escape-2 (:\A :control))
-  com-ie-show-value	       (:ie-escape-2 (:\V :control)))
+  com-ie-history-yank	       (:ie-escape-1 (:y :control))
+  com-ie-yank-next	       (:ie-escape-1 :y)
+  com-ie-scroll-backward       (:ie-escape-1 :v)
+  com-ie-show-arglist	       (:ie-escape-2 (:a :control))
+  com-ie-show-value	       (:ie-escape-2 (:v :control)))
 
 
 ;;; Some Genera-specific stuff

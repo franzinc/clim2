@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.31 92/07/20 16:01:58 cer Exp Locker: cer $
+;; $fiHeader: xt-graphics.lisp,v 1.32 92/07/27 19:30:25 cer Exp $
 
 (in-package :tk-silica)
 
@@ -108,21 +108,25 @@
 	   (screen (tk::display-screen-number display))
 	   (drawable (or drawable
 			 (tk::display-root-window display))))
-      (setf foreground-gcontext (tk::make-instance 'fast-gcontext
-						   :drawable drawable))
-      (setf background-gcontext (tk::make-instance 'fast-gcontext
-						   :drawable drawable))
-      (setf flipping-gcontext
-	(tk::make-instance 'fast-gcontext 
-			   :drawable drawable
-			   :function boole-xor))
-      (setf color-p (color-medium-p medium))
-      (setf white-pixel (x11:xwhitepixel display screen))
-      (setf black-pixel (x11:xblackpixel display screen))
-      (setf tile-gcontext (make-instance 'fast-gcontext
-					 :drawable drawable
-					 :foreground black-pixel
-					 :background white-pixel))
+      (unless foreground-gcontext
+	(setf foreground-gcontext (tk::make-instance 'fast-gcontext
+						     :drawable drawable)))
+      (unless background-gcontext
+	(setf background-gcontext (tk::make-instance 'fast-gcontext
+						     :drawable drawable)))
+      (unless flipping-gcontext
+	(setf flipping-gcontext
+	  (tk::make-instance 'fast-gcontext 
+			     :drawable drawable
+			     :function boole-xor)))
+      (unless tile-gcontext
+	(setf color-p (color-medium-p medium))
+	(setf white-pixel (x11:xwhitepixel display screen))
+	(setf black-pixel (x11:xblackpixel display screen))
+	(setf tile-gcontext (make-instance 'fast-gcontext
+					   :drawable drawable
+					   :foreground black-pixel
+					   :background white-pixel)))
       (recompute-gcs medium))))
 
 (defmethod degraft-medium :after ((medium xt-medium) (port xt-port) sheet)
@@ -137,6 +141,9 @@
 		 `(when ,gc
 		    (tk::free-gcontext ,gc)
 		    (setf ,gc nil))))
+      ;;-- Do we actually need to do this or cant we save them until
+      ;;-- the next time around. Also, what about all those gc's in
+      ;;-- the ink-table etc etc.
       (loose-gc foreground-gcontext)
       (loose-gc background-gcontext)
       (loose-gc flipping-gcontext)
@@ -1214,5 +1221,5 @@ and on color servers, unless using white or black")
   (x11:xflush (port-display (port medium))))
 
 (defmethod medium-finish-output ((medium xt-medium))
-  (x11:xsync (port-display (port medium))))
+  (x11:xsync (port-display (port medium))))	;--- is this right?
    

@@ -21,7 +21,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: plot.lisp,v 1.4 92/07/24 10:54:45 cer Exp Locker: cer $
+;; $fiHeader: plot.lisp,v 1.5 92/07/27 11:03:34 cer Exp $
 
 (in-package :clim-demo)
 
@@ -405,53 +405,52 @@
 ;; Actual demo code.
 
 (define-application-frame plot-demo () 
-			  ((y-labelling :initform 5)
-			   (plot-data :initform (let ((x #2a((1960 5 11 14)
-							     (1970 8 15 16)
-							     (1980 14 18 15.5)
-							     (1990 19 21 15.2)
-							     (2000 24 22 15.4))))
-						  (let ((n (make-array
-							    (array-dimensions x))))
-						    (destructuring-bind (rows columns) (array-dimensions x)
-						      (dotimes (i rows)
-							(dotimes (j columns)
-							  (setf (aref n i j) (aref x i j))))
-						      n))))
-			   (graph-type :initform :plot)
-			   (x-min :initform nil)
-			   (y-min :initform nil)
-			   (x-max :initform nil)
-			   (y-max :initform nil)
-			   (x-labels :initform (copy-list '("60" "70" "80" "90" "2000")))
-			   (y-labels :initform  (copy-list '("Mexico City" "Tokyo" "New York"))))
+    ((y-labelling :initform 5)
+     (plot-data :initform (let ((x #2a((1960 5 11 14)
+				       (1970 8 15 16)
+				       (1980 14 18 15.5)
+				       (1990 19 21 15.2)
+				       (2000 24 22 15.4))))
+			    (let ((n (make-array
+				       (array-dimensions x))))
+			      (destructuring-bind (rows columns) (array-dimensions x)
+				(dotimes (i rows)
+				  (dotimes (j columns)
+				    (setf (aref n i j) (aref x i j))))
+				n))))
+     (graph-type :initform :plot)
+     (x-min :initform nil)
+     (y-min :initform nil)
+     (x-max :initform nil)
+     (y-max :initform nil)
+     (x-labels :initform (copy-list '("60" "70" "80" "90" "2000")))
+     (y-labels :initform  (copy-list '("Mexico City" "Tokyo" "New York"))))
   (:command-table (plot-demo :inherit-from (plot-command-table accept-values-pane)))
   (:panes 
-   (graph-window :application :display-function 'display-graph
+    (graph-window :application
+		  :display-function 'display-graph
+		  :incremental-redisplay t
+		  :end-of-line-action :allow
+		  :end-of-page-action :allow
+		  :scroll-bars :both
+		  :width :compute :height :compute)
+    (data-window :application
+		 :display-function 'display-data
 		 :incremental-redisplay t
 		 :end-of-line-action :allow
 		 :end-of-page-action :allow
 		 :scroll-bars :both
 		 :width :compute :height :compute)
-   (data-window :application :display-function 'display-data
-		:incremental-redisplay t
-		:end-of-line-action :allow
-		:end-of-page-action :allow
-		:scroll-bars :both
-		:width :compute :height :compute)
-   (options :accept-values
-	    :scroll-bars :both
-	    :end-of-line-action :allow
-	    :end-of-page-action :allow
-	    :display-function `(accept-values-pane-displayer
-				:resynchronize-every-pass t
-				:displayer display-options)
-	    :width :compute
-	    :height :compute)
-   (command :interactor :height '(5 :line)))
+    (options :accept-values
+	     :scroll-bars :both
+	     :display-function `(accept-values-pane-displayer
+				  :resynchronize-every-pass t
+				  :displayer display-options)
+	     :width :compute :height :compute)
+    (command :interactor :height '(5 :line)))
   (:pointer-documentation t)
   (:layouts
-   (:default (vertically () graph-window options data-window command))))
+    (:default (vertically () graph-window options data-window command))))
 
 (defmethod display-options ((frame plot-demo) stream &key &allow-other-keys)
   (with-slots (x-min y-min x-max y-max graph-type) frame
@@ -567,7 +566,7 @@
 	    (accept 'number
 		    :default (aref (slot-value frame 'plot-data) i j))))))
 
-(define-plot-demo-command (com-quit :menu t :name t) () 
+(define-plot-demo-command (com-quit-plot-demo :menu "Quit" :name "Quit") () 
   (frame-exit *application-frame*))
 
 (defmethod display-graph ((frame plot-demo) stream &key &allow-other-keys)

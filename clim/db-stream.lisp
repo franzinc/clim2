@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-stream.lisp,v 1.25 92/07/24 10:54:19 cer Exp Locker: cer $
+;; $fiHeader: db-stream.lisp,v 1.26 92/07/27 11:02:19 cer Exp $
 
 (in-package :clim-internals)
 
@@ -21,15 +21,12 @@
 	   sheet-mute-input-mixin
 	   sheet-multiple-child-mixin
 	   space-requirement-mixin
-	   ;; We depend on PERMANENT-MEDIUM-SHEET-OUTPUT-MIXIN, which
-	   ;; we get from PANE...
+	   permanent-medium-sheet-output-mixin
 	   pane)
     ()
   (:default-initargs 
     :medium t 
-    ;; Make sure that CLIM streams have fresh translation transformation
-    ;; so that we can modify it during scrolling
-    :transformation (clim-utils::make-translation-transformation-1 0f0 0f0)))
+    :transformation +identity-transformation+))
 
 ;;--- Do we still need this?
 (defmethod pane-stream ((pane clim-stream-sheet))
@@ -87,13 +84,6 @@
        :reader pane-display-time
        :initarg :display-time :initform :command-loop		
        :type (member nil :command-loop t))))
-	   
-(defmethod initialize-instance :after 
-	   ((pane clim-stream-pane) &key &allow-other-keys)
-  ;; Make sure that CLIM streams have fresh translation transformation
-  ;; so that we can modify it during scrolling
-  (setf (sheet-transformation pane)
-	(clim-utils::make-translation-transformation-1 0f0 0f0)))
 
 (defmethod pane-needs-redisplay ((pane clim-stream-pane))
   (with-slots (display-time) pane
@@ -247,7 +237,7 @@
     (:sw
       (let ((xform (sheet-transformation pane)))
 	(setq xform (make-scaling-transformation 1 -1))
-	;; --- stream-panes ALWAYS have to have a parent to manage the
+	;; Stream panes always have to have a parent to manage the
 	;; viewport clipping, etc.
 	(setq xform (compose-transformations
 		      xform
@@ -266,9 +256,9 @@
 ;; to represent the size of the contents, but may be stretched to fill the
 ;; available viewport space.
 (defmethod change-space-requirements :around
-	   ((pane clim-stream-pane) &rest keys &key width height)
+	   ((pane clim-stream-pane) &rest keys &key width height &allow-other-keys)
   (declare (dynamic-extent keys))
-  ;; Assume always called with width height
+  ;; Assume always called with width and height
   (multiple-value-bind (history-width history-height)
       (if (stream-current-output-record pane)
 	  (bounding-rectangle-size (stream-current-output-record pane))
@@ -315,7 +305,7 @@
 	(setq pane `(vertically ()
 		      ,pane
 		      (make-pane 'label-pane 
-			:text ,label
+			:label ,label
 			:max-width +fill+))))
       `(outlining (:thickness 1)
 	 ,pane))))
@@ -340,7 +330,7 @@
 	;; cursor might be visible at (0,0) and the extent is big
 	;; enough but...
 	;;--- This does a lot of uncessary expensive bitblting, but
-	;;--- how do we avoid, it since a lot of what it does we need
+	;;--- how do we avoid it, since a lot of what it does we need
 	;;--- to do to reset the viewport
 	(scroll-extent stream :x 0 :y 0)
 	(stream-set-cursor-position stream 0 0)
@@ -388,7 +378,9 @@
   t)
 
 (defmethod window-viewport ((stream clim-stream-sheet))
-  (pane-viewport-region stream))
+  (or (pane-viewport-region stream)
+      ;; Not a scrolling pane, so the sheet's region is the viewport
+      (sheet-region stream)))
 
 (defmethod window-viewport-position ((stream clim-stream-sheet))
   (bounding-rectangle-position (pane-viewport-region stream)))
@@ -405,6 +397,12 @@
 
 (defmethod window-set-inside-size ((stream clim-stream-sheet) width height)
   (change-space-requirements stream :width width :height height :resize-frame t))
+
+(defmethod window-inside-width ((stream clim-stream-sheet))
+  (bounding-rectangle-width (pane-viewport-region stream)))
+
+(defmethod window-inside-height ((stream clim-stream-sheet))
+  (bounding-rectangle-width (pane-viewport-region stream)))
 
 (defun-inline window-parent (window)
   (sheet-parent window))
@@ -423,9 +421,9 @@
 (defun beep (&optional (stream *standard-output*))
   (typecase stream
     (sheet
-     (medium-beep (sheet-medium stream)))
+      (medium-beep (sheet-medium stream)))
     (encapsulating-stream
-     (beep (encapsulating-stream-stream stream)))))
+      (beep (encapsulating-stream-stream stream)))))
 
 ;; If you close window in a frame, just exit from the frame.
 ;; Otherwise, destroy directly mirrored sheets, or just disable the sheet.
@@ -435,10 +433,9 @@
   (let ((frame (pane-frame sheet)))
     (if frame
         (frame-exit frame)
-      (if (sheet-direct-mirror sheet)
-	  (destroy-mirror (port sheet) sheet)
-	(setf (sheet-enabled-p sheet) nil)))))
-
+	(if (sheet-direct-mirror sheet)
+	    (destroy-mirror (port sheet) sheet)
+	    (setf (sheet-enabled-p sheet) nil)))))
 
 ;; This is called by SCROLL-EXTENT.  It shifts a region of the "host screen"
 ;; that's visible to some other visible location.  It does NOT do any cleaning

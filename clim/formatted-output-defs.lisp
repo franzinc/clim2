@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: formatted-output-defs.lisp,v 1.2 92/01/31 14:57:56 cer Exp $
+;; $fiHeader: formatted-output-defs.lisp,v 1.3 92/02/24 13:07:28 cer Exp $
 
 (in-package :clim-internals)
 
@@ -13,22 +13,12 @@
 			     &key x-spacing y-spacing
 				  multiple-columns multiple-columns-x-spacing	
 				  equalize-column-widths
-				  record-type (move-cursor t)
-				  #+CLIM-1-compatibility inter-row-spacing
-				  #+CLIM-1-compatibility inter-column-spacing
-				  #+CLIM-1-compatibility multiple-columns-inter-column-spacing)
+				  record-type (move-cursor t))
 			    &body body)
   (declare (ignore x-spacing y-spacing 
 		   multiple-columns multiple-columns-x-spacing
 		   equalize-column-widths record-type move-cursor))
   #+Genera (declare (zwei:indentation 0 3 1 1))
-  #+CLIM-1-compatibility
-  (when (or inter-row-spacing inter-column-spacing multiple-columns-inter-column-spacing)
-    (setf (getf options :x-spacing) inter-column-spacing)
-    (setf (getf options :y-spacing) inter-row-spacing)
-    (setf (getf options :multiple-columns-x-spacing) multiple-columns-inter-column-spacing)
-    (warn "Converting old style call to ~S to the new style.~%~
-	   Please update your code." 'formatting-table))
   (default-output-stream stream formatting-table)
   `(flet ((formatting-table-body (,stream) ,@body))
      (declare (dynamic-extent #'formatting-table-body))
@@ -51,18 +41,10 @@
 (defmacro formatting-cell ((&optional stream
 			    &rest options
 			    &key (align-x ':left) (align-y ':top)
-				 min-width min-height record-type
-				 #+CLIM-1-compatibility minimum-width
-				 #+CLIM-1-compatibility minimum-height)
+				 min-width min-height record-type)
 			   &body body)
   (declare (ignore align-x align-y min-width min-height record-type))
   #+Genera (declare (zwei:indentation 0 3 1 1))
-  #+CLIM-1-compatibility
-  (when (or minimum-width minimum-height)
-    (setf (getf options :min-width) minimum-width)
-    (setf (getf options :min-height) minimum-height)
-    (warn "Converting old style call to ~S to the new style.~%~
-	   Please update your code." 'formatting-cell))
   (default-output-stream stream formatting-cell)
   `(flet ((formatting-cell-body (,stream) ,@body))
      (declare (dynamic-extent #'formatting-cell-body))
@@ -75,20 +57,12 @@
 				      n-columns n-rows
 				      max-width max-height
 				      stream-width stream-height
-				      (move-cursor T)
-				      #+CLIM-1-compatibility inter-row-spacing
-				      #+CLIM-1-compatibility inter-column-spacing)
+				      (move-cursor T))
 				&body body)
   (declare (ignore x-spacing y-spacing initial-spacing
 		   record-type n-columns n-rows max-width max-height
 		   stream-width stream-height move-cursor))
   #+Genera (declare (zwei:indentation 0 3 1 1))
-  #+CLIM-1-compatibility
-  (when (or inter-row-spacing inter-column-spacing)
-    (setf (getf options :x-spacing) inter-column-spacing)
-    (setf (getf options :y-spacing) inter-row-spacing)
-    (warn "Converting old style call to ~S to the new style.~%~
-	   Please update your code." 'formatting-item-list))
   (default-output-stream stream formatting-item-list)
   `(flet ((formatting-item-list-body (,stream) ,@body))
      (declare (dynamic-extent #'formatting-item-list-body))

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-gadgets.lisp,v 1.16 92/07/20 16:01:57 cer Exp Locker: cer $
+;; $fiHeader: xt-gadgets.lisp,v 1.17 92/07/24 10:55:03 cer Exp $
 
 (in-package :xm-silica)
 
@@ -34,7 +34,7 @@
 				width :height height)
     (declare (ignore x y borderwidth care-x care-y care-width
 		     care-height care-borderwidth)) 
-    (make-instance 'space-requirement :width width :height height)))
+    (make-space-requirement :width width :height height)))
 
 
 ;;; Pane

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: POSTSCRIPT-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: postscript-medium.lisp,v 1.2 92/07/08 16:32:09 cer Exp $
+;; $fiHeader: postscript-medium.lisp,v 1.3 92/07/27 11:03:53 cer Exp $
 
 (in-package :postscript-clim)
 
@@ -34,8 +34,8 @@
 
 (defun use-line-style (stream line-style)
   (let ((thickness (case (line-style-unit line-style)
-		     (:normal (normal-line-thickness (stream-display-device-type stream)
-						     (line-style-thickness line-style)))
+		     (:normal (normal-line-thickness 
+				(port stream) (line-style-thickness line-style)))
 		     (:points (line-style-thickness line-style))))
 	(dashes (line-style-dashes line-style)))
     (with-slots (printer-stream) stream
@@ -86,11 +86,12 @@
   (maybe-set-color stream (make-color-for-contrasting-ink ink)))
 
 (defmacro with-postscript-drawing-options ((stream printer-stream-var
-					    &key ink line-style epilogue (newpath T))
+					    &key ink (filled nil filled-p) line-style
+						 epilogue (newpath t))
 					   &body body)
   (let ((printer-stream (or printer-stream-var (make-symbol "printer-stream"))))
     `(let ((,printer-stream (slot-value ,stream 'printer-stream)))
-       (when ,line-style
+       (when (and ,@(and filled-p `((not ,filled))) ,line-style)
 	 (use-line-style ,stream ,line-style))
        (maybe-set-color ,stream ,ink)
        ,@(when newpath `((format ,printer-stream " newpath~%")))
@@ -167,7 +168,7 @@
       left top right bottom)
     (with-postscript-drawing-options (medium printer-stream
 				      :epilogue :default
-				      :ink ink :line-style line-style)
+				      :ink ink :filled filled :line-style line-style)
       (ps-pos-op medium "m" left top)
       (ps-pos-op medium "lineto" right top)
       (ps-pos-op medium "lineto" right bottom)
@@ -183,7 +184,7 @@
 	 (line-style (medium-line-style medium)))
     (with-postscript-drawing-options (medium printer-stream
 				      :epilogue :default
-				      :ink ink :line-style line-style)
+				      :ink ink :filled filled :line-style line-style)
       (map-endpoint-sequence
 	#'(lambda (left top right bottom)
 	    (convert-to-postscript-coordinates transform
@@ -215,7 +216,7 @@
 	  (if (< y miny) (setq miny y))))
       (with-postscript-drawing-options (medium printer-stream
 					:epilogue :default
-					:ink ink :line-style line-style)
+					:ink ink :filled filled :line-style line-style)
 	(let ((start-x (svref points 0))
 	      (start-y (svref points 1)))
 	  (ps-pos-op medium "m" start-x start-y)
@@ -258,7 +259,7 @@
 		     (* (cos a) y-radius))))
 	(with-postscript-drawing-options (medium printer-stream
 					  :epilogue :default
-					  :ink ink :line-style line-style)
+					  :ink ink :filled filled :line-style line-style)
 	  (ps-pos-op medium "ellipse" center-x center-y
 		     x-radius y-radius
 		     ;; don't allow the common full-circle case to be
@@ -298,7 +299,7 @@
 	   (descent (psfck-clim-descent fcs))
 	   (ascent (- height descent)))
       (let ((x-adjust 
-	      (compute-text-x-adjustment align-x medium character text-style))
+	      (compute-text-x-adjustment align-x medium string text-style))
 	    (y-adjust 
 	      (compute-text-y-adjustment align-y descent ascent height)))
 	(incf x x-adjust)
@@ -392,56 +393,56 @@
 
 ;;; provide a way for the "user" to start a new page.
 ;;; Should this have a different name?
-;;; Should this functionality be invoked by wriuting the #\page character?
+;;; Should this functionality be invoked by writing the #\page character?
 (defmethod new-page ((stream postscript-medium))
   (with-slots (printer-stream orientation) stream
     (format printer-stream "new-page~%"))
-  ;; simulate WINDOW-CLEAR:
-  (clear-output-history stream)
+  ;; Simulate WINDOW-CLEAR
+  (when (stream-output-history stream)
+    (clear-output-record (stream-output-history stream)))
+  (setf (stream-text-output-record stream) nil)
   (when (extended-output-stream-p stream)	;can we assume this?
-    (stream-set-cursor-position* stream 0 0)
+    (stream-set-cursor-position stream 0 0)
     (setf (stream-baseline stream) 0
-	  (stream-current-line-height stream) 0)))
+	  (clim-internals::stream-current-line-height stream) 0)))
 
-(defmacro with-ps-stream-glyph-for-character (&body body)
-  `(macrolet ((stream-glyph-for-character (stream character style &optional our-font)
-		`(with-slots (display-device-type) ,stream
-		   (multiple-value-bind (character-set index)
-		       (char-character-set-and-index ,character)
-		     (declare (ignore character-set))
-		     ;; For now we are asserting that each string passed to WRITE-STRING will
-		     ;; have no style changes within it.  This is what our-font is all
-		     ;; about.
-		     (let* ((fcs (or our-font (get-font-compat-str stream ,style)))
-			    (CWT (psfck-width-table fcs))
-			    (relwidth (if (numberp CWT) 
-					  CWT
-					  (aref CWT index)))
-			    (escapement-x (* (psfck-clim-height fcs) relwidth))
-			    (escapement-y 0)
-			    (origin-x 0)
-			    (origin-y (psfck-clim-ascent fcs))
-			    ;; really ought know real dope, but not avl yet
-			    (bb-x escapement-x)
-			    (bb-y (psfck-clim-height fcs)))
-		       (values index fcs escapement-x escapement-y origin-x origin-y
-			       bb-x bb-y (numberp cwt)))))))
+(defmacro with-postscript-glyph-for-character (&body body)
+  `(macrolet ((port-glyph-for-character (port character style &optional our-font)
+		`(multiple-value-bind (character-set index)
+		     (char-character-set-and-index ,character)
+		   (declare (ignore character-set))
+		   ;; For now we are asserting that each string passed to WRITE-STRING will
+		   ;; have no style changes within it.  This is what our-font is all
+		   ;; about.
+		   (let* ((fcs (or ,our-font (get-font-compat-str ,port ,style)))
+			  (cwt (psfck-width-table fcs))
+			  (relwidth (if (numberp cwt) 
+					cwt
+					(aref cwt index)))
+			  (escapement-x (* (psfck-clim-height fcs) relwidth))
+			  (escapement-y 0)
+			  (origin-x 0)
+			  (origin-y (psfck-clim-ascent fcs))
+			  ;; really ought know real dope, but not avl yet
+			  (bb-x escapement-x)
+			  (bb-y (psfck-clim-height fcs)))
+		     (values index fcs escapement-x escapement-y origin-x origin-y
+			     bb-x bb-y (numberp cwt))))))
      ,@body))
 
-(defmethod stream-glyph-for-character ((stream postscript-medium)
-				       character style &optional our-font)
+(defmethod port-glyph-for-character ((port postscript-port)
+				     character style &optional our-font)
   (declare (values index font escapement-x escapement-y origin-x origin-y bb-x bb-y
 		   fixed-width-font-p))
-  (with-ps-stream-glyph-for-character
-    (stream-glyph-for-character stream character style our-font)))
+  (with-postscript-glyph-for-character
+    (port-glyph-for-character port character style our-font)))
 
-(defmethod stream-scan-string-for-writing ((stream postscript-medium) medium
-					    string start end style cursor-x max-x
-					    &optional glyph-buffer)
-  (declare (type coordinate cursor-x max-x))
-  (declare (fixnum start end))
-  (with-ps-stream-glyph-for-character 
-    (stream-scan-string-for-writing-body)))
+(defmethod stream-scan-string-for-writing 
+	   ((stream clim-internals::output-protocol-mixin) (medium postscript-medium)
+	    string start end style cursor-x max-x &optional glyph-buffer)
+  (with-postscript-glyph-for-character 
+    (stream-scan-string-for-writing-1
+      stream medium string start end style cursor-x max-x glyph-buffer)))
 
 (defmethod set-font-if-needed ((stream postscript-medium) fcs)
   (with-slots (printer-stream curfont) stream
@@ -466,14 +467,14 @@
       (setq start (1+ next-special))))
   (format printer-stream ") show~%"))
 
-(defmethod get-font-compat-str ((stream postscript-medium) text-style)
-  (with-slots (font-map printer-stream draw-p) stream 
+(defmethod get-font-compat-str ((medium postscript-medium) text-style)
+  (with-slots (font-map printer-stream draw-p) medium 
     (let* ((styledesc (parse-text-style text-style))
 	   (al (length font-map))
 	   (fcs
 	     (do ((i 0 (1+ i)))
 		 ((>= i al)
-		  (error "Font map overflow for ~S" stream))
+		  (error "Font map overflow for ~S" medium))
 	       (let ((fcs (aref font-map i)))
 		 (when (null fcs)
 		   (setq fcs (make-new-fcs styledesc i))

@@ -1,18 +1,15 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: frames.lisp,v 1.34 92/07/27 11:02:21 cer Exp Locker: cer $
+;; $fiHeader: frames.lisp,v 1.35 92/07/27 19:29:46 cer Exp $
 
 (in-package :clim-internals)
 
 "Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved.
- Portions copyright (c) 1989, 1990 International Lisp Associates.
- Portions copyright (c) 1991, 1992 Franz, Inc.  All rights reserved."
+ Portions copyright (c) 1991, 1992 Franz, Inc.  All rights reserved.
+ Portions copyright (c) 1989, 1990 International Lisp Associates."
 
 (define-protocol-class application-frame ())
 
-;;--- We should add an input event-queue to frames, so that other
-;;--- processes can queue up requests.  This queue should be managed
-;;--- like other event queues.  It can contains "command" events, too.
 (defclass standard-application-frame (application-frame)
     ((name :initarg :name :accessor frame-name)
      (pretty-name :initarg :pretty-name :accessor frame-pretty-name)
@@ -23,7 +20,7 @@
      ;; One of  T, NIL, or a command-table; used by the menu-bar
      (menu-bar :initarg :menu-bar :initform nil)
      (histories :initform nil)
-     (frame-manager :reader frame-manager)
+     (frame-manager :accessor frame-manager)
      (calling-frame :reader frame-calling-frame :initarg :calling-frame)
      ;; PANES is the description of all of the named panes,
      ;; ALL-PANES is an alist that stores all of the named panes that
@@ -41,13 +38,13 @@
      (current-layout :initarg :default-layout :initform nil
 		     :reader frame-current-layout)
      (geometry :initform nil :initarg :geometry :reader frame-geometry)
+     (icon :initform nil :initarg :icon :reader frame-icon)
      (user-specified-position-p :initform :unspecified
 				:initarg :user-specified-position-p
 				:reader frame-user-specified-position-p)
      (user-specified-size-p :initform :unspecified
 			    :initarg :user-specified-size-p
 			    :reader frame-user-specified-size-p)
-     (icon :initform nil :initarg :icon :reader frame-icon)
      (shell :accessor frame-shell)
      (pointer-documentation-p :initarg :pointer-documentation
 			      :reader frame-pointer-documentation-p)
@@ -69,10 +66,13 @@
 (defmethod graft ((frame standard-application-frame))
   (graft (frame-manager frame)))
 
-#+CLIM-1-compatibility
-(define-compatibility-function (frame-top-level-window frame-top-level-sheet)
-			       (frame)
-  (frame-top-level-sheet frame))
+;;--- These should really be somewhere else
+(defmethod frame-manager ((stream standard-encapsulating-stream))
+  (frame-manager (slot-value stream 'stream)))
+
+(defmethod frame-manager ((stream t))
+  (cond (*application-frame* (frame-manager *application-frame*))
+	(t (find-frame-manager))))
 
 (defmethod initialize-instance :after ((frame standard-application-frame) 
 				       &rest args
@@ -174,7 +174,7 @@
     #-Silica (warn-if-pane-descriptions-invalid name pane-descriptions)
     #-Silica (warn-if-layouts-invalid name layouts pane-descriptions)
     (let ((pane-constructors 
-	    (cond (layouts
+	    (cond (panes
 		   (compute-pane-constructor-code panes))
 		  (pane
  		   (compute-pane-constructor-code `((,name ,pane))))))
@@ -195,7 +195,7 @@
 	   (when ',command-table
 	     (setf (compile-time-property ',(first command-table) 'command-table-name) t))
 	   (define-application-frame-1 ',name ',slots ,pane-constructors
-				       :layouts ',layout-value
+				       :layouts ,layout-value
 				       :top-level ',top-level
 				       :command-table ',command-table))
 	 (define-group ,name define-application-frame
@@ -207,7 +207,7 @@
 	       :pointer-documentation ',pointer-documentation
 	       ,@(and command-table `(:command-table ',(car command-table)))
 	       ,@(and top-level `(:top-level ',top-level))
-	       ,@(and layouts `(:pane-constructors ,pane-constructors))
+	       ,@(and panes `(:pane-constructors ,pane-constructors))
 	       ,@(and layouts `(:default-layout ',(caar layouts)))
 	       ,@(and icon `(:icon (list ,@icon)))
 	       ,@(and geometry `(:geometry (list ,@geometry)))
@@ -229,7 +229,7 @@
 	   ;;--- Need to handle DISABLED-COMMANDS properly, 
 	   ;;--- which entails doing a COPY-LIST
 	   (define-application-frame-1 ',name ',slots ,pane-constructors
-				       :layouts ',layout-value
+				       :layouts ,layout-value
 				       :top-level ',top-level
 				       :command-table ',command-table
 				       :disabled-commands ',disabled-commands)
@@ -256,14 +256,6 @@
 #+Genera
 (scl:defun (:property define-frame-command zwei:definition-function-spec-finder) (bp)
   (zwei:defselect-function-spec-finder (zwei:forward-sexp bp 1 t)))
-
-#+CLIM-1-compatibility
-(defmacro with-frame-state-variables
-	  ((frame-name &optional (frame '*application-frame*)) &body body)
-  ;; frame descriptor must be findable at compile-time
-  (let* ((descriptor (find-frame-descriptor frame-name))
-	 (state-variables (frame-descriptor-state-variable-names descriptor)))
-    `(with-slots ,state-variables ,frame ,@body)))
 
 (defun warn-if-command-table-invalid (frame-name command-table)
   (cond ((not (and (listp command-table)
@@ -382,28 +374,30 @@
 
 ;;--- :text-style '(:sans-serif :bold :very-large)
 ;;--- :display-function 'display-title
-;;--- :display-after-commands nil
-;;--- :default-size :compute
-;;--- :scroll-bars nil
 (define-pane-type :title (&rest options)
   (declare (non-dynamic-extent options))
   `(make-pane 'title-pane 
-	      :end-of-page-action :allow 
-	      :end-of-line-action :allow 
-	      ,@options))
+     :end-of-page-action :allow 
+     :end-of-line-action :allow 
+     ,@options
+     :text-style '(:sans-serif :bold :very-large)
+     :display-after-commands nil
+     :width :compute :height :compute
+     :scroll-bars nil))
 
-;;--- :text-style *command-table-menu-text-style*
-;;--- :incremental-redisplay t
-;;--- :display-function 'display-command-menu
-;;--- :display-after-commands t
-;;--- :default-size :compute
-;;--- :scroll-bars nil
 (define-pane-type :command-menu (&rest options)
   (declare (non-dynamic-extent options))
   `(make-pane 'command-menu-pane
-	      :end-of-page-action :allow 
-	      :end-of-line-action :allow 
-	      ,@options))
+     :end-of-page-action :allow 
+     :end-of-line-action :allow 
+     ,@options
+     :display-function `(display-command-menu :command-table ,(frame-command-table frame))
+     :incremental-redisplay t
+     :display-after-commands t
+     :default-text-style *command-table-menu-text-style*
+     :text-style *command-table-menu-text-style*
+     :width :compute :height :compute
+     :scroll-bars nil))
 
 ;;--- :scroll-bars :vertical
 (define-pane-type :interactor (&rest options)
@@ -431,9 +425,9 @@
 (define-pane-type :pointer-documentation (&rest options)
   (declare (non-dynamic-extent options))
   `(make-pane 'pointer-documentation-pane
-	      :end-of-page-action :allow
-	      :end-of-line-action :allow
-	      ,@options))
+     :end-of-page-action :allow
+     :end-of-line-action :allow
+     ,@options))
 
 (define-pane-type scroll-bar (&rest options)
   (declare (non-dynamic-extent options))
@@ -491,8 +485,8 @@
 			(list name 
 			      (funcall (second (assoc name pane-constructors))
 				       frame (frame-manager frame)))))
-		  ;; Use APPEND to preserve the pane ordering
-		  (setq all-panes (append all-panes (list new-pane)))
+		  ;; Maintain ALL-PANES in the order the panes are created
+		  (setq all-panes (nconc all-panes (list new-pane)))
 		  new-pane)))))
  
 (defmethod layout-frame ((frame standard-application-frame) &optional width height)
@@ -500,19 +494,19 @@
 	(*application-frame* frame))
     (when panes
       (clear-space-requirement-caches-in-tree panes)
-      (unless (and width height)
-	(let ((sr (compose-space panes)))
-	  (unless width
-	    (setq width  (space-requirement-width sr)))
-	  (unless height
-	    (setq height (space-requirement-height sr)))
-	  ;;--- This looks dubious  --SWM
-	  (multiple-value-bind (gw gh)
-	      (bounding-rectangle-size (graft frame))
-	    (unless width
-	      (minf width (* 0.9 gw)))
-	    (unless height
-	      (minf height (* 0.9 gh))))))
+      (multiple-value-bind (graft-width graft-height) 
+	  (bounding-rectangle-size (graft frame))
+	(cond ((and width height)
+	       (minf width graft-width) 
+	       (minf height graft-height))
+	      (t
+	       (let ((sr (compose-space panes)))
+		 (setq width  (or width (space-requirement-width sr))
+		       height (or height (space-requirement-height sr)))
+		 ;;--- This fudge factor stuff looks dubious  --SWM
+		 (let ((fudge-factor #+Allegro 0.9 #-Allegro 1))
+		   (minf-or width (* graft-width fudge-factor))
+		   (minf-or height (* graft-height fudge-factor)))))))
       ;;--- Don't bother with this if the size didn't change?
       (let ((top-sheet (or (frame-top-level-sheet frame) panes)))
 	(if (and (sheet-enabled-p top-sheet)
@@ -548,34 +542,22 @@
 	  (map-over-sheets #'adjust-layout (frame-top-level-sheet frame)))))
     ;;--- Don't throw, just recompute stream bindings in a principled way
     (throw 'layout-changed nil)))
-		 
-#+CLIM-1-compatibility
-(define-compatibility-function (set-frame-layout (setf frame-current-layout))
-			       (frame layout)
-  (setf (frame-current-layout frame) layout))
 
+(defmethod frame-all-layouts ((frame standard-application-frame))
+  (mapcar #'first (frame-layouts frame)))
+		 
 (defun make-application-frame (frame-name &rest options 
 			       &key frame-class
 				    enable pretty-name
 			            left top right bottom width height
-				    save-under
 				    (user-specified-position-p :unspecified)
-				    (user-specified-size-p :unspecified)
+ 				    (user-specified-size-p :unspecified)
+				    save-under
 			       &allow-other-keys)
   (declare (dynamic-extent options))
   (check-type pretty-name (or null string))
   (when (null frame-class)
     (setq frame-class frame-name))
-  (when (eq user-specified-position-p :unspecified)
-    (if (or (and (getf (getf options :geometry) :left)
- 		 (getf (getf options :geometry) :top))
- 	    (and left top))
- 	(setf user-specified-position-p t)))
-  (when (eq user-specified-size-p :unspecified)
-    (if (or (and (getf (getf options :geometry) :width)
- 		 (getf (getf options :geometry) :height))
- 	    (and width height))
- 	(setf user-specified-size-p t)))
   (when (or left top right bottom width height)
     (when (getf options :geometry)
       (error "Cannot specify ~S and ~S, S, ~S, ~S, ~S, or ~S at the same time"
@@ -601,11 +583,19 @@
 		  (and top `(:top ,top))
 		  (and width `(:width ,width))
 		  (and height `(:height ,height)))))
+  (let ((geometry (getf options :geometry)))
+    (when (and (eq user-specified-position-p :unspecified)
+	       (getf geometry :left)
+	       (getf geometry :top))
+      (setf user-specified-position-p t))
+    (when (and (eq user-specified-size-p :unspecified)
+	       (getf geometry :width)
+	       (getf geometry :height))
+      (setf user-specified-size-p t)))
   (with-keywords-removed (options options 
 			  '(:frame-class :pretty-name :enable :save-under
 			    :left :top :right :bottom :width :height
-			    :user-specified-position-p
- 			    :user-specified-size-p))
+			    :user-specified-position-p :user-specified-size-p))
     (let ((frame (apply #'make-instance
 			frame-class
 			:name frame-name
@@ -620,16 +610,6 @@
 	(enable-frame frame))
       frame)))
 
-<<<<<<< frames.lisp
-
-(defun title-capitalize (string)
-  (let ((new-string (substitute #\Space #\- string)))
-    (when (eq new-string string)
-      (setq new-string (copy-seq new-string)))
-    (nstring-capitalize new-string)))
-
-=======
->>>>>>> 1.34
 (defmethod enable-frame ((frame standard-application-frame))
   (unless (frame-manager frame)
     (error "Cannot enable a disowned frame ~S" frame))
@@ -648,7 +628,9 @@
 	   frame
 	   (ecase old
 	     (:disowned 
-	      (values width height))
+ 	       (if (and width height)
+		   (values width height)
+		   (values)))
 	     (:disabled
 	       (bounding-rectangle-size
 		 (frame-top-level-sheet frame)))))
@@ -756,64 +738,64 @@
     (enable-frame frame))
   (loop
     (let* ((*standard-output*
-	       (or (frame-standard-output frame) *standard-output*))
-	     (*standard-input* 
-	       (or (frame-standard-input frame) *standard-output*))
-	     (*query-io* 
-	       (or (frame-query-io frame) *standard-input*))
-	     (*error-output* 
-	       (or (frame-error-output frame) *standard-output*))
-	     (interactor
-	       (not (null (find-frame-pane-of-type frame 'interactor-pane))))
-	     (*command-parser*
-	       (or command-parser
-		   (if interactor
-		       #'command-line-command-parser
-		       #'menu-command-parser)))
-	     (*command-unparser*
-	       (or command-unparser 
-		   #'command-line-command-unparser))
-	     (*partial-command-parser* 
-	       (or partial-command-parser
-		   (if interactor
-		       #'command-line-read-remaining-arguments-for-partial-command
-		       #'menu-read-remaining-arguments-for-partial-command)))
-	     (*pointer-documentation-output*
-	      (frame-pointer-documentation-output frame))
-	     (command-stream
-	       ;;--- We have to ask the frame since we do not want to
-	       ;;--- just pick up a stream from the dynamic environment
-	       (let ((si (or (frame-standard-input frame)
-			     (frame-standard-output frame))))
-		 ;;--- I'm not really convinced that this is right  --SWM
-		 (typecase si
-		   (output-protocol-mixin si)
-		   (t (frame-top-level-sheet frame))))))
-	#+Allegro
-	(unless (typep *standard-input* 'excl::bidirectional-terminal-stream)
-	  (assert (port *standard-input*)))
-	#+Allegro
-	(unless (typep *standard-output* 'excl::bidirectional-terminal-stream)
-	  (assert (port *standard-output*)))
-	#+Allegro
-	(unless (typep *query-io* 'excl::bidirectional-terminal-stream)
-	  (assert (port *query-io*)))
-	;; The read-eval-print loop for applications...
-	(loop
-	  ;; Redisplay all the panes
-	  (catch-abort-gestures ("Return to ~A command level" (frame-pretty-name frame))
-	    (redisplay-frame-panes frame)
+	     (or (frame-standard-output frame) *standard-output*))
+	   (*standard-input* 
+	     (or (frame-standard-input frame) *standard-output*))
+	   (*query-io* 
+	     (or (frame-query-io frame) *standard-input*))
+	   (*error-output* 
+	     (or (frame-error-output frame) *standard-output*))
+	   (*pointer-documentation-output*
+	     (frame-pointer-documentation-output frame))
+	   (interactor
+	     (not (null (find-frame-pane-of-type frame 'interactor-pane))))
+	   (*command-parser*
+	     (or command-parser
+		 (if interactor
+		     #'command-line-command-parser
+		     #'menu-command-parser)))
+	   (*command-unparser*
+	     (or command-unparser 
+		 #'command-line-command-unparser))
+	   (*partial-command-parser* 
+	     (or partial-command-parser
+		 (if interactor
+		     #'command-line-read-remaining-arguments-for-partial-command
+		     #'menu-read-remaining-arguments-for-partial-command)))
+	   (command-stream
+	     ;;--- We have to ask the frame since we do not want to
+	     ;;--- just pick up a stream from the dynamic environment
+	     (let ((si (or (frame-standard-input frame)
+			   (frame-standard-output frame))))
+	       ;;--- I'm not really convinced that this is right  --SWM
+	       (typecase si
+		 (output-protocol-mixin si)
+		 (t (frame-top-level-sheet frame))))))
+      #+Allegro
+      (unless (typep *standard-input* 'excl::bidirectional-terminal-stream)
+	(assert (port *standard-input*)))
+      #+Allegro
+      (unless (typep *standard-output* 'excl::bidirectional-terminal-stream)
+	(assert (port *standard-output*)))
+      #+Allegro
+      (unless (typep *query-io* 'excl::bidirectional-terminal-stream)
+	(assert (port *query-io*)))
+      ;; The read-eval-print loop for applications...
+      (loop
+	;; Redisplay all the panes
+	(catch-abort-gestures ("Return to ~A command level" (frame-pretty-name frame))
+	  (redisplay-frame-panes frame)
+	  (when interactor
+	    (fresh-line *standard-input*)
+	    (if (stringp prompt)
+		(write-string prompt *standard-input*)
+		(funcall prompt *standard-input* frame)))
+	  (let ((command (read-frame-command frame :stream command-stream)))
 	    (when interactor
-	      (fresh-line *standard-input*)
-	      (if (stringp prompt)
-		  (write-string prompt *standard-input*)
-		  (funcall prompt *standard-input* frame)))
-	    (let ((command (read-frame-command frame :stream command-stream)))
-	      (when interactor
-		(terpri *standard-input*))
-	      ;; Need this check in case the user aborted out of a command menu
-	      (when command
-		(execute-frame-command frame command))))))))
+	      (terpri *standard-input*))
+	    ;; Need this check in case the user aborted out of a command menu
+	    (when command
+	      (execute-frame-command frame command))))))))
 
 ;; Generic because someone might want :BEFORE or :AFTER
 (defmethod frame-exit ((frame standard-application-frame))
@@ -862,26 +844,8 @@
 (defun position-sheet-near-pointer (sheet &optional x y)
   (unless (and x y)
     (multiple-value-setq (x y)
-      (pointer-native-position (stream-primary-pointer sheet))))
+      (pointer-native-position (port-pointer (port sheet)))))
   (position-sheet-carefully sheet x y))
-
-#+CLIM-1-compatibility
-(progn
-(define-compatibility-function (position-window-near-carefully position-sheet-carefully)
-			       (window x y)
-  (position-sheet-carefully window x y))
-
-(define-compatibility-function (position-window-near-pointer position-sheet-near-pointer)
-			       (window &optional x y)
-  (position-sheet-near-pointer window x y))
-
-(define-compatibility-function (size-menu-appropriately size-frame-from-contents)
-			       (menu &key width height right-margin bottom-margin size-setter)
-  (size-frame-from-contents menu
-			    :width width :height height
-			    :right-margin right-margin :bottom-margin bottom-margin
-			    :size-setter size-setter))
-)	;#+CLIM-1-compatibility
 
 
 #-Silica
@@ -1053,20 +1017,6 @@
 	  (t
 	   (push command-name disabled-commands)
 	   (note-command-enabled (frame-manager frame) frame command-name)))))
-
-#+CLIM-1-compatibility
-(progn
-(define-compatibility-function (command-enabled-p command-enabled)
-			       (command-name frame)
-  (command-enabled command-name frame))
-
-(define-compatibility-function (enable-command (setf command-enabled))
-			       (command-name frame)
-  (setf (command-enabled command-name frame) t))
-
-(define-compatibility-function (disable-command (setf command-enabled))
-  (setf (command-enabled command-name frame) nil))
-)	;#+CLIM-1-compatibility
 
 
 ;;--- There is the compiler bug with (eval-when (compile load eval) ...)

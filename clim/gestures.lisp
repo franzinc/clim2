@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gestures.lisp,v 1.9 92/07/20 16:00:20 cer Exp $
+;; $fiHeader: gestures.lisp,v 1.10 92/07/27 11:02:25 cer Exp $
 
 (in-package :clim-internals)
 
@@ -266,14 +266,51 @@
 	  (parse-gesture-spec gesture-spec))
     (with-stack-list (key keysym modifier-state)
       (let ((table (port-canonical-gesture-specs port)))
-	(multiple-value-bind (value found-p) (gethash key table)
-	  (if found-p
-	      value
-	      (setf (gethash (evacuate-list key) table)
-		    (call-next-method port keysym modifier-state))))))))
+	(when table
+	  (multiple-value-bind (value found-p) (gethash key table)
+	    (if found-p
+		value
+		(setf (gethash (evacuate-list key) table)
+		      (call-next-method port keysym modifier-state)))))))))
+
+;; Needed for (sigh) string streams.  Hardly ever used...
+(defmethod port-canonicalize-gesture-spec 
+	   ((port t) gesture-spec &optional modifier-state)
+  (multiple-value-bind (keysym shifts)
+      (if modifier-state
+	  (values gesture-spec modifier-state)
+	  (parse-gesture-spec gesture-spec))
+    (let ((entry (assoc keysym '((#\Return . :return)
+				 (#\Newline . :newline)
+				 (#\Tab . :tab)
+				 (#\Rubout . :rubout)
+				 (#\Backspace . :backspace)
+				 (#\Page . :page)
+				 (#\Linefeed . :linefeed)
+				 (#\Escape . :escape)))))
+      (cond (entry
+	     (setq keysym (cdr entry)))
+	    ((standard-char-p keysym) 
+	     (setq keysym (svref #(:space :\! :\" :\# :\$ :\% :\& :\'
+				   :\( :\) :\* :\+ :\, :\- :\. :\/
+				   :\0 :\1 :\2 :\3 :\4 :\5 :\6 :\7 :\8 :\9
+				   :\: :\; :\< :\= :\> :\? :\@
+				   :a :b :c :d :e :f :g :h :i :j :k :l :m
+				   :n :o :p :q :r :s :t :u :v :w :x :y :z
+				   :\[ :\\ :\] :\^ :\_ :\`
+				   :a :b :c :d :e :f :g :h :i :j :k :l :m
+				   :n :o :p :q :r :s :t :u :v :w :x :y :z
+				   :\{ :\| :\} :\~)
+				 (- (char-code keysym) #.(char-code #\space)))))))
+    (cons keysym shifts)))
+
+(defmethod port-canonical-gesture-specs ((port t))
+  nil)
 
 (defmethod port-invalidate-gesture-specs ((port basic-port))
-  (clrhash (port-canonical-gesture-specs port)))
+  (let ((table (port-canonical-gesture-specs port)))
+    (when table
+      (clrhash table))))
 
 
 (defvar *modifier-state-specifiers* nil)
@@ -394,16 +431,6 @@
 	(when (member name (cdr entry))
 	  (setf (first entryl) (delete name entry)))))))
 
-#+CLIM-1-compatibility
-(define-compatibility-function (add-pointer-gesture-name add-gesture-name)
-			       (name button modifiers &key (action :click) (unique t))
-  (add-gesture-name name :pointer-button `(,button ,modifiers) :unique unique))
-
-#+CLIM-1-compatibility
-(define-compatibility-function (remove-pointer-gesture-name delete-gesture-name)
-			       (name)
-  (delete-gesture-name name))
-
 (defmacro define-gesture-name (name type gesture-spec &key (unique t))
   (setf (compile-time-property name 'gesture-name) t)
   `(add-gesture-name ',name ',type ',gesture-spec :unique ',unique))
@@ -432,7 +459,7 @@
 (define-gesture-name :end         :keyboard (:end))
 (define-gesture-name :abort       :keyboard #+Genera (:abort)
 					    #+Cloe-Runtime (:escape)
-					    #-(or Genera Cloe-Runtime) (:\Z :control))
+					    #-(or Genera Cloe-Runtime) (:z :control))
 (define-gesture-name :help        :keyboard (:help))
 (define-gesture-name :complete    :keyboard (:complete))
 (define-gesture-name :scroll      :keyboard (:scroll))
@@ -482,32 +509,32 @@
 (define-gesture-name :\> :keyboard :\>)
 (define-gesture-name :\? :keyboard :\?)
 (define-gesture-name :\@ :keyboard :\@)
-(define-gesture-name :\A :keyboard :\A)
-(define-gesture-name :\B :keyboard :\B)
-(define-gesture-name :\C :keyboard :\C)
-(define-gesture-name :\D :keyboard :\D)
-(define-gesture-name :\E :keyboard :\E)
-(define-gesture-name :\F :keyboard :\F)
-(define-gesture-name :\G :keyboard :\G)
-(define-gesture-name :\H :keyboard :\H)
-(define-gesture-name :\I :keyboard :\I)
-(define-gesture-name :\J :keyboard :\J)
-(define-gesture-name :\K :keyboard :\K)
-(define-gesture-name :\L :keyboard :\L)
-(define-gesture-name :\M :keyboard :\M)
-(define-gesture-name :\N :keyboard :\N)
-(define-gesture-name :\O :keyboard :\O)
-(define-gesture-name :\P :keyboard :\P)
-(define-gesture-name :\Q :keyboard :\Q)
-(define-gesture-name :\R :keyboard :\R)
-(define-gesture-name :\S :keyboard :\S)
-(define-gesture-name :\T :keyboard :\T)
-(define-gesture-name :\U :keyboard :\U)
-(define-gesture-name :\V :keyboard :\V)
-(define-gesture-name :\W :keyboard :\W)
-(define-gesture-name :\X :keyboard :\X)
-(define-gesture-name :\Y :keyboard :\Y)
-(define-gesture-name :\Z :keyboard :\Z)
+(define-gesture-name :a  :keyboard :a)
+(define-gesture-name :b  :keyboard :b)
+(define-gesture-name :c  :keyboard :c)
+(define-gesture-name :d  :keyboard :d)
+(define-gesture-name :e  :keyboard :e)
+(define-gesture-name :f  :keyboard :f)
+(define-gesture-name :g  :keyboard :g)
+(define-gesture-name :h  :keyboard :h)
+(define-gesture-name :i  :keyboard :i)
+(define-gesture-name :j  :keyboard :j)
+(define-gesture-name :k  :keyboard :k)
+(define-gesture-name :l  :keyboard :l)
+(define-gesture-name :m  :keyboard :m)
+(define-gesture-name :n  :keyboard :n)
+(define-gesture-name :o  :keyboard :o)
+(define-gesture-name :p  :keyboard :p)
+(define-gesture-name :q  :keyboard :q)
+(define-gesture-name :r  :keyboard :r)
+(define-gesture-name :s  :keyboard :s)
+(define-gesture-name :t  :keyboard :t)
+(define-gesture-name :u  :keyboard :u)
+(define-gesture-name :v  :keyboard :v)
+(define-gesture-name :w  :keyboard :w)
+(define-gesture-name :x  :keyboard :x)
+(define-gesture-name :y  :keyboard :y)
+(define-gesture-name :z  :keyboard :z)
 (define-gesture-name :\[ :keyboard :\[)
 (define-gesture-name :\\ :keyboard :\\)
 (define-gesture-name :\] :keyboard :\])

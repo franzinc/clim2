@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: pixmap-streams.lisp,v 1.9 92/07/20 16:00:33 cer Exp $
+;; $fiHeader: pixmap-streams.lisp,v 1.10 92/07/27 11:02:44 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -40,3 +40,16 @@
 			    :width width :height height)))
       (replay record pixmap-stream)
       (slot-value pixmap-medium 'silica::pixmap))))
+
+#+Allegro
+(defmethod invoke-with-output-to-pixmap ((stream output-protocol-mixin) continuation
+					 &key width height)
+  (let* ((pixmap-medium (make-pixmap-medium (port stream) stream
+					    :width width :height height))
+	 (pixmap-stream (make-instance 'pixmap-stream 
+				       :default-text-margin width
+				       :port (port stream)
+				       :medium pixmap-medium
+				       :width width :height height)))
+    (funcall continuation pixmap-stream)
+    (slot-value pixmap-medium 'silica::pixmap)))

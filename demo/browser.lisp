@@ -3,7 +3,7 @@
 ;;; Simple extensible browser
 ;;; Scott McKay
 
-;; $fiHeader: browser.lisp,v 1.8 92/07/20 16:01:13 cer Exp $
+;; $fiHeader: browser.lisp,v 1.9 92/07/27 11:03:29 cer Exp $
 
 (in-package :clim-browser)
 
@@ -856,7 +856,6 @@
 			   (funcall filter node))
 		   (fresh-line stream)
 		   (dotimes (i indentation)
-		     (declare (ignore i))
 		     (write-char #\Space stream))
 		   (display-node node stream)
 		   (dolist (inferior (node-inferiors node))

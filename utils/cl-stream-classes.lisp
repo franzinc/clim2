@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: cl-stream-classes.lisp,v 1.4 92/05/22 19:27:05 cer Exp $
+;; $fiHeader: cl-stream-classes.lisp,v 1.5 92/07/01 15:45:23 cer Exp $
 
 (in-package :clim-utils)
 
@@ -19,9 +19,8 @@
 ;;; package (not inherited from the CL package).
 
 (defmacro define-class-and-predicate (class-name predicate-name &body superclasses)
-  `(clim-utils:define-group ,class-name define-class-and-predicate
+  `(define-group ,class-name define-class-and-predicate
      (defclass ,class-name ,@superclasses ())
-     ;;--- Genera can't put both a class and methods on that class in the same group.
      ,@(when predicate-name
 	 `((define-stream-predicate-trampoline ,predicate-name ,class-name)))))
 
@@ -38,7 +37,7 @@
 			      #-Genera (find-package :common-lisp)))))
     (when (null lisp-predicate)
       (error "No symbol ~S found in the Common-Lisp package." predicate-name))
-    `(clim-utils:define-group ,predicate-name define-stream-predicate-trampoline
+    `(define-group ,predicate-name define-stream-predicate-trampoline
        (defgeneric ,predicate-name (object))
        (defmethod  ,predicate-name ((object t)) (,lisp-predicate object))
        ,@(when class-name

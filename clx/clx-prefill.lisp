@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clx-prefill.lisp,v 1.2 92/07/06 20:03:55 cer Exp $
+;; $fiHeader: clx-prefill.lisp,v 1.3 92/07/20 15:59:54 cer Exp $
 
 (in-package :clim-internals)
 
@@ -293,4 +293,14 @@
     (clx-clim::clx-port t t))
   #+Genera (clos-internals::which-operations
 	     (clx-clim::clx-port)))
+
+
+;;; Compile constructors
+
+(ensure-constructors-compiled
+  clx-clim::clx-frame-manager
+  clx-clim::clx-medium
+  clx-clim::clx-pixmap
+  clx-clim::clx-pixmap-medium
+  clx-clim::clx-port)
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: histories.lisp,v 1.9 92/07/24 10:54:27 cer Exp Locker: cer $
+;; $fiHeader: histories.lisp,v 1.10 92/07/27 11:02:28 cer Exp $
 
 (in-package :clim-internals)
 
@@ -177,7 +177,7 @@
     (when yank-position
       (let ((old-element (history-element history yank-position)))
 	(do-history-elements (history element idx
-				      :index (1+ yank-position) :offset index :test test)
+			      :index (1+ yank-position) :offset index :test test)
 	  (unless (history-elements-equal history element old-element)
 	    (setq rotation (setq yank-position idx))
 	    (return-from yank-next-from-history element)))))))
@@ -508,7 +508,6 @@
 
 (define-presentation-type display-rest-of-history ())
 
-;;--- Need a translator to make the items in the c-Y history sensitive.
 (defmethod display-history-contents ((history basic-history) stream
 				     &key maximum-length (start-index 0) string)
   (with-input-editor-help stream

@@ -1,27 +1,11 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; 
-;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
-;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
-;;
-;; The software, data and information contained herein are proprietary
-;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
-;; given in confidence by Franz, Inc. pursuant to a written license
-;; agreement, and may be stored and used only in accordance with the terms
-;; of such license.
-;;
-;; Restricted Rights Legend
-;; ------------------------
-;; Use, duplication, and disclosure of the software, data and information
-;; contained herein by any agency, department or entity of the U.S.
-;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
-;;
-;; $fiHeader: sheet.lisp,v 1.22 92/07/20 15:59:32 cer Exp Locker: cer $
+;; $fiHeader: sheet.lisp,v 1.23 92/07/24 10:53:58 cer Exp $
 
 (in-package :silica)
+
+"Copyright (c) 1991, 1992 Franz, Inc.  All rights reserved.
+ Portions copyright (c) 1992 Symbolics, Inc.  All rights reserved."
 
 
 (defgeneric sheet-parent (sheet))
@@ -42,6 +26,8 @@
 (defgeneric (setf sheet-enabled-p) (enabled-p sheet))
 (defgeneric sheet-viewable-p (sheet))
 (defgeneric occluding-sheets (sheet child))
+
+(defgeneric sheet-shell (sheet))
 
 (defmethod bounding-rectangle* ((sheet sheet))
   (bounding-rectangle* (sheet-region sheet)))
@@ -96,7 +82,7 @@
   (setf (sheet-children sheet) 
 	;; Preserve the order in which the sheets were adopted
 	;;--- This may have unwanted effects if the children overlap...
-	(append (sheet-children sheet) (list child)))
+	(nconc (sheet-children sheet) (list child)))
   (setf (sheet-parent child) sheet))
 
 (defmethod (setf port) ((port null) sheet &key graft)
@@ -338,7 +324,7 @@
   (unless (sheet-direct-mirror sheet)
     (mapc #'invalidate-cached-transformations (sheet-children sheet))))
  
-;;--- Check to see if the call to invalidate-cached-regions is really necessary.
+;;--- Check to see if the call to INVALIDATE-CACHED-REGIONS is really necessary.
 ;;--- CER thinks we do because regions depend on transformations.
 (defmethod note-sheet-transformation-changed :before ((sheet sheet) &key port-did-it)
   (declare (ignore port-did-it))

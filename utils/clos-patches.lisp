@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clos-patches.lisp,v 1.4 92/03/04 16:20:06 cer Exp $
+;; $fiHeader: clos-patches.lisp,v 1.5 92/07/01 15:45:27 cer Exp $
 
 (in-package :clim-utils)
 
@@ -20,12 +20,12 @@
 #+Lucid
 ;; I can't figure out how to do this, so for now we will not try to keep the
 ;; compilation and run-time environments properly separated.
-(defun compile-file-environment-p (environment)
+(defun-inline compile-file-environment-p (environment)
   (declare (ignore environment))
   nil)
 
 #+Allegro
-(defun compile-file-environment-p (environment)
+(defun-inline compile-file-environment-p (environment)
   excl::*compiler-environment*)
 
 #+Allegro
@@ -33,7 +33,7 @@
   (warn "~S hacked for lack of environment support in 4.1" 'compile-file-environment-p))
 
 #+CCL-2
-(defun compile-file-environment-p (environment)
+(defun-inline compile-file-environment-p (environment)
   (if (eq environment 'compile-file)
       t
       (ccl::compile-file-environment-p environment)))

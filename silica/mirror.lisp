@@ -1,27 +1,11 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; 
-;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
-;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
-;;
-;; The software, data and information contained herein are proprietary
-;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
-;; given in confidence by Franz, Inc. pursuant to a written license
-;; agreement, and may be stored and used only in accordance with the terms
-;; of such license.
-;;
-;; Restricted Rights Legend
-;; ------------------------
-;; Use, duplication, and disclosure of the software, data and information
-;; contained herein by any agency, department or entity of the U.S.
-;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
-;;
-;; $fiHeader: mirror.lisp,v 1.22 92/07/08 16:29:20 cer Exp $
+;; $fiHeader: mirror.lisp,v 1.23 92/07/20 15:59:25 cer Exp $
 
 (in-package :silica)
+
+"Copyright (c) 1991, 1992 Franz, Inc.  All rights reserved.
+ Portions copyright (c) 1992 Symbolics, Inc.  All rights reserved."
 
 
 ;;;; sheet-device-transformation - transformation from sheets
@@ -45,6 +29,7 @@
 (defgeneric disable-mirror (port sheet))
 
 (defmethod sheet-direct-mirror ((sheet sheet)) nil)
+
 
 
 (defclass mirrored-sheet-mixin ()
@@ -165,6 +150,11 @@
 
 ;; Returns the regions mirror in the mirror coordinate space
 (defgeneric mirror-region (port sheet))
+(defgeneric mirror-region* (port sheet))
+(defgeneric mirror-inside-region* (port sheet))
+(defgeneric mirror-native-edges* (port sheet))
+(defgeneric mirror-inside-edges* (port sheet))
+(defgeneric set-sheet-mirror-edges* (port sheet left top right bottom))
 
 (defmethod mirror-region ((port basic-port) sheet)
   (multiple-value-call #'make-bounding-rectangle
@@ -286,7 +276,7 @@
 ;;; rather than
 
 (defmethod update-mirror-region ((port basic-port) (sheet mirrored-sheet-mixin))
-  ;; If the sheet-region is changed this updates the mirrors region  accordingly
+  ;; If the sheet-region is changed this updates the mirrors region accordingly
   (update-mirror-region-1 port sheet (sheet-parent sheet)))
   
 (defmethod update-mirror-region-1 ((port basic-port) sheet parent)
@@ -296,19 +286,37 @@
       (sheet-actual-native-edges* sheet)
     (multiple-value-bind (actual-left actual-top actual-right actual-bottom)
 	(mirror-native-edges* (port sheet) sheet)
-      (unless nil				;---WTF ???
-	(set-sheet-mirror-edges*
-	  (port sheet) sheet
-	  target-left target-top target-right target-bottom))))
+      (set-sheet-mirror-edges*
+	(port sheet) sheet
+	target-left target-top target-right target-bottom)))
   (update-mirror-transformation port sheet))
 
 (defmethod update-mirror-transformation ((port basic-port) (sheet mirrored-sheet-mixin))
   ;; Compute transformation from sheet-region to mirror cordinates.
   (update-mirror-transformation-1 port sheet (sheet-parent sheet)))
 
+#-scale-mirror
+;; SHEET will be a mirrored sheet, and PARENT will often be the graft
+(defmethod update-mirror-transformation-1 ((port basic-port) sheet parent)
+  (declare (ignore parent))
+  (multiple-value-bind (mirror-left mirror-top mirror-right mirror-bottom)
+      (mirror-inside-edges* port sheet)
+    (declare (ignore mirror-right mirror-bottom))
+    (with-bounding-rectangle* (left top right bottom) (sheet-region sheet)
+      (declare (ignore right bottom))
+      (let ((tr-x (- mirror-left left))
+	    (tr-y (- mirror-top top)))
+	;; Really no point in using volatile transformations since 
+	;; (1) this doesn't happen much, and (2) it's almost always
+	;; the identity transformation
+	(setf (sheet-native-transformation sheet)
+	      (make-translation-transformation tr-x tr-y))))))
+
+#+scale-mirror
 (defvar *check-mirror-transformation* nil)
 
 ;; SHEET will be a mirrored sheet, and PARENT will often be the graft
+#+scale-mirror
 (defmethod update-mirror-transformation-1 ((port basic-port) sheet parent)
   (declare (ignore parent))
   (multiple-value-bind (mirror-left mirror-top mirror-right mirror-bottom)
@@ -320,6 +328,9 @@
 		     (- right left)))
 	    (sc-y (/ (- mirror-bottom mirror-top)
 		     (- bottom top))))
+	;; Only scale to the nearest hundredth...
+	(setq sc-x (/ (floor (+ (* sc-x 100) 0.5)) 100))
+	(setq sc-y (/ (floor (+ (* sc-y 100) 0.5)) 100))
 	;; Usually the translation will be (0,0) and the scaling will be (1,1),
 	;; meaning that the result will be the identity transformation
 	(when (and *check-mirror-transformation*

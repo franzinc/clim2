@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: command-processor.lisp,v 1.11 92/07/20 16:00:05 cer Exp $
+;; $fiHeader: command-processor.lisp,v 1.12 92/07/27 11:02:13 cer Exp $
 
 (in-package :clim-internals)
 
@@ -110,7 +110,8 @@
 	    (replace-input stream (string (first *command-argument-delimiters*)))))))
     delimiter))
 
-(define-presentation-type keyword-argument-name (keywords keyword-documentation))
+(define-presentation-type keyword-argument-name
+			  (keywords &key keyword-documentation keyword-defaults))
 
 (define-presentation-method present (object (type keyword-argument-name) stream
 				     (view textual-view) &key)
@@ -123,11 +124,16 @@
 	   (with-output-as-presentation (stream (second possibility) type
 					 :single-box t)
 	     (write-string (first possibility) stream)
-	     (let ((documentation (assoc (second possibility) keyword-documentation)))
-	       (when documentation
+	     (let ((documentation (assoc (second possibility) keyword-documentation))
+		   (default (assoc (second possibility) keyword-defaults)))
+	       (when (or documentation default)
 		 (multiple-value-bind (x y) (stream-cursor-position stream)
 		   (stream-set-cursor-position stream (max 200 (+ x 20)) y)
-		   (write-string (second documentation) stream)))))))
+		   (write-string (or (second documentation) "No documentation") stream)
+		   (when default
+		     (write-string " (default is " stream)
+		     (present (second default) (third default) :stream stream)
+		     (write-string ")"  stream))))))))
     (declare (dynamic-extent #'print-keyword))
     (values (completing-from-suggestions (stream :possibility-printer #'print-keyword)
 	      (dolist (keyword keywords)
@@ -140,19 +146,23 @@
   (equal sub super))
 
 (defun process-keyword-args (stream keywords continuation delimiter-parser arg-parser
-			     &optional keyword-documentation)
+			     &optional keyword-documentation keyword-defaults)
   (funcall delimiter-parser stream :keywords)
   (loop
     (unless keywords (return))
     (let ((keyword (parse-keyword arg-parser delimiter-parser stream keywords
-				  keyword-documentation)))
+				  keyword-documentation keyword-defaults)))
       (unless keyword (return))			;arg unparser can return NIL
       (funcall continuation keyword)
       (setq keywords (remove keyword keywords)))
     (funcall delimiter-parser stream :optional)))
 
-(defun parse-keyword (arg-parser delimiter-parser stream arguments keyword-documentation)
-  (prog1 (funcall arg-parser stream `(keyword-argument-name ,arguments ,keyword-documentation)
+(defun parse-keyword (arg-parser delimiter-parser stream arguments
+		      keyword-documentation keyword-defaults)
+  (prog1 (funcall arg-parser stream
+		  `(keyword-argument-name ,arguments
+					  :keyword-documentation ,keyword-documentation
+					  :keyword-defaults ,keyword-defaults)
 		  :prompt nil)
 	 ;; There must be a value following, no?
 	 (funcall delimiter-parser stream :args)))
@@ -443,7 +453,7 @@
 
 (defun only-keyword-args-remain (argument-specs)
   (declare (ignore argument-specs))
-  ;; --- for future expansion
+  ;; For future expansion...
   nil)
 
 
@@ -540,7 +550,6 @@
 	;; The "partial" notion could be extended to apply to all
 	;; presentation-types, but there are so few which need this
 	;; treatment, that it does not seem worthwhile.
-	;;--- There may need to be more thought applied here.
 	(with-input-context (type :override nil)
 			    (object presentation-type nil options)
 	     (funcall *command-parser* command-table stream)

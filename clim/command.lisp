@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: command.lisp,v 1.11 92/07/20 16:00:07 cer Exp $
+;; $fiHeader: command.lisp,v 1.12 92/07/27 11:02:15 cer Exp $
 
 (in-package :clim-internals)
 
@@ -14,9 +14,6 @@
 
 (defvar *unsupplied-argument-marker* '#:unsupplied-argument)
 (defvar *numeric-argument-marker*    '#:numeric-argument)
-
-#+CLIM-1-compatibility
-(defvar *unsupplied-argument* *unsupplied-argument-marker*)
 
 (defun unsupplied-argument-p (arg)
   (eq arg *unsupplied-argument-marker*))
@@ -691,7 +688,7 @@
 	     (formatting-cell (stream)
 	       (if type
 		   (with-output-as-presentation (stream item type
-						 :single-box T)
+						 :single-box t)
 		     (present item 'command-menu-element :stream stream))
 		   (present item 'command-menu-element :stream stream)))))))
   nil)
@@ -727,7 +724,8 @@
 				  :documentation documentation
 				  :keystroke keystroke :errorp nil))
 
-(defun remove-keystroke-from-command-table (command-table keystroke &key (errorp t))
+(defun remove-keystroke-from-command-table (command-table keystroke
+					    &key (errorp t))
   (setq command-table (find-command-table command-table))
   (with-slots (menu keystrokes) command-table
     (let ((index (position keystroke menu :key #'second :test #'gesture-spec-eql)))
@@ -983,18 +981,33 @@
   (let ((clauses nil)
 	(constant-keywords nil)
 	(conditional-keywords nil)
-	(keyword-documentation nil))
+	(keyword-documentation nil)
+	(keyword-defaults nil))
     (dolist (keyword-clause arguments)
       (let ((keyword (intern (symbol-name (first keyword-clause)) *keyword-package*))
-	    (when nil))
+	    (when nil)
+	    (default nil)
+	    (type (and (constantp (second keyword-clause))
+		       (eval (second keyword-clause)))))
 	(do ((l (cddr keyword-clause) (cddr l)))
 	    ((null l))
 	  (case (car l)
+	    (:default
+	      (when (and type (constantp (second l)))
+		(setq default `(,keyword ,(eval (second l)) ,type))))
 	    (:mentioned-default
+	      ;; Here's how this works.  The value of the keyword is
+	      ;; initially bound to the specified default.  If we ever
+	      ;; read the keyword name, we call the parser with the
+	      ;; mentioned default used as the default passed to ACCEPT.
+	      ;; The most common idiom is for boolean arguments, where
+	      ;; :DEFAULT NIL :MENTIONED-DEFAULT T is used.
 	      (setq keyword-clause `(,(first keyword-clause) ,(second keyword-clause)
 				     :default ,(cadr l)
 				     ,@(remove-keywords (cddr keyword-clause)
-					 '(:default :mentioned-default)))))
+					 '(:default :mentioned-default))))
+	      (when (and type (constantp (second l)))
+		(setq default `(,keyword ,(eval (second l)) ,type))))
 	    (:when
 	      (setq keyword-clause `(,(first keyword-clause) ,(second keyword-clause)
 				     ,@(remove-keywords (cddr keyword-clause) '(:when))))
@@ -1002,6 +1015,8 @@
 	      (push `(and ,(cadr l) '(,keyword)) conditional-keywords))
 	    (:documentation
 	      (push `(,keyword ,(second l)) keyword-documentation))))
+	(when default 
+	  (push default keyword-defaults))
 	(unless when
 	  (push keyword constant-keywords))
 	(push `(,keyword ,(generate-parse-and-assign-clause keyword-clause env))
@@ -1014,7 +1029,7 @@
 			     `(append ,@conditional-keywords ',constant-keywords)
 			     `',constant-keywords)
 	 #'read-keyword-value delimiter-parser arg-parser
-	 ',keyword-documentation))))
+	 ',keyword-documentation ',keyword-defaults))))
 
 (defun generate-parse-and-assign-clause (argument env)
   (let ((arg-name (first argument))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: window-stream.lisp,v 1.10 92/07/20 16:00:44 cer Exp $
+;; $fiHeader: window-stream.lisp,v 1.11 92/07/27 11:03:06 cer Exp $
 
 (in-package :clim-internals)
 
@@ -50,32 +50,3 @@
     (values (port-modifier-state port)
 	    (pointer-button-state pointer))))
 
-
-;;; Creation functions
-
-#+CLIM-1-compatibility
-(defun open-window-stream (&key parent
-				left top right bottom width height
-				(text-style *default-text-style*)
-				(vertical-spacing 2)
-				(end-of-line-action :allow)
-				(end-of-page-action :allow)
-				(background +white+)
-				(foreground +black+)
-				output-history 
-				text-cursor text-margin
-				label save-under 
-				(scroll-bars :vertical)
-				(class 'clim-stream-pane))
-  (with-look-and-feel-realization ()
-    (make-clim-stream-pane :type class
-			   :left left :top top :right right :bottom bottom
-			   :width width :height height
-			   :text-style text-style :vertical-spacing vertical-spacing
-			   :end-of-line-action end-of-line-action 
-			   :end-of-page-action end-of-page-action
-			   :background background :foreground foreground
-			   :output-history output-history
-			   :text-cursor text-cursor :text-margin text-margin
-			   :label label :save-under save-under
-			   :scroll-bars scroll-bars)))

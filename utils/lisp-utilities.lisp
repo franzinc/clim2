@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: lisp-utilities.lisp,v 1.13 92/07/01 15:45:34 cer Exp $
+;; $fiHeader: lisp-utilities.lisp,v 1.14 92/07/27 11:01:50 cer Exp $
 
 (in-package :clim-utils)
 
@@ -255,7 +255,6 @@
 ;;; would not be true during the brief interval after the binding and before the
 ;;; setting of that variable.  I believe this implementation of WITH-OPEN-STREAM to
 ;;; have as small a timing window, and to be as semantically correct as possible. 
-;;; --- rsl 5 February 1991.
 
 #+(or (not CLIM-uses-Lisp-stream-functions)	;Do this if we provide CLOSE function
       Genera					; Sigh.  CLOSE also shadowed for Genera.
@@ -746,7 +745,7 @@
 ;; 		          &rest mumble
 ;; 		          &key frotz (trouble) ((:izzy the-cat))))
 ;; (FOO BAR BAZ QUUX MUMBLE :FROTZ FROTZ :TROUBLE TROUBLE ':IZZY THE-CAT)
-;; --- It looks like &rest and &key don't get along well here.  A big
+;; --- It looks like &REST and &KEY don't get along well here.  A big
 ;; question in such a circumstane is who should be doing the defaulting?  
 ;; I.e., should this do the defaulting, by making the above arglist be
 ;; 	:FROTZ FROTZ :TROUBLE TROUBLE ':IZZY THE-CAT MUMBLE
@@ -1343,6 +1342,7 @@
 ;;; In Lucid 4.0 this produces spurious wrong number of arguments warnings for the calls
 ;;; to FIND-CLASS.  There is no run-time error, it really does accept three arguments.
 (defun find-class-that-works (name &optional (errorp t) environment)
+  #+Genera (declare (inline compile-file-environment-p))
   #+ccl-2 (when (eq environment 'compile-file)
             (setq environment ccl::*fcomp-compilation-environment*))
   #+Allegro (let ((environment (compile-file-environment-p environment)))

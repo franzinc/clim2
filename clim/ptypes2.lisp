@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: ptypes2.lisp,v 1.8 92/05/22 19:28:24 cer Exp $
+;; $fiHeader: ptypes2.lisp,v 1.9 92/07/27 11:02:52 cer Exp $
 
 (in-package :clim-internals)
 
@@ -200,7 +200,8 @@
     `(with-presentation-type-decoded (,name) ,presentation-type
        (funcall ,function ,name ,presentation-type)
        ,@additional-forms
-       (dolist (,class (cdr (class-precedence-list (find-presentation-type-class ,name))))
+       (dolist (,class (cdr (find-class-precedence-list
+			      (find-presentation-type-class ,name))))
 	 (let ((,type-name (class-presentation-type-name ,class)))
 	   (funcall function ,type-name ,type-name))))))
 
@@ -356,7 +357,7 @@
 ;;;; TYPE-OF
 
 (defun presentation-type-of (object)
-  (dolist (class (class-precedence-list (class-of object)) 'expression)
+  (dolist (class (find-class-precedence-list (class-of object)) 'expression)
     (let ((name (class-proper-name class)))
       (unless (eq name 't)	;prefer EXPRESSION over T
 	(when (or (acceptable-presentation-type-class class)
@@ -366,7 +367,7 @@
 	  (return name))))))
 
 
-;;;; ACCEPT-PRESENT-DEFAULT and prompting
+;;;; ACCEPT-PRESENT-DEFAULT, prompting, and views
 
 ;;; Called when ACCEPT turns into PRESENT
 (defun accept-present-default (presentation-type stream view default default-supplied-p
@@ -375,10 +376,11 @@
     presentation-type stream view default default-supplied-p present-p query-identifier
     :prompt prompt))
 
-(define-default-presentation-method accept-present-default (presentation-type stream view
-							    default default-supplied-p
-							    present-p query-identifier
-							    &key prompt &allow-other-keys)
+(define-default-presentation-method accept-present-default
+				    (presentation-type stream view
+				     default default-supplied-p
+				     present-p query-identifier
+				     &key prompt &allow-other-keys)
   (declare (ignore query-identifier prompt))
   (with-output-as-presentation (stream (second present-p) (first present-p))
     (if default-supplied-p
@@ -388,7 +390,8 @@
 
 
 ;; Most gadgets do not include a prompt...
-(define-default-presentation-method gadget-includes-prompt-p (presentation-type stream view)
+(define-default-presentation-method gadget-includes-prompt-p
+				    (presentation-type stream view)
   (declare (ignore presentation-type stream view))
   nil)
 
@@ -396,8 +399,29 @@
   (funcall-presentation-generic-function
     gadget-includes-prompt-p type stream view))
 
+
+(define-default-presentation-method decode-indirect-view
+				    (presentation-type view (framem standard-frame-manager))
+  (declare (ignore presentation-type))
+  view)
+
+(defun decode-indirect-view (type view frame-manager)
+  (funcall-presentation-generic-function decode-indirect-view
+    type view frame-manager))
+
 
-;;;; Highlight
+;;;; Refined position test and highlighting
+
+(defun presentation-refined-position-test (record presention-type x y)
+  (or (eq record *null-presentation*)
+      (funcall-presentation-generic-function presentation-refined-position-test
+	presention-type record x y)))
+
+(define-default-presentation-method presentation-refined-position-test
+				    (presention-type record x y)
+  (declare (ignore presentation-type))
+  (output-record-refined-position-test record x y))
+
 
 (defun highlight-presentation (record presentation-type stream state)
   (unless (eq record *null-presentation*)

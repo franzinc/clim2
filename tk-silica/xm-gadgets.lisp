@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.39 92/07/24 10:54:53 cer Exp Locker: cer $
+;; $fiHeader: xm-gadgets.lisp,v 1.40 92/07/27 11:03:46 cer Exp $
 
 (in-package :xm-silica)
 
@@ -239,14 +239,14 @@
 
 (defmethod (setf gadget-value) (nv (gadget motif-range-pane) &key invoke-callback)
   (declare (ignore invoke-callback))
-  (let ((gadget (sheet-mirror gadget)))
-    (when gadget
+  (let ((mirror (sheet-mirror gadget)))
+    (when mirror
       (multiple-value-bind
 	  (smin smax) (gadget-range* gadget)
 	(multiple-value-bind
 	    (mmin mmax)
-	    (tk::get-values gadget :minimum :maximum)
-	  (tk::set-values gadget
+	    (tk::get-values mirror :minimum :maximum)
+	  (tk::set-values mirror
 			  :value (fix-coordinate 
 				  (compute-symmetric-value
 				   smin smax nv mmin mmax))))))))
@@ -258,6 +258,13 @@
 			xt-leaf-pane
 			slider)
 	  ())
+
+(defmethod add-sheet-callbacks :after ((port motif-port) (sheet motif-slider) (widget t))
+  (tk::add-callback widget
+		    :drag-callback
+		    'queue-drag-event
+		    sheet))
+
 
 (defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
 						     (parent t)
@@ -525,11 +532,14 @@
 (defmethod compose-space ((te motif-text-editor) &key width height)
   (declare (ignore width height))
   (let ((sr (call-next-method)))
-    (setq sr (copy-space-requirement sr))
-    ;;-- What it the correct thing to do???
-    (setf (space-requirement-max-width sr) +fill+
-	  (space-requirement-max-height sr) +fill+)
-    sr))
+    (multiple-value-bind (width min-width max-width
+			  height min-height max-height)
+	(space-requirement-components sr)
+      (declare (ignore max-width max-height))
+      ;;--- What is the correct thing to do???
+      (make-space-requirement
+	:width width :min-width min-width :max-width +fill+
+	:height height :min-height min-height :max-height +fill+))))
 
 
 ;;; Toggle button
@@ -545,7 +555,7 @@
 						     (sheet motif-toggle-button))
   (with-accessors ((set gadget-value)
 		   (indicator-type gadget-indicator-type)) sheet
-    (values 'xt::xm-toggle-button
+    (values 'xt::xm-toggle-button 
 	    (append (list :set set)
 		    (list :indicator-type 
 			  (ecase indicator-type
@@ -639,7 +649,6 @@
   (values 'tk::xm-radio-box nil))
 
 
-
 (defclass motif-check-box (motif-geometry-manager
 			   mirrored-sheet-mixin
 			   motif-oriented-gadget
@@ -658,7 +667,6 @@
 						     (sheet motif-check-box))
   
   (values 'tk::xm-row-column nil))
-
 
 
 ;; Frame-viewport that we need because a sheet can have
@@ -745,49 +753,53 @@
   ;;--- bigger than this. But atleast its a start
   ;;-- We check to see which scrollbars we have
 
-  (let* (
-	 (spacing (tk::get-values (sheet-mirror fr) :spacing))
-	 (sr (copy-space-requirement (compose-space (silica::pane-contents fr)))))
+  (let* ((spacing (tk::get-values (sheet-mirror fr) :spacing))
+	 (sr (compose-space (silica::pane-contents fr))))
+    (multiple-value-bind (width min-width max-width
+			  height min-height max-height)
+	(space-requirement-components sr)
 
-    ;;--- if scroller-pane-gadget-supplies-scrolling-p is true we should
-    ;;--- do something different. Perhaps we can ask the widget itself
-    ;;--  for the overall size but what about the min size. Otherwise we
-    ;;-- might need to do this is a grubby way.
-    ;; Perhaps we just call compose-space on the child and then add in
-    ;; the size of the scroll-bars.
-    (if (silica::scroller-pane-gadget-supplies-scrolling-p fr)
-	(multiple-value-bind
-	    (hb vb)
-	    (tk::get-values (sheet-direct-mirror fr) :horizontal-scroll-bar :vertical-scroll-bar)
-	  (let ((ha (and hb (xt::is-managed-p hb) (tk::get-values hb :height)))
-		(va (and vb (xt::is-managed-p vb) (tk::get-values vb :width))))
-	    (when va (maxf (space-requirement-height sr) (+ spacing (* 2 va))))
-	    (when ha (incf (space-requirement-height sr) (+ spacing ha)))
-	    (when va (maxf (space-requirement-min-height sr) (+ spacing (* 2 va))))
-	    (when ha (incf (space-requirement-min-height sr) (+ spacing ha)))
-	    (maxf (space-requirement-max-height sr) (space-requirement-height sr))
-    
-	    (when ha (maxf (space-requirement-width sr) (+ spacing (* 2 ha))))
-	    (when va (incf (space-requirement-width sr) (+ spacing va)))
-	    (when ha (maxf (space-requirement-min-width sr) (+ spacing (* 2 ha))))
-	    (when va (incf (space-requirement-min-width sr) (+ spacing va)))
-	    (maxf (space-requirement-max-width sr) (space-requirement-width sr))))
-      (let* ((vsb (silica::scroller-pane-vertical-scroll-bar fr))
-	     (vsb-sr (and vsb (compose-space vsb)))
-	     (hsb (silica::scroller-pane-horizontal-scroll-bar fr))
-	     (hsb-sr (and hsb (compose-space hsb))))
-	(when vsb-sr (maxf (space-requirement-height sr) (+ spacing (space-requirement-min-height vsb-sr))))
-	(when hsb-sr (incf (space-requirement-height sr) (+ spacing (space-requirement-height hsb-sr))))
-	(when vsb-sr (maxf (space-requirement-min-height sr) (+ spacing (space-requirement-min-height vsb-sr))))
-	(when hsb-sr (incf (space-requirement-min-height sr) (+ spacing (space-requirement-height hsb-sr))))
-	(maxf (space-requirement-max-height sr) (space-requirement-height sr))
-    
-	(when hsb-sr (maxf (space-requirement-width sr) (+ spacing (space-requirement-min-width hsb-sr))))
-	(when vsb-sr (incf (space-requirement-width sr) (+ spacing (space-requirement-width vsb-sr))))
-	(when hsb-sr (maxf (space-requirement-min-width sr) (+ spacing (space-requirement-min-width hsb-sr))))
-	(when vsb-sr (incf (space-requirement-min-width sr) (+ spacing (space-requirement-width vsb-sr))))
-	(maxf (space-requirement-max-width sr) (space-requirement-width sr))))
-    sr))
+      ;;--- if scroller-pane-gadget-supplies-scrolling-p is true we should
+      ;;--- do something different. Perhaps we can ask the widget itself
+      ;;--  for the overall size but what about the min size. Otherwise we
+      ;;-- might need to do this is a grubby way.
+      ;; Perhaps we just call compose-space on the child and then add in
+      ;; the size of the scroll-bars.
+      (if (silica::scroller-pane-gadget-supplies-scrolling-p fr)
+	  (multiple-value-bind
+	      (hb vb)
+	      (tk::get-values (sheet-direct-mirror fr) :horizontal-scroll-bar :vertical-scroll-bar)
+	    (let ((ha (and hb (xt::is-managed-p hb) (tk::get-values hb :height)))
+		  (va (and vb (xt::is-managed-p vb) (tk::get-values vb :width))))
+	      (when va (maxf height (+ spacing (* 2 va))))
+	      (when ha (incf height (+ spacing ha)))
+	      (when va (maxf min-height (+ spacing (* 2 va))))
+	      (when ha (incf min-height (+ spacing ha)))
+	      (maxf max-height height)
+
+	      (when ha (maxf width (+ spacing (* 2 ha))))
+	      (when va (incf width (+ spacing va)))
+	      (when ha (maxf min-width (+ spacing (* 2 ha))))
+	      (when va (incf min-width (+ spacing va)))
+	      (maxf max-width width)))
+	(let* ((vsb (silica::scroller-pane-vertical-scroll-bar fr))
+	       (vsb-sr (and vsb (compose-space vsb)))
+	       (hsb (silica::scroller-pane-horizontal-scroll-bar fr))
+	       (hsb-sr (and hsb (compose-space hsb))))
+	  (when vsb-sr (maxf height (+ spacing (space-requirement-min-height vsb-sr))))
+	  (when hsb-sr (incf height (+ spacing (space-requirement-height hsb-sr))))
+	  (when vsb-sr (maxf min-height (+ spacing (space-requirement-min-height vsb-sr))))
+	  (when hsb-sr (incf min-height (+ spacing (space-requirement-height hsb-sr))))
+	  (maxf max-height height)
+      
+	  (when hsb-sr (maxf width (+ spacing (space-requirement-min-width hsb-sr))))
+	  (when vsb-sr (incf width (+ spacing (space-requirement-width vsb-sr))))
+	  (when hsb-sr (maxf min-width (+ spacing (space-requirement-min-width hsb-sr))))
+	  (when vsb-sr (incf min-width (+ spacing (space-requirement-width vsb-sr))))
+	  (maxf max-width width)))
+      (make-space-requirement 
+	:width width :min-width min-width :max-width max-width
+	:height height :min-height min-height :max-height max-height))))
 
 (defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
 						     (parent t)

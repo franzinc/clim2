@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: regions.lisp,v 1.12 92/07/08 16:29:34 cer Exp $
+;; $fiHeader: regions.lisp,v 1.13 92/07/20 15:59:45 cer Exp $
 
 (in-package :clim-utils)
 
@@ -206,11 +206,6 @@
 (defmethod point-position ((point standard-point))
   (with-slots (x y) point
     (values x y)))
-
-#+CLIM-1-compatibility
-(define-compatibility-function (point-position* point-position)
-			       (point)
-  (point-position point))
 
 (defmethod region-equal ((point1 standard-point) (point2 standard-point))
   (with-slots ((x1 x) (y1 y)) point1
@@ -661,18 +656,6 @@
 	    right  (+ x width)
 	    bottom (+ y  height))))
   rectangle)
-
-#+CLIM-1-compatibility
-(define-compatibility-function (bounding-rectangle-position*
-				bounding-rectangle-position)
-			       (region)
-  (bounding-rectangle-position region))
-
-#+CLIM-1-compatibility
-(define-compatibility-function (bounding-rectangle-set-position* 
-				bounding-rectangle-set-position)
-			       (region x y)
-  (bounding-rectangle-set-position region))
 
 ;; Make a new bounding rectangle for the region, and shift its position by DX,DY,
 ;; and return the new rectangle.

@@ -1,11 +1,12 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics.lisp,v 1.16 92/07/20 15:59:19 cer Exp $
+;; $fiHeader: graphics.lisp,v 1.17 92/07/27 11:01:42 cer Exp $
 
 (in-package :silica)
 
 "Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved.
  Portions copyright (c) 1991, 1992 Franz, Inc.  All rights reserved."
+
 
 (eval-when (compile load eval)
   
@@ -371,7 +372,8 @@
 					optional-positions-to-transform
 					positions-to-transform
 					distances-to-transform
-					position-sequences-to-transform)
+					position-sequences-to-transform
+					medium-method-body)
   (let* ((spread-name (intern (format nil "~A*" name)))
 	 (continuation-name (intern (format nil "~A-~A*" 'call name)))
 	 (drawing-options
@@ -451,27 +453,29 @@
 	 (defmethod ,medium-graphics-function-name :around
 		    ((medium basic-medium) ,@spread-argument-names ,@keyword-argument-names)
 	   ;; Want to tranform stuff, set up clipping region etc etc
-	   ,(and positions-to-transform
-		 (do ((pts positions-to-transform (cddr pts))
-		      (tf '#:transform)
-		      (r nil))
-		     ((null pts) 
-		      `(let ((,tf (medium-transformation medium)))
-			 ,@(nreverse r)))
-		   (let ((b `(transform-positions ,tf
-			       ,(first pts) ,(second pts))))
-		     (if (member (car pts) optional-positions-to-transform)
-			 (push `(when ,(car pts) ,b) r)
-			 (push b r)))))
-	   ,@(and distances-to-transform
-		  `((transform-distances 
-		      (medium-transformation medium)
-		      ,@distances-to-transform)))
-	   ,@(mapcar #'(lambda (seq)
-			 `(setq ,seq (transform-position-sequence
-				       (medium-transformation medium) ,seq)))
-		     position-sequences-to-transform)
-	   (call-next-method medium ,@spread-argument-names ,@keyword-argument-names))
+	   ,(or medium-method-body
+		`(progn
+		   ,(and positions-to-transform
+			 (do ((pts positions-to-transform (cddr pts))
+			      (tf '#:transform)
+			      (r nil))
+			     ((null pts) 
+			      `(let ((,tf (medium-transformation medium)))
+				 ,@(nreverse r)))
+			   (let ((b `(transform-positions ,tf
+							  ,(first pts) ,(second pts))))
+			     (if (member (car pts) optional-positions-to-transform)
+				 (push `(when ,(car pts) ,b) r)
+			       (push b r)))))
+		   ,@(and distances-to-transform
+			  `((transform-distances 
+			     (medium-transformation medium)
+			     ,@distances-to-transform)))
+		   ,@(mapcar #'(lambda (seq)
+				 `(setq ,seq (transform-position-sequence
+					      (medium-transformation medium) ,seq)))
+			     position-sequences-to-transform)
+		   (call-next-method medium ,@spread-argument-names ,@keyword-argument-names))))
 	 ,@(write-graphics-function-transformer
 	     name 
 	     medium-graphics-function-name
@@ -488,6 +492,10 @@
 (defun get-drawing-function-description (name)
   (or (get name 'args)
       (error "Cannot find description for: ~S" name)))
+
+;; FUNCTION is not evaluated, but MEDIUM is...
+(defmacro make-fast-drawing-function (function medium)
+  `(medium-make-fast-drawing-function ,medium ',function))
 
 
 (define-graphics-generic draw-point ((point point x y))
@@ -564,7 +572,16 @@
 					 (point2 point x2 y2)
 					 &key (filled t))
   :drawing-options :line-joint
-  :positions-to-transform (x1 y1 x2 y2))
+  :positions-to-transform (x1 y1 x2 y2)
+  :medium-method-body
+    (let ((transform (medium-transformation medium)))
+      (cond ((rectilinear-transformation-p transform)
+	     (transform-positions transform x1 y1 x2 y2)
+	     (call-next-method medium x1 y1 x2 y2 filled))
+	    (t
+	     ;;--- Massively inefficient 
+	     (with-stack-list (list x1 y1 x2 y1 x2 y2 x1 y2)
+	       (medium-draw-polygon* medium list t filled))))))
 
 (define-graphics-generic draw-rectangles ((points point-sequence position-seq)
 					  &key (filled t))
@@ -612,9 +629,9 @@
 	(transform-distance transform dx dy))
       (incf next-x dx)
       (incf next-y dy)
-      (setq coordinates (append coordinates (list next-x next-y))))
+      (setq coordinates (nconc coordinates (list next-x next-y))))
     (when closed
-      (setq coordinates (append coordinates (list x1 y1))))
+      (setq coordinates (nconc coordinates (list x1 y1))))
     (with-keywords-removed (args args '(:handedness))
       (apply #'draw-polygon* medium coordinates args))))
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: GENERA-CLIM; Base: 10; Lowercase: Yes -*-
+;; $fiHeader: old-genera-implementation.lisp,v 1.4 92/07/27 11:27:24 cer Exp $
 
-;; $fiHeader$
 ;;--- We really need to handle this for all the ports
 (defmethod window-visibility ((stream sheet-implementation-mixin))
   (with-slots (window) stream

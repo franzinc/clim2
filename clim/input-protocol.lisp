@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-protocol.lisp,v 1.20 92/07/27 11:02:33 cer Exp Locker: cer $
+;; $fiHeader: input-protocol.lisp,v 1.21 92/07/27 19:29:51 cer Exp $
 
 (in-package :clim-internals)
 
@@ -32,7 +32,6 @@
 		 (input-wait-handler *input-wait-handler*)
 		 (pointer-button-press-handler *pointer-button-press-handler*))
   ;; All output should be visible before you do any input.
-  ;;--- Should this call FINISH-OUTPUT instead?
   (when (output-stream-p stream)
     (force-output stream))
   (loop
@@ -69,7 +68,7 @@
     :text-cursor (make-instance 'standard-text-cursor)))
 
 ;; Use the sheet's event queue as the input buffer.
-;;--- This may not be right...
+;;--- This may not be right.  See comment in STREAM-READ-GESTURE.
 (defmethod stream-input-buffer ((stream input-protocol-mixin))
   (sheet-event-queue stream))
 
@@ -157,29 +156,16 @@
 	   (queue-put (stream-input-buffer stream) char))
 	  ((and keysym (not (typep keysym 'modifier-keysym)))
 	   (queue-put (stream-input-buffer stream) (copy-event event)))
-	  #+ignore
 	  (keysym
-	   (let ((port (port stream)))
-	     (when port
-	       (setf (port-modifier-state port) (event-modifier-state event))))))))
+	   ;; Must be a shift keysym, the port event loop should have already
+	   ;; updated the port's modifier state
+	   nil))))
 
-;;--- The event handling code has already updated the state.
-
-#+ignore
 (defmethod queue-event ((stream input-protocol-mixin) (event key-release-event))
-  ;;--- key state table?  Not unless all sheets are helping maintain it.
-  (let ((keysym (keyboard-event-key-name event)))
-    (when (and keysym (typep keysym 'modifier-keysym))
-      ;; Update the pointer shifts.
-      (let ((port (port stream)))
-	(when port
-	  (setf (port-modifier-state port) (event-modifier-state event))))))
+  ;; If this is a shift keysym, the port event loop should have already
+  ;; updated the port's modifier state.  In any case, just ignore the event.
   nil)
 
-;;;--- Need to modularize stream implementation into fundamental and extended
-;;;--- layers so that we can tell when to queue up non-characters into the
-;;;--- stream.  These don't need to set pointer-motion-pending because they
-;;;--- synchronize through the io buffer.
 (defmethod queue-event ((stream input-protocol-mixin) (event pointer-button-press-event))
   (queue-put (stream-input-buffer stream) (copy-event event)))
 
@@ -192,11 +178,6 @@
 
 (defmethod queue-event ((stream input-protocol-mixin) (event pointer-motion-event))
   (let ((pointer (stream-primary-pointer stream)))
-    (pointer-set-position pointer
-      (pointer-event-x event) (pointer-event-y event) t)
-    (pointer-set-native-position pointer 
-      (pointer-event-native-x event) (pointer-event-native-y event) t)
-    (setf (pointer-sheet pointer) stream)
     (setf (pointer-motion-pending stream pointer) t)))
 
 (defmethod queue-event :after ((stream input-protocol-mixin) (event pointer-enter-event))
@@ -204,9 +185,9 @@
     (when text-cursor 
       (setf (cursor-focus text-cursor) t))))
 
-(defmethod queue-event :before ((stream input-protocol-mixin)
-				(event pointer-exit-event))
-  (when (port stream) (unhighlight-highlighted-presentation stream))
+(defmethod queue-event :before ((stream input-protocol-mixin) (event pointer-exit-event))
+  (when (port stream)
+    (unhighlight-highlighted-presentation stream))
   (let ((text-cursor (stream-text-cursor stream)))
     (when text-cursor
       (setf (cursor-focus text-cursor) nil))))
@@ -313,9 +294,11 @@
 (defmethod receive-gesture
 	   ((stream input-protocol-mixin) (gesture pointer-button-press-event))
   (if *pointer-button-press-handler*
-      ;; This may throw or something, but otherwise we will return the gesture
+      ;; This may throw or something, but otherwise we will return NIL
+      ;; which will cause the gesture to be eaten
       (progn (funcall *pointer-button-press-handler* stream gesture)
 	     nil)
+      ;; No button press handler, just return the gesture
       gesture))
 
 ;; TRACKING-POINTER binds this to NIL
@@ -647,25 +630,13 @@
   (declare (type real x y))
   (unless pointer
     (setf pointer (stream-primary-pointer stream)))
-  (setf (pointer-position-changed pointer) t)
-  ;;--- This is kinda dumb
+  ;; Make sure the pointer is on the right sheet
   (setf (pointer-sheet pointer) stream)
+  (setf (pointer-position-changed pointer) t)
   (pointer-set-position pointer x y))
 
 (defgeneric* (setf stream-pointer-position) (x y stream))
 (defmethod* (setf stream-pointer-position) (x y (stream t))
-  (stream-set-pointer-position stream x y))
-
-#+CLIM-1-compatibility
-(define-compatibility-function (stream-pointer-position* 
-				stream-pointer-position)
-			       (stream)
-  (stream-pointer-position stream))
-
-#+CLIM-1-compatibility
-(define-compatibility-function (stream-set-pointer-position*
-				stream-set-pointer-position)
-			       (stream x y)
   (stream-set-pointer-position stream x y))
 
 (defmethod stream-set-input-focus ((stream input-protocol-mixin))

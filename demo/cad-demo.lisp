@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: cad-demo.lisp,v 1.13 92/07/20 16:01:16 cer Exp Locker: cer $
+;; $fiHeader: cad-demo.lisp,v 1.14 92/07/24 10:54:44 cer Exp $
 
 (in-package :clim-demo)
 
@@ -67,7 +67,7 @@
 (defmethod output-record-parent ((thing basic-thing))
   *application-frame*)
 
-(defmethod output-record-refined-sensitivity-test ((comp basic-thing) x y)
+(defmethod output-record-refined-position-test ((comp basic-thing) x y)
   (declare (ignore x y))
   t)
 

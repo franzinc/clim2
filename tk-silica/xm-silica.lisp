@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-silica.lisp,v 1.22 92/07/01 15:48:09 cer Exp $
+;; $fiHeader: xm-silica.lisp,v 1.23 92/07/08 16:31:56 cer Exp $
 
 (in-package :xm-silica)
 
@@ -107,24 +107,25 @@
 	 (sr (compose-space sheet))
 	 (rm (tk::xt-widget-geometry-request-mode intended)))
     ;; If its asking and its out of range then say so
-    (when (or (and (logtest rm x11:cwwidth)
-		   (not (<= (space-requirement-min-width sr)
-			    (tk::xt-widget-geometry-width intended)
-			    (space-requirement-max-width sr))))
-	      (and (logtest rm x11:cwheight)
-		   (not (<= (space-requirement-min-height sr)
-			    (tk::xt-widget-geometry-height intended)
-			    (space-requirement-max-height sr)))))
-      (return-from my-drawing-area-query-geometry tk::xt-geometry-no))
+    (multiple-value-bind (width min-width max-width
+			  height min-height max-height)
+	(space-requirement-components sr)
+      (when (or (and (logtest rm x11:cwwidth)
+		     (not (<= min-width
+			      (tk::xt-widget-geometry-width intended)
+			      max-width)))
+		(and (logtest rm x11:cwheight)
+		     (not (<= min-height
+			      (tk::xt-widget-geometry-height intended)
+			      max-height))))
+	(return-from my-drawing-area-query-geometry tk::xt-geometry-no))
+
+      (when (and (logtest rm x11:cwheight) (logtest rm x11:cwwidth))
+	(return-from my-drawing-area-query-geometry tk::xt-geometry-yes))
       
-    (when (and (logtest rm x11:cwheight) (logtest rm x11:cwwidth))
-      (return-from my-drawing-area-query-geometry tk::xt-geometry-yes))
-      
-    (setf (tk::xt-widget-geometry-width desired) (fix-coordinate 
-						  (space-requirement-width sr))
-	  (tk::xt-widget-geometry-height desired) (fix-coordinate
-						   (space-requirement-height sr))
-	  (tk::xt-widget-geometry-request-mode desired) (logior x11:cwwidth x11:cwheight))
+      (setf (tk::xt-widget-geometry-width desired) (fix-coordinate width)
+	    (tk::xt-widget-geometry-height desired) (fix-coordinate height)
+	    (tk::xt-widget-geometry-request-mode desired) (logior x11:cwwidth x11:cwheight)))
 
 
     (return-from my-drawing-area-query-geometry tk::xt-geometry-almost)))

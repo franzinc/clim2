@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-frames.lisp,v 1.23 92/07/20 16:01:51 cer Exp Locker: cer $
+;; $fiHeader: xm-frames.lisp,v 1.24 92/07/24 10:54:52 cer Exp $
 
 (in-package :xm-silica)
 
@@ -28,7 +28,7 @@
     ()
   (:default-initargs :dialog-view +gadget-dialog-view+))
 
-(defmethod make-frame-manager ((port motif-port))
+(defmethod make-frame-manager ((port motif-port) &key)
   (make-instance 'motif-frame-manager :port port))
 
 (defmethod adopt-frame :after ((framem motif-frame-manager) 
@@ -47,12 +47,11 @@
 
 ;;; Definitions of the individual classes
 
-(defclass motif-menu-bar (xt-leaf-pane) 
-	  ((command-table :initarg :command-table)))
+(defclass motif-menu-bar (xt-leaf-pane menu-bar) ())
 
 (defmethod find-widget-class-and-initargs-for-sheet 
     ((port motif-port) (parent t) (sheet motif-menu-bar))
-  (if (flat-command-table-menu-p (slot-value sheet 'command-table))
+  (if (flat-command-table-menu-p (menu-bar-command-table sheet))
       (values 'xt::xm-row-column 
 	      ;;--- It makes sense to be able to specify the orientation
 	      ;;--- of the command menu
@@ -194,7 +193,7 @@
 			  
 		  command-table)
 		 commands-and-buttons)))
-      (let ((ct (slot-value sheet 'command-table)))
+      (let ((ct (menu-bar-command-table sheet)))
 	(make-menu-for-command-table
 	 ct mirror (not (flat-command-table-menu-p ct)))))
     mirror))
@@ -212,8 +211,7 @@
     (let ((sr (compose-space (frame-top-level-sheet frame))))
       (tk::set-values shell
 		      :min-width (fix-coordinate (space-requirement-min-width sr))
-		      :min-height
-		      (fix-coordinate (space-requirement-min-height sr))))
+		      :min-height (fix-coordinate (space-requirement-min-height sr))))
 
     (let ((geo (clim-internals::frame-geometry frame)))
       (destructuring-bind

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: interactive-protocol.lisp,v 1.12 92/07/08 16:30:40 cer Exp $
+;; $fiHeader: interactive-protocol.lisp,v 1.13 92/07/27 11:02:37 cer Exp $
 
 (in-package :clim-internals)
 
@@ -95,16 +95,6 @@
 (defmethod compatible-set-input-position ((stream input-editing-stream-mixin) position)
   (setf (stream-scan-pointer stream) position))
 
-(defstruct noise-string
-  display-string
-  unique-id)
-
-(defstruct (accept-result (:include noise-string))
-  presentation-type
-  presentation-object)
-
-(defvar *noise-string-style* (make-text-style nil nil nil))
-
 (defmacro do-input-buffer-pieces ((input-buffer &key (start 0) end)
 				  (start-index-var end-index-var noise-string-var)
 				  &key normal noise-string)
@@ -129,9 +119,9 @@
 		  ,noise-string)
 		(setf ,start-index-var (1+ ,end-index-var))))))))
 
-;;; This assumes that the cursor has been set correctly???
-;;; --- Right now, it can't make too many assumptions about where the cursor
-;;; --- actually is.  Too bad.
+;; This assumes that the cursor has been set correctly???
+;;--- Right now, it can't make too many assumptions about where the cursor
+;;--- actually is.  Too bad.
 (defmethod do-input-buffer-screen-real-estate ((istream input-editing-stream-mixin)
 					       continuation
 					       &optional start-position end-position)
@@ -258,8 +248,9 @@
       ;;--- already be at the right place.  However, that will require a
       ;;--- more detailed analysis of all callers.  The MIN below is to catch
       ;;--- the case where the insertion pointer is still at 5 but a character
-      ;;--- has been rubbed out.  That's what RUBOUT-USING-PREDICATE does:  this function
-      ;;--- can be called (at present) while the input buffer is in an inconsistent state.
+      ;;--- has been rubbed out.  That's what RUBOUT-USING-PREDICATE does: this
+      ;;--- function can be called (at present) while the input buffer is in an
+      ;;--- inconsistent state.
       (let ((ip (min insertion-pointer (fill-pointer input-buffer))))
 	(do-part start-position ip)
 	;; Remember where the cursor goes (at the insertion pointer!)
@@ -476,23 +467,37 @@
 			    ;; Don't put things in the buffer that we can't echo later
 			    (ordinary-char-p new-thing)
 			    (not (activation-gesture-p new-thing)))
-		   (repeat (or numeric-argument 1)
-		     (cond ((< insertion-pointer (fill-pointer input-buffer))
-			    (erase-input-buffer istream insertion-pointer)
-			    (setq input-buffer (shift-buffer-portion
-						 input-buffer
-						 insertion-pointer (1+ insertion-pointer)))
-			    (setf (aref input-buffer insertion-pointer) new-thing)
-			    (redraw-input-buffer istream insertion-pointer)
-			    (let ((rescan (> scan-pointer insertion-pointer)))
-			      (incf insertion-pointer)
-			      (if rescan
-				  (immediate-rescan istream)
-				  (setf scan-pointer insertion-pointer))))
-			   (t (vector-push-extend new-thing input-buffer)
-			      (incf scan-pointer)
-			      (incf insertion-pointer)
-			      (write-char new-thing istream)))))
+		   ;; If we are inserting multiple copies of this character
+		   ;; we'll need to do a rescan in order to keep user-level
+		   ;; buffers up-to-date
+		   (let* ((count (or numeric-argument 1))
+			  (immediate-rescan (> count 1)))
+		     (dotimes (i count)
+		       (cond ((< insertion-pointer (fill-pointer input-buffer))
+			      (when (= i (1- count))	;optimization
+				(erase-input-buffer istream insertion-pointer))
+			      (setq input-buffer (shift-buffer-portion
+						   input-buffer
+						   insertion-pointer (1+ insertion-pointer)))
+			      (setf (aref input-buffer insertion-pointer) new-thing)
+			      (when (= i (1- count))	;optimization
+				(redraw-input-buffer istream insertion-pointer))
+			      (let ((rescan (> scan-pointer insertion-pointer)))
+				(incf insertion-pointer)
+				(if rescan
+				    (setq immediate-rescan t)
+				    (setf scan-pointer insertion-pointer))))
+			     (t (vector-push-extend new-thing input-buffer)
+				(incf scan-pointer)
+				(incf insertion-pointer)
+				(write-char new-thing istream))))
+		     (setq numeric-argument nil
+			   previous-history nil)
+		     (if immediate-rescan 
+			 (immediate-rescan istream)
+			 (rescan-if-necessary istream t))
+		     (return-from stream-read-gesture
+		       (values new-thing new-type))))
 		 (when new-thing
 		   (setq numeric-argument nil
 			 previous-history nil)
@@ -546,10 +551,10 @@
 			    (1+ position)
 			    position))))))
 	(when (= position limit)
-	  ;;--- Necessary for the case where the forward part of the token
-	  ;;--- token search bumps into the fill pointer.  This makes me
-	  ;;--- nervous because it compensates for the pointer adjusting
-	  ;;--- the callers do.
+	  ;; Necessary for the case where the forward part of the token
+	  ;; token search bumps into the fill pointer.  
+	  ;;--- This makes me nervous because it compensates for the pointer
+	  ;;--- adjusting the callers do.
 	  (return (if reverse-p position (1+ position))))
 	(incf position adjustment)))))
 
@@ -786,7 +791,7 @@
 ;;--- This mechanism is only partially implemented.  In order to work better,
 ;;--- it requires that the IE maintain its own concept of the prompt.
 (defmethod invoke-with-input-editor-typeout ((istream standard-input-editing-stream)
-					     continuation)
+					     continuation &key erase)
   ;; I don't know why someone made this reset the cursor position to the original
   ;; start position, but that's wrong.  The output should come out *above* the input,
   ;; and the input's start position has to move down.
@@ -795,14 +800,28 @@
     (reset-cursor-position istream)
     (fresh-line istream)
     (unwind-protect
-	(with-output-recording-options (istream :record original-stream-recording-p)
-	  (funcall continuation istream))
+	(if (and erase original-stream-recording-p)
+	    (let ((record (with-output-recording-options (istream :draw nil :record t)
+			    (with-new-output-record (istream)
+			      (funcall continuation istream)))))
+	      (with-bounding-rectangle* (left top right bottom) record
+		(multiple-value-bind (xoff yoff)
+		    (convert-from-relative-to-absolute-coordinates
+		      istream (output-record-parent record))
+		  (draw-rectangle-internal
+		    istream xoff yoff
+		    left top right (+ bottom (stream-line-height istream))
+		    +background-ink+ nil)))
+	      (replay record istream))
+	    (with-output-recording-options (istream :record original-stream-recording-p)
+	      (funcall continuation istream)))
       (fresh-line istream)
       (terpri istream)
       (initialize-position istream)
       (redraw-input-buffer istream))))
 
-(defmethod invoke-with-input-editor-typeout ((stream t) continuation)
+(defmethod invoke-with-input-editor-typeout ((stream t) continuation &key erase)
+  (declare (ignore erase))
   (fresh-line stream)
   (unwind-protect
       (funcall continuation stream)
@@ -858,7 +877,7 @@
 			      #'(lambda (error)
 				  (beep stream)
 				  (remove-activation-gesture stream)
-				  (with-input-editor-typeout (stream)
+				  (with-input-editor-typeout (stream :erase t)
 				    (format stream "~A~%Please edit your input." error))
 				  ;; Now wait until the user forces a rescan by typing
 				  ;; an input editing command
@@ -902,9 +921,9 @@
 			   #'(lambda (error)
 			       (beep stream)
 			       (remove-activation-gesture stream)
-			       (with-input-editor-typeout (stream)
+			       (with-input-editor-typeout (stream :erase t)
 				 (format stream "~A~%Please edit your input." error))
-			       ;;--- Using with-input-editor-typeout doesn't behave as
+			       ;;--- Using WITH-INPUT-EDITOR-typeout doesn't behave as
 			       ;;--- nicely as DW, but it's what CLIM has right now
 			       ;; Now wait until the user forces a rescan by typing
 			       ;; an input editing command
@@ -931,9 +950,9 @@
 		       #'(lambda (error)
 			   (beep stream)
 			   (remove-activation-gesture stream)
-			   (with-input-editor-typeout (stream)
+			   (with-input-editor-typeout (stream :erase t)
 			     (format stream "~A~%Please edit your input." error))
-			   ;;--- Using with-input-editor-typeout doesn't behave as
+			   ;;--- Using WITH-INPUT-EDITOR-TYPEOUT doesn't behave as
 			   ;;--- nicely as DW, but it's what CLIM has right now
 			   ;; Now wait until the user forces a rescan by typing
 			   ;; an input editing command

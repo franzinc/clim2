@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: text-style.lisp,v 1.8 92/07/01 15:45:18 cer Exp $
+;; $fiHeader: text-style.lisp,v 1.9 92/07/08 16:29:25 cer Exp $
 
 (in-package :silica)
 
@@ -567,20 +567,6 @@
     (dolist (spec specs)
       (load-specs nil nil nil spec))))
 
-;;--- I think we need to preserve some of this, no?
-;(defmethod initialize-instance :after
-;	   ((device display-device) &key font-for-undefined-style)
-;  (push-unique device *display-devices* :key #'display-device-name)
-;  (setf (device-undefined-text-style device)
-;	(standardize-text-style device
-;				*standard-character-set*
-;				(make-text-style
-;				  :stand-in-for-undefined-style :roman :normal)))
-;  (when font-for-undefined-style
-;    (add-text-style-mapping
-;      device *standard-character-set* *undefined-text-style*
-;      font-for-undefined-style)))
-
 (defmethod (setf text-style-mapping)
 	   (mapping (port basic-port) style 
 	    &optional (character-set *standard-character-set*) window)
@@ -609,11 +595,6 @@
 		   (setf (gethash key mapping-table) fonts)))))
 	(setf (gethash style mapping-table) mapping))))
 
-#+CLIM-1-compatibility
-(define-compatibility-function (add-text-style-mapping (setf text-style-mapping))
-			       (device character-set style mapping)
-  (setf (text-style-mapping device style character-set) mapping))
-
 ;;; This is broken up into two methods so any :AROUND method will only
 ;;; be called on the outermost recursion.
 (defmethod text-style-mapping ((port basic-port) style
@@ -622,8 +603,8 @@
 
 (defmethod text-style-mapping ((port basic-port) (style device-font) 
 			       &optional (character-set *standard-character-set*) window)
+  ;;--- What about the character set when using device fonts?
   (declare (ignore character-set window))
-  ;;--- What about character-set when using device fonts?
   ;;--- EQL? TYPE-EQUAL?  This is too restrictive as it stands
   (unless (eq port (device-font-display-device style))
     (error "An attempt was made to map device font ~S on port ~S, ~@
@@ -657,7 +638,7 @@
 		     (lookup-closest-font style mapping-table exact-size-required)
 		     (gethash style mapping-table))))
     (cond ((null result) nil)
-	  ((typep result 'text-style)	;logical translations
+	  ((text-style-p result)	;logical translations
 	   (text-style-mapping-exists-p port style character-set))
 	  (t t))))
 

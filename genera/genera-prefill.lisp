@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: genera-prefill.lisp,v 1.2 92/07/06 20:04:06 cer Exp $
+;; $fiHeader: genera-prefill.lisp,v 1.3 92/07/20 16:01:09 cer Exp $
 
 (in-package :clim-internals)
 
@@ -30,7 +30,7 @@
 
 (prefill-dispatch-caches
   (genera-clim::medium-drawing-possible)
-  (genera-clim::with-appropriate-drawing-state))
+  (genera-clim::invoke-with-appropriate-drawing-state))
 
 
 ;;; (generate-prefill-dispatch-caches 'port)
@@ -190,7 +190,7 @@
     (standard-text-style genera-clim::genera-medium))
   (clos-internals::which-operations
     (genera-clim::genera-medium))
-  (genera-clim::with-appropriate-drawing-state
+  (genera-clim::invoke-with-appropriate-drawing-state
     (genera-clim::genera-medium t t t t)))
 
 
@@ -302,4 +302,14 @@
     (genera-clim::genera-port t t))
   (clos-internals::which-operations
     (genera-clim::genera-port)))
+
+
+;;; Compile constructors
+
+(ensure-constructors-compiled
+  genera-clim::genera-frame-manager
+  genera-clim::genera-medium
+  genera-clim::genera-pixmap
+  genera-clim::genera-pixmap-medium
+  genera-clim::genera-port)
 

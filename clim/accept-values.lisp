@@ -1,10 +1,11 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept-values.lisp,v 1.26 92/07/20 15:59:58 cer Exp Locker: cer $
+;; $fiHeader: accept-values.lisp,v 1.27 92/07/24 10:54:15 cer Exp $
 
 (in-package :clim-internals)
 
 "Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved.
+ Portions copyright (c) 1992 Franz, Inc.  All rights reserved.
  Portions copyright (c) 1989, 1990 International Lisp Associates."
 
 ;;; For historical reasons "AVV" means "accepting-values"...
@@ -114,11 +115,7 @@
 ;; Probably should be keyword arguments...
 (defmethod find-or-add-query ((stream accept-values-stream) query-identifier ptype prompt
 			      default default-supplied-p view active-p)
-  (let ((avv-record
-	  #---ignore (slot-value stream 'avv-record)
-	  #+++ignore (find-accept-values-record
-		       (or (stream-current-output-record stream)
-			   (stream-output-history stream)))))
+  (let ((avv-record (slot-value stream 'avv-record)))
     (with-slots (query-table) avv-record
       (multiple-value-bind (query found-p)
 	  (gethash query-identifier query-table)
@@ -187,9 +184,8 @@
      (continuation :initarg :continuation)
      (exit-boxes :initform nil :initarg :exit-boxes)
      (selected-item :initform nil)
-     ;;--- Do this through RUN-FRAME-TOP-LEVEL?
-     (initially-select-query-identifier :initform nil
-					:initarg :initially-select-query-identifier)
+     (initially-select-query-identifier 
+       :initform nil :initarg :initially-select-query-identifier)
      (resynchronize-every-pass :initform nil :initarg :resynchronize-every-pass)
      (check-overlapping :initform t :initarg :check-overlapping)
      (own-window :initform nil :initarg :own-window))
@@ -197,7 +193,6 @@
   (:command-definer t))
 
 ;; Ignore extra initargs...
-;;--- CER commented this out.  Why did we need it in the first place?
 (defmethod initialize-instance :after ((frame accept-values) 
 				       &key own-window
 					    x-position y-position width height
@@ -214,7 +209,8 @@
      (own-window-width :initform nil :initarg :width)
      (own-window-height :initform nil :initarg :height)
      (own-window-right-margin :initform nil :initarg :right-margin)
-     (own-window-bottom-margin :initform nil :initarg :bottom-margin))
+     (own-window-bottom-margin :initform nil :initarg :bottom-margin)
+     (help-window :initform nil))
   (:pane 
     (with-slots (stream own-window exit-button-stream) *application-frame*
       (vertically ()
@@ -249,12 +245,13 @@
 (defvar *avv-calling-frame*)
 
 (defun invoke-accepting-values (stream continuation
-				 &key frame-class own-window 
+				 &key frame-class command-table own-window 
 				      (exit-boxes 
 					(frame-manager-default-exit-boxes
 					  (frame-manager stream)))
  				      (resize-frame nil)
 				      (initially-select-query-identifier nil)
+				      (modify-initial-query nil)
 				      (resynchronize-every-pass nil) (check-overlapping t)
 				      label x-position y-position width height)
    (incf *accept-values-tick*)
@@ -275,12 +272,14 @@
 			:y-position y-position
 			:right-margin right-margin
 			:bottom-margin bottom-margin
-			:initially-select-query-identifier initially-select-query-identifier
+			:initially-select-query-identifier 
+			  (and initially-select-query-identifier
+			       (cons initially-select-query-identifier modify-initial-query))
 			:resynchronize-every-pass resynchronize-every-pass
 			:check-overlapping check-overlapping
 			:resize-frame resize-frame)))
-	   ;;--- What do we do about sizing?
-	   ;;--- What do we do about positioning?
+	   (when command-table
+	     (setf (frame-command-table frame) command-table))
 	   (let ((*avv-calling-frame* *application-frame*))
 	     (run-frame-top-level frame)))
        (using-resource (avv-stream accept-values-stream (or the-own-window stream))
@@ -290,13 +289,17 @@
 			:stream avv-stream
 			:continuation continuation
 			:exit-boxes exit-boxes
-			:initially-select-query-identifier initially-select-query-identifier
+			:initially-select-query-identifier 
+			  (and initially-select-query-identifier
+			       (cons initially-select-query-identifier modify-initial-query))
 			:resynchronize-every-pass resynchronize-every-pass
 			:check-overlapping check-overlapping
 			;; This frame won't necessarily be adopted, so make
 			;; sure that we share the sheet with the parent frame
 			;; in the case of "inlined" dialogs
 			:top-level-sheet (frame-top-level-sheet *application-frame*))))
+	   (when command-table
+	     (setf (frame-command-table frame) command-table))
 	   ;; Run the AVV and return its values
 	   (let ((*avv-calling-frame* *application-frame*))
 	     (run-frame-top-level frame)))))))
@@ -316,16 +319,7 @@
 	   (return-values nil)
 	   (initial-query nil)
 	   exit-button-record
-	   avv avv-record
-	   (help-window nil)
-	   (*accept-help-displayer*
-	     (if own-window
-		 #'(lambda (function stream &rest args)
-		     (declare (dynamic-extent args))
-		     (setq help-window 
-			   (apply #'display-own-window-help
-				  function help-window own-window stream args)))
-		 *accept-help-displayer*)))
+	   avv avv-record)
       (letf-globally (((stream-default-view stream) 
 		       (frame-manager-dialog-view (frame-manager frame)))
 		      ((cursor-visibility (stream-text-cursor stream)) :off))
@@ -342,8 +336,11 @@
 		 (run-avv ()
 		   (when (and initially-select-query-identifier
 			      (setq initial-query
-				    (find-query avv-record initially-select-query-identifier)))
-		     (com-edit-avv-choice initial-query)
+				    (find-query avv-record 
+						(car initially-select-query-identifier))))
+		     (if (cdr initially-select-query-identifier)
+			 (com-modify-avv-choice initial-query)
+			 (com-edit-avv-choice initial-query))
 		     (redisplay avv stream :check-overlapping check-overlapping))
 		   (loop
 		     (let ((command
@@ -439,11 +436,50 @@
 		       (stream-ensure-cursor-visible stream)
 		       (replay avv stream)
 		       (run-avv)))
-	      (when help-window
-		(deallocate-resource 'menu help-window))
 	      (unless own-window
 		(move-cursor-beyond-output-record (slot-value stream 'stream) avv))))
 	  (values-list return-values))))))
+
+(defmethod frame-manager-display-help 
+	   ((framem standard-frame-manager) (frame accept-values-own-window) stream continuation)
+  (declare (dynamic-extent continuation))
+  (when (null (slot-value frame 'help-window))
+    (setf (slot-value frame 'help-window)
+	  (allocate-resource 'menu stream (window-root stream))))
+  (let ((help-window (slot-value frame 'help-window))
+	(own-window (slot-value frame 'own-window)))
+    (setf (window-visibility help-window) nil)
+    ;; You might think that we should bind *INPUT-CONTEXT* to NIL, but
+    ;; by not doing the translators from the ACCEPT-VALUES dialog apply
+    ;; to any items presented in the help window.  Cool, huh?
+    (let ((*original-stream* nil))
+      (window-clear help-window)
+      (with-output-recording-options (help-window :draw t :record t)
+	(with-end-of-line-action (help-window :allow)
+	  (with-end-of-page-action (help-window :allow)
+	    (funcall continuation help-window)
+	    (fresh-line help-window)
+	    (with-text-face (help-window :italic)
+	      (write-line "Press any key to remove this window" help-window)))))
+      (size-frame-from-contents help-window)
+      (multiple-value-bind (x y) (bounding-rectangle-position own-window)
+	(position-sheet-carefully 
+	  (frame-top-level-sheet (pane-frame help-window)) x y))
+      (window-expose help-window)
+      (clear-input help-window)
+      (unwind-protect
+	  (with-input-focus (help-window)
+	    (read-gesture :stream help-window))
+	(setf (window-visibility help-window) nil)))))
+
+(defmethod accept-values-top-level :around ((frame accept-values-own-window) &rest args)
+  (declare (ignore args))
+  (unwind-protect
+      (call-next-method)
+    (with-slots (help-window) frame
+      (when help-window
+	(deallocate-resource 'menu help-window)
+	(setq help-window nil)))))
 
 (defmethod read-frame-command ((frame accept-values) &key (stream *query-io*))
   (read-command (frame-command-table frame)
@@ -467,35 +503,6 @@
 	    (size-frame-from-contents own-window
 	      :right-margin own-window-right-margin
 	      :bottom-margin own-window-bottom-margin)))))))
-
-(defun display-own-window-help (function stream near-window original-stream &rest args)
-  (declare (values help-window))
-  (declare (dynamic-extent args))
-  (if stream
-      (setf (window-visibility stream) nil)
-      (setq stream (allocate-resource 'menu
-				      original-stream (window-root original-stream))))
-  (let ((*original-stream* nil)			;--- reset *INPUT-CONTEXT*, too?
-	(*accept-help-displayer* 'funcall))
-    (window-clear stream)
-    (with-output-recording-options (stream :draw t :record t)
-      (with-end-of-line-action (stream :allow)
-	(with-end-of-page-action (stream :allow)
-	  (apply function stream args)
-	  (fresh-line stream)
-	  (with-text-face (stream :italic)
-	    (write-line "Press any key to remove this window" stream)))))
-    (size-frame-from-contents stream)
-    (when near-window
-      (multiple-value-bind (x y) (bounding-rectangle-position near-window)
-	(position-sheet-carefully 
-	  (frame-top-level-sheet (pane-frame stream)) x y)))
-    (window-expose stream)
-    (clear-input stream)
-    (unwind-protect
-	(read-gesture :stream stream)
-      (setf (window-visibility stream) nil)))
-  stream)
 
 
 (define-presentation-type accept-values-exit-box ())
@@ -604,11 +611,6 @@
 	    (process-delimiter stream))
 	  (setf value new-value
 		changed-p t))))))
-
-;;--- This should be somewhere else.
-
-(defmethod stream-text-cursor ((stream standard-encapsulating-stream))
-  (stream-text-cursor (slot-value stream 'stream)))
 
 (defun map-over-accept-values-queries (avv-record continuation)
   (declare (dynamic-extent continuation))

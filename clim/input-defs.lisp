@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-defs.lisp,v 1.11 92/07/20 16:00:24 cer Exp $
+;; $fiHeader: input-defs.lisp,v 1.12 92/07/27 11:02:30 cer Exp $
 
 (in-package :clim-internals)
 
@@ -65,16 +65,6 @@
 	      native-y-position native-y)
 	(port-set-pointer-position (port pointer) pointer native-x native-y)))
     (values x y)))
-
-#+CLIM-1-compatibility
-(define-compatibility-function (pointer-position* pointer-position)
-			       (pointer)
-  (pointer-position pointer))
-
-#+CLIM-1-compatibility
-(define-compatibility-function (pointer-set-position* pointer-set-position)
-			       (pointer x y)
-  (pointer-set-position pointer x y))
 
 (defmethod pointer-native-position ((pointer standard-pointer))
   (with-slots (native-x-position native-y-position) pointer

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: interactive-defs.lisp,v 1.11 92/07/01 15:46:38 cer Exp $
+;; $fiHeader: interactive-defs.lisp,v 1.12 92/07/27 11:02:35 cer Exp $
 
 (in-package :clim-internals)
 
@@ -16,6 +16,22 @@
 
 (defvar *accelerator-gestures* nil)
 (defvar *accelerator-numeric-argument* nil)
+
+
+;; Noise strings and ACCEPT results
+
+(eval-when (compile load eval)
+(defstruct noise-string
+  display-string
+  unique-id)
+
+(defstruct (accept-result (:include noise-string))
+  presentation-type
+  presentation-object)
+) ; eval-when
+
+(defvar *noise-string-style* (make-text-style nil nil nil))
+
 
 ;;--- Kludge for processing asynchronous presentation events...
 (defvar *input-buffer-empty* t)
@@ -37,6 +53,7 @@
 			       `(unless ,override *activation-gestures*))))
      ,@body))
 
+
 (defun activation-gesture-p (gesture)
   ;;--- Checking for :EOF is a bit of a kludge, since it depends on knowing
   ;;--- that that's what CLIM uses internally for end-of-file
@@ -47,19 +64,6 @@
 			   :test #'keyboard-event-matches-gesture-name-p)
 		   (funcall set gesture))
 	   (return-from activation-gesture-p t)))))
-
-#+CLIM-1-compatibility
-(progn
-(defmacro with-activation-characters ((additional-characters &key override) &body body)
-  (warn "The function ~S is now obsolete, use ~S instead.~%~
-	 Compatibility code is being generated for the time being."
-	'with-activation-characters 'with-activation-gestures)
-  `(with-activation-gestures (,additional-characters :override ,override) ,@body))
-
-(define-compatibility-function (activation-character-p activation-gesture-p)
-			       (character)
-  (activation-gesture-p character))
-)	;#+CLIM-1-compatibility
 
 
 ;; Delimiter gestures terminate a field in an input line.  They are usually
@@ -87,19 +91,6 @@
 			   :test #'keyboard-event-matches-gesture-name-p)
 		   (funcall set gesture))
 	   (return-from delimiter-gesture-p t)))))
-
-#+CLIM-1-compatibility
-(progn
-(defmacro with-blip-characters ((additional-characters &key override) &body body)
-  (warn "The function ~S is now obsolete, use ~S instead.~%~
-	 Compatibility code is being generated for the time being."
-	'with-blip-characters 'with-delimiter-gestures)
-  `(with-delimiter-gestures (,additional-characters :override ,override) ,@body))
-
-(define-compatibility-function (blip-character-p delimiter-gesture-p)
-			       (character)
-  (delimiter-gesture-p character))
-)	;#+CLIM-1-compatibility
 
 
 ;;; Reading and writing of tokens
@@ -197,27 +188,32 @@
      (invoke-with-input-editing ,stream #'with-input-editing-body
 				,class ,input-sensitizer ,initial-contents)))
 
-(defmacro with-input-editor-typeout ((&optional stream) &body body)
+(defmacro with-input-editor-typeout ((&optional stream &key erase) &body body)
   (default-query-stream stream with-input-editor-typeout)
   `(flet ((with-ie-typeout-body (,stream) ,@body))
      (declare (dynamic-extent #'with-ie-typeout-body))
-     (invoke-with-input-editor-typeout ,stream #'with-ie-typeout-body)))
+     (invoke-with-input-editor-typeout 
+       ,stream #'with-ie-typeout-body :erase ,erase)))
 
 
 ;;; Support for the Help key while inside ACCEPT
 
 (defvar *accept-help* nil)
-(defvar *accept-help-displayer* 'ie-display-accept-help)
 
-(defun ie-display-accept-help (function stream &rest args)
-  (declare (dynamic-extent function args))
-  (with-input-editor-typeout (stream)
-    (apply function stream args)))
+(defmethod frame-manager-display-help 
+	   ((framem standard-frame-manager) frame stream continuation)
+  (declare (dynamic-extent continuation))
+  (declare (ignore frame))
+  (with-input-editor-typeout (stream :erase t)	;don't scribble over previous output
+    (funcall continuation stream)))
 
 (defmacro with-input-editor-help (stream &body body)
   `(flet ((with-input-editor-help-body (,stream) ,@body))
      (declare (dynamic-extent #'with-input-editor-help-body))
-     (funcall *accept-help-displayer* #'with-input-editor-help-body stream)))
+     (let* ((frame (pane-frame stream))
+	    (framem (frame-manager frame)))
+       (frame-manager-display-help
+	 framem frame stream #'with-input-editor-help-body))))
 
 ;; ACTION is either :HELP or :POSSIBILITIES
 (defun display-accept-help (stream action string-so-far)

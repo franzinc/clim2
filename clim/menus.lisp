@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: menus.lisp,v 1.29 92/07/27 11:02:40 cer Exp Locker: cer $
+;; $fiHeader: menus.lisp,v 1.30 92/07/27 19:29:54 cer Exp $
 
 (in-package :clim-internals)
 
@@ -141,29 +141,35 @@
 			      :move-cursor nil)
     (flet ((format-item (item)
 	     (let ((type (menu-item-type item)))
-	       (unless (eq type :separator)
-		 (flet ((print-item ()
-			  (formatting-cell (menu :align-x cell-align-x 
-						 :align-y cell-align-y)
-			    (funcall item-printer item menu))))
-		   (declare (dynamic-extent #'print-item))
-		   (ecase type
-		     (:item 
-		       (if (menu-item-active item)
-			   (let ((presentation
-				   (with-output-as-presentation (menu item presentation-type
-								 :single-box t)
-				     (print-item))))
-			     (when (and default-item
-					(eq item default-item))
-			       (setf default-presentation presentation)))
-			 ;;--- Perhaps it should be grayed out in someway?
-			 (print-item)))
-		     (:label 
-		       (print-item))
-		     (:separator
-		       ;; Ignore separators for the time being
-		       )))))))
+	       (flet ((print-item ()
+			(formatting-cell (menu :align-x cell-align-x 
+					       :align-y cell-align-y)
+			  (funcall item-printer item menu))))
+		 (declare (dynamic-extent #'print-item))
+		 (ecase type
+		   (:item 
+		     (if (menu-item-active item)
+			 (let ((presentation
+				 (with-output-as-presentation (menu item presentation-type
+							       :single-box t)
+				   (print-item))))
+			   (when (and default-item
+				      (eq item default-item))
+			     (setf default-presentation presentation)))
+			 (with-drawing-options (menu :ink *command-table-menu-gray*
+						     :text-face :bold)
+			   (print-item))))
+		   (:label 
+		     (print-item))
+		   (:divider
+		     (let* ((width (menu-item-getf item :width 50))
+			    (thickness (menu-item-getf item :thickness 2))
+			    (ink (menu-item-getf item :ink *command-table-menu-gray*)))
+		       (formatting-cell (menu :align-x cell-align-x
+					      :align-y :center)
+			 (with-local-coordinates (menu)
+			   (draw-line* menu 0 0 width 0 
+				       :line-thickness thickness :ink ink))))))))))
       (declare (dynamic-extent #'format-item))
       (map nil #'format-item items)))
   default-presentation)
@@ -411,10 +417,11 @@
 		   (when *abort-menus-when-buried*
 		     #-Silica (wait-for-window-exposed menu))
 		   (with-mouse-grabbed-in-window (menu)
-		     (loop (read-gesture :stream menu
-					 :input-wait-test #'input-wait-test
-					 :input-wait-handler #'input-wait-handler)
-			   (beep menu))))
+		     (loop
+		       (read-gesture :stream menu
+				     :input-wait-test #'input-wait-test
+				     :input-wait-handler #'input-wait-handler)
+		       (beep menu))))
 	       (t (values object gesture)))))
       (unless leave-menu-visible
 	(setf (window-visibility menu) nil))

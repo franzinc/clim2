@@ -1,17 +1,18 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-button.lisp,v 1.12 92/07/24 10:53:45 cer Exp Locker: cer $
+;; $fiHeader: db-button.lisp,v 1.13 92/07/27 11:01:30 cer Exp $
 
-"Copyright (c) 1990, 1991 International Lisp Associates.
- Portions copyright (c) 1991, 1992 by Symbolics, Inc.  All rights reserved."
+"Copyright (c) 1991, 1992 by Symbolics, Inc.  All rights reserved.
+ Portions copyright (c) 1990, 1991 International Lisp Associates."
 
 (in-package :silica)
+
 
 #|
 
 To Do:
 
-Split toggle-button into check-box-button and radio-button classes that shase a
+Split toggle-button into check-box-button and radio-button classes that share a
 toggle button base. This way they can share the draw code.
 
 |#
@@ -78,108 +79,93 @@ toggle button base. This way they can share the draw code.
 ;;; Patterns for push buttons
 
 (defparameter *square-button-pattern*
-	      (make-pattern #2a(		; width = 16  height = 16 
-				( 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ) 
-				( 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 ) 
-				( 0 1 0 0 0 0 0 0 0 0 0 0 0 0 1 0 ) 
-				( 0 1 0 0 0 0 0 0 0 0 0 0 0 0 1 0 ) 
-				( 0 1 0 0 0 0 0 0 0 0 0 0 0 0 1 0 ) 
-				( 0 1 0 0 0 0 0 0 0 0 0 0 0 0 1 0 ) 
-				( 0 1 0 0 0 0 0 0 0 0 0 0 0 0 1 0 ) 
-				( 0 1 0 0 0 0 0 0 0 0 0 0 0 0 1 0 ) 
-				( 0 1 0 0 0 0 0 0 0 0 0 0 0 0 1 0 ) 
-				( 0 1 0 0 0 0 0 0 0 0 0 0 0 0 1 0 ) 
-				( 0 1 0 0 0 0 0 0 0 0 0 0 0 0 1 0 ) 
-				( 0 1 0 0 0 0 0 0 0 0 0 0 0 0 1 0 ) 
-				( 0 1 0 0 0 0 0 0 0 0 0 0 0 0 1 0 ) 
-				( 0 1 0 0 0 0 0 0 0 0 0 0 0 0 1 0 ) 
-				( 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 ) 
-				( 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ))
+	      (make-pattern #2a((0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0) 
+				(0 1 0 0 0 0 0 0 0 0 0 0 0 0 1 0) 
+				(0 1 0 0 0 0 0 0 0 0 0 0 0 0 1 0) 
+				(0 1 0 0 0 0 0 0 0 0 0 0 0 0 1 0) 
+				(0 1 0 0 0 0 0 0 0 0 0 0 0 0 1 0) 
+				(0 1 0 0 0 0 0 0 0 0 0 0 0 0 1 0) 
+				(0 1 0 0 0 0 0 0 0 0 0 0 0 0 1 0) 
+				(0 1 0 0 0 0 0 0 0 0 0 0 0 0 1 0) 
+				(0 1 0 0 0 0 0 0 0 0 0 0 0 0 1 0) 
+				(0 1 0 0 0 0 0 0 0 0 0 0 0 0 1 0) 
+				(0 1 0 0 0 0 0 0 0 0 0 0 0 0 1 0) 
+				(0 1 0 0 0 0 0 0 0 0 0 0 0 0 1 0) 
+				(0 1 0 0 0 0 0 0 0 0 0 0 0 0 1 0) 
+				(0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0))
 			    (list +background-ink+ +foreground-ink+)))
 
 (defparameter *circle-button-pattern*
-	      (make-pattern #2a(     ; width = 16  height = 16 
-				( 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ) 
-				( 0 0 0 0 0 1 1 1 1 1 1 0 0 0 0 0 ) 
-				( 0 0 0 1 1 1 0 0 0 0 1 1 1 0 0 0 ) 
-				( 0 0 1 1 0 0 0 0 0 0 0 0 1 1 0 0 ) 
-				( 0 0 1 0 0 0 0 0 0 0 0 0 0 1 0 0 ) 
-				( 0 1 1 0 0 0 0 0 0 0 0 0 0 1 1 0 ) 
-				( 0 1 0 0 0 0 0 0 0 0 0 0 0 0 1 0 ) 
-				( 0 1 0 0 0 0 0 0 0 0 0 0 0 0 1 0 ) 
-				( 0 1 0 0 0 0 0 0 0 0 0 0 0 0 1 0 ) 
-				( 0 1 0 0 0 0 0 0 0 0 0 0 0 0 1 0 ) 
-				( 0 1 1 0 0 0 0 0 0 0 0 0 0 1 1 0 ) 
-				( 0 0 1 0 0 0 0 0 0 0 0 0 0 1 0 0 ) 
-				( 0 0 1 1 0 0 0 0 0 0 0 0 1 1 0 0 ) 
-				( 0 0 0 1 1 1 0 0 0 0 1 1 1 0 0 0 ) 
-				( 0 0 0 0 0 1 1 1 1 1 1 0 0 0 0 0 ) 
-				( 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ))
+	      (make-pattern #2a((0 0 0 0 0 1 1 1 1 1 1 0 0 0 0 0) 
+				(0 0 0 1 1 1 0 0 0 0 1 1 1 0 0 0) 
+				(0 0 1 1 0 0 0 0 0 0 0 0 1 1 0 0) 
+				(0 0 1 0 0 0 0 0 0 0 0 0 0 1 0 0) 
+				(0 1 1 0 0 0 0 0 0 0 0 0 0 1 1 0) 
+				(0 1 0 0 0 0 0 0 0 0 0 0 0 0 1 0) 
+				(0 1 0 0 0 0 0 0 0 0 0 0 0 0 1 0) 
+				(0 1 0 0 0 0 0 0 0 0 0 0 0 0 1 0) 
+				(0 1 0 0 0 0 0 0 0 0 0 0 0 0 1 0) 
+				(0 1 1 0 0 0 0 0 0 0 0 0 0 1 1 0) 
+				(0 0 1 0 0 0 0 0 0 0 0 0 0 1 0 0) 
+				(0 0 1 1 0 0 0 0 0 0 0 0 1 1 0 0) 
+				(0 0 0 1 1 1 0 0 0 0 1 1 1 0 0 0) 
+				(0 0 0 0 0 1 1 1 1 1 1 0 0 0 0 0))
 			    (list +background-ink+ +foreground-ink+)))
 
 (defparameter *right-triangle-button-pattern*
-	      (make-pattern #2a(		; width = 16  height = 16 
-				( 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ) 
-				( 0 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 ) 
-				( 0 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 ) 
-				( 0 1 0 0 1 1 1 0 0 0 0 0 0 0 0 0 ) 
-				( 0 1 0 0 0 0 1 1 1 0 0 0 0 0 0 0 ) 
-				( 0 1 0 0 0 0 0 0 1 1 1 0 0 0 0 0 ) 
-				( 0 1 0 0 0 0 0 0 0 0 1 1 1 0 0 0 ) 
-				( 0 1 0 0 0 0 0 0 0 0 0 0 1 1 1 0 ) 
-				( 0 1 0 0 0 0 0 0 0 0 0 0 1 1 1 0 ) 
-				( 0 1 0 0 0 0 0 0 0 0 1 1 1 0 0 0 ) 
-				( 0 1 0 0 0 0 0 0 1 1 1 0 0 0 0 0 ) 
-				( 0 1 0 0 0 0 1 1 1 0 0 0 0 0 0 0 ) 
-				( 0 1 0 0 1 1 1 0 0 0 0 0 0 0 0 0 ) 
-				( 0 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 ) 
-				( 0 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 ) 
-				( 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ))
+	      (make-pattern #2a((0 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0) 
+				(0 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0) 
+				(0 1 0 0 1 1 1 0 0 0 0 0 0 0 0 0) 
+				(0 1 0 0 0 0 1 1 1 0 0 0 0 0 0 0) 
+				(0 1 0 0 0 0 0 0 1 1 1 0 0 0 0 0) 
+				(0 1 0 0 0 0 0 0 0 0 1 1 1 0 0 0) 
+				(0 1 0 0 0 0 0 0 0 0 0 0 1 1 1 0) 
+				(0 1 0 0 0 0 0 0 0 0 0 0 1 1 1 0) 
+				(0 1 0 0 0 0 0 0 0 0 1 1 1 0 0 0) 
+				(0 1 0 0 0 0 0 0 1 1 1 0 0 0 0 0) 
+				(0 1 0 0 0 0 1 1 1 0 0 0 0 0 0 0) 
+				(0 1 0 0 1 1 1 0 0 0 0 0 0 0 0 0) 
+				(0 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0) 
+				(0 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0))
 			    (list +background-ink+ +foreground-ink+)))
 
 (defparameter *left-triangle-button-pattern*
-	      (make-pattern #2a(		; width = 16  height = 16 
-				( 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ) 
-				( 0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 0 ) 
-				( 0 0 0 0 0 0 0 0 0 0 0 1 1 1 1 0 ) 
-				( 0 0 0 0 0 0 0 0 0 1 1 1 0 0 1 0 ) 
-				( 0 0 0 0 0 0 0 1 1 1 0 0 0 0 1 0 ) 
-				( 0 0 0 0 0 1 1 1 0 0 0 0 0 0 1 0 ) 
-				( 0 0 0 1 1 1 0 0 0 0 0 0 0 0 1 0 ) 
-				( 0 1 1 1 0 0 0 0 0 0 0 0 0 0 1 0 ) 
-				( 0 1 1 1 0 0 0 0 0 0 0 0 0 0 1 0 ) 
-				( 0 0 0 1 1 1 0 0 0 0 0 0 0 0 1 0 ) 
-				( 0 0 0 0 0 1 1 1 0 0 0 0 0 0 1 0 ) 
-				( 0 0 0 0 0 0 0 1 1 1 0 0 0 0 1 0 ) 
-				( 0 0 0 0 0 0 0 0 0 1 1 1 0 0 1 0 ) 
-				( 0 0 0 0 0 0 0 0 0 0 0 1 1 1 1 0 ) 
-				( 0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 0 ) 
-				( 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ))
+	      (make-pattern #2a((0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 0) 
+				(0 0 0 0 0 0 0 0 0 0 0 1 1 1 1 0) 
+				(0 0 0 0 0 0 0 0 0 1 1 1 0 0 1 0) 
+				(0 0 0 0 0 0 0 1 1 1 0 0 0 0 1 0) 
+				(0 0 0 0 0 1 1 1 0 0 0 0 0 0 1 0) 
+				(0 0 0 1 1 1 0 0 0 0 0 0 0 0 1 0) 
+				(0 1 1 1 0 0 0 0 0 0 0 0 0 0 1 0) 
+				(0 1 1 1 0 0 0 0 0 0 0 0 0 0 1 0) 
+				(0 0 0 1 1 1 0 0 0 0 0 0 0 0 1 0) 
+				(0 0 0 0 0 1 1 1 0 0 0 0 0 0 1 0) 
+				(0 0 0 0 0 0 0 1 1 1 0 0 0 0 1 0) 
+				(0 0 0 0 0 0 0 0 0 1 1 1 0 0 1 0) 
+				(0 0 0 0 0 0 0 0 0 0 0 1 1 1 1 0) 
+				(0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 0))
 			    (list +background-ink+ +foreground-ink+)))
 
 (defparameter *rounded-button-pattern*
-	      (make-pattern #2a(     ; width = 21  height = 21 
-				( 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ) 
-				( 0 0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0 0 ) 
-				( 0 0 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 0 0 ) 
-				( 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 ) 
-				( 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 ) 
-				( 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 ) 
-				( 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 ) 
-				( 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 ) 
-				( 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 ) 
-				( 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 ) 
-				( 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 ) 
-				( 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 ) 
-				( 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 ) 
-				( 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 ) 
-				( 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 ) 
-				( 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 ) 
-				( 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 ) 
-				( 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 ) 
-				( 0 0 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 0 0 ) 
-				( 0 0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0 0 ) 
-				( 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ))
+	      (make-pattern #2a((0 0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0 0) 
+				(0 0 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 0 0) 
+				(0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0) 
+				(0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0) 
+				(0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0) 
+				(0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0) 
+				(0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0) 
+				(0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0) 
+				(0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0) 
+				(0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0) 
+				(0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0) 
+				(0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0) 
+				(0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0) 
+				(0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0) 
+				(0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0) 
+				(0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0) 
+				(0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0) 
+				(0 0 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 0 0) 
+				(0 0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0 0))
 			    (list +background-ink+ +foreground-ink+)))
 
 
@@ -194,8 +180,8 @@ toggle button base. This way they can share the draw code.
      ;; These slots hold the patterns we'll really use...
      (normal-pattern :initarg :normal-pattern)
      (depressed-pattern :initarg :depressed-pattern)
-     (xmargin :initarg :xmargin)
-     (ymargin :initarg :ymargin)
+     (x-margin :initarg :x-margin)
+     (y-margin :initarg :y-margin)
      ;;--- kludge because DRAW-TEXT* :ALIGN-X :CENTER is wrong
      (internal-label-offset :initform 0))
   (:default-initargs :label nil
@@ -206,12 +192,11 @@ toggle button base. This way they can share the draw code.
 		     :pattern *square-button-pattern*
 		     :icon-pattern nil
 		     :normal-pattern nil
-		     :xmargin 2
-		     :ymargin 0))
+		     :x-margin 2 :y-margin 0))
 
 (defmethod compose-space ((pane push-button-pane) &key width height)
   (declare (ignore width height))
-  (with-slots (normal-pattern external-label xmargin ymargin) pane
+  (with-slots (normal-pattern external-label x-margin y-margin) pane
     (unless normal-pattern (setup-patterns pane))
     (let* ((pattern-width (pattern-width normal-pattern))
 	   (pattern-height (pattern-height normal-pattern))
@@ -226,21 +211,20 @@ toggle button base. This way they can share the draw code.
 		    ext-label-height (+ h (floor
 					    (text-style-height text-style medium) 2)))))))
       (make-space-requirement
-	:width (+ xmargin ext-label-width pattern-width xmargin)
-	:height (+ ymargin (max ext-label-height pattern-height) ymargin)))))
+	:width (+ x-margin ext-label-width pattern-width x-margin)
+	:height (+ y-margin (max ext-label-height pattern-height) y-margin)))))
 
 ;; There are 3 cases:
 ;;  1) A simple pattern - no label
 ;;  2) A simple pattern with internal label
 ;;  3) An icon pattern and simple border pattern
-;;--- It would have been nice to do all of this in an
-;;--- INITIALIZE-INSTANCE after method but the medium is not setup at that
-;;--- time so we can't compute the size of the internal label
+;; We don't do this at INITIALIZE-INSTANCE time since the medium is not
+;; yet set up at that time, meaning we can't compute label sizes, etc.
 (defmethod setup-patterns ((pane push-button-pane))
   (with-slots (pattern icon-pattern normal-pattern depressed-pattern depth
 	       label internal-label-offset text-style) pane
     (with-sheet-medium (medium pane)
-      (let ((text-margin (* 2 (text-style-width text-style medium)))
+      (let ((text-margin (text-style-width text-style medium))
 	    (label-width 0)
 	    (label-height 0)
 	    inside-left inside-top inside-right inside-bottom 
@@ -265,12 +249,12 @@ toggle button base. This way they can share the draw code.
 	(setq normal-pattern (refit-button-pattern pattern :overhang 4)
 	      depressed-pattern (offset-button-pattern normal-pattern
 						       :x-offset depth :y-offset depth))
-	;;--- kludge because DRAW-TEXT* :ALIGN-X :CENTER is wrong
+	;;--- Kludge because DRAW-TEXT* :ALIGN-X :CENTER is wrong
 	(when label
 	  (setq internal-label-offset
 		(+ text-margin (floor (- (pattern-width normal-pattern) label-width) 2))))
-	;; This side effects the pattern - literally
-	(shadow-button-pattern normal-pattern :depth depth)))))
+	(setq normal-pattern
+	      (shadow-button-pattern normal-pattern :depth depth))))))
 
 (defmethod highlight-button ((pane push-button-pane) medium)
   (draw-button-pattern pane medium)
@@ -295,46 +279,67 @@ toggle button base. This way they can share the draw code.
 				&key (draw-external-label-p nil))
   (with-slots (normal-pattern depressed-pattern armed external-label
 	       text-style label depth internal-label-offset
-	       xmargin ymargin) pane
+	       x-margin y-margin) pane
     (with-bounding-rectangle* (left top right bottom) (sheet-region pane) right
       (let* ((pattern (if (eq armed :active) depressed-pattern normal-pattern))
 	     (pattern-width (pattern-width pattern))
 	     (pattern-height (pattern-height pattern))
 	     (pattern-center-y (floor (+ top bottom) 2))
-	     (pattern-top (- pattern-center-y (floor pattern-height 2) ymargin))
-	     (pattern-left (+ left xmargin)))
+	     (pattern-top (- pattern-center-y (floor pattern-height 2) y-margin))
+	     (pattern-left (+ left x-margin)))
 	(draw-pattern* medium pattern pattern-left pattern-top)
 	;; I don't like this - we really need to be able to draw text into patterns
 	(when label
 	  (let ((offset (if (eq armed :active) depth 0)))
 	    (draw-text* medium label
-			;;--- kludge because DRAW-TEXT* :ALIGN-X :CENTER is wrong
-			(+ left xmargin internal-label-offset offset)
+			;;--- Kludge because DRAW-TEXT* :ALIGN-X :CENTER is wrong
+			(+ left x-margin internal-label-offset offset)
 			(+ pattern-center-y offset)
 			:text-style text-style
 			:align-x :left :align-y :center)))
 	(when draw-external-label-p
 	  (when external-label
 	    (draw-text* medium external-label
-			(+ pattern-left pattern-width xmargin) pattern-center-y
+			(+ pattern-left pattern-width x-margin) pattern-center-y
 			:text-style text-style
 			:align-x :left :align-y :center)))))))
 
 
-
 ;;; Utilities for transmogrifying buttons
 
+;; Creates a new pattern which consists of the supplied pattern plus 
+;; a drop shadow
+(defvar *shadow-button-pattern-cache* (make-hash-table :test 'equal))
 (defun shadow-button-pattern (original-pattern &key (depth 2))
-  (let ((width (pattern-width original-pattern))
-	(height (pattern-height original-pattern))
-	(array (decode-pattern original-pattern)))
+  (multiple-value-bind (result foundp)
+      (gethash (cons original-pattern depth) *shadow-button-pattern-cache*)
+    (when foundp 
+      (return-from shadow-button-pattern result)))
+  (let* ((result-pattern (copy-pattern original-pattern))
+	 (width (pattern-width result-pattern))
+	 (height (pattern-height result-pattern))
+	 (array (decode-pattern result-pattern)))
     (loop with y = (1- height)
 	  for x from 1 to (1- width)
 	  do (shadow-button-scan array x y width height depth))
     (loop with x = (1- width)
 	  for y from (- height 2) downto 1
 	  do (shadow-button-scan array x y width height depth))
-    original-pattern))
+    (setf (gethash (cons original-pattern depth) *shadow-button-pattern-cache*)
+	  result-pattern)))
+
+(defun copy-pattern (pattern)
+  (multiple-value-bind (array designs) (decode-pattern pattern)
+    (let* ((pattern-width (pattern-width pattern))
+	   (pattern-height (pattern-height pattern))
+	   (new-array
+	     (make-array (list pattern-height pattern-width)
+			 :element-type `(unsigned-byte ,(integer-length (1- (length designs))))
+			 :initial-element 0)))
+      (loop for x from 0 to (1- pattern-width)
+	    do (loop for y from 0 to (1- pattern-height)
+		     do (setf (aref new-array y x) (aref array y x))))
+      (make-pattern new-array designs))))
 
 (defun shadow-button-scan (array start-x start-y width height depth)
   (loop with x = start-x
@@ -356,15 +361,26 @@ toggle button base. This way they can share the draw code.
 			  (incf nx) (incf ny))
 		 (setq done t)))))
 
+;; Creates a new pattern which consists of the supplied pattern offset
+;; by the specified amount
+(defvar *offset-button-pattern-cache* (make-hash-table :test 'equal))
 (defun offset-button-pattern (original-pattern &key (x-offset 2) (y-offset 2)
-					       (new-width nil) (new-height nil))
-  (multiple-value-bind (array designs) (decode-pattern original-pattern)
-    (let ((width (pattern-width original-pattern))
-	  (height (pattern-height original-pattern)))
-      (unless new-width (setq new-width width))
-      (unless new-height (setq new-height height))
-      (let* ((new-array (make-array (list new-height new-width) :initial-element 0))
-	     (new-pattern (make-pattern new-array designs)))
+						    (new-width nil) (new-height nil))
+  (let ((width (pattern-width original-pattern))
+	(height (pattern-height original-pattern)))
+    (unless new-width (setq new-width width))
+    (unless new-height (setq new-height height))
+    (multiple-value-bind (result foundp)
+	(gethash (list original-pattern x-offset y-offset new-width new-height)
+		 *offset-button-pattern-cache*)
+      (when foundp 
+	(return-from offset-button-pattern result)))
+    (multiple-value-bind (array designs) (decode-pattern original-pattern)
+      (let* ((new-array 
+	       (make-array (list new-height new-width)
+			   :element-type `(unsigned-byte ,(integer-length (1- (length designs))))
+			   :initial-element 0))
+	     (result-pattern (make-pattern new-array designs)))
 	(loop for x from 0 to (1- width)
 	      do (loop for y from 0 to (1- height)
 		       for new-x = (+ x x-offset)
@@ -373,7 +389,36 @@ toggle button base. This way they can share the draw code.
 				  (< new-y 0) (> new-y (1- new-height)))
 			 do (setf (aref new-array (+ y y-offset) (+ x x-offset))
 				  (aref array y x))))
-	new-pattern))))
+	(setf (gethash (list original-pattern x-offset y-offset new-width new-height)
+		       *offset-button-pattern-cache*)
+	      result-pattern)))))
+
+;; Creates a new pattern which consists of the supplied pattern plus a drop shadow
+(defvar *refit-button-pattern-cache* (make-hash-table :test 'equal))
+(defun refit-button-pattern (original-pattern &key (overhang 0))
+  (multiple-value-bind (result foundp)
+      (gethash (cons original-pattern overhang) *refit-button-pattern-cache*)
+    (when foundp 
+      (return-from refit-button-pattern result)))
+  (multiple-value-bind (original-array designs)
+      (decode-pattern original-pattern)
+    (multiple-value-bind (left top right bottom)
+	(bounding-extent-button-pattern original-pattern)
+      (let* ((new-width (+ (- right left) 1 (* 2 overhang)))
+	     (new-height (+ (- bottom top) 1 (* 2 overhang)))
+	     (x-offset (- left overhang))
+	     (y-offset (- top overhang))
+	     (new-array 
+	       (make-array (list new-height new-width)
+			   :element-type `(unsigned-byte ,(integer-length (1- (length designs))))
+			   :initial-element 0)))
+	(loop for x from left to right
+	      do (loop for y from top to bottom
+		       do (setf (aref new-array (- y y-offset) (- x x-offset))
+				(aref original-array y x))))
+	(let ((result-pattern (make-pattern new-array designs)))
+	  (setf (gethash (cons original-pattern overhang) *refit-button-pattern-cache*)
+		result-pattern))))))
 
 (defun bounding-extent-button-pattern (pattern)
   (let ((width (pattern-width pattern))
@@ -414,65 +459,6 @@ toggle button base. This way they can share the draw code.
 			      top y))))
     (values left top right bottom)))
 
-(defun inside-extent-button-pattern (pattern)
-  (let* ((width (pattern-width pattern))
-	 (height (pattern-height pattern))
-	 (array (decode-pattern pattern))
-	 (center-x (floor width 2))
-	 (center-y (floor height 2))
-	 (initial-height 1)
-	 left bottom right top real-width)
-    (loop with done = nil
-	  for x from center-x downto 0
-	  until done
-	  do (loop for y from (- center-y initial-height) to (+ center-y initial-height)
-		   until done
-		   do (unless (= 0 (aref array y x))
-			(setq done t
-			      left (1+ x)))))
-    (loop with done = nil
-	  for x from center-x to (1- width)
-	  until done
-	  do (loop for y from (- center-y initial-height) to (+ center-y initial-height)
-		   until done
-		   do (unless (= 0 (aref array y x))
-			(setq done t
-			      right (1- x)))))
-    (setq real-width (floor (- right left) 2))
-    (loop with done = nil
-	  for y from center-y to (1- height)
-	  until done
-	  do (loop for x from (- center-x real-width) to (+ center-x real-width)
-		   until done
-		   do (unless (= 0 (aref array y x))
-			(setq done t
-			      bottom (1- y)))))
-    (loop with done = nil
-	  for y from center-y downto 0
-	  until done
-	  do (loop for x from (- center-x real-width) to (+ center-x real-width)
-		   until done
-		   do (unless (= 0 (aref array y x))
-			(setq done t
-			      top (1+ y)))))
-    (values left top right bottom)))
-
-(defun refit-button-pattern (original-pattern &key (overhang 0))
-  (multiple-value-bind (original-array designs)
-      (decode-pattern original-pattern)
-    (multiple-value-bind (left top right bottom)
-	(bounding-extent-button-pattern original-pattern)
-      (let* ((new-width (+ (- right left) 1 (* 2 overhang)))
-	     (new-height (+ (- bottom top) 1 (* 2 overhang)))
-	     (x-offset (- left overhang))
-	     (y-offset (- top overhang))
-	     (new-array (make-array (list new-height new-width) :initial-element 0)))
-	(loop for x from left to right
-	      do (loop for y from top to bottom
-		       do (setf (aref new-array (- y y-offset) (- x x-offset))
-				(aref original-array y x))))
-	(make-pattern new-array designs)))))
-
 (defun operate-on-button-patterns (source-1 source-2 destination operation)
   (let ((source-1-width (pattern-width source-1))
 	(source-2-width (when source-2 (pattern-width source-2)))
@@ -499,10 +485,13 @@ toggle button base. This way they can share the draw code.
 				(funcall operation
 					 (aref source-1-array y x))))))))
 
+;; Creates an outlined copy of the original pattern in the destination
+;; pattern, clobbering the destination in the process
 (defun outline-button-pattern (original-pattern destination-pattern
-					       &key (space 1) (thickness 2))
-  (when (eq original-pattern destination-pattern)
-    (error "Seperate destination pattern required"))
+			       &key (space 1) (thickness 2))
+  (assert (not (eq original-pattern destination-pattern))
+	  (original-pattern destination-pattern)
+	  "The original and destination patterns must be different objects")
   (let ((width (pattern-width original-pattern))
 	(height (pattern-height original-pattern))
 	(array (decode-pattern original-pattern))
@@ -556,6 +545,7 @@ toggle button base. This way they can share the draw code.
 	   (incf y dy)
 	   (setf (aref dest-array y x) 1)))
 
+;; Desstructively "grays" the supplied pattern
 (defun gray-button-pattern (original-pattern)
   (let ((width (pattern-width original-pattern))
 	(height (pattern-height original-pattern))
@@ -567,18 +557,30 @@ toggle button base. This way they can share the draw code.
 			  (when (oddp y) (setf (aref array y x) 0)))))
     original-pattern))
 
+;; Creates a new pattern consisting of the supplied pattern "stretched"
+;; to the new dimensions
+(defvar *grow-button-pattern-cache* (make-hash-table :test 'equal))
 (defun grow-button-pattern (original-pattern new-width new-height)
-  (multiple-value-bind (original-array designs)
-      (decode-pattern original-pattern)
-    (let* ((original-width (pattern-width original-pattern))
-	   (original-height (pattern-height original-pattern)))
-      (setq new-width (max original-width new-width)
-	    new-height (max original-height new-height))
+  (let ((original-width (pattern-width original-pattern))
+	(original-height (pattern-height original-pattern)))
+    (maxf new-width original-width)
+    (maxf new-height original-height)
+    (multiple-value-bind (result foundp)
+	(gethash (list original-pattern new-width new-height) *grow-button-pattern-cache*)
+      (when foundp 
+	(return-from grow-button-pattern result)))
+    (multiple-value-bind (original-array designs)
+	(decode-pattern original-pattern)
       (let ((center-x (floor original-width 2))
 	    (center-y (floor original-height 2))
 	    (intermediate-array
-	      (make-array (list original-height new-width) :initial-element 0))
-	    (final-array (make-array (list new-height new-width) :initial-element 0)))
+	      (make-array (list original-height new-width)
+			  :element-type `(unsigned-byte ,(integer-length (1- (length designs)))) 
+			  :initial-element 0))
+	    (final-array 
+	      (make-array (list new-height new-width) 
+			  :element-type `(unsigned-byte ,(integer-length (1- (length designs))))
+			  :initial-element 0)))
 	(loop for x from 0 to center-x
 	      do (loop for y from 0 to (1- original-height)
 		       do (setf (aref intermediate-array y x) (aref original-array y x))))
@@ -601,19 +603,19 @@ toggle button base. This way they can share the draw code.
 	(loop for y from (1+ center-y) to (- new-height center-y 1)
 	      do (loop for x from 0 to (1- new-width)
 		       do (setf (aref final-array y x) (aref intermediate-array center-y x))))
-	(make-pattern final-array designs)))))
+	(let ((result-pattern (make-pattern final-array designs)))
+	  (setf (gethash (list original-pattern new-width new-height) 
+			 *grow-button-pattern-cache*)
+		result-pattern))))))
 
-(defun copy-pattern (pattern)
-  (multiple-value-bind (array designs) (decode-pattern pattern)
-    (let* ((pattern-width (pattern-width pattern))
-	   (pattern-height (pattern-height pattern))
-	   (new-array (make-array (list pattern-width pattern-height) :initial-element 0)))
-      (loop for x from 0 to (1- pattern-width)
-	    do (loop for y from 0 to (1- pattern-height)
-		     do (setf (aref new-array y x) (aref array y x))))
-      (make-pattern new-array designs))))
-
+;; Creates a new pattern which consists of the icon pattern mounted within
+;; the appropriately sized button pattern
+(defvar *mount-button-pattern-cache* (make-hash-table :test 'equal))
 (defun mount-button-pattern (icon-pattern button-pattern)
+  (multiple-value-bind (result foundp)
+      (gethash (cons icon-pattern button-pattern) *mount-button-pattern-cache*)
+    (when foundp 
+      (return-from mount-button-pattern result)))
   (multiple-value-bind (ileft itop iright ibottom)
       (inside-extent-button-pattern button-pattern)
     (let* ((icon-width (pattern-width icon-pattern))
@@ -642,184 +644,189 @@ toggle button base. This way they can share the draw code.
 	      do (loop for y from 0 to (1- icon-height)
 		       do (setf (aref result-array (+ y y-offset) (+ x x-offset))
 				(aref icon-array y x)))))
-      result-pattern)))
+      (setf (gethash (cons icon-pattern button-pattern) *mount-button-pattern-cache*)
+	    result-pattern))))
+
+(defun inside-extent-button-pattern (pattern)
+  (let* ((width (pattern-width pattern))
+	 (height (pattern-height pattern))
+	 (array (decode-pattern pattern))
+	 (center-x (floor width 2))
+	 (center-y (floor height 2))
+	 (initial-height 1)
+	 left bottom right top real-width)
+    (loop with done = nil
+	  for x from center-x downto 0
+	  until done
+	  do (loop for y from (- center-y initial-height) to (+ center-y initial-height)
+		   until done
+		   do (unless (= 0 (aref array y x))
+			(setq done t
+			      left (1+ x)))))
+    (loop with done = nil
+	  for x from center-x to (1- width)
+	  until done
+	  do (loop for y from (- center-y initial-height) to (+ center-y initial-height)
+		   until done
+		   do (unless (= 0 (aref array y x))
+			(setq done t
+			      right (1- x)))))
+    (setq real-width (floor (- right left) 2))
+    (loop with done = nil
+	  for y from center-y to (1- height)
+	  until done
+	  do (loop for x from (- center-x real-width) to (+ center-x real-width)
+		   until done
+		   do (unless (= 0 (aref array y x))
+			(setq done t
+			      bottom (1- y)))))
+    (loop with done = nil
+	  for y from center-y downto 0
+	  until done
+	  do (loop for x from (- center-x real-width) to (+ center-x real-width)
+		   until done
+		   do (unless (= 0 (aref array y x))
+			(setq done t
+			      top (1+ y)))))
+    (values left top right bottom)))
 
 
 ;;; Patterns for toggle buttons and check boxes
 
 (defparameter *empty-check-box-pattern*
-	      (make-pattern #2a(     ; width = 21  height = 21 
-				( 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ) 
-				( 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ) 
-				( 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ) 
-				( 0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0 ) 
-				( 0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0 ) 
-				( 0 0 0 1 1 0 0 0 0 0 0 0 0 0 0 0 1 1 0 0 0 ) 
-				( 0 0 0 1 1 0 0 0 0 0 0 0 0 0 0 0 1 1 0 0 0 ) 
-				( 0 0 0 1 1 0 0 0 0 0 0 0 0 0 0 0 1 1 0 0 0 ) 
-				( 0 0 0 1 1 0 0 0 0 0 0 0 0 0 0 0 1 1 0 0 0 ) 
-				( 0 0 0 1 1 0 0 0 0 0 0 0 0 0 0 0 1 1 0 0 0 ) 
-				( 0 0 0 1 1 0 0 0 0 0 0 0 0 0 0 0 1 1 0 0 0 ) 
-				( 0 0 0 1 1 0 0 0 0 0 0 0 0 0 0 0 1 1 0 0 0 ) 
-				( 0 0 0 1 1 0 0 0 0 0 0 0 0 0 0 0 1 1 0 0 0 ) 
-				( 0 0 0 1 1 0 0 0 0 0 0 0 0 0 0 0 1 1 0 0 0 ) 
-				( 0 0 0 1 1 0 0 0 0 0 0 0 0 0 0 0 1 1 0 0 0 ) 
-				( 0 0 0 1 1 0 0 0 0 0 0 0 0 0 0 0 1 1 0 0 0 ) 
-				( 0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0 ) 
-				( 0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0 ) 
-				( 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ) 
-				( 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ) 
-				( 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ))
+	      (make-pattern #2a((0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0) 
+				(0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0) 
+				(0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0) 
+				(0 0 0 1 1 0 0 0 0 0 0 0 0 0 0 0 1 1 0 0 0) 
+				(0 0 0 1 1 0 0 0 0 0 0 0 0 0 0 0 1 1 0 0 0) 
+				(0 0 0 1 1 0 0 0 0 0 0 0 0 0 0 0 1 1 0 0 0) 
+				(0 0 0 1 1 0 0 0 0 0 0 0 0 0 0 0 1 1 0 0 0) 
+				(0 0 0 1 1 0 0 0 0 0 0 0 0 0 0 0 1 1 0 0 0) 
+				(0 0 0 1 1 0 0 0 0 0 0 0 0 0 0 0 1 1 0 0 0) 
+				(0 0 0 1 1 0 0 0 0 0 0 0 0 0 0 0 1 1 0 0 0) 
+				(0 0 0 1 1 0 0 0 0 0 0 0 0 0 0 0 1 1 0 0 0) 
+				(0 0 0 1 1 0 0 0 0 0 0 0 0 0 0 0 1 1 0 0 0) 
+				(0 0 0 1 1 0 0 0 0 0 0 0 0 0 0 0 1 1 0 0 0) 
+				(0 0 0 1 1 0 0 0 0 0 0 0 0 0 0 0 1 1 0 0 0) 
+				(0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0) 
+				(0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0))
 			    (list +background-ink+ +foreground-ink+)))
 
 (defparameter *crossed-check-box-pattern*
-	      (make-pattern #2a(     ; width = 21  height = 21 
-				( 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ) 
-				( 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ) 
-				( 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ) 
-				( 0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0 ) 
-				( 0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0 ) 
-				( 0 0 0 1 1 0 0 0 0 0 0 0 0 0 0 0 1 1 0 0 0 ) 
-				( 0 0 0 1 1 0 1 1 0 0 0 0 0 1 1 0 1 1 0 0 0 ) 
-				( 0 0 0 1 1 0 1 1 1 0 0 0 1 1 1 0 1 1 0 0 0 ) 
-				( 0 0 0 1 1 0 0 1 1 1 0 1 1 1 0 0 1 1 0 0 0 ) 
-				( 0 0 0 1 1 0 0 0 1 1 1 1 1 0 0 0 1 1 0 0 0 ) 
-				( 0 0 0 1 1 0 0 0 0 1 1 1 0 0 0 0 1 1 0 0 0 ) 
-				( 0 0 0 1 1 0 0 0 1 1 1 1 1 0 0 0 1 1 0 0 0 ) 
-				( 0 0 0 1 1 0 0 1 1 1 0 1 1 1 0 0 1 1 0 0 0 ) 
-				( 0 0 0 1 1 0 1 1 1 0 0 0 1 1 1 0 1 1 0 0 0 ) 
-				( 0 0 0 1 1 0 1 1 0 0 0 0 0 1 1 0 1 1 0 0 0 ) 
-				( 0 0 0 1 1 0 0 0 0 0 0 0 0 0 0 0 1 1 0 0 0 ) 
-				( 0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0 ) 
-				( 0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0 ) 
-				( 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ) 
-				( 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ) 
-				( 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ))
+	      (make-pattern #2a((0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0) 
+				(0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0) 
+				(0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0) 
+				(0 0 0 1 1 0 0 0 0 0 0 0 0 0 0 0 1 1 0 0 0) 
+				(0 0 0 1 1 0 1 1 0 0 0 0 0 1 1 0 1 1 0 0 0) 
+				(0 0 0 1 1 0 1 1 1 0 0 0 1 1 1 0 1 1 0 0 0) 
+				(0 0 0 1 1 0 0 1 1 1 0 1 1 1 0 0 1 1 0 0 0) 
+				(0 0 0 1 1 0 0 0 1 1 1 1 1 0 0 0 1 1 0 0 0) 
+				(0 0 0 1 1 0 0 0 0 1 1 1 0 0 0 0 1 1 0 0 0) 
+				(0 0 0 1 1 0 0 0 1 1 1 1 1 0 0 0 1 1 0 0 0) 
+				(0 0 0 1 1 0 0 1 1 1 0 1 1 1 0 0 1 1 0 0 0) 
+				(0 0 0 1 1 0 1 1 1 0 0 0 1 1 1 0 1 1 0 0 0) 
+				(0 0 0 1 1 0 1 1 0 0 0 0 0 1 1 0 1 1 0 0 0) 
+				(0 0 0 1 1 0 0 0 0 0 0 0 0 0 0 0 1 1 0 0 0) 
+				(0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0) 
+				(0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0))
 			    (list +background-ink+ +foreground-ink+)))
 
 (defparameter *checked-check-box-pattern*
-	      (make-pattern #2a(     ; width = 21  height = 21 
-				( 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ) 
-				( 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ) 
-				( 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 ) 
-				( 0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 1 1 ) 
-				( 0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 ) 
-				( 0 0 0 1 1 0 0 0 0 0 0 0 0 0 0 0 1 1 1 0 0 ) 
-				( 0 0 0 1 1 0 0 0 0 0 0 0 0 0 0 1 1 1 0 0 0 ) 
-				( 0 0 0 1 1 0 0 0 0 0 0 0 0 0 1 1 1 1 0 0 0 ) 
-				( 0 0 0 1 1 0 0 1 1 0 0 0 0 1 1 1 1 1 0 0 0 ) 
-				( 0 0 0 1 1 0 1 1 1 1 0 0 1 1 1 0 1 1 0 0 0 ) 
-				( 0 0 0 1 1 1 1 1 1 1 0 1 1 1 1 0 1 1 0 0 0 ) 
-				( 0 0 0 1 1 0 1 1 1 1 1 1 1 1 0 0 1 1 0 0 0 ) 
-				( 0 0 0 1 1 0 0 1 1 1 1 1 1 0 0 0 1 1 0 0 0 ) 
-				( 0 0 0 1 1 0 0 0 1 1 1 1 1 0 0 0 1 1 0 0 0 ) 
-				( 0 0 0 1 1 0 0 0 0 1 1 1 0 0 0 0 1 1 0 0 0 ) 
-				( 0 0 0 1 1 0 0 0 0 0 1 0 0 0 0 0 1 1 0 0 0 ) 
-				( 0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0 ) 
-				( 0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0 ) 
-				( 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ) 
-				( 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ) 
-				( 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ))
+	      (make-pattern #2a((0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1) 
+				(0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 1 1) 
+				(0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0) 
+				(0 0 0 1 1 0 0 0 0 0 0 0 0 0 0 0 1 1 1 0 0) 
+				(0 0 0 1 1 0 0 0 0 0 0 0 0 0 0 1 1 1 0 0 0) 
+				(0 0 0 1 1 0 0 0 0 0 0 0 0 0 1 1 1 1 0 0 0) 
+				(0 0 0 1 1 0 0 1 1 0 0 0 0 1 1 1 1 1 0 0 0) 
+				(0 0 0 1 1 0 1 1 1 1 0 0 1 1 1 0 1 1 0 0 0) 
+				(0 0 0 1 1 1 1 1 1 1 0 1 1 1 1 0 1 1 0 0 0) 
+				(0 0 0 1 1 0 1 1 1 1 1 1 1 1 0 0 1 1 0 0 0) 
+				(0 0 0 1 1 0 0 1 1 1 1 1 1 0 0 0 1 1 0 0 0) 
+				(0 0 0 1 1 0 0 0 1 1 1 1 1 0 0 0 1 1 0 0 0) 
+				(0 0 0 1 1 0 0 0 0 1 1 1 0 0 0 0 1 1 0 0 0) 
+				(0 0 0 1 1 0 0 0 0 0 1 0 0 0 0 0 1 1 0 0 0) 
+				(0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0) 
+				(0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0))
 			    (list +background-ink+ +foreground-ink+)))
 
 (defparameter *grayed-check-box-pattern*
-	      (make-pattern #2a(     ; width = 21  height = 21 
-				( 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ) 
-				( 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ) 
-				( 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ) 
-				( 0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0 ) 
-				( 0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0 ) 
-				( 0 0 0 1 1 1 0 1 0 1 0 1 0 1 0 1 1 1 0 0 0 ) 
-				( 0 0 0 1 1 0 0 0 0 0 0 0 0 0 0 0 1 1 0 0 0 ) 
-				( 0 0 0 1 1 1 0 1 0 1 0 1 0 1 0 1 1 1 0 0 0 ) 
-				( 0 0 0 1 1 0 0 0 0 0 0 0 0 0 0 0 1 1 0 0 0 ) 
-				( 0 0 0 1 1 1 0 1 0 1 0 1 0 1 0 1 1 1 0 0 0 ) 
-				( 0 0 0 1 1 0 0 0 0 0 0 0 0 0 0 0 1 1 0 0 0 ) 
-				( 0 0 0 1 1 1 0 1 0 1 0 1 0 1 0 1 1 1 0 0 0 ) 
-				( 0 0 0 1 1 0 0 0 0 0 0 0 0 0 0 0 1 1 0 0 0 ) 
-				( 0 0 0 1 1 1 0 1 0 1 0 1 0 1 0 1 1 1 0 0 0 ) 
-				( 0 0 0 1 1 0 0 0 0 0 0 0 0 0 0 0 1 1 0 0 0 ) 
-				( 0 0 0 1 1 1 0 1 0 1 0 1 0 1 0 1 1 1 0 0 0 ) 
-				( 0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0 ) 
-				( 0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0 ) 
-				( 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ) 
-				( 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ) 
-				( 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ))
+	      (make-pattern #2a((0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0) 
+				(0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0) 
+				(0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0) 
+				(0 0 0 1 1 1 0 1 0 1 0 1 0 1 0 1 1 1 0 0 0) 
+				(0 0 0 1 1 0 0 0 0 0 0 0 0 0 0 0 1 1 0 0 0) 
+				(0 0 0 1 1 1 0 1 0 1 0 1 0 1 0 1 1 1 0 0 0) 
+				(0 0 0 1 1 0 0 0 0 0 0 0 0 0 0 0 1 1 0 0 0) 
+				(0 0 0 1 1 1 0 1 0 1 0 1 0 1 0 1 1 1 0 0 0) 
+				(0 0 0 1 1 0 0 0 0 0 0 0 0 0 0 0 1 1 0 0 0) 
+				(0 0 0 1 1 1 0 1 0 1 0 1 0 1 0 1 1 1 0 0 0) 
+				(0 0 0 1 1 0 0 0 0 0 0 0 0 0 0 0 1 1 0 0 0) 
+				(0 0 0 1 1 1 0 1 0 1 0 1 0 1 0 1 1 1 0 0 0) 
+				(0 0 0 1 1 0 0 0 0 0 0 0 0 0 0 0 1 1 0 0 0) 
+				(0 0 0 1 1 1 0 1 0 1 0 1 0 1 0 1 1 1 0 0 0) 
+				(0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0) 
+				(0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0))
 			    (list +background-ink+ +foreground-ink+)))
 
 (defparameter *radio-button-off-pattern*
-	      (make-pattern #2a(		; width = 21  height = 21 
-				( 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ) 
-				( 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ) 
-				( 0 0 0 0 0 0 0 0 1 1 1 1 1 0 0 0 0 0 0 0 0 ) 
-				( 0 0 0 0 0 0 1 1 1 1 1 1 1 1 1 0 0 0 0 0 0 ) 
-				( 0 0 0 0 1 1 1 1 1 0 0 0 1 1 1 1 1 0 0 0 0 ) 
-				( 0 0 0 0 1 1 1 0 0 0 0 0 0 0 1 1 1 0 0 0 0 ) 
-				( 0 0 0 1 1 1 0 0 0 0 0 0 0 0 0 1 1 1 0 0 0 ) 
-				( 0 0 0 1 1 0 0 0 0 0 0 0 0 0 0 0 1 1 0 0 0 ) 
-				( 0 0 1 1 1 0 0 0 0 0 0 0 0 0 0 0 1 1 1 0 0 ) 
-				( 0 0 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 0 0 ) 
-				( 0 0 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 0 0 ) 
-				( 0 0 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 0 0 ) 
-				( 0 0 1 1 1 0 0 0 0 0 0 0 0 0 0 0 1 1 1 0 0 ) 
-				( 0 0 0 1 1 0 0 0 0 0 0 0 0 0 0 0 1 1 0 0 0 ) 
-				( 0 0 0 1 1 1 0 0 0 0 0 0 0 0 0 1 1 1 0 0 0 ) 
-				( 0 0 0 0 1 1 1 0 0 0 0 0 0 0 1 1 1 0 0 0 0 ) 
-				( 0 0 0 0 1 1 1 1 1 0 0 0 1 1 1 1 1 0 0 0 0 ) 
-				( 0 0 0 0 0 0 1 1 1 1 1 1 1 1 1 0 0 0 0 0 0 ) 
-				( 0 0 0 0 0 0 0 0 1 1 1 1 1 0 0 0 0 0 0 0 0 ) 
-				( 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ) 
-				( 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ))
+	      (make-pattern #2a((0 0 0 0 0 0 0 0 1 1 1 1 1 0 0 0 0 0 0 0 0) 
+				(0 0 0 0 0 0 1 1 1 1 1 1 1 1 1 0 0 0 0 0 0) 
+				(0 0 0 0 1 1 1 1 1 0 0 0 1 1 1 1 1 0 0 0 0) 
+				(0 0 0 0 1 1 1 0 0 0 0 0 0 0 1 1 1 0 0 0 0) 
+				(0 0 0 1 1 1 0 0 0 0 0 0 0 0 0 1 1 1 0 0 0) 
+				(0 0 0 1 1 0 0 0 0 0 0 0 0 0 0 0 1 1 0 0 0) 
+				(0 0 1 1 1 0 0 0 0 0 0 0 0 0 0 0 1 1 1 0 0) 
+				(0 0 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 0 0) 
+				(0 0 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 0 0) 
+				(0 0 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 0 0) 
+				(0 0 1 1 1 0 0 0 0 0 0 0 0 0 0 0 1 1 1 0 0) 
+				(0 0 0 1 1 0 0 0 0 0 0 0 0 0 0 0 1 1 0 0 0) 
+				(0 0 0 1 1 1 0 0 0 0 0 0 0 0 0 1 1 1 0 0 0) 
+				(0 0 0 0 1 1 1 0 0 0 0 0 0 0 1 1 1 0 0 0 0) 
+				(0 0 0 0 1 1 1 1 1 0 0 0 1 1 1 1 1 0 0 0 0) 
+				(0 0 0 0 0 0 1 1 1 1 1 1 1 1 1 0 0 0 0 0 0) 
+				(0 0 0 0 0 0 0 0 1 1 1 1 1 0 0 0 0 0 0 0 0))
 			    (list +background-ink+ +foreground-ink+)))
 
 (defparameter *radio-button-on-pattern*
-	      (make-pattern #2a(		; width = 21  height = 21 
-				( 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ) 
-				( 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ) 
-				( 0 0 0 0 0 0 0 0 1 1 1 1 1 0 0 0 0 0 0 0 0 ) 
-				( 0 0 0 0 0 0 1 1 1 1 1 1 1 1 1 0 0 0 0 0 0 ) 
-				( 0 0 0 0 1 1 1 1 1 0 0 0 1 1 1 1 1 0 0 0 0 ) 
-				( 0 0 0 0 1 1 1 0 0 0 1 0 0 0 1 1 1 0 0 0 0 ) 
-				( 0 0 0 1 1 1 0 0 1 1 1 1 1 0 0 1 1 1 0 0 0 ) 
-				( 0 0 0 1 1 0 0 1 1 1 1 1 1 1 0 0 1 1 0 0 0 ) 
-				( 0 0 1 1 1 0 1 1 1 1 1 1 1 1 1 0 1 1 1 0 0 ) 
-				( 0 0 1 1 0 0 1 1 1 1 1 1 1 1 1 0 0 1 1 0 0 ) 
-				( 0 0 1 1 0 1 1 1 1 1 1 1 1 1 1 1 0 1 1 0 0 ) 
-				( 0 0 1 1 0 0 1 1 1 1 1 1 1 1 1 0 0 1 1 0 0 ) 
-				( 0 0 1 1 1 0 1 1 1 1 1 1 1 1 1 0 1 1 1 0 0 ) 
-				( 0 0 0 1 1 0 0 1 1 1 1 1 1 1 0 0 1 1 0 0 0 ) 
-				( 0 0 0 1 1 1 0 0 1 1 1 1 1 0 0 1 1 1 0 0 0 ) 
-				( 0 0 0 0 1 1 1 0 0 0 1 0 0 0 1 1 1 0 0 0 0 ) 
-				( 0 0 0 0 1 1 1 1 1 0 0 0 1 1 1 1 1 0 0 0 0 ) 
-				( 0 0 0 0 0 0 1 1 1 1 1 1 1 1 1 0 0 0 0 0 0 ) 
-				( 0 0 0 0 0 0 0 0 1 1 1 1 1 0 0 0 0 0 0 0 0 ) 
-				( 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ) 
-				( 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ))
+	      (make-pattern #2a((0 0 0 0 0 0 0 0 1 1 1 1 1 0 0 0 0 0 0 0 0) 
+				(0 0 0 0 0 0 1 1 1 1 1 1 1 1 1 0 0 0 0 0 0) 
+				(0 0 0 0 1 1 1 1 1 0 0 0 1 1 1 1 1 0 0 0 0) 
+				(0 0 0 0 1 1 1 0 0 0 0 0 0 0 1 1 1 0 0 0 0) 
+				(0 0 0 1 1 1 0 0 0 0 1 0 0 0 0 1 1 1 0 0 0) 
+				(0 0 0 1 1 0 0 0 1 1 1 1 1 0 0 0 1 1 0 0 0) 
+				(0 0 1 1 1 0 0 1 1 1 1 1 1 1 0 0 1 1 1 0 0) 
+				(0 0 1 1 0 0 0 1 1 1 1 1 1 1 0 0 0 1 1 0 0) 
+				(0 0 1 1 0 0 1 1 1 1 1 1 1 1 1 0 0 1 1 0 0) 
+				(0 0 1 1 0 0 0 1 1 1 1 1 1 1 0 0 0 1 1 0 0) 
+				(0 0 1 1 1 0 0 1 1 1 1 1 1 1 0 0 1 1 1 0 0) 
+				(0 0 0 1 1 0 0 0 1 1 1 1 1 0 0 0 1 1 0 0 0) 
+				(0 0 0 1 1 1 0 0 0 0 1 0 0 0 0 1 1 1 0 0 0) 
+				(0 0 0 0 1 1 1 0 0 0 0 0 0 0 1 1 1 0 0 0 0) 
+				(0 0 0 0 1 1 1 1 1 0 0 0 1 1 1 1 1 0 0 0 0) 
+				(0 0 0 0 0 0 1 1 1 1 1 1 1 1 1 0 0 0 0 0 0) 
+				(0 0 0 0 0 0 0 0 1 1 1 1 1 0 0 0 0 0 0 0 0))
 			    (list +background-ink+ +foreground-ink+)))
 
 (defparameter *radio-button-grayed-pattern*
-	      (make-pattern #2a(		; width = 21  height = 21 
-				( 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ) 
-				( 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ) 
-				( 0 0 0 0 0 0 0 0 1 1 1 1 1 0 0 0 0 0 0 0 0 ) 
-				( 0 0 0 0 0 0 1 1 1 1 1 1 1 1 1 0 0 0 0 0 0 ) 
-				( 0 0 0 0 1 1 1 1 1 0 0 0 1 1 1 1 1 0 0 0 0 ) 
-				( 0 0 0 0 1 1 1 0 0 0 0 0 0 0 1 1 1 0 0 0 0 ) 
-				( 0 0 0 1 1 1 0 0 1 0 1 0 1 0 0 1 1 1 0 0 0 ) 
-				( 0 0 0 1 1 0 0 1 0 1 0 1 0 1 0 0 1 1 0 0 0 ) 
-				( 0 0 1 1 1 0 1 0 1 0 1 0 1 0 1 0 1 1 1 0 0 ) 
-				( 0 0 1 1 0 0 0 1 0 1 0 1 0 1 0 0 0 1 1 0 0 ) 
-				( 0 0 1 1 0 0 1 0 1 0 1 0 1 0 1 0 0 1 1 0 0 ) 
-				( 0 0 1 1 0 0 0 1 0 1 0 1 0 1 0 0 0 1 1 0 0 ) 
-				( 0 0 1 1 1 0 1 0 1 0 1 0 1 0 1 0 1 1 1 0 0 ) 
-				( 0 0 0 1 1 0 0 1 0 1 0 1 0 1 0 0 1 1 0 0 0 ) 
-				( 0 0 0 1 1 1 0 0 1 0 1 0 1 0 0 1 1 1 0 0 0 ) 
-				( 0 0 0 0 1 1 1 0 0 0 0 0 0 0 1 1 1 0 0 0 0 ) 
-				( 0 0 0 0 1 1 1 1 1 0 0 0 1 1 1 1 1 0 0 0 0 ) 
-				( 0 0 0 0 0 0 1 1 1 1 1 1 1 1 1 0 0 0 0 0 0 ) 
-				( 0 0 0 0 0 0 0 0 1 1 1 1 1 0 0 0 0 0 0 0 0 ) 
-				( 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ) 
-				( 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ))
+	      (make-pattern #2a((0 0 0 0 0 0 0 0 1 1 1 1 1 0 0 0 0 0 0 0 0) 
+				(0 0 0 0 0 0 1 1 1 1 1 1 1 1 1 0 0 0 0 0 0) 
+				(0 0 0 0 1 1 1 1 1 0 0 0 1 1 1 1 1 0 0 0 0) 
+				(0 0 0 0 1 1 1 0 0 0 0 0 0 0 1 1 1 0 0 0 0) 
+				(0 0 0 1 1 1 0 0 1 0 1 0 1 0 0 1 1 1 0 0 0) 
+				(0 0 0 1 1 0 0 1 0 1 0 1 0 1 0 0 1 1 0 0 0) 
+				(0 0 1 1 1 0 1 0 1 0 1 0 1 0 1 0 1 1 1 0 0) 
+				(0 0 1 1 0 0 0 1 0 1 0 1 0 1 0 0 0 1 1 0 0) 
+				(0 0 1 1 0 0 1 0 1 0 1 0 1 0 1 0 0 1 1 0 0) 
+				(0 0 1 1 0 0 0 1 0 1 0 1 0 1 0 0 0 1 1 0 0) 
+				(0 0 1 1 1 0 1 0 1 0 1 0 1 0 1 0 1 1 1 0 0) 
+				(0 0 0 1 1 0 0 1 0 1 0 1 0 1 0 0 1 1 0 0 0) 
+				(0 0 0 1 1 1 0 0 1 0 1 0 1 0 0 1 1 1 0 0 0) 
+				(0 0 0 0 1 1 1 0 0 0 0 0 0 0 1 1 1 0 0 0 0) 
+				(0 0 0 0 1 1 1 1 1 0 0 0 1 1 1 1 1 0 0 0 0) 
+				(0 0 0 0 0 0 1 1 1 1 1 1 1 1 1 0 0 0 0 0 0) 
+				(0 0 0 0 0 0 0 0 1 1 1 1 1 0 0 0 0 0 0 0 0))
 			    (list +background-ink+ +foreground-ink+)))
 
 
@@ -898,9 +905,6 @@ toggle button base. This way they can share the draw code.
 	     ;; assume a margin of 1/2 pattern width
 	     (x (+ left (floor pattern-width 2)))
 	     (y (- (floor (+ top bottom) 2) (floor pattern-height 2))))
-	;;--- Because of a bug with the medium getting stuck with flipping ink
-	(when (eq (medium-ink medium) +flipping-ink+)
-	  (setf (medium-ink medium) +foreground-ink+))
 	(case (gadget-value pane)
 	  (:unknown (draw-pattern* medium grayed-check-box-pattern x y))
 	  (nil (draw-pattern* medium empty-check-box-pattern x y))
@@ -963,26 +967,6 @@ toggle button base. This way they can share the draw code.
 	   pane)
     ())
 
-;; When one of the radio-box's managed gadgets gets selected (or deselected)
-;; we may have to turn on or off some item.  If we turn off the currently selected
-;; item, we just turn it back on again!
-;;--- Why doesn't the VALUE-CHANGED-CALLBACK for the button get called?
-;(defmethod value-changed-callback :after
-;	   ((selection toggle-button) (client radio-box-pane) gadget-id new-value)
-;  (declare (ignore gadget-id))
-;  (let ((old-selection (radio-box-current-selection client)))
-;    ;;--- Note the the Motif version of this sets the current selection
-;    ;;--- to the ID, *not* the new value.  Howcum?
-;    (cond ((eql selection old-selection)
-;	   (setf (radio-box-current-selection client) (and new-value selection)))
-;	  (old-selection
-;	   (setf (gadget-value old-selection :invoke-callback t) nil)
-;	   ;; We could just SETF RADIO-BOX-CURRENT-SELECTION, but this
-;	   ;; way we get the right callback behavior...
-;	   (setf (gadget-value client :invoke-callback t) (and new-value selection)))
-;	  (t
-;	   (setf (gadget-value client :invoke-callback t) (and new-value selection))))))
-
 (defmethod initialize-instance :after ((pane radio-box-pane) 
 				       &key choices selection frame-manager frame)
   ;;--- This really needs to be more robust
@@ -998,6 +982,15 @@ toggle button base. This way they can share the draw code.
       (setf (gadget-value pane) selection)
       (setf (gadget-value selection) t))))
 
+(defmethod value-changed-callback :around
+	   ((selection toggle-button) (client radio-box-pane) gadget-id value)
+  (declare (ignore gadget-id value))
+  (let ((old-selection (radio-box-current-selection client)))
+    (when (and old-selection
+	       (not (eq selection old-selection)))
+      (setf (gadget-value old-selection :invoke-callback t) nil)))
+  (call-next-method))
+
 (defmethod handle-event :after ((pane radio-box-pane) (event pointer-event))
   (deallocate-event event))
 
@@ -1011,15 +1004,6 @@ toggle button base. This way they can share the draw code.
 	   space-requirement-mixin
 	   pane)
     ())
-
-;;--- Why doesn't the VALUE-CHANGED-CALLBACK for the button get called?
-;(defmethod value-changed-callback :after
-;	   ((selection toggle-button) (client check-box-pane) gadget-id new-value)
-;  (declare (ignore gadget-id))
-;  (if new-value
-;      (pushnew selection (check-box-current-selection client))
-;      (setf (check-box-current-selection client)
-;	    (delete selection (check-box-current-selection client)))))
 
 (defmethod initialize-instance :after ((pane check-box-pane) 
 				       &key choices selection frame-manager frame)

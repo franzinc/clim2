@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: standard-types.lisp,v 1.9 92/07/01 15:46:59 cer Exp $
+;; $fiHeader: standard-types.lisp,v 1.10 92/07/27 11:02:56 cer Exp $
 
 (in-package :clim-internals)
 
@@ -298,7 +298,6 @@
 
 ;;;; Character and String Presentation Types
 
-;--- Is this really needed?  It's in the spec, but not in the old implementation
 (define-presentation-type character ()
   :inherit-from t)			;enforce CL definition
 
@@ -362,13 +361,6 @@
   :options ((default-type nil)
 	    (default-version :newest)
 	    (merge-default t)))
-
-;;--- DW also has the following options not implemented here:
-;; DEFAULT-TYPE and DEFAULT-VERSION are used in completion.
-;; DEFAULT-NAME, DEFAULT-TYPE, and DEFAULT-VERSION are munged into the default if supplied.
-;;  The user could do this himself if not for history supplying the default.
-;; DIRECTION controls completion style (i.e. whether file already exists).
-;; FORMAT is :normal, :dired, :directory, :editor, which is too advanced for Common Lisp.
 
 ;;; PATHNAME is supposed to be a built-in-class, but since it's missing in Genera,
 ;;; we need this method.
@@ -453,7 +445,6 @@
 #-CCL-2
 (defun pathname-complete-1 (string action &optional (default *default-pathname-defaults*))
   ;; Slow but accurate
-  ;;--- This still needs to be thoroughly tested in Franz.
   (let* ((pathname (pathname string))
 	 (merged-pathname (merge-pathnames pathname default))
 	 completions)
@@ -853,9 +844,6 @@
 
 ;;;; Sequence Presentation Types
 
-;;--- There was some theory, not in this implementation nor in the spec,
-;;--- that the internal representation would be some "collection" object
-;;--- rather than a plain sequence.
 (define-presentation-type sequence (element-type)
   :inherit-from t			;enforce CL definition
   :parameters-are-types t
@@ -1018,20 +1006,36 @@
   :options ((separator #\,)
 	    (echo-space t)))
 
+;; Useful abbreviation...
+(define-presentation-type-abbreviation bounded-sequence (element-type length)
+  `((sequence-enumerated ,@(make-list length :initial-element element-type))
+    :separator ,separator :echo-space ,echo-space)
+  :options ((separator #\,)
+	    (echo-space t)))
+  
 (define-presentation-method presentation-type-specifier-p ((type sequence-enumerated))
   (every #'presentation-type-specifier-p element-types))
 
 (define-presentation-method describe-presentation-type
 			    ((type sequence-enumerated) stream plural-count)
   (declare (ignore plural-count))		;it's too hard to handle
-  (let ((position 0)
-	(last (1- (length element-types))))
-    (dolist (element-type element-types)
-      (describe-presentation-type element-type stream 1)
-      (unless (= position last)
-	(write-string (if (= last 1) " " ", ") stream)
-	(when (= (incf position) last)
-	  (write-string "and " stream))))))
+  (cond ((let ((type (first element-types)))
+	   (dolist (x (cdr element-types) t)
+	     (unless (equal x type)
+	       (return nil))))
+	 ;; Do this if all the element types are the same
+	 (format stream "~D " (length element-types))
+	 (describe-presentation-type 
+	   (car element-types) stream (length element-types)))
+	(t
+	 (let ((position 0)
+	       (last (1- (length element-types))))
+	   (dolist (element-type element-types)
+	     (describe-presentation-type element-type stream 1)
+	     (unless (= position last)
+	       (write-string (if (= last 1) " " ", ") stream)
+	       (when (= (incf position) last)
+		 (write-string "and " stream))))))))
 
 (define-presentation-method presentation-typep (object (type sequence-enumerated))
   (and (typep object 'sequence)
@@ -1366,7 +1370,7 @@
 
 (defvar *read-recursive-objects*)
 
-;--- maybe this should have WRITE options
+;;--- Maybe this should have WRITE options
 (define-presentation-type expression ())
 
 (define-presentation-method presentation-type-history ((type expression))
@@ -1401,7 +1405,7 @@
 
 
 ;; Same as EXPRESSION except for quoting issues in some presentation translators
-;--- maybe this should have WRITE options
+;;--- Maybe this should have WRITE options
 (define-presentation-type form ()
   :inherit-from `expression)
 
@@ -1520,7 +1524,7 @@
 			       (return))
 			      (t (write-string " " stream))))))
 		  (write-string ")" stream)))))
-    ;;; --- WITH-OUTPUT-AS-PRESENTATION should actually do this for us!
+    ;;--- WITH-OUTPUT-AS-PRESENTATION should actually do this for us!
     (if (and (output-recording-stream-p stream) make-presentation)
 	(with-output-as-presentation (stream object 'expression
 				      ;; Better highlighting performance!

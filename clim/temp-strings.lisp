@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: temp-strings.lisp,v 1.4 92/02/24 13:08:38 cer Exp $
+;; $fiHeader: temp-strings.lisp,v 1.5 92/03/10 10:12:54 cer Exp $
 
 (in-package :clim-internals)
 
@@ -31,8 +31,6 @@
 	(return-from temporary-string-p t)))))
 
 (defmacro with-temporary-string ((var &key (length 100) (adjustable t)) &body body)
-  ;;--- What happens if the temporary string gets grown via VECTOR-PUSH-EXTEND?
-  ;;--- Will that cause deallocation to blow out?
   `(using-resource (,var temporary-string :length ,length :adjustable ,adjustable)
      ,@body))
 
@@ -64,20 +62,19 @@
 
 )	;#+Genera
 
-
-;;; Utility.
-(defmacro with-temporary-substring ((string-var string start end) &body body)
-  ;; --- this probably wants to be inline rather than
-  ;; creating a continuation, but for testing I'll do it this way.
-  `(flet ((with-temporary-substring-body (,string-var) ,@body))
-     (declare (dynamic-extent #'with-temporary-substring-body))
-     (invoke-with-temporary-substring ,string ,start ,end #'with-temporary-substring-body)))
 
-(defun invoke-with-temporary-substring (string start end continuation)
-  (unless end (setq end (length string)))
-  (let ((length (- end start)))
-    (with-temporary-string (temp-string :length length)
-      (setf (fill-pointer temp-string) length)
-      (replace temp-string string :start2 start :end2 end)
-      (funcall continuation temp-string))))
-
+;;; Another utility...
+(defmacro with-temporary-substring ((temp-string string &optional (start 0) end)
+				    &body body)
+  (let ((string-var '#:string)
+	(start-var '#:start)
+	(end-var '#:end)
+	(length-var '#:length))
+    `(let* ((,string-var ,string)
+	    (,start-var ,start)
+	    (,end-var (or ,end (length ,string-var)))
+	    (,length-var (- ,end-var ,start-var)))
+       (with-temporary-string (,temp-string :length ,length-var)
+	 (setf (fill-pointer ,temp-string) ,length-var)
+	 (replace ,temp-string ,string-var :start2 ,start-var :end2 ,end-var)
+	 ,@body))))

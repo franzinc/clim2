@@ -1,27 +1,11 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; 
-;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
-;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
-;;
-;; The software, data and information contained herein are proprietary
-;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
-;; given in confidence by Franz, Inc. pursuant to a written license
-;; agreement, and may be stored and used only in accordance with the terms
-;; of such license.
-;;
-;; Restricted Rights Legend
-;; ------------------------
-;; Use, duplication, and disclosure of the software, data and information
-;; contained herein by any agency, department or entity of the U.S.
-;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
-;;
-;; $fiHeader: event.lisp,v 1.18 92/07/20 15:59:15 cer Exp $
+;; $fiHeader: event.lisp,v 1.19 92/07/27 11:01:36 cer Exp $
 
 (in-package :silica)
+
+"Copyright (c) 1991, 1992 Franz, Inc.  All rights reserved.
+ Portions copyright (c) 1992 Symbolics, Inc.  All rights reserved."
 
 
 (defgeneric process-next-event (port &key wait-function timeout))
@@ -241,7 +225,7 @@
 ;;    Sheet- x,y,z --> Child
 ;; 4. Share a common ancestor: exit from all of the sheets.
 ;;--- This code does not deal with cases (2) and (3) correctly.
-;;--- It will fail to generate enter/exit events for cases
+;;--- It will fail to generate enter/exit events for those cases
 (defun generate-crossing-events (port sheet x y modifiers button pointer)
   (declare (ignore button))
   (macrolet ((generate-enter-event (sheet)
@@ -314,7 +298,7 @@
 (defun distribute-pointer-event (port mirrored-sheet event-type x y modifiers button pointer)
   ;; Generate all the correct enter/exit events
   (generate-crossing-events port mirrored-sheet x y modifiers button pointer)
-  ;; dispatch event to the innermost sheet
+  ;; Dispatch event to the innermost sheet
   (let ((sheet (let ((v (port-trace-thing port)))
 		 (and (not (zerop (fill-pointer v)))
 		      (aref v (1- (fill-pointer v)))))))
@@ -322,6 +306,12 @@
       (multiple-value-bind (tx ty)
 	  (untransform-position
 	    (sheet-device-transformation sheet) x y)
+	;; Update the pointer object
+	(setf (pointer-sheet pointer) sheet
+	      (pointer-x-position pointer) tx
+	      (pointer-y-position pointer) ty
+	      (pointer-native-x-position pointer) x
+	      (pointer-native-y-position pointer) y)
 	(dispatch-event
 	  sheet
 	  (if button

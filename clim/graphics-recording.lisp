@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics-recording.lisp,v 1.10 92/07/08 16:30:28 cer Exp Locker: cer $
+;; $fiHeader: graphics-recording.lisp,v 1.11 92/07/27 19:29:49 cer Exp $
 
 (in-package :clim-internals)
 
@@ -10,7 +10,8 @@
 
 (defmacro define-graphics-recording (name medium-components 
 				     &key bounding-rectangle
-					  highlighting-test
+					  recording-hook
+					  refined-position-test
 					  highlighting-function
 				     &environment env)
   (destructuring-bind (function-args
@@ -47,8 +48,7 @@
 	   (slot-descs 
 	     (mapcar #'(lambda (x)
 			 (list x :initarg (intern (symbol-name x) *keyword-package*)))
-		     slots))
-	   (points (gensym)))
+			 slots)))
       `(progn
 	 (defclass ,class ,superclasses ,slot-descs)
 	 (define-constructor-using-prototype-instance
@@ -58,6 +58,7 @@
 		     slots))
 	 (defmethod ,medium-graphics-function* :around
 		    ((stream output-recording-mixin) ,@function-args)
+	   ,recording-hook		;call the recording hook first
 	   (when (stream-recording-p stream)
 	     ;; It's safe to call SHEET-MEDIUM because output recording
 	     ;; streams always have a medium
@@ -111,9 +112,7 @@
 		     ;; Adjust the stored coordinates by the current cursor position
 		     ,@(mapcar #'(lambda (p)
 				   `(with-slots (,p) record
-				      (let ((,points ,p))
- 					(setf ,p
-					  (adjust-position-sequence ,points abs-x abs-y t)))))
+				      (setf ,p (adjust-position-sequence ,p abs-x abs-y))))
 			       position-sequences-to-transform)
 		     ,@(when positions-to-transform
 			 `((with-slots ,positions-to-transform record
@@ -171,15 +170,15 @@
 			     r)))
 		     (,medium-graphics-function* medium ,@function-args)))))))
 	 
-	 ,@(when highlighting-test
-	     (let ((args (first highlighting-test))
-		   (body (rest highlighting-test)))
+	 ,@(when refined-position-test
+	     (let ((args (first refined-position-test))
+		   (body (rest refined-position-test)))
 	       (multiple-value-bind (doc-string declarations body)
 		   (extract-declarations body env)
 		 (declare (ignore doc-string))
-		 `((defmethod output-record-refined-sensitivity-test ((record ,class) ,@args)
+		 `((defmethod output-record-refined-position-test ((record ,class) ,@args)
 		     ,@declarations
-		     (block highlighting-test
+		     (block refined-position-test
 		       ,@body))))))
 
 	 ,@(when highlighting-function
@@ -215,7 +214,7 @@
   :bounding-rectangle 
     (position-sequence-bounding-rectangle 
       position-seq line-style)
-  :highlighting-test
+  :refined-position-test
     ((x y)
      (let ((position-seq (slot-value record 'position-seq))
 	   (line-style (slot-value record 'line-style)))
@@ -225,7 +224,7 @@
 	       (when (ltrb-contains-position-p (- px lthickness) (- py lthickness)
 					       (+ px rthickness) (+ py rthickness)
 					       x y)
-		 (return-from highlighting-test t)))
+		 (return-from refined-position-test t)))
 	   position-seq))))
   :highlighting-function
     ((stream state)
@@ -253,7 +252,7 @@
 	      (- (min y1 y2) lthickness)
 	      (+ (max x1 x2) rthickness)
 	      (+ (max y1 y2) rthickness)))
-  :highlighting-test
+  :refined-position-test
     ((x y)
      (with-slots (x1 y1 x2 y2 line-style) record
        (point-close-to-line-p x y x1 y1 x2 y2 (line-style-thickness line-style))))
@@ -271,7 +270,7 @@
   :bounding-rectangle 
     (position-sequence-bounding-rectangle 
       position-seq line-style)
-  :highlighting-test
+  :refined-position-test
     ((x y)
      (let* ((position-seq (slot-value record 'position-seq))
 	    (line-style (slot-value record 'line-style))
@@ -279,7 +278,7 @@
        (map-endpoint-sequence
 	 #'(lambda (x1 y1 x2 y2)
 	     (when (point-close-to-line-p x y x1 y1 x2 y2 thickness)
-	       (return-from highlighting-test t)))
+	       (return-from refined-position-test t)))
 	 position-seq)))
   :highlighting-function
     ((stream state)
@@ -338,7 +337,13 @@
 	      (- (min y1 y2) lthickness)
 	      (+ (max x1 x2) rthickness)
 	      (+ (max y1 y2) rthickness)))
-  :highlighting-test
+  :recording-hook
+    (unless (rectilinear-transformation-p (medium-transformation stream))
+      ;; Not so bad, since we're about to create an output record
+      (with-stack-list (list x1 y1 x2 y1 x2 y2 x1 y2)
+	(return-from medium-draw-rectangle*
+	  (medium-draw-polygon* stream list t filled))))
+  :refined-position-test
     ((x y)
      (with-slots (x1 y1 x2 y2 line-style) record
        (or (null line-style)
@@ -366,7 +371,7 @@
   :bounding-rectangle 
     (position-sequence-bounding-rectangle 
       position-seq line-style)
-  :highlighting-test
+  :refined-position-test
     ((x y)
      (let ((position-seq (slot-value record 'position-seq))
 	   (line-style (slot-value record 'line-style)))
@@ -379,7 +384,7 @@
 				   (<= (+ y1 rthickness) y)
 				   (>= (- x2 lthickness) x)
 				   (>= (- y2 lthickness) y)))))
-	       (return-from highlighting-test t)))
+	       (return-from refined-position-test t)))
 	 position-seq)))
   :highlighting-function
     ((stream state)
@@ -400,7 +405,7 @@
 	     position-seq))))))
 
 
-;;--- This needs a :HIGHLIGHTING-TEST and :HIGHLIGHTING-FUNCTION
+;;--- This needs both :REFINED-POSITION-TEST and :HIGHLIGHTING-FUNCTION
 ;;--- Note that POSITION-SEQ will be a vector in those methods
 (define-graphics-recording draw-polygon (ink line-style)
   :bounding-rectangle
@@ -425,21 +430,19 @@
 	      (+ maxx rthickness)
 	      (+ maxy rthickness)))))
 
-(defun adjust-position-sequence (position-seq dx dy &optional copy-p)
+(defun adjust-position-sequence (position-seq dx dy)
   (if (and (zerop dx) (zerop dy))
-      (if copy-p 
-	  (make-array (length position-seq) :initial-contents position-seq)
-	position-seq)
-    (let ((result (make-array (length position-seq)))
-	  (i 0))
-      (declare (type simple-vector result))
-      (map-position-sequence
-       #'(lambda (x y)
-	   (setf (svref result i) (- x dx)
-		 (svref result (1+ i)) (- y dy)
-		 i (+ i 2)))
-       position-seq)
-      result)))
+      position-seq
+      (let ((result (make-array (length position-seq)))
+	    (i 0))
+	(declare (type simple-vector result))
+	(map-position-sequence
+	  #'(lambda (x y)
+	      (setf (svref result i) (- x dx)
+		    (svref result (1+ i)) (- y dy)
+		    i (+ i 2)))
+	  position-seq)
+	result)))
 
 
 (define-graphics-recording draw-ellipse (ink line-style)
@@ -450,10 +453,10 @@
 	  radius-1-dx radius-1-dy radius-2-dx radius-2-dy
 	  start-angle end-angle
 	  (line-style-thickness (medium-line-style medium)))
-      ;;--- Make this a bit too big because most hosts rasterize
-      ;;--- ellipses to be a shade too big on the right
+      ;; Make this a bit too big because most hosts rasterize ellipses
+      ;; to be a shade too big on the right
       (values left top (1+ right) (1+ bottom)))
-  :highlighting-test
+  :refined-position-test
     ((x y)
      (with-slots (center-x center-y
 		  radius-1-dx radius-1-dy radius-2-dx radius-2-dy

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: dragging-output.lisp,v 1.6 92/03/10 10:12:32 cer Exp $
+;; $fiHeader: dragging-output.lisp,v 1.7 92/04/15 11:46:27 cer Exp $
 
 (in-package :clim-internals)
 
@@ -98,13 +98,3 @@
 	       (when finish-on-release
 		 (finish x y))))))))))
 
-#+CLIM-1-compatibility
-(define-compatibility-function (dragging-output-record drag-output-record)
-			       (stream output-record
-				&key (repaint t) (erase #'erase-output-record) feedback
-				     (finish-on-release nil))
-  (drag-output-record stream output-record
-		      :repaint repaint
-		      :erase erase
-		      :feedback feedback
-		      :finish-on-release finish-on-release))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept.lisp,v 1.9 92/07/24 10:54:17 cer Exp Locker: cer $
+;; $fiHeader: accept.lisp,v 1.10 92/07/27 11:02:10 cer Exp $
 
 (in-package :clim-internals)
 
@@ -21,10 +21,6 @@
 		    (additional-activation-gestures nil)
 		    (delimiter-gestures nil)
 		    (additional-delimiter-gestures nil)
-		    #+CLIM-1-compatibility (activation-characters nil)
-		    #+CLIM-1-compatibility (additional-activation-characters nil)
-		    #+CLIM-1-compatibility (blip-characters nil)
-		    #+CLIM-1-compatibility (additional-blip-characters nil)
 		    (insert-default nil) (replace-input t)
 		    (present-p nil) (active-p t))
   (declare (dynamic-extent accept-args))
@@ -32,10 +28,6 @@
   (declare (ignore prompt-mode display-default query-identifier
 		   activation-gestures additional-activation-gestures
 		   delimiter-gestures additional-delimiter-gestures 
-		   #+CLIM-1-compatibility activation-characters
-		   #+CLIM-1-compatibility additional-activation-characters
-		   #+CLIM-1-compatibility blip-characters
-		   #+CLIM-1-compatibility additional-blip-characters
 		   insert-default replace-input present-p active-p))
 
   ;; Allow the arguments to be presentation type abbreviations
@@ -88,9 +80,8 @@
     (null)
     (symbol (setq view (make-instance view)))
     (cons   (setq view (apply #'make-instance view))))
+  (setq view (decode-indirect-view type view (frame-manager stream)))
 
-  (setq view (decode-indirect-view view (frame-manager stream) type))
-  
   ;; Call methods to do the work
   (with-keywords-removed (accept-args accept-args '(:stream :view))
     (let ((query-identifier
@@ -99,16 +90,6 @@
       (apply #'stream-accept (or *original-stream* stream) type
 			     :view view :query-identifier query-identifier
 			     accept-args))))
-
-(defun decode-indirect-view (view framem type)
-  (funcall-presentation-generic-function
-   decode-indirect-view view framem type))
-
-(define-presentation-method decode-indirect-view
-    ((view view) (framem standard-frame-manager) (type t))
-  view)
- 
-
 
 (defmethod stream-accept ((stream input-protocol-mixin) type &rest accept-args)
   (declare (dynamic-extent accept-args))
@@ -154,19 +135,7 @@
 		      (additional-activation-gestures nil)
 		      (delimiter-gestures nil)
 		      (additional-delimiter-gestures nil)
-		      #+CLIM-1-compatibility (activation-characters nil)
-		      #+CLIM-1-compatibility (additional-activation-characters nil)
-		      #+CLIM-1-compatibility (blip-characters nil)
-		      #+CLIM-1-compatibility (additional-blip-characters nil)
 		 &allow-other-keys)
-
-  #+CLIM-1-compatibility
-  (when (or activation-characters additional-activation-characters
-	    blip-characters additional-blip-characters)
-    (setq activation-gestures activation-characters
-	  additional-activation-gestures additional-activation-characters
-	  delimiter-gestures blip-characters
-	  additional-delimiter-gestures additional-blip-characters))
 
   ;; Set up the input editing environment
   (let ((the-object nil)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: demo-prefill.lisp,v 1.4 92/07/01 15:47:40 cer Exp $
+;; $fiHeader: demo-prefill.lisp,v 1.5 92/07/20 16:01:19 cer Exp $
 
 (in-package :clim-internals)
 
@@ -205,7 +205,7 @@
     (clim-demo::or-gate)
     (clim-demo::and-gate)
     (clim-demo::output))
-  (output-record-refined-sensitivity-test
+  (output-record-refined-position-test
     (clim-demo::input t t)
     (clim-demo::or-gate t t)
     (clim-demo::and-gate t t)

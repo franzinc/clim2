@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: basic-translators.lisp,v 1.5 92/04/15 11:46:06 cer Exp $
+;; $fiHeader: basic-translators.lisp,v 1.6 92/05/22 19:27:40 cer Exp $
 
 (in-package :clim-internals)
 
@@ -36,11 +36,7 @@
 	  ;; and the object must be validated.
 	  (or (presentation-subtypep type context-type)
 	      (and (not (null context-parameters))
-		   (or (presentation-typep object context-type)
-		       ;; Can't blithely call PRESENTATION-SUBTYPEP on the type name
-		       ;; when that type requires parameters
-		       (and (not (member type-name *presentation-type-parameters-are-types*))
-			    (presentation-subtypep type-name context-name))))))))))
+		   (presentation-typep object context-type))))))))
 
 ;; Only the PRESENTATION-MENU translator lives in this
 (make-command-table 'presentation-menu-command-table :inherit-from nil)

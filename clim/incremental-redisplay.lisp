@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: incremental-redisplay.lisp,v 1.9 92/07/01 15:46:31 cer Exp $
+;; $fiHeader: incremental-redisplay.lisp,v 1.10 92/07/20 16:00:22 cer Exp $
 
 (in-package :clim-internals)
 
@@ -499,13 +499,13 @@
 				    (compute-difference-set
 				      child nil
 				      x-offset y-offset old-x-offset old-y-offset)
-				  (setq erases (append erases nerases))
-				  (setq moves (append moves nmoves))
-				  (setq draws (append draws ndraws))
+				  (setq erases (nconc erases nerases))
+				  (setq moves (nconc moves nmoves))
+				  (setq draws (nconc draws ndraws))
 				  (setq erase-overlapping
-					(append erase-overlapping nerase-overlapping))
+					(nconc erase-overlapping nerase-overlapping))
 				  (setq move-overlapping
-					(append move-overlapping nmove-overlapping)))))
+					(nconc move-overlapping nmove-overlapping)))))
 			 (declare (dynamic-extent #'compute-diffs))
 			 (map-over-output-records #'compute-diffs record))))))))))
     (values erases moves draws erase-overlapping move-overlapping)))
@@ -549,7 +549,7 @@
 			 x-offset y-offset old-x-offset old-y-offset)))))))
       (declare (dynamic-extent #'augment-draws))
       (augment-draws record x-offset y-offset old-x-offset old-y-offset))
-    (values erases moves (append draws (nreverse new-draws))
+    (values erases moves (nconc draws (nreverse new-draws))
 	    erase-overlapping move-overlapping)))
 
 ;; This has nothing to do with output-recording.  You can call this on any

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: utilities.lisp,v 1.5 92/04/15 11:45:41 cer Exp $
+;; $fiHeader: utilities.lisp,v 1.6 92/07/01 15:45:50 cer Exp $
 
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
@@ -143,17 +143,6 @@
 
 (defun warn-obsolete (fn)
   (warn "Obsoleted Call: ~a" fn))
-
-#+CLIM-1-compatibility
-(defmacro define-compatibility-function ((old-name new-name) arglist &body body)
-  `(progn
-     (define-compiler-macro ,old-name (&whole form)
-       (warn "The function ~S is now obsolete, use ~S instead.~%~
-	      Compatibility code is being generated for the time being."
-	     ',old-name ',new-name)
-       form)
-     (defun-inline ,old-name ,arglist
-       ,@body)))
 
 
 (defun safe-slot-value (instance slot-name)

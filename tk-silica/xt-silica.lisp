@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.38 92/07/27 11:03:50 cer Exp Locker: cer $
+;; $fiHeader: xt-silica.lisp,v 1.39 92/07/27 19:30:28 cer Exp $
 
 (in-package :xm-silica)
 
@@ -443,7 +443,8 @@
 		  :modifier-state 
 		    (setf (port-modifier-state port)
 			  (state->modifiers (x11::xkeyevent-state event)))
-		  :sheet sheet))
+		  :sheet sheet
+		  :pointer (port-pointer port)))
 	       (:enter-notify
 		(allocate-event 'pointer-enter-event
 		  :native-x native-x
@@ -451,7 +452,8 @@
 		  :modifier-state 
 		    (setf (port-modifier-state port)
 			  (state->modifiers (x11::xkeyevent-state event)))
-		  :sheet sheet))
+		    :sheet sheet
+		    :pointer (port-pointer port)))
 	       (:motion-notify
 		(allocate-event 'pointer-motion-event
 		  :native-x native-x
@@ -459,7 +461,8 @@
 		  :modifier-state 
 		    (setf (port-modifier-state port)
 			  (state->modifiers (x11::xkeyevent-state event)))
-		  :sheet sheet)))))
+		  :sheet sheet
+		  :pointer (port-pointer port))))))
 	(when clim-event
 	  (distribute-event (port sheet) clim-event))))))
 
@@ -873,58 +876,58 @@
 (define-xt-keysym 062 :\>)
 (define-xt-keysym 063 :\?)
 (define-xt-keysym 064 :\@)
-(define-xt-keysym 065 :\A)
-(define-xt-keysym 097 :\A)
-(define-xt-keysym 066 :\B)
-(define-xt-keysym 098 :\B)
-(define-xt-keysym 067 :\C)
-(define-xt-keysym 099 :\C)
-(define-xt-keysym 068 :\D)
-(define-xt-keysym 100 :\D)
-(define-xt-keysym 069 :\E)
-(define-xt-keysym 101 :\E)
-(define-xt-keysym 070 :\F)
-(define-xt-keysym 102 :\F)
-(define-xt-keysym 071 :\G)
-(define-xt-keysym 103 :\G)
-(define-xt-keysym 072 :\H)
-(define-xt-keysym 104 :\H)
-(define-xt-keysym 073 :\I)
-(define-xt-keysym 105 :\I)
-(define-xt-keysym 074 :\J)
-(define-xt-keysym 106 :\J)
-(define-xt-keysym 075 :\K)
-(define-xt-keysym 107 :\K)
-(define-xt-keysym 076 :\L)
-(define-xt-keysym 108 :\L)
-(define-xt-keysym 077 :\M)
-(define-xt-keysym 109 :\M)
-(define-xt-keysym 078 :\N)
-(define-xt-keysym 110 :\N)
-(define-xt-keysym 079 :\O)
-(define-xt-keysym 111 :\O)
-(define-xt-keysym 080 :\P)
-(define-xt-keysym 112 :\P)
-(define-xt-keysym 081 :\Q)
-(define-xt-keysym 113 :\Q)
-(define-xt-keysym 082 :\R)
-(define-xt-keysym 114 :\R)
-(define-xt-keysym 083 :\S)
-(define-xt-keysym 115 :\S)
-(define-xt-keysym 084 :\T)
-(define-xt-keysym 116 :\T)
-(define-xt-keysym 085 :\U)
-(define-xt-keysym 117 :\U)
-(define-xt-keysym 086 :\V)
-(define-xt-keysym 118 :\V)
-(define-xt-keysym 087 :\W)
-(define-xt-keysym 119 :\W)
-(define-xt-keysym 088 :\X)
-(define-xt-keysym 120 :\X)
-(define-xt-keysym 089 :\Y)
-(define-xt-keysym 121 :\Y)
-(define-xt-keysym 090 :\Z)
-(define-xt-keysym 122 :\Z)
+(define-xt-keysym 065 :a)
+(define-xt-keysym 097 :a)
+(define-xt-keysym 066 :b)
+(define-xt-keysym 098 :b)
+(define-xt-keysym 067 :c)
+(define-xt-keysym 099 :c)
+(define-xt-keysym 068 :d)
+(define-xt-keysym 100 :d)
+(define-xt-keysym 069 :e)
+(define-xt-keysym 101 :e)
+(define-xt-keysym 070 :f)
+(define-xt-keysym 102 :f)
+(define-xt-keysym 071 :g)
+(define-xt-keysym 103 :g)
+(define-xt-keysym 072 :h)
+(define-xt-keysym 104 :h)
+(define-xt-keysym 073 :i)
+(define-xt-keysym 105 :i)
+(define-xt-keysym 074 :j)
+(define-xt-keysym 106 :j)
+(define-xt-keysym 075 :k)
+(define-xt-keysym 107 :k)
+(define-xt-keysym 076 :l)
+(define-xt-keysym 108 :l)
+(define-xt-keysym 077 :m)
+(define-xt-keysym 109 :m)
+(define-xt-keysym 078 :n)
+(define-xt-keysym 110 :n)
+(define-xt-keysym 079 :o)
+(define-xt-keysym 111 :o)
+(define-xt-keysym 080 :p)
+(define-xt-keysym 112 :p)
+(define-xt-keysym 081 :q)
+(define-xt-keysym 113 :q)
+(define-xt-keysym 082 :r)
+(define-xt-keysym 114 :r)
+(define-xt-keysym 083 :s)
+(define-xt-keysym 115 :s)
+(define-xt-keysym 084 :t)
+(define-xt-keysym 116 :t)
+(define-xt-keysym 085 :u)
+(define-xt-keysym 117 :u)
+(define-xt-keysym 086 :v)
+(define-xt-keysym 118 :v)
+(define-xt-keysym 087 :w)
+(define-xt-keysym 119 :w)
+(define-xt-keysym 088 :x)
+(define-xt-keysym 120 :x)
+(define-xt-keysym 089 :y)
+(define-xt-keysym 121 :y)
+(define-xt-keysym 090 :z)
+(define-xt-keysym 122 :z)
 (define-xt-keysym 091 :\[)
 (define-xt-keysym 092 :\\)
 (define-xt-keysym 093 :\])
@@ -1193,6 +1196,15 @@ the geometry of the children. Instead the parent has control. "))
   (distribute-event
    (port sheet)
    (allocate-event 'value-changed-gadget-event
+     :gadget sheet
+     :value value)))
+
+
+(defmethod queue-drag-event (widget sheet &optional (value (gadget-value sheet)))
+  (declare (ignore widget))
+  (distribute-event
+   (port sheet)
+   (allocate-event 'silica::drag-gadget-event
      :gadget sheet
      :value value)))
 

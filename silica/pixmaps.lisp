@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: pixmaps.lisp,v 1.3 92/07/20 16:09:25 cer Exp $
+;; $fiHeader: pixmaps.lisp,v 1.4 92/07/27 11:01:44 cer Exp $
 
 (in-package :silica)
 
@@ -8,11 +8,27 @@
  Portions copyright (c) 1992 Symbolics, Inc.  All rights reserved."
 
 
+;;; Pixmaps
+
+(defclass pixmap () ())
+
+(defgeneric pixmap-width (pixmap))
+(defgeneric pixmap-height (pixmap))
+
+
 ;;; Pixmap mediums
 
 (defclass basic-pixmap-medium (basic-medium) 
     ((pixmap :initarg :pixmap)))
 
+(defgeneric make-pixmap-medium (port sheet &key width height))
+
+(defgeneric port-allocate-pixmap (port medium width height))
+(defgeneric port-deallocate-pixmap (port pixmap))
+
+
+(defgeneric medium-copy-area (from-medium from-x from-y width height
+			      to-medium to-x to-y))
 
 (defmethod copy-area ((medium basic-medium) from-x from-y width height to-x to-y)
   (medium-copy-area medium from-x from-y width height

@@ -1,10 +1,11 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: cursor.lisp,v 1.13 92/07/08 16:29:58 cer Exp $
+;; $fiHeader: cursor.lisp,v 1.14 92/07/20 16:00:09 cer Exp $
 
 (in-package :clim-internals)
 
-"Copyright (c) 1988, 1989, 1990 International Lisp Associates.  All rights reserved."
+"Copyright (c) 1988, 1989, 1990 International Lisp Associates.  All rights reserved.
+ Portions copyright (c) 1991, 1992 Symbolics, Inc.  All rights reserved."
 
 ;;; This is the for the abstract cursor protocol
 (define-protocol-class cursor ())
@@ -86,16 +87,6 @@
 			y (coordinate ny)))
 	      (when active
 		(setf (cursor-active cursor) active))))))))
-
-#+CLIM-1-compatibility
-(define-compatibility-function (cursor-position* cursor-position)
-			       (cursor)
-  (cursor-position cursor))
-
-#+CLIM-1-compatibility
-(define-compatibility-function (cursor-set-position* cursor-set-position)
-			       (cursor x y)
-  (cursor-set-position cursor x y))
 
 (defmethod (setf cursor-state) (new-state (cursor standard-text-cursor))
   (with-slots (flags) cursor

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sysdcl.lisp,v 1.19 92/07/08 16:31:13 cer Exp $
+;; $fiHeader: sysdcl.lisp,v 1.20 92/07/27 11:03:10 cer Exp $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :cl-user)
 
@@ -27,9 +27,6 @@
 	   (pushnew :Genera-Release-8-1 *features*))
 	  ((>= major 437)
 	   (pushnew :Genera-Release-8-2 *features*)))))
-
-#+(or Genera Lucid)
-(pushnew :use-CLX *features*)
 
 )	;eval-when
 
@@ -298,6 +295,8 @@
    :load-before-compile ("clim-defs" "command-processor"))
   ("default-frame" 
    :load-before-compile ("frames"))
+  ("db-menu"
+   :load-before-compile ("frames"))
   ("noting-progress"
    :load-before-compile ("frames"))
   ("menus"
@@ -313,48 +312,6 @@
    :load-before-compile ("defprotocol" "stream-defprotocols"))
   ("lucid-after" :features lucid)
   ("prefill" :features (or Genera Cloe-Runtime)))
-
-
-#+Genera
-(clim-defsys:defsystem genera-clim
-    (:default-pathname #+Genera "SYS:CLIM;REL-2;GENERA;"
-		       #-Genera (frob-pathname "genera")
-     :default-binary-pathname #+Genera "SYS:CLIM;REL-2;GENERA;"
-			      #-Genera (frob-pathname "genera")
-     :needed-systems (clim-standalone)
-     :load-before-compile (clim-standalone))
-  ("pkgdcl")
-  ("genera-port")
-  ("genera-mirror")
-  ("genera-medium")
-  ("genera-pixmaps")
-  ("genera-frames")
-  ("genera-activities")
-  ("genera-prefill"))
-
-#+(and CLX use-CLX)
-(clim-defsys:defsystem clx-clim
-    (:default-pathname #+Genera "SYS:CLIM;REL-2;CLX;"
-		       #-Genera (frob-pathname "clx")
-     :default-binary-pathname #+Genera "SYS:CLIM;REL-2;CLX;"
-			      #-Genera (frob-pathname "clx")
-     :needed-systems (clim-standalone)
-     :load-before-compile (clim-standalone))
-  ("pkgdcl")
-  ("clx-port")
-  ("clx-mirror")
-  ("clx-medium")
-  ("clx-pixmaps")
-  ("clx-frames")
-  ("clx-prefill" :features (or Genera Cloe-Runtime)))
-
-
-#+Lucid
-(clim-defsys:defsystem lucid-clim
-    (:default-pathname nil
-     :default-binary-pathname nil
-     :needed-systems (clx-clim)
-     :load-before-compile (clx-clim)))
 
 
 #+Allegro
@@ -507,121 +464,74 @@
   ("ccl-menus"))
 
 
-#+Cloe-Runtime
-(clim-defsys:defsystem cloe-clim
-    (:default-pathname #+Genera "SYS:CLIM;REL-2;CLOE;"
-		       #-Genera (frob-pathname "cloe")
-     :default-binary-pathname #+Genera "SYS:CLIM;REL-2;CLOE;"
-			      #-Genera (frob-pathname "cloe")
-     :needed-systems (clim-standalone)
-     :load-before-compile (clim-standalone))
-  ("pkgdcl")
-  ("wheader")
-  ("windows")
-  ("cloe-port")
-  ("cloe-mirror")
-  ("cloe-medium")
-  ("cloe-frames")
-  ("cloe-gadgets")
-  ("cloe-menus"))
-
-
-(clim-defsys:defsystem postscript-clim
-    (:default-pathname #+Genera "SYS:CLIM;REL-2;POSTSCRIPT;"
-		       #-Genera (frob-pathname "postscript")
-     :default-binary-pathname #+Genera "SYS:CLIM;REL-2;POSTSCRIPT;"
-			      #-Genera (frob-pathname "postscript")
-     :needed-systems (clim-standalone)
-     :load-before-compile (clim-standalone))
-  ("pkgdcl")
-  ("postscript-port")
-  ("postscript-medium")
-  ("laserwriter-metrics"))
-
-
 #+Genera (progn
 
 (clim-defsys:import-into-sct 'clim-utils :subsystem t
-			     :pretty-name "CLIM Utilities"
-			     :default-pathname "SYS:CLIM;REL-2;UTILS;")
+  :pretty-name "CLIM Utilities"
+  :default-pathname "SYS:CLIM;REL-2;UTILS;")
 
 (clim-defsys:import-into-sct 'clim-silica :subsystem t
-			     :pretty-name "CLIM Silica"
-			     :default-pathname "SYS:CLIM;REL-2;SILICA;")
+  :pretty-name "CLIM Silica"
+  :default-pathname "SYS:CLIM;REL-2;SILICA;")
 
 (clim-defsys:import-into-sct 'clim-standalone :subsystem t
-			     :pretty-name "CLIM Standalone"
-			     :default-pathname "SYS:CLIM;REL-2;CLIM;")
-
-(clim-defsys:import-into-sct 'genera-clim :subsystem t
-			     :pretty-name "Genera CLIM"
-			     :default-pathname "SYS:CLIM;REL-2;GENERA;")
-
-(clim-defsys:import-into-sct 'clx-clim :subsystem t
-			     :pretty-name "CLX CLIM"
-			     :default-pathname "SYS:CLIM;REL-2;CLX;")
-
-(clim-defsys:import-into-sct 'postscript-clim :subsystem t
-			     :pretty-name "PostScript CLIM"
-			     :default-pathname "SYS:CLIM;REL-2;POSTSCRIPT;")
+  :pretty-name "CLIM Standalone"
+  :default-pathname "SYS:CLIM;REL-2;CLIM;")
 
 (sct:defsystem clim
     (:pretty-name "CLIM"
      :default-pathname "SYS:CLIM;REL-2;"
      :journal-directory "SYS:CLIM;REL-2;PATCH;"
      :default-module-type :system
+     :bug-reports "Bug-CLIM"
      :patches-reviewed "Bug-CLIM-Doc"
      :source-category :optional)
   (:module defsystem "sys:clim;rel-2;sys;defsystem"
 	   (:type :lisp) (:root-module nil))
   (:serial "clim-utils"
 	   "clim-silica"
-	   "clim-standalone"
-	   "genera-clim"
-	   "clx-clim"
-	   "postscript-clim"))
+	   "clim-standalone"))
 
 #+++ignore
 (progn
 (clim-defsys:import-into-sct 'motif-clim :subsystem t
-			     :pretty-name "Motif CLIM"
-			     :default-pathname "SYS:CLIM;REL-2;TK-SILICA;")
+  :pretty-name "Motif CLIM"
+  :default-pathname "SYS:CLIM;REL-2;TK-SILICA;")
 
 (clim-defsys:import-into-sct 'openlook-clim :subsystem t
-			     :pretty-name "OpenLook CLIM"
-			     :default-pathname "SYS:CLIM;REL-2;TK-SILICA;")
+  :pretty-name "OpenLook CLIM"
+  :default-pathname "SYS:CLIM;REL-2;TK-SILICA;")
 
 (sct:defsystem clim-tags-table
     (:pretty-name "CLIM Tags Table"
      :default-pathname "SYS:CLIM;REL-2;CLIM;"
      :maintain-journals nil
      :default-module-type :system)
-  (:module defsystem "sys:clim;rel-2;sys;defsystem"
-	   (:type :lisp) (:root-module nil))
   (:serial "clim"
+	   "clim-compatibility"
+	   "genera-clim"
+	   "clx-clim"
+	   "postscript-clim"
 	   "motif-clim"
-	   "openlook-clim"))
-)
+	   "openlook-clim"
+	   "clim-demo"))
+)	;#+++ignore
 
 )	;#+Genera
 
 #+Minima-Developer (progn
 
 (clim-defsys:import-into-sct 'clim-utils :subsystem t
-			     :sct-name :minima-clim-utils :pretty-name "Minima CLIM Utilities"
-			     :default-pathname "SYS:CLIM;REL-2;UTILS;")
+  :sct-name :minima-clim-utils :pretty-name "Minima CLIM Utilities"
+  :default-pathname "SYS:CLIM;REL-2;UTILS;")
 
 (clim-defsys:import-into-sct 'clim-silica :subsystem t
-			     :sct-name :minima-clim-silica :pretty-name "Minima CLIM Silica"
-			     :default-pathname "SYS:CLIM;REL-2;SILICA;")
+  :sct-name :minima-clim-silica :pretty-name "Minima CLIM Silica"
+  :default-pathname "SYS:CLIM;REL-2;SILICA;")
 
 (clim-defsys:import-into-sct 'clim-standalone :subsystem t
-			     :sct-name :minima-clim-standalone :pretty-name "Minima CLIM Standalone"
-			     :default-pathname "SYS:CLIM;REL-2;CLIM;")
-
-(clim-defsys:import-into-sct 'clx-clim :subsystem t
-			     :sct-name :minima-clx-clim :pretty-name "CLX CLIM"
-			     :default-pathname "SYS:CLIM;REL-2;CLX;")
+  :sct-name :minima-clim-standalone :pretty-name "Minima CLIM Standalone"
+  :default-pathname "SYS:CLIM;REL-2;CLIM;")
 
 (zl:::sct:defsystem minima-clim
     (:pretty-name "Minima CLIM"
@@ -635,8 +545,7 @@
 	   (:type :minima-lisp) (:root-module nil))
   (:serial "minima-clim-utils"
 	   "minima-clim-silica"
-	   "minima-clim-standalone"
-	   "minima-clx-clim"))
+	   "minima-clim-standalone"))
 
 )	;#+Minima-Developer
 

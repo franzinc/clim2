@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: recording-protocol.lisp,v 1.17 92/07/20 16:00:38 cer Exp $
+;; $fiHeader: recording-protocol.lisp,v 1.18 92/07/27 11:02:54 cer Exp $
 
 (in-package :clim-internals)
 
@@ -132,16 +132,6 @@
 (defmethod* (setf output-record-position) (x y (record t))
   (output-record-set-position record x y))
 
-#+CLIM-1-compatibility
-(define-compatibility-function (output-record-position* output-record-position)
-			       (record)
-  (output-record-position record))
-
-#+CLIM-1-compatibility
-(define-compatibility-function (output-record-set-position* output-record-set-position)
-			       (record x y)
-  (output-record-set-position record x y))
-
 (defmethod output-record-start-cursor-position ((record output-record-element-mixin))
   (with-slots (start-x start-y) record
     (values start-x start-y)))
@@ -191,44 +181,14 @@
     (setf old-start-x (coordinate nx))
     (setf old-start-y (coordinate ny))))
 
-#+CLIM-1-compatibility
-(progn
-(define-compatibility-function (output-record-start-position
-				output-record-start-cursor-position)
-			       (record)
-  (multiple-value-bind (x y)
-      (output-record-start-cursor-position record)
-    (make-point x y)))
-
-(define-compatibility-function (output-record-start-position*
-				output-record-start-cursor-position)
-			       (record)
-  (output-record-start-cursor-position record))
-
-(define-compatibility-function (output-record-set-start-position*
-				output-record-set-start-cursor-position)
-			       (record nx ny)
-  (output-record-set-start-cursor-position record nx ny))
-
-(define-compatibility-function (output-record-end-position*
-				output-record-end-cursor-position)
-			       (record)
-  (output-record-end-cursor-position record))
-
-(define-compatibility-function (output-record-set-end-position*
-				output-record-set-end-cursor-position)
-			       (record nx ny)
-  (output-record-set-end-cursor-position record nx ny))
-)	;#+CLIM-1-compatibility
-
 
 (defmethod output-record-children ((record output-record-element-mixin))
   nil)
 
 ;;; For specialization by PRESENTATIONs, for example
-(defmethod output-record-refined-sensitivity-test ((record output-record-element-mixin) x y)
+(defmethod output-record-refined-position-test ((record output-record-element-mixin) x y)
   (declare (ignore x y))
-  T)
+  t)
 
 (defun compute-output-record-offsets (record)
   (let ((parent (output-record-parent record)))
@@ -326,15 +286,6 @@
   (apply #'map-over-output-records-overlapping-region
 	 function record nil (coordinate x-offset) (coordinate y-offset) continuation-args))
 
-#+CLIM-1-compatibility
-(define-compatibility-function (map-over-output-record-elements
-				map-over-output-records)
-			       (record function
-				&optional x-offset y-offset &rest continuation-args)
-  (declare (dynamic-extent function continuation-args))
-  (apply #'map-over-output-records
-	 function record x-offset y-offset continuation-args))
-
 ;;; This must map over the children in such a way that, when it maps over
 ;;; overlapping children, the topmost (most recently inserted) child is
 ;;; hit last.  This is because this function is used for things such as
@@ -347,15 +298,6 @@
 	     &optional x-offset y-offset &rest continuation-args)
   (declare (dynamic-extent function continuation-args)))
 
-#+CLIM-1-compatibility
-(define-compatibility-function (map-over-output-record-elements-overlapping-region
-				map-over-output-records-overlapping-region)
-			       (record region function
-				&optional x-offset y-offset &rest continuation-args)
-  (declare (dynamic-extent function continuation-args))
-  (apply #'map-over-output-records-overlapping-region
-	 function record region x-offset y-offset continuation-args))
-
 ;;; This must map over the children in such a way that, when it maps over
 ;;; overlapping children, the topmost (most recently inserted) child is
 ;;; hit first, that is, the opposite order of MAP-...-OVERLAPPING-REGION.
@@ -367,15 +309,6 @@
 	    (function record x y
 	     &optional x-offset y-offset &rest continuation-args)
   (declare (dynamic-extent function continuation-args)))
-
-#+CLIM-1-compatibility
-(define-compatibility-function (map-over-output-record-elements-containing-point*
-				map-over-output-records-containing-position)
-			       (record x y function
-				&optional x-offset y-offset &rest continuation-args)
-  (declare (dynamic-extent function continuation-args))
-  (apply #'map-over-output-records-containing-position
-	 function record x y x-offset y-offset continuation-args))
 
 ;;; X-offset and Y-offset represent the accumulated offset between the
 ;;; regions's native coordinates and "our" coordinates and must be added
@@ -605,8 +538,6 @@
 	  (if new-output-record
 	      (copy-display-state new-output-record nil)
 	      (setq new-output-record
-		    ;;--- Used to call ALLOCATE-RECORD, then initialize by
-		    ;;--- setting the edges (or INITIALIZE-INSTANCE)
 		    (if constructor
 			(apply constructor
 			       :x-position x :y-position y init-args)
@@ -825,26 +756,6 @@
       (when parent
 	(recompute-extent-for-changed-child
 	  parent record old-left old-top old-right old-bottom)))))
-
-#+CLIM-1-compatibility
-(progn
-(define-compatibility-function (add-output-record-element add-output-record)
-			       (record child)
-  (add-output-record child record))
-
-(define-compatibility-function (delete-output-record-element delete-output-record)
-			       (record child &optional (errorp t))
-  (delete-output-record child record errorp))
-
-(define-compatibility-function (output-record-elements output-record-children)
-			       (record)
-  (output-record-children record))
-
-(define-compatibility-function (output-record-element-count output-record-count)n
-			       (record)
-  (output-record-count record))
-)	;#+CLIM-1-compatibility
-
 
 ;;; Common to all implementations.
 ;;; ADD-OUTPUT-RECORD assumes that CHILD's start-position and bounding 
@@ -1174,7 +1085,6 @@
 (defun erase-output-record (output-record stream &optional (errorp t))
   (multiple-value-bind (xoff yoff)
       (convert-from-relative-to-absolute-coordinates 
-	;; --- I'm certainly going to forget to use the PARENT at some point!
 	stream (output-record-parent output-record))
     (with-bounding-rectangle* (left top right bottom) output-record
       (with-output-recording-options (stream :record nil)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: present.lisp,v 1.4 92/04/15 11:47:03 cer Exp $
+;; $fiHeader: present.lisp,v 1.5 92/05/07 13:12:48 cer Exp $
 
 (in-package :clim-internals)
 
@@ -10,8 +10,9 @@
 		&key (stream *standard-output*) (view (stream-default-view stream))
 		     (modifier nil) (acceptably nil)
 		     (for-context-type presentation-type)
-		     (single-box nil) (allow-sensitive-inferiors t)
-		     (sensitive t) (record-type 'standard-presentation))
+		     (single-box nil) (allow-sensitive-inferiors *allow-sensitive-inferiors*)
+		     (sensitive *allow-sensitive-inferiors*)
+		     (record-type 'standard-presentation))
 
   ;; The arguments are allowed to be presentation type abbreviations
   (multiple-value-bind (expansion expanded)
@@ -46,9 +47,10 @@
 	(funcall-presentation-generic-function present
 	  object presentation-type stream view
 	  :acceptably acceptably :for-context-type for-context-type))
-      (funcall-presentation-generic-function present
-	object presentation-type stream view
-	:acceptably acceptably :for-context-type for-context-type)))
+      (let ((*allow-sensitive-inferiors* allow-sensitive-inferiors))
+	(funcall-presentation-generic-function present
+	  object presentation-type stream view
+	  :acceptably acceptably :for-context-type for-context-type))))
 
 (defun present-to-string (object
 			  &optional (presentation-type (presentation-type-of object))

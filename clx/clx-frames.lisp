@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLX-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clx-frames.lisp,v 1.7 92/07/01 15:45:54 cer Exp $
+;; $fiHeader: clx-frames.lisp,v 1.8 92/07/20 15:59:49 cer Exp $
 
 (in-package :clx-clim)
 
@@ -11,25 +11,19 @@
     ()
   (:default-initargs :dialog-view +textual-dialog-view+))
 
-(defmethod make-frame-manager ((port clx-port))
+(defmethod make-frame-manager ((port clx-port) &key)
   (make-instance 'clx-frame-manager :port port))
 
 (defmethod frame-wrapper ((framem clx-frame-manager) 
 			  (frame standard-application-frame) pane)
   (let ((menu-bar (slot-value frame 'menu-bar)))
+    (when (eq menu-bar 't)
+      (setq menu-bar (frame-command-table frame)))
     (with-look-and-feel-realization (framem frame)
       (outlining ()
 	(if menu-bar
 	    (vertically ()
-	      (outlining ()
-		;;--- Incremental redisplay, too
-		(make-pane 'command-menu-pane
-		  :display-function 
-		    `(display-command-menu :command-table ,menu-bar)
-		  :incremental-redisplay t
-		  :default-text-style clim-internals::*command-table-menu-text-style*
-		  :text-style clim-internals::*command-table-menu-text-style*
-		  :width :compute :height :compute))
+	      (compute-menu-bar-pane frame menu-bar)
 	      pane)
 	    pane)))))
 

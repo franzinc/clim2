@@ -1,30 +1,12 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; 
-;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
-;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
-;;
-;; The software, data and information contained herein are proprietary
-;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
-;; given in confidence by Franz, Inc. pursuant to a written license
-;; agreement, and may be stored and used only in accordance with the terms
-;; of such license.
-;;
-;; Restricted Rights Legend
-;; ------------------------
-;; Use, duplication, and disclosure of the software, data and information
-;; contained herein by any agency, department or entity of the U.S.
-;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
-;;
-;;;
-;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
-;;;
-;; $fiHeader: db-layout.lisp,v 1.21 92/07/01 15:44:48 cer Exp $
+;; $fiHeader: db-layout.lisp,v 1.22 92/07/20 15:59:09 cer Exp $
 
 (in-package :silica)
+
+"Copyright (c) 1991, 1992 Franz, Inc.  All rights reserved.
+ Portions copyright (c) 1992 Symbolics, Inc.  All rights reserved.
+ Portions copyright (c) 1989, 1990 Xerox Corp.  All rights reserved."
 
 
 ;;;
@@ -89,8 +71,7 @@
   (multiple-value-bind (width min-width max-width
 			height min-height max-height)
       (space-requirement-components space-requirement)
-    (change-space-requirements 
-      pane
+    (change-space-requirements pane
       :width width :min-width min-width :max-width max-width 
       :height height :min-height min-height :max-height max-height)))
 
@@ -139,8 +120,7 @@
     parent (bounding-rectangle-size parent)))
 
 (defmethod change-space-requirements :around ((pane layout-mixin) 
-					      &key resize-frame 
-					      &allow-other-keys)
+					      &key resize-frame &allow-other-keys)
   (call-next-method)
   (if *inside-changing-space-requirements*
       (push (if resize-frame (pane-frame pane) (sheet-parent pane))
@@ -150,59 +130,57 @@
 	  (note-space-requirement-changed (sheet-parent pane) pane))))
 
 
-(defun map-space-requirement (fn req)
-  (setf (space-requirement-width req) (funcall fn (space-requirement-width req))
-	(space-requirement-height req) (funcall fn (space-requirement-height req))
-	(space-requirement-max-width req) (funcall fn (space-requirement-max-width req))
-	(space-requirement-min-width req) (funcall fn (space-requirement-min-width req))
-	(space-requirement-max-height req) (funcall fn (space-requirement-max-height req))
-	(space-requirement-min-height req) (funcall fn (space-requirement-min-height req)))
-  req)
+(defun space-requirement-combine (function sr1 sr2)
+  (multiple-value-bind (width1 min-width1 max-width1 height1 min-height1 max-height1)
+      (space-requirement-components sr1)
+    (multiple-value-bind (width2 min-width2 max-width2 height2 min-height2 max-height2)
+	(space-requirement-components sr2)
+      (make-space-requirement
+	:width (funcall function width1 width2)
+	:min-width (funcall function min-width1 min-width2)
+	:max-width (funcall function max-width1 max-width2)
+	:height (funcall function height1 height2)
+	:min-height (funcall function min-height1 min-height2)
+	:max-height (funcall function max-height1 max-height2)))))
 
-(defun space-requirement+* (req &key (width 0) 
-				     (max-width width)
-				     (min-width width)
-				     (height 0)
-				     (max-height height)
-				     (min-height height))
-  (make-space-requirement :width (+ (space-requirement-width req) width)
-			  :height (+ (space-requirement-height req) height)
-			  :max-width (+ (space-requirement-max-width req) max-width)
-			  :min-width (+ (space-requirement-min-width req) min-width)
-			  :max-height (+ (space-requirement-max-height req) max-height)
-			  :min-height (+ (space-requirement-min-height req) min-height)))
-
-(defun space-requirement-combine (fn sr1 sr2)
-  (make-space-requirement :width (funcall fn (space-requirement-width sr1)
-					     (space-requirement-width sr2))
-			  :height (funcall fn (space-requirement-height sr1)
-					      (space-requirement-height sr2))
-			  :max-width (funcall fn (space-requirement-max-width sr1)
-						 (space-requirement-max-width sr2))
-			  :min-width (funcall fn (space-requirement-min-width sr1)
-						 (space-requirement-min-width sr2))
-			  :max-height (funcall fn (space-requirement-max-height sr1)
-						  (space-requirement-max-height sr2))
-			  :min-height (funcall fn (space-requirement-min-height sr1)
-						  (space-requirement-min-height sr2))))
-
-(defun space-requirement+ (sr1 sr2)
+;; Add two space requirements
+(defun-inline space-requirement+ (sr1 sr2)
   (space-requirement-combine #'+ sr1 sr2))
 
-(defun %set-space-requirement (sr &key width height max-width 
-				       max-height min-width min-height &allow-other-keys)
-  (when width (setf (space-requirement-width sr) width))
-  (when max-width (setf (space-requirement-max-width sr) max-width))
-  (when min-width (setf (space-requirement-min-width sr) min-width))
-  (when height (setf (space-requirement-height sr) height))
-  (when max-height (setf (space-requirement-max-height sr) max-height))
-  (when min-height (setf (space-requirement-min-height sr) min-height))
-  sr)
+;; The "spread" version of the above...
+(defun space-requirement+* (sr &key (width 0) (max-width width) (min-width width)
+				    (height 0) (max-height height) (min-height height))
+  (multiple-value-bind (srwidth  srmin-width  srmax-width 
+			srheight srmin-height srmax-height)
+      (space-requirement-components sr)
+    (make-space-requirement
+      :width  (+ srwidth width)
+      :min-width (+ srmin-width min-width)
+      :max-width (+ srmax-width max-width)
+      :height (+ srheight height)
+      :min-height (+ srmin-height min-height)
+      :max-height (+ srmax-height max-height))))
 
-
-;;;
-;;;
-;;;
+(define-compiler-macro space-requirement+ (&whole form sr1 sr2)
+  (cond ((and (listp sr1)
+	      (eq (first sr1) 'make-space-requirement))
+	 (destructuring-bind (f &key (width 0) (max-width width) (min-width width)
+				     (height 0) (max-height height) (min-height height))
+	     sr1
+	   (declare (ignore f))
+	   `(space-requirement+* ,sr2
+	      :width ,width :max-width ,max-width :min-width ,min-width
+	      :height ,height :max-height ,max-height :min-height ,min-height)))
+	((and (listp sr2)
+	      (eq (first sr2) 'make-space-requirement))
+	 (destructuring-bind (f &key (width 0) (max-width width) (min-width width)
+				     (height 0) (max-height height) (min-height height))
+	     sr2
+	   (declare (ignore f))
+	   `(space-requirement+* ,sr1
+	      :width ,width :max-width ,max-width :min-width ,min-width
+	      :height ,height :max-height ,max-height :min-height ,min-height)))
+	(t form)))
 
 
 ;;;
@@ -220,23 +198,16 @@
   (declare (dynamic-extent args))
   (declare (ignore width min-width max-width
 		   height min-height max-height))
-  (multiple-value-bind (width min-width max-width
-			height min-height max-height)
-      (apply #'default-space-requirements pane :allow-other-keys t args)
-    (setf (slot-value pane 'space-requirement)
-	  (make-space-requirement :width width 
-				  :height height 
-				  :max-width max-width 
-				  :min-width min-width 
-				  :max-height max-height
-				  :min-height min-height)
-	  (slot-value pane 'initial-space-requirement)
-	  (make-space-requirement :width width 
-				  :height height 
-				  :max-width max-width 
-				  :min-width min-width 
-				  :max-height max-height
-				  :min-height min-height))))
+  (with-slots (space-requirement initial-space-requirement) pane
+    (multiple-value-bind (width min-width max-width
+			  height min-height max-height)
+	(apply #'default-space-requirements pane :allow-other-keys t args)
+      (let ((sr (make-space-requirement
+		  :width width :min-width min-width :max-width max-width 
+		  :height height :min-height min-height :max-height max-height)))
+	;; Space requirements are immutable...
+	(setf space-requirement sr
+	      initial-space-requirement sr)))))
 
 (defmethod change-space-requirements-to-default ((pane space-requirement-mixin))
   (when (pane-initial-space-requirements pane)
@@ -257,11 +228,22 @@
   (or (slot-value pane 'space-requirement)
       (slot-value pane 'initial-space-requirement)))
 
-(defmethod change-space-requirements ((pane space-requirement-mixin) &rest keys)
-  (declare (dynamic-extent keys))
+(defmethod change-space-requirements ((pane space-requirement-mixin) 
+				      &key width min-width max-width
+					   height min-height max-height
+					   resize-frame)
+  (declare (ignore resize-frame))
   (with-slots (space-requirement) pane
-    (apply #'%set-space-requirement space-requirement keys)))
-
+    (multiple-value-bind (srwidth  srmin-width  srmax-width 
+			  srheight srmin-height srmax-height)
+	(space-requirement-components space-requirement)
+      (setq space-requirement (make-space-requirement 
+				:width (or width srwidth)
+				:min-width (or min-width srmin-width)
+				:max-width (or max-width srmax-width)
+				:height (or height srheight)
+				:min-height (or min-height srmin-height)
+				:max-height (or max-height srmax-height))))))
 
 
 ;;;
@@ -272,11 +254,23 @@
     ((client-space-requirement :initform nil))
   (:documentation "User can specify a value for the client-space-requirement slot that defaults to NIL"))
 
-;;--- BUG: what do we do if the value is NIL?
-(defmethod change-space-requirements ((pane basic-client-space-requirement-mixin) &rest keys)
-  (declare (dynamic-extent keys))
+;;--- Bug: what do we do if the value is NIL?
+(defmethod change-space-requirements ((pane basic-client-space-requirement-mixin) 
+				      &key width min-width max-width 
+					   height min-height max-height
+					   resize-frame)
+  (declare (ignore resize-frame))
   (with-slots (client-space-requirement) pane
-    (apply #'%set-space-requirement client-space-requirement keys)))
+    (multiple-value-bind (srwidth  srmin-width  srmax-width 
+			  srheight srmin-height srmax-height)
+	(space-requirement-components client-space-requirement)
+      (setq client-space-requirement (make-space-requirement 
+				       :width (or width srwidth)
+				       :min-width (or min-width srmin-width)
+				       :max-width (or max-width srmax-width)
+				       :height (or height srheight)
+				       :min-height (or min-height srmin-height)
+				       :max-height (or max-height srmax-height))))))
 
 (defmethod initialize-instance :after ((pane basic-client-space-requirement-mixin) 
 				       &rest args
@@ -288,11 +282,9 @@
 			  height min-height max-height)
 	(apply #'default-space-requirements pane :allow-other-keys t args)
       (setf (slot-value pane 'client-space-requirement)
-	    (make-space-requirement :width width :height height 
-				    :max-width max-width
-				    :min-width min-width
-				    :max-height max-height
-				    :min-height min-height)))))
+	    (make-space-requirement 
+	      :width width :min-width min-width :max-width max-width
+	      :height height :min-height min-height :max-height max-height)))))
 
 ;;--- This duplicates the method on SPACE-REQUIREMENT-MIXIN.  Can we share?
 (defmethod default-space-requirements ((pane basic-client-space-requirement-mixin) 
@@ -342,12 +334,21 @@
 ;    ((max-width :initform nil :initarg :max-width)
 ;     (max-height :initform nil :initarg :max-height)))
 ;
+
 ;(defmethod compose-space :around ((pane client-stretchability-mixin) &key width height)
 ;  (with-slots (max-width max-height) pane
-;    (let ((value (call-next-method)))
-;      (when max-width (setf (space-requirement-max-width value) max-width))
-;      (when max-height (setf (space-requirement-max-height value) max-height))
-;      value)))
+;    (let ((sr (call-next-method)))
+;      (when (or max-width max-height)
+;	(multiple-value-bind (srwidth  srmin-width  srmax-width 
+;			      srheight srmin-height srmax-height)
+;	    (space-requirement-components sr)
+;	  (setq sr (make-space-requirement :width srwidth 
+;					   :min-width srmin-width
+;					   :max-width (or max-width srmax-width)
+;					   :height srheight 
+;					   :min-height srmin-height
+;					   :max-height (or max-height srmax-height)))))
+;      sr)))
 
 ;;;
 ;;; Client Overridability
@@ -355,26 +356,29 @@
 
 (defclass client-overridability-mixin (layout-mixin)
     ((width :initform nil :initarg :width)
-     (height :initform nil :initarg :height)
-     (max-width :initform nil :initarg :max-width)
-     (max-height :initform nil :initarg :max-height)
      (min-width :initform nil :initarg :min-width)
-     (min-height :initform nil :initarg :min-height))
+     (max-width :initform nil :initarg :max-width)
+     (height :initform nil :initarg :height)
+     (min-height :initform nil :initarg :min-height)
+     (max-height :initform nil :initarg :max-height))
   (:documentation "Client can specify values that override those provided elsewhere"))
 
 (defmethod compose-space :around ((pane client-overridability-mixin) &key width height)
   (declare (ignore width height))
   (with-slots (width height max-width max-height min-width min-height) pane
-    (let ((value (call-next-method)))
-      (when (or width height max-width max-height min-width min-height)
-	(setq value (copy-space-requirement value)))
-      (when width   (setf (space-requirement-width value)  width))
-      (when height  (setf (space-requirement-height value) height))
-      (when max-width  (setf (space-requirement-max-width value)  max-width))
-      (when max-height (setf (space-requirement-max-height value) max-height))
-      (when min-width  (setf (space-requirement-min-width value)  min-width))
-      (when min-height (setf (space-requirement-min-height value) min-height))
-      value)))
+    (let ((sr (call-next-method)))
+      (if (or width min-width max-width height min-height max-height)
+	  (multiple-value-bind (srwidth srmin-width srmax-width
+				srheight srmin-height srmax-height)
+	      (space-requirement-components sr)
+	    (make-space-requirement
+	      :width (or width srwidth)
+	      :min-width (or min-width srmin-width)
+	      :max-width (or max-width srmax-width)
+	      :height (or height srheight)
+	      :min-height (or min-height srmin-height)
+	      :max-height (or max-height srmax-height)))
+	  sr))))
 
 
 ;;;
@@ -389,17 +393,18 @@
 ;  (with-slots (client-space-requirement space-demand-p) pane
 ;    (if space-demand-p 
 ;	(or client-space-requirement (compose-space (sheet-child pane)))
-;      (let ((child-req (compose-space (sheet-child pane))))
-;	(if client-space-requirement 
-;	    (make-space-requirement :width (min (space-requirement-width client-space-req)
-;					        (space-requirement-width child-req))
-;			            :max-width (max (space-requirement-max-width client-space-req)
-;					            (space-requirement-max-width child-req))
-;			            :height  (min (space-requirement-height client-space-req)
-;					          (space-requirement-height child-req))
-;			            :max-height (max (space-requirement-max-height client-space-req)
-;					             (space-requirement-max-height child-req)))
-;	  child-req)))))
+;	(let ((child-req (compose-space (sheet-child pane))))
+;	  (if client-space-requirement 
+;	      (make-space-requirement
+;		:width (min (space-requirement-width client-space-req)
+;			    (space-requirement-width child-req))
+;		:max-width (max (space-requirement-max-width client-space-req)
+;				(space-requirement-max-width child-req))
+;		:height (min (space-requirement-height client-space-req)
+;			     (space-requirement-height child-req))
+;		:max-height (max (space-requirement-max-height client-space-req)
+;				 (space-requirement-max-height child-req)))
+;	      child-req)))))
 
 ;;;
 ;;; Space Req Cache
@@ -475,22 +480,21 @@
 ;      (resize-sheet child width height))))
 ;  
 ;(defmethod compose-space ((pane simple-transforming-wrapping-space-mixin) &key width height)
+;  (declare (ignore width height))
 ;  (let* ((child (sheet-child pane))
 ;	 (xform (sheet-transformation child))
-;	 (req   (compose-space child))
-;	 (width (space-requirement-width req))
-;	 (height (space-requirement-height req))
-;	 (max-width (space-requirement-max-width req))
-;	 (max-height (space-requirement-max-height req))
-;	 (min-width (space-requirement-min-width req))
-;	 (min-height (space-requirement-min-height req)))
-;    
-;    (multiple-value-setq (width height) (untransform-dimensions xform width height))
-;    (multiple-value-setq (max-width max-height) (untransform-dimensions xform max-width max-height))
-;    (multiple-value-setq (min-width min-height) (untransform-dimensions xform min-width min-height))
-;    
-;    (make-space-requirement :width width :max-width max-width :min-width min-width
-;		             :height height :max-height max-height :min-height min-height)))
+;	 (req   (compose-space child)))
+;    (multiple-value-bind (width  min-width  max-width 
+;			  height min-height max-height)
+;	(space-requirement-components req)
+;      (multiple-value-setq (width height) 
+;	(untransform-dimensions xform width height))
+;      (multiple-value-setq (max-width max-height)
+;	(untransform-dimensions xform max-width max-height))
+;      (multiple-value-setq (min-width min-height)
+;	(untransform-dimensions xform min-width min-height))
+;      (make-space-requirement :width width :min-width min-width :max-width max-width
+;			      :height height :min-height min-height :max-height max-height))))
 
 
 ;;;
@@ -506,8 +510,9 @@
 
 (defmethod note-space-requirements-changed ((pane restrainer-pane) inner)
   (declare (ignore inner))
-  (allocate-space pane 
-		  (bounding-rectangle-width pane) (bounding-rectangle-height pane)))
+  (allocate-space 
+    pane 
+    (bounding-rectangle-width pane) (bounding-rectangle-height pane)))
 
 
 

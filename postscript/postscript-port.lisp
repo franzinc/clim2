@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: POSTSCRIPT-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: postscript-port.lisp,v 1.2 92/07/08 16:32:11 cer Exp $
+;; $fiHeader: postscript-port.lisp,v 1.3 92/07/20 16:02:06 cer Exp $
 
 (in-package :postscript-clim)
 
@@ -654,19 +654,14 @@ x y translate xra yra scale 0 0 1 sa ea arcp setmatrix end} def
      (page-width  :initform  7.5)
      (page-height :initform 10.5)))
 
-#||
-;;; allow a display device to do something appropriate for a line thickness in :normal units
-(defgeneric normal-line-thickness (display-device thickness))
-  
-(defmethod normal-line-thickness ((postscript-device display-device) (thickness number))
+(defmethod normal-line-thickness ((port postscript-port) thickness)
   thickness)
 
-(defmethod normal-line-thickness ((postscript-device apple-laser-writer) (thickness number))
+(defmethod normal-line-thickness ((port apple-laser-writer) thickness)
   (if (= thickness 1)
       0
-      (* 0.5 thickness (/ (slot-value postscript-device 'device-units-per-inch)
-			  (slot-value postscript-device 'x-resolution)))))
-||#
+      (* 0.5 thickness (/ (slot-value port 'device-units-per-inch)
+			  (slot-value port 'x-resolution)))))
 
 #+++ignore
 (define-display-device *postscript-device* apple-laser-writer

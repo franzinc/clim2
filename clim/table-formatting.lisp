@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: table-formatting.lisp,v 1.7 92/05/07 13:13:05 cer Exp $
+;; $fiHeader: table-formatting.lisp,v 1.8 92/05/22 19:28:31 cer Exp $
 
 (in-package :clim-internals)
 
@@ -527,11 +527,11 @@
 	min-height (or (process-spacing-arg
 			 stream min-height 'formatting-cell :min-height)
 		       (coordinate 0)))
-  ;;--- Jump through a hoop to get a constant record-type symbol into the
-  ;;--- WITH-NEW-OUTPUT-RECORD macro so we invoke a PCL instance-constructor
-  ;;--- function instead of slow MAKE-INSTANCE.  If this body was just expanded
-  ;;--- inline in FORMATTING-CELL it would just work.  We could skip the IF and
-  ;;--- just call INVOKE-WITH-NEW-OUTPUT-RECORD...
+  ;; Jump through a hoop to get a constant record-type symbol into the
+  ;; WITH-NEW-OUTPUT-RECORD macro so we invoke a fast constructor instead
+  ;; of a slow MAKE-INSTANCE.  If this body was just expanded inline in
+  ;; FORMATTING-CELL, it would just work to slip the IF and simply call
+  ;; INVOKE-WITH-NEW-OUTPUT-RECORD...  Too bad.
   (let ((stream (or *original-stream* stream)))
     (multiple-value-bind (x y) (stream-cursor-position stream)
       (prog1
@@ -620,8 +620,8 @@
 	       (incf ncells))))
       (declare (dynamic-extent #'count-cells))
       (map-over-menu-cells menu #'count-cells))
-    ;; --- preferred-geometry isn't used yet
-    ;; what's the preferred orientation of the menu?
+    ;;--- PREFERRED-GEOMETRY isn't used yet
+    ;; What's the preferred orientation of the menu?
     (unless (or nrows ncolumns)
       ;; anything explicit overrides
       (when constrain				;orientation like window orientation.
@@ -726,7 +726,8 @@
 	      (declare (type coordinate left-margin top-margin))
 	      (let ((accumulated-height (coordinate 0))
 		    (accumulated-width 
-		      (if (or (stream-redisplaying-p stream) initial-spacing)
+		      (if (or (stream-redisplaying-p stream) 
+			      (not initial-spacing))
 			  (coordinate 0)
 			  (coordinate x-spacing))))
 		(declare (type coordinate accumulated-height accumulated-width))
@@ -768,9 +769,10 @@
 			 (incf column-count)
 			 (when (= column-count ncolumns)
 			   (setf accumulated-width 
-				 (if (or (stream-redisplaying-p stream) initial-spacing)
+				 (if (or (stream-redisplaying-p stream) 
+					 (not initial-spacing))
 				     (coordinate 0)
-				     x-spacing))
+				     (coordinate x-spacing)))
 			   (incf accumulated-height (row-height row-count))
 			   (incf accumulated-height y-spacing)
 			   (setf column-count 0)
@@ -816,13 +818,7 @@
 				x-spacing y-spacing initial-spacing
 				n-rows n-columns max-width max-height
 				(record-type 'standard-item-list-output-record)
-				(cell-align-x ':left) (cell-align-y ':top)
-				#+CLIM-1-compatibility inter-row-spacing
-				#+CLIM-1-compatibility inter-column-spacing)
-  #+CLIM-1-compatibility
-  (when (or inter-row-spacing inter-column-spacing)
-    (setq x-spacing inter-column-spacing
-	  y-spacing inter-row-spacing))
+				(cell-align-x ':left) (cell-align-y ':top))
   (when (and printer presentation-type)
     (error "Only one of ~S or ~S can be specified." ':printer ':presentation-type))
   (when (and (null printer) (null presentation-type))

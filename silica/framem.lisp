@@ -1,27 +1,12 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; 
-;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
-;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
-;;
-;; The software, data and information contained herein are proprietary
-;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
-;; given in confidence by Franz, Inc. pursuant to a written license
-;; agreement, and may be stored and used only in accordance with the terms
-;; of such license.
-;;
-;; Restricted Rights Legend
-;; ------------------------
-;; Use, duplication, and disclosure of the software, data and information
-;; contained herein by any agency, department or entity of the U.S.
-;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
-;;
-;; $fiHeader: framem.lisp,v 1.11 92/07/20 15:59:16 cer Exp Locker: cer $
+;; $fiHeader: framem.lisp,v 1.12 92/07/27 19:29:24 cer Exp $
 
 (in-package :silica)
+
+"Copyright (c) 1991, 1992 Franz, Inc.  All rights reserved.
+ Portions copyright (c) 1992 Symbolics, Inc.  All rights reserved."
+
 
 (define-protocol-class frame-manager ())
 
@@ -41,26 +26,29 @@
      ,@body))
 
 (defun find-frame-manager (&rest options 
-			   &key port &allow-other-keys)
+			   &key port (server-path *default-server-path*)
+			   &allow-other-keys)
   (declare (dynamic-extent options))
-  (unless port 
-    (with-keywords-removed (options options '(:port))
-      (setq port (apply #'find-port options))))
-  (cond 
-    ;; (find-frame-manager) -> default one
-    ((and (null options) *default-frame-manager*))
-    ;; We specified a port we have to make sure the default on
-    ;; matches it
-    ((and *default-frame-manager*
-	  (frame-manager-matches-options-p
-	    *default-frame-manager*
-	    port options))
-     *default-frame-manager*)
-    ;; Failing that we make one
-    (t
-     (or (port-frame-manager port)
-	 (setf (port-frame-manager port)
-	       (make-frame-manager port))))))
+  (with-keywords-removed (options options '(:port :server-path))
+    (unless port 
+      (setq port (find-port :server-path server-path)))
+    (cond 
+      ;; (find-frame-manager) -> default one
+      ((and (null options) *default-frame-manager*))
+      ;; We specified a port we have to make sure the default on
+      ;; matches it
+      ((and *default-frame-manager*
+	    (apply #'frame-manager-matches-options-p
+		   *default-frame-manager* port options))
+       *default-frame-manager*)
+      ;; Failing that we make one
+      (t
+       (let ((framem (port-frame-manager port)))
+	 (if (and framem
+		  (apply #'frame-manager-matches-options-p framem port options))
+	     framem
+	     (setf (port-frame-manager port)
+		   (apply #'make-frame-manager port options))))))))
 
 #+Genera
 (scl:add-initialization "Reset frame managers"
@@ -68,13 +56,12 @@
      (setq *default-frame-manager* nil))
   '(before-cold))
 
-(defmethod frame-manager-matches-options-p
-	   ((framem standard-frame-manager) port options)
-  (declare (ignore options))
-  (eq (port framem) port))
-
-(defmethod make-frame-manager ((port basic-port))
+(defmethod make-frame-manager ((port basic-port) &key)
   (make-instance 'standard-frame-manager :port port))
+
+(defmethod frame-manager-matches-options-p
+	   ((framem standard-frame-manager) port &key)
+  (eq (port framem) port))
 
 
 ;; Things like the Genera and CLX frame managers create a CLIM stream pane
@@ -89,19 +76,19 @@
     (let* ((top-pane (frame-panes frame))
 	   (sheet (with-look-and-feel-realization (framem frame)
 		    (make-pane 'top-level-sheet
-			       :user-specified-position-p (clim-internals::frame-user-specified-position-p frame)
-			       :user-specified-size-p (clim-internals::frame-user-specified-size-p frame)
-			       :region (multiple-value-bind (width height)
-					   (bounding-rectangle-size top-pane)
-					 (make-bounding-rectangle 0 0 width height))
-			       :parent (find-graft :port (port frame))))))
+		      :user-specified-position-p (frame-user-specified-position-p frame)
+		      :user-specified-size-p (frame-user-specified-size-p frame)
+		      :region (multiple-value-bind (width height)
+				  (bounding-rectangle-size top-pane)
+				(make-bounding-rectangle 0 0 width height))
+		      :parent (find-graft :port (port frame))))))
       (setf (frame-top-level-sheet frame) sheet
 	    (frame-shell frame) (sheet-shell sheet))
       (sheet-adopt-child sheet (frame-panes frame)))))
 
 (defmethod adopt-frame :after ((framem standard-frame-manager) frame)
   (setf (frame-manager-frames framem)
-	(append (frame-manager-frames framem) (list frame))))
+	(nconc (frame-manager-frames framem) (list frame))))
 
 (defmethod disown-frame ((framem standard-frame-manager) frame)
   (let ((top (frame-top-level-sheet frame)))
@@ -135,6 +122,16 @@
 (defmethod note-command-disabled ((framem standard-frame-manager) frame command)
   (declare (ignore frame command)))
 
+
+(defgeneric frame-manager-notify-user
+	    (framem message-string &rest options
+	     &key frame associated-window title documentation exit-boxes name style))
+
+(defgeneric frame-manager-select-file 
+	    (framem &rest options 
+	     &key frame associated-window title documentation exit-boxes name
+		 file-search-proc directory-list-label file-list-label))
+
 
 (defmethod make-pane-class ((framem standard-frame-manager) class &rest options)
   (declare (ignore options))
@@ -147,19 +144,19 @@
 			 (radio-box radio-box-pane)
 			 (check-box check-box-pane)
 			 (slider slider-pane)
-			 (text-field text-field-pane)
 			 (top-level-sheet top-level-sheet)
 			 (frame-pane frame-pane)
-			 ;; Someday...
-			 (line-editor-pane)
-			 (label-button-pane)
-			 (radio-button-pane)
+			 (label-pane generic-label-pane)
+			 ;;--- Some day...
+			 (list-pane)
+			 (cascade-button)
+			 (text-field text-field-pane)
+			 (text-editor text-editor-pane)
 			 (horizontal-divider-pane)
 			 (vertical-divider-pane)
-			 (label-pane)
-			 (list-pane)
+			 (label-button-pane)
+			 (radio-button-pane)
 			 (caption-pane)
-			 (cascade-button)
 			 ))))
 
 (defmethod make-pane-1 ((framem standard-frame-manager)

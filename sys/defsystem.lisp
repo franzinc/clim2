@@ -27,7 +27,7 @@
 ;;;
 ;;;-----------------------------------------------------------
 
-;; $fiHeader: defsystem.lisp,v 1.11 92/05/22 19:28:40 cer Exp $
+;; $fiHeader: defsystem.lisp,v 1.12 92/07/01 15:47:14 cer Exp $
 
 ;; Add a feature for ANSI-adhering Lisps.  So far, only Apple's
 ;; version 2.0 tries to do adhere to the ANSI spec instead of CLtL rev 1.
@@ -166,8 +166,7 @@
 		   ((not (and (member (car tail) '(:back :up))
 			      (or (string (car (last start)))
 				  (eq (car (last start)) :wild))))
-                    (append start tail))
-		 )
+                    (append start tail)))
 	       directory)))
     (apply #'lisp:make-pathname
 	   :directory (internalize-directory (merge-directories directory defaults))
@@ -1424,9 +1423,14 @@ verify that each already loaded subsystem is up-to-date, reloading it if need be
 (export '(import-into-sct))
 
 #+(or Genera Minima-Developer)
-(defun import-into-sct (system &key (sct-name system) (subsystem nil)
-				    (default-pathname nil) (default-destination-pathname nil)
-				    (pretty-name nil))
+(defun import-into-sct (system &key (subsystem nil)
+				    (sct-name system) pretty-name
+				    default-pathname default-destination-pathname
+				    journal-directory 
+				    (maintain-journals (not subsystem))
+				    (patchable maintain-journals)
+				    bug-reports patches-reviewed
+				    required-systems)
   (setf sct-name (zl:::sct:canonicalize-system-name sct-name))
   (setf system (lookup-system system))
   (when (null default-pathname)
@@ -1440,11 +1444,22 @@ verify that each already loaded subsystem is up-to-date, reloading it if need be
       `(:default-pathname ,default-pathname
 	,@(when default-destination-pathname
 	    `(:default-destination-pathname ,default-destination-pathname))
+	,@(when journal-directory
+	    `(:journal-directory ,journal-directory))
 	,@(when (system-default-package system)
 	    `(:default-package ,(system-default-package system)))
 	,@(when pretty-name
 	    `(:pretty-name ,pretty-name))
-	)
+	,@(when patchable
+	    `(:patchable ,patchable))
+	,@(when maintain-journals
+	    `(:maintain-journals ,maintain-journals))
+	,@(when bug-reports
+	    `(:bug-reports ,bug-reports))
+	,@(when patches-reviewed
+	    `(:patches-reviewed ,patches-reviewed))
+	,@(when required-systems
+	    `(:required-systems ,required-systems)))
       (mapcar #'(lambda (module)
 		  (flet ((make-name (module)
 			   (intern (string-upcase (module-name module)))))

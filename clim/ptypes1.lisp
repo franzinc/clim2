@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: ptypes1.lisp,v 1.13 92/07/01 15:46:54 cer Exp Locker: cer $
+;; $fiHeader: ptypes1.lisp,v 1.14 92/07/24 10:54:35 cer Exp $
 
 (in-package :clim-internals)
 
@@ -71,7 +71,7 @@
 	     (eq (find-class-that-works name nil environment) class))
 	name
 	#-Minima class
-	;; Just let the name stand in for the clsas when cross-compiling
+	;; Just let the name stand in for the class when cross-compiling
 	#+Minima (if (and name (symbolp name)) name class))))
 
 
@@ -270,7 +270,7 @@
 	   ((class presentation-type-class) (meta standard-class))
   t)
 
-#+(and ANSI-90 Symbolics)
+#+Symbolics
 (defmethod clos-internals::validate-superclass
 	   ((class presentation-type-class) (meta standard-class))
   t)
@@ -283,24 +283,21 @@
   #+++ignore `(find-presentation-type-class ',(class-presentation-type-name object))
   ;; So do this instead
   `(load-reference-to-presentation-type-class
-     ',(class-presentation-type-name object #+(or Genera Minima) 'compile-file)
+     ',(class-presentation-type-name object #+Symbolics 'compile-file)
      ',(presentation-type-parameters object)
      ',(presentation-type-options object)
      ',(let ((superclasses (class-direct-superclasses object)))
 	 (if (cdr superclasses)
 	     (mapcar #'(lambda (class)
-			 (class-presentation-type-name class
-						       #+(or Genera Minima) 'compile-file))
+			 (class-presentation-type-name class #+Symbolics 'compile-file))
 		     (class-direct-superclasses object))
 	     ;; Use an atom instead of a one-element list to work around a Lucid bug
 	     ;; where it blows up if anything here is a list that gets consed freshly
 	     ;; each time make-load-form is called, because make-load-form gets called
 	     ;; twice and the results of evaluating the subforms have to be EQ.  Jeez!
-	     (class-presentation-type-name (first superclasses)
-					   #+(or Genera Minima) 'compile-file)))
+	     (class-presentation-type-name (first superclasses) #+Symbolics 'compile-file)))
      nil			;description doesn't matter
-     ',(let* ((type-name (class-presentation-type-name object
-						       #+(or Genera Minima) 'compile-file))
+     ',(let* ((type-name (class-presentation-type-name object #+Symbolics 'compile-file))
 	      (history (gethash type-name *presentation-type-history-table*)))
  	 ;; The (AND HISTORY ...) is here to get around a compile/load
  	 ;; bootstrapping problem in HISTORIES.LISP
@@ -329,24 +326,26 @@
 
 ;;; Find the class corresponding to the presentation type named name
 (defun find-presentation-type-class (name &optional (errorp t) environment)
+  #+Genera (declare (inline compile-file-environment-p))
   #+Allegro (setq environment (compile-file-environment-p environment))
   (typecase name
     (symbol
-      (or (and (eq name (first *presentation-type-being-defined*))
-	       (second *presentation-type-being-defined*))
-	  (if (compile-file-environment-p environment)
-	      (compile-time-property name 'presentation-type-class)
-	      (gethash name *presentation-type-class-table*))
-	  (let ((class (find-class name nil environment)))
-	    (and (acceptable-presentation-type-class class)
-		 class))
-	  (when (compile-file-environment-p environment)
-	    ;; compile-file environment inherits from the run-time environment
-	    (or (gethash name *presentation-type-class-table*)
-		(let ((class (find-class name nil nil)))
-		  (and (acceptable-presentation-type-class class)
-		       class))))
-	  (and errorp (error "~S is not the name of a presentation type" name))))
+      (let ((compile-file-environment-p (compile-file-environment-p environment)))
+	(or (and (eq name (first *presentation-type-being-defined*))
+		 (second *presentation-type-being-defined*))
+	    (if compile-file-environment-p
+		(compile-time-property name 'presentation-type-class)
+		(gethash name *presentation-type-class-table*))
+	    (let ((class (find-class name nil environment)))
+	      (and (acceptable-presentation-type-class class)
+		   class))
+	    (when compile-file-environment-p
+	      ;; compile-file environment inherits from the run-time environment
+	      (or (gethash name *presentation-type-class-table*)
+		  (let ((class (find-class name nil nil)))
+		    (and (acceptable-presentation-type-class class)
+			 class))))
+	    (and errorp (error "~S is not the name of a presentation type" name)))))
     ((satisfies acceptable-presentation-type-class)
      name)
     (otherwise		;a type error should complain even if errorp is nil
@@ -360,6 +359,23 @@
   
 (defmethod class-presentation-type-name ((class class) &optional environment)
   (class-proper-name class environment))
+
+#+Allegro (defstruct class-prototype-for-t)
+#+Allegro (defvar *class-prototype-for-t* (make-class-prototype-for-t))
+
+(defun-inline find-class-prototype (class)
+  (cond #+Allegro 
+	((eq class clos::*the-class-t*)
+	 *class-prototype-for-t*)
+	(t
+	 (class-prototype class))))
+
+(defun-inline find-class-precedence-list (class)
+  ;; Do this to ensure that the class is finalized.  This prevents us
+  ;; from consing the CPL over and over again in degenerate cases that
+  ;; can come up with structure classes
+  #+Symbolics (find-class-prototype class)
+  (class-precedence-list class))
 
 ;;; Hide the long name when printing these
 (defmethod print-object ((object presentation-type-class) stream)
@@ -794,8 +810,8 @@
 				     direct-superclasses	;superclasses
 				     ()				;slots
 				     ()))			;options
-               ;;--- Workaround for apparent MCL bug that otherwise causes
-	       ;;--- BAD things to happen
+               ;; Workaround for apparent MCL bug that otherwise causes
+	       ;; very bad things to happen
                #+CCL-2 (setf (slot-value class 'ccl::slots) (cons nil (vector)))
 	       ;; If the class name couldn't be set while making the class, set it now
 	       #-(or Genera Cloe-Runtime CCL-2) (setf (class-name class) class-name)))
@@ -819,12 +835,12 @@
 			       (class-proper-name class environment))
 			   (class-direct-superclasses class)))))
   
-      ;;--- This used to be done only in the case where we were creating a class
-      ;;--- "de novo".  However, CCL-2 currently doesn't record anything about
-      ;;--- DEFCLASS at compile time, so we may write the new methods for this
-      ;;--- presentation class on this "registered" name instead of on the
-      ;;--- official class name.  The following line hooks up the class and the
-      ;;--- registered name at load time.  -- rsl & York, 4 June 1991
+      ;; This used to be done only in the case where we were creating a class
+      ;; "de novo".  However, CCL-2 currently doesn't record anything about
+      ;; DEFCLASS at compile time, so we may write the new methods for this
+      ;; presentation class on this "registered" name instead of on the
+      ;; official class name.  The following line hooks up the class and the
+      ;; registered name at load time.  -- rsl & York, 4 June 1991
       #+CCL-2 (setf (gethash class *presentation-class-type-table*) registered-class-name
 		    ;;--- Should the following be done at compile time?  It's unclear.
 		    (find-class registered-class-name) class)
@@ -1408,16 +1424,6 @@
 	,@(when options-var `(,options-var))
 	,@arguments))))
 
-#+Allegro
-(progn
-  (defstruct class-prototype-for-t)
-  (defvar *class-prototype-for-t* (make-class-prototype-for-t)))
-
-(defun find-class-prototype (class)
-  (cond #+Allegro
-	((eq class clos::*the-class-t*) *class-prototype-for-t*)
-	(t (class-prototype class))))
-
 (defmacro funcall-presentation-generic-function (presentation-function-name &body arguments)
   `(call-presentation-generic-function ,presentation-function-name ,@arguments))
 
@@ -1617,14 +1623,19 @@
   #-CCL-2
   (declare (arglist type-key parameters options type stream view)))
 
+(define-presentation-generic-function decode-indirect-view-method
+                                      decode-indirect-view
+  (type-key parameters options type view frame-manager))
+
+(define-presentation-generic-function presentation-refined-position-test-method
+				      presentation-refined-position-test
+  (type-key parameters options type
+	    record x y))
+
 (define-presentation-generic-function highlight-presentation-method
 				      highlight-presentation
   (type-key parameters options type
 	    record stream state))
-
-(define-presentation-generic-function decode-indirect-view-method
-                                      decode-indirect-view
-  (type-key parameters options view framem type))
 
 
 ;;;; Presentation Methods
@@ -1763,7 +1774,7 @@
 	  (push `(declare (sys:function-parent ,presentation-type-name define-presentation-type))
 		declarations))
   
-	;;--- Note that defmethod doesn't accept class objects, according to 88-002R.
+	;;--- Note that DEFMETHOD doesn't accept class objects, according to 88-002R.
 	;;--- We will have to do something for that (like give them gensym names?  Ick!)
 	
 	;; Expand into a defmethod
@@ -1798,7 +1809,7 @@
       (remhash name *presentation-type-history-table*)
       (setq *presentation-type-parameters-are-types*
 	    (delete name *presentation-type-parameters-are-types*))))
-  ;--- maybe need to jerk the class around a bit more than this
+  ;--- Maybe need to jerk the class around a bit more than this
   name)
 
 #+Genera

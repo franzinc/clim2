@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-scroll.lisp,v 1.26 92/07/20 15:59:10 cer Exp $
+;; $fiHeader: db-scroll.lisp,v 1.27 92/07/27 11:01:32 cer Exp $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright(c) 1991, 1992 International Lisp Associates.
@@ -65,11 +65,20 @@
 
 (defmethod compose-space ((scroller generic-scroller-pane) &key width height)
   (declare (ignore width height))
-  (let ((sr (copy-space-requirement (call-next-method))))
-    ;;--- Make sure the scroller pane is big enough to hold something
-    (maxf (space-requirement-width sr) 50)
-    (maxf (space-requirement-height sr) 50)
-    sr))
+  (let ((sr (call-next-method)))
+    (multiple-value-bind (width min-width max-width
+			  height min-height max-height)
+	(space-requirement-components sr)
+      (if (or (< width 50) (< height 50))
+	  ;; Make sure the scroller pane is big enough to hold something
+	  (make-space-requirement
+	    :width (max width 50)
+	    :min-width (max min-width 50)
+	    :max-width (max max-width 50)
+	    :height (max height 50)
+	    :min-height (max min-height 50)
+	    :max-height (max max-height 50))
+	  sr))))
 
 ;;--- Ideally we should use a toolkit scrolling window. This will look
 ;;--- exactly right and will deal with user specified placement of scroll-bars.
@@ -335,8 +344,6 @@
   (:default-initargs :value 0
 		     :shaft-thickness *scroll-shaft-thickness-ink*))
 
-;;--- There should really be a small border around scroll bars so that
-;;--- they don't butt right up against the viewport's drawing area
 (defmethod initialize-instance :after ((pane scroll-bar-pane)
 				       &key orientation shaft-thickness
 					    frame-manager frame)
@@ -495,7 +502,7 @@
 					scroller-pane id orientation x y)
   (with-slots (current-size current-value) scroll-bar
     (with-slots (viewport contents) scroller-pane
-      ;; --- scroll-bar may not be the right thing it it's not the same
+      ;; --- scroll-bar may not be the right thing if it's not the same
       ;; size as the contents pane - Davo 6/30/92.
       (with-bounding-rectangle* (left top right bottom)
 	  (sheet-region scroll-bar)
@@ -527,7 +534,7 @@
 					   scroller-pane id orientation x y)
   (with-slots (current-size current-value) scroll-bar
     (with-slots (viewport contents) scroller-pane
-      ;; --- scroll-bar may not be the right thing itf its not the same
+      ;; --- scroll-bar may not be the right thing if its not the same
       ;; size as the contents pane - Davo 6/30/92.
       (with-bounding-rectangle* (left top right bottom)
 	  (sheet-region scroll-bar)
@@ -558,7 +565,7 @@
 				     scroller-pane id orientation x y)
   (with-slots (current-size current-value) scroll-bar
     (with-slots (viewport contents) scroller-pane
-      ;; --- scroll-bar may not be the right thing itf its not the same
+      ;; --- scroll-bar may not be the right thing if its not the same
       ;; size as the contents pane - Davo 6/30/92.
       (with-bounding-rectangle* (left top right bottom)
 	  (sheet-region scroll-bar)
@@ -834,7 +841,6 @@
 	 (value (compute-symmetric-value min max coord min-value max-value)))
     (setf (gadget-value scroll-bar) value)))
 
-;;;--- This looks like a value gadget to me
 (defmethod (setf gadget-value) (value (pane scroll-bar-pane) &key invoke-callback)
   (declare (ignore invoke-callback))
   (setf (slot-value pane 'value) value))

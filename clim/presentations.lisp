@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: presentations.lisp,v 1.11 92/07/01 15:46:51 cer Exp $
+;; $fiHeader: presentations.lisp,v 1.12 92/07/27 11:02:50 cer Exp $
 
 (in-package :clim-internals)
 
@@ -17,11 +17,9 @@
   (:default-initargs :size 5))
 
 (define-output-record-constructor standard-presentation
-				  (&key object type modifier
-					single-box allow-sensitive-inferiors
+				  (&key object type modifier single-box
 					x-position y-position (size 5))
-  :object object :type type :modifier modifier
-  :single-box single-box :allow-sensitive-inferiors allow-sensitive-inferiors
+  :object object :type type :modifier modifier :single-box single-box 
   :x-position x-position :y-position y-position :size size)
 
 (defmethod print-object ((object standard-presentation) stream)
@@ -37,13 +35,30 @@
       (safe-slot-value object 'bottom))))
 
 (defmethod shared-initialize :after ((presentation standard-presentation) slots
-				     &key modifier allow-sensitive-inferiors single-box)
-  ;;--- Support MODIFIER and ALLOW-SENSITIVE-INFERIORS sometime...
-  (declare (ignore slots modifier allow-sensitive-inferiors))
+				     &key modifier single-box)
+  ;;--- Support :MODIFIER sometime...
+  (declare (ignore slots modifier))
   (check-type single-box (member t nil :highlighting :position))
   (with-slots (type) presentation
     (setq type (evacuate-list type)))
   nil)
+
+(defclass standard-nonsensitive-presentation
+	  (standard-sequence-output-record)
+    ()
+  (:default-initargs :size 5))
+
+(define-output-record-constructor standard-nonsensitive-presentation
+				  (&key object type modifier single-box
+					x-position y-position (size 5))
+  :x-position x-position :y-position y-position :size size)
+
+(defmethod shared-initialize :after ((presentation standard-nonsensitive-presentation) slots
+				     &key modifier single-box)
+  ;;--- Support :MODIFIER sometime...
+  (declare (ignore slots modifier single-box))
+  nil)
+
 
 ;;; A presentation can fit anywhere in the output-record hierarchy
 ;;; This means that you are allowed to have a hierarchy like:
@@ -125,13 +140,10 @@
 	null-presentation))
 
 (defun window-cohorts-p (window-one window-two)
-  ;;--- The best test for whether or not two windows care about each
-  ;;--- other's mouse motion (for now) is whether they share an io-buffer.
-  ;; This is a function rather than a multi-method (which probably would be faster)
-  ;; because we don't think our trampoline technology could forward this from
-  ;; an encapsulating stream properly.
-  (eq (stream-input-buffer window-one)
-      (stream-input-buffer window-two)))
+  ;; The best test for whether or not two windows care about each
+  ;; other's mouse motion (for now) is whether they share an IO buffer.
+  (eq (sheet-event-queue window-one)
+      (sheet-event-queue window-two)))
 
 (defun highlight-presentation-of-context-type (stream)
   (highlight-applicable-presentation
@@ -277,84 +289,87 @@
     ;; matches the input context.
     ;; This relies on MAP-OVER-OUTPUT-RECORDS-CONTAINING-POSITION traversing
     ;; the most recently drawn of overlapping output records first.
-    (labels ((mapper (record presentations x-offset y-offset)
-	       (declare (type coordinate x-offset y-offset))
-	       ;; RECORD is an output record whose bounding rectangle contains (X,Y).
-	       ;; PRESENTATIONS is a list of non-:SINGLE-BOX presentations that are
-	       ;; ancestors of RECORD.
-	       ;; X-OFFSET and Y-OFFSET are the position on the drawing plane of the
-	       ;; origin of RECORD's coordinate system, i.e. RECORD's parent's start-position.
-	       (multiple-value-bind (sensitive superior-sensitive inferior-presentation)
-		   ;; SENSITIVE is true if RECORD is a presentation to test against the context.
-		   ;; SUPERIOR-SENSITIVE is true if PRESENTATIONS should be tested also.
-		   ;; INFERIOR-PRESENTATION is a presentation to pass down to our children.
-		   (if (presentationp record)
-		       (if (output-record-refined-sensitivity-test
-			     record (- x x-offset) (- y y-offset))
-			   ;; Passed user-defined sensitivity test for presentations.
-			   ;; It might be both a presentation and a displayed output record.
-			   ;; It might be sensitive now [:single-box t] or the decision might
-			   ;; depend on finding a displayed output record [:single-box nil].
-			   (let ((displayed (displayed-output-record-p record))
-				 (single-box (presentation-single-box record)))
-			     (if (or (eq single-box t) (eq single-box :position))
-				 ;; This presentation is sensitive
-				 (values t displayed nil)
-				 ;; This presentation is not presented as a single box,
-				 ;; so it contains the point (X,Y) if and only if a
-				 ;; visibly displayed inferior contains that point.
-				 (values nil displayed record)))
-			   (values nil nil nil))
-		       ;; RECORD is not a presentation, but a superior presentation's
-		       ;; sensitivity might depend on whether record contains (X,Y)
-		       (values nil
-			       (and presentations
-				    (dolist (presentation presentations nil)
-				      (unless (null presentation) (return t)))
-				    (displayed-output-record-p record)
-				    ;; Refined sensitivity test for displayed graphics
-				    (output-record-refined-sensitivity-test
-				      record (- x x-offset) (- y y-offset)))
-			       nil))
+    (labels 
+      ((mapper (record presentations x-offset y-offset)
+	 (declare (type coordinate x-offset y-offset))
+	 ;; RECORD is an output record whose bounding rectangle contains (X,Y).
+	 ;; PRESENTATIONS is a list of non-:SINGLE-BOX presentations that are
+	 ;; ancestors of RECORD.
+	 ;; X-OFFSET and Y-OFFSET are the position on the drawing plane of the
+	 ;; origin of RECORD's coordinate system, i.e. RECORD's parent's start-position.
+	 (multiple-value-bind (sensitive superior-sensitive inferior-presentation)
+	     ;; SENSITIVE is true if RECORD is a presentation to test against the context.
+	     ;; SUPERIOR-SENSITIVE is true if PRESENTATIONS should be tested also.
+	     ;; INFERIOR-PRESENTATION is a presentation to pass down to our children.
+	     (if (presentationp record)
+		 ;;--- This should call PRESENTATION-REFINED-POSITION-TEST
+		 (if (output-record-refined-position-test 
+		       record (- x x-offset) (- y y-offset))
+		     ;; Passed user-defined sensitivity test for presentations.
+		     ;; It might be both a presentation and a displayed output record.
+		     ;; It might be sensitive now [:single-box t] or the decision might
+		     ;; depend on finding a displayed output record [:single-box nil].
+		     (let ((displayed (displayed-output-record-p record))
+			   (single-box (presentation-single-box record)))
+		       (if (or (eq single-box t) (eq single-box :position))
+			   ;; This presentation is sensitive
+			   (values t displayed nil)
+			   ;; This presentation is not presented as a single box,
+			   ;; so it contains the point (X,Y) if and only if a
+			   ;; visibly displayed inferior contains that point.
+			   (values nil displayed record)))
+		     (values nil nil nil))
+		 ;; RECORD is not a presentation, but a superior presentation's
+		 ;; sensitivity might depend on whether record contains (X,Y)
+		 (values nil
+			 (and presentations
+			      (dolist (presentation presentations nil)
+				(unless (null presentation) (return t)))
+			      (displayed-output-record-p record)
+			      ;; Call the refined position test for displayed
+			      ;; output records (e.g., ellipses, text, etc.)
+			      (output-record-refined-position-test
+				record (- x x-offset) (- y y-offset)))
+			 nil))
   
-		 ;; Add INFERIOR-PRESENTATION to PRESENTATIONS
-		 (with-stack-list* (more-presentations inferior-presentation presentations)
-		   (when inferior-presentation
-		     (setq presentations more-presentations))
+	   ;; Add INFERIOR-PRESENTATION to PRESENTATIONS
+	   (with-stack-list* (more-presentations inferior-presentation presentations)
+	     (when inferior-presentation
+	       (setq presentations more-presentations))
     
-		   ;; Depth-first recursion
-		   (multiple-value-bind (dx dy) (output-record-position record)
-		     (map-over-output-records-containing-position 
-		       #'mapper record x y
-		       (- x-offset) (- y-offset)
-		       presentations (+ x-offset dx) (+ y-offset dy)))
+	     ;; Depth-first recursion
+	     (multiple-value-bind (dx dy) (output-record-position record)
+	       (map-over-output-records-containing-position 
+		 #'mapper record x y
+		 (- x-offset) (- y-offset)
+		 presentations (+ x-offset dx) (+ y-offset dy)))
     
-		   ;; If we get here, didn't find anything in the inferiors of record so test
-		   ;; any presentations that are now known to be sensitive, depth-first
-		   (when sensitive
-		     (test record))
-		   (when superior-sensitive
-		     (do* ((presentations presentations (cdr presentations))
-			   (presentation (car presentations) (car presentations)))
-			  ((null presentations))
-		       (when presentation
-			 (test presentation)
-			 ;; A given presentation only has to be tested once
-			 (setf (car presentations) nil)))))))
-	     (test (presentation)
-	       ;; This presentation contains the point (X,Y).  See if there is
-	       ;; a translator from it to the input context.
-	       (dolist (context input-context)
-		 (let ((context-type (input-context-type context)))
-		   (multiple-value-bind (translator any-match-p)
-		       (presentation-matches-context-type presentation context-type
-							  frame stream x y
-							  :event event
-							  :modifier-state modifier-state)
-		     (declare (ignore translator))
-		     (when any-match-p
-		       (return-from find-innermost-applicable-presentation
-			 presentation)))))))
+	     ;; If we get here, didn't find anything in the inferiors of record so test
+	     ;; any presentations that are now known to be sensitive, depth-first
+	     (when sensitive
+	       (test record))
+	     (when superior-sensitive
+	       (do* ((presentations presentations (cdr presentations))
+		     (presentation (car presentations) (car presentations)))
+		    ((null presentations))
+		 (when presentation
+		   (test presentation)
+		   ;; A given presentation only has to be tested once
+		   (setf (car presentations) nil)))))))
+       (test (presentation)
+	 ;; This presentation contains the point (X,Y).  See if there is
+	 ;; a translator from it to the input context.
+	 (dolist (context input-context)
+	   (let ((context-type (input-context-type context)))
+	     (multiple-value-bind (translator any-match-p)
+		 (presentation-matches-context-type presentation context-type
+						    frame stream x y
+						    :event event
+						    :modifier-state modifier-state)
+	       (declare (ignore translator))
+	       (when any-match-p
+		 (return-from find-innermost-applicable-presentation
+		   presentation)))))))
       (declare (dynamic-extent #'mapper #'test))
       (mapper (stream-output-history stream) nil (coordinate 0) (coordinate 0)))))
 
@@ -443,7 +458,7 @@
 	  (setf highlighted-presentation nil))))))
 
 (defun find-appropriate-window (stream)
-  ;;--- how do we hack multiple pointers?
+  ;;--- How do we hack multiple pointers?
   (let* ((pointer (stream-primary-pointer stream))
 	 (window (pointer-sheet pointer)))
     ;; It ain't no good if it doesn't have a history.

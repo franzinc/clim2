@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clim-defs.lisp,v 1.11 92/07/20 16:00:03 cer Exp $
+;; $fiHeader: clim-defs.lisp,v 1.12 92/07/27 11:02:12 cer Exp $
 
 (in-package :clim-internals)
 
@@ -69,18 +69,8 @@
 
 (defmacro with-output-recording-options 
 	  ((stream &key (draw nil draw-supplied)
-			(record nil record-supplied)
-			#+CLIM-1-compatibility (draw-p nil draw-p-supplied)
-			#+CLIM-1-compatibility (record-p nil record-p-supplied))
+			(record nil record-supplied))
 	   &body body)
-  #+CLIM-1-compatibility
-  (when (or draw-p-supplied record-p-supplied)
-    (setq draw draw-p
-	  draw-supplied draw-p-supplied
-	  record record-p
-	  record-supplied record-p-supplied)
-    (warn "Converting old style call to ~S to the new style.~%~
-	   Please update your code." 'with-output-recording-options))
   (let ((new-stream (gensymbol 'stream)))
     `(let ((,new-stream ,stream))
        (flet ((with-output-recording-options-body () ,@body))
@@ -133,7 +123,9 @@
 					&body body)
   #+Genera (declare (zwei:indentation 0 3 1 1))
   (default-output-stream stream)
-  ;; --- validate protocol here.
+  ;; INVOKE-WITH-OUTPUT-RECORDING-OPTIONS only implemented for output
+  ;; recording streams, which will serve to validate whether we are
+  ;; doing this on the right kind of stream
   `(with-output-recording-options (,stream :draw nil :record t)
      (letf-globally (((stream-current-output-record ,stream) nil)
 		     ((stream-output-history ,stream) nil)
@@ -142,32 +134,39 @@
 	 (with-stream-cursor-position-saved (,stream)
 	   ,@body)))))
 
+
+;;; Presentation type stuff
+
+(defvar *allow-sensitive-inferiors* t)
 (defmacro with-output-as-presentation ((stream object type 
 					&key modifier single-box
-					     (allow-sensitive-inferiors t) parent
+					     (allow-sensitive-inferiors t asi-p)
+					     parent
 					     (record-type `'standard-presentation))
 				       &body body)
   #+Genera (declare (zwei:indentation 0 3 1 1))
   (default-output-stream stream)
   ;; Maybe with-new-output-record should turn record-p on?
+  (unless asi-p
+    (setq allow-sensitive-inferiors '*allow-sensitive-inferiors*))
   (let ((nobject '#:object)			;(once-only (object type) ...)
 	(ntype '#:type))
     `(with-output-recording-options (,stream :record t)
        (let ((,nobject ,object)
 	     (,ntype ,type))
-	 (with-new-output-record (,stream ,record-type nil
+	 (with-new-output-record (,stream (if *allow-sensitive-inferiors*
+					      ,record-type
+					      'standard-nonsensitive-presentation) nil
 				  :object ,nobject
 				  :type (if ,ntype
 					    (expand-presentation-type-abbreviation ,ntype)
 					    (presentation-type-of ,nobject))
 				  :single-box ,single-box
-				  :allow-sensitive-inferiors ,allow-sensitive-inferiors
 				  ,@(when modifier `(:modifier ,modifier))
 				  ,@(when parent `(:parent ,parent)))
-	   ,@body)))))
+	   (let ((*allow-sensitive-inferiors* ,allow-sensitive-inferiors))
+	     ,@body))))))
 
-
-;;; Presentation type stuff
 
 ;; The current input context consists of a list of context entries.  Each entry
 ;; is a list of the form (CONTEXT-TYPE CATCH-TAG)
@@ -284,8 +283,8 @@
 ;;; From ACCEPTING-VALUES.LISP
 (defmacro accepting-values ((&optional stream &rest args) &body body)
   (declare (arglist (&optional stream
-		     &key frame-class own-window exit-boxes
-			  initially-select-query-identifier
+		     &key frame-class command-table own-window exit-boxes
+			  initially-select-query-identifier modify-initial-query
 			  resynchronize-every-pass
 			  label x-position y-position width height)
 		    &body body))

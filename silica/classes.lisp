@@ -1,27 +1,12 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; 
-;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
-;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
-;;
-;; The software, data and information contained herein are proprietary
-;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
-;; given in confidence by Franz, Inc. pursuant to a written license
-;; agreement, and may be stored and used only in accordance with the terms
-;; of such license.
-;;
-;; Restricted Rights Legend
-;; ------------------------
-;; Use, duplication, and disclosure of the software, data and information
-;; contained herein by any agency, department or entity of the U.S.
-;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
-;;
-;; $fiHeader: classes.lisp,v 1.12 92/07/20 15:59:02 cer Exp $
+;; $fiHeader: classes.lisp,v 1.13 92/07/27 11:01:28 cer Exp $
 
 (in-package :silica)
+
+"Copyright (c) 1991, 1992 Franz, Inc.  All rights reserved.
+ Portions copyright (c) 1992 Symbolics, Inc.  All rights reserved."
+
 
 (define-protocol-class port ())
 
@@ -155,11 +140,6 @@
    (native-y :reader pointer-event-native-y :initarg :native-y)
    (pointer :reader pointer-event-pointer 
 	    :initarg :pointer :initform nil)))
-
-#+CLIM-1-compatibility
-(define-compatibility-function (pointer-event-shift-mask event-modifier-state)
-			       (pointer-event)
-  (event-modifier-state pointer-event))
 
 (define-event-class pointer-button-event (pointer-event)
   ((button :reader pointer-event-button

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: translators.lisp,v 1.6 92/07/01 15:47:10 cer Exp $
+;; $fiHeader: translators.lisp,v 1.7 92/07/08 16:31:04 cer Exp $
 
 (in-package :clim-internals)
 
@@ -150,7 +150,7 @@
         #'(lambda (thing string)
 	    (warn "~S is ~A in the to-type~:[ ~S~;~]."
 		  thing string (eq thing to-type) to-type))))
-    (unless (or (command-table-p command-table)  ;---is this possible?
+    (unless (or (command-table-p command-table)
 		(and (symbolp command-table)
 		     (or (find-command-table command-table :errorp nil)
 			 (compile-time-property command-table 'command-table-name))))
@@ -286,9 +286,6 @@
 ;; FROM-TYPE and TO-TYPE, in priority order (where the first element
 ;; is the highest priority translator).
 (defun find-presentation-translators (from-type to-type command-table)
-  #+CLIM-1-compatibility
-  (when (application-frame-p command-table)
-    (setq command-table (frame-command-table command-table)))
   (setq command-table (find-command-table command-table))
   (with-slots (translators-cache) command-table
     (let ((cache translators-cache))		;for speed...
@@ -395,11 +392,7 @@
 
 (defun test-presentation-translator (translator presentation context-type
 				     frame window x y
-				     &key event (modifier-state 0) for-menu
-					  #+CLIM-1-compatibility (shift-mask 0 shift-mask-p))
-  #+CLIM-1-compatibility
-  (when shift-mask-p
-    (setq modifier-state shift-mask))
+				     &key event (modifier-state 0) for-menu)
   (and (presentation-translator-matches-event translator event modifier-state for-menu)
        (test-presentation-translator-1 translator presentation context-type
 				       frame event window x y)))
@@ -450,13 +443,8 @@
 ;; (that is, a second value of T means that the menu translator will apply)
 (defun presentation-matches-context-type (presentation context-type
 					  frame window x y
-					  &key event (modifier-state 0)
-					       #+CLIM-1-compatibility
-					       (shift-mask 0 shift-mask-p))
+					  &key event (modifier-state 0))
   (declare (values translator any-match-p))
-  #+CLIM-1-compatibility
-  (when shift-mask-p
-    (setq modifier-state shift-mask))
   (let ((one-matched nil)
 	(translators 
 	  (find-presentation-translators 
@@ -498,11 +486,7 @@
 ;; When FASTP is T, that means "as soon as you find a matching translator, return
 ;; that translator".  Otherwise, return a list of all applicable translators.
 (defun find-applicable-translators (presentation input-context frame window x y
-				    &key event modifier-state (for-menu nil for-menu-p) fastp
-					 #+CLIM-1-compatibility (shift-mask nil shift-mask-p))
-  #+CLIM-1-compatibility
-  (when shift-mask-p
-    (setq modifier-state shift-mask))
+				    &key event modifier-state (for-menu nil for-menu-p) fastp)
   (let ((applicable-translators nil))
     (do ((presentation presentation
 		       (parent-presentation-with-shared-box presentation window)))

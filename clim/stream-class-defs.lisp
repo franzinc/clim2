@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: stream-class-defs.lisp,v 1.7 92/05/22 19:28:28 cer Exp $
+;; $fiHeader: stream-class-defs.lisp,v 1.8 92/07/01 15:47:02 cer Exp $
 
 (in-package :clim-internals)
 
@@ -66,24 +66,6 @@
 			       :accessor stream-highlighted-presentation))
   (:default-initargs :draw-p t :record-p t	;!!!
 		     :output-record (make-instance 'standard-tree-output-history)))
-
-
-#+CLIM-1-compatibility
-(progn
-(define-compatibility-function (output-recording-stream-output-history
-				stream-output-history) 
-			       (stream)
-  (stream-output-history stream))
-
-(define-compatibility-function (output-recording-stream-current-output-record-stack
-				stream-current-output-record)
-			       (stream)
-  (stream-current-output-record stream))
-
-(define-compatibility-function (output-recording-stream-replay stream-replay)
-			       (stream &optional region)
-  (stream-replay stream region))
-)	;#+CLIM-1-compatibility
 
 
 ;; For any window-specific output recording methods

@@ -1,10 +1,12 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: view-defs.lisp,v 1.7 92/07/20 16:00:42 cer Exp Locker: cer $
+;; $fiHeader: view-defs.lisp,v 1.8 92/07/27 11:03:04 cer Exp $
 
 (in-package :clim-internals)
 
-"Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved."
+"Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved.
+ Portions copyright (c) 1992 Franz, Inc.  All rights reserved."
+
 
 ;; VIEW protocol class
 (define-protocol-class view ())
@@ -32,45 +34,52 @@
 (defvar +gadget-menu-view+ (make-instance 'gadget-menu-view))
 (defvar +pointer-documentation-view+ (make-instance 'pointer-documentation-view))
 
-#+CLIM-1-compatibility
-(progn
-(defclass dialog-view (textual-dialog-view) ())
-(defclass menu-view (textual-menu-view) ())
-(defclass iconic-view (gadget-view) ())
+
+;;; Indirect views for toolkit integration
 
-(defvar +dialog-view+ (make-instance 'dialog-view)) 
-(defvar +menu-view+ (make-instance 'menu-view))
-(defvar +iconic-view+ (make-instance 'iconic-view))
-)	;#+CLIM-1-compatibility
-
-
-(defclass actual-gadget-view (gadget-dialog-view)
-	  ((initargs :initform nil :reader view-initargs)))
+(defclass actual-gadget-view (gadget-view)
+    ((initargs :initform nil :reader view-gadget-initargs)))
 
 (defmethod initialize-instance :after ((view actual-gadget-view) &rest initargs)
+  (declare (non-dynamic-extent initargs))
   (setf (slot-value view 'initargs) initargs))
 
-(eval-when (compile eval)
-  (defmacro define-gadget-view (name)
-    (let ((class-name (fintern "~A-~A" name 'view))
-	  (variable-name (fintern "+~A-~A+" name 'view)))
-      `(progn
-	 (defclass ,class-name (
-				;;--- We would get very good checking
-				;;-- but the problem you have is that of
-				;;-- default-initargs
-				;;--- The order of important is user
-				;;--- specified, those that accept wants to
-				;;-- use and finally the default initargs
-				;;-- but the user+default-initargs get all
-				;;-- mixed up
-				;; ,name 
-				actual-gadget-view) 
-		   ())
-	 (defvar ,variable-name (make-instance ',class-name))
-	 ',name))))
+(defmacro define-gadget-view (name)
+  (let ((class-name (fintern "~A-~A" name 'view))
+	(variable-name (fintern "+~A-~A+" name 'view)))
+    `(progn
+       (defclass ,class-name 
+		 (;;--- It would be nice to include the gadget as part of
+		  ;;--- the view since that check for proper initargs.
+		  ;;--- But we lose on default initargs.  Since the order
+		  ;;--- of importance is "user specified", those that ACCEPT
+		  ;;--- wants to use and finally the default initargs, but
+		  ;;--- the user+default-initargs gets all mixed up
+		  #+++ignore ,name
+		  actual-gadget-view)
+	   ())
+       (defvar ,variable-name (make-instance ',class-name))
+       ',name)))
 
-(define-gadget-view slider)
+(define-gadget-view toggle-button)
+
 (define-gadget-view radio-box)
 (define-gadget-view check-box)
-(define-gadget-view toggle-button)
+
+(define-gadget-view slider)
+
+;;--- These three methods are the result of not including the
+;;--- gadget class as a superclass of view class...
+(defmethod gadget-orientation ((view slider-view))
+  (getf (view-gadget-initargs view) :orientation :horizontal))
+
+(defmethod gadget-show-value-p ((view slider-view))
+  (getf (view-gadget-initargs view) :show-value-p nil))
+
+(defmethod slider-decimal-places ((view slider-view))
+  (getf (view-gadget-initargs view) :decimal-places))
+
+
+(defmacro make-pane-from-view (class view &body initargs)
+  `(apply #'make-pane ,class (append (view-gadget-initargs ,view) (list ,@initargs))))
+

@@ -1,35 +1,49 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: GENERA-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: genera-frames.lisp,v 1.8 92/07/08 16:31:30 cer Exp $
+;; $fiHeader: genera-frames.lisp,v 1.9 92/07/20 16:00:58 cer Exp $
 
 (in-package :genera-clim)
 
 "Copyright (c) 1992 Symbolics, Inc.  All rights reserved."
 
 
+(defparameter *use-gadget-menu-bars* nil)
 (defclass genera-frame-manager (standard-frame-manager)
-    ()
+    ((gadget-menu-bar :initarg :gadget-menu-bar :initform *use-gadget-menu-bars*))
   (:default-initargs :dialog-view +textual-dialog-view+))
 
-(defmethod make-frame-manager ((port genera-port))
-  (make-instance 'genera-frame-manager :port port))
+(defmethod make-frame-manager ((port genera-port) 
+			       &key (gadget-menu-bar *use-gadget-menu-bars*) &allow-other-keys)
+  (make-instance 'genera-frame-manager :port port :gadget-menu-bar gadget-menu-bar))
+
+(defmethod frame-manager-matches-options-p
+	   ((framem genera-frame-manager) port 
+	    &key (gadget-menu-bar *use-gadget-menu-bars*) &allow-other-keys)
+  (and (eq (port framem) port)
+       (eq (slot-value framem 'gadget-menu-bar) gadget-menu-bar)))
 
 (defmethod frame-wrapper ((framem genera-frame-manager) 
 			  (frame standard-application-frame) pane)
-  (let ((menu-bar (slot-value frame 'menu-bar)))
+  (let* ((menu-pane (clim-internals::find-frame-pane-of-type 
+		      frame 'clim-internals::command-menu-pane))
+	 (menu-bar (let ((menu-bar (slot-value frame 'menu-bar)))
+		     (cond ((and menu-pane (eq menu-bar 't)) nil)
+			   ((eq menu-bar 't) (frame-command-table frame))
+			   (t menu-bar)))))
     (with-look-and-feel-realization (framem frame)
       (outlining ()
 	(if menu-bar
 	    (vertically ()
-	      (outlining ()
-		;;--- Incremental redisplay, too
-		(make-pane 'command-menu-pane
-		  :display-function 
-		    `(display-command-menu :command-table ,menu-bar)
-		  :incremental-redisplay t
-		  :default-text-style clim-internals::*command-table-menu-text-style*
-		  :text-style clim-internals::*command-table-menu-text-style*
-		  :width :compute :height :compute))
+	      (if (slot-value framem 'gadget-menu-bar)
+		  (compute-menu-bar-pane frame menu-bar)
+		  (outlining ()
+		    (make-pane 'command-menu-pane
+		      :display-function 
+		        `(display-command-menu :command-table ,menu-bar)
+		      :incremental-redisplay t
+		      :default-text-style clim-internals::*command-table-menu-text-style*
+		      :text-style clim-internals::*command-table-menu-text-style*
+		      :width :compute :height :compute)))
 	      pane)
 	    pane)))))
 

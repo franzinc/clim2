@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: transformations.lisp,v 1.7 92/07/01 15:45:48 cer Exp $
+;; $fiHeader: transformations.lisp,v 1.8 92/07/08 16:29:37 cer Exp $
 
 (in-package :clim-utils)
 
@@ -39,24 +39,6 @@
   (declare (values x1 y1 x2 y2)))
 (defgeneric untransform-rectangle* (transform x1 y1 x2 y2)
   (declare (values x1 y1 x2 y2)))
-
-#+CLIM-1-compatibility 
-(progn
-(define-compatibility-function (compose-translation-transformation
-				compose-translation-with-transformation)
-			       (transform dx dy)
-  (compose-translation-with-transformation transform dx dy))
-
-(define-compatibility-function (compose-scaling-transformation
-				compose-scaling-with-transformation)
-			       (transform mx my &optional origin)
-  (compose-scaling-with-transformation transform mx my origin))
-
-(define-compatibility-function (compose-rotation-transformation
-				compose-rotation-with-transformation)
-			       (transform angle &optional origin)
-  (compose-rotation-with-transformation transform angle origin))
-)	;#+CLIM-1-compatibility
 
 
 ;;; Transformations
@@ -712,11 +694,6 @@
       (values (coordinate (+ (* x mxx) (* y mxy) tx))
 	      (coordinate (+ (* x myx) (* y myy) ty))))))
 
-#+CLIM-1-compatibility
-(define-compatibility-function (transform-point* transform-position)
-			       (transform x y)
-  (transform-position transform x y))
-
 
 (defmethod untransform-position ((transform identity-transformation) x y)
   (declare (type real x y))
@@ -734,11 +711,6 @@
 (defmethod untransform-position ((transform standard-transformation) x y)
   (declare (type real x y))
   (transform-position (slot-value transform 'inverse) x y))
-
-#+CLIM-1-compatibility
-(define-compatibility-function (untransform-point* untransform-position)
-			       (transform x y)
-  (transform-position transform x y))
 
 
 ;;; Transforming and untransforming of distances

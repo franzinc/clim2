@@ -1,27 +1,11 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; 
-;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
-;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
-;;
-;; The software, data and information contained herein are proprietary
-;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
-;; given in confidence by Franz, Inc. pursuant to a written license
-;; agreement, and may be stored and used only in accordance with the terms
-;; of such license.
-;;
-;; Restricted Rights Legend
-;; ------------------------
-;; Use, duplication, and disclosure of the software, data and information
-;; contained herein by any agency, department or entity of the U.S.
-;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
-;;
-;; $fiHeader: port.lisp,v 1.16 92/07/20 15:59:28 cer Exp $
+;; $fiHeader: port.lisp,v 1.17 92/07/27 11:01:45 cer Exp $
 
 (in-package :silica)
+
+"Copyright (c) 1991, 1992 Franz, Inc.  All rights reserved.
+ Portions copyright (c) 1992 Symbolics, Inc.  All rights reserved."
 
 
 ;; Ports and grafts
@@ -69,7 +53,7 @@
 (defmethod initialize-instance :around ((port basic-port) &key server-path)
   (setf (slot-value port 'server-path) (copy-list server-path))
   (call-next-method)
-  (setq *ports* (append *ports* (list port)))
+  (setq *ports* (nconc *ports* (list port)))
   (restart-port port))
 
 
@@ -82,6 +66,8 @@
 
 (defmethod (setf port-pointer) (pointer (port basic-port))
   (setf (slot-value port 'pointer) pointer))
+
+(defgeneric port-set-pointer-position (port pointer x y))
 
 
 (defgeneric port (x))
@@ -165,13 +151,15 @@
     :orientation orientation 
     :units units))
 
+(defgeneric realize-graft (port graft))
+
 (defmethod graft-matches-spec ((graft standard-graft) orientation units)
   t)
 
 (defmethod initialize-instance :after ((graft standard-graft) &key port)
   (setf (slot-value graft 'graft) graft)
   (setf (port-grafts port)
-	(append (port-grafts port) (list graft)))
+	(nconc (port-grafts port) (list graft)))
   (realize-graft port graft))
 
 (defmethod update-mirror-region ((port basic-port) (sheet standard-graft))

@@ -1,4 +1,4 @@
-# $fiHeader: Makefile,v 1.39 92/07/17 13:52:32 cer Exp Locker: cer $
+# $fiHeader: Makefile,v 1.40 92/07/27 19:30:11 cer Exp Locker: cer $
 # 
 #  Makefile for CLIM 2.0
 #
@@ -43,7 +43,7 @@ NEWSPACE = 5000000
 CLIM	= ./slim
 CLIM-SMALL	= ./slim-small
 
-PUBDIRS	= sys utils silica clim demo test genera clx pre-silica postscript 
+PUBDIRS	= sys utils silica clim demo test genera clx pre-silica postscript compatibility
 DIRS0	=  tk tk-silica misc cloe
 DIRS	= $(PUBDIRS) xlib $(DIRS0)
 CHEAP_CLEAN	= $(PUBDIRS) $(DIRS0)
@@ -567,6 +567,9 @@ clim-small:	FORCE
 
 train	:	FORCE
 	$(TRAIN_TEXT)
+
+echo-train:
+	-$(ECHO) "$(TRAIN_LISP)"
 
 # Misc
 

@@ -1,6 +1,6 @@
-;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
+;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sysdcl.lisp,v 1.13 92/07/20 16:01:41 cer Exp $
+;; $fiHeader: sysdcl.lisp,v 1.14 92/07/27 11:03:36 cer Exp $
 
 (in-package #-ansi-90 :user #+ansi-90 :common-lisp-user)
 
@@ -8,8 +8,10 @@
  Portions copyright (c) 1988, 1989, 1990 International Lisp Associates."
 
 (clim-defsys:defsystem clim-demo
-  (:default-pathname (frob-pathname "demo")
-   :default-binary-pathname (frob-pathname "demo")
+  (:default-pathname #+Genera "SYS:CLIM;REL-2;DEMO;"
+		     #-Genera (frob-pathname "demo")
+   :default-binary-pathname #+Genera "SYS:CLIM;REL-2;DEMO;"
+			    #-Genera (frob-pathname "demo")
    #+ignore :needed-systems #+ignore (clim-standalone))
 
   ("packages")
@@ -27,6 +29,7 @@
   ("address-book"    :load-before-compile ("demo-driver" "packages"))
   ("thinkadot"       :load-before-compile ("demo-driver" "packages"))
   ("plot"	     :load-before-compile ("demo-driver" "packages"))
+  ("color-editor"    :load-before-compile ("demo-driver" "packages"))
   ("graphics-editor" :load-before-compile ("demo-driver" "packages"))
   ("ico"	     :load-before-compile ("demo-driver" "packages"))
   ("browser"	     :load-before-compile ("demo-driver" "packages"))
@@ -34,18 +37,17 @@
 
 #+Genera
 (clim-defsys:import-into-sct 'clim-demo 
-			     :pretty-name "CLIM Demo"
-			     :default-pathname (frob-pathname "demo")
-			     :default-destination-pathname (frob-pathname "demo"))
+  :pretty-name "CLIM Demo"
+  :default-pathname "SYS:CLIM;REL-2;DEMO;"
+  :required-systems '(clim))
 
-#+Minima
+#+Minima-Developer
 (clim-defsys:import-into-sct 'clim-demo :subsystem t
-			     :sct-name :minima-clim-demo-standalone
-			     :pretty-name "Minima CLIM Demo Standalone"
-			     :default-pathname (frob-pathname "demo")
-			     :default-destination-pathname (frob-pathname "demo"))
+  :sct-name :minima-clim-demo-standalone
+  :pretty-name "Minima CLIM Demo Standalone"
+  :default-pathname "SYS:CLIM;REL-2;DEMO;")
 
-#+Minima
+#+Minima-Developer
 (zl:::sct:defsystem minima-clim-demo
     (:pretty-name "Minima CLIM Demo"
      :default-pathname "SYS:CLIM;REL-2;DEMO;"
@@ -53,4 +55,4 @@
      :default-module-type :system
      :patches-reviewed "Bug-CLIM"
      :source-category :optional)
-  (:parallel "minima-clim-demo-standalone"))
+  (:serial "minima-clim-demo-standalone"))

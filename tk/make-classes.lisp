@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: make-classes.lisp,v 1.22 92/07/01 15:44:34 cer Exp $
+;; $fiHeader: make-classes.lisp,v 1.23 92/07/27 19:29:00 cer Exp $
 
 (in-package :tk)
 
@@ -61,7 +61,7 @@
       ;; Error is actually caught in calling functions.
       (error "No resource named ~s found for class ~s" resource-name class))
     result))
-    
+
 
 (defmethod find-class-resource ((class xt-class) resource-name)
   (declare (optimize (speed 3) (safety 0)))

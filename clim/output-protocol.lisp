@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: output-protocol.lisp,v 1.16 92/07/08 16:30:47 cer Exp $
+;; $fiHeader: output-protocol.lisp,v 1.17 92/07/27 11:02:42 cer Exp $
 
 (in-package :clim-internals)
 
@@ -60,7 +60,6 @@
 		     :end-of-page-action :scroll
 		     ;;--- Is this really appropriate?
 		     :default-text-margin +largest-coordinate+
-		     ;;--- 16 bit indices into fonts big enough?
                      :output-glyph-buffer (make-array 512 :element-type '(unsigned-byte 16)
 							  :initial-element 0)
 		     :text-margin nil))
@@ -96,15 +95,14 @@
 ;;--- Need to write some macros to define these trampolines
 (defmethod (setf medium-default-text-style) :after (style (stream output-protocol-mixin))
   (declare (ignore style))
-  (with-slots (default-text-style merged-text-style-valid) stream
-    (setq default-text-style (parse-text-style default-text-style))
-    (setq merged-text-style-valid nil)))
+  (with-slots (default-text-style) stream
+    (setq default-text-style (parse-text-style default-text-style))))
 
-(defmethod (setf medium-text-style) :after (style (stream output-protocol-mixin))
-  (declare (ignore style))
-  (with-slots (current-text-style merged-text-style-valid) stream
-    (setq current-text-style (parse-text-style current-text-style))
-    (setq merged-text-style-valid nil)))
+;(defmethod (setf medium-text-style) :after (style (stream output-protocol-mixin))
+;  (declare (ignore style))
+;  (with-slots (current-text-style merged-text-style-valid) stream
+;    (setq current-text-style (parse-text-style current-text-style))
+;    (setq merged-text-style-valid nil)))
 
 (defmethod engraft-medium :after
 	   ((medium basic-medium) port (stream output-protocol-mixin))
@@ -142,15 +140,7 @@
 
 ;;; Genera supports passing an environment to CONSTANTP and EVAL.  Allegro doesn't.
 ;;; Until we test all other candidates, be conservative.
-(defmacro with-end-of-page-action (#+CLIM-1-compatibility (stream &optional action)
-				   #-CLIM-1-compatibility (stream action)
-				   &body body &environment env)
-  #+CLIM-1-compatibility
-  (when (or (keywordp stream)
-	    (null action))
-    (rotatef stream action)
-    (warn "Converting old style call to ~S to the new style.~%~
-	   Please update your code." 'with-end-of-page-action))
+(defmacro with-end-of-page-action ((stream action) &body body &environment env)
   (default-output-stream stream)
   (let ((actions '(:wrap :scroll :allow))
 	(assert-required t)
@@ -168,15 +158,7 @@
 		    ,wrapped-body)))
     wrapped-body))
 
-(defmacro with-end-of-line-action (#+CLIM-1-compatibility (stream &optional action)
-				   #-CLIM-1-compatibility (stream action)
-				   &body body &environment env)
-  #+CLIM-1-compatibility
-  (when (or (keywordp stream)
-	    (null action))
-    (rotatef stream action)
-    (warn "Converting old style call to ~S to the new style.~%~
-	   Please update your code." 'with-end-of-line-action))
+(defmacro with-end-of-line-action ((stream action) &body body &environment env)
   (default-output-stream stream)
   (let ((actions '(:wrap :scroll :allow))
 	(assert-required t)
@@ -211,18 +193,6 @@
 
 (defgeneric* (setf stream-cursor-position) (x y stream))
 (defmethod* (setf stream-cursor-position) (x y (stream t))
-  (stream-set-cursor-position stream x y))
-
-#+CLIM-1-compatibility
-(define-compatibility-function (stream-cursor-position*
-				stream-cursor-position)
-			       (stream)
-  (stream-cursor-position stream))
-
-#+CLIM-1-compatibility
-(define-compatibility-function (stream-set-cursor-position*
-				stream-set-cursor-position)
-			       (stream x y)
   (stream-set-cursor-position stream x y))
 
 ;; NB: X and Y are already coordinates!
@@ -301,17 +271,6 @@
     (error "Attempt to set RECORD-P for stream ~S" stream))
   (funcall continuation))
 
-#+CLIM-1-compatibility
-(progn
-(define-compatibility-function (stream-draw-p stream-drawing-p)
-			       (stream)
-  (stream-drawing-p stream))
-
-(define-compatibility-function (stream-record-p stream-recording-p)
-			       (stream)
-  (stream-recording-p stream))
-)	;#+CLIM-1-compatibility
-
 
 (defmethod stream-force-output ((stream output-protocol-mixin))
   (medium-force-output (sheet-medium stream)))
@@ -363,12 +322,6 @@
 	  (cy (if dy (+ cursor-y dy) cursor-y)))
       (stream-set-cursor-position stream cx cy))))
 
-#+CLIM-1-compatibility
-(define-compatibility-function (stream-increment-cursor-position*
-				stream-increment-cursor-position)
-			       (stream dx dy)
-  (stream-increment-cursor-position stream dx dy))
-
 (defmethod stream-advance-cursor-x ((stream output-protocol-mixin) amount)
   (declare (type real amount))
   (with-slots (cursor-x cursor-y) stream
@@ -388,8 +341,6 @@
     (setf baseline (coordinate 0)
 	  current-line-height (coordinate 0))))
 
-;;;--- Should probably be on some intermediary class, since it can only
-;;;--- be run when the stream is part of a WINDSHIELD hierarchy.
 (defmethod stream-ensure-cursor-visible ((stream output-protocol-mixin) &optional cx cy)
   (when (and (or (not (output-recording-stream-p stream))
 		 (stream-drawing-p stream))
@@ -432,73 +383,93 @@
 
 (defparameter *character-wrap-indicator-width* 3)
 
+(defmacro with-text-cursor-off ((stream) &body body)
+  (assert (symbolp stream))
+  (let ((cursor '#:cursor)
+	(cursor-active '#:cursor-active))
+    `(let* ((,cursor (and (extended-input-stream-p ,stream)
+			  (stream-text-cursor ,stream)))
+	    (,cursor-active (and ,cursor (cursor-active ,cursor))))
+       (unwind-protect
+	   (progn
+	     (when ,cursor-active
+	       (setf (cursor-active ,cursor) nil))
+	     ,@body)
+	 (when ,cursor-active
+	   (setf (cursor-active ,cursor) ,cursor-active))))))
+
 (defmethod stream-write-char ((stream output-protocol-mixin) character)
-  (multiple-value-bind (cursor-x cursor-y baseline height style 
-			max-x record-p draw-p)
-      (decode-stream-for-writing stream)
-    (declare (type coordinate cursor-x cursor-y baseline height max-x))
-    (cond ((or (graphic-char-p character)
-	       (diacritic-char-p character)
-               ;; Special case so that we don't lozenge this.  It is up to
-               ;; the caller to have established the correct text style.
-               #+CCL-2 (eql character #\CommandMark))
-	   (let ((medium (sheet-medium stream))
-		 (ink (medium-ink stream)))
-	     (dotimes (i 2)
-	       (multiple-value-bind (no-wrap new-cursor-x new-baseline new-height font index)
-		   (stream-scan-character-for-writing 
-		     stream medium character style cursor-x max-x)
-		 (declare (type coordinate new-cursor-x new-baseline new-height))
-		 (when no-wrap
-		   (when record-p
-		     (stream-add-character-output
-		       stream character style (- new-cursor-x cursor-x)
-		       new-height new-baseline))
-		   (when draw-p
-		     (when (< baseline new-baseline)
-		       (stream-note-line-height-change stream baseline new-baseline height
-						       cursor-x cursor-y)
-		       (setf baseline new-baseline))
-		     ;;--- need draw-glyphs, which will take a port-specific font object, 
-		     ;;--- as well as the :INK option.
-		     (with-identity-transformation (medium)
-		       (draw-text* medium character ; (code-char index)??
-				   cursor-x (+ cursor-y (- baseline new-baseline))
-				   :text-style style
-				   :align-x :left :align-y :top)))
-		   (encode-stream-after-writing stream new-cursor-x cursor-y
-						(max baseline new-baseline)
-						(max height new-height))
-		   (return))
-		 (case i
-		   (0 (multiple-value-setq (cursor-x cursor-y baseline height)
-			(stream-handle-line-wrap
-			  stream cursor-y height max-x draw-p record-p)))
-		   (1 (error "Couldn't fit character ~S into window" character)))))))
-	  ((eql character #\Tab)
-	   (let ((new-cursor-x (stream-next-tab-column stream cursor-x style)))
-	     (declare (type coordinate new-cursor-x))
-	     (when (> (+ new-cursor-x *character-wrap-indicator-width*) max-x)
-	       (multiple-value-setq (cursor-x cursor-y baseline height)
-		 (stream-handle-line-wrap
-		   stream cursor-y height max-x draw-p record-p)))
-	     (setf new-cursor-x (stream-next-tab-column stream cursor-x style))
-	     (when record-p
-	       (stream-add-character-output	;Have to handle tabs in output record
-		 stream character style (- new-cursor-x cursor-x)
-		 height baseline))
-	     ;;; We always want to update the cursor -- it will be put back if only recording.
-	     (encode-stream-after-writing stream new-cursor-x cursor-y baseline height)))
-	  ((or (eql character #\Newline)
-	       (eql character #\Return))
-	   ;; STREAM-ADVANCE-CURSOR-LINE will close the current text record.
-	   (stream-advance-cursor-line stream))
-	  (t
-	   (multiple-value-bind (new-cursor-x new-cursor-y new-baseline new-height)
-	       (stream-draw-lozenged-character stream character cursor-x cursor-y baseline
-					       height style max-x record-p draw-p)
-	     (encode-stream-after-writing stream new-cursor-x new-cursor-y
-					  new-baseline new-height)))))
+  (with-text-cursor-off (stream)
+    (multiple-value-bind (cursor-x cursor-y baseline height style 
+			  max-x record-p draw-p)
+	(decode-stream-for-writing stream)
+      (declare (type coordinate cursor-x cursor-y baseline height max-x))
+      (cond ((or (graphic-char-p character)
+		 (diacritic-char-p character)
+		 ;; Special case so that we don't lozenge this.  It is up to
+		 ;; the caller to have established the correct text style.
+		 #+CCL-2 (eql character #\CommandMark))
+	     (let ((medium (sheet-medium stream))
+		   (ink (medium-ink stream)))
+	       (dotimes (i 2)
+		 (multiple-value-bind (no-wrap new-cursor-x new-baseline new-height
+				       font index)
+		     (stream-scan-character-for-writing 
+		       stream medium character style cursor-x max-x)
+		   (declare (type coordinate new-cursor-x new-baseline new-height))
+		   (when no-wrap
+		     (when record-p
+		       (stream-add-character-output
+			 stream character style (- new-cursor-x cursor-x)
+			 new-height new-baseline))
+		     (when draw-p
+		       (when (< baseline new-baseline)
+			 (stream-note-line-height-change
+			   stream baseline new-baseline height cursor-x cursor-y)
+			 (setf baseline new-baseline))
+		       ;;--- Need DRAW-GLYPHS, which will take a port-specific font
+		       ;;--- object, as well as the :INK option.
+		       (with-identity-transformation (medium)
+			 (draw-text* medium character	; (code-char index)??
+				     cursor-x (+ cursor-y (- baseline new-baseline))
+				     :text-style style
+				     :align-x :left :align-y :top)))
+		     (encode-stream-after-writing
+		       stream new-cursor-x cursor-y
+		       (max baseline new-baseline) (max height new-height))
+		     (return))
+		   (case i
+		     (0 (multiple-value-setq (cursor-x cursor-y baseline height)
+			  (stream-handle-line-wrap
+			    stream cursor-y height max-x draw-p record-p)))
+		     (1 (error "Couldn't fit character ~S into window" character)))))))
+	    ((eql character #\Tab)
+	     (let ((new-cursor-x (stream-next-tab-column stream cursor-x style)))
+	       (declare (type coordinate new-cursor-x))
+	       (when (> (+ new-cursor-x *character-wrap-indicator-width*) max-x)
+		 (multiple-value-setq (cursor-x cursor-y baseline height)
+		   (stream-handle-line-wrap
+		     stream cursor-y height max-x draw-p record-p)))
+	       (setf new-cursor-x (stream-next-tab-column stream cursor-x style))
+	       (when record-p
+		 (stream-add-character-output	;Have to handle tabs in output record
+		   stream character style (- new-cursor-x cursor-x)
+		   height baseline))
+	       ;; We always want to update the cursor -- it will be put back
+	       ;; if only recording.
+	       (encode-stream-after-writing 
+		 stream new-cursor-x cursor-y baseline height)))
+	    ((or (eql character #\Newline)
+		 (eql character #\Return))
+	     ;; STREAM-ADVANCE-CURSOR-LINE will close the current text record.
+	     (stream-advance-cursor-line stream))
+	    (t
+	     (multiple-value-bind (new-cursor-x new-cursor-y new-baseline new-height)
+		 (stream-draw-lozenged-character
+		   stream character cursor-x cursor-y baseline
+		   height style max-x record-p draw-p)
+	       (encode-stream-after-writing
+		 stream new-cursor-x new-cursor-y new-baseline new-height))))))
   character)					;Return the right value
 
 ;;--- Hack COORDINATEs correctly here...
@@ -586,52 +557,52 @@
     (declare (type coordinate cursor-x cursor-y baseline height max-x))
     (unless (or draw-p record-p)
       (return-from stream-write-string string))	;No deeds to do
-    (let ((medium (sheet-medium stream))
-	  (ink (medium-ink stream)))
-      (loop
-	(multiple-value-bind (write-char next-char-index
-			      new-cursor-x new-baseline new-height font)
-	    (stream-scan-string-for-writing 
-	      stream medium string start end style cursor-x max-x glyph-buffer)
-	  (declare (type coordinate new-cursor-x new-baseline new-height))
-	  (when record-p
-	    (stream-add-string-output
-	      stream string start next-char-index style
-	      (- new-cursor-x cursor-x) new-height new-baseline))
-	  (when draw-p
-	    (when (< baseline new-baseline)
-	      (stream-note-line-height-change stream baseline new-baseline height
-					      cursor-x cursor-y)
-	      (setf baseline new-baseline))
-	    (let ((amount (the fixnum (- next-char-index start))))
-	      ;; --- Don't try to write empty strings.
-	      ;; But, I don't know why this algorithm produces them!
-	      (unless (zerop amount)
-		;; --- need draw-glyphs, which will take a port-specific font object,
-		;; as well as the :INK option.
-		(with-identity-transformation (medium)
-		  (draw-text* medium string
-			      cursor-x (+ cursor-y (- baseline new-baseline))
-			      :text-style style
-			      :start start :end next-char-index
-			      :align-x :left :align-y :top)))))
-	  (setf baseline (max baseline new-baseline)
-		height (max height new-height)
-		cursor-x new-cursor-x)
-	  (when (>= next-char-index end)
-	    ;; Always update the cursor even if only recording.  It will be restored later.
-	    (encode-stream-after-writing stream cursor-x cursor-y baseline height)
-	    (return-from stream-write-string string))
-	  (setf start next-char-index)
-	  (when write-char			;Some random character
-	    (encode-stream-after-writing stream cursor-x cursor-y baseline height)
-	    (stream-write-char stream write-char)	;Take care of everything random
-	    (incf start)
-	    (when (>= start end)
+    (let* ((medium (sheet-medium stream))
+	   (ink (medium-ink stream)))
+      (with-text-cursor-off (stream)
+	(loop
+	  (multiple-value-bind (write-char next-char-index
+				new-cursor-x new-baseline new-height font)
+	      (stream-scan-string-for-writing 
+		stream medium string start end style cursor-x max-x glyph-buffer)
+	    (declare (type coordinate new-cursor-x new-baseline new-height))
+	    (when record-p
+	      (stream-add-string-output
+		stream string start next-char-index style
+		(- new-cursor-x cursor-x) new-height new-baseline))
+	    (when draw-p
+	      (when (< baseline new-baseline)
+		(stream-note-line-height-change stream baseline new-baseline height
+						cursor-x cursor-y)
+		(setf baseline new-baseline))
+	      (let ((amount (the fixnum (- next-char-index start))))
+		(unless (zerop amount)
+		  ;;--- Need DRAW-GLYPHS, which will take a port-specific font
+		  ;;--- object, as well as the :INK option.
+		  (with-identity-transformation (medium)
+		    (draw-text* medium string
+				cursor-x (+ cursor-y (- baseline new-baseline))
+				:text-style style
+				:start start :end next-char-index
+				:align-x :left :align-y :top)))))
+	    (setf baseline (max baseline new-baseline)
+		  height (max height new-height)
+		  cursor-x new-cursor-x)
+	    (when (>= next-char-index end)
+	      ;; Always update the cursor even if only recording.  It will 
+	      ;; be restored later.
+	      (encode-stream-after-writing stream cursor-x cursor-y baseline height)
 	      (return-from stream-write-string string))
-	    (multiple-value-setq (cursor-x cursor-y baseline height)
-	      (decode-stream-for-writing stream t))	;and find out what happened
-	    ))))))
+	    (setf start next-char-index)
+	    (when write-char			;Some random character
+	      (encode-stream-after-writing stream cursor-x cursor-y baseline height)
+	      (stream-write-char stream write-char)	;Take care of everything random
+	      (incf start)
+	      (when (>= start end)
+		(return-from stream-write-string string))
+	      (multiple-value-setq (cursor-x cursor-y baseline height)
+		(decode-stream-for-writing stream t))	;and find out what happened
+	      )))))))
 
 (defmethod stream-note-line-height-change ((stream output-protocol-mixin)
 					   old-baseline new-baseline old-height
@@ -768,7 +739,7 @@
     (declare (ignore index font escapement-y origin-x origin-y bb-y))
     (coordinate (* (max bb-x escapement-x) 8.))))
 
-;;--- Fallback method, a kludge...
+;; Fallback method, a kludge...
 ;;--- This method, and the ones above, should be defined on mediums, too
 (defmethod stream-string-output-size ((medium basic-medium) string
 				      &key (start 0) end text-style)
@@ -778,7 +749,7 @@
 	(height (text-style-height text-style medium)))
     (values width width height height height)))
 
-;;--- Another fallback method, another kludge...
+;; Another fallback method, another kludge...
 (defmethod stream-string-width ((medium basic-medium) string
 				&key (start 0) end text-style)
   (multiple-value-bind (last-x largest-x)

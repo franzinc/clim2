@@ -1,11 +1,13 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: medium.lisp,v 1.18 92/07/08 16:29:16 cer Exp $
+;; $fiHeader: medium.lisp,v 1.19 92/07/20 15:59:24 cer Exp $
 
 (in-package :silica)
 
 "Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved.
  Portions copyright (c) 1991, 1992 Franz, Inc.  All rights reserved."
+
+(defgeneric medium-drawable (medium))
 
 (defmethod engraft-medium ((medium basic-medium) port sheet)
   (declare (ignore port))
@@ -58,6 +60,12 @@
 
 (defgeneric make-medium (port sheet))
 			  
+(defgeneric medium-force-output (medium))
+(defgeneric medium-finish-output (medium))
+(defgeneric medium-beep (medium))
+
+(defgeneric port-glyph-for-character (port character style &optional our-font))
+
 
 ;;; Line styles
 
@@ -237,6 +245,7 @@
       (make-medium port sheet)))
 
 (defmethod deallocate-medium (port medium)
+  (setf (medium-sheet medium) nil)
   (push medium (port-medium-cache port)))
 
 
@@ -256,7 +265,7 @@
    (transformation :accessor medium-transformation)
    (+y-upward-p :initform nil :accessor medium-+y-upward-p)
 
-   (medium-text-style :accessor medium-text-style)
+   (text-style :accessor medium-text-style)
    (default-text-style :accessor medium-default-text-style)
    (merged-text-style-valid :accessor medium-merged-text-style-valid)
    (merged-text-style :accessor medium-merged-text-style)))
@@ -275,12 +284,13 @@
 	  (setf merged-text-style (merge-text-styles text-style default-text-style))
 	  (setf merged-text-style-valid t)))))
 
+
 (defmacro with-text-style ((medium style) &body body)
   (default-output-stream medium with-text-style)
   `(flet ((with-text-style-body (,medium) ,@body))
      (declare (dynamic-extent #'with-text-style-body))
-     (invoke-with-text-style ,medium #'with-text-style-body ,style
-			     ,medium)))
+     (invoke-with-text-style 
+       ,medium #'with-text-style-body ,style ,medium)))
 
 (defmacro with-text-family ((medium family) &body body)
   `(with-text-style (,medium (make-text-style ,family nil nil)) ,@body))
@@ -315,12 +325,12 @@
   (declare (ignore style))
   (funcall continuation original-stream))
 
-
+
 (defmethod graft ((medium basic-medium))
   (graft (medium-sheet medium)))
 
-(defmethod port ((medium basic-medium))
-  (port (medium-sheet medium)))
+;(defmethod port ((medium basic-medium))
+;  (port (medium-sheet medium)))
 
 
 (defoperation text-style-height medium-protocol

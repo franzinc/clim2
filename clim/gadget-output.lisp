@@ -1,41 +1,25 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; 
-;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
-;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
-;;
-;; The software, data and information contained herein are proprietary
-;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
-;; given in confidence by Franz, Inc. pursuant to a written license
-;; agreement, and may be stored and used only in accordance with the terms
-;; of such license.
-;;
-;; Restricted Rights Legend
-;; ------------------------
-;; Use, duplication, and disclosure of the software, data and information
-;; contained herein by any agency, department or entity of the U.S.
-;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
-;;
-;; $fiHeader: gadget-output.lisp,v 1.22 92/07/24 10:54:26 cer Exp Locker: cer $
+;; $fiHeader: gadget-output.lisp,v 1.23 92/07/27 11:02:23 cer Exp $
 
 (in-package :clim-internals)
+
+"Copyright (c) 1991, 1992 Franz, Inc.  All rights reserved.
+ Portions copyright (c) 1992 Symbolics, Inc.  All rights reserved."
 
 
 ;;; Implementation of output-records that are tied to gadgets.
 
 ;;--- Why are these OUTPUT-RECORD-MIXINs?
 (defclass gadget-output-record 
-    (output-record-mixin output-record-element-mixin output-record)
+	  (output-record-mixin output-record-element-mixin output-record)
     ((gadget :initform nil :accessor output-record-gadget)
      (cache-value :initarg :cache-value :initform nil) 
      (optional-values :initform nil)))
 
 (defmethod initialize-instance :after ((record gadget-output-record) &key cache-test)
-  ;;-- This is just to enable the cache-test to be passed along
-  ;;without signalling an error. Yuck!
+  ;;--- This is just to enable the :CACHE-TEST to be passed along
+  ;;--- without signalling an error.  Yuck!
   cache-test)
 
 (defmethod match-output-records ((record gadget-output-record) 
@@ -115,12 +99,16 @@
     (when (and gadget (output-record-stream record))
       (multiple-value-bind (xoff yoff)
 	  (convert-from-relative-to-absolute-coordinates
-	    (output-record-stream record)
-	    (output-record-parent record))
+	    (output-record-stream record) (output-record-parent record))
 	(with-bounding-rectangle* (left top right bottom) record
-	  (move-and-resize-sheet gadget
-				 (+ left xoff) (+ top yoff)
-				 (- right left) (- bottom top)))))))
+	  (translate-positions xoff yoff left top right bottom)
+	  (with-bounding-rectangle* (gleft gtop gright gbottom) gadget
+	    (unless (and (= left gleft)
+			 (= top  gtop)
+			 (= right  gright)
+			 (= bottom gbottom))
+	      (move-and-resize-sheet gadget
+				     left top (- right left) (- bottom top)))))))))
 
 ;;--- Flush this when REPLAY-OUTPUT-RECORD calls itself recursively
 (defmethod note-output-record-replayed ((record gadget-output-record) stream
@@ -128,8 +116,7 @@
   (declare (ignore stream x-offset y-offset))
   (let ((gadget (output-record-gadget record)))
     (when (port gadget)
-      (with-sheet-medium (medium gadget)
-	(handle-repaint gadget medium region)))))
+      (handle-repaint gadget nil region))))
 
 
 ;; Need to add the gadget to the stream
@@ -174,15 +161,16 @@
 		   (let ((values (multiple-value-list (funcall continuation framem frame))))
 		     (setf (slot-value record 'optional-values) (cdr values))
 		     (associate-record-and-gadget
-		      record
-		      (setq gadget (car values))
-		      stream x y))))))
+		       record
+		       (setq gadget (car values))
+		       stream x y))))))
 	(move-cursor-beyond-output-record stream record)
 	(values gadget record)))))
 	    
 #---ignore
 (defmethod invoke-with-output-as-gadget (stream continuation &rest args 
 					 &key cache-test cache-value update-gadget)
+  (declare (dynamic-extent args))
   (declare (ignore cache-test cache-value))
   (with-keywords-removed (args args '(:update-gadget))
     (let* ((frame (pane-frame stream))
@@ -193,16 +181,18 @@
 	(let* (new
 	       gadget
 	       (record
-		(flet ((with-new-output-record-body (record)
-			 (unless (setq gadget (output-record-gadget record))
-			   (let ((values (multiple-value-list (funcall continuation framem frame))))
-			     (setf (slot-value record 'optional-values) (cdr values))
-			     (setq gadget (car values) new t)))))
-		  (declare (dynamic-extent #'with-new-output-record-body))
-		  (apply #'invoke-with-new-output-record stream #'with-new-output-record-body
-			 'gadget-output-record
-			 'nil args))))
-	  (cond (new 
+		 (flet ((with-new-output-record-body (record)
+			  (unless (setq gadget (output-record-gadget record))
+			    (let ((values (multiple-value-list
+					    (funcall continuation framem frame))))
+			      (setf (slot-value record 'optional-values) (cdr values))
+			      (setq gadget (car values)
+				    new t)))))
+		   (declare (dynamic-extent #'with-new-output-record-body))
+		   (apply #'invoke-with-new-output-record
+			  stream #'with-new-output-record-body
+			  'gadget-output-record nil args))))
+	  (cond (new
 		 (associate-record-and-gadget record gadget stream x y))
 		(update-gadget
 		 (apply update-gadget record gadget (slot-value record 'optional-values))))
@@ -210,8 +200,7 @@
 	  (values gadget record))))))
 
 
-;; incf redisplay wanted this!
-
+;;--- Incremental redisplay seems to need this
 (defmethod clear-output-record ((record gadget-output-record))
   nil)
 
@@ -274,117 +263,118 @@
 
 ;;; Completion gadget
 
-;;--- Gadget currently does not include prompt
-
 (define-presentation-method decode-indirect-view
-    ((view gadget-dialog-view) (framem standard-frame-manager) (type completion))
-  ;;-- We can be clever and return different views depending on the
-  ;;-- number of items etc
+			    ((type completion) (view gadget-dialog-view) (framem standard-frame-manager))
+  ;;--- We can be clever and return different views depending on the
+  ;;--- number of items, etc.
   +radio-box-view+)
 
-(defmacro make-pane-from-view (class view &rest initargs)
-  `(apply #'make-pane ,class (append (view-initargs ,view) (list ,@initargs))))
-
+;;--- Gadget currently does not include prompt
 (define-presentation-method accept-present-default 
-    ((type completion) stream (view radio-box-view)
-		       default default-supplied-p present-p query-identifier
-		       &key (prompt t))
+			    ((type completion) stream (view radio-box-view)
+			     default default-supplied-p present-p query-identifier
+			     &key (prompt t))
   (declare (ignore present-p))
   (let ((current-selection nil))
-    (flet ((update-gadget (gadget record radio-box)
+    (flet ((update-gadget (record gadget radio-box)
 	     (declare (ignore gadget record))
-	     (dolist (toggle (sheet-children radio-box))
-	       (when (setf (gadget-value toggle)
-		       (and default-supplied-p
-			    (funcall test 
-				     (funcall value-key (gadget-id toggle))
-				     (funcall value-key default))))
-		 (setf (radio-box-current-selection radio-box) toggle)))))
+	     (map-over-sheets
+	       #'(lambda (sheet)
+		   (when (typep sheet 'toggle-button)
+		     (when (setf (gadget-value sheet)
+				 (and default-supplied-p
+				      (funcall test 
+					       (funcall value-key (gadget-id sheet))
+					       (funcall value-key default))))
+		       (setf (radio-box-current-selection radio-box) sheet))))
+	       radio-box)))
       (with-output-as-gadget (stream :cache-value type :update-gadget #'update-gadget)
 	(let* ((buttons
-		(map 'list
-		  #'(lambda (element)
-		      (let ((button
-			     (make-pane 'toggle-button 
-					:label (funcall name-key element)
-					:indicator-type :one-of
-					:value (and default-supplied-p
-						    (funcall test 
-							     (funcall value-key element)
-							     (funcall value-key default)))
-					:id element)))
-			(when (and default-supplied-p
-				   (funcall test 
-					    (funcall value-key element)
-					    (funcall value-key default)))
-			  (setq current-selection button))
-			button))
-		  sequence))
-	       (rb (make-pane-from-view
-		    'radio-box view
-		    :label (and (stringp prompt) prompt)
-		    :choices buttons
-		    :selection current-selection
-		    :client stream :id query-identifier
-		    :value-changed-callback
-		    (make-accept-values-value-changed-callback
-		     stream query-identifier))))
-	  (values (outlining () rb) rb))))))
+		 (map 'list
+		      #'(lambda (element)
+			  (let ((button
+				  (make-pane 'toggle-button 
+				    :label (funcall name-key element)
+				    :indicator-type :one-of
+				    :value (and default-supplied-p
+						(funcall test 
+							 (funcall value-key element)
+							 (funcall value-key default)))
+				    :id element)))
+			    (when (and default-supplied-p
+				       (funcall test 
+						(funcall value-key element)
+						(funcall value-key default)))
+			      (setq current-selection button))
+			    button))
+		      sequence))
+	       (radio-box (make-pane-from-view 'radio-box view
+			    :label (and (stringp prompt) prompt)
+			    :choices buttons
+			    :selection current-selection
+			    :client stream :id query-identifier
+			    :value-changed-callback
+			      (make-accept-values-value-changed-callback
+				stream query-identifier))))
+	  (values (outlining () radio-box) radio-box))))))
 
 
 ;;; Subset completion gadget
 
 (define-presentation-method decode-indirect-view
-    ((view gadget-dialog-view) (framem standard-frame-manager) (type subset-completion))
+			    ((type subset-completion) (view gadget-dialog-view) (framem standard-frame-manager))
   +check-box-view+)
 
 (define-presentation-method accept-present-default 
-    ((type subset-completion) stream (view gadget-dialog-view)
-			      default default-supplied-p present-p query-identifier
-			      &key (prompt t))
+			    ((type subset-completion) stream (view check-box-view)
+			     default default-supplied-p present-p query-identifier
+			     &key (prompt t))
   (declare (ignore present-p))
   (flet ((update-gadget (record gadget check-box)
 	   (declare (ignore record gadget))
-	   (dolist (toggle (sheet-children check-box))
-	     (setf (gadget-value toggle)
-	       (and default-supplied-p
-		    (member (gadget-id toggle) default
-			    :test test 
-			    ;;--- Should the value-key be used?
-			    :key value-key) 
-		    t)))))
+	   (map-over-sheets
+	     #'(lambda (sheet)
+		 (when (typep sheet 'toggle-button)
+		   (setf (gadget-value sheet)
+			 (and default-supplied-p
+			      (member (gadget-id sheet) default
+				      :test test 
+				      ;;--- Should the value-key be used?
+				      :key value-key) 
+			      t))))
+	     check-box)))
     (with-output-as-gadget (stream :cache-value type :update-gadget #'update-gadget)
       (let* ((buttons
-	      (map 'list
-		#'(lambda (element)
-		    (let* ((value (funcall value-key element))
-			   (button
-			    (make-pane 'toggle-button 
-				       :label (funcall name-key element)
-				       :indicator-type :some-of
-				       :value (and default-supplied-p
-						   (member value default
-							   :test test 
-							   ;;--- Should the value-key be used?
-							   :key value-key) 
-						   t)
-				       :id value)))
-		      button))
-		sequence))
-	     (cb (make-pane-from-view 'check-box view
-		  :label (and (stringp prompt) prompt)
-		  :choices buttons
-		  :client stream :id query-identifier
-		  :value-changed-callback
-		  (make-accept-values-value-changed-callback
-		   stream query-identifier))))
-	(values (outlining () cb) cb)))))
+	       (map 'list
+		    #'(lambda (element)
+			(let* ((value (funcall value-key element))
+			       (button
+				 (make-pane 'toggle-button 
+				   :label (funcall name-key element)
+				   :indicator-type :some-of
+				   :value (and default-supplied-p
+					       (member value default
+						       :test test 
+						       ;;--- Should the value-key be used?
+						       :key value-key) 
+					       t)
+				   :id value)))
+			  button))
+		    sequence))
+	     (check-box (make-pane-from-view 'check-box view
+			  :label (and (stringp prompt) prompt)
+			  :choices buttons
+			  :client stream :id query-identifier
+			  :value-changed-callback
+			    (make-accept-values-value-changed-callback
+			      stream query-identifier))))
+	(values (outlining () check-box) check-box)))))
 
 
 ;;; Boolean gadget
 
 (define-presentation-method decode-indirect-view
-    ((view gadget-dialog-view) (framem standard-frame-manager) (type boolean))
+			    ((type boolean) (view gadget-dialog-view) (framem standard-frame-manager))
   +toggle-button-view+)
 
 (define-presentation-method gadget-includes-prompt-p 
@@ -392,88 +382,83 @@
   t)
 
 (define-presentation-method accept-present-default 
-    ((type boolean) stream (view toggle-button-view)
-		    default default-supplied-p present-p query-identifier
-		    &key (prompt t))
+			    ((type boolean) stream (view toggle-button-view)
+			     default default-supplied-p present-p query-identifier
+			     &key (prompt t))
   (declare (ignore default-supplied-p present-p))
-  (flet ((update-gadget (gadget record toggle)
-	   (declare (ignore gadget record))
-	   (setf (gadget-value toggle) default)))
+  (flet ((update-gadget (record gadget button)
+ 	   (declare (ignore record gadget))
+ 	   (setf (gadget-value button) default)))
     (with-output-as-gadget (stream :cache-value type :update-gadget #'update-gadget)
-      (let ((toggle (make-pane-from-view
-		     'toggle-button view
-		     :label (and (stringp prompt) prompt)
-		     :value default
-		     :client stream :id query-identifier
-		     :value-changed-callback
-		     (make-accept-values-value-changed-callback
-		      stream query-identifier))))
-	(values (outlining () toggle) toggle)))))
+      (let ((button (make-pane-from-view 'toggle-button view
+		      :label (and (stringp prompt) prompt)
+		      :value default
+		      :client stream :id query-identifier
+		      :value-changed-callback
+		        (make-accept-values-value-changed-callback
+			  stream query-identifier))))
+ 	(values (outlining () button) button)))))
 
 
 ;;; Numeric gadgets
-
-
 
 (define-presentation-method gadget-includes-prompt-p
 			    ((type real) (stream t) (view slider-view))
   t)
 
 (define-presentation-method accept-present-default 
-    ((type real) stream (view slider-view)
-		 default default-supplied-p present-p query-identifier
-		 &key (prompt t))
+			    ((type real) stream (view slider-view)
+			     default default-supplied-p present-p query-identifier
+			     &key (prompt t))
   (declare (ignore present-p))
   (let ((min-value (if (eq low '*) 0 low))
 	(max-value (if (eq high '*) 100 high)))
     (flet ((update-gadget (record gadget slider)
 	     (declare (ignore record gadget))
 	     (setf (gadget-value slider)
-	       (if default-supplied-p default min-value))))
+		   (if default-supplied-p default min-value))))
       (with-output-as-gadget (stream :cache-value type :update-gadget #'update-gadget)
 	(let ((slider 
-	       (make-pane-from-view 'slider view
-			  :label (and (stringp prompt) prompt)
-			  :value (if default-supplied-p default min-value)
-			  :min-value min-value :max-value max-value
-			  :orientation (gadget-orientation view)
-			  :decimal-places (slider-decimal-places view)
-			  :show-value-p (gadget-show-value-p view)
-			  :client stream :id query-identifier
-			  :value-changed-callback
-			  (make-accept-values-value-changed-callback
-			   stream query-identifier))))
-	  (values (outlining ()
-			     ;;--- What other initargs do we pass along from the view?
-			     slider) slider))))))
+		;;--- What other initargs do we pass along from the view?
+		(make-pane-from-view 'slider view
+		  :label (and (stringp prompt) prompt)
+		  :value (if default-supplied-p default min-value)
+		  :min-value min-value :max-value max-value
+		  :orientation (gadget-orientation view)
+		  :decimal-places (slider-decimal-places view)
+		  :show-value-p (gadget-show-value-p view)
+		  :client stream :id query-identifier
+		  :value-changed-callback
+		    (make-accept-values-value-changed-callback
+		      stream query-identifier))))
+	  (values (outlining () slider) slider))))))
 
 (define-presentation-method accept-present-default 
-    ((type integer) stream (view slider-view)
-		    default default-supplied-p present-p query-identifier
-		    &key (prompt t))
+			    ((type integer) stream (view slider-view)
+			     default default-supplied-p present-p query-identifier
+			     &key (prompt t))
   (declare (ignore present-p))
   (let ((min-value (if (eq low '*) 0 low))
 	(max-value (if (eq high '*) 100 high)))
     (flet ((update-gadget (record gadget slider)
 	     (declare (ignore record gadget))
 	     (setf (gadget-value slider)
-	       (if default-supplied-p default min-value))))
+		   (if default-supplied-p default min-value))))
       (with-output-as-gadget (stream :cache-value type :update-gadget #'update-gadget)
 	(let ((slider
-	       (make-pane-from-view 'slider
-			  :label (and (stringp prompt) prompt)
-			  :value (if default-supplied-p default min-value)
-			  :min-value min-value :max-value max-value
-			  :orientation (gadget-orientation view)
-			  :number-of-quanta (- high low) :decimal-places 0
-			  :show-value-p (gadget-show-value-p view)
-			  :client stream :id query-identifier
-			  :value-changed-callback
-			  (make-accept-values-value-changed-callback
-			   stream query-identifier))))
-	  (values (outlining ()
-			     ;;--- What other initargs do we pass along from the view?
-			     slider) slider))))))
+		;;--- What other initargs do we pass along from the view?
+		(make-pane-from-view 'slider view
+		  :label (and (stringp prompt) prompt)
+		  :value (if default-supplied-p default min-value)
+		  :min-value min-value :max-value max-value
+		  :orientation (gadget-orientation view)
+		  :number-of-quanta (- high low) :decimal-places 0
+		  :show-value-p (gadget-show-value-p view)
+		  :client stream :id query-identifier
+		  :value-changed-callback
+		    (make-accept-values-value-changed-callback
+		      stream query-identifier))))
+	  (values (outlining () slider) slider))))))
 
 
 ;;--- These should be defined in the standard DEFOPERATION way...

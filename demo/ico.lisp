@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: ico.lisp,v 1.3 92/07/20 16:01:23 cer Exp $
+;; $fiHeader: ico.lisp,v 1.4 92/07/27 11:03:31 cer Exp Locker: cer $
 
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
@@ -58,11 +58,11 @@
 				 :prompt "Line Style"))
     (terpri pane)))
 
-(define-ico-frame-command (com-ico-throw-ball :menu "Catch ball" :keystroke #\t) ()
+(define-ico-frame-command (com-ico-throw-ball :menu "Throw ball" :keystroke #\t) ()
   (with-application-frame (frame)
     (throw-ball frame)))
 
-(define-ico-frame-command (com-ico-catch-ball :menu "Throw ball" :keystroke #\c) ()
+(define-ico-frame-command (com-ico-catch-ball :menu "Catch ball" :keystroke #\c) ()
   (with-application-frame (frame)
     (catch-ball frame)))
 

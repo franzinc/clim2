@@ -2,10 +2,10 @@
 
 (in-package :clim-utils)
 
-"Copyright (c) 1990, 1991 Symbolics, Inc.  All rights reserved.
+"Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved.
  Portions copyright (c) 1989, 1990 International Lisp Associates."
 
-;;; $fiHeader: lucid-stream-functions.lisp,v 1.5 92/05/22 19:27:15 cer Exp $
+;;; $fiHeader: lucid-stream-functions.lisp,v 1.6 92/07/01 15:45:37 cer Exp $
 ;;; All of this is taken from the STREAM-DEFINITION-BY-USER proposal to
 ;;; the X3J13 committee, made by David Gray of TI on 22 March 1989.  No
 ;;; Lisp implementation yet supports this proposal, so we implement it

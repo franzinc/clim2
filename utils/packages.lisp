@@ -1,10 +1,10 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: packages.lisp,v 1.23 92/07/24 10:54:04 cer Exp Locker: cer $
+;; $fiHeader: packages.lisp,v 1.24 92/07/27 11:01:52 cer Exp $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :common-lisp-user)
 
-"Copyright (c) 1991 Symbolics, Inc.  All rights reserved."
+"Copyright (c) 1991, 1992 Symbolics, Inc.  All rights reserved."
 
 
 ;; Define the CLIM-LISP package, a package designed to mimic ANSI Common Lisp
@@ -1543,7 +1543,6 @@
     area
     areap
     coordinate
-    decode-indirect-view
     ellipse
     ellipse-center-point
     ellipse-center-point*
@@ -1626,6 +1625,8 @@
     ;; Bounding rectangles
     bounding-rectangle
     bounding-rectangle*
+    bounding-rectangle-center
+    bounding-rectangle-center*
     bounding-rectangle-height
     bounding-rectangle-max-x
     bounding-rectangle-max-y
@@ -1824,6 +1825,8 @@
     poll-pointer
     port
     port-keyboard-input-focus
+    port-modifier-state
+    port-pointer
     port-properties
     port-server-path
     port-type
@@ -1982,6 +1985,7 @@
     draw-rectangles*
     draw-text
     draw-text*
+    make-fast-drawing-function
     medium-copy-area
     medium-draw-character*
     medium-draw-ellipse*
@@ -2082,6 +2086,7 @@
     add-output-record
     add-string-output-to-text-record
     clear-output-record
+    copy-textual-output-history
     delete-output-record
     displayed-output-record
     displayed-output-record-p
@@ -2094,17 +2099,18 @@
     invoke-with-output-recording-options
     invoke-with-output-to-output-record
     make-design-from-output-record
+    map-over-output-records
     map-over-output-records-containing-position
     map-over-output-records-overlapping-region
     output-record
     output-record-children
     output-record-count
     output-record-end-cursor-position
-    output-record-hit-detection-rectangle
+    output-record-hit-detection-rectangle*
     output-record-p
     output-record-parent
     output-record-position
-    output-record-refined-sensitivity-test
+    output-record-refined-position-test
     output-record-start-cursor-position
     output-recording-stream
     output-recording-stream-p
@@ -2304,6 +2310,7 @@
     class-presentation-type-name
     completion
     complex
+    decode-indirect-view
     default-describe-presentation-type
     define-default-presentation-method
     define-drag-and-drop-translator
@@ -2359,6 +2366,7 @@
     presentation-modifier
     presentation-object
     presentation-refined-position-test
+    presentation-refined-position-test-method
     presentation-single-box
     presentation-subtypep
     presentation-subtypep-method
@@ -2411,6 +2419,18 @@
     with-presentation-type-parameters
     with-presentations-to-string
     
+    ;; Presentation histories and kill rings
+    do-history-elements
+    history-top-element
+    make-presentation-type-history
+    pop-history-element
+    push-history-element
+    presentation-history-element-object
+    presentation-history-element-type
+    reset-history
+    yank-from-history
+    yank-next-from-history
+
     ;; Input editing and completion
     *activation-gestures*
     *completion-gestures*
@@ -2487,6 +2507,7 @@
     *numeric-argument-marker*
     *partial-command-parser*
     *unsupplied-argument-marker*
+    accept-values-command-parser
     add-command-to-command-table
     add-keystroke-to-command-table
     add-menu-item-to-command-table
@@ -2503,6 +2524,7 @@
     command-menu-item-type
     command-menu-item-value
     command-name
+    command-name-from-symbol
     command-not-accessible
     command-not-present
     command-or-form
@@ -2571,6 +2593,7 @@
     find-frame-manager
     find-pane-for-frame
     find-pane-named
+    frame-all-layouts
     frame-calling-frame
     frame-command-table
     frame-current-layout
@@ -2615,6 +2638,7 @@
     pane-name
     pane-needs-redisplay
     panes-need-redisplay
+    pointer-documentation-pane
     position-sheet-carefully
     position-sheet-near-pointer
     read-frame-command
@@ -2741,11 +2765,11 @@
     gadget-show-value-p
     gadget-value
     gadget-value-changed-callback
-    label-pane
     labelled-gadget-mixin
     list-pane
     list-pane-mode
     menu-bar
+    menu-bar-command-table
     menu-button
     menu-button-pane
     note-gadget-activated
@@ -2788,7 +2812,11 @@
     encapsulating-stream
     encapsulating-stream-p
     encapsulating-stream-stream
-    standard-encapsulating-stream)
+    standard-encapsulating-stream
+
+    ;; PostScript
+    new-page
+    with-output-to-postscript-stream)
 
   ;; Primary colors
   (:export
@@ -2931,6 +2959,8 @@
   (:export
     cursor-set-position
     output-record-set-position
+    output-record-set-start-cursor-position
+    output-record-set-end-cursor-position
     pointer-set-native-position
     pointer-set-position
     stream-set-cursor-position
@@ -2940,20 +2970,21 @@
   ;; Some extensions until we decide what to do...
   (:export
     +iconic-view+
-    accept-values-command-parser
     catch-abort-gestures
     convert-from-absolute-to-relative-coordinates
     convert-from-ancestor-to-descendant-coordinates
     convert-from-descendant-to-ancestor-coordinates
     convert-from-relative-to-absolute-coordinates
     convert-to-stream-coordinates
-    copy-textual-output-history
     #+Genera define-genera-application
+    draw-regular-polygon
+    draw-regular-polygon*
     draw-triangle
     draw-triangle*
     drawing-surface-to-viewport-coordinates
     fix-coordinate
     fix-coordinates
+    hierarchical-menu-choose
     iconic-view
     pointer-input-rectangle
     pointer-input-rectangle*
@@ -2985,78 +3016,7 @@
     window-stream-p
     window-visibility
     windowp
-    window-top-level-window
-    with-temporary-string
-    with-temporary-substring)
-
-  ;; CLIM 1.0 compatibility stubs
-  #+CLIM-1-compatibility
-  (:export
-    *unsupplied-argument*
-    +background-ink+
-    +dialog-view+
-    +foreground-ink+
-    +menu-view+
-    activation-character-p
-    add-output-record-element
-    add-text-style-mapping
-    blip-character-p
-    bounding-rectangle-position*
-    call-presentation-generic-function
-    command-enabled-p
-    compose-rotation-transformation
-    compose-scaling-tansformation
-    compose-translation-transformation
-    cursor-position*
-    cursor-set-position*
-    delete-output-record-element
-    dialog-view
-    disable-command
-    dragging-output-record
-    draw-character
-    draw-character*
-    draw-string
-    draw-string*
-    enable-command
-    frame-top-level-window
-    make-color-ihs
-    make-color-rgb
-    map-over-output-record-elements
-    map-over-output-record-elements-containing-point*
-    map-over-output-record-elements-overlapping-region
-    menu-view
-    open-window-stream
-    output-record-end-position*
-    output-record-position*
-    output-record-set-position*
-    output-record-set-end-position*
-    output-record-set-start-position*
-    output-record-start-position
-    output-record-start-position*
-    output-recording-stream-current-output-record-stack
-    output-recording-stream-output-history
-    output-recording-stream-replay
-    point-position*
-    pointer-set-position*
-    pointer-event-shift-mask
-    pointer-position*
-    position-window-near-carefully
-    position-window-near-pointer
-    set-frame-layout
-    size-menu-appropriately
-    stream-cursor-position*
-    stream-set-cursor-position*
-    stream-draw-p
-    stream-increment-cursor-position*
-    stream-pointer-position*
-    stream-set-pointer-position*
-    stream-record-p
-    stream-vsp
-    window-viewport-position*
-    window-set-viewport-position*
-    with-activation-characters
-    with-blip-characters
-    with-frame-state-variables))
+    window-top-level-window))
 
 #+(and Genera lock-CLIM-packages) (setf (si:pkg-locked (find-package :clim)) t)
 
@@ -3140,7 +3100,6 @@
     collect
     def-property-slot-accessors
     def-property-slot-macros
-    #+CLIM-1-compatibility define-compatibility-function
     define-unimplemented-protocol-method
     ignore-errors
     make-setf-function-name
@@ -3183,7 +3142,7 @@
     letf-globally
     letf-globally-if
     make-pass-on-arglist
-    minf maxf minf-or maxf-or roundf
+    minf maxf minf-or maxf-or
     once-only
     ordinary-char-p
     parameter-specifier-keyword
@@ -3191,6 +3150,7 @@
     remove-keywords
     remove-word-from-string
     repeat
+    roundf
     simple-vector-insert-element
     simple-vector-push-extend
     standard-io-environment-vars-and-vals 
@@ -3206,6 +3166,14 @@
     with-standard-io-environment 
     with-warnings-for-definition
     writing-clauses
+
+    ;; From CLIM;TEMP-STRINGS
+    with-temporary-string
+    with-temporary-substring
+
+    ;; From SILICA;TEXT-STYLE
+    char-character-set-and-index
+    diacritic-char-p
 
     ;; From CLOS
     find-dynamic-class
@@ -3296,8 +3264,6 @@
     bounding-rectangle-set-size
     bounding-rectangle-shift-position
     bounding-rectangle-size-equal
-    bounding-rectangle-center
-    bounding-rectangle-center*
     position-difference
 
     ;; LTRBs
@@ -3393,8 +3359,8 @@
     change-scroll-bar-values
     change-space-requirements-to
     change-space-requirements-to-default
-    char-character-set-and-index
     char-width
+    choose-from-pull-down-menu
     clear-space-requirement-cache
     clear-space-requirement-caching-in-ancestors
     clear-space-requirement-caches-in-tree
@@ -3402,11 +3368,11 @@
     client-overridability-mixin
     compute-gadget-label-size
     compute-list-pane-selected-items
+    compute-menu-bar-pane
     compute-symmetric-value
     compute-text-x-adjustment
     compute-text-y-adjustment
     copy-event
-    copy-space-requirement
     deallocate-event
     default-space-requirements
     define-character-face
@@ -3417,7 +3383,6 @@
     define-graphics-method
     define-text-style-mappings
     define-text-style-mappings-1 
-    diacritic-char-p
     display-device 
     distribute-event-1
     draw-gadget-label
@@ -3427,14 +3392,19 @@
     foreground-background-and-text-style-mixin
     frame-manager-clear-progress-note
     frame-manager-default-exit-boxes
+    frame-manager-display-help
     frame-manager-display-progress-note
     frame-manager-display-pointer-documentation
     frame-manager-exit-box-labels
+    frame-manager-matches-options-p
     frame-shell
+    frame-user-specified-position-p
+    frame-user-specified-size-p
     frame-wrapper
     gadget-alignment
     gadget-event
     gadget-supplied-scrolling
+    generic-label-pane
     generic-scroller-pane
     get-drawing-function-description
     graft-mm-height
@@ -3442,6 +3412,7 @@
     graft-pixel-height
     graft-pixel-width
     grid-pane
+    initialize-pull-down-menu
     intern-text-style
     invoke-callback-function
     invoke-with-output-to-pixmap
@@ -3455,6 +3426,7 @@
     make-pane-arglist
     make-pane-class
     make-pixmap-medium
+    make-pull-down-menu
     map-endpoint-sequence
     map-position-sequence
     medium-+y-upward-p
@@ -3462,13 +3434,17 @@
     medium-clear-area
     medium-finish-output
     medium-force-output
+    medium-make-fast-drawing-function
     medium-merged-text-style-valid
     medium-text-bounding-box
+    menu-bar-button
     menu-bar-pane
     merged-text-style 
     mirror->sheet
+    mirror-edges*
     mirror-inside-edges*
     mirror-native-edges*
+    mirror-inside-region*
     mirror-region
     mirror-region*
     mirror-region-updated
@@ -3481,8 +3457,14 @@
     option-pane
     parse-gesture-spec
     permanent-medium-sheet-output-mixin
+    pixmap
     pixmap-sheet
     pixmap-stream
+    pointer-x-position
+    pointer-y-position
+    pointer-native-x-position
+    pointer-native-y-position
+    popup-menu-sheet
     port-allocate-pixmap
     port-canonical-gesture-specs
     port-canonicalize-gesture-spec
@@ -3497,16 +3479,17 @@
     port-grafts
     port-invalidate-gesture-specs
     port-mirror->sheet-table
-    port-modifier-state
     port-note-cursor-change
     port-note-gadget-activated
     port-note-gadget-deactivated
-    port-pointer
     port-process
     port-set-pointer-position
     port-trace-thing
     port-undefined-text-style
     process-event-locally
+    pull-down-menu
+    pull-down-menu-button
+    pull-down-menu-frame
     radio-button-pane
     raise-mirror
     scroll-bar-size
@@ -3514,8 +3497,9 @@
     scroll-bar-target-pane
     scroll-bar-value
     scroll-bar-value-changed-callback
-    scroll-extent
     scrollable-pane
+    set-mirror-edges*
+    set-mirror-region*
     set-sheet-mirror-edges*
     shadow-pane
     sheet-actual-native-edges*

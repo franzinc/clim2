@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: address-book.lisp,v 1.10 92/07/06 18:51:58 cer Exp $
+;; $fiHeader: address-book.lisp,v 1.11 92/07/20 16:01:12 cer Exp $
 
 (in-package :clim-demo)
 
@@ -62,6 +62,7 @@
 (define-presentation-type address ())
 
 (define-presentation-method present (object (type address) stream view &key)
+  (declare (ignore view))
   (write-string (address-name object) stream))
 
 ;;; For translators

@@ -1,76 +1,102 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; 
-;; copyright (c) 1985, 1986 Franz Inc, Alameda, Ca.  All rights reserved.
-;; copyright (c) 1986-1991 Franz Inc, Berkeley, Ca.  All rights reserved.
-;;
-;; The software, data and information contained herein are proprietary
-;; to, and comprise valuable trade secrets of, Franz, Inc.  They are
-;; given in confidence by Franz, Inc. pursuant to a written license
-;; agreement, and may be stored and used only in accordance with the terms
-;; of such license.
-;;
-;; Restricted Rights Legend
-;; ------------------------
-;; Use, duplication, and disclosure of the software, data and information
-;; contained herein by any agency, department or entity of the U.S.
-;; Government are subject to restrictions of Restricted Rights for
-;; Commercial Software developed at private expense as specified in FAR
-;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
-;; applicable.
-;;
-;; $fiHeader: layout.lisp,v 1.21 92/07/24 10:53:56 cer Exp Locker: cer $
+;; $fiHeader: layout.lisp,v 1.22 92/07/27 19:29:26 cer Exp $
 
 (in-package :silica)
 
+"Copyright (c) 1991, 1992 Franz, Inc.  All rights reserved.
+ Portions copyright (c) 1992 Symbolics, Inc.  All rights reserved.
+ Portions copyright (c) 1989, 1990 Xerox Corp.  All rights reserved."
 
-(defclass space-requirement ()
+
+(define-protocol-class space-requirement ())
+
+(defmethod print-object ((object space-requirement) stream)
+  (print-unreadable-object (object stream :type t)
+    (multiple-value-bind (width min-width max-width height min-height max-height) 
+	(space-requirement-components object)
+      (format stream "~D,~D,~D ~D,~D,~D"
+	min-width width max-width 
+	min-height height max-height))))
+
+
+(defclass null-space-requirement (space-requirement) ())
+
+(defmethod space-requirement-components ((sr null-space-requirement))
+  (values 0 0 0 0 0 0))
+
+(defmethod space-requirement-width ((sr null-space-requirement)) 0)
+(defmethod space-requirement-min-width ((sr null-space-requirement)) 0)
+(defmethod space-requirement-max-width ((sr null-space-requirement)) 0)
+(defmethod space-requirement-height ((sr null-space-requirement)) 0)
+(defmethod space-requirement-min-height ((sr null-space-requirement)) 0)
+(defmethod space-requirement-max-height ((sr null-space-requirement)) 0)
+
+(defvar +null-space-requirement+ (make-instance 'null-space-requirement))
+
+
+(defclass simple-space-requirement (space-requirement)
     ((width :initarg :width :accessor space-requirement-width)
-     (max-width :accessor space-requirement-max-width)
-     (min-width :accessor space-requirement-min-width)
-     (height :initarg :height :accessor space-requirement-height)
-     (max-height :accessor space-requirement-max-height)
-     (min-height :accessor space-requirement-min-height)))
+     (height :initarg :height :accessor space-requirement-height)))
 
-(defmethod space-requirement-components ((sr space-requirement))
+(defmethod space-requirement-components ((sr simple-space-requirement))
+  (with-slots (width height) sr
+    (values width width width
+	    height height height)))
+
+(defmethod space-requirement-width ((sr simple-space-requirement)) 
+  (slot-value sr 'width))
+(defmethod space-requirement-min-width ((sr simple-space-requirement))
+  (slot-value sr 'width))
+(defmethod space-requirement-max-width ((sr simple-space-requirement))
+  (slot-value sr 'width))
+(defmethod space-requirement-height ((sr simple-space-requirement)) 
+  (slot-value sr 'height))
+(defmethod space-requirement-min-height ((sr simple-space-requirement)) 
+  (slot-value sr 'height))
+(defmethod space-requirement-max-height ((sr simple-space-requirement)) 
+  (slot-value sr 'height))
+
+
+(defclass general-space-requirement (space-requirement)
+    ((width :initarg :width :reader space-requirement-width)
+     (min-width :reader space-requirement-min-width)
+     (max-width :reader space-requirement-max-width)
+     (height :initarg :height :reader space-requirement-height)
+     (min-height :reader space-requirement-min-height)
+     (max-height :reader space-requirement-max-height)))
+
+(defmethod space-requirement-components ((sr general-space-requirement))
   (with-slots (width min-width max-width
 	       height min-height max-height) sr
     (values width min-width max-width
 	    height min-height max-height)))
 
-(defmethod print-object ((object space-requirement) stream)
-  (print-unreadable-object (object stream :type t)
-    (with-slots (min-width width max-width min-height height max-height) object
-      (format stream "~D,~D,~D ~D,~D,~D"
-	min-width width  max-width 
-	min-height height max-height))))
-
-(defmethod copy-space-requirement ((sr space-requirement))
-  (with-slots (width height max-width max-height min-width min-height) sr
-    (make-instance 'space-requirement
-      :width width
-      :height height
-      :max-width max-width
-      :max-height max-height
-      :min-width min-width
-      :min-height min-height)))
-
-(defmethod initialize-instance :after ((sr space-requirement)
-				       &key
-				       (width (error "width not specified"))
-				       (min-width width)
-				       (max-width width)
-				       (height (error "height not specified"))
-				       (max-height height)
-				       (min-height height))
+(defmethod initialize-instance :after ((sr general-space-requirement)
+				       &key (width (error "Width not specified"))
+					    (min-width width)
+					    (max-width width)
+					    (height (error "Height not specified"))
+					    (min-height height)
+					    (max-height height))
   (setf (slot-value sr 'min-height) min-height
 	(slot-value sr 'max-height) max-height
 	(slot-value sr 'min-width) min-width
 	(slot-value sr 'max-width) max-width))
 
-(defun-inline make-space-requirement (&rest args)
-  (declare (dynamic-extent args))
-  (apply #'make-instance 'space-requirement args))
+(defun make-space-requirement (&key (width 0) (min-width width) (max-width width)
+				    (height 0) (min-height height) (max-height height))
+  (cond ((and (eq width  min-width)  (eq width  max-width)
+	      (eq height min-height) (eq height max-height))
+	 ;; Compare with EQ since width and height can be :COMPUTE
+	 (if (and (eq width 0) (eq height 0))
+	     +null-space-requirement+
+	     (make-instance 'simple-space-requirement 
+	       :width width :height height)))
+	(t
+	 (make-instance 'general-space-requirement
+	   :width width :min-width min-width :max-width max-width
+	   :height height :min-height min-height :max-height max-height))))
 
 (defconstant +fill+ (floor (/ (expt 10 (floor (log most-positive-fixnum 10))) 100)))
 
@@ -83,9 +109,7 @@
 ;(defmethod compose-space (sheet)
 ;  (multiple-value-bind (width height)
 ;      (bounding-rectangle-size sheet)
-;    (make-instance 'space-requirement
-;		   :width width
-;		   :height height)))
+;    (make-space-requirement :width width :height height)))
 ;
 ;(defgeneric allocate-space (sheet width height))
 ;
@@ -166,23 +190,20 @@
 	  (sheet-transformation-mixin
 	   standard-sheet-input-mixin
 	   standard-repainting-mixin
-	   permanent-medium-sheet-output-mixin
+	   ;;-- What does this break?
+	   ;;-- permanent-medium-sheet-output-mixin
+	   temporary-medium-sheet-output-mixin
 	   sheet)
     ((frame :reader pane-frame :initarg :frame)
      (framem :reader frame-manager :initarg :frame-manager)
      (name :accessor pane-name :initform nil :initarg :name)))
 
-;;;--- This should be elsewhere
-(defmethod frame-manager ((stream standard-encapsulating-stream))
-  (frame-manager (slot-value stream 'stream)))
-
-(defmethod frame-manager ((stream t))
-  (cond (*application-frame* (frame-manager *application-frame*))
-	(t (find-frame-manager))))
-
-(defmethod print-object ((p pane) stream)
-  (print-unreadable-object (p stream :type t :identity t)
-    (when (slot-boundp p 'name) (format stream "~S" (slot-value p 'name)))))
+(defmethod print-object ((object pane) stream)
+  (if (and (slot-boundp object 'name)
+	   (stringp (slot-value object 'name)))
+      (print-unreadable-object (object stream :type t :identity t)
+	(format stream "~A" (slot-value object 'name)))
+      (call-next-method)))
 
 (defmethod panep ((x pane)) t)
 (defmethod panep ((x t)) nil)
@@ -322,15 +343,15 @@
 
 ;;--- CLIM 0.9 has some other methods on top-level sheets -- do we want them?
 (defclass top-level-sheet 
-    (;;--- Temporary kludge until we get the protocols correct
-     ;;--- so that ACCEPT works correctly on a raw sheet
-     clim-internals::window-stream
-     wrapping-space-mixin
-     sheet-multiple-child-mixin
-     mirrored-sheet-mixin
-     pane)
-  ((user-specified-size-p :initform :unspecified :initarg :user-specified-size-p)
-   (user-specified-position-p :initform :unspecified  :initarg :user-specified-position-p))
+	  (;;--- Temporary kludge until we get the protocols correct
+	   ;;--- so that ACCEPT works correctly on a raw sheet
+	   clim-internals::window-stream
+	   wrapping-space-mixin
+	   sheet-multiple-child-mixin
+	   mirrored-sheet-mixin
+	   pane)
+    ((user-specified-size-p :initform :unspecified :initarg :user-specified-size-p)
+     (user-specified-position-p :initform :unspecified  :initarg :user-specified-position-p))
   ;;--- More of same...
   (:default-initargs :text-cursor nil :text-margin 10))
 
@@ -360,8 +381,8 @@
 
 
 (defclass composite-pane
-	  (sheet-multiple-child-mixin 
-	   pane)
+    (sheet-multiple-child-mixin 
+     pane)
     ())
 
 (defclass leaf-pane 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-GRAPHICS-EDITOR; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics-editor.lisp,v 1.1 92/07/08 11:34:54 cer Exp $
+;; $fiHeader: graphics-editor.lisp,v 1.2 92/07/20 16:01:21 cer Exp $
 
 (in-package :clim-graphics-editor)
 
@@ -194,16 +194,16 @@
 
 (defmethod draw-object ((object arrow) stream)
   (with-slots (box1 box2) object
-    (multiple-value-bind (x1 y1) (clim-utils:bounding-rectangle-center* box1)
-      (multiple-value-bind (x2 y2) (clim-utils:bounding-rectangle-center* box2)
+    (multiple-value-bind (x1 y1) (bounding-rectangle-center* box1)
+      (multiple-value-bind (x2 y2) (bounding-rectangle-center* box2)
 	(with-output-as-presentation (stream object 'arrow)
 	  (draw-arrow* stream x1 y1 x2 y2
 		       :line-style (object-style object)))))))
 
 (defmethod compute-object-handles ((object arrow))
   (with-slots (box1 box2) object
-    (multiple-value-bind (x1 y1) (clim-utils:bounding-rectangle-center* box1)
-      (multiple-value-bind (x2 y2) (clim-utils:bounding-rectangle-center* box2)
+    (multiple-value-bind (x1 y1) (bounding-rectangle-center* box1)
+      (multiple-value-bind (x2 y2) (bounding-rectangle-center* box2)
 	(list (make-handle object x1 y1 nil)
 	      (make-handle object x2 y2 nil))))))
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: text-recording.lisp,v 1.8 92/07/20 16:00:41 cer Exp $
+;; $fiHeader: text-recording.lisp,v 1.9 92/07/27 11:03:01 cer Exp $
 
 (in-package :clim-internals)
 
@@ -350,7 +350,6 @@
       (when match
 	;; The old extent is a copy of MATCH's bounding rectangle
 	(setf (output-record-old-bounding-rectangle text) (bounding-rectangle match))
-	;; --- maybe make a method out of this to get efficient slot access?
 	(when (and (bounding-rectangle-size-equal match text)
 		   (eq wrapped-p (slot-value match 'wrapped-p))
 		   (eq (class-of text) (class-of match))
@@ -388,7 +387,7 @@
 		   (not (typep record 'styled-text-output-record)))
 	  (setq record (stylize-text-output-record record default-style stream)))
 	(return-from get-text-output-record record)))
-    (let* ((string (make-array 16 :element-type 'character	;--- 16?
+    (let* ((string (make-array 16 :element-type 'character
 				  :fill-pointer 0 :adjustable t))
 	   (record (if (not (eq style default-style))
 		       (make-styled-text-output-record (medium-ink stream) string)

@@ -1,13 +1,13 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLX-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clx-pixmaps.lisp,v 1.3 92/07/20 16:09:29 cer Exp $
+;; $fiHeader: clx-pixmaps.lisp,v 1.4 92/07/27 11:02:01 cer Exp $
 
 (in-package :clx-clim)
 
 "Copyright (c) 1992 Symbolics, Inc.  All rights reserved."
 
 
-(defclass clx-pixmap ()
+(defclass clx-pixmap (pixmap)
     ((pixmap :initarg :pixmap)))
 
 (defmethod port-allocate-pixmap ((port clx-port) medium width height)

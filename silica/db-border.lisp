@@ -5,9 +5,10 @@
 
 (in-package :silica)
 
-;; $fiHeader: db-border.lisp,v 1.8 92/07/01 15:44:44 cer Exp $
+;; $fiHeader: db-border.lisp,v 1.9 92/07/20 15:59:04 cer Exp $
 
 ;;; Border Panes
+
 (defclass border-pane (layout-pane)
     ((thickness :initform 1 :initarg :thickness)))
 
@@ -33,17 +34,6 @@
       thickness thickness
       (- width (* 2 thickness)) (- height (* 2 thickness)))))
   
-(defmacro bordering ((&rest options &key thickness &allow-other-keys)
-		     &body contents)
-  (declare (ignore thickness))
-  `(make-pane 'border-pane
-     :contents ,@contents
-     ,@options))
-
-
-(defclass outlined-pane (border-pane)
-  ((background :initform +black+ :accessor pane-background)))
-
 (defmethod repaint-sheet ((pane border-pane) region)
   (declare (ignore region))			;not worth checking
   (with-sheet-medium (medium pane)
@@ -54,6 +44,17 @@
 	(draw-rectangle* medium left top right bottom
 			 :line-thickness thickness :filled nil
 			 :ink (pane-background pane))))))
+
+(defmacro bordering ((&rest options &key thickness &allow-other-keys)
+		     &body contents)
+  (declare (ignore thickness))
+  `(make-pane 'border-pane
+     :contents ,@contents
+     ,@options))
+
+
+(defclass outlined-pane (border-pane)
+  ((background :initform +black+ :accessor pane-background)))
 
 (defmacro outlining ((&rest options &key thickness &allow-other-keys)
 		     &body contents)
@@ -71,3 +72,34 @@
   `(make-pane 'spacing-pane
      :contents ,@contents
      ,@options))
+
+
+;;; Label panes
+
+(defparameter *default-label-text-style* 
+	      (make-text-style :sans-serif :italic :small))
+
+(defclass label-pane (foreground-background-and-text-style-mixin labelled-gadget-mixin)
+    ()
+  (:default-initargs :align-x :left
+		     :text-style *default-label-text-style*))
+
+(defclass generic-label-pane 
+	  (label-pane
+	   space-requirement-mixin
+	   leaf-pane)
+    ())
+
+(defmethod compose-space ((pane generic-label-pane) &key width height)
+  (declare (ignore width height))
+  (multiple-value-bind (width height)
+      (compute-gadget-label-size pane)
+    (make-space-requirement :width width :height height)))
+  
+(defmethod repaint-sheet ((pane generic-label-pane) region)
+  (declare (ignore region))			;not worth checking
+  (with-sheet-medium (medium pane)
+    (with-bounding-rectangle* (left top right bottom) (sheet-region pane)
+      (declare (ignore right bottom))
+      (draw-gadget-label pane medium left top
+			 :align-x (gadget-alignment pane) :align-y :top))))

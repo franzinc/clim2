@@ -1,13 +1,13 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: GENERA-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: genera-pixmaps.lisp,v 1.3 92/07/20 16:09:38 cer Exp $
+;; $fiHeader: genera-pixmaps.lisp,v 1.4 92/07/27 11:03:24 cer Exp $
 
 (in-package :genera-clim)
 
 "Copyright (c) 1992 Symbolics, Inc.  All rights reserved."
 
 
-(defclass genera-pixmap () 
+(defclass genera-pixmap (pixmap) 
     ((pixmap :initarg :pixmap)))
 
 (defmethod port-allocate-pixmap ((port genera-port) medium width height)

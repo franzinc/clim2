@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-slider.lisp,v 1.11 92/07/20 15:59:12 cer Exp $
+;; $fiHeader: db-slider.lisp,v 1.12 92/07/27 11:01:34 cer Exp $
 
 "Copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
 
@@ -331,7 +331,8 @@
 	   (y-offset (- (floor pattern-height 2)))
 	   (value (gadget-value pane))
 	   (places (expt 10 decimal-places)))
-      (setq value (/ (round (* value places)) places))
+      ;; Float it so that it looks better in the display
+      (setq value (float (/ (round (* value places)) places)))
       (with-bounding-rectangle* (left top right bottom) region
 	(ecase (gadget-orientation pane)
 	  (:vertical
@@ -453,6 +454,8 @@
       (with-sheet-medium (medium pane)
 	(draw-slider-indicator pane medium :erase)
 	(call-next-method)
-	(draw-slider-indicator pane medium :draw))
+	(draw-slider-indicator pane medium :draw)
+	(when (slot-value pane 'show-value-p)
+	  (draw-visible-value pane medium)))
       (call-next-method)))
 

@@ -1,15 +1,15 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: stream-defprotocols.lisp,v 1.9 92/07/01 15:47:03 cer Exp $
+;; $fiHeader: stream-defprotocols.lisp,v 1.10 92/07/27 11:02:58 cer Exp $
 
 (in-package :clim-internals)
 
 "Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved.
  Portions copyright (c) 1988, 1989, 1990 International Lisp Associates."
 
-;;--- What about the "original self" (delegation) problem??
 
-;;; Fundamental input --- These should be on fundamental-input-character-stream??
+;;; Fundamental input 
+;;--- These should be on fundamental-input-character-stream ??
 (define-stream-protocol fundamental-input-stream)
 
 (defoperation stream-read-char fundamental-input-stream
@@ -257,11 +257,6 @@
   ((stream basic-extended-output-protocol) string &key text-style start end)
   (declare (values largest-x total-height last-x last-y baseline))
   (:no-defgeneric t))
-
-#+CLIM-1-compatibility
-(define-compatibility-function (stream-vsp stream-vertical-spacing)
-			       (stream)
-  (stream-vertical-spacing stream))
 
 (defoperation stream-cursor-position basic-extended-output-protocol
   ((stream basic-extended-output-protocol))

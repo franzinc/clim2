@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: prefill.lisp,v 1.6 92/07/20 16:00:34 cer Exp $
+;; $fiHeader: prefill.lisp,v 1.7 92/07/27 11:02:46 cer Exp $
 
 (in-package :clim-internals)
 
@@ -270,6 +270,20 @@
 	generic-function arguments #'clos-internals::standard-method-combiner)
       #-Symbolics
       (error "I don't know how to prefill generic function dispatch caches except in Symbolics CLOS"))))
+
+
+;;; Ensure constructors are compiled for a bunch of classes
+(defmacro ensure-constructors-compiled (&body class-names)
+  `(ensure-constructors-compiled-1 '(,@class-names)))
+
+(defun ensure-constructors-compiled-1 (class-names)
+  (dolist (class-name class-names)
+    (let ((class (find-class class-name)))
+      (clos-internals::finalize-inheritance class)
+      (when (and (slot-exists-p class 'clos-internals::constructors)
+		 (clos-internals::class-finalized-p class))
+	  (map nil #'clos-internals::ensure-constructor-function
+		   (clos-internals::class-constructors class))))))
 
 
 ;;; This page contains the non-demo-specific results after running the demos in
@@ -872,7 +886,7 @@
     (t directed-graph-output-record)
     (t accept-values-output-record)
     (t text-output-record))
-  (output-record-refined-sensitivity-test
+  (output-record-refined-position-test
     (standard-presentation t t)
     (rectangle-output-record t t)
     (standard-text-output-record t t)
@@ -1286,7 +1300,7 @@
   (output-record-p)
   (output-record-parent)
   ((setf output-record-parent))
-  (output-record-refined-sensitivity-test)
+  (output-record-refined-position-test)
   (output-record-set-end-cursor-position)
   (output-record-set-old-start-cursor-position)
   (output-record-set-position)
@@ -4234,3 +4248,136 @@
 
 (prefill-dispatch-caches)
 
+
+;;; Compile constructors for all sorts of instantiable classes
+
+(ensure-constructors-compiled
+  accept-values
+  accept-values-command-button
+  accept-values-output-record
+  accept-values-own-window
+  accept-values-pane
+  accept-values-query
+  accept-values-stream
+  application-pane
+  border-output-record
+  border-pane
+  check-box
+  check-box-pane
+  clim-stream-pane
+  command-menu-pane
+  contrasting-ink
+  directed-graph-output-record
+  drag-and-drop-translator
+  ellipse-output-record
+  filling-stream
+  flipping-ink
+  gadget-dialog-view
+  gadget-menu-view
+  gadget-output-record
+  gadget-view
+  silica::general-space-requirement
+  generic-label-pane
+  generic-scroller-pane
+  graph-node-table
+  gray-color
+  hbox-pane
+  identity-transformation
+  ihs-color
+  indenting-output-record
+  interactor-pane
+  key-press-event
+  key-release-event
+  kill-ring-history
+  label-pane
+  line-output-record
+  lines-output-record
+  locking-queue
+  menu-bar
+  menu-bar-button
+  menu-bar-pane
+  menu-button
+  menu-button-pane
+  silica::null-space-requirement
+  outlined-pane
+  pattern
+  pixmap-stream
+  point-output-record
+  pointer-button-press-event
+  pointer-button-release-event
+  pointer-documentation-pane
+  pointer-enter-event
+  pointer-exit-event
+  pointer-motion-event
+  points-output-record
+  polygon-output-record
+  presentation-event
+  presentation-history
+  presentation-to-command-translator
+  presentation-translator
+  progress-note
+  pull-down-menu
+  pull-down-menu-button
+  push-button
+  push-button-pane
+  queue
+  radio-box
+  radio-box-pane
+  rectangle-output-record
+  rectangles-output-record
+  rectangular-tile
+  rgb-color
+  scroll-bar
+  scroll-bar-pane
+  scroll-bar-shaft-pane
+  scroll-bar-target-pane
+  scroller-pane
+  silica::simple-space-requirement
+  slider
+  slider-pane
+  spacing-pane
+  standard-application-frame
+  standard-bounding-rectangle
+  standard-cell-output-record
+  standard-column-output-record
+  standard-command-table
+  standard-encapsulating-stream
+  standard-frame-manager
+  standard-graft
+  standard-graph-node-output-record
+  standard-input-editing-stream
+  standard-item-list-output-record
+  standard-line-style
+  standard-nonsensitive-presentation
+  standard-opacity
+  standard-point
+  standard-pointer
+  standard-presentation
+  standard-rectangle-set
+  standard-row-output-record
+  standard-sequence-output-history
+  standard-sequence-output-record
+  standard-table-output-record
+  standard-text-cursor
+  standard-text-output-record
+  standard-text-style
+  standard-transformation
+  standard-tree-output-history
+  standard-tree-output-record
+  standard-updating-output-record
+  stencil
+  styled-text-output-record
+  table-pane
+  text-output-record
+  textual-dialog-view
+  textual-menu-view
+  textual-view
+  toggle-button
+  toggle-button-pane
+  top-level-sheet
+  translation-transformation
+  tree-graph-output-record
+  vbox-pane
+  viewport
+  window-configuration-event
+  window-repaint-event)

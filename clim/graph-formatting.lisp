@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graph-formatting.lisp,v 1.12 92/07/08 16:30:23 cer Exp $
+;; $fiHeader: graph-formatting.lisp,v 1.13 92/07/27 11:02:26 cer Exp $
 
 (in-package :clim-internals)
 
@@ -29,9 +29,7 @@
     ((test :initarg :test)
      (table :initarg :table)))
 
-(defun make-graph-node-table (&key test size)
-  (when (null test) (setq test 'eql))
-  (when (null size) (setq size 10))
+(defun make-graph-node-table (&key (test 'eql) (size 50))
   (let ((table
 	  (and (or (member test '(eq eql equal
 				  #-Genera equalp

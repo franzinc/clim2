@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: listener.lisp,v 1.15 92/07/20 16:01:25 cer Exp $
+;; $fiHeader: listener.lisp,v 1.16 92/07/27 11:03:33 cer Exp $
 
 (in-package :clim-demo)
 
@@ -218,8 +218,7 @@
     ((restart 'restart :gesture :select))
   (invoke-restart restart))
 
-(define-lisp-listener-command (com-describe-error :name t)
-    ()
+(define-lisp-listener-command (com-describe-error :name t) ()
   (describe-error *error-output*))
 
 (defun describe-error (stream)
@@ -243,7 +242,7 @@
 	  (formatting-table (stream :x-spacing '(2 :character))
 	    (dolist (restart restarts)
 	      (with-output-as-presentation (stream restart 'restart
-					    :single-box t)
+					    :single-box t :allow-sensitive-inferiors nil)
 		(formatting-row (stream)
 		  (formatting-cell (stream)
 		    (format stream "~D" i))
@@ -315,6 +314,22 @@
 	(return-from reasonable-presentation-type (class-name class))))
     nil))
 
+(define-gesture-name :describe-presentation :pointer-button (:middle :super))
+(define-presentation-translator describe-presentation
+    (t form lisp-listener
+     :documentation
+       ((object presentation stream)
+	(declare (ignore object))
+	(let ((*print-length* 3)
+	      (*print-level* 3)
+	      (*print-pretty* nil))
+	  (present `(describe ,(quotify-object-if-necessary presentation)) 'expression
+		   :stream stream :view +pointer-documentation-view+)))
+     :gesture :describe-presentation)
+    (object presentation)
+  (declare (ignore object))
+  `(describe ,(quotify-object-if-necessary presentation)))
+
 (define-lisp-listener-command (com-edit-function :name t)
     ((function 'expression 
 	       :provide-default t :prompt "function name"))
@@ -331,8 +346,7 @@
 
 ;;; Useful commands
 
-(define-lisp-listener-command (com-clear-output-history :name t)
-    ()
+(define-lisp-listener-command (com-clear-output-history :name t) ()
   (window-clear (frame-standard-output *application-frame*)))
 
 #+Genera
@@ -346,8 +360,7 @@
   (with-open-file (stream pathname :direction :output)
     (copy-textual-output-history *standard-output* stream)))
 
-(define-lisp-listener-command (com-show-homedir :name t)
-    ()
+(define-lisp-listener-command (com-show-homedir :name t) ()
   (show-directory (make-pathname :defaults (user-homedir-pathname)
 				 :name :wild
 				 :type :wild
@@ -412,7 +425,7 @@
 
 ;;; I can't believe CL doesn't have this
 (defun show-file (pathname stream)
-  (with-temporary-string (line-buffer :length 100)
+  (clim-utils:with-temporary-string (line-buffer :length 100)
     (with-open-file (file pathname :if-does-not-exist nil)
       (when file
 	(loop
@@ -484,8 +497,7 @@
 
 )
 
-(define-lisp-listener-command (com-quit :name t)
-    ()
+(define-lisp-listener-command (com-quit-listener :name "Quit") ()
   (frame-exit *application-frame*))
 
 
@@ -501,7 +513,7 @@
 		("LautScribner" lautscribner)))
 		
 (define-presentation-method accept ((type printer) stream (view textual-view) &key)
-  (completing-from-suggestions (stream)
+  (completing-from-suggestions (stream :partial-completers '(#\space))
     (dolist (printer *printer-names*)
       (suggest (first printer) (second printer)))))
 
@@ -541,8 +553,7 @@
     (format t "~%Reflected.")))
 
 ;;--- Just for demonstration...
-(define-lisp-listener-command (com-show-some-commands :name t)
-    ()
+(define-lisp-listener-command (com-show-some-commands :name t) ()
   (let ((ptype `(command :command-table user-command-table)))
     (formatting-table ()
       #-Minima

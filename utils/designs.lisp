@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: designs.lisp,v 1.3 92/02/24 13:05:33 cer Exp $
+;; $fiHeader: designs.lisp,v 1.4 92/07/01 15:45:30 cer Exp $
 
 (in-package :clim-utils)
 
@@ -81,6 +81,11 @@
   (let ((luminosity (slot-value color 'luminosity)))
     (values luminosity luminosity luminosity)))
 
+(defmethod color-ihs ((color gray-color))
+  (let* ((luminosity (slot-value color 'luminosity))
+	 (intensity (* *ihs-rgb-c3* (+ luminosity luminosity luminosity))))
+    (values intensity 0f0 0f0)))
+
 
 ;;; Colors
 
@@ -102,11 +107,6 @@
   (if (= red green blue)
       (make-gray-color red)
       (make-rgb-color-1 (float red 0f0) (float green 0f0) (float blue 0f0))))
-
-#+CLIM-1-compatibility
-(define-compatibility-function (make-color-rgb make-rgb-color)
-			       (red green blue)
-  (make-rgb-color red green blue))
 
 (defmethod print-object ((color rgb-color) stream)
   (print-unreadable-object (color stream :type t :identity t)
@@ -303,11 +303,6 @@
 	(t
 	 (make-ihs-color-1 (float intensity 0f0) (float hue 0f0) (float saturation 0f0)))))
 
-#+CLIM-1-compatibility
-(define-compatibility-function (make-color-ihs make-ihs-color)
-			       (intensity hue saturation)
-  (make-ihs-color intensity hue saturation))
-
 (defmethod make-load-form ((color ihs-color))
   (with-slots (intensity hue saturation) color
     `(make-ihs-color ,intensity ,hue ,saturation)))
@@ -342,9 +337,6 @@
 
 (defvar +foreground-ink+ (make-instance 'design))
 
-#+CLIM-1-compatibility
-(defvar +foreground+ +foreground-ink+)
-
 (defmethod make-load-form ((design (eql +foreground-ink+)))
   '+foreground-ink+)
 
@@ -354,9 +346,6 @@
 
 
 (defvar +background-ink+ (make-instance 'design))
-
-#+CLIM-1-compatibility
-(defvar +background+ +background-ink+)
 
 (defmethod make-load-form ((design (eql +background-ink+)))
   '+background-ink+)

@@ -1,6 +1,6 @@
 ;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadgets.lisp,v 1.29 92/07/24 10:53:50 cer Exp Locker: cer $
+;; $fiHeader: gadgets.lisp,v 1.30 92/07/27 11:01:40 cer Exp $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
@@ -143,6 +143,13 @@
      (alignment :initarg :align-x
 		:accessor gadget-alignment))
   (:default-initargs :label "" :align-x :center))
+
+(defmethod print-object ((object labelled-gadget-mixin) stream)
+  (if (and (slot-boundp object 'label)
+	   (stringp (slot-value object 'label)))
+      (print-unreadable-object (object stream :type t :identity t)
+	(format stream "~A" (slot-value object 'label)))
+      (call-next-method)))
 
 (defmethod compute-gadget-label-size ((pane labelled-gadget-mixin))
   (let ((label (gadget-label pane)))
@@ -310,15 +317,14 @@
     ((indicator-type :initarg :indicator-type :initform :some-of
 		     :reader gadget-indicator-type)))
 
+(defclass menu-bar ()
+    ((command-table :initarg :command-table :initform nil
+		    :accessor menu-bar-command-table)))
 
-(defclass label-pane
-	  (gadget labelled-gadget-mixin)
-    ())
-
-
+;;; Cascade button
 ;;; Caption
-;;; option menu
-;;; label
+;;; Option menu
+
 
 ;;; Radio box [exclusive-choice] .. [inclusive-choice]
 (defclass radio-box 
@@ -348,18 +354,15 @@
 	      :id choice
 	      :parent rb))))))
 
-(defmethod value-changed-callback :around ((v gadget)
-					   (client radio-box)
-					   (id t)
-					   (value t))
-  ;; This and the one below have to be around because of the user has
-  ;; specified a callback function only arounds ever get executed.
+(defmethod value-changed-callback :around 
+	   ((selection gadget) (client radio-box) gadget-id value)
+  (declare (ignore gadget-id))
+  ;; This and the one below have to be :AROUND because if the user has
+  ;; specified a callback function only :AROUNDs ever get executed.
   (when (eq value t)
-    (setf (radio-box-current-selection client) v)
-    (value-changed-callback client 
-			    (gadget-client client)
-			    (gadget-id client) 
-			    v))
+    (setf (radio-box-current-selection client) selection)
+    (value-changed-callback 
+      client (gadget-client client) (gadget-id client) selection))
   (call-next-method))
 
 
@@ -393,29 +396,18 @@
 	      :id choice
 	      :parent cb))))))
 
-
-(defmethod value-changed-callback :around ((v gadget)
-					   (client check-box)
-					   (id t)
-					   (value t))
-  ;; This and the one below have to be around because of the user has
-  ;; specified a callback function only arounds ever get executed.
+(defmethod value-changed-callback :around 
+	   ((selection gadget) (client check-box) gadget-id value)
+  (declare (ignore gadget-id))
   (if (eq value t)
-      (push v (check-box-current-selection client))
-    (setf (check-box-current-selection client)
-      (delete v (check-box-current-selection client))))
-  (value-changed-callback client 
-			  (gadget-client client)
-			  (gadget-id client) 
-			  (check-box-current-selection client))
+      (pushnew selection (check-box-current-selection client))
+      (setf (check-box-current-selection client)
+	    (delete selection (check-box-current-selection client))))
+  (value-changed-callback
+    client (gadget-client client) (gadget-id client) (check-box-current-selection client))
   (call-next-method))
 
-;;; Menu-bar
-
-
-;;; [cascade]
-
-
+
 ;;; Text edit
 ;;--- Do we want to specify a binding to commands?
 (defclass text-field 
@@ -449,8 +441,8 @@
 	  (make-bounding-rectangle 0 0 width height))))
 
 (defmethod allocate-space ((viewport viewport) width height)
-  ;;--- Make sure the child is at least as big as the viewport
-  ;;--- VIEWPORT-REGION-CHANGED actually does this also
+  ;; Make sure the child is at least as big as the viewport
+  ;; (VIEWPORT-REGION-CHANGED actually does this also)
   (let* ((child (sheet-child viewport)))
     (multiple-value-bind (cwidth cheight)
 	(bounding-rectangle-size child)
@@ -462,10 +454,13 @@
 (defmethod compose-space ((viewport viewport) &key width height)
   (declare (ignore width height))
   (let ((sr (call-next-method)))
-    (setq sr (copy-space-requirement sr))
-    (setf (space-requirement-min-width sr) 0
-	  (space-requirement-min-height sr) 0)
-    sr))
+    (multiple-value-bind (width min-width max-width
+			  height min-height max-height)
+	(space-requirement-components sr)
+      (declare (ignore min-width min-height))
+      (make-space-requirement
+	:width width :min-width 0 :max-width max-width
+	:height height :min-height 0 :max-height max-height))))
 
 (defmethod allocate-space :after ((viewport viewport) width height)
   (let ((vr (viewport-viewport-region viewport)))
@@ -638,9 +633,24 @@
 
 (defmethod handle-event ((gadget value-gadget) (event value-changed-gadget-event))
   (value-changed-callback
-    gadget (gadget-client gadget) (gadget-id gadget) (slot-value event 'value)))
+   gadget (gadget-client gadget) (gadget-id gadget) (slot-value event
+								'value)))
+
+
+
+(defclass drag-gadget-event (gadget-event) 
+    ((value :initarg :value :reader event-value)))
+
+(defmethod handle-event ((gadget value-gadget) (event drag-gadget-event))
+  (drag-callback
+   gadget (gadget-client gadget) (gadget-id gadget) (slot-value event
+								'value)))
+
 
 (defclass activate-gadget-event (gadget-event) ())
 
 (defmethod handle-event ((gadget action-gadget) (event activate-gadget-event))
   (activate-callback gadget (gadget-client gadget) (gadget-id gadget)))
+
+
+

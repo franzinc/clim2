@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: GENERA-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: genera-mirror.lisp,v 1.8 92/07/20 16:01:03 cer Exp $
+;; $fiHeader: genera-mirror.lisp,v 1.9 92/07/27 11:03:22 cer Exp $
 
 (in-package :genera-clim)
 
@@ -309,11 +309,11 @@
       (scl:send scl:self :set-erase-aluf background))))
 
 (scl:defmethod (:refresh genera-window :after) (&optional (type ':complete-redisplay))
-  (declare (ignore type))
-  (unless *port-trigger*
-    (let ((*port-trigger* t))
-      (with-sheet-medium (medium sheet)
-	(handle-repaint sheet medium (sheet-region sheet))))))
+  (unless (eq type ':use-old-bits)
+    (unless *port-trigger*
+      (let ((*port-trigger* t))
+	(with-sheet-medium (medium sheet)
+	  (handle-repaint sheet medium (sheet-region sheet)))))))
 
 (scl:defmethod (tv:refresh-rectangle genera-window) (left top right bottom)
   (when (typep sheet 'clim-stream-sheet)
@@ -434,14 +434,13 @@
      (invoke-on-genera-shift-keysyms
        ,genera-shift-mask #'map-over-genera-shift-keysyms)))
 
-;;; This is a horrible kludge for CLIM purposes.
-(scl:advise tv:mouse-set-blinker-cursorpos-internal :after compute-buttons-released nil
-  (kludge-buttons-released-when-mouse-over-no-window (first scl:arglist)))
-
-;;; This is the guts of the horrible kludge for CLIM purposes.
+;; This is the guts of a horrible kludge for CLIM purposes...
 (defun kludge-buttons-released-when-mouse-over-no-window (mouse)
   (multiple-value-bind (x y)
-      (if (tv:mouse-warp-internal mouse)
+      (if #+IMach (sys:system-case 
+		    (:macivory t)		;MacIvories are so wierd...
+		    (otherwise (tv:mouse-warp-internal mouse)))
+	  #-IMach (tv:mouse-warp-internal mouse)
 	  (values (tv:mouse-last-x mouse)
 		  (tv:mouse-last-y mouse))
 	  (values (tv:mouse-x mouse)
@@ -463,14 +462,16 @@
 	(setq *mouse-buttons* new-buttons
 	      ;; doesn't yet handle multiple buttons released at once...
 	      *mouse-button-released* new-released
-	      *mouse-window* (let ((win
-				     (tv:window-under-mouse-internal
-				       mouse ':mouse-select ':active x y)))
-			       (when (typep win 'genera-window) win))
+	      *mouse-window* (let ((window (tv:window-under-mouse-internal
+					     mouse ':mouse-select ':active x y)))
+			       (when (typep window 'genera-window) window))
 	      *mouse-x* x
 	      *mouse-y* y
 	      *mouse-moved* ':pointer-motion)))))
 
+;; ...and this is the horrible kludge for CLIM purposes
+(scl:advise tv:mouse-set-blinker-cursorpos-internal :after compute-buttons-released nil
+  (kludge-buttons-released-when-mouse-over-no-window (first scl:arglist)))
 (si:compile-advice 'tv:mouse-set-blinker-cursorpos-internal)
 
 (scl:defmethod (:mouse-moves genera-window :after) (x y)
