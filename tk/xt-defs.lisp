@@ -125,7 +125,7 @@
 
 (def-c-type (class-array :no-defuns) 1 :unsigned-long)
 
-(def-c-type (xt-arg-val :no-defuns) * :void)
+(def-c-type (xt-arg-val :no-defuns) :long)
 
 (def-c-type (xt-arg :in-foreign-space :no-defuns) :struct
   (name  * :char)

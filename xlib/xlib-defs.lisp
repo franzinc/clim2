@@ -619,11 +619,15 @@
 (def-exported-foreign-synonym-type cursor xid)
 (def-exported-foreign-synonym-type colormap xid)
 (def-exported-foreign-synonym-type gcontext xid)
-(def-exported-foreign-synonym-type keysym xid)
+(def-exported-foreign-synonym-type keysym
+    #+alpha unsigned-int
+    #-alpha xid)
 (def-exported-foreign-synonym-type mask unsigned-long)
 (def-exported-foreign-synonym-type atom unsigned-long)
 (def-exported-foreign-synonym-type visualid unsigned-long)
-(def-exported-foreign-synonym-type time unsigned-long)
+(def-exported-foreign-synonym-type time
+    #+alpha unsigned-int
+    #-alpha unsigned-long)
 (def-exported-foreign-synonym-type keycode unsigned-char)
 
 #+ics

@@ -31,22 +31,23 @@
 			 &allow-other-keys)
   (with-malloced-objects
       (let* ((class (find-class widget-class))
-	     (handle (class-handle class))
-	     (arglist (make-arglist-for-class class nil args)))
-	(register-address
-	 (apply #'make-instance
-		class
-		:foreign-address
-		(xt_app_create_shell #+ics (fat-string-to-string8 application-name)
-		                     #-ics application-name
-				     #+ics (fat-string-to-string8 application-class)
-				     #-ics application-class
-				     handle
-				     display
-				     arglist
-				     (truncate (length arglist) 2))
-				     :display display
-				     args)))))
+	     (handle (class-handle class)))
+	(multiple-value-bind (arglist n)
+	    (make-arglist-for-class class nil args)
+	  (register-address
+	   (apply #'make-instance
+		  class
+		  :foreign-address
+		  (xt_app_create_shell #+ics (fat-string-to-string8 application-name)
+				       #-ics application-name
+				       #+ics (fat-string-to-string8 application-class)
+				       #-ics application-class
+				       handle
+				       display
+				       arglist
+				       n)
+		  :display display
+		  args))))))
 
 ;; These are so we don't need the foreign functions at run time.
 
@@ -74,14 +75,15 @@
   (assert parent)
   (with-malloced-objects
       (let* ((class (find-class-maybe widget-class))
-	     (handle (class-handle class))
-	     (arglist (make-arglist-for-class class parent args)))
-	(funcall fn
-		 (note-malloced-object (string-to-char* name))
-		 handle
-		 parent
-		 arglist
-		 (truncate (length arglist) 2)))))
+	     (handle (class-handle class)))
+	(multiple-value-bind (arglist n)
+	    (make-arglist-for-class class parent args)
+	  (funcall fn
+		   (note-malloced-object (string-to-char* name))
+		   handle
+		   parent
+		   arglist
+		   n)))))
 
 (defun realize-widget (widget)
   (xt_realize_widget widget))
@@ -96,16 +98,22 @@
     (not (zerop (xt_is_managed widget))))
 
 (defun manage-children (children)
-  (xt_manage_children (map '(simple-array (signed-byte 32))
-		     #'ff:foreign-pointer-address
-		     children)
-		      (length children)))
+  (let ((n (length children))
+	(i 0))
+    (with-*-array (v n)
+      (dotimes (i n)
+	(setf (*-array v i)
+	  (ff:foreign-pointer-address (pop children))))
+      (xt_manage_children v n))))
 
 (defun unmanage-children (children)
-  (xt_unmanage_children (map '(simple-array (signed-byte 32))
-			  #'ff:foreign-pointer-address
-			  children)
-			(length children)))
+  (let ((n (length children))
+	(i 0))
+    (with-*-array (v n)
+      (dotimes (i n)
+	(setf (*-array v i)
+	  (ff:foreign-pointer-address (pop children))))
+      (xt_unmanage_children v n))))
 
 (defun destroy-widget (widget)
   (xt_destroy_widget widget))
@@ -119,14 +127,15 @@
 (defun create-popup-shell (name widget-class parent &rest args)
   (with-malloced-objects
       (let* ((class (find-class-maybe widget-class))
-	     (handle (class-handle class))
-	     (arglist (make-arglist-for-class class parent args)))
-	(incf *widget-count*)
-	(xt_create_popup_shell (note-malloced-object (string-to-char* name))
-			       handle
-			       parent
-			       arglist
-			       (truncate (length arglist) 2)))))
+	     (handle (class-handle class)))
+	(multiple-value-bind (arglist n)
+	    (make-arglist-for-class class parent args)
+	  (incf *widget-count*)
+	  (xt_create_popup_shell (note-malloced-object (string-to-char* name))
+				 handle
+				 parent
+				 arglist
+				 n)))))
 
 (defun find-class-maybe (x)
   (if (typep x 'clos::class) x
@@ -286,12 +295,13 @@
     (when *fallback-resources*
       (xt_app_set_fallback_resources
        context
-       (let* ((n (length *fallback-resources*))
-	      (v (make-array (1+ n) :element-type '(unsigned-byte 32))))
-	 (dotimes (i n)
-	   (setf (aref v i) (ff:string-to-char* (nth i *fallback-resources*))))
-	 (setf (aref v n) 0)
-	 v)))
+       (let ((n (length *fallback-resources*)))
+	 (with-*-array (v (1+ n))
+	   (dotimes (i n)
+	     (setf (*-array v i)
+	       (ff:string-to-char* (nth i *fallback-resources*))))
+	   (setf (*-array v n) 0)
+	   v))))
     #+ics (xt_set_language_proc context 0 0)
     (let* ((display (apply #'make-instance 'display
 			   :context context

@@ -61,7 +61,7 @@
 			  (num-options 0)
 			  (argc 0)
 			  (argv 0))
-  (let ((d (with-ref-par ((argc argc))
+  (let ((d (with-ref-par ((argc argc :int))
 	     (let ((temp (mp:process-quantum mp:*current-process*)))
 	       (unwind-protect
 		   (progn (setf (mp:process-quantum mp:*current-process*) *large-connection-quantum*)
@@ -76,7 +76,7 @@
 					   #+ics (fat-string-to-string8 application-class)
 					   #-ics application-class
 					   options
-					   num-options argc argv))
+					   num-options &argc argv))
 		 (setf (mp:process-quantum mp:*current-process*) temp)
 		 (mp:process-allow-schedule))))))
     (if (zerop d)
@@ -101,9 +101,9 @@
 
 
 (defun get-application-name-and-class (display)
-  (with-ref-par ((name 0)
-		 (class 0))
-    (xt_get_application_name_and_class display name class)
-    (values (char*-to-string (aref name 0))
-	    (char*-to-string (aref class 0)))))
+  (with-ref-par ((name 0 *)
+		 (class 0 *))
+    (xt_get_application_name_and_class display &name &class)
+    (values (char*-to-string name)
+	    (char*-to-string class))))
 

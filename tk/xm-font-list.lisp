@@ -97,21 +97,24 @@
 
 (defun import-font-list (font-list)
   (let ((context
-	 (with-ref-par ((context 0))
-	   (assert (not (zerop (xm_font_list_init_font_context context font-list))))
-	   (aref context 0)))
+	 (with-ref-par ((context 0 *))
+	   (assert
+	       (not (zerop (xm_font_list_init_font_context &context font-list))))
+	   context))
 	(res nil))
     (with-ref-par
-	((type 0))
+	;; this is actually an enumeration type (XmFontType) - let's
+	;; guess at an int. in any case I don't think it matters (cim 12/14/95)
+	((type 0 :unsigned-int))
       (loop
 	(let ((entry (xm_font_list_next_entry context)))
 	  (when (zerop entry)
 	    (return nil))
-	  (setf (aref type 0) 0)
+	  (setf type 0)
 	  (push (list
 		 ""
-		 (let ((font (xm_font_list_entry_get_font entry type)))
-		   (if (eq (aref type 0) xm-font-is-fontset)
+		 (let ((font (xm_font_list_entry_get_font entry &type)))
+		   (if (eq type xm-font-is-fontset)
 		       ;; we should really make the whole backend
 		       ;; fontset aware so that we get the right
 		       ;; metrics - this will do for now (cim 3/9/95)

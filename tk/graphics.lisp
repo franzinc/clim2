@@ -134,17 +134,17 @@
 #+ignore
 (defun text-extents (font sequence &key (start 0) end translate)
   (unless end (setq end (length sequence)))
-  (with-ref-par ((direction 0)
-		 (ascent 0)
-		 (descent 0))
+  (with-ref-par ((direction 0 :int)
+		 (ascent 0 :int)
+		 (descent 0 :int))
 		(let ((overall (make-x-char-struct)))
 		  (x11:xtextextents
 		   font
 		   (+ start (string-to-char* sequence))
 		   (- end start)
-		   direction
-		   ascent
-		   descent
+		   &direction
+		   &ascent
+		   &descent
 		   overall)
 		  (values
 		   (x11::xcharstruct-width overall)

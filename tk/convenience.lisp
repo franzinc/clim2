@@ -43,19 +43,19 @@
 				 &key (managed t) &allow-other-keys)
 	   (remf args :managed)
 	   (with-malloced-objects
-	       (let* ((arglist (make-arglist-for-class
-				(find-class ',class)
-				parent
-				args))
-		      (o
-		       (,c-function-name
-			parent
-			(note-malloced-object (string-to-char* name))
-			arglist
-			(truncate (length arglist) 2))))
+	       (multiple-value-bind
+		   (arglist n)
+		   (make-arglist-for-class (find-class ',class)
+					   parent
+					   args)
+	       (let ((o (,c-function-name
+			 parent
+			 (note-malloced-object (string-to-char* name))
+			 arglist
+			 n)))
 		 (when managed
 		   (xt_manage_child o))
-		 o)))))))
+		 o))))))))
 
 (define-convenience-class xm-menu-bar (xm-row-column) "XmCreateMenuBar")
 (define-convenience-class xm-pulldown-menu (xm-row-column) "XmCreatePulldownMenu")

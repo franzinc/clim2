@@ -23,32 +23,52 @@
 
 (in-package :tk)
 
-(defvar *temp-with-ref-par* nil)
-(defvar *temp-with-signed-ref-par* nil)
+(defmacro def-foreign-array-resource (name constructor)
+  `(progn
+     (clim-sys:defresource ,name (n)
+       :constructor (cons n (,constructor :number n))
+       :matcher (not (< (car ,name) n)))
+     (defmacro ,(intern (format nil "~A-~A" 'with name))
+	 ((var n) &body body)
+       `(clim-sys:using-resource (,var ,',name ,n)
+	  (let ((,var (cdr ,var)))
+	    ,@body)))))
+
+(defmacro define-ref-par-types (&rest types)
+  (let ((forms nil))
+    (dolist (type types)
+      (let ((type-array (intern (format nil "~A-~A" type 'array)))
+	    (make-type-array (intern (format nil "~A-~A-~A"
+					     'make type 'array))))
+	(setq forms
+	  `(,@forms
+	    (ff:def-c-type ,type-array 1 ,type)
+	    (def-foreign-array-resource
+		,type-array ,make-type-array)))))
+    `(progn ,@forms)))
+
+(define-ref-par-types
+    :unsigned-int :int :unsigned-long :long
+    *)
 
 (defmacro with-ref-par (bindings &body body)
   (if (null bindings)
       `(progn ,@body)
     (destructuring-bind
-	((var value &optional signed) &rest more-bindings) bindings
-      (let ((val (gensym)))
-	`(let ((,val ,value)
-	       (,var ,(if signed
-			  `(or (pop *temp-with-signed-ref-par*)
-			       (make-array 1 :element-type '(signed-byte 32)))
-			`(or (pop *temp-with-ref-par*)
-			  (make-array 1 :element-type '(unsigned-byte 32))))))
-	   ,(if signed
-		`(declare (type (simple-array (signed-byte 32) (1)) ,var))
-	      `(declare (type (simple-array (unsigned-byte 32) (1)) ,var)))
-	   (setf (aref ,var 0) ,val)
-	   (multiple-value-prog1
-	       (with-ref-par ,more-bindings ,@body)
-	     ,(if signed
-		  `(push ,var *temp-with-signed-ref-par*)
-		`(push ,var *temp-with-ref-par*))))))))
-
-
+	((var value type) &rest more-bindings)
+	bindings
+      (let ((&var (intern (format nil "&~A" var)))
+	    (val '#:val)
+	    (with-type-array (intern (format nil "~A-~A-~A" 'with type 'array)
+				     (find-package :tk)))
+	    (type-array (intern (format nil "~A-~A" type 'array)
+				(find-package :tk))))
+	`(let ((,val ,value))
+	   (,with-type-array (,&var 1)
+	     (symbol-macrolet ((,var (,type-array ,&var 0)))
+	       (setf ,var ,val)
+	       (multiple-value-prog1
+		   (with-ref-par ,more-bindings ,@body)))))))))
 
 (defmacro object-display (object)
   `(locally (declare (optimize (speed 3) (safety 0)))

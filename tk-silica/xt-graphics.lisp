@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: tk-silica -*-
 ;;
-;;				-[Mon Sep 26 02:04:49 1994 by smh]-
+;;				-[Thu Dec 28 00:27:15 1995 by duane]-
 ;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -883,12 +883,13 @@
 (defmethod decode-color-in-palette ((color dynamic-color) (palette xt-palette))
   (let ((dynamic-color-cache (palette-dynamic-color-cache palette)))
     (or (gethash color dynamic-color-cache)
-	(let ((pixel (aref (handler-case
-			       (tk::alloc-color-cells
-				(palette-colormap palette) 1 0)
-			     (tk::x-colormap-full ()
-			       (palette-full-error palette color)))
-			   0)))
+	(let ((pixel (tk::unsigned-long-array
+		      (handler-case
+			  (tk::alloc-color-cells
+			   (palette-colormap palette) 1 0)
+			(tk::x-colormap-full ()
+			  (palette-full-error palette color)))
+		      0)))
 	  (update-palette-entry palette pixel (dynamic-color-color color))
 	  (push palette (dynamic-color-palettes color))
 	  (setf (gethash color dynamic-color-cache) pixel)))))
@@ -942,13 +943,13 @@
 	     (palette-colormap palette) 1 total-nplanes)
 	  (tk::x-colormap-full ()
 	    (palette-full-error palette)))
-      (let ((pixel (aref pixels 0))
+      (let ((pixel (tk::unsigned-long-array pixels 0))
 	    (count 0)
 	    (planes nil))
 	(dolist (nplanes layer-nplanes)
 	  (let ((plane-masks nil))
 	    (dotimes (i nplanes)
-	      (push (aref masks count) plane-masks)
+	      (push (tk::unsigned-long-array masks count) plane-masks)
 	      (incf count))
 	    (push plane-masks planes)))
 	(let ((pixel-planes (cons pixel planes)))

@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: tk -*-
 ;;
-;;				-[Thu May 11 02:24:34 1995 by duane]-
+;;				-[Thu Dec 28 00:25:24 1995 by duane]-
 ;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -447,7 +447,9 @@
   x)
 
 (defun decode-font (gc x)
-  (if (= x #16rffffffff)
+  (if (= x
+	 #+alpha #xffffffffffffffff
+	 #-alpha #xffffffff)
       (error "cannot decode font")
     (let* ((display (object-display gc))
 	   (font (find-object-from-xid x display nil)))
@@ -455,7 +457,9 @@
 	  (query-font display x)))))
 
 (defun decode-pixmap (gc x)
-  (and (/= #16rffffffff x)
+  (and (/= x
+	   #+alpha #xffffffffffffffff
+	   #-alpha #xffffffff)
        (intern-object-xid
 	x
 	'pixmap

@@ -124,30 +124,27 @@
 	 (xcharstruct-vector-descent s n))))))
 
 (defun list-font-names (display pattern &key (max-fonts 65535) (result-type 'list))
-  (with-ref-par ((n 0))
-    (let* ((names (x11:xlistfonts display
-				  #+ics (fat-string-to-string8 pattern)
-				  #-ics pattern
-				  max-fonts
-				  n))
-	   (n (aref n 0))
-	   (seq (make-sequence result-type n)))
+  (with-ref-par ((n 0 :int))
+    (let ((names (x11:xlistfonts display
+				 #+ics (fat-string-to-string8 pattern)
+				 #-ics pattern
+				 max-fonts
+				 &n))
+	  (seq (make-sequence result-type n)))
       (prog1
 	  (dotimes (i n seq)
 	    (setf (elt seq i) (char*-to-string (xfontname-list names i))))
 	(x11::xfreefontnames names)))))
 
 (defun list-font-names-with-info (display pattern &key (max-fonts 65535) (result-type 'list))
-  (with-ref-par ((n 0)
-		 (fonts 0))
-    (let* ((names (x11:xlistfontswithinfo display
-					  pattern
-					  max-fonts
-					  n
-					  fonts))
-	   (n (aref n 0))
-	   (fonts (aref fonts 0))
-	   (seq (make-sequence result-type n)))
+  (with-ref-par ((n 0 :int)
+		 (fonts 0 *))
+    (let ((names (x11:xlistfontswithinfo display
+					 pattern
+					 max-fonts
+					 &n
+					 &fonts))
+	  (seq (make-sequence result-type n)))
       (prog1
 	  (dotimes (i n seq)
 	    (setf (elt seq i)
@@ -173,22 +170,23 @@
 
 #+ics
 (defun create-font-set (display base-font-names)
-  (with-ref-par ((missing-list-ref 0)
-		 (missing-count-ref 0)
-		 (def-string-ref 0))
+  (with-ref-par ((missing-list 0 *)
+		 (missing-count 0 :int)
+		 (def-string 0 *))
     (let ((font-set (x11:xcreatefontset display
 					(ff:string-to-char* base-font-names)
-					missing-list-ref
-					missing-count-ref
-					def-string-ref))
+					&missing-list
+					&missing-count
+					&def-string))
 	  (missing-charsets nil))
-      (dotimes (i (aref missing-count-ref 0))
+      (dotimes (i missing-count)
 	(push (ff:char*-to-string
-	       (sys:memref-int (aref missing-list-ref 0) 0 (* i 4) :unsigned-long))
+	       ;; needs work for 64bit machines
+	       (sys:memref-int missing-list 0 (* i 4) :unsigned-long))
 	      missing-charsets))
       (values font-set missing-charsets
-	      (unless (zerop (aref def-string-ref 0))
-		(ff:char*-to-string (aref def-string-ref 0)))))))
+	      (unless (zerop def-string)
+		(ff:char*-to-string def-string))))))
 
 #+ics
 (defmethod initialize-instance :after ((fs font-set) &key
@@ -206,19 +204,21 @@
 
 #+ics
 (defun fonts-of-font-set (font-set)
-  (with-ref-par ((font-struct-list-return-ref 0)
-		 (font-name-list-return-ref 0))
+  (with-ref-par ((font-struct-list-return 0 *)
+		 (font-name-list-return 0 *))
     (let ((n (x11:xfontsoffontset font-set
-				  font-struct-list-return-ref
-				  font-name-list-return-ref))
+				  &font-struct-list-return
+				  &font-name-list-return))
 	  (fonts nil))
       (dotimes (i n)
 	(let ((name (ff:char*-to-string
-		     (sys:memref-int (aref font-name-list-return-ref 0)
+		     ;; needs work for 64bit machines
+		     (sys:memref-int font-name-list-return
 				     0 (* i 4) :unsigned-long))))
 
 	  (push (intern-object-address
-		 (sys:memref-int (aref font-struct-list-return-ref 0)
+		 ;; needs work for 64bit machines
+		 (sys:memref-int font-struct-list-return
 				 0 (* i 4) :unsigned-long)
 		 'font :name name)
 		fonts)))
@@ -227,12 +227,12 @@
 #+ics
 (defun text-extents (font-set string)
   (let* ((euc (excl:string-to-euc string))
-	 (length (1- (length euc))))
-    (with-ref-par ((overall-ink-return 0)
-		   (overall-logical-return 0))
-      (values (x11:xmbtextextents
-	       font-set
-	       (ff:euc-to-char* euc)
-	       length
-	       overall-ink-return
-	       overall-logical-return)))))
+	 (length (1- (length euc)))
+	 (overall-ink-return (x11:make-xrectangle))
+	 (overall-logical-return (x11:make-xrectangle)))
+    (values (x11:xmbtextextents
+	     font-set
+	     (ff:euc-to-char* euc)
+	     length
+	     overall-ink-return
+	     overall-logical-return))))

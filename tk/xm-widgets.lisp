@@ -85,12 +85,12 @@
 
 (defmethod convert-resource-in ((parent t) (type (eql 'xm-string)) value)
   (and (not (zerop value))
-       (with-ref-par ((string 0))
+       (with-ref-par ((string 0 *))
 	 ;;--- I think we need to read the book about
 	 ;;--- xm_string_get_l_to_r and make sure it works with multiple
 	 ;;-- segment strings
-	 (xm_string_get_l_to_r value xm-font-list-default-tag string)
-	 (char*-to-string (aref string 0)))))
+	 (xm_string_get_l_to_r value xm-font-list-default-tag &string)
+	 (char*-to-string string))))
 
 (defmethod convert-resource-in ((parent t) (type (eql 'xm-string-table)) value)
   value)

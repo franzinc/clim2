@@ -1,5 +1,10 @@
 /* $fiHeader: xtsupport.c,v 1.11 1995/04/07 01:09:14 georgej Exp $ */
 
+#if defined(__alpha)
+# pragma pointer_size (save)
+# pragma pointer_size (long)
+#endif
+
 #include <X11/Intrinsic.h>
 
 #include <signal.h>
@@ -7,6 +12,10 @@
 #include <X11/IntrinsicP.h>
 #include <X11/CoreP.h>
 #include <X11/Xos.h>
+
+#if defined(__alpha)
+# pragma pointer_size (restore)
+#endif
 
 /* All the following are defintions from various X11R5 Xlib and Xt */
 /* files. Their purpose is solely to enable XtAppIntervalNextTimer to */

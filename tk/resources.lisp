@@ -282,9 +282,6 @@
 
 
 
-;; Note that the current set-values implemenation only works for resources
-;; that fit in a 32bit word.  You were warned!
-
 (defun fill-sv-cache (parent-class class resources)
   (let* ((len (length resources))
 	 (arglist (make-xt-arglist :number len))
@@ -340,23 +337,27 @@
 		  ((null resdess))
 		(destructuring-bind (convert-p type)
 		    (car resdess)
-		  ;; Yuck -- the following should be handled somehow by cstructs...
-		  (setf (sys:memref-int (xt-arglist arglist i) 4 0 :signed-long)
+		  (setf (xt-arglist-value arglist i)
 		    (if convert-p
 			(convert-resource-out widget type (car values))
 		      (car values)))))
 	      (xt_set_values widget arglist length)))))))
 
 ;; This is used by initialize-instance methods for widgets...
+
 (defun make-arglist-for-class (class parent args)
   (declare (optimize (speed 3) (safety 0)))
   (do ((new-args nil)
        keyword
        value)
       ((null args)
-       (make-array (length new-args)
-		   :element-type '(unsigned-byte 32)
-		   :initial-contents (nreverse new-args)))
+       (let* ((new-args (nreverse new-args))
+	      (n (truncate (length new-args) 2))
+	      (arglist (make-xt-arglist :number n :in-foreign-space nil)))
+	 (dotimes (i n)
+	   (setf (xt-arglist-name arglist i) (pop new-args)
+		 (xt-arglist-value arglist i) (pop new-args)))
+	 (values arglist n)))
     (setq keyword (pop args)
 	  value (pop args))
     (let ((resource (or (find-class-resource class keyword)
@@ -365,14 +366,10 @@
 	(push (resource-original-name resource) new-args)
 	(let ((type (resource-type resource)))
 	  (push
-	   (logand
-	    #xffffffff
-	    (if (resource-type-set-conversion-p type)
-		(convert-resource-out parent type value)
-	      value))
+	   (if (resource-type-set-conversion-p type)
+	       (convert-resource-out parent type value)
+	     value)
 	   new-args))))))
-
-
 
 
 

@@ -189,15 +189,15 @@
     (setf (foreign-pointer-address db) (x11:xrmgetstringdatabase ""))))
 
 (defun get-resource (db name class)
-  (with-ref-par ((type-ref 0))
+  (with-ref-par ((type 0 *))
     (let ((xrmvalue (x11:make-xrmvalue)))
       (unless (zerop (x11:xrmgetresource db
 					 #+ics (fat-string-to-string8 name)
 					 #-ics name
 					 #+ics (fat-string-to-string8 class)
 					 #-ics class
-					 type-ref xrmvalue))
-	(let ((type (char*-to-string (aref type-ref 0))))
+					 &type xrmvalue))
+	(let ((type (char*-to-string type)))
 	  (values
 	   (cond
 	    ((equal type "String")
@@ -408,18 +408,15 @@
 	(values (x11:xcolor-pixel y)
 		(make-instance 'color :foreign-address y))))))
 
-(defvar *pixel-array*
-    (make-array 1 :initial-element 0 :element-type '(unsigned-byte 32)))
-
 (defun free-color-cells (colormap pixel planes)
-  (setf (aref *pixel-array* 0) pixel)
-  (x11:xfreecolors
-   (object-display colormap)
-   colormap
-   *pixel-array*
-   1
-   planes))
-
+  (with-unsigned-long-array (pixels 1)
+    (setf (unsigned-long-array pixels 0) pixel)
+    (x11:xfreecolors
+     (object-display colormap)
+     colormap
+     pixels
+     1
+     planes)))
 
 (defun allocate-named-color (colormap name)
   (let ((exact (x11::make-xcolor :in-foreign-space t))
@@ -460,6 +457,7 @@
    pixel
    flags))
 
+#+ignore ;; moved to ./macros.lisp
 (defmacro def-foreign-array-resource (name constructor)
   `(progn
      (clim-sys:defresource ,name (n)
@@ -485,21 +483,19 @@
    ncolors))
 
 (defun alloc-color-cells (colormap ncolors nplanes)
-  (let* ((masks (make-array nplanes
-			    :initial-element 0 :element-type '(unsigned-byte 32)))
-	 (pixels (make-array ncolors
-			     :initial-element 0 :element-type '(unsigned-byte 32)))
-	 (z (x11:xalloccolorcells
-	     (object-display colormap)
-	     colormap
-	     0
-	     masks
-	     nplanes
-	     pixels
-	     ncolors)))
-    (when (zerop z)
-      (error 'x-colormap-full))
-    (values pixels masks)))
+  (with-unsigned-long-array (masks nplanes)
+    (with-unsigned-long-array (pixels ncolors)
+      (let ((z (x11:xalloccolorcells
+		(object-display colormap)
+		colormap
+		0
+		masks
+		nplanes
+		pixels
+		ncolors)))
+	(when (zerop z)
+	  (error 'x-colormap-full))
+	(values pixels masks)))))
 
 
 (defun default-screen (display)
@@ -511,10 +507,10 @@
 
 (defun get-input-focus (display)
   (with-ref-par
-      ((focus 0)
-       (revert-to 0))
-    (x11:xgetinputfocus display focus revert-to)
-    (values (aref focus 0) (aref revert-to 0))))
+      ((focus 0 :unsigned-long)
+       (revert-to 0 :int))
+    (x11:xgetinputfocus display &focus &revert-to)
+    (values focus revert-to)))
 
 (defun set-input-focus (display focus &optional (revert-to 0) (time 0))
   (x11:xsetinputfocus display focus revert-to time))
@@ -522,41 +518,41 @@
 
 (defun query-pointer (window)
   (with-ref-par
-      ((root 0)
-       (child 0)
-       (root-x 0 t)
-       (root-y 0 t)
-       (x 0 t)
-       (y 0 t)
-       (mask 0))
+      ((root 0 :unsigned-long)
+       (child 0 :unsigned-long)
+       (root-x 0 :int)
+       (root-y 0 :int)
+       (x 0 :int)
+       (y 0 :int)
+       (mask 0 :unsigned-int))
     (let ((display (object-display window)))
       (if (x11:xquerypointer
 	   display
 	   window
-	   root
-	   child
+	   &root
+	   &child
+	   &root-x
+	   &root-y
+	   &x
+	   &y
+	   &mask)
+	  (values
+	   t
+	   (intern-object-xid
+	    root
+	    'window
+	    display
+	    :display display)
+	   (intern-object-xid
+	    child
+	    'window
+	    display
+	    :display display)
 	   root-x
 	   root-y
 	   x
 	   y
-	   mask)
-	  (values
-	   t
-	   (intern-object-xid
-	    (aref root 0)
-	    'window
-	    display
-	    :display display)
-	   (intern-object-xid
-	    (aref child 0)
-	    'window
-	    display
-	    :display display)
-	   (aref root-x 0)
-	   (aref root-y 0)
-	   (aref x 0)
-	   (aref y 0)
-	   (aref mask 0))))))
+	   mask)))))
 
 
 
@@ -654,9 +650,10 @@
   (declare (optimize (speed 3) (safety 0)))
   (let ((buffer (or (excl:without-interrupts (pop *lookup-string-buffers*))
 		    (excl::malloc 256))))
-    (declare (type (unsigned-byte 32) buffer))
-    (with-ref-par ((keysym 0))
-      (let* ((nchars (x11:xlookupstring event buffer 256 keysym compose-status))
+    (declare (type (unsigned-byte 8) buffer))
+    ;; we assume the Xid type is the same as a pointer
+    (with-ref-par ((keysym 0 :unsigned-long))
+      (let* ((nchars (x11:xlookupstring event buffer 256 &keysym compose-status))
 	     (result (make-string nchars)))
 	(declare (fixnum nchars)
 		 (simple-string result))
@@ -665,8 +662,7 @@
 	  (setf (schar result i)
 	    (code-char (sys:memref-int buffer 0 i :unsigned-byte))))
 	(excl:without-interrupts (push buffer *lookup-string-buffers*))
-	(values result
-		(aref keysym 0))))))
+	(values result keysym)))))
 
 ;; image support
 
@@ -810,11 +806,11 @@
 (defun get-cut-buffer (display)
   (let ((string (make-string 1024)))
     (with-ref-par
-	((actual-type 0)
-	 (actual-format 0)
-	 (nitems 0)
-	 (bytes-after 0)
-	 (prop 0))
+	((actual-type 0 :unsigned-long)
+	 (actual-format 0 :int)
+	 (nitems 0 :unsigned-long)
+	 (bytes-after 0 :unsigned-long)
+	 (prop 0 *))
       (x11:xgetwindowproperty
        display
        (x11:xdefaultrootwindow display)
@@ -823,9 +819,9 @@
        256
        0
        x11:anypropertytype
-       actual-type
-       actual-format
-       nitems
-       bytes-after
-       prop)
-      (char*-to-string (aref prop 0)))))
+       &actual-type
+       &actual-format
+       &nitems
+       &bytes-after
+       &prop)
+      (char*-to-string prop))))

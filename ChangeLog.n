@@ -1,4 +1,51 @@
 *************************************************************
+4.3.devel.12
+
+Mon Jan 22 22:21:03 1996  Duane Rettig  (duane at clay)
+
+Added files:
+
+	* Makefile.alpha
+	* Makefile.sunx86
+
+Changed files:
+
+	* misc/MyDrawingA.c: 
+	* misc/climgccursor.c: 
+	* misc/xtsupport.c: Add Dec Alpha pragmas
+
+	* tk/convenience.lisp: Use second return from
+	make-arglist-for-class
+	* tk/widget.lisp: 
+
+	* tk/font.lisp: Use typed with-ref-par; use long32 accessor
+
+	* tk/foreign.lisp: 
+	* tk/graphics.cl: 
+	* tk/make-classes.lisp: 	
+	* tk/xlib.lisp: 
+	* tk/xm-font-list.lisp: 
+	* tk/xm-widgets.lisp: Use typed with-ref-par
+
+	* tk/gcontext.lisp: Add Dec Alpha
+
+	* tk/macros.lisp: Fix with-ref-par to use typed cstructs instead
+	of unsigned-lon arrays.
+
+	* tk/resources.lisp: Fix resources for 64 bits
+
+	* tk/xt-defs.lisp: Make xt-arg-val long instead of void *
+
+	* tk-silica/xt-graphics.lisp: Use unsigned-long-array
+
+	* tk-silica/xt-silica.lisp: Use typed with-ref-par
+
+	* xlib/ffi.lisp: Fix int/long distinction
+
+	* xlib/xlib-defs.lisp: Add Dec Alpha
+
+	
+*************************************************************
 4.3.devel.10 (4.3.beta)
 
 Wed Nov 22 15:30:33 1995  George Jacob  <georgej@lava.franz.com (George Jacob)>

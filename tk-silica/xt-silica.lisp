@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: xm-silica -*-
 ;;
-;;				-[Mon Sep 20 09:29:51 1993 by layer]-
+;;				-[Thu Dec 14 20:13:58 1995 by duane]-
 ;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -587,7 +587,14 @@
        (let ((button (x-button->silica-button
 		      (x11::xbuttonevent-button event)))
 	     (pointer (port-pointer port)))
-
+	 #+debug
+	 (format excl:*initial-terminal-io*
+		 "~%event ~s type: ~s button: ~s x: ~s y: ~s"
+		 event
+		 (x11::xevent-type event)
+		 (x11::xbuttonevent-button event)
+		 (x11::xbuttonevent-x event)
+		 (x11::xbuttonevent-y event))
 	 (distribute-event
 	  port
 	  (allocate-event 'pointer-button-press-event
@@ -1632,9 +1639,9 @@ the geometry of the children. Instead the parent has control. "))
       (let ((ussp (slot-value sheet 'silica::user-specified-size-p))
 	    (uspp (slot-value sheet 'silica::user-specified-position-p))
 	    (size-hints (x11::xallocsizehints)))
-	(tk::with-ref-par ((supplied 0))
+	(tk::with-ref-par ((supplied 0 :unsigned-long))
 	  (when (zerop
-		 (x11::xgetwmnormalhints display window size-hints supplied))
+		 (x11::xgetwmnormalhints display window size-hints &supplied))
 	    (warn "top-level-sheet had no size hints?!")
 	    (return-from enable-mirror))
 	  (let ((flags (x11::xsizehints-flags size-hints)))

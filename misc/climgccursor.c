@@ -1,8 +1,17 @@
+#if defined(__alpha)
+# pragma pointer_size (save)
+# pragma pointer_size (long)
+#endif
+
 #include <X11/Intrinsic.h>
 #include <X11/StringDefs.h>
 #include <signal.h>
 #include <X11/cursorfont.h>
 
+
+#if defined(__alpha)
+# pragma pointer_size (restore)
+#endif
 
 static Widget gc_widget = (Widget)NULL;
 static Cursor widget_cursor = 0;

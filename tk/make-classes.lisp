@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: tk -*-
 ;;
-;;				-[Wed Dec 14 02:35:23 1994 by duane]-
+;;				-[Thu Dec  7 14:49:13 1995 by duane]-
 ;;
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -33,34 +33,33 @@
 
 ;; This is only called to fill in the cache, so it can be (real) slow.
 (defun get-resource-internal (class fn resource-class resource-name)
-  (let ((x (make-array 1 :element-type '(unsigned-byte 32)))
-	(y (make-array 1 :element-type '(unsigned-byte 32)))
-	(tk-resource-name (tkify-lisp-name resource-name))
-	result)
-    ;;--- Perhaps we can just do this when we want to grab the resources.
-    ;;--- In this way we would only have to do one the display is
-    ;;--- opened and the toolkit initialized etc etc.
-    (xt_initialize_widget_class (class-handle class))
-    (funcall fn (class-handle class) x y)
-    (let ((resources (aref x 0))
-	  (n (aref y 0)))
-      (setq result
-	(dotimes (i n)
-	  (let* ((res (xt-resource-list resources i))
-		 (original-name (xt-resource-name res)))
-	    (when (string-equal (char*-to-string original-name)
-				tk-resource-name)
-	      (let ((*package* (find-package :tk)))
-		(return
-		  (make-instance resource-class
-		    :original-name original-name
-		    :name resource-name
-		    :class (lispify-resource-class
-			    (char*-to-string (xt-resource-class res)))
-		    :type (lispify-resource-type
-			   (char*-to-string (xt-resource-type res))))))))))
-      (xt_free resources))
-    result))
+  (with-ref-par ((resources 0 *)
+		 (n 0 :unsigned-int))
+    (let ((tk-resource-name (tkify-lisp-name resource-name))
+	  result)
+      ;;--- Perhaps we can just do this when we want to grab the resources.
+      ;;--- In this way we would only have to do one the display is
+      ;;--- opened and the toolkit initialized etc etc.
+      (xt_initialize_widget_class (class-handle class))
+      (funcall fn (class-handle class) &resources &n)
+      (let ((resources resources))
+	(setq result
+	  (dotimes (i n)
+	    (let* ((res (xt-resource-list resources i))
+		   (original-name (xt-resource-name res)))
+	      (when (string-equal (char*-to-string original-name)
+				  tk-resource-name)
+		(let ((*package* (find-package :tk)))
+		  (return
+		    (make-instance resource-class
+		      :original-name original-name
+		      :name resource-name
+		      :class (lispify-resource-class
+			      (char*-to-string (xt-resource-class res)))
+		      :type (lispify-resource-type
+			     (char*-to-string (xt-resource-type res))))))))))
+	(xt_free resources))
+      result)))
 
 ;; These are so we don't need the foreign functions at run time.
 (defun xt-get-resource-list (class res-return num-res-return)
@@ -111,21 +110,20 @@
   (get-constraint-resource-list class))
 
 (defun get-resource-list-internal (class fn resource-class)
-  (let ((x (make-array 1 :element-type '(unsigned-byte 32)))
-	(y (make-array 1 :element-type '(unsigned-byte 32))))
-    (funcall fn (class-handle class) x y)
-    (let ((resources (aref x 0))
-	  (n (aref y 0))
+  (with-ref-par ((resources 0 *)
+		 (n 0 :unsigned-int))
+    (funcall fn (class-handle class) &resources &n)
+    (let ((resources resources)
 	  (r nil))
       (dotimes (i n)
 	(push (make-instance
-	       resource-class
-	       :original-name (xt-resource-name (xt-resource-list resources i))
-	       :name (lispify-resource-name (char*-to-string (xt-resource-name (xt-resource-list resources i))))
-	       :class (lispify-resource-class
-		       (char*-to-string (xt-resource-class (xt-resource-list resources i))))
-	       :type (lispify-resource-type
-		      (char*-to-string (xt-resource-type (xt-resource-list resources i)))))
+		  resource-class
+		:original-name (xt-resource-name (xt-resource-list resources i))
+		:name (lispify-resource-name (char*-to-string (xt-resource-name (xt-resource-list resources i))))
+		:class (lispify-resource-class
+			(char*-to-string (xt-resource-class (xt-resource-list resources i))))
+		:type (lispify-resource-type
+		       (char*-to-string (xt-resource-type (xt-resource-list resources i)))))
 	      r))
       (xt_free resources)
       r)))
@@ -199,6 +197,8 @@
 	((null cs)
 	 (nreverse r))
       (destructuring-bind (handle class-ep) (car cs)
+	#+ignore
+	(format excl:*initial-terminal-io* ";; Initializing class ~s~%" class-ep)
 	(let ((class
 	       (clos::ensure-class
 		(lispify-class-name (widget-class-name handle))

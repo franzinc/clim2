@@ -1,4 +1,4 @@
-/*				-[]-
+/*				-[Thu Dec  7 14:48:54 1995 by duane]-
  *
  * copyright (c) 1992 Franz Inc, Berkeley, CA  All rights reserved.
  *
@@ -19,10 +19,13 @@
  * $fiHeader: MyDrawingA.c,v 1.5 1993/07/27 01:47:40 colin Exp $
  */
 
+#if defined(__alpha)
+# pragma pointer_size (save)
+# pragma pointer_size (long)
+#endif
 
 #include <Xm/XmP.h>
 #include "MyDrawingAP.h"
-
 
 /******************************************************************************/
 /* This sucks */
@@ -149,3 +152,7 @@ XmCreateMyDrawingArea(
 
     return( XtCreateWidget( name, xmMyDrawingAreaWidgetClass, p, args, n)) ;
 }
+
+#if defined(__alpha)
+# pragma pointer_size (restore)
+#endif
