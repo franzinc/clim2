@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-scroll.lisp,v 1.50 1993/10/26 03:22:09 colin Exp $
+;; $fiHeader: db-scroll.lisp,v 1.51 1993/11/23 19:58:50 cer Exp $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright(c) 1991, 1992 International Lisp Associates.
@@ -16,6 +16,8 @@
 			 pane)
     ((scroll-bars :initarg :scroll-bars
 		  :reader scroller-pane-scroll-bar-policy)
+     (drag-scroll :initarg :drag-scroll 
+		  :accessor scroller-pane-drag-scroll)
      viewport
      (contents :initarg :contents :accessor pane-contents)
      (vertical-scroll-bar :initform nil 
@@ -30,8 +32,7 @@
 				  :vertical-line-scroll-amount)
      (horizontal-line-scroll-amount :initform nil 
 				    :initarg :horizontal-line-scroll-amount))
-  (:default-initargs :scroll-bars :both))
-
+    (:default-initargs :scroll-bars :both :drag-scroll t))
 
 ;; Returns the viewport of the pane, if there is one
 (defmethod pane-viewport ((sheet sheet))
@@ -81,6 +82,7 @@
   (unless *inhibit-updating-scroll-bars*
     ;;--- This is not the most efficient thing in the world
     (let ((scroller (viewport-scroller-pane viewport)))
+
       #+ignore
       (multiple-value-bind (changedp
 			    hscroll-bar hscroll-bar-enabled-p
@@ -90,6 +92,7 @@
 	  scroller changedp
 	  hscroll-bar hscroll-bar-enabled-p 
 	  vscroll-bar vscroll-bar-enabled-p t))
+      
       (with-bounding-rectangle* (left top right bottom) 
 	  (viewport-contents-extent viewport)
 	(with-bounding-rectangle* (vleft vtop vright vbottom)
@@ -111,9 +114,6 @@
 				 vleft vright
 				 :horizontal))))))))
 
-(defmethod note-sheet-grafted :before ((sheet scroll-bar))
-  (setf (scroll-bar-current-size sheet) nil))
-
 ;;--- In the case where the viewport is bigger than the window this
 ;;--- code gets things wrong.  Check out the thinkadot demo.  It's
 ;;--- because (- (--) (- vmin)) is negative.
@@ -124,15 +124,13 @@
   ;;window is large enough no one changes the viewport but we cannot scroll-either
   (maxf max vmax)
   (minf min vmin)
-  (let ((current-size (scroll-bar-current-size scroll-bar))
-	(current-value (scroll-bar-current-value scroll-bar)))
+  (let ((current-size (scroll-bar-size scroll-bar))
+	(current-value (gadget-value scroll-bar)))
     ;; Kinda bogus benchmark optimization -- if the scroll-bar was full size
     ;; before, and the viewport is bigger than the extent, don't bother with
     ;; the fancy math.
-    (let* ((gmin (float (gadget-min-value scroll-bar) 0s0))
-	   (gmax (float (gadget-max-value scroll-bar) 0s0))
-	   (range (- gmax gmin)))
-      (declare (type single-float range gmin gmax))
+    (let ((range (float (gadget-range scroll-bar) 0s0)))
+      (declare (type single-float range))
       (when (and (and current-size (= (the single-float current-size) range))
 		 (> (- vmax vmin) (- max min)))
 	(return-from update-scroll-bar))
@@ -146,33 +144,40 @@
 			      1.0
 			    (min 1.0 (the single-float
 				       (/ viewport-range contents-range))))))))
-	     ;;-- This does not scale by the range
 	     (pos (the single-float
-		    (min 1.0s0 (max 0.0s0
-				    (if (<= contents-range viewport-range)
-					0.0
-				      (/ (float (- vmin min) 0.0s0) 
-					 ;;--- Uh-oh, the home-grown scroll bars
-					 ;;--- seem to have a different contract
-					 ;;--- from Motif/OpenLook.  Fix them!
-					 #+Allegro (- contents-range viewport-range)
-					 #-Allegro contents-range)))))))
+		    (* range
+		       (min 1.0s0 (max 0.0s0
+				       (if (<= contents-range viewport-range)
+					   0.0
+					 (/ (float (- vmin min) 0.0s0) 
+					    contents-range))))))))
 	(declare (type single-float pos size))
 	(unless (and current-size
 		     current-value
 		     (= current-size size)
 		     (= current-value pos))
-	  (setf (scroll-bar-current-value scroll-bar) pos)
-	  (setf (scroll-bar-current-size scroll-bar) size)
 	  ;;-- It would be nice if we could do this at the point of scrolling
-	  (let* ((line-scroll (line-scroll-amount (slot-value scroll-bar 'client) orientation nil))
+	  (let* ((line-scroll (line-scroll-amount (slot-value scroll-bar 'client)
+						  orientation
+						  nil))
 		 (line-scroll (if (zerop contents-range)
-				  0 ;-- Who knows
+				  0	;-- Who knows
 				(* range (/ line-scroll contents-range)))))
 	    (change-scroll-bar-values scroll-bar 
 				      :slider-size size
 				      :value pos
 				      :line-increment line-scroll)))))))
+
+(defmethod value-changed-callback 
+    ((sheet scroll-bar) (client scroller-pane) id value)
+  (scroll-bar-value-changed-callback sheet client id value
+				     (scroll-bar-size sheet)))
+
+(defmethod drag-callback 
+    ((sheet scroll-bar) (client scroller-pane) id value)
+  (when (scroller-pane-drag-scroll client)
+      (scroll-bar-value-changed-callback sheet client id value
+				     (scroll-bar-size sheet))))
 
 (defmethod scroll-bar-value-changed-callback
 	   (sheet (client scroller-pane) id value size)
@@ -185,8 +190,7 @@
 	    contents
 	     (bounding-rectangle-min-x region)
 	     (+ (bounding-rectangle-min-y extent)
-		  (* (max 0 (- (bounding-rectangle-height extent)
-			       (bounding-rectangle-height region)))
+		  (* (bounding-rectangle-height extent)
 		     (if (= size (gadget-range sheet))
 			 0
 			 (/ (- value (gadget-min-value sheet))
@@ -195,19 +199,22 @@
 	  (scroll-extent
 	    contents
 	    (+ (bounding-rectangle-min-x extent)
-		  (* (max 0 (- (bounding-rectangle-width extent)
-			       (bounding-rectangle-width region)))
+		  (* (bounding-rectangle-width extent)
 		     (if (= size (gadget-range sheet))
 			 0
 			 (/ (- value (gadget-min-value sheet))
 			    (gadget-range sheet)))))
 	    (bounding-rectangle-min-y region))))
       ;;-- Yuck
-      (clim-internals::maybe-redraw-input-editor-stream contents (pane-viewport-region contents)))))
+      (clim-internals::maybe-redraw-input-editor-stream 
+       contents (pane-viewport-region contents)))))
 
 (defmethod update-region ((sheet basic-sheet) nleft ntop nright nbottom &key no-repaint)
   (declare (ignore nleft ntop nright nbottom no-repaint))
   nil)
+
+(defmethod mirror-region-updated :after ((port basic-port) (viewport viewport))
+  (update-scroll-bars viewport))
 
 (defmethod scroll-extent ((sheet basic-sheet) x y)
   ;;--- CER says that this really isn't right...
@@ -270,7 +277,9 @@
 (defun compute-symmetric-value (min1 max1 value1 min2 max2)
   (declare (values value2))
   (let* ((distance1 (- max1 min1))
-	 (fraction1 (if (zerop distance1) 0 (/ (- value1 min1) distance1))))
+	 (fraction1 (if (zerop distance1)
+			0
+		      (/ (- value1 min1) distance1))))
     (let ((x (+ min2 (* (- max2 min2) fraction1))))
       (if (integerp x) x (float x)))))
 

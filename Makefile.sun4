@@ -1,4 +1,4 @@
-# $fiHeader: Makefile.sun4,v 1.5 1993/05/13 16:22:45 cer Exp $
+# $fiHeader: Makefile.sun4,v 1.8 1993/09/17 06:34:14 duane Exp $
 #
 #  Makefile.sun4 for CLIM 2.0
 #
@@ -7,11 +7,9 @@ include Makefile.defs
 
 Makefile=Makefile.sun4
 
-MOTIFHOME=/net/vapor/3rd/motif-1.2.2
+MOTIFHOME=/net/vapor/3rd/motif-1.2.4
 MOTIFLIB=$(MOTIFHOME)/usr/lib/libXm$(DEBUGLIB).a
-#MOTIFLIB_d=$(MOTIFHOME)/usr/lib/libXm_d.a
-MOTIFLIB_d=$(MOTIFHOME)/usr/lib/libXm.a
-XLIB= $(MOTIFHOME)/usr/lib/libX11$(DEBUGLIB).a 
+XLIB=$(MOTIFHOME)/usr/lib/libX11$(DEBUGLIB).a 
 XTLIB=$(MOTIFHOME)/usr/lib/libXt$(DEBUGLIB).a
 
 XINCLUDES=-I$(MOTIFHOME)/usr/include
@@ -22,9 +20,10 @@ XTSUPPORTINCLUDES=-I/net/vapor/x11/R5/src/mit/lib/Xt
 # MOTIFXTRAOS=$(MOTIFHOME)/usr/lib/Motif/Sun/dlsym.o
 
 OPENLOOKHOME=/net/vapor/x11/olit-3.0
-OLXLIB= $(OPENLOOKHOME)/lib/libX11.a
+OPENLOOKLIB=$(OPENLOOKHOME)/lib/libXol.a
+OLXLIB=$(OPENLOOKHOME)/lib/libX11.a
 OLXTLIB=$(OPENLOOKHOME)/lib/libXt.a
-# don't use OPENLOOKHOME because there are no include files there
-OLINCLUDES=-I/usr/openwin/include
+
+OLINCLUDES=-I$(OPENLOOKHOME)/OWV3/src/include/
 
 include Makefile.generic

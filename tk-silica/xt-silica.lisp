@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.92 1993/11/18 18:45:48 cer Exp $
+;; $fiHeader: xt-silica.lisp,v 1.94 1994/01/11 23:34:49 georgej Exp $
 
 (in-package :xm-silica)
 
@@ -92,7 +92,7 @@
       (when process
 	(clim-sys:destroy-process process))
       (setq process
-	(mp:process-run-restartable-function
+	(mp:process-run-function
 	 (list :name (format nil "CLIM Event Dispatcher for ~A"
 			     (port-server-path port))
 	       :priority 1000)
@@ -100,13 +100,6 @@
       (setf (getf (mp:process-property-list process) ':survive-dumplisp) #'cleanup-port-after-dumplisp)
       (setf (port-process port) process))))
 
-(defmethod port-event-loop :around ((port xt-port))
-  (handler-case (call-next-method)
-    (tk::x-connection-lost (condition)
-      (port-terminated port condition)
-      (mp:process-kill mp:*current-process*))))
-
-       
 (defparameter *use-color* t)		; For debugging monochrome
 
 (defvar *unreliable-server-vendors*
@@ -114,38 +107,48 @@
       "Tektronix"))
  
 (defmethod initialize-instance :after ((port xt-port) &key server-path)
-  (handler-case
-      (destructuring-bind
-	  (&key (display nil display-p)
-		(application-name nil application-name-p)
-		(application-class nil application-class-p))
-	  (cdr server-path)
-	(let ((args nil))
-	  (when display-p (setf (getf args :host) display))
-	  (when application-name-p (setf (getf args :application-name) application-name))
-	  (when application-class-p (setf (getf args :application-class) application-class))
-	  (multiple-value-bind (context display application-shell)
-	      (apply #'tk::initialize-toolkit args)
-	    (setf (slot-value port 'application-shell) application-shell
-		  (slot-value port 'context) context
-		  (slot-value port 'display) display
-		  (port-depth port) (x11:xdefaultdepth display (tk::display-screen-number display))
-		  (port-visual-class port) (tk::screen-root-visual-class (tk::default-screen display))
-		  (slot-value port 'silica::default-palette) 
-		  (make-palette port :colormap 
-				(tk::default-colormap (port-display port))))
-	    (let* ((screen (x11:xdefaultscreenofdisplay display))
-		   (bs-p (not (zerop (x11::screen-backing-store screen))))
-		   (su-p (not (zerop (x11::screen-save-unders screen))))
-		   (vendor (ff:char*-to-string (x11::display-vendor display))))
-	      (if (and bs-p su-p
-		       ;; An amazing crock.  XXX
-		       (notany #'(lambda (x) (search x vendor)) *unreliable-server-vendors*))
-		  (setf (slot-value port 'safe-backing-store) t)))
-	    (initialize-xlib-port port display))))
-    (tk::x-connection-lost (condition)
-      (port-terminated port condition))))
+  (setq tk::*x-io-error-hook* #'xt-fatal-error-handler)
+  (destructuring-bind
+      (&key (display nil display-p)
+	    (application-name nil application-name-p)
+	    (application-class nil application-class-p))
+      (cdr server-path)
+    (let ((args nil))
+      (when display-p (setf (getf args :host) display))
+      (when application-name-p (setf (getf args :application-name) application-name))
+      (when application-class-p (setf (getf args :application-class) application-class))
+      (multiple-value-bind (context display application-shell)
+	  (apply #'tk::initialize-toolkit args)
+	(setf (slot-value port 'application-shell) application-shell
+	      (slot-value port 'context) context
+	      (slot-value port 'display) display
+	      (port-depth port) (x11:xdefaultdepth display (tk::display-screen-number display))
+	      (port-visual-class port) (tk::screen-root-visual-class (tk::default-screen display))
+	      (slot-value port 'silica::default-palette) 
+	      (make-palette port :colormap 
+			    (tk::default-colormap (port-display port))))
+	(let* ((screen (x11:xdefaultscreenofdisplay display))
+	       (bs-p (not (zerop (x11::screen-backing-store screen))))
+	       (su-p (not (zerop (x11::screen-save-unders screen))))
+	       (vendor (ff:char*-to-string (x11::display-vendor display))))
+	  (if (and bs-p su-p
+		   ;; An amazing crock.  XXX
+		   (notany #'(lambda (x) (search x vendor)) *unreliable-server-vendors*))
+	      (setf (slot-value port 'safe-backing-store) t)))
+	(initialize-xlib-port port display)))))
 
+(defun xt-fatal-error-handler (d)
+  (excl:without-interrupts
+    (let* ((display (tk::find-object-from-address d))
+	   (context (tk::display-context display)))
+      (block done
+	(map-over-ports
+	 #'(lambda (port)
+	     (when (eq (port-context port) context)
+	       (destroy-port port)
+	       (return-from done))))))
+      (when tk::*inside-event-wait-function*
+	(throw tk::*inside-event-wait-function* :error))))
 
 (defmethod port-color-p ((port xt-port))
   (and *use-color*
@@ -326,8 +329,11 @@
     (when port
       (setq clim-event
 	(ecase (tk::event-type event)
-	  ((:map-notify :unmap-notify :selection-clear :selection-request
+	  ((:reparent-notify :selection-clear :selection-request
 	    :selection-notify :client-message :mapping-notify :no-expose)
+	   nil)
+	  ((:map-notify :unmap-notify)
+	   (sheet-mirror-map-callback event sheet)
 	   nil)
 	  (:configure-notify
 	   (sheet-mirror-resized-callback widget nil event sheet)
@@ -505,6 +511,8 @@
   ;; in ensure-blinker-for-cursor.
   (declare (ignore window))
   (when (let ((port (port sheet)))
+	  ;; why does this care about port-safe-backing-store?????
+	  ;; (cim 10/19/94) 
 	  (and port (port-safe-backing-store port)))
     (let ((window (tk::widget-window widget)))
       (unless (getf (window-property-list window) 'backing-store-on)
@@ -610,6 +618,18 @@
 					     (x11::xbuttonevent-state event))))))
       )))
 
+(defmethod sheet-mirror-map-callback (event sheet)
+  (let ((frame (pane-frame sheet)))
+    (when frame
+      (let ((state (frame-state frame)))
+	(case (tk::event-type event)
+	  (:map-notify 
+	   (when (eq state :shrunk)
+	     (note-frame-deiconified (frame-manager frame) frame)))
+	  (:unmap-notify
+	   (when (eq state :enabled)
+	     (note-frame-iconified (frame-manager frame) frame))))))))
+  
 (defmethod find-widget-class-and-initargs-for-sheet
     ((port xt-port) (parent t) (sheet basic-sheet))
   (error "we should not be here"))
@@ -672,8 +692,9 @@
   (sheet-mirror sheet))
 
 (defmethod find-shell-of-calling-frame ((sheet basic-sheet))
-  (and (pane-frame sheet)
-       (find-shell-of-calling-frame (pane-frame sheet))))
+  (let ((frame (pane-frame sheet)))
+    (and frame
+	 (find-shell-of-calling-frame frame))))
 
 (defmethod find-shell-of-calling-frame ((frame application-frame))
   (let (cf)
@@ -712,40 +733,6 @@
 (defmethod enable-xt-widget ((parent t) mirror)
   (unless (xt::is-managed-p mirror)
     (manage-child mirror)))
-
-;(defmethod enable-mirror ((port xt-port) (sheet top-level-sheet))
-;  (let* ((mirror (sheet-mirror sheet))
-; 	 (parent (widget-parent mirror)))
-;    (manage-child mirror)
-;    (xt:realize-widget parent)		; Make sure widget is realized.
-;    (let ((ussp (slot-value sheet 'silica::user-specified-size-p))
-; 	  (uspp (slot-value sheet 'silica::user-specified-position-p)))
-;      (unless (and (eq ussp :unspecified)
-; 		   (eq uspp :unspecified))
-; 	(let* ((window (tk::widget-window parent))
-; 	       (display (tk::widget-display parent))
-; 	       (size-hints (x11::xallocsizehints)))
-; 	  (tk::with-ref-par ((supplied 0))
-; 	    (when (zerop
-; 		   (x11::xgetwmnormalhints display window size-hints supplied))
-; 	      (warn "top-level-sheet had no size hints?!")
-; 	      (return-from enable-mirror))
-; 	    (let ((flags (x11::xsizehints-flags size-hints)))
-; 	      (if* (and uspp (not (eq uspp :unspecified)))
-; 		 then (setf flags (logior flags x11::uspositionhint))
-; 	       elseif (null uspp)
-; 		 then (setf flags (logandc2 flags x11::uspositionhint)))
-; 	      (if* (and ussp (not (eq ussp :unspecified)))
-; 		 then (setf flags (logior flags x11::ussizehint))
-; 	       elseif (null ussp)
-; 		 then (setf flags (logandc2 flags x11::ussizehint)))
-; 	      (setf (x11::xsizehints-flags size-hints) flags))
-; 	    (x11::xsetwmnormalhints display window size-hints)))))
-;    (popup parent)))
- 
-;(defmethod enable-xt-widget ((parent top-level-shell) mirror)
-;  (manage-child mirror)
-;  (popup (widget-parent mirror)))
 
 (defmethod disable-mirror ((port xt-port) sheet)
   (let ((mirror (sheet-mirror sheet)))
@@ -1072,7 +1059,12 @@
 (define-xt-keysym (keysym 255 255) :rubout)
 (define-xt-keysym (keysym 255 008) :backspace)
 (define-xt-keysym (keysym 009 227) :page)
-;;(define-xt-keysym (keysym 255 010) :linefeed)
+
+;;; this was being immediately redefined to be :newline causing
+;;; redefinition warning. Why does clim have separate :linefeed and
+;;; :newline keysyms? (cim)
+#+ignore (define-xt-keysym (keysym 255 010) :linefeed)
+
 (define-xt-keysym (keysym 255 027) :escape)
 ;;;---
 (define-xt-keysym (keysym 255 010) :newline)
@@ -1177,46 +1169,50 @@
 (defun lookup-character-and-keysym (sheet mirror event)
   (declare (ignore mirror)
 	   (optimize (speed 3) (safety 0)))
-  (multiple-value-bind (character keysym)
-      (tk::lookup-string event (port-compose-status (port sheet)))
-    (setq character (and (= (length (the simple-string character)) 1)
-			 (aref (the simple-string character) 0)))
-    ;;--- Map the asci control-characters into the common lisp
-    ;;--- control characters except where they are special!
-    ;; Also deal with the modifier bits
-    ;; This gets stuff wrong because for example to type-< you have to
-    ;; use the shift key and so instead for m-< you aget m-sh-<
-    ;; Perhaps there is a way of checking to see whether shifting
-    ;; makes sense given the keyboard layout!
-    (when character
-      (let ((x (state->modifiers
-		(x11::xkeyevent-state event))))
-	(setq character (cltl1:make-char
-			 (if (and (<= (char-int character) 26)
-				  (not (member character 
-					       '(#\return 
-						 #\tab
-						 #\page
-						 #\backspace
-						 #\linefeed
-						 #\escape)
-					       :test #'eq)))
-			     (cltl1::int-char
-			      (+ (cltl1::char-int character)
-				 (1- (if (logtest x +shift-key+)
-					 (char-int #\A)
-				       (char-int #\a)))))
-			   character)
-			 (logior
-			  (if (logtest x +control-key+)
-			      cltl1:char-control-bit 0)
-			  (if (logtest x +meta-key+)
-			      cltl1:char-meta-bit 0)
-			  (if (logtest x +super-key+)
-			      cltl1:char-super-bit 0)
-			  (if (logtest x +hyper-key+)
-			      cltl1:char-hyper-bit 0))))))
-    (values character (xt-keysym->keysym keysym))))
+  (let ((port (port sheet)))
+    (multiple-value-bind (character keysym)
+	(tk::lookup-string event 
+			   (if port 
+			       (port-compose-status port)
+			     0))
+      (setq character (and (= (length (the simple-string character)) 1)
+			   (aref (the simple-string character) 0)))
+      ;;--- Map the asci control-characters into the common lisp
+      ;;--- control characters except where they are special!
+      ;; Also deal with the modifier bits
+      ;; This gets stuff wrong because for example to type-< you have to
+      ;; use the shift key and so instead for m-< you aget m-sh-<
+      ;; Perhaps there is a way of checking to see whether shifting
+      ;; makes sense given the keyboard layout!
+      (when character
+	(let ((x (state->modifiers
+		  (x11::xkeyevent-state event))))
+	  (setq character (cltl1:make-char
+			   (if (and (<= (char-int character) 26)
+				    (not (member character 
+						 '(#\return 
+						   #\tab
+						   #\page
+						   #\backspace
+						   #\linefeed
+						   #\escape)
+						 :test #'eq)))
+			       (cltl1::int-char
+				(+ (cltl1::char-int character)
+				   (1- (if (logtest x +shift-key+)
+					   (char-int #\A)
+					 (char-int #\a)))))
+			     character)
+			   (logior
+			    (if (logtest x +control-key+)
+				cltl1:char-control-bit 0)
+			    (if (logtest x +meta-key+)
+				cltl1:char-meta-bit 0)
+			    (if (logtest x +super-key+)
+				cltl1:char-super-bit 0)
+			    (if (logtest x +hyper-key+)
+				cltl1:char-hyper-bit 0))))))
+      (values character (xt-keysym->keysym keysym)))))
 
 
 (defun state->modifiers (x)
@@ -1229,11 +1225,14 @@
     (if (logtest x x11:mod2mask) +super-key+ 0)
     (if (logtest x x11:mod3mask) +hyper-key+ 0)))
 
+(defvar *in-find-widget-name-and-class-hack*
+    nil)
 
 (defmethod find-widget-name-and-class
     ((port xt-port) (parent t) (sheet mirrored-sheet-mixin))
   (multiple-value-bind (class initargs)
-      (find-widget-class-and-initargs-for-sheet port parent sheet)
+      (let ((*in-find-widget-name-and-class-hack* t))
+	(find-widget-class-and-initargs-for-sheet port parent sheet))
     (values (tk::tkify-lisp-name (or (getf initargs :name)
 				     class))
 	    (tk::tkify-lisp-name class :class t))))
@@ -1248,7 +1247,13 @@
     (get-xt-resources port names classes)))
 
 (defmethod get-sheet-resources ((port xt-port) sheet)
-  (let ((parent-widget (sheet-mirror (sheet-parent sheet))))
+  ;; perhaps this should be (find-widget-parent port sheet) so that
+  ;; the top level shell widget is included for top-level-sheets 
+  ;; However, changing this introduces a problem because another top
+  ;; level shell is created when this sheet is finally mirrored -
+  ;; hence causing a memory leak. (cim) 1/7/94
+  (let ((parent-widget #-ignore (sheet-mirror (sheet-parent sheet))
+		       #+ignore (find-widget-parent port sheet)))
     (multiple-value-bind (names classes)
 	(tk::widget-resource-name-and-class parent-widget)
       (multiple-value-bind (name class)
@@ -1257,6 +1262,9 @@
 	  (setq names (append names (list name))
 		classes (append classes (list class))))
 	(get-xt-resources port names classes)))))
+
+;; --- these should be defresource'd otherwise there may be problems with
+;; multiple concurrent queries (cim 8/94) 
 
 (defvar *resource-name* (make-string 40))
 (defvar *resource-class* (make-string 40))
@@ -1316,6 +1324,14 @@
 	 (parse-text-style spec)
        (let ((font-name (or (and (stringp spec) spec)
 			    text-style)))
+
+	 ;; device fonts should be cached - cos otherwise this is
+	 ;; very inefficient if the server doesn't notice that it's
+	 ;; the same font name (cim 1/7/94)
+	 ;; in fact it's so bad - let's not support them till this is
+	 ;; fixed
+	 (error "Named fonts not supported")
+	 #+ignore
 	 (silica::make-device-font port 
 				   (make-instance 'tk::font 
 				     :display display
@@ -1459,7 +1475,6 @@ the geometry of the children. Instead the parent has control. "))
      :gadget sheet
      :value value)))
 
-
 (defun find-sheet-from-widget-address (address)
   (let* ((widget (tk::find-object-from-address address))
 	 (display (tk::widget-display widget))
@@ -1471,13 +1486,11 @@ the geometry of the children. Instead the parent has control. "))
 	((not errorp))
 	(t (error "Could not find sheet for widget ~S" widget))))
 
-      
 (defun find-port-from-display (display)
   (find-if #'(lambda (port)
 	       (and (typep port 'xt-port)
 		    (eq (port-display port) display)))
 	   *ports*))
-
 
 (defmethod port-canonicalize-gesture-spec 
     ((port xt-port) gesture-spec &optional modifier-state)
@@ -1485,7 +1498,7 @@ the geometry of the children. Instead the parent has control. "))
   (multiple-value-bind (keysym shifts)
       (if modifier-state
 	  (values gesture-spec modifier-state)
-	  (parse-gesture-spec gesture-spec))
+	(parse-gesture-spec gesture-spec))
     ;; Here, we must take the gesture spec, turn it back into
     ;; a keycode, then see what the keysyms are for that keycode
     (let ((x-keysym 
@@ -1544,37 +1557,44 @@ the geometry of the children. Instead the parent has control. "))
   (x11:xlowerwindow (port-display port)
 		    (tk::widget-window (tk::widget-parent (sheet-mirror sheet)))))
 
-
 (defmethod enable-mirror ((port xt-port) (sheet top-level-sheet))
   (let* ((mirror (sheet-mirror sheet))
- 	 (parent (widget-parent mirror)))
+ 	 (parent (widget-parent mirror))
+	 (display (tk::widget-display parent)))
     (manage-child mirror)
     (xt:realize-widget parent)		; Make sure widget is realized.
-    (let ((ussp (slot-value sheet 'silica::user-specified-size-p))
- 	  (uspp (slot-value sheet 'silica::user-specified-position-p)))
-      (unless (and (eq ussp :unspecified)
- 		   (eq uspp :unspecified))
- 	(let* ((window (tk::widget-window parent))
- 	       (display (tk::widget-display parent))
- 	       (size-hints (x11::xallocsizehints)))
- 	  (tk::with-ref-par ((supplied 0))
- 	    (when (zerop
- 		   (x11::xgetwmnormalhints display window size-hints supplied))
- 	      (warn "top-level-sheet had no size hints?!")
- 	      (return-from enable-mirror))
- 	    (let ((flags (x11::xsizehints-flags size-hints)))
- 	      (if* (and uspp (not (eq uspp :unspecified)))
- 		 then (setf flags (logior flags x11::uspositionhint))
- 	       elseif (null uspp)
- 		 then (setf flags (logandc2 flags x11::uspositionhint)))
- 	      (if* (and ussp (not (eq ussp :unspecified)))
- 		 then (setf flags (logior flags x11::ussizehint))
- 	       elseif (null ussp)
- 		 then (setf flags (logandc2 flags x11::ussizehint)))
- 	      (setf (x11::xsizehints-flags size-hints) flags))
- 	    (x11::xsetwmnormalhints display window size-hints)))))
+    (let ((window (tk::widget-window parent)))
+      (x11:xdefinecursor display window
+			 (realize-cursor port sheet 
+					 (or (sheet-pointer-cursor sheet)
+					     :default)))      
+      (let ((ussp (slot-value sheet 'silica::user-specified-size-p))
+	    (uspp (slot-value sheet 'silica::user-specified-position-p)))
+	(unless (and (eq ussp :unspecified)
+		     (eq uspp :unspecified))
+	  (let ((size-hints (x11::xallocsizehints)))
+	    (tk::with-ref-par ((supplied 0))
+	      (when (zerop
+		     (x11::xgetwmnormalhints display window size-hints supplied))
+		(warn "top-level-sheet had no size hints?!")
+		(return-from enable-mirror))
+	      (let ((flags (x11::xsizehints-flags size-hints)))
+		(if* (and uspp (not (eq uspp :unspecified)))
+		   then (setf flags (logior flags x11::uspositionhint))
+		 elseif (null uspp)
+		   then (setf flags (logandc2 flags x11::uspositionhint)))
+		(if* (and ussp (not (eq ussp :unspecified)))
+		   then (setf flags (logior flags x11::ussizehint))
+		 elseif (null ussp)
+		   then (setf flags (logandc2 flags x11::ussizehint)))
+		(setf (x11::xsizehints-flags size-hints) flags))
+	      (x11::xsetwmnormalhints display window size-hints))))))
     (popup parent)))
- 
+
+;;; so is this next method ever called???? let's comment it out and
+;;; see... (cim 4/25/94)
+
+#+ignore
 (defmethod enable-xt-widget ((parent top-level-shell) (mirror t))
   (manage-child mirror)
   (popup (widget-parent mirror)))
@@ -1585,63 +1605,60 @@ the geometry of the children. Instead the parent has control. "))
     ;;--- This costs a round trip to the display server.  A better
     ;;--- scheme would be to have the map/unmap-notify set a flag
     ;;--- that we could simply read here, as in CLIM 1.1
-    ;;--- What does unviewable mean?
-    (not (eq (tk::window-map-state (tk::widget-window mirror)) :unmapped))))
+    (eq (tk::window-map-state (tk::widget-window mirror))
+	:viewable)))
 
 ;;;---- Cursor stuff
 
-(defvar *xt-cursor-type-alist*
-	'((:default 132)
-	  (:vertical-scroll 116)
-	  (:scroll-up 114)
-	  (:scroll-down 106)
-	  (:horizontal-scroll 108)
-	  (:scroll-left 110)
-	  (:scroll-right 112)
-	  (:busy 150)
-	  (:upper-left 134)
-	  (:upper-right 136)
-	  (:lower-left 12)
-	  (:lower-right 14)
-	  (:vertical-thumb 112)
-	  (:horizontal-thumb 114)
-	  (:button 132)
-	  (:prompt 132)
-	  (:move 52)
-	  (:position 34)))
+;;; if you're feeling bored extend and replace constants with
+;;; x11:xc-xxx
 
-
+(defparameter *xt-cursor-type-alist*
+    `((:default 68)
+      (:vertical-scroll 116)
+      (:scroll-up 114)
+      (:scroll-down 106)
+      (:horizontal-scroll 108)
+      (:scroll-left 110)
+      (:scroll-right 112)
+      (:busy 150)
+      (:upper-left 134)
+      (:upper-right 136)
+      (:lower-left 12)
+      (:lower-right 14)
+      (:vertical-thumb 112)
+      (:horizontal-thumb 114)
+      (:button 68)
+      (:prompt 68)
+      (:move 52)
+      (:position 34)
+      (:menu ,x11:xc-arrow)))
 
 (defmethod port-set-pointer-cursor ((port xt-port) pointer cursor)
   (unless (eq (pointer-cursor pointer) cursor)
-    (let* ((cursor (and cursor (realize-cursor port nil cursor)))
+    (let* ((cursor (realize-cursor port nil cursor))
+	   (sheet (pointer-sheet pointer))
 	   (widget (sheet-direct-mirror 
-		     (let ((frame (pane-frame (pointer-sheet pointer))))
-		       (if frame
-			   (frame-top-level-sheet frame)
-			   (pointer-sheet pointer)))))
+		    (let ((frame (pane-frame sheet)))
+		      (if frame
+			  (frame-top-level-sheet frame)
+			sheet))))
 	   (window (and widget (tk::widget-window widget nil))))
       (when window
-	(if cursor
-	    (x11:xdefinecursor
-	     (port-display port) window cursor)
-	  (x11:xundefinecursor
-	   (port-display port) window))
-	(port-force-output port)))
-    cursor))
+	(x11:xdefinecursor
+	 (port-display port) window cursor)
+	(port-force-output port))))
+  cursor)
 
 
 (defmethod port-set-sheet-pointer-cursor ((port xt-port) sheet cursor)
   (unless (eq (sheet-pointer-cursor sheet)  cursor)
-    (let* ((cursor (and cursor (realize-cursor port sheet cursor)))
+    (let* ((cursor (realize-cursor port sheet cursor))
 	   (widget (sheet-mirror sheet))
 	   (window (tk::widget-window widget nil)))
       (when window
-	(if cursor
-	    (x11:xdefinecursor
-	     (port-display port) window cursor)
-	  (x11:xundefinecursor
-	   (port-display port) window))
+	(x11:xdefinecursor
+	 (port-display port) window cursor)
 	(port-force-output port))))
   cursor)
 
@@ -1649,18 +1666,21 @@ the geometry of the children. Instead the parent has control. "))
   (with-slots (cursor-cache) port
     (or (getf cursor-cache cursor)
 	(setf (getf cursor-cache cursor)
-	      (call-next-method)))))
+	  (call-next-method)))))
+
+(defmethod realize-cursor ((port xt-port) sheet (cursor null))
+  x11:none)
 
 (defmethod realize-cursor ((port xt-port) sheet (cursor symbol))
   (let ((cursor (or (second (assoc cursor *xt-cursor-type-alist*))
-		    132)))
+		    (error "Unknown cursor name: ~S" cursor))))
     (realize-cursor port sheet cursor)))
 
 (defmethod realize-cursor ((port xt-port) sheet (cursor number))
   (declare (ignore sheet))
-  (x11:xcreatefontcursor
-   (port-display port)
-   cursor))
+  (x11:xcreatefontcursor (port-display port) cursor))
+
+;;;--could this be made to use pixmap-from pattern in xt-graphics?
 
 (defmethod realize-cursor ((port xt-port) sheet (cursor pattern))
   (multiple-value-bind (array designs)
@@ -1773,24 +1793,22 @@ the geometry of the children. Instead the parent has control. "))
 
 (defvar *pointer-grabbed* nil)
 
-
-(defmethod port-invoke-with-pointer-grabbed ((port xt-port) (sheet basic-sheet) continuation 
-								    &key
-								    confine-to cursor
-								    (ungrab-on-error t))
+(defmethod port-invoke-with-pointer-grabbed
+    ((port xt-port) (sheet basic-sheet) continuation 
+     &key confine-to cursor (ungrab-on-error t))
   (let ((widget (sheet-mirror sheet)))
     (unwind-protect
 	(progn
 	  (tk::xt_grab_pointer
 	   widget 
-	   ;;---- Are these parameters correct????
-	   0				; owner-events
-	   (xt-grabbed-event-mask)
-					; Event-mask
+	   ;; we make this true so that scroll-bars can work in
+	   ;; menu-choose-from-drawer windows (cim 10/13/94)
+	   1				; owner-events
+	   (xt-grabbed-event-mask)	; Event-mask
 	   x11:grabmodeasync		; pointer-grab-mode
 	   x11:grabmodeasync		; keyboard
-	   (if confine-to widget 0)	; confine to
-	   (if cursor (realize-cursor port sheet cursor) 0)
+	   (if confine-to (tk::widget-window widget) 0) ; confine to
+	   (realize-cursor port sheet cursor)
 	   0				; current-time
 	   )
 	  (handler-bind ((error #'(lambda (condition)
@@ -1826,20 +1844,21 @@ the geometry of the children. Instead the parent has control. "))
   (fix-coordinates x y)
   (check-type x (signed-byte 16))
   (check-type y (signed-byte 16))
-  ;;--what is the right thing to do?
-  (let ((m (sheet-direct-mirror (frame-top-level-sheet frame))))
-    (tk::set-values m :x x :y y)))
-
+  (tk::set-values (frame-shell frame) :x x :y y))
 
 (defmethod port-resize-frame ((port xt-port) frame width height)
   (check-type width (signed-byte 16))
   (check-type height (signed-byte 16))
   (tk::set-values (frame-shell frame) :width width :height height))
 
+;;; why don't we use the default in silica/port.lisp???
+
 (defmethod destroy-port ((port xt-port))
-  (when (port-process port)
-    (clim-sys:destroy-process (port-process port)))
-  (port-terminated port (make-condition 'error)))
+  (excl:without-interrupts
+    (tk::xt_destroy_application_context (port-context port))
+    (when (port-process port)
+      (clim-sys:destroy-process (port-process port)))
+    (port-terminated port (make-condition 'error))))
 
 (defmethod clim-internals::port-query-pointer ((port xt-port) sheet)
   (multiple-value-bind (same-p root child root-x root-y
@@ -1862,3 +1881,5 @@ the geometry of the children. Instead the parent has control. "))
 (defmacro with-toolkit-dialog-component ((tag value) &body body)
   `(letf-globally (((getf (mp:process-property-list mp:*current-process*) ',tag) ,value))
        ,@body))
+
+

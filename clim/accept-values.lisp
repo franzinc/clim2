@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept-values.lisp,v 1.73 1993/11/23 19:58:34 cer Exp $
+;; $fiHeader: accept-values.lisp,v 1.74 1993/12/07 05:33:30 colin Exp $
 
 (in-package :clim-internals)
 
@@ -278,7 +278,6 @@
 (define-application-frame accept-values-own-window (accept-values)
     ((help-window :initform nil)
      (scroll-bars :initform nil :initarg :scroll-bars)
-     (background :initform nil :initarg :background)
      (align-prompts :initform nil :initarg :align-prompts))
     (:pane 
      (let ((frame *application-frame*)
@@ -338,7 +337,7 @@
 
 (defun invoke-accepting-values (stream continuation
 				 &key frame-class command-table
-				      own-window background
+				      own-window background foreground text-style
 				      (exit-boxes 
 					(frame-manager-default-exit-boxes
 					  (frame-manager stream)))
@@ -386,6 +385,8 @@
 			:resize-frame resize-frame
 			:scroll-bars scroll-bars
 			:background background
+			:foreground foreground
+			:text-style text-style
 			:align-prompts align-prompts
 			:view view)))
 	   (when command-table
@@ -532,7 +533,8 @@
 		         #'(lambda (pane w h)
 			     (change-space-requirements pane 
 			       :width w :min-width w :max-width w
-			       :height h :min-height h :max-height h))))
+			       :height h :min-height h :max-height h))
+			 :right-margin 0 :bottom-margin 0))
 		     (when own-window
 		       (size-frame-from-contents own-window
 			 :width own-window-width
@@ -626,7 +628,6 @@
 
 (defmethod invoke-with-aligned-prompts ((stream accept-values-stream) continuation 
 								      &key (align-prompts t))
-  (declare (dynamic-extent continuation))
   (setq align-prompts (ecase align-prompts
 			((t :right) :right)
 			((:left) :left)
@@ -639,7 +640,6 @@
 
 (defmethod invoke-with-aligned-prompts ((stream t) continuation &key align-prompts)
   (declare (ignore align-prompts))
-  (declare (dynamic-extent continuation))
   (funcall continuation stream))
 
 (defmethod frame-manager-display-input-editor-error
@@ -710,7 +710,8 @@
 
 (define-presentation-type accept-values-exit-box ())
 
-(defmacro with-exit-box-decoded ((value label text-style documentation) exit-box labels &body body)
+(defmacro with-exit-box-decoded ((value label text-style documentation show-as-default)
+				 exit-box labels &body body)
   `(let* ((,value (if (consp ,exit-box) (first ,exit-box) ,exit-box))
 	  (,label (or (and (consp ,exit-box)
 			   (second ,exit-box))
@@ -720,7 +721,10 @@
 			   (getf (cddr (assoc ,value ,labels)) :text-style)))
 	  (,documentation (or (and (consp ,exit-box)
 				   (getf (cddr ,exit-box) :documentation))
-			      (getf (cddr (assoc ,value ,labels)) :documentation))))
+			      (getf (cddr (assoc ,value ,labels)) :documentation)))
+	  (,show-as-default (or (and (consp ,exit-box)
+			     (getf (cddr ,exit-box) :show-as-default))
+			(getf (cddr (assoc ,value ,labels)) :show-as-default))))
      ,@body))
 
 ;;; Applications can create their own AVV class and specialize this method in
@@ -735,8 +739,9 @@
     (updating-output (stream :unique-id stream :cache-value 'exit-boxes)
       (with-slots (exit-boxes) frame
 	(dolist (exit-box exit-boxes)
-	  (with-exit-box-decoded (value label text-style documentation) exit-box labels
-	    (declare (ignore documentation))
+	  (with-exit-box-decoded (value label text-style documentation show-as-default)
+	    exit-box labels
+	    (declare (ignore documentation show-as-default))
 	    (when label
 	      (with-text-style (stream text-style)
 		(with-output-as-presentation (stream value 'accept-values-exit-box)
@@ -937,7 +942,7 @@
   (let ((frame *application-frame*))
     (with-slots (stream) frame
       (when (verify-queries frame stream (slot-value stream 'avv-record))
-	(frame-exit *application-frame*)))))
+	(frame-exit frame)))))
 
 
 (defun verify-queries (frame stream avv-record)
@@ -1448,20 +1453,22 @@
 			       :cache-value 'exit-boxes)
 	(formatting-table (stream :equalize-column-widths nil)
 	  (dolist (exit-box exit-boxes)
-	    (with-exit-box-decoded (value label text-style documentation) exit-box labels
-		(when label
+	    (with-exit-box-decoded (value label text-style documentation show-as-default)
+	      exit-box labels
+	      (when label
 		(when text-style
 		  (setq text-style `(:text-style ,text-style)))
 		(formatting-column (stream)
 		  (formatting-cell (stream)
 		    (with-output-as-gadget (stream)
 		      (apply #'make-pane 'push-button
-			:label label
-			:help-callback documentation
-			:client frame :id value
-			:activate-callback #'handle-exit-box-callback
-			:name :accept-values-exit-button
-			text-style))))))))))))
+			     :label label
+			     :help-callback documentation
+			     :client frame :id value
+			     :activate-callback #'handle-exit-box-callback
+			     :name :accept-values-exit-button
+			     :show-as-default show-as-default
+			     text-style))))))))))))
 
 (defun handle-exit-box-callback (gadget)
   (if *editting-field-p*
@@ -1509,16 +1516,17 @@
 
 ;; This is how we associate an output-record with the button
 
-(defun invoke-accept-values-command-button (stream continuation view prompt
-					    &rest options
-					    &key (documentation (if (stringp prompt)
-								    prompt
-								  ;;-- What is the right thing to do?
-								  (ignore-errors
-								   (with-output-to-string (stream)
-								     (funcall prompt stream)))))
-						 (query-identifier (list ':button documentation))
-					    &allow-other-keys)
+(defun invoke-accept-values-command-button
+    (stream continuation view prompt
+     &rest options
+     &key (documentation (if (stringp prompt)
+			     prompt
+			   ;;-- What is the right thing to do?
+			   (ignore-errors
+			    (with-output-to-string (stream)
+			      (funcall prompt stream)))))
+	  (query-identifier (list ':button documentation))
+     &allow-other-keys)
   (typecase view
     (null)
     (symbol (setq view (make-instance view)))
@@ -1617,7 +1625,10 @@
 
 
 
-(defmethod clim-internals::frame-manager-position-dialog ((framem standard-frame-manager)
+;;; why do we need this - doesn't update-frame-settings do this for
+;;; us?
+
+(defmethod frame-manager-position-dialog ((framem standard-frame-manager)
 							  frame
 							  own-window-x-position own-window-y-position)
   (multiple-value-bind (x y)

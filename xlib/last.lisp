@@ -20,10 +20,10 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: last.lisp,v 1.3 92/02/24 13:06:34 cer Exp $
+;; $fiHeader: last.lisp,v 1.4 1993/07/27 01:59:01 colin Exp $
 
 (in-package :x11)
 
 (defforeign-functions-now)
 
-
+(provide :clim-debug)

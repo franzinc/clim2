@@ -42,11 +42,7 @@ Cursor cursor;
 
     if (gc_widget && (window = XtWindow(gc_widget))) {
 	Display *display = XtDisplayOfObject(gc_widget);
-
-	if (cursor)
-	    XDefineCursor(display, window, cursor);
-	else
-	    XUndefineCursor(display, window);
+	XDefineCursor(display, window, cursor);
 	XFlush(display);
     }
 }

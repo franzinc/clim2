@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xlib.lisp,v 1.49 1993/09/17 19:06:49 cer Exp $
+;; $fiHeader: xlib.lisp,v 1.51 1994/11/23 23:29:16 smh Exp $
 
 (in-package :tk)
 
@@ -190,21 +190,32 @@
     (setf (foreign-pointer-address db) (x11:xrmgetstringdatabase ""))))
 
 (defun get-resource (db name class)
-  (with-ref-par ((type 0))
+  (with-ref-par ((type-ref 0))
     (let ((xrmvalue (x11:make-xrmvalue)))
       (unless (zerop (x11:xrmgetresource db 
 					 name
 					 class
-					 type xrmvalue))
-	(values (char*-to-string (x11:xrmvalue-addr xrmvalue))
-		(char*-to-string (aref type 0)))))))
+					 type-ref xrmvalue))
+	(let ((type (char*-to-string (aref type-ref 0))))
+	  (values
+	   
+	   (cond
+	    ((equal type "String")
+	     (char*-to-string (x11:xrmvalue-addr xrmvalue)))
+	    ((equal type "Pixel")
+	     (sys::memref-int (x11:xrmvalue-addr xrmvalue) 0 0
+			      :unsigned-long))
+	    (t
+	     (error "Unknown resource type: ~A" type)))
+	   type))))))
 
 (defun convert-string (widget string to-type)
   (let ((from (x11:make-xrmvalue))
 	(to-in-out (x11:make-xrmvalue)))
     (setf (x11:xrmvalue-size from) (1+ (length string))
-	  ;;-- allocate-no-free
-	  (x11:xrmvalue-addr from) (progn (incf *string-counter* (length string)) (string-to-char* string))
+	  (x11:xrmvalue-addr from)
+	  (note-malloced-object
+	   (string-to-char* string))
 	  (x11:xrmvalue-addr to-in-out) 0)
     (unless (zerop (xt::xt_convert_and_store widget "String" from to-type
 				      to-in-out))
@@ -248,15 +259,14 @@
 	    resourceid)))
 
 (defun-c-callable x-error-handler ((display :unsigned-long) (event :unsigned-long))
-  (let ((*error-output* excl:*initial-terminal-io*))
-    (error 'x-error
-	   :display display
-	   :error-code (x11:xerrorevent-error-code event)
-	   :request-code (x11:xerrorevent-request-code event)
-	   :minor-code (x11:xerrorevent-minor-code event)
-	   :resourceid (x11:xerrorevent-resourceid event)
-	   :serial (x11:xerrorevent-serial event)
-	   :current-serial (x11:display-request display))))
+  (error 'x-error
+	 :display display
+	 :error-code (x11:xerrorevent-error-code event)
+	 :request-code (x11:xerrorevent-request-code event)
+	 :minor-code (x11:xerrorevent-minor-code event)
+	 :resourceid (x11:xerrorevent-resourceid event)
+	 :serial (x11:xerrorevent-serial event)
+	 :current-serial (x11:display-request display)))
 
 (define-condition x-connection-lost (error)
   ((display :reader x-error-display :initarg :display))
@@ -267,15 +277,12 @@
       (format stream "Xlib: Connection to X11 server '~a' lost"
 	      (ff:char*-to-string (x11:display-display-name display)))))
 
-(defvar *inside-event-wait-function* nil)
+(defvar *x-io-error-hook* nil)
 
 (defun-c-callable x-io-error-handler ((display :unsigned-long))
-  (if *inside-event-wait-function*
-      (throw *inside-event-wait-function* :error)
-    (let ((*error-output* excl:*initial-terminal-io*))
-      (error 'x-connection-lost :display display))))
-
-
+  (when *x-io-error-hook*
+    (funcall *x-io-error-hook* display))
+  (error 'x-connection-lost :display display))
 
 (defun get-error-text (code display-handle)
   (let ((s (make-string 1000)))
@@ -445,15 +452,23 @@
    pixel
    flags))
 
-(defvar *xcolor-array* (x11:make-xcolor-array :number 16))
-(defvar *xcolor-array-size* 16)
-
-(defun get-xcolor-array (n)
-  (when (> n *xcolor-array-size*)
-    (setq *xcolor-array-size* n
-	  *xcolor-array* (x11:make-xcolor-array :number n)))
-  *xcolor-array*)
-
+(defmacro def-foreign-array-resource (name constructor)
+  `(progn
+     (clim-sys:defresource ,name (n)
+       :constructor (cons n (,constructor :number n))
+       :matcher (not (< (car ,name) n)))
+     (defmacro ,(intern (format nil "~A-~A" 'with name))
+	 ((var n) &body body)
+       `(clim-sys:using-resource (,var ,',name ,n)
+	  (let ((,var (cdr ,var)))
+	    ,@body)))))
+    
+(def-foreign-array-resource xcolor-array x11:make-xcolor-array)
+(def-foreign-array-resource xsegment-array x11:make-xsegment-array)
+(def-foreign-array-resource xpoint-array x11:make-xpoint-array)
+(def-foreign-array-resource xrectangle-array x11:make-xrectangle-array)
+(def-foreign-array-resource xarc-array x11:make-xarc-array)
+  
 (defun store-colors (colormap colors ncolors)
   (x11:xstorecolors
    (object-display colormap)
@@ -709,6 +724,37 @@
      dest-y
      (image-width image)
      (image-height image))))
+
+(defmethod get-image (pixmap &key (x 0) (y 0) 
+				  (width (pixmap-width pixmap))
+				  (height (pixmap-height pixmap))
+				  (format x11:zpixmap))
+  (let* ((display (object-display pixmap))
+	 (data (make-array (list height width)))
+	 (image (make-instance 'image
+		  :width width
+		  :height height
+		  :data data
+		  :depth (pixmap-depth pixmap)
+		  :format format
+		  :foreign-address (x11:xgetimage display
+						  pixmap
+						  x
+						  y
+						  width
+						  height
+						  #xff
+						  format))))
+    (push display (realized-displays image))
+    (dotimes (h height)
+      (dotimes (w width)
+	(setf (aref data h w)
+	  (x11:xgetpixel image w h))))
+    image))
+
+
+;;--- calls to this should be replaced by the new and more general
+;; get-image defined above (cim 9/12/94)
 
 (defun image-from-pixmap (pixmap)
   (x11:xgetimage

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-funs.lisp,v 1.22 1993/10/25 16:16:31 cer Exp $
+;; $fiHeader: xt-funs.lisp,v 1.24 1994/11/23 23:29:18 smh Exp $
 
 
 ;;
@@ -72,6 +72,12 @@
     :arg-checking nil
     :return-type :unsigned-integer)
 
+(defforeign 'xt_destroy_application_context
+    :entry-point (ff:convert-to-lang "XtDestroyApplicationContext")
+    :call-direct t
+    :arguments '(foreign-address)
+    :arg-checking nil
+    :return-type :unsigned-integer)
 
 (defforeign 'xt_app_set_error_handler
     :entry-point (ff:convert-to-lang "XtAppSetErrorHandler")
@@ -92,6 +98,13 @@
     :call-direct t
     :arguments '(foreign-address foreign-address foreign-address foreign-address
 		 foreign-address fixnum foreign-address foreign-address)
+    :arg-checking nil
+    :return-type :unsigned-integer)
+
+(defforeign 'xt_close_display
+    :entry-point (ff:convert-to-lang "XtCloseDisplay")
+    :call-direct t
+    :arguments '(foreign-address)
     :arg-checking nil
     :return-type :unsigned-integer)
 
@@ -152,6 +165,13 @@
     :arg-checking nil
     :return-type :void)
     
+(defforeign 'xt_is_realized
+    :entry-point (ff:convert-to-lang "XtIsRealized")
+    :call-direct t
+    :arguments '(foreign-address)
+    :arg-checking nil
+    :return-type :fixnum)
+
 (defforeign 'xt_destroy_widget
     :entry-point (ff:convert-to-lang "XtDestroyWidget")
     :call-direct t
@@ -301,7 +321,7 @@
     ;; Maybe callback can be safely set to nil...
     :callback t
     :arg-checking nil
-    :return-type :unsigned-integer
+    :return-type :fixnum
     :entry-point (ff:convert-to-lang "XtAppIntervalNextTimer"))
 
 (defforeign 'xt_add_event_handler
@@ -437,4 +457,6 @@
     :arg-checking nil
     :entry-point (ff:convert-to-lang "xt_widget_num_popups")
     :return-type :fixnum)
+
+
 

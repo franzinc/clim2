@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: foreign.lisp,v 1.15 1993/07/27 01:52:52 colin Exp $
+;; $fiHeader: foreign.lisp,v 1.16 1993/10/25 16:16:25 cer Exp $
 
 (in-package :tk)
 
@@ -84,7 +84,8 @@
   (push d (application-context-displays (slot-value d 'context)))
   (setf (foreign-pointer-address d)
     (or display
-	(apply #'open-display args))))
+	(apply #'open-display args)))
+  (register-address d))
 
 (defun display-database (display)
   (make-instance 'resource-database 

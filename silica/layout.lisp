@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: layout.lisp,v 1.32 1993/06/21 20:51:19 cer Exp $
+;; $fiHeader: layout.lisp,v 1.33 1993/12/07 05:34:01 colin Exp $
 
 (in-package :silica)
 
@@ -15,7 +15,7 @@
   (print-unreadable-object (object stream :type t)
     (multiple-value-bind (width min-width max-width height min-height max-height) 
 	(space-requirement-components object)
-      (format stream "~D,~D,~D ~D,~D,~D"
+      (format stream "~D<w=~D<~D ~D<h=~D<~D"
 	min-width width max-width 
 	min-height height max-height))))
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: POSTSCRIPT-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: postscript-medium.lisp,v 1.15 93/04/23 09:18:07 cer Exp $
+;; $fiHeader: postscript-medium.lisp,v 1.16 1993/06/21 20:50:48 cer Exp $
 
 (in-package :postscript-clim)
 
@@ -43,7 +43,10 @@
     (with-slots (current-line-style) medium
       (unless (equalp current-line-style new-line-style)
 	(setq current-line-style new-line-style)
-	(format printer-stream " ~D setlinewidth~%" (round thickness))
+	(format printer-stream " ~D setlinewidth~%"
+		(if (< thickness 2)
+		    0
+		  (the fixnum (round thickness))))
 	(if dashes
 	    (progn
 	      (when (eq dashes t)
@@ -56,6 +59,25 @@
 				     (write-char #\space printer-stream)))))
 	      (format printer-stream "0 setdash~%"))
 	  (format printer-stream "[] 0 setdash~%"))))))
+
+(defun use-clip-region (medium clip-region)
+  (let ((printer-stream (slot-value medium 'printer-stream))
+	(transform (sheet-device-transformation (medium-sheet medium))))
+    (with-slots (current-clip-region) medium
+      (unless (eq current-clip-region clip-region)
+	(setq current-clip-region clip-region)
+	(if (eq clip-region +everywhere+)
+	    (format printer-stream " initclip ")
+	  (with-bounding-rectangle* (left top right bottom)
+	      clip-region
+	    (convert-to-postscript-coordinates transform
+	       left top right bottom)
+	    (format printer-stream " newpath ")
+	    (ps-pos-op medium "m" left top)
+	    (ps-pos-op medium "lineto" right top)
+	    (ps-pos-op medium "lineto" right bottom)
+	    (ps-pos-op medium "lineto" left bottom)
+	    (format printer-stream " closepath clip "))))))) ;no cr
 
 (defun color-equal (c1 c2)
   (or (eq c1 c2)
@@ -98,7 +120,9 @@
   (maybe-set-color medium (make-color-for-contrasting-ink ink)))
 
 (defmacro with-postscript-drawing-options ((medium printer-stream-var
-					    &key ink (filled nil filled-p) line-style
+					    &key ink (filled nil
+						      filled-p) line-style 
+						 clip-region
 						 epilogue (newpath t))
 					   &body body)
   (let ((printer-stream (or printer-stream-var (make-symbol (symbol-name 'printer-stream)))))
@@ -106,6 +130,7 @@
        (when (and ,@(and filled-p `((not ,filled))) ,line-style)
 	 (use-line-style ,medium ,line-style))
        (maybe-set-color ,medium ,ink)
+       (use-clip-region ,medium ,clip-region)
        ,@(when newpath `((format ,printer-stream " newpath~%")))
        ,@body
        ,@(case epilogue
@@ -118,11 +143,13 @@
 (defmethod medium-draw-point* ((medium postscript-medium) x y)
   (let* ((transform (sheet-device-transformation (medium-sheet medium)))
 	 (ink (medium-ink medium))
-	 (line-style (medium-line-style medium)))
+	 (line-style (medium-line-style medium))
+	 (clip-region (medium-clipping-region medium)))
     (convert-to-postscript-coordinates transform x y)
     (with-postscript-drawing-options (medium printer-stream
 				      :epilogue :stroke
-				      :ink ink :line-style line-style)
+				      :ink ink :line-style line-style
+				      :clip-region clip-region)
       (ps-pos-op medium "m" x y)
       (ps-rel-pos-op medium "rlineto" 0 0))
     (annotating-postscript (medium printer-stream)
@@ -132,10 +159,12 @@
 (defmethod medium-draw-points* ((medium postscript-medium) position-seq)
   (let* ((transform (sheet-device-transformation (medium-sheet medium)))
 	 (ink (medium-ink medium))
-	 (line-style (medium-line-style medium)))
+	 (line-style (medium-line-style medium))
+	 (clip-region (medium-clipping-region medium)))
     (with-postscript-drawing-options (medium printer-stream
 				      :epilogue :stroke
-				      :ink ink :line-style line-style)
+				      :ink ink :line-style line-style
+				      :clip-region clip-region)
       (map-position-sequence
 	#'(lambda (x y)
 	    (convert-to-postscript-coordinates transform x y)
@@ -146,11 +175,13 @@
 (defmethod medium-draw-line* ((medium postscript-medium) x1 y1 x2 y2)
   (let* ((transform (sheet-device-transformation (medium-sheet medium)))
 	 (ink (medium-ink medium))
-	 (line-style (medium-line-style medium)))
+	 (line-style (medium-line-style medium))
+	 (clip-region (medium-clipping-region medium)))
     (convert-to-postscript-coordinates transform x1 y1 x2 y2)
     (with-postscript-drawing-options (medium printer-stream
 				      :epilogue :stroke
-				      :ink ink :line-style line-style)
+				      :ink ink :line-style line-style
+				      :clip-region clip-region)
       (ps-pos-op medium "m" x1 y1)
       (ps-pos-op medium "lineto" x2 y2))
     (annotating-postscript (medium printer-stream)
@@ -160,10 +191,12 @@
 (defmethod medium-draw-lines* ((medium postscript-medium) position-seq)
   (let* ((transform (sheet-device-transformation (medium-sheet medium)))
 	 (ink (medium-ink medium))
-	 (line-style (medium-line-style medium)))
+	 (line-style (medium-line-style medium))
+	 (clip-region (medium-clipping-region medium)))
     (with-postscript-drawing-options (medium printer-stream
 				      :epilogue :stroke
-				      :ink ink :line-style line-style)
+				      :ink ink :line-style line-style
+				      :clip-region clip-region)
       (map-endpoint-sequence
 	#'(lambda (x1 y1 x2 y2)
 	    (convert-to-postscript-coordinates transform x1 y1 x2 y2)
@@ -175,12 +208,15 @@
 				   left top right bottom filled)
   (let* ((transform (sheet-device-transformation (medium-sheet medium)))
 	 (ink (medium-ink medium))
-	 (line-style (medium-line-style medium)))
+	 (line-style (medium-line-style medium))
+	 (clip-region (medium-clipping-region medium)))
     (convert-to-postscript-coordinates transform
       left top right bottom)
     (with-postscript-drawing-options (medium printer-stream
 				      :epilogue :default
-				      :ink ink :filled filled :line-style line-style)
+				      :ink ink :filled filled
+				      :line-style line-style
+				      :clip-region clip-region)
       (ps-pos-op medium "m" left top)
       (ps-pos-op medium "lineto" right top)
       (ps-pos-op medium "lineto" right bottom)
@@ -193,10 +229,13 @@
 (defmethod medium-draw-rectangles* ((medium postscript-medium) position-seq filled)
   (let* ((transform (sheet-device-transformation (medium-sheet medium)))
 	 (ink (medium-ink medium))
-	 (line-style (medium-line-style medium)))
+	 (line-style (medium-line-style medium))
+	 (clip-region (medium-clipping-region medium)))
     (with-postscript-drawing-options (medium printer-stream
 				      :epilogue :default
-				      :ink ink :filled filled :line-style line-style)
+				      :ink ink :filled filled
+				      :line-style line-style
+				      :clip-region clip-region)
       (map-endpoint-sequence
 	#'(lambda (left top right bottom)
 	    (convert-to-postscript-coordinates transform
@@ -212,6 +251,7 @@
   (let* ((transform (sheet-device-transformation (medium-sheet medium)))
 	 (ink (medium-ink medium))
 	 (line-style (medium-line-style medium))
+	 (clip-region (medium-clipping-region medium))
 	 (minx most-positive-fixnum)
 	 (miny most-positive-fixnum)
 	 (length (length position-seq)))
@@ -228,7 +268,9 @@
 	  (if (< y miny) (setq miny y))))
       (with-postscript-drawing-options (medium printer-stream
 					:epilogue :default
-					:ink ink :filled filled :line-style line-style)
+					:ink ink :filled filled
+					:line-style line-style
+					:clip-region clip-region)
 	(let ((start-x (svref points 0))
 	      (start-y (svref points 1)))
 	  (ps-pos-op medium "m" start-x start-y)
@@ -250,7 +292,8 @@
   (maybe-send-feature medium 'ellipse *ps-ellipse-code*)
   (let* ((transform (sheet-device-transformation (medium-sheet medium)))
 	 (ink (medium-ink medium))
-	 (line-style (medium-line-style medium)))
+	 (line-style (medium-line-style medium))
+	 (clip-region (medium-clipping-region medium)))
     (convert-to-postscript-coordinates transform center-x center-y)
     (convert-to-postscript-distances transform 
       radius-1-dx radius-1-dy radius-2-dx radius-2-dy)
@@ -271,7 +314,9 @@
 		     (* (cos a) y-radius))))
 	(with-postscript-drawing-options (medium printer-stream
 					  :epilogue :default
-					  :ink ink :filled filled :line-style line-style)
+					  :ink ink :filled filled
+					  :line-style line-style
+					  :clip-region clip-region)
 	  (ps-pos-op medium "ellipse" center-x center-y
 		     x-radius y-radius
 		     ;; Don't allow the common full-circle case to be
@@ -302,7 +347,8 @@
     (setq end (length string)))
   (let* ((transform (sheet-device-transformation (medium-sheet medium)))
 	 (ink (medium-ink medium))
-	 (text-style (medium-merged-text-style medium)))
+	 (text-style (medium-merged-text-style medium))
+	 (clip-region (medium-clipping-region medium)))
     (convert-to-postscript-coordinates transform x y)
     (when towards-x
       (convert-to-postscript-coordinates transform towards-x towards-y))
@@ -325,7 +371,8 @@
       (ps-pos-op medium "m" x y)
       (with-postscript-drawing-options (medium printer-stream
 					       :epilogue nil :newpath nil
-					       :ink ink)
+					       :ink ink
+					       :clip-region clip-region)
 	(if towards-x
 	    (with-postscript-gsave medium 
 	      (format printer-stream " currentpoint translate ~D rotate "

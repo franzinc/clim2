@@ -1,8 +1,7 @@
-# $fiHeader: Makefile.generic,v 1.23 1993/11/24 03:56:46 duane Exp $
+# $fiHeader: Makefile.generic,v 1.26 1994/11/23 23:28:33 smh Exp $
 #
 #  Makefile.generic for CLIM 2.0
 #
-
 
 FORCE:
 
@@ -19,48 +18,41 @@ all-ol:	compile-ol cat-ol clim-ol
 
 compile-xm:	$(MOTIF_OBJS) FORCE
 	$(ECHO) "\
-	(si::system-compile-wrapper \
-	 (function \
-	  (lambda () \
-	    (load-logical-pathname-translations \"clim2\") \
-	    (setq *compile-print* $(COMPILE_PRINT)) \
-	    (setq sys::*libxt-pathname* \"$(XTLIB)\") \
-	    (setq sys::*libx11-pathname* \"$(XLIB)\") \
-	    (setq sys::*clim-motif-pathname* \"clim-motif$(DEBUGLIB).o\") \
-	    (setq *ignore-package-name-case* t) \
-	    (set-case-mode :case-insensitive-lower) \
-	    (load \"misc/compile-1.lisp\") \
-	    (compile-it 'motif-clim))) \
-	 :speed $(SPEED) :debug $(DEBUG) :safety $(SAFETY) \
-	 :record-source-file-info $(RECORD_SOURCE_FILE_INFO) \
-	 :record-xref-info $(RECORD_XREF_INFO) \
-	 :load-source-file-info $(LOAD_SOURCE_FILE_INFO) \
-	 :load-xref-info $(LOAD_XREF_INFO) \
-	 :compile-print nil :compile-verbose nil \
-	 :redefinition-warnings t :gcprint nil)" | $(CL) $(CLOPTS) -batch -backtrace-on-error
+	(progn \
+	  (load \"misc/compile-1.lisp\") \
+	  (load-logical-pathname-translations \"clim2\") \
+	  (setq sys::*libxt-pathname* \"$(XTLIB)\") \
+	  (setq sys::*libx11-pathname* \"$(XLIB)\") \
+	  (setq sys::*clim-motif-pathname* \"clim-motif$(DEBUGLIB).o\") \
+	  (proclaim '(optimize (speed $(SPEED)) (debug $(DEBUG)) (safety $(SAFETY)))) \
+	  (let ((*compile-print $(COMPILE_PRINT)) \
+		(*compile-verbose* t) \
+		(excl:*redefinition-warnings* t) \
+		(excl:*record-source-file-info* $(RECORD_SOURCE_FILE_INFO)) \
+		(excl:*load-source-file-info* $(LOAD_SOURCE_FILE_INFO)) \
+		(excl:*record-xref-info* $(RECORD-XREF-INFO)) \
+		(excl:*load-xref-info* $(LOAD_XREF_INFO))) \
+	    (compile-it 'motif-clim)))" \
+     | $(CL) $(CLOPTS) -batch -backtrace-on-error
 
 compile-ol:	$(OPENLOOK_OBJS) FORCE
 	$(ECHO) "\
-	(si::system-compile-wrapper \
-	 (function \
-	  (lambda () \
-	    (load-logical-pathname-translations \"clim2\") \
-	    (setq *compile-print* $(COMPILE_PRINT)) \
-	    (setf excl:*load-xref-info* $(LOAD_XREF_INFO)) \
-	    (setq sys::*libxt-pathname* \"$(OLXTLIB)\") \
-	    (setq sys::*libx11-pathname* \"$(OLXLIB)\") \
-	    (setq sys::*clim-olit-pathname* \"clim-olit$(DEBUGLIB).o\") \
-	    (setq *ignore-package-name-case* t) \
-	    (set-case-mode :case-insensitive-lower) \
-	    (load \"misc/compile-1.lisp\") \
-	    (compile-it 'openlook-clim))) \
-	 :speed $(SPEED) :debug $(DEBUG) :safety $(SAFETY) \
-	 :record-source-file-info $(RECORD_SOURCE_FILE_INFO) \
-	 :record-xref-info $(RECORD_XREF_INFO) \
-	 :load-source-file-info $(LOAD_SOURCE_FILE_INFO) \
-	 :load-xref-info $(LOAD_XREF_INFO) \
-	 :compile-print nil :compile-verbose nil \
-	 :redefinition-warnings t :gcprint nil)" | $(CL) $(CLOPTS) -batch -backtrace-on-error
+	(progn \
+	  (load \"misc/compile-1.lisp\") \
+	  (load-logical-pathname-translations \"clim2\") \
+	  (setq sys::*libxt-pathname* \"$(OLXTLIB)\") \
+	  (setq sys::*libx11-pathname* \"$(OLXLIB)\") \
+	  (setq sys::*clim-motif-pathname* \"clim-olit$(DEBUGLIB).o\") \
+	  (proclaim '(optimize (speed $(SPEED)) (debug $(DEBUG)) (safety $(SAFETY)))) \
+	  (let ((*compile-print $(COMPILE_PRINT)) \
+		(*compile-verbose* t) \
+		(excl:*redefinition-warnings* t) \
+		(excl:*record-source-file-info* $(RECORD_SOURCE_FILE_INFO)) \
+		(excl:*load-source-file-info* $(LOAD_SOURCE_FILE_INFO)) \
+		(excl:*record-xref-info* $(RECORD-XREF-INFO)) \
+		(excl:*load-xref-info* $(LOAD_XREF_INFO))) \
+	    (compile-it 'openlook-clim)))" \
+     | $(CL) $(CLOPTS) -batch -backtrace-on-error
 
 # Concatenation
 
@@ -148,7 +140,7 @@ tk/xm-defs.fasl : tk/xm-defs.lisp
 # Building
 
 clim-xm:	FORCE $(MOTIF_OBJS)
-	-$(RM) -f $(CLIMXM)
+	-$(RM) -f $(CLIM)
 	$(ECHO) " \
 		(load-logical-pathname-translations \"clim2\") \
 		(setq sys::*libxt-pathname* \"$(XTLIB)\") \
@@ -157,15 +149,15 @@ clim-xm:	FORCE $(MOTIF_OBJS)
 		(load \"misc/dev-load-1.lisp\") \
 		(load-it 'motif-clim) \
 		(setq sys::*clim-dump-name* \"$(TMP)/clim.temp_`whoami`\") \
-		(load \"misc/dump.lisp\")" | $(DUMP-CL) $(CLOPTS) -batch -backtrace-on-error
-	$(MV) $(TMP)/clim.temp_`whoami` $(CLIMXM)
-	ls -lLt $(CLIMXM) >> Clim-sizes.n
-	size $(CLIMXM) >> Clim-sizes.n
-	ls -lLt $(CLIMXM)
+		(load \"misc/dump.lisp\")" | $(CL) $(CLOPTS) -batch -backtrace-on-error
+	$(MV) $(TMP)/clim.temp_`whoami` $(CLIM)
+	ls -lLt $(CLIM) >> Clim-sizes.n
+	size $(CLIM) >> Clim-sizes.n
+	ls -lLt $(CLIM)
 	echo CLIM-XM built!!!!	
 
 clim-ol:	FORCE $(OPENLOOK_OBJS)
-	-$(RM) -f $(CLIMOL)
+	-$(RM) -f $(CLIM)
 	$(ECHO) " \
 		(load-logical-pathname-translations \"clim2\") \
 		(setq sys::*libxt-pathname* \"$(OLXTLIB)\") \
@@ -174,11 +166,11 @@ clim-ol:	FORCE $(OPENLOOK_OBJS)
 		(load \"misc/dev-load-1.lisp\") \
 		(load-it 'openlook-clim) \
 		(setq sys::*clim-dump-name* \"$(TMP)/clim.temp_`whoami`\") \
-		(load \"misc/dump.lisp\")" | $(DUMP-CL) $(CLOPTS) -batch -backtrace-on-error
-	$(MV) $(TMP)/clim.temp_`whoami` $(CLIMOL)
-	ls -lLt $(CLIMOL) >> Clim-sizes.n
-	size $(CLIMOL) >> Clim-sizes.n
-	ls -lLt $(CLIMOL)
+		(load \"misc/dump.lisp\")" | $(CL) $(CLOPTS) -batch -backtrace-on-error
+	$(MV) $(TMP)/clim.temp_`whoami` $(CLIM)
+	ls -lLt $(CLIM) >> Clim-sizes.n
+	size $(CLIM) >> Clim-sizes.n
+	ls -lLt $(CLIM)
 	echo CLIM-OL built!!!!		
 
 clim-small:	FORCE
@@ -186,7 +178,7 @@ clim-small:	FORCE
 		(load-logical-pathname-translations \"clim2\") \
 		(load \"misc/load-xm.lisp\") \
 		(setq sys::*clim-dump-name* \"$(TMP)/clim.temp_`whoami`\") \
-		(load \"misc/dump.lisp\")" | $(DUMP-CL) $(CLOPTS) -batch -backtrace-on-error
+		(load \"misc/dump.lisp\")" | $(CL) $(CLOPTS) -batch -backtrace-on-error
 	$(MV) $(TMP)/clim.temp_`whoami` $(CLIM-SMALL)
 	ls -lt $(CLIM-SMALL) >> Clim-sizes.n
 	size $(CLIM-SMALL) >> Clim-sizes.n
@@ -322,32 +314,10 @@ makeclimobjs: $(CLIMOBJS)
 
 ################## Lower level Makefile stuff
 
-echo-xm-ucl-xtras: 
-	@echo $(PWD)/stub-x.o $(PWD)/stub-motif.o $(PWD)/xlibsupport.o $(PWD)/MyDrawingA.o $(PWD)/xtsupport.o   $(MOTIFLIB) $(XTLIB) $(XLIB) $(XMDCLXTRAS)
-
-ol-dcl	:  stub-x.o stub-xt.o clim-olit.o xlibsupport.o olsupport.o xtsupport.o  $(MALLOCOBJS)
-	cd $(CL_SRC) ; /bin/mv ucl ucl.climsave ;\
-	make initial_oldspace=$(OLDSPACE) oldspace=$(OLDSPACE) newspace=$(NEWSPACE) premallocs=$(PREMALLOCS) ucl_xtras='$(PWD)/stub-x.o $(PWD)/stub-xt.o $(PWD)/clim-olit.o $(PWD)/xlibsupport.o $(PWD)/olsupport.o $(PWD)/xtsupport.o $(COMPOSEROBJS) $(MALLOCOBJS) $(OLXLIBS)' dcl ;\
-	/bin/mv ucl.climsave ucl
-
-xm-dcl	: stub-x.o stub-xt.o stub-motif.o xlibsupport.o xtsupport.o  MyDrawingA.o $(MALLOCOBJS)
-	cd $(CL_SRC) ; /bin/mv ucl ucl.climsave ;\
-	make initial_oldspace=$(OLDSPACE) oldspace=$(OLDSPACE) newspace=$(NEWSPACE) premallocs=$(PREMALLOCS) stubs=$(stubs) user_objects='$(PWD)/stub-x.o $(PWD)/stub-xt.o $(PWD)/stub-motif.o $(PWD)/xlibsupport.o $(PWD)/MyDrawingA.o $(PWD)/xtsupport.o $(COMPOSEROBJS) $(MOTIFLIB) $(MALLOCOBJS) $(XTLIB) $(XLIB) $(XMDCLXTRAS)' dcl ;\
-	/bin/mv ucl.climsave ucl
-
-# xm-dcl	: stub-x.o stub-xt.o stub-motif.o xlibsupport.o xtsupport.o  MyDrawingA.o $(MALLOCOBJS)
-# 	cd $(CL_SRC) ; \
-# 	ld -o xm-dcl -bI:/lib/syscalls.exp dcl $(PWD)/stub-x.o $(PWD)/stub-xt.o $(PWD)/stub-motif.o $(PWD)/xlibsupport.o $(PWD)/MyDrawingA.o $(PWD)/xtsupport.o $(COMPOSEROBJS) $(MOTIFLIB) $(MALLOCOBJS) $(XTLIB) $(XLIB) -lm -lld -lbsd
-
-
-ucl.clim: stub-x.o stub-xt.o stub-motif.o xlibsupport.o xtsupport.o  MyDrawingA.o $(MALLOCOBJS)
+ucl.clim: stub-x.o stub-xt.o stub-motif.o xlibsupport.o xtsupport.o  MyDrawingA.o
 	cd $(CL_SRC) ; /bin/mv ucl ucl.climsave ; /bin/mv dcl dcl.climsave ;\
-	make stubs=$(stubs) user_objects='$(PWD)/stub-x.o $(PWD)/stub-xt.o $(PWD)/stub-motif.o $(PWD)/xlibsupport.o $(PWD)/MyDrawingA.o $(PWD)/xtsupport.o $(MOTIFLIB) $(MOTIFXTRAOS) $(MALLOCOBJS) $(XTLIB) $(XLIB) $(XMDCLXTRAS)' ucl ;\
+	make stubs=$(stubs) user_objects='$(PWD)/stub-x.o $(PWD)/stub-xt.o $(PWD)/stub-motif.o $(PWD)/xlibsupport.o $(PWD)/MyDrawingA.o $(PWD)/xtsupport.o $(MOTIFLIB) $(MOTIFXTRAOS) $(XTLIB) $(XLIB) $(XMDCLXTRAS)' ucl ;\
 	/bin/mv ucl ucl.clim ; /bin/mv ucl.climsave ucl ; /bin/mv dcl.climsave dcl
-
-dcl	: 
-	cd $(CL_SRC) ; /bin/rm -f ucl ;\
-	make dcl	
 
 # these were moved here from Makefile.cobjs because SVR4 needs them, too
 # (and I didn't want to duplicate them in Makefile.cobjs-svr4).

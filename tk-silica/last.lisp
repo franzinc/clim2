@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: last.lisp,v 1.4 1993/07/27 01:54:56 colin Exp $
+;; $fiHeader: last.lisp,v 1.5 1993/09/17 19:06:58 cer Exp $
 
 
 (in-package :system)
@@ -35,3 +35,7 @@
 		    excl::*library-pathname*)))
  :devel (locally (declare (special system::*devel*)) system::*devel*))
 
+(provide
+ (cond ((excl::featurep :clim-motif) :climxm)
+       ((excl::featurep :clim-openlook) :climol)
+       (t (error "Unknown Xt backend"))))

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-font-list.lisp,v 1.10 93/04/27 14:35:58 cer Exp $
+;; $fiHeader: xm-font-list.lisp,v 1.11 1993/07/27 01:54:01 colin Exp $
 
 (in-package :tk)
 
@@ -37,18 +37,19 @@
   (let* ((font-list
 	  (xm_font_list_append_entry
 	   0			; old entry
-	   (xm_font_list_entry_create
-	    xm-font-list-default-tag
-	    xm-font-is-font
-	    (car value)))))
+	   (note-malloced-object (xm_font_list_entry_create
+				  xm-font-list-default-tag
+				  xm-font-is-font
+				  (car value))))))
     (dolist (font (cdr value))
       (setq font-list
 	(xm_font_list_append_entry font-list 
-				   (xm_font_list_entry_create
-				    ""
-				    xm-font-is-font
-				    font))))
-    font-list))
+				   (note-malloced-object (xm_font_list_entry_create
+							  ""
+							  xm-font-is-font
+							  font)))))
+    (note-malloced-object font-list 
+			  #'xm_font_list_free)))
 
 #+:dec3100
 (defmethod convert-resource-out ((parent t) (type (eql 'xm-font-list)) value)

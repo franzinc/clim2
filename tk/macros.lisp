@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: macros.lisp,v 1.13 93/05/05 01:40:14 cer Exp $
+;; $fiHeader: macros.lisp,v 1.14 1993/07/27 01:53:11 colin Exp $
 
 (in-package :tk)
 
@@ -55,5 +55,16 @@
   `(locally (declare (optimize (speed 3) (safety 0)))
      (excl::slot-value-using-class-name 'display-object ,object
 					'display)))
-  
 
+(defvar *malloced-objects*)
+
+(defun note-malloced-object (obj &optional (free #'excl::free))
+  (push (cons free obj) *malloced-objects*)
+  obj)
+
+(defmacro with-malloced-objects (&body body)
+  `(let ((*malloced-objects* nil))
+     (unwind-protect
+	 (progn ,@body)
+       (dolist (entry *malloced-objects*)
+	 (funcall (car entry) (cdr entry))))))

@@ -1,14 +1,15 @@
-# $fiHeader: Makefile.svr4,v 1.3 1993/05/13 16:22:49 cer Exp $
+# $fiHeader: Makefile.sgi4d-svr4,v 1.2 1994/06/08 06:56:29 duane Exp $
 
 include Makefile.defs
 
 Makefile=Makefile.sgi4d-svr4
 
 MOTIFHOME=
-MOTIFLIB=
-MOTIFLIB_d=$(MOTIFHOME)/usr/lib/libXm.a
+MOTIFLIB=$(MOTIFHOME)/usr/lib/libXm$(DEBUGLIB).a
 XLIB=$(MOTIFHOME)/usr/lib/libX11$(DEBUGLIB)_s.a 
+
 MAINOBJXLIB=
+
 XTLIB=$(MOTIFHOME)/usr/lib/libXt$(DEBUGLIB).a
 XINCLUDES=-I$(MOTIFHOME)/usr/include
 XMINCLUDES=-I$(MOTIFHOME)/usr/include

@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ffi.lisp,v 1.14 92/12/14 15:05:12 cer Exp $
+;; $fiHeader: ffi.lisp,v 1.15 1993/07/22 15:39:51 cer Exp $
 
 (in-package :x11)
 
@@ -54,18 +54,24 @@
   (intern (apply #'format nil control args)))
 
 (defmacro def-exported-foreign-struct (name-and-options &rest slots)
-  (let (name (options nil))
+  (let (name array-name (options nil))
     (if (atom name-and-options)
 	(setq name name-and-options)
       (setq name (car name-and-options)
 	    options (cdr name-and-options)))
+    (when (member :array options)
+      (setq array-name (fintern "~A-~A" name 'array)
+	    options (delete :array options)))
     `(progn
-       (eval-when (eval load compile)
-	 (export '(,name
-		   ,(fintern "~A~A" 'make- name)
-		   ,@(mapcar #'(lambda (x)
-				 (fintern "~A-~A" name (car x)))
-		      slots))))
+       ,(flet ((make-exports (name)
+		 (list* name
+			(fintern "~A-~A" 'make name)
+			(mapcar #'(lambda (x)
+				    (fintern "~A-~A" name (car x)))
+				slots))))
+	  `(eval-when (eval load compile)
+	     (export '(,@(make-exports name)
+		       ,@(make-exports array-name)))))
        ,(flet ((foo-slot (slot)
 		 (destructuring-bind
 		     (name &key type) slot
@@ -89,7 +95,10 @@
 						 (remf (cdr slot) :overlays)
 						 (foo-slot slot))
 					     slots))
-		(error ":overlays used in a way we cannot handle"))))))))
+		(error ":overlays used in a way we cannot handle")))))
+       ,(when array-name
+	  `(ff::def-c-type (,array-name :no-defuns ,@options)
+	     1 ,name)))))
 
 	  
 
@@ -103,18 +112,6 @@
 	  (ignore type indicies) type
 	(declare (ignore ignore))
 	`(,@indicies ,type))))))
-
-#+ignore
-(defmacro def-exported-foreign-function ((name &rest options) &rest args)
-  `(foreign-functions:defforeign 
-       ',name 
-       :arguments ',(mapcar #'(lambda (x) x t) args)
-       :call-direct t
-       :callback nil
-       :arg-checking nil
-       :return-type 'integer
-       :entry-point ,(ff:convert-to-lang (second (assoc :name options)))))
-
 
 ;;; Delay version
 
@@ -154,7 +151,7 @@
      (eval-when (compile eval load)
        ,(let ((c-name (ff:convert-to-lang (second (assoc :name options))))
 	      (return-type (or (second (assoc :return-type options))
-			       'integer)))
+			       'void)))
 	  `(delayed-defforeign
 	    ',name
 	    :arguments ',(mapcar #'trans-arg-type (mapcar #'second args))
@@ -171,10 +168,9 @@
   (setf *defforeigned-functions*
     (delete name *defforeigned-functions* :key #'car))
   (push (cons name arguments) *defforeigned-functions*))
-  
 
-(defmacro defforeign-functions-now ()
-  `(ff:defforeign-list ',*defforeigned-functions*))
+(defun defforeign-functions-now ()
+  (ff:defforeign-list *defforeigned-functions*))
 
 ;;; End of delay version
 

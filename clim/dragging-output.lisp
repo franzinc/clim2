@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: dragging-output.lisp,v 1.11 1993/07/27 01:39:12 colin Exp $
+;; $fiHeader: dragging-output.lisp,v 1.12 1993/09/17 19:05:04 cer Exp $
 
 (in-package :clim-internals)
 
@@ -24,7 +24,7 @@
 
 (defun drag-output-record (stream output-record
 			   &key (repaint t) multiple-window
-				(erase #'erase-output-record) feedback
+				(erase #'erase-output-record erase-sp) feedback
 				(finish-on-release *dragging-output-finish-on-release*))
   (declare (values final-x final-y delta-x delta-y))
   (let (last-x last-y
@@ -33,6 +33,12 @@
 	(parent (output-record-parent output-record))
 	;; Clipping region for repainting the damaged region
 	(region (bounding-rectangle output-record)))
+
+    ;; If the default erase-output-record is used then it is not
+    ;; necessary to repaint because erase-output-record does a replay
+    (unless erase-sp
+      (setq repaint nil))
+    
     (multiple-value-bind (initial-x initial-y)
 	(stream-pointer-position stream)
       (declare (type coordinate initial-x initial-y))

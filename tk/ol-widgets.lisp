@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-widgets.lisp,v 1.6 1993/07/30 23:58:23 colin Exp $
+;; $fiHeader: ol-widgets.lisp,v 1.7 1993/10/26 03:22:28 colin Exp $
 
 (in-package :xt)
 
@@ -101,3 +101,10 @@
 					  :type 'pixel
 					  :original-name 
 					  (string-to-char* "fontColor")))
+
+(tk::add-resource-to-class (find-class 'notice-shell)
+			   (make-instance 'resource
+					  :name :focus-widget
+					  :type 'widget
+					  :original-name 
+					  (string-to-char* "focusWidget")))

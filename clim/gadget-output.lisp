@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadget-output.lisp,v 1.55 1993/11/18 18:44:20 cer Exp $
+;; $fiHeader: gadget-output.lisp,v 1.56 1993/12/07 05:33:40 colin Exp $
 
 (in-package :clim-internals)
 
@@ -273,6 +273,13 @@
 	    (cdr *with-deferred-gadget-updates*))
       (setf (sheet-enabled-p (output-record-gadget record)) state)))
 
+(define-presentation-method gadget-includes-prompt-p :around 
+  ((type t) (stream t) (view actual-gadget-view))
+  (let ((initargs (view-gadget-initargs view)))
+    (or (getf initargs :label)
+	(not (getf initargs :prompt t))
+	(call-next-method))))
+
 
 ;;; Completion gadget
 
@@ -285,20 +292,11 @@
       (call-next-method)
     +radio-box-view+))
 
-(define-presentation-method gadget-includes-prompt-p 
-    ((type completion) (stream t) (view radio-box-view))
-  (not (null (getf (view-gadget-initargs view) :label))))
-
-(define-presentation-method gadget-includes-prompt-p :around 
-  ((type t) (stream t) (view actual-gadget-view))
-  (or (not (getf (view-gadget-initargs view) :prompt t))
-      (call-next-method)))
-
 (define-presentation-method accept-present-default 
 			    ((type completion) stream (view radio-box-view)
 			     default default-supplied-p present-p query-identifier
 			     &key (prompt t) (active-p t))
-  (declare (ignore present-p))
+  (declare (ignore present-p prompt))
   (move-cursor-to-view-position stream view)
   (let ((current-selection nil))
     (flet ((update-gadget (record gadget radio-box)
@@ -344,20 +342,16 @@
 			    button))
 		      sequence))
 	       (radio-box
-		 (apply #'make-pane 'radio-box
-			(append
-			  (remove-keywords (view-gadget-initargs view)
-					   '(:toggle-button-options))
-			  (list :label (and (stringp prompt) prompt)
-				:choices buttons 
-				:current-selection current-selection 
-				:client stream
-				:id query-identifier 
-				:value-changed-callback
-				  (make-accept-values-value-changed-callback
-				    stream query-identifier)
-				:active active-p
-				:help-callback (make-gadget-help type))))))
+		(make-pane-from-view 'radio-box view 
+				     '(:toggle-button-options :label)
+		  :choices buttons 
+		  :current-selection current-selection 
+		  :client stream
+		  :id query-identifier 
+		  :value-changed-callback (make-accept-values-value-changed-callback
+					   stream query-identifier)
+		  :active active-p
+		  :help-callback (make-gadget-help type))))
 	  (values (if radio-box-label
 		      (outlining ()
 			(vertically ()
@@ -376,15 +370,11 @@
       (call-next-method)
       +check-box-view+))
 
-(define-presentation-method gadget-includes-prompt-p 
-    ((type subset-completion) (stream t) (view check-box-view))
-  (not (null (getf (view-gadget-initargs view) :label))))
-
 (define-presentation-method accept-present-default 
 			    ((type subset-completion) stream (view check-box-view)
 			     default default-supplied-p present-p query-identifier
 			     &key (prompt t) (active-p t))
-  (declare (ignore present-p))
+  (declare (ignore present-p prompt))
   (move-cursor-to-view-position stream view)
   (flet ((update-gadget (record gadget check-box)
 	   (declare (ignore record gadget))
@@ -434,20 +424,17 @@
 			  (when actual-value (push button current-selection))
 			  button))
 		    sequence))
-	     (check-box (apply #'make-pane 'check-box
-			       (append
-				 (remove-keywords (view-gadget-initargs view)
-						  '(:toggle-button-options))
-				 (list :label (and (stringp prompt) prompt)
-				       :choices buttons
-				       :current-selection current-selection
-				       :client stream 
-				       :id query-identifier
-				       :value-changed-callback
-				         (make-accept-values-value-changed-callback
-					   stream query-identifier)
-				       :active active-p
-				       :help-callback (make-gadget-help type))))))
+	     (check-box
+	      (make-pane-from-view 'check-box view 
+				   '(:toggle-button-options :label)
+		:choices buttons
+		:current-selection current-selection
+		:client stream 
+		:id query-identifier
+		:value-changed-callback (make-accept-values-value-changed-callback
+					 stream query-identifier)
+		:active active-p
+		:help-callback (make-gadget-help type))))
 	(values (if check-box-label
 		    (outlining ()
 		      (vertically ()
@@ -466,15 +453,11 @@
       (call-next-method)
       +toggle-button-view+))
 
-(define-presentation-method gadget-includes-prompt-p 
-    ((type boolean) (stream t) (view toggle-button-view))
-  t)
-
 (define-presentation-method accept-present-default 
 			    ((type boolean) stream (view toggle-button-view)
 			     default default-supplied-p present-p query-identifier
 			     &key (prompt t) (active-p t))
-  (declare (ignore default-supplied-p present-p))
+  (declare (ignore default-supplied-p present-p prompt))
   (move-cursor-to-view-position stream view)
   (flet ((update-gadget (record gadget button)
  	   (declare (ignore record gadget))
@@ -485,7 +468,6 @@
  	   (setf (gadget-value button) default)))
     (with-output-as-gadget (stream :cache-value type :update-gadget #'update-gadget)
       (let ((button (make-pane-from-view 'toggle-button view ()
-		      :label (and (stringp prompt) prompt)
 		      :value default
 		      :client stream :id query-identifier
 		      :value-changed-callback
@@ -497,10 +479,6 @@
 
 
 ;;; Numeric gadgets
-
-(define-presentation-method gadget-includes-prompt-p
-			    ((type real) (stream t) (view slider-view))
-  t)
 
 (define-presentation-method accept-present-default 
 			    ((type real) stream (view slider-view)
@@ -523,6 +501,7 @@
 					 type prompt query-identifier
 					 low high default-supplied-p
 					 &optional (editable-p t))
+  (declare (ignore prompt))
   (move-cursor-to-view-position stream view)
   (let ((min-value (if (eq low '*) 0 low))
 	(max-value (if (eq high '*) 100 high)))
@@ -538,7 +517,6 @@
 	(let ((slider 
 		;;--- What other initargs do we pass along from the view?
 		(make-pane-from-view 'slider view ()
-		  :label (and (stringp prompt) prompt)
 		  :value (if default-supplied-p default min-value)
 		  :min-value min-value :max-value max-value
 		  :orientation (gadget-orientation view)
@@ -575,6 +553,7 @@
 					    type prompt query-identifier
 					    low high default-supplied-p
 					    &optional (editable-p t))
+  (declare (ignore prompt))
   (move-cursor-to-view-position stream view)
   (let ((min-value (if (eq low '*) 0 low))
 	(max-value (if (eq high '*) 100 high)))
@@ -590,7 +569,6 @@
 	(let ((slider
 		;;--- What other initargs do we pass along from the view?
 		(make-pane-from-view 'slider view ()
-		  :label (and (stringp prompt) prompt)
 		  :value (if default-supplied-p default min-value)
 		  :min-value min-value :max-value max-value
 		  :orientation (gadget-orientation view)
@@ -653,6 +631,7 @@
 					default-supplied-p type
 					prompt query-identifier
 					&key (editable-p t))
+  (declare (ignore prompt))
   (move-cursor-to-view-position stream view)
   (flet ((update-gadget (record gadget text-field)
  	   (declare (ignore record gadget))	     ;;-- This sucks
@@ -666,7 +645,6 @@
     (with-output-as-gadget (stream :cache-value type :update-gadget #'update-gadget)
       (let ((text-field (make-pane-from-view 
 			  'text-field view ()
-			  :label (and (stringp prompt) prompt)
 			  :value (if default-supplied-p
 				     (present-to-string default type)
 				   "")
@@ -679,6 +657,10 @@
 			    ;;--- Why do we check for editable-p?  If it
 			    ;;--- is read-only, won't this callback never be
 			    ;;--- called? (cim) 
+			    (and editable-p
+				 `(accept-values-string-field-changed-callback
+				   ,stream ,query-identifier))
+			    :activate-callback
 			    (and editable-p
 				 `(accept-values-string-field-changed-callback
 				    ,stream ,query-identifier))
@@ -705,7 +687,8 @@
 	      ;; accept multi-line strings in text-editors (cim)
 	    (accept-from-string (accept-values-query-type query)
 				new-value
-				:activation-gestures nil)
+				:activation-gestures nil
+				:delimiter-gestures nil)
 	  (declare (ignore type))
 	  (assert (= index (length new-value)))
 	  object)
@@ -738,6 +721,7 @@
 				    default-supplied-p type
 				    prompt query-identifier
 				    &key (editable-p t))
+  (declare (ignore prompt))
   (move-cursor-to-view-position stream view)
   (flet ((update-gadget (record gadget button)
  	   (declare (ignore record gadget))
@@ -750,7 +734,6 @@
 	       ""))))
     (with-output-as-gadget (stream :cache-value type :update-gadget #'update-gadget)
       (let ((text-field (make-pane-from-view 'text-editor view '(:scroll-bars)
-			  :label (and (stringp prompt) prompt)
 			  :value (if default-supplied-p
 				     default
 				   "")
@@ -763,6 +746,11 @@
 			    ;;--- Why do we check for editable-p?  If it
 			    ;;--- is read-only, won't this callback never be
 			    ;;--- called? (cim) 
+			    (and editable-p
+				 `(accept-values-string-field-changed-callback
+				    ,stream ,query-identifier))
+
+			    :activate-callback
 			    (and editable-p
 				 `(accept-values-string-field-changed-callback
 				    ,stream ,query-identifier))

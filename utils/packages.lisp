@@ -1,191 +1,26 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: packages.lisp,v 1.61 1993/11/18 18:45:55 cer Exp $
+;; $fiHeader: packages.lisp,v 1.63 1994/06/08 06:57:00 duane Exp $
 
-(in-package #-ANSI-90 :user #+ANSI-90 :common-lisp-user)
+(in-package :common-lisp-user)
 
 "Copyright (c) 1991, 1992 Symbolics, Inc.  All rights reserved."
 
 
 ;; Define the CLIM-LISP package, a package designed to mimic ANSI Common Lisp
 ;; as closely as possible (including CLOS).
-(#-(or ANSI-90 Lucid) clim-lisp::defpackage #+(or ANSI-90 Lucid) defpackage clim-lisp
-   #+Allegro (:implementation-packages :clim-lisp :clim-utils)
- (:use #-ANSI-90 lisp #+ANSI-90 common-lisp
+(defpackage clim-lisp
+  #+Allegro (:implementation-packages :clim-lisp :clim-utils)
+ (:use common-lisp
        #+Allegro clos
        #+(and CLIM-uses-lisp-stream-classes Allegro) stream)
- 
- #-ANSI-90
- (:shadowing-import-from #+PCL pcl
-			 #+(and (not PCL) (or Genera Cloe-Runtime)) clos-internals
-			 #+(and (not PCL) (not (or Genera Cloe-Runtime))) clos
-   defstruct
-   documentation
-   setf)
 
- #-ANSI-90
- (:import-from #+PCL pcl #-PCL clos
-   add-method
-   allocate-instance
-   built-in-class
-   call-method
-   call-next-method
-   change-class
-   class
-   class-direct-subclasses
-   class-direct-superclasses
-   class-name
-   class-of
-   class-precedence-list
-   class-prototype
-    class-slots
-   #+PCL classp
-   compute-applicable-methods
-   defclass
-   defgeneric
-   define-method-combination
-   defmethod
-   describe-object
-   ensure-generic-function
-   find-class
-   find-method
-   funcallable-standard-class
-   function-keywords
-   generic-flet
-   generic-function
-   generic-labels
-   initialize-instance
-   invalid-method-error
-   make-instance
-   make-instances-obsolete
-   make-load-form
-   make-load-form-saving-slots
-   make-method
-   method
-   method-combination
-   method-combination-error
-   method-qualifiers
-   next-method-p
-   no-applicable-method
-   no-next-method
-   print-object
-   reinitialize-instance
-   remove-method
-   shared-initialize
-   slot-boundp
-   slot-exists-p
-   slot-makunbound
-   slot-missing
-   slot-unbound
-   slot-value
-   standard
-   standard-class
-   standard-generic-function
-   standard-method
-   standard-object
-   standard-slot-definition
-   structure-class
-   structure-object
-   symbol-macrolet
-   update-instance-for-different-class
-   update-instance-for-redefined-class
-   with-accessors
-   with-slots)
-
- #+(and ANSI-90 (not CCL-2))
  (:import-from #+PCL pcl #-PCL clos
    class-direct-subclasses 
    class-direct-superclasses 
    class-precedence-list 
    class-prototype
    funcallable-standard-class)
-
- #+CCL-2
- (:import-from ccl
-   class
-   class-direct-subclasses
-   class-direct-superclasses
-   class-precedence-list
-   class-prototype)
-
- #-ANSI-90
- (:shadowing-import-from #+Lucid lucid-common-lisp 
-			 #+Allegro common-lisp
-			 #-(or Lucid Allegro) conditions
-   *break-on-signals*
-   *debugger-hook*
-   abort
-   arithmetic-error
-   arithmetic-error-operands
-   arithmetic-error-operation
-   assert
-   break
-   ccase
-   cell-error
-   cell-error-name
-   cerror
-   check-type
-   compute-restarts
-   condition
-   continue
-   control-error
-   ctypecase
-   #-Lucid define-condition
-   division-by-zero
-   ecase
-   end-of-file
-   error
-   etypecase
-   file-error
-   #-Lucid file-error-pathname
-   find-restart
-   floating-point-inexact
-   floating-point-invalid-operation
-   floating-point-overflow
-   floating-point-underflow
-   handler-bind
-   handler-case
-   ignore-errors
-   invoke-debugger
-   invoke-restart
-   invoke-restart-interactively
-   make-condition
-   muffle-warning
-   package-error
-   package-error-package
-   #-Lucid parse-error
-   #-Lucid print-not-readable
-   #-Lucid print-not-readable-object
-   program-error
-   #-Lucid restart
-   restart-bind
-   restart-case
-   restart-name
-   serious-condition
-   signal
-   simple-condition
-   simple-condition-format-arguments
-   #+ANSI-90 simple-condition-format-control
-   #-ANSI-90 simple-condition-format-string
-   simple-error
-   simple-type-error
-   simple-warning
-   storage-condition
-   store-value
-   stream-error
-   stream-error-stream
-   #-Lucid style-warning
-   type-error
-   #-Lucid type-error-datum
-   #-Lucid type-error-expected-type
-   #-Lucid unbound-slot
-   #-Lucid unbound-slot-instance
-   unbound-variable
-   undefined-function
-   use-value
-   warn
-   warning
-   with-simple-restart)
 
  #+Lucid (:shadow define-condition)
 
@@ -577,6 +412,7 @@
    boole-orc2
    boole-set
    boole-xor
+   boolean
    both-case-p
    boundp
    break
@@ -719,8 +555,7 @@
    define-condition
    define-method-combination
    define-modify-macro
-   #+ANSI-90 define-setf-expander
-   #-ANSI-90 define-setf-method
+   define-setf-expander
    defmacro
    defmethod
    defpackage
@@ -856,9 +691,7 @@
    get-macro-character
    get-output-stream-string
    get-properties
-   #+ANSI-90 get-setf-expansion
-   #-ANSI-90 get-setf-method
-   #-ANSI-90 get-setf-method-multiple-value
+   get-setf-expansion
    get-universal-time
    getf
    gethash
@@ -1237,8 +1070,7 @@
    simple-bit-vector-p
    simple-condition
    simple-condition-format-arguments
-   #+ANSI-90 simple-condition-format-control
-   #-ANSI-90 simple-condition-format-string
+   simple-condition-format-control
    simple-error
    simple-string
    simple-string-p
@@ -1455,7 +1287,7 @@
 
 
 ;; Define the CLIM-SYS package
-(#-(or ANSI-90 Lucid) clim-lisp::defpackage #+(or ANSI-90 Lucid) defpackage clim-sys
+(defpackage clim-sys
   (:use)				;use nothing
   (:export
     ;; Resources
@@ -1504,7 +1336,7 @@
 
 
 ;; Define the CLIM package
-(#-(or ANSI-90 Lucid) clim-lisp::defpackage #+(or ANSI-90 Lucid) defpackage clim
+(defpackage clim
   (:use)				;use nothing
   #+Allegro (:implementation-packages 
 	     :silica 
@@ -1515,6 +1347,7 @@
 	     :xm-silica)
   (:import-from clim-lisp
     and
+    boolean
     character
     close
     complex
@@ -2086,6 +1919,8 @@
     make-stencil
     pattern-height
     pattern-width
+    pattern-array
+    pattern-designs
     
     ;; Palettes
     add-colors-to-palette
@@ -2912,14 +2747,12 @@
     oriented-gadget-mixin
     push-button
     push-button-pane
-    push-button-show-as-default-p
+    push-button-show-as-default
     radio-box
     radio-box-current-selection
     radio-box-pane
     radio-box-selections
     scroll-bar
-    scroll-bar-current-size
-    scroll-bar-current-value
     scroll-bar-drag-callback
     scroll-bar-pane
     set-gadget-items
@@ -2956,7 +2789,8 @@
   (:export
    read-bitmap-file
    *bitmap-search-path*
-   make-pattern-from-bitmap-file)
+   make-pattern-from-bitmap-file
+   make-pattern-from-pixmap)
 
   ;; Primary colors
   (:export
@@ -3035,8 +2869,8 @@
 
 
 ;; Now define all of the implementation packages
-(#-(or ANSI-90 Lucid) clim-lisp::defpackage #+(or ANSI-90 Lucid) defpackage clim-utils
-   #+Allegro (:implementation-packages :clim-utils :clim-silica
+(defpackage clim-utils
+  #+Allegro (:implementation-packages :clim-utils :clim-silica
 				       :clim-internals :xt-silica)
   (:use	clim-lisp clim-sys clim)
 
@@ -3133,6 +2967,7 @@
     convert-to-device-coordinates
     convert-to-device-distances
     copy-vector-portion
+    define-dynamic-extent-args
     define-group
     define-keywords
     defun-inline
@@ -3313,11 +3148,18 @@
     composite-over
     contrasting-ink
     contrasting-ink-index
+    convert-ihs-to-rgb
+    convert-rgb-to-ihs
     deallocate-color
     decode-flipping-ink
     decode-pattern
     decode-rectangular-tile
     decode-tile-as-stipple
+    device-color
+    device-color-color
+    device-color-pixel
+    device-color-palette
+    make-device-color
     dynamic-color
     dynamic-color-palettes
     flipping-ink
@@ -3354,7 +3196,7 @@
     modifier-key-index-name))
 
 
-(#-(or ANSI-90 Lucid) clim-lisp::defpackage #+(or ANSI-90 Lucid) defpackage clim-silica
+(defpackage clim-silica
    (:nicknames silica pyrex)
    #+Allegro (:implementation-packages :clim-silica :clim-internals :xt-silica)
   (:use	clim-lisp clim-sys clim clim-utils)
@@ -3431,6 +3273,8 @@
     focus-in-gadget-event
     focus-out-gadget-event
     frame-background
+    frame-foreground
+    frame-text-style
     frame-input-buffer
     frame-manager-matches-options-p
     frame-manager-note-pretty-name-changed
@@ -3551,6 +3395,7 @@
     scroller-pane-gadget-supplies-scrolling-p
     scroller-pane-horizontal-scroll-bar
     scroller-pane-vertical-scroll-bar
+    scroller-pane-drag-scroll
     set-mirror-edges*
     set-mirror-region*
     set-sheet-mirror-edges*
@@ -3605,7 +3450,7 @@
     wrapping-space-mixin))
 
 
-(#-(or ANSI-90 Lucid) clim-lisp::defpackage #+(or ANSI-90 Lucid) defpackage clim-internals
+(defpackage clim-internals
   (:use	:clim-lisp :clim-sys :clim :clim-utils :clim-silica)
   #+Allegro (:implementation-packages :clim-internals :xt-silica)
   #+CCL-2
@@ -3631,7 +3476,7 @@
 
 
 ;; A package for casual use...
-(#-(or ANSI-90 Lucid) clim-lisp::defpackage #+(or ANSI-90 Lucid) defpackage clim-user
+(defpackage clim-user
    (:use clim-lisp clim))
 
 ;;; Nasty hack to improve debuggability

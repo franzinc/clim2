@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: processes.lisp,v 1.16 1993/08/31 04:55:10 layer Exp $
+;; $fiHeader: processes.lisp,v 1.17 1993/09/17 19:07:36 cer Exp $
 
 (in-package :clim-utils)
 
@@ -75,7 +75,7 @@
 	  (unless (null place-value)
 	    (flet ((waiter ()
 		     (null (first place))))
-	      (declare (dynamic-extent #'waiter))
+	      #-Allegro (declare (dynamic-extent #'waiter))
 	      (process-wait state #'waiter)))
 	  (unwind-protect
 	      (progn (rplaca place store-value)

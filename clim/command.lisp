@@ -1,6 +1,6 @@
 s;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: command.lisp,v 1.25 1993/06/04 16:06:20 cer Exp $
+;; $fiHeader: command.lisp,v 1.26 1993/10/26 03:21:30 colin Exp $
 
 (in-package :clim-internals)
 
@@ -140,10 +140,11 @@ s;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10
 	  (dovector (element menu)
 	    (destructuring-bind (string keystroke (type value &rest options)) element
 	      (when (case inherit-menu
-		      (:menu (set keystroke nil) 
+		      (:menu (setq keystroke nil) 
 			     t)
 		      (:keystrokes (setq string nil) 
-				   keystroke))
+				   keystroke)
+		      (otherwise t))
 		(apply #'add-menu-item-to-command-table 
 		       command-table string type value
 		       :keystroke keystroke :errorp nil

@@ -20,20 +20,20 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: image.lisp,v 1.16 1993/09/17 19:06:57 cer Exp $
+;; $fiHeader: image.lisp,v 1.17 1993/11/18 18:45:30 cer Exp $
 
 (in-package :xm-silica)
 
 
 (defun make-pattern-from-bitmap-file (file &rest args &key ((:designs supplied-designs)) format)
-  (multiple-value-bind
-      (array designs)
+  (multiple-value-bind (array designs)
       (with-keywords-removed (args args '(:designs))
 	(apply #'read-bitmap-file file args))
     (make-pattern array 
 		  (or designs 
 		      supplied-designs 
-		      (error "Designs must be specified for this format: ~A" format)))))
+		      (error "Designs must be specified for this format: ~A"
+			     format)))))
 
 ;;; 
 
@@ -66,13 +66,22 @@
 (defmethod read-image-file ((format t) pathname palette)
   (multiple-value-bind (format filter)
       (compute-filter-for-bitmap-format format)
-    (with-open-stream (fstream (excl:run-shell-command
-				(format nil "cat ~A | ~A"
-					(truename pathname) filter)
-				:wait nil
-				:error-output :stream
-				:output :stream))
-      (read-image-file format fstream palette))))
+    (let* ((truename (truename pathname))
+	   (command (format nil "cat ~A | ~A" truename filter)))
+      (unwind-protect
+	  (with-open-stream (fstream (excl:run-shell-command
+				      command
+				      :wait nil
+				      ;;:error-output :stream
+				      :output :stream))
+	    (handler-case (read-image-file format fstream palette)
+	      (error (c)
+		(error "Unable to read image file: (~s ~s ~s) signalled \"~a\" ~
+			while executing ~s. ~
+			Make sure programs like xpm are executable in your path."
+		       'read-image-file format pathname palette command)
+		)))
+	(sys:os-wait)))))
 
 (defmethod compute-filter-for-bitmap-format (format)
   (error "Dont know how to convert from the format ~A" format))
@@ -136,7 +145,6 @@
 			chars-per-pixel line)
       (get-bitmap-file-properties fstream)
     (declare (ignore line depth left-pad))
-    (assert (= chars-per-pixel 1))
     (assert (= format 1))
     (flet ((read-strings ()
 	     (let ((strings nil))
@@ -153,7 +161,7 @@
       (let ((colors (do ((colors (read-strings) (cddr colors))
 			 (r nil))
 			((null colors) r)
-		      (push (cons (coerce (first colors) 'character) 
+		      (push (cons (first colors) 
 				  (convert-color (second colors))) r)))
 	    (pixels (read-strings))
 	    (array (make-array (list height width)))
@@ -163,8 +171,11 @@
 	(excl::fast
 	 (dolist (row pixels)
 	   (dotimes (j width)
-	     (setf (aref array i j)
-	       (position (schar row j) colors :key #'car)))
+	     (let ((index (* j chars-per-pixel)))
+	       (setf (aref array i j)
+		 (position
+		  (subseq row index (+ index chars-per-pixel))
+		  colors :key #'car :test #'equal))))
 	   (incf i)))
 	(values array (mapcar #'cdr colors))))))
 
@@ -229,7 +240,7 @@
 
 
 
-;; Support for the xpm stuff.
+;; Support for the xpm version 3 format
 
 (defmethod read-image-file ((format (eql :pixmap-3)) pathname palette)
   (if (streamp pathname)

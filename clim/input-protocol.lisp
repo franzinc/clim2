@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-protocol.lisp,v 1.44 1993/07/27 01:39:55 colin Exp $
+;; $fiHeader: input-protocol.lisp,v 1.45 1993/08/12 16:03:07 cer Exp $
 
 (in-package :clim-internals)
 
@@ -128,7 +128,8 @@
 		(with-sheet-medium (medium stream)
 		  (with-medium-clipping-region (medium region)
 		    (declare (ignore medium))
-		    (note-cursor-change cursor 'cursor-active nil t)))))))))))
+		    ;; this forces the cursor to be redrawn
+		    (note-cursor-change cursor 'cursor-state nil t)))))))))))
 
 (defmethod pointer-motion-pending ((stream input-protocol-mixin)
 				   &optional
@@ -573,7 +574,7 @@
 			  (> (get-internal-real-time) end-time))
 		 (setq flag :timeout))
 	       flag))
-	(declare (dynamic-extent #'waiter))
+	#-Allegro (declare (dynamic-extent #'waiter))
 	(port-event-wait (port stream) #'waiter :timeout timeout)
 	(return-from stream-input-wait
 	  (values (when (eq flag ':input-buffer) t)
@@ -663,7 +664,7 @@
     old-focus))
 
 (defmethod stream-restore-input-focus ((stream input-protocol-mixin) old-focus)
-  (setf (port-keyboard-input-focus (port stream)) old-focus))
+  (setf (port-keyboard-input-focus (port (graft stream))) old-focus))
 
 (defmethod note-sheet-gain-focus ((sheet input-protocol-mixin))
   (let ((text-cursor (stream-text-cursor sheet)))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gestures.lisp,v 1.21 93/05/13 16:23:10 cer Exp $
+;; $fiHeader: gestures.lisp,v 1.22 1993/07/27 01:39:37 colin Exp $
 
 (in-package :clim-internals)
 
@@ -169,7 +169,9 @@
 	  (unless port
 	    ;; This is the best we can do...
 	    (setq port (port *application-frame*)))
-	  (values event 0))
+	  (values event (if (upper-case-p event)
+			    (make-modifier-state :shift)
+			  0)))
 	(keyboard-event			;--- KEY-PRESS-EVENT?
 	  (unless port
 	    (setq port (port (event-sheet event))))
@@ -232,7 +234,10 @@
   (declare (values keysym modifier-state))
   (when (atom gesture-spec)
     (return-from parse-gesture-spec
-      (values gesture-spec 0)))
+      (if (and (characterp gesture-spec)
+	       (upper-case-p gesture-spec))
+	  (values gesture-spec (make-modifier-state :shift))
+	(values gesture-spec 0))))
   (when (and (consp gesture-spec)
 	     (integerp (cdr gesture-spec)))
     (return-from parse-gesture-spec
@@ -243,7 +248,10 @@
       (if (find x *modifier-keys*)
 	  (let ((bit (modifier-key-index x)))
 	    (setf modifier-state (dpb 1 (byte 1 bit) modifier-state)))
-	  (setq keysym (or keysym x))))
+	(setq keysym (or keysym x))))
+    (when (and (characterp keysym)
+	       (upper-case-p keysym))
+      (setq modifier-state (logior modifier-state (make-modifier-state :shift))))
     (values keysym modifier-state)))
 
 ;; A slower, more careful version of the above that gets used to

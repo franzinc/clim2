@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: frames.lisp,v 1.75 1993/11/18 18:44:17 cer Exp $
+;; $fiHeader: frames.lisp,v 1.76 1993/12/07 05:33:36 colin Exp $
 
 (in-package :clim-internals)
 
@@ -14,6 +14,8 @@
     ((name :initarg :name :accessor frame-name)
      (pretty-name :initarg :pretty-name :accessor frame-pretty-name)
      (background :initform nil :initarg :background :accessor frame-background)
+     (foreground :initform nil :initarg :foreground :accessor frame-foreground)
+     (text-style :initform nil :initarg :text-style :accessor frame-text-style)
      (command-table :initarg :command-table 
 		    :initform (find-command-table 'user-command-table)
 		    :accessor frame-command-table)
@@ -103,6 +105,9 @@
 (defmethod color-stream-p ((stream stream))
   nil)
 
+(defmethod color-stream-p ((stream standard-encapsulating-stream))
+  (color-stream-p (encapsulating-stream-stream stream)))
+
 (defmethod color-stream-p ((stream basic-extended-output-protocol))
   (let* ((frame (pane-frame stream))
 	 (palette (if frame
@@ -133,8 +138,13 @@
     (apply #'define-command-table-1 command-table)))
 )	;eval-when
 
+;; The recoginized options for define-application-frame are
+;; :pane :panes :layouts :top-level :menu-bar :pointer-documentation
+;; :command-definer :command-table :disabled-commands
+;; :default-initargs :icon :geometry. All other options are passed on
+;; as class options to defclass
+
 (defmacro define-application-frame (name superclasses slots &rest options)
-  #+Genera (declare (zwei:indentation 1 25 2 3 3 1))
   (with-warnings-for-definition name define-application-frame
     (let (pane panes layouts top-level menu-bar pointer-documentation
 	  command-definer command-table disabled-commands
@@ -146,7 +156,7 @@
 			    (t
 			     ,@(if pair
 				   `((assert (= (length entry) 2) (entry)
-					     "The length of the option ~S must be 2" entry)
+				       "The length of the option ~S must be 2" entry)
 				     (setq ,name (second entry)
 					   options (delete entry options)))
 				   `((assert (listp (rest entry)) (entry)
@@ -173,10 +183,11 @@
       (check-type layouts list)
       (check-type top-level list)
       (check-type disabled-commands list)
-      (when (and pane panes)
-	(error "You must use either ~S or ~S options" :pane :panes))
-      (when (and panes (null layouts))
-	(error "You must use ~S and ~S together" :panes :layouts))
+      (check-type geometry list)
+      (check-type default-initargs list)
+      (when (and pane (or panes layouts))
+	(error "The ~S option is mutually exclusive with the ~S and ~S options"
+	       :pane :panes :layouts))
       (when (null superclasses)
 	(setq superclasses '(standard-application-frame)))
       (when (eq command-definer 't)
@@ -188,26 +199,25 @@
 	    (t (warn-if-command-table-invalid name command-table)))
       (when (eq (first command-table) 't)
 	(setq command-table (list* name (rest command-table))))
-    #-Silica (warn-if-pane-descriptions-invalid name pane-descriptions)
-    #-Silica (warn-if-layouts-invalid name layouts pane-descriptions)
-    (let ((pane-constructors 
-	    (cond (panes
-		   (compute-pane-constructor-code panes))
-		  (pane
- 		   (compute-pane-constructor-code `((,name ,pane))))))
- 	  (layout-value
-	    `(list ,@(mapcar
+      (let ((pane-constructors 
+	     (cond (panes
+		    (compute-pane-constructor-code panes))
+		   (pane
+		    (compute-pane-constructor-code `((,name ,pane))))))
+	    (layout-value
+	     `(list ,@(mapcar
 		       #'(lambda (layout)
-			   (destructuring-bind (name panes &rest sizes) layout
+			   (destructuring-bind (name pane &rest sizes) layout
 			     (check-type sizes list)
 			     (if sizes
-				 `(list ',name ',panes 
-					,@(mapcar #'(lambda (pane-and-size)
-						      (destructuring-bind (pane &rest sizes) pane-and-size
-							`(list ',pane
-							       ,@sizes)))
-						  sizes))
-				 `',layout)))
+				 `(list ',name ',pane 
+					,@(mapcar
+					   #'(lambda (pane-and-size)
+					       (destructuring-bind (pane &rest sizes)
+						   pane-and-size
+						 `(list ',pane ,@sizes)))
+					   sizes))
+			       `',layout)))
 		       layouts))))
       `(progn
 	 (eval-when (compile)
@@ -325,21 +335,20 @@
 		      The valid keywords are ~S and ~S."
 		     keyword :command-table frame-name :inherit-from :menu))))))) 
 
-(defun compute-generate-panes-code (name code panes layouts)
-  (if layouts
-      (compute-complex-generate-panes-code name panes layouts)
-      (compute-simple-generate-panes-code name code)))
+(defun compute-generate-panes-code (name pane panes layouts)
+  (cond (layouts (compute-complex-generate-panes-code name panes layouts))
+	(panes (compute-default-generate-panes-code name panes))
+	(pane (compute-simple-generate-panes-code name pane))))
 
 (defun compute-simple-generate-panes-code (name code)
-  (and code
-       (let ((frame '#:frame)
-	     (framem '#:framem))
-	 `((defmethod generate-panes ((,framem standard-frame-manager) (,frame ,name))
-	     (let ((*application-frame* ,frame))
-	       (setf (frame-panes ,frame)
-		     (frame-wrapper ,framem ,frame
-		       (with-look-and-feel-realization (,framem ,frame)
-			 ,code)))))))))
+  (let ((frame '#:frame)
+	(framem '#:framem))
+    `((defmethod generate-panes ((,framem standard-frame-manager) (,frame ,name))
+	(let ((*application-frame* ,frame))
+	  (setf (frame-panes ,frame)
+	    (frame-wrapper ,framem ,frame
+			   (with-look-and-feel-realization (,framem ,frame)
+			     ,code))))))))
 
 (defun compute-complex-generate-panes-code (name panes layouts)
   (check-type layouts list)
@@ -348,8 +357,8 @@
     `((defmethod generate-panes ((,framem standard-frame-manager) (,frame ,name))
 	(symbol-macrolet
 	  ,(mapcar #'(lambda (pane-spec)
-		       (destructuring-bind (name code &rest ignore) pane-spec
-			 (declare (ignore code ignore))
+		       (destructuring-bind (name &rest ignore) pane-spec
+			 (declare (ignore ignore))
 			 `(,name (find-or-make-pane-named ,frame ',name))))
 		   panes)
 	  (let ((*application-frame* ,frame))
@@ -359,156 +368,25 @@
 		      (ecase (frame-current-layout ,frame)
 			,@(mapcar 
 			    #'(lambda (layout-spec)
-				(destructuring-bind (name panes &rest ignore) layout-spec
+				(destructuring-bind (name pane &rest ignore) layout-spec
 				  (declare (ignore ignore))
-				  `(,name ,panes)))
+				  `(,name ,pane)))
 			    layouts)))))))))))
 
-(defun compute-pane-constructor-code (panes)
-  (check-type panes list)
-  `(list ,@(mapcar #'(lambda (pane-spec)
-		       (destructuring-bind (name code &rest options) pane-spec
-			 (setq code (canonicalize-pane-spec name code options))
-			 `(list ',name
-				#'(lambda (frame framem)
-				    (with-look-and-feel-realization (framem frame)
-				      ,code)))))
-		   panes)))
-   
-(defun canonicalize-pane-spec (name code rest)
-  (cond ((symbolp code)
-	 (unless (getf rest :name)
-	   (setf (getf rest :name) `',name))
-	 (apply #'find-pane-class-constructor code rest))
-	((null rest) code)
-	(t
-	 (error "Invalid pane specification: ~S"
-		(list* name code rest)))))
-
-(defmethod find-pane-class-constructor ((type t) &rest options)
-  (declare (dynamic-extent options))
-  (error "Unknown pane type ~S with options ~S" type options))
-
-
-;;--- Extend this to default the options from the lambda list
-(defmacro define-pane-type (type lambda-list &body body)
-  `(defmethod find-pane-class-constructor ((type (eql ',type)) ,@lambda-list)
-     ,@body))
-
-(define-pane-type :title (&rest options)
-  (declare (non-dynamic-extent options))
-  `(make-clim-stream-pane
-     :type 'title-pane
-     ,@options
-     :display-function 'display-title
-     :display-after-commands nil
-     :text-style (parse-text-style '(:sans-serif :bold :large))
-     :scroll-bars nil
-     :width :compute :height :compute
-     :max-height :compute
-     :end-of-page-action :allow 
-     :end-of-line-action :allow))
-
-(define-pane-type :command-menu (&rest options)
-  (declare (non-dynamic-extent options))
-  `(make-clim-stream-pane
-     :type 'command-menu-pane
-     ,@options
-     :display-function `(display-command-menu :command-table ,(frame-command-table frame))
-     :incremental-redisplay t
-     :display-after-commands t
-     :text-style *command-table-menu-text-style*
-     :scroll-bars nil
-     :width :compute :height :compute
-     :end-of-page-action :allow 
-     :end-of-line-action :allow))
-
-
-(define-pane-type :interactor (&rest options &key (scroll-bars :vertical))
-  (declare (non-dynamic-extent options))
-  `(make-clim-interactor-pane
-     ,@options
-     :scroll-bars ,scroll-bars))
-
-(define-pane-type :application (&rest options &key (scroll-bars :both))
-  (declare (non-dynamic-extent options))
-  `(make-clim-application-pane 
-     ,@options
-     :scroll-bars ,scroll-bars))
-
-(define-pane-type :accept-values (&rest options &key (scroll-bars :vertical))
-  (declare (non-dynamic-extent options))
-  `(make-clim-stream-pane 
-     :type 'accept-values-pane
-     ,@options
-     :display-after-commands :no-clear
-     :scroll-bars ,scroll-bars
-     :width :compute :height :compute
-     :end-of-page-action :allow
-     :end-of-line-action :allow))
-
-(define-pane-type :pointer-documentation (&rest options)
-  (declare (non-dynamic-extent options))
-  `(make-clim-stream-pane
-     :type 'pointer-documentation-pane
-     ,@options
-     :display-after-commands nil
-     :text-style (parse-text-style '(:sans-serif :bold :normal))
-     :scroll-bars nil
-     :end-of-page-action :allow
-     :end-of-line-action :allow))
-
-(define-pane-type scroll-bar (&rest options)
-  (declare (non-dynamic-extent options))
-  `(make-pane 'scroll-bar ,@options))
-
-(define-pane-type slider (&rest options)
-  (declare (non-dynamic-extent options))
-  `(make-pane 'slider ,@options))
-
-(define-pane-type push-button (&rest options)
-  (declare (non-dynamic-extent options))
-  `(make-pane 'push-button ,@options))
-
-(define-pane-type label-pane (&rest options)
-  (declare (non-dynamic-extent options))
-  `(make-pane 'label-pane ,@options))
-
-(define-pane-type text-field (&rest options)
-  (declare (non-dynamic-extent options))
-  `(make-pane 'text-field ,@options))
-
-(define-pane-type text-editor (&rest options)
-  (declare (non-dynamic-extent options))
-  `(make-pane 'text-editor ,@options))
-
-(define-pane-type toggle-button (&rest options)
-  (declare (non-dynamic-extent options))
-  `(make-pane 'toggle-button ,@options))
-
-(define-pane-type radio-box (&rest options)
-  (declare (non-dynamic-extent options))
-  `(make-pane 'radio-box ,@options))
-
-(define-pane-type check-box (&rest options)
-  (declare (non-dynamic-extent options))
-  `(make-pane 'check-box ,@options))
-
-(define-pane-type list-pane (&rest options)
-  (declare (non-dynamic-extent options))
-  `(make-pane 'list-pane ,@options))
-
-(define-pane-type option-pane (&rest options)
-  (declare (non-dynamic-extent options))
-  `(make-pane 'option-pane ,@options))
-
-(define-pane-type :menu-bar (&rest options &key command-table)
-  (declare (non-dynamic-extent options))
-  (with-keywords-removed (options options '(:command-table))
-    `(make-pane 'menu-bar 
-		,@options
-		:command-table ,(or command-table
-				    `(frame-command-table frame)))))
+(defun compute-default-generate-panes-code (name panes)
+  (let ((frame '#:frame)
+	(framem '#:framem))
+    `((defmethod generate-panes ((,framem standard-frame-manager) (,frame ,name))
+	(let ((*application-frame* ,frame))
+	  (setf (frame-panes ,frame)
+	    (frame-wrapper ,framem ,frame
+	      (with-look-and-feel-realization (,framem ,frame)
+		(vertically ()
+		  ,@(mapcar #'(lambda (pane-spec)
+				(destructuring-bind (name &rest ignore) pane-spec
+				  (declare (ignore ignore))
+				  `(find-or-make-pane-named ,frame ',name)))
+			    panes))))))))))
 
 
 (defmethod find-or-make-pane-named ((frame standard-application-frame) name)
@@ -644,13 +522,11 @@
   (let ((geometry (getf options :geometry)))
     (when (and (eq user-specified-position-p :unspecified)
 	       (or (and (getf geometry :left)
-			(getf geometry :top))
-		   (and left top)))
+			(getf geometry :top))))
       (setf user-specified-position-p t))
     (when (and (eq user-specified-size-p :unspecified)
 	       (or (and (getf geometry :width)
-			(getf geometry :height))
-		   (and width height)))
+			(getf geometry :height))))
       (setf user-specified-size-p t)))
   (with-keywords-removed (options options 
 			  '(:frame-class :pretty-name :enable :save-under
@@ -720,9 +596,7 @@
 	 (multiple-value-bind (width height)
 	     (ecase old-state
 	       (:disowned 
-		(if (and width height)
-		    (values width height)
-		  (values)))
+		(values width height))
 	       (:disabled
 		(bounding-rectangle-size
 		 (frame-top-level-sheet frame))))  
@@ -908,8 +782,8 @@
 
 (defmethod default-frame-top-level ((frame standard-application-frame)
 				    &key command-parser command-unparser
-				    partial-command-parser
-				    (prompt "Command: "))
+					 partial-command-parser
+					 (prompt "Command: "))
   ;; Enable the frame now
   (unless (eq (frame-state frame) :enabled)
     (enable-frame frame))
@@ -948,7 +822,8 @@
 		(output-protocol-mixin si)
 		(t (frame-top-level-sheet frame))))))
       ;; The read-eval-print loop for applications...
-      (letf-globally (((frame-actual-pointer-documentation-pane frame) *pointer-documentation-output*))
+      (letf-globally (((frame-actual-pointer-documentation-pane frame)
+		       *pointer-documentation-output*))
 	(loop
 	  ;; Redisplay all the panes
 	  (catch-abort-gestures ("Return to ~A command level" (frame-pretty-name frame))
@@ -1077,6 +952,7 @@
 
 ;; The contract of GET-FRAME-PANE is to get a pane upon which we can do normal
 ;; I/O operations, that is, a CLIM stream pane
+
 (defmethod get-frame-pane ((frame standard-application-frame) pane-name &key (errorp t))
   (with-slots (all-panes) frame
     (let ((pane (assoc pane-name all-panes)))
@@ -1145,31 +1021,38 @@
 	      (push pane (slot-value frame 'initialized-panes))))
 	  (return
 	    (cond (display-function
-		   (cond (redisplay-p
-			  (let ((redisplay-record
-				 (let ((history (stream-output-history pane)))
-				   (when history
-				     #+compulsive-redisplay
-				     (when (> (output-record-count history :fastp t) 1)
-				       (cerror "Clear the output history and proceed"
-					       "There is more than one element in this redisplay pane")
-				       (window-clear pane))
-				     (unless (zerop (output-record-count history :fastp t))
-				       (output-record-element history 0))))))
-			    (cond ((or (null redisplay-record) force-p)
-				   (when force-p
-				     (window-clear pane))
-				   (invoke-pane-redisplay-function frame pane))
-				  (t 
-				   (redisplay redisplay-record pane 
-					      :check-overlapping check-overlapping)))))
-			 ((or force-p (progn (multiple-value-setq (needs-display clear)
-					       (pane-needs-redisplay pane))
-					     needs-display))
-			  (when (or force-p clear)
-			    (window-clear pane))
-			  (invoke-pane-display-function frame pane)))
+		   (cond 
+
+		    ;; display function with incremental redisplay
+		    (redisplay-p
+		     (let ((redisplay-record
+			    (let ((history (stream-output-history pane)))
+			      (when history
+				#+compulsive-redisplay
+				(when (> (output-record-count history :fastp t) 1)
+				  (cerror "Clear the output history and proceed"
+					  "There is more than one element in this redisplay pane")
+				  (window-clear pane))
+				(unless (zerop (output-record-count history :fastp t))
+				  (output-record-element history 0))))))
+		       (cond ((or (null redisplay-record) force-p)
+			      (when force-p
+				(window-clear pane))
+			      (invoke-pane-redisplay-function frame pane))
+			     (t 
+			      (redisplay redisplay-record pane 
+					 :check-overlapping check-overlapping)))))
+
+		    ;; display function without incremental redisplay
+		    ((or force-p (progn (multiple-value-setq (needs-display clear)
+					  (pane-needs-redisplay pane))
+					needs-display))
+		     (when (or force-p clear)
+		       (window-clear pane))
+		     (invoke-pane-display-function frame pane)))
 		   (force-output pane))
+		  
+		  ;; no display function
 		  (force-p
 		   ;; If refilling from scratch, give the application a chance
 		   ;; to draw stuff

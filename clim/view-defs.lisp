@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: view-defs.lisp,v 1.14 1993/09/17 19:05:29 cer Exp $
+;; $fiHeader: view-defs.lisp,v 1.15 1993/10/25 16:15:39 cer Exp $
 
 (in-package :clim-internals)
 
@@ -93,6 +93,7 @@
 
 
 (defmacro make-pane-from-view (class view ignore &body initargs)
-  `(apply #'make-pane ,class (append (remove-keywords (view-gadget-initargs ,view) ,ignore)
-				     (list ,@initargs))))
+  `(apply #'make-pane ,class
+	  (append (remove-keywords (view-gadget-initargs ,view) ,ignore)
+		  (list ,@initargs))))
 

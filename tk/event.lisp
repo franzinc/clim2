@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: event.lisp,v 1.23 1993/11/23 19:58:55 cer Exp $
+;; $fiHeader: event.lisp,v 1.24 1993/12/07 05:34:10 colin Exp $
 
 (in-package :tk)
 
@@ -39,11 +39,13 @@
 ;;; In wait-for-event, pending input is checked for before the process
 ;;; waits. This is necessary as if there are any timer events that
 ;;; have "occurred" but have not yet been processed then
-;;; xt_app_interval_next_timer will return 0 which would otherwise
+;;; xt_app_interval_next_timer will return -1 which would otherwise
 ;;; result in an indefinite block hence losing the timer event.
 ;;; If mp:wait-for-input-available returns nil - indicating time out -
 ;;; then mask is set by a further call to xt_app_pending. (cim)
 
+
+(defvar *inside-event-wait-function* nil)
 
 (defun wait-for-event (context &key timeout wait-function)
   (let ((mask 0))
@@ -60,7 +62,7 @@
     
     (flet ((wait-function (fd)
 	     (declare (ignore fd))
-	     (let ((*inside-event-wait-function* fds))
+	     (let ((*inside-event-wait-function* '#:wait-for-event))
 	       (catch *inside-event-wait-function*
 		 (or (plusp (setq mask (xt_app_pending context)))
 		     (and wait-function
@@ -68,14 +70,15 @@
 			  (setq reason :wait)))))))
       
       (let* ((interval (xt_app_interval_next_timer context))
-	     (new-timeout (if (plusp interval)
-			      (if (and timeout
-				       (< (* timeout 1000) interval))
-				  timeout
-				(multiple-value-bind (sec msec)
-				    (truncate interval 1000)
-				  (cons sec msec)))
-			    timeout)))
+	     (new-timeout (if (< interval 0)
+			      timeout
+			    ;; rewrite this so it doesn't cons!
+			    (if (and timeout
+				     (<= (* timeout 1000) interval))
+				timeout
+			      (multiple-value-bind (sec msec)
+				  (truncate interval 1000)
+				(cons sec msec))))))
 	(unless (mp:wait-for-input-available fds 
 					     :wait-function #'wait-function
 					     :timeout new-timeout)

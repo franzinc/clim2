@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-widgets.lisp,v 1.16 1993/08/12 16:04:54 cer Exp $
+;; $fiHeader: xm-widgets.lisp,v 1.17 1993/10/26 03:22:35 colin Exp $
 
 (in-package :tk)
 
@@ -101,14 +101,52 @@
 	    r))))
 
 (defmethod convert-resource-out ((parent t) (type (eql 'xm-string)) value)
-  (incf *string-counter* (length value))
-  ;;-- allocate-no-free
-  (xm_string_create_l_to_r (string-to-char* value) (string-to-char* "")))
+  (note-malloced-object
+   (xm_string_create_l_to_r 
+    (note-malloced-object (string-to-char* value))
+    (note-malloced-object (string-to-char* "")))))
 
 (defmethod convert-resource-out ((parent t) (type (eql 'xm-background-pixmap)) value)
   (etypecase value
     (pixmap
      (encode-pixmap nil value))))
+
+(defun encode-box-child (child)
+  (let ((x (getf '(
+                   :none                  0 
+                   :apply         1
+                   :cancel    2
+                   :default   3
+                   :ok        4
+                   :filter-label     5
+                   :filter-text      6
+                   :help      7
+                   :list                  8
+                   :history-list     :list
+                   :list-label    9
+                   :message-label    10
+                   :selection-label  11
+                   :prompt-label     :selection-label
+                   :symbol-label     12
+                   :text                  13
+                   :value-text       :text
+                   :command-text     :text
+                   :separator             14
+                   :dir-list         15
+                   :dir-list-label   16
+                   :file-list        :list
+                   :file-list-label  :list-label
+                   ) 
+                 child)))
+    (cond ((null x)
+           (error "cannot encode child ~S" child))
+          ((symbolp x)
+           (encode-box-child x))
+          (t x))))
+
+(defmethod convert-resource-out ((parent t) (type (eql 'default-button-type)) value)
+  (encode-box-child value))
+
 
 (tk::add-resource-to-class (find-class 'xm-text)
 			   (make-instance 'resource
@@ -133,3 +171,23 @@
 					  :original-name 
 					  (string-to-char*
 					   "wordWrap")))
+
+(defmethod convert-resource-out ((parent t) (type (eql 'xm-string-table)) value)
+  (if value
+      (do* ((n (length value))
+	    (r (note-malloced-object
+		(make-xm-string-table :number n :in-foreign-space t)))
+	    (v value (cdr v))
+	    (i 0 (1+ i)))
+	  ((null v)
+	   r)
+	(setf (xm-string-table r i)
+	  (convert-resource-out parent 'xm-string (car v))))
+    0))
+
+(defmethod convert-pixmap-out (parent (value string))
+  (let* ((display (widget-display parent))
+	 (screen (x11:xdefaultscreenofdisplay display))
+	 (white (x11::xwhitepixel display 0))
+	 (black (x11::xblackpixel display 0)))
+    (xm_get_pixmap screen value white black)))

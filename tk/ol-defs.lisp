@@ -20,13 +20,15 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-defs.lisp,v 1.6 93/04/23 09:18:35 cer Exp $
+;; $fiHeader: ol-defs.lisp,v 1.7 1993/07/27 01:53:26 colin Exp $
 
 ;;
 ;; This file contains compile time only code -- put in clim-debug.fasl.
 ;;
 
 (in-package :tk)
+
+(provide :clim-debugol)
 
 (def-c-type (ol-callback-struct :no-defuns) :struct
 	    (reason :int))

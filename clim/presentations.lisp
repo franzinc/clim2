@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: presentations.lisp,v 1.20 92/12/03 10:27:35 cer Exp $
+;; $fiHeader: presentations.lisp,v 1.21 1993/06/21 20:50:12 cer Exp $
 
 (in-package :clim-internals)
 
@@ -182,7 +182,7 @@
 		     ;; This is more like the pointer moving than anything else.
 		     (/= old-state
 			 (setf old-state (window-modifier-state stream)))))))
-	  (declare (dynamic-extent #'pointer-motion-pending))
+	  #-Allegro (declare (dynamic-extent #'pointer-motion-pending))
 	  (let ((*input-wait-handler* #'highlight-presentation-of-context-type)
 		(*input-wait-test* #'pointer-motion-pending)
 		(*pointer-button-press-handler* #'input-context-button-press-handler))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: base-designs.lisp,v 1.6 92/12/03 10:30:33 cer Exp $
+;; $fiHeader: base-designs.lisp,v 1.8 1993/08/19 20:10:25 smh Exp $
 
 (in-package :clim-utils)
 
@@ -128,7 +128,6 @@
   (with-slots (color) color
     `(make-dynamic-color ,color)))
 
-
 ;;; Layered Colors
 
 (defclass layered-color-set ()
@@ -152,6 +151,17 @@
    
 (define-constructor make-layered-color layered-color (set layers)
   :set set :layers layers)
+
+;;; Device Colors 
+
+(defclass device-color (color)
+    ((palette :reader device-color-palette :initarg :palette)
+     (pixel :reader device-color-pixel :initarg :pixel)))
+
+(defmethod make-load-form ((color device-color) &optional environment)
+  (declare (ignore environment))
+  (with-slots (palette pixel) color
+    `(make-device-color ,palette ,pixel)))
 
 
 ;;; Foreground and background (indirect) inks
@@ -203,8 +213,10 @@
 ;;; Patterns
 
 (defclass pattern (design)
-    ((array   :type (array * (* *)) :initarg :array)
-     (designs :type vector	    :initarg :designs)))
+  ((array :type (array * (* *)) :initarg :array 
+	    :reader pattern-array)
+   (designs :type vector :initarg :designs
+	    :reader pattern-designs)))
 
 (defun make-pattern (array designs)
   #+Genera (declare lt:(side-effects simple reducible))

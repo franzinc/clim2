@@ -1,6 +1,6 @@
 M;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-defs.lisp,v 1.18 1993/05/05 01:38:30 cer Exp $
+;; $fiHeader: input-defs.lisp,v 1.19 1993/05/25 20:40:52 cer Exp $
 
 (in-package :clim-internals)
 
@@ -185,8 +185,13 @@ M;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10
 	;;--- it's hours before AAAI.  Note that this can cause blowouts
 	;;--- in multi-processing systems if the function that does the
 	;;--- unhighlighting depends on application state.
+	;;---	
+	;;--- let's go the whole hog and make a stab at binding
+	;;--- *application-frame* (cim 1/31/94)
 	(when (output-recording-stream-p sheet)
-	  (set-highlighted-presentation sheet nil nil))))))
+	  (let ((*application-frame* (or (pane-frame sheet)
+					 *application-frame*)))
+	    (set-highlighted-presentation sheet nil nil)))))))
 
 (defmethod pointer-decache ((pointer standard-pointer))
   ;;-- If the (sheet-transformation (pointer-sheet .)) has changed

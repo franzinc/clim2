@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: tracking-pointer.lisp,v 1.17 93/05/05 01:39:05 cer Exp $
+;; $fiHeader: tracking-pointer.lisp,v 1.18 1993/07/27 01:41:43 colin Exp $
 
 (in-package :clim-internals)
 
@@ -195,7 +195,7 @@
 			   (multiple-value-setq (moved-p last-window last-x last-y)
 			     (pointer-state-changed pointer last-window last-x last-y))
 			   (and moved-p last-window))))
-		  (declare (dynamic-extent #'pointer-motion-pending))
+		  #-Allegro (declare (dynamic-extent #'pointer-motion-pending))
 		  ;; It's OK to do the input wait on STREAM instead of on
 		  ;; CURRENT-WINDOW, because multiple-window mode only works
 		  ;; when all the windows share the same I/O buffer.  Same
@@ -352,45 +352,55 @@
 (defun pointer-input-rectangle* (&key left top right bottom
 				      (stream *standard-input*)
 				      (pointer (stream-primary-pointer stream))
-				      multiple-window)
+				      multiple-window
+				      finish-on-release)
   (let ((rectangle-drawn nil))
-    (with-output-recording-options (stream :draw t :record nil)
-      (tracking-pointer (stream :pointer pointer :multiple-window multiple-window)
-	(:pointer-motion (window x y)
-	 (when rectangle-drawn
-	   (draw-rectangle* stream left top right bottom
-			    :filled nil :ink +flipping-ink+)
-	   (setq rectangle-drawn nil))
-	 (when left
-	   (when (eq window stream)
-	     (setq right x bottom y)
-	     (draw-rectangle* stream left top right bottom
-			      :filled nil :ink +flipping-ink+)
-	     (setq rectangle-drawn t))))
-	(:pointer-button-press (event)
-	 (if (eq (event-sheet event) stream)
-	     (cond ((null left)
-		    (setq left (pointer-event-x event))
-		    (setq top (pointer-event-y event)))
-		   (t
-		    (when rectangle-drawn
-		      (draw-rectangle* stream left top right bottom
-				       :filled nil :ink +flipping-ink+)
-		      (setq rectangle-drawn nil))
-		    (return-from pointer-input-rectangle*
-		      (values left top
-			      (pointer-event-x event) (pointer-event-y event)))))
-	     (beep stream)))))))
+    (flet ((finish (event)
+	     (when rectangle-drawn
+	       (draw-rectangle* stream left top right bottom
+				:filled nil :ink +flipping-ink+)
+	       (setq rectangle-drawn nil))
+	     (return-from pointer-input-rectangle*
+	       (values left top
+		       (pointer-event-x event) (pointer-event-y event)))))
+      (with-output-recording-options (stream :draw t :record nil)
+	(tracking-pointer (stream :pointer pointer :multiple-window multiple-window)
+	  (:pointer-motion (window x y)
+	    (when rectangle-drawn
+	      (draw-rectangle* stream left top right bottom
+			       :filled nil :ink +flipping-ink+)
+	      (setq rectangle-drawn nil))
+	    (when left
+	      (when (eq window stream)
+		(setq right x bottom y)
+		(draw-rectangle* stream left top right bottom
+				 :filled nil :ink +flipping-ink+)
+		(setq rectangle-drawn t))))
+	  (:pointer-button-press (event)
+	    (if (eq (event-sheet event) stream)
+		(if (null left)
+		    (setq left (pointer-event-x event)
+			  top (pointer-event-y event))
+		  (when (not finish-on-release)
+		    (finish event)))
+	      (beep stream)))
+	  (:pointer-button-release (event)
+	    (if (eq (event-sheet event) stream)
+		(when (and left
+			   finish-on-release)
+		  (finish event))
+	      (beep stream))))))))
 
-(defun pointer-input-rectangle (&key rectangle
-				     (stream *standard-input*)
-				     (pointer (stream-primary-pointer stream)))
+(defun pointer-input-rectangle (&rest keys &key rectangle &allow-other-keys)
+  (declare (dynamic-extent keys))
   (let (left top right bottom)
     (when rectangle
       (multiple-value-setq (left top right bottom)
 	(bounding-rectangle* rectangle)))
     (multiple-value-call #'make-bounding-rectangle
-      (pointer-input-rectangle* :left left :top top
-				:right right :bottom bottom
-				:stream stream
-				:pointer pointer))))
+      (with-keywords-removed (keys keys '(:rectangle))
+	(apply #'pointer-input-rectangle*
+	       :left left :top top
+	       :right right :bottom bottom
+	       keys)))))
+

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: port.lisp,v 1.31 1993/07/22 15:38:59 cer Exp $
+;; $fiHeader: port.lisp,v 1.32 1993/09/07 21:46:48 colin Exp $
 
 (in-package :silica)
 
@@ -72,8 +72,8 @@
 (defmethod initialize-instance :around ((port basic-port) &key server-path)
   (setf (slot-value port 'server-path) (copy-list server-path))
   (call-next-method)
-  (setq *ports* (nconc *ports* (list port)))
-  (restart-port port))
+  (restart-port port)
+  (setq *ports* (nconc *ports* (list port))))
 
 
 (defmethod find-named-color (name (port basic-port) &key (errorp t))

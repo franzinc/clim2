@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: noting-progress.lisp,v 1.7 1993/07/22 15:38:05 cer Exp $
+;; $fiHeader: noting-progress.lisp,v 1.8 1993/08/12 16:03:09 cer Exp $
 
 (in-package :clim-internals)
 
@@ -105,7 +105,7 @@
 	 (dolist (,var ,list-var)
 	   ,@body
 	   (incf ,count-var)
-	   (note-progress ,count-var ,total-var))))))
+	   (note-progress ,count-var ,total-var ,note-var))))))
 
 (defmacro dotimes-noting-progress ((var countform name
 				    &optional stream (note-var '*current-progress-note*))
@@ -117,7 +117,7 @@
 	   ,@body
 	   ;; We want the progress bar to advance after the first iteration
 	   ;; even though DOTIMES is zero-based, so add one to the numerator.
-	   (note-progress (1+ ,var) ,count-var))))))
+	   (note-progress (1+ ,var) ,count-var ,note-var))))))
 
 (defmethod frame-manager-display-progress-note
     ((framem standard-frame-manager) (note progress-note))
@@ -133,3 +133,4 @@
 (defmethod frame-manager-display-progress-note
     ((framem null) (note progress-note))
   nil)
+

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-frames.lisp,v 1.42 1993/10/25 16:16:44 cer Exp $
+;; $fiHeader: xt-frames.lisp,v 1.43 1993/11/23 19:59:09 cer Exp $
 
 
 (in-package :xm-silica)
@@ -91,8 +91,9 @@
      :sheet (frame-top-level-sheet frame))))
 
 (defmethod handle-event (sheet (event window-manager-delete-event))
-  (and (pane-frame sheet)
-       (frame-exit (pane-frame sheet))))
+  (let ((frame (pane-frame sheet)))
+    (and frame
+	 (frame-exit frame))))
 
 ;;; Menu code
 
@@ -102,6 +103,7 @@
 	  presentation-type 
 	  (associated-window (frame-top-level-sheet *application-frame*))
 	  text-style label
+	  foreground background
 	  cache
 	  (unique-id items)
 	  (id-test 'equal)
@@ -110,53 +112,65 @@
 	  (gesture :select)
 	  row-wise
 	  n-columns
-	  n-rows)
-  (declare (ignore keys))      
+	  n-rows
+	  x-position
+	  y-position
+	  scroll-bars)
   (declare (values value chosen-item gesture))
-  (let ((port (port framem))
-	menu closure)
-    (setq cache (and cache (frame-manager-allows-menu-caching framem)))
-    (when cache
-      (let ((x (assoc unique-id
-		      (frame-manager-menu-cache framem)
-		      :test id-test)))
-	(when x
-	  (destructuring-bind
-	      (menu-cache-value amenu aclosure) (cdr x)
-	    (if (funcall cache-test cache-value menu-cache-value)
-		(setq menu amenu closure aclosure)
-	      (progn
-		(setf (frame-manager-menu-cache framem)
-		  (delete x (frame-manager-menu-cache framem)))
-		(framem-destroy-menu framem amenu)))))))
-      
-    (unless menu
-      (multiple-value-setq
-	  (menu closure)
-	(frame-manager-construct-menu framem 
-				      items 
-				      printer 
-				      presentation-type 
-				      associated-window
-				      text-style
-				      label
-				      gesture
-				      row-wise
-				      n-columns
-				      n-rows))
+  ;; let's degrade to CLIM 1 style menus if we need scroll-bars
+  (if scroll-bars
+      (call-next-method)
+    (let ((port (port framem))
+	  menu closure)
+      (setq cache (and cache (frame-manager-allows-menu-caching framem)))
       (when cache
-	(push (list unique-id cache-value menu closure) 
-	      (frame-manager-menu-cache framem))))
+	(let ((x (assoc unique-id
+			(frame-manager-menu-cache framem)
+			:test id-test)))
+	  (when x
+	    (destructuring-bind
+		(menu-cache-value amenu aclosure) (cdr x)
+	      (if (funcall cache-test cache-value menu-cache-value)
+		  (setq menu amenu closure aclosure)
+		(progn
+		  (setf (frame-manager-menu-cache framem)
+		    (delete x (frame-manager-menu-cache framem)))
+		  (framem-destroy-menu framem amenu)))))))
+      
+      (unless menu
+	(multiple-value-setq
+	    (menu closure)
+	  (frame-manager-construct-menu framem 
+					items 
+					printer 
+					presentation-type 
+					associated-window
+					text-style
+					foreground
+					background
+					label
+					gesture
+					row-wise
+					n-columns
+					n-rows))
+	(when cache
+	  (push (list unique-id cache-value menu closure) 
+		(frame-manager-menu-cache framem))))
 	  
-    ;; initialize the closure
-    (funcall closure t)
-    ;;
-    (multiple-value-bind
-	(ignore win1 win2 x y root-x root-y)
-	(tk::query-pointer (tk::display-root-window
-			    (port-display port)))
-      (declare (ignore ignore win1 win2 x y))
-      (tk::set-values menu :x root-x :y root-y)
+      ;; initialize the closure
+      (funcall closure t)
+      ;;
+
+      (unless (and x-position y-position)
+	(multiple-value-bind
+	    (ignore win1 win2 x y root-x root-y)
+	    (tk::query-pointer (tk::display-root-window
+				(port-display port)))
+	  (declare (ignore ignore win1 win2 x y))
+	  (setq x-position root-x
+		y-position root-y)))
+
+      (tk::set-values menu :x x-position :y y-position)
       (let ((aborted t))
 	(catch 'menu-choose
 	  (unwind-protect
@@ -195,7 +209,7 @@
 
 (defmethod frame-manager-exit-box-labels ((framem xt-frame-manager) frame view)
   (declare (ignore frame view))
-  '((:exit  "OK" :documentation "Exit from dialog")
+  '((:exit  "OK" :documentation "Exit from dialog" :show-as-default t)
     (:abort  "Cancel" :documentation "Cancel dialog")))
 
 (defmethod frame-manager-default-exit-boxes ((framem xt-frame-manager))
@@ -211,10 +225,6 @@
 		  (tk::widget-window (frame-shell frame))))
 
 ;;; 
-
-(defmethod invoke-with-menu-as-popup ((framem xt-frame-manager) (window t) continuation)
-  (funcall continuation))
-
 
 (defmethod invoke-with-mouse-grabbed-in-window ((framem xt-frame-manager) (window t) continuation &key)
   (invoke-with-pointer-grabbed window continuation))

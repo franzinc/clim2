@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: POSTSCRIPT-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: postscript-port.lisp,v 1.22 1993/08/12 16:04:02 cer Exp $
+;; $fiHeader: postscript-port.lisp,v 1.23 1993/11/18 18:44:51 cer Exp $
 
 (provide :climps)
 
@@ -260,7 +260,8 @@
    (curfont :initform nil)	;a psfck structure
    (ch1buf :initform (make-array 1 :element-type #+ANSI-90 'character
 				 #-ANSI-90 'string-char))
-   (current-line-style :initform nil)))
+   (current-line-style :initform nil)
+   (current-clip-region :initform nil)))
 
 (defmethod implementation-pixels-per-point ((medium postscript-medium))
   (float (/ *1-pixel=points*) 0f0))
@@ -312,19 +313,12 @@
 
 (defmethod ps-pos-op ((medium postscript-medium) op x y &rest args)
   (declare (dynamic-extent args))
-  (let ((printer-stream (slot-value medium 'printer-stream))
-	(port (port medium)))
+  (let ((printer-stream (slot-value medium 'printer-stream)))
     (pixels-to-points x y)
     (write-char #\space printer-stream)
-    (ps-optimal-flonize
-      (+ (* (slot-value port 'page-indent)
-	    (slot-value port 'device-units-per-inch)) x)
-      printer-stream)
+    (ps-optimal-flonize x printer-stream)
     (write-char #\space printer-stream)
-    (ps-optimal-flonize
-      (- (* (+ (slot-value port 'page-height) (slot-value port 'page-indent))
-	    (slot-value port 'device-units-per-inch)) y)
-      printer-stream)
+    (ps-optimal-flonize (- y) printer-stream)
     (dolist (arg args)
       (write-char #\space printer-stream)
       (if (numberp arg)
@@ -542,18 +536,24 @@ end } def
     (format printer-stream "%%DocumentFonts: (atend)~%")
     (format printer-stream "%%EndComments~%")
     (format printer-stream *postscript-prologue* (length (slot-value (port medium) 'font-map)))
-    (ecase orientation
-      (:portrait
-        (format printer-stream
-            "/format-rotation 0 def ~%/format-y-translation 0 def~%"))
-      (:landscape
-        (format printer-stream
-            "/format-rotation -90 def ~%/format-y-translation ~D def~%" 
-          (float (* (+ (slot-value port 'page-height) (slot-value port 'page-indent))
-		    (slot-value port 'device-units-per-inch))))))
+    (with-slots (page-indent page-height page-width device-units-per-inch) 
+	port
+      (flet ((device-units (x)
+	       (float (* x device-units-per-inch))))
+	(ecase orientation
+	  (:portrait
+	   (format printer-stream
+		   "/format-rotation 0 def ~%/format-translation {~D ~D} def~%"
+		   (device-units page-indent)
+		   (device-units (+ page-indent page-height))))
+	  (:landscape
+	   (format printer-stream
+		   "/format-rotation -90 def ~%/format-translation {~D ~D} def~%" 
+		   (device-units (+ page-indent page-height))
+		   (device-units (+ page-indent page-width)))))))
     (format printer-stream "/format-scale ~D def~%" (float (or scale-factor 1)))
     (format printer-stream
-        "/new-matrix {0 format-y-translation translate
+        "/new-matrix {format-translation translate
 		      format-rotation rotate
 		      format-scale format-scale scale} def
 	 /new-page {showpage new-matrix} def~%")
@@ -813,20 +813,21 @@ end } def
 
 
 (defclass apple-laser-writer (postscript-port)
-    ((x-resolution :initform 300)	;pixels per inch
-     (y-resolution :initform 300)
-     (page-indent :initform  0.5)	;in inches
-     (page-width  :initform  7.5)
-     (page-height :initform 10)))
+  ;; x-resolution and y-resolution should *never* appear in any
+  ;; calculations - they have no relevance whatsoever as postscript is
+  ;; co-ordinates are given in user space *not* device space. 
+  ((x-resolution :initform 300)		;pixels per inch
+   (y-resolution :initform 300)
+   (page-indent :initform  0.5)		;in inches
+   (page-width  :initform  7.5)
+   (page-height :initform 10)))
 
 (defmethod normal-line-thickness ((port postscript-port) thickness)
   thickness)
 
 (defmethod normal-line-thickness ((port apple-laser-writer) thickness)
-  (if (= thickness 1)
-      0
-      (* thickness (/ (slot-value port 'device-units-per-inch)
-		      (slot-value port 'x-resolution)))))
+  (* thickness *1-pixel=points*))
+
 
 (defmethod initialize-instance :after ((port apple-laser-writer) &key server-path)
   (declare (ignore server-path))
@@ -908,39 +909,39 @@ end } def
 		       (not (eq region +everywhere+)))
 		  (not multi-page))
 	      (replay output-record stream (or region +everywhere+))
-	      (with-bounding-rectangle* (left top right bottom) output-record
-		(let* ((page-width
-			 (floor (* (slot-value port 'page-width)
-				   (slot-value port 'device-units-per-inch))
-				*1-pixel=points*))
-		       (page-height
-			 (floor (* (slot-value port 'page-height)
-				   (slot-value port 'device-units-per-inch))
-				*1-pixel=points*))
-		       (first-page t))
-		  (setq viewport-x 0 viewport-y 0)
-		  ;; Draw each chunk of output on its own page
-		  (unwind-protect
-		      (do ((y top (+ y page-height)))
-			  ((> y bottom))
-			(do ((x left (+ x page-width)))
-			    ((> x right))
-			  (if first-page
-			      (setq first-page nil)
-			      (format printer-stream "gsave new-page grestore~%"))
-			  (let ((region (make-bounding-rectangle
-					  x y (+ x page-width) (+ y page-height))))
-			    (setf (sheet-device-transformation stream)
-				  (make-translation-transformation
-				   (- viewport-x) (- viewport-y)))
-			    (let ((*annotate-postscript* t))
-			      (annotating-postscript (medium printer-stream)
-						     (format printer-stream  "%%%%%----- Multi-page ~D,~D" viewport-x viewport-y)))
-			    (replay output-record stream region))
-			  (incf viewport-x page-width))
-			(setf viewport-x 0)
-			(incf viewport-y page-height))
-		    (setq viewport-x 0 viewport-y 0))))))))))
+	    (with-bounding-rectangle* (left top right bottom) output-record
+	      (let* ((page-width
+		      (floor (* (slot-value port 'page-width)
+				(slot-value port 'device-units-per-inch))
+			     *1-pixel=points*))
+		     (page-height
+		      (floor (* (slot-value port 'page-height)
+				(slot-value port 'device-units-per-inch))
+			     *1-pixel=points*))
+		     (first-page t))
+		(setq viewport-x 0 viewport-y 0)
+		;; Draw each chunk of output on its own page
+		(unwind-protect
+		    (do ((y top (+ y page-height)))
+			((> y bottom))
+		      (do ((x left (+ x page-width)))
+			  ((> x right))
+			(if first-page
+			    (setq first-page nil)
+			  (format printer-stream "gsave new-page grestore~%"))
+			(let ((region (make-bounding-rectangle
+				       x y (+ x page-width) (+ y page-height))))
+			  (setf (sheet-device-transformation stream)
+			    (make-translation-transformation
+			     (- viewport-x) (- viewport-y)))
+			  (let ((*annotate-postscript* t))
+			    (annotating-postscript (medium printer-stream)
+						   (format printer-stream  "%%%%%----- Multi-page ~D,~D" viewport-x viewport-y)))
+			  (replay output-record stream region))
+			(incf viewport-x page-width))
+		      (setf viewport-x 0)
+		      (incf viewport-y page-height))
+		  (setq viewport-x 0 viewport-y 0))))))))))
 
 (defmethod invoke-with-output-recording-options :before 
 	   ((stream postscript-stream) continuation record draw)
@@ -977,6 +978,9 @@ end } def
 	 (stream (make-instance 'postscript-stream
 				:multi-page multi-page))
 	 (abort-p t))
+    (when (eq orientation :landscape)
+      (rotatef (slot-value port 'page-width)
+	       (slot-value port 'page-height)))
     (setf (port stream :graft (find-graft :port port)) port)
     (let ((medium (sheet-medium stream)))
       (setf (slot-value medium 'printer-stream) file-stream)
@@ -986,38 +990,39 @@ end } def
 		(letf-globally (((stream-generating-postscript stream) nil))
 		  (funcall continuation stream)))
 	    (force-output stream)
-	    (multiple-value-bind (width height) 
-		(bounding-rectangle-size (stream-output-history stream))
-	      (let* ((page-width
-		      (floor (* (slot-value port 'page-width)
-				(slot-value port 'device-units-per-inch))
-			     *1-pixel=points*))
-		     (page-height
-		      (floor (* (slot-value port 'page-height)
-				(slot-value port 'device-units-per-inch))
-			     *1-pixel=points*))
-		     (scale-factor
-		      (progn
-			(when (eq orientation :landscape)
-			  (rotatef page-width page-height))
+	    (let ((record  (stream-output-history stream)))
+	      (when (or scale-to-fit multi-page)
+		(bounding-rectangle-set-position record 0 0))
+	      (multiple-value-bind (width height) 
+		  (bounding-rectangle-size record)
+		(let* ((page-width
+			(floor (* (slot-value port 'page-width)
+				  (slot-value port 'device-units-per-inch))
+			       *1-pixel=points*))
+		       (page-height
+			(floor (* (slot-value port 'page-height)
+				  (slot-value port 'device-units-per-inch))
+			       *1-pixel=points*))
+		       (scale-factor
 			(if (or (not scale-to-fit)
 				(and (< width page-width)
 				     (< height page-height)))
 			    1
 			  (min (/ page-width width)
-			       (/ page-height height))))))
-		;; Now do the output to the printer, breaking up the output into
-		;; multiple pages if that was requested
-		(let ((string
-		       (with-output-to-string (string-stream)
-			 (letf-globally (((slot-value medium 'printer-stream) string-stream))
-			   (with-output-recording-options (stream :record nil :draw t)
-			     (stream-replay stream nil))))))
-		  (postscript-prologue medium
-				       :scale-factor scale-factor
-				       :orientation orientation
-				       :header-comments header-comments)
-		  (write-string string (slot-value medium 'printer-stream)))))
+			       (/ page-height height)))))
+		  ;; Now do the output to the printer, breaking up the output into
+		  ;; multiple pages if that was requested
+		  (let ((string
+			 (with-output-to-string (string-stream)
+			   (letf-globally (((slot-value medium 'printer-stream) string-stream))
+			     (with-output-recording-options (stream :record nil :draw t)
+			       (stream-replay stream nil))))))
+		    (postscript-prologue medium
+					 :scale-factor scale-factor
+					 :orientation orientation
+					 :header-comments header-comments)
+
+		    (write-string string (slot-value medium 'printer-stream))))))
 	    (setq abort-p nil))
 	(close stream :abort abort-p)
 	(destroy-port port)))))

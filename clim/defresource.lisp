@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: defresource.lisp,v 1.10 92/09/24 09:38:43 cer Exp $
+;; $fiHeader: defresource.lisp,v 1.11 1993/07/27 01:39:05 colin Exp $
 
 (in-package :clim-internals)
 
@@ -67,7 +67,10 @@
 
 (defun clear-resource (resource)
   (with-resource-rd (resource rd)
-    (setf (fill-pointer (rd-objects rd)) 0))
+    (let ((objects (rd-objects rd)))
+      (dotimes (i (array-total-size objects))
+	(setf (aref objects i) nil))
+      (setf (fill-pointer objects) 0)))
   nil)
 
 (defun lookup-resource-descriptor (name)

@@ -1,3 +1,408 @@
+------------------------------------------------------------
+Sun Dec  4 15:51:34 PST 1994  Colin Meldrum (colin@vapor)
+
+silica/db-button.lisp, silica/db-label.lisp, 
+silica/db-slider.lisp, silica/scroll-pane.lisp
+clim/db-list.lisp, clim/db-menu.lisp, clim/db-text.lisp
+			REMOVED (moved to homegrown)
+
+homegrown/db-button.lisp, homegrown/db-label.lisp, 
+homegrown/db-slider.lisp, homegrown/scroll-pane.lisp
+homegrown/db-list.lisp, homegrown/db-menu.lisp, homegrown/db-text.lisp
+			NEW FILE (originally from clim and silica)
+
+Makefile.hp700, Makefile.sun4.motif-1.1.4
+			REMOVED
+
+make-symbolic-links.sh	NEW FILE - used for handling multiple fasl trees
+
+Makefile		default host changed to 'unknown'
+
+Makefile.cobjs		sorted out DEBUGLIB stuff
+
+Makefile.dec3100	got rid of MOTIFLIB_d
+
+Makefile.defs		updated to include panes and new homegrown
+			directory 
+			general cleanup
+
+
+Makefile.generic	no longer use si::system-compile-wrapper
+			general cleanup
+
+Makefile.hpprism	use default CL=/usr/fi/climdcl-devel
+			removed bogus ref to Makefile.hp700
+			removed MOTIFLIB_d
+			added XTSUPPORTINCLUDES
+
+Makefile.sgi4d-svr4	removed MOTIFLIB_d - use DEBUGLIB instead
+
+Makefile.sun4		update to use Motif-1.2.4
+			sorted out DEBUGLIB stuff
+			cleanup of OL lib/includes
+
+Makefile.sun4-svr4	update to use Motif-1.2.4
+			sorted out DEBUGLIB stuff
+			cleanup of OL lib/includes
+
+clim/accept-values.lisp added foreground and text-style to avv own-window dialogs 
+			fixed bogus margin for exit-box pane
+			reformatting changes
+			added support for default ok button
+
+clim/clim-defs.lisp	support for foreground and text-style in avv
+			own-window dialogs
+
+clim/command.lisp	fixed process-command-table-menu to deal with
+			inherit-menu correctly
+
+clim/cursor.lisp	fixed cursor-set-position to bind cursor-state
+			rather than cursor-active to nil
+			fixed cursor-visibility as per spec
+
+clim/db-stream		made window-visibility more robust
+
+clim/default-frame.lisp	fixed arglists of frame-manager-notify-user and
+			frame-manager-select-file as per spec.
+
+clim/defresource.lisp	fixed clear-resource to nil the object vector
+
+clim/dragging-output.lisp
+			avoid repainting dragged record twice
+
+clim/frames.lisp	added frame foreground, and text-style slots
+			added color-stream-p trampoline method for
+			encapsulating streams
+			fixed :layouts, :pane, :panes as per spec
+			fixed frame geometry processing
+			moved a bunch of code to clim/panes.lisp
+
+clim/panes.lisp		NEW FILE - code taken from clim/frames.lisp
+
+clim/gadget-output.lisp	fixed gadget-includes-prompt-p 
+			fixed label/prompt confusion for various gadgets
+			handle activate-callback for text-fields and text-editors
+			fixed bug with accept-values-string-field-changed-callback 
+			and delimiter gestures
+
+clim/gestures.lisp	keyboard-event-matches-gesture-name-p fixed to be
+			deal with case sensitive gestures
+			ditto for parse-gesture-spec
+
+clim/graphics-recording.lisp	
+			fixed refined-position-test for thick lines
+
+clim/input-defs.lisp	setf pointer-sheet now binds *application-frame*
+			fixes presentation-highlighting bug
+			removed bogus dynamic-extent decl
+			fixed recursive repaint problem with cursor refresh
+			fixed setf port-keyboard-input-focus to deal with
+			disabled sheets
+
+clim/interactive-protocol.lisp
+			fixed stream-yes-or-no-p and friends to deal with
+			null format-string and put them all in the stream
+			package 
+
+clim/menus.lisp		added :foreground,:background :x-position,
+			:y-position to menu-choose
+			fixed open-window-stream wrt forground, background
+			and text-style
+			sorted out with-menu semantics as per spec
+			fixes to menu-choose-from-drawer for scroll-bars
+
+
+clim/noting-progress.lisp
+			fixed dolist-noting-progress wrt note-var
+			fixed dotimes-noting-progress wrt not-var
+
+clim/presentations.lisp	removed bogus dynamic-extent decl
+
+clim/recording-protocol.lisp
+			fixed handling of errorp in delete-output-record
+
+clim/standard-types.lisp
+			re-implementation of read-recursive and accept of
+			expression/form ptype
+
+clim/text-formatting.lisp
+			fixed bug in cursor-positioning with filling-stream
+
+
+clim/tracking-pointer.lisp
+			removed bogus dynamic-extent decl
+			added finish-on-release to pointer-input-rectangle(*)
+			fixed bug in pointer-place-rubber-band-line*
+
+climtoys/calendar.lisp	NEW FILE - the calander demo
+
+demo/default-frame-top-level.lisp
+			updated to be in sync with code in clim/frames.lisp
+
+demo/demo-last.lisp
+			add provide :climdemo, climdemoxm, climdemool
+
+demo/plot.lisp		simplified the plotting-points interface so as to
+			not involve quite so many nested flets.
+
+demo/README		NEW FILE - instructions for running clim demos
+
+misc/climgccursor.c	use NUll cursor to undefine cursor - removed
+			call to XUndefineCursor
+
+misc/compile-1.lisp	added compile-system 'clim-homegrown
+
+misc/train.lisp		moved a bunch of output files to notes directory
+
+misc/undefinedsymbols.xt
+			added XtCloseDisplay XtDestroyApplicationContext
+	
+misc/xtsupport.c	XtAppIntervalNextTimer no longer sparc specific
+			removed 1+ hack to avoid rounding errors
+
+notes/times/clim2-beta2.n, notes/times/clim2-final.n
+			NEW FILE
+
+postscript/postscript-medium.lisp
+			fixed handling of thick lines
+			added support for clipping regions
+
+postscript/postscript-port.lisp
+			added support for clipping regions
+			sorted out landscape mode, co-ordinate
+			transformations, scale-to-fit and multi-page
+			and various misc cleanups
+
+silica/db-scroll.lisp
+			added drag-scroll-slot to scroller-pane
+			major re-implementation of scrolling as per spec
+			added mirror-region-updated :after method to
+			update-scroll-bars when layouts change
+
+silica/event.lisp
+			made repaint sheet robust to portless sheets
+			fixed bug with wrong co-ordinates being used with
+			grabbed sheets.
+
+silica/framem.lisp	support for frame foreground and text-style
+			fixed arglists of frame-manager-notify-user and
+			frame-manager-select-file as per spec.
+
+silica/gadgets.lisp	sorted value-gadgets and invoke-callback stuff
+			made all callback :around methods always call
+			primary method even if callback slot non-NIL
+			reimplemented sliders and scroll-bars as per spec
+			fixed radio-box and check-box handling of :choices
+			initarg + improved error messages for invalid choices
+
+silica/layout.lisp	improved print-method for space requirements
+
+silica/medium.lisp	support for pixel resource values and device-colors
+
+silica/port.lisp	fixed race condition in port creation
+
+silica/sheet.lisp	added dynamic-extent arg decl to map-over-sheets
+
+silica/text-style.lisp	removed fully-merged-text-style-p
+
+sys/sysdcl.lisp		moved a bunch of db-xxx files to clim-homegrown module
+
+test/test-driver.lisp	removed call to run-benchmarks-to-dummy-file
+
+test/test-suite.lisp	added slider labels to slider-dialog test
+			added test to test list-panes with varios scrolling
+			combinations
+			combined run-benchmarks-to-dummy-file and run-benchmarks
+			together into run-benchmarks
+
+tk/conveninece.lisp	fixed malloc leak
+			added support for xm-message-dialog
+
+tk/event.lisp		fixed wait-for-event to deal with async port
+			termination 
+			removed XtAppIntervalNextTimer hacks
+
+tk/foreign.lisp		register address of display objects
+
+tk/load-ol.lisp		moved provides to tk-silica/last.lisp
+
+tk/load-ol.lisp, tk/load-xm.lisp, tk/ol-init.lisp, tk/xm-init.lisp
+			fixed up svr4 reinitialize-toolkit stuff
+
+tk/macros		added with-malloced-objects - support for avoiding
+			malloc leaks
+
+tk/make-classes.lisp	improved performance of get-resource-internal,
+			lispify-tk-name, tkify-lisp-name
+
+tk/ol-defs.lisp		added provide :clim-debugol
+tk/xm-defs.lisp		added provide :clim-debugxm
+
+tk/ol-widgets.lisp	added focus-widget resource to notice-shell
+			support for ol notification dialog
+
+tk/resources.lisp	fixed malloc leak in set-values, fill-gv-cache
+			get-values, convert-resource-out methods
+			added convert-resource-out method for
+			man-foreground-pixmap (used in message boxes)
+			added motif navigation-type resource (for explict focus)
+
+tk/widget.lisp		fixed malloc leak in app-create-shell, create-widget-1, 
+			create-popup-shell
+
+tk/xlib.lisp		fixed X resource lookup to deal with pixel values
+			fixes to error handling when port asyn destroyed
+			fix malloc leak in convert-string
+			new macro def-foreign-array-resource
+			resourcd xcolor, xsegment, xpoint, xrectangle
+			xarc arrays
+			added get-image - support for make-pattern-from-pixmap
+
+tk/xm-font-list.lisp	fixed malloc leaks
+
+tk/xm-funs.lisp		new defforeigns to support above
+
+tk/xm-protocols.lisp	simplified and merged with general xt callback
+			mechanism 
+			fixed malloc leaks
+
+tk/xm-widgets.lisp	fixed malloc leaks
+			resource-conversion for motif default button handling
+			resource-conversion for motif string tables
+			resource-conversion for named pixmaps
+
+tk/xt-defs.lisp		removed several old explicit array def-c-type's
+			now in xlib/xlib-defs.lisp
+
+tk/xt-funs.lisp		new defforeigns to support asyn port termination
+			handling 
+			XtAppIntervalNextTimer now returns signed value
+
+tk-silica/gc-cursor.lisp
+			fixed bug with null cursor
+
+tk-silica/image.lisp	fixed zombie child process bug and improved error
+			handling in read-image-file with a filter
+			added support for xpm images with chars-per-pixel>1
+
+tk-silica/last.lisp	added provides for :climxm, :climol
+
+tk-silica/ol-gadgets.lisp
+			re-implementation of scroll-bars, sliders
+			support for patterns as gadget-labels
+			further hacking to make ol-text-fields work better
+			improved consistency wrt labels for ol-toggle-button
+			misc fixes to ol notify user
+
+tk-silica/xm-frames.lisp
+			major changes to menu-bar realization code
+			partial implementation of motif help menu support
+			support for foreground background and text-style in
+			motif pop up menus 
+			partial support for documentation callbacks for
+			cascade buttons
+
+tk-silica/xm-gadgets.lisp
+			motif-value-changed-callback-pane and
+			motif-losing-focus-callback-pane not longer inherit
+			from motif-value-pane
+			setf gadget-value method now an :after method - see
+			changes in silica/gadgets.lisp
+			support for patterns as gadget-labels
+			space-requirements for label gadgets fixed for 
+			variable width fonts
+			support for default-button in dialogs
+			re-implementation of scroll-bars, sliders
+			added *xm-dialog-style* for olwm losers
+			got rid of map-callback for dialogs - not required
+			fixed list-panes with various scroll-bar combinations
+			added setf list-pane-mode for motif-list-pane
+			fixed option-menus to deal with X resources + other
+			misc fixes
+			added foreground, background, x-position, y-position
+			to notify-user
+			support for user pixmaps in notify user
+			added default-button to notify-user dialog
+			background + foreground for file selection
+			rewrote text-style -> font-list mapping for
+			sheet-with-resources-mixin 
+
+tk-silica/xm-silica.lisp
+			got rid of map-callback for dialogs - not required
+
+tk-silica/xt-frames.lisp
+			added support for foreground, background,
+			x/y-position, scrolling to xt menu-choose
+			added support for default button in dialogs
+			got rid of invoke-with-menu-as-popup method
+
+tk-silica/xt-gadgets.lisp
+			support for pixel resource values
+			support for noting frame deiconification
+			re-implementation of scrolling
+
+tk-silica/xt-graphics.lisp
+			added decoding of device-colors for pixel resources
+			implemented dynamic changing of a frame's palette
+			fixed ol lookup-color bug
+			resourced a whole bunch of xstructs in xlib call to
+			reduce consing
+			a bunch of other optimizations in various medium-draw-xxx 
+			functions to reduce consing
+			improved handling of palette-full condition
+			got rid of a bunch of floating point calculations
+			fixed several co-ordinate rounding errors leading
+			to mismatch between bounding rectangle and output
+			fixed bug in call to xbell specifying wrong volume
+
+tk-silica/xt-pixmaps.lisp
+			implemented make-pattern-from-pixmap
+
+tk-silica/xt-silica.lisp
+			patched up a number of problems with async port
+			termination + xlib/xt error handling
+			support for noting frame deiconification
+			ignoring bogus linefeed xt-keysym defn
+			fixed case-sensitive handling of accelerators
+			define cursor when top-level-sheet enabled
+			fixed bug in mirror-visible-p
+			redone much of the x cursor stuff
+			fixed pointer-grabbing to allow scroll-bars to work
+			in menu-frames
+
+utils/base-designs.lisp	added device-colors
+			added pattern-array, pattern-designs readers
+
+utils/designs.lisp	separated out convert-rgb-to-ihs and
+			convert-ihs-to-rgb for general use
+			added device-colors
+
+utils/lisp-utilities.lisp
+			fixed rounding bug and eliminated consing in 
+			fix-coordinate
+			added macro define-dynamic-extent-args
+
+utils/packages.lisp	new exports
+
+utils/processes.lisp	removed bogus dynamic-extent decl
+
+utils/utilities.lisp	removed unecessary deftype boolean 
+
+xlib/ffi.lisp		defforeign-functions-now changed from macro to fn
+			extended def-exported-foreign-struct to take :array
+			option automatically defines array def-c-type 
+			changed default-return type to void in
+			def-exported-foreign-function
+		
+xlib/last.lisp		added provide :clim-debug
+
+xlib/xlib-defs.lisp	added a bunch of def-exported-foreign-structs
+			and removed old explicit def-c-type's
+			
+xlib/xlib-funs.lisp	fixed several def-exported-foreign-functions
+			with bogus return-type 
+
+------------------------------------------------------------
 Wed Nov 23 13:26:58 1994  Steve Haflich  (smh@vapor)
 
 General notes:
@@ -61,7 +466,6 @@ General notes:
 	* tk-silica/xt-graphics.lisp
 	Clos extension key changed from :fixed-index to clos::fixed-index.
 
-
 (for 4.2.devel.26 merge):
 
 Tue Jun  7 23:44:53 1994  Duane Rettig  (duane at clay)
@@ -96,6 +500,7 @@ Changed files:
 
 	* utils/lisp-utilities.lisp: Generalize and fix evacuate-list
 
+------------------------------------------------------------
 Tue Jan 11 15:30:15 1994  George Jacob  (georgej@lava)
 
 * utils/excl-verification.lisp: Changed version to CLIM2.0
@@ -104,6 +509,7 @@ Tue Jan 11 15:30:15 1994  George Jacob  (georgej@lava)
 
 * Makefile.cobjs: Changed the MAIN_OBJ rule to use stub files directly
 
+------------------------------------------------------------
 from colin: Mon Dec  6 21:46:54 PST 1993
 
 tk-silica/ol-silica.lisp	fixed typo

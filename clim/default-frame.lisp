@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: default-frame.lisp,v 1.6 93/03/18 14:36:31 colin Exp $
+;; $fiHeader: default-frame.lisp,v 1.7 1993/07/27 01:38:59 colin Exp $
 
 (in-package :clim-internals)
 
@@ -47,7 +47,8 @@
 		 documentation
 		 (exit-boxes '(:exit :abort :help))
 		 (name title)
-		 text-style)
+		 text-style
+		 &allow-other-keys)
   (declare (ignore style documentation name))
   (let ((stream associated-window))
     (accepting-values (stream :exit-boxes exit-boxes :label title
@@ -70,7 +71,8 @@
 		 directory-list-label
 		 file-list-label
 		 (exit-boxes '(:exit :abort :help))
-		 (name title))
+		 (name title)
+		 &allow-other-keys)
   (declare (ignore style documentation name
 		   file-search-proc directory-list-label file-list-label))
   (let ((stream associated-window))

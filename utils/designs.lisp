@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: designs.lisp,v 1.16 1993/07/27 01:57:08 colin Exp $
+;; $fiHeader: designs.lisp,v 1.17 1993/09/07 21:47:39 colin Exp $
 
 (in-package :clim-utils)
 
@@ -89,11 +89,8 @@
   (with-slots (red green blue) color
     (values red green blue)))
 
-(defmethod color-ihs ((color rgb-color))
-  (let* ((red (slot-value color 'red))
-	 (green (slot-value color 'green))
-	 (blue (slot-value color 'blue))
-	 (x (* ihs-rgb-c1 (- (+ red red) blue green)))
+(defun convert-rgb-to-ihs (red green blue)
+  (let* ((x (* ihs-rgb-c1 (- (+ red red) blue green)))
 	 (y (* ihs-rgb-c2 (- green blue)))
 	 (z (* ihs-rgb-c3 (+ red green blue)))
 	 (q (+ (* x x) (* y y)))
@@ -105,6 +102,10 @@
 	       (f2 (sqrt (- 1f0 (* f1 f1))))
 	       (saturation (atan f2 f1)))
 	  (values intensity hue saturation)))))
+
+(defmethod color-ihs ((color rgb-color))
+  (with-slots (red green blue) color
+    (convert-rgb-to-ihs red green blue)))
 
 (defun-inline color-luminosity (r g b)
   ;; From Foley and Van Dam, page 613 (discussion of YIQ color model)...
@@ -289,11 +290,8 @@
     (with-slots (intensity hue saturation) color
       (format stream "i=~F h=~F s=~F>" intensity hue saturation))))
 
-(defmethod color-rgb ((color ihs-color))
-  (let* ((intensity (slot-value color 'intensity))
-	 (hue (slot-value color 'hue))
-	 (saturation (slot-value color 'saturation))
-	 (hh (mod (- hue .5f0) 1.0f0))
+(defun convert-ihs-to-rgb (intensity hue saturation)
+  (let* ((hh (mod (- hue .5f0) 1.0f0))
 	 (hh (- (* hh 2.0f0 3.1415926535f0) 3.1415926535f0))
 	 (s3 (sin saturation))
 	 (x (* ihs-rgb-c1 s3 (cos hh) intensity))
@@ -304,6 +302,10 @@
       (values (range (+ x x z))
 	      (range (+ y z (- x)))
 	      (range (- z x y))))))
+
+(defmethod color-rgb ((color ihs-color))
+  (with-slots (intensity hue saturation) color
+    (convert-ihs-to-rgb intensity hue saturation)))
 
 (defmethod color-ihs ((color ihs-color))
   (with-slots (intensity hue saturation) color
@@ -444,6 +446,20 @@
 		      (push (apply #'aref dynamic-array dimensions) dynamics))
 		  set layers)
 		dynamics)))))
+
+
+;;; Device Colors
+
+(defmethod print-object ((color device-color) stream)
+  (print-unreadable-object (color stream :type t :identity t)
+    (with-slots (pixel) color
+      (format stream "~D:~A" pixel (device-color-color color)))))
+
+(defmethod color-rgb ((color device-color))
+  (color-rgb (device-color-color color)))
+
+(defmethod color-ihs ((color device-color))
+  (color-ihs (device-color-color color)))
 
 
 ;;; Foreground and background (indirect) inks

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sheet.lisp,v 1.37 1993/05/25 20:41:59 cer Exp $
+;; $fiHeader: sheet.lisp,v 1.38 1993/07/27 01:51:13 colin Exp $
 
 (in-package :silica)
 
@@ -47,6 +47,9 @@
 
 (defclass sheet-single-child-mixin (sheet-parent-mixin)
     ((children :initform nil :accessor sheet-children)))
+
+(define-dynamic-extent-args map-over-sheets (function sheet)
+  function)
 
 (defun map-over-sheets (function sheet)
   (declare (dynamic-extent function))

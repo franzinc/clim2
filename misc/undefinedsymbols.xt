@@ -42,3 +42,6 @@ XtWindow
 XtParseTranslationTable
 XtParseAcceleratorTable
 XtAppSetFallbackResources
+XtCloseDisplay
+XtDestroyApplicationContext
+XtIsRealized

@@ -1,6 +1,6 @@
 ;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadgets.lisp,v 1.57 1993/09/07 21:46:41 colin Exp $
+;; $fiHeader: gadgets.lisp,v 1.58 1993/11/18 18:44:55 cer Exp $
 
 "Copyright (c) 1991, 1992 by Franz, Inc.  All rights reserved.
  Portions copyright (c) 1992 by Symbolics, Inc.  All rights reserved."
@@ -29,13 +29,13 @@
   (declare (dynamic-extent args))
   (if (consp function)
       (apply (car function) (append args (cdr function)))
-      (apply function args)))
+    (apply function args)))
 
 (defmethod armed-callback :around ((gadget basic-gadget) (client t) (id t))
   (let ((callback (gadget-armed-callback gadget)))
     (if callback
 	(invoke-callback-function callback gadget)
-        (call-next-method))))
+      (call-next-method))))
 
 (defmethod armed-callback ((gadget basic-gadget) (client t) (id t))
   nil)
@@ -44,7 +44,7 @@
   (let ((callback (gadget-disarmed-callback gadget)))
     (if callback
 	(invoke-callback-function callback gadget)
-        (call-next-method))))
+      (call-next-method))))
 
 (defmethod disarmed-callback ((gadget basic-gadget) (client t) (id t))
   nil)
@@ -68,11 +68,17 @@
   nil)
 
 
+;;; Value Gadgets
+
 (defclass value-gadget (basic-gadget) 
-    ((value :initarg :value :initform nil
-	    :reader gadget-initial-value)
-     (value-changed-callback :initarg :value-changed-callback :initform nil
-			     :reader gadget-value-changed-callback)))
+  ((value
+    :initarg :value :initform nil)	; no accessor defined - see below
+   (value-changed-callback 
+    :initarg :value-changed-callback :initform nil
+    :reader gadget-value-changed-callback)))
+
+;; we explicitly define our own gadget-value accessor so that the
+;; writer can include the invoke-callback keyword argument
 
 (defgeneric gadget-value (gadget))
 
@@ -81,40 +87,48 @@
 
 (defgeneric (setf gadget-value) (value gadget &key invoke-callback))
 
-(defmethod (setf gadget-value) (value (gadget value-gadget) &key invoke-callback)
-  (declare (ignore value invoke-callback)))
+(defmethod (setf gadget-value)
+    (value (gadget value-gadget) &key invoke-callback)
+  (declare (ignore invoke-callback))
+  (setf (slot-value gadget 'value) value))
 
-;;--- What is the correct default for INVOKE-CALLBACK?
-(defmethod (setf gadget-value) :after (value (gadget value-gadget) &key invoke-callback)
-  (setf (slot-value gadget 'value) value)
+(defmethod (setf gadget-value) :after
+    (value (gadget value-gadget) &key invoke-callback)
   (when invoke-callback
-    (value-changed-callback gadget (gadget-client gadget) (gadget-id gadget) value)))
+    (value-changed-callback gadget
+			    (gadget-client gadget) (gadget-id gadget) value)))
 
-(defmethod value-changed-callback :around ((gadget value-gadget) (client t) (id t) value)
+(defmethod value-changed-callback :around 
+    ((gadget value-gadget) (client t) (id t) value)
   (setf (slot-value gadget 'value) value)
   (let ((callback (gadget-value-changed-callback gadget)))
-    (if callback
-	(invoke-callback-function callback gadget value)
-        (call-next-method))))
+    (when callback
+      (invoke-callback-function callback gadget value))
+    (call-next-method)))
 
-(defmethod value-changed-callback ((gadget value-gadget) (client t) (id t) value)
+(defmethod value-changed-callback
+    ((gadget value-gadget) (client t) (id t) value)
   (declare (ignore value))
   nil)
 
+;;; Action Gadgets
 
 (defclass action-gadget (basic-gadget)
     ((activate-callback :initarg :activate-callback :initform nil
 			:reader gadget-activate-callback)))  
 
-(defmethod activate-callback :around ((gadget action-gadget) (client t) (id t))
+(defmethod activate-callback :around
+    ((gadget action-gadget) (client t) (id t))
   (let ((callback (gadget-activate-callback gadget)))
-    (if callback
-	(invoke-callback-function callback gadget)
-        (call-next-method))))
+    (when callback
+      (invoke-callback-function callback gadget))
+    (call-next-method)))
 
-(defmethod activate-callback ((gadget action-gadget) (client t) (id t))
+(defmethod activate-callback 
+    ((gadget action-gadget) (client t) (id t))
   nil)
 
+;;; Focus Gadgets
 
 (defclass focus-gadget (basic-gadget)
     ((focus-out-callback :initarg :focus-out-callback :initform nil
@@ -122,24 +136,27 @@
      (focus-in-callback :initarg :focus-in-callback :initform nil
 			:reader gadget-focus-in-callback)))
 
-(defmethod focus-out-callback :around ((gadget focus-gadget) (client t) (id t)) 
+(defmethod focus-out-callback :around
+    ((gadget focus-gadget) (client t) (id t)) 
   (let ((callback (gadget-focus-out-callback gadget)))
-    (if callback
-	(invoke-callback-function callback gadget)
-	(call-next-method))))
+    (when callback
+      (invoke-callback-function callback gadget))
+    (call-next-method)))
 
-(defmethod focus-out-callback ((gadget focus-gadget) (client t) (id t))
+(defmethod focus-out-callback
+    ((gadget focus-gadget) (client t) (id t))
   nil)
 
-(defmethod focus-in-callback :around ((gadget focus-gadget) (client t) (id t)) 
+(defmethod focus-in-callback :around
+    ((gadget focus-gadget) (client t) (id t)) 
   (let ((callback (gadget-focus-in-callback gadget)))
-    (if callback
-	(invoke-callback-function callback gadget)
-	(call-next-method))))
+    (when callback
+      (invoke-callback-function callback gadget))
+    (call-next-method)))
 
-(defmethod focus-in-callback ((gadget focus-gadget) (client t) (id t))
+(defmethod focus-in-callback 
+    ((gadget focus-gadget) (client t) (id t))
   nil)
-
 
 ;;; Basic gadgets-mixins
 
@@ -220,14 +237,14 @@
      (number-of-tick-marks :initarg :number-of-tick-marks)
      (number-of-quanta :initarg :number-of-quanta)
      (editable-p :initarg :editable-p :accessor gadget-editable-p))
-  (:default-initargs :decimal-places 0
-		     :show-value-p nil
-		     :min-label nil
-		     :max-label nil
-		     :range-label-text-style *default-slider-range-label-text-style*
-		     :number-of-tick-marks 0
-		     :number-of-quanta nil
-		     :editable-p t))
+    (:default-initargs :value 0.0
+                       :show-value-p nil
+		       :min-label nil
+		       :max-label nil
+		       :range-label-text-style *default-slider-range-label-text-style*
+		       :number-of-tick-marks 0
+		       :number-of-quanta nil
+		       :editable-p t))
 
 (defmethod initialize-instance :after ((pane slider) 
 				       &key (decimal-places 0 places-p)
@@ -242,9 +259,9 @@
 
 (defmethod drag-callback :around ((gadget slider) (client t) (id t) value)
   (let ((callback (slider-drag-callback gadget)))
-    (if callback
-	(invoke-callback-function callback gadget value)
-        (call-next-method))))
+    (when callback
+      (invoke-callback-function callback gadget value))
+    (call-next-method)))
 
 (defmethod drag-callback ((gadget slider) (client t) (id t) value)
   (declare (ignore value))
@@ -254,25 +271,37 @@
 ;;; Scroll bar
 (defclass scroll-bar
 	  (value-gadget range-gadget-mixin oriented-gadget-mixin)
-    ((current-value :initform nil :accessor scroll-bar-current-value)
-     (current-size :initform nil :accessor scroll-bar-current-size)
+    ((size :initform nil :initarg :size :accessor scroll-bar-size)
      (drag-callback :initarg :drag-callback :initform nil
 		    :reader scroll-bar-drag-callback)))
 
-(defmethod destroy-mirror :after  ((port basic-port) (sheet scroll-bar))
-  ;; This invalidates any caching that is going on
-  (setf (scroll-bar-current-size sheet) nil))
-
 (defmethod drag-callback :around ((gadget scroll-bar) (client t) (id t) value)
   (let ((callback (scroll-bar-drag-callback gadget)))
-    (if callback
-	(invoke-callback-function callback gadget value)
-        (call-next-method))))
+    (when callback
+	(invoke-callback-function callback gadget value))
+    (call-next-method)))
 
 (defmethod drag-callback ((gadget scroll-bar) (client t) (id t) value)
   (declare (ignore value))
   nil)
 
+(defmethod (setf scroll-bar-size) :around (size (gadget scroll-bar))
+  (assert (and (<= (+ size (gadget-value gadget))
+		   (gadget-max-value gadget))
+	       (> size 0)) 
+      (size)
+    "Scroll bar size ~A out of range" size)
+  (call-next-method size gadget))
+
+(defmethod (setf gadget-value) :around 
+	   (value (gadget scroll-bar) &key invoke-callback)
+  (declare (ignore invoke-callback))
+  (assert (and (<= (+ value (scroll-bar-size gadget))
+		   (gadget-max-value gadget))
+	       (>= value (gadget-min-value gadget))) 
+      (value)
+    "Scroll bar value ~A out of range" value)
+  (call-next-method value gadget))
 
 ;;; Push-button
 (defclass push-button 
@@ -325,20 +354,26 @@
  	    :initarg :current-selection
  	    :accessor radio-box-current-selection)))
 
-(defmethod (setf gadget-value) (new-value (gadget radio-box) &key invoke-callback)
+(defmethod (setf gadget-value) :after
+    (new-value (gadget radio-box) &key invoke-callback)
   (declare (ignore invoke-callback))
   (unless (eq new-value (radio-box-current-selection gadget))
     (dolist (toggle (radio-box-selections gadget))
       (setf (gadget-value toggle)
-	(eq new-value toggle))))
-  (call-next-method))
+	(eq new-value toggle)))))
 
 (defmethod initialize-instance :after ((rb radio-box) &key choices)
   (let* ((frame (pane-frame rb))
 	 (framem (frame-manager frame))
-	 (selections nil))
+	 (selections nil)
+	 (current-selection (radio-box-current-selection rb)))
     (assert (and frame framem) ()
       "There must be both a frame and frame manager active")
+    (when current-selection
+      (assert (member current-selection choices :test #'equal) 
+	  ()
+	"Radio box current-selection: ~S must be one of choices: ~S"
+	current-selection choices))
     (with-look-and-feel-realization (framem frame)
       (dolist (choice choices)
 	(etypecase choice
@@ -348,10 +383,10 @@
 	   (unless (sheet-parent choice)
 	     (sheet-adopt-child rb choice))
 	   (push choice selections)
-	   (setf (gadget-value choice) (eq choice (radio-box-current-selection rb))))
+	   (setf (gadget-value choice) (eq choice current-selection)))
 	  (string
 	   ;; Create a button if the user supplied an abbreviation
-	   (let* ((value (equal (radio-box-current-selection rb) choice))
+	   (let* ((value (equal current-selection choice))
 		  (button (make-pane 'toggle-button 
 				     :value value
 				     :label choice
@@ -362,8 +397,7 @@
 	     (push button selections)
 	     (when value
 	       (setf (radio-box-current-selection rb) button)))))))
-    (setf (slot-value rb 'selections) (nreverse selections))
-    (check-type (radio-box-current-selection rb) (or null pane))))
+    (setf (slot-value rb 'selections) (nreverse selections))))
 
 (defmethod value-changed-callback :around 
 	   ((selection basic-gadget) (client radio-box) gadget-id value)
@@ -390,20 +424,26 @@
  	    :initarg :current-selection
  	    :accessor check-box-current-selection)))
 
-(defmethod (setf gadget-value) (new-value (gadget check-box) &key invoke-callback)
+(defmethod (setf gadget-value) :after
+    (new-value (gadget check-box) &key invoke-callback)
   (declare (ignore invoke-callback))
   (unless (equal new-value (check-box-current-selection gadget))
     (dolist (toggle (check-box-selections gadget))
       (setf (gadget-value toggle)
-	(member toggle new-value))))
-  (call-next-method))
+	(member toggle new-value)))))
 
 (defmethod initialize-instance :after ((cb check-box) &key choices)
   (let* ((frame (pane-frame cb))
 	 (framem (frame-manager frame))
-	 (selections nil))
+	 (selections nil)
+	 (current-selection (check-box-current-selection cb)))
     (assert (and frame framem) ()
       "There must be both a frame and frame manager active")
+    (assert (every #'(lambda (x) (member x choices :test #'equal))
+		   current-selection)
+	()
+      "Each element of check box current-selection: ~S must be one of choices: ~S"
+      current-selection choices)
     (with-look-and-feel-realization (framem frame)
       (dolist (choice choices)
 	(etypecase choice
@@ -413,10 +453,10 @@
 	   (push choice selections)
 	   (unless (sheet-parent choice)
 	     (sheet-adopt-child cb choice))
-	   (setf (gadget-value choice) (member choice (check-box-current-selection cb))))
+	   (setf (gadget-value choice) (member choice current-selection)))
 	  (string
 	   ;; Create a button if the user supplied an abbreviation
-	   (let* ((value (member choice (check-box-current-selection cb) :test #'equal))
+	   (let* ((value (member choice current-selection :test #'equal))
 		  (button (make-pane 'toggle-button 
 				     :value (and value t)
 				     :label choice
@@ -427,8 +467,7 @@
 	     (push button selections)
 	     (when value
 	       (setf (car value) button)))))))
-    (setf (slot-value cb 'selections) (nreverse selections))
-    (assert (every #'panep (check-box-current-selection cb)) () "Current selection must be a list of panes")))
+    (setf (slot-value cb 'selections) (nreverse selections))))
 
 (defmethod value-changed-callback :around 
 	   ((selection basic-gadget) (client check-box) gadget-id value)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: recording-protocol.lisp,v 1.37 1993/10/25 16:15:37 cer Exp $
+;; $fiHeader: recording-protocol.lisp,v 1.38 1993/10/26 03:21:36 colin Exp $
 
 (in-package :clim-internals)
 
@@ -969,31 +969,33 @@
 	  (setf (svref elements 1) child))))))
 
 (defmethod delete-output-record 
-	   (child (record standard-sequence-output-record) &optional (errorp t))
-  (with-slots (elements fill-pointer) record
-    (typecase elements
-      (null (error "The output record ~S was not found in ~S" child record))
-      (array
-	(let ((index (position child elements :end fill-pointer)))
-	  (cond (index
-		 (let ((new-fp (the fixnum (1- fill-pointer)))
-		       (vector elements))
-		   (declare (type simple-vector vector) (fixnum new-fp))
-		   (unless (= (the fixnum index) new-fp)
-		     ;; Shift the whole vector downward
-		     (do ((i (the fixnum index) (1+ i)))
-			 ((= i new-fp))
-		       (declare (type fixnum i)
-				(optimize (speed 3) (safety 0)))
-		       (setf (svref vector i) (svref vector (1+ i)))))
-		   (setf fill-pointer new-fp)))
-		(errorp
-		 (error "The output record ~S was not found in ~S" child record)))))
-      ;; It must be an OUTPUT-RECORD or a DISPLAYED-OUTPUT-RECORD
-      (otherwise
-	(unless (eq elements child)
-	  (error "The output record ~S was not found in ~S" child record))
-	(setf elements nil))))
+    (child (record standard-sequence-output-record) &optional (errorp t))
+  (flet ((not-found ()
+	   (when errorp
+	     (error "The output record ~S was not found in ~S" child record))))
+    (with-slots (elements fill-pointer) record
+      (typecase elements
+	(null (not-found))
+	(array
+	 (let ((index (position child elements :end fill-pointer)))
+	   (if index
+	       (let ((new-fp (the fixnum (1- fill-pointer)))
+			(vector elements))
+		 (declare (type simple-vector vector) (fixnum new-fp))
+		 (unless (= (the fixnum index) new-fp)
+		   ;; Shift the whole vector downward
+		   (do ((i (the fixnum index) (1+ i)))
+		       ((= i new-fp))
+		     (declare (type fixnum i)
+			      (optimize (speed 3) (safety 0)))
+		     (setf (svref vector i) (svref vector (1+ i)))))
+		 (setf fill-pointer new-fp))
+	     (not-found))))
+	;; It must be an OUTPUT-RECORD or a DISPLAYED-OUTPUT-RECORD
+	(otherwise
+	 (if (eq elements child)
+	     (setf elements nil)
+	   (not-found))))))
   t)
 
 (defmethod map-over-output-records-overlapping-region
@@ -1151,7 +1153,7 @@
     (with-slots (output-record text-output-record record-p) stream
       (when (or output-record text-output-record)
 	(setq region (normalize-replay-region region stream))
-	(clim-utils::with-drawing-options (stream :clipping-region region)
+	(with-drawing-options (stream :clipping-region region)
 	  (letf-globally ((record-p nil))
 	    (when output-record
 	      (replay output-record stream region))

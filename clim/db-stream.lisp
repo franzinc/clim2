@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-stream.lisp,v 1.58 1993/10/25 16:15:24 cer Exp $
+;; $fiHeader: db-stream.lisp,v 1.59 1993/11/18 18:44:14 cer Exp $
 
 (in-package :clim-internals)
 
@@ -507,13 +507,20 @@
 (defmethod (setf window-visibility) (visibility (stream clim-stream-sheet))
   (let ((frame (pane-frame stream)))
     (if frame
-	(if visibility (enable-frame frame) (disable-frame frame))
-	(setf (sheet-enabled-p stream) visibility))))
+	(if visibility
+	    (enable-frame frame)
+	  (disable-frame frame))
+      (setf (sheet-enabled-p stream) visibility))))
 
 (defmethod window-visibility ((stream clim-stream-sheet))
-  (mirror-visible-p (port stream) stream))
+  (let ((frame (pane-frame stream)))
+    (and (if frame 
+	     (eq (frame-state frame) :enabled)
+	   (sheet-enabled-p stream))
+	 (mirror-visible-p (port stream) stream))))
 
 (defmethod window-viewport ((stream clim-stream-sheet))
+  ;;;---why doesn't this return a viewport?? (cim 10/12/94)
   (or (pane-viewport-region stream)
       ;; Not a scrolling pane, so the sheet's region is the viewport
       (sheet-region stream)))

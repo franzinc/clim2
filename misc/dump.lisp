@@ -20,12 +20,14 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: dump.lisp,v 1.5 93/01/11 15:45:06 colin Exp $
+;; $fiHeader: dump.lisp,v 1.6 1993/07/27 01:47:54 colin Exp $
 
 ;; Assuming CLIM is loaded, dump it into /usr/tmp/clim.temp_$USER.
 (room t)
 (sys:resize-areas :global-gc t :old 1000000 :new 500000)
 (room t)
+
+#+ignore (setq tpl::*user-top-level* nil) ;; workaround for bug3225
 
 (dumplisp :name sys::*clim-dump-name* :checkpoint nil)
 

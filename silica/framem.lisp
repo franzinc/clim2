@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: framem.lisp,v 1.30 1993/07/27 01:50:43 colin Exp $
+;; $fiHeader: framem.lisp,v 1.31 1993/09/17 19:06:15 cer Exp $
 
 (in-package :silica)
 
@@ -111,7 +111,9 @@
 			       :region (multiple-value-bind (width height)
 					   (bounding-rectangle-size top-pane)
 					 (make-bounding-rectangle 0 0 width height))
-			       :background (frame-background frame)))))
+			       :background (frame-background frame)
+			       :foreground (frame-foreground frame)
+			       :text-style (frame-text-style frame)))))
       (sheet-adopt-child (find-graft :port (port frame)) sheet)
       (setf (frame-top-level-sheet frame) sheet
 	    (frame-shell frame) (sheet-shell sheet))
@@ -172,12 +174,14 @@
 (defgeneric frame-manager-notify-user
 	    (framem message-string &rest options
 	     &key frame associated-window title documentation
-		  exit-boxes name style text-style))
+		  exit-boxes name style text-style background
+		  foreground x-position y-position))
 
 (defgeneric frame-manager-select-file 
 	    (framem &rest options 
 	     &key frame associated-window title documentation exit-boxes name
-		 file-search-proc directory-list-label file-list-label))
+		  file-search-proc directory-list-label file-list-label
+		  text-style foreground background x-position y-position))
 
 
 (defmethod make-pane-class ((framem standard-frame-manager) class &rest options)

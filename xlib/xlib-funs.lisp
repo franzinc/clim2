@@ -45,7 +45,7 @@
 ;;      OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION
 ;;      WITH THE USE OR PERFORMANCE OF THIS OBJECT CODE.
 
-;;; $fiHeader: xlib-funs.lisp,v 1.13 1993/07/27 01:59:24 colin Exp $
+;;; $fiHeader: xlib-funs.lisp,v 1.14 1993/11/18 18:46:00 cer Exp $
 
 (in-package :x11)
 
@@ -71,73 +71,73 @@
    (gmask (:pointer unsigned-long))
    (bmask (:pointer unsigned-long)))
 
-(def-exported-foreign-function (xallowevents (:return-type int) (:name "XAllowEvents")) 
+(def-exported-foreign-function (xallowevents (:name "XAllowEvents")) 
    (dpy (:pointer display))
    (mode int)
    (time :unsigned-32bit))
 
-(def-exported-foreign-function (xautorepeaton (:return-type int) (:name "XAutoRepeatOn")) 
+(def-exported-foreign-function (xautorepeaton (:name "XAutoRepeatOn")) 
    (dpy (:pointer display)))
 
-(def-exported-foreign-function (xautorepeatoff (:return-type int) (:name "XAutoRepeatOff")) 
+(def-exported-foreign-function (xautorepeatoff (:name "XAutoRepeatOff")) 
    (dpy (:pointer display)))
 
-(def-exported-foreign-function (xsetwindowbackground (:return-type int) (:name "XSetWindowBackground")) 
+(def-exported-foreign-function (xsetwindowbackground (:name "XSetWindowBackground")) 
    (dpy (:pointer display))
    (w window)
    (pixel unsigned-long))
 
-(def-exported-foreign-function (xsetwindowborderwidth (:return-type int) (:name "XSetWindowBorderWidth")) 
+(def-exported-foreign-function (xsetwindowborderwidth (:name "XSetWindowBorderWidth")) 
    (dpy (:pointer display))
    (w window)
    (width unsigned-int))
 
-(def-exported-foreign-function (xbell (:return-type int) (:name "XBell")) 
+(def-exported-foreign-function (xbell (:name "XBell")) 
    (dpy (:pointer display))
    (percent int))
 
-(def-exported-foreign-function (xsetwindowborder (:return-type int) (:name "XSetWindowBorder")) 
+(def-exported-foreign-function (xsetwindowborder (:name "XSetWindowBorder")) 
    (dpy (:pointer display))
    (w window)
    (pixel unsigned-long))
 
-(def-exported-foreign-function (xenableaccesscontrol (:return-type int) (:name "XEnableAccessControl")) 
+(def-exported-foreign-function (xenableaccesscontrol (:name "XEnableAccessControl")) 
    (dpy (:pointer display)))
 
-(def-exported-foreign-function (xdisableaccesscontrol (:return-type int) (:name "XDisableAccessControl")) 
+(def-exported-foreign-function (xdisableaccesscontrol (:name "XDisableAccessControl")) 
    (dpy (:pointer display)))
 
-(def-exported-foreign-function (xsetaccesscontrol (:return-type int) (:name "XSetAccessControl")) 
+(def-exported-foreign-function (xsetaccesscontrol (:name "XSetAccessControl")) 
    (dpy (:pointer display))
    (mode int))
 
-(def-exported-foreign-function (xchangeactivepointergrab (:return-type int) (:name "XChangeActivePointerGrab")) 
+(def-exported-foreign-function (xchangeactivepointergrab (:name "XChangeActivePointerGrab")) 
    (dpy (:pointer display))
    (event-mask unsigned-int)
    (curs cursor)
    (time :unsigned-32bit))
 
-(def-exported-foreign-function (xsetclosedownmode (:return-type int) (:name "XSetCloseDownMode")) 
+(def-exported-foreign-function (xsetclosedownmode (:name "XSetCloseDownMode")) 
    (dpy (:pointer display))
    (mode int))
 
-(def-exported-foreign-function (xsetwindowcolormap (:return-type int) (:name "XSetWindowColormap")) 
+(def-exported-foreign-function (xsetwindowcolormap (:name "XSetWindowColormap")) 
    (dpy (:pointer display))
    (w window)
    (colormap colormap))
 
-(def-exported-foreign-function (xchangegc (:return-type int) (:name "XChangeGC")) 
+(def-exported-foreign-function (xchangegc (:name "XChangeGC")) 
    (dpy (:pointer display))
    (gc gc)
    (valuemask unsigned-long)
    (values (:pointer xgcvalues)))
 
-(def-exported-foreign-function (xchangekeyboardcontrol (:return-type int) (:name "XChangeKeyboardControl")) 
+(def-exported-foreign-function (xchangekeyboardcontrol (:name "XChangeKeyboardControl")) 
    (dpy (:pointer display))
    (mask unsigned-long)
    (value-list (:pointer xkeyboardcontrol)))
 
-(def-exported-foreign-function (xchangepointercontrol (:return-type int) (:name "XChangePointerControl")) 
+(def-exported-foreign-function (xchangepointercontrol (:name "XChangePointerControl")) 
    (dpy (:pointer display))
    (do-acc int)
    (do-thresh int)
@@ -145,7 +145,7 @@
    (acc-denominator int)
    (threshold int))
 
-(def-exported-foreign-function (xchangeproperty (:return-type int) (:name "XChangeProperty")) 
+(def-exported-foreign-function (xchangeproperty (:name "XChangeProperty")) 
    (dpy (:pointer display))
    (w window)
    (property :unsigned-32bit)
@@ -155,26 +155,26 @@
    (data (:pointer unsigned-char))
    (nelements int))
 
-(def-exported-foreign-function (xchangesaveset (:return-type int) (:name "XChangeSaveSet")) 
+(def-exported-foreign-function (xchangesaveset (:name "XChangeSaveSet")) 
    (dpy (:pointer display))
    (win window)
    (mode int))
 
-(def-exported-foreign-function (xaddtosaveset (:return-type int) (:name "XAddToSaveSet")) 
+(def-exported-foreign-function (xaddtosaveset (:name "XAddToSaveSet")) 
    (dpy (:pointer display))
    (win window))
 
-(def-exported-foreign-function (xremovefromsaveset (:return-type int) (:name "XRemoveFromSaveSet")) 
+(def-exported-foreign-function (xremovefromsaveset (:name "XRemoveFromSaveSet")) 
    (dpy (:pointer display))
    (win window))
 
-(def-exported-foreign-function (xchangewindowattributes (:return-type int) (:name "XChangeWindowAttributes")) 
+(def-exported-foreign-function (xchangewindowattributes (:name "XChangeWindowAttributes")) 
    (dpy (:pointer display))
    (w window)
    (valuemask unsigned-long)
    (attributes (:pointer xsetwindowattributes)))
 
-(def-exported-foreign-function (xresizewindow (:return-type int) (:name "XResizeWindow")) 
+(def-exported-foreign-function (xresizewindow (:name "XResizeWindow")) 
    (dpy (:pointer display))
    (w window)
    (width unsigned-int)
@@ -208,27 +208,27 @@
    (mask long)
    (event (:pointer xevent)))
 
-(def-exported-foreign-function (xcirculatesubwindows (:return-type int) (:name "XCirculateSubwindows")) 
+(def-exported-foreign-function (xcirculatesubwindows (:name "XCirculateSubwindows")) 
    (dpy (:pointer display))
    (w window)
    (direction int))
 
-(def-exported-foreign-function (xcirculatesubwindowsdown (:return-type int) (:name "XCirculateSubwindowsDown")) 
+(def-exported-foreign-function (xcirculatesubwindowsdown (:name "XCirculateSubwindowsDown")) 
    (dpy (:pointer display))
    (w window))
 
-(def-exported-foreign-function (xcirculatesubwindowsup (:return-type int) (:name "XCirculateSubwindowsUp")) 
+(def-exported-foreign-function (xcirculatesubwindowsup (:name "XCirculateSubwindowsUp")) 
    (dpy (:pointer display))
    (w window))
 
-(def-exported-foreign-function (xclosedisplay (:return-type int) (:name "XCloseDisplay")) 
+(def-exported-foreign-function (xclosedisplay (:name "XCloseDisplay")) 
    (dpy (:pointer display)))
 
-(def-exported-foreign-function (xclearwindow (:return-type int) (:name "XClearWindow")) 
+(def-exported-foreign-function (xclearwindow (:name "XClearWindow")) 
    (dpy (:pointer display))
    (w window))
 
-(def-exported-foreign-function (xcleararea (:return-type int) (:name "XClearArea")) 
+(def-exported-foreign-function (xcleararea (:name "XClearArea")) 
    (dpy (:pointer display))
    (w window)
    (x int)
@@ -237,7 +237,7 @@
    (height unsigned-int)
    (exposures int))
 
-(def-exported-foreign-function (xmoveresizewindow (:return-type int) (:name "XMoveResizeWindow")) 
+(def-exported-foreign-function (xmoveresizewindow (:name "XMoveResizeWindow"))
    (dpy (:pointer display))
    (w window)
    (x int)
@@ -245,7 +245,7 @@
    (width unsigned-int)
    (height unsigned-int))
 
-(def-exported-foreign-function (xconvertselection (:return-type int) (:name "XConvertSelection")) 
+(def-exported-foreign-function (xconvertselection (:name "XConvertSelection")) 
    (dpy (:pointer display))
    (selection :unsigned-32bit)
    (target :unsigned-32bit)
@@ -253,7 +253,7 @@
    (requestor window)
    (time :unsigned-32bit))
 
-(def-exported-foreign-function (xcopyarea (:return-type int) (:name "XCopyArea")) 
+(def-exported-foreign-function (xcopyarea (:name "XCopyArea")) 
    (dpy (:pointer display))
    (src-drawable drawable)
    (dst-drawable drawable)
@@ -265,17 +265,17 @@
    (dst-x int)
    (dst-y int))
 
-(def-exported-foreign-function (xcopycolormapandfree (:return-type colormap) (:name "XCopyColormapAndFree")) 
+(def-exported-foreign-function (xcopycolormapandfree (:name "XCopyColormapAndFree")) 
    (dpy (:pointer display))
    (src-cmap colormap))
 
-(def-exported-foreign-function (xcopygc (:return-type int) (:name "XCopyGC")) 
+(def-exported-foreign-function (xcopygc (:name "XCopyGC")) 
    (dpy (:pointer display))
    (mask unsigned-long)
    (srcgc gc)
    (destgc gc))
 
-(def-exported-foreign-function (xcopyplane (:return-type int) (:name "XCopyPlane")) 
+(def-exported-foreign-function (xcopyplane (:name "XCopyPlane")) 
    (dpy (:pointer display))
    (src-drawable drawable)
    (dst-drawable drawable)
@@ -343,21 +343,21 @@
    (dpy (:pointer display))
    (which unsigned-int))
 
-(def-exported-foreign-function (xdefinecursor (:return-type int) (:name "XDefineCursor")) 
+(def-exported-foreign-function (xdefinecursor (:name "XDefineCursor")) 
    (dpy (:pointer display))
    (w window)
    (cursor cursor))
 
-(def-exported-foreign-function (xdeleteproperty (:return-type int) (:name "XDeleteProperty")) 
+(def-exported-foreign-function (xdeleteproperty (:name "XDeleteProperty")) 
    (dpy (:pointer display))
    (window window)
    (property :unsigned-32bit))
 
-(def-exported-foreign-function (xdestroysubwindows (:return-type int) (:name "XDestroySubwindows")) 
+(def-exported-foreign-function (xdestroysubwindows (:name "XDestroySubwindows")) 
    (dpy (:pointer display))
    (win window))
 
-(def-exported-foreign-function (xdestroywindow (:return-type int) (:name "XDestroyWindow")) 
+(def-exported-foreign-function (xdestroywindow (:name "XDestroyWindow")) 
    (dpy (:pointer display))
    (w window))
 
@@ -365,13 +365,13 @@
    (display (:pointer char)))
 
 
-(def-exported-foreign-function (xgeterrortext (:return-type :null) (:name "XGetErrorText")) 
+(def-exported-foreign-function (xgeterrortext (:name "XGetErrorText")) 
    (dpy (:pointer display))
    (code int)
    (buffer (:pointer char))
    (nbytes int))  
 
-(def-exported-foreign-function (xgeterrordatabasetext (:return-type int) (:name "XGetErrorDatabaseText")) 
+(def-exported-foreign-function (xgeterrordatabasetext (:name "XGetErrorDatabaseText")) 
    (name (:pointer char))
    (type (:pointer char))
    (defaultp (:pointer char))
@@ -379,16 +379,16 @@
    (buffer (:pointer char))
    (nbytes int))
 
-(def-exported-foreign-function (xseterrorhandler (:return-type :null) (:name "XSetErrorHandler")) 
+(def-exported-foreign-function (xseterrorhandler (:name "XSetErrorHandler")) 
    (handler callback-function-addr))
 
-(def-exported-foreign-function (xsetioerrorhandler (:return-type :null) (:name "XSetIOErrorHandler")) 
+(def-exported-foreign-function (xsetioerrorhandler (:name "XSetIOErrorHandler")) 
    (handler callback-function-addr))
 
-(def-exported-foreign-function (xactivatescreensaver (:return-type int) (:name "XActivateScreenSaver")) 
+(def-exported-foreign-function (xactivatescreensaver (:name "XActivateScreenSaver")) 
    (dpy (:pointer display)))
 
-(def-exported-foreign-function (xresetscreensaver (:return-type int) (:name "XResetScreenSaver")) 
+(def-exported-foreign-function (xresetscreensaver (:name "XResetScreenSaver")) 
    (dpy (:pointer display)))
 
 (def-exported-foreign-function (xforcescreensaver (:return-type int) (:name "XForceScreenSaver")) 
@@ -405,7 +405,7 @@
    (w window)
    (icon-name (:pointer (:pointer char))))
 
-(def-exported-foreign-function (xfillarc (:return-type int) (:name "XFillArc")) 
+(def-exported-foreign-function (xfillarc (:name "XFillArc")) 
    (dpy (:pointer display))
    (d drawable)
    (gc gc)
@@ -416,14 +416,14 @@
    (angle1 int)
    (angle2 int))
 
-(def-exported-foreign-function (xfillarcs (:return-type int) (:name "XFillArcs")) 
+(def-exported-foreign-function (xfillarcs (:name "XFillArcs")) 
    (dpy (:pointer display))
    (d drawable)
    (gc gc)
    (arcs (:pointer xarc))
    (n-arcs int))
 
-(def-exported-foreign-function (xfillpolygon (:return-type int) (:name "XFillPolygon")) 
+(def-exported-foreign-function (xfillpolygon (:name "XFillPolygon")) 
    (dpy (:pointer display))
    (d drawable)
    (gc gc)
@@ -432,7 +432,7 @@
    (shape int)
    (mode int))
 
-(def-exported-foreign-function (xfillrectangle (:return-type int) (:name "XFillRectangle")) 
+(def-exported-foreign-function (xfillrectangle (:name "XFillRectangle")) 
    (dpy (:pointer display))
    (d drawable)
    (gc gc)
@@ -441,21 +441,21 @@
    (width unsigned-int)
    (height unsigned-int))
 
-(def-exported-foreign-function (xfillrectangles (:return-type int) (:name "XFillRectangles")) 
+(def-exported-foreign-function (xfillrectangles (:name "XFillRectangles")) 
    (dpy (:pointer display))
    (d drawable)
    (gc gc)
    (rectangles (:pointer xrectangle))
    (n-rects int))
 
-(def-exported-foreign-function (xflush (:name "XFlush") (:return-type :fixnum))
+(def-exported-foreign-function (xflush (:name "XFlush"))
    (dpy (:pointer display)))
 
 (def-exported-foreign-function (xloadqueryfont (:return-type (:pointer xfontstruct)) (:name "XLoadQueryFont")) 
    (dpy (:pointer display))
    (name (:pointer char)))
 
-(def-exported-foreign-function (xfreefont (:return-type int) (:name "XFreeFont")) 
+(def-exported-foreign-function (xfreefont (:name "XFreeFont")) 
    (dpy (:pointer display))
    (fs (:pointer xfontstruct)))
 
@@ -470,7 +470,7 @@
    (actualcount (:pointer int))
    (info (:pointer (:pointer xfontstruct))))
 
-(def-exported-foreign-function (xfreefontinfo (:return-type int) (:name "XFreeFontInfo")) 
+(def-exported-foreign-function (xfreefontinfo (:name "XFreeFontInfo")) 
    (names (:pointer (:pointer char)))
    (info (:pointer xfontstruct))
    (actualcount int))
@@ -481,53 +481,53 @@
    (maxnames int)
    (actualcount (:pointer int)))
 
-(def-exported-foreign-function (xfreefontnames (:return-type int) (:name "XFreeFontNames")) 
+(def-exported-foreign-function (xfreefontnames (:name "XFreeFontNames")) 
    (list (:pointer (:pointer char))))
 
-(def-exported-foreign-function (xfreecolormap (:return-type int) (:name "XFreeColormap")) 
+(def-exported-foreign-function (xfreecolormap (:name "XFreeColormap")) 
    (dpy (:pointer display))
    (cmap colormap))
 
-(def-exported-foreign-function (xfreecolors (:return-type int) (:name "XFreeColors")) 
+(def-exported-foreign-function (xfreecolors (:name "XFreeColors")) 
    (dpy (:pointer display))
    (cmap colormap)
    (pixels (:pointer unsigned-long))
    (npixels int)
    (planes unsigned-long))
 
-(def-exported-foreign-function (xfreecursor (:return-type int) (:name "XFreeCursor")) 
+(def-exported-foreign-function (xfreecursor (:name "XFreeCursor")) 
    (dpy (:pointer display))
    (cursor cursor))
 
-(def-exported-foreign-function (xfreegc (:return-type int) (:name "XFreeGC")) 
+(def-exported-foreign-function (xfreegc (:name "XFreeGC")) 
    (dpy (:pointer display))
    (gc gc))
 
-(def-exported-foreign-function (xfreepixmap (:return-type int) (:name "XFreePixmap")) 
+(def-exported-foreign-function (xfreepixmap (:name "XFreePixmap")) 
    (dpy (:pointer display))
    (pixmap pixmap))
 
-(def-exported-foreign-function (xsetarcmode (:return-type int) (:name "XSetArcMode")) 
+(def-exported-foreign-function (xsetarcmode (:name "XSetArcMode")) 
    (dpy (:pointer display))
    (gc gc)
    (arc-mode int))
 
-(def-exported-foreign-function (xsetfillrule (:return-type int) (:name "XSetFillRule")) 
+(def-exported-foreign-function (xsetfillrule (:name "XSetFillRule")) 
    (dpy (:pointer display))
    (gc gc)
    (fill-rule int))
 
-(def-exported-foreign-function (xsetfillstyle (:return-type int) (:name "XSetFillStyle")) 
+(def-exported-foreign-function (xsetfillstyle (:name "XSetFillStyle")) 
    (dpy (:pointer display))
    (gc gc)
    (fill-style int))
 
-(def-exported-foreign-function (xsetgraphicsexposures (:return-type int) (:name "XSetGraphicsExposures")) 
+(def-exported-foreign-function (xsetgraphicsexposures (:name "XSetGraphicsExposures")) 
    (dpy (:pointer display))
    (gc gc)
    (graphics-exposures int))
 
-(def-exported-foreign-function (xsetsubwindowmode (:return-type int) (:name "XSetSubwindowMode")) 
+(def-exported-foreign-function (xsetsubwindowmode (:name "XSetSubwindowMode")) 
    (dpy (:pointer display))
    (gc gc)
    (subwindow-mode int))
@@ -547,7 +547,7 @@
    (dpy (:pointer display))
    (npaths (:pointer int)))
 
-(def-exported-foreign-function (xfreefontpath (:return-type int) (:name "XFreeFontPath")) 
+(def-exported-foreign-function (xfreefontpath (:name "XFreeFontPath")) 
    (list (:pointer (:pointer char))))
 
 (def-exported-foreign-function (xgetfontproperty (:return-type int) (:name "XGetFontProperty")) 
@@ -571,7 +571,7 @@
    (cmap colormap)
    (def (:pointer xcolor)))
 
-(def-exported-foreign-function (xgetinputfocus (:return-type int) (:name "XGetInputFocus")) 
+(def-exported-foreign-function (xgetinputfocus (:name "XGetInputFocus")) 
    (dpy (:pointer display))
    (focus (:pointer window))
    (revert-to (:pointer int)))
@@ -599,7 +599,7 @@
    (dest-x int)
    (dest-y int))
 
-(def-exported-foreign-function (xgetkeyboardcontrol (:return-type void) (:name "XGetKeyboardControl")) 
+(def-exported-foreign-function (xgetkeyboardcontrol (:name "XGetKeyboardControl")) 
    (dpy (:pointer display))
    (state (:pointer xkeyboardstate)))
 
@@ -610,7 +610,7 @@
    (w window)
    (nevents (:pointer int)))
 
-(def-exported-foreign-function (xgetpointercontrol (:return-type int) (:name "XGetPointerControl")) 
+(def-exported-foreign-function (xgetpointercontrol (:name "XGetPointerControl")) 
    (dpy (:pointer display))
    (accel-numer (:pointer int))
    (accel-denom (:pointer int))
@@ -645,7 +645,7 @@
    (dpy (:pointer display))
    (selection :unsigned-32bit))
 
-(def-exported-foreign-function (xgetscreensaver (:return-type int) (:name "XGetScreenSaver")) 
+(def-exported-foreign-function (xgetscreensaver (:name "XGetScreenSaver")) 
    (dpy (:pointer display))
    (timeout (:pointer int))
    (interval (:pointer int))
@@ -657,7 +657,7 @@
    (w window)
    (att (:pointer xwindowattributes)))
 
-(def-exported-foreign-function (xgrabbutton (:return-type int) (:name "XGrabButton")) 
+(def-exported-foreign-function (xgrabbutton (:name "XGrabButton")) 
    (dpy (:pointer display))
    (modifiers unsigned-int)
    (button unsigned-int)
@@ -669,7 +669,7 @@
    (confine-to window)
    (curs cursor))
 
-(def-exported-foreign-function (xgrabkey (:return-type int) (:name "XGrabKey")) 
+(def-exported-foreign-function (xgrabkey (:name "XGrabKey")) 
    (dpy (:pointer display))
    (key int)
    (modifiers unsigned-int)
@@ -697,28 +697,28 @@
    (curs cursor)
    (time :unsigned-32bit))
 
-(def-exported-foreign-function (xgrabserver (:return-type int) (:name "XGrabServer")) 
+(def-exported-foreign-function (xgrabserver (:name "XGrabServer")) 
    (dpy (:pointer display)))
 
-(def-exported-foreign-function (xaddhost (:return-type int) (:name "XAddHost")) 
+(def-exported-foreign-function (xaddhost (:name "XAddHost")) 
    (dpy (:pointer display))
    (host (:pointer xhostaddress)))
 
-(def-exported-foreign-function (xremovehost (:return-type int) (:name "XRemoveHost")) 
+(def-exported-foreign-function (xremovehost (:name "XRemoveHost")) 
    (dpy (:pointer display))
    (host (:pointer xhostaddress)))
 
-(def-exported-foreign-function (xaddhosts (:return-type int) (:name "XAddHosts")) 
+(def-exported-foreign-function (xaddhosts (:name "XAddHosts")) 
    (dpy (:pointer display))
    (hosts (:pointer xhostaddress))
    (n int))
 
-(def-exported-foreign-function (xremovehosts (:return-type int) (:name "XRemoveHosts")) 
+(def-exported-foreign-function (xremovehosts (:name "XRemoveHosts")) 
    (dpy (:pointer display))
    (hosts (:pointer xhostaddress))
    (n int))
 
-(def-exported-foreign-function (xifevent (:return-type int) (:name "XIfEvent")) 
+(def-exported-foreign-function (xifevent (:name "XIfEvent")) 
    (dpy (:pointer display))
    (event (:pointer xevent))
    (predicate (:pointer :pointer))
@@ -793,7 +793,7 @@
    (extension int)
    (proc (:pointer :pointer)))
 
-(def-exported-foreign-function (xinstallcolormap (:return-type int) (:name "XInstallColormap")) 
+(def-exported-foreign-function (xinstallcolormap (:name "XInstallColormap")) 
    (dpy (:pointer display))
    (cmap colormap))
 
@@ -802,14 +802,14 @@
    (name (:pointer char))
    (onlyifexists int))
 
-(def-exported-foreign-function (xrefreshkeyboardmapping (:return-type int) (:name "XRefreshKeyboardMapping")) 
+(def-exported-foreign-function (xrefreshkeyboardmapping (:name "XRefreshKeyboardMapping")) 
    (event (:pointer xmappingevent)))
 
 #+ignore
 (def-exported-foreign-function (xusekeymap (:return-type int) (:name "XUseKeymap")) 
    (filename (:pointer char)))
 
-(def-exported-foreign-function (xrebindkeysym (:return-type int) (:name "XRebindKeysym")) 
+(def-exported-foreign-function (xrebindkeysym (:name "XRebindKeysym")) 
    (dpy (:pointer display))
    (keysym keysym)
    (mlist (:pointer keysym))
@@ -817,7 +817,7 @@
    (str (:pointer unsigned-char))
    (nbytes int))
 
-(def-exported-foreign-function (xkillclient (:return-type int) (:name "XKillClient")) 
+(def-exported-foreign-function (xkillclient (:name "XKillClient")) 
    (dpy (:pointer display))
    (resource xid))
 
@@ -840,7 +840,7 @@
    (dpy (:pointer display))
    (nextensions (:pointer int)))
 
-(def-exported-foreign-function (xfreeextensionlist (:return-type int) (:name "XFreeExtensionList")) 
+(def-exported-foreign-function (xfreeextensionlist (:name "XFreeExtensionList")) 
    (list (:pointer (:pointer char))))
 
 (def-exported-foreign-function (xloadfont (:return-type font) (:name "XLoadFont")) 
@@ -854,7 +854,7 @@
    (def (:pointer xcolor))
    (scr (:pointer xcolor)))
 
-(def-exported-foreign-function (xlowerwindow (:return-type int) (:name "XLowerWindow")) 
+(def-exported-foreign-function (xlowerwindow (:name "XLowerWindow")) 
    (dpy (:pointer display))
    (w window))
 
@@ -1024,7 +1024,7 @@
 (def-exported-foreign-function (xeventmaskofscreen (:return-type long) (:name "XEventMaskOfScreen")) 
    (s (:pointer screen)))
 
-(def-exported-foreign-function (xnoop (:return-type int) (:name "XNoOp")) 
+(def-exported-foreign-function (xnoop (:name "XNoOp")) 
    (dpy (:pointer display)))
 
 (def-exported-foreign-function (XParseColor (:return-type int) 
@@ -1042,19 +1042,19 @@
   (width-return (:pointer unsigned-int))
   (height-return (:pointer unsigned-int)))
 
-(def-exported-foreign-function (xmapraised (:return-type int) (:name "XMapRaised")) 
+(def-exported-foreign-function (xmapraised (:name "XMapRaised")) 
    (dpy (:pointer display))
    (w window))
 
-(def-exported-foreign-function (xmapsubwindows (:return-type int) (:name "XMapSubwindows")) 
+(def-exported-foreign-function (xmapsubwindows (:name "XMapSubwindows")) 
    (dpy (:pointer display))
    (win window))
 
-(def-exported-foreign-function (xmapwindow (:return-type int) (:name "XMapWindow")) 
+(def-exported-foreign-function (xmapwindow (:name "XMapWindow")) 
    (dpy (:pointer display))
    (win window))
 
-(def-exported-foreign-function (xmaskevent (:return-type int) (:name "XMaskEvent")) 
+(def-exported-foreign-function (xmaskevent (:name "XMaskEvent")) 
    (dpy (:pointer display))
    (mask long)
    (event (:pointer xevent)))
@@ -1068,7 +1068,7 @@
 (def-exported-foreign-function (xdisplaymotionbuffersize (:return-type unsigned-long) (:name "XDisplayMotionBufferSize")) 
    (dpy (:pointer display)))
 
-(def-exported-foreign-function (xdisplaykeycodes (:return-type int) (:name "XDisplayKeycodes")) 
+(def-exported-foreign-function (xdisplaykeycodes (:name "XDisplayKeycodes")) 
    (dpy (:pointer display))
    (min-keycode-return (:pointer int))
    (max-keycode-return (:pointer int)))
@@ -1086,7 +1086,7 @@
 (def-exported-foreign-function (xnewmodifiermap (:return-type (:pointer xmodifierkeymap)) (:name "XNewModifiermap")) 
    (keyspermodifier int))
 
-(def-exported-foreign-function (xfreemodifiermap (:return-type void) (:name "XFreeModifiermap")) 
+(def-exported-foreign-function (xfreemodifiermap (:name "XFreeModifiermap")) 
    (map (:pointer xmodifierkeymap)))
 
 (def-exported-foreign-function (xinsertmodifiermapentry (:return-type (:pointer xmodifierkeymap)) (:name "XInsertModifiermapEntry")) 
@@ -1099,24 +1099,24 @@
    (keysym :character) ;; (keysym keycode)
    (modifier int))
 
-(def-exported-foreign-function (xmovewindow (:return-type int) (:name "XMoveWindow")) 
+(def-exported-foreign-function (xmovewindow (:name "XMoveWindow")) 
    (dpy (:pointer display))
    (w window)
    (x int)
    (y int))
 
-(def-exported-foreign-function (xnextevent (:return-type int) (:name "XNextEvent")) 
+(def-exported-foreign-function (xnextevent (:name "XNextEvent")) 
    (dpy (:pointer display))
    (event (:pointer xevent)))
 
 (def-exported-foreign-function (xopendisplay (:return-type (:pointer display)) (:name "XOpenDisplay")) 
    (display (:pointer char)))
 
-(def-exported-foreign-function (xpeekevent (:return-type int) (:name "XPeekEvent")) 
+(def-exported-foreign-function (xpeekevent (:name "XPeekEvent")) 
    (dpy (:pointer display))
    (event (:pointer xevent)))
 
-(def-exported-foreign-function (xpeekifevent (:return-type int) (:name "XPeekIfEvent")) 
+(def-exported-foreign-function (xpeekifevent (:name "XPeekIfEvent")) 
    (dpy (:pointer display))
    (event (:pointer xevent))
    (predicate (:pointer :pointer))
@@ -1129,21 +1129,21 @@
 (def-exported-foreign-function (xpending (:return-type fixnum-int) (:name "XPending")) 
    (dpy (:pointer display)))
 
-(def-exported-foreign-function (xsetwindowbackgroundpixmap (:return-type int) (:name "XSetWindowBackgroundPixmap")) 
+(def-exported-foreign-function (xsetwindowbackgroundpixmap (:name "XSetWindowBackgroundPixmap")) 
    (dpy (:pointer display))
    (w window)
    (pixmap pixmap))
 
-(def-exported-foreign-function (xsetwindowborderpixmap (:return-type int) (:name "XSetWindowBorderPixmap")) 
+(def-exported-foreign-function (xsetwindowborderpixmap (:name "XSetWindowBorderPixmap")) 
    (dpy (:pointer display))
    (w window)
    (pixmap pixmap))
 
-(def-exported-foreign-function (xputbackevent (:return-type int) (:name "XPutBackEvent")) 
+(def-exported-foreign-function (xputbackevent (:name "XPutBackEvent")) 
    (dpy (:pointer display))
    (event (:pointer xevent)))
 
-(def-exported-foreign-function (xputimage (:return-type int) (:name "XPutImage")) 
+(def-exported-foreign-function (xputimage (:name "XPutImage")) 
    (dpy (:pointer display))
    (d drawable)
    (gc gc)
@@ -1164,12 +1164,12 @@
    (ret-width (:pointer unsigned-int))
    (ret-height (:pointer unsigned-int)))
 
-(def-exported-foreign-function (xquerycolor (:return-type int) (:name "XQueryColor")) 
+(def-exported-foreign-function (xquerycolor (:name "XQueryColor")) 
    (dpy (:pointer display))
    (cmap colormap)
    (def (:pointer xcolor)))
 
-(def-exported-foreign-function (xquerycolors (:return-type int) (:name "XQueryColors")) 
+(def-exported-foreign-function (xquerycolors (:name "XQueryColors")) 
    (dpy (:pointer display))
    (cmap colormap)
    (defs (:pointer xcolor))
@@ -1190,7 +1190,7 @@
    (first-event (:pointer int))
    (first-error (:pointer int)))
 
-(def-exported-foreign-function (xquerykeymap (:return-type int) (:name "XQueryKeymap")) 
+(def-exported-foreign-function (xquerykeymap (:name "XQueryKeymap")) 
    (dpy (:pointer display))
    (keys (:array char (32))))
 
@@ -1213,7 +1213,7 @@
    (ret-width (:pointer unsigned-int))
    (ret-height (:pointer unsigned-int)))
 
-(def-exported-foreign-function (xquerytextextents16 (:return-type int) (:name "XQueryTextExtents16")) 
+(def-exported-foreign-function (xquerytextextents16 (:name "XQueryTextExtents16")) 
    (dpy (:pointer display))
    (fid font)
    (string (:pointer xchar2b))
@@ -1223,7 +1223,7 @@
    (font-descent (:pointer int))
    (overall (:pointer xcharstruct)))
 
-(def-exported-foreign-function (xquerytextextents (:return-type int) (:name "XQueryTextExtents")) 
+(def-exported-foreign-function (xquerytextextents (:name "XQueryTextExtents")) 
    (dpy (:pointer display))
    (fid font)
    (string (:pointer char))
@@ -1249,35 +1249,35 @@
    (children (:pointer (:pointer window)))
    (nchildren (:pointer unsigned-int)))
 
-(def-exported-foreign-function (xraisewindow (:return-type int) (:name "XRaiseWindow")) 
+(def-exported-foreign-function (xraisewindow (:name "XRaiseWindow")) 
    (dpy (:pointer display))
    (w window))
 
-(def-exported-foreign-function (xrecolorcursor (:return-type int) (:name "XRecolorCursor")) 
+(def-exported-foreign-function (xrecolorcursor (:name "XRecolorCursor")) 
    (dpy (:pointer display))
    (cursor cursor)
    (foreground (:pointer xcolor))
    (background (:pointer xcolor)))
 
-(def-exported-foreign-function (xconfigurewindow (:return-type int) (:name "XConfigureWindow")) 
+(def-exported-foreign-function (xconfigurewindow (:name "XConfigureWindow")) 
    (dpy (:pointer display))
    (w window)
    (mask unsigned-int)
    (changes (:pointer xwindowchanges)))
 
-(def-exported-foreign-function (xreparentwindow (:return-type int) (:name "XReparentWindow")) 
+(def-exported-foreign-function (xreparentwindow (:name "XReparentWindow")) 
    (dpy (:pointer display))
    (w window)
    (p window)
    (x int)
    (y int))
 
-(def-exported-foreign-function (xrestackwindows (:return-type int) (:name "XRestackWindows")) 
+(def-exported-foreign-function (xrestackwindows (:name "XRestackWindows")) 
    (dpy (:pointer display))
    (windows (:pointer window))
    (n int))
 
-(def-exported-foreign-function (xrotatewindowproperties (:return-type int) (:name "XRotateWindowProperties")) 
+(def-exported-foreign-function (xrotatewindowproperties (:name "XRotateWindowProperties")) 
    (dpy (:pointer display))
    (w window)
    (properties (:pointer atom))
@@ -1296,12 +1296,12 @@
    (event-mask long)
    (event (:pointer xevent)))
 
-(def-exported-foreign-function (xsetbackground (:return-type int) (:name "XSetBackground")) 
+(def-exported-foreign-function (xsetbackground (:name "XSetBackground")) 
    (dpy (:pointer display))
    (gc gc)
    (background unsigned-long))
 
-(def-exported-foreign-function (xsetcliprectangles (:return-type int) (:name "XSetClipRectangles")) 
+(def-exported-foreign-function (xsetcliprectangles (:name "XSetClipRectangles")) 
    (dpy (:pointer display))
    (gc gc)
    (clip-x-origin int)
@@ -1310,57 +1310,57 @@
    (n int)
    (ordering int))
 
-(def-exported-foreign-function (xsetclipmask (:return-type int) (:name "XSetClipMask")) 
+(def-exported-foreign-function (xsetclipmask (:name "XSetClipMask")) 
    (dpy (:pointer display))
    (gc gc)
    (mask pixmap))
 
-(def-exported-foreign-function (xsetcliporigin (:return-type int) (:name "XSetClipOrigin")) 
+(def-exported-foreign-function (xsetcliporigin (:name "XSetClipOrigin")) 
    (dpy (:pointer display))
    (gc gc)
    (xorig int)
    (yorig int))
 
-(def-exported-foreign-function (xsetdashes (:return-type int) (:name "XSetDashes")) 
+(def-exported-foreign-function (xsetdashes (:name "XSetDashes")) 
    (dpy (:pointer display))
    (gc gc)
    (dash-offset int)
    (list (:pointer char))
    (n int))
 
-(def-exported-foreign-function (xsetfontpath (:return-type int) (:name "XSetFontPath")) 
+(def-exported-foreign-function (xsetfontpath (:name "XSetFontPath")) 
    (dpy (:pointer display))
    (directories (:pointer (:pointer char)))
    (ndirs int))
 
-(def-exported-foreign-function (xsetfont (:return-type int) (:name "XSetFont")) 
+(def-exported-foreign-function (xsetfont (:name "XSetFont")) 
    (dpy (:pointer display))
    (gc gc)
    (font font))
 
-(def-exported-foreign-function (xsetforeground (:return-type int) (:name "XSetForeground")) 
+(def-exported-foreign-function (xsetforeground (:name "XSetForeground")) 
    (dpy (:pointer display))
    (gc gc)
    (foreground unsigned-long))
 
-(def-exported-foreign-function (xsetfunction (:return-type int) (:name "XSetFunction")) 
+(def-exported-foreign-function (xsetfunction (:name "XSetFunction")) 
    (dpy (:pointer display))
    (gc gc)
    (function int))
 
-(def-exported-foreign-function (xsetcommand (:return-type int) (:name "XSetCommand")) 
+(def-exported-foreign-function (xsetcommand (:name "XSetCommand")) 
    (dpy (:pointer display))
    (w window)
    (argv (:pointer (:pointer char)))
    (argc int))
 
-(def-exported-foreign-function (xsetinputfocus (:return-type int) (:name "XSetInputFocus")) 
+(def-exported-foreign-function (xsetinputfocus (:name "XSetInputFocus")) 
    (dpy (:pointer display))
    (focus window)
    (revert-to int)
    (time :unsigned-32bit))
 
-(def-exported-foreign-function (xsetlineattributes (:return-type int) (:name "XSetLineAttributes")) 
+(def-exported-foreign-function (xsetlineattributes (:name "XSetLineAttributes")) 
    (dpy (:pointer display))
    (gc gc)
    (linewidth unsigned-int)
@@ -1368,7 +1368,7 @@
    (capstyle int)
    (joinstyle int))
 
-(def-exported-foreign-function (xsetplanemask (:return-type int) (:name "XSetPlaneMask")) 
+(def-exported-foreign-function (xsetplanemask (:name "XSetPlaneMask")) 
    (dpy (:pointer display))
    (gc gc)
    (planemask unsigned-long))
@@ -1378,27 +1378,27 @@
    (map (:pointer unsigned-char))
    (nmaps int))
 
-(def-exported-foreign-function (xchangekeyboardmapping (:return-type int) (:name "XChangeKeyboardMapping")) 
+(def-exported-foreign-function (xchangekeyboardmapping (:name "XChangeKeyboardMapping")) 
    (dpy (:pointer display))
    (first-keycode int)
    (keysyms-per-keycode int)
    (keysyms (:pointer keysym))
    (nkeycodes int))
 
-(def-exported-foreign-function (xsetselectionowner (:return-type int) (:name "XSetSelectionOwner")) 
+(def-exported-foreign-function (xsetselectionowner (:name "XSetSelectionOwner")) 
    (dpy (:pointer display))
    (selection :unsigned-32bit)
    (owner window)
    (time :unsigned-32bit))
 
-(def-exported-foreign-function (xsetscreensaver (:return-type int) (:name "XSetScreenSaver")) 
+(def-exported-foreign-function (xsetscreensaver (:name "XSetScreenSaver")) 
    (dpy (:pointer display))
    (timeout int)
    (interval int)
    (prefer-blank int)
    (allow-exp int))
 
-(def-exported-foreign-function (xsetstate (:return-type int) (:name "XSetState")) 
+(def-exported-foreign-function (xsetstate (:name "XSetState")) 
    (dpy (:pointer display))
    (gc gc)
    (function int)
@@ -1406,46 +1406,46 @@
    (foreground unsigned-long)
    (background unsigned-long))
 
-(def-exported-foreign-function (xsetstipple (:return-type int) (:name "XSetStipple")) 
+(def-exported-foreign-function (xsetstipple (:name "XSetStipple")) 
    (dpy (:pointer display))
    (gc gc)
    (stipple pixmap))
 
-(def-exported-foreign-function (xsettsorigin (:return-type int) (:name "XSetTSOrigin")) 
+(def-exported-foreign-function (xsettsorigin (:name "XSetTSOrigin")) 
    (dpy (:pointer display))
    (gc gc)
    (x int)
    (y int))
 
-(def-exported-foreign-function (xsettile (:return-type int) (:name "XSetTile")) 
+(def-exported-foreign-function (xsettile (:name "XSetTile")) 
    (dpy (:pointer display))
    (gc gc)
    (tile pixmap))
 
-(def-exported-foreign-function (xstorecolor (:return-type int) (:name "XStoreColor")) 
+(def-exported-foreign-function (xstorecolor (:name "XStoreColor")) 
    (dpy (:pointer display))
    (cmap colormap)
    (def (:pointer xcolor)))
 
-(def-exported-foreign-function (xstorecolors (:return-type int) (:name "XStoreColors")) 
+(def-exported-foreign-function (xstorecolors (:name "XStoreColors")) 
    (dpy (:pointer display))
    (cmap colormap)
    (defs (:pointer xcolor))
    (ncolors int))
 
-(def-exported-foreign-function (xstorenamedcolor (:return-type int) (:name "XStoreNamedColor")) 
+(def-exported-foreign-function (xstorenamedcolor (:name "XStoreNamedColor")) 
    (dpy (:pointer display))
    (cmap colormap)
    (name (:pointer char))
    (pixel unsigned-long)
    (flags int))
 
-(def-exported-foreign-function (xstorename (:return-type int) (:name "XStoreName")) 
+(def-exported-foreign-function (xstorename (:name "XStoreName")) 
    (dpy (:pointer display))
    (w window)
    (name (:pointer char)))
 
-(def-exported-foreign-function (xseticonname (:return-type int) (:name "XSetIconName")) 
+(def-exported-foreign-function (xseticonname (:name "XSetIconName")) 
    (dpy (:pointer display))
    (w window)
    (icon-name (:pointer char)))
@@ -1456,7 +1456,7 @@
 (def-exported-foreign-function (xkeysymtostring (:return-type (:pointer char)) (:name "XKeysymToString")) 
    (ks keysym))
 
-(def-exported-foreign-function (xsync (:return-type int) (:name "XSync")) 
+(def-exported-foreign-function (xsync (:name "XSync")) 
    (dpy (:pointer display))
    (discard int))
 
@@ -1468,7 +1468,7 @@
    (dpy (:pointer display))
    (func (:pointer :pointer)))
 
-(def-exported-foreign-function (xtextextents (:return-type int) (:name "XTextExtents")) 
+(def-exported-foreign-function (xtextextents (:name "XTextExtents")) 
    (fontstruct (:pointer xfontstruct))
    (string (:pointer char))
    (nchars int)
@@ -1482,7 +1482,7 @@
    (string (:pointer char))
    (count int))
 
-(def-exported-foreign-function (xtextextents16 (:return-type int) (:name "XTextExtents16")) 
+(def-exported-foreign-function (xtextextents16 (:name "XTextExtents16")) 
    (fontstruct (:pointer xfontstruct))
    (string (:pointer xchar2b))
    (nchars int)
@@ -1506,50 +1506,50 @@
    (dst-y (:pointer int))
    (child (:pointer window)))
 
-(def-exported-foreign-function (xundefinecursor (:return-type int) (:name "XUndefineCursor")) 
+(def-exported-foreign-function (xundefinecursor (:name "XUndefineCursor")) 
    (dpy (:pointer display))
    (w window))
 
-(def-exported-foreign-function (xungrabbutton (:return-type int) (:name "XUngrabButton")) 
+(def-exported-foreign-function (xungrabbutton (:name "XUngrabButton")) 
    (dpy (:pointer display))
    (button unsigned-int)
    (modifiers unsigned-int)
    (grab-window window))
 
-(def-exported-foreign-function (xungrabkeyboard (:return-type int) (:name "XUngrabKeyboard")) 
+(def-exported-foreign-function (xungrabkeyboard (:name "XUngrabKeyboard")) 
    (dpy (:pointer display))
    (time :unsigned-32bit))
 
-(def-exported-foreign-function (xungrabkey (:return-type int) (:name "XUngrabKey")) 
+(def-exported-foreign-function (xungrabkey (:name "XUngrabKey")) 
    (dpy (:pointer display))
    (key int)
    (modifiers unsigned-int)
    (grab-window window))
 
-(def-exported-foreign-function (xungrabpointer (:return-type int) (:name "XUngrabPointer")) 
+(def-exported-foreign-function (xungrabpointer (:name "XUngrabPointer")) 
    (dpy (:pointer display))
    (time :unsigned-32bit))
 
-(def-exported-foreign-function (xungrabserver (:return-type int) (:name "XUngrabServer")) 
+(def-exported-foreign-function (xungrabserver (:name "XUngrabServer")) 
    (dpy (:pointer display)))
 
-(def-exported-foreign-function (xuninstallcolormap (:return-type int) (:name "XUninstallColormap")) 
+(def-exported-foreign-function (xuninstallcolormap (:name "XUninstallColormap")) 
    (dpy (:pointer display))
    (cmap colormap))
 
-(def-exported-foreign-function (xunloadfont (:return-type int) (:name "XUnloadFont")) 
+(def-exported-foreign-function (xunloadfont (:name "XUnloadFont")) 
    (dpy (:pointer display))
    (font font))
 
-(def-exported-foreign-function (xunmapsubwindows (:return-type int) (:name "XUnmapSubwindows")) 
+(def-exported-foreign-function (xunmapsubwindows (:name "XUnmapSubwindows")) 
    (dpy (:pointer display))
    (win window))
 
-(def-exported-foreign-function (xunmapwindow (:return-type int) (:name "XUnmapWindow")) 
+(def-exported-foreign-function (xunmapwindow (:name "XUnmapWindow")) 
    (dpy (:pointer display))
    (w window))
 
-(def-exported-foreign-function (xwarppointer (:return-type int) (:name "XWarpPointer")) 
+(def-exported-foreign-function (xwarppointer (:name "XWarpPointer")) 
    (dpy (:pointer display))
    (src-win window)
    (dest-win window)
@@ -1560,7 +1560,7 @@
    (dest-x int)
    (dest-y int))
 
-(def-exported-foreign-function (xwindowevent (:return-type int) (:name "XWindowEvent")) 
+(def-exported-foreign-function (xwindowevent (:name "XWindowEvent")) 
    (dpy (:pointer display))
    (w window)
    (mask long)
@@ -1580,7 +1580,7 @@
    (valuemask unsigned-long)
    (attributes (:pointer xsetwindowattributes)))
 
-(def-exported-foreign-function (xfree (:return-type fixnum-int) (:name "XFree")) 
+(def-exported-foreign-function (xfree (:name "XFree")) 
    (data (:pointer char)))
 
 
@@ -1618,7 +1618,7 @@
   (subimage-width unsigned-int)
   (subimage-height unsigned-int))
 
-(def-exported-foreign-macro (xaddpixel (:return-type int) (:name "XAddPixel"))
+(def-exported-foreign-macro (xaddpixel (:name "XAddPixel"))
   (ximage (:pointer ximage))
   (value long))
 
@@ -1799,7 +1799,6 @@
    (string (:pointer char))
    (start fixnum-int)
    (end fixnum-int))
-
 
 (def-exported-foreign-function 
   (xpermalloc (:return-type (:pointer char)) 
@@ -2016,6 +2015,6 @@
     (vinfo-return (:pointer visual-info)))
 
 
-(def-exported-foreign-function (_xflushgccache (:return-type int) (:name "_XFlushGCCache")) 
+(def-exported-foreign-function (_xflushgccache (:name "_XFlushGCCache")) 
    (dpy (:pointer display))
    (gc gc))

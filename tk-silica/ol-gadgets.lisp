@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-gadgets.lisp,v 1.63 1993/11/18 18:45:32 cer Exp $
+;; $fiHeader: ol-gadgets.lisp,v 1.64 1993/12/07 05:34:15 colin Exp $
 
 
 (in-package :xm-silica)
@@ -58,67 +58,69 @@
 (defmethod find-widget-class-and-initargs-for-sheet ((port openlook-port)
 						     (parent t)
 						     (sheet openlook-scroll-bar))
-  (values 'tk::scrollbar '(:slider-max 0 :slider-max 1000)))
-
-(defmethod (setf scroll-bar-size) (nv (sb openlook-scroll-bar))
-  ;; (tk::set-values (sheet-direct-mirror sb) :slider-size nv)
-  nv)
-
-(defmethod (setf scroll-bar-value) (nv (sb openlook-scroll-bar))
-  (tk::set-values (sheet-direct-mirror sb) :slider-value nv)
-  nv)
+  (let ((size (scroll-bar-size sheet)))
+    (values 'tk::scrollbar
+	    (append '(:slider-min 0 :slider-max 1000)
+		    (when size
+		      `(:proportion-length 
+			,(convert-scroll-bar-value-out sheet
+						       size)))))))
 
 (defmethod change-scroll-bar-values ((sb openlook-scroll-bar) &key
-							      slider-size value line-increment)
+							      slider-size 
+							      value line-increment)
   (let ((mirror (sheet-direct-mirror sb)))
-    (multiple-value-bind
-	(mmin mmax) (tk::get-values mirror :slider-min :slider-max)
+    (when mirror
       (multiple-value-bind
-	  (real-value real-size line-increment)
-	  (compute-new-scroll-bar-values sb mmin mmax value
-					 slider-size line-increment)
-	(tk::set-values
-	 mirror
-	 :granularity line-increment
-	 :proportion-length  real-size
-	 :slider-value real-value)))))
-
-;;-- This method is ((gadget motif-range-pane))
-
-(defmethod gadget-value ((gadget openlook-scroll-bar))
-  ;;--- We should use the scale functions to get the value
-  (let ((mirror (sheet-direct-mirror gadget)))
-    (if mirror 
-        (multiple-value-bind
-            (smin smax) (gadget-range* gadget)
-          (multiple-value-bind
-              (value mmin mmax proportion-length)
-              (tk::get-values mirror :slider-value :slider-min
-			      :slider-max :proportion-length)
-            (compute-symmetric-value
-             mmin (- mmax proportion-length) value smin smax)))
-      (call-next-method))))
+	(real-value real-size line-increment)
+	  (compute-new-scroll-bar-values sb value slider-size line-increment)
+      (tk::set-values mirror
+		      :granularity line-increment
+		      :proportion-length  real-size
+		      :slider-value real-value)))))
 
 (defmethod add-sheet-callbacks :after  ((port openlook-port) (sheet openlook-scroll-bar) (widget t))
   (tk::add-callback widget
 		    :slider-moved
-		    'scroll-bar-changed-callback-1
+		    'ol-scroll-bar-callback
 		    sheet))
 
-(defmethod scroll-bar-changed-callback-1 ((widget t) value (sheet openlook-scroll-bar))
-  (multiple-value-bind
-      (smin smax) (gadget-range* sheet)
-    (multiple-value-bind
-	(size mmin mmax)
-	(tk::get-values widget :proportion-length :slider-min :slider-max)
-      (scroll-bar-value-changed-callback
-       sheet
-       (gadget-client sheet)
-       (gadget-id sheet)
-       (compute-symmetric-value
-	mmin (- mmax size) value smin smax)
-       (compute-symmetric-value
-	mmin mmax size smin smax)))))
+(defun ol-scroll-bar-callback (widget value sheet)
+  (declare (ignore widget))
+  (value-changed-callback
+   sheet
+   (gadget-client sheet)
+   (gadget-id sheet)
+   (convert-scroll-bar-value-in sheet value)))
+
+(defmethod gadget-value ((gadget openlook-scroll-bar))
+  (let ((mirror (sheet-direct-mirror gadget)))
+    (if mirror
+	(convert-scroll-bar-value-in gadget
+				     (tk::get-values mirror :slider-value))
+      (call-next-method))))
+
+(defmethod (setf gadget-value) :after 
+	   (nv (gadget openlook-scroll-bar) &key invoke-callback)
+  (declare (ignore invoke-callback))
+  (let ((mirror (sheet-direct-mirror gadget)))
+    (when mirror
+      (tk::set-values mirror
+		      :slider-value (convert-scroll-bar-value-out gadget nv)))))
+
+(defmethod scroll-bar-size ((sheet openlook-scroll-bar))
+  (let ((mirror (sheet-direct-mirror sheet)))
+    (if mirror
+	(convert-scroll-bar-value-in sheet
+				     (tk::get-values mirror :proportion-length))
+      (call-next-method))))
+
+(defmethod (setf scroll-bar-size) :after (nv (sheet openlook-scroll-bar))
+  (let ((mirror (sheet-direct-mirror sheet)))
+    (when mirror
+      (tk::set-values mirror
+		      :proportion-length
+		      (convert-scroll-bar-value-out sheet nv)))))
 
 (defmethod compose-space ((m openlook-scroll-bar) &key width height)
   (declare (ignore width height))
@@ -522,10 +524,15 @@
 (defmethod compose-space ((sheet openlook-label-pane) &key width height)
   (declare (ignore width height))
   (let ((label (gadget-label sheet)))
-    (if (typep label 'xt::pixmap)
-	(make-space-requirement :width (xt::pixmap-width label)
-				:height (xt::pixmap-height label))
-      (call-next-method))))
+    (cond
+     ((typep label 'xt::pixmap)
+      (make-space-requirement :width (xt::pixmap-width label)
+			      :height (xt::pixmap-height label)))
+     ((typep label 'pattern)
+      (make-space-requirement :width (pattern-width label)
+			      :height (pattern-height label)))
+     (t
+      (call-next-method)))))
 
 (defun make-label-initarg (label initarg)
   (etypecase label
@@ -628,6 +635,15 @@
 (defun openlook-text-field-edit-widget (tf &optional (mirror (sheet-direct-mirror tf)))
   (tk::get-values mirror :text-edit-widget))
 
+;; we can't rely on OpenLook to genarate focus-out events in any
+;; consistent manner. So instead we queue a losing focus event each
+;; time the value changes. This is merly to  ensure that the
+;; accepting-values field is kept up to date (cim 3/17/94)
+
+(defun ol-text-field-value-changed (widget sheet)
+  (queue-value-changed-event widget sheet)
+  (queue-losing-focus-event widget sheet))
+
 (defmethod add-sheet-callbacks :after ((port openlook-port) 
 				       (sheet openlook-text-field) 
 				       (widget t))
@@ -635,14 +651,17 @@
     (let ((edit-widget (openlook-text-field-edit-widget sheet widget))) 
       (tk::add-callback edit-widget
 			:post-modify-notification
-			'queue-value-changed-event
+			'ol-text-field-value-changed
 			sheet)
+      #+ignore
       (tk::add-event-handler edit-widget
 			     '(:focus-change)
 			     1
 			     'openlook-text-field-event-handler
 			     sheet))))
 
+
+#+ignore
 (defun openlook-text-field-event-handler (widget event sheet)
   (case (tk::event-type event)
     (:focus-in (queue-gaining-focus-event widget sheet))
@@ -687,21 +706,26 @@
   (multiple-value-bind
       (class initargs)
       (call-next-method)
-    (with-accessors ((alignment gadget-alignment)
-		     (label gadget-label)) sheet
-      (typecase label
-	(string
-	 (unless (getf initargs :label)
-	   (setf (getf initargs :label) label))
-	 (unless (getf initargs :label-justify)
-	   (setf (getf initargs :label-justify) 
-	     (ecase alignment
-	       (:center :left)
-	       ((:left :right)  alignment)))))
-	(xt::pixmap
-	 (unless (getf initargs :label-image)
-	   (setf (getf initargs :label-image) (tk::image-from-pixmap label)
-		 (getf initargs :label-type) :image)))))
+    (unless *in-find-widget-name-and-class-hack*
+      (with-accessors ((alignment gadget-alignment)
+		       (label gadget-label)) sheet
+	(etypecase label
+	  ((or null string)
+	   (unless (getf initargs :label)
+	     (setf (getf initargs :label) label))
+	   (unless (getf initargs :label-justify)
+	     (setf (getf initargs :label-justify) 
+	       (ecase alignment
+		 (:center :left)
+		 ((:left :right)  alignment)))))
+	  ((or tk::pixmap pattern)
+	   (unless (getf initargs :label-image)
+	     (when (typep label 'pattern)
+	       (with-sheet-medium (medium sheet)
+		 (setq label
+		   (pixmap-from-pattern label medium :pixmap))))
+	     (setf (getf initargs :label-image) (tk::image-from-pixmap label)
+		   (getf initargs :label-type) :image))))))
     (values class initargs)))
 
 (defmethod (setf gadget-label) :after (nv (sheet openlook-labelled-gadget))
@@ -718,25 +742,28 @@
 ;; Toggle button
 
 (defclass openlook-toggle-button (toggle-button
-				openlook-labelled-gadget
-				xt-leaf-pane)
+				  openlook-labelled-gadget
+				  xt-leaf-pane)
 	  ())
 
 (defmethod find-widget-class-and-initargs-for-sheet ((port openlook-port)
 						     (parent t)
 						     (sheet openlook-toggle-button))
   (with-accessors ((set gadget-value)
-		   (indicator-type gadget-indicator-type)) sheet
+		   (indicator-type gadget-indicator-type)
+		   (label gadget-label)) sheet
     (values (typecase (sheet-parent sheet)
 	      (openlook-radio-box 'xt::rect-button)
 	      (openlook-check-box 'xt::rect-button)
 	      (t 'xt::check-box))
-	    (append (list :set set)
+	    (append `(:set ,set
+		      :position :right)
 		    #+dunno
 		    (list :indicator-type 
 			  (ecase indicator-type
 			    (:one-of :one-of-many)
 			    (:some-of :n-of-many)))))))
+
 
 ;; check-box, rect  select, unselect callback, :set resource
 
@@ -964,26 +991,31 @@
 		   (show-value-p gadget-show-value-p)
 		   (value gadget-value)
 		   (editablep gadget-editable-p)) sheet
-    (multiple-value-bind
-	(smin smax) (gadget-range* sheet)
-      (let ((mmin 0) 
-	    (mmax 1000))
-	(values 
-	 'tk::control
-	 (append
-	  (list :slider-class (if editablep 'tk::slider 'tk::gauge))
-	  (list :show-value-p show-value-p)
-	  (list :drag-c-b-type :release)
-	  ;;-- icon label
-	  (make-label-initarg label :label)
-	  (list :slider-min mmin
-		:slider-max mmax)
-	  (and value 
-	       (list :slider-value 
-		     (fix-coordinate 
-		      (compute-symmetric-value
-		       smin smax value mmin
-		       mmax))))))))))
+    (with-slots (silica::min-label silica::max-label) sheet
+      (multiple-value-bind
+	  (smin smax) (gadget-range* sheet)
+	(let ((mmin 0) 
+	      (mmax 1000))
+	  (values 
+	   'tk::control
+	   (append
+	    (list :slider-class (if editablep 'tk::slider 'tk::gauge))
+	    (list :show-value-p show-value-p)
+	    (list :drag-c-b-type :release)
+	    ;;-- icon label
+	    (make-label-initarg label :label)
+	    (list :slider-min mmin
+		  :slider-max mmax)
+	    (and silica::min-label
+		 (list :min-label silica::min-label))
+	    (and silica::max-label
+		 (list :max-label silica::max-label))
+	    (and value 
+		 (list :slider-value 
+		       (fix-coordinate 
+			(compute-symmetric-value
+			 smin smax value mmin
+			 mmax)))))))))))
 
 (defmethod realize-mirror :around ((port openlook-port) (sheet openlook-slider))
   (let ((control-area (call-next-method))
@@ -1281,8 +1313,9 @@
     (setf (text-editor-text widget) nv)))
 
 (defmethod (setf text-editor-text) (nv (widget tk::text-edit))
-  (assert (not (zerop (tk::ol_text_edit_clear_buffer widget))))
-  (assert (not (zerop (tk::ol_text_edit_insert widget nv (length nv))))))
+  (unless (equal nv (text-editor-text widget))
+    (assert (not (zerop (tk::ol_text_edit_clear_buffer widget))))
+    (assert (not (zerop (tk::ol_text_edit_insert widget nv (length nv)))))))
 
 
 (defmethod find-widget-class-and-initargs-for-sheet ((port openlook-port)
@@ -1338,8 +1371,15 @@
 				       (widget t))
   (tk::add-callback widget
 		    :post-modify-notification
-		    'queue-value-changed-event
-		    sheet))
+		    'ol-text-field-value-changed
+		    sheet)
+
+  #+ignore
+  (tk::add-event-handler edit-widget
+			 '(:focus-change)
+			 1
+			 'openlook-text-field-event-handler
+			 sheet))
 
 (defmethod compose-space ((te openlook-text-editor) &key width height)
   (declare (ignore width height))
@@ -1437,12 +1477,17 @@
       (sheet-adopt-child (slot-value sp 'viewport) contents))))
 
 (defmethod realize-widget-mirror ((port openlook-port) (parent-sheet openlook-scrolling-window)
-						       (parent-widget t)
-						       (sheet openlook-scroll-bar))
-  (tk::get-values parent-widget
-   (ecase (gadget-orientation sheet)
-     (:horizontal :h-scrollbar)
-     (:vertical  :v-scrollbar))))
+				  (parent-widget t)
+				  (sheet openlook-scroll-bar))
+  (multiple-value-bind (class initargs)
+      (find-widget-class-and-initargs-for-sheet port parent-widget sheet)
+    (declare (ignore class))
+    (let ((widget (tk::get-values parent-widget
+				  (ecase (gadget-orientation sheet)
+				    (:horizontal :h-scrollbar)
+				    (:vertical  :v-scrollbar)))))
+      (apply #'tk::set-values widget initargs)
+      widget)))
 
 (defmethod gadget-supplies-scrolling-p ((contents t))
   nil)
@@ -1717,7 +1762,8 @@
 (defun find-list-pane-item-from-token (token)
   (tk::ol_list_item_pointer token))
 
-(defmethod compose-space ((sheet openlook-list-pane) &key width height)
+(defmethod compose-space ((sheet openlook-list-pane) &key width
+							  height)
   (declare (ignore width height))
   ;;-- Fudge alert!
   (with-accessors ((items set-gadget-items)
@@ -1880,33 +1926,51 @@
 					 :help))
 				      (name title))
 
-  (let* ((shell (make-instance 
-		 'tk::notice-shell 
-		 :parent (sheet-shell associated-window))))
-    (multiple-value-bind (text-area control-area)
-	(tk::get-values shell :text-area :control-area)
-      (tk::set-values text-area :string message-string)
-      (let ((done nil))
-	(flet ((done (widget value)
-		 (declare (ignore widget))
-		 (setq done (list value))))
-	  (dolist (exit-box exit-boxes)
-	    (multiple-value-bind (name label)
-		(if (consp exit-box) (values (first exit-box)
-					     (second exit-box)) exit-box)
-	      (let ((button (make-instance 'xt::oblong-button 
-					   :parent control-area
-					   :label (or label (string name)))))
-		(case name
-		  (:exit (tk::add-callback button :select #'done t))
-		  (:abort (tk::add-callback button :select #'done nil))))))
-	  (unwind-protect
-	      (progn
-		(tk::popup shell)
-		(wait-for-callback-invocation (port framem) #'(lambda () done))
-		(car done))
-	    (unless done
-	      (tk::popdown shell))))))))
+  (loop
+    (let* ((shell (make-instance 
+		      'tk::notice-shell 
+		    :parent (sheet-shell associated-window))))
+      (multiple-value-bind (text-area control-area)
+	  (tk::get-values shell :text-area :control-area)
+	(tk::set-values text-area :string message-string)
+	(let ((done nil))
+	  (flet ((done (widget value)
+		   (declare (ignore widget))
+		   (setq done (list value)))
+		 (display-help (widget)
+		   (declare (ignore widget))
+		   (frame-manager-notify-user 
+		    framem
+		    documentation
+		    :associated-window associated-window)
+		   (setq done (list :help))))
+	    (dolist (exit-box exit-boxes)
+	      (multiple-value-bind (name label)
+		  (if (consp exit-box) (values (first exit-box)
+					       (second exit-box)) exit-box)
+		(let ((button (make-instance 'xt::oblong-button 
+				:parent control-area
+				:label (or label (string name)))))
+		  (case name
+		    (:exit (tk::add-callback button :select #'done t))
+		    (:abort (tk::add-callback button :select #'done nil))
+		    (:help 
+		     (if documentation
+			 (tk::add-callback button :select #'display-help)
+		       (xt::set-sensitive button nil)))))))
+
+	    (let ((result
+		   (unwind-protect
+		       (progn
+			 (tk::popup shell)
+			 (wait-for-callback-invocation
+			  (port framem) #'(lambda () done))
+			 (car done))
+		     (unless done
+		       (tk::popdown shell)))))
+	      (unless (eq result :help)
+		(return-from frame-manager-notify-user result)))))))))
+  
 
 ;;--- We could export this to handle the default case.
 ;;--- It definitely needs work though. 

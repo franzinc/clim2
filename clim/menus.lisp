@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: menus.lisp,v 1.45 1993/05/25 20:40:58 cer Exp $
+;; $fiHeader: menus.lisp,v 1.46 1993/10/25 16:15:35 cer Exp $
 
 (in-package :clim-internals)
 
@@ -68,7 +68,9 @@
 			   (eq (not label) (not (menu-frame-label (pane-frame menu))))
 			   (eq (frame-manager menu) (frame-manager root)))
 	       
-	     :deinitializer (window-clear menu)
+	     :deinitializer (progn
+			      (setf (window-visibility menu) nil)
+			      (window-clear menu))
 	     :initializer (initialize-menu (port menu) menu :label label))
 
 (defmethod initialize-menu ((port basic-port) menu &key label)
@@ -241,32 +243,36 @@
      (drawer-args :initarg :drawer-args)))
 
 (defgeneric menu-choose (items &rest keys
-			 &key associated-window text-style default-item
+			 &key associated-window text-style
+			      default-item foreground background
 			      label scroll-bars printer presentation-type
 			      cache unique-id id-test cache-value cache-test
 			      max-width max-height n-rows n-columns
 			      x-spacing y-spacing
 			      cell-align-x cell-align-y
-			      pointer-documentation menu-type))
+			      pointer-documentation menu-type
+			      x-position y-position))
 
 ;; Are these reasonable defaults for UNIQUE-ID, CACHE-VALUE, ID-TEST, and CACHE-TEST?
 (defmethod menu-choose ((items t) &rest keys
 			&key (associated-window (frame-top-level-sheet *application-frame*))
-			     text-style default-item
+			     text-style default-item foreground background
 			     label (scroll-bars t) printer presentation-type
 			     (cache nil) (unique-id items) (id-test #'equal)
 			     (cache-value items) (cache-test #'equal)
 			     max-width max-height n-rows n-columns
 			     x-spacing y-spacing (row-wise nil)
 			     (cell-align-x ':left) (cell-align-y ':top)
-			     pointer-documentation menu-type gesture)
+			     pointer-documentation menu-type gesture
+			     x-position y-position)
   (declare (values value chosen-item gesture))
-  (declare (ignore text-style default-item
+  (declare (ignore text-style default-item foreground background
 		   label scroll-bars printer presentation-type
 		   cache unique-id id-test cache-value cache-test
 		   max-width max-height n-rows n-columns
 		   x-spacing y-spacing row-wise cell-align-x cell-align-y
-		   pointer-documentation menu-type gesture))
+		   pointer-documentation menu-type gesture
+		   x-position y-position))
   (declare (dynamic-extent keys))
   (unless (zerop (length items))
     (apply #'frame-manager-menu-choose (frame-manager associated-window) items keys)))
@@ -352,7 +358,7 @@
 	   (frame-manager ,w) ,w #'with-menu-as-popup-body)))))
 
 (defmethod invoke-with-menu-as-popup 
-	   ((framem standard-frame-manager) (window t) continuation)
+	   ((framem standard-frame-manager) (sheet basic-sheet) continuation)
   (funcall continuation))
 
 ;; The drawer gets called with (stream presentation-type &rest drawer-args).
@@ -373,90 +379,93 @@
   (flet (#+Allegro
 	 (abort-menu-handler () 
 	   (return-from menu-choose-from-drawer nil)))
-   #+Allegro (declare (dynamic-extent #'abort-menu-handler))
-   (with-clim-state-reset (:all t
-			   :additional-bindings
-			     #+Allegro ((*click-outside-menu-handler* #'abort-menu-handler))
-			     #-Allegro nil)
-     ;; We could make the drawer a lexical closure, but that would then
-     ;; partially defeat the purpose of the uid and cache-value because we'd cons the closure
-     ;; whether or not we ran it.
-     (let* ((cached-output-history-info
+    #+Allegro (declare (dynamic-extent #'abort-menu-handler))
+    (with-clim-state-reset (:all t
+				 :additional-bindings
+				 #+Allegro ((*click-outside-menu-handler* #'abort-menu-handler))
+				 #-Allegro nil)
+      ;; We could make the drawer a lexical closure, but that would then
+      ;; partially defeat the purpose of the uid and cache-value
+      ;; because we'd cons the closure whether or not we ran it.
+      (let* ((cached-output-history-info
 	      (when cache
 		(if (typep cache 'static-menu)
 		    cache-value
-		    (get-from-output-history-cache unique-id id-test))))
-	    (cached-menu-contents
+		  (get-from-output-history-cache unique-id id-test))))
+	     (cached-menu-contents
 	      (when cached-output-history-info
 		(if (typep cache 'static-menu)
 		    cached-output-history-info
-		    (let* ((contents (pop cached-output-history-info))
-			   (value cached-output-history-info))
-		      (when (funcall cache-test value cache-value)
-			contents))))))
-       (cond (cached-menu-contents
-	      (stream-add-output-record menu cached-menu-contents))
-	     (t
-	      ;; "Draw" into deexposed menu for sizing only
-	      (with-output-recording-options (menu :draw nil :record t)
-		(let ((menu-contents
+		  (let* ((contents (pop cached-output-history-info))
+			 (value cached-output-history-info))
+		    (when (funcall cache-test value cache-value)
+		      contents))))))
+	(cond (cached-menu-contents
+	       (stream-add-output-record menu cached-menu-contents))
+	      (t
+	       ;; "Draw" into deexposed menu for sizing only
+	       (with-output-recording-options (menu :draw nil :record t)
+		 (let ((menu-contents
 			(with-new-output-record (menu)
 			  (setq default-presentation 
-				(funcall drawer menu presentation-type)))))
-		  (when cache
-		    (setf (get-from-output-history-cache unique-id id-test)
-			  (cons menu-contents cache-value))))))))
-     (size-frame-from-contents menu)
-     (unwind-protect
-	 (with-menu-as-popup (menu)
-	   (position-sheet-near-pointer
-	     (frame-top-level-sheet (pane-frame menu)) x-position y-position)
-	   (setf (window-visibility menu) t)
-	   ;;--- If we have windows with backing store then we dont get
-	   ;;--- exposure event and so nothing appears
-	   #+Allegro (replay (stream-output-history menu) menu)
-	   (stream-set-input-focus menu)
-	   (when default-presentation
-	     (with-bounding-rectangle* (left top right bottom) default-presentation
-	       (stream-set-pointer-position
-		 menu (floor (+ left right) 2) (floor (+ top bottom) 2))))
-	   ;; Pointer documentation usually adds no information, and slows things
-	   ;; down in a big way, which is why we defaultly disable it.
-	   (let ((*pointer-documentation-output* pointer-documentation))
-	     (with-input-context (presentation-type :override T)
-				 (object type gesture)
-		  (labels ((input-wait-test (menu)
-			     ;; Wake up if the menu becomes buried, or if highlighting
-			     ;; is needed.
-			     ;;--- This screws up in Allegro because querying the server
-			     ;;--- in the wait function screws event handling.
-			     (or #-Allegro 
-				 (and *abort-menus-when-buried*
+			    (funcall drawer menu presentation-type)))))
+		   (when cache
+		     (setf (get-from-output-history-cache unique-id id-test)
+		       (cons menu-contents cache-value))))))))
+      (size-frame-from-contents menu)
+      (unwind-protect
+	  (with-menu-as-popup (menu)
+	    (let ((top-level-sheet (frame-top-level-sheet (pane-frame menu))))
+	      (position-sheet-near-pointer
+	       top-level-sheet x-position y-position)
+	      (setf (sheet-pointer-cursor top-level-sheet) :menu
+		    (window-visibility menu) t))
+	    ;;--- If we have windows with backing store then we dont get
+	    ;;--- exposure event and so nothing appears
+	    #+Allegro (replay (stream-output-history menu) menu)
+	    (stream-set-input-focus menu)
+	    (when default-presentation
+	      (with-bounding-rectangle* (left top right bottom) default-presentation
+					(stream-set-pointer-position
+					 menu (floor (+ left right) 2) (floor (+ top bottom) 2))))
+	    ;; Pointer documentation usually adds no information, and slows things
+	    ;; down in a big way, which is why we defaultly disable it.
+	    (let ((*pointer-documentation-output* pointer-documentation))
+	      (with-input-context (presentation-type :override T)
+		(object type gesture)
+		(labels ((input-wait-test (menu)
+			   ;; Wake up if the menu becomes buried, or if highlighting
+			   ;; is needed.
+			   ;;--- This screws up in Allegro because querying the server
+			   ;;--- in the wait function screws event handling.
+			   (or #-Allegro 
+			       (and *abort-menus-when-buried*
+				    (not (window-visibility menu)))
+			       (pointer-motion-pending menu)))
+			 (input-wait-handler (menu)
+			   ;; Abort if the menu becomes buried
+			   #-Allegro
+			   (when (and *abort-menus-when-buried*
 				      (not (window-visibility menu)))
-				 (pointer-motion-pending menu)))
-			   (input-wait-handler (menu)
-			     ;; Abort if the menu becomes buried
-			     #-Allegro
-			     (when (and *abort-menus-when-buried*
-					(not (window-visibility menu)))
-			       (return-from menu-choose-from-drawer nil))
-			     ;; Take care of highlighting
-			     (highlight-presentation-of-context-type menu)))
-		    (declare (dynamic-extent #'input-wait-test #'input-wait-handler))
-		    ;; Await exposure before going any further, since X can get
-		    ;; to the call to READ-GESTURE before the menu is visible.
-		    (when *abort-menus-when-buried*
-		      #-Silica (wait-for-window-exposed menu))
-		    (with-mouse-grabbed-in-window (menu)
-		      (loop
-			(read-gesture :stream menu
-				      :input-wait-test #'input-wait-test
-				      :input-wait-handler #'input-wait-handler)
-			(beep menu))))
+			     (return-from menu-choose-from-drawer nil))
+			   ;; Take care of highlighting
+			   (highlight-presentation-of-context-type menu)))
+		  #-Allegro  
+		  (declare (dynamic-extent #'input-wait-test #'input-wait-handler))
+		  ;; Await exposure before going any further, since X can get
+		  ;; to the call to READ-GESTURE before the menu is visible.
+		  (when *abort-menus-when-buried*
+		    #-Silica (wait-for-window-exposed menu))
+		  (with-mouse-grabbed-in-window (menu)
+		    (loop
+		      (read-gesture :stream menu
+				    :input-wait-test #'input-wait-test
+				    :input-wait-handler #'input-wait-handler)
+		      (beep menu))))
 		(t (values object gesture)))))
-       (unless leave-menu-visible
-	 (setf (window-visibility menu) nil))
-       (force-output menu)))))
+	(unless leave-menu-visible
+	  (setf (window-visibility menu) nil))
+	(force-output menu)))))
 
 (defun hierarchical-menu-choose (items
 				 &key (associated-window
@@ -633,16 +642,23 @@
   ((type :initarg :type)
    (scroll-bars :initarg :scroll-bars) 
    (borders :initarg :borders)
+   (background :initarg :background)
+   (foreground :initarg :foreground)
+   (text-style :initarg :text-style)
    stream
    pane)
   (:command-definer nil)
   (:menu-bar nil)
   (:pane
-   (with-slots (pane stream type scroll-bars borders) *application-frame*
+   (with-slots (pane stream type scroll-bars borders background
+		foreground text-style) *application-frame*
      (multiple-value-setq (pane stream)
        (make-clim-stream-pane
 	:type type
 	:scroll-bars scroll-bars
+	:background background
+	:foreground foreground
+	:text-style text-style
 	:borders borders))
      pane)))
 
@@ -651,8 +667,9 @@
 				(right nil rightp)
 				(bottom nil bottomp) 
 				width height
-				(foreground +black+) (background +white+)
-				text-style default-text-style
+				foreground 
+				background
+				text-style
 				(vertical-spacing 2)
 				(end-of-line-action :allow)
 				(end-of-page-action :allow)
@@ -681,6 +698,9 @@
 					:scroll-bars scroll-bars
 					:borders  borders
 					:input-buffer input-buffer
+					:background background
+					:foreground foreground
+					:text-style text-style
 					:frame-manager
 					(etypecase parent
 					  ((or pane standard-application-frame) 
@@ -688,11 +708,7 @@
 					  (frame-manager parent)
 					  (null (find-frame-manager)))))
 	 (stream (slot-value frame 'stream)))
-    (setf (medium-foreground stream) foreground
-	  (medium-background stream) background
-	  (medium-default-text-style stream) (or default-text-style *default-text-style*)
-	  (medium-text-style stream) (or text-style *default-text-style*)
-	  (stream-vertical-spacing stream) vertical-spacing
+    (setf (stream-vertical-spacing stream) vertical-spacing
 	  (stream-end-of-line-action stream) end-of-line-action
 	  (stream-end-of-page-action stream) end-of-page-action
 	  (stream-recording-p stream) record

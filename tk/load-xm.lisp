@@ -18,17 +18,21 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: load-xm.lisp,v 1.28 1993/07/29 20:51:54 layer Exp $
+;; $fiHeader: load-xm.lisp,v 1.29 1993/11/23 19:59:01 cer Exp $
 
 (in-package :user)
 
-(provide :climxm)
 (require :climg)
 
 #+svr4
 (unless (ff:get-entry-point (ff:convert-to-lang "XmCreateMyDrawingArea")
 			    :note-shared-library-references nil)
-  (load "climxm.so"))
+  (load "climxm.so")
+  (defun reinitialize-toolkit ()
+    (xt_toolkit_initialize)
+    (setup-error-handlers)
+    (fixup-class-entry-points))
+  (push '(:eval reinitialize-toolkit) excl::*restart-actions*))
 
 #-svr4
 (progn

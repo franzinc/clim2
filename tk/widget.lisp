@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: widget.lisp,v 1.34 1993/10/25 16:16:29 cer Exp $
+;; $fiHeader: widget.lisp,v 1.35 1993/10/26 03:22:30 colin Exp $
 
 (in-package :tk)
 
@@ -30,21 +30,22 @@
 			      (widget-class (error "Class not specified"))
 			      (display (error "Display not specified"))
 			 &allow-other-keys)
-  (let* ((class (find-class widget-class))
-	 (handle (class-handle class))
-	 (arglist (make-arglist-for-class class nil args)))
-    (register-address
-     (apply #'make-instance
-	    class
-	    :foreign-address
-	    (xt_app_create_shell application-name
-				 application-class
-				 handle
-				 display
-				 arglist
-				 (truncate (length arglist) 2))
-	    :display display
-	    args))))
+  (with-malloced-objects
+      (let* ((class (find-class widget-class))
+	     (handle (class-handle class))
+	     (arglist (make-arglist-for-class class nil args)))
+	(register-address
+	 (apply #'make-instance
+		class
+		:foreign-address
+		(xt_app_create_shell application-name
+				     application-class
+				     handle
+				     display
+				     arglist
+				     (truncate (length arglist) 2))
+		:display display
+		args)))))
 
 ;; These are so we don't need the foreign functions at run time.
 
@@ -71,14 +72,15 @@
 
 (defun create-widget-1 (fn name widget-class parent &rest args)
   (assert parent)
-  (let* ((class (find-class-maybe widget-class))
-	 (handle (class-handle class))
-	 (arglist (make-arglist-for-class class parent args)))
-    (funcall fn name
-	     handle
-	     parent
-	     arglist
-	     (truncate (length arglist) 2))))
+  (with-malloced-objects
+      (let* ((class (find-class-maybe widget-class))
+	     (handle (class-handle class))
+	     (arglist (make-arglist-for-class class parent args)))
+	(funcall fn name
+		 handle
+		 parent
+		 arglist
+		 (truncate (length arglist) 2)))))
 
 (defun realize-widget (widget)
   (xt_realize_widget widget))
@@ -114,17 +116,16 @@
        (xt_popdown shell))
 
 (defun create-popup-shell (name widget-class parent &rest args)
-  (let* ((class (find-class-maybe widget-class))
-	 (handle (class-handle class))
-	 (arglist (make-arglist-for-class class parent args)))
-    (incf *widget-count*)
-    (xt_create_popup_shell
-     ;;-- allocate-no-free
-     (string-to-char* name)
-	     handle
-	     parent
-	     arglist
-	     (truncate (length arglist) 2))))
+  (with-malloced-objects
+      (let* ((class (find-class-maybe widget-class))
+	     (handle (class-handle class))
+	     (arglist (make-arglist-for-class class parent args)))
+	(incf *widget-count*)
+	(xt_create_popup_shell (note-malloced-object (string-to-char* name))
+			       handle
+			       parent
+			       arglist
+			       (truncate (length arglist) 2)))))
 
 (defun find-class-maybe (x)
   (if (typep x 'clos::class) x
@@ -273,13 +274,13 @@
 
 ;; Could not think of anywhere better!
 
-;; note that this is different from xt-initialize which calls
-;; XtToolkitInitialize. This is closer to XtAppInitialize
-
 (defvar *fallback-resources* '("clim*dragInitiatorProtocolStyle: DRAG_NONE"
 			       "clim*dragreceiverprotocolstyle:	DRAG_NONE"
 			       )
   "A list of resource specification strings")
+
+;; note that this is different from xt-initialize which calls
+;; XtToolkitInitialize. This is closer to XtAppInitialize
 
 (defun initialize-toolkit (&rest args)
   (let* ((context (create-application-context)))

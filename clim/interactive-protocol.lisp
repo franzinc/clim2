@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: interactive-protocol.lisp,v 1.31 1993/11/18 18:44:24 cer Exp $
+;; $fiHeader: interactive-protocol.lisp,v 1.32 1993/11/23 19:58:38 cer Exp $
 
 (in-package :clim-internals)
 
@@ -1043,23 +1043,27 @@
   (values (apply #'accept ptype
 		 :stream stream
 		 :prompt-mode :raw
-		 :prompt (apply #'format nil format-string args)
+		 :prompt (if format-string
+			     (apply #'format nil format-string args)
+			   "")
 		 accept-args)))
 
-(defmethod stream-yes-or-no-p ((stream input-protocol-mixin) &optional (format-string "") &rest args)
+(defmethod stream:stream-yes-or-no-p ((stream input-protocol-mixin)
+				      &optional format-string &rest args)
   (stream-yay-or-nay-p stream
 		       '(member-alist (("Yes" :value t) ("No" :value nil)))
 		       format-string args))
 
 
-(defmethod stream-y-or-n-p ((stream input-protocol-mixin) &optional (format-string "") &rest args)
+(defmethod stream:stream-y-or-n-p ((stream input-protocol-mixin)
+				   &optional format-string &rest args)
   (stream-yay-or-nay-p stream
 		       '(member-alist (("Y" :value t) ("N" :value nil)))
 		       format-string args))
 
 
-(defmethod stream-y-or-n-or-newline-p ((stream input-protocol-mixin) 
-				       &optional (format-string "") &rest args)
+(defmethod excl::stream-y-or-n-or-newline-p ((stream input-protocol-mixin) 
+					     &optional format-string &rest args)
   (stream-yay-or-nay-p stream
 		       '(member-alist (("Y" :value t) ("N" :value nil)))
 		       format-string args

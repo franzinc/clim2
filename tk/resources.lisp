@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: resources.lisp,v 1.49 1993/07/30 23:58:27 colin Exp $
+;; $fiHeader: resources.lisp,v 1.50 1993/08/12 16:04:44 cer Exp $
 
 
 (in-package :tk)
@@ -314,38 +314,39 @@
 (defun set-values (widget &rest resources-and-values)
   (declare (optimize (speed 3))
 	   (dynamic-extent resources-and-values))
-  (let ((resources nil)
-	(values nil))
-    (do ((rvs resources-and-values (cddr rvs)))
-	((null rvs))
-      (push (car rvs) resources)
-      (push (cadr rvs) values))
-    (setq resources (nreverse resources))
-    (setq values (nreverse values))
-    (excl::without-interrupts
-      ;; We don't really want anyone else to grab the same cache entry.
-	(let* ((class (class-of widget))
-	       (parent-class (let ((p (tk::widget-parent widget)))
-			       (and p (class-of p))))
-	       (entry (gethash resources (class-set-values-cache class))))
-	(declare (optimize (safety 0)))
-	(unless entry
-	  (setf entry (fill-sv-cache parent-class class resources)))
+  (with-malloced-objects
+      (let ((resources nil)
+	    (values nil))
+	(do ((rvs resources-and-values (cddr rvs)))
+	    ((null rvs))
+	  (push (car rvs) resources)
+	  (push (cadr rvs) values))
+	(setq resources (nreverse resources))
+	(setq values (nreverse values))
+	(excl::without-interrupts
+	  ;; We don't really want anyone else to grab the same cache entry.
+	  (let* ((class (class-of widget))
+		 (parent-class (let ((p (tk::widget-parent widget)))
+				 (and p (class-of p))))
+		 (entry (gethash resources (class-set-values-cache class))))
+	    (declare (optimize (safety 0)))
+	    (unless entry
+	      (setf entry (fill-sv-cache parent-class class resources)))
     
-	(destructuring-bind (arglist length &rest resource-descriptions)
-	    entry
-	  (do ((resdess resource-descriptions (cdr resdess))
-	       (i 0 (1+ i))
-	       (values values (cdr values)))
-	      ((null resdess))
-	    (destructuring-bind (convert-p type)
-		(car resdess)
-	      ;; Yuck -- the following should be handled somehow by cstructs...
-	      (setf (sys:memref-int (xt-arglist arglist i) 4 0 :signed-long)
-		(if convert-p
-		    (convert-resource-out widget type (car values))
-		  (car values)))))
-	  (xt_set_values widget arglist length))))))
+	    (destructuring-bind (arglist length &rest resource-descriptions)
+		entry
+	      (do ((resdess resource-descriptions (cdr resdess))
+		   (i 0 (1+ i))
+		   (values values (cdr values)))
+		  ((null resdess))
+		(destructuring-bind (convert-p type)
+		    (car resdess)
+		  ;; Yuck -- the following should be handled somehow by cstructs...
+		  (setf (sys:memref-int (xt-arglist arglist i) 4 0 :signed-long)
+		    (if convert-p
+			(convert-resource-out widget type (car values))
+		      (car values)))))
+	      (xt_set_values widget arglist length)))))))
 
 ;; This is used by initialize-instance methods for widgets...
 (defun make-arglist-for-class (class parent args)
@@ -446,7 +447,8 @@
 	 (constraint-resource-used nil)
 	 (i 0))
     (dotimes (j len)
-      (setf (xt-arglist-value arglist j) (excl::malloc 8))) ;--- A crock...
+      (setf (xt-arglist-value arglist j) 
+	(excl::malloc 8)))	;--- A crock...
     (dolist (r resources)
       (let ((resource (or (find-class-resource class r)
 			  (psetq constraint-resource-used t)
@@ -464,38 +466,43 @@
 	(incf i)))
     (let ((r (list* arglist len (nreverse rds))))
       (if constraint-resource-used
-	  r
+	  ;; so the crock continues
+	  (progn
+	    (dotimes (j len)
+	      (note-malloced-object (xt-arglist-value arglist j)))
+	    r)
 	(setf (gethash resources (class-get-values-cache class)) r)))))
     
 (defun get-values (widget &rest resources)
   (declare (optimize (speed 3))
 	   (dynamic-extent resources))
-  (excl::without-interrupts
-    ;; We don't really want anyone else to grab the same cache entry.
-      (let* ((class (class-of widget))
-	     (parent-class (let ((p (tk::widget-parent widget)))
+  (with-malloced-objects
+      (excl::without-interrupts
+	;; We don't really want anyone else to grab the same cache entry.
+	(let* ((class (class-of widget))
+	       (parent-class (let ((p (tk::widget-parent widget)))
 			       (and p (class-of p))))
-	     (entry (gethash resources (class-get-values-cache class))))
-      (declare (optimize (safety 0)))
-      (unless entry
-	(setf entry (fill-gv-cache parent-class class resources)))
+	       (entry (gethash resources (class-get-values-cache class))))
+	  (declare (optimize (safety 0)))
+	  (unless entry
+	    (setf entry (fill-gv-cache parent-class class resources)))
     
-      (destructuring-bind (arglist length &rest resource-descriptions)
-	  entry
-	(xt_get_values widget arglist length)
+	  (destructuring-bind (arglist length &rest resource-descriptions)
+	      entry
+	    (xt_get_values widget arglist length)
 
-	(let ((i 0)
-	      (values nil))
-	  (dolist (resource-desc resource-descriptions)
-	    (destructuring-bind (get-memref-type convert-p type)
-		resource-desc
-	      (let ((value (sys:memref-int (xt-arglist-value arglist i) 0 0
-					   get-memref-type)))
-		(incf i)
-		(if convert-p
-		    (setq value (convert-resource-in widget type value)))
-		(push value values))))
-	  (values-list (nreverse values)))))))
+	    (let ((i 0)
+		  (values nil))
+	      (dolist (resource-desc resource-descriptions)
+		(destructuring-bind (get-memref-type convert-p type)
+		    resource-desc
+		  (let ((value (sys:memref-int (xt-arglist-value arglist i) 0 0
+					       get-memref-type)))
+		    (incf i)
+		    (if convert-p
+			(setq value (convert-resource-in widget type value)))
+		    (push value values))))
+	      (values-list (nreverse values))))))))
 
 
 
@@ -553,6 +560,9 @@
 (defmethod convert-resource-out ((parent t) (type (eql 'prim-foreground-pixmap)) value)
   (convert-pixmap-out parent value))
 
+(defmethod convert-resource-out ((parent t) (type (eql 'man-foreground-pixmap)) value)
+  (convert-pixmap-out parent value))
+
 (defmethod convert-resource-out ((parent t) (type (eql 'gadget-pixmap)) value)
   (convert-pixmap-out parent value))
 
@@ -574,12 +584,9 @@
 (defmethod convert-resource-out ((parent t) (type (eql 'bool)) value)
   (if value 1 0))
 
-(defvar *string-counter* 0)
-
 (defmethod convert-resource-out ((parent  t) (type (eql 'string)) value)
-  ;;--- Allocate-no-free
-  (incf *string-counter* (length value))
-  (string-to-char* value))
+  (note-malloced-object
+   (string-to-char* value)))
 
 (defvar *font-counter* 0)
 (defmethod convert-resource-out ((parent t) (type (eql 'font-struct)) value)
@@ -610,11 +617,13 @@
 
 ;;; Accelerator table stuff
 
+(defvar *empty-table* nil)
+
 (defmethod convert-resource-out (parent (type (eql 'xt::accelerator-table))
 				 (value (eql nil)))
   (declare (ignore parent))
-  ;;--- Allocate-no-free
-  (xt_parse_accelerator_table ""))
+  (or *empty-table*
+      (setq *empty-table* (xt_parse_accelerator_table ""))))
 
 
 
@@ -716,6 +725,10 @@
 					  (:in 7)
 					  (:out 8)))
 
+(define-enumerated-resource navigation-type (:none 
+					     :tab-group
+					     :sticky-tab-group
+					     :exclusive-tab-group))
 
 (define-enumerated-resource ol-wrap-mode  ((:wrap-off 74) 
 					   (:wrap-any 75)
@@ -733,9 +746,8 @@
 ;; solaris 2.2 stuff
 
 (defmethod convert-resource-out ((parent  t) (type (eql 'ol-str)) value)
-  ;;--- Allocate-no-free
-  (incf *string-counter* (length value))
-  (string-to-char* value))
+  (note-malloced-object 
+   (string-to-char* value)))
 
 (defmethod convert-resource-in ((parent t) (type (eql 'ol-str)) value)
   (unless (zerop value)

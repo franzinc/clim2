@@ -1,10 +1,11 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: text-style.lisp,v 1.19 1993/05/13 16:29:57 colin Exp $
+;; $fiHeader: text-style.lisp,v 1.21 1993/08/19 20:10:16 smh Exp $
 
 (in-package :silica)
 
 "Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved.
+ Portions copyright (c) 1991, 1992 Franz, Inc.  All rights reserved.
  Portions copyright (c) 1989, 1990 International Lisp Associates."
 
 ;;; To consider: how to merge Genera styles with styles.
@@ -27,10 +28,6 @@
 (defmethod text-style-components ((style standard-text-style))
   (with-slots (family face size) style
     (values family (face-code->face face) size)))
-
-(defmethod fully-merged-text-style-p ((style standard-text-style))
-  (with-slots (family face size) style
-    (and family face size)))
 
 (defmethod make-load-form ((object standard-text-style) &optional environment)
   (declare (ignore environment))
@@ -692,16 +689,17 @@
     (standardize-text-style-error style))
   style)
 
-(defun standardize-text-style-error (style)
-  (if (fully-merged-text-style-p style)
-      (cerror "Use the undefined text style stand-in instead"
-	      "The size component of ~S is not numeric.  This port does not know ~
+(defmethod standardize-text-style-error ((style standard-text-style))
+  (with-slots (family face size) style
+    (if (and family face size)
+	(cerror "Use the undefined text style stand-in instead"
+		"The size component of ~S is not numeric.  This port does not know ~
 	       how to map logical text style sizes"
-	      style)
+		style)
       (cerror "Use the undefined text style stand-in instead"
 	      "The text style ~S must be a fully merged text style"
 	      style))
-  *undefined-text-style*)
+    *undefined-text-style*))
 
 ;; For use by more specific STANDARDIZE-TEXT-STYLE methods
 (defun-inline standardize-text-style-1 (port style character-set size-alist)

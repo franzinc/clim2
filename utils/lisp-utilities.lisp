@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: lisp-utilities.lisp,v 1.30 93/04/15 15:08:35 cer Exp $
+;; $fiHeader: lisp-utilities.lisp,v 1.32 1994/06/08 06:56:57 duane Exp $
 
 (in-package :clim-utils)
 
@@ -152,8 +152,22 @@
 
 #+Allegro
 (defmacro fix-coordinate (coord)
-  ;; ROUND is good enough in Allegro for 90% of the speed, and it's less filling.
-  `(the fixnum (round ,coord)))
+  `(the fixnum (fixit ,coord)))
+
+#+Allegro
+(defun fixit (coord)
+  (declare (optimize speed))
+  (typecase coord
+    (fixnum
+     coord)
+    (single-float
+     ;; note we use [x+0.5] rather than ROUND because 
+     ;; (1+ (round 1.5)) != (round 2.5) (cim 8/6/94)
+     (values (the fixnum (floor (+ (the single-float coord) .5f0)))))
+    (double-float
+     (values (the fixnum (floor (+ (the double-float coord) .5f0)))))
+    (t
+     (values (floor (+ coord .5f0))))))
 
 #-(or Genera Minima Allegro)
 (defun fix-coordinate (coord)
@@ -567,35 +581,7 @@
      (declare (dynamic-extent ,var))
      ,@body))
 
-#-(version>= 4 2 7)
-(progn
-  #+(and (target-class h r t) (version>= 4 1))
-  ;; Hack to allow compiling CLIM without a dcl.
-  (eval-when (eval compile)
-    comp::(def-qc-ll-fcn qc-ll_<u :<u
-	    (with-u-computed
-		(qc-boolean-compare :ltu u target cc))))
-
-  #+(and (target-class h) (version>= 4 1))
-  (defun-inline evacuate-list (list)
-    ;; the HP's stack grows toward higher memory
-    (if (comp::ll :<u (comp::ll :glob-c-value 'sys::c_stackmax) list)
-	(copy-list list)
-      list))
-
-  #+(and (target-class r) (version>= 4 1))
-  (defun-inline evacuate-list (list)
-    (if (comp::ll :<u (comp::ll :register :stack-pointer) list)
-	(copy-list list)
-      list))
-
-  #-(and (target-class h r t) (version>= 4 1))
-  (defmacro evacuate-list (list) `,list)
-  )
-
-#+(version>= 4 2 7)
 (defun-inline evacuate-list (list)
-  ;; the HP's stack grows toward higher memory
   (if (and (consp list)
 	   (excl::stack-allocated-p list))
       (copy-list list)
@@ -1021,6 +1007,38 @@
 	    (setq table (make-hash-table))))
     (setf (gethash symbol table) value))
   value)
+
+#+Allegro
+(defmacro define-dynamic-extent-args (name lambda-list &rest de-args)
+  (flet ((lambda-vars (lambda-list)
+	   (let ((vars nil))
+	     (dolist (var lambda-list)
+	       (when (consp var)
+		 (setq var (car var)))
+	       (when (and (symbolp var)
+			  (not (member var lambda-list-keywords
+				       :test #'eq)))
+		 (push var vars)))
+	     vars)))
+    (let ((arglist '#:arglist)
+	  (vars '#:vars)
+	  (vals '#:vals))
+      `(define-compiler-macro ,name (&rest ,arglist)
+	 (destructuring-bind ,lambda-list ,arglist
+	   ,@(lambda-vars lambda-list)
+	   (let ((,vars nil)
+		 (,vals nil))
+	     (mapc #'(lambda (x y)
+		       (when y
+			 (push x ,vars)
+			 (push y ,vals)))
+		   ',(mapcar #'copy-symbol de-args)
+		   (list ,@de-args))
+	     `(let ,(mapcar #'list ,vars ,vals)
+		(declare (dynamic-extent ,@,vars))
+		(funcall ',',name  ,@(sublis (mapcar #'cons ,vals ,vars)
+					     ,arglist)))))))))
+
 
 #-(or Genera (and ansi-90 (not (and Allegro (not (version>= 4 1))))))
 (defmacro define-compiler-macro (name lambda-list &body body &environment env)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: text-formatting.lisp,v 1.13 1993/07/27 01:41:30 colin Exp $
+;; $fiHeader: text-formatting.lisp,v 1.14 1993/10/26 03:21:42 colin Exp $
 
 (in-package :clim-internals)
 
@@ -201,7 +201,8 @@
       (setf (slot-value filling-stream 'prefix) prefix)
       (setf (slot-value filling-stream 'prefix-width) prefix-width)
       (setf (fill-pointer (slot-value filling-stream 'buffer)) 0)
-      (setf (slot-value filling-stream 'current-width) 0)))
+      (setf (slot-value filling-stream 'current-width)
+	(stream-cursor-position stream))))
 
 (defun invoke-filling-output (stream continuation
 			      &key (fill-width '(80 :character))

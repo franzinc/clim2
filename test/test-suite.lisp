@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: test-suite.lisp,v 1.73 1993/10/25 16:16:15 cer Exp $
+;; $fiHeader: test-suite.lisp,v 1.74 1993/11/18 18:45:15 cer Exp $
 
 (in-package :clim-user)
 
@@ -2232,7 +2232,10 @@ Luke Luck licks the lakes Luke's duck likes."))
 					 (terpri stream))))
 				accepts))))
 	(accepts 
-	 (d (float 0 1) :view '(slider-view :show-value-p t :decimal-places 2))
+	 (d (float 0 1) :view '(slider-view :show-value-p t
+				:decimal-places 2 
+				:min-label "min"
+				:max-label "max"))
 	 (e (integer 0 10) :view +slider-view+)
 	 (f (float 0 100) :view '(slider-view :orientation :vertical :show-value-p t))
 	 (g (integer 0 10) :view '(slider-view :orientation :vertical)))
@@ -2362,6 +2365,70 @@ Luke Luck licks the lakes Luke's duck likes."))
     (fresh-line stream)
     (accept 'string :stream stream)))
 
+(define-application-frame list-pane-frame ()
+  ()
+  (:panes
+   (list-pane1
+    (make-pane 'clim::list-pane
+	       :items '("no scrolling" "a very long item to show" "short")
+	       :min-height 10
+	       :max-height +fill+
+	       :min-width 0))
+   (list-pane2
+    (make-pane 'clim::list-pane
+	       :items '("nil" "a very long item to show" "short")
+	       :min-height 10
+	       :max-height +fill+
+	       :min-width 0))
+   (list-pane3
+    (make-pane 'clim::list-pane
+	       :items '(":dynamic" "a very long item to show" "short")
+	       :min-height 10
+	       :max-height +fill+
+	       :min-width 0))
+   (list-pane4
+    (make-pane 'clim::list-pane
+	       :items '(":horizontal" "a very long item to show" "short")
+	       :min-height 10
+	       :max-height +fill+
+	       :min-width 0))
+   (list-pane5
+    (make-pane 'clim::list-pane
+	       :items '(":vertical" "a very long item to show" "short")
+	       :min-height 10
+	       :max-height +fill+
+	       :min-width 0))
+   (list-pane6
+    (make-pane 'clim::list-pane
+	       :items '(":both" "a very long item to show" "short")
+	       :min-height 10
+	       :max-height +fill+
+	       :min-width 0)))
+  (:layouts
+   (default
+       (vertically ()
+	 list-pane1
+	 (scrolling (:scroll-bars nil)
+	   list-pane2)
+	 (scrolling (:scroll-bars :dynamic)
+	   list-pane3)
+	 (scrolling (:scroll-bars :horizontal)
+	   list-pane4)
+	 (scrolling (:scroll-bars :vertical)
+	   list-pane5)
+	 (scrolling (:scroll-bars :both)
+	   list-pane6)))))
+
+(define-list-pane-frame-command (com-quit-list-pane :menu "Quit") ()
+  (clim::frame-exit clim::*application-frame*))
+
+(define-test (scrolled-list-pane-tests menus-and-dialogs) (stream)
+  "Resize the window and check things work ok"
+  (run-frame-top-level 
+   (make-application-frame 'list-pane-frame 
+			   :input-buffer (stream-input-buffer stream))))
+
+
 
 ;;;; Benchmarks
 
@@ -2486,22 +2553,19 @@ Luke Luck licks the lakes Luke's duck likes."))
    compound-dialog)))
 
 (define-command (run-benchmarks :command-table benchmarks :menu t)
-    ()
-  (multiple-value-bind (pathname comment)
-      (let ((stream (get-frame-pane *application-frame* 'display-pane)))
-	(window-clear stream)
-	(accepting-values (stream)
-	  (values (progn
-		    (terpri stream)
-		    (accept 'pathname :prompt "Pathname for results" :stream stream))
-		  (progn
-		    (terpri stream)
-		    (accept 'string :prompt "Comment describing this run" :stream stream)))))
-    (run-benchmarks-internal pathname comment)))
-
-(define-command (run-benchmarks-to-dummy-file :command-table benchmarks :menu t)
-    (&key (file '(null-or-type pathname) :default nil))
-  (run-benchmarks-internal file "no comment"))
+    (&key (pathname '(null-or-type pathname))
+	  (comment 'string :default "no comment"))
+  (unless (and pathname comment)
+    (let ((stream (get-frame-pane *application-frame* 'display-pane)))
+      (window-clear stream)
+      (accepting-values (stream :align-prompts t)
+	(setq pathname
+	  (accept 'pathname :prompt "Pathname for results" 
+		  :stream stream :default pathname))
+	(setq comment
+	  (accept 'string :prompt "Comment describing this run"
+		  :stream stream :default comment)))))
+  (run-benchmarks-internal pathname comment))
 
 (defun run-benchmarks-internal (pathname comment)
   (let ((data nil))

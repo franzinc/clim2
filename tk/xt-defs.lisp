@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-defs.lisp,v 1.8 93/01/11 15:45:59 colin Exp $
+;; $fiHeader: xt-defs.lisp,v 1.9 1993/07/27 01:54:16 colin Exp $
 
 ;;
 ;; This file contains compile time only code -- put in clim-debug.fasl.
@@ -146,7 +146,4 @@
   (sibling xt-widget)
   (stack-mode :int))
 
-(def-c-type (xpoint-array :no-defuns) 1 x11::xpoint)
-(def-c-type (xsegment-array :no-defuns) 1 x11::xsegment)
-(def-c-type (xarc-array :no-defuns) 1 x11::xarc)
-(def-c-type (xrectangle-array :no-defuns) 1 x11::xrectangle)
+

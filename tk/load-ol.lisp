@@ -18,16 +18,22 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: load-ol.lisp,v 1.24 1993/07/29 20:51:52 layer Exp $
+;; $fiHeader: load-ol.lisp,v 1.25 1993/11/23 19:58:58 cer Exp $
 
 (in-package :user)
 
-(provide :climxm)
 (require :climg)
 
 #+svr4
 (unless (ff:get-entry-point (ff:convert-to-lang "ol_appl_add_item")
 			    :note-shared-library-references nil)
+  (defun reinitialize-toolkit ()
+    (ol-initialize)
+    (xt_toolkit_initialize)
+    (setup-error-handlers)
+    (install-ol-error-handlers)
+    (fixup-class-entry-points))
+  (push '(:eval reinitialize-toolkit) excl::*restart-actions*)
   (load "climol.so"))
 
 #-svr4

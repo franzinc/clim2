@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: graphics-recording.lisp,v 1.25 1993/10/25 16:15:32 cer Exp $
+;; $fiHeader: graphics-recording.lisp,v 1.26 1993/11/18 18:44:22 cer Exp $
 
 (in-package :clim-internals)
 
@@ -284,11 +284,19 @@
      (let* ((position-seq (slot-value record 'position-seq))
 	    (line-style (slot-value record 'line-style))
 	    (thickness (line-style-thickness line-style)))
-       (map-endpoint-sequence
-	 #'(lambda (x1 y1 x2 y2)
-	     (when (point-close-to-line-p x y x1 y1 x2 y2 thickness)
-	       (return-from refined-position-test t)))
-	 position-seq)))
+       (with-half-thickness (lthickness rthickness) line-style
+         (map-endpoint-sequence
+	  #'(lambda (x1 y1 x2 y2)
+	      (when (point-close-to-line-p x y x1 y1 x2 y2 thickness)
+		(when (> x1 x2) (rotatef x1 x2))
+		(when (> y1 y2) (rotatef y1 y2))
+		(when (ltrb-contains-position-p (- x1 lthickness)
+						(- y1 lthickness)
+						(+ x2 rthickness)
+						(+ y2 rthickness)
+						x y)
+		(return-from refined-position-test t))))
+	  position-seq))))
   :highlighting-function
     ((stream state)
      (declare (ignore state))			;for now.

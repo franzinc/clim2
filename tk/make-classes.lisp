@@ -20,15 +20,15 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: make-classes.lisp,v 1.36 1993/07/29 20:51:56 layer Exp $
+;; $fiHeader: make-classes.lisp,v 1.38 1994/06/08 06:56:51 duane Exp $
 
 (in-package :tk)
 
 (defun get-foreign-variable-value (x)
   (let ((ep #-svr4 (ff:get-extern-data-address x)
 	    #+svr4 (ff:get-entry-point
-		       x
-		       :note-shared-library-references nil)))
+		    x
+		    :note-shared-library-references nil)))
     (unless ep (error "Entry point ~S not found" x))
     (class-array ep 0)))
 
@@ -36,6 +36,7 @@
 (defun get-resource-internal (class fn resource-class resource-name)
   (let ((x (make-array 1 :element-type '(unsigned-byte 32)))
 	(y (make-array 1 :element-type '(unsigned-byte 32)))
+	(tk-resource-name (tkify-lisp-name resource-name))
 	result)
     ;;--- Perhaps we can just do this when we want to grab the resources.
     ;;--- In this way we would only have to do one the display is
@@ -47,22 +48,19 @@
       (setq result
 	(dotimes (i n)
 	  (let* ((res (xt-resource-list resources i))
-		 (original-name (xt-resource-name res))
-		 (name (lispify-resource-name (char*-to-string original-name))))
-	    (if (equal name resource-name)
-		(let ((*package* (find-package :tk)))
-		  (return (make-instance resource-class
-			    :original-name original-name
-			    :name name
-			    :class (lispify-resource-class 
-				    (char*-to-string (xt-resource-class res)))
-			    :type (lispify-resource-type 
-				   (char*-to-string (xt-resource-type res))))))))))
+		 (original-name (xt-resource-name res)))
+	    (when (string-equal (char*-to-string original-name)
+				tk-resource-name)
+	      (let ((*package* (find-package :tk)))
+		(return
+		  (make-instance resource-class
+		    :original-name original-name
+		    :name resource-name
+		    :class (lispify-resource-class 
+			    (char*-to-string (xt-resource-class res)))
+		    :type (lispify-resource-type 
+			   (char*-to-string (xt-resource-type res))))))))))
       (xt_free resources))
-    #+ignore
-    (unless result
-      ;; Error is actually caught in calling functions.
-      (error "No resource named ~s found for class ~s" resource-name class))
     result))
 
 ;; These are so we don't need the foreign functions at run time.
@@ -240,43 +238,97 @@
 		     :test #'member))
 	name)))
   
-(defun lispify-tk-name (string &key 
-			       (start 0)
-			       (package *package*)
-			       prefix)
-  (let ((string
-	 (let ((n start) 
-	       (frags (and prefix (list prefix)))
-	       old-n)
-	   (loop
-	    (setq old-n n
-		  n (position-if #'upper-case-p string 
-				 :start (or n 0)))
-	    (if n
-		(progn 
-		  (push (subseq string (or old-n 0) n) frags)
-		  (when (> n 0) (push "-" frags))
-		  (push (string-downcase (subseq string n (1+ n))) frags)
-		  (incf n))
-	      (return (apply #'concatenate 
-			     'simple-string
-			     (nreverse (cons (subseq string old-n)
-					     frags)))))))))
-    (if package
-	(intern 
-	 (ecase excl:*current-case-mode*
-	   ((:case-sensitive-lower :case-insensitive-lower) string)
-	   ((:case-sensitive-upper :case-insensitive-upper) (string-upcase string)))
-	 package)
-      string)))
+(defun lispify-tk-name (string &key (package *package*))
+  (let* ((len (length string))
+	 (nbreaks 0))
+    (declare (fixnum nbreaks len))
+
+    ;; find the case breaks
+    (dotimes (i len)
+      (declare (fixnum i))
+      (when (and (<= #.(char-code #\A)
+		     (char-code (schar string i))
+		     #.(char-code #\Z))
+		 (not (zerop i)))
+	(incf nbreaks)))
+
+    ;; make a new string
+    (let ((new (make-string (+ len nbreaks)))
+	  (j 0)
+	  l m n)
+      (declare (fixnum j l m n))
+      
+      (ecase excl:*current-case-mode*
+	((:case-sensitive-lower :case-insensitive-lower)
+	 (setq l #.(char-code #\A) m #.(char-code #\Z)
+	       n  #.(- (char-code #\a) (char-code #\A))))
+	((:case-sensitive-upper :case-insensitive-upper)
+	 (setq l #.(char-code #\a) m #.(char-code #\z)
+	       n  #.(- (char-code #\A) (char-code #\a)))))
+      
+      (macrolet ((push-char (c)
+		   `(progn 
+		      (setf (schar new j) ,c)
+		      (incf j))))
+	(dotimes (i len)
+	  (declare (fixnum i))
+	  (let* ((c (schar string i))
+		 (cc (char-code c)))
+	    (declare (fixnum cc))
+	    (when (and (<= #.(char-code #\A) cc #.(char-code #\Z))
+		       (not (zerop i)))
+	      (push-char #\-))
+	    (push-char (if (<= l cc m)
+			   (code-char (+ cc n))
+			 c)))))
+      (values 
+       (intern new package)))))
 
 (defun tkify-lisp-name (name &key class)
-  (if (stringp name)
-      name
-    (let ((tk-name (remove #\- (string-capitalize (string name)))))
-      (if class
-	  tk-name
-	(string-downcase tk-name :start 0 :end 1)))))
+  (setq name (string name))
+  (let ((len (length name))
+	(nbreaks 0))
+    (declare (fixnum nbreaks len))
+
+    ;; find the breaks
+    (dotimes (i len)
+      (declare (fixnum i))
+      (when (eql (schar name i) #\-)
+	(incf nbreaks)))
+
+    ;; make a new string
+    (let ((new (make-string (- len nbreaks)))
+	  (j 0)
+	  (break class))
+      (declare (fixnum j))
+            
+      (macrolet ((push-char (c)
+		   `(progn 
+		      (setf (schar new j) ,c)
+		      (incf j))))
+	(dotimes (i len)
+	  (declare (fixnum i))
+	  (let* ((c (schar name i))
+		 (cc (char-code c)))
+	    (declare (fixnum cc))
+	    (if (eql c #\-)
+		(setq break t)
+	      (progn
+		(push-char
+		 (if break
+		     (if (<= #.(char-code #\a) cc #.(char-code #\z))
+			 (code-char (+ cc
+				       #.(- (char-code #\A)
+					    (char-code #\a))))
+		       c)
+		   (if (<= #.(char-code #\A) cc #.(char-code #\Z))
+		       (code-char (+ cc
+				     #.(- (char-code #\a)
+					  (char-code #\A))))
+		     c)))
+		(setq break nil))))))
+      new)))
+
 	  
 (defun-c-callable toolkit-error-handler ((message :unsigned-long))
   (let ((*error-output* excl:*initial-terminal-io*))

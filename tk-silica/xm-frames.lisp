@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-frames.lisp,v 1.65 1993/11/18 18:45:35 cer Exp $
+;; $fiHeader: xm-frames.lisp,v 1.66 1993/12/07 05:34:21 colin Exp $
 
 (in-package :xm-silica)
 
@@ -116,6 +116,14 @@
 ;;; If would be nice if we could abstract this and use it for the OLIT
 ;;; port
 
+(defun update-menu-item-sensitivity (widget frame commands)
+  (declare (ignore widget))
+  (dolist (cbs commands)
+    (tk::set-sensitive (second cbs)
+		       (command-enabled
+			(car (second (car cbs)))
+			frame))))
+
 (defmethod realize-mirror :around ((port motif-port) (sheet motif-menu-bar))
 
   ;; This code fills the menu-bar. If top level items do not have
@@ -129,172 +137,128 @@
 	 (ct (menu-bar-command-table sheet))
 	 (flatp (flat-command-table-menu-p ct))
 	 (frame (pane-frame sheet)))
-    (labels ((compute-options (item)
-	       (let ((item-text-style (getf (command-menu-item-options item)
-					    :text-style)))
-		 (list* :font-list
-			(text-style-mapping
-			 port
-			 (if item-text-style
-			     (merge-text-styles item-text-style menu-text-style)
-			   menu-text-style))
-			initargs)))
-	     (update-menu-item-sensitivity (widget frame commands)
-	       (declare (ignore widget))
-	       (dolist (cbs commands)
-		 (tk::set-sensitive (second cbs)
-				    (command-enabled
-				     (car (second (car cbs)))
-				     frame))))
-	     (make-menu-for-command-table (command-table parent top)
-	       (if top
-		   (make-menu-for-command-table-1 command-table parent
-						  top)
-		 (let ((commands-and-buttons
-			(make-menu-for-command-table-1 command-table parent top)))
-		   ;; We might have add-callbacks for a different set
-		   ;; of children which are now destroyed
-		   (tk::remove-all-callbacks parent :map-callback)
-		   (tk::add-callback parent :map-callback
-				     #'update-menu-item-sensitivity 
-				     frame
-				     commands-and-buttons))))
-	     (make-submenu (parent menu item)
-	       (let* ((options (compute-options item))
-		      (shell (apply #'make-instance 'xt::xm-menu-shell 
-				    :width 5 ; This widget is
-				; realized when
-				; it is created
-				; so we have to
-				; specify a size!
-				    :height 5
-				    :allow-shell-resize t
-				    :override-redirect t
-				    :parent parent
-				    options))
+    (labels 
+	((compute-options (item)
+	   (let ((item-text-style (getf (command-menu-item-options item)
+					:text-style)))
+	     (list* :font-list
+		    (text-style-mapping
+		     port
+		     (if item-text-style
+			 (merge-text-styles item-text-style menu-text-style)
+		       menu-text-style))
+		    initargs)))
 
-		      (submenu (apply #'make-instance 'xt::xm-row-column
-				      :managed nil
-				      :parent shell
-				      :row-column-type :menu-pulldown
-				      options))
-		      (cb (apply #'make-instance 'xt::xm-cascade-button
-					 :parent parent
-					 :label-string menu
-					 :sub-menu-id submenu
-					 options)))
-		 (unless flatp
-		   (set-button-mnemonic sheet
-					cb (getf
-					    (command-menu-item-options
-					     item) :mnemonic)))
+	 (make-command-button (parent menu item keystroke command-table)
+	   (let ((options (compute-options item))
+		 (command-name (car (command-menu-item-value item))))
+	     (let ((button 
+		    (apply #'make-instance 'xt::xm-push-button
+			   :label-string menu
+			   :managed t
+			   :parent parent
+			   :sensitive (command-enabled command-name frame)
+			   options)))
+	       
+	       (when (or (equalp menu "exit")
+			 (eq (getf (command-menu-item-options item) :button-type)
+			     :help))
+		 (tk::set-values mirror :menu-help-widget button))
 
-		 (add-documentation-callbacks 
-		  frame cb (getf (command-menu-item-options item) :documentation))
+	       (add-documentation-callbacks 
+		frame button (getf (command-menu-item-options item) :documentation))
+
+	       (push (cons command-name button)
+		     (menu-bar-command-name-to-button-table sheet))
+			       
+	       (unless flatp
+		 (set-button-accelerator-from-keystroke 
+		  sheet
+		  button keystroke)
+			
+		 (set-button-mnemonic
+		  sheet
+		  button (getf
+			  (command-menu-item-options
+			   item) :mnemonic)))
+	       
+	       (tk::add-callback button
+				 :activate-callback
+				 'command-button-callback
+				 frame
+				 command-table
+				 item))))
+	 
+	 (make-submenu (parent menu item)
+	   (let* ((options (compute-options item))
+		  (submenu (apply #'make-instance
+				  'tk::xm-pulldown-menu
+				  :managed nil
+				  :parent parent
+				  options))
+		  (cb (apply #'make-instance 'xt::xm-cascade-button
+			     :parent parent
+			     :label-string menu
+			     :sub-menu-id submenu
+			     options)))
+
+	     (set-button-mnemonic sheet
+				  cb
+				  (getf (command-menu-item-options item)
+					:mnemonic))
+	     #+ignore
+	     (when (equalp menu "help")
+	       (tk::set-values mirror :menu-help-widget cb))
+
+	     (add-documentation-callbacks 
+	      frame cb (getf (command-menu-item-options item) :documentation))
 		 
-		 (let* ((ct (find-command-table (second item)))
-			(tick (slot-value ct 'clim-internals::menu-tick)))
-		   (make-menu-for-command-table ct submenu nil)
-		   (xt::add-callback shell :popup-callback
-		    #'(lambda (shell)
-			(declare (ignore shell))
-			(let ((children
-			       (tk::widget-children submenu)))
-			  (when (or (null children)
-				    (/= tick
-					(setq tick
-					  (slot-value ct
-						      'clim-internals::menu-tick))))
-			    (tk::unmanage-children children)
-			    (make-menu-for-command-table
-			     ct submenu nil)
-			    (mapc #'tk::destroy-widget children))))))))
-	     (make-menu-for-command-table-1 (command-table parent top)
-	       ;; Unless we are at the top level we want to have a
-	       ;; map-before callback that sets the sensitivity of
-	       ;; each item. Also we might want to regenerate the menu
-	       ;; if it has got out of date wrt to the command table.
-	       (let ((commands-and-buttons nil))
-		 (map-over-command-table-menu-items
-		  #'(lambda (menu keystroke item)
-		      (let ((type (command-menu-item-type item))
-			    (options (compute-options item)))
-			(case type
-			  (:divider
-			   (ecase (command-menu-item-value item)
-			     (:label 
-			      (apply #'make-instance 'tk::xm-label
-				     :label-string menu
-				     :parent parent
-				     options))
-			     ((nil :line)
-			      (apply #'make-instance 'tk::xm-separator
-				     :parent parent
-				     options))))
-			  (:function
-			   ;;--- Do this sometime
-			   )
-			  (:menu
-			   (make-submenu parent menu item))
-			  (t
-			   (let ((parent parent))
-			     (when top
+	     (make-menu-for-command-table (find-command-table
+					   (command-menu-item-value item))
+					  submenu nil)))
+
+	 (make-menu-for-command-table (command-table parent top)
+	   (map-over-command-table-menu-items
+	    #'(lambda (menu keystroke item)
+		(ecase (command-menu-item-type item)
+		  (:divider
+		   (ecase (command-menu-item-value item)
+		     (:label 
+		      (apply #'make-instance 'tk::xm-label
+			     :label-string menu
+			     :parent parent
+			     (compute-options item)))
+		     ((nil :line)
+		      (apply #'make-instance 'tk::xm-separator
+			     :parent parent
+			     (compute-options item)))))
+		  (:function
+		   ;;--- Do this sometime
+		   )
+		  (:menu
+		   (make-submenu parent menu item))
+		  (:command
+		   (let* ((button-parent
+			   (if top
 			       (let* ((submenu (apply #'make-instance
 						      'tk::xm-pulldown-menu
 						      :managed nil
 						      :parent parent
-						      options))
+						      (compute-options item)))
 				      (cb (apply #'make-instance 'xt::xm-cascade-button
 						 :parent parent
 						 :label-string menu
 						 :sub-menu-id
 						 submenu
-						 options)))
+						 (compute-options item))))
 				 (declare (ignore cb))
-				 (setq parent submenu)))
-			     (let ((button 
-				    (apply #'make-instance 'xt::xm-push-button
-					   :label-string menu
-					   :managed t
-					   :parent parent
-					   :sensitive (command-enabled
-						       (car (command-menu-item-value item))
-						       (slot-value sheet 'silica::frame))
-					   options)))
-			       (push (list item button)
-				     commands-and-buttons)
-			       
-			       (add-documentation-callbacks 
-				frame button (getf (command-menu-item-options item) :documentation))
-
-			       (when flatp 
-				 (push (cons (car (command-menu-item-value item))
-					     button)
-				       (menu-bar-command-name-to-button-table sheet)))
-			       
-			       (unless flatp
-				 (set-button-accelerator-from-keystroke 
-				  sheet
-				  button keystroke)
-			
-				 (set-button-mnemonic
-				  sheet
-				  button (getf
-					  (command-menu-item-options
-					   item) :mnemonic)))
-			       
-			       (tk::add-callback
-				button
-				:activate-callback
-				'command-button-callback
-				(slot-value sheet 'silica::frame)
-				command-table
-				item)))))))
-			  
-		  command-table)
-		 commands-and-buttons)))
-      (make-menu-for-command-table
-	 ct mirror (not flatp)))
+				 submenu) 
+			     parent))
+			     (button (make-command-button
+				      button-parent menu item
+				      keystroke command-table)))))))
+	    command-table)))
+      (make-menu-for-command-table ct mirror (not flatp)))
     mirror))
 
 (defmethod set-button-accelerator-from-keystroke ((menubar motif-menu-bar) button keystroke)
@@ -347,6 +311,8 @@
 	    presentation-type 
 	    associated-window
 	    text-style
+	    foreground
+	    background
 	    label
 	    gesture
 	    row-wise
@@ -359,19 +325,14 @@
 	 (simplep (and (null printer)
 		       (null presentation-type)))
 	 (port (port framem))
+	 ;; we treat text-style specially as individual menu items can
+	 ;; have their own text-style which must be merged (cim 10/3/94)
 	 (initargs (remove-keywords 
-		    (if (and associated-window
-			     (typep associated-window 'sheet-with-resources-mixin))
-			(find-widget-resource-initargs-for-sheet port
-								 associated-window)
-		      (find-application-resource-initargs port))
+		    (find-widget-resource-initargs-for-sheet 
+		     port associated-window
+		     :foreground foreground :background background)
 		    '(:font-list)))
-	 (default-text-style 
-	     (or (and associated-window
-		      (typep associated-window 'sheet-with-resources-mixin)
-		      (pane-text-style associated-window))
-		 (getf (get-application-resources port) :text-style)
-		 *default-text-style*))
+	 (default-text-style (sheet-text-style port associated-window))
 	 (menu-text-style (if text-style
 			      (merge-text-styles text-style
 						 default-text-style)
@@ -593,7 +554,7 @@
       (let ((slider
 	     (make-instance 'xt::xm-scale 
 			    :show-value t
-			    :managed nil
+			    :managed t
 			    :sensitive nil
 			    :parent dialog
 			    :orientation :horizontal)))
@@ -669,6 +630,13 @@
      button :disarm-callback 
      'pointer-documentation-callback-function
      frame documentation nil)))
+
+(defmethod add-documentation-callbacks (frame (button tk::xm-cascade-button) documentation)
+  (when documentation
+    (tk::add-callback
+     button :cascading-callback 
+     'pointer-documentation-callback-function
+     frame documentation t)))
 
 (defmethod add-documentation-callbacks :after (frame (button t) documentation)
   (when documentation

@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-silica.lisp,v 1.41 1993/11/23 19:59:07 cer Exp $
+;; $fiHeader: xm-silica.lisp,v 1.42 1993/12/07 05:34:27 colin Exp $
 
 (in-package :xm-silica)
 
@@ -187,6 +187,9 @@
     (when m (tk::xm_process_traversal m 0))))
 
 
+;; why is this only defined in motif - shouldn't this be in
+;; xt-silica.lisp (cim) 1/7/94
+
 (defmethod destroy-mirror :around ((port xt-port) (sheet top-level-sheet))
   (let* ((m (sheet-direct-mirror sheet))
 	 (shell (and m (tk::widget-parent m))))
@@ -196,27 +199,11 @@
 	       (zerop (tk::xt_widget_num_popups shell)))
       (tk::destroy-widget shell))))
 
-
 (defmethod port-move-frame :after ((port motif-port) frame x y)
   (fix-coordinates x y)
   (check-type x (signed-byte 16))
   (check-type y (signed-byte 16))
-  ;;--what is the right thing to do?
   (let ((m (sheet-direct-mirror (frame-top-level-sheet frame))))
-    (when (and (typep m 'xt::xm-bulletin-board)
-	       (not (xt::is-managed-p m)))
-      (let ((z (or (assoc 'when-mapped-callback (xt::widget-callback-data m))
-		   (car (push (cons 'when-mapped-callback nil)
-			      (xt::widget-callback-data m))))))
-	(setf (cdr z) (list :x x :y y))))))
-
-
-(defun map-callback-function (bb)
-  (let ((z (assoc 'when-mapped-callback (xt::widget-callback-data bb))))
-    (when z
-      (destructuring-bind (&key x y) (cdr z)
-	(tk::set-values bb :default-position nil :x x :y y))
-      (setf (xt::widget-callback-data bb) 
-	(delete z (xt::widget-callback-data bb))))))
-
+    (when (typep m 'xt::xm-bulletin-board)
+      (tk::set-values m :default-position nil :x x :y y))))
 

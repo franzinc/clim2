@@ -20,12 +20,16 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader$
+;; $fiHeader: demo-last.lisp,v 1.1 1993/08/12 16:03:34 cer Exp $
 
 
 (in-package :user)
 
+(provide :climdemo)
+
 (cond ((excl::featurep :clim-motif)
+       (provide :climdemoxm)
        (load "clim2demoxm-preload.fasl" :if-does-not-exist nil))
       ((excl::featurep :clim-openlook)
+       (provide :climdemool)
        (load "clim2demool-preload.fasl" :if-does-not-exist nil)))

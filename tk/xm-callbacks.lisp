@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-callbacks.lisp,v 1.4 1993/07/27 01:53:51 colin Exp $
+;; $fiHeader: xm-callbacks.lisp,v 1.5 1993/08/12 16:04:50 cer Exp $
 
 
 (in-package :tk)
@@ -36,25 +36,5 @@
     (dotimes (i (xm-list-callback-struct-selected-item-count call-data) (nreverse r))
       (push (xm-selected-position-array si i) r))))
 
-;;--- This should probably be in xm-resources.lisp
 
-(defmethod convert-resource-out ((parent t) (type (eql 'xm-string-table)) value)
-  (if value
-      (do* ((n (length value))
-	    (r (make-xm-string-table :number n :in-foreign-space t))
-	    (v value (cdr v))
-	    (i 0 (1+ i)))
-	  ((null v)
-	   r)
-	(setf (xm-string-table r i)
-	  (convert-resource-out parent 'xm-string (car v))))
-    0))
 
-(defmethod convert-pixmap-out (parent value)
-  (etypecase value
-    (string
-     (let* ((display (widget-display parent))
-	    (screen (x11:xdefaultscreenofdisplay display))
-	    (white (x11::xwhitepixel display 0))
-	    (black (x11::xblackpixel display 0)))
-       (xm_get_pixmap screen value white black)))))

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-init.lisp,v 1.8 92/05/07 13:11:02 cer Exp $
+;; $fiHeader: xm-init.lisp,v 1.11 1993/11/24 03:57:02 duane Exp $
 
 (in-package :tk)
 
@@ -34,8 +34,10 @@
   (setq *xm-done* t))
 
 
-#+svr4
-(unless (ff::symbol-in-main-symbol-table-p "xt_toolkit_initialize")
+
+
+#+ignore ;; moved into load-xm.lisp
+(unless (ff::symbol-in-main-symbol-table-p "XtToolkitInitialize")
   (defun reinitialize-toolkit ()
     (xt_toolkit_initialize)
     (setup-error-handlers)

@@ -1,20 +1,19 @@
-# $fiHeader: Makefile.hp700,v 1.2 93/05/13 16:22:43 cer Exp $
+# $fiHeader: Makefile.hpprism,v 1.3 1993/12/04 00:32:01 duane Exp $
 #
 #  Makefile.hp700 for CLIM 2.0
 #
 
 include Makefile.defs
 
-Makefile=Makefile.hp700
+Makefile=Makefile.hpprism
 
-CL=/usr/fi/dcl-devel
+CL=/usr/fi/climdcl-devel
 
 CFLAGS	= -O -D_NO_PROTO -DSTRINGS_ALIGNED -DNO_REGEX -DNO_ISDIR -DUSE_RE_COMP -DUSER_GETWD -Wp,-H1280000
 
 # 
-
+XTSUPPORTINCLUDES=-I/net/vapor/x11/R5/src/mit/lib/Xt
 MOTIFLIB=/usr/lib/Motif1.2/libXm.a
-MOTIFLIB_d=/usr/lib/Motif1.2/libXm.a
 XTLIB=/usr/lib/X11R5/libXt.a
 XLIB=/usr/lib/X11R5/libX11.a
 XINCLUDES= -I/usr/include/Motif1.2 -I/usr/include/X11R5

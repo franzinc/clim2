@@ -1,12 +1,11 @@
-# $fiHeader: Makefile.svr4,v 1.3 1993/05/13 16:22:49 cer Exp $
+# $fiHeader: Makefile.sun4-svr4,v 1.3 1994/06/08 06:56:30 duane Exp $
 
 include Makefile.defs
 
 Makefile=Makefile.sun4-svr4
 
-MOTIFHOME=/net/vapor/3rd/motif-1.2.2-sol2/ICS/Motif
+MOTIFHOME=/net/vapor/3rd/motif-1.2.4-sol2
 MOTIFLIB=$(MOTIFHOME)/usr/lib/libXm$(DEBUGLIB).a
-MOTIFLIB_d=$(MOTIFHOME)/usr/lib/libXm.a
 XLIB=$(MOTIFHOME)/usr/lib/libX11$(DEBUGLIB).a 
 MAINOBJXLIB=$(XLIB)
 XTLIB=$(MOTIFHOME)/usr/lib/libXt$(DEBUGLIB).a
@@ -17,7 +16,8 @@ MOTIFXTRAOS=-lgen
 XTSUPPORTINCLUDES=-I/net/vapor/x11/R5/src/mit/lib/Xt
 
 OPENLOOKHOME=/usr/openwin
-OLXLIB= $(OPENLOOKHOME)/lib/libX11.a
+OPENLOOKLIB=$(OPENLOOKHOME)/lib/libXol.a
+OLXLIB=$(OPENLOOKHOME)/lib/libX11.a
 OLXTLIB=$(OPENLOOKHOME)/lib/libXt.a
 OLINCLUDES=-I$(OPENLOOKHOME)/include
 

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: compile-1.lisp,v 1.23 1993/05/25 20:41:40 cer Exp $
+;; $fiHeader: compile-1.lisp,v 1.26 1994/11/23 23:28:48 smh Exp $
 
 (in-package :user)
 
@@ -32,27 +32,19 @@
 
 (set-case-mode :case-insensitive-lower)
 
-#+ignore
-(progn
-  (compile-file "~/stuff/misc/new-slot-opt.cl")
-  (load "~/stuff/misc/new-slot-opt.fasl")
-  )
-
-#+ignore
-(progn
-  (setf (sys:gsgc-switch :print) t)
-  (setf (sys:gsgc-switch :stats) t))
-
 (setq comp:generate-call-count-code-switch
   (named-function |(> debug 1)|
 		  (lambda (safety size speed debug)
 		    (declare (ignore safety size speed))
 		    (> debug 1))))
+
 (setq comp:declared-fixnums-remain-fixnums-switch
   (named-function |(> speed 2)|
 		  (lambda (safety size speed debug)
 		    (declare (ignore safety size debug))
 		    (> speed 2))))
+
+(setf (sys:gsgc-parameter :print) nil)
 
 ;(unless (find-package 'clim-defsystem)
 ;  (compile-file-if-needed "sys/defsystem")
@@ -67,6 +59,8 @@
     (tenuring
      (excl:load-system sys))
 
+    (excl:compile-system 'clim-homegrown)
+    
     (load "clim2:;postscript;sysdcl")
     (excl:compile-system 'postscript-clim :include-components t)
     (excl:load-system 'postscript-clim)

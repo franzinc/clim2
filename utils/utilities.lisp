@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: utilities.lisp,v 1.7 92/08/18 17:24:19 cer Exp $
+;; $fiHeader: utilities.lisp,v 1.8 1993/07/27 01:58:29 colin Exp $
 
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
@@ -16,6 +16,8 @@
 ;;; COMMONLISP Extensions
 ;;; 
 
+;; now we have cl:boolean we don't need this (cim 2/24/94)
+#+ignore 
 (deftype boolean nil '(member nil t))
 
 (defmacro compile-time-warn (warn-string)

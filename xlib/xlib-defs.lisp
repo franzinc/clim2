@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;;; $fiHeader: xlib-defs.lisp,v 1.6 92/12/02 13:31:44 colin Exp $
+;;; $fiHeader: xlib-defs.lisp,v 1.7 1993/07/27 01:59:18 colin Exp $
 
 ;;      (c) Copyright 1989, 1990, 1991 Sun Microsystems, Inc. Sun design
 ;;      patents pending in the U.S. and foreign countries. OPEN LOOK is a
@@ -820,7 +820,7 @@
   (sibling :type window)
   (stack-mode :type int))
 
-(def-exported-foreign-struct xcolor
+(def-exported-foreign-struct (xcolor :array)
   (pixel :type unsigned-long)
   (red :type unsigned-short)
   (green :type unsigned-short)
@@ -828,36 +828,23 @@
   (flags :type unsigned-char)
   (pad :type unsigned-char))
 
-;; anyone fancy doing a def-exported-foreign-array??
-
-(ff::def-c-type (xcolor-array :no-defuns) 1 xcolor)
-(eval-when (compile load eval)
-  (export '(xcolor-array-pixel xcolor-array-red xcolor-array-green
-	    xcolor-array-blue xcolor-array-flags xcolor-array-pad
-	    xcolor-array make-xcolor-array)))
-
-(def-exported-foreign-struct xsegment
+(def-exported-foreign-struct (xsegment :array)
   (x1 :type short) 
   (y1 :type short) 
   (x2 :type short) 
   (y2 :type short))
 
-(def-exported-foreign-struct xpoint
+(def-exported-foreign-struct (xpoint :array)
   (x :type short) 
   (y :type short))
 
-(def-exported-foreign-struct xrectangle
+(def-exported-foreign-struct (xrectangle :array)
   (x :type short)
   (y :type short)
   (width :type unsigned-short)
   (height :type unsigned-short))
 
-(ff::def-c-type (xrectangle-array :no-defuns) 1 xrectangle)
-(eval-when (compile load eval)
-  (export '(xrectangle-array-x xrectangle-array-y xrectangle-array-width
-	    xrectangle-array-height xrectangle-array make-xrectangle-array)))
-
-(def-exported-foreign-struct xarc
+(def-exported-foreign-struct (xarc :array)
   (x :type short)
   (y :type short)
   (width :type unsigned-short)

@@ -1,33 +1,19 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
-;; $fiHeader: plot.lisp,v 1.30 1993/09/22 21:21:17 cer Exp $
+;; $fiHeader: plot.lisp,v 1.31 1993/10/25 16:15:56 cer Exp $
 
 (in-package :clim-demo)
 
-
 ;;; CLIM based plotting package
 
-(defmacro plotting-data ((stream &rest  options) &body body)
-  ;; For each X value we want to specify the Y values
-  ;; Specify labels for each X value
-  ;; Specify label for each set of Y values
-  ;; Specify the size of the graph we want draw.
-  ;; Range of values for the axiss
-  (let ((point-plotting-continuation (gensym))
-	(plot-data-continuation (gensym)))
-    `(flet ((plotting-data-body (,point-plotting-continuation ,plot-data-continuation) 
-	      ;; Perhaps we can also have a way of
-	      ;; specify all the points in one go
-	      (flet ((plot-point (x &rest ys)
-		       (declare (dynamic-extent ys))
-		       (apply ,point-plotting-continuation x ys))
-		     (plot-data (array)
-		       (funcall ,plot-data-continuation array)))
-		(declare (dynamic-extent #'plot-point #'plot-data))
-		#'plot-point #'plot-data
-		,@body)))
-       (declare (dynamic-extent #'plotting-data-body))
-       (invoke-plotting-data ,stream #'plotting-data-body ,@options))))
-
+(defmacro plotting-points ((stream &rest options) &body body)
+  (let ((points (gensym)))
+    `(let ((,points nil))
+       (flet ((plot-point (x &rest ys)
+		(declare (dynamic-extent ys))
+		(push (list* x ys) ,points)))
+	 ,@body)
+       (plot-points ,stream ,points ,@options))))
+  
 ;; We should make presentations of these types
 
 (define-presentation-type graph-plot ())
@@ -116,62 +102,52 @@
 
 (define-presentation-type graph-axis ())
 
-(defun invoke-plotting-data (stream continuation 
-			     &key x-labels y-labels 
-				  y-labelling
-				  x-min y-min
-				  x-max y-max 
-				  width height
-				  (type :plot))
-  (let ((points nil))
-    (flet ((point-collector (x &rest ys)
-	     (declare (non-dynamic-extent ys))
-	     (push (list* x ys) points))
-	   (plot-data-collector (data)
-	     (setq points data)))
-      (declare (dynamic-extent #'point-collector #'plot-data-collector))
-      (funcall continuation #'point-collector #'plot-data-collector))
+(defun plot-points (stream points &key x-labels y-labels 
+				       y-labelling
+				       x-min y-min
+				       x-max y-max 
+				       width height
+				       (type :plot))
+  (etypecase points
+    ((array t (* *)) nil)
+    (list
+     (setq points (make-array (list (length points) (length (car points)))
+			      :initial-contents (nreverse points)))))
 
-    (etypecase points
-      ((array t (* *)) nil)
-      (list
-       (setq points (make-array (list (length points) (length (car points)))
-				:initial-contents (nreverse points)))))
-
-    (multiple-value-setq  (width height)
-      (default-width-and-height stream type points width height))
+  (multiple-value-setq  (width height)
+    (default-width-and-height stream type points width height))
     
-    (multiple-value-setq (x-min y-min x-max y-max y-labelling)
-      (default-graph-axis type points x-min y-min x-max y-max y-labelling))
+  (multiple-value-setq (x-min y-min x-max y-max y-labelling)
+    (default-graph-axis type points x-min y-min x-max y-max y-labelling))
 
-    (let ((transform
-	   (and (not (eq type :pie))
-		(let ((scaling-transform
-		       (make-scaling-transformation
-			(/ width (- x-max x-min))
-			(/ height (- y-max y-min)))))
-		  (multiple-value-bind (ox oy)
-		      (transform-position scaling-transform x-min y-min)
-		    (compose-transformations
-		     (make-translation-transformation (- ox) (- oy))
-		     scaling-transform))))))
-      (with-output-as-presentation (stream nil 'graph-plot :single-box :position)
-	(formatting-item-list (stream :n-columns 2)
-	  (updating-output (stream :unique-id :data-and-axis)
-	    (formatting-cell (stream)
-	      (with-room-for-graphics (stream)
-		(draw-axis stream type
-			   width height
-			   x-min y-min x-max y-max
-			   x-labels y-labels
-			   points transform
-			   y-labelling)
-		(draw-data stream type
-			   width height x-min y-min x-max
-			   y-max points transform))))
-	  (updating-output (stream :unique-id :caption)
-	    (formatting-cell (stream)
-	      (draw-caption stream type y-labels))))))))
+  (let ((transform
+	 (and (not (eq type :pie))
+	      (let ((scaling-transform
+		     (make-scaling-transformation
+		      (/ width (- x-max x-min))
+		      (/ height (- y-max y-min)))))
+		(multiple-value-bind (ox oy)
+		    (transform-position scaling-transform x-min y-min)
+		  (compose-transformations
+		   (make-translation-transformation (- ox) (- oy))
+		   scaling-transform))))))
+    (with-output-as-presentation (stream nil 'graph-plot :single-box :position)
+      (formatting-item-list (stream :n-columns 2)
+	(updating-output (stream :unique-id :data-and-axis)
+	  (formatting-cell (stream)
+	    (with-room-for-graphics (stream)
+	      (draw-axis stream type
+			 width height
+			 x-min y-min x-max y-max
+			 x-labels y-labels
+			 points transform
+			 y-labelling)
+	      (draw-data stream type
+			 width height x-min y-min x-max
+			 y-max points transform))))
+	(updating-output (stream :unique-id :caption)
+	  (formatting-cell (stream)
+	    (draw-caption stream type y-labels)))))))
    
 (defun draw-caption (stream type y-labels)
   (updating-output (stream :unique-id 'captions
@@ -671,10 +647,13 @@
 (define-plot-demo-command (com-edit-data-point :name t :menu t)
     ((point 'data-point :gesture :select))
   (with-application-frame (frame)
-    (destructuring-bind (i j) point
-      (setf (aref (slot-value frame 'plot-data) i j)
-	    (accept 'number
-		    :default (aref (slot-value frame 'plot-data) i j))))))
+    (accepting-values (*standard-input* :own-window t)
+      (destructuring-bind (i j) point
+	(setf (aref (slot-value frame 'plot-data) i j)
+	  (accept 'number
+		  :stream *standard-input*
+		  :default (aref (slot-value frame 'plot-data) i
+				 j)))))))
 
 (define-plot-demo-command (com-quit-plot-demo :menu "Quit" :name "Quit") () 
   (frame-exit *application-frame*))
@@ -682,12 +661,12 @@
 (defmethod display-graph ((frame plot-demo) stream &key &allow-other-keys)
   (with-slots (y-labelling graph-type plot-data x-labels y-labels
 			   x-min y-min x-max y-max) frame
-    (plotting-data (stream :y-labelling y-labelling 
-			   :x-labels x-labels :y-labels y-labels
-			   :x-min x-min :y-min y-min 
-			   :x-max x-max :y-max y-max
-			   :type graph-type)
-		   (plot-data plot-data))))
+    (plot-points stream plot-data
+		 :y-labelling y-labelling 
+		 :x-labels x-labels :y-labels y-labels
+		 :x-min x-min :y-min y-min 
+		 :x-max x-max :y-max y-max
+		 :type graph-type)))
 
 (define-plot-demo-command com-describe-graph-line 
     ((line 'graph-line :gesture :describe))

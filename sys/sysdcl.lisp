@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sysdcl.lisp,v 1.41 93/05/13 17:31:55 colin Exp $
+;; $fiHeader: sysdcl.lisp,v 1.43 1994/11/23 23:29:01 smh Exp $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :cl-user)
 
@@ -176,7 +176,7 @@
    "std-sheet"
 
    ;; "Windshield", aka "DashBoard"
-  ;; First the layout gadgets
+   ;; First the layout gadgets
    "layout"
    "db-layout"
    "db-box"
@@ -186,10 +186,6 @@
    "gadgets"
    "db-border"
    "db-scroll"
-   "scroll-pane"
-   "db-button"
-   ("db-label" (:load-before-compile "db-border"))
-   "db-slider"
    ))
 
 (defsystem clim-standalone
@@ -268,11 +264,9 @@
    ("command-processor" (:load-before-compile "clim-defs" "command"))
    ("basic-translators" (:load-before-compile "ptypes2" "command"))
    ("frames" (:load-before-compile "clim-defs" "command-processor"))
+   ("panes" (:load-before-compile "frames"))
    ("default-frame" (:load-before-compile "frames"))
    ("activities" (:load-before-compile "frames"))
-   ("db-menu" (:load-before-compile "frames"))
-   ("db-list" (:load-before-compile "db-menu"))
-   ("db-text" (:load-before-compile "frames"))
    ("noting-progress" (:load-before-compile "frames"))
    ("menus" (:load-before-compile "defresource" "clim-defs"))
    ("accept-values" (:load-before-compile "clim-defs" "incremental-redisplay" "frames"))
@@ -284,6 +278,20 @@
    #+lucid "lucid-after"
    #+(or Genera Cloe-Runtime) "prefill"
    ))
+
+(defsystem clim-homegrown
+    (:default-pathname "clim2:;homegrown;")
+  (:serial
+   clim-standalone 
+   clim-silica)
+  "scroll-pane"
+  "db-button"
+  "db-label"
+  "db-slider"
+  "db-menu"
+  ("db-list" (:load-before-compile "db-menu"))
+  "db-text"
+  "last")
 
 
 #+Allegro

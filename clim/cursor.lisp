@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: cursor.lisp,v 1.24 93/05/13 16:28:35 colin Exp $
+;; $fiHeader: cursor.lisp,v 1.25 1993/07/27 01:38:41 colin Exp $
 
 (in-package :clim-internals)
 
@@ -86,10 +86,10 @@
 	  ;; Turn it off and then turn it on to make it move
 	  (unwind-protect
 	      (progn
-		(setf (cursor-active cursor) nil)
+		(setf (cursor-state cursor) nil)
 		(setf x (coordinate nx)
 		      y (coordinate ny)))
-	    (setf (cursor-active cursor) t)))))))
+	    (setf (cursor-state cursor) t)))))))
   
 (defmethod (setf cursor-state) (new-state (cursor standard-text-cursor))
   (with-slots (flags) cursor
@@ -153,16 +153,11 @@
 	 :off)))
  
 (defmethod (setf cursor-visibility) (visibility (cursor standard-text-cursor))
-  (setf (cursor-state cursor) 
-	(case visibility
-	  (:off nil)
-	  ((nil) nil)
-	  ((t :on) t)))
-  (setf (cursor-active cursor) 
-        (case visibility
-	  (:off t)
-	  ((nil) nil)
-	  ((t :on) t))))
+  (let ((active (member visibility '(t :on :off) :test  #'eq)))
+    (setf (cursor-active cursor) active)
+    (setf (cursor-state cursor)
+      (and active
+	   (not (eq visibility :off))))))
 
 (defmacro with-cursor-state ((stream state) &body body)
   (default-input-stream stream)

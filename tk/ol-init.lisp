@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-init.lisp,v 1.18 1993/07/27 01:53:36 colin Exp $
+;; $fiHeader: ol-init.lisp,v 1.19 1993/10/26 03:22:25 colin Exp $
 
 (in-package :tk)
 
@@ -88,7 +88,7 @@
 				      (string-to-char*
 				       "menuPane")))
 
-#+:svr4
+#+ignore ;; moved to load-ol
 (progn
   (defun reinitialize-toolkit ()
     (ol-initialize)

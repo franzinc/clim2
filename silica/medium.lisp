@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: medium.lisp,v 1.38 1993/09/07 21:46:44 colin Exp $
+;; $fiHeader: medium.lisp,v 1.39 1993/09/17 19:06:17 cer Exp $
 
 (in-package :silica)
 
@@ -129,7 +129,8 @@
 		   `(let ((,c ,color))
 		      (etypecase ,c
 			(color ,c)
-			(string (find-named-color ,c palette))))))
+			(string (find-named-color ,c palette))
+			(integer (make-device-color palette ,c))))))
 	       (get-resource (resource default)
 		 `(or (getf initargs ,resource)
 		      (get-parent-initarg sheet ,resource)

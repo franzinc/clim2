@@ -18,7 +18,10 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: pkg.lisp,v 1.11 1993/08/31 04:54:59 layer Exp $
+;; $fiHeader: pkg.lisp,v 1.12 1993/09/17 19:07:05 cer Exp $
+
+;;; --- the motif v openlook definitions should be in separate package
+;;; definition files
 
 (defpackage :tk-silica
   (:nicknames :xm-silica :xt-silica)

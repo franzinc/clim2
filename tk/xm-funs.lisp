@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-funs.lisp,v 1.13 1993/08/12 16:04:52 cer Exp $
+;; $fiHeader: xm-funs.lisp,v 1.14 1993/09/17 19:06:51 cer Exp $
 
 ;;
 ;; This file contains compile time only code -- put in clim-debug.fasl.
@@ -81,6 +81,22 @@
     :arguments '(foreign-address foreign-address)
     :arg-checking nil
     :return-type :unsigned-integer)
+
+(defforeign 'xm_font_list_free
+    :entry-point (ff:convert-to-lang "XmFontListFree")
+    :call-direct t
+    :callback nil
+    :arguments '(foreign-address)
+    :arg-checking nil
+    :return-type :void)
+
+(defforeign 'xm_font_list_entry_free
+    :entry-point (ff:convert-to-lang "XmFontListEntryFree")
+    :call-direct t
+    :callback nil
+    :arguments '(foreign-address)
+    :arg-checking nil
+    :return-type :void)
 
 (defforeign 'xm_add_protocol_callback
     :entry-point (ff:convert-to-lang "XmAddProtocolCallback")

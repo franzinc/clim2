@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: convenience.lisp,v 1.15 1993/07/27 01:52:36 colin Exp $
+;; $fiHeader: convenience.lisp,v 1.16 1993/10/26 03:22:18 colin Exp $
 
 (in-package :tk)
 
@@ -43,19 +43,20 @@
 	 (defmethod make-widget ((w ,class) name parent &rest args
 				 &key (managed t) &allow-other-keys)
 	   (remf args :managed)
-	   (let* ((arglist (make-arglist-for-class
-			    (find-class ',class)
-			    parent
-			    args))
-		  (o 
-		   (,c-function-name
-		    parent
-		    (string-to-char* name)
-		    arglist
-		    (truncate (length arglist) 2))))
-	     (when managed
-	       (xt_manage_child o))
-	     o))))))
+	   (with-malloced-objects
+	       (let* ((arglist (make-arglist-for-class
+				(find-class ',class)
+				parent
+				args))
+		      (o 
+		       (,c-function-name
+			parent
+			(note-malloced-object (string-to-char* name))
+			arglist
+			(truncate (length arglist) 2))))
+		 (when managed
+		   (xt_manage_child o))
+		 o)))))))
 
 (define-convenience-class xm-menu-bar (xm-row-column) "XmCreateMenuBar")
 (define-convenience-class xm-pulldown-menu (xm-row-column) "XmCreatePulldownMenu")
@@ -68,6 +69,7 @@
 (define-convenience-class xm-warning-dialog (xm-message-box) "XmCreateWarningDialog")
 (define-convenience-class xm-information-dialog (xm-message-box) "XmCreateInformationDialog")
 (define-convenience-class xm-error-dialog (xm-message-box) "XmCreateErrorDialog")
+(define-convenience-class xm-message-dialog (xm-message-box) "XmCreateMessageDialog")
 
 (define-convenience-class xm-file-selection-dialog
     (xm-file-selection-box) 

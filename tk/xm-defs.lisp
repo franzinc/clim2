@@ -20,13 +20,15 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-defs.lisp,v 1.7 92/11/18 15:55:02 colin Exp $
+;; $fiHeader: xm-defs.lisp,v 1.8 1993/07/27 01:53:57 colin Exp $
 
 ;;
 ;; This file contains compile time only code -- put in clim-debug.fasl.
 ;;
 
 (in-package :tk)
+
+(provide :clim-debugxm)
 
 (def-c-type (xm-proto-callback-info :no-defuns :in-foreign-space) :struct
 	     (handle :int)

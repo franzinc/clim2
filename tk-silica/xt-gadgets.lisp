@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-gadgets.lisp,v 1.38 1993/09/07 21:47:17 colin Exp $
+;; $fiHeader: xt-gadgets.lisp,v 1.39 1993/10/26 03:22:54 colin Exp $
 
 (in-package :xm-silica)
 
@@ -59,32 +59,53 @@
 (defmethod find-widget-class-and-initargs-for-sheet :around
     ((port xt-port) (parent t)
      (sheet sheet-with-resources-mixin))
-  (multiple-value-bind
-      (class initargs)
+  (multiple-value-bind (class initargs)
       (call-next-method)
     (let ((other-initargs (find-widget-resource-initargs-for-sheet port sheet)))
       (values class (append initargs other-initargs)))))
 
+(defun ensure-color (c palette)
+  (etypecase c
+    (color c)
+    (string (find-named-color c palette))
+    (integer (make-device-color palette c))))
+
 (defmethod find-widget-resource-initargs-for-sheet
-    ((port xt-port) (sheet sheet-with-resources-mixin))
+    ((port xt-port) (sheet sheet-with-resources-mixin) &key)
   (let ((background (pane-background sheet))
 	(foreground (pane-foreground sheet)))
     (with-sheet-medium (medium sheet)
-      `(,@(when background (decode-gadget-background medium sheet background))
-	,@(when foreground (decode-gadget-foreground medium sheet foreground))))))
+      (let ((palette (medium-palette medium)))
+	`(,@(when background
+	      (decode-gadget-background medium sheet
+					(ensure-color background palette)))
+	  ,@(when foreground
+	      (decode-gadget-foreground medium sheet 
+					(ensure-color foreground palette))))))))
 
-(defmethod find-application-resource-initargs ((port xt-port))
+(defmethod find-widget-resource-initargs-for-sheet
+    ((port xt-port) (sheet t) &key)
   (let* ((resources (get-application-resources port))
 	 (background (or (getf resources :background) *default-pane-background*))
 	 (foreground (or (getf resources :foreground) *default-pane-foreground*))
 	 (palette (port-default-palette port)))
-    (macrolet ((ensure-color (c)
-		 `(etypecase ,c
-		    (color ,c)
-		    (string (find-named-color ,c palette)))))
-      `(:background ,(decode-color-in-palette (ensure-color background) palette)
-        :foreground ,(decode-color-in-palette (ensure-color foreground) palette)))))
+    `(:background ,(decode-color-in-palette (ensure-color background palette)
+					    palette)
+      :foreground ,(decode-color-in-palette (ensure-color foreground palette)
+					    palette))))
     
+(defmethod find-widget-resource-initargs-for-sheet :around
+    ((port xt-port) (sheet t) &key foreground background)
+  (let ((initargs (call-next-method))
+	(palette (port-default-palette port)))
+    (when foreground
+      (setf (getf initargs :foreground)
+	(decode-color-in-palette (ensure-color foreground palette) palette)))
+    (when background
+      (setf (getf initargs :background)
+	(decode-color-in-palette (ensure-color background palette) palette)))
+    initargs))
+
 (defmethod decode-gadget-background (medium sheet ink)
   (declare (ignore sheet))
   (let ((pixel (decode-color ink medium)))
@@ -183,28 +204,39 @@
       ((typep w '(or tk::shell null))
        w)))
 
+(defmethod add-sheet-callbacks :after
+    ((port xt-port) (sheet xt-top-level-sheet) widget)
+  (tk::add-event-handler (tk::widget-parent widget)
+			 '(:structure-notify)
+			 1
+			 'sheet-mirror-event-handler
+			 sheet))
+			 
 
-(defun compute-new-scroll-bar-values (scroll-bar mmin mmax value
-				      slider-size line-increment)
-  (multiple-value-bind
+;;; scroll bar utilities
+
+(defun convert-scroll-bar-value-out (scroll-bar value)
+  (multiple-value-bind 
       (smin smax) (gadget-range* scroll-bar)
-    (let ((value
-	   (fix-coordinate
-	    (compute-symmetric-value
-	     smin smax (* value (- 1 slider-size)) mmin mmax)))
-	  (size
-	   (max 1
-		(fix-coordinate
-		 (compute-symmetric-value
-		  smin smax slider-size mmin mmax)))))
-      (values 
-       (min value (- mmax size))
-       size
-       (min (- mmax mmin)
-	    (max 1
-		 (fix-coordinate
-		  (compute-symmetric-value
-		   smin smax line-increment mmin mmax))))))))
+    (fix-coordinate
+     (compute-symmetric-value
+      smin smax value 0 1000))))
+
+(defun convert-scroll-bar-value-in (scroll-bar value)
+  (multiple-value-bind 
+      (smin smax) (gadget-range* scroll-bar)
+    (compute-symmetric-value
+     0 1000 value smin smax )))
+
+(defun compute-new-scroll-bar-values (scroll-bar value slider-size line-increment)
+  (values 
+   (and value
+	(convert-scroll-bar-value-out scroll-bar value))
+   (and slider-size
+	(max 1 (convert-scroll-bar-value-out scroll-bar slider-size)))
+   (and line-increment
+	(max 1 (convert-scroll-bar-value-out scroll-bar line-increment)))))
+
 
 (defun wait-for-callback-invocation (port predicate &optional (whostate "Waiting for callback"))
   (if (eq mp:*current-process* (port-process port))

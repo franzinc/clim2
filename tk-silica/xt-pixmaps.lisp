@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-pixmaps.lisp,v 1.18 1993/11/18 18:45:45 cer Exp $
+;; $fiHeader: xt-pixmaps.lisp,v 1.19 1993/12/07 05:34:29 colin Exp $
 
 
 (in-package :xm-silica)
@@ -142,7 +142,6 @@
 	   pixmap copy-gc from-x from-y width height
 	   window to-x to-y))))))
 
-
 (defmethod medium-copy-area 
     ((from-medium xt-medium) from-x from-y width height
      (pixmap xt-pixmap) to-x to-y
@@ -160,4 +159,27 @@
 	   window copy-gc from-x from-y width height 
 	   pixmap to-x to-y))))))
 
-
+(defmethod make-pattern-from-pixmap ((pixmap xt-pixmap) 
+				     &key
+				     (x 0)
+				     (y 0)
+				     (width (pixmap-width pixmap))
+				     (height (pixmap-height pixmap)))
+  (let* ((image (tk::get-image pixmap :x x :y y :width width :height height))
+	 (image-data (tk::image-data image))
+	 (pattern-data (make-array (list height width)))
+	 (pixels nil)
+	 (palette (port-default-palette (port pixmap))))
+    (dotimes (w width)
+      (dotimes (h height)
+	(let ((pixel (aref image-data h w)))
+	  (unless (member pixel pixels)
+	    (setf pixels (nconc pixels (list pixel))))
+	  (setf (aref pattern-data h w)
+	    (position pixel pixels)))))
+    (tk::destroy-image image)
+    (make-pattern pattern-data 
+		  (mapcar #'(lambda (pixel)
+			      (device-color-color
+			       (make-device-color palette pixel)))
+			  pixels))))

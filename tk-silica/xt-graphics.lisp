@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.82 1993/10/25 16:16:47 cer Exp $
+;; $fiHeader: xt-graphics.lisp,v 1.84 1994/11/23 23:29:26 smh Exp $
 
 (in-package :tk-silica)
 
@@ -89,11 +89,13 @@
 			sheet
 			(sheet-mirror sheet))))))
 
-;;; Palette handling stuff
+;;; Palette handling
 
 (defclass xt-palette (basic-palette)
   ((colormap :reader palette-colormap :initarg :colormap)
    (xcolor-cache :initform (make-hash-table) :reader palette-xcolor-cache)
+   (device-color-cache :initform (make-hash-table) 
+		       :reader palette-device-color-cache)
    (named-color-cache :initform (make-hash-table :test #'equalp) 
 		      :reader palette-named-color-cache)
    (white-pixel :initarg :white-pixel)
@@ -122,15 +124,21 @@
 	(frame-palette frame)
       (port-default-palette (port medium)))))
 
-#+ignore
 (defmethod (setf frame-manager-palette) :after 
 	   ((palette xt-palette) (framem standard-frame-manager))
   (let ((colormap (palette-colormap palette)))
     (dolist (frame (frame-manager-frames framem))
-      (let ((window (tk::widget-window 
-		     (sheet-direct-mirror (frame-top-level-sheet
-					   frame)))))
-	(setf (tk::window-colormap window) colormap)))))
+      (tk::set-values (frame-shell frame) :colormap colormap)
+      (map-over-sheets 
+       #'(lambda (sheet)
+	   (let ((medium (and (typep sheet
+				     'silica::sheet-with-medium-mixin)
+			      (sheet-medium sheet))))
+	     (when medium
+	       (with-slots (ink-table) medium
+		 (clrhash ink-table))
+	       (repaint-sheet sheet +everywhere+))))
+       (frame-top-level-sheet frame)))))
 
 (defun get-xcolor (color palette)
   (let ((xcolor-cache (palette-xcolor-cache palette)))
@@ -151,7 +159,11 @@
     (setq name (substitute #\space #\- (string name)))
     (or (gethash name named-color-cache)
 	(setf (gethash name named-color-cache)
-	  (let ((xcolor (tk::lookup-color (palette-colormap palette) name))
+	  
+	  ;; put this back from lookup-color to parse-color because
+	  ;; openlook version still uses R4 (cim) 1/13/94
+	  
+	  (let ((xcolor (tk::parse-color (palette-colormap palette) name))
 		(x #.(1- (ash 1 16))))
 	    (if xcolor
 		(make-rgb-color (/ (x11:xcolor-red xcolor) x)
@@ -171,22 +183,22 @@
 
 (defmethod update-palette-entries ((palette xt-palette) updates)
   (with-slots (colormap) palette
-    (let* ((n (ash (length updates) -1))
-	   (xcolors (tk::get-xcolor-array n))
-	   (j 0))
-      (dotimes (i n)
-	(let ((pixel (aref updates j))
-	      (color (aref updates (1+ j))))
-	  (let ((xcolor (get-xcolor color palette)))
-	    (declare (ignore ignore))
-	    (setf (x11:xcolor-array-red xcolors i) (x11:xcolor-red xcolor)
-		  (x11:xcolor-array-green xcolors i) (x11:xcolor-green xcolor)
-		  (x11:xcolor-array-blue xcolors i) (x11:xcolor-blue xcolor)
-		  (x11:xcolor-array-pixel xcolors i) pixel
-		  (x11:xcolor-array-flags xcolors i)
-		  #.(logior x11:dored x11:dogreen x11:doblue))))
-	(incf j 2))
-      (tk::store-colors colormap xcolors n))))
+    (let ((n (ash (length updates) -1))
+	  (j 0))
+      (tk::with-xcolor-array (xcolors n)
+	(dotimes (i n)
+	  (let ((pixel (aref updates j))
+		(color (aref updates (1+ j))))
+	    (let ((xcolor (get-xcolor color palette)))
+	      (declare (ignore ignore))
+	      (setf (x11:xcolor-array-red xcolors i) (x11:xcolor-red xcolor)
+		    (x11:xcolor-array-green xcolors i) (x11:xcolor-green xcolor)
+		    (x11:xcolor-array-blue xcolors i) (x11:xcolor-blue xcolor)
+		    (x11:xcolor-array-pixel xcolors i) pixel
+		    (x11:xcolor-array-flags xcolors i)
+		    #.(logior x11:dored x11:dogreen x11:doblue))))
+	  (incf j 2))
+	(tk::store-colors colormap xcolors n)))))
 
 ;;; things we can install in a palette
 ;;; 1 - color (rgb etc)
@@ -253,6 +265,39 @@
 		       (remhash layered-color layered-color-cache)))
 		 layered-color-cache)
 	(remhash set layered-color-cache)))))
+
+;;; Device colors
+
+(defclass xt-device-color (device-color)
+  ((color-cache :initform nil :accessor device-color-color-cache)))
+
+(defmethod make-device-color ((palette xt-palette) pixel)
+  (let ((device-color-cache (palette-device-color-cache palette)))
+    (or (gethash pixel device-color-cache)
+	(setf (gethash pixel device-color-cache)
+	  (make-instance 'xt-device-color
+	    :palette palette 
+	    :pixel pixel)))))
+
+(defmethod device-color-color ((color xt-device-color))
+  (let ((pixel (device-color-pixel color))
+	(palette (device-color-palette color))
+	(cache (device-color-color-cache color)))
+    (multiple-value-bind (r g b)
+	(tk::query-color (palette-colormap palette) pixel)
+      (let* ((x #.(1- (ash 1 16)))
+	     (red (/ r x))
+	     (green (/ g x))
+	     (blue (/ b x)))
+	(if (and cache
+		 (multiple-value-bind (cached-red cached-green cached-blue)
+		     (color-rgb cache)
+		   (and (= red cached-red)
+			(= green cached-green)
+			(= blue cached-blue))))
+	    cache
+	  (setf (device-color-color-cache color)
+	    (make-rgb-color red green blue)))))))
 
 
 ;;
@@ -390,7 +435,7 @@
 (defvar *default-dashes* '(4 4))
 
 (defun adjust-ink (gc medium x-origin y-origin)
-  
+  (declare (optimize (speed 3) (safety 0)))  
   ;; line style
   (let ((line-style (medium-line-style medium)))
     (unless (eq (ink-gcontext-last-line-style gc) 
@@ -611,10 +656,12 @@
 
       (let ((bitmap
 	     (case format
-	       (:bitmap (or (eql n-designs 2)
-			    (error "Can't make a bitmap from pattern with more than two designs"))) 
-	       (:pixmap (and (find +nowhere+ designs)
-			     (error "Can't make a pixmap from a transparent pattern"))))))
+	       (:bitmap
+		(or (eql n-designs 2)
+		    (error "Can't make a bitmap from pattern with more than two designs"))) 
+	       (:pixmap
+		(and (find +nowhere+ designs)
+		     (error "Can't make a pixmap from a transparent pattern"))))))
 	
 	(dotimes (n (length designs))
 	  (let ((design (elt designs n)))
@@ -652,7 +699,7 @@
 			 :width width
 			 :height height
 			 :depth depth)))
-	  (clim-sys:without-scheduling
+	  (excl:without-interrupts
 	    (tk::put-image pixmap 
 			   (if bitmap
 			       (port-copy-gc-depth-1 port)
@@ -719,18 +766,25 @@
   (let ((color-cache (palette-color-cache palette)))
     (or (gethash color color-cache)
 	(setf (gethash color color-cache)
-	  (with-slots (white-pixel black-pixel) palette
-	    (cond ((palette-color-p palette)
-		   (handler-case
-		       (tk::allocate-color
-			(palette-colormap palette) (get-xcolor color palette))
-		     (tk::x-colormap-full ()
-		       (error 'palette-full))))
-		  ;;-- support gray-scale here
-		  (t
-		   (multiple-value-bind (r g b) (color-rgb color)
-		     (let ((luminosity (color-luminosity r g b)))
-		       (if (< luminosity 0.5) black-pixel white-pixel))))))))))
+	  (if (palette-color-p palette)
+	      (loop
+		(restart-case
+		    (handler-case
+			(return
+			  (tk::allocate-color (palette-colormap palette)
+					      (get-xcolor color palette)))
+		      (tk::x-colormap-full ()
+			(error 'palette-full :palette palette)))
+		  (use-other (other)
+		      :report
+			(lambda (s)
+			  (format s "Use a different color"))
+		    (setq color other))))
+	    ;;-- support gray-scale here
+	    (with-slots (white-pixel black-pixel) palette
+	      (multiple-value-bind (r g b) (color-rgb color)
+		(let ((luminosity (color-luminosity r g b)))
+		  (if (< luminosity 0.5) black-pixel white-pixel)))))))))
 
 (defmethod decode-color-in-palette ((color dynamic-color) (palette xt-palette))
   (let ((dynamic-color-cache (palette-dynamic-color-cache palette)))
@@ -739,11 +793,14 @@
 			       (tk::alloc-color-cells
 				(palette-colormap palette) 1 0)
 			     (tk::x-colormap-full ()
-			       (error 'palette-full)))
+			       (error 'palette-full :palette palette)))
 			   0)))
 	  (update-palette-entry palette pixel (dynamic-color-color color))
 	  (push palette (dynamic-color-palettes color))
 	  (setf (gethash color dynamic-color-cache) pixel)))))
+
+(defmethod decode-color-in-palette ((color device-color) (palette xt-palette))
+  (device-color-pixel color))
 
 (defmethod decode-color-in-palette ((color layered-color) (palette xt-palette))
   (let ((layered-color-cache (palette-layered-color-cache palette)))
@@ -790,7 +847,7 @@
 	    (tk::alloc-color-cells
 	     (palette-colormap palette) 1 total-nplanes)
 	  (tk::x-colormap-full ()
-	    (error 'palette-full)))
+	    (error 'palette-full :palette palette)))
       (let ((pixel (aref pixels 0))
 	    (count 0)
 	    (planes nil))
@@ -823,12 +880,6 @@
 	(< (the fixnum ,x) 32000) (> (the fixnum ,x) -32000)
 	(< (the fixnum ,y) 32000) (> (the fixnum ,y) -32000)))
 
-(defmacro single-float-valid-point-p (x y)
-  `(and (< (the single-float ,x) 32000s0) 
-	(> (the single-float ,x) -32000s0)
-	(< (the single-float ,y) 32000s0) 
-	(> (the single-float ,y) -32000s0)))
-;;
 ;; Here we implement a simple version of the Cohen-Sutherland clipping
 ;; algorithm.  Specifically, we only try to clip the line so that it will
 ;; be legal to pass to X, we don't try to clip to window boundaries.
@@ -904,46 +955,6 @@
 
 ;; Discarding of other illegal graphics
 
-#|
-
-(defmacro int16ify (int &optional check-type-string)
-  "Make int (a fixnum) into an xlib:int16; int must be a
-   place.  Call check-type if it isn't in bounds."
-  ;; These are ordered in expected frequency of usage
-  `(if* (and (>= ,int -32768) (< ,int 32768))
-      then
-	   nil
-      else
-	   (setf ,int (make-into-int16 ,int ,check-type-string))))
-
-(defmacro card16ify (int &optional check-type-string)
-  "Make int (a fixnum) into an xlib:card16; int must be a
-   place.  Call check-type if it isn't in bounds."
-  ;; These are ordered in expected frequency of usage
-  `(if* (and (>= ,int 0) (< ,int 65536))
-      then
-	   nil
-      else
-	   (setf ,int (make-into-card16 ,int ,check-type-string))))
-
-(defun make-into-int16 (object string)
-  ;; Now it must be too big to fit in an xlib:int16.
-  (cond (cw::*fix-up-illegal-graphics-p*
-	 (max -32767 (min 32766 object)))
-	(t
-	 (check-type object xlib:int16 string)
-	 object)))
-
-(defun make-into-card16 (object string)
-  ;; Now it must be too big to fit in an xlib:int16.
-  (cond (cw::*fix-up-illegal-graphics-p*
-	 (max 0 (min 65534 object)))
-	(t
-	 (check-type object xlib:card16 string)
-	 object)))
-
-|#
-
 (defvar *discard-illegal-graphics* t)
 
 (defmacro discard-illegal-coordinates (function-name &rest positions)
@@ -959,25 +970,7 @@
        (if* *discard-illegal-graphics*
 	  then (return-from ,function-name)
 	  else (error "Coordinate(s) out of (signed-byte 16) range")))))
-
-
-(defmacro single-float-discard-illegal-coordinates (function-name &rest positions)
-  (assert (evenp (length positions)) (positions)
-    "There must be an even number of elements in ~S" positions)
-  (let ((forms nil))
-    (do ()
-	((null positions))
-      (let* ((x (pop positions))
-	     (y (pop positions)))
-	(push `(single-float-valid-point-p ,x ,y) forms)))
-    `(unless (and ,@forms)
-       (if* *discard-illegal-graphics*
-	  then (return-from ,function-name)
-	  else (error "Coordinate(s) out of (signed-byte 16) range")))))
 
- 
-
-
 (defmacro with-single-floats (variable-bindings &body body)
   (flet ((binding-var (x) (if (atom x) x (car x)))
 	 (binding-form (x) (if (atom x) x (second x))))
@@ -998,19 +991,31 @@
 
 (defmacro with-mins-and-maxes (variables &body body)
   `(let ,(mapcan #'(lambda (binding)
-		     (destructuring-bind (min-var max-var form1 form2) binding
-		       `((,min-var ,form1)
-			 (,max-var ,form2))))
-	  variables)
-     (declare (single-float ,@(mapcar #'first variables) ,@(mapcar #'second variables)))
+ 		     (destructuring-bind (min-var max-var form1 form2) binding
+ 		       `((,min-var ,form1)
+ 			 (,max-var ,form2))))
+ 	  variables)
+     (declare (fixnum ,@(mapcar #'first variables) ,@(mapcar #'second variables)))
      #+ignore (print-variables min-x min-y max-x max-y)
      ,@(mapcar #'(lambda (binding)
-		   (destructuring-bind (min-var max-var form1 form2) binding
-		     (declare (ignore form1 form2))
-		     `(when (> ,min-var ,max-var) 
-			(rotatef ,min-var ,max-var))))
-	       variables)
+ 		   (destructuring-bind (min-var max-var form1 form2) binding
+ 		     (declare (ignore form1 form2))
+ 		     `(when (> ,min-var ,max-var) 
+ 			(rotatef ,min-var ,max-var))))
+ 	       variables)
      ,@body))
+
+(defmacro with-clipped-fixnum-rectangle ((x1 y1 x2 y2) &body body)
+  `(with-fixnums ((x1 ,x1) (y1 ,y1) (x2 ,x2) (y2 ,y2))
+     (unless (valid-point-p x1 y1)
+       (setq x1 (min (max -32000 x1) 32000))
+       (setq y1 (min (max -32000 y1) 32000)))
+     (unless (valid-point-p x2 y2)
+       (setq x2 (min (max -32000 x2) 32000))
+       (setq y2 (min (max -32000 y2) 32000)))
+     (with-mins-and-maxes ((min-x max-x x1 x2)
+ 			   (min-y max-y y1 y2))
+       ,@body)))
 
 
 (defmethod medium-draw-point* ((medium xt-medium) x y)
@@ -1035,22 +1040,22 @@
 	      (t
 	       ;;--rounding
 	       ;;--what is the most efficient way of doing this?
-	       (with-single-floats (x y)
-		 (clim-internals::with-half-thickness-1 (lthickness rthickness) thickness
-		   (declare (ignore rthickness))
-		   (with-fixnums ((min-x (- x lthickness))
-				  (min-y (- y lthickness))
-				  (size thickness))
-		     (discard-illegal-coordinates medium-draw-point* min-x min-y)
-		     (tk::draw-ellipse-1
-		      drawable
-		      (adjust-ink (decode-ink ink medium)
-				  medium
-				  min-x
-				  min-y)
-		      min-x min-y 
-		      size size 0 #.(* 360 64)
-		      t))))))))))
+	       
+	       (clim-internals::with-half-thickness-1 (lthickness rthickness) thickness
+		 (declare (ignore rthickness))
+		 (with-fixnums ((min-x (- x lthickness))
+				(min-y (- y lthickness))
+				(size thickness))
+		   (discard-illegal-coordinates medium-draw-point* min-x min-y)
+		   (tk::draw-ellipse-1
+		    drawable
+		    (adjust-ink (decode-ink ink medium)
+				medium
+				min-x
+				min-y)
+		    min-x min-y 
+		    size size 0 #.(* 360 64)
+		    t)))))))))
 
 (defmethod medium-draw-points* ((medium xt-medium) position-seq)
   (let ((drawable (medium-drawable medium)))
@@ -1066,68 +1071,67 @@
 	       (minx #.(ash 1 15))
 	       (miny #.(ash 1 15)))
 	  (declare (fixnum len j xpoints minx miny))
-	  (macrolet ((inner-guts ()
-		       `(if (listp position-seq)
-			    (loop
-			      (when (null position-seq) (return nil))
-			      (guts (pop position-seq) (pop position-seq)))
-			  (do ((i 0 (+ i 2)))
-			      ((= i len))
-			    (declare (fixnum i))
-			    (guts (aref position-seq i) (aref position-seq (1+ i)))))))
-	    (cond ((< thickness 1.5)
-		   (let ((points (tk::make-xpoint-array :number xpoints)))
-		     (macrolet ((guts (x y)
-				  `(let ((x ,x)
-					 (y ,y))
-				     (convert-to-device-coordinates transform x y)
-				     (when (valid-point-p x y)
-				       (minf minx x)
-				       (minf miny y)
-				       (setf (tk::xpoint-array-x points j) x
-					     (tk::xpoint-array-y points j) y)
-				       (incf j)))))
-		       (inner-guts))
-		     (x11:xdrawpoints
-		      (tk::object-display drawable)
-		      drawable
-		      (adjust-ink (decode-ink ink medium)
-				  medium
-				  minx miny)
-		      points
-		      j
-		      x11:coordmodeorigin)))
-		  (t
-		   (clim-internals::with-half-thickness-1 (lthickness rthickness) thickness
-                     (declare (ignore rthickness))
-		     (setq thickness (round thickness))
-		       (let ((points (tk::make-xarc-array :number xpoints)))
-			 (macrolet ((guts (x y)
-				      `(let ((x ,x)
-					     (y ,y))
-					 (transform-positions transform x y)
-					 (with-fixnums ((x (- x lthickness))
-							(y (- y lthickness)))
-					   (when (valid-point-p x y)
-					     (minf minx x)
-					     (minf miny y)
-					     (setf (tk::xarc-array-x points j) x
-						   (tk::xarc-array-y points j) y
-						   (tk::xarc-array-width points j) thickness
-						   (tk::xarc-array-height points j) thickness
-						   (tk::xarc-array-angle1 points j) 0
-						   (tk::xarc-array-angle2 points j) #.(* 360 64))
-					     (incf j))))))
-			   (inner-guts))
-			 (x11::xfillarcs
-			  (tk::object-display drawable)
-			  drawable
-			  (adjust-ink (decode-ink ink medium)
-				      medium
-				      minx
-				      miny)
-			  points
-			  j)))))))))))
+	  (macrolet 
+	      ((process-positions ()
+		 `(if (listp position-seq)
+		      (loop
+			(when (null position-seq) (return nil))
+			(process-position (pop position-seq)
+					  (pop position-seq)))
+		    (do ((i 0 (+ i 2)))
+			((= i len))
+		      (declare (fixnum i))
+		      (process-position (aref position-seq i)
+					(aref position-seq (1+ i)))))))
+	    (if (< thickness 1.5)
+		(tk::with-xpoint-array (points xpoints)
+		  (macrolet
+		      ((process-position (x y)
+			 `(let ((x ,x)
+				(y ,y))
+			    (convert-to-device-coordinates transform x y)
+			    (when (valid-point-p x y)
+			      (minf minx x)
+			      (minf miny y)
+			      (setf (x11:xpoint-array-x points j) x
+				    (x11:xpoint-array-y points j) y)
+			      (incf j)))))
+		    (process-positions))
+		  (x11:xdrawpoints (tk::object-display drawable)
+				   drawable
+				   (adjust-ink (decode-ink ink medium)
+					       medium minx miny)
+				   points
+				   j
+				   x11:coordmodeorigin))
+	      (clim-internals::with-half-thickness-1 (lthickness rthickness) thickness
+	        (declare (ignore rthickness))
+		(setq thickness (round thickness))
+		(tk::with-xarc-array (points xpoints)
+		  (macrolet 
+		      ((process-position (x y)
+			 `(let ((x ,x)
+				(y ,y))
+			    (transform-positions transform x y)
+			    (with-fixnums ((x (- x lthickness))
+					   (y (- y lthickness)))
+			      (when (valid-point-p x y)
+				(minf minx x)
+				(minf miny y)
+				(setf (x11:xarc-array-x points j) x
+				      (x11:xarc-array-y points j) y
+				      (x11:xarc-array-width points j) thickness
+				      (x11:xarc-array-height points j) thickness
+				      (x11:xarc-array-angle1 points j) 0
+				      (x11:xarc-array-angle2 points j) #.(* 360 64))
+				(incf j))))))
+		    (process-positions))
+		  (x11::xfillarcs (tk::object-display drawable)
+				  drawable
+				  (adjust-ink (decode-ink ink medium)
+					      medium minx miny)
+				  points
+				  j))))))))))
 
 
 (defmethod medium-draw-line* ((medium xt-medium) x1 y1 x2 y2)
@@ -1147,7 +1151,6 @@
 		       (the fixnum (min (the fixnum y1) (the fixnum y2))))
 	   x1 y1 x2 y2))))))
 
-
 (defmethod medium-draw-lines* ((medium xt-medium) position-seq)
   (let ((drawable (medium-drawable medium)))
     (when drawable
@@ -1155,67 +1158,51 @@
 	     (transform (sheet-device-transformation sheet))
 	     (len (length position-seq))
 	     (npoints (/ len 4))
-	     (points (tk::make-xsegment-array :number npoints))
 	     ;; These really are fixnums, since we're fixing coordinates below
 	     (minx most-positive-fixnum)
 	     (miny most-positive-fixnum)
 	     ink)
-	(macrolet ((stuff-line-guts (x1 y1 x2 y2)
-		     `(let ((x1 ,x1)
-			    (y1 ,y1)
-			    (x2 ,x2)
-			    (y2 ,y2))
-			(convert-to-device-coordinates transform x1 y1)
-			(convert-to-device-coordinates transform x2 y2)
-			(when (clip-invalidate-line x1 y1 x2 y2)
-			  (minf minx x1)
-			  (minf miny y1)
-			  (minf minx x2)
-			  (minf miny y2)
-			  (setf (tk::xsegment-array-x1 points i) x1
-				(tk::xsegment-array-y1 points i) y1
-				(tk::xsegment-array-x2 points i) x2
-				(tk::xsegment-array-y2 points i) y2)))))
-	  (let ((i 0))
-	    (declare (fixnum i))
-	    (if (listp position-seq)
-		(do ((ps position-seq))
-		    ((null ps))
-		  (when (stuff-line-guts (pop ps) (pop ps) (pop ps) (pop ps))
-		    (incf i)))
-	      (do ((ps position-seq)
-		   (j 0 (+ j 4)))
-		  ((= j len))
-		(declare (fixnum i))
-		(when (stuff-line-guts (aref ps j) (aref ps (1+ j))
-				       (aref ps (+ 2 j)) (aref ps (+ 3 j)))
-		  (incf i))))
-	    (unless (zerop i)
-	      (setq ink 
-		(adjust-ink (decode-ink (medium-ink medium) medium) medium
-			    minx miny))
-	      (x11:xdrawsegments
-	       (tk::object-display drawable)
-	       drawable
-	       ink
-	       points
-	       i))))))))
-
-(defmacro with-clipped-fixnum-rectangle ((x1 y1 x2 y2) &body body)
-  `(with-single-floats ((x1 ,x1) (y1 ,y1) (x2 ,x2) (y2 ,y2))
-     (unless (single-float-valid-point-p x1 y1)
-       (setq x1 (min (max -32000s0 x1) 32000s0))
-       (setq y1 (min (max -32000s0 y1) 32000s0)))
-     (unless (single-float-valid-point-p x2 y2)
-       (setq x2 (min (max -32000s0 x2) 32000s0))
-       (setq y2 (min (max -32000s0 y2) 32000s0)))
-     (with-mins-and-maxes ((min-x max-x x1 x2)
-			   (min-y max-y y1 y2))
-       (with-fixnums ((fmin-x min-x)
-		      (fmin-y min-y)
-		      (fwidth (- max-x min-x))
-		      (fheight (- max-y min-y)))
-	 ,@body))))
+	(tk::with-xsegment-array (points npoints)
+	  (macrolet ((stuff-line-guts (x1 y1 x2 y2)
+		       `(let ((x1 ,x1)
+			      (y1 ,y1)
+			      (x2 ,x2)
+			      (y2 ,y2))
+			  (convert-to-device-coordinates transform x1 y1)
+			  (convert-to-device-coordinates transform x2 y2)
+			  (when (clip-invalidate-line x1 y1 x2 y2)
+			    (minf minx x1)
+			    (minf miny y1)
+			    (minf minx x2)
+			    (minf miny y2)
+			    (setf (x11:xsegment-array-x1 points i) x1
+				  (x11:xsegment-array-y1 points i) y1
+				  (x11:xsegment-array-x2 points i) x2
+				  (x11:xsegment-array-y2 points i) y2)))))
+	    (let ((i 0))
+	      (declare (fixnum i))
+	      (if (listp position-seq)
+		  (do ((ps position-seq))
+		      ((null ps))
+		    (when (stuff-line-guts (pop ps) (pop ps) (pop ps) (pop ps))
+		      (incf i)))
+		(do ((ps position-seq)
+		     (j 0 (+ j 4)))
+		    ((= j len))
+		  (declare (fixnum i))
+		  (when (stuff-line-guts (aref ps j) (aref ps (1+ j))
+					 (aref ps (+ 2 j)) (aref ps (+ 3 j)))
+		    (incf i))))
+	      (unless (zerop i)
+		(setq ink 
+		  (adjust-ink (decode-ink (medium-ink medium) medium) medium
+			      minx miny))
+		(x11:xdrawsegments
+		 (tk::object-display drawable)
+		 drawable
+		 ink
+		 points
+		 i)))))))))
 
 #+debugging
 (defmacro print-variables (&rest variables)
@@ -1228,26 +1215,23 @@
 	   ,@variables))
 
 (defmethod medium-draw-rectangle* ((medium xt-medium) ox1 oy1 ox2 oy2 filled)
-  #+this-would-be-nice (declare (optimize (safety 0) (speed 3)))
-  #-this-would-be-nice (declare (optimize (safety 3) (speed 0)))
+  (declare (optimize (safety 0) (speed 3)))
   (let ((drawable (medium-drawable medium)))
     (when drawable
       (let* ((ink (medium-ink medium))
 	     (sheet (medium-sheet medium))
 	     (transform (sheet-device-transformation sheet)))
 	(assert (rectilinear-transformation-p transform))
-	;;--rounding
-	(transform-positions transform ox1 oy1 ox2 oy2)
-	;; Clipping a rectangle is ridiculously easy.
+	(convert-to-device-coordinates transform ox1 oy1 ox2 oy2)
 	(with-clipped-fixnum-rectangle (ox1 oy1 ox2 oy2)
 	  (tk::draw-rectangle
 	   drawable
 	   (adjust-ink (decode-ink ink medium)
 		       medium
-		       fmin-x fmin-y)
-	   fmin-x fmin-y
-	   fwidth
-	   fheight
+		       min-x min-y)
+	   min-x min-y
+	   (- max-x min-x)
+	   (- max-y min-y)
 	   filled))))))
 
 (defmethod medium-draw-rectangles* ((medium xt-medium) rectangles filled) 
@@ -1259,109 +1243,110 @@
 	     (transform (sheet-device-transformation sheet))
 	     (len (length rectangles))
 	     (nrects (/ len 4))
-	     (rects (xt::make-xrectangle-array :number nrects))
 	     (overall-min-x #.(1- (ash 1 16)))
 	     (overall-min-y #.(1- (ash 1 16))))
 	(declare (fixnum len nrects overall-min-x overall-min-y))
 	(assert (zerop (mod len 4)) () "Must be a multiple of 4")
 	(assert (rectilinear-transformation-p transform))
-	(macrolet ((guts (x1 y1 x2 y2)
-		     `(let ((x1 ,x1) (y1 ,y1) (x2 ,x2) (y2 ,y2))
-			(transform-positions transform x1 y1 x2 y2)
-			(with-clipped-fixnum-rectangle (x1 y1 x2 y2)
-			  (minf overall-min-x fmin-x)
-			  (minf overall-min-y fmin-y)
-			  (setf (tk::xrectangle-array-x rects i) fmin-x 
-				(tk::xrectangle-array-y rects i) fmin-y
-				(tk::xrectangle-array-width rects i) fwidth
-				(tk::xrectangle-array-height rects i) fheight)
-			  (incf i)))))
-	  (let ((i 0))
-	    (declare (fixnum i))
-	    (if (listp rectangles)
-		(loop
-		  (when (null rectangles) (return nil))
-		  (guts (pop rectangles) (pop rectangles) (pop rectangles) (pop rectangles)))
-	      (do ((j 0 (+ j 4)))
-		  ((= j len))
-		(declare (fixnum j))
-		(guts (aref rectangles j)
-		      (aref rectangles (+ 1 j))
-		      (aref rectangles (+ 2 j))
-		      (aref rectangles (+ 3 j))))))
-	  (tk::draw-rectangles
-	   drawable
-	   (adjust-ink (decode-ink ink medium)
-		       medium
-		       overall-min-x overall-min-y)
-	   rects
-	   nrects
-	   filled))))))
+	(tk::with-xrectangle-array (rects nrects)
+	  (macrolet ((guts (x1 y1 x2 y2)
+		       `(let ((x1 ,x1) (y1 ,y1) (x2 ,x2) (y2 ,y2))
+			  (convert-to-device-coordinates transform x1 y1 x2 y2)
+			  (with-clipped-fixnum-rectangle (x1 y1 x2 y2)
+			    (minf overall-min-x min-x)
+			    (minf overall-min-y min-y)
+			    (setf (x11:xrectangle-array-x rects i) min-x 
+				  (x11:xrectangle-array-y rects i) min-y
+				  (x11:xrectangle-array-width rects i)
+				  (- max-x min-x)
+				  (x11:xrectangle-array-height rects i)
+				  (- max-y min-y))
+			    (incf i)))))
+	    (let ((i 0))
+	      (declare (fixnum i))
+	      (if (listp rectangles)
+		  (loop
+		    (when (null rectangles) 
+		      (return nil))
+		    (guts (pop rectangles) (pop rectangles)
+			  (pop rectangles) (pop rectangles))) 
+		(do ((j 0 (+ j 4)))
+		    ((= j len))
+		  (declare (fixnum j))
+		  (guts (aref rectangles j)
+			(aref rectangles (+ 1 j))
+			(aref rectangles (+ 2 j))
+			(aref rectangles (+ 3 j))))))
+	    (tk::draw-rectangles
+	     drawable
+	     (adjust-ink (decode-ink ink medium)
+			 medium
+			 overall-min-x overall-min-y)
+	     rects
+	     nrects
+	     filled)))))))
 
 
 (defmethod medium-draw-polygon* ((medium xt-medium) position-seq closed filled)
-  (medium-draw-polygon-1 medium  position-seq closed filled))
-
-(defun medium-draw-polygon-1 (medium position-seq closed filled)
   (let ((drawable (medium-drawable medium)))
     (when drawable
       (let* ((sheet (medium-sheet medium))
 	     (transform (sheet-device-transformation sheet))
 	     (len (length position-seq))
 	     (npoints (/ len 2))
-	     (points (xt::make-xpoint-array :number (cond ((and closed (not filled))
-							   (incf npoints))
-							  (t npoints))))
 	     ;; These really are fixnums, since we're fixing coordinates below
 	     (minx most-positive-fixnum)
 	     (miny most-positive-fixnum)
 	     ink)
-	(if (listp position-seq)
-	    (do ((ps position-seq (cddr ps))
+	(when (and closed (not filled))
+	  (incf npoints))
+	(tk::with-xpoint-array (points npoints)
+	  (if (listp position-seq)
+	      (do ((ps position-seq (cddr ps))
+		   (i 0 (1+ i)))
+		  ((null ps))
+		(let ((x (first ps))
+		      (y (second ps)))
+		  (convert-to-device-coordinates transform x y)
+		  (discard-illegal-coordinates medium-draw-polygon* x y)
+		  (minf minx x)
+		  (minf miny y)
+		  (setf (x11:xpoint-array-x points i) x
+			(x11:xpoint-array-y points i) y)))
+	    (do ((ps position-seq)
+		 (j 0 (+ 2 j))
 		 (i 0 (1+ i)))
-		((null ps))
-	      (let ((x (first ps))
-		    (y (second ps)))
+		((= j len))
+	      (let ((x (aref ps j))
+		    (y (aref ps (1+ j))))
 		(convert-to-device-coordinates transform x y)
-		(discard-illegal-coordinates medium-draw-polygon-1 x y)
+		(discard-illegal-coordinates medium-draw-polygon* x y)
 		(minf minx x)
 		(minf miny y)
-		(setf (tk::xpoint-array-x points i) x
-		      (tk::xpoint-array-y points i) y)))
-	  (do ((ps position-seq)
-	       (j 0 (+ 2 j))
-	       (i 0 (1+ i)))
-	      ((= j len))
-	    (let ((x (aref ps j))
-		  (y (aref ps (1+ j))))
-	      (convert-to-device-coordinates transform x y)
-	      (discard-illegal-coordinates medium-draw-polygon-1 x y)
-	      (minf minx x)
-	      (minf miny y)
-	      (setf (tk::xpoint-array-x points i) x
-		    (tk::xpoint-array-y points i) y))))
-	(when (and closed (not filled))
-	  (setf (tk::xpoint-array-x points (- npoints 1)) (tk::xpoint-array-x points 0)
-		(tk::xpoint-array-y points (- npoints 1)) (tk::xpoint-array-y points 0)))
-	(setq ink 
-	  (adjust-ink (decode-ink (medium-ink medium) medium) medium
-		      minx miny))
-	(if filled
-	    (x11:xfillpolygon
+		(setf (x11:xpoint-array-x points i) x
+		      (x11:xpoint-array-y points i) y))))
+	  (when (and closed (not filled))
+	    (setf (x11:xpoint-array-x points (- npoints 1)) (x11:xpoint-array-x points 0)
+		  (x11:xpoint-array-y points (- npoints 1)) (x11:xpoint-array-y points 0)))
+	  (setq ink 
+	    (adjust-ink (decode-ink (medium-ink medium) medium) medium
+			minx miny))
+	  (if filled
+	      (x11:xfillpolygon
+	       (tk::object-display drawable)
+	       drawable
+	       ink
+	       points
+	       npoints
+	       x11:complex
+	       x11:coordmodeorigin)
+	    (x11:xdrawlines
 	     (tk::object-display drawable)
 	     drawable
 	     ink
 	     points
 	     npoints
-	     x11:complex
-	     x11:coordmodeorigin)
-	  (x11:xdrawlines
-	    (tk::object-display drawable)
-	    drawable
-	    ink
-	    points
-	    npoints
-	    x11:coordmodeorigin))))))
+	     x11:coordmodeorigin)))))))
 
 (defmethod medium-draw-ellipse* ((medium xt-medium)
 				 center-x center-y
@@ -1438,6 +1423,7 @@
 			      string-or-char x y start end
 			      align-x align-y
 			      towards-x towards-y transform-glyphs)
+  (declare (optimize (speed 3) (safety 0)))
   (let ((drawable (medium-drawable medium)))
     (when drawable
       (let* ((port (port medium))
@@ -1911,7 +1897,7 @@
        (x11::xfontstruct-max-bounds-width font))))
 
 (defmethod medium-beep ((medium xt-medium))
-  (x11:xbell (port-display (port medium)) 100))
+  (x11:xbell (port-display (port medium)) 0))
 
 (defmethod medium-force-output ((medium xt-medium))
   (x11:xflush (port-display (port medium))))

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: event.lisp,v 1.37 1993/06/02 18:41:50 cer Exp $
+;; $fiHeader: event.lisp,v 1.38 1993/08/12 16:04:13 cer Exp $
 
 (in-package :silica)
 
@@ -56,7 +56,9 @@
 
 (defgeneric queue-event (client event))
 (defmethod queue-event ((sheet sheet-with-event-queue-mixin) event)
-  (queue-put (sheet-event-queue sheet) event))
+  (let ((queue (sheet-event-queue sheet)))
+    (when queue
+      (queue-put queue event))))
 
 (defgeneric event-read (client))
 (defmethod event-read ((sheet sheet-with-event-queue-mixin))
@@ -134,6 +136,12 @@
   (queue-event sheet repaint-event))
 
 (defgeneric repaint-sheet (sheet region))
+
+(defmethod repaint-sheet :around ((sheet basic-sheet) region)
+  (declare (ignore region))
+  (when (port sheet)
+    (call-next-method)))
+
 (defmethod repaint-sheet ((sheet basic-sheet) region)
   (handle-repaint sheet (or region +everywhere+)))	;--- kludge for null region
 
@@ -170,6 +178,7 @@
   nil)
 
 
+
 ;;; Crossing events
 
 ;; We have fun here to generate enter/exit events for unmirrored sheets
@@ -542,7 +551,30 @@
 
 (defmethod distribute-event-1 :around ((port basic-port) (event pointer-event))
   (let ((sheet (port-grabbing-sheet port)))
-    (if sheet (dispatch-pointer-event-to-sheet port event sheet)
+    (if sheet 
+	(let ((event-sheet (event-sheet event))
+	      (grab-sheet (sheet-mirrored-ancestor sheet)))
+	  ;; If the grabbing sheet is different from the sheet the
+	  ;; event was reported on it is necessary to transfer the
+	  ;; co-ordinates. (cim 10/14/94 - see clim2bug688)
+	  (unless (eq event-sheet grab-sheet)
+	    (let ((x (pointer-event-native-x event))
+		  (y (pointer-event-native-y event)))
+	      (loop
+		(unless event-sheet
+		  (return))
+		(multiple-value-setq (x y)
+		  (transform-position (sheet-transformation event-sheet) x y))
+		(setq event-sheet (sheet-parent event-sheet)))
+	      (loop
+		(unless grab-sheet
+		  (return))
+		(multiple-value-setq (x y)
+		  (untransform-position (sheet-transformation grab-sheet) x y))
+		(setq grab-sheet (sheet-parent grab-sheet)))
+	      (with-slots (native-x native-y) event
+		(setf native-x x native-y y))))
+	  (dispatch-pointer-event-to-sheet port event sheet))
       (call-next-method))))
 
 (defmethod distribute-event-1 ((port basic-port) (event pointer-event))

@@ -1,23 +1,17 @@
-# $fiHeader: Makefile.cobjs,v 1.3 93/05/13 16:22:37 cer Exp $
+# $fiHeader: Makefile.cobjs,v 1.7 1994/06/08 06:56:23 duane Exp $
 #
 #  Makefile.cobj for CLIM 2.0, containing non-svr4 C rules
 #
 
-# Removed lib dependencies; these were bogus because the libraries will tend to
-# be older anyway.  MAKE CLEAN instead.
-clim-motif.o	: stub-motif.o stub-xt.o
-	ld -r $(LDFLAGS) -o clim-motif.o stub-motif.o stub-xt.o $(MOTIFXTRAOS) $(MOTIFLIB)
+clim-motif$(DEBUGLIB).o	: stub-motif.o stub-xt.o
+	ld -r $(LDFLAGS) -o clim-motif$(DEBUGLIB).o \
+		stub-motif.o stub-xt.o $(MOTIFLIB) $(MOTIFXTRAOS)
 
-clim-olit.o	: stub-olit.o stub-xt.o
-	ld -r $(LDFLAGS) -o clim-olit.o stub-olit.o stub-xt.o $(LIBXOL)
+clim-olit$(DEBUGLIB).o : stub-olit.o stub-xt.o
+	ld -r $(LDFLAGS) -o clim-olit$(DEBUGLIB).o \
+		stub-olit.o stub-xt.o $(OPENLOOKLIB)
 
-clim-motif_d.o	: stub-motif.o stub-xt.o
-	ld -r  $(LDFLAGS) -o clim-motif_d.o stub-motif.o stub-xt.o $(MOTIFXTRAOS) $(MOTIFLIB_d)
-
-clim-olit_d.o	: stub-olit.o  stub-xt.o
-	ld -r $(LDFLAGS) -o clim-olit_d.o stub-olit.o stub-xt.o $(LIBXOL_d)
-
-xlibsupport.o	: xlib/xlibsupport.c 
+xlibsupport.o : xlib/xlibsupport.c 
 	$(CC) -c $(CFLAGS) $(XINCLUDES) -o xlibsupport.o xlib/xlibsupport.c
 
 xtsupport.o: misc/xtsupport.c

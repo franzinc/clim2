@@ -1,4 +1,4 @@
-/* $fiHeader: xtsupport.c,v 1.7 1993/07/27 01:48:11 colin Exp $ */
+/* $fiHeader: xtsupport.c,v 1.9 1993/12/04 00:32:10 duane Exp $ */
 
 #include <X11/Intrinsic.h>
 
@@ -6,21 +6,9 @@
 #include <stdio.h>
 #include <X11/IntrinsicP.h>
 #include <X11/CoreP.h>
-
-#ifdef sparc
 #include "IntrinsicI.h"
-#endif
 
-#ifndef sparc
 
-unsigned long XtAppIntervalNextTimer(app)
-{
-    return (1000);
-    }
-
-#endif
-
-#ifdef sparc
 
 /* Some systems running NTP daemons are known to return strange usec
  * values from gettimeofday.  At present (3/90) this has only been
@@ -98,17 +86,12 @@ unsigned long XtAppIntervalNextTimer(app)
     if(app->timerQueue != NULL && IS_AFTER(cur_time, app->timerQueue->te_timer_value))
     {
 	TIMEDELTA (wait_time, app->timerQueue->te_timer_value, cur_time);
-	/*
-	 * We add an extra 1 to ensure that events due to happen in less than
-	 * 1000us are not lost by the rounding error of the integer divide
-	 */
-	return (1+wait_time.tv_sec*1000+wait_time.tv_usec/1000);
+	return (wait_time.tv_sec*1000+wait_time.tv_usec/1000);
     }
     else 
-	return 0;
-	}
+	return -1;
+}
 
-#endif
 
 xt_widget_num_popups (w)
 Widget w;

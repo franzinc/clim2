@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: gc-cursor.lisp,v 1.1 93/05/13 16:24:48 cer Exp $
+;; $fiHeader: gc-cursor.lisp,v 1.3 1994/11/23 23:29:23 smh Exp $
 
 
 (in-package :xm-silica)
@@ -47,10 +47,9 @@
       (if mirror
 	  (tk::set_clim_gc_cursor_widget 
 	   mirror
-	   (let ((cursor (sheet-pointer-cursor sheet)))
-	     (if cursor
-		 (realize-cursor (port sheet) sheet cursor)
-	       0)))
+	   (realize-cursor (port sheet) 
+			   sheet
+			   (sheet-pointer-cursor sheet)))
 	(tk::set_clim_gc_cursor_widget 0 0)))))
 
 (defmethod (setf sheet-pointer-cursor) :after (cursor (sheet xt-top-level-sheet))
