@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: xm-silica -*-
 ;;
-;;				-[]-
+;;				-[Thu Jul 22 16:32:23 1993 by colin]-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.84 1993/05/25 20:42:50 cer Exp $
+;; $fiHeader: xt-silica.lisp,v 1.85 1993/06/04 16:07:14 cer Exp $
 
 (in-package :xm-silica)
 
@@ -297,14 +297,9 @@
 	 (when (or (null parent) (sheet-direct-mirror parent)) (return t))
 	 (unless (sheet-enabled-p parent) (return nil)))))
 
-
 (defmethod note-sheet-tree-grafted :after ((port xt-port) (sheet mirrored-sheet-mixin))
   (let ((mirror (sheet-direct-mirror sheet)))
-    (when (and (sheet-and-ancestors-enabled-p sheet)
-	       (typep mirror 'xt::xt-root-class)) ; Pixmap streams are
-						  ; mirrored by a
-						  ; pixmap rather than
-						  ; by a widget
+    (when (sheet-and-ancestors-enabled-p sheet)
       (tk::manage-child mirror))))
 
 (defmethod initialize-mirror ((port xt-port) (parent basic-sheet) (parent-widget t)
@@ -592,10 +587,6 @@
       (call-next-method)
     (setq initargs (compute-initial-mirror-geometry parent sheet
 						    initargs)) 
-    ;;; it seems that xt or motif or someone doesn't know about
-    ;;; ParentRelative and tries to give treat this as a pixmap
-    ;;; and put it into a gcontext tile
-    #+ignore (setf (getf initargs :background-pixmap) x11:parentrelative)
     (values class initargs)))
 
 
@@ -1196,65 +1187,95 @@
     (if (logtest x x11:mod3mask) +hyper-key+ 0)))
 
 
-(defmethod find-widget-class 
+(defmethod find-widget-name-and-class
     ((port xt-port) (parent t) (sheet mirrored-sheet-mixin))
   (multiple-value-bind (class initargs)
       (find-widget-class-and-initargs-for-sheet port parent sheet)
-    (declare (ignore initargs))
-    class))
+    (let ((class-name 
+	   (tk::widget-class-name (tk::class-handle (find-class class)))))
+      (values (getf initargs :name 
+		    (string-downcase class-name :start 0 :end 1))
+	      class-name))))
 
-(defmethod find-widget-class
+(defmethod find-widget-name-and-class
     ((port xt-port) (parent t) (sheet basic-sheet))
-  (class-name (class-of sheet)))
+  nil)
 
-;;-- What do we do about pixmap streams. I guess they should inherit
-;;-- properties from the parent.
-
-;;; what's the deal with pixmap streams they don't seem to have
-;;; parents??? This next method is probably wrong but at the moment
-;;; it's the best I can come up with (cim)
-
-(defmethod get-sheet-resources ((port xt-port) (sheet pixmap-stream))
+(defmethod get-application-resources ((port xt-port))
   (multiple-value-bind (names classes)
       (xt::widget-resource-name-and-class (port-application-shell port))
     (get-xt-resources port names classes)))
-  
+
 (defmethod get-sheet-resources ((port xt-port) sheet)
   (let ((parent-widget (sheet-mirror (sheet-parent sheet))))
-    (multiple-value-bind (parent-names parent-classes)
+    (multiple-value-bind (names classes)
 	(xt::widget-resource-name-and-class parent-widget)
-      (let ((names
-	     (append parent-names
-		     (list (string (or (pane-name sheet) "")))))
-	    (classes 
-	     (append parent-classes
-		     (list 
-		      (string 
-		       (or (find-widget-class port parent-widget sheet) ""))))))
+      (multiple-value-bind (name class)
+	  (find-widget-name-and-class port parent-widget sheet)
+	(when name
+	  (setq names (append names (list name))
+		classes (append classes (list class))))
 	(get-xt-resources port names classes)))))
+
+(defvar *resource-name* (make-string 40))
+(defvar *resource-class* (make-string 40))
 
 (defun get-xt-resources (port names classes)
   (let* ((display (silica::port-display port))
 	 (db (tk::display-database display))
-	 (background (xt::get-resource db names "background"
-				       classes "Background"))
-	 (foreground (xt::get-resource db names "foreground" 
-				       classes "Foreground"))
-	 (text-style (xt::get-resource db names "textStyle"
-				       classes "TextStyle")))
-    `(,@(and background `(:background ,background))
-      ,@(and foreground `(:foreground ,foreground))
-      ,@(and text-style
-	     `(:text-style
-	       ,(let ((spec (read-from-string text-style)))
-		  (etypecase spec
-		    (cons (parse-text-style spec))
-		    (string (silica::make-device-font 
-			     port 
-			     (make-instance 'tk::font 
-					    :display display
-					    :name (car (tk::list-font-names
-							display spec))))))))))))
+	 (name-index 0)
+	 (class-index 0)
+	 (resource-name *resource-name*)
+	 (resource-class *resource-class*))
+    (macrolet ((splice (item array index)
+		 `(let ((index ,index)
+			(item-length (length ,item))
+			(array-length (length ,array)))
+		    (when (>= (+ index item-length) array-length)
+		      (let* ((new-array-length (+ array-length array-length
+						  item-length))
+			     (new-array (make-string new-array-length)))
+			(dotimes (i array-length)
+			  (setf (schar new-array i) (schar ,array i)))
+			(setq ,array new-array)))
+		    (dotimes (i item-length)
+		      (setf (schar ,array index) (schar ,item i))
+		      (incf index))
+		    index)))
+      (dolist (name names)
+	(setq name-index (splice name resource-name name-index))
+	(setf (schar resource-name name-index) #\.)
+	(incf name-index))
+      (dolist (class classes)
+	(setq class-index (splice class resource-class class-index))
+	(setf (schar resource-class class-index) #\.)
+	(incf class-index))
+      (flet ((get-resource (name class)
+	       (let ((name-index (splice name resource-name
+					 name-index)))
+		 (setf (schar resource-name name-index) #\null))
+	       (let ((class-index (splice class resource-class
+					  class-index)))
+		 (setf (schar resource-class class-index) #\null))
+	       (xt::get-resource db resource-name resource-class)))
+	(let ((background (get-resource "background" "Background"))
+	      (foreground (get-resource "foreground" "Foreground"))
+	      (text-style (get-resource "textStyle" "TextStyle")))
+	  (setq *resource-name* resource-name
+		*resource-class* resource-class)
+	  `(,@(and background `(:background ,background))
+	    ,@(and foreground `(:foreground ,foreground))
+	    ,@(and text-style
+		   `(:text-style
+		     ,(let ((spec (read-from-string text-style)))
+			(etypecase spec
+			  (cons (parse-text-style spec))
+			  (string (silica::make-device-font 
+				   port 
+				   (make-instance 'tk::font 
+				     :display display
+				     :name (car (tk::list-font-names
+						 display spec)))))))))))))))
 
 ;;;--- Gadget activation deactivate
 

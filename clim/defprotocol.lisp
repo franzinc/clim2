@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: defprotocol.lisp,v 1.5 92/07/01 15:46:16 cer Exp $
+;; $fiHeader: defprotocol.lisp,v 1.6 92/11/06 18:59:24 cer Exp $
 
 (in-package :clim-internals)
 
@@ -65,7 +65,7 @@
 (defvar *original-stream* nil)
 
 ;; If you change this to maintain a more complex mapping than a simple
-;; binding of *ORIGINAL-STREAM*, change ENCAPSULATED-STREAM too.
+;; binding of *ORIGINAL-STREAM*, change ENCAPSULATING-STREAM too.
 (defmacro generate-stream-protocol-trampolines ()
   `(progn
      ,@(writing-clauses

@@ -17,7 +17,7 @@
  * 52.227-19 or DOD FAR Supplement 252 52.227-7013 (c) (1) (ii), as
  * applicable.
  *
- * $fiHeader$
+ * $fiHeader: MyDrawingAP.h,v 1.1 92/05/13 08:54:23 cer Exp $
  */
 
 #ifndef _XmMyDrawingAreaP_h

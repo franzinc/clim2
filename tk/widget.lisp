@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: tk -*-
 ;;
-;;				-[]-
+;;				-[Mon Jul 19 18:51:48 1993 by colin]-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: widget.lisp,v 1.29 93/03/18 14:38:43 colin Exp $
+;; $fiHeader: widget.lisp,v 1.30 1993/06/04 16:07:02 cer Exp $
 
 (in-package :tk)
 
@@ -159,8 +159,15 @@
      w
      (progn
        (remf args :foreign-address)
+       (unless (getf args :name)
+	 (setf (getf args :name)
+	   (string-downcase 
+	    (tk::widget-class-name (tk::class-handle (class-of w)))
+	    :start 0 :end 1)))
        (setf (foreign-pointer-address w)
 	 (apply #'make-widget w args))))))
+
+
 
 (defmethod destroy-widget-cleanup ((widget xt-root-class))
   (dolist (cleanup (widget-cleanup-functions widget))

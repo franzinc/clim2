@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-frames.lisp,v 1.59 1993/06/23 00:13:54 cer Exp $
+;; $fiHeader: xm-frames.lisp,v 1.60 1993/07/22 15:39:35 cer Exp $
 
 (in-package :xm-silica)
 
@@ -122,16 +122,23 @@
   ;; submenus then it creates one with a menu of its own
   
   (let* ((mirror (call-next-method))
-	 (text-style (pane-text-style sheet))
-	 (font-list (list :font-list (text-style-mapping port text-style)))
+	 (initargs (remove-keywords
+		    (find-widget-resource-initargs-for-sheet port sheet)
+		    '(:font-list)))
+	 (menu-text-style (pane-text-style sheet))
 	 (ct (menu-bar-command-table sheet))
 	 (flatp (flat-command-table-menu-p ct))
 	 (frame (pane-frame sheet)))
     (labels ((compute-options (item)
-	       (let ((text-style (getf (command-menu-item-options item) :text-style)))
-		 (if text-style
-		     (list :font-list (text-style-mapping port text-style))
-		   font-list)))
+	       (let ((item-text-style (getf (command-menu-item-options item)
+					    :text-style)))
+		 (list* :font-list
+			(text-style-mapping
+			 port
+			 (if item-text-style
+			     (merge-text-styles item-text-style menu-text-style)
+			   menu-text-style))
+			initargs)))
 	     (update-menu-item-sensitivity (widget frame commands)
 	       (declare (ignore widget))
 	       (dolist (cbs commands)
@@ -153,26 +160,29 @@
 				     frame
 				     commands-and-buttons))))
 	     (make-submenu (parent menu item)
-	       (let* ((shell (make-instance 'xt::xm-menu-shell 
-					    :width 5 ; This widget is
-						     ; realized when
-						     ; it is created
-						     ; so we have to
-						     ; specify a size!
-					    :height 5
-					    :allow-shell-resize t
-					    :override-redirect t
-					    :parent parent))
+	       (let* ((options (compute-options item))
+		      (shell (apply #'make-instance 'xt::xm-menu-shell 
+				    :width 5 ; This widget is
+				; realized when
+				; it is created
+				; so we have to
+				; specify a size!
+				    :height 5
+				    :allow-shell-resize t
+				    :override-redirect t
+				    :parent parent
+				    options))
 
-		      (submenu (make-instance 'xt::xm-row-column
-					      :managed nil
-					      :parent shell
-					      :row-column-type :menu-pulldown))
+		      (submenu (apply #'make-instance 'xt::xm-row-column
+				      :managed nil
+				      :parent shell
+				      :row-column-type :menu-pulldown
+				      options))
 		      (cb (apply #'make-instance 'xt::xm-cascade-button
 					 :parent parent
 					 :label-string menu
 					 :sub-menu-id submenu
-					 (compute-options item))))
+					 options)))
 		 (unless flatp
 		   (set-button-mnemonic sheet
 					cb (getf
@@ -207,7 +217,8 @@
 	       (let ((commands-and-buttons nil))
 		 (map-over-command-table-menu-items
 		  #'(lambda (menu keystroke item)
-		      (let ((type (command-menu-item-type item)))
+		      (let ((type (command-menu-item-type item))
+			    (options (compute-options item)))
 			(case type
 			  (:divider
 			   (ecase (command-menu-item-value item)
@@ -215,9 +226,11 @@
 			      (apply #'make-instance 'tk::xm-label
 				     :label-string menu
 				     :parent parent
-				     (compute-options item)))
+				     options))
 			     ((nil :divider)
-			      (make-instance 'tk::xm-separator :parent parent))))
+			      (apply #'make-instance 'tk::xm-separator
+				     :parent parent
+				     options))))
 			  (:function
 			   ;;--- Do this sometime
 			   )
@@ -226,16 +239,17 @@
 			  (t
 			   (let ((parent parent))
 			     (when top
-			       (let* ((submenu (make-instance
-						'tk::xm-pulldown-menu
-						:managed nil
-						:parent parent))
+			       (let* ((submenu (apply #'make-instance
+						      'tk::xm-pulldown-menu
+						      :managed nil
+						      :parent parent
+						      options))
 				      (cb (apply #'make-instance 'xt::xm-cascade-button
 						 :parent parent
 						 :label-string menu
 						 :sub-menu-id
 						 submenu
-						 (compute-options item))))
+						 options)))
 				 (declare (ignore cb))
 				 (setq parent submenu)))
 			     (let ((button 
@@ -246,7 +260,7 @@
 					   :sensitive (command-enabled
 						       (car (command-menu-item-value item))
 						       (slot-value sheet 'silica::frame))
-					   (compute-options item))))
+					   options)))
 			       (push (list item button)
 				     commands-and-buttons)
 			       
@@ -332,32 +346,47 @@
 	 (simplep (and (null printer)
 		       (null presentation-type)))
 	 (port (port framem))
-	 (menu (make-instance 'tk::xm-popup-menu 
-			      :parent (or (and associated-window
-					       (sheet-mirror associated-window))
-					  (port-application-shell
-					   port))
-			      :menu-post (case (and gesture
-						    (gesture-name-button-and-modifiers gesture))
-					   (#.+pointer-left-button+ "<Btn1Down>")
-					   (#.+pointer-middle-button+ "<Btn2Down>")
-					   (#.+pointer-right-button+ "<Btn3Down>")
-					   (t "<Btn3Down>"))
-			      :orientation (if row-wise 
-					       :horizontal
-					     :vertical)
-			      :packing :column
-			      :num-columns 
-			      (or n-columns
-				  (and n-rows
-				       (ceiling (length items) n-rows))
-				  (if row-wise 
-				      (length items)
-				    1))
-			      :managed nil))
-	 (font (and text-style (text-style-mapping port text-style)))
-	 (font-list (and (or label simplep) font (list :font-list (list font))))
-	 (frame (pane-frame associated-window)))
+	 (initargs (remove-keywords 
+		    (if (and associated-window
+			     (typep associated-window 'sheet-with-resources-mixin))
+			(find-widget-resource-initargs-for-sheet port
+								 associated-window)
+		      (find-application-resource-initargs port))
+		    '(:font-list)))
+	 (default-text-style 
+	     (or (and associated-window
+		      (typep associated-window 'sheet-with-resources-mixin)
+		      (pane-text-style associated-window))
+		 (getf (get-application-resources port) :text-style)
+		 *default-text-style*))
+	 (menu-text-style (if text-style
+			      (merge-text-styles text-style
+						 default-text-style)
+			    default-text-style))
+	 (frame (pane-frame associated-window))
+	 (menu (apply #'make-instance  'tk::xm-popup-menu 
+		      :parent (or (and associated-window
+				       (sheet-mirror associated-window))
+				  (port-application-shell port))
+		      :menu-post (case (and gesture
+					    (gesture-name-button-and-modifiers gesture))
+				   (#.+pointer-left-button+ "<Btn1Down>")
+				   (#.+pointer-middle-button+ "<Btn2Down>")
+				   (#.+pointer-right-button+ "<Btn3Down>")
+				   (t "<Btn3Down>"))
+		      :orientation (if row-wise 
+				       :horizontal
+				     :vertical)
+		      :packing :column
+		      :num-columns 
+		      (or n-columns
+			  (and n-rows
+			       (ceiling (length items) n-rows))
+			  (if row-wise 
+			      (length items)
+			    1))
+		      :managed nil
+		      initargs)))
     (when label
       (let ((title (if (atom label) label (car label))))
 	(check-type title string)
@@ -366,45 +395,50 @@
 		 :parent menu
 		 :managed nil
 		 :label-string title
-		 (if text-style
-		     (list :font-list (list (text-style-mapping port text-style)))
-		   font-list))))
-      (make-instance 'xt::xm-separator
-		     :managed nil
-		     :separator-type :double-line
-		     :parent menu))
+		 (list* :font-list
+			(text-style-mapping
+			 port
+			 (if text-style
+			     (merge-text-styles text-style menu-text-style)
+			   menu-text-style))
+			initargs))))
+      (apply #'make-instance 'xt::xm-separator
+	     :managed nil
+	     :separator-type :double-line
+	     :parent menu
+	     initargs))
     (labels ((make-menu-button (item class parent &rest options)
-	       (let* ((style (clim-internals::menu-item-text-style item))
+	       (let* ((item-text-style (clim-internals::menu-item-text-style item))
+		      (text-style (if item-text-style
+				      (merge-text-styles item-text-style menu-text-style)
+				    menu-text-style))
 		      (button
-		      (if simplep
-			  (apply #'make-instance
-				 class 
-				 :sensitive (clim-internals::menu-item-active item)
-				 :parent parent 
-				 :managed nil
-				 :label-string (princ-to-string (menu-item-display item))
-				 (if style
-				     (list* :font-list (list (text-style-mapping port style))
-					    options)
-				 (append font-list options)))
-			(let* ((pixmap (pixmap-from-menu-item
-					associated-window 
-					item
-					printer
-					presentation-type
-					text-style))
-			       (button
-				(apply #'make-instance
-				       class 
-				       :sensitive (clim-internals::menu-item-active item)
-				       :parent parent 
-				       :label-type :pixmap
-				       :label-pixmap pixmap
-				       :label-insensitive-pixmap pixmap
-				       options)))
-			  (xt::add-widget-cleanup-function
-			     button
-			     #'tk::destroy-pixmap pixmap)
+		       (if simplep
+			   (apply #'make-instance class 
+				  :sensitive (clim-internals::menu-item-active item)
+				  :parent parent 
+				  :managed nil
+				  :label-string (princ-to-string (menu-item-display item))
+				  (list* :font-list
+					 (text-style-mapping port text-style)
+					 options))
+			 (let* ((pixmap (pixmap-from-menu-item
+					 associated-window 
+					 item
+					 printer
+					 presentation-type
+					 text-style))
+				(button
+				 (apply #'make-instance class 
+					:sensitive (clim-internals::menu-item-active item)
+					:parent parent 
+					:label-type :pixmap
+					:label-pixmap pixmap
+					:label-insensitive-pixmap pixmap
+					options)))
+			   (xt::add-widget-cleanup-function
+			    button
+			    #'tk::destroy-pixmap pixmap)
 			  button))))	
 		 (add-documentation-callbacks
 		  frame button
@@ -414,33 +448,47 @@
 	       (map nil #'(lambda (item)
 			    (ecase (clim-internals::menu-item-type item)
 			      (:divider
-			       (make-instance 'xt::xm-separator
-					      :parent menu))
+			       (apply #'make-instance 'xt::xm-separator
+				      :parent menu
+				      initargs))
 			      (:label
-				  (make-instance 'xt::xm-label
-						 :parent menu
-						 :managed nil
-						 :label-string (string
-								(menu-item-display item))))
+			       (let ((item-text-style
+				      (clim-internals::menu-item-text-style item)))
+				 (apply #'make-instance 'xt::xm-label
+					:parent menu
+					:managed nil
+					:label-string (string
+						       (menu-item-display item))
+					(list* :font-list
+					       (text-style-mapping
+						port
+						(if item-text-style
+						    (merge-text-styles item-text-style
+								       menu-text-style)
+						  menu-text-style))
+					       initargs))))
 			      (:item
 			       (if (clim-internals::menu-item-items item)
-				   (let* ((submenu (make-instance
-						    'tk::xm-pulldown-menu
-						    :managed nil
-						    :parent menu))
+				   (let* ((submenu (apply #'make-instance
+							  'tk::xm-pulldown-menu
+							  :managed nil
+							  :parent menu
+							  initargs))
 					  (menu-button
-					   (make-menu-button item 
-							     'xt::xm-cascade-button
-							     menu
-							     :sub-menu-id submenu)))
+					   (apply #'make-menu-button item 
+						  'xt::xm-cascade-button
+						  menu
+						  :sub-menu-id submenu
+						  initargs)))
 				     (declare (ignore menu-button))
 				     (construct-menu-from-items 
 				      submenu 
 				      (clim-internals::menu-item-items item)))
 				 (let ((menu-button
-					(make-menu-button item 
-							  'xt::xm-push-button
-							  menu))
+					(apply #'make-menu-button item 
+					       'xt::xm-push-button
+					       menu
+					       initargs))
 				       (value (menu-item-value item)))
 				   (tk::add-callback
 				    menu-button

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: framem.lisp,v 1.28 93/03/19 09:44:42 cer Exp $
+;; $fiHeader: framem.lisp,v 1.29 1993/06/04 16:06:37 cer Exp $
 
 (in-package :silica)
 
@@ -112,10 +112,12 @@
 			       :region (multiple-value-bind (width height)
 					   (bounding-rectangle-size top-pane)
 					 (make-bounding-rectangle 0 0 width height))
-			       :parent (find-graft :port (port frame))))))
+			       :background (frame-background frame)))))
+      (sheet-adopt-child (find-graft :port (port frame)) sheet)
       (setf (frame-top-level-sheet frame) sheet
 	    (frame-shell frame) (sheet-shell sheet))
-      (sheet-adopt-child sheet (frame-panes frame)))))
+      (sheet-adopt-child sheet top-pane))))
+
 
 (defmethod adopt-frame :after ((framem standard-frame-manager) frame)
   (setf (frame-manager-frames framem)

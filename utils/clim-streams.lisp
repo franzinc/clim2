@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clim-streams.lisp,v 1.7 92/10/02 15:18:40 cer Exp $
+;; $fiHeader: clim-streams.lisp,v 1.8 92/11/06 19:04:55 cer Exp $
 
 (in-package :clim-utils)
 
@@ -24,8 +24,21 @@
 ;; Return the encapsulated stream corresponding to STREAM.
 ;; If you change GENERATE-STREAM-PROTOCOL-TRAMPOLINES to maintain a more complex
 ;; mapping than a simple binding of *ORIGINAL-STREAM*, change this too.
-(defmacro encapsulated-stream (stream &optional (encapsulated-stream '*original-stream*))
-  `(or ,encapsulated-stream ,stream))
+
+(defmethod stream-encapsulates-stream-p 
+    ((encapsulator standard-encapsulating-stream) stream)
+  (let ((encapsulated-stream (encapsulating-stream-stream encapsulator)))
+    (or (eq encapsulated-stream stream)
+	(stream-encapsulates-stream-p encapsulated-stream stream))))
+
+(defmethod stream-encapsulates-stream-p ((stream1 stream) (stream2 stream))
+  nil)
+
+(defun encapsulating-stream (stream)
+  (if (and *original-stream*
+	   (stream-encapsulates-stream-p *original-stream* stream))
+      *original-stream*
+    stream))
 
 
 ;;; Shadow this for all Lisp implementations

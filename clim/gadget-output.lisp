@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadget-output.lisp,v 1.50 1993/05/13 16:28:50 colin Exp $
+;; $fiHeader: gadget-output.lisp,v 1.51 1993/05/25 20:40:49 cer Exp $
 
 (in-package :clim-internals)
 
@@ -610,38 +610,47 @@
 
 ;;; Text Field gadget
 
-;; The string case is straightforward
-(define-presentation-method decode-indirect-view
-			    ((type string) (view gadget-dialog-view)
-			     (framem standard-frame-manager) &key)
-  +text-field-view+)
+(defmacro define-decode-indirect-view-methods-for-types ((view1 view2) &body types)
+  `(progn
+     ,@(mapcar #'(lambda (type)
+		   `(define-presentation-method decode-indirect-view
+			((type ,type) (view ,view1)
+				      (framem standard-frame-manager) &key)
+		      ,view2))
+	       types)))
 
-(define-presentation-method accept-present-default 
-			    ((type t) stream (view text-field-view)
-			     default default-supplied-p present-p query-identifier
-			     &key (prompt t) (active-p t))
-  (declare (ignore default-supplied-p present-p))
-  (make-gadget-for-text-field-view 
-    stream view active-p default type prompt query-identifier t))
+(define-decode-indirect-view-methods-for-types 
+    (gadget-dialog-view +text-field-view+)
+    real string pathname sequence sequence-enumerated)
 
 ;; Boring.  We need a whole bunch of methods to shadow those in STANDARD-TYPES:
-(defmacro define-present-methods-for-types (function view &body types)
+(defmacro define-present-methods-for-types ((function view) &body types)
   `(progn
      ,@(mapcar #'(lambda (type)
 		   `(define-presentation-method present 
 		        (object (type ,type) stream (view ,view) 
 			 &key acceptably query-identifier prompt)
 		      (declare (ignore acceptably))
-		      (,function stream view t object type prompt query-identifier nil)))
+		      (,function stream view t object t type prompt query-identifier nil)))
 	       types)))
 
 ;;--- Should there be a method specialized on T???
-(define-present-methods-for-types make-gadget-for-text-field-view text-field-view
+(define-present-methods-for-types 
+    (make-gadget-for-text-field-view text-field-view)
   real string pathname boolean
   completion subset-completion
   sequence sequence-enumerated)
 
-(defun make-gadget-for-text-field-view (stream view active-p default type
+(define-presentation-method accept-present-default 
+			    ((type t) stream (view text-field-view)
+			     default default-supplied-p present-p query-identifier
+			     &key (prompt t) (active-p t))
+  (declare (ignore present-p))
+  (make-gadget-for-text-field-view 
+    stream view active-p default default-supplied-p type prompt query-identifier t)) 
+
+(defun make-gadget-for-text-field-view (stream view active-p default
+					default-supplied-p type
 					prompt query-identifier
 					&optional (editable-p t))
   (move-cursor-to-view-position stream view)
@@ -650,12 +659,17 @@
 	   (if active-p
 	       (activate-gadget text-field)
 	       (deactivate-gadget text-field))
- 	   (setf (gadget-value text-field) (present-to-string default type))))
+ 	   (setf (gadget-value text-field)
+	     (if default-supplied-p
+		 (present-to-string default type)
+	       ""))))
     (with-output-as-gadget (stream :cache-value type :update-gadget #'update-gadget)
       (let ((text-field (make-pane-from-view 
 			  'text-field view
 			  :label (and (stringp prompt) prompt)
-			  :value (present-to-string default type)
+			  :value (if default-supplied-p
+				     (present-to-string default type)
+				   "")
 			  :client stream :id query-identifier
 			  :editable-p editable-p
 			  :value-changed-callback
@@ -704,13 +718,6 @@
 	 (do-avv-command object stream query))))))
 
 
-
-(define-presentation-method decode-indirect-view
-			    ((type sequence) (view gadget-dialog-view)
-			     (framem standard-frame-manager) &key)
-  +text-field-view+)
-
-
 ;;; Text Editor gadget
 
 (define-presentation-method accept-present-default 
@@ -719,12 +726,15 @@
 			     &key (prompt t) (active-p t))
   (declare (ignore default-supplied-p present-p))
   (make-gadget-for-text-editor
-    stream view active-p default type prompt query-identifier t))
+    stream view active-p default t type prompt query-identifier t))
 
-(define-present-methods-for-types make-gadget-for-text-editor text-editor-view 
-  string)
+(define-present-methods-for-types 
+    (make-gadget-for-text-editor text-editor-view)
+    string)
 
-(defun make-gadget-for-text-editor (stream view active-p default type prompt query-identifier
+(defun make-gadget-for-text-editor (stream view active-p default
+				    default-supplied-p type
+				    prompt query-identifier
 				    &optional (editable-p t))
 
   (move-cursor-to-view-position stream view)
@@ -733,19 +743,30 @@
 	   (if active-p
 	       (activate-gadget button)
 	       (deactivate-gadget button))
- 	   (setf (gadget-value button) default)))
+ 	   (setf (gadget-value button) 
+	     (if default-supplied-p
+		 default
+	       ""))))
     (with-output-as-gadget (stream :cache-value type :update-gadget #'update-gadget)
       (let ((text-field (make-pane-from-view 'text-editor view
 			  :label (and (stringp prompt) prompt)
-			  :value default
+			  :value (if default-supplied-p
+				     default
+				   "")
 			  :client stream :id query-identifier
-			  :value-changed-callback
-			    (and editable-p
-				 (make-accept-values-value-changed-callback
-				   stream query-identifier))
-			  :active active-p
 			  :editable-p editable-p
-			  :help-callback (make-gadget-help type))))
+			  :value-changed-callback
+			    `(accept-values-note-text-field-changed-callback
+			       ,query-identifier)
+			  :focus-out-callback
+			    ;;--- Why do we check for editable-p?  If it
+			    ;;--- is read-only, won't this callback never be
+			    ;;--- called? (cim) 
+			    (and editable-p
+				 `(accept-values-string-field-changed-callback
+				    ,stream ,query-identifier))
+			    :active active-p
+			    :help-callback (make-gadget-help type))))
  	(values (scrolling () text-field) text-field)))))
 
 

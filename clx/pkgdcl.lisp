@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: pkgdcl.lisp,v 1.3 92/07/01 15:46:01 cer Exp $
+;; $fiHeader: pkgdcl.lisp,v 1.4 92/09/24 09:38:17 cer Exp $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :common-lisp-user)
 

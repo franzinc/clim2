@@ -17,7 +17,7 @@
  * 52.227-19 or DOD FAR Supplement 252 52.227-7013 (c) (1) (ii), as
  * applicable.
  *
- * $fiHeader: xlibsupport.c,v 1.2 92/11/19 14:26:00 cer Exp $
+ * $fiHeader: xlibsupport.c,v 1.3 92/12/03 10:30:54 cer Exp $
  */
 
 /************************************************************************/

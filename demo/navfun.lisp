@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: navfun.lisp,v 1.24 93/02/10 10:04:10 cer Exp $
+;; $fiHeader: navfun.lisp,v 1.25 1993/07/22 15:38:31 cer Exp $
 
 (in-package :clim-demo)
 
@@ -1338,7 +1338,7 @@
 	 color)
     (accepting-values (stream :own-window t)
       (setq type (accept '(member vfr ifr dvfr) :prompt "Type"
-			 :default type))
+			 :default type :stream stream))
       (terpri stream)
       (multiple-value-bind (new-plane ptype changed)
 	  (accept 'aircraft :prompt "Aircraft Identification"

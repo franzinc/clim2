@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: stream-defprotocols.lisp,v 1.14 92/12/03 10:27:53 cer Exp $
+;; $fiHeader: stream-defprotocols.lisp,v 1.15 93/01/21 14:58:20 cer Exp $
 
 (in-package :clim-internals)
 

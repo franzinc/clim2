@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: font.lisp,v 1.13 92/08/18 17:53:31 cer Exp $
+;; $fiHeader: font.lisp,v 1.14 92/11/10 08:56:20 cer Exp $
 
 (in-package :tk)
 

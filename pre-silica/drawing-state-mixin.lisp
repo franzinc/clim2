@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: drawing-state-mixin.lisp,v 1.4 92/05/18 14:03:50 cer Exp Locker: cer $
+;; $fiHeader: drawing-state-mixin.lisp,v 1.5 92/07/01 15:48:35 cer Exp $
 
 (in-package :clim-internals)
 

@@ -22,7 +22,7 @@
 (in-package :lucid)
 
 
-;;; $fiHeader: lucid-after.lisp,v 1.1 92/02/24 13:18:28 cer Exp $
+;;; $fiHeader: lucid-after.lisp,v 1.2 92/10/02 15:19:45 cer Exp $
 ;;; Workaround for a disksave/hash bug.  
 ;;;
 (defun rehash-ptypes ()

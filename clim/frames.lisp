@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: frames.lisp,v 1.69 1993/06/21 20:50:04 cer Exp $
+;; $fiHeader: frames.lisp,v 1.70 1993/07/22 15:37:51 cer Exp $
 
 (in-package :clim-internals)
 
@@ -13,6 +13,7 @@
 (defclass standard-application-frame (application-frame)
     ((name :initarg :name :accessor frame-name)
      (pretty-name :initarg :pretty-name :accessor frame-pretty-name)
+     (background :initform nil :initarg :background :accessor frame-background)
      (command-table :initarg :command-table 
 		    :initform (find-command-table 'user-command-table)
 		    :accessor frame-command-table)
@@ -96,8 +97,18 @@
   (let ((framem (frame-manager frame)))
     (if framem
 	(frame-manager-palette framem)
-	(and (port frame)
-	     (port-default-palette (port frame))))))
+      (and (port frame)
+	   (port-default-palette (port frame))))))
+
+(defmethod color-stream-p ((stream stream))
+  nil)
+
+(defmethod color-stream-p ((stream basic-extended-output-protocol))
+  (let* ((frame (pane-frame stream))
+	 (palette (if frame
+		      (frame-palette frame)
+		    (port-default-palette (port stream)))))
+    (palette-color-p palette)))
 
 ;; Default method does nothing
 (defmethod generate-panes ((framem standard-frame-manager)

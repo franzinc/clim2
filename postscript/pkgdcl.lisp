@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: pkgdcl.lisp,v 1.3 92/09/24 09:40:36 cer Exp Locker: cer $
+;; $fiHeader: pkgdcl.lisp,v 1.4 92/09/30 18:04:33 cer Exp $
 
 (provide :climps)
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: drag-and-drop.lisp,v 1.10 93/01/18 13:54:23 cer Exp $
+;; $fiHeader: drag-and-drop.lisp,v 1.11 93/03/19 09:43:23 cer Exp $
 
 (in-package :clim-internals)
 

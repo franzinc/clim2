@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: tracking-pointer.lisp,v 1.16 93/03/19 09:43:50 cer Exp $
+;; $fiHeader: tracking-pointer.lisp,v 1.17 93/05/05 01:39:05 cer Exp $
 
 (in-package :clim-internals)
 

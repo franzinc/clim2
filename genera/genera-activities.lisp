@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: Common-Lisp; Package: GENERA-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: genera-activities.lisp,v 1.9 92/10/28 11:32:37 cer Exp $
+;; $fiHeader: genera-activities.lisp,v 1.10 92/11/19 14:24:29 cer Exp $
 
 (in-package :genera-clim)
 

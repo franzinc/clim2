@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: pixmaps.lisp,v 1.16 93/03/25 15:40:37 colin Exp $
+;; $fiHeader: pixmaps.lisp,v 1.17 93/05/13 16:29:52 colin Exp $
 
 (in-package :silica)
 
@@ -82,18 +82,17 @@
 	   basic-sheet)
     ())
 
+
 (defmethod initialize-instance :after ((sheet pixmap-sheet)
 				       &key port medium width height)
   ;; The medium must be a pixmap medium...
   (check-type medium basic-pixmap-medium)
   (setf (sheet-direct-mirror sheet) (medium-drawable medium)
-	(port sheet) port
+	(slot-value sheet 'port) port
+	(medium-sheet medium) sheet
+	(sheet-medium sheet) medium
 	(sheet-transformation sheet) +identity-transformation+
-	(sheet-region sheet) (make-bounding-rectangle 0 0 width height)
-	(medium-foreground sheet) (or (medium-foreground medium) +black+)
-	(medium-background sheet) (or (medium-background medium) +white+)
-	(medium-default-text-style sheet) (or (medium-default-text-style medium)
-					      *default-text-style*)))
+	(sheet-region sheet) (make-bounding-rectangle 0 0 width height)))
 
 (defmethod handle-repaint ((pane pixmap-sheet) region)
   (declare (ignore region))

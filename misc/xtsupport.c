@@ -1,4 +1,4 @@
-/* $fiHeader: xtsupport.c,v 1.5 93/04/15 15:08:27 cer Exp $ */
+/* $fiHeader: xtsupport.c,v 1.6 93/05/13 16:23:52 cer Exp $ */
 
 #include <X11/Intrinsic.h>
 

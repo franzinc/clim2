@@ -21,7 +21,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: chess.lisp,v 1.9 92/09/24 09:39:40 cer Exp $
+;; $fiHeader: chess.lisp,v 1.10 93/02/08 15:57:46 cer Exp $
 
 
 (in-package :clim-user)

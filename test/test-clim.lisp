@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: test-clim.lisp,v 1.9 1993/06/04 16:06:46 cer Exp $
+;; $fiHeader: test-clim.lisp,v 1.10 1993/06/04 20:46:32 cer Exp $
 
 
 (in-package :clim-user)
@@ -428,6 +428,8 @@
     (position-sheet-carefully (frame-top-level-sheet *application-frame*) x y)
     (multiple-value-bind (nx ny)
 	(tk::get-values (silica:frame-shell *application-frame*) :x :y)
+      ;; this tends to fail because the window decoration appears to
+      ;; be taken into consideration in the position-sheet-carefully
       (assert (and (= x nx) (= y ny))))))
 
 (define-frame-test-command com-frame-test-bury

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: gcontext.lisp,v 1.22 92/12/17 15:33:37 cer Exp $
+;; $fiHeader: gcontext.lisp,v 1.23 93/04/08 13:18:39 colin Exp $
 
 (in-package :tk)
 

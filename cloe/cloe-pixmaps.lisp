@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLOE-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: cloe-pixmaps.lisp,v 1.2 92/10/28 11:32:30 cer Exp $
+;; $fiHeader: cloe-pixmaps.lisp,v 1.3 92/11/06 19:01:52 cer Exp $
 
 (in-package :cloe-clim)
 

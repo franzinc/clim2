@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: lisp-utilities.lisp,v 1.29 93/03/19 09:47:22 cer Exp $
+;; $fiHeader: lisp-utilities.lisp,v 1.30 93/04/15 15:08:35 cer Exp $
 
 (in-package :clim-utils)
 

@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: pkg.lisp,v 1.8 92/10/02 15:18:57 cer Exp $
+;; $fiHeader: pkg.lisp,v 1.9 93/03/19 09:47:34 cer Exp $
 
 
 (defpackage :x11

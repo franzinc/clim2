@@ -21,7 +21,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: process-browser.lisp,v 1.5 92/10/28 11:33:07 cer Exp Locker: cer $
+;; $fiHeader: process-browser.lisp,v 1.6 92/11/05 17:15:51 cer Exp $
 
 
 (in-package :clim-demo)

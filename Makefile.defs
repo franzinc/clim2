@@ -1,4 +1,4 @@
-# $fiHeader: Makefile.defs,v 1.13 1993/06/21 20:49:50 cer Exp $
+# $fiHeader: Makefile.defs,v 1.14 1993/07/22 15:37:33 cer Exp $
 #
 #  Makefile.defs for CLIM 2.0
 #
@@ -517,7 +517,7 @@ make = make SPEED=${SPEED} SAFETY=${SAFETY} DEBUG=${DEBUG} \
 	LOAD_XREF_INFO=${LOAD_XREF_INFO} \
 	RECORD_XREF_INFO=${RECORD_XREF_INFO} CL=${CL} \
 	CLIM=${CLIM} CLIMOL=${CLIMOL} CLIMXM=${CLIMXM} DUMP-CLIM=${DUMP-CLIM} \
-	COMPILE_PRINT=${COMPILE_PRINT}
+	COMPILE_PRINT=${COMPILE_PRINT} TMP=${TMP}
 
 CLIM1COMPAT= compatibility/packages.fasl compatibility/clim1-compatibility.fasl
 

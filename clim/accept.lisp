@@ -1,7 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-
-;; $fiHeader: accept.lisp,v 1.23 1993/05/13 16:28:20 colin Exp $
+;; $fiHeader: accept.lisp,v 1.24 1993/06/02 18:40:25 cer Exp $
 
 (in-package :clim-internals)
 
@@ -89,14 +88,14 @@
   ;; can't because we want to be able to decide exactly how it is called
   ;; on a case-by-case basis.  For example, within ACCEPTING-VALUES...
   (with-keywords-removed (accept-args accept-args '(:stream :view))
-    (apply #'stream-accept (encapsulated-stream stream) type
+    (apply #'stream-accept (encapsulating-stream stream) type
 			   :view view :query-identifier query-identifier
 			   accept-args)))
 
 (defmethod stream-accept ((stream input-protocol-mixin) type &rest accept-args
 			  &key view &allow-other-keys)
   (declare (dynamic-extent accept-args))
-  (let* ((stream (encapsulated-stream stream))
+  (let* ((stream (encapsulating-stream stream))
 	 (query-identifier (apply #'prompt-for-accept
 				  stream type view accept-args)))
     (apply #'accept-1 stream type
@@ -400,8 +399,8 @@
   (declare (dynamic-extent accept-args))
   (let ((query-identifier
 	  (apply #'prompt-for-accept
-		 (encapsulated-stream stream) type view accept-args)))
-    (apply #'accept-1 (encapsulated-stream stream) type
+		 (encapsulating-stream stream) type view accept-args)))
+    (apply #'accept-1 (encapsulating-stream stream) type
 		      :query-identifier query-identifier
 		      accept-args)))
 

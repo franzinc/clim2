@@ -21,7 +21,7 @@
 
 (in-package :lucid)
 
-;;; $fiHeader: lucid-before.lisp,v 1.3 92/02/24 13:34:11 cer Exp $
+;;; $fiHeader: lucid-before.lisp,v 1.4 92/07/01 15:45:36 cer Exp $
 
 ;;; The advice is preventing the compiler from expanding it at compile time.
 (remove-advice 'defstruct)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-stream.lisp,v 1.54 1993/06/02 18:40:28 cer Exp $
+;; $fiHeader: db-stream.lisp,v 1.55 1993/07/22 15:37:46 cer Exp $
 
 (in-package :clim-internals)
 
@@ -362,59 +362,57 @@
 				     (scroll-bars ':vertical)
 				     (borders t)
 				     (display-after-commands nil dac-p)
-				     (background nil background-p)
+				     background
 				     name
 				&allow-other-keys)
   (with-look-and-feel-realization (framem frame)
     (setq options (remove-keywords options '(:type :scroll-bars :borders
-					     :label :background
-					     :label-alignment :display-after-commands)))
-    (let ((background-options (and background-p `(:background ,background))))
-      (when dac-p
-	(setf (getf options :display-time)
-	  (cond ((eq display-after-commands t) :command-loop)
-		((eq display-after-commands :no-clear) :no-clear)
-		(t nil))))
-    
-      (let* ((stream (apply #'make-pane type (append background-options options)))
-	     (pane stream))
+					     :label :label-alignment
+					     :display-after-commands)))
+    (when dac-p
+      (setf (getf options :display-time)
+	(cond ((eq display-after-commands t) :command-loop)
+	      ((eq display-after-commands :no-clear) :no-clear)
+	      (t nil))))
 
-	(when scroll-bars
-	  (setq pane (apply #'make-pane 'scroller-pane
-			    ::scroll-bars scroll-bars
-			    :contents pane
-			    :name name
-			    background-options)))
+    (let* ((stream (apply #'make-pane type options))
+	   (pane stream))
 
-	(when label
-	  (let ((label (if (stringp label)
-			   (apply #'make-pane 'label-pane 
-				  :label label
-				  :max-width +fill+
-				  background-options)
-			 (apply #'make-pane 'label-pane 
-				:label (first label)
-				:max-width +fill+ 
-				(append (rest label)
-					background-options)))))
-	    (setq pane (apply #'make-pane 'vbox-pane
-			      :contents 	  
-			      (ecase label-alignment
-				(:bottom (list pane label))
-				(:top (list label pane)))
-			      background-options))))
-	(when borders 
-	  (setq pane
-	    (apply #'make-pane 'outlined-pane
-		   :name name
-		   :thickness 1
-		   :contents (apply #'make-pane 'spacing-pane
-				    :name name
-				    :thickness 1
-				    :contents pane
-				    background-options)
-		   background-options)))
-	(values pane stream)))))
+      (when scroll-bars
+	(setq pane (make-pane 'scroller-pane
+			      :contents pane
+			      :name name
+			      :background background)))
+
+      (when label
+	(let ((label (if (stringp label)
+			 (make-pane 'label-pane 
+				    :label label
+				    :max-width +fill+
+				    :background background)
+		       (apply #'make-pane 'label-pane 
+			      :label (first label)
+			      :max-width +fill+ 
+			      :background background
+			      (rest label)))))
+	  (setq pane (make-pane 'vbox-pane
+				:contents 	  
+				(ecase label-alignment
+				  (:bottom (list pane label))
+				  (:top (list label pane)))
+				:background background))))
+      (when borders 
+	(setq pane
+	  (make-pane 'outlined-pane
+		     :name name
+		     :thickness 1
+		     :contents (make-pane 'spacing-pane
+					  :name name
+					  :thickness 1
+					  :contents pane
+					  :background background)
+		     :background background)))
+      (values pane stream))))
 
 (defmacro make-clim-interactor-pane (&rest options)
   `(make-clim-stream-pane :type 'interactor-pane ,@options))

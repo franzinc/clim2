@@ -20,11 +20,9 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-dialogs.lisp,v 1.6 1993/05/13 16:24:58 cer Exp $
-
+;; $fiHeader: xm-dialogs.lisp,v 1.7 1993/06/02 18:42:25 cer Exp $
 
 (in-package :clim-internals)
-
 
 (defmethod frame-manager-construct-avv-panes ((frame accept-values-own-window)
 					      (framem xm-silica::motif-frame-manager))

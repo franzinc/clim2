@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: excl-verification.lisp,v 1.14 92/07/01 15:45:31 cer Exp Locker: cer $
+;; $fiHeader: excl-verification.lisp,v 1.16 93/04/28 17:19:31 layer Exp $
 
 (in-package :sys)
 
@@ -60,6 +60,6 @@ You do not have patches ~{~S ~}"
 
 (defvar *clim-version* 
     '("CLIM 2.0.beta2.0"
-      "$fiHeader: excl-verification.lisp,v 1.14 92/07/01 15:45:31 cer Exp Locker: cer $"))
+      "$fiHeader: excl-verification.lisp,v 1.16 93/04/28 17:19:31 layer Exp $"))
 
 (si::rcsnote (first *clim-version*) (second *clim-version*))

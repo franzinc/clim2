@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: interactive-defs.lisp,v 1.22 93/04/07 09:06:45 cer Exp $
+;; $fiHeader: interactive-defs.lisp,v 1.23 93/05/13 16:23:15 cer Exp $
 
 (in-package :clim-internals)
 

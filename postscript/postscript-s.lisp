@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader$
+;; $fiHeader: postscript-s.lisp,v 1.1 92/11/20 08:45:40 cer Exp $
 
 
 (in-package :postscript-clim)

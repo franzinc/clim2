@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: coordinate-sorted-set.lisp,v 1.6 92/09/24 09:38:36 cer Exp $
+;; $fiHeader: coordinate-sorted-set.lisp,v 1.7 92/12/03 10:26:12 cer Exp $
 
 (in-package :clim-internals)
 

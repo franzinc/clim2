@@ -17,7 +17,7 @@
  * 52.227-19 or DOD FAR Supplement 252 52.227-7013 (c) (1) (ii), as
  * applicable.
  *
- * $fiHeader: MyDrawingA.c,v 1.3 92/06/23 08:20:05 cer Exp $
+ * $fiHeader: MyDrawingA.c,v 1.4 93/05/13 16:23:43 cer Exp $
  */
 
 

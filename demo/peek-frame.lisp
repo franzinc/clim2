@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: peek-frame.lisp,v 1.3 92/10/07 14:43:45 cer Exp $
+;; $fiHeader: peek-frame.lisp,v 1.4 93/03/19 09:44:12 cer Exp $
 
 (in-package :clim-user)
 

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-defs.lisp,v 1.6 92/06/29 14:04:26 cer Exp $
+;; $fiHeader: xm-defs.lisp,v 1.7 92/11/18 15:55:02 colin Exp $
 
 ;;
 ;; This file contains compile time only code -- put in clim-debug.fasl.

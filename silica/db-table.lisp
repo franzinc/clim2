@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: db-table.lisp,v 1.16 92/09/24 09:37:36 cer Exp $
+;; $fiHeader: db-table.lisp,v 1.17 93/03/19 09:44:41 cer Exp $
 
 (in-package :silica)
 

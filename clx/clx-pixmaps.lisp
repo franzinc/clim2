@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLX-CLIM; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clx-pixmaps.lisp,v 1.6 92/09/08 15:17:15 cer Exp $
+;; $fiHeader: clx-pixmaps.lisp,v 1.7 92/12/16 16:47:14 cer Exp $
 
 (in-package :clx-clim)
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: interactive-protocol.lisp,v 1.28 1993/05/25 20:40:55 cer Exp $
+;; $fiHeader: interactive-protocol.lisp,v 1.29 1993/06/21 20:50:09 cer Exp $
 
 (in-package :clim-internals)
 
@@ -222,7 +222,7 @@
 	       previous-history previous-insertion-pointer) istream
     (let ((query-identifier
 	    (apply #'prompt-for-accept
-		   (encapsulated-stream istream) type view accept-args)))
+		   (encapsulating-stream istream) type view accept-args)))
       (unless (stream-rescanning-p istream)
 	;; If we're not rescanning, reset these so that m-Y will not work
 	;; until the user types c-Y or c-m-Y.
@@ -235,7 +235,7 @@
 	       (incf scan-pointer)
 	       (values (accept-result-presentation-object next-char)
 		       (accept-result-presentation-type next-char)))
-	      (t (apply #'accept-1 (encapsulated-stream istream) type 
+	      (t (apply #'accept-1 (encapsulating-stream istream) type 
 				   :query-identifier query-identifier
 				   accept-args)))))))
 

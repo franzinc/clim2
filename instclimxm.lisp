@@ -20,7 +20,7 @@
 ;; applicable.
 ;;
 
-;; $fiHeader: instclimxm.lisp,v 1.5 92/08/21 16:34:15 cer Exp $
+;; $fiHeader: instclimxm.lisp,v 1.7 93/04/28 17:19:04 layer Exp $
 
 ;;
 ;; Load the Motif version of CLIM

@@ -44,7 +44,7 @@
 ;;      OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION
 ;;      WITH THE USE OR PERFORMANCE OF THIS OBJECT CODE.
 
-;;; $fiHeader: x11-keysyms.lisp,v 1.7 92/04/21 20:34:41 cer Exp $
+;;; $fiHeader: x11-keysyms.lisp,v 1.8 92/05/22 19:27:27 cer Exp $
 
 ;;;@(#)x11-keysym.lisp	1.3 11/29/90
 

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: convenience.lisp,v 1.13 92/12/14 15:03:50 cer Exp $
+;; $fiHeader: convenience.lisp,v 1.14 93/03/19 09:46:48 cer Exp $
 
 (in-package :tk)
 

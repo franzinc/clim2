@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: clos-preload.cl,v 1.1 92/03/24 19:45:46 cer Exp Locker: cer $
+;; $fiHeader: clos-preload.cl,v 1.2 92/06/03 18:19:07 cer Exp $
 
 (in-package :clos)
 

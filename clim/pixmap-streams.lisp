@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: pixmap-streams.lisp,v 1.17 1993/05/05 01:38:51 cer Exp $
+;; $fiHeader: pixmap-streams.lisp,v 1.18 1993/06/02 18:40:34 cer Exp $
 
 (in-package :clim-internals)
 
@@ -60,7 +60,10 @@
 					 :medium pixmap-medium
 					 :width width :height height)))
       (setf (medium-foreground pixmap-medium) (medium-foreground stream)
-	    (medium-background pixmap-medium) (medium-background stream))
+	    (medium-background pixmap-medium) (medium-background stream)
+	    (medium-default-text-style pixmap-medium)
+	    (medium-default-text-style stream)
+	    (medium-text-style pixmap-medium) (medium-text-style stream))
       (if record
 	  (replay record pixmap-stream)
 	(funcall continuation pixmap-stream))
@@ -81,6 +84,7 @@
       (multiple-value-bind (width height)
 	  (bounding-rectangle-size record)
 	(with-output-to-pixmap (stream associated-window :width width :height height)
+	  (setf (medium-default-text-style stream) text-style)
 	  (draw-rectangle* stream 0 0 width height
 			   :ink +background-ink+ :filled t)
 	  (replay-output-record

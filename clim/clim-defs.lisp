@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clim-defs.lisp,v 1.22 92/12/16 16:46:05 cer Exp $
+;; $fiHeader: clim-defs.lisp,v 1.23 93/05/13 16:28:29 colin Exp $
 
 (in-package :clim-internals)
 
@@ -304,7 +304,7 @@
 ;;; From ACCEPTING-VALUES.LISP
 (defmacro accepting-values ((&optional stream &rest args) &body body)
   (declare (arglist (&optional stream
-		     &key frame-class command-table own-window 
+		     &key frame-class command-table own-window background
 			  exit-boxes resize-frame align-prompts
 			  initially-select-query-identifier modify-initial-query
 			  resynchronize-every-pass (check-overlapping t)

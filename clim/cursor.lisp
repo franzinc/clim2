@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: cursor.lisp,v 1.23 93/03/04 18:59:47 colin Exp $
+;; $fiHeader: cursor.lisp,v 1.24 93/05/13 16:28:35 colin Exp $
 
 (in-package :clim-internals)
 
@@ -27,6 +27,9 @@
 ;;; may be manipulated.  Should this be unified with the mouse cursor stuff?
 
 ;;--- The positions here should be a COORDINATE pair, no?
+
+(defvar *default-cursor-color* +foreground-ink+)
+
 (defclass standard-text-cursor
 	  (cursor region)			;--- why REGION?
     ((x :initarg :x :type coordinate)
@@ -35,7 +38,9 @@
      (flags :initform 0 :type fixnum)
      (width :initarg :width :type coordinate)
      ;;--- Until I can think of somewhere better --CER
-     (plist :initform nil))
+     (plist :initform nil)
+     (flipping-ink :initform (make-flipping-ink *default-cursor-color*
+						+background-ink+)))
   (:default-initargs :x (coordinate 0) :y (coordinate 0)
 		     :width (coordinate 8)
 		     :stream nil))
@@ -118,6 +123,28 @@
 
 (defmethod cursor-focus ((cursor standard-text-cursor))
   (ldb-test cursor_focus (slot-value cursor 'flags)))
+
+(defmethod (setf cursor-color) (color (cursor standard-text-cursor))
+  (with-slots (flipping-ink flags) cursor
+    (multiple-value-bind (active state focus)
+	(decode-cursor-flags flags)
+      (declare (ignore active focus))
+      (unwind-protect
+	  (progn
+	    (when state
+	      (note-cursor-change cursor 'cursor-state t nil))
+	    (setf flipping-ink
+	      (make-flipping-ink color +background-ink+)))
+	(when state
+	  (note-cursor-change cursor 'cursor-state nil t))))
+    color))
+
+(defmethod cursor-color ((cursor standard-text-cursor))
+  (with-slots (flipping-ink) cursor
+    (multiple-value-bind (ink1 ink2)
+	(decode-flipping-ink flipping-ink)
+      (declare (ignore ink2))
+      ink1)))
 
 (defmethod cursor-visibility ((cursor standard-text-cursor))
   (and (cursor-active cursor)
@@ -228,10 +255,11 @@
   ;;---                       graphics protocol (draw-rectangle*)
   ;;---                       output protocol (stream-line-height)
   (let ((height (stream-line-height stream))
-	(width (slot-value cursor 'width)))
+	(width (slot-value cursor 'width))
+	(flipping-ink (slot-value cursor 'flipping-ink)))
     (unless (eq old new)
       (with-output-recording-options (stream :record nil)
-	(with-drawing-options (stream :ink +flipping-ink+)
+	(with-drawing-options (stream :ink flipping-ink)
 	  (let ((x2 (+ x1 width))
 		(y2 (+ y1 height)))
 	    (if focus
@@ -243,9 +271,3 @@
 		(draw-line* stream x1 (1+ y1) x1 (1- y2))
 		(draw-line* stream x2 (1+ y1) x2 (1- y2))))))
 	(force-output stream)))))
-
-
-
-
-
-

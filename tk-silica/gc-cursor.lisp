@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader$
+;; $fiHeader: gc-cursor.lisp,v 1.1 93/05/13 16:24:48 cer Exp $
 
 
 (in-package :xm-silica)

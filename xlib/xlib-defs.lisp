@@ -19,7 +19,7 @@
 ;; 52.227-19 or DOD FAR Suppplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;;; $fiHeader: xlib-defs.lisp,v 1.5 92/09/30 18:03:28 cer Exp $
+;;; $fiHeader: xlib-defs.lisp,v 1.6 92/12/02 13:31:44 colin Exp $
 
 ;;      (c) Copyright 1989, 1990, 1991 Sun Microsystems, Inc. Sun design
 ;;      patents pending in the U.S. and foreign countries. OPEN LOOK is a

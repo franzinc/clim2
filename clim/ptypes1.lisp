@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: ptypes1.lisp,v 1.23 1993/06/02 18:40:37 cer Exp $
+;; $fiHeader: ptypes1.lisp,v 1.24 1993/07/22 15:38:07 cer Exp $
 
 (in-package :clim-internals)
 
@@ -1364,6 +1364,12 @@
 	    superclasses)))
 
 #-CLIM-extends-CLOS
+(defmethod inherited-presentation-type-parameters-method 
+    ((to-type-name t) (from-type-name t) from-parameters)
+  (declare (ignore from-parameters))
+  nil)
+  
+#-CLIM-extends-CLOS
 (defun inherited-presentation-type-parameters (to-type-name from-type from-parameters)
   (with-presentation-type-decoded (from-type-name) from-type
     (unless (symbolp from-type-name) 
@@ -1372,6 +1378,12 @@
 	from-parameters
 	(inherited-presentation-type-parameters-method to-type-name from-type-name
 						       from-parameters))))
+
+#-CLIM-extends-CLOS
+(defmethod inherited-presentation-type-options-method 
+    ((to-type-name t) (from-type-name t) from-options)
+  (declare (ignore from-options))
+  nil)
 
 #-CLIM-extends-CLOS
 (defun inherited-presentation-type-options (to-type-name from-type from-options)

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: table-formatting.lisp,v 1.17 92/12/03 10:27:56 cer Exp $
+;; $fiHeader: table-formatting.lisp,v 1.18 92/12/16 16:47:02 cer Exp $
 
 (in-package :clim-internals)
 
@@ -552,7 +552,7 @@
     ;; of a slow MAKE-INSTANCE.  If this body was just expanded inline in
     ;; FORMATTING-CELL, it would just work to slip the IF and simply call
     ;; INVOKE-WITH-NEW-OUTPUT-RECORD...  Too bad.
-    (let ((stream (encapsulated-stream stream)))
+    (let ((stream (encapsulating-stream stream)))
       (with-stream-cursor-position-saved (stream)
 	(flet ((invoke-formatting-cell-1 (record) 
 		 (declare (ignore record))

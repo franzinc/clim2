@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: medium.lisp,v 1.34 93/03/25 15:40:30 colin Exp $
+;; $fiHeader: medium.lisp,v 1.35 1993/06/02 18:41:56 cer Exp $
 
 (in-package :silica)
 
@@ -95,19 +95,10 @@
 (defvar *default-pane-background* +white+)
 
 (defclass sheet-with-resources-mixin ()
-    ((foreground :initform nil :accessor pane-foreground)
-     (background :initform nil :accessor pane-background)
-     (text-style :initform nil :accessor pane-text-style)
-     (default-foreground :initarg :default-foreground
-                         :reader default-pane-foreground)
-     (default-background :initarg :default-background
-                         :reader default-pane-background)
-     (default-text-style :initarg :default-text-style
-                         :reader default-pane-text-style)
-     (initargs :initform nil :reader sheet-with-resources-initargs))
-  (:default-initargs :default-foreground *default-pane-foreground*
-                     :default-background *default-pane-background*
-		     :default-text-style *default-text-style*))
+  ((foreground :initform nil :accessor pane-foreground)
+   (background :initform nil :accessor pane-background)
+   (text-style :initform nil :accessor pane-text-style)
+   (initargs :initform nil :reader sheet-with-resources-initargs)))
   
 (defmethod initialize-instance :after 
 	   ((sheet sheet-with-resources-mixin) &rest args)
@@ -119,33 +110,37 @@
 				(sheet sheet-with-resources-mixin))
   nil)
   
-;;-- What do we do about pixmap streams. I guess they should inherit
-;;-- properties from the parent.
-
+(defmethod get-parent-initarg ((sheet basic-sheet) resource)
+  (loop
+    (when (null sheet)
+      (return nil))
+    (setq sheet (sheet-parent sheet))
+    (when (typep sheet 'sheet-with-resources-mixin)
+      (let ((r (getf (sheet-with-resources-initargs sheet) resource)))
+	(when r (return r))))))
+      
 (defmethod note-sheet-grafted :before ((sheet sheet-with-resources-mixin)) 
   (let* ((port (port sheet))
 	 (palette (port-default-palette port))
 	 (initargs (sheet-with-resources-initargs sheet))
 	 (resources (get-sheet-resources port sheet)))
-    (flet ((ensure-color (color)
-	     (etypecase color
-	       (color color)
-	       (string (find-named-color color palette)))))
-      (setf (pane-foreground sheet) (ensure-color
-				     (or (getf initargs :foreground) 
-					 (getf resources :foreground)
-					 (default-pane-foreground sheet)))
-	    (pane-background sheet) (ensure-color
-				     (or (getf initargs :background) 
-					 (getf resources :background)
-					 (default-pane-background sheet)))
-	    (pane-text-style sheet) (or (getf initargs :text-style) 
-					(getf resources :text-style)
-					(default-pane-text-style sheet))))))
-
-;;----- note-sheet-grafted :before ((sheet sheet-with-resources-mixin))
-;;----- calls the (setf pane-foo) methods
-;;----- Does that matter?
+    (macrolet ((ensure-color (color)
+		 (let ((c '#:c))
+		   `(let ((,c ,color))
+		      (etypecase ,c
+			(color ,c)
+			(string (find-named-color ,c palette))))))
+	       (get-resource (resource default)
+		 `(or (getf initargs ,resource)
+		      (get-parent-initarg sheet ,resource)
+		      (getf resources ,resource)
+		      ,default)))
+      (with-slots (foreground background text-style) sheet
+	(setf foreground (ensure-color
+			  (get-resource :foreground *default-pane-foreground*))
+	      background (ensure-color 
+			  (get-resource :background *default-pane-background*))
+	      text-style (get-resource :text-style *default-text-style*))))))
 
 (defmethod (setf pane-foreground) :after (ink (pane sheet-with-resources-mixin))
   (let ((m (sheet-direct-mirror pane)))

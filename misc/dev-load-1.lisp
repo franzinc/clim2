@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: user -*-
 ;;
-;;				-[]-
+;;				-[Mon Jul 26 16:54:26 1993 by colin]-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: dev-load-1.lisp,v 1.29 1993/06/02 18:41:34 cer Exp $
+;; $fiHeader: dev-load-1.lisp,v 1.30 1993/07/22 15:38:40 cer Exp $
 
 ;;;; This should not matter
 ;;;; (setq *ignore-package-name-case* t)
@@ -71,8 +71,8 @@
      (clim-defsys::load-system 'clim-demo)
 
      (ignore-errors 
-      (tenuring 
-       (require :composer)))
+       (tenuring 
+	(require :composer)))
 
      (progn
        (load "test/testdcl")

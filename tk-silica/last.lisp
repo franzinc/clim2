@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: last.lisp,v 1.1 92/08/21 16:33:00 cer Exp $
+;; $fiHeader: last.lisp,v 1.3 93/04/16 09:26:43 layer Exp $
 
 
 (in-package :system)

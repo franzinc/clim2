@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gestures.lisp,v 1.20 92/12/03 10:26:44 cer Exp $
+;; $fiHeader: gestures.lisp,v 1.21 93/05/13 16:23:10 cer Exp $
 
 (in-package :clim-internals)
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: hpgl-clim; Base: 10; Lowercase: Yes -*-
 
-;;; $fiHeader$
+;;; $fiHeader: hpgl-medium.lisp,v 1.1 93/03/04 08:57:26 cer Exp $
 
 "Copyright (c) 1991 by International Lisp Associates.  All rights reserved."
 "Portions copyright (c) 1992 Franz Inc. All rights reserved"

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-classes.lisp,v 1.7 92/08/18 17:53:49 cer Exp $
+;; $fiHeader: xm-classes.lisp,v 1.8 92/12/14 15:04:06 cer Exp $
 
 
 (in-package :tk)

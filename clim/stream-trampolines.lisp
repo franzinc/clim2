@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: stream-trampolines.lisp,v 1.2 92/01/31 14:58:48 cer Exp $
+;; $fiHeader: stream-trampolines.lisp,v 1.3 92/02/24 13:08:33 cer Exp $
 
 (in-package :clim-internals)
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: distribution-script.lisp,v 1.5 92/08/18 17:25:52 cer Exp $
+;; $fiHeader: distribution-script.lisp,v 1.6 92/10/28 11:32:14 cer Exp $
 
 #|
 :Distribute Systems CLIM-BINARIES Latest :Distribute Patch Sources No :Include Patches Yes :Query Confirm-Only :Machine Types Imach :File Types Binaries 

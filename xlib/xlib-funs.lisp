@@ -45,7 +45,7 @@
 ;;      OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION
 ;;      WITH THE USE OR PERFORMANCE OF THIS OBJECT CODE.
 
-;;; $fiHeader: xlib-funs.lisp,v 1.10 93/03/04 19:03:17 colin Exp $
+;;; $fiHeader: xlib-funs.lisp,v 1.12 93/04/16 09:26:50 layer Exp $
 
 (in-package :x11)
 

@@ -1,6 +1,6 @@
 (in-package :win)
 
-;; $fiHeader$
+;; $fiHeader: patch.lisp,v 1.1 92/10/28 09:24:19 cer Exp $
 
 (DEFCONSTANT WM_SYSKEYDOWN #x0104)
 (DEFCONSTANT WM_SYSKEYUP #x0105)

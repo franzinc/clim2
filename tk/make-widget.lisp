@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: make-widget.lisp,v 1.6 92/07/27 19:29:08 cer Exp $
+;; $fiHeader: make-widget.lisp,v 1.7 92/11/20 08:46:13 cer Exp $
 
 (in-package :tk)
 

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: recording-protocol.lisp,v 1.33 1993/05/05 01:38:56 cer Exp $
+;; $fiHeader: recording-protocol.lisp,v 1.34 1993/05/25 20:41:01 cer Exp $
 
 (in-package :clim-internals)
 
@@ -597,7 +597,7 @@
 
 (defun with-output-record-1 (continuation stream record abs-x abs-y)
   ;; Close the text record before and after
-  (stream-close-text-output-record (encapsulated-stream stream))
+  (stream-close-text-output-record (encapsulating-stream stream))
   (let ((current-output-position
 	  (stream-output-history-position stream)))
     (letf-globally (((point-x current-output-position) abs-x)
@@ -609,7 +609,7 @@
 	(declare (type coordinate end-x end-y))
 	(output-record-set-end-cursor-position
 	  record (- end-x abs-x) (- end-y abs-y)))
-      (stream-close-text-output-record (encapsulated-stream stream)))))
+      (stream-close-text-output-record (encapsulating-stream stream)))))
 
 (defun invoke-with-room-for-graphics (stream continuation record-type move-cursor 
 				      &key height (first-quadrant t))

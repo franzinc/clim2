@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: sheet.lisp,v 1.36 93/03/18 14:38:23 colin Exp $
+;; $fiHeader: sheet.lisp,v 1.37 1993/05/25 20:41:59 cer Exp $
 
 (in-package :silica)
 
@@ -422,20 +422,23 @@
 
 (defclass permanent-medium-sheet-output-mixin (sheet-with-medium-mixin) ())
 
-(defmethod (setf port) :after
-	   ((port basic-port) (sheet permanent-medium-sheet-output-mixin) &key)
+(defmethod note-sheet-grafted :around ((sheet permanent-medium-sheet-output-mixin))
+  ;; By making this an :AROUND method we make sure that the mirror has
+  ;; been realized at this point, if it's a mirrored sheet.  This is pretty
+  ;; horrible but it makes sure that things happen in the right order.
+  (call-next-method)
   (let ((medium-type (sheet-medium-type sheet)))
     (when medium-type
       (setf (sheet-medium sheet)
-	(if (mediump medium-type)
-	    medium-type
-	  (make-medium port sheet)))
-      (engraft-medium (sheet-medium sheet) (port sheet) sheet))))
+	    (if (mediump medium-type)
+		medium-type
+		(make-medium (port sheet) sheet)))
+      (when (port sheet)
+	(engraft-medium (sheet-medium sheet) (port sheet) sheet)))))
 
-(defmethod (setf port) :after
-	   ((port null) (sheet permanent-medium-sheet-output-mixin) &key)
+(defmethod note-sheet-degrafted ((sheet permanent-medium-sheet-output-mixin))
   (when (sheet-medium sheet)
-    (degraft-medium (sheet-medium sheet) port sheet)
+    (degraft-medium (sheet-medium sheet) (port sheet) sheet)
     (setf (sheet-medium sheet) nil)))
 
 (defclass temporary-medium-sheet-output-mixin (sheet-with-medium-mixin) ())
@@ -447,8 +450,8 @@
 (defclass shared-medium-sheet-output-mixin (sheet-with-medium-mixin)
     ((shared-medium-sheet :initform nil :initarg :shared-medium-sheet)))
 
-(defmethod (setf port) :after
-	   ((port basic-port) (sheet shared-medium-sheet-output-mixin) &key)
+(defmethod note-sheet-grafted :around ((sheet shared-medium-sheet-output-mixin))
+  (call-next-method)
   (with-slots (shared-medium-sheet) sheet
     (when shared-medium-sheet
       (setf (sheet-medium sheet) (sheet-medium shared-medium-sheet)))))

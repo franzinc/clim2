@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-silica.lisp,v 1.19 93/05/13 16:24:56 cer Exp $
+;; $fiHeader: ol-silica.lisp,v 1.20 93/05/13 16:31:42 colin Exp $
 
 (in-package :xm-silica)
 

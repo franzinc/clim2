@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: x11 -*-
 ;;
-;;				-[Thu Apr 15 17:04:18 1993 by layer]-
+;;				-[Tue Jul  6 17:18:09 1993 by colin]-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1992 Franz Inc, Berkeley, CA  All rights reserved.
@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: load-xlib.lisp,v 1.9 92/12/14 15:05:14 cer Exp $
+;; $fiHeader: load-xlib.lisp,v 1.11 93/04/16 09:26:47 layer Exp $
 
 (in-package :x11)
 
@@ -49,7 +49,7 @@
 		:system-libraries libraries
 		:print t))))))
 
-(defvar sys::*libx11-pathname* "/x11/R4/sun4-lib/libX11.a")
+(defvar sys::*libx11-pathname* "-lX11")
 
 (unless (ff:get-entry-point (ff:convert-to-lang "lisp_XDrawString"))
   (load "xlibsupport.o"

@@ -7,6 +7,7 @@ XtAppSetErrorHandler
 XtAppSetWarningHandler
 XtBuildEventMask
 XtConfigureWidget
+XtConvertAndStore
 XtCreateApplicationContext
 XtCreateManagedWidget
 XtCreatePopupShell

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: accept-values.lisp,v 1.65 1993/06/21 20:49:59 cer Exp $
+;; $fiHeader: accept-values.lisp,v 1.66 1993/07/22 15:37:43 cer Exp $
 
 (in-package :clim-internals)
 
@@ -119,7 +119,7 @@
 	       (formatting-cell (stream :align-x align-prompts)
 		 (setq query-identifier 
 		   (apply #'prompt-for-accept
-			  (encapsulated-stream stream) type view accept-args)))
+			  (encapsulating-stream stream) type view accept-args)))
 	       (letf-globally (((slot-value stream 'align-prompts) nil))
 		 (formatting-cell (stream :align-x :left)
 		   (setq query (find-or-add-query stream query-identifier type prompt
@@ -127,7 +127,7 @@
 	  (t
 	   (setq query-identifier
 		 (apply #'prompt-for-accept
-			(encapsulated-stream stream) type view accept-args))
+			(encapsulating-stream stream) type view accept-args))
 	   (setq query (find-or-add-query stream query-identifier type prompt
 					  default default-supplied-p view active-p))))
     (values (accept-values-query-value query)
@@ -244,13 +244,13 @@
 	     (formatting-row (stream)
 	       (formatting-cell (stream :align-x align-prompts)
 		 (setq query-identifier 
-		       (apply #'prompt-for-accept (encapsulated-stream stream)
+		       (apply #'prompt-for-accept (encapsulating-stream stream)
 			      presentation-type view present-args)))
 	       (formatting-cell (stream :align-x :left)
 		 (do-present stream))))
 	    (t
 	     (setq query-identifier
-		   (apply #'prompt-for-accept (encapsulated-stream stream)
+		   (apply #'prompt-for-accept (encapsulating-stream stream)
 			  presentation-type view present-args))
 	     (do-present stream)))))
   (values object))
@@ -278,6 +278,7 @@
 (define-application-frame accept-values-own-window (accept-values)
     ((help-window :initform nil)
      (scroll-bars :initform nil :initarg :scroll-bars)
+     (background :initform nil :initarg :background)
      (align-prompts :initform nil :initarg :align-prompts))
     (:pane 
      (let ((frame *application-frame*)
@@ -335,7 +336,8 @@
 (defvar *avv-calling-frame*)
 
 (defun invoke-accepting-values (stream continuation
-				 &key frame-class command-table own-window 
+				 &key frame-class command-table
+				      own-window background
 				      (exit-boxes 
 					(frame-manager-default-exit-boxes
 					  (frame-manager stream)))
@@ -363,6 +365,7 @@
 			     frame-manager))
 			;;--- What is the correct thing here?
 			:calling-frame (or (pane-frame stream) *application-frame*)
+			:input-buffer (stream-input-buffer stream)
 			:frame-manager frame-manager
 			:pretty-name label
 			:continuation continuation
@@ -378,6 +381,7 @@
 			:check-overlapping check-overlapping
 			:resize-frame resize-frame
 			:scroll-bars scroll-bars
+			:background background
 			:align-prompts align-prompts
 			:view view)))
 	   (when command-table
@@ -807,9 +811,12 @@
     (object)
   (list object))
 
+(defvar *editting-field-p* nil)
+
 (defmethod accept-values-query-edit-value ((query accept-values-query) stream &key modify)
   (with-slots (presentation-type value changed-p prompt presentation) query
-    (let ((stream (encapsulating-stream-stream stream)))
+    (let ((stream (encapsulating-stream-stream stream))
+	  (*editting-field-p* t))
       (with-stream-cursor-position-saved (stream)
 	(multiple-value-bind (xoff yoff)
 	    (convert-from-relative-to-absolute-coordinates
@@ -857,7 +864,7 @@
     (let ((avv-record (slot-value stream 'avv-record)))
       (cond ((null selected-item)
 	     (map-over-accept-values-queries avv-record
-	       #'(lambda (record unique-id)
+					     #'(lambda (record unique-id)
 		   (declare (ignore record))
 		   (return-from com-next-avv-choice
 		     (setq selected-item (find-query avv-record unique-id))))))
@@ -915,6 +922,8 @@
 	    changed-p t))))
 
 (define-gesture-name :exit-dialog  :keyboard (:end))
+#+allegro
+(define-gesture-name :exit-dialog  :keyboard (:newline) :unique nil)
 (define-gesture-name :abort-dialog :keyboard (:abort))
 
 (define-accept-values-command (com-exit-avv :keystroke :exit-dialog) ()
@@ -1068,15 +1077,22 @@
 	   (ignore active-p))
   (updating-output (stream :unique-id query-identifier :id-test #'equal
 			   :cache-value cache-value :cache-test cache-test)
-    (with-output-as-presentation (stream
-				  (make-instance 'accept-values-command-button
-				    :continuation continuation
-				    :documentation documentation
-				    :resynchronize resynchronize)
-				  'accept-values-command-button)
-      (if (stringp prompt)
-	  (write-string prompt stream)
-	  (funcall prompt stream)))))
+    (flet ((doit (stream)
+	     (with-output-as-presentation (stream
+					   (make-instance 'accept-values-command-button
+							  :continuation continuation
+							  :documentation documentation
+							  :resynchronize resynchronize)
+					   'accept-values-command-button)
+	       (if (stringp prompt)
+		   (write-string prompt stream)
+		 (funcall prompt stream)))))
+      (let ((align-prompts (slot-value stream 'align-prompts)) query)
+	(if align-prompts
+	    (formatting-row (stream)
+	      (formatting-cell (stream) stream)
+	      (formatting-cell (stream) (doit stream)))
+	  (doit stream))))))
 
 (define-accept-values-command com-avv-command-button
     ((button 'accept-values-command-button)
@@ -1250,6 +1266,11 @@
 
 ;; No need for AVV panes to deal with *CURRENT-ACCEPT-VALUES-TICK*, since it is
 ;; guaranteed that those queries will be valid at all times.
+
+(defun get-frame-pane-to-avv-stream-table (frame)
+  (or (frame-pane-to-avv-stream-table frame)
+      (setf (frame-pane-to-avv-stream-table frame) (make-hash-table))))
+
 (defun accept-values-pane-displayer (frame pane
 				     &key displayer
 					  resynchronize-every-pass
@@ -1264,8 +1285,7 @@
 			((nil) nil)))
   (let* ((stream-and-record 
 	  (and (not *frame-layout-changing-p*)
-	       (gethash pane (or (frame-pane-to-avv-stream-table frame)
-				 (setf (frame-pane-to-avv-stream-table frame) (make-hash-table))))))
+	       (gethash pane (get-frame-pane-to-avv-stream-table frame))))
 	 (avv-stream (car stream-and-record))
 	 (avv-record (cdr stream-and-record)))
     (cond ((and avv-stream
@@ -1302,13 +1322,14 @@
 		(display-view-background avv-stream view)
 		(funcall displayer frame avv-stream)))))))
     (unless *sizing-application-frame*
-      (setf (gethash pane (frame-pane-to-avv-stream-table frame))
+      (setf (gethash pane (get-frame-pane-to-avv-stream-table frame))
 	(cons avv-stream avv-record)))))
+
 
 (define-command (com-edit-avv-pane-choice :command-table accept-values-pane)
     ((choice 'accept-values-choice)
      (pane 't))
-  (accept-values-query-edit-value choice (car (gethash pane (frame-pane-to-avv-stream-table (pane-frame pane))))))
+  (accept-values-query-edit-value choice (car (gethash pane (get-frame-pane-to-avv-stream-table (pane-frame pane))))))
 
 (define-presentation-to-command-translator edit-avv-pane-choice
     (accept-values-choice com-edit-avv-pane-choice accept-values-pane
@@ -1324,7 +1345,7 @@
 (define-command (com-modify-avv-pane-choice :command-table accept-values-pane)
     ((choice 'accept-values-choice)
      (pane 't))
-  (accept-values-query-edit-value choice (car (gethash pane (frame-pane-to-avv-stream-table (pane-frame pane))))
+  (accept-values-query-edit-value choice (car (gethash pane (get-frame-pane-to-avv-stream-table (pane-frame pane))))
 			:modify t))
 
 (define-presentation-to-command-translator modify-avv-pane-choice
@@ -1357,7 +1378,7 @@
   (funcall (slot-value button 'continuation))
   (when (slot-value button 'resynchronize)
     (let* ((stream-and-record (and (not *frame-layout-changing-p*)  
-				   (gethash pane (frame-pane-to-avv-stream-table (pane-frame pane)))))
+				   (gethash pane (get-frame-pane-to-avv-stream-table (pane-frame pane)))))
 	   (avv-stream (car stream-and-record))
 	   (avv-record (cdr stream-and-record)))
       (when avv-stream
@@ -1426,14 +1447,17 @@
 			:help-callback documentation
 			:client frame :id value
 			:activate-callback #'handle-exit-box-callback
+			:name :accept-values-exit-button
 			text-style))))))))))))
 
 (defun handle-exit-box-callback (gadget)
-  (let ((id (gadget-id gadget)))
-    (case id
-      (:exit (com-exit-avv))
-      (:abort (com-abort-avv))
-      (t (funcall id)))))
+  (if *editting-field-p*
+      (beep)
+    (let ((id (gadget-id gadget)))
+      (case id
+	(:exit (com-exit-avv))
+	(:abort (com-abort-avv))
+	(t (funcall id))))))
 
 ;; It's OK that this is only in the ACCEPT-VALUES command table because
 ;; we're going to execute it manually in the callbacks below
@@ -1565,6 +1589,7 @@
 								  :value `(com-avv-command-button ,client ,record)
 								  :frame *application-frame*)))))
 		      :label (compute-prompt)
+		      :name :accept-values-command-button
 		      :help-callback documentation
 		      :active active-p)))))
       (let ((align-prompts (slot-value stream 'align-prompts)))

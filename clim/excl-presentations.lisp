@@ -21,7 +21,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: excl-presentations.lisp,v 1.14 92/10/28 11:31:34 cer Exp $
+;; $fiHeader: excl-presentations.lisp,v 1.15 93/01/21 14:57:51 cer Exp $
 
 
 (in-package :clim-internals)

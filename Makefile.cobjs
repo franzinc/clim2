@@ -1,4 +1,4 @@
-# $fiHeader: Makefile.cobjs,v 1.2 93/04/23 09:17:10 cer Exp $
+# $fiHeader: Makefile.cobjs,v 1.3 93/05/13 16:22:37 cer Exp $
 #
 #  Makefile.cobj for CLIM 2.0, containing non-svr4 C rules
 #
@@ -17,16 +17,16 @@ clim-olit_d.o	: stub-olit.o  stub-xt.o $(LIBXOL_d)
 
 
 stub-motif.c	:  $(XT_UNDEFS)  $(XMC_UNDEFS) $(XM_UNDEFS) misc/make-stub-file misc/make-stub-file1
-	misc/make-stub-file "void ___lisp_load_motif_stub ()"  $(XT_UNDEFS) $(XM_UNDEFS) > /tmp/`whoami`stub-motif.c 
+	misc/make-stub-file "void ___lisp_load_motif_stub ()"  $(XM_UNDEFS) > /tmp/`whoami`stub-motif.c 
 	misc/make-stub-file1 "void ___lisp_load_motif_stub_vars ()"  $(XMC_UNDEFS) >> /tmp/`whoami`stub-motif.c 
 	$(MV) /tmp/`whoami`stub-motif.c  stub-motif.c 
 
-stub-olit.c	:   $(XT_UNDEFS) $(OL_UNDEFS) misc/make-stub-file misc/make-stub-file1
-	misc/make-stub-file "void ___lisp_load_olit_stub ()"   $(OL_UNDEFS) > /tmp/`whoami`stub-olit.c 
-	misc/make-stub-file1 "void ___lisp_load_olit_stub_vars ()"   $(OLC_UNDEFS) >> /tmp/`whoami`stub-olit.c 
+stub-olit.c	:   $(XT_UNDEFS) $(OLC_UNDEFS) $(OL_UNDEFS) misc/make-stub-file misc/make-stub-file1
+	misc/make-stub-file "void ___lisp_load_olit_stub ()"  $(OL_UNDEFS) > /tmp/`whoami`stub-olit.c 
+	misc/make-stub-file1 "void ___lisp_load_olit_stub_vars ()"  $(OLC_UNDEFS) >> /tmp/`whoami`stub-olit.c 
 	$(MV) /tmp/`whoami`stub-olit.c  stub-olit.c 
 
-stub-x.c	:  $(UNDEFS) $(OL_UNDEFS) misc/make-stub-file
+stub-x.c	:  $(UNDEFS) misc/make-stub-file
 	misc/make-stub-file "void ___lisp_load_x_stub ()"  $(UNDEFS) > stub-x.c 
 
 stub-xt.c	:  $(XT_UNDEFS) misc/make-stub-file

@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: xm-silica -*-
 ;;
-;;				-[]-
+;;				-[Mon Jul 26 14:32:51 1993 by colin]-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-gadgets.lisp,v 1.34 1993/06/02 18:42:36 cer Exp $
+;; $fiHeader: xt-gadgets.lisp,v 1.35 1993/06/23 00:13:56 cer Exp $
 
 (in-package :xm-silica)
 
@@ -49,7 +49,8 @@
     (let ((name (pane-name pane)))
       (values class
 	      (progn
-		(when (and name (not (getf initargs :name)))
+		(when (and name 
+			   (not (getf initargs :name)))
 		  (setf (getf initargs :name) (string name)))
 		initargs)))))
 
@@ -61,31 +62,43 @@
   (multiple-value-bind
       (class initargs)
       (call-next-method)
-    (with-slots
-	(silica::foreground silica::background text-style)
-	sheet
-      
-      ;; Background can either be a pixel of a bitmap
-      ;; Foreground has to be a pixel
-      ;; decode-gadget-background
-      ;; decode-gadget-foreground
-      
-      (when (or silica::background silica::foreground)
-	(with-sheet-medium (medium sheet)
-	  (when silica::background
-	    (setf initargs
-	      (append (decode-gadget-background medium sheet silica::background) 
-		      initargs)))
-      
-	  (when silica::foreground
-	    (setf initargs
-	      (append (decode-gadget-foreground medium sheet silica::foreground)
-		      initargs)))))
+    (let ((other-initargs (find-widget-resource-initargs-for-sheet port sheet)))
+      (values class (append initargs other-initargs)))))
 
-      (when text-style
-	(setf (getf initargs :font-list)
-	  (text-style-mapping port text-style))))
-    (values class initargs)))
+(defmethod find-widget-resource-initargs-for-sheet
+    ((port xt-port) (sheet sheet-with-resources-mixin))
+  (let ((background (pane-background sheet))
+	(foreground (pane-foreground sheet)))
+    (with-sheet-medium (medium sheet)
+      `(,@(when background (decode-gadget-background medium sheet background))
+	,@(when foreground (decode-gadget-foreground medium sheet foreground))))))
+
+(defmethod find-application-resource-initargs ((port xt-port))
+  (let* ((resources (get-application-resources port))
+	 (background (or (getf resources :background) *default-pane-background*))
+	 (foreground (or (getf resources :foreground) *default-pane-foreground*))
+	 (palette (port-default-palette port)))
+    `(:background ,(decode-color-in-palette 
+		    (find-named-color background palette) palette)
+      :foreground ,(decode-color-in-palette 
+		    (find-named-color foreground palette) palette))))
+    
+(defmethod decode-gadget-background (medium sheet ink)
+  (declare (ignore sheet))
+  (let ((gc (decode-ink ink medium)))
+    (if (tk::gcontext-stipple gc)
+	(list :background-pixmap (tk::gcontext-stipple gc))
+      (list :background (tk::gcontext-foreground gc)))))
+
+(defmethod decode-gadget-background (medium sheet (ink pattern))
+  (declare (ignore sheet))
+  (let ((gc (decode-ink ink medium)))
+    (list :background-pixmap (tk::gcontext-stipple gc))))
+
+(defmethod decode-gadget-foreground (medium sheet ink)
+  (declare (ignore sheet))
+  (let ((pixel (decode-color ink medium)))
+    (list :foreground pixel)))
 
 (defmethod silica::port-set-pane-foreground ((port xt-port) pane m ink)
   (when (typep m 'xt::xt-root-class)
@@ -97,23 +110,7 @@
     (with-sheet-medium (medium pane)
       (apply #'tk::set-values m (decode-gadget-background medium pane ink)))))
 
-(defmethod decode-gadget-background (medium sheet ink)
-  (declare (ignore sheet))
-  (let ((gc (decode-ink ink medium)))
-    (if (tk::gcontext-tile gc)
-	(list :background-pixmap (tk::gcontext-tile gc))
-      (list :background (tk::gcontext-foreground gc)))))
 
-(defmethod decode-gadget-background (medium sheet (ink pattern))
-  (declare (ignore sheet))
-  (let ((gc (decode-ink ink medium)))
-    (list :background-pixmap (tk::gcontext-stipple gc))))
-
-
-(defmethod decode-gadget-foreground (medium sheet ink)
-  (declare (ignore sheet))
-  (let ((pixel (decode-color ink medium)))
-    (list :foreground pixel)))
 
 (defclass xt-pane (basic-pane) 
 	  ;;--- Is this useful a hack enabling things to be passed through

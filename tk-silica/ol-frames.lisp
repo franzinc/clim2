@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: xm-silica -*-
 ;;
-;;				-[]-
+;;				-[Thu Jul 22 17:18:32 1993 by colin]-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-frames.lisp,v 1.25 1993/05/25 20:42:28 cer Exp $
+;; $fiHeader: ol-frames.lisp,v 1.26 1993/07/22 15:39:30 cer Exp $
 
 
 (in-package :xm-silica)
@@ -69,15 +69,31 @@
 	 (simplep (and (null printer)
 		       (null presentation-type)))
 	 (port (port framem))
-	 (menu-shell (make-instance 'xt::menu-shell
-			      :parent (or (and associated-window
-					       (sheet-mirror associated-window))
-					  (port-application-shell port))
-			      :menu-augment nil
-			      :managed nil))
+	 (initargs (remove-keywords 
+		    (if (and associated-window
+			     (typep associated-window 'sheet-with-resources-mixin))
+			(find-widget-resource-initargs-for-sheet port
+								 associated-window)
+		      (find-application-resource-initargs port))
+		    '(:font)))
+	 (default-text-style 
+	     (or (and associated-window
+		      (typep associated-window 'sheet-with-resources-mixin)
+		      (pane-text-style associated-window))
+		 (getf (get-application-resources port) :text-style)
+		 *default-text-style*))
+	 (menu-text-style (if text-style
+			      (merge-text-styles text-style
+						 default-text-style)
+			    default-text-style))
+	 (menu-shell (apply #'make-instance 'xt::menu-shell
+			    :parent (or (and associated-window
+					     (sheet-mirror associated-window))
+					(port-application-shell port))
+			    :menu-augment nil
+			    :managed nil
+			    initargs))
 	 (menu (tk::get-values menu-shell :menu-pane))
-	 (font (and text-style (text-style-mapping (port framem) text-style)))
-	 (font-args (and font (list :font font)))
 	 (frame (pane-frame associated-window)))
 
     (when (or n-columns n-rows)
@@ -97,11 +113,12 @@
 		       (t (car label)))))
       (check-type title string)
       (tk::set-values menu-shell :title title))
-    ;;-- Does not have a font resource
-    ;;    (when font (tk::set-values menu-shell :font font))
-    
+
     (labels ((make-menu-button (item class parent &rest options)
-	       (let* ((style (clim-internals::menu-item-text-style item))
+	       (let* ((item-text-style (clim-internals::menu-item-text-style item))
+		      (text-style (if item-text-style
+				      (merge-text-styles item-text-style menu-text-style)
+				    menu-text-style))
 		      (button
 		      (if simplep
 			  (apply #'make-instance
@@ -110,9 +127,9 @@
 				 :parent parent 
 				 :managed nil
 				 :label (princ-to-string (menu-item-display item))
-				 (if style
-				     (list* :font (text-style-mapping port style) options)
-				   (append font-args options)))
+				 (list* :font 
+					(text-style-mapping port text-style)
+					options))
 			(let* ((pixmap (pixmap-from-menu-item
 					associated-window 
 					item
@@ -146,26 +163,39 @@
 					      :parent menu
 					      :managed nil
 					      :string " "
-					      font-args))
+					      initargs))
 			      (:label
-			       (apply #'make-instance 'xt::static-text
-						 :parent menu
-						 :managed nil
-						 :string (string
-								(menu-item-display item))
-						 font-args))
+			       (let ((item-text-style
+				      (clim-internals::menu-item-text-style item)))
+				 (apply #'make-instance 'xt::static-text
+					:parent menu
+					:managed nil
+					:string (string
+						 (menu-item-display item))
+					(list* :font
+					       (text-style-mapping
+						port
+						(if item-text-style
+						    (merge-text-styles item-text-style
+								       menu-text-style)
+						  menu-text-style))
+					       initargs))))
 			      (:item
 			       (if (clim-internals::menu-item-items item)
 				   (let* ((menu-button
-					   (make-menu-button item 
-							     'xt::menu-button
-							     menu))
+					   (apply #'make-menu-button item 
+						  'xt::menu-button
+						  menu
+						  initargs))
 					  (submenu (tk::get-values menu-button :menu-pane)))
 				     (construct-menu-from-items 
 				      submenu 
 				      (clim-internals::menu-item-items item)))
 				 (let ((menu-button
-					(make-menu-button item 'xt::oblong-button menu))
+					(applt #'make-menu-button item
+					       'xt::oblong-button
+					       menu
+					       initargs))
 				       (value (menu-item-value item)))
 				   (tk::add-callback
 				    menu-button

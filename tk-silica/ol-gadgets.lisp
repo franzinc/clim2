@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: xm-silica -*-
 ;;
-;;				-[]-
+;;				-[Thu Jul 22 16:58:22 1993 by colin]-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-gadgets.lisp,v 1.54 1993/06/23 00:13:51 cer Exp $
+;; $fiHeader: ol-gadgets.lisp,v 1.55 1993/07/22 15:39:32 cer Exp $
 
 
 (in-package :xm-silica)
@@ -325,14 +325,21 @@
   ;; submenus then it creates one with a menu of its own
   
   (let* ((mirror (call-next-method))
-	 (text-style (pane-text-style sheet))
-	 (font-list (list :font (text-style-mapping port text-style)))
+	 (initargs (remove-keywords
+		    (find-widget-resource-initargs-for-sheet port sheet)
+		    '(:font)))
+	 (menu-text-style (pane-text-style sheet))
 	 (frame (pane-frame sheet)))
     (labels ((compute-options (item)
-	       (let ((text-style (getf (command-menu-item-options item) :text-style)))
-		 (if text-style
-		     (list :font (text-style-mapping port text-style))
-		   font-list)))
+	       (let ((item-text-style (getf (command-menu-item-options item)
+					    :text-style)))
+		 (list* :font
+			(text-style-mapping
+			 port
+			 (if item-text-style
+			     (merge-text-styles item-text-style menu-text-style)
+			   menu-text-style))
+			initargs)))
 	     (update-menu-item-sensitivity (widget frame commands)
 	       (declare (ignore widget))
 	       (dolist (cbs commands)
@@ -1881,7 +1888,17 @@
   (when (typep m 'xt::xt-root-class)
     (tk::set-values m :font (text-style-mapping port text-style))))
 
+(defmethod find-widget-resource-initargs-for-sheet :around
+    ((port openlook-port) (sheet sheet-with-resources-mixin))
+  (let ((initargs (call-next-method))
+	(text-style (pane-text-style sheet)))
+    (if text-style
+	`(:font ,(text-style-mapping port text-style) ,@initargs)
+      initargs)))
 
-
-
-
+(defmethod find-application-resource-initargs :around 
+	   ((port openlook-port))
+  (let ((initargs (call-next-method))
+	(text-style (or (getf (get-application-resources port) :text-style)
+			*default-text-style*)))
+    `(:font ,(text-style-mapping port text-style) ,@initargs)))

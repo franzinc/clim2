@@ -21,7 +21,7 @@
 ;; applicable.
 ;;
 ;; $aclHeader$
-;; $fiHeader$
+;; $fiHeader: README,v 1.1 92/01/08 15:13:49 cer Exp $
 
 
 xlib.cl is stolen from LispView!

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: dump.lisp,v 1.4 92/03/24 19:38:34 cer Exp $
+;; $fiHeader: dump.lisp,v 1.5 93/01/11 15:45:06 colin Exp $
 
 ;; Assuming CLIM is loaded, dump it into /usr/tmp/clim.temp_$USER.
 (room t)

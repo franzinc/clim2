@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-protocol.lisp,v 1.42 1993/05/13 16:28:59 colin Exp $
+;; $fiHeader: input-protocol.lisp,v 1.43 1993/07/22 15:38:03 cer Exp $
 
 (in-package :clim-internals)
 
@@ -260,7 +260,7 @@
 			    (new-gesture 
 			     (receive-gesture
 			      (if (or (null sheet) (eq sheet stream))
-				  (encapsulated-stream stream)
+				  (encapsulating-stream stream)
 				sheet)
 			      gesture)))
 		       (when new-gesture
@@ -404,7 +404,7 @@
       ;; OK, this is wierd.  Try to find an input editing stream
       ;; to do the output on, but only if that input editing stream
       ;; encapsulates the stream we chose above
-      (let ((istream (encapsulated-stream stream)))
+      (let ((istream (encapsulating-stream stream)))
 	(if (and (input-editing-stream-p istream)
 		 (eq (encapsulating-stream-stream istream) stream))
 	    (progn
@@ -442,7 +442,7 @@
     (loop
       ;; Don't pass off a pointer-button-press-handler that ignores clicks,
       ;; we want this to be runnable inside a WITH-INPUT-CONTEXT.
-      (setq gesture (stream-read-gesture (encapsulated-stream stream)))
+      (setq gesture (stream-read-gesture (encapsulating-stream stream)))
       (when (and (characterp gesture)
 		 (or (ordinary-char-p gesture)
 		     (diacritic-char-p gesture)))
@@ -452,7 +452,7 @@
       (beep stream))))
 
 (defmethod stream-unread-char ((stream input-protocol-mixin) character)
-  (stream-unread-gesture (encapsulated-stream stream) character))
+  (stream-unread-gesture (encapsulating-stream stream) character))
 
 ;;; Again, we only need this function (as opposed to using :timeout)
 ;;; because the X3J13 proposal includes it explicitly.
@@ -461,7 +461,7 @@
     (loop
       ;; Don't pass off a pointer-button-press-handler that ignores clicks,
       ;; we want this to be runnable inside a WITH-INPUT-CONTEXT.
-      (setq gesture (stream-read-gesture (encapsulated-stream stream) :timeout 0))
+      (setq gesture (stream-read-gesture (encapsulating-stream stream) :timeout 0))
       (when (or (null gesture) 
 		(and (characterp gesture)
 		     (or (ordinary-char-p gesture)
@@ -471,8 +471,8 @@
 (defmethod stream-peek-char ((stream input-protocol-mixin))
   ;; stream-listen used to return the char, but Hornig says it has to return T
   (or nil ;(stream-listen stream)
-      (let ((char (stream-read-char (encapsulated-stream stream))))
-	(prog1 char (stream-unread-gesture (encapsulated-stream stream) char)))))
+      (let ((char (stream-read-char (encapsulating-stream stream))))
+	(prog1 char (stream-unread-gesture (encapsulating-stream stream) char)))))
 
 ;;; We think that the "standard" demands that this only see characters.
 ;;; However, it does not want to flush any pending action elements that
@@ -592,7 +592,7 @@
 
 #+Genera
 (defun stream-compatible-any-tyi-1 (stream timeout eof)
-  (let ((character (stream-read-gesture (encapsulated-stream stream) :timeout timeout)))
+  (let ((character (stream-read-gesture (encapsulating-stream stream) :timeout timeout)))
     (cond ((null character) nil)
 	  ((eq character *end-of-file-marker*) 
 	   (and eof (error "~a" eof)))

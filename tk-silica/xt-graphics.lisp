@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: tk-silica -*-
 ;;
-;;				-[]-
+;;				-[Thu Jul 22 18:06:19 1993 by colin]-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.75 1993/06/21 20:51:38 cer Exp $
+;; $fiHeader: xt-graphics.lisp,v 1.76 1993/06/23 00:13:59 cer Exp $
 
 (in-package :tk-silica)
 
@@ -120,7 +120,7 @@
   (let ((frame (pane-frame (medium-sheet medium))))
     (if frame
 	(frame-palette frame)
-	(port-default-palette (port medium)))))
+      (port-default-palette (port medium)))))
 
 #+ignore
 (defmethod (setf frame-manager-palette) :after 
@@ -264,18 +264,20 @@
 ;;   2. medium's clipping region changes
 ;;   3. medium's sheet's device transformation changes
 
-(defun medium-device-clip-region (medium)
-  (with-slots (sheet device-clip-region device-clip-region-tick)
-      medium
-    (unless device-clip-region
-      (setf device-clip-region
-	(let ((dr (sheet-device-region sheet))
-	      (mcr (medium-clipping-region medium)))
-	  (region-intersection 
-	   dr 
-	   (transform-region (sheet-device-transformation sheet) mcr))))
-      (incf device-clip-region-tick))
-    (values device-clip-region device-clip-region-tick)))
+(defmethod medium-device-clip-region ((medium xt-medium))
+  (let ((sheet (medium-sheet medium))
+	(device-clip-region (slot-value medium 'device-clip-region))
+	(device-clip-region-tick (slot-value medium 'device-clip-region-tick)))
+    (if device-clip-region
+	(values device-clip-region device-clip-region-tick)
+      (values (setf (slot-value medium 'device-clip-region)
+		(let ((dr (sheet-device-region sheet))
+		      (mcr (medium-clipping-region medium)))
+		  (region-intersection 
+		   dr 
+		   (transform-region (sheet-device-transformation sheet) mcr))))
+	      (setf (slot-value medium 'device-clip-region-tick)
+		(1+ device-clip-region-tick))))))
 
 (defmethod (setf medium-clipping-region) :after (cr (medium xt-medium))
   (declare (ignore cr))
@@ -302,24 +304,19 @@
   (tk::widget-window mirror nil))
 
 (defmethod engraft-medium :after ((medium xt-medium) (port xt-port) sheet)
-  (with-slots (indirect-inks drawable device-clip-region
-			     device-clip-region-tick)
+  (with-slots (indirect-inks drawable device-clip-region)
       medium
     (let ((palette (medium-palette medium)))
       (with-slots (white-pixel black-pixel)
 	  palette
 	(setf indirect-inks nil 
-	      device-clip-region nil
-	      device-clip-region-tick 0)
+	      device-clip-region nil)
 	(setf (medium-sheet medium) sheet)
 	(when (and drawable
 		   (not (eq (port-display port)
 			    (tk::object-display drawable))))
 	  (error "drawable and display do not match"))
-	(let* ((display (port-display port))
-	       (drawable (or drawable
-			     (tk::display-root-window display))))
-	  (invalidate-indirect-inks medium))))))
+	(invalidate-indirect-inks medium)))))
 
 (defmethod degraft-medium :after ((medium xt-medium) (port xt-port) sheet)
   (declare (ignore sheet))
@@ -329,7 +326,11 @@
 	  (medium-sheet medium) nil)
     (maphash #'(lambda (ink gc) 
 		 (declare (ignore ink))
-		 (tk::free-gcontext gc))
+		 (let ((pixmap (or (tk::gcontext-stipple gc)
+				   (tk::gcontext-tile gc))))
+		   (when pixmap
+		     (tk::destroy-pixmap pixmap))
+		   (tk::free-gcontext gc)))
 	     ink-table)
     (clrhash ink-table)
     (setf indirect-inks nil)))
@@ -338,7 +339,12 @@
   (with-slots (ink-table indirect-inks)
       medium
     (dolist (ink indirect-inks)
-      (tk::free-gcontext (gethash ink ink-table))
+      (let* ((gc (gethash ink ink-table))
+	     (pixmap (or (tk::gcontext-stipple gc)
+			 (tk::gcontext-tile gc))))
+	(when pixmap
+	  (tk::destroy-pixmap pixmap))
+	(tk::free-gcontext gc))
       (remhash ink ink-table))
     (setf indirect-inks nil)))
 
@@ -379,6 +385,15 @@
     (or (indirect-ink-p ink1)
 	(indirect-ink-p ink2))))
 
+(defmethod indirect-ink-p ((ink pattern))
+  (multiple-value-bind (array designs)
+      (decode-pattern ink)
+    (declare (ignore array))
+    (some #'indirect-ink-p designs)))
+
+(defmethod indirect-ink-p ((ink rectangular-tile))
+  (indirect-ink-p (decode-rectangular-tile ink)))
+	
 ;;; adjust ink
 
 (defvar *default-dashes* '(4 4))
@@ -497,6 +512,12 @@
 	(when mask
 	  (setf (tk::gcontext-plane-mask new-gc) mask)))
       new-gc)))
+
+(defmethod decode-ink-1 ((x (eql +foreground-ink+)) (medium xt-medium))
+  (decode-ink-1 (medium-foreground medium) medium))
+
+(defmethod decode-ink-1 ((x (eql +background-ink+)) (medium xt-medium))
+  (decode-ink-1 (medium-background medium) medium))
 
 (defmethod decode-ink-1 ((ink flipping-ink) (medium xt-medium))
   (with-slots (sheet drawable)
@@ -639,6 +660,7 @@
 			   (port-copy-gc-depth-1 port)
 			 gc) 
 		       image)
+	(tk::destroy-image image)
 	(if two-color-p
 	    (setf (tk::gcontext-stipple gc) pixmap
 		  (tk::gcontext-fill-style gc) (if two-color-bg
@@ -650,7 +672,7 @@
 		(tk::gcontext-fill-style gc) :tiled))
 	(unless tile-p
 	  (setf (ink-gcontext-shift-tile-origin gc) t
-		(ink-gcontext-ink-clip-region gc) 
+		(ink-gcontext-ink-clip-region gc)
 		(make-bounding-rectangle 0 0 width height)))
 	gc))))
 

@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: xm-silica -*-
 ;;
-;;				-[]-
+;;				-[Mon Jul 19 18:52:07 1993 by colin]-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-frames.lisp,v 1.35 1993/05/25 20:42:42 cer Exp $
+;; $fiHeader: xt-frames.lisp,v 1.36 1993/06/02 18:42:34 cer Exp $
 
 
 (in-package :xm-silica)
@@ -39,8 +39,8 @@
     (let* ((menu-bar (slot-value frame 'menu-bar))
 	   (menu-bar-pane
 	    (and menu-bar
-		 (apply #'make-pane 
-			'menu-bar
+		 (apply #'make-pane 'menu-bar
+			:name :menu-bar
 			:command-table (cond ((eq t menu-bar)
 					      (frame-command-table frame))
 					     ((listp menu-bar)
@@ -53,9 +53,11 @@
 	      (and options
 		   (apply #'make-pane
 			  'clim-internals::pointer-documentation-pane
+			  :name :pointer-documentation
 			  (append (and (listp options) options)
 				  `(
 				    :max-width ,+fill+
+				    :min-height (1 :line)
 				    :max-height (1 :line)
 				    :height (1 :line))))))))
       (cond ((and menu-bar-pane pointer-doc-pane)

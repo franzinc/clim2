@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: simple-test.lisp,v 1.8 92/09/22 19:37:34 cer Exp $
+;; $fiHeader: simple-test.lisp,v 1.9 92/10/02 15:20:18 cer Exp $
 
 
 (defpackage :clim-user (:use :clim-silica))

@@ -20,7 +20,7 @@
 ;; applicable.
 ;;
 
-;; $fiHeader: instclimol.lisp,v 1.4 92/08/18 17:54:20 cer Exp Locker: cer $
+;; $fiHeader: instclimol.lisp,v 1.6 93/04/28 17:19:02 layer Exp $
 
 ;;
 ;; Load the OpenLook version of CLIM

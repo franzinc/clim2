@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: pkg.lisp,v 1.8 92/10/02 15:20:58 cer Exp $
+;; $fiHeader: pkg.lisp,v 1.9 93/04/02 18:41:09 cer Exp $
 
 (defpackage tk-silica
   (:nicknames xm-silica xt-silica)

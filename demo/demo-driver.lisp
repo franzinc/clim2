@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: demo-driver.lisp,v 1.22 92/12/16 16:47:23 cer Exp $
+;; $fiHeader: demo-driver.lisp,v 1.23 93/01/11 15:44:58 colin Exp $
 
 (in-package :clim-demo)
 
@@ -54,14 +54,6 @@
 		 (funcall demo-fcn))
 		(t
 		 (funcall demo-fcn :port port :force force))))))))
-
-(defparameter *color-stream-p* t)
-(defun color-stream-p (stream)
-  #-Genera *color-stream-p*		;--- kludge
-  #+Genera (if (and stream
-		    (eql (port-type (port stream)) ':genera))
-	       (slot-value (port stream) 'genera-clim::color-p)
-	       *color-stream-p*))
 
 #+Genera
 (cp:define-command (si:com-demonstrate-clim

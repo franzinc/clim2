@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: tk -*-
 ;;
-;;				-[]-
+;;				-[Thu Jul 22 17:17:07 1993 by colin]-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1992 Franz Inc, Berkeley, CA  All rights reserved.
@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-funs.lisp,v 1.10 1993/05/13 16:31:02 colin Exp $
+;; $fiHeader: xm-funs.lisp,v 1.11 1993/07/22 15:39:21 cer Exp $
 
 ;;
 ;; This file contains compile time only code -- put in clim-debug.fasl.

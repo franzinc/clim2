@@ -1,3 +1,150 @@
+
+from colin: Mon Jul 26 17:28:19 PDT 1993
+
+misc/load-xm.lisp
+- removed
+
+Makefile.cobjs
+- stub-file for motif no longer includes XT_UNDEFS
+- make rule for open look stub file now depends on OLC_UNDEFS
+- removed dependency of stub-x.c on OL_UNDEFS
+
+Makefile.defs
+- recursive make gets $TMP
+
+clim/accept-values.lisp, clim/accept.lisp, clim/defprotocol.lisp,
+clim/input-protocol.lisp, clim/interactive-protocol.lisp,
+clim/recording-protocol.lisp, clim/table-formatting.lisp,
+clim/text-formatting.lisp, compatibility/clim1-compatibility.lisp,
+utils/packages.lisp 
+
+- changed encapsulated-stream to encapsulating-stream
+
+clim/accept-values.lisp
+- added :background initarg to accepting-values own-windows
+- made avv-own-windows use same input-buffer as calling frame
+- disabled hitting ok when editting a field
+- added :newline accelerator to avv dialogs
+- added get-frame-pane-to-avv-stream-table which creates a hash-table if
+  needed
+- added default name to accept-values button gadgets
+
+clim/clim-defs.lisp
+- added :background initarg to accepting-values own-windows
+
+clim/cursor.lisp
+- support for controlling cursor color
+- added *default-cursor-color*
+- added cursor-color and setf cursor-color
+
+clim/db-stream.lisp
+- fixed handling of background in make-clim-stream-pane-1
+
+clim/frames.lisp
+- added background slot to standard-application-frame
+- added color-stream-p
+
+clim/gadget-output.lisp
+- added default-supplied arg to make-gadget-for-text-editor
+- added default-supplied arg to make-gadget-for-text-field-view
+- added default decode-indirect-view methods for various ptypes.
+- added default present-methods for various ptypes.
+
+clim/pixmap-streams.lisp
+- changed invoke-with-output-to-pixmap to set up the medium-default-text-style
+  and medium-text-style of the pixmap medium
+
+clim/ptypes1.lisp
+- added default method for inherited-presentation-type-paramters-method
+- added default method for inherited-presentation-type-options-method
+
+demo/demo-driver.lisp
+- removed *color-stream-p* and color-stream-p
+
+demo/ico.lisp
+- replaced remove-color-from-palette with remove-colors-from-palette
+
+demo/navfun.lisp
+- added :stream arg to accept in avv dialog in com-flight-plan
+
+misc/undefinedsymbols.xt
+- added XtConvertAndStore
+
+silica/framem.lisp
+- support for setting frame-background color
+
+silica/medium.lisp
+- various hacks on resource stuff
+
+silica/pixmaps.lisp
+- pixmap-sheets no longer try to be grafted twice
+- various hacks on resource stuff
+
+silica/sheet.lisp
+- re-enstated note-sheet-grafted :around hack.
+
+tk/load-ol.lisp, tk/load-xm.lisp
+- sys::*libxt-pathname* defaults to "-lXt"
+
+tk/widget.lisp
+- made widgets always have a name (default from class name)
+
+tk/xlib.lisp
+- hacked get-resource so that it doesn't allocate as much
+
+tk-silica/image.lisp
+- changed read-pixmap-file-1 to use find-name-color to parse color names
+
+tk-silica/ol-frames.lisp
+- hacked frame-manager-construct-menu to deal with text-style and resources
+  properly
+
+tk-silica/ol-gadgets.lisp
+- hacked openlook-menu-bar to deal with text-style and resources properly
+- added ol-specific find-widget-resource-initargs-for-sheet and
+  find-application-resource-initargs 
+
+tk-silica/xm-frames.lisp
+- hacked frame-manager-construct-menu to deal with text-style and resources
+  properly
+- hacked motif-menu-bar to deal with text-style and resources properly
+
+tk-silica/xm-gadgets.lisp
+- added explicit "" default for label gadgets
+- added drag-callback to scroll-bars
+- various hacks on resource stuff
+- added motif-specific find-widget-resource-initargs-for-sheet and
+  find-application-resource-initargs 
+
+tk-silica/xt-frames.lisp
+- menu-bar and pointer-documentation panes now named
+- added :min-height to pointer-doc pane
+
+tk-silica/xt-gadgets.lisp
+- various hacks on resource stuff
+
+tk-silica/xt-graphics.lisp
+- sped up medium-device-clip-region 
+- fixed bug with caching of clip-region
+- free up pixmaps and images associated with inks when destroyed
+- various clean ups and minor bug-fixes
+
+tk-silica/xt-silica.lisp
+- various hacks on resource stuff.
+- hacked get-xt-resources so it doesn't allocate as much 
+
+utils/clim-streams.lisp
+- fixed *original-stream* bug
+
+utils/packages.lisp
+- exported color-stream-p and *default-cursor-color* from clim
+- exported frame-background from silica
+
+xlib/load-xlib.lisp
+- sys::*libx11-pathname* defaults to "-lX11"
+
+-------------------------------------------------------------------------------
+
 from cer: Thu Jul 22 08:36:06 PDT 1993
 
 

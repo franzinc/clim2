@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: ico.lisp,v 1.16 92/12/03 10:28:41 cer Exp $
+;; $fiHeader: ico.lisp,v 1.17 92/12/16 16:47:36 cer Exp $
 
 ;;;
 ;;; Copyright (c) 1989, 1990 by Xerox Corporation.  All rights reserved. 
@@ -134,10 +134,10 @@
       (let ((palette (frame-palette frame)))
 	(catch-ball frame)
 	(when ico-color-set2
-	  (remove-color-from-palette palette ico-color-set2)
+	  (remove-colors-from-palette palette ico-color-set2)
 	  (setf ico-color-set2 nil))
 	(when ico-color-set3
-	  (remove-color-from-palette palette ico-color-set3)
+	  (remove-colors-from-palette palette ico-color-set3)
 	  (setf ico-color-set3 nil))
 	(frame-exit frame)))))
 

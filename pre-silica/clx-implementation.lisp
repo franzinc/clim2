@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: clx-implementation.lisp,v 1.7 92/05/18 14:03:41 cer Exp Locker: cer $
+;; $fiHeader: clx-implementation.lisp,v 1.8 92/07/01 15:48:26 cer Exp $
 
 (in-package :clim-internals)
 

@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: user -*-
 ;;
-;;				-[Wed Apr 28 22:10:19 1993 by layer]-
+;;				-[Tue Jul  6 17:18:39 1993 by colin]-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: load-ol.lisp,v 1.21 93/04/28 17:19:19 layer Exp $
+;; $fiHeader: load-ol.lisp,v 1.22 1993/06/04 16:06:51 cer Exp $
 
 (in-package :user)
 
@@ -33,7 +33,7 @@
 
 #-svr4
 (progn
-  (defvar sys::*libxt-pathname* "/net/vapor/x11/R4/sun4-lib/libXt.a")
+  (defvar sys::*libxt-pathname* "-lXt")
   (defvar sys::*clim-olit-pathname* "clim-olit.o")
 
   (x11::load-undefined-symbols-from-library

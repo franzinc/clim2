@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CL-USER; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: packages.lisp,v 1.54 1993/05/13 16:33:01 colin Exp $
+;; $fiHeader: packages.lisp,v 1.55 1993/05/25 20:42:58 cer Exp $
 
 (in-package #-ANSI-90 :user #+ANSI-90 :common-lisp-user)
 
@@ -2078,6 +2078,7 @@
     
     ;; Palettes
     add-colors-to-palette
+    color-stream-p
     frame-manager-palette
     frame-palette
     make-palette
@@ -2090,9 +2091,11 @@
     remove-colors-from-palette
 
     ;; Extended output
+    *default-cursor-color*
     beep
     cursor
     cursor-active
+    cursor-color
     cursor-focus
     cursor-position
     cursor-sheet
@@ -3210,7 +3213,7 @@
     defoperation
     defprotocol
     defrole
-    encapsulated-stream
+    encapsulating-stream
     find-protocol
     find-role 
     generate-trampolines
@@ -3411,6 +3414,7 @@
     focus-gadget
     focus-in-gadget-event
     focus-out-gadget-event
+    frame-background
     frame-input-buffer
     frame-manager-matches-options-p
     frame-manager-note-pretty-name-changed

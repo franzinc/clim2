@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: tk -*-
 ;;
-;;				-[]-
+;;				-[Mon Jun 21 13:55:59 1993 by colin]-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xlib.lisp,v 1.45 93/05/13 16:24:40 cer Exp $
+;; $fiHeader: xlib.lisp,v 1.46 93/05/13 16:30:55 colin Exp $
 
 (in-package :tk)
 
@@ -187,23 +187,15 @@
   (unless foreign-address
     (setf (foreign-pointer-address db) (x11:xrmgetstringdatabase ""))))
 
-(defun get-resource (db names name classes class)
-  (let ((full-name "")
-	(full-class ""))
-    (dolist (n names)
-      (setq full-name (concatenate 'string full-name (string n) ".")))
-    (setq full-name (concatenate 'string full-name (string name)))
-    (dolist (c classes)
-      (setq full-class (concatenate 'string full-class (string c) ".")))
-    (setq full-class (concatenate 'string full-class (string class)))
-    (with-ref-par ((type 0))
-      (let ((xrmvalue (x11:make-xrmvalue)))
-	(unless (zerop (x11:xrmgetresource db 
-					   full-name
-					   full-class
-					   type xrmvalue))
-	  (values (char*-to-string (x11:xrmvalue-addr xrmvalue))
-		  (char*-to-string (aref type 0))))))))
+(defun get-resource (db name class)
+  (with-ref-par ((type 0))
+    (let ((xrmvalue (x11:make-xrmvalue)))
+      (unless (zerop (x11:xrmgetresource db 
+					 name
+					 class
+					 type xrmvalue))
+	(values (char*-to-string (x11:xrmvalue-addr xrmvalue))
+		(char*-to-string (aref type 0)))))))
 
 (defun convert-string (widget string to-type)
   (let ((from (x11:make-xrmvalue))

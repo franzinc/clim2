@@ -19,7 +19,7 @@
 ;; applicable.
 ;;
 
-;; $fiHeader: cl-streams.lisp,v 1.1 91/11/25 10:01:32 cer Exp $
+;; $fiHeader: cl-streams.lisp,v 1.2 92/02/24 13:05:16 cer Exp $
 
 (in-package :clim-lisp)
 

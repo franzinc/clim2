@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-pixmaps.lisp,v 1.15 93/02/10 10:04:31 cer Exp $
+;; $fiHeader: xt-pixmaps.lisp,v 1.16 93/05/13 16:32:20 colin Exp $
 
 
 (in-package :xm-silica)

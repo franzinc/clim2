@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: color-ed.lisp,v 1.5 92/07/20 16:00:47 cer Exp $
+;; $fiHeader: color-ed.lisp,v 1.6 92/07/27 11:03:12 cer Exp $
 
 (in-package :clim-user)
 

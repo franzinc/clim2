@@ -1,7 +1,10 @@
-# $fiHeader: Makefile.generic,v 1.14 1993/06/25 22:25:27 layer Exp $
+# $fiHeader: Makefile.generic,v 1.15 1993/07/22 15:37:35 cer Exp $
 #
 #  Makefile.generic for CLIM 2.0
 #
+
+
+FORCE:
 
 default: all-xm
 
@@ -236,7 +239,6 @@ dist:	FORCE
 rcscheck:
 	rcscheck $(DIRS) | grep -v .fasl
 
-FORCE:
 
 ################## Make-dist stuff
 
@@ -296,7 +298,6 @@ dcl	:
 
 include $(C_OBJECT_MAKEFILE)
 
-FORCE	: 
 
 xm-composer : xm-dcl
 	cd /usr/composer2 ; make CL=$(CL) rebuild-c2

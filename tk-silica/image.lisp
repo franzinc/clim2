@@ -1,6 +1,6 @@
 ;; -*- mode: common-lisp; package: xm-silica -*-
 ;;
-;;				-[]-
+;;				-[Mon Jul 12 14:47:08 1993 by colin]-
 ;; 
 ;; copyright (c) 1985, 1986 Franz Inc, Alameda, CA  All rights reserved.
 ;; copyright (c) 1986-1991 Franz Inc, Berkeley, CA  All rights reserved.
@@ -20,8 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: image.lisp,v 1.12 1993/06/23 00:13:49 cer Exp $
-
+;; $fiHeader: image.lisp,v 1.13 1993/07/22 15:39:27 cer Exp $
 
 (in-package :xm-silica)
 
@@ -40,7 +39,7 @@
 
 (defparameter *bitmap-search-path* '("/usr/include/X11/bitmaps/"))
 
-(defun read-bitmap-file (pathname &key (format :bitmap))
+(defun read-bitmap-file (pathname &key (format :bitmap) (port (find-port)))
   ;; Creates an image from a C include file in standard X11 format
   (declare (type (or pathname string stream) pathname))
   (unless (probe-file pathname)
@@ -54,7 +53,7 @@
 	  (:bitmap
 	   (read-bitmap-file-1 fstream))
 	  (:pixmap
-	   (read-pixmap-file-1 fstream))))
+	   (read-pixmap-file-1 fstream (port-default-palette port)))))
     (multiple-value-bind
 	(format filter)
 	(compute-filter-for-bitmap-format format)
@@ -67,7 +66,7 @@
 	  (:bitmap
 	   (read-bitmap-file-1 fstream))
 	  (:pixmap
-	   (read-pixmap-file-1 fstream)))))))
+	   (read-pixmap-file-1 fstream (port-default-palette port))))))))
 
 (defmethod compute-filter-for-bitmap-format (format)
   (error "Dont know how to convert from the format ~A" format))
@@ -126,7 +125,7 @@
 
 	(values data)))))
 
-(defun read-pixmap-file-1 (fstream)
+(defun read-pixmap-file-1 (fstream palette)
   (multiple-value-bind (width height depth left-pad format
 			chars-per-pixel line)
       (get-bitmap-file-properties fstream)
@@ -142,18 +141,7 @@
 		   (if (eq next #\,) (read-char fstream)
 		     (return (nreverse strings)))))))
 	   (convert-color (x)
-	     (cond ((eq (schar x 0) #\#)
-		    (let ((*read-base* 16))
-		      (assert (+ (length x) 7))
-		      (do ((i 1 (+ i 2))
-			   (r nil))
-			  ((= i 7)
-			   (apply #'make-rgb-color (nreverse r)))
-			(push (/ (read-from-string x nil nil :start i :end (+ i 2)) 255.0)
-			      r))))
-		   ((string= x "white") +white+)
-		   ((string= x "black") +black+)
-		   (t (error "Dont know the color ~A" x)))))
+	     (find-named-color x palette)))
       (let ((colors (do ((colors (read-strings) (cddr colors))
 			 (r nil))
 			((null colors) r)

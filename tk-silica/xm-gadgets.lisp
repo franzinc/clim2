@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.77 1993/06/02 18:42:30 cer Exp $
+;; $fiHeader: xm-gadgets.lisp,v 1.78 1993/07/22 15:39:38 cer Exp $
 
 (in-package :xm-silica)
 
@@ -107,7 +107,9 @@
           (setf (getf initargs :label-pixmap) label)
           ;;-- Perhaps we need to stipple this?
           (setf (getf initargs :label-insensitive-pixmap) label)
-          (setf (getf initargs :label-type) :pixmap))))
+          (setf (getf initargs :label-type) :pixmap)))
+       (t (unless (getf initargs :label-string)
+	    (setf (getf initargs :label-string) ""))))
 
       (unless (getf initargs :alignment)
         (setf (getf initargs :alignment) 
@@ -415,7 +417,11 @@
   (tk::add-callback widget
                     :value-changed-callback
                     'scroll-bar-changed-callback-1
-                    sheet))
+                    sheet)
+  (tk::add-callback widget
+		    :drag-callback
+		    'scroll-bar-changed-callback-1
+		    sheet))
 
 (defmethod scroll-bar-changed-callback-1 ((widget t) (sheet motif-scroll-bar))
   (multiple-value-bind
@@ -886,7 +892,8 @@
 
 ;; Frame-viewport that we need because a sheet can have
 
-(defclass xm-frame-viewport-mixin (sheet-single-child-mixin
+(defclass xm-frame-viewport-mixin (sheet-with-resources-mixin
+				   sheet-single-child-mixin
                                    sheet-permanently-enabled-mixin
                                    wrapping-space-mixin
                                    mirrored-sheet-mixin
@@ -1656,24 +1663,21 @@
         (gadget-supplies-scrolling-p contents))
       (sheet-adopt-child sp contents)
     (with-look-and-feel-realization (frame-manager frame)
-      (let ((background (getf (silica::sheet-with-resources-initargs sp)
-			      :background)))
-	(when (member scroll-bars '(t :both :dynamic :vertical))
-	  (let ((sb (make-pane 'scroll-bar
-			       :background background
-			       :orientation :vertical :id :vertical :client sp)))
-	    (setf (scroller-pane-vertical-scroll-bar sp) sb)
-	    (sheet-adopt-child sp sb)))
-	(when (member scroll-bars '(t :both :dynamic :horizontal))
-	  (let ((sb (make-pane 'scroll-bar 
-			       :background background
-			       :orientation :horizontal :id :horizontal :client sp)))
-	    (setf (scroller-pane-horizontal-scroll-bar sp) sb)
-	    (sheet-adopt-child sp sb)))
-	(sheet-adopt-child sp (setf (slot-value sp 'viewport) 
-				(make-pane 'viewport
-					   :scroller-pane sp
-					   :background background))))
+      (when (member scroll-bars '(t :both :dynamic :vertical))
+	(let ((sb (make-pane 'scroll-bar
+			     :orientation :vertical :id :vertical
+			     :client sp)))
+	  (setf (scroller-pane-vertical-scroll-bar sp) sb)
+	  (sheet-adopt-child sp sb)))
+      (when (member scroll-bars '(t :both :dynamic :horizontal))
+	(let ((sb (make-pane 'scroll-bar 
+			     :orientation :horizontal :id :horizontal
+			     :client sp)))
+	  (setf (scroller-pane-horizontal-scroll-bar sp) sb)
+	  (sheet-adopt-child sp sb)))
+      (sheet-adopt-child sp (setf (slot-value sp 'viewport) 
+			      (make-pane 'viewport
+					 :scroller-pane sp)))
       (sheet-adopt-child (slot-value sp 'viewport) contents))))
 
 (defmethod gadget-supplies-scrolling-p ((sheet t)) nil)
@@ -1779,3 +1783,19 @@
   (declare (ignore pane))
   (when (typep m 'xt::xt-root-class)
     (tk::set-values m :font-list (text-style-mapping port text-style))))
+
+(defmethod find-widget-resource-initargs-for-sheet :around
+    ((port motif-port) (sheet sheet-with-resources-mixin))
+  (let ((initargs (call-next-method))
+	(text-style (pane-text-style sheet)))
+    (if text-style
+	`(:font-list ,(text-style-mapping port text-style) ,@initargs)
+      initargs)))
+
+(defmethod find-application-resource-initargs :around 
+	   ((port motif-port))
+  (let ((initargs (call-next-method))
+	(text-style (or (getf (get-application-resources port) :text-style)
+			*default-text-style*)))
+    `(:font-list ,(text-style-mapping port text-style) ,@initargs)))
+			      
