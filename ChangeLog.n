@@ -3,12 +3,20 @@ For more detailed instructions on filling in the ChangeLog form, see
 *******************************************************************************
 <version for this commit> (incf *clim-build-version* in utils/packages.lisp)
 
-Documentation changes:	<`none' or give pointer to them>
-Tests for new features:	<`no new features', `no tests for new features', or
-			 give pointer to test files>
+If there are user-visible changes in this commit, then list the
+  new ../RELNOTES entries, which include bug and/or RFE references:
+	<...>
 
 <standard changelog date stamp>
 	* <changes go here...>
+
+*******************************************************************************
+2.2.1.44
+
+1999-01-30  Kevin Layer  <layer@ultra>
+
+	* Makefile.alpha: use make_shared in ../src/bin
+	* Makefile.rs6000: use make_shared in ../src/bin
 
 *******************************************************************************
 2.2.1.43
