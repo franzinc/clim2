@@ -1,5 +1,3 @@
-asdasd
-
 2004-09-28    <mm@KETCHTOO>
 
 	* acl-frames.lisp (clim-internals::frame-manager-position-dialog): 
@@ -5953,4 +5951,4 @@ IGNORE JDI SPECIFIC CHANGES TO Makefile
 	Lots of other stuff
 
 *******************************************************************************
-$Revision: 2.10.4.4.8.1 $
+$Revision: 2.10.4.4.8.2 $
