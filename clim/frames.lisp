@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: frames.lisp,v 1.41 92/09/22 19:37:10 cer Exp Locker: cer $
+;; $fiHeader: frames.lisp,v 1.42 92/09/24 09:38:46 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -20,7 +20,7 @@
      ;; One of  T, NIL, or a command-table; used by the menu-bar
      (menu-bar :initarg :menu-bar :initform nil)
      (histories :initform nil)
-     (frame-manager :accessor frame-manager)
+     (frame-manager :initform nil :accessor frame-manager)
      (calling-frame :reader frame-calling-frame :initarg :calling-frame)
      ;; PANES is the description of all of the named panes,
      ;; ALL-PANES is an alist that stores all of the named panes that
@@ -96,7 +96,6 @@
 	    (port (find-frame-manager :port parent))
  	    (graft (find-frame-manager :port (port parent)))
 	    (sheet (frame-manager (pane-frame parent))))))
-    (setf (slot-value frame 'frame-manager) frame-manager)
     (when frame-manager
       (adopt-frame frame-manager frame))))
 
@@ -1388,3 +1387,6 @@
 
 (defmethod bury-frame ((frame standard-application-frame))
   (bury-sheet (frame-top-level-sheet frame)))
+
+(defmethod port-note-frame-adopted ((port port) (frame standard-application-frame))
+  nil)

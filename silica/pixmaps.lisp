@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: pixmaps.lisp,v 1.9 92/09/08 15:16:49 cer Exp $
+;; $fiHeader: pixmaps.lisp,v 1.10 92/09/24 09:37:48 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -130,4 +130,8 @@
 
 (defun deallocate-pixmap (pixmap)
   (port-deallocate-pixmap (port pixmap) pixmap))
+
+(defmethod handle-repaint ((pane pixmap-sheet) region)
+    (declare (ignore region))
+    nil)
 

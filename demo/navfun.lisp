@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-DEMO; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: navfun.lisp,v 1.14 92/07/20 16:01:28 cer Exp $
+;; $fiHeader: navfun.lisp,v 1.15 92/09/24 09:40:10 cer Exp Locker: cer $
 
 (in-package :clim-demo)
 
@@ -1022,13 +1022,13 @@
 ;;; Flight-Planner user interface
 
 (define-application-frame flight-planner ()
-    ()
+			  ()
   (:panes 
-    (display :application)
-    (interactor :interactor :height '(5 :line)))
+   (display :application)
+   (interactor :interactor :height '(5 :line)))
   (:layouts 
-    (default
-      (vertically () (3/4 display) interactor))))
+   (default
+       (vertically () (3/4 display) (:fill interactor)))))
 
 (define-flight-planner-command (com-zoom-in :name t :menu t) ()
   (multiple-value-bind (longitude latitude)

@@ -21,7 +21,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: bitmap-editor.lisp,v 1.2 92/09/22 19:37:43 cer Exp Locker: cer $
+;; $fiHeader: bitmap-editor.lisp,v 1.3 92/09/24 09:40:04 cer Exp Locker: cer $
 
 
 (in-package :clim-demo)
@@ -207,7 +207,7 @@
 	(erase-output-record presentation stream)
 	(display-cell frame stream i j)
 	(display-pattern frame)))))
-<<<<<<< bitmap-editor.lisp
+
 
 (define-presentation-to-command-translator toggle-cell
     (bitmap-editor-cell com-toggle-cell bitmap-editor 
@@ -235,30 +235,3 @@
     (run-frame-top-level frame)))
 
 (define-demo "Bitmap Editor" do-bitmap-editor)
-=======
-
-
-(defvar *bitmap-editors* nil)
-
-(defun do-bitmap-editor (&key (port (find-port)) (force nil))
-  (let* ((framem (find-frame-manager :port port))
-	 (frame 
-	   (let* ((entry (assoc port *bitmap-editors*))
-		  (frame (cdr entry)))
-	     (when (or force (null frame))
-	       (setq frame (make-application-frame 'bitmap-editor
-						   :frame-manager framem)))
-	     (if entry 
-		 (setf (cdr entry) frame)
-		 (push (cons port frame) *bitmap-editors*))
-	     frame)))
-    (run-frame-top-level frame)))
-
-(define-demo "Bitmap Editor" do-bitmap-editor)
-
-
-
-
-
-  
->>>>>>> 1.2

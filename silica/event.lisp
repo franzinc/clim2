@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: event.lisp,v 1.22 92/09/22 19:36:45 cer Exp Locker: cer $
+;; $fiHeader: event.lisp,v 1.23 92/09/24 09:37:37 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -471,7 +471,7 @@
 		(map-sheet-position-to-child child new-x new-y))
 	      (setq sheet child)
 	      (vector-push-extend child v))))))))
->>>>>>> 1.21
+
 
 
 ;;; Event distribution

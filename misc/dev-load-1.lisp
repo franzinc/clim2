@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: dev-load-1.lisp,v 1.12 92/09/08 15:19:10 cer Exp Locker: cer $
+;; $fiHeader: dev-load-1.lisp,v 1.13 92/09/22 19:37:59 cer Exp Locker: cer $
 
 ;;;; This should not matter
 ;;;; (setq *ignore-package-name-case* t)
@@ -51,11 +51,13 @@
        (motif-clim
 	(load "climg.fasl")
 	(load "climxm.fasl")
-	(load "clim-debug.fasl"))
+	(load "clim-debug.fasl")
+	(load "clim-debugxm.fasl"))
        (openlook-clim
 	(load "climg.fasl")
 	(load "climol.fasl")
-	(load "clim-debug.fasl")))
+	(load "clim-debug.fasl")
+	(load "clim-debugol.fasl")))
      #+ignore
      (clim-defsys::load-system sys)))
 

@@ -3,7 +3,7 @@
 ;;; Simple extensible browser
 ;;; Scott McKay
 
-;; $fiHeader: browser.lisp,v 1.9 92/07/27 11:03:29 cer Exp $
+;; $fiHeader: browser.lisp,v 1.10 92/08/18 17:26:13 cer Exp Locker: cer $
 
 (in-package :clim-browser)
 
@@ -715,45 +715,46 @@
 ;;; The browser itself
 
 (define-application-frame browser ()
-    ((graph-type :initform :graphical)
-     (browser-type :initform nil)
-     (browser-subtype :initform nil)
-     (browser-ptype :initform nil)
-     (browser-options :initform nil)
-     (node-maker :initform #'false)
-     (root-node-maker :initform #'false)
-     (grapher-args :initform nil)
-     (tree-depth :initform 1)
-     (merge-duplicate-nodes :initform t)
-     (root-nodes :initform nil)
-     (all-nodes :initform nil)
-     (auto-snapshot :initform t)
-     (snapshots :initform nil))
+			  ((graph-type :initform :graphical)
+			   (browser-type :initform nil)
+			   (browser-subtype :initform nil)
+			   (browser-ptype :initform nil)
+			   (browser-options :initform nil)
+			   (node-maker :initform #'false)
+			   (root-node-maker :initform #'false)
+			   (grapher-args :initform nil)
+			   (tree-depth :initform 1)
+			   (merge-duplicate-nodes :initform t)
+			   (root-nodes :initform nil)
+			   (all-nodes :initform nil)
+			   (auto-snapshot :initform t)
+			   (snapshots :initform nil))
   (:command-definer t)
   (:command-table (browser :inherit-from (accept-values-pane)))
   (:panes
-    #+++ignore
-    (title :application
-	   :display-after-commands t
-	   :display-function 'display-title-pane
-	   :default-text-style '(:sans-serif :bold :large))
-    (graph :application
-	   :display-function 'display-graph-pane
-	   :display-after-commands t
-	   :incremental-redisplay t
-	   :scroll-bars :both)
-    (interactor :interactor :height '(5 :line))
-    (control-panel :application
-		   :height :compute
-		   :display-function
-		   '(accept-values-pane-displayer
-		      :displayer accept-call-graph-options)))
+   #+++ignore
+   (title :application
+	  :display-after-commands t
+	  :display-function 'display-title-pane
+	  :default-text-style '(:sans-serif :bold :large))
+   (graph :application
+	  :display-function 'display-graph-pane
+	  :display-after-commands t
+	  :incremental-redisplay t
+	  :scroll-bars :both)
+   (interactor :interactor :height '(5 :line))
+   (control-panel :accept-values
+		  :height :compute
+		  :display-function
+		  '(accept-values-pane-displayer
+		    :displayer accept-call-graph-options)))
   (:layouts
-    (default
-      (vertically ()
-	(3/4 graph)
-	(horizontally ()
-	  interactor control-panel)))))
+   (default
+       (vertically ()
+	   (3/4 graph)
+	 (:fill 
+	  (horizontally ()
+	      interactor control-panel))))))
 
 
   
@@ -1006,7 +1007,8 @@
 	     (fresh-line stream)
 	     (accept type
 		     :stream stream :default default
-		     :query-identifier query-id :prompt prompt)))
+		     :query-identifier query-id
+		     :prompt prompt)))
       (declare (dynamic-extent #'accept))
       (multiple-value-bind (new-type ignore type-changed)
 	  (accept `(member ,@*browser-types*) (or browser-type (first *browser-types*))
@@ -1091,7 +1093,6 @@
     (window-clear (get-frame-pane *application-frame* 'graph))))
 
 (define-browser-command (com-redisplay :menu t) ()
-  (window-clear (get-frame-pane *application-frame* 'graph))
   (redisplay-frame-pane *application-frame* 'graph :force-p t))
 
 (define-browser-command (com-hardcopy-graph :name t :menu "Hardcopy")

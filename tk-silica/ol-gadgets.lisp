@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: ol-gadgets.lisp,v 1.25 92/09/22 19:38:04 cer Exp Locker: cer $
+;; $fiHeader: ol-gadgets.lisp,v 1.26 92/09/24 09:40:20 cer Exp Locker: cer $
 
 
 (in-package :xm-silica)
@@ -1032,13 +1032,13 @@
 	       (vsb-sr (and vsb (compose-space vsb)))
 	       (hsb (silica::scroller-pane-horizontal-scroll-bar fr))
 	       (hsb-sr (and hsb (compose-space hsb))))
-	  (when vsb-sr (maxf height (+ spacing (space-requirement-min-height vsb-sr))))
+	  (when vsb-sr (maxf height (+ spacing (space-requirement-height vsb-sr))))
 	  (when hsb-sr (incf height (+ spacing (space-requirement-height hsb-sr))))
 	  (when vsb-sr (maxf min-height (+ spacing (space-requirement-min-height vsb-sr))))
 	  (when hsb-sr (incf min-height (+ spacing (space-requirement-height hsb-sr))))
 	  (maxf max-height height)
       
-	  (when hsb-sr (maxf width (+ spacing (space-requirement-min-width hsb-sr))))
+	  (when hsb-sr (maxf width (+ spacing (space-requirement-width hsb-sr))))
 	  (when vsb-sr (incf width (+ spacing (space-requirement-width vsb-sr))))
 	  (when hsb-sr (maxf min-width (+ spacing (space-requirement-min-width hsb-sr))))
 	  (when vsb-sr (incf min-width (+ spacing (space-requirement-width vsb-sr))))
@@ -1321,75 +1321,71 @@
   ;;-- Perhaps we need a way of representing them in the clim world
   (call-next-method))
 
-(defmethod frame-manager-notify-user ((framem motif-frame-manager)
+(defmethod frame-manager-notify-user ((framem openlook-frame-manager)
 				      message-string 
 				      &key 
 				      (style :inform)
 				      text-style
 				      (frame nil frame-p)
 				      (associated-window
-					(if frame-p
-					    (frame-top-level-sheet frame)
-					    (graft framem)))
+				       (if frame-p
+					   (frame-top-level-sheet frame)
+					 (graft framem)))
 				      (title "Notify user")
 				      documentation
 				      (exit-boxes
-					'(:exit
-					   :abort
-					   :help))
+				       '(:exit
+					 :abort
+					 :help))
 				      (name title))
-  (let ((dialog (make-instance (ecase style
-				 (:inform 'tk::xm-information-dialog)
-				 (:error 'tk::xm-error-dialog)
-				 (:question 'tk::xm-question-dialog)
-				 (:warning 'tk::xm-warning-dialog))
-			       :dialog-style :primary-application-modal
-			       :managed nil
-			       :parent (if (typep associated-window 'xt::xt-root-class)
-					   associated-window
-					   (sheet-mirror associated-window))
-			       :name name
-			       :dialog-title title
-			       :message-string message-string
-			       ))
-	(result nil))
-    (multiple-value-bind
-	(ok-button cancel-button help-button)
-	(get-message-box-child dialog :ok :cancel :help)
-      (flet ((set-it (widget r)
-	       (declare (ignore widget))
-	       (setq result (list r)))
-	     (display-help (widget ignore)
-	       (declare (ignore widget ignore))
-	       (frame-manager-notify-user 
-		framem
-		documentation
-		:associated-window associated-window)))
-	(tk::add-callback dialog :ok-callback #'set-it t)
-	(tk::add-callback dialog :cancel-callback #'set-it nil)
 
-	(flet ((set-button-state (name button)
-		 (unless (dolist (x exit-boxes nil)
-			   (cond ((eq x name) (return t))
-				 ((atom x))
-				 ((eq (car x) name)
-				  (tk::set-values button :label-string (second x))
-				  (return t))))
-		   (tk::unmanage-child button))))
-	  (set-button-state :exit ok-button)
-	  (set-button-state :abort cancel-button)
-	  (set-button-state :help help-button)
-	  
-	  (if documentation
-	      (tk::add-callback help-button :activate-callback #'display-help)
-	    (xt::set-sensitive help-button nil)))
-	
-	(unwind-protect
-	    (progn
-	      (tk::manage-child dialog)
-	      (wait-for-callback-invocation
-	       (port framem)
-	       #'(lambda () (or result (not (tk::is-managed-p dialog))))
-	       "Waiting for dialog"))
-	  (tk::destroy-widget dialog))
-	(car result)))))
+  (let* ((shell (make-instance 
+		 'tk::notice-shell 
+		 :parent (sheet-shell associated-window))))
+    (multiple-value-bind (text-area control-area)
+	(tk::get-values shell :text-area :control-area)
+      (tk::set-values text-area :string message-string)
+      (let ((done nil))
+	(flet ((done (widget value)
+		 (declare (ignore widget))
+		 (setq done (list value))))
+	  (dolist (exit-box exit-boxes)
+	    (multiple-value-bind (name label)
+		(if (consp exit-box) (values (first exit-box)
+					     (second exit-box)) exit-box)
+	      (let ((button (make-instance 'xt::oblong-button 
+					   :parent control-area
+					   :label (or label (string name)))))
+		(case name
+		  (:exit (tk::add-callback button :select #'done t))
+		  (:abort (tk::add-callback button :select #'done nil))))))
+	  (tk::popup shell)
+	  (wait-for-callback-invocation (port framem) #'(lambda () done))
+	  (car done))))))
+
+;;--- We could export this to handle the default case.
+;;--- It definitely needs work though.
+
+(defmethod frame-manager-select-file 
+    ((framem openlook-frame-manager) &rest options 
+				     &key (frame nil frame-p)
+				     (associated-window
+				      (if frame-p
+					  (frame-top-level-sheet frame)
+					(graft framem)))
+				     (title "Select File")
+				     documentation
+				     file-search-proc
+				     directory-list-label
+				     file-list-label
+				     (exit-boxes '(:exit :abort :help))
+				     (name title))
+  (let ((pathname nil)
+	(stream (frame-top-level-sheet frame)))
+    (accepting-values (stream :own-window t :label title :exit-boxes exit-boxes)
+	(setf pathname 
+	  (if pathname
+	      (accept 'pathname :prompt "Pathname" :default pathname
+		      :stream stream)
+	    (accept 'pathname :prompt "Pathname"
+		    :stream stream))))))

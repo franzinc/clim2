@@ -21,7 +21,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: excl-presentations.lisp,v 1.10 92/08/21 16:33:46 cer Exp $
+;; $fiHeader: excl-presentations.lisp,v 1.11 92/09/08 15:17:42 cer Exp Locker: cer $
 
 
 (in-package :clim-internals)
@@ -59,11 +59,9 @@
 
 ;; Record initialized with :object, :type maybe
 
-(defvar *gross-output-history-stack* nil)
-
 (defmethod excl::set-io-record-pos1 ((stream output-recording-mixin) record)
   (let ((current-output-position 
-	  (stream-output-history-position stream)))
+	 (stream-output-history-position stream)))
     (multiple-value-bind (px py)
 	(point-position current-output-position)
       (declare (type coordinate px py))
@@ -75,7 +73,7 @@
 	  (output-record-set-start-cursor-position record x y)
 	  (stream-close-text-output-record stream)
 	  (push (list (stream-current-output-record stream) px py)
-		*gross-output-history-stack*)
+		(stream-excl-presentation-stack stream))
 	  (setf (point-x current-output-position) cursor-x
 		(point-y current-output-position) cursor-y
 		(stream-current-output-record stream) record))))))
@@ -83,16 +81,16 @@
 (defmethod excl::set-io-record-pos2 ((stream output-recording-mixin) record)
   (stream-close-text-output-record stream)
   (let ((current-output-position 
-	  (stream-output-history-position stream))) 
+	 (stream-output-history-position stream))) 
     (destructuring-bind (parent abs-x abs-y)
-	(pop *gross-output-history-stack*)
+	(stream-excl-presentation-stack stream)
       (unless parent 
 	(setq parent (stream-output-history stream)))
       (multiple-value-bind (end-x end-y)
 	  (stream-cursor-position stream)
 	(declare (type coordinate end-x end-y))
 	(output-record-set-end-cursor-position
-	  record (- end-x abs-x) (- end-y abs-y)))
+	 record (- end-x abs-x) (- end-y abs-y)))
       (setf (point-x current-output-position) abs-x
 	    (point-y current-output-position) abs-y
 	    (stream-current-output-record stream) parent)

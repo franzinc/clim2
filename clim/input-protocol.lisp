@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: input-protocol.lisp,v 1.25 92/09/22 19:37:18 cer Exp Locker: cer $
+;; $fiHeader: input-protocol.lisp,v 1.26 92/09/24 09:39:04 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -412,11 +412,13 @@
       (setq gesture (stream-read-gesture (or *original-stream* stream)))
       (when (and (characterp gesture) (ordinary-char-p gesture))
 	(return-from stream-read-char gesture))
-      ;;--- Probably wrong.  It prevents the input editor from ever seeing
-      ;;--- mouse clicks, for example.
+      #+ignore
       (when (and (typep gesture 'key-press-event)
 		 (characterp (keyboard-event-character gesture)))
 	(return-from stream-read-char (slot-value gesture 'character)))
+      ;;--- Probably wrong.  It prevents the input editor from ever seeing
+      ;;--- mouse clicks, for example.
+      #+ignore
       (beep stream))))
 
 (defmethod stream-unread-char ((stream input-protocol-mixin) character)

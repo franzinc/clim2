@@ -21,7 +21,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: plot.lisp,v 1.8 92/09/22 19:37:49 cer Exp Locker: cer $
+;; $fiHeader: plot.lisp,v 1.9 92/09/24 09:40:12 cer Exp Locker: cer $
 
 (in-package :clim-demo)
 
@@ -703,8 +703,19 @@
   (describe region))
 
 (define-plot-demo-command (com-redisplay :name t) ()
-  (window-clear (get-frame-pane *application-frame* 'graph-window))
-  (window-clear (get-frame-pane *application-frame* 'data-window)))
+  (redisplay-frame-pane *application-frame* 
+			(get-frame-pane *application-frame* 'graph-window)
+			:force-p t)
+  (redisplay-frame-pane *application-frame*
+			(get-frame-pane *application-frame*
+					'data-window)
+			:force-p t))
+
+(define-plot-demo-command (com-change-background :name t) ()
+  (with-sheet-medium (medium (get-frame-pane *application-frame* 'graph-window))
+    (setf (medium-background medium) 
+      (nth (random 3) (list +pink+ +khaki+ +blue-violet+)))))
+      
 
 (define-plot-demo-command (com-add-new-column :name t) ()
   (with-slots (plot-data y-labels) *application-frame*

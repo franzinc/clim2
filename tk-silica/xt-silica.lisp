@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.45 92/09/22 19:38:19 cer Exp Locker: cer $
+;; $fiHeader: xt-silica.lisp,v 1.46 92/09/24 09:40:32 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -597,14 +597,7 @@
 		 ;;-- This may be misguided, but it'll almost certainly help us
 		 ;;-- in the short run.
 		 ;;-- This code copied from clx-mirror.
-		 ;;-- This seems to break stuff.
-		 ;;-- It fails because newline is a standard-character
-		 ;;-- and so the event is #\newline which
-		 ;;-- port-canonicalize-gesture does not know what to
-		 ;;-- do with. It returns NIL. In comparision #\return
-		 ;;-- is nonstandard so no one gets confused.
-		 (char (cond #+this-does-not-work
-			     ((and (eq keysym ':return)
+		 (char (cond ((and (eq keysym ':return)
 				   (or (zerop modifier-state)
 				       (= modifier-state
 					  (make-modifier-state :shift))))
@@ -694,7 +687,9 @@
 	(multiple-value-bind (class initargs)
 	    (find-shell-class-and-initargs port sheet)
 	  (let ((frame (pane-frame sheet)))
-	    (when frame (setf (getf initargs :name) (string (frame-name frame)))))
+	    (when frame
+	      (setf (getf initargs :name) (string (frame-name frame))
+		    (getf initargs :title) (frame-pretty-name frame))))
 	  (apply #'make-instance class :parent (find-shell-parent port sheet) initargs))
         (sheet-mirror-for-parenting ma))))
 

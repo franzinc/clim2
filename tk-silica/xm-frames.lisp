@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-frames.lisp,v 1.30 92/09/22 19:38:08 cer Exp Locker: cer $
+;; $fiHeader: xm-frames.lisp,v 1.31 92/09/24 09:40:23 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -31,19 +31,27 @@
 (defmethod make-frame-manager ((port motif-port) &key)
   (make-instance 'motif-frame-manager :port port))
 
-(defmethod adopt-frame :after ((framem motif-frame-manager) 
-			       (frame standard-application-frame))
+(defmethod port-note-frame-adopted :after ((port motif-port) (frame standard-application-frame))
   (when (frame-panes frame)
-    (establish-wm-protocol-callbacks framem frame)))
+    (let ((shell (frame-shell frame)))
+      (tk::set-values shell :delete-response :do-nothing)
+      (tk::add-wm-protocol-callback
+       shell 
+       :wm-delete-window
+       'frame-wm-protocol-callback
+       frame))))
 
-(defmethod establish-wm-protocol-callbacks ((framem motif-frame-manager) frame)
-  (let ((shell (frame-shell frame)))
-    (tk::set-values shell :delete-response :do-nothing)
-    (tk::add-wm-protocol-callback
-      shell 
-      :wm-delete-window
-      'frame-wm-protocol-callback
-      frame)))
+(defmethod note-frame-enabled :after ((framem motif-frame-manager) frame)
+  ;;-- Doing this gets around the problem with motif-menu bars coming
+  ;;-- up the wrong size.
+  ;;-- This is because the :resize-width/height are true 
+  ;;-- ManagedSetChanged allows the widget to be resized.
+  ;;-- Conversely querygeoetry will return bogus results otherwise.
+  (flet ((fix-sheet (sheet)
+	   (when (typep sheet 'motif-menu-bar)
+	     (silica::update-mirror-region (port sheet) sheet))))
+    (declare (dynamic-extent #'fix-sheet))
+    (map-over-sheets #'fix-sheet (frame-top-level-sheet frame))))
 
 ;;; Definitions of the individual classes
 
@@ -61,6 +69,7 @@
      ;;---- This seems important but why
      ;;---- At a guess I would say its because the query-geometry gets
      ;;---- all stupid if these resources are NIL
+     ;;---- These are actually the default values
      (list :resize-height t
 	   :resize-width t))))
 
@@ -225,6 +234,8 @@
    documentation
    :associated-window widget))
 	     
+
+;;--- Perhaps port-update-frame-settings ?
 
 (defmethod update-frame-settings ((framem motif-frame-manager) (frame t))
   ;;--- Lets see how this works out

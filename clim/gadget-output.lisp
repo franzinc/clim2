@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: gadget-output.lisp,v 1.28 92/09/22 19:37:13 cer Exp Locker: cer $
+;; $fiHeader: gadget-output.lisp,v 1.29 92/09/24 09:38:49 cer Exp Locker: cer $
 
 (in-package :clim-internals)
 
@@ -231,7 +231,9 @@
 
 (defmethod note-output-record-attached :after ((record gadget-output-record) stream)
   (declare (ignore stream))
-  (when (output-record-gadget record)
+  (when (and (output-record-gadget record)
+	     ;;--- Why?
+	     (port (output-record-gadget record)))
     (update-gadget-position record)
     (update-output-record-gadget-state record t)))
 

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-gadgets.lisp,v 1.20 92/09/22 19:38:16 cer Exp Locker: cer $
+;; $fiHeader: xt-gadgets.lisp,v 1.21 92/09/24 09:40:27 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -134,7 +134,9 @@
 	  ())
 
 (defclass xt-top-level-sheet (top-level-sheet) 
-	  ((accelerator-gestures :initform nil)))
+	  ((accelerator-gestures :initform nil :reader top-level-sheet-accelerator-gestures)))
+
+(defmethod top-level-sheet-accelerator-gestures ((sheet top-level-sheet)) nil)
 
 (defmethod sheet-disown-child :after ((sheet xt-top-level-sheet) (child basic-sheet))
   (setf (slot-value sheet 'accelerator-gestures) nil))
@@ -186,4 +188,6 @@
     (and frame
 	 (some #'(lambda (gesture)
 		   (clim-internals::keyboard-event-matches-gesture-name-p event gesture port))
-	       (slot-value (frame-top-level-sheet frame) 'accelerator-gestures)))))
+	       (top-level-sheet-accelerator-gestures (frame-top-level-sheet frame))))))
+
+

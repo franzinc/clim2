@@ -1,4 +1,4 @@
-# $fiHeader: Makefile,v 1.46 92/09/22 19:37:54 cer Exp Locker: cer $
+# $fiHeader: Makefile,v 1.47 92/09/24 09:40:17 cer Exp Locker: cer $
 # 
 #  Makefile for CLIM 2.0
 #
@@ -82,7 +82,7 @@ XLIBS= $(XTLIB) $(XLIB)
 OLCOPYLIB=/usr/tech/cer/stuff/clim-2.0/tk/lib2
 OLXLIBS=$(OLCOPYLIB)/libXt.a $(OLCOPYLIB)/libX11.a
 LIBXOL=$(OLCOPYLIB)/libXol.a
-LIBXOL_d=$(OLCOPYLIB)/libXol.a
+LIBXOL_d=$(LIBXOL)
 
 # This has to be kept consistent with xlib.lisp
 UNDEFS=misc/undefinedsymbols
@@ -96,7 +96,11 @@ XM_UNDEFS=misc/undefinedsymbols.motif
 # This should be the same as load-ol
 OL_UNDEFS=misc/undefinedsymbols.olit
 
-CLIMFASLS= climg.fasl climol.fasl climxm.fasl clim-debug.fasl climps.fasl
+# These are the fasls and the .o that form the product
+
+CLIMFASLS= climg.fasl climol.fasl climxm.fasl clim-debug.fasl clim-debugol.fasl \
+	   clim-debugxm.fasl climps.fasl climgg.fasl
+
 CLIMOBJS= clim-motif_d.o clim-olit_d.o  clim-motif.o clim-olit.o stub-xt.o stub-x.o \
 	  xlibsupport.o MyDrawingA.o \
 	  olsupport.o xtsupport.o
@@ -129,10 +133,10 @@ MALLOCOBJS =
 #
 DEBUG-OBJS = xlib/ffi.fasl xlib/xlib-defs.fasl xlib/xlib-funs.fasl \
 	     xlib/x11-keysyms.fasl xlib/last.fasl \
-	     tk/xt-defs.fasl tk/xm-defs.fasl tk/xt-funs.fasl tk/xm-funs.fasl
-# These should be there also
-# tk/ol-defs.fasl tk/ol-funs.fasl
+	     tk/xt-defs.fasl tk/xt-funs.fasl 
 
+XM-DEBUG-OBJS = tk/xm-defs.fasl tk/xm-funs.fasl
+OL-DEBUG-OBJS = tk/ol-defs.fasl tk/ol-funs.fasl
 
 #
 # "Load time objects" -- these go into clim.fasl
@@ -237,6 +241,9 @@ CLIM-STANDALONE-OBJS = clim/gestures.fasl \
 			clim/drag-and-drop.fasl \
                         clim/item-list-manager.fasl \
                         clim/stream-trampolines.fasl
+
+GENERIC-GADGETS = clim/db-menu.fasl clim/db-text.fasl silica/db-button.fasl \
+	    silica/db-slider.fasl	   
 
 XLIB-CLIM-OBJS = xlib/pkg.fasl xlib/load-xlib.fasl
 
@@ -519,15 +526,22 @@ compile-ol:	$(CLIMOBJS) FORCE
 # Concatenation
 
 cat:	cat-xm cat-ol
-cat-g:	climg.fasl clim-debug.fasl climps.fasl
-cat-xm:	cat-g climxm.fasl
-cat-ol:	cat-g climol.fasl
+cat-g:	climg.fasl clim-debug.fasl climps.fasl climgg.fasl
+cat-xm:	cat-g climxm.fasl clim-debugxm.fasl 
+cat-ol:	cat-g climol.fasl clim-debugol.fasl 
 
 climg.fasl	: $(GENERIC-OBJS) $(XLIB-CLIM-OBJS)
 	$(CAT) $(GENERIC-OBJS) $(XLIB-CLIM-OBJS) > $(TMP)/clim.fasl_`whoami`
 	$(MV) $(TMP)/clim.fasl_`whoami` climg.fasl
 	ls -lt climg.fasl >> Clim-sizes.n
 	ls -lt climg.fasl
+
+climgg.fasl	: $(GENERIC-GADGETS)
+	$(CAT) $(GENERIC-GADGETS) > $(TMP)/clim.fasl_`whoami`
+	$(MV) $(TMP)/clim.fasl_`whoami` climgg.fasl
+	ls -lt climgg.fasl >> Clim-sizes.n
+	ls -lt climgg.fasl
+
 
 climxm.fasl	: $(MOTIF-OBJS) $(XLIB-CLIM-OBJS)
 	$(CAT) $(MOTIF-OBJS) > $(TMP)/clim.fasl_`whoami`
@@ -549,6 +563,18 @@ clim-debug.fasl:	$(DEBUG-OBJS)
 	$(MV) $(TMP)/clim-debug.fasl_`whoami` clim-debug.fasl
 	ls -lt clim-debug.fasl >> Clim-sizes.n
 	ls -lt clim-debug.fasl
+
+clim-debugxm.fasl:	$(XM-DEBUG-OBJS)
+	$(CAT) $(XM-DEBUG-OBJS) > $(TMP)/clim-debugxm.fasl_`whoami`
+	$(MV) $(TMP)/clim-debugxm.fasl_`whoami` clim-debugxm.fasl
+	ls -lt clim-debugxm.fasl >> Clim-sizes.n
+	ls -lt clim-debugxm.fasl
+
+clim-debugol.fasl:	$(OL-DEBUG-OBJS)
+	$(CAT) $(OL-DEBUG-OBJS) > $(TMP)/clim-debugol.fasl_`whoami`
+	$(MV) $(TMP)/clim-debugol.fasl_`whoami` clim-debugol.fasl
+	ls -lt clim-debugol.fasl >> Clim-sizes.n
+	ls -lt clim-debugol.fasl
 
 climps.fasl: 	$(POSTSCRIPT_CLIM)
 	$(CAT) $(POSTSCRIPT_CLIM) > $(TMP)/climps.fasl_`whoami`
@@ -577,7 +603,7 @@ clim-xm:	FORCE $(CLIMOBJS)
 	ls -lLt $(CLIM)
 	echo CLIM-XM built!!!!	
 
-clim-ol:	FORCE
+clim-ol:	FORCE $(CLIMOBJS)
 #	-$(RM) $(CLIM)
 	$(ECHO) " \
 		(setq sys::*libxt-pathname* \"$(XTLIB)\") \

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: SILICA; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: framem.lisp,v 1.15 92/09/22 19:36:47 cer Exp Locker: cer $
+;; $fiHeader: framem.lisp,v 1.16 92/09/24 09:37:39 cer Exp Locker: cer $
 
 (in-package :silica)
 
@@ -87,6 +87,10 @@
   (declare (ignore frame))
   pane)
 
+(defmethod adopt-frame :before ((framem standard-frame-manager) frame)
+  (assert (null (frame-manager frame)))
+  (setf (frame-manager frame) framem))
+
 (defmethod adopt-frame ((framem standard-frame-manager) frame)
   (generate-panes framem frame)
   (when (frame-panes frame)
@@ -109,13 +113,18 @@
 
 (defmethod adopt-frame :after ((framem standard-frame-manager) frame)
   (setf (frame-manager-frames framem)
-	(nconc (frame-manager-frames framem) (list frame))))
+    (nconc (frame-manager-frames framem) (list frame)))
+  (port-note-frame-adopted (port frame) frame))
 
 (defmethod disown-frame ((framem standard-frame-manager) frame)
+  (case (frame-state frame)
+    (:enabled (disable-frame frame)))
+  (assert (eq (frame-manager frame) framem))
   (let ((top (frame-top-level-sheet frame)))
     (when top
       (sheet-disown-child (sheet-parent top) top)
       (setf (frame-top-level-sheet frame) nil
+	    (slot-value frame 'clim-internals::all-panes) nil
 	    (frame-state frame) :disowned))))
 
 (defmethod disown-frame :after ((framem standard-frame-manager) frame)

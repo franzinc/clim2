@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: cload-demos.cl,v 1.1 91/07/25 19:03:22 cer Exp $
+;; $fiHeader: cload-demos.lisp,v 1.1 92/06/02 08:26:29 cer Exp Locker: cer $
 
 (defvar *demo-files* 
     '("packages"
@@ -32,7 +32,13 @@
       "listener" 
       "navfun"
       "navdata"
-      "puzzle"))
+      "puzzle"
+      "plot"
+      "color-editor"
+      "graphics-editor"
+      "bitmap-editor"
+      "ico"
+      "process-browser"))
 
 (defun compile-and-load-demos (&key forcep 
 				    (directory

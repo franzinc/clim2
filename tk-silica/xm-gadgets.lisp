@@ -18,7 +18,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xm-gadgets.lisp,v 1.47 92/09/22 19:38:12 cer Exp Locker: cer $
+;; $fiHeader: xm-gadgets.lisp,v 1.48 92/09/24 09:40:24 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -418,7 +418,7 @@
 	  ())
 
 (defmethod add-sheet-callbacks :after ((port motif-port) 
-				       (sheet motif-top-level-sheet)
+				       (sheet top-level-sheet)
 				       (widget tk::xm-my-drawing-area))
   (tk::add-callback widget 
 		    :resize-callback 'sheet-mirror-resized-callback
@@ -426,7 +426,7 @@
 
 (defmethod find-widget-class-and-initargs-for-sheet ((port motif-port)
 						     (parent t)
-						     (sheet motif-top-level-sheet))
+						     (sheet top-level-sheet))
   (cond 
    ;;--- hack alert
    ;; Seems that we need to use a bulletin board so that everything
@@ -446,7 +446,8 @@
 		  :name (string (frame-name (pane-frame sheet)))
 		  :margin-width 0 :margin-height 0)))))
 
-;;; 
+;;;;;;;;;;;;;;;;
+
 
 (defmethod add-sheet-callbacks :after ((port motif-port) (sheet t) 
 				       (widget tk::xm-bulletin-board))
@@ -686,6 +687,7 @@
 						     (sheet motif-check-box))
   
   (values 'tk::xm-row-column nil))
+
 
 
 ;; Frame-viewport that we need because a sheet can have

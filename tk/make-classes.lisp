@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: make-classes.lisp,v 1.24 92/08/18 17:23:20 cer Exp Locker: cer $
+;; $fiHeader: make-classes.lisp,v 1.25 92/08/18 17:53:38 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -192,6 +192,9 @@
       (format excl:*initial-terminal-io* ";; Initializing class ~s~%" class-ep)
       (let ((h (get-foreign-variable-value class-ep)))
 	(push (list h class-ep) clist)
+	;;--- Perhaps we can just do this when we want to grab the resources.
+	;;--- In this way we would only have to do one the display is
+	;;--- opened and the toolkit initialized etc etc.
 	(xt_initialize_widget_class h)))
     (setq clist (nreverse clist))
 
