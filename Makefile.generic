@@ -1,4 +1,4 @@
-# $Id: Makefile.generic,v 1.52 2000/07/06 20:43:09 layer Exp $
+# $Id: Makefile.generic,v 1.52.6.1 2000/09/26 22:14:29 layer Exp $
 #  Makefile.generic for CLIM 2.0
 
 all: compile cat # $(CLIM)
@@ -176,7 +176,7 @@ cleanfasls: FORCE
 	find . -name '*.fasl' -print | xargs rm -f
 
 clean:
-	rm -f *.out
+	rm -f *.out *.tmp
 	find . -name '*.fasl' -print | xargs rm -f
 	rm -f *.o *.$(SHARED_EXT) *.a slim \
 	  	stub-motif.c stub-olit.c stub-xt.c stub-x.c stub-wnn.c

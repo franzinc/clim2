@@ -11,6 +11,13 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+<no version change>
+
+2000-09-26  Kevin Layer  <layer@ultra>
+
+	* Makefile: make `clean' clean more
+
+*******************************************************************************
 2.2.2.21.13
 
 Added file:
