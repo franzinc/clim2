@@ -12,6 +12,11 @@ If there are user-visible changes in this commit, then list the
 
 *******************************************************************************
 
+2004-09-29    <mm@KETCHTOO>
+
+	* acl-frames.lisp (clim-internals::frame-manager-position-dialog): 
+	                 Make sure values exist before using them [bug14769]
+
 2004-05-27  Charles A. Cox  <cox@gemini>
 
 	* ChangeLog.n: Add cvs Revision marker to help track cvs versions
@@ -5837,4 +5842,4 @@ IGNORE JDI SPECIFIC CHANGES TO Makefile
 
 	Lots of other stuff
 
-$Revision: 1.119.2.25.2.13 $
+$Revision: 1.119.2.25.2.14 $

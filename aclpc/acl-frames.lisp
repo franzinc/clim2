@@ -16,7 +16,7 @@
 ;; Commercial Software developed at private expense as specified in
 ;; DOD FAR Supplement 52.227-7013 (c) (1) (ii), as applicable.
 ;;
-;; $Id: acl-frames.lisp,v 1.12.24.3.6.2 2003/07/16 22:25:57 mm Exp $
+;; $Id: acl-frames.lisp,v 1.12.24.3.6.3 2004/09/29 20:05:12 mm Exp $
 
 #|****************************************************************************
 *                                                                            *
@@ -2000,11 +2000,15 @@ in a second Lisp process.  This frame cannot be reused."
 	       ;; If value is specified, use that.
 	       (values own-window-x-position own-window-y-position))
 	      ((and (setq calling-frame (frame-calling-frame frame))
-		    (popup-frame-p frame))
+		    (popup-frame-p frame)
+		    ;; Make sure these values exist before using them [bug14769]
+	            (setq calling-frame-top-level-sheet
+			  (frame-top-level-sheet calling-frame))
+                    (setq frame-top-level-sheet (frame-top-level-sheet frame))
+		    )
 	       ;; If frame is a designated pop-up, 
 	       ;; try to center over the calling frame.
-	       (let ((calling-frame-top-level-sheet (frame-top-level-sheet calling-frame))
-		     (frame-top-level-sheet (frame-top-level-sheet frame)))
+	       (let ()
 		 (multiple-value-bind (calling-frame-left calling-frame-top calling-frame-width)
 		     (bounding-rectangle* calling-frame-top-level-sheet)
 		   (let ((frame-width (bounding-rectangle-size frame-top-level-sheet)))
