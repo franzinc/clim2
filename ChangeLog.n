@@ -11,6 +11,14 @@ If there are user-visible changes in this commit, then list the
 	* <changes go here...>
 
 *******************************************************************************
+2.2.1.46
+
+1999-03-16    <layer@HOBART>
+
+	* aclpc/pkgdcl.lisp: load user32.dll with :system-library t
+	arguments (in lisps that support this new keyword to load)
+
+*******************************************************************************
 2.2.1.45
 
 1999-02-24  Jeff Morrill  <jmorrill@pointnclick.com> 
