@@ -20,9 +20,25 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xlib.lisp,v 1.18 92/05/22 19:26:33 cer Exp Locker: cer $
+;; $fiHeader: xlib.lisp,v 1.19 92/05/26 14:32:55 cer Exp $
 
 (in-package :tk)
+
+(deftype card32 () '(unsigned-byte 32))
+
+(deftype card29 () '(unsigned-byte 29))
+
+(deftype card24 () '(unsigned-byte 24))
+
+(deftype card16 () '(unsigned-byte 16))
+
+(deftype card8 () '(unsigned-byte 8))
+
+(deftype int32 () '(signed-byte 32))
+
+(deftype int16 () '(signed-byte 16))
+
+(deftype int8 () '(signed-byte 8))
 
 ;;; Pathetic clos interface to Xlib
 

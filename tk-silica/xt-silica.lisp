@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-silica.lisp,v 1.29 92/05/26 14:33:35 cer Exp Locker: cer $
+;; $fiHeader: xt-silica.lisp,v 1.30 92/06/16 15:02:26 cer Exp Locker: cer $
 
 (in-package :xm-silica)
 
@@ -30,6 +30,9 @@
      (context :reader port-context)     
      (copy-gc :initform nil)
      (opacities :initform nil)
+     ;; This next is true for servers like Suns, which (pretty much) always
+     ;; can safely copy-area without generating graphics-exposures.
+     (safe-backing-store :initform nil :accessor port-safe-backing-store)
      (event-lock :initform (clim-sys:make-lock "port event lock")
 		 :reader port-event-lock)
      (rotated-font-cache :initform nil :accessor port-rotated-font-cache))
@@ -90,6 +93,15 @@
 	(setf (slot-value port 'application-shell) application-shell
 	      (slot-value port 'context) context
 	      (slot-value port 'display) display)
+	(let* ((screen (x11:xdefaultscreenofdisplay display))
+	       (bs-p (not (zerop (x11::screen-backing-store screen))))
+	       (su-p (not (zerop (x11::screen-save-unders screen))))
+	       (vendor (ff:char*-to-string (x11::display-vendor display))))
+	  (if (and bs-p su-p
+		   ;; An amazing crock.  XXX
+		   (not (search "Network Computing Devices" vendor))
+		   (not (search "Tektronix" vendor)))
+	      (setf (slot-value port 'safe-backing-store) t)))
 	(initialize-xlib-port port display)))))
 
 (defvar *xt-font-families* '((:fix "*-*-courier-*-*-*-*-*-*-*-*-*-*-*-*")
@@ -311,9 +323,10 @@
 		(sheet-mirror-resized-callback
 		 widget nil event sheet)
 		nil)
-	       ;; This is handled by the expose callback.
-	       (:expose
-		nil)
+	       (:no-expose nil)
+	       (:graphics-expose
+		;; Tricky!
+		(setf (port-safe-backing-store (port sheet)) nil))
 	       (:expose
 		;; This gets called only for an XmBulletinBoard widget.
 		(sheet-mirror-exposed-callback

@@ -1,6 +1,6 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-UTILS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: lisp-utilities.lisp,v 1.10 92/05/13 17:10:40 cer Exp $
+;; $fiHeader: lisp-utilities.lisp,v 1.11 92/05/26 14:33:02 cer Exp $
 
 (in-package :clim-utils)
 
@@ -153,18 +153,17 @@
 (defmacro convert-to-device-coordinates (transform &body positions)
   (assert (evenp (length positions)) (positions)
     "There must be an even number of elements in ~S" positions)
-  (let ((forms nil)
-	(nx (gensym))
-	(ny (gensym)))
+  (let ((forms nil))
     (loop
       (when (null positions)
 	(return `(progn ,@(nreverse forms))))
       (let* ((x (pop positions))
 	     (y (pop positions)))
-	(push `(multiple-value-bind (,nx ,ny) 
-		   (transform-position ,transform ,x ,y)
-		 (setq ,x (fix-coordinate ,nx)
-		       ,y (fix-coordinate ,ny)))
+	(push `(progn
+		 (multiple-value-setq (,x ,y) 
+		   (transform-position ,transform ,x ,y))
+		 (setq ,x (fix-coordinate ,x)
+		       ,y (fix-coordinate ,y)))
 	      forms)))))
 
 ;;
@@ -173,18 +172,16 @@
 (defmacro convert-to-device-distances (transform &body positions)
   (assert (evenp (length positions)) (positions)
 	  "There must be an even number of elements in ~S" positions)
-  (let ((forms nil)
-	(nx (gensym))
-	(ny (gensym)))
+  (let ((forms nil))
     (loop
       (when (null positions)
 	(return `(progn ,@(nreverse forms))))
       (let* ((x (pop positions))
 	     (y (pop positions)))
-	(push `(multiple-value-bind (,nx ,ny) 
+	(push `(multiple-value-bind (,x ,y) 
 		   (transform-distance ,transform ,x ,y)
-		 (setq ,x (fix-coordinate ,nx)
-		       ,y (fix-coordinate ,ny)))
+		 (setq ,x (fix-coordinate ,x)
+		       ,y (fix-coordinate ,y)))
 	      forms)))))
 
 

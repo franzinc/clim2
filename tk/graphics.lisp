@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: graphics.lisp,v 1.7 92/04/15 11:44:45 cer Exp $
+;; $fiHeader: graphics.lisp,v 1.8 92/05/13 17:10:18 cer Exp $
 
 (in-package :tk)
 
@@ -62,20 +62,22 @@
 		     filled)
   (multiple-value-bind (x-radius y-radius)
       (cond ((and (= radius-1-dx 0) (= radius-2-dy 0))
-	     (values (abs radius-2-dx) (abs radius-1-dy)))
+	     (values (round (abs radius-2-dx))
+		     (round (abs radius-1-dy))))
 	    ((and (= radius-2-dx 0) (= radius-1-dy 0))
-	     (values (abs radius-1-dx) (abs radius-2-dy)))
+	     (values (round (abs radius-1-dx))
+		     (round (abs radius-2-dy))))
 	    (t
 	     (let ((s-1 (+ (* radius-1-dx radius-1-dx) 
 			   (* radius-1-dy radius-1-dy)))
 		   (s-2 (+ (* radius-2-dx radius-2-dx) 
 			   (* radius-2-dy radius-2-dy))))
 	       (if (= s-1 s-2)
-		   (let ((r (truncate (sqrt s-1))))
+		   (let ((r (round (sqrt s-1))))
 		     (values r r))
 		 ;; Degrade to drawing a rectilinear ellipse
-		 (values (truncate (sqrt s-1)) 
-			 (truncate (sqrt s-2)))))))
+		 (values (round (sqrt s-1)) 
+			 (round (sqrt s-2)))))))
     (setq start-angle (round (* start-angle (/ (* 360 64) (* 2 pi)))))
     (setq end-angle (round (* end-angle (/ (* 360 64) (* 2 pi)))))
     (if (> end-angle start-angle)

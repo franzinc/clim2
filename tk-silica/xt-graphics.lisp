@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: xt-graphics.lisp,v 1.25 92/06/03 18:19:11 cer Exp Locker: cer $
+;; $fiHeader: xt-graphics.lisp,v 1.26 92/06/16 15:02:24 cer Exp Locker: cer $
 
 (in-package :tk-silica)
 
@@ -466,6 +466,164 @@ and on color servers, unless using white or black")
 		  gc))))))))
 
 
+
+;; Line (& maybe eventually non-rectangular polygon) clipping
+
+;; We use 32000 instead of the more correct 32768 because some buggy X servers
+;; barf on numbers very close to 32768.
+
+(defmacro valid-point-p (x y)
+  `(and (excl:fixnump ,x) (excl:fixnump ,y)
+	(< (the fixnum ,x) 32000) (> (the fixnum ,x) -32000)
+	(< (the fixnum ,y) 32000) (> (the fixnum ,y) -32000)))
+
+;;
+;; Here we implement a simple version of the Cohen-Sutherland clipping
+;; algorithm.  Specifically, we only try to clip the line so that it will
+;; be legal to pass to X, we don't try to clip to window boundaries.
+;; In port-draw-line* we special case trivial accepts for speed.
+;;
+(defun clipper (x1 y1 x2 y2
+		&optional (xmin -32000) (xmax 32000) (ymin -32000) (ymax 32000))
+  (declare (optimize (speed 3) (safety 0))
+	   #+ignore
+	   (:explain :calls :types)
+	   (fixnum x1 y1 x2 y2 xmin xmax ymin ymax))
+  (macrolet ((outcodes (x y)
+	       `(+ (ash (if (minusp (- ymax ,y)) 1 0) 3)
+		   (ash (if (minusp (- ,y ymin)) 1 0) 2)
+		   (ash (if (minusp (- xmax ,x)) 1 0) 1)
+		   (if (minusp (- ,x xmin)) 1 0)))
+	     (rejectp (oc1 oc2) `(plusp (logand ,oc1 ,oc2)))
+	     (acceptp (oc1 oc2)
+	       `(and (zerop ,oc1) (zerop ,oc2))))
+    (let ((outcode1 0) (outcode2 0))
+      (declare (type (unsigned-byte 4) outcode1 outcode2))
+      (loop
+	(setq outcode1 (outcodes x1 y1)
+	      outcode2 (outcodes x2 y2))
+	#+ignore
+	(format excl:*initial-terminal-io* "oc1 = ~d, oc2 = ~d~%" outcode1 outcode2)
+	(if (rejectp outcode1 outcode2)
+	    (return-from clipper nil))
+	(if* (acceptp outcode1 outcode2)
+	   then (return)
+	   else ;; If P1 is inside window, exchange P1 and P2 to guarantee
+		;; that P1 is outside window.
+		(if (zerop outcode1)
+		    (psetq x1 x2
+			   y1 y2
+			   x2 x1
+			   y2 y1
+			   outcode1 outcode2
+			   outcode2 outcode1))
+		;; Now perform a subdivision; move P1 to the intersection point.
+		;; Use the formulas y=y1+slope*(x-x1), x=x1+(1/slope)*(y-y1).
+		(if* (logbitp 3 outcode1)
+		   then ;; Divide line at top of window.
+			(setq x1 (round (+ x1 (* (- x2 x1)
+						 (/ (- ymax y1) (- y2 y1))))))
+			(setq y1 ymax)
+		 elseif (logbitp 2 outcode1)
+		   then ;; Divide line at bottom of window.
+			(setq x1 (round (+ x1 (* (- x2 x1)
+						 (/ (- ymin y1) (- y2 y1))))))
+			(setq y1 ymin)
+		 elseif (logbitp 1 outcode1)
+		   then ;; Divide line at right of window.
+			(setq x1 xmax)
+			(setq y1 (round (+ y1 (* (- y2 y1)
+						 (/ (- xmax x1) (- x2 x1))))))
+		 elseif (logbitp 0 outcode1)
+		   then ;; Divide line at left of window.
+			(setq x1 xmin)
+			(setq y1 (round (+ y1 (* (- y2 y1)
+						 (/ (- xmin x1) (- x2 x1)))))))
+		))))
+  (values x1 y1 x2 y2))
+
+(defmacro clip-invalidate-line (x1 y1 x2 y2)
+  `(if (or (not (valid-point-p ,x1 ,y1))
+	   (not (valid-point-p ,x2 ,y2)))
+       (multiple-value-setq (,x1 ,y1 ,x2 ,y2)
+	 (clipper ,x1 ,y1 ,x2 ,y2))))
+
+(defmethod port-draw-line* ((port xt-port) sheet medium x1 y1 x2 y2)
+  (let ((drawable (medium-drawable medium)))
+    (when drawable
+      (let ((ink (medium-ink medium))
+	    (transform (sheet-device-transformation sheet)))
+	(convert-to-device-coordinates transform x1 y1 x2 y2)
+	(clip-invalidate-line x1 y1 x2 y2)
+	(tk::draw-line
+	 drawable
+	 (adjust-ink (decode-ink ink medium)
+		     medium
+		     (medium-line-style medium)
+		     (the fixnum (min (the fixnum x1) (the fixnum x2)))
+		     (the fixnum (min (the fixnum y1) (the fixnum y2))))
+	 x1 y1 x2 y2)))))
+
+;; Discarding of other illegal graphics
+
+#|
+
+(defmacro int16ify (int &optional check-type-string)
+  "Make int (a fixnum) into an xlib:int16; int must be a
+   place.  Call check-type if it isn't in bounds."
+  ;; These are ordered in expected frequency of usage
+  `(if* (and (>= ,int -32768) (< ,int 32768))
+      then
+	   nil
+      else
+	   (setf ,int (make-into-int16 ,int ,check-type-string))))
+
+(defmacro card16ify (int &optional check-type-string)
+  "Make int (a fixnum) into an xlib:card16; int must be a
+   place.  Call check-type if it isn't in bounds."
+  ;; These are ordered in expected frequency of usage
+  `(if* (and (>= ,int 0) (< ,int 65536))
+      then
+	   nil
+      else
+	   (setf ,int (make-into-card16 ,int ,check-type-string))))
+
+(defun make-into-int16 (object string)
+  ;; Now it must be too big to fit in an xlib:int16.
+  (cond (cw::*fix-up-illegal-graphics-p*
+	 (max -32767 (min 32766 object)))
+	(t
+	 (check-type object xlib:int16 string)
+	 object)))
+
+(defun make-into-card16 (object string)
+  ;; Now it must be too big to fit in an xlib:int16.
+  (cond (cw::*fix-up-illegal-graphics-p*
+	 (max 0 (min 65534 object)))
+	(t
+	 (check-type object xlib:card16 string)
+	 object)))
+
+|#
+
+(defvar *discard-illegal-graphics* t)
+
+(defmacro discard-illegal-coordinates (function-name &rest positions)
+  (assert (evenp (length positions)) (positions)
+    "There must be an even number of elements in ~S" positions)
+  (let ((forms nil))
+    (do ()
+	((null positions))
+      (let* ((x (pop positions))
+	     (y (pop positions)))
+	(push `(valid-point-p ,x ,y) forms)))
+    `(unless (and ,@forms)
+       (if* *discard-illegal-graphics*
+	  then (return-from ,function-name)
+	  else (error "Coordinate(s) out of (signed-byte 16) range")))))
+
+
+
 (defmethod port-draw-point* ((port xt-port) sheet medium x y)
   (let ((drawable (medium-drawable medium)))
     (when drawable
@@ -474,6 +632,7 @@ and on color servers, unless using white or black")
 	     (thickness (line-style-thickness line-style))
 	     (transform (sheet-device-transformation sheet)))
 	(convert-to-device-coordinates transform x y)
+	(discard-illegal-coordinates port-draw-point* x y)
 	(cond ((< thickness 1.5)
 	       (tk::draw-point
 		drawable
@@ -498,27 +657,9 @@ and on color servers, unless using white or black")
 		thickness 0 2pi
 		t)))))))
 
-(defmethod port-draw-line* ((port xt-port) sheet medium
-			    x1 y1 x2 y2)
-  (let ((drawable (medium-drawable medium)))
-    (when drawable
-      (let ((ink (medium-ink medium))
-	    (transform (sheet-device-transformation sheet)))
-	(convert-to-device-coordinates transform
-				       x1 y1 x2 y2)
-	(tk::draw-line
-	 drawable
-	 (adjust-ink (decode-ink ink medium)
-		     medium
-		     (medium-line-style medium)
-		     (the fixnum (min (the fixnum x1) (the fixnum x2)))
-		     (the fixnum (min (the fixnum y1) (the fixnum y2))))
-	 x1 y1 x2 y2)))))
 
 
 (defmethod port-draw-lines* ((port xt-port) sheet medium list-of-x-and-ys)
-  ;;-- We should decide which version to use.
-  ;;-- We also need to deal with line clipping.
   (let* ((transform (sheet-device-transformation sheet))
 	 (len (length list-of-x-and-ys))
 	 (npoints (/ len 4))
@@ -528,89 +669,46 @@ and on color servers, unless using white or black")
 	 (minx most-positive-fixnum)
 	 (miny most-positive-fixnum)
 	 ink)
-    (if (listp list-of-x-and-ys)
+    (macrolet ((stuff-line-guts (x1 y1 x2 y2)
+		 `(let ((x1 ,x1)
+			(y1 ,y1)
+			(x2 ,x2)
+			(y2 ,y2))
+		    (convert-to-device-coordinates transform x1 y1)
+		    (convert-to-device-coordinates transform x2 y2)
+		    (clip-invalidate-line x1 y1 x2 y2)
+		    (minf minx x1)
+		    (minf miny y1)
+		    (minf minx x2)
+		    (minf miny y2)
+		    (setf (tk::xsegment-array-x1 points i) x1
+			  (tk::xsegment-array-y1 points i) y1
+			  (tk::xsegment-array-x2 points i) x2
+			  (tk::xsegment-array-y2 points i) y2))))
+      (if (listp list-of-x-and-ys)
+	  (do ((ps list-of-x-and-ys)
+	       (i 0 (1+ i)))
+	      ((null ps))
+	    (declare (fixnum i))
+	    (stuff-line-guts (pop ps) (pop ps) (pop ps) (pop ps)))
 	(do ((ps list-of-x-and-ys)
-	     (i 0 (1+ i)))
-	    ((null ps))
-	  (declare (fixnum i))
-	  (let ((x (pop ps))
-		(y (pop  ps)))
-	    (convert-to-device-coordinates transform x y)
-	    (minf minx x)
-	    (minf miny y)
-	    (setf (tk::xsegment-array-x1 points i) x
-		  (tk::xsegment-array-y1 points i) y))
-	  (let ((x (pop ps))
-		(y (pop ps)))
-	    (convert-to-device-coordinates transform x y)
-	    (minf minx x)
-	    (minf miny y)
-	    (setf (tk::xsegment-array-x2 points i) x
-		  (tk::xsegment-array-y2 points i) y)))
-      (do ((ps list-of-x-and-ys)
-	   (j 0 (+ 2 j))
-	   (i 0 (+ i 4)))
-	  ((= j len))
-	(declare (fixnum i j))
-	(let ((x (aref ps j))
-	      (y (aref ps (1+ j))))
-	  (convert-to-device-coordinates transform x y)
-	  (minf minx x)
-	  (minf miny y)
-	  (setf (tk::xsegment-array-x1 points i) x
-		(tk::xsegment-array-y1 points i) y))
-	
-	(let ((x (aref ps (+ 2 j)))
-	      (y (aref ps (+ 3 j))))
-	  (convert-to-device-coordinates transform x y)
-	  (minf minx x)
-	  (minf miny y)
-	  (setf (tk::xsegment-array-x2 points i) x
-		(tk::xsegment-array-y2 points i) y))))
-    (setq ink 
-      (adjust-ink (decode-ink (medium-ink medium) medium) medium
-		  (medium-line-style medium)
-		  minx miny))
-    (when (medium-drawable medium)
-      (x11:xdrawsegments
+	     (j 0 (+ 2 j))
+	     (i 0 (+ i 4)))
+	    ((= j len))
+	  (declare (fixnum i j))
+	  (stuff-line-guts (aref ps j) (aref ps (1+ j)) (aref ps (+ 2 j)) (aref ps (+ 3 j)))))
+      (setq ink 
+	(adjust-ink (decode-ink (medium-ink medium) medium) medium
+		    (medium-line-style medium)
+		    minx miny))
+      (when (medium-drawable medium)
+	(x11:xdrawsegments
 	 (tk::object-display window)
 	 window
 	 ink
 	 points
-	 npoints)))
-  #+ignore
-  (let ((drawable (medium-drawable medium)))
-    (when drawable
-      (let* ((ink (medium-ink medium))
-	     (transform (sheet-device-transformation sheet))
-	     (gc 
-	      (adjust-ink (decode-ink ink medium)
-			  medium
-			  (medium-line-style medium)
-			  0 0))
-	     (len (length list-of-x-and-ys))
-	     (lines list-of-x-and-ys))
-	(if (arrayp lines)
-	    (do ((i 0 (+ 4 i)))
-		((= i len))
-	      (let ((x1 (aref lines i))
-		    (y1 (aref lines (1+ i)))
-		    (x2 (aref lines (+ 2 i)))
-		    (y2 (aref lines (+ 3 i))))
-		(convert-to-device-coordinates transform x1 y1 x2 y2)
-		(tk::draw-line
-		 drawable gc
-		 x1 y1 x2 y2)))
-	  (loop
-	    (when (null lines) (return nil))
-	    (let ((x1 (pop lines))
-		  (y1 (pop lines))
-		  (x2 (pop lines))
-		  (y2 (pop lines)))
-	      (convert-to-device-coordinates transform x1 y1 x2 y2)
-	      (tk::draw-line
-	       drawable gc
-	       x1 y1 x2 y2))))))))
+	 npoints)))))
+
 
 (defmethod port-draw-rectangle* ((port xt-port) sheet medium
 				 x1 y1 x2 y2 filled)
@@ -621,6 +719,13 @@ and on color servers, unless using white or black")
 	(cond ((rectilinear-transformation-p transform)
 	       (convert-to-device-coordinates transform
 					      x1 y1 x2 y2)
+	       ;; Clipping a rectangle is ridiculously easy.
+	       (unless (valid-point-p x1 y1)
+		 (setq x1 (min (max -32000 (the fixnum x1)) 32000))
+		 (setq y1 (min (max -32000 (the fixnum y1)) 32000)))
+	       (unless (valid-point-p x2 y2)
+		 (setq x2 (min (max -32000 (the fixnum x2)) 32000))
+		 (setq y2 (min (max -32000 (the fixnum y2)) 32000)))
 	       (let ((min-x (min (the fixnum x1) (the fixnum x2)))
 		     (min-y (min (the fixnum y1) (the fixnum y2))))
 		 (declare (fixnum min-x min-y))
@@ -659,6 +764,7 @@ and on color servers, unless using white or black")
 	  (let ((x (first ps))
 		(y (second ps)))
 	    (convert-to-device-coordinates transform x y)
+	    (discard-illegal-coordinates port-draw-polygon* x y)
 	    (minf minx x)
 	    (minf miny y)
 	    (setf (tk::xpoint-array-x points i) x
@@ -670,6 +776,7 @@ and on color servers, unless using white or black")
 	(let ((x (aref ps j))
 	      (y (aref ps (1+ j))))
 	  (convert-to-device-coordinates transform x y)
+	  (discard-illegal-coordinates port-draw-polygon* x y)
 	  (minf minx x)
 	  (minf miny y)
 	  (setf (tk::xpoint-array-x points i) x
@@ -705,6 +812,7 @@ and on color servers, unless using white or black")
 			       start-angle end-angle filled)
   (let ((transform (sheet-device-transformation sheet)))
     (convert-to-device-coordinates transform center-x center-y)
+    (discard-illegal-coordinates port-draw-ellipse* center-x center-y)
     (convert-to-device-distances transform 
       radius-1-dx radius-1-dy radius-2-dx radius-2-dy)
     (when (medium-drawable medium)
@@ -731,6 +839,7 @@ and on color servers, unless using white or black")
 	 (font (text-style-mapping port (medium-text-style medium)))
 	 (ascent (tk::font-ascent font)))
     (convert-to-device-coordinates transform x y)
+    (discard-illegal-coordinates port-draw-text* x y)
     (when towards-x
       (convert-to-device-coordinates transform towards-x towards-y))
     (when (typep string-or-char 'character)
@@ -1091,6 +1200,11 @@ and on color servers, unless using white or black")
 	       (height (- from-bottom from-top))
 	       (copy-gc (port-copy-gc port)))
 	  (when (and from-drawable to-drawable)
+	    (if (port-safe-backing-store port)
+		;; Don't bother with no-expose events.
+		(return-from port-copy-area
+		  (tk::copy-area from-drawable copy-gc from-left from-top
+				 width height to-drawable to-left to-top)))
 	    (with-port-event-lock (port)
 	      (let ((seq-no 0))
 		(without-interrupts

@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: make-classes.lisp,v 1.18 92/05/22 19:26:24 cer Exp Locker: cer $
+;; $fiHeader: make-classes.lisp,v 1.19 92/06/03 18:18:11 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -33,10 +33,74 @@
 (defun get-foreign-variable-value (x)
   (class-array (get-entry-point-value x) 0))
 
+;; This is only called to fill in the cache, so it can be (real) slow.
+(defun get-resource-internal (class fn resource-class resource-name)
+  (let ((x (make-array 1 :element-type '(unsigned-byte 32)))
+	(y (make-array 1 :element-type '(unsigned-byte 32))))
+    (funcall fn (class-handle class) x y)
+    (let ((resources (aref x 0))
+	  (n (aref y 0)))
+      (dotimes (i n)
+	(let* ((res (x-resource-list resources i))
+	       (original-name (x-resource-name res))
+	       (name (lispify-resource-name (char*-to-string original-name))))
+	  (if (equal name resource-name)
+	      (let ((*package* (find-package :tk)))
+		(return-from get-resource-internal
+		  (make-instance
+		      resource-class
+		    :original-name original-name
+		    :name name
+		    :class (lispify-resource-class 
+			    (char*-to-string (x-resource-class res)))
+		    :type (lispify-resource-type 
+			   (char*-to-string (x-resource-type res)))))))))))
+  #+ignore
+  (error "No resource named ~s found for class ~s" resource-name class)
+  ;; Error is actually caught in calling functions.
+  #-ignore
+  nil)
+
+(defmethod find-class-resource ((class xt-class) resource-name)
+  (declare (optimize (speed 3) (safety 0)))
+  (with-slots (cached-resources specially-hacked-resources) class
+    (let ((value (gethash resource-name cached-resources :not-found)))
+      (if (not (eq value :not-found))
+	  value				; Never had it, never will
+	(setf (gethash resource-name cached-resources)
+	  (if* (find resource-name specially-hacked-resources
+		     :key #'resource-name)
+	     thenret
+	     else (get-resource-internal class
+					 #'xt_get_resource_list
+					 'resource
+					 resource-name)))))))
+
+(defmethod find-class-constraint-resource ((class xt-class) resource-name)
+  (declare (optimize (speed 3) (safety 0)))
+  (with-slots (cached-constraint-resources) class
+    (let ((value (gethash resource-name cached-constraint-resources :not-found)))
+      (if (not (eq value :not-found))
+	  value				; Never had it, never will
+	(setf (gethash resource-name cached-constraint-resources)
+	  (get-resource-internal class
+				 #'xt_get_constraint_resource_list
+				 'constraint-resource
+				 resource-name))))))
+
+
+
+;; These next five aren't used except maybe by describe-widget.
+(defmethod class-resources ((class xt-class))
+  (get-resource-list class))
+
+(defmethod class-constraint-resources ((class xt-class))
+  (get-constraint-resource-list class))
+
 (defun get-resource-list-internal (class fn resource-class)
   (let ((x (make-array 1 :element-type '(unsigned-byte 32)))
 	(y (make-array 1 :element-type '(unsigned-byte 32))))
-    (funcall fn class x y)
+    (funcall fn (class-handle class) x y)
     (let ((resources (aref x 0))
 	  (n (aref y 0))
 	  (r nil))
@@ -60,7 +124,7 @@
   (get-resource-list-internal class #'xt_get_constraint_resource_list
 			      'constraint-resource))
 
-
+
 
 (defclass xt-root-class (display-object)
   ((events :initform nil :accessor widget-event-handler-data)
@@ -88,103 +152,56 @@
 
 (defmethod print-object ((r basic-resource) s)
   (print-unreadable-object (r s :type t :identity nil)
-			   (format s "~A,~A " 
-				   (resource-name r)
-				   (resource-type r))))
+    (format s "~A,~A "
+	    (if (slot-boundp r 'name)
+		(resource-name r)
+	      "..UNBOUND..")
+	    (if (slot-boundp r 'type)
+		(resource-type r)
+	      "..UNBOUND.."))))
 
 (defun lispify-resource-name (x) (lispify-tk-name x :package :keyword))
 (defun lispify-resource-class (x) (lispify-tk-name x))
 (defun lispify-resource-type (x) (lispify-tk-name x))
 
+
 (defclass resource (basic-resource)
-	  ())
+  ())
 
-
-			 
 (defclass constraint-resource (basic-resource)
-	  ())
+  ())
 
 
 (defun make-classes (classes)
-  (let ((direct-resources nil)
-	(all-resources nil))
-
-
-    (dolist (class-ep classes)
-      (let ((h (get-foreign-variable-value class-ep)))
-	(push (list h 
-		    class-ep
-		    (get-resource-list h)
-		    (get-constraint-resource-list h))
-	      direct-resources)))
-      
-    (setq direct-resources (nreverse direct-resources))
+  (let ((clist nil))
     
     (dolist (class-ep classes)
       (format excl:*initial-terminal-io* ";; Initializing class ~s~%" class-ep)
       (let ((h (get-foreign-variable-value class-ep)))
-	(xt_initialize_widget_class h)
-	(push (list h
-		    (get-resource-list h)
-		    (get-constraint-resource-list h))
-	      all-resources)))
+	(push (list h class-ep) clist)
+	(xt_initialize_widget_class h)))
+    (setq clist (nreverse clist))
 
-    (do ((directs direct-resources (cdr directs))
+    (do ((cs clist (cdr cs))
 	 r)
-	((null directs)
+	((null cs)
 	 (nreverse r))
-      (destructuring-bind
-       ((handle class-ep direct-resources direct-constraints) . ignore)
-       directs
-       (declare (ignore ignore))
-       (destructuring-bind
-	(handle all-resources all-constraints) 
-	(assoc handle all-resources)
+      (destructuring-bind (handle class-ep) (car cs)
 	(let ((class
 	       (clos::ensure-class
 		(lispify-class-name (widget-class-name handle))
 		:direct-superclasses (list (if (zerop (xt-class-superclass handle))
 					       'xt-root-class
-					     (lispify-class-name (widget-class-name
-								  (xt-class-superclass handle)))))
+					     (lispify-class-name
+					      (widget-class-name
+					       (xt-class-superclass handle)))))
 		:direct-slots nil
 		:metaclass 'xt-class
-		:direct-resources  direct-resources
-		:direct-constraints  direct-constraints
-		:resources all-resources
-		:constraints  all-constraints
 		:entry-point class-ep
-		:foreign-address  (get-foreign-variable-value class-ep))))
+		:foreign-address (get-foreign-variable-value class-ep))))
 	  (register-address class)
-	  (add-accessors-for-toolkit-class class)
-	  (push class r)))))))
+	  (push class r))))))
 
-
-(defun add-accessors-for-toolkit-class (class)
-  #+ignore
-  (dolist (r (class-direct-resources class))
-    (let* ((rname (resource-name r))
-	   (name (intern (format nil "~A-~A" 'widget rname))))
-      (setq name (case name
-		   (widget-window 'widget-stub-window)
-		   (t name)))
-      (add-method
-       (ensure-generic-function name)
-       (make-instance 'clos::standard-method
-		      :lambda-list '(x)
-		      :qualifiers nil
-		      :specializers (list class)
-		      :function #'(lambda (x)
-				    (get-values x rname))))
-      (add-method
-       (ensure-generic-function `(setf ,name))
-       (make-instance 'clos::standard-method
-		      :lambda-list '(nv x)
-		      :qualifiers nil
-		      :specializers (list (find-class t) class)
-		      :function #'(lambda (nv x)
-				    (set-values x rname nv)
-				    nv))))))
 
 (defun define-toolkit-classes (&rest classes)
   (make-classes (remove-duplicates 
@@ -231,16 +248,6 @@
 	 package)
       string)))
 
-(defun collect-resource-types (c)
-  (let (ts)
-    (clos::map-over-subclasses
-     #'(lambda (class)
-	 (dolist (r (append (class-constraint-resources class) (class-resources class)))
-	   (pushnew (resource-type r) ts)))
-     c)
-    ts))
-
-
 
 (defun-c-callable toolkit-error-handler ((message :unsigned-long))
   (error "toolkit error: ~a" (char*-to-string message)))
@@ -249,15 +256,10 @@
   (let ((*error-output* excl:*initial-terminal-io*))
     (warn "toolkit warning: ~a" (char*-to-string message))))
 
-
+;; This is a terrible hack used to compensate for bugs/inconsistencies
+;; in the XM and OLIT toolkits.
 (defun add-resource-to-class (class resource)
   (clos::map-over-subclasses
    #'(lambda (c)
-       (push
-	resource
-	(slot-value c 'resources)))
+       (pushnew resource (slot-value c 'specially-hacked-resources)))
    class))
-
-#|
-(make-widget class parent . resources)
-|#

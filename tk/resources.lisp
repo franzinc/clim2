@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: resources.lisp,v 1.22 92/05/22 19:26:30 cer Exp Locker: cer $
+;; $fiHeader: resources.lisp,v 1.23 92/06/16 15:01:07 cer Exp Locker: cer $
 
 (in-package :tk)
 
@@ -45,6 +45,7 @@
 (defconstant xm_string_default_char_set "")
 
 (defmethod convert-resource-in (class (type (eql 'xm-string)) value)
+  (declare (ignore class))
   (and (not (zerop value))
        (with-ref-par ((string 0))
 	 ;;--- I think we need to read the book about
@@ -263,16 +264,14 @@
 
 (defun fill-sv-cache (parent-class class resources)
   (let* ((len (length resources))
-	 (class-resources (class-resources class))
-	 (constraint-resources (and parent-class (class-constraint-resources parent-class)))
 	 (arglist (make-xt-arglist :number len))
 	 (rds nil)
 	 (constraint-resource-used nil)
 	 (i 0))
     (dolist (r resources)
-      (let ((resource (or (find r class-resources :key #'resource-name :test #'eq)
+      (let ((resource (or (find-class-resource class r)
 			  (psetq constraint-resource-used t)
-			  (find r constraint-resources :key #'resource-name :test #'eq))))
+			  (and parent-class (find-class-constraint-resource parent-class r)))))
 	(unless resource
 	  (error "No such resource ~S for widget of class ~S "
 		 r class))
@@ -328,9 +327,6 @@
 (defun make-arglist-for-class (class parent args)
   (declare (optimize (speed 3) (safety 0)))
   (do ((new-args nil)
-       (resources-1 (class-resources class))
-       (resources-2 (and parent (class-constraint-resources
-				    (class-of parent))))
        keyword
        value)
       ((null args)
@@ -339,8 +335,8 @@
 		   :initial-contents (nreverse new-args)))
     (setq keyword (pop args)
 	  value (pop args))
-    (let ((resource (or (find keyword resources-1 :key #'resource-name)
-			(find keyword resources-2 :key #'resource-name))))
+    (let ((resource (or (find-class-resource class keyword)
+			(find-class-constraint-resource class keyword))))
       (when resource
 	(push (resource-original-name resource) new-args)
 	(let ((type (resource-type resource)))
@@ -418,8 +414,6 @@
 (defun fill-gv-cache (parent-class class resources)
   (setq resources (copy-list resources)) ; So get-values can declare dynamic-extent
   (let* ((len (length resources))
-	 (class-resources (class-resources class))
-	 (constraint-resources (and parent-class (class-constraint-resources parent-class)))
 	 (arglist (make-xt-arglist :number len))
 	 (rds nil)
 	 (constraint-resource-used nil)
@@ -427,9 +421,10 @@
     (dotimes (j len)
       (setf (xt-arglist-value arglist j) (excl::malloc 8))) ; A crock...
     (dolist (r resources)
-      (let ((resource (or (find r class-resources :key #'resource-name :test #'eq)
+      (let ((resource (or (find-class-resource class r)
 			  (psetq constraint-resource-used t)
-			  (find r constraint-resources :key #'resource-name :test #'eq))))
+			  (and parent-class
+			       (find-class-constraint-resource parent-class r)))))
 	(unless resource
 	  (error "No such resource ~S for widget of class ~S "
 		 r class))
@@ -556,7 +551,7 @@
 (defmethod convert-resource-out ((parent t) (type (eql 'xm-background-pixmap)) value)
   (etypecase value
     (pixmap
-     (encode-pixmap value))))
+     (encode-pixmap nil value))))
 
 (defmethod convert-resource-out ((widget t) (type (eql 'widget)) x)
   x)
@@ -569,7 +564,7 @@
 
 
 
-(defmethod convert-resource-out (parent (type (eql 'xm-string-table)) value)
+(defmethod convert-resource-out ((parent t) (type (eql 'xm-string-table)) value)
   (if value
       (do* ((n (length value))
 	    ;;--- Malloc alert
@@ -612,7 +607,7 @@
 
 ;;-- This is a problem cos we dont know the number of items
 
-(defmethod convert-resource-in (parent (type (eql 'xm-string-table)) value)
+(defmethod convert-resource-in ((parent t) (type (eql 'xm-string-table)) value)
   value)
 
 (defun convert-xm-string-table-in (parent table n)
@@ -621,7 +616,7 @@
       (push (convert-resource-in parent 'xm-string (x-arglist table i))
 	    r))))
 
-(defmethod convert-resource-out (parent (type (eql 'proc)) value)
+(defmethod convert-resource-out ((parent t) (type (eql 'proc)) value)
   (etypecase value
     ;;-- Should check to see if its registered
     (integer value)))

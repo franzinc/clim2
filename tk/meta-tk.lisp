@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: meta-tk.lisp,v 1.7 92/03/30 17:51:45 cer Exp $
+;; $fiHeader: meta-tk.lisp,v 1.8 92/05/13 17:10:23 cer Exp $
 
 
 (in-package :tk)
@@ -29,18 +29,15 @@
 (defclass xt-class (standard-class ff:foreign-pointer)
   ((entry-point :initarg :entry-point
 		:reader class-entry-point)
-   (resources :initform nil
-	      :initarg :resources
-	      :reader class-resources)
-   (constraint-resources :initform nil
-			 :initarg :constraints
-			 :reader class-constraint-resources)
-   (direct-resources :initform nil
-		     :initarg :direct-resources
-		     :reader class-direct-resources)
-   (constraint-resources :initform nil
-			 :initarg :direct-constraints
-			 :reader class-direct-constraint-resources)
+   ;; Resources are now looked up on the fly, and cached lazily one by one.
+   ;; Note that direct resources and direct constraint resources are no
+   ;; longer available, since initializing the XT widget class removes the
+   ;; ability to determine them lazily.
+   (cached-resources :initform (make-hash-table :test #'equal)
+		     :type hash-table)
+   (specially-hacked-resources :initform nil) ; See add-resource-to-class.
+   (cached-constraint-resources :initform (make-hash-table :test #'equal)
+		     :type hash-table)
    (get-values-cache :initform (make-hash-table :test #'equal)
 		     :type hash-table
 		     :reader class-get-values-cache)
@@ -53,15 +50,7 @@
     (clos::finalize-inheritance class))
   (dolist (c (clos::class-precedence-list class) 
 	    (error "Cannot get handle for class" class))
-    (when (typep c 'xt-class)
+    (when (and (typep c 'xt-class)
+	       (not (zerop (ff:foreign-pointer-address c))))
       (return c))))
 
-(defmethod clos::finalize-inheritance :after ((class xt-class))
-  (let ((super (car (clos::class-direct-superclasses class))))
-    (when (typep super 'xt-class)
-      (unless (slot-value class 'resources)
-	(setf (slot-value class 'resources)
-	  (slot-value super 'resources)))
-      (unless (slot-value class 'constraint-resources)
-	(setf (slot-value class 'constraint-resources)
-	  (slot-value super 'constraint-resources))))))

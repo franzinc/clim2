@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: gcontext.lisp,v 1.16 92/05/22 19:26:21 cer Exp Locker: cer $
+;; $fiHeader: gcontext.lisp,v 1.17 92/05/26 14:32:53 cer Exp $
 
 (in-package :tk)
 
@@ -91,7 +91,7 @@
 				   name)
 			   :x11)
 		  gc-values)
-	     (,encoder nv ,@args))
+	     (,encoder gc nv ,@args))
 	 
 	   (x11:xchangegc
 	    (object-display gc)
@@ -104,6 +104,7 @@
   (defmacro define-gc-reader (name decoder &rest args)
     `(defmethod ,(intern (format nil "~A-~A" 'gcontext name)) ((gc gcontext))
        (,decoder 
+	gc
 	(,(intern (format nil "~A~A" '_xgc-values- name) :x11)
 	 gc)
 	,@args)))
@@ -186,40 +187,42 @@
 ;(define-gc-accessor background  (encode-pixel decode-pixel))
 
 (defmethod gcontext-foreground ((gc gcontext))
-  (decode-pixel (x11::_xgc-values-foreground gc)))
+  (decode-pixel gc (x11::_xgc-values-foreground gc)))
 
 (defmethod gcontext-background ((gc gcontext))
-  (decode-pixel (x11::_xgc-values-background gc)))
+  (decode-pixel gc (x11::_xgc-values-background gc)))
 
 (defmethod (setf gcontext-foreground) (nv (gc gcontext))
   (x11:xsetforeground 
    (object-display gc)
    gc
-   (encode-pixel nv)))
+   (encode-pixel gc nv)))
 
 (defmethod (setf gcontext-background) (nv (gc gcontext))
   (x11:xsetbackground 
    (object-display gc)
    gc
-   (encode-pixel nv)))
+   (encode-pixel gc nv)))
 
 
 (define-gc-accessor line-width  (encode-card16 decode-card16))
   
 (defmethod gcontext-fill-style ((gc gcontext))
   (decode-fill-style
-   (x11::_xgc-values-fill-style gc)))
+   gc (x11::_xgc-values-fill-style gc)))
 
-(defun decode-fill-style (x)
-  (declare (optimize (speed 3) (safety 0)))
+(defun decode-fill-style (gc x)
+  (declare (optimize (speed 3) (safety 0))
+	   (ignore gc))
   (case x
     (0 :solid)
     (1 :tiled)
     (2 :stippled)
     (3 :opaque-stippled)))
 
-(defun encode-fill-style (x)
-  (declare (optimize (speed 3) (safety 0)))
+(defun encode-fill-style (gc x)
+  (declare (optimize (speed 3) (safety 0))
+	   (ignore gc))
   (ecase x
     (:solid 0)
     (:tiled 1)
@@ -230,14 +233,15 @@
   (x11:xsetfillstyle
    (object-display gc)
    gc
-   (encode-fill-style nv)))
+   (encode-fill-style gc nv)))
   
 
 (define-gc-accessor fill-rule (encode-enum decode-enum) '(:even-odd :winding))
 (define-gc-accessor tile  (encode-pixmap decode-pixmap))
 (define-gc-accessor stipple  (encode-pixmap decode-pixmap))
 
-(defun encode-pixmap (x)
+(defun encode-pixmap (gc x)
+  (declare (ignore gc))
   x)
 
 (define-gc-accessor ts-x-origin (encode-int16 decode-int16))
@@ -247,8 +251,9 @@
 (define-gc-accessor font (encode-font decode-font))
 (define-gc-accessor cap-style (encode-cap-style decode-cap-style))
 
-(defun encode-cap-style (x)
-  (declare (optimize (speed 3) (safety 0)))
+(defun encode-cap-style (gc x)
+  (declare (optimize (speed 3) (safety 0))
+	   (ignore gc))
   (ecase x
     (:not-last 0)
     (:butt 1)
@@ -257,8 +262,9 @@
 
 (define-gc-accessor join-style (encode-join-style decode-join-style))
 
-(defun encode-join-style (x)
-  (declare (optimize (speed 3) (safety 0)))
+(defun encode-join-style (gc x)
+  (declare (optimize (speed 3) (safety 0))
+	   (ignore gc))
   (ecase x
     (:miter 0)
     (:round 1)
@@ -285,13 +291,19 @@
 		#.boole-nor #.boole-eqv #.boole-c2 #.boole-orc2
 		#.boole-c1 #.boole-orc1 #.boole-nand #.boole-set))
 
-(defun encode-function (x) 
+(defun encode-function (gc x)
+  (declare (ignore gc))
   (or (position x *boole-vector*)
       (error "Cannot encode gc function: ~S" x)))
 
-(defun encode-card32 (x) x)
-(defun encode-card16 (x) x)
-(defun encode-enum (x y)
+(defun encode-card32 (gc x)
+  (declare (ignore gc))
+  x)
+(defun encode-card16 (gc x)
+  (declare (ignore gc))
+  x)
+(defun encode-enum (gc x y)
+  (declare (ignore gc))
   (or (position x y)
       (error "cannot find ~s in ~s" x y)))
 
@@ -302,9 +314,9 @@
    (object-display gc)
    gc
    line-width
-   (encode-line-style line-style)
-   (encode-cap-style cap-style)
-   (encode-join-style join-style)))
+   (encode-line-style gc line-style)
+   (encode-cap-style gc cap-style)
+   (encode-join-style gc join-style)))
 
 (defmethod (setf gcontext-clip-mask) ((nv (eql :none)) (gc gcontext))
   (x11:xsetclipmask
@@ -353,8 +365,9 @@
   
 (define-gc-accessor line-style  (encode-line-style decode-style))
 
-(defun encode-line-style (x)
-  (declare (optimize (speed 3) (safety 0)))
+(defun encode-line-style (gc x)
+  (declare (optimize (speed 3) (safety 0))
+	   (ignore gc))
   (ecase x
     (:solid 0)
     (:dash 1)
@@ -362,7 +375,7 @@
 
 (defmethod (setf gcontext-dashes) (nv (gc gcontext))
   (multiple-value-bind (n v)
-      (encode-dashes nv)
+      (encode-dashes gc nv)
     (x11:xsetdashes
      (object-display gc)
      gc
@@ -371,8 +384,9 @@
      n)))
 
 
-(defun encode-dashes (nv)
-  (declare (optimize (speed 3) (safety 0)))
+(defun encode-dashes (gc nv)
+  (declare (optimize (speed 3) (safety 0))
+	   (ignore gc))
   (let* ((n (length nv))
 	 (v (excl:make-static-array n :element-type '(unsigned-byte 8))))
     (declare (fixnum n)
@@ -391,10 +405,14 @@
     (values n v)))
   
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defun encode-int16 (x) x)
+(defun encode-int16 (gc x)
+  (declare (ignore gc))
+  x)
 
 
-(defun encode-font (x) (x11:xfontstruct-fid x))
+(defun encode-font (gc x)
+  (declare (ignore gc))
+  (x11:xfontstruct-fid x))
 
 
 
@@ -402,10 +420,11 @@
 ;;; wrappers
 
 
-(defun decode-card16 (x) x)
+(defun decode-card16 (gc x)
+  (declare (ignore gc))
+  x)
 
-(defun decode-font (x) 
-  (declare (special gc))
+(defun decode-font (gc x)
   (if (= x #16rffffffff)
       (error "cannot decode font")
     (let* ((display (object-display gc))
@@ -413,21 +432,29 @@
       (or font
 	  (query-font display x)))))
 
-(defun decode-pixmap (x)
-  (declare (special gc))
+(defun decode-pixmap (gc x)
   (and (/= #16rffffffff x)
        (intern-object-xid
 	x
 	'pixmap
 	(object-display gc))))
 
-(defun decode-clip-mask (x) x)
-(defun decode-enum (x y)
+(defun decode-clip-mask (gc x)
+  (declare (ignore gc))
+  x)
+(defun decode-enum (gc x y)
+  (declare (ignore gc))
   (or (elt y x)
       (error "cannot find ~s in ~s" x y)))
-(defun decode-card32 (x) x)
-(defun decode-dashes (x) x)
-(defun decode-int16 (x) x)
+(defun decode-card32 (gc x)
+  (declare (ignore gc))
+  x)
+(defun decode-dashes (gc x)
+  (declare (ignore gc))
+  x)
+(defun decode-int16 (gc x)
+  (declare (ignore gc))
+  x)
 
 
 ;;;;;;;;;;;;;;;;;;;
@@ -482,11 +509,13 @@
 	       (print gc))
 |#
 
-(defun decode-pixel (x) x)
-
-(defmethod encode-pixel ((x integer))
+(defun decode-pixel (gc x)
+  (declare (ignore gc))
   x)
 
-(defmethod encode-pixel ((x color))
-  (declare (special gc))
+(defmethod encode-pixel (gc (x integer))
+  (declare (ignore gc))
+  x)
+
+(defmethod encode-pixel (gc (x color))
   (allocate-color (default-colormap (object-display gc) 0) x))

@@ -20,39 +20,39 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: convenience.lisp,v 1.8 92/04/21 20:27:27 cer Exp Locker: cer $
+;; $fiHeader: convenience.lisp,v 1.9 92/04/28 09:24:58 cer Exp $
 
 (in-package :tk)
 
-					;
-(defmacro define-convenience-class (class superclasses entry-point)
-  (let ((c-function-name
-	 (intern (substitute #\_ #\- 
-			     (lispify-tk-name entry-point :package nil)))))
-    `(progn
-       (defforeign ',c-function-name :entry-point ,entry-point)
-       (defclass ,class ,superclasses
-		 ()
-	 (:metaclass xt-class))
-       (defmethod make-widget ((w ,class) &rest args &key (managed t)
-			       (name "") 
-			       parent &allow-other-keys)
-	 (remf :name args)
-	 (remf :parent args)
-	 (remf :managed args)
-	 (let* ((arglist (make-arglist-for-class
-			  (find-class ',class)
-			  parent
-			  args))
-		(o 
-		 (,c-function-name
-		  parent
-		  (string-to-char* name)
-		  arglist
-		  (truncate (length arglist) 2))))
-	   (when managed
-	     (xt_manage_child o))
-	   o)))))
+(eval-when (eval compile)
+  (defmacro define-convenience-class (class superclasses entry-point)
+    (let ((c-function-name
+	   (intern (substitute #\_ #\- 
+			       (lispify-tk-name entry-point :package nil)))))
+      `(progn
+	 (defforeign ',c-function-name :entry-point ,entry-point)
+	 (defclass ,class ,superclasses
+	   ()
+	   (:metaclass xt-class))
+	 (defmethod make-widget ((w ,class) &rest args &key (managed t)
+					    (name "") 
+					    parent &allow-other-keys)
+	   (remf :name args)
+	   (remf :parent args)
+	   (remf :managed args)
+	   (let* ((arglist (make-arglist-for-class
+			    (find-class ',class)
+			    parent
+			    args))
+		  (o 
+		   (,c-function-name
+		    parent
+		    (string-to-char* name)
+		    arglist
+		    (truncate (length arglist) 2))))
+	     (when managed
+	       (xt_manage_child o))
+	     o))))))
 
 (define-convenience-class xm-menu-bar (xm-row-column) "_XmCreateMenuBar")
 (define-convenience-class xm-pulldown-menu (xm-row-column) "_XmCreatePulldownMenu")

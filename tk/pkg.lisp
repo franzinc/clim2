@@ -20,7 +20,7 @@
 ;; 52.227-19 or DOD FAR Supplement 252.227-7013 (c) (1) (ii), as
 ;; applicable.
 ;;
-;; $fiHeader: pkg.lisp,v 1.8 92/04/21 20:27:39 cer Exp $
+;; $fiHeader: pkg.lisp,v 1.9 92/05/13 17:10:24 cer Exp $
 
 (defpackage :tk
   ;;-- No we really need
@@ -36,5 +36,13 @@
    #:top-level-shell
    #:popup
    #:manage-child
+   #:card32
+   #:card29
+   #:card24
+   #:card16
+   #:card8
+   #:int32
+   #:int16
+   #:int8
    ))
 
