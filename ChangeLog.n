@@ -17,7 +17,7 @@ If there are user-visible changes in this commit, then list the
 
 	* aclpc/acl-medium.lisp,
 	* aclpc/acl-widget.lisp,
-	* clim/surround-output.lisp: fixes from Jeff
+	* clim/surround-output.lisp: fixes from Jeff (bug8171 and others)
 
 *******************************************************************************
 2.2.1.67
