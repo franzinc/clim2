@@ -1,0 +1,39 @@
+# $Header: /repo/cvs.copy/clim2/Makefile.power64,v 1.1.2.1 2002/08/10 14:41:25 duane Exp $
+#
+#  Makefile.rs6000 for CLIM 2.0
+#
+
+include Makefile.defs
+
+Makefile=Makefile.power64
+
+## For info on Motif1.2 vs Motif 2.1, see /usr/lpp/X11/README
+##
+
+CFLAGS	= -q64 -DAcl64Bit -O -D_BSD -I/usr/include/Motif1.2
+
+### the R5 directory contains Motif 1.2 on loveshaq
+### -- what a botch.  Can't use the latest X11 just because we want
+###    to use an older Motif!  How I love AIX.... not!
+SET_LIBRARY_PATH= \
+  LIBPATH=/usr/lpp/X11/lib/R6:/lib:/usr/lib; export LIBPATH; env
+
+TKLIB=-L/usr/lpp/X11/lib/R6/Motif2.1 -lXm
+
+XTLIB=-lXt
+XLIB=-lX11
+
+XINCLUDES= -I/usr/include/Motif2.1
+
+PRODUCT-OBJS= $(PRODUCT-GENERIC-OBJS) $(STATIC-XM-OBJS) $(SHARED-XM-OBJS)
+MAKE_SHARED = sh ../src/bin/make_shared.ibm64 -make_exp ../src/bin/make_exp
+STD_DEFINES =
+AR = ar -X64 clq
+
+# This should be defined in make-dist. For CLIM devel (ie making
+# slim images) we use climdcl-devel and don't use the shared library
+IMPORTS = stub-x.o stub-xt.o stub-motif.o ../src/lisp.exp
+
+stubs = c2stubs
+
+include Makefile.generic
