@@ -1,27 +1,30 @@
 ;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Package: CLIM-INTERNALS; Base: 10; Lowercase: Yes -*-
 
-;; $fiHeader: dragging-output.lisp,v 1.8 92/08/18 17:24:50 cer Exp $
+;; $fiHeader: dragging-output.lisp,v 1.9 92/11/06 18:59:29 cer Exp $
 
 (in-package :clim-internals)
 
 "Copyright (c) 1990, 1991, 1992 Symbolics, Inc.  All rights reserved.
  Portions copyright (c) 1989, 1990 International Lisp Associates."
 
+(defparameter *dragging-output-finish-on-release* nil)
+
 ;;; Yay!
-(defmacro dragging-output ((&optional stream (repaint t) (finish-on-release nil))
+(defmacro dragging-output ((&optional stream 
+			    &key (repaint t) multiple-window
+				 (finish-on-release *dragging-output-finish-on-release*))
 			   &body body)
   (default-output-stream stream dragging-output)
   (let ((output-record '#:output-record))
     `(let ((,output-record
 	    (with-output-to-output-record (,stream) ,@body)))
        (drag-output-record ,stream ,output-record
-			   :repaint ,repaint
+			   :repaint ,repaint :multiple-window ,multiple-window
 			   :finish-on-release ,finish-on-release))))
 
-(defparameter *dragging-output-finish-on-release* nil)
-
 (defun drag-output-record (stream output-record
-			   &key (repaint t) (erase #'erase-output-record) feedback
+			   &key (repaint t) multiple-window
+				(erase #'erase-output-record) feedback
 				(finish-on-release *dragging-output-finish-on-release*))
   (declare (values final-x final-y delta-x delta-y))
   (let (last-x last-y
@@ -43,7 +46,9 @@
 	  ;; system of the record
 	  (setq delta-x (- initial-x record-x)
 		delta-y (- initial-y record-y)))
-	(flet ((finish (x y)
+	(incf initial-x x-offset)
+	(incf initial-y y-offset)
+	(flet ((finish (window x y)
 		 (when last-x
 		   (if feedback
 		       (funcall feedback output-record stream
@@ -54,7 +59,16 @@
 		   ;; because the user can be moving the pointer really fast,
 		   ;; causing FINISH to be called on coordinates which are
 		   ;; "before" the values of LAST-X/Y.
-		   (output-record-set-position output-record (- x delta-x) (- y delta-y))
+		   (unless (or multiple-window
+			       (eq window stream))
+		     ;; If the user didn't ask for multiple windows, and 
+		     ;; he moved into another window, set things back
+		     (setq x (- initial-x x-offset)
+			   y (- initial-y y-offset)
+			   delta-x 0
+			   delta-y 0))
+		   (output-record-set-position 
+		     output-record (- x delta-x) (- y delta-y))
 		   (when parent
 		     (add-output-record output-record parent)
 		     (tree-recompute-extent output-record))
@@ -68,7 +82,7 @@
 	      (funcall feedback output-record stream
 		       initial-x initial-y initial-x initial-y :draw)
 	      (setq last-x initial-x last-y initial-y))
-	    (tracking-pointer (stream)
+	    (tracking-pointer (stream :multiple-window multiple-window)
 	      (:pointer-motion (window x y)
 	       (when (eq window stream)
 		 (when (or (not (eq x last-x))
@@ -93,10 +107,9 @@
 		       (funcall feedback output-record stream
 				initial-x initial-y x y :draw)
 		       (replay-output-record output-record stream nil x-offset y-offset)))))
-	      (:pointer-button-press (x y)
+	      (:pointer-button-press (event x y)
 	       (unless finish-on-release
-		 (finish x y)))
-	      (:pointer-button-release (x y)
+		 (finish (event-sheet event) x y)))
+	      (:pointer-button-release (event x y)
 	       (when finish-on-release
-		 (finish x y))))))))))
-
+		 (finish (event-sheet event) x y))))))))))
